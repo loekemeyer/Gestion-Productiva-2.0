@@ -1,0 +1,218 @@
+<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Verificacion Madres (GP2)</title>
+<style>
+ *{box-sizing:border-box}
+ body{margin:0;background:#0a0e13;color:#e6ecf3;font:13px/1.4 -apple-system,Segoe UI,Roboto,sans-serif}
+ .top{background:linear-gradient(90deg,#0a2a3a,#0f4256);padding:12px 20px;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+ .top h1{margin:0;font-size:18px;color:#5fd0e0}
+ .top .sub{font-size:11px;color:#8fc4d0}
+ .kpis{padding:12px 20px;display:flex;gap:14px;flex-wrap:wrap}
+ .kpi{background:#101820;border:1px solid #1e2a38;border-radius:8px;padding:10px 14px;min-width:120px}
+ .kpi .n{font-size:22px;font-weight:800;color:#5fd0e0}
+ .kpi .n.warn{color:#e0a95a}
+ .kpi .lb{font-size:10px;text-transform:uppercase;color:#7a92a8;letter-spacing:.6px}
+ .tabs{padding:8px 20px 0;display:flex;gap:6px;flex-wrap:wrap}
+ .tab{background:#101820;color:#8fc4d0;border:1px solid #1e2a38;border-bottom:none;border-radius:6px 6px 0 0;padding:7px 12px;cursor:pointer;font:12px inherit}
+ .tab:hover{background:#152233}
+ .tab.active{background:#0d141d;color:#5fd0e0;font-weight:700}
+ .tab .b{color:#e0a95a;font-weight:700}
+ .filters{padding:12px 20px;background:#101820;border-bottom:1px solid #1e2a38;display:flex;gap:12px;flex-wrap:wrap;align-items:center}
+ .filters input{background:#0b1119;color:#e6ecf3;border:1px solid #2a4a6e;border-radius:6px;padding:6px 10px;font:13px inherit;min-width:240px}
+ .filters label{font-size:12px;color:#8fc4d0;display:flex;align-items:center;gap:6px;cursor:pointer}
+ .btn{background:#2a4a6e;color:#e6ecf3;border:none;border-radius:6px;padding:6px 12px;cursor:pointer;font:13px inherit;margin-left:auto}
+ .btn:hover{background:#356090}
+ .content{padding:0 20px 40px}
+ .status{padding:10px 20px;font-size:12px;color:#7a92a8}
+ .art-section{margin:14px 0;border:1px solid #1e2a38;border-radius:8px;background:#0d141d;overflow:hidden}
+ .art-head{padding:9px 14px;background:linear-gradient(90deg,#152233,#101820);display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+ .art-head .cod{color:#5fd0e0;font-weight:800;font-size:15px}
+ .art-head .tag{display:inline-block;padding:2px 8px;border-radius:3px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.3px;background:#20283a;color:#90a8d0}
+ .art-head .stats{margin-left:auto;display:flex;gap:16px;font-size:11px;color:#7a92a8;align-items:center}
+ .art-head .stats b{color:#e6ecf3;font-size:13px}
+ .art-head .stats b.warn{color:#e0a95a}
+ .art-body{overflow-x:auto}
+ table{border-collapse:collapse;font-size:12px;width:100%;min-width:640px}
+ th,td{padding:6px 12px;text-align:left;border-bottom:1px solid #1e2a38;white-space:nowrap}
+ th{color:#7a92a8;text-transform:uppercase;font-size:10px;letter-spacing:.4px;background:#0a1119;position:sticky;top:0}
+ td.num{text-align:right;font-family:ui-monospace,SF Mono,monospace}
+ tbody tr:hover{background:#111c28}
+ td.falta{background:#3a1a0a;color:#e0a95a;font-weight:700}
+ .empty{padding:24px;color:#7a92a8;font-style:italic}
+ .muted{color:#5a6a7a}
+ .note{padding:10px 20px;font-size:11px;color:#7a92a8;font-style:italic}
+</style></head>
+<body>
+<div class="top">
+  <div>
+    <h1>🔎 Verificacion Madres</h1>
+    <div class="sub">Integridad de pesos maestros por sector — faltantes de Kg x Uni / Uni x Cajon. Datos: schema GP2 (tabla <code>componente</code>).</div>
+  </div>
+</div>
+<div class="kpis" id="kpis"></div>
+<div class="tabs" id="tabs"></div>
+<div class="filters">
+  <input id="q" placeholder="Buscar por codigo o descripcion">
+  <label><input type="checkbox" id="chkFalta"> Solo con faltantes</label>
+  <label><input type="checkbox" id="chkRelev" checked> Solo sectores con peso</label>
+  <button class="btn" id="btnCSV">Exportar CSV</button>
+</div>
+<div class="status" id="status">Cargando...</div>
+<div class="content" id="content"></div>
+<div class="note">Nota: sectores sin pesos (Carton, Caja, Terminado, Transito) se ocultan por defecto — sus componentes no llevan peso por unidad en el modelo GP2 (el peso del terminado sale del despiece). Destildá "Solo sectores con peso" para verlos.</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>var D={};</script>
+<script>
+var SB=window.supabase.createClient('https://hrxfctzncixxqmpfhskv.supabase.co','eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhyeGZjdHpuY2l4eHFtcGZoc2t2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI3MjQyNjEsImV4cCI6MjA4ODMwMDI2MX0.4L6wguch8UZGhC2VpzrWcCjJGUV-IkYsl9JoCWrOLUs',{db:{schema:'GP2'}});
+
+function esc(s){var d=document.createElement('div');d.textContent=(s==null?'':String(s));return d.innerHTML;}
+function fmt(v){if(v==null||v==='')return '';var n=Number(v);if(!isFinite(n))return esc(v);return n.toLocaleString('es-AR',{minimumFractionDigits:0,maximumFractionDigits:6});}
+
+var tabActual='__todos__';
+var fQ=document.getElementById('q');
+var chkFalta=document.getElementById('chkFalta');
+var chkRelev=document.getElementById('chkRelev');
+
+function secMeta(id){return (D.sectores||[]).find(function(s){return s.id===id;})||{};}
+
+function compVisibles(){
+  var q=fQ.value.trim().toLowerCase();
+  var soloFalta=chkFalta.checked;
+  return (D.comp||[]).filter(function(c){
+    if(tabActual==='__matriz__')return false;
+    if(tabActual!=='__todos__'&&String(c.s)!==String(tabActual))return false;
+    if(chkRelev.checked&&tabActual==='__todos__'&&!secMeta(c.s).relevante_peso)return false;
+    if(soloFalta&&!(c.fkg||c.fuxc))return false;
+    if(!q)return true;
+    return (c.cod||'').toLowerCase().indexOf(q)>=0||(c.d||'').toLowerCase().indexOf(q)>=0;
+  });
+}
+function matVisibles(){
+  var q=fQ.value.trim().toLowerCase();
+  var soloFalta=chkFalta.checked;
+  return (D.matriz||[]).filter(function(m){
+    if(soloFalta&&!m.fppk)return false;
+    if(!q)return true;
+    return String(m.n||'').toLowerCase().indexOf(q)>=0||(m.d||'').toLowerCase().indexOf(q)>=0;
+  });
+}
+
+function renderTabs(){
+  var t=document.getElementById('tabs');t.innerHTML='';
+  function mk(key,label,warn){
+    var b=document.createElement('div');b.className='tab'+(tabActual===key?' active':'');
+    b.innerHTML=esc(label)+(warn>0?' <span class="b">('+warn+')</span>':'');
+    b.addEventListener('click',function(){tabActual=key;renderTabs();render();});
+    t.appendChild(b);
+  }
+  mk('__todos__','Todos',0);
+  (D.sectores||[]).slice().sort(function(a,b){return a.id-b.id;}).forEach(function(s){
+    if(chkRelev.checked&&!s.relevante_peso)return;
+    if(s.total===0)return;
+    mk(String(s.id),s.tipo,s.sin_kg);
+  });
+  mk('__matriz__','Matrices',(D.resumen||{}).matriz_sin_ppk||0);
+}
+
+function render(){
+  var cont=document.getElementById('content');cont.innerHTML='';
+  if(tabActual==='__matriz__'){renderMatriz(cont);return;}
+  var comp=compVisibles();
+  document.getElementById('status').textContent=comp.length+' componentes'+
+    (chkFalta.checked?' con faltantes':'')+'.';
+  if(comp.length===0){cont.innerHTML='<div class="empty">Sin componentes para el filtro actual.</div>';return;}
+  // agrupar por sector
+  var groups={};comp.forEach(function(c){(groups[c.s]=groups[c.s]||[]).push(c);});
+  Object.keys(groups).sort(function(a,b){return a-b;}).forEach(function(sid){
+    var meta=secMeta(Number(sid));var rows=groups[sid];
+    var falt=rows.filter(function(c){return c.fkg||c.fuxc;}).length;
+    var sec=document.createElement('div');sec.className='art-section';
+    sec.innerHTML='<div class="art-head">'+
+      '<span class="cod">'+esc(meta.nombre||('Sector '+sid))+'</span>'+
+      '<span class="tag">'+esc(meta.tipo||'')+'</span>'+
+      '<div class="stats"><span>Componentes: <b>'+rows.length+'</b></span>'+
+      '<span>Faltantes: <b class="'+(falt>0?'warn':'')+'">'+falt+'</b></span></div></div>';
+    var body=document.createElement('div');body.className='art-body';
+    var h='<table><thead><tr><th>Codigo</th><th>Descripcion</th><th>UM</th>'+
+      '<th>Kg x Uni</th><th>Uni x Cajon</th></tr></thead><tbody>';
+    rows.forEach(function(c){
+      h+='<tr><td>'+esc(c.cod||'')+'</td><td>'+esc(c.d||'')+'</td><td>'+esc(c.um||'')+'</td>'+
+        '<td class="num'+(c.fkg?' falta':'')+'">'+(c.fkg?'FALTA':fmt(c.kg))+'</td>'+
+        '<td class="num'+(c.fuxc?' falta':'')+'">'+(c.fuxc?'FALTA':fmt(c.uxc))+'</td></tr>';
+    });
+    h+='</tbody></table>';body.innerHTML=h;sec.appendChild(body);cont.appendChild(sec);
+  });
+}
+
+function renderMatriz(cont){
+  var mats=matVisibles();
+  document.getElementById('status').textContent=mats.length+' matrices'+(chkFalta.checked?' con faltantes':'')+'.';
+  if(mats.length===0){cont.innerHTML='<div class="empty">Sin matrices para el filtro actual.</div>';return;}
+  var falt=mats.filter(function(m){return m.fppk;}).length;
+  var sec=document.createElement('div');sec.className='art-section';
+  sec.innerHTML='<div class="art-head"><span class="cod">Matrices</span>'+
+    '<div class="stats"><span>Total: <b>'+mats.length+'</b></span>'+
+    '<span>Sin partes/kilo: <b class="'+(falt>0?'warn':'')+'">'+falt+'</b></span></div></div>';
+  var body=document.createElement('div');body.className='art-body';
+  var h='<table><thead><tr><th>N Matriz</th><th>Descripcion</th><th>Tipo</th>'+
+    '<th>Partes x Kilo de Fleje</th></tr></thead><tbody>';
+  mats.forEach(function(m){
+    h+='<tr><td>'+esc(m.n||'')+'</td><td>'+esc(m.d||'')+'</td><td>'+esc(m.tipo||'')+'</td>'+
+      '<td class="num'+(m.fppk?' falta':'')+'">'+(m.fppk?'FALTA':fmt(m.ppk))+'</td></tr>';
+  });
+  h+='</tbody></table>';body.innerHTML=h;sec.appendChild(body);cont.appendChild(sec);
+}
+
+function renderKpis(){
+  var r=D.resumen||{};
+  document.getElementById('kpis').innerHTML=
+    '<div class="kpi"><div class="n">'+(r.total_comp||0)+'</div><div class="lb">Componentes</div></div>'+
+    '<div class="kpi"><div class="n warn">'+(r.total_sin_kg||0)+'</div><div class="lb">Sin Kg x Uni</div></div>'+
+    '<div class="kpi"><div class="n warn">'+(r.total_sin_uxc||0)+'</div><div class="lb">Sin Uni x Cajon</div></div>'+
+    '<div class="kpi"><div class="n">'+(r.total_matriz||0)+'</div><div class="lb">Matrices</div></div>'+
+    '<div class="kpi"><div class="n warn">'+(r.matriz_sin_ppk||0)+'</div><div class="lb">Matrices sin ppk</div></div>';
+}
+
+function exportCSV(){
+  var SEP=';';
+  var q=function(v){return '"'+String(v==null?'':v).replace(/"/g,'""')+'"';};
+  var linea=function(a){return a.map(q).join(SEP);};
+  var filas=[linea(['Verificacion Madres (GP2)']),linea(['Generado',new Date().toISOString().slice(0,10)]),''];
+  if(tabActual==='__matriz__'){
+    filas.push(linea(['N Matriz','Descripcion','Tipo','Partes x Kilo','Falta']));
+    matVisibles().forEach(function(m){filas.push(linea([m.n,m.d,m.tipo,m.ppk,m.fppk?'SI':'']));});
+  }else{
+    filas.push(linea(['Sector','Tipo','Codigo','Descripcion','UM','Kg x Uni','Uni x Cajon','Falta Kg','Falta Uxc']));
+    compVisibles().forEach(function(c){var s=secMeta(c.s);
+      filas.push(linea([s.nombre,s.tipo,c.cod,c.d,c.um,c.kg,c.uxc,c.fkg?'SI':'',c.fuxc?'SI':'']));});
+  }
+  var csv='﻿'+filas.join('\r\n');
+  var blob=new Blob([csv],{type:'text/csv;charset=utf-8'});
+  var url=URL.createObjectURL(blob);
+  var el=document.createElement('a');el.href=url;el.download='verifmadres_gp2_'+new Date().toISOString().slice(0,10)+'.csv';el.click();
+  URL.revokeObjectURL(url);
+}
+
+function __run(){
+  renderKpis();renderTabs();render();
+  fQ.addEventListener('input',render);
+  chkFalta.addEventListener('change',function(){renderTabs();render();});
+  chkRelev.addEventListener('change',function(){if(chkRelev.checked&&tabActual!=='__todos__'&&tabActual!=='__matriz__'&&!secMeta(Number(tabActual)).relevante_peso)tabActual='__todos__';renderTabs();render();});
+  document.getElementById('btnCSV').addEventListener('click',exportCSV);
+}
+
+async function __boot(){
+  try{
+    document.body.style.cursor='progress';
+    var r=await SB.rpc('verifmadres_bundle');
+    if(r.error)throw r.error;
+    Object.assign(D,r.data);
+    __run();
+  }catch(e){
+    document.body.innerHTML='<p style="padding:24px;font-family:system-ui;color:#ff7070">Error cargando datos de Supabase: '+(e.message||e)+'</p>';
+    console.error(e);
+  }finally{document.body.style.cursor='';}
+}
+__boot();
+</script>
+</body></html>
