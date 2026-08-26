@@ -1,0 +1,299 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <script src="../../auth-guard.js"></script>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Control Prov. Servicios (GP2)</title>
+
+  <!-- Supabase -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <!-- CSS reutilizado de la pagina vieja -->
+  <link rel="stylesheet" href="ControlPS.css?v=3" />
+
+  <style>
+    /* Banner de datos parciales (propio de la version GP2) */
+    .gp2-banner{
+      background:#fff8e1;
+      border:1px solid #f0c36d;
+      color:#7a5b00;
+      border-radius:10px;
+      padding:10px 14px;
+      font-size:13px;
+      line-height:1.4;
+      margin-bottom:16px;
+    }
+    .gp2-banner b{ color:#5a4400; }
+    .gp2-tag{
+      display:inline-block;
+      background:#111;
+      color:#fff;
+      font-size:11px;
+      border-radius:6px;
+      padding:2px 8px;
+      margin-left:8px;
+      vertical-align:middle;
+    }
+    .prov-meta{ font-weight:normal; font-size:12px; color:#666; }
+    td.num{ text-align:right !important; font-variant-numeric:tabular-nums; }
+    td.neg{ color:#b3402f; }
+    .empty-msg{ color:#666; font-size:14px; padding:10px 0; }
+  </style>
+</head>
+<body>
+
+  <div class="card">
+
+    <h1>Control Proveedores de Servicios <span class="gp2-tag">schema GP2</span></h1>
+
+    <div class="gp2-banner">
+      <b>Datos parciales (schema GP2):</b> proveedores con mapeo confirmado. Saldos en unidades
+      canonicas. Ledger historico incompleto &mdash; faltan remaches y proveedores por mapear.
+    </div>
+
+    <div class="row-tools">
+      <button id="btnIndex" class="btn-index" type="button">&#8962; Inicio</button>
+
+      <button id="btnVolver" class="btn-volver hidden" type="button">&larr; Cambiar proveedor</button>
+
+      <input id="filtroDesc" class="filtro-desc hidden" type="text"
+             placeholder="&#128269; Filtrar por descripcion..." autocomplete="off" />
+
+      <button id="btnImprimir" class="btn-imprimir hidden" type="button">&#128424; Imprimir</button>
+    </div>
+
+    <div class="row">
+      <div id="talleristasGrid" class="talleristas-grid"></div>
+    </div>
+
+    <div id="status" class="status"></div>
+
+    <div id="result"></div>
+
+  </div>
+
+  <!-- Area de impresion (oculta en pantalla) -->
+  <div id="printArea" class="print-only"></div>
+
+  <script>
+  var D = {};
+
+  var SB = window.supabase.createClient(
+    'https://hrxfctzncixxqmpfhskv.supabase.co',
+    'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhyeGZjdHpuY2l4eHFtcGZoc2t2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI3MjQyNjEsImV4cCI6MjA4ODMwMDI2MX0.4L6wguch8UZGhC2VpzrWcCjJGUV-IkYsl9JoCWrOLUs',
+    { db:{ schema:'GP2' } }
+  );
+
+  function __run(){
+    var provs = (D && D.proveedores) ? D.proveedores : [];
+    var elGrid   = document.getElementById('talleristasGrid');
+    var elResult = document.getElementById('result');
+    var elStatus = document.getElementById('status');
+    var elFiltro = document.getElementById('filtroDesc');
+    var btnVolver= document.getElementById('btnVolver');
+    var btnImpr  = document.getElementById('btnImprimir');
+    var btnIndex = document.getElementById('btnIndex');
+    var printArea= document.getElementById('printArea');
+
+    var provSel = null; // proveedor elegido
+
+    // ---- helpers de formato ----
+    function fmt(n){
+      if(n===null || n===undefined || isNaN(n)) return '0';
+      n = Number(n);
+      var neg = n < 0;
+      var abs = Math.abs(n);
+      // hasta 3 decimales, sin ceros colgando
+      var s;
+      if(Math.abs(abs - Math.round(abs)) < 1e-9){
+        s = String(Math.round(abs));
+      } else {
+        s = abs.toFixed(3).replace(/0+$/,'').replace(/\.$/,'');
+      }
+      // separador de miles (parte entera)
+      var parts = s.split('.');
+      parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+      s = parts.join(',');
+      return (neg ? '-' : '') + s;
+    }
+    function esc(t){
+      return String(t==null?'':t)
+        .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    }
+
+    // ---- grilla de proveedores ----
+    function renderGrid(){
+      elGrid.innerHTML = '';
+      if(!provs.length){
+        elGrid.innerHTML = '<div class="empty-msg">No hay proveedores con datos GP2.</div>';
+        return;
+      }
+      provs.forEach(function(p){
+        var partes = p.partes || [];
+        var b = document.createElement('button');
+        b.type = 'button';
+        b.className = 'tallerista-btn';
+        var viejo = p.nombre_viejo ? (' &middot; ' + esc(p.nombre_viejo)) : '';
+        b.innerHTML = esc(p.nombre) +
+          '<div class="prov-meta">' + esc(p.proceso||'') +
+          ' &middot; ' + partes.length + ' partes' + viejo + '</div>';
+        b.addEventListener('click', function(){ elegir(p, b); });
+        elGrid.appendChild(b);
+      });
+    }
+
+    function elegir(p, btn){
+      provSel = p;
+      Array.prototype.forEach.call(elGrid.querySelectorAll('.tallerista-btn'), function(x){ x.classList.remove('active'); });
+      if(btn) btn.classList.add('active');
+      // mostrar toolbar de detalle
+      btnVolver.classList.remove('hidden');
+      elFiltro.classList.remove('hidden');
+      btnImpr.classList.remove('hidden');
+      elFiltro.value = '';
+      renderTabla('');
+    }
+
+    function partesFiltradas(txt){
+      var partes = (provSel && provSel.partes) ? provSel.partes.slice() : [];
+      txt = (txt||'').trim().toLowerCase();
+      if(txt){
+        partes = partes.filter(function(x){
+          return (String(x.descripcion||'').toLowerCase().indexOf(txt) >= 0) ||
+                 (String(x.codigo||'').toLowerCase().indexOf(txt) >= 0);
+        });
+      }
+      return partes;
+    }
+
+    function numCell(v){
+      var cls = 'num' + (Number(v) < 0 ? ' neg' : '');
+      return '<td class="'+cls+'">'+fmt(v)+'</td>';
+    }
+
+    function renderTabla(filtro){
+      if(!provSel){ elResult.innerHTML=''; elStatus.textContent=''; return; }
+      var partes = partesFiltradas(filtro);
+
+      var tEnv=0, tEnt=0, tSal=0;
+      partes.forEach(function(x){
+        tEnv += Number(x.enviado)||0;
+        tEnt += Number(x.entregado)||0;
+        tSal += Number(x.saldo)||0;
+      });
+
+      var viejo = provSel.nombre_viejo ? (' &middot; nombre viejo: <b>'+esc(provSel.nombre_viejo)+'</b>') : '';
+      var h = '<h2 style="margin:6px 0 4px">'+esc(provSel.nombre)+'</h2>' +
+              '<div class="prov-meta" style="margin-bottom:10px">Proceso: '+esc(provSel.proceso||'?')+
+              ' &middot; Cod. Prov.: '+esc(provSel.cod_prov||'?')+viejo+'</div>';
+
+      if(!partes.length){
+        h += '<div class="empty-msg">Sin partes que coincidan.</div>';
+        elResult.innerHTML = h;
+        elStatus.textContent = '0 partes';
+        return;
+      }
+
+      h += '<table><thead><tr>' +
+           '<th>#</th><th>Codigo</th><th>Descripcion</th><th>Sector</th>' +
+           '<th>Enviado</th><th>Entregado</th><th>Saldo en PS</th>' +
+           '</tr></thead><tbody>';
+      partes.forEach(function(x, i){
+        h += '<tr>' +
+             '<td>'+(i+1)+'</td>' +
+             '<td>'+esc(x.codigo)+'</td>' +
+             '<td>'+esc(x.descripcion)+'</td>' +
+             '<td>'+esc(x.sector||'')+'</td>' +
+             numCell(x.enviado) + numCell(x.entregado) + numCell(x.saldo) +
+             '</tr>';
+      });
+      h += '</tbody><tfoot><tr>' +
+           '<td colspan="4" style="text-align:right;font-weight:bold">TOTALES</td>' +
+           numCell(tEnv) + numCell(tEnt) + numCell(tSal) +
+           '</tr></tfoot></table>';
+
+      elResult.innerHTML = h;
+      elStatus.textContent = partes.length + ' partes' +
+        (filtro && filtro.trim() ? ' (filtradas)' : '') +
+        ' · unidades canonicas GP2';
+    }
+
+    // ---- impresion ----
+    function construirPrint(){
+      if(!provSel) return;
+      var partes = partesFiltradas(elFiltro.value);
+      var tEnv=0, tEnt=0, tSal=0;
+      partes.forEach(function(x){
+        tEnv += Number(x.enviado)||0; tEnt += Number(x.entregado)||0; tSal += Number(x.saldo)||0;
+      });
+      var fecha = new Date().toLocaleString('es-AR');
+      var h = '<div class="print-header">' +
+                '<div><div class="print-doc">Control Prov. Servicios (GP2)</div>' +
+                '<h2 class="print-title">'+esc(provSel.nombre)+'</h2></div>' +
+                '<div class="print-head-right">'+esc(provSel.proceso||'')+'<br>'+
+                'Cod. Prov. '+esc(provSel.cod_prov||'?')+'<br>'+
+                '<span class="print-count">'+partes.length+' partes &middot; '+esc(fecha)+'</span></div>' +
+              '</div>';
+      h += '<table class="print-table"><thead><tr>' +
+           '<th class="p-num">#</th><th>Codigo</th><th>Descripcion</th><th>Sector</th>' +
+           '<th class="p-caj">Enviado</th><th class="p-caj">Entregado</th><th class="p-cjn">Saldo en PS</th>' +
+           '</tr></thead><tbody>';
+      partes.forEach(function(x,i){
+        h += '<tr'+(i%2?' class="zebra"':'')+'>' +
+             '<td class="p-num">'+(i+1)+'</td>' +
+             '<td>'+esc(x.codigo)+'</td><td>'+esc(x.descripcion)+'</td><td>'+esc(x.sector||'')+'</td>' +
+             '<td class="p-caj">'+fmt(x.enviado)+'</td>' +
+             '<td class="p-caj">'+fmt(x.entregado)+'</td>' +
+             '<td class="p-cjn">'+fmt(x.saldo)+'</td>' +
+             '</tr>';
+      });
+      h += '</tbody><tfoot><tr class="print-total">' +
+           '<td colspan="4" style="text-align:right">TOTALES</td>' +
+           '<td class="p-caj">'+fmt(tEnv)+'</td><td class="p-caj">'+fmt(tEnt)+'</td>' +
+           '<td class="p-cjn">'+fmt(tSal)+'</td></tr></tfoot></table>' +
+           '<div style="margin-top:10px;font-size:11px;color:#666">Datos parciales (schema GP2). '+
+           'Saldos en unidades canonicas. Ledger historico incompleto.</div>';
+      printArea.innerHTML = h;
+    }
+
+    // ---- eventos ----
+    btnVolver.addEventListener('click', function(){
+      provSel = null;
+      btnVolver.classList.add('hidden');
+      elFiltro.classList.add('hidden');
+      btnImpr.classList.add('hidden');
+      Array.prototype.forEach.call(elGrid.querySelectorAll('.tallerista-btn'), function(x){ x.classList.remove('active'); });
+      elResult.innerHTML = '';
+      elStatus.textContent = '';
+    });
+    elFiltro.addEventListener('input', function(){ renderTabla(elFiltro.value); });
+    btnImpr.addEventListener('click', function(){ construirPrint(); window.print(); });
+    btnIndex.addEventListener('click', function(){ window.location.href = '../../Inicio/index.html'; });
+
+    renderGrid();
+    var gen = D && D.generado_en ? (' · generado ' + new Date(D.generado_en).toLocaleString('es-AR')) : '';
+    elStatus.textContent = provs.length + ' proveedores con datos GP2' + gen;
+  }
+
+  async function __boot(){
+    try{
+      document.body.style.cursor = 'progress';
+      var r = await SB.rpc('control_ps_bundle');
+      if(r.error) throw r.error;
+      D = r.data || {};
+      __run();
+    }catch(e){
+      document.body.innerHTML =
+        '<p style="padding:24px;font-family:system-ui;color:#b3402f">' +
+        'Error cargando datos de Supabase (GP2): ' + (e && (e.message||e.hint||e.details) || e) + '</p>';
+      console.error(e);
+    }finally{
+      document.body.style.cursor = '';
+    }
+  }
+  __boot();
+  </script>
+
+</body>
+</html>
