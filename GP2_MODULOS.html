@@ -1,0 +1,51 @@
+<!doctype html><html lang="es"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>GP2 · Módulos</title>
+<style>
+ *{box-sizing:border-box}
+ body{margin:0;background:#0a0e13;color:#e6ecf3;font:14px/1.5 -apple-system,Segoe UI,Roboto,sans-serif;padding:24px}
+ h1{font-size:20px;margin:0 0 4px} .sub{color:#8aa0b6;margin:0 0 24px;font-size:13px}
+ h2{font-size:13px;text-transform:uppercase;letter-spacing:.05em;color:#6ea8d8;margin:26px 0 10px;border-bottom:1px solid #1c2836;padding-bottom:6px}
+ .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:10px}
+ a.card{display:block;background:#111823;border:1px solid #1c2836;border-radius:10px;padding:12px 14px;text-decoration:none;color:#e6ecf3;transition:.12s}
+ a.card:hover{border-color:#2f6fb0;background:#14202e;transform:translateY(-1px)}
+ a.card b{display:block;font-size:14px} a.card span{color:#8aa0b6;font-size:12px}
+ .foot{margin-top:28px;color:#6b7f93;font-size:12px;border-top:1px solid #1c2836;padding-top:14px}
+</style></head><body>
+<h1>Gestión Productiva 2.0 · Módulos GP2</h1>
+<p class="sub">Todos leen el schema <b>GP2</b> en vivo. Abrir con Live Server. Los saldos de stock pueden dar negativos (ledger parcial — ver ESTADO_MIGRACION_GP2.md).</p>
+
+<h2>Talleristas (Objetivo 1)</h2>
+<div class="grid">
+ <a class="card" href="Talleristas/Control%20Tall/ControlTalleristas_GP2.html"><b>Control Talleristas</b><span>Enviado vs entregado vs saldo</span></a>
+ <a class="card" href="Talleristas/Envios/EnviosTalleristas_GP2.html"><b>Envío Talleristas</b><span>Historial de envíos</span></a>
+ <a class="card" href="Talleristas/Recepcion/EntregasTalleristas_GP2.html"><b>Entregas Talleristas</b><span>Historial de entregas</span></a>
+ <a class="card" href="Talleristas/Faltante%20Partes%20Tallerista/FaltantePartesTallerista_GP2.html"><b>Faltante Partes</b><span>Saldo pendiente por tallerista</span></a>
+ <a class="card" href="Talleristas/Proporciones/Proporciones_GP2.html"><b>Proporciones</b><span>Tallerista → artículos/partes</span></a>
+ <a class="card" href="Talleristas/ABM%20Articulos/ABM_Articulos_GP2.html"><b>ABM Artículos</b><span>Listado + BOM (lectura)</span></a>
+</div>
+
+<h2>Producción (Objetivo 4)</h2>
+<div class="grid">
+ <a class="card" href="Produccion/maestro_GP2.html"><b>Producción · Maestro</b><span>Grilla de producciones</span></a>
+ <a class="card" href="Produccion/rendimiento_GP2.html"><b>Rendimiento x Mes</b><span>Seg/uni por matriz</span></a>
+ <a class="card" href="Informes/informe_persona_GP2.html"><b>Informe x Persona</b><span>Puntaje, tiempos, TM</span></a>
+ <a class="card" href="Informes/informe_matriz_GP2.html"><b>Informe x Matriz</b><span>Matriz × empleado</span></a>
+ <a class="card" href="Disruptivas/Disruptivas_GP2.html"><b>Disruptivas</b><span>Premios anómalos</span></a>
+ <a class="card" href="Alertas/alertas_GP2.html"><b>Alertas</b><span>Matriz sin tiempo, RM, PM</span></a>
+</div>
+
+<h2>Stock / Artículos / Rutas</h2>
+<div class="grid">
+ <a class="card" href="Stocks%20General/StockGeneral_GP2.html"><b>Stock General</b><span>Inventario por componente×ubicación</span></a>
+ <a class="card" href="Programa/Programa.html"><b>Programa de Stock</b><span>Qué se necesita producir</span></a>
+ <a class="card" href="Faltantes/Faltantes.html"><b>Faltantes</b><span>Artículos faltantes</span></a>
+ <a class="card" href="Despiece%20x%20Articulo/Despiece_GP2.html"><b>Despiece x Artículo</b><span>BOM de cada artículo</span></a>
+ <a class="card" href="Verificacion/Verificacion_GP2.html"><b>Verificación / Trazado</b><span>Rutas productivas</span></a>
+ <a class="card" href="VerifMadres/VerifMadres_GP2.html"><b>VerifMadres</b><span>Pesos y sectores</span></a>
+ <a class="card" href="Movimientos/Registrar_Movimiento.html"><b>Registrar Movimiento</b><span>Alta manual de movimiento</span></a>
+ <a class="card" href="Inicio/index_GP2.html"><b>Inicio (dashboard)</b><span>KPIs + alertas</span></a>
+</div>
+
+<p class="foot">Pendiente (bloqueado por definición del usuario): Control PS (mapeo de 13 proveedores de servicio), Compras/OC (modelar en GP2). Ver <b>ESTADO_MIGRACION_GP2.md</b>.</p>
+</body></html>
