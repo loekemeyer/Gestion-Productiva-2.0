@@ -39,6 +39,59 @@
     td.num{ text-align:right !important; font-variant-numeric:tabular-nums; }
     td.neg{ color:#b3402f; }
     .empty-msg{ color:#666; font-size:14px; padding:10px 0; }
+
+    /* ---- Panel de carga de movimientos PS (GP2) ---- */
+    .gp2-carga{
+      background:#f7f9fc;
+      border:1px solid #d7dee8;
+      border-radius:10px;
+      padding:12px 14px;
+      margin-bottom:16px;
+    }
+    .gp2-carga-head{
+      display:flex; align-items:center; gap:16px; flex-wrap:wrap;
+      margin-bottom:10px;
+    }
+    .gp2-carga-head b{ font-size:14px; color:#1e2a3a; }
+    .gp2-modo{ display:flex; gap:14px; font-size:13px; }
+    .gp2-modo label{ cursor:pointer; user-select:none; }
+    .gp2-form{ display:flex; flex-wrap:wrap; gap:12px; align-items:flex-end; }
+    .gp2-field{ display:flex; flex-direction:column; gap:3px; }
+    .gp2-field > label{ font-size:11px; color:#556; font-weight:bold; text-transform:uppercase; letter-spacing:.03em; }
+    .gp2-field select,
+    .gp2-field input{
+      font-size:13px; padding:6px 8px; border:1px solid #c3ccd8; border-radius:6px;
+      background:#fff; color:#1e2a3a; min-width:120px;
+    }
+    .gp2-field input[type=number]{ width:120px; text-align:right; }
+    .gp2-field input[type=date]{ width:150px; }
+    .gp2-btn-guardar{
+      font-size:13px; font-weight:bold; padding:8px 18px; border:none; border-radius:6px;
+      background:#1f6feb; color:#fff; cursor:pointer;
+    }
+    .gp2-btn-guardar:hover{ background:#1a5fd0; }
+    .gp2-btn-guardar:disabled{ background:#9db4d6; cursor:default; }
+    .mv-hidden{ display:none !important; }
+    .gp2-msg{ margin-top:10px; font-size:13px; min-height:1em; }
+    .gp2-msg.ok{ color:#1a7a34; }
+    .gp2-msg.err{ color:#b3402f; }
+    /* buscador de componentes */
+    .gp2-picker{ position:relative; }
+    .gp2-picker input{ min-width:280px; }
+    .gp2-picker-list{
+      position:absolute; z-index:30; top:100%; left:0; right:0;
+      background:#fff; border:1px solid #c3ccd8; border-top:none;
+      border-radius:0 0 6px 6px; max-height:240px; overflow:auto;
+      box-shadow:0 6px 16px rgba(0,0,0,.12); display:none;
+    }
+    .gp2-picker-list.open{ display:block; }
+    .gp2-picker-item{ padding:6px 9px; font-size:12px; cursor:pointer; border-bottom:1px solid #eef1f5; }
+    .gp2-picker-item:last-child{ border-bottom:none; }
+    .gp2-picker-item:hover, .gp2-picker-item.active{ background:#eaf1fb; }
+    .gp2-picker-item .cod{ font-weight:bold; color:#1e2a3a; }
+    .gp2-picker-item .desc{ color:#333; }
+    .gp2-picker-item .sec{ color:#788; }
+    .gp2-picker-empty{ padding:8px 9px; font-size:12px; color:#889; }
   </style>
 <link rel="icon" type="image/png" href="../../GP2_favicon.png">
 <link rel="apple-touch-icon" href="../../GP2_favicon.png">
@@ -54,6 +107,66 @@
     <div class="gp2-banner">
       <b>Datos parciales (schema GP2):</b> proveedores con mapeo confirmado. Saldos en unidades
       canonicas. Ledger historico incompleto &mdash; faltan remaches y proveedores por mapear.
+    </div>
+
+    <!-- Panel de carga de movimientos PS (fuera de los contenedores que se re-renderizan) -->
+    <div id="gp2-carga" class="gp2-carga">
+      <div class="gp2-carga-head">
+        <b>Cargar movimiento PS</b>
+        <div class="gp2-modo">
+          <label><input type="radio" name="mvModo" value="envio" checked> Env&iacute;o</label>
+          <label><input type="radio" name="mvModo" value="entrega"> Entrega</label>
+        </div>
+      </div>
+
+      <div class="gp2-form">
+        <div class="gp2-field">
+          <label>Proveedor</label>
+          <select id="mvProv"><option value="">Cargando&hellip;</option></select>
+        </div>
+
+        <!-- ENVIO -->
+        <div class="gp2-field mv-only-envio">
+          <label>Parte (SC &mdash; cruda)</label>
+          <div class="gp2-picker" id="mvEnvioSC"></div>
+        </div>
+        <div class="gp2-field mv-only-envio">
+          <label>Cantidad</label>
+          <input id="mvCant" type="number" step="any" min="0" placeholder="0" />
+        </div>
+        <div class="gp2-field mv-only-envio">
+          <label>Unidad</label>
+          <select id="mvUnidad">
+            <option value="kg">Kg</option>
+            <option value="uni">Uni</option>
+          </select>
+        </div>
+
+        <!-- ENTREGA -->
+        <div class="gp2-field mv-only-entrega mv-hidden">
+          <label>Parte SC (se consume)</label>
+          <div class="gp2-picker" id="mvEntSC"></div>
+        </div>
+        <div class="gp2-field mv-only-entrega mv-hidden">
+          <label>Parte SP (se recibe)</label>
+          <div class="gp2-picker" id="mvEntSP"></div>
+        </div>
+        <div class="gp2-field mv-only-entrega mv-hidden">
+          <label>Kg entregados</label>
+          <input id="mvKg" type="number" step="any" min="0" placeholder="0" />
+        </div>
+
+        <!-- comun -->
+        <div class="gp2-field">
+          <label>Fecha</label>
+          <input id="mvFecha" type="date" />
+        </div>
+        <div class="gp2-field">
+          <button id="mvGuardar" class="gp2-btn-guardar" type="button">Guardar</button>
+        </div>
+      </div>
+
+      <div id="mvMsg" class="gp2-msg"></div>
     </div>
 
     <div class="row-tools">
@@ -275,9 +388,232 @@
     btnImpr.addEventListener('click', function(){ construirPrint(); window.print(); });
     btnIndex.addEventListener('click', function(){ window.location.href = '../../Inicio/index.html'; });
 
+    function pintarProveedores(){
+      var gen = D && D.generado_en ? (' · generado ' + new Date(D.generado_en).toLocaleString('es-AR')) : '';
+      elStatus.textContent = provs.length + ' proveedores con datos GP2' + gen;
+    }
+
     renderGrid();
-    var gen = D && D.generado_en ? (' · generado ' + new Date(D.generado_en).toLocaleString('es-AR')) : '';
-    elStatus.textContent = provs.length + ' proveedores con datos GP2' + gen;
+    pintarProveedores();
+
+    // Hook para recargar la grilla tras cargar un movimiento (sin re-enganchar listeners).
+    window.__gp2rerender = function(){
+      provs = (D && D.proveedores) ? D.proveedores : [];
+      provSel = null;
+      btnVolver.classList.add('hidden');
+      elFiltro.classList.add('hidden');
+      btnImpr.classList.add('hidden');
+      elFiltro.value = '';
+      elResult.innerHTML = '';
+      renderGrid();
+      pintarProveedores();
+    };
+  }
+
+  // ================= Carga de movimientos PS =================
+  // Recarga el bundle y re-renderiza la grilla existente.
+  async function reloadBundle(){
+    var r = await SB.rpc('control_ps_bundle');
+    if(r.error) throw r.error;
+    D = r.data || {};
+    if(window.__gp2rerender) window.__gp2rerender();
+  }
+
+  // Buscador de componentes: input + lista filtrable. Guarda el comp_id elegido.
+  function makePicker(host, items){
+    var input = document.createElement('input');
+    input.type = 'text';
+    input.setAttribute('autocomplete','off');
+    input.placeholder = 'Buscar codigo o descripcion...';
+    var list = document.createElement('div');
+    list.className = 'gp2-picker-list';
+    host.appendChild(input);
+    host.appendChild(list);
+
+    var selId = null;
+    var vis = [];
+
+    function esc2(t){
+      return String(t==null?'':t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    }
+    function render(txt){
+      txt = (txt||'').trim().toLowerCase();
+      vis = items.filter(function(it){
+        if(!txt) return true;
+        return (String(it.codigo||'').toLowerCase().indexOf(txt) >= 0) ||
+               (String(it.descripcion||'').toLowerCase().indexOf(txt) >= 0);
+      }).slice(0, 60);
+      if(!vis.length){
+        list.innerHTML = '<div class="gp2-picker-empty">Sin coincidencias.</div>';
+      } else {
+        var h = '';
+        vis.forEach(function(it){
+          h += '<div class="gp2-picker-item" data-id="'+it.id+'">' +
+               '<span class="cod">'+esc2(it.codigo)+'</span> ' +
+               '<span class="desc">'+esc2(it.descripcion)+'</span>' +
+               (it.sector ? ' <span class="sec">['+esc2(it.sector)+']</span>' : '') +
+               '</div>';
+        });
+        list.innerHTML = h;
+      }
+    }
+    function open(){ render(input.value); list.classList.add('open'); }
+    function close(){ list.classList.remove('open'); }
+
+    input.addEventListener('focus', open);
+    input.addEventListener('input', function(){ selId = null; open(); });
+    list.addEventListener('mousedown', function(ev){
+      var el = ev.target;
+      while(el && el !== list && !el.classList.contains('gp2-picker-item')) el = el.parentNode;
+      if(!el || el === list) return;
+      ev.preventDefault();
+      var id = Number(el.getAttribute('data-id'));
+      var it = items.filter(function(x){ return x.id === id; })[0];
+      if(it){
+        selId = it.id;
+        input.value = it.codigo + ' - ' + it.descripcion + (it.sector ? ' ['+it.sector+']' : '');
+      }
+      close();
+    });
+    input.addEventListener('blur', function(){ setTimeout(close, 150); });
+
+    return {
+      getId: function(){ return selId; },
+      clear: function(){ selId = null; input.value = ''; },
+      disable: function(d){ input.disabled = !!d; }
+    };
+  }
+
+  async function initCarga(){
+    var elProv   = document.getElementById('mvProv');
+    var elFecha  = document.getElementById('mvFecha');
+    var elCant   = document.getElementById('mvCant');
+    var elUnidad = document.getElementById('mvUnidad');
+    var elKg     = document.getElementById('mvKg');
+    var elMsg    = document.getElementById('mvMsg');
+    var elGuardar= document.getElementById('mvGuardar');
+    var modoRadios = document.getElementsByName('mvModo');
+
+    // fecha default = hoy (yyyy-mm-dd local)
+    var hoy = new Date();
+    var off = hoy.getTimezoneOffset();
+    elFecha.value = new Date(hoy.getTime() - off*60000).toISOString().slice(0,10);
+
+    function setMsg(txt, cls){
+      elMsg.textContent = txt || '';
+      elMsg.className = 'gp2-msg' + (cls ? ' ' + cls : '');
+    }
+
+    // Cargar selectores en paralelo
+    var provRes, compRes, secRes;
+    try{
+      var res = await Promise.all([
+        SB.from('proveedor_servicio').select('id,cod_prov,nombre,proceso').order('nombre'),
+        SB.from('componente').select('id,codigo,descripcion,sector_id').order('codigo'),
+        SB.from('sector').select('id,nombre')
+      ]);
+      provRes = res[0]; compRes = res[1]; secRes = res[2];
+      if(provRes.error) throw provRes.error;
+      if(compRes.error) throw compRes.error;
+      if(secRes.error)  throw secRes.error;
+    }catch(e){
+      setMsg('No se pudieron cargar los selectores: ' + (e && (e.message||e.hint) || e), 'err');
+      elProv.innerHTML = '<option value="">(error)</option>';
+      return;
+    }
+
+    // Proveedores
+    var opts = '<option value="">-- Elegir proveedor --</option>';
+    (provRes.data||[]).forEach(function(p){
+      var meta = [p.proceso, p.cod_prov].filter(Boolean).join(' · ');
+      opts += '<option value="'+p.id+'">'+ String(p.nombre||('#'+p.id))
+            + (meta ? ' ('+meta+')' : '') + '</option>';
+    });
+    elProv.innerHTML = opts;
+
+    // Componentes con sector resuelto
+    var secMap = {};
+    (secRes.data||[]).forEach(function(s){ secMap[s.id] = s.nombre; });
+    var comps = (compRes.data||[]).map(function(c){
+      return { id:c.id, codigo:c.codigo, descripcion:c.descripcion, sector: secMap[c.sector_id] || '' };
+    });
+
+    // Pickers
+    var pkEnvioSC = makePicker(document.getElementById('mvEnvioSC'), comps);
+    var pkEntSC   = makePicker(document.getElementById('mvEntSC'),   comps);
+    var pkEntSP   = makePicker(document.getElementById('mvEntSP'),   comps);
+
+    function modo(){
+      var m = 'envio';
+      Array.prototype.forEach.call(modoRadios, function(r){ if(r.checked) m = r.value; });
+      return m;
+    }
+    function aplicarModo(){
+      var m = modo();
+      Array.prototype.forEach.call(document.querySelectorAll('.mv-only-envio'), function(el){
+        el.classList.toggle('mv-hidden', m !== 'envio');
+      });
+      Array.prototype.forEach.call(document.querySelectorAll('.mv-only-entrega'), function(el){
+        el.classList.toggle('mv-hidden', m !== 'entrega');
+      });
+      setMsg('');
+    }
+    Array.prototype.forEach.call(modoRadios, function(r){ r.addEventListener('change', aplicarModo); });
+    aplicarModo();
+
+    async function guardar(){
+      setMsg('');
+      var psId = Number(elProv.value);
+      if(!psId){ setMsg('Elegi un proveedor.', 'err'); return; }
+      var fechaTs = elFecha.value ? new Date(elFecha.value + 'T12:00:00').toISOString() : null;
+
+      var payload, rpcName;
+      if(modo() === 'envio'){
+        var scId = pkEnvioSC.getId();
+        var cant = Number(elCant.value);
+        if(!scId){ setMsg('Elegi la parte SC a enviar.', 'err'); return; }
+        if(!(cant > 0)){ setMsg('La cantidad debe ser mayor a 0.', 'err'); return; }
+        rpcName = 'crear_envio_ps';
+        payload = { p_ps_id:psId, p_comp_sc_id:scId, p_cantidad:cant, p_unidad:elUnidad.value, p_fecha:fechaTs };
+      } else {
+        var scId2 = pkEntSC.getId();
+        var spId  = pkEntSP.getId();
+        var kg    = Number(elKg.value);
+        if(!scId2){ setMsg('Elegi la parte SC que se consume.', 'err'); return; }
+        if(!spId){ setMsg('Elegi la parte SP que se recibe.', 'err'); return; }
+        if(!(kg > 0)){ setMsg('Los kg deben ser mayores a 0.', 'err'); return; }
+        rpcName = 'crear_entrega_ps';
+        payload = { p_ps_id:psId, p_comp_sc_id:scId2, p_comp_sp_id:spId, p_kg:kg, p_fecha:fechaTs };
+      }
+
+      elGuardar.disabled = true;
+      setMsg('Guardando...', '');
+      try{
+        var r = await SB.rpc(rpcName, payload);
+        if(r.error) throw r.error;
+        var d = r.data || {};
+        var id = d.id != null ? d.id : '?';
+        var det;
+        if(rpcName === 'crear_envio_ps'){
+          det = 'Envio guardado (id ' + id + '): ' + (d.parte||'') +
+                ' · ' + (d.cantidad!=null?d.cantidad:'') + ' ' + (d.unidad||'');
+        } else {
+          det = 'Entrega guardada (id ' + id + '): ' + (d.sc||'') + ' -> ' + (d.sp||'') +
+                ' · ' + (d.kg!=null?d.kg:'') + ' kg';
+        }
+        setMsg(det, 'ok');
+        // limpiar form
+        elCant.value = ''; elKg.value = '';
+        pkEnvioSC.clear(); pkEntSC.clear(); pkEntSP.clear();
+        // recargar pantalla
+        await reloadBundle();
+      }catch(e){
+        setMsg('Error: ' + (e && (e.message||e.hint||e.details) || e), 'err');
+      }finally{
+        elGuardar.disabled = false;
+      }
+    }
+    elGuardar.addEventListener('click', guardar);
   }
 
   async function __boot(){
@@ -287,6 +623,7 @@
       if(r.error) throw r.error;
       D = r.data || {};
       __run();
+      initCarga();
     }catch(e){
       document.body.innerHTML =
         '<p style="padding:24px;font-family:system-ui;color:#b3402f">' +
