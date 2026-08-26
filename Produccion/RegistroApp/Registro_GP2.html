@@ -1,0 +1,103 @@
+<!doctype html><html lang="es"><head>
+<script src="../../auth-guard.js"></script>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Registro Producción · GP2</title>
+<link rel="icon" type="image/png" href="../../GP2_favicon.png">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+ *{box-sizing:border-box}
+ body{margin:0;background:#0a0e13;color:#e6ecf3;font:14px/1.5 -apple-system,Segoe UI,Roboto,sans-serif}
+ .hero{display:flex;justify-content:center;padding:10px 0;border-bottom:1px solid #1c2836;background:#0b1220}
+ .hero img{height:44px}
+ .wrap{max-width:820px;margin:0 auto;padding:18px 16px 60px}
+ h1{font-size:18px;margin:0 0 4px}
+ .sub{color:#8aa0b6;font-size:13px;margin:0 0 18px}
+ .card{background:#111823;border:1px solid #1c2836;border-radius:12px;padding:16px 18px;margin-bottom:16px}
+ .row{display:flex;gap:12px;flex-wrap:wrap}
+ .fld{display:flex;flex-direction:column;gap:4px;margin-bottom:12px}
+ .fld.grow{flex:1 1 180px}
+ label{font-size:12px;color:#9fc0e0;text-transform:uppercase;letter-spacing:.03em}
+ input,select{background:#0b1119;color:#e6ecf3;border:1px solid #2a4a6e;border-radius:8px;padding:9px 11px;font:14px inherit}
+ input:focus,select:focus{outline:none;border-color:#2f6fb0}
+ .btn{background:#1f6fce;color:#fff;border:none;border-radius:9px;padding:11px 20px;font:600 14px inherit;cursor:pointer}
+ .btn:hover{background:#2f80d6} .btn:disabled{opacity:.5;cursor:default}
+ .msg{margin-top:10px;font-size:13px;min-height:18px}
+ .msg.ok{color:#4bc394} .msg.err{color:#f0736d}
+ table{width:100%;border-collapse:collapse;font-size:13px}
+ th{color:#7a92a8;text-transform:uppercase;font-size:10px;letter-spacing:.4px;text-align:left;padding:6px 8px;border-bottom:1px solid #1c2836}
+ td{padding:7px 8px;border-bottom:1px solid #141d29}
+ td.n{text-align:right;font-variant-numeric:tabular-nums}
+ .empty{color:#6b7f93;padding:14px;text-align:center}
+</style></head><body>
+<div class="hero"><a href="../../GP2_MODULOS.html"><img src="../../GP2_logo.png" alt="GP2"></a></div>
+<div class="wrap">
+ <h1>Registro de Producción · GP2</h1>
+ <p class="sub">Carga en <b>unidades</b>. (Cajones, tiempos y premio quedan en espera.) Escribe directo en el schema GP2.</p>
+
+ <div class="card">
+   <div class="row">
+     <div class="fld grow"><label>Fecha</label><input type="date" id="fFecha"></div>
+     <div class="fld grow"><label>Legajo</label><input type="text" id="fLegajo" placeholder="Legajo del operario"></div>
+     <div class="fld grow"><label>Nombre (opcional)</label><input type="text" id="fNombre" placeholder="Nombre"></div>
+   </div>
+   <div class="row">
+     <div class="fld grow" style="flex:2 1 320px"><label>Matriz</label>
+       <select id="fMatriz"><option value="">Cargando…</option></select></div>
+     <div class="fld grow"><label>Unidades</label><input type="number" id="fUni" min="1" step="1" placeholder="0"></div>
+   </div>
+   <button class="btn" id="btnGuardar">Guardar producción</button>
+   <div class="msg" id="msg"></div>
+ </div>
+
+ <div class="card">
+   <h1 style="font-size:15px">Últimos registros</h1>
+   <div id="tabla"><p class="empty">—</p></div>
+ </div>
+</div>
+
+<script>
+const URL_="https://hrxfctzncixxqmpfhskv.supabase.co";
+const ANON="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhyeGZjdHpuY2l4eHFtcGZoc2t2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI3MjQyNjEsImV4cCI6MjA4ODMwMDI2MX0.4L6wguch8UZGhC2VpzrWcCjJGUV-IkYsl9JoCWrOLUs";
+const SB=window.supabase.createClient(URL_,ANON,{db:{schema:'GP2'}});
+const $=id=>document.getElementById(id);
+function hoy(){const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
+
+async function cargarMatrices(){
+  const {data,error}=await SB.from('matriz').select('n_matriz,descripcion').order('id');
+  const sel=$('fMatriz');
+  if(error){sel.innerHTML='<option value="">Error</option>';return;}
+  sel.innerHTML='<option value="">— Elegir matriz —</option>'+
+    data.map(m=>`<option value="${m.n_matriz}">${m.n_matriz} · ${m.descripcion||''}</option>`).join('');
+}
+async function cargarUltimos(){
+  const {data,error}=await SB.from('produccion')
+    .select('fecha,legajo,nombre_empleado,matriz_raw,nombre_matriz,uni').order('id',{ascending:false}).limit(30);
+  const t=$('tabla');
+  if(error){t.innerHTML='<p class="empty">Error cargando</p>';return;}
+  if(!data||!data.length){t.innerHTML='<p class="empty">Sin registros todavía</p>';return;}
+  t.innerHTML='<table><thead><tr><th>Fecha</th><th>Legajo</th><th>Nombre</th><th>Matriz</th><th>Uni</th></tr></thead><tbody>'+
+    data.map(r=>{const f=r.fecha?new Date(r.fecha).toLocaleDateString('es-AR'):'';
+      return `<tr><td>${f}</td><td>${r.legajo||''}</td><td>${r.nombre_empleado||''}</td><td>${r.matriz_raw||''} · ${r.nombre_matriz||''}</td><td class="n">${r.uni??''}</td></tr>`;}).join('')+
+    '</tbody></table>';
+}
+async function guardar(){
+  const m=$('msg'); m.className='msg'; m.textContent='';
+  const matriz=$('fMatriz').value, uni=parseFloat($('fUni').value), legajo=$('fLegajo').value, nombre=$('fNombre').value, fecha=$('fFecha').value;
+  if(!matriz){m.className='msg err';m.textContent='Elegí una matriz.';return;}
+  if(!uni||uni<=0){m.className='msg err';m.textContent='Ingresá unidades (> 0).';return;}
+  $('btnGuardar').disabled=true;
+  try{
+    const fisoUTC = fecha ? (fecha+'T12:00:00') : null;
+    const {data,error}=await SB.rpc('registrar_produccion',{p_legajo:legajo||null,p_matriz:matriz,p_uni:uni,p_fecha:fisoUTC,p_nombre:nombre||null});
+    if(error) throw error;
+    m.className='msg ok'; m.textContent='✓ Guardado (id '+(data&&data.id)+') — '+(data&&data.nombre_matriz||matriz)+' · '+uni+' uni';
+    $('fUni').value='';
+    await cargarUltimos();
+  }catch(e){ m.className='msg err'; m.textContent='Error: '+(e.message||e); }
+  finally{ $('btnGuardar').disabled=false; }
+}
+$('fFecha').value=hoy();
+$('btnGuardar').addEventListener('click',guardar);
+cargarMatrices(); cargarUltimos();
+</script>
+</body></html>
