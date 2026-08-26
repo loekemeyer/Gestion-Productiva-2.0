@@ -14,6 +14,20 @@
  label.lb{display:flex;gap:5px;align-items:center;color:#bcd0e4;font-size:11px}
  .canvas{padding:14px;min-height:calc(100vh - 50px)}
  .note{background:#2a1c14;border:1px solid #8a5a2f;color:#e0a075;border-radius:8px;padding:8px 12px;margin-bottom:12px;font-size:12px}
+ .nuevo{background:#101820;border:1px solid #24405f;border-radius:10px;padding:12px 14px;margin:12px 14px 0}
+ .nuevo h2{margin:0 0 10px;font-size:13px;color:#8fc4f0;display:flex;align-items:center;gap:8px}
+ .nuevo .frm{display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end}
+ .nuevo .fld{display:flex;flex-direction:column;gap:4px}
+ .nuevo .fld>span{font-size:10px;color:#7a92a8;text-transform:uppercase;letter-spacing:.4px}
+ .nuevo select.parte{min-width:340px;max-width:520px}
+ .nuevo input.cant{width:120px;text-align:right}
+ .nuevo .chk{display:flex;align-items:center;gap:5px;font-size:11px;color:#bcd0e4;padding-bottom:6px}
+ .nuevo button.save{background:#12432a;border-color:#2f8a5a;color:#8ff0b6;font-weight:700}
+ .nuevo button.save:hover{background:#186038}
+ .nuevo button.save:disabled{opacity:.5;cursor:default}
+ .nuevo .msg{margin-top:8px;font-size:12px;min-height:16px}
+ .nuevo .msg.ok{color:#5fd39a}
+ .nuevo .msg.err{color:#f0846b}
  .kpis{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
  .kpi{background:#101820;border:1px solid #1e2a38;border-radius:8px;padding:6px 12px;font-size:11px;color:#8fa2b6}
  .kpi b{color:#5fb0e8;font-size:15px;margin-right:4px}
@@ -50,6 +64,19 @@
   <input id="fBuscar" type="text" placeholder="Buscar código, descripción, sector…">
   <button id="btnCsv">⬇ Exportar CSV</button>
  </div>
+</div>
+<div class="nuevo" id="nuevoEnvio" style="display:none">
+ <h2>➕ Nuevo envío a tallerista</h2>
+ <div class="frm">
+  <label class="fld"><span>Tallerista</span><select id="nTall"></select></label>
+  <label class="fld"><span>Parte</span><select id="nParte" class="parte"></select></label>
+  <label class="fld"><span>Cantidad</span><input id="nCant" class="cant" type="number" min="0" step="any" placeholder="0"></label>
+  <label class="fld"><span>Unidad</span><select id="nUni"><option value="kg">Kg</option><option value="uni">Uni</option></select></label>
+  <label class="fld"><span>Fecha</span><input id="nFecha" type="date"></label>
+  <label class="chk"><input id="nTodas" type="checkbox"> Todas las partes</label>
+  <button id="nGuardar" class="save">💾 Guardar envío</button>
+ </div>
+ <div class="msg" id="nMsg"></div>
 </div>
 <div class="canvas" id="canvas"><div class="empty">Cargando…</div></div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -118,7 +145,7 @@ function render(){
    '<div class="kpi"><b>'+fmt(totKg)+'</b>kg enviados</div>'+
    '<div class="kpi"><b>'+fmt(totUni)+'</b>uni (normaliz.)</div>'+
  '</div>';
- var note='<div class="note">Historial de <b>'+(D.total||0)+'</b> envíos a talleristas desde <code>"GP2".movimiento</code> (tipo_mov=<b>envio_tallerista</b>). Cantidad tal cual se cargó (mayormente en <b>kg</b>); columna <b>Uni</b> = normalización a unidades vía <code>kg_x_uni</code> (⚠ si el componente no tiene factor). El <b>registro de nuevos envíos</b> (write) queda pendiente — este módulo es solo lectura.</div>';
+ var note='<div class="note">Historial de <b>'+(D.total||0)+'</b> envíos a talleristas desde <code>"GP2".movimiento</code> (tipo_mov=<b>envio_tallerista</b>). Cantidad tal cual se cargó (mayormente en <b>kg</b>); columna <b>Uni</b> = normalización a unidades vía <code>kg_x_uni</code> (⚠ si el componente no tiene factor). Para <b>registrar un envío nuevo</b> usá el formulario de arriba (escribe directo en <code>"GP2".movimiento</code> vía RPC <code>crear_envio_tallerista</code>).</div>';
  var arrow=function(k){return sortKey===k?(sortDir>0?" ▲":" ▼"):"";};
  var head='<div class="tbl-wrap"><table><thead><tr>'+
    '<th class="l" data-k="fecha">Fecha'+arrow("fecha")+'</th>'+
@@ -138,6 +165,65 @@ function render(){
    render();
   });
  });
+}
+
+function partesOpts(){
+ var tallId=document.getElementById("nTall").value;
+ var todas=document.getElementById("nTodas").checked;
+ var ppt=(D.partes_por_tallerista||{})[tallId];
+ var lista=(todas||!ppt||!ppt.length)?(D.partes||[]):ppt;
+ var sel=document.getElementById("nParte");
+ sel.innerHTML="";
+ if(!lista.length){var o=document.createElement("option");o.value="";o.textContent="(sin partes)";sel.appendChild(o);return;}
+ lista.forEach(function(p){
+  var o=document.createElement("option");o.value=String(p.comp_id);
+  o.textContent=p.cod+" · "+(p.desc||"")+(p.sector?" ["+p.sector+"]":"");
+  sel.appendChild(o);
+ });
+}
+function initForm(){
+ var nt=document.getElementById("nTall");
+ (D.talleristas_todos||[]).forEach(function(t){
+  var o=document.createElement("option");o.value=String(t.id);
+  o.textContent=t.nombre+(t.cod_prov?" ("+t.cod_prov+")":"");nt.appendChild(o);
+ });
+ document.getElementById("nFecha").value=new Date().toISOString().slice(0,10);
+ nt.addEventListener("change",partesOpts);
+ document.getElementById("nTodas").addEventListener("change",partesOpts);
+ document.getElementById("nGuardar").addEventListener("click",guardarEnvio);
+ partesOpts();
+ document.getElementById("nuevoEnvio").style.display="";
+}
+async function reloadHistorial(){
+ var r=await SB.rpc("envios_tallerista_bundle");
+ if(r.error)throw r.error;
+ Object.assign(D,r.data);
+ render();
+}
+async function guardarEnvio(){
+ var msg=document.getElementById("nMsg");msg.className="msg";msg.textContent="";
+ var btn=document.getElementById("nGuardar");
+ var tallId=document.getElementById("nTall").value;
+ var compId=document.getElementById("nParte").value;
+ var cant=parseFloat(document.getElementById("nCant").value);
+ var uni=document.getElementById("nUni").value;
+ var fecha=document.getElementById("nFecha").value;
+ if(!tallId){msg.className="msg err";msg.textContent="Elegí un tallerista.";return;}
+ if(!compId){msg.className="msg err";msg.textContent="Elegí una parte.";return;}
+ if(!(cant>0)){msg.className="msg err";msg.textContent="La cantidad debe ser mayor a 0.";return;}
+ var payload={p_tallerista_id:Number(tallId),p_comp_id:Number(compId),p_cantidad:cant,p_unidad:uni};
+ if(fecha)payload.p_fecha=fecha+"T12:00:00";
+ btn.disabled=true;
+ try{
+  var r=await SB.rpc("crear_envio_tallerista",payload);
+  if(r.error)throw r.error;
+  var id=(r.data&&r.data.id)||"?";
+  document.getElementById("nCant").value="";
+  await reloadHistorial();
+  msg.className="msg ok";msg.textContent="✔ Envío guardado (id "+id+") y agregado al historial.";
+ }catch(e){
+  msg.className="msg err";msg.textContent="Error: "+(e&&e.message?e.message:e);
+ }finally{btn.disabled=false;}
 }
 
 function __run(){
@@ -160,6 +246,7 @@ function __run(){
   a.download="envios_talleristas_"+new Date().toISOString().slice(0,10)+".csv";
   document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(a.href);
  });
+ initForm();
  render();
 }
 
