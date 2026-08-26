@@ -54,12 +54,14 @@ Todos en `main`. Se abren con Live Server. Los `*_GP2.html` conviven con los vie
   - **284 `envio_ps`** (SC del sector propio → ubicación del PS) + **109 `entrega_ps`** (transformación **SC→SP 1:1 canónica** vía `comp_transformado_id`; conservación exacta, suma inventario = 0).
   - **Diferido (no cargado, para no inventar)**: filas cuyos componentes SC/SP **no existen** en GP2 — sobre todo **remache-crudos** (`V*C`) = gap Remaches #6, y las **entregas de FAAT** (0/32, los SP de Templado no están modelados). Envío/entrega resueltos: FAAT 53/66 y 0/32, Guazzaroni 37/108 y 11/42, Pedernera 182/218 y 89/95, Scor 12/12 y 9/9.
   - **Pintores resueltos (2026-08-26)**: **Jade = Becker Sandra Nora** (mismo proveedor, confirmado por el usuario). **Daniel** y **Rec Color** son proveedores distintos → creados como PS propios en GP2 (proceso Pintado, `cod_prov` NULL). Ledger recargado: ahora **7 PS** en Control PS (envíos 318, entregas 143, conservación exacta). **PENDIENTE: razón social de Daniel y Rec Color** (me la debés → actualizo `nombre`/`cod_prov`).
-  - **Falta que vos decidas** el mapeo de los **6 ambiguos restantes**: Chormium/Gaston Almafuerte ("Pavonado" → ¿Mabra Metalurgica, o propios?); New Metal ("Templado" → ¿Laboratorio FAAT, o propio?); Ximpa ("Serigrafiado" → ¿Hernandez Julio? nombre distinto); AJ Adhesivos ("Adhesivado") y Esther ("Calado") **no tienen proceso equivalente** en GP2 (¿se crean como PS nuevos?).
+  - **Resueltos (2026-08-26, 2ª tanda)**: **Ximpa = Hernandez Julio** (mismo, confirmado). **Chormium** (id 11) y **Gaston Almafuerte** (id 13) = propios, Pavonado (ambos pavonan la misma *Cuchilla Pelapapa*, `SC=ST`). **Esther** (id 12) = propio, Calado (mangos pelapapa 505/123, sectores plásticos PC). Ledger recargado: **339 envíos + 161 entregas**, conservación exacta, **11 PS** en Control PS.
+  - **Pendientes de charlar / decidir**: **New Metal** ("Templado", 1 envío + 1 entrega de *Cuchilla Pelapapa* `SC=ST`) — ¿propio o = Laboratorio FAAT? **AJ Adhesivos** ("Adhesivado", 7 pliegos) — diferido ("después vemos para qué es"). **Razón social** de Daniel, Rec Color, Chormium, Gaston, Esther (todos con `cod_prov` NULL).
+  - **A revisar juntos (recopilado del viejo)**: casos con `SC=ST` (Sector Tránsito: Cuchilla Pelapapa de Chormium/Gaston/New Metal) y con **códigos de sector plástico** (Esther PC1/PC2, varios de Ximpa PA/PB/PC) — resuelven pero conviene validar que el sector elegido sea el correcto.
 - **Obj 3 — Compra insumos x prov**: ⏸️ **bloqueado** → hay que modelar OC/Insumos en GP2 (diseño, lo vemos juntos).
 
 ## 5) Pendientes para vos (decisiones / datos)
 
-1. **Mapeo de los 6 Prov. Servicio ambiguos** restantes → GP2 (los 4 claros + 3 pintores ya cargados; ver Obj 2). Además **razón social de Daniel y Rec Color**. Esto desbloquea el resto del ledger PS.
+1. **PS restantes**: decidir **New Metal** (Templado, cuchilla) y **AJ Adhesivos** (diferido). Cargados ya 11 PS. **Razón social** de Daniel, Rec Color, Chormium, Gaston Almafuerte, Esther (cod_prov NULL). Validar casos `SC=ST` y plásticos.
 2. **Modelar OC/Insumos** en GP2 (desbloquea Obj 3 y la alerta de stock bajo mínimo).
 3. **Códigos de cartón NULL** (~14) y **familias NULL** de los Prov AT (me los ibas a pasar).
 4. **Stock inicial / conteo** (cuando lo cargues, el ledger deja de dar negativos).
