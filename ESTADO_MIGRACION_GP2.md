@@ -49,12 +49,16 @@ Todos en `main`. Se abren con Live Server. Los `*_GP2.html` conviven con los vie
 
 - **Obj 1 — Control Talleristas/envíos**: ✅ funcionando (ledger + Control + historiales + trigger vivo).
 - **Obj 4 — Control Producción**: ✅ mayormente (rendimiento, maestro, informes sobre `produccion`).
-- **Obj 2 — Control PS/envíos/entregas**: ⏸️ **bloqueado por vos** → falta mapear los 13 proveedores de servicio viejos a los 8 de GP2 (solo mapean solos ~5: Guazzaroni, FAAT, Pedernera, Scor→Scorrano).
+- **Obj 2 — Control PS/envíos/entregas**: 🟡 **arrancado (parcial)**. Ledger PS cargado para los **4 proveedores con mapeo confirmado** (por identidad de nombre + proceso): FAAT→Laboratorio FAAT, Guazzaroni→Guazzaroni Patricio, Pedernera→Pedernera Ilario, Scor→Scorrano Mario.
+  - `GP2.proveedor_servicio_alias` (nombre viejo → PS de GP2).
+  - **284 `envio_ps`** (SC del sector propio → ubicación del PS) + **109 `entrega_ps`** (transformación **SC→SP 1:1 canónica** vía `comp_transformado_id`; conservación exacta, suma inventario = 0).
+  - **Diferido (no cargado, para no inventar)**: filas cuyos componentes SC/SP **no existen** en GP2 — sobre todo **remache-crudos** (`V*C`) = gap Remaches #6, y las **entregas de FAAT** (0/32, los SP de Templado no están modelados). Envío/entrega resueltos: FAAT 53/66 y 0/32, Guazzaroni 37/108 y 11/42, Pedernera 182/218 y 89/95, Scor 12/12 y 9/9.
+  - **Falta que vos decidas** el mapeo de los **9 proveedores ambiguos**: Daniel/Jade/Rec Color (los 3 hacen "Pintado" → ¿todos a Becker Sandra Nora, o son distintos?); Chormium/Gaston Almafuerte ("Pavonado" → ¿Mabra Metalurgica?); New Metal ("Templado"); Ximpa ("Serigrafiado" → ¿Hernandez Julio? nombre distinto); AJ Adhesivos ("Adhesivado") y Esther ("Calado") **no tienen proceso equivalente** en los 8 de GP2 (¿se agregan?).
 - **Obj 3 — Compra insumos x prov**: ⏸️ **bloqueado** → hay que modelar OC/Insumos en GP2 (diseño, lo vemos juntos).
 
 ## 5) Pendientes para vos (decisiones / datos)
 
-1. **Mapeo de 13 Prov. Servicio** viejos → GP2 (desbloquea Obj 2).
+1. **Mapeo de los 9 Prov. Servicio ambiguos** viejos → GP2 (los 4 claros ya están cargados; ver Obj 2 arriba). Esto desbloquea el resto del ledger PS.
 2. **Modelar OC/Insumos** en GP2 (desbloquea Obj 3 y la alerta de stock bajo mínimo).
 3. **Códigos de cartón NULL** (~14) y **familias NULL** de los Prov AT (me los ibas a pasar).
 4. **Stock inicial / conteo** (cuando lo cargues, el ledger deja de dar negativos).
