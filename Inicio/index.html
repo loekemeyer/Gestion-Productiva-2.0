@@ -569,6 +569,39 @@
     .alert-bell.ringing span:first-child { animation: bellShake .8s ease-in-out; }
     .gp2-logo-bar { display:flex; justify-content:center; padding:6px 0 14px; }
     .gp2-logo-bar img { height:48px; }
+
+    /* HERO GP2 EN VIVO (motor de movimientos + análisis) */
+    .gp2-hero { max-width:1200px; margin:0 auto 22px; }
+    .gp2-hero-title {
+      color:#e2e8f0; font-size:13px; font-weight:800; text-transform:uppercase;
+      letter-spacing:1px; text-align:center; margin-bottom:12px; opacity:.9;
+      display:flex; align-items:center; justify-content:center; gap:10px;
+    }
+    .gp2-hero-title::before, .gp2-hero-title::after {
+      content:''; height:1px; width:44px; background:rgba(255,255,255,.25);
+    }
+    .gp2-hero-cards {
+      display:grid; grid-template-columns:2fr 1fr 1fr; gap:14px;
+    }
+    .gp2-hero-card {
+      display:flex; flex-direction:column; gap:4px; text-decoration:none;
+      background:rgba(255,255,255,.97); border:1px solid rgba(255,255,255,.3);
+      border-radius:18px; padding:18px 20px; color:#1e293b;
+      box-shadow:0 8px 32px rgba(0,0,0,.2); transition:all .25s cubic-bezier(.23,1,.32,1);
+    }
+    .gp2-hero-card:hover { transform:translateY(-4px); box-shadow:0 14px 48px rgba(0,0,0,.32); }
+    .gp2-hero-card.primary {
+      background:linear-gradient(135deg,#1a5a94 0%,#0f3d6b 100%); color:#fff;
+      border-color:rgba(95,176,232,.5);
+    }
+    .gp2-hero-card .hc-ico { font-size:30px; }
+    .gp2-hero-card .hc-lbl { font-size:17px; font-weight:800; }
+    .gp2-hero-card.primary .hc-lbl { font-size:19px; }
+    .gp2-hero-card .hc-sub { font-size:12px; color:#64748b; line-height:1.4; }
+    .gp2-hero-card.primary .hc-sub { color:#cfe4f6; }
+    .gp2-hero-card .hc-go { margin-top:6px; font-size:12px; font-weight:700; color:#2563eb; }
+    .gp2-hero-card.primary .hc-go { color:#bfe0ff; }
+    @media (max-width:720px){ .gp2-hero-cards { grid-template-columns:1fr; } }
   </style>
   <link rel="icon" type="image/png" href="../GP2_favicon.png">
   <link rel="apple-touch-icon" href="../GP2_favicon.png">
@@ -577,6 +610,31 @@
 <body>
 
   <div class="gp2-logo-bar"><img src="../GP2_logo.png" alt="GP2 · Gestión Productiva — Loekemeyer"></div>
+
+  <!-- HERO GP2 EN VIVO: los 3 HTML del motor, conectados al schema GP2 -->
+  <div class="gp2-hero">
+    <div class="gp2-hero-title">GP2 en vivo · motor de stock</div>
+    <div class="gp2-hero-cards">
+      <a class="gp2-hero-card primary" href="../Movimientos/Registrar_Movimiento.html">
+        <span class="hc-ico">📋</span>
+        <span class="hc-lbl">Registrar Movimiento</span>
+        <span class="hc-sub">Compras · producción con matriz · envíos y recepciones (PS / talleristas) · Virgilio · ajustes. Escribe directo en GP2 y mueve el inventario.</span>
+        <span class="hc-go">Abrir motor de movimientos ›</span>
+      </a>
+      <a class="gp2-hero-card" href="../Programa/Programa.html">
+        <span class="hc-ico">📊</span>
+        <span class="hc-lbl">Programa de Stock</span>
+        <span class="hc-sub">¿Qué necesito para producir? Explosión de BOM y kg de fleje.</span>
+        <span class="hc-go">Abrir ›</span>
+      </a>
+      <a class="gp2-hero-card" href="../Faltantes/Faltantes.html">
+        <span class="hc-ico">⚠️</span>
+        <span class="hc-lbl">Faltantes</span>
+        <span class="hc-sub">Faltantes por artículo, mínimos y acción sugerida.</span>
+        <span class="hc-go">Abrir ›</span>
+      </a>
+    </div>
+  </div>
 
   <button class="btn-logout" id="btnLogout" title="Cerrar sesión" onclick="(function(){sessionStorage.clear();window.location.href='../login.html?logout=1';})()">
     ⎋ Cerrar sesión
