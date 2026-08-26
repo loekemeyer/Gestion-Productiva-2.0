@@ -1,0 +1,176 @@
+<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Envíos a Talleristas · GP2</title>
+<style>
+ *{box-sizing:border-box}
+ body{margin:0;background:#0a0e13;color:#e6ecf3;font:13px/1.4 -apple-system,Segoe UI,Roboto,sans-serif}
+ .top{background:linear-gradient(90deg,#0f3d6b,#1a5a94);padding:10px 16px;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;position:sticky;top:0;z-index:10}
+ .top h1{margin:0;font-size:16px}
+ .top .sel{display:flex;gap:8px;align-items:center;font-size:12px;flex-wrap:wrap}
+ select,input,button{background:#0b1119;color:#e6ecf3;border:1px solid #2a4a6e;border-radius:6px;padding:6px 10px;font:13px inherit}
+ input[type=text]{width:220px}
+ input[type=date]{width:150px}
+ button{cursor:pointer}
+ button:hover{background:#13233a}
+ label.lb{display:flex;gap:5px;align-items:center;color:#bcd0e4;font-size:11px}
+ .canvas{padding:14px;min-height:calc(100vh - 50px)}
+ .note{background:#2a1c14;border:1px solid #8a5a2f;color:#e0a075;border-radius:8px;padding:8px 12px;margin-bottom:12px;font-size:12px}
+ .kpis{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+ .kpi{background:#101820;border:1px solid #1e2a38;border-radius:8px;padding:6px 12px;font-size:11px;color:#8fa2b6}
+ .kpi b{color:#5fb0e8;font-size:15px;margin-right:4px}
+ .tbl-wrap{overflow-x:auto;background:#101820;border:1px solid #1e2a38;border-radius:10px}
+ table{width:100%;border-collapse:collapse;font-size:12px}
+ th,td{padding:6px 10px;text-align:right;border-bottom:1px solid #1a2532;white-space:nowrap}
+ th{background:#0d141d;color:#7a92a8;text-transform:uppercase;font-size:10px;letter-spacing:.4px;position:sticky;top:50px;cursor:pointer;user-select:none}
+ th.l,td.l{text-align:left}
+ tbody tr:hover{background:#13202f}
+ td.fecha{color:#8fa2b6;font-family:ui-monospace,monospace}
+ td.tall{color:#c9d6e3;font-weight:700}
+ td.cod{font-family:ui-monospace,SF Mono,monospace;color:#8fc4f0;font-weight:600}
+ td.desc{color:#c9d6e3;max-width:320px;overflow:hidden;text-overflow:ellipsis}
+ td.sec{color:#8fa2b6}
+ td.cant{color:#5fd39a;font-weight:700}
+ td.uni{color:#5fb0e8}
+ .un{padding:1px 7px;border-radius:9px;font-size:10px;font-weight:700;background:#182231}
+ .un.kg{color:#e0a075}
+ .un.uni{color:#5fd39a}
+ .flag{color:#f0846b;font-size:10px}
+ .empty{padding:30px;text-align:center;color:#7a92a8}
+</style></head>
+<body>
+<div class="top">
+ <h1>📦 Envíos a Talleristas <span style="font-size:11px;color:#9fc0e0;font-weight:400">· GP2</span></h1>
+ <div class="sel">
+  <label class="lb">Tallerista <select id="fTall"><option value="">Todos</option></select></label>
+  <label class="lb">Desde <input id="fDesde" type="date"></label>
+  <label class="lb">Hasta <input id="fHasta" type="date"></label>
+  <input id="fBuscar" type="text" placeholder="Buscar código, descripción, sector…">
+  <button id="btnCsv">⬇ Exportar CSV</button>
+ </div>
+</div>
+<div class="canvas" id="canvas"><div class="empty">Cargando…</div></div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>var D={};
+var SB=window.supabase.createClient('https://hrxfctzncixxqmpfhskv.supabase.co','eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhyeGZjdHpuY2l4eHFtcGZoc2t2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI3MjQyNjEsImV4cCI6MjA4ODMwMDI2MX0.4L6wguch8UZGhC2VpzrWcCjJGUV-IkYsl9JoCWrOLUs',{db:{schema:'GP2'}});
+
+function esc(s){return String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");}
+function fmt(n){if(n==null||n==="")return"";n=Number(n);if(!isFinite(n))return"";return n.toLocaleString("es-AR",{minimumFractionDigits:0,maximumFractionDigits:3});}
+function norm(s){return String(s||"").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"");}
+function fechaDia(s){if(!s)return"";return String(s).slice(0,10);}
+
+var sortKey="fecha",sortDir=-1;
+
+function filas(){
+ var q=norm(document.getElementById("fBuscar").value.trim());
+ var tallSel=document.getElementById("fTall").value;
+ var desde=document.getElementById("fDesde").value;
+ var hasta=document.getElementById("fHasta").value;
+ var arr=(D.envios||[]).filter(function(e){
+  if(tallSel&&String(e.tall_id)!==tallSel)return false;
+  var d=fechaDia(e.fecha);
+  if(desde&&d<desde)return false;
+  if(hasta&&d>hasta)return false;
+  if(q){
+   var hay=norm(e.cod).indexOf(q)>=0||norm(e.desc).indexOf(q)>=0||norm(e.sector).indexOf(q)>=0||norm(e.tallerista).indexOf(q)>=0;
+   if(!hay)return false;
+  }
+  return true;
+ });
+ arr.sort(function(a,b){
+  var va=a[sortKey],vb=b[sortKey];
+  if(sortKey==="cantidad"||sortKey==="uni"){va=Number(va)||0;vb=Number(vb)||0;}
+  else{va=norm(va===undefined?"":va);vb=norm(vb===undefined?"":vb);}
+  if(va<vb)return -1*sortDir;if(va>vb)return 1*sortDir;return 0;
+ });
+ return arr;
+}
+
+function render(){
+ var canvas=document.getElementById("canvas");
+ var arr=filas();
+ var totKg=0,totUni=0,talls={};
+ arr.forEach(function(e){
+  if(e.unidad==="kg")totKg+=Number(e.cantidad)||0;
+  if(Number(e.uni))totUni+=Number(e.uni);
+  if(e.tall_id!=null)talls[e.tall_id]=1;
+ });
+ var rows="";
+ arr.forEach(function(e){
+  var un=e.unidad==="kg"?"kg":(e.unidad==="uni"?"uni":esc(e.unidad||""));
+  var uncl=e.unidad==="kg"?"kg":"uni";
+  rows+="<tr>"+
+   '<td class="l fecha">'+esc(fechaDia(e.fecha))+"</td>"+
+   '<td class="l tall">'+esc(e.tallerista||"(sin tallerista)")+"</td>"+
+   '<td class="l cod">'+esc(e.cod)+"</td>"+
+   '<td class="l desc" title="'+esc(e.desc)+'">'+esc(e.desc)+"</td>"+
+   '<td class="l sec">'+esc(e.sector||"")+"</td>"+
+   '<td class="cant">'+fmt(e.cantidad)+"</td>"+
+   '<td class="l"><span class="un '+uncl+'">'+un+"</span></td>"+
+   '<td class="uni">'+(e.uni==null?'<span class="flag" title="kg sin factor kg_x_uni">⚠</span>':fmt(e.uni))+"</td>"+
+  "</tr>";
+ });
+ var kpi='<div class="kpis">'+
+   '<div class="kpi"><b>'+arr.length+'</b>envíos</div>'+
+   '<div class="kpi"><b>'+Object.keys(talls).length+'</b>talleristas</div>'+
+   '<div class="kpi"><b>'+fmt(totKg)+'</b>kg enviados</div>'+
+   '<div class="kpi"><b>'+fmt(totUni)+'</b>uni (normaliz.)</div>'+
+ '</div>';
+ var note='<div class="note">Historial de <b>'+(D.total||0)+'</b> envíos a talleristas desde <code>"GP2".movimiento</code> (tipo_mov=<b>envio_tallerista</b>). Cantidad tal cual se cargó (mayormente en <b>kg</b>); columna <b>Uni</b> = normalización a unidades vía <code>kg_x_uni</code> (⚠ si el componente no tiene factor). El <b>registro de nuevos envíos</b> (write) queda pendiente — este módulo es solo lectura.</div>';
+ var arrow=function(k){return sortKey===k?(sortDir>0?" ▲":" ▼"):"";};
+ var head='<div class="tbl-wrap"><table><thead><tr>'+
+   '<th class="l" data-k="fecha">Fecha'+arrow("fecha")+'</th>'+
+   '<th class="l" data-k="tallerista">Tallerista'+arrow("tallerista")+'</th>'+
+   '<th class="l" data-k="cod">Código'+arrow("cod")+'</th>'+
+   '<th class="l" data-k="desc">Descripción'+arrow("desc")+'</th>'+
+   '<th class="l" data-k="sector">Sector'+arrow("sector")+'</th>'+
+   '<th data-k="cantidad">Cantidad'+arrow("cantidad")+'</th>'+
+   '<th class="l" data-k="unidad">Un.'+arrow("unidad")+'</th>'+
+   '<th data-k="uni">Uni'+arrow("uni")+'</th>'+
+ '</tr></thead><tbody>'+rows+'</tbody></table></div>';
+ canvas.innerHTML=note+kpi+(arr.length?head:'<div class="empty">Sin resultados para el filtro.</div>');
+ canvas.querySelectorAll("th[data-k]").forEach(function(th){
+  th.addEventListener("click",function(){
+   var k=th.getAttribute("data-k");
+   if(sortKey===k)sortDir*=-1;else{sortKey=k;sortDir=(k==="cantidad"||k==="uni"||k==="fecha")?-1:1;}
+   render();
+  });
+ });
+}
+
+function __run(){
+ var fTall=document.getElementById("fTall");
+ (D.talleristas||[]).forEach(function(t){
+  var o=document.createElement("option");o.value=String(t.id);o.textContent=t.nombre+(t.cod_prov?" ("+t.cod_prov+")":"");fTall.appendChild(o);
+ });
+ ["fTall","fDesde","fHasta"].forEach(function(id){document.getElementById(id).addEventListener("change",render);});
+ document.getElementById("fBuscar").addEventListener("input",render);
+ document.getElementById("btnCsv").addEventListener("click",function(){
+  var arr=filas();
+  var out=[["Fecha","Tallerista","Cod_Prov","Codigo","Descripcion","Sector","Cantidad","Unidad","Uni_normalizada"]];
+  var byId={};(D.talleristas||[]).forEach(function(t){byId[t.id]=t.cod_prov||"";});
+  arr.forEach(function(e){
+   out.push([fechaDia(e.fecha),e.tallerista||"",byId[e.tall_id]||"",e.cod,e.desc,e.sector||"",e.cantidad,e.unidad,e.uni==null?"":e.uni]);
+  });
+  var csv=out.map(function(r){return r.map(function(c){var s=String(c==null?"":c);return /[",;\n]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s;}).join(";");}).join("\r\n");
+  var blob=new Blob(["﻿"+csv],{type:"text/csv;charset=utf-8;"});
+  var a=document.createElement("a");a.href=URL.createObjectURL(blob);
+  a.download="envios_talleristas_"+new Date().toISOString().slice(0,10)+".csv";
+  document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(a.href);
+ });
+ render();
+}
+
+async function __boot(){
+ try{
+  document.body.style.cursor="progress";
+  var r=await SB.rpc("envios_tallerista_bundle");
+  if(r.error)throw r.error;
+  Object.assign(D,r.data);
+  __run();
+ }catch(e){
+  document.getElementById("canvas").innerHTML='<div class="empty" style="color:#f0846b">Error cargando datos de Supabase: '+esc(e.message||e)+'</div>';
+  console.error(e);
+ }finally{document.body.style.cursor="";}
+}
+__boot();
+</script>
+</body></html>
