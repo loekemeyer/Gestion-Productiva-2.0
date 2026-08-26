@@ -1,60 +1,125 @@
 <!doctype html><html lang="es"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>GP2 · Módulos</title>
+<title>GP2 · Menú</title>
 <link rel="icon" type="image/png" href="GP2_favicon.png">
 <link rel="apple-touch-icon" href="GP2_favicon.png">
 <style>
  *{box-sizing:border-box}
- body{margin:0;background:#0a0e13;color:#e6ecf3;font:14px/1.5 -apple-system,Segoe UI,Roboto,sans-serif;padding:24px}
- h1{font-size:20px;margin:0 0 4px} .sub{color:#8aa0b6;margin:0 0 24px;font-size:13px}
- h2{font-size:13px;text-transform:uppercase;letter-spacing:.05em;color:#6ea8d8;margin:26px 0 10px;border-bottom:1px solid #1c2836;padding-bottom:6px}
- .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:10px}
- a.card{display:block;background:#111823;border:1px solid #1c2836;border-radius:10px;padding:12px 14px;text-decoration:none;color:#e6ecf3;transition:.12s}
- a.card:hover{border-color:#2f6fb0;background:#14202e;transform:translateY(-1px)}
- a.card b{display:block;font-size:14px} a.card span{color:#8aa0b6;font-size:12px}
- .foot{margin-top:28px;color:#6b7f93;font-size:12px;border-top:1px solid #1c2836;padding-top:14px}
- .hero{display:flex;justify-content:center;padding:8px 0 18px;margin-bottom:8px;border-bottom:1px solid #1c2836}
- .hero img{width:100%;max-width:560px;height:auto;border-radius:10px;box-shadow:0 6px 24px rgba(0,0,0,.5)}
+ body{margin:0;background:#0a0e13;color:#e6ecf3;font:14px/1.5 -apple-system,Segoe UI,Roboto,sans-serif;padding:0 0 60px}
+ .hero{display:flex;justify-content:center;padding:14px 0;border-bottom:1px solid #1c2836;background:#0b1220}
+ .hero img{width:100%;max-width:460px;height:auto;border-radius:10px}
+ .sub{color:#8aa0b6;margin:14px 20px 0;font-size:13px;text-align:center}
+ .legend{display:flex;gap:16px;justify-content:center;margin:10px 20px 0;font-size:12px;color:#7a8da0;flex-wrap:wrap}
+ .legend span{display:inline-flex;align-items:center;gap:6px}
+ .wrap{max-width:1100px;margin:0 auto;padding:18px 16px}
+ .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:14px}
+ .card{background:#111823;border:1px solid #1c2836;border-radius:12px;padding:14px 16px}
+ .card h2{font-size:14px;margin:0 0 12px;display:flex;align-items:center;gap:8px;color:#cfe0f2;text-transform:uppercase;letter-spacing:.04em;border-bottom:1px solid #1c2836;padding-bottom:8px}
+ .btns{display:flex;flex-direction:column;gap:7px}
+ a.op,span.op{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:9px 12px;border-radius:8px;text-decoration:none;font-size:13px;border:1px solid #24344a}
+ a.op{background:#14202e;color:#e6ecf3;transition:.12s}
+ a.op:hover{background:#1a2b3d;border-color:#2f6fb0;transform:translateY(-1px)}
+ span.op.lock{background:#0d131c;color:#5c6b7e;border-style:dashed;cursor:not-allowed}
+ span.op.lock .pad{font-size:15px;filter:grayscale(1);opacity:.8}
+ .foot{max-width:1100px;margin:20px auto 0;padding:14px 16px;color:#6b7f93;font-size:12px;border-top:1px solid #1c2836}
+ .foot b{color:#9fc0e0}
 </style></head><body>
 <div class="hero"><img src="GP2_logo.png" alt="GP2 · Gestión Productiva — Loekemeyer"></div>
-<p class="sub">Todos leen el schema <b>GP2</b> en vivo. Abrir con Live Server. Los saldos de stock pueden dar negativos (ledger parcial — ver ESTADO_MIGRACION_GP2.md).</p>
+<p class="sub">Menú de <b>GP2</b> (schema propio, sin depender de la app vieja). Los módulos con <b>🔒</b> todavía no tienen fundamento en GP2 y están bloqueados hasta migrarlos.</p>
+<div class="legend"><span>🟢 Botón = corre en GP2</span><span>🔒 Candado = sin fundamento en GP2 todavía</span></div>
 
-<h2>Talleristas (Objetivo 1)</h2>
-<div class="grid">
- <a class="card" href="Talleristas/Control%20Tall/ControlTalleristas_GP2.html"><b>Control Talleristas</b><span>Enviado vs entregado vs saldo</span></a>
- <a class="card" href="Talleristas/Envios/EnviosTalleristas_GP2.html"><b>Envío Talleristas</b><span>Historial de envíos</span></a>
- <a class="card" href="Talleristas/Recepcion/EntregasTalleristas_GP2.html"><b>Entregas Talleristas</b><span>Historial de entregas</span></a>
- <a class="card" href="Talleristas/Faltante%20Partes%20Tallerista/FaltantePartesTallerista_GP2.html"><b>Faltante Partes</b><span>Saldo pendiente por tallerista</span></a>
- <a class="card" href="Talleristas/Proporciones/Proporciones_GP2.html"><b>Proporciones</b><span>Tallerista → artículos/partes</span></a>
- <a class="card" href="Talleristas/ABM%20Articulos/ABM_Articulos_GP2.html"><b>ABM Artículos</b><span>Listado + BOM (lectura)</span></a>
-</div>
+<div class="wrap"><div class="grid" id="grid"></div></div>
+<div class="foot">Nota: recién vaciamos GP2 (casa propia, sin datos copiados). <b>Producción y Stock arrancan vacíos</b> hasta que cargues tu conteo inicial y los movimientos. Ver <b>ESTADO_MIGRACION_GP2.md</b>.</div>
 
-<h2>Producción (Objetivo 4)</h2>
-<div class="grid">
- <a class="card" href="Produccion/maestro_GP2.html"><b>Producción · Maestro</b><span>Grilla de producciones</span></a>
- <a class="card" href="Produccion/rendimiento_GP2.html"><b>Rendimiento x Mes</b><span>Seg/uni por matriz</span></a>
- <a class="card" href="Informes/informe_persona_GP2.html"><b>Informe x Persona</b><span>Puntaje, tiempos, TM</span></a>
- <a class="card" href="Informes/informe_matriz_GP2.html"><b>Informe x Matriz</b><span>Matriz × empleado</span></a>
- <a class="card" href="Disruptivas/Disruptivas_GP2.html"><b>Disruptivas</b><span>Premios anómalos</span></a>
- <a class="card" href="Alertas/alertas_GP2.html"><b>Alertas</b><span>Matriz sin tiempo, RM, PM</span></a>
-</div>
+<script>
+// Cada módulo espeja el menú real. href => corre en GP2. lock:true => candado (sin fundamento GP2 aún).
+const MENU = [
+ ["🔧 Tallerista", [
+   ["Control", "Talleristas/Control%20Tall/ControlTalleristas_GP2.html"],
+   ["Envío", "Talleristas/Envios/EnviosTalleristas_GP2.html"],
+   ["Entregas", "Talleristas/Recepcion/EntregasTalleristas_GP2.html"],
+   ["Devolución Cervantes", null],
+   ["Entrega Cervantes Fotos", null],
+   ["ABM Artículos", "Talleristas/ABM%20Articulos/ABM_Articulos_GP2.html"],
+   ["Proporciones", "Talleristas/Proporciones/Proporciones_GP2.html"],
+   ["Faltante Partes", "Talleristas/Faltante%20Partes%20Tallerista/FaltantePartesTallerista_GP2.html"],
+ ]],
+ ["☰ PS (Prov. Servicio)", [
+   ["Control", "Prov%20Serv/Control/ControlPS_GP2.html"],
+   ["Envío", "Prov%20Serv/Control/ControlPS_GP2.html"],
+   ["Entrega", "Prov%20Serv/Control/ControlPS_GP2.html"],
+ ]],
+ ["📦 Prov. Art. Terminado", [
+   ["Control", null], ["Envío Cartón/Cajas", null], ["Entrega Art. Terminado", null],
+ ]],
+ ["🗒 Control Envíos y Entregas", [
+   ["Abrir", null], ["Stock Online", null], ["Exportar datos", null],
+ ]],
+ ["▦ Stocks", [
+   ["Stock SP", null],
+   ["Stock SC", null],
+   ["Stock en Movimiento", null],
+   ["Stock Tránsito PS", null],
+   ["Stocks general", "Stocks%20General/StockGeneral_GP2.html"],
+   ["Verificación Integridad", "Verificacion/Verificacion_GP2.html"],
+   ["Verificación Madres", "VerifMadres/VerifMadres_GP2.html"],
+ ]],
+ ["⋯ Producción", [
+   ["Registro Producción", null],
+   ["Informes Producción", "Informes/informe_persona_GP2.html"],
+   ["Informe x Matriz", "Informes/informe_matriz_GP2.html"],
+   ["Informes Virgilio", null],
+   ["Producciones Disruptivas", "Disruptivas/Disruptivas_GP2.html"],
+   ["Maestro Producción", "Produccion/maestro_GP2.html"],
+   ["Rendimiento x Mes", "Produccion/rendimiento_GP2.html"],
+   ["Alertas", "Alertas/alertas_GP2.html"],
+   ["ABM Operarios", null],
+   ["Monitor en Vivo", null],
+   ["Monitor en Vivo 2.0", null],
+   ["Tiempos Matrices", null],
+   ["Problemas con Matrices", null],
+   ["Entrevistas", null],
+ ]],
+ ["◈ Despiece", [
+   ["Despiece x Artículo", "Despiece%20x%20Articulo/Despiece_GP2.html"],
+ ]],
+ ["✓ Control Carga Remitos", [ ["Ver Cargas", null] ]],
+ ["🧾 Facturas", [
+   ["Lectura de Facturas Entrantes", null],
+   ["Entrega Proveedores Cervantes", null],
+ ]],
+ ["▦ Insumos", [
+   ["Recepción Insumos", null], ["Cajas", null], ["Flejes", null], ["Cartones", null],
+   ["Partes Plásticas", null], ["Remaches", null], ["Bombillas", null], ["Garage", null],
+ ]],
+ ["🗒 Relevamiento", [ ["Relevamientos", null] ]],
+ ["🔗 Ventas", [ ["Chat Bot Ventas", null] ]],
+ ["🛠 Herramientas GP2", [
+   ["Inicio (dashboard)", "Inicio/index_GP2.html"],
+   ["Programa de Stock", "Programa/Programa.html"],
+   ["Faltantes", "Faltantes/Faltantes.html"],
+   ["Registrar Movimiento", "Movimientos/Registrar_Movimiento.html"],
+ ]],
+];
 
-<h2>Proveedores de Servicio (Objetivo 2)</h2>
-<div class="grid">
- <a class="card" href="Prov%20Serv/Control/ControlPS_GP2.html"><b>Control Prov. Servicio</b><span>Enviado / entregado / saldo (parcial: 4 PS)</span></a>
-</div>
-
-<h2>Stock / Artículos / Rutas</h2>
-<div class="grid">
- <a class="card" href="Stocks%20General/StockGeneral_GP2.html"><b>Stock General</b><span>Inventario por componente×ubicación</span></a>
- <a class="card" href="Programa/Programa.html"><b>Programa de Stock</b><span>Qué se necesita producir</span></a>
- <a class="card" href="Faltantes/Faltantes.html"><b>Faltantes</b><span>Artículos faltantes</span></a>
- <a class="card" href="Despiece%20x%20Articulo/Despiece_GP2.html"><b>Despiece x Artículo</b><span>BOM de cada artículo</span></a>
- <a class="card" href="Verificacion/Verificacion_GP2.html"><b>Verificación / Trazado</b><span>Rutas productivas</span></a>
- <a class="card" href="VerifMadres/VerifMadres_GP2.html"><b>VerifMadres</b><span>Pesos y sectores</span></a>
- <a class="card" href="Movimientos/Registrar_Movimiento.html"><b>Registrar Movimiento</b><span>Alta manual de movimiento</span></a>
- <a class="card" href="Inicio/index_GP2.html"><b>Inicio (dashboard)</b><span>KPIs + alertas</span></a>
-</div>
-
-<p class="foot">Control PS: arrancado con los 4 proveedores de mapeo confirmado (FAAT, Guazzaroni, Pedernera, Scor); faltan 9 ambiguos por definir. Pendiente: Compras/OC (modelar en GP2). Ver <b>ESTADO_MIGRACION_GP2.md</b>.</p>
+const grid = document.getElementById("grid");
+MENU.forEach(([titulo, items]) => {
+  const card = document.createElement("div"); card.className="card";
+  const h = document.createElement("h2"); h.textContent = titulo; card.appendChild(h);
+  const box = document.createElement("div"); box.className="btns";
+  items.forEach(([label, href]) => {
+    if (href) {
+      const a = document.createElement("a"); a.className="op"; a.href = href;
+      a.innerHTML = "<span>"+label+"</span><span>›</span>";
+      box.appendChild(a);
+    } else {
+      const s = document.createElement("span"); s.className="op lock";
+      s.title = "Sin fundamento en GP2 todavía — bloqueado";
+      s.innerHTML = "<span>"+label+"</span><span class='pad'>🔒</span>";
+      box.appendChild(s);
+    }
+  });
+  card.appendChild(box); grid.appendChild(card);
+});
+</script>
 </body></html>
