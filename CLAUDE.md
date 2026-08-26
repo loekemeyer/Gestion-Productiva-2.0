@@ -24,6 +24,21 @@ contiene mapeos confirmados de codigos viejos del Excel a sectores actuales en B
 (p.ej. E11→D1, A2→PA2, EP2/3→PEP4). Antes de preguntar por discrepancias, chequear ahí
 si ya existe el mapeo. Cuando el usuario confirme un renombre nuevo, agregarlo al archivo.
 
+## 🏠 Analogía de la Casa del Vecino (GP2 vs GP viejo)
+
+**GP2 es una casa NUEVA que estamos construyendo desde cero.** El GP viejo (schema `public`,
+tablas madre, HTMLs sin `_GP2`) es la casa del vecino: **la miramos para entender la lógica**
+(cómo fluyen los datos, qué reglas de negocio aplican, qué problemas ya resolvieron),
+pero **NO copiamos su código ni sus tablas**. Construimos todo independiente en el schema `GP2`
+con estructura propia (RPCs bundle, ledger de movimientos, inventario, etc.).
+
+- **Mirar la casa del vecino** = leer el HTML/JS viejo para entender qué hace, qué campos usa,
+  qué validaciones tiene. Es referencia, no template.
+- **Construir nuestra casa** = escribir en `GP2` con diseño propio. Si el viejo tiene un SELECT
+  a 5 tablas con JOINs, nosotros hacemos un RPC bundle que devuelve lo mismo en una llamada.
+- **NUNCA mezclar** = los `_GP2.html` NO leen del schema `public` (salvo datos que aún no
+  migraron). Los HTMLs viejos NO escriben en `GP2`. Son dos casas separadas.
+
 ## Sistema de LOCKS (OBLIGATORIO - LEER PRIMERO)
 
 **REGLA #1: NUNCA usar Edit ni Write sin antes leer LOCKS.txt y registrar tu LockX.**
