@@ -1,0 +1,235 @@
+<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Stock General (GP2)</title>
+<style>
+ *{box-sizing:border-box}
+ body{margin:0;background:#0a0e13;color:#e6ecf3;font:13px/1.4 -apple-system,Segoe UI,Roboto,sans-serif}
+ .top{background:linear-gradient(90deg,#0a2a3a,#0f4256);padding:12px 20px;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+ .top h1{margin:0;font-size:18px;color:#5fd0e0}
+ .top .sub{font-size:11px;color:#8fc4d0}
+ .filters{padding:12px 20px;background:#101820;border-bottom:1px solid #1e2a38;display:flex;gap:12px;flex-wrap:wrap;align-items:center}
+ .filters label{font-size:11px;text-transform:uppercase;color:#7a92a8;letter-spacing:.5px;margin-right:6px}
+ .filters select,.filters input{background:#0b1119;color:#e6ecf3;border:1px solid #2a4a6e;border-radius:6px;padding:6px 10px;font:13px inherit}
+ .filters input{min-width:200px}
+ .btn{background:#2a4a6e;color:#e6ecf3;border:none;border-radius:6px;padding:6px 12px;cursor:pointer;font:13px inherit}
+ .btn:hover{background:#356090}
+ .kpis{padding:12px 20px;display:flex;gap:14px;flex-wrap:wrap}
+ .kpi{background:#101820;border:1px solid #1e2a38;border-radius:8px;padding:10px 14px;min-width:110px}
+ .kpi .n{font-size:22px;font-weight:800;color:#5fd0e0}
+ .kpi .n.neg{color:#ff7f9a}
+ .kpi .lb{font-size:10px;text-transform:uppercase;color:#7a92a8;letter-spacing:.6px}
+ .content{padding:0 20px 40px}
+ .table-wrap{margin-top:12px;border:1px solid #1e2a38;border-radius:8px;overflow-x:auto;background:#0d141d}
+ table{border-collapse:collapse;font-size:12px;width:100%;min-width:900px}
+ th,td{padding:6px 12px;text-align:left;border-bottom:1px solid #1e2a38;white-space:nowrap}
+ th{color:#7a92a8;text-transform:uppercase;font-size:10px;letter-spacing:.4px;background:#0a1119;position:sticky;top:0;cursor:pointer;user-select:none}
+ th.num,td.num{text-align:right;font-family:ui-monospace,SF Mono,monospace}
+ th:hover{color:#e6ecf3}
+ tbody tr:hover{background:#111c28}
+ td.qneg{color:#ff7f9a;font-weight:700}
+ tr.bajo td.qty{background:rgba(224,169,90,.10)}
+ .sect-tag{display:inline-block;padding:2px 8px;border-radius:3px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.3px}
+ .st-crudo{background:#3a2a10;color:#e0a95a}
+ .st-procesado{background:#0e3226;color:#5fd39a}
+ .st-transito{background:#1a2f47;color:#8fc4f0}
+ .st-afilado{background:#2f2a1a;color:#d0c060}
+ .st-fleje{background:#3a0f1f;color:#ff7fa8}
+ .st-plástico,.st-plastico{background:#2a1a3f;color:#c79bff}
+ .st-bombilla{background:#0f2f3a;color:#5fd0e0}
+ .st-remache{background:#332222;color:#e0a0a0}
+ .st-garage{background:#1f2f1a;color:#a0d060}
+ .st-cartón,.st-carton{background:#2a2010;color:#c0a060}
+ .st-caja{background:#20283a;color:#90a8d0}
+ .st-terminado{background:#0f3a2a;color:#5fe0b0}
+ .st-none{background:#222;color:#888}
+ .ut-tag{display:inline-block;padding:2px 8px;border-radius:3px;font-size:10px;font-weight:700}
+ .ut-sector{background:#12303a;color:#6fd0e0}
+ .ut-tallerista{background:#2a2417;color:#e0c060}
+ .ut-proveedor_servicio{background:#241a3a;color:#b79bff}
+ .ut-virgilio{background:#173a24;color:#7fe0a0}
+ .empty{padding:24px;color:#7a92a8;font-style:italic}
+ .muted{color:#5a6a7a}
+ .note{padding:8px 20px;font-size:11px;color:#c9a24a;background:#1c150a;border-bottom:1px solid #2a2010}
+</style></head>
+<body>
+<div class="top">
+  <div>
+    <h1>📦 Stock General</h1>
+    <div class="sub">Stock actual por componente y ubicación. Datos: schema GP2 (tabla inventario).</div>
+  </div>
+</div>
+<div class="note">⚠ El ledger es parcial: hay cantidades negativas (falta cargar producción / stock inicial). Se muestran tal cual, sin corregir.</div>
+<div class="filters">
+  <label>Buscar</label>
+  <input id="q" placeholder="Código o descripción">
+  <label style="margin-left:8px">Ubicación</label>
+  <select id="fUbi"><option value="">— todas —</option></select>
+  <label style="margin-left:8px">Sector</label>
+  <select id="fSec"><option value="">— todos —</option></select>
+  <label style="margin-left:8px">Mostrar</label>
+  <select id="fShow">
+    <option value="todos">Todos</option>
+    <option value="con">Con stock (≠0)</option>
+    <option value="sin">Sin stock (0)</option>
+    <option value="neg">Negativos</option>
+    <option value="bajo">Bajo mínimo</option>
+  </select>
+  <label style="margin-left:8px">Formato</label>
+  <select id="fFmt">
+    <option value="uni">Unidades</option>
+    <option value="kg">Kg</option>
+    <option value="caj">Cajones</option>
+  </select>
+  <button class="btn" id="btnCSV" style="margin-left:auto">Exportar CSV</button>
+</div>
+<div class="kpis" id="kpis"></div>
+<div class="content">
+  <div class="table-wrap">
+    <table>
+      <thead><tr>
+        <th data-k="cod">Código</th>
+        <th data-k="desc">Descripción</th>
+        <th data-k="sec">Sector</th>
+        <th data-k="ubi">Ubicación</th>
+        <th data-k="qty" class="num">Cantidad</th>
+        <th data-k="min" class="num">Mínimo</th>
+        <th data-k="um">UM</th>
+      </tr></thead>
+      <tbody id="tb"><tr><td colspan="7" class="empty">Cargando…</td></tr></tbody>
+    </table>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+var SB=window.supabase.createClient('https://hrxfctzncixxqmpfhskv.supabase.co','eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhyeGZjdHpuY2l4eHFtcGZoc2t2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI3MjQyNjEsImV4cCI6MjA4ODMwMDI2MX0.4L6wguch8UZGhC2VpzrWcCjJGUV-IkYsl9JoCWrOLUs',{db:{schema:'GP2'}});
+
+var D={rows:[]};
+var sortK='cod',sortDir=1;
+
+function esc(s){var d=document.createElement('div');d.textContent=(s==null?'':String(s));return d.innerHTML;}
+function num(v){var n=Number(v);return isFinite(n)?n:null;}
+function fmtN(v,dec){if(v==null||v==='')return '';var n=Number(v);if(!isFinite(n))return '';return n.toLocaleString('es-AR',{maximumFractionDigits:dec==null?4:dec});}
+
+var q=document.getElementById('q'),fUbi=document.getElementById('fUbi'),fSec=document.getElementById('fSec'),
+    fShow=document.getElementById('fShow'),fFmt=document.getElementById('fFmt'),tb=document.getElementById('tb');
+
+// valor en el formato elegido (uni=qty, kg, caj)
+function valFmt(r){var f=fFmt.value;if(f==='kg')return r.kg;if(f==='caj')return r.caj;return r.qty;}
+// El mínimo se guarda en unidades canónicas; se muestra siempre en uni para claridad.
+function minVal(r){return r.min;}
+
+function visibles(){
+  var t=q.value.trim().toLowerCase(), ub=fUbi.value, sc=fSec.value, sh=fShow.value;
+  return D.rows.filter(function(r){
+    if(ub && r.ubi!==ub) return false;
+    if(sc && r.sec!==sc) return false;
+    var qty=num(r.qty)||0;
+    if(sh==='con' && qty===0) return false;
+    if(sh==='sin' && qty!==0) return false;
+    if(sh==='neg' && !(qty<0)) return false;
+    if(sh==='bajo'){ var mn=num(r.min); if(mn==null||!(qty<mn)) return false; }
+    if(t){
+      if((r.cod||'').toLowerCase().indexOf(t)>=0) return true;
+      if((r.desc||'').toLowerCase().indexOf(t)>=0) return true;
+      return false;
+    }
+    return true;
+  });
+}
+
+function sortRows(rows){
+  var k=sortK;
+  return rows.slice().sort(function(a,b){
+    var va,vb;
+    if(k==='qty'||k==='min'){ va=num(valFmtByKey(a,k)); vb=num(valFmtByKey(b,k)); va=(va==null?-Infinity:va); vb=(vb==null?-Infinity:vb); return (va-vb)*sortDir; }
+    va=String(a[k]||'').toLowerCase(); vb=String(b[k]||'').toLowerCase();
+    return va.localeCompare(vb,'es',{numeric:true})*sortDir;
+  });
+}
+function valFmtByKey(r,k){ if(k==='qty')return valFmt(r); if(k==='min')return minVal(r); return r[k]; }
+
+function render(){
+  var vis=sortRows(visibles());
+  var dec = fFmt.value==='uni'?0:(fFmt.value==='kg'?3:2);
+  // KPIs
+  var conStock=0,neg=0,bajo=0,totKg=0;
+  D.rows.forEach(function(r){var qv=num(r.qty)||0; if(qv!==0)conStock++; if(qv<0)neg++; var mn=num(r.min); if(mn!=null&&qv<mn)bajo++; if(r.kg!=null)totKg+=Number(r.kg)||0;});
+  document.getElementById('kpis').innerHTML=
+    '<div class="kpi"><div class="n">'+D.rows.length+'</div><div class="lb">Filas inventario</div></div>'+
+    '<div class="kpi"><div class="n">'+conStock+'</div><div class="lb">Con stock (≠0)</div></div>'+
+    '<div class="kpi"><div class="n neg">'+neg+'</div><div class="lb">Negativos</div></div>'+
+    '<div class="kpi"><div class="n">'+bajo+'</div><div class="lb">Bajo mínimo</div></div>'+
+    '<div class="kpi"><div class="n">'+vis.length+'</div><div class="lb">En vista</div></div>';
+
+  if(vis.length===0){ tb.innerHTML='<tr><td colspan="7" class="empty">Sin filas para el filtro actual.</td></tr>'; return; }
+  var h='';
+  vis.forEach(function(r){
+    var qv=valFmt(r); var qn=num(qv);
+    var st=(r.st||'none'); var cls='st-'+st.replace(/[^a-záéíóúñ]/gi,'');
+    var ut=(r.ut||''); var ucls='ut-'+ut;
+    var mn=num(r.min); var bajoRow=(mn!=null&&(num(r.qty)||0)<mn);
+    h+='<tr class="'+(bajoRow?'bajo':'')+'">'+
+       '<td>'+esc(r.cod||'')+'</td>'+
+       '<td>'+esc(r.desc||'')+'</td>'+
+       '<td>'+(r.sec?'<span class="sect-tag '+cls+'">'+esc(r.sec)+'</span>':'<span class="muted">—</span>')+'</td>'+
+       '<td>'+(r.ubi?'<span class="ut-tag '+ucls+'">'+esc(r.ubi)+'</span>':'')+'</td>'+
+       '<td class="num qty '+((qn!=null&&qn<0)?'qneg':'')+'">'+(qv==null?'<span class="muted">—</span>':fmtN(qv,dec))+'</td>'+
+       '<td class="num">'+fmtN(r.min,0)+'</td>'+
+       '<td>'+esc(r.um||'')+'</td>'+
+       '</tr>';
+  });
+  tb.innerHTML=h;
+}
+
+function fillSelects(){
+  (D.ubicaciones||[]).forEach(function(u){var o=document.createElement('option');o.value=u.nombre;o.textContent=u.nombre;fUbi.appendChild(o);});
+  (D.sectores||[]).forEach(function(s){var o=document.createElement('option');o.value=s.nombre;o.textContent=s.nombre;fSec.appendChild(o);});
+}
+
+function exportCSV(){
+  var vis=sortRows(visibles());
+  var dec=fFmt.value==='uni'?0:(fFmt.value==='kg'?3:2);
+  var fmtLbl=fFmt.value==='kg'?'Kg':(fFmt.value==='caj'?'Cajones':'Unidades');
+  var SEP=';';
+  var qq=function(v){return '"'+String(v==null?'':v).replace(/"/g,'""')+'"';};
+  var linea=function(a){return a.map(qq).join(SEP);};
+  var filas=[];
+  filas.push(linea(['Stock General (GP2)']));
+  filas.push(linea(['Generado',new Date().toISOString().slice(0,19).replace('T',' ')]));
+  filas.push(linea(['Formato cantidad',fmtLbl]));
+  filas.push('');
+  filas.push(linea(['Código','Descripción','Sector','Tipo Sector','Ubicación','Tipo Ubic.','Cantidad ('+fmtLbl+')','Mínimo (uni)','UM']));
+  vis.forEach(function(r){
+    var qv=valFmt(r); var qs=(qv==null?'':Number(qv).toFixed(dec));
+    filas.push(linea([r.cod,r.desc,r.sec,r.st,r.ubi,r.ut,qs,r.min,r.um]));
+  });
+  var csv='﻿'+filas.join('\r\n');
+  var blob=new Blob([csv],{type:'text/csv;charset=utf-8'});
+  var url=URL.createObjectURL(blob);
+  var el=document.createElement('a');el.href=url;el.download='stock_general_gp2_'+new Date().toISOString().slice(0,10)+'.csv';el.click();
+  URL.revokeObjectURL(url);
+}
+
+[q,fUbi,fSec,fShow,fFmt].forEach(function(el){el.addEventListener('input',render);el.addEventListener('change',render);});
+document.getElementById('btnCSV').addEventListener('click',exportCSV);
+Array.prototype.forEach.call(document.querySelectorAll('th[data-k]'),function(th){
+  th.addEventListener('click',function(){var k=th.getAttribute('data-k'); if(sortK===k)sortDir=-sortDir; else{sortK=k;sortDir=1;} render();});
+});
+
+async function boot(){
+  try{
+    document.body.style.cursor='progress';
+    var r=await SB.rpc('stock_bundle');
+    if(r.error)throw r.error;
+    D=r.data||{rows:[]};
+    D.rows=D.rows||[];
+    fillSelects();
+    render();
+  }catch(e){
+    tb.innerHTML='<tr><td colspan="7" class="empty" style="color:#ff7070">Error cargando datos: '+esc(e.message||e)+'</td></tr>';
+    console.error(e);
+  }finally{document.body.style.cursor='';}
+}
+boot();
+</script>
+</body></html>
