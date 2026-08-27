@@ -1,0 +1,73 @@
+/* ============================================================
+   GP2 · Tema CLARO global para módulos
+   Fondo blanco + letra más grande. Se incluye DESPUÉS de los
+   estilos propios de cada página para pisar la paleta oscura.
+   Mantiene las barras de título con gradiente (texto blanco).
+   ============================================================ */
+
+/* ---- Base: fondo blanco, texto oscuro, letra más grande ---- */
+html, body { background: #ffffff !important; color: #1e293b !important; }
+body { font-size: 15.5px !important; }
+body, input, select, button, textarea, table, td, th, p, div, span, label, li, a, option {
+  font-size: inherit;
+}
+h1 { font-size: 23px !important; }
+h2 { font-size: 19px !important; }
+h3 { font-size: 17px !important; }
+.sub, .hint, .mini, .miss, .empty, #status, .header-sub, .foot { font-size: 13.5px !important; }
+
+/* ---- Barras de logo (eran oscuras) -> blancas ---- */
+.logobar, #gp2-logobar, .hero, .gp2-logo-bar {
+  background: #ffffff !important; border-bottom: 1px solid #e2e8f0 !important;
+}
+
+/* ---- Barra de título con gradiente: se mantiene (texto blanco legible) ---- */
+.top { color: #ffffff !important; }
+.top h1, .top .btn-sm, .top #status, .top a { color: #ffffff !important; }
+.top .btn-sm { background: rgba(255,255,255,.15) !important; border-color: rgba(255,255,255,.5) !important; }
+
+/* ---- Tarjetas / paneles / contenedores oscuros -> claros ---- */
+.card, .movs, .modal, .autoinfo, .grp, .sub-card, .panel, .box, .canvas > .card,
+.grp > .gb, .sub, .modal-bg .modal {
+  background: #ffffff !important; color: #1e293b !important; border-color: #e2e8f0 !important;
+}
+.autoinfo { background: #eef4fb !important; border-color: #bcd6f0 !important; color: #1e3a5f !important; }
+.autoinfo b { color: #0f2f52 !important; }
+
+/* ---- Inputs / selects / textarea ---- */
+input, select, textarea {
+  background: #ffffff !important; color: #1e293b !important; border: 1px solid #cbd5e1 !important;
+}
+input:focus, select:focus, textarea:focus { border-color: #2f6fb0 !important; }
+label { color: #475569 !important; }
+
+/* ---- Botones primarios: mantienen color; secundarios claros ---- */
+.btn, .btn.primary, .btn-generar { color: #ffffff !important; }
+.btn-sm { background: #eef4fb !important; color: #1e3a5f !important; border: 1px solid #bcd6f0 !important; }
+.btn-sm:hover { border-color: #2f6fb0 !important; }
+.edit { color: #1d4ed8 !important; border-color: #cbd5e1 !important; }
+.edit:hover { background: #eef4fb !important; }
+
+/* ---- Tablas ---- */
+table { color: #1e293b !important; }
+th { background: #f1f5f9 !important; color: #475569 !important; border-color: #e2e8f0 !important; }
+td { color: #1e293b !important; border-color: #e5e7eb !important; }
+tr:hover td { background: #f8fafc !important; }
+.empty, .mini, .miss, .hint, .sub, #status { color: #64748b !important; }
+
+/* ---- Acordeones de Stock (grupos/subgrupos) ---- */
+.grp > .gh, .sub > .sh { color: #1e293b !important; }
+.grp > .gh:hover, .sub > .sh:hover { background: #f1f5f9 !important; }
+.gh .nm, .sh .nm { color: #1e293b !important; }
+.gh .badge, .sh .badge { background: #f1f5f9 !important; color: #475569 !important; border-color: #e2e8f0 !important; }
+.gh .badge.hot, .sh .badge.hot { color: #15803d !important; border-color: #bbf7d0 !important; background: #dcfce7 !important; }
+
+/* ---- Tarjetas-botón (menús tipo grilla) -> claras ---- */
+.btn-card { background: #f8fafc !important; border-color: #e2e8f0 !important; color: #1e293b !important; }
+.btn-card .sub { color: #64748b !important; }
+
+/* ---- Estados de color (se conservan pero legibles en claro) ---- */
+.msg.ok, tr.stock td.st { color: #15803d !important; }
+.msg.err, tr.neg td.num, .ped { color: #dc2626 !important; }
+.msg.warn, tr.bajo td.st { color: #b45309 !important; }
+.tag { filter: none; }
