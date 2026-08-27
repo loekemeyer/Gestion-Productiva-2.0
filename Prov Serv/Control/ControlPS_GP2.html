@@ -481,7 +481,8 @@
     return {
       getId: function(){ return selId; },
       clear: function(){ selId = null; input.value = ''; },
-      disable: function(d){ input.disabled = !!d; }
+      disable: function(d){ input.disabled = !!d; },
+      setItems: function(newItems){ items = newItems || []; selId = null; input.value = ''; close(); }
     };
   }
 
@@ -539,10 +540,23 @@
       return { id:c.id, codigo:c.codigo, descripcion:c.descripcion, sector: secMap[c.sector_id] || '' };
     });
 
-    // Pickers
-    var pkEnvioSC = makePicker(document.getElementById('mvEnvioSC'), comps);
-    var pkEntSC   = makePicker(document.getElementById('mvEntSC'),   comps);
-    var pkEntSP   = makePicker(document.getElementById('mvEntSP'),   comps);
+    // Pickers (arrancan vacios: se llenan con las partes del proveedor elegido)
+    var pkEnvioSC = makePicker(document.getElementById('mvEnvioSC'), []);
+    var pkEntSC   = makePicker(document.getElementById('mvEntSC'),   []);
+    var pkEntSP   = makePicker(document.getElementById('mvEntSP'),   []);
+
+    // Partes por proveedor (las que realmente se le llevan / recibe, segun rutas)
+    var PARTES_PS = {};
+    try{ var _rp = await SB.rpc('partes_por_ps'); if(!_rp.error) PARTES_PS = _rp.data || {}; }catch(e){}
+    function aplicarProvPartes(){
+      var pid = String(elProv.value||'');
+      var d = (pid && PARTES_PS[pid]) ? PARTES_PS[pid] : {sc:[],sp:[]};
+      pkEnvioSC.setItems(d.sc || []);
+      pkEntSC.setItems(d.sc || []);
+      pkEntSP.setItems(d.sp || []);
+    }
+    elProv.addEventListener('change', aplicarProvPartes);
+    aplicarProvPartes();
 
     function modo(){
       var m = 'envio';
