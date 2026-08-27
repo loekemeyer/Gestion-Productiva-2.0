@@ -14,6 +14,7 @@
  .wrap{max-width:1100px;margin:0 auto;padding:18px 16px}
  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:14px}
  .card{background:#111823;border:1px solid #1c2836;border-radius:12px;padding:14px 16px}
+ .card.all-locked{opacity:.45;pointer-events:none;border-style:dashed}
  .card h2{font-size:14px;margin:0 0 12px;display:flex;align-items:center;gap:8px;color:#cfe0f2;text-transform:uppercase;letter-spacing:.04em;border-bottom:1px solid #1c2836;padding-bottom:8px}
  .btns{display:flex;flex-direction:column;gap:7px}
  a.op,span.op{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:9px 12px;border-radius:8px;text-decoration:none;font-size:13px;border:1px solid #24344a}
@@ -119,6 +120,8 @@ MENU.forEach(([titulo, items]) => {
       box.appendChild(s);
     }
   });
+  var allLocked = items.every(function(i){ return !i[1]; });
+  if(allLocked) card.classList.add('all-locked');
   card.appendChild(box); grid.appendChild(card);
 });
 </script>
