@@ -51,11 +51,12 @@
 <div class="top">
  <h1>🧵 Control Talleristas <span style="font-size:11px;color:#9fc0e0;font-weight:400">· GP2</span></h1>
  <div class="sel">
-  Tallerista <select id="fTall"><option value="">Todos</option></select>
+  <select id="fTall" style="display:none"><option value="">Todos</option></select>
   <input id="fBuscar" type="text" placeholder="Buscar código, descripción, sector…">
   <button id="btnCsv">⬇ Exportar CSV</button>
  </div>
 </div>
+<div id="tallChips" class="provs-grid" style="display:flex;flex-wrap:wrap;gap:8px;padding:10px 14px 0"></div>
 <div class="canvas" id="canvas"><div class="empty">Cargando…</div></div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>var D={};
@@ -81,6 +82,25 @@ function __run(){
  (D.talleristas||[]).forEach(function(t){
   var o=document.createElement("option");o.value=String(t.id);o.textContent=t.nombre;fTall.appendChild(o);
  });
+
+ // chips de tallerista (estilo GP viejo)
+ (function(){
+  var cg=document.getElementById("tallChips"); if(!cg)return;
+  function chip(val,label){
+   var b=document.createElement("button"); b.className="prov-btn"+(fTall.value===val?" active":""); b.type="button";
+   b.textContent=label;
+   b.addEventListener("click",function(){
+    fTall.value=val;
+    cg.querySelectorAll(".prov-btn").forEach(function(x){x.classList.remove("active");});
+    b.classList.add("active");
+    fTall.dispatchEvent(new Event("change"));
+   });
+   cg.appendChild(b);
+  }
+  cg.innerHTML="";
+  chip("","Todos");
+  (D.talleristas||[]).forEach(function(t){ chip(String(t.id), t.nombre+(t.cod_prov?(" ("+t.cod_prov+")"):"")); });
+ })();
 
  function render(){
   var tallSel=fTall.value;

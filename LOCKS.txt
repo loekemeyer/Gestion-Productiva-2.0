@@ -4,6 +4,7 @@
 (vacío)
 
 [HISTORIAL]
+2026-08-27 - Control Talleristas: dropdown de tallerista -> fila de CHIPS (prov-btn, "Todos" + uno por tallerista con cod_prov) que filtran las tarjetas; select oculto para CSV/logica. Mismo patron que Faltante Partes. loekemeyer (claude-remote).
 2026-08-27 - Reportes agrupados: (a) gp2-claro whitening global de .tall-card (blanca) y .tall-head (#eef4fb, texto oscuro) — arregla el fondo oscuro en las paginas agrupadas por tallerista/proveedor sin tocarlas una por una. (b) Faltante Partes Tallerista: el dropdown de tallerista ahora es una fila de CHIPS (prov-btn, "Todos" + uno por tallerista con cod_prov); al tocar setea el filtro y re-renderiza (dispatch change). Select queda oculto (lo usa el CSV/logica). loekemeyer (claude-remote).
 2026-08-27 - ControlPS (PS Control/Envio/Entrega): sus botones de proveedor (.tallerista-btn) se sumaron al look NEO de gp2-claro (chips blanco->negro activo, .prov-meta gris). La pagina YA tenia el flujo GP viejo (elegir proveedor -> su tabla + panel de carga envio/entrega con partes filtradas por proveedor), asi que solo se ajusto el estilo de los chips; no se reescribio la logica. loekemeyer (claude-remote).
 2026-08-27 - Entregas Talleristas GP2 (solo lectura) REDISEÑADO look vecino + chips: card blanca + header negro, chips por Tallerista (con "Todos" y contador) que filtran la tabla de entregas; KPIs, buscador, rango de fechas, orden por columna, export CSV. Misma logica (entregas_tallerista_bundle, solo lectura). Sin gp2-claro. JS node --check OK. loekemeyer (claude-remote).
