@@ -1,0 +1,178 @@
+<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<script src="../auth-guard.js"></script>
+<title>Stock Flejes · GP2</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+ *{box-sizing:border-box}
+ body{margin:0;background:#0a0e13;color:#e6ecf3;font:14px/1.5 -apple-system,Segoe UI,Roboto,sans-serif}
+ .logobar{background:#0b1220;text-align:center;padding:6px 0;border-bottom:1px solid #1c2836}
+ .logobar img{height:40px;vertical-align:middle}
+ .top{background:linear-gradient(90deg,#0f3d6b,#1a5a94);padding:14px 20px;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+ .top h1{margin:0;font-size:18px}
+ #status{font-size:12px;color:#cfe4f6;margin-left:auto}
+ .btn-sm{background:#14202e;border:1px solid #24344a;color:#cfe0f2;border-radius:8px;padding:8px 12px;font:13px inherit;cursor:pointer;text-decoration:none}
+ .btn-sm:hover{border-color:#2f6fb0}
+ .canvas{padding:16px 18px 60px;max-width:1050px;margin:0 auto}
+ .toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:end;margin-bottom:16px}
+ .fld{display:flex;flex-direction:column;gap:4px}
+ .fld label{font-size:11px;text-transform:uppercase;color:#8fa2b6;letter-spacing:.3px}
+ .toolbar input,.toolbar select{background:#0b1119;color:#e6ecf3;border:1px solid #2a4a6e;border-radius:8px;padding:9px 11px;font:14px inherit}
+ .toolbar input[type=text]{min-width:230px}
+ .toolbar input:focus,.toolbar select:focus{outline:none;border-color:#5fb0e8}
+ table{border-collapse:collapse;width:100%;font-size:13px}
+ th,td{padding:7px 10px;text-align:left;border-bottom:1px solid #17222f;white-space:nowrap}
+ th{color:#7a92a8;text-transform:uppercase;font-size:10px;letter-spacing:.4px;position:sticky;top:0;background:#0d141d}
+ td.num{text-align:right;font-variant-numeric:tabular-nums}
+ td.cod{color:#9fc0e0;font-weight:600}
+ td.desc{white-space:normal}
+ tr:hover td{background:#101a24}
+ tr.stock td.st{color:#7fd0a5;font-weight:700}
+ tr.bajo td.st{color:#f0b060;font-weight:700}
+ .ped{color:#f0a0a0;font-weight:700}
+ .miss{color:#5c6b7e;font-style:italic}
+ .edit{cursor:pointer;color:#5fb0e8;border:1px solid #24344a;border-radius:6px;padding:3px 8px;font-size:12px}
+ .edit:hover{background:#14202e}
+ .empty{color:#6b7f93;padding:14px;text-align:center}
+ /* modal */
+ .modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.75);display:none;align-items:center;justify-content:center;z-index:100;padding:14px}
+ .modal-bg.on{display:flex}
+ .modal{background:#101820;border:1px solid #3a5068;border-radius:12px;padding:22px;max-width:460px;width:100%}
+ .modal h3{margin:0 0 4px;font-size:16px;color:#5fb0e8}
+ .modal .sub{color:#8aa0b6;font-size:12px;margin-bottom:14px}
+ .row{margin-bottom:11px}
+ .row label{display:block;font-size:11px;text-transform:uppercase;color:#8fa2b6;letter-spacing:.3px;margin-bottom:4px}
+ .row input{width:100%;background:#0b1119;color:#e6ecf3;border:1px solid #2a4a6e;border-radius:6px;padding:9px 11px;font:14px inherit}
+ .actions{display:flex;gap:8px;justify-content:flex-end;margin-top:14px;border-top:1px solid #2a3648;padding-top:12px}
+ .btn{padding:9px 18px;border-radius:7px;border:1px solid;font:14px inherit;cursor:pointer;font-weight:700}
+ .btn.primary{background:#2a568e;border-color:#5fb0e8;color:#e6ecf3}
+ .btn.cancel{background:transparent;border-color:#4a5a6c;color:#8fa2b6}
+ #toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#132a1e;border:1px solid #3a8a5f;color:#7fd0a5;padding:10px 18px;border-radius:8px;font-size:13px;font-weight:600;z-index:200;opacity:0;transition:opacity .2s;pointer-events:none}
+ #toast.on{opacity:1} #toast.err{background:#2f1a1a;border-color:#8a3a3a;color:#f0a0a0}
+</style>
+<link rel="icon" type="image/png" href="../GP2_favicon.png">
+<link rel="apple-touch-icon" href="../GP2_favicon.png">
+</head>
+<body>
+<div class="logobar"><a href="../Inicio/index.html"><img src="../GP2_logo.png" alt="GP2"></a></div>
+<div class="top">
+  <h1>▦ Stock Flejes · GP2</h1>
+  <a class="btn-sm" href="../Movimientos/Registrar_Movimiento.html">📋 Movimientos</a>
+  <span id="status">Cargando…</span>
+</div>
+<div class="canvas">
+ <div class="toolbar">
+   <div class="fld"><label>Buscar</label><input type="text" id="q" placeholder="N°, código, descripción o prov…" oninput="render()"></div>
+   <div class="fld"><label>Proveedor</label><select id="fProv" onchange="render()"><option value="">Todos</option></select></div>
+   <div class="fld"><label>Stock</label><select id="fStock" onchange="render()">
+     <option value="todos">Todos</option><option value="con">Con stock</option>
+     <option value="sin">Sin stock</option><option value="bajo">Bajo mínimo</option></select></div>
+   <button class="btn-sm" onclick="cargar()">↻ Actualizar</button>
+ </div>
+ <table id="tbl">
+   <thead><tr>
+     <th>N°</th><th>Cód</th><th>Descripción</th><th>Medida</th><th>Proveedor</th>
+     <th class="num">Stock (kg)</th><th class="num">Mínimo</th><th class="num">Pedido</th><th></th>
+   </tr></thead>
+   <tbody id="body"><tr><td colspan="9" class="empty">Cargando…</td></tr></tbody>
+ </table>
+</div>
+
+<div class="modal-bg" id="modalBg">
+ <div class="modal">
+   <h3 id="mTit">Editar fleje</h3>
+   <div class="sub" id="mSub"></div>
+   <div class="row"><label>Proveedor</label><input id="mProv"></div>
+   <div class="row"><label>Medida mm</label><input id="mMed"></div>
+   <div class="row"><label>Consumo mensual (kg)</label><input id="mCons" type="number" step="0.01"></div>
+   <div class="row"><label>Kg × cajón</label><input id="mKgc" type="number" step="0.0001"></div>
+   <div class="row"><label>Cód. ISIS</label><input id="mIsis"></div>
+   <div class="actions">
+     <button class="btn cancel" onclick="cerrar()">Cancelar</button>
+     <button class="btn primary" id="mSave" onclick="guardar()">Guardar</button>
+   </div>
+ </div>
+</div>
+<div id="toast"></div>
+
+<script>
+const SB_URL="https://hrxfctzncixxqmpfhskv.supabase.co";
+const SB_ANON="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhyeGZjdHpuY2l4eHFtcGZoc2t2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI3MjQyNjEsImV4cCI6MjA4ODMwMDI2MX0.4L6wguch8UZGhC2VpzrWcCjJGUV-IkYsl9JoCWrOLUs";
+const SB=window.supabase.createClient(SB_URL,SB_ANON,{db:{schema:'GP2'}});
+const $=id=>document.getElementById(id);
+let FL=[];
+function fmt(n){var x=Number(n)||0;return Number.isInteger(x)?x.toLocaleString('es-AR'):x.toLocaleString('es-AR',{maximumFractionDigits:2});}
+function esc(s){return (s==null?'':String(s)).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
+
+function pobProv(){
+ var provs=[...new Set(FL.map(f=>f.proveedor).filter(Boolean))].sort((a,b)=>a.localeCompare(b));
+ $('fProv').innerHTML='<option value="">Todos</option>'+provs.map(p=>'<option>'+esc(p)+'</option>').join('');
+}
+function render(){
+ var q=($('q').value||'').trim().toLowerCase();
+ var prov=$('fProv').value, st=$('fStock').value;
+ var rows=FL.filter(f=>{
+   if(prov && f.proveedor!==prov)return false;
+   var stock=Number(f.stock)||0, min=Number(f.minimo)||0;
+   if(st==='con' && !(stock>0))return false;
+   if(st==='sin' && stock>0)return false;
+   if(st==='bajo' && !(min>0 && stock<min))return false;
+   if(q){var s=((f.n_fleje||'')+' '+(f.codigo||'')+' '+(f.descripcion||'')+' '+(f.proveedor||'')).toLowerCase();if(s.indexOf(q)<0)return false;}
+   return true;
+ });
+ var b=$('body');
+ if(!rows.length){b.innerHTML='<tr><td colspan="9" class="empty">Sin flejes que coincidan</td></tr>';return;}
+ b.innerHTML=rows.map(f=>{
+   var stock=Number(f.stock)||0, min=Number(f.minimo)||0;
+   var ped=Math.max(0, min-stock);
+   var cls=stock<=0?'':(min>0&&stock<min?'bajo':'stock');
+   return '<tr class="'+cls+'">'+
+     '<td class="cod">'+esc(f.n_fleje||'')+'</td>'+
+     '<td>'+esc(f.codigo||'')+'</td>'+
+     '<td class="desc">'+esc(f.descripcion||'')+'</td>'+
+     '<td>'+(f.medida?esc(f.medida):'<span class="miss">—</span>')+'</td>'+
+     '<td>'+(f.proveedor?esc(f.proveedor):'<span class="miss">—</span>')+'</td>'+
+     '<td class="num st">'+fmt(stock)+'</td>'+
+     '<td class="num">'+(min?fmt(min):'')+'</td>'+
+     '<td class="num '+(ped>0?'ped':'')+'">'+(ped>0?fmt(ped):'')+'</td>'+
+     '<td><span class="edit" onclick="editar('+f.comp_id+')">✎ editar</span></td>'+
+   '</tr>';
+ }).join('');
+}
+let EDIT=null;
+function editar(cid){
+ var f=FL.find(x=>x.comp_id===cid);if(!f)return;EDIT=f;
+ $('mTit').textContent='Editar '+(f.codigo||'')+' · '+(f.descripcion||'');
+ $('mSub').textContent='Atributos propios de GP2 (se cargan a mano).';
+ $('mProv').value=f.proveedor||'';$('mMed').value=f.medida||'';
+ $('mCons').value=f.cons_mensual!=null?f.cons_mensual:'';$('mKgc').value=f.kg_x_cajon!=null?f.kg_x_cajon:'';
+ $('mIsis').value=f.cod_isis||'';
+ $('modalBg').classList.add('on');
+}
+function cerrar(){$('modalBg').classList.remove('on');EDIT=null;}
+async function guardar(){
+ if(!EDIT)return;$('mSave').disabled=true;
+ try{
+   var res=await SB.rpc('fleje_detalle_upsert',{
+     p_comp_id:EDIT.comp_id, p_proveedor:$('mProv').value||null, p_medida:$('mMed').value||null,
+     p_cons:$('mCons').value?Number($('mCons').value):null, p_kgcaj:$('mKgc').value?Number($('mKgc').value):null,
+     p_cod_isis:$('mIsis').value||null});
+   if(res.error) throw res.error;
+   cerrar(); await cargar(); toast('✔ Guardado');
+ }catch(e){ toast('Error: '+(e.message||e), true); }
+ finally{ $('mSave').disabled=false; }
+}
+let _t=null;
+function toast(m,err){var el=$('toast');el.textContent=m;el.className='on'+(err?' err':'');clearTimeout(_t);_t=setTimeout(()=>el.className='',err?5000:2500);}
+
+async function cargar(){
+ $('status').textContent='Cargando…';
+ var res=await SB.rpc('flejes_bundle');
+ if(res.error){$('status').textContent='Error: '+res.error.message;$('body').innerHTML='<tr><td colspan="9" class="empty">Error: '+esc(res.error.message)+'</td></tr>';return;}
+ FL=res.data||[];
+ var con=FL.filter(f=>Number(f.stock)>0).length;
+ $('status').textContent='GP2 · '+FL.length+' flejes · '+con+' con stock';
+ pobProv(); render();
+}
+cargar();
+</script>
+</body></html>
