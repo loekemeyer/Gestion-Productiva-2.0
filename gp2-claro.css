@@ -122,6 +122,12 @@ h2 { font-size: 20px !important; }
 .tallerista-btn .prov-meta { color: #64748b !important; }
 .tallerista-btn.active .prov-meta { color: #cbd5e1 !important; }
 
+/* -- Tarjetas de reportes agrupados por tallerista/proveedor: claras -- */
+.tall-card { background: #ffffff !important; border-color: #e2e8f0 !important; }
+.tall-head { background: #eef4fb !important; border-bottom: 1px solid #e2e8f0 !important; }
+.tall-head .nm, .tall-head .cod { color: #1e293b !important; }
+.tall-head .cod { color: #64748b !important; }
+
 /* -- Botones primarios: negros (vecino). Secundarios claros. -- */
 .btn, .btn.primary, .btn-primary, .btn-generar, button.primary {
   background: #111111 !important; color: #ffffff !important; border: none !important;
