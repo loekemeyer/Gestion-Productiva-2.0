@@ -1,0 +1,139 @@
+<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<script src="../auth-guard.js"></script>
+<title>Recepción de Insumos · GP2</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+ *{box-sizing:border-box}
+ body{margin:0;background:#0a0e13;color:#e6ecf3;font:14px/1.5 -apple-system,Segoe UI,Roboto,sans-serif}
+ .logobar{background:#0b1220;text-align:center;padding:6px 0;border-bottom:1px solid #1c2836}
+ .logobar img{height:40px;vertical-align:middle}
+ .top{background:linear-gradient(90deg,#0f3d6b,#1a5a94);padding:14px 20px;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+ .top h1{margin:0;font-size:18px}
+ #status{font-size:12px;color:#cfe4f6;margin-left:auto}
+ .btn-sm{background:#14202e;border:1px solid #24344a;color:#cfe0f2;border-radius:8px;padding:8px 12px;font:13px inherit;cursor:pointer;text-decoration:none}
+ .btn-sm:hover{border-color:#2f6fb0}
+ .canvas{padding:16px 18px 60px;max-width:900px;margin:0 auto}
+ .card{background:#111823;border:1px solid #1c2836;border-radius:12px;padding:16px 18px;margin-bottom:18px}
+ .card h2{font-size:14px;margin:0 0 12px;color:#9fc0e0;text-transform:uppercase;letter-spacing:.04em}
+ .row{display:flex;gap:12px;flex-wrap:wrap}
+ .fld{display:flex;flex-direction:column;gap:4px;margin-bottom:12px}
+ .fld.grow{flex:1 1 200px}
+ label{font-size:12px;color:#9fc0e0;text-transform:uppercase;letter-spacing:.03em}
+ input,select{background:#0b1119;color:#e6ecf3;border:1px solid #2a4a6e;border-radius:8px;padding:9px 11px;font:14px inherit}
+ input:focus,select:focus{outline:none;border-color:#2f6fb0}
+ .btn{background:#1f6fce;color:#fff;border:none;border-radius:9px;padding:11px 20px;font:600 14px inherit;cursor:pointer}
+ .btn:hover{background:#2f80d6} .btn:disabled{opacity:.5;cursor:default}
+ .msg{margin-top:8px;font-size:13px;min-height:18px}
+ .msg.ok{color:#4bc394} .msg.err{color:#f0736d}
+ table{width:100%;border-collapse:collapse;font-size:13px}
+ th{color:#7a92a8;text-transform:uppercase;font-size:10px;letter-spacing:.4px;text-align:left;padding:6px 8px;border-bottom:1px solid #1c2836}
+ td{padding:7px 8px;border-bottom:1px solid #141d29}
+ td.num{text-align:right;font-variant-numeric:tabular-nums}
+ .empty{color:#6b7f93;padding:14px;text-align:center}
+ .hint{font-size:11px;color:#7a92a8;font-style:italic}
+</style>
+<link rel="icon" type="image/png" href="../GP2_favicon.png">
+<link rel="apple-touch-icon" href="../GP2_favicon.png">
+</head>
+<body>
+<div class="logobar"><a href="../Inicio/index.html"><img src="../GP2_logo.png" alt="GP2"></a></div>
+<div class="top">
+  <h1>▦ Recepción de Insumos · GP2</h1>
+  <a class="btn-sm" href="../Stocks General/StockGeneral_GP2.html">▦ Ver stock</a>
+  <span id="status">Cargando…</span>
+</div>
+<div class="canvas">
+ <div class="card">
+   <h2>Registrar recepción</h2>
+   <div class="row">
+     <div class="fld grow"><label>Fecha</label><input type="date" id="fFecha"></div>
+     <div class="fld grow"><label>Proveedor</label><input type="text" id="fProv" placeholder="Proveedor / remitente"></div>
+     <div class="fld grow"><label>Remito</label><input type="text" id="fRemito" placeholder="N° de remito (opcional)"></div>
+   </div>
+   <div class="row">
+     <div class="fld grow" style="flex:2 1 320px"><label>Insumo</label>
+       <input type="text" id="fBuscar" placeholder="Buscar insumo por código o descripción…" oninput="filtrar()" style="margin-bottom:6px">
+       <select id="fInsumo" size="1" onchange="onInsumo()"><option value="">Cargando…</option></select>
+     </div>
+     <div class="fld grow"><label>Cantidad</label><input type="number" id="fCant" min="0" step="0.01" placeholder="0"></div>
+     <div class="fld"><label>Unidad</label><select id="fUnidad"><option value="uni">Unidades</option><option value="kg">Kg</option></select></div>
+   </div>
+   <button class="btn" id="btnGuardar" onclick="guardar()">Registrar recepción</button>
+   <div class="msg" id="msg"></div>
+   <div class="hint">La recepción crea un movimiento de compra que suma el stock del insumo en su sector.</div>
+ </div>
+
+ <div class="card">
+   <h2>Últimas recepciones</h2>
+   <div id="tabla"><p class="empty">—</p></div>
+ </div>
+</div>
+
+<script>
+const SB_URL="https://hrxfctzncixxqmpfhskv.supabase.co";
+const SB_ANON="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhyeGZjdHpuY2l4eHFtcGZoc2t2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI3MjQyNjEsImV4cCI6MjA4ODMwMDI2MX0.4L6wguch8UZGhC2VpzrWcCjJGUV-IkYsl9JoCWrOLUs";
+const SB=window.supabase.createClient(SB_URL,SB_ANON,{db:{schema:'GP2'}});
+const $=id=>document.getElementById(id);
+let INS=[], UMBY={};
+function hoy(){const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
+function esc(s){return (s==null?'':String(s)).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
+function fmt(n){var x=Number(n)||0;return Number.isInteger(x)?x.toLocaleString('es-AR'):x.toLocaleString('es-AR',{maximumFractionDigits:2});}
+
+function pintarSelect(list){
+ var bySec={};
+ list.forEach(i=>{(bySec[i.sector]=bySec[i.sector]||[]).push(i);});
+ var html='<option value="">— Elegí insumo —</option>';
+ Object.keys(bySec).sort().forEach(sec=>{
+   html+='<optgroup label="'+esc(sec)+'">';
+   bySec[sec].forEach(i=>{html+='<option value="'+i.comp_id+'">'+esc(i.codigo)+' — '+esc((i.descripcion||'').substring(0,50))+'</option>';});
+   html+='</optgroup>';
+ });
+ $('fInsumo').innerHTML=html;
+}
+function filtrar(){
+ var q=($('fBuscar').value||'').trim().toLowerCase();
+ if(!q){pintarSelect(INS);return;}
+ pintarSelect(INS.filter(i=>((i.codigo||'')+' '+(i.descripcion||'')+' '+(i.sector||'')).toLowerCase().indexOf(q)>=0));
+}
+function onInsumo(){
+ var cid=parseInt($('fInsumo').value);
+ if(UMBY[cid]) $('fUnidad').value = (UMBY[cid]==='kg'?'kg':'uni');
+}
+async function guardar(){
+ var m=$('msg'); m.className='msg'; m.textContent='';
+ var cid=parseInt($('fInsumo').value), cant=parseFloat($('fCant').value);
+ if(!cid){m.className='msg err';m.textContent='Elegí un insumo.';return;}
+ if(!cant||cant<=0){m.className='msg err';m.textContent='Ingresá cantidad (> 0).';return;}
+ $('btnGuardar').disabled=true;
+ try{
+   var fiso=$('fFecha').value?($('fFecha').value+'T12:00:00'):null;
+   var res=await SB.rpc('crear_recepcion_insumo',{p_comp_id:cid, p_proveedor:$('fProv').value||null,
+     p_cantidad:cant, p_unidad:$('fUnidad').value, p_remito:$('fRemito').value||null, p_fecha:fiso});
+   if(res.error) throw res.error;
+   m.className='msg ok'; m.textContent='✓ Recepción registrada (mov '+(res.data&&res.data.movimiento_id)+'). Stock actualizado.';
+   $('fCant').value='';$('fRemito').value='';
+   await cargar();
+ }catch(e){ m.className='msg err'; m.textContent='Error: '+(e.message||e); }
+ finally{ $('btnGuardar').disabled=false; }
+}
+function pintarRecientes(rec){
+ var t=$('tabla');
+ if(!rec||!rec.length){t.innerHTML='<p class="empty">Sin recepciones todavía</p>';return;}
+ t.innerHTML='<table><thead><tr><th>Fecha</th><th>Insumo</th><th>Proveedor</th><th>Remito</th><th class="num">Cantidad</th></tr></thead><tbody>'+
+   rec.map(r=>{var f=r.fecha?new Date(r.fecha).toLocaleDateString('es-AR'):'';
+     return '<tr><td>'+f+'</td><td>'+esc(r.codigo)+' — '+esc((r.descripcion||'').substring(0,40))+'</td><td>'+esc(r.proveedor||'')+'</td><td>'+esc(r.remito||'')+'</td><td class="num">'+fmt(r.cantidad)+' '+esc(r.unidad||'')+'</td></tr>';}).join('')+
+   '</tbody></table>';
+}
+async function cargar(){
+ $('status').textContent='Cargando…';
+ var res=await SB.rpc('recepcion_insumos_bundle');
+ if(res.error){$('status').textContent='Error: '+res.error.message;return;}
+ INS=(res.data&&res.data.insumos)||[]; UMBY={}; INS.forEach(i=>UMBY[i.comp_id]=i.um);
+ pintarSelect(INS); filtrar();
+ pintarRecientes((res.data&&res.data.recientes)||[]);
+ $('status').textContent='GP2 · '+INS.length+' insumos';
+}
+$('fFecha').value=hoy();
+cargar();
+</script>
+</body></html>
