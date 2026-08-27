@@ -1,0 +1,253 @@
+<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<script src="../auth-guard.js"></script>
+<title>Stock SC (GP2)</title>
+<style>
+ *{box-sizing:border-box}
+ body{margin:0;background:#0a0e13;color:#e6ecf3;font:13px/1.4 -apple-system,Segoe UI,Roboto,sans-serif}
+ .top{background:linear-gradient(90deg,#1a2a10,#2a4a18);padding:12px 20px;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+ .top h1{margin:0;font-size:18px;color:#e0a95a}
+ .top .sub{font-size:11px;color:#c0a060}
+ .filters{padding:12px 20px;background:#101820;border-bottom:1px solid #1e2a38;display:flex;gap:12px;flex-wrap:wrap;align-items:center}
+ .filters label{font-size:11px;text-transform:uppercase;color:#7a92a8;letter-spacing:.5px;margin-right:6px}
+ .filters select,.filters input{background:#0b1119;color:#e6ecf3;border:1px solid #2a4a6e;border-radius:6px;padding:6px 10px;font:13px inherit}
+ .filters input{min-width:200px}
+ .btn{background:#2a4a6e;color:#e6ecf3;border:none;border-radius:6px;padding:6px 12px;cursor:pointer;font:13px inherit}
+ .btn:hover{background:#356090}
+ .kpis{padding:12px 20px;display:flex;gap:14px;flex-wrap:wrap}
+ .kpi{background:#101820;border:1px solid #1e2a38;border-radius:8px;padding:10px 14px;min-width:110px}
+ .kpi .n{font-size:22px;font-weight:800;color:#e0a95a}
+ .kpi .n.neg{color:#ff7f9a}
+ .kpi .lb{font-size:10px;text-transform:uppercase;color:#7a92a8;letter-spacing:.6px}
+ .content{padding:0 20px 40px}
+ .table-wrap{margin-top:12px;border:1px solid #1e2a38;border-radius:8px;overflow-x:auto;background:#0d141d}
+ table{border-collapse:collapse;font-size:12px;width:100%;min-width:1000px}
+ th,td{padding:6px 12px;text-align:left;border-bottom:1px solid #1e2a38;white-space:nowrap}
+ th{color:#7a92a8;text-transform:uppercase;font-size:10px;letter-spacing:.4px;background:#0a1119;position:sticky;top:0;cursor:pointer;user-select:none}
+ th.num,td.num{text-align:right;font-family:ui-monospace,SF Mono,monospace}
+ th:hover{color:#e6ecf3}
+ tbody tr:hover{background:#111c28}
+ td.qneg{color:#ff7f9a;font-weight:700}
+ tr.bajo td.qty{background:rgba(224,169,90,.10)}
+ .empty{padding:24px;color:#7a92a8;font-style:italic}
+ .muted{color:#5a6a7a}
+ .note{padding:8px 20px;font-size:11px;color:#c9a24a;background:#1c150a;border-bottom:1px solid #2a2010}
+</style><link rel="icon" type="image/png" href="../GP2_favicon.png">
+<link rel="apple-touch-icon" href="../GP2_favicon.png">
+</head>
+<body>
+<div id="gp2-logobar" style="background:#0b1220;text-align:center;padding:6px 0;border-bottom:1px solid #1c2836"><a href="../GP2_MODULOS.html" style="text-decoration:none"><img src="../GP2_logo.png" alt="GP2 · Gestión Productiva" style="height:40px;vertical-align:middle"></a></div>
+
+<div class="top">
+  <div>
+    <h1>📦 Stock SC — Sector Crudo</h1>
+    <div class="sub">Inventario de piezas crudas (sin procesar). Datos: schema GP2 · tabla inventario, ubicación Sector Crudo.</div>
+  </div>
+</div>
+<div class="note">⚠ El ledger es parcial: hay cantidades negativas (falta cargar producción / stock inicial). Se muestran tal cual, sin corregir.</div>
+<div class="filters">
+  <label>Buscar</label>
+  <input id="q" placeholder="Código o descripción">
+  <label style="margin-left:8px">Mostrar</label>
+  <select id="fShow">
+    <option value="todos">Todos</option>
+    <option value="con">Con stock (≠0)</option>
+    <option value="sin">Sin stock (0)</option>
+    <option value="neg">Negativos</option>
+    <option value="bajo">Bajo mínimo</option>
+  </select>
+  <label style="margin-left:8px">Formato</label>
+  <select id="fFmt">
+    <option value="uni">Unidades</option>
+    <option value="kg">Kg</option>
+    <option value="caj">Cajones</option>
+  </select>
+  <button class="btn" id="btnCSV" style="margin-left:auto">Exportar CSV</button>
+</div>
+<div class="kpis" id="kpis"></div>
+<div class="content">
+  <div class="table-wrap">
+    <table>
+      <thead><tr>
+        <th data-k="cod">Código</th>
+        <th data-k="desc">Descripción</th>
+        <th data-k="qty" class="num">Stock</th>
+        <th data-k="min" class="num">Mínimo</th>
+        <th data-k="kgxuni" class="num">Kg × Uni</th>
+        <th data-k="unixcaj" class="num">Uni × Cajón</th>
+        <th data-k="um">UM</th>
+      </tr></thead>
+      <tbody id="tb"><tr><td colspan="7" class="empty">Cargando…</td></tr></tbody>
+    </table>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+var SB=window.supabase.createClient('https://hrxfctzncixxqmpfhskv.supabase.co','eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhyeGZjdHpuY2l4eHFtcGZoc2t2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI3MjQyNjEsImV4cCI6MjA4ODMwMDI2MX0.4L6wguch8UZGhC2VpzrWcCjJGUV-IkYsl9JoCWrOLUs',{db:{schema:'GP2'}});
+
+var D={rows:[]};
+var sortK='cod',sortDir=1;
+
+function esc(s){var d=document.createElement('div');d.textContent=(s==null?'':String(s));return d.innerHTML;}
+function num(v){var n=Number(v);return isFinite(n)?n:null;}
+function fmtN(v,dec){if(v==null||v==='')return '';var n=Number(v);if(!isFinite(n))return '';return n.toLocaleString('es-AR',{maximumFractionDigits:dec==null?4:dec});}
+
+var q=document.getElementById('q'),fShow=document.getElementById('fShow'),
+    fFmt=document.getElementById('fFmt'),tb=document.getElementById('tb');
+
+function valFmt(r){var f=fFmt.value;if(f==='kg')return r.kg;if(f==='caj')return r.caj;return r.qty;}
+
+function visibles(){
+  var t=q.value.trim().toLowerCase(), sh=fShow.value;
+  return D.rows.filter(function(r){
+    var qty=num(r.qty)||0;
+    if(sh==='con' && qty===0) return false;
+    if(sh==='sin' && qty!==0) return false;
+    if(sh==='neg' && !(qty<0)) return false;
+    if(sh==='bajo'){ var mn=num(r.min); if(mn==null||!(qty<mn)) return false; }
+    if(t){
+      if((r.cod||'').toLowerCase().indexOf(t)>=0) return true;
+      if((r.desc||'').toLowerCase().indexOf(t)>=0) return true;
+      return false;
+    }
+    return true;
+  });
+}
+
+function sortRows(rows){
+  var k=sortK;
+  return rows.slice().sort(function(a,b){
+    var va,vb;
+    if(k==='qty'||k==='min'||k==='kgxuni'||k==='unixcaj'){
+      va=num(k==='qty'?valFmt(a):(a[k])); vb=num(k==='qty'?valFmt(b):(b[k]));
+      va=(va==null?-Infinity:va); vb=(vb==null?-Infinity:vb);
+      return (va-vb)*sortDir;
+    }
+    va=String(a[k]||'').toLowerCase(); vb=String(b[k]||'').toLowerCase();
+    return va.localeCompare(vb,'es',{numeric:true})*sortDir;
+  });
+}
+
+function render(){
+  var vis=sortRows(visibles());
+  var fmt=fFmt.value;
+  var dec=fmt==='uni'?0:(fmt==='kg'?3:2);
+  // KPIs
+  var conStock=0,neg=0,bajo=0;
+  D.rows.forEach(function(r){var qv=num(r.qty)||0; if(qv!==0)conStock++; if(qv<0)neg++; var mn=num(r.min); if(mn!=null&&qv<mn)bajo++;});
+  document.getElementById('kpis').innerHTML=
+    '<div class="kpi"><div class="n">'+D.rows.length+'</div><div class="lb">Componentes SC</div></div>'+
+    '<div class="kpi"><div class="n">'+conStock+'</div><div class="lb">Con stock (≠0)</div></div>'+
+    '<div class="kpi"><div class="n neg">'+neg+'</div><div class="lb">Negativos</div></div>'+
+    '<div class="kpi"><div class="n">'+bajo+'</div><div class="lb">Bajo mínimo</div></div>'+
+    '<div class="kpi"><div class="n">'+vis.length+'</div><div class="lb">En vista</div></div>';
+
+  if(vis.length===0){ tb.innerHTML='<tr><td colspan="7" class="empty">Sin filas para el filtro actual.</td></tr>'; return; }
+  var h='';
+  vis.forEach(function(r){
+    var qv=valFmt(r); var qn=num(qv);
+    var mn=num(r.min); var bajoRow=(mn!=null&&(num(r.qty)||0)<mn);
+    h+='<tr class="'+(bajoRow?'bajo':'')+'">'+
+       '<td>'+esc(r.cod||'')+'</td>'+
+       '<td>'+esc(r.desc||'')+'</td>'+
+       '<td class="num qty '+((qn!=null&&qn<0)?'qneg':'')+'">'+(qv==null?'<span class="muted">—</span>':fmtN(qv,dec))+'</td>'+
+       '<td class="num">'+fmtN(r.min,0)+'</td>'+
+       '<td class="num">'+fmtN(r.kgxuni,6)+'</td>'+
+       '<td class="num">'+fmtN(r.unixcaj,0)+'</td>'+
+       '<td>'+esc(r.um||'')+'</td>'+
+       '</tr>';
+  });
+  tb.innerHTML=h;
+}
+
+function exportCSV(){
+  var vis=sortRows(visibles());
+  var fmt=fFmt.value;
+  var dec=fmt==='uni'?0:(fmt==='kg'?3:2);
+  var fmtLbl=fmt==='kg'?'Kg':(fmt==='caj'?'Cajones':'Unidades');
+  var SEP=';';
+  var qq=function(v){return '"'+String(v==null?'':v).replace(/"/g,'""')+'"';};
+  var linea=function(a){return a.map(qq).join(SEP);};
+  var filas=[];
+  filas.push(linea(['Stock SC — Sector Crudo (GP2)']));
+  filas.push(linea(['Generado',new Date().toISOString().slice(0,19).replace('T',' ')]));
+  filas.push(linea(['Formato cantidad',fmtLbl]));
+  filas.push('');
+  filas.push(linea(['Código','Descripción','Stock ('+fmtLbl+')','Mínimo (uni)','Kg x Uni','Uni x Cajón','UM']));
+  vis.forEach(function(r){
+    var qv=valFmt(r); var qs=(qv==null?'':Number(qv).toFixed(dec));
+    filas.push(linea([r.cod,r.desc,qs,r.min,r.kgxuni,r.unixcaj,r.um]));
+  });
+  var csv='﻿'+filas.join('\r\n');
+  var blob=new Blob([csv],{type:'text/csv;charset=utf-8'});
+  var url=URL.createObjectURL(blob);
+  var el=document.createElement('a');el.href=url;el.download='stock_sc_gp2_'+new Date().toISOString().slice(0,10)+'.csv';el.click();
+  URL.revokeObjectURL(url);
+}
+
+[q,fShow,fFmt].forEach(function(el){el.addEventListener('input',render);el.addEventListener('change',render);});
+document.getElementById('btnCSV').addEventListener('click',exportCSV);
+Array.prototype.forEach.call(document.querySelectorAll('th[data-k]'),function(th){
+  th.addEventListener('click',function(){var k=th.getAttribute('data-k'); if(sortK===k)sortDir=-sortDir; else{sortK=k;sortDir=1;} render();});
+});
+
+async function boot(){
+  try{
+    document.body.style.cursor='progress';
+
+    // 1) stock_bundle — trae todo el inventario
+    var rBundle=await SB.rpc('stock_bundle');
+    if(rBundle.error) throw rBundle.error;
+    var allRows=(rBundle.data||{}).rows||[];
+
+    // 2) Factores de peso desde componente (sector_id=1 = crudo)
+    var rComp=await SB.from('componente').select('codigo,kg_x_uni,uni_x_cajon').eq('sector_id',1);
+    if(rComp.error) throw rComp.error;
+    var factores={};
+    (rComp.data||[]).forEach(function(c){ factores[c.codigo]={kgxuni:c.kg_x_uni,unixcaj:c.uni_x_cajon}; });
+
+    // 3) Filtrar solo SC (st==='crudo') y ubicacion Sector Crudo
+    var scRows=allRows.filter(function(r){ return r.st==='crudo' && r.ubi==='Sector Crudo'; });
+
+    // 4) Enriquecer con factores
+    D.rows=scRows.map(function(r){
+      var f=factores[r.cod]||{};
+      return {
+        cod:r.cod, desc:r.desc, qty:r.qty, kg:r.kg, caj:r.caj,
+        min:r.min, um:r.um,
+        kgxuni:f.kgxuni, unixcaj:f.unixcaj
+      };
+    });
+
+    // Si hay componentes SC sin inventario, agregarlos con qty=0
+    var codsEnInv={};
+    D.rows.forEach(function(r){ codsEnInv[r.cod]=true; });
+    (rComp.data||[]).forEach(function(c){
+      if(!codsEnInv[c.codigo]){
+        D.rows.push({
+          cod:c.codigo, desc:'', qty:0, kg:0, caj:0,
+          min:null, um:'uni',
+          kgxuni:c.kg_x_uni, unixcaj:c.uni_x_cajon
+        });
+      }
+    });
+
+    // Buscar descripcion de componentes sin desc (los que solo vienen del query componente)
+    if(D.rows.some(function(r){return !r.desc;})){
+      var rDesc=await SB.from('componente').select('codigo,descripcion').eq('sector_id',1);
+      if(!rDesc.error){
+        var descMap={};
+        (rDesc.data||[]).forEach(function(c){ descMap[c.codigo]=c.descripcion; });
+        D.rows.forEach(function(r){ if(!r.desc) r.desc=descMap[r.cod]||''; });
+      }
+    }
+
+    render();
+  }catch(e){
+    tb.innerHTML='<tr><td colspan="7" class="empty" style="color:#ff7070">Error cargando datos: '+esc(e.message||e)+'</td></tr>';
+    console.error(e);
+  }finally{document.body.style.cursor='';}
+}
+boot();
+</script>
+</body></html>
