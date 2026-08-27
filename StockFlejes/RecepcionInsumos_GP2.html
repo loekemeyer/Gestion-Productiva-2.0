@@ -60,12 +60,6 @@
   .kg-modal .actions{display:flex;gap:12px}
   .kg-modal .actions button{flex:1;padding:16px;font-size:24px;font-weight:700;border:none;border-radius:8px;cursor:pointer}
 
-  .recent{margin-top:8px}
-  .recent h2{font-size:18px;color:#333;margin:6px 0}
-  table.rec{width:100%;border-collapse:collapse;font-size:16px}
-  table.rec th{color:#555;text-align:left;padding:7px 8px;border-bottom:2px solid #e5e9ee;font-size:14px;text-transform:uppercase;letter-spacing:.3px}
-  table.rec td{padding:8px;border-bottom:1px solid #eef1f4}
-  table.rec td.num{text-align:right;font-variant-numeric:tabular-nums}
   .empty{color:#888;padding:12px;text-align:center;font-style:italic}
 </style>
 <link rel="icon" type="image/png" href="../GP2_favicon.png">
@@ -134,11 +128,6 @@
       <div id="successDetail"></div>
     </div>
 
-    <!-- Últimas recepciones -->
-    <div class="recent">
-      <h2>Últimas recepciones</h2>
-      <div id="tabla"><p class="empty">—</p></div>
-    </div>
   </div>
 </div>
 
@@ -290,25 +279,9 @@ async function guardar(){
     var sb=$('successBox'); sb.style.display='block';
     $('successDetail').innerHTML=esc(itemSel.codigo)+' — '+esc(itemSel.descripcion||'')+' · <b>'+fmt(cant)+' '+esc(unitSel)+'</b>'+(provSel?(' ('+esc(provSel)+')'):'')+'. Stock actualizado. Mov '+(res.data&&res.data.movimiento_id)+'.';
     cerrarPopup();
-    await cargarRecientes();
     setTimeout(()=>{sb.style.display='none';},6000);
   }catch(e){ m.className='status bad'; m.textContent='Error: '+(e.message||e); }
   finally{ $('kgConfirm').disabled=false; }
-}
-
-// ---- Últimas recepciones ----
-function pintarRecientes(rec){
-  var t=$('tabla');
-  if(!rec||!rec.length){t.innerHTML='<p class="empty">Sin recepciones todavía</p>';return;}
-  t.innerHTML='<table class="rec"><thead><tr><th>Fecha</th><th>Insumo</th><th>Proveedor</th><th>Remito</th><th class="num">Cantidad</th></tr></thead><tbody>'+
-    rec.map(r=>{var f=r.fecha?new Date(r.fecha).toLocaleDateString('es-AR'):'';
-      return '<tr><td>'+f+'</td><td>'+esc(r.codigo)+' — '+esc((r.descripcion||'').substring(0,40))+'</td><td>'+esc(r.proveedor||'')+'</td><td>'+esc(r.remito||'')+'</td><td class="num">'+fmt(r.cantidad)+' '+esc(r.unidad||'')+'</td></tr>';}).join('')+
-    '</tbody></table>';
-}
-async function cargarRecientes(){
-  var res=await SB.rpc('recepcion_insumos_bundle');
-  if(res.error) return;
-  pintarRecientes((res.data&&res.data.recientes)||[]);
 }
 
 async function cargar(){
@@ -316,7 +289,6 @@ async function cargar(){
   var res=await SB.rpc('recepcion_insumos_bundle');
   if(res.error){$('statusMsg').className='status bad';$('statusMsg').textContent='Error: '+res.error.message;return;}
   INS=(res.data&&res.data.insumos)||[]; UMBY={}; INS.forEach(i=>UMBY[i.comp_id]=i.um);
-  pintarRecientes((res.data&&res.data.recientes)||[]);
   $('statusMsg').textContent='';
 }
 $('txtFecha').value=hoy();

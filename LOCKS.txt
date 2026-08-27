@@ -4,6 +4,7 @@
 (vacío)
 
 [HISTORIAL]
+2026-08-27 - Recepcion Insumos: quitada la tabla "Ultimas recepciones" (pedido usuario) — sacado el markup, las funciones pintarRecientes/cargarRecientes y sus llamadas, y el CSS .recent/table.rec. El bundle sigue devolviendo recientes pero ya no se usa. JS node --check OK. loekemeyer (claude-remote).
 2026-08-27 - Control Talleristas: dropdown de tallerista -> fila de CHIPS (prov-btn, "Todos" + uno por tallerista con cod_prov) que filtran las tarjetas; select oculto para CSV/logica. Mismo patron que Faltante Partes. loekemeyer (claude-remote).
 2026-08-27 - Reportes agrupados: (a) gp2-claro whitening global de .tall-card (blanca) y .tall-head (#eef4fb, texto oscuro) — arregla el fondo oscuro en las paginas agrupadas por tallerista/proveedor sin tocarlas una por una. (b) Faltante Partes Tallerista: el dropdown de tallerista ahora es una fila de CHIPS (prov-btn, "Todos" + uno por tallerista con cod_prov); al tocar setea el filtro y re-renderiza (dispatch change). Select queda oculto (lo usa el CSV/logica). loekemeyer (claude-remote).
 2026-08-27 - ControlPS (PS Control/Envio/Entrega): sus botones de proveedor (.tallerista-btn) se sumaron al look NEO de gp2-claro (chips blanco->negro activo, .prov-meta gris). La pagina YA tenia el flujo GP viejo (elegir proveedor -> su tabla + panel de carga envio/entrega con partes filtradas por proveedor), asi que solo se ajusto el estilo de los chips; no se reescribio la logica. loekemeyer (claude-remote).
