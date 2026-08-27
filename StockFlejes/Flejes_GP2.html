@@ -70,10 +70,10 @@
  </div>
  <table id="tbl">
    <thead><tr>
-     <th>N°</th><th>Cód</th><th>Descripción</th><th>Medida</th><th>Proveedor</th>
+     <th>N°</th><th>Cód</th><th>Parte</th><th>Medida</th><th>Proveedor</th><th>ISIS</th>
      <th class="num">Stock (kg)</th><th class="num">Mínimo</th><th class="num">Pedido</th><th></th>
    </tr></thead>
-   <tbody id="body"><tr><td colspan="9" class="empty">Cargando…</td></tr></tbody>
+   <tbody id="body"><tr><td colspan="10" class="empty">Cargando…</td></tr></tbody>
  </table>
 </div>
 
@@ -81,10 +81,12 @@
  <div class="modal">
    <h3 id="mTit">Editar fleje</h3>
    <div class="sub" id="mSub"></div>
+   <div class="row"><label>Parte que produce</label><input id="mParte" placeholder="ej. Mgo Plano Manija"></div>
    <div class="row"><label>Proveedor</label><input id="mProv"></div>
-   <div class="row"><label>Medida mm</label><input id="mMed"></div>
+   <div class="row"><label>Medida mm</label><input id="mMed" placeholder="ej. 19 x 2,1"></div>
    <div class="row"><label>Consumo mensual (kg)</label><input id="mCons" type="number" step="0.01"></div>
    <div class="row"><label>Kg × cajón</label><input id="mKgc" type="number" step="0.0001"></div>
+   <div class="row"><label>Kg/uni (con desperdicio)</label><input id="mKgud" type="number" step="0.00000001"></div>
    <div class="row"><label>Cód. ISIS</label><input id="mIsis"></div>
    <div class="actions">
      <button class="btn cancel" onclick="cerrar()">Cancelar</button>
@@ -116,11 +118,11 @@ function render(){
    if(st==='con' && !(stock>0))return false;
    if(st==='sin' && stock>0)return false;
    if(st==='bajo' && !(min>0 && stock<min))return false;
-   if(q){var s=((f.n_fleje||'')+' '+(f.codigo||'')+' '+(f.descripcion||'')+' '+(f.proveedor||'')).toLowerCase();if(s.indexOf(q)<0)return false;}
+   if(q){var s=((f.n_fleje||'')+' '+(f.codigo||'')+' '+(f.descripcion||'')+' '+(f.parte||'')+' '+(f.proveedor||'')+' '+(f.cod_isis||'')).toLowerCase();if(s.indexOf(q)<0)return false;}
    return true;
  });
  var b=$('body');
- if(!rows.length){b.innerHTML='<tr><td colspan="9" class="empty">Sin flejes que coincidan</td></tr>';return;}
+ if(!rows.length){b.innerHTML='<tr><td colspan="10" class="empty">Sin flejes que coincidan</td></tr>';return;}
  b.innerHTML=rows.map(f=>{
    var stock=Number(f.stock)||0, min=Number(f.minimo)||0;
    var ped=Math.max(0, min-stock);
@@ -128,9 +130,10 @@ function render(){
    return '<tr class="'+cls+'">'+
      '<td class="cod">'+esc(f.n_fleje||'')+'</td>'+
      '<td>'+esc(f.codigo||'')+'</td>'+
-     '<td class="desc">'+esc(f.descripcion||'')+'</td>'+
+     '<td class="desc" title="'+esc(f.descripcion||'')+'">'+(f.parte?esc(f.parte):esc(f.descripcion||''))+'</td>'+
      '<td>'+(f.medida?esc(f.medida):'<span class="miss">—</span>')+'</td>'+
      '<td>'+(f.proveedor?esc(f.proveedor):'<span class="miss">—</span>')+'</td>'+
+     '<td>'+(f.cod_isis?esc(f.cod_isis):'<span class="miss">—</span>')+'</td>'+
      '<td class="num st">'+fmt(stock)+'</td>'+
      '<td class="num">'+(min?fmt(min):'')+'</td>'+
      '<td class="num '+(ped>0?'ped':'')+'">'+(ped>0?fmt(ped):'')+'</td>'+
@@ -143,9 +146,9 @@ function editar(cid){
  var f=FL.find(x=>x.comp_id===cid);if(!f)return;EDIT=f;
  $('mTit').textContent='Editar '+(f.codigo||'')+' · '+(f.descripcion||'');
  $('mSub').textContent='Atributos propios de GP2 (se cargan a mano).';
- $('mProv').value=f.proveedor||'';$('mMed').value=f.medida||'';
+ $('mParte').value=f.parte||'';$('mProv').value=f.proveedor||'';$('mMed').value=f.medida||'';
  $('mCons').value=f.cons_mensual!=null?f.cons_mensual:'';$('mKgc').value=f.kg_x_cajon!=null?f.kg_x_cajon:'';
- $('mIsis').value=f.cod_isis||'';
+ $('mKgud').value=f.kg_uni_desp!=null?f.kg_uni_desp:'';$('mIsis').value=f.cod_isis||'';
  $('modalBg').classList.add('on');
 }
 function cerrar(){$('modalBg').classList.remove('on');EDIT=null;}
@@ -155,7 +158,7 @@ async function guardar(){
    var res=await SB.rpc('fleje_detalle_upsert',{
      p_comp_id:EDIT.comp_id, p_proveedor:$('mProv').value||null, p_medida:$('mMed').value||null,
      p_cons:$('mCons').value?Number($('mCons').value):null, p_kgcaj:$('mKgc').value?Number($('mKgc').value):null,
-     p_cod_isis:$('mIsis').value||null});
+     p_cod_isis:$('mIsis').value||null, p_kg_uni_desp:$('mKgud').value?Number($('mKgud').value):null, p_parte:$('mParte').value||null});
    if(res.error) throw res.error;
    cerrar(); await cargar(); toast('✔ Guardado');
  }catch(e){ toast('Error: '+(e.message||e), true); }
@@ -167,7 +170,7 @@ function toast(m,err){var el=$('toast');el.textContent=m;el.className='on'+(err?
 async function cargar(){
  $('status').textContent='Cargando…';
  var res=await SB.rpc('flejes_bundle');
- if(res.error){$('status').textContent='Error: '+res.error.message;$('body').innerHTML='<tr><td colspan="9" class="empty">Error: '+esc(res.error.message)+'</td></tr>';return;}
+ if(res.error){$('status').textContent='Error: '+res.error.message;$('body').innerHTML='<tr><td colspan="10" class="empty">Error: '+esc(res.error.message)+'</td></tr>';return;}
  FL=res.data||[];
  var con=FL.filter(f=>Number(f.stock)>0).length;
  $('status').textContent='GP2 · '+FL.length+' flejes · '+con+' con stock';
