@@ -4,6 +4,7 @@
 (vacío)
 
 [HISTORIAL]
+2026-08-27 - Inicio/index.html: limpieza portada vieja — sacados 5 elementos fijos (WhatsApp/alert-bell, Procedimientos popup+boton+17 secciones, Cerrar sesion, Insumos alert, Pendientes widget) + CSS/JS asociado (proc handlers, pendientes CRUD, checkMatricesSinTiempo+realtime, checkStockCajas). De ~1620 a ~480 lineas. loekemeyer (claude-remote).
 2026-08-27 - Inicio/index_GP2.html: limpieza portada GP2 — sacados 5 elementos fijos (WhatsApp/alert-bell, Procedimientos popup+boton, Cerrar sesion, Insumos alert, Pendientes widget) + CSS/JS asociado + sbPublic client. De ~1541 a ~380 lineas. loekemeyer (claude-remote).
 2026-08-27 - StockSP/StockSP_GP2.html (NUEVO) + GP2_MODULOS.html: módulo Stock SP desbloqueado en GP2. Mismo patrón que SC: stock_bundle filtra st=procesado ubicacion Sector Procesado + componente(sector_id=2) para kg_x_uni/uni_x_cajon. 83 componentes SP. Tema verde GP2. loekemeyer (claude-remote).
 2026-08-27 - StockSC/StockSC_GP2.html (NUEVO) + GP2_MODULOS.html: módulo Stock SC desbloqueado en GP2. Lee de stock_bundle (filtra st=crudo, ubicacion Sector Crudo) + query componente para factores kg_x_uni/uni_x_cajon. Muestra 77 componentes SC con stock, mínimo, pesos, formato uni/kg/caj, export CSV. Componentes sin inventario se agregan con qty=0. Tema oscuro GP2 consistente. loekemeyer (claude-remote).
