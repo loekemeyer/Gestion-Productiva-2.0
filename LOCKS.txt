@@ -4,6 +4,7 @@
 (vacío)
 
 [HISTORIAL]
+2026-08-27 - Inicio/index.html: subtitulo "Gestión Productiva 2.0 · schema propio GP2" -> "Gestión Productiva 2.0" (sacado "schema propio GP2"). loekemeyer (claude-remote).
 2026-08-27 - Inicio/index.html: REEMPLAZADO por landing minimo de 2 botones (Stock + Movimientos) + pie "Todos los modulos"/Cerrar sesion (supersede la limpieza previa de la portada vieja; el dashboard completo vive en GP2_MODULOS.html). loekemeyer (claude-remote).
 2026-08-27 - Inicio/index_GP2.html: limpieza portada GP2 — sacados 5 elementos fijos (WhatsApp/alert-bell, Procedimientos popup+boton, Cerrar sesion, Insumos alert, Pendientes widget) + CSS/JS asociado + sbPublic client. De ~1541 a ~380 lineas. loekemeyer (claude-remote).
 2026-08-27 - StockSP/StockSP_GP2.html (NUEVO) + GP2_MODULOS.html: módulo Stock SP desbloqueado en GP2. Mismo patrón que SC: stock_bundle filtra st=procesado ubicacion Sector Procesado + componente(sector_id=2) para kg_x_uni/uni_x_cajon. 83 componentes SP. Tema verde GP2. loekemeyer (claude-remote).
