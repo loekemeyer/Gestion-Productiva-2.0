@@ -290,11 +290,16 @@ function onMat(){
  }
  info+='<br><b>Tipo:</b> '+(esPrim?'Primera (fleje directo)':'Proceso')+(mat.ppk?(' · '+mat.ppk+' uni/kg'):'')+'</div>';
  document.getElementById('matInfo').innerHTML=info;
- document.getElementById('lblQty').textContent=esPrim?'Kg fleje':'Unidades entrada';
+ updateEntradaLabel();
  document.getElementById('rendHint').textContent='';
 }
-function onParMat(){var v=document.getElementById('f_par_mat').value;if(!v){document.getElementById('f_comp_orig').value='';document.getElementById('f_comp').value='';return;}var parts=v.split(':');document.getElementById('f_comp_orig').value=parts[0];document.getElementById('f_comp').value=parts[1];}
-function onProdQty(){var m=parseInt(document.getElementById('f_mat').value);if(!m)return;var mat=D.mat[m]||{};if(mat.primera!==true||!mat.ppk)return;var kg=parseFloat(document.getElementById('f_qty').value)||0;document.getElementById('rendHint').textContent=kg>0?('Esperado: '+Math.round(kg*mat.ppk)+' uni ('+kg+' kg × '+mat.ppk+')'):'';}
+// La unidad de la ENTRADA sigue la unidad canónica del componente de entrada
+// (si es un fleje -> kg), no el flag "primera". Robusto para matrices de proceso
+// cuya entrada es un fleje (ej. N°67: F5 Fleje -> F11 Puntera).
+function entradaEsKg(){var co=parseInt(val('f_comp_orig'));var c=D.comp[String(co)]||{};return c.um==='kg';}
+function updateEntradaLabel(){var lbl=document.getElementById('lblQty');if(!lbl)return;lbl.textContent=entradaEsKg()?'Kg entrada (fleje)':'Unidades entrada';onProdQty();}
+function onParMat(){var v=document.getElementById('f_par_mat').value;if(!v){document.getElementById('f_comp_orig').value='';document.getElementById('f_comp').value='';updateEntradaLabel();return;}var parts=v.split(':');document.getElementById('f_comp_orig').value=parts[0];document.getElementById('f_comp').value=parts[1];updateEntradaLabel();}
+function onProdQty(){var m=parseInt(document.getElementById('f_mat').value);if(!m)return;var mat=D.mat[m]||{};var h=document.getElementById('rendHint');if(!h)return;if(!entradaEsKg()||!mat.ppk){h.textContent='';return;}var kg=parseFloat(document.getElementById('f_qty').value)||0;h.textContent=kg>0?('Esperado: '+Math.round(kg*mat.ppk)+' uni ('+kg+' kg × '+mat.ppk+')'):'';}
 function onTallVirg(){var v=document.getElementById('f_tall').value;resetComp();if(!v)return;var ids=v==='_FAB_'?artsFabricaDirecto():artsPorTall(parseInt(v));document.getElementById('f_comp').innerHTML='<option value="">— Elegí —</option>'+optsComps(ids);}
 function onComprarComp(){
  var cid=parseInt(val('f_comp'));var sel=document.getElementById('f_unidad');if(!sel)return;
@@ -347,8 +352,13 @@ function saveMov(){
   if(errs.length)return alert('Faltan: '+errs.join(', '));
   ubic_o=ubicSector(D.comp[String(co)].s);ubic_d=ubicSector(D.comp[String(cid)].s);
   m.mat_id=mid;
-  var matPrim=(D.mat[mid]||{}).primera;
-  if(matPrim){m.unidad_origen='kg';m.unidad_destino='uni';}else{m.unidad_origen='uni';m.unidad_destino='uni';}
+  // La unidad de cada lado sigue la unidad canónica de su componente:
+  // entrada fleje -> kg, parte -> uni; salida (pieza) -> uni. Así to_canonical
+  // es identidad y no requiere kg_x_uni (evita el error en matrices de proceso
+  // cuya entrada es un fleje, ej. N°67 F5->F11).
+  var _cec=D.comp[String(co)]||{}, _csc=D.comp[String(cid)]||{};
+  m.unidad_origen=(_cec.um==='kg')?'kg':'uni';
+  m.unidad_destino=(_csc.um==='kg')?'kg':'uni';
   comp_transformado=cid;cant_transformada=num('f_qty_dest');cid=co;
  } else if(tipo==='envio_prov'){
   var p=parseInt(val('f_prov'));if(!p)errs.push('proveedor');if(!cid)errs.push('componente');if(qty<=0)errs.push('cantidad');
