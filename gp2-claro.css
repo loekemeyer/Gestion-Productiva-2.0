@@ -48,12 +48,24 @@ label { color: #475569 !important; }
 .edit { color: #1d4ed8 !important; border-color: #cbd5e1 !important; }
 .edit:hover { background: #eef4fb !important; }
 
-/* ---- Tablas ---- */
+/* ---- Tablas (celdas SIEMPRE blancas: evita que un contenedor oscuro se transparente) ---- */
+table, thead, tbody, tr, td { background: #ffffff !important; }
 table { color: #1e293b !important; }
 th { background: #f1f5f9 !important; color: #475569 !important; border-color: #e2e8f0 !important; }
 td { color: #1e293b !important; border-color: #e5e7eb !important; }
-tr:hover td { background: #f8fafc !important; }
-.empty, .mini, .miss, .hint, .sub, #status { color: #64748b !important; }
+tbody tr:hover td, tr:hover td { background: #f1f5f9 !important; }
+.empty, .mini, .miss, .hint, .sub, #status, .muted, .lb, .note { color: #64748b !important; }
+
+/* ---- Contenedores/paneles oscuros comunes (otras paginas) -> claros ---- */
+.table-wrap, .filters, .kpi, .content, .panel, .box, .toolbar, .wrap, .canvas,
+.kpis, .section, .sec, .list, .lista, .contenedor, .container, .main, main {
+  background: #ffffff !important; color: #1e293b !important; border-color: #e2e8f0 !important;
+}
+.kpi { background: #f8fafc !important; }
+.note { background: #fffbeb !important; border-color: #fde68a !important; }
+/* filas resaltadas (bajo minimo / negativos) legibles en claro */
+tr.bajo td, tr.bajo td.qty { background: #fff7ed !important; }
+tr.neg td.qty, td.qneg, .qneg { color: #dc2626 !important; }
 
 /* ---- Acordeones de Stock (grupos/subgrupos) ---- */
 .grp > .gh, .sub > .sh { color: #1e293b !important; }
