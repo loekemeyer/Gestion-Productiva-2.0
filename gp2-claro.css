@@ -111,14 +111,16 @@ h1 { font-size: 25px !important; }
 h2 { font-size: 20px !important; }
 
 /* -- Chips (rubro/proveedor/tabs/segmentos): blanco -> negro activo -- */
-.prov-btn, .tab-btn, .chip, .seg-btn, .pill-btn, .filtro-btn {
+.prov-btn, .tab-btn, .chip, .seg-btn, .pill-btn, .filtro-btn, .tallerista-btn {
   border: 2px solid #d0d7de !important; background: #ffffff !important; color: #111111 !important;
   border-radius: 8px !important; font-weight: 700 !important; cursor: pointer;
 }
 .prov-btn.active, .tab-btn.active, .chip.active, .seg-btn.active, .pill-btn.active,
-.filtro-btn.active, .tab.active, .tab-btn[aria-selected="true"] {
+.filtro-btn.active, .tab.active, .tab-btn[aria-selected="true"], .tallerista-btn.active {
   background: #111111 !important; color: #ffffff !important; border-color: #111111 !important;
 }
+.tallerista-btn .prov-meta { color: #64748b !important; }
+.tallerista-btn.active .prov-meta { color: #cbd5e1 !important; }
 
 /* -- Botones primarios: negros (vecino). Secundarios claros. -- */
 .btn, .btn.primary, .btn-primary, .btn-generar, button.primary {
