@@ -167,20 +167,11 @@ const SB_ANON="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJl
 const SB=window.supabase.createClient(SB_URL,SB_ANON,{db:{schema:'GP2'}});
 const $=id=>document.getElementById(id);
 
-// Proveedores por rubro (config UI, tomada de la recepción del vecino).
-const PROVEEDORES={
-  Flejes:["Basconia","Aperam","Hermac","Brawin","Altrak","Szapiro","EstaMetal","JL Metales","Alami"],
-  Cajas:["Corrugadora"],
-  Plasticos:["Pat Bet Plast","Rodar","Telleria","Maspoli","Pintos","Martin Faccolo","JL Matriceria","Capuchon Mariposa","Base Afila","M. Pelador","Terrero","Mangos Abrelata","Regatones","Bujes Abrelatas","Mango Ergon.","Mangos NM","Packaging y Serv","Sesega","Barbeja"],
-  Cartones:["Grafica Pol"],
-  Remaches:["Bella Vista","Dilmax","Electronica Mandelli","Imel"],
-  Bombillas:["Por definir"]
-};
 // Unidad default por rubro (kg / uni). Los flejes y remaches se compran en kg.
 const RUBRO_UM={Flejes:"kg",Remaches:"kg",Cajas:"uni",Plasticos:"uni",Cartones:"uni",Bombillas:"uni"};
 
 let INS=[], UMBY={};
-let rubroSel="", sidSel=0, provSel="";
+let rubroSel="", sidSel=0, provSel="", provsRubro=[];
 let itemSel=null, unitSel="uni";
 
 function hoy(){const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
@@ -194,17 +185,21 @@ document.querySelectorAll('#rubroGrid .prov-btn').forEach(btn=>{
     rubroSel=btn.dataset.rubro; sidSel=parseInt(btn.dataset.sid); provSel="";
     document.querySelectorAll('#rubroGrid .prov-btn').forEach(b=>b.classList.remove('active'));
     btn.classList.add('active');
-    pintarProvs();
-    $('provSection').classList.remove('hidden');
+    // Proveedores REALES de GP2 para este rubro (los que figuran en las tablas)
+    provsRubro=[...new Set(insumosDelRubro().map(i=>i.proveedor).filter(Boolean))].sort();
+    if(provsRubro.length){ pintarProvs(); $('provSection').classList.remove('hidden'); }
+    else { $('provGrid').innerHTML=''; $('provSection').classList.add('hidden'); }
     $('remitoSection').classList.remove('hidden');
     $('btnContinuarRow').style.display='flex';
+    $('btnContinuar').textContent = provsRubro.length ? 'Cargar artículos' : 'Ver artículos';
     refreshContinuar();
   });
 });
 function pintarProvs(){
   var g=$('provGrid'); g.innerHTML='';
-  (PROVEEDORES[rubroSel]||[]).forEach(p=>{
-    var b=document.createElement('button'); b.className='prov-btn'; b.textContent=p;
+  provsRubro.forEach(p=>{
+    var n=insumosDelRubro().filter(i=>i.proveedor===p).length;
+    var b=document.createElement('button'); b.className='prov-btn'; b.innerHTML=esc(p)+' <span style="opacity:.6;font-weight:600">('+n+')</span>';
     b.addEventListener('click',()=>{
       provSel=p;
       g.querySelectorAll('.prov-btn').forEach(x=>x.classList.remove('active'));
@@ -214,17 +209,23 @@ function pintarProvs(){
     g.appendChild(b);
   });
 }
-function refreshContinuar(){ $('btnContinuar').disabled=!(rubroSel&&provSel); }
+// Habilitar "Cargar": si el rubro tiene proveedores en GP2, exige elegir uno; si no, alcanza el rubro.
+function refreshContinuar(){ $('btnContinuar').disabled = !rubroSel || (provsRubro.length>0 && !provSel); }
 $('btnContinuar').addEventListener('click',irStep2);
 
-// ---- Paso 2: grilla de insumos del rubro ----
+// ---- Paso 2: grilla de insumos del rubro (+ proveedor si aplica) ----
 function insumosDelRubro(){ return INS.filter(i=>i.sector_id===sidSel); }
+function insumosVista(){
+  var l=insumosDelRubro();
+  if(provSel) l=l.filter(i=>i.proveedor===provSel);
+  return l;
+}
 function irStep2(){
   $('step1').classList.add('hidden');
   $('step2').classList.remove('hidden');
-  $('step2Title').textContent=rubroSel+' · '+provSel;
+  $('step2Title').textContent=rubroSel+(provSel?(' · '+provSel):'');
   $('searchInput').value='';
-  pintarItems(insumosDelRubro());
+  pintarItems(insumosVista());
 }
 $('btnVolver1').addEventListener('click',()=>{
   $('step2').classList.add('hidden');
@@ -234,9 +235,10 @@ function pintarItems(list){
   var g=$('itemsGrid'); g.innerHTML='';
   $('itemsEmpty').classList.toggle('hidden', list.length>0);
   list.forEach(i=>{
+    var med = i.medida ? ('<span class="sect" style="color:#0b3b73;font-size:17px">'+esc(i.medida)+' mm</span>') : '';
     var b=document.createElement('button'); b.className='item-btn';
     b.innerHTML='<span class="code">'+esc(i.codigo)+'</span>'+
-      '<span class="desc">'+esc(i.descripcion||'')+'</span>'+
+      '<span class="desc">'+esc(i.descripcion||'')+'</span>'+ med +
       '<span class="sect">'+esc(i.sector||'')+'</span>';
     b.addEventListener('click',()=>abrirPopup(i));
     g.appendChild(b);
@@ -244,8 +246,8 @@ function pintarItems(list){
 }
 function filtrarItems(){
   var q=($('searchInput').value||'').trim().toLowerCase();
-  var list=insumosDelRubro();
-  if(q) list=list.filter(i=>((i.codigo||'')+' '+(i.descripcion||'')).toLowerCase().indexOf(q)>=0);
+  var list=insumosVista();
+  if(q) list=list.filter(i=>((i.codigo||'')+' '+(i.descripcion||'')+' '+(i.medida||'')).toLowerCase().indexOf(q)>=0);
   pintarItems(list);
 }
 
@@ -260,7 +262,7 @@ $('unitUni').addEventListener('click',()=>setUnit('uni'));
 function abrirPopup(i){
   itemSel=i;
   $('kgTitle').textContent='Recepción · '+rubroSel;
-  $('kgItemInfo').innerHTML='<b>'+esc(i.codigo)+'</b> — '+esc(i.descripcion||'')+'<br><small style="color:#666">'+esc(i.sector)+' · '+esc(provSel)+'</small>';
+  $('kgItemInfo').innerHTML='<b>'+esc(i.codigo)+'</b> — '+esc(i.descripcion||'')+(i.medida?(' · '+esc(i.medida)+' mm'):'')+'<br><small style="color:#666">'+esc(i.sector)+(provSel?(' · '+esc(provSel)):'')+'</small>';
   $('kgValue').value=''; $('kgMsg').textContent='';
   // unidad default: la canónica del insumo, si no la del rubro
   var u = (UMBY[i.comp_id]==='kg') ? 'kg' : (UMBY[i.comp_id]==='unidad' ? 'uni' : (RUBRO_UM[rubroSel]||'uni'));
@@ -286,7 +288,7 @@ async function guardar(){
       p_cantidad:cant, p_unidad:unitSel, p_remito:$('txtRemito').value||null, p_fecha:fiso});
     if(res.error) throw res.error;
     var sb=$('successBox'); sb.style.display='block';
-    $('successDetail').innerHTML=esc(itemSel.codigo)+' — '+esc(itemSel.descripcion||'')+' · <b>'+fmt(cant)+' '+esc(unitSel)+'</b> ('+esc(provSel)+'). Stock actualizado. Mov '+(res.data&&res.data.movimiento_id)+'.';
+    $('successDetail').innerHTML=esc(itemSel.codigo)+' — '+esc(itemSel.descripcion||'')+' · <b>'+fmt(cant)+' '+esc(unitSel)+'</b>'+(provSel?(' ('+esc(provSel)+')'):'')+'. Stock actualizado. Mov '+(res.data&&res.data.movimiento_id)+'.';
     cerrarPopup();
     await cargarRecientes();
     setTimeout(()=>{sb.style.display='none';},6000);
