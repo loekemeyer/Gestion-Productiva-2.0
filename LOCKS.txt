@@ -4,6 +4,7 @@
 (vacío)
 
 [HISTORIAL]
+2026-08-27 - Movimientos/Registrar_Movimiento.html: compra de insumos ahora tiene selector Unidad (Kg/Unidades). Al elegir el componente se preselecciona su unidad canonica (flejes = Kg) via onComprarComp(); el usuario puede cambiarla. saveMov compra usa f_unidad en vez de derivarla sola. La conversion la hace el motor (to_canonical): probado compra fleje 167 10kg->10kg nativo y comp1 canonico-uni 2kg->1000uni (kg_x_uni 0.002), rollback a cero. loekemeyer (claude-remote).
 2026-08-27 - Inicio/index.html: subtitulo "Gestión Productiva 2.0 · schema propio GP2" -> "Gestión Productiva 2.0" (sacado "schema propio GP2"). loekemeyer (claude-remote).
 2026-08-27 - Inicio/index.html: REEMPLAZADO por landing minimo de 2 botones (Stock + Movimientos) + pie "Todos los modulos"/Cerrar sesion (supersede la limpieza previa de la portada vieja; el dashboard completo vive en GP2_MODULOS.html). loekemeyer (claude-remote).
 2026-08-27 - Inicio/index_GP2.html: limpieza portada GP2 — sacados 5 elementos fijos (WhatsApp/alert-bell, Procedimientos popup+boton, Cerrar sesion, Insumos alert, Pendientes widget) + CSS/JS asociado + sbPublic client. De ~1541 a ~380 lineas. loekemeyer (claude-remote).

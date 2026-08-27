@@ -225,8 +225,9 @@ function openMov(tipo){
  document.getElementById('modalBg').dataset.tipo=tipo;
  var H='<div class="row"><label>Fecha</label><input type="date" id="f_fecha" value="'+todayLocal()+'"></div>';
  if(tipo==='compra'){
-  H+='<div class="row"><label>Componente</label><select id="f_comp"><option value="">— Elegí —</option>'+optsComprables()+'</select></div>';
-  H+='<div class="row"><label>Cantidad</label><input type="number" id="f_qty" step="0.01" min="0"></div>';
+  H+='<div class="row"><label>Componente</label><select id="f_comp" onchange="onComprarComp()"><option value="">— Elegí —</option>'+optsComprables()+'</select></div>';
+  H+='<div class="qtygrid"><div class="row"><label>Cantidad</label><input type="number" id="f_qty" step="0.01" min="0"></div><div class="row"><label>Unidad</label><select id="f_unidad"><option value="uni">Unidades</option><option value="kg">Kg</option></select></div></div>';
+  H+='<div class="hint" id="compHint">Elegí el componente; la unidad se preselecciona sola (los flejes suelen ser Kg). Podés cambiarla.</div>';
  } else if(tipo==='produccion'){
   H+='<div class="row"><label>Matriz</label><select id="f_mat" onchange="onMat()"><option value="">— Elegí —</option>'+optsMatrices()+'</select></div>';
   H+='<div id="matInfo"></div>';
@@ -295,6 +296,14 @@ function onMat(){
 function onParMat(){var v=document.getElementById('f_par_mat').value;if(!v){document.getElementById('f_comp_orig').value='';document.getElementById('f_comp').value='';return;}var parts=v.split(':');document.getElementById('f_comp_orig').value=parts[0];document.getElementById('f_comp').value=parts[1];}
 function onProdQty(){var m=parseInt(document.getElementById('f_mat').value);if(!m)return;var mat=D.mat[m]||{};if(mat.primera!==true||!mat.ppk)return;var kg=parseFloat(document.getElementById('f_qty').value)||0;document.getElementById('rendHint').textContent=kg>0?('Esperado: '+Math.round(kg*mat.ppk)+' uni ('+kg+' kg × '+mat.ppk+')'):'';}
 function onTallVirg(){var v=document.getElementById('f_tall').value;resetComp();if(!v)return;var ids=v==='_FAB_'?artsFabricaDirecto():artsPorTall(parseInt(v));document.getElementById('f_comp').innerHTML='<option value="">— Elegí —</option>'+optsComps(ids);}
+function onComprarComp(){
+ var cid=parseInt(val('f_comp'));var sel=document.getElementById('f_unidad');if(!sel)return;
+ var c=D.comp[String(cid)]||{};
+ // preselecciona la unidad canónica del componente (fleje = kg); el usuario puede cambiarla
+ sel.value=(c.um==='kg')?'kg':'uni';
+ var h=document.getElementById('compHint');
+ if(h&&cid)h.textContent='Unidad sugerida: '+(c.um==='kg'?'Kg':'Unidades')+' (canónica de '+(c.cod||'')+'). Podés cambiarla.';
+}
 function ubicsDeComp(cid){
  var set={};var c=D.comp[String(cid)]||{};
  if(c.s&&ubicSector(c.s))set[ubicSector(c.s)]=1;
@@ -330,7 +339,7 @@ function saveMov(){
   if(!cid)errs.push('componente');if(qty<=0)errs.push('cantidad>0');
   if(errs.length)return alert('Faltan: '+errs.join(', '));
   ubic_o=null;ubic_d=ubicSector(D.comp[String(cid)].s);
-  var _um=(D.comp[String(cid)]||{}).um;m.unidad_origen=_um==='kg'?'kg':'uni';m.unidad_destino=m.unidad_origen;
+  var uSel=val('f_unidad');m.unidad_origen=uSel==='kg'?'kg':'uni';m.unidad_destino=m.unidad_origen;
  } else if(tipo==='produccion'){
   var mid=parseInt(val('f_mat')),co=parseInt(val('f_comp_orig'));cid=parseInt(val('f_comp'))||null;
   if(!mid)errs.push('matriz');if(!co)errs.push('entrada');if(!cid)errs.push('salida');
