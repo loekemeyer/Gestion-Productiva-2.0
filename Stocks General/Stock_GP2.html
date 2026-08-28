@@ -1,0 +1,451 @@
+<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Loekemeyer · Stock GP2</title>
+<style>
+ *{box-sizing:border-box}
+ body{margin:0;background:#0a0e13;color:#e6ecf3;font:13px/1.45 -apple-system,Segoe UI,Roboto,sans-serif}
+ .top{background:linear-gradient(90deg,#0f3d6b,#1a5a94);padding:10px 16px;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+ .top h1{margin:0;font-size:16px}
+ .top .right{display:flex;gap:8px;align-items:center;font-size:12px}
+ select,input,button{background:#0b1119;color:#e6ecf3;border:1px solid #2a4a6e;border-radius:6px;padding:6px 10px;font:13px inherit}
+ button{cursor:pointer}
+ button:hover{border-color:#4a7ab0}
+ .bar{padding:10px 16px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;border-bottom:1px solid #1e2a38}
+ .chip{background:#101820;border:1px solid #2a3648;border-radius:14px;padding:4px 12px;font-size:12px;cursor:pointer;color:#8fa2b6}
+ .chip:hover{border-color:#3a6b9e;color:#c9d6e3}
+ .chip.on{background:#1a2f47;border-color:#5fb0e8;color:#8fc4f0;font-weight:600}
+ .kpis{display:flex;gap:10px;flex-wrap:wrap;padding:10px 16px}
+ .kpi{background:#101820;border:1px solid #1e2a38;border-radius:9px;padding:8px 14px;min-width:110px}
+ .kpi .k{font-size:10px;text-transform:uppercase;letter-spacing:.5px;color:#7a92a8}
+ .kpi .v{font-size:20px;font-weight:800;margin-top:2px;font-variant-numeric:tabular-nums}
+ .kpi.rojo .v{color:#d0836b}.kpi.gris .v{color:#7a92a8}.kpi.oro .v{color:#e0a95a}
+ .wrap{padding:0 16px 40px}
+ .grp{margin-bottom:8px;border:1px solid #1e2a38;border-radius:9px;overflow:hidden}
+ .ghead{background:#101820;padding:7px 12px;display:flex;justify-content:space-between;align-items:center;cursor:pointer;gap:10px;flex-wrap:wrap}
+ .ghead b{color:#c9d6e3;font-size:13px}
+ .ghead .sub{font-size:11px;color:#7a92a8;font-variant-numeric:tabular-nums}
+ table{width:100%;border-collapse:collapse;font-size:12.5px}
+ th,td{padding:5px 9px;text-align:left;border-bottom:1px solid #16202c;white-space:nowrap}
+ th{background:#0d141d;color:#7a92a8;font-size:10px;text-transform:uppercase;letter-spacing:.4px;cursor:pointer;position:sticky;top:0}
+ th:hover{color:#c9d6e3}
+ tbody tr{cursor:pointer}
+ tbody tr:hover{background:#111a24}
+ td.num{text-align:right;font-variant-numeric:tabular-nums;font-family:ui-monospace,SF Mono,monospace}
+ td.cod{font-family:ui-monospace,SF Mono,monospace;color:#8fc4f0;font-weight:600}
+ td.desc{white-space:normal;max-width:280px;color:#c9d6e3}
+ .tag{font-size:10px;padding:1px 7px;border-radius:9px;border:1px solid currentColor}
+ .t-crudo{color:#5fd39a}.t-procesado{color:#f08bb0}.t-transito{color:#a8a8d8}.t-afilado{color:#f08bd8}
+ .t-fleje{color:#8fc4f0}.t-plastico,.t-bombilla,.t-remache,.t-carton,.t-caja{color:#e0a075}
+ .t-garage{color:#c79bff}.t-terminado{color:#ffb060}.t-otro{color:#7a92a8}
+ .u-sector{color:#5fb0e8}.u-tallerista{color:#5fe0c8}.u-proveedor_servicio{color:#c79bff}
+ .falta{color:#d0836b;font-weight:700}.ok{color:#5fd39a}.cero{color:#4a5a6a}
+ .vacio{color:#4a5a6a}
+ #drawer{position:fixed;top:0;right:0;width:460px;max-width:94vw;height:100%;background:#0d141d;border-left:1px solid #2a3648;transform:translateX(100%);transition:transform .18s;overflow-y:auto;z-index:50;box-shadow:-10px 0 30px rgba(0,0,0,.5)}
+ #drawer.on{transform:translateX(0)}
+ #drawer .dh{padding:12px 16px;border-bottom:1px solid #1e2a38;display:flex;justify-content:space-between;align-items:flex-start;gap:10px;position:sticky;top:0;background:#0d141d}
+ #drawer .dh h3{margin:0;font-size:15px;color:#8fc4f0;font-family:ui-monospace,monospace}
+ #drawer .dh .x{background:none;border:none;font-size:20px;color:#7a92a8;cursor:pointer;padding:0 4px}
+ #drawer .sec{padding:12px 16px;border-bottom:1px solid #16202c}
+ #drawer .sec h4{margin:0 0 8px;font-size:10px;text-transform:uppercase;letter-spacing:.6px;color:#7a92a8}
+ .foot{padding:10px 16px;color:#7a92a8;font-size:11.5px;display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;border-top:1px solid #1e2a38}
+ .warn{background:#2f1a14;border:1px solid #8a4a2f;color:#e0a075;border-radius:8px;padding:8px 12px;margin:10px 16px;font-size:12px}
+</style></head>
+<body>
+<div class="top">
+ <h1>📦 Loekemeyer · Stock GP2</h1>
+ <div class="right">
+  Ver en <select id="um"><option value="uni">Unidades</option><option value="kg">Kg</option></select>
+  <button id="btnRecargar">↻ Recargar</button>
+  <button id="btnCsv">⭳ CSV</button>
+ </div>
+</div>
+
+<div class="bar" id="presets"></div>
+
+<div class="bar">
+ <input id="q" placeholder="Buscar código, descripción, sector, ubicación…" style="min-width:260px;flex:1">
+ <select id="fSect"><option value="">Todos los sectores</option></select>
+ <select id="fTipoU"><option value="">Toda ubicación</option><option value="sector">Sector</option><option value="tallerista">Tallerista</option><option value="proveedor_servicio">Prov. Servicio</option></select>
+ <select id="fUbic"><option value="">Ubicación puntual…</option></select>
+ <select id="fEstado"><option value="">Cualquier estado</option><option value="con">Con stock</option><option value="sin">Sin stock</option><option value="falta">Con faltante</option></select>
+ <select id="fGrupo"><option value="sector">Agrupar: Sector</option><option value="ubic">Agrupar: Ubicación</option><option value="tipou">Agrupar: Tipo ubicación</option><option value="none">Sin agrupar</option></select>
+ <select id="fVista"><option value="detalle">Vista: Detalle</option><option value="pivot">Vista: Pivot x componente</option></select>
+ <label style="font-size:12px;color:#8fa2b6"><input type="checkbox" id="fCero" style="vertical-align:-2px"> incluir componentes sin registro</label>
+ <button id="btnToggle">Colapsar todo</button>
+</div>
+
+<div class="kpis" id="kpis"></div>
+<div id="avisos"></div>
+<div id="avisoCero"></div>
+<div class="wrap" id="cont"></div>
+<div class="foot"><span id="estado"></span><span id="fuente"></span></div>
+
+<div id="drawer"><div id="dcont"></div></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+var D={};
+var SB=window.supabase.createClient('https://hrxfctzncixxqmpfhskv.supabase.co','eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhyeGZjdHpuY2l4eHFtcGZoc2t2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI3MjQyNjEsImV4cCI6MjA4ODMwMDI2MX0.4L6wguch8UZGhC2VpzrWcCjJGUV-IkYsl9JoCWrOLUs',{db:{schema:'GP2'}});
+
+/* ===== helpers ===== */
+function norm(s){return String(s==null?'':s).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'');}
+function fmt(n,d){if(n==null||isNaN(n))return '—';n=Number(n);return n.toLocaleString('es-AR',{minimumFractionDigits:d||0,maximumFractionDigits:d==null?0:d});}
+function esc(s){return String(s==null?'':s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
+function clsTipo(t){return 't-'+norm(t).replace(/[^a-z]/g,'')||'t-otro';}
+function comp(cid){return (D.comp||{})[String(cid)]||null;}
+function ubic(uid){return (D.ubic||{})[String(uid)]||null;}
+function sect(sid){return (D.sect||{})[String(sid)]||null;}
+function sectNom(sid){var s=sect(sid);return s?(s.nom||s.t||s.tipo||('sector '+sid)):('sector '+sid);}
+function sectTipo(sid){var s=sect(sid);return s?(s.tipo||s.t||''):'';}
+// El nombre de una ubicacion: si es tallerista/PS se resuelve contra tall/prov_serv.
+function ubicNom(uid){
+  var u=ubic(uid); if(!u) return 'ubic '+uid;
+  if(u.tipo==='tallerista'){var t=(D.tall||{})[String(u.ref)];if(t) return typeof t==='string'?t.trim():(t.nom||u.nom);}
+  if(u.tipo==='proveedor_servicio'){var p=(D.prov_serv||D.prov||{})[String(u.ref)];if(p) return typeof p==='string'?p.trim():(p.nom||p.n||u.nom);}
+  return u.nom||('ubic '+uid);
+}
+function artDe(cid){
+  var aid=(D.c2a||{})[String(cid)]; if(aid==null) return null;
+  var lista=D.art||[]; for(var i=0;i<lista.length;i++) if(lista[i].id===aid) return lista[i];
+  return null;
+}
+
+/* ===== armado de filas desde inv ===== */
+var FILAS=[], HUERFANAS=0;
+function armarFilas(){
+  FILAS=[];HUERFANAS=0;
+  var inv=D.inv||{}, vistos={};
+  for(var k in inv){
+    var pt=String(k).split(':'); if(pt.length<2){HUERFANAS++;continue;}
+    var cid=pt[0], uid=pt[1], c=comp(cid), u=ubic(uid);
+    if(!c||!u){HUERFANAS++;continue;}
+    var v=inv[k]||{}, cant=Number(v.cant||0), min=Number(v.min||0);
+    vistos[cid]=1;
+    FILAS.push({cid:cid,uid:uid,c:c,u:u,cant:cant,min:min,falta:Math.max(0,min-cant),virtual:false});
+  }
+  // opcion: componentes que no tienen ninguna fila en inv (stock real 0, no "inexistente")
+  if(document.getElementById('fCero').checked){
+    for(var cid2 in (D.comp||{})){
+      if(vistos[cid2]) continue;
+      FILAS.push({cid:cid2,uid:null,c:comp(cid2),u:null,cant:0,min:0,falta:0,virtual:true});
+    }
+  }
+}
+
+function kgDe(f){var k=Number((f.c||{}).kg_x_uni||0);return k>0?f.cant*k:null;}
+function valor(f){return document.getElementById('um').value==='kg'?(kgDe(f)==null?null:kgDe(f)):f.cant;}
+
+/* ===== presets: solo setean filtros, no tienen logica propia ===== */
+var PRESETS=[
+ {id:'todo',nom:'Todo',set:{}},
+ {id:'sc',nom:'SC · Crudo',set:{tipoSect:'crudo'}},
+ {id:'sp',nom:'SP · Procesado',set:{tipoSect:'procesado'}},
+ {id:'tr',nom:'Tránsito PS',set:{tipoU:'proveedor_servicio'}},
+ {id:'fl',nom:'Flejes',set:{tipoSect:'fleje'}},
+ {id:'tall',nom:'Talleristas',set:{tipoU:'tallerista'}},
+ {id:'ins',nom:'Insumos',set:{tipoSect:'__insumos'}},
+ {id:'gar',nom:'Garage',set:{tipoSect:'garage'}},
+ {id:'term',nom:'Terminado',set:{tipoSect:'terminado'}},
+ {id:'falta',nom:'⚠ Con faltante',set:{estado:'falta'}}
+];
+var TIPOS_INSUMO=['plastico','bombilla','remache','carton','caja'];
+var presetActivo='todo', tipoSectFiltro='';
+
+function pintarPresets(){
+  document.getElementById('presets').innerHTML=
+    '<span style="font-size:11px;color:#7a92a8;text-transform:uppercase;letter-spacing:.5px">Vistas</span>'+
+    PRESETS.map(function(p){return '<span class="chip'+(presetActivo===p.id?' on':'')+'" data-p="'+p.id+'">'+esc(p.nom)+'</span>';}).join('');
+  Array.prototype.forEach.call(document.querySelectorAll('#presets .chip'),function(el){
+    el.onclick=function(){aplicarPreset(el.dataset.p);};
+  });
+}
+function aplicarPreset(id){
+  var p=PRESETS.filter(function(x){return x.id===id;})[0]; if(!p) return;
+  presetActivo=id;
+  document.getElementById('fSect').value='';
+  document.getElementById('fUbic').value='';
+  document.getElementById('fTipoU').value=p.set.tipoU||'';
+  document.getElementById('fEstado').value=p.set.estado||'';
+  tipoSectFiltro=p.set.tipoSect||'';
+  pintarPresets();render();
+}
+
+/* ===== filtros ===== */
+function filtrar(){
+  var q=norm(document.getElementById('q').value.trim());
+  var fs=document.getElementById('fSect').value;
+  var ft=document.getElementById('fTipoU').value;
+  var fu=document.getElementById('fUbic').value;
+  var fe=document.getElementById('fEstado').value;
+  return FILAS.filter(function(f){
+    if(tipoSectFiltro){
+      var tp=norm(sectTipo((f.c||{}).s));
+      if(tipoSectFiltro==='__insumos'){ if(TIPOS_INSUMO.indexOf(tp)<0) return false; }
+      else if(tp!==norm(tipoSectFiltro)) return false;
+    }
+    if(fs && String((f.c||{}).s)!==fs) return false;
+    if(ft && (!f.u||f.u.tipo!==ft)) return false;
+    if(fu && String(f.uid)!==fu) return false;
+    if(fe==='con' && !(f.cant>0)) return false;
+    if(fe==='sin' && f.cant>0) return false;
+    if(fe==='falta' && !(f.falta>0)) return false;
+    if(q){
+      var a=artDe(f.cid);
+      var blob=norm([(f.c||{}).cod,(f.c||{}).d,sectNom((f.c||{}).s),f.uid!=null?ubicNom(f.uid):'',a?a.cod:'',a?a.fam:''].join(' '));
+      if(blob.indexOf(q)<0) return false;
+    }
+    return true;
+  });
+}
+
+/* ===== orden ===== */
+var ordCol='cod', ordAsc=true;
+function ordenar(rows){
+  var m={cod:function(f){return norm((f.c||{}).cod);},desc:function(f){return norm((f.c||{}).d);},
+         sect:function(f){return norm(sectNom((f.c||{}).s));},ubic:function(f){return f.uid!=null?norm(ubicNom(f.uid)):'';},
+         cant:function(f){return f.cant;},kg:function(f){return kgDe(f)||0;},min:function(f){return f.min;},falta:function(f){return f.falta;}};
+  var g=m[ordCol]||m.cod;
+  return rows.slice().sort(function(a,b){
+    var x=g(a),y=g(b); if(x<y)return ordAsc?-1:1; if(x>y)return ordAsc?1:-1; return 0;
+  });
+}
+
+/* ===== render ===== */
+var colapsados={};
+function claveGrupo(f){
+  var g=document.getElementById('fGrupo').value;
+  if(g==='ubic') return f.uid!=null?ubicNom(f.uid):'(sin ubicación)';
+  if(g==='tipou') return f.u?f.u.tipo:'(sin ubicación)';
+  if(g==='none') return '';
+  return sectNom((f.c||{}).s);
+}
+function render(){
+  var rows=ordenar(filtrar());
+  var esPivot=document.getElementById('fVista').value==='pivot';
+  document.getElementById('cont').innerHTML = esPivot?renderPivot(rows):renderDetalle(rows);
+  pintarKpis(rows);
+  var comps={};rows.forEach(function(f){comps[f.cid]=1;});
+  var ubs={};rows.forEach(function(f){if(f.uid!=null)ubs[f.uid]=1;});
+  // Si TODO el inventario esta en cero, el problema no es el filtro: nadie cargo saldos.
+  var hayStock=FILAS.some(function(f){return f.cant>0;});
+  document.getElementById('avisoCero').innerHTML = (FILAS.length && !hayStock)
+    ? '<div class="warn">⚠ <b>Todo el inventario está en cero.</b> Las '+fmt(FILAS.length)+' filas de <code>inventario</code> tienen <code>cant = 0</code> (los mínimos sí están cargados). '+
+      'En GP2 el stock lo construyen los movimientos: hasta que no se carguen saldos iniciales o movimientos reales en la tabla <code>movimiento</code>, esta pantalla va a mostrar todo en cero y todo como faltante.</div>'
+    : '';
+  document.getElementById('estado').textContent=
+    fmt(rows.length)+' filas · '+fmt(Object.keys(comps).length)+' componentes · '+fmt(Object.keys(ubs).length)+' ubicaciones'+
+    (HUERFANAS?(' · ⚠ '+HUERFANAS+' filas de inv sin componente/ubicación reconocidos'):'');
+  enganchar();
+}
+function ths(){
+  var cols=[['cod','Cód.'],['desc','Descripción'],['sect','Sector'],['ubic','Ubicación'],['tipou','Tipo'],
+            ['cant','Stock'],['um','UM'],['kg','Kg'],['min','Mín'],['falta','Falta'],['meses','Meses'],['art','Artículo']];
+  return '<tr>'+cols.map(function(c){
+    var ind=ordCol===c[0]?(ordAsc?' ▲':' ▼'):'';
+    return '<th data-ord="'+c[0]+'">'+c[1]+ind+'</th>';}).join('')+'</tr>';
+}
+function tdFila(f){
+  var u=f.u, a=artDe(f.cid), kg=kgDe(f), um=document.getElementById('um').value;
+  var stock = um==='kg' ? (kg==null?'—':fmt(kg,2)) : fmt(f.cant,2);
+  return '<tr data-cid="'+esc(f.cid)+'" data-uid="'+esc(f.uid==null?'':f.uid)+'">'+
+   '<td class="cod">'+esc((f.c||{}).cod)+'</td>'+
+   '<td class="desc">'+esc((f.c||{}).d)+'</td>'+
+   '<td><span class="tag '+clsTipo(sectTipo((f.c||{}).s))+'" title="Sector del COMPONENTE, no dónde está">'+esc(sectNom((f.c||{}).s))+'</span></td>'+
+   '<td>'+(f.uid==null?'<span class="vacio">sin registro</span>':'<span class="'+('u-'+(u?u.tipo:''))+'">'+esc(ubicNom(f.uid))+'</span>')+'</td>'+
+   '<td style="font-size:10px;color:#7a92a8">'+esc(u?({sector:'SEC',tallerista:'TALL',proveedor_servicio:'PROV'}[u.tipo]||u.tipo):'—')+'</td>'+
+   '<td class="num'+(f.cant>0?'':' cero')+'">'+stock+'</td>'+
+   '<td style="color:#7a92a8;font-size:11px">'+esc((f.c||{}).um||'uni')+'</td>'+
+   '<td class="num">'+(kg==null?'<span class="vacio">—</span>':fmt(kg,2))+'</td>'+
+   '<td class="num'+(f.min>0?'':' cero')+'">'+(f.min>0?fmt(f.min,2):'—')+'</td>'+
+   '<td class="num '+(f.falta>0?'falta':(f.min>0?'ok':'cero'))+'">'+(f.min>0?fmt(f.falta,2):'—')+'</td>'+
+   '<td class="num" style="color:#7a92a8">'+(u&&u.meses?fmt(u.meses,1):'—')+'</td>'+
+   '<td style="color:#e0a95a;font-size:11px">'+(a?esc(a.cod):'')+'</td>'+
+  '</tr>';
+}
+function subtotal(rows){
+  var cant=0,kg=0,parcial=false,falta=0;
+  rows.forEach(function(f){cant+=f.cant;var k=kgDe(f);if(k==null){if(f.cant>0)parcial=true;}else kg+=k;falta+=f.falta;});
+  return fmt(cant,2)+' uni · '+fmt(kg,2)+' kg'+(parcial?' (parcial)':'')+(falta>0?(' · falta '+fmt(falta,2)):'');
+}
+function renderDetalle(rows){
+  if(!rows.length) return '<p style="color:#7a92a8;padding:20px">Sin resultados con estos filtros.</p>';
+  var g=document.getElementById('fGrupo').value;
+  if(g==='none') return '<div class="grp"><table><thead>'+ths()+'</thead><tbody>'+rows.map(tdFila).join('')+'</tbody></table></div>';
+  var grupos={},orden=[];
+  rows.forEach(function(f){var k=claveGrupo(f);if(!grupos[k]){grupos[k]=[];orden.push(k);}grupos[k].push(f);});
+  orden.sort(function(a,b){return a.localeCompare(b,'es');});
+  return orden.map(function(k){
+    var rs=grupos[k], cerrado=colapsados[k];
+    return '<div class="grp"><div class="ghead" data-g="'+esc(k)+'"><b>'+(cerrado?'▸':'▾')+' '+esc(k)+' <span style="color:#7a92a8;font-weight:400">('+rs.length+')</span></b><span class="sub">'+subtotal(rs)+'</span></div>'+
+      (cerrado?'':'<table><thead>'+ths()+'</thead><tbody>'+rs.map(tdFila).join('')+'</tbody></table>')+'</div>';
+  }).join('');
+}
+function renderPivot(rows){
+  if(!rows.length) return '<p style="color:#7a92a8;padding:20px">Sin resultados con estos filtros.</p>';
+  var porC={};
+  rows.forEach(function(f){
+    var k=f.cid; if(!porC[k]) porC[k]={c:f.c,sector:0,tall:0,prov:0,total:0,falta:0,n:0};
+    var o=porC[k], t=f.u?f.u.tipo:'sector';
+    if(t==='tallerista')o.tall+=f.cant; else if(t==='proveedor_servicio')o.prov+=f.cant; else o.sector+=f.cant;
+    o.total+=f.cant; o.falta+=f.falta; o.n++;
+  });
+  var arr=Object.keys(porC).map(function(k){var o=porC[k];o.cid=k;return o;});
+  arr.sort(function(a,b){return norm(a.c.cod).localeCompare(norm(b.c.cod),'es',{numeric:true});});
+  return '<div class="grp"><table><thead><tr><th>Cód.</th><th>Descripción</th><th>Sector</th>'+
+    '<th>En sectores</th><th>En talleristas</th><th>En prov. serv.</th><th>TOTAL</th><th>Falta total</th><th>Ubic.</th></tr></thead><tbody>'+
+    arr.map(function(o){
+      return '<tr data-cid="'+esc(o.cid)+'" data-uid="">'+
+       '<td class="cod">'+esc(o.c.cod)+'</td><td class="desc">'+esc(o.c.d)+'</td>'+
+       '<td><span class="tag '+clsTipo(sectTipo(o.c.s))+'">'+esc(sectNom(o.c.s))+'</span></td>'+
+       '<td class="num'+(o.sector>0?'':' cero')+'">'+fmt(o.sector,2)+'</td>'+
+       '<td class="num'+(o.tall>0?'':' cero')+'">'+fmt(o.tall,2)+'</td>'+
+       '<td class="num'+(o.prov>0?'':' cero')+'">'+fmt(o.prov,2)+'</td>'+
+       '<td class="num" style="font-weight:700;color:#8fc4f0">'+fmt(o.total,2)+'</td>'+
+       '<td class="num '+(o.falta>0?'falta':'cero')+'">'+fmt(o.falta,2)+'</td>'+
+       '<td class="num" style="color:#7a92a8">'+o.n+'</td></tr>';
+    }).join('')+'</tbody></table></div>';
+}
+function pintarKpis(rows){
+  var comps={},kg=0,parcial=false,falta=0,sin=0;
+  rows.forEach(function(f){comps[f.cid]=1;var k=kgDe(f);if(k==null){if(f.cant>0)parcial=true;}else kg+=k;if(f.falta>0)falta++;if(!(f.cant>0))sin++;});
+  document.getElementById('kpis').innerHTML=
+   '<div class="kpi"><div class="k">Filas</div><div class="v">'+fmt(rows.length)+'</div></div>'+
+   '<div class="kpi"><div class="k">Componentes</div><div class="v">'+fmt(Object.keys(comps).length)+'</div></div>'+
+   '<div class="kpi rojo"><div class="k">Con faltante</div><div class="v">'+fmt(falta)+'</div></div>'+
+   '<div class="kpi gris"><div class="k">Sin stock</div><div class="v">'+fmt(sin)+'</div></div>'+
+   '<div class="kpi oro"><div class="k">Kg visibles'+(parcial?' *':'')+'</div><div class="v">'+fmt(kg,1)+'</div></div>';
+}
+
+/* ===== drawer: el "por que" del numero ===== */
+function abrirDrawer(cid){
+  var c=comp(cid); if(!c) return;
+  var mias=FILAS.filter(function(f){return f.cid===String(cid);});
+  var a=artDe(cid), total=0; mias.forEach(function(f){total+=f.cant;});
+  var h='<div class="dh"><div><h3>'+esc(c.cod)+'</h3><div style="color:#8fa2b6;font-size:12px;margin-top:2px">'+esc(c.d)+'</div>'+
+        '<div style="margin-top:6px"><span class="tag '+clsTipo(sectTipo(c.s))+'">'+esc(sectNom(c.s))+'</span>'+
+        (a?' <span class="tag t-terminado">Art '+esc(a.cod)+'</span>':'')+'</div></div>'+
+        '<button class="x" id="dx">×</button></div>';
+  h+='<div class="sec"><h4>Stock por ubicación · total '+fmt(total,2)+' '+esc(c.um||'uni')+'</h4><table><tbody>'+
+     (mias.length?mias.map(function(f){
+        return '<tr><td>'+(f.uid==null?'<span class="vacio">sin registro</span>':esc(ubicNom(f.uid)))+'</td>'+
+               '<td class="num">'+fmt(f.cant,2)+'</td>'+
+               '<td class="num" style="color:#7a92a8">mín '+(f.min>0?fmt(f.min,2):'—')+'</td>'+
+               '<td class="num '+(f.falta>0?'falta':'cero')+'">'+(f.falta>0?fmt(f.falta,2):'')+'</td></tr>';
+      }).join(''):'<tr><td class="vacio">Sin registros de inventario.</td></tr>')+'</tbody></table></div>';
+  if(c.kg_x_uni) h+='<div class="sec"><h4>Peso</h4><div style="color:#c9d6e3">'+fmt(c.kg_x_uni,5)+' kg por unidad · total '+fmt(total*c.kg_x_uni,2)+' kg</div></div>';
+  h+='<div class="sec" id="dmov"><h4>Últimos movimientos</h4><div style="color:#7a92a8">Cargando…</div></div>';
+  document.getElementById('dcont').innerHTML=h;
+  document.getElementById('drawer').classList.add('on');
+  document.getElementById('dx').onclick=cerrarDrawer;
+  cargarMovs(cid);
+}
+function cerrarDrawer(){document.getElementById('drawer').classList.remove('on');}
+// Reemplaza los popups de detalle de las pantallas viejas: de donde salio el numero.
+async function cargarMovs(cid){
+  var cont=document.getElementById('dmov'); if(!cont) return;
+  try{
+    var r=await SB.from('movimiento').select('id,fecha,tipo_mov,cantidad,unidad_origen,ubic_origen_id,ubic_destino_id')
+            .eq('comp_id',cid).order('fecha',{ascending:false}).limit(40);
+    if(r.error) throw r.error;
+    var rows=r.data||[];
+    cont.innerHTML='<h4>Últimos movimientos ('+rows.length+')</h4>'+
+      (rows.length? '<table><tbody>'+rows.map(function(m){
+        return '<tr><td style="color:#7a92a8;font-size:11px">'+esc(String(m.fecha||'').slice(0,10))+'</td>'+
+               '<td style="font-size:11px">'+esc(m.tipo_mov||'')+'</td>'+
+               '<td class="num">'+fmt(m.cantidad,2)+' '+esc(m.unidad_origen||'')+'</td>'+
+               '<td style="font-size:11px;color:#8fa2b6">'+esc(m.ubic_origen_id!=null?ubicNom(m.ubic_origen_id):'')+' → '+esc(m.ubic_destino_id!=null?ubicNom(m.ubic_destino_id):'')+'</td></tr>';
+      }).join('')+'</tbody></table>'
+      : '<div style="color:#7a92a8">Sin movimientos registrados para este componente.</div>');
+  }catch(e){
+    cont.innerHTML='<h4>Últimos movimientos</h4><div style="color:#d0836b">No se pudo leer la tabla movimiento: '+esc(e.message||e)+'</div>';
+  }
+}
+
+/* ===== eventos ===== */
+function enganchar(){
+  Array.prototype.forEach.call(document.querySelectorAll('#cont th[data-ord]'),function(th){
+    th.onclick=function(){var c=th.dataset.ord;if(ordCol===c)ordAsc=!ordAsc;else{ordCol=c;ordAsc=true;}render();};
+  });
+  Array.prototype.forEach.call(document.querySelectorAll('#cont .ghead'),function(gh){
+    gh.onclick=function(){var k=gh.dataset.g;colapsados[k]=!colapsados[k];render();};
+  });
+  Array.prototype.forEach.call(document.querySelectorAll('#cont tbody tr'),function(tr){
+    tr.onclick=function(){abrirDrawer(tr.dataset.cid);};
+  });
+}
+function poblarSelects(){
+  var s=document.getElementById('fSect');
+  var sects=Object.keys(D.sect||{}).map(function(id){return {id:id,nom:sectNom(id),tipo:sectTipo(id)};});
+  sects.sort(function(a,b){return a.nom.localeCompare(b.nom,'es');});
+  s.innerHTML='<option value="">Todos los sectores</option>'+sects.map(function(x){return '<option value="'+esc(x.id)+'">'+esc(x.nom)+'</option>';}).join('');
+  var u=document.getElementById('fUbic');
+  var porTipo={sector:[],tallerista:[],proveedor_servicio:[]};
+  Object.keys(D.ubic||{}).forEach(function(id){var uu=ubic(id);if(!uu)return;(porTipo[uu.tipo]=porTipo[uu.tipo]||[]).push({id:id,nom:ubicNom(id)});});
+  var html='<option value="">Ubicación puntual…</option>';
+  [['sector','Sectores'],['tallerista','Talleristas'],['proveedor_servicio','Prov. Servicio']].forEach(function(p){
+    var arr=(porTipo[p[0]]||[]).sort(function(a,b){return a.nom.localeCompare(b.nom,'es');});
+    if(arr.length) html+='<optgroup label="'+p[1]+'">'+arr.map(function(x){return '<option value="'+esc(x.id)+'">'+esc(x.nom)+'</option>';}).join('')+'</optgroup>';
+  });
+  u.innerHTML=html;
+}
+function exportarCSV(){
+  var rows=ordenar(filtrar());
+  var out=[['Cod','Descripcion','Sector','TipoSector','Ubicacion','TipoUbic','Stock','UM','Kg','Min','Falta','Meses','Articulo'].join(';')];
+  rows.forEach(function(f){var a=artDe(f.cid),kg=kgDe(f);
+    out.push([(f.c||{}).cod,(f.c||{}).d,sectNom((f.c||{}).s),sectTipo((f.c||{}).s),f.uid!=null?ubicNom(f.uid):'',f.u?f.u.tipo:'',
+      f.cant,(f.c||{}).um||'uni',kg==null?'':kg,f.min,f.falta,f.u&&f.u.meses?f.u.meses:'',a?a.cod:''].map(function(v){return String(v==null?'':v).replace(/;/g,',');}).join(';'));
+  });
+  var blob=new Blob(['﻿'+out.join('\n')],{type:'text/csv;charset=utf-8'});
+  var a2=document.createElement('a');a2.href=URL.createObjectURL(blob);a2.download='stock_gp2.csv';a2.click();
+}
+function __run(){
+  poblarSelects();pintarPresets();
+  ['q','fSect','fTipoU','fUbic','fEstado','fGrupo','fVista','um'].forEach(function(id){
+    var el=document.getElementById(id);el.addEventListener(id==='q'?'input':'change',function(){if(id!=='um'&&id!=='fGrupo'&&id!=='fVista')presetActivo='';render();});
+  });
+  document.getElementById('fCero').addEventListener('change',function(){armarFilas();render();});
+  document.getElementById('btnCsv').onclick=exportarCSV;
+  document.getElementById('btnRecargar').onclick=function(){__boot();};
+  document.getElementById('btnToggle').onclick=function(){
+    var vacio=Object.keys(colapsados).filter(function(k){return colapsados[k];}).length===0;
+    colapsados={};
+    if(vacio) ordenar(filtrar()).forEach(function(f){colapsados[claveGrupo(f)]=true;});
+    document.getElementById('btnToggle').textContent=vacio?'Expandir todo':'Colapsar todo';
+    render();
+  };
+  document.addEventListener('keydown',function(e){if(e.key==='Escape')cerrarDrawer();});
+  armarFilas();render();
+}
+
+/* ===== boot: stock_bundle, con fallback a movimientos_bundle ===== */
+var __REQ=['inv','comp','ubic','sect'];
+function __chequear(d){
+  if(!d||typeof d!=='object'||Array.isArray(d)) return 'no devolvio un objeto JSON (llego: '+(Array.isArray(d)?'un array':typeof d)+')';
+  var faltan=__REQ.filter(function(k){var v=d[k];return !v||typeof v!=='object'||Object.keys(v).length===0;});
+  return faltan.length?('le faltan estas claves (o vienen vacias): '+faltan.join(', ')+'. Recibidas: '+(Object.keys(d).join(', ')||'ninguna')):null;
+}
+async function __boot(){
+  var avisos=document.getElementById('avisos'); avisos.innerHTML='';
+  document.body.style.cursor='progress';
+  var intentos=['stock_bundle','movimientos_bundle'], errores=[];
+  for(var i=0;i<intentos.length;i++){
+    var nombre=intentos[i];
+    try{
+      var r=await SB.rpc(nombre);
+      if(r.error) throw new Error(r.error.message||r.error);
+      var mal=__chequear(r.data);
+      if(mal) throw new Error(mal);
+      D={}; Object.assign(D,r.data);
+      document.getElementById('fuente').textContent='Fuente: '+nombre+'()';
+      if(i>0) avisos.innerHTML='<div class="warn">stock_bundle no sirvió ('+esc(errores[0])+'). Se está usando <b>'+esc(nombre)+'</b> como respaldo — los datos son los mismos, pero conviene revisar stock_bundle.</div>';
+      document.body.style.cursor=''; __run(); return;
+    }catch(e){ errores.push(nombre+': '+(e.message||e)); }
+  }
+  document.body.style.cursor='';
+  document.body.innerHTML='<div style="padding:28px;font-family:system-ui;color:#e6ecf3;background:#0a0e13;min-height:100vh">'+
+    '<h2 style="color:#d0836b">No se pudieron cargar los datos de stock</h2><ul style="color:#c9d6e3;line-height:1.9">'+
+    errores.map(function(x){return '<li>'+esc(x)+'</li>';}).join('')+'</ul>'+
+    '<p style="color:#7a92a8">Ambas funciones deben devolver un jsonb con las claves: inv, comp, ubic, sect (y opcionalmente tall, prov_serv, art, c2a).</p></div>';
+}
+__boot();
+</script>
+</body></html>
