@@ -19,14 +19,22 @@ const SB = supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
 /* ============================================================
    DATOS (cargados una vez desde bundle)
    ============================================================ */
-let D = {};          // empleados{legajo->nombre}, matrices[{N_Matriz,Matriz}], matriz_fleje{}, rollos_saldo[{comp_id,codigo,kg_por_rollo,saldo}]
+/* Shape real de registro_operarios_bundle():
+   empleados    { legajo -> {nombre, activo, hora_entrada} }
+   matrices     [ {n, d, ppk} ]
+   matriz_fleje { n_matriz -> {comp_id, codigo, descripcion} }
+   rollos_saldo [ {comp_id, codigo, kg_por_rollo, rollos} ]              */
+let D = {};
 
 async function cargarBundle() {
   const { data, error } = await SB.rpc("registro_operarios_bundle");
   if (error) { console.error("Bundle error:", error); return; }
   D = data || {};
-  D.matricesMap = new Map((D.matrices || []).map(m => [String(m.N_Matriz || "").trim(), m]));
+  D.matricesMap = new Map((D.matrices || []).map(m => [String(m.n || "").trim(), m]));
+  if (selected && ["E", "CM"].includes(selected.code)) renderMatrizPicker($("matrizSearch").value);
 }
+
+function nombreMatriz(n) { return D.matricesMap?.get(String(n).trim())?.d || ""; }
 
 /* ============================================================
    OPCIONES (botones)
@@ -192,13 +200,61 @@ function enqueue(payload) {
   writeQueue(q);
 }
 
+function horaAR(iso) {
+  if (!iso) return "";
+  try {
+    return new Intl.DateTimeFormat("en-GB", {
+      timeZone: "America/Argentina/Buenos_Aires",
+      hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false
+    }).format(new Date(iso));
+  } catch { return ""; }
+}
+
+/* Traduce el evento local al shape que espera GP2.registrar_evento_prod(p jsonb).
+   `matriz` es obligatorio del lado SQL: para E/CM es el numero tipeado, para los
+   eventos de matriz activa es el guardado en el payload, y para los tiempos
+   muertos se manda el codigo del evento (queda en matriz_raw, sin matriz_id). */
+function toRpcPayload(p) {
+  const op = String(p.opcion || "").toUpperCase();
+  let matriz;
+  if (["E", "CM"].includes(op)) matriz = p.texto || "";
+  else if (p.matriz) matriz = p.matriz;
+  else matriz = op;
+
+  const rpc = {
+    fecha: p.ts_event,
+    legajo: String(p.legajo || ""),
+    matriz: String(matriz || "").trim(),
+    id_ejecucion: p.id,
+    hora_fin: horaAR(p.ts_event)
+  };
+  if (p.hs_inicio) rpc.hora_inicio = horaAR(p.hs_inicio);
+
+  if (["C", "CT"].includes(op)) {
+    rpc.uni = Number(p.texto) || 0;
+    rpc.nombre_matriz = nombreMatriz(matriz) || undefined;
+  } else {
+    rpc.uni = 0;
+    rpc.nombre_matriz = ["E", "CM"].includes(op) ? (nombreMatriz(matriz) || undefined) : p.descripcion;
+  }
+
+  const segs = (p.hs_inicio && p.ts_event)
+    ? Math.max(0, Math.round((new Date(p.ts_event) - new Date(p.hs_inicio)) / 1000))
+    : null;
+  if (segs !== null) {
+    if (["C", "CT"].includes(op)) rpc.segundos_trabajados = segs;
+    else if (isDowntime(op)) rpc.segundos_tiempo_muerto = segs;
+  }
+  return rpc;
+}
+
 async function flushQueue() {
   const q = readQueue();
   if (!q.length) return;
   const restantes = [];
   for (const payload of q) {
     try {
-      const { error } = await SB.rpc("registrar_evento_prod", { p_data: payload });
+      const { error } = await SB.rpc("registrar_evento_prod", { p: toRpcPayload(payload) });
       if (error) throw error;
       markSent(payload.legajo, payload.id);
     } catch (e) {
@@ -233,10 +289,9 @@ function maybeSendLateArrival(legajo) {
    ROLLOS (Eduardo)
    ============================================================ */
 function rollosParaMatriz(n_matriz) {
-  const flejeIds = (D.matriz_fleje || {})[String(n_matriz)] || [];
-  if (!flejeIds.length) return [];
-  const saldo = D.rollos_saldo || [];
-  return saldo.filter(r => flejeIds.includes(r.comp_id) && Number(r.saldo) > 0);
+  const fleje = (D.matriz_fleje || {})[String(n_matriz).trim()];
+  if (!fleje?.comp_id) return [];
+  return (D.rollos_saldo || []).filter(r => r.comp_id === fleje.comp_id && Number(r.rollos) > 0);
 }
 
 async function tomarRollo(legajo, comp_id, kg_por_rollo, matriz) {
@@ -335,9 +390,49 @@ function renderMatrizInfo() {
   const s = readState(legajoKey());
   if (!s.lastMatrix?.texto) { el.classList.add("hidden"); return; }
   const nm = s.lastMatrix.texto;
-  const mat = D.matricesMap?.get(nm);
+  const desc = nombreMatriz(nm);
   el.classList.remove("hidden");
-  el.innerHTML = `<b>Matriz activa: ${nm}</b>${mat?.Matriz ? ` — ${mat.Matriz}` : ""}`;
+  el.innerHTML = `<b>Matriz activa: ${nm}</b>${desc ? ` — ${desc}` : ""}`;
+}
+
+/* ============================================================
+   LISTADO DE MATRICES (E / CM)
+   ============================================================ */
+function renderMatrizPicker(filtro) {
+  const grid = $("matrizGrid");
+  if (!grid) return;
+  const q = String(filtro || "").trim().toLowerCase();
+  const elegida = String($("textInput").value || "").trim();
+  const matrices = (D.matrices || []).filter(m => {
+    if (!q) return true;
+    return String(m.n || "").toLowerCase().includes(q) ||
+           String(m.d || "").toLowerCase().includes(q);
+  });
+
+  if (!matrices.length) {
+    grid.innerHTML = `<div class="mz-empty">${(D.matrices || []).length ? "Sin resultados" : "Cargando matrices..."}</div>`;
+    return;
+  }
+
+  grid.innerHTML = "";
+  matrices.forEach(m => {
+    const n = String(m.n || "").trim();
+    const el = document.createElement("div");
+    el.className = "mz" + (n === elegida ? " sel" : "");
+    el.dataset.n = n;
+    el.innerHTML = `<div class="mz-n">${n}</div><div class="mz-d">${m.d || ""}</div>`;
+    el.addEventListener("click", () => elegirMatriz(n));
+    grid.appendChild(el);
+  });
+}
+
+function elegirMatriz(n) {
+  $("textInput").value = n;
+  $("error").innerText = "";
+  document.querySelectorAll("#matrizGrid .mz").forEach(x => {
+    x.classList.toggle("sel", x.dataset.n === n);
+  });
+  if (isEduardo() && selected?.code === "E") actualizarRolloPicker(n);
 }
 
 /* ============================================================
@@ -380,16 +475,31 @@ function selectOption(opt) {
     textInput.value = "";
   }
 
+  // Listado de matrices para E / CM
+  const matrizPicker = $("matrizPicker");
+  if (["E", "CM"].includes(opt.code)) {
+    matrizPicker.classList.remove("hidden");
+    $("matrizSearch").value = "";
+    renderMatrizPicker("");
+  } else {
+    matrizPicker.classList.add("hidden");
+  }
+
   // Eduardo: rollo picker para E
   const rolloPicker = $("rolloPicker");
   if (isEduardo() && opt.code === "E") {
     rolloPicker.classList.remove("hidden");
     $("rolloSelect").innerHTML = '<option value="">-- Elegir rollo --</option>';
-    textInput.oninput = () => actualizarRolloPicker(textInput.value.trim());
+    textInput.oninput = () => {
+      renderMatrizPicker($("matrizSearch").value);
+      actualizarRolloPicker(textInput.value.trim());
+    };
     actualizarRolloPicker("");
   } else {
     rolloPicker.classList.add("hidden");
-    textInput.oninput = null;
+    textInput.oninput = ["E", "CM"].includes(opt.code)
+      ? () => renderMatrizPicker($("matrizSearch").value)
+      : null;
   }
 
   // Eduardo: quedoResto para PR
@@ -412,7 +522,7 @@ function actualizarRolloPicker(n_matriz) {
   rollos.forEach(r => {
     const opt = document.createElement("option");
     opt.value = JSON.stringify({ comp_id: r.comp_id, kg_por_rollo: r.kg_por_rollo });
-    opt.textContent = `${r.codigo || "Fleje"}: ${r.kg_por_rollo} kg/rollo (saldo: ${r.saldo})`;
+    opt.textContent = `${r.codigo || "Fleje"}: ${r.kg_por_rollo} kg/rollo (${r.rollos} disp.)`;
     sel.appendChild(opt);
   });
   if (!rollos.length && n_matriz && D.matricesMap?.has(n_matriz)) {
@@ -427,6 +537,7 @@ function resetSelection() {
   $("selectedArea").classList.add("hidden");
   $("error").innerText = "";
   $("matrizInfo").classList.add("hidden");
+  $("matrizPicker").classList.add("hidden");
   $("rolloPicker").classList.add("hidden");
   $("quedoRestoWrap").classList.add("hidden");
   document.querySelectorAll(".box.selected").forEach(x => x.classList.remove("selected"));
@@ -554,11 +665,11 @@ async function deleteHistItem(legajo, idx) {
   if (!item) return;
   const op = String(item.opcion || "").toUpperCase();
 
-  // Intentar borrar de la base
-  if (item.id) {
+  // Baja logica en la base (si ya se habia enviado)
+  if (item.id && item.status === "sent") {
     try {
-      await SB.rpc("registrar_evento_prod", { p_data: { ...item, _accion: "ELIMINAR" } });
-    } catch {}
+      await SB.from("produccion").update({ eliminar: "S" }).eq("id_ejecucion", item.id);
+    } catch (e) { console.warn("No se pudo marcar eliminado:", e); }
   }
 
   s.last2.splice(idx, 1);
@@ -667,7 +778,8 @@ function goToOptions() {
     alert(`El legajo ${legajo} no existe en el sistema.`); return;
   }
   const emp = D.empleados[legajo];
-  $("btnBackLabel").innerText = `${emp} · Legajo ${legajo}`;
+  const nombre = typeof emp === "string" ? emp : (emp?.nombre || "");
+  $("btnBackLabel").innerText = `${nombre} · Legajo ${legajo}`;
   $("legajoScreen").classList.add("hidden");
   $("optionsScreen").classList.remove("hidden");
   renderOptions();
@@ -720,6 +832,7 @@ document.addEventListener("DOMContentLoaded", () => {
   $("btnBackTop").addEventListener("click", goToLegajo);
   $("btnBackLabel").addEventListener("click", goToLegajo);
   $("btnResetSelection").addEventListener("click", resetSelection);
+  $("matrizSearch").addEventListener("input", e => renderMatrizPicker(e.target.value));
   $("btnEnviar").addEventListener("click", sendFast);
 
   $("syncBadge").addEventListener("click", async () => {

@@ -46,6 +46,17 @@
     .label { font-size: 14px; font-weight: 600; color: #64748b; margin-bottom: 6px; }
     .text-input { width: 100%; font-size: 26px; padding: 10px 14px; border: 2px solid #cbd5e1; border-radius: 10px; text-align: center; }
     #matrizInfo { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px 14px; font-size: 14px; color: #334155; margin-bottom: 10px; }
+    /* Listado de matrices (E / CM) */
+    #matrizPicker { margin-bottom: 10px; }
+    #matrizPicker .mp-label { font-size: 14px; font-weight: 600; color: #64748b; margin-bottom: 6px; }
+    #matrizSearch { width: 100%; font-size: 18px; padding: 10px 12px; border: 2px solid #cbd5e1; border-radius: 10px; margin-bottom: 8px; }
+    #matrizGrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 6px; max-height: 320px; overflow-y: auto; padding: 2px; }
+    .mz { background: #f8fafc; border: 2px solid #e2e8f0; border-radius: 10px; padding: 10px 8px; text-align: left; cursor: pointer; user-select: none; }
+    .mz .mz-n { font-size: 18px; font-weight: 900; color: #1e40af; }
+    .mz .mz-d { font-size: 11px; font-weight: 600; color: #64748b; margin-top: 2px; overflow-wrap: anywhere; }
+    .mz.sel { background: #1e40af; border-color: #1e40af; }
+    .mz.sel .mz-n, .mz.sel .mz-d { color: #fff; }
+    .mz-empty { grid-column: 1 / -1; color: #94a3b8; font-size: 14px; padding: 10px; text-align: center; }
     .error { color: #dc2626; font-size: 14px; font-weight: 600; margin-top: 8px; min-height: 20px; }
     /* Rollo picker for Eduardo */
     #rolloPicker { background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; padding: 10px 14px; margin-bottom: 10px; }
@@ -131,6 +142,13 @@
       <input id="textInput" class="text-input" type="text" autocomplete="off" inputmode="numeric" />
     </div>
 
+    <!-- Listado completo de matrices (visible en E y CM) -->
+    <div id="matrizPicker" class="hidden">
+      <div class="mp-label">O elegila de la lista:</div>
+      <input id="matrizSearch" type="text" autocomplete="off" placeholder="Buscar por número o nombre..." />
+      <div id="matrizGrid"></div>
+    </div>
+
     <div id="matrizInfo" class="hidden"></div>
 
     <!-- Eduardo: rollo picker (visible solo para legajo 19 en E) -->
@@ -193,6 +211,6 @@
   </div>
 </div>
 
-<script src="operarios_gp2.js?v=1.0.0"></script>
+<script src="operarios_gp2.js?v=1.1.0"></script>
 </body>
 </html>
