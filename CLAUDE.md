@@ -39,6 +39,16 @@ código, comentarios ni mensajes de commit).
   y aplican el delta en `GP2.inventario`. El `var D` de los HTML mapea 1:1 a tablas GP2
   (ver `ANALISIS_LOGICA_GP2.md`).
 
+## Versionado (OBLIGATORIO en cada actualización)
+
+**Cada vez que se modifica el JS/CSS/HTML de un módulo, bumpear la versión en el mismo commit.**
+Las tablets y celulares cachean fuerte; sin bump siguen corriendo la versión vieja.
+
+1. Subir el `?v=` de los `<script src="...?v=X.Y.Z">` y `<link href="...?v=X.Y.Z">` del HTML del módulo.
+2. Si la página tiene badge de versión visible (ej. `#syncBadge` en las apps de operarios), actualizarlo al mismo número.
+3. Convención: fix chico = patch (1.2.0→1.2.1), feature = minor (1.2.0→1.3.0).
+4. Si el HTML no tiene `?v=` en sus recursos externos, agregárselo al tocarlo.
+
 ## Perfiles de Usuario (LEER AL INICIO)
 
 **Al arrancar cada sesión, leer `PERFILES.md` para saber con quién estás trabajando.**

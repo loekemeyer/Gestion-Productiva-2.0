@@ -10,6 +10,7 @@
 const SUPABASE_URL = "https://hrxfctzncixxqmpfhskv.supabase.co";
 const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhyeGZjdHpuY2l4eHFtcGZoc2t2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI3MjQyNjEsImV4cCI6MjA4ODMwMDI2MX0.4L6wguch8UZGhC2VpzrWcCjJGUV-IkYsl9JoCWrOLUs";
 const LEGAJO_EDUARDO = "19";
+const APP_VERSION = "1.2.0"; // bumpear en cada actualizacion (junto con el ?v= del HTML)
 
 const SB = supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
   db: { schema: "GP2" },
@@ -379,7 +380,7 @@ function renderPending() {
 function renderSyncBadge() {
   const q = readQueue();
   const el = $("syncBadge");
-  el.innerText = q.length ? `GP2 ⚠ ${q.length} pend.` : "GP2 ✓";
+  el.innerText = q.length ? `GP2 v${APP_VERSION} ⚠ ${q.length} pend.` : `GP2 v${APP_VERSION} ✓`;
   el.style.background = q.length ? "#fff7ed" : "#f1f5f9";
   el.style.color = q.length ? "#9a3412" : "#475569";
 }
