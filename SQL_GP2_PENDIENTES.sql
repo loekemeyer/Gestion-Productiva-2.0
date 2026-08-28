@@ -3,11 +3,13 @@
 -- Piezas que le faltan al schema GP2 para que todo el circuito funcione
 -- internamente (sin depender de public). Detectadas en ANALISIS_GP2_2026-08-28.md.
 --
--- ESTADO (2026-08-28):
---   §1 empleado             -> BORRADOR, no aplicado
---   §2 ruta_confirmada/..   -> BORRADOR, no aplicado
---   §3 crear_entrega_tallerista -> ✅ APLICADA Y PROBADA en la base
---   §4 limpieza             -> BORRADOR, no aplicado
+-- ESTADO (2026-08-28, actualizado):
+--   §1 empleado             -> ✅ EXISTE (66 empleados migrados en sesion Rollos)
+--   §2 ruta_confirmada/..   -> BORRADOR, pendiente (Verificacion modulo no portado a GP2 aun)
+--   §3 crear_entrega_tallerista -> ✅ APLICADA + FIX p_comp_entrada_id para transformaciones
+--   §3b crear_envio_ps/crear_entrega_ps -> ✅ FIX: lookup ubicacion por ref_id (no nombre)
+--   §4 limpieza             -> PARCIAL: fleje_detalle_upsert 6-arg dropeada ✅
+--                             _bak_* tablas: NO dropeadas (2346 filas ruta_paso; confirmar con usuario)
 --   §5 nombres reales del schema -> verificado contra la base
 --
 -- Los bloques marcados BORRADOR no se ejecutaron: revisarlos antes de aplicar.
@@ -119,10 +121,8 @@ create index if not exists ruta_problema_estado_idx on "GP2".ruta_problema (esta
 -- drop table "GP2"._bak_maxcomp_transitos;
 -- (o: alter table ... set schema backups; -- si se quiere conservar)
 
--- 4b. fleje_detalle_upsert esta DUPLICADA (6 args y 8 args). Dejar solo la de
--- 8 args (parametros nuevos con default) y dropear la vieja:
--- drop function "GP2".fleje_detalle_upsert(bigint, text, text, numeric, numeric, text);
--- CHEQUEAR antes cual llama el front cuando se conecte flejes_bundle.
+-- 4b. ✅ APLICADO: fleje_detalle_upsert 6-arg dropeada (2026-08-28).
+-- La UI pasa los 8 args siempre. PostgREST ya no tiene ambiguedad.
 
 
 -- ----------------------------------------------------------------------------
