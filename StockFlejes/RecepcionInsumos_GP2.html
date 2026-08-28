@@ -191,6 +191,9 @@
     <div class="actions">
       <button class="btn-secondary" id="kgCancel">Cancelar</button>
       <button class="btn-primary" id="kgConfirm">Confirmar</button>
+      <!-- Post-carga: si el proveedor informa rollos, el pesaje es el paso siguiente -->
+      <button class="btn-secondary hidden" id="kgListo">Listo</button>
+      <button class="btn-primary hidden" id="kgPesaje">⚖ Anotar pesaje →</button>
     </div>
     <div id="kgMsg" class="status" style="font-size:16px"></div>
   </div>
@@ -326,7 +329,8 @@ function updateConv(){
 $('unitKg').addEventListener('click',()=>setUnit('kg'));
 $('unitUni').addEventListener('click',()=>setUnit('uni'));
 function abrirPopup(i){
-  itemSel=i;
+  itemSel=i; PESAJE_PEND=null;
+  resetPiePopup();
   $('kgTitle').textContent='Recepción · '+rubroSel;
   var kx=KGXUNI[i.comp_id];
   var convHint=kx?' <small style="color:#9a6700;font-weight:600">(1 uni = '+fmt(kx)+' kg)</small>':'';
@@ -341,8 +345,40 @@ function abrirPopup(i){
   $('kgPopup').classList.add('open');
   setTimeout(()=>$('kgValue').focus(),50);
 }
-function cerrarPopup(){ $('kgPopup').classList.remove('open'); itemSel=null; }
+/* Recepción recién cargada que todavía no tiene el pesaje anotado. */
+var PESAJE_PEND = null;
+
+/* Vuelve el pie del popup al estado inicial (Cancelar / Confirmar). */
+function resetPiePopup(){
+  $('kgConfirm').classList.remove('hidden'); $('kgConfirm').disabled=false;
+  $('kgCancel').classList.remove('hidden');
+  $('kgListo').classList.add('hidden');
+  $('kgPesaje').classList.add('hidden');
+}
+
+function cerrarPopup(){
+  $('kgPopup').classList.remove('open');
+  itemSel=null; PESAJE_PEND=null;
+  resetPiePopup();
+  $('kgMsg').textContent=''; $('kgMsg').className='status';
+}
 $('kgCancel').addEventListener('click',cerrarPopup);
+$('kgListo').addEventListener('click',cerrarPopup);
+
+/* Paso siguiente: ir directo a anotar el pesaje de esta recepción. */
+$('kgPesaje').addEventListener('click', async function(){
+  var rid = PESAJE_PEND;
+  cerrarPopup();
+  if (!rid) return;
+  await cargar();                      // trae la recepción nueva a RECS
+  $('step1').classList.add('hidden');
+  $('step2').classList.add('hidden');
+  $('step3').classList.remove('hidden');
+  pintarControl();
+  var r = RECS.find(function(x){ return x.recepcion_id===rid; });
+  if (r) abrirEdicionCtl(r);
+  else $('ctlMsg') && ($('ctlMsg').textContent='No se encontró la recepción recién cargada.');
+});
 $('kgPopup').addEventListener('click',e=>{ if(e.target===$('kgPopup')) cerrarPopup(); });
 $('kgConfirm').addEventListener('click',guardar);
 
@@ -376,6 +412,24 @@ async function guardar(){
                        rollos:rll, pallets:pll, remito:$('txtRemito').value||null, proveedor:provSel||null };
     var ref = INS.filter(function(x){ return x.comp_id===itemSel.comp_id; })[0];
     if (ref) ref.ultima = itemSel.ultima;
+
+    // Si el proveedor informa rollos, el pesaje en balanza es el paso siguiente:
+    // en vez de cerrar, el popup ofrece ir directo a anotarlo.
+    var recId = res.data && res.data.recepcion_id;
+    if (pide && recId){
+      PESAJE_PEND = recId;
+      $('kgMsg').className='status';
+      $('kgMsg').innerHTML='<span style="color:#0a7a2f;font-weight:800">✓ Recepción cargada.</span> '+
+        'Falta el pesaje en balanza de '+(pll?('los '+pll+' pallet'+(pll===1?'':'s')):'los pallets')+'.';
+      $('kgConfirm').classList.add('hidden');
+      $('kgCancel').classList.add('hidden');
+      $('kgListo').classList.remove('hidden');
+      $('kgPesaje').classList.remove('hidden');
+      filtrarItems();
+      setTimeout(()=>{sb.style.display='none';},6000);
+      return;                       // el popup queda abierto en el paso 2
+    }
+
     cerrarPopup();
     filtrarItems();
     setTimeout(()=>{sb.style.display='none';},6000);
@@ -518,6 +572,22 @@ function refresCtl(card,rec,nro){
 }
 async function guardarCtl(rec){
   var st=editCtl[rec.recepcion_id], m=$('ctlMsg-'+rec.recepcion_id);
+
+  /* El sobrante (peso de balanza − suma de los rollos) tiene que dar el peso
+     del pallet: entre tara_pallet_min y max (4–8 kg). Si se va de ahí, se avisa
+     con el detalle pero NO se bloquea: el dato se guarda igual y la vista
+     v_control_pallet lo deja marcado como "sobrante bajo/alto". */
+  var fuera=[];
+  Object.keys(st.pallets).sort((a,b)=>a-b).forEach(function(nro){
+    var k=calcPallet(st.pallets[nro]);
+    if(k.sob!=null && k.estado && k.estado!=='ok')
+      fuera.push('Pallet '+nro+': sobrante '+fmt(k.sob)+' kg ('+k.estado+', esperado '+k.tmin+'–'+k.tmax+')');
+  });
+  if(fuera.length && !confirm(
+      '⚠ El sobrante no da el peso de un pallet en:\n\n'+fuera.join('\n')+
+      '\n\nPuede ser un rollo mal anotado o un error de balanza.\n'+
+      'Se puede guardar igual y corregirlo después.\n\n¿Guardar así?')) return;
+
   m.className='status'; m.textContent='Guardando…';
   var errs=[], ok=0;
   for(var nro of Object.keys(st.pallets).sort((a,b)=>a-b)){
