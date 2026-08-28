@@ -32,6 +32,16 @@
       "Bash(git log:*)",
       "Bash(git show:*)",
       "Bash(git branch:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git fetch:*)",
+      "Bash(git pull:*)",
+      "Bash(git checkout:*)",
+      "Bash(node:*)",
+      "Bash(python3:*)",
+      "Bash(mkdir:*)",
+      "Edit(./**)",
+      "Write(./**)",
       "mcp__Supabase__list_tables",
       "mcp__Supabase__list_projects",
       "mcp__Supabase__list_migrations",
@@ -51,10 +61,7 @@
       "mcp__Supabase__execute_sql",
       "mcp__Supabase__apply_migration",
       "mcp__supabase-gp__execute_sql",
-      "mcp__supabase-gp__apply_migration",
-      "Write(//**)",
-      "Edit(//**)",
-      "NotebookEdit(//**)"
+      "mcp__supabase-gp__apply_migration"
     ],
     "deny": [
       "Bash(rm -rf:*)",
