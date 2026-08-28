@@ -10,6 +10,7 @@
 const SUPABASE_URL = "https://hrxfctzncixxqmpfhskv.supabase.co";
 const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhyeGZjdHpuY2l4eHFtcGZoc2t2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI3MjQyNjEsImV4cCI6MjA4ODMwMDI2MX0.4L6wguch8UZGhC2VpzrWcCjJGUV-IkYsl9JoCWrOLUs";
 const LEGAJO_EDUARDO = "19";
+const APP_VERSION = "1.3.0"; // bumpear en cada actualizacion (junto con el ?v= del HTML)
 
 const SB = supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
   db: { schema: "GP2" },
@@ -148,7 +149,8 @@ function updateStateAfterSend(legajo, payload) {
 
   if (op === "E") {
     if (s.lastMatrix && s.lastMatrix.texto !== payload.texto) s.lastCajon = null;
-    s.lastMatrix = { opcion: "E", texto: payload.texto || "", ts: payload.ts_event };
+    s.lastMatrix = { opcion: "E", texto: payload.texto || "", ts: payload.ts_event,
+                     comp_salida_id: payload.comp_salida_id || null, pieza: payload.pieza || null };
     s.lastDowntime = null; s.matrixNeedsC = true;
     s.last2.push({ ...payload, status: "queued" });
     writeState(legajo, s); return;
@@ -229,6 +231,7 @@ function toRpcPayload(p) {
     hora_fin: horaAR(p.ts_event)
   };
   if (p.hs_inicio) rpc.hora_inicio = horaAR(p.hs_inicio);
+  if (p.comp_salida_id) rpc.comp_salida_id = p.comp_salida_id;
 
   if (["C", "CT"].includes(op)) {
     rpc.uni = Number(p.texto) || 0;
@@ -377,7 +380,7 @@ function renderPending() {
 function renderSyncBadge() {
   const q = readQueue();
   const el = $("syncBadge");
-  el.innerText = q.length ? `GP2 ⚠ ${q.length} pend.` : "GP2 ✓";
+  el.innerText = q.length ? `GP2 v${APP_VERSION} ⚠ ${q.length} pend.` : `GP2 v${APP_VERSION} ✓`;
   el.style.background = q.length ? "#fff7ed" : "#f1f5f9";
   el.style.color = q.length ? "#9a3412" : "#475569";
 }
@@ -392,7 +395,8 @@ function renderMatrizInfo() {
   const nm = s.lastMatrix.texto;
   const desc = nombreMatriz(nm);
   el.classList.remove("hidden");
-  el.innerHTML = `<b>Matriz activa: ${nm}</b>${desc ? ` — ${desc}` : ""}`;
+  const pieza = s.lastMatrix.pieza ? ` · Pieza: ${s.lastMatrix.pieza}` : "";
+  el.innerHTML = `<b>Matriz activa: ${nm}</b>${desc ? ` — ${desc}` : ""}${pieza}`;
 }
 
 /* ============================================================
@@ -401,8 +405,9 @@ function renderMatrizInfo() {
 function renderMatrizPicker(filtro) {
   const grid = $("matrizGrid");
   if (!grid) return;
-  const q = String(filtro || "").trim().toLowerCase();
   const elegida = String($("textInput").value || "").trim();
+  // Si el buscador esta vacio pero el operario tipeo un numero, filtrar por eso.
+  const q = String(filtro || "").trim().toLowerCase() || elegida.toLowerCase();
   const matrices = (D.matrices || []).filter(m => {
     if (!q) return true;
     return String(m.n || "").toLowerCase().includes(q) ||
@@ -432,7 +437,42 @@ function elegirMatriz(n) {
   document.querySelectorAll("#matrizGrid .mz").forEach(x => {
     x.classList.toggle("sel", x.dataset.n === n);
   });
+  renderPiezaPicker(n);
   if (isEduardo() && selected?.code === "E") actualizarRolloPicker(n);
+}
+
+/* ============================================================
+   SELECTOR DE PIEZA (matrices con varias salidas)
+   La pieza elegida viaja como comp_salida_id en el C para que
+   el stock se sume en el componente correcto.
+   ============================================================ */
+let piezaSel = null; // {comp_id, codigo, descripcion}
+
+function salidasDeMatriz(n) {
+  return (D.matriz_salidas || {})[String(n || "").trim()] || [];
+}
+
+function renderPiezaPicker(n) {
+  const wrap = $("piezaPicker"), grid = $("piezaGrid");
+  if (!wrap || !grid) return;
+  const salidas = (selected && ["E", "CM"].includes(selected.code)) ? salidasDeMatriz(n) : [];
+  if (salidas.length < 2) {
+    piezaSel = null; wrap.classList.add("hidden"); grid.innerHTML = "";
+    $("btnEnviar").disabled = false;
+    return;
+  }
+  if (piezaSel && !salidas.some(x => x.comp_id === piezaSel.comp_id)) piezaSel = null;
+  wrap.classList.remove("hidden");
+  grid.innerHTML = "";
+  salidas.forEach(sa => {
+    const el = document.createElement("div");
+    el.className = "mz" + (piezaSel?.comp_id === sa.comp_id ? " sel" : "");
+    el.innerHTML = `<div class="mz-n">${sa.codigo || ""}</div><div class="mz-d">${sa.descripcion || ""}</div>`;
+    el.addEventListener("click", () => { piezaSel = sa; $("error").innerText = ""; renderPiezaPicker(n); });
+    grid.appendChild(el);
+  });
+  // Sin pieza elegida no se puede Enviar (el stock no sabria a que componente ir)
+  $("btnEnviar").disabled = !piezaSel;
 }
 
 /* ============================================================
@@ -453,11 +493,16 @@ function renderOptions() {
   });
 }
 
+function mostrarBotones(mostrar) {
+  [1, 2, 3, 4].forEach(r => $(`row${r}`).classList.toggle("hidden", !mostrar));
+}
+
 function selectOption(opt) {
   selected = opt;
   document.querySelectorAll(".box.selected").forEach(x => x.classList.remove("selected"));
   const box = document.querySelector(`.box[data-code="${opt.code}"]`);
   if (box) box.classList.add("selected");
+  mostrarBotones(false); // se vuelven a ver con la flecha ← de la seleccion
 
   $("selectedBox").innerText = opt.code;
   $("selectedDesc").innerText = opt.desc;
@@ -477,12 +522,15 @@ function selectOption(opt) {
 
   // Listado de matrices para E / CM
   const matrizPicker = $("matrizPicker");
+  piezaSel = null;
   if (["E", "CM"].includes(opt.code)) {
     matrizPicker.classList.remove("hidden");
     $("matrizSearch").value = "";
     renderMatrizPicker("");
+    renderPiezaPicker("");
   } else {
     matrizPicker.classList.add("hidden");
+    renderPiezaPicker("");
   }
 
   // Eduardo: rollo picker para E
@@ -492,13 +540,17 @@ function selectOption(opt) {
     $("rolloSelect").innerHTML = '<option value="">-- Elegir rollo --</option>';
     textInput.oninput = () => {
       renderMatrizPicker($("matrizSearch").value);
+      renderPiezaPicker(textInput.value.trim());
       actualizarRolloPicker(textInput.value.trim());
     };
     actualizarRolloPicker("");
   } else {
     rolloPicker.classList.add("hidden");
     textInput.oninput = ["E", "CM"].includes(opt.code)
-      ? () => renderMatrizPicker($("matrizSearch").value)
+      ? () => {
+          renderMatrizPicker($("matrizSearch").value);
+          renderPiezaPicker(textInput.value.trim());
+        }
       : null;
   }
 
@@ -532,12 +584,16 @@ function actualizarRolloPicker(n_matriz) {
 
 function resetSelection() {
   const s = readState(legajoKey());
-  if (s?.lastDowntime) return;
+  if (s?.lastDowntime && selected) return; // downtime abierto: hay que enviar el mismo, no se sale
   selected = null;
+  mostrarBotones(true);
   $("selectedArea").classList.add("hidden");
+  $("btnEnviar").disabled = false;
   $("error").innerText = "";
   $("matrizInfo").classList.add("hidden");
   $("matrizPicker").classList.add("hidden");
+  $("piezaPicker").classList.add("hidden");
+  piezaSel = null;
   $("rolloPicker").classList.add("hidden");
   $("quedoRestoWrap").classList.add("hidden");
   document.querySelectorAll(".box.selected").forEach(x => x.classList.remove("selected"));
@@ -576,6 +632,10 @@ async function sendFast() {
       alert(`La matriz ${texto} no existe.`); return;
     }
   }
+  if (["E", "CM"].includes(selected.code) && salidasDeMatriz(texto).length > 1 && !piezaSel) {
+    $("error").innerText = "Esta matriz hace varias piezas. Elegí cuál vas a fabricar.";
+    return;
+  }
   if (["C", "CT", "RM", "PM", "RD"].includes(selected.code)) {
     if (!s.lastMatrix?.texto) {
       alert('Primero enviá "E (Empecé Matriz)" para registrar una matriz.'); return;
@@ -601,8 +661,16 @@ async function sendFast() {
     texto, ts_event: tsEvent, hs_inicio: "", matriz: ""
   };
 
+  if (["E", "CM"].includes(payload.opcion) && piezaSel) {
+    payload.comp_salida_id = piezaSel.comp_id;
+    payload.pieza = piezaSel.codigo || "";
+  }
   if (["C", "CT", "RM", "PM", "RD"].includes(payload.opcion)) {
     payload.matriz = s.lastMatrix?.texto || "";
+    if (["C", "CT"].includes(payload.opcion) && s.lastMatrix?.comp_salida_id) {
+      payload.comp_salida_id = s.lastMatrix.comp_salida_id;
+      payload.pieza = s.lastMatrix.pieza || "";
+    }
   }
   if (payload.opcion === "C" || payload.opcion === "CT") {
     payload.hs_inicio = computeHsInicio(s);
