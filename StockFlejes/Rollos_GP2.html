@@ -1,219 +1,25 @@
 <!doctype html>
 <html lang="es">
 <head>
-<script src="../auth-guard.js"></script>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>Stock de Rollos · GP2</title>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<style>
-  *{box-sizing:border-box;margin:0;padding:0}
-  body{font-family:Arial,sans-serif;background:#f5f6f8;padding:12px;color:#111}
-  .card{max-width:980px;margin:auto;background:#fff;border-radius:12px;box-shadow:0 2px 12px rgba(0,0,0,.08);overflow:hidden}
-  .header{background:#1a1a1a;color:#fff;padding:14px 18px;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
-  .header h1{font-size:24px;font-weight:700}
-  .header .hbtns{display:flex;gap:8px}
-  .header button,.header a{background:#fff;color:#111;border:none;padding:8px 14px;border-radius:6px;font-weight:700;cursor:pointer;font-size:18px;text-decoration:none}
-  .body{padding:14px 18px}
-  .row{display:flex;gap:10px;flex-wrap:wrap;margin:10px 0;align-items:center}
-  select,input,button.btn{height:40px;border:2px solid #d0d7de;border-radius:8px;padding:0 10px;font-size:19px;background:#fff}
-  button.btn{cursor:pointer;font-weight:800}
-  .btn-primary{background:#111;color:#fff;border-color:#111}
-  .chips{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0}
-  .chip{padding:8px 14px;border-radius:8px;border:2px solid #d0d7de;background:#fff;font-weight:700;cursor:pointer;font-size:19px}
-  .chip.active{background:#111;color:#fff;border-color:#111}
-
-  .saldos{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:12px;margin:12px 0}
-  .saldo-card{border:2px solid #d0d7de;border-radius:10px;padding:14px;text-align:center;background:#fff}
-  .saldo-card .cod{font-size:22px;font-weight:800;color:#0066cc}
-  .saldo-card .peso{font-size:18px;color:#444;margin-top:2px}
-  .saldo-card .n{font-size:40px;font-weight:900;margin:6px 0}
-  .saldo-card .n.neg{color:#b42318}
-  .saldo-card .kg{font-size:16px;color:#666}
-  .saldo-card.total{border-color:#111;background:#f6f8fa}
-
-  table{width:100%;border-collapse:collapse;font-size:17px;margin-top:8px}
-  th,td{padding:8px 10px;text-align:left;border-bottom:1px solid #e3e7ec;white-space:nowrap}
-  th{background:#f6f8fa;color:#555;font-size:13px;text-transform:uppercase;letter-spacing:.4px}
-  td.num{text-align:right;font-variant-numeric:tabular-nums}
-  .pos{color:#0a7a2f;font-weight:800}.neg{color:#b42318;font-weight:800}
-  .motivo{font-size:14px;padding:2px 9px;border-radius:10px;border:1px solid #d0d7de;background:#f6f8fa}
-  .empty{color:#888;padding:16px;text-align:center;font-style:italic}
-  h2{font-size:20px;margin:18px 0 4px;color:#0b3b73}
-  .alerta{background:#fff8e5;border:2px solid #e0b04a;border-radius:8px;padding:10px 12px;margin:8px 0;font-size:17px}
-  .tscroll{overflow-x:auto}
-  .status{font-size:18px;min-height:24px;margin-top:6px}
-  .bad{color:#b42318}.okc{color:#0a7a2f}
-
-  .popup{position:fixed;inset:0;background:rgba(0,0,0,.5);display:none;align-items:center;justify-content:center;z-index:100;padding:16px}
-  .popup.open{display:flex}
-  .pmodal{background:#fff;border-radius:14px;padding:26px;width:96%;max-width:520px}
-  .pmodal h3{font-size:24px;margin-bottom:14px}
-  .pmodal label{display:block;font-size:16px;font-weight:700;margin:10px 0 4px}
-  .pmodal select,.pmodal input{width:100%}
-  .pmodal .acts{display:flex;gap:10px;margin-top:18px}
-  .pmodal .acts button{flex:1;padding:12px;font-size:20px;font-weight:800;border:none;border-radius:8px;cursor:pointer}
-</style>
+<!-- El stock de rollos dejo de ser un modulo aparte: ahora es la solapa
+     "Rollos" dentro de Stock Flejes. Este archivo queda solo como
+     redireccion para que no se rompan los enlaces ya guardados. -->
+<meta http-equiv="refresh" content="0; url=Flejes_GP2.html#rollos">
+<link rel="canonical" href="Flejes_GP2.html#rollos">
 <link rel="icon" type="image/png" href="../GP2_favicon.png">
+<style>
+  body{font-family:Arial,sans-serif;background:#f5f6f8;color:#111;padding:40px;text-align:center}
+  a{color:#0066cc;font-weight:800;font-size:20px}
+</style>
 </head>
 <body>
-<div class="card">
-  <div class="header">
-    <h1>🧻 Stock de Rollos</h1>
-    <div class="hbtns">
-      <button id="btnAjuste" style="background:#f0c040">± Inicial / Ajuste</button>
-      <a href="Flejes_GP2.html">Flejes</a>
-      <a href="../GP2_MODULOS.html">Atrás</a>
-    </div>
-  </div>
-  <div class="body">
-    <div class="chips" id="chips"></div>
-
-    <div class="saldos" id="saldos"></div>
-
-    <h2>Evolución (ingresos / egresos con saldo)</h2>
-    <div class="row">
-      <select id="fPeso"><option value="">Todos los pesos</option></select>
-      <span style="font-size:15px;color:#666">El saldo arranca del estado inicial y acumula cada movimiento.</span>
-    </div>
-    <div class="tscroll"><table id="tEvo"><thead><tr>
-      <th>Fecha</th><th>Fleje</th><th>Peso</th><th>Mov.</th><th>Motivo</th><th>Quién</th><th style="text-align:right">Saldo</th>
-    </tr></thead><tbody></tbody></table></div>
-    <div id="evoEmpty" class="empty" style="display:none">Sin movimientos todavía. Cargá el estado inicial con el botón de arriba.</div>
-
-    <h2>Rollos usados por los operarios</h2>
-    <div class="tscroll"><table id="tUsos"><thead><tr>
-      <th>Inicio</th><th>Operario</th><th>Fleje</th><th>Peso</th><th>Matriz</th><th>¿Quedó resto?</th>
-      <th style="text-align:right">Unidades</th><th style="text-align:right">Esperadas</th><th></th>
-    </tr></thead><tbody></tbody></table></div>
-    <div id="usosEmpty" class="empty" style="display:none">Todavía nadie registró uso de rollos.</div>
-
-    <div id="statusMsg" class="status"></div>
-  </div>
-</div>
-
-<div class="popup" id="popAjuste">
-  <div class="pmodal">
-    <h3>Estado inicial / Ajuste de rollos</h3>
-    <label>Fleje</label>
-    <select id="ajFleje"></select>
-    <label>Peso por rollo (kg)</label>
-    <input id="ajPeso" inputmode="decimal" placeholder="50">
-    <label>Cantidad de rollos (positivo suma, negativo resta)</label>
-    <input id="ajCant" inputmode="numeric" placeholder="10">
-    <label>Motivo</label>
-    <select id="ajMotivo">
-      <option value="inicial">Estado inicial</option>
-      <option value="ajuste">Ajuste / corrección</option>
-      <option value="devolucion">Devolución</option>
-    </select>
-    <label>Nota (opcional)</label>
-    <input id="ajNota" placeholder="Conteo físico, etc.">
-    <div class="acts">
-      <button style="background:#eee" id="ajCancel">Cancelar</button>
-      <button class="btn-primary" style="background:#111;color:#fff" id="ajOk">Guardar</button>
-    </div>
-    <div id="ajMsg" class="status"></div>
-  </div>
-</div>
-
-<script>
-const SB=window.supabase.createClient('https://hrxfctzncixxqmpfhskv.supabase.co','eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhyeGZjdHpuY2l4eHFtcGZoc2t2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI3MjQyNjEsImV4cCI6MjA4ODMwMDI2MX0.4L6wguch8UZGhC2VpzrWcCjJGUV-IkYsl9JoCWrOLUs',{db:{schema:'GP2'}});
-const $=id=>document.getElementById(id);
-function esc(s){return (s==null?'':String(s)).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
-function fmt(n,d){if(n==null||isNaN(n))return '—';return Number(n).toLocaleString('es-AR',{maximumFractionDigits:d==null?2:d});}
-function ffecha(x){return String(x||'').replace('T',' ').slice(0,16);}
-const MOTIVOS={inicial:'Estado inicial',recepcion:'Recepción',toma_operario:'Tomó operario',ajuste:'Ajuste',devolucion:'Devolución'};
-
-let D={saldos:[],eventos:[],usos:[],flejes:[]};
-let flejeSel='';
-
-function pintar(){
-  // chips por fleje que tenga saldo o eventos
-  const cods=[...new Set(D.saldos.map(s=>s.codigo).concat(D.eventos.map(e=>e.codigo)))].sort();
-  $('chips').innerHTML='<span class="chip'+(flejeSel===''?' active':'')+'" data-c="">Todos</span>'+
-    cods.map(c=>'<span class="chip'+(flejeSel===c?' active':'')+'" data-c="'+esc(c)+'">'+esc(c)+'</span>').join('');
-  document.querySelectorAll('#chips .chip').forEach(el=>el.onclick=()=>{flejeSel=el.dataset.c;pintar();});
-
-  // tarjetas de saldo: "tengo N rollos de X kg"
-  const saldos=D.saldos.filter(s=>!flejeSel||s.codigo===flejeSel);
-  let totalRollos=0,totalKg=0;
-  $('saldos').innerHTML=saldos.map(s=>{
-    totalRollos+=Number(s.rollos)||0; totalKg+=Number(s.kg_total)||0;
-    return '<div class="saldo-card"><div class="cod">'+esc(s.codigo)+'</div>'+
-      '<div class="peso">rollos de '+fmt(s.kg_por_rollo)+' kg</div>'+
-      '<div class="n'+(s.rollos<0?' neg':'')+'">'+fmt(s.rollos,0)+'</div>'+
-      '<div class="kg">'+fmt(s.kg_total)+' kg · ↑'+fmt(s.ingresos||0,0)+' ↓'+fmt(s.egresos||0,0)+'</div></div>';
-  }).join('')+
-  (saldos.length?'<div class="saldo-card total"><div class="cod">TOTAL</div><div class="peso">'+(flejeSel||'todos los flejes')+'</div>'+
-    '<div class="n">'+fmt(totalRollos,0)+'</div><div class="kg">'+fmt(totalKg)+' kg</div></div>':'');
-  if(!saldos.length) $('saldos').innerHTML='<div class="empty" style="grid-column:1/-1">Sin stock de rollos'+(flejeSel?' para '+esc(flejeSel):'')+'. Cargá el estado inicial.</div>';
-
-  // filtro de pesos segun fleje
-  const pesos=[...new Set(D.eventos.filter(e=>!flejeSel||e.codigo===flejeSel).map(e=>String(e.kg_por_rollo)))].sort((a,b)=>a-b);
-  const pesoSel=$('fPeso').value;
-  $('fPeso').innerHTML='<option value="">Todos los pesos</option>'+pesos.map(p=>'<option value="'+p+'"'+(p===pesoSel?' selected':'')+'>'+fmt(p)+' kg</option>').join('');
-
-  // evolucion (los eventos vienen ordenados desc; el saldo ya viene acumulado de la vista)
-  const evs=D.eventos.filter(e=>(!flejeSel||e.codigo===flejeSel)&&(!$('fPeso').value||String(e.kg_por_rollo)===$('fPeso').value));
-  $('tEvo').querySelector('tbody').innerHTML=evs.map(e=>
-    '<tr><td>'+ffecha(e.fecha)+'</td><td><b style="color:#0066cc">'+esc(e.codigo)+'</b></td>'+
-    '<td class="num">'+fmt(e.kg_por_rollo)+' kg</td>'+
-    '<td class="num '+(e.delta>0?'pos':'neg')+'">'+(e.delta>0?'+':'')+fmt(e.delta,0)+'</td>'+
-    '<td><span class="motivo">'+esc(MOTIVOS[e.motivo]||e.motivo)+'</span>'+(e.nota?(' <span style="color:#888;font-size:14px">'+esc(e.nota)+'</span>'):'')+'</td>'+
-    '<td>'+esc(e.operario||e.legajo||'')+'</td>'+
-    '<td class="num"><b>'+fmt(e.saldo,0)+'</b></td></tr>').join('');
-  $('evoEmpty').style.display=evs.length?'none':'block';
-
-  // usos de operarios con el cruce de rendimiento
-  const usos=D.usos.filter(u=>!flejeSel||u.codigo===flejeSel);
-  $('tUsos').querySelector('tbody').innerHTML=usos.map(u=>{
-    const desvio = (u.uni_esperadas>0 && u.uni_producidas!=null && u.quedo_resto===false)
-      ? u.uni_producidas/u.uni_esperadas : null;
-    const flag = desvio==null?'' : desvio<0.6?'⚠ muy por debajo' : desvio>1.4?'⚠ muy por encima':'✓';
-    return '<tr><td>'+ffecha(u.ts_inicio)+'</td><td>'+esc(u.legajo)+'</td>'+
-      '<td><b style="color:#0066cc">'+esc(u.codigo)+'</b></td>'+
-      '<td class="num">'+fmt(u.kg_por_rollo)+' kg</td>'+
-      '<td>'+esc(u.matriz_raw||'')+'</td>'+
-      '<td>'+(u.ts_fin==null?'<i>en uso</i>':(u.quedo_resto?'Sí, quedó':'No, se terminó'))+'</td>'+
-      '<td class="num">'+fmt(u.uni_producidas,0)+'</td>'+
-      '<td class="num">'+fmt(u.uni_esperadas,0)+'</td>'+
-      '<td class="'+(flag.startsWith('⚠')?'neg':'okc')+'">'+flag+'</td></tr>';
-  }).join('');
-  $('usosEmpty').style.display=usos.length?'none':'block';
-}
-
-$('fPeso').addEventListener('change',pintar);
-
-/* ---- ajuste / estado inicial ---- */
-$('btnAjuste').onclick=()=>{
-  $('ajFleje').innerHTML=D.flejes.map(f=>'<option value="'+f.comp_id+'">'+esc(f.codigo)+' — '+esc(f.descripcion||'')+'</option>').join('');
-  $('ajPeso').value='';$('ajCant').value='';$('ajNota').value='';$('ajMsg').textContent='';
-  $('popAjuste').classList.add('open');
-};
-$('ajCancel').onclick=()=>$('popAjuste').classList.remove('open');
-$('ajOk').onclick=async()=>{
-  const m=$('ajMsg'); m.className='status'; m.textContent='';
-  const peso=parseFloat(String($('ajPeso').value).replace(',','.'));
-  const cant=parseInt(String($('ajCant').value).replace(/[^0-9-]/g,''),10);
-  if(!peso||peso<=0){m.className='status bad';m.textContent='Poné el peso del rollo.';return;}
-  if(!cant){m.className='status bad';m.textContent='Poné cuántos rollos (≠ 0).';return;}
-  try{
-    const r=await SB.rpc('ajustar_rollos',{p_comp_id:Number($('ajFleje').value),p_kg_por_rollo:peso,
-      p_delta:cant,p_motivo:$('ajMotivo').value,p_nota:$('ajNota').value||null});
-    if(r.error) throw r.error;
-    $('popAjuste').classList.remove('open');
-    await cargar();
-  }catch(e){m.className='status bad';m.textContent='Error: '+(e.message||e);}
-};
-
-async function cargar(){
-  $('statusMsg').textContent='Cargando…';
-  const r=await SB.rpc('rollos_bundle');
-  if(r.error){$('statusMsg').className='status bad';$('statusMsg').textContent='Error: '+r.error.message;return;}
-  D=r.data||D; $('statusMsg').textContent='';
-  pintar();
-}
-cargar();
-</script>
-</body></html>
+  <p style="font-size:19px;margin-bottom:14px">
+    El stock de rollos ahora vive dentro de <b>Stock Flejes</b>, en la solapa <b>Rollos</b>.
+  </p>
+  <a href="Flejes_GP2.html#rollos">Ir a Stock Flejes → Rollos</a>
+  <script>location.replace('Flejes_GP2.html#rollos');</script>
+</body>
+</html>
