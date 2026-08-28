@@ -10,7 +10,7 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
   <!-- CSS reutilizado de la pagina vieja -->
-  <link rel="stylesheet" href="ControlPS.css?v=3" />
+  <link rel="stylesheet" href="ControlPS.css?v=4" />
 
   <style>
     /* Banner de datos parciales (propio de la version GP2) */
@@ -265,6 +265,8 @@
       provSel = p;
       Array.prototype.forEach.call(elGrid.querySelectorAll('.tallerista-btn'), function(x){ x.classList.remove('active'); });
       if(btn) btn.classList.add('active');
+      // ocultar los chips del resto: se vuelve con "Cambiar proveedor"
+      elGrid.classList.add('hidden');
       // mostrar toolbar de detalle
       btnVolver.classList.remove('hidden');
       elFiltro.classList.remove('hidden');
@@ -381,6 +383,7 @@
       btnVolver.classList.add('hidden');
       elFiltro.classList.add('hidden');
       btnImpr.classList.add('hidden');
+      elGrid.classList.remove('hidden');
       Array.prototype.forEach.call(elGrid.querySelectorAll('.tallerista-btn'), function(x){ x.classList.remove('active'); });
       elResult.innerHTML = '';
       elStatus.textContent = '';
@@ -404,6 +407,7 @@
       btnVolver.classList.add('hidden');
       elFiltro.classList.add('hidden');
       btnImpr.classList.add('hidden');
+      elGrid.classList.remove('hidden');
       elFiltro.value = '';
       elResult.innerHTML = '';
       renderGrid();
