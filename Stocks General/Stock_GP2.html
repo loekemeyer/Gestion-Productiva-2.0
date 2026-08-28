@@ -53,7 +53,7 @@
 <div class="top">
  <h1>📦 Loekemeyer · Stock GP2</h1>
  <div class="right">
-  Ver en <select id="um"><option value="uni">Unidades</option><option value="kg">Kg</option></select>
+  Ver en <select id="um"><option value="uni">Unidades</option><option value="kg">Kg</option><option value="caj">Cajones</option></select>
   <button id="btnRecargar">↻ Recargar</button>
   <button id="btnCsv">⭳ CSV</button>
  </div>
@@ -132,6 +132,8 @@ function armarFilas(){
 }
 
 function kgDe(f){var k=Number((f.c||{}).kg_x_uni||0);return k>0?f.cant*k:null;}
+// uni_x_cajon existe en componente: el cajon es la unidad de piso, se usa en envios y relevamientos.
+function cajDe(f){var u=Number((f.c||{}).uni_x_cajon||0);return u>0?f.cant/u:null;}
 function valor(f){return document.getElementById('um').value==='kg'?(kgDe(f)==null?null:kgDe(f)):f.cant;}
 
 /* ===== presets: solo setean filtros, no tienen logica propia ===== */
@@ -202,7 +204,7 @@ var ordCol='cod', ordAsc=true;
 function ordenar(rows){
   var m={cod:function(f){return norm((f.c||{}).cod);},desc:function(f){return norm((f.c||{}).d);},
          sect:function(f){return norm(sectNom((f.c||{}).s));},ubic:function(f){return f.uid!=null?norm(ubicNom(f.uid)):'';},
-         cant:function(f){return f.cant;},kg:function(f){return kgDe(f)||0;},min:function(f){return f.min;},falta:function(f){return f.falta;}};
+         cant:function(f){return f.cant;},kg:function(f){return kgDe(f)||0;},caj:function(f){return cajDe(f)||0;},min:function(f){return f.min;},falta:function(f){return f.falta;}};
   var g=m[ordCol]||m.cod;
   return rows.slice().sort(function(a,b){
     var x=g(a),y=g(b); if(x<y)return ordAsc?-1:1; if(x>y)return ordAsc?1:-1; return 0;
@@ -238,14 +240,14 @@ function render(){
 }
 function ths(){
   var cols=[['cod','Cód.'],['desc','Descripción'],['sect','Sector'],['ubic','Ubicación'],['tipou','Tipo'],
-            ['cant','Stock'],['um','UM'],['kg','Kg'],['min','Mín'],['falta','Falta'],['meses','Meses'],['art','Artículo']];
+            ['cant','Stock'],['um','UM'],['kg','Kg'],['caj','Caj'],['min','Mín'],['falta','Falta'],['meses','Meses'],['art','Artículo']];
   return '<tr>'+cols.map(function(c){
     var ind=ordCol===c[0]?(ordAsc?' ▲':' ▼'):'';
     return '<th data-ord="'+c[0]+'">'+c[1]+ind+'</th>';}).join('')+'</tr>';
 }
 function tdFila(f){
-  var u=f.u, a=artDe(f.cid), kg=kgDe(f), um=document.getElementById('um').value;
-  var stock = um==='kg' ? (kg==null?'—':fmt(kg,2)) : fmt(f.cant,2);
+  var u=f.u, a=artDe(f.cid), kg=kgDe(f), caj=cajDe(f), um=document.getElementById('um').value;
+  var stock = um==='kg' ? (kg==null?'—':fmt(kg,2)) : um==='caj' ? (caj==null?'—':fmt(caj,2)) : fmt(f.cant,2);
   return '<tr data-cid="'+esc(f.cid)+'" data-uid="'+esc(f.uid==null?'':f.uid)+'">'+
    '<td class="cod">'+esc((f.c||{}).cod)+'</td>'+
    '<td class="desc">'+esc((f.c||{}).d)+'</td>'+
@@ -255,6 +257,7 @@ function tdFila(f){
    '<td class="num'+(f.cant>0?'':' cero')+'">'+stock+'</td>'+
    '<td style="color:#7a92a8;font-size:11px">'+esc((f.c||{}).um||'uni')+'</td>'+
    '<td class="num">'+(kg==null?'<span class="vacio">—</span>':fmt(kg,2))+'</td>'+
+   '<td class="num">'+(caj==null?'<span class="vacio">—</span>':fmt(caj,2))+'</td>'+
    '<td class="num'+(f.min>0?'':' cero')+'">'+(f.min>0?fmt(f.min,2):'—')+'</td>'+
    '<td class="num '+(f.falta>0?'falta':(f.min>0?'ok':'cero'))+'">'+(f.min>0?fmt(f.falta,2):'—')+'</td>'+
    '<td class="num" style="color:#7a92a8">'+(u&&u.meses?fmt(u.meses,1):'—')+'</td>'+
@@ -389,10 +392,10 @@ function poblarSelects(){
 }
 function exportarCSV(){
   var rows=ordenar(filtrar());
-  var out=[['Cod','Descripcion','Sector','TipoSector','Ubicacion','TipoUbic','Stock','UM','Kg','Min','Falta','Meses','Articulo'].join(';')];
-  rows.forEach(function(f){var a=artDe(f.cid),kg=kgDe(f);
+  var out=[['Cod','Descripcion','Sector','TipoSector','Ubicacion','TipoUbic','Stock','UM','Kg','Cajones','Min','Falta','Meses','Articulo'].join(';')];
+  rows.forEach(function(f){var a=artDe(f.cid),kg=kgDe(f),caj=cajDe(f);
     out.push([(f.c||{}).cod,(f.c||{}).d,sectNom((f.c||{}).s),sectTipo((f.c||{}).s),f.uid!=null?ubicNom(f.uid):'',f.u?f.u.tipo:'',
-      f.cant,(f.c||{}).um||'uni',kg==null?'':kg,f.min,f.falta,f.u&&f.u.meses?f.u.meses:'',a?a.cod:''].map(function(v){return String(v==null?'':v).replace(/;/g,',');}).join(';'));
+      f.cant,(f.c||{}).um||'uni',kg==null?'':kg,caj==null?'':caj,f.min,f.falta,f.u&&f.u.meses?f.u.meses:'',a?a.cod:''].map(function(v){return String(v==null?'':v).replace(/;/g,',');}).join(';'));
   });
   var blob=new Blob(['﻿'+out.join('\n')],{type:'text/csv;charset=utf-8'});
   var a2=document.createElement('a');a2.href=URL.createObjectURL(blob);a2.download='stock_gp2.csv';a2.click();

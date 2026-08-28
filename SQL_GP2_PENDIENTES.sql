@@ -1,16 +1,21 @@
 -- ============================================================================
--- SQL_GP2_PENDIENTES.sql — BORRADOR, NO APLICADO
+-- SQL_GP2_PENDIENTES.sql
 -- Piezas que le faltan al schema GP2 para que todo el circuito funcione
 -- internamente (sin depender de public). Detectadas en ANALISIS_GP2_2026-08-28.md.
 --
--- ⚠️ ANTES DE APLICAR: verificar contra la base real (los cuerpos de las
--- funciones existentes no se pudieron introspeccionar en esta sesion).
--- Cada bloque dice que hay que chequear.
+-- ESTADO (2026-08-28):
+--   §1 empleado             -> BORRADOR, no aplicado
+--   §2 ruta_confirmada/..   -> BORRADOR, no aplicado
+--   §3 crear_entrega_tallerista -> ✅ APLICADA Y PROBADA en la base
+--   §4 limpieza             -> BORRADOR, no aplicado
+--   §5 nombres reales del schema -> verificado contra la base
+--
+-- Los bloques marcados BORRADOR no se ejecutaron: revisarlos antes de aplicar.
 -- ============================================================================
 
 
 -- ----------------------------------------------------------------------------
--- 1. Tabla empleado (hoy no existe: el operario viene embebido en produccion)
+-- 1. [BORRADOR] Tabla empleado (hoy no existe: el operario viene embebido en produccion)
 --    Equivalente GP2 de public."Empleados" (Legajo, Activo='SI').
 --    Desbloquea: maestro, tiempos, informes, disruptivas, premios.
 -- ----------------------------------------------------------------------------
@@ -38,7 +43,7 @@ comment on table "GP2".empleado is
 
 
 -- ----------------------------------------------------------------------------
--- 2. Persistencia de Verificacion: ruta_confirmada / ruta_problema
+-- 2. [BORRADOR] Persistencia de Verificacion: ruta_confirmada / ruta_problema
 --    Equivalentes GP2 de public."Rutas_Confirmadas" y "Rutas_Problemas".
 --    En GP2 la ruta ya vive en ruta/ruta_paso, asi que NO copiamos ruta_json:
 --    referenciamos ruta.id y conservamos la firma para deduplicar re-trazados.
@@ -75,68 +80,39 @@ create index if not exists ruta_problema_estado_idx on "GP2".ruta_problema (esta
 
 
 -- ----------------------------------------------------------------------------
--- 3. crear_entrega_tallerista — la puerta que falta
---    Existe crear_envio_tallerista pero no su inversa: la entrega del
---    tallerista (Recepcion Cervantes/Virgilio), el flujo mas usado del sistema.
---    BORRADOR espejado en crear_envio_tallerista; CHEQUEAR contra su cuerpo
---    real (convenciones de tipo_mov, ubicaciones y unidades) antes de aplicar.
--- ----------------------------------------------------------------------------
-create or replace function "GP2".crear_entrega_tallerista(
-  p_tallerista_id bigint,
-  p_comp_id       bigint,
-  p_cantidad      numeric,
-  p_unidad        text,
-  p_fecha         timestamptz
-) returns jsonb
-language plpgsql
-security definer
-set search_path = "GP2"
-as $$
-declare
-  v_ubic_tall  bigint;
-  v_ubic_dest  bigint;
-  v_mov_id     bigint;
-begin
-  -- ubicacion del tallerista (origen de la entrega)
-  select id into v_ubic_tall
-  from ubicacion where tipo = 'tallerista' and ref = p_tallerista_id;
-  if v_ubic_tall is null then
-    return jsonb_build_object('ok', false, 'error', 'tallerista sin ubicacion');
-  end if;
-
-  -- destino: la ubicacion-sector del sector del componente
-  select u.id into v_ubic_dest
-  from componente c join ubicacion u on u.tipo = 'sector' and u.ref = c.sector_id
-  where c.id = p_comp_id;
-  -- CHEQUEAR: nombre real de la col sector en componente (sector_id vs s).
-  if v_ubic_dest is null then
-    return jsonb_build_object('ok', false, 'error', 'componente sin sector/ubicacion');
-  end if;
-
-  insert into movimiento
-    (fecha, tipo_mov, comp_id, ubic_origen_id, ubic_destino_id, cantidad, unidad_origen, unidad_destino)
-  values
-    (coalesce(p_fecha, now()), 'entrega_tallerista', p_comp_id, v_ubic_tall, v_ubic_dest,
-     p_cantidad, coalesce(p_unidad,'uni'), coalesce(p_unidad,'uni'))
-  returning id into v_mov_id;
-  -- Los triggers fn_movimiento_calc / fn_movimiento_aplicar actualizan inventario.
-  -- CHEQUEAR: el valor exacto de tipo_mov que esos triggers esperan.
-
-  -- GRJ: si el componente tiene sub-BOM (componente_bom), el descuento de sus
-  -- componentes deberia salir de ahi. CHEQUEAR si los triggers ya lo hacen o si
-  -- hay que explotar el BOM aca (un movimiento por componente hijo).
-
-  return jsonb_build_object('ok', true, 'movimiento_id', v_mov_id);
-end $$;
-
--- NOTA espejo a la casa vieja: existe fn_espejo_entrega_tallerista (trigger).
--- CHEQUEAR sobre que tabla esta colgado y si esta entrega lo dispara, para que
--- Entregas Tallerista Virgilio (public) siga viendo lo que entra por GP2
--- mientras convivan las dos casas.
-
+-- 3. crear_entrega_tallerista  ✅ APLICADA Y PROBADA EN LA BASE (2026-08-28)
+--    Ya no es borrador: existe en GP2. Se deja el resumen como referencia.
+--
+--    Firma:
+--      crear_entrega_tallerista(p_tallerista_id bigint, p_comp_id bigint,
+--                               p_cantidad numeric, p_unidad text default 'uni',
+--                               p_fecha timestamptz default now(),
+--                               p_descontar_bom boolean default true) -> jsonb
+--
+--    Reglas (verificadas contra datos reales):
+--    * Destino = ubicacion del sector del componente. Los 84 articulos terminados
+--      (sector 12) NO tienen ubicacion de sector: van a la ubicacion tipo
+--      'virgilio' (id 33). Ese cuarto tipo de ubicacion no estaba documentado.
+--    * ARMADO (el componente tiene hijos en componente_bom, ej. GRJ10): el armado
+--      NACE en la entrega -> el movimiento va SIN origen y solo se descuentan las
+--      partes de la ubicacion del tallerista, con tipo_mov 'consumo_armado'.
+--      Descontar el armado ademas de sus partes contaba doble (bug corregido).
+--    * PARTE SIN BOM: sale de la ubicacion del tallerista hacia el sector, normal.
+--
+--    Prueba ejecutada y revertida (GRJ10 de Carlos Aguirre, 100 uni):
+--      GRJ10 -> Sector Garage +100 | LL7B -100 | E4 -300 (x3 OK) | E5 -100 | LLF8 -100
+--      GRJ10 en el tallerista quedo en 0 (no se descuenta dos veces).
+--      LL7B suelto (40 uni) -> Sector Crudo +40, tallerista -40.
+--    Al borrar los movimientos el inventario volvio exactamente a cero: los
+--    triggers revierten bien en DELETE.
+--
+--    FALTA para cerrar el circuito de talleristas:
+--      * Devolucion (lo que el tallerista devuelve sin procesar).
+--      * Prov. Art. Terminado (envios/entregas/control).
+--      * UI: ninguna pantalla llama todavia a esta funcion.
 
 -- ----------------------------------------------------------------------------
--- 4. Limpieza
+-- 4. [BORRADOR] Limpieza
 -- ----------------------------------------------------------------------------
 -- 4a. Backups de migracion fuera del schema productivo:
 -- drop table "GP2"._bak_ruta_paso_transitos;
@@ -150,7 +126,36 @@ end $$;
 
 
 -- ----------------------------------------------------------------------------
--- 5. Consultas de verificacion (correr ANTES de aplicar 3 y despues de todo)
+-- 5. Nombres REALES del schema (verificados 2026-08-28) — ojo, no coinciden
+--    con los nombres cortos que devuelven los bundles.
+-- ----------------------------------------------------------------------------
+--  componente     : id, codigo, descripcion, sector_id, unidad_medida, kg_x_uni, uni_x_cajon
+--  ubicacion      : id, tipo, ref_id, nombre, meses_minimo
+--                   tipo ∈ sector | tallerista | proveedor_servicio | virgilio
+--  inventario     : id, componente_id, ubicacion_id, cantidad, minimo, actualizado_en
+--  movimiento     : id, fecha, tipo_mov, comp_id, ubic_origen_id, ubic_destino_id,
+--                   cantidad, comp_transformado_id, cantidad_transformada,
+--                   unidad_origen, unidad_destino, _delta_orig, _delta_dest
+--  componente_bom : id, componente_padre_id, componente_hijo_id, cantidad
+--  tallerista     : id, cod_prov, nombre, clase
+--
+--  tipo_mov en uso: compra, envio_ps, envio_tallerista, fabricacion,
+--                   entrega_tallerista y consumo_armado (nuevos).
+--                   crear_entrega_ps escribe 'entrega_ps' (aun sin datos).
+--
+--  ⚠ INCONSISTENCIA A VIGILAR: crear_envio_ps, crear_entrega_ps y
+--    crear_envio_tallerista buscan la ubicacion del sector por NOMBRE
+--    (where tipo='sector' and nombre=<sector.nombre>), mientras que
+--    crear_recepcion_insumo y crear_entrega_tallerista la buscan por
+--    ref_id (where tipo='sector' and ref_id=<sector.id>). Hoy dan igual
+--    porque ref_id = sector.id y nombre = sector.nombre en las 11 filas,
+--    pero renombrar un sector rompe las tres primeras. Unificar por ref_id.
+--
+--  uni_x_cajon SI existe en componente (228 componentes lo tienen cargado):
+--    la columna Cajon es reproducible, no hace falta inventarla.
+
+-- ----------------------------------------------------------------------------
+-- 6. Consultas de verificacion
 -- ----------------------------------------------------------------------------
 -- Cuerpos de las funciones clave:
 -- select proname, pg_get_functiondef(p.oid)

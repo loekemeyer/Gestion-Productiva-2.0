@@ -140,15 +140,51 @@ Se llama 2 veces: sin args al init (usa `matrices` + `empleados`) y con
 — es el shape de `movimientos_bundle`, el mas completo. Los tres bundles viejos que
 difieren (programa, faltantes, despiece) quedan como estan hasta que se los toque.
 
-## Pendiente de verificacion (bloqueado: MCP Supabase requiere aprobacion y la red de
-la sesion no deja llamar a supabase.co directo)
+## Nombres REALES de las tablas (verificado 2026-08-28)
 
-1. `pg_get_functiondef` de los 43 objetos GP2 — confirma cada shape de arriba y
-   revela que hacen `crear_*`/`registrar_*` y los triggers espejo.
-2. `information_schema.columns` de las 22 tablas.
-3. `has_function_privilege('anon', oid, 'EXECUTE')` — que puede tocar la anon key
+Los bundles serializan con nombres cortos; **las tablas usan otros**. Al escribir
+SQL o RPCs nuevas, estos son los buenos:
+
+| Bundle | Tabla / columna real |
+|---|---|
+| `comp[].cod` / `.d` / `.s` / `.um` / `.kg_x_uni` | `componente.codigo` / `.descripcion` / `.sector_id` / `.unidad_medida` / `.kg_x_uni` — **y ademas `uni_x_cajon`**, que ningun bundle expone todavia (228 componentes lo tienen cargado) |
+| `ubic[].tipo` / `.ref` / `.nom` / `.meses` | `ubicacion.tipo` / **`.ref_id`** / `.nombre` / **`.meses_minimo`** |
+| `inv['c:u'].cant` / `.min` | `inventario.cantidad` / **`.minimo`** (+ `componente_id`, `ubicacion_id`, `actualizado_en`) |
+| `tall[].nom` | `tallerista.nombre` (+ `cod_prov`, `clase`) |
+| `bom_comp` | `componente_bom.componente_padre_id` / `.componente_hijo_id` / `.cantidad` |
+
+`movimiento`: `id, fecha, tipo_mov, comp_id, ubic_origen_id, ubic_destino_id,
+cantidad, comp_transformado_id, cantidad_transformada, unidad_origen,
+unidad_destino, _delta_orig, _delta_dest` (los dos ultimos los calcula el trigger
+`fn_movimiento_calc`; no escribirlos a mano).
+
+**`ubicacion.tipo` tiene CUATRO valores, no tres**: `sector`, `tallerista`,
+`proveedor_servicio` y **`virgilio`** (id 33, la distribucion). Los 84 articulos
+terminados (sector 12) no tienen ubicacion de sector: viven en Virgilio.
+
+`tipo_mov` en uso: `compra`, `envio_ps`, `envio_tallerista`, `fabricacion`,
+`entrega_tallerista`, `consumo_armado`. `crear_entrega_ps` escribe `entrega_ps`.
+
+**Como funciona el motor de stock**: al insertar en `movimiento`,
+`fn_movimiento_calc` convierte cantidades a la unidad canonica del componente con
+`to_canonical` y guarda `_delta_orig`/`_delta_dest`; despues
+`fn_movimiento_aplicar` llama a `inv_delta` restando en el origen y sumando en el
+destino (`coalesce(comp_transformado_id, comp_id)`). Una ubicacion en `null` se
+ignora, asi que una compra (sin origen) solo suma y un consumo (sin destino) solo
+resta. **En DELETE el trigger revierte exactamente** — verificado.
+
+⚠ **Inconsistencia a vigilar**: `crear_envio_ps`, `crear_entrega_ps` y
+`crear_envio_tallerista` buscan la ubicacion de un sector **por nombre**;
+`crear_recepcion_insumo` y `crear_entrega_tallerista` la buscan **por `ref_id`**.
+Hoy coinciden en las 11 filas, pero renombrar un sector rompe las tres primeras.
+
+## Pendiente de verificacion
+
+1. `has_function_privilege('anon', oid, 'EXECUTE')` — que puede tocar la anon key
    (critico: GP2 concentra todo el stock en `inventario`/`movimiento`).
-4. Llamar 1 vez cada bundle de solo lectura y guardar `r.data` como fixture
-   (confirma number vs string en ids). NO ejecutar `crear_*`/`registrar_*`.
+2. Cuerpo de los bundles de lectura, para confirmar los shapes de arriba contra
+   el SQL (hoy estan inferidos del JS que los consume).
+3. `fn_espejo_produccion` / `fn_espejo_entrega_tallerista`: sobre que tablas
+   estan colgados y en que direccion espejan.
 
 Las queries exactas estan al final de `SQL_GP2_PENDIENTES.sql`.
