@@ -1,8 +1,8 @@
 <!doctype html>
 <html lang="es">
 <head>
-<!-- v3.0.0 — remito multi-item: paso 1 todos los items, "Terminé de pasar remito", paso 2 pesaje de todo; modulo Control integrado aca -->
-<script src="../auth-guard.js?v=3.0.0"></script>
+<!-- v3.1.0 — pesaje obligatorio (sin "Pesar después"): la carga no se termina hasta controlar. v3.0.0: remito multi-item: paso 1 todos los items, "Terminé de pasar remito", paso 2 pesaje de todo; modulo Control integrado aca -->
+<script src="../auth-guard.js?v=3.1.0"></script>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>Recepción de Insumos · GP2</title>
@@ -202,7 +202,6 @@
     <div class="actions">
       <button class="btn-secondary" id="kgCancel">Cancelar</button>
       <button class="btn-primary" id="kgConfirm">Confirmar</button>
-      <button class="btn-secondary hidden" id="kgDespues">Pesar después</button>
       <button class="btn-primary hidden" id="kgPesajeOk">✓ Guardar pesaje</button>
     </div>
     <div id="kgMsg" class="status" style="font-size:16px"></div>
@@ -374,7 +373,6 @@ function resetPiePopup(){
   $('pesajeWrap').innerHTML='';
   $('kgConfirm').classList.remove('hidden'); $('kgConfirm').disabled=false;
   $('kgCancel').classList.remove('hidden');
-  $('kgDespues').classList.add('hidden');
   $('kgPesajeOk').classList.add('hidden');
 }
 
@@ -462,7 +460,6 @@ function montarPesaje(items){
   $('cargaWrap').classList.add('hidden');
   $('kgConfirm').classList.add('hidden');
   $('kgCancel').classList.add('hidden');
-  $('kgDespues').classList.remove('hidden');
   $('kgPesajeOk').classList.remove('hidden');
   $('kgMsg').className='status';
   $('kgMsg').innerHTML='Por cada pallet: el peso de balanza y las líneas de rollos. Recién ahí la recepción queda completa.';
@@ -540,17 +537,10 @@ $('pesajeWrap').addEventListener('click', function(e){
   }
 });
 
-/* Dejar pendiente: las recepciones quedan SIN terminar y reaparecen en la
-   barra de arriba para pesarlas cuando se pueda. */
-$('kgDespues').addEventListener('click', async function(){
-  cerrarPopup();
-  REMITO=[];
-  var m=$('statusMsg');
-  m.className='status bad';
-  m.textContent='⚠ Quedó pendiente el pesaje: la recepción NO está terminada. Los ítems quedan arriba para pesarlos cuando quieras.';
-  setTimeout(function(){ m.textContent=''; m.className='status'; }, 9000);
-  await cargar();
-});
+/* "Pesar después" se eliminó (regla usuario 2026-08-29): la carga y el control
+   son UN solo proceso — la recepción no se termina hasta pesar. Si la pantalla
+   se cierra a mitad de camino, la recepción reaparece en la barra de arriba
+   como "sin pesar" y hay que terminarla. */
 
 /* Guardar pesaje de TODO el remito: cierra la recepción. Alerta si algún
    sobrante se va de 4–8, pero deja guardar igual (queda marcado). */
@@ -604,7 +594,7 @@ $('kgPesajeOk').addEventListener('click', async function(){
 });
 
 // En el paso 2 el click en el fondo NO cierra: la recepción quedaría a medias
-// sin que el usuario lo note. Ahí se sale solo con "Pesar después" o guardando.
+// sin que el usuario lo note. Del pesaje se sale únicamente guardando.
 $('kgPopup').addEventListener('click',e=>{ if(e.target===$('kgPopup') && !PES) cerrarPopup(); });
 $('kgConfirm').addEventListener('click',guardar);
 
@@ -623,7 +613,13 @@ async function guardar(){
     var pide = !!PROVFLAGS[provSel];
     var rll = pide ? (parseInt(($('kgRollos').value||'').replace(/\D/g,''),10)||null) : null;
     var pll = pide ? (parseInt(($('kgPallets').value||'').replace(/\D/g,''),10)||null) : null;
-    if(pide && (!rll||!pll) && !confirm('Este proveedor informa rollos, pero no cargaste '+(!rll?'rollos':'')+((!rll&&!pll)?' ni ':'')+(!pll?'pallets':'')+'.\nSe puede completar despues, pero el control no va a poder cerrar.\n\n¿Guardar igual?')) { $('kgConfirm').disabled=false; return; }
+    // Regla: la carga y el control son un solo proceso. Sin rollos y pallets
+    // el pesaje no puede cerrar, asi que aca son obligatorios.
+    if(pide && (!rll||!pll)){
+      m.className='status bad';
+      m.textContent='Este proveedor informa rollos: cargá '+(!rll?'rollos':'')+((!rll&&!pll)?' y ':'')+(!pll?'pallets':'')+' del remito. Sin eso el control no cierra.';
+      $('kgConfirm').disabled=false; return;
+    }
     var res=await SB.rpc('cargar_recepcion',{
       p_comp_id:itemSel.comp_id, p_proveedor:provSel||null,
       p_cantidad:cant, p_unidad:uReal, p_remito:$('txtRemito').value||null,
