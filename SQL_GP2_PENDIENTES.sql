@@ -5,7 +5,9 @@
 --
 -- ESTADO (2026-08-28, actualizado):
 --   §1 empleado             -> ✅ EXISTE (66 empleados migrados en sesion Rollos)
---   §2 ruta_confirmada/..   -> BORRADOR, pendiente (Verificacion modulo no portado a GP2 aun)
+--   §2 ruta_confirmada/..   -> ✅ APLICADA (2026-08-28): tablas ruta_confirmada/ruta_problema +
+--                             RPCs ruta_confirmar/ruta_reportar/ruta_resolver + verificacion_bundle
+--                             extendido. Verificacion_GP2.html portado a 4 tabs.
 --   §3 crear_entrega_tallerista -> ✅ APLICADA + FIX p_comp_entrada_id para transformaciones
 --   §3b crear_envio_ps/crear_entrega_ps -> ✅ FIX: lookup ubicacion por ref_id (no nombre)
 --   §4 limpieza             -> PARCIAL: fleje_detalle_upsert 6-arg dropeada ✅
@@ -45,7 +47,7 @@ comment on table "GP2".empleado is
 
 
 -- ----------------------------------------------------------------------------
--- 2. [BORRADOR] Persistencia de Verificacion: ruta_confirmada / ruta_problema
+-- 2. ✅ APLICADO (2026-08-28) Persistencia de Verificacion: ruta_confirmada / ruta_problema
 --    Equivalentes GP2 de public."Rutas_Confirmadas" y "Rutas_Problemas".
 --    En GP2 la ruta ya vive en ruta/ruta_paso, asi que NO copiamos ruta_json:
 --    referenciamos ruta.id y conservamos la firma para deduplicar re-trazados.
