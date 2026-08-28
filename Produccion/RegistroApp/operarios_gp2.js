@@ -10,7 +10,7 @@
 const SUPABASE_URL = "https://hrxfctzncixxqmpfhskv.supabase.co";
 const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhyeGZjdHpuY2l4eHFtcGZoc2t2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI3MjQyNjEsImV4cCI6MjA4ODMwMDI2MX0.4L6wguch8UZGhC2VpzrWcCjJGUV-IkYsl9JoCWrOLUs";
 const LEGAJO_EDUARDO = "19";
-const APP_VERSION = "1.2.0"; // bumpear en cada actualizacion (junto con el ?v= del HTML)
+const APP_VERSION = "1.3.0"; // bumpear en cada actualizacion (junto con el ?v= del HTML)
 
 const SB = supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
   db: { schema: "GP2" },
@@ -457,7 +457,9 @@ function renderPiezaPicker(n) {
   if (!wrap || !grid) return;
   const salidas = (selected && ["E", "CM"].includes(selected.code)) ? salidasDeMatriz(n) : [];
   if (salidas.length < 2) {
-    piezaSel = null; wrap.classList.add("hidden"); grid.innerHTML = ""; return;
+    piezaSel = null; wrap.classList.add("hidden"); grid.innerHTML = "";
+    $("btnEnviar").disabled = false;
+    return;
   }
   if (piezaSel && !salidas.some(x => x.comp_id === piezaSel.comp_id)) piezaSel = null;
   wrap.classList.remove("hidden");
@@ -469,6 +471,8 @@ function renderPiezaPicker(n) {
     el.addEventListener("click", () => { piezaSel = sa; $("error").innerText = ""; renderPiezaPicker(n); });
     grid.appendChild(el);
   });
+  // Sin pieza elegida no se puede Enviar (el stock no sabria a que componente ir)
+  $("btnEnviar").disabled = !piezaSel;
 }
 
 /* ============================================================
@@ -489,11 +493,16 @@ function renderOptions() {
   });
 }
 
+function mostrarBotones(mostrar) {
+  [1, 2, 3, 4].forEach(r => $(`row${r}`).classList.toggle("hidden", !mostrar));
+}
+
 function selectOption(opt) {
   selected = opt;
   document.querySelectorAll(".box.selected").forEach(x => x.classList.remove("selected"));
   const box = document.querySelector(`.box[data-code="${opt.code}"]`);
   if (box) box.classList.add("selected");
+  mostrarBotones(false); // se vuelven a ver con la flecha ← de la seleccion
 
   $("selectedBox").innerText = opt.code;
   $("selectedDesc").innerText = opt.desc;
@@ -575,9 +584,11 @@ function actualizarRolloPicker(n_matriz) {
 
 function resetSelection() {
   const s = readState(legajoKey());
-  if (s?.lastDowntime) return;
+  if (s?.lastDowntime && selected) return; // downtime abierto: hay que enviar el mismo, no se sale
   selected = null;
+  mostrarBotones(true);
   $("selectedArea").classList.add("hidden");
+  $("btnEnviar").disabled = false;
   $("error").innerText = "";
   $("matrizInfo").classList.add("hidden");
   $("matrizPicker").classList.add("hidden");
