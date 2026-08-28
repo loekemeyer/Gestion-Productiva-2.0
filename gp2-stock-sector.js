@@ -59,9 +59,29 @@ async function cargar(){
   var r = await SB.rpc("stock_sector_bundle", { p_sector_id: CFG.sector_id });
   if (r.error){ $("status").textContent = "Error: " + r.error.message; return; }
   D = r.data || { filas: [] };
+  avisarFactores();
   render();
   $("status").textContent = (D.filas||[]).length + " componentes en " +
     ((D.sector&&D.sector.nombre)||"el sector") + ".";
+}
+
+/* Si el sector no tiene cargados kg_x_uni / uni_x_cajon, las columnas Kg y Caj
+   van a salir en "—". Se avisa en vez de dejar al usuario adivinando por qué. */
+function avisarFactores(){
+  var el = $("avisoFactores");
+  if (!el) return;
+  var filas = D.filas || [];
+  if (!filas.length){ el.classList.add("hidden"); return; }
+  var sinKg  = filas.filter(function(x){ return !x.kg_x_uni; }).length;
+  var sinCaj = filas.filter(function(x){ return !x.uni_x_cajon; }).length;
+  if (!sinKg && !sinCaj){ el.classList.add("hidden"); return; }
+  var faltan = [];
+  if (sinKg)  faltan.push("<b>"+sinKg+"</b> sin <code>kg_x_uni</code>");
+  if (sinCaj) faltan.push("<b>"+sinCaj+"</b> sin <code>uni_x_cajon</code>");
+  el.innerHTML = "⚠ De " + filas.length + " componentes, " + faltan.join(" y ") +
+    ". Las columnas <b>Kg</b> y <b>Caj</b> muestran “—” en esas filas: el stock en " +
+    "<b>Uni</b> es correcto igual, solo falta cargar los factores de conversión.";
+  el.classList.remove("hidden");
 }
 
 /* ---------- filtros ---------- */

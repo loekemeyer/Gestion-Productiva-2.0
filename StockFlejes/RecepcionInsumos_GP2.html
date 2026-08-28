@@ -44,6 +44,8 @@
   .item-btn .code{display:block;font-size:24px;font-weight:800;color:#0066cc}
   .item-btn .desc{display:block;font-size:19px;color:#111;margin-top:8px;font-weight:700;line-height:1.2;white-space:normal;overflow-wrap:anywhere;word-break:break-word}
   .item-btn .sect{display:block;font-size:15px;color:#888;margin-top:8px;font-weight:700}
+  .item-btn .ultima{display:block;font-size:15px;color:#0a7a2f;margin-top:8px;font-weight:800;line-height:1.25}
+  .item-btn .ultima.sin{color:#b0b0b0;font-weight:700;font-style:italic}
 
   .successBox{display:none;margin:12px 0;border:2px solid #c7e8d1;background:#f3fbf6;border-radius:12px;padding:16px;text-align:center}
   .successBox .title{font-weight:900;font-size:23px;margin-bottom:4px;color:#0a7a2f}
@@ -92,7 +94,7 @@
     <div class="hbtns">
       <button id="btnCtl" style="background:#f0c040">⚖ Control</button>
       <a href="../Stocks General/StockGeneral_GP2.html">Ver stock</a>
-      <a href="../Inicio/index.html">Atrás</a>
+      <a href="../GP2_MODULOS.html">Atrás</a>
     </div>
   </div>
 
@@ -265,15 +267,36 @@ $('btnVolver1').addEventListener('click',()=>{
   $('step2').classList.add('hidden');
   $('step1').classList.remove('hidden');
 });
+/* Resumen de la ultima carga del insumo: "2 pallets · 630 kg · 12 rollos".
+   Va en el boton en lugar del sector, que no aporta nada estando la grilla ya
+   filtrada por rubro. Solo se arman las partes que el proveedor informa. */
+function resumenUltima(u){
+  if(!u) return '';
+  var p=[];
+  if(Number(u.pallets)>0) p.push(fmt(u.pallets)+' pallet'+(Number(u.pallets)===1?'':'s'));
+  if(Number(u.cantidad)>0) p.push(fmt(u.cantidad)+' '+esc(u.unidad||''));
+  if(Number(u.rollos)>0)  p.push(fmt(u.rollos)+' rollo'+(Number(u.rollos)===1?'':'s'));
+  if(!p.length) return '';
+  return p.join(' · ');
+}
+function fechaCorta(f){
+  if(!f) return '';
+  try{ return new Date(f).toLocaleDateString('es-AR',{day:'2-digit',month:'2-digit'}); }
+  catch(e){ return ''; }
+}
+
 function pintarItems(list){
   var g=$('itemsGrid'); g.innerHTML='';
   $('itemsEmpty').classList.toggle('hidden', list.length>0);
   list.forEach(i=>{
     var med = i.medida ? ('<span class="sect" style="color:#0b3b73;font-size:17px">'+esc(i.medida)+' mm</span>') : '';
+    var res = resumenUltima(i.ultima);
+    var ult = res
+      ? '<span class="ultima">últ. '+esc(fechaCorta(i.ultima.fecha))+': '+res+'</span>'
+      : '<span class="ultima sin">sin cargas</span>';
     var b=document.createElement('button'); b.className='item-btn';
     b.innerHTML='<span class="code">'+esc(i.codigo)+'</span>'+
-      '<span class="desc">'+esc(i.descripcion||'')+'</span>'+ med +
-      '<span class="sect">'+esc(i.sector||'')+'</span>';
+      '<span class="desc">'+esc(i.descripcion||'')+'</span>'+ med + ult;
     b.addEventListener('click',()=>abrirPopup(i));
     g.appendChild(b);
   });
@@ -347,7 +370,14 @@ async function guardar(){
     var sb=$('successBox'); sb.style.display='block';
     var detUni= (uReal==='kg'&&kx&&unitSel==='uni') ? (fmt(cantRaw)+' uni = <b>'+fmt(cant)+' kg</b>') : '<b>'+fmt(cant)+' '+esc(uReal)+'</b>';
     $('successDetail').innerHTML=esc(itemSel.codigo)+' — '+esc(itemSel.descripcion||'')+' · '+detUni+(provSel?(' ('+esc(provSel)+')'):'')+'. Stock actualizado. Mov '+(res.data&&res.data.movimiento_id)+'.';
+    // Actualizar en el acto la última carga del insumo, así el botón la muestra
+    // sin tener que recargar la pantalla.
+    itemSel.ultima = { fecha:(fiso||new Date().toISOString()), cantidad:cant, unidad:uReal,
+                       rollos:rll, pallets:pll, remito:$('txtRemito').value||null, proveedor:provSel||null };
+    var ref = INS.filter(function(x){ return x.comp_id===itemSel.comp_id; })[0];
+    if (ref) ref.ultima = itemSel.ultima;
     cerrarPopup();
+    filtrarItems();
     setTimeout(()=>{sb.style.display='none';},6000);
   }catch(e){ m.className='status bad'; m.textContent='Error: '+(e.message||e); }
   finally{ $('kgConfirm').disabled=false; }
