@@ -12,7 +12,6 @@
 <style>
   .bom{font-size:13px;color:#9a6700;margin-top:3px}
   .bom b{color:#7a5200}
-  .sel-ent{font-size:14px;padding:5px 6px;border:2px solid #d0d7de;border-radius:6px;max-width:230px;margin-top:4px}
   .via{font-size:13px;color:#555;margin-top:3px}
 </style>
 </head>
@@ -224,35 +223,31 @@ function render(){
     var vCaj=hayT?(totCaj||""):it.caj;
     var vUni=hayT?(totUni||""):it.uni;
 
-    // Qué consume: 0 = in-place, 1 = fijo, >1 = lo elige el usuario
+    /* Qué consume: no se pregunta, se deduce.
+       - sin entradas  -> paso in-place, devuelve lo mismo que recibe
+       - con BOM       -> consume TODAS sus partes (por eso ruta_paso lista varias)
+       - una sola      -> transformación directa */
     var consumeHtml;
-    if (!x.entradas.length){
+    if (x.bom.length){
+      consumeHtml = x.bom.map(function(b){
+        var c = GP2M.comp(b.c);
+        return '<span class="cod">'+esc(c.cod)+'</span>×'+fmt(b.q,2);
+      }).join(" · ");
+    } else if (!x.entradas.length){
       consumeHtml = '<span class="via">— (devuelve lo mismo que recibe)</span>';
-    } else if (x.entradas.length === 1){
+    } else {
       var ce = GP2M.comp(x.entradas[0]);
       consumeHtml = '<span class="cod">'+esc(ce.cod)+'</span><br><small class="sub">'+esc(ce.d||"")+'</small>';
-    } else {
-      consumeHtml = '<select class="sel-ent" data-f="ent"><option value="">— ¿qué consumió? —</option>'+
-        x.entradas.map(function(id){
-          var c=GP2M.comp(id);
-          return '<option value="'+id+'"'+(String(it.ent)===String(id)?" selected":"")+'>'+
-                 esc(c.cod)+' — '+esc((c.d||"").substring(0,32))+'</option>';
-        }).join("")+'</select>';
     }
 
     // stock del tallerista, leido del inventario del motor
     var enTall = GP2M.stock(x.comp_id, ubicT);
 
-    var bomTxt = x.bom.length
-      ? '<div class="bom">Descuenta: '+x.bom.map(function(b){
-          return '<b>'+esc(GP2M.comp(b.c).cod)+'</b>×'+fmt(b.q,2); }).join(" · ")+'</div>'
-      : "";
-
     var tr=document.createElement("tr");
     tr.dataset.cid=x.comp_id;
     tr.innerHTML=
       '<td>'+esc(x.sector||"—")+'</td>'+
-      '<td><span class="cod">'+esc(x.cod)+'</span><br><small class="sub">'+esc(x.desc||"")+'</small>'+bomTxt+'</td>'+
+      '<td><span class="cod">'+esc(x.cod)+'</span><br><small class="sub">'+esc(x.desc||"")+'</small></td>'+
       '<td>'+consumeHtml+'</td>'+
       '<td class="num">'+fmt(enTall,0)+'</td>'+
       '<td class="num sep"><input class="cell-in'+(hayT?" ro":"")+'" data-f="caj" inputmode="numeric" value="'+esc(vCaj)+'"'+(hayT?" readonly":"")+'></td>'+
@@ -286,18 +281,11 @@ function actualizarEnviar(){
 }
 
 $("tbody").addEventListener("input", function(e){
-  var inp=e.target.closest("input.cell-in, select.sel-ent");
+  var inp=e.target.closest("input.cell-in");
   if(!inp||inp.readOnly) return;
   var d=itemDeFila(inp.closest("tr"));
   d.buf[inp.dataset.f]=inp.value;
   saveBuf(); actualizarEnviar();
-});
-$("tbody").addEventListener("change", function(e){
-  var sel=e.target.closest("select.sel-ent");
-  if(!sel) return;
-  var d=itemDeFila(sel.closest("tr"));
-  d.buf.ent=sel.value;
-  saveBuf();
 });
 
 $("tbody").addEventListener("click", function(e){
@@ -340,16 +328,6 @@ $("btnEnviar").addEventListener("click", async function(){
   var arr=partesDe(selT.id), metaPor={};
   arr.forEach(function(x){ metaPor[x.comp_id]=x; });
 
-  // el motor necesita saber qué consumió cuando hay más de una entrada posible
-  var sinElegir=items.filter(function(o){
-    var m=metaPor[o.cid]||{entradas:[]};
-    return m.entradas.length>1 && !o.it.ent;
-  }).map(function(o){ return (metaPor[o.cid]||{}).cod||o.cid; });
-  if(sinElegir.length){
-    alert("Elegí qué consumió el tallerista para: "+sinElegir.join(", "));
-    return;
-  }
-
   var fecha=$("fFecha").value||hoyISO();
 
   // armar TODAS las filas con el motor antes de escribir nada
@@ -361,10 +339,15 @@ $("btnEnviar").addEventListener("click", async function(){
         tall: selT.id,
         comp_id: Number(o.cid),
         cantidad: num(o.it.uni),
-        fecha: fecha,
-        comp_entrada_id: o.it.ent || null
+        fecha: fecha
       });
-      if(r.elegir){ throw new Error((m.cod||o.cid)+": falta elegir qué consumió"); }
+      // solo pasa si el componente tiene varias entradas Y no tiene BOM:
+      // ahi no hay de donde deducirlo y hay que cargar el BOM en la base.
+      if(r.elegir){
+        throw new Error((m.cod||o.cid)+": tiene "+r.elegir.length+
+          " entradas posibles y no tiene BOM cargado, así que no se puede deducir "+
+          "qué consume. Cargá el BOM del componente.");
+      }
       rows = rows.concat(r.rows);
       resumen.push((m.cod||o.cid)+": "+fmt(num(o.it.uni),0)+" uni");
     });

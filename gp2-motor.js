@@ -128,6 +128,27 @@ function entradasPosibles(t, cid){
 /* Lo que se le descuenta al tallerista al recibir cid (sin la entrada principal) */
 function bomDe(cid){ return (D.bom_comp && D.bom_comp[String(cid)]) || []; }
 
+/* La entrada principal del movimiento, deducida — NO se le pregunta al usuario.
+   Cuando un armado tiene varias "entradas posibles" en ruta_paso, esas no son
+   alternativas: son TODAS las partes del armado, y el tallerista las consume a
+   todas. El BOM ya dice cuales y en que cantidad, asi que alcanza con elegir
+   una como principal (el resto sale por la cascada consumo_tall) y el neto es
+   el mismo cualquiera sea la elegida. Se elige la de menor id para que el
+   resultado sea estable entre corridas.
+   Devuelve null si de verdad no se puede deducir (varias entradas y sin BOM). */
+function entradaPrincipal(t, cid){
+  var ces = entradasPosibles(t, cid);
+  if (!ces.length) return null;            // in-place: devuelve lo mismo que recibe
+  if (ces.length === 1) return ces[0];
+  var bom = bomDe(cid);
+  if (!bom.length) return null;            // ambiguo de verdad
+  var enBom = ces.filter(function(id){
+    return bom.some(function(b){ return b.c === id; });
+  });
+  var cand = enBom.length ? enBom : ces;
+  return cand.slice().sort(function(a,b){ return a - b; })[0];
+}
+
 function talleristas(incFabrica){
   return Object.keys(D.tall)
     .filter(function(k){ return incFabrica || parseInt(k) !== TALL_FABRICA; })
@@ -177,13 +198,19 @@ function recepcionTall(o){
   }
   var ce_arr = Object.keys(ce_set).map(Number);
 
-  if (ce_arr.length > 1 && !o.comp_entrada_id){
-    return { elegir: ce_arr };            // la pantalla decide como preguntarlo
-  }
+  /* No se pregunta cual consumio: se deduce. Varias entradas en un armado no
+     son alternativas, son todas sus partes, y el BOM las descuenta igual. */
+  var elegida = null;
   if (o.comp_entrada_id && ce_arr.indexOf(parseInt(o.comp_entrada_id)) >= 0){
-    cid = parseInt(o.comp_entrada_id); comp_transformado = recibido; cant_transformada = qty;
+    elegida = parseInt(o.comp_entrada_id);        // override explicito, si lo pasan
   } else if (ce_arr.length === 1){
-    cid = ce_arr[0]; comp_transformado = recibido; cant_transformada = qty;
+    elegida = ce_arr[0];
+  } else if (ce_arr.length > 1){
+    elegida = entradaPrincipal(t, recibido);
+    if (elegida == null) return { elegir: ce_arr };   // ambiguo de verdad: sin BOM
+  }
+  if (elegida != null){
+    cid = elegida; comp_transformado = recibido; cant_transformada = qty;
   }
 
   var ubic_o = ubicTall(t);
@@ -260,6 +287,7 @@ global.GP2M = {
   compsFor: compsFor,
   compsRecepcionTall: compsRecepcionTall,
   entradasPosibles: entradasPosibles,
+  entradaPrincipal: entradaPrincipal,
   bomDe: bomDe,
   talleristas: talleristas,
   recepcionTall: recepcionTall,
