@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>Entrega de Tallerista · GP2</title>
+<title>Recepción de Tallerista · GP2</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link rel="stylesheet" href="../../gp2-modulo.css"/>
 <link rel="stylesheet" href="../../tandas-popup.css"/>
@@ -12,13 +12,15 @@
 <style>
   .bom{font-size:13px;color:#9a6700;margin-top:3px}
   .bom b{color:#7a5200}
+  .sel-ent{font-size:14px;padding:5px 6px;border:2px solid #d0d7de;border-radius:6px;max-width:230px;margin-top:4px}
+  .via{font-size:13px;color:#555;margin-top:3px}
 </style>
 </head>
 <body>
 
 <div class="card">
   <div class="header">
-    <h1>Entrega de Tallerista</h1>
+    <h1>Recepción de Tallerista</h1>
     <div class="hbtns">
       <button class="hlink hidden" id="btnVolver" type="button">← Cambiar tallerista</button>
       <a href="../Control%20Tall/ControlTalleristas_GP2.html">Control</a>
@@ -33,10 +35,15 @@
     <div id="fase0">
       <div class="row"><label class="lbl">Tallerista</label></div>
       <div class="provs-grid" id="tallGrid"></div>
+      <div class="aviso">
+        Acá entra lo que el tallerista devuelve <b>a un sector</b> (sub-conjuntos y
+        semi-elaborados). Los <b>artículos terminados</b> no van por esta pantalla: esos
+        entran por <b>Recepción Virgilio</b>, que es la que los manda al centro logístico.
+      </div>
       <div id="status" class="status">Cargando…</div>
     </div>
 
-    <!-- FASE 1 — cargar lo que entrega -->
+    <!-- FASE 1 — cargar lo que devolvió -->
     <div id="fase1" class="hidden">
       <div class="row" style="justify-content:space-between">
         <div class="row" style="margin:0"><label class="lbl" id="fase1Title">Tallerista</label></div>
@@ -48,31 +55,31 @@
         </div>
       </div>
 
-      <div class="search-box"><input type="text" id="q" placeholder="Buscar artículo por código, descripción o sector…"></div>
+      <div class="search-box"><input type="text" id="q" placeholder="Buscar por código, descripción o sector…"></div>
 
       <div class="table-wrap">
         <table class="t">
           <thead><tr>
             <th>Sec</th>
-            <th>Descripción</th>
+            <th>Devuelve</th>
+            <th>Consume</th>
             <th class="num">En poder<br>del tall.</th>
             <th class="num sep">Caj</th>
             <th class="num">Uni</th>
             <th class="ctr" title="Cargar por tandas">T</th>
-            <th class="ctr" title="Marcar faltante">F</th>
           </tr></thead>
           <tbody id="tbody"></tbody>
         </table>
       </div>
-      <div id="tblEmpty" class="empty hidden">Este tallerista no entrega ninguna parte según ruta_paso.</div>
+      <div id="tblEmpty" class="empty hidden"></div>
       <div id="msg1" class="status"></div>
     </div>
 
     <!-- FASE 3 — confirmación -->
     <div id="fase3" class="hidden">
       <div class="successBox">
-        <div class="title">✓ Entrega registrada</div>
-        <div>Tu código de entrega:</div>
+        <div class="title">✓ Recepción registrada</div>
+        <div>Tu código de recepción:</div>
         <div class="code" id="successCode">—</div>
         <div id="successDetail" style="font-size:17px;color:#444"></div>
       </div>
@@ -85,6 +92,7 @@
 </div>
 
 <script src="../../tandas-popup.js"></script>
+<script src="../../gp2-motor.js"></script>
 <script>
 "use strict";
 
@@ -95,9 +103,9 @@ var SB = supabase.createClient(
 );
 
 var $ = function(id){ return document.getElementById(id); };
-var LS_BUF = "gp2_entregaTall_buffer";
+var LS_BUF = "gp2_recepcionTall_buffer";
 
-var D = { tall:[], partes:{}, bom:{} };
+var TALLS = [];
 var selT = null;
 var BUF = {};
 
@@ -118,43 +126,62 @@ function hoyISO(){ var d=new Date(); return new Date(d.getTime()-d.getTimezoneOf
 function loadBuf(){ try{ BUF=JSON.parse(localStorage.getItem(LS_BUF)||"{}")||{}; }catch(e){ BUF={}; } }
 function saveBuf(){ try{ localStorage.setItem(LS_BUF, JSON.stringify(BUF)); }catch(e){} }
 function bufT(){ if(!selT) return {}; if(!BUF[selT.id]) BUF[selT.id]={}; return BUF[selT.id]; }
-function bufItem(cid){ var b=bufT(); if(!b[cid]) b[cid]={caj:"",uni:"",falt:false,tandas:[]}; return b[cid]; }
+function bufItem(cid){ var b=bufT(); if(!b[cid]) b[cid]={caj:"",uni:"",ent:"",tandas:[]}; return b[cid]; }
 
-/* El tallerista entrega lo del lado 'salida' de ruta_paso. */
+/* Las partes que este tallerista devuelve por recepcion de tallerista.
+   El motor ya excluye los TERMINADOS (esos van por Recepcion Virgilio). */
 function partesDe(tid){
-  var o=(D.partes||{})[tid]||{entrada:[],salida:[]};
-  return (o.salida||[]).slice();
+  return GP2M.compsRecepcionTall(tid).map(function(cid){
+    var c = GP2M.comp(cid);
+    return {
+      comp_id: cid,
+      cod: c.cod,
+      desc: c.d,
+      sector: GP2M.sectorNom(c.s),
+      uni_x_cajon: c.uxc || null,
+      entradas: GP2M.entradasPosibles(tid, cid),
+      bom: GP2M.bomDe(cid)
+    };
+  }).sort(function(a,b){ return String(a.cod||"").localeCompare(String(b.cod||"")); });
 }
-function bomDe(cid){ return (D.bom||{})[cid] || []; }
 
 async function cargar(){
-  var r = await SB.rpc("talleristas_bundle");
-  if (r.error){ $("status").textContent="Error: "+r.error.message; return; }
-  D = r.data || { tall:[], partes:{}, bom:{} };
+  try {
+    await GP2M.cargar(SB);
+  } catch(e){
+    $("status").textContent = "Error: " + (e && e.message ? e.message : e);
+    return;
+  }
+  TALLS = GP2M.talleristas(true);
   loadBuf();
   renderTall();
-  $("status").textContent=(D.tall||[]).length+" talleristas.";
+  var conPartes = TALLS.filter(function(t){ return partesDe(t.id).length > 0; }).length;
+  $("status").textContent = conPartes + " de " + TALLS.length +
+    " talleristas devuelven partes a un sector (el resto solo entrega terminados).";
 }
 
 function renderTall(){
   var g=$("tallGrid"); g.innerHTML="";
-  (D.tall||[]).forEach(function(t){
-    var n=partesDe(t.id).length;
+  var algo = false;
+  TALLS.forEach(function(t){
+    var n = partesDe(t.id).length;
+    if (!n) return;                       // sin partes no-terminadas: no aplica acá
+    algo = true;
     var cargado=Object.keys(BUF[t.id]||{}).filter(function(k){
-      var it=BUF[t.id][k]; return num(it.uni)>0||num(it.caj)>0||it.falt; }).length;
+      var it=BUF[t.id][k]; return num(it.uni)>0||num(it.caj)>0; }).length;
     var b=document.createElement("button");
     b.type="button"; b.className="prov-btn";
-    b.innerHTML=esc(t.nombre)+'<span class="meta">'+esc(t.cod_prov||"—")+" · "+n+" entrega"+(n===1?"":"s")+
+    b.innerHTML=esc(t.nombre)+'<span class="meta">'+n+" parte"+(n===1?"":"s")+
       (cargado?(" · "+cargado+" cargadas"):"")+"</span>";
     b.addEventListener("click", function(){ elegir(t); });
     g.appendChild(b);
   });
-  if(!(D.tall||[]).length) g.innerHTML='<div class="empty">Sin talleristas.</div>';
+  if(!algo) g.innerHTML='<div class="empty">Ningún tallerista devuelve partes a un sector. Todo lo que entregan son artículos terminados — usá Recepción Virgilio.</div>';
 }
 
 function elegir(t){
   selT=t;
-  $("fase1Title").textContent=t.nombre+(t.cod_prov?(" · cod "+t.cod_prov):"");
+  $("fase1Title").textContent=t.nombre;
   $("fase0").classList.add("hidden");
   $("fase3").classList.add("hidden");
   $("fase1").classList.remove("hidden");
@@ -177,7 +204,7 @@ function filtradas(){
   var q=String($("q").value||"").trim().toLowerCase();
   if(!q) return arr;
   return arr.filter(function(x){
-    return (String(x.cod||"")+" "+String(x["desc"]||"")+" "+String(x.sector||"")).toLowerCase().indexOf(q)>=0;
+    return (String(x.cod||"")+" "+String(x.desc||"")+" "+String(x.sector||"")).toLowerCase().indexOf(q)>=0;
   });
 }
 
@@ -185,6 +212,9 @@ function render(){
   var arr=filtradas(), tb=$("tbody");
   tb.innerHTML="";
   $("tblEmpty").classList.toggle("hidden", arr.length>0);
+  if(!arr.length) $("tblEmpty").textContent="Sin resultados para ese filtro.";
+
+  var ubicT = GP2M.ubicTall(selT.id);
 
   arr.forEach(function(x){
     var it=bufItem(x.comp_id);
@@ -194,23 +224,40 @@ function render(){
     var vCaj=hayT?(totCaj||""):it.caj;
     var vUni=hayT?(totUni||""):it.uni;
 
-    var bom=bomDe(x.comp_id);
-    var bomTxt = bom.length
-      ? '<div class="bom">Descuenta: '+bom.map(function(b){
-          return '<b>'+esc(b.cod)+'</b>×'+fmt(b.cantidad,2); }).join(" · ")+'</div>'
+    // Qué consume: 0 = in-place, 1 = fijo, >1 = lo elige el usuario
+    var consumeHtml;
+    if (!x.entradas.length){
+      consumeHtml = '<span class="via">— (devuelve lo mismo que recibe)</span>';
+    } else if (x.entradas.length === 1){
+      var ce = GP2M.comp(x.entradas[0]);
+      consumeHtml = '<span class="cod">'+esc(ce.cod)+'</span><br><small class="sub">'+esc(ce.d||"")+'</small>';
+    } else {
+      consumeHtml = '<select class="sel-ent" data-f="ent"><option value="">— ¿qué consumió? —</option>'+
+        x.entradas.map(function(id){
+          var c=GP2M.comp(id);
+          return '<option value="'+id+'"'+(String(it.ent)===String(id)?" selected":"")+'>'+
+                 esc(c.cod)+' — '+esc((c.d||"").substring(0,32))+'</option>';
+        }).join("")+'</select>';
+    }
+
+    // stock del tallerista, leido del inventario del motor
+    var enTall = GP2M.stock(x.comp_id, ubicT);
+
+    var bomTxt = x.bom.length
+      ? '<div class="bom">Descuenta: '+x.bom.map(function(b){
+          return '<b>'+esc(GP2M.comp(b.c).cod)+'</b>×'+fmt(b.q,2); }).join(" · ")+'</div>'
       : "";
 
     var tr=document.createElement("tr");
     tr.dataset.cid=x.comp_id;
-    if(it.falt) tr.className="falt";
     tr.innerHTML=
       '<td>'+esc(x.sector||"—")+'</td>'+
-      '<td><span class="cod">'+esc(x.cod)+'</span><br><small class="sub">'+esc(x["desc"]||"")+'</small>'+bomTxt+'</td>'+
-      '<td class="num">'+fmt(x.online_tall,0)+'</td>'+
+      '<td><span class="cod">'+esc(x.cod)+'</span><br><small class="sub">'+esc(x.desc||"")+'</small>'+bomTxt+'</td>'+
+      '<td>'+consumeHtml+'</td>'+
+      '<td class="num">'+fmt(enTall,0)+'</td>'+
       '<td class="num sep"><input class="cell-in'+(hayT?" ro":"")+'" data-f="caj" inputmode="numeric" value="'+esc(vCaj)+'"'+(hayT?" readonly":"")+'></td>'+
       '<td class="num"><input class="cell-in'+(hayT?" ro":"")+'" data-f="uni" inputmode="numeric" value="'+esc(vUni)+'"'+(hayT?" readonly":"")+'></td>'+
-      '<td class="ctr"><button type="button" class="tanda-btn'+(hayT?" on":"")+'" data-a="tandas">'+(hayT?it.tandas.length:"+")+'</button></td>'+
-      '<td class="ctr"><button type="button" class="falt-box'+(it.falt?" on":"")+'" data-a="falt">'+(it.falt?"F":"")+'</button></td>';
+      '<td class="ctr"><button type="button" class="tanda-btn'+(hayT?" on":"")+'" data-a="tandas">'+(hayT?it.tandas.length:"+")+'</button></td>';
     tb.appendChild(tr);
   });
   actualizarEnviar();
@@ -239,18 +286,24 @@ function actualizarEnviar(){
 }
 
 $("tbody").addEventListener("input", function(e){
-  var inp=e.target.closest("input.cell-in");
+  var inp=e.target.closest("input.cell-in, select.sel-ent");
   if(!inp||inp.readOnly) return;
   var d=itemDeFila(inp.closest("tr"));
   d.buf[inp.dataset.f]=inp.value;
   saveBuf(); actualizarEnviar();
+});
+$("tbody").addEventListener("change", function(e){
+  var sel=e.target.closest("select.sel-ent");
+  if(!sel) return;
+  var d=itemDeFila(sel.closest("tr"));
+  d.buf.ent=sel.value;
+  saveBuf();
 });
 
 $("tbody").addEventListener("click", function(e){
   var btn=e.target.closest("button[data-a]");
   if(!btn) return;
   var d=itemDeFila(btn.closest("tr"));
-  if(btn.dataset.a==="falt"){ d.buf.falt=!d.buf.falt; saveBuf(); render(); return; }
   if(btn.dataset.a==="tandas"){
     if(typeof tandasPopup==="undefined"){ alert("No cargó tandas-popup.js"); return; }
     tandasPopup.open({
@@ -287,57 +340,66 @@ $("btnEnviar").addEventListener("click", async function(){
   var arr=partesDe(selT.id), metaPor={};
   arr.forEach(function(x){ metaPor[x.comp_id]=x; });
 
-  var resumen=items.map(function(o){
-    var m=metaPor[o.cid]||{};
-    var bom=bomDe(o.cid);
-    return (m.cod||o.cid)+": "+fmt(num(o.it.uni),0)+" uni"+
-      (bom.length?("  (descuenta "+bom.map(function(b){return b.cod;}).join(", ")+")"):"");
-  }).join("\n");
-  if(!confirm("Registrar entrega de "+selT.nombre+":\n\n"+resumen)) return;
+  // el motor necesita saber qué consumió cuando hay más de una entrada posible
+  var sinElegir=items.filter(function(o){
+    var m=metaPor[o.cid]||{entradas:[]};
+    return m.entradas.length>1 && !o.it.ent;
+  }).map(function(o){ return (metaPor[o.cid]||{}).cod||o.cid; });
+  if(sinElegir.length){
+    alert("Elegí qué consumió el tallerista para: "+sinElegir.join(", "));
+    return;
+  }
 
   var fecha=$("fFecha").value||hoyISO();
+
+  // armar TODAS las filas con el motor antes de escribir nada
+  var rows=[], resumen=[];
+  try{
+    items.forEach(function(o){
+      var m=metaPor[o.cid]||{};
+      var r=GP2M.recepcionTall({
+        tall: selT.id,
+        comp_id: Number(o.cid),
+        cantidad: num(o.it.uni),
+        fecha: fecha,
+        comp_entrada_id: o.it.ent || null
+      });
+      if(r.elegir){ throw new Error((m.cod||o.cid)+": falta elegir qué consumió"); }
+      rows = rows.concat(r.rows);
+      resumen.push((m.cod||o.cid)+": "+fmt(num(o.it.uni),0)+" uni");
+    });
+  }catch(e){
+    $("msg1").innerHTML='<span style="color:#b91c1c">'+esc(e.message||e)+'</span>';
+    return;
+  }
+
+  if(!confirm("Registrar recepción de "+selT.nombre+":\n\n"+resumen.join("\n")+
+              "\n\n"+rows.length+" movimientos (incluye los consumos del BOM).")) return;
+
   var btn=$("btnEnviar");
   btn.disabled=true; btn.textContent="Registrando…";
   $("msg1").textContent="";
 
-  var ok=0, errs=[];
-  for(var i=0;i<items.length;i++){
-    var o=items[i], m=metaPor[o.cid]||{};
-    var tieneBom=bomDe(o.cid).length>0;
-    try{
-      var r=await SB.rpc("crear_entrega_tallerista", {
-        p_tallerista_id: selT.id,
-        p_comp_id: Number(o.cid),
-        p_cantidad: num(o.it.uni),
-        p_unidad: "uni",
-        p_fecha: fecha,
-        p_descontar_bom: tieneBom
-      });
-      if(r.error) throw r.error;
-      ok++;
-    }catch(e){
-      errs.push((m.cod||o.cid)+": "+(e&&e.message?e.message:e));
-    }
+  try{
+    var res=await GP2M.registrar(SB, rows);
+    // recargar el motor para que el stock mostrado quede al día
+    await GP2M.cargar(SB);
+    delete BUF[selT.id]; saveBuf();
+    $("successCode").textContent=String(Math.floor(1000+Math.random()*9000));
+    $("successDetail").textContent=items.length+" partes recibidas de "+selT.nombre+" · "+fecha+
+      " · "+((res&&res.n)||rows.length)+" movimientos";
+    $("fase1").classList.add("hidden");
+    $("fase3").classList.remove("hidden");
+    $("btnVolver").classList.add("hidden");
+  }catch(e){
+    $("msg1").innerHTML='<span style="color:#b91c1c">Error: '+esc(e.message||e)+'</span>';
+  }finally{
+    btn.disabled=false; actualizarEnviar();
   }
-
-  btn.disabled=false; actualizarEnviar();
-
-  if(errs.length){
-    $("msg1").innerHTML='<span style="color:#b91c1c">Se registraron '+ok+' de '+items.length+
-      '. Errores:<br>'+esc(errs.join(" | "))+'</span>';
-    return;
-  }
-
-  delete BUF[selT.id]; saveBuf();
-  $("successCode").textContent=String(Math.floor(1000+Math.random()*9000));
-  $("successDetail").textContent=ok+" partes recibidas de "+selT.nombre+" · "+fecha;
-  $("fase1").classList.add("hidden");
-  $("fase3").classList.remove("hidden");
-  $("btnVolver").classList.add("hidden");
 });
 
 $("fFecha").value=hoyISO();
-cargar().catch(function(e){ $("status").textContent="Error: "+(e&&e.message?e.message:e); });
+cargar();
 </script>
 </body>
 </html>
