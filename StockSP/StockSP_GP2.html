@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>Stock SP · GP2</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<link rel="stylesheet" href="../gp2-modulo.css"/>
+<link rel="stylesheet" href="../gp2-modulo.css?v=1.1.0"/>
 <link rel="icon" type="image/png" href="../GP2_favicon.png">
 <link rel="apple-touch-icon" href="../GP2_favicon.png">
 <style>
@@ -13,8 +13,8 @@
   .seg-btn{padding:8px 14px;border-radius:8px;border:2px solid #d0d7de;background:#fff;font-weight:700;cursor:pointer;font-size:16px;color:#111}
   .seg-btn.active{background:#111;color:#fff;border-color:#111}
   table.t tr.bajo td{background:#fff7ed}
-  td.mov-cell{cursor:pointer;text-decoration:underline dotted}
-  td.mov-cell:hover{background:#eef4fb}
+  td.mov-cell,td.stk-cell{cursor:pointer;text-decoration:underline dotted}
+  td.mov-cell:hover,td.stk-cell:hover{background:#eef4fb}
   .popup{position:fixed;inset:0;background:rgba(0,0,0,.5);display:none;align-items:center;justify-content:center;z-index:200;padding:16px}
   .popup.open{display:flex}
   .pop-card{background:#fff;border-radius:14px;width:100%;max-width:880px;max-height:86vh;overflow:auto;padding:20px}
@@ -94,6 +94,7 @@ window.STOCK_CFG = {
   ]
 };
 </script>
-<script src="../gp2-stock-sector.js"></script>
+<script src="../gp2-composicion.js?v=1.1.0"></script>
+<script src="../gp2-stock-sector.js?v=1.1.0"></script>
 </body>
 </html>

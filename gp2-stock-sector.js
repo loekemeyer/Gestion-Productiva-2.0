@@ -131,9 +131,9 @@ function render(){
     tr.innerHTML =
       '<td><span class="cod">'+esc(x.cod)+'</span></td>'+
       '<td>'+esc(x["desc"]||"")+'</td>'+
-      '<td class="num sep">'+(kg==null?"—":fmt(kg,2))+'</td>'+
-      '<td class="num">'+(caj==null?"—":fmt(caj,2))+'</td>'+
-      '<td class="num"><b>'+fmt(uni,0)+'</b></td>'+
+      '<td class="num sep stk-cell" data-cid="'+x.comp_id+'" title="Ver cómo se compone">'+(kg==null?"—":fmt(kg,2))+'</td>'+
+      '<td class="num stk-cell" data-cid="'+x.comp_id+'" title="Ver cómo se compone">'+(caj==null?"—":fmt(caj,2))+'</td>'+
+      '<td class="num stk-cell" data-cid="'+x.comp_id+'" title="Ver cómo se compone"><b>'+fmt(uni,0)+'</b></td>'+
       celdasMov +
       '<td class="num sep">'+(x.kg_x_uni?fmt(x.kg_x_uni,6):"—")+'</td>'+
       '<td class="num">'+(x.uni_x_cajon?fmt(x.uni_x_cajon,0):"—")+'</td>'+
@@ -227,7 +227,7 @@ function renderHead(){
   $("thead").innerHTML =
     '<tr>'+
       '<th colspan="2">Base</th>'+
-      '<th colspan="3" class="num sep">Online</th>'+
+      '<th colspan="3" class="num sep" title="Tocá una celda para ver cómo se compone">Online</th>'+
       '<th colspan="'+cols.length+'" class="num sep">Movimientos (Uni)</th>'+
       '<th colspan="'+nInfo+'" class="num sep">Info</th>'+
     '</tr>'+
@@ -259,9 +259,17 @@ function init(){
   });
 
   $("tbody").addEventListener("click", function(e){
-    var td = e.target.closest("td.mov-cell");
-    if (!td) return;
-    abrirDetalle(td.dataset.cid, td.dataset.col);
+    var mov = e.target.closest("td.mov-cell");
+    if (mov){ abrirDetalle(mov.dataset.cid, mov.dataset.col); return; }
+    // celda de stock online -> composicion: el stock de hoy y el ledger que lo explica
+    var stk = e.target.closest("td.stk-cell");
+    if (stk && window.GP2Composicion){
+      var f = (D.filas||[]).filter(function(x){ return String(x.comp_id)===String(stk.dataset.cid); })[0] || {};
+      window.GP2Composicion.abrir({
+        SB: SB, comp_id: stk.dataset.cid, ubic_id: D.ubicacion_id,
+        cod: f.cod, desc: f["desc"], kg_x_uni: f.kg_x_uni, uni_x_cajon: f.uni_x_cajon
+      });
+    }
   });
 
   $("popClose").addEventListener("click", function(){ $("popup").classList.remove("open"); });

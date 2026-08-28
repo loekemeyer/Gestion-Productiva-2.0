@@ -5,7 +5,8 @@
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>Control Partes Tallerista · GP2</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<link rel="stylesheet" href="../../gp2-modulo.css"/>
+<script src="../../gp2-composicion.js?v=1.1.0"></script>
+<link rel="stylesheet" href="../../gp2-modulo.css?v=1.1.0"/>
 <link rel="icon" type="image/png" href="../../GP2_favicon.png">
 <link rel="apple-touch-icon" href="../../GP2_favicon.png">
 </head>
@@ -183,13 +184,13 @@ function volver(){
 function filasBase(){
   if (selT) {
     return partesDe(selT.id).map(function(x){
-      return Object.assign({}, x, { _tall: selT.nombre });
+      return Object.assign({}, x, { _tall: selT.nombre, _tid: selT.id });
     });
   }
   var out = [];
   talleristasVisibles().forEach(function(t){
     partesDe(t.id).forEach(function(x){
-      out.push(Object.assign({}, x, { _tall: t.nombre }));
+      out.push(Object.assign({}, x, { _tall: t.nombre, _tid: t.id }));
     });
   });
   return out.sort(function(a,b){
@@ -232,9 +233,9 @@ function render(){
       '<td>'+esc(x.sector||"—")+'</td>'+
       '<td><span class="cod">'+esc(x.cod)+'</span></td>'+
       '<td>'+esc(x["desc"]||"")+'</td>'+
-      '<td class="num sep">'+(kg==null?"—":fmt(kg,2))+'</td>'+
-      '<td class="num">'+(caj==null?"—":fmt(caj,2))+'</td>'+
-      '<td class="num">'+fmt(uni,0)+'</td>'+
+      '<td class="num sep stk-cell" data-cid="'+x.comp_id+'" data-tid="'+x._tid+'" title="Ver cómo se compone">'+(kg==null?"—":fmt(kg,2))+'</td>'+
+      '<td class="num stk-cell" data-cid="'+x.comp_id+'" data-tid="'+x._tid+'" title="Ver cómo se compone">'+(caj==null?"—":fmt(caj,2))+'</td>'+
+      '<td class="num stk-cell" data-cid="'+x.comp_id+'" data-tid="'+x._tid+'" title="Ver cómo se compone">'+fmt(uni,0)+'</td>'+
       '<td class="num sep">'+fmt(x.enviado,0)+'</td>'+
       '<td class="num">'+fmt(x.entregado,0)+'</td>'+
       '<td class="num '+clsSaldo(x.saldo)+'">'+fmt(x.saldo,0)+'</td>';
@@ -287,6 +288,21 @@ function exportarCSV(){
   a.click();
   setTimeout(function(){ URL.revokeObjectURL(a.href); }, 1000);
 }
+
+/* El stock del tallerista sale del mismo ledger que el resto de GP2:
+   la celda abre la composicion apuntando a la ubicacion de ese tallerista. */
+$("tbody").addEventListener("click", function(e){
+  var td = e.target.closest && e.target.closest("td.stk-cell");
+  if (!td || !window.GP2Composicion) return;
+  var x = filasBase().filter(function(y){
+    return String(y.comp_id) === String(td.dataset.cid) &&
+           String(y._tid)    === String(td.dataset.tid); })[0] || {};
+  window.GP2Composicion.abrir({
+    SB: SB, comp_id: td.dataset.cid,
+    ubic_tipo: "tallerista", ref_id: td.dataset.tid,
+    cod: x.cod, desc: x["desc"], kg_x_uni: x.kg_x_uni, uni_x_cajon: x.uni_x_cajon
+  });
+});
 
 $("q").addEventListener("input", render);
 $("btnVolver").addEventListener("click", volver);

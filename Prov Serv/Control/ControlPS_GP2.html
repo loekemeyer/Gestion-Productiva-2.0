@@ -1,7 +1,8 @@
 <!doctype html>
 <html lang="es">
 <head>
-  <script src="../../auth-guard.js"></script>
+  <script src="../../auth-guard.js?v=1.1.0"></script>
+  <script src="../../gp2-composicion.js?v=1.1.0"></script>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Control Prov. Servicios (GP2)</title>
@@ -92,7 +93,9 @@
     .gp2-picker-item .desc{ color:#333; }
     .gp2-picker-item .sec{ color:#788; }
     .gp2-picker-empty{ padding:8px 9px; font-size:12px; color:#889; }
-  </style>
+    td.stk-cell{cursor:pointer;text-decoration:underline dotted}
+  td.stk-cell:hover{background:#eef4fb}
+</style>
 <link rel="icon" type="image/png" href="../../GP2_favicon.png">
 <link rel="apple-touch-icon" href="../../GP2_favicon.png">
 <link rel="stylesheet" href="../../gp2-claro.css">
@@ -323,7 +326,9 @@
              '<td>'+esc(x.codigo)+'</td>' +
              '<td>'+esc(x.descripcion)+'</td>' +
              '<td>'+esc(x.sector||'')+'</td>' +
-             numCell(x.enviado) + numCell(x.entregado) + numCell(x.saldo) +
+             numCell(x.enviado) + numCell(x.entregado) +
+             '<td class="num stk-cell'+(Number(x.saldo)<0?' neg':'')+'" data-cid="'+x.comp_id+'"'+
+               ' title="Ver cómo se compone">'+fmt(x.saldo)+'</td>' +
              '</tr>';
       });
       h += '</tbody><tfoot><tr>' +
@@ -336,6 +341,20 @@
         (filtro && filtro.trim() ? ' (filtradas)' : '') +
         ' · unidades canonicas GP2';
     }
+
+    // El saldo en PS sale del mismo ledger que el resto del stock GP2:
+    // se abre la composicion apuntando a la ubicacion del proveedor.
+    elResult.addEventListener('click', function(e){
+      var td = e.target.closest && e.target.closest('td.stk-cell');
+      if(!td || !provSel || !window.GP2Composicion) return;
+      var x = (provSel.partes||[]).filter(function(y){
+        return String(y.comp_id) === String(td.dataset.cid); })[0] || {};
+      window.GP2Composicion.abrir({
+        SB: SB, comp_id: td.dataset.cid,
+        ubic_tipo: 'proveedor_servicio', ref_id: provSel.ps_id,
+        cod: x.codigo, desc: x.descripcion
+      });
+    });
 
     // ---- impresion ----
     function construirPrint(){
