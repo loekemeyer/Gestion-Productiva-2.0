@@ -1,8 +1,9 @@
 <!doctype html><html lang="es"><head><meta charset="utf-8">
+<!-- v1.1.0 - grupos 100% bloqueados arrancan minimizados; acordeon exclusivo; vista foco en celular -->
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>GP2 · Menú</title>
-<link rel="icon" type="image/png" href="GP2_favicon.png">
-<link rel="apple-touch-icon" href="GP2_favicon.png">
+<link rel="icon" type="image/png" href="GP2_favicon.png?v=1.1.0">
+<link rel="apple-touch-icon" href="GP2_favicon.png?v=1.1.0">
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 body{background:#ffffff;color:#1e293b;font-family:-apple-system,Segoe UI,Roboto,Helvetica,sans-serif;min-height:100vh}
@@ -20,7 +21,8 @@ body{background:#ffffff;color:#1e293b;font-family:-apple-system,Segoe UI,Roboto,
 /* ── cards ── */
 .card{background:#ffffff;border:1px solid #e2e8f0;border-radius:14px;overflow:hidden;transition:border-color .2s;box-shadow:0 1px 3px rgba(0,0,0,.06)}
 .card:hover{border-color:#bcccdc}
-.card.all-locked{opacity:.55;pointer-events:none;filter:saturate(.4)}
+.card.all-locked{opacity:.6;filter:saturate(.4)}
+.card.all-locked .card-body{pointer-events:none}
 .card.all-locked .card-head{background:#f1f5f9}
 
 .card-head{padding:14px 18px;display:flex;align-items:center;gap:10px;border-bottom:1px solid #e2e8f0;cursor:pointer;user-select:none;transition:background .15s}
@@ -47,12 +49,39 @@ a.op .dot{width:7px;height:7px;border-radius:50%;background:#22c55e;flex-shrink:
 span.op.lock{display:flex;align-items:center;gap:10px;padding:9px 14px;border-radius:8px;font-size:16px;color:#94a3b8;border:1px solid #eef2f6;background:#f8fafc;cursor:default}
 span.op.lock .lk{font-size:14px;margin-left:auto;opacity:.7}
 
+
+/* ── celular: compacto, para que entren todos los grupos de una ── */
+@media (max-width:640px){
+  .header{padding:10px 0 8px}
+  .header img{width:64%;max-width:230px}
+  .header-sub{font-size:12px;margin-top:5px}
+  .wrap{padding:10px 10px 40px}
+  .grid{grid-template-columns:1fr;gap:7px}
+  .card{border-radius:11px}
+  .card-head{padding:11px 13px;gap:9px}
+  .card-head .icon{font-size:19px}
+  .card-head .title{font-size:16px}
+  .card-body{padding:6px 8px 9px}
+  a.op,span.op.lock{font-size:15px;padding:11px 12px}
+
+  /* vista FOCO: con un grupo abierto se ve solo ese grupo, hasta cerrarlo */
+  body.focus .header,body.focus .foot{display:none}
+  body.focus .wrap{padding:0 0 30px}
+  body.focus .card:not(.open){display:none}
+  body.focus .card.open{border:0;border-radius:0;box-shadow:none;opacity:1;filter:none}
+  body.focus .card.open .card-head{position:sticky;top:0;z-index:5;background:#fff;border-bottom:1px solid #e2e8f0;padding:14px 14px}
+  body.focus .card.open .card-body{padding:8px 10px 12px}
+  /* el chevron pasa a ser el boton de cerrar */
+  body.focus .card.open .chevron{transform:none;font-size:0}
+  body.focus .card.open .chevron::after{content:"\2715\00a0 Cerrar";font-size:14px;font-weight:700;color:#2563eb;white-space:nowrap}
+}
+
 /* ── footer ── */
 .foot{max-width:1200px;margin:0 auto;padding:0 16px;color:#94a3b8;font-size:12px;text-align:center}
 </style></head><body>
 
 <div class="header">
-  <img src="GP2_logo.png" alt="GP2 · Gestión Productiva — Loekemeyer">
+  <img src="GP2_logo.png?v=1.1.0" alt="GP2 · Gestión Productiva — Loekemeyer">
   <div class="header-sub">Módulos con <b>🔒</b> pendientes de migración</div>
 </div>
 
@@ -142,7 +171,9 @@ MENU.forEach(([icon, titulo, items]) => {
   const activeCount = items.filter(i => i[1]).length;
 
   const card = document.createElement("div");
-  card.className = "card" + (allLocked ? " all-locked" : "");
+  // arrancan todos minimizados: en el celular se ven los 13 grupos de una,
+  // y los que estan 100% bloqueados ya no ocupan pantalla mostrando candados.
+  card.className = "card collapsed" + (allLocked ? " all-locked" : "");
 
   // head
   const head = document.createElement("div");
@@ -152,7 +183,17 @@ MENU.forEach(([icon, titulo, items]) => {
     '<span class="title">' + titulo + '</span>' +
     (activeCount > 0 ? '<span class="badge">' + activeCount + '</span>' : '') +
     '<span class="chevron">‹</span>';
-  head.addEventListener("click", () => { card.classList.toggle("collapsed"); });
+  head.addEventListener("click", () => {
+    const abrir = card.classList.contains("collapsed");
+    // acordeon exclusivo: abrir uno cierra el resto
+    document.querySelectorAll(".card").forEach(c => {
+      c.classList.add("collapsed"); c.classList.remove("open");
+    });
+    if (abrir) { card.classList.remove("collapsed"); card.classList.add("open"); }
+    // en celular el grupo abierto se queda solo en pantalla (CSS body.focus)
+    document.body.classList.toggle("focus", abrir);
+    if (abrir) window.scrollTo(0, 0);
+  });
   card.appendChild(head);
 
   // body
