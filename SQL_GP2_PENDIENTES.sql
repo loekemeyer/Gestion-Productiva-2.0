@@ -188,18 +188,23 @@ create index if not exists ruta_problema_estado_idx on "GP2".ruta_problema (esta
 --     * Se mira el remito contra la OC; lo primero que se compara son los kg.
 --     * Aperam y Basconia informan kg Y cantidad de rollos por fleje.
 --       El resto de proveedores informa solo kg.
+--     * Se anota tambien cuantos PALLETS llegaron, al lado de los kg y los
+--       rollos: cada uno se va a pesar por separado en el control.
 --     * En este paso NO se pesa nada y NO se pide desglose por rollo.
 --   PASO 2 — CONTROL EN BALANZA. Despues, aparte:
+--     * Se pesa UN PALLET POR PESADA: hay una pesada por cada pallet.
 --     * Llevan el pallet a la balanza y anotan el peso total palletizado.
 --     * Anotan cuantos rollos hay y cuanto pesa cada rollo.
 --     * Lo normal es que todos los rollos pesen igual (una sola linea).
 --       Puede haber dos pesos distintos en el mismo pallet, pero es raro.
 --
 -- LOS DOS CHEQUEOS DEL CONTROL:
---   1) rollos sin clasificar = rollos del remito - rollos contados  ->  debe dar 0
---   2) sobrante = peso_balanza - suma(cantidad * kg_por_rollo)
---      debe caer entre 4 y 8 kg por pallet (es la tara del pallet).
+--   1) pallets sin pesar  = pallets del remito - pallets pesados  -> debe dar 0
+--   2) rollos sin clasificar = rollos del remito - rollos contados -> debe dar 0
+--   3) por CADA pallet: sobrante = peso_balanza - suma(cantidad * kg_por_rollo)
+--      debe caer entre 4 y 8 kg (es la tara de ese pallet).
 --      Menos de 4 -> 'sobrante bajo'. Mas de 8 -> 'sobrante alto'.
+--      El estado de la recepcion dice cual pallet tiene el problema.
 --
 -- POR QUE EL MODULO VIEJO ESTA MAL:
 --   * Obliga a controlar MIENTRAS se carga: en Flejes abre el popup de "kg
@@ -218,19 +223,22 @@ create index if not exists ruta_problema_estado_idx on "GP2".ruta_problema (esta
 --     (rollos en Flejes, paquetes en Cajas/Cartones; array u objeto).
 --
 -- LO QUE SE CREO EN GP2:
---   recepcion_insumo.rollos (integer, null si el remito no los informa)
---   recepcion_control       (recepcion_id unique, peso_balanza, pallets,
---                            controlado_por, controlado_en, nota)
+--   recepcion_insumo.rollos  (integer, null si el remito no los informa)
+--   recepcion_insumo.pallets (integer, cuantos pallets llegaron)
+--   recepcion_control        (UNA FILA POR PALLET: recepcion_id + nro_pallet
+--                             unique, peso_balanza, controlado_por, nota)
 --   recepcion_control_rollo (control_id, cantidad, kg_por_rollo)
 --   parametro               (tara_pallet_min=4, tara_pallet_max=8)
 --   v_recepcion_control     (vista con los dos chequeos ya calculados y un
 --                            campo 'estado': sin controlar | rollos sin
 --                            clasificar | sobrante bajo | sobrante alto | ok)
+--   v_control_pallet        (vista por PALLET: sus rollos, su sobrante y su
+--                            estado individual)
 --   cargar_recepcion(p_comp_id,p_proveedor,p_cantidad,p_unidad,p_remito,
---                    p_rollos,p_fecha)            -> paso 1
---   guardar_control_recepcion(p_recepcion_id,p_peso_balanza,p_rollos jsonb,
---                    p_pallets,p_usuario,p_nota)  -> paso 2
---   recepcion_bundle()      -> insumos + proveedores + recepciones + tara
+--                    p_rollos,p_pallets,p_fecha)  -> paso 1
+--   pesar_pallet(p_recepcion_id,p_nro_pallet,p_peso_balanza,p_rollos jsonb,
+--                    p_usuario,p_nota)            -> paso 2, una vez por pallet
+--   recepcion_bundle()      -> insumos + proveedores + recepciones + pallets + tara
 --
 -- PRUEBAS EJECUTADAS Y REVERTIDAS (fleje A1, Basconia, 150 kg, 6 rollos):
 --   A) 6x25=150, balanza 156  -> sobrante 6, sin clasificar 0   -> ok
@@ -238,14 +246,17 @@ create index if not exists ruta_problema_estado_idx on "GP2".ruta_problema (esta
 --   C) solo 5 de 6 clasificados -> sin clasificar 1  -> 'rollos sin clasificar'
 --   D) balanza 151 -> sobrante 1  -> 'sobrante bajo'
 --   E) balanza 170 -> sobrante 20 -> 'sobrante alto'
+--   F) 2 pallets declarados, 1 pesado -> 'faltan pallets por pesar'
+--   G) pallet 1 ok + pallet 2 con sobrante 20 -> 'sobrante alto', y la vista
+--      identifica cual de los dos pallets es el que falla
 --   End-to-end via RPC: paso 1 movio stock (movimiento compra -> Sector Fleje)
 --   y paso 2 devolvio estado ok. Todo borrado despues; el stock volvio exacto.
 --
 -- PENDIENTE:
 --   * Las dos pantallas (carga y control). Ninguna UI llama a estas RPC todavia.
---   * Confirmar con el usuario si se pesa UN pallet por vez (sobrante 4-8) o
---     varios juntos (sobrante 4-8 x pallets). La columna 'pallets' ya lo
---     contempla, default 1.
+--   * [RESUELTO 2026-08-28] Se pesa UN PALLET POR PESADA. Por eso
+--     recepcion_control es una fila por pallet y el sobrante de 4-8 kg se
+--     evalua pallet por pallet, no sobre el total.
 --   * OJO: hay componentes con el MISMO codigo en sectores distintos (ej. 'A1'
 --     existe en Sector Fleje y en otro). Cualquier busqueda por codigo tiene
 --     que desambiguar por sector o usar comp_id.
