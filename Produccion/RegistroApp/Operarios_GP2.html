@@ -78,6 +78,8 @@
     .hist-btn { cursor: pointer; font-size: 16px; padding: 2px 6px; border-radius: 4px; background: #f1f5f9; border: 1px solid #e2e8f0; }
     /* Hist dias btn */
     #btnHistDias { position: fixed; top: 12px; right: 12px; width: 44px; height: 44px; border-radius: 50%; border: 2px solid #cbd5e1; background: #f8fafc; font-size: 20px; cursor: pointer; z-index: 100; display: flex; align-items: center; justify-content: center; }
+    /* Salir al menu principal */
+    #btnMenu { position: fixed; top: 12px; left: 12px; height: 44px; padding: 0 16px; border-radius: 999px; border: 2px solid #cbd5e1; background: #f8fafc; color: #475569; font-size: 15px; font-weight: 700; cursor: pointer; z-index: 100; }
     /* TD modal */
     .td-modal { position: fixed; inset: 0; background: rgba(0,0,0,.5); display: flex; align-items: flex-end; justify-content: center; z-index: 200; padding: 0; }
     .td-modal-card { background: #fff; border-radius: 16px 16px 0 0; width: 100%; max-width: 520px; padding: 20px; }
@@ -102,10 +104,11 @@
 </head>
 <body>
 
-<div id="syncBadge" title="Tocar para forzar envio">GP2 v1.3.0 &#10003;</div>
+<div id="syncBadge" title="Tocar para forzar envio">GP2 v1.3.1 &#10003;</div>
 
 <!-- LEGAJO -->
 <div id="legajoScreen">
+  <button id="btnMenu" title="Salir al menú principal" onclick="location.href='../../GP2_MODULOS.html'">&larr; Menú</button>
   <button id="btnHistDias" title="Historial dias anteriores">📅</button>
   <h1>Ingresa tu número de Operario</h1>
   <input id="legajoInput" type="number" inputmode="numeric" />
@@ -221,6 +224,6 @@
   </div>
 </div>
 
-<script src="operarios_gp2.js?v=1.3.0"></script>
+<script src="operarios_gp2.js?v=1.3.1"></script>
 </body>
 </html>
