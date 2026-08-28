@@ -1,8 +1,8 @@
 <!doctype html>
 <html lang="es">
 <head>
-<!-- v3.1.0 — pesaje obligatorio (sin "Pesar después"): la carga no se termina hasta controlar. v3.0.0: remito multi-item: paso 1 todos los items, "Terminé de pasar remito", paso 2 pesaje de todo; modulo Control integrado aca -->
-<script src="../auth-guard.js?v=3.1.0"></script>
+<!-- v3.2.0 — la balanza debe dar MAS que el remito (peso del pallet), aviso en vivo + confirm al guardar. v3.1.0: pesaje obligatorio (sin "Pesar después"): la carga no se termina hasta controlar. v3.0.0: remito multi-item: paso 1 todos los items, "Terminé de pasar remito", paso 2 pesaje de todo; modulo Control integrado aca -->
+<script src="../auth-guard.js?v=3.2.0"></script>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>Recepción de Insumos · GP2</title>
@@ -417,14 +417,15 @@ function renderRemitoBar(){
   var f=$('btnFinRemito');
   if(f) f.onclick=function(){
     montarPesaje(REMITO.map(function(x){
-      return { recId:x.recId, codigo:x.codigo, desc:x.desc, pallets:x.pallets, blocks:bloquesVacios(x.pallets) };
+      return { recId:x.recId, codigo:x.codigo, desc:x.desc, pallets:x.pallets,
+               remitoKg:(x.unidad==='kg'?x.cant:null), blocks:bloquesVacios(x.pallets) };
     }));
   };
   var pd=$('btnPesarPend');
   if(pd) pd.onclick=function(){
     montarPesaje(pend.map(function(r){
       return { recId:r.recepcion_id, codigo:r.codigo, desc:r.descripcion||'',
-               pallets:r.pallets_remito, blocks:bloquesPrefill(r) };
+               pallets:r.pallets_remito, remitoKg:Number(r.kg_remito)||null, blocks:bloquesPrefill(r) };
     }));
   };
 }
@@ -475,10 +476,30 @@ function calcLinea(k){
     : 'Completá el peso de balanza y al menos una línea de rollos.';
 }
 
+/* La balanza pesa fleje + pallet: el total del item tiene que dar SIEMPRE
+   mas que los kg del remito (salvo que hayan entregado diferente). */
+function calcItem(it){
+  var tot=0, n=0;
+  Object.keys(it.blocks).forEach(function(nro){
+    var w=pnum(it.blocks[nro].peso); if(w>0){ tot+=w; n++; }
+  });
+  return { tot:tot, n:n };
+}
+function itemLinea(it){
+  if(!it.remitoKg) return '';
+  var c=calcItem(it);
+  if(!c.n) return 'Remito: <b>'+fmt(it.remitoKg)+' kg</b> · la balanza tiene que dar MÁS que eso (se pesa el pallet).';
+  var dif=c.tot-it.remitoKg;
+  return 'Remito: <b>'+fmt(it.remitoKg)+' kg</b> · balanza: <b>'+fmt(c.tot)+' kg</b> · dif '+
+    '<span class="'+(dif>0?'okc':'warnc')+'">'+(dif>0?'+':'')+fmt(dif)+' kg</span>'+
+    (dif>0?'':' ⚠ dio menos que el remito: revisá antes de guardar (¿entregaron diferente?)');
+}
+
 function pintarPesaje(){
   var w=$('pesajeWrap');
   w.innerHTML = PES.items.map(function(it,i){
-    var head='<div class="pes-item-h"><span class="cod">'+esc(it.codigo)+'</span> '+esc(it.desc||'')+'</div>';
+    var head='<div class="pes-item-h"><span class="cod">'+esc(it.codigo)+'</span> '+esc(it.desc||'')+'</div>'+
+      (it.remitoKg?('<div class="pes-calc" data-itemcalc="'+i+'">'+itemLinea(it)+'</div>'):'');
     var blocks=Object.keys(it.blocks).sort((a,b)=>a-b).map(function(nro){
       var p=it.blocks[nro];
       return '<div class="pes-pallet" data-i="'+i+'" data-p="'+nro+'">'+
@@ -517,6 +538,8 @@ $('pesajeWrap').addEventListener('input', function(e){
   }
   // refrescar solo la línea de cálculo (sin re-render, para no perder el foco)
   pb.querySelector('.pes-calc').innerHTML=calcLinea(calcPallet(p));
+  var ic=$('pesajeWrap').querySelector('[data-itemcalc="'+pb.dataset.i+'"]');
+  if(ic) ic.innerHTML=itemLinea(PES.items[Number(pb.dataset.i)]);
 });
 $('pesajeWrap').addEventListener('click', function(e){
   if(!PES) return;
@@ -565,6 +588,16 @@ $('kgPesajeOk').addEventListener('click', async function(){
   if(fuera.length && !confirm(
       '⚠ El sobrante no da el peso de un pallet en:\n\n'+fuera.join('\n')+
       '\n\nPuede ser un rollo mal anotado o un error de balanza.\nSe puede guardar igual y corregirlo después.\n\n¿Guardar así?')) return;
+
+  // La balanza pesa fleje + pallet: por item tiene que dar MÁS que el remito.
+  // Si dio menos o igual, o entregaron diferente o hay un error de carga.
+  var menores=PES.items.map(function(it){ return { it:it, c:calcItem(it) }; })
+    .filter(function(x){ return x.it.remitoKg>0 && x.c.n>0 && x.c.tot<=x.it.remitoKg; })
+    .map(function(x){ return x.it.codigo+': remito '+fmt(x.it.remitoKg)+' kg · balanza '+fmt(x.c.tot)+' kg'; });
+  if(menores.length && !confirm(
+      '⚠ La balanza dio MENOS (o igual) que el remito en:\n\n'+menores.join('\n')+
+      '\n\nCon el peso del pallet la balanza siempre tiene que dar más que el remito.\n'+
+      '¿Entregaron diferente a lo que dice el remito?\n\n¿Guardar así?')) return;
 
   $('kgPesajeOk').disabled=true;
   m.className='status'; m.textContent='Guardando pesaje…';
