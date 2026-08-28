@@ -175,3 +175,77 @@ create index if not exists ruta_problema_estado_idx on "GP2".ruta_problema (esta
 -- select c.relname, c.relrowsecurity
 -- from pg_class c join pg_namespace n on n.oid = c.relnamespace
 -- where n.nspname = 'GP2' and c.relkind = 'r';
+
+
+-- ============================================================================
+-- 7. RECEPCION DE INSUMOS EN DOS PASOS  ✅ APLICADO Y PROBADO (2026-08-28)
+--    Rehecho segun el proceso real de la fabrica, que NO es el que implementa
+--    el modulo viejo (StockFlejes/recepcion.html).
+-- ============================================================================
+--
+-- PROCESO REAL (contado por el usuario):
+--   PASO 1 — CARGA. Reciben y marcan TODO lo que llega, SIN controlar.
+--     * Se mira el remito contra la OC; lo primero que se compara son los kg.
+--     * Aperam y Basconia informan kg Y cantidad de rollos por fleje.
+--       El resto de proveedores informa solo kg.
+--     * En este paso NO se pesa nada y NO se pide desglose por rollo.
+--   PASO 2 — CONTROL EN BALANZA. Despues, aparte:
+--     * Llevan el pallet a la balanza y anotan el peso total palletizado.
+--     * Anotan cuantos rollos hay y cuanto pesa cada rollo.
+--     * Lo normal es que todos los rollos pesen igual (una sola linea).
+--       Puede haber dos pesos distintos en el mismo pallet, pero es raro.
+--
+-- LOS DOS CHEQUEOS DEL CONTROL:
+--   1) rollos sin clasificar = rollos del remito - rollos contados  ->  debe dar 0
+--   2) sobrante = peso_balanza - suma(cantidad * kg_por_rollo)
+--      debe caer entre 4 y 8 kg por pallet (es la tara del pallet).
+--      Menos de 4 -> 'sobrante bajo'. Mas de 8 -> 'sobrante alto'.
+--
+-- POR QUE EL MODULO VIEJO ESTA MAL:
+--   * Obliga a controlar MIENTRAS se carga: en Flejes abre el popup de "kg
+--     estipulados" antes de dejar cargar los kg reales, y frena con un confirm
+--     si difiere mas del 5%. El proceso real carga primero y controla despues.
+--   * Pide el desglose peso por peso EN LA CARGA, cuando ese dato recien
+--     aparece en la balanza (paso 2).
+--   * La grilla de rollos aparece para todos los flejes, no solo para los
+--     proveedores que informan rollos.
+--   * Tiene TRES umbrales distintos y contradictorios para lo mismo:
+--     0,05 kg absolutos (cartel en pantalla), 5% relativo (confirm que frena)
+--     y otro 5% (alerta de Telegram posterior).
+--   * El total viaja como string por el DOM: una suma tipo 3*1,1 se guarda
+--     literal como '3.3000000000000003'.
+--   * 'rollos' y 'rollos_json' guardan cosas distintas segun el rubro
+--     (rollos en Flejes, paquetes en Cajas/Cartones; array u objeto).
+--
+-- LO QUE SE CREO EN GP2:
+--   recepcion_insumo.rollos (integer, null si el remito no los informa)
+--   recepcion_control       (recepcion_id unique, peso_balanza, pallets,
+--                            controlado_por, controlado_en, nota)
+--   recepcion_control_rollo (control_id, cantidad, kg_por_rollo)
+--   parametro               (tara_pallet_min=4, tara_pallet_max=8)
+--   v_recepcion_control     (vista con los dos chequeos ya calculados y un
+--                            campo 'estado': sin controlar | rollos sin
+--                            clasificar | sobrante bajo | sobrante alto | ok)
+--   cargar_recepcion(p_comp_id,p_proveedor,p_cantidad,p_unidad,p_remito,
+--                    p_rollos,p_fecha)            -> paso 1
+--   guardar_control_recepcion(p_recepcion_id,p_peso_balanza,p_rollos jsonb,
+--                    p_pallets,p_usuario,p_nota)  -> paso 2
+--   recepcion_bundle()      -> insumos + proveedores + recepciones + tara
+--
+-- PRUEBAS EJECUTADAS Y REVERTIDAS (fleje A1, Basconia, 150 kg, 6 rollos):
+--   A) 6x25=150, balanza 156  -> sobrante 6, sin clasificar 0   -> ok
+--   B) 4x25 + 2x25 (dos tipos) -> tipos_de_peso 2                -> ok
+--   C) solo 5 de 6 clasificados -> sin clasificar 1  -> 'rollos sin clasificar'
+--   D) balanza 151 -> sobrante 1  -> 'sobrante bajo'
+--   E) balanza 170 -> sobrante 20 -> 'sobrante alto'
+--   End-to-end via RPC: paso 1 movio stock (movimiento compra -> Sector Fleje)
+--   y paso 2 devolvio estado ok. Todo borrado despues; el stock volvio exacto.
+--
+-- PENDIENTE:
+--   * Las dos pantallas (carga y control). Ninguna UI llama a estas RPC todavia.
+--   * Confirmar con el usuario si se pesa UN pallet por vez (sobrante 4-8) o
+--     varios juntos (sobrante 4-8 x pallets). La columna 'pallets' ya lo
+--     contempla, default 1.
+--   * OJO: hay componentes con el MISMO codigo en sectores distintos (ej. 'A1'
+--     existe en Sector Fleje y en otro). Cualquier busqueda por codigo tiene
+--     que desambiguar por sector o usar comp_id.
