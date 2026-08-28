@@ -177,7 +177,7 @@ Para verificación visual real en Chromium, ejecutar desde entorno local con Liv
 
 | # | Pendiente | Prioridad | Descripción |
 |---|-----------|-----------|-------------|
-| 1 | **BUG crear_entrega_tallerista** | Alta | Para artículos no-armado con transformación de sector, no descuenta el componente SP del tallerista. Requiere aceptar par (comp_entrada_id, comp_salida_id) para artículos no-armado. |
+| 1 | ~~**BUG crear_entrega_tallerista**~~ | ~~Alta~~ | **CORREGIDO 2026-08-28**: Agregado parámetro `p_comp_entrada_id bigint DEFAULT null`. Para artículos no-armado con transformación, `ubic_origen=null` (producto nace) + movimiento separado `consumo_transformacion` decuenta el SP del tallerista. Probado y rollback verificado. |
 | 2 | **crear_envio_ps / crear_entrega_ps frágiles** | Media | Buscan ubicación por nombre de sector en vez de ref_id. Renombrar un sector rompe las funciones. |
 | 3 | **Inventario todo en 0** | Alta | Las 848 filas de `GP2.inventario` tienen `cantidad=0` (solo los mínimos están cargados). El sistema funciona pero no refleja stock real. Se necesita carga inicial de stock. |
 | 4 | **Matriz 28 multi-salida** | Informativo | 24 matrices producen más de una pieza. La UI lo maneja con selector — no es bug, pero hay que asegurarse que todos los módulos que llaman `registrar_produccion` pasen `p_comp_salida_id` cuando corresponde. |
