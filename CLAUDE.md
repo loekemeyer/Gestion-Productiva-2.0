@@ -48,6 +48,10 @@ Las tablets y celulares cachean fuerte; sin bump siguen corriendo la versión vi
 2. Si la página tiene badge de versión visible (ej. `#syncBadge` en las apps de operarios), actualizarlo al mismo número.
 3. Convención: fix chico = patch (1.2.0→1.2.1), feature = minor (1.2.0→1.3.0).
 4. Si el HTML no tiene `?v=` en sus recursos externos, agregárselo al tocarlo.
+5. **`version.js` (versión global) también se bumpea.** Es la que ve el usuario en el cartel
+   "Versión vX.Y.Z" del login, `Inicio/index_GP2.html`, `envios-only.html` y `Relevamiento`.
+   Al soltar features, subir `window.APP_VERSION` **y** el `?v=` de los `<script src="version.js?v=...">`
+   (si no se bumpea el `?v=`, el celular sigue con el archivo viejo cacheado y muestra la versión de antes).
 
 ## Perfiles de Usuario (LEER AL INICIO)
 
