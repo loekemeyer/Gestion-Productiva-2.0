@@ -5,8 +5,8 @@
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>Control Partes Tallerista · GP2</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="../../gp2-composicion.js?v=1.1.0"></script>
-<link rel="stylesheet" href="../../gp2-modulo.css?v=1.1.0"/>
+<script src="../../gp2-composicion.js?v=1.2.0"></script>
+<link rel="stylesheet" href="../../gp2-modulo.css?v=1.2.0"/>
 <link rel="icon" type="image/png" href="../../GP2_favicon.png">
 <link rel="apple-touch-icon" href="../../GP2_favicon.png">
 </head>
@@ -233,8 +233,8 @@ function render(){
       '<td>'+esc(x.sector||"—")+'</td>'+
       '<td><span class="cod">'+esc(x.cod)+'</span></td>'+
       '<td>'+esc(x["desc"]||"")+'</td>'+
-      '<td class="num sep stk-cell" data-cid="'+x.comp_id+'" data-tid="'+x._tid+'" title="Ver cómo se compone">'+(kg==null?"—":fmt(kg,2))+'</td>'+
-      '<td class="num stk-cell" data-cid="'+x.comp_id+'" data-tid="'+x._tid+'" title="Ver cómo se compone">'+(caj==null?"—":fmt(caj,2))+'</td>'+
+      '<td class="num sep stk-cell" data-cid="'+x.comp_id+'" data-tid="'+x._tid+'" title="Ver cómo se compone">'+(kg==null?"—":fmt(kg,0))+'</td>'+
+      '<td class="num stk-cell" data-cid="'+x.comp_id+'" data-tid="'+x._tid+'" title="Ver cómo se compone">'+(caj==null?"—":fmt(caj,1))+'</td>'+
       '<td class="num stk-cell" data-cid="'+x.comp_id+'" data-tid="'+x._tid+'" title="Ver cómo se compone">'+fmt(uni,0)+'</td>'+
       '<td class="num sep">'+fmt(x.enviado,0)+'</td>'+
       '<td class="num">'+fmt(x.entregado,0)+'</td>'+
@@ -244,7 +244,7 @@ function render(){
 
   $("tfoot").innerHTML = arr.length ? ('<tr>'+
     '<td colspan="'+(selT?3:4)+'">'+arr.length+' partes</td>'+
-    '<td class="num sep">'+fmt(totKg,2)+'</td><td class="num">—</td><td class="num">'+fmt(totUni,0)+'</td>'+
+    '<td class="num sep">'+fmt(totKg,0)+'</td><td class="num">—</td><td class="num">'+fmt(totUni,0)+'</td>'+
     '<td class="num sep">'+fmt(totEnv,0)+'</td><td class="num">'+fmt(totEnt,0)+'</td>'+
     '<td class="num '+clsSaldo(totSal)+'">'+fmt(totSal,0)+'</td></tr>') : "";
 

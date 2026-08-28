@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
   <script src="../../auth-guard.js?v=1.1.0"></script>
-  <script src="../../gp2-composicion.js?v=1.1.0"></script>
+  <script src="../../gp2-composicion.js?v=1.2.0"></script>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Control Prov. Servicios (GP2)</title>
@@ -220,9 +220,11 @@
     var provSel = null; // proveedor elegido
 
     // ---- helpers de formato ----
+    /* Todas las columnas de esta pantalla (Enviado / Entregado / Saldo en PS)
+       estan en unidades: van sin decimales. */
     function fmt(n){
       if(n===null || n===undefined || isNaN(n)) return '0';
-      n = Number(n);
+      n = Math.round(Number(n));
       var neg = n < 0;
       var abs = Math.abs(n);
       // hasta 3 decimales, sin ceros colgando

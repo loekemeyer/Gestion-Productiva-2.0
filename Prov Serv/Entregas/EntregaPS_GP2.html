@@ -338,7 +338,7 @@ $("btnEnviar").addEventListener("click", async function(){
 
   var resumen=items.map(function(o){
     var m=metaPorK[o.k]||{};
-    return (m.sc_cod||"?")+" → "+(m.sp_cod||"?")+": "+fmt(num(o.it.caj),0)+" caj / "+fmt(num(o.it.kg),2)+" kg";
+    return (m.sc_cod||"?")+" → "+(m.sp_cod||"?")+": "+fmt(num(o.it.caj),1)+" caj / "+fmt(num(o.it.kg),0)+" kg";
   }).join("\n");
   if(!confirm("Registrar entrega de "+selPS.nombre+":\n\n"+resumen)) return;
 

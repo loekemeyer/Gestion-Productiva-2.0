@@ -399,7 +399,7 @@ $("btnEnviar").addEventListener("click", async function(){
 
   var resumen = items.map(function(o){
     var m = metaPorSc[o.sc_id] || {};
-    return (m.sc_cod||o.sc_id)+": "+fmt(num(o.it.caj),0)+" caj / "+fmt(num(o.it.kg),2)+" kg";
+    return (m.sc_cod||o.sc_id)+": "+fmt(num(o.it.caj),1)+" caj / "+fmt(num(o.it.kg),0)+" kg";
   }).join("\n");
   if (!confirm("Enviar a "+selPS.nombre+":\n\n"+resumen)) return;
 

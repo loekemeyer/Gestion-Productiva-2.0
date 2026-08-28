@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>Envíos por Tallerista · GP2</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<link rel="stylesheet" href="../../gp2-modulo.css"/>
+<link rel="stylesheet" href="../../gp2-modulo.css?v=1.2.0"/>
 <link rel="stylesheet" href="../../tandas-popup.css"/>
 <link rel="icon" type="image/png" href="../../GP2_favicon.png">
 <link rel="apple-touch-icon" href="../../GP2_favicon.png">
@@ -315,7 +315,7 @@ $("btnEnviar").addEventListener("click", async function(){
 
   var resumen=items.map(function(o){
     var m=metaPor[o.cid]||{};
-    return (m.cod||o.cid)+": "+fmt(num(o.it.caj),0)+" caj / "+fmt(num(o.it.kg),2)+" kg";
+    return (m.cod||o.cid)+": "+fmt(num(o.it.caj),1)+" caj / "+fmt(num(o.it.kg),0)+" kg";
   }).join("\n");
   if(!confirm("Enviar a "+selT.nombre+":\n\n"+resumen)) return;
 
@@ -359,7 +359,7 @@ $("btnEnviar").addEventListener("click", async function(){
     tCaj+=e.caj; tKg+=e.kg; tUni+=e.uni;
     return '<tr><td>'+esc(e.m.sector||"—")+'</td>'+
       '<td><span class="cod">'+esc(e.m.cod||"")+'</span> '+esc(e.m["desc"]||"")+'</td>'+
-      '<td class="num">'+fmt(e.caj,0)+'</td><td class="num">'+fmt(e.kg,2)+'</td>'+
+      '<td class="num">'+fmt(e.caj,1)+'</td><td class="num">'+fmt(e.kg,0)+'</td>'+
       '<td class="num">'+fmt(e.uni,0)+'</td></tr>';
   }).join("");
   $("tfootPrint").innerHTML='<tr><td colspan="2">'+enviados.length+' partes</td>'+

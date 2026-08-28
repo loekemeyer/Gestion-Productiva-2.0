@@ -131,8 +131,8 @@ function render(){
     tr.innerHTML =
       '<td><span class="cod">'+esc(x.cod)+'</span></td>'+
       '<td>'+esc(x["desc"]||"")+'</td>'+
-      '<td class="num sep stk-cell" data-cid="'+x.comp_id+'" title="Ver cómo se compone">'+(kg==null?"—":fmt(kg,2))+'</td>'+
-      '<td class="num stk-cell" data-cid="'+x.comp_id+'" title="Ver cómo se compone">'+(caj==null?"—":fmt(caj,2))+'</td>'+
+      '<td class="num sep stk-cell" data-cid="'+x.comp_id+'" title="Ver cómo se compone">'+(kg==null?"—":fmt(kg,0))+'</td>'+
+      '<td class="num stk-cell" data-cid="'+x.comp_id+'" title="Ver cómo se compone">'+(caj==null?"—":fmt(caj,1))+'</td>'+
       '<td class="num stk-cell" data-cid="'+x.comp_id+'" title="Ver cómo se compone"><b>'+fmt(uni,0)+'</b></td>'+
       celdasMov +
       '<td class="num sep">'+(x.kg_x_uni?fmt(x.kg_x_uni,6):"—")+'</td>'+
@@ -146,7 +146,7 @@ function render(){
   $("kpis").innerHTML =
     '<div class="kpi"><div class="k">Componentes</div><div class="v">'+arr.length+'</div></div>'+
     '<div class="kpi"><div class="k">Total uni</div><div class="v">'+fmt(tUni,0)+'</div></div>'+
-    '<div class="kpi"><div class="k">Total kg</div><div class="v">'+fmt(tKg,1)+'</div></div>'+
+    '<div class="kpi"><div class="k">Total kg</div><div class="v">'+fmt(tKg,0)+'</div></div>'+
     '<div class="kpi"><div class="k">Bajo mínimo</div><div class="v '+(tBajo?"neg":"cero")+'">'+tBajo+'</div></div>'+
     '<div class="kpi"><div class="k">Con movimientos</div><div class="v">'+tConMov+'</div></div>';
 }
@@ -186,7 +186,7 @@ async function abrirDetalle(comp_id, colKey){
         '<td>'+esc(m.tipo)+via+falt+'</td>'+
         '<td>'+esc(m.contraparte||"—")+'</td>'+
         '<td class="num '+(m.signo==="ent"?"pos":"neg")+'">'+signo+fmt(m.cantidad,0)+'</td>'+
-        '<td class="num">'+(m.cajones!=null?fmt(m.cajones,0):"—")+'</td></tr>';
+        '<td class="num">'+(m.cajones!=null?fmt(m.cajones,1):"—")+'</td></tr>';
     }).join("")+
     '</tbody><tfoot><tr><td colspan="3">'+rows.length+' movimientos</td>'+
     '<td class="num '+clsNum(tot)+'">'+fmt(tot,0)+'</td><td></td></tr></tfoot></table></div>';

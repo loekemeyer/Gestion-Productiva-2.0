@@ -200,12 +200,12 @@ window.GP2Composicion = (function () {
 
     /* ---- bloque de HOY ---- */
     var extra = [];
-    if (kgU) extra.push(fmt(online * kgU, 2) + " kg");
-    if (uxc) extra.push(fmt(online / uxc, 2) + " caj");
+    if (kgU) extra.push(fmt(online * kgU, 0) + " kg");
+    if (uxc) extra.push(fmt(online / uxc, 1) + " caj");
     var act = d.actualizado_en ? dt(d.actualizado_en) : null;
     document.getElementById("cpHoy").innerHTML =
       '<div><div class="cp-k">Stock hoy</div>' +
-        '<div class="cp-big ' + clsNum(online) + '">' + fmt(online, 2) + ' <span style="font-size:15px;font-weight:700">uni</span></div></div>' +
+        '<div class="cp-big ' + clsNum(online) + '">' + fmt(online, 0) + ' <span style="font-size:15px;font-weight:700">uni</span></div></div>' +
       (extra.length ? '<div style="padding-bottom:5px"><div class="cp-k">Equivale a</div><div class="cp-sec">' + extra.join(" · ") + "</div></div>" : "") +
       '<div style="padding-bottom:5px;margin-left:auto"><div class="cp-k">Movimientos</div><div class="cp-sec">' + fmt(total, 0) + "</div></div>" +
       (act ? '<div class="cp-when">Último cambio de stock: ' + esc(act.dia) + " " + esc(act.hora) + "</div>" : "");
@@ -233,16 +233,16 @@ window.GP2Composicion = (function () {
 
       var via = m.via ? ' <span class="cp-cp">(vía ' + esc(m.via) + ")</span>" : "";
       var falt = m.faltante ? ' <span class="cp-f">F</span>' : "";
-      var caj = (m.cajones != null && Number(m.cajones)) ? (" · " + fmt(m.cajones, 0) + " caj") : "";
+      var caj = (m.cajones != null && Number(m.cajones)) ? (" · " + fmt(m.cajones, 1) + " caj") : "";
 
       filas.push(
         "<tr>" +
           '<td class="cp-hora">' + esc(f.hora) + "</td>" +
           '<td><span class="cp-tipo">' + esc(nombreTipo(m.tipo)) + "</span>" + via + falt +
             '<div class="cp-cp">' + esc(m.contraparte || "—") + caj + "</div></td>" +
-          '<td class="num cp-pos">' + (ent ? "+" + fmt(cant, 2) : "") + "</td>" +
-          '<td class="num cp-neg">' + (ent ? "" : "−" + fmt(cant, 2)) + "</td>" +
-          '<td class="num cp-saldo">' + fmt(saldo, 2) + "</td>" +
+          '<td class="num cp-pos">' + (ent ? "+" + fmt(cant, 0) : "") + "</td>" +
+          '<td class="num cp-neg">' + (ent ? "" : "−" + fmt(cant, 0)) + "</td>" +
+          '<td class="num cp-saldo">' + fmt(saldo, 0) + "</td>" +
         "</tr>"
       );
       // el saldo de la fila de arriba (más vieja) es el de ésta menos su propio delta
@@ -259,7 +259,7 @@ window.GP2Composicion = (function () {
           : (arranque === 0
               ? "Arranca en cero: los movimientos de arriba explican todo el stock"
               : "Saldo inicial, cargado sin movimiento")) +
-      '</td><td class="num cp-saldo">' + fmt(arranque, 2) + "</td></tr>"
+      '</td><td class="num cp-saldo">' + fmt(arranque, 0) + "</td></tr>"
     );
 
     body.innerHTML =
