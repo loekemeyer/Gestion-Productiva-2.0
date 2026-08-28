@@ -41,6 +41,13 @@
     td.neg{ color:#b3402f; }
     .empty-msg{ color:#666; font-size:14px; padding:10px 0; }
 
+    /* Resumen general partes x PS */
+    #resumenPS{ margin-top:16px; }
+    .resumen-wrap{ overflow-x:auto; }
+    .resumen-wrap table{ min-width:640px; }
+    .resumen-wrap th.ps-col{ text-align:right; }
+    .resumen-wrap td.vacio{ color:#bbb !important; text-align:right !important; }
+
     /* ---- Panel de carga de movimientos PS (GP2) ---- */
     .gp2-carga{
       background:#f7f9fc;
@@ -188,6 +195,9 @@
       <div id="talleristasGrid" class="talleristas-grid"></div>
     </div>
 
+    <!-- Resumen general: partes en filas, saldo por PS en columnas (vista inicial) -->
+    <div id="resumenPS"></div>
+
     <div id="status" class="status"></div>
 
     <div id="result"></div>
@@ -264,12 +274,61 @@
       });
     }
 
+    // ---- resumen general: partes en filas, saldo por PS en columnas ----
+    function renderResumen(){
+      var elRes = document.getElementById('resumenPS');
+      if(!provs.length){ elRes.innerHTML=''; return; }
+      var labels = provs.map(function(p){
+        return p.nombre_viejo || String(p.nombre||'').split(' ')[0];
+      });
+      var mapa = {};
+      provs.forEach(function(p, i){
+        (p.partes||[]).forEach(function(x){
+          var k = String(x.codigo||'')+'|'+String(x.descripcion||'');
+          if(!mapa[k]) mapa[k] = { codigo:x.codigo, descripcion:x.descripcion, saldos:{} };
+          mapa[k].saldos[i] = (mapa[k].saldos[i]||0) + (Number(x.saldo)||0);
+        });
+      });
+      var filas = Object.keys(mapa).map(function(k){ return mapa[k]; });
+      filas.sort(function(a,b){
+        return String(a.codigo||'').localeCompare(String(b.codigo||''), 'es', { numeric:true });
+      });
+
+      var h = '<h2 style="margin:6px 0 4px">Stock en PS por parte</h2>' +
+              '<div class="prov-meta" style="margin-bottom:10px">' + filas.length +
+              ' partes &middot; saldo actual en cada proveedor (unidades canonicas GP2)</div>' +
+              '<div class="resumen-wrap"><table><thead><tr>' +
+              '<th>#</th><th>Codigo</th><th>Descripcion</th>';
+      labels.forEach(function(l){ h += '<th class="ps-col">'+esc(l)+'</th>'; });
+      h += '</tr></thead><tbody>';
+
+      var tot = provs.map(function(){ return 0; });
+      filas.forEach(function(f, idx){
+        h += '<tr><td>'+(idx+1)+'</td><td>'+esc(f.codigo)+'</td><td>'+esc(f.descripcion)+'</td>';
+        provs.forEach(function(_, i){
+          if(f.saldos[i] === undefined){
+            h += '<td class="vacio">&mdash;</td>';
+          } else {
+            tot[i] += f.saldos[i];
+            h += numCell(f.saldos[i]);
+          }
+        });
+        h += '</tr>';
+      });
+      h += '</tbody><tfoot><tr>' +
+           '<td colspan="3" style="text-align:right;font-weight:bold">TOTALES</td>';
+      provs.forEach(function(_, i){ h += numCell(tot[i]); });
+      h += '</tr></tfoot></table></div>';
+      elRes.innerHTML = h;
+    }
+
     function elegir(p, btn){
       provSel = p;
       Array.prototype.forEach.call(elGrid.querySelectorAll('.tallerista-btn'), function(x){ x.classList.remove('active'); });
       if(btn) btn.classList.add('active');
-      // ocultar los chips del resto: se vuelve con "Cambiar proveedor"
+      // ocultar los chips del resto y el resumen general: se vuelve con "Cambiar proveedor"
       elGrid.classList.add('hidden');
+      document.getElementById('resumenPS').classList.add('hidden');
       // mostrar toolbar de detalle
       btnVolver.classList.remove('hidden');
       elFiltro.classList.remove('hidden');
@@ -403,6 +462,7 @@
       elFiltro.classList.add('hidden');
       btnImpr.classList.add('hidden');
       elGrid.classList.remove('hidden');
+      document.getElementById('resumenPS').classList.remove('hidden');
       Array.prototype.forEach.call(elGrid.querySelectorAll('.tallerista-btn'), function(x){ x.classList.remove('active'); });
       elResult.innerHTML = '';
       elStatus.textContent = '';
@@ -417,6 +477,7 @@
     }
 
     renderGrid();
+    renderResumen();
     pintarProveedores();
 
     // Hook para recargar la grilla tras cargar un movimiento (sin re-enganchar listeners).
@@ -427,9 +488,11 @@
       elFiltro.classList.add('hidden');
       btnImpr.classList.add('hidden');
       elGrid.classList.remove('hidden');
+      document.getElementById('resumenPS').classList.remove('hidden');
       elFiltro.value = '';
       elResult.innerHTML = '';
       renderGrid();
+      renderResumen();
       pintarProveedores();
     };
   }
