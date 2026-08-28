@@ -599,11 +599,23 @@ window.onMat=onMat;window.onParMat=onParMat;window.onProdQty=onProdQty;
 window.onTallEnv=onTallEnv;window.onTallRec=onTallRec;window.onTallVirg=onTallVirg;
 window.onProvEnv=onProvEnv;window.onProvRec=onProvRec;window.onAjComp=onAjComp;
 }
+// Claves que esta pantalla consume del bundle. Si el RPC cambia de forma,
+// queremos un error claro y no selects vacios sin explicacion.
+var __REQ=['sect','ubic','comp','prov_serv','tall','mat','bom_art','bom_comp','rp','c2a'];
+function __chequearBundle(d){
+  if(!d||typeof d!=='object'||Array.isArray(d))
+    return 'movimientos_bundle no devolvio un objeto JSON (llego: '+(Array.isArray(d)?'un array':typeof d)+'). Deberia devolver jsonb, no una fila.';
+  var faltan=__REQ.filter(function(k){var v=d[k];return !v||typeof v!=='object'||Object.keys(v).length===0;});
+  if(faltan.length) return 'El bundle llego sin estas claves (o vacias): '+faltan.join(', ')+'. Claves recibidas: '+(Object.keys(d).join(', ')||'ninguna')+'.';
+  return null;
+}
 async function __boot(){
   try{
     document.body.style.cursor='progress';
     var r=await SB.rpc('movimientos_bundle');
     if(r.error) throw r.error;
+    var problema=__chequearBundle(r.data);
+    if(problema) throw new Error(problema);
     Object.assign(D, r.data);
     __run();
   }catch(e){
