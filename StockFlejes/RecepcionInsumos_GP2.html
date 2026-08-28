@@ -82,6 +82,15 @@
   .rollo-line .x:hover{color:#b42318}
   .calc-line{font-size:18px;color:#444;margin-top:8px}
   .kg-conv{font-size:21px;color:#0b3b73;font-weight:700;text-align:center;padding:6px 0;min-height:28px;letter-spacing:.3px}
+  /* paso 2 anidado: pesaje dentro del mismo popup */
+  .pes-pallet{border:2px solid #d0d7de;border-radius:10px;padding:12px;margin-bottom:12px;background:#fafbfc}
+  .pes-pallet .ph{display:flex;justify-content:space-between;align-items:center;font-weight:800;font-size:18px;margin-bottom:8px}
+  .pes-pallet input{border:2px solid #d0d7de;border-radius:8px;padding:8px 10px;font-size:19px;text-align:center;width:100%}
+  .pes-linea{display:flex;gap:8px;align-items:center;margin-top:6px}
+  .pes-linea .x{cursor:pointer;font-size:18px;color:#b42318;font-weight:800;padding:0 6px}
+  .pes-calc{font-size:15px;margin-top:8px;color:#555}
+  .pes-calc .okc{color:#0a7a2f;font-weight:800} .pes-calc .warnc{color:#b45309;font-weight:800}
+  .pes-add{font-size:15px;font-weight:700;color:#1d4ed8;cursor:pointer;background:none;border:1px dashed #93b4d8;border-radius:8px;padding:6px 10px;margin-top:8px}
 </style>
 <link rel="icon" type="image/png" href="../GP2_favicon.png">
 <link rel="apple-touch-icon" href="../GP2_favicon.png">
@@ -172,28 +181,36 @@
   <div class="kg-modal">
     <h3 id="kgTitle">Cantidad</h3>
     <div class="item-info" id="kgItemInfo"></div>
-    <label style="display:block;margin-bottom:8px;font-size:18px;font-weight:700">Cantidad</label>
-    <input type="text" id="kgValue" inputmode="decimal" placeholder="0,0">
-    <div id="kgConvDisplay" class="kg-conv"></div>
-    <div class="unit-row">
-      <button class="unit-btn" id="unitKg" data-u="kg">Kg</button>
-      <button class="unit-btn" id="unitUni" data-u="uni">Unidades</button>
-    </div>
-    <div id="rolloPallRow" class="hidden" style="margin-bottom:16px">
-      <div style="font-size:17px;color:#555;margin-bottom:8px">Este proveedor informa rollos en el remito. Anotá lo que dice el remito (el control con balanza es después, en ⚖ Control):</div>
-      <div style="display:flex;gap:12px">
-        <div style="flex:1"><label style="font-size:17px;font-weight:700">Rollos</label>
-          <input type="text" id="kgRollos" inputmode="numeric" placeholder="—" style="text-align:center;font-size:24px;padding:10px"></div>
-        <div style="flex:1"><label style="font-size:17px;font-weight:700">Pallets</label>
-          <input type="text" id="kgPallets" inputmode="numeric" placeholder="—" style="text-align:center;font-size:24px;padding:10px"></div>
+
+    <!-- Paso 1 de la recepción: lo que dice el remito -->
+    <div id="cargaWrap">
+      <label style="display:block;margin-bottom:8px;font-size:18px;font-weight:700">Cantidad</label>
+      <input type="text" id="kgValue" inputmode="decimal" placeholder="0,0">
+      <div id="kgConvDisplay" class="kg-conv"></div>
+      <div class="unit-row">
+        <button class="unit-btn" id="unitKg" data-u="kg">Kg</button>
+        <button class="unit-btn" id="unitUni" data-u="uni">Unidades</button>
+      </div>
+      <div id="rolloPallRow" class="hidden" style="margin-bottom:16px">
+        <div style="font-size:17px;color:#555;margin-bottom:8px">Este proveedor informa rollos. Anotá lo que dice el remito — el pesaje en balanza es el paso siguiente de esta misma carga:</div>
+        <div style="display:flex;gap:12px">
+          <div style="flex:1"><label style="font-size:17px;font-weight:700">Rollos</label>
+            <input type="text" id="kgRollos" inputmode="numeric" placeholder="—" style="text-align:center;font-size:24px;padding:10px"></div>
+          <div style="flex:1"><label style="font-size:17px;font-weight:700">Pallets</label>
+            <input type="text" id="kgPallets" inputmode="numeric" placeholder="—" style="text-align:center;font-size:24px;padding:10px"></div>
+        </div>
       </div>
     </div>
+
+    <!-- Paso 2 de la MISMA recepción: el pesaje en balanza. La recepción no
+         está terminada hasta guardar esto. -->
+    <div id="pesajeWrap" class="hidden"></div>
+
     <div class="actions">
       <button class="btn-secondary" id="kgCancel">Cancelar</button>
       <button class="btn-primary" id="kgConfirm">Confirmar</button>
-      <!-- Post-carga: si el proveedor informa rollos, el pesaje es el paso siguiente -->
-      <button class="btn-secondary hidden" id="kgListo">Listo</button>
-      <button class="btn-primary hidden" id="kgPesaje">⚖ Anotar pesaje →</button>
+      <button class="btn-secondary hidden" id="kgDespues">Pesar después</button>
+      <button class="btn-primary hidden" id="kgPesajeOk">✓ Guardar pesaje</button>
     </div>
     <div id="kgMsg" class="status" style="font-size:16px"></div>
   </div>
@@ -329,7 +346,7 @@ function updateConv(){
 $('unitKg').addEventListener('click',()=>setUnit('kg'));
 $('unitUni').addEventListener('click',()=>setUnit('uni'));
 function abrirPopup(i){
-  itemSel=i; PESAJE_PEND=null;
+  itemSel=i;
   resetPiePopup();
   $('kgTitle').textContent='Recepción · '+rubroSel;
   var kx=KGXUNI[i.comp_id];
@@ -345,41 +362,174 @@ function abrirPopup(i){
   $('kgPopup').classList.add('open');
   setTimeout(()=>$('kgValue').focus(),50);
 }
-/* Recepción recién cargada que todavía no tiene el pesaje anotado. */
-var PESAJE_PEND = null;
+/* ============================================================
+   PASO 2 ANIDADO: el pesaje en balanza dentro del mismo popup.
+   Carga y pesaje son UNA sola tarea: la recepción no está
+   terminada hasta guardar el pesaje. "Pesar después" la deja
+   explícitamente PENDIENTE (se retoma en ⚖ Control).
+   ============================================================ */
+var PES = null;   // {recId, pallets:{nro:{peso, rollos:[{c,k}]}}}
 
-/* Vuelve el pie del popup al estado inicial (Cancelar / Confirmar). */
+/* Vuelve el popup al estado inicial (paso 1: Cancelar / Confirmar). */
 function resetPiePopup(){
+  PES = null;
+  $('cargaWrap').classList.remove('hidden');
+  $('pesajeWrap').classList.add('hidden');
+  $('pesajeWrap').innerHTML='';
   $('kgConfirm').classList.remove('hidden'); $('kgConfirm').disabled=false;
   $('kgCancel').classList.remove('hidden');
-  $('kgListo').classList.add('hidden');
-  $('kgPesaje').classList.add('hidden');
+  $('kgDespues').classList.add('hidden');
+  $('kgPesajeOk').classList.add('hidden');
 }
 
 function cerrarPopup(){
   $('kgPopup').classList.remove('open');
-  itemSel=null; PESAJE_PEND=null;
+  itemSel=null;
   resetPiePopup();
   $('kgMsg').textContent=''; $('kgMsg').className='status';
 }
 $('kgCancel').addEventListener('click',cerrarPopup);
-$('kgListo').addEventListener('click',cerrarPopup);
 
-/* Paso siguiente: ir directo a anotar el pesaje de esta recepción. */
-$('kgPesaje').addEventListener('click', async function(){
-  var rid = PESAJE_PEND;
-  cerrarPopup();
-  if (!rid) return;
-  await cargar();                      // trae la recepción nueva a RECS
-  $('step1').classList.add('hidden');
-  $('step2').classList.add('hidden');
-  $('step3').classList.remove('hidden');
-  pintarControl();
-  var r = RECS.find(function(x){ return x.recepcion_id===rid; });
-  if (r) abrirEdicionCtl(r);
-  else $('ctlMsg') && ($('ctlMsg').textContent='No se encontró la recepción recién cargada.');
+/* Arma el paso 2 con los pallets declarados en el remito (o 1 si no dijo). */
+function montarPesaje(recId, nPallets){
+  PES = { recId: recId, pallets: {} };
+  var n = Math.max(1, nPallets||1);
+  for (var i=1; i<=n; i++) PES.pallets[i] = { peso:'', rollos:[{c:'',k:''}] };
+  $('kgTitle').textContent = 'Pesaje en balanza · paso 2 de 2';
+  $('cargaWrap').classList.add('hidden');
+  $('kgConfirm').classList.add('hidden');
+  $('kgCancel').classList.add('hidden');
+  $('kgDespues').classList.remove('hidden');
+  $('kgPesajeOk').classList.remove('hidden');
+  $('kgMsg').className='status';
+  $('kgMsg').innerHTML='<span style="color:#0a7a2f;font-weight:800">✓ Remito cargado.</span> '+
+    'La recepción se termina con el pesaje: por cada pallet, el peso de balanza y las líneas de rollos.';
+  $('pesajeWrap').classList.remove('hidden');
+  pintarPesaje();
+}
+
+function pintarPesaje(){
+  var w=$('pesajeWrap');
+  w.innerHTML = Object.keys(PES.pallets).sort((a,b)=>a-b).map(function(nro){
+    var p=PES.pallets[nro];
+    var k=calcPallet(p);
+    var calcTxt = k.sob!=null
+      ? ('Rollos <b>'+k.rollos+'</b> · suma <b>'+fmt(k.kg)+' kg</b> · sobrante '+
+         '<span class="'+(k.estado==='ok'?'okc':'warnc')+'">'+fmt(k.sob)+' kg</span> (esperado '+k.tmin+'–'+k.tmax+')')
+      : 'Completá el peso de balanza y al menos una línea de rollos.';
+    return '<div class="pes-pallet" data-p="'+nro+'">'+
+      '<div class="ph"><span>Pallet '+nro+'</span></div>'+
+      '<label style="font-size:15px;font-weight:700">Peso de balanza (kg)</label>'+
+      '<input inputmode="decimal" data-f="peso" value="'+esc(p.peso)+'" placeholder="0,0">'+
+      p.rollos.map(function(l,idx){
+        return '<div class="pes-linea" data-l="'+idx+'">'+
+          '<input inputmode="numeric" data-f="c" value="'+esc(l.c)+'" placeholder="rollos" style="flex:1">'+
+          '<span style="font-weight:800">×</span>'+
+          '<input inputmode="decimal" data-f="k" value="'+esc(l.k)+'" placeholder="kg/rollo" style="flex:1">'+
+          '<span class="x" data-del="1" title="Quitar línea">✕</span></div>';
+      }).join('')+
+      '<button type="button" class="pes-add" data-addl="1">+ línea de rollos</button>'+
+      '<div class="pes-calc">'+calcTxt+'</div>'+
+    '</div>';
+  }).join('')+
+  '<button type="button" class="pes-add" data-addp="1">+ pallet</button>';
+}
+
+/* Delegación: inputs y botones del paso 2 (el DOM se re-arma seguido). */
+$('pesajeWrap').addEventListener('input', function(e){
+  var pb=e.target.closest('.pes-pallet'); if(!pb||!PES) return;
+  var p=PES.pallets[pb.dataset.p]; if(!p) return;
+  var f=e.target.dataset.f;
+  if(f==='peso') p.peso=e.target.value;
+  else{
+    var ln=e.target.closest('.pes-linea'); if(!ln) return;
+    p.rollos[Number(ln.dataset.l)][f]=e.target.value;
+  }
+  // refrescar solo la línea de cálculo (sin re-render, para no perder el foco)
+  var k=calcPallet(p);
+  pb.querySelector('.pes-calc').innerHTML = k.sob!=null
+    ? ('Rollos <b>'+k.rollos+'</b> · suma <b>'+fmt(k.kg)+' kg</b> · sobrante '+
+       '<span class="'+(k.estado==='ok'?'okc':'warnc')+'">'+fmt(k.sob)+' kg</span> (esperado '+k.tmin+'–'+k.tmax+')')
+    : 'Completá el peso de balanza y al menos una línea de rollos.';
 });
-$('kgPopup').addEventListener('click',e=>{ if(e.target===$('kgPopup')) cerrarPopup(); });
+$('pesajeWrap').addEventListener('click', function(e){
+  if(!PES) return;
+  if(e.target.dataset.addp){
+    var ns=Object.keys(PES.pallets).map(Number);
+    PES.pallets[Math.max.apply(null,ns.concat([0]))+1]={peso:'',rollos:[{c:'',k:''}]};
+    pintarPesaje(); return;
+  }
+  var pb=e.target.closest('.pes-pallet'); if(!pb) return;
+  var p=PES.pallets[pb.dataset.p]; if(!p) return;
+  if(e.target.dataset.addl){ p.rollos.push({c:'',k:''}); pintarPesaje(); return; }
+  if(e.target.dataset.del){
+    var ln=e.target.closest('.pes-linea');
+    p.rollos.splice(Number(ln.dataset.l),1);
+    if(!p.rollos.length) p.rollos=[{c:'',k:''}];
+    pintarPesaje(); return;
+  }
+});
+
+/* Dejar pendiente: la recepción queda SIN terminar, se retoma en ⚖ Control. */
+$('kgDespues').addEventListener('click', function(){
+  cerrarPopup();
+  var m=$('statusMsg');
+  m.className='status bad';
+  m.textContent='⚠ Recepción cargada pero SIN pesaje: queda pendiente. Se termina en ⚖ Control.';
+  setTimeout(function(){ m.textContent=''; m.className='status'; }, 8000);
+});
+
+/* Guardar pesaje: cierra la recepción. Alerta si el sobrante se va de 4–8,
+   pero deja guardar igual (queda marcado para revisar). */
+$('kgPesajeOk').addEventListener('click', async function(){
+  if(!PES) return;
+  var m=$('kgMsg');
+  var nros=Object.keys(PES.pallets).sort((a,b)=>a-b);
+  var listos=nros.filter(function(nro){
+    var p=PES.pallets[nro];
+    return pnum(p.peso)>0 && p.rollos.some(function(l){ return pint(l.c)>0 && pnum(l.k)>0; });
+  });
+  if(!listos.length){ m.className='status bad'; m.textContent='Cargá al menos un pallet: peso de balanza + rollos.'; return; }
+
+  var fuera=[];
+  listos.forEach(function(nro){
+    var k=calcPallet(PES.pallets[nro]);
+    if(k.sob!=null && k.estado!=='ok')
+      fuera.push('Pallet '+nro+': sobrante '+fmt(k.sob)+' kg ('+k.estado+', esperado '+k.tmin+'–'+k.tmax+')');
+  });
+  if(fuera.length && !confirm(
+      '⚠ El sobrante no da el peso de un pallet en:\n\n'+fuera.join('\n')+
+      '\n\nPuede ser un rollo mal anotado o un error de balanza.\nSe puede guardar igual y corregirlo después.\n\n¿Guardar así?')) return;
+
+  $('kgPesajeOk').disabled=true;
+  m.className='status'; m.textContent='Guardando pesaje…';
+  var errs=[], ok=0;
+  for (var i=0;i<listos.length;i++){
+    var nro=listos[i], p=PES.pallets[nro];
+    var lineas=p.rollos.map(function(l){ return {cantidad:pint(l.c),kg_por_rollo:pnum(l.k)}; })
+                       .filter(function(l){ return l.cantidad>0 && l.kg_por_rollo>0; });
+    try{
+      var r=await SB.rpc('pesar_pallet',{p_recepcion_id:PES.recId,p_nro_pallet:Number(nro),
+        p_peso_balanza:pnum(p.peso),p_rollos:lineas,p_usuario:null});
+      if(r.error) throw r.error;
+      ok++;
+    }catch(e){ errs.push('Pallet '+nro+': '+(e.message||e)); }
+  }
+  $('kgPesajeOk').disabled=false;
+  if(errs.length){ m.className='status bad'; m.textContent=errs.join(' · '); return; }
+
+  // Recién acá la recepción está TERMINADA (paso 1 + paso 2).
+  var sb=$('successBox'); sb.style.display='block';
+  $('successBox').querySelector('.title').textContent='✓ Recepción completa';
+  $('successDetail').innerHTML='Remito cargado y '+ok+' pallet'+(ok===1?'':'s')+' pesado'+(ok===1?'':'s')+
+    (fuera.length?(' · <b style="color:#b45309">'+fuera.length+' con sobrante fuera de rango (a revisar)</b>'):'')+'.';
+  cerrarPopup();
+  setTimeout(function(){ sb.style.display='none'; },7000);
+  await cargar();
+});
+// En el paso 2 el click en el fondo NO cierra: la recepción quedaría a medias
+// sin que el usuario lo note. Ahí se sale solo con "Pesar después" o guardando.
+$('kgPopup').addEventListener('click',e=>{ if(e.target===$('kgPopup') && !PES) cerrarPopup(); });
 $('kgConfirm').addEventListener('click',guardar);
 
 async function guardar(){
@@ -403,35 +553,29 @@ async function guardar(){
       p_cantidad:cant, p_unidad:uReal, p_remito:$('txtRemito').value||null,
       p_rollos:rll, p_pallets:pll, p_fecha:fiso});
     if(res.error) throw res.error;
-    var sb=$('successBox'); sb.style.display='block';
-    var detUni= (uReal==='kg'&&kx&&unitSel==='uni') ? (fmt(cantRaw)+' uni = <b>'+fmt(cant)+' kg</b>') : '<b>'+fmt(cant)+' '+esc(uReal)+'</b>';
-    $('successDetail').innerHTML=esc(itemSel.codigo)+' — '+esc(itemSel.descripcion||'')+' · '+detUni+(provSel?(' ('+esc(provSel)+')'):'')+'. Stock actualizado. Mov '+(res.data&&res.data.movimiento_id)+'.';
     // Actualizar en el acto la última carga del insumo, así el botón la muestra
     // sin tener que recargar la pantalla.
     itemSel.ultima = { fecha:(fiso||new Date().toISOString()), cantidad:cant, unidad:uReal,
                        rollos:rll, pallets:pll, remito:$('txtRemito').value||null, proveedor:provSel||null };
     var ref = INS.filter(function(x){ return x.comp_id===itemSel.comp_id; })[0];
     if (ref) ref.ultima = itemSel.ultima;
+    filtrarItems();
 
-    // Si el proveedor informa rollos, el pesaje en balanza es el paso siguiente:
-    // en vez de cerrar, el popup ofrece ir directo a anotarlo.
+    // Con proveedor que informa rollos, la recepción NO termina acá: el mismo
+    // popup pasa al paso 2 (pesaje en balanza). El éxito recién se muestra
+    // cuando el pesaje quedó guardado.
     var recId = res.data && res.data.recepcion_id;
     if (pide && recId){
-      PESAJE_PEND = recId;
-      $('kgMsg').className='status';
-      $('kgMsg').innerHTML='<span style="color:#0a7a2f;font-weight:800">✓ Recepción cargada.</span> '+
-        'Falta el pesaje en balanza de '+(pll?('los '+pll+' pallet'+(pll===1?'':'s')):'los pallets')+'.';
-      $('kgConfirm').classList.add('hidden');
-      $('kgCancel').classList.add('hidden');
-      $('kgListo').classList.remove('hidden');
-      $('kgPesaje').classList.remove('hidden');
-      filtrarItems();
-      setTimeout(()=>{sb.style.display='none';},6000);
-      return;                       // el popup queda abierto en el paso 2
+      montarPesaje(recId, pll);
+      return;
     }
 
+    // Sin rollos (cajas, plásticos, etc.): la carga sola completa la recepción.
+    var sb=$('successBox'); sb.style.display='block';
+    $('successBox').querySelector('.title').textContent='✓ Recepción registrada';
+    var detUni= (uReal==='kg'&&kx&&unitSel==='uni') ? (fmt(cantRaw)+' uni = <b>'+fmt(cant)+' kg</b>') : '<b>'+fmt(cant)+' '+esc(uReal)+'</b>';
+    $('successDetail').innerHTML=esc(itemSel.codigo)+' — '+esc(itemSel.descripcion||'')+' · '+detUni+(provSel?(' ('+esc(provSel)+')'):'')+'. Stock actualizado. Mov '+(res.data&&res.data.movimiento_id)+'.';
     cerrarPopup();
-    filtrarItems();
     setTimeout(()=>{sb.style.display='none';},6000);
   }catch(e){ m.className='status bad'; m.textContent='Error: '+(e.message||e); }
   finally{ $('kgConfirm').disabled=false; }
