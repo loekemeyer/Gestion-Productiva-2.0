@@ -1,0 +1,381 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <script src="../auth-guard.js"></script>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Selector</title>
+
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+      padding: 21px 18px;
+      min-height: 100vh;
+      color: #1e293b;
+    }
+
+    .page-layout {
+      position: relative;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: auto;
+      display: flex;
+      gap: 18px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    .card {
+      flex: 1 1 390px;
+      background: rgba(255, 255, 255, 0.97);
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      border-radius: 23px;
+      padding: 24px 21px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+      backdrop-filter: blur(10px);
+      transition: all 0.3s cubic-bezier(0.23, 1, 0.320, 1);
+    }
+
+    .card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 12px 48px rgba(0, 0, 0, 0.3);
+    }
+
+    h2 {
+      margin: 0 0 6px;
+      font-size: 18px;
+      font-weight: 800;
+      text-align: center;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 9px;
+      padding-bottom: 16px;
+      border-bottom: 2px solid #f1f5f9;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      cursor: pointer;
+      user-select: none;
+      position: relative;
+    }
+    h2::after {
+      content: '▲';
+      font-size: 12px;
+      color: #94a3b8;
+      transition: transform 0.3s;
+      position: absolute;
+      right: 4px;
+    }
+    h2.collapsed::after {
+      transform: rotate(180deg);
+    }
+
+    .card-icon {
+      width: 24px;
+      height: 24px;
+      flex-shrink: 0;
+    }
+
+    .botones {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+      align-items: center;
+      overflow: hidden;
+      max-height: 500px;
+      transition: max-height 0.35s ease, opacity 0.25s ease;
+      opacity: 1;
+    }
+    .botones.collapsed {
+      max-height: 0;
+      opacity: 0;
+    }
+
+    .btn-opcion {
+      width: 100%;
+      max-width: 312px;
+      height: 47px;
+      border-radius: 14px;
+      border: 1.5px solid #e2e8f0;
+      background: #f8fafc;
+      font-size: 15px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      color: #1e293b;
+    }
+
+    .btn-opcion:hover {
+      border-color: #111;
+      background: #111;
+      color: #fff;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(17, 17, 17, 0.15);
+    }
+
+  </style>
+<link rel="icon" type="image/png" href="../GP2_favicon.png">
+<link rel="apple-touch-icon" href="../GP2_favicon.png">
+<link rel="stylesheet" href="../gp2-claro.css">
+</head>
+
+<body>
+<div id="gp2-logobar" style="background:#0b1220;text-align:center;padding:6px 0;border-bottom:1px solid #1c2836"><a href="../GP2_MODULOS.html" style="text-decoration:none"><img src="../GP2_logo.png" alt="GP2 · Gestión Productiva" style="height:40px;vertical-align:middle"></a></div>
+
+
+
+  <div class="page-layout">
+  <div class="container">
+
+    <!-- TALLERISTA -->
+    <div class="card">
+      <h2><svg class="card-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 1 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path></svg>Tallerista</h2>
+
+      <div class="botones">
+        <button class="btn-opcion" data-link="../Talleristas/Control Tall/ControlTall.html">Control</button>
+
+        <button class="btn-opcion" data-link="../Talleristas/Envios/EnviosTall.html">Envío</button>
+
+        <button class="btn-opcion" data-link="../Talleristas/Recepcion/Recepcion Cervantes.html">Entrega Cervantes</button>
+
+        <button class="btn-opcion" data-link="../Talleristas/Recepcion/Devolucion Cervantes.html">Devolución Cervantes</button>
+
+        <button class="btn-opcion" data-link="../Talleristas/Recepcion/Entrega Cervantes Fotos.html">Entrega Cervantes Fotos</button>
+
+        <button class="btn-opcion" data-link="../Talleristas/Recepcion/Recepcion Virgilio.html">Entrega Virgilio</button>
+
+        <button class="btn-opcion" data-link="../Talleristas/ABM Articulos/ABMArticulosTall.html">ABM Articulos</button>
+
+        <button class="btn-opcion" data-link="../Talleristas/Proporciones/index.html">Proporciones</button>
+
+        <button class="btn-opcion" data-link="../Talleristas/Faltante Partes Tallerista/index.html">Faltante Partes</button>
+      </div>
+    </div>
+
+    <!-- PS -->
+    <div class="card">
+      <h2><svg class="card-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></svg>PS</h2>
+
+      <div class="botones">
+        <button class="btn-opcion" data-link="../Prov Serv/Control/ControlPS.html">Control</button>
+
+        <button class="btn-opcion" data-link="../Prov Serv/Envios/EnviosPS.html">Envío</button>
+
+        <button class="btn-opcion" data-link="../Prov Serv/Entregas/EntregaPS.html">Entrega</button>
+      </div>
+    </div>
+
+    <!-- PROV ART TERMINADO -->
+    <div class="card">
+      <h2><svg class="card-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>Prov. Art. Terminado</h2>
+
+      <div class="botones">
+        <button class="btn-opcion" data-link="../Prov Art Terminado/Control/ControlAT.html">Control</button>
+
+        <button class="btn-opcion" data-link="../Prov Art Terminado/Envios/EnviosAT.html">Envío Cartón/Cajas</button>
+
+        <button class="btn-opcion" data-link="../Prov Art Terminado/Entregas/EntregasAT.html">Entrega Art. Terminado</button>
+      </div>
+    </div>
+
+    <!-- CONTROL ENVIOS Y ENTREGAS -->
+    <div class="card">
+      <h2><svg class="card-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3h18v4H3z"/><path d="M3 7v14h18V7"/><path d="M8 11h8"/><path d="M8 15h5"/></svg>Control Envíos y Entregas</h2>
+
+      <div class="botones">
+        <button class="btn-opcion" data-link="../Control Envios y Entregas/index.html">Abrir</button>
+        <button class="btn-opcion" data-link="../Control Envios y Entregas/stock.html">Stock Online</button>
+        <button class="btn-opcion" data-link="../Control Envios y Entregas/exportar.html">Exportar datos</button>
+      </div>
+    </div>
+
+    <!-- STOCKS -->
+    <div class="card">
+      <h2><svg class="card-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>Stocks</h2>
+
+      <div class="botones">
+        <button class="btn-opcion" data-link="../StockSP/StockSP.html">Stock SP</button>
+
+        <button class="btn-opcion" data-link="../StockSC/StockSC.html">Stock SC</button>
+
+        <button class="btn-opcion" data-link="../StockMovimiento/StockMovimiento.html">Stock en Movimiento</button>
+
+        <button class="btn-opcion" data-link="../StockTransitoPS/index.html">Stock Transito PS</button>
+
+        <button class="btn-opcion" data-link="../Stocks General/StocksGeneral.html">Stocks general</button>
+
+        <button class="btn-opcion" data-link="../Verificacion/verificacion.html" style="background:linear-gradient(135deg,#7c3aed,#a855f7);color:#fff;border-color:#7c3aed">Verificacion Integridad</button>
+        <button class="btn-opcion" data-link="../VerifMadres/VerifMadres.html" style="background:linear-gradient(135deg,#dc2626,#f87171);color:#fff;border-color:#dc2626">Verificacion Madres</button>
+      </div>
+    </div>
+
+    <!-- PRODUCCION -->
+    <div class="card">
+      <h2><svg class="card-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="1"></circle><circle cx="19" cy="12" r="1"></circle><circle cx="5" cy="12" r="1"></circle></svg>Producción</h2>
+
+      <div class="botones">
+        <button class="btn-opcion" data-link="../Produccion/RegistroApp/index.html">Registro Produccion</button>
+        <button class="btn-opcion" data-link="../Informes/index.html">Informes Produccion</button>
+        <button class="btn-opcion" data-link="../Produccion/InformesVirgilio/index.html">Informes Producción Virgilio</button>
+        <button class="btn-opcion" id="btnDisruptivas" data-link="../Disruptivas/index.html">Producciones Disruptivas</button>
+        <button class="btn-opcion" data-link="../Produccion/maestro.html">Maestro Produccion</button>
+        <button class="btn-opcion" data-link="../Produccion/abm.html">ABM Operarios</button>
+        <button class="btn-opcion" data-link="../Produccion/monitor.html">Monitor en Vivo</button>
+        <button class="btn-opcion" data-link="../Produccion/monitor2.html">Monitor en Vivo 2.0</button>
+        <button class="btn-opcion" data-link="../Produccion/tiempos.html">Tiempos Matrices</button>
+        <button class="btn-opcion" data-link="../Produccion/ProblemasMatrices/index.html">Problemas con Matrices</button>
+        <button class="btn-opcion" data-link="../Produccion/entrevistas.html">Entrevistas</button>
+      </div>
+    </div>
+
+    <!-- DESPIECE -->
+    <div class="card">
+      <h2><svg class="card-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7v10c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V7l-10-5z"></path><polyline points="10 17 14 13 10 9"></polyline></svg>Despiece</h2>
+
+      <div class="botones">
+        <button class="btn-opcion" data-link="../Despiece/Despiece.html">Despiece x Artículo</button>
+      </div>
+    </div>
+
+    <!-- CONTROL CARGA REMITOS -->
+    <div class="card">
+      <h2><svg class="card-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>Control Carga Remitos</h2>
+
+      <div class="botones">
+        <button class="btn-opcion" data-link="../ControlRemitos/index.html">Ver Cargas</button>
+      </div>
+    </div>
+
+    <!-- FACTURAS -->
+    <div class="card">
+      <h2><svg class="card-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>Facturas</h2>
+
+      <div class="botones">
+        <button class="btn-opcion" data-link="../Facturas/index.html">Lectura de Facturas Entrantes</button>
+
+        <button class="btn-opcion" data-link="../Facturas/EntregaProveedoresCervantes.html">Entrega Proveedores Cervantes</button>
+      </div>
+    </div>
+
+    <!-- INSUMOS -->
+    <div class="card">
+      <h2><svg class="card-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>Insumos</h2>
+
+      <div class="botones">
+        <button class="btn-opcion" data-link="../StockFlejes/recepcion.html" style="background:#111;color:#fff;border-color:#111">Recepción Insumos</button>
+        <button class="btn-opcion" data-link="../StockFlejes/cajas.html">Cajas</button>
+        <button class="btn-opcion" data-link="../StockFlejes/flejes.html">Flejes</button>
+        <button class="btn-opcion" data-link="../StockFlejes/cartones.html">Cartones</button>
+        <button class="btn-opcion" data-link="../StockFlejes/plasticos.html">Partes Plásticas</button>
+        <button class="btn-opcion" data-link="../StockFlejes/remaches.html">Remaches</button>
+        <button class="btn-opcion" data-link="../StockFlejes/bombillas.html">Bombillas</button>
+        <button class="btn-opcion" data-link="../StockFlejes/garage.html">Garage</button>
+      </div>
+    </div>
+
+    <!-- RELEVAMIENTO -->
+    <div class="card">
+      <h2><svg class="card-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 2h6a2 2 0 0 1 2 2h1a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h1a2 2 0 0 1 2-2z"/><path d="M9 4h6"/><path d="M9 12h6"/><path d="M9 16h4"/></svg>Relevamiento</h2>
+
+      <div class="botones">
+        <button class="btn-opcion" data-link="../Relevamiento/relevamiento.html" style="background:#111;color:#fff;border-color:#111">Relevamientos</button>
+      </div>
+    </div>
+
+    <!-- VENTAS -->
+    <div class="card">
+      <h2><svg class="card-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11H7a4 4 0 0 0-4 4v2a2 2 0 0 0 2 2h2m6-10h2a4 4 0 0 1 4 4v2a2 2 0 0 1-2 2h-2m-6-4a3 3 0 1 1 6 0 3 3 0 0 1-6 0Z"/></svg>Ventas</h2>
+
+      <div class="botones">
+        <button class="btn-opcion" data-link="../Ventas Chat/index.html">Chat Bot Ventas</button>
+      </div>
+    </div>
+
+  </div>
+
+  </div>
+
+  <div id="kpiResumen" style="position:fixed;left:50%;transform:translateX(-50%);bottom:10px;color:#cbd5e1;font-size:12px;font-weight:600;letter-spacing:.3px;z-index:50;pointer-events:none;background:rgba(15,23,42,.55);padding:4px 12px;border-radius:999px;backdrop-filter:blur(6px)"></div>
+  <div id="appVersion" style="position:fixed;right:12px;bottom:10px;color:#94a3b8;font-size:12px;font-weight:600;letter-spacing:.5px;z-index:50;pointer-events:none"></div>
+  <!-- Píxeles UTILIZABLES de la página (viewport del navegador), no la resolución de pantalla. -->
+  <div id="viewportPx" style="position:fixed;right:12px;bottom:26px;color:#94a3b8;font-size:12px;font-weight:600;letter-spacing:.5px;z-index:50;pointer-events:none"></div>
+  <script>
+    (function () {
+      var el = document.getElementById("viewportPx");
+      function upd() { if (el) el.textContent = document.documentElement.clientWidth + "×" + document.documentElement.clientHeight + " px"; }
+      window.addEventListener("resize", upd);
+      upd();
+    })();
+  </script>
+
+  <script src="../version.js?v=20260617b"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script>
+    document.querySelectorAll(".btn-opcion").forEach(btn => {
+      btn.addEventListener("click", () => {
+        window.location.href = btn.dataset.link;
+      });
+    });
+
+    // MIGRADO a schema GP2: la data viva del dashboard sale del RPC "GP2".inicio_bundle()
+    // (deriva de "GP2".produccion y "GP2".matriz, espejo de la produccion vieja).
+    // Devuelve: dia {uni,registros,empleados,matrices}, mes {...}, alertas {disruptivas_mes, matrices_sin_tiempo}.
+    const sb = supabase.createClient(
+      "https://hrxfctzncixxqmpfhskv.supabase.co",
+      "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhyeGZjdHpuY2l4eHFtcGZoc2t2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI3MjQyNjEsImV4cCI6MjA4ODMwMDI2MX0.4L6wguch8UZGhC2VpzrWcCjJGUV-IkYsl9JoCWrOLUs",
+      { db: { schema: 'GP2' } }
+    );
+
+
+    // Un solo RPC trae toda la data viva del dashboard (KPIs dia/mes + alertas).
+    (async () => {
+      try {
+        const { data: bundle, error } = await sb.rpc("inicio_bundle");
+        if (error) { console.error(error); return; }
+        if (!bundle) return;
+
+        // --- Badge disruptivas pendientes del mes ---
+        const nDisrup = Number(bundle.alertas && bundle.alertas.disruptivas_mes) || 0;
+        const btn = document.getElementById("btnDisruptivas");
+        if (btn && nDisrup > 0) btn.textContent = `Producciones Disruptivas (${nDisrup})`;
+
+        // --- KPIs resumen (dia/mes) inyectados en la barra de version ---
+        const d = bundle.dia || {}, m = bundle.mes || {};
+        const kpi = document.getElementById("kpiResumen");
+        if (kpi) {
+          const fmt = (v) => Number(v || 0).toLocaleString("es-AR");
+          kpi.innerHTML =
+            `Hoy: <strong>${fmt(d.uni)}</strong> uni · ${fmt(d.registros)} reg · ${fmt(d.empleados)} oper` +
+            ` &nbsp;|&nbsp; Mes: <strong>${fmt(m.uni)}</strong> uni · ${fmt(m.registros)} reg · ${fmt(m.empleados)} oper`;
+        }
+      } catch (e) { console.error(e); }
+    })();
+
+  </script>
+
+  <script>
+    // Toggle desplegable de modulos - colapsados por default, click en toda la card
+    document.querySelectorAll('.card').forEach(card => {
+      const h2 = card.querySelector('h2');
+      const botones = card.querySelector('.botones');
+      if (!h2 || !botones) return;
+      h2.classList.add('collapsed');
+      botones.classList.add('collapsed');
+      card.style.cursor = 'pointer';
+      card.addEventListener('click', (e) => {
+        if (e.target.closest('.btn-opcion')) return;
+        h2.classList.toggle('collapsed');
+        botones.classList.toggle('collapsed');
+      });
+    });
+  </script>
+
+</body>
+</html>

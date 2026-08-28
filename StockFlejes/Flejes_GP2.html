@@ -1,0 +1,223 @@
+<!doctype html>
+<html lang="es">
+<head>
+<script src="../auth-guard.js"></script>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Stock Flejes · GP2</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:Arial,sans-serif;background:#f5f6f8;padding:12px;color:#111}
+  .card{max-width:960px;margin:auto;background:#fff;border-radius:12px;box-shadow:0 2px 12px rgba(0,0,0,.08);overflow:hidden}
+  .header{background:#1a1a1a;color:#fff;padding:14px 18px;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+  .header h1{font-size:24px;font-weight:700;letter-spacing:.3px}
+  .header .hbtns{display:flex;gap:8px}
+  .header button,.header a{background:#fff;color:#111;border:none;padding:8px 14px;border-radius:6px;font-weight:700;cursor:pointer;font-size:18px;text-decoration:none}
+
+  .steps{padding:14px 18px}
+  .row{display:flex;gap:10px;flex-wrap:wrap;margin:10px 0;align-items:center}
+  label.lbl{font-weight:800;font-size:20px;min-width:80px}
+  input[type="text"]{height:40px;border:2px solid #d0d7de;border-radius:8px;padding:0 10px;font-size:20px;width:280px}
+
+  .btn{padding:10px 16px;border-radius:8px;border:none;font-weight:800;cursor:pointer;font-size:20px}
+  .btn-primary{background:#111;color:#fff}
+  .btn-secondary{background:#fff;border:2px solid #d0d7de;color:#111}
+
+  .status{margin:8px 0;font-size:18px;color:#555;min-height:10px}
+
+  .provs-grid{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0}
+  .prov-btn{padding:8px 14px;border-radius:8px;border:2px solid #d0d7de;background:#fff;font-weight:700;cursor:pointer;font-size:19px;color:#111}
+  .prov-btn.active{background:#111;color:#fff;border-color:#111}
+
+  .seg{display:flex;gap:6px;flex-wrap:wrap}
+  .seg .prov-btn{font-size:16px;padding:6px 12px}
+
+  .items-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:12px;margin:12px 0}
+  .item-btn{padding:14px 10px;background:#fff;border:2px solid #d0d7de;border-radius:10px;cursor:pointer;text-align:center;transition:all .15s;overflow:hidden;position:relative}
+  .item-btn:hover{border-color:#111;background:#f6f8fa}
+  .item-btn .code{display:block;font-size:26px;font-weight:900;color:#0066cc}
+  .item-btn .desc{display:block;font-size:17px;color:#111;margin-top:6px;font-weight:700;line-height:1.2;white-space:normal;overflow-wrap:anywhere}
+  .item-btn .med{display:block;font-size:16px;color:#0b3b73;margin-top:6px;font-weight:700}
+  .item-btn .stk{display:block;font-size:19px;margin-top:10px;font-weight:900}
+  .item-btn .stk.ok{color:#0a7a2f}
+  .item-btn .stk.low{color:#b45309}
+  .item-btn .stk.zero{color:#98a2b3}
+  .item-btn .mn{display:block;font-size:14px;color:#667085;margin-top:4px}
+  .item-btn .ped{color:#b42318;font-weight:800}
+  .item-btn .ed{position:absolute;top:6px;right:8px;font-size:14px;color:#1d4ed8;border:1px solid #cbd5e1;border-radius:6px;padding:1px 6px;background:#fff}
+  .empty{color:#888;padding:16px;text-align:center;font-style:italic;font-size:18px}
+
+  /* modal edición */
+  .modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.5);display:none;align-items:center;justify-content:center;z-index:200;padding:16px}
+  .modal-bg.on{display:flex}
+  .modal{background:#fff;border-radius:14px;padding:26px;max-width:480px;width:100%;box-shadow:0 12px 40px rgba(0,0,0,.3)}
+  .modal h3{margin:0 0 4px;font-size:24px;color:#111}
+  .modal .sub{color:#667085;font-size:15px;margin-bottom:14px}
+  .modal .fr{margin-bottom:11px}
+  .modal .fr label{display:block;font-size:14px;color:#475569;margin-bottom:4px;font-weight:700}
+  .modal .fr input{width:100%;background:#fff;color:#111;border:2px solid #d0d7de;border-radius:8px;padding:10px 12px;font-size:18px}
+  .actions{display:flex;gap:10px;justify-content:flex-end;margin-top:16px}
+  #toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#0a7a2f;color:#fff;padding:12px 20px;border-radius:8px;font-size:17px;font-weight:700;z-index:300;opacity:0;transition:opacity .2s;pointer-events:none}
+  #toast.on{opacity:1} #toast.err{background:#b42318}
+</style>
+<link rel="icon" type="image/png" href="../GP2_favicon.png">
+<link rel="apple-touch-icon" href="../GP2_favicon.png">
+</head>
+<body>
+
+<div class="card">
+  <div class="header">
+    <h1>Stock Flejes</h1>
+    <div class="hbtns">
+      <a href="../Stocks General/StockGeneral_GP2.html">Ver stock</a>
+      <a href="../Inicio/index.html">Atrás</a>
+    </div>
+  </div>
+
+  <div class="steps">
+    <div class="row"><label class="lbl">Proveedor</label></div>
+    <div class="provs-grid" id="provGrid"></div>
+
+    <div class="row" style="margin-top:4px">
+      <input type="text" id="q" placeholder="Buscar N°, código, parte o medida…" oninput="render()">
+      <div class="seg" id="segStock">
+        <button class="prov-btn active" data-st="todos">Todos</button>
+        <button class="prov-btn" data-st="con">Con stock</button>
+        <button class="prov-btn" data-st="sin">Sin stock</button>
+        <button class="prov-btn" data-st="bajo">Bajo mínimo</button>
+      </div>
+    </div>
+
+    <div class="status" id="status">Cargando…</div>
+    <div class="items-grid" id="itemsGrid"></div>
+    <div id="itemsEmpty" class="empty" style="display:none">Sin flejes que coincidan.</div>
+  </div>
+</div>
+
+<div class="modal-bg" id="modalBg">
+  <div class="modal">
+    <h3 id="mTit">Editar fleje</h3>
+    <div class="sub" id="mSub"></div>
+    <div class="fr"><label>Parte que produce</label><input id="mParte" placeholder="ej. Mgo Plano Manija"></div>
+    <div class="fr"><label>Proveedor</label><input id="mProv"></div>
+    <div class="fr"><label>Medida mm</label><input id="mMed" placeholder="ej. 19 x 2,1"></div>
+    <div class="fr"><label>Consumo mensual (kg)</label><input id="mCons" type="number" step="0.01"></div>
+    <div class="fr"><label>Kg × cajón</label><input id="mKgc" type="number" step="0.0001"></div>
+    <div class="fr"><label>Kg/uni (con desperdicio)</label><input id="mKgud" type="number" step="0.00000001"></div>
+    <div class="fr"><label>Cód. ISIS</label><input id="mIsis"></div>
+    <div class="actions">
+      <button class="btn btn-secondary" onclick="cerrar()">Cancelar</button>
+      <button class="btn btn-primary" id="mSave" onclick="guardar()">Guardar</button>
+    </div>
+  </div>
+</div>
+<div id="toast"></div>
+
+<script>
+const SB_URL="https://hrxfctzncixxqmpfhskv.supabase.co";
+const SB_ANON="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhyeGZjdHpuY2l4eHFtcGZoc2t2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI3MjQyNjEsImV4cCI6MjA4ODMwMDI2MX0.4L6wguch8UZGhC2VpzrWcCjJGUV-IkYsl9JoCWrOLUs";
+const SB=window.supabase.createClient(SB_URL,SB_ANON,{db:{schema:'GP2'}});
+const $=id=>document.getElementById(id);
+let FL=[], provSel="", stSel="todos";
+const SIN="(sin proveedor)";
+function fmt(n){var x=Number(n)||0;return Number.isInteger(x)?x.toLocaleString('es-AR'):x.toLocaleString('es-AR',{maximumFractionDigits:2});}
+function esc(s){return (s==null?'':String(s)).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
+function provOf(f){return f.proveedor && String(f.proveedor).trim() ? f.proveedor : SIN;}
+
+// ---- Chips de proveedor (desde datos GP2) ----
+function pintarProvs(){
+  var map={}; FL.forEach(f=>{var p=provOf(f);map[p]=(map[p]||0)+1;});
+  var provs=Object.keys(map).sort((a,b)=>{ if(a===SIN)return 1; if(b===SIN)return -1; return map[b]-map[a]||a.localeCompare(b); });
+  var g=$('provGrid'); g.innerHTML='';
+  provs.forEach(p=>{
+    var b=document.createElement('button'); b.className='prov-btn'+(p===provSel?' active':'');
+    b.innerHTML=esc(p)+' <span style="opacity:.6;font-weight:600">('+map[p]+')</span>';
+    b.addEventListener('click',()=>{
+      provSel = (provSel===p)?"":p;
+      g.querySelectorAll('.prov-btn').forEach(x=>x.classList.remove('active'));
+      if(provSel) b.classList.add('active');
+      render();
+    });
+    g.appendChild(b);
+  });
+}
+// segmento stock
+$('segStock').querySelectorAll('.prov-btn').forEach(b=>{
+  b.addEventListener('click',()=>{
+    stSel=b.dataset.st;
+    $('segStock').querySelectorAll('.prov-btn').forEach(x=>x.classList.remove('active'));
+    b.classList.add('active'); render();
+  });
+});
+
+function render(){
+  var q=($('q').value||'').trim().toLowerCase();
+  var rows=FL.filter(f=>{
+    if(provSel && provOf(f)!==provSel)return false;
+    var stock=Number(f.stock)||0, min=Number(f.minimo)||0;
+    if(stSel==='con' && !(stock>0))return false;
+    if(stSel==='sin' && stock>0)return false;
+    if(stSel==='bajo' && !(min>0 && stock<min))return false;
+    if(q){var s=((f.n_fleje||'')+' '+(f.codigo||'')+' '+(f.descripcion||'')+' '+(f.parte||'')+' '+(f.medida||'')+' '+(f.cod_isis||'')).toLowerCase();if(s.indexOf(q)<0)return false;}
+    return true;
+  });
+  var g=$('itemsGrid'); g.innerHTML='';
+  $('itemsEmpty').style.display = rows.length? 'none':'block';
+  rows.forEach(f=>{
+    var stock=Number(f.stock)||0, min=Number(f.minimo)||0, ped=Math.max(0,min-stock);
+    var cls=stock<=0?'zero':(min>0&&stock<min?'low':'ok');
+    var b=document.createElement('button'); b.className='item-btn';
+    b.innerHTML=
+      '<span class="ed" title="editar" data-ed="'+f.comp_id+'">✎</span>'+
+      '<span class="code">'+esc(f.n_fleje||f.codigo||'')+'</span>'+
+      '<span class="desc">'+esc(f.parte||f.descripcion||'')+'</span>'+
+      (f.medida?'<span class="med">'+esc(f.medida)+' mm</span>':'')+
+      '<span class="stk '+cls+'">'+fmt(stock)+' kg</span>'+
+      '<span class="mn">'+(min?('mín '+fmt(min)):'sin mínimo')+(ped>0?(' · <span class="ped">pedir '+fmt(ped)+'</span>'):'')+'</span>';
+    b.addEventListener('click',(ev)=>{
+      if(ev.target && ev.target.getAttribute('data-ed')){ editar(f.comp_id); return; }
+      editar(f.comp_id);
+    });
+    g.appendChild(b);
+  });
+}
+
+let EDIT=null;
+function editar(cid){
+  var f=FL.find(x=>x.comp_id===cid);if(!f)return;EDIT=f;
+  $('mTit').textContent='Editar '+(f.n_fleje||f.codigo||'')+' · '+(f.parte||f.descripcion||'');
+  $('mSub').textContent='Atributos propios de GP2 (se cargan a mano).';
+  $('mParte').value=f.parte||'';$('mProv').value=f.proveedor||'';$('mMed').value=f.medida||'';
+  $('mCons').value=f.cons_mensual!=null?f.cons_mensual:'';$('mKgc').value=f.kg_x_cajon!=null?f.kg_x_cajon:'';
+  $('mKgud').value=f.kg_uni_desp!=null?f.kg_uni_desp:'';$('mIsis').value=f.cod_isis||'';
+  $('modalBg').classList.add('on');
+}
+function cerrar(){$('modalBg').classList.remove('on');EDIT=null;}
+async function guardar(){
+  if(!EDIT)return;$('mSave').disabled=true;
+  try{
+    var res=await SB.rpc('fleje_detalle_upsert',{
+      p_comp_id:EDIT.comp_id, p_proveedor:$('mProv').value||null, p_medida:$('mMed').value||null,
+      p_cons:$('mCons').value?Number($('mCons').value):null, p_kgcaj:$('mKgc').value?Number($('mKgc').value):null,
+      p_cod_isis:$('mIsis').value||null, p_kg_uni_desp:$('mKgud').value?Number($('mKgud').value):null, p_parte:$('mParte').value||null});
+    if(res.error) throw res.error;
+    cerrar(); await cargar(); toast('✔ Guardado');
+  }catch(e){ toast('Error: '+(e.message||e), true); }
+  finally{ $('mSave').disabled=false; }
+}
+let _t=null;
+function toast(m,err){var el=$('toast');el.textContent=m;el.className='on'+(err?' err':'');clearTimeout(_t);_t=setTimeout(()=>el.className='',err?5000:2500);}
+
+async function cargar(){
+  $('status').textContent='Cargando…';
+  var res=await SB.rpc('flejes_bundle');
+  if(res.error){$('status').textContent='Error: '+res.error.message;return;}
+  FL=res.data||[];
+  var con=FL.filter(f=>Number(f.stock)>0).length;
+  $('status').textContent='GP2 · '+FL.length+' flejes · '+con+' con stock · elegí un proveedor o buscá';
+  pintarProvs(); render();
+}
+cargar();
+</script>
+</body></html>

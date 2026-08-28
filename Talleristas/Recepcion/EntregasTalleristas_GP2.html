@@ -1,0 +1,169 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Entregas de Talleristas · GP2</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:Arial,sans-serif;background:#f5f6f8;padding:12px;color:#111}
+  .card{max-width:1000px;margin:auto;background:#fff;border-radius:12px;box-shadow:0 2px 12px rgba(0,0,0,.08);overflow:hidden}
+  .header{background:#1a1a1a;color:#fff;padding:14px 18px;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+  .header h1{font-size:24px;font-weight:700}
+  .header .hbtns{display:flex;gap:8px}
+  .header a{background:#fff;color:#111;padding:8px 14px;border-radius:6px;font-weight:700;font-size:18px;text-decoration:none}
+
+  .steps{padding:14px 18px}
+  .row{display:flex;gap:10px;flex-wrap:wrap;margin:10px 0;align-items:center}
+  label.lbl{font-weight:800;font-size:20px;min-width:90px}
+  input[type="text"],input[type="date"]{height:38px;border:2px solid #d0d7de;border-radius:8px;padding:0 10px;font-size:18px}
+  input[type="text"]{width:260px}
+
+  .provs-grid{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0}
+  .prov-btn{padding:8px 14px;border-radius:8px;border:2px solid #d0d7de;background:#fff;font-weight:700;cursor:pointer;font-size:19px;color:#111}
+  .prov-btn.active{background:#111;color:#fff;border-color:#111}
+
+  .kpis{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0}
+  .kpi{background:#f6f8fa;border:1px solid #e5e9ee;border-radius:8px;padding:8px 14px;font-size:15px;color:#555}
+  .kpi b{color:#0b3b73;font-size:19px;margin-right:5px}
+
+  .tbl-wrap{overflow-x:auto;border:1px solid #e5e9ee;border-radius:10px}
+  table{width:100%;border-collapse:collapse;font-size:16px}
+  th,td{padding:8px 10px;text-align:right;border-bottom:1px solid #eef1f4;white-space:nowrap}
+  th{background:#f1f5f9;color:#475569;text-transform:uppercase;font-size:12px;letter-spacing:.3px;cursor:pointer;user-select:none}
+  th.l,td.l{text-align:left}
+  tbody tr:hover td{background:#f6f8fa}
+  td.cod{font-family:ui-monospace,monospace;color:#1d4ed8;font-weight:700}
+  td.cant{color:#0a7a2f;font-weight:800}
+  .un{padding:1px 8px;border-radius:9px;font-size:12px;font-weight:800;background:#eef2f6}
+  .un.kg{color:#b45309}.un.uni{color:#0a7a2f}
+  .flag{color:#b42318;font-weight:800}
+  .empty{padding:26px;text-align:center;color:#888;font-style:italic;font-size:18px}
+</style>
+<link rel="icon" type="image/png" href="../../GP2_favicon.png">
+<link rel="apple-touch-icon" href="../../GP2_favicon.png">
+</head>
+<body>
+
+<div class="card">
+  <div class="header">
+    <h1>Entregas de Talleristas</h1>
+    <div class="hbtns">
+      <a href="../Control%20Tall/ControlTalleristas_GP2.html">Control</a>
+      <a href="../../Inicio/index.html">Atrás</a>
+    </div>
+  </div>
+
+  <div class="steps">
+    <div class="row"><label class="lbl">Tallerista</label></div>
+    <div class="provs-grid" id="tallGrid"></div>
+
+    <div class="row">
+      <input type="text" id="fBuscar" placeholder="Buscar código, descripción, sector…" oninput="render()">
+      <label class="lbl" style="min-width:auto;font-size:16px">Desde</label><input id="fDesde" type="date" onchange="render()">
+      <label class="lbl" style="min-width:auto;font-size:16px">Hasta</label><input id="fHasta" type="date" onchange="render()">
+      <button class="prov-btn" id="btnCsv" style="font-size:16px">⬇ CSV</button>
+    </div>
+
+    <div id="canvas"><div class="empty">Cargando…</div></div>
+  </div>
+</div>
+
+<script>
+var D={};
+var SB=window.supabase.createClient('https://hrxfctzncixxqmpfhskv.supabase.co','eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhyeGZjdHpuY2l4eHFtcGZoc2t2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI3MjQyNjEsImV4cCI6MjA4ODMwMDI2MX0.4L6wguch8UZGhC2VpzrWcCjJGUV-IkYsl9JoCWrOLUs',{db:{schema:'GP2'}});
+const $=id=>document.getElementById(id);
+function esc(s){return String(s==null?"":s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
+function fmt(n){if(n==null||n==="")return"";n=Number(n);if(!isFinite(n))return"";return n.toLocaleString("es-AR",{maximumFractionDigits:3});}
+function norm(s){return String(s||"").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"");}
+function fechaDia(s){return s?String(s).slice(0,10):"";}
+var sortKey="fecha",sortDir=-1, tallSel="";
+
+function pintarTall(){
+  var map={}; (D.entregas||[]).forEach(e=>{if(e.tall_id!=null)map[e.tall_id]=(map[e.tall_id]||0)+1;});
+  var g=$('tallGrid'); g.innerHTML='';
+  var todos=document.createElement('button'); todos.className='prov-btn'+(tallSel===""?' active':''); todos.textContent='Todos';
+  todos.addEventListener('click',()=>{tallSel="";pintarTall();render();}); g.appendChild(todos);
+  (D.talleristas||[]).forEach(function(t){
+    var n=map[t.id]||0;
+    var b=document.createElement('button'); b.className='prov-btn'+(String(tallSel)===String(t.id)?' active':'');
+    b.innerHTML=esc(t.nombre)+(t.cod_prov?(' ('+esc(t.cod_prov)+')'):'')+' <span style="opacity:.6;font-weight:600">('+n+')</span>';
+    b.addEventListener('click',()=>{tallSel=String(t.id);pintarTall();render();});
+    g.appendChild(b);
+  });
+}
+function filas(){
+  var q=norm($("fBuscar").value.trim()), desde=$("fDesde").value, hasta=$("fHasta").value;
+  var arr=(D.entregas||[]).filter(function(e){
+    if(tallSel&&String(e.tall_id)!==tallSel)return false;
+    var d=fechaDia(e.fecha);
+    if(desde&&d<desde)return false; if(hasta&&d>hasta)return false;
+    if(q){var hay=norm(e.cod).indexOf(q)>=0||norm(e.desc).indexOf(q)>=0||norm(e.sector).indexOf(q)>=0||norm(e.tallerista).indexOf(q)>=0;if(!hay)return false;}
+    return true;
+  });
+  arr.sort(function(a,b){var va=a[sortKey],vb=b[sortKey];
+    if(sortKey==="cantidad"||sortKey==="uni"){va=Number(va)||0;vb=Number(vb)||0;}else{va=norm(va===undefined?"":va);vb=norm(vb===undefined?"":vb);}
+    if(va<vb)return -1*sortDir;if(va>vb)return 1*sortDir;return 0;});
+  return arr;
+}
+function render(){
+  var arr=filas(), totKg=0,totUni=0,talls={};
+  arr.forEach(function(e){if(e.unidad==="kg")totKg+=Number(e.cantidad)||0;if(Number(e.uni))totUni+=Number(e.uni);if(e.tall_id!=null)talls[e.tall_id]=1;});
+  var rows=arr.map(function(e){
+    var un=e.unidad==="kg"?"kg":(e.unidad==="uni"?"uni":esc(e.unidad||"")), uncl=e.unidad==="kg"?"kg":"uni";
+    return "<tr>"+
+      '<td class="l">'+esc(fechaDia(e.fecha))+"</td>"+
+      '<td class="l">'+esc(e.tallerista||"(sin tallerista)")+"</td>"+
+      '<td class="l cod">'+esc(e.cod)+"</td>"+
+      '<td class="l" title="'+esc(e.desc)+'">'+esc(e.desc)+"</td>"+
+      '<td class="l">'+esc(e.sector||"")+"</td>"+
+      '<td class="cant">'+fmt(e.cantidad)+"</td>"+
+      '<td class="l"><span class="un '+uncl+'">'+un+"</span></td>"+
+      '<td>'+(e.uni==null?'<span class="flag" title="kg sin factor">⚠</span>':fmt(e.uni))+"</td>"+
+    "</tr>";
+  }).join("");
+  var kpi='<div class="kpis">'+
+    '<div class="kpi"><b>'+arr.length+'</b>entregas</div>'+
+    '<div class="kpi"><b>'+Object.keys(talls).length+'</b>talleristas</div>'+
+    '<div class="kpi"><b>'+fmt(totUni)+'</b>uni</div>'+
+    '<div class="kpi"><b>'+fmt(totKg)+'</b>kg</div>'+
+  '</div>';
+  var arrow=function(k){return sortKey===k?(sortDir>0?" ▲":" ▼"):"";};
+  var head='<div class="tbl-wrap"><table><thead><tr>'+
+    '<th class="l" data-k="fecha">Fecha'+arrow("fecha")+'</th>'+
+    '<th class="l" data-k="tallerista">Tallerista'+arrow("tallerista")+'</th>'+
+    '<th class="l" data-k="cod">Código'+arrow("cod")+'</th>'+
+    '<th class="l" data-k="desc">Descripción'+arrow("desc")+'</th>'+
+    '<th class="l" data-k="sector">Sector'+arrow("sector")+'</th>'+
+    '<th data-k="cantidad">Cantidad'+arrow("cantidad")+'</th>'+
+    '<th class="l" data-k="unidad">Un.'+arrow("unidad")+'</th>'+
+    '<th data-k="uni">Uni'+arrow("uni")+'</th>'+
+  '</tr></thead><tbody>'+rows+'</tbody></table></div>';
+  $('canvas').innerHTML=kpi+(arr.length?head:'<div class="empty">Sin entregas para el filtro.</div>');
+  $('canvas').querySelectorAll("th[data-k]").forEach(function(th){
+    th.addEventListener("click",function(){var k=th.getAttribute("data-k");
+      if(sortKey===k)sortDir*=-1;else{sortKey=k;sortDir=(k==="cantidad"||k==="uni"||k==="fecha")?-1:1;}render();});
+  });
+}
+$('btnCsv').addEventListener('click',function(){
+  var arr=filas(), out=[["Fecha","Tallerista","Cod_Prov","Codigo","Descripcion","Sector","Cantidad","Unidad","Uni_normalizada"]];
+  var byId={};(D.talleristas||[]).forEach(t=>byId[t.id]=t.cod_prov||"");
+  arr.forEach(e=>out.push([fechaDia(e.fecha),e.tallerista||"",byId[e.tall_id]||"",e.cod,e.desc,e.sector||"",e.cantidad,e.unidad,e.uni==null?"":e.uni]));
+  var csv=out.map(r=>r.map(c=>{var s=String(c==null?"":c);return /[",;\n]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s;}).join(";")).join("\r\n");
+  var blob=new Blob(["﻿"+csv],{type:"text/csv;charset=utf-8;"});
+  var a=document.createElement("a");a.href=URL.createObjectURL(blob);
+  a.download="entregas_talleristas_"+new Date().toISOString().slice(0,10)+".csv";
+  document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(a.href);
+});
+async function boot(){
+  try{
+    var r=await SB.rpc("entregas_tallerista_bundle");
+    if(r.error)throw r.error;
+    Object.assign(D,r.data);
+    pintarTall(); render();
+  }catch(e){ $('canvas').innerHTML='<div class="empty" style="color:#b42318">Error: '+esc(e.message||e)+'</div>'; }
+}
+boot();
+</script>
+</body></html>

@@ -1,0 +1,169 @@
+<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<script src="../auth-guard.js"></script>
+<title>Stock por ubicación · GP2</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+ *{box-sizing:border-box}
+ body{margin:0;background:#0a0e13;color:#e6ecf3;font:14px/1.5 -apple-system,Segoe UI,Roboto,sans-serif}
+ .logobar{background:#0b1220;text-align:center;padding:6px 0;border-bottom:1px solid #1c2836}
+ .logobar img{height:40px;vertical-align:middle}
+ .top{background:linear-gradient(90deg,#0f3d6b,#1a5a94);padding:14px 20px;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+ .top h1{margin:0;font-size:18px}
+ #status{font-size:12px;color:#cfe4f6;margin-left:auto}
+ .canvas{padding:16px 18px 60px;max-width:1000px;margin:0 auto}
+ .toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:16px}
+ .toolbar input[type=text]{flex:1 1 260px;background:#0b1119;color:#e6ecf3;border:1px solid #2a4a6e;border-radius:8px;padding:9px 12px;font:14px inherit}
+ .toolbar input:focus{outline:none;border-color:#5fb0e8}
+ .chk{display:flex;align-items:center;gap:6px;font-size:13px;color:#9fc0e0;cursor:pointer;user-select:none}
+ .btn-sm{background:#14202e;border:1px solid #24344a;color:#cfe0f2;border-radius:8px;padding:8px 12px;font:13px inherit;cursor:pointer}
+ .btn-sm:hover{border-color:#2f6fb0}
+ .grp{border:1px solid #1e2a38;border-radius:10px;margin-bottom:10px;background:#101820;overflow:hidden}
+ .grp>.gh{display:flex;align-items:center;gap:10px;padding:12px 14px;cursor:pointer;user-select:none}
+ .grp>.gh:hover{background:#14202e}
+ .gh .arr{font-size:11px;color:#7a92a8;transition:transform .2s;flex-shrink:0}
+ .grp.open>.gh .arr{transform:rotate(90deg)}
+ .gh .nm{font-weight:700;font-size:14px;color:#cfe0f2}
+ .gh .badge{margin-left:auto;font-size:11px;color:#7a92a8;background:#0d141d;border:1px solid #1e2a38;border-radius:999px;padding:2px 9px}
+ .gh .badge.hot{color:#7fd0a5;border-color:#2f6b47}
+ .gb{display:none;padding:0 6px 8px}
+ .grp.open>.gb{display:block}
+ /* sub-grupos (PS / talleristas) */
+ .sub{border:1px solid #17222f;border-radius:8px;margin:6px;background:#0d151d}
+ .sub>.sh{display:flex;align-items:center;gap:8px;padding:9px 12px;cursor:pointer;user-select:none}
+ .sub>.sh:hover{background:#111c27}
+ .sh .arr{font-size:10px;color:#7a92a8;transition:transform .2s}
+ .sub.open>.sh .arr{transform:rotate(90deg)}
+ .sh .nm{font-weight:600;font-size:13px;color:#bcd3ea}
+ .sh .badge{margin-left:auto;font-size:11px;color:#7a92a8}
+ .sh .badge.hot{color:#7fd0a5}
+ .sb{display:none;padding:0 4px 6px}
+ .sub.open>.sb{display:block}
+ table{border-collapse:collapse;width:100%;font-size:13px}
+ th,td{padding:6px 10px;text-align:left;border-bottom:1px solid #17222f}
+ th{color:#7a92a8;text-transform:uppercase;font-size:10px;letter-spacing:.4px;position:sticky;top:0}
+ td.num{text-align:right;font-family:ui-monospace,SF Mono,monospace}
+ td.cod{color:#9fc0e0;font-weight:600;white-space:nowrap}
+ tr.zero td{color:#5c6b7e}
+ tr.stock td.num{color:#7fd0a5;font-weight:700}
+ tr.neg td.num{color:#f0a0a0;font-weight:700}
+ .empty{color:#6b7f93;padding:10px 12px;font-size:13px}
+ .mini{font-size:11px;color:#7a92a8}
+</style>
+<link rel="icon" type="image/png" href="../GP2_favicon.png">
+<link rel="apple-touch-icon" href="../GP2_favicon.png">
+<link rel="stylesheet" href="../gp2-claro.css">
+</head>
+<body>
+<div class="logobar"><a href="../Inicio/index.html"><img src="../GP2_logo.png" alt="GP2"></a></div>
+<div class="top">
+  <h1>▦ Stock por ubicación · GP2</h1>
+  <a class="btn-sm" href="../Movimientos/Registrar_Movimiento.html">📋 Movimientos</a>
+  <span id="status">Cargando…</span>
+</div>
+<div class="canvas">
+ <div class="toolbar">
+   <input type="text" id="q" placeholder="Buscar componente (código o descripción)…" oninput="render()">
+   <label class="chk"><input type="checkbox" id="soloStock" onchange="render()"> Solo con stock</label>
+   <button class="btn-sm" onclick="expandAll(true)">Expandir</button>
+   <button class="btn-sm" onclick="expandAll(false)">Colapsar</button>
+   <button class="btn-sm" onclick="reload()">↻ Actualizar</button>
+ </div>
+ <div id="tree"><p class="empty">Cargando stock…</p></div>
+</div>
+
+<script>
+const SB_URL="https://hrxfctzncixxqmpfhskv.supabase.co";
+const SB_ANON="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhyeGZjdHpuY2l4eHFtcGZoc2t2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI3MjQyNjEsImV4cCI6MjA4ODMwMDI2MX0.4L6wguch8UZGhC2VpzrWcCjJGUV-IkYsl9JoCWrOLUs";
+const SB=window.supabase.createClient(SB_URL,SB_ANON,{db:{schema:'GP2'}});
+var D=null;
+// orden de sectores pedido por el usuario (id de sector)
+const SECT_ORDER=[1,2,4,5,6,7,8,9,10,11,3]; // crudo,proc,afilado,fleje,plastico,bombilla,remache,garage,carton,caja,(transito al final)
+const $=id=>document.getElementById(id);
+function unidad(c){return (c&&c.um==='kg')?'kg':'uni';}
+function fmt(n){var x=Number(n);if(!isFinite(x))return '0';return Number.isInteger(x)?x.toLocaleString('es-AR'):x.toLocaleString('es-AR',{maximumFractionDigits:2});}
+
+// arma: por cada ubic id -> [{cid, cant, min}]
+function invPorUbic(){
+ var m={};
+ for(var k in D.inv){var p=k.split(':');var cid=+p[0],uid=+p[1];var v=D.inv[k];
+  (m[uid]=m[uid]||[]).push({cid:cid,cant:Number(v.cant)||0,min:Number(v.min)||0});}
+ return m;
+}
+function filtRows(rows){
+ var q=($('q').value||'').trim().toLowerCase();
+ var solo=$('soloStock').checked;
+ return rows.filter(r=>{
+  if(solo && !(r.cant>0 || r.cant<0))return false;
+  if(q){var c=D.comp[String(r.cid)]||{};var s=((c.cod||'')+' '+(c.d||'')).toLowerCase();if(s.indexOf(q)<0)return false;}
+  return true;
+ }).sort((a,b)=>{var ca=D.comp[String(a.cid)]||{},cb=D.comp[String(b.cid)]||{};return (ca.cod||'').localeCompare(cb.cod||'');});
+}
+function tablaRows(rows){
+ if(!rows.length)return '<p class="empty">— sin componentes —</p>';
+ var h='<table><thead><tr><th>Cód</th><th>Descripción</th><th class="num">Cantidad</th><th class="num">Mínimo</th></tr></thead><tbody>';
+ rows.forEach(r=>{var c=D.comp[String(r.cid)]||{cod:'?',d:''};
+  var cls=r.cant>0?'stock':(r.cant<0?'neg':'zero');
+  h+='<tr class="'+cls+'"><td class="cod">'+(c.cod||'')+'</td><td>'+(c.d||'')+'</td>'+
+     '<td class="num">'+fmt(r.cant)+' <span class="mini">'+unidad(c)+'</span></td>'+
+     '<td class="num mini">'+(r.min?fmt(r.min):'')+'</td></tr>';
+ });
+ return h+'</tbody></table>';
+}
+function group(open, nm, rows, sub){
+ var f=filtRows(rows);
+ var conStock=f.filter(r=>r.cant>0||r.cant<0).length;
+ var badge=conStock?('<span class="badge hot">'+conStock+' con stock</span>'):('<span class="badge">'+f.length+'</span>');
+ return '<div class="grp'+(open?' open':'')+'"><div class="gh" onclick="tog(this)"><span class="arr">▶</span>'+
+   '<span class="nm">'+nm+'</span>'+badge+'</div><div class="gb">'+(sub||tablaRows(f))+'</div></div>';
+}
+function subgroup(nm, rows){
+ var f=filtRows(rows);
+ var conStock=f.filter(r=>r.cant>0||r.cant<0).length;
+ var badge=conStock?('<span class="badge hot">'+conStock+'</span>'):('<span class="badge">'+f.length+'</span>');
+ return '<div class="sub"><div class="sh" onclick="tog(this)"><span class="arr">▶</span><span class="nm">'+nm+'</span>'+badge+'</div><div class="sb">'+tablaRows(f)+'</div></div>';
+}
+function tog(el){el.parentElement.classList.toggle('open');}
+function expandAll(v){document.querySelectorAll('.grp,.sub').forEach(e=>e.classList.toggle('open',v));}
+
+function render(){
+ if(!D){return;}
+ var byU=invPorUbic();
+ // agrupa ubicaciones por tipo
+ var sectores={}, provs=[], talls=[], virg=null;
+ for(var uid in D.ubic){var u=D.ubic[uid];var id=+uid;
+  if(u.tipo==='sector')sectores[u.ref]=id;
+  else if(u.tipo==='proveedor_servicio')provs.push({uid:id,ref:u.ref,nom:u.nom});
+  else if(u.tipo==='tallerista')talls.push({uid:id,ref:u.ref,nom:u.nom});
+  else if(u.tipo==='virgilio')virg=id;
+ }
+ var H='';
+ // 1) sectores en orden pedido
+ SECT_ORDER.forEach(sid=>{var uid=sectores[sid];if(!uid)return;var nom=(D.sect[String(sid)]||{nom:'Sector '+sid}).nom;H+=group(false,'▦ '+nom,byU[uid]||[]);});
+ // 2) proveedores de servicio (subdividido)
+ provs.sort((a,b)=>(a.nom||'').localeCompare(b.nom||''));
+ var totProv=provs.reduce((n,p)=>n+filtRows(byU[p.uid]||[]).filter(r=>r.cant>0||r.cant<0).length,0);
+ var subsP=provs.map(p=>subgroup((D.prov_serv[String(p.ref)]||{nom:p.nom}).nom||p.nom, byU[p.uid]||[])).join('');
+ H+='<div class="grp"><div class="gh" onclick="tog(this)"><span class="arr">▶</span><span class="nm">☰ Proveedores de Servicio</span><span class="badge'+(totProv?' hot':'')+'">'+(totProv||provs.length+' PS')+(totProv?' con stock':'')+'</span></div><div class="gb">'+subsP+'</div></div>';
+ // 3) talleristas (subdividido)
+ talls.sort((a,b)=>(a.nom||'').localeCompare(b.nom||''));
+ var totTall=talls.reduce((n,t)=>n+filtRows(byU[t.uid]||[]).filter(r=>r.cant>0||r.cant<0).length,0);
+ var subsT=talls.map(t=>subgroup((D.tall[String(t.ref)]||{nom:t.nom}).nom||t.nom, byU[t.uid]||[])).join('');
+ H+='<div class="grp"><div class="gh" onclick="tog(this)"><span class="arr">▶</span><span class="nm">🔧 Talleristas</span><span class="badge'+(totTall?' hot':'')+'">'+(totTall||talls.length+' tall')+(totTall?' con stock':'')+'</span></div><div class="gb">'+subsT+'</div></div>';
+ // 4) virgilio
+ if(virg)H+=group(false,'🚛 Virgilio (Distribución)',byU[virg]||[]);
+ $('tree').innerHTML=H;
+}
+
+async function reload(){
+ $('status').textContent='Cargando…';
+ var res=await SB.rpc('movimientos_bundle');
+ if(res.error){$('status').textContent='Error: '+res.error.message;$('tree').innerHTML='<p class="empty">No se pudo cargar: '+res.error.message+'</p>';return;}
+ D=res.data;
+ var n=Object.keys(D.inv||{}).length;
+ var con=Object.values(D.inv||{}).filter(v=>Number(v.cant)!==0).length;
+ $('status').textContent='GP2 · '+n+' posiciones · '+con+' con stock';
+ render();
+}
+reload();
+</script>
+</body></html>

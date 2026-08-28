@@ -1,0 +1,172 @@
+<!doctype html><html lang="es"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>GP2 · Menú</title>
+<link rel="icon" type="image/png" href="GP2_favicon.png">
+<link rel="apple-touch-icon" href="GP2_favicon.png">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#ffffff;color:#1e293b;font-family:-apple-system,Segoe UI,Roboto,Helvetica,sans-serif;min-height:100vh}
+
+/* ── header ── */
+.header{background:#ffffff;border-bottom:1px solid #e2e8f0;padding:20px 0 16px;text-align:center}
+.header img{width:90%;max-width:400px;height:auto;border-radius:8px}
+.header-sub{color:#64748b;font-size:14px;margin-top:10px;letter-spacing:.3px}
+.header-sub b{color:#2563eb}
+
+/* ── layout ── */
+.wrap{max-width:1200px;margin:0 auto;padding:20px 16px 80px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px}
+
+/* ── cards ── */
+.card{background:#ffffff;border:1px solid #e2e8f0;border-radius:14px;overflow:hidden;transition:border-color .2s;box-shadow:0 1px 3px rgba(0,0,0,.06)}
+.card:hover{border-color:#bcccdc}
+.card.all-locked{opacity:.55;pointer-events:none;filter:saturate(.4)}
+.card.all-locked .card-head{background:#f1f5f9}
+
+.card-head{padding:14px 18px;display:flex;align-items:center;gap:10px;border-bottom:1px solid #e2e8f0;cursor:pointer;user-select:none;transition:background .15s}
+.card-head:hover{background:#f8fafc}
+.card-head .icon{font-size:24px;line-height:1;flex-shrink:0}
+.card-head .title{font-size:20px;font-weight:700;letter-spacing:.01em;color:#1e293b;flex:1}
+.card-head .badge{background:#dcfce7;color:#15803d;font-size:12px;font-weight:700;padding:2px 8px;border-radius:10px;letter-spacing:.5px}
+.card-head .chevron{color:#94a3b8;font-size:18px;transition:transform .2s;font-weight:700}
+.card.collapsed .chevron{transform:rotate(-90deg)}
+.card.collapsed .card-body{display:none}
+
+.card-body{padding:8px 10px 12px}
+.btns{display:flex;flex-direction:column;gap:5px}
+
+/* ── botones activos ── */
+a.op{display:flex;align-items:center;gap:10px;padding:11px 14px;border-radius:10px;text-decoration:none;font-size:16px;font-weight:500;color:#1e293b;background:#f8fafc;border:1px solid #e2e8f0;transition:all .15s}
+a.op:hover{background:#eef4fb;border-color:#93b4d8;transform:translateY(-1px);box-shadow:0 4px 12px rgba(0,0,0,.08)}
+a.op:active{transform:translateY(0)}
+a.op .arrow{color:#2563eb;font-size:18px;margin-left:auto;font-weight:700;transition:color .15s}
+a.op:hover .arrow{color:#1d4ed8}
+a.op .dot{width:7px;height:7px;border-radius:50%;background:#22c55e;flex-shrink:0}
+
+/* ── botones locked ── */
+span.op.lock{display:flex;align-items:center;gap:10px;padding:9px 14px;border-radius:8px;font-size:16px;color:#94a3b8;border:1px solid #eef2f6;background:#f8fafc;cursor:default}
+span.op.lock .lk{font-size:14px;margin-left:auto;opacity:.7}
+
+/* ── footer ── */
+.foot{max-width:1200px;margin:0 auto;padding:0 16px;color:#94a3b8;font-size:12px;text-align:center}
+</style></head><body>
+
+<div class="header">
+  <img src="GP2_logo.png" alt="GP2 · Gestión Productiva — Loekemeyer">
+  <div class="header-sub">Módulos con <b>🔒</b> pendientes de migración</div>
+</div>
+
+<div class="wrap"><div class="grid" id="grid"></div></div>
+<div class="foot">GP2 — schema propio, independiente de la app vieja</div>
+
+<script>
+const MENU = [
+ ["🔧","Tallerista", [
+   ["Control", "Talleristas/Control%20Tall/ControlTalleristas_GP2.html"],
+   ["Envío", "Talleristas/Envios/EnviosTalleristas_GP2.html"],
+   ["Entregas", "Talleristas/Recepcion/EntregasTalleristas_GP2.html"],
+   ["Devolución Cervantes", null],
+   ["Entrega Cervantes Fotos", null],
+   ["ABM Artículos", "Talleristas/ABM%20Articulos/ABM_Articulos_GP2.html"],
+   ["Proporciones", "Talleristas/Proporciones/Proporciones_GP2.html"],
+   ["Faltante Partes", "Talleristas/Faltante%20Partes%20Tallerista/FaltantePartesTallerista_GP2.html"],
+ ]],
+ ["☰","PS (Prov. Servicio)", [
+   ["Control", "Prov%20Serv/Control/ControlPS_GP2.html"],
+   ["Envío", "Prov%20Serv/Control/ControlPS_GP2.html"],
+   ["Entrega", "Prov%20Serv/Control/ControlPS_GP2.html"],
+ ]],
+ ["📦","Prov. Art. Terminado", [
+   ["Control", null], ["Envío Cartón/Cajas", null], ["Entrega Art. Terminado", null],
+ ]],
+ ["🗒","Control Envíos y Entregas", [
+   ["Abrir", null], ["Stock Online", null], ["Exportar datos", null],
+ ]],
+ ["▦","Stocks", [
+   ["Stock SP", "StockSP/StockSP_GP2.html"],
+   ["Stock SC", "StockSC/StockSC_GP2.html"],
+   ["Stock en Movimiento", null],
+   ["Stock Tránsito PS", null],
+   ["Stocks general", "Stocks%20General/StockGeneral_GP2.html"],
+   ["Verificación Integridad", "Verificacion/Verificacion_GP2.html"],
+   ["Verificación Madres", "VerifMadres/VerifMadres_GP2.html"],
+ ]],
+ ["⋯","Producción", [
+   ["Registro Producción", "Produccion/RegistroApp/Registro_GP2.html"],
+   ["Informes Producción", "Informes/informe_persona_GP2.html"],
+   ["Informe x Matriz", "Informes/informe_matriz_GP2.html"],
+   ["Informes Virgilio", null],
+   ["Producciones Disruptivas", "Disruptivas/Disruptivas_GP2.html"],
+   ["Maestro Producción", "Produccion/maestro_GP2.html"],
+   ["Rendimiento x Mes", "Produccion/rendimiento_GP2.html"],
+   ["Alertas", "Alertas/alertas_GP2.html"],
+   ["ABM Operarios", null],
+   ["Monitor en Vivo", null],
+   ["Monitor en Vivo 2.0", null],
+   ["Tiempos Matrices", null],
+   ["Problemas con Matrices", null],
+   ["Entrevistas", null],
+ ]],
+ ["◈","Despiece", [
+   ["Despiece x Artículo", "Despiece%20x%20Articulo/Despiece_GP2.html"],
+ ]],
+ ["✓","Control Carga Remitos", [ ["Ver Cargas", null] ]],
+ ["🧾","Facturas", [
+   ["Lectura de Facturas Entrantes", null],
+   ["Entrega Proveedores Cervantes", null],
+ ]],
+ ["▦","Insumos", [
+   ["Recepción Insumos", "StockFlejes/RecepcionInsumos_GP2.html"], ["Cajas", null], ["Flejes", "StockFlejes/Flejes_GP2.html"], ["Cartones", null],
+   ["Partes Plásticas", null], ["Remaches", null], ["Bombillas", null], ["Garage", null],
+ ]],
+ ["🗒","Relevamiento", [ ["Relevamientos", null] ]],
+ ["🔗","Ventas", [ ["Chat Bot Ventas", null] ]],
+ ["🛠","Herramientas GP2", [
+   ["Inicio (dashboard)", "Inicio/index_GP2.html"],
+   ["Programa de Stock", "Programa/Programa.html"],
+   ["Faltantes", "Faltantes/Faltantes.html"],
+   ["Registrar Movimiento", "Movimientos/Registrar_Movimiento.html"],
+ ]],
+];
+
+const grid = document.getElementById("grid");
+MENU.forEach(([icon, titulo, items]) => {
+  const allLocked = items.every(i => !i[1]);
+  const activeCount = items.filter(i => i[1]).length;
+
+  const card = document.createElement("div");
+  card.className = "card" + (allLocked ? " all-locked" : "");
+
+  // head
+  const head = document.createElement("div");
+  head.className = "card-head";
+  head.innerHTML =
+    '<span class="icon">' + icon + '</span>' +
+    '<span class="title">' + titulo + '</span>' +
+    (activeCount > 0 ? '<span class="badge">' + activeCount + '</span>' : '') +
+    '<span class="chevron">‹</span>';
+  head.addEventListener("click", () => { card.classList.toggle("collapsed"); });
+  card.appendChild(head);
+
+  // body
+  const body = document.createElement("div");
+  body.className = "card-body";
+  const box = document.createElement("div");
+  box.className = "btns";
+  items.forEach(([label, href]) => {
+    if (href) {
+      const a = document.createElement("a"); a.className = "op"; a.href = href;
+      a.innerHTML = '<span class="dot"></span><span>' + label + '</span><span class="arrow">›</span>';
+      box.appendChild(a);
+    } else {
+      const s = document.createElement("span"); s.className = "op lock";
+      s.innerHTML = '<span>' + label + '</span><span class="lk">🔒</span>';
+      box.appendChild(s);
+    }
+  });
+  body.appendChild(box);
+  card.appendChild(body);
+  grid.appendChild(card);
+});
+</script>
+</body></html>

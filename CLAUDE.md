@@ -11,6 +11,34 @@ código, comentarios ni mensajes de commit).
 - **`desactiva caveman`** = responder solo el **próximo mensaje** normal/completo, y después **volver solo** a caveman.
 - **`caveman desactivacion total`** = apagar caveman por completo (queda desactivado hasta que se reactive).
 
+## 🏠 Filosofía GP2: "la casa del vecino" (LEER SIEMPRE — analogía guía)
+
+**Analogía base para todo el proyecto GP2 (usarla en todos los chats):**
+
+- **`public` = la casa del vecino.** Es el programa viejo "Gestión Productiva Entero", ya
+  construido y funcionando. NO es nuestra casa. NO se copia. NO se toca (solo lectura).
+- **`GP2` (schema propio en Supabase) = mi casa.** La estamos construyendo de cero,
+  **independiente** de la del vecino.
+- **La regla de oro:** construimos mi casa **mirando la LÓGICA de cómo el vecino hizo la
+  suya**, NO copiando su casa. Tomamos las ideas/lógica (cómo modela producción,
+  causa-efecto, PS, talleristas, stock), pero los datos y la estructura son 100% míos,
+  nativos de GP2. Cero dependencia de `public`.
+- **Cuándo mirar al vecino:** solo para **llenar huecos** — cuando a mi casa le falta una
+  lógica que el vecino ya resolvió, miro cómo lo hizo y lo implemento a mi manera en GP2.
+- **Estado limpio = "como te lo mandé en un principio":** las tablas GP2 deben quedar como
+  el Excel original que cargó el usuario (art 84, componente 471, proveedor_servicio 8,
+  tallerista 12, matriz 115, ruta 555, ruta_paso 2346, ubicacion 32, articulo_componente
+  505, componente_bom 32, inventario 848 con stock 0 + 766 mínimos). Snapshot de referencia:
+  el `var D` embebido en los 3 HTML (`Registro_Movimientos.html`, `Programa_Stock_Loekemeyer.html`,
+  `Faltantes_Loekemeyer.html`) = ESA foto limpia.
+- **NO inventar / NO asumir:** nunca crear datos de negocio inventados. Si falta un dato,
+  marcarlo pendiente/null y que lo aporte el usuario. Agregar cosas nuevas a la casa se hace
+  **deliberadamente**, no contaminando las tablas base.
+- **El motor de inventario vive en la BD**, no en el JS: la app inserta filas crudas en
+  `GP2.movimiento` y los triggers (`fn_movimiento_calc` + `fn_movimiento_aplicar`) calculan
+  y aplican el delta en `GP2.inventario`. El `var D` de los HTML mapea 1:1 a tablas GP2
+  (ver `ANALISIS_LOGICA_GP2.md`).
+
 ## Perfiles de Usuario (LEER AL INICIO)
 
 **Al arrancar cada sesión, leer `PERFILES.md` para saber con quién estás trabajando.**
