@@ -10,7 +10,7 @@
 const SUPABASE_URL = "https://hrxfctzncixxqmpfhskv.supabase.co";
 const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhyeGZjdHpuY2l4eHFtcGZoc2t2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI3MjQyNjEsImV4cCI6MjA4ODMwMDI2MX0.4L6wguch8UZGhC2VpzrWcCjJGUV-IkYsl9JoCWrOLUs";
 const LEGAJO_EDUARDO = "19";
-const APP_VERSION = "1.3.1"; // bumpear en cada actualizacion (junto con el ?v= del HTML)
+const APP_VERSION = "1.4.0"; // bumpear en cada actualizacion (junto con el ?v= del HTML)
 
 const SB = supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
   db: { schema: "GP2" },
@@ -135,6 +135,7 @@ function readState(legajo) {
     s.lastCajon  = s.lastCajon  || null;
     s.lastDowntime = s.lastDowntime || null;
     s.matrixNeedsC = !!s.matrixNeedsC;
+    s.rollo = s.rollo || null;
     return s;
   } catch { return freshState(); }
 }
@@ -151,12 +152,22 @@ function updateStateAfterSend(legajo, payload) {
     if (s.lastMatrix && s.lastMatrix.texto !== payload.texto) s.lastCajon = null;
     s.lastMatrix = { opcion: "E", texto: payload.texto || "", ts: payload.ts_event,
                      comp_salida_id: payload.comp_salida_id || null, pieza: payload.pieza || null };
+    // Rollo que agarro para esta matriz: se le van descontando kg con cada cajon.
+    if (payload.rollo) s.rollo = { ...payload.rollo, kg_usados: 0 };
     s.lastDowntime = null; s.matrixNeedsC = true;
     s.last2.push({ ...payload, status: "queued" });
     writeState(legajo, s); return;
   }
   if (op === "C" || op === "CT") {
     s.lastCajon = { opcion: op, texto: payload.texto || "", ts: payload.ts_event };
+    // Descontar del rollo en uso los kg de este cajon: uni / ppk (piezas por kg
+    // de fleje de la matriz activa). Si la matriz no tiene ppk no se estima.
+    if (s.rollo) {
+      const mat = D.matricesMap?.get(String(s.lastMatrix?.texto || "").trim());
+      const ppk = Number(mat?.ppk) || 0;
+      const uni = Number(payload.texto) || 0;
+      if (ppk > 0 && uni > 0) s.rollo.kg_usados = (Number(s.rollo.kg_usados) || 0) + uni / ppk;
+    }
     s.lastDowntime = null; s.matrixNeedsC = false;
     s.last2.push({ ...payload, status: "queued" });
     writeState(legajo, s); return;
@@ -396,7 +407,16 @@ function renderMatrizInfo() {
   const desc = nombreMatriz(nm);
   el.classList.remove("hidden");
   const pieza = s.lastMatrix.pieza ? ` · Pieza: ${s.lastMatrix.pieza}` : "";
-  el.innerHTML = `<b>Matriz activa: ${nm}</b>${desc ? ` — ${desc}` : ""}${pieza}`;
+  // Rollo en uso: cuanto queda, estimado con lo producido (uni / ppk por cajon)
+  let rollo = "";
+  if (s.rollo?.kg_por_rollo) {
+    const queda = Number(s.rollo.kg_por_rollo) - (Number(s.rollo.kg_usados) || 0);
+    const fmt1 = n => (Math.round(n * 10) / 10).toLocaleString("es-AR");
+    const color = queda <= Number(s.rollo.kg_por_rollo) * 0.15 ? "#b45309" : "#166534";
+    rollo = `<br>🧻 Rollo de ${fmt1(s.rollo.kg_por_rollo)} kg (${s.rollo.codigo || "fleje"}): ` +
+            `<b style="color:${color}">quedan ~${fmt1(Math.max(0, queda))} kg</b>`;
+  }
+  el.innerHTML = `<b>Matriz activa: ${nm}</b>${desc ? ` — ${desc}` : ""}${pieza}${rollo}`;
 }
 
 /* ============================================================
@@ -438,7 +458,7 @@ function elegirMatriz(n) {
     x.classList.toggle("sel", x.dataset.n === n);
   });
   renderPiezaPicker(n);
-  if (isEduardo() && selected?.code === "E") actualizarRolloPicker(n);
+  if (selected?.code === "E") actualizarRolloPicker(n);
 }
 
 /* ============================================================
@@ -533,9 +553,10 @@ function selectOption(opt) {
     renderPiezaPicker("");
   }
 
-  // Eduardo: rollo picker para E
+  // Rollo picker para E: TODOS los operarios eligen de que kilaje agarran
+  // (los rollos salen de la recepcion de insumos via rollos_saldo).
   const rolloPicker = $("rolloPicker");
-  if (isEduardo() && opt.code === "E") {
+  if (opt.code === "E") {
     rolloPicker.classList.remove("hidden");
     $("rolloSelect").innerHTML = '<option value="">-- Elegir rollo --</option>';
     textInput.oninput = () => {
@@ -546,7 +567,7 @@ function selectOption(opt) {
     actualizarRolloPicker("");
   } else {
     rolloPicker.classList.add("hidden");
-    textInput.oninput = ["E", "CM"].includes(opt.code)
+    textInput.oninput = opt.code === "CM"
       ? () => {
           renderMatrizPicker($("matrizSearch").value);
           renderPiezaPicker(textInput.value.trim());
@@ -573,8 +594,8 @@ function actualizarRolloPicker(n_matriz) {
   sel.innerHTML = '<option value="">-- Elegir rollo --</option>';
   rollos.forEach(r => {
     const opt = document.createElement("option");
-    opt.value = JSON.stringify({ comp_id: r.comp_id, kg_por_rollo: r.kg_por_rollo });
-    opt.textContent = `${r.codigo || "Fleje"}: ${r.kg_por_rollo} kg/rollo (${r.rollos} disp.)`;
+    opt.value = JSON.stringify({ comp_id: r.comp_id, codigo: r.codigo || "", kg_por_rollo: r.kg_por_rollo });
+    opt.textContent = `Rollo de ${r.kg_por_rollo} kg — ${r.codigo || "Fleje"} (${r.rollos} disp.)`;
     sel.appendChild(opt);
   });
   if (!rollos.length && n_matriz && D.matricesMap?.has(n_matriz)) {
@@ -646,9 +667,9 @@ async function sendFast() {
     return;
   }
 
-  // Eduardo: validar rollo si es E
+  // Rollo elegido en E (cualquier operario)
   let rolloInfo = null;
-  if (isEduardo() && selected.code === "E") {
+  if (selected.code === "E") {
     const rolloVal = $("rolloSelect").value;
     if (rolloVal) {
       try { rolloInfo = JSON.parse(rolloVal); } catch {}
@@ -664,6 +685,9 @@ async function sendFast() {
   if (["E", "CM"].includes(payload.opcion) && piezaSel) {
     payload.comp_salida_id = piezaSel.comp_id;
     payload.pieza = piezaSel.codigo || "";
+  }
+  if (payload.opcion === "E" && rolloInfo) {
+    payload.rollo = rolloInfo;   // {comp_id, codigo, kg_por_rollo} -> queda en el estado
   }
   if (["C", "CT", "RM", "PM", "RD"].includes(payload.opcion)) {
     payload.matriz = s.lastMatrix?.texto || "";
@@ -685,11 +709,12 @@ async function sendFast() {
   $("btnEnviar").disabled = true;
   $("btnEnviar").innerText = "Enviando...";
 
-  // Eduardo: tomar/cerrar rollo
+  // Tomar rollo: cualquier operario que eligio uno en E lo descuenta del stock.
+  if (selected.code === "E" && rolloInfo) {
+    await tomarRollo(legajo, rolloInfo.comp_id, rolloInfo.kg_por_rollo, texto);
+  }
+  // Cerrar rollo: los eventos especiales de Eduardo (CT / PR con quedo-resto)
   if (isEduardo()) {
-    if (selected.code === "E" && rolloInfo) {
-      await tomarRollo(legajo, rolloInfo.comp_id, rolloInfo.kg_por_rollo, texto);
-    }
     if (selected.code === "CT") {
       await cerrarRollo(legajo, false);
     }

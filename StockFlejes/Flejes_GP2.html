@@ -92,6 +92,20 @@
   #tabRollos select{height:40px;border:2px solid #d0d7de;border-radius:8px;padding:0 10px;font-size:19px;background:#fff}
   #tabRollos .bad{color:#b42318}
 
+  /* detalle del fleje */
+  .det-h2{font-size:17px;font-weight:800;color:#0b3b73;margin:14px 0 6px}
+  .det-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
+  .det-roll{border:2px solid #d0d7de;border-radius:10px;padding:10px;text-align:center;background:#fafbfc}
+  .det-roll .peso{font-size:16px;color:#444;font-weight:700}
+  .det-roll .n{font-size:30px;font-weight:900}
+  .det-roll .n.neg{color:#b42318}
+  .det-uso{border:2px solid #b45309;background:#fff8e5;border-radius:10px;padding:10px 12px;margin-bottom:6px;font-size:16px}
+  .det-tabla{width:100%;border-collapse:collapse;font-size:15px}
+  .det-tabla th{background:#f6f8fa;color:#555;font-size:12px;text-transform:uppercase;text-align:left;padding:6px 8px;border-bottom:2px solid #e5e9ee}
+  .det-tabla td{padding:6px 8px;border-bottom:1px solid #eef1f4;white-space:nowrap}
+  .det-tabla td.num{text-align:right;font-variant-numeric:tabular-nums}
+  .det-tabla .pos{color:#0a7a2f;font-weight:800}.det-tabla .neg{color:#b42318;font-weight:800}
+
   /* popup de ajuste de rollos */
   .popup{position:fixed;inset:0;background:rgba(0,0,0,.5);display:none;align-items:center;justify-content:center;z-index:100;padding:16px}
   .popup.open{display:flex}
@@ -192,6 +206,20 @@
   </div>
 </div>
 
+<!-- Detalle del fleje: rollos por kilaje, en uso ahora, saldo de movimientos.
+     "Editar datos" (los atributos a mano) vive adentro, como accion secundaria. -->
+<div class="modal-bg" id="detBg">
+  <div class="modal" style="max-width:640px;max-height:88vh;overflow:auto">
+    <h3 id="detTit">Fleje</h3>
+    <div class="sub" id="detSub"></div>
+    <div id="detBody"><div class="empty">Cargando…</div></div>
+    <div class="actions">
+      <button class="btn btn-secondary" id="detEditar">✎ Editar datos</button>
+      <button class="btn btn-primary" id="detCerrar">Cerrar</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-bg" id="modalBg">
   <div class="modal">
     <h3 id="mTit">Editar fleje</h3>
@@ -273,12 +301,77 @@ function render(){
       '<span class="stk '+cls+'">'+fmt(stock)+' kg</span>'+
       '<span class="mn">'+(min?('mín '+fmt(min)):'sin mínimo')+(ped>0?(' · <span class="ped">pedir '+fmt(ped)+'</span>'):'')+'</span>';
     b.addEventListener('click',(ev)=>{
+      // ✎ = editar datos directo; el resto de la tarjeta abre el DETALLE
       if(ev.target && ev.target.getAttribute('data-ed')){ editar(f.comp_id); return; }
-      editar(f.comp_id);
+      abrirDetalle(f.comp_id);
     });
     g.appendChild(b);
   });
 }
+
+/* ============================================================
+   DETALLE DEL FLEJE: rollos por kilaje (nutridos de la recepcion),
+   rollo en uso ahora (operario + matriz), y el saldo de movimientos
+   (ingresos de recepcion, descuentos por produccion).
+   "Editar datos" quedo como accion secundaria adentro.
+   ============================================================ */
+let DET=null;
+function ffechaD(x){return String(x||'').replace('T',' ').slice(0,16);}
+const MOTIVOS_D={inicial:'Estado inicial',recepcion:'Recepción',toma_operario:'Tomó operario',ajuste:'Ajuste',devolucion:'Devolución'};
+
+async function abrirDetalle(cid){
+  var f=FL.find(x=>x.comp_id===cid); if(!f) return;
+  DET=f;
+  $('detTit').textContent=(f.n_fleje?('Fleje '+f.n_fleje):f.codigo)+' · '+(f.parte||f.descripcion||'');
+  $('detSub').textContent=(f.medida?(f.medida+' mm · '):'')+(f.proveedor||'sin proveedor')+' · stock '+fmt(f.stock)+' kg';
+  $('detBody').innerHTML='<div class="empty">Cargando rollos…</div>';
+  $('detBg').classList.add('on');
+
+  var R;
+  try{ R=await window.GP2Rollos.get(); }
+  catch(e){ $('detBody').innerHTML='<div class="empty">Error cargando rollos: '+esc(e.message||e)+'</div>'; return; }
+  if(DET!==f) return;   // abrieron otro mientras cargaba
+
+  var cod=f.codigo;
+  var saldos=(R.saldos||[]).filter(s=>s.codigo===cod);
+  var enUso=(R.usos||[]).filter(u=>u.codigo===cod && u.ts_fin==null);
+  var evs=(R.eventos||[]).filter(e=>e.codigo===cod).slice(0,25);
+
+  var h='';
+  // rollos por kilaje
+  h+='<div class="det-h2">🧻 Rollos en stock (por kilaje)</div>';
+  h+= saldos.length
+    ? '<div class="det-grid">'+saldos.map(s=>
+        '<div class="det-roll"><div class="peso">rollos de '+fmt(s.kg_por_rollo)+' kg</div>'+
+        '<div class="n'+(s.rollos<0?' neg':'')+'">'+fmt(s.rollos)+'</div>'+
+        '<div style="font-size:13px;color:#666">'+fmt(s.kg_total)+' kg</div></div>').join('')+'</div>'
+    : '<div class="empty">Sin rollos en stock. Entran solos con el pesaje de la recepción.</div>';
+
+  // en uso ahora
+  h+='<div class="det-h2">⚙️ En uso ahora</div>';
+  h+= enUso.length
+    ? enUso.map(u=>'<div class="det-uso">Rollo de <b>'+fmt(u.kg_por_rollo)+' kg</b> — operario <b>'+
+        esc(u.operario||u.legajo||'?')+'</b>'+(u.matriz_raw?(' en matriz <b>'+esc(u.matriz_raw)+'</b>'):'')+
+        ' <span style="color:#666;font-size:14px">(desde '+ffechaD(u.ts_inicio)+')</span></div>').join('')
+    : '<div class="empty">Nadie está usando un rollo de este fleje ahora.</div>';
+
+  // movimientos con saldo
+  h+='<div class="det-h2">📜 Movimientos (saldo acumulado)</div>';
+  h+= evs.length
+    ? '<div style="overflow-x:auto"><table class="det-tabla"><thead><tr>'+
+      '<th>Fecha</th><th>Peso</th><th>Mov.</th><th>Motivo</th><th>Quién</th><th style="text-align:right">Saldo</th>'+
+      '</tr></thead><tbody>'+evs.map(e=>
+        '<tr><td>'+ffechaD(e.fecha)+'</td><td class="num">'+fmt(e.kg_por_rollo)+' kg</td>'+
+        '<td class="num '+(e.delta>0?'pos':'neg')+'">'+(e.delta>0?'+':'')+fmt(e.delta)+'</td>'+
+        '<td>'+esc(MOTIVOS_D[e.motivo]||e.motivo)+'</td>'+
+        '<td>'+esc(e.operario||e.legajo||'')+'</td>'+
+        '<td class="num"><b>'+fmt(e.saldo)+'</b></td></tr>').join('')+
+      '</tbody></table></div>'
+    : '<div class="empty">Sin movimientos de rollos todavía.</div>';
+
+  $('detBody').innerHTML=h;
+}
+function cerrarDetalle(){ $('detBg').classList.remove('on'); DET=null; }
 
 let EDIT=null;
 function editar(cid){
@@ -315,6 +408,10 @@ async function cargar(){
   $('status').textContent='GP2 · '+FL.length+' flejes · '+con+' con stock · elegí un proveedor o buscá';
   pintarProvs(); render();
 }
+$('detCerrar').addEventListener('click',cerrarDetalle);
+$('detBg').addEventListener('click',e=>{ if(e.target===$('detBg')) cerrarDetalle(); });
+$('detEditar').addEventListener('click',()=>{ var f=DET; cerrarDetalle(); if(f) editar(f.comp_id); });
+
 cargar();
 
 /* ============================================================
@@ -405,6 +502,10 @@ cargar();
     cargado=true;
     pintar();
   }
+
+  /* Puente para el detalle de fleje de la otra solapa: entrega los datos de
+     rollos cargandolos una sola vez (misma carga diferida que la solapa). */
+  window.GP2Rollos = { get: async function(){ if(!cargado) await cargarRollos(); return DR; } };
 
   $R('fPeso').addEventListener('change',pintar);
 
