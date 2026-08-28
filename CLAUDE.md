@@ -117,6 +117,23 @@ si ya existe el mapeo. Cuando el usuario confirme un renombre nuevo, agregarlo a
 - Si un lock lleva mucho tiempo (>30 min), avisar al usuario que puede estar obsoleto.
 - NUNCA borrar lineas de locks ajenos sin autorizacion del usuario.
 
+## Completar tablas manteniendo la NORMALIZACIÓN (ORDEN PRIMORDIAL)
+
+**Cuando cambia un proceso o producto GP2 (qué partes lleva, quién arma, quién entrega),
+actualizar TODAS las tablas normalizadas que lo describen, en ESTE orden, sin saltear ninguna:**
+
+1. `componente` — altas/bajas de piezas. Antes de inventar un código, mirar la convención
+   existente de la tabla (los cartones usan posición de estantería, los flejes "Fleje N°", etc.).
+2. `inventario` — fila para el componente nuevo en su ubicación (cantidad 0).
+3. `articulo_componente` y `componente_bom` — las recetas.
+4. `ruta` / `ruta_paso` — los pasos, respetando las convenciones de nombres y el duplicado
+   de ruta por tallerista cuando hay más de uno que hace el mismo paso.
+5. `contraparte_alias` / espejo Virgilio — si cambia quién entrega.
+
+Nunca parchar una sola tabla ni meter datos desnormalizados: una ruta que no cierra con la
+receta, o una receta con componentes que ninguna ruta produce, rompen trazado y stock.
+Ejemplo de referencia: reestructuración del artículo 506 (2026-08-29, ver HISTORIAL/git).
+
 ## Tablas Madre y Derivadas (OBLIGATORIO - LEER ANTES DE TOCAR SUPABASE)
 
 **Antes de hacer INSERT, UPDATE o DELETE en Supabase, verificar en esta seccion si la tabla es MADRE o DERIVADA.**
