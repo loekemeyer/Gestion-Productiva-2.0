@@ -101,12 +101,12 @@ function fmt(n,d){ d=(d==null?1:d);
   return Number(n||0).toLocaleString("es-AR",{minimumFractionDigits:0,maximumFractionDigits:d}); }
 function clsSaldo(n){ n=Number(n||0); return n>0?"pos":(n<0?"neg":"cero"); }
 
-/* El control mira lo que el tallerista tiene EN SU PODER: las partes que
-   se le mandan (lado entrada) mas las que devuelve (lado salida). */
+/* Solo las partes que el tallerista SE LLEVA (lado entrada de ruta_paso).
+   Lo que devuelve no va acá: el control es sobre lo que se le entregó. */
 function partesDe(tid){
   var o = (D.partes||{})[tid] || { entrada:[], salida:[] };
   var vistos = {}, out = [];
-  (o.entrada||[]).concat(o.salida||[]).forEach(function(x){
+  (o.entrada||[]).forEach(function(x){
     if (vistos[x.comp_id]) return;
     vistos[x.comp_id] = 1;
     out.push(x);
@@ -114,26 +114,32 @@ function partesDe(tid){
   return out.sort(function(a,b){ return String(a.cod||"").localeCompare(String(b.cod||"")); });
 }
 
+/* Fábrica (id 3) no es un tallerista externo: no va en el control. */
+var TALL_FABRICA = 3;
+function talleristasVisibles(){
+  return (D.tall||[]).filter(function(t){ return Number(t.id) !== TALL_FABRICA; });
+}
+
 async function cargar(){
   var r = await SB.rpc("talleristas_bundle");
   if (r.error){ $("status").textContent = "Error: "+r.error.message; return; }
   D = r.data || { tall:[], partes:{} };
   renderTall();
-  $("status").textContent = (D.tall||[]).length + " talleristas.";
+  $("status").textContent = talleristasVisibles().length + " talleristas.";
 }
 
 function renderTall(){
   var g = $("tallGrid"); g.innerHTML = "";
 
-  // "Todos" — ve las partes de los 12 juntas, con el tallerista como columna
+  // "Todos" — las partes de todos los talleristas juntas, con el tallerista como columna
   var bt = document.createElement("button");
   bt.type = "button"; bt.className = "prov-btn";
-  var totPartes = (D.tall||[]).reduce(function(s,t){ return s + partesDe(t.id).length; }, 0);
-  bt.innerHTML = "<b>Todos</b>" + '<span class="meta">' + (D.tall||[]).length + " talleristas · " + totPartes + " partes</span>";
+  var totPartes = talleristasVisibles().reduce(function(s,t){ return s + partesDe(t.id).length; }, 0);
+  bt.innerHTML = "<b>Todos</b>" + '<span class="meta">' + talleristasVisibles().length + " talleristas · " + totPartes + " partes</span>";
   bt.addEventListener("click", function(){ elegir(null); });
   g.appendChild(bt);
 
-  (D.tall||[]).forEach(function(t){
+  talleristasVisibles().forEach(function(t){
     var n = partesDe(t.id).length;
     var b = document.createElement("button");
     b.type = "button"; b.className = "prov-btn";
@@ -141,10 +147,10 @@ function renderTall(){
     b.addEventListener("click", function(){ elegir(t); });
     g.appendChild(b);
   });
-  if (!(D.tall||[]).length) g.innerHTML = '<div class="empty">Sin talleristas.</div>';
+  if (!talleristasVisibles().length) g.innerHTML = '<div class="empty">Sin talleristas.</div>';
 }
 
-/* selT === null => modo "Todos" (los 12 juntos, con el tallerista como columna) */
+/* selT === null => modo "Todos" (todos juntos, con el tallerista como columna) */
 var enFase1 = false;
 
 function elegir(t){
@@ -181,7 +187,7 @@ function filasBase(){
     });
   }
   var out = [];
-  (D.tall||[]).forEach(function(t){
+  talleristasVisibles().forEach(function(t){
     partesDe(t.id).forEach(function(x){
       out.push(Object.assign({}, x, { _tall: t.nombre }));
     });
