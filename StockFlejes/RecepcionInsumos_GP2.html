@@ -61,6 +61,24 @@
   .kg-modal .actions button{flex:1;padding:16px;font-size:24px;font-weight:700;border:none;border-radius:8px;cursor:pointer}
 
   .empty{color:#888;padding:12px;text-align:center;font-style:italic}
+
+  /* Control en balanza */
+  .ctl-card{border:2px solid #d0d7de;border-radius:10px;padding:14px;margin:12px 0;background:#fff}
+  .ctl-card .ch{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;font-size:20px}
+  .ctl-card .ch b{font-size:22px}
+  .badge{display:inline-block;padding:3px 12px;border-radius:12px;font-weight:800;font-size:16px;border:2px solid}
+  .b-ok{color:#0a7a2f;border-color:#0a7a2f;background:#f3fbf6}
+  .b-mal{color:#b42318;border-color:#b42318;background:#fdf3f2}
+  .b-warn{color:#9a6700;border-color:#9a6700;background:#fff8e5}
+  .b-pend{color:#666;border-color:#d0d7de;background:#f6f8fa}
+  .pallet-box{border:2px solid #e3e7ec;border-radius:8px;padding:12px;margin:10px 0;background:#fafbfc}
+  .pallet-box .ph{display:flex;gap:12px;align-items:center;flex-wrap:wrap;font-size:19px;font-weight:800}
+  .pallet-box input{height:40px;border:2px solid #d0d7de;border-radius:8px;padding:0 10px;font-size:21px;text-align:right}
+  .inp-peso{width:120px}.inp-r{width:90px}
+  .rollo-line{display:flex;gap:8px;align-items:center;margin:8px 0;font-size:19px}
+  .rollo-line .x{background:none;border:none;font-size:24px;color:#888;cursor:pointer}
+  .rollo-line .x:hover{color:#b42318}
+  .calc-line{font-size:18px;color:#444;margin-top:8px}
 </style>
 <link rel="icon" type="image/png" href="../GP2_favicon.png">
 <link rel="apple-touch-icon" href="../GP2_favicon.png">
@@ -71,6 +89,7 @@
   <div class="header">
     <h1>Recepción Insumos</h1>
     <div class="hbtns">
+      <button id="btnCtl" style="background:#f0c040">⚖ Control</button>
       <a href="../Stocks General/StockGeneral_GP2.html">Ver stock</a>
       <a href="../Inicio/index.html">Atrás</a>
     </div>
@@ -121,6 +140,20 @@
       <div id="itemsEmpty" class="empty hidden">No hay insumos en este rubro.</div>
     </div>
 
+    <!-- Control en balanza (paso 2 del proceso real) -->
+    <div id="step3" class="hidden">
+      <div class="row">
+        <button class="btn btn-secondary" id="btnVolverCtl">← Volver</button>
+        <div style="font-size:22px;font-weight:900;color:#0b3b73">⚖ Control en balanza</div>
+        <select id="ctlFiltro" style="height:40px;border:2px solid #d0d7de;border-radius:8px;font-size:19px;padding:0 8px">
+          <option value="pend">Pendientes</option>
+          <option value="prob">Con problema</option>
+          <option value="">Todas</option>
+        </select>
+      </div>
+      <div id="ctlLista"></div>
+    </div>
+
     <div id="statusMsg" class="status"></div>
 
     <div id="successBox" class="successBox">
@@ -142,6 +175,15 @@
       <button class="unit-btn" id="unitKg" data-u="kg">Kg</button>
       <button class="unit-btn" id="unitUni" data-u="uni">Unidades</button>
     </div>
+    <div id="rolloPallRow" class="hidden" style="margin-bottom:16px">
+      <div style="font-size:17px;color:#555;margin-bottom:8px">Este proveedor informa rollos en el remito. Anotá lo que dice el remito (el control con balanza es después, en ⚖ Control):</div>
+      <div style="display:flex;gap:12px">
+        <div style="flex:1"><label style="font-size:17px;font-weight:700">Rollos</label>
+          <input type="text" id="kgRollos" inputmode="numeric" placeholder="—" style="text-align:center;font-size:24px;padding:10px"></div>
+        <div style="flex:1"><label style="font-size:17px;font-weight:700">Pallets</label>
+          <input type="text" id="kgPallets" inputmode="numeric" placeholder="—" style="text-align:center;font-size:24px;padding:10px"></div>
+      </div>
+    </div>
     <div class="actions">
       <button class="btn-secondary" id="kgCancel">Cancelar</button>
       <button class="btn-primary" id="kgConfirm">Confirmar</button>
@@ -159,7 +201,8 @@ const $=id=>document.getElementById(id);
 // Unidad default por rubro (kg / uni). Los flejes y remaches se compran en kg.
 const RUBRO_UM={Flejes:"kg",Remaches:"kg",Cajas:"uni",Plasticos:"uni",Cartones:"uni",Bombillas:"uni"};
 
-let INS=[], UMBY={};
+let INS=[], UMBY={}, PROVFLAGS={}, RECS=[], PALL=[], ROLL=[], TARA={tara_pallet_min:4,tara_pallet_max:8};
+let editCtl={};   // recepcion_id -> {pallets:{nro:{peso, rollos:[{c,k}]}}}
 let rubroSel="", sidSel=0, provSel="", provsRubro=[];
 let itemSel=null, unitSel="uni";
 
@@ -256,6 +299,9 @@ function abrirPopup(i){
   // unidad default: la canónica del insumo, si no la del rubro
   var u = (UMBY[i.comp_id]==='kg') ? 'kg' : (UMBY[i.comp_id]==='unidad' ? 'uni' : (RUBRO_UM[rubroSel]||'uni'));
   setUnit(u);
+  var pide = !!PROVFLAGS[provSel];
+  $('rolloPallRow').classList.toggle('hidden', !pide);
+  $('kgRollos').value=''; $('kgPallets').value='';
   $('kgPopup').classList.add('open');
   setTimeout(()=>$('kgValue').focus(),50);
 }
@@ -272,9 +318,14 @@ async function guardar(){
   $('kgConfirm').disabled=true;
   try{
     var fiso=$('txtFecha').value?($('txtFecha').value+'T12:00:00'):null;
-    var res=await SB.rpc('crear_recepcion_insumo',{
+    var pide = !!PROVFLAGS[provSel];
+    var rll = pide ? (parseInt(($('kgRollos').value||'').replace(/\D/g,''),10)||null) : null;
+    var pll = pide ? (parseInt(($('kgPallets').value||'').replace(/\D/g,''),10)||null) : null;
+    if(pide && (!rll||!pll) && !confirm('Este proveedor informa rollos, pero no cargaste '+(!rll?'rollos':'')+((!rll&&!pll)?' ni ':'')+(!pll?'pallets':'')+'.\nSe puede completar despues, pero el control no va a poder cerrar.\n\n¿Guardar igual?')) { $('kgConfirm').disabled=false; return; }
+    var res=await SB.rpc('cargar_recepcion',{
       p_comp_id:itemSel.comp_id, p_proveedor:provSel||null,
-      p_cantidad:cant, p_unidad:unitSel, p_remito:$('txtRemito').value||null, p_fecha:fiso});
+      p_cantidad:cant, p_unidad:unitSel, p_remito:$('txtRemito').value||null,
+      p_rollos:rll, p_pallets:pll, p_fecha:fiso});
     if(res.error) throw res.error;
     var sb=$('successBox'); sb.style.display='block';
     $('successDetail').innerHTML=esc(itemSel.codigo)+' — '+esc(itemSel.descripcion||'')+' · <b>'+fmt(cant)+' '+esc(unitSel)+'</b>'+(provSel?(' ('+esc(provSel)+')'):'')+'. Stock actualizado. Mov '+(res.data&&res.data.movimiento_id)+'.';
@@ -286,11 +337,162 @@ async function guardar(){
 
 async function cargar(){
   $('statusMsg').textContent='Cargando insumos…';
-  var res=await SB.rpc('recepcion_insumos_bundle');
+  var res=await SB.rpc('recepcion_bundle');
   if(res.error){$('statusMsg').className='status bad';$('statusMsg').textContent='Error: '+res.error.message;return;}
-  INS=(res.data&&res.data.insumos)||[]; UMBY={}; INS.forEach(i=>UMBY[i.comp_id]=i.um);
+  var d=res.data||{};
+  INS=d.insumos||[]; UMBY={}; INS.forEach(i=>UMBY[i.comp_id]=i.um);
+  PROVFLAGS={}; (d.proveedores||[]).forEach(p=>PROVFLAGS[p.nombre]=!!p.informa_rollos);
+  RECS=d.recepciones||[]; PALL=d.pallets||[]; ROLL=d.rollos||[];
+  if(d.tara) TARA=d.tara;
   $('statusMsg').textContent='';
+  if(!$('step3').classList.contains('hidden')) pintarControl();
 }
+
+// ================= Control en balanza (paso 2 del proceso real) =================
+// Un pallet por pesada. Chequeos: pallets sin pesar = 0, rollos sin clasificar = 0,
+// y el sobrante de CADA pallet (peso - suma rollos) entre tara_pallet_min y max.
+function badge(e){
+  var c = e==='ok'?'b-ok' : e==='sin controlar'?'b-pend' : (e&&e.indexOf('sobrante')>=0)?'b-warn':'b-mal';
+  return '<span class="badge '+c+'">'+esc(e||'')+'</span>';
+}
+function palletsDe(rid){ return PALL.filter(p=>p.recepcion_id===rid); }
+function rollosDe(cid){ return ROLL.filter(r=>r.control_id===cid); }
+function pint(v){var x=parseInt(String(v==null?'':v).replace(/\D/g,''),10);return isNaN(x)?null:x;}
+function pnum(v){var x=parseFloat(String(v==null?'':v).trim().replace(',','.'));return isNaN(x)?null:x;}
+function calcPallet(p){
+  var peso=pnum(p.peso), kg=0, rollos=0, algo=false;
+  (p.rollos||[]).forEach(l=>{var c=pint(l.c),k=pnum(l.k); if(c&&k){kg+=c*k;rollos+=c;algo=true;}});
+  if(peso==null||!algo) return {peso:peso,kg:kg,rollos:rollos,sob:null,estado:null};
+  var sob=peso-kg, tmin=Number(TARA.tara_pallet_min||4), tmax=Number(TARA.tara_pallet_max||8);
+  return {peso:peso,kg:kg,rollos:rollos,sob:sob,tmin:tmin,tmax:tmax,
+          estado: sob<tmin?'sobrante bajo':sob>tmax?'sobrante alto':'ok'};
+}
+function abrirEdicionCtl(rec){
+  var st={pallets:{}}, n=rec.pallets_remito||1, guard=palletsDe(rec.recepcion_id);
+  for(var i=1;i<=Math.max(n,guard.length||1);i++){
+    var g=guard.find(p=>p.nro_pallet===i);
+    st.pallets[i]= g
+      ? {peso:String(g.peso_balanza), rollos:rollosDe(g.control_id).map(r=>({c:String(r.cantidad),k:String(r.kg_por_rollo)}))}
+      : {peso:'', rollos:[{c:'',k:''}]};
+    if(!st.pallets[i].rollos.length) st.pallets[i].rollos=[{c:'',k:''}];
+  }
+  editCtl[rec.recepcion_id]=st; pintarControl();
+}
+function pintarControl(){
+  var f=$('ctlFiltro').value;
+  var lista=RECS.filter(r=>{
+    if(f==='pend') return r.estado==='sin controlar'||r.estado==='faltan pallets por pesar';
+    if(f==='prob') return r.estado!=='ok'&&r.estado!=='sin controlar';
+    return true;
+  });
+  var c=$('ctlLista');
+  if(!lista.length){ c.innerHTML='<div class="empty">No hay recepciones con ese filtro.</div>'; return; }
+  c.innerHTML=lista.map(r=>{
+    var abierto=!!editCtl[r.recepcion_id];
+    return '<div class="ctl-card" data-r="'+r.recepcion_id+'">'+
+      '<div class="ch"><span><b style="color:#0066cc">'+esc(r.codigo)+'</b> '+esc(r.descripcion||'')+
+        ' <span style="color:#666">— '+esc(r.proveedor||'sin proveedor')+(r.remito?(' · remito '+esc(r.remito)):'')+'</span></span>'+
+        badge(r.estado)+'</div>'+
+      '<div style="font-size:18px;color:#444;margin-top:6px">Remito: <b>'+fmt(r.kg_remito)+' kg</b>'+
+        (r.rollos_remito!=null?(' · <b>'+r.rollos_remito+'</b> rollos'):'')+
+        (r.pallets_remito!=null?(' · <b>'+r.pallets_remito+'</b> pallets'):'')+
+        (r.pallets_pesados?(' &nbsp;|&nbsp; pesados '+r.pallets_pesados+' · sin clasificar '+fmt(r.rollos_sin_clasificar)):'')+
+      '</div>'+
+      (abierto? edCtlHTML(r) : '<div style="margin-top:10px"><button class="btn btn-primary" onclick="window.__abrirCtl('+r.recepcion_id+')">'+(r.pallets_pesados?'Revisar':'Controlar')+'</button></div>')+
+    '</div>';
+  }).join('');
+  lista.filter(r=>editCtl[r.recepcion_id]).forEach(engancharCtl);
+}
+function edCtlHTML(r){
+  var st=editCtl[r.recepcion_id];
+  return Object.keys(st.pallets).sort((a,b)=>a-b).map(nro=>{
+    var p=st.pallets[nro], k=calcPallet(p);
+    return '<div class="pallet-box" data-p="'+nro+'">'+
+      '<div class="ph">Pallet '+nro+
+        ' <span style="font-weight:600;font-size:17px">Peso balanza</span> <input class="inp-peso p-peso" inputmode="decimal" value="'+esc(p.peso)+'"> kg '+
+        (k.estado?badge(k.estado):'')+
+      '</div>'+
+      p.rollos.map((l,i)=>'<div class="rollo-line" data-i="'+i+'">'+
+        '<input class="inp-r r-c" inputmode="numeric" value="'+esc(l.c)+'" placeholder="rollos"> rollos × '+
+        '<input class="inp-r r-k" inputmode="decimal" value="'+esc(l.k)+'" placeholder="kg"> kg'+
+        (p.rollos.length>1?'<button class="x" data-rm="'+i+'">×</button>':'')+
+      '</div>').join('')+
+      '<button class="btn btn-secondary" data-add="'+nro+'" style="font-size:16px;padding:6px 12px">+ otro peso de rollo</button>'+
+      '<div class="calc-line">'+
+        (k.sob!=null
+          ? ('Rollos <b>'+k.rollos+'</b> · suma <b>'+fmt(k.kg)+' kg</b> · sobrante <b style="color:'+(k.estado==='ok'?'#0a7a2f':'#b42318')+'">'+fmt(k.sob)+' kg</b> (esperado '+k.tmin+'–'+k.tmax+')')
+          : 'Completá el peso de balanza y al menos una línea de rollos.')+
+      '</div></div>';
+  }).join('')+
+  '<div class="row"><button class="btn btn-primary" data-save="'+r.recepcion_id+'">Guardar control</button>'+
+  '<button class="btn btn-secondary" data-close="'+r.recepcion_id+'">Cancelar</button>'+
+  '<button class="btn btn-secondary" data-addp="'+r.recepcion_id+'" style="font-size:16px">+ pallet</button>'+
+  '<span class="status" id="ctlMsg-'+r.recepcion_id+'" style="font-size:17px"></span></div>';
+}
+function engancharCtl(rec){
+  var card=$('ctlLista').querySelector('.ctl-card[data-r="'+rec.recepcion_id+'"]');
+  var st=editCtl[rec.recepcion_id]; if(!card||!st) return;
+  card.querySelectorAll('.pallet-box').forEach(pb=>{
+    var nro=pb.dataset.p, p=st.pallets[nro];
+    var peso=pb.querySelector('.p-peso');
+    peso.addEventListener('input',()=>{ peso.value=peso.value.replace(/[^0-9.,]/g,'').replace(/([.,].*)[.,]/g,'$1'); p.peso=peso.value; refresCtl(card,rec,nro); });
+    pb.querySelectorAll('.rollo-line').forEach(rl=>{
+      var i=Number(rl.dataset.i);
+      var c=rl.querySelector('.r-c'), k=rl.querySelector('.r-k');
+      c.addEventListener('input',()=>{ c.value=c.value.replace(/\D/g,''); p.rollos[i].c=c.value; refresCtl(card,rec,nro); });
+      k.addEventListener('input',()=>{ k.value=k.value.replace(/[^0-9.,]/g,'').replace(/([.,].*)[.,]/g,'$1'); p.rollos[i].k=k.value; refresCtl(card,rec,nro); });
+      var rm=rl.querySelector('[data-rm]');
+      // borrar una linea NO toca las demas
+      if(rm) rm.onclick=()=>{ p.rollos.splice(i,1); if(!p.rollos.length)p.rollos=[{c:'',k:''}]; pintarControl(); };
+    });
+    // el "+" solo agrega una linea vacia: los numeros ya cargados quedan FIJOS
+    var add=pb.querySelector('[data-add]');
+    if(add) add.onclick=()=>{ p.rollos.push({c:'',k:''}); pintarControl(); };
+  });
+  var addp=card.querySelector('[data-addp]');
+  if(addp) addp.onclick=()=>{ var ns=Object.keys(st.pallets).map(Number); st.pallets[Math.max.apply(null,ns.concat([0]))+1]={peso:'',rollos:[{c:'',k:''}]}; pintarControl(); };
+  var cl=card.querySelector('[data-close]');
+  if(cl) cl.onclick=()=>{ delete editCtl[rec.recepcion_id]; pintarControl(); };
+  var sv=card.querySelector('[data-save]');
+  if(sv) sv.onclick=()=>guardarCtl(rec);
+}
+function refresCtl(card,rec,nro){
+  var pb=card.querySelector('.pallet-box[data-p="'+nro+'"]'); if(!pb) return;
+  var k=calcPallet(editCtl[rec.recepcion_id].pallets[nro]);
+  pb.querySelector('.calc-line').innerHTML = k.sob!=null
+    ? ('Rollos <b>'+k.rollos+'</b> · suma <b>'+fmt(k.kg)+' kg</b> · sobrante <b style="color:'+(k.estado==='ok'?'#0a7a2f':'#b42318')+'">'+fmt(k.sob)+' kg</b> (esperado '+k.tmin+'–'+k.tmax+')')
+    : 'Completá el peso de balanza y al menos una línea de rollos.';
+  var b=pb.querySelector('.badge');
+  if(k.estado){ if(b){b.className='badge '+(k.estado==='ok'?'b-ok':'b-warn');b.textContent=k.estado;} else pb.querySelector('.ph').insertAdjacentHTML('beforeend',badge(k.estado)); }
+}
+async function guardarCtl(rec){
+  var st=editCtl[rec.recepcion_id], m=$('ctlMsg-'+rec.recepcion_id);
+  m.className='status'; m.textContent='Guardando…';
+  var errs=[], ok=0;
+  for(var nro of Object.keys(st.pallets).sort((a,b)=>a-b)){
+    var p=st.pallets[nro], peso=pnum(p.peso);
+    var lineas=(p.rollos||[]).map(l=>({cantidad:pint(l.c),kg_por_rollo:pnum(l.k)})).filter(l=>l.cantidad>0&&l.kg_por_rollo>0);
+    if(peso==null||peso<=0){ if(lineas.length) errs.push('Pallet '+nro+': falta el peso'); continue; }
+    try{
+      var r=await SB.rpc('pesar_pallet',{p_recepcion_id:rec.recepcion_id,p_nro_pallet:Number(nro),
+        p_peso_balanza:peso,p_rollos:lineas,p_usuario:null});
+      if(r.error) throw r.error;
+      ok++;
+    }catch(e){ errs.push('Pallet '+nro+': '+(e.message||e)); }
+  }
+  if(errs.length){ m.className='status bad'; m.textContent=errs.join(' · '); }
+  else delete editCtl[rec.recepcion_id];
+  if(ok) await cargar();
+}
+window.__abrirCtl=function(rid){ var r=RECS.find(x=>x.recepcion_id===rid); if(r) abrirEdicionCtl(r); };
+$('btnCtl').addEventListener('click',()=>{
+  $('step1').classList.add('hidden'); $('step2').classList.add('hidden');
+  $('step3').classList.remove('hidden'); pintarControl();
+});
+$('btnVolverCtl').addEventListener('click',()=>{
+  $('step3').classList.add('hidden'); $('step1').classList.remove('hidden');
+});
+$('ctlFiltro').addEventListener('change',pintarControl);
 $('txtFecha').value=hoy();
 cargar();
 </script>

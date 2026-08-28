@@ -74,3 +74,34 @@ Todos en `main`. Se abren con Live Server. Los `*_GP2.html` conviven con los vie
 ## 7) Write-backs pendientes
 
 - Edición/anulación de producción (Disruptivas/Maestro), carga de envíos/recepción, ABM escritura: quedaron **solo-lectura**. El escritor vivo (app/n8n → public → espejo) se define aparte.
+
+## 8) Sesión 2026-08-28 — recepción de insumos en dos pasos + circuito de entregas
+
+- **Recepción de insumos rehecha según el proceso real de la fábrica** (contado por el usuario):
+  - **Paso 1 (carga)**: se marca todo lo que llega según el remito, SIN controlar. Aperam y
+    Basconia informan kg + rollos + pallets; el resto solo kg. Quién informa rollos vive en
+    la tabla **`proveedor_insumo`** (no hardcodeado).
+  - **Paso 2 (control)**: un pallet por pesada. Peso de balanza + líneas "N rollos × P kg"
+    (lo normal una línea; dos para el caso raro de pesos distintos).
+  - **Tres chequeos en la base** (vistas `v_control_pallet` y `v_recepcion_control`):
+    pallets sin pesar = 0, rollos sin clasificar = 0, y sobrante por pallet entre 4 y 8 kg
+    (tara, parametrizada en tabla `parametro`).
+  - Tablas nuevas: `recepcion_insumo.rollos/.pallets`, `recepcion_control` (fila por pallet),
+    `recepcion_control_rollo`, `parametro`, `proveedor_insumo`.
+  - RPC nuevas: `cargar_recepcion`, `pesar_pallet`, `recepcion_bundle`.
+  - **UI integrada en `RecepcionInsumos_GP2.html`** (mismo diseño): el popup pide rollos/pallets
+    solo si el proveedor los informa, y el botón **⚖ Control** abre el pesaje por pallet.
+    Arreglado el vicio del módulo viejo: agregar/quitar una línea de rollos NUNCA modifica
+    los números ya cargados.
+- **`crear_entrega_tallerista` creada y probada** (la puerta que faltaba para Recepción
+  Cervantes/Virgilio): un armado (GRJ) NACE en la entrega (movimiento sin origen) y solo se
+  descuentan sus partes del tallerista (`consumo_armado`); una parte sin BOM sale normal.
+  Los terminados van a la ubicación `virgilio`. Sin UI todavía.
+- **Docs**: `GP2_MAPA.md` (contratos reales de los bundles + nombres reales de tablas),
+  `ANALISIS_GP2_2026-08-28.md`, `SQL_GP2_PENDIENTES.sql` (estado por bloque).
+- **Permisos del repo**: `.claude/settings.json` con allow/ask/deny (SQL sigue en ask).
+- **Decisión del usuario**: `GP2.produccion` queda **vacía por ahora** (sin backfill ni
+  trigger espejo enganchado — los `fn_espejo_*` existen como funciones pero NO están
+  colgados de ninguna tabla; los únicos triggers vivos son los del motor de `movimiento`).
+- **Ojo**: hay componentes con el mismo `codigo` en sectores distintos (ej. `A1`);
+  toda búsqueda por código debe desambiguar por sector o usar `comp_id`.
