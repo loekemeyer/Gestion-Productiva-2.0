@@ -53,7 +53,24 @@
       "mcp__supabase-gp__list_migrations",
       "mcp__supabase-gp__list_extensions",
       "mcp__supabase-gp__get_project_url",
-      "mcp__supabase-gp__get_advisors"
+      "mcp__supabase-gp__get_advisors",
+      "mcp__c1349a3b-7ae5-48e5-a0b0-b29e6f5f1450__list_tables",
+      "mcp__c1349a3b-7ae5-48e5-a0b0-b29e6f5f1450__list_migrations",
+      "mcp__c1349a3b-7ae5-48e5-a0b0-b29e6f5f1450__list_extensions",
+      "mcp__c1349a3b-7ae5-48e5-a0b0-b29e6f5f1450__list_edge_functions",
+      "mcp__c1349a3b-7ae5-48e5-a0b0-b29e6f5f1450__list_branches",
+      "mcp__c1349a3b-7ae5-48e5-a0b0-b29e6f5f1450__list_organizations",
+      "mcp__c1349a3b-7ae5-48e5-a0b0-b29e6f5f1450__list_projects",
+      "mcp__c1349a3b-7ae5-48e5-a0b0-b29e6f5f1450__get_project",
+      "mcp__c1349a3b-7ae5-48e5-a0b0-b29e6f5f1450__get_project_url",
+      "mcp__c1349a3b-7ae5-48e5-a0b0-b29e6f5f1450__get_publishable_keys",
+      "mcp__c1349a3b-7ae5-48e5-a0b0-b29e6f5f1450__get_advisors",
+      "mcp__c1349a3b-7ae5-48e5-a0b0-b29e6f5f1450__get_organization",
+      "mcp__c1349a3b-7ae5-48e5-a0b0-b29e6f5f1450__get_edge_function",
+      "mcp__c1349a3b-7ae5-48e5-a0b0-b29e6f5f1450__get_cost",
+      "mcp__c1349a3b-7ae5-48e5-a0b0-b29e6f5f1450__generate_typescript_types",
+      "mcp__c1349a3b-7ae5-48e5-a0b0-b29e6f5f1450__search_docs",
+      "mcp__c1349a3b-7ae5-48e5-a0b0-b29e6f5f1450__query_logs"
     ],
     "ask": [
       "Bash(git push:*)",
@@ -61,7 +78,9 @@
       "mcp__Supabase__execute_sql",
       "mcp__Supabase__apply_migration",
       "mcp__supabase-gp__execute_sql",
-      "mcp__supabase-gp__apply_migration"
+      "mcp__supabase-gp__apply_migration",
+      "mcp__c1349a3b-7ae5-48e5-a0b0-b29e6f5f1450__execute_sql",
+      "mcp__c1349a3b-7ae5-48e5-a0b0-b29e6f5f1450__apply_migration"
     ],
     "deny": [
       "Bash(rm -rf:*)",
