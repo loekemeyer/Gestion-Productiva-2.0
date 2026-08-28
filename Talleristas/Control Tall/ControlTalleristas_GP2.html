@@ -16,6 +16,7 @@
     <h1>Control Partes Tallerista</h1>
     <div class="hbtns">
       <button class="hlink hidden" id="btnVolver" type="button">← Cambiar tallerista</button>
+      <button class="hlink hidden" id="btnCSV" type="button">⬇ Exportar CSV</button>
       <button class="hlink hidden" id="btnImprimir" type="button">🖨 Imprimir</button>
       <a href="../Envios/EnviosTalleristas_GP2.html">Envío</a>
       <a href="../Recepcion/EntregasTalleristas_GP2.html">Entrega</a>
@@ -36,6 +37,14 @@
     <div id="fase1" class="hidden">
       <div class="row"><label class="lbl" id="fase1Title">Tallerista</label></div>
 
+      <div class="aviso">
+        ⚠ El ledger GP2 es <b>parcial</b>: falta cargar producción / stock inicial, por eso
+        algunos saldos pueden dar negativos (figura entregado más de lo enviado). Es lo esperado
+        en esta etapa — los datos se muestran tal cual, sin corregir. El envío se normaliza a
+        unidades con <code>kg_x_uni</code> (los envíos originales suelen venir en kg); las
+        entregas siempre están en unidades.
+      </div>
+
       <div class="kpis" id="kpis"></div>
 
       <div class="search-box no-print">
@@ -46,11 +55,12 @@
         <table class="t">
           <thead>
             <tr>
-              <th colspan="3">Base</th>
+              <th colspan="3" id="grpBase">Base</th>
               <th colspan="3" class="num sep">Online</th>
               <th colspan="3" class="num sep">Movimientos (Uni)</th>
             </tr>
             <tr>
+              <th id="colTall" class="hidden">Tallerista</th>
               <th>Sector</th>
               <th>Código</th>
               <th>Descripción</th>
@@ -114,6 +124,15 @@ async function cargar(){
 
 function renderTall(){
   var g = $("tallGrid"); g.innerHTML = "";
+
+  // "Todos" — ve las partes de los 12 juntas, con el tallerista como columna
+  var bt = document.createElement("button");
+  bt.type = "button"; bt.className = "prov-btn";
+  var totPartes = (D.tall||[]).reduce(function(s,t){ return s + partesDe(t.id).length; }, 0);
+  bt.innerHTML = "<b>Todos</b>" + '<span class="meta">' + (D.tall||[]).length + " talleristas · " + totPartes + " partes</span>";
+  bt.addEventListener("click", function(){ elegir(null); });
+  g.appendChild(bt);
+
   (D.tall||[]).forEach(function(t){
     var n = partesDe(t.id).length;
     var b = document.createElement("button");
@@ -125,32 +144,61 @@ function renderTall(){
   if (!(D.tall||[]).length) g.innerHTML = '<div class="empty">Sin talleristas.</div>';
 }
 
+/* selT === null => modo "Todos" (los 12 juntos, con el tallerista como columna) */
+var enFase1 = false;
+
 function elegir(t){
-  selT = t;
-  $("fase1Title").textContent = t.nombre + (t.cod_prov ? (" · cod " + t.cod_prov) : "");
+  selT = t; enFase1 = true;
+  $("fase1Title").textContent = t
+    ? (t.nombre + (t.cod_prov ? (" · cod " + t.cod_prov) : ""))
+    : "Todos los talleristas";
+  $("colTall").classList.toggle("hidden", !!t);
+  $("grpBase").setAttribute("colspan", t ? "3" : "4");
   $("fase0").classList.add("hidden");
   $("fase1").classList.remove("hidden");
   $("btnVolver").classList.remove("hidden");
   $("btnImprimir").classList.remove("hidden");
+  $("btnCSV").classList.remove("hidden");
   $("q").value = "";
   render();
 }
 
 function volver(){
-  selT = null;
+  selT = null; enFase1 = false;
   $("fase1").classList.add("hidden");
   $("fase0").classList.remove("hidden");
   $("btnVolver").classList.add("hidden");
   $("btnImprimir").classList.add("hidden");
+  $("btnCSV").classList.add("hidden");
   renderTall();
 }
 
+/* Cada fila lleva su tallerista para poder mostrarlo y exportarlo en modo Todos */
+function filasBase(){
+  if (selT) {
+    return partesDe(selT.id).map(function(x){
+      return Object.assign({}, x, { _tall: selT.nombre });
+    });
+  }
+  var out = [];
+  (D.tall||[]).forEach(function(t){
+    partesDe(t.id).forEach(function(x){
+      out.push(Object.assign({}, x, { _tall: t.nombre }));
+    });
+  });
+  return out.sort(function(a,b){
+    return String(a._tall).localeCompare(String(b._tall)) ||
+           String(a.cod||"").localeCompare(String(b.cod||""));
+  });
+}
+
 function filtradas(){
-  var arr = partesDe(selT.id);
+  var arr = filasBase();
   var q = String($("q").value||"").trim().toLowerCase();
   if (!q) return arr;
   return arr.filter(function(x){
-    return (String(x.cod||"")+" "+String(x["desc"]||"")+" "+String(x.sector||"")).toLowerCase().indexOf(q) >= 0;
+    return (String(x.cod||"")+" "+String(x["desc"]||"")+" "+
+            String(x.sector||"")+" "+String(x._tall||"")).toLowerCase().indexOf(q) >= 0;
   });
 }
 
@@ -174,6 +222,7 @@ function render(){
 
     var tr = document.createElement("tr");
     tr.innerHTML =
+      (selT ? "" : '<td>'+esc(x._tall||"")+'</td>')+
       '<td>'+esc(x.sector||"—")+'</td>'+
       '<td><span class="cod">'+esc(x.cod)+'</span></td>'+
       '<td>'+esc(x["desc"]||"")+'</td>'+
@@ -187,7 +236,7 @@ function render(){
   });
 
   $("tfoot").innerHTML = arr.length ? ('<tr>'+
-    '<td colspan="3">'+arr.length+' partes</td>'+
+    '<td colspan="'+(selT?3:4)+'">'+arr.length+' partes</td>'+
     '<td class="num sep">'+fmt(totKg,2)+'</td><td class="num">—</td><td class="num">'+fmt(totUni,0)+'</td>'+
     '<td class="num sep">'+fmt(totEnv,0)+'</td><td class="num">'+fmt(totEnt,0)+'</td>'+
     '<td class="num '+clsSaldo(totSal)+'">'+fmt(totSal,0)+'</td></tr>') : "";
@@ -199,8 +248,43 @@ function render(){
     '<div class="kpi"><div class="k">Saldo</div><div class="v '+clsSaldo(totSal)+'">'+fmt(totSal,0)+'</div></div>';
 }
 
+/* CSV con separador ; y BOM, para que Excel en es-AR lo abra en columnas */
+function exportarCSV(){
+  var arr = filtradas();
+  if (!arr.length){ alert("No hay filas para exportar."); return; }
+  var cols = (selT ? [] : ["Tallerista"]).concat(
+    ["Sector","Codigo","Descripcion","Kg","Caj","Uni","Enviado","Entregado","Saldo"]);
+  var q = function(v){ return '"'+String(v==null?"":v).replace(/"/g,'""')+'"'; };
+  var lineas = [cols.map(q).join(";")];
+
+  arr.forEach(function(x){
+    var uni = Number(x.online_tall||0);
+    var kg  = x.kg_x_uni ? uni*Number(x.kg_x_uni) : "";
+    var caj = x.uni_x_cajon ? uni/Number(x.uni_x_cajon) : "";
+    var fila = (selT ? [] : [x._tall||""]).concat([
+      x.sector||"", x.cod||"", x["desc"]||"",
+      kg===""?"":String(kg).replace(".",","),
+      caj===""?"":String(caj).replace(".",","),
+      String(uni).replace(".",","),
+      String(x.enviado||0).replace(".",","),
+      String(x.entregado||0).replace(".",","),
+      String(x.saldo||0).replace(".",",")
+    ]);
+    lineas.push(fila.map(q).join(";"));
+  });
+
+  var nombre = "control_talleristas_" + (selT ? selT.nombre.replace(/\s+/g,"_") : "todos") + ".csv";
+  var blob = new Blob(["﻿"+"sep=;\n"+lineas.join("\n")], {type:"text/csv;charset=utf-8"});
+  var a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = nombre;
+  a.click();
+  setTimeout(function(){ URL.revokeObjectURL(a.href); }, 1000);
+}
+
 $("q").addEventListener("input", render);
 $("btnVolver").addEventListener("click", volver);
+$("btnCSV").addEventListener("click", exportarCSV);
 $("btnImprimir").addEventListener("click", function(){ window.print(); });
 
 cargar().catch(function(e){ $("status").textContent = "Error: "+(e&&e.message?e.message:e); });

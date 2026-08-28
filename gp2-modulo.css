@@ -81,6 +81,11 @@ table.t tfoot td{font-weight:900;background:#f6f8fa;border-top:2px solid #e5e9ee
 .successBox .title{font-weight:900;font-size:24px;color:#0a7a2f;margin-bottom:10px}
 .successBox .code{font-size:46px;font-weight:900;letter-spacing:5px;color:#111;margin:10px 0}
 
+/* ---- aviso (estado de los datos) ---- */
+.aviso{background:#fffbeb;border:1px solid #fde68a;color:#7a5200;border-radius:10px;padding:10px 14px;font-size:15px;line-height:1.45;margin:10px 0}
+.aviso b{color:#5c3d00}
+.aviso code{background:#fef3c7;padding:1px 5px;border-radius:4px;font-size:14px}
+
 /* ---- KPIs ---- */
 .kpis{display:flex;gap:10px;flex-wrap:wrap;margin:10px 0}
 .kpi{background:#f6f8fa;border:1px solid #e5e9ee;border-radius:10px;padding:10px 16px;min-width:130px}
