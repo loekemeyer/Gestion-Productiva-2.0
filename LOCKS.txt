@@ -4,6 +4,7 @@
 (vacío)
 
 [HISTORIAL]
+2026-08-28 - EntregasTalleristas_GP2.html: agregado formulario "Registrar Entrega" arriba de la tabla. Seleccion de tallerista via chips existentes; buscadores de articulo entregado y SP de entrada; llama a crear_entrega_tallerista con p_comp_entrada_id opcional. Los componentes se cargan en vivo de GP2.componente al arrancar. JS OK. loekemeyer (claude-remote).
 2026-08-28 - SQL_GP2_PENDIENTES.sql: estado actualizado: §1 empleado existe, §3b crear_envio_ps/entrega_ps arregladas, §4 fleje_detalle_upsert 6-arg dropeada, _bak_* pendientes de confirmar con usuario. loekemeyer (claude-remote).
 2026-08-28 - crear_envio_ps + crear_entrega_ps FIX: lookup de ubicacion cambiado de nombre -> ref_id. Ya no se rompen si un sector es renombrado en la tabla ubicacion. Probado con J5/Becker del E2E: mismos resultados. Rollback limpio. loekemeyer (claude-remote).
 2026-08-28 - crear_entrega_tallerista FIX: agregado parametro p_comp_entrada_id bigint DEFAULT null. Para articulos no-armado con transformacion de sector (tallerista recibe SP, entrega producto terminado distinto), el movimiento principal ahora tiene ubic_origen=null (producto nace) y se inserta un movimiento separado tipo consumo_transformacion que decuenta el componente de entrada desde el tallerista. Probado: Martin recibe A8 (envio), entrega 706 con p_comp_entrada_id=83 -> A8 Martin=0 (consumido), 706 Virgilio=+100 (correcto), 706 Martin=0 (sin ghost stock). Rollback limpio. loekemeyer (claude-remote).

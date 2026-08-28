@@ -40,6 +40,25 @@
   .un.kg{color:#b45309}.un.uni{color:#0a7a2f}
   .flag{color:#b42318;font-weight:800}
   .empty{padding:26px;text-align:center;color:#888;font-style:italic;font-size:18px}
+  /* form panel */
+  .form-panel{background:#f8fafc;border:1.5px solid #e5e9ee;border-radius:10px;padding:14px 16px;margin-bottom:14px}
+  .form-panel h2{font-size:18px;color:#0b3b73;margin-bottom:12px;font-weight:800}
+  .form-row{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:10px}
+  .form-lbl{font-weight:700;font-size:15px;min-width:200px;color:#475569}
+  .fpick-wrap{position:relative;min-width:260px;flex:1}
+  .fpick-wrap input{width:100%;height:38px;border:2px solid #d0d7de;border-radius:8px;padding:0 10px;font-size:16px;box-sizing:border-box}
+  .fpick-drop{position:absolute;top:42px;left:0;right:0;max-height:200px;overflow-y:auto;background:#fff;border:1.5px solid #d0d7de;border-radius:8px;z-index:100;box-shadow:0 4px 12px rgba(0,0,0,.12)}
+  .fpick-item{padding:8px 12px;cursor:pointer;font-size:15px;border-bottom:1px solid #f1f5f9}
+  .fpick-item:hover,.fpick-item.hi{background:#f0f4ff}
+  .fpick-item b{color:#0066cc}
+  .form-note{font-size:12px;color:#94a3b8;margin-left:4px}
+  .form-actions{display:flex;align-items:center;gap:12px;margin-top:4px}
+  #fMsg{font-size:15px} #fMsg.ok{color:#0a7a2f} #fMsg.err{color:#b42318}
+  .btn-reg{background:#111;color:#fff;border:none;border-radius:8px;padding:10px 22px;font-weight:800;font-size:17px;cursor:pointer}
+  .btn-reg:disabled{opacity:.5;cursor:not-allowed}
+  .cant-in{width:110px;height:38px;border:2px solid #d0d7de;border-radius:8px;padding:0 10px;font-size:16px}
+  .un-sel{height:38px;border:2px solid #d0d7de;border-radius:8px;padding:0 10px;font-size:16px}
+  .date-in{width:160px;height:38px;border:2px solid #d0d7de;border-radius:8px;padding:0 10px;font-size:16px}
 </style>
 <link rel="icon" type="image/png" href="../../GP2_favicon.png">
 <link rel="apple-touch-icon" href="../../GP2_favicon.png">
@@ -56,6 +75,38 @@
   </div>
 
   <div class="steps">
+    <div class="form-panel">
+      <h2>Registrar Entrega</h2>
+      <div class="form-row">
+        <span class="form-lbl">Tallerista</span>
+        <span id="fTallNom" style="font-size:16px;font-weight:700;color:#0b3b73">— seleccioná un chip debajo —</span>
+      </div>
+      <div class="form-row">
+        <span class="form-lbl">Artículo entregado</span>
+        <div class="fpick-wrap">
+          <input id="fComp" type="text" placeholder="Buscar código o descripción…" autocomplete="off">
+          <div class="fpick-drop" id="dComp" style="display:none"></div>
+        </div>
+      </div>
+      <div class="form-row">
+        <span class="form-lbl">SP de entrada<span class="form-note">(solo si no es armado)</span></span>
+        <div class="fpick-wrap">
+          <input id="fCompEnt" type="text" placeholder="Componente SP que tenía el tallerista (opcional)…" autocomplete="off">
+          <div class="fpick-drop" id="dCompEnt" style="display:none"></div>
+        </div>
+      </div>
+      <div class="form-row">
+        <span class="form-lbl">Cantidad</span>
+        <input id="fCant" type="number" class="cant-in" min="0.001" step="0.001" placeholder="0">
+        <select id="fUn" class="un-sel"><option value="uni">uni</option><option value="kg">kg</option></select>
+        <input id="fFechaReg" type="date" class="date-in">
+      </div>
+      <div class="form-actions">
+        <button class="btn-reg" id="btnReg" onclick="guardar()">Registrar</button>
+        <span id="fMsg"></span>
+      </div>
+    </div>
+
     <div class="row"><label class="lbl">Tallerista</label></div>
     <div class="provs-grid" id="tallGrid"></div>
 
@@ -84,12 +135,12 @@ function pintarTall(){
   var map={}; (D.entregas||[]).forEach(e=>{if(e.tall_id!=null)map[e.tall_id]=(map[e.tall_id]||0)+1;});
   var g=$('tallGrid'); g.innerHTML='';
   var todos=document.createElement('button'); todos.className='prov-btn'+(tallSel===""?' active':''); todos.textContent='Todos';
-  todos.addEventListener('click',()=>{tallSel="";pintarTall();render();}); g.appendChild(todos);
+  todos.addEventListener('click',()=>{tallSel="";pintarTall();render();actualizarFormTall();}); g.appendChild(todos);
   (D.talleristas||[]).forEach(function(t){
     var n=map[t.id]||0;
     var b=document.createElement('button'); b.className='prov-btn'+(String(tallSel)===String(t.id)?' active':'');
     b.innerHTML=esc(t.nombre)+(t.cod_prov?(' ('+esc(t.cod_prov)+')'):'')+' <span style="opacity:.6;font-weight:600">('+n+')</span>';
-    b.addEventListener('click',()=>{tallSel=String(t.id);pintarTall();render();});
+    b.addEventListener('click',()=>{tallSel=String(t.id);pintarTall();render();actualizarFormTall();});
     g.appendChild(b);
   });
 }
@@ -156,12 +207,81 @@ $('btnCsv').addEventListener('click',function(){
   a.download="entregas_talleristas_"+new Date().toISOString().slice(0,10)+".csv";
   document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(a.href);
 });
+var COMPS=[];
+var pickerComp=null, pickerCompEnt=null;
+
+function makePicker(inputId, dropId, items, onSel){
+  var inp=$(inputId), drop=$(dropId), sel=null;
+  function show(q){
+    if(!q){drop.style.display='none';return;}
+    var filt=items.filter(function(x){return norm(x.codigo).indexOf(q)>=0||norm(x.descripcion).indexOf(q)>=0;}).slice(0,30);
+    if(!filt.length){drop.style.display='none';return;}
+    drop.innerHTML=filt.map(function(x){
+      return '<div class="fpick-item" data-id="'+x.id+'"><b>'+esc(x.codigo)+'</b> '+esc(x.descripcion)+'</div>';
+    }).join('');
+    drop.style.display='block';
+    drop.querySelectorAll('.fpick-item').forEach(function(el){
+      el.addEventListener('mousedown',function(ev){
+        ev.preventDefault();
+        var id=Number(el.getAttribute('data-id'));
+        var found=items.find(function(x){return x.id===id;});
+        if(found){sel=found;inp.value=found.codigo+' – '+found.descripcion;drop.style.display='none';if(onSel)onSel(found);}
+      });
+    });
+  }
+  inp.addEventListener('input',function(){sel=null;show(norm(inp.value.trim()));});
+  inp.addEventListener('blur',function(){setTimeout(function(){drop.style.display='none';},150);});
+  inp.addEventListener('focus',function(){if(inp.value.trim())show(norm(inp.value.trim()));});
+  return {getSel:function(){return sel;},clear:function(){sel=null;inp.value='';drop.style.display='none';}};
+}
+
+function actualizarFormTall(){
+  var t=tallSel?(D.talleristas||[]).find(function(x){return String(x.id)===String(tallSel);}):null;
+  $('fTallNom').textContent=t?(t.nombre+(t.cod_prov?' ('+t.cod_prov+')':'')):'— seleccioná un chip debajo —';
+}
+
+function setMsg(m,cls){var el=$('fMsg');el.textContent=m;el.className=cls||'';}
+
+async function guardar(){
+  var tallId=tallSel?Number(tallSel):null;
+  if(!tallId){setMsg('Seleccioná un tallerista primero.','err');return;}
+  var comp=pickerComp&&pickerComp.getSel();
+  if(!comp){setMsg('Seleccioná el artículo entregado.','err');return;}
+  var cant=Number($('fCant').value);
+  if(!(cant>0)){setMsg('Cantidad debe ser mayor a 0.','err');return;}
+  var un=$('fUn').value;
+  var fechaVal=$('fFechaReg').value;
+  var fecha=fechaVal?new Date(fechaVal+'T12:00:00').toISOString():null;
+  var compEnt=pickerCompEnt&&pickerCompEnt.getSel();
+  var params={p_tallerista_id:tallId,p_comp_id:comp.id,p_cantidad:cant,p_unidad:un};
+  if(fecha)params.p_fecha=fecha;
+  if(compEnt)params.p_comp_entrada_id=compEnt.id;
+  $('btnReg').disabled=true; setMsg('Guardando…','');
+  try{
+    var r=await SB.rpc('crear_entrega_tallerista',params);
+    if(r.error)throw r.error;
+    var res=r.data, ids=res&&res.movimiento_ids?(' (movs '+res.movimiento_ids.join(',')+')'):'';
+    setMsg('✔ Entrega registrada'+ids,'ok');
+    pickerComp.clear(); pickerCompEnt.clear(); $('fCant').value='';
+    await boot();
+  }catch(e){setMsg('Error: '+(e.message||e),'err');}
+  finally{$('btnReg').disabled=false;}
+}
+
 async function boot(){
   try{
-    var r=await SB.rpc("entregas_tallerista_bundle");
+    var [r,rc]=await Promise.all([
+      SB.rpc("entregas_tallerista_bundle"),
+      SB.from('componente').select('id,codigo,descripcion').order('codigo')
+    ]);
     if(r.error)throw r.error;
+    if(rc.error)throw rc.error;
     Object.assign(D,r.data);
-    pintarTall(); render();
+    COMPS=rc.data||[];
+    pickerComp=makePicker('fComp','dComp',COMPS,null);
+    pickerCompEnt=makePicker('fCompEnt','dCompEnt',COMPS,null);
+    if(!$('fFechaReg').value)$('fFechaReg').value=new Date().toISOString().slice(0,10);
+    pintarTall(); render(); actualizarFormTall();
   }catch(e){ $('canvas').innerHTML='<div class="empty" style="color:#b42318">Error: '+esc(e.message||e)+'</div>'; }
 }
 boot();
