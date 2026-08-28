@@ -79,6 +79,7 @@
   .rollo-line .x{background:none;border:none;font-size:24px;color:#888;cursor:pointer}
   .rollo-line .x:hover{color:#b42318}
   .calc-line{font-size:18px;color:#444;margin-top:8px}
+  .kg-conv{font-size:21px;color:#0b3b73;font-weight:700;text-align:center;padding:6px 0;min-height:28px;letter-spacing:.3px}
 </style>
 <link rel="icon" type="image/png" href="../GP2_favicon.png">
 <link rel="apple-touch-icon" href="../GP2_favicon.png">
@@ -171,6 +172,7 @@
     <div class="item-info" id="kgItemInfo"></div>
     <label style="display:block;margin-bottom:8px;font-size:18px;font-weight:700">Cantidad</label>
     <input type="text" id="kgValue" inputmode="decimal" placeholder="0,0">
+    <div id="kgConvDisplay" class="kg-conv"></div>
     <div class="unit-row">
       <button class="unit-btn" id="unitKg" data-u="kg">Kg</button>
       <button class="unit-btn" id="unitUni" data-u="uni">Unidades</button>
@@ -201,7 +203,7 @@ const $=id=>document.getElementById(id);
 // Unidad default por rubro (kg / uni). Los flejes y remaches se compran en kg.
 const RUBRO_UM={Flejes:"kg",Remaches:"kg",Cajas:"uni",Plasticos:"uni",Cartones:"uni",Bombillas:"uni"};
 
-let INS=[], UMBY={}, PROVFLAGS={}, RECS=[], PALL=[], ROLL=[], TARA={tara_pallet_min:4,tara_pallet_max:8};
+let INS=[], UMBY={}, KGXUNI={}, PROVFLAGS={}, RECS=[], PALL=[], ROLL=[], TARA={tara_pallet_min:4,tara_pallet_max:8};
 let editCtl={};   // recepcion_id -> {pallets:{nro:{peso, rollos:[{c,k}]}}}
 let rubroSel="", sidSel=0, provSel="", provsRubro=[];
 let itemSel=null, unitSel="uni";
@@ -288,14 +290,25 @@ function setUnit(u){
   unitSel=u;
   $('unitKg').classList.toggle('active',u==='kg');
   $('unitUni').classList.toggle('active',u==='uni');
+  updateConv();
+}
+function updateConv(){
+  var d=$('kgConvDisplay'); if(!d) return;
+  var kx=itemSel&&KGXUNI[itemSel.comp_id];
+  if(unitSel==='uni'&&kx){
+    var v=parseNum($('kgValue').value);
+    d.textContent=v>0?('= '+fmt(v*kx)+' kg'):'';
+  } else { d.textContent=''; }
 }
 $('unitKg').addEventListener('click',()=>setUnit('kg'));
 $('unitUni').addEventListener('click',()=>setUnit('uni'));
 function abrirPopup(i){
   itemSel=i;
   $('kgTitle').textContent='Recepción · '+rubroSel;
-  $('kgItemInfo').innerHTML='<b>'+esc(i.codigo)+'</b> — '+esc(i.descripcion||'')+(i.medida?(' · '+esc(i.medida)+' mm'):'')+'<br><small style="color:#666">'+esc(i.sector)+(provSel?(' · '+esc(provSel)):'')+'</small>';
-  $('kgValue').value=''; $('kgMsg').textContent='';
+  var kx=KGXUNI[i.comp_id];
+  var convHint=kx?' <small style="color:#9a6700;font-weight:600">(1 uni = '+fmt(kx)+' kg)</small>':'';
+  $('kgItemInfo').innerHTML='<b>'+esc(i.codigo)+'</b> — '+esc(i.descripcion||'')+(i.medida?(' · '+esc(i.medida)+' mm'):'')+convHint+'<br><small style="color:#666">'+esc(i.sector)+(provSel?(' · '+esc(provSel)):'')+'</small>';
+  $('kgValue').value=''; $('kgMsg').textContent=''; $('kgConvDisplay').textContent='';
   // unidad default: la canónica del insumo, si no la del rubro
   var u = (UMBY[i.comp_id]==='kg') ? 'kg' : (UMBY[i.comp_id]==='unidad' ? 'uni' : (RUBRO_UM[rubroSel]||'uni'));
   setUnit(u);
@@ -313,8 +326,12 @@ $('kgConfirm').addEventListener('click',guardar);
 async function guardar(){
   var m=$('kgMsg'); m.className='status'; m.textContent='';
   if(!itemSel){cerrarPopup();return;}
-  var cant=parseNum($('kgValue').value);
-  if(!cant||cant<=0){m.className='status bad';m.textContent='Ingresá una cantidad (> 0).';return;}
+  var cantRaw=parseNum($('kgValue').value);
+  if(!cantRaw||cantRaw<=0){m.className='status bad';m.textContent='Ingresá una cantidad (> 0).';return;}
+  // Si el usuario ingresó unidades y el componente tiene kg_x_uni, auto-convertir a kg
+  var kx=KGXUNI[itemSel.comp_id];
+  var cant=cantRaw, uReal=unitSel;
+  if(unitSel==='uni'&&kx){ cant=cantRaw*kx; uReal='kg'; }
   $('kgConfirm').disabled=true;
   try{
     var fiso=$('txtFecha').value?($('txtFecha').value+'T12:00:00'):null;
@@ -324,11 +341,12 @@ async function guardar(){
     if(pide && (!rll||!pll) && !confirm('Este proveedor informa rollos, pero no cargaste '+(!rll?'rollos':'')+((!rll&&!pll)?' ni ':'')+(!pll?'pallets':'')+'.\nSe puede completar despues, pero el control no va a poder cerrar.\n\n¿Guardar igual?')) { $('kgConfirm').disabled=false; return; }
     var res=await SB.rpc('cargar_recepcion',{
       p_comp_id:itemSel.comp_id, p_proveedor:provSel||null,
-      p_cantidad:cant, p_unidad:unitSel, p_remito:$('txtRemito').value||null,
+      p_cantidad:cant, p_unidad:uReal, p_remito:$('txtRemito').value||null,
       p_rollos:rll, p_pallets:pll, p_fecha:fiso});
     if(res.error) throw res.error;
     var sb=$('successBox'); sb.style.display='block';
-    $('successDetail').innerHTML=esc(itemSel.codigo)+' — '+esc(itemSel.descripcion||'')+' · <b>'+fmt(cant)+' '+esc(unitSel)+'</b>'+(provSel?(' ('+esc(provSel)+')'):'')+'. Stock actualizado. Mov '+(res.data&&res.data.movimiento_id)+'.';
+    var detUni= (uReal==='kg'&&kx&&unitSel==='uni') ? (fmt(cantRaw)+' uni = <b>'+fmt(cant)+' kg</b>') : '<b>'+fmt(cant)+' '+esc(uReal)+'</b>';
+    $('successDetail').innerHTML=esc(itemSel.codigo)+' — '+esc(itemSel.descripcion||'')+' · '+detUni+(provSel?(' ('+esc(provSel)+')'):'')+'. Stock actualizado. Mov '+(res.data&&res.data.movimiento_id)+'.';
     cerrarPopup();
     setTimeout(()=>{sb.style.display='none';},6000);
   }catch(e){ m.className='status bad'; m.textContent='Error: '+(e.message||e); }
@@ -344,6 +362,9 @@ async function cargar(){
   PROVFLAGS={}; (d.proveedores||[]).forEach(p=>PROVFLAGS[p.nombre]=!!p.informa_rollos);
   RECS=d.recepciones||[]; PALL=d.pallets||[]; ROLL=d.rollos||[];
   if(d.tara) TARA=d.tara;
+  // Cargar factores de conversión kg/uni para componentes de sectores insumo
+  var kxRes=await SB.from('componente').select('id,kg_x_uni').in('sector_id',[5,6,7,8,9,10,11]);
+  if(!kxRes.error){KGXUNI={};(kxRes.data||[]).forEach(c=>{if(c.kg_x_uni) KGXUNI[c.id]=c.kg_x_uni;});}
   $('statusMsg').textContent='';
   if(!$('step3').classList.contains('hidden')) pintarControl();
 }
@@ -493,6 +514,7 @@ $('btnVolverCtl').addEventListener('click',()=>{
   $('step3').classList.add('hidden'); $('step1').classList.remove('hidden');
 });
 $('ctlFiltro').addEventListener('change',pintarControl);
+$('kgValue').addEventListener('input',updateConv);
 $('txtFecha').value=hoy();
 cargar();
 </script>
