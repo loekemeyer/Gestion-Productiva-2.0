@@ -1,0 +1,390 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Entrega de Proveedores de Servicios · GP2</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<link rel="stylesheet" href="../../tandas-popup.css"/>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:Arial,sans-serif;background:#f5f6f8;padding:12px;color:#111}
+  .card{max-width:1180px;margin:auto;background:#fff;border-radius:12px;box-shadow:0 2px 12px rgba(0,0,0,.08);overflow:hidden}
+  .header{background:#1a1a1a;color:#fff;padding:14px 18px;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+  .header h1{font-size:24px;font-weight:700}
+  .header .hbtns{display:flex;gap:8px}
+  .header a,.header button.hlink{background:#fff;color:#111;padding:8px 14px;border-radius:6px;font-weight:700;font-size:18px;text-decoration:none;border:none;cursor:pointer}
+
+  .steps{padding:14px 18px}
+  .row{display:flex;gap:10px;flex-wrap:wrap;margin:10px 0;align-items:center}
+  label.lbl{font-weight:800;font-size:20px}
+  input[type="date"]{height:40px;border:2px solid #d0d7de;border-radius:8px;padding:0 10px;font-size:20px}
+
+  .btn{padding:10px 16px;border-radius:8px;border:none;font-weight:800;cursor:pointer;font-size:20px}
+  .btn-primary{background:#111;color:#fff}
+  .btn-secondary{background:#fff;border:2px solid #d0d7de;color:#111}
+  .btn:disabled{opacity:.45;cursor:not-allowed}
+
+  .status{margin:8px 0;font-size:18px;color:#555;min-height:10px}
+  .provs-grid{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0}
+  .prov-btn{padding:10px 16px;border-radius:8px;border:2px solid #d0d7de;background:#fff;font-weight:700;cursor:pointer;font-size:19px;color:#111;text-align:left}
+  .prov-btn.active{background:#111;color:#fff;border-color:#111}
+  .prov-btn .meta{display:block;font-size:14px;color:#777;font-weight:700;margin-top:3px}
+
+  .search-box{margin:12px 0;padding:12px;background:#f6f8fa;border-radius:8px}
+  .search-box input{width:100%;padding:10px;font-size:18px;border:2px solid #d0d7de;border-radius:6px}
+
+  .table-wrap{overflow-x:auto;border:1px solid #e5e9ee;border-radius:10px}
+  table.t{width:100%;border-collapse:collapse;font-size:17px;background:#fff}
+  table.t th{background:#f6f8fa;color:#333;text-align:left;padding:9px 8px;border-bottom:2px solid #e5e9ee;font-size:13px;text-transform:uppercase;white-space:nowrap}
+  table.t td{padding:7px 8px;border-bottom:1px solid #eef1f4;vertical-align:middle}
+  table.t td.num,table.t th.num{text-align:right;font-variant-numeric:tabular-nums}
+  table.t td.ctr,table.t th.ctr{text-align:center}
+  table.t tr.falt td{background:#fff7ed}
+  .cod{font-weight:900;color:#0066cc}
+  .proc{color:#555}
+
+  .cell-in{width:96px;padding:7px 8px;font-size:18px;border:2px solid #d0d7de;border-radius:6px;text-align:right;font-variant-numeric:tabular-nums}
+  .cell-in:focus{outline:none;border-color:#111}
+  .cell-in.ro{background:#f6f8fa;color:#555}
+  .tanda-btn{width:34px;height:34px;border-radius:8px;border:2px solid #d0d7de;background:#fff;font-weight:900;cursor:pointer;font-size:16px;color:#111}
+  .tanda-btn.on{background:#0066cc;border-color:#0066cc;color:#fff}
+  .falt-box{width:34px;height:34px;border-radius:8px;border:2px solid #d0d7de;background:#fff;font-weight:900;cursor:pointer;font-size:16px;color:#111}
+  .falt-box.on{background:#c2410c;border-color:#c2410c;color:#fff}
+
+  .empty{color:#888;padding:16px;text-align:center;font-style:italic;font-size:18px}
+  .hidden{display:none!important}
+
+  .successBox{margin:12px 0;border:2px solid #c7e8d1;background:#f3fbf6;border-radius:12px;padding:22px;text-align:center}
+  .successBox .title{font-weight:900;font-size:24px;color:#0a7a2f;margin-bottom:10px}
+  .successBox .code{font-size:46px;font-weight:900;letter-spacing:5px;color:#111;margin:10px 0}
+</style>
+<link rel="icon" type="image/png" href="../../GP2_favicon.png">
+<link rel="apple-touch-icon" href="../../GP2_favicon.png">
+</head>
+<body>
+
+<div class="card">
+  <div class="header">
+    <h1>Entrega de Proveedores de Servicios</h1>
+    <div class="hbtns">
+      <button class="hlink hidden" id="btnVolver" type="button">← Cambiar proveedor</button>
+      <a href="../Control/ControlPS_GP2.html">Control</a>
+      <a href="../Envios/EnviosPS_GP2.html">Envío</a>
+      <a href="../../GP2_MODULOS.html">Atrás</a>
+    </div>
+  </div>
+
+  <div class="steps">
+
+    <!-- FASE 0 — elegir proveedor -->
+    <div id="fase0">
+      <div class="row"><label class="lbl">Proveedor de Servicio</label></div>
+      <div class="provs-grid" id="psGrid"></div>
+      <div id="status" class="status">Cargando…</div>
+    </div>
+
+    <!-- FASE 1 — cargar lo que devolvió el proveedor -->
+    <div id="fase1" class="hidden">
+      <div class="row" style="justify-content:space-between">
+        <div class="row" style="margin:0">
+          <label class="lbl" id="fase1Title">Proveedor</label>
+        </div>
+        <div class="row" style="margin:0">
+          <label class="lbl" style="font-size:16px">Fecha</label>
+          <input type="date" id="fFecha">
+          <button class="btn btn-secondary" id="btnLimpiar" type="button" title="Vaciar todo lo cargado">🗑 Limpiar</button>
+          <button class="btn btn-primary" id="btnEnviar" type="button" disabled>Enviar</button>
+        </div>
+      </div>
+
+      <div class="search-box"><input type="text" id="q" placeholder="Buscar por parte, SC o SP…"></div>
+
+      <div class="table-wrap">
+        <table class="t">
+          <thead><tr>
+            <th>Parte</th>
+            <th>Proceso</th>
+            <th>SC</th>
+            <th>SP</th>
+            <th class="num">Caj</th>
+            <th class="num">Kg<br>Neto</th>
+            <th class="ctr" title="Cargar por tandas">T</th>
+            <th class="ctr" title="Marcar faltante">F</th>
+            <th class="num">En PS<br>Cajón</th>
+          </tr></thead>
+          <tbody id="tbody"></tbody>
+        </table>
+      </div>
+      <div id="tblEmpty" class="empty hidden">Este proveedor no tiene partes configuradas en ruta_paso.</div>
+      <div id="msg1" class="status"></div>
+    </div>
+
+    <!-- FASE 3 — confirmación -->
+    <div id="fase3" class="hidden">
+      <div class="successBox">
+        <div class="title">✓ Entrega registrada</div>
+        <div>Tu código de entrega:</div>
+        <div class="code" id="successCode">—</div>
+        <div id="successDetail" style="font-size:17px;color:#444"></div>
+      </div>
+      <div class="row" style="justify-content:center">
+        <button class="btn btn-primary" id="btnVolverPS" type="button">← Cambiar proveedor</button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script src="../../tandas-popup.js"></script>
+<script>
+"use strict";
+
+var SB = supabase.createClient(
+  "https://hrxfctzncixxqmpfhskv.supabase.co",
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhyeGZjdHpuY2l4eHFtcGZoc2t2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI3MjQyNjEsImV4cCI6MjA4ODMwMDI2MX0.4L6wguch8UZGhC2VpzrWcCjJGUV-IkYsl9JoCWrOLUs",
+  { db:{ schema:"GP2" }, auth:{ persistSession:false } }
+);
+
+var $ = function(id){ return document.getElementById(id); };
+var LS_BUF = "gp2_entregaPS_buffer";
+
+var D = { ps:[], partes:{} };
+var selPS = null;
+var BUF = {};   // { "<ps_id>": { "<sc_id>:<sp_id>": {caj,kg,falt,tandas:[]} } }
+
+function esc(s){ return String(s==null?"":s).replace(/[&<>"]/g, function(c){
+  return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]; }); }
+
+function num(v){
+  if (v==null || v==="") return 0;
+  if (typeof v==="number") return isFinite(v)?v:0;
+  var s=String(v).trim().replace(/[^\d,.-]/g,"");
+  if (s.indexOf(",")>=0 && s.indexOf(".")<0) s=s.replace(",",".");
+  else s=s.replace(/,/g,"");
+  var n=Number(s);
+  return isFinite(n)?n:0;
+}
+function fmt(n,d){ d=(d==null?1:d);
+  return Number(n||0).toLocaleString("es-AR",{minimumFractionDigits:0,maximumFractionDigits:d}); }
+function aCajones(c,u){ u=Number(u||0); if(!(u>0)) return null; return Number(c||0)/u; }
+function hoyISO(){ var d=new Date(); return new Date(d.getTime()-d.getTimezoneOffset()*60000).toISOString().slice(0,10); }
+
+function loadBuf(){ try{ BUF=JSON.parse(localStorage.getItem(LS_BUF)||"{}")||{}; }catch(e){ BUF={}; } }
+function saveBuf(){ try{ localStorage.setItem(LS_BUF, JSON.stringify(BUF)); }catch(e){} }
+function bufPS(){ if(!selPS) return {}; if(!BUF[selPS.id]) BUF[selPS.id]={}; return BUF[selPS.id]; }
+function keyDe(x){ return String(x.sc_id)+":"+String(x.sp_id); }
+function bufItem(k){ var b=bufPS(); if(!b[k]) b[k]={caj:"",kg:"",falt:false,tandas:[]}; return b[k]; }
+
+async function cargar(){
+  var r = await SB.rpc("envios_ps_bundle");
+  if (r.error){ $("status").textContent = "Error: "+r.error.message; return; }
+  D = r.data || { ps:[], partes:{} };
+  loadBuf();
+  renderPS();
+  $("status").textContent = (D.ps||[]).length + " proveedores con partes configuradas.";
+}
+
+function renderPS(){
+  var g=$("psGrid"); g.innerHTML="";
+  (D.ps||[]).forEach(function(p){
+    var n=((D.partes||{})[p.id]||[]).length;
+    var cargado=Object.keys(BUF[p.id]||{}).filter(function(k){
+      var it=BUF[p.id][k]; return num(it.caj)>0||num(it.kg)>0||it.falt; }).length;
+    var b=document.createElement("button");
+    b.type="button"; b.className="prov-btn";
+    b.innerHTML=esc(p.nombre)+'<span class="meta">'+esc(p.proceso||"—")+" · "+n+" partes"+
+      (cargado?(" · "+cargado+" cargadas"):"")+"</span>";
+    b.addEventListener("click", function(){ elegirPS(p); });
+    g.appendChild(b);
+  });
+  if(!(D.ps||[]).length) g.innerHTML='<div class="empty">Sin proveedores configurados.</div>';
+}
+
+function elegirPS(p){
+  selPS=p;
+  $("fase1Title").textContent=p.nombre+(p.proceso?(" · "+p.proceso):"");
+  $("fase0").classList.add("hidden");
+  $("fase3").classList.add("hidden");
+  $("fase1").classList.remove("hidden");
+  $("btnVolver").classList.remove("hidden");
+  if(!$("fFecha").value) $("fFecha").value=hoyISO();
+  $("q").value="";
+  renderTabla();
+}
+function volverPS(){
+  selPS=null;
+  $("fase1").classList.add("hidden");
+  $("fase3").classList.add("hidden");
+  $("fase0").classList.remove("hidden");
+  $("btnVolver").classList.add("hidden");
+  renderPS();
+}
+
+function partesFiltradas(){
+  var arr=((D.partes||{})[selPS.id]||[]).filter(function(x){ return x.sp_id; });
+  var q=String($("q").value||"").trim().toLowerCase();
+  if(!q) return arr;
+  return arr.filter(function(x){
+    return (String(x.sc_cod||"")+" "+String(x.sc_desc||"")+" "+
+            String(x.sp_cod||"")+" "+String(x.sp_desc||"")).toLowerCase().indexOf(q)>=0;
+  });
+}
+
+function renderTabla(){
+  var arr=partesFiltradas(), tb=$("tbody");
+  tb.innerHTML="";
+  $("tblEmpty").classList.toggle("hidden", arr.length>0);
+
+  arr.forEach(function(x){
+    var k=keyDe(x), it=bufItem(k);
+    var hayT=(it.tandas||[]).length>0;
+    var totCaj=(it.tandas||[]).reduce(function(s,t){return s+num(t.caj);},0);
+    var totKg =(it.tandas||[]).reduce(function(s,t){return s+num(t.kg);},0);
+    var vCaj=hayT?(totCaj||""):it.caj;
+    var vKg =hayT?(totKg||""):it.kg;
+    var enPS=aCajones(x.online_ps, x.sc_unixcaj);
+
+    var tr=document.createElement("tr");
+    tr.dataset.k=k;
+    if(it.falt) tr.className="falt";
+    tr.innerHTML=
+      '<td>'+esc(x.sc_desc||x.sp_desc||"")+'</td>'+
+      '<td class="proc">'+esc(x.proceso||"—")+'</td>'+
+      '<td><span class="cod">'+esc(x.sc_cod)+'</span></td>'+
+      '<td><span class="cod">'+esc(x.sp_cod||"—")+'</span><br><small style="color:#777">'+esc(x.sp_desc||"")+'</small></td>'+
+      '<td class="num"><input class="cell-in'+(hayT?" ro":"")+'" data-f="caj" inputmode="numeric" value="'+esc(vCaj)+'"'+(hayT?" readonly":"")+'></td>'+
+      '<td class="num"><input class="cell-in'+(hayT?" ro":"")+'" data-f="kg" inputmode="decimal" value="'+esc(vKg)+'"'+(hayT?" readonly":"")+'></td>'+
+      '<td class="ctr"><button type="button" class="tanda-btn'+(hayT?" on":"")+'" data-a="tandas">'+(hayT?it.tandas.length:"+")+'</button></td>'+
+      '<td class="ctr"><button type="button" class="falt-box'+(it.falt?" on":"")+'" data-a="falt">'+(it.falt?"F":"")+'</button></td>'+
+      '<td class="num">'+(enPS==null?"—":fmt(enPS))+'</td>';
+    tb.appendChild(tr);
+  });
+  actualizarEnviar();
+}
+
+function itemDeFila(tr){
+  var k=tr.dataset.k;
+  var arr=(D.partes||{})[selPS.id]||[];
+  var meta=null;
+  for(var i=0;i<arr.length;i++){ if(keyDe(arr[i])===k){ meta=arr[i]; break; } }
+  return { k:k, meta:meta, buf:bufItem(k) };
+}
+
+function cargadas(){
+  var b=bufPS(), out=[];
+  Object.keys(b).forEach(function(k){
+    var it=b[k];
+    if(num(it.kg)>0) out.push({ k:k, it:it });
+  });
+  return out;
+}
+
+function actualizarEnviar(){
+  var n=cargadas().length;
+  $("btnEnviar").disabled=(n===0);
+  $("btnEnviar").textContent=n?("Enviar ("+n+")"):"Enviar";
+}
+
+$("tbody").addEventListener("input", function(e){
+  var inp=e.target.closest("input.cell-in");
+  if(!inp||inp.readOnly) return;
+  var d=itemDeFila(inp.closest("tr"));
+  d.buf[inp.dataset.f]=inp.value;
+  saveBuf(); actualizarEnviar();
+});
+
+$("tbody").addEventListener("click", function(e){
+  var btn=e.target.closest("button[data-a]");
+  if(!btn) return;
+  var d=itemDeFila(btn.closest("tr"));
+  if(btn.dataset.a==="falt"){ d.buf.falt=!d.buf.falt; saveBuf(); renderTabla(); return; }
+  if(btn.dataset.a==="tandas"){
+    if(typeof tandasPopup==="undefined"){ alert("No cargó tandas-popup.js"); return; }
+    tandasPopup.open({
+      titulo:"Tandas — "+(d.meta?(d.meta.sp_cod||d.meta.sc_cod):""),
+      initial:(d.buf.tandas||[]).slice(),
+      pedirCaj:true, pedirKg:true, pedirUni:false,
+      onConfirm:function(tandas,totales){
+        d.buf.tandas=(tandas||[]).filter(function(t){ return num(t.caj)>0||num(t.kg)>0; });
+        if(d.buf.tandas.length){
+          d.buf.caj=String(totales&&totales.caj!=null?totales.caj:"");
+          d.buf.kg =String(totales&&totales.kg !=null?totales.kg :"");
+        }
+        saveBuf(); renderTabla();
+      }
+    });
+  }
+});
+
+$("q").addEventListener("input", renderTabla);
+
+$("btnLimpiar").addEventListener("click", function(){
+  if(!selPS) return;
+  if(!confirm("¿Vaciar todo lo cargado para "+selPS.nombre+"?")) return;
+  delete BUF[selPS.id]; saveBuf(); renderTabla();
+});
+
+$("btnVolver").addEventListener("click", volverPS);
+$("btnVolverPS").addEventListener("click", volverPS);
+
+$("btnEnviar").addEventListener("click", async function(){
+  if(!selPS) return;
+  var items=cargadas();
+  if(!items.length) return;
+
+  var arr=(D.partes||{})[selPS.id]||[], metaPorK={};
+  arr.forEach(function(x){ metaPorK[keyDe(x)]=x; });
+
+  var resumen=items.map(function(o){
+    var m=metaPorK[o.k]||{};
+    return (m.sc_cod||"?")+" → "+(m.sp_cod||"?")+": "+fmt(num(o.it.caj),0)+" caj / "+fmt(num(o.it.kg),2)+" kg";
+  }).join("\n");
+  if(!confirm("Registrar entrega de "+selPS.nombre+":\n\n"+resumen)) return;
+
+  var fecha=$("fFecha").value||hoyISO();
+  var btn=$("btnEnviar");
+  btn.disabled=true; btn.textContent="Enviando…";
+  $("msg1").textContent="";
+
+  var ok=0, errs=[];
+  for(var i=0;i<items.length;i++){
+    var o=items[i], m=metaPorK[o.k]||{};
+    try{
+      var r=await SB.rpc("crear_entrega_ps", {
+        p_ps_id: selPS.id,
+        p_comp_sc_id: Number(m.sc_id),
+        p_comp_sp_id: Number(m.sp_id),
+        p_kg: num(o.it.kg),
+        p_fecha: fecha,
+        p_cajones: num(o.it.caj)||null,
+        p_faltante: !!o.it.falt
+      });
+      if(r.error) throw r.error;
+      ok++;
+    }catch(e){
+      errs.push((m.sp_cod||o.k)+": "+(e&&e.message?e.message:e));
+    }
+  }
+
+  btn.disabled=false; actualizarEnviar();
+
+  if(errs.length){
+    $("msg1").innerHTML='<span style="color:#b91c1c">Se registraron '+ok+' de '+items.length+
+      '. Errores:<br>'+esc(errs.join(" | "))+'</span>';
+    return;
+  }
+
+  delete BUF[selPS.id]; saveBuf();
+  $("successCode").textContent=String(Math.floor(1000+Math.random()*9000));
+  $("successDetail").textContent=ok+" partes recibidas de "+selPS.nombre+" · "+fecha;
+  $("fase1").classList.add("hidden");
+  $("fase3").classList.remove("hidden");
+  $("btnVolver").classList.add("hidden");
+});
+
+$("fFecha").value=hoyISO();
+cargar().catch(function(e){ $("status").textContent="Error: "+(e&&e.message?e.message:e); });
+</script>
+</body>
+</html>
