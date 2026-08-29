@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>Envío a Proveedores de Servicios · GP2</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<link rel="stylesheet" href="../../tandas-popup.css"/>
+<link rel="stylesheet" href="../../tandas-popup.css?v=1.1.0"/>
 <style>
   *{box-sizing:border-box;margin:0;padding:0}
   body{font-family:Arial,sans-serif;background:#f5f6f8;padding:12px;color:#111}
@@ -112,6 +112,7 @@
             <th class="num">Online PS<br>Cajón</th>
             <th class="num">Online SP<br>Cajón</th>
             <th class="num">Max<br>Cajón</th>
+            <th class="num" title="Máximo físico del Sector Procesado − online SP − online PS">Sugerido<br>Cajón</th>
           </tr></thead>
           <tbody id="tbody"></tbody>
         </table>
@@ -136,7 +137,7 @@
   </div>
 </div>
 
-<script src="../../tandas-popup.js"></script>
+<script src="../../tandas-popup.js?v=1.1.0"></script>
 <script>
 "use strict";
 
@@ -280,6 +281,10 @@ function renderTabla(){
     var onPS  = aCajones(x.online_ps, x.sc_unixcaj);
     var onSP  = aCajones(x.online_sp, x.sp_unixcaj);
     var maxCaj= aCajones(x.maximo,    x.sc_unixcaj);
+    // Sugerido a enviar = maximo FISICO del Sector Procesado - online SP - online PS
+    // (todo en cajones; regla usuario 2026-08-29). Sin maximo fisico cargado -> "—".
+    var maxSPc= aCajones(x.maximo_sp, x.sp_unixcaj);
+    var sug   = (maxSPc==null || onSP==null || onPS==null) ? null : Math.max(0, maxSPc - onSP - onPS);
 
     var tr = document.createElement("tr");
     tr.dataset.sc = x.sc_id;
@@ -293,7 +298,8 @@ function renderTabla(){
       '<td class="sep">'+esc(x.sp_cod||"—")+'<br><small style="color:#777">'+esc(x.sp_desc||"")+'</small></td>'+
       '<td class="num">'+(onPS==null?"—":fmt(onPS))+'</td>'+
       '<td class="num">'+(onSP==null?"—":fmt(onSP))+'</td>'+
-      '<td class="num">'+(maxCaj==null?"—":fmt(maxCaj))+'</td>';
+      '<td class="num">'+(maxCaj==null?"—":fmt(maxCaj))+'</td>'+
+      '<td class="num">'+(sug==null?"—":(sug>0?'<b style="color:#b42318">'+fmt(sug)+'</b>':fmt(sug)))+'</td>';
     tb.appendChild(tr);
   });
 

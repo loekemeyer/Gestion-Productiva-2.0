@@ -41,9 +41,12 @@ Los cartones se **reciben en PAQUETES**: el proveedor siempre entrega alturas de
 ## Proveedores de servicio — cuánto mandarles
 
 Al PS **no** se le manda para llegar a X meses de stock propio. La cuenta es contra el
-**Sector Procesado**: `enviar = punto de stock del SP − online en SP − online del PS`.
-Ej: máximo del SP 10, hay 5 en procesado y el PS tiene 3 → se le mandan 2 cajones de
-crudo para que los convierta. (Por eso las ubicaciones de PS no tienen `meses_stock`.)
+**MÁXIMO FÍSICO del Sector Procesado** (`inventario.maximo` del SP en su sector):
+`enviar = máximo físico del SP − online en SP − online del PS`.
+Ej: máximo 10, hay 5 en procesado y el PS tiene 3 → se le mandan 2 cajones de crudo
+para que los convierta. Implementado como columna **"Sugerido Cajón"** en Envíos PS.
+Aparte, el Punto de Stock avisa si ese máximo físico quedó desfasado contra el consumo
+(estado "máximo insuficiente"). Las ubicaciones de PS no tienen `meses_stock`.
 
 ## Flejes — consumo en KG
 
@@ -70,4 +73,10 @@ Vista: `GP2.v_consumo_fleje_kg`; el Punto de Stock de flejes usa esos kg × 6 me
 
 - Asignar formato/categoría a cada cartón (`componente.carton_formato/carton_categoria`).
 - Varillas: proveedor y forma de control.
-- Reglas de pedido del resto de los rubros (cajas, plásticos, bombillas).
+- Prov AT: se les manda según la OC de Producción Virgilio (sin punto de stock propio).
+- Meses de punto de stock ya definidos: flejes 6, crudo 1, procesado 1, talleristas 1,
+  tránsito 0, cartones 6, cajas 6, remaches 4, plásticos 4, bombillas 3.
+- Máximos físicos: importados del vecino (SP 80, SC 74, cajas 9, remaches 13); faltan
+  flejes, cartones, plásticos, bombillas y talleristas (el vecino no los tiene cargados).
+- Costos: el vecino tiene precios de cartones en `public.Precios_Proveedores` (por texto
+  de producto, sin cod_art); GP2 aún no tiene costos.
