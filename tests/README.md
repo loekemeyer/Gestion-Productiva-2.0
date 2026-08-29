@@ -16,7 +16,7 @@ base): verifican payloads de RPC, filtros, cálculos en pantalla y flujos comple
 | test_dev.js | Devolución Cervantes (sector / Para Analizar) |
 | test_ctrl.js | Control Envíos y Entregas (pivote, medidas Kg/Uni/Cajas) |
 | test_pm.js | Problemas con Matrices (RM/PM, uni acumuladas, golpes) |
-| test_mon2.js | Monitor 2.0 (premio espejo y calculado, alertas ±3) |
+| test_mon2.js | Cierres del Día · Premios, ex "Monitor 2.0" (premio espejo y calculado, alertas ±3) |
 | test_bom.js | Editor de BOM del ABM Artículos |
 | test_ps_em.js | Punto de Stock: tag EM en máximos derivados de Est Madre |
 | test_inicio_pend.js | Alerta de cargas de Virgilio sin aplicar (espejo_pend) |

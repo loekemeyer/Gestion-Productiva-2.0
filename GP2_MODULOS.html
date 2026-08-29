@@ -5,6 +5,10 @@
 <title>GP2 · Menú</title>
 <link rel="icon" type="image/png" href="GP2_favicon.png?v=1.2.0">
 <link rel="apple-touch-icon" href="GP2_favicon.png?v=1.2.0">
+<!-- PWA: con esto Chrome ofrece instalar GP2 y la abre en ventana propia,
+     sin barra de direcciones. El SW lo registra pwa.js al final del body. -->
+<link rel="manifest" href="manifest.json?v=20260829h">
+<meta name="theme-color" content="#ffffff">
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 body{background:#ffffff;color:#1e293b;font-family:-apple-system,Segoe UI,Roboto,Helvetica,sans-serif;min-height:100vh}
@@ -136,8 +140,8 @@ const MENU = [
    ["Rendimiento x Mes", "Produccion/rendimiento_GP2.html"],
    ["Alertas", "Alertas/alertas_GP2.html"],
    ["ABM Operarios", "Produccion/abm_GP2.html"],
-   ["Monitor en Vivo", "Produccion/monitor_GP2.html"],
-   ["Monitor en Vivo 2.0", "Produccion/monitor2_GP2.html"],
+   ["Monitor en Vivo · Operarios", "Produccion/monitor_GP2.html"],
+   ["Cierres del Día · Premios", "Produccion/monitor2_GP2.html"],
    ["Tiempos Matrices", "Produccion/tiempos_GP2.html"],
    ["Problemas con Matrices", "Produccion/ProblemasMatrices/ProblemasMatrices_GP2.html"],
    ["Entrevistas", "Produccion/entrevistas_GP2.html"],
@@ -224,4 +228,5 @@ MENU.forEach(([icon, titulo, items]) => {
   grid.appendChild(card);
 });
 </script>
+<script src="pwa.js?v=20260829h"></script>
 </body></html>

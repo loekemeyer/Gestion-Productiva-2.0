@@ -140,7 +140,9 @@ try {
   }
 
   # --- 3) Abrir Chrome ---
-  $url = 'http://' + $BindHost + ':' + $PortToUse + '/Inicio/index.html'
+  # index.html es el start_url del manifest: aplica el interruptor GP2_AUTH_ON
+  # y entra al menu (antes se abria /Inicio/index.html, que hoy solo redirige).
+  $url = 'http://' + $BindHost + ':' + $PortToUse + '/index.html'
   Log ('Abriendo: ' + $url)
   $chromePaths = @(
     ($env:ProgramFiles + '\Google\Chrome\Application\chrome.exe'),
@@ -150,7 +152,11 @@ try {
   $chrome = $chromePaths | Where-Object { Test-Path -LiteralPath $_ } | Select-Object -First 1
   if ($chrome) {
     Log ('Chrome: ' + $chrome)
-    Start-Process -FilePath $chrome -ArgumentList $url
+    # --app= abre una ventana propia, sin barra de direcciones ni pestanas, asi
+    # GP2 se ve como aplicacion y no como una pagina web. Funciona aunque el
+    # usuario no la haya instalado; el manifest.json + sw.js de la raiz son los
+    # que ademas la hacen instalable desde el menu de Chrome.
+    Start-Process -FilePath $chrome -ArgumentList ('--app=' + $url)
   } else {
     Log 'Chrome no encontrado, navegador default'
     Start-Process $url
