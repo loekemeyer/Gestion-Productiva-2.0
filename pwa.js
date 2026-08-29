@@ -42,6 +42,17 @@
     meta.content = "#ffffff";
     document.head.appendChild(meta);
   }
+  // iOS NO mira el manifest para el icono de "Agregar a inicio": mira
+  // <link rel="apple-touch-icon">. Sin eso se inventa uno (el cuadrado negro con
+  // la "G"). Se inyecta aca para que ninguna pantalla quede sin el, pero las
+  // paginas desde las que se instala igual lo llevan escrito en el <head>: es mas
+  // seguro que dependerlo del JS.
+  if (!document.querySelector('link[rel="apple-touch-icon"]')) {
+    var ati = document.createElement("link");
+    ati.rel = "apple-touch-icon";
+    ati.href = base + "apple-touch-icon.png?v=20260829j";
+    document.head.appendChild(ati);
+  }
 
   // --- 2) service worker ---
   // updateViaCache "none" para que el navegador nunca sirva un sw.js cacheado.

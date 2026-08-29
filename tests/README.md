@@ -20,6 +20,7 @@ base): verifican payloads de RPC, filtros, cálculos en pantalla y flujos comple
 | test_bom.js | Editor de BOM del ABM Artículos |
 | test_ps_em.js | Punto de Stock: tag EM en máximos derivados de Est Madre |
 | test_inicio_pend.js | Alerta de cargas de Virgilio sin aplicar (espejo_pend) |
+| test_pwa_icono.js | El icono de la app llega al telefono: apple-touch-icon en las 4 paginas de entrada, iconos del manifest existentes, maskable declarado y con token de version |
 | test_recepcion_oc.js | Recepción: la tarjeta muestra "últ. 360 kg" (sin fecha) y "OC: 640" (lo que falta de las OC abiertas) |
 | test_inyectores.js | Inyectores: botonera por proveedor, asignar/desasignar (payload de la RPC), aviso de partes que fabrica un tallerista, resumen y chips de rubro |
 
