@@ -76,6 +76,12 @@ Vista: `GP2.v_consumo_fleje_kg`; el Punto de Stock de flejes usa esos kg × 6 me
 - Prov AT: se les manda según la OC de Producción Virgilio (sin punto de stock propio).
 - Meses de punto de stock ya definidos: flejes 6, crudo 1, procesado 1, talleristas 1,
   tránsito 0, cartones 6, cajas 6, remaches 4, plásticos 4, bombillas 3.
+- Virgilio: NO interesa analizar su entrada/salida — existe solo para medir a los
+  talleristas (decisión usuario 2026-08-29). No se construye módulo de despacho/venta.
+- Flejes, cartones, plásticos y bombillas NO tienen máximo físico definido (confirmado
+  por el usuario): quedan sin analizar hasta que se releven.
+- Cartones: el formato (C/LOKE/8) de cada cartón se va a identificar POR PRECIO —
+  los precios del cartonero están copiados en `GP2.precio_proveedor` (rubro carton).
 - Máximos físicos: importados del vecino (SP 80, SC 74, cajas 9, remaches 13) + Virgilio
   (81 posiciones: también se guardan insumos/partes en Virgilio — SP y cajas con sus
   máximos "Virg" del vecino) + talleristas (103, CALCULADOS = 1 mes de Est Madre de los
