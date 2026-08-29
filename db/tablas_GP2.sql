@@ -324,6 +324,9 @@ create table "GP2".proveedor_insumo (
   activo boolean not null default true,
   factura_uni boolean not null default false,
   modo_control text not null default 'ninguno'::text,
+  -- nombre del sector que provee (ej. "Sector Plástico"): hace que el proveedor aparezca
+  -- en la botonera de ese rubro en Inyectores_GP2 aunque todavia no tenga partes asignadas
+  rubro text,
   constraint proveedor_insumo_pkey PRIMARY KEY (nombre),
   constraint proveedor_insumo_modo_control_chk CHECK ((modo_control = ANY (ARRAY['ninguno'::text, 'rollos_remito'::text, 'pesaje'::text, 'peso_total'::text, 'pendiente'::text])))
 );

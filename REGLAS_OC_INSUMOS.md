@@ -90,6 +90,15 @@ contra las OC abiertas (`recibido` + estado `recibida` automático). RPCs: `oc_b
   `insumo` (compra directa, sin matriz). PENDIENTE: si el tornillo se importa YA
   niquelado, el paso CV20 → niquelado (Guazzaroni) de las rutas 382/577/589 queda muerto
   y hay que sacarlo; si se importa en crudo, queda como está.
+- **Quién hace cada parte se administra desde la pantalla `Compras/Inyectores_GP2.html`**
+  (menú Insumos → "Inyectores · Quién hace cada parte"): a la izquierda la parte, a la
+  derecha un botón por proveedor; se toca y se guarda al instante (RPC
+  `asignar_proveedor_parte`). Sirve para cualquier rubro de insumo, no sólo plásticos.
+  **Eso es lo que separa la OC**: en Órdenes de Compra se elige el proveedor y la orden
+  sale sólo con SUS partes. Si mañana cambia el inyector, se cambia ahí y la OC lo sigue
+  sola — no hay que tocar la base. Alta de proveedor nuevo desde el botón "+ Proveedor"
+  (RPC `alta_proveedor_insumo`); `proveedor_insumo.rubro` hace que aparezca en la botonera
+  de ese rubro aunque todavía no tenga partes.
 - **Plásticos (inyección) → son TRES proveedores**: `Pat Bet Plast`, `Pettofrezza Rafael`
   y `Kollplast` (los tres dados de alta en `proveedor_insumo`). Hoy los 29 códigos están
   **todos** bajo Pat Bet Plast porque esa es la foto del **vecino**

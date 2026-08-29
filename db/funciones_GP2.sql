@@ -304,6 +304,24 @@ select jsonb_build_object(
 );
 $function$;
 
+-- ---------- alta_proveedor_insumo ----------
+CREATE OR REPLACE FUNCTION "GP2".alta_proveedor_insumo(p_nombre text, p_rubro text DEFAULT NULL::text, p_modo_control text DEFAULT 'ninguno'::text)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'GP2'
+AS $function$
+declare v_n text := nullif(btrim(coalesce(p_nombre,'')),'');
+begin
+  if v_n is null then raise exception 'El nombre del proveedor no puede estar vacio.'; end if;
+  insert into proveedor_insumo(nombre, rubro, modo_control)
+  values (v_n, nullif(btrim(coalesce(p_rubro,'')),''), coalesce(nullif(btrim(p_modo_control),''),'ninguno'))
+  on conflict (nombre) do update
+     set activo = true,
+         rubro = coalesce(excluded.rubro, proveedor_insumo.rubro);
+  return jsonb_build_object('ok',true,'nombre',v_n);
+end $function$;
+
 -- ---------- anular_evento_prod ----------
 CREATE OR REPLACE FUNCTION "GP2".anular_evento_prod(p_id_ejecucion text)
  RETURNS jsonb
@@ -345,6 +363,37 @@ begin
   end if;
 end;
 $function$;
+
+-- ---------- asignar_proveedor_parte ----------
+CREATE OR REPLACE FUNCTION "GP2".asignar_proveedor_parte(p_comp_id bigint, p_proveedor text)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'GP2'
+AS $function$
+declare
+  v_prov text := nullif(btrim(coalesce(p_proveedor,'')),'');
+  v_cod text; v_sector text; v_antes text;
+begin
+  select c.codigo, s.nombre, nullif(btrim(coalesce(c.proveedor,'')),'')
+    into v_cod, v_sector, v_antes
+    from componente c left join sector s on s.id=c.sector_id
+   where c.id = p_comp_id;
+  if v_cod is null then
+    raise exception 'Componente inexistente (id=%).', p_comp_id;
+  end if;
+
+  -- v_prov null = desasignar (queda pendiente de definir, no se inventa nada)
+  if v_prov is not null and not exists (
+       select 1 from proveedor_insumo where nombre = v_prov and activo) then
+    raise exception 'El proveedor "%" no existe o esta inactivo. Dalo de alta primero.', v_prov;
+  end if;
+
+  update componente set proveedor = v_prov where id = p_comp_id;
+
+  return jsonb_build_object('ok',true,'comp_id',p_comp_id,'codigo',v_cod,
+                            'sector',v_sector,'antes',v_antes,'proveedor',v_prov);
+end $function$;
 
 -- ---------- cargar_recepcion ----------
 CREATE OR REPLACE FUNCTION "GP2".cargar_recepcion(p_comp_id bigint, p_proveedor text, p_cantidad numeric, p_unidad text DEFAULT NULL::text, p_remito text DEFAULT NULL::text, p_rollos integer DEFAULT NULL::integer, p_pallets integer DEFAULT NULL::integer, p_fecha timestamp with time zone DEFAULT now())
@@ -2087,6 +2136,57 @@ select jsonb_build_object(
         'id',p.id,'motivo',p.motivo) order by p.id desc), '[]'::jsonb)
       from (select id, motivo from "GP2".virgilio_espejo_pend order by id desc limit 5) p)
   )
+);
+$function$;
+
+-- ---------- inyectores_bundle ----------
+CREATE OR REPLACE FUNCTION "GP2".inyectores_bundle(p_sector_id bigint DEFAULT NULL::bigint)
+ RETURNS jsonb
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'GP2'
+AS $function$
+with sec_sel as (
+  select coalesce(p_sector_id,
+                  (select id from sector where nombre='Sector Plástico' limit 1)) sid
+),
+sec_nom as (select s.id, s.nombre from sector s, sec_sel where s.id=sec_sel.sid)
+select jsonb_build_object(
+  'generado_en', now(),
+  'sector', (select jsonb_build_object('id',id,'nombre',nombre) from sec_nom),
+  -- rubros disponibles: los sectores de insumo, con cuantas partes tiene cada uno
+  'sectores', (select coalesce(jsonb_agg(jsonb_build_object(
+                  'id', s.id, 'nombre', s.nombre,
+                  'n', (select count(*) from componente c where c.sector_id=s.id),
+                  'sin_prov', (select count(*) from componente c
+                                where c.sector_id=s.id
+                                  and nullif(btrim(coalesce(c.proveedor,'')),'') is null)
+                ) order by s.nombre), '[]'::jsonb)
+              from sector s where "GP2"._es_sector_insumo(s.id)),
+  -- botonera: proveedores marcados para este rubro + los que ya proveen algo del sector
+  'proveedores', (select coalesce(jsonb_agg(jsonb_build_object(
+                     'nombre', pi.nombre, 'modo_control', pi.modo_control,
+                     'n', (select count(*) from componente c, sec_sel
+                            where c.sector_id=sec_sel.sid and btrim(coalesce(c.proveedor,''))=pi.nombre)
+                   ) order by pi.nombre), '[]'::jsonb)
+                  from proveedor_insumo pi
+                  where pi.activo
+                    and (pi.rubro = (select nombre from sec_nom)
+                         or exists (select 1 from componente c, sec_sel
+                                     where c.sector_id=sec_sel.sid
+                                       and btrim(coalesce(c.proveedor,''))=pi.nombre))),
+  'partes', (select coalesce(jsonb_agg(jsonb_build_object(
+                'comp_id', c.id, 'codigo', c.codigo, 'descripcion', c.descripcion,
+                'proveedor', nullif(btrim(coalesce(c.proveedor,'')),''),
+                'um', c.unidad_medida, 'kg_x_uni', c.kg_x_uni, 'uni_x_cajon', c.uni_x_cajon,
+                -- lo produce un tallerista? entonces no se compra como insumo
+                'lo_produce', (select t.nombre from ruta_paso rp
+                                join tallerista t on t.id=rp.tallerista_id
+                               where rp.comp_salida_id=c.id limit 1),
+                'stock', coalesce((select sum(i.cantidad) from inventario i where i.componente_id=c.id),0),
+                'en_recetas', (select count(*) from articulo_componente ac where ac.componente_id=c.id)
+              ) order by c.codigo), '[]'::jsonb)
+             from componente c, sec_sel where c.sector_id=sec_sel.sid)
 );
 $function$;
 
