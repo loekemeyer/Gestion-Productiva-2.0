@@ -90,12 +90,14 @@ contra las OC abiertas (`recibido` + estado `recibida` automático). RPCs: `oc_b
   `insumo` (compra directa, sin matriz). PENDIENTE: si el tornillo se importa YA
   niquelado, el paso CV20 → niquelado (Guazzaroni) de las rutas 382/577/589 queda muerto
   y hay que sacarlo; si se importa en crudo, queda como está.
-- **Plásticos → `Pat Bet Plast`** (29 códigos). El nombre se escribe así, literal. La
-  asignación NO se inventó: sale del dato real del vecino `public.Partes_Plasticas`
-  (columna Proveedor), matcheando por código y **excluyendo** las piezas que en GP2
-  produce un tallerista. OJO: el vecino atribuye **todas** las plásticas a Pat Bet Plast
-  (más 2 a Esther: PC2A/PC2B, y 2 a Maspoli: PC12/PEP7) — **no** tiene ninguna a nombre de
-  Pettofrezza, aunque hoy también inyecta. PENDIENTE: cuáles pasaron a Pettofrezza.
+- **Plásticos (inyección) → son TRES proveedores**: `Pat Bet Plast`, `Pettofrezza Rafael`
+  y `Kollplast` (los tres dados de alta en `proveedor_insumo`). Hoy los 29 códigos están
+  **todos** bajo Pat Bet Plast porque esa es la foto del **vecino**
+  (`public.Partes_Plasticas`, columna Proveedor, matcheada por código y excluyendo lo que
+  en GP2 fabrica un tallerista) — NO se inventó nada, pero **es data vieja**: el vecino no
+  conoce ni a Pettofrezza ni a Kollplast como inyectores (solo suma 2 a Esther —
+  PC2A/PC2B— y 2 a Maspoli —PC12/PEP7—). **PENDIENTE: repartir los 29 entre los tres.**
+  Kollplast no existía en ninguna de las dos bases: se creó de cero.
 - **Garage (GRJ1, GRJ7, GRJ10, GRJ10A)**: NO llevan proveedor — los arman los talleristas,
   no se compran.
 - **Becker Sandra Nora NO es proveedor de insumos**: es `proveedor_servicio` (pintura /
