@@ -162,11 +162,11 @@ $('popOk').addEventListener('click', async function(){
     var r=await SB.rpc('crear_envio_prov_at',{ p_prov_at_id:provSel.id, p_comp_id:itemSel.comp_id, p_cantidad:uni, p_unidad:'uni', p_fecha:null });
     if(r.error) throw r.error;
     $('popup').classList.remove('open');
+    await boot();
+    if(provSel){ var chip=[...document.querySelectorAll('.prov-btn')].find(b=>b.textContent===provSel.nombre); if(chip) chip.click(); }
     $('status').className='status ok';
     $('status').textContent='✓ Enviado: '+(esCarton?(v+' paquetes = '+fmt(uni)+' uni'):(fmt(uni)+' uni'))+' de '+itemSel.codigo+' a '+provSel.nombre+'.';
     setTimeout(function(){ $('status').textContent=''; $('status').className='status'; }, 6000);
-    await boot();
-    if(provSel){ var chip=[...document.querySelectorAll('.prov-btn')].find(b=>b.textContent===provSel.nombre); if(chip) chip.click(); }
   }catch(e){ m.className='status bad'; m.textContent='Error: '+(e.message||e); }
   finally{ $('popOk').disabled=false; }
 });

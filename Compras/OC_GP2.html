@@ -266,11 +266,11 @@ $('btnCrear').addEventListener('click', async function(){
     }});
     if(r.error) throw r.error;
     PEDIDO={}; $('nota').value='';
+    await boot();
+    mostrarTab('ocs');
     $('status').className='status ok';
     $('status').textContent='✓ OC N° '+r.data.numero+' creada con '+r.data.items+' ítems (queda en borrador).';
     setTimeout(function(){ $('status').textContent=''; $('status').className='status'; }, 6000);
-    await boot();
-    mostrarTab('ocs');
   }catch(e){ $('status').className='status bad'; $('status').textContent='Error: '+(e.message||e); }
   finally{ $('btnCrear').disabled=false; }
 });
