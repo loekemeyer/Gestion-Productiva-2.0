@@ -209,7 +209,13 @@ $('btnCSV').addEventListener('click',function(){
 $('q').addEventListener('input', render);
 $('mes').addEventListener('change', cargar);
 $('mes').value=mesAR();
-origSel='ps'; tipoSel='Envíos';
+/* Vista inicial. Se puede entrar directo a una con ?origen=tall|ps|provat|insumos:
+   el menu tiene un boton en el grupo Tallerista y otro en el de PS, cada uno
+   apuntando a su vista. Sin parametro (o con uno que no existe) arranca en PS,
+   como siempre. Los chips siguen ahi: desde cualquiera se pasa a las otras. */
+origSel = (new URLSearchParams(location.search).get('origen') || '').toLowerCase();
+if (!VISTAS[origSel]) origSel = 'ps';
+tipoSel = Object.keys(VISTAS[origSel].tipos)[0];
 pintarChips();
 cargar();
 </script>
