@@ -9,9 +9,13 @@ Lo que cambió después de este documento (fuente de verdad: `LOCKS.txt` [HISTOR
 - **El ledger se VACIÓ y se sembró data de PRUEBA** (58 movimientos `stock_inicial` del top
   10 Est Madre). Los números de ledger de abajo (envíos 1.072, entregas 3.386, PS 339/161)
   ya no están en la base: falta cargar el **stock inicial real**.
-- **`GP2.produccion` hoy corre vacía**: el trigger espejo de `db_n8n_espejo` NO está colgado
-  (decisión pendiente del usuario: espejar la app vieja o pasar las tablets a la app GP2).
-  La app Operarios GP2 escribe nativo vía `registrar_evento_prod` (con premio nativo).
+- **Producción: DECISIÓN TOMADA (2026-08-29): se empieza DE CERO, nativo.** No se cuelga
+  el espejo de `db_n8n_espejo` ni se reproduce historia: las tablets pasan a la app
+  Operarios GP2 (`registrar_evento_prod`, premio nativo, rollos). Circuito validado E2E
+  (server con rollback + Chromium 7/7 de la app completa).
+- **Seguridad (2026-08-29): RLS activo en TODO el schema GP2.** La clave anon queda de
+  SOLO LECTURA; toda escritura pasa por RPCs SECURITY DEFINER (única excepción directa:
+  `empleado`, para el ABM Operarios). Advisor de seguridad: 0 hallazgos GP2.
 - **Obj 3 (OC insumos) DESBLOQUEADO y construido**: módulo `Compras/OC_GP2.html`, la
   recepción cruza contra OC, reglas en `REGLAS_OC_INSUMOS.md`.
 - **Módulos nuevos GP2** (todos en menú `GP2_MODULOS.html`): Recepción Insumos (control por

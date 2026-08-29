@@ -10,7 +10,7 @@
 const SUPABASE_URL = "https://hrxfctzncixxqmpfhskv.supabase.co";
 const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhyeGZjdHpuY2l4eHFtcGZoc2t2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI3MjQyNjEsImV4cCI6MjA4ODMwMDI2MX0.4L6wguch8UZGhC2VpzrWcCjJGUV-IkYsl9JoCWrOLUs";
 const LEGAJO_EDUARDO = "19";
-const APP_VERSION = "1.5.0"; // bumpear en cada actualizacion (junto con el ?v= del HTML y el MI_V del chequeo de cache)
+const APP_VERSION = "1.5.1"; // bumpear en cada actualizacion (junto con el ?v= del HTML y el MI_V del chequeo de cache)
 
 const SB = supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
   db: { schema: "GP2" },
@@ -763,10 +763,12 @@ async function deleteHistItem(legajo, idx) {
   if (!item) return;
   const op = String(item.opcion || "").toUpperCase();
 
-  // Baja logica en la base (si ya se habia enviado)
+  // Baja logica en la base (si ya se habia enviado). Va por RPC: con RLS activo
+  // la clave anon ya no puede tocar la tabla produccion directo.
   if (item.id && item.status === "sent") {
     try {
-      await SB.from("produccion").update({ eliminar: "S" }).eq("id_ejecucion", item.id);
+      const { error } = await SB.rpc("anular_evento_prod", { p_id_ejecucion: item.id });
+      if (error) throw error;
     } catch (e) { console.warn("No se pudo marcar eliminado:", e); }
   }
 
