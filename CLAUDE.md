@@ -279,20 +279,24 @@ componentes/CE/asignacion (ver AUDITORIA_RUTAS_2026-04-18.md punto 7).
   trate como nodo intermedio. Si aparece "Matriz N" como nodo, son inconsistencias (ver
   AUDITORIA_RUTAS_2026-04-18.md punto 5).
 
-## OC Insumos (Ordenes_Compra) - direccion futura
+## OC Insumos (GP2) - CONSTRUIDO 2026-08-29
 
 **Las reglas de pedido por tipo de insumo estan en `REGLAS_OC_INSUMOS.md` (raiz) y
 parametrizadas en `GP2.carton_formato` / `carton_categoria` / `proveedor_insumo.modo_control`.
-Leer ese archivo antes de planificar el modulo de OC.** La OC nace del consumo de la
-Est Madre explotado por receta (`v_consumo_parte`), no de importar PDFs.
+Leer ese archivo antes de tocar el modulo de OC.**
 
-- **HOY**: las OC se cargan importando el PDF del proveedor desde `StockFlejes/recepcion.html`
-  (parser local con pdf.js, sin IA).
-- **FUTURO**: las OC van a **generarse directamente desde el sistema** (no se van a importar
-  mas desde PDFs de proveedores). O sea, la app va a decidir que comprar en base a stocks
-  y consumo, generar la OC internamente, y despues (opcional) mandarsela al proveedor
-  ya armada. Al planificar cambios en `Ordenes_Compra` o en el modulo de OC, priorizar
-  que el flujo sea limpio para escritura interna (no solo importacion externa).
+- **El modulo existe**: `Compras/OC_GP2.html` genera las OC desde el consumo (Est Madre
+  explotada: `v_consumo_parte` / `v_consumo_fleje_kg` en kg para flejes) con sugerido =
+  consumo x meses - stock - pendiente OC. Tablas `GP2.orden_compra` / `orden_compra_item`,
+  RPCs `oc_bundle` / `crear_oc` / `oc_marcar` / `abm_bom_guardar`. Cada OC se puede IMPRIMIR
+  (hoja limpia para el proveedor). Estados: borrador -> enviada -> recibida / anulada.
+- **La recepcion CRUZA contra OC**: `crear_recepcion_insumo` aplica lo recibido al campo
+  `recibido` de las OC abiertas (FIFO, conversion kg/uni) y marca la OC `recibida` sola.
+  La pantalla de Recepcion muestra el cruce.
+- La validacion de cartones (multiplos C/LOKE/8) esta DORMIDA hasta que el usuario asigne
+  `componente.carton_formato` por precio (precios en `GP2.precio_proveedor`).
+- El viejo `StockFlejes/recepcion.html` (importar PDF del proveedor) es del programa viejo;
+  el flujo GP2 no importa PDFs.
 
 ## Reglas para trabajar en este proyecto
 

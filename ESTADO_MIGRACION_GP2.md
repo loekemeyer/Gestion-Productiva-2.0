@@ -2,6 +2,31 @@
 
 > Todo corre sobre el schema **`GP2`** de Supabase (`hrxfctzncixxqmpfhskv`). Nada inventado: lo que no tenía dato quedó **pendiente**, no relleno.
 
+## ⚠️ ACTUALIZACIÓN 2026-08-29 (leer antes que el resto — el detalle de abajo quedó viejo)
+
+Lo que cambió después de este documento (fuente de verdad: `LOCKS.txt` [HISTORIAL] + git):
+
+- **El ledger se VACIÓ y se sembró data de PRUEBA** (58 movimientos `stock_inicial` del top
+  10 Est Madre). Los números de ledger de abajo (envíos 1.072, entregas 3.386, PS 339/161)
+  ya no están en la base: falta cargar el **stock inicial real**.
+- **`GP2.produccion` hoy corre vacía**: el trigger espejo de `db_n8n_espejo` NO está colgado
+  (decisión pendiente del usuario: espejar la app vieja o pasar las tablets a la app GP2).
+  La app Operarios GP2 escribe nativo vía `registrar_evento_prod` (con premio nativo).
+- **Obj 3 (OC insumos) DESBLOQUEADO y construido**: módulo `Compras/OC_GP2.html`, la
+  recepción cruza contra OC, reglas en `REGLAS_OC_INSUMOS.md`.
+- **Módulos nuevos GP2** (todos en menú `GP2_MODULOS.html`): Recepción Insumos (control por
+  proveedor, paquetes de cartón), Punto de Stock, Stock Tránsito PS, Stock en Movimiento,
+  Envío Cartón/Cajas Prov AT, Devolución Cervantes (con "Para Analizar"), Control Envíos y
+  Entregas (pivote), Problemas con Matrices, Monitor 2.0, Órdenes de Compra, Relevamientos.
+  ABM Artículos ahora también **edita el BOM** (con avisos de normalización vs rutas).
+- Los historiales de talleristas por fecha se cubren con **Control Envíos y Entregas**
+  (pivote partes × fechas sobre el ledger); `envios_tallerista_bundle` /
+  `entregas_tallerista_bundle` quedaron sin pantalla propia.
+- **Pendientes vigentes** (2026-08-29): stock inicial real, varillas (lunes), formatos de
+  cartón por precio, máximos de flejes/cartones/plásticos/bombillas, proveedores de 157
+  insumos, decisión RLS, decisión espejo producción, PB6 en recetas, tránsito/_bak_*,
+  1.292 entregas históricas de Virgilio.
+
 ## 1) Base / motor
 
 - **Schema renombrado** `nuevo` → `"GP2"` (DB, funciones, PostgREST, frontends).

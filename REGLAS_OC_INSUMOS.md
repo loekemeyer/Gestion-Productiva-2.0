@@ -69,6 +69,14 @@ Vista: `GP2.v_consumo_fleje_kg`; el Punto de Stock de flejes usa esos kg × 6 me
   uni→kg (kg_x_uni) y el control pesa el total contra el remito (tolerancia
   `parametro.tol_ctrl_peso_pct`, hoy 2% o 0,5 kg).
 
+## Estado 2026-08-29: el módulo YA EXISTE
+
+`Compras/OC_GP2.html` (menú Insumos → Órdenes de Compra): genera OC desde el consumo con
+sugerido = consumo × meses − stock − pendiente OC, valida las reglas de cartón (dormidas
+hasta asignar formato), imprime la OC para el proveedor, y la **recepción cruza sola**
+contra las OC abiertas (`recibido` + estado `recibida` automático). RPCs: `oc_bundle`,
+`crear_oc`, `oc_marcar`, `_aplicar_recepcion_a_oc`.
+
 ## Pendientes
 
 - Asignar formato/categoría a cada cartón (`componente.carton_formato/carton_categoria`).
