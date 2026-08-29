@@ -281,6 +281,11 @@ componentes/CE/asignacion (ver AUDITORIA_RUTAS_2026-04-18.md punto 7).
 
 ## OC Insumos (Ordenes_Compra) - direccion futura
 
+**Las reglas de pedido por tipo de insumo estan en `REGLAS_OC_INSUMOS.md` (raiz) y
+parametrizadas en `GP2.carton_formato` / `carton_categoria` / `proveedor_insumo.modo_control`.
+Leer ese archivo antes de planificar el modulo de OC.** La OC nace del consumo de la
+Est Madre explotado por receta (`v_consumo_parte`), no de importar PDFs.
+
 - **HOY**: las OC se cargan importando el PDF del proveedor desde `StockFlejes/recepcion.html`
   (parser local con pdf.js, sin IA).
 - **FUTURO**: las OC van a **generarse directamente desde el sistema** (no se van a importar
