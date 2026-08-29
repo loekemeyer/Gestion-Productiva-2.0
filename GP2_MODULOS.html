@@ -1,6 +1,6 @@
 <!doctype html><html lang="es"><head><meta charset="utf-8">
 <script src="auth-guard.js?v=1.2.0"></script>
-<!-- v1.2.0 - es la pagina de entrada post-login (con auth-guard y Cerrar sesion); v1.1.0 - grupos 100% bloqueados arrancan minimizados; acordeon exclusivo; vista foco en celular -->
+<!-- v1.3.0 - menu depurado: fuera Stock Online duplicado, Informes Virgilio y los 2 candados de Prov AT; v1.2.0 - es la pagina de entrada post-login (con auth-guard y Cerrar sesion); v1.1.0 - grupos 100% bloqueados arrancan minimizados; acordeon exclusivo; vista foco en celular -->
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>GP2 · Menú</title>
 <link rel="icon" type="image/png" href="GP2_favicon.png?v=1.2.0">
@@ -109,11 +109,10 @@ const MENU = [
    ["Entrega", "Prov%20Serv/Entregas/EntregaPS_GP2.html"],
  ]],
  ["📦","Prov. Art. Terminado", [
-   ["Control", null], ["Envío Cartón/Cajas", "Prov%20Art%20Terminado/Envios/EnviosAT_GP2.html"], ["Entrega Art. Terminado", null],
+   ["Envío Cartón/Cajas", "Prov%20Art%20Terminado/Envios/EnviosAT_GP2.html"],
  ]],
  ["🗒","Control Envíos y Entregas", [
    ["Abrir", "Control%20Envios%20y%20Entregas/ControlEnvios_GP2.html"],
-   ["Stock Online", "Stocks%20General/StockGeneral_GP2.html"],
  ]],
  ["▦","Stocks", [
    ["Stock SP", "StockSP/StockSP_GP2.html"],
@@ -130,7 +129,6 @@ const MENU = [
    ["Carga Manual Producción", "Produccion/RegistroApp/Registro_GP2.html"],
    ["Informes Producción", "Informes/informe_persona_GP2.html"],
    ["Informe x Matriz", "Informes/informe_matriz_GP2.html"],
-   ["Informes Virgilio", null],
    ["Producciones Disruptivas", "Disruptivas/Disruptivas_GP2.html"],
    ["Maestro Producción", "Produccion/maestro_GP2.html"],
    ["Rendimiento x Mes", "Produccion/rendimiento_GP2.html"],

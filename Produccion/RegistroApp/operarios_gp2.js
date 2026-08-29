@@ -10,7 +10,7 @@
 const SUPABASE_URL = "https://hrxfctzncixxqmpfhskv.supabase.co";
 const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhyeGZjdHpuY2l4eHFtcGZoc2t2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI3MjQyNjEsImV4cCI6MjA4ODMwMDI2MX0.4L6wguch8UZGhC2VpzrWcCjJGUV-IkYsl9JoCWrOLUs";
 const LEGAJO_EDUARDO = "19";
-const APP_VERSION = "1.5.1"; // bumpear en cada actualizacion (junto con el ?v= del HTML y el MI_V del chequeo de cache)
+const APP_VERSION = "1.6.0"; // bumpear en cada actualizacion (junto con el ?v= del HTML y el MI_V del chequeo de cache)
 
 const SB = supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
   db: { schema: "GP2" },
@@ -54,13 +54,12 @@ const OPTIONS = [
   { code: "AL",    desc: "Ayuda Logistica",     row: 3, needsInput: false },
   { code: "PR",    desc: "Pare Carga Rollo",     row: 3, needsInput: false },
   { code: "PC",    desc: "Pare Comida",          row: 3, needsInput: false },
-  { code: "RD",    desc: "Rollo Fleje Doblado",  row: 3, needsInput: false },
   { code: "MOV P", desc: "Movimiento Piedra",    row: 3, needsInput: false },
   // row 4
-  { code: "CM",  desc: "Cambiar Matriz",   row: 4, needsInput: true,  label: "Número matriz nueva", validate: /^[0-9]+[A-Za-z]?$/ },
+  // Sacados 2026-08-29 (uso historico): RD (0 usos), CM (nada desde abril; con E
+  // alcanza para cambiar de matriz), REM (13 usos en la vida).
   { code: "PM",  desc: "Pare Matriz",      row: 4, needsInput: false },
   { code: "RM",  desc: "Rotura Matriz",    row: 4, needsInput: false },
-  { code: "REM", desc: "Reparando Matriz", row: 4, needsInput: false },
 ];
 
 const CT_OPTION = { code: "CT", desc: "Cajon Termine", row: 1, needsInput: false, isCT: true };
