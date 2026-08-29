@@ -1,6 +1,6 @@
 <!doctype html><html lang="es"><head><meta charset="utf-8">
 <script src="auth-guard.js?v=20260829f"></script>
-<!-- v1.4.0 - entra "Inyectores · Quien hace cada parte" en el grupo Insumos; v1.3.0 - menu depurado: fuera Stock Online duplicado, Informes Virgilio y los 2 candados de Prov AT; v1.2.0 - es la pagina de entrada post-login (con auth-guard y Cerrar sesion); v1.1.0 - grupos 100% bloqueados arrancan minimizados; acordeon exclusivo; vista foco en celular -->
+<!-- v1.5.0 - celular: los 13 grupos entran en UNA pantalla (grilla de 2 columnas, tarjetas mas grandes), se muestra el numero de version y se saco el texto que no son modulos (subtitulo y pie); v1.4.0 - entra "Inyectores · Quien hace cada parte" en el grupo Insumos; v1.3.0 - menu depurado: fuera Stock Online duplicado, Informes Virgilio y los 2 candados de Prov AT; v1.2.0 - es la pagina de entrada post-login (con auth-guard y Cerrar sesion); v1.1.0 - grupos 100% bloqueados arrancan minimizados; acordeon exclusivo; vista foco en celular -->
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>GP2 · Menú</title>
 <link rel="icon" type="image/png" href="GP2_favicon.png?v=1.2.0">
@@ -55,19 +55,38 @@ span.op.lock{display:flex;align-items:center;gap:10px;padding:9px 14px;border-ra
 span.op.lock .lk{font-size:14px;margin-left:auto;opacity:.7}
 
 
-/* ── celular: compacto, para que entren todos los grupos de una ── */
+/* ── celular: los 13 grupos TIENEN que entrar en una sola pantalla ──
+   Con una columna no entran sin achicar las filas hasta volverlas ilegibles.
+   Con DOS columnas entran en 7 filas y encima cada grupo queda mas grande:
+   icono arriba, titulo abajo en 2 lineas si hace falta, y el numero de
+   modulos activos en la esquina. Toda la tarjeta es el area tocable. */
 @media (max-width:640px){
-  .header{padding:10px 0 8px}
-  .header img{width:64%;max-width:230px}
-  .header-sub{font-size:12px;margin-top:5px}
-  .wrap{padding:10px 10px 40px}
-  .grid{grid-template-columns:1fr;gap:7px}
-  .card{border-radius:11px}
-  .card-head{padding:11px 13px;gap:9px}
-  .card-head .icon{font-size:19px}
-  .card-head .title{font-size:16px}
+  .header{padding:8px 0 6px}
+  .header img{width:52%;max-width:190px}
+  .header-sub{font-size:12px;margin-top:3px}
+  .wrap{padding:8px 8px 12px}
+  .foot{display:none}                      /* texto que no es un modulo: fuera */
+  .grid{grid-template-columns:1fr 1fr;gap:8px}
+  .card{border-radius:12px;position:relative}
+  .card-head{flex-direction:column;align-items:flex-start;justify-content:center;
+             gap:3px;padding:10px 11px;min-height:82px;border-bottom:0}
+  .card-head .icon{font-size:21px}
+  .card-head .title{font-size:15px;line-height:1.15;flex:none}
+  .card-head .badge{position:absolute;top:9px;right:9px;font-size:12px;padding:2px 8px}
+  .card.collapsed .chevron{display:none}    /* cerrado no aporta y roba una linea */
+  /* si la cantidad de grupos es impar, el ultimo ocupa el ancho entero para que
+     no quede un hueco raro al final (la clase la pone el JS) */
+  .card.solo{grid-column:1 / -1}
+  .card.solo .card-head{min-height:56px;flex-direction:row;align-items:center;gap:9px}
   .card-body{padding:6px 8px 9px}
   a.op,span.op.lock{font-size:15px;padding:11px 12px}
+
+  /* abierto: vuelve a una columna, para que los botones del grupo sean anchos */
+  body.focus .grid{grid-template-columns:1fr}
+  body.focus .card.open .card-head{flex-direction:row;align-items:center;gap:10px;
+                                   min-height:0;padding:13px 14px}
+  body.focus .card.open .card-head .title{font-size:18px}
+  body.focus .card.open .card-head .badge{position:static}
 
   /* vista FOCO: con un grupo abierto se ve solo ese grupo, hasta cerrarlo */
   body.focus .header,body.focus .foot{display:none}
@@ -81,16 +100,30 @@ span.op.lock .lk{font-size:14px;margin-left:auto;opacity:.7}
   body.focus .card.open .chevron::after{content:"\2715\00a0 Cerrar";font-size:14px;font-weight:700;color:#2563eb;white-space:nowrap}
 }
 
+/* celulares de pantalla baja (SE, o el navegador con su barra a la vista):
+   se comprime lo justo para que los 13 sigan entrando de una */
+@media (max-width:640px) and (max-height:700px){
+  .header img{width:42%;max-width:150px}
+  .grid{gap:6px}
+  .card-head{min-height:62px;padding:8px 10px}
+  .card-head .icon{font-size:18px}
+  .card-head .title{font-size:14px}
+  .card.solo .card-head{min-height:46px}
+}
+
 /* ── footer ── */
 .foot{max-width:1200px;margin:0 auto;padding:0 16px;color:#94a3b8;font-size:12px;text-align:center}
 </style></head><body>
 
 <div class="header">
   <img src="GP2_logo.png?v=1.2.0" alt="GP2 · Gestión Productiva — Loekemeyer">
-  <div class="header-sub">Módulos con <b>🔒</b> pendientes de migración<!-- con el login
-    apagado (GP2_AUTH_ON=false) no hay sesion que cerrar: el link se oculta solo -->
+  <!-- Solo la version. El cartel "Modulos con candado pendientes de migracion" se saco:
+       el candado ya se explica solo y en el celular esa linea robaba una fila de grupos. -->
+  <div class="header-sub">Versión <b id="appVersion">2.0</b><!-- con el login apagado
+    (GP2_AUTH_ON=false) no hay sesion que cerrar: el link se oculta solo -->
     <span id="sesion" hidden>&nbsp;·&nbsp; <a href="login.html?logout=1" onclick="try{sessionStorage.clear();}catch(e){}"
     style="color:#b42318;text-decoration:none;font-weight:700">⎋ Cerrar sesión</a></span></div>
+  <script src="version.js?v=20260829l"></script>
   <script>if (window.GP2_AUTH_ON !== false) document.getElementById('sesion').hidden = false;</script>
 </div>
 
@@ -227,6 +260,9 @@ MENU.forEach(([icon, titulo, items]) => {
   card.appendChild(body);
   grid.appendChild(card);
 });
+// Grilla de 2 columnas en celular: con una cantidad impar de grupos el ultimo
+// quedaria solo en media fila. Se lo marca para que ocupe el ancho entero.
+if (MENU.length % 2 === 1) grid.lastElementChild.classList.add("solo");
 </script>
 <script src="pwa.js?v=20260829j"></script>
 </body></html>
