@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="es">
 <head>
-<!-- v1.0.0 — Quien fabrica cada parte: botonera por proveedor. Lo que se asigne aca es lo que despues separa la OC (cada proveedor recibe SOLO lo suyo). -->
+<!-- v1.1.0 — celular: encabezado, rubros y resumen compactados a una linea, botonera en grilla de 2 columnas con alto de dedo (44px); nota plegable. v1.0.0 — Quien fabrica cada parte: botonera por proveedor. Lo que se asigne aca es lo que despues separa la OC (cada proveedor recibe SOLO lo suyo). -->
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>Inyectores · Quién hace cada parte · GP2</title>
@@ -40,7 +40,48 @@
   .rcard b{font-size:19px;display:block}
   .rcard.warn{background:#fffbeb;color:#7c2d12}
   .nota{background:#eef4fb;border-left:4px solid #0b3b73;padding:10px 12px;border-radius:6px;font-size:14px;margin:10px 0}
+  .nota summary{cursor:pointer;font-weight:700;list-style:none}
+  .nota summary::-webkit-details-marker{display:none}
+  .nota summary::after{content:" ▾";color:#0b3b73}
+  .nota[open] summary::after{content:" ▴"}
   .lista{border:1px solid #e6eaee;border-radius:10px;overflow:hidden}
+
+  /* ── celular: que se llegue a los botones sin scrollear medio metro ──
+     El encabezado (nota + chips de rubro + resumen) se comprime a una linea
+     cada uno, y los botones de proveedor pasan a una grilla de 2 columnas
+     con alto de dedo (44px) en vez de envolverse en 3 filas. */
+  @media (max-width:640px){
+    .card{border-radius:0}
+    /* el encabezado compartido se comia media pantalla: titulo mas chico y los
+       3 botones en una sola fila (solo en esta pantalla, no toca gp2-modulo.css) */
+    .header{padding:10px 12px}
+    .header h1{font-size:19px;line-height:1.15}
+    .header .hbtns{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+    .header .hbtns a,.header .hbtns .hlink{font-size:13px;padding:7px 11px}
+    .steps{padding-top:6px}
+    .nota{font-size:13px;padding:8px 10px;margin:6px 0}
+
+    /* rubros y resumen: una sola linea que se desliza al costado */
+    .chips,.resumen{flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;
+                    scrollbar-width:none;margin:6px 0;padding-bottom:2px}
+    .chips::-webkit-scrollbar,.resumen::-webkit-scrollbar{display:none}
+    .chip{flex:0 0 auto;font-size:14px;padding:7px 12px}
+    .chip .badge{font-size:11px;padding:1px 6px}
+    .rcard{flex:0 0 auto;font-size:12px;padding:5px 10px;line-height:1.15}
+    .rcard b{font-size:15px}
+    .search-box{margin:6px 0}
+
+    /* la parte: titulo compacto arriba, botonera a lo ancho abajo */
+    .parte{padding:9px 10px;gap:7px}
+    .p-izq{min-width:100%;flex:none}
+    .p-cod{font-size:16px}
+    .p-desc{font-size:14px}
+    .p-meta{font-size:11px}
+    .p-der{width:100%;display:grid;grid-template-columns:1fr 1fr;gap:7px;justify-content:stretch}
+    .pbtn{width:100%;min-height:44px;padding:10px 8px;font-size:14px;white-space:normal}
+    /* "sin asignar" ocupa el ancho entero: es la salida, no una opcion mas */
+    .pbtn.clear{grid-column:1 / -1;min-height:38px}
+  }
 </style>
 </head>
 <body>
@@ -56,12 +97,14 @@
   </div>
 
   <div class="steps">
-    <div class="nota">
-      Tocá el botón del proveedor que fabrica cada parte. Se guarda al instante.
-      Lo que quede asignado acá es lo que <b>separa la Orden de Compra</b>: en OC elegís el
-      proveedor y la orden sale sólo con <b>sus</b> partes. Si mañana cambia el inyector,
-      se cambia desde acá y la OC lo sigue solo.
-    </div>
+    <details class="nota">
+      <summary>Tocá el botón del proveedor que fabrica cada parte. Se guarda al instante.</summary>
+      <div style="margin-top:6px">
+        Lo que quede asignado acá es lo que <b>separa la Orden de Compra</b>: en OC elegís el
+        proveedor y la orden sale sólo con <b>sus</b> partes. Si mañana cambia el inyector,
+        se cambia desde acá y la OC lo sigue solo.
+      </div>
+    </details>
 
     <div class="chips" id="secChips"></div>
     <div class="resumen" id="resumen"></div>
@@ -120,6 +163,11 @@ function pintarChips(){
       (Number(s.sin_prov) > 0 ? ('<span class="badge">' + fmt(s.sin_prov) + " sin asignar</span>") : "");
     b.addEventListener("click", function(){ secSel = Number(s.id); $("q").value=""; cargar(); });
     g.appendChild(b);
+    // en el celular los rubros van en una linea que se desliza: si el elegido
+    // quedo fuera de pantalla no se ve cual esta activo
+    if (Number(s.id) === Number(secSel) && b.scrollIntoView) {
+      setTimeout(function(){ b.scrollIntoView({ block:"nearest", inline:"center" }); }, 0);
+    }
   });
 }
 
