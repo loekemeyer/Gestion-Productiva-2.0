@@ -1,0 +1,174 @@
+<!doctype html>
+<html lang="es">
+<head>
+<!-- v1.0.0 — Punto de stock por ubicacion: consumo Est Madre x meses vs maximo fisico -->
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Punto de Stock · GP2</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<link rel="stylesheet" href="../gp2-modulo.css?v=1.2.0"/>
+<link rel="icon" type="image/png" href="../GP2_favicon.png">
+<link rel="apple-touch-icon" href="../GP2_favicon.png">
+<style>
+  .seg{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px}
+  .seg-btn{padding:8px 14px;border-radius:8px;border:2px solid #d0d7de;background:#fff;font-weight:700;cursor:pointer;font-size:16px;color:#111}
+  .seg-btn.active{background:#111;color:#fff;border-color:#111}
+  .aviso{border:2px solid #f0c36d;background:#fff8e1;color:#7a5b00;border-radius:10px;padding:10px 14px;font-size:15px;margin:10px 0}
+  td.num{text-align:right;font-variant-numeric:tabular-nums}
+  tr.mal td{background:#fdf3f2}
+  .est{display:inline-block;padding:2px 10px;border-radius:12px;font-weight:800;font-size:13px;border:2px solid;white-space:nowrap}
+  .e-ok{color:#0a7a2f;border-color:#0a7a2f;background:#f3fbf6}
+  .e-mal{color:#b42318;border-color:#b42318;background:#fdf3f2}
+  .e-pend{color:#666;border-color:#d0d7de;background:#f6f8fa}
+</style>
+</head>
+<body>
+
+<div class="card">
+  <div class="header">
+    <h1>Punto de Stock</h1>
+    <div class="hbtns">
+      <button class="hlink" id="btnCSV" type="button">⬇ Exportar CSV</button>
+      <a href="../GP2_MODULOS.html">Atrás</a>
+    </div>
+  </div>
+
+  <div class="steps">
+    <div class="aviso">El <b>punto de stock</b> es cuánto debería haber en cada lugar:
+    <b>consumo mensual según la Est Madre × meses de la ubicación</b> (flejes 6 meses;
+    crudo, procesado, talleristas y PS 1 mes). Si el <b>máximo físico</b> del lugar es
+    menor que eso, el lugar no alcanza para el consumo de los artículos que usan la parte.
+    Los máximos físicos todavía no están cargados (columna Máx físico en "—").</div>
+
+    <div class="kpis" id="kpis"></div>
+
+    <div class="seg" id="segTipo">
+      <button class="seg-btn active" data-t="" type="button">Todos</button>
+      <button class="seg-btn" data-t="Sector Fleje" type="button">Flejes</button>
+      <button class="seg-btn" data-t="Sector Crudo" type="button">Crudo</button>
+      <button class="seg-btn" data-t="Sector Procesado" type="button">Procesado</button>
+      <button class="seg-btn" data-t="tallerista" type="button">Talleristas</button>
+      <button class="seg-btn" data-t="proveedor_servicio" type="button">Prov. Servicio</button>
+    </div>
+    <div class="seg" id="segEst">
+      <button class="seg-btn active" data-e="" type="button">Todos los estados</button>
+      <button class="seg-btn" data-e="maximo insuficiente" type="button">Máximo insuficiente</button>
+      <button class="seg-btn" data-e="sin maximo fisico" type="button">Sin máximo físico</button>
+      <button class="seg-btn" data-e="ok" type="button">OK</button>
+    </div>
+
+    <div class="search-box"><input type="text" id="q" placeholder="Buscar por código, descripción o ubicación…"></div>
+
+    <div class="table-wrap">
+      <table class="t">
+        <thead><tr>
+          <th>Código</th><th>Descripción</th><th>Ubicación</th>
+          <th class="num">Consumo/mes</th><th class="num">Meses</th>
+          <th class="num">Punto de stock</th><th class="num">Máx físico</th>
+          <th class="num">Online</th><th>Estado</th>
+        </tr></thead>
+        <tbody id="tbody"></tbody>
+      </table>
+    </div>
+    <div id="tblEmpty" class="empty hidden">Sin resultados.</div>
+    <div id="status" class="status">Cargando…</div>
+  </div>
+</div>
+
+<script>
+var SB = supabase.createClient(
+  "https://hrxfctzncixxqmpfhskv.supabase.co",
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhyeGZjdHpuY2l4eHFtcGZoc2t2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI3MjQyNjEsImV4cCI6MjA4ODMwMDI2MX0.4L6wguch8UZGhC2VpzrWcCjJGUV-IkYsl9JoCWrOLUs",
+  { db:{ schema:"GP2" }, auth:{ persistSession:false } }
+);
+function $(id){ return document.getElementById(id); }
+function esc(t){ return String(t==null?'':t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function uni(n){ return n==null ? '—' : Number(n).toLocaleString('es-AR',{maximumFractionDigits:0}); }
+
+var FILAS=[], fTipo='', fEst='';
+
+async function boot(){
+  var r = await SB.rpc('punto_stock_bundle');
+  if(r.error){ $('status').textContent='Error: '+r.error.message; return; }
+  FILAS = (r.data && r.data.filas) || [];
+  render();
+}
+
+function filtradas(){
+  var q = ($('q').value||'').trim().toLowerCase();
+  return FILAS.filter(function(x){
+    if(fTipo){
+      if(fTipo==='tallerista' || fTipo==='proveedor_servicio'){ if(x.ubicacion_tipo!==fTipo) return false; }
+      else if(x.ubicacion!==fTipo) return false;
+    }
+    if(fEst && x.estado!==fEst) return false;
+    // sin meses definidos y sin consumo solo aparecen en "Todos los estados" si matchean busqueda
+    if(!fEst && !q && (x.estado==='sin meses definidos' || x.estado==='sin consumo')) return false;
+    if(q && !((x.codigo||'')+' '+(x.descripcion||'')+' '+(x.ubicacion||'')).toLowerCase().includes(q)) return false;
+    return true;
+  });
+}
+
+function estadoPill(e){
+  var cls = e==='ok' ? 'e-ok' : (e==='maximo insuficiente' ? 'e-mal' : 'e-pend');
+  return '<span class="est '+cls+'">'+esc(e)+'</span>';
+}
+
+function render(){
+  var fs = filtradas();
+  var conPunto = FILAS.filter(function(x){ return x.punto_stock_uni!=null; });
+  $('kpis').innerHTML =
+    '<div class="kpi"><b>'+uni(conPunto.length)+'</b><span>posiciones con punto de stock</span></div>'+
+    '<div class="kpi"><b>'+uni(FILAS.filter(function(x){return x.estado==='maximo insuficiente';}).length)+'</b><span>máximo insuficiente</span></div>'+
+    '<div class="kpi"><b>'+uni(FILAS.filter(function(x){return x.estado==='sin maximo fisico';}).length)+'</b><span>sin máximo físico cargado</span></div>';
+
+  $('tbody').innerHTML = fs.map(function(x){
+    return '<tr'+(x.estado==='maximo insuficiente'?' class="mal"':'')+'>'+
+      '<td><b>'+esc(x.codigo||'—')+'</b></td>'+
+      '<td>'+esc(x.descripcion||'')+'</td>'+
+      '<td>'+esc(x.ubicacion)+'</td>'+
+      '<td class="num">'+uni(x.consumo_uni_mes)+'</td>'+
+      '<td class="num">'+(x.meses_stock==null?'—':x.meses_stock)+'</td>'+
+      '<td class="num"><b>'+uni(x.punto_stock_uni)+'</b></td>'+
+      '<td class="num">'+uni(x.maximo_fisico)+'</td>'+
+      '<td class="num">'+uni(x.online)+'</td>'+
+      '<td>'+estadoPill(x.estado)+'</td>'+
+    '</tr>';
+  }).join('');
+  $('tblEmpty').classList.toggle('hidden', fs.length>0);
+  $('status').textContent = fs.length + ' posiciones';
+}
+
+document.querySelectorAll('#segTipo .seg-btn').forEach(function(b){
+  b.addEventListener('click', function(){
+    fTipo=b.dataset.t;
+    document.querySelectorAll('#segTipo .seg-btn').forEach(function(x){x.classList.remove('active');});
+    b.classList.add('active'); render();
+  });
+});
+document.querySelectorAll('#segEst .seg-btn').forEach(function(b){
+  b.addEventListener('click', function(){
+    fEst=b.dataset.e;
+    document.querySelectorAll('#segEst .seg-btn').forEach(function(x){x.classList.remove('active');});
+    b.classList.add('active'); render();
+  });
+});
+$('q').addEventListener('input', render);
+
+$('btnCSV').addEventListener('click', function(){
+  var fs=filtradas();
+  var sep=';', bom='﻿';
+  var head=['Codigo','Descripcion','Ubicacion','Consumo/mes','Meses','Punto de stock','Max fisico','Online','Estado'];
+  var lines=fs.map(function(x){
+    return [x.codigo||'', x.descripcion||'', x.ubicacion, x.consumo_uni_mes||'', x.meses_stock||'',
+            x.punto_stock_uni||'', x.maximo_fisico||'', x.online||'', x.estado]
+      .map(function(v){ return String(v).replace(/;/g,','); }).join(sep);
+  });
+  var blob=new Blob([bom+'sep=;\n'+head.join(sep)+'\n'+lines.join('\n')],{type:'text/csv;charset=utf-8'});
+  var a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='punto_stock.csv'; a.click();
+});
+
+boot();
+</script>
+</body>
+</html>
