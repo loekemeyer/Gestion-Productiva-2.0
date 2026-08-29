@@ -53,6 +53,26 @@ Las tablets y celulares cachean fuerte; sin bump siguen corriendo la versión vi
    Al soltar features, subir `window.APP_VERSION` **y** el `?v=` de los `<script src="version.js?v=...">`
    (si no se bumpea el `?v=`, el celular sigue con el archivo viejo cacheado y muestra la versión de antes).
 
+## 🧠 CONOCIMIENTO_GP2.md — la memoria del negocio (LEER AL INICIO, ESCRIBIR SIEMPRE)
+
+**Leer `CONOCIMIENTO_GP2.md` al arrancar cada sesión, junto con este archivo.** Ahí está
+el conocimiento del negocio que el usuario ya explicó alguna vez: quién provee qué, por
+qué se decidió cada cosa, qué conviene y qué no, y las trampas que ya nos mordieron.
+
+**Regla de captura (OBLIGATORIA):** cada vez que el usuario explique **cómo funciona algo,
+por qué se hace así, quién hace qué, o qué decidió**, eso se agrega a `CONOCIMIENTO_GP2.md`
+**en el mismo commit del trabajo** — no se espera a que "cierre el tema". Marcar el origen:
+`[usuario]` lo dijo una persona, `[dato]` sale de una consulta (decir cuál), `[deducido]`
+lo infirió el agente y está **sin confirmar**. Si un dato nuevo contradice uno viejo, se
+corrige la línea y se anota la corrección: casi siempre significa que cambió la realidad y
+hay que revisar el módulo que dependía de ese dato.
+
+**El objetivo es que el usuario NO tenga que volver a explicar.** El agente
+`.claude/agents/gp2-experto.md` usa ese archivo para hacer de contraparte: cruzar una idea,
+decir si cierra con lo ya decidido y proponer alternativas. Invocarlo cuando haya que
+**decidir** algo del negocio (no para tareas mecánicas). Si `CONOCIMIENTO_GP2.md` no crece,
+el agente no sirve.
+
 ## Perfiles de Usuario (LEER AL INICIO)
 
 **Al arrancar cada sesión, leer `PERFILES.md` para saber con quién estás trabajando.**
