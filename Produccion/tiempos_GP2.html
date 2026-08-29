@@ -136,8 +136,8 @@
     var q = sb.from('produccion')
       .select('matriz_raw,nombre_matriz,uni,segundos_trabajados,segundos_historico,legajo,fecha,eliminar')
       .gt('uni', 0)
-      .gte('fecha', $('fDesde').value + 'T00:00:00')
-      .lte('fecha', $('fHasta').value + 'T23:59:59')
+      .gte('fecha', $('fDesde').value + 'T00:00:00-03:00')
+      .lte('fecha', $('fHasta').value + 'T23:59:59-03:00')
       .limit(20000);
     if ($('fOperario').value) q = q.eq('legajo', $('fOperario').value);
 

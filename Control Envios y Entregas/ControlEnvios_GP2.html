@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="es">
 <head>
-<!-- v1.0.0 — pivote partes x fechas de envios/entregas sobre el ledger GP2.movimiento -->
+<!-- v1.0.1 — pivote partes x fechas de envios/entregas sobre el ledger GP2.movimiento -->
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>Control Envíos y Entregas · GP2</title>
@@ -60,8 +60,8 @@ function $(id){ return document.getElementById(id); }
 function esc(t){ return String(t==null?'':t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 function fmt(n,d){ return Number(n||0).toLocaleString('es-AR',{maximumFractionDigits:d==null?0:d}); }
 
-// tipos de movimiento del ledger por vista; contraparte: envio_* mira el destino,
-// el resto el origen del movimiento
+// tipos de movimiento del ledger por vista; contraparte: envio_* y compra miran el
+// destino (compra viene con origen null), el resto el origen del movimiento
 var VISTAS = {
   ps:      { nombre:'Prov. Servicio', tipos:{ 'Envíos':['envio_ps'], 'Entregas':['entrega_ps'] } },
   tall:    { nombre:'Talleristas',    tipos:{ 'Envíos':['envio_tallerista'], 'Entregas':['entrega_tallerista','recepcion_virgilio'], 'Devoluciones':['devolucion_tallerista'] } },
@@ -100,20 +100,23 @@ function pintarChips(){
   chips('medChips', MEDIDAS, medSel, function(k){ medSel=k; pintarChips(); render(); });
 }
 
+var CARGA_SEQ=0;
 async function cargar(){
+  var miCarga=++CARGA_SEQ;
   var mes=$('mes').value || mesAR();
   var desde=mes+'-01';
   var fin=new Date(Number(mes.slice(0,4)), Number(mes.slice(5,7)), 0).getDate();
   var hasta=mes+'-'+String(fin).padStart(2,'0');
   $('status').textContent='Cargando…';
   var r=await SB.rpc('control_envios_bundle',{ p_desde:desde, p_hasta:hasta });
+  if(miCarga!==CARGA_SEQ) return; // llegó tarde: ya se pidió otro mes
   if(r.error){ $('status').textContent='Error: '+r.error.message; return; }
   FILAS=(r.data&&r.data.filas)||[];
   render();
 }
 
 function contraparteDe(f){
-  return (f.tipo.indexOf('envio')===0) ? (f.dest||'—') : (f.orig||'—');
+  return (f.tipo.indexOf('envio')===0 || f.tipo==='compra') ? (f.dest||'—') : (f.orig||'—');
 }
 
 function valorDe(f){
@@ -169,6 +172,8 @@ function render(){
   $('thead').innerHTML='<tr><th>Parte</th><th>'+(origSel==='insumos'?'Sector':'Nombre')+'</th><th>Un.</th>'+
     p.cols.map(function(d){ return '<th class="num">'+d+'</th>'; }).join('')+
     '<th class="num tot">Total</th></tr>';
+  // en medida auto puede haber filas en kg y filas en uni: el total mezclaría unidades
+  var mixto = medSel==='auto' && p.rows.some(function(r){ return r.unidad!==p.rows[0].unidad; });
   var totCols={}, totGral=0;
   $('tbody').innerHTML=p.rows.map(function(r){
     totGral+=r.total;
@@ -181,8 +186,8 @@ function render(){
       }).join('')+
       '<td class="num tot">'+fmt(r.total,dec)+'</td></tr>';
   }).join('') + (p.rows.length ? ('<tr><td class="tot" colspan="3">Total</td>'+
-      p.cols.map(function(d){ return '<td class="num tot">'+fmt(totCols[d]||0,dec)+'</td>'; }).join('')+
-      '<td class="num tot">'+fmt(totGral,dec)+'</td></tr>') : '');
+      p.cols.map(function(d){ return '<td class="num tot">'+(mixto?'—':fmt(totCols[d]||0,dec))+'</td>'; }).join('')+
+      '<td class="num tot">'+(mixto?'—':fmt(totGral,dec))+'</td></tr>') : '');
   $('tblEmpty').classList.toggle('hidden', p.rows.length>0 || !origSel);
   $('status').textContent = origSel ? (p.rows.length+' filas · '+fs.length+' movimientos') : 'Elegí origen y tipo.';
 }

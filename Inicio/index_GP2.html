@@ -89,7 +89,7 @@
       gap: 3px;
       align-items: center;
       overflow: hidden;
-      max-height: 500px;
+      max-height: 800px; /* holgura: la card mas larga (Produccion, 11 botones) mide ~547px */
       transition: max-height 0.35s ease, opacity 0.25s ease;
       opacity: 1;
     }
@@ -315,7 +315,7 @@
     })();
   </script>
 
-  <script src="../version.js?v=20260829b"></script>
+  <script src="../version.js?v=20260829c"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script>
     document.querySelectorAll(".btn-opcion").forEach(btn => {
@@ -355,7 +355,8 @@
           av.style.cssText = "position:fixed;left:50%;transform:translateX(-50%);top:10px;z-index:60;" +
             "background:#7f1d1d;color:#fff;padding:10px 18px;border-radius:10px;font-size:14px;font-weight:700;" +
             "box-shadow:0 4px 16px rgba(0,0,0,.4);max-width:90vw";
-          av.innerHTML = `⚠ ${nPend} carga${nPend === 1 ? "" : "s"} de Virgilio SIN aplicar al stock ` +
+          // textContent (no innerHTML): det viene de texto libre de la BD, no interpretarlo como HTML
+          av.textContent = `⚠ ${nPend} carga${nPend === 1 ? "" : "s"} de Virgilio SIN aplicar al stock ` +
             `(el espejo no reconoció el alias o artículo)${det ? ": " + det : ""}. Avisar a sistemas.`;
           document.body.appendChild(av);
         }

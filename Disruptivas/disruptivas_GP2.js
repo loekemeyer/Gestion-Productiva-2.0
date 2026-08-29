@@ -23,6 +23,12 @@ function n(v) { const x = Number(v); return Number.isFinite(x) ? x : 0; }
 function f(v, d = 0) { return Number(v || 0).toLocaleString("es-AR", { minimumFractionDigits: 0, maximumFractionDigits: d }); }
 function esc(s) { return String(s ?? "").replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;"); }
 function cls(v) { return n(v) > 0 ? "pos" : n(v) < 0 ? "neg" : ""; }
+// Fecha viene del RPC como 'YYYY-MM-DD': formatear a mano (new Date() la parsea
+// como medianoche UTC y en AR se mostraba el dia anterior).
+function fechaCorta(s) {
+  const p = String(s || "").slice(0, 10).split("-");
+  return p.length === 3 ? `${+p[2]}/${+p[1]}/${p[0]}` : String(s || "");
+}
 
 /* ================= STATE ================= */
 let allRows = [];              // disruptivas dentro del rango de fechas activo
@@ -100,11 +106,11 @@ async function init() {
 function filtrarPorFecha() {
   const desde = fechaDesde.value, hasta = fechaHasta.value;
   if (!desde || !hasta) return;
-  const desdeD = new Date(desde + "T00:00:00-03:00");
-  const hastaD = new Date(hasta + "T23:59:59-03:00");
+  // Fecha es 'YYYY-MM-DD': comparar como texto evita el corrimiento UTC/AR
+  // (con Date, el dia "desde" quedaba excluido del rango).
   allRows = allRowsRaw.filter(r => {
-    const ff = new Date(r.Fecha);
-    return ff >= desdeD && ff <= hastaD;
+    const ff = String(r.Fecha || "").slice(0, 10);
+    return ff >= desde && ff <= hasta;
   });
   renderDisruptivas();
   statusEl.textContent = `${allRows.length} disruptivas en el rango`;
@@ -130,7 +136,7 @@ function renderDisruptivas() {
     const item = {
       id: r.id,
       raw: r,
-      fecha: r.Fecha ? new Date(r.Fecha).toLocaleDateString("es-AR") : "",
+      fecha: r.Fecha ? fechaCorta(r.Fecha) : "",
       legajo: leg,
       nombre: empMap.get(leg) || r.Nombre_Empleado || "",
       matriz: mat,
@@ -251,7 +257,7 @@ function abrirEditDisruptiva(id) {
   document.getElementById("modalInfo").innerHTML = `
     <strong>${esc(nombre)}</strong> &mdash;
     Mat ${esc(mat)} (${esc(r.Nombre_Matriz || "")}) &mdash;
-    ${r.Fecha ? new Date(r.Fecha).toLocaleDateString("es-AR") : ""}`;
+    ${r.Fecha ? fechaCorta(r.Fecha) : ""}`;
 
   document.getElementById("modalHoraIni").value = r.Hora_Inicio || "";
   document.getElementById("modalHoraFin").value = r.Hora_Fin || "";

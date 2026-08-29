@@ -212,8 +212,8 @@
     $('mSave').disabled = false;
 
     if (r.error) { $('mErr').textContent = r.error.message; return; }
-    cerrarModal();
     topmsg(editId ? 'Operario actualizado.' : 'Operario creado.', true);
+    cerrarModal();
     cargar();
   }
 

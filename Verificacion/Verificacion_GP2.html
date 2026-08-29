@@ -234,7 +234,7 @@ function __run(){
       var res=p.estado==='resuelto'?'<span style="color:#166534">✅ Resuelto</span> · ':'';
       var btnRes=p.estado==='pendiente'?'<button class="btn-conf resolve" data-resolver="'+p.id+'">Marcar resuelto</button>':'';
       return '<div class="prob-item">'+res+esc(p.problema)+
-        '<div class="prob-meta">Reportado por '+esc(p.reportado_por)+' · '+new Date(p.reportado_en).toLocaleDateString('es-AR')+'</div>'+
+        '<div class="prob-meta">Reportado por '+esc(p.reportado_por||p.por||'')+' · '+new Date(p.reportado_en||p.en).toLocaleDateString('es-AR')+'</div>'+
         (btnRes?'<div style="margin-top:4px">'+btnRes+'</div>':'')+
         '</div>';
     }).join('');
@@ -267,10 +267,12 @@ function __run(){
     '</div>';
   }
 
+  var LISTA_WIRED=false;
   function reattach(){
+    if(LISTA_WIRED) return;
+    LISTA_WIRED=true;
     var lista=document.getElementById('lista');
-    lista.addEventListener('click',function handler(e){
-      lista.removeEventListener('click',handler);
+    lista.addEventListener('click',function(e){
       var btn=e.target.closest('[data-act]');
       if(btn){
         var idx=parseInt(btn.getAttribute('data-ridx'),10);
@@ -315,10 +317,10 @@ function __run(){
     var soloInc=(document.getElementById('soloIncompletas')||{}).checked;
     VISIBLES=RUTAS.filter(function(x){
       var estado=rutaEstado(x.firma);
-      if(TAB==='confirmadas') return estado==='conf';
-      if(TAB==='revisar') return estado==='pin';
-      if(TAB==='problemas') return estado==='warn';
-      if(soloInc&&x.completa) return false;
+      if(TAB==='confirmadas'&&estado!=='conf') return false;
+      if(TAB==='revisar'&&estado!=='pin') return false;
+      if(TAB==='problemas'&&estado!=='warn') return false;
+      if(TAB==='trazar'&&soloInc&&x.completa) return false;
       if(fam&&x.r.fam!==fam) return false;
       if(q&&x.txt.indexOf(q)<0) return false;
       return true;

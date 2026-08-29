@@ -75,6 +75,7 @@
 
 var SB=window.supabase.createClient('https://hrxfctzncixxqmpfhskv.supabase.co','eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhyeGZjdHpuY2l4eHFtcGZoc2t2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI3MjQyNjEsImV4cCI6MjA4ODMwMDI2MX0.4L6wguch8UZGhC2VpzrWcCjJGUV-IkYsl9JoCWrOLUs',{db:{schema:'GP2'}});
 function __run(){
+function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 function sName(sid){var s=D.sect[String(sid)];return s?s.t:"?"}
 var SECT2CLS={"crudo":"crudo","procesado":"proc","transito":"tr","afilado":"afil","fleje":"fleje","plástico":"insu","bombilla":"insu","remache":"insu","garage":"sub","cartón":"insu","caja":"insu","terminado":"virg"};
 function sCls(sid){return SECT2CLS[sName(sid)]||"crudo"}
@@ -91,17 +92,18 @@ D.art.slice().sort(function(a,b){return (parseInt(a.cod)||9999)-(parseInt(b.cod)
 function expandBOM(aid){
  var need={};
  var bom=D.bom.filter(function(b){return b.a===aid;});
- function add(cid,q){need[cid]=(need[cid]||0)+q;var subs=D.children[String(cid)]||[];subs.forEach(function(s){add(s.c,q*s.q);});}
- bom.forEach(function(b){add(b.c,b.q);});
+ // vis por rama: corta ciclos en componente_bom (padre->hijo->padre) sin romper diamantes (mismo patron que Faltantes)
+ function add(cid,q,vis){if(vis[cid])return;var v=Object.assign({},vis);v[cid]=1;need[cid]=(need[cid]||0)+q;var subs=D.children[String(cid)]||[];subs.forEach(function(s){add(s.c,q*s.q,v);});}
+ bom.forEach(function(b){add(b.c,b.q,{});});
  return {need:need,bom:bom};
 }
 
 function node(tp,cls,nm,ex,extra,qty,kg){
  var h='<div class="node n-'+cls+'">';
- h+='<div class="tp">'+tp+'</div>';
- h+='<div class="nm">'+nm+'</div>';
- if(ex)h+='<div class="ex">'+ex+'</div>';
- if(extra)h+='<div class="rend">'+extra+'</div>';
+ h+='<div class="tp">'+esc(tp)+'</div>';
+ h+='<div class="nm">'+esc(nm)+'</div>';
+ if(ex)h+='<div class="ex">'+esc(ex)+'</div>';
+ if(extra)h+='<div class="rend">'+esc(extra)+'</div>';
  if(qty!=null)h+='<div class="qty">× '+fmt(qty)+'</div>';
  if(kg!=null)h+='<div class="kg">'+fmt(kg)+' kg</div>';
  h+='</div>';
@@ -111,8 +113,8 @@ function sectorNode(sec,cod,qty){
  var cls=SECT2CLS[sec]||'crudo';
  var h='<div class="node n-'+cls+' n-sector">';
  h+='<div class="tp">📦 Sector</div>';
- h+='<div class="nm">'+sec.toUpperCase()+'</div>';
- if(cod)h+='<div class="ex">stock '+cod+'</div>';
+ h+='<div class="nm">'+esc(sec.toUpperCase())+'</div>';
+ if(cod)h+='<div class="ex">stock '+esc(cod)+'</div>';
  if(qty!=null)h+='<div class="qty">× '+fmt(qty)+'</div>';
  h+='</div>';
  return h;
@@ -154,7 +156,7 @@ function renderStandaloneLane(r,pasos,fl,need,uni,flejesTotal){
  for(var i=0;i<pasos.length;i++){if(pasos[i].tp==="ingreso" && pasos[i].ce){flComp=cById(pasos[i].ce);break;}}
  if(!flComp)flComp=cById(r.f);
  var cs_desc = cs_final ? (" → "+cById(cs_final).cod+" ("+(cById(cs_final).d||"")+")") : "";
- var H='<div class="lane"><div class="head"><b>'+(flComp.cod||"?")+' · '+(flComp.d||"")+cs_desc+'</b>'+
+ var H='<div class="lane"><div class="head"><b>'+esc((flComp.cod||"?")+' · '+(flComp.d||"")+cs_desc)+'</b>'+
     (kg?'<span class="fkg">'+fmt(kg)+' kg fleje</span>':(qty?'<span style="color:#7a92a8">sin rendimiento</span>':""))+
     '</div><div class="flow">';
  H+=node("INSUMO","fleje",flComp.cod||"?",flComp.d||"",rend?rend+" uni/kg":"",null,kg||null);
@@ -186,7 +188,7 @@ function renderConvergenceLane(padre_id,ruta_list,need,uni,flejesTotal,aid){
    if(pc2 && need[pc2]){qty_padre=need[pc2]*uni;break;}
   }
  }
- var H='<div class="lane conv"><div class="head"><b>🔀 Convergencia · '+pc.cod+' · '+(pc.d||"")+'</b>'+
+ var H='<div class="lane conv"><div class="head"><b>🔀 Convergencia · '+esc(pc.cod+' · '+(pc.d||""))+'</b>'+
     '<span style="color:#5fb0e8">× '+fmt(qty_padre)+' u</span></div>';
 
  // Loop puro por hijos del componente_bom
@@ -222,12 +224,12 @@ function renderConvergenceLane(padre_id,ruta_list,need,uni,flejesTotal,aid){
    var pasosNoFleje=prePasos.filter(function(p){return p.tp!=='fleje'&&p.tp!=='ingreso';});
    // Si el "productor" es el mismo componente y no hay pasos productivos, solo mostrar el insumo (evita duplicado)
    if(pasosNoFleje.length===0 && flComp2.id===hc.id){
-    H+='<div class="branch-lbl">Rama '+brN+' — Insumo '+(hc.cod||'?')+' · × '+fmt(qty_hijo)+' u</div>';
+    H+='<div class="branch-lbl">Rama '+brN+' — Insumo '+esc(hc.cod||'?')+' · × '+fmt(qty_hijo)+' u</div>';
     H+='<div class="flow branch">';
     H+=node("INSUMO",sCls(hc.s),hc.cod||"?",hc.d||"","",qty_hijo,null);
     H+='</div>';
    } else {
-    H+='<div class="branch-lbl">Rama '+brN+' — '+(flComp2.cod||"?")+' produce '+hc.cod+(kg?' · '+fmt(kg)+' kg fleje':'')+'</div>';
+    H+='<div class="branch-lbl">Rama '+brN+' — '+esc((flComp2.cod||"?")+' produce '+hc.cod)+(kg?' · '+fmt(kg)+' kg fleje':'')+'</div>';
     H+='<div class="flow branch">';
     H+=node("INSUMO","fleje",flComp2.cod||"?",flComp2.d||"",rend?rend+" uni/kg":"",null,kg||null);
     pasosNoFleje.forEach(function(p){
@@ -246,7 +248,7 @@ function renderConvergenceLane(padre_id,ruta_list,need,uni,flejesTotal,aid){
   }
   // Fallback: insumo
   var sn=sName(hc.s);
-  H+='<div class="branch-lbl">Rama '+brN+' — Insumo '+(hc.cod||'?')+' ('+sn+') · × '+fmt(qty_hijo)+' u</div>';
+  H+='<div class="branch-lbl">Rama '+brN+' — Insumo '+esc((hc.cod||'?')+' ('+sn+')')+' · × '+fmt(qty_hijo)+' u</div>';
   H+='<div class="flow branch">';
   H+=node("INSUMO",sCls(hc.s),hc.cod||"?",hc.d||"","",qty_hijo,null);
   if(sn && sn!=='terminado' && sn!=='fleje' && sn!=='?'){
@@ -297,7 +299,7 @@ function render(){
   tallAltBox.style.display='';
   if(tallAlt.dataset.aid!==String(aid)){
    tallAlt.innerHTML='';
-   tallsIds.forEach(function(tid){tallAlt.innerHTML+='<option value="'+tid+'">'+(D.tall[String(tid)]||'').trim()+'</option>';});
+   tallsIds.forEach(function(tid){tallAlt.innerHTML+='<option value="'+tid+'">'+esc((D.tall[String(tid)]||'').trim())+'</option>';});
    tallAlt.dataset.aid=String(aid);
   }
   var tallElegidoId=parseInt(tallAlt.value);
@@ -335,13 +337,13 @@ function render(){
 
  var H='';
  H+='<div class="hero">'+
-    '<div><div class="cod">'+a.cod+'</div><div class="fam">'+a.fam+'</div></div>'+
+    '<div><div class="cod">'+esc(a.cod)+'</div><div class="fam">'+esc(a.fam)+'</div></div>'+
     '<div style="display:flex;gap:8px;flex-wrap:wrap">'+
       '<div class="kpi"><b>'+fmt(uni)+'</b>unidades a producir</div>'+
       '<div class="kpi"><b>'+bom.length+'</b>partes BOM</div>'+
       '<div class="kpi"><b>'+Object.keys(need).length+'</b>componentes totales</div>'+
       '<div class="kpi"><b>'+rutas_prod.length+'</b>rutas de producción</div>'+
-      (talls.length?'<div class="kpi"><b>'+talls.join(" O ")+'</b>ensambla (alternativas)</div>':"")+
+      (talls.length?'<div class="kpi"><b>'+esc(talls.join(" O "))+'</b>ensambla (alternativas)</div>':"")+
     '</div></div>';
 
  // Marcar rutas que producen hijos de un sub-conjunto convergente (se consumen dentro de la convergencia)
@@ -385,7 +387,7 @@ function render(){
   subKeys.forEach(function(k){
    var pid=parseInt(k); var pc=cById(pid);
    var pq=need[pid]*uni;
-   H+='<div class="lane"><div class="head"><b>'+pc.cod+' · '+(pc.d||"")+'</b><span style="color:#5fb0e8">× '+fmt(pq)+' u</span></div><div class="flow">';
+   H+='<div class="lane"><div class="head"><b>'+esc(pc.cod+' · '+(pc.d||""))+'</b><span style="color:#5fb0e8">× '+fmt(pq)+' u</span></div><div class="flow">';
    var hijos=D.children[k];
    hijos.forEach(function(hh,i){
     var hc=cById(hh.c);
@@ -423,7 +425,7 @@ function render(){
    var qFin=null,csFin=cidIni;
    for(var ii=pasos.length-1;ii>=0;ii--){var pp=pasos[ii];if(pp.cs && need[pp.cs]){csFin=pp.cs;qFin=need[pp.cs]*uni;break;}}
    if(qFin===null && need[cidIni])qFin=need[cidIni]*uni;
-   H+='<div class="lane" style="padding:6px 10px"><div class="head" style="margin-bottom:4px"><b>'+comp.cod+' — '+(comp.d||"")+'</b>'+(qFin?'<span style="color:#5fb0e8">× '+fmt(qFin)+' u</span>':"")+'</div><div class="flow" style="align-items:center">';
+   H+='<div class="lane" style="padding:6px 10px"><div class="head" style="margin-bottom:4px"><b>'+esc(comp.cod+' — '+(comp.d||""))+'</b>'+(qFin?'<span style="color:#5fb0e8">× '+fmt(qFin)+' u</span>':"")+'</div><div class="flow" style="align-items:center">';
    H+=node("INSUMO",sCls(comp.s),comp.cod||"?",comp.d||"","",qFin,null);
    pasos.forEach(function(p,idx){
     if(idx===0)return;

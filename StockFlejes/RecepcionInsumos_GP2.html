@@ -1,8 +1,8 @@
 <!doctype html>
 <html lang="es">
 <head>
-<!-- v3.6.0 — muestra el cruce con OC (recibido/completa/sin OC) devuelto por la BD. v3.5.0: cartones se cargan en PAQUETES de 250 (parametro carton_uni_x_paquete), guardados en unidades. v3.4.0: modo_control por proveedor: rollos_remito (Basconia/Aperam), pesaje (resto flejeros, remito solo kg), peso_total (Bella Vista). v3.3.0: Bella Vista: factura en uni (se anota convertido a kg) y control por PESO TOTAL contra el remito. v3.2.0: la balanza debe dar MAS que el remito (peso del pallet), aviso en vivo + confirm al guardar. v3.1.0: pesaje obligatorio (sin "Pesar después"): la carga no se termina hasta controlar. v3.0.0: remito multi-item: paso 1 todos los items, "Terminé de pasar remito", paso 2 pesaje de todo; modulo Control integrado aca -->
-<script src="../auth-guard.js?v=3.6.0"></script>
+<!-- v3.6.1 — fix: el mensaje del cruce con OC se mostraba nunca (itemSel null tras cerrar popup); aviso de pallets a medias al guardar pesaje. v3.6.0 — muestra el cruce con OC (recibido/completa/sin OC) devuelto por la BD. v3.5.0: cartones se cargan en PAQUETES de 250 (parametro carton_uni_x_paquete), guardados en unidades. v3.4.0: modo_control por proveedor: rollos_remito (Basconia/Aperam), pesaje (resto flejeros, remito solo kg), peso_total (Bella Vista). v3.3.0: Bella Vista: factura en uni (se anota convertido a kg) y control por PESO TOTAL contra el remito. v3.2.0: la balanza debe dar MAS que el remito (peso del pallet), aviso en vivo + confirm al guardar. v3.1.0: pesaje obligatorio (sin "Pesar después"): la carga no se termina hasta controlar. v3.0.0: remito multi-item: paso 1 todos los items, "Terminé de pasar remito", paso 2 pesaje de todo; modulo Control integrado aca -->
+<script src="../auth-guard.js?v=3.6.1"></script>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>Recepción de Insumos · GP2</title>
@@ -618,6 +618,7 @@ $('kgPesajeOk').addEventListener('click', async function(){
   var m=$('kgMsg');
 
   var listos=[];   // {recId, codigo, nro, peso, lineas}
+  var incompletos=[];  // pallets a medias (peso sin rollos, o rollos sin peso): avisar, no saltear en silencio
   PES.items.forEach(function(it){
     Object.keys(it.blocks).sort((a,b)=>a-b).forEach(function(nro){
       var p=it.blocks[nro];
@@ -625,9 +626,14 @@ $('kgPesajeOk').addEventListener('click', async function(){
                          .filter(function(l){ return l.cantidad>0 && l.kg_por_rollo>0; });
       if(pnum(p.peso)>0 && (lineas.length || it.modo==='peso'))
         listos.push({recId:it.recId, codigo:it.codigo, nro:Number(nro), peso:pnum(p.peso), lineas:lineas, calc:calcPallet(p)});
+      else if(pnum(p.peso)>0 || lineas.length)
+        incompletos.push(it.codigo+' · Pallet '+nro);
     });
   });
   if(!listos.length){ m.className='status bad'; m.textContent='Cargá al menos un pallet: peso de balanza + rollos.'; return; }
+  if(incompletos.length && !confirm(
+      '⚠ Pallets a medias (falta el peso de balanza o las líneas de rollos):\n\n'+incompletos.join('\n')+
+      '\n\nSolo se guardan los pallets completos y la recepción queda SIN TERMINAR (reaparece como pendiente).\n\n¿Guardar igual?')) return;
 
   var fuera=listos.filter(function(x){ return x.calc.sob!=null && x.calc.estado!=='ok'; })
                   .map(function(x){ return x.codigo+' · Pallet '+x.nro+': sobrante '+fmt(x.calc.sob)+' kg ('+x.calc.estado+', esperado '+x.calc.tmin+'–'+x.calc.tmax+')'; });
@@ -673,8 +679,9 @@ $('kgPesajeOk').addEventListener('click', async function(){
   // Recién acá la recepción está TERMINADA (remito anotado + todo pesado).
   var nItems=PES.items.length;
   var sb=$('successBox'); sb.style.display='block';
-  $('successBox').querySelector('.title').textContent='✓ Recepción completa';
+  $('successBox').querySelector('.title').textContent = incompletos.length ? '✓ Pesaje guardado (recepción SIN terminar)' : '✓ Recepción completa';
   $('successDetail').innerHTML=nItems+' ítem'+(nItems===1?'':'s')+' · '+ok+' pallet'+(ok===1?'':'s')+' pesado'+(ok===1?'':'s')+
+    (incompletos.length?(' · <b style="color:#b42318">'+incompletos.length+' pallet'+(incompletos.length===1?'':'s')+' a medias sin guardar: queda pendiente</b>'):'')+
     (fuera.length?(' · <b style="color:#b45309">'+fuera.length+' con sobrante fuera de rango (a revisar)</b>'):'')+'.';
   cerrarPopup();
   REMITO=[];
@@ -745,10 +752,11 @@ async function guardar(){
       REMITO.push({ recId: recId, codigo: itemSel.codigo, desc: itemSel.descripcion||'',
                     cant: cant, unidad: uReal, rollos: rll, pallets: pll,
                     modo: (modoCtl==='peso_total' ? 'peso' : 'rollos') });
+      var codSel=itemSel.codigo;   // cerrarPopup() pone itemSel=null: capturar antes
       cerrarPopup();
       renderRemitoBar();
       $('statusMsg').className='status';
-      $('statusMsg').innerHTML=esc(itemSel.codigo)+': '+ocTxt+'.';
+      $('statusMsg').innerHTML=esc(codSel)+': '+ocTxt+'.';
       setTimeout(function(){ if($('statusMsg').innerHTML.indexOf('OC')>=0||$('statusMsg').innerHTML.indexOf('sin OC')>=0) $('statusMsg').textContent=''; },7000);
       return;
     }

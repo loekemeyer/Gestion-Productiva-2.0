@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="es">
 <head>
-<!-- v1.2.0 — maximos de insumos derivados de Est Madre (tag EM, se recalculan solos). v1.1.0 — flejes en KG (consumo via ppk de matriz). v1.0.0 — Punto de stock por ubicacion: consumo Est Madre x meses vs maximo fisico -->
+<!-- v1.2.1 — fix export CSV: los valores 0 (online, meses, consumo) ya no salen como celda vacia. v1.2.0 — maximos de insumos derivados de Est Madre (tag EM, se recalculan solos). v1.1.0 — flejes en KG (consumo via ppk de matriz). v1.0.0 — Punto de stock por ubicacion: consumo Est Madre x meses vs maximo fisico -->
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>Punto de Stock · GP2</title>
@@ -162,8 +162,10 @@ $('btnCSV').addEventListener('click', function(){
   var sep=';', bom='﻿';
   var head=['Codigo','Descripcion','Ubicacion','Consumo/mes','Meses','Punto de stock','Max fisico','Online','Estado'];
   var lines=fs.map(function(x){
-    return [x.codigo||'', x.descripcion||'', x.ubicacion, x.consumo_uni_mes||'', x.meses_stock||'',
-            x.punto_stock_uni||'', x.maximo_fisico||'', x.online||'', x.estado]
+    return [x.codigo||'', x.descripcion||'', x.ubicacion,
+            (x.consumo_uni_mes==null?'':x.consumo_uni_mes), (x.meses_stock==null?'':x.meses_stock),
+            (x.punto_stock_uni==null?'':x.punto_stock_uni), (x.maximo_fisico==null?'':x.maximo_fisico),
+            (x.online==null?'':x.online), x.estado]
       .map(function(v){ return String(v).replace(/;/g,','); }).join(sep);
   });
   var blob=new Blob([bom+'sep=;\n'+head.join(sep)+'\n'+lines.join('\n')],{type:'text/csv;charset=utf-8'});

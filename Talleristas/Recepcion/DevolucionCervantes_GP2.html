@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="es">
 <head>
-<!-- v1.0.0 — Devolucion de partes de talleristas: vuelve al sector o queda "Para Analizar" -->
+<!-- v1.0.1 — Devolucion de partes de talleristas: vuelve al sector o queda "Para Analizar" -->
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>Devolución Cervantes · GP2</title>
@@ -186,6 +186,7 @@ $('btnConf').addEventListener('click', async function(){
         p_unidad:unidadDe(x), p_destino:destino, p_motivo:motivo, p_fecha:fecha });
       if(r.error) throw new Error(x.codigo+': '+r.error.message);
       hechas++;
+      delete DEV[x.comp_id]; // ya registrada: fuera del buffer (un reintento no la duplica)
       if(r.data && r.data.aviso) avisos.push(r.data.aviso);
     }
     DEV={}; $('motivo').value='';
@@ -196,8 +197,9 @@ $('btnConf').addEventListener('click', async function(){
       (destino==='analizar'?' → Para Analizar.':' → vuelven a su sector.')+
       (avisos.length?(' '+avisos.join(' ')):'');
   }catch(e){
+    render(); // quedan marcadas solo las que fallaron
     $('status').className='status bad';
-    $('status').textContent='Error (se cargaron '+hechas+' de '+items.length+'): '+(e.message||e);
+    $('status').textContent='Error (se cargaron '+hechas+' de '+items.length+', las cargadas ya no se reintentan): '+(e.message||e);
   }finally{ $('btnConf').disabled=false; habilitar(); }
 });
 

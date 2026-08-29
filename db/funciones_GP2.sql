@@ -573,14 +573,14 @@ with mov as (
   join componente c on c.id = m.comp_id
   left join ubicacion uo on uo.id = m.ubic_origen_id
   left join ubicacion ud on ud.id = m.ubic_destino_id
-  where m.tipo_mov in ('envio_tallerista','entrega_tallerista')
+  where m.tipo_mov in ('envio_tallerista','entrega_tallerista','consumo_tall')
 ),
 agg as (
   select
     mov.tall_id,
     mov.comp_id,
     sum(case when mov.tipo_mov = 'envio_tallerista'   then mov.uni else 0 end) as enviado,
-    sum(case when mov.tipo_mov = 'entrega_tallerista' then mov.uni else 0 end) as entregado,
+    sum(case when mov.tipo_mov in ('entrega_tallerista','consumo_tall') then mov.uni else 0 end) as entregado,
     sum(case when mov.tipo_mov = 'envio_tallerista'   then mov.kg_raw else 0 end) as enviado_kg,
     max(mov.kg_sin_factor) as kg_sin_factor
   from mov
@@ -1475,14 +1475,14 @@ with mov as (
   join componente c on c.id = m.comp_id
   left join ubicacion uo on uo.id = m.ubic_origen_id
   left join ubicacion ud on ud.id = m.ubic_destino_id
-  where m.tipo_mov in ('envio_tallerista','entrega_tallerista')
+  where m.tipo_mov in ('envio_tallerista','entrega_tallerista','consumo_tall')
 ),
 agg as (
   select
     mov.tall_id,
     mov.comp_id,
     sum(case when mov.tipo_mov = 'envio_tallerista'   then mov.uni else 0 end) as enviado,
-    sum(case when mov.tipo_mov = 'entrega_tallerista' then mov.uni else 0 end) as entregado,
+    sum(case when mov.tipo_mov in ('entrega_tallerista','consumo_tall') then mov.uni else 0 end) as entregado,
     sum(case when mov.tipo_mov = 'envio_tallerista'   then mov.kg_raw else 0 end) as enviado_kg,
     max(mov.kg_sin_factor) as kg_sin_factor
   from mov
@@ -2912,7 +2912,7 @@ CREATE OR REPLACE FUNCTION "GP2".registrar_evento_prod(p jsonb)
  SET search_path TO 'GP2'
 AS $function$
 declare
-  v_id bigint; v_f timestamptz; v_leg text; v_mat text; v_uni numeric;
+  v_id bigint; v_f timestamptz; v_f_ar timestamp; v_leg text; v_mat text; v_uni numeric;
   v_mid bigint; v_mname text; v_partes numeric; v_nombre text;
   v_nsal int; v_salida bigint; v_entrada bigint;
   v_ent_um text; v_sal_um text; v_sec_ent int; v_sec_sal int;
@@ -2921,6 +2921,7 @@ declare
   v_th numeric; v_tt numeric; v_premio numeric; v_segs numeric;
 begin
   v_f   := coalesce(nullif(p->>'fecha','')::timestamptz, now());
+  v_f_ar := v_f at time zone 'America/Argentina/Buenos_Aires';
   v_leg := nullif(btrim(coalesce(p->>'legajo','')),'');
   v_mat := nullif(btrim(coalesce(p->>'matriz','')),'');
   v_uni := coalesce(nullif(p->>'uni','')::numeric, 0);
@@ -2954,10 +2955,18 @@ begin
     v_tt, case when v_uni > 0 then v_th end, v_premio,
     nullif(p->>'segundos_trabajados','')::numeric,
     nullif(p->>'segundos_tiempo_muerto','')::numeric,
-    extract(day from v_f)::int, extract(month from v_f)::int,
-    case when extract(day from v_f)::int <= 15 then 1 else 2 end,
+    extract(day from v_f_ar)::int, extract(month from v_f_ar)::int,
+    case when extract(day from v_f_ar)::int <= 15 then 1 else 2 end,
     nullif(p->>'id_ejecucion',''), now()
-  ) returning id into v_id;
+  )
+  on conflict (id_ejecucion) where id_ejecucion is not null do nothing
+  returning id into v_id;
+
+  -- reintento del mismo evento (id_ejecucion ya registrado): devolver el existente sin tocar stock
+  if v_id is null then
+    select id into v_id from produccion where id_ejecucion = nullif(p->>'id_ejecucion','');
+    return jsonb_build_object('ok',true,'id',v_id,'dup',true);
+  end if;
 
   if v_uni > 0 and v_mid is not null and coalesce(p->>'mover_stock','true') <> 'false' then
     v_salida := nullif(p->>'comp_salida_id','')::bigint;
@@ -3222,6 +3231,17 @@ declare v_id bigint;
 begin
   -- reportar un problema quita la confirmacion previa de esa firma
   delete from "GP2".ruta_confirmada where firma=p_firma;
+  -- dedupe: si ya hay un problema pendiente de esa firma, actualizarlo en vez de apilar filas
+  select id into v_id from "GP2".ruta_problema
+   where firma=p_firma and estado='pendiente'
+   order by reportado_en desc limit 1;
+  if v_id is not null then
+    update "GP2".ruta_problema
+       set problema=p_problema, reportado_por=p_usuario, reportado_en=now(),
+           articulo=coalesce(nullif(p_articulo,''),articulo), fleje=coalesce(nullif(p_fleje,''),fleje)
+     where id=v_id;
+    return v_id;
+  end if;
   insert into "GP2".ruta_problema(firma,articulo,fleje,problema,reportado_por)
   values(p_firma,p_articulo,p_fleje,p_problema,p_usuario)
   returning id into v_id;

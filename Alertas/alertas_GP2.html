@@ -188,12 +188,14 @@
         parametros = [datos.problema || "", datos.matriz || "", datos.descripcion || "", datos.horaEvento || ""];
       }
       try {
-        await fetch(EDGE_FN_URL, {
+        const resp = await fetch(EDGE_FN_URL, {
           method: "POST",
           headers: { "Authorization": "Bearer " + SUPABASE_KEY, "Content-Type": "application/json" },
           body: JSON.stringify({ parametros, plantilla, idioma: "es_AR", test })
         });
-      } catch (err) { console.error("Error edge function:", err); }
+        if (!resp.ok) throw new Error("HTTP " + resp.status);
+        return true;
+      } catch (err) { console.error("Error edge function:", err); return false; }
     }
 
     /* ================= RENDER ================= */
@@ -264,11 +266,12 @@
     /* ================= EVENTS ================= */
     btnRefrescar.addEventListener("click", cargarAlertas);
     btnTestWA.addEventListener("click", async () => {
-      await sendWhatsAppToAll("problemas_en_matriz_reducido", {
+      const ok = await sendWhatsAppToAll("problemas_en_matriz_reducido", {
         problema: "Prueba", matriz: "000",
         descripcion: "Mensaje de prueba desde Alertas", horaEvento: formatNow()
       }, { test: true });
-      showToast("Prueba enviada (plantilla reducido)", "success");
+      if (ok) showToast("Prueba enviada (plantilla reducido)", "success");
+      else showToast("No se pudo enviar la prueba (ver consola)", "warn");
     });
 
     /* ================= INIT + auto-refresh cada 60s ================= */

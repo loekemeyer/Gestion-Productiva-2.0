@@ -79,6 +79,7 @@ var D=null;
 // orden de sectores pedido por el usuario (id de sector)
 const SECT_ORDER=[1,2,4,5,6,7,8,9,10,11,3]; // crudo,proc,afilado,fleje,plastico,bombilla,remache,garage,carton,caja,(transito al final)
 const $=id=>document.getElementById(id);
+function esc(t){return String(t==null?'':t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 function unidad(c){return (c&&c.um==='kg')?'kg':'uni';}
 function fmt(n){var x=Number(n);if(!isFinite(x))return '0';return Number.isInteger(x)?x.toLocaleString('es-AR'):x.toLocaleString('es-AR',{maximumFractionDigits:2});}
 
@@ -103,7 +104,7 @@ function tablaRows(rows){
  var h='<table><thead><tr><th>Cód</th><th>Descripción</th><th class="num">Cantidad</th><th class="num">Mínimo</th></tr></thead><tbody>';
  rows.forEach(r=>{var c=D.comp[String(r.cid)]||{cod:'?',d:''};
   var cls=r.cant>0?'stock':(r.cant<0?'neg':'zero');
-  h+='<tr class="'+cls+'"><td class="cod">'+(c.cod||'')+'</td><td>'+(c.d||'')+'</td>'+
+  h+='<tr class="'+cls+'"><td class="cod">'+esc(c.cod||'')+'</td><td>'+esc(c.d||'')+'</td>'+
      '<td class="num">'+fmt(r.cant)+' <span class="mini">'+unidad(c)+'</span></td>'+
      '<td class="num mini">'+(r.min?fmt(r.min):'')+'</td></tr>';
  });
@@ -114,13 +115,13 @@ function group(open, nm, rows, sub){
  var conStock=f.filter(r=>r.cant>0||r.cant<0).length;
  var badge=conStock?('<span class="badge hot">'+conStock+' con stock</span>'):('<span class="badge">'+f.length+'</span>');
  return '<div class="grp'+(open?' open':'')+'"><div class="gh" onclick="tog(this)"><span class="arr">▶</span>'+
-   '<span class="nm">'+nm+'</span>'+badge+'</div><div class="gb">'+(sub||tablaRows(f))+'</div></div>';
+   '<span class="nm">'+esc(nm)+'</span>'+badge+'</div><div class="gb">'+(sub||tablaRows(f))+'</div></div>';
 }
 function subgroup(nm, rows){
  var f=filtRows(rows);
  var conStock=f.filter(r=>r.cant>0||r.cant<0).length;
  var badge=conStock?('<span class="badge hot">'+conStock+'</span>'):('<span class="badge">'+f.length+'</span>');
- return '<div class="sub"><div class="sh" onclick="tog(this)"><span class="arr">▶</span><span class="nm">'+nm+'</span>'+badge+'</div><div class="sb">'+tablaRows(f)+'</div></div>';
+ return '<div class="sub"><div class="sh" onclick="tog(this)"><span class="arr">▶</span><span class="nm">'+esc(nm)+'</span>'+badge+'</div><div class="sb">'+tablaRows(f)+'</div></div>';
 }
 function tog(el){el.parentElement.classList.toggle('open');}
 function expandAll(v){document.querySelectorAll('.grp,.sub').forEach(e=>e.classList.toggle('open',v));}

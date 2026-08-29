@@ -612,12 +612,14 @@
       return;
     }
 
-    // Proveedores
+    // Proveedores (escapar texto: viene de la BD y va a innerHTML)
+    var escOpt = function(t){ return String(t==null?'':t)
+      .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); };
     var opts = '<option value="">-- Elegir proveedor --</option>';
     (provRes.data||[]).forEach(function(p){
       var meta = [p.proceso, p.cod_prov].filter(Boolean).join(' · ');
-      opts += '<option value="'+p.id+'">'+ String(p.nombre||('#'+p.id))
-            + (meta ? ' ('+meta+')' : '') + '</option>';
+      opts += '<option value="'+Number(p.id)+'">'+ escOpt(String(p.nombre||('#'+p.id))
+            + (meta ? ' ('+meta+')' : '')) + '</option>';
     });
     elProv.innerHTML = opts;
 
@@ -708,8 +710,10 @@
         // limpiar form
         elCant.value = ''; elKg.value = '';
         pkEnvioSC.clear(); pkEntSC.clear(); pkEntSP.clear();
-        // recargar pantalla
-        await reloadBundle();
+        // recargar pantalla (el guardado ya esta OK: si falla el refresh,
+        // no dejar que el catch de abajo pise el mensaje verde con "Error")
+        try{ await reloadBundle(); }
+        catch(e2){ setMsg(det + ' — guardado OK, pero no se pudo refrescar la pantalla (recargá con F5).', 'ok'); }
       }catch(e){
         setMsg('Error: ' + (e && (e.message||e.hint||e.details) || e), 'err');
       }finally{

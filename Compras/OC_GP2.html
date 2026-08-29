@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="es">
 <head>
-<!-- v1.1.0 — Ordenes de Compra de insumos: sugerido = consumo Est Madre x meses - stock - pendiente OC; imprimir OC -->
+<!-- v1.1.1 — fix: "Pedir" acepta decimales es-AR (12,5 ya no se convertía en 125) y la OC solo lleva los items del rubro/proveedor seleccionado. v1.1.0 — Ordenes de Compra de insumos: sugerido = consumo Est Madre x meses - stock - pendiente OC; imprimir OC -->
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>Órdenes de Compra · GP2</title>
@@ -105,6 +105,8 @@ var SB = supabase.createClient(
 function $(id){ return document.getElementById(id); }
 function esc(t){ return String(t==null?'':t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 function fmt(n,d){ return n==null?'—':Number(n).toLocaleString('es-AR',{maximumFractionDigits:d==null?0:d}); }
+// es-AR: punto = miles, coma = decimal ("12,5" -> 12.5; antes parseInt borraba la coma y daba 125)
+function parseNum(s){ var x=parseFloat(String(s==null?'':s).replace(/\./g,'').replace(/,/g,'.')); return (isNaN(x)||x<0)?0:x; }
 
 var D={}, PAQ=250, rubroSel=null, provSel=null;
 var PEDIDO={}; // comp_id -> cantidad
@@ -179,14 +181,14 @@ function render(){
       '<td class="num">'+fmt(i.online)+' '+i.unidad+'</td>'+
       '<td class="num">'+(i.pendiente_oc>0?fmt(i.pendiente_oc):'—')+'</td>'+
       '<td class="num"><span class="sug" data-sug="'+i.comp_id+'">'+fmt(i.sugerido)+'</span></td>'+
-      '<td class="num"><input class="pedir-in" data-in="'+i.comp_id+'" inputmode="numeric" value="'+(ped||'')+'" placeholder="'+i.unidad+'">'+paqEq+'</td>'+
+      '<td class="num"><input class="pedir-in" data-in="'+i.comp_id+'" inputmode="decimal" value="'+(ped?String(ped).replace('.',','):'')+'" placeholder="'+i.unidad+'">'+paqEq+'</td>'+
     '</tr>';
   }).join('');
   $('tblEmpty').classList.toggle('hidden', fs.length>0);
 
   document.querySelectorAll('.pedir-in').forEach(function(inp){
     inp.addEventListener('change',function(){
-      var v=parseInt((inp.value||'').replace(/\D/g,''),10)||0;
+      var v=parseNum(inp.value);
       var id=Number(inp.dataset.in);
       if(v>0) PEDIDO[id]=v; else delete PEDIDO[id];
       render(); barra();
@@ -202,9 +204,15 @@ function render(){
   barra();
 }
 
+/* Solo los pedidos del rubro/proveedor seleccionado: lo cargado en otros chips
+   queda guardado para su propia OC, no se mezcla en la OC de este rubro. */
 function itemsPedidos(){
-  return (D.insumos||[]).filter(function(i){ return PEDIDO[i.comp_id]>0; })
-    .map(function(i){ return {comp_id:i.comp_id, cantidad:PEDIDO[i.comp_id], unidad:i.unidad, it:i}; });
+  return (D.insumos||[]).filter(function(i){
+    if(!(PEDIDO[i.comp_id]>0)) return false;
+    if(rubroSel!=null && i.sector_id!==rubroSel) return false;
+    if(provSel!=null && (i.proveedor||'(sin proveedor)')!==provSel) return false;
+    return true;
+  }).map(function(i){ return {comp_id:i.comp_id, cantidad:PEDIDO[i.comp_id], unidad:i.unidad, it:i}; });
 }
 
 // Reglas de carton (REGLAS_OC_INSUMOS.md): total multiplo de pliegos_multiplo,

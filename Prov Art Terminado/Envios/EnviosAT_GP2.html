@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="es">
 <head>
-<!-- v1.0.0 — Envio de carton y cajas a los Prov de Articulo Terminado (cartones en paquetes de 250) -->
+<!-- v1.0.1 — Envio de carton y cajas a los Prov de Articulo Terminado (cartones en paquetes de 250) -->
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>Envío Cartón/Cajas · Prov AT · GP2</title>
@@ -84,7 +84,7 @@ var SB = supabase.createClient(
 );
 function $(id){ return document.getElementById(id); }
 function esc(t){ return String(t==null?'':t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
-function fmt(n){ return Number(n||0).toLocaleString('es-AR',{maximumFractionDigits:0}); }
+function fmt(n,d){ return Number(n||0).toLocaleString('es-AR',{maximumFractionDigits:d==null?0:d}); }
 
 var D={}, provSel=null, itemSel=null, PAQ=250;
 
@@ -124,7 +124,7 @@ function pintarItems(){
     var esCarton = i.sector_id===10;
     b.innerHTML='<span class="code">'+esc(i.codigo||'—')+'</span>'+
       '<span class="desc">'+esc(i.descripcion||'')+'</span>'+
-      '<span class="stk">Stock: '+fmt(i.online)+' uni'+(esCarton?(' ('+fmt((i.online||0)/PAQ)+' paq)'):'')+'</span>'+
+      '<span class="stk">Stock: '+fmt(i.online)+' uni'+(esCarton?(' ('+fmt((i.online||0)/PAQ,2)+' paq)'):'')+'</span>'+
       (provSel?('<span class="env">En '+esc(provSel.nombre)+': '+fmt(onlineDe(provSel.id, i.comp_id))+' uni</span>'):'');
     b.addEventListener('click',function(){ abrirPopup(i); });
     g.appendChild(b);

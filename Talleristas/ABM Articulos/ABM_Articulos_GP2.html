@@ -469,7 +469,14 @@ function openForm(a){
     fId.value=a.id;
     fCod.value=a.cod!=null?a.cod:'';
     fFam.value=a.fam||'';
-    fCaja.value=(a.caja_id!=null?String(a.caja_id):(a.caja_cod&&cajaIdByCod[a.caja_cod]!=null?String(cajaIdByCod[a.caja_cod]):''));
+    var cajaId=(a.caja!=null?a.caja:(a.caja_cod&&cajaIdByCod[a.caja_cod]!=null?cajaIdByCod[a.caja_cod]:null));
+    fCaja.value=(cajaId!=null?String(cajaId):'');
+    if(cajaId!=null&&fCaja.value!==String(cajaId)){
+      // las opciones de caja todavía no cargaron: agregar la actual para no perderla al guardar
+      var oc=document.createElement('option');oc.value=String(cajaId);
+      oc.textContent=(a.caja_cod||('caja id '+cajaId))+(a.caja_desc?(' — '+a.caja_desc):'');
+      fCaja.appendChild(oc);fCaja.value=String(cajaId);
+    }
     fPor.value=(a.por!=null?a.por:'');
     fEst.value=(a.est!=null?a.est:'');
   }else{

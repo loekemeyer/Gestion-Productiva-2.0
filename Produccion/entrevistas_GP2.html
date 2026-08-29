@@ -100,7 +100,7 @@
         <tbody id="tbody"><tr><td colspan="12" class="msg">Elegí un operario y tocá Cargar.</td></tr></tbody>
       </table>
     </div>
-    <div class="note">Lee <b>GP2.produccion</b>. El puntaje es el <code>premio</code> guardado; cuando la fila no lo tiene, se calcula como tiempo histórico sobre tiempo trabajado (mayor a 100% = rindió más que el histórico). Las filas de tiempo muerto (sin unidades) no se listan.</div>
+    <div class="note">Lee <b>GP2.produccion</b>. El puntaje es tiempo histórico sobre tiempo trabajado (mayor a 100% = rindió más que el histórico); si la fila no tiene los segundos, se deriva del <code>premio</code> guardado. Las filas de tiempo muerto (sin unidades) no se listan.</div>
   </div>
 </div>
 
@@ -148,8 +148,8 @@
       .select('id,fecha,matriz_raw,nombre_matriz,uni,hora_inicio,hora_fin,segundos_trabajados,segundos_historico,premio,eliminar')
       .eq('legajo', leg)
       .gt('uni', 0)
-      .gte('fecha', $('fDesde').value + 'T00:00:00')
-      .lte('fecha', $('fHasta').value + 'T23:59:59')
+      .gte('fecha', $('fDesde').value + 'T00:00:00-03:00')
+      .lte('fecha', $('fHasta').value + 'T23:59:59-03:00')
       .order('fecha', { ascending: false })
       .limit(5000);
 
@@ -159,7 +159,11 @@
       var segs = Number(p.segundos_trabajados) || 0;
       var hist = Number(p.segundos_historico) || 0;
       var uni = Number(p.uni) || 0;
-      var puntaje = (p.premio != null) ? Number(p.premio) : (segs > 0 && hist > 0 ? (hist / segs) * 100 : null);
+      // Puntaje siempre en escala % (hist/trabajado). El premio guardado va en
+      // escala -10..+10 (premio = (1 - segs/hist) * 10): si faltan los segundos,
+      // se lo convierte a % con la inversa en vez de mezclar escalas.
+      var puntaje = (segs > 0 && hist > 0) ? (hist / segs) * 100
+        : ((p.premio != null && Number(p.premio) < 10) ? 100 / (1 - Number(p.premio) / 10) : null);
       return {
         id: p.id, fecha: p.fecha, matriz: p.matriz_raw || '', nombre: p.nombre_matriz || '',
         hi: p.hora_inicio, hf: p.hora_fin, uni: uni, segs: segs, hist: hist,

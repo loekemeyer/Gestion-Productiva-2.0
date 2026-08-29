@@ -10,7 +10,7 @@
 const SUPABASE_URL = "https://hrxfctzncixxqmpfhskv.supabase.co";
 const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhyeGZjdHpuY2l4eHFtcGZoc2t2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI3MjQyNjEsImV4cCI6MjA4ODMwMDI2MX0.4L6wguch8UZGhC2VpzrWcCjJGUV-IkYsl9JoCWrOLUs";
 const LEGAJO_EDUARDO = "19";
-const APP_VERSION = "1.6.0"; // bumpear en cada actualizacion (junto con el ?v= del HTML y el MI_V del chequeo de cache)
+const APP_VERSION = "1.6.1"; // bumpear en cada actualizacion (junto con el ?v= del HTML y el MI_V del chequeo de cache)
 
 const SB = supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
   db: { schema: "GP2" },
@@ -28,11 +28,17 @@ const SB = supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
 let D = {};
 
 async function cargarBundle() {
-  const { data, error } = await SB.rpc("registro_operarios_bundle");
-  if (error) { console.error("Bundle error:", error); return; }
-  D = data || {};
-  D.matricesMap = new Map((D.matrices || []).map(m => [String(m.n || "").trim(), m]));
-  if (selected && ["E", "CM"].includes(selected.code)) renderMatrizPicker($("matrizSearch").value);
+  try {
+    const { data, error } = await SB.rpc("registro_operarios_bundle");
+    if (error) throw error;
+    D = data || {};
+    D.matricesMap = new Map((D.matrices || []).map(m => [String(m.n || "").trim(), m]));
+    if (selected && ["E", "CM"].includes(selected.code)) renderMatrizPicker($("matrizSearch").value);
+  } catch (e) {
+    // Sin bundle la app rechaza todo legajo/matriz: reintentar solo hasta que cargue
+    console.error("Bundle error:", e);
+    setTimeout(() => { cargarBundle().catch(() => {}); }, 15000);
+  }
 }
 
 function nombreMatriz(n) { return D.matricesMap?.get(String(n).trim())?.d || ""; }
@@ -206,6 +212,13 @@ function markFailed(legajo, id, err) {
 function readQueue()  { try { return JSON.parse(localStorage.getItem(LS_QUEUE) || "[]"); } catch { return []; } }
 function writeQueue(q) { localStorage.setItem(LS_QUEUE, JSON.stringify(q || [])); }
 
+/* Cola aparte para las RPCs de rollo (tomar_rollo / cerrar_rollo) que fallan sin
+   red: se reintentan en flushQueue con la fecha original en p_fecha. */
+const LS_RQUEUE = "gp2_op_rqueue";
+function readRolloQueue()  { try { return JSON.parse(localStorage.getItem(LS_RQUEUE) || "[]"); } catch { return []; } }
+function writeRolloQueue(q) { localStorage.setItem(LS_RQUEUE, JSON.stringify(q || [])); }
+function enqueueRollo(fn, args) { const rq = readRolloQueue(); rq.push({ fn, args }); writeRolloQueue(rq); }
+
 function enqueue(payload) {
   const q = readQueue();
   if (!q.some(x => x.id === payload.id)) q.push(payload);
@@ -261,21 +274,37 @@ function toRpcPayload(p) {
   return rpc;
 }
 
+let flushing = false; // guard: interval de 60s, syncBadge, sendFast y Terminar Dia no deben solaparse (duplicarian inserts)
 async function flushQueue() {
-  const q = readQueue();
-  if (!q.length) return;
-  const restantes = [];
-  for (const payload of q) {
-    try {
-      const { error } = await SB.rpc("registrar_evento_prod", { p: toRpcPayload(payload) });
-      if (error) throw error;
-      markSent(payload.legajo, payload.id);
-    } catch (e) {
-      markFailed(payload.legajo, payload.id, e?.message || e);
-      restantes.push(payload);
+  if (flushing) return;
+  flushing = true;
+  try {
+    const q = readQueue();
+    const enviados = new Set();
+    for (const payload of q) {
+      try {
+        const { error } = await SB.rpc("registrar_evento_prod", { p: toRpcPayload(payload) });
+        if (error) throw error;
+        markSent(payload.legajo, payload.id);
+        enviados.add(payload.id);
+      } catch (e) {
+        markFailed(payload.legajo, payload.id, e?.message || e);
+      }
     }
-  }
-  writeQueue(restantes);
+    // Re-leer la cola: pudo haber items nuevos encolados mientras se enviaba
+    if (enviados.size) writeQueue(readQueue().filter(x => !enviados.has(x.id)));
+    // RPCs de rollo pendientes (tomar/cerrar que fallaron sin red): FIFO para
+    // respetar el orden tomar->cerrar; corta al primer fallo de red.
+    let rq = readRolloQueue();
+    while (rq.length) {
+      try {
+        const { error } = await SB.rpc(rq[0].fn, rq[0].args);
+        if (error && !error.code) throw error;
+        // sin error, o rechazo definitivo del server (tiene code): no se reintenta
+        rq.shift(); writeRolloQueue(rq);
+      } catch { break; }
+    }
+  } finally { flushing = false; }
 }
 
 /* ============================================================
@@ -308,22 +337,22 @@ function rollosParaMatriz(n_matriz) {
 }
 
 async function tomarRollo(legajo, comp_id, kg_por_rollo, matriz) {
+  const args = {
+    p_legajo: String(legajo), p_comp_id: Number(comp_id),
+    p_kg_por_rollo: Number(kg_por_rollo), p_matriz: String(matriz), p_fecha: isoNow()
+  };
   try {
-    const { error } = await SB.rpc("tomar_rollo", {
-      p_legajo: String(legajo), p_comp_id: Number(comp_id),
-      p_kg_por_rollo: Number(kg_por_rollo), p_matriz: String(matriz)
-    });
-    if (error) console.error("tomar_rollo error:", error);
-  } catch (e) { console.error("tomar_rollo:", e); }
+    const { error } = await SB.rpc("tomar_rollo", args);
+    if (error) throw error;
+  } catch (e) { console.error("tomar_rollo:", e); enqueueRollo("tomar_rollo", args); }
 }
 
 async function cerrarRollo(legajo, quedoResto) {
+  const args = { p_legajo: String(legajo), p_quedo_resto: !!quedoResto, p_fecha: isoNow() };
   try {
-    const { error } = await SB.rpc("cerrar_rollo", {
-      p_legajo: String(legajo), p_quedo_resto: !!quedoResto
-    });
-    if (error) console.error("cerrar_rollo error:", error);
-  } catch (e) { console.error("cerrar_rollo:", e); }
+    const { error } = await SB.rpc("cerrar_rollo", args);
+    if (error) throw error;
+  } catch (e) { console.error("cerrar_rollo:", e); enqueueRollo("cerrar_rollo", args); }
 }
 
 /* ============================================================
@@ -331,6 +360,9 @@ async function cerrarRollo(legajo, quedoResto) {
    ============================================================ */
 const $ = id => document.getElementById(id);
 let selected = null;
+
+// Escapar texto libre de la BD antes de meterlo en innerHTML (mismo esc que Registro_GP2)
+function esc(s) { return (s == null ? "" : String(s)).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c])); }
 
 function legajoKey() { return String($("legajoInput").value || "").trim(); }
 function isEduardo()  { return legajoKey() === LEGAJO_EDUARDO; }
@@ -368,7 +400,7 @@ function renderSummary() {
             <span class="hist-btn hist-del" data-idx="${idx}" title="Eliminar">🗑</span>
           </div>
           ${it.ts_event ? `<div style="color:#555;">${formatDateTimeAR(it.ts_event)}</div>` : ""}
-          ${it.lastError ? `<div style="color:#9b1c1c;font-size:12px;">${it.lastError}</div>` : ""}
+          ${it.lastError ? `<div style="color:#9b1c1c;font-size:12px;">${esc(it.lastError)}</div>` : ""}
         </div>`).join("")}
     </div>
   </div>`;
@@ -405,7 +437,7 @@ function renderMatrizInfo() {
   const nm = s.lastMatrix.texto;
   const desc = nombreMatriz(nm);
   el.classList.remove("hidden");
-  const pieza = s.lastMatrix.pieza ? ` · Pieza: ${s.lastMatrix.pieza}` : "";
+  const pieza = s.lastMatrix.pieza ? ` · Pieza: ${esc(s.lastMatrix.pieza)}` : "";
   // Rollo en uso: cuanto queda, estimado con lo producido (uni / ppk por cajon).
   // Si la tablet perdio el estado (otro dia, otro equipo o storage borrado), cae
   // al uso abierto persistido en el servidor: rollos_abiertos trae kg_usados
@@ -417,10 +449,10 @@ function renderMatrizInfo() {
     const queda = Number(r.kg_por_rollo) - (Number(r.kg_usados) || 0);
     const fmt1 = n => (Math.round(n * 10) / 10).toLocaleString("es-AR");
     const color = queda <= Number(r.kg_por_rollo) * 0.15 ? "#b45309" : "#166534";
-    rollo = `<br>🧻 Rollo de ${fmt1(r.kg_por_rollo)} kg (${r.codigo || "fleje"}): ` +
+    rollo = `<br>🧻 Rollo de ${fmt1(r.kg_por_rollo)} kg (${esc(r.codigo || "fleje")}): ` +
             `<b style="color:${color}">quedan ~${fmt1(Math.max(0, queda))} kg</b>`;
   }
-  el.innerHTML = `<b>Matriz activa: ${nm}</b>${desc ? ` — ${desc}` : ""}${pieza}${rollo}`;
+  el.innerHTML = `<b>Matriz activa: ${esc(nm)}</b>${desc ? ` — ${esc(desc)}` : ""}${pieza}${rollo}`;
 }
 
 /* ============================================================
@@ -449,7 +481,7 @@ function renderMatrizPicker(filtro) {
     const el = document.createElement("div");
     el.className = "mz" + (n === elegida ? " sel" : "");
     el.dataset.n = n;
-    el.innerHTML = `<div class="mz-n">${n}</div><div class="mz-d">${m.d || ""}</div>`;
+    el.innerHTML = `<div class="mz-n">${esc(n)}</div><div class="mz-d">${esc(m.d || "")}</div>`;
     el.addEventListener("click", () => elegirMatriz(n));
     grid.appendChild(el);
   });
@@ -491,7 +523,7 @@ function renderPiezaPicker(n) {
   salidas.forEach(sa => {
     const el = document.createElement("div");
     el.className = "mz" + (piezaSel?.comp_id === sa.comp_id ? " sel" : "");
-    el.innerHTML = `<div class="mz-n">${sa.codigo || ""}</div><div class="mz-d">${sa.descripcion || ""}</div>`;
+    el.innerHTML = `<div class="mz-n">${esc(sa.codigo || "")}</div><div class="mz-d">${esc(sa.descripcion || "")}</div>`;
     el.addEventListener("click", () => { piezaSel = sa; $("error").innerText = ""; renderPiezaPicker(n); });
     grid.appendChild(el);
   });
@@ -768,16 +800,29 @@ async function deleteHistItem(legajo, idx) {
     try {
       const { error } = await SB.rpc("anular_evento_prod", { p_id_ejecucion: item.id });
       if (error) throw error;
-    } catch (e) { console.warn("No se pudo marcar eliminado:", e); }
+    } catch (e) {
+      console.warn("No se pudo marcar eliminado:", e);
+      // Si el server no lo anulo, NO borrarlo localmente: quedaria vivo en la BD
+      // (produccion + stock) mientras aca figura como eliminado.
+      alert("No se pudo eliminar en el servidor (¿sin señal?). Probá de nuevo cuando vuelva la conexión.");
+      return;
+    }
   }
 
   s.last2.splice(idx, 1);
   if (op === "E") {
     if (s.lastMatrix?.texto === (item.texto || "")) { s.lastMatrix = null; s.matrixNeedsC = false; }
   } else if (op === "C" || op === "CT") {
-    s.matrixNeedsC = true;
-    s.lastCajon = s.last2.find(x => ["C","CT"].includes(String(x.opcion||"").toUpperCase()))
-                  ? { opcion: s.lastCajon?.opcion, texto: s.lastCajon?.texto } : null;
+    // Reconstruir con el ULTIMO C/CT que quedo DESPUES del E de la matriz activa
+    // (con su ts: computeHsInicio lo necesita para no contar el dia entero de nuevo).
+    const ops = s.last2.map(x => String(x.opcion || "").toUpperCase());
+    const iE = ops.lastIndexOf("E");
+    let ult = null;
+    for (let i = s.last2.length - 1; i > iE; i--) {
+      if (ops[i] === "C" || ops[i] === "CT") { ult = s.last2[i]; break; }
+    }
+    s.lastCajon = ult ? { opcion: ult.opcion, texto: ult.texto || "", ts: ult.ts_event } : null;
+    s.matrixNeedsC = !!s.lastMatrix && !ult;
   }
   writeState(legajo, s);
 

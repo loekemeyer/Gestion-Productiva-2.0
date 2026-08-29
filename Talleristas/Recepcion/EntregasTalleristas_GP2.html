@@ -328,6 +328,13 @@ $("btnEnviar").addEventListener("click", async function(){
   var arr=partesDe(selT.id), metaPor={};
   arr.forEach(function(x){ metaPor[x.comp_id]=x; });
 
+  // filas con Caj pero sin Uni: el registro usa solo Uni, no dejarlas perderse en silencio
+  var b0=bufT();
+  var faltanUni=Object.keys(b0).filter(function(k){
+    var it=b0[k]; return num(it.caj)>0 && !(num(it.uni)>0); })
+    .map(function(k){ return (metaPor[k]||{}).cod||k; });
+  if(faltanUni.length){ alert("Falta cargar Uni para: "+faltanUni.join(", ")+" (el registro se hace por unidades)."); return; }
+
   var fecha=$("fFecha").value||hoyISO();
 
   // armar TODAS las filas con el motor antes de escribir nada
@@ -365,9 +372,9 @@ $("btnEnviar").addEventListener("click", async function(){
 
   try{
     var res=await GP2M.registrar(SB, rows);
+    delete BUF[selT.id]; saveBuf(); // ya quedó registrado: limpiar ANTES de la recarga
     // recargar el motor para que el stock mostrado quede al día
-    await GP2M.cargar(SB);
-    delete BUF[selT.id]; saveBuf();
+    try{ await GP2M.cargar(SB); }catch(e2){ /* solo falló la recarga; la recepción ya está registrada */ }
     $("successCode").textContent=String(Math.floor(1000+Math.random()*9000));
     $("successDetail").textContent=items.length+" partes recibidas de "+selT.nombre+" · "+fecha+
       " · "+((res&&res.n)||rows.length)+" movimientos";

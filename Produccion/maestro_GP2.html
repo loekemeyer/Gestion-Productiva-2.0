@@ -338,6 +338,7 @@
 
   function renderTable(rows) {
     tBody.innerHTML = '';
+    window.__lastRendered = rows;
     if (!rows.length) {
       emptyMsg.classList.remove('hidden');
       rowCount.textContent = '';
@@ -381,7 +382,6 @@
       frag.appendChild(tr);
     });
     tBody.appendChild(frag);
-    window.__lastRendered = rows;
   }
 
   // ---------- DETAIL (read-only) ----------

@@ -148,7 +148,8 @@ function ubicNom(uid){return uid?((D&&D.ubic[String(uid)])||{nom:'?'}).nom:'';}
 
 function todayLocal(){var d=new Date(),z=n=>(n<10?'0':'')+n;return d.getFullYear()+'-'+z(d.getMonth()+1)+'-'+z(d.getDate());}
 function cById(cid){return (D&&D.comp[String(cid)])||{cod:'?',d:''};}
-function opt(v,t){return '<option value="'+v+'">'+t+'</option>';}
+function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+function opt(v,t){return '<option value="'+esc(v)+'">'+esc(t)+'</option>';}
 function fmtNum(n){if(n==null)return '';var x=Number(n);return Number.isInteger(x)?String(x):x.toFixed(2);}
 function fmtFecha(f){if(!f)return '';try{return new Date(f).toLocaleDateString('es-AR');}catch(e){return f;}}
 function optsComps(ids){
@@ -214,7 +215,7 @@ function optsComprables(){
  var otras=Object.keys(bySec).map(Number).filter(s=>secOrder.indexOf(s)<0).sort((a,b)=>a-b);
  return secOrder.concat(otras).filter(s=>bySec[s]&&bySec[s].length).map(s=>{
   var nom=(D.sect[String(s)]||{nom:'Sector '+s}).nom;
-  return '<optgroup label="'+nom+'">'+optsComps(bySec[s])+'</optgroup>';
+  return '<optgroup label="'+esc(nom)+'">'+optsComps(bySec[s])+'</optgroup>';
  }).join('');
 }
 function optsAllComps(){return optsComps(Object.keys(D.comp).map(Number));}
@@ -282,11 +283,11 @@ function onMat(){
   info+='<b>Sin pares entrada→salida asociados</b><input type="hidden" id="f_comp_orig" value=""><input type="hidden" id="f_comp" value="">';
  } else if(pares.length===1){
   var ce=cById(pares[0][0]),cs=cById(pares[0][1]);
-  info+='<b>Entrada:</b> '+ce.cod+' — '+ce.d+'<br><b>Salida:</b> '+cs.cod+' — '+cs.d;
+  info+='<b>Entrada:</b> '+esc(ce.cod)+' — '+esc(ce.d)+'<br><b>Salida:</b> '+esc(cs.cod)+' — '+esc(cs.d);
   info+='<input type="hidden" id="f_comp_orig" value="'+pares[0][0]+'"><input type="hidden" id="f_comp" value="'+pares[0][1]+'">';
  } else {
   info+='<b>Elegí par entrada→salida:</b><br><select id="f_par_mat" onchange="onParMat()" style="'+css+'"><option value="">— Elegí —</option>';
-  pares.forEach(par=>{var ce=cById(par[0]),cs=cById(par[1]);info+='<option value="'+par[0]+':'+par[1]+'">'+ce.cod+' → '+cs.cod+' ('+(ce.d||'').substring(0,20)+' → '+(cs.d||'').substring(0,20)+')</option>';});
+  pares.forEach(par=>{var ce=cById(par[0]),cs=cById(par[1]);info+='<option value="'+par[0]+':'+par[1]+'">'+esc(ce.cod)+' → '+esc(cs.cod)+' ('+esc((ce.d||'').substring(0,20))+' → '+esc((cs.d||'').substring(0,20))+')</option>';});
   info+='</select><input type="hidden" id="f_comp_orig" value=""><input type="hidden" id="f_comp" value="">';
  }
  info+='<br><b>Tipo:</b> '+(esPrim?'Primera (fleje directo)':'Proceso')+(mat.ppk?(' · '+mat.ppk+' uni/kg'):'')+'</div>';
@@ -376,7 +377,8 @@ function saveMov(){
   var ce_arr=Object.keys(ce_set).map(Number);
   if(ce_arr.length>1){
    var idx=prompt('¿Qué componente entregó? Ingresá número:\n'+ce_arr.map((c,i)=>{var cc=cById(c);return (i+1)+') '+cc.cod+' — '+(cc.d||'').substring(0,30);}).join('\n'));
-   var sel=parseInt(idx)-1;if(sel<0||sel>=ce_arr.length){alert('Selección inválida');return;}
+   if(idx==null)return;
+   var sel=parseInt(idx)-1;if(isNaN(sel)||sel<0||sel>=ce_arr.length){alert('Selección inválida');return;}
    cid=ce_arr[sel];comp_transformado=parseInt(val('f_comp'));cant_transformada=qty;
   } else if(ce_arr.length===1){cid=ce_arr[0];comp_transformado=parseInt(val('f_comp'));cant_transformada=qty;}
   function _um(x){return x==='kg'?'kg':'uni';}
@@ -388,7 +390,8 @@ function saveMov(){
   var dest_c=comp_transformado||cid;ubic_d=ubicSector(D.comp[String(dest_c)].s);
   if(comp_transformado){
    var bomProv=D.bom_comp[String(comp_transformado)]||[];var usedP=cid;var qOrigProv=cant_transformada;
-   var qPrincipalProv=bomProv.find(b=>b.c===usedP);if(qPrincipalProv&&qPrincipalProv.q>1)qty=qty*qPrincipalProv.q;
+   // Si el usuario cargó "Cant. enviada" (qtyOrigCustom), qty YA es la cantidad real enviada: no multiplicar por el q del BOM
+   var qPrincipalProv=bomProv.find(b=>b.c===usedP);if(qPrincipalProv&&qPrincipalProv.q>1&&!(qtyOrigCustom>0))qty=qty*qPrincipalProv.q;
    var fecha_p=val('f_fecha');
    bomProv.forEach(b=>{if(b.c===usedP)return;var qE=b.q*qOrigProv;var uSectP=ubicSector(D.comp[String(b.c)].s);emit({tipo:'consumo_prod',fecha:fecha_p,comp_id:b.c,ubic_origen_id:uSectP,ubic_destino_id:null,cantidad:qE,comp_transformado_id:null,cantidad_transformada:null,unidad_origen:'uni',unidad_destino:'uni'});});
   }
@@ -406,7 +409,8 @@ function saveMov(){
   var ce_tall_arr=Object.keys(ce_tall_set).map(Number);
   if(ce_tall_arr.length>1){
    var idx=prompt('¿Qué componente entregó el tallerista? Ingresá número:\n'+ce_tall_arr.map((c,i)=>{var cc=cById(c);return (i+1)+') '+cc.cod+' — '+(cc.d||'').substring(0,30);}).join('\n'));
-   var sel=parseInt(idx)-1;if(sel<0||sel>=ce_tall_arr.length){alert('Selección inválida');return;}
+   if(idx==null)return;
+   var sel=parseInt(idx)-1;if(isNaN(sel)||sel<0||sel>=ce_tall_arr.length){alert('Selección inválida');return;}
    cid=ce_tall_arr[sel];comp_transformado=recibido;cant_transformada=qty;
   } else if(ce_tall_arr.length===1){cid=ce_tall_arr[0];comp_transformado=recibido;cant_transformada=qty;}
   ubic_o=ubicTall(t);ubic_d=ubicSector(D.comp[String(comp_transformado||cid)].s);
@@ -491,13 +495,13 @@ async function renderMovs(){
   var ti=TIPOS[m.tipo_mov]||{lbl:m.tipo_mov,cls:''};
   return '<tr>'+
    '<td>'+fmtFecha(m.fecha)+'</td>'+
-   '<td><span class="tag '+ti.cls+'">'+ti.lbl+'</span></td>'+
-   '<td>'+(cc?cc.cod:(m.comp_id==null?'':m.comp_id))+'</td>'+
-   '<td>'+(ubicNom(m.ubic_origen_id)||'—')+'</td>'+
-   '<td>'+(ubicNom(m.ubic_destino_id)||'—')+'</td>'+
-   '<td class="num">'+fmtNum(m.cantidad)+' '+(m.unidad_origen||'')+'</td>'+
-   '<td>'+(ct?ct.cod:'')+'</td>'+
-   '<td class="num">'+(m.cantidad_transformada!=null?fmtNum(m.cantidad_transformada)+' '+(m.unidad_destino||''):'')+'</td>'+
+   '<td><span class="tag '+ti.cls+'">'+esc(ti.lbl)+'</span></td>'+
+   '<td>'+esc(cc?cc.cod:(m.comp_id==null?'':m.comp_id))+'</td>'+
+   '<td>'+(esc(ubicNom(m.ubic_origen_id))||'—')+'</td>'+
+   '<td>'+(esc(ubicNom(m.ubic_destino_id))||'—')+'</td>'+
+   '<td class="num">'+fmtNum(m.cantidad)+' '+esc(m.unidad_origen||'')+'</td>'+
+   '<td>'+esc(ct?ct.cod:'')+'</td>'+
+   '<td class="num">'+(m.cantidad_transformada!=null?fmtNum(m.cantidad_transformada)+' '+esc(m.unidad_destino||''):'')+'</td>'+
   '</tr>';
  }).join('');
 }

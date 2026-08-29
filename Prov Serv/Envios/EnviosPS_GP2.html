@@ -148,11 +148,11 @@ var SB = supabase.createClient(
 );
 
 var $ = function(id){ return document.getElementById(id); };
-var LS_BUF = "gp2_enviosPS_buffer";
+var LS_BUF = "gp2_enviosPS_buffer2"; // v2: clave por par SC:SP (antes solo sc_id)
 
 var D = { ps:[], partes:{} };
 var selPS = null;      // {id,nombre,cod_prov,proceso}
-var BUF = {};          // { "<ps_id>": { "<sc_id>": {caj, kg, falt, tandas:[]} } }
+var BUF = {};          // { "<ps_id>": { "<sc_id>:<sp_id>": {caj, kg, falt, tandas:[]} } }
 
 /* ---------- helpers ---------- */
 function esc(s){ return String(s==null?"":s).replace(/[&<>"]/g, function(c){
@@ -162,8 +162,12 @@ function num(v){
   if (v==null || v==="") return 0;
   if (typeof v==="number") return isFinite(v)?v:0;
   var s=String(v).trim().replace(/[^\d,.-]/g,"");
-  if (s.indexOf(",")>=0 && s.indexOf(".")<0) s=s.replace(",",".");
-  else s=s.replace(/,/g,"");
+  if (s.indexOf(",")>=0 && s.indexOf(".")>=0){
+    // ambos separadores: el ultimo es el decimal (AR "1.234,5" / EN "1,234.5")
+    if (s.lastIndexOf(",")>s.lastIndexOf(".")) s=s.replace(/\./g,"").replace(",",".");
+    else s=s.replace(/,/g,"");
+  }
+  else if (s.indexOf(",")>=0) s=s.replace(",",".");
   var n=Number(s);
   return isFinite(n)?n:0;
 }
@@ -198,10 +202,13 @@ function bufPS(){
   if (!BUF[selPS.id]) BUF[selPS.id] = {};
   return BUF[selPS.id];
 }
-function bufItem(scId){
+/* la fila del bundle es por par (SC, SP): la clave del buffer tiene que incluir ambos
+   (hay proveedores con el mismo SC en 2 filas con SP distinto; con solo sc_id se pisan) */
+function keyDe(x){ return String(x.sc_id)+":"+String(x.sp_id); }
+function bufItem(k){
   var b = bufPS();
-  if (!b[scId]) b[scId] = { caj:"", kg:"", falt:false, tandas:[] };
-  return b[scId];
+  if (!b[k]) b[k] = { caj:"", kg:"", falt:false, tandas:[] };
+  return b[k];
 }
 
 /* ---------- carga ---------- */
@@ -271,7 +278,7 @@ function renderTabla(){
   $("tblEmpty").classList.toggle("hidden", arr.length>0);
 
   arr.forEach(function(x){
-    var it = bufItem(x.sc_id);
+    var it = bufItem(keyDe(x));
     var hayT = (it.tandas||[]).length > 0;
     var totCaj = (it.tandas||[]).reduce(function(s,t){ return s+num(t.caj); },0);
     var totKg  = (it.tandas||[]).reduce(function(s,t){ return s+num(t.kg);  },0);
@@ -280,14 +287,15 @@ function renderTabla(){
 
     var onPS  = aCajones(x.online_ps, x.sc_unixcaj);
     var onSP  = aCajones(x.online_sp, x.sp_unixcaj);
-    var maxCaj= aCajones(x.maximo,    x.sc_unixcaj);
+    // maximo/maximo_sp llegan sin coalesce: null = dato faltante, no 0
+    var maxCaj= (x.maximo==null)    ? null : aCajones(x.maximo, x.sc_unixcaj);
     // Sugerido a enviar = maximo FISICO del Sector Procesado - online SP - online PS
     // (todo en cajones; regla usuario 2026-08-29). Sin maximo fisico cargado -> "—".
-    var maxSPc= aCajones(x.maximo_sp, x.sp_unixcaj);
+    var maxSPc= (x.maximo_sp==null) ? null : aCajones(x.maximo_sp, x.sp_unixcaj);
     var sug   = (maxSPc==null || onSP==null || onPS==null) ? null : Math.max(0, maxSPc - onSP - onPS);
 
     var tr = document.createElement("tr");
-    tr.dataset.sc = x.sc_id;
+    tr.dataset.k = keyDe(x);
     if (it.falt) tr.className = "falt";
     tr.innerHTML =
       '<td><span class="cod">'+esc(x.sc_cod)+'</span><br><small style="color:#777">'+esc(x.sc_desc||"")+'</small></td>'+
@@ -307,18 +315,18 @@ function renderTabla(){
 }
 
 function itemDeFila(tr){
-  var scId = tr.dataset.sc;
+  var k = tr.dataset.k;
   var arr = (D.partes||{})[selPS.id] || [];
   var meta = null;
-  for (var i=0;i<arr.length;i++){ if (String(arr[i].sc_id)===String(scId)){ meta=arr[i]; break; } }
-  return { scId:scId, meta:meta, buf:bufItem(scId) };
+  for (var i=0;i<arr.length;i++){ if (keyDe(arr[i])===k){ meta=arr[i]; break; } }
+  return { k:k, meta:meta, buf:bufItem(k) };
 }
 
 function cargadas(){
   var b = bufPS(), out = [];
   Object.keys(b).forEach(function(k){
     var it = b[k];
-    if (num(it.caj)>0 || num(it.kg)>0) out.push({ sc_id:k, it:it });
+    if (num(it.caj)>0 || num(it.kg)>0) out.push({ k:k, it:it });
   });
   return out;
 }
@@ -392,20 +400,20 @@ $("btnEnviar").addEventListener("click", async function(){
   if (!items.length) return;
 
   var arr = (D.partes||{})[selPS.id] || [];
-  var metaPorSc = {};
-  arr.forEach(function(x){ metaPorSc[x.sc_id] = x; });
+  var metaPorK = {};
+  arr.forEach(function(x){ metaPorK[keyDe(x)] = x; });
 
   // el kg neto es obligatorio cuando se declararon cajones
   var faltanKg = items.filter(function(o){ return num(o.it.caj)>0 && !(num(o.it.kg)>0); })
-                      .map(function(o){ return (metaPorSc[o.sc_id]||{}).sc_cod || o.sc_id; });
+                      .map(function(o){ return (metaPorK[o.k]||{}).sc_cod || o.k; });
   if (faltanKg.length){
     alert("Falta cargar Kg neto para: " + faltanKg.join(", "));
     return;
   }
 
   var resumen = items.map(function(o){
-    var m = metaPorSc[o.sc_id] || {};
-    return (m.sc_cod||o.sc_id)+": "+fmt(num(o.it.caj),1)+" caj / "+fmt(num(o.it.kg),0)+" kg";
+    var m = metaPorK[o.k] || {};
+    return (m.sc_cod||o.k)+": "+fmt(num(o.it.caj),1)+" caj / "+fmt(num(o.it.kg),0)+" kg";
   }).join("\n");
   if (!confirm("Enviar a "+selPS.nombre+":\n\n"+resumen)) return;
 
@@ -417,11 +425,11 @@ $("btnEnviar").addEventListener("click", async function(){
   var ok = 0, errs = [];
   for (var i=0;i<items.length;i++){
     var o = items[i];
-    var m = metaPorSc[o.sc_id] || {};
+    var m = metaPorK[o.k] || {};
     try {
       var r = await SB.rpc("crear_envio_ps", {
         p_ps_id: selPS.id,
-        p_comp_sc_id: Number(o.sc_id),
+        p_comp_sc_id: Number(m.sc_id != null ? m.sc_id : String(o.k).split(":")[0]),
         p_cantidad: num(o.it.kg),
         p_unidad: "kg",
         p_fecha: fecha,
@@ -430,26 +438,39 @@ $("btnEnviar").addEventListener("click", async function(){
       });
       if (r.error) throw r.error;
       ok++;
+      // ya quedo registrado en la BD: fuera del buffer YA (si otro item falla
+      // y se reintenta Enviar, este no se manda de nuevo)
+      delete bufPS()[o.k];
+      saveBuf();
     } catch(e){
-      errs.push((m.sc_cod||o.sc_id)+": "+(e && e.message ? e.message : e));
+      errs.push((m.sc_cod||o.k)+": "+(e && e.message ? e.message : e));
     }
   }
 
   btn.disabled = false;
-  actualizarEnviar();
 
   if (errs.length){
+    renderTabla(); // limpia de la tabla los items ya registrados; quedan solo los que fallaron
     $("msg1").innerHTML = '<span style="color:#b91c1c">Se registraron '+ok+' de '+items.length+
       '. Errores:<br>'+esc(errs.join(" | "))+'</span>';
     return;
   }
+  actualizarEnviar();
 
-  delete BUF[selPS.id];
+  // conservar las marcas F sin cantidad (no viajan a la BD, que no se pierdan en silencio)
+  var b2 = bufPS(), faltSolo = 0;
+  Object.keys(b2).forEach(function(k){
+    var it2 = b2[k];
+    if (it2.falt && !(num(it2.caj)>0 || num(it2.kg)>0)) faltSolo++;
+    else delete b2[k];
+  });
+  if (!faltSolo) delete BUF[selPS.id];
   saveBuf();
 
   var codigo = String(Math.floor(1000 + Math.random()*9000));
   $("successCode").textContent = codigo;
-  $("successDetail").textContent = ok + " partes enviadas a " + selPS.nombre + " · " + fecha;
+  $("successDetail").textContent = ok + " partes enviadas a " + selPS.nombre + " · " + fecha +
+    (faltSolo ? " · OJO: "+faltSolo+" marca(s) F sin cantidad NO se registran (siguen cargadas)" : "");
   $("fase1").classList.add("hidden");
   $("fase3").classList.remove("hidden");
   $("btnVolver").classList.add("hidden");

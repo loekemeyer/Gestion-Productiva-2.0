@@ -160,8 +160,12 @@ function num(v){
   if (v==null || v==="") return 0;
   if (typeof v==="number") return isFinite(v)?v:0;
   var s=String(v).trim().replace(/[^\d,.-]/g,"");
-  if (s.indexOf(",")>=0 && s.indexOf(".")<0) s=s.replace(",",".");
-  else s=s.replace(/,/g,"");
+  if (s.indexOf(",")>=0 && s.indexOf(".")>=0){
+    // ambos separadores: el ultimo es el decimal (AR "1.234,5" / EN "1,234.5")
+    if (s.lastIndexOf(",")>s.lastIndexOf(".")) s=s.replace(/\./g,"").replace(",",".");
+    else s=s.replace(/,/g,"");
+  }
+  else if (s.indexOf(",")>=0) s=s.replace(",",".");
   var n=Number(s);
   return isFinite(n)?n:0;
 }
@@ -336,6 +340,17 @@ $("btnEnviar").addEventListener("click", async function(){
   var arr=(D.partes||{})[selPS.id]||[], metaPorK={};
   arr.forEach(function(x){ metaPorK[keyDe(x)]=x; });
 
+  // la entrega se registra por kg: avisar si hay cajones cargados sin kg
+  // (antes se ignoraban en silencio y se perdian al limpiar el buffer)
+  var b0=bufPS();
+  var faltanKg=Object.keys(b0).filter(function(k){
+        var it=b0[k]; return num(it.caj)>0 && !(num(it.kg)>0); })
+      .map(function(k){ var m=metaPorK[k]||{}; return m.sp_cod||m.sc_cod||k; });
+  if(faltanKg.length){
+    alert("Falta cargar Kg neto para: "+faltanKg.join(", "));
+    return;
+  }
+
   var resumen=items.map(function(o){
     var m=metaPorK[o.k]||{};
     return (m.sc_cod||"?")+" → "+(m.sp_cod||"?")+": "+fmt(num(o.it.caj),1)+" caj / "+fmt(num(o.it.kg),0)+" kg";
@@ -362,22 +377,36 @@ $("btnEnviar").addEventListener("click", async function(){
       });
       if(r.error) throw r.error;
       ok++;
+      // ya registrada en la BD: fuera del buffer YA (un reintento no la duplica)
+      delete bufPS()[o.k];
+      saveBuf();
     }catch(e){
       errs.push((m.sp_cod||o.k)+": "+(e&&e.message?e.message:e));
     }
   }
 
-  btn.disabled=false; actualizarEnviar();
+  btn.disabled=false;
 
   if(errs.length){
+    renderTabla(); // limpia de la tabla las entregas ya registradas; quedan solo las que fallaron
     $("msg1").innerHTML='<span style="color:#b91c1c">Se registraron '+ok+' de '+items.length+
       '. Errores:<br>'+esc(errs.join(" | "))+'</span>';
     return;
   }
+  actualizarEnviar();
 
-  delete BUF[selPS.id]; saveBuf();
+  // conservar las marcas F sin cantidad (no viajan a la BD, que no se pierdan en silencio)
+  var b2=bufPS(), faltSolo=0;
+  Object.keys(b2).forEach(function(k){
+    var it2=b2[k];
+    if(it2.falt && !(num(it2.caj)>0 || num(it2.kg)>0)) faltSolo++;
+    else delete b2[k];
+  });
+  if(!faltSolo) delete BUF[selPS.id];
+  saveBuf();
   $("successCode").textContent=String(Math.floor(1000+Math.random()*9000));
-  $("successDetail").textContent=ok+" partes recibidas de "+selPS.nombre+" · "+fecha;
+  $("successDetail").textContent=ok+" partes recibidas de "+selPS.nombre+" · "+fecha+
+    (faltSolo?(" · OJO: "+faltSolo+" marca(s) F sin cantidad NO se registran (siguen cargadas)"):"");
   $("fase1").classList.add("hidden");
   $("fase3").classList.remove("hidden");
   $("btnVolver").classList.add("hidden");

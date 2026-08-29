@@ -494,25 +494,31 @@ cargar();
     $R('usosEmpty').style.display=usos.length?'none':'block';
   }
 
+  var ultErr='';
   async function cargarRollos(){
     $R('statusMsg').textContent='Cargando…';
     var r=await SB.rpc('rollos_bundle');
-    if(r.error){ $R('statusMsg').className='status bad'; $R('statusMsg').textContent='Error: '+r.error.message; return; }
-    DR=r.data||DR; $R('statusMsg').className='status'; $R('statusMsg').textContent='';
+    if(r.error){ ultErr=r.error.message; $R('statusMsg').className='status bad'; $R('statusMsg').textContent='Error: '+r.error.message; return false; }
+    DR=r.data||DR; ultErr=''; $R('statusMsg').className='status'; $R('statusMsg').textContent='';
     cargado=true;
     pintar();
+    return true;
   }
 
   /* Puente para el detalle de fleje de la otra solapa: entrega los datos de
-     rollos cargandolos una sola vez (misma carga diferida que la solapa). */
-  window.GP2Rollos = { get: async function(){ if(!cargado) await cargarRollos(); return DR; } };
+     rollos cargandolos una sola vez (misma carga diferida que la solapa).
+     Si la carga falla, TIRA error (que el detalle no muestre "sin rollos" por un fallo de red). */
+  window.GP2Rollos = { get: async function(){ if(!cargado && !(await cargarRollos())) throw new Error(ultErr||'no se pudieron cargar los rollos'); return DR; } };
 
   $R('fPeso').addEventListener('change',pintar);
 
   /* ---- ajuste / estado inicial ---- */
   $R('btnAjuste').onclick=function(){
-    $R('ajFleje').innerHTML=(DR.flejes||[]).map(function(f){
-      return '<option value="'+f.comp_id+'">'+escR(f.codigo)+' — '+escR(f.descripcion||'')+'</option>'; }).join('');
+    var armaSel=function(){ $R('ajFleje').innerHTML=(DR.flejes||[]).map(function(f){
+      return '<option value="'+f.comp_id+'">'+escR(f.codigo)+' — '+escR(f.descripcion||'')+'</option>'; }).join(''); };
+    armaSel();
+    // si el bundle todavia no cargo (o fallo), reintentar y refrescar el select con el popup abierto
+    if(!cargado) cargarRollos().then(function(ok){ if(ok && $R('popAjuste').classList.contains('open')) armaSel(); });
     $R('ajPeso').value=''; $R('ajCant').value=''; $R('ajNota').value=''; $R('ajMsg').textContent='';
     $R('popAjuste').classList.add('open');
   };
@@ -520,11 +526,13 @@ cargar();
   $R('ajOk').onclick=async function(){
     var m=$R('ajMsg'); m.className='status'; m.textContent='';
     var peso=parseFloat(String($R('ajPeso').value).replace(',','.'));
-    var cant=parseInt(String($R('ajCant').value).replace(/[^0-9-]/g,''),10);
+    var cant=Number(String($R('ajCant').value).replace(',','.').trim());
+    var cid=Number($R('ajFleje').value);
+    if(!cid){ m.className='status bad'; m.textContent='Elegí el fleje (si la lista está vacía, esperá que termine de cargar).'; return; }
     if(!peso||peso<=0){ m.className='status bad'; m.textContent='Poné el peso del rollo.'; return; }
-    if(!cant){ m.className='status bad'; m.textContent='Poné cuántos rollos (≠ 0).'; return; }
+    if(!cant||!Number.isInteger(cant)){ m.className='status bad'; m.textContent='Poné cuántos rollos (entero ≠ 0, sin decimales).'; return; }
     try{
-      var r=await SB.rpc('ajustar_rollos',{p_comp_id:Number($R('ajFleje').value),p_kg_por_rollo:peso,
+      var r=await SB.rpc('ajustar_rollos',{p_comp_id:cid,p_kg_por_rollo:peso,
         p_delta:cant,p_motivo:$R('ajMotivo').value,p_nota:$R('ajNota').value||null});
       if(r.error) throw r.error;
       $R('popAjuste').classList.remove('open');

@@ -333,10 +333,11 @@ $("btnEnviar").addEventListener("click", async function(){
         p_comp_id: Number(o.cid),
         p_cantidad: num(o.it.kg),
         p_unidad: "kg",
-        p_fecha: fecha
+        p_fecha: fecha+"T12:00:00-03:00"
       });
       if(r.error) throw r.error;
       ok++;
+      delete bufT()[o.cid]; saveBuf(); // ya registrado: fuera del buffer (un reintento no lo duplica)
       enviados.push({ m:m, caj:num(o.it.caj), kg:num(o.it.kg), uni:uniDe(m,o.it) });
     }catch(e){
       errs.push((m.cod||o.cid)+": "+(e&&e.message?e.message:e));
@@ -346,8 +347,9 @@ $("btnEnviar").addEventListener("click", async function(){
   btn.disabled=false; actualizarEnviar();
 
   if(errs.length){
+    render(); // en la tabla quedan cargados solo los que fallaron
     $("msg1").innerHTML='<span style="color:#b91c1c">Se registraron '+ok+' de '+items.length+
-      '. Errores:<br>'+esc(errs.join(" | "))+'</span>';
+      ' (los registrados ya salieron de la carga; reintentá solo lo que quedó). Errores:<br>'+esc(errs.join(" | "))+'</span>';
     return;
   }
 
