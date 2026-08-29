@@ -77,10 +77,31 @@ hasta asignar formato), imprime la OC para el proveedor, y la **recepción cruza
 contra las OC abiertas (`recibido` + estado `recibida` automático). RPCs: `oc_bundle`,
 `crear_oc`, `oc_marcar`, `_aplicar_recepcion_a_oc`.
 
+## Proveedores por rubro (cargados 2026-08-29, dato del usuario)
+
+- **Cartones → `Talleres Gráficos Pol`** (siempre el mismo, los 85 códigos).
+- **Cajas → `Corrugadora del Sur`** (siempre el mismo, los 9 códigos).
+- **Flejes →** el que ya tenía cada uno en `fleje_detalle` (Basconia 23, Aperam 11,
+  Hermac 6, Brawin 6, Szapiro, JL Metales, EstaMetal, Altrak): 50 copiados a
+  `componente.proveedor`.
+- **`Importado`** (proveedor marcador, no es una empresa): la **Cremallera (E13)** y los
+  insumos del **corta queso** (Z19A Alambre, PB1 Cilindro, V20/CV20 Tornillo) ya **no se
+  fabrican, se importan**. Las rutas ya son consistentes: E13 y Z19A entran como paso
+  `insumo` (compra directa, sin matriz). PENDIENTE: si el tornillo se importa YA
+  niquelado, el paso CV20 → niquelado (Guazzaroni) de las rutas 382/577/589 queda muerto
+  y hay que sacarlo; si se importa en crudo, queda como está.
+- **Garage (GRJ1, GRJ7, GRJ10, GRJ10A)**: NO llevan proveedor — los arman los talleristas,
+  no se compran.
+
+Faltan proveedor: plásticos 37, bombillas/resortes 8, remaches 8, fleje F12 (N° 49).
+
 ## Pendientes
 
 - Asignar formato/categoría a cada cartón (`componente.carton_formato/carton_categoria`).
 - Varillas: proveedor y forma de control.
+- Proveedor de: los 37 plásticos (PA*/PB*/PC*/PEP*), los 8 resortes (BOM10, C9, C12, D14,
+  EP10, I2, I3, LLF8), los 8 remaches (V4, V10, V13, V14, V18D, W8, CV13, CV18D) y el
+  fleje F12 (N° 49).
 - Prov AT: se les manda según la OC de Producción Virgilio (sin punto de stock propio).
 - Meses de punto de stock ya definidos: flejes 6, crudo 1, procesado 1, talleristas 1,
   tránsito 0, cartones 6, cajas 6, remaches 4, plásticos 4, bombillas 3.
