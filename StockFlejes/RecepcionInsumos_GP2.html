@@ -1,8 +1,8 @@
 <!doctype html>
 <html lang="es">
 <head>
-<!-- v3.2.0 — la balanza debe dar MAS que el remito (peso del pallet), aviso en vivo + confirm al guardar. v3.1.0: pesaje obligatorio (sin "Pesar después"): la carga no se termina hasta controlar. v3.0.0: remito multi-item: paso 1 todos los items, "Terminé de pasar remito", paso 2 pesaje de todo; modulo Control integrado aca -->
-<script src="../auth-guard.js?v=3.2.0"></script>
+<!-- v3.3.0 — Bella Vista: factura en uni (se anota convertido a kg) y control por PESO TOTAL contra el remito. v3.2.0: la balanza debe dar MAS que el remito (peso del pallet), aviso en vivo + confirm al guardar. v3.1.0: pesaje obligatorio (sin "Pesar después"): la carga no se termina hasta controlar. v3.0.0: remito multi-item: paso 1 todos los items, "Terminé de pasar remito", paso 2 pesaje de todo; modulo Control integrado aca -->
+<script src="../auth-guard.js?v=3.3.0"></script>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>Recepción de Insumos · GP2</title>
@@ -220,6 +220,10 @@ const RUBRO_UM={Flejes:"kg",Remaches:"kg",Cajas:"uni",Plasticos:"uni",Cartones:"
 let INS=[], UMBY={}, KGXUNI={}, PROVFLAGS={}, RECS=[], PALL=[], ROLL=[], TARA={tara_pallet_min:4,tara_pallet_max:8};
 let REMITO=[];    // items anotados del remito en curso, esperando el pesaje: {recId,codigo,desc,cant,unidad,rollos,pallets}
 let rubroSel="", sidSel=0, provSel="", provsRubro=[];
+// flags del proveedor elegido
+function provPideRollos(nom){ var f=PROVFLAGS[nom]; return !!(f&&f.informa_rollos); }
+// control por peso total (sin rollos ni pallets): Bella Vista
+function provControlaPeso(nom){ var f=PROVFLAGS[nom]; return !!(f&&f.controla_peso&&!f.informa_rollos); }
 let itemSel=null, unitSel="uni";
 
 function hoy(){const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
@@ -348,7 +352,7 @@ function abrirPopup(i){
   // unidad default: la canónica del insumo, si no la del rubro
   var u = (UMBY[i.comp_id]==='kg') ? 'kg' : (UMBY[i.comp_id]==='unidad' ? 'uni' : (RUBRO_UM[rubroSel]||'uni'));
   setUnit(u);
-  var pide = !!PROVFLAGS[provSel];
+  var pide = provPideRollos(provSel);
   $('rolloPallRow').classList.toggle('hidden', !pide);
   $('kgRollos').value=''; $('kgPallets').value='';
   $('kgPopup').classList.add('open');
@@ -418,14 +422,21 @@ function renderRemitoBar(){
   if(f) f.onclick=function(){
     montarPesaje(REMITO.map(function(x){
       return { recId:x.recId, codigo:x.codigo, desc:x.desc, pallets:x.pallets,
-               remitoKg:(x.unidad==='kg'?x.cant:null), blocks:bloquesVacios(x.pallets) };
+               modo:x.modo||'rollos',
+               remitoKg:(x.unidad==='kg'?x.cant:null),
+               blocks:(x.modo==='peso'?{1:{peso:'',rollos:[]}}:bloquesVacios(x.pallets)) };
     }));
   };
   var pd=$('btnPesarPend');
   if(pd) pd.onclick=function(){
     montarPesaje(pend.map(function(r){
+      var modo = provControlaPeso(r.proveedor) ? 'peso' : 'rollos';
       return { recId:r.recepcion_id, codigo:r.codigo, desc:r.descripcion||'',
-               pallets:r.pallets_remito, remitoKg:Number(r.kg_remito)||null, blocks:bloquesPrefill(r) };
+               pallets:r.pallets_remito, modo:modo,
+               remitoKg:Number(r.kg_remito)||null,
+               blocks:(modo==='peso'
+                 ? {1:{peso:String(r.peso_balanza_total||''),rollos:[]}}
+                 : bloquesPrefill(r)) };
     }));
   };
 }
@@ -485,9 +496,17 @@ function calcItem(it){
   });
   return { tot:tot, n:n };
 }
+function tolKg(kg){ return Math.max(kg*(Number(TARA.tol_ctrl_peso_pct)||2)/100, 0.5); }
 function itemLinea(it){
   if(!it.remitoKg) return '';
   var c=calcItem(it);
+  if(it.modo==='peso'){
+    if(!c.n) return 'Remito: <b>'+fmt(it.remitoKg)+' kg</b> · pesá lo que llegó: la balanza tiene que dar aproximado a eso.';
+    var d=c.tot-it.remitoKg, okp=Math.abs(d)<=tolKg(it.remitoKg);
+    return 'Remito: <b>'+fmt(it.remitoKg)+' kg</b> · balanza: <b>'+fmt(c.tot)+' kg</b> · dif '+
+      '<span class="'+(okp?'okc':'warnc')+'">'+(d>0?'+':'')+fmt(d)+' kg</span>'+
+      (okp?'':' ⚠ no coincide con el remito (¿entregaron diferente?)');
+  }
   if(!c.n) return 'Remito: <b>'+fmt(it.remitoKg)+' kg</b> · la balanza tiene que dar MÁS que eso (se pesa el pallet).';
   var dif=c.tot-it.remitoKg;
   return 'Remito: <b>'+fmt(it.remitoKg)+' kg</b> · balanza: <b>'+fmt(c.tot)+' kg</b> · dif '+
@@ -500,6 +519,13 @@ function pintarPesaje(){
   w.innerHTML = PES.items.map(function(it,i){
     var head='<div class="pes-item-h"><span class="cod">'+esc(it.codigo)+'</span> '+esc(it.desc||'')+'</div>'+
       (it.remitoKg?('<div class="pes-calc" data-itemcalc="'+i+'">'+itemLinea(it)+'</div>'):'');
+    if(it.modo==='peso'){
+      var pp=it.blocks[1]||{peso:'',rollos:[]};
+      return head+'<div class="pes-pallet" data-i="'+i+'" data-p="1">'+
+        '<label style="font-size:15px;font-weight:700">Peso de balanza total (kg)</label>'+
+        '<input inputmode="decimal" data-f="peso" value="'+esc(pp.peso)+'" placeholder="0,0">'+
+      '</div>';
+    }
     var blocks=Object.keys(it.blocks).sort((a,b)=>a-b).map(function(nro){
       var p=it.blocks[nro];
       return '<div class="pes-pallet" data-i="'+i+'" data-p="'+nro+'">'+
@@ -537,7 +563,8 @@ $('pesajeWrap').addEventListener('input', function(e){
     p.rollos[Number(ln.dataset.l)][f]=e.target.value;
   }
   // refrescar solo la línea de cálculo (sin re-render, para no perder el foco)
-  pb.querySelector('.pes-calc').innerHTML=calcLinea(calcPallet(p));
+  var cl=pb.querySelector('.pes-calc');
+  if(cl) cl.innerHTML=calcLinea(calcPallet(p));
   var ic=$('pesajeWrap').querySelector('[data-itemcalc="'+pb.dataset.i+'"]');
   if(ic) ic.innerHTML=itemLinea(PES.items[Number(pb.dataset.i)]);
 });
@@ -577,7 +604,7 @@ $('kgPesajeOk').addEventListener('click', async function(){
       var p=it.blocks[nro];
       var lineas=p.rollos.map(function(l){ return {cantidad:pint(l.c),kg_por_rollo:pnum(l.k)}; })
                          .filter(function(l){ return l.cantidad>0 && l.kg_por_rollo>0; });
-      if(pnum(p.peso)>0 && lineas.length)
+      if(pnum(p.peso)>0 && (lineas.length || it.modo==='peso'))
         listos.push({recId:it.recId, codigo:it.codigo, nro:Number(nro), peso:pnum(p.peso), lineas:lineas, calc:calcPallet(p)});
     });
   });
@@ -591,13 +618,23 @@ $('kgPesajeOk').addEventListener('click', async function(){
 
   // La balanza pesa fleje + pallet: por item tiene que dar MÁS que el remito.
   // Si dio menos o igual, o entregaron diferente o hay un error de carga.
-  var menores=PES.items.map(function(it){ return { it:it, c:calcItem(it) }; })
+  var menores=PES.items.filter(function(it){ return it.modo!=='peso'; })
+    .map(function(it){ return { it:it, c:calcItem(it) }; })
     .filter(function(x){ return x.it.remitoKg>0 && x.c.n>0 && x.c.tot<=x.it.remitoKg; })
     .map(function(x){ return x.it.codigo+': remito '+fmt(x.it.remitoKg)+' kg · balanza '+fmt(x.c.tot)+' kg'; });
   if(menores.length && !confirm(
       '⚠ La balanza dio MENOS (o igual) que el remito en:\n\n'+menores.join('\n')+
       '\n\nCon el peso del pallet la balanza siempre tiene que dar más que el remito.\n'+
       '¿Entregaron diferente a lo que dice el remito?\n\n¿Guardar así?')) return;
+
+  // Control por peso (Bella Vista): la balanza tiene que coincidir con el remito.
+  var nocoinc=PES.items.filter(function(it){ return it.modo==='peso'; })
+    .map(function(it){ return { it:it, c:calcItem(it) }; })
+    .filter(function(x){ return x.it.remitoKg>0 && x.c.n>0 && Math.abs(x.c.tot-x.it.remitoKg)>tolKg(x.it.remitoKg); })
+    .map(function(x){ return x.it.codigo+': remito '+fmt(x.it.remitoKg)+' kg · balanza '+fmt(x.c.tot)+' kg'; });
+  if(nocoinc.length && !confirm(
+      '⚠ El peso no coincide con el remito en:\n\n'+nocoinc.join('\n')+
+      '\n\n¿Entregaron diferente a lo facturado?\n\n¿Guardar así?')) return;
 
   $('kgPesajeOk').disabled=true;
   m.className='status'; m.textContent='Guardando pesaje…';
@@ -643,7 +680,8 @@ async function guardar(){
   $('kgConfirm').disabled=true;
   try{
     var fiso=$('txtFecha').value?($('txtFecha').value+'T12:00:00'):null;
-    var pide = !!PROVFLAGS[provSel];
+    var pide = provPideRollos(provSel);
+    var pesa = provControlaPeso(provSel);
     var rll = pide ? (parseInt(($('kgRollos').value||'').replace(/\D/g,''),10)||null) : null;
     var pll = pide ? (parseInt(($('kgPallets').value||'').replace(/\D/g,''),10)||null) : null;
     // Regla: la carga y el control son un solo proceso. Sin rollos y pallets
@@ -670,9 +708,10 @@ async function guardar(){
     // curso y se sigue con el proximo. El pesaje es de TODO el remito junto,
     // cuando el usuario toca "Terminé de pasar remito".
     var recId = res.data && res.data.recepcion_id;
-    if (pide && recId){
+    if ((pide || pesa) && recId){
       REMITO.push({ recId: recId, codigo: itemSel.codigo, desc: itemSel.descripcion||'',
-                    cant: cant, unidad: uReal, rollos: rll, pallets: pll });
+                    cant: cant, unidad: uReal, rollos: rll, pallets: pll,
+                    modo: (pesa ? 'peso' : 'rollos') });
       cerrarPopup();
       renderRemitoBar();
       return;
@@ -695,7 +734,7 @@ async function cargar(){
   if(res.error){$('statusMsg').className='status bad';$('statusMsg').textContent='Error: '+res.error.message;return;}
   var d=res.data||{};
   INS=d.insumos||[]; UMBY={}; INS.forEach(i=>UMBY[i.comp_id]=i.um);
-  PROVFLAGS={}; (d.proveedores||[]).forEach(p=>PROVFLAGS[p.nombre]=!!p.informa_rollos);
+  PROVFLAGS={}; (d.proveedores||[]).forEach(p=>PROVFLAGS[p.nombre]=p);
   RECS=d.recepciones||[]; PALL=d.pallets||[]; ROLL=d.rollos||[];
   if(d.tara) TARA=d.tara;
   // Cargar factores de conversión kg/uni para componentes de sectores insumo
