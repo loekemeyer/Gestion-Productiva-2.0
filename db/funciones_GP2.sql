@@ -573,7 +573,7 @@ with mov as (
   join componente c on c.id = m.comp_id
   left join ubicacion uo on uo.id = m.ubic_origen_id
   left join ubicacion ud on ud.id = m.ubic_destino_id
-  where m.tipo_mov in ('envio_tallerista','entrega_tallerista','consumo_tall')
+  where m.tipo_mov in ('envio_tallerista','entrega_tallerista','consumo_tall','devolucion_tallerista')
 ),
 agg as (
   select
@@ -581,6 +581,7 @@ agg as (
     mov.comp_id,
     sum(case when mov.tipo_mov = 'envio_tallerista'   then mov.uni else 0 end) as enviado,
     sum(case when mov.tipo_mov in ('entrega_tallerista','consumo_tall') then mov.uni else 0 end) as entregado,
+    sum(case when mov.tipo_mov = 'devolucion_tallerista' then mov.uni else 0 end) as devuelto,
     sum(case when mov.tipo_mov = 'envio_tallerista'   then mov.kg_raw else 0 end) as enviado_kg,
     max(mov.kg_sin_factor) as kg_sin_factor
   from mov
@@ -597,7 +598,8 @@ partes as (
       'kg_x_uni', c.kg_x_uni,
       'enviado', round(a.enviado::numeric, 2),
       'entregado', round(a.entregado::numeric, 2),
-      'saldo', round((a.enviado - a.entregado)::numeric, 2),
+      'devuelto', round(a.devuelto::numeric, 2),
+      'saldo', round((a.enviado - a.entregado - a.devuelto)::numeric, 2),
       'enviado_kg', round(a.enviado_kg::numeric, 3),
       'kg_sin_factor', (a.kg_sin_factor = 1)
     ) as parte,
@@ -1475,7 +1477,7 @@ with mov as (
   join componente c on c.id = m.comp_id
   left join ubicacion uo on uo.id = m.ubic_origen_id
   left join ubicacion ud on ud.id = m.ubic_destino_id
-  where m.tipo_mov in ('envio_tallerista','entrega_tallerista','consumo_tall')
+  where m.tipo_mov in ('envio_tallerista','entrega_tallerista','consumo_tall','devolucion_tallerista')
 ),
 agg as (
   select
@@ -1483,17 +1485,18 @@ agg as (
     mov.comp_id,
     sum(case when mov.tipo_mov = 'envio_tallerista'   then mov.uni else 0 end) as enviado,
     sum(case when mov.tipo_mov in ('entrega_tallerista','consumo_tall') then mov.uni else 0 end) as entregado,
+    sum(case when mov.tipo_mov = 'devolucion_tallerista' then mov.uni else 0 end) as devuelto,
     sum(case when mov.tipo_mov = 'envio_tallerista'   then mov.kg_raw else 0 end) as enviado_kg,
     max(mov.kg_sin_factor) as kg_sin_factor
   from mov
   group by mov.tall_id, mov.comp_id
 ),
 saldos as (
-  -- saldo = enviado - entregado = lo que el tallerista todavia tiene sin devolver (faltante en su poder)
+  -- saldo = enviado - entregado - devuelto = lo que el tallerista todavia tiene en su poder
   -- se excluye saldo exacto = 0 (nada pendiente). saldos negativos se muestran tal cual (ledger parcial).
   select
     a.*,
-    round((a.enviado - a.entregado)::numeric, 2) as saldo
+    round((a.enviado - a.entregado - a.devuelto)::numeric, 2) as saldo
   from agg a
 ),
 partes as (
@@ -1507,6 +1510,7 @@ partes as (
       'kg_x_uni', c.kg_x_uni,
       'enviado', round(s.enviado::numeric, 2),
       'entregado', round(s.entregado::numeric, 2),
+      'devuelto', round(s.devuelto::numeric, 2),
       'saldo', s.saldo,
       'enviado_kg', round(s.enviado_kg::numeric, 3),
       'kg_sin_factor', (s.kg_sin_factor = 1)
@@ -3442,8 +3446,12 @@ cfg as (
 mov as (
   select u.tall_id, m.comp_id,
          sum(case when m.tipo_mov='envio_tallerista' then coalesce(m._delta_dest,0) else 0 end) enviado,
+         -- _delta_orig se guarda POSITIVO (fn_movimiento_aplicar lo niega al aplicar):
+         -- lo que salio del tallerista es +_delta_orig, no -_delta_orig
          sum(case when m.tipo_mov in ('entrega_tallerista','consumo_tall')
-                  then -coalesce(m._delta_orig,0) else 0 end) entregado
+                  then coalesce(m._delta_orig,0) else 0 end) entregado,
+         sum(case when m.tipo_mov='devolucion_tallerista'
+                  then coalesce(m._delta_orig,0) else 0 end) devuelto
     from movimiento m
     join ub u on u.ubic_id in (m.ubic_origen_id, m.ubic_destino_id)
    group by u.tall_id, m.comp_id
@@ -3461,7 +3469,8 @@ fila as (
          coalesce((select i.cantidad from inventario i join ubicacion u2 on u2.id=i.ubicacion_id
                     where i.componente_id=c.id and u2.tipo='sector' and u2.ref_id=c.sector_id),0) online_sector,
          coalesce((select mv.enviado   from mov mv where mv.tall_id=cfg.tallerista_id and mv.comp_id=c.id),0) enviado,
-         coalesce((select mv.entregado from mov mv where mv.tall_id=cfg.tallerista_id and mv.comp_id=c.id),0) entregado
+         coalesce((select mv.entregado from mov mv where mv.tall_id=cfg.tallerista_id and mv.comp_id=c.id),0) entregado,
+         coalesce((select mv.devuelto  from mov mv where mv.tall_id=cfg.tallerista_id and mv.comp_id=c.id),0) devuelto
     from cfg
     join componente c on c.id=cfg.comp_id
     left join sector s on s.id=c.sector_id
@@ -3490,7 +3499,8 @@ select jsonb_build_object(
                         'comp_id',comp_id,'cod',cod,'desc',desc_,'sector',sector,'um',um,
                         'kg_x_uni',kg_x_uni,'uni_x_cajon',uni_x_cajon,
                         'online_tall',online_tall,'online_sector',online_sector,'maximo',maximo,
-                        'enviado',enviado,'entregado',entregado,'saldo',(enviado-entregado)
+                        'enviado',enviado,'entregado',entregado,'devuelto',devuelto,
+                        'saldo',(enviado-entregado-devuelto)
                       ) j
                  from fila) z2
         group by tallerista_id) y)

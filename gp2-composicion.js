@@ -149,7 +149,9 @@ window.GP2Composicion = (function () {
   }
 
   /* ---------- apertura ---------- */
+  var ABRIR_SEQ = 0; // token: si se abre otro componente mientras carga, la respuesta vieja no pinta
   async function abrir(o) {
+    var miSeq = ++ABRIR_SEQ;
     montar();
     o = o || {};
     var SB = o.SB || window.SB_CLIENT;
@@ -169,6 +171,7 @@ window.GP2Composicion = (function () {
     try { r = await SB.rpc("composicion_stock", args); }
     catch (e) { r = { error: { message: String(e && e.message || e) } }; }
 
+    if (miSeq !== ABRIR_SEQ) return;
     if (r.error) {
       document.getElementById("cpHoy").innerHTML = "";
       document.getElementById("cpBody").innerHTML =

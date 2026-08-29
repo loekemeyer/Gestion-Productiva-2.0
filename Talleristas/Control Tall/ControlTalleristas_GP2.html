@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>Control Partes Tallerista · GP2</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="../../gp2-composicion.js?v=1.2.0"></script>
+<script src="../../gp2-composicion.js?v=1.2.1"></script>
 <link rel="stylesheet" href="../../gp2-modulo.css?v=1.2.0"/>
 <link rel="icon" type="image/png" href="../../GP2_favicon.png">
 <link rel="apple-touch-icon" href="../../GP2_favicon.png">
@@ -58,7 +58,7 @@
             <tr>
               <th colspan="3" id="grpBase">Base</th>
               <th colspan="3" class="num sep">Online</th>
-              <th colspan="3" class="num sep">Movimientos (Uni)</th>
+              <th colspan="4" class="num sep">Movimientos (Uni)</th>
             </tr>
             <tr>
               <th id="colTall" class="hidden">Tallerista</th>
@@ -70,6 +70,7 @@
               <th class="num">Uni</th>
               <th class="num sep">Envíos</th>
               <th class="num">Entregas</th>
+              <th class="num">Devuelto</th>
               <th class="num">Saldo</th>
             </tr>
           </thead>
@@ -214,7 +215,7 @@ function render(){
   tb.innerHTML = "";
   $("tblEmpty").classList.toggle("hidden", arr.length>0);
 
-  var totEnv=0, totEnt=0, totSal=0, totUni=0, totKg=0;
+  var totEnv=0, totEnt=0, totDev=0, totSal=0, totUni=0, totKg=0;
 
   arr.forEach(function(x){
     // online_tall viene en la unidad canonica del componente (uni para piezas)
@@ -225,6 +226,7 @@ function render(){
     totUni += uni; totKg += (kg||0);
     totEnv += Number(x.enviado||0);
     totEnt += Number(x.entregado||0);
+    totDev += Number(x.devuelto||0);
     totSal += Number(x.saldo||0);
 
     var tr = document.createElement("tr");
@@ -238,6 +240,7 @@ function render(){
       '<td class="num stk-cell" data-cid="'+x.comp_id+'" data-tid="'+x._tid+'" title="Ver cómo se compone">'+fmt(uni,0)+'</td>'+
       '<td class="num sep">'+fmt(x.enviado,0)+'</td>'+
       '<td class="num">'+fmt(x.entregado,0)+'</td>'+
+      '<td class="num">'+fmt(x.devuelto,0)+'</td>'+
       '<td class="num '+clsSaldo(x.saldo)+'">'+fmt(x.saldo,0)+'</td>';
     tb.appendChild(tr);
   });
@@ -246,6 +249,7 @@ function render(){
     '<td colspan="'+(selT?3:4)+'">'+arr.length+' partes</td>'+
     '<td class="num sep">'+fmt(totKg,0)+'</td><td class="num">—</td><td class="num">'+fmt(totUni,0)+'</td>'+
     '<td class="num sep">'+fmt(totEnv,0)+'</td><td class="num">'+fmt(totEnt,0)+'</td>'+
+    '<td class="num">'+fmt(totDev,0)+'</td>'+
     '<td class="num '+clsSaldo(totSal)+'">'+fmt(totSal,0)+'</td></tr>') : "";
 
   $("kpis").innerHTML =
@@ -260,7 +264,7 @@ function exportarCSV(){
   var arr = filtradas();
   if (!arr.length){ alert("No hay filas para exportar."); return; }
   var cols = (selT ? [] : ["Tallerista"]).concat(
-    ["Sector","Codigo","Descripcion","Kg","Caj","Uni","Enviado","Entregado","Saldo"]);
+    ["Sector","Codigo","Descripcion","Kg","Caj","Uni","Enviado","Entregado","Devuelto","Saldo"]);
   var q = function(v){ return '"'+String(v==null?"":v).replace(/"/g,'""')+'"'; };
   var lineas = [cols.map(q).join(";")];
 
@@ -275,6 +279,7 @@ function exportarCSV(){
       String(uni).replace(".",","),
       String(x.enviado||0).replace(".",","),
       String(x.entregado||0).replace(".",","),
+      String(x.devuelto||0).replace(".",","),
       String(x.saldo||0).replace(".",",")
     ]);
     lineas.push(fila.map(q).join(";"));

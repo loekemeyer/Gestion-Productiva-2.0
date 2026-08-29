@@ -140,6 +140,7 @@ function __run(){
       '<td class="l sec">'+esc(p.sector)+"</td>"+
       '<td class="env">'+fmt(p.enviado)+"</td>"+
       '<td class="ent">'+fmt(p.entregado)+"</td>"+
+      '<td class="ent">'+fmt(p.devuelto)+"</td>"+
       '<td class="saldo '+(neg?"neg":"pos")+'">'+fmt(saldo)+"</td>"+
       '<td class="sec" style="font-size:11px">'+kgTxt+"</td>"+
     "</tr>";
@@ -156,7 +157,7 @@ function __run(){
      '</div>'+
      '<div class="tbl-wrap"><table><thead><tr>'+
        '<th class="l">Código</th><th class="l">Descripción</th><th class="l">Sector</th>'+
-       '<th>Enviado (uni)</th><th>Entregado (uni)</th><th>Saldo (uni)</th><th>Env (kg)</th>'+
+       '<th>Enviado (uni)</th><th>Entregado (uni)</th><th>Devuelto (uni)</th><th>Saldo (uni)</th><th>Env (kg)</th>'+
      '</tr></thead><tbody>'+rows+'</tbody></table></div>'+
    '</div>';
   });
@@ -169,7 +170,7 @@ function __run(){
     '<div class="kpi"><b>'+fmt(totPend+totNeg)+'</b>saldo neto (uni)</div>'+
   '</div>';
 
-  var note='<div class="note">📦 <b>Faltante = saldo pendiente en poder del tallerista</b> (enviado − entregado). Positivo = todavía no lo devolvió; negativo = devolvió más de lo que figura enviado. ⚠ El ledger GP2 es <b>parcial</b>: falta cargar producción / stock inicial, por eso muchos saldos dan <b>negativos</b>. Es lo esperado en esta etapa — los datos se muestran tal cual, sin corregir. Enviado normalizado a unidades vía <code>kg_x_uni</code> (envíos originales mayormente en kg); entregas siempre en unidades.'+(hayFlag?' <b>⚠ Hay componentes con envío en kg sin factor de conversión</b> (marcados con ⚠, no sumados en unidades).':'')+'</div>';
+  var note='<div class="note">📦 <b>Faltante = saldo pendiente en poder del tallerista</b> (enviado − entregado − devuelto). Positivo = todavía no lo devolvió; negativo = devolvió más de lo que figura enviado. ⚠ El ledger GP2 es <b>parcial</b>: falta cargar producción / stock inicial, por eso muchos saldos dan <b>negativos</b>. Es lo esperado en esta etapa — los datos se muestran tal cual, sin corregir. Enviado normalizado a unidades vía <code>kg_x_uni</code> (envíos originales mayormente en kg); entregas siempre en unidades.'+(hayFlag?' <b>⚠ Hay componentes con envío en kg sin factor de conversión</b> (marcados con ⚠, no sumados en unidades).':'')+'</div>';
 
   canvas.innerHTML=note+kpi+(H||'<div class="empty">Sin resultados para el filtro.</div>');
  }
@@ -183,10 +184,10 @@ function __run(){
   var q=norm(fBuscar.value.trim());
   var soloPos=fSoloPos.checked;
   var lista=(D.talleristas||[]).filter(function(t){return !tallSel||String(t.id)===tallSel;});
-  var out=[["Tallerista","Cod_Prov","Codigo","Descripcion","Sector","Enviado_uni","Entregado_uni","Saldo_uni","Enviado_kg","kg_sin_factor"]];
+  var out=[["Tallerista","Cod_Prov","Codigo","Descripcion","Sector","Enviado_uni","Entregado_uni","Devuelto_uni","Saldo_uni","Enviado_kg","kg_sin_factor"]];
   lista.forEach(function(t){
    partesFiltradas(t,q,soloPos).forEach(function(p){
-    out.push([t.nombre,t.cod_prov||"",p.cod,p.desc,p.sector,p.enviado,p.entregado,p.saldo,p.enviado_kg,p.kg_sin_factor?"SI":""]);
+    out.push([t.nombre,t.cod_prov||"",p.cod,p.desc,p.sector,p.enviado,p.entregado,p.devuelto,p.saldo,p.enviado_kg,p.kg_sin_factor?"SI":""]);
    });
   });
   var csv=out.map(function(r){return r.map(function(c){var s=String(c==null?"":c);return /[",;\n]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s;}).join(";");}).join("\r\n");

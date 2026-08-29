@@ -152,7 +152,10 @@ function render(){
 }
 
 /* ---------- popup de detalle ---------- */
+var DET_LIMIT = 500;
+var DET_SEQ = 0; // token: si se abre otro detalle mientras carga, la respuesta vieja no pinta
 async function abrirDetalle(comp_id, colKey){
+  var miSeq = ++DET_SEQ;
   var fila = (D.filas||[]).filter(function(x){ return String(x.comp_id)===String(comp_id); })[0] || {};
   var col  = (CFG.columnas||[]).filter(function(c){ return c.k===colKey; })[0] || { label:"Movimientos", tipos:[] };
 
@@ -162,10 +165,12 @@ async function abrirDetalle(comp_id, colKey){
   $("popup").classList.add("open");
 
   var r = await SB.rpc("movimientos_componente", {
-    p_comp_id: Number(comp_id), p_ubic_id: Number(D.ubicacion_id)
+    p_comp_id: Number(comp_id), p_ubic_id: Number(D.ubicacion_id), p_limit: DET_LIMIT
   });
+  if (miSeq !== DET_SEQ) return;
   if (r.error){ $("popBody").innerHTML = '<div class="empty">Error: '+esc(r.error.message)+'</div>'; return; }
 
+  var truncado = (r.data||[]).length >= DET_LIMIT;
   var rows = (r.data||[]).filter(function(m){
     return !col.tipos.length || col.tipos.indexOf(m.tipo) >= 0;
   });
@@ -188,7 +193,8 @@ async function abrirDetalle(comp_id, colKey){
         '<td class="num '+(m.signo==="ent"?"pos":"neg")+'">'+signo+fmt(m.cantidad,0)+'</td>'+
         '<td class="num">'+(m.cajones!=null?fmt(m.cajones,1):"—")+'</td></tr>';
     }).join("")+
-    '</tbody><tfoot><tr><td colspan="3">'+rows.length+' movimientos</td>'+
+    '</tbody><tfoot><tr><td colspan="3">'+rows.length+' movimientos'+
+    (truncado?' <small style="color:#c2410c;font-weight:700">(solo los últimos '+DET_LIMIT+' del componente: puede haber más viejos y el total no cerrar)</small>':'')+'</td>'+
     '<td class="num '+clsNum(tot)+'">'+fmt(tot,0)+'</td><td></td></tr></tfoot></table></div>';
 }
 
