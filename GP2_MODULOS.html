@@ -1,5 +1,5 @@
 <!doctype html><html lang="es"><head><meta charset="utf-8">
-<script src="auth-guard.js?v=1.2.0"></script>
+<script src="auth-guard.js?v=20260829f"></script>
 <!-- v1.4.0 - entra "Inyectores · Quien hace cada parte" en el grupo Insumos; v1.3.0 - menu depurado: fuera Stock Online duplicado, Informes Virgilio y los 2 candados de Prov AT; v1.2.0 - es la pagina de entrada post-login (con auth-guard y Cerrar sesion); v1.1.0 - grupos 100% bloqueados arrancan minimizados; acordeon exclusivo; vista foco en celular -->
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>GP2 · Menú</title>
@@ -83,9 +83,11 @@ span.op.lock .lk{font-size:14px;margin-left:auto;opacity:.7}
 
 <div class="header">
   <img src="GP2_logo.png?v=1.2.0" alt="GP2 · Gestión Productiva — Loekemeyer">
-  <div class="header-sub">Módulos con <b>🔒</b> pendientes de migración
-    &nbsp;·&nbsp; <a href="login.html?logout=1" onclick="try{sessionStorage.clear();}catch(e){}"
-    style="color:#b42318;text-decoration:none;font-weight:700">⎋ Cerrar sesión</a></div>
+  <div class="header-sub">Módulos con <b>🔒</b> pendientes de migración<!-- con el login
+    apagado (GP2_AUTH_ON=false) no hay sesion que cerrar: el link se oculta solo -->
+    <span id="sesion" hidden>&nbsp;·&nbsp; <a href="login.html?logout=1" onclick="try{sessionStorage.clear();}catch(e){}"
+    style="color:#b42318;text-decoration:none;font-weight:700">⎋ Cerrar sesión</a></span></div>
+  <script>if (window.GP2_AUTH_ON !== false) document.getElementById('sesion').hidden = false;</script>
 </div>
 
 <div class="wrap"><div class="grid" id="grid"></div></div>

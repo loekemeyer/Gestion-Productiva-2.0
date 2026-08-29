@@ -135,6 +135,23 @@ y sale el ranking de las 38 candidatas por ahorro anual usando el consumo de la 
 
 ---
 
+## 3b. Acceso a la app (login)
+
+`[usuario 2026-08-29]` **El login de Google está APAGADO, momentáneamente.** Razón: la
+página ya es privada y es difícil que alguien la encuentre, así que por ahora se prefiere
+entrar suelto, sin la validación de Gmail.
+
+Se maneja con un interruptor de una línea: `GP2_AUTH_ON` en `auth-guard.js`
+(`false` = suelto, `true` = con login + whitelist). Para volver a prenderlo hay que poner
+`true` **y bumpear el `?v=` de auth-guard.js en los HTML**, si no las tablets siguen con el
+archivo cacheado.
+
+`[importante, no confundir]` El login siempre fue una tranquera de **pantalla**, no una
+barrera de datos: la clave anon viaja en el HTML de cada página, así que quien tuviera la
+URL siempre pudo llamar a las RPCs. Lo que realmente protege la base es la **RLS** (anon
+sólo lee) + que **toda escritura pase por RPCs SECURITY DEFINER** que validan. Eso no se
+tocó y sigue igual con el login prendido o apagado.
+
 ## 4. Trampas conocidas (cosas que ya nos mordieron)
 
 - **Los nombres colisionan entre las dos casas.** El fleje "A1" del vecino no es la pieza
