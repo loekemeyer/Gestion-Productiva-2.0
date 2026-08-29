@@ -83,7 +83,7 @@
       <div class="subtitle">Ingresá con tu cuenta de Google</div>
     </div>
     <div class="version">Versión <b id="appVersion">2.0</b></div>
-    <script src="version.js?v=20260828x"></script>
+    <script src="version.js?v=20260828y"></script>
 
     <button id="btnGoogle" class="btn-google" onclick="loginGoogle()">
       <svg viewBox="0 0 48 48">
@@ -168,7 +168,7 @@
       sessionStorage.setItem("gp_auth", "ok");
       sessionStorage.setItem("gp_role", role);
       sessionStorage.setItem("gp_email", email);
-      window.location.href = (role === "envios") ? "envios-only.html" : "Inicio/index.html";
+      window.location.href = (role === "envios") ? "envios-only.html" : "GP2_MODULOS.html";
     }
 
     // Escuchar el evento SIGNED_IN — dispara cuando supabase-js termina de procesar

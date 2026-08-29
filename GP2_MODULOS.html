@@ -1,5 +1,6 @@
 <!doctype html><html lang="es"><head><meta charset="utf-8">
-<!-- v1.1.0 - grupos 100% bloqueados arrancan minimizados; acordeon exclusivo; vista foco en celular -->
+<script src="auth-guard.js?v=1.2.0"></script>
+<!-- v1.2.0 - es la pagina de entrada post-login (con auth-guard y Cerrar sesion); v1.1.0 - grupos 100% bloqueados arrancan minimizados; acordeon exclusivo; vista foco en celular -->
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>GP2 · Menú</title>
 <link rel="icon" type="image/png" href="GP2_favicon.png?v=1.2.0">
@@ -82,7 +83,9 @@ span.op.lock .lk{font-size:14px;margin-left:auto;opacity:.7}
 
 <div class="header">
   <img src="GP2_logo.png?v=1.2.0" alt="GP2 · Gestión Productiva — Loekemeyer">
-  <div class="header-sub">Módulos con <b>🔒</b> pendientes de migración</div>
+  <div class="header-sub">Módulos con <b>🔒</b> pendientes de migración
+    &nbsp;·&nbsp; <a href="login.html?logout=1" onclick="try{sessionStorage.clear();}catch(e){}"
+    style="color:#b42318;text-decoration:none;font-weight:700">⎋ Cerrar sesión</a></div>
 </div>
 
 <div class="wrap"><div class="grid" id="grid"></div></div>
