@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="es">
 <head>
-<!-- v1.0.0 — Ordenes de Compra de insumos: sugerido = consumo Est Madre x meses - stock - pendiente OC -->
+<!-- v1.1.0 — Ordenes de Compra de insumos: sugerido = consumo Est Madre x meses - stock - pendiente OC; imprimir OC -->
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>Órdenes de Compra · GP2</title>
@@ -280,10 +280,10 @@ function pintarOcs(){
   $('ocsN').textContent=ocs.length?('('+ocs.length+')'):'';
   $('ocsEmpty').classList.toggle('hidden', ocs.length>0);
   $('ocsList').innerHTML=ocs.map(function(o){
-    var acts='';
-    if(o.estado==='borrador') acts='<button type="button" class="env" data-oc="'+o.id+'" data-est="enviada">Marcar enviada</button>'+
+    var acts='<button type="button" class="imp" data-imp="'+o.id+'">🖨 Imprimir</button>';
+    if(o.estado==='borrador') acts+='<button type="button" class="env" data-oc="'+o.id+'" data-est="enviada">Marcar enviada</button>'+
       '<button type="button" class="anu" data-oc="'+o.id+'" data-est="anulada">Anular</button>';
-    else if(o.estado==='enviada') acts='<button type="button" class="rec" data-oc="'+o.id+'" data-est="recibida">Marcar recibida</button>'+
+    else if(o.estado==='enviada') acts+='<button type="button" class="rec" data-oc="'+o.id+'" data-est="recibida">Marcar recibida</button>'+
       '<button type="button" class="anu" data-oc="'+o.id+'" data-est="anulada">Anular</button>';
     return '<div class="oc-card">'+
       '<div class="oc-head"><span class="num-oc">OC N° '+o.numero+'</span>'+
@@ -303,7 +303,10 @@ function pintarOcs(){
       '</tbody></table></div></div>';
   }).join('');
 
-  document.querySelectorAll('.oc-acts button').forEach(function(b){
+  document.querySelectorAll('.oc-acts button.imp').forEach(function(b){
+    b.addEventListener('click', function(){ imprimirOC(Number(b.dataset.imp)); });
+  });
+  document.querySelectorAll('.oc-acts button:not(.imp)').forEach(function(b){
     b.addEventListener('click', async function(){
       var est=b.dataset.est;
       if(est==='anulada' && !confirm('¿Anular la OC?')) return;
@@ -315,6 +318,35 @@ function pintarOcs(){
       }catch(e){ $('status').className='status bad'; $('status').textContent='Error: '+(e.message||e); b.disabled=false; }
     });
   });
+}
+
+// Hoja limpia para mandar/imprimir la OC al proveedor
+function imprimirOC(ocId){
+  var o=(D.ocs||[]).filter(function(x){ return x.id===ocId; })[0];
+  if(!o) return;
+  var w=window.open('','_blank');
+  if(!w){ alert('El navegador bloqueó la ventana de impresión.'); return; }
+  var html='<!doctype html><html lang="es"><head><meta charset="utf-8"><title>OC N° '+o.numero+'</title>'+
+    '<style>body{font-family:Arial;padding:32px;color:#111}h1{font-size:24px;margin:0 0 4px}'+
+    '.meta{color:#555;margin-bottom:18px;font-size:15px}table{width:100%;border-collapse:collapse;font-size:15px}'+
+    'th{background:#f0f0f0;text-align:left;padding:8px;border:1px solid #bbb}td{padding:8px;border:1px solid #bbb}'+
+    'td.num{text-align:right}.nota{margin-top:16px;color:#444;font-size:14px}.pie{margin-top:28px;color:#888;font-size:12px}</style></head><body>'+
+    '<h1>Orden de Compra N° '+o.numero+'</h1>'+
+    '<div class="meta">'+(o.proveedor?('Proveedor: <b>'+esc(o.proveedor)+'</b> · '):'')+
+    (o.rubro?('Rubro: '+esc(o.rubro)+' · '):'')+'Fecha: '+new Date(o.creado_en).toLocaleDateString('es-AR')+'</div>'+
+    '<table><thead><tr><th>Código</th><th>Descripción</th><th style="text-align:right">Cantidad</th></tr></thead><tbody>'+
+    (o.items||[]).map(function(it){
+      return '<tr><td><b>'+esc(it.codigo)+'</b></td><td>'+esc(it.descripcion||'')+'</td>'+
+        '<td class="num">'+fmt(it.cantidad)+' '+esc(it.unidad)+'</td></tr>';
+    }).join('')+
+    '</tbody></table>'+
+    (o.nota?('<div class="nota">Nota: '+esc(o.nota)+'</div>'):'')+
+    '<div class="pie">Loekemeyer · Gestión Productiva 2.0</div>'+
+    '</body></html>';
+  w.document.write(html);
+  w.document.close();
+  w.focus();
+  setTimeout(function(){ w.print(); }, 250);
 }
 
 function mostrarTab(t){

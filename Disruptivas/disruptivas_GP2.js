@@ -321,7 +321,6 @@ async function guardarEditDisruptiva() {
   const c = calcFromModal();
   const anular = document.getElementById("modalAnular").checked;
 
-  // PENDIENTE GP2: falta crear el RPC "GP2".anular_produccion(...) espejo del viejo.
   try {
     const { error } = await sb.rpc("anular_produccion", {
       row_id: id,
@@ -351,12 +350,11 @@ async function guardarEditDisruptiva() {
 
     cerrarModal();
     filtrarPorFecha();
-  } catch (err) { alert("Error al guardar (RPC GP2.anular_produccion pendiente): " + err.message); }
+  } catch (err) { alert("Error al guardar: " + err.message); }
 }
 
 /* ================= ACCIONES ================= */
 async function revisarDisruptiva(id, btnEl) {
-  // PENDIENTE GP2: falta crear el RPC "GP2".marcar_revisado(row_id) espejo del viejo.
   try {
     const { error } = await sb.rpc("marcar_revisado", { row_id: id });
     if (error) throw new Error(error.message);
@@ -364,7 +362,7 @@ async function revisarDisruptiva(id, btnEl) {
     if (idx !== -1) allRowsRaw.splice(idx, 1);
     const tr = btnEl.closest("tr");
     if (tr) { tr.style.transition = "opacity .3s"; tr.style.opacity = "0"; setTimeout(() => { filtrarPorFecha(); }, 300); }
-  } catch (err) { alert("Error (RPC GP2.marcar_revisado pendiente): " + err.message); }
+  } catch (err) { alert("Error al marcar revisado: " + err.message); }
 }
 
 /* ================= EXCEL ================= */

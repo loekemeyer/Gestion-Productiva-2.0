@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="es">
 <head>
-  <script src="../auth-guard.js"></script>
+  <script src="../auth-guard.js?v=20260829a"></script>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Selector</title>
@@ -123,7 +123,7 @@
   </style>
 <link rel="icon" type="image/png" href="../GP2_favicon.png">
 <link rel="apple-touch-icon" href="../GP2_favicon.png">
-<link rel="stylesheet" href="../gp2-claro.css">
+<link rel="stylesheet" href="../gp2-claro.css?v=20260829a">
 </head>
 
 <body>
@@ -315,7 +315,7 @@
     })();
   </script>
 
-  <script src="../version.js?v=20260828t"></script>
+  <script src="../version.js?v=20260828u"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script>
     document.querySelectorAll(".btn-opcion").forEach(btn => {
@@ -345,6 +345,20 @@
         const nDisrup = Number(bundle.alertas && bundle.alertas.disruptivas_mes) || 0;
         const btn = document.getElementById("btnDisruptivas");
         if (btn && nDisrup > 0) btn.textContent = `Producciones Disruptivas (${nDisrup})`;
+
+        // --- Cargas de Virgilio que el espejo NO pudo aplicar (alias/articulo desconocido) ---
+        const nPend = Number(bundle.alertas && bundle.alertas.espejo_pend) || 0;
+        if (nPend > 0) {
+          const det = (bundle.alertas.espejo_pend_detalle || [])
+            .map(x => x.motivo).filter(Boolean).slice(0, 3).join(" · ");
+          const av = document.createElement("div");
+          av.style.cssText = "position:fixed;left:50%;transform:translateX(-50%);top:10px;z-index:60;" +
+            "background:#7f1d1d;color:#fff;padding:10px 18px;border-radius:10px;font-size:14px;font-weight:700;" +
+            "box-shadow:0 4px 16px rgba(0,0,0,.4);max-width:90vw";
+          av.innerHTML = `⚠ ${nPend} carga${nPend === 1 ? "" : "s"} de Virgilio SIN aplicar al stock ` +
+            `(el espejo no reconoció el alias o artículo)${det ? ": " + det : ""}. Avisar a sistemas.`;
+          document.body.appendChild(av);
+        }
 
         // --- KPIs resumen (dia/mes) inyectados en la barra de version ---
         const d = bundle.dia || {}, m = bundle.mes || {};

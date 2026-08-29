@@ -1,8 +1,8 @@
 <!doctype html>
 <html lang="es">
 <head>
-<!-- v3.5.0 — cartones se cargan en PAQUETES de 250 (parametro carton_uni_x_paquete), guardados en unidades. v3.4.0: modo_control por proveedor: rollos_remito (Basconia/Aperam), pesaje (resto flejeros, remito solo kg), peso_total (Bella Vista). v3.3.0: Bella Vista: factura en uni (se anota convertido a kg) y control por PESO TOTAL contra el remito. v3.2.0: la balanza debe dar MAS que el remito (peso del pallet), aviso en vivo + confirm al guardar. v3.1.0: pesaje obligatorio (sin "Pesar después"): la carga no se termina hasta controlar. v3.0.0: remito multi-item: paso 1 todos los items, "Terminé de pasar remito", paso 2 pesaje de todo; modulo Control integrado aca -->
-<script src="../auth-guard.js?v=3.5.0"></script>
+<!-- v3.6.0 — muestra el cruce con OC (recibido/completa/sin OC) devuelto por la BD. v3.5.0: cartones se cargan en PAQUETES de 250 (parametro carton_uni_x_paquete), guardados en unidades. v3.4.0: modo_control por proveedor: rollos_remito (Basconia/Aperam), pesaje (resto flejeros, remito solo kg), peso_total (Bella Vista). v3.3.0: Bella Vista: factura en uni (se anota convertido a kg) y control por PESO TOTAL contra el remito. v3.2.0: la balanza debe dar MAS que el remito (peso del pallet), aviso en vivo + confirm al guardar. v3.1.0: pesaje obligatorio (sin "Pesar después"): la carga no se termina hasta controlar. v3.0.0: remito multi-item: paso 1 todos los items, "Terminé de pasar remito", paso 2 pesaje de todo; modulo Control integrado aca -->
+<script src="../auth-guard.js?v=3.6.0"></script>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>Recepción de Insumos · GP2</title>
@@ -728,6 +728,18 @@ async function guardar(){
     // Con proveedor que informa rollos, el item queda ANOTADO en el remito en
     // curso y se sigue con el proximo. El pesaje es de TODO el remito junto,
     // cuando el usuario toca "Terminé de pasar remito".
+    // Cruce con las ordenes de compra abiertas (lo hace la BD y devuelve el detalle)
+    var ocTxt='';
+    var ocs=(res.data&&res.data.oc_cruzada)||[];
+    if(ocs.length){
+      ocTxt=ocs.map(function(o){
+        return o.completa ? ('OC N° '+o.numero+' <b>COMPLETA</b>') :
+          ('OC N° '+o.numero+': '+fmt(o.aplicado)+' '+esc(o.unidad||'')+' aplicados');
+      }).join(' · ');
+    } else {
+      ocTxt='sin OC pendiente para este insumo';
+    }
+
     var recId = res.data && res.data.recepcion_id;
     if (modoCtl!=='ninguno' && modoCtl!=='pendiente' && recId){
       REMITO.push({ recId: recId, codigo: itemSel.codigo, desc: itemSel.descripcion||'',
@@ -735,6 +747,9 @@ async function guardar(){
                     modo: (modoCtl==='peso_total' ? 'peso' : 'rollos') });
       cerrarPopup();
       renderRemitoBar();
+      $('statusMsg').className='status';
+      $('statusMsg').innerHTML=esc(itemSel.codigo)+': '+ocTxt+'.';
+      setTimeout(function(){ if($('statusMsg').innerHTML.indexOf('OC')>=0||$('statusMsg').innerHTML.indexOf('sin OC')>=0) $('statusMsg').textContent=''; },7000);
       return;
     }
 
@@ -742,7 +757,7 @@ async function guardar(){
     var sb=$('successBox'); sb.style.display='block';
     $('successBox').querySelector('.title').textContent='✓ Recepción registrada';
     var detUni= (unitSel==='paq') ? (fmt(cantRaw)+' paquetes = <b>'+fmt(cant)+' uni</b>') : ((uReal==='kg'&&kx&&unitSel==='uni') ? (fmt(cantRaw)+' uni = <b>'+fmt(cant)+' kg</b>') : '<b>'+fmt(cant)+' '+esc(uReal)+'</b>');
-    $('successDetail').innerHTML=esc(itemSel.codigo)+' — '+esc(itemSel.descripcion||'')+' · '+detUni+(provSel?(' ('+esc(provSel)+')'):'')+'. Stock actualizado. Mov '+(res.data&&res.data.movimiento_id)+'.';
+    $('successDetail').innerHTML=esc(itemSel.codigo)+' — '+esc(itemSel.descripcion||'')+' · '+detUni+(provSel?(' ('+esc(provSel)+')'):'')+'. Stock actualizado. Mov '+(res.data&&res.data.movimiento_id)+'. '+ocTxt+'.';
     cerrarPopup();
     setTimeout(()=>{sb.style.display='none';},6000);
   }catch(e){ m.className='status bad'; m.textContent='Error: '+(e.message||e); }
