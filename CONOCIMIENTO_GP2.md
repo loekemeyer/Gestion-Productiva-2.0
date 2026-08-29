@@ -152,6 +152,33 @@ URL siempre pudo llamar a las RPCs. Lo que realmente protege la base es la **RLS
 sólo lee) + que **toda escritura pase por RPCs SECURITY DEFINER** que validan. Eso no se
 tocó y sigue igual con el login prendido o apagado.
 
+## 3c. Cómo se abre la app (ventana propia, no pestaña)
+
+`[usuario 2026-08-29]` **GP2 tiene que verse como una aplicación, igual que Producción
+Virgilio** — sin la barra de direcciones ni el botón de actualizar arriba. El usuario notó
+la diferencia entre las dos apps y pidió emparejarlas.
+
+`[dato]` La causa era simple: Virgilio siempre fue una **PWA** (tiene `manifest.json` con
+`display: standalone` + service worker), y GP2 no tenía ninguno de los dos en la raíz. El
+único `manifest.json` del repo estaba en `Produccion/RegistroApp/` y sólo aplica a ese
+submódulo, así que Chrome trataba a GP2 como una página web común.
+
+Arreglado en v1.30.0 con dos mecanismos que se complementan:
+
+1. **`--app=` en `gp-launcher.ps1`**: Chrome abre en ventana propia apenas se hace doble
+   clic en el `.bat`. No hace falta instalar nada, funciona para todos de una.
+2. **PWA de verdad** (`manifest.json` + `sw.js` + `pwa.js` + `icons/` en la raíz): Chrome
+   ofrece "Instalar", y GP2 queda con ícono propio en el escritorio y en el menú Inicio.
+
+`[importante]` El `sw.js` **no cachea nada** y está así a propósito. Cachear el HTML dejaría
+tablets pegadas a una versión vieja, que es justo lo que el sistema de tokens `?v=...` viene
+evitando. El service worker existe sólo porque Chrome lo exige para poder instalar.
+
+`[trampa]` El launcher elige el primer puerto libre entre 5501 y 5507. Para Chrome **cada
+puerto es un origen distinto**, así que una app instalada desde 5501 no es la misma que una
+instalada desde 5503. Con `--app=` da igual, pero si se instala a mano conviene hacerlo
+siempre con el mismo puerto.
+
 ## 4. Trampas conocidas (cosas que ya nos mordieron)
 
 - **Los nombres colisionan entre las dos casas.** El fleje "A1" del vecino no es la pieza

@@ -5,6 +5,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
   <title>Gestión Productiva — Ingresar</title>
+  <!-- PWA: el SW lo registra pwa.js al final del body. -->
+  <link rel="manifest" href="manifest.json?v=20260829h">
+  <meta name="theme-color" content="#ffffff">
+  <link rel="icon" type="image/png" href="GP2_favicon.png?v=1.2.0">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -83,7 +87,7 @@
       <div class="subtitle">Ingresá con tu cuenta de Google</div>
     </div>
     <div class="version">Versión <b id="appVersion">2.0</b></div>
-    <script src="version.js?v=20260829g"></script>
+    <script src="version.js?v=20260829h"></script>
 
     <button id="btnGoogle" class="btn-google" onclick="loginGoogle()">
       <svg viewBox="0 0 48 48">
@@ -225,5 +229,6 @@
       if (session) procesarSesion(session, "initial");
     })();
   </script>
+  <script src="pwa.js?v=20260829h"></script>
 </body>
 </html>
