@@ -112,6 +112,11 @@
       color: #1e293b;
     }
 
+    /* Sin version GP2 todavia: abre la pantalla de la app anterior (schema public).
+       Los !important son necesarios porque gp2-claro.css (asset compartido de 21
+       paginas, no se toca) pinta .btn-opcion con !important y se carga despues. */
+    .btn-opcion.vieja { border-color:#b45309 !important; background:#fffbeb !important; color:#7c2d12 !important; }
+    .btn-opcion.vieja::after { content:" · app vieja"; font-size:11px; opacity:.75; font-weight:600; }
     .btn-opcion:hover {
       border-color: #111;
       background: #111;
@@ -139,23 +144,23 @@
       <h2><svg class="card-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 1 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path></svg>Tallerista</h2>
 
       <div class="botones">
-        <button class="btn-opcion" data-link="../Talleristas/Control Tall/ControlTall.html">Control</button>
+        <button class="btn-opcion" data-link="../Talleristas/Control Tall/ControlTalleristas_GP2.html">Control</button>
 
-        <button class="btn-opcion" data-link="../Talleristas/Envios/EnviosTall.html">Envío</button>
+        <button class="btn-opcion" data-link="../Talleristas/Envios/EnviosTalleristas_GP2.html">Envío</button>
 
-        <button class="btn-opcion" data-link="../Talleristas/Recepcion/Recepcion Cervantes.html">Entrega Cervantes</button>
+        <button class="btn-opcion" data-link="../Talleristas/Recepcion/EntregasTalleristas_GP2.html">Entrega Cervantes</button>
 
-        <button class="btn-opcion" data-link="../Talleristas/Recepcion/Devolucion Cervantes.html">Devolución Cervantes</button>
+        <button class="btn-opcion" data-link="../Talleristas/Recepcion/DevolucionCervantes_GP2.html">Devolución Cervantes</button>
 
-        <button class="btn-opcion" data-link="../Talleristas/Recepcion/Entrega Cervantes Fotos.html">Entrega Cervantes Fotos</button>
+        <button class="btn-opcion vieja" title="Todavía sin versión GP2: abre la pantalla de la app anterior" data-link="../Talleristas/Recepcion/Entrega Cervantes Fotos.html">Entrega Cervantes Fotos</button>
 
-        <button class="btn-opcion" data-link="../Talleristas/Recepcion/Recepcion Virgilio.html">Entrega Virgilio</button>
+        <button class="btn-opcion vieja" title="Todavía sin versión GP2: abre la pantalla de la app anterior" data-link="../Talleristas/Recepcion/Recepcion Virgilio.html">Entrega Virgilio</button>
 
-        <button class="btn-opcion" data-link="../Talleristas/ABM Articulos/ABMArticulosTall.html">ABM Articulos</button>
+        <button class="btn-opcion" data-link="../Talleristas/ABM Articulos/ABM_Articulos_GP2.html">ABM Articulos</button>
 
-        <button class="btn-opcion" data-link="../Talleristas/Proporciones/index.html">Proporciones</button>
+        <button class="btn-opcion" data-link="../Talleristas/Proporciones/Proporciones_GP2.html">Proporciones</button>
 
-        <button class="btn-opcion" data-link="../Talleristas/Faltante Partes Tallerista/index.html">Faltante Partes</button>
+        <button class="btn-opcion" data-link="../Talleristas/Faltante Partes Tallerista/FaltantePartesTallerista_GP2.html">Faltante Partes</button>
       </div>
     </div>
 
@@ -164,11 +169,11 @@
       <h2><svg class="card-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></svg>PS</h2>
 
       <div class="botones">
-        <button class="btn-opcion" data-link="../Prov Serv/Control/ControlPS.html">Control</button>
+        <button class="btn-opcion" data-link="../Prov Serv/Control/ControlPS_GP2.html">Control</button>
 
-        <button class="btn-opcion" data-link="../Prov Serv/Envios/EnviosPS.html">Envío</button>
+        <button class="btn-opcion" data-link="../Prov Serv/Envios/EnviosPS_GP2.html">Envío</button>
 
-        <button class="btn-opcion" data-link="../Prov Serv/Entregas/EntregaPS.html">Entrega</button>
+        <button class="btn-opcion" data-link="../Prov Serv/Entregas/EntregaPS_GP2.html">Entrega</button>
       </div>
     </div>
 
@@ -177,11 +182,11 @@
       <h2><svg class="card-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>Prov. Art. Terminado</h2>
 
       <div class="botones">
-        <button class="btn-opcion" data-link="../Prov Art Terminado/Control/ControlAT.html">Control</button>
+        <button class="btn-opcion vieja" title="Todavía sin versión GP2: abre la pantalla de la app anterior" data-link="../Prov Art Terminado/Control/ControlAT.html">Control</button>
 
-        <button class="btn-opcion" data-link="../Prov Art Terminado/Envios/EnviosAT.html">Envío Cartón/Cajas</button>
+        <button class="btn-opcion" data-link="../Prov Art Terminado/Envios/EnviosAT_GP2.html">Envío Cartón/Cajas</button>
 
-        <button class="btn-opcion" data-link="../Prov Art Terminado/Entregas/EntregasAT.html">Entrega Art. Terminado</button>
+        <button class="btn-opcion vieja" title="Todavía sin versión GP2: abre la pantalla de la app anterior" data-link="../Prov Art Terminado/Entregas/EntregasAT.html">Entrega Art. Terminado</button>
       </div>
     </div>
 
@@ -190,9 +195,9 @@
       <h2><svg class="card-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3h18v4H3z"/><path d="M3 7v14h18V7"/><path d="M8 11h8"/><path d="M8 15h5"/></svg>Control Envíos y Entregas</h2>
 
       <div class="botones">
-        <button class="btn-opcion" data-link="../Control Envios y Entregas/index.html">Abrir</button>
-        <button class="btn-opcion" data-link="../Control Envios y Entregas/stock.html">Stock Online</button>
-        <button class="btn-opcion" data-link="../Control Envios y Entregas/exportar.html">Exportar datos</button>
+        <button class="btn-opcion" data-link="../Control Envios y Entregas/ControlEnvios_GP2.html">Abrir</button>
+        <button class="btn-opcion" data-link="../Stocks General/StockGeneral_GP2.html">Stock Online</button>
+        <button class="btn-opcion" data-link="../Control Envios y Entregas/ControlEnvios_GP2.html">Exportar datos</button>
       </div>
     </div>
 
@@ -201,18 +206,18 @@
       <h2><svg class="card-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>Stocks</h2>
 
       <div class="botones">
-        <button class="btn-opcion" data-link="../StockSP/StockSP.html">Stock SP</button>
+        <button class="btn-opcion" data-link="../StockSP/StockSP_GP2.html">Stock SP</button>
 
-        <button class="btn-opcion" data-link="../StockSC/StockSC.html">Stock SC</button>
+        <button class="btn-opcion" data-link="../StockSC/StockSC_GP2.html">Stock SC</button>
 
-        <button class="btn-opcion" data-link="../StockMovimiento/StockMovimiento.html">Stock en Movimiento</button>
+        <button class="btn-opcion" data-link="../StockMovimiento/StockMovimiento_GP2.html">Stock en Movimiento</button>
 
-        <button class="btn-opcion" data-link="../StockTransitoPS/index.html">Stock Transito PS</button>
+        <button class="btn-opcion" data-link="../StockTransitoPS/StockTransitoPS_GP2.html">Stock Transito PS</button>
 
-        <button class="btn-opcion" data-link="../Stocks General/StocksGeneral.html">Stocks general</button>
+        <button class="btn-opcion" data-link="../Stocks General/StockGeneral_GP2.html">Stocks general</button>
 
-        <button class="btn-opcion" data-link="../Verificacion/verificacion.html" style="background:linear-gradient(135deg,#7c3aed,#a855f7);color:#fff;border-color:#7c3aed">Verificacion Integridad</button>
-        <button class="btn-opcion" data-link="../VerifMadres/VerifMadres.html" style="background:linear-gradient(135deg,#dc2626,#f87171);color:#fff;border-color:#dc2626">Verificacion Madres</button>
+        <button class="btn-opcion" data-link="../Verificacion/Verificacion_GP2.html" style="background:linear-gradient(135deg,#7c3aed,#a855f7);color:#fff;border-color:#7c3aed">Verificacion Integridad</button>
+        <button class="btn-opcion" data-link="../VerifMadres/VerifMadres_GP2.html" style="background:linear-gradient(135deg,#dc2626,#f87171);color:#fff;border-color:#dc2626">Verificacion Madres</button>
       </div>
     </div>
 
@@ -221,17 +226,17 @@
       <h2><svg class="card-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="1"></circle><circle cx="19" cy="12" r="1"></circle><circle cx="5" cy="12" r="1"></circle></svg>Producción</h2>
 
       <div class="botones">
-        <button class="btn-opcion" data-link="../Produccion/RegistroApp/index.html">Registro Produccion</button>
-        <button class="btn-opcion" data-link="../Informes/index.html">Informes Produccion</button>
-        <button class="btn-opcion" data-link="../Produccion/InformesVirgilio/index.html">Informes Producción Virgilio</button>
-        <button class="btn-opcion" id="btnDisruptivas" data-link="../Disruptivas/index.html">Producciones Disruptivas</button>
-        <button class="btn-opcion" data-link="../Produccion/maestro.html">Maestro Produccion</button>
-        <button class="btn-opcion" data-link="../Produccion/abm.html">ABM Operarios</button>
-        <button class="btn-opcion" data-link="../Produccion/monitor.html">Monitor en Vivo</button>
-        <button class="btn-opcion" data-link="../Produccion/monitor2.html">Monitor en Vivo 2.0</button>
-        <button class="btn-opcion" data-link="../Produccion/tiempos.html">Tiempos Matrices</button>
-        <button class="btn-opcion" data-link="../Produccion/ProblemasMatrices/index.html">Problemas con Matrices</button>
-        <button class="btn-opcion" data-link="../Produccion/entrevistas.html">Entrevistas</button>
+        <button class="btn-opcion" data-link="../Produccion/RegistroApp/Operarios_GP2.html">Registro Produccion</button>
+        <button class="btn-opcion" data-link="../Informes/informe_persona_GP2.html">Informes Produccion</button>
+        <button class="btn-opcion vieja" title="Todavía sin versión GP2: abre la pantalla de la app anterior" data-link="../Produccion/InformesVirgilio/index.html">Informes Producción Virgilio</button>
+        <button class="btn-opcion" id="btnDisruptivas" data-link="../Disruptivas/Disruptivas_GP2.html">Producciones Disruptivas</button>
+        <button class="btn-opcion" data-link="../Produccion/maestro_GP2.html">Maestro Produccion</button>
+        <button class="btn-opcion" data-link="../Produccion/abm_GP2.html">ABM Operarios</button>
+        <button class="btn-opcion" data-link="../Produccion/monitor_GP2.html">Monitor en Vivo · Operarios</button>
+        <button class="btn-opcion" data-link="../Produccion/monitor2_GP2.html">Cierres del Día · Premios</button>
+        <button class="btn-opcion" data-link="../Produccion/tiempos_GP2.html">Tiempos Matrices</button>
+        <button class="btn-opcion" data-link="../Produccion/ProblemasMatrices/ProblemasMatrices_GP2.html">Problemas con Matrices</button>
+        <button class="btn-opcion" data-link="../Produccion/entrevistas_GP2.html">Entrevistas</button>
       </div>
     </div>
 
@@ -240,7 +245,7 @@
       <h2><svg class="card-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7v10c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V7l-10-5z"></path><polyline points="10 17 14 13 10 9"></polyline></svg>Despiece</h2>
 
       <div class="botones">
-        <button class="btn-opcion" data-link="../Despiece/Despiece.html">Despiece x Artículo</button>
+        <button class="btn-opcion" data-link="../Despiece x Articulo/Despiece_GP2.html">Despiece x Artículo</button>
       </div>
     </div>
 
@@ -249,7 +254,7 @@
       <h2><svg class="card-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>Control Carga Remitos</h2>
 
       <div class="botones">
-        <button class="btn-opcion" data-link="../ControlRemitos/index.html">Ver Cargas</button>
+        <button class="btn-opcion vieja" title="Todavía sin versión GP2: abre la pantalla de la app anterior" data-link="../ControlRemitos/index.html">Ver Cargas</button>
       </div>
     </div>
 
@@ -258,9 +263,9 @@
       <h2><svg class="card-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>Facturas</h2>
 
       <div class="botones">
-        <button class="btn-opcion" data-link="../Facturas/index.html">Lectura de Facturas Entrantes</button>
+        <button class="btn-opcion vieja" title="Todavía sin versión GP2: abre la pantalla de la app anterior" data-link="../Facturas/index.html">Lectura de Facturas Entrantes</button>
 
-        <button class="btn-opcion" data-link="../Facturas/EntregaProveedoresCervantes.html">Entrega Proveedores Cervantes</button>
+        <button class="btn-opcion vieja" title="Todavía sin versión GP2: abre la pantalla de la app anterior" data-link="../Facturas/EntregaProveedoresCervantes.html">Entrega Proveedores Cervantes</button>
       </div>
     </div>
 
@@ -269,14 +274,14 @@
       <h2><svg class="card-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>Insumos</h2>
 
       <div class="botones">
-        <button class="btn-opcion" data-link="../StockFlejes/recepcion.html" style="background:#111;color:#fff;border-color:#111">Recepción Insumos</button>
-        <button class="btn-opcion" data-link="../StockFlejes/cajas.html">Cajas</button>
-        <button class="btn-opcion" data-link="../StockFlejes/flejes.html">Flejes</button>
-        <button class="btn-opcion" data-link="../StockFlejes/cartones.html">Cartones</button>
-        <button class="btn-opcion" data-link="../StockFlejes/plasticos.html">Partes Plásticas</button>
-        <button class="btn-opcion" data-link="../StockFlejes/remaches.html">Remaches</button>
-        <button class="btn-opcion" data-link="../StockFlejes/bombillas.html">Bombillas</button>
-        <button class="btn-opcion" data-link="../StockFlejes/garage.html">Garage</button>
+        <button class="btn-opcion" data-link="../StockFlejes/RecepcionInsumos_GP2.html" style="background:#111;color:#fff;border-color:#111">Recepción Insumos</button>
+        <button class="btn-opcion" data-link="../StockFlejes/Cajas_GP2.html">Cajas</button>
+        <button class="btn-opcion" data-link="../StockFlejes/Flejes_GP2.html">Flejes</button>
+        <button class="btn-opcion" data-link="../StockFlejes/Cartones_GP2.html">Cartones</button>
+        <button class="btn-opcion" data-link="../StockFlejes/Plasticos_GP2.html">Partes Plásticas</button>
+        <button class="btn-opcion" data-link="../StockFlejes/Remaches_GP2.html">Remaches</button>
+        <button class="btn-opcion" data-link="../StockFlejes/Bombillas_GP2.html">Bombillas</button>
+        <button class="btn-opcion" data-link="../StockFlejes/Garage_GP2.html">Garage</button>
       </div>
     </div>
 
@@ -294,7 +299,7 @@
       <h2><svg class="card-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11H7a4 4 0 0 0-4 4v2a2 2 0 0 0 2 2h2m6-10h2a4 4 0 0 1 4 4v2a2 2 0 0 1-2 2h-2m-6-4a3 3 0 1 1 6 0 3 3 0 0 1-6 0Z"/></svg>Ventas</h2>
 
       <div class="botones">
-        <button class="btn-opcion" data-link="../Ventas Chat/index.html">Chat Bot Ventas</button>
+        <button class="btn-opcion vieja" title="Todavía sin versión GP2: abre la pantalla de la app anterior" data-link="../Ventas Chat/index.html">Chat Bot Ventas</button>
       </div>
     </div>
 
