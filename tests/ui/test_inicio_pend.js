@@ -17,7 +17,8 @@ const STUB = `window.supabase={createClient:function(){return{rpc:async function
   await page.route('**/version.js*', r => r.fulfill({ contentType: 'application/javascript', body: 'window.APP_VERSION="vTEST";' }));
   await page.route('**/*.css*', r => r.fulfill({ contentType: 'text/css', body: '' }));
   await page.route('**/*.png', r => r.fulfill({ contentType: 'image/png', body: Buffer.from('') }));
-  await page.goto(ROOT + '/Inicio/index_GP2.html');
+  // El aviso se mudo al menu: Inicio/index_GP2.html quedo como redirect.
+  await page.goto(ROOT + '/GP2_MODULOS.html');
   await page.waitForFunction(() => document.body.textContent.includes('SIN aplicar al stock'));
   const t = await page.textContent('body');
   const ok = (c,m)=>{ console.log((c?'OK  ':'FAIL')+' '+m); if(!c) process.exitCode=1; };
