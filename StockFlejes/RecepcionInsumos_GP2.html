@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="es">
 <head>
-<!-- v3.7.1 — la OC se resume como "OC: 640" = lo que FALTA recibir, sin numero de OC ni unidad (pedido del usuario). v3.7.0 — la tarjeta del insumo muestra la OC ABIERTA que lo espera y la ultima carga queda solo con los kg, sin fecha. v3.6.1 — fix: el mensaje del cruce con OC se mostraba nunca (itemSel null tras cerrar popup); aviso de pallets a medias al guardar pesaje. v3.6.0 — muestra el cruce con OC (recibido/completa/sin OC) devuelto por la BD. v3.5.0: cartones se cargan en PAQUETES de 250 (parametro carton_uni_x_paquete), guardados en unidades. v3.4.0: modo_control por proveedor: rollos_remito (Basconia/Aperam), pesaje (resto flejeros, remito solo kg), peso_total (Bella Vista). v3.3.0: Bella Vista: factura en uni (se anota convertido a kg) y control por PESO TOTAL contra el remito. v3.2.0: la balanza debe dar MAS que el remito (peso del pallet), aviso en vivo + confirm al guardar. v3.1.0: pesaje obligatorio (sin "Pesar después"): la carga no se termina hasta controlar. v3.0.0: remito multi-item: paso 1 todos los items, "Terminé de pasar remito", paso 2 pesaje de todo; modulo Control integrado aca -->
+<!-- v3.7.2 — la OC lleva la unidad: "OC: 640 kg" (los flejes van en kg y los cartones en unidades; sin unidad el numero no dice de que habla). v3.7.1 — la OC se resume como lo que FALTA recibir, sin numero de OC. v3.7.0 — la tarjeta del insumo muestra la OC ABIERTA que lo espera y la ultima carga queda solo con los kg, sin fecha. v3.6.1 — fix: el mensaje del cruce con OC se mostraba nunca (itemSel null tras cerrar popup); aviso de pallets a medias al guardar pesaje. v3.6.0 — muestra el cruce con OC (recibido/completa/sin OC) devuelto por la BD. v3.5.0: cartones se cargan en PAQUETES de 250 (parametro carton_uni_x_paquete), guardados en unidades. v3.4.0: modo_control por proveedor: rollos_remito (Basconia/Aperam), pesaje (resto flejeros, remito solo kg), peso_total (Bella Vista). v3.3.0: Bella Vista: factura en uni (se anota convertido a kg) y control por PESO TOTAL contra el remito. v3.2.0: la balanza debe dar MAS que el remito (peso del pallet), aviso en vivo + confirm al guardar. v3.1.0: pesaje obligatorio (sin "Pesar después"): la carga no se termina hasta controlar. v3.0.0: remito multi-item: paso 1 todos los items, "Terminé de pasar remito", paso 2 pesaje de todo; modulo Control integrado aca -->
 <script src="../auth-guard.js?v=20260829f"></script>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
@@ -298,10 +298,13 @@ function resumenUltima(u){
 }
 /* Lo que SI importa al recibir: si hay una OC abierta esperando este insumo,
    cuanto FALTA recibir (pedido - recibido). Sale de recepcion_bundle (OCs en
-   borrador o enviada). Formato pedido por el usuario: "OC: 640", sin mas. */
+   borrador o enviada). Formato: "OC: 640 kg". La unidad va porque los flejes vienen
+   en kg y los cartones en unidades: sin ella el numero no dice de que habla. Si la
+   misma parte estuviera pedida en dos unidades distintas se omite, para no mentir. */
 function resumenOC(oc){
   if(!oc || !(Number(oc.pendiente)>0)) return '';
-  return '<span class="oc-pend">OC: '+fmt(oc.pendiente)+'</span>';
+  var u = oc.unidades_mezcladas ? '' : (oc.unidad || '');
+  return '<span class="oc-pend">OC: '+fmt(oc.pendiente)+(u?(' '+esc(u)):'')+'</span>';
 }
 
 function pintarItems(list){

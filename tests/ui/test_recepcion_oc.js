@@ -7,7 +7,7 @@ const EXE = process.env.CHROMIUM_PATH || (fs.existsSync('/opt/pw-browsers/chromi
 
 /* Fija el formato de la tarjeta de insumo en Recepcion, pedido por el usuario
    (2026-08-29): la ultima carga muestra SOLO los kg (sin fecha, sin pallets ni
-   rollos) y la OC abierta se resume como "OC: <lo que falta>". */
+   rollos) y la OC abierta se resume como "OC: <lo que falta> <unidad>". */
 const BUNDLE = {
   tara: { tara_pallet: '20', tol_ctrl_peso_pct: '5', carton_uni_x_paquete: '250' },
   sectores: [{ id: 5, nombre: 'Sector Fleje' }],
@@ -23,6 +23,9 @@ const BUNDLE = {
     { comp_id: 3, codigo: 'A11', descripcion: 'Fleje N° 23', sector: 'Sector Fleje', sector_id: 5, um: 'kg',
       proveedor: 'Basconia', n_fleje: 23, medida: '20 x 2,8', ultima: null,
       oc_pend: { ocs: '4, 5', n_ocs: 2, pendiente: 1200, unidad: 'kg', unidades_mezcladas: false } },
+    { comp_id: 4, codigo: 'A12', descripcion: 'Fleje N° 5', sector: 'Sector Fleje', sector_id: 5, um: 'kg',
+      proveedor: 'Basconia', n_fleje: 5, medida: '15 x 1', ultima: null,
+      oc_pend: { ocs: '6', n_ocs: 1, pendiente: 50, unidad: 'kg', unidades_mezcladas: true } },
   ],
 };
 
@@ -55,14 +58,14 @@ const STUB = 'window.supabase={createClient:function(){return{'
   await page.waitForSelector('.item-btn');
 
   const cards = await page.$$eval('.item-btn', bs => bs.map(b => b.innerText.replace(/\n/g, ' | ')));
-  ok(cards.length === 3, '3 insumos del proveedor');
+  ok(cards.length === 4, '4 insumos del proveedor');
 
   // la ultima carga: solo los kg
   ok(/últ\. 360 kg/.test(cards[0]), 'ultima carga = "últ. 360 kg": ' + cards[0]);
   ok(!/29\/8|2 pallets|7 rollo/.test(cards[0]), 'sin fecha, sin pallets, sin rollos');
 
-  // la OC abierta: "OC: <lo que falta>" (640 = 1000 pedidos - 360 recibidos)
-  ok(/OC: 640/.test(cards[0]), 'OC pendiente = "OC: 640": ' + cards[0]);
+  // la OC abierta: "OC: <lo que falta> <unidad>" (640 = 1000 pedidos - 360 recibidos)
+  ok(/OC: 640 kg/.test(cards[0]), 'OC pendiente = "OC: 640 kg": ' + cards[0]);
   ok(await page.$('.item-btn .oc-pend') !== null, 'la OC va resaltada en su propio span');
 
   // sin OC abierta no se muestra nada
@@ -70,7 +73,11 @@ const STUB = 'window.supabase={createClient:function(){return{'
   ok(/sin cargas/.test(cards[1]), 'sin cargas cuando nunca se recibio');
 
   // varias OC: se suma lo que falta de todas
-  ok(/OC: 1\.200/.test(cards[2]), 'dos OC suman lo pendiente: ' + cards[2]);
+  ok(/OC: 1\.200 kg/.test(cards[2]), 'dos OC suman lo pendiente: ' + cards[2]);
+
+  // misma parte pedida en dos unidades: se muestra el numero SIN unidad, no se inventa
+  ok(/OC: 50(\s|$)/.test(cards[3]) && !/OC: 50 kg/.test(cards[3]),
+     'con unidades mezcladas no pone unidad: ' + cards[3]);
 
   await browser.close();
   console.log(process.exitCode ? 'HAY FALLOS' : 'TODO OK');

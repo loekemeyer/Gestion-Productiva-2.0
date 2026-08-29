@@ -39,8 +39,11 @@
 - **Flejes →** cada uno tiene el suyo (Basconia, Aperam, Hermac, Brawin, Szapiro,
   JL Metales, EstaMetal, Altrak). `[dato: GP2.fleje_detalle]`
 - **Importado** (marcador, no es una empresa): la **Cremallera (E13)** y los insumos del
-  **corta queso** (Z19A alambre, PB1 cilindro, V20/CV20 tornillo) **ya no se fabrican, se
+  **corta queso** (Z19A alambre, PB1 cilindro, V20 tornillo) **ya no se fabrican, se
   importan**. `[usuario 2026-08-29]`
+  El tornillo se importa **ya niquelado**: el código **CV20** ("p/Niquelar") **no se compra
+  más** y el paso de niquelado en Guazzaroni se sacó de las rutas 382/577/589, que ahora
+  entran el V20 comprado y van derecho al tallerista. `[usuario 2026-08-29]`
 - **Garage (GRJ*)**: no llevan proveedor, los arman los talleristas. Además el sector se
   está vaciando: hoy quedan 4 códigos y sólo GRJ10 tiene stock. `[usuario + dato]`
 
@@ -66,9 +69,19 @@ inoxidable.** El ahorro no es sólo el material, es todo lo que se evita:
 Además, en Argentina **el fleje normal puede costar más caro que el inoxidable**, así que
 el cambio puede convenir incluso mirando sólo el material. `[usuario]`
 
-**La excepción — las piezas que se pintan siguen en fleje normal.** Si la parte va a
-pintura, la pintura necesita el material común como base, así que ahí no se pasa a
-inoxidable. `[usuario]`
+**La excepción — lo que se pinta va en fleje normal.** La pintura necesita el material
+común como base, así que una pieza destinada a pintura no se pasa a inoxidable.
+`[usuario]`
+
+**Pero la excepción NO es por pieza, es por destino** `[usuario 2026-08-29]`: una misma
+pieza puede comprarse en **los dos materiales a la vez** — inoxidable para las unidades
+que iban a cromado, y fleje laminado para las que se pintan. Lo que decide si se puede es
+el **mínimo de compra del proveedor**: si el mínimo da, conviene partir la compra en dos
+materiales; si no da, hay que elegir uno. Ejemplo dado: el **destapador** podría llevar
+inox para la versión cromada y laminado para la pintada.
+
+Por eso las 4 piezas que hoy van a cromado **y** a pintura (G7, H11, I1, I6) no quedan
+descartadas: son candidatas a compra partida, sujeto al mínimo del proveedor.
 
 Ejemplo dado: **el cuerpo del 510** antes se hacía en fleje laminado y hoy se hace en
 inoxidable. `[usuario]`
@@ -76,8 +89,10 @@ inoxidable. `[usuario]`
 ### Qué dice la base hoy
 `[dato 2026-08-29, GP2.ruta_paso + public."Partes x PS"]`
 - **Cromado → Pedernera Ilario: 38 partes.** Éstas son **las candidatas** a inoxidable.
-- **Pintado → Jade (15), Daniel (14), Rec Color (4) = 33 partes.** Éstas **NO** son
-  candidatas: por la regla de arriba se quedan en fleje normal.
+- **Pintado → Jade (15), Daniel (14), Rec Color (4) = 33 partes.** Las unidades que se
+  pintan van en fleje normal — pero la pieza puede igual tener una parte de su compra en
+  inox si además va a cromado y el mínimo del proveedor lo permite (ver regla de arriba).
+  `[corregido 2026-08-29: antes decía que quedaban descartadas]`
 - Otros procesos: Niquelado → Guazzaroni (24), Zincado → Guazzaroni (6), Cementado y
   Templado → FAAT, Serigrafiado → Ximpa, Adhesivado → AJ Adhesivos.
 - Ya hay **13 componentes con "inox" en la descripción**: la migración empezó de hecho.
@@ -100,8 +115,10 @@ GRJ10 y GRJ10A Batidor Pera.
 Pizzero (0,119 kg), GRJ10/GRJ10A (0,098), N7 Pinza Corta (0,068), H1 Manija Redonda
 (0,049), G7 Rompenuez (0,046), G4 Sacacorcho (0,045).
 
-**⚠ Cuatro tienen ADEMÁS un paso de pintura** (G7, H11, I1, I6): por la regla de arriba
-probablemente NO se pasan a inoxidable. `[deducido — confirmar con el usuario]`
+**Cuatro tienen ADEMÁS un paso de pintura** (G7 Rompenuez, H11 Varilla c/Cuchilla,
+I1 Destapador Pie, I6 Mango Plano 502): son las candidatas a **compra partida** — inox
+para lo que va a cromar, laminado para lo que va a pintar, si el mínimo del proveedor da.
+`[usuario 2026-08-29, confirmado; corrige el "no se pasan" que estaba deducido]`
 
 ### Lo que falta para poder decidirlo con números
 `[deducido — hueco real, hay que cargarlo]` Para calcular el ahorro pieza por pieza faltan
@@ -114,7 +131,7 @@ tres datos que **hoy no están en GP2**:
 
 Con esos tres, el cálculo por pieza es directo:
 `ahorro = (costo_cromado + flete_prorrateado) - (precio_inox - precio_laminado) x kg_pieza`
-y sale el ranking de las 38 candidatas por ahorro anual usando el consumo de la Est Madre.
+y sale el ranking de las 34 candidatas por ahorro anual usando el consumo de la Est Madre.
 
 ---
 
