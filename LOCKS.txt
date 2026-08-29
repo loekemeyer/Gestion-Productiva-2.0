@@ -1,5 +1,5 @@
 [LOCKS]
-(vacío)
+LockX | TODOS los modulos GP2 (revision + arreglos por agentes, un modulo por agente, archivos disjuntos) | loekemeyer (claude-remote) | 2026-08-29 | Workflow: revisor x modulo -> arreglador x modulo; assets compartidos (gp2-*.css/js, tandas-popup) NO se tocan
 [WAIT QUEUE]
 (vacío)
 
