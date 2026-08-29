@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="es">
 <head>
-<!-- v1.0.0 — eventos Rotura/Pare Matriz de GP2.produccion con uni acumuladas entre roturas -->
+<!-- v1.1.0 — eventos Rotura/Pare Matriz de GP2.produccion con uni acumuladas entre roturas + golpes -->
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>Problemas con Matrices · GP2</title>
@@ -59,7 +59,8 @@
     <div class="table-wrap"><table class="t">
       <thead><tr><th>Fecha</th><th>Inicio</th><th>Fin</th><th>Tipo</th><th>Legajo</th><th>Operario</th>
         <th>Matriz</th><th>Descripción</th><th class="num">Duración</th>
-        <th class="num" title="Unidades producidas por esa matriz desde la última rotura">Uni desde<br>últ. rotura</th></tr></thead>
+        <th class="num" title="Unidades producidas por esa matriz desde la última rotura">Uni desde<br>últ. rotura</th>
+        <th class="num" title="Uni acumuladas / unidades por golpe de la matriz">Golpes</th></tr></thead>
       <tbody id="tbody"></tbody>
     </table></div>
     <div id="tblEmpty" class="empty hidden">Sin eventos en el rango.</div>
@@ -125,7 +126,8 @@ function render(){
       '<td>'+esc(e.legajo)+'</td><td>'+esc(e.empleado||'')+'</td>'+
       '<td><b>'+esc(e.matriz)+'</b></td><td>'+esc(e.nombre_matriz||'')+'</td>'+
       '<td class="num">'+dur(e.segundos)+'</td>'+
-      '<td class="num"><b>'+fmt(e.uni_acum)+'</b></td></tr>';
+      '<td class="num"><b>'+fmt(e.uni_acum)+'</b></td>'+
+      '<td class="num">'+(e.golpes==null?'—':('<b>'+fmt(e.golpes)+'</b>'))+'</td></tr>';
   }).join('');
   $('kRM').textContent=fmt(rm); $('kPM').textContent=fmt(pm); $('kTot').textContent=fmt(fs.length);
   $('tblEmpty').classList.toggle('hidden', fs.length>0);
@@ -134,10 +136,10 @@ function render(){
 
 $('btnCSV').addEventListener('click',function(){
   var fs=filtrados(), sep=';';
-  var head=['Fecha','Inicio','Fin','Tipo','Legajo','Operario','Matriz','Descripcion','Segundos','Uni desde ult rotura'];
+  var head=['Fecha','Inicio','Fin','Tipo','Legajo','Operario','Matriz','Descripcion','Segundos','Uni desde ult rotura','Golpes'];
   var lines=fs.map(function(e){
     return [e.fecha,e.hora_inicio||'',e.hora_fin||'',e.tipo,e.legajo,e.empleado||'',e.matriz,e.nombre_matriz||'',
-      Math.round(e.segundos||0),e.uni_acum].map(function(v){return String(v).replace(/;/g,',');}).join(sep);
+      Math.round(e.segundos||0),e.uni_acum,e.golpes==null?'':e.golpes].map(function(v){return String(v).replace(/;/g,',');}).join(sep);
   });
   var blob=new Blob(['﻿sep=;\n'+head.join(sep)+'\n'+lines.join('\n')],{type:'text/csv;charset=utf-8'});
   var a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='problemas_matrices.csv'; a.click();
