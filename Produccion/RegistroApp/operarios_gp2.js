@@ -10,7 +10,7 @@
 const SUPABASE_URL = "https://hrxfctzncixxqmpfhskv.supabase.co";
 const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhyeGZjdHpuY2l4eHFtcGZoc2t2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI3MjQyNjEsImV4cCI6MjA4ODMwMDI2MX0.4L6wguch8UZGhC2VpzrWcCjJGUV-IkYsl9JoCWrOLUs";
 const LEGAJO_EDUARDO = "19";
-const APP_VERSION = "1.4.1"; // bumpear en cada actualizacion (junto con el ?v= del HTML y el MI_V del chequeo de cache)
+const APP_VERSION = "1.5.0"; // bumpear en cada actualizacion (junto con el ?v= del HTML y el MI_V del chequeo de cache)
 
 const SB = supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
   db: { schema: "GP2" },
@@ -407,13 +407,18 @@ function renderMatrizInfo() {
   const desc = nombreMatriz(nm);
   el.classList.remove("hidden");
   const pieza = s.lastMatrix.pieza ? ` · Pieza: ${s.lastMatrix.pieza}` : "";
-  // Rollo en uso: cuanto queda, estimado con lo producido (uni / ppk por cajon)
+  // Rollo en uso: cuanto queda, estimado con lo producido (uni / ppk por cajon).
+  // Si la tablet perdio el estado (otro dia, otro equipo o storage borrado), cae
+  // al uso abierto persistido en el servidor: rollos_abiertos trae kg_usados
+  // calculados de la produccion ya sincronizada.
   let rollo = "";
-  if (s.rollo?.kg_por_rollo) {
-    const queda = Number(s.rollo.kg_por_rollo) - (Number(s.rollo.kg_usados) || 0);
+  const rSrv = (D.rollos_abiertos || {})[legajoKey()];
+  const r = s.rollo || (rSrv ? { codigo: rSrv.codigo, kg_por_rollo: rSrv.kg_por_rollo, kg_usados: rSrv.kg_usados } : null);
+  if (r?.kg_por_rollo) {
+    const queda = Number(r.kg_por_rollo) - (Number(r.kg_usados) || 0);
     const fmt1 = n => (Math.round(n * 10) / 10).toLocaleString("es-AR");
-    const color = queda <= Number(s.rollo.kg_por_rollo) * 0.15 ? "#b45309" : "#166534";
-    rollo = `<br>🧻 Rollo de ${fmt1(s.rollo.kg_por_rollo)} kg (${s.rollo.codigo || "fleje"}): ` +
+    const color = queda <= Number(r.kg_por_rollo) * 0.15 ? "#b45309" : "#166534";
+    rollo = `<br>🧻 Rollo de ${fmt1(r.kg_por_rollo)} kg (${r.codigo || "fleje"}): ` +
             `<b style="color:${color}">quedan ~${fmt1(Math.max(0, queda))} kg</b>`;
   }
   el.innerHTML = `<b>Matriz activa: ${nm}</b>${desc ? ` — ${desc}` : ""}${pieza}${rollo}`;
