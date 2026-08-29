@@ -76,7 +76,10 @@ Vista: `GP2.v_consumo_fleje_kg`; el Punto de Stock de flejes usa esos kg × 6 me
 - Prov AT: se les manda según la OC de Producción Virgilio (sin punto de stock propio).
 - Meses de punto de stock ya definidos: flejes 6, crudo 1, procesado 1, talleristas 1,
   tránsito 0, cartones 6, cajas 6, remaches 4, plásticos 4, bombillas 3.
-- Máximos físicos: importados del vecino (SP 80, SC 74, cajas 9, remaches 13); faltan
-  flejes, cartones, plásticos, bombillas y talleristas (el vecino no los tiene cargados).
+- Máximos físicos: importados del vecino (SP 80, SC 74, cajas 9, remaches 13) + Virgilio
+  (81 posiciones: también se guardan insumos/partes en Virgilio — SP y cajas con sus
+  máximos "Virg" del vecino) + talleristas (103, CALCULADOS = 1 mes de Est Madre de los
+  artículos que hace cada uno, parte por parte según sus rutas y recetas). Faltan:
+  flejes, cartones, plásticos y bombillas (el vecino no los tiene).
 - Costos: el vecino tiene precios de cartones en `public.Precios_Proveedores` (por texto
   de producto, sin cod_art); GP2 aún no tiene costos.
