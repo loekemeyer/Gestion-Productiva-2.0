@@ -90,18 +90,33 @@ contra las OC abiertas (`recibido` + estado `recibida` automático). RPCs: `oc_b
   `insumo` (compra directa, sin matriz). PENDIENTE: si el tornillo se importa YA
   niquelado, el paso CV20 → niquelado (Guazzaroni) de las rutas 382/577/589 queda muerto
   y hay que sacarlo; si se importa en crudo, queda como está.
+- **Plásticos → `Pat Bet Plast`** (29 códigos). El nombre se escribe así, literal. La
+  asignación NO se inventó: sale del dato real del vecino `public.Partes_Plasticas`
+  (columna Proveedor), matcheando por código y **excluyendo** las piezas que en GP2
+  produce un tallerista. OJO: el vecino atribuye **todas** las plásticas a Pat Bet Plast
+  (más 2 a Esther: PC2A/PC2B, y 2 a Maspoli: PC12/PEP7) — **no** tiene ninguna a nombre de
+  Pettofrezza, aunque hoy también inyecta. PENDIENTE: cuáles pasaron a Pettofrezza.
 - **Garage (GRJ1, GRJ7, GRJ10, GRJ10A)**: NO llevan proveedor — los arman los talleristas,
   no se compran.
+- **Becker Sandra Nora NO es proveedor de insumos**: es `proveedor_servicio` (pintura /
+  serigrafía de piezas metálicas). No confundir.
 
-Faltan proveedor: plásticos 37, bombillas/resortes 8, remaches 8, fleje F12 (N° 49).
+Faltan proveedor: 8 plásticos (ver abajo), bombillas/resortes 8, remaches 8, fleje F12.
 
 ## Pendientes
 
 - Asignar formato/categoría a cada cartón (`componente.carton_formato/carton_categoria`).
 - Varillas: proveedor y forma de control.
-- Proveedor de: los 37 plásticos (PA*/PB*/PC*/PEP*), los 8 resortes (BOM10, C9, C12, D14,
-  EP10, I2, I3, LLF8), los 8 remaches (V4, V10, V13, V14, V18D, W8, CV13, CV18D) y el
-  fleje F12 (N° 49).
+- Proveedor de: los 8 resortes (BOM10, C9, C12, D14, EP10, I2, I3, LLF8), los 8 remaches
+  (V4, V10, V13, V14, V18D, W8, CV13, CV18D) y el fleje F12 (N° 49).
+- Los 8 plásticos que quedaron sin proveedor y por qué:
+  - `PA10B` Capuchón ф8 s/Serig, `PC16` Inserto Chef — códigos nativos de GP2, el vecino
+    no los tiene (PA10B parece la variante sin serigrafía de PA10 = Pat Bet Plast).
+  - `PC15A` Cpo doble aleta LK, `PC15B` Cuerpo Sac Aleta, `PEP5` Mango Madera — el vecino
+    los tiene con proveedor VACÍO (PEP5 además es de madera, no inyección).
+  - `PC12`, `PEP7`, `PEP8` — en GP2 los produce **Maspoli SRL** como tallerista (paso de
+    ruta), no se compran como insumo. El vecino coincide en PC12/PEP7 (Maspoli) pero pone
+    PEP8 bajo Pat Bet Plast: conflicto a resolver.
 - Prov AT: se les manda según la OC de Producción Virgilio (sin punto de stock propio).
 - Meses de punto de stock ya definidos: flejes 6, crudo 1, procesado 1, talleristas 1,
   tránsito 0, cartones 6, cajas 6, remaches 4, plásticos 4, bombillas 3.
