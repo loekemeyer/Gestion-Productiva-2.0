@@ -2809,7 +2809,19 @@ AS $function$
                      'remito', r.remito, 'proveedor', r.proveedor)
                      from "GP2".recepcion_insumo r
                     where r.componente_id = c.id
-                    order by r.id desc limit 1)
+                    order by r.id desc limit 1),
+        -- OC abiertas esperando este insumo: lo que todavia no se recibio
+        'oc_pend', (select case when count(*) = 0 then null else jsonb_build_object(
+                       'ocs', string_agg(distinct o.numero::text, ', '),
+                       'n_ocs', count(distinct o.id),
+                       'pendiente', sum(i.cantidad - coalesce(i.recibido,0)),
+                       'unidad', min(i.unidad),
+                       'unidades_mezcladas', (count(distinct i.unidad) > 1)) end
+                     from "GP2".orden_compra o
+                     join "GP2".orden_compra_item i on i.oc_id = o.id
+                    where i.componente_id = c.id
+                      and o.estado in ('borrador','enviada')
+                      and i.cantidad > coalesce(i.recibido,0))
       ) order by s.nombre, c.codigo),'[]'::jsonb)
       from "GP2".componente c
       join "GP2".sector s on s.id=c.sector_id
