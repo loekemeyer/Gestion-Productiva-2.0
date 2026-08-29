@@ -33,6 +33,25 @@
 - PENDIENTE: repartir los 29 plásticos entre los tres. Hoy están todos bajo Pat Bet Plast
   porque esa era la foto del vecino, que es data vieja.
 
+### No todo insumo se compra
+`[usuario 2026-08-29]` Una parte sin proveedor no siempre es un dato que falta: puede ser
+una **decisión ya tomada**. Por eso `componente.estado_compra`:
+
+- **`fabricacion`** — se hace adentro. Los **resortes C9 (Resorte U Crom), D14, I2 e I3**
+  se fabrican (confirmado también por sus rutas: los producen las matrices 47 y 69, FAAT,
+  Guazzaroni y Pedernera). Los **GRJ del Garage** también.
+- **`discontinuo`** — ya no se usa: **BOM10** (Resorte Bicónico) y **C12** (Paleta Batidor
+  Resorte).
+- Los que **sí se compran** pero todavía no tienen proveedor: **EP10** y **LLF8**
+  (Resorte Batidor Mini y Batidor Pera; LLF8 se compra igual que EP10) y los remaches
+  V4, V10, V14, V18D, CV13, CV18D. Los **remaches se compran todos**. `[usuario]`
+- **V13 → Electronica Mandelli** y **W8 → Imel**. `[dato: public."Remaches SP/SC"]`
+
+Marcar el estado **saca la parte de la Orden de Compra** y deja de contarla como faltante.
+NO se usa el campo `proveedor` para esto: la OC agrupa por proveedor y terminaría
+ofreciendo comprarle a un proveedor llamado "Discontinuo". Se marca desde la misma
+pantalla de Inyectores, con los botones **Se fabrica** / **Discontinuo**.
+
 ### Resto de los rubros
 - **Cartones → Talleres Gráficos Pol**, siempre el mismo, los 85. `[usuario]`
 - **Cajas → Corrugadora del Sur**, siempre el mismo, las 9. `[usuario]`
@@ -200,6 +219,10 @@ siempre con el mismo puerto.
 
 - **Los nombres colisionan entre las dos casas.** El fleje "A1" del vecino no es la pieza
   "A1" de GP2. Nunca matchear por código sin mirar el sector. `[2026-08-29]`
+- **Y colisionan DENTRO de GP2 también**: hay **dos componentes con código `C9`** — un
+  "Fleje N° 4" (Sector Fleje) y el "Resorte U Crom" (Sector Bombilla). Un `where
+  codigo='C9'` toca los dos. Siempre filtrar por sector. `[dato 2026-08-29, casi nos muerde
+  al marcar los resortes que se fabrican]`
 - **Una persona = varios roles.** Pettofrezza es tallerista, proveedor AT y ahora
   proveedor de insumo. Maspoli es tallerista y proveedor AT. Buscar en las cuatro tablas
   antes de dar de alta a alguien "nuevo".

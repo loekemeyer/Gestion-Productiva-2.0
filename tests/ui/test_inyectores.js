@@ -24,6 +24,8 @@ const BUNDLE = {
       um: 'unidad', kg_x_uni: null, uni_x_cajon: null, lo_produce: null, stock: 0, en_recetas: 1 },
     { comp_id: 103, codigo: 'PEP7', descripcion: 'Mgo sacafuente pizzero', proveedor: null,
       um: 'unidad', kg_x_uni: null, uni_x_cajon: null, lo_produce: 'Maspoli SRL', stock: 12, en_recetas: 1 },
+    { comp_id: 104, codigo: 'PB9', descripcion: 'Inserto viejo', proveedor: null, estado_compra: 'discontinuo',
+      um: 'unidad', kg_x_uni: null, uni_x_cajon: null, lo_produce: null, stock: 0, en_recetas: 0 },
   ],
 };
 
@@ -33,6 +35,8 @@ window.supabase = { createClient: function(){ return {
     window.__calls = window.__calls || [];
     window.__calls.push({name:name, args:args});
     if(name==='inyectores_bundle') return { data: ${JSON.stringify(BUNDLE)}, error: null };
+    if(name==='marcar_estado_compra')
+      return { data: { ok:true, comp_id: args.p_comp_id, estado: args.p_estado }, error: null };
     if(name==='asignar_proveedor_parte'){
       if(args.p_proveedor==='Proveedor Trucho')
         return { data:null, error:{ message:'El proveedor "Proveedor Trucho" no existe o esta inactivo.' } };
@@ -63,15 +67,18 @@ window.supabase = { createClient: function(){ return {
   const ok = (c, msg) => { console.log((c ? 'OK  ' : 'FAIL') + ' ' + msg); if (!c) process.exitCode = 1; };
 
   // una fila por parte, con la botonera de los 3 inyectores + "sin asignar"
-  ok(await page.$$eval('.parte', x => x.length) === 3, '3 partes listadas');
+  ok(await page.$$eval('.parte', x => x.length) === 4, '4 partes listadas');
   const btns = await page.$$eval('.parte:first-child .pbtn', xs => xs.map(x => x.textContent));
-  ok(btns.join('|') === 'Kollplast|Pat Bet Plast|Pettofrezza Rafael|— sin asignar',
+  ok(btns.join('|') === 'Kollplast|Pat Bet Plast|Pettofrezza Rafael|Se fabrica|Discontinuo|— sin asignar',
      'botonera: ' + btns.join('|'));
 
   // el proveedor actual viene marcado; las partes sin asignar se resaltan
   ok(await page.$eval('.parte:first-child .pbtn.on', b => b.textContent) === 'Pat Bet Plast',
      'PA1 marca Pat Bet Plast');
+  // el discontinuado NO cuenta como pendiente: es una decision tomada, no un faltante
   ok(await page.$$eval('.parte.sin', x => x.length) === 2, '2 partes sin asignar resaltadas');
+  ok(await page.$$eval('.parte.nocompra', x => x.length) === 1, 'el discontinuado va aparte, no como faltante');
+  ok(/Discontinuo/.test(await page.textContent('.parte:nth-child(4) .p-meta')), 'la fila dice Discontinuo');
 
   // aviso de que PEP7 lo fabrica un tallerista (no se compra)
   const meta = await page.textContent('.parte:nth-child(3) .p-meta');
@@ -88,14 +95,26 @@ window.supabase = { createClient: function(){ return {
   ok(await page.$$eval('.parte.sin', x => x.length) === 1, 'queda 1 sin asignar');
   ok(/quedan 1 sin asignar/.test(await page.textContent('#status')), 'status cuenta las pendientes');
 
+  // marcar "Se fabrica": manda la RPC nueva y saca la parte de los pendientes
+  await page.click('.parte:nth-child(3) .pbtn:has-text("Se fabrica")');
+  await page.waitForFunction(() => (window.__calls||[]).some(c => c.name === 'marcar_estado_compra'));
+  const est = await page.evaluate(() => window.__calls.filter(c => c.name === 'marcar_estado_compra')[0].args);
+  ok(est.p_comp_id === 103 && est.p_estado === 'fabricacion', 'RPC estado: ' + JSON.stringify(est));
+  ok(/fuera de la OC/.test(await page.textContent('#status')), 'avisa que queda fuera de la OC');
+  ok(await page.$$eval('.parte.nocompra', x => x.length) === 2, 'ahora hay 2 que no se compran');
+
   // el resumen por proveedor se recalcula sin recargar
   const res = await page.$$eval('.rcard', xs => xs.map(x => x.textContent));
   ok(res.some(t => /1Kollplast/.test(t)) && res.some(t => /1Pat Bet Plast/.test(t)),
      'resumen por proveedor: ' + res.join(' / '));
+  // lo que no se compra se cuenta aparte, NO como pendiente
+  ok(res.some(t => /1Se fabrica/.test(t)) && res.some(t => /1Discontinuo/.test(t)),
+     'el resumen separa lo que no se compra: ' + res.join(' / '));
+  ok(!res.some(t => /2\(sin asignar\)/.test(t)), 'no cuenta lo decidido como sin asignar');
 
-  // desasignar vuelve a dejarla pendiente
+  // desasignar vuelve a dejarla pendiente (PEP7 y PB9 ya no cuentan: no se compran)
   await page.click('.parte:nth-child(2) .pbtn.clear');
-  await page.waitForFunction(() => document.querySelectorAll('.parte.sin').length === 2);
+  await page.waitForFunction(() => document.querySelectorAll('.parte.sin').length === 1);
   const call2 = await page.evaluate(() => { const c = window.__calls.filter(x => x.name === 'asignar_proveedor_parte'); return c[c.length-1].args; });
   ok(call2.p_proveedor === null, 'desasignar manda proveedor null');
 

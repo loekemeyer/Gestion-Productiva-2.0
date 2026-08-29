@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="es">
 <head>
-<!-- v1.1.0 — celular: encabezado, rubros y resumen compactados a una linea, botonera en grilla de 2 columnas con alto de dedo (44px); nota plegable. v1.0.0 — Quien fabrica cada parte: botonera por proveedor. Lo que se asigne aca es lo que despues separa la OC (cada proveedor recibe SOLO lo suyo). -->
+<!-- v1.2.0 — botones "Se fabrica" y "Discontinuo": lo que no se compra deja de figurar como faltante y sale de la OC. v1.1.0 — celular: encabezado, rubros y resumen compactados a una linea, botonera en grilla de 2 columnas con alto de dedo (44px); nota plegable. v1.0.0 — Quien fabrica cada parte: botonera por proveedor. Lo que se asigne aca es lo que despues separa la OC (cada proveedor recibe SOLO lo suyo). -->
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>Inyectores · Quién hace cada parte · GP2</title>
@@ -34,6 +34,11 @@
   .pbtn.clear{font-weight:700;color:#777}
   .pbtn.clear.on{background:#6b7280;color:#fff;border-color:#6b7280}
   .pbtn:disabled{opacity:.45;cursor:wait}
+  /* no se compra: se fabrica adentro o esta discontinuado */
+  .pbtn.est{font-weight:700;color:#5b21b6;border-color:#ddd6fe}
+  .pbtn.est.on{background:#5b21b6;color:#fff;border-color:#5b21b6}
+  .parte.nocompra{background:#faf5ff}
+  .parte.nocompra:hover{background:#f3e8ff}
 
   .resumen{display:flex;gap:10px;flex-wrap:wrap;margin:10px 0}
   .rcard{background:#f6f8fa;border-radius:10px;padding:9px 14px;font-size:15px;font-weight:700}
@@ -131,6 +136,9 @@ function esc(s){ return String(s==null?"":s).replace(/[&<>"]/g, function(c){
 function fmt(n,d){ d=(d==null?0:d);
   return Number(n||0).toLocaleString("es-AR",{maximumFractionDigits:d}); }
 
+// Partes que NO se compran: no cuentan como faltantes y quedan fuera de la OC.
+var ESTADOS = { fabricacion:"Se fabrica", discontinuo:"Discontinuo" };
+
 var D = { sectores:[], proveedores:[], partes:[], sector:null };
 var secSel = null;   // id de sector elegido (null = el default del bundle: Plásticos)
 var CARGA = 0;       // token: una respuesta vieja no pisa la pantalla nueva
@@ -171,6 +179,12 @@ function pintarChips(){
   });
 }
 
+/* Falta asignar = no tiene proveedor Y se compra. Lo que se fabrica o esta
+   discontinuado no es un pendiente: es una decision ya tomada. */
+function falta(p){ return !p.proveedor && !p.estado_compra; }
+function pendientes(){ return (D.partes||[]).filter(falta).length; }
+function clasesDe(p){ return p.estado_compra ? " nocompra" : (falta(p) ? " sin" : ""); }
+
 function filtradas(){
   var q = String($("q").value||"").trim().toLowerCase();
   if (!q) return (D.partes||[]).slice();
@@ -186,12 +200,13 @@ function render(){
 
   arr.forEach(function(p){
     var fila = document.createElement("div");
-    fila.className = "parte" + (p.proveedor ? "" : " sin");
+    fila.className = "parte" + clasesDe(p);
     fila.dataset.cid = p.comp_id;
 
     var izq = document.createElement("div");
     izq.className = "p-izq";
     var meta = [];
+    if (p.estado_compra) meta.push("<b>" + esc(ESTADOS[p.estado_compra] || p.estado_compra) + "</b>");
     // Si lo fabrica un tallerista no se compra: avisar antes de que le asignen proveedor
     if (p.lo_produce) meta.push("<b>lo fabrica " + esc(p.lo_produce) + "</b> (no se compra)");
     if (Number(p.en_recetas) === 0) meta.push("no está en ninguna receta");
@@ -210,9 +225,22 @@ function render(){
       b.addEventListener("click", function(){ asignar(fila, p, pr.nombre, b); });
       der.appendChild(b);
     });
+    // No se compra: se hace adentro o ya no se usa. Marcarlo saca la parte de la lista
+    // de faltantes y de la Orden de Compra.
+    Object.keys(ESTADOS).forEach(function(e){
+      var b = document.createElement("button");
+      b.type = "button";
+      b.className = "pbtn est" + (p.estado_compra === e ? " on" : "");
+      b.textContent = ESTADOS[e];
+      b.title = e === "fabricacion" ? "Se hace adentro, no se compra"
+                                    : "Ya no se usa: no se compra mas";
+      b.addEventListener("click", function(){ marcarEstado(fila, p, e, b); });
+      der.appendChild(b);
+    });
+
     var bc = document.createElement("button");
     bc.type = "button";
-    bc.className = "pbtn clear" + (p.proveedor ? "" : " on");
+    bc.className = "pbtn clear" + (!p.proveedor && !p.estado_compra ? " on" : "");
     bc.textContent = "— sin asignar";
     bc.title = "Dejarla pendiente de definir";
     bc.addEventListener("click", function(){ asignar(fila, p, null, bc); });
@@ -224,7 +252,7 @@ function render(){
   });
 
   pintarResumen();
-  var sinAsig = (D.partes||[]).filter(function(p){ return !p.proveedor; }).length;
+  var sinAsig = pendientes();
   $("status").className = "status";
   $("status").textContent = arr.length + " de " + (D.partes||[]).length + " partes" +
     (sinAsig ? (" · " + sinAsig + " sin asignar") : " · todas asignadas ✓");
@@ -233,7 +261,9 @@ function render(){
 function pintarResumen(){
   var porProv = {};
   (D.partes||[]).forEach(function(p){
-    var k = p.proveedor || "(sin asignar)";
+    // lo que no se compra se cuenta por su estado: no es un pendiente
+    var k = p.estado_compra ? (ESTADOS[p.estado_compra] || p.estado_compra)
+                            : (p.proveedor || "(sin asignar)");
     porProv[k] = (porProv[k] || 0) + 1;
   });
   var claves = Object.keys(porProv).sort(function(a,b){
@@ -257,15 +287,14 @@ async function asignar(fila, parte, prov, btn){
     var r = await SB.rpc("asignar_proveedor_parte", { p_comp_id: parte.comp_id, p_proveedor: prov });
     if (r.error) throw r.error;
     parte.proveedor = prov;
-    botones.forEach(function(b){
-      b.classList.toggle("on", b === btn);
-    });
-    fila.classList.toggle("sin", !prov);
+    if (prov) parte.estado_compra = null;   // el server los hace excluyentes
+    botones.forEach(function(b){ b.classList.toggle("on", b === btn); });
+    fila.className = "parte" + clasesDe(parte);
     pintarResumen();
     // el contador del chip del rubro cambia con cada asignación
     var s = (D.sectores||[]).filter(function(x){ return Number(x.id) === Number(secSel); })[0];
-    if (s) { s.sin_prov = (D.partes||[]).filter(function(p){ return !p.proveedor; }).length; pintarChips(); }
-    var sinAsig = (D.partes||[]).filter(function(p){ return !p.proveedor; }).length;
+    if (s) { s.sin_prov = pendientes(); pintarChips(); }
+    var sinAsig = pendientes();
     $("status").className = "status ok";
     $("status").textContent = "✓ " + parte.codigo + " → " + (prov || "sin asignar") +
       (sinAsig ? (" · quedan " + sinAsig + " sin asignar") : " · todas asignadas ✓");
@@ -273,6 +302,36 @@ async function asignar(fila, parte, prov, btn){
     $("status").className = "status bad";
     $("status").textContent = "No se pudo guardar " + parte.codigo + ": " + (e.message || e);
   }finally{
+    botones.forEach(function(b){ b.disabled = false; });
+  }
+}
+
+/* Marcar que la parte NO se compra (se fabrica adentro o esta discontinuada).
+   Volver a tocar el mismo boton la saca del estado y vuelve a quedar pendiente. */
+async function marcarEstado(fila, parte, estado, btn){
+  var nuevo = (parte.estado_compra === estado) ? null : estado;
+  var botones = fila.querySelectorAll(".pbtn");
+  botones.forEach(function(b){ b.disabled = true; });
+  try{
+    var r = await SB.rpc("marcar_estado_compra", { p_comp_id: parte.comp_id, p_estado: nuevo });
+    if (r.error) throw r.error;
+    parte.estado_compra = nuevo;
+    if (nuevo) parte.proveedor = null;      // el server los hace excluyentes
+    botones.forEach(function(b){ b.classList.toggle("on", nuevo && b === btn); });
+    fila.className = "parte" + clasesDe(parte);
+    // el contador del chip del rubro cambia con cada marca
+    var s = (D.sectores||[]).filter(function(x){ return Number(x.id) === Number(secSel); })[0];
+    if (s) { s.sin_prov = pendientes(); pintarChips(); }
+    // el texto de la izquierda cambia: se rehace la fila entera
+    render();
+    var sinAsig = pendientes();
+    $("status").className = "status ok";
+    $("status").textContent = "✓ " + parte.codigo + " → " +
+      (nuevo ? ESTADOS[nuevo] + " (fuera de la OC)" : "vuelve a comprarse") +
+      (sinAsig ? (" · quedan " + sinAsig + " sin asignar") : " · todas asignadas ✓");
+  }catch(e){
+    $("status").className = "status bad";
+    $("status").textContent = "No se pudo guardar " + parte.codigo + ": " + (e.message || e);
     botones.forEach(function(b){ b.disabled = false; });
   }
 }

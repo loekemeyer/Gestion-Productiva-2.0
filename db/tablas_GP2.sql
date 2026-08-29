@@ -68,6 +68,9 @@ create table "GP2".componente (
   proveedor text,
   carton_formato text,
   carton_categoria text,
+  -- null = se compra; fabricacion = se hace adentro; discontinuo = ya no se usa.
+  -- Los que tienen estado quedan fuera de la OC y no cuentan como "sin proveedor".
+  estado_compra text,
   constraint componente_pkey PRIMARY KEY (id),
   constraint componente_carton_categoria_fkey FOREIGN KEY (carton_categoria) REFERENCES "GP2".carton_categoria(nombre),
   constraint componente_carton_formato_fkey FOREIGN KEY (carton_formato) REFERENCES "GP2".carton_formato(nombre),

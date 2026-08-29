@@ -389,7 +389,10 @@ begin
     raise exception 'El proveedor "%" no existe o esta inactivo. Dalo de alta primero.', v_prov;
   end if;
 
-  update componente set proveedor = v_prov where id = p_comp_id;
+  update componente
+     set proveedor = v_prov,
+         estado_compra = case when v_prov is null then estado_compra else null end
+   where id = p_comp_id;
 
   return jsonb_build_object('ok',true,'comp_id',p_comp_id,'codigo',v_cod,
                             'sector',v_sector,'antes',v_antes,'proveedor',v_prov);
@@ -2067,8 +2070,10 @@ select jsonb_build_object(
   'sectores', (select coalesce(jsonb_agg(jsonb_build_object(
                   'id', s.id, 'nombre', s.nombre,
                   'n', (select count(*) from componente c where c.sector_id=s.id),
+                  -- pendiente = sin proveedor Y que se compre
                   'sin_prov', (select count(*) from componente c
                                 where c.sector_id=s.id
+                                  and c.estado_compra is null
                                   and nullif(btrim(coalesce(c.proveedor,'')),'') is null)
                 ) order by s.nombre), '[]'::jsonb)
               from sector s where "GP2"._es_sector_insumo(s.id)),
@@ -2087,6 +2092,7 @@ select jsonb_build_object(
   'partes', (select coalesce(jsonb_agg(jsonb_build_object(
                 'comp_id', c.id, 'codigo', c.codigo, 'descripcion', c.descripcion,
                 'proveedor', nullif(btrim(coalesce(c.proveedor,'')),''),
+                'estado_compra', c.estado_compra,
                 'um', c.unidad_medida, 'kg_x_uni', c.kg_x_uni, 'uni_x_cajon', c.uni_x_cajon,
                 -- lo produce un tallerista? entonces no se compra como insumo
                 'lo_produce', (select t.nombre from ruta_paso rp
@@ -2165,6 +2171,28 @@ AS $function$
   );
 $function$;
 
+-- ---------- marcar_estado_compra ----------
+CREATE OR REPLACE FUNCTION "GP2".marcar_estado_compra(p_comp_id bigint, p_estado text)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'GP2'
+AS $function$
+declare v_e text := nullif(btrim(coalesce(p_estado,'')),''); v_cod text;
+begin
+  if v_e is not null and v_e not in ('fabricacion','discontinuo') then
+    raise exception 'Estado invalido: "%". Solo "fabricacion", "discontinuo" o vacio.', v_e;
+  end if;
+  select codigo into v_cod from componente where id = p_comp_id;
+  if v_cod is null then raise exception 'Componente inexistente (id=%).', p_comp_id; end if;
+  -- estado y proveedor se excluyen: si no se compra, no tiene sentido un proveedor
+  update componente
+     set estado_compra = v_e,
+         proveedor = case when v_e is null then proveedor else null end
+   where id = p_comp_id;
+  return jsonb_build_object('ok',true,'comp_id',p_comp_id,'codigo',v_cod,'estado',v_e);
+end $function$;
+
 -- ---------- movimientos_componente ----------
 CREATE OR REPLACE FUNCTION "GP2".movimientos_componente(p_comp_id bigint, p_ubic_id bigint, p_limit integer DEFAULT 200)
  RETURNS jsonb
@@ -2235,6 +2263,7 @@ with pend as (
   left join pend pd on pd.componente_id = c.id
   left join carton_formato cf on cf.nombre = c.carton_formato
   where "GP2"._es_sector_insumo(c.sector_id)
+    and c.estado_compra is null      -- fuera lo que se fabrica y lo discontinuado
 )
 select jsonb_build_object(
   'insumos', (select coalesce(jsonb_agg(jsonb_build_object(
