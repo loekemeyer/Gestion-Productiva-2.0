@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="es">
 <head>
-<!-- v1.1.0 — flejes en KG (consumo via ppk de matriz). v1.0.0 — Punto de stock por ubicacion: consumo Est Madre x meses vs maximo fisico -->
+<!-- v1.2.0 — maximos de insumos derivados de Est Madre (tag EM, se recalculan solos). v1.1.0 — flejes en KG (consumo via ppk de matriz). v1.0.0 — Punto de stock por ubicacion: consumo Est Madre x meses vs maximo fisico -->
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>Punto de Stock · GP2</title>
@@ -132,7 +132,7 @@ function render(){
       '<td class="num">'+uni(x.consumo_uni_mes)+(x.consumo_uni_mes!=null?' '+esc(x.unidad||'uni'):'')+'</td>'+
       '<td class="num">'+(x.meses_stock==null?'—':x.meses_stock)+'</td>'+
       '<td class="num"><b>'+uni(x.punto_stock_uni)+(x.punto_stock_uni!=null?' '+esc(x.unidad||'uni'):'')+'</b></td>'+
-      '<td class="num">'+uni(x.maximo_fisico)+'</td>'+
+      '<td class="num">'+uni(x.maximo_fisico)+(x.maximo_origen==='est_madre'?' <span title="Derivado de la Est Madre (se recalcula solo); no es un maximo fisico relevado" style="font-size:11px;font-weight:800;color:#0b3b73;background:#e3f2fd;border-radius:8px;padding:1px 6px">EM</span>':'')+'</td>'+
       '<td class="num">'+uni(x.online)+'</td>'+
       '<td>'+estadoPill(x.estado)+'</td>'+
     '</tr>';

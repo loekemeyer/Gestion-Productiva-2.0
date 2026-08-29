@@ -84,10 +84,16 @@ contra las OC abiertas (`recibido` + estado `recibida` automático). RPCs: `oc_b
 - Prov AT: se les manda según la OC de Producción Virgilio (sin punto de stock propio).
 - Meses de punto de stock ya definidos: flejes 6, crudo 1, procesado 1, talleristas 1,
   tránsito 0, cartones 6, cajas 6, remaches 4, plásticos 4, bombillas 3.
+- **Máximos de flejes e insumos (regla 2026-08-29)**: surgen de la **Est Madre llevada
+  para atrás** (consumo mensual explotado por receta/rutas × meses del rubro), NO de
+  relevamiento físico. `inventario.maximo_origen='est_madre'`; se **recalculan solos**
+  (triggers en est_madre / recetas / rutas, función `recalcular_maximos_insumos`). Los
+  máximos FÍSICOS ya relevados (cajas, 11 remaches del vecino) tienen origen `fisico`
+  y nunca se pisan. En Punto de Stock los derivados se ven con el tag **EM**.
 - Virgilio: NO interesa analizar su entrada/salida — existe solo para medir a los
   talleristas (decisión usuario 2026-08-29). No se construye módulo de despacho/venta.
-- Flejes, cartones, plásticos y bombillas NO tienen máximo físico definido (confirmado
-  por el usuario): quedan sin analizar hasta que se releven.
+- ~~Flejes, cartones, plásticos y bombillas sin máximo~~ RESUELTO 2026-08-29: sus máximos
+  se derivan de la Est Madre (ver regla arriba), ya no requieren relevamiento.
 - Cartones: el formato (C/LOKE/8) de cada cartón se va a identificar POR PRECIO —
   los precios del cartonero están copiados en `GP2.precio_proveedor` (rubro carton).
 - Máximos físicos: importados del vecino (SP 80, SC 74, cajas 9, remaches 13) + Virgilio
