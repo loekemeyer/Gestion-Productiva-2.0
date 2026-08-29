@@ -1,8 +1,8 @@
 <!doctype html>
 <html lang="es">
 <head>
-<!-- v3.3.0 — Bella Vista: factura en uni (se anota convertido a kg) y control por PESO TOTAL contra el remito. v3.2.0: la balanza debe dar MAS que el remito (peso del pallet), aviso en vivo + confirm al guardar. v3.1.0: pesaje obligatorio (sin "Pesar después"): la carga no se termina hasta controlar. v3.0.0: remito multi-item: paso 1 todos los items, "Terminé de pasar remito", paso 2 pesaje de todo; modulo Control integrado aca -->
-<script src="../auth-guard.js?v=3.3.0"></script>
+<!-- v3.4.0 — modo_control por proveedor: rollos_remito (Basconia/Aperam), pesaje (resto flejeros, remito solo kg), peso_total (Bella Vista). v3.3.0: Bella Vista: factura en uni (se anota convertido a kg) y control por PESO TOTAL contra el remito. v3.2.0: la balanza debe dar MAS que el remito (peso del pallet), aviso en vivo + confirm al guardar. v3.1.0: pesaje obligatorio (sin "Pesar después"): la carga no se termina hasta controlar. v3.0.0: remito multi-item: paso 1 todos los items, "Terminé de pasar remito", paso 2 pesaje de todo; modulo Control integrado aca -->
+<script src="../auth-guard.js?v=3.4.0"></script>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>Recepción de Insumos · GP2</title>
@@ -220,10 +220,13 @@ const RUBRO_UM={Flejes:"kg",Remaches:"kg",Cajas:"uni",Plasticos:"uni",Cartones:"
 let INS=[], UMBY={}, KGXUNI={}, PROVFLAGS={}, RECS=[], PALL=[], ROLL=[], TARA={tara_pallet_min:4,tara_pallet_max:8};
 let REMITO=[];    // items anotados del remito en curso, esperando el pesaje: {recId,codigo,desc,cant,unidad,rollos,pallets}
 let rubroSel="", sidSel=0, provSel="", provsRubro=[];
-// flags del proveedor elegido
-function provPideRollos(nom){ var f=PROVFLAGS[nom]; return !!(f&&f.informa_rollos); }
-// control por peso total (sin rollos ni pallets): Bella Vista
-function provControlaPeso(nom){ var f=PROVFLAGS[nom]; return !!(f&&f.controla_peso&&!f.informa_rollos); }
+// modo de control del proveedor (parametrizado en proveedor_insumo.modo_control):
+//   rollos_remito: remito con rollos+pallets (Basconia, Aperam)
+//   pesaje:        remito solo kg, mismo pesaje por pallet (resto de flejeros)
+//   peso_total:    factura en uni, se pesa el total (Bella Vista)
+function provModo(nom){ var f=PROVFLAGS[nom]; return (f&&f.modo_control)||'ninguno'; }
+function provPideRollos(nom){ return provModo(nom)==='rollos_remito'; }
+function provControlaPeso(nom){ return provModo(nom)==='peso_total'; }
 let itemSel=null, unitSel="uni";
 
 function hoy(){const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
@@ -430,7 +433,7 @@ function renderRemitoBar(){
   var pd=$('btnPesarPend');
   if(pd) pd.onclick=function(){
     montarPesaje(pend.map(function(r){
-      var modo = provControlaPeso(r.proveedor) ? 'peso' : 'rollos';
+      var modo = provModo(r.proveedor)==='peso_total' ? 'peso' : 'rollos';
       return { recId:r.recepcion_id, codigo:r.codigo, desc:r.descripcion||'',
                pallets:r.pallets_remito, modo:modo,
                remitoKg:Number(r.kg_remito)||null,
@@ -681,7 +684,7 @@ async function guardar(){
   try{
     var fiso=$('txtFecha').value?($('txtFecha').value+'T12:00:00'):null;
     var pide = provPideRollos(provSel);
-    var pesa = provControlaPeso(provSel);
+    var modoCtl = provModo(provSel);
     var rll = pide ? (parseInt(($('kgRollos').value||'').replace(/\D/g,''),10)||null) : null;
     var pll = pide ? (parseInt(($('kgPallets').value||'').replace(/\D/g,''),10)||null) : null;
     // Regla: la carga y el control son un solo proceso. Sin rollos y pallets
@@ -708,10 +711,10 @@ async function guardar(){
     // curso y se sigue con el proximo. El pesaje es de TODO el remito junto,
     // cuando el usuario toca "Terminé de pasar remito".
     var recId = res.data && res.data.recepcion_id;
-    if ((pide || pesa) && recId){
+    if (modoCtl!=='ninguno' && modoCtl!=='pendiente' && recId){
       REMITO.push({ recId: recId, codigo: itemSel.codigo, desc: itemSel.descripcion||'',
                     cant: cant, unidad: uReal, rollos: rll, pallets: pll,
-                    modo: (pesa ? 'peso' : 'rollos') });
+                    modo: (modoCtl==='peso_total' ? 'peso' : 'rollos') });
       cerrarPopup();
       renderRemitoBar();
       return;
