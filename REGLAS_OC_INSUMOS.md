@@ -18,7 +18,9 @@ El módulo de OC debe **generar los pedidos a partir del consumo**, no de import
 
 ## Cartones (parametrizado en `GP2.carton_formato`)
 
-La unidad de medida de cartones está **pendiente de definir** (posiblemente pliegos).
+Los cartones se **reciben en PAQUETES**: el proveedor siempre entrega alturas de
+**250 unidades** por paquete (`parametro.carton_uni_x_paquete`), sea cual sea el tipo
+(el C viene de a 1.000 = 4 paquetes de 250). La recepción carga paquetes y guarda unidades.
 
 | Formato | Pedido total múltiplo de | Por código múltiplo de | Mínimo por código |
 |---|---|---|---|
@@ -36,6 +38,20 @@ La unidad de medida de cartones está **pendiente de definir** (posiblemente pli
 - Cada cartón se asigna a su formato/categoría en `componente.carton_formato` /
   `componente.carton_categoria` — **datos pendientes de cargar** (los define el usuario).
 
+## Proveedores de servicio — cuánto mandarles
+
+Al PS **no** se le manda para llegar a X meses de stock propio. La cuenta es contra el
+**Sector Procesado**: `enviar = punto de stock del SP − online en SP − online del PS`.
+Ej: máximo del SP 10, hay 5 en procesado y el PS tiene 3 → se le mandan 2 cajones de
+crudo para que los convierta. (Por eso las ubicaciones de PS no tienen `meses_stock`.)
+
+## Flejes — consumo en KG
+
+El fleje se mide en **kg**, nunca en unidades. El consumo baja del artículo terminado
+hasta la matriz que corta el fleje: `kg de fleje = consumo en unidades de la pieza /
+partes_por_kilo_de_fleje de la matriz` (las partes por kilo ya incluyen el desperdicio).
+Vista: `GP2.v_consumo_fleje_kg`; el Punto de Stock de flejes usa esos kg × 6 meses.
+
 ## Flejes (parametrizado en `GP2.proveedor_insumo.modo_control`)
 
 - Se piden en kg (OC en kg).
@@ -52,7 +68,6 @@ La unidad de medida de cartones está **pendiente de definir** (posiblemente pli
 
 ## Pendientes
 
-- Unidad de medida de cartones (¿pliegos?).
 - Asignar formato/categoría a cada cartón (`componente.carton_formato/carton_categoria`).
 - Varillas: proveedor y forma de control.
 - Reglas de pedido del resto de los rubros (cajas, plásticos, bombillas).

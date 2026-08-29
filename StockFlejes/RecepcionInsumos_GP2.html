@@ -1,8 +1,8 @@
 <!doctype html>
 <html lang="es">
 <head>
-<!-- v3.4.0 — modo_control por proveedor: rollos_remito (Basconia/Aperam), pesaje (resto flejeros, remito solo kg), peso_total (Bella Vista). v3.3.0: Bella Vista: factura en uni (se anota convertido a kg) y control por PESO TOTAL contra el remito. v3.2.0: la balanza debe dar MAS que el remito (peso del pallet), aviso en vivo + confirm al guardar. v3.1.0: pesaje obligatorio (sin "Pesar después"): la carga no se termina hasta controlar. v3.0.0: remito multi-item: paso 1 todos los items, "Terminé de pasar remito", paso 2 pesaje de todo; modulo Control integrado aca -->
-<script src="../auth-guard.js?v=3.4.0"></script>
+<!-- v3.5.0 — cartones se cargan en PAQUETES de 250 (parametro carton_uni_x_paquete), guardados en unidades. v3.4.0: modo_control por proveedor: rollos_remito (Basconia/Aperam), pesaje (resto flejeros, remito solo kg), peso_total (Bella Vista). v3.3.0: Bella Vista: factura en uni (se anota convertido a kg) y control por PESO TOTAL contra el remito. v3.2.0: la balanza debe dar MAS que el remito (peso del pallet), aviso en vivo + confirm al guardar. v3.1.0: pesaje obligatorio (sin "Pesar después"): la carga no se termina hasta controlar. v3.0.0: remito multi-item: paso 1 todos los items, "Terminé de pasar remito", paso 2 pesaje de todo; modulo Control integrado aca -->
+<script src="../auth-guard.js?v=3.5.0"></script>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>Recepción de Insumos · GP2</title>
@@ -180,7 +180,7 @@
       <label style="display:block;margin-bottom:8px;font-size:18px;font-weight:700">Cantidad</label>
       <input type="text" id="kgValue" inputmode="decimal" placeholder="0,0">
       <div id="kgConvDisplay" class="kg-conv"></div>
-      <div class="unit-row">
+      <div class="unit-row" id="unitRow">
         <button class="unit-btn" id="unitKg" data-u="kg">Kg</button>
         <button class="unit-btn" id="unitUni" data-u="uni">Unidades</button>
       </div>
@@ -334,11 +334,16 @@ function setUnit(u){
   $('unitUni').classList.toggle('active',u==='uni');
   updateConv();
 }
+function PAQ(){ return Number(TARA.carton_uni_x_paquete)||250; }
 function updateConv(){
   var d=$('kgConvDisplay'); if(!d) return;
+  var v=parseNum($('kgValue').value);
+  if(unitSel==='paq'){
+    d.textContent=v>0?('= '+fmt(v*PAQ())+' unidades'):'';
+    return;
+  }
   var kx=itemSel&&KGXUNI[itemSel.comp_id];
   if(unitSel==='uni'&&kx){
-    var v=parseNum($('kgValue').value);
     d.textContent=v>0?('= '+fmt(v*kx)+' kg'):'';
   } else { d.textContent=''; }
 }
@@ -352,9 +357,20 @@ function abrirPopup(i){
   var convHint=kx?' <small style="color:#9a6700;font-weight:600">(1 uni = '+fmt(kx)+' kg)</small>':'';
   $('kgItemInfo').innerHTML='<b>'+esc(i.codigo)+'</b> — '+esc(i.descripcion||'')+(i.medida?(' · '+esc(i.medida)+' mm'):'')+convHint+'<br><small style="color:#666">'+esc(i.sector)+(provSel?(' · '+esc(provSel)):'')+'</small>';
   $('kgValue').value=''; $('kgMsg').textContent=''; $('kgConvDisplay').textContent='';
-  // unidad default: la canónica del insumo, si no la del rubro
-  var u = (UMBY[i.comp_id]==='kg') ? 'kg' : (UMBY[i.comp_id]==='unidad' ? 'uni' : (RUBRO_UM[rubroSel]||'uni'));
-  setUnit(u);
+  // Cartones: el proveedor entrega PAQUETES (alturas de 250 unidades siempre).
+  // Se carga en paquetes y se guarda convertido a unidades.
+  if(i.sector_id===10){
+    unitSel='paq';
+    $('unitRow').classList.add('hidden');
+    $('kgValue').placeholder='paquetes de '+PAQ();
+    updateConv();
+  } else {
+    $('unitRow').classList.remove('hidden');
+    $('kgValue').placeholder='';
+    // unidad default: la canónica del insumo, si no la del rubro
+    var u = (UMBY[i.comp_id]==='kg') ? 'kg' : (UMBY[i.comp_id]==='unidad' ? 'uni' : (RUBRO_UM[rubroSel]||'uni'));
+    setUnit(u);
+  }
   var pide = provPideRollos(provSel);
   $('rolloPallRow').classList.toggle('hidden', !pide);
   $('kgRollos').value=''; $('kgPallets').value='';
@@ -676,10 +692,12 @@ async function guardar(){
   if(!itemSel){cerrarPopup();return;}
   var cantRaw=parseNum($('kgValue').value);
   if(!cantRaw||cantRaw<=0){m.className='status bad';m.textContent='Ingresá una cantidad (> 0).';return;}
-  // Si el usuario ingresó unidades y el componente tiene kg_x_uni, auto-convertir a kg
+  // Si el usuario ingresó unidades y el componente tiene kg_x_uni, auto-convertir a kg.
+  // Cartones: paquetes de 250 -> unidades.
   var kx=KGXUNI[itemSel.comp_id];
   var cant=cantRaw, uReal=unitSel;
-  if(unitSel==='uni'&&kx){ cant=cantRaw*kx; uReal='kg'; }
+  if(unitSel==='paq'){ cant=cantRaw*PAQ(); uReal='uni'; }
+  else if(unitSel==='uni'&&kx){ cant=cantRaw*kx; uReal='kg'; }
   $('kgConfirm').disabled=true;
   try{
     var fiso=$('txtFecha').value?($('txtFecha').value+'T12:00:00'):null;
@@ -723,7 +741,7 @@ async function guardar(){
     // Sin rollos (cajas, plásticos, etc.): la carga sola completa la recepción.
     var sb=$('successBox'); sb.style.display='block';
     $('successBox').querySelector('.title').textContent='✓ Recepción registrada';
-    var detUni= (uReal==='kg'&&kx&&unitSel==='uni') ? (fmt(cantRaw)+' uni = <b>'+fmt(cant)+' kg</b>') : '<b>'+fmt(cant)+' '+esc(uReal)+'</b>';
+    var detUni= (unitSel==='paq') ? (fmt(cantRaw)+' paquetes = <b>'+fmt(cant)+' uni</b>') : ((uReal==='kg'&&kx&&unitSel==='uni') ? (fmt(cantRaw)+' uni = <b>'+fmt(cant)+' kg</b>') : '<b>'+fmt(cant)+' '+esc(uReal)+'</b>');
     $('successDetail').innerHTML=esc(itemSel.codigo)+' — '+esc(itemSel.descripcion||'')+' · '+detUni+(provSel?(' ('+esc(provSel)+')'):'')+'. Stock actualizado. Mov '+(res.data&&res.data.movimiento_id)+'.';
     cerrarPopup();
     setTimeout(()=>{sb.style.display='none';},6000);

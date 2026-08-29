@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="es">
 <head>
-<!-- v1.0.0 — Punto de stock por ubicacion: consumo Est Madre x meses vs maximo fisico -->
+<!-- v1.1.0 — flejes en KG (consumo via ppk de matriz). v1.0.0 — Punto de stock por ubicacion: consumo Est Madre x meses vs maximo fisico -->
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>Punto de Stock · GP2</title>
@@ -38,7 +38,9 @@
     <b>consumo mensual según la Est Madre × meses de la ubicación</b> (flejes 6 meses;
     crudo, procesado, talleristas y PS 1 mes). Si el <b>máximo físico</b> del lugar es
     menor que eso, el lugar no alcanza para el consumo de los artículos que usan la parte.
-    Los máximos físicos todavía no están cargados (columna Máx físico en "—").</div>
+    Los <b>flejes se miden en kg</b>: el consumo baja del artículo terminado hasta la matriz
+    que corta el fleje, usando sus partes por kilo con desperdicio. Los máximos físicos
+    todavía no están cargados (columna Máx físico en "—").</div>
 
     <div class="kpis" id="kpis"></div>
 
@@ -127,9 +129,9 @@ function render(){
       '<td><b>'+esc(x.codigo||'—')+'</b></td>'+
       '<td>'+esc(x.descripcion||'')+'</td>'+
       '<td>'+esc(x.ubicacion)+'</td>'+
-      '<td class="num">'+uni(x.consumo_uni_mes)+'</td>'+
+      '<td class="num">'+uni(x.consumo_uni_mes)+(x.consumo_uni_mes!=null?' '+esc(x.unidad||'uni'):'')+'</td>'+
       '<td class="num">'+(x.meses_stock==null?'—':x.meses_stock)+'</td>'+
-      '<td class="num"><b>'+uni(x.punto_stock_uni)+'</b></td>'+
+      '<td class="num"><b>'+uni(x.punto_stock_uni)+(x.punto_stock_uni!=null?' '+esc(x.unidad||'uni'):'')+'</b></td>'+
       '<td class="num">'+uni(x.maximo_fisico)+'</td>'+
       '<td class="num">'+uni(x.online)+'</td>'+
       '<td>'+estadoPill(x.estado)+'</td>'+
