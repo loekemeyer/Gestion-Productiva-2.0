@@ -1,12 +1,16 @@
 <!doctype html>
 <html lang="es">
 <head>
-<!-- v1.1.1 — fix: "Pedir" acepta decimales es-AR (12,5 ya no se convertía en 125) y la OC solo lleva los items del rubro/proveedor seleccionado. v1.1.0 — Ordenes de Compra de insumos: sugerido = consumo Est Madre x meses - stock - pendiente OC; imprimir OC -->
+<!-- v1.2.0 — la celda de consumo es TOCABLE: abre el sustento por articulo
+     (consumo-detalle.js, RPC consumo_detalle). El bundle ademas ya sale de
+     v_consumo_componente / v_consumo_fleje_kg_v2 (atribucion por articulo).
+     v1.1.1 — fix: "Pedir" acepta decimales es-AR (12,5 ya no se convertía en 125) y la OC solo lleva los items del rubro/proveedor seleccionado. v1.1.0 — Ordenes de Compra de insumos: sugerido = consumo Est Madre x meses - stock - pendiente OC; imprimir OC -->
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>Órdenes de Compra · GP2</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="../supabase-config.js?v=20260830e"></script>
+<script src="../consumo-detalle.js?v=20260830k"></script>
 <link rel="stylesheet" href="../gp2-modulo.css?v=20260830e"/>
 <link rel="icon" type="image/png" href="../GP2_favicon.png">
 <link rel="apple-touch-icon" href="../GP2_favicon.png">
@@ -177,7 +181,7 @@ function render(){
       '<td><b>'+esc(i.codigo||'—')+'</b><br><small style="color:#777">'+esc(i.descripcion||'')+
         (i.carton_formato?(' · Formato '+esc(i.carton_formato)):'')+'</small></td>'+
       '<td>'+esc(i.proveedor||'—')+'</td>'+
-      '<td class="num">'+(i.consumo==null?'—':(fmt(i.consumo,1)+' '+i.unidad))+'</td>'+
+      '<td class="num">'+(i.consumo==null?'—':('<span class="cd-tocable" data-det="'+i.comp_id+'">'+fmt(i.consumo,1)+' '+i.unidad+'</span>'))+'</td>'+
       '<td class="num">'+(i.meses==null?'—':i.meses)+'</td>'+
       '<td class="num">'+fmt(i.online)+' '+i.unidad+'</td>'+
       '<td class="num">'+(i.pendiente_oc>0?fmt(i.pendiente_oc):'—')+'</td>'+
@@ -194,6 +198,9 @@ function render(){
       if(v>0) PEDIDO[id]=v; else delete PEDIDO[id];
       render(); barra();
     });
+  });
+  document.querySelectorAll('.cd-tocable').forEach(function(sp){
+    sp.addEventListener('click',function(){ GP2ConsumoDetalle.abrir(SB, Number(sp.dataset.det)); });
   });
   document.querySelectorAll('.sug').forEach(function(sp){
     sp.addEventListener('click',function(){

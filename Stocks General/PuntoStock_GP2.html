@@ -1,12 +1,17 @@
 <!doctype html>
 <html lang="es">
 <head>
-<!-- v1.2.1 — fix export CSV: los valores 0 (online, meses, consumo) ya no salen como celda vacia. v1.2.0 — maximos de insumos derivados de Est Madre (tag EM, se recalculan solos). v1.1.0 — flejes en KG (consumo via ppk de matriz). v1.0.0 — Punto de stock por ubicacion: consumo Est Madre x meses vs maximo fisico -->
+<!-- v1.3.0 — la celda de consumo es TOCABLE: abre el sustento por articulo
+     (consumo-detalle.js, RPC consumo_detalle). La vista v_punto_stock ademas ya
+     sale de v_consumo_componente / v_consumo_fleje_kg_v2 (atribucion por
+     articulo): crudo y transito ganan consumo, A11 y D8 corregidos.
+     v1.2.1 — fix export CSV: los valores 0 (online, meses, consumo) ya no salen como celda vacia. v1.2.0 — maximos de insumos derivados de Est Madre (tag EM, se recalculan solos). v1.1.0 — flejes en KG (consumo via ppk de matriz). v1.0.0 — Punto de stock por ubicacion: consumo Est Madre x meses vs maximo fisico -->
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>Punto de Stock · GP2</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="../supabase-config.js?v=20260830e"></script>
+<script src="../consumo-detalle.js?v=20260830k"></script>
 <link rel="stylesheet" href="../gp2-modulo.css?v=20260830e"/>
 <link rel="icon" type="image/png" href="../GP2_favicon.png">
 <link rel="apple-touch-icon" href="../GP2_favicon.png">
@@ -130,7 +135,7 @@ function render(){
       '<td><b>'+esc(x.codigo||'—')+'</b></td>'+
       '<td>'+esc(x.descripcion||'')+'</td>'+
       '<td>'+esc(x.ubicacion)+'</td>'+
-      '<td class="num">'+uni(x.consumo_uni_mes)+(x.consumo_uni_mes!=null?' '+esc(x.unidad||'uni'):'')+'</td>'+
+      '<td class="num">'+(x.consumo_uni_mes==null?uni(null):('<span class="cd-tocable" data-det="'+x.componente_id+'">'+uni(x.consumo_uni_mes)+' '+esc(x.unidad||'uni')+'</span>'))+'</td>'+
       '<td class="num">'+(x.meses_stock==null?'—':x.meses_stock)+'</td>'+
       '<td class="num"><b>'+uni(x.punto_stock_uni)+(x.punto_stock_uni!=null?' '+esc(x.unidad||'uni'):'')+'</b></td>'+
       '<td class="num">'+uni(x.maximo_fisico)+(x.maximo_origen==='est_madre'?' <span title="Derivado de la Est Madre (se recalcula solo); no es un maximo fisico relevado" style="font-size:11px;font-weight:800;color:#0b3b73;background:#e3f2fd;border-radius:8px;padding:1px 6px">EM</span>':'')+'</td>'+
@@ -139,6 +144,9 @@ function render(){
     '</tr>';
   }).join('');
   $('tblEmpty').classList.toggle('hidden', fs.length>0);
+  document.querySelectorAll('.cd-tocable').forEach(function(sp){
+    sp.addEventListener('click',function(){ GP2ConsumoDetalle.abrir(SB, Number(sp.dataset.det)); });
+  });
   $('status').textContent = fs.length + ' posiciones';
 }
 

@@ -1,7 +1,10 @@
 <!doctype html>
 <html lang="es">
 <head>
-<!-- v2.0.0 — REPARTO POR PIEZA ENTERA (correccion del usuario). La v1 repartia
+<!-- v2.1.0 — el consumo es TOCABLE: abre el sustento por articulo (consumo-detalle.js,
+     RPC consumo_detalle). Ademas el bundle ya viene de v_consumo_componente
+     (atribucion por articulo): K2 46 uni, no 2.784.
+     v2.0.0 — REPARTO POR PIEZA ENTERA (correccion del usuario). La v1 repartia
      el consumo de CADA parte entre sus pintores (mitad y mitad). El usuario lo
      corrigio con un ejemplo: "si a uno le mando quince cajones a pintar de uña,
      al otro le mando diez de sacacorcho; darle las dos cosas a los dos no
@@ -15,6 +18,7 @@
 <title>Pintores · Quién pinta cada parte · GP2</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="../../supabase-config.js?v=20260830e"></script>
+<script src="../../consumo-detalle.js?v=20260830k"></script>
 <link rel="stylesheet" href="../../gp2-modulo.css?v=20260830e"/>
 <link rel="icon" type="image/png" href="../../GP2_favicon.png">
 <link rel="apple-touch-icon" href="../../apple-touch-icon.png?v=20260829j">
@@ -192,9 +196,10 @@ function visibles(){
 }
 
 function linea(p){
+  // El numero es tocable: abre el sustento (que articulos piden esta parte).
   var t = p.cajones==null
         ? 'Sin consumo conocido — no entra en el reparto'
-        : '<b>'+fmt(p.cajones,1)+'</b> cajones/mes ('+fmt(p.consumo)+' uni)';
+        : '<span class="cd-tocable" data-det="'+p.comp_id+'"><b>'+fmt(p.cajones,1)+'</b> cajones/mes ('+fmt(p.consumo)+' uni)</span>';
   if (p.asignado==null && p.propuesto!=null) t += ' · <i>propuesto</i>';
   return t;
 }
@@ -219,6 +224,9 @@ function render(){
   }).join('');
   $('vacio').classList.toggle('hidden', lista.length>0);
 
+  Array.prototype.forEach.call($('lista').querySelectorAll('[data-det]'), function(el){
+    el.addEventListener('click', function(){ GP2ConsumoDetalle.abrir(SB, Number(el.dataset.det)); });
+  });
   Array.prototype.forEach.call($('lista').querySelectorAll('.pbtn'), function(b){
     b.addEventListener('click', function(){ darParte(b); });
     // toque largo / click derecho = habilitar o deshabilitar a ese pintor

@@ -264,9 +264,17 @@ del walk de `v_consumo_fleje_kg` de producción; cambiarla cascadea a OC y a
   fleje) y D8 4,3→6,6 (le faltaban las virolas de 564/708). Las dos diferencias son
   errores de la vieja.
 
-**Pendiente de decisión**: repuntar `v_punto_stock` / `oc_bundle` de las vistas viejas a
-las nuevas (cambia máximos de A11 y D8 y les da consumo a crudo/tránsito). No se hizo
-sin OK del usuario.
+**Repuntado 2026-08-30 (mismo día)**: `v_punto_stock`, `oc_bundle` y
+`recalcular_maximos_insumos` ya usan las vistas nuevas. El recálculo corrió: 19 máximos
+derivados cambiaron (2 flejes corregidos + 13 remaches y 4 bombillas que estaban en 0).
+Las vistas viejas quedan sin consumidores, solo como referencia.
+
+**El consumo es TOCABLE** `[usuario 2026-08-30]`: "quiero poder tocar donde figura lo
+que hay que enviar y su sustento contra el consumo de los artículos que lo utilizan".
+RPC `consumo_detalle(p_comp_id)` + `consumo-detalle.js` (helper compartido en la raíz):
+tocar el número abre el desglose por artículo (proyección del artículo y cuánto le pide
+a la parte, en kg si es fleje). Cableado en Pintores, OC y Punto de Stock. Si una
+pantalla nueva muestra consumo, se le cablea el mismo helper.
 
 ## 3. Reglas del negocio ya incorporadas
 
