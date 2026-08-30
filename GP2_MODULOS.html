@@ -1,13 +1,13 @@
 <!doctype html><html lang="es"><head><meta charset="utf-8">
 <script src="auth-guard.js?v=20260829f"></script>
-<!-- v1.5.0 - celular: los 13 grupos entran en UNA pantalla (grilla de 2 columnas, tarjetas mas grandes), se muestra el numero de version y se saco el texto que no son modulos (subtitulo y pie); v1.4.0 - entra "Inyectores · Quien hace cada parte" en el grupo Insumos; v1.3.0 - menu depurado: fuera Stock Online duplicado, Informes Virgilio y los 2 candados de Prov AT; v1.2.0 - es la pagina de entrada post-login (con auth-guard y Cerrar sesion); v1.1.0 - grupos 100% bloqueados arrancan minimizados; acordeon exclusivo; vista foco en celular -->
+<!-- v1.7.0 - Control Envios y Entregas deja de ser un grupo suelto: se reparte en un boton "Historial x Fecha" dentro de Tallerista (?origen=tall) y otro dentro de PS (?origen=ps); v1.6.0 - un solo menu: entra "Entrega Virgilio" (unica pantalla sin version GP2 que no figuraba) y se saca "Inicio (dashboard)", que era el menu viejo duplicado; sus datos vivos (KPIs, badge de Disruptivas y aviso de espejo) se portaron aca; v1.5.0 - celular: los 13 grupos entran en UNA pantalla (grilla de 2 columnas, tarjetas mas grandes), se muestra el numero de version y se saco el texto que no son modulos (subtitulo y pie); v1.4.0 - entra "Inyectores · Quien hace cada parte" en el grupo Insumos; v1.3.0 - menu depurado: fuera Stock Online duplicado, Informes Virgilio y los 2 candados de Prov AT; v1.2.0 - es la pagina de entrada post-login (con auth-guard y Cerrar sesion); v1.1.0 - grupos 100% bloqueados arrancan minimizados; acordeon exclusivo; vista foco en celular -->
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>GP2 · Menú</title>
 <link rel="icon" type="image/png" href="GP2_favicon.png?v=1.2.0">
 <link rel="apple-touch-icon" href="apple-touch-icon.png?v=20260829j">
 <!-- PWA: con esto Chrome ofrece instalar GP2 y la abre en ventana propia,
      sin barra de direcciones. El SW lo registra pwa.js al final del body. -->
-<link rel="manifest" href="manifest.json?v=20260829h">
+<link rel="manifest" href="manifest.json?v=20260829o">
 <meta name="theme-color" content="#ffffff">
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
@@ -49,6 +49,12 @@ a.op:active{transform:translateY(0)}
 a.op .arrow{color:#2563eb;font-size:18px;margin-left:auto;font-weight:700;transition:color .15s}
 a.op:hover .arrow{color:#1d4ed8}
 a.op .dot{width:7px;height:7px;border-radius:50%;background:#22c55e;flex-shrink:0}
+
+/* ── boton que todavia abre la app anterior (schema public) ── */
+a.op.vieja{background:#fffbeb;border-color:#b45309;color:#7c2d12}
+a.op.vieja .dot{background:#b45309}
+a.op.vieja .tag{margin-left:auto;font-size:11px;font-weight:700;opacity:.8;white-space:nowrap}
+a.op.vieja .arrow{margin-left:8px;color:#b45309}
 
 /* ── botones locked ── */
 span.op.lock{display:flex;align-items:center;gap:10px;padding:9px 14px;border-radius:8px;font-size:16px;color:#94a3b8;border:1px solid #eef2f6;background:#f8fafc;cursor:default}
@@ -111,6 +117,13 @@ span.op.lock .lk{font-size:14px;margin-left:auto;opacity:.7}
   .card.solo .card-head{min-height:46px}
 }
 
+/* ── datos vivos que venian del dashboard viejo (Inicio/index_GP2.html) ── */
+#kpiResumen{display:block;margin-top:4px;font-size:12px;color:#475569}
+#kpiResumen b{color:#1e293b}
+#kpiResumen:empty{display:none}
+#avisoEspejo{background:#7f1d1d;color:#fff;padding:10px 18px;font-size:14px;font-weight:700;text-align:center}
+@media (max-width:640px){#kpiResumen{font-size:11px}}
+
 /* ── footer ── */
 .foot{max-width:1200px;margin:0 auto;padding:0 16px;color:#94a3b8;font-size:12px;text-align:center}
 </style></head><body>
@@ -121,9 +134,9 @@ span.op.lock .lk{font-size:14px;margin-left:auto;opacity:.7}
        el candado ya se explica solo y en el celular esa linea robaba una fila de grupos. -->
   <div class="header-sub">Versión <b id="appVersion">2.0</b><!-- con el login apagado
     (GP2_AUTH_ON=false) no hay sesion que cerrar: el link se oculta solo -->
-    <span id="sesion" hidden>&nbsp;·&nbsp; <a href="login.html?logout=1" onclick="try{sessionStorage.clear();}catch(e){}"
+    <span id="kpiResumen"></span><span id="sesion" hidden>&nbsp;·&nbsp; <a href="login.html?logout=1" onclick="try{sessionStorage.clear();}catch(e){}"
     style="color:#b42318;text-decoration:none;font-weight:700">⎋ Cerrar sesión</a></span></div>
-  <script src="version.js?v=20260829n"></script>
+  <script src="version.js?v=20260829p"></script>
   <script>if (window.GP2_AUTH_ON !== false) document.getElementById('sesion').hidden = false;</script>
 </div>
 
@@ -138,20 +151,20 @@ const MENU = [
    ["Entregas", "Talleristas/Recepcion/EntregasTalleristas_GP2.html"],
    ["Devolución Cervantes", "Talleristas/Recepcion/DevolucionCervantes_GP2.html"],
    ["Entrega Cervantes Fotos", null],
+   ["Entrega Virgilio", "Talleristas/Recepcion/Recepcion%20Virgilio.html", "vieja"],
    ["ABM Artículos", "Talleristas/ABM%20Articulos/ABM_Articulos_GP2.html"],
    ["Proporciones", "Talleristas/Proporciones/Proporciones_GP2.html"],
    ["Faltante Partes", "Talleristas/Faltante%20Partes%20Tallerista/FaltantePartesTallerista_GP2.html"],
+   ["Historial x Fecha", "Control%20Envios%20y%20Entregas/ControlEnvios_GP2.html?origen=tall"],
  ]],
  ["☰","PS (Prov. Servicio)", [
    ["Control", "Prov%20Serv/Control/ControlPS_GP2.html"],
    ["Envío", "Prov%20Serv/Envios/EnviosPS_GP2.html"],
    ["Entrega", "Prov%20Serv/Entregas/EntregaPS_GP2.html"],
+   ["Historial x Fecha", "Control%20Envios%20y%20Entregas/ControlEnvios_GP2.html?origen=ps"],
  ]],
  ["📦","Prov. Art. Terminado", [
    ["Envío Cartón/Cajas", "Prov%20Art%20Terminado/Envios/EnviosAT_GP2.html"],
- ]],
- ["🗒","Control Envíos y Entregas", [
-   ["Abrir", "Control%20Envios%20y%20Entregas/ControlEnvios_GP2.html"],
  ]],
  ["▦","Stocks", [
    ["Stock SP", "StockSP/StockSP_GP2.html"],
@@ -202,7 +215,6 @@ const MENU = [
  ["🗒","Relevamiento", [ ["Relevamientos", "Relevamiento/relevamiento.html"] ]],
  ["🔗","Ventas", [ ["Chat Bot Ventas", null] ]],
  ["🛠","Herramientas GP2", [
-   ["Inicio (dashboard)", "Inicio/index_GP2.html"],
    ["Programa de Stock", "Programa/Programa.html"],
    ["Faltantes", "Faltantes/Faltantes.html"],
    ["Registrar Movimiento", "Movimientos/Registrar_Movimiento.html"],
@@ -245,10 +257,14 @@ MENU.forEach(([icon, titulo, items]) => {
   body.className = "card-body";
   const box = document.createElement("div");
   box.className = "btns";
-  items.forEach(([label, href]) => {
+  items.forEach(([label, href, marca]) => {
     if (href) {
-      const a = document.createElement("a"); a.className = "op"; a.href = href;
-      a.innerHTML = '<span class="dot"></span><span>' + label + '</span><span class="arrow">›</span>';
+      const a = document.createElement("a"); a.className = "op" + (marca === "vieja" ? " vieja" : "");
+      a.href = href;
+      if (marca === "vieja") a.title = "Todavía sin versión GP2: abre la pantalla de la app anterior";
+      a.innerHTML = '<span class="dot"></span><span>' + label + '</span>' +
+        (marca === "vieja" ? '<span class="tag">app vieja</span>' : '') +
+        '<span class="arrow">›</span>';
       box.appendChild(a);
     } else {
       const s = document.createElement("span"); s.className = "op lock";
@@ -264,5 +280,56 @@ MENU.forEach(([icon, titulo, items]) => {
 // quedaria solo en media fila. Se lo marca para que ocupe el ancho entero.
 if (MENU.length % 2 === 1) grid.lastElementChild.classList.add("solo");
 </script>
-<script src="pwa.js?v=20260829j"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+/* Datos vivos del menu. Antes vivian en Inicio/index_GP2.html, que era una copia
+   del menu viejo y quedo como redirect: el RPC "GP2".inicio_bundle() se trajo aca
+   para no perder los KPIs, el badge de Disruptivas ni — sobre todo — el aviso de
+   cargas de Virgilio que el espejo no pudo aplicar. */
+(async () => {
+  try {
+    const sb = supabase.createClient(
+      "https://hrxfctzncixxqmpfhskv.supabase.co",
+      "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhyeGZjdHpuY2l4eHFtcGZoc2t2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI3MjQyNjEsImV4cCI6MjA4ODMwMDI2MX0.4L6wguch8UZGhC2VpzrWcCjJGUV-IkYsl9JoCWrOLUs",
+      { db: { schema: "GP2" }, auth: { persistSession: false } }
+    );
+    const { data: bundle, error } = await sb.rpc("inicio_bundle");
+    if (error) { console.error(error); return; }
+    if (!bundle) return;
+    const al = bundle.alertas || {};
+
+    // Cargas de Virgilio que el espejo NO pudo aplicar (alias/articulo desconocido).
+    const nPend = Number(al.espejo_pend) || 0;
+    if (nPend > 0) {
+      const det = (al.espejo_pend_detalle || [])
+        .map(x => x.motivo).filter(Boolean).slice(0, 3).join(" · ");
+      const av = document.createElement("div");
+      av.id = "avisoEspejo";
+      // textContent (no innerHTML): el motivo es texto libre de la BD
+      av.textContent = "\u26A0 " + nPend + " carga" + (nPend === 1 ? "" : "s") +
+        " de Virgilio SIN aplicar al stock (el espejo no reconoció el alias o artículo)" +
+        (det ? ": " + det : "") + ". Avisar a sistemas.";
+      document.body.insertBefore(av, document.body.firstChild);
+    }
+
+    // Cuantas disruptivas quedan pendientes este mes, sobre su propio boton.
+    const nDis = Number(al.disruptivas_mes) || 0;
+    if (nDis > 0) {
+      const a = document.querySelector('a.op[href*="Disruptivas_GP2.html"] span:nth-child(2)');
+      if (a) a.textContent = a.textContent + " (" + nDis + ")";
+    }
+
+    // KPIs de hoy y del mes, debajo de la version.
+    const d = bundle.dia || {}, m = bundle.mes || {};
+    const kpi = document.getElementById("kpiResumen");
+    if (kpi) {
+      const f = v => Number(v || 0).toLocaleString("es-AR");
+      kpi.innerHTML = "Hoy: <b>" + f(d.uni) + "</b> uni · " + f(d.registros) + " reg · " +
+        f(d.empleados) + " oper &nbsp;|&nbsp; Mes: <b>" + f(m.uni) + "</b> uni · " +
+        f(m.registros) + " reg · " + f(m.empleados) + " oper";
+    }
+  } catch (e) { console.error(e); }
+})();
+</script>
+<script src="pwa.js?v=20260829o"></script>
 </body></html>
