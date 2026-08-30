@@ -1557,12 +1557,16 @@ begin
   if not exists(select 1 from "GP2".componente where id=p_comp_id and sector_id=5) then
     raise exception 'El componente % no es un fleje (Sector Fleje)', p_comp_id;
   end if;
-  insert into "GP2".fleje_detalle(componente_id, proveedor, medida_mm, cons_mensual, kg_x_cajon, cod_isis, kg_uni_desp, descripcion_parte, actualizado_en)
-  values(p_comp_id, nullif(p_proveedor,''), nullif(p_medida,''), p_cons, p_kgcaj, nullif(p_cod_isis,''), p_kg_uni_desp, nullif(p_parte,''), now())
+  insert into "GP2".fleje_detalle(componente_id, medida_mm, cons_mensual, kg_x_cajon, cod_isis, kg_uni_desp, descripcion_parte, actualizado_en)
+  values(p_comp_id, nullif(p_medida,''), p_cons, p_kgcaj, nullif(p_cod_isis,''), p_kg_uni_desp, nullif(p_parte,''), now())
   on conflict (componente_id) do update set
-    proveedor=nullif(p_proveedor,''), medida_mm=nullif(p_medida,''), cons_mensual=p_cons,
+    medida_mm=nullif(p_medida,''), cons_mensual=p_cons,
     kg_x_cajon=p_kgcaj, cod_isis=nullif(p_cod_isis,''), kg_uni_desp=p_kg_uni_desp,
     descripcion_parte=nullif(p_parte,''), actualizado_en=now();
+
+  -- el proveedor vive en componente: una sola fuente
+  update "GP2".componente set proveedor = nullif(btrim(coalesce(p_proveedor,'')),'') where id = p_comp_id;
+
   return jsonb_build_object('ok',true,'comp_id',p_comp_id);
 end $function$;
 
@@ -1578,7 +1582,7 @@ AS $function$
       'comp_id', c.id, 'codigo', c.codigo, 'descripcion', c.descripcion,
       'n_fleje', coalesce(d.n_fleje, (regexp_match(c.descripcion,'(\d+)'))[1]),
       'parte', d.descripcion_parte,
-      'medida', d.medida_mm, 'proveedor', d.proveedor,
+      'medida', d.medida_mm, 'proveedor', nullif(trim(c.proveedor),''),
       'cons_mensual', d.cons_mensual, 'kg_x_cajon', d.kg_x_cajon,
       'kg_uni_desp', d.kg_uni_desp, 'cod_isis', d.cod_isis,
       'stock', coalesce(i.cantidad,0), 'minimo', coalesce(i.minimo,0)
@@ -2780,40 +2784,6 @@ AS $function$
       from "GP2".recepcion_control_rollo cr),
     'tara', (select jsonb_object_agg(clave, valor) from "GP2".parametro
              where clave like 'tara_pallet%' or clave in ('tol_ctrl_peso_pct','carton_uni_x_paquete'))
-  );
-$function$;
-
--- ---------- recepcion_insumos_bundle ----------
-CREATE OR REPLACE FUNCTION "GP2".recepcion_insumos_bundle()
- RETURNS jsonb
- LANGUAGE sql
- STABLE SECURITY DEFINER
- SET search_path TO 'GP2'
-AS $function$
-  select jsonb_build_object(
-    'insumos', (select coalesce(jsonb_agg(jsonb_build_object(
-        'comp_id',c.id,'codigo',c.codigo,'descripcion',c.descripcion,'sector',s.nombre,
-        'sector_id',c.sector_id,'um',c.unidad_medida,
-        'proveedor',nullif(trim(fd.proveedor),''),'n_fleje',fd.n_fleje,'medida',fd.medida_mm,
-        'ultima', (select jsonb_build_object(
-                     'fecha', r.fecha, 'cantidad', r.cantidad, 'unidad', r.unidad,
-                     'rollos', r.rollos, 'pallets', r.pallets,
-                     'remito', r.remito, 'proveedor', r.proveedor)
-                     from "GP2".recepcion_insumo r
-                    where r.componente_id = c.id
-                    order by r.id desc limit 1)
-      ) order by s.nombre, c.codigo),'[]'::jsonb)
-      from "GP2".componente c
-      join "GP2".sector s on s.id=c.sector_id
-      left join "GP2".fleje_detalle fd on fd.componente_id=c.id
-      where "GP2"._es_sector_insumo(c.sector_id)),
-    'recientes', (select coalesce(jsonb_agg(x.j order by x.ord desc),'[]'::jsonb) from (
-        select r.id ord, jsonb_build_object('id',r.id,'fecha',r.fecha,'comp_id',r.componente_id,
-          'codigo',c.codigo,'descripcion',c.descripcion,
-          'proveedor',r.proveedor,'remito',r.remito,'cantidad',r.cantidad,'unidad',r.unidad,
-          'rollos',r.rollos,'pallets',r.pallets) j
-        from "GP2".recepcion_insumo r join "GP2".componente c on c.id=r.componente_id
-        order by r.id desc limit 60) x)
   );
 $function$;
 

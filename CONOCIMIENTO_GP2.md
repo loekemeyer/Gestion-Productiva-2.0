@@ -78,9 +78,11 @@ Además `componente.proveedor` ahora tiene **FK a `proveedor_insumo`** (`ON UPDA
 CASCADE`): antes era texto libre, así que un tipeo creaba un proveedor fantasma sin que
 nada avisara. Renombrar un proveedor ahora propaga solo.
 
-`fleje_detalle.proveedor` quedó **sin uso** (ya no lo lee nadie). Los 50 valores están
-duplicados e idénticos en `componente`; borrar la columna es el paso que falta para
-cerrar la normalización — **pendiente de confirmar con el usuario**.
+`fleje_detalle.proveedor` **se borró** (2026-08-30, autorizado): guardaba el mismo dato.
+Antes se migraron sus tres puntas: `flejes_bundle` lee el del componente,
+`fleje_detalle_upsert` (la pantalla de Flejes) escribe en `componente.proveedor` y avisa
+con un mensaje claro si el proveedor no existe, y la huérfana `recepcion_insumos_bundle`
+se eliminó. Un proveedor nuevo se da de alta desde Inyectores → "+ Proveedor".
 
 ### Cómo se administra (no se toca la base a mano)
 `[usuario 2026-08-29]` Quién hace cada parte se cambia desde la pantalla

@@ -147,7 +147,6 @@ create table "GP2".fleje_detalle (
   componente_id bigint not null,
   n_fleje text,
   medida_mm text,
-  proveedor text,
   cons_mensual numeric,
   kg_x_cajon numeric,
   cod_isis text,
