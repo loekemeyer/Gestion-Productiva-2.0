@@ -407,7 +407,7 @@ function buildModalPS() {
     const codsList = it.cods.map(c => `${c.cod_art} ${c.desc}`).join(' / ');
     row.innerHTML = `
       <input type="text" value="${esc(it.sector_factura)}" readonly class="codeRO">
-      <input type="number" min="0" step="1" placeholder="0" data-role="unidades" data-i="${i}">
+      <input inputmode="numeric" type="number" min="0" step="1" placeholder="0" data-role="unidades" data-i="${i}">
       <div class="descCell">${esc(it.parte_sp_desc)} <span style="color:#666;font-size:12px">(${it.kgxuni_sp ? Number(it.kgxuni_sp).toFixed(5) : '?'} kg/uni — usado por: ${esc(codsList)})</span></div>
     `;
     linesWrap.appendChild(row);
@@ -426,7 +426,7 @@ function buildModalRecepcion() {
     row.style.padding = '6px 0';
     row.innerHTML = `
       <input type="text" value="${esc(it.cod)}" readonly class="codeRO">
-      <input type="number" min="0" step="1" placeholder="0" data-role="cantidad" data-i="${i}">
+      <input inputmode="numeric" type="number" min="0" step="1" placeholder="0" data-role="cantidad" data-i="${i}">
       <div class="descCell">${esc(it.desc)}</div>
     `;
     linesWrap.appendChild(row);

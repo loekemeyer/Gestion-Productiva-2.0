@@ -502,7 +502,7 @@ function renderTabla(rows) {
         <td>${esc(r.tipo)}</td>
         <td colspan="3"></td>
         <td style="text-align:right;font-size:11px">Meses</td>
-        <td><input id="meses_${gId}" type="number" value="${mVal}" min="1" max="24"
+        <td><input inputmode="numeric" id="meses_${gId}" type="number" value="${mVal}" min="1" max="24"
           onchange="setMesesGrupo('${esc(grupo)}')" /></td>
       </tr>`;
       prevGrupo = grupo;

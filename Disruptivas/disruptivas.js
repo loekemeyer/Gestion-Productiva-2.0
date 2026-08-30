@@ -224,9 +224,9 @@ function renderDisruptivas() {
         <div class="modal-fields">
           <div class="field"><label>Hora Inicio</label><input type="time" id="modalHoraIni" step="1"/></div>
           <div class="field"><label>Hora Fin</label><input type="time" id="modalHoraFin" step="1"/></div>
-          <div class="field"><label>Tiempo Muerto (hs)</label><input type="number" id="modalTM" min="0" step="0.01"/></div>
+          <div class="field"><label>Tiempo Muerto (hs)</label><input inputmode="decimal" type="number" id="modalTM" min="0" step="0.01"/></div>
           <div id="modalTMDetalle" style="width:100%;font-size:12px;color:#666;margin-top:-4px;"></div>
-          <div class="field"><label>Unidades</label><input type="number" id="modalUni" min="0" step="1"/></div>
+          <div class="field"><label>Unidades</label><input inputmode="numeric" type="number" id="modalUni" min="0" step="1"/></div>
           <div class="field" style="justify-content:center;"><label style="display:flex;align-items:center;gap:6px;cursor:pointer;"><input type="checkbox" id="modalAnular" style="width:18px;height:18px;cursor:pointer;"/> Anular Tiempo</label></div>
         </div>
         <div class="modal-preview" id="modalPreview"></div>

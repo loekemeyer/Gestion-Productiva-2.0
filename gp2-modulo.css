@@ -1,3 +1,9 @@
+/* Accesibilidad (regla usuario 2026-08-30): letra GRANDE en todo campo de carga —
+   alguien que ve mal tiene que poder escribir sin equivocarse. 18px de piso
+   (ademas evita el zoom automatico de iOS, que salta con menos de 16px).
+   Los estilos propios de cada pantalla pueden subirla, nunca bajarla. */
+input, select, textarea { font-size: 18px; }
+
 /* ============================================================
    gp2-modulo.css — esqueleto compartido de los modulos GP2.
 

@@ -176,7 +176,7 @@ function renderCard(a){
     <div class="tallerista-row">
       <div class="tallerista-nombre" title="${esc(t.tallerista)}">${esc(t.tallerista)}${t.dirty ? '<span class="dirty-mark"> ●</span>' : ""}</div>
       <div class="tallerista-bar"><div class="tallerista-bar-fill" style="width:${Math.min(100, Math.max(0, t.porcentaje))}%"></div></div>
-      <input type="number" class="input-pct" min="0" max="100" step="0.1"
+      <input inputmode="decimal" type="number" class="input-pct" min="0" max="100" step="0.1"
         value="${t.porcentaje}"
         data-cod="${esc(a.cod_art)}" data-idx="${idx}">
       <span style="font-size:14px;color:#666;font-weight:500">%</span>

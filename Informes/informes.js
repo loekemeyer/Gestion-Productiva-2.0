@@ -978,7 +978,7 @@ function renderUnidadesMatriz(rows, matMap) {
       </div>
       <div id="wrapModoDias" style="display:flex;align-items:center;gap:8px">
         <label style="font-weight:600">Ultimos</label>
-        <input type="number" id="inputDiasProd" value="${diasDefault}" min="1" max="${totalDiasProd}" style="width:60px;height:32px;border:1px solid #ccc;border-radius:6px;text-align:center;font-size:14px" />
+        <input inputmode="numeric" type="number" id="inputDiasProd" value="${diasDefault}" min="1" max="${totalDiasProd}" style="width:60px;height:32px;border:1px solid #ccc;border-radius:6px;text-align:center;font-size:14px" />
         <span style="color:#888;font-size:13px">(hay ${totalDiasProd} dias)</span>
       </div>
       <div id="wrapModoFecha" style="display:none;align-items:center;gap:8px">

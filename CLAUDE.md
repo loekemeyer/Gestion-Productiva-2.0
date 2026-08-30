@@ -39,6 +39,23 @@ código, comentarios ni mensajes de commit).
   y aplican el delta en `GP2.inventario`. El `var D` de los HTML mapea 1:1 a tablas GP2
   (ver `ANALISIS_LOGICA_GP2.md`).
 
+## Campos de carga: letra grande + teclado numérico (OBLIGATORIO)
+
+**Regla del usuario (2026-08-30): "Siempre quiero letras bien grandes y legibles para que
+alguien que ve mal pueda escribir y no equivocarse. Donde van números, solo teclado numérico."**
+
+En TODA pantalla, nueva o tocada:
+1. **Letra grande en los campos**: mínimo 18px en inputs/selects (piso global en
+   `gp2-modulo.css`); los campos importantes de carga (cantidades, pesos) mejor 19–20px.
+   Nunca bajar de eso en el CSS propio de una pantalla.
+2. **Teclado numérico donde van números**: todo `<input>` que recibe un número lleva
+   `inputmode="numeric"` (enteros) o `inputmode="decimal"` (con coma). Vale también para
+   los `type="number"` (el atributo garantiza el teclado correcto en el celular).
+3. Etiquetas visibles al lado del campo, no solo placeholder (el placeholder desaparece
+   al tipear y quien ve mal pierde la referencia).
+4. El test `tests/ui/test_teclado_numerico.js` lo vigila: falla si aparece un
+   `type="number"` sin `inputmode`.
+
 ## Versionado (OBLIGATORIO en cada actualización)
 
 **Cada vez que se modifica el JS/CSS/HTML de un módulo, bumpear la versión en el mismo commit.**

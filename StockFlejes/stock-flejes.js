@@ -495,7 +495,7 @@ function renderTabla(rows) {
         <td colspan="2" style="font-size:13px">${esc(r.prov)}</td>
         <td colspan="5"></td>
         <td style="text-align:right;font-size:11px">Meses</td>
-        <td><input id="meses_${gId}" type="number" value="${mVal}" min="1" max="24"
+        <td><input inputmode="numeric" id="meses_${gId}" type="number" value="${mVal}" min="1" max="24"
           onchange="setMesesGrupo('${esc(grupo)}')" /></td>
       </tr>`;
       prevGrupo = grupo;

@@ -227,41 +227,41 @@ function openMov(tipo){
  var H='<div class="row"><label>Fecha</label><input type="date" id="f_fecha" value="'+todayLocal()+'"></div>';
  if(tipo==='compra'){
   H+='<div class="row"><label>Componente</label><select id="f_comp" onchange="onComprarComp()"><option value="">— Elegí —</option>'+optsComprables()+'</select></div>';
-  H+='<div class="qtygrid"><div class="row"><label>Cantidad</label><input type="number" id="f_qty" step="0.01" min="0"></div><div class="row"><label>Unidad</label><select id="f_unidad"><option value="uni">Unidades</option><option value="kg">Kg</option></select></div></div>';
+  H+='<div class="qtygrid"><div class="row"><label>Cantidad</label><input inputmode="decimal" type="number" id="f_qty" step="0.01" min="0"></div><div class="row"><label>Unidad</label><select id="f_unidad"><option value="uni">Unidades</option><option value="kg">Kg</option></select></div></div>';
   H+='<div class="hint" id="compHint">Elegí el componente; la unidad se preselecciona sola (los flejes suelen ser Kg). Podés cambiarla.</div>';
  } else if(tipo==='produccion'){
   H+='<div class="row"><label>Matriz</label><select id="f_mat" onchange="onMat()"><option value="">— Elegí —</option>'+optsMatrices()+'</select></div>';
   H+='<div id="matInfo"></div>';
-  H+='<div class="qtygrid"><div class="row"><label id="lblQty">Cantidad entrada</label><input type="number" id="f_qty" step="0.01" min="0" oninput="onProdQty()"></div><div class="row"><label>Unidades producidas</label><input type="number" id="f_qty_dest" step="1" min="0"></div></div>';
+  H+='<div class="qtygrid"><div class="row"><label id="lblQty">Cantidad entrada</label><input inputmode="decimal" type="number" id="f_qty" step="0.01" min="0" oninput="onProdQty()"></div><div class="row"><label>Unidades producidas</label><input inputmode="numeric" type="number" id="f_qty_dest" step="1" min="0"></div></div>';
   H+='<div class="hint" id="rendHint"></div>';
  } else if(tipo==='envio_prov'){
   H+='<div class="row"><label>Proveedor</label><select id="f_prov" onchange="onProvEnv()"><option value="">— Elegí —</option>'+optsProvs()+'</select></div>';
   H+='<div class="row"><label>Componente</label><select id="f_comp"><option value="">Elegí proveedor primero</option></select></div>';
-  H+='<div class="row"><label>Cantidad</label><input type="number" id="f_qty" step="1" min="0"></div>';
+  H+='<div class="row"><label>Cantidad</label><input inputmode="numeric" type="number" id="f_qty" step="1" min="0"></div>';
  } else if(tipo==='recepcion_prov'){
   H+='<div class="row"><label>Proveedor</label><select id="f_prov" onchange="onProvRec()"><option value="">— Elegí —</option>'+optsProvs()+'</select></div>';
   H+='<div class="row"><label>Componente recibido</label><select id="f_comp"><option value="">Elegí proveedor primero</option></select></div>';
-  H+='<div class="qtygrid"><div class="row"><label>Cant. recibida</label><input type="number" id="f_qty" step="0.01" min="0"></div><div class="row"><label>Cant. enviada (si distinta)</label><input type="number" id="f_qty_orig" step="0.01" min="0" placeholder="kg si input≠output"></div></div>';
+  H+='<div class="qtygrid"><div class="row"><label>Cant. recibida</label><input inputmode="decimal" type="number" id="f_qty" step="0.01" min="0"></div><div class="row"><label>Cant. enviada (si distinta)</label><input inputmode="decimal" type="number" id="f_qty_orig" step="0.01" min="0" placeholder="kg si input≠output"></div></div>';
   H+='<div class="hint">Para transformaciones kg→uni completá ambos campos.</div>';
  } else if(tipo==='envio_tall'){
   H+='<div class="row"><label>Tallerista</label><select id="f_tall" onchange="onTallEnv()"><option value="">— Elegí —</option>'+optsTalls(false)+'</select></div>';
   H+='<div class="row"><label>Componente</label><select id="f_comp"><option value="">Elegí tallerista primero</option></select></div>';
-  H+='<div class="row"><label>Cantidad</label><input type="number" id="f_qty" step="1" min="0"></div>';
+  H+='<div class="row"><label>Cantidad</label><input inputmode="numeric" type="number" id="f_qty" step="1" min="0"></div>';
  } else if(tipo==='recepcion_tall'){
   H+='<div class="row"><label>Tallerista</label><select id="f_tall" onchange="onTallRec()"><option value="">— Elegí —</option>'+optsTalls(false)+'</select></div>';
   H+='<div class="row"><label>Componente</label><select id="f_comp"><option value="">Elegí tallerista primero</option></select></div>';
-  H+='<div class="row"><label>Cantidad</label><input type="number" id="f_qty" step="1" min="0"></div>';
+  H+='<div class="row"><label>Cantidad</label><input inputmode="numeric" type="number" id="f_qty" step="1" min="0"></div>';
  } else if(tipo==='recepcion_virgilio'){
   H+='<div class="row"><label>Origen</label><select id="f_tall" onchange="onTallVirg()"><option value="">— Elegí —</option><option value="_FAB_">Cervantes (fábrica)</option>'+optsTalls(false)+'</select></div>';
   H+='<div class="row"><label>Articulo</label><select id="f_comp"><option value="">Elegí origen primero</option></select></div>';
-  H+='<div class="row"><label>Unidades</label><input type="number" id="f_qty" step="1" min="0"></div>';
+  H+='<div class="row"><label>Unidades</label><input inputmode="numeric" type="number" id="f_qty" step="1" min="0"></div>';
  } else if(tipo==='armado_fabrica'){
   H+='<div class="row"><label>Articulo a armar</label><select id="f_comp"><option value="">— Elegí —</option>'+optsComps(artsFabricaDirecto())+'</select><div class="hint">Solo articulos que arma Cervantes (sin tallerista externo)</div></div>';
-  H+='<div class="row"><label>Unidades</label><input type="number" id="f_qty" step="1" min="0"></div>';
+  H+='<div class="row"><label>Unidades</label><input inputmode="numeric" type="number" id="f_qty" step="1" min="0"></div>';
  } else if(tipo==='ajuste'){
   H+='<div class="row"><label>Componente</label><select id="f_comp" onchange="onAjComp()"><option value="">— Elegí —</option>'+optsAllComps()+'</select></div>';
   H+='<div class="row"><label>Ubicación</label><select id="f_ubic_orig"><option value="">Elegí componente primero</option></select></div>';
-  H+='<div class="row"><label>Cantidad (+/-)</label><input type="number" id="f_qty" step="0.01" placeholder="ej -5 o +12"></div>';
+  H+='<div class="row"><label>Cantidad (+/-)</label><input inputmode="decimal" type="number" id="f_qty" step="0.01" placeholder="ej -5 o +12"></div>';
  }
  document.getElementById('modalForm').innerHTML=H;
  document.getElementById('modalBg').classList.add('on');

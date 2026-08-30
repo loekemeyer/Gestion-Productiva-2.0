@@ -268,7 +268,7 @@
         </div>
         <div class="field">
           <label>Meses cobertura</label>
-          <input id="numMeses" type="number" value="4" min="1" max="24" step="1" style="width:70px" oninput="renderStock()" />
+          <input inputmode="numeric" id="numMeses" type="number" value="4" min="1" max="24" step="1" style="width:70px" oninput="renderStock()" />
         </div>
       </div>
       <div id="infoConteo" style="padding:10px 14px;background:#eff6ff;border:1px solid #bfdbfe;border-radius:10px;margin-bottom:12px;font-size:13px;color:#1e40af;display:none">
@@ -309,7 +309,7 @@
       <div class="filters">
         <div class="field">
           <label>Meses cobertura</label>
-          <input id="numMesesRelev" type="number" value="4" min="1" max="24" step="1" style="width:70px" oninput="recalcRelev()" />
+          <input inputmode="numeric" id="numMesesRelev" type="number" value="4" min="1" max="24" step="1" style="width:70px" oninput="recalcRelev()" />
         </div>
         <div class="field">
           <label>Observaciones</label>
@@ -952,7 +952,7 @@ function mostrarResumenPedido(origen) {
     totalUni += p.cantidad;
     totalPaq += p.paq;
     html += "<tr>" +
-      "<td style='text-align:center;padding:4px'><input class='inp-cell' type='number' id='pp_pr_" + i + "' value='" + (p.prioridad || "") + "' min='1' style='width:50px'></td>" +
+      "<td style='text-align:center;padding:4px'><input inputmode="numeric" class='inp-cell' type='number' id='pp_pr_" + i + "' value='" + (p.prioridad || "") + "' min='1' style='width:50px'></td>" +
       "<td style='padding:4px;font-weight:700'>Caja " + p.nCaja + "</td>" +
       "<td style='text-align:right;padding:4px'>" + fmt(p.stockTotal) + "</td>" +
       "<td style='text-align:right;padding:4px'>" + fmt(p.consMes) + "</td>" +

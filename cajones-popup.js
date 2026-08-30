@@ -101,7 +101,7 @@
         <tr data-num="${c.numero}">
           <td><b>${c.numero}</b></td>
           <td>${c.peso.toLocaleString('es-AR', { minimumFractionDigits: 2 })}</td>
-          <td><input type="number" min="0" step="1" class="cajpop-qty" value="${val}" placeholder="0" data-num="${c.numero}"></td>
+          <td><input inputmode="numeric" type="number" min="0" step="1" class="cajpop-qty" value="${val}" placeholder="0" data-num="${c.numero}"></td>
         </tr>
       `;
     }).join('');

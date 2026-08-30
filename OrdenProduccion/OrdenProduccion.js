@@ -409,7 +409,7 @@ function renderBloque(b) {
         : `<span class="cd-tocable" data-det="${d.compId}">${fmtUni(d.consumoUniMes)}</span>`}</td>
       <td class="num">${fmtUni(d.maximoUni)}</td>
       <td class="num">
-        <input type="number" class="stock-input ${d.stockManual ? "manual" : ""}"
+        <input inputmode="numeric" type="number" class="stock-input ${d.stockManual ? "manual" : ""}"
                data-comp="${d.compId}" min="0" step="1"
                value="${Math.round(d.stockUsado)}" />
       </td>

@@ -211,7 +211,7 @@ function renderTabla(rows) {
       }
       const gId = grupo.replace(/[^a-zA-Z0-9]/g, "_");
       const mVal = getMesesGrupo(grupo);
-      html += `<tr class="row-grupo-header"><td colspan="4" style="font-size:14px;font-weight:800">${esc(grupo)}</td><td style="text-align:right;font-size:11px">Meses</td><td><input id="meses_${gId}" type="number" value="${mVal}" min="1" max="24" onchange="setMesesGrupo('${esc(grupo)}')" /></td></tr>`;
+      html += `<tr class="row-grupo-header"><td colspan="4" style="font-size:14px;font-weight:800">${esc(grupo)}</td><td style="text-align:right;font-size:11px">Meses</td><td><input inputmode="numeric" id="meses_${gId}" type="number" value="${mVal}" min="1" max="24" onchange="setMesesGrupo('${esc(grupo)}')" /></td></tr>`;
       prevGrupo = grupo;
     }
 
