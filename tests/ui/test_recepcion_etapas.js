@@ -17,7 +17,7 @@ const EXE = process.env.CHROMIUM_PATH || (fs.existsSync('/opt/pw-browsers/chromi
   await page.route('**/pwa.js*', r => r.fulfill({ contentType: 'application/javascript', body: '' }));
   // stub minimo: la pagina carga (el cargar() inicial falla silencioso, no importa aca)
   await page.route('**/@supabase/supabase-js@2', r => r.fulfill({ contentType: 'application/javascript', body:
-    'window.supabase={createClient:()=>({rpc:async()=>({data:{insumos:[],proveedores:[],tara:{}}})})};' }));
+    'window.supabase={createClient:()=>({rpc:async()=>({data:{insumos:[],proveedores:[],tara:{tara_pallet_min:4,tara_pallet_max:8,tara_estimada:5.0,tara_n:12,tara_por_proveedor:{}}}})})};' }));
   await page.goto('file://' + require('path').resolve(__dirname, '..', '..', 'StockFlejes', 'RecepcionInsumos_GP2.html'));
   await page.waitForTimeout(600);
 
@@ -66,7 +66,7 @@ const EXE = process.env.CHROMIUM_PATH || (fs.existsSync('/opt/pw-browsers/chromi
   await page.fill('.pes-pallet input[data-f="peso"]', '450');
   for (let i = 0; i < 4; i++) await page.click('[data-step="1"]');   // 1 -> 5 rollos
   let kAuto = await page.locator('.kgw input').inputValue();
-  ok(kAuto === '88,8', 'kg por rollo se calcula solo: (450-6)/5 = 88,8 (dio ' + kAuto + ')');
+  ok(kAuto === '89', 'kg por rollo usa la tara APRENDIDA: (450-5)/5 = 89 (dio ' + kAuto + ')');
   ok(await page.locator('.kgw input.auto').count() === 1, 'el valor automatico se distingue (azul)');
   await page.fill('.kgw input', '88,5');                              // correccion manual
   await page.click('[data-step="1"]');                                // 5 -> 6 rollos

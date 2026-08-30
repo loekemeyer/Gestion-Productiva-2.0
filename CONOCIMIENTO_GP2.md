@@ -318,6 +318,17 @@ y carga datos igual** — cualquier pantalla nueva se diseña para esa persona. 
 18px en `gp2-modulo.css`, `inputmode` en todo campo numérico (51 arreglados de una),
 y el guard `test_teclado_numerico.js` para que no vuelva a pasar.
 
+## 3c-ter. La tara del pallet se aprende sola (2026-08-30)
+
+`[usuario 2026-08-30]` *"Una vez que empecemos a tener datos de carga de cuánto pesa
+cada pallet, vamos a poder ir asumiéndolo para calcular mejor, no solamente tomando el
+dato de 4 kilos."* Implementado en la BD (regla: el motor vive en la base):
+`v_tara_pallet_real` saca la tara verdadera de cada pesaje guardado (balanza − suma de
+rollos) y `recepcion_tara()` la promedia — por proveedor primero (n≥5), global después
+(n≥5), filtrando taras fuera de 1–15 kg. El auto-cálculo del kg por rollo la usa en ese
+orden y recién sin datos cae al punto medio del parámetro 4–8. No hay nada que
+mantener a mano: cada pesaje que se guarda mejora el próximo cálculo.
+
 ## 3. Reglas del negocio ya incorporadas
 
 - **La Est Madre manda hacia atrás.** El máximo de flejes e insumos NO sale de
