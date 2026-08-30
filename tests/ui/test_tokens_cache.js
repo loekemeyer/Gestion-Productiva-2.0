@@ -99,5 +99,33 @@ if (!commits.length) {
                 (nTok > 1 ? ' — aparece en ' + nTok + ' commits, cambialo' : ''));
 }
 
+// ── 4) la clave anon vive en UN solo archivo ─────────────────────────────
+// Antes estaba escrita a mano en 112 archivos y rotarla era tocarlos todos.
+// Los 3 permitidos son codigo muerto que no se toco a proposito: una foto de
+// backup y dos archivos que ninguna pagina carga.
+const KEY_PREFIJO = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9';
+const PERMITIDOS = new Set([
+  'supabase-config.js',
+  'Relevamiento/_backup_relevamiento_20260731.js',
+  'StockFlejes/flejes.js',
+  'Despiece x Articulo/_export/despiece_lib.js',
+]);
+function todos(dir, acc = []) {
+  for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
+    // 'tests' afuera: este mismo archivo lleva el prefijo de la clave para poder buscarla
+    if (e.name === 'node_modules' || e.name === '.git' || e.name === 'tests') continue;
+    const p = path.join(dir, e.name);
+    if (e.isDirectory()) todos(p, acc);
+    else if (/\.(html|js)$/.test(e.name)) acc.push(p);
+  }
+  return acc;
+}
+const conKey = todos(ROOT)
+  .filter(f => fs.readFileSync(f, 'utf8').includes(KEY_PREFIJO))
+  .map(f => path.relative(ROOT, f))
+  .filter(r => !PERMITIDOS.has(r));
+if (conKey.length) conKey.forEach(r => console.log('     clave suelta en: ' + r));
+ok(conKey.length === 0, 'la clave anon solo esta en supabase-config.js');
+
 console.log(fallos ? 'HAY FALLOS' : 'TODO OK');
 process.exit(fallos ? 1 : 0);

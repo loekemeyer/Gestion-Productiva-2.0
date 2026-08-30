@@ -1,7 +1,9 @@
 const CACHE_VERSION = "v1.8.45";
 
-const SUPABASE_URL = "https://hrxfctzncixxqmpfhskv.supabase.co";
-const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhyeGZjdHpuY2l4eHFtcGZoc2t2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI3MjQyNjEsImV4cCI6MjA4ODMwMDI2MX0.4L6wguch8UZGhC2VpzrWcCjJGUV-IkYsl9JoCWrOLUs";
+// La URL y la clave anon viven en UN solo archivo: ../../supabase-config.js.
+// En un service worker no hay <script>, se trae con importScripts; el config
+// define las variables sobre self, asi que se usan igual que antes.
+importScripts("../../supabase-config.js");
 const TABLA = "Registros Produccion Cervantes";
 const TABLA_PATH = encodeURIComponent(TABLA);
 

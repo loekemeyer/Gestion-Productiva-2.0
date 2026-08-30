@@ -45,7 +45,12 @@ const STUB = `window.supabase={createClient:function(){return{rpc:async function
     const c = cards.find(x => x.textContent.includes('Prov. Art. Terminado'));
     return c ? c.textContent : '';
   });
-  ok(provAT.includes('Envío Cartón/Cajas') && !provAT.includes('Control'), 'Prov AT solo con Envío Cartón/Cajas');
+  // El grupo arranco con un candado "Control" a la app vieja, que se saco en
+  // v1.23.0 ("el online ya esta en Stocks General"). Desde 2026-08-30 hay un
+  // modulo GP2 propio (ControlAT_GP2.html), asi que Control vuelve — pero como
+  // pantalla GP2, no como candado. Lo que el test cuida es eso ultimo.
+  ok(provAT.includes('Envío Cartón/Cajas'), 'Prov AT conserva Envío Cartón/Cajas');
+  ok(!/🔒/.test(provAT), 'Prov AT sin candados a la app vieja: ' + provAT.replace(/\s+/g,' ').trim());
   await browser.close();
   console.log(process.exitCode ? 'HAY FALLOS' : 'TODO OK');
 })();

@@ -1,6 +1,6 @@
 <!doctype html><html lang="es"><head><meta charset="utf-8">
 <script src="auth-guard.js?v=20260829f"></script>
-<!-- v1.9.0 - Prov. Art. Terminado gana su "Historial x Fecha" (?origen=provat): el grupo tenia un solo boton y el modulo ya tenia esa vista; v1.8.0 - celular: adentro de un grupo los modulos dejan de ser una lista de filas finitas y pasan a baldosas grandes en 2 columnas (igual en todos los rubros); hasta Produccion (14) entra en una pantalla; v1.7.0 - Control Envios y Entregas deja de ser un grupo suelto: se reparte en un boton "Historial x Fecha" dentro de Tallerista (?origen=tall) y otro dentro de PS (?origen=ps); v1.6.0 - un solo menu: entra "Entrega Virgilio" (unica pantalla sin version GP2 que no figuraba) y se saca "Inicio (dashboard)", que era el menu viejo duplicado; sus datos vivos (KPIs, badge de Disruptivas y aviso de espejo) se portaron aca; v1.5.0 - celular: los 13 grupos entran en UNA pantalla (grilla de 2 columnas, tarjetas mas grandes), se muestra el numero de version y se saco el texto que no son modulos (subtitulo y pie); v1.4.0 - entra "Inyectores · Quien hace cada parte" en el grupo Insumos; v1.3.0 - menu depurado: fuera Stock Online duplicado, Informes Virgilio y los 2 candados de Prov AT; v1.2.0 - es la pagina de entrada post-login (con auth-guard y Cerrar sesion); v1.1.0 - grupos 100% bloqueados arrancan minimizados; acordeon exclusivo; vista foco en celular -->
+<!-- v1.9.1 - Produccion llego a 15 modulos ("Orden de Produccion") y en pantalla baja el grupo abierto se pasaba 12px: las baldosas bajan de 64 a 56px; v1.9.0 - Prov. Art. Terminado gana su "Historial x Fecha" (?origen=provat): el grupo tenia un solo boton y el modulo ya tenia esa vista; v1.8.0 - celular: adentro de un grupo los modulos dejan de ser una lista de filas finitas y pasan a baldosas grandes en 2 columnas (igual en todos los rubros); hasta Produccion (14) entra en una pantalla; v1.7.0 - Control Envios y Entregas deja de ser un grupo suelto: se reparte en un boton "Historial x Fecha" dentro de Tallerista (?origen=tall) y otro dentro de PS (?origen=ps); v1.6.0 - un solo menu: entra "Entrega Virgilio" (unica pantalla sin version GP2 que no figuraba) y se saca "Inicio (dashboard)", que era el menu viejo duplicado; sus datos vivos (KPIs, badge de Disruptivas y aviso de espejo) se portaron aca; v1.5.0 - celular: los 13 grupos entran en UNA pantalla (grilla de 2 columnas, tarjetas mas grandes), se muestra el numero de version y se saco el texto que no son modulos (subtitulo y pie); v1.4.0 - entra "Inyectores · Quien hace cada parte" en el grupo Insumos; v1.3.0 - menu depurado: fuera Stock Online duplicado, Informes Virgilio y los 2 candados de Prov AT; v1.2.0 - es la pagina de entrada post-login (con auth-guard y Cerrar sesion); v1.1.0 - grupos 100% bloqueados arrancan minimizados; acordeon exclusivo; vista foco en celular -->
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>GP2 · Menú</title>
 <link rel="icon" type="image/png" href="GP2_favicon.png?v=1.2.0">
@@ -49,6 +49,16 @@ a.op:active{transform:translateY(0)}
 a.op .arrow{color:#2563eb;font-size:18px;margin-left:auto;font-weight:700;transition:color .15s}
 a.op:hover .arrow{color:#1d4ed8}
 a.op .dot{width:7px;height:7px;border-radius:50%;background:#22c55e;flex-shrink:0}
+
+/* ── tres niveles de importancia dentro de un grupo ──
+   Los pidio el usuario para Insumos: comprar y recibir es lo de todos los
+   dias, el stock de cada rubro va despues, y la config de quien fabrica
+   ultima. Se marcan en el MENU y sirven para cualquier grupo. */
+a.op.principal{background:#eff6ff;border-color:#93b4d8;font-weight:700;font-size:17px;padding:14px}
+a.op.principal .dot{width:9px;height:9px}
+a.op.secundario{background:#fbfcfd;border-color:#eef2f6;color:#64748b;font-size:15px;padding:9px 14px}
+a.op.secundario .dot{background:#cbd5e1;width:6px;height:6px}
+a.op.secundario .arrow{color:#94a3b8}
 
 /* ── boton que todavia abre la app anterior (schema public) ── */
 a.op.vieja{background:#fffbeb;border-color:#b45309;color:#7c2d12}
@@ -121,7 +131,14 @@ span.op.lock .lk{font-size:14px;margin-left:auto;opacity:.7}
   body.focus .card.open a.op{position:relative}
   body.focus .card.open a.op .dot{position:absolute;top:8px;left:8px;margin:0}
   body.focus .card.open span.op.lock .lk{margin:0}
-  /* cantidad impar: el ultimo ocupa el ancho entero para que no quede colgado */
+  /* nivel 1: baldosa a todo el ancho, mas alta y destacada — es lo que se
+     abre todos los dias, tiene que caer bajo el pulgar sin buscar */
+  body.focus .card.open a.op.principal{grid-column:1 / -1;min-height:66px;font-size:18px}
+  /* nivel 3: misma grilla que los rubros pero apagado, para que no compita */
+  body.focus .card.open a.op.secundario{min-height:56px;font-size:15px}   /* 15 es el piso de legibilidad que fija el test */
+  /* cantidad impar: el ultimo ocupa el ancho entero para que no quede colgado.
+     Los "principal" ya ocupan la fila entera, asi que no cuentan para la
+     paridad: se mira solo entre los que comparten la grilla de 2 columnas. */
   body.focus .card.open .btns > :last-child:nth-child(odd){grid-column:1 / -1;min-height:56px}
 }
 
@@ -135,11 +152,12 @@ span.op.lock .lk{font-size:14px;margin-left:auto;opacity:.7}
   .card-head .title{font-size:14px}
   .card.solo .card-head{min-height:46px}
   /* las baldosas del grupo abierto se achican lo justo para que el grupo mas
-     grande (Produccion, 14 modulos = 7 filas) tambien entre sin scrollear */
+     grande (Produccion, 15 modulos = 8 filas) tambien entre sin scrollear.
+     Cada modulo nuevo que entre a Produccion aprieta esto: el test avisa. */
   body.focus .card.open .btns{gap:6px}
   body.focus .card.open a.op,
-  body.focus .card.open span.op.lock{min-height:64px;padding:10px 8px;font-size:15px}
-  body.focus .card.open .btns > :last-child:nth-child(odd){min-height:52px}
+  body.focus .card.open span.op.lock{min-height:56px;padding:8px;font-size:15px}
+  body.focus .card.open .btns > :last-child:nth-child(odd){min-height:50px}
 }
 
 /* ── datos vivos que venian del dashboard viejo (Inicio/index_GP2.html) ── */
@@ -161,7 +179,7 @@ span.op.lock .lk{font-size:14px;margin-left:auto;opacity:.7}
     (GP2_AUTH_ON=false) no hay sesion que cerrar: el link se oculta solo -->
     <span id="kpiResumen"></span><span id="sesion" hidden>&nbsp;·&nbsp; <a href="login.html?logout=1" onclick="try{sessionStorage.clear();}catch(e){}"
     style="color:#b42318;text-decoration:none;font-weight:700">⎋ Cerrar sesión</a></span></div>
-  <script src="version.js?v=20260830e"></script>
+  <script src="version.js?v=20260830h"></script>
   <script>if (window.GP2_AUTH_ON !== false) document.getElementById('sesion').hidden = false;</script>
 </div>
 
@@ -229,9 +247,11 @@ const MENU = [
    ["Entrega Proveedores Cervantes", null],
  ]],
  ["▦","Insumos", [
-   ["Órdenes de Compra", "Compras/OC_GP2.html"],
-   ["Inyectores · Quién hace cada parte", "Compras/Inyectores_GP2.html"],
-   ["Recepción Insumos", "StockFlejes/RecepcionInsumos_GP2.html"],
+   // El orden y las marcas los pidio el usuario: primero lo que se usa todos
+   // los dias (comprar y recibir), despues el stock rubro por rubro, y ultimo
+   // Inyectores, que es configuracion — se toca cuando cambia un proveedor.
+   ["Órdenes de Compra", "Compras/OC_GP2.html", "principal"],
+   ["Recepción Insumos", "StockFlejes/RecepcionInsumos_GP2.html", "principal"],
    ["Flejes", "StockFlejes/Flejes_GP2.html"],
    ["Cajas", "StockFlejes/Cajas_GP2.html"],
    ["Cartones", "StockFlejes/Cartones_GP2.html"],
@@ -239,6 +259,7 @@ const MENU = [
    ["Remaches", "StockFlejes/Remaches_GP2.html"],
    ["Bombillas", "StockFlejes/Bombillas_GP2.html"],
    ["Garage", "StockFlejes/Garage_GP2.html"],
+   ["Inyectores · Quién hace cada parte", "Compras/Inyectores_GP2.html", "secundario"],
  ]],
  ["🗒","Relevamiento", [ ["Relevamientos", "Relevamiento/relevamiento.html"] ]],
  ["🔗","Ventas", [ ["Chat Bot Ventas", null] ]],
@@ -286,12 +307,17 @@ MENU.forEach(([icon, titulo, items]) => {
   const box = document.createElement("div");
   box.className = "btns";
   items.forEach(([label, href, marca]) => {
+    // marca: lista separada por espacios. "vieja" = abre la app anterior;
+    // "principal"/"secundario" = peso dentro del grupo (lo pidio el usuario).
+    const marcas = String(marca || "").split(/\s+/).filter(Boolean);
+    const tiene = (m) => marcas.includes(m);
     if (href) {
-      const a = document.createElement("a"); a.className = "op" + (marca === "vieja" ? " vieja" : "");
+      const a = document.createElement("a");
+      a.className = ["op"].concat(marcas).join(" ");
       a.href = href;
-      if (marca === "vieja") a.title = "Todavía sin versión GP2: abre la pantalla de la app anterior";
+      if (tiene("vieja")) a.title = "Todavía sin versión GP2: abre la pantalla de la app anterior";
       a.innerHTML = '<span class="dot"></span><span>' + label + '</span>' +
-        (marca === "vieja" ? '<span class="tag">app vieja</span>' : '') +
+        (tiene("vieja") ? '<span class="tag">app vieja</span>' : '') +
         '<span class="arrow">›</span>';
       box.appendChild(a);
     } else {
@@ -309,6 +335,7 @@ MENU.forEach(([icon, titulo, items]) => {
 if (MENU.length % 2 === 1) grid.lastElementChild.classList.add("solo");
 </script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="supabase-config.js?v=20260830e"></script>
 <script>
 /* Datos vivos del menu. Antes vivian en Inicio/index_GP2.html, que era una copia
    del menu viejo y quedo como redirect: el RPC "GP2".inicio_bundle() se trajo aca
@@ -317,8 +344,8 @@ if (MENU.length % 2 === 1) grid.lastElementChild.classList.add("solo");
 (async () => {
   try {
     const sb = supabase.createClient(
-      "https://hrxfctzncixxqmpfhskv.supabase.co",
-      "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhyeGZjdHpuY2l4eHFtcGZoc2t2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI3MjQyNjEsImV4cCI6MjA4ODMwMDI2MX0.4L6wguch8UZGhC2VpzrWcCjJGUV-IkYsl9JoCWrOLUs",
+      SUPABASE_URL,
+      SUPABASE_KEY,
       { db: { schema: "GP2" }, auth: { persistSession: false } }
     );
     const { data: bundle, error } = await sb.rpc("inicio_bundle");

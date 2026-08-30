@@ -2,6 +2,7 @@
 <script src="../auth-guard.js?v=20260829f"></script>
 <title>Loekemeyer · Registrar Movimiento (GP2)</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="../supabase-config.js?v=20260830e"></script>
 <style>
  *{box-sizing:border-box}
  body{margin:0;background:#0a0e13;color:#e6ecf3;font:14px/1.5 -apple-system,Segoe UI,Roboto,sans-serif}
@@ -125,8 +126,6 @@
    Lee D de la RPC GP2.movimientos_bundle() y escribe en GP2.movimiento via
    GP2.registrar_movimientos(jsonb). Los triggers fn_movimiento_calc/aplicar
    convierten a canónico y actualizan GP2.inventario. La app NO calcula stock. */
-const SB_URL="https://hrxfctzncixxqmpfhskv.supabase.co";
-const SB_ANON="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhyeGZjdHpuY2l4eHFtcGZoc2t2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI3MjQyNjEsImV4cCI6MjA4ODMwMDI2MX0.4L6wguch8UZGhC2VpzrWcCjJGUV-IkYsl9JoCWrOLUs";
 const SB=window.supabase.createClient(SB_URL,SB_ANON,{db:{schema:'GP2'}});
 
 var D=null, _recent=[], _batch=[], _busy=false;

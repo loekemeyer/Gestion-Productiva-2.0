@@ -129,13 +129,12 @@
   <div class="toast-container" id="toastContainer"></div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="../supabase-config.js?v=20260830e"></script>
   <script>
   document.addEventListener("DOMContentLoaded", () => {
     "use strict";
 
     /* ================= SUPABASE (schema GP2) ================= */
-    const SUPABASE_URL = "https://hrxfctzncixxqmpfhskv.supabase.co";
-    const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhyeGZjdHpuY2l4eHFtcGZoc2t2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI3MjQyNjEsImV4cCI6MjA4ODMwMDI2MX0.4L6wguch8UZGhC2VpzrWcCjJGUV-IkYsl9JoCWrOLUs";
     // MIGRADO a schema GP2: todas las alertas salen de un unico RPC "GP2".alertas_bundle()
     // (se apoya en GP2.produccion, espejo de db_n8n_espejo).
     const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY, { db: { schema: 'GP2' } });

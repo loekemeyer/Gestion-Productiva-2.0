@@ -86,6 +86,24 @@ const PANTALLAS = [
       ok(a.fuente >= 15, `${p.nom}/${g}: texto legible (${a.fuente}px)`);
       ok(a.fondo <= p.h, `${p.nom}/${g}: entra sin scrollear (termina en ${Math.round(a.fondo)} de ${p.h})`);
       ok(!a.horizontal, `${p.nom}/${g}: sin scroll horizontal`);
+      // Jerarquia de Insumos, pedida por el usuario con screenshot: primero y a
+      // todo el ancho lo de todos los dias (comprar y recibir), despues el
+      // stock rubro por rubro, y ultimo y apagado Inyectores, que es config.
+      // Se fija aca para que no se aplane sin querer en un rediseno futuro.
+      if (g === 'Insumos') {
+        const j = await page.evaluate(() => [...document.querySelectorAll('.card.open .btns > *')]
+          .map(el => ({ t: el.textContent.replace('\u203a', '').trim(),
+                        cls: el.className, w: Math.round(el.getBoundingClientRect().width) })));
+        const anchoMax = Math.max(...j.map(x => x.w));
+        const principales = j.filter(x => /\bprincipal\b/.test(x.cls));
+        ok(j[0].t.startsWith('Órdenes de Compra') && j[1].t.startsWith('Recepción Insumos'),
+           `${p.nom}/Insumos: arriba van Órdenes de Compra y Recepción (hoy: ${j[0].t} / ${j[1].t})`);
+        ok(principales.length === 2 && principales.every(x => x.w === anchoMax),
+           `${p.nom}/Insumos: los 2 principales ocupan el ancho entero`);
+        ok(/\bsecundario\b/.test(j[j.length - 1].cls) && j[j.length - 1].t.startsWith('Inyectores'),
+           `${p.nom}/Insumos: Inyectores va ultimo y apagado`);
+      }
+
       await page.click(`.card-head:has-text("${g}")`);   // cerrar antes del siguiente
       await page.waitForTimeout(120);
     }
