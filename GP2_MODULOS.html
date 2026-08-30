@@ -1,6 +1,6 @@
 <!doctype html><html lang="es"><head><meta charset="utf-8">
 <script src="auth-guard.js?v=20260829f"></script>
-<!-- v1.7.0 - Control Envios y Entregas deja de ser un grupo suelto: se reparte en un boton "Historial x Fecha" dentro de Tallerista (?origen=tall) y otro dentro de PS (?origen=ps); v1.6.0 - un solo menu: entra "Entrega Virgilio" (unica pantalla sin version GP2 que no figuraba) y se saca "Inicio (dashboard)", que era el menu viejo duplicado; sus datos vivos (KPIs, badge de Disruptivas y aviso de espejo) se portaron aca; v1.5.0 - celular: los 13 grupos entran en UNA pantalla (grilla de 2 columnas, tarjetas mas grandes), se muestra el numero de version y se saco el texto que no son modulos (subtitulo y pie); v1.4.0 - entra "Inyectores · Quien hace cada parte" en el grupo Insumos; v1.3.0 - menu depurado: fuera Stock Online duplicado, Informes Virgilio y los 2 candados de Prov AT; v1.2.0 - es la pagina de entrada post-login (con auth-guard y Cerrar sesion); v1.1.0 - grupos 100% bloqueados arrancan minimizados; acordeon exclusivo; vista foco en celular -->
+<!-- v1.8.0 - celular: adentro de un grupo los modulos dejan de ser una lista de filas finitas y pasan a baldosas grandes en 2 columnas (igual en todos los rubros); hasta Produccion (14) entra en una pantalla; v1.7.0 - Control Envios y Entregas deja de ser un grupo suelto: se reparte en un boton "Historial x Fecha" dentro de Tallerista (?origen=tall) y otro dentro de PS (?origen=ps); v1.6.0 - un solo menu: entra "Entrega Virgilio" (unica pantalla sin version GP2 que no figuraba) y se saca "Inicio (dashboard)", que era el menu viejo duplicado; sus datos vivos (KPIs, badge de Disruptivas y aviso de espejo) se portaron aca; v1.5.0 - celular: los 13 grupos entran en UNA pantalla (grilla de 2 columnas, tarjetas mas grandes), se muestra el numero de version y se saco el texto que no son modulos (subtitulo y pie); v1.4.0 - entra "Inyectores · Quien hace cada parte" en el grupo Insumos; v1.3.0 - menu depurado: fuera Stock Online duplicado, Informes Virgilio y los 2 candados de Prov AT; v1.2.0 - es la pagina de entrada post-login (con auth-guard y Cerrar sesion); v1.1.0 - grupos 100% bloqueados arrancan minimizados; acordeon exclusivo; vista foco en celular -->
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>GP2 · Menú</title>
 <link rel="icon" type="image/png" href="GP2_favicon.png?v=1.2.0">
@@ -104,6 +104,25 @@ span.op.lock .lk{font-size:14px;margin-left:auto;opacity:.7}
   /* el chevron pasa a ser el boton de cerrar */
   body.focus .card.open .chevron{transform:none;font-size:0}
   body.focus .card.open .chevron::after{content:"\2715\00a0 Cerrar";font-size:14px;font-weight:700;color:#2563eb;white-space:nowrap}
+
+  /* ── adentro del grupo: botones GRANDES en grilla, igual que los grupos ──
+     Antes era una lista de filas finitas: se veian chicas, desperdiciaban el
+     ancho y con 14 modulos (Produccion) habia que scrollear. En 2 columnas
+     entran el doble por pantalla y cada boton es una baldosa tocable. */
+  body.focus .card.open .btns{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  body.focus .card.open a.op,
+  body.focus .card.open span.op.lock{
+    flex-direction:column;align-items:center;justify-content:center;text-align:center;
+    gap:4px;min-height:76px;padding:12px 10px;font-size:16px;font-weight:600;
+    line-height:1.15;border-radius:12px;overflow-wrap:anywhere}
+  body.focus .card.open a.op .arrow{display:none}   /* en baldosa no aporta */
+  /* el puntito (verde = GP2, ambar = modulo viejo) va a la esquina: si queda en
+     el flujo se come una linea y empuja el nombre fuera del centro */
+  body.focus .card.open a.op{position:relative}
+  body.focus .card.open a.op .dot{position:absolute;top:8px;left:8px;margin:0}
+  body.focus .card.open span.op.lock .lk{margin:0}
+  /* cantidad impar: el ultimo ocupa el ancho entero para que no quede colgado */
+  body.focus .card.open .btns > :last-child:nth-child(odd){grid-column:1 / -1;min-height:56px}
 }
 
 /* celulares de pantalla baja (SE, o el navegador con su barra a la vista):
@@ -115,6 +134,12 @@ span.op.lock .lk{font-size:14px;margin-left:auto;opacity:.7}
   .card-head .icon{font-size:18px}
   .card-head .title{font-size:14px}
   .card.solo .card-head{min-height:46px}
+  /* las baldosas del grupo abierto se achican lo justo para que el grupo mas
+     grande (Produccion, 14 modulos = 7 filas) tambien entre sin scrollear */
+  body.focus .card.open .btns{gap:6px}
+  body.focus .card.open a.op,
+  body.focus .card.open span.op.lock{min-height:64px;padding:10px 8px;font-size:15px}
+  body.focus .card.open .btns > :last-child:nth-child(odd){min-height:52px}
 }
 
 /* ── datos vivos que venian del dashboard viejo (Inicio/index_GP2.html) ── */
@@ -136,7 +161,7 @@ span.op.lock .lk{font-size:14px;margin-left:auto;opacity:.7}
     (GP2_AUTH_ON=false) no hay sesion que cerrar: el link se oculta solo -->
     <span id="kpiResumen"></span><span id="sesion" hidden>&nbsp;·&nbsp; <a href="login.html?logout=1" onclick="try{sessionStorage.clear();}catch(e){}"
     style="color:#b42318;text-decoration:none;font-weight:700">⎋ Cerrar sesión</a></span></div>
-  <script src="version.js?v=20260830b"></script>
+  <script src="version.js?v=20260830c"></script>
   <script>if (window.GP2_AUTH_ON !== false) document.getElementById('sesion').hidden = false;</script>
 </div>
 

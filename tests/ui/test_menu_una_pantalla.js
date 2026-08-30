@@ -51,21 +51,44 @@ const PANTALLAS = [
     ok(m.foot === 'none', `${p.nom}: el pie de pagina no ocupa lugar`);
     ok(!/pendientes de migraci/i.test(m.sub), `${p.nom}: sin el cartel viejo, solo la version`);
 
-    // abrir un grupo: se ve SOLO ese, con sus botones anchos
-    await page.click('.card-head:has-text("Producción")');
-    await page.waitForTimeout(250);
-    const abierto = await page.evaluate(() => {
-      const ops = [...document.querySelectorAll('.card.open a.op')].map(a => a.getBoundingClientRect());
-      return {
-        solo: [...document.querySelectorAll('.card:not(.open)')].every(c => getComputedStyle(c).display === 'none'),
-        n: ops.length,
-        ancho: Math.min(...ops.map(r => r.width)),
-        alto: Math.min(...ops.map(r => r.height)),
-      };
-    });
-    ok(abierto.solo, `${p.nom}: al abrir un grupo se ve solo ese`);
-    ok(abierto.ancho > p.w * 0.85, `${p.nom}: los botones del grupo ocupan el ancho (${Math.round(abierto.ancho)}px)`);
-    ok(abierto.alto >= 44, `${p.nom}: botones del grupo tocables (${Math.round(abierto.alto)}px)`);
+    /* Abrir CADA grupo (el usuario pidio "botones grandes y ordenados siempre, en
+       todos los rubros"): se ve solo ese, los modulos son baldosas en 2 columnas
+       parejas y el grupo entra en la pantalla sin scrollear. Un grupo de 1 modulo
+       ocupa el ancho entero: ahi 1 columna es lo correcto, no un boton a medias. */
+    const grupos = await page.evaluate(() =>
+      [...document.querySelectorAll('.card-head .title')].map(t => t.textContent.trim()));
+    ok(grupos.length === m.grupos, `${p.nom}: se listan los ${m.grupos} rubros`);
+
+    for (const g of grupos) {
+      await page.click(`.card-head:has-text("${g}")`);
+      await page.waitForTimeout(200);
+      const a = await page.evaluate(() => {
+        const ops = [...document.querySelectorAll('.card.open .btns > *')].map(el => {
+          const r = el.getBoundingClientRect();
+          return { w: r.width, h: r.height, x: Math.round(r.x), fs: parseFloat(getComputedStyle(el).fontSize) };
+        });
+        return {
+          solo: [...document.querySelectorAll('.card:not(.open)')].every(c => getComputedStyle(c).display === 'none'),
+          n: ops.length,
+          alto: Math.min(...ops.map(o => o.h)),
+          fuente: Math.min(...ops.map(o => o.fs)),
+          cols: new Set(ops.map(o => o.x)).size,
+          anchos: new Set(ops.map(o => Math.round(o.w))).size,   // baldosas parejas
+          fondo: Math.max(...[...document.querySelectorAll('.card.open')].map(c => c.getBoundingClientRect().bottom)),
+          horizontal: document.documentElement.scrollWidth > window.innerWidth,
+        };
+      });
+      const colsEsperadas = a.n === 1 ? 1 : 2;
+      ok(a.solo, `${p.nom}/${g}: al abrir se ve solo ese grupo`);
+      ok(a.cols === colsEsperadas, `${p.nom}/${g}: ${a.n} modulos en ${colsEsperadas} columna(s) (mide ${a.cols})`);
+      ok(a.anchos <= 2, `${p.nom}/${g}: baldosas parejas (${a.anchos} anchos distintos)`);
+      ok(a.alto >= 44, `${p.nom}/${g}: baldosas tocables (${Math.round(a.alto)}px, minimo 44)`);
+      ok(a.fuente >= 15, `${p.nom}/${g}: texto legible (${a.fuente}px)`);
+      ok(a.fondo <= p.h, `${p.nom}/${g}: entra sin scrollear (termina en ${Math.round(a.fondo)} de ${p.h})`);
+      ok(!a.horizontal, `${p.nom}/${g}: sin scroll horizontal`);
+      await page.click(`.card-head:has-text("${g}")`);   // cerrar antes del siguiente
+      await page.waitForTimeout(120);
+    }
     await ctx.close();
   }
 
