@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <title>Orden de Produccion</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <link rel="stylesheet" href="OrdenProduccion.css" />
+    <link rel="stylesheet" href="OrdenProduccion.css?v=20260830l" />
   </head>
   <body>
     <div class="card">
@@ -15,8 +15,9 @@
 
       <h1>Orden de Produccion</h1>
       <div class="subtitle">
-        Cuanto hay que fabricar en cada matriz para llenar el Sector Crudo y el Sector Procesado.
-        Una orden por matriz, separada por fleje.
+        Cuanto hay que fabricar en cada matriz para cubrir la demanda mensual (Est Madre x
+        meses de stock) del Sector Crudo y el Sector Procesado. Una orden por matriz, separada
+        por fleje. Tocar el consumo muestra que articulos lo piden.
       </div>
 
       <div class="toolbar no-print">
@@ -47,6 +48,7 @@
     </div>
 
     <script src="../supabase-config.js?v=20260830e"></script>
-<script src="OrdenProduccion.js?v=20260829a"></script>
+    <script src="../consumo-detalle.js?v=20260830k"></script>
+    <script src="OrdenProduccion.js?v=20260830l"></script>
   </body>
 </html>

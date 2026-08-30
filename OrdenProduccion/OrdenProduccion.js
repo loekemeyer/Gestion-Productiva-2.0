@@ -5,19 +5,24 @@
 
    Que calcula
    -----------
-   Por cada MATRIZ, cuantas unidades hay que fabricar para llenar los
-   maximos de los sectores que esa matriz produce, expresado en unidades,
+   Por cada MATRIZ, cuantas unidades hay que fabricar para cubrir la
+   DEMANDA de los sectores que esa matriz produce, expresado en unidades,
    cajones y kilos (kilos de pieza y kilos de fleje a consumir).
+
+   Faltante = consumo mensual (Est Madre atribuida por articulo,
+   v_consumo_componente) x meses de stock de la ubicacion - stock actual.
+   El maximo fisico de la estanteria queda como contexto: NO se fabrica
+   para llenarla (eso proponia millones de unidades cuando la Est Madre
+   proyecta ~196.000 uni/mes).
 
    De donde sale cada dato
    -----------------------
-   GP2.ruta_paso (tipo_paso='matriz')  -> que matriz produce que sector,
-                                          entrando desde que fleje.
-   GP2.matriz.partes_por_kilo_de_fleje -> piezas por kilo de fleje (con
-                                          desperdicio) para pasar a kg.
-   GP2.componente                      -> uni_x_cajon y kg_x_uni del sector.
-   GP2.inventario (ubicacion Sector     -> maximo (en unidades) y cantidad
-   Crudo / Sector Procesado)              actual del sector.
+   Todo llega en un solo viaje por la RPC GP2.orden_produccion_bundle():
+   pasos de matriz (ruta_paso deduplicado), matrices con partes por kilo
+   de fleje, componentes (con n_fleje/medida si son fleje) y destinos
+   (consumo mensual, meses de stock, maximo y stock del Sector Crudo /
+   Sector Procesado). Tocar el consumo abre el sustento por articulo
+   (consumo-detalle.js, RPC consumo_detalle).
 
    Una matriz puede alimentar varios sectores entrando desde flejes
    distintos (ej. matriz 28: J2 y J5 desde el fleje A1, A15 desde el F1A).
@@ -42,7 +47,6 @@ const soloFaltante = document.getElementById("soloFaltante");
 const btnImprimir = document.getElementById("btnImprimir");
 
 /* ===== BLOQUE: ESTADO ===== */
-const UBIC_DESTINO = { crudo: "Sector Crudo", procesado: "Sector Procesado" };
 const STOCK_KEY = "ordenprod_stock_manual_v1";
 const MAX_SALTOS_CADENA = 8;
 
@@ -80,21 +84,6 @@ function fmtDec(n, dec) {
   });
 }
 
-async function fetchAllPaginated(tabla, cols) {
-  const PAGE = 1000;
-  let from = 0;
-  const out = [];
-  for (;;) {
-    const { data, error } = await sb.from(tabla).select(cols).range(from, from + PAGE - 1);
-    if (error) throw new Error(tabla + ": " + error.message);
-    const rows = data || [];
-    out.push(...rows);
-    if (rows.length < PAGE) break;
-    from += PAGE;
-  }
-  return out;
-}
-
 function leerStockManual() {
   try {
     const raw = localStorage.getItem(STOCK_KEY);
@@ -117,20 +106,10 @@ async function cargarTodo() {
     statusEl.textContent = "Cargando datos de GP2...";
     stockManualG = leerStockManual();
 
-    const [sectores, componentes, flejeDet, matrices, pasos, ubicaciones, inventario] =
-      await Promise.all([
-        fetchAllPaginated("sector", "id,tipo,nombre"),
-        fetchAllPaginated("componente", "id,codigo,descripcion,sector_id,kg_x_uni,uni_x_cajon"),
-        fetchAllPaginated("fleje_detalle", "componente_id,n_fleje,medida_mm,kg_uni_desp"),
-        fetchAllPaginated("matriz", "id,n_matriz,descripcion,partes_por_kilo_de_fleje"),
-        fetchAllPaginated("ruta_paso", "tipo_paso,matriz_id,comp_entrada_id,comp_salida_id"),
-        fetchAllPaginated("ubicacion", "id,nombre"),
-        fetchAllPaginated("inventario", "componente_id,ubicacion_id,cantidad,maximo")
-      ]);
+    const { data: bundle, error } = await sb.rpc("orden_produccion_bundle");
+    if (error) throw new Error("orden_produccion_bundle: " + error.message);
 
-    ordenesG = construirOrdenes({
-      sectores, componentes, flejeDet, matrices, pasos, ubicaciones, inventario
-    });
+    ordenesG = construirOrdenes(bundle || {});
 
     poblarFiltroFlejes();
     filtrarYRender();
@@ -142,47 +121,30 @@ async function cargarTodo() {
 
 /* ===== BLOQUE: ARMADO DE LA ORDEN ===== */
 function construirOrdenes(d) {
-  const tipoPorSector = new Map(d.sectores.map(s => [s.id, s.tipo]));
-
   const compPorId = new Map();
-  d.componentes.forEach(c => {
+  (d.componentes || []).forEach(c => {
     compPorId.set(c.id, {
       id: c.id,
       codigo: c.codigo || "",
       descripcion: c.descripcion || "",
-      tipo: tipoPorSector.get(c.sector_id) || "",
+      tipo: c.tipo || "",
       kgUni: num(c.kg_x_uni),
-      uniCajon: num(c.uni_x_cajon)
+      uniCajon: num(c.uni_x_cajon),
+      nFleje: c.n_fleje || "",
+      medidaFleje: c.medida_mm || ""
     });
   });
 
-  const flejePorComp = new Map(d.flejeDet.map(f => [f.componente_id, f]));
-  const matrizPorId = new Map(d.matrices.map(m => [m.id, m]));
+  const matrizPorId = new Map((d.matrices || []).map(m => [m.id, m]));
 
-  // Ubicaciones destino: el maximo a llenar es el del sector, no el del
-  // tallerista ni el de Virgilio.
-  const ubicPorNombre = new Map(d.ubicaciones.map(u => [u.nombre, u.id]));
-  const ubicDestino = {
-    crudo: ubicPorNombre.get(UBIC_DESTINO.crudo),
-    procesado: ubicPorNombre.get(UBIC_DESTINO.procesado)
-  };
+  // Destinos: consumo mensual atribuido (v_consumo_componente), meses de
+  // stock de la ubicacion y, como contexto, maximo y stock del sector.
+  const destPorComp = new Map();
+  (d.destinos || []).forEach(x => destPorComp.set(x.comp_id, x));
 
-  const invPorClave = new Map();
-  d.inventario.forEach(i => {
-    invPorClave.set(i.componente_id + "|" + i.ubicacion_id, i);
-  });
-
-  // ruta_paso repite el mismo paso en cada ruta que lo usa: deduplicar.
-  const pasosMatriz = [];
-  const vistos = new Set();
-  d.pasos.forEach(p => {
-    if (p.tipo_paso !== "matriz") return;
-    if (!p.matriz_id || !p.comp_entrada_id || !p.comp_salida_id) return;
-    const k = p.matriz_id + "|" + p.comp_entrada_id + "|" + p.comp_salida_id;
-    if (vistos.has(k)) return;
-    vistos.add(k);
-    pasosMatriz.push(p);
-  });
+  // La RPC ya trae los pasos de matriz deduplicados.
+  const pasosMatriz = (d.pasos || []).filter(p =>
+    p.matriz_id && p.comp_entrada_id && p.comp_salida_id);
 
   // Para seguir cadenas de transito: que pasos arrancan desde cada componente.
   const pasosPorEntrada = new Map();
@@ -222,7 +184,6 @@ function construirOrdenes(d) {
 
     const clave = p.matriz_id + "|" + p.comp_entrada_id;
     if (!bloques.has(clave)) {
-      const fd = flejePorComp.get(entrada.id);
       bloques.set(clave, {
         matrizId: matriz.id,
         nMatriz: matriz.n_matriz || "",
@@ -232,8 +193,8 @@ function construirOrdenes(d) {
         entradaCod: entrada.codigo,
         entradaTipo: entrada.tipo,
         esFleje: entrada.tipo === "fleje",
-        nFleje: fd ? (fd.n_fleje || "") : "",
-        medidaFleje: fd ? (fd.medida_mm || "") : "",
+        nFleje: entrada.nFleje,
+        medidaFleje: entrada.medidaFleje,
         destinos: new Map()
       });
     }
@@ -242,8 +203,7 @@ function construirOrdenes(d) {
     destinos.forEach(destId => {
       if (bloque.destinos.has(destId)) return;
       const dest = compPorId.get(destId);
-      const ubicId = ubicDestino[dest.tipo];
-      const inv = ubicId ? invPorClave.get(destId + "|" + ubicId) : null;
+      const info = destPorComp.get(destId);
       bloque.destinos.set(destId, {
         compId: destId,
         sector: dest.codigo,
@@ -251,8 +211,10 @@ function construirOrdenes(d) {
         tipo: dest.tipo,
         uniCajon: dest.uniCajon,
         kgUni: dest.kgUni,
-        maximoUni: inv ? num(inv.maximo) : 0,
-        stockUni: inv ? num(inv.cantidad) : 0,
+        consumoUniMes: (info && info.consumo_uni_mes != null) ? num(info.consumo_uni_mes) : null,
+        mesesStock: info ? num(info.meses_stock) : 0,
+        maximoUni: info ? num(info.maximo_uni) : 0,
+        stockUni: info ? num(info.stock_uni) : 0,
         // el paso pudo llegar por una cadena de transito
         viaTransito: dest.id !== p.comp_salida_id,
         pasoDirecto: compPorId.get(p.comp_salida_id)
@@ -271,22 +233,28 @@ function construirOrdenes(d) {
 }
 
 /* ===== BLOQUE: CALCULO POR DESTINO ===== */
-// Faltante = maximo del sector - lo que ya hay. Todo arranca en unidades:
-// los cajones y los kilos son conversiones de ese faltante.
+// Faltante por DEMANDA: consumo mensual (Est Madre) x meses de stock de la
+// ubicacion - lo que ya hay. El maximo fisico es solo contexto. Todo arranca
+// en unidades: los cajones y los kilos son conversiones de ese faltante.
 function calcularDestino(dest, partesPorKilo) {
   const stock = (stockManualG[dest.compId] != null)
     ? num(stockManualG[dest.compId])
     : dest.stockUni;
 
-  const faltanteUni = Math.max(0, dest.maximoUni - stock);
+  const objetivoUni = dest.consumoUniMes != null
+    ? dest.consumoUniMes * dest.mesesStock
+    : null;
+  const faltanteUni = objetivoUni != null
+    ? Math.max(0, Math.round(objetivoUni - stock))
+    : 0;
 
   return {
     ...dest,
     stockUsado: stock,
     stockManual: stockManualG[dest.compId] != null,
+    objetivoUni,
     faltanteUni,
     faltanteCaj: dest.uniCajon > 0 ? faltanteUni / dest.uniCajon : null,
-    maximoCaj: dest.uniCajon > 0 ? dest.maximoUni / dest.uniCajon : null,
     kgPieza: dest.kgUni > 0 ? faltanteUni * dest.kgUni : null,
     kgFleje: partesPorKilo > 0 ? faltanteUni / partesPorKilo : null
   };
@@ -378,7 +346,7 @@ function renderTotales(bloques) {
   `;
 
   statusEl.textContent = bloques.length
-    ? "Maximos y stock del Sector Crudo y Sector Procesado (GP2.inventario). El stock se puede corregir a mano en cada fila."
+    ? "Faltante = consumo mensual (Est Madre) x meses de stock del sector - stock actual. Tocar el consumo muestra que articulos lo piden. El stock se puede corregir a mano en cada fila."
     : "";
 }
 
@@ -436,8 +404,10 @@ function renderBloque(b) {
         ${d.viaTransito ? `<span class="via">via ${escapeHtml(d.pasoDirecto)}</span>` : ""}
       </td>
       <td><span class="chip chip-${d.tipo}">${d.tipo === "crudo" ? "Crudo" : "Procesado"}</span></td>
+      <td class="num">${d.consumoUniMes == null
+        ? `<span class="sin-consumo">sin consumo</span>`
+        : `<span class="cd-tocable" data-det="${d.compId}">${fmtUni(d.consumoUniMes)}</span>`}</td>
       <td class="num">${fmtUni(d.maximoUni)}</td>
-      <td class="num">${d.maximoCaj == null ? "&mdash;" : fmtDec(d.maximoCaj, 1)}</td>
       <td class="num">
         <input type="number" class="stock-input ${d.stockManual ? "manual" : ""}"
                data-comp="${d.compId}" min="0" step="1"
@@ -466,8 +436,8 @@ function renderBloque(b) {
               <th>Sector</th>
               <th>Descripcion</th>
               <th>Destino</th>
+              <th class="num">Consumo /mes</th>
               <th class="num">Max uni</th>
-              <th class="num">Max caj</th>
               <th class="num">Stock uni</th>
               <th class="num">Falta uni</th>
               <th class="num">Falta caj</th>
@@ -485,6 +455,13 @@ function renderBloque(b) {
 }
 
 function enlazarInputsStock() {
+  // Tocar el consumo abre el sustento por articulo (helper compartido).
+  resultEl.querySelectorAll(".cd-tocable").forEach(sp => {
+    sp.addEventListener("click", () => {
+      GP2ConsumoDetalle.abrir(sb, Number(sp.dataset.det));
+    });
+  });
+
   resultEl.querySelectorAll(".stock-input").forEach(inp => {
     inp.addEventListener("change", () => {
       const compId = inp.dataset.comp;

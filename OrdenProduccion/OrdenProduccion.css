@@ -414,3 +414,10 @@ h1{
     font-weight:bold;
   }
 }
+
+/* destino sin consumo conocido: no entra al faltante y lo dice */
+.sin-consumo{
+  color: #94a3b8;
+  font-size: 12px;
+  white-space: nowrap;
+}

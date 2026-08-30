@@ -279,8 +279,21 @@ Las vistas viejas quedan sin consumidores, solo como referencia.
 que hay que enviar y su sustento contra el consumo de los artículos que lo utilizan".
 RPC `consumo_detalle(p_comp_id)` + `consumo-detalle.js` (helper compartido en la raíz):
 tocar el número abre el desglose por artículo (proyección del artículo y cuánto le pide
-a la parte, en kg si es fleje). Cableado en Pintores, OC y Punto de Stock. Si una
-pantalla nueva muestra consumo, se le cablea el mismo helper.
+a la parte, en kg si es fleje). Cableado en Pintores, OC, Punto de Stock y Orden de
+Producción. Si una pantalla nueva muestra consumo, se le cablea el mismo helper.
+
+**Orden de Producción repuntada a DEMANDA (2026-08-30, v1.49.0)** `[dato]`: el módulo
+`OrdenProduccion/` calculaba `faltante = máximo físico − stock` (llenar la estantería):
+proponía ~2,8 millones de unidades en pantalla (~3,7M sumando todos los destinos crudo +
+procesado) cuando la Est Madre proyecta ~196.000 uni/mes. Ahora usa la RPC
+`orden_produccion_bundle()` (SECURITY DEFINER, un solo viaje: pasos de matriz
+deduplicados, matrices, componentes y destinos) y el faltante es
+`greatest(0, round(consumo_uni_mes × ubicacion.meses_stock − stock))` — mismo patrón que
+`oc_bundle()` para insumos, con `v_consumo_componente`. El total en pantalla baja a
+~420.000 uni (574.423 sumando todos los destinos). El máximo físico y el stock siguen
+como contexto, el stock se puede pisar a mano, y el consumo es tocable (sustento por
+artículo). Un destino sin consumo conocido dice "sin consumo" y no aporta faltante — no
+se inventa.
 
 ## 3. Reglas del negocio ya incorporadas
 
