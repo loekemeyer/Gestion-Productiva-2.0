@@ -184,6 +184,21 @@ y sale el ranking de las 34 candidatas por ahorro anual usando el consumo de la 
   tablets pasan a la app GP2 y la historia queda en la casa del vecino. `[usuario]`
 - **El motor de inventario vive en la base**, no en el JS: la app inserta filas crudas en
   `GP2.movimiento` y los triggers calculan y aplican el delta. `[arquitectura]`
+- **Las entregas se cuentan en CAJAS, no en unidades.** `[usuario 2026-08-30]` Dicho
+  textual: "todas las entregas de talleristas son en cajas". Confirmado en el codigo para
+  Prov. Art. Terminado: el modulo de carga titula la columna **Cajas**
+  (`Prov Art Terminado/Entregas/EntregasAT.html:44`) y arma el detalle como `Cajas: N`
+  (`EntregasAT.js:189`) antes de guardarlo en la columna `"Cantidad"` de
+  `public."Entregas Prov AT"`. `[dato]` **El nombre de la columna enganya**: dice
+  "Cantidad" pero son cajas. Las unidades se derivan (cajas x uni_x_caja), nunca al reves.
+  Pendiente de confirmar si vale igual para las entregas de talleristas propiamente
+  dichas (`Entregas Tallerista Virgilio`), que no se revisaron. `[deducido]`
+- **Un mismo codigo de articulo puede tener dos uni_x_caja**, y no es un dato faltante:
+  son dos presentaciones (DISPLAY vs SUELTO, tipico 12 contra 36) o directamente dos
+  articulos distintos que comparten numero entre LK y CH (ej. el 26 es Pinza de Fideos en
+  CH y Colador N°8 en LK). `[dato: public."Uni_x_Articulo_x_Caja", 18 codigos]`
+  `Articulos x Prov AT.marca` esta **null en las 86 filas**, asi que hoy no hay forma de
+  saber cual corresponde: se muestran los dos valores y no se calculan las unidades.
 - **Un cambio de proceso toca TODAS las tablas normalizadas**, en orden: componente →
   inventario → recetas → rutas → alias. Parchar una sola rompe el trazado. `[CLAUDE.md]`
 

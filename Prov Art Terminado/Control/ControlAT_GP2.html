@@ -58,7 +58,7 @@
 
       <div class="bloque-tit">
         Artículos del proveedor
-        <span class="sub-nota">lo que nos entregó, y a cuántas cajas equivale</span>
+        <span class="sub-nota">lo que nos entregó, en cajas y en unidades</span>
       </div>
       <div class="table-wrap">
         <table class="t">
@@ -68,8 +68,8 @@
               <th>Descripción</th>
               <th class="num sep">N° Caja</th>
               <th class="num">Uni x caja</th>
-              <th class="num sep">Entregado (uni)</th>
-              <th class="num">Cajas equiv.</th>
+              <th class="num sep">Entregado (cajas)</th>
+              <th class="num">Unidades</th>
               <th class="sep">Última entrega</th>
             </tr>
           </thead>
@@ -117,7 +117,7 @@
    -----------------------
    GP2.movimiento tipo_mov='envio_prov_at'  -> enviado (carton/cajas)
    GP2.inventario en ubicacion proveedor_at -> saldo que todavia tiene
-   public."Entregas Prov AT"                -> entregado (uni de articulo)
+   public."Entregas Prov AT"                -> entregado, EN CAJAS
    public."Articulos x Prov AT"             -> catalogo por proveedor
    public."Uni_x_Articulo_x_Caja"           -> unidades por caja
 
@@ -131,6 +131,16 @@
    Los articulos de Prov AT no estan en GP2.articulo (ahi viven los que
    fabricamos nosotros), por eso el catalogo y las unidades por caja
    salen de las tablas viejas.
+
+   OJO CON LA UNIDAD
+   -----------------
+   "Entregas Prov AT".Cantidad esta en CAJAS, no en unidades. El nombre
+   de la columna enganya: el modulo que la carga titula la columna
+   "Cajas" (Entregas/EntregasAT.html:44) y arma el detalle como
+   "Cajas: N" (EntregasAT.js:189) antes de guardarla en "Cantidad".
+   Regla del usuario (2026-08-30): todas las entregas se cuentan en
+   cajas. Por eso las unidades se DERIVAN (cajas x uni_x_caja) y no al
+   reves.
    ===================================================================== */
 
 var SUPABASE_URL = "https://hrxfctzncixxqmpfhskv.supabase.co";
@@ -287,8 +297,8 @@ function indexar(r){
     if (!prov || !cod) return;
     var k = prov + "|" + cod;
     var acc = entregas.get(k);
-    if (!acc) { acc = { uni:0, ultima:null, remitos:0, desc:"" }; entregas.set(k, acc); }
-    acc.uni += n(e.Cantidad);
+    if (!acc) { acc = { cajas:0, ultima:null, remitos:0, desc:"" }; entregas.set(k, acc); }
+    acc.cajas += n(e.Cantidad);   // Cantidad viene en CAJAS
     acc.remitos += 1;
     if (!acc.desc && e.Descripcion) acc.desc = e.Descripcion;
     var f = e.Fecha_RTO || null;
@@ -347,13 +357,14 @@ function filasArticulos(prov){
   });
 
   return base.map(function(a){
-    var acc = D.entregas.get(nombre + "|" + a.cod) || { uni:0, ultima:null, remitos:0 };
+    var acc = D.entregas.get(nombre + "|" + a.cod) || { cajas:0, ultima:null, remitos:0 };
     var info = D.uniXCaja.get(a.cod) || null;
     var uxc = info ? info.unico : null;
     return {
       cod: a.cod, desc: a.desc || acc.desc || "", nCaja: a.nCaja,
-      uxc: uxc, uxcVals: info ? info.valores : [], entregado: acc.uni,
-      cajas: (uxc && uxc > 0) ? acc.uni / uxc : null,
+      uxc: uxc, uxcVals: info ? info.valores : [],
+      entregado: acc.cajas,                                   // cajas
+      unidades: (uxc && uxc > 0) ? acc.cajas * uxc : null,     // derivadas
       ultima: acc.ultima, remitos: acc.remitos,
       fueraCatalogo: !!a.fueraCatalogo
     };
@@ -386,11 +397,11 @@ function filasInsumos(prov){
 function renderGrid(){
   elGrid.innerHTML = D.provs.map(function(p){
     var arts = (D.artsPorProv.get(p.nombre) || []).length;
-    var uni = 0, conEnt = 0;
+    var cajas = 0, conEnt = 0;
     D.entregas.forEach(function(acc, k){
-      if (k.split("|")[0] === p.nombre) { uni += acc.uni; conEnt += 1; }
+      if (k.split("|")[0] === p.nombre) { cajas += acc.cajas; conEnt += 1; }
     });
-    var sub = arts + " art." + (uni ? " · " + fmt(uni) + " uni entregadas" : " · sin entregas");
+    var sub = arts + " art." + (cajas ? " · " + fmt(cajas) + " cajas entregadas" : " · sin entregas");
     return '<button class="prov-btn" data-id="' + p.id + '">' +
              esc(p.nombre) +
              '<span class="pb-sub">' + esc(sub) + '</span>' +
@@ -446,13 +457,16 @@ function render(){
     avisos.push("Además figuran envíos en la tabla vieja «Envios Prov AT»: " +
       fmt(viejos.carton) + " cartón y " + fmt(viejos.cajas) + " cajas. No están en GP2.");
   }
+  avisos.push("Las entregas se cuentan en <b>cajas</b> (es como las carga «Entrega Prov AT»); " +
+    "las unidades salen de multiplicar por las uni x caja. Los artículos cargados con más de un " +
+    "valor de uni x caja quedan sin unidades, porque no se puede saber cuál corresponde.");
   avisos.push("Las entregas salen de la tabla vieja «Entregas Prov AT»: GP2 todavía no tiene " +
     "un tipo de movimiento para la entrega de artículo terminado.");
   elAviso.innerHTML = avisos.join("<br>");
 
   // --- KPIs ---
-  var totUni = arts.reduce(function(s,a){ return s + a.entregado; }, 0);
-  var totCaj = arts.reduce(function(s,a){ return s + (a.cajas || 0); }, 0);
+  var totCaj = arts.reduce(function(s,a){ return s + a.entregado; }, 0);
+  var totUni = arts.reduce(function(s,a){ return s + (a.unidades || 0); }, 0);
   var conEnt = arts.filter(function(a){ return a.entregado > 0; }).length;
   var sinUxc = arts.filter(function(a){ return a.entregado > 0 && !a.uxc && a.uxcVals.length === 0; }).length;
   var ambiguos = arts.filter(function(a){ return a.entregado > 0 && !a.uxc && a.uxcVals.length > 1; }).length;
@@ -460,8 +474,8 @@ function render(){
   elKpis.innerHTML =
     kpi("Artículos", fmt(arts.length)) +
     kpi("Con entregas", fmt(conEnt)) +
-    kpi("Entregado (uni)", fmt(totUni)) +
-    kpi("Cajas equivalentes", fmt(totCaj, 1)) +
+    kpi("Entregado (cajas)", fmt(totCaj)) +
+    kpi("Unidades", fmt(totUni)) +
     kpi("Enviado (cartón/cajas)", hayEnvios ? fmt(ins.reduce(function(s,i){ return s+i.enviado; },0)) : "0") +
     (sinUxc ? kpi("Sin uni x caja", fmt(sinUxc)) : "") +
     (ambiguos ? kpi("Uni x caja ambiguo", fmt(ambiguos)) : "");
@@ -478,17 +492,17 @@ function render(){
                 ? '<span class="sin-dato" title="Cargado con mas de un valor">' + a.uxcVals.join(" / ") + '</span>'
                 : '<span class="sin-dato">falta</span>')) + "</td>" +
       '<td class="num sep">' + (a.entregado ? fmt(a.entregado) : '<span class="sin-dato">0</span>') + "</td>" +
-      '<td class="num">' + (a.cajas == null ? '<span class="sin-dato">—</span>' : fmt(a.cajas, 1)) + "</td>" +
+      '<td class="num">' + (a.unidades == null ? '<span class="sin-dato">—</span>' : fmt(a.unidades)) + "</td>" +
       '<td class="fecha sep">' + (a.ultima ? esc(fecha(a.ultima)) : '<span class="sin-dato">—</span>') + "</td>" +
     "</tr>";
   }).join("");
 
-  var vUni = artsVis.reduce(function(s,a){ return s + a.entregado; }, 0);
-  var vCaj = artsVis.reduce(function(s,a){ return s + (a.cajas || 0); }, 0);
+  var vCaj = artsVis.reduce(function(s,a){ return s + a.entregado; }, 0);
+  var vUni = artsVis.reduce(function(s,a){ return s + (a.unidades || 0); }, 0);
   elArtFoot.innerHTML = artsVis.length
     ? '<tr><th colspan="4">Total (' + artsVis.length + ')</th>' +
-      '<th class="num sep">' + fmt(vUni) + "</th>" +
-      '<th class="num">' + fmt(vCaj, 1) + '</th><th class="sep"></th></tr>'
+      '<th class="num sep">' + fmt(vCaj) + "</th>" +
+      '<th class="num">' + fmt(vUni) + '</th><th class="sep"></th></tr>'
     : "";
 
   // --- tabla insumos ---
@@ -513,7 +527,7 @@ function exportarCSV(){
   var arts = filasArticulos(provSel);
   var sep = ";";
   var lineas = ["sep=" + sep];
-  lineas.push(["Codigo","Descripcion","N Caja","Uni x caja","Entregado uni","Cajas equiv","Ultima entrega","Remitos"].join(sep));
+  lineas.push(["Codigo","Descripcion","N Caja","Uni x caja","Entregado cajas","Unidades","Ultima entrega","Remitos"].join(sep));
   arts.forEach(function(a){
     lineas.push([
       a.cod,
@@ -521,7 +535,7 @@ function exportarCSV(){
       a.nCaja == null ? "" : a.nCaja,
       a.uxc || (a.uxcVals.length > 1 ? a.uxcVals.join(" / ") : ""),
       a.entregado,
-      a.cajas == null ? "" : String(a.cajas.toFixed(2)).replace(".", ","),
+      a.unidades == null ? "" : a.unidades,
       a.ultima ? fecha(a.ultima) : "",
       a.remitos
     ].join(sep));
