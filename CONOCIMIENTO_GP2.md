@@ -282,6 +282,18 @@ tocar el número abre el desglose por artículo (proyección del artículo y cu�
 a la parte, en kg si es fleje). Cableado en Pintores, OC, Punto de Stock y Orden de
 Producción. Si una pantalla nueva muestra consumo, se le cablea el mismo helper.
 
+**Las pantallas de Envíos/Entregas comparten UN helper (2026-08-30, v1.50.0)** `[dato]`:
+`gp2-envios-common.js` en la raíz (namespace `GP2EE`) junta lo que estaba copy-pasteado
+en Envíos/Recepción Tallerista, Envíos/Entrega PS, Entregas Prov AT y los Controles:
+cliente Supabase GP2, esc/num/fmt es-AR, buffer de carga en localStorage por contraparte
+(sobrevive F5; lo registrado sale del buffer ítem por ítem, así un reintento no duplica),
+fases fase0/fase1/fase3 con `#btnVolver`, grilla de contrapartes, popup de tandas y
+celdas de carga. Una pantalla nueva de envío/entrega se cablea a `GP2EE`, no se copia.
+OJO: conviven DOS parsers de número a propósito — `GP2EE.num(v)` (PS, entiende
+"1.234,5") y `GP2EE.num(v,"simple")` (talleristas, con "." y "," juntos pisa las comas y
+lee "1.234,5" como 1,2345). Es un bug histórico de las pantallas de talleristas que el
+refactor NO corrigió para no cambiar comportamiento; si un día se unifica, va con aviso.
+
 **Orden de Producción repuntada a DEMANDA (2026-08-30, v1.49.0)** `[dato]`: el módulo
 `OrdenProduccion/` calculaba `faltante = máximo físico − stock` (llenar la estantería):
 proponía ~2,8 millones de unidades en pantalla (~3,7M sumando todos los destinos crudo +

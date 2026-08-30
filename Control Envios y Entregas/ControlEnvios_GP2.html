@@ -1,12 +1,13 @@
 <!doctype html>
 <html lang="es">
 <head>
-<!-- v1.0.1 — pivote partes x fechas de envios/entregas sobre el ledger GP2.movimiento -->
+<!-- v1.1.0 — refactor: helpers compartidos en gp2-envios-common.js -->
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>Control Envíos y Entregas · GP2</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="../supabase-config.js?v=20260830e"></script>
+<script src="../gp2-envios-common.js?v=20260830m"></script>
 <link rel="stylesheet" href="../gp2-modulo.css?v=20260830e"/>
 <link rel="icon" type="image/png" href="../GP2_favicon.png">
 <link rel="apple-touch-icon" href="../GP2_favicon.png">
@@ -52,14 +53,8 @@
 </div>
 
 <script>
-var SB = supabase.createClient(
-  SUPABASE_URL,
-  SUPABASE_KEY,
-  { db:{ schema:"GP2" }, auth:{ persistSession:false } }
-);
-function $(id){ return document.getElementById(id); }
-function esc(t){ return String(t==null?'':t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
-function fmt(n,d){ return Number(n||0).toLocaleString('es-AR',{maximumFractionDigits:d==null?0:d}); }
+var SB = GP2EE.sb();
+var $ = GP2EE.$, esc = GP2EE.esc, fmt = GP2EE.fmt0;
 
 // tipos de movimiento del ledger por vista; contraparte: envio_* y compra miran el
 // destino (compra viene con origen null), el resto el origen del movimiento
@@ -73,10 +68,7 @@ var MEDIDAS = { auto:'Kg/Uni', kg:'Kg', cajas:'Cajas' };
 
 var FILAS=[], origSel=null, tipoSel=null, medSel='auto';
 
-function mesAR(){
-  var p=new Intl.DateTimeFormat('sv-SE',{timeZone:'America/Argentina/Buenos_Aires'}).format(new Date());
-  return p.slice(0,7);
-}
+var mesAR = GP2EE.mesAR;
 
 function chips(cont, obj, sel, onpick){
   var g=$(cont); g.innerHTML='';

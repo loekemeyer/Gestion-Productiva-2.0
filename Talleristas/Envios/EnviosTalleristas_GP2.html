@@ -1,6 +1,7 @@
 <!doctype html>
 <html lang="es">
 <head>
+<!-- v1.1.0 — refactor: helpers/fases/buffer/tandas compartidos en gp2-envios-common.js -->
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>Envíos por Tallerista · GP2</title>
@@ -97,40 +98,23 @@
 </div>
 
 <script src="../../tandas-popup.js?v=20260830e"></script>
+<script src="../../gp2-envios-common.js?v=20260830m"></script>
 <script>
 "use strict";
 
-var SB = supabase.createClient(
-  SUPABASE_URL,
-  SUPABASE_KEY,
-  { db:{ schema:"GP2" }, auth:{ persistSession:false } }
-);
+var E = GP2EE;
+var $ = E.$, esc = E.esc, fmt = E.fmt, hoyISO = E.hoyISO;
+/* parser historico de esta pantalla (ver GP2EE.num) */
+var num = function(v){ return E.num(v, "simple"); };
 
-var $ = function(id){ return document.getElementById(id); };
-var LS_BUF = "gp2_enviosTall_buffer";
+var SB = E.sb();
 
 var D = { tall:[], partes:{} };
 var selT = null;
-var BUF = {};
+var BUF = E.buffer("gp2_enviosTall_buffer", function(){ return { caj:"", kg:"", falt:false, tandas:[] }; });
 
-function esc(s){ return String(s==null?"":s).replace(/[&<>"]/g, function(c){
-  return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]; }); }
-function num(v){
-  if (v==null||v==="") return 0;
-  if (typeof v==="number") return isFinite(v)?v:0;
-  var s=String(v).trim().replace(/[^\d,.-]/g,"");
-  if (s.indexOf(",")>=0 && s.indexOf(".")<0) s=s.replace(",",".");
-  else s=s.replace(/,/g,"");
-  var n=Number(s); return isFinite(n)?n:0;
-}
-function fmt(n,d){ d=(d==null?1:d);
-  return Number(n||0).toLocaleString("es-AR",{minimumFractionDigits:0,maximumFractionDigits:d}); }
-function hoyISO(){ var d=new Date(); return new Date(d.getTime()-d.getTimezoneOffset()*60000).toISOString().slice(0,10); }
-
-function loadBuf(){ try{ BUF=JSON.parse(localStorage.getItem(LS_BUF)||"{}")||{}; }catch(e){ BUF={}; } }
-function saveBuf(){ try{ localStorage.setItem(LS_BUF, JSON.stringify(BUF)); }catch(e){} }
-function bufT(){ if(!selT) return {}; if(!BUF[selT.id]) BUF[selT.id]={}; return BUF[selT.id]; }
-function bufItem(cid){ var b=bufT(); if(!b[cid]) b[cid]={caj:"",kg:"",falt:false,tandas:[]}; return b[cid]; }
+function esCargada(it){ return num(it.kg)>0 || num(it.caj)>0; }
+function tieneAlgo(it){ return num(it.caj)>0 || num(it.kg)>0 || it.falt; }
 
 /* Al tallerista se le manda lo del lado 'entrada' de ruta_paso. */
 function partesDe(tid){
@@ -149,53 +133,40 @@ async function cargar(){
   var r = await SB.rpc("talleristas_bundle");
   if (r.error){ $("status").textContent="Error: "+r.error.message; return; }
   D = r.data || { tall:[], partes:{} };
-  loadBuf();
+  BUF.load();
   renderTall();
   $("status").textContent = (D.tall||[]).length+" talleristas.";
 }
 
 function renderTall(){
-  var g=$("tallGrid"); g.innerHTML="";
-  (D.tall||[]).forEach(function(t){
-    var n=partesDe(t.id).length;
-    var cargado=Object.keys(BUF[t.id]||{}).filter(function(k){
-      var it=BUF[t.id][k]; return num(it.caj)>0||num(it.kg)>0||it.falt; }).length;
-    var b=document.createElement("button");
-    b.type="button"; b.className="prov-btn";
-    b.innerHTML=esc(t.nombre)+'<span class="meta">'+esc(t.cod_prov||"—")+" · "+n+" partes"+
-      (cargado?(" · "+cargado+" cargadas"):"")+"</span>";
-    b.addEventListener("click", function(){ elegir(t); });
-    g.appendChild(b);
+  E.gridContrapartes("tallGrid", D.tall, {
+    vacio: "Sin talleristas.",
+    meta: function(t){
+      var n=partesDe(t.id).length;
+      var cargado=E.cargadasDe(BUF.all[t.id], tieneAlgo).length;
+      return esc(t.cod_prov||"—")+" · "+n+" partes"+(cargado?(" · "+cargado+" cargadas"):"");
+    },
+    onPick: elegir
   });
-  if(!(D.tall||[]).length) g.innerHTML='<div class="empty">Sin talleristas.</div>';
 }
 
 function elegir(t){
   selT=t;
   $("fase1Title").textContent=t.nombre+(t.cod_prov?(" · cod "+t.cod_prov):"");
-  $("fase0").classList.add("hidden");
-  $("fase3").classList.add("hidden");
-  $("fase1").classList.remove("hidden");
-  $("btnVolver").classList.remove("hidden");
+  E.mostrarFase(1);
   if(!$("fFecha").value) $("fFecha").value=hoyISO();
   $("q").value="";
   render();
 }
 function volver(){
   selT=null;
-  $("fase1").classList.add("hidden");
-  $("fase3").classList.add("hidden");
-  $("fase0").classList.remove("hidden");
-  $("btnVolver").classList.add("hidden");
+  E.mostrarFase(0);
   renderTall();
 }
 
 function filtradas(){
-  var arr=partesDe(selT.id);
-  var q=String($("q").value||"").trim().toLowerCase();
-  if(!q) return arr;
-  return arr.filter(function(x){
-    return (String(x.cod||"")+" "+String(x["desc"]||"")+" "+String(x.sector||"")).toLowerCase().indexOf(q)>=0;
+  return E.filtrar(partesDe(selT.id), $("q").value, function(x){
+    return String(x.cod||"")+" "+String(x["desc"]||"")+" "+String(x.sector||"");
   });
 }
 
@@ -205,12 +176,10 @@ function render(){
   $("tblEmpty").classList.toggle("hidden", arr.length>0);
 
   arr.forEach(function(x){
-    var it=bufItem(x.comp_id);
-    var hayT=(it.tandas||[]).length>0;
-    var totCaj=(it.tandas||[]).reduce(function(s,t){return s+num(t.caj);},0);
-    var totKg =(it.tandas||[]).reduce(function(s,t){return s+num(t.kg);},0);
-    var vCaj=hayT?(totCaj||""):it.caj;
-    var vKg =hayT?(totKg||""):it.kg;
+    var it=BUF.item(selT.id, x.comp_id);
+    var t=E.tandaTotales(it, ["caj","kg"]);
+    var vCaj=t.hayT?(t.tot.caj||""):it.caj;
+    var vKg =t.hayT?(t.tot.kg ||""):it.kg;
 
     // "Cjn a Env." = lo disponible en el sector, expresado en cajones
     var cjnAEnv = x.uni_x_cajon ? Number(x.online_sector||0)/Number(x.uni_x_cajon) : null;
@@ -223,10 +192,10 @@ function render(){
       '<td>'+esc(x.sector||"—")+'</td>'+
       '<td><span class="cod">'+esc(x.cod)+'</span><br><small class="sub">'+esc(x["desc"]||"")+'</small></td>'+
       '<td class="num">'+(cjnAEnv==null?"—":fmt(cjnAEnv,2))+'</td>'+
-      '<td class="ctr"><button type="button" class="falt-box'+(it.falt?" on":"")+'" data-a="falt">'+(it.falt?"F":"")+'</button></td>'+
-      '<td class="num sep"><input class="cell-in'+(hayT?" ro":"")+'" data-f="caj" inputmode="numeric" value="'+esc(vCaj)+'"'+(hayT?" readonly":"")+'></td>'+
-      '<td class="num"><input class="cell-in'+(hayT?" ro":"")+'" data-f="kg" inputmode="decimal" value="'+esc(vKg)+'"'+(hayT?" readonly":"")+'></td>'+
-      '<td class="ctr"><button type="button" class="tanda-btn'+(hayT?" on":"")+'" data-a="tandas">'+(hayT?it.tandas.length:"+")+'</button></td>'+
+      E.tdFalt(it)+
+      E.tdInput("caj", vCaj, t.hayT, "sep")+
+      E.tdInput("kg",  vKg,  t.hayT, null, "decimal")+
+      E.tdTanda(it)+
       '<td class="num">'+(uni>0?fmt(uni,0):"—")+'</td>';
     tb.appendChild(tr);
   });
@@ -235,32 +204,20 @@ function render(){
 
 function itemDeFila(tr){
   var cid=tr.dataset.cid;
-  var arr=partesDe(selT.id), meta=null;
-  for(var i=0;i<arr.length;i++){ if(String(arr[i].comp_id)===String(cid)){ meta=arr[i]; break; } }
-  return { cid:cid, meta:meta, buf:bufItem(cid) };
+  var meta=E.buscarMeta(partesDe(selT.id), cid, function(x){ return x.comp_id; });
+  return { cid:cid, meta:meta, buf:BUF.item(selT.id, cid) };
 }
 
-function cargadas(){
-  var b=bufT(), out=[];
-  Object.keys(b).forEach(function(k){
-    var it=b[k];
-    if(num(it.kg)>0||num(it.caj)>0) out.push({ cid:k, it:it });
-  });
-  return out;
-}
+function cargadas(){ return E.cargadasDe(BUF.de(selT.id), esCargada); }
 
-function actualizarEnviar(){
-  var n=cargadas().length;
-  $("btnEnviar").disabled=(n===0);
-  $("btnEnviar").textContent=n?("Enviar ("+n+")"):"Enviar";
-}
+function actualizarEnviar(){ E.actualizarEnviar(cargadas().length, "Enviar"); }
 
 $("tbody").addEventListener("input", function(e){
   var inp=e.target.closest("input.cell-in");
   if(!inp||inp.readOnly) return;
   var d=itemDeFila(inp.closest("tr"));
   d.buf[inp.dataset.f]=inp.value;
-  saveBuf();
+  BUF.save();
   // refrescar solo la columna Uni de esa fila
   var tr=inp.closest("tr");
   var uni=uniDe(d.meta||{}, d.buf);
@@ -272,21 +229,13 @@ $("tbody").addEventListener("click", function(e){
   var btn=e.target.closest("button[data-a]");
   if(!btn) return;
   var d=itemDeFila(btn.closest("tr"));
-  if(btn.dataset.a==="falt"){ d.buf.falt=!d.buf.falt; saveBuf(); render(); return; }
+  if(btn.dataset.a==="falt"){ d.buf.falt=!d.buf.falt; BUF.save(); render(); return; }
   if(btn.dataset.a==="tandas"){
-    if(typeof tandasPopup==="undefined"){ alert("No cargó tandas-popup.js"); return; }
-    tandasPopup.open({
+    E.abrirTandas({
       titulo:"Tandas — "+(d.meta?d.meta.cod:""),
-      initial:(d.buf.tandas||[]).slice(),
-      pedirCaj:true, pedirKg:true, pedirUni:false,
-      onConfirm:function(tandas,totales){
-        d.buf.tandas=(tandas||[]).filter(function(t){ return num(t.caj)>0||num(t.kg)>0; });
-        if(d.buf.tandas.length){
-          d.buf.caj=String(totales&&totales.caj!=null?totales.caj:"");
-          d.buf.kg =String(totales&&totales.kg !=null?totales.kg :"");
-        }
-        saveBuf(); render();
-      }
+      buf:d.buf,
+      campos:["caj","kg"],
+      onDone:function(){ BUF.save(); render(); }
     });
   }
 });
@@ -299,7 +248,8 @@ $("btnImprimir").addEventListener("click", function(){ window.print(); });
 $("btnLimpiar").addEventListener("click", function(){
   if(!selT) return;
   if(!confirm("¿Vaciar todo lo cargado para "+selT.nombre+"?")) return;
-  delete BUF[selT.id]; saveBuf(); render();
+  BUF.borrar(selT.id);
+  render();
 });
 
 $("btnEnviar").addEventListener("click", async function(){
@@ -311,12 +261,12 @@ $("btnEnviar").addEventListener("click", async function(){
   arr.forEach(function(x){ metaPor[x.comp_id]=x; });
 
   var faltanKg=items.filter(function(o){ return num(o.it.caj)>0 && !(num(o.it.kg)>0); })
-                    .map(function(o){ return (metaPor[o.cid]||{}).cod||o.cid; });
+                    .map(function(o){ return (metaPor[o.k]||{}).cod||o.k; });
   if(faltanKg.length){ alert("Falta cargar Kg neto para: "+faltanKg.join(", ")); return; }
 
   var resumen=items.map(function(o){
-    var m=metaPor[o.cid]||{};
-    return (m.cod||o.cid)+": "+fmt(num(o.it.caj),1)+" caj / "+fmt(num(o.it.kg),0)+" kg";
+    var m=metaPor[o.k]||{};
+    return (m.cod||o.k)+": "+fmt(num(o.it.caj),1)+" caj / "+fmt(num(o.it.kg),0)+" kg";
   }).join("\n");
   if(!confirm("Enviar a "+selT.nombre+":\n\n"+resumen)) return;
 
@@ -325,36 +275,37 @@ $("btnEnviar").addEventListener("click", async function(){
   btn.disabled=true; btn.textContent="Enviando…";
   $("msg1").textContent="";
 
-  var ok=0, errs=[], enviados=[];
-  for(var i=0;i<items.length;i++){
-    var o=items[i], m=metaPor[o.cid]||{};
-    try{
-      var r=await SB.rpc("crear_envio_tallerista", {
+  var enviados=[];
+  var res=await E.guardarItems(items, {
+    rpc: function(o){
+      return SB.rpc("crear_envio_tallerista", {
         p_tallerista_id: selT.id,
-        p_comp_id: Number(o.cid),
+        p_comp_id: Number(o.k),
         p_cantidad: num(o.it.kg),
         p_unidad: "kg",
         p_fecha: fecha+"T12:00:00-03:00"
       });
-      if(r.error) throw r.error;
-      ok++;
-      delete bufT()[o.cid]; saveBuf(); // ya registrado: fuera del buffer (un reintento no lo duplica)
+    },
+    onOk: function(o){
+      // ya registrado: fuera del buffer (un reintento no lo duplica)
+      delete BUF.de(selT.id)[o.k];
+      BUF.save();
+      var m=metaPor[o.k]||{};
       enviados.push({ m:m, caj:num(o.it.caj), kg:num(o.it.kg), uni:uniDe(m,o.it) });
-    }catch(e){
-      errs.push((m.cod||o.cid)+": "+(e&&e.message?e.message:e));
-    }
-  }
+    },
+    codDe: function(o){ return (metaPor[o.k]||{}).cod||o.k; }
+  });
 
   btn.disabled=false; actualizarEnviar();
 
-  if(errs.length){
+  if(res.errs.length){
     render(); // en la tabla quedan cargados solo los que fallaron
-    $("msg1").innerHTML='<span style="color:#b91c1c">Se registraron '+ok+' de '+items.length+
-      ' (los registrados ya salieron de la carga; reintentá solo lo que quedó). Errores:<br>'+esc(errs.join(" | "))+'</span>';
+    $("msg1").innerHTML='<span style="color:#b91c1c">Se registraron '+res.ok+' de '+items.length+
+      ' (los registrados ya salieron de la carga; reintentá solo lo que quedó). Errores:<br>'+esc(res.errs.join(" | "))+'</span>';
     return;
   }
 
-  delete BUF[selT.id]; saveBuf();
+  BUF.borrar(selT.id);
 
   // fase 3: remito para imprimir
   var tCaj=0,tKg=0,tUni=0;
@@ -370,11 +321,7 @@ $("btnEnviar").addEventListener("click", async function(){
     '<td class="num">'+fmt(tUni,0)+'</td></tr>';
 
   $("printTitle").textContent="Remito · "+selT.nombre+" · "+fecha;
-  $("successCode").textContent=String(Math.floor(1000+Math.random()*9000));
-  $("successDetail").textContent=ok+" partes enviadas a "+selT.nombre+" · "+fecha;
-  $("fase1").classList.add("hidden");
-  $("fase3").classList.remove("hidden");
-  $("btnVolver").classList.add("hidden");
+  E.mostrarExito(res.ok+" partes enviadas a "+selT.nombre+" · "+fecha);
 });
 
 $("fFecha").value=hoyISO();

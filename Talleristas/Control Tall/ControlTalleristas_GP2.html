@@ -7,6 +7,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="../../supabase-config.js?v=20260830e"></script>
 <script src="../../gp2-composicion.js?v=1.2.1"></script>
+<script src="../../gp2-envios-common.js?v=20260830m"></script>
 <link rel="stylesheet" href="../../gp2-modulo.css?v=20260830e"/>
 <link rel="icon" type="image/png" href="../../GP2_favicon.png">
 <link rel="apple-touch-icon" href="../../GP2_favicon.png">
@@ -88,21 +89,11 @@
 <script>
 "use strict";
 
-var SB = supabase.createClient(
-  SUPABASE_URL,
-  SUPABASE_KEY,
-  { db:{ schema:"GP2" }, auth:{ persistSession:false } }
-);
+var SB = GP2EE.sb();
 
-var $ = function(id){ return document.getElementById(id); };
+var $ = GP2EE.$, esc = GP2EE.esc, fmt = GP2EE.fmt, clsSaldo = GP2EE.clsSaldo;
 var D = { tall:[], partes:{} };
 var selT = null;
-
-function esc(s){ return String(s==null?"":s).replace(/[&<>"]/g, function(c){
-  return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]; }); }
-function fmt(n,d){ d=(d==null?1:d);
-  return Number(n||0).toLocaleString("es-AR",{minimumFractionDigits:0,maximumFractionDigits:d}); }
-function clsSaldo(n){ n=Number(n||0); return n>0?"pos":(n<0?"neg":"cero"); }
 
 /* Solo las partes que el tallerista SE LLEVA (lado entrada de ruta_paso).
    Lo que devuelve no va acá: el control es sobre lo que se le entregó. */
@@ -132,7 +123,12 @@ async function cargar(){
 }
 
 function renderTall(){
-  var g = $("tallGrid"); g.innerHTML = "";
+  var g = GP2EE.gridContrapartes("tallGrid", talleristasVisibles(), {
+    vacio: "Sin talleristas.",
+    meta: function(t){ return esc(t.cod_prov||"—") + " · " + partesDe(t.id).length + " partes"; },
+    onPick: elegir
+  });
+  if (!talleristasVisibles().length) return;
 
   // "Todos" — las partes de todos los talleristas juntas, con el tallerista como columna
   var bt = document.createElement("button");
@@ -140,17 +136,7 @@ function renderTall(){
   var totPartes = talleristasVisibles().reduce(function(s,t){ return s + partesDe(t.id).length; }, 0);
   bt.innerHTML = "<b>Todos</b>" + '<span class="meta">' + talleristasVisibles().length + " talleristas · " + totPartes + " partes</span>";
   bt.addEventListener("click", function(){ elegir(null); });
-  g.appendChild(bt);
-
-  talleristasVisibles().forEach(function(t){
-    var n = partesDe(t.id).length;
-    var b = document.createElement("button");
-    b.type = "button"; b.className = "prov-btn";
-    b.innerHTML = esc(t.nombre) + '<span class="meta">' + esc(t.cod_prov||"—") + " · " + n + " partes</span>";
-    b.addEventListener("click", function(){ elegir(t); });
-    g.appendChild(b);
-  });
-  if (!talleristasVisibles().length) g.innerHTML = '<div class="empty">Sin talleristas.</div>';
+  g.insertBefore(bt, g.firstChild);
 }
 
 /* selT === null => modo "Todos" (todos juntos, con el tallerista como columna) */
