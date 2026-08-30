@@ -24,7 +24,8 @@ body{font-family:Arial,sans-serif;background:#f5f6f8;padding:12px;color:#111}
 .header{background:#1a1a1a;color:#fff;padding:14px 18px;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
 .header h1{font-size:24px;font-weight:700}
 .header .hbtns{display:flex;gap:8px;flex-wrap:wrap}
-.header a,.header button.hlink{background:#fff;color:#111;padding:8px 14px;border-radius:6px;font-weight:700;font-size:18px;text-decoration:none;border:none;cursor:pointer}
+.header a,.header button.hlink{background:#fff;color:#111;padding:8px 14px;border-radius:6px;font-weight:700;font-size:18px;text-decoration:none;border:none;cursor:pointer;
+  display:inline-flex;align-items:center;min-height:44px}  /* accesibilidad: mismo look, area tocable de 44px */
 
 .steps{padding:14px 18px}
 .row{display:flex;gap:10px;flex-wrap:wrap;margin:10px 0;align-items:center}

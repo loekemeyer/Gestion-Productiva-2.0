@@ -1,143 +1,167 @@
 <!doctype html>
 <html lang="es">
 <head>
-<!-- v3.11.0 — CARGA DE ROLLOS MAS CLARA (pedido del usuario): cada linea se lee como una frase "[- 3 +] rollos de [65] kg" — la cantidad tiene stepper -/+ (tocable con guantes, 44px) ademas de poder tipearse, el kg lleva su unidad al lado, la linea nace con 1 rollo, el boton pasa a decir "+ rollos de otro peso" y la cruz de borrar solo aparece cuando hay mas de una linea. La suma y el sobrante siguen en vivo abajo del pallet. v3.10.0 — PESAJE POR ETAPAS (pedido del usuario): el paso 2 deja de ser todos los items en un chorizo hacia abajo y pasa a UN ITEM POR VEZ (1ro -> 2do -> 3ro), con chips de progreso arriba (verde = completo, saltan al item) y Anterior/Siguiente abajo; "Guardar pesaje" aparece recien en el ultimo item. Con un solo item no hay chips ni navegacion, queda como antes. v3.9.1 — la tarjeta muestra la ultima carga sin la palabra "ult." (pedido del usuario): queda solo el numero en verde, ej. "360 kg". v3.9.0 — POPUP DE CARGA REORDENADO (pedido del usuario): Rollos y Pallets pasan a estar pegados debajo de Cantidad, que es el orden en que se lee el remito; el toggle Kg/Unidades deja de ser dos botonazos a todo el ancho y queda como dos pastillas discretas al pie (la unidad casi nunca se cambia, cada insumo trae la suya); y se saca el parrafo que explicaba que el proveedor informa rollos — la fila ya solo aparece cuando corresponde. El aviso al confirmar sin cargar rollos/pallets NO se toco. v3.8.0 — SALIDA DEL PESAJE: del paso 2 no se podia salir (Cancelar oculto + fondo bloqueado) y ademas el popup no scrolleaba hasta arriba, asi que quien lo abria por error quedaba encerrado. Ahora hay X pegada arriba, boton "Salir sin pesar" y Escape; salir no pierde nada (los items ya estan en la BD desde el paso 1) y la recepcion reaparece como "sin pesar". v3.7.2 — la OC lleva la unidad: "OC: 640 kg" (los flejes van en kg y los cartones en unidades; sin unidad el numero no dice de que habla). v3.7.1 — la OC se resume como lo que FALTA recibir, sin numero de OC. v3.7.0 — la tarjeta del insumo muestra la OC ABIERTA que lo espera y la ultima carga queda solo con los kg, sin fecha. v3.6.1 — fix: el mensaje del cruce con OC se mostraba nunca (itemSel null tras cerrar popup); aviso de pallets a medias al guardar pesaje. v3.6.0 — muestra el cruce con OC (recibido/completa/sin OC) devuelto por la BD. v3.5.0: cartones se cargan en PAQUETES de 250 (parametro carton_uni_x_paquete), guardados en unidades. v3.4.0: modo_control por proveedor: rollos_remito (Basconia/Aperam), pesaje (resto flejeros, remito solo kg), peso_total (Bella Vista). v3.3.0: Bella Vista: factura en uni (se anota convertido a kg) y control por PESO TOTAL contra el remito. v3.2.0: la balanza debe dar MAS que el remito (peso del pallet), aviso en vivo + confirm al guardar. v3.1.0: pesaje obligatorio (sin "Pesar después"): la carga no se termina hasta controlar. v3.0.0: remito multi-item: paso 1 todos los items, "Terminé de pasar remito", paso 2 pesaje de todo; modulo Control integrado aca -->
+<!-- v3.12.0 — PORTADA CON LA ESTETICA GP2 COMPARTIDA (panel de diseno, gana sobriedad): la pantalla era la UNICA de su familia con copia propia y desviada del esqueleto — ahora linkea gp2-modulo.css como OC/Pintores y queda identica al resto; los 6 rubros pasan de chips sueltos a baldosas parejas en grilla (3 col, 2 en celular, 56px); titulos de seccion en mayuscula chica; "Ver stock" AFUERA (sin referencias en JS ni tests, redundante con el menu); "Atras" queda con la pastilla estandar. Paso 2 y popup sin cambios. v3.11.0 — CARGA DE ROLLOS MAS CLARA (pedido del usuario): cada linea se lee como una frase "[- 3 +] rollos de [65] kg" — la cantidad tiene stepper -/+ (tocable con guantes, 44px) ademas de poder tipearse, el kg lleva su unidad al lado, la linea nace con 1 rollo, el boton pasa a decir "+ rollos de otro peso" y la cruz de borrar solo aparece cuando hay mas de una linea. La suma y el sobrante siguen en vivo abajo del pallet. v3.10.0 — PESAJE POR ETAPAS (pedido del usuario): el paso 2 deja de ser todos los items en un chorizo hacia abajo y pasa a UN ITEM POR VEZ (1ro -> 2do -> 3ro), con chips de progreso arriba (verde = completo, saltan al item) y Anterior/Siguiente abajo; "Guardar pesaje" aparece recien en el ultimo item. Con un solo item no hay chips ni navegacion, queda como antes. v3.9.1 — la tarjeta muestra la ultima carga sin la palabra "ult." (pedido del usuario): queda solo el numero en verde, ej. "360 kg". v3.9.0 — POPUP DE CARGA REORDENADO (pedido del usuario): Rollos y Pallets pasan a estar pegados debajo de Cantidad, que es el orden en que se lee el remito; el toggle Kg/Unidades deja de ser dos botonazos a todo el ancho y queda como dos pastillas discretas al pie (la unidad casi nunca se cambia, cada insumo trae la suya); y se saca el parrafo que explicaba que el proveedor informa rollos — la fila ya solo aparece cuando corresponde. El aviso al confirmar sin cargar rollos/pallets NO se toco. v3.8.0 — SALIDA DEL PESAJE: del paso 2 no se podia salir (Cancelar oculto + fondo bloqueado) y ademas el popup no scrolleaba hasta arriba, asi que quien lo abria por error quedaba encerrado. Ahora hay X pegada arriba, boton "Salir sin pesar" y Escape; salir no pierde nada (los items ya estan en la BD desde el paso 1) y la recepcion reaparece como "sin pesar". v3.7.2 — la OC lleva la unidad: "OC: 640 kg" (los flejes van en kg y los cartones en unidades; sin unidad el numero no dice de que habla). v3.7.1 — la OC se resume como lo que FALTA recibir, sin numero de OC. v3.7.0 — la tarjeta del insumo muestra la OC ABIERTA que lo espera y la ultima carga queda solo con los kg, sin fecha. v3.6.1 — fix: el mensaje del cruce con OC se mostraba nunca (itemSel null tras cerrar popup); aviso de pallets a medias al guardar pesaje. v3.6.0 — muestra el cruce con OC (recibido/completa/sin OC) devuelto por la BD. v3.5.0: cartones se cargan en PAQUETES de 250 (parametro carton_uni_x_paquete), guardados en unidades. v3.4.0: modo_control por proveedor: rollos_remito (Basconia/Aperam), pesaje (resto flejeros, remito solo kg), peso_total (Bella Vista). v3.3.0: Bella Vista: factura en uni (se anota convertido a kg) y control por PESO TOTAL contra el remito. v3.2.0: la balanza debe dar MAS que el remito (peso del pallet), aviso en vivo + confirm al guardar. v3.1.0: pesaje obligatorio (sin "Pesar después"): la carga no se termina hasta controlar. v3.0.0: remito multi-item: paso 1 todos los items, "Terminé de pasar remito", paso 2 pesaje de todo; modulo Control integrado aca -->
 <script src="../auth-guard.js?v=20260829f"></script>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>Recepción de Insumos · GP2</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="../supabase-config.js?v=20260830e"></script>
+<link rel="stylesheet" href="../gp2-modulo.css?v=20260830q"/>
 <style>
-  *{box-sizing:border-box;margin:0;padding:0}
-  body{font-family:Arial,sans-serif;background:#f5f6f8;padding:12px;color:#111}
-  .card{max-width:820px;margin:auto;background:#fff;border-radius:12px;box-shadow:0 2px 12px rgba(0,0,0,.08);overflow:hidden}
-  .header{background:#1a1a1a;color:#fff;padding:14px 18px;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
-  .header h1{font-size:24px;font-weight:700;letter-spacing:.3px}
-  .header .hbtns{display:flex;gap:8px}
-  .header button,.header a{background:#fff;color:#111;border:none;padding:8px 14px;border-radius:6px;font-weight:700;cursor:pointer;font-size:18px;text-decoration:none}
+/* ============================================================
+   Lo visual BASE (card blanca + header negro, chips .prov-btn,
+   botones .btn, .row, .search-box, .status, .empty, .hidden)
+   viene de ../gp2-modulo.css — el MISMO esqueleto que usan
+   OC_GP2 y Pintores_GP2. Aca abajo va SOLO lo propio de esta
+   pantalla. (Requiere el <link> a gp2-modulo.css ANTES de este
+   bloque: sin el, la pagina queda sin base.)
+   ============================================================ */
 
-  .steps{padding:14px 18px}
-  .row{display:flex;gap:10px;flex-wrap:wrap;margin:10px 0;align-items:center}
-  label.lbl{font-weight:800;font-size:20px;min-width:80px}
-  input[type="text"],input[type="date"]{height:40px;border:2px solid #d0d7de;border-radius:8px;padding:0 10px;font-size:21px}
-  input[type="text"]{width:200px}
+/* pantalla de carga, no de tablas anchas: mas angosta que el esqueleto */
+.card{max-width:820px}
+.steps{padding:16px 18px 24px}
 
-  .btn{padding:10px 16px;border-radius:8px;border:none;font-weight:800;cursor:pointer;font-size:20px}
-  .btn-primary{background:#111;color:#fff}
-  .btn-primary:disabled{opacity:.4;cursor:not-allowed}
-  .btn-secondary{background:#fff;border:2px solid #d0d7de;color:#111}
+/* ---------- PASO 1 (portada): Rubro -> Proveedor -> Remito ---------- */
+/* titulo de seccion: la voz chica en mayusculas que ya usan los KPI del
+   esqueleto (.kpi .k) — ordena la jerarquia sin competir con las baldosas */
+.sec-t{font-size:14px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.5px;margin:24px 0 8px}
+#step1 .sec-t:first-child{margin-top:0}
+#step1 .row{margin:8px 0}
 
-  .status{margin:8px 0;font-size:20px;padding:6px 0;min-height:10px}
-  .ok{color:#0a7a2f}
-  .bad{color:#b42318}
+/* los 6 rubros como baldosas parejas (mismo gesto que el menu GP2):
+   3 columnas, 2 en celular; activo = negro, como todo chip GP2 */
+#rubroGrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:0}
+#rubroGrid .prov-btn{min-height:56px;display:flex;align-items:center;justify-content:center;text-align:center;font-size:20px;padding:8px 10px}
 
-  .hidden{display:none}
-  .provs-grid{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0}
-  .prov-btn{padding:8px 14px;border-radius:8px;border:2px solid #d0d7de;background:#fff;font-weight:700;cursor:pointer;font-size:20px;color:#111}
-  .prov-btn.active{background:#111;color:#fff;border-color:#111}
+/* proveedores: chips estandar del esqueleto, altura tocable */
+#provGrid .prov-btn{min-height:48px}
 
-  .search-box{margin:12px 0;padding:12px;background:#f6f8fa;border-radius:8px}
-  .search-box input{width:100%;padding:10px;font-size:18px;border:2px solid #d0d7de;border-radius:6px}
+/* inputs: base historica de la pantalla. OJO ORDEN: misma especificidad
+   que ".kg-modal input" — esta regla debe ir ANTES para que el popup
+   conserve su input grande centrado. */
+input[type="text"],input[type="date"]{height:40px;border:2px solid #d0d7de;border-radius:8px;padding:0 10px;font-size:21px}
+input[type="text"]{width:200px}
+/* en el paso 1 los campos suben a 48px (touch comodo) y el N° de remito
+   se acomoda al ancho sin desbordar en 390px */
+#step1 input[type="text"],#step1 input[type="date"]{height:48px;padding:0 12px;font-size:20px}
+#step1 input[type="text"]{width:auto;flex:1 1 140px;min-width:140px;max-width:240px}
 
-  .items-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px;margin:12px 0}
-  .item-btn{padding:16px 8px;background:#fff;border:2px solid #d0d7de;border-radius:8px;cursor:pointer;text-align:center;font-weight:600;transition:all .15s;overflow:hidden}
-  .item-btn:hover{border-color:#111;background:#f6f8fa}
-  .item-btn .code{display:block;font-size:24px;font-weight:800;color:#0066cc}
-  .item-btn .desc{display:block;font-size:19px;color:#111;margin-top:8px;font-weight:700;line-height:1.2;white-space:normal;overflow-wrap:anywhere;word-break:break-word}
-  .item-btn .sect{display:block;font-size:15px;color:#888;margin-top:8px;font-weight:700}
-  .item-btn .ultima{display:block;font-size:15px;color:#0a7a2f;margin-top:8px;font-weight:800;line-height:1.25}
-  .item-btn .ultima.sin{color:#b0b0b0;font-weight:700;font-style:italic}
-  /* OC abierta esperando este insumo: es lo que hay que mirar al recibir */
-  .item-btn .oc-pend{display:block;font-size:15px;font-weight:800;line-height:1.25;margin-top:6px;
-                     color:#7c2d12;background:#fef3c7;border-radius:8px;padding:5px 8px}
+#btnContinuarRow{margin:24px 0 0}
+#btnContinuar{min-height:48px;padding:12px 24px}
 
-  .successBox{display:none;margin:12px 0;border:2px solid #c7e8d1;background:#f3fbf6;border-radius:12px;padding:16px;text-align:center}
-  .successBox .title{font-weight:900;font-size:23px;margin-bottom:4px;color:#0a7a2f}
+@media(max-width:480px){
+  #rubroGrid{grid-template-columns:1fr 1fr}
+  #btnContinuar{width:100%}
+}
 
-  /* El popup scrollea DESDE ARRIBA: con align-items:center un pesaje largo
-     (varios items x varios pallets) desbordaba para los dos lados y la parte
-     de arriba quedaba fuera de alcance — no habia forma de volver al titulo. */
-  .input-kg-popup{position:fixed;inset:0;background:rgba(0,0,0,.5);display:none;align-items:flex-start;justify-content:center;z-index:200;padding:16px;overflow-y:auto;-webkit-overflow-scrolling:touch}
-  .input-kg-popup.open{display:flex}
-  .kg-modal{background:#fff;border-radius:16px;padding:34px;width:96%;max-width:620px;box-shadow:0 10px 40px rgba(0,0,0,.3);margin:auto;position:relative}
-  .kg-modal h3{margin-bottom:20px;font-size:32px;font-weight:700;padding-right:52px}
-  /* La X queda pegada arriba a la derecha aunque se scrollee el pesaje: es la
-     salida siempre visible, sin tener que buscar el boton al final. */
-  .kg-x{position:sticky;top:0;float:right;margin:-18px -18px 0 0;width:46px;height:46px;border:2px solid #cbd5e1;border-radius:50%;
-        background:#fff;color:#334155;font-size:26px;font-weight:700;line-height:1;cursor:pointer;z-index:3;
-        box-shadow:0 2px 10px rgba(0,0,0,.18)}   /* flota sobre el pesaje: que se lea como boton, no como parte del form */
-  .kg-x:hover{background:#f1f5f9;color:#b42318}
-  .kg-modal .item-info{background:#f6f8fa;padding:16px;border-radius:10px;margin-bottom:20px;font-size:22px}
-  .kg-modal input{width:100%;padding:14px;font-size:28px;border:2px solid #d0d7de;border-radius:8px;margin-bottom:16px;text-align:center}
-  .kg-modal .unit-row{display:flex;gap:8px;margin-bottom:20px;justify-content:center}
-  .kg-modal .unit-btn{padding:8px 18px;min-height:44px;font-size:16px;font-weight:700;border:1.5px solid #d0d7de;border-radius:999px;background:#fff;cursor:pointer;color:#555}
-  .kg-modal .unit-btn.active{background:#111;color:#fff;border-color:#111}   /* sigue clarisimo cual esta elegida */
-  .kg-modal .actions{display:flex;gap:12px;align-items:stretch}
-  .kg-modal .actions button{flex:1;padding:16px;font-size:24px;font-weight:700;border:none;border-radius:8px;cursor:pointer}
-  /* el border:none de arriba se comia el borde del secundario y "Salir sin pesar"
-     quedaba como texto suelto, sin parecer un boton */
-  .kg-modal .actions .btn-secondary{border:2px solid #d0d7de;background:#fff}
-  /* la salida no compite con Guardar: mas chica y sin robarle lugar */
-  .kg-modal .actions #kgPesajeSalir{flex:0 1 auto;font-size:18px;padding:16px 14px;color:#475569}
+/* kgConfirm / kgPesajeOk llevan .btn-primary SIN .btn: el .btn:disabled
+   del esqueleto no los alcanza */
+.btn-primary:disabled{opacity:.45;cursor:not-allowed}
 
-  .empty{color:#888;padding:12px;text-align:center;font-style:italic}
+/* estados de mensajes (el JS setea 'status ok' / 'status bad') */
+.ok{color:#0a7a2f}
+.bad{color:#b42318}
 
-  /* Control en balanza */
-  .ctl-card{border:2px solid #d0d7de;border-radius:10px;padding:14px;margin:12px 0;background:#fff}
-  .ctl-card .ch{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;font-size:20px}
-  .ctl-card .ch b{font-size:22px}
-  .badge{display:inline-block;padding:3px 12px;border-radius:12px;font-weight:800;font-size:16px;border:2px solid}
-  .b-ok{color:#0a7a2f;border-color:#0a7a2f;background:#f3fbf6}
-  .b-mal{color:#b42318;border-color:#b42318;background:#fdf3f2}
-  .b-warn{color:#9a6700;border-color:#9a6700;background:#fff8e5}
-  .b-pend{color:#666;border-color:#d0d7de;background:#f6f8fa}
-  .pallet-box{border:2px solid #e3e7ec;border-radius:8px;padding:12px;margin:10px 0;background:#fafbfc}
-  .pallet-box .ph{display:flex;gap:12px;align-items:center;flex-wrap:wrap;font-size:19px;font-weight:800}
-  .pallet-box input{height:40px;border:2px solid #d0d7de;border-radius:8px;padding:0 10px;font-size:21px;text-align:right}
-  .inp-peso{width:120px}.inp-r{width:90px}
-  .rollo-line{display:flex;gap:8px;align-items:center;margin:8px 0;font-size:19px}
-  .rollo-line .x{background:none;border:none;font-size:24px;color:#888;cursor:pointer}
-  .rollo-line .x:hover{color:#b42318}
-  .calc-line{font-size:18px;color:#444;margin-top:8px}
-  .kg-conv{font-size:21px;color:#0b3b73;font-weight:700;text-align:center;padding:6px 0;min-height:28px;letter-spacing:.3px}
-  .remito-bar{border:2px solid #0b3b73;background:#eef4fb;border-radius:10px;padding:10px 14px;margin:10px 0;font-size:17px}
-  .remito-bar .rb-items{margin:4px 0 8px;color:#333}
-  .remito-bar .rb-pend{color:#b42318;font-weight:700;margin-top:6px}
-  .pes-item-h{font-size:19px;font-weight:900;margin:14px 0 6px;color:#0b3b73}
-  .pes-item-h .cod{color:#0066cc}
-  /* paso 2 anidado: pesaje dentro del mismo popup */
-  .pes-pallet{border:2px solid #d0d7de;border-radius:10px;padding:12px;margin-bottom:12px;background:#fafbfc}
-  .pes-pallet .ph{display:flex;justify-content:space-between;align-items:center;font-weight:800;font-size:18px;margin-bottom:8px}
-  .pes-pallet input{border:2px solid #d0d7de;border-radius:8px;padding:8px 10px;font-size:19px;text-align:center;width:100%}
-  .pes-linea{display:flex;gap:6px;align-items:center;margin-top:10px;flex-wrap:wrap;
-    border-top:1px dashed #e2e8f0;padding-top:8px}
-  .pes-linea:first-of-type{border-top:0;padding-top:0}
-  .pes-linea .x{cursor:pointer;font-size:18px;color:#b42318;font-weight:800;padding:0 4px;flex:0 0 auto}
-  /* la linea se lee como una frase: [- 3 +] rollos de [65] kg */
-  .stp{display:flex;align-items:stretch;border:2px solid #d0d7de;border-radius:8px;overflow:hidden;background:#fff;flex:0 0 auto}
-  .stp .stb{width:38px;min-height:44px;border:0;background:#f1f5f9;font-size:22px;font-weight:800;color:#0b3b73;cursor:pointer;font-family:inherit}
-  .stp .stb:active{background:#dbe4ee}
-  .stp input{border:0 !important;width:40px !important;min-height:44px;font-size:20px !important;font-weight:800;text-align:center;padding:0 !important}
-  .pes-linea .lbl{font-size:14px;font-weight:700;color:#555;white-space:nowrap;flex:0 0 auto}
-  /* si no entra al lado del stepper, el kg baja a su propia linea (celular) */
-  .kgw{display:flex;align-items:center;gap:5px;flex:1 1 150px;min-width:0}
-  .kgw input{min-width:56px;flex:1;font-size:18px !important;padding:8px 6px !important}
-  .kgw span{font-size:15px;font-weight:700;color:#555;flex:0 0 auto}
-  .pes-calc{font-size:15px;margin-top:8px;color:#555}
-  .pes-calc .okc{color:#0a7a2f;font-weight:800} .pes-calc .warnc{color:#b45309;font-weight:800}
-  .pes-add{font-size:15px;font-weight:700;color:#1d4ed8;cursor:pointer;background:none;border:1px dashed #93b4d8;border-radius:8px;padding:6px 10px;margin-top:8px}
-  /* pesaje por etapas: un item por vez, con chips de progreso y Anterior/Siguiente */
-  .pes-chips{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
-  .pes-chip{padding:6px 12px;border-radius:16px;border:2px solid #d0d7de;background:#fff;font-weight:800;font-size:14px;cursor:pointer;color:#555}
-  .pes-chip.act{background:#0b3b73;border-color:#0b3b73;color:#fff}
-  .pes-chip.done{border-color:#0a7a2f;color:#0a7a2f;background:#eefaf1}
-  .pes-chip.done.act{background:#0a7a2f;color:#fff}
-  .pes-nav{display:flex;gap:10px;margin-top:14px}
-  .pes-nav button{flex:1;padding:14px;border-radius:10px;font-size:16px;font-weight:800;cursor:pointer;font-family:inherit}
-  .pes-nav .sig{background:#0b3b73;color:#fff;border:2px solid #0b3b73}
-  .pes-nav .ant{background:#fff;color:#0b3b73;border:2px solid #d0d7de}
-  .pes-paso{font-size:14px;font-weight:800;color:#555;margin-bottom:4px}
+/* ---------- PASO 2 y popup: SIN CAMBIOS (verbatim de v3.11.0) ---------- */
+.items-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px;margin:12px 0}
+.item-btn{padding:16px 8px;background:#fff;border:2px solid #d0d7de;border-radius:8px;cursor:pointer;text-align:center;font-weight:600;transition:all .15s;overflow:hidden}
+.item-btn:hover{border-color:#111;background:#f6f8fa}
+.item-btn .code{display:block;font-size:24px;font-weight:800;color:#0066cc}
+.item-btn .desc{display:block;font-size:19px;color:#111;margin-top:8px;font-weight:700;line-height:1.2;white-space:normal;overflow-wrap:anywhere;word-break:break-word}
+.item-btn .sect{display:block;font-size:15px;color:#888;margin-top:8px;font-weight:700}
+.item-btn .ultima{display:block;font-size:15px;color:#0a7a2f;margin-top:8px;font-weight:800;line-height:1.25}
+.item-btn .ultima.sin{color:#b0b0b0;font-weight:700;font-style:italic}
+/* OC abierta esperando este insumo: es lo que hay que mirar al recibir */
+.item-btn .oc-pend{display:block;font-size:15px;font-weight:800;line-height:1.25;margin-top:6px;
+                   color:#7c2d12;background:#fef3c7;border-radius:8px;padding:5px 8px}
+
+/* el exito arranca oculto: el JS lo muestra con style.display */
+.successBox{display:none;margin:12px 0;border:2px solid #c7e8d1;background:#f3fbf6;border-radius:12px;padding:16px;text-align:center}
+.successBox .title{font-weight:900;font-size:23px;margin-bottom:4px;color:#0a7a2f}
+
+/* El popup scrollea DESDE ARRIBA: con align-items:center un pesaje largo
+   (varios items x varios pallets) desbordaba para los dos lados y la parte
+   de arriba quedaba fuera de alcance — no habia forma de volver al titulo. */
+.input-kg-popup{position:fixed;inset:0;background:rgba(0,0,0,.5);display:none;align-items:flex-start;justify-content:center;z-index:200;padding:16px;overflow-y:auto;-webkit-overflow-scrolling:touch}
+.input-kg-popup.open{display:flex}
+.kg-modal{background:#fff;border-radius:16px;padding:34px;width:96%;max-width:620px;box-shadow:0 10px 40px rgba(0,0,0,.3);margin:auto;position:relative}
+.kg-modal h3{margin-bottom:20px;font-size:32px;font-weight:700;padding-right:52px}
+/* La X queda pegada arriba a la derecha aunque se scrollee el pesaje: es la
+   salida siempre visible, sin tener que buscar el boton al final. */
+.kg-x{position:sticky;top:0;float:right;margin:-18px -18px 0 0;width:46px;height:46px;border:2px solid #cbd5e1;border-radius:50%;
+      background:#fff;color:#334155;font-size:26px;font-weight:700;line-height:1;cursor:pointer;z-index:3;
+      box-shadow:0 2px 10px rgba(0,0,0,.18)}   /* flota sobre el pesaje: que se lea como boton, no como parte del form */
+.kg-x:hover{background:#f1f5f9;color:#b42318}
+.kg-modal .item-info{background:#f6f8fa;padding:16px;border-radius:10px;margin-bottom:20px;font-size:22px}
+.kg-modal input{width:100%;padding:14px;font-size:28px;border:2px solid #d0d7de;border-radius:8px;margin-bottom:16px;text-align:center}
+.kg-modal .unit-row{display:flex;gap:8px;margin-bottom:20px;justify-content:center}
+.kg-modal .unit-btn{padding:8px 18px;min-height:44px;font-size:16px;font-weight:700;border:1.5px solid #d0d7de;border-radius:999px;background:#fff;cursor:pointer;color:#555}
+.kg-modal .unit-btn.active{background:#111;color:#fff;border-color:#111}   /* sigue clarisimo cual esta elegida */
+.kg-modal .actions{display:flex;gap:12px;align-items:stretch}
+.kg-modal .actions button{flex:1;padding:16px;font-size:24px;font-weight:700;border:none;border-radius:8px;cursor:pointer}
+/* el border:none de arriba se comia el borde del secundario y "Salir sin pesar"
+   quedaba como texto suelto, sin parecer un boton */
+.kg-modal .actions .btn-secondary{border:2px solid #d0d7de;background:#fff}
+/* la salida no compite con Guardar: mas chica y sin robarle lugar */
+.kg-modal .actions #kgPesajeSalir{flex:0 1 auto;font-size:18px;padding:16px 14px;color:#475569}
+
+/* Control en balanza */
+.ctl-card{border:2px solid #d0d7de;border-radius:10px;padding:14px;margin:12px 0;background:#fff}
+.ctl-card .ch{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;font-size:20px}
+.ctl-card .ch b{font-size:22px}
+.badge{display:inline-block;padding:3px 12px;border-radius:12px;font-weight:800;font-size:16px;border:2px solid}
+.b-ok{color:#0a7a2f;border-color:#0a7a2f;background:#f3fbf6}
+.b-mal{color:#b42318;border-color:#b42318;background:#fdf3f2}
+.b-warn{color:#9a6700;border-color:#9a6700;background:#fff8e5}
+.b-pend{color:#666;border-color:#d0d7de;background:#f6f8fa}
+.pallet-box{border:2px solid #e3e7ec;border-radius:8px;padding:12px;margin:10px 0;background:#fafbfc}
+.pallet-box .ph{display:flex;gap:12px;align-items:center;flex-wrap:wrap;font-size:19px;font-weight:800}
+.pallet-box input{height:40px;border:2px solid #d0d7de;border-radius:8px;padding:0 10px;font-size:21px;text-align:right}
+.inp-peso{width:120px}.inp-r{width:90px}
+.rollo-line{display:flex;gap:8px;align-items:center;margin:8px 0;font-size:19px}
+.rollo-line .x{background:none;border:none;font-size:24px;color:#888;cursor:pointer}
+.rollo-line .x:hover{color:#b42318}
+.calc-line{font-size:18px;color:#444;margin-top:8px}
+.kg-conv{font-size:21px;color:#0b3b73;font-weight:700;text-align:center;padding:6px 0;min-height:28px;letter-spacing:.3px}
+.remito-bar{border:2px solid #0b3b73;background:#eef4fb;border-radius:10px;padding:10px 14px;margin:10px 0;font-size:17px}
+.remito-bar .rb-items{margin:4px 0 8px;color:#333}
+.remito-bar .rb-pend{color:#b42318;font-weight:700;margin-top:6px}
+.pes-item-h{font-size:19px;font-weight:900;margin:14px 0 6px;color:#0b3b73}
+.pes-item-h .cod{color:#0066cc}
+/* paso 2 anidado: pesaje dentro del mismo popup */
+.pes-pallet{border:2px solid #d0d7de;border-radius:10px;padding:12px;margin-bottom:12px;background:#fafbfc}
+.pes-pallet .ph{display:flex;justify-content:space-between;align-items:center;font-weight:800;font-size:18px;margin-bottom:8px}
+.pes-pallet input{border:2px solid #d0d7de;border-radius:8px;padding:8px 10px;font-size:19px;text-align:center;width:100%}
+.pes-linea{display:flex;gap:6px;align-items:center;margin-top:10px;flex-wrap:wrap;
+  border-top:1px dashed #e2e8f0;padding-top:8px}
+.pes-linea:first-of-type{border-top:0;padding-top:0}
+.pes-linea .x{cursor:pointer;font-size:18px;color:#b42318;font-weight:800;padding:0 4px;flex:0 0 auto}
+/* la linea se lee como una frase: [- 3 +] rollos de [65] kg */
+.stp{display:flex;align-items:stretch;border:2px solid #d0d7de;border-radius:8px;overflow:hidden;background:#fff;flex:0 0 auto}
+.stp .stb{width:38px;min-height:44px;border:0;background:#f1f5f9;font-size:22px;font-weight:800;color:#0b3b73;cursor:pointer;font-family:inherit}
+.stp .stb:active{background:#dbe4ee}
+.stp input{border:0 !important;width:40px !important;min-height:44px;font-size:20px !important;font-weight:800;text-align:center;padding:0 !important}
+.pes-linea .lbl{font-size:14px;font-weight:700;color:#555;white-space:nowrap;flex:0 0 auto}
+/* si no entra al lado del stepper, el kg baja a su propia linea (celular) */
+.kgw{display:flex;align-items:center;gap:5px;flex:1 1 150px;min-width:0}
+.kgw input{min-width:56px;flex:1;font-size:18px !important;padding:8px 6px !important}
+.kgw span{font-size:15px;font-weight:700;color:#555;flex:0 0 auto}
+.pes-calc{font-size:15px;margin-top:8px;color:#555}
+.pes-calc .okc{color:#0a7a2f;font-weight:800} .pes-calc .warnc{color:#b45309;font-weight:800}
+.pes-add{font-size:15px;font-weight:700;color:#1d4ed8;cursor:pointer;background:none;border:1px dashed #93b4d8;border-radius:8px;padding:6px 10px;margin-top:8px}
+/* pesaje por etapas: un item por vez, con chips de progreso y Anterior/Siguiente */
+.pes-chips{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
+.pes-chip{padding:6px 12px;border-radius:16px;border:2px solid #d0d7de;background:#fff;font-weight:800;font-size:14px;cursor:pointer;color:#555}
+.pes-chip.act{background:#0b3b73;border-color:#0b3b73;color:#fff}
+.pes-chip.done{border-color:#0a7a2f;color:#0a7a2f;background:#eefaf1}
+.pes-chip.done.act{background:#0a7a2f;color:#fff}
+.pes-nav{display:flex;gap:10px;margin-top:14px}
+.pes-nav button{flex:1;padding:14px;border-radius:10px;font-size:16px;font-weight:800;cursor:pointer;font-family:inherit}
+.pes-nav .sig{background:#0b3b73;color:#fff;border:2px solid #0b3b73}
+.pes-nav .ant{background:#fff;color:#0b3b73;border:2px solid #d0d7de}
+.pes-paso{font-size:14px;font-weight:800;color:#555;margin-bottom:4px}
 </style>
 <link rel="icon" type="image/png" href="../GP2_favicon.png">
 <link rel="apple-touch-icon" href="../GP2_favicon.png">
@@ -147,16 +171,13 @@
 <div class="card">
   <div class="header">
     <h1>Recepción Insumos</h1>
-    <div class="hbtns">
-      <a href="../Stocks General/StockGeneral_GP2.html">Ver stock</a>
-      <a href="../GP2_MODULOS.html">Atrás</a>
-    </div>
+    <div class="hbtns"><a href="../GP2_MODULOS.html">Atrás</a></div>
   </div>
 
   <div class="steps">
     <!-- Paso 1 -->
     <div id="step1">
-      <div class="row"><label class="lbl">Rubro</label></div>
+      <div class="sec-t">Rubro</div>
       <div class="provs-grid" id="rubroGrid">
         <button class="prov-btn" data-rubro="Flejes"    data-sid="5">Flejes</button>
         <button class="prov-btn" data-rubro="Cajas"     data-sid="11">Cajas</button>
@@ -167,15 +188,16 @@
       </div>
 
       <div id="provSection" class="hidden">
-        <div class="row"><label class="lbl">Proveedor</label></div>
+        <div class="sec-t">Proveedor</div>
         <div class="provs-grid" id="provGrid"></div>
       </div>
 
       <div id="remitoSection" class="hidden">
+        <div class="sec-t">Remito</div>
         <div class="row">
-          <label class="lbl">N° Remito</label>
+          <label class="lbl" for="txtRemito">N°</label>
           <input type="text" id="txtRemito" placeholder="Opcional">
-          <label class="lbl" style="min-width:auto">Fecha</label>
+          <label class="lbl" for="txtFecha">Fecha</label>
           <input type="date" id="txtFecha">
         </div>
       </div>
