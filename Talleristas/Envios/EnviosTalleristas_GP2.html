@@ -105,7 +105,7 @@
 var E = GP2EE;
 var $ = E.$, esc = E.esc, fmt = E.fmt, hoyISO = E.hoyISO;
 /* parser historico de esta pantalla (ver GP2EE.num) */
-var num = function(v){ return E.num(v, "simple"); };
+var num = E.num;   // parser completo: "1.234,5" = 1234,5 (el modo simple con el bug se elimino)
 
 var SB = E.sb();
 
@@ -305,7 +305,17 @@ $("btnEnviar").addEventListener("click", async function(){
     return;
   }
 
-  BUF.borrar(selT.id);
+  // Igual que las pantallas PS: las marcas F SIN cantidad no se registran
+  // (la RPC de talleristas no lleva faltante) pero NO se pierden — quedan
+  // cargadas para la proxima, con aviso. Antes se vaciaba el buffer entero.
+  var b2=BUF.de(selT.id), faltSolo=0;
+  Object.keys(b2).forEach(function(k2){
+    var it2=b2[k2];
+    if(it2.falt && !(num(it2.caj)>0 || num(it2.kg)>0)) faltSolo++;
+    else delete b2[k2];
+  });
+  if(!faltSolo) delete BUF.all[selT.id];
+  BUF.save();
 
   // fase 3: remito para imprimir
   var tCaj=0,tKg=0,tUni=0;
@@ -321,7 +331,8 @@ $("btnEnviar").addEventListener("click", async function(){
     '<td class="num">'+fmt(tUni,0)+'</td></tr>';
 
   $("printTitle").textContent="Remito · "+selT.nombre+" · "+fecha;
-  E.mostrarExito(res.ok+" partes enviadas a "+selT.nombre+" · "+fecha);
+  E.mostrarExito(res.ok+" partes enviadas a "+selT.nombre+" · "+fecha+
+    (faltSolo?(" · OJO: "+faltSolo+" marca(s) F sin cantidad NO se registran (siguen cargadas)"):""));
 });
 
 $("fFecha").value=hoyISO();

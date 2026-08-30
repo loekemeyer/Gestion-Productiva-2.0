@@ -94,9 +94,20 @@ window.supabase = { createClient: function(){ return {
   ok((await page.$eval('#printTitle', e => e.textContent)).includes('Remito · Martin'), 'titulo remito');
   ok(/^\d{4}$/.test(await page.$eval('#successCode', e => e.textContent)), 'codigo 4 digitos');
 
-  // el buffer del tallerista se vacio ENTERO (la marca F sin cantidad NO se conserva en esta pantalla)
+  // regresion del parser (bug historico eliminado 2026-08-30): "1.234,5" es 1234,5
+  const nParse = await page.evaluate(() => GP2EE.num('1.234,5'));
+  ok(nParse === 1234.5, 'parser: "1.234,5" = 1234,5 (dio ' + nParse + ')');
+
+  // v2026-08-30 (OK del usuario): lo ENVIADO sale del buffer, pero la marca F
+  // SIN cantidad se CONSERVA para la proxima (igual que las pantallas PS), con aviso.
   const buf = await page.evaluate(() => JSON.parse(localStorage.getItem('gp2_enviosTall_buffer') || '{}'));
-  ok(!buf['6'], 'buffer del tallerista vaciado tras enviar');
+  const b6 = buf['6'] || {};
+  ok(!b6['70'], 'lo enviado (comp 70) salio del buffer');
+  const soloF = Object.values(b6);
+  ok(soloF.length === 1 && soloF[0].falt === true && !(Number(soloF[0].kg) > 0),
+     'la marca F sin cantidad sigue cargada: ' + JSON.stringify(b6));
+  ok((await page.$eval('#successDetail', e => e.textContent)).includes('marca(s) F sin cantidad'),
+     'el exito avisa que la marca F no se registro y sigue cargada');
 
   await page.click('#btnVolverTall');
   ok(await page.$eval('#fase0', e => !e.classList.contains('hidden')), 'volver a fase0');

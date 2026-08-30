@@ -101,7 +101,7 @@
 var E = GP2EE;
 var $ = E.$, esc = E.esc, fmt = E.fmt, hoyISO = E.hoyISO;
 /* parser historico de esta pantalla (ver GP2EE.num) */
-var num = function(v){ return E.num(v, "simple"); };
+var num = E.num;   // parser completo: "1.234,5" = 1234,5 (el modo simple con el bug se elimino)
 
 var SB = E.sb();
 

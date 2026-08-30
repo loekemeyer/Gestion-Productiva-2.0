@@ -45,19 +45,16 @@
     });
   }
 
-  /* Parsea un numero escrito a mano ("1.234,5", "12,5", "12.5").
-     modo 'simple' reproduce el parser historico de las pantallas de
-     talleristas (con "." y "," juntos pisa las comas: "1.234,5" -> 1.2345);
-     sin modo usa el parser completo de las pantallas PS (el ultimo separador
-     es el decimal). Se mantienen los dos para no cambiar comportamiento. */
+  /* Parsea un numero escrito a mano ("1.234,5", "12,5", "12.5"): el ultimo
+     separador es el decimal. El viejo modo 'simple' de talleristas (que leia
+     "1.234,5" como 1,2345, bug historico) se ELIMINO 2026-08-30 con OK del
+     usuario ("todo lo que puedas arrancar, arrancalo"): todas las pantallas
+     usan este parser. El parametro modo se acepta y se ignora. */
   function num(v, modo) {
     if (v == null || v === "") return 0;
     if (typeof v === "number") return isFinite(v) ? v : 0;
     var s = String(v).trim().replace(/[^\d,.-]/g, "");
-    if (modo === "simple") {
-      if (s.indexOf(",") >= 0 && s.indexOf(".") < 0) s = s.replace(",", ".");
-      else s = s.replace(/,/g, "");
-    } else if (s.indexOf(",") >= 0 && s.indexOf(".") >= 0) {
+    if (s.indexOf(",") >= 0 && s.indexOf(".") >= 0) {
       // ambos separadores: el ultimo es el decimal (AR "1.234,5" / EN "1,234.5")
       if (s.lastIndexOf(",") > s.lastIndexOf(".")) s = s.replace(/\./g, "").replace(",", ".");
       else s = s.replace(/,/g, "");

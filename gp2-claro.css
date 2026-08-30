@@ -11,6 +11,11 @@ body { font-size: 15.5px !important; }
 body, input, select, button, textarea, table, td, th, p, div, span, label, li, a, option {
   font-size: inherit;
 }
+/* Piso de accesibilidad (regla usuario 2026-08-30): el inherit de arriba hacia
+   que un campo adentro de un contenedor chico quedara de 12px aunque la pagina
+   pidiera 18. Los CAMPOS de carga nunca bajan de 18 y los botones de 17. */
+input:not([type=checkbox]):not([type=radio]), select, textarea { font-size: 18px !important; }
+button { font-size: 17px !important; }
 h1 { font-size: 23px !important; }
 h2 { font-size: 19px !important; }
 h3 { font-size: 17px !important; }
