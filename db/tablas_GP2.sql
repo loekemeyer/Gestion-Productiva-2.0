@@ -570,6 +570,7 @@ CREATE INDEX idx_orden_compra_item_oc_id ON "GP2".orden_compra_item USING btree 
 CREATE INDEX idx_pedido_articulo_id ON "GP2".pedido USING btree (articulo_id);
 CREATE INDEX idx_precio_proveedor_componente_id ON "GP2".precio_proveedor USING btree (componente_id);
 CREATE INDEX idx_produccion_matriz_id ON "GP2".produccion USING btree (matriz_id);
+CREATE UNIQUE INDEX uq_componente_codigo_sector ON "GP2".componente USING btree (upper(btrim(codigo)), sector_id) WHERE (codigo IS NOT NULL);
 CREATE UNIQUE INDEX uq_produccion_id_ejecucion ON "GP2".produccion USING btree (id_ejecucion) WHERE (id_ejecucion IS NOT NULL);
 CREATE INDEX idx_proveedor_servicio_alias_ps_id ON "GP2".proveedor_servicio_alias USING btree (ps_id);
 CREATE INDEX idx_recepcion_insumo_componente_id ON "GP2".recepcion_insumo USING btree (componente_id);

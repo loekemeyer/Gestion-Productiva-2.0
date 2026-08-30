@@ -219,10 +219,16 @@ siempre con el mismo puerto.
 
 - **Los nombres colisionan entre las dos casas.** El fleje "A1" del vecino no es la pieza
   "A1" de GP2. Nunca matchear por código sin mirar el sector. `[2026-08-29]`
-- **Y colisionan DENTRO de GP2 también**: hay **dos componentes con código `C9`** — un
-  "Fleje N° 4" (Sector Fleje) y el "Resorte U Crom" (Sector Bombilla). Un `where
-  codigo='C9'` toca los dos. Siempre filtrar por sector. `[dato 2026-08-29, casi nos muerde
-  al marcar los resortes que se fabrican]`
+- **El código de componente NO identifica una pieza; el `id` sí.** En GP2 hay **33 códigos
+  repetidos** (A1, A10, A11, C9, D1, F2…): el "A1" del Sector Fleje y el "A1" del Sector
+  Caja son piezas distintas. Lo único es el par **(código, sector)** — verificado: 0
+  repetidos dentro de un mismo sector, y desde 2026-08-30 hay un índice único
+  `uq_componente_codigo_sector` que lo garantiza.
+  Consecuencia práctica: **el programa trabaja por `id` y está bien**; el riesgo aparece
+  sólo cuando se hace un `update ... where codigo = 'X'` o se copian datos del vecino
+  matcheando por código. En esos casos **siempre filtrar también por sector**.
+  `[dato 2026-08-30; surgió al marcar los resortes que se fabrican, donde C9 es a la vez
+  un Fleje N° 4 y el Resorte U Crom]`
 - **Una persona = varios roles.** Pettofrezza es tallerista, proveedor AT y ahora
   proveedor de insumo. Maspoli es tallerista y proveedor AT. Buscar en las cuatro tablas
   antes de dar de alta a alguien "nuevo".
