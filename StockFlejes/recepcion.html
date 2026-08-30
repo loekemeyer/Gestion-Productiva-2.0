@@ -409,6 +409,7 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="../supabase-config.js?v=20260830e"></script>
 <!-- pdf.js para parser LOCAL de OCs (sin edge function ni IA). Mismo CDN que usa Facturas/index.html -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script>
@@ -419,8 +420,6 @@
 <script>
 "use strict";
 
-const SUPABASE_URL = "https://hrxfctzncixxqmpfhskv.supabase.co";
-const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhyeGZjdHpuY2l4eHFtcGZoc2t2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI3MjQyNjEsImV4cCI6MjA4ODMwMDI2MX0.4L6wguch8UZGhC2VpzrWcCjJGUV-IkYsl9JoCWrOLUs";
 const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 // Proveedores por rubro

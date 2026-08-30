@@ -9,8 +9,6 @@
    Premio, Segundos_Trabajados, Tiempo_Historico, ...) para no tocar el render.
    ============================================================ */
 
-const SUPABASE_URL = "https://hrxfctzncixxqmpfhskv.supabase.co";
-const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhyeGZjdHpuY2l4eHFtcGZoc2t2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI3MjQyNjEsImV4cCI6MjA4ODMwMDI2MX0.4L6wguch8UZGhC2VpzrWcCjJGUV-IkYsl9JoCWrOLUs";
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY, { db: { schema: 'GP2' } });
 
 const fechaDesde = document.getElementById("fechaDesde");

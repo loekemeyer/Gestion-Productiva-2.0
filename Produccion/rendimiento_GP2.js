@@ -5,8 +5,6 @@
    ECharts 5 + Supabase JS v2
    ============================================================ */
 
-const SUPABASE_URL = "https://hrxfctzncixxqmpfhskv.supabase.co";
-const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhyeGZjdHpuY2l4eHFtcGZoc2t2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI3MjQyNjEsImV4cCI6MjA4ODMwMDI2MX0.4L6wguch8UZGhC2VpzrWcCjJGUV-IkYsl9JoCWrOLUs";
 // MIGRADO a schema GP2: los datos salen del RPC "GP2".produccion_bundle
 // (espejo de la produccion vieja en "GP2".produccion). Ver __run/cargarDatos.
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY, { db: { schema: 'GP2' } });

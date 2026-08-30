@@ -6,6 +6,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>Órdenes de Compra · GP2</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="../supabase-config.js?v=20260830e"></script>
 <link rel="stylesheet" href="../gp2-modulo.css?v=20260830e"/>
 <link rel="icon" type="image/png" href="../GP2_favicon.png">
 <link rel="apple-touch-icon" href="../GP2_favicon.png">
@@ -98,8 +99,8 @@
 
 <script>
 var SB = supabase.createClient(
-  "https://hrxfctzncixxqmpfhskv.supabase.co",
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhyeGZjdHpuY2l4eHFtcGZoc2t2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI3MjQyNjEsImV4cCI6MjA4ODMwMDI2MX0.4L6wguch8UZGhC2VpzrWcCjJGUV-IkYsl9JoCWrOLUs",
+  SUPABASE_URL,
+  SUPABASE_KEY,
   { db:{ schema:"GP2" }, auth:{ persistSession:false } }
 );
 function $(id){ return document.getElementById(id); }
