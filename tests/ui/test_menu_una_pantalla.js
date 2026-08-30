@@ -100,8 +100,10 @@ const PANTALLAS = [
            `${p.nom}/Insumos: arriba van Órdenes de Compra y Recepción (hoy: ${j[0].t} / ${j[1].t})`);
         ok(principales.length === 2 && principales.every(x => x.w === anchoMax),
            `${p.nom}/Insumos: los 2 principales ocupan el ancho entero`);
-        ok(/\bsecundario\b/.test(j[j.length - 1].cls) && j[j.length - 1].t.startsWith('Inyectores'),
-           `${p.nom}/Insumos: Inyectores va ultimo y apagado`);
+        // Los dos "quien hace cada parte" (Inyectores y Pintores) cierran el grupo, apagados.
+        ok(/\bsecundario\b/.test(j[j.length - 1].cls) && j[j.length - 1].t.startsWith('Pintores') &&
+           /\bsecundario\b/.test(j[j.length - 2].cls) && j[j.length - 2].t.startsWith('Inyectores'),
+           `${p.nom}/Insumos: Inyectores y Pintores van ultimos y apagados`);
       }
 
       await page.click(`.card-head:has-text("${g}")`);   // cerrar antes del siguiente
