@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Cartones · GP2</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<link rel="stylesheet" href="../gp2-modulo.css?v=1.2.0"/>
+<link rel="icon" type="image/png" href="../GP2_favicon.png">
+<link rel="apple-touch-icon" href="../GP2_favicon.png">
+<style>
+  .seg{display:flex;gap:6px;flex-wrap:wrap}
+  .seg-btn{padding:8px 14px;border-radius:8px;border:2px solid #d0d7de;background:#fff;font-weight:700;cursor:pointer;font-size:16px;color:#111}
+  .seg-btn.active{background:#111;color:#fff;border-color:#111}
+  table.t tr.bajo td{background:#fff7ed}
+  td.mov-cell,td.stk-cell{cursor:pointer;text-decoration:underline dotted}
+  td.mov-cell:hover,td.stk-cell:hover{background:#eef4fb}
+  .popup{position:fixed;inset:0;background:rgba(0,0,0,.5);display:none;align-items:center;justify-content:center;z-index:200;padding:16px}
+  .popup.open{display:flex}
+  .pop-card{background:#fff;border-radius:14px;width:100%;max-width:880px;max-height:86vh;overflow:auto;padding:20px}
+  .pop-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:14px}
+  .pop-head h3{font-size:20px;font-weight:800}
+</style>
+</head>
+<body>
+
+<div class="card">
+  <div class="header">
+    <h1>Cartones · Sector Cartón</h1>
+    <div class="hbtns">
+      <button class="hlink" id="btnCSV" type="button">⬇ Exportar CSV</button>
+      <a href="RecepcionInsumos_GP2.html">Recepción</a>
+      <a href="../GP2_MODULOS.html">Atrás</a>
+    </div>
+  </div>
+
+  <div class="steps">
+    <div class="kpis" id="kpis"></div>
+    <div class="aviso hidden" id="avisoFactores"></div>
+
+    <div class="row">
+      <div class="seg">
+        <button class="seg-btn active" data-f="todos" type="button">Todos</button>
+        <button class="seg-btn" data-f="con" type="button">Con stock</button>
+        <button class="seg-btn" data-f="sin" type="button">Sin stock</button>
+        <button class="seg-btn" data-f="bajo" type="button">Bajo mínimo</button>
+        <button class="seg-btn" data-f="mov" type="button">Con movimientos</button>
+      </div>
+    </div>
+
+    <div class="search-box"><input type="text" id="q" placeholder="Buscar por código o descripción…"></div>
+
+    <div class="table-wrap">
+      <table class="t">
+        <!-- el thead lo arma gp2-stock-sector.js segun STOCK_CFG.columnas -->
+        <thead id="thead"></thead>
+        <tbody id="tbody"></tbody>
+      </table>
+    </div>
+    <div id="tblEmpty" class="empty hidden">Sin resultados.</div>
+    <div id="status" class="status">Cargando…</div>
+  </div>
+</div>
+
+<!-- popup detalle de movimientos -->
+<div class="popup" id="popup">
+  <div class="pop-card">
+    <div class="pop-head">
+      <h3 id="popTitle"></h3>
+      <button class="btn btn-secondary" id="popClose" type="button">Cerrar</button>
+    </div>
+    <div id="popBody"></div>
+  </div>
+</div>
+
+<script>
+window.SB_CLIENT = supabase.createClient(
+  "https://hrxfctzncixxqmpfhskv.supabase.co",
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhyeGZjdHpuY2l4eHFtcGZoc2t2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI3MjQyNjEsImV4cCI6MjA4ODMwMDI2MX0.4L6wguch8UZGhC2VpzrWcCjJGUV-IkYsl9JoCWrOLUs",
+  { db:{ schema:"GP2" }, auth:{ persistSession:false } }
+);
+
+/* Insumos: entran por compra y salen por consumo de producción o
+   por envío a un proveedor / tallerista. */
+window.STOCK_CFG = {
+  sector_id: 10,
+  titulo: "Cartones",
+  mostrar_fleje: false,
+  columnas: [
+    { k:"compras", label:"Compras", tipos:["compra"],                                   lado:"ent" },
+    { k:"consumo", label:"Consumo", tipos:["consumo_prod","consumo_tall","produccion","fabricacion"], lado:"sal" },
+    { k:"envios",  label:"Envíos",  tipos:["envio_ps","envio_tallerista"],               lado:"sal" }
+  ]
+};
+</script>
+<script src="../gp2-composicion.js?v=1.2.1"></script>
+<script src="../gp2-stock-sector.js?v=1.2.1"></script>
+</body>
+</html>

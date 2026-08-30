@@ -45,8 +45,13 @@
  .badge{display:inline-block;font-size:9px;padding:1px 5px;border-radius:3px;background:#3a2a10;color:#e0a95a;margin-left:6px}
  .badge.no-dem{background:#2a1a10;color:#7a92a8}
  .shared{color:#c79bff;font-size:10px;margin-left:4px}
-</style></head>
+</style><link rel="icon" type="image/png" href="../GP2_favicon.png">
+<link rel="apple-touch-icon" href="../GP2_favicon.png">
+<link rel="stylesheet" href="../gp2-claro.css">
+</head>
 <body>
+<div id="gp2-logobar" style="position:relative;background:#0b1220;text-align:center;padding:6px 0;border-bottom:1px solid #1c2836"><a href="../GP2_MODULOS.html" style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:#cbd5e1;text-decoration:none;font-weight:700;font-size:15px;padding:5px 10px;border:1px solid #33415a;border-radius:8px;background:#101a2b">← Atrás</a><a href="../GP2_MODULOS.html" style="text-decoration:none"><img src="../GP2_logo.png" alt="GP2 · Gestión Productiva" style="height:40px;vertical-align:middle"></a></div>
+
 <div class="top">
   <h1>📋 Loekemeyer · Faltantes por Artículo</h1>
   <div style="font-size:11px;color:#e0a075">Mínimos actualizados · Agrupado por art · Comp compartidos aparecen en cada art</div>
@@ -64,6 +69,7 @@
 
 var SB=window.supabase.createClient('https://hrxfctzncixxqmpfhskv.supabase.co','eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhyeGZjdHpuY2l4eHFtcGZoc2t2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI3MjQyNjEsImV4cCI6MjA4ODMwMDI2MX0.4L6wguch8UZGhC2VpzrWcCjJGUV-IkYsl9JoCWrOLUs',{db:{schema:'GP2'}});
 function __run(){
+function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 // Ordenar rp
 for(var _rid in D.rp)D.rp[_rid].sort(function(a,b){return a.o-b.o;});
 
@@ -518,8 +524,8 @@ function render(){
     sec.className='art-section'+(open[a.id]?' open':'')+(v.dem<=0?' no-dem':'');
     var head=document.createElement('div');head.className='art-head';
     head.innerHTML='<span class="caret">▸</span>'+
-      '<span class="cod">'+a.cod+'</span>'+
-      '<span class="fam">'+(a.fam||'')+'</span>'+
+      '<span class="cod">'+esc(a.cod)+'</span>'+
+      '<span class="fam">'+esc(a.fam||'')+'</span>'+
       (v.dem<=0?'<span class="badge no-dem">sin demanda</span>':'')+
       '<div class="stats">'+
         '<span>Comp: '+v.rows.length+'</span>'+
@@ -551,18 +557,18 @@ function render(){
         else if(u_obj.tipo==='tallerista')uNom=uNom.replace(/^Tallerista\s*/i,'').trim();
       }
       th+='<tr'+(r.f===0?' class="zero-row"':'')+'>'+
-        '<td>'+(r.c.cod||'')+(r.shared?'<span class="shared">×'+compUsadoPor[r.cid].length+'</span>':'')+'</td>'+
-        '<td>'+(r.c.d||'')+'</td>'+
-        '<td>'+sec_nom+'</td>'+
-        '<td>'+uNom+'</td>'+
+        '<td>'+esc(r.c.cod||'')+(r.shared?'<span class="shared">×'+compUsadoPor[r.cid].length+'</span>':'')+'</td>'+
+        '<td>'+esc(r.c.d||'')+'</td>'+
+        '<td>'+esc(sec_nom)+'</td>'+
+        '<td>'+esc(uNom)+'</td>'+
         '<td class="num">'+r.min+'</td>'+
         '<td class="num" style="color:#7a92a8">'+(r.minTotal||0)+'</td>'+
         '<td class="num">'+r.st+'</td>'+
         '<td class="num" style="color:'+(r.faltaGlobal>0?'#d0836b':'#5fd39a')+'">'+(r.faltaGlobal||0)+'</td>'+
         '<td class="num '+(r.f>0?'fal':'ok')+'">'+r.f+'</td>'+
-        '<td>'+(r.c.um||'uni')+'</td>'+
+        '<td>'+esc(r.c.um||'uni')+'</td>'+
         '<td><span class="tag '+ac.cls+'">'+ac.tipo+'</span></td>'+
-        '<td style="color:#7a92a8;font-style:italic">'+ac.det+'</td>'+
+        '<td style="color:#7a92a8;font-style:italic">'+esc(ac.det)+'</td>'+
       '</tr>';
     });
     th+='</tbody></table>';

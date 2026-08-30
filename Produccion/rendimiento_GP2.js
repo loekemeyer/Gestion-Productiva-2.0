@@ -29,6 +29,7 @@ let zoomDebounce = null;
 let fullStartMs = null, fullEndMs = null;
 let chart = null;
 let suppressZoomHandler = false;
+let cargaSeq = 0;               // token: descarta respuestas viejas del RPC
 
 // ----- DOM -----
 const $matriz   = document.getElementById("selMatriz");
@@ -180,7 +181,11 @@ async function cargarDatos() {
   // GP2: el RPC ya aplica los filtros (Eliminar<>S, Legajo<>1, Uni>0, Tiempo_Toma>0,
   // matriz y anio) y devuelve las filas ordenadas por fecha/hora con las claves viejas
   // (Matriz, Legajo, Uni, Fecha, Segundos_Trabajados, Tiempo_Toma, Premio, ...).
+  const seq = ++cargaSeq;
   const { data: bundle, error } = await sb.rpc("produccion_bundle", { p_matriz: nMatriz, p_anio: anio });
+  // Si mientras esperabamos se disparo otra carga (cambio de matriz/anio),
+  // esta respuesta quedo vieja: no pisar los datos de la carga mas nueva.
+  if (seq !== cargaSeq) return;
   if (error) { console.error(error); $loading.style.display = "none"; $empty.classList.add("visible"); return; }
   const rows = (bundle && bundle.rows) || [];
 

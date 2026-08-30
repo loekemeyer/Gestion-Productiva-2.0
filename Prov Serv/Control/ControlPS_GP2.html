@@ -1,0 +1,747 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <script src="../../auth-guard.js?v=20260829f"></script>
+  <script src="../../gp2-composicion.js?v=1.2.1"></script>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Control Prov. Servicios (GP2)</title>
+
+  <!-- Supabase -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <!-- CSS reutilizado de la pagina vieja -->
+  <link rel="stylesheet" href="ControlPS.css?v=4" />
+
+  <style>
+    /* Banner de datos parciales (propio de la version GP2) */
+    .gp2-banner{
+      background:#fff8e1;
+      border:1px solid #f0c36d;
+      color:#7a5b00;
+      border-radius:10px;
+      padding:10px 14px;
+      font-size:13px;
+      line-height:1.4;
+      margin-bottom:16px;
+    }
+    .gp2-banner b{ color:#5a4400; }
+    .gp2-tag{
+      display:inline-block;
+      background:#111;
+      color:#fff;
+      font-size:11px;
+      border-radius:6px;
+      padding:2px 8px;
+      margin-left:8px;
+      vertical-align:middle;
+    }
+    .prov-meta{ font-weight:normal; font-size:12px; color:#666; }
+    td.num{ text-align:right !important; font-variant-numeric:tabular-nums; }
+    td.neg{ color:#b3402f; }
+    .empty-msg{ color:#666; font-size:14px; padding:10px 0; }
+
+    /* Resumen general partes x PS */
+    #resumenPS{ margin-top:16px; }
+    .resumen-wrap{ overflow-x:auto; }
+    .resumen-wrap table{ min-width:640px; }
+    .resumen-wrap th.ps-col{ text-align:right; }
+    .resumen-wrap td.vacio{ color:#bbb !important; text-align:right !important; }
+
+    /* ---- Panel de carga de movimientos PS (GP2) ---- */
+    .gp2-carga{
+      background:#f7f9fc;
+      border:1px solid #d7dee8;
+      border-radius:10px;
+      padding:12px 14px;
+      margin-bottom:16px;
+    }
+    .gp2-carga-head{
+      display:flex; align-items:center; gap:16px; flex-wrap:wrap;
+      margin-bottom:10px;
+    }
+    .gp2-carga-head b{ font-size:14px; color:#1e2a3a; }
+    .gp2-modo{ display:flex; gap:14px; font-size:13px; }
+    .gp2-modo label{ cursor:pointer; user-select:none; }
+    .gp2-form{ display:flex; flex-wrap:wrap; gap:12px; align-items:flex-end; }
+    .gp2-field{ display:flex; flex-direction:column; gap:3px; }
+    .gp2-field > label{ font-size:11px; color:#556; font-weight:bold; text-transform:uppercase; letter-spacing:.03em; }
+    .gp2-field select,
+    .gp2-field input{
+      font-size:13px; padding:6px 8px; border:1px solid #c3ccd8; border-radius:6px;
+      background:#fff; color:#1e2a3a; min-width:120px;
+    }
+    .gp2-field input[type=number]{ width:120px; text-align:right; }
+    .gp2-field input[type=date]{ width:150px; }
+    .gp2-btn-guardar{
+      font-size:13px; font-weight:bold; padding:8px 18px; border:none; border-radius:6px;
+      background:#1f6feb; color:#fff; cursor:pointer;
+    }
+    .gp2-btn-guardar:hover{ background:#1a5fd0; }
+    .gp2-btn-guardar:disabled{ background:#9db4d6; cursor:default; }
+    .mv-hidden{ display:none !important; }
+    .gp2-msg{ margin-top:10px; font-size:13px; min-height:1em; }
+    .gp2-msg.ok{ color:#1a7a34; }
+    .gp2-msg.err{ color:#b3402f; }
+    /* buscador de componentes */
+    .gp2-picker{ position:relative; }
+    .gp2-picker input{ min-width:280px; }
+    .gp2-picker-list{
+      position:absolute; z-index:30; top:100%; left:0; right:0;
+      background:#fff; border:1px solid #c3ccd8; border-top:none;
+      border-radius:0 0 6px 6px; max-height:240px; overflow:auto;
+      box-shadow:0 6px 16px rgba(0,0,0,.12); display:none;
+    }
+    .gp2-picker-list.open{ display:block; }
+    .gp2-picker-item{ padding:6px 9px; font-size:12px; cursor:pointer; border-bottom:1px solid #eef1f5; }
+    .gp2-picker-item:last-child{ border-bottom:none; }
+    .gp2-picker-item:hover, .gp2-picker-item.active{ background:#eaf1fb; }
+    .gp2-picker-item .cod{ font-weight:bold; color:#1e2a3a; }
+    .gp2-picker-item .desc{ color:#333; }
+    .gp2-picker-item .sec{ color:#788; }
+    .gp2-picker-empty{ padding:8px 9px; font-size:12px; color:#889; }
+    td.stk-cell{cursor:pointer;text-decoration:underline dotted}
+  td.stk-cell:hover{background:#eef4fb}
+</style>
+<link rel="icon" type="image/png" href="../../GP2_favicon.png">
+<link rel="apple-touch-icon" href="../../GP2_favicon.png">
+<link rel="stylesheet" href="../../gp2-claro.css?v=20260829a">
+</head>
+<body>
+<div id="gp2-logobar" style="position:relative;background:#0b1220;text-align:center;padding:6px 0;border-bottom:1px solid #1c2836"><a href="../../GP2_MODULOS.html" style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:#cbd5e1;text-decoration:none;font-weight:700;font-size:15px;padding:5px 10px;border:1px solid #33415a;border-radius:8px;background:#101a2b">← Atrás</a><a href="../../GP2_MODULOS.html" style="text-decoration:none"><img src="../../GP2_logo.png" alt="GP2 · Gestión Productiva" style="height:40px;vertical-align:middle"></a></div>
+
+
+  <div class="card">
+
+    <h1>Control Proveedores de Servicios <span class="gp2-tag">schema GP2</span></h1>
+
+    <div class="gp2-banner">
+      <b>Datos parciales (schema GP2):</b> proveedores con mapeo confirmado. Saldos en unidades
+      canonicas. Ledger historico incompleto &mdash; faltan remaches y proveedores por mapear.
+    </div>
+
+    <!-- Panel de carga de movimientos PS (fuera de los contenedores que se re-renderizan) -->
+    <div id="gp2-carga" class="gp2-carga">
+      <div class="gp2-carga-head">
+        <b>Cargar movimiento PS</b>
+        <div class="gp2-modo">
+          <label><input type="radio" name="mvModo" value="envio" checked> Env&iacute;o</label>
+          <label><input type="radio" name="mvModo" value="entrega"> Entrega</label>
+        </div>
+      </div>
+
+      <div class="gp2-form">
+        <div class="gp2-field">
+          <label>Proveedor</label>
+          <select id="mvProv"><option value="">Cargando&hellip;</option></select>
+        </div>
+
+        <!-- ENVIO -->
+        <div class="gp2-field mv-only-envio">
+          <label>Parte (SC &mdash; cruda)</label>
+          <div class="gp2-picker" id="mvEnvioSC"></div>
+        </div>
+        <div class="gp2-field mv-only-envio">
+          <label>Cantidad</label>
+          <input id="mvCant" type="number" step="any" min="0" placeholder="0" />
+        </div>
+        <div class="gp2-field mv-only-envio">
+          <label>Unidad</label>
+          <select id="mvUnidad">
+            <option value="kg">Kg</option>
+            <option value="uni">Uni</option>
+          </select>
+        </div>
+
+        <!-- ENTREGA -->
+        <div class="gp2-field mv-only-entrega mv-hidden">
+          <label>Parte SC (se consume)</label>
+          <div class="gp2-picker" id="mvEntSC"></div>
+        </div>
+        <div class="gp2-field mv-only-entrega mv-hidden">
+          <label>Parte SP (se recibe)</label>
+          <div class="gp2-picker" id="mvEntSP"></div>
+        </div>
+        <div class="gp2-field mv-only-entrega mv-hidden">
+          <label>Kg entregados</label>
+          <input id="mvKg" type="number" step="any" min="0" placeholder="0" />
+        </div>
+
+        <!-- comun -->
+        <div class="gp2-field">
+          <label>Fecha</label>
+          <input id="mvFecha" type="date" />
+        </div>
+        <div class="gp2-field">
+          <button id="mvGuardar" class="gp2-btn-guardar" type="button">Guardar</button>
+        </div>
+      </div>
+
+      <div id="mvMsg" class="gp2-msg"></div>
+    </div>
+
+    <div class="row-tools">
+      <button id="btnIndex" class="btn-index" type="button">&#8962; Inicio</button>
+
+      <button id="btnVolver" class="btn-volver hidden" type="button">&larr; Cambiar proveedor</button>
+
+      <input id="filtroDesc" class="filtro-desc hidden" type="text"
+             placeholder="&#128269; Filtrar por descripcion..." autocomplete="off" />
+
+      <button id="btnImprimir" class="btn-imprimir hidden" type="button">&#128424; Imprimir</button>
+    </div>
+
+    <div class="row">
+      <div id="talleristasGrid" class="talleristas-grid"></div>
+    </div>
+
+    <!-- Resumen general: partes en filas, saldo por PS en columnas (vista inicial) -->
+    <div id="resumenPS"></div>
+
+    <div id="status" class="status"></div>
+
+    <div id="result"></div>
+
+  </div>
+
+  <!-- Area de impresion (oculta en pantalla) -->
+  <div id="printArea" class="print-only"></div>
+
+  <script>
+  var D = {};
+
+  var SB = window.supabase.createClient(
+    'https://hrxfctzncixxqmpfhskv.supabase.co',
+    'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhyeGZjdHpuY2l4eHFtcGZoc2t2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI3MjQyNjEsImV4cCI6MjA4ODMwMDI2MX0.4L6wguch8UZGhC2VpzrWcCjJGUV-IkYsl9JoCWrOLUs',
+    { db:{ schema:'GP2' } }
+  );
+
+  function __run(){
+    var provs = (D && D.proveedores) ? D.proveedores : [];
+    var elGrid   = document.getElementById('talleristasGrid');
+    var elResult = document.getElementById('result');
+    var elStatus = document.getElementById('status');
+    var elFiltro = document.getElementById('filtroDesc');
+    var btnVolver= document.getElementById('btnVolver');
+    var btnImpr  = document.getElementById('btnImprimir');
+    var btnIndex = document.getElementById('btnIndex');
+    var printArea= document.getElementById('printArea');
+
+    var provSel = null; // proveedor elegido
+
+    // ---- helpers de formato ----
+    /* Todas las columnas de esta pantalla (Enviado / Entregado / Saldo en PS)
+       estan en unidades: van sin decimales. */
+    function fmt(n){
+      if(n===null || n===undefined || isNaN(n)) return '0';
+      n = Math.round(Number(n));
+      var neg = n < 0;
+      var abs = Math.abs(n);
+      // hasta 3 decimales, sin ceros colgando
+      var s;
+      if(Math.abs(abs - Math.round(abs)) < 1e-9){
+        s = String(Math.round(abs));
+      } else {
+        s = abs.toFixed(3).replace(/0+$/,'').replace(/\.$/,'');
+      }
+      // separador de miles (parte entera)
+      var parts = s.split('.');
+      parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+      s = parts.join(',');
+      return (neg ? '-' : '') + s;
+    }
+    function esc(t){
+      return String(t==null?'':t)
+        .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    }
+
+    // ---- grilla de proveedores ----
+    function renderGrid(){
+      elGrid.innerHTML = '';
+      if(!provs.length){
+        elGrid.innerHTML = '<div class="empty-msg">No hay proveedores con datos GP2.</div>';
+        return;
+      }
+      provs.forEach(function(p){
+        var partes = p.partes || [];
+        var b = document.createElement('button');
+        b.type = 'button';
+        b.className = 'tallerista-btn';
+        var viejo = p.nombre_viejo ? (' &middot; ' + esc(p.nombre_viejo)) : '';
+        b.innerHTML = esc(p.nombre) +
+          '<div class="prov-meta">' + esc(p.proceso||'') +
+          ' &middot; ' + partes.length + ' partes' + viejo + '</div>';
+        b.addEventListener('click', function(){ elegir(p, b); });
+        elGrid.appendChild(b);
+      });
+    }
+
+    // ---- resumen general: partes en filas, saldo por PS en columnas ----
+    function renderResumen(){
+      var elRes = document.getElementById('resumenPS');
+      if(!provs.length){ elRes.innerHTML=''; return; }
+      var labels = provs.map(function(p){
+        return p.nombre_viejo || String(p.nombre||'').split(' ')[0];
+      });
+      var mapa = {};
+      provs.forEach(function(p, i){
+        (p.partes||[]).forEach(function(x){
+          var k = String(x.codigo||'')+'|'+String(x.descripcion||'');
+          if(!mapa[k]) mapa[k] = { codigo:x.codigo, descripcion:x.descripcion, saldos:{} };
+          mapa[k].saldos[i] = (mapa[k].saldos[i]||0) + (Number(x.saldo)||0);
+        });
+      });
+      var filas = Object.keys(mapa).map(function(k){ return mapa[k]; });
+      filas.sort(function(a,b){
+        return String(a.codigo||'').localeCompare(String(b.codigo||''), 'es', { numeric:true });
+      });
+
+      var h = '<h2 style="margin:6px 0 4px">Stock en PS por parte</h2>' +
+              '<div class="prov-meta" style="margin-bottom:10px">' + filas.length +
+              ' partes &middot; saldo actual en cada proveedor (unidades canonicas GP2)</div>' +
+              '<div class="resumen-wrap"><table><thead><tr>' +
+              '<th>#</th><th>Codigo</th><th>Descripcion</th>';
+      labels.forEach(function(l){ h += '<th class="ps-col">'+esc(l)+'</th>'; });
+      h += '</tr></thead><tbody>';
+
+      var tot = provs.map(function(){ return 0; });
+      filas.forEach(function(f, idx){
+        h += '<tr><td>'+(idx+1)+'</td><td>'+esc(f.codigo)+'</td><td>'+esc(f.descripcion)+'</td>';
+        provs.forEach(function(_, i){
+          if(f.saldos[i] === undefined){
+            h += '<td class="vacio">&mdash;</td>';
+          } else {
+            tot[i] += f.saldos[i];
+            h += numCell(f.saldos[i]);
+          }
+        });
+        h += '</tr>';
+      });
+      h += '</tbody><tfoot><tr>' +
+           '<td colspan="3" style="text-align:right;font-weight:bold">TOTALES</td>';
+      provs.forEach(function(_, i){ h += numCell(tot[i]); });
+      h += '</tr></tfoot></table></div>';
+      elRes.innerHTML = h;
+    }
+
+    function elegir(p, btn){
+      provSel = p;
+      Array.prototype.forEach.call(elGrid.querySelectorAll('.tallerista-btn'), function(x){ x.classList.remove('active'); });
+      if(btn) btn.classList.add('active');
+      // ocultar los chips del resto y el resumen general: se vuelve con "Cambiar proveedor"
+      elGrid.classList.add('hidden');
+      document.getElementById('resumenPS').classList.add('hidden');
+      // mostrar toolbar de detalle
+      btnVolver.classList.remove('hidden');
+      elFiltro.classList.remove('hidden');
+      btnImpr.classList.remove('hidden');
+      elFiltro.value = '';
+      renderTabla('');
+    }
+
+    function partesFiltradas(txt){
+      var partes = (provSel && provSel.partes) ? provSel.partes.slice() : [];
+      txt = (txt||'').trim().toLowerCase();
+      if(txt){
+        partes = partes.filter(function(x){
+          return (String(x.descripcion||'').toLowerCase().indexOf(txt) >= 0) ||
+                 (String(x.codigo||'').toLowerCase().indexOf(txt) >= 0);
+        });
+      }
+      return partes;
+    }
+
+    function numCell(v){
+      var cls = 'num' + (Number(v) < 0 ? ' neg' : '');
+      return '<td class="'+cls+'">'+fmt(v)+'</td>';
+    }
+
+    function renderTabla(filtro){
+      if(!provSel){ elResult.innerHTML=''; elStatus.textContent=''; return; }
+      var partes = partesFiltradas(filtro);
+
+      var tEnv=0, tEnt=0, tSal=0;
+      partes.forEach(function(x){
+        tEnv += Number(x.enviado)||0;
+        tEnt += Number(x.entregado)||0;
+        tSal += Number(x.saldo)||0;
+      });
+
+      var viejo = provSel.nombre_viejo ? (' &middot; nombre viejo: <b>'+esc(provSel.nombre_viejo)+'</b>') : '';
+      var h = '<h2 style="margin:6px 0 4px">'+esc(provSel.nombre)+'</h2>' +
+              '<div class="prov-meta" style="margin-bottom:10px">Proceso: '+esc(provSel.proceso||'?')+
+              ' &middot; Cod. Prov.: '+esc(provSel.cod_prov||'?')+viejo+'</div>';
+
+      if(!partes.length){
+        h += '<div class="empty-msg">Sin partes que coincidan.</div>';
+        elResult.innerHTML = h;
+        elStatus.textContent = '0 partes';
+        return;
+      }
+
+      h += '<table><thead><tr>' +
+           '<th>#</th><th>Codigo</th><th>Descripcion</th><th>Sector</th>' +
+           '<th>Enviado</th><th>Entregado</th><th>Saldo en PS</th>' +
+           '</tr></thead><tbody>';
+      partes.forEach(function(x, i){
+        h += '<tr>' +
+             '<td>'+(i+1)+'</td>' +
+             '<td>'+esc(x.codigo)+'</td>' +
+             '<td>'+esc(x.descripcion)+'</td>' +
+             '<td>'+esc(x.sector||'')+'</td>' +
+             numCell(x.enviado) + numCell(x.entregado) +
+             '<td class="num stk-cell'+(Number(x.saldo)<0?' neg':'')+'" data-cid="'+x.comp_id+'"'+
+               ' title="Ver cómo se compone">'+fmt(x.saldo)+'</td>' +
+             '</tr>';
+      });
+      h += '</tbody><tfoot><tr>' +
+           '<td colspan="4" style="text-align:right;font-weight:bold">TOTALES</td>' +
+           numCell(tEnv) + numCell(tEnt) + numCell(tSal) +
+           '</tr></tfoot></table>';
+
+      elResult.innerHTML = h;
+      elStatus.textContent = partes.length + ' partes' +
+        (filtro && filtro.trim() ? ' (filtradas)' : '') +
+        ' · unidades canonicas GP2';
+    }
+
+    // El saldo en PS sale del mismo ledger que el resto del stock GP2:
+    // se abre la composicion apuntando a la ubicacion del proveedor.
+    elResult.addEventListener('click', function(e){
+      var td = e.target.closest && e.target.closest('td.stk-cell');
+      if(!td || !provSel || !window.GP2Composicion) return;
+      var x = (provSel.partes||[]).filter(function(y){
+        return String(y.comp_id) === String(td.dataset.cid); })[0] || {};
+      window.GP2Composicion.abrir({
+        SB: SB, comp_id: td.dataset.cid,
+        ubic_tipo: 'proveedor_servicio', ref_id: provSel.ps_id,
+        cod: x.codigo, desc: x.descripcion
+      });
+    });
+
+    // ---- impresion ----
+    function construirPrint(){
+      if(!provSel) return;
+      var partes = partesFiltradas(elFiltro.value);
+      var tEnv=0, tEnt=0, tSal=0;
+      partes.forEach(function(x){
+        tEnv += Number(x.enviado)||0; tEnt += Number(x.entregado)||0; tSal += Number(x.saldo)||0;
+      });
+      var fecha = new Date().toLocaleString('es-AR');
+      var h = '<div class="print-header">' +
+                '<div><div class="print-doc">Control Prov. Servicios (GP2)</div>' +
+                '<h2 class="print-title">'+esc(provSel.nombre)+'</h2></div>' +
+                '<div class="print-head-right">'+esc(provSel.proceso||'')+'<br>'+
+                'Cod. Prov. '+esc(provSel.cod_prov||'?')+'<br>'+
+                '<span class="print-count">'+partes.length+' partes &middot; '+esc(fecha)+'</span></div>' +
+              '</div>';
+      h += '<table class="print-table"><thead><tr>' +
+           '<th class="p-num">#</th><th>Codigo</th><th>Descripcion</th><th>Sector</th>' +
+           '<th class="p-caj">Enviado</th><th class="p-caj">Entregado</th><th class="p-cjn">Saldo en PS</th>' +
+           '</tr></thead><tbody>';
+      partes.forEach(function(x,i){
+        h += '<tr'+(i%2?' class="zebra"':'')+'>' +
+             '<td class="p-num">'+(i+1)+'</td>' +
+             '<td>'+esc(x.codigo)+'</td><td>'+esc(x.descripcion)+'</td><td>'+esc(x.sector||'')+'</td>' +
+             '<td class="p-caj">'+fmt(x.enviado)+'</td>' +
+             '<td class="p-caj">'+fmt(x.entregado)+'</td>' +
+             '<td class="p-cjn">'+fmt(x.saldo)+'</td>' +
+             '</tr>';
+      });
+      h += '</tbody><tfoot><tr class="print-total">' +
+           '<td colspan="4" style="text-align:right">TOTALES</td>' +
+           '<td class="p-caj">'+fmt(tEnv)+'</td><td class="p-caj">'+fmt(tEnt)+'</td>' +
+           '<td class="p-cjn">'+fmt(tSal)+'</td></tr></tfoot></table>' +
+           '<div style="margin-top:10px;font-size:11px;color:#666">Datos parciales (schema GP2). '+
+           'Saldos en unidades canonicas. Ledger historico incompleto.</div>';
+      printArea.innerHTML = h;
+    }
+
+    // ---- eventos ----
+    btnVolver.addEventListener('click', function(){
+      provSel = null;
+      btnVolver.classList.add('hidden');
+      elFiltro.classList.add('hidden');
+      btnImpr.classList.add('hidden');
+      elGrid.classList.remove('hidden');
+      document.getElementById('resumenPS').classList.remove('hidden');
+      Array.prototype.forEach.call(elGrid.querySelectorAll('.tallerista-btn'), function(x){ x.classList.remove('active'); });
+      elResult.innerHTML = '';
+      elStatus.textContent = '';
+    });
+    elFiltro.addEventListener('input', function(){ renderTabla(elFiltro.value); });
+    btnImpr.addEventListener('click', function(){ construirPrint(); window.print(); });
+    btnIndex.addEventListener('click', function(){ window.location.href = '../../Inicio/index.html'; });
+
+    function pintarProveedores(){
+      var gen = D && D.generado_en ? (' · generado ' + new Date(D.generado_en).toLocaleString('es-AR')) : '';
+      elStatus.textContent = provs.length + ' proveedores con datos GP2' + gen;
+    }
+
+    renderGrid();
+    renderResumen();
+    pintarProveedores();
+
+    // Hook para recargar la grilla tras cargar un movimiento (sin re-enganchar listeners).
+    window.__gp2rerender = function(){
+      provs = (D && D.proveedores) ? D.proveedores : [];
+      provSel = null;
+      btnVolver.classList.add('hidden');
+      elFiltro.classList.add('hidden');
+      btnImpr.classList.add('hidden');
+      elGrid.classList.remove('hidden');
+      document.getElementById('resumenPS').classList.remove('hidden');
+      elFiltro.value = '';
+      elResult.innerHTML = '';
+      renderGrid();
+      renderResumen();
+      pintarProveedores();
+    };
+  }
+
+  // ================= Carga de movimientos PS =================
+  // Recarga el bundle y re-renderiza la grilla existente.
+  async function reloadBundle(){
+    var r = await SB.rpc('control_ps_bundle');
+    if(r.error) throw r.error;
+    D = r.data || {};
+    if(window.__gp2rerender) window.__gp2rerender();
+  }
+
+  // Buscador de componentes: input + lista filtrable. Guarda el comp_id elegido.
+  function makePicker(host, items){
+    var input = document.createElement('input');
+    input.type = 'text';
+    input.setAttribute('autocomplete','off');
+    input.placeholder = 'Buscar codigo o descripcion...';
+    var list = document.createElement('div');
+    list.className = 'gp2-picker-list';
+    host.appendChild(input);
+    host.appendChild(list);
+
+    var selId = null;
+    var vis = [];
+
+    function esc2(t){
+      return String(t==null?'':t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    }
+    function render(txt){
+      txt = (txt||'').trim().toLowerCase();
+      vis = items.filter(function(it){
+        if(!txt) return true;
+        return (String(it.codigo||'').toLowerCase().indexOf(txt) >= 0) ||
+               (String(it.descripcion||'').toLowerCase().indexOf(txt) >= 0);
+      }).slice(0, 60);
+      if(!vis.length){
+        list.innerHTML = '<div class="gp2-picker-empty">Sin coincidencias.</div>';
+      } else {
+        var h = '';
+        vis.forEach(function(it){
+          h += '<div class="gp2-picker-item" data-id="'+it.id+'">' +
+               '<span class="cod">'+esc2(it.codigo)+'</span> ' +
+               '<span class="desc">'+esc2(it.descripcion)+'</span>' +
+               (it.sector ? ' <span class="sec">['+esc2(it.sector)+']</span>' : '') +
+               '</div>';
+        });
+        list.innerHTML = h;
+      }
+    }
+    function open(){ render(input.value); list.classList.add('open'); }
+    function close(){ list.classList.remove('open'); }
+
+    input.addEventListener('focus', open);
+    input.addEventListener('input', function(){ selId = null; open(); });
+    list.addEventListener('mousedown', function(ev){
+      var el = ev.target;
+      while(el && el !== list && !el.classList.contains('gp2-picker-item')) el = el.parentNode;
+      if(!el || el === list) return;
+      ev.preventDefault();
+      var id = Number(el.getAttribute('data-id'));
+      var it = items.filter(function(x){ return x.id === id; })[0];
+      if(it){
+        selId = it.id;
+        input.value = it.codigo + ' - ' + it.descripcion + (it.sector ? ' ['+it.sector+']' : '');
+      }
+      close();
+    });
+    input.addEventListener('blur', function(){ setTimeout(close, 150); });
+
+    return {
+      getId: function(){ return selId; },
+      clear: function(){ selId = null; input.value = ''; },
+      disable: function(d){ input.disabled = !!d; },
+      setItems: function(newItems){ items = newItems || []; selId = null; input.value = ''; close(); }
+    };
+  }
+
+  async function initCarga(){
+    var elProv   = document.getElementById('mvProv');
+    var elFecha  = document.getElementById('mvFecha');
+    var elCant   = document.getElementById('mvCant');
+    var elUnidad = document.getElementById('mvUnidad');
+    var elKg     = document.getElementById('mvKg');
+    var elMsg    = document.getElementById('mvMsg');
+    var elGuardar= document.getElementById('mvGuardar');
+    var modoRadios = document.getElementsByName('mvModo');
+
+    // fecha default = hoy (yyyy-mm-dd local)
+    var hoy = new Date();
+    var off = hoy.getTimezoneOffset();
+    elFecha.value = new Date(hoy.getTime() - off*60000).toISOString().slice(0,10);
+
+    function setMsg(txt, cls){
+      elMsg.textContent = txt || '';
+      elMsg.className = 'gp2-msg' + (cls ? ' ' + cls : '');
+    }
+
+    // Cargar selectores en paralelo
+    var provRes, compRes, secRes;
+    try{
+      var res = await Promise.all([
+        SB.from('proveedor_servicio').select('id,cod_prov,nombre,proceso').order('nombre'),
+        SB.from('componente').select('id,codigo,descripcion,sector_id').order('codigo'),
+        SB.from('sector').select('id,nombre')
+      ]);
+      provRes = res[0]; compRes = res[1]; secRes = res[2];
+      if(provRes.error) throw provRes.error;
+      if(compRes.error) throw compRes.error;
+      if(secRes.error)  throw secRes.error;
+    }catch(e){
+      setMsg('No se pudieron cargar los selectores: ' + (e && (e.message||e.hint) || e), 'err');
+      elProv.innerHTML = '<option value="">(error)</option>';
+      return;
+    }
+
+    // Proveedores (escapar texto: viene de la BD y va a innerHTML)
+    var escOpt = function(t){ return String(t==null?'':t)
+      .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); };
+    var opts = '<option value="">-- Elegir proveedor --</option>';
+    (provRes.data||[]).forEach(function(p){
+      var meta = [p.proceso, p.cod_prov].filter(Boolean).join(' · ');
+      opts += '<option value="'+Number(p.id)+'">'+ escOpt(String(p.nombre||('#'+p.id))
+            + (meta ? ' ('+meta+')' : '')) + '</option>';
+    });
+    elProv.innerHTML = opts;
+
+    // Componentes con sector resuelto
+    var secMap = {};
+    (secRes.data||[]).forEach(function(s){ secMap[s.id] = s.nombre; });
+    var comps = (compRes.data||[]).map(function(c){
+      return { id:c.id, codigo:c.codigo, descripcion:c.descripcion, sector: secMap[c.sector_id] || '' };
+    });
+
+    // Pickers (arrancan vacios: se llenan con las partes del proveedor elegido)
+    var pkEnvioSC = makePicker(document.getElementById('mvEnvioSC'), []);
+    var pkEntSC   = makePicker(document.getElementById('mvEntSC'),   []);
+    var pkEntSP   = makePicker(document.getElementById('mvEntSP'),   []);
+
+    // Partes por proveedor (las que realmente se le llevan / recibe, segun rutas)
+    var PARTES_PS = {};
+    try{ var _rp = await SB.rpc('partes_por_ps'); if(!_rp.error) PARTES_PS = _rp.data || {}; }catch(e){}
+    function aplicarProvPartes(){
+      var pid = String(elProv.value||'');
+      var d = (pid && PARTES_PS[pid]) ? PARTES_PS[pid] : {sc:[],sp:[]};
+      pkEnvioSC.setItems(d.sc || []);
+      pkEntSC.setItems(d.sc || []);
+      pkEntSP.setItems(d.sp || []);
+    }
+    elProv.addEventListener('change', aplicarProvPartes);
+    aplicarProvPartes();
+
+    function modo(){
+      var m = 'envio';
+      Array.prototype.forEach.call(modoRadios, function(r){ if(r.checked) m = r.value; });
+      return m;
+    }
+    function aplicarModo(){
+      var m = modo();
+      Array.prototype.forEach.call(document.querySelectorAll('.mv-only-envio'), function(el){
+        el.classList.toggle('mv-hidden', m !== 'envio');
+      });
+      Array.prototype.forEach.call(document.querySelectorAll('.mv-only-entrega'), function(el){
+        el.classList.toggle('mv-hidden', m !== 'entrega');
+      });
+      setMsg('');
+    }
+    Array.prototype.forEach.call(modoRadios, function(r){ r.addEventListener('change', aplicarModo); });
+    aplicarModo();
+
+    async function guardar(){
+      setMsg('');
+      var psId = Number(elProv.value);
+      if(!psId){ setMsg('Elegi un proveedor.', 'err'); return; }
+      var fechaTs = elFecha.value ? new Date(elFecha.value + 'T12:00:00').toISOString() : null;
+
+      var payload, rpcName;
+      if(modo() === 'envio'){
+        var scId = pkEnvioSC.getId();
+        var cant = Number(elCant.value);
+        if(!scId){ setMsg('Elegi la parte SC a enviar.', 'err'); return; }
+        if(!(cant > 0)){ setMsg('La cantidad debe ser mayor a 0.', 'err'); return; }
+        rpcName = 'crear_envio_ps';
+        payload = { p_ps_id:psId, p_comp_sc_id:scId, p_cantidad:cant, p_unidad:elUnidad.value, p_fecha:fechaTs };
+      } else {
+        var scId2 = pkEntSC.getId();
+        var spId  = pkEntSP.getId();
+        var kg    = Number(elKg.value);
+        if(!scId2){ setMsg('Elegi la parte SC que se consume.', 'err'); return; }
+        if(!spId){ setMsg('Elegi la parte SP que se recibe.', 'err'); return; }
+        if(!(kg > 0)){ setMsg('Los kg deben ser mayores a 0.', 'err'); return; }
+        rpcName = 'crear_entrega_ps';
+        payload = { p_ps_id:psId, p_comp_sc_id:scId2, p_comp_sp_id:spId, p_kg:kg, p_fecha:fechaTs };
+      }
+
+      elGuardar.disabled = true;
+      setMsg('Guardando...', '');
+      try{
+        var r = await SB.rpc(rpcName, payload);
+        if(r.error) throw r.error;
+        var d = r.data || {};
+        var id = d.id != null ? d.id : '?';
+        var det;
+        if(rpcName === 'crear_envio_ps'){
+          det = 'Envio guardado (id ' + id + '): ' + (d.parte||'') +
+                ' · ' + (d.cantidad!=null?d.cantidad:'') + ' ' + (d.unidad||'');
+        } else {
+          det = 'Entrega guardada (id ' + id + '): ' + (d.sc||'') + ' -> ' + (d.sp||'') +
+                ' · ' + (d.kg!=null?d.kg:'') + ' kg';
+        }
+        setMsg(det, 'ok');
+        // limpiar form
+        elCant.value = ''; elKg.value = '';
+        pkEnvioSC.clear(); pkEntSC.clear(); pkEntSP.clear();
+        // recargar pantalla (el guardado ya esta OK: si falla el refresh,
+        // no dejar que el catch de abajo pise el mensaje verde con "Error")
+        try{ await reloadBundle(); }
+        catch(e2){ setMsg(det + ' — guardado OK, pero no se pudo refrescar la pantalla (recargá con F5).', 'ok'); }
+      }catch(e){
+        setMsg('Error: ' + (e && (e.message||e.hint||e.details) || e), 'err');
+      }finally{
+        elGuardar.disabled = false;
+      }
+    }
+    elGuardar.addEventListener('click', guardar);
+  }
+
+  async function __boot(){
+    try{
+      document.body.style.cursor = 'progress';
+      var r = await SB.rpc('control_ps_bundle');
+      if(r.error) throw r.error;
+      D = r.data || {};
+      __run();
+      initCarga();
+    }catch(e){
+      document.body.innerHTML =
+        '<p style="padding:24px;font-family:system-ui;color:#b3402f">' +
+        'Error cargando datos de Supabase (GP2): ' + (e && (e.message||e.hint||e.details) || e) + '</p>';
+      console.error(e);
+    }finally{
+      document.body.style.cursor = '';
+    }
+  }
+  __boot();
+  </script>
+
+</body>
+</html>

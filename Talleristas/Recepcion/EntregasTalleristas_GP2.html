@@ -1,0 +1,395 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Recepción de Tallerista · GP2</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<link rel="stylesheet" href="../../gp2-modulo.css?v=20260829a"/>
+<link rel="stylesheet" href="../../tandas-popup.css?v=20260829a"/>
+<link rel="icon" type="image/png" href="../../GP2_favicon.png">
+<link rel="apple-touch-icon" href="../../GP2_favicon.png">
+<style>
+  .bom{font-size:13px;color:#9a6700;margin-top:3px}
+  .bom b{color:#7a5200}
+  .via{font-size:13px;color:#555;margin-top:3px}
+</style>
+</head>
+<body>
+
+<div class="card">
+  <div class="header">
+    <h1>Recepción de Tallerista</h1>
+    <div class="hbtns">
+      <button class="hlink hidden" id="btnVolver" type="button">← Cambiar tallerista</button>
+      <a href="../Control%20Tall/ControlTalleristas_GP2.html">Control</a>
+      <a href="../Envios/EnviosTalleristas_GP2.html">Envío</a>
+      <a href="../../GP2_MODULOS.html">Atrás</a>
+    </div>
+  </div>
+
+  <div class="steps">
+
+    <!-- FASE 0 — elegir tallerista -->
+    <div id="fase0">
+      <div class="row"><label class="lbl">Tallerista</label></div>
+      <div class="provs-grid" id="tallGrid"></div>
+      <div class="aviso">
+        Acá entra lo que el tallerista devuelve <b>a un sector</b> (sub-conjuntos y
+        semi-elaborados). Los <b>artículos terminados</b> no van por esta pantalla: esos
+        entran por <b>Recepción Virgilio</b>, que es la que los manda al centro logístico.
+      </div>
+      <div id="status" class="status">Cargando…</div>
+    </div>
+
+    <!-- FASE 1 — cargar lo que devolvió -->
+    <div id="fase1" class="hidden">
+      <div class="row" style="justify-content:space-between">
+        <div class="row" style="margin:0"><label class="lbl" id="fase1Title">Tallerista</label></div>
+        <div class="row" style="margin:0">
+          <label class="lbl" style="font-size:16px">Fecha</label>
+          <input type="date" id="fFecha">
+          <button class="btn btn-secondary" id="btnLimpiar" type="button" title="Vaciar todo lo cargado">🗑 Limpiar</button>
+          <button class="btn btn-primary" id="btnEnviar" type="button" disabled>Registrar</button>
+        </div>
+      </div>
+
+      <div class="search-box"><input type="text" id="q" placeholder="Buscar por código, descripción o sector…"></div>
+
+      <div class="table-wrap">
+        <table class="t">
+          <thead><tr>
+            <th>Sec</th>
+            <th>Devuelve</th>
+            <th>Consume</th>
+            <th class="num">En poder<br>del tall.</th>
+            <th class="num sep">Caj</th>
+            <th class="num">Uni</th>
+            <th class="ctr" title="Cargar por tandas">T</th>
+          </tr></thead>
+          <tbody id="tbody"></tbody>
+        </table>
+      </div>
+      <div id="tblEmpty" class="empty hidden"></div>
+      <div id="msg1" class="status"></div>
+    </div>
+
+    <!-- FASE 3 — confirmación -->
+    <div id="fase3" class="hidden">
+      <div class="successBox">
+        <div class="title">✓ Recepción registrada</div>
+        <div>Tu código de recepción:</div>
+        <div class="code" id="successCode">—</div>
+        <div id="successDetail" style="font-size:17px;color:#444"></div>
+      </div>
+      <div class="row" style="justify-content:center">
+        <button class="btn btn-primary" id="btnVolverTall" type="button">← Cambiar tallerista</button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script src="../../tandas-popup.js?v=20260829a"></script>
+<script src="../../gp2-motor.js?v=20260829a"></script>
+<script>
+"use strict";
+
+var SB = supabase.createClient(
+  "https://hrxfctzncixxqmpfhskv.supabase.co",
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhyeGZjdHpuY2l4eHFtcGZoc2t2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI3MjQyNjEsImV4cCI6MjA4ODMwMDI2MX0.4L6wguch8UZGhC2VpzrWcCjJGUV-IkYsl9JoCWrOLUs",
+  { db:{ schema:"GP2" }, auth:{ persistSession:false } }
+);
+
+var $ = function(id){ return document.getElementById(id); };
+var LS_BUF = "gp2_recepcionTall_buffer";
+
+var TALLS = [];
+var selT = null;
+var BUF = {};
+
+function esc(s){ return String(s==null?"":s).replace(/[&<>"]/g, function(c){
+  return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]; }); }
+function num(v){
+  if (v==null||v==="") return 0;
+  if (typeof v==="number") return isFinite(v)?v:0;
+  var s=String(v).trim().replace(/[^\d,.-]/g,"");
+  if (s.indexOf(",")>=0 && s.indexOf(".")<0) s=s.replace(",",".");
+  else s=s.replace(/,/g,"");
+  var n=Number(s); return isFinite(n)?n:0;
+}
+function fmt(n,d){ d=(d==null?1:d);
+  return Number(n||0).toLocaleString("es-AR",{minimumFractionDigits:0,maximumFractionDigits:d}); }
+function hoyISO(){ var d=new Date(); return new Date(d.getTime()-d.getTimezoneOffset()*60000).toISOString().slice(0,10); }
+
+function loadBuf(){ try{ BUF=JSON.parse(localStorage.getItem(LS_BUF)||"{}")||{}; }catch(e){ BUF={}; } }
+function saveBuf(){ try{ localStorage.setItem(LS_BUF, JSON.stringify(BUF)); }catch(e){} }
+function bufT(){ if(!selT) return {}; if(!BUF[selT.id]) BUF[selT.id]={}; return BUF[selT.id]; }
+function bufItem(cid){ var b=bufT(); if(!b[cid]) b[cid]={caj:"",uni:"",ent:"",tandas:[]}; return b[cid]; }
+
+/* Las partes que este tallerista devuelve por recepcion de tallerista.
+   El motor ya excluye los TERMINADOS (esos van por Recepcion Virgilio). */
+function partesDe(tid){
+  return GP2M.compsRecepcionTall(tid).map(function(cid){
+    var c = GP2M.comp(cid);
+    return {
+      comp_id: cid,
+      cod: c.cod,
+      desc: c.d,
+      sector: GP2M.sectorNom(c.s),
+      uni_x_cajon: c.uxc || null,
+      entradas: GP2M.entradasPosibles(tid, cid),
+      bom: GP2M.bomDe(cid)
+    };
+  }).sort(function(a,b){ return String(a.cod||"").localeCompare(String(b.cod||"")); });
+}
+
+async function cargar(){
+  try {
+    await GP2M.cargar(SB);
+  } catch(e){
+    $("status").textContent = "Error: " + (e && e.message ? e.message : e);
+    return;
+  }
+  TALLS = GP2M.talleristas(true);
+  loadBuf();
+  renderTall();
+  var conPartes = TALLS.filter(function(t){ return partesDe(t.id).length > 0; }).length;
+  $("status").textContent = conPartes + " de " + TALLS.length +
+    " talleristas devuelven partes a un sector (el resto solo entrega terminados).";
+}
+
+function renderTall(){
+  var g=$("tallGrid"); g.innerHTML="";
+  var algo = false;
+  TALLS.forEach(function(t){
+    var n = partesDe(t.id).length;
+    if (!n) return;                       // sin partes no-terminadas: no aplica acá
+    algo = true;
+    var cargado=Object.keys(BUF[t.id]||{}).filter(function(k){
+      var it=BUF[t.id][k]; return num(it.uni)>0||num(it.caj)>0; }).length;
+    var b=document.createElement("button");
+    b.type="button"; b.className="prov-btn";
+    b.innerHTML=esc(t.nombre)+'<span class="meta">'+n+" parte"+(n===1?"":"s")+
+      (cargado?(" · "+cargado+" cargadas"):"")+"</span>";
+    b.addEventListener("click", function(){ elegir(t); });
+    g.appendChild(b);
+  });
+  if(!algo) g.innerHTML='<div class="empty">Ningún tallerista devuelve partes a un sector. Todo lo que entregan son artículos terminados — usá Recepción Virgilio.</div>';
+}
+
+function elegir(t){
+  selT=t;
+  $("fase1Title").textContent=t.nombre;
+  $("fase0").classList.add("hidden");
+  $("fase3").classList.add("hidden");
+  $("fase1").classList.remove("hidden");
+  $("btnVolver").classList.remove("hidden");
+  if(!$("fFecha").value) $("fFecha").value=hoyISO();
+  $("q").value="";
+  render();
+}
+function volver(){
+  selT=null;
+  $("fase1").classList.add("hidden");
+  $("fase3").classList.add("hidden");
+  $("fase0").classList.remove("hidden");
+  $("btnVolver").classList.add("hidden");
+  renderTall();
+}
+
+function filtradas(){
+  var arr=partesDe(selT.id);
+  var q=String($("q").value||"").trim().toLowerCase();
+  if(!q) return arr;
+  return arr.filter(function(x){
+    return (String(x.cod||"")+" "+String(x.desc||"")+" "+String(x.sector||"")).toLowerCase().indexOf(q)>=0;
+  });
+}
+
+function render(){
+  var arr=filtradas(), tb=$("tbody");
+  tb.innerHTML="";
+  $("tblEmpty").classList.toggle("hidden", arr.length>0);
+  if(!arr.length) $("tblEmpty").textContent="Sin resultados para ese filtro.";
+
+  var ubicT = GP2M.ubicTall(selT.id);
+
+  arr.forEach(function(x){
+    var it=bufItem(x.comp_id);
+    var hayT=(it.tandas||[]).length>0;
+    var totCaj=(it.tandas||[]).reduce(function(s,t){return s+num(t.caj);},0);
+    var totUni=(it.tandas||[]).reduce(function(s,t){return s+num(t.uni);},0);
+    var vCaj=hayT?(totCaj||""):it.caj;
+    var vUni=hayT?(totUni||""):it.uni;
+
+    /* Qué consume: no se pregunta, se deduce.
+       - sin entradas  -> paso in-place, devuelve lo mismo que recibe
+       - con BOM       -> consume TODAS sus partes (por eso ruta_paso lista varias)
+       - una sola      -> transformación directa */
+    var consumeHtml;
+    if (x.bom.length){
+      consumeHtml = x.bom.map(function(b){
+        var c = GP2M.comp(b.c);
+        return '<span class="cod">'+esc(c.cod)+'</span>×'+fmt(b.q,2);
+      }).join(" · ");
+    } else if (!x.entradas.length){
+      consumeHtml = '<span class="via">— (devuelve lo mismo que recibe)</span>';
+    } else {
+      var ce = GP2M.comp(x.entradas[0]);
+      consumeHtml = '<span class="cod">'+esc(ce.cod)+'</span><br><small class="sub">'+esc(ce.d||"")+'</small>';
+    }
+
+    // stock del tallerista, leido del inventario del motor
+    var enTall = GP2M.stock(x.comp_id, ubicT);
+
+    var tr=document.createElement("tr");
+    tr.dataset.cid=x.comp_id;
+    tr.innerHTML=
+      '<td>'+esc(x.sector||"—")+'</td>'+
+      '<td><span class="cod">'+esc(x.cod)+'</span><br><small class="sub">'+esc(x.desc||"")+'</small></td>'+
+      '<td>'+consumeHtml+'</td>'+
+      '<td class="num">'+fmt(enTall,0)+'</td>'+
+      '<td class="num sep"><input class="cell-in'+(hayT?" ro":"")+'" data-f="caj" inputmode="numeric" value="'+esc(vCaj)+'"'+(hayT?" readonly":"")+'></td>'+
+      '<td class="num"><input class="cell-in'+(hayT?" ro":"")+'" data-f="uni" inputmode="numeric" value="'+esc(vUni)+'"'+(hayT?" readonly":"")+'></td>'+
+      '<td class="ctr"><button type="button" class="tanda-btn'+(hayT?" on":"")+'" data-a="tandas">'+(hayT?it.tandas.length:"+")+'</button></td>';
+    tb.appendChild(tr);
+  });
+  actualizarEnviar();
+}
+
+function itemDeFila(tr){
+  var cid=tr.dataset.cid;
+  var arr=partesDe(selT.id), meta=null;
+  for(var i=0;i<arr.length;i++){ if(String(arr[i].comp_id)===String(cid)){ meta=arr[i]; break; } }
+  return { cid:cid, meta:meta, buf:bufItem(cid) };
+}
+
+function cargadas(){
+  var b=bufT(), out=[];
+  Object.keys(b).forEach(function(k){
+    var it=b[k];
+    if(num(it.uni)>0) out.push({ cid:k, it:it });
+  });
+  return out;
+}
+
+function actualizarEnviar(){
+  var n=cargadas().length;
+  $("btnEnviar").disabled=(n===0);
+  $("btnEnviar").textContent=n?("Registrar ("+n+")"):"Registrar";
+}
+
+$("tbody").addEventListener("input", function(e){
+  var inp=e.target.closest("input.cell-in");
+  if(!inp||inp.readOnly) return;
+  var d=itemDeFila(inp.closest("tr"));
+  d.buf[inp.dataset.f]=inp.value;
+  saveBuf(); actualizarEnviar();
+});
+
+$("tbody").addEventListener("click", function(e){
+  var btn=e.target.closest("button[data-a]");
+  if(!btn) return;
+  var d=itemDeFila(btn.closest("tr"));
+  if(btn.dataset.a==="tandas"){
+    if(typeof tandasPopup==="undefined"){ alert("No cargó tandas-popup.js"); return; }
+    tandasPopup.open({
+      titulo:"Tandas — "+(d.meta?d.meta.cod:""),
+      initial:(d.buf.tandas||[]).slice(),
+      pedirCaj:true, pedirKg:false, pedirUni:true,
+      onConfirm:function(tandas,totales){
+        d.buf.tandas=(tandas||[]).filter(function(t){ return num(t.caj)>0||num(t.uni)>0; });
+        if(d.buf.tandas.length){
+          d.buf.caj=String(totales&&totales.caj!=null?totales.caj:"");
+          d.buf.uni=String(totales&&totales.uni!=null?totales.uni:"");
+        }
+        saveBuf(); render();
+      }
+    });
+  }
+});
+
+$("q").addEventListener("input", render);
+$("btnVolver").addEventListener("click", volver);
+$("btnVolverTall").addEventListener("click", volver);
+
+$("btnLimpiar").addEventListener("click", function(){
+  if(!selT) return;
+  if(!confirm("¿Vaciar todo lo cargado para "+selT.nombre+"?")) return;
+  delete BUF[selT.id]; saveBuf(); render();
+});
+
+$("btnEnviar").addEventListener("click", async function(){
+  if(!selT) return;
+  var items=cargadas();
+  if(!items.length) return;
+
+  var arr=partesDe(selT.id), metaPor={};
+  arr.forEach(function(x){ metaPor[x.comp_id]=x; });
+
+  // filas con Caj pero sin Uni: el registro usa solo Uni, no dejarlas perderse en silencio
+  var b0=bufT();
+  var faltanUni=Object.keys(b0).filter(function(k){
+    var it=b0[k]; return num(it.caj)>0 && !(num(it.uni)>0); })
+    .map(function(k){ return (metaPor[k]||{}).cod||k; });
+  if(faltanUni.length){ alert("Falta cargar Uni para: "+faltanUni.join(", ")+" (el registro se hace por unidades)."); return; }
+
+  var fecha=$("fFecha").value||hoyISO();
+
+  // armar TODAS las filas con el motor antes de escribir nada
+  var rows=[], resumen=[];
+  try{
+    items.forEach(function(o){
+      var m=metaPor[o.cid]||{};
+      var r=GP2M.recepcionTall({
+        tall: selT.id,
+        comp_id: Number(o.cid),
+        cantidad: num(o.it.uni),
+        fecha: fecha
+      });
+      // solo pasa si el componente tiene varias entradas Y no tiene BOM:
+      // ahi no hay de donde deducirlo y hay que cargar el BOM en la base.
+      if(r.elegir){
+        throw new Error((m.cod||o.cid)+": tiene "+r.elegir.length+
+          " entradas posibles y no tiene BOM cargado, así que no se puede deducir "+
+          "qué consume. Cargá el BOM del componente.");
+      }
+      rows = rows.concat(r.rows);
+      resumen.push((m.cod||o.cid)+": "+fmt(num(o.it.uni),0)+" uni");
+    });
+  }catch(e){
+    $("msg1").innerHTML='<span style="color:#b91c1c">'+esc(e.message||e)+'</span>';
+    return;
+  }
+
+  if(!confirm("Registrar recepción de "+selT.nombre+":\n\n"+resumen.join("\n")+
+              "\n\n"+rows.length+" movimientos (incluye los consumos del BOM).")) return;
+
+  var btn=$("btnEnviar");
+  btn.disabled=true; btn.textContent="Registrando…";
+  $("msg1").textContent="";
+
+  try{
+    var res=await GP2M.registrar(SB, rows);
+    delete BUF[selT.id]; saveBuf(); // ya quedó registrado: limpiar ANTES de la recarga
+    // recargar el motor para que el stock mostrado quede al día
+    try{ await GP2M.cargar(SB); }catch(e2){ /* solo falló la recarga; la recepción ya está registrada */ }
+    $("successCode").textContent=String(Math.floor(1000+Math.random()*9000));
+    $("successDetail").textContent=items.length+" partes recibidas de "+selT.nombre+" · "+fecha+
+      " · "+((res&&res.n)||rows.length)+" movimientos";
+    $("fase1").classList.add("hidden");
+    $("fase3").classList.remove("hidden");
+    $("btnVolver").classList.add("hidden");
+  }catch(e){
+    $("msg1").innerHTML='<span style="color:#b91c1c">Error: '+esc(e.message||e)+'</span>';
+  }finally{
+    btn.disabled=false; actualizarEnviar();
+  }
+});
+
+$("fFecha").value=hoyISO();
+cargar();
+</script>
+</body>
+</html>

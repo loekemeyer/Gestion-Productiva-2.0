@@ -11,6 +11,68 @@ código, comentarios ni mensajes de commit).
 - **`desactiva caveman`** = responder solo el **próximo mensaje** normal/completo, y después **volver solo** a caveman.
 - **`caveman desactivacion total`** = apagar caveman por completo (queda desactivado hasta que se reactive).
 
+## 🏠 Filosofía GP2: "la casa del vecino" (LEER SIEMPRE — analogía guía)
+
+**Analogía base para todo el proyecto GP2 (usarla en todos los chats):**
+
+- **`public` = la casa del vecino.** Es el programa viejo "Gestión Productiva Entero", ya
+  construido y funcionando. NO es nuestra casa. NO se copia. NO se toca (solo lectura).
+- **`GP2` (schema propio en Supabase) = mi casa.** La estamos construyendo de cero,
+  **independiente** de la del vecino.
+- **La regla de oro:** construimos mi casa **mirando la LÓGICA de cómo el vecino hizo la
+  suya**, NO copiando su casa. Tomamos las ideas/lógica (cómo modela producción,
+  causa-efecto, PS, talleristas, stock), pero los datos y la estructura son 100% míos,
+  nativos de GP2. Cero dependencia de `public`.
+- **Cuándo mirar al vecino:** solo para **llenar huecos** — cuando a mi casa le falta una
+  lógica que el vecino ya resolvió, miro cómo lo hizo y lo implemento a mi manera en GP2.
+- **Estado limpio = "como te lo mandé en un principio":** las tablas GP2 deben quedar como
+  el Excel original que cargó el usuario (art 84, componente 471, proveedor_servicio 8,
+  tallerista 12, matriz 115, ruta 555, ruta_paso 2346, ubicacion 32, articulo_componente
+  505, componente_bom 32, inventario 848 con stock 0 + 766 mínimos). Snapshot de referencia:
+  el `var D` embebido en los 3 HTML (`Registro_Movimientos.html`, `Programa_Stock_Loekemeyer.html`,
+  `Faltantes_Loekemeyer.html`) = ESA foto limpia.
+- **NO inventar / NO asumir:** nunca crear datos de negocio inventados. Si falta un dato,
+  marcarlo pendiente/null y que lo aporte el usuario. Agregar cosas nuevas a la casa se hace
+  **deliberadamente**, no contaminando las tablas base.
+- **El motor de inventario vive en la BD**, no en el JS: la app inserta filas crudas en
+  `GP2.movimiento` y los triggers (`fn_movimiento_calc` + `fn_movimiento_aplicar`) calculan
+  y aplican el delta en `GP2.inventario`. El `var D` de los HTML mapea 1:1 a tablas GP2
+  (ver `ANALISIS_LOGICA_GP2.md`).
+
+## Versionado (OBLIGATORIO en cada actualización)
+
+**Cada vez que se modifica el JS/CSS/HTML de un módulo, bumpear la versión en el mismo commit.**
+Las tablets y celulares cachean fuerte; sin bump siguen corriendo la versión vieja.
+
+1. Subir el `?v=` de los `<script src="...?v=X.Y.Z">` y `<link href="...?v=X.Y.Z">` del HTML del módulo.
+2. Si la página tiene badge de versión visible (ej. `#syncBadge` en las apps de operarios), actualizarlo al mismo número.
+3. Convención: fix chico = patch (1.2.0→1.2.1), feature = minor (1.2.0→1.3.0).
+4. Si el HTML no tiene `?v=` en sus recursos externos, agregárselo al tocarlo.
+5. **`version.js` (versión global) también se bumpea.** Es la que ve el usuario en el cartel
+   "Versión vX.Y.Z" del login, `Inicio/index_GP2.html`, `envios-only.html` y `Relevamiento`.
+   Al soltar features, subir `window.APP_VERSION` **y** el `?v=` de los `<script src="version.js?v=...">`
+   (si no se bumpea el `?v=`, el celular sigue con el archivo viejo cacheado y muestra la versión de antes).
+
+## 🧠 CONOCIMIENTO_GP2.md — la memoria del negocio (LEER AL INICIO, ESCRIBIR SIEMPRE)
+
+**Leer `CONOCIMIENTO_GP2.md` al arrancar cada sesión, junto con este archivo.** Ahí está
+el conocimiento del negocio que el usuario ya explicó alguna vez: quién provee qué, por
+qué se decidió cada cosa, qué conviene y qué no, y las trampas que ya nos mordieron.
+
+**Regla de captura (OBLIGATORIA):** cada vez que el usuario explique **cómo funciona algo,
+por qué se hace así, quién hace qué, o qué decidió**, eso se agrega a `CONOCIMIENTO_GP2.md`
+**en el mismo commit del trabajo** — no se espera a que "cierre el tema". Marcar el origen:
+`[usuario]` lo dijo una persona, `[dato]` sale de una consulta (decir cuál), `[deducido]`
+lo infirió el agente y está **sin confirmar**. Si un dato nuevo contradice uno viejo, se
+corrige la línea y se anota la corrección: casi siempre significa que cambió la realidad y
+hay que revisar el módulo que dependía de ese dato.
+
+**El objetivo es que el usuario NO tenga que volver a explicar.** El agente
+`.claude/agents/gp2-experto.md` usa ese archivo para hacer de contraparte: cruzar una idea,
+decir si cierra con lo ya decidido y proponer alternativas. Invocarlo cuando haya que
+**decidir** algo del negocio (no para tareas mecánicas). Si `CONOCIMIENTO_GP2.md` no crece,
+el agente no sirve.
+
 ## Perfiles de Usuario (LEER AL INICIO)
 
 **Al arrancar cada sesión, leer `PERFILES.md` para saber con quién estás trabajando.**
@@ -74,6 +136,23 @@ si ya existe el mapeo. Cuando el usuario confirme un renombre nuevo, agregarlo a
 - Prioridad en wait queue: FIFO (primero en registrarse, primero en ejecutar).
 - Si un lock lleva mucho tiempo (>30 min), avisar al usuario que puede estar obsoleto.
 - NUNCA borrar lineas de locks ajenos sin autorizacion del usuario.
+
+## Completar tablas manteniendo la NORMALIZACIÓN (ORDEN PRIMORDIAL)
+
+**Cuando cambia un proceso o producto GP2 (qué partes lleva, quién arma, quién entrega),
+actualizar TODAS las tablas normalizadas que lo describen, en ESTE orden, sin saltear ninguna:**
+
+1. `componente` — altas/bajas de piezas. Antes de inventar un código, mirar la convención
+   existente de la tabla (los cartones usan posición de estantería, los flejes "Fleje N°", etc.).
+2. `inventario` — fila para el componente nuevo en su ubicación (cantidad 0).
+3. `articulo_componente` y `componente_bom` — las recetas.
+4. `ruta` / `ruta_paso` — los pasos, respetando las convenciones de nombres y el duplicado
+   de ruta por tallerista cuando hay más de uno que hace el mismo paso.
+5. `contraparte_alias` / espejo Virgilio — si cambia quién entrega.
+
+Nunca parchar una sola tabla ni meter datos desnormalizados: una ruta que no cierra con la
+receta, o una receta con componentes que ninguna ruta produce, rompen trazado y stock.
+Ejemplo de referencia: reestructuración del artículo 506 (2026-08-29, ver HISTORIAL/git).
 
 ## Tablas Madre y Derivadas (OBLIGATORIO - LEER ANTES DE TOCAR SUPABASE)
 
@@ -220,15 +299,24 @@ componentes/CE/asignacion (ver AUDITORIA_RUTAS_2026-04-18.md punto 7).
   trate como nodo intermedio. Si aparece "Matriz N" como nodo, son inconsistencias (ver
   AUDITORIA_RUTAS_2026-04-18.md punto 5).
 
-## OC Insumos (Ordenes_Compra) - direccion futura
+## OC Insumos (GP2) - CONSTRUIDO 2026-08-29
 
-- **HOY**: las OC se cargan importando el PDF del proveedor desde `StockFlejes/recepcion.html`
-  (parser local con pdf.js, sin IA).
-- **FUTURO**: las OC van a **generarse directamente desde el sistema** (no se van a importar
-  mas desde PDFs de proveedores). O sea, la app va a decidir que comprar en base a stocks
-  y consumo, generar la OC internamente, y despues (opcional) mandarsela al proveedor
-  ya armada. Al planificar cambios en `Ordenes_Compra` o en el modulo de OC, priorizar
-  que el flujo sea limpio para escritura interna (no solo importacion externa).
+**Las reglas de pedido por tipo de insumo estan en `REGLAS_OC_INSUMOS.md` (raiz) y
+parametrizadas en `GP2.carton_formato` / `carton_categoria` / `proveedor_insumo.modo_control`.
+Leer ese archivo antes de tocar el modulo de OC.**
+
+- **El modulo existe**: `Compras/OC_GP2.html` genera las OC desde el consumo (Est Madre
+  explotada: `v_consumo_parte` / `v_consumo_fleje_kg` en kg para flejes) con sugerido =
+  consumo x meses - stock - pendiente OC. Tablas `GP2.orden_compra` / `orden_compra_item`,
+  RPCs `oc_bundle` / `crear_oc` / `oc_marcar` / `abm_bom_guardar`. Cada OC se puede IMPRIMIR
+  (hoja limpia para el proveedor). Estados: borrador -> enviada -> recibida / anulada.
+- **La recepcion CRUZA contra OC**: `crear_recepcion_insumo` aplica lo recibido al campo
+  `recibido` de las OC abiertas (FIFO, conversion kg/uni) y marca la OC `recibida` sola.
+  La pantalla de Recepcion muestra el cruce.
+- La validacion de cartones (multiplos C/LOKE/8) esta DORMIDA hasta que el usuario asigne
+  `componente.carton_formato` por precio (precios en `GP2.precio_proveedor`).
+- El viejo `StockFlejes/recepcion.html` (importar PDF del proveedor) es del programa viejo;
+  el flujo GP2 no importa PDFs.
 
 ## Reglas para trabajar en este proyecto
 

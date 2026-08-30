@@ -1,0 +1,153 @@
+CONTEXTO DE SESION — GP2 — 2026-08-28/29
+Para continuar en otro chat. Leer entero antes de tocar nada.
+
+================================================================
+REGLAS QUE FIJO EL USUARIO EN ESTA SESION (VIGENTES)
+================================================================
+- NO crear NADA (tablas, filas, triggers, pantallas) sin aprobacion ESCRITA del usuario.
+- Todo se trabaja NORMALIZADO (ej: tabla de alias, no parches sueltos).
+- Codigos de articulo: los de 2 digitos van CON CERO adelante (031, 043...).
+- Decimales en pantallas: unidades SIN decimales, kg SIN decimales, cajones 1 decimal.
+  (los factores kg_x_uni / uni_x_cajon NO se redondean, no son cantidades)
+- Triggers a tablas viejas (schema public): PROHIBIDO salvo 2 excepciones aprobadas:
+    1. public."Entregas Tallerista Virgilio" (espejo Virgilio)
+    2. public.proyeccion_madre (sync Est Madre)
+- Unica tabla vieja autorizada para LEER como fuente de un modulo GP2:
+  public."Entregas Tallerista Virgilio".
+- La recepcion de Virgilio NO lleva pantalla en GP2: se carga en el programa viejo
+  y el trigger la espeja.
+- Todo en main: pull antes de empezar, push al terminar. LOCKS.txt siempre.
+- Bump de versiones (?v=) segun CLAUDE.md en cada cambio de modulo.
+- Al usuario reportarle corto y directo (modo caveman). Sin listas largas.
+
+PERMISOS: el usuario esta harto de los prompts. settings.json ya se arreglo
+(se sacaron Write/Edit/git push de "ask"), pero las llamadas a Supabase MCP
+siguen pidiendo porque el server remoto se llama con UUID
+(mcp__c1349a3b-...) y las reglas viejas nombran mcp__Supabase__/mcp__supabase-gp__.
+Solucion real: shift+tab -> don't ask, o agregar el nombre UUID al allow.
+MINIMIZAR cantidad de llamadas a la base: pocas consultas grandes, no muchas chicas.
+
+================================================================
+LO HECHO EN ESTA SESION (todo pusheado en main y aplicado en Supabase)
+================================================================
+Proyecto: hrxfctzncixxqmpfhskv. Schema GP2 = la casa propia. public = vecino (solo lectura).
+
+1. CACHE CELULAR
+   - Operarios_GP2.html v1.4.1: meta no-cache + auto-recarga si el HTML cacheado
+     quedo viejo (chequeo inline MI_V vs ?v=, sessionStorage anti-loop).
+   - vercel.json NUEVO: Cache-Control max-age=0 must-revalidate para html/js/css.
+   - version.js global v1.3.0 (bumpearlo SIEMPRE junto con su ?v=; regla nueva
+     punto 5 en CLAUDE.md seccion Versionado).
+   - El usuario veia v1.1.0: era la URL congelada de un deploy viejo de Vercel
+     (…-miqegbl6-….vercel.app). Usar SIEMPRE el dominio corto de produccion.
+
+2. MENU GP2_MODULOS v1.1.0
+   - Grupos arrancan todos minimizados; acordeon exclusivo; en celular "vista foco"
+     (grupo abierto ocupa la pantalla, chevron = ✕ Cerrar).
+
+3. COMPOSICION DEL STOCK (popup "como se compone")
+   - RPC GP2.composicion_stock(comp, ubic, limit, ubic_tipo, ref_id).
+   - gp2-composicion.js: popup compartido. Stock hoy arriba + ledger con fecha/hora,
+     tipo en castellano, contraparte y SALDO acumulado (anclado en el stock de hoy,
+     camina hacia atras; cierra exacto — verificado no_explicado=0).
+   - Enganchado en: Stock SC, SP, 6 de insumos (gp2-stock-sector.js), ControlPS
+     (Saldo en PS), ControlTalleristas (kg/caj/uni).
+   - FALTA engancharlo en Stock en Movimiento y Stock Transito PS: ESOS MODULOS NO
+     EXISTEN AUN en GP2 (bloqueados en menu). El vecino los tiene: StockMovimiento/
+     y StockTransitoPS/.
+   - Bug arreglado: movimientos_componente hacia LIMIT antes del ORDER BY.
+
+4. VIRGILIO (el ultimo eslabon del circuito, ahora cerrado)
+   - Virgilio recibe de 3 bocas: talleristas, Prov AT, y Log/Fabr (la fabrica misma).
+     Cuando arma la fabrica: las partes salen de los SECTORES (SP + Plastico si tiene
+     parte plastica + Carton + Caja + Remache — la receta articulo_componente ya
+     cubre todo, 505 renglones, 84/84 articulos). Si arma tallerista/prov:
+     salen de SU cuenta.
+   - RPC GP2.recepcion_virgilio(p jsonb, con dry_run): consume receta + deposita el
+     terminado (componente sector 12, mismo codigo que el articulo) en ubicacion
+     Virgilio (id 33). Acepta origen_tipo tallerista|proveedor_at|proveedor_servicio|interno.
+   - Tabla GP2.proveedor_at: 11 entidades reales (Cabral, Carriero, Kuffo, Lopez Jose,
+     Manfer, Maspoli, Melinox, Paternal Goma, Pettofrezza[DESACTIVADO, duplicado del
+     tallerista Pettofrezza Rafael], Pintos, The Plast) + ubicaciones 34-44.
+   - Tallerista NUEVO id 13 Blist-Pack (ubicacion 45) — confirmado por el usuario.
+   - GP2.contraparte_alias (alias EN MAYUSCULAS -> tipo, ref_id):
+     POLY=IJUPA(10), AGUIRRE CARLOS RODOLFO=Carlos Aguirre(9), BLIST-PACK=13,
+     PEDERNERA=PS 6 (un PS tambien entrega terminado), LOG/ FABR y LOG/FABR=interno,
+     RAFAEL=11, MARTIN=6, GARCIA=1, GERMAN=4, CARLOS=9, TIERRA NATIVA=12.
+   - Trigger trg_virgilio_espejo_gp2 (AFTER INSERT en la tabla vieja): resuelve boca
+     (alias->igualdad->palabra, en upper), articulo por Cod normalizando ceros en
+     ambos lados, unidades = Cajas x articulo.articulos_por_caja, llama la RPC.
+     NUNCA rompe la carga vieja: lo irresoluble cae en GP2.virgilio_espejo_pend
+     con motivo. Probado con rollback (Poly 3 cajas art 043 -> +72 uni en Virgilio).
+   - Las 1292 entregas HISTORICAS NO se reprodujeron (solo cargas nuevas).
+     Reproducirlas = decision del usuario + requiere stock inicial cargado.
+
+5. CODIGOS CON CERO
+   - articulo.codigo y componente(sector 12).codigo: 10 codigos de 2 digitos
+     paddeados a 031/034/043/053/054/055/057/066/097/099. 84/84 sigue 1:1.
+   - El espejo matchea con o sin cero (711 -> 848 entregas viejas matcheables).
+
+6. EST MADRE (proyeccion de ventas)
+   - GP2.est_madre = copia de public.proyeccion_madre (369 filas: cod,
+     proy_cajas_mes, uxb, proy_uni_mes, actualizado, copiado_en).
+   - Se sincroniza SOLA via trigger trg_est_madre_sync_gp2 (2da excepcion aprobada).
+   - OJO: est_madre viene SIN cero adelante (el dueño del formato es el vecino);
+     todo cruce con articulo normaliza ceros.
+   - USO (definido por el usuario, con correccion): NO calcula los minimos.
+     Calcula el CONSUMO de cada parte.
+   - Vista GP2.v_consumo_parte: consumo_uni_mes = sum(proy_uni_mes x cantidad de la
+     parte en la receta). 230 partes. Top: K9 51008, PCP3 40157, Z23 32289 uni/mes.
+   - Verificado: la formula NO reproduce inventario.minimo (0/511) — son conceptos
+     distintos; los 766 minimos del Excel quedaron INTACTOS.
+
+7. DECIMALES + otras pantallas (mas temprano en la sesion)
+   - Regla aplicada en todo el motor de stock + ControlPS/ControlTall + envios.
+   - ControlPS: tabla resumen inicial por PS (hecha por el otro chat en paralelo).
+
+================================================================
+LO QUE FALTA / PROXIMOS PASOS (en orden de valor)
+================================================================
+1. PREGUNTA ABIERTA (recien hecha, sin responder): ¿donde mostrar el Consumo?
+   Propuesto: columna "Consumo" en las pantallas de stock al lado del Minimo.
+   Tal vez tambien coma base para minimo sugerido = consumo x meses_minimo de la
+   ubicacion (GP2.ubicacion.meses_minimo ya esta cargado: Crudo=2, Procesado=2,
+   insumos=4, talleristas=1, Virgilio=1.5) — PERO el usuario dijo que minimo y
+   consumo son cosas distintas: NO tocar inventario.minimo sin que lo pida.
+2. Modulos que faltan construir (bloqueados en menu, el vecino los tiene):
+   - Stock en Movimiento (vecino: StockMovimiento/)
+   - Stock Transito PS (vecino: StockTransitoPS/)
+   - Prov AT: Control / Envio Carton-Cajas / Entrega Art. Terminado
+     (vecino: "Prov Art Terminado/" Control|Envios|Entregas — ControlAT.js etc.)
+   - Control Envios y Entregas, Facturas, Relevamiento, Chat Bot Ventas, etc.
+3. Recepcion de flejes: paso 1 anda (7 recepciones) pero NADIE completo el paso 2
+   (pesaje): 0 rollos creados. Preguntar si es falta de uso o algo no les cierra.
+4. Stock inicial general: sin el, hay 13 stocks negativos reales (CV1 -142857,
+   A10 -1582, J2 -1081, K11 -1014, etc.) — el ledger arranco de cero.
+5. Migracion diferida de datos SC/SP: inventario.maximo (899 en null), columnas
+   pieza_madre / kg_uni_desp / cod_verificacion / proveedor de componente.
+6. Persistir kg restantes del rollo en rollo_uso (hoy estimado client-side).
+7. Los 3 cods de est_madre que no matchean articulo (84-81) — revisar cuales son.
+
+================================================================
+DATOS UTILES
+================================================================
+- Sectores: 1 Crudo, 2 Procesado, 3 Transito, 4 Afilado, 5 Fleje, 6 Plastico,
+  7 Bombilla, 8 Remache, 9 Garage, 10 Carton, 11 Caja, 12 Terminado.
+- Ubicaciones: tipo sector|tallerista|proveedor_servicio|proveedor_at|virgilio.
+  Virgilio = id 33.
+- Motor: la app inserta en GP2.movimiento; triggers fn_movimiento_calc/aplicar
+  mueven GP2.inventario. Tipos: compra, fabricacion, produccion, envio_ps,
+  entrega_ps, envio_tallerista, recepcion_tall, consumo_tall, recepcion_virgilio,
+  consumo_virgilio.
+- Produccion: registrar_evento_prod descuenta fleje via matriz.partes_por_kilo_de_fleje.
+  61 matrices consumen fleje (todas con ppk), 54 consumen pieza de matriz anterior
+  (no necesitan ppk). NO hay matrices rotas. 24 multi-salida (piden pieza).
+- Bundles RPC: movimientos_bundle, stock_sector_bundle, talleristas_bundle,
+  control_ps_bundle, envios_ps_bundle, recepcion_bundle, rollos_bundle,
+  registro_operarios_bundle, composicion_stock, recepcion_virgilio_bundle,
+  faltantes_bundle, alertas_bundle, flejes_bundle, stock_bundle.
+- Tests: Chromium en /opt/pw-browsers/chromium + playwright en /tmp/node_modules;
+  http.server 8899 DESDE EL REPO; stub de cdn.jsdelivr (proxy bloquea) y de
+  auth-guard.js; fixtures reales sacados por execute_sql.
+- El otro chat del usuario tambien pushea a main: pull --no-rebase, el conflicto
+  es siempre LOCKS.txt -> conservar ambos lados, dedup, historial max 10.

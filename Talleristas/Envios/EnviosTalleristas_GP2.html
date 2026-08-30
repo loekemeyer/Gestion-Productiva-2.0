@@ -1,0 +1,383 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Envíos por Tallerista · GP2</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<link rel="stylesheet" href="../../gp2-modulo.css?v=1.2.0"/>
+<link rel="stylesheet" href="../../tandas-popup.css?v=20260829a"/>
+<link rel="icon" type="image/png" href="../../GP2_favicon.png">
+<link rel="apple-touch-icon" href="../../GP2_favicon.png">
+</head>
+<body>
+
+<div class="card">
+  <div class="header">
+    <h1>Envíos por Tallerista</h1>
+    <div class="hbtns">
+      <button class="hlink hidden" id="btnVolver" type="button">← Cambiar tallerista</button>
+      <a href="../Control%20Tall/ControlTalleristas_GP2.html">Control</a>
+      <a href="../Recepcion/EntregasTalleristas_GP2.html">Entrega</a>
+      <a href="../../GP2_MODULOS.html">Atrás</a>
+    </div>
+  </div>
+
+  <div class="steps">
+
+    <!-- FASE 0 — elegir tallerista -->
+    <div id="fase0">
+      <div class="row"><label class="lbl">Tallerista</label></div>
+      <div class="provs-grid" id="tallGrid"></div>
+      <div id="status" class="status">Cargando…</div>
+    </div>
+
+    <!-- FASE 1 — cargar el envío -->
+    <div id="fase1" class="hidden">
+      <div class="row" style="justify-content:space-between">
+        <div class="row" style="margin:0"><label class="lbl" id="fase1Title">Tallerista</label></div>
+        <div class="row" style="margin:0">
+          <label class="lbl" style="font-size:16px">Fecha</label>
+          <input type="date" id="fFecha">
+          <button class="btn btn-secondary" id="btnLimpiar" type="button" title="Vaciar todo lo cargado">🗑 Limpiar</button>
+          <button class="btn btn-primary" id="btnEnviar" type="button" disabled>Enviar</button>
+        </div>
+      </div>
+
+      <div class="search-box"><input type="text" id="q" placeholder="Buscar artículo por código, descripción o sector…"></div>
+
+      <div class="table-wrap">
+        <table class="t">
+          <thead><tr>
+            <th>Sec</th>
+            <th>Descripción</th>
+            <th class="num">Cjn<br>a Env.</th>
+            <th class="ctr" title="Marcar faltante">Falt</th>
+            <th class="num sep">Caj</th>
+            <th class="num">KG<br>Neto</th>
+            <th class="ctr" title="Cargar por tandas">T</th>
+            <th class="num">Uni</th>
+          </tr></thead>
+          <tbody id="tbody"></tbody>
+        </table>
+      </div>
+      <div id="tblEmpty" class="empty hidden">Este tallerista no tiene partes configuradas en ruta_paso.</div>
+      <div id="msg1" class="status"></div>
+    </div>
+
+    <!-- FASE 3 — listo para imprimir -->
+    <div id="fase3" class="hidden">
+      <div class="successBox no-print">
+        <div class="title">✓ Envío registrado</div>
+        <div>Tu código de envío:</div>
+        <div class="code" id="successCode">—</div>
+        <div id="successDetail" style="font-size:17px;color:#444"></div>
+      </div>
+
+      <div class="row"><label class="lbl" id="printTitle">Remito</label></div>
+      <div class="table-wrap">
+        <table class="t">
+          <thead><tr>
+            <th>Sec</th><th>Descripción</th>
+            <th class="num">Caj</th><th class="num">Kg</th><th class="num">Uni</th>
+          </tr></thead>
+          <tbody id="tbodyPrint"></tbody>
+          <tfoot id="tfootPrint"></tfoot>
+        </table>
+      </div>
+
+      <div class="row no-print" style="justify-content:center;margin-top:14px">
+        <button class="btn btn-secondary" id="btnImprimir" type="button">🖨 Imprimir</button>
+        <button class="btn btn-primary" id="btnVolverTall" type="button">← Cambiar tallerista</button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script src="../../tandas-popup.js?v=20260829a"></script>
+<script>
+"use strict";
+
+var SB = supabase.createClient(
+  "https://hrxfctzncixxqmpfhskv.supabase.co",
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhyeGZjdHpuY2l4eHFtcGZoc2t2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI3MjQyNjEsImV4cCI6MjA4ODMwMDI2MX0.4L6wguch8UZGhC2VpzrWcCjJGUV-IkYsl9JoCWrOLUs",
+  { db:{ schema:"GP2" }, auth:{ persistSession:false } }
+);
+
+var $ = function(id){ return document.getElementById(id); };
+var LS_BUF = "gp2_enviosTall_buffer";
+
+var D = { tall:[], partes:{} };
+var selT = null;
+var BUF = {};
+
+function esc(s){ return String(s==null?"":s).replace(/[&<>"]/g, function(c){
+  return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]; }); }
+function num(v){
+  if (v==null||v==="") return 0;
+  if (typeof v==="number") return isFinite(v)?v:0;
+  var s=String(v).trim().replace(/[^\d,.-]/g,"");
+  if (s.indexOf(",")>=0 && s.indexOf(".")<0) s=s.replace(",",".");
+  else s=s.replace(/,/g,"");
+  var n=Number(s); return isFinite(n)?n:0;
+}
+function fmt(n,d){ d=(d==null?1:d);
+  return Number(n||0).toLocaleString("es-AR",{minimumFractionDigits:0,maximumFractionDigits:d}); }
+function hoyISO(){ var d=new Date(); return new Date(d.getTime()-d.getTimezoneOffset()*60000).toISOString().slice(0,10); }
+
+function loadBuf(){ try{ BUF=JSON.parse(localStorage.getItem(LS_BUF)||"{}")||{}; }catch(e){ BUF={}; } }
+function saveBuf(){ try{ localStorage.setItem(LS_BUF, JSON.stringify(BUF)); }catch(e){} }
+function bufT(){ if(!selT) return {}; if(!BUF[selT.id]) BUF[selT.id]={}; return BUF[selT.id]; }
+function bufItem(cid){ var b=bufT(); if(!b[cid]) b[cid]={caj:"",kg:"",falt:false,tandas:[]}; return b[cid]; }
+
+/* Al tallerista se le manda lo del lado 'entrada' de ruta_paso. */
+function partesDe(tid){
+  var o=(D.partes||{})[tid]||{entrada:[],salida:[]};
+  return (o.entrada||[]).slice();
+}
+
+/* Uni a partir de lo cargado: si hay kg y factor, uni = kg / kg_x_uni. */
+function uniDe(x, it){
+  var kg=num(it.kg);
+  if (kg>0 && x.kg_x_uni) return kg/Number(x.kg_x_uni);
+  return 0;
+}
+
+async function cargar(){
+  var r = await SB.rpc("talleristas_bundle");
+  if (r.error){ $("status").textContent="Error: "+r.error.message; return; }
+  D = r.data || { tall:[], partes:{} };
+  loadBuf();
+  renderTall();
+  $("status").textContent = (D.tall||[]).length+" talleristas.";
+}
+
+function renderTall(){
+  var g=$("tallGrid"); g.innerHTML="";
+  (D.tall||[]).forEach(function(t){
+    var n=partesDe(t.id).length;
+    var cargado=Object.keys(BUF[t.id]||{}).filter(function(k){
+      var it=BUF[t.id][k]; return num(it.caj)>0||num(it.kg)>0||it.falt; }).length;
+    var b=document.createElement("button");
+    b.type="button"; b.className="prov-btn";
+    b.innerHTML=esc(t.nombre)+'<span class="meta">'+esc(t.cod_prov||"—")+" · "+n+" partes"+
+      (cargado?(" · "+cargado+" cargadas"):"")+"</span>";
+    b.addEventListener("click", function(){ elegir(t); });
+    g.appendChild(b);
+  });
+  if(!(D.tall||[]).length) g.innerHTML='<div class="empty">Sin talleristas.</div>';
+}
+
+function elegir(t){
+  selT=t;
+  $("fase1Title").textContent=t.nombre+(t.cod_prov?(" · cod "+t.cod_prov):"");
+  $("fase0").classList.add("hidden");
+  $("fase3").classList.add("hidden");
+  $("fase1").classList.remove("hidden");
+  $("btnVolver").classList.remove("hidden");
+  if(!$("fFecha").value) $("fFecha").value=hoyISO();
+  $("q").value="";
+  render();
+}
+function volver(){
+  selT=null;
+  $("fase1").classList.add("hidden");
+  $("fase3").classList.add("hidden");
+  $("fase0").classList.remove("hidden");
+  $("btnVolver").classList.add("hidden");
+  renderTall();
+}
+
+function filtradas(){
+  var arr=partesDe(selT.id);
+  var q=String($("q").value||"").trim().toLowerCase();
+  if(!q) return arr;
+  return arr.filter(function(x){
+    return (String(x.cod||"")+" "+String(x["desc"]||"")+" "+String(x.sector||"")).toLowerCase().indexOf(q)>=0;
+  });
+}
+
+function render(){
+  var arr=filtradas(), tb=$("tbody");
+  tb.innerHTML="";
+  $("tblEmpty").classList.toggle("hidden", arr.length>0);
+
+  arr.forEach(function(x){
+    var it=bufItem(x.comp_id);
+    var hayT=(it.tandas||[]).length>0;
+    var totCaj=(it.tandas||[]).reduce(function(s,t){return s+num(t.caj);},0);
+    var totKg =(it.tandas||[]).reduce(function(s,t){return s+num(t.kg);},0);
+    var vCaj=hayT?(totCaj||""):it.caj;
+    var vKg =hayT?(totKg||""):it.kg;
+
+    // "Cjn a Env." = lo disponible en el sector, expresado en cajones
+    var cjnAEnv = x.uni_x_cajon ? Number(x.online_sector||0)/Number(x.uni_x_cajon) : null;
+    var uni = uniDe(x, { kg: vKg });
+
+    var tr=document.createElement("tr");
+    tr.dataset.cid=x.comp_id;
+    if(it.falt) tr.className="falt";
+    tr.innerHTML=
+      '<td>'+esc(x.sector||"—")+'</td>'+
+      '<td><span class="cod">'+esc(x.cod)+'</span><br><small class="sub">'+esc(x["desc"]||"")+'</small></td>'+
+      '<td class="num">'+(cjnAEnv==null?"—":fmt(cjnAEnv,2))+'</td>'+
+      '<td class="ctr"><button type="button" class="falt-box'+(it.falt?" on":"")+'" data-a="falt">'+(it.falt?"F":"")+'</button></td>'+
+      '<td class="num sep"><input class="cell-in'+(hayT?" ro":"")+'" data-f="caj" inputmode="numeric" value="'+esc(vCaj)+'"'+(hayT?" readonly":"")+'></td>'+
+      '<td class="num"><input class="cell-in'+(hayT?" ro":"")+'" data-f="kg" inputmode="decimal" value="'+esc(vKg)+'"'+(hayT?" readonly":"")+'></td>'+
+      '<td class="ctr"><button type="button" class="tanda-btn'+(hayT?" on":"")+'" data-a="tandas">'+(hayT?it.tandas.length:"+")+'</button></td>'+
+      '<td class="num">'+(uni>0?fmt(uni,0):"—")+'</td>';
+    tb.appendChild(tr);
+  });
+  actualizarEnviar();
+}
+
+function itemDeFila(tr){
+  var cid=tr.dataset.cid;
+  var arr=partesDe(selT.id), meta=null;
+  for(var i=0;i<arr.length;i++){ if(String(arr[i].comp_id)===String(cid)){ meta=arr[i]; break; } }
+  return { cid:cid, meta:meta, buf:bufItem(cid) };
+}
+
+function cargadas(){
+  var b=bufT(), out=[];
+  Object.keys(b).forEach(function(k){
+    var it=b[k];
+    if(num(it.kg)>0||num(it.caj)>0) out.push({ cid:k, it:it });
+  });
+  return out;
+}
+
+function actualizarEnviar(){
+  var n=cargadas().length;
+  $("btnEnviar").disabled=(n===0);
+  $("btnEnviar").textContent=n?("Enviar ("+n+")"):"Enviar";
+}
+
+$("tbody").addEventListener("input", function(e){
+  var inp=e.target.closest("input.cell-in");
+  if(!inp||inp.readOnly) return;
+  var d=itemDeFila(inp.closest("tr"));
+  d.buf[inp.dataset.f]=inp.value;
+  saveBuf();
+  // refrescar solo la columna Uni de esa fila
+  var tr=inp.closest("tr");
+  var uni=uniDe(d.meta||{}, d.buf);
+  tr.lastElementChild.textContent = uni>0?fmt(uni,0):"—";
+  actualizarEnviar();
+});
+
+$("tbody").addEventListener("click", function(e){
+  var btn=e.target.closest("button[data-a]");
+  if(!btn) return;
+  var d=itemDeFila(btn.closest("tr"));
+  if(btn.dataset.a==="falt"){ d.buf.falt=!d.buf.falt; saveBuf(); render(); return; }
+  if(btn.dataset.a==="tandas"){
+    if(typeof tandasPopup==="undefined"){ alert("No cargó tandas-popup.js"); return; }
+    tandasPopup.open({
+      titulo:"Tandas — "+(d.meta?d.meta.cod:""),
+      initial:(d.buf.tandas||[]).slice(),
+      pedirCaj:true, pedirKg:true, pedirUni:false,
+      onConfirm:function(tandas,totales){
+        d.buf.tandas=(tandas||[]).filter(function(t){ return num(t.caj)>0||num(t.kg)>0; });
+        if(d.buf.tandas.length){
+          d.buf.caj=String(totales&&totales.caj!=null?totales.caj:"");
+          d.buf.kg =String(totales&&totales.kg !=null?totales.kg :"");
+        }
+        saveBuf(); render();
+      }
+    });
+  }
+});
+
+$("q").addEventListener("input", render);
+$("btnVolver").addEventListener("click", volver);
+$("btnVolverTall").addEventListener("click", volver);
+$("btnImprimir").addEventListener("click", function(){ window.print(); });
+
+$("btnLimpiar").addEventListener("click", function(){
+  if(!selT) return;
+  if(!confirm("¿Vaciar todo lo cargado para "+selT.nombre+"?")) return;
+  delete BUF[selT.id]; saveBuf(); render();
+});
+
+$("btnEnviar").addEventListener("click", async function(){
+  if(!selT) return;
+  var items=cargadas();
+  if(!items.length) return;
+
+  var arr=partesDe(selT.id), metaPor={};
+  arr.forEach(function(x){ metaPor[x.comp_id]=x; });
+
+  var faltanKg=items.filter(function(o){ return num(o.it.caj)>0 && !(num(o.it.kg)>0); })
+                    .map(function(o){ return (metaPor[o.cid]||{}).cod||o.cid; });
+  if(faltanKg.length){ alert("Falta cargar Kg neto para: "+faltanKg.join(", ")); return; }
+
+  var resumen=items.map(function(o){
+    var m=metaPor[o.cid]||{};
+    return (m.cod||o.cid)+": "+fmt(num(o.it.caj),1)+" caj / "+fmt(num(o.it.kg),0)+" kg";
+  }).join("\n");
+  if(!confirm("Enviar a "+selT.nombre+":\n\n"+resumen)) return;
+
+  var fecha=$("fFecha").value||hoyISO();
+  var btn=$("btnEnviar");
+  btn.disabled=true; btn.textContent="Enviando…";
+  $("msg1").textContent="";
+
+  var ok=0, errs=[], enviados=[];
+  for(var i=0;i<items.length;i++){
+    var o=items[i], m=metaPor[o.cid]||{};
+    try{
+      var r=await SB.rpc("crear_envio_tallerista", {
+        p_tallerista_id: selT.id,
+        p_comp_id: Number(o.cid),
+        p_cantidad: num(o.it.kg),
+        p_unidad: "kg",
+        p_fecha: fecha+"T12:00:00-03:00"
+      });
+      if(r.error) throw r.error;
+      ok++;
+      delete bufT()[o.cid]; saveBuf(); // ya registrado: fuera del buffer (un reintento no lo duplica)
+      enviados.push({ m:m, caj:num(o.it.caj), kg:num(o.it.kg), uni:uniDe(m,o.it) });
+    }catch(e){
+      errs.push((m.cod||o.cid)+": "+(e&&e.message?e.message:e));
+    }
+  }
+
+  btn.disabled=false; actualizarEnviar();
+
+  if(errs.length){
+    render(); // en la tabla quedan cargados solo los que fallaron
+    $("msg1").innerHTML='<span style="color:#b91c1c">Se registraron '+ok+' de '+items.length+
+      ' (los registrados ya salieron de la carga; reintentá solo lo que quedó). Errores:<br>'+esc(errs.join(" | "))+'</span>';
+    return;
+  }
+
+  delete BUF[selT.id]; saveBuf();
+
+  // fase 3: remito para imprimir
+  var tCaj=0,tKg=0,tUni=0;
+  $("tbodyPrint").innerHTML = enviados.map(function(e){
+    tCaj+=e.caj; tKg+=e.kg; tUni+=e.uni;
+    return '<tr><td>'+esc(e.m.sector||"—")+'</td>'+
+      '<td><span class="cod">'+esc(e.m.cod||"")+'</span> '+esc(e.m["desc"]||"")+'</td>'+
+      '<td class="num">'+fmt(e.caj,1)+'</td><td class="num">'+fmt(e.kg,0)+'</td>'+
+      '<td class="num">'+fmt(e.uni,0)+'</td></tr>';
+  }).join("");
+  $("tfootPrint").innerHTML='<tr><td colspan="2">'+enviados.length+' partes</td>'+
+    '<td class="num">'+fmt(tCaj,0)+'</td><td class="num">'+fmt(tKg,2)+'</td>'+
+    '<td class="num">'+fmt(tUni,0)+'</td></tr>';
+
+  $("printTitle").textContent="Remito · "+selT.nombre+" · "+fecha;
+  $("successCode").textContent=String(Math.floor(1000+Math.random()*9000));
+  $("successDetail").textContent=ok+" partes enviadas a "+selT.nombre+" · "+fecha;
+  $("fase1").classList.add("hidden");
+  $("fase3").classList.remove("hidden");
+  $("btnVolver").classList.add("hidden");
+});
+
+$("fFecha").value=hoyISO();
+cargar().catch(function(e){ $("status").textContent="Error: "+(e&&e.message?e.message:e); });
+</script>
+</body>
+</html>
