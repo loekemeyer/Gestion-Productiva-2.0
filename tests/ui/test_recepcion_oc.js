@@ -61,7 +61,8 @@ const STUB = 'window.supabase={createClient:function(){return{'
   ok(cards.length === 4, '4 insumos del proveedor');
 
   // la ultima carga: solo los kg
-  ok(/últ\. 360 kg/.test(cards[0]), 'ultima carga = "últ. 360 kg": ' + cards[0]);
+  // v3.9.1: sin la palabra "ult." — la ultima carga es solo el numero en verde
+  ok(/\| 360 kg \|/.test(cards[0]) && !/últ\./.test(cards[0]), 'ultima carga = "360 kg" (sin "ult."): ' + cards[0]);
   ok(!/29\/8|2 pallets|7 rollo/.test(cards[0]), 'sin fecha, sin pallets, sin rollos');
 
   // la OC abierta: "OC: <lo que falta> <unidad>" (640 = 1000 pedidos - 360 recibidos)
