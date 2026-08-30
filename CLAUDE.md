@@ -53,7 +53,13 @@ En TODA pantalla, nueva o tocada:
    los `type="number"` (el atributo garantiza el teclado correcto en el celular).
 3. Etiquetas visibles al lado del campo, no solo placeholder (el placeholder desaparece
    al tipear y quien ve mal pierde la referencia).
-4. El test `tests/ui/test_teclado_numerico.js` lo vigila: falla si aparece un
+4. **La letra grande NO puede romper la prolijidad** (dicho del usuario: "que se
+   entienda que se puede tocar bien en todos lados sin que algo se vea feo — UX/UI
+   súper prolija"). Al agrandar: las tablas anchas van dentro de `.table-wrap`
+   (scrollean solas, la página nunca scrollea horizontal), los inputs de tabla llevan
+   ancho explícito para no reventar la columna, y después de tocar tamaños se
+   verifica el render en 390px (sin desbordes, sin solapamientos, touch ≥44px).
+5. El test `tests/ui/test_teclado_numerico.js` lo vigila: falla si aparece un
    `type="number"` sin `inputmode`.
 
 ## Versionado (OBLIGATORIO en cada actualización)
