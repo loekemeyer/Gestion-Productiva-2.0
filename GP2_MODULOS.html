@@ -50,6 +50,16 @@ a.op .arrow{color:#2563eb;font-size:18px;margin-left:auto;font-weight:700;transi
 a.op:hover .arrow{color:#1d4ed8}
 a.op .dot{width:7px;height:7px;border-radius:50%;background:#22c55e;flex-shrink:0}
 
+/* ── tres niveles de importancia dentro de un grupo ──
+   Los pidio el usuario para Insumos: comprar y recibir es lo de todos los
+   dias, el stock de cada rubro va despues, y la config de quien fabrica
+   ultima. Se marcan en el MENU y sirven para cualquier grupo. */
+a.op.principal{background:#eff6ff;border-color:#93b4d8;font-weight:700;font-size:17px;padding:14px}
+a.op.principal .dot{width:9px;height:9px}
+a.op.secundario{background:#fbfcfd;border-color:#eef2f6;color:#64748b;font-size:15px;padding:9px 14px}
+a.op.secundario .dot{background:#cbd5e1;width:6px;height:6px}
+a.op.secundario .arrow{color:#94a3b8}
+
 /* ── boton que todavia abre la app anterior (schema public) ── */
 a.op.vieja{background:#fffbeb;border-color:#b45309;color:#7c2d12}
 a.op.vieja .dot{background:#b45309}
@@ -121,7 +131,14 @@ span.op.lock .lk{font-size:14px;margin-left:auto;opacity:.7}
   body.focus .card.open a.op{position:relative}
   body.focus .card.open a.op .dot{position:absolute;top:8px;left:8px;margin:0}
   body.focus .card.open span.op.lock .lk{margin:0}
-  /* cantidad impar: el ultimo ocupa el ancho entero para que no quede colgado */
+  /* nivel 1: baldosa a todo el ancho, mas alta y destacada — es lo que se
+     abre todos los dias, tiene que caer bajo el pulgar sin buscar */
+  body.focus .card.open a.op.principal{grid-column:1 / -1;min-height:66px;font-size:18px}
+  /* nivel 3: misma grilla que los rubros pero apagado, para que no compita */
+  body.focus .card.open a.op.secundario{min-height:56px;font-size:15px}   /* 15 es el piso de legibilidad que fija el test */
+  /* cantidad impar: el ultimo ocupa el ancho entero para que no quede colgado.
+     Los "principal" ya ocupan la fila entera, asi que no cuentan para la
+     paridad: se mira solo entre los que comparten la grilla de 2 columnas. */
   body.focus .card.open .btns > :last-child:nth-child(odd){grid-column:1 / -1;min-height:56px}
 }
 
@@ -162,7 +179,7 @@ span.op.lock .lk{font-size:14px;margin-left:auto;opacity:.7}
     (GP2_AUTH_ON=false) no hay sesion que cerrar: el link se oculta solo -->
     <span id="kpiResumen"></span><span id="sesion" hidden>&nbsp;·&nbsp; <a href="login.html?logout=1" onclick="try{sessionStorage.clear();}catch(e){}"
     style="color:#b42318;text-decoration:none;font-weight:700">⎋ Cerrar sesión</a></span></div>
-  <script src="version.js?v=20260830f"></script>
+  <script src="version.js?v=20260830g"></script>
   <script>if (window.GP2_AUTH_ON !== false) document.getElementById('sesion').hidden = false;</script>
 </div>
 
@@ -230,9 +247,11 @@ const MENU = [
    ["Entrega Proveedores Cervantes", null],
  ]],
  ["▦","Insumos", [
-   ["Órdenes de Compra", "Compras/OC_GP2.html"],
-   ["Inyectores · Quién hace cada parte", "Compras/Inyectores_GP2.html"],
-   ["Recepción Insumos", "StockFlejes/RecepcionInsumos_GP2.html"],
+   // El orden y las marcas los pidio el usuario: primero lo que se usa todos
+   // los dias (comprar y recibir), despues el stock rubro por rubro, y ultimo
+   // Inyectores, que es configuracion — se toca cuando cambia un proveedor.
+   ["Órdenes de Compra", "Compras/OC_GP2.html", "principal"],
+   ["Recepción Insumos", "StockFlejes/RecepcionInsumos_GP2.html", "principal"],
    ["Flejes", "StockFlejes/Flejes_GP2.html"],
    ["Cajas", "StockFlejes/Cajas_GP2.html"],
    ["Cartones", "StockFlejes/Cartones_GP2.html"],
@@ -240,6 +259,7 @@ const MENU = [
    ["Remaches", "StockFlejes/Remaches_GP2.html"],
    ["Bombillas", "StockFlejes/Bombillas_GP2.html"],
    ["Garage", "StockFlejes/Garage_GP2.html"],
+   ["Inyectores · Quién hace cada parte", "Compras/Inyectores_GP2.html", "secundario"],
  ]],
  ["🗒","Relevamiento", [ ["Relevamientos", "Relevamiento/relevamiento.html"] ]],
  ["🔗","Ventas", [ ["Chat Bot Ventas", null] ]],
@@ -287,12 +307,17 @@ MENU.forEach(([icon, titulo, items]) => {
   const box = document.createElement("div");
   box.className = "btns";
   items.forEach(([label, href, marca]) => {
+    // marca: lista separada por espacios. "vieja" = abre la app anterior;
+    // "principal"/"secundario" = peso dentro del grupo (lo pidio el usuario).
+    const marcas = String(marca || "").split(/\s+/).filter(Boolean);
+    const tiene = (m) => marcas.includes(m);
     if (href) {
-      const a = document.createElement("a"); a.className = "op" + (marca === "vieja" ? " vieja" : "");
+      const a = document.createElement("a");
+      a.className = ["op"].concat(marcas).join(" ");
       a.href = href;
-      if (marca === "vieja") a.title = "Todavía sin versión GP2: abre la pantalla de la app anterior";
+      if (tiene("vieja")) a.title = "Todavía sin versión GP2: abre la pantalla de la app anterior";
       a.innerHTML = '<span class="dot"></span><span>' + label + '</span>' +
-        (marca === "vieja" ? '<span class="tag">app vieja</span>' : '') +
+        (tiene("vieja") ? '<span class="tag">app vieja</span>' : '') +
         '<span class="arrow">›</span>';
       box.appendChild(a);
     } else {
