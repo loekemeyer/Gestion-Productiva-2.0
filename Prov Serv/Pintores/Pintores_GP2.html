@@ -1,11 +1,15 @@
 <!doctype html>
 <html lang="es">
 <head>
-<!-- v1.0.0 — Quien pinta cada parte. Hermana de "Inyectores · Quien hace cada
-     parte", con UNA diferencia de fondo: en pintura pueden pintar VARIOS lo
-     mismo, asi que los botones no son excluyentes — cada pintor se prende y se
-     apaga por separado. Y como el trabajo se reparte, la pantalla muestra el
-     consumo del mes y cuanto le toca a cada uno, en partes iguales. -->
+<!-- v2.0.0 — REPARTO POR PIEZA ENTERA (correccion del usuario). La v1 repartia
+     el consumo de CADA parte entre sus pintores (mitad y mitad). El usuario lo
+     corrigio con un ejemplo: "si a uno le mando quince cajones a pintar de uña,
+     al otro le mando diez de sacacorcho; darle las dos cosas a los dos no
+     tendria sentido". Entonces: la parte va ENTERA a un pintor, y lo que se
+     reparte es el TOTAL DE TRABAJO, medido en cajones, que es como se manda.
+     El programa PROPONE el reparto (la parte mas pesada al pintor menos
+     cargado) y la persona corrige lo que no le cierre.
+     v1.0.0 — Quien pinta cada parte, hermana de "Inyectores". -->
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>Pintores · Quién pinta cada parte · GP2</title>
@@ -42,6 +46,18 @@
   .pbtn:hover{border-color:#111}
   .pbtn.on{background:#0a7a2f;color:#fff;border-color:#0a7a2f}
   .pbtn:disabled{opacity:.45;cursor:wait}
+  /* el que TIENE la parte este mes: verde lleno. Los otros que pueden hacerla
+     quedan con borde, para que se vea de un saque quien la tiene. */
+  .pbtn.puede{border-color:#0a7a2f;color:#0a7a2f;background:#f3fbf5}
+  .pbtn.tiene{background:#0a7a2f;color:#fff;border-color:#0a7a2f}
+  .pbtn.prop{border-style:dashed;border-color:#0b3b73;color:#0b3b73;background:#f3f7fd}
+  .carga{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0;align-items:center}
+  .cbox{border:2px solid #e6eaee;border-radius:10px;padding:8px 14px;font-size:13px;color:#555;min-width:130px}
+  .cbox b{display:block;font-size:20px;color:#111}
+  .cbox .sub{font-size:12px;color:#888}
+  .btn-prop{padding:10px 16px;border-radius:10px;border:2px solid #0b3b73;background:#0b3b73;
+            color:#fff;font-weight:800;font-size:15px;cursor:pointer}
+  .btn-prop:disabled{opacity:.5}
 
   @media (max-width:640px){
     .card{border-radius:0}
@@ -82,17 +98,19 @@
 
   <div class="steps">
     <details class="nota">
-      <summary>Tocá los pintores que hacen cada parte. Pueden ser varios. Se guarda al instante.</summary>
+      <summary>Cada parte va entera a un pintor. El programa propone el reparto; vos lo corregís.</summary>
       <div style="margin-top:6px">
-        A diferencia de los inyectores, acá <b>una parte la puede pintar más de uno</b>, así que
-        los botones no se pisan: cada pintor se prende y se apaga por separado.
-        El trabajo se reparte en <b>partes iguales</b> entre los que estén prendidos, y abajo de
-        cada parte ves cuánto le toca a cada uno por mes.
+        Una parte la pueden hacer <b>varios</b> (los botones con borde verde), pero
+        <b>la trabaja uno solo</b>: el que queda en verde lleno. La parte no se parte al medio —
+        lo que se reparte es el <b>total de trabajo</b>, medido en cajones del mes.
+        <br>Tocá un pintor para darle la parte. Tocá el mismo de nuevo para sacársela.
+        Para habilitar o deshabilitar a alguien en una parte, usá el toque largo (o click derecho).
       </div>
     </details>
 
     <div class="chips" id="filtroChips"></div>
-    <div class="resumen" id="resumen"></div>
+    <div class="carga" id="carga"></div>
+    <div style="margin:8px 0"><button class="btn-prop" id="btnProponer" type="button">⚖ Proponer reparto parejo</button></div>
     <div class="search-box"><input type="text" id="q" placeholder="Buscar por código o descripción…"></div>
 
     <div class="lista" id="lista"></div>
@@ -107,11 +125,10 @@ var SB = supabase.createClient(SUPABASE_URL, SUPABASE_KEY,
 
 function $(id){ return document.getElementById(id); }
 function esc(t){ return String(t==null?'':t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
-function fmt(n){ return n==null ? '—' : Number(n).toLocaleString('es-AR',{maximumFractionDigits:0}); }
+function fmt(n,d){ return n==null ? '—' : Number(n).toLocaleString('es-AR',{maximumFractionDigits:d==null?0:d}); }
 
 var PINTORES = [], PARTES = [], filtro = 'todas';
-
-var FILTROS = { todas:'Todas', sin:'Sin pintor', varios:'Pintan varios' };
+var FILTROS = { todas:'Todas', sin:'Sin asignar', varios:'Pueden varios' };
 
 async function cargar(){
   $('status').textContent = 'Cargando…';
@@ -120,110 +137,155 @@ async function cargar(){
   var d = r.data || {};
   PINTORES = d.pintores || [];
   PARTES   = d.partes   || [];
-  pintarChips(); pintarResumen(); render();
+  pintarChips(); pintarCarga(); render();
   $('status').textContent = PARTES.length + ' partes que se pintan';
 }
+
+/* Quien tiene la parte hoy: el asignado. Si nadie la tiene, para las cuentas
+   se usa la propuesta, asi la barra de carga muestra como quedaria. */
+function duenio(p){ return p.asignado != null ? p.asignado : p.propuesto; }
 
 function pintarChips(){
   $('filtroChips').innerHTML = Object.keys(FILTROS).map(function(k){
     var n = k==='todas' ? PARTES.length
-          : k==='sin'   ? PARTES.filter(function(p){ return (p.pintores||[]).length===0; }).length
-                        : PARTES.filter(function(p){ return (p.pintores||[]).length>1; }).length;
+          : k==='sin'   ? PARTES.filter(function(p){ return p.asignado==null; }).length
+                        : PARTES.filter(function(p){ return (p.pueden||[]).length>1; }).length;
     return '<button class="chip'+(filtro===k?' active':'')+'" data-f="'+k+'">'+
            FILTROS[k]+'<span class="badge">'+n+'</span></button>';
   }).join('');
   Array.prototype.forEach.call($('filtroChips').querySelectorAll('.chip'), function(b){
-    b.addEventListener('click', function(){ filtro = b.dataset.f; pintarChips(); render(); });
+    b.addEventListener('click', function(){ filtro=b.dataset.f; pintarChips(); render(); });
   });
 }
 
-function pintarResumen(){
-  $('resumen').innerHTML = PINTORES.map(function(p){
-    return '<div class="rcard"><b>'+fmt(p.partes)+'</b>'+esc(p.nombre)+'</div>';
+/* Cuanto trabajo le queda a cada pintor. Es EL numero que importa: la parte va
+   entera, asi que lo unico que se puede emparejar es el total de cajones. */
+function pintarCarga(){
+  var acum = {}, partes = {};
+  PARTES.forEach(function(p){
+    var d = duenio(p);
+    if (d==null || p.cajones==null) return;
+    acum[d]  = (acum[d]||0) + Number(p.cajones);
+    partes[d]= (partes[d]||0) + 1;
+  });
+  var vals = PINTORES.map(function(x){ return acum[x.id]||0; });
+  var max = Math.max.apply(null, vals.concat([0]));
+  var min = Math.min.apply(null, vals.concat([max]));
+  $('carga').innerHTML = PINTORES.map(function(x){
+    var c = acum[x.id]||0;
+    var borde = (PINTORES.length>1 && c===max && max>min) ? '#b45309'
+              : (PINTORES.length>1 && c===min && max>min) ? '#0a7a2f' : '#e6eaee';
+    return '<div class="cbox" style="border-color:'+borde+'"><b>'+fmt(c,1)+'</b>'+
+           esc(x.nombre)+'<span class="sub">cajones/mes · '+(partes[x.id]||0)+' partes</span></div>';
   }).join('');
 }
 
 function visibles(){
   var q = ($('q').value||'').trim().toLowerCase();
   return PARTES.filter(function(p){
-    var n = (p.pintores||[]).length;
-    if (filtro==='sin'    && n!==0) return false;
-    if (filtro==='varios' && n<=1)  return false;
+    if (filtro==='sin'    && p.asignado!=null) return false;
+    if (filtro==='varios' && (p.pueden||[]).length<=1) return false;
     if (!q) return true;
     return (p.codigo||'').toLowerCase().indexOf(q)>=0 ||
            (p.descripcion||'').toLowerCase().indexOf(q)>=0;
   });
 }
 
-function lineaReparto(p){
-  var n = (p.pintores||[]).length;
-  if (n === 0) return '<span class="nada">Sin pintor asignado</span>';
-  if (p.consumo == null) return 'Consumo del mes: sin dato — no se puede repartir';
-  var ns = PINTORES.filter(function(x){ return p.pintores.indexOf(x.id)>=0; })
-                   .map(function(x){ return esc(x.nombre); });
-  // "A y B" con dos, "A, B y C" con tres o mas: "A y B y C" se lee mal
-  var nombres = ns.length<=1 ? (ns[0]||'')
-              : ns.slice(0,-1).join(', ') + ' y ' + ns[ns.length-1];
-  return 'Consumo del mes <b>'+fmt(p.consumo)+'</b> · a cada uno <b>'+fmt(p.x_pintor)+'</b> ('+nombres+')';
+function linea(p){
+  var t = p.cajones==null
+        ? 'Sin consumo conocido — no entra en el reparto'
+        : '<b>'+fmt(p.cajones,1)+'</b> cajones/mes ('+fmt(p.consumo)+' uni)';
+  if (p.asignado==null && p.propuesto!=null) t += ' · <i>propuesto</i>';
+  return t;
 }
 
 function render(){
   var lista = visibles();
   $('lista').innerHTML = lista.map(function(p){
-    var asignados = p.pintores || [];
+    var pueden = p.pueden || [];
     var botones = PINTORES.map(function(x){
-      var on = asignados.indexOf(x.id) >= 0;
-      return '<button class="pbtn'+(on?' on':'')+'" data-comp="'+p.comp_id+'" data-prov="'+x.id+
-             '" data-on="'+(on?'1':'0')+'" type="button">'+esc(x.nombre)+'</button>';
+      var cls = 'pbtn';
+      if (p.asignado === x.id)                        cls += ' tiene';
+      else if (p.asignado==null && p.propuesto===x.id) cls += ' prop';
+      else if (pueden.indexOf(x.id)>=0)                cls += ' puede';
+      return '<button class="'+cls+'" data-comp="'+p.comp_id+'" data-prov="'+x.id+
+             '" type="button">'+esc(x.nombre)+'</button>';
     }).join('');
-    return '<div class="parte'+(asignados.length===0?' sin':'')+'">'+
-             '<div class="p-izq">'+
-               '<div class="p-cod">'+esc(p.codigo)+'</div>'+
-               '<div class="p-desc">'+esc(p.descripcion||'')+'</div>'+
-               '<div class="p-meta">'+lineaReparto(p)+'</div>'+
-             '</div>'+
-             '<div class="p-der">'+botones+'</div>'+
-           '</div>';
+    return '<div class="parte'+(p.asignado==null?' sin':'')+'">'+
+             '<div class="p-izq"><div class="p-cod">'+esc(p.codigo)+'</div>'+
+             '<div class="p-desc">'+esc(p.descripcion||'')+'</div>'+
+             '<div class="p-meta">'+linea(p)+'</div></div>'+
+             '<div class="p-der">'+botones+'</div></div>';
   }).join('');
   $('vacio').classList.toggle('hidden', lista.length>0);
 
   Array.prototype.forEach.call($('lista').querySelectorAll('.pbtn'), function(b){
-    b.addEventListener('click', function(){ alternar(b); });
+    b.addEventListener('click', function(){ darParte(b); });
+    // toque largo / click derecho = habilitar o deshabilitar a ese pintor
+    b.addEventListener('contextmenu', function(e){ e.preventDefault(); habilitar(b); });
+    var t=null;
+    b.addEventListener('touchstart', function(){ t=setTimeout(function(){ habilitar(b); }, 600); });
+    b.addEventListener('touchend',   function(){ if(t) clearTimeout(t); });
   });
 }
 
-async function alternar(btn){
-  var comp = Number(btn.dataset.comp), prov = Number(btn.dataset.prov);
-  var activar = btn.dataset.on !== '1';
-  btn.disabled = true;
-  var r = await SB.rpc('asignar_pintor_parte',
-    { p_comp_id: comp, p_prov_id: prov, p_activo: activar });
-  btn.disabled = false;
-  if (r.error){ alert('No se pudo guardar: ' + r.error.message); return; }
+function parteDe(id){ return PARTES.filter(function(x){ return x.comp_id===id; })[0]; }
 
-  // Se actualiza en memoria y se vuelve a dibujar: asi el reparto y los
-  // contadores quedan al dia sin volver a pedir todo el bundle.
-  var p = PARTES.filter(function(x){ return x.comp_id === comp; })[0];
-  if (p){
-    p.pintores = p.pintores || [];
-    if (activar){ if (p.pintores.indexOf(prov)<0) p.pintores.push(prov); }
-    else { p.pintores = p.pintores.filter(function(id){ return id !== prov; }); }
-    var n = p.pintores.length;
-    p.n_pintores = n;
-    p.x_pintor = (p.consumo==null || n===0) ? null : Math.round((p.consumo/n)*100)/100;
+/* Click = darle la parte a ese pintor. Si ya la tenia, se la saca. */
+async function darParte(btn){
+  var comp=Number(btn.dataset.comp), prov=Number(btn.dataset.prov), p=parteDe(comp);
+  if (!p) return;
+  var quitar = p.asignado === prov;
+  if (!quitar && (p.pueden||[]).indexOf(prov)<0){
+    if (!confirm('Ese pintor no está habilitado para esta parte. ¿Lo habilito y le doy la parte?')) return;
+    var r0 = await SB.rpc('asignar_pintor_parte', { p_comp_id: comp, p_prov_id: prov, p_activo: true });
+    if (r0.error){ alert('No se pudo habilitar: '+r0.error.message); return; }
+    p.pueden = (p.pueden||[]).concat([prov]);
   }
-  var px = PINTORES.filter(function(x){ return x.id === prov; })[0];
-  if (px) px.partes = px.partes + (activar ? 1 : -1);
-  pintarChips(); pintarResumen(); render();
+  btn.disabled = true;
+  var r = await SB.rpc('asignar_pintor_activo', { p_comp_id: comp, p_prov_id: quitar ? null : prov });
+  btn.disabled = false;
+  if (r.error){ alert('No se pudo guardar: '+r.error.message); return; }
+  p.asignado = quitar ? null : prov;
+  pintarChips(); pintarCarga(); render();
 }
+
+/* Habilitar/deshabilitar a un pintor en una parte (quien PUEDE hacerla). */
+async function habilitar(btn){
+  var comp=Number(btn.dataset.comp), prov=Number(btn.dataset.prov), p=parteDe(comp);
+  if (!p) return;
+  var puede = (p.pueden||[]).indexOf(prov)>=0;
+  if (puede && p.asignado===prov){ alert('Ese pintor tiene la parte. Sacásela primero con un toque corto.'); return; }
+  var r = await SB.rpc('asignar_pintor_parte', { p_comp_id: comp, p_prov_id: prov, p_activo: !puede });
+  if (r.error){ alert('No se pudo guardar: '+r.error.message); return; }
+  p.pueden = puede ? (p.pueden||[]).filter(function(x){ return x!==prov; })
+                   : (p.pueden||[]).concat([prov]);
+  pintarChips(); pintarCarga(); render();
+}
+
+/* Aplica la propuesta del programa a todas las partes que todavia no tienen
+   dueño. Lo ya decidido a mano NO se pisa. */
+$('btnProponer').addEventListener('click', async function(){
+  var faltan = PARTES.filter(function(p){ return p.asignado==null && p.propuesto!=null; });
+  if (!faltan.length){ alert('Ya está todo asignado a mano. Si querés rehacer el reparto, sacá primero las asignaciones.'); return; }
+  if (!confirm('Se van a asignar '+faltan.length+' partes según la propuesta. Lo que ya decidiste a mano no se toca.')) return;
+  this.disabled = true;
+  for (var i=0;i<faltan.length;i++){
+    var r = await SB.rpc('asignar_pintor_activo',
+      { p_comp_id: faltan[i].comp_id, p_prov_id: faltan[i].propuesto });
+    if (r.error){ alert('Falló en '+faltan[i].codigo+': '+r.error.message); break; }
+    faltan[i].asignado = faltan[i].propuesto;
+  }
+  this.disabled = false;
+  pintarChips(); pintarCarga(); render();
+});
 
 $('btnNuevo').addEventListener('click', async function(){
   var nom = prompt('Nombre del pintor nuevo:');
-  if (nom === null) return;                       // cancelar no rompe nada
-  nom = nom.trim();
-  if (!nom) return;
+  if (nom === null) return;
+  nom = nom.trim(); if (!nom) return;
   var r = await SB.rpc('alta_proveedor_servicio', { p_nombre: nom, p_proceso: 'Pintado' });
-  if (r.error){ alert('No se pudo dar de alta: ' + r.error.message); return; }
+  if (r.error){ alert('No se pudo dar de alta: '+r.error.message); return; }
   await cargar();
 });
 

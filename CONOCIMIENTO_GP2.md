@@ -191,10 +191,26 @@ las hacen los tres (G13, G2, I6, J2) y siete las hacen Daniel + Jade.
   Está dado de alta como proveedor y **sin partes asignadas**: aparece en la botonera para
   poder sumarlo con un toque el día que haga falta.
 
-**El reparto es en PARTES IGUALES** `[usuario 2026-08-30]`: si a una parte la pintan dos,
-mitad y mitad; si son tres, un tercio cada uno. **No hay porcentaje que cargar** — el número
-sale solo de a cuántos les asignaste la parte. El vecino tampoco guarda ninguna proporción:
-sólo lista quién *puede* pintar cada cosa, así que el reparto es lógica nueva de GP2.
+**El reparto NO es partir cada parte: es repartir el TRABAJO.**
+`[usuario 2026-08-30, corrigiendo lo que había dicho antes]` Primero se anotó "partes
+iguales" y se implementó mal: se dividía el consumo de **cada** parte entre sus pintores
+(media Uña a uno, media Uña al otro). El usuario lo corrigió con un ejemplo que lo deja
+claro:
+
+> *"Si a uno le mando quince cajones a pintar de uña, entonces al otro le mando diez
+> cajones a pintar de sacacorcho. Pero darle las dos cosas a los dos no tendría sentido."*
+
+O sea: **la parte va entera a un pintor**. Lo que se empareja es el **total de cajones del
+mes** de cada uno. Por eso la tabla guarda dos cosas distintas: las filas dicen quién
+*puede* pintar cada parte, y la marcada con `asignado` dice quién la *tiene* este mes.
+
+**Se mide en CAJONES, no en unidades** `[deducido del ejemplo del usuario]`: así se manda a
+pintar y así lo piensa él. Sale de `consumo ÷ componente.uni_x_cajon`.
+
+**Lo propone el programa** `[usuario 2026-08-30]`: reparte solo, dando la parte más pesada
+al pintor menos cargado, y la persona corrige lo que no le cierre. Con los números reales
+propone Uña (7,5 cajones) a Jade y Sacacorcho + Mango (8,3) a Daniel — que es exactamente
+el ejemplo que dio el usuario, sin habérselo dicho.
 
 ### El consumo de una parte que se pinta no está donde uno lo busca
 `[dato 2026-08-30]` `v_consumo_parte` **no sirve** para las partes pintadas: esa vista sólo
