@@ -218,15 +218,55 @@ cubre componentes que están **directo en la receta** del artículo, y lo que se
 intermedio (entra a un paso de ruta y sale como otra pieza). Medido: de las 12 partes
 pintadas, **cero** aparecen ahí.
 
-El consumo de una parte pintada = **la suma del consumo de sus salidas**. Dos trampas al
-calcularlo: el mismo par entra→sale aparece en varias rutas (hay que hacer `distinct` o se
-cuenta doble), y una parte puede tener **varias salidas distintas** (G13 sale como Z40 y
-como A1, I6 como Z42 y Z29), que se suman.
+**CORREGIDO el mismo día**: el primer parche ("sumar el consumo de las salidas") estaba
+MAL — sobrecontaba cuando dos ramas convergen en la misma salida. El caso que lo destapó
+lo vio EL USUARIO: K2 y K5 mostraban el mismo consumo (2.784). K2 (Chef) rinde 46/mes y
+heredaba entero el número de B4, que era casi todo de K5 (LK). Hoy el consumo de
+cualquier parte, pintada o no, se lee de `v_consumo_componente` (ver sección 3b), que
+atribuye por artículo. `pintores_bundle()` ya la usa. Las 12 partes tienen número.
 
-Con eso, 8 de las 12 tienen número. Las otras 4 (G13, H11, I1, J13) quedan **sin dato**
-porque sus salidas no llegan a la Est Madre — se muestran así, no se inventa un número.
+### B4 eran dos piezas distintas metidas en una fila (partido 2026-08-30)
+`[usuario 2026-08-30]` "No llegan al mismo lugar, porque uno tiene marca y el otro no."
+B4 "Cpo Sacacorcho Pint Azul LK/CH" mezclaba: (a) el cuerpo pintado **LK** que Martin
+arma directo en 530/531, y (b) el cuerpo pintado **sin marca** que sigue a serigrafía de
+Hernandez Julio y recién ahí es Chef (B7 → 730/731). Se partió: **B4 = LK** (rutas
+69/70), **B4B = "Cpo Sacacorcho Pint Azul S/marca CH"** (rutas 72/73, con la fila de
+inventario en lo de Hernandez que antes tenía B4). Código B4B elegido por el usuario.
+La pista para detectar otros casos así: descripción con "LK/CH" + inventario en una
+ubicación que sólo toca una de las ramas. Se barrió toda la tabla: el único otro "LK/CH"
+es Z1A (Pza Chica Sacaf Art), y ése SÍ es compartido de verdad (la marca la lleva la
+pieza grande Z2A/Z3A) — no se toca.
 
 ---
+
+## 3b. Consumo de TODA la cadena: v_consumo_demanda / v_consumo_componente (2026-08-30)
+
+`[dato 2026-08-30]` Vistas nuevas en GP2. **`v_consumo_parte` NO se tocó** (es el corte
+del walk de `v_consumo_fleje_kg` de producción; cambiarla cascadea a OC y a
+`inventario.maximo` vía triggers). Lo nuevo convive:
+
+- **`v_consumo_demanda`** (articulo, componente, uni_mes): la demanda de la Est Madre
+  explotada por receta (`articulo_componente` + `componente_bom`) y caminada HACIA ATRÁS
+  por las rutas **del mismo artículo**. Reglas que costaron sangre:
+  - **Atribuir por artículo, no "parar en el primer nodo con consumo"**: eso sobrecontaba
+    60x (K2 = 46, no 2.784).
+  - **El walk se corta al llegar a otro componente de receta del mismo artículo**: la
+    receta de 508 lista D13 (virola) Y PC12 (mango que la contiene); sin el corte, la
+    virola se contaba doble.
+  - `UNION` sin ALL en el walk: dedupe de rutas duplicadas por tallerista y corte de ciclos.
+  - Joins por `id`, nunca por `codigo` (B4 y B7 existen como parte Y como fleje).
+- **`v_consumo_componente`**: la plana por componente (suma sobre artículos). Cobertura
+  vs la vieja: crudo 4→76, fleje 3→51, tránsito 0→38, procesado 75→81. De los 230 que ya
+  tenían número, 229 idénticos; el único que cambia es D13 822→1.264 y está BIEN (la
+  vieja no veía las virolas que viajan adentro de los mangos de 564/708).
+- **`v_consumo_fleje_kg_v2`**: kg de fleje con la demanda atribuida. vs la vieja: 43/45
+  iguales; A11 32,8→22,7 (la vieja le colgaba demanda del cuerpo C15 que no sale de ese
+  fleje) y D8 4,3→6,6 (le faltaban las virolas de 564/708). Las dos diferencias son
+  errores de la vieja.
+
+**Pendiente de decisión**: repuntar `v_punto_stock` / `oc_bundle` de las vistas viejas a
+las nuevas (cambia máximos de A11 y D8 y les da consumo a crudo/tránsito). No se hizo
+sin OK del usuario.
 
 ## 3. Reglas del negocio ya incorporadas
 
