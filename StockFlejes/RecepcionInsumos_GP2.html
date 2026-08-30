@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="es">
 <head>
-<!-- v3.9.1 — la tarjeta muestra la ultima carga sin la palabra "ult." (pedido del usuario): queda solo el numero en verde, ej. "360 kg". v3.9.0 — POPUP DE CARGA REORDENADO (pedido del usuario): Rollos y Pallets pasan a estar pegados debajo de Cantidad, que es el orden en que se lee el remito; el toggle Kg/Unidades deja de ser dos botonazos a todo el ancho y queda como dos pastillas discretas al pie (la unidad casi nunca se cambia, cada insumo trae la suya); y se saca el parrafo que explicaba que el proveedor informa rollos — la fila ya solo aparece cuando corresponde. El aviso al confirmar sin cargar rollos/pallets NO se toco. v3.8.0 — SALIDA DEL PESAJE: del paso 2 no se podia salir (Cancelar oculto + fondo bloqueado) y ademas el popup no scrolleaba hasta arriba, asi que quien lo abria por error quedaba encerrado. Ahora hay X pegada arriba, boton "Salir sin pesar" y Escape; salir no pierde nada (los items ya estan en la BD desde el paso 1) y la recepcion reaparece como "sin pesar". v3.7.2 — la OC lleva la unidad: "OC: 640 kg" (los flejes van en kg y los cartones en unidades; sin unidad el numero no dice de que habla). v3.7.1 — la OC se resume como lo que FALTA recibir, sin numero de OC. v3.7.0 — la tarjeta del insumo muestra la OC ABIERTA que lo espera y la ultima carga queda solo con los kg, sin fecha. v3.6.1 — fix: el mensaje del cruce con OC se mostraba nunca (itemSel null tras cerrar popup); aviso de pallets a medias al guardar pesaje. v3.6.0 — muestra el cruce con OC (recibido/completa/sin OC) devuelto por la BD. v3.5.0: cartones se cargan en PAQUETES de 250 (parametro carton_uni_x_paquete), guardados en unidades. v3.4.0: modo_control por proveedor: rollos_remito (Basconia/Aperam), pesaje (resto flejeros, remito solo kg), peso_total (Bella Vista). v3.3.0: Bella Vista: factura en uni (se anota convertido a kg) y control por PESO TOTAL contra el remito. v3.2.0: la balanza debe dar MAS que el remito (peso del pallet), aviso en vivo + confirm al guardar. v3.1.0: pesaje obligatorio (sin "Pesar después"): la carga no se termina hasta controlar. v3.0.0: remito multi-item: paso 1 todos los items, "Terminé de pasar remito", paso 2 pesaje de todo; modulo Control integrado aca -->
+<!-- v3.10.0 — PESAJE POR ETAPAS (pedido del usuario): el paso 2 deja de ser todos los items en un chorizo hacia abajo y pasa a UN ITEM POR VEZ (1ro -> 2do -> 3ro), con chips de progreso arriba (verde = completo, saltan al item) y Anterior/Siguiente abajo; "Guardar pesaje" aparece recien en el ultimo item. Con un solo item no hay chips ni navegacion, queda como antes. v3.9.1 — la tarjeta muestra la ultima carga sin la palabra "ult." (pedido del usuario): queda solo el numero en verde, ej. "360 kg". v3.9.0 — POPUP DE CARGA REORDENADO (pedido del usuario): Rollos y Pallets pasan a estar pegados debajo de Cantidad, que es el orden en que se lee el remito; el toggle Kg/Unidades deja de ser dos botonazos a todo el ancho y queda como dos pastillas discretas al pie (la unidad casi nunca se cambia, cada insumo trae la suya); y se saca el parrafo que explicaba que el proveedor informa rollos — la fila ya solo aparece cuando corresponde. El aviso al confirmar sin cargar rollos/pallets NO se toco. v3.8.0 — SALIDA DEL PESAJE: del paso 2 no se podia salir (Cancelar oculto + fondo bloqueado) y ademas el popup no scrolleaba hasta arriba, asi que quien lo abria por error quedaba encerrado. Ahora hay X pegada arriba, boton "Salir sin pesar" y Escape; salir no pierde nada (los items ya estan en la BD desde el paso 1) y la recepcion reaparece como "sin pesar". v3.7.2 — la OC lleva la unidad: "OC: 640 kg" (los flejes van en kg y los cartones en unidades; sin unidad el numero no dice de que habla). v3.7.1 — la OC se resume como lo que FALTA recibir, sin numero de OC. v3.7.0 — la tarjeta del insumo muestra la OC ABIERTA que lo espera y la ultima carga queda solo con los kg, sin fecha. v3.6.1 — fix: el mensaje del cruce con OC se mostraba nunca (itemSel null tras cerrar popup); aviso de pallets a medias al guardar pesaje. v3.6.0 — muestra el cruce con OC (recibido/completa/sin OC) devuelto por la BD. v3.5.0: cartones se cargan en PAQUETES de 250 (parametro carton_uni_x_paquete), guardados en unidades. v3.4.0: modo_control por proveedor: rollos_remito (Basconia/Aperam), pesaje (resto flejeros, remito solo kg), peso_total (Bella Vista). v3.3.0: Bella Vista: factura en uni (se anota convertido a kg) y control por PESO TOTAL contra el remito. v3.2.0: la balanza debe dar MAS que el remito (peso del pallet), aviso en vivo + confirm al guardar. v3.1.0: pesaje obligatorio (sin "Pesar después"): la carga no se termina hasta controlar. v3.0.0: remito multi-item: paso 1 todos los items, "Terminé de pasar remito", paso 2 pesaje de todo; modulo Control integrado aca -->
 <script src="../auth-guard.js?v=20260829f"></script>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
@@ -115,6 +115,17 @@
   .pes-calc{font-size:15px;margin-top:8px;color:#555}
   .pes-calc .okc{color:#0a7a2f;font-weight:800} .pes-calc .warnc{color:#b45309;font-weight:800}
   .pes-add{font-size:15px;font-weight:700;color:#1d4ed8;cursor:pointer;background:none;border:1px dashed #93b4d8;border-radius:8px;padding:6px 10px;margin-top:8px}
+  /* pesaje por etapas: un item por vez, con chips de progreso y Anterior/Siguiente */
+  .pes-chips{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
+  .pes-chip{padding:6px 12px;border-radius:16px;border:2px solid #d0d7de;background:#fff;font-weight:800;font-size:14px;cursor:pointer;color:#555}
+  .pes-chip.act{background:#0b3b73;border-color:#0b3b73;color:#fff}
+  .pes-chip.done{border-color:#0a7a2f;color:#0a7a2f;background:#eefaf1}
+  .pes-chip.done.act{background:#0a7a2f;color:#fff}
+  .pes-nav{display:flex;gap:10px;margin-top:14px}
+  .pes-nav button{flex:1;padding:14px;border-radius:10px;font-size:16px;font-weight:800;cursor:pointer;font-family:inherit}
+  .pes-nav .sig{background:#0b3b73;color:#fff;border:2px solid #0b3b73}
+  .pes-nav .ant{background:#fff;color:#0b3b73;border:2px solid #d0d7de}
+  .pes-paso{font-size:14px;font-weight:800;color:#555;margin-bottom:4px}
 </style>
 <link rel="icon" type="image/png" href="../GP2_favicon.png">
 <link rel="apple-touch-icon" href="../GP2_favicon.png">
@@ -540,7 +551,7 @@ function bloquesPrefill(rec){
 /* Abre el paso 2 con TODOS los items a pesar. */
 function montarPesaje(items){
   if(!items || !items.length) return;
-  PES = { items: items };
+  PES = { items: items, cur: 0 };
   var totPall=items.reduce(function(t,it){ return t+Object.keys(it.blocks).length; },0);
   $('kgTitle').textContent = 'Pesaje en balanza · paso 2 de 2';
   $('kgItemInfo').innerHTML = '<b>'+items.length+' ítem'+(items.length===1?'':'s')+'</b> · '+
@@ -593,19 +604,44 @@ function itemLinea(it){
     (dif>0?'':' ⚠ dio menos que el remito: revisá antes de guardar (¿entregaron diferente?)');
 }
 
+/* Un item esta "listo" cuando todos sus pallets tienen peso (y rollos, si aplica).
+   Solo pinta el chip de verde: la validacion de verdad sigue en Guardar. */
+function itemListo(it){
+  var nros=Object.keys(it.blocks); if(!nros.length) return false;
+  return nros.every(function(nro){
+    var p=it.blocks[nro];
+    if(!(pnum(p.peso)>0)) return false;
+    if(it.modo==='peso') return true;
+    return p.rollos.some(function(l){ return pint(l.c)>0 && pnum(l.k)>0; });
+  });
+}
+
+/* Pesaje POR ETAPAS (pedido del usuario): un item por vez — 1ro, 2do, 3ro —
+   en vez de todo el remito en un chorizo hacia abajo. Chips arriba para ver
+   el progreso y saltar; Anterior/Siguiente abajo. Guardar aparece al final. */
 function pintarPesaje(){
-  var w=$('pesajeWrap');
-  w.innerHTML = PES.items.map(function(it,i){
-    var head='<div class="pes-item-h"><span class="cod">'+esc(it.codigo)+'</span> '+esc(it.desc||'')+'</div>'+
-      (it.remitoKg?('<div class="pes-calc" data-itemcalc="'+i+'">'+itemLinea(it)+'</div>'):'');
-    if(it.modo==='peso'){
-      var pp=it.blocks[1]||{peso:'',rollos:[]};
-      return head+'<div class="pes-pallet" data-i="'+i+'" data-p="1">'+
-        '<label style="font-size:15px;font-weight:700">Peso de balanza total (kg)</label>'+
-        '<input inputmode="decimal" data-f="peso" value="'+esc(pp.peso)+'" placeholder="0,0">'+
-      '</div>';
-    }
-    var blocks=Object.keys(it.blocks).sort((a,b)=>a-b).map(function(nro){
+  var w=$('pesajeWrap'), n=PES.items.length, i=PES.cur, it=PES.items[i];
+
+  var chips = n>1
+    ? '<div class="pes-chips">'+PES.items.map(function(x,j){
+        return '<button type="button" class="pes-chip'+(j===i?' act':'')+(itemListo(x)?' done':'')+
+               '" data-nav="'+j+'">'+(itemListo(x)?'✓ ':'')+esc(x.codigo)+'</button>';
+      }).join('')+'</div>'
+    : '';
+
+  var head=(n>1?('<div class="pes-paso">Ítem '+(i+1)+' de '+n+'</div>'):'')+
+    '<div class="pes-item-h" style="margin-top:0"><span class="cod">'+esc(it.codigo)+'</span> '+esc(it.desc||'')+'</div>'+
+    (it.remitoKg?('<div class="pes-calc" data-itemcalc="'+i+'">'+itemLinea(it)+'</div>'):'');
+
+  var cuerpo;
+  if(it.modo==='peso'){
+    var pp=it.blocks[1]||{peso:'',rollos:[]};
+    cuerpo='<div class="pes-pallet" data-i="'+i+'" data-p="1">'+
+      '<label style="font-size:15px;font-weight:700">Peso de balanza total (kg)</label>'+
+      '<input inputmode="decimal" data-f="peso" value="'+esc(pp.peso)+'" placeholder="0,0">'+
+    '</div>';
+  }else{
+    cuerpo=Object.keys(it.blocks).sort((a,b)=>a-b).map(function(nro){
       var p=it.blocks[nro];
       return '<div class="pes-pallet" data-i="'+i+'" data-p="'+nro+'">'+
         '<div class="ph"><span>'+esc(it.codigo)+' · Pallet '+nro+'</span></div>'+
@@ -621,9 +657,19 @@ function pintarPesaje(){
         '<button type="button" class="pes-add" data-addl="1">+ línea de rollos</button>'+
         '<div class="pes-calc">'+calcLinea(calcPallet(p))+'</div>'+
       '</div>';
-    }).join('');
-    return head+blocks+'<button type="button" class="pes-add" data-addp="'+i+'">+ pallet en '+esc(it.codigo)+'</button>';
-  }).join('');
+    }).join('')+'<button type="button" class="pes-add" data-addp="'+i+'">+ pallet en '+esc(it.codigo)+'</button>';
+  }
+
+  var nav = n>1
+    ? '<div class="pes-nav">'+
+        (i>0?'<button type="button" class="ant" data-nav="'+(i-1)+'">← '+esc(PES.items[i-1].codigo)+'</button>':'')+
+        (i<n-1?'<button type="button" class="sig" data-nav="'+(i+1)+'">Siguiente: '+esc(PES.items[i+1].codigo)+' →</button>':'')+
+      '</div>'
+    : '';
+
+  w.innerHTML = chips + head + cuerpo + nav;
+  // Guardar recien en el ultimo item: primero se controla 1ro -> 2do -> 3ro.
+  $('kgPesajeOk').classList.toggle('hidden', i<n-1);
 }
 
 function bloqueDeFila(pb){
@@ -649,6 +695,12 @@ $('pesajeWrap').addEventListener('input', function(e){
 });
 $('pesajeWrap').addEventListener('click', function(e){
   if(!PES) return;
+  if(e.target.dataset.nav!==undefined && e.target.dataset.nav!==''){
+    PES.cur=Number(e.target.dataset.nav);
+    pintarPesaje();
+    $('kgPopup').scrollTop=0;   // cada etapa arranca arriba
+    return;
+  }
   if(e.target.dataset.addp!==undefined && e.target.dataset.addp!==''){
     var it=PES.items[Number(e.target.dataset.addp)]; if(!it) return;
     var ns=Object.keys(it.blocks).map(Number);
