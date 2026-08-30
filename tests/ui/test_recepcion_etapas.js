@@ -57,6 +57,22 @@ const EXE = process.env.CHROMIUM_PATH || (fs.existsSync('/opt/pw-browsers/chromi
   await page.click('.pes-chip >> nth=1');
   ok(await page.locator('.pes-pallet input[data-f="peso"]').inputValue() === '230', 'lo cargado sobrevive la navegacion');
 
+  // AUTO-CALCULO (v3.14.0): balanza 450 y 5 rollos => kg c/u = (450-6)/5 = 88,8 solo;
+  // corregirlo a mano lo fija y el auto no lo pisa mas
+  await page.evaluate(its => montarPesaje(its), [
+    { recId: 9, codigo: 'A9', desc: 'Fleje demo', modo: 'rollos', remitoKg: 450,
+      blocks: { 1: { peso: '', rollos: [{ c: '1', k: '' }] } } }]);
+  await page.waitForTimeout(200);
+  await page.fill('.pes-pallet input[data-f="peso"]', '450');
+  for (let i = 0; i < 4; i++) await page.click('[data-step="1"]');   // 1 -> 5 rollos
+  let kAuto = await page.locator('.kgw input').inputValue();
+  ok(kAuto === '88,8', 'kg por rollo se calcula solo: (450-6)/5 = 88,8 (dio ' + kAuto + ')');
+  ok(await page.locator('.kgw input.auto').count() === 1, 'el valor automatico se distingue (azul)');
+  await page.fill('.kgw input', '88,5');                              // correccion manual
+  await page.click('[data-step="1"]');                                // 5 -> 6 rollos
+  kAuto = await page.locator('.kgw input').inputValue();
+  ok(kAuto === '88,5', 'corregido a mano, el auto no lo pisa mas (quedo ' + kAuto + ')');
+
   // con UN item: sin chips, sin nav, Guardar visible
   await page.evaluate(its => montarPesaje(its), [items3[0]]);
   await page.waitForTimeout(200);

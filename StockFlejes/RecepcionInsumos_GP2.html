@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="es">
 <head>
-<!-- v3.13.0 — PESAJE COMPACTO (pedido del usuario: "tengo que scrollear mucho" + el numero del stepper descentrado). La etiqueta "Peso de balanza (kg)" deja de ser un bloque arriba del campo: fila inline "Balanza [450] kg". La linea de rollos entra en UNA fila "[- 5 +] rollos x [88,5] kg" (kg alineado a la derecha como la balanza); en celular el popup pierde el aire de 34px (18/12) y gana ancho util. El input del stepper queda con flex fijo y centrado real entre - y +. Cada pallet pasa de ~700px a ~230px de alto. v3.12.0 — PORTADA CON LA ESTETICA GP2 COMPARTIDA (panel de diseno, gana sobriedad): la pantalla era la UNICA de su familia con copia propia y desviada del esqueleto — ahora linkea gp2-modulo.css como OC/Pintores y queda identica al resto; los 6 rubros pasan de chips sueltos a baldosas parejas en grilla (3 col, 2 en celular, 56px); titulos de seccion en mayuscula chica; "Ver stock" AFUERA (sin referencias en JS ni tests, redundante con el menu); "Atras" queda con la pastilla estandar. Paso 2 y popup sin cambios. v3.11.0 — CARGA DE ROLLOS MAS CLARA (pedido del usuario): cada linea se lee como una frase "[- 3 +] rollos de [65] kg" — la cantidad tiene stepper -/+ (tocable con guantes, 44px) ademas de poder tipearse, el kg lleva su unidad al lado, la linea nace con 1 rollo, el boton pasa a decir "+ rollos de otro peso" y la cruz de borrar solo aparece cuando hay mas de una linea. La suma y el sobrante siguen en vivo abajo del pallet. v3.10.0 — PESAJE POR ETAPAS (pedido del usuario): el paso 2 deja de ser todos los items en un chorizo hacia abajo y pasa a UN ITEM POR VEZ (1ro -> 2do -> 3ro), con chips de progreso arriba (verde = completo, saltan al item) y Anterior/Siguiente abajo; "Guardar pesaje" aparece recien en el ultimo item. Con un solo item no hay chips ni navegacion, queda como antes. v3.9.1 — la tarjeta muestra la ultima carga sin la palabra "ult." (pedido del usuario): queda solo el numero en verde, ej. "360 kg". v3.9.0 — POPUP DE CARGA REORDENADO (pedido del usuario): Rollos y Pallets pasan a estar pegados debajo de Cantidad, que es el orden en que se lee el remito; el toggle Kg/Unidades deja de ser dos botonazos a todo el ancho y queda como dos pastillas discretas al pie (la unidad casi nunca se cambia, cada insumo trae la suya); y se saca el parrafo que explicaba que el proveedor informa rollos — la fila ya solo aparece cuando corresponde. El aviso al confirmar sin cargar rollos/pallets NO se toco. v3.8.0 — SALIDA DEL PESAJE: del paso 2 no se podia salir (Cancelar oculto + fondo bloqueado) y ademas el popup no scrolleaba hasta arriba, asi que quien lo abria por error quedaba encerrado. Ahora hay X pegada arriba, boton "Salir sin pesar" y Escape; salir no pierde nada (los items ya estan en la BD desde el paso 1) y la recepcion reaparece como "sin pesar". v3.7.2 — la OC lleva la unidad: "OC: 640 kg" (los flejes van en kg y los cartones en unidades; sin unidad el numero no dice de que habla). v3.7.1 — la OC se resume como lo que FALTA recibir, sin numero de OC. v3.7.0 — la tarjeta del insumo muestra la OC ABIERTA que lo espera y la ultima carga queda solo con los kg, sin fecha. v3.6.1 — fix: el mensaje del cruce con OC se mostraba nunca (itemSel null tras cerrar popup); aviso de pallets a medias al guardar pesaje. v3.6.0 — muestra el cruce con OC (recibido/completa/sin OC) devuelto por la BD. v3.5.0: cartones se cargan en PAQUETES de 250 (parametro carton_uni_x_paquete), guardados en unidades. v3.4.0: modo_control por proveedor: rollos_remito (Basconia/Aperam), pesaje (resto flejeros, remito solo kg), peso_total (Bella Vista). v3.3.0: Bella Vista: factura en uni (se anota convertido a kg) y control por PESO TOTAL contra el remito. v3.2.0: la balanza debe dar MAS que el remito (peso del pallet), aviso en vivo + confirm al guardar. v3.1.0: pesaje obligatorio (sin "Pesar después"): la carga no se termina hasta controlar. v3.0.0: remito multi-item: paso 1 todos los items, "Terminé de pasar remito", paso 2 pesaje de todo; modulo Control integrado aca -->
+<!-- v3.14.0 — KG POR ROLLO AUTOMATICO (pedido del usuario): con el peso de balanza y la cantidad de rollos, el kg c/u se calcula solo = (balanza - tara media del pallet, los 4-8 kg configurados) / rollos, redondeado a 0,1. Se muestra en azul mientras es automatico; apenas el operario lo corrige a mano queda en negro y el auto no lo pisa mas. Solo aplica con UNA linea de rollos (con varias de distinto peso no hay forma de repartir). v3.13.0 — PESAJE COMPACTO (pedido del usuario: "tengo que scrollear mucho" + el numero del stepper descentrado). La etiqueta "Peso de balanza (kg)" deja de ser un bloque arriba del campo: fila inline "Balanza [450] kg". La linea de rollos entra en UNA fila "[- 5 +] rollos x [88,5] kg" (kg alineado a la derecha como la balanza); en celular el popup pierde el aire de 34px (18/12) y gana ancho util. El input del stepper queda con flex fijo y centrado real entre - y +. Cada pallet pasa de ~700px a ~230px de alto. v3.12.0 — PORTADA CON LA ESTETICA GP2 COMPARTIDA (panel de diseno, gana sobriedad): la pantalla era la UNICA de su familia con copia propia y desviada del esqueleto — ahora linkea gp2-modulo.css como OC/Pintores y queda identica al resto; los 6 rubros pasan de chips sueltos a baldosas parejas en grilla (3 col, 2 en celular, 56px); titulos de seccion en mayuscula chica; "Ver stock" AFUERA (sin referencias en JS ni tests, redundante con el menu); "Atras" queda con la pastilla estandar. Paso 2 y popup sin cambios. v3.11.0 — CARGA DE ROLLOS MAS CLARA (pedido del usuario): cada linea se lee como una frase "[- 3 +] rollos de [65] kg" — la cantidad tiene stepper -/+ (tocable con guantes, 44px) ademas de poder tipearse, el kg lleva su unidad al lado, la linea nace con 1 rollo, el boton pasa a decir "+ rollos de otro peso" y la cruz de borrar solo aparece cuando hay mas de una linea. La suma y el sobrante siguen en vivo abajo del pallet. v3.10.0 — PESAJE POR ETAPAS (pedido del usuario): el paso 2 deja de ser todos los items en un chorizo hacia abajo y pasa a UN ITEM POR VEZ (1ro -> 2do -> 3ro), con chips de progreso arriba (verde = completo, saltan al item) y Anterior/Siguiente abajo; "Guardar pesaje" aparece recien en el ultimo item. Con un solo item no hay chips ni navegacion, queda como antes. v3.9.1 — la tarjeta muestra la ultima carga sin la palabra "ult." (pedido del usuario): queda solo el numero en verde, ej. "360 kg". v3.9.0 — POPUP DE CARGA REORDENADO (pedido del usuario): Rollos y Pallets pasan a estar pegados debajo de Cantidad, que es el orden en que se lee el remito; el toggle Kg/Unidades deja de ser dos botonazos a todo el ancho y queda como dos pastillas discretas al pie (la unidad casi nunca se cambia, cada insumo trae la suya); y se saca el parrafo que explicaba que el proveedor informa rollos — la fila ya solo aparece cuando corresponde. El aviso al confirmar sin cargar rollos/pallets NO se toco. v3.8.0 — SALIDA DEL PESAJE: del paso 2 no se podia salir (Cancelar oculto + fondo bloqueado) y ademas el popup no scrolleaba hasta arriba, asi que quien lo abria por error quedaba encerrado. Ahora hay X pegada arriba, boton "Salir sin pesar" y Escape; salir no pierde nada (los items ya estan en la BD desde el paso 1) y la recepcion reaparece como "sin pesar". v3.7.2 — la OC lleva la unidad: "OC: 640 kg" (los flejes van en kg y los cartones en unidades; sin unidad el numero no dice de que habla). v3.7.1 — la OC se resume como lo que FALTA recibir, sin numero de OC. v3.7.0 — la tarjeta del insumo muestra la OC ABIERTA que lo espera y la ultima carga queda solo con los kg, sin fecha. v3.6.1 — fix: el mensaje del cruce con OC se mostraba nunca (itemSel null tras cerrar popup); aviso de pallets a medias al guardar pesaje. v3.6.0 — muestra el cruce con OC (recibido/completa/sin OC) devuelto por la BD. v3.5.0: cartones se cargan en PAQUETES de 250 (parametro carton_uni_x_paquete), guardados en unidades. v3.4.0: modo_control por proveedor: rollos_remito (Basconia/Aperam), pesaje (resto flejeros, remito solo kg), peso_total (Bella Vista). v3.3.0: Bella Vista: factura en uni (se anota convertido a kg) y control por PESO TOTAL contra el remito. v3.2.0: la balanza debe dar MAS que el remito (peso del pallet), aviso en vivo + confirm al guardar. v3.1.0: pesaje obligatorio (sin "Pesar después"): la carga no se termina hasta controlar. v3.0.0: remito multi-item: paso 1 todos los items, "Terminé de pasar remito", paso 2 pesaje de todo; modulo Control integrado aca -->
 <script src="../auth-guard.js?v=20260829f"></script>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
@@ -157,6 +157,8 @@ input[type="text"]{width:200px}
 .kgw{display:flex;align-items:center;gap:5px;flex:1 1 90px;min-width:0}
 .kgw input{min-width:70px;flex:1;font-size:18px !important;padding:8px 6px !important;min-height:44px;text-align:right}
 .kgw span{font-size:15px;font-weight:700;color:#555;flex:0 0 auto}
+/* valor calculado solo (balanza - tara / rollos): azul hasta que lo corrijan */
+.kgw input.auto{color:#1d4ed8;font-weight:700}
 .pes-calc{font-size:15px;margin-top:8px;color:#555}
 .pes-calc .okc{color:#0a7a2f;font-weight:800} .pes-calc .warnc{color:#b45309;font-weight:800}
 .pes-add{font-size:15px;font-weight:700;color:#1d4ed8;cursor:pointer;background:none;border:1px dashed #93b4d8;border-radius:8px;padding:6px 10px;margin-top:8px}
@@ -698,7 +700,7 @@ function pintarPesaje(){
             '<input inputmode="numeric" data-f="c" value="'+esc(l.c)+'">'+
             '<button type="button" class="stb" data-step="1">+</button></div>'+
             '<span class="lbl">rollos ×</span>'+
-            '<div class="kgw"><input inputmode="decimal" data-f="k" value="'+esc(l.k)+'" placeholder="0,0"><span>kg</span></div>'+
+            '<div class="kgw"><input inputmode="decimal" data-f="k" class="'+(l._auto?'auto':'')+'" value="'+esc(l.k)+'" placeholder="0,0"><span>kg</span></div>'+
             (p.rollos.length>1?'<span class="x" data-del="1" title="Quitar línea">✕</span>':'')+
           '</div>';
         }).join('')+
@@ -733,8 +735,11 @@ $('pesajeWrap').addEventListener('input', function(e){
   if(f==='peso') p.peso=e.target.value;
   else{
     var ln=e.target.closest('.pes-linea'); if(!ln) return;
-    p.rollos[Number(ln.dataset.l)][f]=e.target.value;
+    var lx=p.rollos[Number(ln.dataset.l)];
+    lx[f]=e.target.value;
+    if(f==='k'){ lx._auto=false; e.target.classList.remove('auto'); }  // correccion manual: manda la persona
   }
+  autoKg(p, pb);
   // refrescar solo la línea de cálculo (sin re-render, para no perder el foco)
   var cl=pb.querySelector('.pes-calc');
   if(cl) cl.innerHTML=calcLinea(calcPallet(p));
@@ -761,6 +766,7 @@ $('pesajeWrap').addEventListener('click', function(e){
     var ln0=e.target.closest('.pes-linea'); if(!ln0) return;
     var l0=p.rollos[Number(ln0.dataset.l)];
     l0.c=String(Math.max(0, pint(l0.c)+Number(e.target.dataset.step)));
+    autoKg(p);
     pintarPesaje(); return;
   }
   // la linea nueva arranca en 1 rollo; casi siempre es "el mismo peso que el anterior no"
@@ -967,6 +973,27 @@ function palletsDe(rid){ return PALL.filter(p=>p.recepcion_id===rid); }
 function rollosDe(cid){ return ROLL.filter(r=>r.control_id===cid); }
 function pint(v){var x=parseInt(String(v==null?'':v).replace(/\D/g,''),10);return isNaN(x)?null:x;}
 function pnum(v){var x=parseFloat(String(v==null?'':v).trim().replace(',','.'));return isNaN(x)?null:x;}
+/* AUTO-CALCULO del kg por rollo (pedido del usuario): balanza y cantidad alcanzan —
+   kg/rollo = (peso de balanza - tara media del pallet) / rollos. Solo cuando el pallet
+   tiene UNA linea de rollos y el campo esta vacio o ya era automatico: apenas el
+   operario lo corrige a mano, el auto deja de pisarlo. Redondeo a 0,1 kg. */
+function autoKg(p, pb){
+  if(!p || (p.rollos||[]).length!==1) return;
+  var l=p.rollos[0];
+  if(l.k!=='' && !l._auto) return;             // lo escribio la persona: no tocar
+  var peso=pnum(p.peso), c=pint(l.c);
+  if(!(peso>0) || !(c>0)) return;
+  var tmid=(Number(TARA.tara_pallet_min||4)+Number(TARA.tara_pallet_max||8))/2;
+  var k=Math.round((peso-tmid)/c*10)/10;
+  if(!(k>0)) return;
+  l.k=String(k).replace('.',',');
+  l._auto=true;
+  if(pb){
+    var ki=pb.querySelector('.kgw input');
+    if(ki && ki!==document.activeElement){ ki.value=l.k; ki.classList.add('auto'); }
+  }
+}
+
 function calcPallet(p){
   var peso=pnum(p.peso), kg=0, rollos=0, algo=false;
   (p.rollos||[]).forEach(l=>{var c=pint(l.c),k=pnum(l.k); if(c&&k){kg+=c*k;rollos+=c;algo=true;}});
