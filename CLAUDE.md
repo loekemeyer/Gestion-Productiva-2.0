@@ -100,20 +100,18 @@ el agente no sirve.
 
 Corre solo, todos los días a las 6:00 (AR), en una sesión nueva. Audita el repo (suite,
 render 390px, deuda, docs desviadas) y registra ideas con **código de 4 dígitos** en
-`IDEAS-GP2.md` de la rama **`agente/ideas`** (nunca toca main). Los fixes chicos y
-seguros los deja implementados y verificados en ramas `idea/<código>`, estado `lista`.
-Si no encuentra nada, dice "Sin novedades" y no molesta. Aviso push al usuario al cierre.
+`IDEAS-GP2.md` **en main** (SIN ramas — regla del usuario 2026-08-30: "no quiero
+ramas, solo en main"). Los fixes chicos y seguros los hace DIRECTO en main, con la
+suite completa en verde antes de pushear, y los anota como hechos. Si no encuentra
+nada, dice "Sin novedades" y no molesta. Aviso push al usuario al cierre.
 
-**Comando `:`** — si el usuario escribe `:`, traer el registro
-(`git fetch origin agente/ideas && git show origin/agente/ideas:IDEAS-GP2.md`) y
-mostrar las ideas `pendiente`/`lista` como checklist de a 5, para que tilde.
+**Comando `:`** — si el usuario escribe `:`, leer `IDEAS-GP2.md` y mostrar las ideas
+`pendiente` como checklist de a 5, para que tilde.
 
-**Idea aceptada** ("dale 4837" o tildada): si está `lista` con rama → merge directo a
-main (`git merge --no-ff origin/idea/4837`), suite en verde, push. Si está `pendiente`
-→ desarrollarla ahora en `idea/4837`, verificar y mergear igual. Después marcar la
-línea en IDEAS-GP2.md (`[x]` hecha, o `~~tachada~~` descartada) y pushear la rama
-`agente/ideas`. Las ideas que escribe el usuario en el chat también se registran ahí
-(mismo formato, para que no se pierdan).
+**Idea aceptada** ("dale 4837" o tildada): desarrollarla AHORA directo en main,
+verificar (suite en verde) y pushear. Después marcar la línea en IDEAS-GP2.md
+(`[x]` hecha, o `~~tachada~~` descartada). Las ideas que escribe el usuario en el
+chat también se registran ahí (mismo formato, para que no se pierdan).
 
 ## Perfiles de Usuario (LEER AL INICIO)
 
