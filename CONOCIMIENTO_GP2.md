@@ -185,6 +185,12 @@ una relación de muchos a muchos, no un campo.
 **la regla**: de las 11 partes pintadas del vecino, **ninguna la pinta uno solo**. Cuatro
 las hacen los tres (G13, G2, I6, J2) y siete las hacen Daniel + Jade.
 
+**Renombrado 2026-08-30**: `proveedor_servicio.nombre` id 5 pasó de "Becker Sandra
+Nora" a **"Jade"** (elección del usuario: "lo que sea mejor para la normalización"). El
+nombre legal quedó como alias en `contraparte_alias` (tipo proveedor_servicio, ref 5)
+así el espejo Virgilio sigue matcheando por cualquiera de los dos. La ubicación 17
+también: "Prov. Serv. Jade".
+
 **Quiénes pintan** `[usuario 2026-08-30]`:
 - **Jade** (= Becker Sandra Nora, ver arriba) y **Daniel**, que son los dos que trabajan.
 - **Rec Color** existe y hay que tenerlo contemplado, pero *"creo que no le mandamos nada"*.
