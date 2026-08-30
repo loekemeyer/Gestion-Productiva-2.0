@@ -1,38 +1,54 @@
 <!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Despiece x Artículo (GP2)</title>
+<!-- v2.0.0 - FUSION (pedido del usuario: "Que funcione mergeado todo en despiece x articulo"):
+     esta pantalla absorbe Verificacion (trazado de rutas, confirmar/reportar/resolver contra
+     ruta_confirmada/ruta_problema, misma firma de deduplicacion) y VerifMadres (componentes
+     con kg_x_uni / uni_x_cajon faltantes). Por articulo se ve receta + rutas + avisos; arriba
+     un resumen global con filtro "solo artículos con pendientes". RPC nueva despiece_verif_bundle
+     (un solo viaje). Las pantallas viejas Verificacion_GP2 y VerifMadres_GP2 se borraron. -->
 <style>
  *{box-sizing:border-box}
  body{margin:0;background:#0a0e13;color:#e6ecf3;font:13px/1.4 -apple-system,Segoe UI,Roboto,sans-serif}
  .top{background:linear-gradient(90deg,#0a2a3a,#0f4256);padding:12px 20px;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
  .top h1{margin:0;font-size:18px;color:#5fd0e0}
  .top .sub{font-size:11px;color:#8fc4d0}
- .filters{padding:12px 20px;background:#101820;border-bottom:1px solid #1e2a38;display:flex;gap:12px;flex-wrap:wrap;align-items:center}
- .filters label{font-size:11px;text-transform:uppercase;color:#7a92a8;letter-spacing:.5px;margin-right:6px}
- .filters select,.filters input{background:#0b1119;color:#e6ecf3;border:1px solid #2a4a6e;border-radius:6px;padding:6px 10px;font:13px inherit}
- .filters input{min-width:220px}
- .filters select{min-width:260px}
- .btn{background:#2a4a6e;color:#e6ecf3;border:none;border-radius:6px;padding:6px 12px;cursor:pointer;font:13px inherit}
+ .filters{padding:12px 20px;background:#101820;border-bottom:1px solid #1e2a38;display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+ .filters label{font-size:11px;text-transform:uppercase;color:#7a92a8;letter-spacing:.5px;margin-right:2px}
+ .filters select,.filters input[type=text]{background:#0b1119;color:#e6ecf3;border:1px solid #2a4a6e;border-radius:6px;padding:8px 10px;font:18px inherit}
+ .filters input[type=text]{min-width:180px;flex:1}
+ .filters select{min-width:200px;max-width:100%}
+ .filters .chk{font-size:12px;color:#8fc4d0;display:flex;align-items:center;gap:6px;cursor:pointer;text-transform:none;letter-spacing:0}
+ .btn{background:#2a4a6e;color:#e6ecf3;border:none;border-radius:6px;padding:8px 12px;cursor:pointer;font:13px inherit;min-height:38px}
  .btn:hover{background:#356090}
- .kpis{padding:12px 20px;display:flex;gap:14px;flex-wrap:wrap}
- .kpi{background:#101820;border:1px solid #1e2a38;border-radius:8px;padding:10px 14px;min-width:110px}
+ .kpis{padding:12px 20px;display:flex;gap:10px;flex-wrap:wrap}
+ .kpi{background:#101820;border:1px solid #1e2a38;border-radius:8px;padding:10px 14px;min-width:104px}
  .kpi .n{font-size:22px;font-weight:800;color:#5fd0e0}
+ .kpi .n.warn{color:#e0a95a}
+ .kpi .n.ok{color:#5fd39a}
  .kpi .lb{font-size:10px;text-transform:uppercase;color:#7a92a8;letter-spacing:.6px}
  .content{padding:0 20px 40px}
  .art-section{margin:14px 0;border:1px solid #1e2a38;border-radius:8px;background:#0d141d;overflow:hidden}
- .art-head{padding:9px 14px;background:linear-gradient(90deg,#152233,#101820);display:flex;align-items:center;gap:14px;cursor:pointer;user-select:none;flex-wrap:wrap}
+ .art-head{padding:9px 14px;background:linear-gradient(90deg,#152233,#101820);display:flex;align-items:center;gap:10px;cursor:pointer;user-select:none;flex-wrap:wrap}
  .art-head:hover{background:#1a2b40}
  .art-head .caret{color:#7a92a8;transition:transform .15s;display:inline-block;width:12px}
  .art-section.open .art-head .caret{transform:rotate(90deg)}
  .art-head .cod{color:#5fd0e0;font-weight:800;font-size:15px}
  .art-head .fam{color:#8fc4f0;font-size:12px}
- .art-head .stats{margin-left:auto;display:flex;gap:16px;font-size:11px;color:#7a92a8;align-items:center}
+ .art-head .stats{margin-left:auto;display:flex;gap:12px;font-size:11px;color:#7a92a8;align-items:center;flex-wrap:wrap}
  .art-head .stats b{color:#e6ecf3;font-size:13px}
- .art-body{display:none;padding:0;overflow-x:auto}
+ .pill{display:inline-block;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:700}
+ .pill.warn{background:#3a2a10;color:#e0a95a}
+ .pill.bad{background:#3a1216;color:#ff8f9a}
+ .pill.ok{background:#0e3226;color:#5fd39a}
+ .art-body{display:none;padding:0}
  .art-section.open .art-body{display:block}
+ .bloque{padding:8px 14px 4px;font-size:11px;text-transform:uppercase;letter-spacing:.6px;color:#7a92a8;font-weight:700}
+ .tabla-wrap{overflow-x:auto}
  table{border-collapse:collapse;font-size:12px;width:100%;min-width:640px}
  th,td{padding:6px 12px;text-align:left;border-bottom:1px solid #1e2a38;white-space:nowrap}
  th{color:#7a92a8;text-transform:uppercase;font-size:10px;letter-spacing:.4px;background:#0a1119}
  td.num{text-align:right;font-family:ui-monospace,SF Mono,monospace}
+ td.falta{background:#3a1a0a;color:#e0a95a;font-weight:700}
  tbody tr:hover{background:#111c28}
  .sect-tag{display:inline-block;padding:2px 8px;border-radius:3px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.3px}
  .st-crudo{background:#3a2a10;color:#e0a95a}
@@ -50,6 +66,53 @@
  .st-none{background:#222;color:#888}
  .empty{padding:24px;color:#7a92a8;font-style:italic}
  .muted{color:#5a6a7a}
+ /* ── rutas (viene de Verificacion_GP2, adaptado al tema oscuro) ── */
+ .ruta-card{margin:8px 14px;padding:10px 12px;background:#0a1119;border:1px solid #1e2a38;border-radius:10px}
+ .ruta-card.incompleta{border-left:4px solid #e0a95a}
+ .rc-head{display:flex;align-items:center;margin-bottom:8px;flex-wrap:wrap;gap:6px;font-size:12px;color:#8fc4d0}
+ .badge{padding:2px 8px;border-radius:10px;font-size:11px;font-weight:700}
+ .badge.ok{background:#0e3226;color:#5fd39a}
+ .badge.inc{background:#3a1216;color:#ff8f9a}
+ .badge.conf{background:#0e3226;color:#5fd39a}
+ .badge.pin{background:#3a2a10;color:#e0a95a}
+ .badge.warn{background:#3a1216;color:#ff8f9a}
+ .ruta-flow{display:flex;flex-wrap:wrap;gap:4px;align-items:center}
+ .node{display:inline-flex;flex-direction:column;align-items:flex-start;gap:1px;color:#fff;padding:4px 10px;border-radius:6px;line-height:1.2}
+ .node .nm{font-size:12px;font-weight:600;white-space:nowrap}
+ .node .sub{font-size:10px;opacity:.92;font-weight:400;white-space:nowrap}
+ .sep{color:#64748b;margin:0 3px;align-self:center}
+ .rc-actions{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+ .btn-conf{padding:8px 12px;border-radius:6px;border:1px solid #2a4a6e;font-size:12px;cursor:pointer;font-weight:700;background:#101820;color:#e6ecf3;min-height:40px}
+ .btn-conf.ok{background:#0e3226;color:#5fd39a;border-color:#1b5a40}
+ .btn-conf.pin{background:#3a2a10;color:#e0a95a;border-color:#6b4c1c}
+ .btn-conf.warn{background:#3a1216;color:#ff8f9a;border-color:#6b232c}
+ .btn-conf.resolve{background:#0f2f3a;color:#5fd0e0;border-color:#1c5a6e}
+ .prob-item{margin-top:8px;padding:8px 10px;background:#1c1012;border-radius:6px;border:1px solid #4a1e26;font-size:12px;color:#ffb4bc}
+ .prob-item .prob-meta{color:#7a92a8;font-size:11px;margin-top:4px}
+ .avisos{margin:8px 14px 14px;padding:10px 12px;background:#151109;border:1px solid #4a3a15;border-radius:10px;font-size:12px;color:#e0c08a}
+ .avisos.limpio{background:#0c1a13;border-color:#1b5a40;color:#5fd39a}
+ .avisos b{color:#e0a95a}
+ .avisos.limpio b{color:#5fd39a}
+ .avisos ul{margin:6px 0 0;padding-left:18px}
+ .avisos li{margin:2px 0}
+ /* modal reportar problema */
+ .modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;align-items:center;justify-content:center;z-index:200}
+ .modal-bg.on{display:flex}
+ .modal-box{background:#101820;border:1px solid #2a4a6e;border-radius:12px;padding:20px;max-width:420px;width:92%}
+ .modal-box h3{margin:0 0 12px;font-size:15px;color:#e6ecf3}
+ .modal-box textarea{width:100%;height:80px;background:#0b1119;color:#e6ecf3;border:1.5px solid #2a4a6e;border-radius:8px;padding:8px;font:18px inherit;resize:vertical}
+ .modal-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:12px}
+ .modal-actions button{padding:10px 16px;border-radius:8px;border:none;font-size:13px;font-weight:700;cursor:pointer;min-height:44px}
+ .modal-ok{background:#2a4a6e;color:#fff}.modal-cancel{background:#1a2430;color:#8fc4d0}
+ @media (max-width:640px){
+  .top,.filters,.kpis,.content{padding-left:10px;padding-right:10px}
+  .kpi{min-width:calc(33% - 8px);padding:8px 10px;flex:1}
+  .kpi .n{font-size:18px}
+  .filters select{min-width:0;flex:1 1 100%}
+  .btn-conf{min-height:44px}
+  .ruta-card{margin:8px 6px}
+  .avisos{margin:8px 6px 12px}
+ }
 </style><link rel="icon" type="image/png" href="../GP2_favicon.png">
 <link rel="apple-touch-icon" href="../GP2_favicon.png">
 <link rel="stylesheet" href="../gp2-claro.css?v=20260830e">
@@ -60,19 +123,31 @@
 <div class="top">
   <div>
     <h1>🔧 Despiece x Artículo</h1>
-    <div class="sub">Lista de materiales (BOM) por artículo — componentes, cantidades y pesos. Datos: schema GP2.</div>
+    <div class="sub">Receta (BOM), ruta trazada y avisos por artículo — confirmá o reportá cada ruta acá mismo. Datos: schema GP2.</div>
   </div>
 </div>
 <div class="filters">
   <label>Artículo</label>
   <select id="selArt"><option value="">— todos —</option></select>
-  <label style="margin-left:8px">Buscar</label>
-  <input id="q" placeholder="Código, familia o componente">
+  <input id="q" type="text" placeholder="Buscar código, familia, componente, fleje...">
+  <label class="chk"><input type="checkbox" id="chkPend"> Solo artículos con pendientes</label>
+  <label class="chk">Usuario <input id="inpUsuario" type="text" placeholder="tu nombre" style="width:130px;background:#0b1119;color:#e6ecf3;border:1px solid #2a4a6e;border-radius:6px;padding:6px 8px;font:18px inherit"></label>
   <button class="btn" id="expAll" style="margin-left:auto">Expandir todo</button>
   <button class="btn" id="btnCSV">Exportar CSV</button>
 </div>
 <div class="kpis" id="kpis"></div>
 <div class="content" id="sections"></div>
+
+<div class="modal-bg" id="modalBg">
+  <div class="modal-box">
+    <h3>Reportar problema en esta ruta</h3>
+    <textarea id="modalTxt" placeholder="Describí el problema que encontraste…"></textarea>
+    <div class="modal-actions">
+      <button class="modal-cancel" onclick="cerrarModal()">Cancelar</button>
+      <button class="modal-ok" onclick="enviarReporte()">Reportar</button>
+    </div>
+  </div>
+</div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="../supabase-config.js?v=20260830e"></script>
@@ -83,35 +158,100 @@ var SB=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY,{db:{schema:'GP2'}
 function esc(s){var d=document.createElement('div');d.textContent=(s==null?'':String(s));return d.innerHTML;}
 function fmtKg(v){if(v==null||v==='')return '';var n=Number(v);if(!isFinite(n))return '';return n.toString();}
 function fmtQ(v){if(v==null||v==='')return '';var n=Number(v);if(!isFinite(n))return esc(v);return Math.round(n*10000)/10000;}
+function norm(s){return String(s==null?'':s).trim().toUpperCase();}
 
+var SIN_ART='— sin artículo —';
 var open={};
+var MODAL_FIRMA=null;
 var selArt=document.getElementById('selArt');
 var fQ=document.getElementById('q');
+var chkPend=document.getElementById('chkPend');
+
+/* estado de rutas: firmas confirmadas + problemas por firma (misma firma de
+   deduplicacion que usaba Verificacion_GP2: F:<fleje>|tp:actor|... ) */
+var CONFIRMADAS=new Set();
+var PROBLEMAS_MAP={};
+function makeFirma(r,pasos){
+  var parts=['F:'+(r.fleje||'?')];
+  pasos.forEach(function(p){parts.push((p.tp||'?')+':'+(p.actor||p.cs||p.ce||''));});
+  return parts.join('|');
+}
+var RUTAS=[];           // [{r,pasos,completa,firma,idx}]
+var RUTAS_BY_ART={};    // cod articulo -> [x]
+var FIRMA_IDX={};       // firma -> x (para el modal)
+
+function rutaEstado(firma){
+  if(CONFIRMADAS.has(firma)) return 'conf';
+  var probs=PROBLEMAS_MAP[firma]||[];
+  if(probs.some(function(p){return p.estado==='pendiente';})) return 'warn';
+  if(probs.some(function(p){return p.estado==='resuelto';})) return 'pin';
+  return '';
+}
+
+function prepara(){
+  CONFIRMADAS=new Set();PROBLEMAS_MAP={};
+  (D.confirmadas||[]).forEach(function(c){CONFIRMADAS.add(c.firma);});
+  (D.problemas||[]).forEach(function(p){
+    (PROBLEMAS_MAP[p.firma]=PROBLEMAS_MAP[p.firma]||[]).push(p);
+  });
+  RUTAS=(D.rutas||[]).map(function(r,idx){
+    var pasos=r.pasos||[];
+    var completa=pasos.some(function(p){return p.tp==='virgilio'||p.tp==='tallerista';});
+    var firma=makeFirma(r,pasos);
+    var txt=norm([r.art,r.fam,r.fleje,r.fleje_desc,r.nom].concat(
+      pasos.map(function(p){return [p.actor,p.actor_desc,p.ce,p.ce_d,p.cs,p.cs_d,p.tp].join(' ');})
+    ).join(' '));
+    return {r:r,pasos:pasos,completa:completa,firma:firma,txt:txt,idx:idx};
+  });
+  RUTAS_BY_ART={};FIRMA_IDX={};
+  RUTAS.forEach(function(x){
+    var k=x.r.art||SIN_ART;
+    (RUTAS_BY_ART[k]=RUTAS_BY_ART[k]||[]).push(x);
+    FIRMA_IDX[x.firma]=x;
+  });
+}
+
+/* pendientes por articulo: rutas sin confirmar + componentes con datos
+   faltantes (lo que mostraba VerifMadres) + problemas pendientes */
+function artPend(a){
+  var rutas=RUTAS_BY_ART[a.cod]||[];
+  var sinConf=rutas.filter(function(x){return rutaEstado(x.firma)!=='conf';}).length;
+  var probPend=0;
+  rutas.forEach(function(x){
+    probPend+=(PROBLEMAS_MAP[x.firma]||[]).filter(function(p){return p.estado==='pendiente';}).length;
+  });
+  var faltas=(a.comp||[]).filter(function(c){return c.fkg||c.fuxc;});
+  return {rutas:rutas,sinConf:sinConf,probPend:probPend,faltas:faltas,
+          total:sinConf+probPend+faltas.length};
+}
+
+var open={};
 
 function __run(){
-  // Poblar select de artículos (orden numérico/locale)
+  prepara();
   var arts=(D.art||[]).slice().sort(function(a,b){
     return String(a.cod).localeCompare(String(b.cod),'es',{numeric:true});
   });
+  if(RUTAS_BY_ART[SIN_ART]) arts.push({cod:SIN_ART,fam:'',comp:[],sinArt:true});
   D.art=arts;
   selArt.innerHTML='<option value="">— todos —</option>';
   arts.forEach(function(a){
     var o=document.createElement('option');
     o.value=a.cod;
-    o.textContent=a.cod+' — '+(a.fam||'');
+    o.textContent=a.cod+(a.fam?' — '+a.fam:'');
     selArt.appendChild(o);
   });
 
   selArt.addEventListener('change',function(){
-    // Al elegir uno, abrirlo y limpiar búsqueda
     if(selArt.value){open={};open[selArt.value]=1;}
     render();
     if(selArt.value){
-      var el=document.getElementById('art-'+selArt.value);
+      var el=document.getElementById('art-'+cssId(selArt.value));
       if(el)el.scrollIntoView({behavior:'smooth',block:'start'});
     }
   });
   fQ.addEventListener('input',render);
+  chkPend.addEventListener('change',render);
   document.getElementById('expAll').addEventListener('click',function(){
     var vis=visibles();
     var all=vis.every(function(a){return open[a.cod];});
@@ -120,91 +260,260 @@ function __run(){
   });
   document.getElementById('btnCSV').addEventListener('click',exportCSV);
 
+  var savedU=localStorage.getItem('gp2_usuario');
+  if(savedU)document.getElementById('inpUsuario').value=savedU;
+
+  wireLista();
   render();
 }
 
+function cssId(cod){return String(cod).replace(/[^a-z0-9_-]/gi,'_');}
 function sectNom(sid){var s=(D.sect||{})[String(sid)];return s?s.nom:'';}
 function sectTipo(sid){var s=(D.sect||{})[String(sid)];return s?s.tipo:'';}
+function getUsuario(){
+  var inp=document.getElementById('inpUsuario');
+  var u=(inp&&inp.value.trim())||localStorage.getItem('gp2_usuario')||'';
+  if(u&&inp) try{localStorage.setItem('gp2_usuario',u);}catch(e){}
+  return u||'(sin nombre)';
+}
 
 function visibles(){
   var q=fQ.value.trim().toLowerCase();
   var selCod=selArt.value;
+  var soloPend=chkPend.checked;
   return (D.art||[]).filter(function(a){
     if(selCod&&a.cod!==selCod)return false;
+    if(soloPend&&artPend(a).total===0)return false;
     if(!q)return true;
     if(String(a.cod).toLowerCase().indexOf(q)>=0)return true;
     if((a.fam||'').toLowerCase().indexOf(q)>=0)return true;
-    // buscar en componentes
-    return (a.comp||[]).some(function(c){
+    if((a.comp||[]).some(function(c){
       return (c.cod||'').toLowerCase().indexOf(q)>=0||(c.d||'').toLowerCase().indexOf(q)>=0;
-    });
+    }))return true;
+    return (RUTAS_BY_ART[a.cod]||[]).some(function(x){return x.txt.indexOf(norm(q))>=0;});
   });
 }
 
+/* ── nodos de la ruta (mismos colores que Verificacion_GP2) ── */
+var COLORES={
+  ingreso:{bg:'#6366f1',icon:'🔩',tp:'Ingreso'},
+  matriz:{bg:'#f59e0b',icon:'⚙️',tp:'Matriz'},
+  insumo:{bg:'#b45309',icon:'🧩',tp:'Insumo'},
+  proveedor_servicio:{bg:'#f43f5e',icon:'🏭',tp:'Proveedor'},
+  tallerista:{bg:'#8b5cf6',icon:'👷',tp:'Tallerista'},
+  virgilio:{bg:'#10b981',icon:'✅',tp:'Virgilio'},
+  otro:{bg:'#64748b',icon:'•',tp:''}
+};
+function nodo(p){
+  var col=COLORES[p.tp]||COLORES.otro;
+  var label;
+  if(p.actor) label=col.icon+' '+p.actor;
+  else if(p.tp==='virgilio') label=col.icon+' Art '+(p.art||p.ce||'');
+  else if(p.tp==='ingreso') label=col.icon+' '+(p.ce||'');
+  else label=col.icon+' '+(p.cs||p.ce||'');
+  var subParts=[];
+  if(p.cs&&p.tp!=='ingreso') subParts.push(p.cs);
+  var d=p.cs_d||p.actor_desc||p.ce_d||'';
+  if(d) subParts.push(d);
+  var sub=subParts.join(' · ');
+  return '<span class="node" style="background:'+col.bg+'">'+
+    '<span class="nm">'+esc(label)+'</span>'+
+    (sub?'<span class="sub">'+esc(sub)+'</span>':'')+
+    '</span>';
+}
+function renderRuta(x){
+  var estado=rutaEstado(x.firma);
+  var badgeInc=x.completa?'':'<span class="badge inc">Incompleta</span>';
+  var badgeEst='';
+  if(estado==='conf') badgeEst='<span class="badge conf">✅ Confirmada</span>';
+  else if(estado==='warn') badgeEst='<span class="badge warn">⚠ Problema</span>';
+  else if(estado==='pin') badgeEst='<span class="badge pin">📌 Revisar</span>';
+  var probs=(PROBLEMAS_MAP[x.firma]||[]).map(function(p){
+    var res=p.estado==='resuelto'?'<span style="color:#5fd39a">✅ Resuelto</span> · ':'';
+    var btnRes=p.estado==='pendiente'?'<div style="margin-top:4px"><button class="btn-conf resolve" data-resolver="'+p.id+'">Marcar resuelto</button></div>':'';
+    return '<div class="prob-item">'+res+esc(p.problema)+
+      '<div class="prob-meta">Reportado por '+esc(p.por||p.reportado_por||'')+' · '+new Date(p.en||p.reportado_en).toLocaleDateString('es-AR')+'</div>'+btnRes+'</div>';
+  }).join('');
+  return '<div class="ruta-card'+(x.completa?'':' incompleta')+'" data-firma="'+esc(x.firma)+'">'+
+    '<div class="rc-head">Fleje <b style="color:#5fd0e0">'+esc(x.r.fleje||'?')+'</b>'+
+      (x.r.fleje_desc?'<span> · '+esc(x.r.fleje_desc)+'</span>':'')+badgeInc+badgeEst+'</div>'+
+    '<div class="ruta-flow">'+x.pasos.map(nodo).join('<span class="sep">›</span>')+'</div>'+
+    '<div class="rc-actions">'+
+      '<button class="btn-conf ok" data-ridx="'+x.idx+'" data-act="conf">✅ Confirmar</button>'+
+      '<button class="btn-conf pin" data-ridx="'+x.idx+'" data-act="pin">📌 Revisar después</button>'+
+      '<button class="btn-conf warn" data-ridx="'+x.idx+'" data-act="warn">⚠ Reportar problema</button>'+
+    '</div>'+probs+'</div>';
+}
+
+function renderKpis(){
+  var arts=(D.art||[]).filter(function(a){return !a.sinArt;});
+  var sinConf=RUTAS.filter(function(x){return rutaEstado(x.firma)!=='conf';}).length;
+  var probPend=(D.problemas||[]).filter(function(p){return p.estado==='pendiente';}).length;
+  var m=D.madres||{};
+  var artsPend=(D.art||[]).filter(function(a){return artPend(a).total>0;}).length;
+  document.getElementById('kpis').innerHTML=
+    '<div class="kpi"><div class="n">'+arts.length+'</div><div class="lb">Artículos</div></div>'+
+    '<div class="kpi"><div class="n '+(sinConf?'warn':'ok')+'" id="kpiSinConf">'+sinConf+'</div><div class="lb">Rutas sin confirmar (de '+RUTAS.length+')</div></div>'+
+    '<div class="kpi"><div class="n '+(probPend?'warn':'ok')+'">'+probPend+'</div><div class="lb">Problemas pend.</div></div>'+
+    '<div class="kpi"><div class="n '+(m.sin_kg?'warn':'ok')+'">'+(m.sin_kg||0)+'</div><div class="lb">Comp. sin Kg x Uni</div></div>'+
+    '<div class="kpi"><div class="n '+(m.sin_uxc?'warn':'ok')+'">'+(m.sin_uxc||0)+'</div><div class="lb">Comp. sin Uni x Cajón</div></div>'+
+    '<div class="kpi"><div class="n '+(artsPend?'warn':'ok')+'">'+artsPend+'</div><div class="lb">Artículos con pendientes</div></div>';
+}
+
 function render(){
+  renderKpis();
   var cont=document.getElementById('sections');
   cont.innerHTML='';
   var vis=visibles();
-
-  // KPIs
-  var totalComp=0,totalArt=(D.art||[]).length;
-  vis.forEach(function(a){totalComp+=(a.comp||[]).length;});
-  document.getElementById('kpis').innerHTML=
-    '<div class="kpi"><div class="n">'+totalArt+'</div><div class="lb">Artículos</div></div>'+
-    '<div class="kpi"><div class="n">'+vis.length+'</div><div class="lb">En vista</div></div>'+
-    '<div class="kpi"><div class="n">'+totalComp+'</div><div class="lb">Componentes (vista)</div></div>';
-
   if(vis.length===0){cont.innerHTML='<div class="empty">Sin artículos para el filtro actual.</div>';return;}
 
   vis.forEach(function(a){
     var comps=a.comp||[];
+    var pend=artPend(a);
     var sec=document.createElement('div');
     sec.className='art-section'+(open[a.cod]?' open':'');
-    sec.id='art-'+a.cod;
+    sec.id='art-'+cssId(a.cod);
 
     var head=document.createElement('div');head.className='art-head';
     var pesoTot=0,hayPeso=false;
     comps.forEach(function(c){
       if(c.kg!=null&&c.kg!==''){var k=Number(c.kg)*Number(c.q||1);if(isFinite(k)){pesoTot+=k;hayPeso=true;}}
     });
+    var pills='';
+    if(pend.sinConf)pills+='<span class="pill warn">'+pend.sinConf+' ruta'+(pend.sinConf===1?'':'s')+' sin confirmar</span>';
+    if(pend.probPend)pills+='<span class="pill bad">'+pend.probPend+' problema'+(pend.probPend===1?'':'s')+'</span>';
+    if(pend.faltas.length)pills+='<span class="pill warn">'+pend.faltas.length+' comp. sin datos</span>';
+    if(!pend.total&&pend.rutas.length)pills+='<span class="pill ok">✓ al día</span>';
     head.innerHTML='<span class="caret">▸</span>'+
       '<span class="cod">'+esc(a.cod)+'</span>'+
-      '<span class="fam">'+esc(a.fam||'')+'</span>'+
+      '<span class="fam">'+esc(a.fam||'')+'</span>'+pills+
       '<div class="stats">'+
-        '<span>Componentes: <b>'+comps.length+'</b></span>'+
+        (a.sinArt?'':'<span>Comp: <b>'+comps.length+'</b></span>')+
+        '<span>Rutas: <b>'+pend.rutas.length+'</b></span>'+
         (a.por!=null?'<span>Uni/caja: <b>'+esc(a.por)+'</b></span>':'')+
-        (hayPeso?'<span>Peso art: <b>'+(Math.round(pesoTot*100000)/100000)+'</b> kg</span>':'')+
+        (hayPeso?'<span>Peso: <b>'+(Math.round(pesoTot*100000)/100000)+'</b> kg</span>':'')+
       '</div>';
     head.addEventListener('click',function(){open[a.cod]=!open[a.cod];render();});
     sec.appendChild(head);
 
     var body=document.createElement('div');body.className='art-body';
-    if(comps.length===0){
-      body.innerHTML='<div class="empty">Sin componentes cargados para este artículo.</div>';
-    }else{
-      var h='<table><thead><tr>'+
-        '<th>Cód. parte</th><th>Descripción</th><th>Sector</th>'+
-        '<th>Partes/uni</th><th>Kg x uni</th><th>Uni x cajón</th><th>UM</th>'+
-        '</tr></thead><tbody>';
-      comps.forEach(function(c){
-        var tipo=sectTipo(c.s)||'';
-        var cls='st-'+(tipo||'none').replace(/[^a-záéíóúñ]/gi,'');
-        h+='<tr>'+
-          '<td>'+esc(c.cod||'')+'</td>'+
-          '<td>'+esc(c.d||'')+'</td>'+
-          '<td>'+(tipo?'<span class="sect-tag '+cls+'">'+esc(tipo)+'</span>':'<span class="muted">—</span>')+'</td>'+
-          '<td class="num">'+fmtQ(c.q)+'</td>'+
-          '<td class="num">'+(c.kg!=null?fmtKg(c.kg):'<span class="muted">—</span>')+'</td>'+
-          '<td class="num">'+(c.uxc!=null?esc(c.uxc):'<span class="muted">—</span>')+'</td>'+
-          '<td>'+esc(c.um||'')+'</td>'+
-        '</tr>';
-      });
-      h+='</tbody></table>';
-      body.innerHTML=h;
+    var h='';
+    // 1) RECETA
+    if(!a.sinArt){
+      h+='<div class="bloque">Receta</div>';
+      if(comps.length===0){
+        h+='<div class="empty">Sin componentes cargados para este artículo.</div>';
+      }else{
+        h+='<div class="tabla-wrap"><table><thead><tr>'+
+          '<th>Cód. parte</th><th>Descripción</th><th>Sector</th>'+
+          '<th>Partes/uni</th><th>Kg x uni</th><th>Uni x cajón</th><th>UM</th>'+
+          '</tr></thead><tbody>';
+        comps.forEach(function(c){
+          var tipo=sectTipo(c.s)||'';
+          var cls='st-'+(tipo||'none').replace(/[^a-záéíóúñ]/gi,'');
+          h+='<tr>'+
+            '<td>'+esc(c.cod||'')+'</td>'+
+            '<td>'+esc(c.d||'')+'</td>'+
+            '<td>'+(tipo?'<span class="sect-tag '+cls+'">'+esc(tipo)+'</span>':'<span class="muted">—</span>')+'</td>'+
+            '<td class="num">'+fmtQ(c.q)+'</td>'+
+            '<td class="num'+(c.fkg?' falta':'')+'">'+(c.fkg?'FALTA':(c.kg!=null?fmtKg(c.kg):'<span class="muted">—</span>'))+'</td>'+
+            '<td class="num'+(c.fuxc?' falta':'')+'">'+(c.fuxc?'FALTA':(c.uxc!=null?esc(c.uxc):'<span class="muted">—</span>'))+'</td>'+
+            '<td>'+esc(c.um||'')+'</td>'+
+          '</tr>';
+        });
+        h+='</tbody></table></div>';
+      }
     }
+    // 2) RUTAS trazadas (lo que era Verificacion Integridad)
+    h+='<div class="bloque">Rutas trazadas ('+pend.rutas.length+')</div>';
+    if(pend.rutas.length===0){
+      h+='<div class="empty">Sin rutas trazadas para este artículo.</div>';
+    }else{
+      h+=pend.rutas.map(renderRuta).join('');
+    }
+    // 3) AVISOS (lo que era Verificacion Madres, acotado a este articulo)
+    if(!a.sinArt){
+      if(pend.faltas.length){
+        h+='<div class="avisos"><b>⚠ Avisos:</b> componentes de este artículo con datos maestros faltantes:'+
+          '<ul>'+pend.faltas.map(function(c){
+            var qué=[];if(c.fkg)qué.push('Kg x Uni');if(c.fuxc)qué.push('Uni x Cajón');
+            return '<li><b>'+esc(c.cod)+'</b> — '+esc(c.d||'')+': falta '+qué.join(' y ')+'</li>';
+          }).join('')+'</ul></div>';
+      }else{
+        h+='<div class="avisos limpio"><b>✓ Sin avisos:</b> todos los componentes tienen sus datos maestros.</div>';
+      }
+    }
+    body.innerHTML=h;
     sec.appendChild(body);
     cont.appendChild(sec);
   });
+}
+
+/* ── acciones sobre rutas: mismas RPCs que usaba Verificacion_GP2 ── */
+function wireLista(){
+  document.getElementById('sections').addEventListener('click',function(e){
+    var btn=e.target.closest('[data-act]');
+    if(btn){
+      e.stopPropagation();
+      var x=RUTAS[parseInt(btn.getAttribute('data-ridx'),10)];
+      if(!x)return;
+      var act=btn.getAttribute('data-act');
+      if(act==='conf')confirmarRuta(x);
+      else if(act==='pin')marcarRevisar(x);
+      else if(act==='warn')abrirReporte(x);
+      return;
+    }
+    var res=e.target.closest('[data-resolver]');
+    if(res){e.stopPropagation();resolverProblema(parseInt(res.getAttribute('data-resolver'),10));}
+  });
+}
+
+async function confirmarRuta(x){
+  var u=getUsuario();
+  var r=await SB.rpc('ruta_confirmar',{p_firma:x.firma,p_articulo:x.r.art||'',p_fleje:x.r.fleje||'',p_usuario:u});
+  if(r.error){alert('Error: '+r.error.message);return;}
+  CONFIRMADAS.add(x.firma);
+  delete PROBLEMAS_MAP[x.firma];
+  render();
+}
+async function marcarRevisar(x){
+  var u=getUsuario();
+  var r=await SB.rpc('ruta_reportar',{p_firma:x.firma,p_articulo:x.r.art||'',p_fleje:x.r.fleje||'',p_problema:'(pendiente de revisar)',p_usuario:u});
+  if(r.error){alert('Error: '+r.error.message);return;}
+  CONFIRMADAS.delete(x.firma);
+  (PROBLEMAS_MAP[x.firma]=PROBLEMAS_MAP[x.firma]||[]).push({id:r.data,firma:x.firma,problema:'(pendiente de revisar)',estado:'pendiente',por:u,en:new Date().toISOString()});
+  render();
+}
+function abrirReporte(x){
+  MODAL_FIRMA=x.firma;
+  document.getElementById('modalBg').classList.add('on');
+  document.getElementById('modalTxt').value='';
+  setTimeout(function(){document.getElementById('modalTxt').focus();},50);
+}
+function cerrarModal(){
+  document.getElementById('modalBg').classList.remove('on');
+  MODAL_FIRMA=null;
+}
+async function enviarReporte(){
+  var x=FIRMA_IDX[MODAL_FIRMA];
+  if(!x){cerrarModal();return;}
+  var prob=document.getElementById('modalTxt').value.trim();
+  if(!prob){alert('Describí el problema.');return;}
+  var u=getUsuario();
+  cerrarModal();
+  var r=await SB.rpc('ruta_reportar',{p_firma:x.firma,p_articulo:x.r.art||'',p_fleje:x.r.fleje||'',p_problema:prob,p_usuario:u});
+  if(r.error){alert('Error: '+r.error.message);return;}
+  CONFIRMADAS.delete(x.firma);
+  (PROBLEMAS_MAP[x.firma]=PROBLEMAS_MAP[x.firma]||[]).push({id:r.data,firma:x.firma,problema:prob,estado:'pendiente',por:u,en:new Date().toISOString()});
+  render();
+}
+async function resolverProblema(id){
+  var r=await SB.rpc('ruta_resolver',{p_id:id});
+  if(r.error){alert('Error: '+r.error.message);return;}
+  Object.keys(PROBLEMAS_MAP).forEach(function(firma){
+    PROBLEMAS_MAP[firma].forEach(function(p){if(p.id===id)p.estado='resuelto';});
+  });
+  render();
 }
 
 function exportCSV(){
@@ -216,10 +525,21 @@ function exportCSV(){
   filas.push(linea(['Despiece x Artículo (GP2)']));
   filas.push(linea(['Generado',new Date().toISOString().slice(0,10)]));
   filas.push('');
-  filas.push(linea(['Cod Art','Familia','Cod Parte','Descripción','Sector','Partes/uni','Kg x uni','Uni x cajón','UM']));
+  filas.push(linea(['Cod Art','Familia','Cod Parte','Descripción','Sector','Partes/uni','Kg x uni','Uni x cajón','UM','Falta datos']));
   vis.forEach(function(a){
     (a.comp||[]).forEach(function(c){
-      filas.push(linea([a.cod,a.fam||'',c.cod||'',c.d||'',sectNom(c.s),c.q,c.kg,c.uxc,c.um||'']));
+      var f=[];if(c.fkg)f.push('kg');if(c.fuxc)f.push('uxc');
+      filas.push(linea([a.cod,a.fam||'',c.cod||'',c.d||'',sectNom(c.s),c.q,c.kg,c.uxc,c.um||'',f.join('+')]));
+    });
+  });
+  filas.push('');
+  filas.push(linea(['Cod Art','Fleje','Pasos','Completa','Estado']));
+  vis.forEach(function(a){
+    (RUTAS_BY_ART[a.cod]||[]).forEach(function(x){
+      var pasosTxt=x.pasos.map(function(p){
+        return ((COLORES[p.tp]||COLORES.otro).tp||p.tp)+':'+(p.actor||p.cs||p.ce||'');
+      }).join(' -> ');
+      filas.push(linea([a.cod,x.r.fleje||'',pasosTxt,x.completa?'Si':'No',rutaEstado(x.firma)||'pendiente']));
     });
   });
   var csv='﻿'+filas.join('\r\n');
@@ -232,7 +552,7 @@ function exportCSV(){
 async function __boot(){
   try{
     document.body.style.cursor='progress';
-    var r=await SB.rpc('despiece_bundle');
+    var r=await SB.rpc('despiece_verif_bundle');
     if(r.error)throw r.error;
     Object.assign(D,r.data);
     __run();

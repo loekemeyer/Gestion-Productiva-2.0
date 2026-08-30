@@ -419,3 +419,34 @@ del trabajo**, con su origen `[usuario]` y la fecha. No se espera a que "cierre 
 Si un dato nuevo **contradice** uno viejo: se corrige la línea y se anota que se corrigió
 (como pasó con Becker). La contradicción es información: casi siempre significa que algo
 cambió en la realidad, y el módulo que dependa de ese dato hay que revisarlo.
+
+## 5. Pantallas que se achicaron (2026-08-30): fuera Punto de Stock, Verificación vive en Despiece
+
+`[usuario 2026-08-30]` "Punto de stock no tiene sentido, podríamos borrarlo. Los dos de
+verificación... que funcione mergeado todo en despiece x artículo."
+
+- **Punto de Stock (`Stocks General/PuntoStock_GP2.html`) se BORRÓ.** La pantalla no
+  aportaba: el punto de stock ya se ve donde se usa (OC sugiere por consumo, Orden de
+  Producción por demanda). OJO: **la lógica en la BD queda viva** — `v_punto_stock` y
+  `punto_stock_bundle` NO se tocaron porque `recalcular_maximos_insumos` (los máximos
+  derivados de la Est Madre) depende de ese modelo.
+- **Verificación Integridad + Verificación Madres se FUSIONARON dentro de
+  `Despiece x Articulo/Despiece_GP2.html` (v2.0.0).** Motivo: las tres pantallas hablaban
+  del MISMO artículo desde tres lugares (qué lleva / cómo se fabrica / qué dato falta).
+  Ahora al elegir un artículo se ve junto: (1) la receta, con FALTA marcado en kg_x_uni /
+  uni_x_cajon; (2) sus rutas trazadas con los botones Confirmar / Revisar después /
+  Reportar problema / Marcar resuelto — **mismas RPCs `ruta_confirmar`/`ruta_reportar`/
+  `ruta_resolver` y misma firma de deduplicación** (`F:<fleje>|tp:actor|...`), así que lo
+  ya confirmado en la pantalla vieja sigue valiendo; (3) los avisos del artículo
+  (componentes suyos sin datos maestros). Arriba, resumen global (rutas sin confirmar,
+  problemas, componentes sin kg/uxc en sectores con peso) + filtro "solo artículos con
+  pendientes", para no perder la vista de conjunto de las pantallas viejas.
+- RPC nueva **`despiece_verif_bundle()`** (un solo viaje: sect + art/receta con flags de
+  faltantes + rutas + confirmadas/problemas + resumen madres). `despiece_bundle`,
+  `verificacion_bundle` y `verifmadres_bundle` quedan en la BD pero sin pantalla que las
+  llame.
+- `[dato 2026-08-30: GP2.ruta]` Al cruzar rutas con despieces: **3 rutas sin artículo**
+  (ids 35 "Fleje 8 -> Art ", 151 "Fleje 49 -> Art ", 152 "Fleje 50 -> Art ") — en la
+  pantalla nueva aparecen agrupadas como "— sin artículo —" para que no se pierdan.
+  Además **55 componentes sin kg_x_uni y 72 sin uni_x_cajon** (sobre 301 de sectores con
+  peso) y **12 artículos** tienen faltantes en su propia receta.
