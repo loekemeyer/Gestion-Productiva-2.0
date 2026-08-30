@@ -2245,7 +2245,7 @@ with pend as (
 ), ins as (
   select c.id comp_id, c.codigo, c.descripcion, c.sector_id, s.nombre sector,
          c.unidad_medida um, c.kg_x_uni,
-         coalesce(nullif(trim(fd.proveedor),''), nullif(trim(c.proveedor),'')) proveedor,
+         nullif(trim(c.proveedor),'') proveedor,   -- unica fuente
          u.meses_stock,
          case when c.sector_id = 5 then fk.consumo_kg_mes else cp.consumo_uni_mes end consumo,
          case when c.sector_id = 5 then 'kg' else 'uni' end unidad,
@@ -2257,7 +2257,6 @@ with pend as (
   from componente c
   join sector s on s.id = c.sector_id
   join ubicacion u on u.tipo='sector' and u.ref_id = c.sector_id
-  left join fleje_detalle fd on fd.componente_id = c.id
   left join v_consumo_parte cp on cp.componente_id = c.id and c.sector_id <> 5
   left join v_consumo_fleje_kg fk on fk.componente_id = c.id and c.sector_id = 5
   left join pend pd on pd.componente_id = c.id
@@ -2739,7 +2738,7 @@ AS $function$
     'insumos', (select coalesce(jsonb_agg(jsonb_build_object(
         'comp_id',c.id,'codigo',c.codigo,'descripcion',c.descripcion,'sector',s.nombre,
         'sector_id',c.sector_id,'um',c.unidad_medida,'uni_x_cajon',c.uni_x_cajon,
-        'proveedor',coalesce(nullif(trim(fd.proveedor),''), nullif(trim(c.proveedor),'')),
+        'proveedor',nullif(trim(c.proveedor),''),
         'n_fleje',fd.n_fleje,'medida',fd.medida_mm,
         'ultima', (select jsonb_build_object(
                      'fecha', r.fecha, 'cantidad', r.cantidad, 'unidad', r.unidad,

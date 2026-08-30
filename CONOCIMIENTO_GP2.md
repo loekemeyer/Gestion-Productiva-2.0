@@ -66,6 +66,22 @@ pantalla de Inyectores, con los botones **Se fabrica** / **Discontinuo**.
 - **Garage (GRJ*)**: no llevan proveedor, los arman los talleristas. Además el sector se
   está vaciando: hoy quedan 4 códigos y sólo GRJ10 tiene stock. `[usuario + dato]`
 
+### El proveedor vive en UN solo lugar
+`[dato 2026-08-30]` `componente.proveedor` es la **única fuente**. Antes el proveedor del
+fleje estaba **duplicado** en `fleje_detalle.proveedor` y las lecturas hacían
+`coalesce(fd, c)` — o sea que ganaba `fleje_detalle`. Como la pantalla escribe en
+`componente.proveedor`, **cambiar el proveedor de un fleje no tenía efecto en la OC**: la
+pantalla mostraba el nuevo y la orden seguía saliendo al viejo, en silencio, en los 50
+flejes. Reproducido y arreglado.
+
+Además `componente.proveedor` ahora tiene **FK a `proveedor_insumo`** (`ON UPDATE
+CASCADE`): antes era texto libre, así que un tipeo creaba un proveedor fantasma sin que
+nada avisara. Renombrar un proveedor ahora propaga solo.
+
+`fleje_detalle.proveedor` quedó **sin uso** (ya no lo lee nadie). Los 50 valores están
+duplicados e idénticos en `componente`; borrar la columna es el paso que falta para
+cerrar la normalización — **pendiente de confirmar con el usuario**.
+
 ### Cómo se administra (no se toca la base a mano)
 `[usuario 2026-08-29]` Quién hace cada parte se cambia desde la pantalla
 **`Compras/Inyectores_GP2.html`** y eso **escribe en Supabase** (`componente.proveedor`,
