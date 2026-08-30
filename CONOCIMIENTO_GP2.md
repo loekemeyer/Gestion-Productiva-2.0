@@ -30,6 +30,10 @@
 - **Kollplast** no existía en GP2 ni en la base del vecino: es alta nueva. `[dato]`
 - **Becker Sandra Nora NO hace inyección plástica.** Es proveedor de **servicio**
   (pintura / serigrafía de piezas metálicas). `[usuario, corrigiendo un dato previo]`
+- **Becker Sandra Nora ES "Jade".** `[usuario 2026-08-30]` El mismo pintor con dos nombres:
+  GP2 lo tiene como *Becker Sandra Nora* (el nombre formal) y en la casa del vecino figura
+  como *Jade* (como se lo nombra todos los días). No son dos proveedores. Otra vuelta de la
+  trampa de siempre: **el mismo nombre escrito distinto en las dos casas**.
 - PENDIENTE: repartir los 29 plásticos entre los tres. Hoy están todos bajo Pat Bet Plast
   porque esa era la foto del vecino, que es data vieja.
 
@@ -169,6 +173,42 @@ tres datos que **hoy no están en GP2**:
 Con esos tres, el cálculo por pieza es directo:
 `ahorro = (costo_cromado + flete_prorrateado) - (precio_inox - precio_laminado) x kg_pieza`
 y sale el ranking de las 34 candidatas por ahorro anual usando el consumo de la Est Madre.
+
+
+## 2b. Quién pinta: no hay un pintor por parte
+
+`[usuario 2026-08-30]` **A una misma parte la pueden pintar varios.** Es la diferencia de
+fondo con los inyectores, donde cada parte tiene **un** proveedor. Por eso pintura necesita
+una relación de muchos a muchos, no un campo.
+
+`[dato 2026-08-30, public."Partes x PS" donde Proceso = pintado]` Y no es un caso raro, es
+**la regla**: de las 11 partes pintadas del vecino, **ninguna la pinta uno solo**. Cuatro
+las hacen los tres (G13, G2, I6, J2) y siete las hacen Daniel + Jade.
+
+**Quiénes pintan** `[usuario 2026-08-30]`:
+- **Jade** (= Becker Sandra Nora, ver arriba) y **Daniel**, que son los dos que trabajan.
+- **Rec Color** existe y hay que tenerlo contemplado, pero *"creo que no le mandamos nada"*.
+  Está dado de alta como proveedor y **sin partes asignadas**: aparece en la botonera para
+  poder sumarlo con un toque el día que haga falta.
+
+**El reparto es en PARTES IGUALES** `[usuario 2026-08-30]`: si a una parte la pintan dos,
+mitad y mitad; si son tres, un tercio cada uno. **No hay porcentaje que cargar** — el número
+sale solo de a cuántos les asignaste la parte. El vecino tampoco guarda ninguna proporción:
+sólo lista quién *puede* pintar cada cosa, así que el reparto es lógica nueva de GP2.
+
+### El consumo de una parte que se pinta no está donde uno lo busca
+`[dato 2026-08-30]` `v_consumo_parte` **no sirve** para las partes pintadas: esa vista sólo
+cubre componentes que están **directo en la receta** del artículo, y lo que se pinta es
+intermedio (entra a un paso de ruta y sale como otra pieza). Medido: de las 12 partes
+pintadas, **cero** aparecen ahí.
+
+El consumo de una parte pintada = **la suma del consumo de sus salidas**. Dos trampas al
+calcularlo: el mismo par entra→sale aparece en varias rutas (hay que hacer `distinct` o se
+cuenta doble), y una parte puede tener **varias salidas distintas** (G13 sale como Z40 y
+como A1, I6 como Z42 y Z29), que se suman.
+
+Con eso, 8 de las 12 tienen número. Las otras 4 (G13, H11, I1, J13) quedan **sin dato**
+porque sus salidas no llegan a la Est Madre — se muestran así, no se inventa un número.
 
 ---
 
