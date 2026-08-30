@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="es">
 <head>
-<!-- v3.12.0 — PORTADA CON LA ESTETICA GP2 COMPARTIDA (panel de diseno, gana sobriedad): la pantalla era la UNICA de su familia con copia propia y desviada del esqueleto — ahora linkea gp2-modulo.css como OC/Pintores y queda identica al resto; los 6 rubros pasan de chips sueltos a baldosas parejas en grilla (3 col, 2 en celular, 56px); titulos de seccion en mayuscula chica; "Ver stock" AFUERA (sin referencias en JS ni tests, redundante con el menu); "Atras" queda con la pastilla estandar. Paso 2 y popup sin cambios. v3.11.0 — CARGA DE ROLLOS MAS CLARA (pedido del usuario): cada linea se lee como una frase "[- 3 +] rollos de [65] kg" — la cantidad tiene stepper -/+ (tocable con guantes, 44px) ademas de poder tipearse, el kg lleva su unidad al lado, la linea nace con 1 rollo, el boton pasa a decir "+ rollos de otro peso" y la cruz de borrar solo aparece cuando hay mas de una linea. La suma y el sobrante siguen en vivo abajo del pallet. v3.10.0 — PESAJE POR ETAPAS (pedido del usuario): el paso 2 deja de ser todos los items en un chorizo hacia abajo y pasa a UN ITEM POR VEZ (1ro -> 2do -> 3ro), con chips de progreso arriba (verde = completo, saltan al item) y Anterior/Siguiente abajo; "Guardar pesaje" aparece recien en el ultimo item. Con un solo item no hay chips ni navegacion, queda como antes. v3.9.1 — la tarjeta muestra la ultima carga sin la palabra "ult." (pedido del usuario): queda solo el numero en verde, ej. "360 kg". v3.9.0 — POPUP DE CARGA REORDENADO (pedido del usuario): Rollos y Pallets pasan a estar pegados debajo de Cantidad, que es el orden en que se lee el remito; el toggle Kg/Unidades deja de ser dos botonazos a todo el ancho y queda como dos pastillas discretas al pie (la unidad casi nunca se cambia, cada insumo trae la suya); y se saca el parrafo que explicaba que el proveedor informa rollos — la fila ya solo aparece cuando corresponde. El aviso al confirmar sin cargar rollos/pallets NO se toco. v3.8.0 — SALIDA DEL PESAJE: del paso 2 no se podia salir (Cancelar oculto + fondo bloqueado) y ademas el popup no scrolleaba hasta arriba, asi que quien lo abria por error quedaba encerrado. Ahora hay X pegada arriba, boton "Salir sin pesar" y Escape; salir no pierde nada (los items ya estan en la BD desde el paso 1) y la recepcion reaparece como "sin pesar". v3.7.2 — la OC lleva la unidad: "OC: 640 kg" (los flejes van en kg y los cartones en unidades; sin unidad el numero no dice de que habla). v3.7.1 — la OC se resume como lo que FALTA recibir, sin numero de OC. v3.7.0 — la tarjeta del insumo muestra la OC ABIERTA que lo espera y la ultima carga queda solo con los kg, sin fecha. v3.6.1 — fix: el mensaje del cruce con OC se mostraba nunca (itemSel null tras cerrar popup); aviso de pallets a medias al guardar pesaje. v3.6.0 — muestra el cruce con OC (recibido/completa/sin OC) devuelto por la BD. v3.5.0: cartones se cargan en PAQUETES de 250 (parametro carton_uni_x_paquete), guardados en unidades. v3.4.0: modo_control por proveedor: rollos_remito (Basconia/Aperam), pesaje (resto flejeros, remito solo kg), peso_total (Bella Vista). v3.3.0: Bella Vista: factura en uni (se anota convertido a kg) y control por PESO TOTAL contra el remito. v3.2.0: la balanza debe dar MAS que el remito (peso del pallet), aviso en vivo + confirm al guardar. v3.1.0: pesaje obligatorio (sin "Pesar después"): la carga no se termina hasta controlar. v3.0.0: remito multi-item: paso 1 todos los items, "Terminé de pasar remito", paso 2 pesaje de todo; modulo Control integrado aca -->
+<!-- v3.13.0 — PESAJE COMPACTO (pedido del usuario: "tengo que scrollear mucho" + el numero del stepper descentrado). La etiqueta "Peso de balanza (kg)" deja de ser un bloque arriba del campo: fila inline "Balanza [450] kg". La linea de rollos entra en UNA fila "[- 5 +] rollos x [88,5] kg" (kg alineado a la derecha como la balanza); en celular el popup pierde el aire de 34px (18/12) y gana ancho util. El input del stepper queda con flex fijo y centrado real entre - y +. Cada pallet pasa de ~700px a ~230px de alto. v3.12.0 — PORTADA CON LA ESTETICA GP2 COMPARTIDA (panel de diseno, gana sobriedad): la pantalla era la UNICA de su familia con copia propia y desviada del esqueleto — ahora linkea gp2-modulo.css como OC/Pintores y queda identica al resto; los 6 rubros pasan de chips sueltos a baldosas parejas en grilla (3 col, 2 en celular, 56px); titulos de seccion en mayuscula chica; "Ver stock" AFUERA (sin referencias en JS ni tests, redundante con el menu); "Atras" queda con la pastilla estandar. Paso 2 y popup sin cambios. v3.11.0 — CARGA DE ROLLOS MAS CLARA (pedido del usuario): cada linea se lee como una frase "[- 3 +] rollos de [65] kg" — la cantidad tiene stepper -/+ (tocable con guantes, 44px) ademas de poder tipearse, el kg lleva su unidad al lado, la linea nace con 1 rollo, el boton pasa a decir "+ rollos de otro peso" y la cruz de borrar solo aparece cuando hay mas de una linea. La suma y el sobrante siguen en vivo abajo del pallet. v3.10.0 — PESAJE POR ETAPAS (pedido del usuario): el paso 2 deja de ser todos los items en un chorizo hacia abajo y pasa a UN ITEM POR VEZ (1ro -> 2do -> 3ro), con chips de progreso arriba (verde = completo, saltan al item) y Anterior/Siguiente abajo; "Guardar pesaje" aparece recien en el ultimo item. Con un solo item no hay chips ni navegacion, queda como antes. v3.9.1 — la tarjeta muestra la ultima carga sin la palabra "ult." (pedido del usuario): queda solo el numero en verde, ej. "360 kg". v3.9.0 — POPUP DE CARGA REORDENADO (pedido del usuario): Rollos y Pallets pasan a estar pegados debajo de Cantidad, que es el orden en que se lee el remito; el toggle Kg/Unidades deja de ser dos botonazos a todo el ancho y queda como dos pastillas discretas al pie (la unidad casi nunca se cambia, cada insumo trae la suya); y se saca el parrafo que explicaba que el proveedor informa rollos — la fila ya solo aparece cuando corresponde. El aviso al confirmar sin cargar rollos/pallets NO se toco. v3.8.0 — SALIDA DEL PESAJE: del paso 2 no se podia salir (Cancelar oculto + fondo bloqueado) y ademas el popup no scrolleaba hasta arriba, asi que quien lo abria por error quedaba encerrado. Ahora hay X pegada arriba, boton "Salir sin pesar" y Escape; salir no pierde nada (los items ya estan en la BD desde el paso 1) y la recepcion reaparece como "sin pesar". v3.7.2 — la OC lleva la unidad: "OC: 640 kg" (los flejes van en kg y los cartones en unidades; sin unidad el numero no dice de que habla). v3.7.1 — la OC se resume como lo que FALTA recibir, sin numero de OC. v3.7.0 — la tarjeta del insumo muestra la OC ABIERTA que lo espera y la ultima carga queda solo con los kg, sin fecha. v3.6.1 — fix: el mensaje del cruce con OC se mostraba nunca (itemSel null tras cerrar popup); aviso de pallets a medias al guardar pesaje. v3.6.0 — muestra el cruce con OC (recibido/completa/sin OC) devuelto por la BD. v3.5.0: cartones se cargan en PAQUETES de 250 (parametro carton_uni_x_paquete), guardados en unidades. v3.4.0: modo_control por proveedor: rollos_remito (Basconia/Aperam), pesaje (resto flejeros, remito solo kg), peso_total (Bella Vista). v3.3.0: Bella Vista: factura en uni (se anota convertido a kg) y control por PESO TOTAL contra el remito. v3.2.0: la balanza debe dar MAS que el remito (peso del pallet), aviso en vivo + confirm al guardar. v3.1.0: pesaje obligatorio (sin "Pesar después"): la carga no se termina hasta controlar. v3.0.0: remito multi-item: paso 1 todos los items, "Terminé de pasar remito", paso 2 pesaje de todo; modulo Control integrado aca -->
 <script src="../auth-guard.js?v=20260829f"></script>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
@@ -87,6 +87,11 @@ input[type="text"]{width:200px}
 .input-kg-popup{position:fixed;inset:0;background:rgba(0,0,0,.5);display:none;align-items:flex-start;justify-content:center;z-index:200;padding:16px;overflow-y:auto;-webkit-overflow-scrolling:touch}
 .input-kg-popup.open{display:flex}
 .kg-modal{background:#fff;border-radius:16px;padding:34px;width:96%;max-width:620px;box-shadow:0 10px 40px rgba(0,0,0,.3);margin:auto;position:relative}
+@media(max-width:480px){
+  .input-kg-popup{padding:8px}
+  .kg-modal{padding:18px 12px;width:100%}
+  .kg-modal h3{font-size:24px;margin-bottom:12px}
+}
 .kg-modal h3{margin-bottom:20px;font-size:32px;font-weight:700;padding-right:52px}
 /* La X queda pegada arriba a la derecha aunque se scrollee el pesaje: es la
    salida siempre visible, sin tener que buscar el boton al final. */
@@ -131,22 +136,26 @@ input[type="text"]{width:200px}
 .pes-item-h{font-size:19px;font-weight:900;margin:14px 0 6px;color:#0b3b73}
 .pes-item-h .cod{color:#0066cc}
 /* paso 2 anidado: pesaje dentro del mismo popup */
-.pes-pallet{border:2px solid #d0d7de;border-radius:10px;padding:12px;margin-bottom:12px;background:#fafbfc}
-.pes-pallet .ph{display:flex;justify-content:space-between;align-items:center;font-weight:800;font-size:18px;margin-bottom:8px}
+/* pallet COMPACTO: filas de una linea, sin etiquetas en bloque, para que
+   un remito de varios pallets no obligue a scrollear media pantalla por pallet */
+.pes-pallet{border:2px solid #d0d7de;border-radius:10px;padding:10px;margin-bottom:10px;background:#fafbfc}
+.pes-pallet .ph{display:flex;justify-content:space-between;align-items:center;font-weight:800;font-size:17px;margin-bottom:8px}
 .pes-pallet input{border:2px solid #d0d7de;border-radius:8px;padding:8px 10px;font-size:19px;text-align:center;width:100%}
-.pes-linea{display:flex;gap:6px;align-items:center;margin-top:10px;flex-wrap:wrap;
-  border-top:1px dashed #e2e8f0;padding-top:8px}
-.pes-linea:first-of-type{border-top:0;padding-top:0}
+/* fila de balanza: etiqueta al lado, no arriba */
+.peso-row{display:flex;align-items:center;gap:8px}
+.peso-row .plbl{font-size:15px;font-weight:700;color:#555;flex:0 0 auto}
+.peso-row input{flex:1;min-width:0;min-height:44px;text-align:right;font-size:20px !important;font-weight:700}
+.peso-row .punit{font-size:15px;font-weight:700;color:#555;flex:0 0 auto}
+.pes-linea{display:flex;gap:6px;align-items:center;margin-top:8px;flex-wrap:wrap}
 .pes-linea .x{cursor:pointer;font-size:18px;color:#b42318;font-weight:800;padding:0 4px;flex:0 0 auto}
-/* la linea se lee como una frase: [- 3 +] rollos de [65] kg */
+/* la linea entra en UNA fila: [- 5 +] rollos x [88,5] kg */
 .stp{display:flex;align-items:stretch;border:2px solid #d0d7de;border-radius:8px;overflow:hidden;background:#fff;flex:0 0 auto}
-.stp .stb{width:38px;min-height:44px;border:0;background:#f1f5f9;font-size:22px;font-weight:800;color:#0b3b73;cursor:pointer;font-family:inherit}
+.stp .stb{width:36px;min-height:44px;border:0;background:#f1f5f9;font-size:22px;font-weight:800;color:#0b3b73;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;padding:0}
 .stp .stb:active{background:#dbe4ee}
-.stp input{border:0 !important;width:40px !important;min-height:44px;font-size:20px !important;font-weight:800;text-align:center;padding:0 !important}
+.stp input{border:0 !important;width:38px !important;min-height:44px;font-size:20px !important;font-weight:800;text-align:center;padding:0 !important;flex:0 0 38px}
 .pes-linea .lbl{font-size:14px;font-weight:700;color:#555;white-space:nowrap;flex:0 0 auto}
-/* si no entra al lado del stepper, el kg baja a su propia linea (celular) */
-.kgw{display:flex;align-items:center;gap:5px;flex:1 1 150px;min-width:0}
-.kgw input{min-width:56px;flex:1;font-size:18px !important;padding:8px 6px !important}
+.kgw{display:flex;align-items:center;gap:5px;flex:1 1 90px;min-width:0}
+.kgw input{min-width:70px;flex:1;font-size:18px !important;padding:8px 6px !important;min-height:44px;text-align:right}
 .kgw span{font-size:15px;font-weight:700;color:#555;flex:0 0 auto}
 .pes-calc{font-size:15px;margin-top:8px;color:#555}
 .pes-calc .okc{color:#0a7a2f;font-weight:800} .pes-calc .warnc{color:#b45309;font-weight:800}
@@ -671,22 +680,24 @@ function pintarPesaje(){
   if(it.modo==='peso'){
     var pp=it.blocks[1]||{peso:'',rollos:[]};
     cuerpo='<div class="pes-pallet" data-i="'+i+'" data-p="1">'+
-      '<label style="font-size:15px;font-weight:700">Peso de balanza total (kg)</label>'+
+      '<div class="peso-row"><span class="plbl">Balanza total</span>'+
       '<input inputmode="decimal" data-f="peso" value="'+esc(pp.peso)+'" placeholder="0,0">'+
+      '<span class="punit">kg</span></div>'+
     '</div>';
   }else{
     cuerpo=Object.keys(it.blocks).sort((a,b)=>a-b).map(function(nro){
       var p=it.blocks[nro];
       return '<div class="pes-pallet" data-i="'+i+'" data-p="'+nro+'">'+
         '<div class="ph"><span>'+esc(it.codigo)+' · Pallet '+nro+'</span></div>'+
-        '<label style="font-size:15px;font-weight:700">Peso de balanza (kg)</label>'+
+        '<div class="peso-row"><span class="plbl">Balanza</span>'+
         '<input inputmode="decimal" data-f="peso" value="'+esc(p.peso)+'" placeholder="0,0">'+
+        '<span class="punit">kg</span></div>'+
         p.rollos.map(function(l,idx){
           return '<div class="pes-linea" data-l="'+idx+'">'+
             '<div class="stp"><button type="button" class="stb" data-step="-1">−</button>'+
             '<input inputmode="numeric" data-f="c" value="'+esc(l.c)+'">'+
             '<button type="button" class="stb" data-step="1">+</button></div>'+
-            '<span class="lbl">rollos de</span>'+
+            '<span class="lbl">rollos ×</span>'+
             '<div class="kgw"><input inputmode="decimal" data-f="k" value="'+esc(l.k)+'" placeholder="0,0"><span>kg</span></div>'+
             (p.rollos.length>1?'<span class="x" data-del="1" title="Quitar línea">✕</span>':'')+
           '</div>';
