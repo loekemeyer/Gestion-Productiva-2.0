@@ -96,6 +96,25 @@ decir si cierra con lo ya decidido y proponer alternativas. Invocarlo cuando hay
 **decidir** algo del negocio (no para tareas mecánicas). Si `CONOCIMIENTO_GP2.md` no crece,
 el agente no sirve.
 
+## Agente diario de mejoras + IDEAS-GP2.md (reglas para CUALQUIER chat)
+
+Corre solo, todos los días a las 6:00 (AR), en una sesión nueva. Audita el repo (suite,
+render 390px, deuda, docs desviadas) y registra ideas con **código de 4 dígitos** en
+`IDEAS-GP2.md` de la rama **`agente/ideas`** (nunca toca main). Los fixes chicos y
+seguros los deja implementados y verificados en ramas `idea/<código>`, estado `lista`.
+Si no encuentra nada, dice "Sin novedades" y no molesta. Aviso push al usuario al cierre.
+
+**Comando `:`** — si el usuario escribe `:`, traer el registro
+(`git fetch origin agente/ideas && git show origin/agente/ideas:IDEAS-GP2.md`) y
+mostrar las ideas `pendiente`/`lista` como checklist de a 5, para que tilde.
+
+**Idea aceptada** ("dale 4837" o tildada): si está `lista` con rama → merge directo a
+main (`git merge --no-ff origin/idea/4837`), suite en verde, push. Si está `pendiente`
+→ desarrollarla ahora en `idea/4837`, verificar y mergear igual. Después marcar la
+línea en IDEAS-GP2.md (`[x]` hecha, o `~~tachada~~` descartada) y pushear la rama
+`agente/ideas`. Las ideas que escribe el usuario en el chat también se registran ahí
+(mismo formato, para que no se pierdan).
+
 ## Perfiles de Usuario (LEER AL INICIO)
 
 **Al arrancar cada sesión, leer `PERFILES.md` para saber con quién estás trabajando.**
