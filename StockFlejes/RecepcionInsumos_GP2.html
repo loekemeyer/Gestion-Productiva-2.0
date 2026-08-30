@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="es">
 <head>
-<!-- v3.7.2 — la OC lleva la unidad: "OC: 640 kg" (los flejes van en kg y los cartones en unidades; sin unidad el numero no dice de que habla). v3.7.1 — la OC se resume como lo que FALTA recibir, sin numero de OC. v3.7.0 — la tarjeta del insumo muestra la OC ABIERTA que lo espera y la ultima carga queda solo con los kg, sin fecha. v3.6.1 — fix: el mensaje del cruce con OC se mostraba nunca (itemSel null tras cerrar popup); aviso de pallets a medias al guardar pesaje. v3.6.0 — muestra el cruce con OC (recibido/completa/sin OC) devuelto por la BD. v3.5.0: cartones se cargan en PAQUETES de 250 (parametro carton_uni_x_paquete), guardados en unidades. v3.4.0: modo_control por proveedor: rollos_remito (Basconia/Aperam), pesaje (resto flejeros, remito solo kg), peso_total (Bella Vista). v3.3.0: Bella Vista: factura en uni (se anota convertido a kg) y control por PESO TOTAL contra el remito. v3.2.0: la balanza debe dar MAS que el remito (peso del pallet), aviso en vivo + confirm al guardar. v3.1.0: pesaje obligatorio (sin "Pesar después"): la carga no se termina hasta controlar. v3.0.0: remito multi-item: paso 1 todos los items, "Terminé de pasar remito", paso 2 pesaje de todo; modulo Control integrado aca -->
+<!-- v3.8.0 — SALIDA DEL PESAJE: del paso 2 no se podia salir (Cancelar oculto + fondo bloqueado) y ademas el popup no scrolleaba hasta arriba, asi que quien lo abria por error quedaba encerrado. Ahora hay X pegada arriba, boton "Salir sin pesar" y Escape; salir no pierde nada (los items ya estan en la BD desde el paso 1) y la recepcion reaparece como "sin pesar". v3.7.2 — la OC lleva la unidad: "OC: 640 kg" (los flejes van en kg y los cartones en unidades; sin unidad el numero no dice de que habla). v3.7.1 — la OC se resume como lo que FALTA recibir, sin numero de OC. v3.7.0 — la tarjeta del insumo muestra la OC ABIERTA que lo espera y la ultima carga queda solo con los kg, sin fecha. v3.6.1 — fix: el mensaje del cruce con OC se mostraba nunca (itemSel null tras cerrar popup); aviso de pallets a medias al guardar pesaje. v3.6.0 — muestra el cruce con OC (recibido/completa/sin OC) devuelto por la BD. v3.5.0: cartones se cargan en PAQUETES de 250 (parametro carton_uni_x_paquete), guardados en unidades. v3.4.0: modo_control por proveedor: rollos_remito (Basconia/Aperam), pesaje (resto flejeros, remito solo kg), peso_total (Bella Vista). v3.3.0: Bella Vista: factura en uni (se anota convertido a kg) y control por PESO TOTAL contra el remito. v3.2.0: la balanza debe dar MAS que el remito (peso del pallet), aviso en vivo + confirm al guardar. v3.1.0: pesaje obligatorio (sin "Pesar después"): la carga no se termina hasta controlar. v3.0.0: remito multi-item: paso 1 todos los items, "Terminé de pasar remito", paso 2 pesaje de todo; modulo Control integrado aca -->
 <script src="../auth-guard.js?v=20260829f"></script>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
@@ -54,17 +54,31 @@
   .successBox{display:none;margin:12px 0;border:2px solid #c7e8d1;background:#f3fbf6;border-radius:12px;padding:16px;text-align:center}
   .successBox .title{font-weight:900;font-size:23px;margin-bottom:4px;color:#0a7a2f}
 
-  .input-kg-popup{position:fixed;inset:0;background:rgba(0,0,0,.5);display:none;align-items:center;justify-content:center;z-index:200;padding:16px}
+  /* El popup scrollea DESDE ARRIBA: con align-items:center un pesaje largo
+     (varios items x varios pallets) desbordaba para los dos lados y la parte
+     de arriba quedaba fuera de alcance — no habia forma de volver al titulo. */
+  .input-kg-popup{position:fixed;inset:0;background:rgba(0,0,0,.5);display:none;align-items:flex-start;justify-content:center;z-index:200;padding:16px;overflow-y:auto;-webkit-overflow-scrolling:touch}
   .input-kg-popup.open{display:flex}
-  .kg-modal{background:#fff;border-radius:16px;padding:34px;width:96%;max-width:620px;box-shadow:0 10px 40px rgba(0,0,0,.3)}
-  .kg-modal h3{margin-bottom:20px;font-size:32px;font-weight:700}
+  .kg-modal{background:#fff;border-radius:16px;padding:34px;width:96%;max-width:620px;box-shadow:0 10px 40px rgba(0,0,0,.3);margin:auto;position:relative}
+  .kg-modal h3{margin-bottom:20px;font-size:32px;font-weight:700;padding-right:52px}
+  /* La X queda pegada arriba a la derecha aunque se scrollee el pesaje: es la
+     salida siempre visible, sin tener que buscar el boton al final. */
+  .kg-x{position:sticky;top:0;float:right;margin:-18px -18px 0 0;width:46px;height:46px;border:2px solid #cbd5e1;border-radius:50%;
+        background:#fff;color:#334155;font-size:26px;font-weight:700;line-height:1;cursor:pointer;z-index:3;
+        box-shadow:0 2px 10px rgba(0,0,0,.18)}   /* flota sobre el pesaje: que se lea como boton, no como parte del form */
+  .kg-x:hover{background:#f1f5f9;color:#b42318}
   .kg-modal .item-info{background:#f6f8fa;padding:16px;border-radius:10px;margin-bottom:20px;font-size:22px}
   .kg-modal input{width:100%;padding:14px;font-size:28px;border:2px solid #d0d7de;border-radius:8px;margin-bottom:16px;text-align:center}
   .kg-modal .unit-row{display:flex;gap:10px;margin-bottom:20px}
   .kg-modal .unit-btn{flex:1;padding:14px;font-size:22px;font-weight:800;border:2px solid #d0d7de;border-radius:8px;background:#fff;cursor:pointer;color:#111}
   .kg-modal .unit-btn.active{background:#111;color:#fff;border-color:#111}
-  .kg-modal .actions{display:flex;gap:12px}
+  .kg-modal .actions{display:flex;gap:12px;align-items:stretch}
   .kg-modal .actions button{flex:1;padding:16px;font-size:24px;font-weight:700;border:none;border-radius:8px;cursor:pointer}
+  /* el border:none de arriba se comia el borde del secundario y "Salir sin pesar"
+     quedaba como texto suelto, sin parecer un boton */
+  .kg-modal .actions .btn-secondary{border:2px solid #d0d7de;background:#fff}
+  /* la salida no compite con Guardar: mas chica y sin robarle lugar */
+  .kg-modal .actions #kgPesajeSalir{flex:0 1 auto;font-size:18px;padding:16px 14px;color:#475569}
 
   .empty{color:#888;padding:12px;text-align:center;font-style:italic}
 
@@ -175,6 +189,7 @@
 <!-- Popup cantidad -->
 <div id="kgPopup" class="input-kg-popup">
   <div class="kg-modal">
+    <button class="kg-x" id="kgX" title="Salir" aria-label="Salir">✕</button>
     <h3 id="kgTitle">Cantidad</h3>
     <div class="item-info" id="kgItemInfo"></div>
 
@@ -204,6 +219,7 @@
 
     <div class="actions">
       <button class="btn-secondary" id="kgCancel">Cancelar</button>
+      <button class="btn-secondary hidden" id="kgPesajeSalir">Salir sin pesar</button>
       <button class="btn-primary" id="kgConfirm">Confirmar</button>
       <button class="btn-primary hidden" id="kgPesajeOk">✓ Guardar pesaje</button>
     </div>
@@ -400,6 +416,7 @@ function resetPiePopup(){
   $('kgConfirm').classList.remove('hidden'); $('kgConfirm').disabled=false;
   $('kgCancel').classList.remove('hidden');
   $('kgPesajeOk').classList.add('hidden');
+  $('kgPesajeSalir').classList.add('hidden');
 }
 
 function cerrarPopup(){
@@ -409,6 +426,39 @@ function cerrarPopup(){
   $('kgMsg').textContent=''; $('kgMsg').className='status';
 }
 $('kgCancel').addEventListener('click',cerrarPopup);
+
+/* SALIDA DEL PASO 2 (pesaje). Antes no habia ninguna: se ocultaba Cancelar y el
+   click en el fondo estaba bloqueado, asi que el unico camino era guardar — y si
+   el usuario abria el pesaje por error quedaba encerrado.
+   Se puede salir sin perder nada: los items YA estan guardados en la BD desde el
+   paso 1 (cargar_recepcion). Lo unico que falta es el pesaje, y la recepcion sin
+   pesar reaparece sola en la barra de arriba para retomarla. El confirm esta para
+   que quede claro que queda pendiente, no para trabar. */
+async function salirDelPesaje(){
+  if(!confirm('Salir del pesaje.\n\nLo que anotaste del remito YA está guardado: no se pierde.\n'+
+              'Lo que falta es el peso de balanza, así que la recepción queda SIN TERMINAR y '+
+              'reaparece arriba como "sin pesar" para retomarla cuando quieras.\n\n¿Salir igual?')) return;
+  var pend=PES?PES.items.length:0;
+  cerrarPopup();
+  REMITO=[];              // el remito en curso ya vive en la BD como pendiente
+  // El aviso va DESPUES de recargar: cargar() termina limpiando statusMsg, asi que
+  // ponerlo antes lo borraba y el usuario salia sin entender que quedo pendiente.
+  await cargar();
+  $('statusMsg').className='status';
+  $('statusMsg').textContent='Saliste del pesaje: '+pend+' ítem'+(pend===1?'':'s')+
+    (pend===1?' quedó':' quedaron')+' sin pesar. Se retoma desde la barra de arriba.';
+}
+$('kgPesajeSalir').addEventListener('click',salirDelPesaje);
+
+/* La X de la esquina: en el paso 1 cierra directo, en el paso 2 pregunta. */
+$('kgX').addEventListener('click',function(){ if(PES) salirDelPesaje(); else cerrarPopup(); });
+
+/* Escape: misma regla que la X. En la tablet no hay teclado, pero en la PC es
+   el reflejo de todo el mundo para salir de un popup. */
+document.addEventListener('keydown',function(e){
+  if(e.key!=='Escape' || !$('kgPopup').classList.contains('open')) return;
+  if(PES) salirDelPesaje(); else cerrarPopup();
+});
 
 /* Recepciones de la base que quedaron sin pesar (Pesar despues / dias
    anteriores). El modulo Control se fue: se retoman desde la misma barra. */
@@ -494,12 +544,14 @@ function montarPesaje(items){
   $('cargaWrap').classList.add('hidden');
   $('kgConfirm').classList.add('hidden');
   $('kgCancel').classList.add('hidden');
+  $('kgPesajeSalir').classList.remove('hidden');
   $('kgPesajeOk').classList.remove('hidden');
   $('kgMsg').className='status';
   $('kgMsg').innerHTML='Por cada pallet: el peso de balanza y las líneas de rollos. Recién ahí la recepción queda completa.';
   $('pesajeWrap').classList.remove('hidden');
   pintarPesaje();
   $('kgPopup').classList.add('open');
+  $('kgPopup').scrollTop=0;   // arrancar arriba: el pesaje largo abria scrolleado
 }
 
 function calcLinea(k){
@@ -692,8 +744,9 @@ $('kgPesajeOk').addEventListener('click', async function(){
   await cargar();
 });
 
-// En el paso 2 el click en el fondo NO cierra: la recepción quedaría a medias
-// sin que el usuario lo note. Del pesaje se sale únicamente guardando.
+// En el paso 2 el click en el fondo sigue SIN cerrar: scrolleando un pesaje largo
+// en la tablet es facil pegarle sin querer y perder lo cargado en pantalla. Para
+// salir estan la X, "Salir sin pesar" y Escape, que avisan antes.
 $('kgPopup').addEventListener('click',e=>{ if(e.target===$('kgPopup') && !PES) cerrarPopup(); });
 $('kgConfirm').addEventListener('click',guardar);
 
