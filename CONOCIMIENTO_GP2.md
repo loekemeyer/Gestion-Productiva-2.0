@@ -307,6 +307,17 @@ como contexto, el stock se puede pisar a mano, y el consumo es tocable (sustento
 artículo). Un destino sin consumo conocido dice "sin consumo" y no aporta faltante — no
 se inventa.
 
+## 3c-bis. Accesibilidad de carga: letra grande + teclado numérico (2026-08-30)
+
+`[usuario 2026-08-30]` Dicho textual: *"Siempre quiero letras bien grandes y legibles
+para que alguien que ve mal pueda escribir y no equivocarse. Donde van números, solo
+teclado numérico."* Y la aclaración: *"la letra grande no tiene que romper la visual...
+UX/UI súper prolija"*. La regla operativa completa vive en `CLAUDE.md` (sección
+"Campos de carga"); acá lo importante del negocio: **hay gente del depósito que ve mal
+y carga datos igual** — cualquier pantalla nueva se diseña para esa persona. Piso de
+18px en `gp2-modulo.css`, `inputmode` en todo campo numérico (51 arreglados de una),
+y el guard `test_teclado_numerico.js` para que no vuelva a pasar.
+
 ## 3. Reglas del negocio ya incorporadas
 
 - **La Est Madre manda hacia atrás.** El máximo de flejes e insumos NO sale de
