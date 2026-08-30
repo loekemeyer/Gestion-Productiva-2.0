@@ -11,7 +11,9 @@ ocupa varias seguidas deja huecos en la numeracion. Las ubicaciones se deducen c
 Ejemplo: `J2` = 5 cajones por ubicacion x 3 ubicaciones (J2, J3, J4, porque el siguiente
 existente es J5) = **15 cajones** = 25.275 unidades. Hoy figura 8.427.
 
-La correccion esta en `SQL_MAXIMOS_POR_UBICACIONES.sql` (sin aplicar todavia).
+La correccion **ya esta aplicada** (migracion `maximos_sector_por_ubicaciones_ocupadas`, 30/08/2026).
+El SQL quedo en `SQL_MAXIMOS_POR_UBICACIONES.sql` con el rollback al pie; backup en
+`GP2._bak_inventario_maximo_20260830`.
 
 ## 1. Ultimo de su serie: no hay codigo siguiente de donde sacar el hueco
 
@@ -68,13 +70,20 @@ Produccion nunca lo va a pedir.
 
 Se cargan en las tablas madre: `SC Kg."Max Caj Cerv"` y `SP Kg."Max Cajon SP Cerv"`.
 
-## Impacto de la correccion (dry run 30/08/2026)
+## Resultado de la correccion (aplicada 30/08/2026)
 
-| Sector | Antes | Despues | Ocupan mas de 1 ubicacion |
-|---|---|---|---|
-| Crudo (75) | 405 cajones | 964 cajones | 29 |
-| Procesado (83) | 540 cajones | 970 cajones | 28 |
+| Sector | Cajones antes | Cajones despues | Uni antes | Uni despues | Ocupan mas de 1 ubic |
+|---|---|---|---|---|---|
+| Crudo (77) | 405 | 965 | 879.378 | 1.855.191 | 29 |
+| Procesado (83) | 540 | 970 | 1.006.439 | 1.851.270 | 28 |
 
-**A confirmar**: la regla se verifico con J2, que es crudo. La migracion la aplica tambien
-a procesado asumiendo que la convencion de nombrar solo la primera ubicacion es la misma.
-Si en procesado no es asi, correr solo la parte de `sector_id = 1`.
+Chequeo: `J2` = 5 caj/ubic x 3 ubicaciones = 15 cajones = 25.275 uni (antes 8.427).
+
+Nota de redondeo: el maximo ahora se calcula con `componente.uni_x_cajon` en vez de
+`KG x Cajon / Kg X Uni`. En los sectores que no cambiaron de ubicaciones eso mueve el
+numero 1 o 2 unidades para abajo (J1 252 -> 250, J14 12.377 -> 12.376). A cambio los
+cajones dan exactos, que es lo que mira el operario.
+
+**A confirmar**: la regla se verifico con J2, que es crudo. Se aplico tambien a procesado
+asumiendo que la convencion de nombrar solo la primera ubicacion es la misma. Si en
+procesado no es asi, revertir solo `sector_id = 2` desde el backup.

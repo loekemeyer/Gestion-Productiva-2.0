@@ -13,11 +13,18 @@
 -- Ej. J2 "Cuerpo Uña": 5 cajones por ubicacion x 3 ubicaciones (J2, J3, J4,
 -- porque el siguiente es J5) = 15 cajones = 25.275 unidades. Hoy dice 8.427.
 --
--- Impacto medido (dry run del 30/08/2026):
---   Sector Crudo:     405 -> 964 cajones   (75 sectores, 29 ocupan mas de una)
---   Sector Procesado: 540 -> 970 cajones   (83 sectores, 28 ocupan mas de una)
+-- APLICADA el 30/08/2026 como migracion "maximos_sector_por_ubicaciones_ocupadas".
+-- Este archivo queda como referencia de que se corrio. No volver a ejecutarlo:
+-- los updates son idempotentes, pero el backup ya existe y no se pisa.
 --
--- Reversible: deja backup en GP2._bak_inventario_maximo_20260830
+-- Resultado real:
+--   Sector Crudo:     405 -> 965 cajones   (77 filas, 29 ocupan mas de una ubicacion)
+--     maximo en unidades:   879.378 -> 1.855.191
+--   Sector Procesado: 540 -> 970 cajones   (83 filas, 28 ocupan mas de una ubicacion)
+--     maximo en unidades: 1.006.439 -> 1.851.270
+--   Chequeo J2: 5 caj/ubic x 3 ubicaciones = 15 cajones = 25.275 uni (antes 8.427). OK
+--
+-- Reversible: backup en GP2._bak_inventario_maximo_20260830
 -- ============================================================================
 
 begin;
