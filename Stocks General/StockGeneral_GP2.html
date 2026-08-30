@@ -1,8 +1,14 @@
 <!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <script src="../auth-guard.js?v=20260829f"></script>
 <title>Stock por ubicación · GP2</title>
+<!-- v1.1.0 - la pantalla hereda lo unico propio de Movimientos/Registrar_Movimiento.html
+     (borrada 2026-08-30, aprobado por el usuario): los flujos de Ajuste +/- y Armado en
+     fabrica (mismos modales y mismo payload de registrar_movimientos, ahora via
+     gp2-motor.js) y la vista de ultimos 50 movimientos. Las otras 7 tarjetas de esa
+     pantalla duplicaban pantallas dedicadas y escribian tipos de movimiento distintos. -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="../supabase-config.js?v=20260830e"></script>
+<script src="../gp2-motor.js?v=20260830r"></script>
 <style>
  *{box-sizing:border-box}
  body{margin:0;background:#0a0e13;color:#e6ecf3;font:14px/1.5 -apple-system,Segoe UI,Roboto,sans-serif}
@@ -49,6 +55,37 @@
  tr.neg td.num{color:#f0a0a0;font-weight:700}
  .empty{color:#6b7f93;padding:10px 12px;font-size:13px}
  .mini{font-size:11px;color:#7a92a8}
+ /* ── Ajuste / Armado en fabrica (flujos heredados de Registrar_Movimiento) ── */
+ .btn-acc{background:#14202e;border:1px solid #2f6fb0;color:#cfe0f2;border-radius:8px;padding:10px 14px;font-size:16px;font-family:inherit;font-weight:700;cursor:pointer;min-height:44px}
+ .btn-acc:hover{border-color:#5fb0e8}
+ .modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.75);display:none;align-items:center;justify-content:center;z-index:100;padding:14px}
+ .modal-bg.on{display:flex}
+ .modal{background:#101820;border:1px solid #3a5068;border-radius:12px;padding:22px;max-width:600px;width:100%;max-height:94vh;overflow-y:auto}
+ .modal h3{margin:0 0 14px;font-size:17px;color:#5fb0e8}
+ .row{margin-bottom:12px}
+ .row label{display:block;font-size:12px;text-transform:uppercase;color:#8fa2b6;letter-spacing:.4px;margin-bottom:4px}
+ .row select,.row input{width:100%;background:#0b1119;color:#e6ecf3;border:1px solid #2a4a6e;border-radius:6px;padding:10px 12px;font-size:18px;font-family:inherit}
+ .row select:focus,.row input:focus{outline:none;border-color:#5fb0e8}
+ .row .hint{font-size:12px;color:#7a92a8;margin-top:3px;font-style:italic}
+ .actions{display:flex;gap:8px;justify-content:flex-end;margin-top:16px;border-top:1px solid #2a3648;padding-top:14px}
+ .btn-m{padding:12px 20px;border-radius:6px;border:1px solid;font-size:16px;font-family:inherit;cursor:pointer;font-weight:700;min-height:44px}
+ .btn-m.primary{background:#2a568e;border-color:#5fb0e8;color:#e6ecf3}
+ .btn-m.primary[disabled]{opacity:.5;cursor:progress}
+ .btn-m.cancel{background:transparent;border-color:#4a5a6c;color:#8fa2b6}
+ #toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#132a1e;border:1px solid #3a8a5f;color:#7fd0a5;padding:10px 18px;border-radius:8px;font-size:14px;font-weight:600;z-index:200;opacity:0;transition:opacity .2s;pointer-events:none}
+ #toast.on{opacity:1}
+ #toast.err{background:#2f1a1a;border-color:#8a3a3a;color:#f0a0a0}
+ /* ── ultimos movimientos (vista heredada de Registrar_Movimiento) ── */
+ .movs-wrap{overflow-x:auto;padding:0 6px 8px}
+ .movs-wrap table{width:auto;min-width:100%;font-size:12px}
+ .movs-wrap th,.movs-wrap td{white-space:nowrap}
+ .tag{display:inline-block;padding:2px 7px;border-radius:4px;font-size:10px;font-weight:700;text-transform:uppercase}
+ .t-compra{background:#1a2f47;color:#8fc4f0}
+ .t-prod{background:#2f2416;color:#e0a95a}
+ .t-envio{background:#241c2f;color:#c79bff}
+ .t-recep{background:#132a1e;color:#5fd39a}
+ .t-virgilio{background:#3a1e0a;color:#ffb060}
+ .t-ajuste{background:#2f1a24;color:#f08bb0}
 </style>
 <link rel="icon" type="image/png" href="../GP2_favicon.png">
 <link rel="apple-touch-icon" href="../GP2_favicon.png">
@@ -58,7 +95,8 @@
 <div class="logobar" style="position:relative"><a href="../GP2_MODULOS.html" style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:#cbd5e1;text-decoration:none;font-weight:700;font-size:15px;padding:5px 10px;border:1px solid #33415a;border-radius:8px;background:#101a2b">← Atrás</a><a href="../GP2_MODULOS.html"><img src="../GP2_logo.png" alt="GP2"></a></div>
 <div class="top">
   <h1>▦ Stock por ubicación · GP2</h1>
-  <a class="btn-sm" href="../Movimientos/Registrar_Movimiento.html">📋 Movimientos</a>
+  <button class="btn-acc" onclick="openAjuste()">± Ajuste</button>
+  <button class="btn-acc" onclick="openArmado()">🔧 Armado en fábrica</button>
   <span id="status">Cargando…</span>
 </div>
 <div class="canvas">
@@ -70,7 +108,33 @@
    <button class="btn-sm" onclick="reload()">↻ Actualizar</button>
  </div>
  <div id="tree"><p class="empty">Cargando stock…</p></div>
+
+ <!-- ultimos movimientos (venia de Registrar_Movimiento; misma tabla, mismo select) -->
+ <div class="grp" id="grpMovs">
+  <div class="gh" onclick="tog(this)"><span class="arr">▶</span><span class="nm">📜 Últimos movimientos</span><span class="badge" id="movsBadge"></span></div>
+  <div class="gb"><div class="movs-wrap">
+   <table id="tblMovs">
+    <thead><tr>
+     <th>fecha</th><th>tipo</th><th>componente</th><th>origen</th><th>destino</th>
+     <th class="num">cantidad</th><th>transformado</th><th class="num">cant. transf.</th>
+    </tr></thead>
+    <tbody id="tbodyMovs"><tr><td colspan="8" class="empty">Cargando…</td></tr></tbody>
+   </table>
+  </div></div>
+ </div>
 </div>
+
+<div class="modal-bg" id="modalBg">
+ <div class="modal">
+  <h3 id="modalTitle"></h3>
+  <div id="modalForm"></div>
+  <div class="actions">
+   <button class="btn-m cancel" onclick="closeModal()">Cancelar</button>
+   <button class="btn-m primary" id="btnSave" onclick="saveModal()">✔ Registrar</button>
+  </div>
+ </div>
+</div>
+<div id="toast"></div>
 
 <script>
 const SB=window.supabase.createClient(SB_URL,SB_ANON,{db:{schema:'GP2'}});
@@ -156,13 +220,122 @@ function render(){
 
 async function reload(){
  $('status').textContent='Cargando…';
- var res=await SB.rpc('movimientos_bundle');
- if(res.error){$('status').textContent='Error: '+res.error.message;$('tree').innerHTML='<p class="empty">No se pudo cargar: '+res.error.message+'</p>';return;}
- D=res.data;
+ try{
+  // mismo movimientos_bundle de siempre, pero via el motor compartido:
+  // asi los flujos de Ajuste/Armado usan LA MISMA data y lookups.
+  D=await GP2M.cargar(SB);
+ }catch(e){
+  var msg=(e&&e.message)||e;
+  $('status').textContent='Error: '+msg;
+  $('tree').innerHTML='<p class="empty">No se pudo cargar: '+esc(msg)+'</p>';
+  return;
+ }
  var n=Object.keys(D.inv||{}).length;
  var con=Object.values(D.inv||{}).filter(v=>Number(v.cant)!==0).length;
  $('status').textContent='GP2 · '+n+' posiciones · '+con+' con stock';
  render();
+ renderMovs();
+}
+
+/* ═══ Ajuste +/- y Armado en fabrica ═══
+   Mismos modales y mismo payload que tenia Registrar_Movimiento.html (borrada):
+   la construccion de filas vive en gp2-motor.js (GP2M.ajuste / GP2M.armadoFabrica)
+   y se escribe con GP2M.registrar -> RPC registrar_movimientos. */
+var MODAL_TIPO=null,_busy=false;
+function val(id){var el=$(id);return el?el.value:'';}
+function opt(v,t){return '<option value="'+esc(v)+'">'+esc(t)+'</option>';}
+function todayLocal(){var d=new Date(),z=n=>(n<10?'0':'')+n;return d.getFullYear()+'-'+z(d.getMonth()+1)+'-'+z(d.getDate());}
+function optsComps(ids){
+ return ids.filter((v,i,a)=>a.indexOf(v)===i)
+  .sort((a,b)=>{var ca=D.comp[String(a)]||{},cb=D.comp[String(b)]||{};return (ca.cod||'').localeCompare(cb.cod||'');})
+  .map(id=>{var c=D.comp[String(id)]||{cod:'?',d:''};return opt(id,c.cod+' — '+(c.d||'').replace(/\n/g,' ').substring(0,50));}).join('');
+}
+function openAjuste(){
+ if(!D){toast('Datos todavía cargando…',true);return;}
+ MODAL_TIPO='ajuste';
+ $('modalTitle').textContent='✏️ Ajuste de inventario (+/-)';
+ $('modalForm').innerHTML=
+  '<div class="row"><label>Fecha</label><input type="date" id="f_fecha" value="'+todayLocal()+'"></div>'+
+  '<div class="row"><label>Componente</label><select id="f_comp" onchange="onAjComp()"><option value="">— Elegí —</option>'+optsComps(Object.keys(D.comp).map(Number))+'</select></div>'+
+  '<div class="row"><label>Ubicación</label><select id="f_ubic"><option value="">Elegí componente primero</option></select></div>'+
+  '<div class="row"><label>Cantidad (+/-)</label><input inputmode="decimal" type="number" id="f_qty" step="0.01" placeholder="ej -5 o +12"><div class="hint">Positivo suma, negativo descuenta. Corrección manual del stock.</div></div>';
+ $('modalBg').classList.add('on');
+}
+function openArmado(){
+ if(!D){toast('Datos todavía cargando…',true);return;}
+ MODAL_TIPO='armado_fabrica';
+ $('modalTitle').textContent='🏭 Armado en fábrica';
+ $('modalForm').innerHTML=
+  '<div class="row"><label>Fecha</label><input type="date" id="f_fecha" value="'+todayLocal()+'"></div>'+
+  '<div class="row"><label>Artículo a armar</label><select id="f_comp"><option value="">— Elegí —</option>'+optsComps(GP2M.artsFabricaDirecto())+'</select><div class="hint">Solo artículos que arma Cervantes (sin tallerista externo). Consume el BOM y crea el terminado en Fábrica.</div></div>'+
+  '<div class="row"><label>Unidades</label><input inputmode="numeric" type="number" id="f_qty" step="1" min="0"></div>';
+ $('modalBg').classList.add('on');
+}
+function onAjComp(){
+ var cid=parseInt(val('f_comp'));var sel=$('f_ubic');
+ if(!cid){sel.innerHTML='<option value="">Elegí componente primero</option>';return;}
+ var ubics=GP2M.ubicacionesDeComp(cid);
+ if(!ubics.length){sel.innerHTML='<option value="">(sin ubicación)</option>';return;}
+ if(ubics.length===1){sel.innerHTML=opt(ubics[0],D.ubic[String(ubics[0])].nom);return;}
+ sel.innerHTML='<option value="">— Elegí —</option>'+ubics.map(u=>opt(u,D.ubic[String(u)].nom)).join('');
+}
+function closeModal(){$('modalBg').classList.remove('on');MODAL_TIPO=null;}
+function setBusy(b){_busy=b;var btn=$('btnSave');if(btn){btn.disabled=b;btn.textContent=b?'Guardando…':'✔ Registrar';}}
+var _toastT=null;
+function toast(msg,err){var el=$('toast');el.textContent=msg;el.className='on'+(err?' err':'');clearTimeout(_toastT);_toastT=setTimeout(()=>{el.className='';},err?5000:3000);}
+async function saveModal(){
+ if(_busy||!MODAL_TIPO)return;
+ var r;
+ try{
+  if(MODAL_TIPO==='ajuste')
+   r=GP2M.ajuste({comp_id:val('f_comp'),ubic_id:val('f_ubic'),cantidad:parseFloat(val('f_qty')),fecha:val('f_fecha')});
+  else
+   r=GP2M.armadoFabrica({comp_id:val('f_comp'),cantidad:parseFloat(val('f_qty')),fecha:val('f_fecha')});
+ }catch(e){alert((e&&e.message)||e);return;}
+ setBusy(true);
+ try{
+  var res=await GP2M.registrar(SB,r.rows);
+  closeModal();
+  toast('✔ '+((res&&res.n)||r.rows.length)+' movimiento(s) registrado(s)');
+  await reload();
+ }catch(e){
+  toast('Error: '+((e&&e.message)||e),true);
+ }finally{setBusy(false);}
+}
+
+/* ═══ Ultimos movimientos (misma tabla/labels que Registrar_Movimiento) ═══ */
+var TIPOS={
+ compra:{lbl:'Compra',cls:'t-compra'}, produccion:{lbl:'Producción',cls:'t-prod'},
+ armado_fabrica:{lbl:'Armado fábrica',cls:'t-prod'}, envio_prov:{lbl:'Env prov serv',cls:'t-envio'},
+ recepcion_prov:{lbl:'Rec prov serv',cls:'t-recep'}, envio_tall:{lbl:'Env tall',cls:'t-envio'},
+ recepcion_tall:{lbl:'Rec tall',cls:'t-recep'}, recepcion_virgilio:{lbl:'Rec Virgilio',cls:'t-virgilio'},
+ consumo_prod:{lbl:'Consumo prod',cls:'t-prod'}, consumo_tall:{lbl:'Consumo tall',cls:'t-recep'},
+ ajuste:{lbl:'Ajuste',cls:'t-ajuste'}
+};
+function fmtNum(n){if(n==null)return '';var x=Number(n);return Number.isInteger(x)?String(x):x.toFixed(2);}
+function fmtFecha(f){if(!f)return '';try{return new Date(f).toLocaleDateString('es-AR');}catch(e){return f;}}
+function cNom(cid){var c=(D&&D.comp[String(cid)])||null;return c?c.cod:(cid==null?'':String(cid));}
+function uNom(uid){return uid?(((D&&D.ubic[String(uid)])||{nom:'?'}).nom):'';}
+async function renderMovs(){
+ var tb=$('tbodyMovs');if(!tb)return;
+ var res=await SB.from('movimiento').select('*').order('id',{ascending:false}).limit(50);
+ if(res.error){tb.innerHTML='<tr><td colspan="8" class="empty">Error: '+esc(res.error.message)+'</td></tr>';return;}
+ var movs=res.data||[];
+ var bd=$('movsBadge');if(bd)bd.textContent=movs.length?String(movs.length):'0';
+ if(!movs.length){tb.innerHTML='<tr><td colspan="8" class="empty">Sin movimientos todavía</td></tr>';return;}
+ tb.innerHTML=movs.map(m=>{
+  var ti=TIPOS[m.tipo_mov]||{lbl:m.tipo_mov,cls:''};
+  return '<tr>'+
+   '<td>'+fmtFecha(m.fecha)+'</td>'+
+   '<td><span class="tag '+ti.cls+'">'+esc(ti.lbl)+'</span></td>'+
+   '<td>'+esc(cNom(m.comp_id))+'</td>'+
+   '<td>'+(esc(uNom(m.ubic_origen_id))||'—')+'</td>'+
+   '<td>'+(esc(uNom(m.ubic_destino_id))||'—')+'</td>'+
+   '<td class="num">'+fmtNum(m.cantidad)+' '+esc(m.unidad_origen||'')+'</td>'+
+   '<td>'+esc(m.comp_transformado_id?cNom(m.comp_transformado_id):'')+'</td>'+
+   '<td class="num">'+(m.cantidad_transformada!=null?fmtNum(m.cantidad_transformada)+' '+esc(m.unidad_destino||''):'')+'</td>'+
+  '</tr>';
+ }).join('');
 }
 reload();
 </script>

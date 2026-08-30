@@ -10,7 +10,10 @@ const EXE = process.env.CHROMIUM_PATH || (fs.existsSync('/opt/pw-browsers/chromi
    la RPC ruta_confirmar con la MISMA firma de deduplicacion de siempre; el
    resumen global cuenta pendientes y el filtro "solo con pendientes" filtra.
    Corre tambien en viewport de celular (390px): sin scroll horizontal y botones
-   tocables. */
+   tocables.
+   v2.1.0 suma el bloque "Faltantes del artículo" (el prorrateo portado de la
+   pantalla Faltantes borrada): RPC faltantes_bundle LAZY y la matematica exacta
+   (reparto ÷N entre talleristas y firma anti-duplicado de rutas alternativas). */
 
 // firma esperada: F:<fleje>|tp:(actor||cs||ce)|...  (identica a la de Verificacion_GP2)
 const FIRMA_101 = 'F:F1|ingreso:F1|matriz:62|tallerista:Carlos|virgilio:';
@@ -46,9 +49,51 @@ const BUNDLE = {
   madres: { total_comp: 10, sin_kg: 3, sin_uxc: 4 },
 };
 
+/* bundle de faltantes (v2.1.0: el prorrateo portado de la vieja pantalla Faltantes).
+   Numeros elegidos para poder verificar la matematica A MANO:
+   - art 101 (est 100) y art 202 (est 50) comparten el C9 (comp 10) y el fleje F1 (comp 11).
+   - C9 en sector D1 (meses 2): aporte 101 = 100x1x2 = 200; aporte 202 = 100; min 100,
+     stock 40 -> falta 60; falta art 101 = 60 x 200/300 = 40.
+   - C9 en el tallerista Carlos (meses 1): el 101 lo arman Carlos O Martin (2 rutas
+     alternativas) -> REPARTO ÷2: aporte 101 = 100/2 = 50; el 202 lo arma solo Carlos:
+     50. min 50, stock 0 -> falta 50; falta art 101 = 50 x 50/100 = 25.
+   - F1 (kg, ppk 100 de la matriz 62): las DOS rutas del 101 (Carlos/Martin) tienen la
+     MISMA firma anti-duplicado -> kg cuentan UNA vez: 100/100 = 1 kg x 2 meses = 2.
+     El 202 aporta 1. min 10 -> falta 10; falta art 101 = 10 x 2/3 = 6.67.
+   Si el reparto ÷2 o la firma anti-dup se rompen, estos numeros cambian (33 / 4 / 8). */
+const FALT = {
+  sect: { '1': { tipo: 'Fleje', nom: 'Sector Fleje' }, '2': { tipo: 'Crudo', nom: 'Sector Crudo' }, '12': { tipo: 'Terminado', nom: 'Terminado' } },
+  ubic: {
+    '1': { tipo: 'sector', ref: 2, nom: 'D1', meses: 2 },
+    '2': { tipo: 'tallerista', ref: 1, nom: 'Tallerista Carlos', meses: 1 },
+    '3': { tipo: 'tallerista', ref: 2, nom: 'Tallerista Martin', meses: 1 },
+    '4': { tipo: 'sector', ref: 1, nom: 'Flejes', meses: 2 },
+  },
+  art: [{ id: 1, cod: '101', fam: 'Cuchillos', est: 100 }, { id: 2, cod: '202', fam: 'Tenedores', est: 50 }],
+  comp: {
+    '10': { cod: 'C9', d: 'Resorte U Crom', s: 2, um: 'uni' },
+    '11': { cod: 'F1', d: 'Fleje uno', s: 1, um: 'kg' },
+    '12': { cod: 'Z1', d: 'Cuchillo armado', s: 12, um: 'uni' },
+    '13': { cod: 'Z2', d: 'Tenedor armado', s: 12, um: 'uni' },
+  },
+  prov_serv: {},
+  tall: { '1': { nom: 'Carlos' }, '2': { nom: 'Martin' } },
+  mat: { '5': { n: '62', d: 'Corte', ppk: 100, primera: true } },
+  bom_art: { '1': [{ c: 10, q: 1 }], '2': [{ c: 10, q: 1 }] },
+  bom_comp: {},
+  rp: {
+    '10': [{ o: 1, tipo: 'ingreso', ce: 11, flje: 11 }, { o: 2, tipo: 'matriz', mat: 5, ce: 11, cs: 10 }, { o: 3, tipo: 'tallerista', tall: 1, ce: 10, cs: 12 }, { o: 4, tipo: 'virgilio', ce: 12, art: 1 }],
+    '11': [{ o: 1, tipo: 'ingreso', ce: 11, flje: 11 }, { o: 2, tipo: 'matriz', mat: 5, ce: 11, cs: 10 }, { o: 3, tipo: 'tallerista', tall: 2, ce: 10, cs: 12 }, { o: 4, tipo: 'virgilio', ce: 12, art: 1 }],
+    '20': [{ o: 1, tipo: 'ingreso', ce: 11, flje: 11 }, { o: 2, tipo: 'matriz', mat: 5, ce: 11, cs: 10 }, { o: 3, tipo: 'tallerista', tall: 1, ce: 10, cs: 13 }, { o: 4, tipo: 'virgilio', ce: 13, art: 2 }],
+  },
+  inv: { '10:1': { cant: 40, min: 100 }, '10:2': { cant: 0, min: 50 }, '11:4': { cant: 0, min: 10 } },
+  c2a: {},
+};
+
 const STUB = 'window.__rpc=[];window.supabase={createClient:function(){return{rpc:async function(n,a){' +
   'window.__rpc.push({n:n,a:a||null});' +
   'if(n==="despiece_verif_bundle")return{data:' + JSON.stringify(BUNDLE) + ',error:null};' +
+  'if(n==="faltantes_bundle")return{data:' + JSON.stringify(FALT) + ',error:null};' +
   'return{data:99,error:null};}}}};';
 
 (async () => {
@@ -76,6 +121,10 @@ const STUB = 'window.__rpc=[];window.supabase={createClient:function(){return{rp
   ok(cods.length === 1 && cods[0] === '101', 'filtro pendientes: queda solo el 101 (' + cods.join(',') + ')');
   await page.uncheck('#chkPend');
 
+  // ── faltantes: la RPC es LAZY (no se pide hasta abrir un articulo) ──
+  ok(!(await page.evaluate(() => window.__rpc.some(c => c.n === 'faltantes_bundle'))),
+     'faltantes_bundle NO se pide al cargar (lazy)');
+
   // ── elegir un articulo: receta + ruta + avisos en la misma pantalla ──
   await page.selectOption('#selArt', '101');
   await page.waitForSelector('.art-section.open');
@@ -86,6 +135,25 @@ const STUB = 'window.__rpc=[];window.supabase={createClient:function(){return{rp
   ok((await sec.locator('.ruta-card').count()) === 1, 'ruta trazada del articulo presente');
   ok(/Carlos/.test(txt) && /Matriz|62/.test(txt), 'la ruta muestra sus pasos (matriz 62, Carlos)');
   ok(/Avisos/i.test(txt) && /falta Kg x Uni y Uni x Caj/i.test(txt), 'avisos: el C9 sin datos maestros aparece');
+
+  // ── bloque "Faltantes del artículo": el prorrateo de la vieja pantalla Faltantes ──
+  await page.waitForSelector('.art-section.open .falt-tabla');
+  ok((await page.evaluate(() => window.__rpc.filter(c => c.n === 'faltantes_bundle').length)) === 1,
+     'faltantes_bundle se pidio UNA vez al abrir el articulo');
+  const filas = await page.$$eval('.art-section.open .falt-tabla tbody tr', trs =>
+    trs.map(tr => [...tr.children].map(td => td.textContent.trim())));
+  // columnas: Cod, Componente, Ubicacion, Min ubic, Stock, Falta total, Aporte art, Falta art, Un
+  ok(filas.length === 3, 'faltantes: 3 filas (F1 en Flejes, C9 en D1, C9 en Carlos) — hay ' + filas.length);
+  const fF1 = filas.find(f => f[0].indexOf('F1') === 0 && f[2] === 'Flejes');
+  const fD1 = filas.find(f => f[0].indexOf('C9') === 0 && f[2] === 'D1');
+  const fCar = filas.find(f => f[0].indexOf('C9') === 0 && f[2] === 'Carlos');
+  ok(!!fD1 && fD1[3] === '100' && fD1[4] === '40' && fD1[5] === '60' && fD1[6] === '200' && fD1[7] === '40',
+     'prorrateo C9 en D1: min 100, stock 40, falta 60, aporte art 200, falta art 40 (60 x 200/300) — ' + JSON.stringify(fD1));
+  ok(!!fCar && fCar[3] === '50' && fCar[5] === '50' && fCar[6] === '50' && fCar[7] === '25',
+     'reparto ÷2 talleristas: C9 en Carlos aporta 50 (100/2) y falta art 25 (50 x 50/100) — ' + JSON.stringify(fCar));
+  ok(!!fF1 && fF1[6] === '2' && fF1[7] === '6.67',
+     'firma anti-duplicado: las 2 rutas alternativas del fleje cuentan UNA vez (aporte 2 kg, falta art 6.67) — ' + JSON.stringify(fF1));
+  ok(!!fD1 && /×2/.test(fD1[0]), 'el C9 marca que lo comparten 2 articulos (×2)');
 
   // ── sin scroll horizontal y botones tocables en celular ──
   const mob = await page.evaluate(() => ({

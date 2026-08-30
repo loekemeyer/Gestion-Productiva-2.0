@@ -1,6 +1,12 @@
 <!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Despiece x Artículo (GP2)</title>
-<!-- v2.0.0 - FUSION (pedido del usuario: "Que funcione mergeado todo en despiece x articulo"):
+<!-- v2.1.0 - FALTANTES DEL ARTICULO: absorbe lo unico propio de la pantalla Faltantes
+     (borrada 2026-08-30, aprobado por el usuario): el PRORRATEO del faltante por articulo.
+     Al abrir un articulo, un bloque muestra por componente y ubicacion: minimo, stock,
+     faltante global y cuanto de ese faltante es atribuible a ESTE articulo — misma
+     matematica (reparto ÷N entre talleristas compartidos y firma anti-duplicado de rutas
+     alternativas) portada 1:1 del JS viejo, sobre la MISMA RPC faltantes_bundle (lazy).
+     v2.0.0 - FUSION (pedido del usuario: "Que funcione mergeado todo en despiece x articulo"):
      esta pantalla absorbe Verificacion (trazado de rutas, confirmar/reportar/resolver contra
      ruta_confirmada/ruta_problema, misma firma de deduplicacion) y VerifMadres (componentes
      con kg_x_uni / uni_x_cajon faltantes). Por articulo se ve receta + rutas + avisos; arriba
@@ -14,7 +20,7 @@
  .top .sub{font-size:11px;color:#8fc4d0}
  .filters{padding:12px 20px;background:#101820;border-bottom:1px solid #1e2a38;display:flex;gap:10px;flex-wrap:wrap;align-items:center}
  .filters label{font-size:11px;text-transform:uppercase;color:#7a92a8;letter-spacing:.5px;margin-right:2px}
- .filters select,.filters input[type=text]{background:#0b1119;color:#e6ecf3;border:1px solid #2a4a6e;border-radius:6px;padding:8px 10px;font:18px inherit}
+ .filters select,.filters input[type=text]{background:#0b1119;color:#e6ecf3;border:1px solid #2a4a6e;border-radius:6px;padding:8px 10px;font-size:18px;font-family:inherit}
  .filters input[type=text]{min-width:180px;flex:1}
  .filters select{min-width:200px;max-width:100%}
  .filters .chk{font-size:12px;color:#8fc4d0;display:flex;align-items:center;gap:6px;cursor:pointer;text-transform:none;letter-spacing:0}
@@ -49,6 +55,9 @@
  th{color:#7a92a8;text-transform:uppercase;font-size:10px;letter-spacing:.4px;background:#0a1119}
  td.num{text-align:right;font-family:ui-monospace,SF Mono,monospace}
  td.falta{background:#3a1a0a;color:#e0a95a;font-weight:700}
+ .f-fal{color:#ff8f9a;font-weight:700}
+ .f-ok{color:#5fd39a}
+ .falt-nota{padding:6px 14px 12px;color:#7a92a8;font-size:11px;font-style:italic}
  tbody tr:hover{background:#111c28}
  .sect-tag{display:inline-block;padding:2px 8px;border-radius:3px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.3px}
  .st-crudo{background:#3a2a10;color:#e0a95a}
@@ -100,7 +109,7 @@
  .modal-bg.on{display:flex}
  .modal-box{background:#101820;border:1px solid #2a4a6e;border-radius:12px;padding:20px;max-width:420px;width:92%}
  .modal-box h3{margin:0 0 12px;font-size:15px;color:#e6ecf3}
- .modal-box textarea{width:100%;height:80px;background:#0b1119;color:#e6ecf3;border:1.5px solid #2a4a6e;border-radius:8px;padding:8px;font:18px inherit;resize:vertical}
+ .modal-box textarea{width:100%;height:80px;background:#0b1119;color:#e6ecf3;border:1.5px solid #2a4a6e;border-radius:8px;padding:8px;font-size:18px;font-family:inherit;resize:vertical}
  .modal-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:12px}
  .modal-actions button{padding:10px 16px;border-radius:8px;border:none;font-size:13px;font-weight:700;cursor:pointer;min-height:44px}
  .modal-ok{background:#2a4a6e;color:#fff}.modal-cancel{background:#1a2430;color:#8fc4d0}
@@ -131,7 +140,7 @@
   <select id="selArt"><option value="">— todos —</option></select>
   <input id="q" type="text" placeholder="Buscar código, familia, componente, fleje...">
   <label class="chk"><input type="checkbox" id="chkPend"> Solo artículos con pendientes</label>
-  <label class="chk">Usuario <input id="inpUsuario" type="text" placeholder="tu nombre" style="width:130px;background:#0b1119;color:#e6ecf3;border:1px solid #2a4a6e;border-radius:6px;padding:6px 8px;font:18px inherit"></label>
+  <label class="chk">Usuario <input id="inpUsuario" type="text" placeholder="tu nombre" style="width:130px;background:#0b1119;color:#e6ecf3;border:1px solid #2a4a6e;border-radius:6px;padding:6px 8px;font-size:18px;font-family:inherit"></label>
   <button class="btn" id="expAll" style="margin-left:auto">Expandir todo</button>
   <button class="btn" id="btnCSV">Exportar CSV</button>
 </div>
@@ -226,6 +235,344 @@ function artPend(a){
 }
 
 var open={};
+
+/* ═══════════ FALTANTES DEL ARTICULO ═══════════
+   Portado CON FIDELIDAD de Faltantes/Faltantes.html (pantalla borrada
+   2026-08-30). Es lo unico propio que tenia: el PRORRATEO del faltante
+   por articulo. La matematica es exactamente la misma:
+   - compsDeArt: BOM directo + sub-BOM recursivo + intermedios de rutas del art.
+   - minAporteArt: est_madre x qty x meses de la ubicacion; para flejes usa kg
+     via la primera matriz con FIRMA ANTI-DUPLICADO (las rutas alternativas que
+     solo cambian el tallerista cuentan UNA vez); si el tallerista final es
+     compartido, el aporte se reparte ÷N (idem sub-conjuntos armados por varios).
+   - faltaArt = faltaGlobal x (aporte del art / suma de aportes de todos los arts).
+   Datos: la MISMA RPC faltantes_bundle, cargada lazy al abrir un articulo. */
+var FD=null, FD_ERR=null, FD_LOADING=false, FX=null;
+function ensureFaltantes(){
+  if(FD||FD_ERR||FD_LOADING)return;
+  FD_LOADING=true;
+  SB.rpc('faltantes_bundle').then(function(r){
+    FD_LOADING=false;
+    if(r.error){FD_ERR=r.error.message||String(r.error);render();return;}
+    FD=r.data||{};
+    try{prepFaltantes();}catch(e){FD=null;FD_ERR=String((e&&e.message)||e);console.error(e);}
+    render();
+  });
+}
+function prepFaltantes(){
+  for(var _rid in FD.rp)FD.rp[_rid].sort(function(a,b){return a.o-b.o;});
+
+  // art.cod → cid (art terminado sector 12)
+  var codToComp={};
+  for(var cid0 in FD.comp){var c0=FD.comp[cid0];if(c0.s===12&&c0.cod)codToComp[c0.cod]=cid0;}
+  var artById={};
+  (FD.art||[]).forEach(function(a){artById[a.id]=a;});
+
+  // art del ultimo paso con art asignado en una ruta
+  function artDeRuta(pasos){
+    for(var i=pasos.length-1;i>=0;i--){if(pasos[i].art!=null)return pasos[i].art;}
+    return null;
+  }
+
+  // Comps requeridos por cada art: bom_art + bom_comp recursivo + intermedios de rutas
+  function compsDeArt(aid){
+    var acc={};
+    var bom=FD.bom_art[String(aid)]||[];
+    bom.forEach(function(it){acc[it.c]=(acc[it.c]||0)+it.q;});
+    var pending=Object.keys(acc).slice();
+    var visited={};
+    while(pending.length){
+      var cid=pending.shift();
+      if(visited[cid])continue;
+      visited[cid]=1;
+      var qbase=acc[cid];
+      (FD.bom_comp[cid]||[]).forEach(function(hh){
+        var newq=qbase*hh.q;
+        if(!acc[hh.c]){acc[hh.c]=newq;pending.push(String(hh.c));}
+        else acc[hh.c]+=newq;
+      });
+    }
+    for(var rid in FD.rp){
+      var pasos=FD.rp[rid];
+      if(artDeRuta(pasos)!==aid)continue;
+      pasos.forEach(function(p){
+        ['ce','cs','flje'].forEach(function(k){
+          var c=p[k];
+          if(c!=null&&!acc[c])acc[c]=1;
+        });
+      });
+    }
+    var artCid=codToComp[artById[aid]&&artById[aid].cod];
+    if(artCid&&!acc[artCid])acc[artCid]=1;
+    return acc;
+  }
+  var compsArt={};
+  (FD.art||[]).forEach(function(a){compsArt[a.id]=compsDeArt(a.id);});
+  var compUsadoPor={};
+  (FD.art||[]).forEach(function(a){
+    Object.keys(compsArt[a.id]).forEach(function(cid){
+      (compUsadoPor[cid]=compUsadoPor[cid]||[]).push(a.id);
+    });
+  });
+
+  // (aid, cid) → set de talleristas/provs validos (paso de ruta o tall final con BOM)
+  var validPares={};
+  function keyAC(aid,cid){return aid+':'+cid;}
+  (function(){
+    var tallFinalArt={};
+    for(var rid in FD.rp){
+      var pasos=FD.rp[rid];
+      var aid=artDeRuta(pasos);
+      if(aid==null)continue;
+      var last=null;
+      pasos.forEach(function(p){if(p.tall!=null)last=p.tall;});
+      if(last!=null){(tallFinalArt[aid]=tallFinalArt[aid]||{})[last]=1;}
+    }
+    function hijosBOM(cid){
+      var acc={};
+      (function rec(c,vis){
+        if(vis[c])return;var v=Object.assign({},vis);v[c]=1;
+        (FD.bom_comp[c]||[]).forEach(function(hh){acc[hh.c]=1;rec(hh.c,v);});
+      })(cid,{});
+      return Object.keys(acc).map(Number);
+    }
+    for(var rid2 in FD.rp){
+      var pasos2=FD.rp[rid2];
+      var aid2=artDeRuta(pasos2);
+      if(aid2==null)continue;
+      pasos2.forEach(function(p){
+        if(p.tall==null&&p.prov==null)return;
+        [p.ce,p.cs].forEach(function(c){
+          if(c==null)return;
+          var k=keyAC(aid2,c);
+          validPares[k]=validPares[k]||{};
+          if(p.tall!=null)validPares[k]['tall_'+p.tall]=1;
+          if(p.prov!=null)validPares[k]['prov_'+p.prov]=1;
+        });
+        if(p.cs!=null&&FD.bom_comp[String(p.cs)]){
+          hijosBOM(p.cs).forEach(function(hCid){
+            var k=keyAC(aid2,hCid);
+            validPares[k]=validPares[k]||{};
+            if(p.tall!=null)validPares[k]['tall_'+p.tall]=1;
+            if(p.prov!=null)validPares[k]['prov_'+p.prov]=1;
+          });
+        }
+      });
+    }
+    // Tall final: SOLO comps del BOM directo (arma con lo que recibe)
+    Object.keys(tallFinalArt).forEach(function(aid3){
+      var bomDirecto=FD.bom_art[String(aid3)]||[];
+      bomDirecto.forEach(function(it){
+        var k=keyAC(aid3,+it.c);
+        validPares[k]=validPares[k]||{};
+        Object.keys(tallFinalArt[aid3]).forEach(function(tid){
+          validPares[k]['tall_'+tid]=1;
+        });
+      });
+    });
+  })();
+  function esValidoParCompUbic(aid,cid,u){
+    if(u.tipo!=='tallerista'&&u.tipo!=='proveedor_servicio')return true;
+    var s=validPares[keyAC(aid,cid)];
+    if(!s)return false;
+    return !!s[(u.tipo==='tallerista'?'tall_':'prov_')+u.ref];
+  }
+
+  // Talls finales por art (para reparto ÷N en el armado final)
+  var tallsFinalArt={};
+  for(var rid3 in FD.rp){
+    var ps3=FD.rp[rid3];var aid3=artDeRuta(ps3);if(aid3==null)continue;
+    var last3=null;ps3.forEach(function(p){if(p.tall!=null)last3=p.tall;});
+    if(last3!=null){(tallsFinalArt[aid3]=tallsFinalArt[aid3]||{})[last3]=1;}
+  }
+  // Talls por armado de sub-conjunto: (aid, cid_subconj) → set talls
+  var tallsPorArmado={};
+  for(var rid4 in FD.rp){
+    var ps4=FD.rp[rid4];var aid4=artDeRuta(ps4);if(aid4==null)continue;
+    ps4.forEach(function(p){
+      if(p.tall!=null&&p.cs!=null&&FD.bom_comp[String(p.cs)]){
+        var kk=aid4+':'+p.cs;
+        tallsPorArmado[kk]=tallsPorArmado[kk]||{};
+        tallsPorArmado[kk][p.tall]=1;
+      }
+    });
+  }
+  // Comp → padres sub-conjunto
+  var padreSubConj={};
+  for(var pc in FD.bom_comp){
+    (FD.bom_comp[pc]||[]).forEach(function(hh){
+      (padreSubConj[hh.c]=padreSubConj[hh.c]||[]).push(+pc);
+    });
+  }
+
+  // Kg de fleje por (aid, fleje_cid) con FIRMA ANTI-DUPLICADO (ignora tallerista)
+  var flejeKg={},rutasVistas={};
+  for(var rid5 in FD.rp){
+    var ps5=FD.rp[rid5];
+    var aid5=artDeRuta(ps5);if(aid5==null)continue;
+    var a5=artById[aid5];if(!a5||!a5.est)continue;
+    var flje=null;
+    for(var i5=0;i5<ps5.length;i5++){if(ps5[i5].flje){flje=ps5[i5].flje;break;}}
+    if(!flje)continue;
+    var sig=aid5+'|'+flje+'|'+ps5.map(function(p){return p.tipo+':'+(p.mat||'')+':'+(p.prov||'')+':'+(p.ce||'')+':'+(p.cs||'')+':'+(p.flje||'');}).join('>');
+    if(rutasVistas[sig])continue;
+    rutasVistas[sig]=1;
+    var ppk=null,csP=null,j5,p5,m5;
+    for(j5=0;j5<ps5.length;j5++){
+      p5=ps5[j5];
+      if(p5.mat){m5=FD.mat[String(p5.mat)]||{};if(m5.primera&&m5.ppk>0){ppk=m5.ppk;csP=p5.cs;break;}}
+    }
+    if(!ppk){
+      for(j5=0;j5<ps5.length;j5++){
+        p5=ps5[j5];
+        if(p5.mat){m5=FD.mat[String(p5.mat)]||{};if(m5.ppk>0){ppk=m5.ppk;csP=p5.cs;break;}}
+      }
+    }
+    if(!ppk)continue;                 // sin factor de conversion: no computa kg
+    var qBom=1;var bomA5=FD.bom_art[String(aid5)]||[];
+    bomA5.forEach(function(it){if(it.c===csP)qBom=it.q;});
+    var key5=aid5+':'+flje;
+    flejeKg[key5]=(flejeKg[key5]||0)+a5.est*qBom/ppk;
+  }
+
+  // Min-aporte de un art a (comp, ubic) — reparto ÷N si el tallerista comparte
+  function minAporteArt(aid,cid,uid){
+    var a=artById[aid];if(!a||!a.est)return 0;
+    var u=FD.ubic[String(uid)];if(!u||!u.meses)return 0;
+    var bom=compsArt[aid]||{};
+    var qty=bom[cid];if(qty==null)return 0;
+    var c=FD.comp[String(cid)]||{};
+    var base;
+    if(c.um==='kg'){
+      base=(flejeKg[aid+':'+cid]||0)*u.meses;
+    }else{
+      base=a.est*qty*u.meses;
+    }
+    if(u.tipo==='tallerista'){
+      var tf=tallsFinalArt[aid]||{};
+      if(tf[u.ref]){
+        base=base/Object.keys(tf).length;
+      }else{
+        var padres=padreSubConj[cid]||[];
+        for(var i=0;i<padres.length;i++){
+          var arm=tallsPorArmado[aid+':'+padres[i]];
+          if(arm&&arm[u.ref]){
+            var nn=Object.keys(arm).length;
+            if(nn>1){base=base/nn;break;}
+          }
+        }
+      }
+    }
+    return c.um==='kg'?Math.round(base*100)/100:Math.round(base);
+  }
+
+  // Suma de aportes por (cid, uid) sobre TODOS los articulos (para prorratear)
+  var totalAporte={};
+  (FD.art||[]).forEach(function(a){
+    var bom=compsArt[a.id]||{};
+    Object.keys(bom).forEach(function(cid){
+      for(var k in FD.inv){
+        var pt=k.split(':');
+        if(pt[0]!==String(cid))continue;
+        var uid=+pt[1];
+        var u=FD.ubic[String(uid)];if(!u||!u.meses)continue;
+        if(!esValidoParCompUbic(a.id,+cid,u))continue;
+        var ap=minAporteArt(a.id,+cid,uid);
+        if(ap>0){
+          var tk=cid+':'+uid;
+          totalAporte[tk]=(totalAporte[tk]||0)+ap;
+        }
+      }
+    });
+  });
+
+  // Ubicaciones con minimo > 0 donde ESTE art aporta, con el prorrateo hecho
+  function ubicsDeComp(cid,aid){
+    var out=[];
+    for(var k in FD.inv){
+      var pt=k.split(':');
+      if(pt[0]===String(cid)){
+        var minTotal=FD.inv[k].min||0;
+        if(minTotal<=0)continue;
+        var u=FD.ubic[String(pt[1])]||{};
+        if(!esValidoParCompUbic(aid,+cid,u))continue;
+        var mAporte=minAporteArt(aid,+cid,+pt[1]);
+        if(mAporte<=0)continue;
+        var stock=FD.inv[k].cant||0;
+        var faltaGlobal=Math.max(0,minTotal-stock);
+        var tk=cid+':'+pt[1];
+        var totalAp=totalAporte[tk]||mAporte;
+        var faltaArt=totalAp>0?faltaGlobal*(mAporte/totalAp):0;
+        out.push({
+          uid:pt[1],
+          min:mAporte,
+          minTotal:minTotal,
+          cant:stock,
+          faltaGlobal:faltaGlobal,
+          faltaArt:mAporte>0&&FD.comp[String(cid)].um==='kg'?Math.round(faltaArt*100)/100:Math.round(faltaArt)
+        });
+      }
+    }
+    return out;
+  }
+
+  var artByCod={};
+  (FD.art||[]).forEach(function(a){artByCod[String(a.cod)]=a.id;});
+  FX={artById:artById,artByCod:artByCod,compsArt:compsArt,
+      compUsadoPor:compUsadoPor,ubicsDeComp:ubicsDeComp};
+}
+
+function renderFaltArt(a){
+  if(FD_ERR)return '<div class="empty">No se pudieron cargar los faltantes: '+esc(FD_ERR)+'</div>';
+  if(!FD||!FX)return '<div class="empty">Calculando faltantes…</div>';
+  var aid=FX.artByCod[String(a.cod)];
+  if(aid==null)return '<div class="empty">Sin datos de faltantes para este artículo.</div>';
+  var fa=FX.artById[aid]||{};
+  var dem=(fa.est||0)>0;
+  var bom=FX.compsArt[aid]||{};
+  var rows=[];
+  Object.keys(bom).sort(function(x,y){
+    var cx=FD.comp[x]||{},cy=FD.comp[y]||{};
+    return (cx.s||0)-(cy.s||0)||(cx.cod||'').localeCompare(cy.cod||'');
+  }).forEach(function(cid){
+    var c=FD.comp[cid]||{};
+    FX.ubicsDeComp(cid,aid).forEach(function(u){
+      rows.push({cid:cid,c:c,u:u,f:dem?u.faltaArt:0});
+    });
+  });
+  var h='';
+  if(!dem)h+='<div class="empty">Artículo sin demanda en la Est Madre: el faltante atribuible es 0.</div>';
+  if(!rows.length)return h+'<div class="empty">Ningún componente de este artículo tiene mínimo asignado en una ubicación donde el artículo aporte.</div>';
+  h+='<div class="tabla-wrap"><table class="falt-tabla"><thead><tr>'+
+    '<th>Cód</th><th>Componente</th><th>Ubicación</th>'+
+    '<th title="Mínimo total de esa ubicación (todos los artículos)">Mín. ubic</th>'+
+    '<th>Stock</th>'+
+    '<th title="Lo que falta en la ubicación, entre todos los artículos">Falta total</th>'+
+    '<th title="Parte del mínimo que aporta ESTE artículo (repartido entre talleristas si comparten)">Aporte art</th>'+
+    '<th title="Parte del faltante atribuible a ESTE artículo (prorrateo por aporte)">Falta art</th>'+
+    '<th>Un</th></tr></thead><tbody>';
+  rows.forEach(function(r){
+    var uo=FD.ubic[String(r.u.uid)]||{};
+    var uNom=uo.nom||'';
+    if(uo.tipo==='proveedor_servicio')uNom=uNom.replace(/^Prov\.\s*Serv\.\s*/i,'').trim();
+    else if(uo.tipo==='tallerista')uNom=uNom.replace(/^Tallerista\s*/i,'').trim();
+    var nUsan=(FX.compUsadoPor[r.cid]||[]).length;
+    h+='<tr>'+
+      '<td>'+esc(r.c.cod||'')+(nUsan>1?' <span class="muted">×'+nUsan+'</span>':'')+'</td>'+
+      '<td>'+esc(r.c.d||'')+'</td>'+
+      '<td>'+esc(uNom)+'</td>'+
+      '<td class="num">'+r.u.minTotal+'</td>'+
+      '<td class="num">'+r.u.cant+'</td>'+
+      '<td class="num '+(r.u.faltaGlobal>0?'f-fal':'f-ok')+'">'+r.u.faltaGlobal+'</td>'+
+      '<td class="num">'+r.u.min+'</td>'+
+      '<td class="num '+(r.f>0?'f-fal':'f-ok')+'">'+r.f+'</td>'+
+      '<td>'+esc(r.c.um||'uni')+'</td>'+
+    '</tr>';
+  });
+  h+='</tbody></table></div>';
+  h+='<div class="falt-nota">"Falta art" = del faltante de la ubicación, la parte proporcional al aporte de este artículo (×N = componente compartido con otros artículos). Para comprar → Órdenes de Compra; para producir → Orden de Producción.</div>';
+  return h;
+}
 
 function __run(){
   prepara();
@@ -364,6 +711,7 @@ function render(){
   renderKpis();
   var cont=document.getElementById('sections');
   cont.innerHTML='';
+  var needFD=false;
   var vis=visibles();
   if(vis.length===0){cont.innerHTML='<div class="empty">Sin artículos para el filtro actual.</div>';return;}
 
@@ -424,6 +772,12 @@ function render(){
         h+='</tbody></table></div>';
       }
     }
+    // 1b) FALTANTES prorrateados (lo unico propio de la vieja pantalla Faltantes)
+    if(!a.sinArt&&open[a.cod]){
+      h+='<div class="bloque">Faltantes del artículo</div>';
+      h+=renderFaltArt(a);
+      if(!FD&&!FD_ERR)needFD=true;
+    }
     // 2) RUTAS trazadas (lo que era Verificacion Integridad)
     h+='<div class="bloque">Rutas trazadas ('+pend.rutas.length+')</div>';
     if(pend.rutas.length===0){
@@ -447,6 +801,7 @@ function render(){
     sec.appendChild(body);
     cont.appendChild(sec);
   });
+  if(needFD)ensureFaltantes();
 }
 
 /* ── acciones sobre rutas: mismas RPCs que usaba Verificacion_GP2 ── */

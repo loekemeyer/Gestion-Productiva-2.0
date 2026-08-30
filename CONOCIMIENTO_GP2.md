@@ -472,3 +472,35 @@ verificación... que funcione mergeado todo en despiece x artículo."
   pantalla nueva aparecen agrupadas como "— sin artículo —" para que no se pierdan.
   Además **55 componentes sin kg_x_uni y 72 sin uni_x_cajon** (sobre 301 de sectores con
   peso) y **12 artículos** tienen faltantes en su propia receta.
+
+## 5b. Se disolvió "Herramientas GP2" (2026-08-30): el grupo del menú desaparece
+
+`[usuario 2026-08-30]` **Decisión aprobada por el usuario** tras el análisis de las 3
+pantallas del grupo: cada una va adonde se usa, y el grupo del menú se borra (v1.14.0).
+
+- **"Programa de Stock" (`Programa/Programa.html`) SE CONSERVA entera**: es el simulador
+  what-if por lote (artículo × N unidades → cadena completa + kg de fleje por matriz, RPC
+  `programa_bundle`) y no duplica a nadie. Solo se **mudó el botón** al grupo Despiece con
+  su nombre real: **"¿Qué necesito para producir?"**, marcado secundario.
+- **"Faltantes" (`Faltantes/Faltantes.html`) se BORRÓ.** Sus acciones ya vivían mejor en
+  OC (comprar) y Orden de Producción (producir), y calculaba con criterio contradictorio
+  (mínimos estáticos vs. la demanda de la Est Madre). **Lo ÚNICO propio — el PRORRATEO del
+  faltante por artículo — vive ahora en Despiece x Artículo (v2.1.0)**: al abrir un
+  artículo, el bloque "Faltantes del artículo" muestra por componente y ubicación el
+  mínimo, el stock, el faltante global y cuánto es atribuible a ESE artículo, con la
+  matemática portada 1:1 del JS viejo (reparto ÷N cuando varios talleristas comparten el
+  armado y firma anti-duplicado para que las rutas alternativas no cuenten doble los kg
+  de fleje). La RPC **`faltantes_bundle` queda en la BD y ahora la llama el Despiece**,
+  lazy, recién al abrir un artículo. `[dato: test_despiece_verif verifica los números a mano]`
+- **"Registrar Movimiento" (`Movimientos/Registrar_Movimiento.html`) se BORRÓ.** 7 de sus
+  9 tarjetas duplicaban pantallas dedicadas y escribían **tipos de movimiento distintos**
+  (partían el ledger). Los 2 flujos propios — **Ajuste +/- y Armado en fábrica** — y la
+  vista de últimos 50 movimientos pasaron a **Stocks general (v1.1.0)**, construidos por
+  `gp2-motor.js` (funciones nuevas `GP2M.ajuste` / `GP2M.armadoFabrica` /
+  `GP2M.ubicacionesDeComp` / `GP2M.artsFabricaDirecto`, portadas 1:1). El payload de
+  `registrar_movimientos` NO cambió de contrato (test_stock_general lo fija exacto).
+- `[dato 2026-08-30]` **Trampa de CSS descubierta al medir**: `font:18px inherit` es
+  INVÁLIDO en Chromium (la declaración entera se descarta y el campo queda en la letra
+  por defecto). Los campos de Despiece/Programa/StockGeneral pasaron a
+  `font-size:18px;font-family:inherit` — si una pantalla usa el shorthand `font: Npx
+  inherit`, la letra grande NO está aplicando aunque el CSS lo diga.

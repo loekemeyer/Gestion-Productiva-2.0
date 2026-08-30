@@ -1,8 +1,10 @@
 "use strict";
 /* ============================================================
-   gp2-motor.js — el motor de GP2, extraido de
-   Movimientos/Registrar_Movimiento.html para que los modulos del
-   menu usen LA MISMA logica y no una copia propia.
+   gp2-motor.js — el motor de GP2, extraido de la vieja pantalla
+   Movimientos/Registrar_Movimiento.html (borrada 2026-08-30: sus dos
+   flujos propios, Ajuste y Armado en fabrica, viven ahora en
+   Stocks General/StockGeneral_GP2.html sobre este mismo motor) para
+   que los modulos del menu usen LA MISMA logica y no una copia propia.
 
    Lee GP2.movimientos_bundle() y escribe con GP2.registrar_movimientos(jsonb).
    Los triggers fn_movimiento_calc / fn_movimiento_aplicar convierten a
@@ -156,6 +158,86 @@ function talleristas(incFabrica){
     .sort(function(a,b){ return a.nombre.localeCompare(b.nombre); });
 }
 
+/* Articulos que arma Cervantes directo (ninguna ruta suya pasa por un
+   tallerista externo). Identico a artsFabricaDirecto() de Registrar_Movimiento. */
+function artsFabricaDirecto(){
+  var arts = {};
+  for (var rid in D.rp){
+    var ps = D.rp[rid];
+    var t = ps.some(function(p){ return p.tipo === "tallerista" && p.tall && p.tall != TALL_FABRICA; });
+    if (t) continue;
+    ps.forEach(function(p){
+      if (p.tipo === "virgilio" && p.ce){
+        var c = D.comp[String(p.ce)];
+        if (c && c.s === SECTOR_TERMINADO) arts[p.ce] = 1;
+      }
+    });
+  }
+  return Object.keys(arts).map(Number);
+}
+
+/* Ubicaciones donde un componente puede tener stock: su sector + cada
+   tallerista/PS/Virgilio que lo recibe segun ruta_paso (para el Ajuste).
+   Identico a ubicsDeComp() de Registrar_Movimiento. */
+function ubicacionesDeComp(cid){
+  var set = {}; var c = D.comp[String(cid)] || {};
+  if (c.s && ubicSector(c.s)) set[ubicSector(c.s)] = 1;
+  for (var rid in D.rp) D.rp[rid].forEach(function(p){
+    if (p.ce != cid) return;
+    if (p.tipo === "tallerista" && p.tall){ var u = ubicTall(p.tall); if (u) set[u] = 1; }
+    else if (p.tipo === "proveedor_servicio" && p.prov){ var u2 = ubicProvServ(p.prov); if (u2) set[u2] = 1; }
+    else if (p.tipo === "virgilio" && UBIC_VIRGILIO) set[UBIC_VIRGILIO] = 1;
+  });
+  return Object.keys(set).map(Number).filter(function(u){ return D.ubic[String(u)]; });
+}
+
+/* ---------- constructor: ajuste de inventario (+/-) ----------
+   Mismo payload que el tipo 'ajuste' de Registrar_Movimiento: una sola fila
+   con destino en la ubicacion elegida; el trigger aplica el delta. */
+function ajuste(o){
+  var cid = parseInt(o.comp_id), u = parseInt(o.ubic_id), q = Number(o.cantidad);
+  if (!cid) throw new Error("Falta el componente");
+  if (!u) throw new Error("Falta la ubicación");
+  if (!q) throw new Error("La cantidad no puede ser 0");
+  return { rows: [{
+    tipo: "ajuste", fecha: o.fecha || null, comp_id: cid,
+    ubic_origen_id: null, ubic_destino_id: u, cantidad: q,
+    comp_transformado_id: null, cantidad_transformada: null,
+    unidad_origen: "uni", unidad_destino: "uni"
+  }] };
+}
+
+/* ---------- constructor: armado en fabrica ----------
+   Consume el BOM del articulo (consumo_prod desde el sector de cada parte)
+   y crea el terminado en la ubicacion de Fabrica. Identico al tipo
+   'armado_fabrica' de Registrar_Movimiento. */
+function armadoFabrica(o){
+  var cid = parseInt(o.comp_id), qty = Number(o.cantidad), fecha = o.fecha || null;
+  if (!cid) throw new Error("Falta el artículo");
+  if (!(qty > 0)) throw new Error("Las unidades deben ser mayores a 0");
+  var rows = [];
+  var art_id = (D.c2a && D.c2a[String(cid)]) || cid;
+  var bomA = (D.bom_art && D.bom_art[String(art_id)]) || [];
+  bomA.forEach(function(b){
+    var qC = Math.round(b.q * qty * 100) / 100;
+    var c = D.comp[String(b.c)] || {};
+    var ubic_c = c.s ? ubicSector(c.s) : null;
+    rows.push({
+      tipo: "consumo_prod", fecha: fecha, comp_id: b.c,
+      ubic_origen_id: ubic_c, ubic_destino_id: null, cantidad: qC,
+      comp_transformado_id: null, cantidad_transformada: null,
+      unidad_origen: "uni", unidad_destino: "uni"
+    });
+  });
+  rows.push({
+    tipo: "armado_fabrica", fecha: fecha, comp_id: cid,
+    ubic_origen_id: null, ubic_destino_id: ubicTall(TALL_FABRICA), cantidad: qty,
+    comp_transformado_id: null, cantidad_transformada: null,
+    unidad_origen: "uni", unidad_destino: "uni"
+  });
+  return { rows: rows };
+}
+
 /* ---------- constructor de movimientos: recepcion de tallerista ----------
    Reproduce el bloque tipo==='recepcion_tall' de saveMov().
 
@@ -291,6 +373,10 @@ global.GP2M = {
   bomDe: bomDe,
   talleristas: talleristas,
   recepcionTall: recepcionTall,
+  artsFabricaDirecto: artsFabricaDirecto,
+  ubicacionesDeComp: ubicacionesDeComp,
+  ajuste: ajuste,
+  armadoFabrica: armadoFabrica,
   SECTOR_TERMINADO: SECTOR_TERMINADO
 };
 
