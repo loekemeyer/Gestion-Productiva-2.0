@@ -15,13 +15,13 @@
     body { font-family: 'Inter', sans-serif; background: #d9d9de; padding: 20px; min-height: 100vh; }
     .top-bar { max-width: 1400px; margin: 0 auto 16px; display: flex; align-items: center; gap: 14px; }
     .btn-volver { height: 40px; padding: 0 20px; border-radius: 999px; border: 2px solid #b9b9b9; background: #f7f7f7; font-size: 14px; cursor: pointer; font-weight: 700; font-family: inherit; }
-    .btn-volver:hover { background: #e5e5e5; border-color: #7f7f7f; }
+    .btn-volver:hover { background: #e5e5e5; border-color: #e2e8f0; }
     .top-bar h1 { font-size: 22px; flex: 1; color: #1e293b; }
     .main-card { max-width: 1400px; margin: 0 auto 20px; background: #fff; border: 1px solid #cfcfcf; border-radius: 14px; overflow: hidden; }
     .card-header { background: #111; color: #fff; padding: 14px 22px; display: flex; justify-content: space-between; align-items: center; gap: 12px; }
     .card-header h2 { font-size: 17px; color: #fff; margin: 0; }
-    .live { display: inline-flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 700; color: #cbd5e1; }
-    .live-dot { width: 9px; height: 9px; border-radius: 50%; background: #22c55e; animation: pulse 1.6s infinite; }
+    .live { display: inline-flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 700; color: #385475; }
+    .live-dot { width: 9px; height: 9px; border-radius: 50%; background: #e7f8ed; animation: pulse 1.6s infinite; }
     @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: .25; } }
     .card-body { padding: 16px 22px 22px; }
     .controls-row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-bottom: 14px; }
@@ -44,10 +44,10 @@
     .op-card.produccion { border-left-color: #16a34a; }
     .op-card.tm        { border-left-color: #ea580c; }
     .op-card.issue     { border-left-color: #dc2626; }
-    .op-card.idle      { border-left-color: #cbd5e1; opacity: .75; }
+    .op-card.idle      { border-left-color: #385475; opacity: .75; }
     .op-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; margin-bottom: 8px; }
     .op-nombre { font-size: 15px; font-weight: 800; color: #1e293b; }
-    .op-legajo { font-size: 11px; color: #94a3b8; font-weight: 700; }
+    .op-legajo { font-size: 11px; color: #475569; font-weight: 700; }
     .badge { font-size: 10px; font-weight: 800; padding: 3px 9px; border-radius: 999px; text-transform: uppercase; letter-spacing: .4px; white-space: nowrap; }
     .badge-produccion { background: #dcfce7; color: #15803d; }
     .badge-tm         { background: #ffedd5; color: #9a3412; }
@@ -55,7 +55,7 @@
     .badge-idle       { background: #f1f5f9; color: #64748b; }
     .op-line { font-size: 13px; color: #334155; margin-top: 3px; }
     .op-line b { color: #1e40af; }
-    .op-meta { font-size: 11px; color: #94a3b8; margin-top: 6px; font-variant-numeric: tabular-nums; }
+    .op-meta { font-size: 11px; color: #475569; margin-top: 6px; font-variant-numeric: tabular-nums; }
     .op-kpis { display: flex; gap: 14px; margin-top: 8px; padding-top: 8px; border-top: 1px solid #f1f5f9; }
     .op-kpi { font-size: 11px; color: #64748b; font-weight: 700; }
     .op-kpi span { display: block; font-size: 16px; color: #111; font-weight: 800; font-variant-numeric: tabular-nums; }
@@ -66,7 +66,7 @@
 </head>
 <body>
 
-<div id="gp2-logobar" style="position:relative;background:#0b1220;text-align:center;padding:6px 0;border-bottom:1px solid #1c2836"><a href="../GP2_MODULOS.html" style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:#cbd5e1;text-decoration:none;font-weight:700;font-size:15px;padding:5px 10px;border:1px solid #33415a;border-radius:8px;background:#101a2b">← Atrás</a><a href="../GP2_MODULOS.html" style="text-decoration:none"><img src="../GP2_logo.png" alt="GP2 · Gestión Productiva" style="height:40px;vertical-align:middle"></a></div>
+<div id="gp2-logobar" style="position:relative;background:#e8edf7;text-align:center;padding:6px 0;border-bottom:1px solid #d0dae7"><a href="../GP2_MODULOS.html" style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:#385475;text-decoration:none;font-weight:700;font-size:15px;padding:5px 10px;border:1px solid #d1d9e5;border-radius:8px;background:#e9eef7">← Atrás</a><a href="../GP2_MODULOS.html" style="text-decoration:none"><img src="../GP2_logo.png" alt="GP2 · Gestión Productiva" style="height:40px;vertical-align:middle"></a></div>
 
 <div class="top-bar">
   <button class="btn-volver" onclick="location.href='../GP2_MODULOS.html'">&larr; Atrás</button>
@@ -206,7 +206,7 @@
         '</div>' +
         (u ? '<div class="op-line">Matriz <b>' + esc(u.matriz_raw || '—') + '</b>' + (u.nombre_matriz ? ' · ' + esc(u.nombre_matriz) : '') + '</div>' +
              '<div class="op-meta">Último evento ' + horaAR(u.fecha) + ' · ' + haceCuanto(u.fecha) + '</div>'
-           : '<div class="op-line" style="color:#94a3b8">Sin eventos hoy</div>') +
+           : '<div class="op-line" style="color:#475569">Sin eventos hoy</div>') +
         '<div class="op-kpis">' +
           '<div class="op-kpi">Eventos<span>' + n0(o.eventos) + '</span></div>' +
           '<div class="op-kpi">Unidades<span>' + n0(o.uni) + '</span></div>' +

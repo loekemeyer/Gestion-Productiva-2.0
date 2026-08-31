@@ -18,7 +18,7 @@
       border: 2px solid #b9b9b9; background: #f7f7f7;
       font-size: 14px; cursor: pointer; font-weight: 700; font-family: inherit;
     }
-    .btn-volver:hover { background: #e5e5e5; border-color: #7f7f7f; }
+    .btn-volver:hover { background: #e5e5e5; border-color: #e2e8f0; }
     .top-bar h1 { font-size: 22px; flex: 1; color: #1e293b; }
 
     .main-card {
@@ -32,7 +32,7 @@
     }
     .card-header h2 { font-size: 17px; color: #fff; margin: 0; }
     .card-header .gran-pill {
-      background: #1e293b; color: #f1f5f9; padding: 4px 10px;
+      background: #ebeef5; color: #345779; padding: 4px 10px;
       border-radius: 999px; font-size: 11px; font-weight: 700;
       text-transform: uppercase; letter-spacing: .5px;
     }
@@ -48,7 +48,7 @@
       height: 36px; padding: 0 10px; border: 1.5px solid #cbd5e1; border-radius: 10px;
       font-size: 13px; font-family: inherit; background: #fff; min-width: 140px;
     }
-    .ctrl-input:focus, .ctrl-select:focus { border-color: #3b82f6; outline: none; }
+    .ctrl-input:focus, .ctrl-select:focus { border-color: #cdd8ea; outline: none; }
     .ctrl-input.matriz-search { min-width: 220px; }
     .ctrl-select.matriz-select {
       min-width: 170px; max-width: 200px;
@@ -75,7 +75,7 @@
     }
     .stat-card.green .stat-value { color: #16a34a; }
     .stat-card.red .stat-value { color: #dc2626; }
-    .stat-card.blue .stat-value { color: #2563eb; }
+    .stat-card.blue .stat-value { color: #163e98; }
     .stat-card .stat-sub {
       font-size: 11px; font-weight: 700; margin-top: 2px;
       font-variant-numeric: tabular-nums;
@@ -90,8 +90,8 @@
       background: #f8fafc; color: #475569; cursor: pointer;
       font-family: inherit;
     }
-    .dots-toggle-btn:hover { background: #e2e8f0; border-color: #94a3b8; }
-    .dots-toggle-btn.off { background: #1e293b; color: #fff; border-color: #1e293b; }
+    .dots-toggle-btn:hover { background: #e2e8f0; border-color: #d4dae3; }
+    .dots-toggle-btn.off { background: #ebeef5; color: #fff; border-color: #d0d8e7; }
 
     /* CHIPS OPERARIOS */
     .chips-row { margin: 4px 0 14px; }
@@ -115,16 +115,16 @@
       border: 1.5px solid rgba(0,0,0,.15);
     }
     .oper-chip .chip-n {
-      font-size: 10px; color: #94a3b8; font-weight: 700;
+      font-size: 10px; color: #475569; font-weight: 700;
     }
     .oper-chip:hover { background: #f1f5f9; border-color: #cbd5e1; }
     .oper-chip.active {
-      border-color: #3b82f6;
+      border-color: #cdd8ea;
       background: #eff6ff;
       box-shadow: 0 0 0 3px rgba(59,130,246,.15);
       color: #1e40af;
     }
-    .oper-chip.active .chip-n { color: #2563eb; }
+    .oper-chip.active .chip-n { color: #163e98; }
     .chips-actions {
       display: inline-flex; gap: 6px; margin-left: 4px; align-items: center;
     }
@@ -139,15 +139,15 @@
     /* CHART */
     .chart-wrap {
       position: relative;
-      background: #0a0f1e;
+      background: #e8ecf7;
       border-radius: 12px; overflow: hidden;
-      border: 1px solid #1e293b;
+      border: 1px solid #d0d8e7;
     }
     #chart { width: 100%; height: 560px; }
     .chart-empty {
       position: absolute; inset: 0; display: none;
       justify-content: center; align-items: center;
-      color: #94a3b8; font-size: 14px; font-weight: 600;
+      color: #475569; font-size: 14px; font-weight: 600;
       background: rgba(10,15,30,.92); z-index: 5;
     }
     .chart-empty.visible { display: flex; }
@@ -157,15 +157,15 @@
     }
     .mode-indicator {
       position: absolute; top: 12px; right: 14px;
-      background: rgba(30,41,59,.85); border: 1px solid #334155;
+      background: rgba(30,41,59,.85); border: 1px solid #d2dae4;
       padding: 4px 10px; border-radius: 999px;
-      font-size: 10px; font-weight: 700; color: #cbd5e1;
+      font-size: 10px; font-weight: 700; color: #385475;
       text-transform: uppercase; letter-spacing: .6px;
       pointer-events: none; z-index: 6;
       transition: background .25s;
     }
-    .mode-indicator.bloques { background: rgba(124,58,237,.25); border-color: #7c3aed; color: #ddd6fe; }
-    .mode-indicator.dots    { background: rgba(59,130,246,.25); border-color: #3b82f6; color: #bfdbfe; }
+    .mode-indicator.bloques { background: rgba(124,58,237,.25); border-color: #d8cdea; color: #2c1698; }
+    .mode-indicator.dots    { background: rgba(59,130,246,.25); border-color: #cdd8ea; color: #164f98; }
     .legend-operarios {
       display: flex; flex-wrap: wrap; gap: 6px 10px;
       padding: 10px 4px 0; font-size: 11px; color: #475569;
@@ -178,7 +178,7 @@
       display: inline-block;
     }
     .legend-operarios .lo-out {
-      background: #dc2626; clip-path: polygon(50% 0, 100% 100%, 0 100%);
+      background: #f8e7e7; clip-path: polygon(50% 0, 100% 100%, 0 100%);
       border-radius: 0;
     }
 
@@ -246,7 +246,7 @@
 <link rel="stylesheet" href="../gp2-claro.css?v=20260830t">
 </head>
 <body>
-<div id="gp2-logobar" style="position:relative;background:#0b1220;text-align:center;padding:6px 0;border-bottom:1px solid #1c2836"><a href="../GP2_MODULOS.html" style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:#cbd5e1;text-decoration:none;font-weight:700;font-size:15px;padding:5px 10px;border:1px solid #33415a;border-radius:8px;background:#101a2b">← Atrás</a><a href="../GP2_MODULOS.html" style="text-decoration:none"><img src="../GP2_logo.png" alt="GP2 · Gestión Productiva" style="height:40px;vertical-align:middle"></a></div>
+<div id="gp2-logobar" style="position:relative;background:#e8edf7;text-align:center;padding:6px 0;border-bottom:1px solid #d0dae7"><a href="../GP2_MODULOS.html" style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:#385475;text-decoration:none;font-weight:700;font-size:15px;padding:5px 10px;border:1px solid #d1d9e5;border-radius:8px;background:#e9eef7">← Atrás</a><a href="../GP2_MODULOS.html" style="text-decoration:none"><img src="../GP2_logo.png" alt="GP2 · Gestión Productiva" style="height:40px;vertical-align:middle"></a></div>
 
 
 <div class="top-bar">
@@ -299,7 +299,7 @@
     </div>
 
     <div id="operChipsRow" class="chips-row" style="display:none">
-      <label class="chips-lbl">Operarios que trabajaron esta matriz <span style="font-weight:500;color:#94a3b8">(click para filtrar — sin selección = todos)</span></label>
+      <label class="chips-lbl">Operarios que trabajaron esta matriz <span style="font-weight:500;color:#475569">(click para filtrar — sin selección = todos)</span></label>
       <div id="operChips" class="oper-chips"></div>
     </div>
 

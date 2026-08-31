@@ -11,11 +11,11 @@
 
     .top-bar { max-width: 960px; margin: 0 auto 20px; display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
     .btn-volver { height: 40px; padding: 0 20px; border-radius: 999px; border: 2px solid #b9b9b9; background: #f7f7f7; font-size: 14px; cursor: pointer; font-weight: 700; }
-    .btn-volver:hover { background: #e5e5e5; border-color: #7f7f7f; }
+    .btn-volver:hover { background: #e5e5e5; border-color: #e2e8f0; }
     .top-bar h1 { font-size: 22px; flex: 1; }
-    .btn-refrescar { height: 40px; padding: 0 18px; border-radius: 999px; border: 2px solid #4b89ff; background: #fff; color: #4b89ff; font-weight: 700; font-size: 14px; cursor: pointer; }
+    .btn-refrescar { height: 40px; padding: 0 18px; border-radius: 999px; border: 2px solid #cdd7ea; background: #fff; color: #164298; font-weight: 700; font-size: 14px; cursor: pointer; }
     .btn-refrescar:hover { background: #eef4ff; }
-    .status-dot { width: 12px; height: 12px; border-radius: 50%; background: #22c55e; animation: pulse 2s infinite; }
+    .status-dot { width: 12px; height: 12px; border-radius: 50%; background: #e7f8ed; animation: pulse 2s infinite; }
     .status-dot.offline { background: #ef4444; animation: none; }
     @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
     .status-label { font-size: 13px; color: #555; }
@@ -24,7 +24,7 @@
     .config-panel summary { cursor: pointer; font-weight: 700; font-size: 15px; color: #333; }
     .config-grid { display: grid; grid-template-columns: 1fr; gap: 10px 14px; margin-top: 16px; }
     .config-buttons { display: flex; gap: 10px; justify-content: flex-end; margin-top: 8px; }
-    .btn-test { height: 38px; padding: 0 16px; border: 2px solid #25d366; border-radius: 10px; background: #fff; color: #25d366; font-weight: 700; font-size: 14px; cursor: pointer; }
+    .btn-test { height: 38px; padding: 0 16px; border: 2px solid #cdead8; border-radius: 10px; background: #fff; color: #25d366; font-weight: 700; font-size: 14px; cursor: pointer; }
     .btn-test:hover { background: #f0fdf4; }
     .config-hint { font-size: 12px; color: #888; margin-top: 4px; line-height: 1.5; }
 
@@ -32,8 +32,8 @@
     .alerts-header { color: #fff; padding: 16px 22px; display: flex; justify-content: space-between; align-items: center; }
     .alerts-header h2 { font-size: 17px; color: #fff; }
     .alert-badge { color: #fff; font-weight: 900; font-size: 13px; padding: 3px 12px; border-radius: 999px; }
-    .bg-dark { background: #111; } .bg-red { background: #b42318; } .bg-orange { background: #d97706; } .bg-gray { background: #6b7280; }
-    .badge-red { background: #ef4444; } .badge-red.ok { background: #22c55e; }
+    .bg-dark { background: #111; } .bg-red { background: #f8e8e7; } .bg-orange { background: #f8f0e7; } .bg-gray { background: #ffffff; }
+    .badge-red { background: #ef4444; } .badge-red.ok { background: #e7f8ed; }
 
     table { width: 100%; border-collapse: collapse; }
     th { background: #f3f4f6; text-align: left; padding: 12px 18px; font-size: 13px; color: #555; border-bottom: 1px solid #e5e7eb; }
@@ -51,7 +51,7 @@
 
     .toast-container { position: fixed; top: 20px; right: 20px; z-index: 9999; display: flex; flex-direction: column; gap: 10px; }
     .toast { background: #111; color: #fff; padding: 14px 22px; border-radius: 12px; font-size: 14px; box-shadow: 0 4px 20px rgba(0,0,0,.25); animation: slideIn .3s ease-out; max-width: 360px; }
-    .toast.warn { background: #b42318; } .toast.success { background: #0b6b2c; }
+    .toast.warn { background: #f8e8e7; } .toast.success { background: #e7f8ed; }
     @keyframes slideIn { from{transform:translateX(100%);opacity:0} to{transform:translateX(0);opacity:1} }
   </style>
 <link rel="icon" type="image/png" href="../GP2_favicon.png">
@@ -60,7 +60,7 @@
 </head>
 
 <body>
-<div id="gp2-logobar" style="position:relative;background:#0b1220;text-align:center;padding:6px 0;border-bottom:1px solid #1c2836"><a href="../GP2_MODULOS.html" style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:#cbd5e1;text-decoration:none;font-weight:700;font-size:15px;padding:5px 10px;border:1px solid #33415a;border-radius:8px;background:#101a2b">← Atrás</a><a href="../GP2_MODULOS.html" style="text-decoration:none"><img src="../GP2_logo.png" alt="GP2 · Gestión Productiva" style="height:40px;vertical-align:middle"></a></div>
+<div id="gp2-logobar" style="position:relative;background:#e8edf7;text-align:center;padding:6px 0;border-bottom:1px solid #d0dae7"><a href="../GP2_MODULOS.html" style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:#385475;text-decoration:none;font-weight:700;font-size:15px;padding:5px 10px;border:1px solid #d1d9e5;border-radius:8px;background:#e9eef7">← Atrás</a><a href="../GP2_MODULOS.html" style="text-decoration:none"><img src="../GP2_logo.png" alt="GP2 · Gestión Productiva" style="height:40px;vertical-align:middle"></a></div>
 
 
   <div class="top-bar">
@@ -121,7 +121,7 @@
   <div class="alerts-wrap">
     <div class="alerts-header bg-gray">
       <h2>Alertas pendientes (dato no migrado)</h2>
-      <span class="alert-badge" id="badgePend" style="background:#374151">...</span>
+      <span class="alert-badge" id="badgePend" style="background:#edeff3">...</span>
     </div>
     <div class="pend-body" id="bodyPend"><p class="empty-msg">Cargando...</p></div>
   </div>

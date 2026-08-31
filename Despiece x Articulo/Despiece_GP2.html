@@ -14,105 +14,105 @@
      (un solo viaje). Las pantallas viejas Verificacion_GP2 y VerifMadres_GP2 se borraron. -->
 <style>
  *{box-sizing:border-box}
- body{margin:0;background:#0a0e13;color:#e6ecf3;font:13px/1.4 -apple-system,Segoe UI,Roboto,sans-serif}
- .top{background:linear-gradient(90deg,#0a2a3a,#0f4256);padding:12px 20px;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
- .top h1{margin:0;font-size:18px;color:#5fd0e0}
- .top .sub{font-size:11px;color:#8fc4d0}
- .filters{padding:12px 20px;background:#101820;border-bottom:1px solid #1e2a38;display:flex;gap:10px;flex-wrap:wrap;align-items:center}
- .filters label{font-size:11px;text-transform:uppercase;color:#7a92a8;letter-spacing:.5px;margin-right:2px}
- .filters select,.filters input[type=text]{background:#0b1119;color:#e6ecf3;border:1px solid #2a4a6e;border-radius:6px;padding:8px 10px;font-size:18px;font-family:inherit}
+ body{margin:0;background:#ebeff4;color:#385475;font:13px/1.4 -apple-system,Segoe UI,Roboto,sans-serif}
+ .top{background:linear-gradient(90deg,#e7f3f8,#e7f3f8);padding:12px 20px;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+ .top h1{margin:0;font-size:18px;color:#1c8391}
+ .top .sub{font-size:11px;color:#336d7a}
+ .filters{padding:12px 20px;background:#ebf0f5;border-bottom:1px solid #d1dae6;display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+ .filters label{font-size:11px;text-transform:uppercase;color:#475569;letter-spacing:.5px;margin-right:2px}
+ .filters select,.filters input[type=text]{background:#eaeff6;color:#385475;border:1px solid #cddaea;border-radius:6px;padding:8px 10px;font-size:18px;font-family:inherit}
  .filters input[type=text]{min-width:180px;flex:1}
  .filters select{min-width:200px;max-width:100%}
- .filters .chk{font-size:12px;color:#8fc4d0;display:flex;align-items:center;gap:6px;cursor:pointer;text-transform:none;letter-spacing:0}
- .btn{background:#2a4a6e;color:#e6ecf3;border:none;border-radius:6px;padding:8px 12px;cursor:pointer;font-size:17px;font-family:inherit;min-height:38px}
- .btn:hover{background:#356090}
+ .filters .chk{font-size:12px;color:#336d7a;display:flex;align-items:center;gap:6px;cursor:pointer;text-transform:none;letter-spacing:0}
+ .btn{background:#e9eff7;color:#385475;border:none;border-radius:6px;padding:8px 12px;cursor:pointer;font-size:17px;font-family:inherit;min-height:38px}
+ .btn:hover{background:#e9eff7}
  .kpis{padding:12px 20px;display:flex;gap:10px;flex-wrap:wrap}
- .kpi{background:#101820;border:1px solid #1e2a38;border-radius:8px;padding:10px 14px;min-width:104px}
- .kpi .n{font-size:22px;font-weight:800;color:#5fd0e0}
- .kpi .n.warn{color:#e0a95a}
- .kpi .n.ok{color:#5fd39a}
- .kpi .lb{font-size:10px;text-transform:uppercase;color:#7a92a8;letter-spacing:.6px}
+ .kpi{background:#ebf0f5;border:1px solid #d1dae6;border-radius:8px;padding:10px 14px;min-width:104px}
+ .kpi .n{font-size:22px;font-weight:800;color:#1c8391}
+ .kpi .n.warn{color:#92611b}
+ .kpi .n.ok{color:#258858}
+ .kpi .lb{font-size:10px;text-transform:uppercase;color:#475569;letter-spacing:.6px}
  .content{padding:0 20px 40px}
- .art-section{margin:14px 0;border:1px solid #1e2a38;border-radius:8px;background:#0d141d;overflow:hidden}
- .art-head{padding:9px 14px;background:linear-gradient(90deg,#152233,#101820);display:flex;align-items:center;gap:10px;cursor:pointer;user-select:none;flex-wrap:wrap}
- .art-head:hover{background:#1a2b40}
- .art-head .caret{color:#7a92a8;transition:transform .15s;display:inline-block;width:12px}
+ .art-section{margin:14px 0;border:1px solid #d1dae6;border-radius:8px;background:#eaeff6;overflow:hidden}
+ .art-head{padding:9px 14px;background:linear-gradient(90deg,#e9eff6,#ebf0f5);display:flex;align-items:center;gap:10px;cursor:pointer;user-select:none;flex-wrap:wrap}
+ .art-head:hover{background:#e9eff6}
+ .art-head .caret{color:#475569;transition:transform .15s;display:inline-block;width:12px}
  .art-section.open .art-head .caret{transform:rotate(90deg)}
- .art-head .cod{color:#5fd0e0;font-weight:800;font-size:15px}
- .art-head .fam{color:#8fc4f0;font-size:12px}
- .art-head .stats{margin-left:auto;display:flex;gap:12px;font-size:11px;color:#7a92a8;align-items:center;flex-wrap:wrap}
- .art-head .stats b{color:#e6ecf3;font-size:13px}
+ .art-head .cod{color:#1c8391;font-weight:800;font-size:15px}
+ .art-head .fam{color:#165d98;font-size:12px}
+ .art-head .stats{margin-left:auto;display:flex;gap:12px;font-size:11px;color:#475569;align-items:center;flex-wrap:wrap}
+ .art-head .stats b{color:#385475;font-size:13px}
  .pill{display:inline-block;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:700}
- .pill.warn{background:#3a2a10;color:#e0a95a}
- .pill.bad{background:#3a1216;color:#ff8f9a}
- .pill.ok{background:#0e3226;color:#5fd39a}
+ .pill.warn{background:#f8f2e7;color:#92611b}
+ .pill.bad{background:#f8e8e9;color:#981622}
+ .pill.ok{background:#e7f8f3;color:#258858}
  .art-body{display:none;padding:0}
  .art-section.open .art-body{display:block}
- .bloque{padding:8px 14px 4px;font-size:11px;text-transform:uppercase;letter-spacing:.6px;color:#7a92a8;font-weight:700}
+ .bloque{padding:8px 14px 4px;font-size:11px;text-transform:uppercase;letter-spacing:.6px;color:#475569;font-weight:700}
  .tabla-wrap{overflow-x:auto}
  table{border-collapse:collapse;font-size:12px;width:100%;min-width:640px}
- th,td{padding:6px 12px;text-align:left;border-bottom:1px solid #1e2a38;white-space:nowrap}
- th{color:#7a92a8;text-transform:uppercase;font-size:10px;letter-spacing:.4px;background:#0a1119}
+ th,td{padding:6px 12px;text-align:left;border-bottom:1px solid #d1dae6;white-space:nowrap}
+ th{color:#475569;text-transform:uppercase;font-size:10px;letter-spacing:.4px;background:#e9eff6}
  td.num{text-align:right;font-family:ui-monospace,SF Mono,monospace}
- td.falta{background:#3a1a0a;color:#e0a95a;font-weight:700}
- .f-fal{color:#ff8f9a;font-weight:700}
- .f-ok{color:#5fd39a}
- .falt-nota{padding:6px 14px 12px;color:#7a92a8;font-size:11px;font-style:italic}
- tbody tr:hover{background:#111c28}
+ td.falta{background:#f8ede7;color:#92611b;font-weight:700}
+ .f-fal{color:#981622;font-weight:700}
+ .f-ok{color:#258858}
+ .falt-nota{padding:6px 14px 12px;color:#475569;font-size:11px;font-style:italic}
+ tbody tr:hover{background:#eaeff6}
  .sect-tag{display:inline-block;padding:2px 8px;border-radius:3px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.3px}
- .st-crudo{background:#3a2a10;color:#e0a95a}
- .st-procesado{background:#0e3226;color:#5fd39a}
- .st-transito{background:#1a2f47;color:#8fc4f0}
- .st-afilado{background:#2f2a1a;color:#d0c060}
- .st-fleje{background:#3a0f1f;color:#ff7fa8}
- .st-plástico{background:#2a1a3f;color:#c79bff}
- .st-bombilla{background:#0f2f3a;color:#5fd0e0}
- .st-remache{background:#332222;color:#e0a0a0}
- .st-garage{background:#1f2f1a;color:#a0d060}
- .st-cartón{background:#2a2010;color:#c0a060}
- .st-caja{background:#20283a;color:#90a8d0}
- .st-terminado{background:#0f3a2a;color:#5fe0b0}
+ .st-crudo{background:#f8f2e7;color:#92611b}
+ .st-procesado{background:#e7f8f3;color:#258858}
+ .st-transito{background:#e9eff7;color:#165d98}
+ .st-afilado{background:#f4f2eb;color:#867828}
+ .st-fleje{background:#f8e7ee;color:#98163f}
+ .st-plástico{background:#efe9f6;color:#4f1698}
+ .st-bombilla{background:#e7f4f8;color:#1c8391}
+ .st-remache{background:#f3eded;color:#832b2b}
+ .st-garage{background:#edf4eb;color:#5d8628}
+ .st-cartón{background:#f7f1e9;color:#7c6331}
+ .st-caja{background:#ebeef4;color:#344e7a}
+ .st-terminado{background:#e7f8f2;color:#1c9166}
  .st-none{background:#222;color:#888}
- .empty{padding:24px;color:#7a92a8;font-style:italic}
+ .empty{padding:24px;color:#475569;font-style:italic}
  .muted{color:#5a6a7a}
  /* ── rutas (viene de Verificacion_GP2, adaptado al tema oscuro) ── */
- .ruta-card{margin:8px 14px;padding:10px 12px;background:#0a1119;border:1px solid #1e2a38;border-radius:10px}
- .ruta-card.incompleta{border-left:4px solid #e0a95a}
- .rc-head{display:flex;align-items:center;margin-bottom:8px;flex-wrap:wrap;gap:6px;font-size:12px;color:#8fc4d0}
+ .ruta-card{margin:8px 14px;padding:10px 12px;background:#e9eff6;border:1px solid #d1dae6;border-radius:10px}
+ .ruta-card.incompleta{border-left:4px solid #eadecd}
+ .rc-head{display:flex;align-items:center;margin-bottom:8px;flex-wrap:wrap;gap:6px;font-size:12px;color:#336d7a}
  .badge{padding:2px 8px;border-radius:10px;font-size:11px;font-weight:700}
- .badge.ok{background:#0e3226;color:#5fd39a}
- .badge.inc{background:#3a1216;color:#ff8f9a}
- .badge.conf{background:#0e3226;color:#5fd39a}
- .badge.pin{background:#3a2a10;color:#e0a95a}
- .badge.warn{background:#3a1216;color:#ff8f9a}
+ .badge.ok{background:#e7f8f3;color:#258858}
+ .badge.inc{background:#f8e8e9;color:#981622}
+ .badge.conf{background:#e7f8f3;color:#258858}
+ .badge.pin{background:#f8f2e7;color:#92611b}
+ .badge.warn{background:#f8e8e9;color:#981622}
  .ruta-flow{display:flex;flex-wrap:wrap;gap:4px;align-items:center}
  .node{display:inline-flex;flex-direction:column;align-items:flex-start;gap:1px;color:#fff;padding:4px 10px;border-radius:6px;line-height:1.2}
  .node .nm{font-size:12px;font-weight:600;white-space:nowrap}
  .node .sub{font-size:10px;opacity:.92;font-weight:400;white-space:nowrap}
  .sep{color:#64748b;margin:0 3px;align-self:center}
  .rc-actions{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
- .btn-conf{padding:8px 12px;border-radius:6px;border:1px solid #2a4a6e;font-size:12px;cursor:pointer;font-weight:700;background:#101820;color:#e6ecf3;min-height:40px}
- .btn-conf.ok{background:#0e3226;color:#5fd39a;border-color:#1b5a40}
- .btn-conf.pin{background:#3a2a10;color:#e0a95a;border-color:#6b4c1c}
- .btn-conf.warn{background:#3a1216;color:#ff8f9a;border-color:#6b232c}
- .btn-conf.resolve{background:#0f2f3a;color:#5fd0e0;border-color:#1c5a6e}
- .prob-item{margin-top:8px;padding:8px 10px;background:#1c1012;border-radius:6px;border:1px solid #4a1e26;font-size:12px;color:#ffb4bc}
- .prob-item .prob-meta{color:#7a92a8;font-size:11px;margin-top:4px}
- .avisos{margin:8px 14px 14px;padding:10px 12px;background:#151109;border:1px solid #4a3a15;border-radius:10px;font-size:12px;color:#e0c08a}
- .avisos.limpio{background:#0c1a13;border-color:#1b5a40;color:#5fd39a}
- .avisos b{color:#e0a95a}
- .avisos.limpio b{color:#5fd39a}
+ .btn-conf{padding:8px 12px;border-radius:6px;border:1px solid #cddaea;font-size:12px;cursor:pointer;font-weight:700;background:#ebf0f5;color:#385475;min-height:40px}
+ .btn-conf.ok{background:#e7f8f3;color:#258858;border-color:#cdeade}
+ .btn-conf.pin{background:#f8f2e7;color:#92611b;border-color:#eadecd}
+ .btn-conf.warn{background:#f8e8e9;color:#981622;border-color:#eacdd1}
+ .btn-conf.resolve{background:#e7f4f8;color:#1c8391;border-color:#cde3ea}
+ .prob-item{margin-top:8px;padding:8px 10px;background:#f4eced;border-radius:6px;border:1px solid #eacdd2;font-size:12px;color:#981624}
+ .prob-item .prob-meta{color:#475569;font-size:11px;margin-top:4px}
+ .avisos{margin:8px 14px 14px;padding:10px 12px;background:#f6f2ea;border:1px solid #eae1cd;border-radius:10px;font-size:12px;color:#896424}
+ .avisos.limpio{background:#eaf5f0;border-color:#cdeade;color:#258858}
+ .avisos b{color:#92611b}
+ .avisos.limpio b{color:#258858}
  .avisos ul{margin:6px 0 0;padding-left:18px}
  .avisos li{margin:2px 0}
  /* modal reportar problema */
  .modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;align-items:center;justify-content:center;z-index:200}
  .modal-bg.on{display:flex}
- .modal-box{background:#101820;border:1px solid #2a4a6e;border-radius:12px;padding:20px;max-width:420px;width:92%}
- .modal-box h3{margin:0 0 12px;font-size:15px;color:#e6ecf3}
- .modal-box textarea{width:100%;height:80px;background:#0b1119;color:#e6ecf3;border:1.5px solid #2a4a6e;border-radius:8px;padding:8px;font-size:18px;font-family:inherit;resize:vertical}
+ .modal-box{background:#ebf0f5;border:1px solid #cddaea;border-radius:12px;padding:20px;max-width:420px;width:92%}
+ .modal-box h3{margin:0 0 12px;font-size:15px;color:#385475}
+ .modal-box textarea{width:100%;height:80px;background:#eaeff6;color:#385475;border:1.5px solid #cddaea;border-radius:8px;padding:8px;font-size:18px;font-family:inherit;resize:vertical}
  .modal-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:12px}
  .modal-actions button{padding:10px 16px;border-radius:8px;border:none;font-size:13px;font-weight:700;cursor:pointer;min-height:44px}
- .modal-ok{background:#2a4a6e;color:#fff}.modal-cancel{background:#1a2430;color:#8fc4d0}
+ .modal-ok{background:#e9eff7;color:#fff}.modal-cancel{background:#ebeff4;color:#336d7a}
  @media (max-width:640px){
   .top,.filters,.kpis,.content{padding-left:10px;padding-right:10px}
   .kpi{min-width:calc(33% - 8px);padding:8px 10px;flex:1}
@@ -127,7 +127,7 @@
 <link rel="stylesheet" href="../gp2-claro.css?v=20260830t">
 </head>
 <body>
-<div id="gp2-logobar" style="position:relative;background:#0b1220;text-align:center;padding:6px 0;border-bottom:1px solid #1c2836"><a href="../GP2_MODULOS.html" style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:#cbd5e1;text-decoration:none;font-weight:700;font-size:15px;padding:5px 10px;border:1px solid #33415a;border-radius:8px;background:#101a2b">← Atrás</a><a href="../GP2_MODULOS.html" style="text-decoration:none"><img src="../GP2_logo.png" alt="GP2 · Gestión Productiva" style="height:40px;vertical-align:middle"></a></div>
+<div id="gp2-logobar" style="position:relative;background:#e8edf7;text-align:center;padding:6px 0;border-bottom:1px solid #d0dae7"><a href="../GP2_MODULOS.html" style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:#385475;text-decoration:none;font-weight:700;font-size:15px;padding:5px 10px;border:1px solid #d1d9e5;border-radius:8px;background:#e9eef7">← Atrás</a><a href="../GP2_MODULOS.html" style="text-decoration:none"><img src="../GP2_logo.png" alt="GP2 · Gestión Productiva" style="height:40px;vertical-align:middle"></a></div>
 
 <div class="top">
   <div>
@@ -140,7 +140,7 @@
   <select id="selArt"><option value="">— todos —</option></select>
   <input id="q" type="text" placeholder="Buscar código, familia, componente, fleje...">
   <label class="chk"><input type="checkbox" id="chkPend"> Solo artículos con pendientes</label>
-  <label class="chk">Usuario <input id="inpUsuario" type="text" placeholder="tu nombre" style="width:130px;background:#0b1119;color:#e6ecf3;border:1px solid #2a4a6e;border-radius:6px;padding:6px 8px;font-size:18px;font-family:inherit"></label>
+  <label class="chk">Usuario <input id="inpUsuario" type="text" placeholder="tu nombre" style="width:130px;background:#eaeff6;color:#385475;border:1px solid #cddaea;border-radius:6px;padding:6px 8px;font-size:18px;font-family:inherit"></label>
   <button class="btn" id="expAll" style="margin-left:auto">Expandir todo</button>
   <button class="btn" id="btnCSV">Exportar CSV</button>
 </div>
@@ -676,13 +676,13 @@ function renderRuta(x){
   else if(estado==='warn') badgeEst='<span class="badge warn">⚠ Problema</span>';
   else if(estado==='pin') badgeEst='<span class="badge pin">📌 Revisar</span>';
   var probs=(PROBLEMAS_MAP[x.firma]||[]).map(function(p){
-    var res=p.estado==='resuelto'?'<span style="color:#5fd39a">✅ Resuelto</span> · ':'';
+    var res=p.estado==='resuelto'?'<span style="color:#258858">✅ Resuelto</span> · ':'';
     var btnRes=p.estado==='pendiente'?'<div style="margin-top:4px"><button class="btn-conf resolve" data-resolver="'+p.id+'">Marcar resuelto</button></div>':'';
     return '<div class="prob-item">'+res+esc(p.problema)+
       '<div class="prob-meta">Reportado por '+esc(p.por||p.reportado_por||'')+' · '+new Date(p.en||p.reportado_en).toLocaleDateString('es-AR')+'</div>'+btnRes+'</div>';
   }).join('');
   return '<div class="ruta-card'+(x.completa?'':' incompleta')+'" data-firma="'+esc(x.firma)+'">'+
-    '<div class="rc-head">Fleje <b style="color:#5fd0e0">'+esc(x.r.fleje||'?')+'</b>'+
+    '<div class="rc-head">Fleje <b style="color:#1c8391">'+esc(x.r.fleje||'?')+'</b>'+
       (x.r.fleje_desc?'<span> · '+esc(x.r.fleje_desc)+'</span>':'')+badgeInc+badgeEst+'</div>'+
     '<div class="ruta-flow">'+x.pasos.map(nodo).join('<span class="sep">›</span>')+'</div>'+
     '<div class="rc-actions">'+
@@ -912,7 +912,7 @@ async function __boot(){
     Object.assign(D,r.data);
     __run();
   }catch(e){
-    document.body.innerHTML='<p style="padding:24px;font-family:system-ui;color:#ff7070">Error cargando datos de Supabase: '+(e.message||e)+'</p>';
+    document.body.innerHTML='<p style="padding:24px;font-family:system-ui;color:#981616">Error cargando datos de Supabase: '+(e.message||e)+'</p>';
     console.error(e);
   }finally{document.body.style.cursor='';}
 }

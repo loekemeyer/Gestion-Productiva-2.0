@@ -154,3 +154,9 @@ h2 { font-size: 20px !important; }
   border-radius: 10px !important;
 }
 .btn-card:hover, .btn-opcion:hover { border-color: #111111 !important; background: #f6f8fa !important; }
+
+/* == LETRA +1 (agrandar tipografia) — pedido usuario 2026-08-31 == */
+html, body { font-size: 17px !important; }
+h1 { font-size: 26px !important; } h2 { font-size: 22px !important; } h3 { font-size: 19px !important; }
+input, select, textarea, button { font-size: 17px !important; }
+th { font-size: 12.5px !important; } td { font-size: 15.5px !important; }

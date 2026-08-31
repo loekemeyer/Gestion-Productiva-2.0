@@ -2,66 +2,66 @@
 <title>Loekemeyer · ¿Qué necesito para producir?</title>
 <style>
  *{box-sizing:border-box}
- body{margin:0;background:#0a0e13;color:#e6ecf3;font:13px/1.4 -apple-system,Segoe UI,Roboto,sans-serif}
- .top{background:linear-gradient(90deg,#0f3d6b,#1a5a94);padding:10px 16px;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+ body{margin:0;background:#ebeff4;color:#385475;font:13px/1.4 -apple-system,Segoe UI,Roboto,sans-serif}
+ .top{background:linear-gradient(90deg,#e7f0f8,#e7f0f8);padding:10px 16px;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
  .top h1{margin:0;font-size:16px}
  .top .sel{display:flex;gap:8px;align-items:center;font-size:13px;flex-wrap:wrap}
  /* letra grande (regla de accesibilidad: minimo 18px en campos de carga) */
- .top select,.top input{background:#0b1119;color:#e6ecf3;border:1px solid #2a4a6e;border-radius:6px;padding:6px 10px;font-size:18px;font-family:inherit}
+ .top select,.top input{background:#eaeff6;color:#385475;border:1px solid #cddaea;border-radius:6px;padding:6px 10px;font-size:18px;font-family:inherit}
  .top input{width:110px}
  .top select{max-width:70vw}
  .canvas{padding:14px;overflow-x:auto;min-height:calc(100vh - 50px)}
- .hero{background:linear-gradient(135deg,#3a1e0a,#6a2e0f);border:1px solid #a05a1a;border-radius:12px;padding:12px 16px;margin-bottom:14px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px}
- .hero .cod{font-size:28px;font-weight:800;color:#ffb060}
- .hero .fam{font-size:14px;color:#e0a075}
- .hero .kpi{background:rgba(0,0,0,.25);border-radius:8px;padding:6px 10px;font-size:11px;color:#e0c095}
- .hero .kpi b{color:#ffb060;font-size:14px;margin-right:3px}
- .section-title{font-size:11px;text-transform:uppercase;letter-spacing:.6px;color:#7a92a8;margin:16px 0 8px}
- .lane{background:#101820;border:1px solid #1e2a38;border-radius:10px;padding:10px;margin-bottom:8px}
- .lane.conv{border-color:#5a3a8a;background:#141020}
- .lane .head{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;font-size:12px;color:#8fa2b6;flex-wrap:wrap;gap:8px}
- .lane .head b{color:#c9d6e3}
- .lane .head .fkg{background:#3a2f1a;color:#ffb060;padding:2px 10px;border-radius:10px;font-weight:800;font-size:12px}
+ .hero{background:linear-gradient(135deg,#f8eee7,#f8ede7);border:1px solid #eadbcd;border-radius:12px;padding:12px 16px;margin-bottom:14px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px}
+ .hero .cod{font-size:28px;font-weight:800;color:#985716}
+ .hero .fam{font-size:14px;color:#8e4c20}
+ .hero .kpi{background:rgba(0,0,0,.25);border-radius:8px;padding:6px 10px;font-size:11px;color:#865e27}
+ .hero .kpi b{color:#985716;font-size:14px;margin-right:3px}
+ .section-title{font-size:11px;text-transform:uppercase;letter-spacing:.6px;color:#475569;margin:16px 0 8px}
+ .lane{background:#ebf0f5;border:1px solid #d1dae6;border-radius:10px;padding:10px;margin-bottom:8px}
+ .lane.conv{border-color:#d8cdea;background:#edebf5}
+ .lane .head{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;font-size:12px;color:#475569;flex-wrap:wrap;gap:8px}
+ .lane .head b{color:#385775}
+ .lane .head .fkg{background:#f6f2ea;color:#985716;padding:2px 10px;border-radius:10px;font-weight:800;font-size:12px}
  .flow{display:flex;gap:0;align-items:stretch;flex-wrap:nowrap;padding-bottom:4px;overflow-x:auto}
  .flow.branch{margin-bottom:6px;padding-left:0}
- .branch-lbl{font-size:10px;color:#c79bff;text-transform:uppercase;letter-spacing:.5px;font-weight:700;margin:6px 0 2px;padding-left:2px}
- .converge-bar{display:flex;align-items:center;gap:8px;margin:6px 0;color:#c79bff;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px}
- .converge-bar .line{flex:1;height:1px;background:linear-gradient(90deg,transparent,#5a3a8a,transparent)}
- .node{background:#0d141d;border:1px solid #2a3648;border-radius:7px;padding:6px 9px;min-width:110px;max-width:220px;display:flex;flex-direction:column;justify-content:center;flex-shrink:0}
- .node .tp{font-size:9px;text-transform:uppercase;letter-spacing:.4px;color:#7a92a8;font-weight:700}
+ .branch-lbl{font-size:10px;color:#4f1698;text-transform:uppercase;letter-spacing:.5px;font-weight:700;margin:6px 0 2px;padding-left:2px}
+ .converge-bar{display:flex;align-items:center;gap:8px;margin:6px 0;color:#4f1698;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px}
+ .converge-bar .line{flex:1;height:1px;background:linear-gradient(90deg,transparent,#eee9f6,transparent)}
+ .node{background:#eaeff6;border:1px solid #d2d9e5;border-radius:7px;padding:6px 9px;min-width:110px;max-width:220px;display:flex;flex-direction:column;justify-content:center;flex-shrink:0}
+ .node .tp{font-size:9px;text-transform:uppercase;letter-spacing:.4px;color:#475569;font-weight:700}
  .node .nm{font-size:12px;font-weight:700;margin-top:1px;font-family:ui-monospace,SF Mono,monospace}
- .node .ex{font-size:10px;color:#8fa2b6;margin-top:1px}
- .node .rend{font-size:10px;color:#e0a95a;margin-top:2px;font-weight:600}
- .node .qty{font-size:10px;color:#5fb0e8;font-weight:700;background:#182231;padding:1px 6px;border-radius:6px;margin-top:3px;align-self:flex-start}
+ .node .ex{font-size:10px;color:#475569;margin-top:1px}
+ .node .rend{font-size:10px;color:#92611b;margin-top:2px;font-weight:600}
+ .node .qty{font-size:10px;color:#166398;font-weight:700;background:#eaeff5;padding:1px 6px;border-radius:6px;margin-top:3px;align-self:flex-start}
  .node.n-sector{border-style:dashed;border-width:2px;min-width:120px}
  .node.n-sector .tp{font-size:10px}
  .node.n-sector .nm{font-size:14px;letter-spacing:.6px}
- .node .kg{font-size:10px;color:#ffb060;font-weight:800;background:#3a2f1a;padding:1px 6px;border-radius:6px;margin-top:3px;align-self:flex-start}
+ .node .kg{font-size:10px;color:#985716;font-weight:800;background:#f6f2ea;padding:1px 6px;border-radius:6px;margin-top:3px;align-self:flex-start}
  .arr{color:#3a5068;font-size:20px;padding:0 4px;align-self:center;user-select:none;flex-shrink:0}
- .arr.plus{color:#c79bff;font-size:18px;font-weight:700}
- .n-fleje{background:#1a2f47;border-color:#3a6b9e}.n-fleje .tp,.n-fleje .nm{color:#8fc4f0}
- .n-matriz{background:#2f2416;border-color:#8a5f22}.n-matriz .tp,.n-matriz .nm{color:#e0a95a}
- .n-crudo{background:#132a1e;border-color:#2f6b47}.n-crudo .tp,.n-crudo .nm{color:#5fd39a}
- .n-prov{background:#241c2f;border-color:#5a3a8a}.n-prov .tp,.n-prov .nm{color:#c79bff}
- .n-proc{background:#2f1a24;border-color:#8a3a5f}.n-proc .tp,.n-proc .nm{color:#f08bb0}
- .n-tall{background:#1a2f2a;border-color:#2f8a72}.n-tall .tp,.n-tall .nm{color:#5fe0c8}
- .n-afil{background:#2f1c2a;border-color:#8a3a72}.n-afil .tp,.n-afil .nm{color:#f08bd8}
- .n-virg{background:#3a1e0a;border-color:#a05a1a}.n-virg .tp,.n-virg .nm{color:#ffb060}
- .n-insu{background:#2a1c14;border-color:#8a5a2f}.n-insu .tp,.n-insu .nm{color:#e0a075}
- .n-sub{background:#2a1c3a;border-color:#5a3a8a}.n-sub .tp,.n-sub .nm{color:#c79bff}
- .n-tr{background:#242432;border-color:#4a4a6a}.n-tr .tp,.n-tr .nm{color:#a8a8d8}
- .flejes-total{background:#2f2416;border:1px solid #8a5f22;border-radius:10px;padding:10px 14px;margin-top:14px}
- .flejes-total h3{margin:0 0 8px;color:#e0a95a;font-size:12px;text-transform:uppercase;letter-spacing:.5px}
- .fleje-row{display:flex;justify-content:space-between;padding:5px 0;font-size:12px;border-bottom:1px solid #3a2f1a}
+ .arr.plus{color:#4f1698;font-size:18px;font-weight:700}
+ .n-fleje{background:#e9eff7;border-color:#cddbea}.n-fleje .tp,.n-fleje .nm{color:#165d98}
+ .n-matriz{background:#f5f0ea;border-color:#eadecd}.n-matriz .tp,.n-matriz .nm{color:#92611b}
+ .n-crudo{background:#eaf5ef;border-color:#cde9d9}.n-crudo .tp,.n-crudo .nm{color:#258858}
+ .n-prov{background:#efecf4;border-color:#d8cdea}.n-prov .tp,.n-prov .nm{color:#4f1698}
+ .n-proc{background:#f4ebef;border-color:#eacdda}.n-proc .tp,.n-proc .nm{color:#981645}
+ .n-tall{background:#ebf4f2;border-color:#cdeae2}.n-tall .tp,.n-tall .nm{color:#1c917b}
+ .n-afil{background:#f4ecf2;border-color:#eacde1}.n-afil .tp,.n-afil .nm{color:#981679}
+ .n-virg{background:#f8eee7;border-color:#eadbcd}.n-virg .tp,.n-virg .nm{color:#985716}
+ .n-insu{background:#f5eeea;border-color:#eadbcd}.n-insu .tp,.n-insu .nm{color:#8e4c20}
+ .n-sub{background:#efeaf5;border-color:#d8cdea}.n-sub .tp,.n-sub .nm{color:#4f1698}
+ .n-tr{background:#ededf2;border-color:#d5d5e2}.n-tr .tp,.n-tr .nm{color:#363678}
+ .flejes-total{background:#f5f0ea;border:1px solid #eadecd;border-radius:10px;padding:10px 14px;margin-top:14px}
+ .flejes-total h3{margin:0 0 8px;color:#92611b;font-size:12px;text-transform:uppercase;letter-spacing:.5px}
+ .fleje-row{display:flex;justify-content:space-between;padding:5px 0;font-size:12px;border-bottom:1px solid #e9e0ce}
  .fleje-row:last-child{border-bottom:0}
- .fleje-row .fname{color:#e0a95a;font-weight:600}
- .fleje-row .fkg{color:#ffb060;font-weight:800;background:#3a2f1a;padding:2px 10px;border-radius:10px}
+ .fleje-row .fname{color:#92611b;font-weight:600}
+ .fleje-row .fkg{color:#985716;font-weight:800;background:#f6f2ea;padding:2px 10px;border-radius:10px}
 </style><link rel="icon" type="image/png" href="../GP2_favicon.png">
 <link rel="apple-touch-icon" href="../GP2_favicon.png">
 <link rel="stylesheet" href="../gp2-claro.css?v=20260830t">
 </head>
 <body>
-<div id="gp2-logobar" style="position:relative;background:#0b1220;text-align:center;padding:6px 0;border-bottom:1px solid #1c2836"><a href="../GP2_MODULOS.html" style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:#cbd5e1;text-decoration:none;font-weight:700;font-size:15px;padding:5px 10px;border:1px solid #33415a;border-radius:8px;background:#101a2b">← Atrás</a><a href="../GP2_MODULOS.html" style="text-decoration:none"><img src="../GP2_logo.png" alt="GP2 · Gestión Productiva" style="height:40px;vertical-align:middle"></a></div>
+<div id="gp2-logobar" style="position:relative;background:#e8edf7;text-align:center;padding:6px 0;border-bottom:1px solid #d0dae7"><a href="../GP2_MODULOS.html" style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:#385475;text-decoration:none;font-weight:700;font-size:15px;padding:5px 10px;border:1px solid #d1d9e5;border-radius:8px;background:#e9eef7">← Atrás</a><a href="../GP2_MODULOS.html" style="text-decoration:none"><img src="../GP2_logo.png" alt="GP2 · Gestión Productiva" style="height:40px;vertical-align:middle"></a></div>
 
 <div class="top">
  <h1>🏭 Loekemeyer · ¿Qué necesito para producir?</h1>
@@ -160,7 +160,7 @@ function renderStandaloneLane(r,pasos,fl,need,uni,flejesTotal){
  if(!flComp)flComp=cById(r.f);
  var cs_desc = cs_final ? (" → "+cById(cs_final).cod+" ("+(cById(cs_final).d||"")+")") : "";
  var H='<div class="lane"><div class="head"><b>'+esc((flComp.cod||"?")+' · '+(flComp.d||"")+cs_desc)+'</b>'+
-    (kg?'<span class="fkg">'+fmt(kg)+' kg fleje</span>':(qty?'<span style="color:#7a92a8">sin rendimiento</span>':""))+
+    (kg?'<span class="fkg">'+fmt(kg)+' kg fleje</span>':(qty?'<span style="color:#475569">sin rendimiento</span>':""))+
     '</div><div class="flow">';
  H+=node("INSUMO","fleje",flComp.cod||"?",flComp.d||"",rend?rend+" uni/kg":"",null,kg||null);
  pasos.forEach(function(p){
@@ -192,7 +192,7 @@ function renderConvergenceLane(padre_id,ruta_list,need,uni,flejesTotal,aid){
   }
  }
  var H='<div class="lane conv"><div class="head"><b>🔀 Convergencia · '+esc(pc.cod+' · '+(pc.d||""))+'</b>'+
-    '<span style="color:#5fb0e8">× '+fmt(qty_padre)+' u</span></div>';
+    '<span style="color:#166398">× '+fmt(qty_padre)+' u</span></div>';
 
  // Loop puro por hijos del componente_bom
  var brN=0;
@@ -390,7 +390,7 @@ function render(){
   subKeys.forEach(function(k){
    var pid=parseInt(k); var pc=cById(pid);
    var pq=need[pid]*uni;
-   H+='<div class="lane"><div class="head"><b>'+esc(pc.cod+' · '+(pc.d||""))+'</b><span style="color:#5fb0e8">× '+fmt(pq)+' u</span></div><div class="flow">';
+   H+='<div class="lane"><div class="head"><b>'+esc(pc.cod+' · '+(pc.d||""))+'</b><span style="color:#166398">× '+fmt(pq)+' u</span></div><div class="flow">';
    var hijos=D.children[k];
    hijos.forEach(function(hh,i){
     var hc=cById(hh.c);
@@ -428,7 +428,7 @@ function render(){
    var qFin=null,csFin=cidIni;
    for(var ii=pasos.length-1;ii>=0;ii--){var pp=pasos[ii];if(pp.cs && need[pp.cs]){csFin=pp.cs;qFin=need[pp.cs]*uni;break;}}
    if(qFin===null && need[cidIni])qFin=need[cidIni]*uni;
-   H+='<div class="lane" style="padding:6px 10px"><div class="head" style="margin-bottom:4px"><b>'+esc(comp.cod+' — '+(comp.d||""))+'</b>'+(qFin?'<span style="color:#5fb0e8">× '+fmt(qFin)+' u</span>':"")+'</div><div class="flow" style="align-items:center">';
+   H+='<div class="lane" style="padding:6px 10px"><div class="head" style="margin-bottom:4px"><b>'+esc(comp.cod+' — '+(comp.d||""))+'</b>'+(qFin?'<span style="color:#166398">× '+fmt(qFin)+' u</span>':"")+'</div><div class="flow" style="align-items:center">';
    H+=node("INSUMO",sCls(comp.s),comp.cod||"?",comp.d||"","",qFin,null);
    pasos.forEach(function(p,idx){
     if(idx===0)return;
@@ -451,7 +451,7 @@ function render(){
 
  H+='<div class="section-title">5 · Convergencia final → Artículo → Virgilio</div>';
  H+='<div class="lane"><div class="flow">';
- if(talls.length){talls.forEach(function(t,i){H+=(i>0?'<span class="arr plus" style="color:#e0a95a">O</span>':"")+node("TALLERISTA","tall",t,"ensambla (alternativa)","",uni,null);});}
+ if(talls.length){talls.forEach(function(t,i){H+=(i>0?'<span class="arr plus" style="color:#92611b">O</span>':"")+node("TALLERISTA","tall",t,"ensambla (alternativa)","",uni,null);});}
  else H+=node("TALLERISTA","tall","(sin asignar)","tabla incompleta","",uni,null);
  H+='<span class="arr">→</span>'+node("ARTÍCULO","virg",a.cod,a.fam+" terminado","",uni,null)+
     '<span class="arr">→</span>'+node("VIRGILIO","virg","Distribución","centro logístico","",uni,null);
