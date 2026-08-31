@@ -200,7 +200,7 @@ input[type="text"]{width:200px}
 <div class="card">
   <div class="header">
     <h1>Recepción Insumos</h1>
-    <div class="hbtns"><a href="control-cajas.html" style="background:#0b5cad;color:#fff">Control Cajas</a><a href="../GP2_MODULOS.html">Atrás</a></div>
+    <div class="hbtns"><a href="control-cajas.html" style="background:#0b5cad;color:#fff">Control Cajas</a><a id="btnAtrasHeader" href="../GP2_MODULOS.html">Atrás</a></div>
   </div>
 
   <div class="steps">
@@ -1083,6 +1083,13 @@ async function guardar(){
          '<a href="control-cajas.html" style="display:inline-block;margin-top:8px;padding:12px 22px;background:#0b5cad;color:#fff;border-radius:8px;text-decoration:none;font-weight:900;font-size:18px">Ir a Control Cajas →</a>')
       : '';
     $('successDetail').innerHTML=esc(itemSel.codigo)+' — '+esc(itemSel.descripcion||'')+' · '+detUni+(provSel?(' ('+esc(provSel)+')'):'')+'. Stock actualizado. Mov '+(res.data&&res.data.movimiento_id)+'. '+ocTxt+'.'+extraCajas;
+    // Cajas: el control es OBLIGATORIO despues de recibir, asi que se ocultan las
+    // salidas (Atrás del header y Volver del paso 2) para que la unica via sea
+    // "Ir a Control Cajas" o "Nueva recepción" (que recarga y las restaura).
+    if (esCaja) {
+      var _atras=$('btnAtrasHeader'); if(_atras) _atras.style.display='none';
+      var _volver=$('btnVolver1'); if(_volver) _volver.style.display='none';
+    }
     cerrarPopup();
     // el box queda visible; el usuario cierra con 'Nueva recepcion' (reset)
   }catch(e){ m.className='status bad'; m.textContent='Error: '+(e.message||e); }
