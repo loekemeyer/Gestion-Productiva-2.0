@@ -2640,7 +2640,7 @@ AS $function$
     'comp', (select coalesce(jsonb_object_agg(id::text, jsonb_build_object('cod',codigo,'d',descripcion,'s',sector_id,'um',unidad_medida,'kg_x_uni',kg_x_uni,'uxc',uni_x_cajon)),'{}'::jsonb) from componente),
     'prov_serv', (select coalesce(jsonb_object_agg(id::text, jsonb_build_object('nom',nombre,'proceso',proceso)),'{}'::jsonb) from proveedor_servicio),
     'tall', (select coalesce(jsonb_object_agg(id::text, jsonb_build_object('nom',nombre)),'{}'::jsonb) from tallerista),
-    'mat', (select coalesce(jsonb_object_agg(id::text, jsonb_build_object('n',n_matriz,'d',descripcion,'tipo',tipo,'ppk',partes_por_kilo_de_fleje,'primera',(primera_del_fleje='SI'))),'{}'::jsonb) from matriz),
+    'mat', (select coalesce(jsonb_object_agg(id::text, jsonb_build_object('n',n_matriz,'d',descripcion,'tipo',tipo,'ppk',partes_por_kilo_de_fleje,'primera',(primera_del_fleje='SI'),'uxg',uni_x_golpe,'maq',maquina)),'{}'::jsonb) from matriz),
     'bom_art', (select coalesce(jsonb_object_agg(articulo_id::text, arr),'{}'::jsonb) from (
         select articulo_id, jsonb_agg(jsonb_build_object('c',componente_id,'q',cantidad)) arr
         from articulo_componente group by articulo_id) x),
@@ -3654,19 +3654,28 @@ declare
   v_uent bigint; v_usal bigint; v_cant numeric; v_uo text; v_ud text;
   v_movid bigint; v_aviso text;
   v_th numeric; v_tt numeric; v_premio numeric; v_segs numeric;
+  v_golpes numeric; v_uxg numeric;
 begin
   v_f   := coalesce(nullif(p->>'fecha','')::timestamptz, now());
   v_f_ar := v_f at time zone 'America/Argentina/Buenos_Aires';
   v_leg := nullif(btrim(coalesce(p->>'legajo','')),'');
   v_mat := nullif(btrim(coalesce(p->>'matriz','')),'');
-  v_uni := coalesce(nullif(p->>'uni','')::numeric, 0);
+  v_golpes := nullif(p->>'golpes','')::numeric;
   if v_leg is null then raise exception 'Falta el legajo'; end if;
   if v_mat is null then raise exception 'Falta la matriz/codigo del evento'; end if;
 
   select nombre into v_nombre from empleado where legajo = v_leg;
-  select id, descripcion, partes_por_kilo_de_fleje, tiempo_historico
-    into v_mid, v_mname, v_partes, v_th
+  select id, descripcion, partes_por_kilo_de_fleje, tiempo_historico, uni_x_golpe
+    into v_mid, v_mname, v_partes, v_th, v_uxg
     from matriz where btrim(n_matriz) = v_mat limit 1;
+
+  -- golpes -> unidades con el factor de la matriz (foto del factor al momento del registro)
+  if v_golpes is not null and v_golpes > 0 then
+    v_uni := v_golpes * coalesce(v_uxg,1);
+  else
+    v_golpes := null;
+    v_uni := coalesce(nullif(p->>'uni','')::numeric, 0);
+  end if;
 
   -- premio nativo: tiempo_toma = segundos trabajados / uni; premio contra el historico
   if v_uni > 0 then
@@ -3680,12 +3689,14 @@ begin
 
   insert into produccion(
     fecha, legajo, nombre_empleado, matriz_raw, matriz_id, nombre_matriz, uni,
+    golpes, uni_x_golpe,
     hora_inicio, hora_fin, tiempo_toma, tiempo_historico, premio,
     segundos_trabajados, segundos_tiempo_muerto,
     dia, mes, quincena, id_ejecucion, origen_created_at
   ) values (
     v_f, v_leg, coalesce(nullif(p->>'nombre_empleado',''), v_nombre), v_mat, v_mid,
     coalesce(nullif(p->>'nombre_matriz',''), v_mname), v_uni,
+    v_golpes, case when v_golpes is not null then coalesce(v_uxg,1) end,
     nullif(p->>'hora_inicio','')::time, nullif(p->>'hora_fin','')::time,
     v_tt, case when v_uni > 0 then v_th end, v_premio,
     nullif(p->>'segundos_trabajados','')::numeric,
@@ -3743,7 +3754,8 @@ begin
     end if;
   end if;
 
-  return jsonb_build_object('ok',true,'id',v_id,'movimiento_id',v_movid,'aviso',v_aviso,'premio',v_premio);
+  return jsonb_build_object('ok',true,'id',v_id,'movimiento_id',v_movid,'aviso',v_aviso,
+    'premio',v_premio,'uni',v_uni,'golpes',v_golpes,'uni_x_golpe',v_uxg);
 end $function$;
 
 -- ---------- registrar_movimientos ----------
@@ -3782,7 +3794,7 @@ begin
 end $function$;
 
 -- ---------- registrar_produccion ----------
-CREATE OR REPLACE FUNCTION "GP2".registrar_produccion(p_legajo text, p_matriz text, p_uni numeric, p_fecha timestamp with time zone DEFAULT now(), p_nombre text DEFAULT NULL::text, p_comp_salida_id bigint DEFAULT NULL::bigint)
+CREATE OR REPLACE FUNCTION "GP2".registrar_produccion(p_legajo text, p_matriz text, p_uni numeric DEFAULT NULL::numeric, p_fecha timestamp with time zone DEFAULT now(), p_nombre text DEFAULT NULL::text, p_comp_salida_id bigint DEFAULT NULL::bigint, p_golpes numeric DEFAULT NULL::numeric)
  RETURNS jsonb
  LANGUAGE plpgsql
  SECURITY DEFINER
@@ -3794,13 +3806,23 @@ declare
   v_ent_um text; v_sal_um text; v_sec_ent int; v_sec_sal int;
   v_uent bigint; v_usal bigint; v_cant numeric; v_uo text; v_ud text;
   v_movid bigint; v_aviso text := null;
+  v_uxg numeric; v_uni numeric;
 begin
   if p_matriz is null or btrim(p_matriz)='' then raise exception 'La matriz es obligatoria'; end if;
-  if p_uni is null or p_uni<=0 then raise exception 'Las unidades deben ser mayores a 0'; end if;
   v_f := coalesce(p_fecha, now());
-  select id, descripcion, partes_por_kilo_de_fleje into v_mid, v_mname, v_partes
+  select id, descripcion, partes_por_kilo_de_fleje, uni_x_golpe
+    into v_mid, v_mname, v_partes, v_uxg
     from matriz where btrim(n_matriz)=btrim(p_matriz) limit 1;
   if v_mid is null then raise exception 'La matriz "%" no existe en GP2', p_matriz; end if;
+
+  -- golpes manda; si no vienen golpes se acepta el numero de unidades como antes
+  if p_golpes is not null then
+    if p_golpes<=0 then raise exception 'Los golpes deben ser mayores a 0'; end if;
+    v_uni := p_golpes * coalesce(v_uxg,1);
+  else
+    v_uni := p_uni;
+  end if;
+  if v_uni is null or v_uni<=0 then raise exception 'Las unidades deben ser mayores a 0'; end if;
 
   select count(distinct comp_salida_id) into v_nsal
     from ruta_paso where matriz_id=v_mid and tipo_paso='matriz' and comp_salida_id is not null;
@@ -3819,9 +3841,10 @@ begin
   end if;
 
   insert into produccion(fecha, legajo, nombre_empleado, matriz_raw, matriz_id, nombre_matriz, uni,
-                         dia, mes, quincena, origen_created_at)
+                         golpes, uni_x_golpe, dia, mes, quincena, origen_created_at)
   values (v_f, nullif(btrim(coalesce(p_legajo,'')),''), nullif(btrim(coalesce(p_nombre,'')),''),
-          btrim(p_matriz), v_mid, v_mname, p_uni,
+          btrim(p_matriz), v_mid, v_mname, v_uni,
+          p_golpes, case when p_golpes is not null then coalesce(v_uxg,1) end,
           extract(day from v_f)::int, extract(month from v_f)::int,
           case when extract(day from v_f)::int <= 15 then 1 else 2 end, now())
   returning id into v_id;
@@ -3833,15 +3856,15 @@ begin
     select id into v_usal from ubicacion where tipo='sector' and ref_id=v_sec_sal limit 1;
     if lower(coalesce(v_ent_um,''))='kg' then
       if v_partes is null or v_partes<=0 then v_aviso := 'Registrado, pero NO se movio stock: la matriz no tiene rendimiento (ppk) para pasar uni->kg de fleje';
-      else v_cant := p_uni / v_partes; v_uo := 'kg'; end if;
+      else v_cant := v_uni / v_partes; v_uo := 'kg'; end if;
     else
-      v_cant := p_uni; v_uo := 'uni';   -- pieza->pieza: consume p_uni de la entrada
+      v_cant := v_uni; v_uo := 'uni';
     end if;
     v_ud := case when lower(coalesce(v_sal_um,''))='kg' then 'kg' else 'uni' end;
     if v_cant is not null and v_uent is not null and v_usal is not null then
       insert into movimiento(fecha,tipo_mov,comp_id,ubic_origen_id,ubic_destino_id,cantidad,unidad_origen,
                              comp_transformado_id,cantidad_transformada,unidad_destino)
-      values (v_f,'fabricacion', v_entrada, v_uent, v_usal, v_cant, v_uo, v_salida, p_uni, v_ud)
+      values (v_f,'fabricacion', v_entrada, v_uent, v_usal, v_cant, v_uo, v_salida, v_uni, v_ud)
       returning id into v_movid;
     elsif v_aviso is null then v_aviso := 'Registrado, pero NO se movio stock: falta ubicacion de sector';
     end if;
@@ -3850,7 +3873,7 @@ begin
   end if;
 
   return jsonb_build_object('ok',true,'id',v_id,'matriz',btrim(p_matriz),'nombre_matriz',v_mname,
-    'uni',p_uni,'salida_id',v_salida,'movimiento_id',v_movid,'aviso',v_aviso);
+    'uni',v_uni,'golpes',p_golpes,'uni_x_golpe',v_uxg,'salida_id',v_salida,'movimiento_id',v_movid,'aviso',v_aviso);
 end $function$;
 
 -- ---------- registro_operarios_bundle ----------
@@ -3861,11 +3884,13 @@ CREATE OR REPLACE FUNCTION "GP2".registro_operarios_bundle()
  SET search_path TO 'GP2'
 AS $function$
   select jsonb_build_object(
+    'registro_en_golpes', (select coalesce((select valor from "GP2".parametro where clave='registro_en_golpes'),'1') = '1'),
     'empleados', (select coalesce(jsonb_object_agg(e.legajo, jsonb_build_object(
         'nombre',e.nombre,'activo',e.activo,'hora_entrada',e.hora_entrada)),'{}'::jsonb)
       from "GP2".empleado e),
     'matrices', (select coalesce(jsonb_agg(jsonb_build_object(
-        'n',m.n_matriz,'d',m.descripcion,'ppk',m.partes_por_kilo_de_fleje) order by m.n_matriz),'[]'::jsonb)
+        'n',m.n_matriz,'d',m.descripcion,'ppk',m.partes_por_kilo_de_fleje,
+        'uxg',m.uni_x_golpe,'maq',m.maquina) order by m.n_matriz),'[]'::jsonb)
       from "GP2".matriz m),
     'matriz_fleje', (select coalesce(jsonb_object_agg(q.n_matriz, jsonb_build_object(
         'comp_id',q.comp_id,'codigo',q.codigo,'descripcion',q.descripcion)),'{}'::jsonb)

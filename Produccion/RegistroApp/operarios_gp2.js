@@ -20,7 +20,8 @@ const SB = supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
    ============================================================ */
 /* Shape real de registro_operarios_bundle():
    empleados    { legajo -> {nombre, activo, hora_entrada} }
-   matrices     [ {n, d, ppk} ]
+   matrices     [ {n, d, ppk, uxg, maq} ]   uxg = unidades que salen por golpe
+   registro_en_golpes  true = el cajon se cierra anotando GOLPES del contador
    matriz_fleje { n_matriz -> {comp_id, codigo, descripcion} }
    rollos_saldo [ {comp_id, codigo, kg_por_rollo, rollos} ]              */
 let D = {};
@@ -41,13 +42,28 @@ async function cargarBundle() {
 
 function nombreMatriz(n) { return D.matricesMap?.get(String(n).trim())?.d || ""; }
 
+/* GOLPES -> UNIDADES. El contador de la matriz (alimentador o balancin) cuenta GOLPES,
+   y hay matrices que escupen mas de una pieza por golpe (la 348 saca 2 cuchillitos, la
+   16 saca 4 arandelas). El operario anota los golpes y el factor lo pone la base
+   (GP2.matriz.uni_x_golpe): asi el dia que se cambia la matriz se toca UN numero y no
+   hay que reeducar a nadie. Si el bundle todavia no cargo, el factor es 1 (no inventa). */
+function uniXGolpe(n) {
+  const v = Number(D.matricesMap?.get(String(n || "").trim())?.uxg);
+  return v > 0 ? v : 1;
+}
+function pideGolpes() { return D.registro_en_golpes !== false; }
+function golpesAUni(nMatriz, golpes) {
+  const g = Number(golpes) || 0;
+  return pideGolpes() ? g * uniXGolpe(nMatriz) : g;
+}
+
 /* ============================================================
    OPCIONES (botones)
    ============================================================ */
 const OPTIONS = [
   // row 1
   { code: "E",  desc: "Empece Matriz",     row: 1, needsInput: true,  label: "Ingresa el número", validate: /^[0-9]+[A-Za-z]?$/ },
-  { code: "C",  desc: "Cajon",             row: 1, needsInput: true,  label: "Ingresa cantidad", validate: /^[0-9]+$/ },
+  { code: "C",  desc: "Cajon",             row: 1, needsInput: true,  label: "Ingresa los GOLPES del contador", validate: /^[0-9]+$/ },
   // row 2
   { code: "PB",   desc: "Pare Bano",       row: 2, needsInput: false },
   { code: "BC",   desc: "Busque Cajon",    row: 2, needsInput: false },
@@ -165,10 +181,11 @@ function updateStateAfterSend(legajo, payload) {
     s.lastCajon = { opcion: op, texto: payload.texto || "", ts: payload.ts_event };
     // Descontar del rollo en uso los kg de este cajon: uni / ppk (piezas por kg
     // de fleje de la matriz activa). Si la matriz no tiene ppk no se estima.
+    // OJO: lo que tipeo el operario son GOLPES, hay que pasarlos a unidades primero.
     if (s.rollo) {
-      const mat = D.matricesMap?.get(String(s.lastMatrix?.texto || "").trim());
-      const ppk = Number(mat?.ppk) || 0;
-      const uni = Number(payload.texto) || 0;
+      const nMat = String(s.lastMatrix?.texto || "").trim();
+      const ppk = Number(D.matricesMap?.get(nMat)?.ppk) || 0;
+      const uni = golpesAUni(nMat, payload.texto);
       if (ppk > 0 && uni > 0) s.rollo.kg_usados = (Number(s.rollo.kg_usados) || 0) + uni / ppk;
     }
     s.lastDowntime = null; s.matrixNeedsC = false;
@@ -255,7 +272,10 @@ function toRpcPayload(p) {
   if (p.comp_salida_id) rpc.comp_salida_id = p.comp_salida_id;
 
   if (["C", "CT"].includes(op)) {
-    rpc.uni = Number(p.texto) || 0;
+    // Se manda lo que el operario conto (golpes) y la RPC lo multiplica por
+    // matriz.uni_x_golpe. Con el interruptor apagado se manda uni como antes.
+    if (pideGolpes()) rpc.golpes = Number(p.texto) || 0;
+    else rpc.uni = Number(p.texto) || 0;
     rpc.nombre_matriz = nombreMatriz(matriz) || undefined;
   } else {
     rpc.uni = 0;
@@ -609,6 +629,29 @@ function selectOption(opt) {
       : null;
   }
 
+  // Cajon: se anotan GOLPES y se muestra en vivo cuantas unidades salen de esos golpes.
+  const gh = $("golpeHint");
+  if (gh) {
+    if (opt.code === "C" && pideGolpes()) {
+      const nMat = String(readState(legajoKey()).lastMatrix?.texto || "").trim();
+      const f = uniXGolpe(nMat);
+      const pintar = () => {
+        const g = Number(textInput.value.trim()) || 0;
+        gh.className = "golpe-hint" + (f === 1 ? " x1" : "");
+        gh.innerText = f === 1
+          ? (nombreMatriz(nMat) ? `Matriz ${nMat}: 1 golpe = 1 unidad.` : "1 golpe = 1 unidad.")
+          : `Matriz ${nMat}: cada golpe saca ${f} unidades.` + (g > 0 ? ` ${g} golpes = ${g * f} unidades.` : "");
+      };
+      pintar();
+      gh.classList.remove("hidden");
+      const prev = textInput.oninput;
+      textInput.oninput = (ev) => { if (prev) prev(ev); pintar(); };
+    } else {
+      gh.classList.add("hidden");
+      gh.innerText = "";
+    }
+  }
+
   // Eduardo: quedoResto para PR
   const quedoRestoWrap = $("quedoRestoWrap");
   if (isEduardo() && opt.code === "PR") {
@@ -699,6 +742,14 @@ async function sendFast() {
   if (s.lastDowntime && !sameDowntime(s.lastDowntime, { opcion: selected.code, texto })) {
     alert(`Hay un Tiempo Muerto pendiente (${s.lastDowntime.opcion}). Enviá el MISMO para cerrarlo.`);
     return;
+  }
+  // Matrices que sacan mas de una pieza por golpe: se confirma en voz alta la cuenta,
+  // porque si el operario tipea unidades en vez de golpes la produccion se duplica.
+  if (selected.code === "C" && pideGolpes()) {
+    const nMat = String(s.lastMatrix?.texto || "").trim();
+    const f = uniXGolpe(nMat);
+    const g = Number(texto) || 0;
+    if (f > 1 && !confirm(`Matriz ${nMat}: ${g} GOLPES x ${f} = ${g * f} unidades.\n\n¿Los ${g} son golpes del contador (no unidades)?`)) return;
   }
 
   // Rollo elegido en E (cualquier operario)

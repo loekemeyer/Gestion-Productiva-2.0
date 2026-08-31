@@ -7,7 +7,7 @@
 <link rel="icon" type="image/png" href="../../GP2_favicon.png">
 <link rel="apple-touch-icon" href="../../GP2_favicon.png">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="../../supabase-config.js?v=20260831b"></script>
+<script src="../../supabase-config.js?v=20260831c"></script>
 <style>
   *{box-sizing:border-box;margin:0;padding:0}
   body{font-family:Arial,sans-serif;background:#f5f6f8;padding:12px;color:#111}
@@ -79,7 +79,8 @@
       <div id="flow" class="flow"></div>
       <div id="salidaWrap"></div>
       <div class="row" style="align-items:flex-end">
-        <div class="fld grow"><span>Unidades producidas</span><input inputmode="numeric" type="number" id="fUni" min="1" step="1" placeholder="0"></div>
+        <div class="fld grow"><span>Golpes del contador</span><input inputmode="numeric" type="number" id="fGolpes" min="1" step="1" placeholder="0" oninput="pintarUni()"></div>
+        <div class="fld grow"><span>Unidades producidas</span><input inputmode="numeric" type="number" id="fUni" min="1" step="1" placeholder="0" readonly style="background:#f1f5f9;font-weight:900"></div>
         <button class="btn btn-primary" id="btnGuardar" onclick="guardar()">Guardar producción</button>
       </div>
       <div class="msg" id="msg"></div>
@@ -100,6 +101,14 @@ function hoy(){const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()
 function esc(s){return (s==null?'':String(s)).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
 function norm(s){return String(s||"").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"");}
 function cById(cid){return (D&&D.comp[String(cid)])||{cod:'?',d:''};}
+/* El contador de la matriz cuenta GOLPES; cuantas piezas salen por golpe lo dice la
+   base (GP2.matriz.uni_x_golpe), no el operario. Asi el dia que cambia la matriz se
+   toca un solo numero y nadie tiene que recordar el factor. */
+function uniXGolpe(){var v=Number((D&&D.mat[matSel]||{}).uxg);return v>0?v:1;}
+function pintarUni(){
+  var g=Number($('fGolpes').value)||0;
+  $('fUni').value = g>0 ? g*uniXGolpe() : '';
+}
 function paresMatriz(mid){var set={};for(var rid in D.rp)D.rp[rid].forEach(p=>{if(p.tipo==='matriz'&&p.mat==mid&&p.ce&&p.cs)set[p.ce+'>'+p.cs]=[p.ce,p.cs];});return Object.values(set);}
 
 function renderMats(){
@@ -133,6 +142,10 @@ function selMat(k){
     h+='</select>'; sw.innerHTML=h;
   }
   if(mat.ppk) flow.innerHTML+='<br><span class="hint">Rendimiento: '+mat.ppk+' uni/kg de fleje (primer corte).</span>';
+  var uxg=uniXGolpe();
+  flow.innerHTML+='<br><span class="hint">'+(mat.maq?esc(mat.maq).toUpperCase()+' · ':'')+
+    (uxg===1?'1 golpe = 1 unidad.':'cada golpe saca <b>'+uxg+'</b> unidades.')+'</span>';
+  $('fGolpes').value=''; pintarUni();
   $('panel').style.display=''; $('msg').textContent=''; $('msg').className='msg';
 }
 
@@ -144,21 +157,23 @@ async function cargarMatrices(){
   renderMats();
 }
 async function cargarUltimos(){
-  var res=await SB.from('produccion').select('fecha,legajo,nombre_empleado,matriz_raw,nombre_matriz,uni').order('id',{ascending:false}).limit(30);
+  var res=await SB.from('produccion').select('fecha,legajo,nombre_empleado,matriz_raw,nombre_matriz,uni,golpes').order('id',{ascending:false}).limit(30);
   var t=$('tabla');
   if(res.error){t.innerHTML='<p class="empty">Error cargando</p>';return;}
   var data=res.data||[];
   if(!data.length){t.innerHTML='<p class="empty">Sin registros todavía</p>';return;}
-  t.innerHTML='<table class="rec"><thead><tr><th>Fecha</th><th>Legajo</th><th>Nombre</th><th>Matriz</th><th class="n">Uni</th></tr></thead><tbody>'+
+  t.innerHTML='<table class="rec"><thead><tr><th>Fecha</th><th>Legajo</th><th>Nombre</th><th>Matriz</th><th class="n">Golpes</th><th class="n">Uni</th></tr></thead><tbody>'+
     data.map(r=>{var f=r.fecha?new Date(r.fecha).toLocaleDateString('es-AR'):'';
-      return '<tr><td>'+f+'</td><td>'+esc(r.legajo||'')+'</td><td>'+esc(r.nombre_empleado||'')+'</td><td>'+esc(r.matriz_raw||'')+' · '+esc(r.nombre_matriz||'')+'</td><td class="n">'+(r.uni==null?'':r.uni)+'</td></tr>';}).join('')+
+      return '<tr><td>'+f+'</td><td>'+esc(r.legajo||'')+'</td><td>'+esc(r.nombre_empleado||'')+'</td><td>'+esc(r.matriz_raw||'')+' · '+esc(r.nombre_matriz||'')+'</td><td class="n">'+(r.golpes==null?'—':r.golpes)+'</td><td class="n">'+(r.uni==null?'':r.uni)+'</td></tr>';}).join('')+
     '</tbody></table>';
 }
 async function guardar(){
   var m=$('msg'); m.className='msg'; m.textContent='';
-  var uni=parseFloat($('fUni').value);
+  var golpes=parseFloat($('fGolpes').value);
   if(!matSel){m.className='msg err';m.textContent='Elegí una matriz.';return;}
-  if(!uni||uni<=0){m.className='msg err';m.textContent='Ingresá unidades (> 0).';return;}
+  if(!golpes||golpes<=0){m.className='msg err';m.textContent='Ingresá los golpes del contador (> 0).';return;}
+  var uxg=uniXGolpe(), uni=golpes*uxg;
+  if(uxg>1 && !confirm('Matriz '+((D.mat[matSel]||{}).n)+': '+golpes+' GOLPES x '+uxg+' = '+uni+' unidades.\n\n¿Los '+golpes+' son golpes del contador (no unidades)?')) return;
   var matN=(D.mat[matSel]||{}).n;
   var salEl=$('fSalida'); var salida=salEl?(salEl.value||null):null;
   var pares=paresMatriz(parseInt(matSel));
@@ -167,12 +182,12 @@ async function guardar(){
   try{
     var fiso=$('fFecha').value?($('fFecha').value+'T12:00:00'):null;
     var res=await SB.rpc('registrar_produccion',{p_legajo:$('fLegajo').value||null,p_matriz:String(matN),
-      p_uni:uni,p_fecha:fiso,p_nombre:$('fNombre').value||null,p_comp_salida_id:salida?Number(salida):null});
+      p_golpes:golpes,p_fecha:fiso,p_nombre:$('fNombre').value||null,p_comp_salida_id:salida?Number(salida):null});
     if(res.error) throw res.error;
     var d=res.data||{};
     if(d.aviso){ m.className='msg warn'; m.textContent='✓ Registrado (id '+d.id+'). '+d.aviso; }
-    else { m.className='msg ok'; m.textContent='✓ Guardado (id '+d.id+') — '+(d.nombre_matriz||matN)+' · '+uni+' uni. Stock actualizado (mov '+d.movimiento_id+').'; }
-    $('fUni').value='';
+    else { m.className='msg ok'; m.textContent='✓ Guardado (id '+d.id+') — '+(d.nombre_matriz||matN)+' · '+golpes+' golpes x '+uxg+' = '+(d.uni||uni)+' uni. Stock actualizado (mov '+d.movimiento_id+').'; }
+    $('fGolpes').value=''; $('fUni').value='';
     await cargarUltimos();
   }catch(e){ m.className='msg err'; m.textContent='Error: '+(e.message||e); }
   finally{ $('btnGuardar').disabled=false; }

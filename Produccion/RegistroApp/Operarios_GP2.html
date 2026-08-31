@@ -68,6 +68,9 @@
     .selected-desc { font-size: 15px; color: #475569; font-weight: 600; }
     #inputArea { margin-bottom: 10px; }
     .label { font-size: 14px; font-weight: 600; color: #64748b; margin-bottom: 6px; }
+    .golpe-hint { margin-top: 8px; padding: 10px 12px; border-radius: 8px; background: #eff6ff;
+                  border: 2px solid #bfdbfe; color: #1e3a8a; font-size: 19px; font-weight: 800; line-height: 1.3; }
+    .golpe-hint.x1 { background: #f8fafc; border-color: #e2e8f0; color: #475569; font-weight: 700; }
     .text-input { width: 100%; font-size: 26px; padding: 10px 14px; border: 2px solid #cbd5e1; border-radius: 10px; text-align: center; }
     #matrizInfo { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px 14px; font-size: 14px; color: #334155; margin-bottom: 10px; }
     /* Listado de matrices (E / CM) */
@@ -128,7 +131,7 @@
 </head>
 <body>
 
-<div id="syncBadge" title="Tocar para forzar envio">GP2 v1.6.1 &#10003;</div>
+<div id="syncBadge" title="Tocar para forzar envio">GP2 v1.7.0 &#10003;</div>
 
 <!-- LEGAJO -->
 <div id="legajoScreen">
@@ -171,6 +174,8 @@
     <div id="inputArea" class="hidden">
       <div id="inputLabel" class="label"></div>
       <input id="textInput" class="text-input" type="text" autocomplete="off" inputmode="numeric" />
+      <!-- Cajon: el operario anota GOLPES del contador y aca ve las unidades que salen -->
+      <div id="golpeHint" class="golpe-hint hidden"></div>
     </div>
 
     <!-- Listado completo de matrices (visible en E y CM) -->
@@ -248,7 +253,7 @@
   </div>
 </div>
 
-<script src="../../supabase-config.js?v=20260831b"></script>
-<script src="operarios_gp2.js?v=1.6.1"></script>
+<script src="../../supabase-config.js?v=20260831c"></script>
+<script src="operarios_gp2.js?v=1.7.0"></script>
 </body>
 </html>

@@ -730,7 +730,7 @@ me dijeron yo entiendo que es por el GOLPE, no por la unidad."*
 | Concepto | Qué es | Dónde vive |
 |---|---|---|
 | **segundos por golpe** | lo que tarda la máquina en dar un golpe | **no está en la base** — es lo que dicen los operarios ("un segundo y pico") |
-| **unidades por golpe** | cuántas piezas salen de ese golpe (1, 2, 4…) | `matriz.uni_x_golpe` — **VACÍO en las dos casas** |
+| **unidades por golpe** | cuántas piezas salen de ese golpe (1, 2, 4…) | `matriz.uni_x_golpe` — **cargado el 2026-08-31** (abajo) |
 | **segundos por unidad** | `seg_x_golpe ÷ uni_x_golpe` | `matriz.tiempo_historico` ← **es lo que usa el costo** |
 
 **La trampa**: `tiempo_historico` está verificado como **segundos por UNIDAD** (§2c: en el
@@ -739,22 +739,79 @@ tiempo **por golpe** de una matriz que saca 2 piezas por golpe, **el costo de ma
 de esa pieza sale al doble** y nada avisa. Es el mismo tipo de error que la 501 (un número
 correcto en la unidad equivocada).
 
-`[dato 2026-08-31]` **`uni_x_golpe` nunca se cargó**: en GP2 hay 113 matrices en 0 y 2 en
-null; en el vecino (`public."Matrices".Uni_X_Golpe`) 373 en 0 y 38 en null. **El usuario va
-a pasar un archivo con la hoja de consumo que dice cuántas unidades caen por golpe.** Hasta
-que llegue, no se puede convertir ningún tiempo de golpe a unidad.
+`[dato 2026-08-31]` **`uni_x_golpe` YA ESTÁ CARGADO** (antes estaba vacío: 113 matrices en
+0 y 2 en null; en el vecino sigue vacío, 373 en 0 + 38 en null). Salió del archivo que pasó
+el usuario, `Conteo_Gral_FLEJES_y_Alambre.xls`, hoja **"Consumo KG x Art"**, columna
+**"Uni x Golpe"** (col. 14). El dato del Excel viene por *(fleje, pieza)* y se ancló a la
+**matriz que corta ese fleje**, que es donde está el contador. Quedaron **17 matrices con
+factor > 1** y 98 en 1:
 
-**Caso abierto — matriz 348** (Corte Cuch Untar Mgo Madera, alimentador): al usuario le
-dijeron que tarda **"un segundo y pico"**, pero eso es **por golpe**. No se carga hasta
-saber cuántas unidades salen por golpe. Hoy su tiempo está en 0 y nunca registró producción.
+| Factor | Matrices |
+|---|---|
+| **4** | m16 Corte Arandela manguito (fleje 38 / D4) |
+| **3** | m71 Arandela Grande Afila (10 / F2) · m344 Arandela Base (74 / F10) · mS/N Arandela Cuchillitos (38 / D5) |
+| **5** | m72 Arandela Chica Afila (10-11 / F2) — **el único dudoso**, el Excel dice 5 en la hoja principal y 3 en el bloque de kits del final |
+| **2** | m7 Cuchilla Abrelatas (2/C7) · m20 Engranaje Gr (3/B8) · m21 Buje 501 (4/C9) · m22 Arandela fina 501 (5/D6) · m15 Arandela fina 502 (5/D6) · m14 Engranaje chico (8/A10) · m40 Sacatapita (25/C1) · m60 Pinza Fideos (39/A4) · **m348 Corte Cuch Untar Mgo Madera (41/B2)** · m66 Pinza Ensalada (45/F5) · m29 Corte Uña (57/B4) · m116 Corte de Aleta (92/C2) |
 
-**Duda abierta `[usuario, va a confirmarlo en planta]`**: cuando los operarios registran,
-¿cargan **golpes** o **unidades**? *"Ahí tenemos una duplicación de unidades en todos lados
-que nos va a confundir si es que lo hacen mal."* `[dato]` La app de GP2 pide textualmente
-**"Unidades producidas"** (`Produccion/RegistroApp/Registro_GP2.html:82`), así que la
-intención del sistema es unidades — pero si en la práctica el operario cuenta golpes en una
-matriz que saca 2, **la producción registrada es la mitad de la real** y el premio y el
-rendimiento salen mal. Confirmar en planta antes de tocar nada.
+**Cómo leer la columna sin equivocarse**: la hoja tiene DOS columnas parecidas, *"Uni x Art
+Term"* (col. 13, cuántas piezas lleva el artículo) y *"Uni x Golpe"* (col. 14). Coinciden en
+215 filas y difieren en 85 — no son la misma cosa. Ejemplo que lo separa: *Hoja C Untar Mgo
+Plast* (F10) lleva **2 por artículo** (blíster de 2) pero sale **1 por golpe**; *Hojita Cuch
+Mad* (B2) lleva 2 y también sale 2 por golpe. El bloque final de la hoja (filas de kits, sin
+sector) tiene la col. 13 pisada con el valor de golpe — **no usar ese bloque**.
+
+**Caso 348 RESUELTO**: saca **2 unidades por golpe**. Entonces el *"segundo y pico"* que le
+dijeron al usuario es **por golpe** → **≈ 0,6–0,75 s por unidad**, que es lo que va en
+`tiempo_historico`. Sigue sin cargarse hasta que el usuario confirme el número exacto, pero
+ahora ya se sabe por cuánto hay que dividir.
+
+**No se cargó `m62`/`m64`** (Corte Pinza Fiambre Derecha / Izquierda): el Excel marca 2 uni
+x golpe para "Pinza De Fiambres", pero hay **dos matrices, una por lado**, así que lo más
+probable es que cada una dé 1 por golpe y ese 2 sea el "uni x artículo terminado" (la pinza
+lleva las dos punteras). Quedaron en 1 hasta que el usuario lo mire en planta. Comparar con
+la pinza de fideos, que tiene **una sola** matriz de corte (m60) y de ahí salen las dos
+punteras: esa sí va en 2.
+
+### La app YA pide GOLPES (2026-08-31)
+
+`[usuario 2026-08-31]` Dicho textual: *"Yo quiero que ellos anoten golpes, que es lo que
+dice el contador que tienen en la matriz que está puesta, o en el alimentador o en el
+balancín. Entonces, en función de la cantidad de golpes que ellos hagan para calcular las
+unidades que fabricaron, se multiplica automáticamente con un factor que vos tengas
+normalizado dentro de tu base."*
+
+Es la **regla de oro** aplicada a la producción: el operario anota el dato **crudo** que ve
+(golpes del contador) y el factor vive **en la base, en un solo lugar**. El día que se
+cambia una matriz se toca `matriz.uni_x_golpe` y no hay que reeducar a nadie ni corregir
+registros viejos.
+
+- **App de operarios** (`Operarios_GP2.html`): el botón **C (Cajón)** ahora dice *"Ingresa
+  los GOLPES del contador"* y debajo del campo se ve en vivo *"Matriz 348: cada golpe saca 2
+  unidades. 240 golpes = 480 unidades."* En las matrices de factor > 1 pide **confirmación**
+  antes de mandar (es donde vive el riesgo de que tipeen unidades por costumbre).
+- **Registro Producción** (`Registro_GP2.html`): campo **Golpes del contador** + campo
+  **Unidades producidas** de sólo lectura que se calcula solo.
+- **BD**: `registrar_evento_prod` y `registrar_produccion` aceptan `golpes` y hacen
+  `uni = golpes × matriz.uni_x_golpe`. `produccion` guarda **las tres cosas**: `golpes` tal
+  como los tipeó el operario, `uni_x_golpe` (**foto del factor** al momento del registro, así
+  cambiar el factor mañana no mueve la producción vieja) y `uni`. Si el payload NO trae
+  `golpes` (app vieja en un celular sin actualizar), se comporta **exactamente como antes**.
+- **Interruptor**: `GP2.parametro.registro_en_golpes` ('1' pide golpes, '0' vuelve a
+  unidades directas). Está por la duda de planta de abajo — se cambia una fila y la app
+  entera vuelve atrás sin tocar código.
+
+**Por qué esto además ARREGLA el premio**: `tiempo_toma = segundos ÷ unidades` y
+`tiempo_historico` es por unidad. Si el operario contaba golpes en una matriz de 2, las
+unidades registradas eran la mitad, el `tiempo_toma` el doble y el premio salía mal **en
+contra del operario**. Verificado con rollback: 240 golpes en la 348 con 300 s dan 480 uni y
+`tiempo_toma` 0,625 s/uni (no 1,25). `[dato]` `GP2.produccion` está **vacía** (0 filas), así
+que no hay historia que migrar.
+
+**Duda abierta `[usuario, va a confirmarlo en planta]`**: si hoy los operarios cuentan
+golpes o unidades. *"Ahí tenemos una duplicación de unidades en todos lados que nos va a
+confundir si es que lo hacen mal."* La app ya está del lado de los golpes y el aviso en
+pantalla dice la cuenta en voz alta; si en planta resulta que cuentan unidades, se apaga con
+el interruptor.
 
 ## 2e. Faltantes y máximos de Crudo/Procesado: 5 cajones por ubicación (2026-08-31)
 

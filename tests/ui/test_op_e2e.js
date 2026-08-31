@@ -7,7 +7,10 @@ const EXE = process.env.CHROMIUM_PATH || (fs.existsSync('/opt/pw-browsers/chromi
 
 const BUNDLE = {
   empleados: { '19': { nombre: 'Eduardo B', activo: true, hora_entrada: '08:00' } },
-  matrices: [ { n: '28', d: 'Pinza Grande', ppk: 30 } ],
+  registro_en_golpes: true,
+  // 28 saca 1 pieza por golpe (el caso normal), 348 saca 2 (Corte Cuch Untar Mgo Madera)
+  matrices: [ { n: '28', d: 'Pinza Grande', ppk: 30, uxg: 1, maq: 'alimentador' },
+              { n: '348', d: 'Corte Cuch Untar Mgo Madera', ppk: 84, uxg: 2, maq: 'alimentador' } ],
   matriz_fleje: { '28': { comp_id: 176, codigo: 'A1', descripcion: 'Fleje 13' } },
   matriz_salidas: {},
   rollos_saldo: [ { comp_id: 176, codigo: 'A1', kg_por_rollo: 50, rollos: 3 } ],
@@ -63,17 +66,20 @@ window.supabase = { createClient: function(){ return {
   ok(cs.some(c => c.name === 'tomar_rollo' && c.args.p_comp_id === 176 && c.args.p_kg_por_rollo === 50 && c.args.p_matriz === '28'),
      'tomar_rollo A1 50kg matriz 28');
 
-  // C: 500 unidades (la app vuelve a la pantalla de legajo tras cada envio)
+  // C: 500 GOLPES del contador (la app vuelve a la pantalla de legajo tras cada envio).
+  // La app manda golpes crudos; multiplicar por uni_x_golpe es tarea de la RPC.
   await page.click('#btnContinuar');
   await page.waitForSelector('.box[data-code="C"]');
   await page.click('.box[data-code="C"]');
+  ok((await page.textContent('#inputLabel')).toUpperCase().includes('GOLPES'), 'el cajon pide GOLPES, no unidades');
   await page.fill('#textInput', '500');
   await page.click('#btnEnviar');
   await page.waitForFunction(() => (window.__calls||[]).some(c =>
-    c.name === 'registrar_evento_prod' && c.args.p && c.args.p.uni === 500));
+    c.name === 'registrar_evento_prod' && c.args.p && c.args.p.golpes === 500));
   cs = await calls();
-  const evC = cs.find(c => c.name === 'registrar_evento_prod' && c.args.p.uni === 500);
-  ok(evC.args.p.matriz === '28' && evC.args.p.hora_inicio && evC.args.p.hora_fin, 'cajon 500 con matriz y horas');
+  const evC = cs.find(c => c.name === 'registrar_evento_prod' && c.args.p.golpes === 500);
+  ok(evC.args.p.matriz === '28' && evC.args.p.hora_inicio && evC.args.p.hora_fin, 'cajon 500 golpes con matriz y horas');
+  ok(evC.args.p.uni === undefined, 'no manda uni: el factor lo aplica la base, no la app');
 
   // cartel de rollo: 500/30 = 16,7 kg usados -> quedan ~33,3
   await page.click('#btnContinuar');
@@ -101,6 +107,29 @@ window.supabase = { createClient: function(){ return {
   cs = await calls();
   const evDel = cs.find(c => c.name === 'anular_evento_prod');
   ok(typeof evDel.args.p_id_ejecucion === 'string' && evDel.args.p_id_ejecucion.length > 10, 'baja logica via RPC con id_ejecucion');
+
+  // Matriz que saca 2 piezas por golpe: la app avisa la cuenta y sigue mandando GOLPES
+  await page.click('#btnContinuar');
+  await page.waitForSelector('.box[data-code="E"]');
+  await page.click('.box[data-code="E"]');
+  await page.fill('#textInput', '348');
+  await page.dispatchEvent('#textInput', 'input');
+  await page.click('#btnEnviar');
+  await page.waitForFunction(() => (window.__calls||[]).some(c =>
+    c.name === 'registrar_evento_prod' && c.args.p && c.args.p.matriz === '348'));
+  await page.click('#btnContinuar');
+  await page.waitForSelector('.box[data-code="C"]');
+  await page.click('.box[data-code="C"]');
+  await page.fill('#textInput', '240');
+  await page.dispatchEvent('#textInput', 'input');
+  const hint = await page.textContent('#golpeHint');
+  ok(hint.includes('2') && hint.includes('480'), 'avisa 240 golpes x 2 = 480 unidades — ' + hint.trim());
+  await page.click('#btnEnviar');
+  await page.waitForFunction(() => (window.__calls||[]).some(c =>
+    c.name === 'registrar_evento_prod' && c.args.p && c.args.p.golpes === 240));
+  cs = await calls();
+  const evG = cs.find(c => c.name === 'registrar_evento_prod' && c.args.p.golpes === 240);
+  ok(evG.args.p.matriz === '348' && evG.args.p.uni === undefined, 'matriz de 2 por golpe: manda 240 golpes, no 480 uni');
 
   // badge sync sin pendientes
   const badge = await page.textContent('#syncBadge');

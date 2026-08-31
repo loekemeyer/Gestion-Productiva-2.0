@@ -40,5 +40,12 @@ segunda pasada). Las vistas también tienen orden entre sí (`v_consumo_demanda`
 `v_consumo_componente`, y `v_costo_componente` antes que `v_valor_stock` /
 `v_valor_pedido`); el archivo va alfabético, así que si alguna falla, repetir la pasada.
 
+**Puesto al dia el 2026-08-31 (registro por golpes)**: `funciones_GP2.sql` trae las 4 RPCs
+que cambiaron (`registrar_evento_prod`, `registrar_produccion`, `movimientos_bundle`,
+`registro_operarios_bundle`), verificadas md5 byte-exacto contra la base;
+`tablas_GP2.sql` suma `produccion.golpes` / `produccion.uni_x_golpe` y pone `matriz` al dia
+(le faltaban `tiempo_unidad`, `tipo_matriz`, `maquina` y los 3 CHECK — habian quedado fuera
+del export anterior).
+
 **Para regenerar este export**: pedirle a Claude "regenerá db/" — sale de queries a
 `pg_catalog` (ver historial 2026-08-29 y 2026-08-31).

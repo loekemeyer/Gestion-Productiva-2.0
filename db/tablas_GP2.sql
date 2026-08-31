@@ -232,8 +232,14 @@ create table "GP2".matriz (
   partes_por_kilo_de_fleje numeric,
   primera_del_fleje text,
   tiempo_historico numeric,
-  uni_x_golpe numeric,
-  constraint matriz_pkey PRIMARY KEY (id)
+  uni_x_golpe numeric not null default 1,
+  tiempo_unidad text not null default 'uni'::text,
+  tipo_matriz text,
+  maquina text,
+  constraint matriz_pkey PRIMARY KEY (id),
+  constraint matriz_maquina_chk CHECK (((maquina IS NULL) OR (maquina = ANY (ARRAY['alimentador'::text, 'balancin'::text, 'piedra'::text])))),
+  constraint matriz_tiempo_unidad_chk CHECK ((tiempo_unidad = ANY (ARRAY['uni'::text, 'kg'::text]))),
+  constraint matriz_uni_x_golpe_positivo CHECK ((uni_x_golpe > (0)::numeric))
 );
 
 -- ---------- movimiento ----------
@@ -428,6 +434,8 @@ create table "GP2".produccion (
   fecha_fin timestamp with time zone,
   origen_created_at timestamp with time zone,
   espejado_en timestamp with time zone default now(),
+  golpes numeric,
+  uni_x_golpe numeric,
   constraint produccion_espejo_id_key UNIQUE (espejo_id),
   constraint produccion_pkey PRIMARY KEY (id),
   constraint produccion_matriz_id_fkey FOREIGN KEY (matriz_id) REFERENCES "GP2".matriz(id)
