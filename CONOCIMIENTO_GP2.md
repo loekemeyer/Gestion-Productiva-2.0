@@ -548,6 +548,16 @@ costo se CALCULA — nunca se guarda cocinado.** Implementado:
   (la receta tenía ÷25 de la sesión bombillas — corregida a ×1, pendiente #2 del
   handoff saldado). El 516 va SUELTO (ni bolsa ni cartón, solo caja) → discontinuo.
 - **CERRADO 85/85**: 81 con precio real + 4 discontinuados (574, 119, Skin 506, 516).
+- **POR CATEGORÍA, no por precio suelto** `[usuario, cierre del día]`: los formatos
+  viven en la tabla maestra `GP2.carton_formato` y cada cartón apunta con
+  `componente.carton_formato`: **C** = 12/pliego $89 · **Loke** = 16/pliego $66,75
+  (aunque lo use Chef) · **Huevo** = 25/pliego $42,72 · **8** = 30/pliego $35,60.
+  Sube el pliego → se recalculan las 4 tarifas y listo. Asignados: C×29, Loke×28,
+  Huevo×10, 8×3. Sin formato quedaron 15: los pelapapas $79 (¿categoría propia o
+  es C con tirada de 30.000?), las bolsas ($63) y los pliegos skin ($147,97) —
+  preguntar. OJO: `codigo_multiplo`/`min_codigo_x_multiplo` de la tabla maestra se
+  cargaron con el pedido mínimo (12.000/16.000/25.000/30.000) y 1 — semántica a
+  confirmar, la puso esta sesión `[deducido]`.
 
 ### Placeholders que quedan (17 vivos, listados — no inventar)
 
