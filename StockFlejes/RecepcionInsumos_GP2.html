@@ -246,6 +246,11 @@ input[type="text"]{width:200px}
         <button class="btn btn-secondary" id="btnVolver1">← Volver</button>
         <div id="step2Title" style="font-size:22px;font-weight:900;color:#0b3b73"></div>
       </div>
+      <!-- Marca (solo Cartones): LOEKE / CHEF -->
+      <div id="marcaWrap" class="hidden" style="margin:8px 0">
+        <div style="font-weight:800;color:#475569;font-size:14px;text-transform:uppercase;letter-spacing:.4px;margin-bottom:6px">Marca</div>
+        <div class="provs-grid" id="marcaChips" style="display:flex;flex-wrap:wrap;gap:8px"></div>
+      </div>
       <!-- Remito en curso: los items anotados esperan el pesaje de TODO el remito -->
       <div id="remitoBar" class="remito-bar hidden"></div>
       <div class="search-box">
@@ -318,7 +323,7 @@ const RUBRO_UM={Flejes:"kg",Remaches:"kg",Cajas:"uni",Plasticos:"uni",Cartones:"
 
 let INS=[], UMBY={}, KGXUNI={}, PROVFLAGS={}, RECS=[], PALL=[], ROLL=[], TARA={tara_pallet_min:4,tara_pallet_max:8};
 let REMITO=[];    // items anotados del remito en curso, esperando el pesaje: {recId,codigo,desc,cant,unidad,rollos,pallets}
-let rubroSel="", sidSel=0, provSel="", provsRubro=[];
+let rubroSel="", sidSel=0, provSel="", provsRubro=[], marcaSel="";
 // modo de control del proveedor (parametrizado en proveedor_insumo.modo_control):
 //   rollos_remito: remito con rollos+pallets (Basconia, Aperam)
 //   pesaje:        remito solo kg, mismo pesaje por pallet (resto de flejeros)
@@ -376,6 +381,11 @@ function insumosDelRubro(){ return INS.filter(i=>i.sector_id===sidSel); }
 function insumosVista(){
   var l=insumosDelRubro();
   if(provSel) l=l.filter(i=>i.proveedor===provSel);
+  if (rubroSel==='Cartones') {
+    if (marcaSel==='_sin') l=l.filter(i=>!i.marca);
+    else if (marcaSel) l=l.filter(i=>i.marca===marcaSel);
+    else l=[]; // esperando eleccion de marca
+  }
   return l;
 }
 function irStep2(){
@@ -383,7 +393,36 @@ function irStep2(){
   $('step2').classList.remove('hidden');
   $('step2Title').textContent=rubroSel+(provSel?(' · '+provSel):'');
   $('searchInput').value='';
-  pintarItems(insumosVista());
+  // Cartones: pedir marca (LOEKE/CHEF) antes de mostrar los items
+  if (rubroSel==='Cartones') {
+    marcaSel=''; pintarMarcaChips(); $('marcaWrap').classList.remove('hidden');
+    $('itemsGrid').innerHTML=''; $('itemsEmpty').classList.add('hidden');
+  } else {
+    marcaSel=''; $('marcaWrap').classList.add('hidden');
+    pintarItems(insumosVista());
+  }
+}
+function pintarMarcaChips(){
+  var mg=$('marcaChips'); mg.innerHTML='';
+  var base=insumosDelRubro().filter(i=>!provSel||i.proveedor===provSel);
+  var loeke=base.filter(i=>i.marca==='LOEKE').length;
+  var chef =base.filter(i=>i.marca==='CHEF').length;
+  var sin  =base.filter(i=>!i.marca).length;
+  function chip(val,label,n){
+    var b=document.createElement('button'); b.className='prov-btn'; b.type='button';
+    b.innerHTML=label+' <span style="opacity:.6;font-weight:600">('+n+')</span>';
+    if(marcaSel===val) b.classList.add('active');
+    b.addEventListener('click',function(){
+      marcaSel=val;
+      mg.querySelectorAll('.prov-btn').forEach(function(x){x.classList.remove('active');});
+      b.classList.add('active');
+      pintarItems(insumosVista());
+    });
+    mg.appendChild(b);
+  }
+  chip('LOEKE','LOEKE',loeke);
+  chip('CHEF','CHEF',chef);
+  if (sin>0) chip('_sin','Sin marca',sin);
 }
 $('btnVolver1').addEventListener('click',()=>{
   $('step2').classList.add('hidden');
@@ -456,6 +495,11 @@ function abrirPopup(i){
     $('unitRow').classList.add('hidden');
     $('kgValue').placeholder='paquetes de '+PAQ();
     updateConv();
+  } else if (esFleje(i)) {
+    // Flejes: siempre KG (nadie compra flejes en unidades). El toggle sale.
+    $('unitRow').classList.add('hidden');
+    $('kgValue').placeholder='kg';
+    setUnit('kg');
   } else {
     $('unitRow').classList.remove('hidden');
     $('kgValue').placeholder='';
