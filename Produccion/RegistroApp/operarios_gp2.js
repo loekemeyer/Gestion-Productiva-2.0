@@ -8,7 +8,7 @@
    ============================================================ */
 
 const LEGAJO_EDUARDO = "19";
-const APP_VERSION = "1.8.0"; // bumpear en cada actualizacion (junto con el ?v= del HTML y el MI_V del chequeo de cache)
+const APP_VERSION = "1.9.0"; // bumpear en cada actualizacion (junto con el ?v= del HTML y el MI_V del chequeo de cache)
 
 const SB = supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
   db: { schema: "GP2" },
@@ -22,7 +22,8 @@ const SB = supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
    empleados    { legajo -> {nombre, activo, hora_entrada} }
    matrices     [ {n, d, ppk, uxg, maq, act} ]   uxg = unidades por golpe, act = activa
    registro_en_golpes  true = el cajon se cierra anotando GOLPES del contador
-   matriz_fleje { n_matriz -> {comp_id, codigo, descripcion} }
+   matriz_fleje { n_matriz -> {comp_id, codigo, descripcion} }          (fallback)
+   matriz_fleje_pieza { n_matriz -> { comp_salida_id -> {comp_id, codigo, descripcion} } }
    rollos_saldo [ {comp_id, codigo, kg_por_rollo, rollos} ]              */
 let D = {};
 
@@ -32,7 +33,7 @@ async function cargarBundle() {
     if (error) throw error;
     D = data || {};
     D.matricesMap = new Map((D.matrices || []).map(m => [String(m.n || "").trim(), m]));
-    if (selected && ["E", "CM"].includes(selected.code)) renderMatrizPicker($("matrizSearch").value);
+    if (selected && ["E", "CM"].includes(selected.code)) renderMatrizPicker();
   } catch (e) {
     // Sin bundle la app rechaza todo legajo/matriz: reintentar solo hasta que cargue
     console.error("Bundle error:", e);
@@ -354,10 +355,37 @@ function maybeSendLateArrival(legajo) {
 /* ============================================================
    ROLLOS (Eduardo)
    ============================================================ */
-function rollosParaMatriz(n_matriz) {
-  const fleje = (D.matriz_fleje || {})[String(n_matriz).trim()];
+/* El fleje NO depende solo de la matriz: hay matrices que cortan de dos flejes distintos
+   segun la pieza. La 28 saca A15 del Fleje N° 94 (inox) y J2/J5 del Fleje N° 13; la 37
+   igual con F3/F3A. Antes se devolvia UN fleje por matriz y el operario que elegia A15
+   terminaba agarrando un rollo del otro fleje -> el stock se descontaba del equivocado.
+   [usuario 2026-08-31] */
+function flejeParaMatriz(n_matriz, comp_salida_id) {
+  const n = String(n_matriz || "").trim();
+  const porPieza = (D.matriz_fleje_pieza || {})[n];
+  if (porPieza && comp_salida_id != null) {
+    const f = porPieza[String(comp_salida_id)];
+    if (f?.comp_id) return f;
+  }
+  return (D.matriz_fleje || {})[n] || null;   // matriz de un solo fleje, o bundle viejo
+}
+/* Cuantos flejes DISTINTOS corta la matriz: con mas de uno, sin pieza elegida no se
+   puede saber que rollo ofrecer. */
+function flejesDeMatriz(n_matriz) {
+  const porPieza = (D.matriz_fleje_pieza || {})[String(n_matriz || "").trim()] || {};
+  return new Set(Object.values(porPieza).map(f => f && f.comp_id).filter(Boolean)).size;
+}
+function rollosParaMatriz(n_matriz, comp_salida_id) {
+  const fleje = flejeParaMatriz(n_matriz, comp_salida_id);
   if (!fleje?.comp_id) return [];
   return (D.rollos_saldo || []).filter(r => r.comp_id === fleje.comp_id && Number(r.rollos) > 0);
+}
+/* Sin pieza elegida en una matriz de dos flejes: se ofrecen los rollos de TODOS sus
+   flejes, con el codigo a la vista, en vez de dejar al operario sin ninguno. */
+function rollosDeTodosLosFlejes(n_matriz) {
+  const porPieza = (D.matriz_fleje_pieza || {})[String(n_matriz || "").trim()] || {};
+  const ids = new Set(Object.values(porPieza).map(f => f && f.comp_id).filter(Boolean));
+  return (D.rollos_saldo || []).filter(r => ids.has(r.comp_id) && Number(r.rollos) > 0);
 }
 
 async function tomarRollo(legajo, comp_id, kg_por_rollo, matriz) {
@@ -485,9 +513,10 @@ function renderMatrizInfo() {
 function renderMatrizPicker(filtro) {
   const grid = $("matrizGrid");
   if (!grid) return;
+  // El campo de arriba ("Ingresa el número") ya filtra por numero Y por nombre, asi que
+  // el buscador de abajo era una segunda caja para lo mismo. Se saco. [usuario 2026-08-31]
   const elegida = String($("textInput").value || "").trim();
-  // Si el buscador esta vacio pero el operario tipeo un numero, filtrar por eso.
-  const q = String(filtro || "").trim().toLowerCase() || elegida.toLowerCase();
+  const q = String(filtro != null ? filtro : elegida).trim().toLowerCase();
   const matrices = (D.matrices || []).filter(m => {
     if (m.act === false) return false;          // matriz dada de baja: no se ofrece
     if (!q) return true;
@@ -549,7 +578,12 @@ function renderPiezaPicker(n) {
     const el = document.createElement("div");
     el.className = "mz" + (piezaSel?.comp_id === sa.comp_id ? " sel" : "");
     el.innerHTML = `<div class="mz-n">${esc(sa.codigo || "")}</div><div class="mz-d">${esc(sa.descripcion || "")}</div>`;
-    el.addEventListener("click", () => { piezaSel = sa; $("error").innerText = ""; renderPiezaPicker(n); });
+    el.addEventListener("click", () => {
+      piezaSel = sa; $("error").innerText = "";
+      renderPiezaPicker(n);
+      // la pieza define el fleje: recien ahora se sabe que rollos ofrecer
+      if (selected?.code === "E") actualizarRolloPicker(n);
+    });
     grid.appendChild(el);
   });
   // Sin pieza elegida no se puede Enviar (el stock no sabria a que componente ir)
@@ -606,7 +640,6 @@ function selectOption(opt) {
   piezaSel = null;
   if (["E", "CM"].includes(opt.code)) {
     matrizPicker.classList.remove("hidden");
-    $("matrizSearch").value = "";
     renderMatrizPicker("");
     renderPiezaPicker("");
   } else {
@@ -621,7 +654,7 @@ function selectOption(opt) {
     rolloPicker.classList.remove("hidden");
     $("rolloSelect").innerHTML = '<option value="">-- Elegir rollo --</option>';
     textInput.oninput = () => {
-      renderMatrizPicker($("matrizSearch").value);
+      renderMatrizPicker();
       renderPiezaPicker(textInput.value.trim());
       actualizarRolloPicker(textInput.value.trim());
     };
@@ -630,7 +663,7 @@ function selectOption(opt) {
     rolloPicker.classList.add("hidden");
     textInput.oninput = opt.code === "CM"
       ? () => {
-          renderMatrizPicker($("matrizSearch").value);
+          renderMatrizPicker();
           renderPiezaPicker(textInput.value.trim());
         }
       : null;
@@ -673,16 +706,30 @@ function selectOption(opt) {
 }
 
 function actualizarRolloPicker(n_matriz) {
-  const rollos = n_matriz ? rollosParaMatriz(n_matriz) : [];
   const sel = $("rolloSelect");
   sel.innerHTML = '<option value="">-- Elegir rollo --</option>';
+  const n = String(n_matriz || "").trim();
+  // Matriz que corta de dos flejes: hasta que no se elija la pieza no se sabe cual va,
+  // y ofrecer el equivocado descuenta stock del fleje que no es. Si la pantalla va a
+  // pedir la pieza (2+ salidas), se espera a que la elija; si no la va a pedir, se
+  // ofrecen los rollos de los dos flejes con el codigo a la vista — nunca ninguno.
+  let rollos;
+  if (n && flejesDeMatriz(n) > 1 && !piezaSel) {
+    if (salidasDeMatriz(n).length >= 2) {
+      sel.innerHTML = '<option value="">Elegí primero qué pieza vas a fabricar</option>';
+      return;
+    }
+    rollos = rollosDeTodosLosFlejes(n);
+  } else {
+    rollos = n ? rollosParaMatriz(n, piezaSel?.comp_id) : [];
+  }
   rollos.forEach(r => {
     const opt = document.createElement("option");
     opt.value = JSON.stringify({ comp_id: r.comp_id, codigo: r.codigo || "", kg_por_rollo: r.kg_por_rollo });
     opt.textContent = `Rollo de ${r.kg_por_rollo} kg — ${r.codigo || "Fleje"} (${r.rollos} disp.)`;
     sel.appendChild(opt);
   });
-  if (!rollos.length && n_matriz && D.matricesMap?.has(n_matriz)) {
+  if (!rollos.length && n && D.matricesMap?.has(n)) {
     sel.innerHTML = '<option value="">Sin rollos disponibles</option>';
   }
 }
@@ -1038,7 +1085,6 @@ document.addEventListener("DOMContentLoaded", () => {
   $("btnBackTop").addEventListener("click", goToLegajo);
   $("btnBackLabel").addEventListener("click", goToLegajo);
   $("btnResetSelection").addEventListener("click", resetSelection);
-  $("matrizSearch").addEventListener("input", e => renderMatrizPicker(e.target.value));
   $("btnEnviar").addEventListener("click", sendFast);
 
   $("syncBadge").addEventListener("click", async () => {

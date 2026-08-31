@@ -3901,6 +3901,25 @@ AS $function$
         join "GP2".componente c on c.id=rp.comp_entrada_id and c.sector_id=5
         order by m.n_matriz, c.id
       ) q),
+    -- El fleje que le toca a CADA pieza de salida. Solo importa donde una matriz corta
+    -- de mas de un fleje, pero se manda siempre: la app prefiere esto cuando hay pieza
+    -- elegida y cae a 'matriz_fleje' si no lo encuentra.
+    'matriz_fleje_pieza', (select coalesce(jsonb_object_agg(t.n_matriz, t.porpieza),'{}'::jsonb)
+      from (
+        select q.n_matriz,
+               jsonb_object_agg(q.comp_salida_id::text, jsonb_build_object(
+                 'comp_id',q.comp_id,'codigo',q.codigo,'descripcion',q.descripcion)) porpieza
+        from (
+          select distinct on (m.n_matriz, rp.comp_salida_id)
+                 m.n_matriz, rp.comp_salida_id, c.id comp_id, c.codigo, c.descripcion
+          from "GP2".matriz m
+          join "GP2".ruta_paso rp on rp.matriz_id=m.id and rp.tipo_paso='matriz'
+               and rp.comp_entrada_id is not null and rp.comp_salida_id is not null
+          join "GP2".componente c on c.id=rp.comp_entrada_id and c.sector_id=5
+          order by m.n_matriz, rp.comp_salida_id, c.id
+        ) q
+        group by q.n_matriz
+      ) t),
     -- Matrices que producen MAS de una pieza: la app pregunta cual se fabrica
     -- y manda comp_salida_id en el evento C para que el stock vaya al lugar correcto.
     'matriz_salidas', (select coalesce(jsonb_object_agg(t.n_matriz, t.salidas),'{}'::jsonb)

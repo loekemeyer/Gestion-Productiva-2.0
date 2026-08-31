@@ -986,6 +986,45 @@ como si fueran partes del abrelatas. Corregido cargando por id.
 usuario dictó el 2026-08-30 para cargar precios, y se rompió igual — vale para TODO, no sólo
 para precios.
 
+## 2c-octies. El rollo depende de la PIEZA, no solo de la matriz (2026-08-31)
+
+`[usuario 2026-08-31, con foto]` *"A15 usa un tipo de rollo (inox) y J2/J5 usa otro"*. Hay
+matrices que **cortan de dos flejes distintos** según qué pieza salga:
+
+| Matriz | Pieza | Fleje |
+|---|---|---|
+| **28** Corte Cuerpo Uña | A15 (Cpo Uña Crom.) | **Fleje N° 94 / F1A** (inox) |
+| | J2 / J5 (Cuerpo Uña p/Pintar) | **Fleje N° 13 / A1** |
+| **37** Corte Cuerpo Sacac. | F3-M37 | Fleje N° 22 / F3 |
+| | F3A-M37 | Fleje N° 93 / F3A |
+
+`[dato]` Barrido de `ruta_paso`: **son exactamente estas 2** las que cortan de más de un
+fleje. Todo el resto es un fleje por matriz.
+
+**El bug**: el bundle devolvía **UN solo fleje por matriz** (`matriz_fleje`,
+`distinct on (n_matriz) order by c.id`), así que para la 28 ganaba siempre A1. El operario
+que elegía A15 tenía que agarrar un rollo A1 igual, y **el descuento de stock salía del
+fleje equivocado** (el común en vez del inox). No era cosmético.
+
+**Arreglo**: `registro_operarios_bundle` agrega `matriz_fleje_pieza`
+(`n_matriz → comp_salida_id → fleje`). La app:
+- con **pieza elegida**, ofrece solo los rollos del fleje de esa pieza;
+- en una matriz de 2 flejes **sin** pieza elegida, si la pantalla va a pedir la pieza
+  (2+ salidas) espera a que la elija; si no la va a pedir, ofrece los rollos de **los dos**
+  flejes con el código a la vista — nunca deja al operario sin ninguno;
+- matriz de un solo fleje: igual que siempre (`matriz_fleje` de fallback).
+
+`matriz_fleje` se mantiene para las matrices de un fleje y como respaldo si un celular corre
+un bundle viejo.
+
+## 2c-nonies. Un solo buscador de matriz (2026-08-31)
+
+`[usuario 2026-08-31, con foto]` *"si puedo escribir arriba y busca, sacá lo de abajo"*. La
+pantalla de operarios tenía **dos cajas de texto** para lo mismo: el campo *"Ingresa el
+número"* (que ya filtra la lista por número **y** por nombre) y un *"Buscar por número o
+nombre…"* debajo. Se sacó el de abajo (`#matrizSearch`); el filtro sale siempre del campo de
+arriba.
+
 ## 2e. Faltantes y máximos de Crudo/Procesado: 5 cajones por ubicación (2026-08-31)
 
 `[usuario 2026-08-30]` **"En crudo y procesado, el stock máximo tendría que ser 5

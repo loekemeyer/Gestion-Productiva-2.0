@@ -13,8 +13,13 @@ const BUNDLE = {
               { n: '348', d: 'Corte Cuch Untar Mgo Madera', ppk: 84, uxg: 2, maq: 'alimentador', act: true },
               { n: '62', d: 'Corte Pinza Fiambre Derecha', ppk: 40, uxg: 1, maq: 'alimentador', act: false } ],
   matriz_fleje: { '28': { comp_id: 176, codigo: 'A1', descripcion: 'Fleje 13' } },
+  // La 28 corta de DOS flejes segun la pieza: A15 sale del 94 (inox), J2 del 13.
+  matriz_fleje_pieza: { '28': {
+    '29': { comp_id: 176, codigo: 'A1',  descripcion: 'Fleje 13' },
+    '86': { comp_id: 217, codigo: 'F1A', descripcion: 'Fleje 94' } } },
   matriz_salidas: {},
-  rollos_saldo: [ { comp_id: 176, codigo: 'A1', kg_por_rollo: 50, rollos: 3 } ],
+  rollos_saldo: [ { comp_id: 176, codigo: 'A1',  kg_por_rollo: 50, rollos: 3 },
+                  { comp_id: 217, codigo: 'F1A', kg_por_rollo: 67, rollos: 2 } ],
   rollos_abiertos: {},
 };
 
@@ -136,15 +141,47 @@ window.supabase = { createClient: function(){ return {
   await page.click('#btnContinuar');
   await page.waitForSelector('.box[data-code="E"]');
   await page.click('.box[data-code="E"]');
-  await page.fill('#matrizSearch', '62');
-  await page.dispatchEvent('#matrizSearch', 'input');
+  // el buscador de abajo se saco (v1.9.0): el campo de arriba filtra numero Y nombre
+  await page.fill('#textInput', '62');
+  await page.dispatchEvent('#textInput', 'input');
   ok(!(await page.textContent('#matrizGrid')).includes('Fiambre'), 'la matriz de baja no se ofrece en la lista');
+  // el campo de arriba tambien filtra por NOMBRE (por eso el buscador de abajo sobraba)
+  await page.fill('#textInput', 'untar');
+  await page.dispatchEvent('#textInput', 'input');
+  const porNombre = await page.textContent('#matrizGrid');
+  ok(porNombre.includes('348') && !porNombre.includes('Pinza Grande'),
+     'escribiendo un NOMBRE arriba se filtra la lista (sin buscador aparte)');
   const antes = (await calls()).length;
   await page.fill('#textInput', '62');
   await page.dispatchEvent('#textInput', 'input');
   await page.click('#btnEnviar');
   ok((await calls()).length === antes, 'la matriz de baja tampoco se acepta tipeada');
   await page.click('#btnResetSelection');
+
+  // EL ROLLO DEPENDE DE LA PIEZA, no solo de la matriz (usuario 2026-08-31: "A15 usa un
+  // tipo de rollo (inox) y J2/J5 usa otro"). Antes se ofrecia siempre el mismo fleje y el
+  // stock se descontaba del equivocado.
+  {
+    const rollosDe = (compSalidaId) => page.evaluate(id => {
+      piezaSel = id === null ? null : { comp_id: id };
+      actualizarRolloPicker('28');
+      return [...document.querySelectorAll('#rolloSelect option')].map(o => o.textContent);
+    }, compSalidaId);
+
+    // sin selector de pieza en pantalla (matriz_salidas vacio en este stub) se ofrecen
+    // los rollos de LOS DOS flejes, con el codigo a la vista: nunca deja sin opciones
+    const sinPieza = (await rollosDe(null)).join(' | ');
+    ok(/A1/.test(sinPieza) && /F1A/.test(sinPieza),
+       'sin pieza elegida ofrece los rollos de los dos flejes — ' + sinPieza);
+
+    const deJ2 = (await rollosDe(29)).join(' | ');
+    ok(/A1/.test(deJ2) && !/F1A/.test(deJ2), 'J2 ofrece SOLO rollos del Fleje 13 — ' + deJ2);
+
+    const deA15 = (await rollosDe(86)).join(' | ');
+    ok(/F1A/.test(deA15) && !/\bA1\b/.test(deA15), 'A15 ofrece SOLO rollos del Fleje 94 (inox) — ' + deA15);
+
+    await page.evaluate(() => { piezaSel = null; });
+  }
 
   // badge sync sin pendientes
   const badge = await page.textContent('#syncBadge');
