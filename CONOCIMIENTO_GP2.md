@@ -644,9 +644,18 @@ en ese archivo):
   los de mango de madera (519 Loeke / 719 Chef) y los de mango plástico (551 / 878). Se
   duplican hoja, arandela y mango; el **cartón y la caja NO**, porque el blister es uno
   solo. Estaba a medias: el 519 tenía dos hojas con un solo mango y el 719 no tenía el ×2
-  en ningún componente. Corregidas las 4 recetas. La verificación cierra sola: la hoja
-  plástica E8 consume 1.990/mes y sus dos mangos (PA4 rojo 1.420 + PA5 Chef 570) suman
-  exactamente eso.
+  en ningún componente. Corregidas las 4 recetas. La verificación cierra sola: E8 consume
+  1.990/mes y sus dos mangos (PA4 rojo 1.420 + PA5 Chef 570) suman exactamente eso.
+  **`[usuario 2026-08-31]` LAS DOS HOJAS SON DE ACERO INOXIDABLE** — lo plástico o de
+  madera es el MANGO, nunca la hoja. Y son piezas distintas de verdad, con **distinto
+  fleje y distinta matriz** `[dato, verificado]`:
+  · **E7** (mango madera, 6,5 g) sale del **Fleje N° 41 / B2** — Aperam inox 430 **1 × 84**
+    US$ 2,26/kg — por la matriz **348 "Corte Cuch Untar Mgo Madera"**.
+  · **E8** (mango plástico, 11,3 g) sale del **Fleje N° 74 / F10** — Aperam inox 430
+    **0,80 × 64** US$ 2,33/kg — pasa por la 347 y después por la **119 "Estampado
+    Cuchillo Untar"** (3,2 s).
+  O sea: misma familia de material (inox 430 de Aperam) pero otra medida de fleje, otro
+  peso y otra matriz. **Nunca llamarle "hoja plástica" a E8.**
 - `[dato 2026-08-31, arreglado]` **El modelo de seguridad quedó parejo**: la única
   escritura anon que quedaba (`GP2.empleado`) pasó por RPC — `empleado_guardar` /
   `empleado_activar`, SECURITY DEFINER, validan legajo único — y `Produccion/abm_GP2.html`
