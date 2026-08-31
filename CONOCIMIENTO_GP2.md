@@ -492,6 +492,27 @@ cartones), ni rutas. La cadena real, dicha por el usuario:
 - Al construirla, respetar el orden de normalización del CLAUDE.md y modelar el doble
   origen fabricado/comprado (primer caso de artículo con dos fuentes en GP2).
 
+## 2g. Corta Queso 546 — construido (2026-08-31)
+
+`[usuario 2026-08-31]` Lo hace **Lucho** (tallerista id 5). Se le manda: el **bastidor
+importado C13** (posición en Sector Procesado; **ya trae el cilindro** — dicho: *"el
+cilindro ya no se usa más"*, PB1 quedó `estado_compra='discontinuo'`), el **mango PC10**
+y el **capuchón PA18** (elegidos por el usuario entre los Pat Bet Plast), más cartón
+CCC4 y Caja N°1 (12 por caja, dato del vecino). Entrega el 546 terminado en Virgilio.
+**OJO: NO es como el 119/574** (dicho textual: "119 y 809 NO SON COMO 546") — esos
+llevan mango de alambre propio hecho de fleje; el 546 es todo comprado + armado.
+Migración `articulo_546_corta_queso`: componentes, inventario, receta, 5 rutas
+(patrón "Insumo X -> Art"), precios placeholder. Verificado: consumo fluye exacto
+(C13 y CCC4 = 5.655/mes, sin duplicar).
+**Pendiente a preguntar**: la receta y ruta del 119 todavía listan el PB1 discontinuado
+— ¿se lo saco al 119 también?
+
+**Regla nueva del motor de costos** `[dato]` (migración
+`costo_componente_comprado_fuera_de_sector_insumo`): también es "comprado" el
+componente que tiene precio cargado y NUNCA es salida de un paso productivo — su costo
+es su precio, viva en el sector que viva (el caso C13: comprado pero con posición en SP;
+antes daba costo $0).
+
 ## 3. Reglas del negocio ya incorporadas
 
 - **Algunos talleristas pueden entregar partes EN CERVANTES** (además de Virgilio):
