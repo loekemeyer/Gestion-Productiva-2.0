@@ -158,30 +158,22 @@ const STUB = 'window.__rpc=[];window.supabase={createClient:function(){return{rp
   // ── sin scroll horizontal y botones tocables en celular ──
   const mob = await page.evaluate(() => ({
     horizontal: document.documentElement.scrollWidth > window.innerWidth,
-    hBtn: Math.min(...[...document.querySelectorAll('.art-section.open .btn-conf')].map(b => b.getBoundingClientRect().height)),
+    nBtnConf: document.querySelectorAll('.art-section.open .btn-conf').length,
   }));
   ok(!mob.horizontal, 'celular 390px: sin scroll horizontal');
-  ok(mob.hBtn >= 44, 'celular: botones de confirmar tocables (' + Math.round(mob.hBtn) + 'px, minimo 44)');
+  ok(mob.nBtnConf === 0, 'ya no hay botones Confirmar/Revisar/Reportar en la ruta (pedido usuario 2026-08-31)');
 
-  // ── confirmar dispara la RPC correcta con la MISMA firma de siempre ──
-  await page.fill('#inpUsuario', 'tester');
-  await page.click('.art-section.open .btn-conf.ok');
-  await page.waitForFunction(() => window.__rpc.some(c => c.n === 'ruta_confirmar'));
-  const call = await page.evaluate(() => window.__rpc.find(c => c.n === 'ruta_confirmar'));
-  ok(call.a.p_firma === FIRMA_101, 'ruta_confirmar con la firma de deduplicacion (' + call.a.p_firma + ')');
-  ok(call.a.p_articulo === '101' && call.a.p_fleje === 'F1' && call.a.p_usuario === 'tester', 'ruta_confirmar con articulo, fleje y usuario');
-  await page.waitForFunction(() => document.getElementById('kpiSinConf').textContent.trim() === '0');
-  ok(true, 'el resumen global baja a 0 rutas sin confirmar');
-  ok(/Confirmada/.test(await page.locator('.art-section.open').innerText()), 'la ruta queda marcada Confirmada');
-
-  // ── reportar problema: modal + RPC ruta_reportar ──
-  await page.click('.art-section.open .btn-conf.warn');
-  await page.fill('#modalTxt', 'falta un paso de niquelado');
-  await page.click('.modal-ok');
-  await page.waitForFunction(() => window.__rpc.some(c => c.n === 'ruta_reportar'));
-  const rep = await page.evaluate(() => window.__rpc.find(c => c.n === 'ruta_reportar'));
-  ok(rep.a.p_firma === FIRMA_101 && rep.a.p_problema === 'falta un paso de niquelado', 'ruta_reportar con firma y problema');
-  ok(/falta un paso de niquelado/.test(await page.locator('.art-section.open').innerText()), 'el problema queda visible en la ruta');
+  // Botones Confirmar/Revisar/Reportar eliminados (pedido usuario 2026-08-31):
+  // el modulo Despiece deja de disparar ruta_confirmar / ruta_reportar / ruta_pin
+  // desde la UI. FIRMA_101 sigue calculada arriba por si en el futuro se reincorpora.
+  const noRpc = await page.evaluate(() => ({
+    conf:  window.__rpc.some(c => c.n === 'ruta_confirmar'),
+    warn:  window.__rpc.some(c => c.n === 'ruta_reportar'),
+    pin:   window.__rpc.some(c => c.n === 'ruta_pin'),
+  }));
+  ok(!noRpc.conf, 'no se dispara ruta_confirmar (boton retirado)');
+  ok(!noRpc.warn, 'no se dispara ruta_reportar (boton retirado)');
+  ok(!noRpc.pin,  'no se dispara ruta_pin (boton retirado)');
 
   await browser.close();
   console.log(process.exitCode ? 'HAY FALLOS' : 'TODO OK');

@@ -86,9 +86,9 @@
  .badge.pin{background:#f8f2e7;color:#92611b}
  .badge.warn{background:#f8e8e9;color:#981622}
  .ruta-flow{display:flex;flex-wrap:wrap;gap:4px;align-items:center}
- .node{display:inline-flex;flex-direction:column;align-items:flex-start;gap:1px;color:#fff;padding:4px 10px;border-radius:6px;line-height:1.2}
- .node .nm{font-size:12px;font-weight:600;white-space:nowrap}
- .node .sub{font-size:10px;opacity:.92;font-weight:400;white-space:nowrap}
+ .node{display:inline-flex;flex-direction:column;align-items:flex-start;gap:2px;color:#fff;padding:8px 14px;border-radius:8px;line-height:1.25;text-decoration:none;font-weight:800}
+ .node .nm{font-size:16px;font-weight:900;white-space:nowrap;text-decoration:none}
+ .node .sub{font-size:13px;opacity:.95;font-weight:700;white-space:nowrap;text-decoration:none}
  .sep{color:#64748b;margin:0 3px;align-self:center}
  .rc-actions{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
  .btn-conf{padding:8px 12px;border-radius:6px;border:1px solid #cddaea;font-size:12px;cursor:pointer;font-weight:700;background:#ebf0f5;color:#385475;min-height:40px}
@@ -685,11 +685,8 @@ function renderRuta(x){
     '<div class="rc-head">Fleje <b style="color:#1c8391">'+esc(x.r.fleje||'?')+'</b>'+
       (x.r.fleje_desc?'<span> · '+esc(x.r.fleje_desc)+'</span>':'')+badgeInc+badgeEst+'</div>'+
     '<div class="ruta-flow">'+x.pasos.map(nodo).join('<span class="sep">›</span>')+'</div>'+
-    '<div class="rc-actions">'+
-      '<button class="btn-conf ok" data-ridx="'+x.idx+'" data-act="conf">✅ Confirmar</button>'+
-      '<button class="btn-conf pin" data-ridx="'+x.idx+'" data-act="pin">📌 Revisar después</button>'+
-      '<button class="btn-conf warn" data-ridx="'+x.idx+'" data-act="warn">⚠ Reportar problema</button>'+
-    '</div>'+probs+'</div>';
+    /* botones Confirmar/Revisar/Reportar quitados a pedido del usuario 2026-08-31 */
+    probs+'</div>';
 }
 
 function renderKpis(){
