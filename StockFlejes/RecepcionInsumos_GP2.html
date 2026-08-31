@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="es">
 <head>
-<!-- v3.20.0 — LA TARJETA SOLO MUESTRA LA OC (pedido del usuario, con foto: "no quiero el stock, solo la OC. Si no hay OC, nada ahi abajo"). Se saca la linea verde de stock que habia entrado en v3.19.0: la tarjeta queda codigo + descripcion + medida + la OC abierta (si hay); sin OC no hay nada abajo de la medida. El bundle sigue mandando 'stock' y 'ultima' por si hacen falta, pero la tarjeta no pinta ninguno de los dos. v3.19.0 — LA TARJETA MUESTRA EL STOCK, NO LA ULTIMA CARGA (pedido del usuario, con foto: "esta mostrando lo ultimo que recibi, esta mal"). El numero verde de la tarjeta era la ULTIMA RECEPCION del insumo (A1 decia "280 kg" = lo recibido hoy) y sin etiqueta se leia como stock — y el stock real de A1 era ~959 kg. Ahora el verde es el STOCK ACTUAL del insumo (GP2.inventario en la ubicacion de su sector, lo trae recepcion_bundle en la clave nueva 'stock'); sin stock queda "sin stock" en gris. Tras confirmar una recepcion la tarjeta suma lo recibido al stock en el acto, sin recargar. La 'ultima' carga sigue viniendo en el bundle por si hace falta, pero ya no se muestra. v3.18.0 — EL CONTROL DEL REMITO DESCUENTA EL PALLET (pedido del usuario: "esto parece que lo muestra como mal pero esta bien si descontas el pallet"). La balanza pesa producto + pallet, asi que compararla CRUDA contra el remito siempre miente: con balanza 1.200 y remito 1.200 marcaba ROJO y decia "dio menos que el remito", que ademas de asustar al pesador es falso (0 no es menos). Ahora se descuenta la tara (la aprendida del proveedor, la misma que usa el auto-calculo del kg por rollo) y se compara el NETO contra el remito con la tolerancia que ya estaba configurada (tol_ctrl_peso_pct, 2%). La linea muestra la cuenta entera: "balanza 1.200 kg - 1 pallet (5 kg) = 1.195 kg - dif -5 kg". El aviso ahora distingue de menos y de mas. v3.17.0 — EL PALLET ENTRA EN UNA FILA (pedido del usuario: "toda esta info esta ancha al pedo, ponela en una fila sola de ancho"). Balanza y la primera linea de rollos dejan de ser dos bloques apilados y quedan en el MISMO renglon: "Balanza [450] kg   Rollos [- 5 +] x [88,5] kg". Los inputs dejan de ir con flex:1 (un numero de 3 digitos ocupaba 400px de ancho) y pasan a medir lo que tienen que medir: 96px la balanza, 84px el kg por rollo. Las lineas de OTRO peso (raras) siguen abajo. En celular la parte de rollos baja sola por flex-wrap. v3.16.0 — PENDIENTES DE PESAJE EN LA PORTADA (pedido del usuario: "si hay pendientes de pesaje, que aparezcan sin que tenga que entrar a un modulo"). La barra "N recepciones sin pesar + Pesar ahora" ahora tambien vive ARRIBA del selector de rubro, apenas se abre la pantalla, con el detalle de codigos y proveedores (hasta 4, despues "y N mas"); un toque abre el pesaje directo, sin pasar por rubro/proveedor. La barra del paso 2 sigue igual. v3.15.0 — LA TARA SE APRENDE DE LOS PESAJES REALES (pedido del usuario): el auto-calculo del kg por rollo descuenta, en orden de mejor dato, (1) el promedio real de los pallets ya pesados de ESE proveedor, (2) el promedio real global, (3) el punto medio 4-8 del parametro (solo mientras no hay datos). La BD lo calcula sola (v_tara_pallet_real = balanza - suma de rollos de cada pesaje guardado; recepcion_tara() lo agrega al bundle con n>=5 y taras sanas 1-15 kg): a medida que se pesa, el calculo mejora sin tocar nada. v3.14.0 — KG POR ROLLO AUTOMATICO (pedido del usuario): con el peso de balanza y la cantidad de rollos, el kg c/u se calcula solo = (balanza - tara media del pallet, los 4-8 kg configurados) / rollos, redondeado a 0,1. Se muestra en azul mientras es automatico; apenas el operario lo corrige a mano queda en negro y el auto no lo pisa mas. Solo aplica con UNA linea de rollos (con varias de distinto peso no hay forma de repartir). v3.13.0 — PESAJE COMPACTO (pedido del usuario: "tengo que scrollear mucho" + el numero del stepper descentrado). La etiqueta "Peso de balanza (kg)" deja de ser un bloque arriba del campo: fila inline "Balanza [450] kg". La linea de rollos entra en UNA fila "[- 5 +] rollos x [88,5] kg" (kg alineado a la derecha como la balanza); en celular el popup pierde el aire de 34px (18/12) y gana ancho util. El input del stepper queda con flex fijo y centrado real entre - y +. Cada pallet pasa de ~700px a ~230px de alto. v3.12.0 — PORTADA CON LA ESTETICA GP2 COMPARTIDA (panel de diseno, gana sobriedad): la pantalla era la UNICA de su familia con copia propia y desviada del esqueleto — ahora linkea gp2-modulo.css como OC/Pintores y queda identica al resto; los 6 rubros pasan de chips sueltos a baldosas parejas en grilla (3 col, 2 en celular, 56px); titulos de seccion en mayuscula chica; "Ver stock" AFUERA (sin referencias en JS ni tests, redundante con el menu); "Atras" queda con la pastilla estandar. Paso 2 y popup sin cambios. v3.11.0 — CARGA DE ROLLOS MAS CLARA (pedido del usuario): cada linea se lee como una frase "[- 3 +] rollos de [65] kg" — la cantidad tiene stepper -/+ (tocable con guantes, 44px) ademas de poder tipearse, el kg lleva su unidad al lado, la linea nace con 1 rollo, el boton pasa a decir "+ rollos de otro peso" y la cruz de borrar solo aparece cuando hay mas de una linea. La suma y el sobrante siguen en vivo abajo del pallet. v3.10.0 — PESAJE POR ETAPAS (pedido del usuario): el paso 2 deja de ser todos los items en un chorizo hacia abajo y pasa a UN ITEM POR VEZ (1ro -> 2do -> 3ro), con chips de progreso arriba (verde = completo, saltan al item) y Anterior/Siguiente abajo; "Guardar pesaje" aparece recien en el ultimo item. Con un solo item no hay chips ni navegacion, queda como antes. v3.9.1 — la tarjeta muestra la ultima carga sin la palabra "ult." (pedido del usuario): queda solo el numero en verde, ej. "360 kg". v3.9.0 — POPUP DE CARGA REORDENADO (pedido del usuario): Rollos y Pallets pasan a estar pegados debajo de Cantidad, que es el orden en que se lee el remito; el toggle Kg/Unidades deja de ser dos botonazos a todo el ancho y queda como dos pastillas discretas al pie (la unidad casi nunca se cambia, cada insumo trae la suya); y se saca el parrafo que explicaba que el proveedor informa rollos — la fila ya solo aparece cuando corresponde. El aviso al confirmar sin cargar rollos/pallets NO se toco. v3.8.0 — SALIDA DEL PESAJE: del paso 2 no se podia salir (Cancelar oculto + fondo bloqueado) y ademas el popup no scrolleaba hasta arriba, asi que quien lo abria por error quedaba encerrado. Ahora hay X pegada arriba, boton "Salir sin pesar" y Escape; salir no pierde nada (los items ya estan en la BD desde el paso 1) y la recepcion reaparece como "sin pesar". v3.7.2 — la OC lleva la unidad: "OC: 640 kg" (los flejes van en kg y los cartones en unidades; sin unidad el numero no dice de que habla). v3.7.1 — la OC se resume como lo que FALTA recibir, sin numero de OC. v3.7.0 — la tarjeta del insumo muestra la OC ABIERTA que lo espera y la ultima carga queda solo con los kg, sin fecha. v3.6.1 — fix: el mensaje del cruce con OC se mostraba nunca (itemSel null tras cerrar popup); aviso de pallets a medias al guardar pesaje. v3.6.0 — muestra el cruce con OC (recibido/completa/sin OC) devuelto por la BD. v3.5.0: cartones se cargan en PAQUETES de 250 (parametro carton_uni_x_paquete), guardados en unidades. v3.4.0: modo_control por proveedor: rollos_remito (Basconia/Aperam), pesaje (resto flejeros, remito solo kg), peso_total (Bella Vista). v3.3.0: Bella Vista: factura en uni (se anota convertido a kg) y control por PESO TOTAL contra el remito. v3.2.0: la balanza debe dar MAS que el remito (peso del pallet), aviso en vivo + confirm al guardar. v3.1.0: pesaje obligatorio (sin "Pesar después"): la carga no se termina hasta controlar. v3.0.0: remito multi-item: paso 1 todos los items, "Terminé de pasar remito", paso 2 pesaje de todo; modulo Control integrado aca -->
+<!-- v3.21.0 — CARTONES EN 2 FASES (pedido del usuario, textual: "cuando voy a recepcionar cartones quiero primero cargar remito y despues hacer el control: como en flejes. pero en el caso de cartones: cuando voy a cargar el remito tengo que poner paquetes y despues en el control tambien paquetes" + aclaracion: "al igual que en cajas y flejes"). Ahora los cartones (sector_id=10) usan el mismo esqueleto que flejes: el popup de carga anota el remito en PAQUETES (los que dice el proveedor) y suma el ítem al REMITO; con "Terminé de pasar remito" arranca la fase 2 (montarControlCartones) — un ítem por vez, chips de progreso + Anterior/Siguiente + "Guardar control" recien en el ultimo. El control es UN SOLO input por ítem: "Paquetes controlados" (numerico, entero); total_uni = paquetes * carton_uni_x_paquete (250 por defecto). Diff vs declarado con color (verde 0, ámbar chico, rojo >10%). Al guardar llama RPC guardar_control_cartones que hace UPDATE cantidad (unidades reales) + rollos_json + sincroniza el movimiento (los triggers recalculan inventario). No se toca la RPC cargar_recepcion. v3.20.0 — LA TARJETA SOLO MUESTRA LA OC (pedido del usuario, con foto: "no quiero el stock, solo la OC. Si no hay OC, nada ahi abajo"). Se saca la linea verde de stock que habia entrado en v3.19.0: la tarjeta queda codigo + descripcion + medida + la OC abierta (si hay); sin OC no hay nada abajo de la medida. El bundle sigue mandando 'stock' y 'ultima' por si hacen falta, pero la tarjeta no pinta ninguno de los dos. v3.19.0 — LA TARJETA MUESTRA EL STOCK, NO LA ULTIMA CARGA (pedido del usuario, con foto: "esta mostrando lo ultimo que recibi, esta mal"). El numero verde de la tarjeta era la ULTIMA RECEPCION del insumo (A1 decia "280 kg" = lo recibido hoy) y sin etiqueta se leia como stock — y el stock real de A1 era ~959 kg. Ahora el verde es el STOCK ACTUAL del insumo (GP2.inventario en la ubicacion de su sector, lo trae recepcion_bundle en la clave nueva 'stock'); sin stock queda "sin stock" en gris. Tras confirmar una recepcion la tarjeta suma lo recibido al stock en el acto, sin recargar. La 'ultima' carga sigue viniendo en el bundle por si hace falta, pero ya no se muestra. v3.18.0 — EL CONTROL DEL REMITO DESCUENTA EL PALLET (pedido del usuario: "esto parece que lo muestra como mal pero esta bien si descontas el pallet"). La balanza pesa producto + pallet, asi que compararla CRUDA contra el remito siempre miente: con balanza 1.200 y remito 1.200 marcaba ROJO y decia "dio menos que el remito", que ademas de asustar al pesador es falso (0 no es menos). Ahora se descuenta la tara (la aprendida del proveedor, la misma que usa el auto-calculo del kg por rollo) y se compara el NETO contra el remito con la tolerancia que ya estaba configurada (tol_ctrl_peso_pct, 2%). La linea muestra la cuenta entera: "balanza 1.200 kg - 1 pallet (5 kg) = 1.195 kg - dif -5 kg". El aviso ahora distingue de menos y de mas. v3.17.0 — EL PALLET ENTRA EN UNA FILA (pedido del usuario: "toda esta info esta ancha al pedo, ponela en una fila sola de ancho"). Balanza y la primera linea de rollos dejan de ser dos bloques apilados y quedan en el MISMO renglon: "Balanza [450] kg   Rollos [- 5 +] x [88,5] kg". Los inputs dejan de ir con flex:1 (un numero de 3 digitos ocupaba 400px de ancho) y pasan a medir lo que tienen que medir: 96px la balanza, 84px el kg por rollo. Las lineas de OTRO peso (raras) siguen abajo. En celular la parte de rollos baja sola por flex-wrap. v3.16.0 — PENDIENTES DE PESAJE EN LA PORTADA (pedido del usuario: "si hay pendientes de pesaje, que aparezcan sin que tenga que entrar a un modulo"). La barra "N recepciones sin pesar + Pesar ahora" ahora tambien vive ARRIBA del selector de rubro, apenas se abre la pantalla, con el detalle de codigos y proveedores (hasta 4, despues "y N mas"); un toque abre el pesaje directo, sin pasar por rubro/proveedor. La barra del paso 2 sigue igual. v3.15.0 — LA TARA SE APRENDE DE LOS PESAJES REALES (pedido del usuario): el auto-calculo del kg por rollo descuenta, en orden de mejor dato, (1) el promedio real de los pallets ya pesados de ESE proveedor, (2) el promedio real global, (3) el punto medio 4-8 del parametro (solo mientras no hay datos). La BD lo calcula sola (v_tara_pallet_real = balanza - suma de rollos de cada pesaje guardado; recepcion_tara() lo agrega al bundle con n>=5 y taras sanas 1-15 kg): a medida que se pesa, el calculo mejora sin tocar nada. v3.14.0 — KG POR ROLLO AUTOMATICO (pedido del usuario): con el peso de balanza y la cantidad de rollos, el kg c/u se calcula solo = (balanza - tara media del pallet, los 4-8 kg configurados) / rollos, redondeado a 0,1. Se muestra en azul mientras es automatico; apenas el operario lo corrige a mano queda en negro y el auto no lo pisa mas. Solo aplica con UNA linea de rollos (con varias de distinto peso no hay forma de repartir). v3.13.0 — PESAJE COMPACTO (pedido del usuario: "tengo que scrollear mucho" + el numero del stepper descentrado). La etiqueta "Peso de balanza (kg)" deja de ser un bloque arriba del campo: fila inline "Balanza [450] kg". La linea de rollos entra en UNA fila "[- 5 +] rollos x [88,5] kg" (kg alineado a la derecha como la balanza); en celular el popup pierde el aire de 34px (18/12) y gana ancho util. El input del stepper queda con flex fijo y centrado real entre - y +. Cada pallet pasa de ~700px a ~230px de alto. v3.12.0 — PORTADA CON LA ESTETICA GP2 COMPARTIDA (panel de diseno, gana sobriedad): la pantalla era la UNICA de su familia con copia propia y desviada del esqueleto — ahora linkea gp2-modulo.css como OC/Pintores y queda identica al resto; los 6 rubros pasan de chips sueltos a baldosas parejas en grilla (3 col, 2 en celular, 56px); titulos de seccion en mayuscula chica; "Ver stock" AFUERA (sin referencias en JS ni tests, redundante con el menu); "Atras" queda con la pastilla estandar. Paso 2 y popup sin cambios. v3.11.0 — CARGA DE ROLLOS MAS CLARA (pedido del usuario): cada linea se lee como una frase "[- 3 +] rollos de [65] kg" — la cantidad tiene stepper -/+ (tocable con guantes, 44px) ademas de poder tipearse, el kg lleva su unidad al lado, la linea nace con 1 rollo, el boton pasa a decir "+ rollos de otro peso" y la cruz de borrar solo aparece cuando hay mas de una linea. La suma y el sobrante siguen en vivo abajo del pallet. v3.10.0 — PESAJE POR ETAPAS (pedido del usuario): el paso 2 deja de ser todos los items en un chorizo hacia abajo y pasa a UN ITEM POR VEZ (1ro -> 2do -> 3ro), con chips de progreso arriba (verde = completo, saltan al item) y Anterior/Siguiente abajo; "Guardar pesaje" aparece recien en el ultimo item. Con un solo item no hay chips ni navegacion, queda como antes. v3.9.1 — la tarjeta muestra la ultima carga sin la palabra "ult." (pedido del usuario): queda solo el numero en verde, ej. "360 kg". v3.9.0 — POPUP DE CARGA REORDENADO (pedido del usuario): Rollos y Pallets pasan a estar pegados debajo de Cantidad, que es el orden en que se lee el remito; el toggle Kg/Unidades deja de ser dos botonazos a todo el ancho y queda como dos pastillas discretas al pie (la unidad casi nunca se cambia, cada insumo trae la suya); y se saca el parrafo que explicaba que el proveedor informa rollos — la fila ya solo aparece cuando corresponde. El aviso al confirmar sin cargar rollos/pallets NO se toco. v3.8.0 — SALIDA DEL PESAJE: del paso 2 no se podia salir (Cancelar oculto + fondo bloqueado) y ademas el popup no scrolleaba hasta arriba, asi que quien lo abria por error quedaba encerrado. Ahora hay X pegada arriba, boton "Salir sin pesar" y Escape; salir no pierde nada (los items ya estan en la BD desde el paso 1) y la recepcion reaparece como "sin pesar". v3.7.2 — la OC lleva la unidad: "OC: 640 kg" (los flejes van en kg y los cartones en unidades; sin unidad el numero no dice de que habla). v3.7.1 — la OC se resume como lo que FALTA recibir, sin numero de OC. v3.7.0 — la tarjeta del insumo muestra la OC ABIERTA que lo espera y la ultima carga queda solo con los kg, sin fecha. v3.6.1 — fix: el mensaje del cruce con OC se mostraba nunca (itemSel null tras cerrar popup); aviso de pallets a medias al guardar pesaje. v3.6.0 — muestra el cruce con OC (recibido/completa/sin OC) devuelto por la BD. v3.5.0: cartones se cargan en PAQUETES de 250 (parametro carton_uni_x_paquete), guardados en unidades. v3.4.0: modo_control por proveedor: rollos_remito (Basconia/Aperam), pesaje (resto flejeros, remito solo kg), peso_total (Bella Vista). v3.3.0: Bella Vista: factura en uni (se anota convertido a kg) y control por PESO TOTAL contra el remito. v3.2.0: la balanza debe dar MAS que el remito (peso del pallet), aviso en vivo + confirm al guardar. v3.1.0: pesaje obligatorio (sin "Pesar después"): la carga no se termina hasta controlar. v3.0.0: remito multi-item: paso 1 todos los items, "Terminé de pasar remito", paso 2 pesaje de todo; modulo Control integrado aca -->
 <script src="../auth-guard.js?v=20260829f"></script>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
@@ -573,16 +573,17 @@ function abrirPopup(i){
    todo vive integrado aca.
    ============================================================ */
 var PES = null;   // {items:[{recId,codigo,desc,pallets,blocks:{nro:{peso,rollos:[{c,k}]}}}]}
+var CTL = null;   // {items:[{recId,codigo,desc,declaradoPaq,base,pisos,sueltas}]}  fase 2 de cartones
 
 /* Vuelve el popup al estado inicial (paso 1: Cancelar / Confirmar). */
 function resetPiePopup(){
-  PES = null;
+  PES = null; CTL = null;
   $('cargaWrap').classList.remove('hidden');
   $('pesajeWrap').classList.add('hidden');
   $('pesajeWrap').innerHTML='';
   $('kgConfirm').classList.remove('hidden'); $('kgConfirm').disabled=false;
   $('kgCancel').classList.remove('hidden');
-  $('kgPesajeOk').classList.add('hidden');
+  $('kgPesajeOk').classList.add('hidden'); $('kgPesajeOk').textContent='✓ Guardar pesaje';
   $('kgPesajeSalir').classList.add('hidden');
 }
 
@@ -602,29 +603,35 @@ $('kgCancel').addEventListener('click',cerrarPopup);
    pesar reaparece sola en la barra de arriba para retomarla. El confirm esta para
    que quede claro que queda pendiente, no para trabar. */
 async function salirDelPesaje(){
-  if(!confirm('Salir del pesaje.\n\nLo que anotaste del remito YA está guardado: no se pierde.\n'+
-              'Lo que falta es el peso de balanza, así que la recepción queda SIN TERMINAR y '+
-              'reaparece arriba como "sin pesar" para retomarla cuando quieras.\n\n¿Salir igual?')) return;
-  var pend=PES?PES.items.length:0;
+  var esCtl = !!CTL;
+  var msg = esCtl
+    ? 'Salir del control.\n\nLo que anotaste del remito YA está guardado: no se pierde.\n'+
+      'Lo que falta es el conteo físico, así que la recepción queda SIN TERMINAR y '+
+      'reaparece arriba como "sin controlar" para retomarla cuando quieras.\n\n¿Salir igual?'
+    : 'Salir del pesaje.\n\nLo que anotaste del remito YA está guardado: no se pierde.\n'+
+      'Lo que falta es el peso de balanza, así que la recepción queda SIN TERMINAR y '+
+      'reaparece arriba como "sin pesar" para retomarla cuando quieras.\n\n¿Salir igual?';
+  if(!confirm(msg)) return;
+  var pend= PES ? PES.items.length : (CTL ? CTL.items.length : 0);
   cerrarPopup();
   REMITO=[];              // el remito en curso ya vive en la BD como pendiente
   // El aviso va DESPUES de recargar: cargar() termina limpiando statusMsg, asi que
   // ponerlo antes lo borraba y el usuario salia sin entender que quedo pendiente.
   await cargar();
   $('statusMsg').className='status';
-  $('statusMsg').textContent='Saliste del pesaje: '+pend+' ítem'+(pend===1?'':'s')+
-    (pend===1?' quedó':' quedaron')+' sin pesar. Se retoma desde la barra de arriba.';
+  $('statusMsg').textContent='Saliste del '+(esCtl?'control':'pesaje')+': '+pend+' ítem'+(pend===1?'':'s')+
+    (pend===1?' quedó':' quedaron')+' sin '+(esCtl?'controlar':'pesar')+'. Se retoma desde la barra de arriba.';
 }
 $('kgPesajeSalir').addEventListener('click',salirDelPesaje);
 
 /* La X de la esquina: en el paso 1 cierra directo, en el paso 2 pregunta. */
-$('kgX').addEventListener('click',function(){ if(PES) salirDelPesaje(); else cerrarPopup(); });
+$('kgX').addEventListener('click',function(){ if(PES||CTL) salirDelPesaje(); else cerrarPopup(); });
 
 /* Escape: misma regla que la X. En la tablet no hay teclado, pero en la PC es
    el reflejo de todo el mundo para salir de un popup. */
 document.addEventListener('keydown',function(e){
   if(e.key!=='Escape' || !$('kgPopup').classList.contains('open')) return;
-  if(PES) salirDelPesaje(); else cerrarPopup();
+  if(PES||CTL) salirDelPesaje(); else cerrarPopup();
 });
 
 /* Recepciones de la base que quedaron sin pesar (Pesar despues / dias
@@ -642,13 +649,19 @@ function renderRemitoBar(){
   if(!REMITO.length && !pend.length){ bar.classList.add('hidden'); bar.innerHTML=''; return; }
   var h='';
   if(REMITO.length){
+    // Cartones vs flejes: si TODO el remito es de cartones, la fase 2 es el
+    // control fisico (base x pisos + sueltas), no el pesaje en balanza.
+    var todosCarton = REMITO.every(function(x){ return x.modo==='carton'; });
     h+='<b>📋 Remito en curso · '+REMITO.length+' ítem'+(REMITO.length===1?'':'s')+'</b>'+
        '<div class="rb-items">'+REMITO.map(function(x){
+         if (x.modo==='carton') return '<b style="color:#0066cc">'+esc(x.codigo)+'</b> '+fmt(x.paquetes)+' paq';
          return '<b style="color:#0066cc">'+esc(x.codigo)+'</b> '+fmt(x.cant)+' '+esc(x.unidad)+
            (x.pallets?(' ('+x.pallets+' pallet'+(x.pallets===1?'':'s')+')'):'');
        }).join(' · ')+'</div>'+
        '<button class="btn btn-primary" id="btnFinRemito" type="button">✓ Terminé de pasar remito</button>'+
-       ' <small style="color:#555">La recepción se termina con el pesaje en balanza.</small>';
+       ' <small style="color:#555">'+(todosCarton
+         ? 'La recepción se termina contando los paquetes reales.'
+         : 'La recepción se termina con el pesaje en balanza.')+'</small>';
   }
   if(pend.length){
     h+='<div class="rb-pend">⚠ '+pend.length+' recepción'+(pend.length===1?'':'es')+
@@ -659,7 +672,19 @@ function renderRemitoBar(){
   bar.classList.remove('hidden');
   var f=$('btnFinRemito');
   if(f) f.onclick=function(){
-    montarPesaje(REMITO.map(function(x){
+    // Cartones: fase 2 es el control fisico (base x pisos + sueltas en paquetes).
+    // Si el remito es TODO cartones se abre montarControlCartones; si es todo flejes
+    // se abre montarPesaje. Un mix (no deberia pasar en la practica pero por si acaso)
+    // resuelve como pesaje y los cartones quedan sin control (aparecen como pendientes).
+    var todosCarton = REMITO.every(function(x){ return x.modo==='carton'; });
+    if (todosCarton) {
+      montarControlCartones(REMITO.map(function(x){
+        return { recId:x.recId, codigo:x.codigo, desc:x.desc,
+                 declaradoPaq: Number(x.paquetes)||0, controlado:'' };
+      }));
+      return;
+    }
+    montarPesaje(REMITO.filter(function(x){ return x.modo!=='carton'; }).map(function(x){
       return { recId:x.recId, codigo:x.codigo, desc:x.desc, pallets:x.pallets,
                modo:x.modo||'rollos',
                remitoKg:(x.unidad==='kg'?x.cant:null),
@@ -920,6 +945,111 @@ $('pesajeWrap').addEventListener('click', function(e){
   }
 });
 
+/* ============================================================
+   CARTONES — FASE 2: CONTROL FISICO
+   Mismo esqueleto que montarPesaje (un item por vez, chips de
+   progreso, Anterior/Siguiente, "Guardar control" al final),
+   pero UN SOLO input por item: "Paquetes controlados" (el operario
+   cuenta paquetes y ya, sin base×pisos+sueltas). Total uni =
+   paquetes * carton_uni_x_paquete (250). Al guardar llama la RPC
+   guardar_control_cartones que hace UPDATE cantidad + rollos_json
+   + sincroniza el movimiento (triggers recalculan inventario).
+   ============================================================ */
+function montarControlCartones(items){
+  if(!items || !items.length) return;
+  CTL = { items: items, cur: 0 };
+  var totPaqDecl = items.reduce(function(t,it){ return t+(Number(it.declaradoPaq)||0); },0);
+  $('kgTitle').textContent = 'Control · paso 2 de 2';
+  $('kgItemInfo').innerHTML = '<b>'+items.length+' cartón'+(items.length===1?'':'es')+'</b> · '+
+    fmt(totPaqDecl)+' paquete'+(totPaqDecl===1?'':'s')+' declarados'+
+    (provSel?(' · '+esc(provSel)):'')+($('txtRemito').value?(' · remito '+esc($('txtRemito').value)):'');
+  $('cargaWrap').classList.add('hidden');
+  $('kgConfirm').classList.add('hidden');
+  $('kgCancel').classList.add('hidden');
+  $('kgPesajeSalir').classList.remove('hidden');
+  $('kgPesajeOk').classList.remove('hidden');
+  $('kgPesajeOk').textContent='✓ Guardar control';
+  $('kgMsg').className='status';
+  $('kgMsg').innerHTML='Por cada cartón: cuántos paquetes contaste. El total en unidades sale solo (× '+PAQ()+').';
+  $('pesajeWrap').classList.remove('hidden');
+  pintarControlCartones();
+  $('kgPopup').classList.add('open');
+  $('kgPopup').scrollTop=0;
+}
+
+function ctlListo(it){ return (pint(it.controlado)||0) > 0; }
+function ctlTotales(it){
+  var paq = pint(it.controlado)||0, upp = PAQ();
+  return { paq:paq, uni:paq*upp, upp:upp };
+}
+function ctlLinea(it){
+  var t = ctlTotales(it), decl = Number(it.declaradoPaq)||0;
+  if(!(t.paq>0)) return 'Declarado: <b>'+fmt(decl)+' paq</b> · cargá los paquetes que contaste.';
+  var dif = t.paq - decl, pct = decl>0 ? Math.abs(dif)*100/decl : 0;
+  var color = (dif===0 ? '#0a7a2f' : (pct<=10 ? '#b45309' : '#b42318'));
+  return 'Declarado: <b>'+fmt(decl)+' paq</b> · controlado: <b>'+fmt(t.paq)+' paq</b> = <b>'+fmt(t.uni)+' uni</b>'+
+    ' · dif <span style="color:'+color+';font-weight:800">'+(dif>0?'+':'')+fmt(dif)+' paq</span>'+
+    (pct>10 ? ' ⚠ diferencia mayor al 10%' : '');
+}
+
+function pintarControlCartones(){
+  var w=$('pesajeWrap'), n=CTL.items.length, i=CTL.cur, it=CTL.items[i];
+
+  var chips = n>1
+    ? '<div class="pes-chips">'+CTL.items.map(function(x,j){
+        return '<button type="button" class="pes-chip'+(j===i?' act':'')+(ctlListo(x)?' done':'')+
+               '" data-cnav="'+j+'">'+(ctlListo(x)?'✓ ':'')+esc(x.codigo)+'</button>';
+      }).join('')+'</div>'
+    : '';
+
+  var head=(n>1?('<div class="pes-paso">Ítem '+(i+1)+' de '+n+'</div>'):'')+
+    '<div class="pes-item-h" style="margin-top:0"><span class="cod">'+esc(it.codigo)+'</span> '+esc(it.desc||'')+'</div>'+
+    '<div class="pes-calc" data-ctlcalc="'+i+'">'+ctlLinea(it)+'</div>';
+
+  // UN SOLO input por item: paquetes controlados. inputmode="numeric" para el
+  // teclado numerico del celular (regla del proyecto). Reusa las clases del
+  // pesaje asi la UI se ve pareja.
+  var cuerpo='<div class="pes-pallet" data-ci="'+i+'">'+
+    '<div class="ph"><span>'+esc(it.codigo)+' · Paquetes controlados</span></div>'+
+    '<div class="peso-row" style="justify-content:center">'+
+      '<span class="plbl">Paquetes</span>'+
+      '<input inputmode="numeric" data-cf="controlado" value="'+esc(it.controlado)+'" placeholder="0" style="width:120px !important;flex:0 0 120px">'+
+      '<span class="punit">paq</span>'+
+    '</div>'+
+  '</div>';
+
+  var nav = n>1
+    ? '<div class="pes-nav">'+
+        (i>0?'<button type="button" class="ant" data-cnav="'+(i-1)+'">← '+esc(CTL.items[i-1].codigo)+'</button>':'')+
+        (i<n-1?'<button type="button" class="sig" data-cnav="'+(i+1)+'">Siguiente: '+esc(CTL.items[i+1].codigo)+' →</button>':'')+
+      '</div>'
+    : '';
+
+  w.innerHTML = chips + head + cuerpo + nav;
+  // Guardar recien en el ultimo item.
+  $('kgPesajeOk').classList.toggle('hidden', i<n-1);
+}
+
+// Delegacion CTL: inputs y navegacion del control de cartones.
+$('pesajeWrap').addEventListener('input', function(e){
+  if(!CTL) return;
+  var pb=e.target.closest('.pes-pallet[data-ci]'); if(!pb) return;
+  var it=CTL.items[Number(pb.dataset.ci)]; if(!it) return;
+  var f=e.target.dataset.cf; if(!f) return;
+  it[f]=e.target.value;
+  // solo re-pinta la linea de calculo (sin re-render para no perder el foco)
+  var cl=pb.parentNode.querySelector('[data-ctlcalc="'+pb.dataset.ci+'"]');
+  if(cl) cl.innerHTML=ctlLinea(it);
+});
+$('pesajeWrap').addEventListener('click', function(e){
+  if(!CTL) return;
+  if(e.target.dataset.cnav!==undefined && e.target.dataset.cnav!==''){
+    CTL.cur=Number(e.target.dataset.cnav);
+    pintarControlCartones();
+    $('kgPopup').scrollTop=0;
+  }
+});
+
 /* "Pesar después" se eliminó (regla usuario 2026-08-29): la carga y el control
    son UN solo proceso — la recepción no se termina hasta pesar. Si la pantalla
    se cierra a mitad de camino, la recepción reaparece en la barra de arriba
@@ -928,6 +1058,7 @@ $('pesajeWrap').addEventListener('click', function(e){
 /* Guardar pesaje de TODO el remito: cierra la recepción. Alerta si algún
    sobrante se va de 4–8, pero deja guardar igual (queda marcado). */
 $('kgPesajeOk').addEventListener('click', async function(){
+  if(CTL) return guardarControlCartones();
   if(!PES) return;
   var m=$('kgMsg');
 
@@ -1003,10 +1134,56 @@ $('kgPesajeOk').addEventListener('click', async function(){
   await cargar();
 });
 
+/* Guardar control fisico de cartones: llama a la RPC en lote (todos los items
+   del remito en una sola llamada). Al ok, cierra y muestra la caja verde con
+   "Nueva recepcion" (mismo cierre que la carga simple). */
+async function guardarControlCartones(){
+  if(!CTL) return;
+  var m=$('kgMsg');
+  var faltan = CTL.items.filter(function(it){ return !ctlListo(it); }).map(function(it){ return it.codigo; });
+  if(faltan.length){
+    m.className='status bad';
+    m.textContent='Faltan cargar: '+faltan.join(', ')+'. Paquetes controlados debe ser > 0.';
+    return;
+  }
+  var alertas = CTL.items.filter(function(it){
+    var decl=Number(it.declaradoPaq)||0, paq=ctlTotales(it).paq;
+    return decl>0 && Math.abs(paq-decl)*100/decl > 10;
+  }).map(function(it){
+    var t=ctlTotales(it), d=t.paq-(Number(it.declaradoPaq)||0);
+    return it.codigo+': declarado '+fmt(it.declaradoPaq)+' paq · contado '+fmt(t.paq)+' paq · dif '+(d>0?'+':'')+fmt(d);
+  });
+  if(alertas.length && !confirm(
+    '⚠ Diferencia mayor al 10% en:\n\n'+alertas.join('\n')+
+    '\n\n¿Guardar así? La cantidad final será la contada.')) return;
+
+  var payload = CTL.items.map(function(it){
+    return { recepcion_id: it.recId, paquetes: pint(it.controlado)||0 };
+  });
+  $('kgPesajeOk').disabled=true;
+  m.className='status'; m.textContent='Guardando control…';
+  try{
+    var usuario = (window.sessionStorage && sessionStorage.getItem('usuario')) || null;
+    var r = await SB.rpc('guardar_control_cartones', { p_items: payload, p_usuario: usuario });
+    if(r.error) throw r.error;
+    var nItems = CTL.items.length;
+    var totPaq = CTL.items.reduce(function(t,it){ return t+ctlTotales(it).paq; },0);
+    var totUni = CTL.items.reduce(function(t,it){ return t+ctlTotales(it).uni; },0);
+    var sb=$('successBox'); sb.style.display='block';
+    $('successBox').querySelector('.title').textContent='✓ Recepción completa';
+    $('successDetail').innerHTML=nItems+' cartón'+(nItems===1?'':'es')+' controlado'+(nItems===1?'':'s')+
+      ' · <b>'+fmt(totPaq)+' paquete'+(totPaq===1?'':'s')+'</b> = <b>'+fmt(totUni)+' unidad'+(totUni===1?'':'es')+'</b>.';
+    cerrarPopup();
+    REMITO=[];
+    await cargar();
+  }catch(e){ m.className='status bad'; m.textContent='Error: '+(e.message||e); }
+  finally{ $('kgPesajeOk').disabled=false; }
+}
+
 // En el paso 2 el click en el fondo sigue SIN cerrar: scrolleando un pesaje largo
 // en la tablet es facil pegarle sin querer y perder lo cargado en pantalla. Para
 // salir estan la X, "Salir sin pesar" y Escape, que avisan antes.
-$('kgPopup').addEventListener('click',e=>{ if(e.target===$('kgPopup') && !PES) cerrarPopup(); });
+$('kgPopup').addEventListener('click',e=>{ if(e.target===$('kgPopup') && !PES && !CTL) cerrarPopup(); });
 $('kgConfirm').addEventListener('click',guardar);
 
 async function guardar(){
@@ -1055,6 +1232,21 @@ async function guardar(){
     }
 
     var recId = res.data && res.data.recepcion_id;
+    // Cartones: se anota el remito en PAQUETES y despues se cuenta fisicamente
+    // (fase 2 con base x pisos + sueltas). Igual esqueleto que flejes, con
+    // "Terminé de pasar remito" -> montarControlCartones. cantRaw es lo que
+    // dijo el proveedor (paquetes), cant es en unidades (cantRaw * 250).
+    if (itemSel.sector_id===10 && recId){
+      REMITO.push({ recId: recId, codigo: itemSel.codigo, desc: itemSel.descripcion||'',
+                    cant: cant, unidad: uReal, paquetes: cantRaw, modo: 'carton' });
+      var codSelC=itemSel.codigo;
+      cerrarPopup();
+      renderRemitoBar();
+      $('statusMsg').className='status';
+      $('statusMsg').innerHTML=esc(codSelC)+': '+fmt(cantRaw)+' paquete'+(cantRaw===1?'':'s')+' anotados. '+ocTxt+'.';
+      setTimeout(function(){ if($('statusMsg').innerHTML.indexOf('paquete')>=0) $('statusMsg').textContent=''; },7000);
+      return;
+    }
     if (modoCtl!=='ninguno' && modoCtl!=='pendiente' && recId){
       REMITO.push({ recId: recId, codigo: itemSel.codigo, desc: itemSel.descripcion||'',
                     cant: cant, unidad: uReal, rollos: rll, pallets: pll,
