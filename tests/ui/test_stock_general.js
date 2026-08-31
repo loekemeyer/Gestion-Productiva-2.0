@@ -119,35 +119,23 @@ window.supabase = { createClient: function(){ return {
   ok(/T12:00:00$/.test(rA.fecha || ''), 'ajuste: la fecha viaja con T12:00:00 como siempre (' + rA.fecha + ')');
   await page.waitForSelector('#modalBg.on', { state: 'detached' }).catch(() => {});
 
-  // ── ARMADO EN FABRICA: consume el BOM y crea el terminado en Fabrica ──
-  await page.evaluate(() => { window.__rpc = window.__rpc.filter(c => c.n !== 'registrar_movimientos'); });
-  await page.click('.btn-acc:has-text("Armado")');
-  await page.waitForSelector('#modalBg.on');
-  const optsArm = await page.$$eval('#f_comp option', os => os.map(o => o.value).filter(Boolean));
-  ok(optsArm.length === 1 && optsArm[0] === '20', 'armado: solo ofrece articulos que arma Cervantes (T1)');
-  const accB = await page.evaluate(() => document.getElementById('f_qty').getAttribute('inputmode'));
-  ok(accB === 'numeric', 'armado: las unidades abren teclado numerico');
-  await page.selectOption('#f_comp', '20');
-  await page.fill('#f_qty', '10');
-  await page.click('#btnSave');
-  await page.waitForFunction(() => window.__rpc.some(c => c.n === 'registrar_movimientos'));
-  const call2 = await page.evaluate(() => window.__rpc.find(c => c.n === 'registrar_movimientos'));
-  const rowsB = call2.a.p_rows;
-  ok(rowsB.length === 3, 'armado: 2 consumos del BOM + 1 armado_fabrica (' + rowsB.length + ' filas)');
-  const c10 = rowsB.find(r => r.tipo_mov === 'consumo_prod' && r.comp_id === 10);
-  const c30 = rowsB.find(r => r.tipo_mov === 'consumo_prod' && r.comp_id === 30);
-  const arm = rowsB.find(r => r.tipo_mov === 'armado_fabrica');
-  ok(!!c10 && c10.cantidad === 20 && c10.ubic_origen_id === 1 && c10.ubic_destino_id === null,
-     'armado: consume 2 x 10 = 20 del A10 desde su sector — ' + JSON.stringify(c10));
-  ok(!!c30 && c30.cantidad === 10 && c30.ubic_origen_id === 1,
-     'armado: consume 1 x 10 = 10 del B5 — ' + JSON.stringify(c30));
-  ok(!!arm && arm.comp_id === 20 && arm.ubic_origen_id === null && arm.ubic_destino_id === 2 &&
-     arm.cantidad === 10 && arm.unidad_origen === 'uni',
-     'armado: crea el T1 en la ubicacion de Fabrica — ' + JSON.stringify(arm));
+  // ── ARMADO EN FABRICA: ocultado a pedido del usuario 2026-08-31 ("por ahora").
+  // El markup y la logica openArmado() siguen intactas para poder reactivar; el
+  // test verifica que el boton este OCULTO (display:none) — si vuelve, cambiar
+  // la asercion por el bloque original de armado que quedo en el git blame. ──
+  const armBtnVisible = await page.evaluate(() => {
+    const btns = Array.from(document.querySelectorAll('.btn-acc'));
+    const b = btns.find(x => /armado/i.test(x.textContent || ''));
+    if (!b) return { presente: false, visible: false };
+    const cs = getComputedStyle(b);
+    return { presente: true, visible: cs.display !== 'none' && cs.visibility !== 'hidden' };
+  });
+  ok(armBtnVisible.presente, 'armado: el boton sigue en el markup (para poder reactivar)');
+  ok(!armBtnVisible.visible, 'armado: el boton esta OCULTO (pedido usuario "por ahora")');
 
-  // el stock se recarga despues de registrar (reload -> movimientos_bundle de nuevo)
+  // el stock se recarga despues de cada registro (reload -> movimientos_bundle de nuevo)
   const nBundle = await page.evaluate(() => window.__rpc.filter(c => c.n === 'movimientos_bundle').length);
-  ok(nBundle >= 3, 'despues de cada registro se recarga el bundle (' + nBundle + ' cargas)');
+  ok(nBundle >= 2, 'despues de cada registro se recarga el bundle (' + nBundle + ' cargas)');
 
   await browser.close();
   console.log(process.exitCode ? 'HAY FALLOS' : 'TODO OK');
