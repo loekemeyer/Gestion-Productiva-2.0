@@ -17,6 +17,27 @@
 
 ---
 
+## 0. Cómo trabaja el usuario (reglas de laburo, no de negocio)
+
+### 🚨 TODO SE SUBE A `main`. SIEMPRE. SIN RAMAS.
+`[usuario 2026-08-31, textual]` *"SIEMPRE TODO TENES QUE SUBIRLO A MAIN. NO QUIERO DECIRLO
+MAS EN NINGUNA SESION."* Ya lo había dicho el 2026-08-30 (*"no quiero ramas, solo en main"*)
+y hubo que repetirlo: **no volver a preguntarlo ni a proponer una rama.**
+
+- Si la sesión arranca con una rama asignada por configuración, el destino final sigue siendo
+  `main`: `git push origin <rama>:main`.
+- La red de seguridad **no es la rama, es la suite**: `bash tests/ui/run.sh` en verde antes de
+  pushear.
+- **Por qué le importa tanto**: lo que se aplica en **Supabase queda vivo al instante y git no
+  lo versiona**. Si el código se queda en una rama, la base tiene los cambios y `main` no
+  tiene las pantallas que los acompañan. Pasó el 2026-08-31 con 5 commits (golpes, pinza de
+  fiambre, matriz 62, pesaje, 506 con skin) mientras las migraciones ya estaban corriendo en
+  producción. **Ese desfasaje es el riesgo real, no el de pushear a main.**
+
+Está también arriba de todo en `CLAUDE.md`.
+
+---
+
 ## 1. Proveedores: quién provee qué
 
 ### Inyección plástica — son tres

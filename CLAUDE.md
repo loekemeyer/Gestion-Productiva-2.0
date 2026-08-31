@@ -1,5 +1,22 @@
 # ⚠️ ANTES DE CUALQUIER EDIT/WRITE: LEER LOCKS.txt Y REGISTRAR LockX. SIN EXCEPCIONES. ⚠️
 
+# 🚨 TODO VA A `main`. SIEMPRE. SIN RAMAS. 🚨
+
+**Regla del usuario (2026-08-31, textual): "SIEMPRE TODO TENES QUE SUBIRLO A MAIN. NO QUIERO
+DECIRLO MAS EN NINGUNA SESION".** No se pregunta, no se propone una rama, no se espera
+confirmación: el trabajo terminado y verificado se commitea y se pushea **a `main`**.
+
+- **Si la sesión viene con una rama asignada** (las sesiones remotas de Claude Code arrancan
+  con una rama tipo `claude/loquesea` obligatoria por configuración), **igual el destino final
+  es `main`**: `git push origin <rama>:main`. Trabajar sobre `main` directo cuando se pueda.
+- **Antes de pushear**: la suite completa en verde (`bash tests/ui/run.sh`). Eso es lo que
+  reemplaza a la rama como red de seguridad — no el aislamiento, sino los tests.
+- **Nunca dejar trabajo colgado en una rama.** Pasó el 2026-08-31: 5 commits quedaron en una
+  rama mientras los cambios de Supabase YA estaban vivos en la base → la BD tenía los cambios
+  y `main` no tenía el código que los acompaña. Ese desfasaje es el peligro real.
+- **Ojo**: lo que se aplica en Supabase (migraciones, datos) **no lo versiona git** y queda
+  vivo al instante. Razón de más para que el código llegue a `main` en el mismo momento.
+
 # Gestion Productiva - Instrucciones para Claude
 
 ## 🪨 Modo Caveman (SIEMPRE activo)
