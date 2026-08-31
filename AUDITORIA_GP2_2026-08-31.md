@@ -49,6 +49,65 @@ siguen intactos ($3,58/kg, se piden en kg).
 
 ---
 
+## 🔴 EL PEDIDO A MÁXIMO ESTÁ INFLADO 3,3× — dos causas, las dos verificadas
+
+El pedido daba **$2.783 millones** contra $23,0 M de stock (120×). Ese ratio era la señal.
+Dos cosas explican el 87%:
+
+### A. La matriz 501 vale el 70% del pedido de toda la fábrica
+
+`GP2.matriz` id 118, N° 501, **`tiempo_historico` = 7.650 segundos POR PIEZA** (2 h 07 min).
+**Todas las demás matrices juntas suman 513 segundos.**
+
+Contamina Z23 (Cuchilla Pela Afilada), 505, 513 y 713:
+
+| | Hoy | Sin la 501 |
+|---|---|---|
+| Z23 costo unitario | $15.349,70 | $46,70 (×329) |
+| Z23 en el pedido | **$1.943.855.309** | $6.293.909 |
+
+**El 98,6% de toda la mano de obra del pedido es esta única matriz.** Sacarla baja el total
+de $2.783 MM a ~$845 MM.
+
+**Causa raíz**: el dato viene igual de la casa del vecino (`public."Matrices"` N° 501), pero
+ahí se llama **"Piedra (TP)"**, no "Afilado Cuchilla". En `db_n8n_espejo` esa matriz tiene
+438 registros con 3.833 "Uni" (~8,7 Uni por registro, 6,7 h de reloj cada uno): **su "Uni"
+no es una pieza, es un lote**. Si la Uni fuera el cajón (2.326 piezas), el tiempo real sería
+~3,29 s/pieza.
+
+**Corrige la regla de la sección 2c**: "`tiempo_historico` = segundos por pieza" vale para
+las matrices de estampado, **no para la 501**. Necesita el dato real del usuario.
+
+### B. El pedido cuenta el mismo requerimiento hasta 5 veces
+
+`v_valor_pedido` hace `sum(greatest(0, maximo − cantidad))` sobre **todas** las filas de
+`inventario`, sin mirar el tipo de ubicación. Z23 tiene 5 filas: Sector Procesado + tres
+talleristas + Virgilio. "Llenar al máximo" hoy significa llenar mi estantería **y** la de
+los tres talleristas **y** la de Virgilio, todas a tope a la vez.
+
+**$1.556.505.334 — el 56% del pedido** sale de esas ubicaciones extra (talleristas $1.441,9 MM,
+Virgilio $677,4 MM). Y los máximos de tallerista/Virgilio tienen **`maximo_origen` NULL**: no
+salieron ni de la Est Madre ni de la regla de 5 cajones, son números heredados sin dueño.
+
+**Decisión de negocio**: ¿el "pedido a máximo" es solo del sector propio, o incluye reponer
+lo que está en poder de terceros? Hoy la vista ni siquiera expone `ubicacion_tipo` (a
+diferencia de `v_valor_stock`), así que las pantallas no pueden cortar.
+
+### C. Tres flejes con el máximo cargado en piezas, no en kg ($124,1 M)
+
+| Fleje | Dónde | Máximo | Valor |
+|---|---|---|---|
+| C3 Fleje N°90 (alambre filtros) | Tallerista IJUPA | 25.200 | $66.339.756 |
+| E4 Fleje N°31 | Tallerista Alex Escalante | 9.000 | $28.873.350 |
+| E5 Fleje N°32 | Tallerista Alex Escalante | 9.000 | $28.873.350 |
+
+Los flejes se stockean y costean **en kg** (los máximos legítimos del Sector Fleje son 2.954,
+3.890, 2.333 kg). 25.200 kg de alambre en lo de un tallerista no existe: son unidades de
+pieza heredadas, con `maximo_origen` NULL, y ninguno figura en `v_consumo_fleje_kg_v2`.
+Cierra con lo ya sabido de que E4/E5 entran directo al armado del batidor.
+
+---
+
 ## 🔴 CRÍTICO — PENDIENTE (necesita datos o decisión del usuario)
 
 ### 3. Dos agujeros de escritura anónima
@@ -187,6 +246,72 @@ todo el motor de costos. Hay que regenerarlo.
 
 ---
 
+## 🟠 IMPORTANTE — del motor de costos
+
+### 15. Los 88 terminados pierden todo su material
+
+**366 pasos productivos tienen `comp_entrada_id = NULL`** y el motor los descarta. Es el
+patrón "Insumo X → Art": el insumo va en un paso `insumo` (salida NULL) y el armado en un
+paso `tallerista` (entrada NULL), así que **el eslabón insumo→terminado nunca se forma**.
+
+| Artículo | Motor | Por receta | Falta |
+|---|---|---|---|
+| 550 / 546 | $0,00 | $6.234 / $1.837 | −100% |
+| 557 / 558 | $69,00 | $3.075,92 | −98% |
+| 708 / 508 | ~$1.160 | ~$4.420 | −74% |
+| 031/034/836/867/120 | $9,50 | ~$2.700 | −99,6% |
+
+No afecta el pedido (los terminados no aportan), pero ensucia $4,09 M del stock. **El
+arreglo de fondo es el que ya está en la sección 2c**: el costo del artículo sale de la
+RECETA (que tiene las cantidades), no del walk. Es la puerta natural a la unificación con
+el otro repo de costos.
+
+### 16. El fallback de 1 USD inventa $49 M y no avisa
+
+`precio_servicio` (el precio plano) **quedó entero en 1 USD de regulación**: nunca se pisó,
+porque los precios reales fueron a `precio_servicio_pieza`. Solo 3 pares caen ahí, pero
+pesan: **Z22 Llavero Pie $29,7 M · B12 $15,5 M · V18D $3,9 M**. Un pintado a $1.535 es ~10×
+lo real ($127–305 de Jade). Agravante: los tres son en pesos pero el fallback los mete en
+la **columna dólares**, así que suben solos si sube el dólar.
+
+Y el motor dice `faltan_precios = 0`: muestra $3.215,51 con cara de dato bueno. **Mejor un
+cero honesto con aviso que un número inventado.**
+
+### 17. Cinco raíces huérfanas costando $0 en Sector Procesado
+
+**D1** (Espiral Sacacorcho), **Z23A** (Cuch China), **Z23B** (Cuchilla Laser), **Z25A** y
+**Z25B** (Argollas): cero pasos que las produzcan, cero precio, `estado_compra` NULL. Son
+piezas **compradas** que viven en Procesado — el mismo caso que C13, pero sin precio para
+que la regla las agarre. Aparecen en 17 rutas de sacacorchos y llaveros costando cero.
+Ojo: **D1 existe además como Fleje N°28** ($4.850,60) — la trampa del código repetido, viva.
+
+### 18. `v_valor_stock` y `valorizacion_bundle` dan totales distintos
+
+La RPC filtra terminados; las vistas no. Según por dónde entres, la fábrica vale **$23,0 M
+o $19,0 M**. No es doble conteo físico, es criterio inconsistente: debería vivir en un solo
+lugar.
+
+### 19. Las cantidades N→1 valen $7,7 M — real pero no urgente
+
+Medido: el **tocho E4** es el único que pesa hoy ($1.452 → $5.570 el tocho; +$6,7 M de
+pedido en E4 y +$1,0 M en J1). El peso lo delata solo: 477 g / 5 g = 95 arandelas. El
+**pliego skin** y el **blister de untar** dan **$0 de impacto hoy**, porque el motor no
+costea desde receta — el error aparecerá recién cuando se costee el artículo.
+
+**Hallazgo lateral en la receta del 519**: el blister ×2 está a medias — E7 ×2 y W5 ×2, pero
+el mango PEP5 quedó en ×1 (dos hojas, un mango). Y el **719** (el mismo cuchillo en marca
+Chef) no tiene el ×2 en ningún componente. Eso **sí** afecta hoy el consumo, los máximos y
+el volumen del pedido de PEP5/E7/W5. **Pregunta al usuario**: ¿el blister de 2 es solo del
+519 o también del 719/551/878? ¿Y van dos mangos o uno?
+
+### 20. N1/N2, doble matriz de soldado: $441.480
+
+Confirmado con número. La matriz 183 ("Soldar Ahuecapapa/Ahuecafruta", genérica) y la
+362/363 ("Soldado Ahueca Fruta/Papa", específica) **son la misma operación anotada dos
+veces**: 23,6 s en vez de ~13. Sacar la 183 de las rutas de N1/N2.
+
+---
+
 ## 🟡 MENOR (anotado, sin urgencia)
 
 - **`carton_categoria` nació muerta**: 5 filas, 0 componentes asignados. Ganó
@@ -240,14 +365,44 @@ todo el motor de costos. Hay que regenerarlo.
 
 ---
 
+## Cosas verificadas que están BIEN (hallazgos negativos, valen tanto como los positivos)
+
+- **Las rutas alternativas NO duplican el material.** Era lo más difícil de descartar. G7
+  (registrado con y sin el aplastado M77): US$0,046167 kg × 3,22 = **US$0,14866**, y la
+  vista devuelve exactamente eso. Los 10 casos donde un fleje aparece dos veces son dos
+  piezas distintas del mismo fleje convergiendo (pinza fiambre derecha por matriz 62 e
+  izquierda por 64) — ahí contar dos veces es lo correcto.
+- **Las tres cirugías de la vista conviven bien**, verificadas una por una: servicio exacto
+  por pieza (tocho E4: FAAT $15,21 + Guazzaroni $5,86 + Scorrano $1.406, exacto), el CTE de
+  talleristas (557/558 = $69 de Gentile, sin duplicar entre nodos) y la regla de "comprado"
+  ampliada (único caso: C13, que antes daba $0).
+- **La precedencia de precios funciona como pediste**: tarifa por kg de la pieza × peso vivo
+  → precio por unidad de la pieza → plano del proveedor.
+- **Performance sin problema**: `v_costo_componente` 20,4 ms, `v_valor_pedido` 21,8 ms. El
+  walk converge en 8 iteraciones. Nada que optimizar.
+- **La trampa del código repetido también muerde al auditor**: agrupar por `codigo` en vez
+  de `id` generó 21 falsos positivos de doble conteo (E10 es Fleje N°15 **y** Sacafuente
+  Pizzero a la vez). Agrupar siempre por `id`.
+
+---
+
 ## Orden sugerido
 
-1. **Hoy**: revocar `inv_delta` (una línea, no rompe nada). Decidir qué hacer con
-   `empleado` (requiere migrar `abm_GP2.html` a RPC primero).
-2. **Cuando haya datos**: los 13 placeholders con estado NULL (5 filas resuelven el 80%:
-   C13, BOM8, BOM12, BOM13, BOM14) y los 34 tiempos de matriz.
-3. **Cuando se toque costos**: maestra de `proceso` + `tarifa_servicio` (mata 33 filas
+1. **Lo que cambia la foto** (necesita datos del usuario): el tiempo real de la matriz 501
+   —saca $1.938 M de humo, el 70% del pedido— y decidir si el pedido a máximo incluye las
+   ubicaciones de terceros (otros $1.556 M, el 56%). Con esos dos el pedido queda en el
+   orden de **$700–850 M**, que ya es un número con el que se puede discutir.
+2. **Tres filas, $124 M**: los máximos de C3/E4/E5 en talleristas, cargados en piezas
+   cuando el fleje va en kg.
+3. **Hoy, sin depender de nadie**: revocar `inv_delta` (una línea, no rompe nada). Decidir
+   qué hacer con `empleado` (requiere migrar `abm_GP2.html` a RPC primero).
+4. **Cuando haya datos**: los 13 placeholders con estado NULL (5 filas resuelven el 80%:
+   C13, BOM8, BOM12, BOM13, BOM14), los 34 tiempos de matriz, y los precios de las 5 raíces
+   huérfanas (D1, Z23A, Z23B, Z25A, Z25B).
+5. **Cuando se toque costos**: maestra de `proceso` + `tarifa_servicio` (mata 33 filas
    redundantes y es lo que hace verdadera la regla de oro), precio del pliego en
-   `carton_formato` (mata 70 más), FK de proveedor en `precio_proveedor`.
-4. **Higiene**: migración retroactiva de cartones, regenerar `db/`, arreglar el semáforo
-   `faltan_tiempos`, sacar el banner viejo de Valorización.
+   `carton_formato` (mata 70 más), FK de proveedor en `precio_proveedor`, que el fallback
+   de servicio sea NULL en vez de 1 USD, y costear los terminados por receta.
+6. **Higiene**: migración retroactiva de cartones, regenerar `db/`, arreglar el semáforo
+   `faltan_tiempos` (que cuente el 0, no solo el NULL), sacar el banner viejo de
+   Valorización, unificar el criterio de terminados entre vista y RPC.

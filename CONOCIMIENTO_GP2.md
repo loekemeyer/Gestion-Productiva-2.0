@@ -601,6 +601,35 @@ en ese archivo):
   `fleje_detalle`; la vista podría usarlo directo cuando no hay matriz.
 - `[dato]` **La suite de tests quedó ciega**: 29/29 pasan, pero todos stubean Supabase. El
   bug del clavo en la OC pasó sin despeinarse porque el stub no tiene `precio_por_kg`.
+- `[dato]` **LA MATRIZ 501 NO MIDE PIEZAS.** `tiempo_historico = 7.650 s` (2 h 07) contra
+  **513 s de TODAS las demás matrices juntas**. En la casa del vecino se llama **"Piedra
+  (TP)"** (acá "Afilado Cuchilla") y su "Uni" en `db_n8n_espejo` es un LOTE, no una pieza.
+  **Corrige la regla de 2c**: "tiempo_historico = segundos por pieza" vale para las matrices
+  de estampado, NO para la 501. Contamina Z23, 505, 513, 713 y **el 70% del pedido total**
+  ($1.938 M). Falta el dato real.
+- `[dato]` **`inventario.maximo` no significa lo mismo en toda ubicación.** Solo los de
+  `maximo_origen` est_madre / cinco_cajones / fisico tienen dueño; los de tallerista y
+  Virgilio están en NULL, heredados. `v_valor_pedido` los suma todos → cuenta el mismo
+  requerimiento hasta 5 veces: **$1.556 M, el 56% del pedido**. Decisión pendiente: ¿el
+  pedido a máximo incluye reponer lo que está en poder de terceros?
+- `[dato]` **Un fleje puede tener el máximo cargado en PIEZAS**: C3 (25.200 en IJUPA), E4 y
+  E5 (9.000 en Alex) — el fleje se stockea en kg y sus máximos legítimos son ~2.900 kg.
+  Regla: si un fleje tiene máximo en ubicación de tallerista, sospechar.
+- `[dato]` **El patrón de ruta "Insumo X → Art" no lo ve el motor de costos**: el paso de
+  tallerista guarda `comp_entrada_id = NULL` (366 pasos, 88 terminados). Los terminados hay
+  que costearlos por RECETA, no por walk — que es lo que ya dice la cascada de 2c.
+- `[dato]` **`precio_servicio` (el plano) quedó entero en 1 USD** — nunca se pisó, porque
+  los reales fueron a `precio_servicio_pieza`. Vale $49 M de pedido inventado en Z22, B12 y
+  V18D, y mete pesos en la columna dólares.
+- `[dato, verificado]` **Las rutas alternativas NO duplican el material** (G7 con y sin M77
+  da US$0,14866 exacto). Los casos de "fleje contado dos veces" son dos piezas distintas
+  del mismo fleje y están bien.
+- `[dato]` **La receta del 519 tiene el blister ×2 a medias**: hoja y arandela ×2 pero el
+  mango PEP5 en ×1; y el 719 (mismo cuchillo, marca Chef) no lo tiene en ningún componente.
+  Afecta consumo y máximos, no costo. Pendiente de confirmar.
+- `[dato]` **5 raíces huérfanas en Sector Procesado** costando $0: D1 (Espiral Sacacorcho),
+  Z23A, Z23B, Z25A, Z25B. Son compradas sin precio ni estado — el caso C13 sin resolver.
+  Ojo que **D1 existe además como Fleje N°28**.
 
 ### Placeholders que quedan (17 vivos, listados — no inventar)
 
