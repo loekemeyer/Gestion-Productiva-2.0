@@ -257,10 +257,7 @@ input[type="text"]{width:200px}
 
     <div id="statusMsg" class="status"></div>
 
-    <div id="successBox" class="successBox">
-      <div class="title">✓ Recepción registrada</div>
-      <div id="successDetail"></div>
-    </div>
+    <div id="successBox" class="successBox"><div class="title">✓ Recepción registrada</div><div id="successDetail"></div><div style="margin-top:12px"><button class="btn btn-primary" id="btnNuevaRec" type="button">Nueva recepción</button></div></div>
 
   </div>
 </div>
@@ -983,7 +980,7 @@ async function guardar(){
     var detUni= (unitSel==='paq') ? (fmt(cantRaw)+' paquetes = <b>'+fmt(cant)+' uni</b>') : ((uReal==='kg'&&kx&&unitSel==='uni') ? (fmt(cantRaw)+' uni = <b>'+fmt(cant)+' kg</b>') : '<b>'+fmt(cant)+' '+esc(uReal)+'</b>');
     $('successDetail').innerHTML=esc(itemSel.codigo)+' — '+esc(itemSel.descripcion||'')+' · '+detUni+(provSel?(' ('+esc(provSel)+')'):'')+'. Stock actualizado. Mov '+(res.data&&res.data.movimiento_id)+'. '+ocTxt+'.';
     cerrarPopup();
-    setTimeout(()=>{sb.style.display='none';},6000);
+    // el box queda visible; el usuario cierra con 'Nueva recepcion' (reset)
   }catch(e){ m.className='status bad'; m.textContent='Error: '+(e.message||e); }
   finally{ $('kgConfirm').disabled=false; }
 }
@@ -1060,5 +1057,13 @@ function calcPallet(p){
 $('kgValue').addEventListener('input',updateConv);
 $('txtFecha').value=hoy();
 cargar();
+
+document.addEventListener('click', function(ev){
+  var b=ev.target && ev.target.closest && ev.target.closest('#btnNuevaRec');
+  if(!b) return;
+  // reset completo al paso 1 (rubro/proveedor). Recargar es lo mas fiel al vecino
+  // (limpia REMITO, popups en curso, inputs y refresca las OCs abiertas).
+  location.reload();
+});
 </script>
 </body></html>
