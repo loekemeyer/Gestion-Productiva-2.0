@@ -751,7 +751,7 @@ factor > 1** y 98 en 1:
 | **4** | m16 Corte Arandela manguito (fleje 38 / D4) |
 | **3** | m71 Arandela Grande Afila (10 / F2) · m344 Arandela Base (74 / F10) · mS/N Arandela Cuchillitos (38 / D5) |
 | **5** | m72 Arandela Chica Afila (10-11 / F2) — **el único dudoso**, el Excel dice 5 en la hoja principal y 3 en el bloque de kits del final |
-| **2** | m7 Cuchilla Abrelatas (2/C7) · m20 Engranaje Gr (3/B8) · m21 Buje 501 (4/C9) · m22 Arandela fina 501 (5/D6) · m15 Arandela fina 502 (5/D6) · m14 Engranaje chico (8/A10) · m40 Sacatapita (25/C1) · m60 Pinza Fideos (39/A4) · **m348 Corte Cuch Untar Mgo Madera (41/B2)** · m66 Pinza Ensalada (45/F5) · m29 Corte Uña (57/B4) · m116 Corte de Aleta (92/C2) |
+| **2** | m7 Cuchilla Abrelatas (2/C7) · m20 Engranaje Gr (3/B8) · m21 Buje 501 (4/C9) · m22 Arandela fina 501 (5/D6) · m15 Arandela fina 502 (5/D6) · m14 Engranaje chico (8/A10) · m40 Sacatapita (25/C1) · m60 Pinza Fideos (39/A4) · **m64 Pinza Fiambre (40/A4)** · **m348 Corte Cuch Untar Mgo Madera (41/B2)** · m66 Pinza Ensalada (45/F5) · m29 Corte Uña (57/B4) · m116 Corte de Aleta (92/C2) |
 
 **Cómo leer la columna sin equivocarse**: la hoja tiene DOS columnas parecidas, *"Uni x Art
 Term"* (col. 13, cuántas piezas lleva el artículo) y *"Uni x Golpe"* (col. 14). Coinciden en
@@ -765,12 +765,7 @@ dijeron al usuario es **por golpe** → **≈ 0,6–0,75 s por unidad**, que es 
 `tiempo_historico`. Sigue sin cargarse hasta que el usuario confirme el número exacto, pero
 ahora ya se sabe por cuánto hay que dividir.
 
-**No se cargó `m62`/`m64`** (Corte Pinza Fiambre Derecha / Izquierda): el Excel marca 2 uni
-x golpe para "Pinza De Fiambres", pero hay **dos matrices, una por lado**, así que lo más
-probable es que cada una dé 1 por golpe y ese 2 sea el "uni x artículo terminado" (la pinza
-lleva las dos punteras). Quedaron en 1 hasta que el usuario lo mire en planta. Comparar con
-la pinza de fideos, que tiene **una sola** matriz de corte (m60) y de ahí salen las dos
-punteras: esa sí va en 2.
+**Pinza de fiambre: GP2 la tenía mal modelada y se corrigió** — ver §2c-quinquies.
 
 ### La app YA pide GOLPES (2026-08-31)
 
@@ -812,6 +807,53 @@ golpes o unidades. *"Ahí tenemos una duplicación de unidades en todos lados qu
 confundir si es que lo hacen mal."* La app ya está del lado de los golpes y el aviso en
 pantalla dice la cuenta en voz alta; si en planta resulta que cuentan unidades, se apaga con
 el interruptor.
+
+## 2c-quinquies. Pinza de fiambre: UN corte y DOS estampados (2026-08-31)
+
+`[usuario 2026-08-31]` Dicho textual: *"La pinza fiambre se corta en alimentador con la
+misma matriz y después se estampa con dos diferentes (una para cada lado). 63 estampa la
+derecha, 65 la izquierda."* Y confirmó: **corta la 64**.
+
+**Lo que GP2 tenía mal**: modelaba **dos cortes**, uno por lado, cada uno con su propia tira
+intermedia:
+
+```
+MAL:  A4 --m62--> A4-M62 --m63--> F9  (derecha)
+      A4 --m64--> A4-M64 --m65--> F10 (izquierda)
+
+BIEN: A4 --m64--> A4-M64 --m63--> F9  (derecha)
+                        \--m65--> F10 (izquierda)
+```
+
+Es **exactamente la forma que la pinza de fideos ya tenía bien** (m60 corta → m61 der /
+m75 izq). Las dos gemelas quedan iguales.
+
+**Qué se corrigió**: las 4 rutas de fiambre (130/132 art 595 y 53 por la derecha,
+131/133 por la izquierda) pasan por la 64; el componente intermedio **A4-M62 se borró**
+(no tenía stock, ni movimientos, ni recetas, ni precios — era puro producto del modelado
+equivocado); la **64 se renombró** de *"Corte Pinza Fiambre Izquierda"* a **"Corte Pinza
+Fiambre"**, porque ya no corta un lado sino la pieza entera; y **`uni_x_golpe = 2`**, que es
+lo que decía el Excel y ahora cierra: un golpe saca las dos punteras.
+
+**La 62 NO se borró** — la matriz física existe. Quedó **fuera de todas las rutas** y es la
+única matriz de GP2 en esa situación. `[pendiente]` preguntarle al usuario qué hace hoy la 62.
+
+**Impacto en el costo — el error valía plata**: el artículo 595 (y su gemelo 53) pasó de
+**$353,08 a $270,46**. Contaba **la tira dos veces**: al salir F9 y F10 de tiras distintas,
+el recorrido de costos sumaba dos cortes de fleje para una pinza que sale de **uno solo**.
+Cambiaron exactamente esos 2 artículos y ninguno más de los 537 componentes.
+
+**Cómo se detecta este error en otro lado**: si dos piezas que van juntas en el mismo
+artículo salen de **tiras intermedias distintas** (`X-M##`) pero en la planta salen del
+mismo golpe, el material está duplicado. Señal de alarma: dos matrices de corte con el mismo
+fleje de entrada y el **mismo costo exacto** (A4-M62 y A4-M64 daban los dos US$ 0,083693).
+`[dato]` Se barrió el resto de GP2 buscando matrices con "Derecha/Izquierda/Der/Izq" en el
+nombre y **la de fiambre era la única mal modelada**.
+
+**Verificación que cierra**: 594 (fideos) y 595 (fiambre) quedaron con la misma estructura,
+US$ 0,094316 y US$ 0,096879 de material. La diferencia que queda ($304,52 vs $270,46) es
+**sólo mano de obra**: fideos tiene 19 s cargados (m60 3 + m61 8 + m75 8) y fiambre tiene 0
+porque la 63, la 64 y la 65 están entre las 34 matrices sin tiempo medido.
 
 ## 2e. Faltantes y máximos de Crudo/Procesado: 5 cajones por ubicación (2026-08-31)
 
