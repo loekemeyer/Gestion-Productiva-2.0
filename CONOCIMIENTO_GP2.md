@@ -401,7 +401,8 @@ sector propio, $114 M Virgilio y $89 M talleristas.
   PIEZA** (no por golpe): en el espejo, `Segundos_Historico = Uni × Tiempo_Historico`
   EXACTO en todas las filas revisadas, y `Segundos_Trabajados` (reloj real) da la misma
   magnitud. GP2.matriz coincide 100% con `public."Matrices"`.
-- `[dato]` **`matriz.uni_x_golpe` no sirve hoy**: 113 matrices en 0 y 2 en null. No se usa.
+- `[dato]` **`matriz.uni_x_golpe` está vacío** (113 en 0 y 2 en null) — pero **no es un
+  campo inútil: es el que falta para leer bien los tiempos**. Ver §2c-quater (golpe ≠ unidad).
 - `[dato]` **N1/N2 (Ahuecafruta/Ahuecapapa) tienen DOS matrices de soldado** para el
   mismo armado (183 genérica + 362/363 específica): el motor suma ambas (~$ 21 de más
   si en realidad es una sola). Si es data duplicada del vecino, corregir las rutas.
@@ -717,6 +718,43 @@ en 0 porque nunca se midió, no porque se haya perdido.
 
 `[dato]` La única matriz sin clasificar es la **`S/N`** ("Corte Arandela Cuchillitos", 2
 pasos de ruta): no tiene número y no existe en el vecino.
+
+## 2c-quater. GOLPE ≠ UNIDAD: la trampa que puede duplicar todos los tiempos (2026-08-31)
+
+`[usuario 2026-08-31]` Dicho textual: *"Hay matrices que expulsan más de una unidad. El
+segundo por unidad, lógicamente, tiene que ser segundos por unidad, y el segundo y pico que
+me dijeron yo entiendo que es por el GOLPE, no por la unidad."*
+
+**Son tres cosas distintas y hay que no confundirlas nunca:**
+
+| Concepto | Qué es | Dónde vive |
+|---|---|---|
+| **segundos por golpe** | lo que tarda la máquina en dar un golpe | **no está en la base** — es lo que dicen los operarios ("un segundo y pico") |
+| **unidades por golpe** | cuántas piezas salen de ese golpe (1, 2, 4…) | `matriz.uni_x_golpe` — **VACÍO en las dos casas** |
+| **segundos por unidad** | `seg_x_golpe ÷ uni_x_golpe` | `matriz.tiempo_historico` ← **es lo que usa el costo** |
+
+**La trampa**: `tiempo_historico` está verificado como **segundos por UNIDAD** (§2c: en el
+espejo, `Segundos_Historico = Uni × Tiempo_Historico` exacto). Si alguien carga ahí un
+tiempo **por golpe** de una matriz que saca 2 piezas por golpe, **el costo de mano de obra
+de esa pieza sale al doble** y nada avisa. Es el mismo tipo de error que la 501 (un número
+correcto en la unidad equivocada).
+
+`[dato 2026-08-31]` **`uni_x_golpe` nunca se cargó**: en GP2 hay 113 matrices en 0 y 2 en
+null; en el vecino (`public."Matrices".Uni_X_Golpe`) 373 en 0 y 38 en null. **El usuario va
+a pasar un archivo con la hoja de consumo que dice cuántas unidades caen por golpe.** Hasta
+que llegue, no se puede convertir ningún tiempo de golpe a unidad.
+
+**Caso abierto — matriz 348** (Corte Cuch Untar Mgo Madera, alimentador): al usuario le
+dijeron que tarda **"un segundo y pico"**, pero eso es **por golpe**. No se carga hasta
+saber cuántas unidades salen por golpe. Hoy su tiempo está en 0 y nunca registró producción.
+
+**Duda abierta `[usuario, va a confirmarlo en planta]`**: cuando los operarios registran,
+¿cargan **golpes** o **unidades**? *"Ahí tenemos una duplicación de unidades en todos lados
+que nos va a confundir si es que lo hacen mal."* `[dato]` La app de GP2 pide textualmente
+**"Unidades producidas"** (`Produccion/RegistroApp/Registro_GP2.html:82`), así que la
+intención del sistema es unidades — pero si en la práctica el operario cuenta golpes en una
+matriz que saca 2, **la producción registrada es la mitad de la real** y el premio y el
+rendimiento salen mal. Confirmar en planta antes de tocar nada.
 
 ## 2e. Faltantes y máximos de Crudo/Procesado: 5 cajones por ubicación (2026-08-31)
 
