@@ -1024,14 +1024,11 @@ function openKgPopup(item) {
   if (item.isis) kgItemInfo.innerHTML += ` <br><small>ISIS: ${esc(item.isis)}</small>`;
   if (rubroSel === "Flejes") kgItemInfo.innerHTML += ` <br>Medida: <strong>${esc(item.medida || "—")}</strong>`;
 
-  // Flejes: grilla de rollos por peso. Rubros con "unidades por paquete" (Cartones):
+  // Flejes: grilla de rollos por peso. Rubros con "unidades por paquete" (Cajas/Cartones):
   // input de paquetes + unidades sueltas. Resto: input simple en la unidad del rubro.
-  // Cajas: recepcion rapida SOLO por unidades (el conteo por paquete/base x pisos se
-  // hace despues en Control Cajas — ver StockFlejes/control-cajas.html).
   const isFlejes = rubroSel === "Flejes";
-  const isCajas = rubroSel === "Cajas";
   const upp = Number(item.uniXPaq) || 0;
-  const usaPaq = !isFlejes && !isCajas && upp > 0;
+  const usaPaq = !isFlejes && upp > 0;
   document.getElementById("flejesRollosGrid").style.display = isFlejes ? "block" : "none";
   document.getElementById("kgInputGroup").style.display = (isFlejes || usaPaq) ? "none" : "block";
   document.getElementById("paqInputGroup").style.display = usaPaq ? "block" : "none";
@@ -1158,12 +1155,9 @@ kgConfirmBtn.addEventListener("click", () => {
   if (!selectedItem) return;
   const isFlejes = rubroSel === "Flejes";
 
-  // Rubros con paquetes (Cartones): total = paquetes x uni_x_paq + sueltas.
-  // Cajas queda EXCLUIDO — la recepcion es rapida (unidades) y el conteo por
-  // base x pisos + sueltas ocurre despues en Control Cajas.
-  const isCajas = rubroSel === "Cajas";
+  // Rubros con paquetes (Cajas/Cartones): total = paquetes x uni_x_paq + sueltas.
   const upp = Number(selectedItem.uniXPaq) || 0;
-  if (!isFlejes && !isCajas && upp > 0) {
+  if (!isFlejes && upp > 0) {
     const paq = parseInt(document.getElementById("inputPaquetes").value, 10) || 0;
     const sueltas = parseInt(document.getElementById("inputSueltas").value, 10) || 0;
     const total = paq * upp + sueltas;
@@ -1303,13 +1297,8 @@ document.getElementById("sendModal").addEventListener("click", async () => {
         reg.peso_x_rollo = null; // reemplazado por el desglose por peso
         reg.rollos_json = (Array.isArray(it._rollosBreak) && it._rollosBreak.length) ? it._rollosBreak : null;
         reg.kg_estipulado = it._estipulado ? parseFloat(String(it._estipulado).replace(",", ".")) || null : null;
-      } else if (rubroSel === "Cajas") {
-        // Cajas: se cargan RAPIDO en unidades segun remito del proveedor.
-        // Queda pendiente de control (base x pisos + sueltas) en Control Cajas.
-        reg.controlado = false;
-        reg.cantidad_declarada = parseCant(it._cant);
       } else if (it._paqBreak) {
-        // Cartones: guardar desglose paquetes + sueltas para trazabilidad.
+        // Cajas/Cartones: guardar desglose paquetes + sueltas para trazabilidad.
         reg.rollos = it._paqBreak.paquetes || null;
         reg.rollos_json = it._paqBreak;
       }
@@ -1333,15 +1322,7 @@ document.getElementById("sendModal").addEventListener("click", async () => {
     try { await actualizarOCsRecibido(toSend); } catch (e) { console.error("actualizar OCs:", e); }
 
     overlay.classList.remove("open");
-    let detTxt = `${data.length} artículo(s) de ${provSel} · Remito: ${remito || "—"}`;
-    if (rubroSel === "Cajas") {
-      // Aviso + link para ir a Control Cajas — la recepcion queda pendiente de control fisico.
-      detTxt += `<br><br><b style="color:#0b5cad">Pendiente de control físico.</b><br>
-        <a href="control-cajas.html" style="display:inline-block;margin-top:10px;padding:12px 20px;background:#0b5cad;color:#fff;border-radius:8px;text-decoration:none;font-weight:800;font-size:17px">
-          Ir a Control Cajas →
-        </a>`;
-    }
-    successDetail.innerHTML = detTxt;
+    successDetail.textContent = `${data.length} artículo(s) de ${provSel} · Remito: ${remito || "—"}`;
     successBox.style.display = "block";
     statusMsg.textContent = "";
 

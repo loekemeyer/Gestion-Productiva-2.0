@@ -200,7 +200,7 @@ input[type="text"]{width:200px}
 <div class="card">
   <div class="header">
     <h1>Recepción Insumos</h1>
-    <div class="hbtns"><a href="../GP2_MODULOS.html">Atrás</a></div>
+    <div class="hbtns"><a href="control-cajas.html" style="background:#0b5cad;color:#fff">Control Cajas</a><a href="../GP2_MODULOS.html">Atrás</a></div>
   </div>
 
   <div class="steps">
@@ -539,6 +539,12 @@ function abrirPopup(i){
     $('unitRow').classList.add('hidden');
     $('kgValue').placeholder='paquetes de '+PAQ();
     updateConv();
+  } else if (i.sector_id===11) {
+    // Cajas: recepcion rapida en UNIDADES del remito (sin toggle Kg/Uni).
+    // El control fisico (base x pisos + sueltas) se hace despues en Control Cajas.
+    $('unitRow').classList.add('hidden');
+    $('kgValue').placeholder='unidades del remito';
+    setUnit('uni');
   } else if (esFleje(i) && String(provSel).toLowerCase()==='basconia') {
     // Basconia (solo este proveedor): siempre KG y sin toggle Kg/Uni.
     $('unitRow').classList.add('hidden');
@@ -1063,10 +1069,20 @@ async function guardar(){
     }
 
     // Sin rollos (cajas, plásticos, etc.): la carga sola completa la recepción.
+    // Cajas (sector 11): guardar cantidad_declarada = cant para que Control Cajas
+    // pueda comparar declarado vs contado, y ofrecer link para ir a controlar.
+    var esCaja = (itemSel.sector_id === 11);
+    if (esCaja && recId) {
+      try { await SB.from('recepcion_insumo').update({ cantidad_declarada: cant }).eq('id', recId); } catch(e){ console.warn('cantidad_declarada:', e); }
+    }
     var sb=$('successBox'); sb.style.display='block';
     $('successBox').querySelector('.title').textContent='✓ Recepción registrada';
     var detUni= (unitSel==='paq') ? (fmt(cantRaw)+' paquetes = <b>'+fmt(cant)+' uni</b>') : ((uReal==='kg'&&kx&&unitSel==='uni') ? (fmt(cantRaw)+' uni = <b>'+fmt(cant)+' kg</b>') : '<b>'+fmt(cant)+' '+esc(uReal)+'</b>');
-    $('successDetail').innerHTML=esc(itemSel.codigo)+' — '+esc(itemSel.descripcion||'')+' · '+detUni+(provSel?(' ('+esc(provSel)+')'):'')+'. Stock actualizado. Mov '+(res.data&&res.data.movimiento_id)+'. '+ocTxt+'.';
+    var extraCajas = esCaja
+      ? ('<br><br><b style="color:#0b5cad">Pendiente de control físico</b> (base × pisos + sueltas)<br>' +
+         '<a href="control-cajas.html" style="display:inline-block;margin-top:8px;padding:12px 22px;background:#0b5cad;color:#fff;border-radius:8px;text-decoration:none;font-weight:900;font-size:18px">Ir a Control Cajas →</a>')
+      : '';
+    $('successDetail').innerHTML=esc(itemSel.codigo)+' — '+esc(itemSel.descripcion||'')+' · '+detUni+(provSel?(' ('+esc(provSel)+')'):'')+'. Stock actualizado. Mov '+(res.data&&res.data.movimiento_id)+'. '+ocTxt+'.'+extraCajas;
     cerrarPopup();
     // el box queda visible; el usuario cierra con 'Nueva recepcion' (reset)
   }catch(e){ m.className='status bad'; m.textContent='Error: '+(e.message||e); }
