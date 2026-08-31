@@ -470,27 +470,79 @@ las bombillas (2f). Regla que deja esto: un artículo "faltante" primero se cheq
 contra Articulos x Prov AT — si es comprado terminado, su lugar es el circuito AT,
 no una ruta productiva.
 
-## 2f. Bombillas con resorte 557/558 — la cadena que FALTA construir (2026-08-31)
+## 2f. Bombillas 557/558 + Filtro 550 — cadena CONSTRUIDA (2026-08-31)
 
-`[usuario 2026-08-31]` Los artículos **557 (Bombilla Resorte Chata)** y **558 (Bombilla
-Resorte Tradicional)** se venden (Est Madre: 1.040 y 2.123 uni/mes) pero **no existen
-en GP2**: ni artículo, ni componentes (GRJ5/GRJ6, BOM8, BOM11, BOM12, BOMB12,
-cartones), ni rutas. La cadena real, dicha por el usuario:
+`[usuario 2026-08-31]` Los artículos **557 (Bombilla Resorte Chata)**, **558 (Bombilla
+Resorte Tradicional)** y **550 (Filtro para Bombilla)** ya están completos en GP2
+(Est Madre: 1.040 / 2.123 / 2.532 uni/mes). Primer caso de artículo con **dos fuentes**
+(fabricado y comprado) en GP2.
 
-- **Doble origen del cuerpo armado** (GRJ6 chata / GRJ5 tradicional):
-  (a) **se fabrica**: caño + resorte se le mandan a **Martín Cornejo**, que devuelve la
-  bombilla armada "lista para el garage"; o (b) **se le compra a Cimarrón** el mismo
-  cuerpo armado. Cimarrón es proveedor ya habitual: le compramos **de manera fija los
-  artículos 654, 658 y 659** `[usuario]` (esos tres tampoco existen en GP2, solo en
-  Est Madre: 568/150/86 uni/mes).
-- Del garage, las bombillas van a **Oscar = Gentile Norberto** `[usuario, confirmado]`
-  (alias "Oscar" cargado en contraparte_alias → tallerista id 8, mismo patrón que
-  Jade=Becker). **PENDIENTE: qué hace exactamente Oscar** — el usuario marcó que no es
-  ni "termina y embala" ni "solo embala"; falta su explicación para armar la ruta.
-  El despiece del vecino le manda: cuerpo armado + resorte BOM8 + tapita aluminio
-  (557) o caño inox 140mm (558) + limpia bombilla + cartón propio.
-- Al construirla, respetar el orden de normalización del CLAUDE.md y modelar el doble
-  origen fabricado/comprado (primer caso de artículo con dos fuentes en GP2).
+### 557/558: el cuerpo armado tiene DOBLE ORIGEN (GRJ6 = chata, GRJ5 = tradicional)
+- **(a) FABRICADO**: **un mismo caño + un resorte** (ambos comprados; componentes
+  BOM12 "Caño Inox 140 mm" y BOM8 "Resorte para Bombilla", Sector Bombilla) van a
+  **Martín Cornejo** (tallerista id 6), que arma y entrega en el **Sector Garage** de
+  Cervantes. Dicho textual: *"el caño es el mismo, Martín le da un golpe diferente a
+  cada caño"*. **(b) COMPRADO**: el mismo cuerpo armado se le compra a **Cimarrón**
+  (`componente.proveedor` de GRJ5/GRJ6), que **también entrega en el garage**. Las dos
+  variantes convergen ahí.
+- *"Ya NO va con tapa de aluminio; hoy solo es caño+resorte"* `[usuario]` — nada de
+  tapita / limpia bombilla / cartón del despiece viejo del vecino.
+- **Cimarrón es proveedor habitual**: le compramos **de manera fija los artículos 654,
+  658 y 659** `[usuario]` (siguen sin construir en GP2; Est Madre 568/150/86 uni/mes).
+- Del garage → **Oscar = Gentile Norberto** (tallerista id 8, alias "Oscar"): recibe el
+  cuerpo + el **pliego adhesivado** y hace el **SKIN, que ES el packaging**. Entrega
+  557/558 terminados en **Virgilio**.
+- **El pliego lo produce BLIST-PACK SA** `[usuario 2026-08-31, vía lista de precios]`:
+  cod isis 3227, lista 2026-08-07 **por pliego** $147,97 ARS. Bombillas **de a 25 por
+  pliego** → cantidad 1/25 = **0,04** en la receta (~$5,92 por bombilla)
+  `[usuario, 25 posiciones a confirmar]`. TRAMPA de roles: **"Blist-Pack" ya existía
+  como TALLERISTA id 13** (así figura en el vecino entregando GRJ5/GRJ6) y ahora además
+  es **proveedor de insumo "Blist-Pack SA"** — misma empresa, DOS roles, NO se fusionan.
+- **El envasado de Gentile se cobra POR UNIDAD**: $69 ARS/uni "Skin Bombillas" (lista
+  2026-07-20, referencia isis **557/558/654** — o sea el 654 de Cimarrón TAMBIÉN lleva
+  este envasado cuando se construya). Modelado en la tabla nueva
+  **`GP2.precio_tallerista`** (tallerista_id + componente de salida del paso) y
+  `v_costo_componente` lo suma en los pasos de tallerista (CTE `talx`, mismo patrón que
+  `precio_servicio_pieza`; pasos de tallerista sin precio siguen a costo 0).
+- **Recetas**: 557 = GRJ6 ×1 + PLIEGO557 ×0,04; 558 = GRJ5 ×1 + PLIEGO558 ×0,04.
+  **BOM**: GRJ6 = BOM12 ×1 + BOM8 ×1; GRJ5 ídem (mismo caño, mismo resorte).
+  **Rutas** (ids 609–616, patrón "Insumo X -> Art"): fabricada = insumos → Martín (sale
+  GRJ) → Gentile (sale terminado) → Virgilio; comprada = insumo GRJ (Cimarrón) →
+  Gentile → Virgilio; pliego = insumo → Gentile → Virgilio.
+  Caja del vecino: N°2 (A8) de a 24 (`componente_caja_id`; la caja NO está en la
+  receta — la receta es la que dictó el usuario).
+
+### 550 Filtro para Bombilla: DOS variantes, hoy lo hace iJupa
+1. **IJUPA (tallerista id 10) lo hace ENTERO**: solo le mandamos caja y cartón → 550
+   terminado → Virgilio. **Regla explícita del usuario: aunque funcione como prov AT,
+   SE MODELA Y MUESTRA COMO TALLERISTA.**
+2. **FILTROS ×2 y PRECINTOS ×2** por unidad (componentes nuevos BOM13/BOM14, Sector
+   Bombilla) **comprados a CIMARRÓN** → entrega en Cervantes y **se guardan en el
+   Sector Garage** (*"no sé si tienen sector, no creo"* — el garage es su lugar; sector
+   lógico = Bombilla, ubicación física = Garage) → van a iJupa con caja y cartón.
+- **Cartón 550 = posición CCG6B** (vecino), consumido **÷25 como los pliegos** (0,04
+  por unidad) `[deducido de la verificación pedida por el usuario, a confirmar]`.
+  **Caja N°22 (A9) de a 36** `[dato: Uni_x_Articulo_x_Caja + est_madre uxb; el Despiece
+  viejo dice 12 — presentación vieja/display]`. Receta: BOM13 ×2 + BOM14 ×2 +
+  CCG6B ×0,04 + A9 ×1/36. Rutas patrón "Insumo X -> Art 550 (IJUPA)".
+- **Los talleristas del 550 en el vecino (Garcia/Poly) están DESACTUALIZADOS**: hoy es
+  iJupa. `[usuario]`
+
+### Verificación (2026-08-31, v_consumo_demanda / v_consumo_componente / oc_bundle)
+GRJ6 = 1.040 y GRJ5 = 2.123 **sin duplicar** entre las dos variantes de origen (el walk
+deduplica por UNION); caño BOM12 = resorte BOM8 = **3.163**; pliegos = **41,6 / 84,9**
+y cartón 550 = **101,3** (÷25); filtros y precintos = **5.064**; caja A9 = 70,3. Costos:
+GRJ5/GRJ6 = 2 USD (caño+resorte placeholder), pliego $147,97/pliego, 557/558 Terminado
+servicios $69 (envasado Gentile). Los 3 artículos aparecen en OC (BOM13/14 → Cimarrón,
+pliegos → Blist-Pack SA) y en v_valor_pedido; Faltantes no los lista porque ese módulo
+sólo mira Crudo/Procesado (por diseño, 2e).
+
+### Pendientes de esta cadena
+- **Caño BOM12 y resorte BOM8 sin proveedor ni precio real** (placeholder 1 USD):
+  ¿a quién se compran? (¿también Cimarrón?). BOM12 además sin kg ni uni_x_cajon.
+- Filtros/precintos/cartón CCG6B con placeholder 1 USD (Cimarrón/cartonero sin lista).
+- Las **25 posiciones** del pliego y el **÷25 del cartón CCG6B** a confirmar.
+- **654/658/659** (Cimarrón) sin construir; el 654 lleva el envasado de Gentile.
 
 ## 2g. Corta Queso 546 — construido (2026-08-31)
 
