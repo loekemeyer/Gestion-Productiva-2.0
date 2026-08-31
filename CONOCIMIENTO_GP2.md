@@ -640,9 +640,13 @@ en ese archivo):
 - `[dato, verificado]` **Las rutas alternativas NO duplican el material** (G7 con y sin M77
   da US$0,14866 exacto). Los casos de "fleje contado dos veces" son dos piezas distintas
   del mismo fleje y están bien.
-- `[dato]` **La receta del 519 tiene el blister ×2 a medias**: hoja y arandela ×2 pero el
-  mango PEP5 en ×1; y el 719 (mismo cuchillo, marca Chef) no lo tiene en ningún componente.
-  Afecta consumo y máximos, no costo. Pendiente de confirmar.
+- `[usuario 2026-08-31, RESUELTO]` **TODOS los cuchillos de untar van en blister de 2**:
+  los de mango de madera (519 Loeke / 719 Chef) y los de mango plástico (551 / 878). Se
+  duplican hoja, arandela y mango; el **cartón y la caja NO**, porque el blister es uno
+  solo. Estaba a medias: el 519 tenía dos hojas con un solo mango y el 719 no tenía el ×2
+  en ningún componente. Corregidas las 4 recetas. La verificación cierra sola: la hoja
+  plástica E8 consume 1.990/mes y sus dos mangos (PA4 rojo 1.420 + PA5 Chef 570) suman
+  exactamente eso.
 - `[dato 2026-08-31, arreglado]` **El modelo de seguridad quedó parejo**: la única
   escritura anon que quedaba (`GP2.empleado`) pasó por RPC — `empleado_guardar` /
   `empleado_activar`, SECURITY DEFINER, validan legajo único — y `Produccion/abm_GP2.html`
