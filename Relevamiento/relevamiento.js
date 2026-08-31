@@ -1,6 +1,9 @@
 /* =========================================================
    Módulo Relevamiento — schema relevamiento_cervantes
-   Lee/escribe vía API pública (vistas v_rc_* + RPC rc_* en public).
+   Lee vistas v_rc_* (schema public por ahora) y ESCRIBE via puentes
+   GP2.rc_* (Auditoria 2026-08-31 Alta 3): el frontend GP2 no llama a
+   public.* directo; los puentes SECURITY DEFINER delegan en
+   public.rc_* (que a su vez tocan relevamiento_cervantes.*).
    - Nuevo relevamiento (genera cabecera + detalle desde el catálogo)
    - Ver anteriores + resumen (total y por lugar/planta)
    - Cargar el conteo de cada relevamiento
@@ -10,6 +13,9 @@
   "use strict";
 
   const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+  // Cliente scoped al schema GP2 (solo para las RPCs rc_*).
+  // Las lecturas de vistas v_rc_* siguen por el cliente default (public).
+  const sbGP2 = sb.schema('GP2');
 
   // Tipos de relevamiento (orden A1..A7)
   const TIPOS = [
@@ -707,7 +713,7 @@
       if (!confirm("Ya existe un relevamiento de " + TIPO_LABEL[tipo] + " en " + planta + " para esa fecha. ¿Generar otro igual?")) return;
     }
     const btn = $("btnGenerar"); btn.disabled = true;
-    const { data, error } = await sb.rpc("rc_generar", { p_tipo: tipo, p_planta: planta, p_fecha: fecha, p_encargado: encargado });
+    const { data, error } = await sbGP2.rpc("rc_generar", { p_tipo: tipo, p_planta: planta, p_fecha: fecha, p_encargado: encargado });
     btn.disabled = false;
     if (error) { showMsg("No se pudo generar (¿estás logueado?): " + error.message, "err"); return; }
     showMsg("Relevamiento generado.", "ok");
@@ -734,7 +740,7 @@
     if (act === "borrar") {
       const r = RELS.find(x => x.id === id);
       if (!confirm(`¿Borrar el lugar ${r.planta} del relevamiento de ${TIPO_LABEL[r.tipo]} (${fmtFecha(r.fecha)})? Se pierde su conteo.`)) return;
-      const { error } = await sb.rpc("rc_borrar", { p_relevamiento_id: id });
+      const { error } = await sbGP2.rpc("rc_borrar", { p_relevamiento_id: id });
       if (error) { showMsg("No se pudo borrar: " + error.message, "err"); return; }
       showMsg("Lugar borrado.", "ok"); cargarLista(); return;
     }
@@ -765,7 +771,7 @@
     const encargado = $("agEncargado").value.trim();
     if (!encargado) { $("agEncargado").focus(); $("agEncargado").style.borderColor = "#c00"; return; }
     const btn = $("agConfirmar"); btn.disabled = true;
-    const { data, error } = await sb.rpc("rc_agregar_lugar", { p_grupo_id: AG.grupo, p_planta: planta, p_fecha: fecha, p_encargado: encargado });
+    const { data, error } = await sbGP2.rpc("rc_agregar_lugar", { p_grupo_id: AG.grupo, p_planta: planta, p_fecha: fecha, p_encargado: encargado });
     btn.disabled = false;
     if (error) { showMsg("No se pudo agregar el lugar: " + error.message, "err"); return; }
     cerrarAgregar();
@@ -1200,8 +1206,8 @@
     if (DET.rel.nuevo) {
       const r = DET.rel;
       const { data: newId, error: cErr } = r.grupoId
-        ? await sb.rpc("rc_agregar_lugar", { p_grupo_id: r.grupoId, p_planta: r.planta, p_fecha: r.fecha, p_encargado: r.encargado })
-        : await sb.rpc("rc_generar", { p_tipo: r.tipo, p_planta: r.planta, p_fecha: r.fecha, p_encargado: r.encargado });
+        ? await sbGP2.rpc("rc_agregar_lugar", { p_grupo_id: r.grupoId, p_planta: r.planta, p_fecha: r.fecha, p_encargado: r.encargado })
+        : await sbGP2.rpc("rc_generar", { p_tipo: r.tipo, p_planta: r.planta, p_fecha: r.fecha, p_encargado: r.encargado });
       if (cErr || newId == null) { showMsg("No se pudo crear el relevamiento (¿estás logueado?): " + (cErr ? cErr.message : ""), "err"); btn.disabled = false; return; }
       // Mapear cat_id -> det_id real del relevamiento recién creado.
       const { data: nd, error: ndErr } = await sb.from("v_rc_detalle").select("det_id,cat_id").eq("relevamiento_id", newId).order("cat_id", { ascending: true });
@@ -1231,7 +1237,7 @@
       // Flejes: adjuntar el desglose de rollos (array de {caj,kg}) o null si se vació.
       DET.cols.forEach(c => { if (c.flejeTandas) vals.rollos_json = (DET.rollos && DET.rollos[detId] && DET.rollos[detId].length) ? DET.rollos[detId] : null; });
       tr.classList.add("saving");
-      const { error } = await sb.rpc("rc_set_conteo", { p_tipo: DET.rel.tipo, p_det_id: detId, p_vals: vals });
+      const { error } = await sbGP2.rpc("rc_set_conteo", { p_tipo: DET.rel.tipo, p_det_id: detId, p_vals: vals });
       tr.classList.remove("saving");
       if (error) { fail++; continue; }
       ok++; DET.dirty.delete(detId); tr.classList.remove("dirty");
@@ -1249,7 +1255,7 @@
     // Si se creó el relevamiento en este Guardar pero NO se pudo guardar ninguna fila,
     // se borra para no dejar un relevamiento vacío (vuelve al estado "nuevo" para reintentar).
     if (creadoAhora && ok === 0) {
-      await sb.rpc("rc_borrar", { p_relevamiento_id: DET.rel.id });
+      await sbGP2.rpc("rc_borrar", { p_relevamiento_id: DET.rel.id });
       DET.rows.forEach(row => {
         const old = row.det_id, neg = -row.cat_id;
         const tr = document.querySelector(`#detBody tr[data-det="${old}"]`); if (tr) tr.dataset.det = neg;
@@ -1472,7 +1478,7 @@
     if (act === "borrar") {
       const r = RELS.find(x => x.id === id);
       if (!confirm(`¿Borrar el lugar ${r ? r.planta : ""}? Se pierde su conteo.`)) return;
-      const { error } = await sb.rpc("rc_borrar", { p_relevamiento_id: id });
+      const { error } = await sbGP2.rpc("rc_borrar", { p_relevamiento_id: id });
       if (error) { showMsg("No se pudo borrar: " + error.message, "err"); return; }
       showMsg("Lugar borrado.", "ok");
       $("vistaDetalle").style.display = "none"; $("vistaLista").style.display = "";

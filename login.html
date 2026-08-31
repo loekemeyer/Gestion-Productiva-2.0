@@ -170,7 +170,10 @@
 
       const email = session.user?.email || "";
       // Chequear whitelist via RPC (pasamos email explicito desde el JWT verificado de Google)
-      const { data: role, error } = await sb.rpc("get_role_for_email", { p_email: email });
+      // Auth compartida con el vecino: se llama al puente GP2.get_role_for_email
+      // (SECURITY DEFINER) que delega en public.get_role_for_email para no acoplar
+      // el frontend GP2 al schema public (Auditoria 2026-08-31, Alta 3).
+      const { data: role, error } = await sb.schema('GP2').rpc("get_role_for_email", { p_email: email });
       if (error) {
         // Fallo transitorio del RPC (red caida, timeout, 5xx): NO cerrar la sesion
         // ni acusar "no autorizado" — dejar reintentar.
