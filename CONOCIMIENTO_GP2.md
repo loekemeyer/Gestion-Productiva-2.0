@@ -412,6 +412,98 @@ llenar al máximo".
   crearla** (`orden_compra_item.precio_uni/moneda` via `crear_oc`): si el precio cambia
   después, la OC vieja no se mueve.
 
+## 2c-bis. Precios REALES cargados (2026-08-31): quién pasa lista, en qué moneda y unidad
+
+Fuente: `Copia_de_A_Costos_VIGENTES.xlsx`, hoja "Lista de Precios " (bloques por
+proveedor; col E = Cod ISIS, col G = último $ del proveedor, col I = fecha de lista).
+`[usuario]` **Todos los precios son SIN IVA.** 98 placeholders de regulación pisados en
+`precio_proveedor` + tabla nueva `GP2.precio_servicio_pieza` (85 precios de servicio
+exactos por pieza; la vista de costos usa el exacto y cae al plano si no hay).
+
+### Quién cotiza cómo (aprendido del archivo)
+
+- **Flejes → USD POR KG.** `[dato]` Basconia (lista vieja, ago-2025), Aperam inox
+  (jun-26), Hermac (jul-26), Brawin redondos (may-26), Szapiro, JL Metales (aluminio
+  ganchito, caro: 10,50), Altrak (alambre galvanizado 1,715). **El matcheo es por
+  `fleje_detalle.cod_isis`**, nunca por descripción. Un mismo isis puede estar en dos
+  listas (0455 cuchilla abrelata: Basconia 3,60 vs Hermac 6,27) — gana el de
+  `componente.proveedor`.
+- **Tratamientos → PESOS POR KG** `[dato, verificado exacto contra la hoja Tratamientos]`:
+  Pedernera cromado (46 precios distintos por pieza, $1.084–20.192/kg — pieza chica =
+  kg más caro; su lista trae los GRAMOS de cada pieza en la col "Cod Art"), FAAT
+  temple/cementado ($3.084–3.336/kg), Guazzaroni niquelado $2.606 / zincado y pulido
+  $1.172, New Metal temple $5.500 (más caro que FAAT), Industermic zincado $671 (LA
+  MITAD que Guazzaroni), MABRA pavonado $1.300 (vs Industermic $1.880). En
+  `precio_servicio_pieza` están convertidos a $/pieza (kg de lista o `kg_x_uni` GP2).
+- **Pintado y serigrafía → PESOS POR PIEZA** `[dato]`: Jade $127–305 (jul-26),
+  Rec Color $203–225 (sep-26, más caro que Jade), Ximpa serigrafía $18–24.
+  **Daniel (pintor) NO tiene lista en el archivo.**
+- **Remaches Barres Daniel (Bella Vista) → PESOS POR UNIDAD** (jul-26), del remache
+  CRUDO. `[usuario]` **Guazzaroni los niquela** → los V* niquelados pasaron a
+  `estado_compra='fabricacion'` (cuestan CV* crudo + niquelado; la OC compra el crudo).
+  Excepciones compradas niqueladas: **V13 ojal de Mandelli** y V20 (ver trampas).
+- **Cajas → Corrugadora del Plata, PESOS POR UNIDAD** (jul-26). `[usuario]` **"del
+  Plata" y "del Sur" son EL MISMO proveedor** (siempre se confundieron los nombres).
+  **Recicor cotiza las mismas 9 cajas ~19% más barato** (ago-26) — cargadas como
+  referencia sin vincular, la vigente es del Plata por decisión del usuario.
+- **Plásticos: la lista de Pat Bet Plast es INYECCIÓN SOLA, SIN material** `[dato:
+  hoja Plasticos]`. El precio real de la pieza = pellet × gramos (+4% desperdicio) +
+  inyección — está calculado en la hoja "Plasticos" col "Total Mat e Inyeccion", y ESO
+  es lo cargado `[usuario: "las dos"]`. Pellets ("la bolsa plástica") cargados aparte
+  sin vincular, $/kg de los 3 proveedores activos: `[dato]` conviene partido —
+  **Santa Rosa gana en PP/PS/AI** (cotiza en pesos: PP $3.065 ≈ US$2,00),
+  **Indarnyl en nylon y ABS**, **Beta sólo en PE**.
+- **Pliego adhesivado (skin) → Blist-Pack SA (3227), PESOS POR PLIEGO** (ago-26): las
+  notas "12 bocas"/"20 bocas" de su lista indican posiciones por pliego. Skin Bombilla
+  $147,97 (25 posiciones `[usuario]`, cargado en PLIEGO557/558). No confundir con el
+  ENVASADO de Gentile/Oscar ($69/uni, `precio_tallerista`).
+- **Cartones Grafica Pol: el precio va POR FORMATO de cartón, NO por familia de
+  artículo** `[usuario, corrigiendo la primera propuesta]`: hay formatos baratos (8 =
+  skin uña $64,75; huevo $48; corbata ocho $43) y caros (Medida B Chef $106,67;
+  extractor $238). La hoja " Cartones" tiene el mapeo artículo→tipo (col A/C, ojo:
+  numeración Loeke 1-18 y Chef 19-36 SE PISAN, desambigua la zona de filas). Pendiente
+  de validar y cargar (85 placeholders).
+
+### Decisiones tomadas con el usuario (2026-08-31)
+
+- **Cremallera → importada vía Tierra Nativa, código 523C, USD 1,10/u** (ene-26).
+  Cargada en E13 (entra como insumo de armado del 523/723, no la toca el ×kg de
+  flejes). **CV17 (cremallera p/niquelar de Barres) → discontinuo.**
+- **V18C Vástago Alu → discontinuo** ("el remache de aluminio no va más").
+- **Skin 500 y Skin 506 (componentes cartón) → discontinuos** ("ya no van más").
+- **Mandelli cotiza el ojal POR MILLAR** ($15.366,73 = $15,37/u) `[usuario confirmó]`.
+- **Charcas sobre el Fleje 90 = CORTE de alambre para FILTROS DE CAFÉ, $9,50/u**
+  `[dato: las 5 rutas de C3+Charcas terminan en 031/034/120/836/867]` — NO es el
+  resorte de $110 (esos eran EP10/LLF8, resortes de batidores).
+- **El tocho de afiladores = 90 arandelas enroscadas en un tornillo largo** `[usuario]`.
+  Scorrano rectifica el tocho entero: $1.406 POR TOCHO (cargado así; el stock de
+  J1/E4 se cuenta en tochos, 60 por cajón).
+
+### Trampas nuevas (nos mordieron o casi)
+
+- **El motor de costos camina rutas SIN CANTIDADES**: en un armado N→1 (90 arandelas →
+  1 tocho; 25 posiciones → 1 pliego; los kg de GRJ ya anotados) cuenta UN hijo. Hoy el
+  tocho E4 vale ~$1.454 cuando el real es ~$5.700 — impacto chico (6 tochos en stock)
+  pero ES EL pendiente estructural: cantidad por paso en `ruta_paso`. `[deducido, medido]`
+- **Kollplast vs Pat Bet, misma pieza, otro precio**: Pirolo $51,76 vs $20,07 (×2,5),
+  Buje $20,48 vs $21,06. Todo quedó cargado con Pat Bet (así está `componente.proveedor`);
+  revisar al repartir los inyectores. `[dato]`
+- **A9 (mango alambre corta queso): la lista de Pedernera dice 21 g, GP2 tiene 39 g** —
+  el precio exacto usa los gramos de la lista. `[dato, sin resolver]`
+- **La lista de un proveedor puede seguir mostrando lo que ya no se le compra**: Pat Bet
+  lista el cilindro PB1 (discontinuado), Suipacha el tornillo cortaqueso (¿importado?),
+  Barres la cremallera. La lista dice qué VENDE, no qué le COMPRAMOS.
+- **Fechas de lista MUY dispares** (Basconia ago-25 vs Aperam jun-26): el "precio
+  vigente" puede tener un año. La fecha real quedó en `fecha_lista` de cada fila.
+
+### Placeholders que quedan (1 USD, listados — no inventar)
+
+85 cartones (formato a validar) · 14 plásticos dudosos (PA4/PA5 untar, PEP1/3/4,
+PB6/PB8B/PC7 insertos, PC12, PCP3 clavo, PEP5/7/8 madera, PB1 discontinuado) ·
+flejes D7 (EstaMetal sin lista), F12, Z19A · remaches CV13/CV14/V14/CV16/CV18D/V20 ·
+BOM12/BOM8/BOM13/BOM14 (Cimarrón, sesión bombillas) · servicios sin exacto: A7
+(¿cromado? no está en lista Pedernera), B12/Z22 llavero pie (ningún pintor lo lista).
+
 ## 2e. Faltantes y máximos de Crudo/Procesado: 5 cajones por ubicación (2026-08-31)
 
 `[usuario 2026-08-30]` **"En crudo y procesado, el stock máximo tendría que ser 5

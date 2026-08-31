@@ -1,3 +1,5 @@
+-- APLICADO 2026-08-31 por el usuario en el SQL Editor (verificado: B4 $314,55 / C10 $33,11).
+-- Queda como documentacion; es idempotente, correrlo de nuevo no hace nada.
 -- PENDIENTE (2026-08-31): servicios EXACTOS por pieza en el motor de costos.
 -- Contexto: el usuario pidio que el costo de servicios (cromado, temple, niquelado, pintado...)
 -- sea EXACTO por pieza, no un promedio por proveedor. Los precios ya estan cargados en la tabla
