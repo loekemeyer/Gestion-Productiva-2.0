@@ -446,6 +446,20 @@ componentes de Crudo y 12 de Procesado en esa condición `[dato: v_faltante_esta
 
 ---
 
+## 2f-bis. Por qué faltan artículos en GP2 (2026-08-31)
+
+`[usuario 2026-08-31]` Explicación de la cobertura: *"el empleado que armó las bases
+normalizadas se enfocó primero en los artículos que usan un FLEJE para la fabricación.
+Las bombillas, como el caño es comprado y no tiene proceso productivo interno nuestro,
+por eso no están"*. O sea: **GP2 tiene los artículos CON proceso de fleje propio (80
+con demanda, 116.817 uni/mes); faltan los comprados/sin proceso interno (276 códigos
+con demanda, 79.490 uni/mes — el 40% de las unidades)**. `[dato]` Los que más venden
+de los faltantes: coladores 26/27 (9.469 + 6.294), corta queso 546 (5.655), rallador
+321 (3.035), filtro bombilla 550 (2.532), bombillas 558/557, cepillos 555/535,
+peladores/cucharas/espátulas, y 88 códigos con sufijo "E" (529E, 582E… significado a
+confirmar con el usuario). Se van incorporando de a uno con el usuario, empezando por
+las bombillas (2f).
+
 ## 2f. Bombillas con resorte 557/558 — la cadena que FALTA construir (2026-08-31)
 
 `[usuario 2026-08-31]` Los artículos **557 (Bombilla Resorte Chata)** y **558 (Bombilla
