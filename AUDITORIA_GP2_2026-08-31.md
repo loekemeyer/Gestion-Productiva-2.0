@@ -77,6 +77,14 @@ siguen intactos ($3,58/kg, se piden en kg).
 - **Migración retroactiva de cartones** aplicada (idempotente, no cambió nada en
   producción): ahora `carton_formato`, `carton_categoria` y las columnas de `componente`
   están en el historial, con la semántica correcta documentada en la propia migración.
+- **La regla de oro del costeo, garantizada por el modelo** (era el hallazgo #6). Se creó
+  la maestra `GP2.proceso` (con FK desde `precio_servicio_pieza`) y `GP2.tarifa_servicio`
+  (proveedor + proceso + precio): las 6 tarifas que estaban repetidas en 33 filas ahora
+  viven una sola vez, y la fila por pieza solo dice qué proceso le toca. Pedernera se
+  queda por pieza porque cobra distinto cada una. **Verificado con una foto de los 538
+  costos antes y después: 0 cambiaron.** Y la prueba de que ahora sirve: subir el niquelado
+  de $2.606 a $3.000 revaloriza **31 componentes con un solo UPDATE** (se probó en una
+  transacción con rollback).
 
 **Lo que NO se tocó, a propósito**: los 34 tiempos de matriz en cero. Iba a pasarlos a
 NULL para que el semáforo los detecte, pero `registrar_evento_prod` lee

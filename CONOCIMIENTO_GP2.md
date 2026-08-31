@@ -577,11 +577,18 @@ en ese archivo):
 - `[dato]` **`v_costo_componente.faltan_tiempos` no detecta el tiempo en CERO**, solo NULL.
   Hay 34 matrices en 0 usadas en rutas → 23 componentes con mano de obra $0 y el semáforo
   diciendo "todo bien". No usar ese contador como garantía hasta arreglarlo.
-- `[dato]` **`precio_servicio_pieza.proceso` NO participa del join de la vista**: es texto
-  libre sin FK, y ya diverge de `proveedor_servicio.proceso` (minúscula vs Title Case, y
-  `'Templado, Cementado'` con dos procesos en una celda). **La REGLA DE ORO del costeo hoy
-  NO está garantizada por el modelo**: falta una maestra `GP2.proceso` y una
-  `tarifa_servicio` por proceso (33 de 68 filas son la misma tarifa repetida).
+- `[dato 2026-08-31, RESUELTO el mismo día]` **La REGLA DE ORO ahora SÍ está garantizada
+  por el modelo.** Antes `precio_servicio_pieza.proceso` era texto libre que ni siquiera
+  participaba del join, y la tarifa del niquelado estaba repetida en 17 filas. Ahora:
+  maestra **`GP2.proceso`** (11 procesos, con FK desde `precio_servicio_pieza`) y
+  **`GP2.tarifa_servicio`** (proveedor + proceso + precio, UNIQUE) con las 6 tarifas planas
+  que estaban repetidas en 33 filas. La fila por pieza quedó diciendo QUÉ proceso le toca;
+  el PRECIO sale de la tarifa. **Precedencia en la vista**: tarifa por kg de la pieza →
+  precio por unidad de la pieza → tarifa por kg del proceso → tarifa por unidad → plano.
+  Pedernera se queda con tarifa por pieza (cobra distinto cada una, 35 tarifas), Jade y
+  Ximpa por unidad. **Probado**: subir el niquelado de $2.606 a $3.000 revaloriza **31
+  componentes de una sola vez** (V1 pasa de $0,912 a $1,05 = 3.000 × 0,35 g), y la
+  migración no movió ni un peso (0 de 538 componentes cambiaron de costo).
 - `[dato]` **El precio del cartón sigue cocinado en 73 filas**: `carton_formato` no tiene
   columna de precio, así que "sube el pliego y se recalculan las 4 tarifas" todavía no es
   verdad. Falta `precio_pliego` + `posiciones_x_pliego`.
