@@ -26,6 +26,8 @@ window.supabase = { createClient: function(){ return {
     window.__calls.push({name:name, args:args});
     if(name==='envios_ps_bundle') return { data: ${JSON.stringify(BUNDLE)}, error: null };
     if(name==='crear_envio_ps') return { data: { id: 1 }, error: null };
+    if(name==='marcar_faltante') return { data: { ok: true, id: 7 }, error: null };
+    if(name==='resolver_faltante') return { data: { ok: true, resueltos: 1 }, error: null };
     return { data: null, error: { message: 'rpc desconocida '+name } };
   }
 };}};
@@ -85,6 +87,12 @@ window.supabase = { createClient: function(){ return {
   // marca F en fila 2 (queda sin cantidad) + kg en fila 1 -> enviar
   await page.click('#tbody tr:nth-child(2) .falt-box');
   ok(await page.$eval('#tbody tr:nth-child(2)', e => e.classList.contains('falt')), 'fila 2 marcada falt');
+  // la F ademas se persiste (best-effort): marcar_faltante del SC de la fila
+  await page.waitForFunction(() => (window.__calls || []).some(c => c.name === 'marcar_faltante'));
+  const mf = await page.evaluate(() => (window.__calls || []).filter(c => c.name === 'marcar_faltante'));
+  ok(mf.length === 1 && mf[0].args.p_comp_id === 1 && mf[0].args.p_origen === 'envios_ps' &&
+     mf[0].args.p_nota === 'Envio a Becker',
+     'F activada persiste: marcar_faltante(sc 1, envios_ps): ' + JSON.stringify(mf[0].args));
   await page.fill('#tbody tr:first-child input[data-f="kg"]', '12,5');
 
   // buffer persistido con la clave nueva (por par sc:sp)

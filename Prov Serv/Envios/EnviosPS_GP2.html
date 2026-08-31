@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="es">
 <head>
-<!-- v1.1.0 — refactor: helpers/fases/buffer/tandas compartidos en gp2-envios-common.js; CSS a gp2-modulo.css -->
+<!-- v1.2.0 — la marca F se persiste en GP2.faltante_marcado (marcar/resolver_faltante, best-effort) -->
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>Envío a Proveedores de Servicios · GP2</title>
@@ -87,7 +87,7 @@
 </div>
 
 <script src="../../tandas-popup.js?v=20260830e"></script>
-<script src="../../gp2-envios-common.js?v=20260830m"></script>
+<script src="../../gp2-envios-common.js?v=20260831a"></script>
 <script>
 "use strict";
 
@@ -221,6 +221,10 @@ $("tbody").addEventListener("click", function(e){
   if (btn.dataset.a === "falt"){
     d.buf.falt = !d.buf.falt;
     BUF.save();
+    // ademas del buffer, la F se persiste en GP2.faltante_marcado (best-effort).
+    // El componente faltante es el SC (lo crudo que habia que mandar al PS).
+    var scId = d.meta ? d.meta.sc_id : String(d.k).split(":")[0];
+    E.persistirFalt(SB, d.buf.falt, scId, "envios_ps", "Envio a "+selPS.nombre);
     renderTabla();
     return;
   }

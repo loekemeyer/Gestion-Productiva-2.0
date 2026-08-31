@@ -240,6 +240,27 @@
       '" data-a="falt">' + (it.falt ? "F" : "") + "</button></td>";
   }
 
+  /* ---------- persistencia de la marca F (2026-08-31) ----------
+     En el programa viejo la F se anotaba a mano; ahora ademas del buffer
+     local se registra en GP2.faltante_marcado: al ACTIVAR la F llama
+     marcar_faltante (origen de la pantalla: 'envios_tall' / 'envios_ps');
+     al DESACTIVARLA resuelve el ultimo abierto de ese componente+origen.
+     Es best-effort y NUNCA bloquea la UI: el buffer local sigue siendo la
+     verdad de la pantalla; si la red falla, se ignora en silencio. */
+  function persistirFalt(sbCli, activada, compId, origen, nota) {
+    try {
+      var usuario = null;
+      try { usuario = localStorage.getItem("gp2_usuario") || null; } catch (e2) {}
+      var p = activada
+        ? sbCli.rpc("marcar_faltante", {
+            p_comp_id: Number(compId), p_origen: origen,
+            p_nota: nota || null, p_usuario: usuario })
+        : sbCli.rpc("resolver_faltante", {
+            p_comp_id: Number(compId), p_origen: origen });
+      if (p && typeof p.then === "function") p.then(function () {}, function () {});
+    } catch (e) {}
+  }
+
   /* ---------- exito (fase 3) ---------- */
   function mostrarExito(detalle) {
     $("successCode").textContent = genCode();
@@ -274,7 +295,7 @@
     mostrarFase: mostrarFase, gridContrapartes: gridContrapartes,
     filtrar: filtrar, buscarMeta: buscarMeta, actualizarEnviar: actualizarEnviar,
     tandaTotales: tandaTotales, abrirTandas: abrirTandas,
-    tdInput: tdInput, tdTanda: tdTanda, tdFalt: tdFalt,
+    tdInput: tdInput, tdTanda: tdTanda, tdFalt: tdFalt, persistirFalt: persistirFalt,
     mostrarExito: mostrarExito, guardarItems: guardarItems
   };
 

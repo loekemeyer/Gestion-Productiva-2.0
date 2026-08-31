@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="es">
 <head>
-<!-- v1.1.0 — refactor: helpers/fases/buffer/tandas compartidos en gp2-envios-common.js -->
+<!-- v1.2.0 — la marca F se persiste en GP2.faltante_marcado (marcar/resolver_faltante, best-effort) -->
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>Envíos por Tallerista · GP2</title>
@@ -98,7 +98,7 @@
 </div>
 
 <script src="../../tandas-popup.js?v=20260830e"></script>
-<script src="../../gp2-envios-common.js?v=20260830m"></script>
+<script src="../../gp2-envios-common.js?v=20260831a"></script>
 <script>
 "use strict";
 
@@ -229,7 +229,12 @@ $("tbody").addEventListener("click", function(e){
   var btn=e.target.closest("button[data-a]");
   if(!btn) return;
   var d=itemDeFila(btn.closest("tr"));
-  if(btn.dataset.a==="falt"){ d.buf.falt=!d.buf.falt; BUF.save(); render(); return; }
+  if(btn.dataset.a==="falt"){
+    d.buf.falt=!d.buf.falt; BUF.save();
+    // ademas del buffer, la F se persiste en GP2.faltante_marcado (best-effort)
+    E.persistirFalt(SB, d.buf.falt, d.cid, "envios_tall", "Envio a "+selT.nombre);
+    render(); return;
+  }
   if(btn.dataset.a==="tandas"){
     E.abrirTandas({
       titulo:"Tandas — "+(d.meta?d.meta.cod:""),

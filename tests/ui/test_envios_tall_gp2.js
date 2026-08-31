@@ -22,6 +22,8 @@ window.supabase = { createClient: function(){ return {
     window.__calls.push({name:name, args:args});
     if(name==='talleristas_bundle') return { data: ${JSON.stringify(BUNDLE)}, error: null };
     if(name==='crear_envio_tallerista') return { data: { id: 1 }, error: null };
+    if(name==='marcar_faltante') return { data: { ok: true, id: 7 }, error: null };
+    if(name==='resolver_faltante') return { data: { ok: true, resueltos: 1 }, error: null };
     return { data: null, error: { message: 'rpc desconocida '+name } };
   }
 };}};
@@ -63,9 +65,26 @@ window.supabase = { createClient: function(){ return {
   ok(uniTxt === '500', 'Uni en vivo = 500 (10kg / 0,02): ' + uniTxt);
   await page.fill('#tbody tr:first-child input[data-f="caj"]', '3');
 
-  // marca falt en fila 2
+  // marca falt en fila 2 -> ademas del buffer, se persiste via marcar_faltante (best-effort)
   await page.click('#tbody tr:nth-child(2) .falt-box');
   ok(await page.$eval('#tbody tr:nth-child(2)', e => e.classList.contains('falt')), 'fila 2 falt');
+  await page.waitForFunction(() => (window.__calls || []).some(c => c.name === 'marcar_faltante'));
+  let mf = await page.evaluate(() => (window.__calls || []).filter(c => c.name === 'marcar_faltante'));
+  ok(mf.length === 1 && mf[0].args.p_comp_id === 71 && mf[0].args.p_origen === 'envios_tall' &&
+     mf[0].args.p_nota === 'Envio a Martin' && mf[0].args.p_usuario === null,
+     'F activada persiste: marcar_faltante(71, envios_tall): ' + JSON.stringify(mf[0].args));
+
+  // desmarcar -> resuelve el ultimo abierto de ese componente+origen
+  await page.click('#tbody tr:nth-child(2) .falt-box');
+  await page.waitForFunction(() => (window.__calls || []).some(c => c.name === 'resolver_faltante'));
+  const rf = await page.evaluate(() => (window.__calls || []).filter(c => c.name === 'resolver_faltante'));
+  ok(rf.length === 1 && rf[0].args.p_comp_id === 71 && rf[0].args.p_origen === 'envios_tall',
+     'F desactivada resuelve: resolver_faltante(71, envios_tall): ' + JSON.stringify(rf[0].args));
+
+  // volver a marcarla (la semantica del resto del test: fila 2 queda con F)
+  await page.click('#tbody tr:nth-child(2) .falt-box');
+  await page.waitForFunction(() => (window.__calls || []).filter(c => c.name === 'marcar_faltante').length === 2);
+  ok(await page.$eval('#tbody tr:nth-child(2)', e => e.classList.contains('falt')), 'fila 2 falt de nuevo');
 
   // buscar filtra
   await page.fill('#q', 'sacacorcho');

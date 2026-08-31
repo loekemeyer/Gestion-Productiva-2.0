@@ -412,7 +412,47 @@ llenar al máximo".
   crearla** (`orden_compra_item.precio_uni/moneda` via `crear_oc`): si el precio cambia
   después, la OC vieja no se mueve.
 
+## 2e. Faltantes y máximos de Crudo/Procesado: 5 cajones por ubicación (2026-08-31)
+
+`[usuario 2026-08-30]` **"En crudo y procesado, el stock máximo tendría que ser 5
+CAJONES por ubicación."** El máximo físico de cada componente de Sector Crudo y Sector
+Procesado en su ubicación de sector es **5 × uni_x_cajon** (parámetro
+`GP2.parametro['max_cajones_x_ubicacion'] = 5`, función `recalcular_maximos_cajones()`,
+`maximo_origen = 'cinco_cajones'`). Pisó el modelo viejo de estantería
+(`hueco_hasta_proximo_codigo` y supuestos). Se recalcula solo si cambia `uni_x_cajon`
+de un componente o el parámetro (triggers `trg_maximos_cajones_*`). El componente sin
+`uni_x_cajon` queda con máximo null y se lista pendiente en la pantalla de Faltantes
+(hoy sólo Z12 de Procesado). No toca los sectores de insumos (5-11), que siguen con la
+Est Madre (`recalcular_maximos_insumos`, `maximo_origen='est_madre'`).
+
+`[usuario 2026-08-30]` **El faltante es AUTOMÁTICO en función del stock online** (antes,
+en la casa del vecino, la "F" se ponía a mano cuando ibas a mandar a un tallerista/PS y
+no había): crudo para mandar al proveedor de servicio, procesado para mandar al
+tallerista. **Pero también se puede marcar a mano.** Módulo `Faltantes/Faltantes_GP2.html`:
+faltante automático = stock menor al umbral, marcas manuales en `GP2.faltante_marcado`
+(RPCs `marcar_faltante` / `resolver_faltante`). Las pantallas de Envíos persisten la
+marca F ahí (origen `envios_tall` / `envios_ps`, best-effort al tocar el botón F).
+
+`[deducido 2026-08-30, sin confirmar]` **Umbral del faltante automático: 1 cajón**
+(`GP2.parametro['faltante_cajones_umbral'] = 1` — "ibas a mandar y no había un cajón").
+Ajustable por parámetro; si el usuario dice otro número, cambiar el parámetro y esta línea.
+
+`[usuario 2026-08-30]` **La cobertura dice la causa raíz**: la pantalla muestra cuántos
+días dura el stock actual con el consumo real (`v_consumo_componente`) y cuántos días
+duraría la ubicación LLENA (5 cajones). Si **ni llena aguanta 30 días**
+(`ubicacion_corta` en `v_faltante_estado`), la causa del faltante crónico es que **no
+alcanza lo que entra en la ubicación** — eso es lo que el usuario quiere ver. Hoy da 15
+componentes de Crudo y 12 de Procesado en esa condición `[dato: v_faltante_estado]`.
+
+---
+
 ## 3. Reglas del negocio ya incorporadas
+
+- **Algunos talleristas pueden entregar partes EN CERVANTES** (además de Virgilio):
+  **Martín Cornejo, Carlos Aguirre e IJUPA.** `[usuario 2026-08-30]` Normalizado en
+  `GP2.tallerista.entrega_cervantes` (boolean, true para los ids 6, 9 y 10 — migración
+  `talleristas_que_entregan_en_cervantes`). Ninguna pantalla lo usa todavía; el dato
+  queda listo para cuando se arme el flujo de recepción Cervantes en GP2.
 
 - **La Est Madre manda hacia atrás.** El máximo de flejes e insumos NO sale de
   relevamiento físico: sale de la Est Madre explotada por receta y rutas × los meses de
