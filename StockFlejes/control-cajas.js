@@ -296,7 +296,8 @@ async function desmarcar() {
 btnCancel.addEventListener("click", cerrarPopup);
 btnConfirm.addEventListener("click", confirmar);
 btnDesmarcar.addEventListener("click", desmarcar);
-ov.addEventListener("click", e => { if (e.target === ov) cerrarPopup(); });
+// NO cerrar al tocar afuera: se sale solo con Cancelar (pedido del usuario,
+// evita perder lo tipeado por un toque accidental en el fondo).
 selEstado.addEventListener("change", cargar);
 selProv.addEventListener("change", render);
 
