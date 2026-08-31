@@ -680,6 +680,44 @@ dudosos A9 (21 vs 39 g) y W7P (0,7 vs 2,2 g). Modelado pendiente: partir el clav
 niquelado (patrón remaches), cantidades por paso en armados N→1, cartones
 compartidos para la OC.
 
+## 2c-ter. Alimentador vs balancín: un tiempo no se lee solo (2026-08-31)
+
+`[usuario 2026-08-31]` Dicho textual: *"Necesito separar qué matrices se hacen en el
+alimentador y qué matrices se hacen en balancín. El balancín tarda entre 6 a 10 segundos
+por matriz como mínimo, y el alimentador es un golpe por segundo. Cuando me envíes un
+tiempo, decime si es de alimentador o de balancín."*
+
+**El dato ya existía en la casa del vecino y no lo teníamos**: `public."Matrices"` tiene
+la columna `Tipo_Matriz` con una letra por matriz. Los promedios confirman que la letra
+significa lo que parece `[dato, verificado]`:
+
+| Letra | Máquina | Matrices en GP2 | Segundos promedio |
+|---|---|---|---|
+| **A** | **Alimentador** (un golpe por segundo) | 43 | **1,53** (máx 3) |
+| **B** | **Balancín** | 59 | **7,41** |
+| **D** | **Balancín** también `[usuario]` | 11 | 13,16 (6,2 a 21,5) |
+| **P** | **Piedra** — es la 501, y en el vecino se llama "Piedra (TP)" | 1 | por kg, ver arriba |
+
+Copiado a GP2 en `matriz.tipo_matriz` (la letra cruda) y `matriz.maquina`
+(`alimentador` / `balancin` / `piedra`, con CHECK). **No se inventó nada: es el dato del
+vecino con el mapeo que dio el usuario.** En el vecino hay además 90 matrices tipo `E` y
+22 tipo `T` que GP2 no usa.
+
+**Para qué sirve**: un tiempo de balancín y uno de alimentador **no se comparan entre sí**.
+Al informar un tiempo hay que decir de cuál es. Y el patrón que se ve: **se corta en
+alimentador y se da forma en balancín** — las de "Corte" son casi todas A (la 348 Corte
+Cuch Untar Mgo Madera, la 347, la 62), las de estampado/doblado/aplastado son B (la 119
+Estampado Cuchillo Untar).
+
+`[dato]` **Los 34 tiempos en cero se explican por acá**: 20 son de alimentador y 14 de
+balancín, y varias nunca registraron producción. La **348**, por ejemplo, no tiene **ni un
+registro** en ninguna de las cuatro tablas de producción del vecino (espejo de este año,
+espejo histórico, Registros Históricos y Registros Producción Cervantes): su tiempo está
+en 0 porque nunca se midió, no porque se haya perdido.
+
+`[dato]` La única matriz sin clasificar es la **`S/N`** ("Corte Arandela Cuchillitos", 2
+pasos de ruta): no tiene número y no existe en el vecino.
+
 ## 2e. Faltantes y máximos de Crudo/Procesado: 5 cajones por ubicación (2026-08-31)
 
 `[usuario 2026-08-30]` **"En crudo y procesado, el stock máximo tendría que ser 5
