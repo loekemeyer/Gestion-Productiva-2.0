@@ -38,6 +38,28 @@ Está también arriba de todo en `CLAUDE.md`.
 
 ---
 
+## 0-bis. Los agentes de GP2 (creados el 2026-08-31)
+
+Además de `gp2-experto` (que **discute** ideas de negocio, no ejecuta) el repo tiene 4
+agentes que **ejecutan** tareas concretas, en `.claude/agents/*.md`. Cada uno arranca leyendo
+CLAUDE.md y CONOCIMIENTO_GP2.md, así que evoluciona con este archivo.
+
+| Agente | Cuándo se invoca solo | Modelo | Puede escribir |
+|---|---|---|---|
+| **`gp2-cirujano`** | Cambio de producto/proceso que toca la cadena normalizada (recetas, rutas, alias). Snapshot antes / diff después. | opus | sí — schema + código |
+| **`gp2-auditor-costos`** | Un número de plata huele mal, después de cargar precios/tiempos, o barrido periódico. Devuelve hallazgos + arreglo propuesto. | opus | **NO — solo lectura** |
+| **`gp2-cargador-excel`** | Cargar planilla del usuario a la base (precios, pesos, `uni_x_golpe`, maestros). Matcheo por id; lo dudoso devuelve como preguntas, no lo escribe. | sonnet | sí — schema |
+| **`gp2-verificador-ui`** | **SIEMPRE antes de pushear a main** si se tocó HTML/JS/CSS (es el gate que exige la sección "Versionado" de CLAUDE.md). Corre la suite + reglas de pantalla. | sonnet | **NO — solo lectura** |
+
+Reglas comunes que ya viven adentro:
+- Nada de decidir por su cuenta: las dudas se devuelven en una sección **PREGUNTAS
+  BLOQUEANTES** de su reporte final, para que la sesión principal las eleve al usuario.
+- Los códigos NO son únicos (`A10`/`C10`/`B4`...): todo por `id`, todo `where` filtra
+  también por sector.
+- Snapshot de costos en tabla real `_bak_YYYYMMDD` (no temp, porque cada `execute_sql` es
+  conexión nueva).
+- En SQL crudo, el schema **siempre** entre comillas: `"GP2"`.
+
 ## 1. Proveedores: quién provee qué
 
 ### Inyección plástica — son tres
