@@ -608,12 +608,19 @@ en ese archivo):
   `fleje_detalle`; la vista podría usarlo directo cuando no hay matriz.
 - `[dato]` **La suite de tests quedó ciega**: 29/29 pasan, pero todos stubean Supabase. El
   bug del clavo en la OC pasó sin despeinarse porque el stub no tiene `precio_por_kg`.
-- `[dato]` **LA MATRIZ 501 NO MIDE PIEZAS.** `tiempo_historico = 7.650 s` (2 h 07) contra
-  **513 s de TODAS las demás matrices juntas**. En la casa del vecino se llama **"Piedra
-  (TP)"** (acá "Afilado Cuchilla") y su "Uni" en `db_n8n_espejo` es un LOTE, no una pieza.
-  **Corrige la regla de 2c**: "tiempo_historico = segundos por pieza" vale para las matrices
-  de estampado, NO para la 501. Contamina Z23, 505, 513, 713 y **el 70% del pedido total**
-  ($1.938 M). Falta el dato real.
+- `[usuario 2026-08-31, RESUELTO]` **LA MATRIZ 501 (afilado de cuchillas) SE MIDE EN KG,
+  no en unidades como el resto.** Dicho textual: *"501 es la matriz del afilado de
+  cuchillas. Se mide en kg, no en uni como el resto"*. Sus 7.650 segundos son **por KILO
+  procesado**, no por pieza — por eso Z23/505/513/713 costaban 329 veces de más y
+  arrastraban el 70% del pedido de toda la fábrica.
+  **El dato no estaba mal: le faltaba decir en qué se mide.** Ahora la matriz lo declara:
+  columna **`matriz.tiempo_unidad`** (`'uni'` por defecto, `'kg'` en la 501) y el motor
+  multiplica por el peso vivo de la pieza que sale del paso. Z23: 7.650 × 0,0043 kg = 32,9 s
+  de afilado + 1,3 s de las otras matrices = 34,2 s → $68,39 de mano de obra, y el costo
+  pasa de **$15.349,70 a $115,49**. Verificado con snapshot: cambiaron exactamente esos 4
+  componentes y ninguno más de los 538.
+  **El pedido a máximo cayó de $2.608 M a $678 M** y el stock de $23,0 M a $13,9 M.
+  Regla que deja: antes de dar por malo un tiempo raro, preguntar **en qué unidad se mide**.
 - `[dato]` **`inventario.maximo` no significa lo mismo en toda ubicación.** Solo los de
   `maximo_origen` est_madre / cinco_cajones / fisico tienen dueño; los de tallerista y
   Virgilio están en NULL, heredados. `v_valor_pedido` los suma todos → cuenta el mismo

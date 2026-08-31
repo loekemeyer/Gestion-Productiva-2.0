@@ -105,7 +105,7 @@ encender un aviso: queda como pendiente, y el arreglo de fondo es medir esas mat
 El pedido daba **$2.783 millones** contra $23,0 M de stock (120×). Ese ratio era la señal.
 Dos cosas explican el 87%:
 
-### A. La matriz 501 vale el 70% del pedido de toda la fábrica
+### A. La matriz 501 vale el 70% del pedido de toda la fábrica — ✅ RESUELTO (se mide en KG)
 
 `GP2.matriz` id 118, N° 501, **`tiempo_historico` = 7.650 segundos POR PIEZA** (2 h 07 min).
 **Todas las demás matrices juntas suman 513 segundos.**
@@ -126,8 +126,25 @@ ahí se llama **"Piedra (TP)"**, no "Afilado Cuchilla". En `db_n8n_espejo` esa m
 no es una pieza, es un lote**. Si la Uni fuera el cajón (2.326 piezas), el tiempo real sería
 ~3,29 s/pieza.
 
-**Corrige la regla de la sección 2c**: "`tiempo_historico` = segundos por pieza" vale para
-las matrices de estampado, **no para la 501**. Necesita el dato real del usuario.
+**RESUELTO — `[usuario 2026-08-31]`: *"501 es la matriz del afilado de cuchillas. Se mide
+en kg, no en uni como el resto"*.** El dato nunca estuvo mal: le faltaba decir **en qué se
+mide**. Los 7.650 segundos son **por kilo procesado**.
+
+Se agregó **`matriz.tiempo_unidad`** (`'uni'` por defecto, `'kg'` en la 501) y el motor
+multiplica por el peso vivo de la pieza que sale del paso. Z23: 7.650 × 0,0043 kg = 32,9 s
+de afilado + 1,3 s de las otras matrices = **34,2 s** → $68,39 de mano de obra.
+
+| | Antes | Ahora |
+|---|---|---|
+| Z23 y 505 | $15.349,70 | **$115,49** |
+| 513 y 713 | $15.508,50 | **$274,29** |
+| **Pedido a máximo** | $2.608 M | **$678 M** |
+| **Stock valorizado** | $23,0 M | **$13,9 M** |
+
+Verificado con snapshot de los 538 costos: cambiaron **exactamente esos 4 componentes** y
+ninguno más. **La regla de la sección 2c queda así**: `tiempo_historico` es segundos por
+pieza *salvo que `tiempo_unidad` diga otra cosa* — antes de dar por malo un tiempo raro,
+preguntar en qué unidad se mide.
 
 ### B. El pedido cuenta el mismo requerimiento hasta 5 veces
 
