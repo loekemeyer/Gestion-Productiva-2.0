@@ -61,8 +61,10 @@ window.supabase = { createClient: function(){ return {
   await page.click('.box[data-code="E"]');
   await page.fill('#textInput', '28');
   await page.dispatchEvent('#textInput', 'input');
-  await page.waitForFunction(() => document.querySelectorAll('#rolloSelect option').length > 1);
-  await page.selectOption('#rolloSelect', { index: 1 });
+  await page.waitForSelector('#rolloGrid .rl');
+  ok(await page.locator('#rolloGrid select').count() === 0, 'los rollos son BOTONES, no un desplegable');
+  await page.locator('#rolloGrid .rl').first().click();   // A1 50 kg (primer boton)
+  ok(await page.locator('#rolloGrid .rl.sel').count() === 1, 'el rollo elegido queda marcado');
   await page.click('#btnEnviar');
   await page.waitForFunction(() => (window.__calls||[]).some(c =>
     c.name === 'registrar_evento_prod' && c.args.p && c.args.p.matriz === '28' && c.args.p.uni === 0));
@@ -151,6 +153,12 @@ window.supabase = { createClient: function(){ return {
   const porNombre = await page.textContent('#matrizGrid');
   ok(porNombre.includes('348') && !porNombre.includes('Pinza Grande'),
      'escribiendo un NOMBRE arriba se filtra la lista (sin buscador aparte)');
+  // match EXACTO de numero: la lista colapsa a esa sola matriz (usuario: "cuando elijo 1
+  // no me muestres las demas"). '28' matchea exacto la 28 y NO debe mostrar 348 ni otras.
+  await page.fill('#textInput', '28');
+  await page.dispatchEvent('#textInput', 'input');
+  ok(await page.locator('#matrizGrid .mz').count() === 1, 'match exacto de numero: la lista muestra SOLO esa matriz');
+  ok((await page.textContent('#matrizGrid')).includes('28'), 'y es la matriz que se tipeo');
   const antes = (await calls()).length;
   await page.fill('#textInput', '62');
   await page.dispatchEvent('#textInput', 'input');
@@ -165,7 +173,9 @@ window.supabase = { createClient: function(){ return {
     const rollosDe = (compSalidaId) => page.evaluate(id => {
       piezaSel = id === null ? null : { comp_id: id };
       actualizarRolloPicker('28');
-      return [...document.querySelectorAll('#rolloSelect option')].map(o => o.textContent);
+      const msg = document.querySelector('#rolloGrid .rl-msg');
+      if (msg) return [msg.textContent];
+      return [...document.querySelectorAll('#rolloGrid .rl')].map(o => o.textContent);
     }, compSalidaId);
 
     // sin selector de pieza en pantalla (matriz_salidas vacio en este stub) se ofrecen
@@ -178,7 +188,7 @@ window.supabase = { createClient: function(){ return {
     ok(/A1/.test(deJ2) && !/F1A/.test(deJ2), 'J2 ofrece SOLO rollos del Fleje 13 — ' + deJ2);
 
     const deA15 = (await rollosDe(86)).join(' | ');
-    ok(/F1A/.test(deA15) && !/\bA1\b/.test(deA15), 'A15 ofrece SOLO rollos del Fleje 94 (inox) — ' + deA15);
+    ok(/F1A/.test(deA15) && !/A1/.test(deA15), 'A15 ofrece SOLO rollos del Fleje 94 (inox) — ' + deA15);
 
     await page.evaluate(() => { piezaSel = null; });
   }

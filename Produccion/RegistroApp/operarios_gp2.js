@@ -8,7 +8,6 @@
    ============================================================ */
 
 const LEGAJO_EDUARDO = "19";
-const APP_VERSION = "1.9.0"; // bumpear en cada actualizacion (junto con el ?v= del HTML y el MI_V del chequeo de cache)
 
 const SB = supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
   db: { schema: "GP2" },
@@ -474,7 +473,9 @@ function renderPending() {
 function renderSyncBadge() {
   const q = readQueue();
   const el = $("syncBadge");
-  el.innerText = q.length ? `GP2 v${APP_VERSION} ⚠ ${q.length} pend.` : `GP2 v${APP_VERSION} ✓`;
+  // El badge NO muestra version [usuario 2026-08-31]: solo el estado de la cola. Toca para
+  // forzar el envio. La version del cache vive en el ?v= del <script>, no a la vista.
+  el.innerText = q.length ? `⚠ ${q.length} sin enviar` : `✓ al día`;
   el.style.background = q.length ? "#fff7ed" : "#f1f5f9";
   el.style.color = q.length ? "#9a3412" : "#475569";
 }
@@ -517,12 +518,16 @@ function renderMatrizPicker(filtro) {
   // el buscador de abajo era una segunda caja para lo mismo. Se saco. [usuario 2026-08-31]
   const elegida = String($("textInput").value || "").trim();
   const q = String(filtro != null ? filtro : elegida).trim().toLowerCase();
-  const matrices = (D.matrices || []).filter(m => {
+  let matrices = (D.matrices || []).filter(m => {
     if (m.act === false) return false;          // matriz dada de baja: no se ofrece
     if (!q) return true;
     return String(m.n || "").toLowerCase().includes(q) ||
            String(m.d || "").toLowerCase().includes(q);
   });
+  // Si lo tipeado matchea EXACTO el numero de una matriz, mostrar SOLO esa: elegiste la 1,
+  // no hace falta que sigan apareciendo la 10, 11, 112... [usuario 2026-08-31]
+  const exacta = matrices.find(m => String(m.n || "").trim().toLowerCase() === q);
+  if (exacta) matrices = [exacta];
 
   if (!matrices.length) {
     grid.innerHTML = `<div class="mz-empty">${(D.matrices || []).length ? "Sin resultados" : "Cargando matrices..."}</div>`;
@@ -533,9 +538,13 @@ function renderMatrizPicker(filtro) {
   matrices.forEach(m => {
     const n = String(m.n || "").trim();
     const el = document.createElement("div");
-    el.className = "mz" + (n === elegida ? " sel" : "");
+    const esElegida = n === elegida;
+    const conPieza = esElegida && piezaSel && salidasDeMatriz(n).length >= 2;
+    el.className = "mz" + (esElegida ? " sel" : "") + (conPieza ? " has-chip" : "");
     el.dataset.n = n;
-    el.innerHTML = `<div class="mz-n">${esc(n)}</div><div class="mz-d">${esc(m.d || "")}</div>`;
+    const cuerpo = `<div class="mz-main"><div class="mz-n">${esc(n)}</div><div class="mz-d">${esc(m.d || "")}</div></div>`;
+    const chip = conPieza ? `<div class="mz-chip">${esc(piezaSel.codigo || "")}<small>acá va el stock</small></div>` : "";
+    el.innerHTML = cuerpo + chip;
     el.addEventListener("click", () => elegirMatriz(n));
     grid.appendChild(el);
   });
@@ -557,6 +566,7 @@ function elegirMatriz(n) {
    el stock se sume en el componente correcto.
    ============================================================ */
 let piezaSel = null; // {comp_id, codigo, descripcion}
+let rolloSel = null; // {comp_id, codigo, kg_por_rollo} — rollo elegido (antes era el value del <select>)
 
 function salidasDeMatriz(n) {
   return (D.matriz_salidas || {})[String(n || "").trim()] || [];
@@ -574,13 +584,34 @@ function renderPiezaPicker(n) {
   if (piezaSel && !salidas.some(x => x.comp_id === piezaSel.comp_id)) piezaSel = null;
   wrap.classList.remove("hidden");
   grid.innerHTML = "";
+
+  // Ya elegida: colapsar a UNA linea (la pieza tambien queda en la card de la matriz,
+  // a la derecha del numero) para achicar la pantalla. Tocar la linea vuelve a abrir.
+  if (piezaSel) {
+    wrap.classList.add("collapsed");
+    const btn = document.createElement("button");
+    btn.type = "button"; btn.className = "pieza-cambiar";
+    btn.innerHTML = `Fabricás <b>${esc(piezaSel.codigo || "")}</b> · ${esc(piezaSel.descripcion || "")} — <u>cambiar</u>`;
+    btn.addEventListener("click", () => {
+      piezaSel = null;
+      renderPiezaPicker(n);
+      renderMatrizPicker();
+      if (selected?.code === "E") actualizarRolloPicker(n);
+    });
+    grid.appendChild(btn);
+    $("btnEnviar").disabled = false;
+    return;
+  }
+
+  wrap.classList.remove("collapsed");
   salidas.forEach(sa => {
     const el = document.createElement("div");
-    el.className = "mz" + (piezaSel?.comp_id === sa.comp_id ? " sel" : "");
+    el.className = "mz";
     el.innerHTML = `<div class="mz-n">${esc(sa.codigo || "")}</div><div class="mz-d">${esc(sa.descripcion || "")}</div>`;
     el.addEventListener("click", () => {
       piezaSel = sa; $("error").innerText = "";
       renderPiezaPicker(n);
+      renderMatrizPicker();              // la card de la matriz muestra la pieza a la derecha
       // la pieza define el fleje: recien ahora se sabe que rollos ofrecer
       if (selected?.code === "E") actualizarRolloPicker(n);
     });
@@ -652,7 +683,7 @@ function selectOption(opt) {
   const rolloPicker = $("rolloPicker");
   if (opt.code === "E") {
     rolloPicker.classList.remove("hidden");
-    $("rolloSelect").innerHTML = '<option value="">-- Elegir rollo --</option>';
+    rolloSel = null;
     textInput.oninput = () => {
       renderMatrizPicker();
       renderPiezaPicker(textInput.value.trim());
@@ -706,32 +737,37 @@ function selectOption(opt) {
 }
 
 function actualizarRolloPicker(n_matriz) {
-  const sel = $("rolloSelect");
-  sel.innerHTML = '<option value="">-- Elegir rollo --</option>';
+  const grid = $("rolloGrid");
+  if (!grid) return;
   const n = String(n_matriz || "").trim();
+  const msg = (t) => { grid.innerHTML = `<div class="rl-msg">${esc(t)}</div>`; rolloSel = null; };
   // Matriz que corta de dos flejes: hasta que no se elija la pieza no se sabe cual va,
   // y ofrecer el equivocado descuenta stock del fleje que no es. Si la pantalla va a
   // pedir la pieza (2+ salidas), se espera a que la elija; si no la va a pedir, se
   // ofrecen los rollos de los dos flejes con el codigo a la vista — nunca ninguno.
   let rollos;
   if (n && flejesDeMatriz(n) > 1 && !piezaSel) {
-    if (salidasDeMatriz(n).length >= 2) {
-      sel.innerHTML = '<option value="">Elegí primero qué pieza vas a fabricar</option>';
-      return;
-    }
+    if (salidasDeMatriz(n).length >= 2) { msg("Elegí primero qué pieza vas a fabricar"); return; }
     rollos = rollosDeTodosLosFlejes(n);
   } else {
     rollos = n ? rollosParaMatriz(n, piezaSel?.comp_id) : [];
   }
+  if (!rollos.length) { msg(n && D.matricesMap?.has(n) ? "Sin rollos disponibles" : "Elegí una matriz"); return; }
+  // si el rollo elegido ya no esta en la lista (cambio de matriz/pieza), se deselecciona
+  if (rolloSel && !rollos.some(r => r.comp_id === rolloSel.comp_id && r.kg_por_rollo === rolloSel.kg_por_rollo)) rolloSel = null;
+  grid.innerHTML = "";
   rollos.forEach(r => {
-    const opt = document.createElement("option");
-    opt.value = JSON.stringify({ comp_id: r.comp_id, codigo: r.codigo || "", kg_por_rollo: r.kg_por_rollo });
-    opt.textContent = `Rollo de ${r.kg_por_rollo} kg — ${r.codigo || "Fleje"} (${r.rollos} disp.)`;
-    sel.appendChild(opt);
+    const el = document.createElement("div");
+    const sel = rolloSel && rolloSel.comp_id === r.comp_id && rolloSel.kg_por_rollo === r.kg_por_rollo;
+    el.className = "rl" + (sel ? " sel" : "");
+    el.innerHTML = `<div class="rl-kg">${esc(r.kg_por_rollo)} kg</div>` +
+                   `<div class="rl-sub">${esc(r.codigo || "Fleje")} · ${esc(r.rollos)} disp.</div>`;
+    el.addEventListener("click", () => {
+      rolloSel = { comp_id: r.comp_id, codigo: r.codigo || "", kg_por_rollo: r.kg_por_rollo };
+      actualizarRolloPicker(n);   // repinta para marcar el elegido
+    });
+    grid.appendChild(el);
   });
-  if (!rollos.length && n && D.matricesMap?.has(n)) {
-    sel.innerHTML = '<option value="">Sin rollos disponibles</option>';
-  }
 }
 
 function resetSelection() {
@@ -745,7 +781,7 @@ function resetSelection() {
   $("matrizInfo").classList.add("hidden");
   $("matrizPicker").classList.add("hidden");
   $("piezaPicker").classList.add("hidden");
-  piezaSel = null;
+  piezaSel = null; rolloSel = null;
   $("rolloPicker").classList.add("hidden");
   $("quedoRestoWrap").classList.add("hidden");
   document.querySelectorAll(".box.selected").forEach(x => x.classList.remove("selected"));
@@ -812,14 +848,9 @@ async function sendFast() {
     if (f > 1 && !confirm(`Matriz ${nMat}: ${g} GOLPES x ${f} = ${g * f} unidades.\n\n¿Los ${g} son golpes del contador (no unidades)?`)) return;
   }
 
-  // Rollo elegido en E (cualquier operario)
+  // Rollo elegido en E (cualquier operario): ahora sale de un boton, no de un <select>
   let rolloInfo = null;
-  if (selected.code === "E") {
-    const rolloVal = $("rolloSelect").value;
-    if (rolloVal) {
-      try { rolloInfo = JSON.parse(rolloVal); } catch {}
-    }
-  }
+  if (selected.code === "E" && rolloSel) rolloInfo = rolloSel;
 
   const tsEvent = isoNow();
   const payload = {

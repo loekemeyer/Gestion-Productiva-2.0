@@ -1025,6 +1025,35 @@ número"* (que ya filtra la lista por número **y** por nombre) y un *"Buscar po
 nombre…"* debajo. Se sacó el de abajo (`#matrizSearch`); el filtro sale siempre del campo de
 arriba.
 
+## 2c-decies. Versiones y UX de la app de operarios (2026-08-31)
+
+Varios pedidos del usuario sobre `Produccion/RegistroApp/Operarios_GP2.html` en una tarde:
+
+- **Sin número de versión en pantalla** `[usuario]`: *"sacá el badge de versión... no hace
+  falta que ahí haya un número de versión"*. Venía con versión propia (`1.9.0`) escrita en 3
+  lugares (`?v=` del script, `MI_V` del auto-recargador, `APP_VERSION` del badge); al bumpear
+  uno y olvidar otro el badge mentía y recargaba al pedo en cada celular. Ahora el badge
+  `#syncBadge` es **solo estado de cola** (`✓ al día` / `⚠ N sin enviar`). Lo único versionado
+  es el `?v=` del script (cache-busting, no a la vista) y el `MI_V` que lo sigue. El
+  `test_tokens_cache` fija que no reaparezca una versión.
+
+- **Un solo buscador** `[usuario]`: el campo *"Ingresa el número"* ya filtra la lista por
+  número Y nombre; se sacó el `#matrizSearch` de abajo que era la misma cosa.
+
+- **La lista colapsa en match exacto** `[usuario: "cuando elijo 1 no me muestres las demás"]`:
+  si lo tipeado matchea EXACTO el número de una matriz, la lista muestra **solo esa** (antes,
+  tipear "1" dejaba 1, 10, 11, 112...).
+
+- **Rollos en BOTONES, no desplegable** `[usuario]`: `#rolloGrid` con botones `.rl` (kg grande
+  + fleje · disponibles), mismo patrón que matriz/pieza. El elegido queda en `rolloSel` (antes
+  el `value` de un `<select>`).
+
+- **La pieza elegida va a la DERECHA del número de matriz y achica la pantalla** `[usuario]`:
+  al elegir la pieza, la card de la matriz muestra un chip con el código de la pieza a la
+  derecha (`.mz.has-chip` + `.mz-chip` "acá va el stock"), y el box amarillo de selección se
+  **colapsa a una línea** ("Fabricás A15 · … — cambiar"). Tocar "cambiar" reabre el grid.
+
+
 ## 2e. Faltantes y máximos de Crudo/Procesado: 5 cajones por ubicación (2026-08-31)
 
 `[usuario 2026-08-30]` **"En crudo y procesado, el stock máximo tendría que ser 5

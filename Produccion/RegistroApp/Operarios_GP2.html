@@ -16,10 +16,12 @@
     // Pide este mismo HTML sin cache, compara el ?v= del script y recarga si difiere.
     // sessionStorage evita loops si el server sigue sirviendo la version vieja.
     (function(){
-      var MI_V = '1.9.0';
+      // El operario ya no tiene version propia: se compara el TOKEN de cache compartido
+      // (el mismo ?v= que llevan todos los assets). Si cambia, el HTML cacheado es viejo.
+      var MI_V = '20260831h';
       function chequear(){
         fetch(location.pathname, { cache: 'no-store' }).then(function(r){ return r.text(); }).then(function(html){
-          var m = html.match(/operarios_gp2\.js\?v=([\d.]+)/);
+          var m = html.match(/operarios_gp2\.js\?v=([\w.]+)/);
           if (!m || m[1] === MI_V) return;
           var flag = 'gp2_reload_' + m[1];
           if (sessionStorage.getItem(flag)) return;
@@ -82,16 +84,33 @@
     .mz .mz-d { font-size: 11px; font-weight: 600; color: #64748b; margin-top: 2px; overflow-wrap: anywhere; }
     .mz.sel { background: #1e40af; border-color: #1e40af; }
     .mz.sel .mz-n, .mz.sel .mz-d { color: #fff; }
+    /* Matriz elegida con pieza: la pieza queda a la DERECHA del numero [usuario 2026-08-31] */
+    .mz.has-chip { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+    .mz-chip { flex: 0 0 auto; background: #fef9c3; color: #854d0e; font-weight: 900; font-size: 17px; padding: 8px 12px; border-radius: 8px; text-align: center; line-height: 1.1; }
+    .mz-chip small { display: block; font-size: 10px; font-weight: 700; opacity: .8; margin-top: 1px; }
     .mz-empty { grid-column: 1 / -1; color: #94a3b8; font-size: 14px; padding: 10px; text-align: center; }
     /* Selector de pieza (matrices con varias salidas) */
     #piezaPicker { margin-bottom: 10px; background: #fefce8; border: 2px solid #ca8a04; border-radius: 10px; padding: 10px; }
     #piezaPicker .pp-label { font-size: 14px; font-weight: 700; color: #854d0e; margin-bottom: 8px; }
+    /* Colapsado (ya se eligio la pieza): una sola linea, achica la pantalla */
+    #piezaPicker.collapsed { padding: 6px 10px; }
+    #piezaPicker.collapsed .pp-label { display: none; }
+    .pieza-cambiar { width: 100%; background: none; border: none; text-align: left; cursor: pointer; font-family: inherit; font-size: 14px; font-weight: 700; color: #854d0e; padding: 4px 0; }
+    .pieza-cambiar b { color: #713f12; }
+    .pieza-cambiar u { font-weight: 800; }
     #piezaGrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 6px; }
     .error { color: #dc2626; font-size: 14px; font-weight: 600; margin-top: 8px; min-height: 20px; }
     /* Rollo picker for Eduardo */
     #rolloPicker { background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; padding: 10px 14px; margin-bottom: 10px; }
     #rolloPicker .rp-label { font-size: 13px; font-weight: 700; color: #166534; margin-bottom: 8px; }
-    #rolloPicker select { width: 100%; padding: 8px; font-size: 15px; border: 1px solid #86efac; border-radius: 6px; }
+    /* Rollos en BOTONES (no desplegable) [usuario 2026-08-31], mismo patron que matriz/pieza */
+    #rolloGrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 6px; }
+    .rl { background: #fff; border: 2px solid #86efac; border-radius: 10px; padding: 12px 10px; text-align: left; cursor: pointer; user-select: none; min-height: 44px; }
+    .rl .rl-kg { font-size: 19px; font-weight: 900; color: #166534; }
+    .rl .rl-sub { font-size: 12px; font-weight: 600; color: #4b7a5a; margin-top: 2px; }
+    .rl.sel { background: #166534; border-color: #166534; }
+    .rl.sel .rl-kg, .rl.sel .rl-sub { color: #fff; }
+    .rl-msg { grid-column: 1 / -1; color: #4b7a5a; font-size: 14px; padding: 8px 2px; }
     /* PR quedoResto toggle for Eduardo */
     #quedoRestoWrap { background: #fefce8; border: 1px solid #fde68a; border-radius: 8px; padding: 10px 14px; margin-bottom: 10px; }
     #quedoRestoWrap label { display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 600; color: #92400e; cursor: pointer; }
@@ -130,7 +149,7 @@
 </head>
 <body>
 
-<div id="syncBadge" title="Tocar para forzar envio">GP2 v1.9.0 &#10003;</div>
+<div id="syncBadge" title="Tocar para forzar envio">&#10003; al día</div>
 
 <!-- LEGAJO -->
 <div id="legajoScreen">
@@ -194,9 +213,7 @@
     <!-- Eduardo: rollo picker (visible solo para legajo 19 en E) -->
     <div id="rolloPicker" class="hidden">
       <div class="rp-label">¿De qué kilaje es el rollo que vas a agarrar?</div>
-      <select id="rolloSelect">
-        <option value="">-- Elegir rollo --</option>
-      </select>
+      <div id="rolloGrid"></div>
     </div>
 
     <!-- Eduardo: ¿quedó resto? (visible solo para legajo 19 en PR) -->
@@ -252,6 +269,6 @@
 </div>
 
 <script src="../../supabase-config.js?v=20260831d"></script>
-<script src="operarios_gp2.js?v=1.9.0"></script>
+<script src="operarios_gp2.js?v=20260831h"></script>
 </body>
 </html>

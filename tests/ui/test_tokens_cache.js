@@ -127,21 +127,25 @@ const conKey = todos(ROOT)
 if (conKey.length) conKey.forEach(r => console.log('     clave suelta en: ' + r));
 ok(conKey.length === 0, 'la clave anon solo esta en supabase-config.js');
 
-// ── 5) la app de operarios tiene la version escrita en TRES lugares ──────
-// El ?v= del <script>, el MI_V del auto-recargador y el APP_VERSION que pinta
-// el badge. Si no coinciden pasan dos cosas feas: el badge miente sobre que
-// version esta corriendo, y el auto-recargador cree que el HTML esta viejo y
-// dispara una recarga al pedo en cada celular. Ya paso el 2026-08-31.
+// ── 5) la app de operarios NO muestra numero de version ──────────────────
+// Historia: tenia la version escrita en 3 lugares (el ?v= del script, el MI_V
+// del auto-recargador y un APP_VERSION propio para el badge); al bumpear uno y
+// olvidar otro el badge mentia y el auto-recargador recargaba al pedo en cada
+// celular (2026-08-31). El usuario pidio SACAR el numero de version del badge:
+// no hace falta a la vista. Lo unico versionado que queda es el token de cache
+// del script (para el auto-recargador), que NO se muestra. Este test fija que
+// no vuelva a aparecer un numero de version en la pantalla del operario.
 {
   const html = fs.readFileSync(path.join(ROOT, 'Produccion/RegistroApp/Operarios_GP2.html'), 'utf8');
   const js   = fs.readFileSync(path.join(ROOT, 'Produccion/RegistroApp/operarios_gp2.js'), 'utf8');
-  const tok   = (html.match(/operarios_gp2\.js\?v=([\d.]+)/)     || [])[1];
-  const miV   = (html.match(/MI_V\s*=\s*'([\d.]+)'/)             || [])[1];
-  const badge = (html.match(/GP2 v([\d.]+)/)                      || [])[1];
-  const appV  = (js.match(/APP_VERSION\s*=\s*"([\d.]+)"/)        || [])[1];
-  const iguales = tok && tok === miV && tok === appV && tok === badge;
-  if (!iguales) console.log(`     ?v=${tok} · MI_V=${miV} · APP_VERSION=${appV} · badge=${badge}`);
-  ok(iguales, `Operarios: ?v=, MI_V, APP_VERSION y badge dicen lo mismo (${tok})`);
+  const tok = (html.match(/operarios_gp2\.js\?v=([\w.]+)/) || [])[1];
+  const miV = (html.match(/MI_V\s*=\s*'([\w.]+)'/)         || [])[1];
+  ok(tok && tok === miV, `el token del script y el MI_V del auto-recargador coinciden (${tok} vs ${miV})`);
+  ok(!/const\s+APP_VERSION\s*=/.test(js), 'operarios_gp2.js no declara una version propia');
+  // el badge no muestra "GP2 v1.2.3" ni window.APP_VERSION: solo estado de la cola
+  const badgeVersion = /GP2 v[\d.]/.test(html) || /GP2 v[\d.]/.test(js) || /syncBadge[^]*APP_VERSION/.test(js);
+  ok(!badgeVersion, 'el badge de operarios no muestra numero de version');
+  ok(!/version\.js/.test(html), 'operarios no carga version.js (no muestra version)');
 }
 
 console.log(fallos ? 'HAY FALLOS' : 'TODO OK');

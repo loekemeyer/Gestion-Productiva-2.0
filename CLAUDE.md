@@ -85,7 +85,12 @@ En TODA pantalla, nueva o tocada:
 Las tablets y celulares cachean fuerte; sin bump siguen corriendo la versión vieja.
 
 1. Subir el `?v=` de los `<script src="...?v=X.Y.Z">` y `<link href="...?v=X.Y.Z">` del HTML del módulo.
-2. Si la página tiene badge de versión visible (ej. `#syncBadge` en las apps de operarios), actualizarlo al mismo número.
+2. **La app de operarios NO muestra número de versión** (el usuario lo pidió sacar,
+   2026-08-31): el badge `#syncBadge` es solo el estado de la cola (`✓ al día` / `⚠ N sin
+   enviar`). Lo único versionado del operario es el `?v=` de su `<script>` (para el
+   auto-recargador) y el `MI_V` del HTML tiene que quedar con **ese mismo token** — el
+   `test_tokens_cache` lo vigila y verifica que no reaparezca una versión en pantalla. Nunca
+   volver a poner un `const APP_VERSION` ni un `GP2 vX.Y.Z` en el operario.
 3. Convención: fix chico = patch (1.2.0→1.2.1), feature = minor (1.2.0→1.3.0).
 4. Si el HTML no tiene `?v=` en sus recursos externos, agregárselo al tocarlo.
 5. **`version.js` (versión global) también se bumpea.** Es la que ve el usuario en el cartel
