@@ -86,6 +86,12 @@ siguen intactos ($3,58/kg, se piden en kg).
   de $2.606 a $3.000 revaloriza **31 componentes con un solo UPDATE** (se probó en una
   transacción con rollback).
 
+**Verificación final con los advisors oficiales de Supabase**: 576 hallazgos en todo el
+proyecto, y **ninguno menciona GP2**. Los 43 de nivel ERROR (41 vistas security-definer y
+2 tablas sin RLS) son todos del schema `public` — la casa del vecino, que no se toca — y
+los 4 de `search_path` mutable son de `relevamiento_cervantes` e `isis_*`. El schema GP2
+quedó limpio.
+
 **Lo que NO se tocó, a propósito**: los 34 tiempos de matriz en cero. Iba a pasarlos a
 NULL para que el semáforo los detecte, pero `registrar_evento_prod` lee
 `matriz.tiempo_historico` para calcular **el premio del operario**, y 0 y NULL no se
