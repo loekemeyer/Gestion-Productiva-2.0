@@ -251,6 +251,11 @@ input[type="text"]{width:200px}
         <div style="font-weight:800;color:#475569;font-size:14px;text-transform:uppercase;letter-spacing:.4px;margin-bottom:6px">Marca</div>
         <div class="provs-grid" id="marcaChips" style="display:flex;flex-wrap:wrap;gap:8px"></div>
       </div>
+      <!-- Formato (solo Cartones, tras marca): LOEKE={C,8,Huevo} / CHEF={LOKE,8,Huevo} -->
+      <div id="formatoWrap" class="hidden" style="margin:8px 0">
+        <div style="font-weight:800;color:#475569;font-size:14px;text-transform:uppercase;letter-spacing:.4px;margin-bottom:6px">Formato</div>
+        <div class="provs-grid" id="formatoChips" style="display:flex;flex-wrap:wrap;gap:8px"></div>
+      </div>
       <!-- Remito en curso: los items anotados esperan el pesaje de TODO el remito -->
       <div id="remitoBar" class="remito-bar hidden"></div>
       <div class="search-box">
@@ -323,7 +328,7 @@ const RUBRO_UM={Flejes:"kg",Remaches:"kg",Cajas:"uni",Plasticos:"uni",Cartones:"
 
 let INS=[], UMBY={}, KGXUNI={}, PROVFLAGS={}, RECS=[], PALL=[], ROLL=[], TARA={tara_pallet_min:4,tara_pallet_max:8};
 let REMITO=[];    // items anotados del remito en curso, esperando el pesaje: {recId,codigo,desc,cant,unidad,rollos,pallets}
-let rubroSel="", sidSel=0, provSel="", provsRubro=[], marcaSel="";
+let rubroSel="", sidSel=0, provSel="", provsRubro=[], marcaSel="", formatoSel="";
 // modo de control del proveedor (parametrizado en proveedor_insumo.modo_control):
 //   rollos_remito: remito con rollos+pallets (Basconia, Aperam)
 //   pesaje:        remito solo kg, mismo pesaje por pallet (resto de flejeros)
@@ -385,6 +390,11 @@ function insumosVista(){
     if (marcaSel==='_sin') l=l.filter(i=>!i.marca);
     else if (marcaSel) l=l.filter(i=>i.marca===marcaSel);
     else l=[]; // esperando eleccion de marca
+    // filtro adicional por formato (opcional)
+    if (formatoSel) {
+      if (formatoSel==='_sin') l=l.filter(i=>!i.carton_formato);
+      else l=l.filter(i=>i.carton_formato===formatoSel);
+    }
   }
   return l;
 }
@@ -395,10 +405,12 @@ function irStep2(){
   $('searchInput').value='';
   // Cartones: pedir marca (LOEKE/CHEF) antes de mostrar los items
   if (rubroSel==='Cartones') {
-    marcaSel=''; pintarMarcaChips(); $('marcaWrap').classList.remove('hidden');
+    marcaSel=''; formatoSel=''; pintarMarcaChips(); $('marcaWrap').classList.remove('hidden');
+    $('formatoWrap').classList.add('hidden'); $('formatoChips').innerHTML='';
     $('itemsGrid').innerHTML=''; $('itemsEmpty').classList.add('hidden');
   } else {
-    marcaSel=''; $('marcaWrap').classList.add('hidden');
+    marcaSel=''; formatoSel='';
+    $('marcaWrap').classList.add('hidden'); $('formatoWrap').classList.add('hidden');
     pintarItems(insumosVista());
   }
 }
@@ -414,8 +426,10 @@ function pintarMarcaChips(){
     if(marcaSel===val) b.classList.add('active');
     b.addEventListener('click',function(){
       marcaSel=val;
+      formatoSel='';
       mg.querySelectorAll('.prov-btn').forEach(function(x){x.classList.remove('active');});
       b.classList.add('active');
+      pintarFormatoChips();
       pintarItems(insumosVista());
     });
     mg.appendChild(b);
@@ -423,6 +437,36 @@ function pintarMarcaChips(){
   chip('LOEKE','LOEKE',loeke);
   chip('CHEF','CHEF',chef);
   if (sin>0) chip('_sin','Sin marca',sin);
+}
+
+/* Formatos por marca (regla del negocio):
+   LOEKE -> C, 8, Huevo   |   CHEF -> LOKE, 8, Huevo
+   Sin marca -> los 4 (por si aparece algo huerfano) */
+var FORMATOS_POR_MARCA = { LOEKE:['C','8','Huevo','LOKE'], CHEF:['LOKE','8','Huevo'], _sin:['C','8','Huevo','LOKE'] };
+function pintarFormatoChips(){
+  var fw=$('formatoWrap'), fg=$('formatoChips');
+  if (!marcaSel){ fw.classList.add('hidden'); fg.innerHTML=''; return; }
+  var base = insumosDelRubro().filter(function(i){ return !provSel || i.proveedor===provSel; })
+                              .filter(function(i){ return marcaSel==='_sin' ? !i.marca : i.marca===marcaSel; });
+  var permitidos = FORMATOS_POR_MARCA[marcaSel] || ['C','8','Huevo','LOKE'];
+  var cont = {}; permitidos.forEach(function(f){ cont[f]=0; }); var sinF=0;
+  base.forEach(function(i){ if(i.carton_formato && permitidos.indexOf(i.carton_formato)>=0) cont[i.carton_formato]++; else sinF++; });
+  fg.innerHTML='';
+  function chipF(val,label,n){
+    var b=document.createElement('button'); b.className='prov-btn'; b.type='button';
+    b.innerHTML=label+' <span style="opacity:.6;font-weight:600">('+n+')</span>';
+    if(formatoSel===val) b.classList.add('active');
+    b.addEventListener('click',function(){
+      formatoSel = (formatoSel===val) ? '' : val;
+      fg.querySelectorAll('.prov-btn').forEach(function(x){x.classList.remove('active');});
+      if(formatoSel) b.classList.add('active');
+      pintarItems(insumosVista());
+    });
+    fg.appendChild(b);
+  }
+  permitidos.forEach(function(f){ chipF(f, (f==='8'?'Ocho':f), cont[f]||0); });
+  if (sinF>0) chipF('_sin','Sin formato', sinF);
+  fw.classList.remove('hidden');
 }
 $('btnVolver1').addEventListener('click',()=>{
   $('step2').classList.add('hidden');
