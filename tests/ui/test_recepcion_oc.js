@@ -5,12 +5,11 @@ const fs = require('fs');
 const ROOT = 'file://' + path.resolve(__dirname, '..', '..').replace(/\\/g, '/');
 const EXE = process.env.CHROMIUM_PATH || (fs.existsSync('/opt/pw-browsers/chromium') ? '/opt/pw-browsers/chromium' : undefined);
 
-/* Fija el formato de la tarjeta de insumo en Recepcion: el numero verde es el
-   STOCK ACTUAL del insumo (pedido del usuario 2026-08-31: la tarjeta mostraba
-   la ultima carga y "esta mostrando lo ultimo que recibi, esta mal"), solo el
-   numero sin fecha/pallets/rollos (2026-08-29), y la OC abierta se resume como
-   "OC: <lo que falta> <unidad>". La 'ultima' sigue en el bundle pero NO se
-   muestra. */
+/* Fija el formato de la tarjeta de insumo en Recepcion (usuario 2026-08-31:
+   "no quiero el stock, solo la OC. Si no hay OC, nada ahi abajo"): la tarjeta
+   es codigo + descripcion + medida + la OC abierta resumida como
+   "OC: <lo que falta> <unidad>"; sin OC no hay NADA abajo de la medida. Ni la
+   ultima carga ni el stock se muestran, aunque el bundle los siga mandando. */
 const BUNDLE = {
   tara: { tara_pallet: '20', tol_ctrl_peso_pct: '5', carton_uni_x_paquete: '250' },
   sectores: [{ id: 5, nombre: 'Sector Fleje' }],
@@ -63,22 +62,21 @@ const STUB = 'window.supabase={createClient:function(){return{'
   const cards = await page.$$eval('.item-btn', bs => bs.map(b => b.innerText.replace(/\n/g, ' | ')));
   ok(cards.length === 4, '4 insumos del proveedor');
 
-  // el numero verde es el STOCK actual, no la ultima carga (v3.19.0)
-  ok(/\| 959 kg \|/.test(cards[0]) && !/últ\./.test(cards[0]), 'stock = "959 kg" (sin etiqueta): ' + cards[0]);
-  ok(!/360 kg/.test(cards[0]), 'la ultima carga (360 kg) ya NO se muestra: ' + cards[0]);
+  // ni stock ni ultima carga en la tarjeta (v3.20.0): solo la OC
+  ok(!/959 kg|360 kg|sin stock|sin cargas/.test(cards[0]),
+     'ni stock ni ultima carga en la tarjeta: ' + cards[0]);
   ok(!/29\/8|2 pallets|7 rollo/.test(cards[0]), 'sin fecha, sin pallets, sin rollos');
 
   // la OC abierta: "OC: <lo que falta> <unidad>" (640 = 1000 pedidos - 360 recibidos)
   ok(/OC: 640 kg/.test(cards[0]), 'OC pendiente = "OC: 640 kg": ' + cards[0]);
   ok(await page.$('.item-btn .oc-pend') !== null, 'la OC va resaltada en su propio span');
 
-  // sin OC abierta no se muestra nada
-  ok(!/OC/.test(cards[1]), 'sin OC no aparece la linea: ' + cards[1]);
-  ok(/sin stock/.test(cards[1]) && !/sin cargas/.test(cards[1]), 'stock 0 = "sin stock" en gris');
+  // sin OC abierta, NADA abajo de la medida: la tarjeta termina en "33 x 2 mm"
+  ok(/33 x 2 mm$/.test(cards[1].trim()), 'sin OC la tarjeta termina en la medida: ' + cards[1]);
 
-  // varias OC: se suma lo que falta de todas (y el stock convive con la OC)
-  ok(/\| 500 kg \|/.test(cards[2]), 'stock y OC conviven en la tarjeta: ' + cards[2]);
-  ok(/OC: 1\.200 kg/.test(cards[2]), 'dos OC suman lo pendiente: ' + cards[2]);
+  // varias OC: se suma lo que falta de todas (y el stock 500 no aparece)
+  ok(/OC: 1\.200 kg/.test(cards[2]) && !/500 kg/.test(cards[2]),
+     'dos OC suman lo pendiente, sin stock: ' + cards[2]);
 
   // misma parte pedida en dos unidades: se muestra el numero SIN unidad, no se inventa
   ok(/OC: 50(\s|$)/.test(cards[3]) && !/OC: 50 kg/.test(cards[3]),
