@@ -536,17 +536,29 @@ costo se CALCULA — nunca se guarda cocinado.** Implementado:
 - Decisiones puntuales del usuario: 587 = $89 (NO como sus hermanos peladores 79),
   580 = $43 (como 544, aunque hoja Costos diga 89), 099/713 = $72,85 (factura
   Pelapapas Chef, no los $89 de la hoja), 120 = $35,50 (el cartón que él recordaba).
-- Cargados 76/85. Sin dato: 097, 516, 609, 700, 706, 719, 878 (719/878/097 comparten
-  grupo con 099/713/043/816 según "Carton x Categ." 2024 — falta saber cuál de los
-  dos precios). Discontinuados: 574, 119, Skin 506.
+- **LA FÓRMULA DEL PLIEGO** `[usuario 2026-08-31, cierre]`: *"los cartones deberían
+  costar todos lo mismo considerando su múltiplo"* — el pliego vale ~$1.068 ($89 × 12)
+  y el precio unitario = pliego ÷ posiciones. El pedido mínimo delata las posiciones
+  (12.000 → 12 por pliego, etc.). **Toda la marca Chef pasó a 16 por pliego → $66,75**
+  (salvo los de 25 → $42,72 y 30 → $35,60 — de ahí el $35,50 del 120). Esto PISÓ las
+  "Medidas A/B/C" ($63,09/$106,67/$79,57) que eran precios de may-2024, y el
+  "Pelapapas Chef" $72,85/$89: los 28 cartones Chef quedaron a $66,75.
+- 706 y 700 ya NO van en skin `[usuario]`: cartón Chef común $66,75. El 546 va formato
+  huevo $48 (NO los $89 de la hoja Costos). El 550 va $89 y **1 cartón por unidad**
+  (la receta tenía ÷25 de la sesión bombillas — corregida a ×1, pendiente #2 del
+  handoff saldado). El 516 va SUELTO (ni bolsa ni cartón, solo caja) → discontinuo.
+- **CERRADO 85/85**: 81 con precio real + 4 discontinuados (574, 119, Skin 506, 516).
 
-### Placeholders que quedan (1 USD, listados — no inventar)
+### Placeholders que quedan (17 vivos, listados — no inventar)
 
-Cartones 097/516/609/700/706/719/878 · flejes D7 (EstaMetal sin lista), F12, Z19A ·
-remaches CV13/CV14/V14/CV16/CV18D · BOM12/BOM8/BOM13/BOM14 (Cimarrón, sesión
-bombillas) · servicios: B12/Z22 llavero pie (ningún pintor lo lista — pendiente por
-decisión del usuario). Modelado pendiente: partir el clavo niquelado (patrón
-remaches) y cantidades por paso en armados N→1.
+Flejes D7 (EstaMetal sin lista), F12, Z19A · C13 bastidor importado (sin precio aún) ·
+remaches CV13/CV14/CV16/CV18D y V10/V11/V14 (**OJO V10 y V11: no tienen ruta
+CV→V de niquelado — falta crearla y marcarlos fabricacion como sus hermanos**) ·
+BOM12/BOM8/BOM13/BOM14 + GRJ5/GRJ6 (Cimarrón, sesión bombillas) · servicios: B12/Z22
+llavero pie (ningún pintor lo lista — pendiente por decisión del usuario) · pesos
+dudosos A9 (21 vs 39 g) y W7P (0,7 vs 2,2 g). Modelado pendiente: partir el clavo
+niquelado (patrón remaches), cantidades por paso en armados N→1, cartones
+compartidos para la OC.
 
 ## 2e. Faltantes y máximos de Crudo/Procesado: 5 cajones por ubicación (2026-08-31)
 
