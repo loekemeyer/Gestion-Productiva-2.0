@@ -1089,6 +1089,40 @@ vuelta: **un número sin etiqueta en una tarjeta se lee como stock** — cualqui
 mandando `stock` (clave agregada hoy a `recepcion_bundle`, `GP2.inventario` en la ubicación
 del sector del insumo) y `ultima` por si hacen falta, pero la tarjeta no pinta ninguno.
 
+## 2c-terdecies. Limpieza de placeholders de 1 USD (2026-08-31)
+
+`[usuario]` "los 35 placeholders de 1 USD que quedan". Barrio de una: **23 borrados, 12
+quedan pendientes de precio real**.
+
+### Borrados sin dato del usuario (23)
+
+**A) 15 fabricados por ruta** (crudo + niquelado ya los costea, el 1 USD solo inventaba plata
+apenas entraban por BOM en vez de ruta — mismo patron que V9 ayer):
+V1, V2, V3, V4, V5, V6, V7, V8, V12, V18D (remaches propios niquelados) · CV13, CV18D (sus
+crudos) · D7 (Fleje N° 50, sale de ruta) · GRJ5, GRJ6 (bombillas armadas en garage).
+
+**B) 8 discontinuos** (no hay proveedor real):
+C1B (Carton 574), I3B (Carton 119), L4B1 (Carton 516), PB1, CV17, CV20, V18C, V20.
+
+Sobre V20 (Tornillo Corta Queso): sigue en 3 rutas (arts 119/574/809) pero los 3 estan
+**discontinuados** — es coherente, no es huerfano.
+
+### DESCUBRIMIENTO IMPORTANTE — el 1 USD costeaba mas de lo que parecia
+7 componentes cayeron **$1.535 -> $0** al borrar el placeholder (G4, M1, CV13, CV18D, D7,
+V18D, D7-M23). Estos NO tienen ruta que los produzca y NO tienen precio real: el 1 USD era
+lo unico que los hacia "costar algo". Ahora `faltan_precios=1` los marca como incompletos,
+que es la verdad. Cargar el precio real cuando venga.
+
+### Pendientes de precio real (12 comprables)
+- **Cimarron** `[usuario 2026-08-31]`: "a Cimarron NO le compramos BOM12, le compramos la
+  BOMBILLA entera 557/558". VERIFICADO: no hay NINGUN precio de Cimarron en la base hoy.
+  BOM12 (Cano Inox 140 mm), BOM8 (Resorte), BOM13 (Filtro), BOM14 (Precinto) son componentes
+  intermedios de recetas — si vos comprás la bombilla armada, no son insumos de compra. Falta
+  cargar el precio de la 557/558 armada como compra a Cimarron; los BOM* siguen usandose en
+  las recetas de fabricacion propia si algun dia la hacemos.
+- Z19A (Alambre Corta Queso, 546), F12 (Fleje N° 49), C13 (Bastidor Corta Queso), V10 (Rem
+  Alum Canel), V14 (Remache Pinza), V11 (Rem Sacacorcho), CV14, CV16.
+
 ## 2e. Faltantes y máximos de Crudo/Procesado: 5 cajones por ubicación (2026-08-31)
 
 `[usuario 2026-08-30]` **"En crudo y procesado, el stock máximo tendría que ser 5
