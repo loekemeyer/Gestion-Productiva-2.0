@@ -551,11 +551,16 @@ function abrirPopup(i){
     $('unitRow').classList.add('hidden');
     $('kgValue').placeholder='kg del remito';
     setUnit('kg');
-  } else if (esFleje(i) && String(provSel).toLowerCase()==='basconia') {
-    // Basconia (solo este proveedor): siempre KG y sin toggle Kg/Uni.
+  } else if (esFleje(i)) {
+    // Flejes: cada fleje tiene su UM canonica fija (46 en kg, 7 en unidad
+    // como F12/E13/Z19A/E4/E5/E1/C3). El toggle Kg/Uni solo confunde. Se
+    // oculta y se fuerza la UM del componente. Basconia siempre kg (no entrega
+    // unidades). [usuario 2026-08-31]
     $('unitRow').classList.add('hidden');
-    $('kgValue').placeholder='kg';
-    setUnit('kg');
+    var uFleje = String(provSel).toLowerCase()==='basconia' ? 'kg'
+      : (UMBY[i.comp_id]==='unidad' ? 'uni' : 'kg');
+    $('kgValue').placeholder = uFleje==='kg' ? 'kg' : 'unidades';
+    setUnit(uFleje);
   } else {
     $('unitRow').classList.remove('hidden');
     $('kgValue').placeholder='';

@@ -10,3 +10,5 @@ en verde antes de pushear, y los anota acá como hechos. Lo más grande queda
 pendiente hasta que el usuario lo active.
 
 ---
+
+- [x] **5921** (2026-08-31) [medio·chico] Reestilar 8 módulos de paleta oscura a la clara — El commit `168737a Tema claro global` (otra sesión) ya reestiló 6 de los 8: `Programa/Programa.html`, `Despiece x Articulo/Despiece_GP2.html`, `Stocks General/StockGeneral_GP2.html`, `Talleristas/Proporciones/Proporciones_GP2.html`, `Talleristas/Faltante Partes Tallerista/FaltantePartesTallerista_GP2.html`, `Talleristas/ABM Articulos/ABM_Articulos_GP2.html`. Los 2 de Informes usaban variables `:root{--bg:#0f172a;...}` y quedaron sin cubrir; hoy se les cambió el `:root` a paleta clara (`--bg:#ebeff4` etc.), sin tocar HTML/JS. Todo cerrado. — _hecha_
