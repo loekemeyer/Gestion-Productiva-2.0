@@ -559,6 +559,49 @@ costo se CALCULA — nunca se guarda cocinado.** Implementado:
   cargaron con el pedido mínimo (12.000/16.000/25.000/30.000) y 1 — semántica a
   confirmar, la puso esta sesión `[deducido]`.
 
+### Auditoría del 2026-08-31 (5 agentes) — ver `AUDITORIA_GP2_2026-08-31.md`
+
+Hallazgos que cambian reglas de la casa (el detalle completo, con queries y números, está
+en ese archivo):
+
+- `[dato]` **`carton_formato.pliegos_multiplo` = múltiplo del PEDIDO TOTAL** (12.000 /
+  16.000 / 25.000 / 30.000), NO posiciones por pliego. Está en `REGLAS_OC_INSUMOS.md` y lo
+  usa `OC_GP2.html` para validar. Esta sesión lo interpretó mal y creó `Loke` (duplicado
+  case-sensitive de `LOKE` — el nombre es la PK) rompiendo la validación de 38 cartones.
+  **Corregido el mismo día.** Lección: antes de cargar una maestra, leer para qué la usa la
+  OC, no solo cómo se llaman los campos.
+- `[dato]` **Lo que neutraliza un placeholder es marcar `estado_compra`, no borrar la
+  fila.** Los 37 placeholders vivos: 22 inertes (fabricacion/discontinuo), **13 con estado
+  NULL que SÍ contaminan** a $1.535 la pieza → $47,8 M/mes de costo ficticio, el doble del
+  valor de todo el stock. Los peores: C13, BOM13, BOM14, BOM8, BOM12, GRJ5.
+- `[dato]` **`v_costo_componente.faltan_tiempos` no detecta el tiempo en CERO**, solo NULL.
+  Hay 34 matrices en 0 usadas en rutas → 23 componentes con mano de obra $0 y el semáforo
+  diciendo "todo bien". No usar ese contador como garantía hasta arreglarlo.
+- `[dato]` **`precio_servicio_pieza.proceso` NO participa del join de la vista**: es texto
+  libre sin FK, y ya diverge de `proveedor_servicio.proceso` (minúscula vs Title Case, y
+  `'Templado, Cementado'` con dos procesos en una celda). **La REGLA DE ORO del costeo hoy
+  NO está garantizada por el modelo**: falta una maestra `GP2.proceso` y una
+  `tarifa_servicio` por proceso (33 de 68 filas son la misma tarifa repetida).
+- `[dato]` **El precio del cartón sigue cocinado en 73 filas**: `carton_formato` no tiene
+  columna de precio, así que "sube el pliego y se recalculan las 4 tarifas" todavía no es
+  verdad. Falta `precio_pliego` + `posiciones_x_pliego`.
+- `[dato]` **`precio_proveedor` no tiene FK al proveedor** (solo `cod_prov` text sin
+  destino). Trampa activa: los 9 precios de Recicor son referencia con fecha MÁS NUEVA que
+  los vigentes del Plata; si alguien los vincula a un componente, las 9 cajas cambian de
+  proveedor solas. Hoy el único discriminador es una mayúscula en `rubro`.
+- `[dato]` **Dos agujeros de escritura anónima**: `GP2.empleado` (policies INSERT/UPDATE
+  `TO anon` — no se puede cerrar sin migrar antes `Produccion/abm_GP2.html`, que escribe
+  directo) y `GP2.inv_delta` (RPC anon que escribe inventario salteando `movimiento`, sin
+  auditoría; ninguna pantalla la llama).
+- `[dato]` **Si la receta lista un componente que no es el último de la ruta, todo lo que
+  sigue queda en consumo 0** (la vista siembra desde la receta y camina hacia atrás).
+  Casos: E6-M194 (570/858), D5/D6-M78 (507), B1/B2-M78 (707).
+- `[dato]` **Los flejes redondos sin matriz de corte no convierten a kg** → máximo null →
+  **la OC no los pide**: C3, E4, E5, E1 (~478 kg/mes). El peso está cargado en
+  `fleje_detalle`; la vista podría usarlo directo cuando no hay matriz.
+- `[dato]` **La suite de tests quedó ciega**: 29/29 pasan, pero todos stubean Supabase. El
+  bug del clavo en la OC pasó sin despeinarse porque el stub no tiene `precio_por_kg`.
+
 ### Placeholders que quedan (17 vivos, listados — no inventar)
 
 Flejes D7 (EstaMetal sin lista), F12, Z19A · C13 bastidor importado (sin precio aún) ·
