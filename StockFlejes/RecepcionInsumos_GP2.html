@@ -545,6 +545,12 @@ function abrirPopup(i){
     $('unitRow').classList.add('hidden');
     $('kgValue').placeholder='unidades del remito';
     setUnit('uni');
+  } else if (i.sector_id===8) {
+    // Remaches: recepcion en KG del remito (sin toggle). El control (pesar y
+    // anotar los kg controlados) se hace despues en Control Remaches.
+    $('unitRow').classList.add('hidden');
+    $('kgValue').placeholder='kg del remito';
+    setUnit('kg');
   } else if (esFleje(i) && String(provSel).toLowerCase()==='basconia') {
     // Basconia (solo este proveedor): siempre KG y sin toggle Kg/Uni.
     $('unitRow').classList.add('hidden');
@@ -1260,25 +1266,32 @@ async function guardar(){
       return;
     }
 
-    // Sin rollos (cajas, plásticos, etc.): la carga sola completa la recepción.
-    // Cajas (sector 11): guardar cantidad_declarada = cant para que Control Cajas
-    // pueda comparar declarado vs contado, y ofrecer link para ir a controlar.
+    // Sin rollos (cajas, remaches, plásticos, etc.): la carga sola completa la
+    // recepción. Cajas (sector 11) y Remaches (sector 8) quedan PENDIENTES de
+    // control: se guarda cantidad_declarada para comparar despues declarado vs
+    // controlado, y se ofrece el link al modulo de control correspondiente.
     var esCaja = (itemSel.sector_id === 11);
-    if (esCaja && recId) {
+    var esRemache = (itemSel.sector_id === 8);
+    var pideControl = esCaja || esRemache;
+    if (pideControl && recId) {
       try { await SB.from('recepcion_insumo').update({ cantidad_declarada: cant }).eq('id', recId); } catch(e){ console.warn('cantidad_declarada:', e); }
     }
     var sb=$('successBox'); sb.style.display='block';
     $('successBox').querySelector('.title').textContent='✓ Recepción registrada';
     var detUni= (unitSel==='paq') ? (fmt(cantRaw)+' paquetes = <b>'+fmt(cant)+' uni</b>') : ((uReal==='kg'&&kx&&unitSel==='uni') ? (fmt(cantRaw)+' uni = <b>'+fmt(cant)+' kg</b>') : '<b>'+fmt(cant)+' '+esc(uReal)+'</b>');
-    var extraCajas = esCaja
-      ? ('<br><br><b style="color:#0b5cad">Pendiente de control físico</b> (base × pisos + sueltas)<br>' +
-         '<a href="control-cajas.html" style="display:inline-block;margin-top:8px;padding:12px 22px;background:#0b5cad;color:#fff;border-radius:8px;text-decoration:none;font-weight:900;font-size:18px">Ir a Control Cajas →</a>')
-      : '';
-    $('successDetail').innerHTML=esc(itemSel.codigo)+' — '+esc(itemSel.descripcion||'')+' · '+detUni+(provSel?(' ('+esc(provSel)+')'):'')+'. Stock actualizado. Mov '+(res.data&&res.data.movimiento_id)+'. '+ocTxt+'.'+extraCajas;
-    // Cajas: el control es OBLIGATORIO despues de recibir, asi que se ocultan las
-    // salidas (Atrás del header y Volver del paso 2) para que la unica via sea
-    // "Ir a Control Cajas" o "Nueva recepción" (que recarga y las restaura).
+    var extraCtrl = '';
     if (esCaja) {
+      extraCtrl = '<br><br><b style="color:#0b5cad">Pendiente de control físico</b> (base × pisos + sueltas)<br>' +
+        '<a href="control-cajas.html" style="display:inline-block;margin-top:8px;padding:12px 22px;background:#0b5cad;color:#fff;border-radius:8px;text-decoration:none;font-weight:900;font-size:18px">Ir a Control Cajas →</a>';
+    } else if (esRemache) {
+      extraCtrl = '<br><br><b style="color:#0b5cad">Pendiente de control</b> (pesar y anotar los kg)<br>' +
+        '<a href="control-remaches.html" style="display:inline-block;margin-top:8px;padding:12px 22px;background:#0b5cad;color:#fff;border-radius:8px;text-decoration:none;font-weight:900;font-size:18px">Ir a Control Remaches →</a>';
+    }
+    $('successDetail').innerHTML=esc(itemSel.codigo)+' — '+esc(itemSel.descripcion||'')+' · '+detUni+(provSel?(' ('+esc(provSel)+')'):'')+'. Stock actualizado. Mov '+(res.data&&res.data.movimiento_id)+'. '+ocTxt+'.'+extraCtrl;
+    // Cajas/Remaches: el control es OBLIGATORIO despues de recibir, asi que se
+    // ocultan las salidas (Atrás del header y Volver del paso 2) para que la
+    // unica via sea "Ir a Control ..." o "Nueva recepción" (que recarga y las restaura).
+    if (pideControl) {
       var _atras=$('btnAtrasHeader'); if(_atras) _atras.style.display='none';
       var _volver=$('btnVolver1'); if(_volver) _volver.style.display='none';
     }
