@@ -1,5 +1,5 @@
 -- =====================================================================
--- FUNCIONES del schema GP2 — export automatico 2026-08-29 (pg_get_functiondef, exacto)
+-- FUNCIONES del schema GP2 — export automatico 2026-08-31 (pg_get_functiondef, exacto)
 -- Fuente de verdad: Supabase (hrxfctzncixxqmpfhskv). Este archivo es respaldo/referencia.
 -- =====================================================================
 
@@ -226,6 +226,39 @@ begin
     'altas', v_altas, 'cambios', v_cambios, 'bajas', v_bajas, 'avisos', v_avisos);
 end $function$;
 
+-- ---------- actualizar_dolar_oficial ----------
+CREATE OR REPLACE FUNCTION "GP2".actualizar_dolar_oficial()
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'GP2', 'public', 'extensions'
+AS $function$
+declare r record; j jsonb; v_fecha date; v_venta numeric; v_compra numeric;
+begin
+  select * into r from public.http_get('https://dolarapi.com/v1/dolares/oficial');
+  if r.status <> 200 then
+    return jsonb_build_object('ok', false, 'status', r.status);
+  end if;
+  j := r.content::jsonb;
+  v_fecha  := (j->>'fechaActualizacion')::timestamptz::date;
+  v_venta  := (j->>'venta')::numeric;
+  v_compra := (j->>'compra')::numeric;
+  if v_venta is null or v_venta <= 0 then
+    return jsonb_build_object('ok', false, 'motivo', 'venta invalida', 'body', j);
+  end if;
+
+  insert into tipo_cambio (fecha, compra, venta)
+  values (v_fecha, v_compra, v_venta)
+  on conflict (fecha) do update set compra = excluded.compra, venta = excluded.venta, obtenido_en = now();
+
+  -- el parametro es lo que leen las vistas de valorizacion: siempre el ultimo valor
+  insert into parametro (clave, valor, descripcion)
+  values ('tipo_cambio_usd_pesos', v_venta, 'Dolar oficial VENTA, actualizado solo por pg_cron (fuente dolarapi.com). Historia en GP2.tipo_cambio.')
+  on conflict (clave) do update set valor = excluded.valor, descripcion = excluded.descripcion;
+
+  return jsonb_build_object('ok', true, 'fecha', v_fecha, 'venta', v_venta, 'compra', v_compra);
+end $function$;
+
 -- ---------- ajustar_rollos ----------
 CREATE OR REPLACE FUNCTION "GP2".ajustar_rollos(p_comp_id bigint, p_kg_por_rollo numeric, p_delta integer, p_motivo text DEFAULT 'ajuste'::text, p_nota text DEFAULT NULL::text)
  RETURNS jsonb
@@ -322,6 +355,33 @@ begin
   return jsonb_build_object('ok',true,'nombre',v_n);
 end $function$;
 
+-- ---------- alta_proveedor_servicio ----------
+CREATE OR REPLACE FUNCTION "GP2".alta_proveedor_servicio(p_nombre text, p_proceso text)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'GP2'
+AS $function$
+declare
+  v_nom text := nullif(btrim(coalesce(p_nombre,'')),'');
+  v_proc text := nullif(btrim(coalesce(p_proceso,'')),'');
+  v_id bigint;
+begin
+  if v_nom is null then raise exception 'Falta el nombre del proveedor.'; end if;
+  if v_proc is null then raise exception 'Falta el proceso.'; end if;
+
+  select id into v_id from proveedor_servicio where lower(btrim(nombre)) = lower(v_nom);
+  if v_id is not null then
+    raise exception 'Ya existe un proveedor de servicio llamado "%".', v_nom;
+  end if;
+
+  -- cod_prov queda NULL a proposito: es el codigo externo y no se inventa.
+  insert into proveedor_servicio (nombre, proceso, cod_prov)
+  values (v_nom, v_proc, null) returning id into v_id;
+
+  return jsonb_build_object('ok', true, 'id', v_id, 'nombre', v_nom, 'proceso', v_proc);
+end $function$;
+
 -- ---------- anular_evento_prod ----------
 CREATE OR REPLACE FUNCTION "GP2".anular_evento_prod(p_id_ejecucion text)
  RETURNS jsonb
@@ -363,6 +423,72 @@ begin
   end if;
 end;
 $function$;
+
+-- ---------- asignar_pintor_activo ----------
+CREATE OR REPLACE FUNCTION "GP2".asignar_pintor_activo(p_comp_id bigint, p_prov_id bigint)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'GP2'
+AS $function$
+declare v_cod text; v_prov text;
+begin
+  select codigo into v_cod from componente where id = p_comp_id;
+  if v_cod is null then raise exception 'Componente inexistente (id=%).', p_comp_id; end if;
+
+  update parte_proveedor_servicio set asignado = false
+   where componente_id = p_comp_id and asignado;
+
+  if p_prov_id is not null then
+    -- Solo puede quedarse con la parte alguien que ademas PUEDE pintarla.
+    if not exists (select 1 from parte_proveedor_servicio
+                    where componente_id = p_comp_id and proveedor_servicio_id = p_prov_id) then
+      raise exception 'Ese pintor no esta habilitado para la parte %. Prendelo primero.', v_cod;
+    end if;
+    update parte_proveedor_servicio set asignado = true
+     where componente_id = p_comp_id and proveedor_servicio_id = p_prov_id;
+    select nombre into v_prov from proveedor_servicio where id = p_prov_id;
+  end if;
+
+  return jsonb_build_object('ok', true, 'codigo', v_cod, 'pintor', v_prov);
+end $function$;
+
+-- ---------- asignar_pintor_parte ----------
+CREATE OR REPLACE FUNCTION "GP2".asignar_pintor_parte(p_comp_id bigint, p_prov_id bigint, p_activo boolean)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'GP2'
+AS $function$
+declare
+  v_cod text; v_prov text; v_n int;
+begin
+  select codigo into v_cod from componente where id = p_comp_id;
+  if v_cod is null then
+    raise exception 'Componente inexistente (id=%).', p_comp_id;
+  end if;
+
+  select nombre into v_prov from proveedor_servicio
+   where id = p_prov_id and proceso = 'Pintado';
+  if v_prov is null then
+    raise exception 'El pintor (id=%) no existe. Dalo de alta primero.', p_prov_id;
+  end if;
+
+  if coalesce(p_activo,false) then
+    insert into parte_proveedor_servicio (componente_id, proveedor_servicio_id)
+    values (p_comp_id, p_prov_id)
+    on conflict do nothing;
+  else
+    delete from parte_proveedor_servicio
+     where componente_id = p_comp_id and proveedor_servicio_id = p_prov_id;
+  end if;
+
+  select count(*) into v_n from parte_proveedor_servicio where componente_id = p_comp_id;
+
+  return jsonb_build_object('ok', true, 'comp_id', p_comp_id, 'codigo', v_cod,
+                            'pintor', v_prov, 'activo', coalesce(p_activo,false),
+                            'pintores_ahora', v_n);
+end $function$;
 
 -- ---------- asignar_proveedor_parte ----------
 CREATE OR REPLACE FUNCTION "GP2".asignar_proveedor_parte(p_comp_id bigint, p_proveedor text)
@@ -518,6 +644,58 @@ AS $function$
              ) order by p.fecha desc, p.id desc)
       from pagina p), '[]'::jsonb)
   );
+$function$;
+
+-- ---------- consumo_detalle ----------
+CREATE OR REPLACE FUNCTION "GP2".consumo_detalle(p_comp_id bigint)
+ RETURNS jsonb
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'GP2'
+AS $function$
+select jsonb_build_object(
+  'comp_id', c.id,
+  'codigo', c.codigo,
+  'descripcion', c.descripcion,
+  'sector', s.nombre,
+  'es_fleje', (c.sector_id = 5),
+  'uni_x_cajon', c.uni_x_cajon,
+  'total_uni_mes', (select round(sum(d.uni_mes)) from v_consumo_demanda d where d.componente_id = c.id),
+  'total_kg_mes', (select fk.consumo_kg_mes from v_consumo_fleje_kg_v2 fk where fk.componente_id = c.id),
+  'articulos', coalesce((
+    select jsonb_agg(jsonb_build_object(
+             'articulo', a.codigo,
+             'familia', a.familia,
+             'proy_uni_mes', round(em.proy),
+             'uni_mes', round(d.uni_mes),
+             'kg_mes', kg.kg,
+             'receta_directa', exists (select 1 from articulo_componente ac
+                                        where ac.articulo_id = a.id and ac.componente_id = c.id)
+           ) order by d.uni_mes desc)
+    from v_consumo_demanda d
+    join articulo a on a.id = d.articulo_id
+    left join lateral (
+      select sum(em2.proy_uni_mes) proy from est_madre em2
+      where regexp_replace(em2.cod,'^0+','') = regexp_replace(a.codigo,'^0+','')
+    ) em on true
+    left join lateral (
+      -- kg del fleje que este articulo consume (solo si el componente es fleje)
+      select round(sum(d2.uni_mes / p.ppk), 1) kg
+      from (select distinct r.articulo_id art_id, rp.comp_salida_id sal, m.partes_por_kilo_de_fleje ppk
+              from ruta_paso rp
+              join ruta r on r.id = rp.ruta_id
+              join matriz m on m.id = rp.matriz_id
+             where rp.comp_entrada_id = c.id and c.sector_id = 5
+               and coalesce(m.partes_por_kilo_de_fleje,0) > 0) p
+      join v_consumo_demanda d2 on d2.articulo_id = p.art_id and d2.componente_id = p.sal
+      where p.art_id = a.id
+    ) kg on true
+    where d.componente_id = c.id
+  ), '[]'::jsonb)
+)
+from componente c
+left join sector s on s.id = c.sector_id
+where c.id = p_comp_id;
 $function$;
 
 -- ---------- control_envios_bundle ----------
@@ -992,8 +1170,23 @@ begin
   returning id into v_oc;
   for it in select * from jsonb_array_elements(coalesce(p->'items','[]'::jsonb)) loop
     if coalesce((it->>'cantidad')::numeric,0) > 0 then
-      insert into orden_compra_item (oc_id, componente_id, cantidad, unidad)
-      values (v_oc, (it->>'comp_id')::bigint, (it->>'cantidad')::numeric, coalesce(nullif(it->>'unidad',''),'uni'));
+      -- foto historica: el precio vigente del componente en el momento de crear la OC,
+      -- ya convertido a la unidad de pedido si la lista viene por kg
+      insert into orden_compra_item (oc_id, componente_id, cantidad, unidad, precio_uni, moneda)
+      select v_oc, (it->>'comp_id')::bigint, (it->>'cantidad')::numeric,
+             coalesce(nullif(it->>'unidad',''),'uni'),
+             pv.precio,
+             case when pv.precio is null then null
+                  when upper(coalesce(pv.moneda,'USD')) like '%US%' then 'USD' else 'ARS' end
+      from (select 1) x
+      left join lateral (
+        select case when pp.precio_por_kg then pp.precio * cc.kg_x_uni else pp.precio end precio,
+               pp.moneda
+        from precio_proveedor pp
+        join componente cc on cc.id = pp.componente_id
+        where pp.componente_id = (it->>'comp_id')::bigint and pp.precio is not null
+        order by pp.fecha_lista desc nulls last, pp.id desc limit 1
+      ) pv on true;
       v_n := v_n + 1;
     end if;
   end loop;
@@ -1062,6 +1255,126 @@ select jsonb_build_object(
       ) order by a.codigo
     ), '[]'::jsonb)
     from "GP2".articulo a
+  )
+);
+$function$;
+
+-- ---------- despiece_verif_bundle ----------
+CREATE OR REPLACE FUNCTION "GP2".despiece_verif_bundle()
+ RETURNS jsonb
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'GP2', 'public'
+AS $function$
+with sec_rel as (
+  -- sector "relevante para peso": tiene al menos un componente con kg cargado
+  -- (mismo criterio que usaba verifmadres_bundle para el filtro por defecto)
+  select distinct sector_id from "GP2".componente
+  where kg_x_uni is not null and kg_x_uni <> 0
+),
+pasos as (
+  select rp.ruta_id, rp.orden o, rp.tipo_paso tp,
+    case rp.tipo_paso
+      when 'matriz' then m.n_matriz
+      when 'proveedor_servicio' then pv.nombre
+      when 'tallerista' then t.nombre
+      else null end as actor,
+    case rp.tipo_paso
+      when 'matriz' then m.descripcion
+      when 'proveedor_servicio' then pv.proceso
+      when 'tallerista' then t.clase
+      else null end as actor_desc,
+    ce.codigo ce, ce.descripcion ce_d, se.tipo ce_sect,
+    cs.codigo cs, cs.descripcion cs_d, sc.tipo cs_sect,
+    ra.codigo paso_art
+  from "GP2".ruta_paso rp
+  left join "GP2".matriz m on m.id = rp.matriz_id
+  left join "GP2".proveedor_servicio pv on pv.id = rp.proveedor_id
+  left join "GP2".tallerista t on t.id = rp.tallerista_id
+  left join "GP2".componente ce on ce.id = rp.comp_entrada_id
+  left join "GP2".sector se on se.id = ce.sector_id
+  left join "GP2".componente cs on cs.id = rp.comp_salida_id
+  left join "GP2".sector sc on sc.id = cs.sector_id
+  left join "GP2".articulo ra on ra.id = rp.articulo_id
+),
+ruta_fleje as (
+  select distinct on (ruta_id) ruta_id, componente_fleje_id fl
+  from "GP2".ruta_paso where componente_fleje_id is not null
+  order by ruta_id, orden
+),
+rutas_full as (
+  select r.id, r.nombre nom, a.codigo art, a.familia fam,
+    cf.codigo fleje, cf.descripcion fleje_desc,
+    (select jsonb_agg(jsonb_build_object(
+        'o',p.o,'tp',p.tp,'actor',p.actor,'actor_desc',p.actor_desc,
+        'ce',p.ce,'ce_d',p.ce_d,'ce_sect',p.ce_sect,
+        'cs',p.cs,'cs_d',p.cs_d,'cs_sect',p.cs_sect,'art',p.paso_art) order by p.o)
+     from pasos p where p.ruta_id = r.id) pasos
+  from "GP2".ruta r
+  left join "GP2".articulo a on a.id = r.articulo_id
+  left join ruta_fleje rf on rf.ruta_id = r.id
+  left join "GP2".componente cf on cf.id = rf.fl
+)
+select jsonb_build_object(
+  'sect', (select jsonb_object_agg(id::text, jsonb_build_object('tipo',tipo,'nom',nombre)) from "GP2".sector),
+  'art', (
+    select coalesce(jsonb_agg(
+      jsonb_build_object(
+        'id',  a.id,
+        'cod', a.codigo,
+        'fam', a.familia,
+        'por', a.articulos_por_caja,
+        'caja',a.componente_caja_id,
+        'est', a.estadistica_madre_uni_mes,
+        'comp', coalesce((
+          select jsonb_agg(jsonb_build_object(
+            'cod', c.codigo,
+            'd',   c.descripcion,
+            's',   c.sector_id,
+            'um',  c.unidad_medida,
+            'q',   ac.cantidad,
+            'kg',  c.kg_x_uni,
+            'uxc', c.uni_x_cajon,
+            'fkg', ((c.kg_x_uni is null or c.kg_x_uni = 0)
+                    and c.sector_id in (select sector_id from sec_rel)),
+            'fuxc',((c.uni_x_cajon is null or c.uni_x_cajon = 0)
+                    and c.sector_id in (select sector_id from sec_rel))
+          ) order by c.sector_id nulls last, c.codigo)
+          from "GP2".articulo_componente ac
+          join "GP2".componente c on c.id = ac.componente_id
+          where ac.articulo_id = a.id
+        ), '[]'::jsonb)
+      ) order by a.codigo
+    ), '[]'::jsonb)
+    from "GP2".articulo a
+  ),
+  'rutas', (select coalesce(jsonb_agg(jsonb_build_object(
+       'id',id,'nom',nom,'art',art,'fam',fam,'fleje',fleje,'fleje_desc',fleje_desc,'pasos',pasos)
+       order by art nulls last, id), '[]'::jsonb) from rutas_full),
+  'confirmadas', (
+    select coalesce(jsonb_agg(jsonb_build_object(
+      'firma',firma,'articulo',articulo,'fleje',fleje,
+      'por',confirmado_por,'en',confirmado_en)),
+    '[]'::jsonb) from "GP2".ruta_confirmada
+  ),
+  'problemas', (
+    select coalesce(jsonb_agg(jsonb_build_object(
+      'id',id,'firma',firma,'articulo',articulo,'fleje',fleje,
+      'problema',problema,'estado',estado,
+      'por',reportado_por,'en',reportado_en,'resuelto_en',resuelto_en)
+      order by reportado_en desc),
+    '[]'::jsonb) from "GP2".ruta_problema
+  ),
+  'madres', (
+    -- resumen GLOBAL de datos faltantes (todos los componentes de sectores con
+    -- peso, esten o no en una receta): la vista de conjunto que daba VerifMadres
+    select jsonb_build_object(
+      'total_comp', count(*),
+      'sin_kg', count(*) filter (where c.kg_x_uni is null or c.kg_x_uni = 0),
+      'sin_uxc', count(*) filter (where c.uni_x_cajon is null or c.uni_x_cajon = 0)
+    )
+    from "GP2".componente c
+    where c.sector_id in (select sector_id from sec_rel)
   )
 );
 $function$;
@@ -1155,6 +1468,59 @@ select jsonb_build_object(
   ), '[]'::jsonb)
 );
 $function$;
+
+-- ---------- empleado_activar ----------
+CREATE OR REPLACE FUNCTION "GP2".empleado_activar(p_id bigint, p_activo boolean)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'GP2'
+AS $function$
+begin
+  update empleado set activo = p_activo where id = p_id;
+  if not found then raise exception 'No existe el operario %.', p_id; end if;
+  return jsonb_build_object('ok', true, 'id', p_id, 'activo', p_activo);
+end $function$;
+
+-- ---------- empleado_guardar ----------
+CREATE OR REPLACE FUNCTION "GP2".empleado_guardar(p jsonb)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'GP2'
+AS $function$
+declare v_id bigint; v_legajo text; v_nombre text; v_tipo text; v_hora time; v_activo boolean;
+begin
+  v_legajo := btrim(coalesce(p->>'legajo',''));
+  v_nombre := btrim(coalesce(p->>'nombre',''));
+  if v_legajo = '' then raise exception 'Falta el legajo.'; end if;
+  if v_nombre = '' then raise exception 'Falta el nombre.'; end if;
+
+  v_id     := nullif(btrim(coalesce(p->>'id','')),'')::bigint;
+  v_tipo   := nullif(btrim(coalesce(p->>'tipo','')),'');
+  v_hora   := nullif(btrim(coalesce(p->>'hora_entrada','')),'')::time;
+  v_activo := coalesce((p->>'activo')::boolean, true);
+
+  -- el legajo es unico: es la llave que cruza con la produccion
+  if exists (select 1 from empleado e
+             where btrim(e.legajo) = v_legajo and (v_id is null or e.id <> v_id)) then
+    raise exception 'Ya existe un operario con el legajo %.', v_legajo;
+  end if;
+
+  if v_id is null then
+    insert into empleado (legajo, nombre, tipo, hora_entrada, activo)
+    values (v_legajo, v_nombre, v_tipo, v_hora, v_activo)
+    returning id into v_id;
+  else
+    update empleado
+       set legajo = v_legajo, nombre = v_nombre, tipo = v_tipo,
+           hora_entrada = v_hora, activo = v_activo
+     where id = v_id;
+    if not found then raise exception 'No existe el operario %.', v_id; end if;
+  end if;
+
+  return jsonb_build_object('ok', true, 'id', v_id);
+end $function$;
 
 -- ---------- entregas_tallerista_bundle ----------
 CREATE OR REPLACE FUNCTION "GP2".entregas_tallerista_bundle()
@@ -1546,6 +1912,39 @@ select jsonb_build_object(
 );
 $function$;
 
+-- ---------- faltantes_estado_bundle ----------
+CREATE OR REPLACE FUNCTION "GP2".faltantes_estado_bundle()
+ RETURNS jsonb
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'GP2'
+AS $function$
+select jsonb_build_object(
+  'max_cajones', coalesce((select valor from parametro where clave = 'max_cajones_x_ubicacion'), 5),
+  'umbral_cajones', coalesce((select valor from parametro where clave = 'faltante_cajones_umbral'), 1),
+  'estado', coalesce((select jsonb_agg(jsonb_build_object(
+      'comp_id', componente_id, 'cod', codigo, 'desc', descripcion,
+      'sector_id', sector_id,
+      'stock', stock_uni, 'uxc', uni_x_cajon, 'caj_stock', cajones_stock,
+      'consumo_mes', consumo_uni_mes, 'maximo', maximo,
+      'cob_dias', cobertura_dias, 'cob_llena_dias', cobertura_llena_dias,
+      'falt_auto', faltante_auto, 'ubic_corta', ubicacion_corta
+    ) order by sector_id, codigo) from v_faltante_estado), '[]'::jsonb),
+  'marcas', coalesce((select jsonb_agg(jsonb_build_object(
+      'id', f.id, 'comp_id', f.componente_id, 'cod', c.codigo, 'desc', c.descripcion,
+      'sector_id', c.sector_id, 'origen', f.origen, 'nota', f.nota,
+      'por', f.marcado_por, 'creado_en', f.creado_en
+    ) order by f.creado_en desc)
+    from faltante_marcado f join componente c on c.id = f.componente_id
+    where f.resuelto_en is null), '[]'::jsonb),
+  'pendientes_uxc', coalesce((select jsonb_agg(jsonb_build_object(
+      'comp_id', c.id, 'cod', c.codigo, 'desc', c.descripcion, 'sector_id', c.sector_id
+    ) order by c.sector_id, c.codigo)
+    from componente c
+    where c.sector_id in (1, 2) and not (c.uni_x_cajon > 0)), '[]'::jsonb)
+);
+$function$;
+
 -- ---------- fleje_detalle_upsert ----------
 CREATE OR REPLACE FUNCTION "GP2".fleje_detalle_upsert(p_comp_id bigint, p_proveedor text, p_medida text, p_cons numeric, p_kgcaj numeric, p_cod_isis text, p_kg_uni_desp numeric DEFAULT NULL::numeric, p_parte text DEFAULT NULL::text)
  RETURNS jsonb
@@ -1553,10 +1952,16 @@ CREATE OR REPLACE FUNCTION "GP2".fleje_detalle_upsert(p_comp_id bigint, p_provee
  SECURITY DEFINER
  SET search_path TO 'GP2'
 AS $function$
+declare v_prov text := nullif(btrim(coalesce(p_proveedor,'')),'');
 begin
   if not exists(select 1 from "GP2".componente where id=p_comp_id and sector_id=5) then
     raise exception 'El componente % no es un fleje (Sector Fleje)', p_comp_id;
   end if;
+  if v_prov is not null and not exists (
+       select 1 from "GP2".proveedor_insumo where nombre = v_prov and activo) then
+    raise exception 'El proveedor "%" no existe. Dalo de alta primero en Inyectores (boton "+ Proveedor").', v_prov;
+  end if;
+
   insert into "GP2".fleje_detalle(componente_id, medida_mm, cons_mensual, kg_x_cajon, cod_isis, kg_uni_desp, descripcion_parte, actualizado_en)
   values(p_comp_id, nullif(p_medida,''), p_cons, p_kgcaj, nullif(p_cod_isis,''), p_kg_uni_desp, nullif(p_parte,''), now())
   on conflict (componente_id) do update set
@@ -1565,7 +1970,7 @@ begin
     descripcion_parte=nullif(p_parte,''), actualizado_en=now();
 
   -- el proveedor vive en componente: una sola fuente
-  update "GP2".componente set proveedor = nullif(btrim(coalesce(p_proveedor,'')),'') where id = p_comp_id;
+  update "GP2".componente set proveedor = v_prov where id = p_comp_id;
 
   return jsonb_build_object('ok',true,'comp_id',p_comp_id);
 end $function$;
@@ -1583,14 +1988,17 @@ AS $function$
       'n_fleje', coalesce(d.n_fleje, (regexp_match(c.descripcion,'(\d+)'))[1]),
       'parte', d.descripcion_parte,
       'medida', d.medida_mm, 'proveedor', nullif(trim(c.proveedor),''),
-      'cons_mensual', d.cons_mensual, 'kg_x_cajon', d.kg_x_cajon,
-      'kg_uni_desp', d.kg_uni_desp, 'cod_isis', d.cod_isis,
-      'stock', coalesce(i.cantidad,0), 'minimo', coalesce(i.minimo,0)
-    ) order by (regexp_match(c.descripcion,'(\d+)'))[1]::int nulls last, c.codigo),'[]'::jsonb)
+      'cons', d.cons_mensual, 'kg_x_cajon', d.kg_x_cajon, 'cod_isis', d.cod_isis,
+      'kg_uni_desp', d.kg_uni_desp,
+      'stock', coalesce((select i.cantidad from "GP2".inventario i
+                          where i.componente_id=c.id and i.ubicacion_id=(select id from ubf)),0),
+      'minimo', (select i.minimo from "GP2".inventario i
+                  where i.componente_id=c.id and i.ubicacion_id=(select id from ubf)),
+      'maximo', (select i.maximo from "GP2".inventario i
+                  where i.componente_id=c.id and i.ubicacion_id=(select id from ubf))
+    ) order by c.codigo), '[]'::jsonb)
   from "GP2".componente c
   left join "GP2".fleje_detalle d on d.componente_id=c.id
-  left join ubf on true
-  left join "GP2".inventario i on i.componente_id=c.id and i.ubicacion_id=ubf.id
   where c.sector_id=5;
 $function$;
 
@@ -1734,6 +2142,8 @@ CREATE OR REPLACE FUNCTION "GP2".fn_est_madre_sync()
  SECURITY DEFINER
  SET search_path TO 'GP2', 'public'
 AS $function$
+declare
+  v_uni numeric;
 begin
   if TG_OP = 'DELETE' then
     delete from "GP2".est_madre where cod = OLD.cod;
@@ -1742,8 +2152,19 @@ begin
   if TG_OP = 'UPDATE' and NEW.cod is distinct from OLD.cod then
     delete from "GP2".est_madre where cod = OLD.cod;
   end if;
+
+  v_uni := NEW.proy_uni_mes;
+  if NEW.uxb is null and NEW.proy_cajas_mes is not null then
+    select round(NEW.proy_cajas_mes * a.articulos_por_caja) into v_uni
+    from "GP2".articulo a
+    where regexp_replace(a.codigo, '^0+', '') = regexp_replace(NEW.cod, '^0+', '')
+      and a.articulos_por_caja is not null
+    limit 1;
+    if v_uni is null then v_uni := NEW.proy_uni_mes; end if;
+  end if;
+
   insert into "GP2".est_madre (cod, proy_cajas_mes, uxb, proy_uni_mes, actualizado)
-  values (NEW.cod, NEW.proy_cajas_mes, NEW.uxb, NEW.proy_uni_mes, NEW.actualizado)
+  values (NEW.cod, NEW.proy_cajas_mes, NEW.uxb, v_uni, NEW.actualizado)
   on conflict (cod) do update
     set proy_cajas_mes = EXCLUDED.proy_cajas_mes,
         uxb            = EXCLUDED.uxb,
@@ -1794,6 +2215,18 @@ begin
   return new;
 end;
 $function$;
+
+-- ---------- fn_recalc_maximos_cajones ----------
+CREATE OR REPLACE FUNCTION "GP2".fn_recalc_maximos_cajones()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'GP2'
+AS $function$
+begin
+  perform "GP2".recalcular_maximos_cajones();
+  return null;
+end $function$;
 
 -- ---------- fn_recalc_maximos_insumos ----------
 CREATE OR REPLACE FUNCTION "GP2".fn_recalc_maximos_insumos()
@@ -2055,60 +2488,6 @@ select jsonb_build_object(
 );
 $function$;
 
--- ---------- inyectores_bundle ----------
-CREATE OR REPLACE FUNCTION "GP2".inyectores_bundle(p_sector_id bigint DEFAULT NULL::bigint)
- RETURNS jsonb
- LANGUAGE sql
- STABLE SECURITY DEFINER
- SET search_path TO 'GP2'
-AS $function$
-with sec_sel as (
-  select coalesce(p_sector_id,
-                  (select id from sector where nombre='Sector Plástico' limit 1)) sid
-),
-sec_nom as (select s.id, s.nombre from sector s, sec_sel where s.id=sec_sel.sid)
-select jsonb_build_object(
-  'generado_en', now(),
-  'sector', (select jsonb_build_object('id',id,'nombre',nombre) from sec_nom),
-  -- rubros disponibles: los sectores de insumo, con cuantas partes tiene cada uno
-  'sectores', (select coalesce(jsonb_agg(jsonb_build_object(
-                  'id', s.id, 'nombre', s.nombre,
-                  'n', (select count(*) from componente c where c.sector_id=s.id),
-                  -- pendiente = sin proveedor Y que se compre
-                  'sin_prov', (select count(*) from componente c
-                                where c.sector_id=s.id
-                                  and c.estado_compra is null
-                                  and nullif(btrim(coalesce(c.proveedor,'')),'') is null)
-                ) order by s.nombre), '[]'::jsonb)
-              from sector s where "GP2"._es_sector_insumo(s.id)),
-  -- botonera: proveedores marcados para este rubro + los que ya proveen algo del sector
-  'proveedores', (select coalesce(jsonb_agg(jsonb_build_object(
-                     'nombre', pi.nombre, 'modo_control', pi.modo_control,
-                     'n', (select count(*) from componente c, sec_sel
-                            where c.sector_id=sec_sel.sid and btrim(coalesce(c.proveedor,''))=pi.nombre)
-                   ) order by pi.nombre), '[]'::jsonb)
-                  from proveedor_insumo pi
-                  where pi.activo
-                    and (pi.rubro = (select nombre from sec_nom)
-                         or exists (select 1 from componente c, sec_sel
-                                     where c.sector_id=sec_sel.sid
-                                       and btrim(coalesce(c.proveedor,''))=pi.nombre))),
-  'partes', (select coalesce(jsonb_agg(jsonb_build_object(
-                'comp_id', c.id, 'codigo', c.codigo, 'descripcion', c.descripcion,
-                'proveedor', nullif(btrim(coalesce(c.proveedor,'')),''),
-                'estado_compra', c.estado_compra,
-                'um', c.unidad_medida, 'kg_x_uni', c.kg_x_uni, 'uni_x_cajon', c.uni_x_cajon,
-                -- lo produce un tallerista? entonces no se compra como insumo
-                'lo_produce', (select t.nombre from ruta_paso rp
-                                join tallerista t on t.id=rp.tallerista_id
-                               where rp.comp_salida_id=c.id limit 1),
-                'stock', coalesce((select sum(i.cantidad) from inventario i where i.componente_id=c.id),0),
-                'en_recetas', (select count(*) from articulo_componente ac where ac.componente_id=c.id)
-              ) order by c.codigo), '[]'::jsonb)
-             from componente c, sec_sel where c.sector_id=sec_sel.sid)
-);
-$function$;
-
 -- ---------- inv_delta ----------
 CREATE OR REPLACE FUNCTION "GP2".inv_delta(p_comp bigint, p_ubic bigint, p_delta numeric)
  RETURNS void
@@ -2127,6 +2506,110 @@ begin
          actualizado_en = now();
 end;
 $function$;
+
+-- ---------- inyectores_bundle ----------
+CREATE OR REPLACE FUNCTION "GP2".inyectores_bundle(p_sector_id bigint DEFAULT NULL::bigint)
+ RETURNS jsonb
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'GP2'
+AS $function$
+with sec_sel as (
+  select coalesce(p_sector_id,
+                  (select id from sector where nombre='Sector Plástico' limit 1)) sid
+),
+sec_nom as (select s.id, s.nombre from sector s, sec_sel where s.id=sec_sel.sid)
+select jsonb_build_object(
+  'generado_en', now(),
+  'sector', (select jsonb_build_object('id',id,'nombre',nombre) from sec_nom),
+  'sectores', (select coalesce(jsonb_agg(jsonb_build_object(
+                  'id', s.id, 'nombre', s.nombre,
+                  'n', (select count(*) from componente c where c.sector_id=s.id),
+                  -- pendiente = sin proveedor Y que se compre
+                  'sin_prov', (select count(*) from componente c
+                                where c.sector_id=s.id
+                                  and c.estado_compra is null
+                                  and nullif(btrim(coalesce(c.proveedor,'')),'') is null)
+                ) order by s.nombre), '[]'::jsonb)
+              from sector s where "GP2"._es_sector_insumo(s.id)),
+  'proveedores', (select coalesce(jsonb_agg(jsonb_build_object(
+                     'nombre', pi.nombre, 'modo_control', pi.modo_control,
+                     'n', (select count(*) from componente c, sec_sel
+                            where c.sector_id=sec_sel.sid and btrim(coalesce(c.proveedor,''))=pi.nombre)
+                   ) order by pi.nombre), '[]'::jsonb)
+                  from proveedor_insumo pi
+                  where pi.activo
+                    and (pi.rubro = (select nombre from sec_nom)
+                         or exists (select 1 from componente c, sec_sel
+                                     where c.sector_id=sec_sel.sid
+                                       and btrim(coalesce(c.proveedor,''))=pi.nombre))),
+  'partes', (select coalesce(jsonb_agg(jsonb_build_object(
+                'comp_id', c.id, 'codigo', c.codigo, 'descripcion', c.descripcion,
+                'proveedor', nullif(btrim(coalesce(c.proveedor,'')),''),
+                'estado_compra', c.estado_compra,
+                'um', c.unidad_medida, 'kg_x_uni', c.kg_x_uni, 'uni_x_cajon', c.uni_x_cajon,
+                'lo_produce', (select t.nombre from ruta_paso rp
+                                join tallerista t on t.id=rp.tallerista_id
+                               where rp.comp_salida_id=c.id limit 1),
+                'stock', coalesce((select sum(i.cantidad) from inventario i where i.componente_id=c.id),0),
+                'en_recetas', (select count(*) from articulo_componente ac where ac.componente_id=c.id)
+              ) order by c.codigo), '[]'::jsonb)
+             from componente c, sec_sel where c.sector_id=sec_sel.sid)
+);
+$function$;
+
+-- ---------- marcar_estado_compra ----------
+CREATE OR REPLACE FUNCTION "GP2".marcar_estado_compra(p_comp_id bigint, p_estado text)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'GP2'
+AS $function$
+declare v_e text := nullif(btrim(coalesce(p_estado,'')),''); v_cod text;
+begin
+  if v_e is not null and v_e not in ('fabricacion','discontinuo') then
+    raise exception 'Estado invalido: "%". Solo "fabricacion", "discontinuo" o vacio.', v_e;
+  end if;
+  select codigo into v_cod from componente where id = p_comp_id;
+  if v_cod is null then raise exception 'Componente inexistente (id=%).', p_comp_id; end if;
+  -- estado y proveedor se excluyen: si no se compra, no tiene sentido un proveedor
+  update componente
+     set estado_compra = v_e,
+         proveedor = case when v_e is null then proveedor else null end
+   where id = p_comp_id;
+  return jsonb_build_object('ok',true,'comp_id',p_comp_id,'codigo',v_cod,'estado',v_e);
+end $function$;
+
+-- ---------- marcar_faltante ----------
+CREATE OR REPLACE FUNCTION "GP2".marcar_faltante(p_comp_id bigint, p_origen text DEFAULT 'manual'::text, p_nota text DEFAULT NULL::text, p_usuario text DEFAULT NULL::text)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'GP2'
+AS $function$
+declare v_id bigint; v_dup boolean := false;
+begin
+  if p_comp_id is null or not exists (select 1 from componente where id = p_comp_id) then
+    return jsonb_build_object('ok', false, 'error', 'componente inexistente');
+  end if;
+  if p_origen not in ('envios_tall','envios_ps','operario','manual') then
+    return jsonb_build_object('ok', false, 'error', 'origen invalido');
+  end if;
+
+  select id into v_id from faltante_marcado
+  where componente_id = p_comp_id and origen = p_origen and resuelto_en is null
+  order by creado_en desc limit 1;
+
+  if v_id is not null then
+    v_dup := true;
+  else
+    insert into faltante_marcado (componente_id, origen, nota, marcado_por)
+    values (p_comp_id, p_origen, nullif(trim(p_nota), ''), nullif(trim(p_usuario), ''))
+    returning id into v_id;
+  end if;
+
+  return jsonb_build_object('ok', true, 'id', v_id, 'ya_existia', v_dup);
+end $function$;
 
 -- ---------- marcar_revisado ----------
 CREATE OR REPLACE FUNCTION "GP2".marcar_revisado(row_id bigint)
@@ -2175,28 +2658,6 @@ AS $function$
   );
 $function$;
 
--- ---------- marcar_estado_compra ----------
-CREATE OR REPLACE FUNCTION "GP2".marcar_estado_compra(p_comp_id bigint, p_estado text)
- RETURNS jsonb
- LANGUAGE plpgsql
- SECURITY DEFINER
- SET search_path TO 'GP2'
-AS $function$
-declare v_e text := nullif(btrim(coalesce(p_estado,'')),''); v_cod text;
-begin
-  if v_e is not null and v_e not in ('fabricacion','discontinuo') then
-    raise exception 'Estado invalido: "%". Solo "fabricacion", "discontinuo" o vacio.', v_e;
-  end if;
-  select codigo into v_cod from componente where id = p_comp_id;
-  if v_cod is null then raise exception 'Componente inexistente (id=%).', p_comp_id; end if;
-  -- estado y proveedor se excluyen: si no se compra, no tiene sentido un proveedor
-  update componente
-     set estado_compra = v_e,
-         proveedor = case when v_e is null then proveedor else null end
-   where id = p_comp_id;
-  return jsonb_build_object('ok',true,'comp_id',p_comp_id,'codigo',v_cod,'estado',v_e);
-end $function$;
-
 -- ---------- movimientos_componente ----------
 CREATE OR REPLACE FUNCTION "GP2".movimientos_componente(p_comp_id bigint, p_ubic_id bigint, p_limit integer DEFAULT 200)
  RETURNS jsonb
@@ -2234,6 +2695,24 @@ AS $function$
     from pagina p), '[]'::jsonb);
 $function$;
 
+-- ---------- nuevo_codigo_propuesta ----------
+CREATE OR REPLACE FUNCTION "GP2".nuevo_codigo_propuesta()
+ RETURNS text
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'GP2'
+AS $function$
+declare v text; i int := 0;
+begin
+  loop
+    i := i + 1;
+    v := lpad(((1000 + floor(random()*9000))::int)::text, 4, '0');
+    exit when not exists (select 1 from agente_propuestas where codigo = v);
+    if i > 200 then raise exception 'sin codigos libres'; end if;
+  end loop;
+  return v;
+end $function$;
+
 -- ---------- oc_bundle ----------
 CREATE OR REPLACE FUNCTION "GP2".oc_bundle()
  RETURNS jsonb
@@ -2246,10 +2725,18 @@ with pend as (
   from orden_compra_item oi join orden_compra o on o.id = oi.oc_id
   where o.estado in ('borrador','enviada')
   group by oi.componente_id
+), pv as (
+  select distinct on (pp.componente_id) pp.componente_id,
+         case when pp.precio_por_kg then pp.precio * cc.kg_x_uni else pp.precio end precio,
+         case when upper(coalesce(pp.moneda,'USD')) like '%US%' then 'USD' else 'ARS' end moneda
+  from precio_proveedor pp
+  join componente cc on cc.id = pp.componente_id
+  where pp.componente_id is not null and pp.precio is not null
+  order by pp.componente_id, pp.fecha_lista desc nulls last, pp.id desc
 ), ins as (
   select c.id comp_id, c.codigo, c.descripcion, c.sector_id, s.nombre sector,
          c.unidad_medida um, c.kg_x_uni,
-         nullif(trim(c.proveedor),'') proveedor,   -- unica fuente
+         nullif(trim(c.proveedor),'') proveedor,
          u.meses_stock,
          case when c.sector_id = 5 then fk.consumo_kg_mes else cp.consumo_uni_mes end consumo,
          case when c.sector_id = 5 then 'kg' else 'uni' end unidad,
@@ -2257,16 +2744,18 @@ with pend as (
            where i.componente_id=c.id and iu.tipo='sector' and iu.ref_id=c.sector_id limit 1) online,
          coalesce(pd.pendiente, 0) pendiente_oc,
          c.carton_formato,
-         cf.pliegos_multiplo, cf.codigo_multiplo, cf.min_codigo_x_multiplo
+         cf.pliegos_multiplo, cf.codigo_multiplo, cf.min_codigo_x_multiplo,
+         pv.precio, pv.moneda
   from componente c
   join sector s on s.id = c.sector_id
   join ubicacion u on u.tipo='sector' and u.ref_id = c.sector_id
-  left join v_consumo_parte cp on cp.componente_id = c.id and c.sector_id <> 5
-  left join v_consumo_fleje_kg fk on fk.componente_id = c.id and c.sector_id = 5
+  left join v_consumo_componente cp on cp.componente_id = c.id and c.sector_id <> 5
+  left join v_consumo_fleje_kg_v2 fk on fk.componente_id = c.id and c.sector_id = 5
   left join pend pd on pd.componente_id = c.id
   left join carton_formato cf on cf.nombre = c.carton_formato
+  left join pv on pv.componente_id = c.id
   where "GP2"._es_sector_insumo(c.sector_id)
-    and c.estado_compra is null      -- fuera lo que se fabrica y lo discontinuado
+    and c.estado_compra is null
 )
 select jsonb_build_object(
   'insumos', (select coalesce(jsonb_agg(jsonb_build_object(
@@ -2274,19 +2763,29 @@ select jsonb_build_object(
       'proveedor',proveedor,'um',um,'unidad',unidad,'kg_x_uni',kg_x_uni,
       'consumo',consumo,'meses',meses_stock,'online',coalesce(online,0),'pendiente_oc',pendiente_oc,
       'sugerido', greatest(0, round(coalesce(consumo,0)*coalesce(meses_stock,0) - coalesce(online,0) - pendiente_oc)),
+      'precio',precio,'moneda',moneda,
       'carton_formato',carton_formato,'pliegos_multiplo',pliegos_multiplo,
       'codigo_multiplo',codigo_multiplo,'min_codigo_x_multiplo',min_codigo_x_multiplo
     ) order by sector_id, codigo),'[]'::jsonb) from ins),
   'ocs', (select coalesce(jsonb_agg(jsonb_build_object(
       'id',o.id,'numero',o.numero,'proveedor',o.proveedor,'rubro',o.rubro,'estado',o.estado,
       'nota',o.nota,'creado_en',o.creado_en,
-      'items',(select jsonb_agg(jsonb_build_object('codigo',c.codigo,'descripcion',c.descripcion,
-               'cantidad',oi.cantidad,'unidad',oi.unidad,'recibido',oi.recibido) order by c.codigo)
-               from orden_compra_item oi join componente c on c.id=oi.componente_id where oi.oc_id=o.id)
-    ) order by o.numero desc),'[]'::jsonb)
-    from orden_compra o),
-  'paq', (select valor from parametro where clave='carton_uni_x_paquete'),
-  'generado_en', now());
+      'total_usd',(select coalesce(sum(oi.cantidad*oi.precio_uni),0) from orden_compra_item oi
+                   where oi.oc_id=o.id and oi.moneda='USD'),
+      'total_ars',(select coalesce(sum(oi.cantidad*oi.precio_uni),0) from orden_compra_item oi
+                   where oi.oc_id=o.id and oi.moneda='ARS'),
+      'items',(select coalesce(jsonb_agg(jsonb_build_object(
+                 'codigo',c2.codigo,'descripcion',c2.descripcion,'cantidad',oi.cantidad,
+                 'unidad',oi.unidad,'recibido',oi.recibido,
+                 'precio_uni',oi.precio_uni,'moneda',oi.moneda,
+                 'subtotal',case when oi.precio_uni is null then null else round(oi.cantidad*oi.precio_uni,2) end
+               ) order by c2.codigo),'[]'::jsonb)
+               from orden_compra_item oi join componente c2 on c2.id=oi.componente_id
+              where oi.oc_id=o.id)
+    ) order by o.numero desc),'[]'::jsonb) from orden_compra o),
+  'tc', (select valor from parametro where clave='tipo_cambio_usd_pesos'),
+  'generado_en', now()
+);
 $function$;
 
 -- ---------- oc_marcar ----------
@@ -2304,6 +2803,74 @@ begin
   if not found then raise exception 'OC % no existe', p_oc_id; end if;
   return jsonb_build_object('ok', true);
 end $function$;
+
+-- ---------- orden_produccion_bundle ----------
+CREATE OR REPLACE FUNCTION "GP2".orden_produccion_bundle()
+ RETURNS jsonb
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'GP2'
+AS $function$
+with pasos as (
+  -- ruta_paso repite el mismo paso en cada ruta que lo usa: deduplicar
+  select distinct rp.matriz_id, rp.comp_entrada_id, rp.comp_salida_id
+  from ruta_paso rp
+  where rp.tipo_paso = 'matriz'
+    and rp.matriz_id is not null
+    and rp.comp_entrada_id is not null
+    and rp.comp_salida_id is not null
+),
+comp_ids as (
+  select comp_entrada_id id from pasos
+  union
+  select comp_salida_id from pasos
+),
+comps as (
+  select c.id, c.codigo, c.descripcion, s.tipo,
+         c.kg_x_uni, c.uni_x_cajon,
+         fd.n_fleje, fd.medida_mm
+  from componente c
+  join sector s on s.id = c.sector_id
+  left join fleje_detalle fd on fd.componente_id = c.id
+  where c.id in (select id from comp_ids) or s.tipo in ('crudo','procesado')
+),
+dest as (
+  -- destinos posibles: todo componente de Sector Crudo / Sector Procesado,
+  -- con su consumo mensual atribuido (3b) y su inventario en la ubicacion
+  -- del propio sector
+  select c.id comp_id,
+         u.meses_stock,
+         vc.consumo_uni_mes,
+         coalesce(i.cantidad, 0) stock_uni,
+         coalesce(i.maximo, 0) maximo_uni,
+         greatest(0, round(coalesce(vc.consumo_uni_mes,0) * coalesce(u.meses_stock,0)
+                           - coalesce(i.cantidad,0))) faltante_uni
+  from componente c
+  join sector s on s.id = c.sector_id and s.tipo in ('crudo','procesado')
+  join ubicacion u on u.tipo = 'sector' and u.ref_id = c.sector_id
+  left join v_consumo_componente vc on vc.componente_id = c.id
+  left join inventario i on i.componente_id = c.id and i.ubicacion_id = u.id
+)
+select jsonb_build_object(
+  'pasos', (select coalesce(jsonb_agg(jsonb_build_object(
+      'matriz_id', matriz_id, 'comp_entrada_id', comp_entrada_id,
+      'comp_salida_id', comp_salida_id)), '[]'::jsonb) from pasos),
+  'matrices', (select coalesce(jsonb_agg(jsonb_build_object(
+      'id', m.id, 'n_matriz', m.n_matriz, 'descripcion', m.descripcion,
+      'partes_por_kilo_de_fleje', m.partes_por_kilo_de_fleje)), '[]'::jsonb)
+    from matriz m where m.id in (select matriz_id from pasos)),
+  'componentes', (select coalesce(jsonb_agg(jsonb_build_object(
+      'id', id, 'codigo', codigo, 'descripcion', descripcion, 'tipo', tipo,
+      'kg_x_uni', kg_x_uni, 'uni_x_cajon', uni_x_cajon,
+      'n_fleje', n_fleje, 'medida_mm', medida_mm)), '[]'::jsonb) from comps),
+  'destinos', (select coalesce(jsonb_agg(jsonb_build_object(
+      'comp_id', comp_id, 'meses_stock', meses_stock,
+      'consumo_uni_mes', consumo_uni_mes,
+      'stock_uni', stock_uni, 'maximo_uni', maximo_uni,
+      'faltante_uni', faltante_uni)), '[]'::jsonb) from dest),
+  'generado_en', now()
+);
+$function$;
 
 -- ---------- partes_por_ps ----------
 CREATE OR REPLACE FUNCTION "GP2".partes_por_ps()
@@ -2387,6 +2954,92 @@ begin
     'ok', true, 'lineas', v_n,
     'pallet', (select to_jsonb(vp) from "GP2".v_control_pallet vp where vp.control_id = v_ctl),
     'recepcion', (select to_jsonb(vr) from "GP2".v_recepcion_control vr where vr.recepcion_id = p_recepcion_id));
+end $function$;
+
+-- ---------- pintores_bundle ----------
+CREATE OR REPLACE FUNCTION "GP2".pintores_bundle()
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'GP2'
+AS $function$
+declare
+  v_pintores jsonb;
+  v_partes   jsonb;
+  r          record;
+  v_carga    jsonb := '{}'::jsonb;   -- pintor_id -> cajones acumulados
+  v_prop     jsonb := '{}'::jsonb;   -- comp_id  -> pintor_id propuesto
+  v_elegido  bigint;
+  v_min      numeric;
+  v_c        numeric;
+  p          bigint;
+begin
+  select coalesce(jsonb_agg(jsonb_build_object(
+           'id', ps.id, 'nombre', ps.nombre, 'cod_prov', ps.cod_prov,
+           'puede', (select count(*) from parte_proveedor_servicio x
+                      where x.proveedor_servicio_id = ps.id))
+           order by ps.nombre), '[]'::jsonb)
+    into v_pintores
+    from proveedor_servicio ps where ps.proceso = 'Pintado';
+
+  -- Reparto propuesto: de la parte mas pesada a la mas liviana.
+  for r in
+    select c.id comp_id,
+           round(vc.consumo_uni_mes::numeric / nullif(c.uni_x_cajon,0), 2) as cajones
+    from componente c
+    left join v_consumo_componente vc on vc.componente_id = c.id
+    where exists (select 1 from parte_proveedor_servicio x where x.componente_id = c.id)
+    order by round(vc.consumo_uni_mes::numeric / nullif(c.uni_x_cajon,0), 2) desc nulls last, c.codigo
+  loop
+    if r.cajones is null then continue; end if;   -- sin dato: no se reparte
+    v_elegido := null; v_min := null;
+    for p in select proveedor_servicio_id from parte_proveedor_servicio
+              where componente_id = r.comp_id order by proveedor_servicio_id
+    loop
+      v_c := coalesce((v_carga ->> p::text)::numeric, 0);
+      if v_min is null or v_c < v_min then v_min := v_c; v_elegido := p; end if;
+    end loop;
+    if v_elegido is not null then
+      v_prop  := v_prop  || jsonb_build_object(r.comp_id::text, v_elegido);
+      v_carga := v_carga || jsonb_build_object(v_elegido::text, v_min + r.cajones);
+    end if;
+  end loop;
+
+  with pintables as (
+    select distinct rp.comp_entrada_id comp_id
+    from ruta_paso rp
+    join proveedor_servicio p2 on p2.id = rp.proveedor_id and p2.proceso='Pintado'
+    where rp.comp_entrada_id is not null
+  ),
+  partes as (
+    select distinct c.id comp_id, c.codigo, c.descripcion, c.uni_x_cajon,
+           s.nombre sector
+    from componente c
+    left join sector s on s.id = c.sector_id
+    where c.id in (select componente_id from parte_proveedor_servicio)
+       or c.id in (select comp_id from pintables)
+  )
+  select coalesce(jsonb_agg(x order by x->>'codigo'), '[]'::jsonb) into v_partes
+  from (
+    select jsonb_build_object(
+      'comp_id',     p.comp_id,
+      'codigo',      p.codigo,
+      'descripcion', p.descripcion,
+      'sector',      p.sector,
+      'consumo',     vc.consumo_uni_mes,
+      'uni_x_cajon', p.uni_x_cajon,
+      'cajones',     round(vc.consumo_uni_mes::numeric / nullif(p.uni_x_cajon,0), 2),
+      'pueden',      coalesce((select jsonb_agg(pps.proveedor_servicio_id order by pps.proveedor_servicio_id)
+                                 from parte_proveedor_servicio pps
+                                where pps.componente_id = p.comp_id), '[]'::jsonb),
+      'asignado',    (select pps.proveedor_servicio_id from parte_proveedor_servicio pps
+                       where pps.componente_id = p.comp_id and pps.asignado),
+      'propuesto',   (v_prop ->> p.comp_id::text)::bigint
+    ) as x
+    from partes p left join v_consumo_componente vc on vc.componente_id = p.comp_id
+  ) t;
+
+  return jsonb_build_object('pintores', v_pintores, 'partes', v_partes);
 end $function$;
 
 -- ---------- problemas_matrices_bundle ----------
@@ -2690,6 +3343,49 @@ AS $function$
   );
 $function$;
 
+-- ---------- recalcular_maximos_cajones ----------
+CREATE OR REPLACE FUNCTION "GP2".recalcular_maximos_cajones()
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'GP2'
+AS $function$
+declare
+  v_caj numeric;
+  v_set int := 0;
+  v_clr int := 0;
+begin
+  select valor into v_caj from parametro where clave = 'max_cajones_x_ubicacion';
+  if v_caj is null or v_caj <= 0 then v_caj := 5; end if;
+
+  with objetivo as (
+    select i.id as inv_id,
+           case when c.uni_x_cajon > 0 then round(v_caj * c.uni_x_cajon) end as max_nuevo
+    from inventario i
+    join ubicacion u on u.id = i.ubicacion_id and u.tipo = 'sector'
+    join componente c on c.id = i.componente_id and c.sector_id = u.ref_id
+    where c.sector_id in (1, 2)
+      and coalesce(i.maximo_origen, '') <> 'fisico'
+  ), upd as (
+    update inventario i
+    set maximo = o.max_nuevo, maximo_origen = 'cinco_cajones'
+    from objetivo o
+    where i.id = o.inv_id and o.max_nuevo > 0
+      and (i.maximo is distinct from o.max_nuevo or i.maximo_origen is distinct from 'cinco_cajones')
+    returning 1
+  ), clr as (
+    -- sin uni_x_cajon no hay maximo calculable: queda null y se lista pendiente
+    update inventario i
+    set maximo = null, maximo_origen = null
+    from objetivo o
+    where i.id = o.inv_id and o.max_nuevo is null
+      and (i.maximo is not null or i.maximo_origen is not null)
+    returning 1
+  )
+  select (select count(*) from upd), (select count(*) from clr) into v_set, v_clr;
+  return jsonb_build_object('ok', true, 'max_cajones', v_caj, 'actualizados', v_set, 'sin_uni_x_cajon', v_clr);
+end $function$;
+
 -- ---------- recalcular_maximos_insumos ----------
 CREATE OR REPLACE FUNCTION "GP2".recalcular_maximos_insumos()
  RETURNS jsonb
@@ -2699,7 +3395,6 @@ CREATE OR REPLACE FUNCTION "GP2".recalcular_maximos_insumos()
 AS $function$
 declare v_set int := 0; v_clr int := 0;
 begin
-  -- setear/actualizar: consumo mensual (kg para flejes, uni para el resto) x meses del rubro
   with objetivo as (
     select i.id as inv_id,
            round(coalesce(case when c.sector_id = 5 then fk.consumo_kg_mes else cp.consumo_uni_mes end, 0)
@@ -2707,8 +3402,8 @@ begin
     from inventario i
     join ubicacion u on u.id = i.ubicacion_id and u.tipo = 'sector'
     join componente c on c.id = i.componente_id and c.sector_id = u.ref_id
-    left join v_consumo_fleje_kg fk on fk.componente_id = c.id and c.sector_id = 5
-    left join v_consumo_parte cp on cp.componente_id = c.id and c.sector_id <> 5
+    left join v_consumo_fleje_kg_v2 fk on fk.componente_id = c.id and c.sector_id = 5
+    left join v_consumo_componente cp on cp.componente_id = c.id and c.sector_id <> 5
     where "GP2"._es_sector_insumo(u.ref_id)
       and u.meses_stock is not null
       and coalesce(i.maximo_origen,'') <> 'fisico'
@@ -2720,7 +3415,6 @@ begin
       and (i.maximo is distinct from o.max_nuevo or i.maximo_origen is distinct from 'est_madre')
     returning 1
   ), clr as (
-    -- si el consumo desaparecio, el maximo derivado se limpia (no aplica a 'fisico')
     update inventario i
     set maximo = null, maximo_origen = null
     from objetivo o
@@ -2751,7 +3445,6 @@ AS $function$
                      from "GP2".recepcion_insumo r
                     where r.componente_id = c.id
                     order by r.id desc limit 1),
-        -- OC abiertas esperando este insumo: lo que todavia no se recibio
         'oc_pend', (select case when count(*) = 0 then null else jsonb_build_object(
                        'ocs', string_agg(distinct o.numero::text, ', '),
                        'n_ocs', count(distinct o.id),
@@ -2782,9 +3475,28 @@ AS $function$
     'rollos', (select coalesce(jsonb_agg(jsonb_build_object(
         'control_id',cr.control_id,'cantidad',cr.cantidad,'kg_por_rollo',cr.kg_por_rollo) order by cr.id),'[]'::jsonb)
       from "GP2".recepcion_control_rollo cr),
-    'tara', (select jsonb_object_agg(clave, valor) from "GP2".parametro
-             where clave like 'tara_pallet%' or clave in ('tol_ctrl_peso_pct','carton_uni_x_paquete'))
+    'tara', "GP2".recepcion_tara()
   );
+$function$;
+
+-- ---------- recepcion_tara ----------
+CREATE OR REPLACE FUNCTION "GP2".recepcion_tara()
+ RETURNS jsonb
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'GP2'
+AS $function$
+  select (select coalesce(jsonb_object_agg(clave, valor), '{}'::jsonb) from parametro
+           where clave like 'tara_pallet%' or clave in ('tol_ctrl_peso_pct','carton_uni_x_paquete'))
+      || coalesce((select jsonb_build_object('tara_estimada', round(avg(tara),1), 'tara_n', count(*))
+                     from v_tara_pallet_real where tara between 1 and 15
+                   having count(*) >= 5), '{}'::jsonb)
+      || jsonb_build_object('tara_por_proveedor',
+           coalesce((select jsonb_object_agg(proveedor, jsonb_build_object('tara', t, 'n', n))
+                       from (select proveedor, round(avg(tara),1) t, count(*) n
+                               from v_tara_pallet_real
+                              where tara between 1 and 15 and proveedor is not null
+                              group by proveedor having count(*) >= 5) x), '{}'::jsonb));
 $function$;
 
 -- ---------- recepcion_virgilio ----------
@@ -3201,6 +3913,33 @@ AS $function$
   );
 $function$;
 
+-- ---------- resolver_faltante ----------
+CREATE OR REPLACE FUNCTION "GP2".resolver_faltante(p_id bigint DEFAULT NULL::bigint, p_comp_id bigint DEFAULT NULL::bigint, p_origen text DEFAULT NULL::text)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'GP2'
+AS $function$
+declare v_id bigint;
+begin
+  if p_id is not null then
+    v_id := p_id;
+  elsif p_comp_id is not null and p_origen is not null then
+    select id into v_id from faltante_marcado
+    where componente_id = p_comp_id and origen = p_origen and resuelto_en is null
+    order by creado_en desc limit 1;
+  end if;
+
+  if v_id is null then
+    return jsonb_build_object('ok', true, 'resueltos', 0);
+  end if;
+
+  update faltante_marcado set resuelto_en = now()
+  where id = v_id and resuelto_en is null;
+
+  return jsonb_build_object('ok', true, 'resueltos', (select count(*) from faltante_marcado where id = v_id and resuelto_en is not null), 'id', v_id);
+end $function$;
+
 -- ---------- rollos_bundle ----------
 CREATE OR REPLACE FUNCTION "GP2".rollos_bundle()
  RETURNS jsonb
@@ -3254,7 +3993,6 @@ declare v_id bigint;
 begin
   -- reportar un problema quita la confirmacion previa de esa firma
   delete from "GP2".ruta_confirmada where firma=p_firma;
-  -- dedupe: si ya hay un problema pendiente de esa firma, actualizarlo en vez de apilar filas
   select id into v_id from "GP2".ruta_problema
    where firma=p_firma and estado='pendiente'
    order by reportado_en desc limit 1;
@@ -3601,6 +4339,43 @@ begin
     'saldo_anterior',v_saldo,'saldo_nuevo',v_saldo-1,
     'aviso', case when v_saldo<=0 then 'OJO: el stock de ese rollo ya estaba en '||v_saldo else null end);
 end $function$;
+
+-- ---------- valorizacion_bundle ----------
+CREATE OR REPLACE FUNCTION "GP2".valorizacion_bundle()
+ RETURNS jsonb
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'GP2'
+AS $function$
+with inv as (
+  select componente_id,
+         sum(coalesce(cantidad,0)) stock,
+         sum(coalesce(maximo,0)) maximo,
+         sum(greatest(0, coalesce(maximo,0) - coalesce(cantidad,0))) pedido
+  from inventario
+  group by componente_id
+)
+select jsonb_build_object(
+  'tc', (select valor from parametro where clave='tipo_cambio_usd_pesos'),
+  'tc_info', (select jsonb_build_object('fecha',fecha,'venta',venta,'fuente',fuente)
+              from tipo_cambio order by fecha desc, obtenido_en desc limit 1),
+  'costo_seg', (select valor from parametro where clave='costo_segundo_pesos'),
+  'comps', (select coalesce(jsonb_agg(jsonb_build_object(
+     'comp_id',cc.comp_id,'codigo',cc.codigo,'descripcion',cc.descripcion,
+     'sector_id',cc.sector_id,'sector',cc.sector,'sector_tipo',cc.sector_tipo,'origen',cc.origen,
+     'material_usd',cc.material_usd,'material_pesos',cc.material_pesos,
+     'servicios_usd',cc.servicios_usd,'servicios_pesos',cc.servicios_pesos,
+     'segundos_matriz',cc.segundos_matriz,'mano_obra_pesos',cc.mano_obra_pesos,
+     'total_pesos',cc.total_pesos,
+     'faltan_precios',cc.faltan_precios,'faltan_kg',cc.faltan_kg,'faltan_tiempos',cc.faltan_tiempos,
+     'stock',coalesce(i.stock,0),'maximo',coalesce(i.maximo,0),'pedido',coalesce(i.pedido,0)
+   ) order by cc.sector_id, cc.codigo),'[]'::jsonb)
+   from "GP2".v_costo_componente cc
+   left join inv i on i.componente_id = cc.comp_id
+   where cc.sector_tipo <> 'terminado'),
+  'generado_en', now()
+);
+$function$;
 
 -- ---------- verificacion_bundle ----------
 CREATE OR REPLACE FUNCTION "GP2".verificacion_bundle()
