@@ -19,10 +19,12 @@ const STUB = `window.supabase={createClient:function(){return{rpc:async function
   await page.route('**/*.png', r => r.fulfill({ contentType: 'image/png', body: Buffer.from('') }));
   // El aviso se mudo al menu: Inicio/index_GP2.html quedo como redirect.
   await page.goto(ROOT + '/GP2_MODULOS.html');
-  await page.waitForFunction(() => document.body.textContent.includes('SIN aplicar al stock'));
+  // ya no hay banner: espero a que el menu termine de renderizar (delay corto).
+  await page.waitForTimeout(500);
   const t = await page.textContent('body');
   const ok = (c,m)=>{ console.log((c?'OK  ':'FAIL')+' '+m); if(!c) process.exitCode=1; };
-  ok(t.includes('2 cargas de Virgilio SIN aplicar') && t.includes('alias desconocido'), 'banner espejo_pend con motivos');
+    ok(!/2 cargas de Virgilio SIN aplicar/.test(t), 'ya no aparece el banner espejo_pend (pedido usuario 2026-08-31)');
+  const hay = await page.evaluate(()=>!!document.querySelector('#avisoEspejo')); ok(!hay, 'no existe #avisoEspejo en el DOM');
   await browser.close();
   console.log(process.exitCode ? 'HAY FALLOS' : 'TODO OK');
 })();
