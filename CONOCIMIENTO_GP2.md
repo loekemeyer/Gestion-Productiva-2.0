@@ -473,7 +473,8 @@ exactos por pieza; la vista de costos usa el exacto y cae al plano si no hay).
   Cargada en E13 (entra como insumo de armado del 523/723, no la toca el ×kg de
   flejes). **CV17 (cremallera p/niquelar de Barres) → discontinuo.**
 - **V18C Vástago Alu → discontinuo** ("el remache de aluminio no va más").
-- **Skin 500 y Skin 506 (componentes cartón) → discontinuos** ("ya no van más").
+- **Skin 500 → discontinuo** ("ya no van más"). **CORRECCIÓN 2026-08-31: el Skin 506 SÍ va**
+  `[usuario]` — ver §2c-septies. Quedó como discontinuo por esta línea y se revivió.
 - **Mandelli cotiza el ojal POR MILLAR** ($15.366,73 = $15,37/u) `[usuario confirmó]`.
 - **Charcas sobre el Fleje 90 = CORTE de alambre para FILTROS DE CAFÉ, $9,50/u**
   `[dato: las 5 rutas de C3+Charcas terminan en 031/034/120/836/867]` — NO es el
@@ -905,6 +906,64 @@ registros de 2025 no son de esta operación, (c) la 64 realmente tarda eso.
 no los del maestro**: m60 corte **2,30** s/uni (maestro dice 3) · m61 estampado der **11,02**
 (maestro 8) · m75 estampado izq **10,49** (maestro 8). Los tres estampados de balancín dan
 ~10-11 s, que sí cierra con "el balancín tarda 6 a 10 segundos" (§2c-ter).
+
+## 2c-septies. El 506 va con SKIN: Gentile y el garage (2026-08-31)
+
+`[usuario 2026-08-31]` Dicho textual: *"El 506 va con skin (o sea con Gentile y con
+Martin/Carlos entregando en Cervantes garage)"*. Es el **mismo patrón de las bombillas
+557/558** (§ del garage): quien arma entrega el cuerpo en el garage y **Gentile hace el
+skin, que ES el packaging**, y de ahí sale a Virgilio.
+
+```
+ANTES:  partes -> Martin/Alex ------------------------> 506 -> Virgilio   (+ cartón $89)
+AHORA:  partes -> Martin/Alex -> GRJ7 (garage) -> Gentile -> 506 -> Virgilio
+        skin V3A ------------------------------> Gentile -> 506 -> Virgilio
+        caja A11 ------------------------------> Gentile -> 506 -> Virgilio
+```
+
+**Las piezas YA existían sueltas y sólo había que conectarlas**: `GRJ7` *"Abrelata Uña 506"*
+(Sector Garage) estaba **sin BOM, sin ruta y sin receta**, y `V3A` *"Skin 506"* estaba
+marcado **discontinuo**. Ahora GRJ7 = A10 + C10 + V9, la receta del 506 es **GRJ7 ×1 +
+V3A ×1 + caja ×1/12** (las partes sueltas y el cartón salieron), y las 8 rutas de partes
+pasan por Gentile.
+
+### `[usuario]` CARLOS = ALEX ESCALANTE — la misma persona
+Dicho textual: *"carlos = alex, dejámelo decirte así y vos entendé que hablo del mismo"*.
+Cuando el usuario dice **"Martin/Carlos"** habla de **Martin Cornejo + Alex Escalante**, que
+son justo los dos que ya tenía el 506: **no hubo que cambiar ningún tallerista**. Cargado en
+`contraparte_alias` ('Carlos' → tallerista 2). `[pendiente]` GP2 tiene además un tallerista
+**"Carlos Aguirre" (id 9, 32 pasos)** — preguntar si es otra persona o un duplicado del
+mismo; **no se fusionó nada**.
+
+### El precio del skin: pliego + autoadhesivado
+`[usuario]` *"el pliego de cartón es de $768 (pero hay que sumar el costo del
+autoadhesivado)"*. O sea el skin **no** son los $89 del cartón común. Por la **regla de oro**
+los dos costos tienen que vivir separados (cambia el autoadhesivado → se toca un número).
+`[pendiente]` faltan **el costo del autoadhesivado** y **cuántos 506 entran por pliego**;
+hasta que lleguen, **V3A quedó SIN precio** (cuenta en `faltan_precios`) en vez de inventar
+uno. También falta **cuánto cobra Gentile el envasado del 506** (el de bombillas es $69/uni).
+
+### Lo que se encontró de paso
+- **V9 "Remache uña niq." tenía un placeholder de 1 USD** en `precio_proveedor` que inventaba
+  **$1.535 por unidad** en cuanto V9 entraba por BOM en vez de por ruta: GRJ7 daba $1.795,93.
+  Borrado el placeholder, GRJ7 = **$260,93**, y V9 conserva su costo real por ruta ($4,45 del
+  remache + $1,48 de niquelado = $5,93). Snapshot de los 537 componentes: **no cambió ningún
+  otro**. `[dato]` **quedan 35 placeholders de 1 USD** en `precio_proveedor` — la auditoría
+  había limpiado los de `precio_servicio`, estos siguen ahí y muerden igual.
+- `[dato]` **16 filas de `v_valor_stock` tienen stock NEGATIVO, por −$7.274.776.** Explican
+  por qué el stock total neto da $8,6M. Sin relación con este cambio (GRJ7 y V3A tienen
+  stock 0) — **pendiente de revisar aparte**.
+- La **caja** ahora la arma Gentile, porque es quien entrega a Virgilio. `[deducido]` — el
+  usuario no lo dijo; si la siguen poniendo Martin/Alex, se vuelve atrás.
+
+### ⚠️ TRAMPA QUE MORDIÓ EN ESTE MISMO CAMBIO: buscar componentes POR CÓDIGO
+El BOM de GRJ7 se cargó con `where codigo in ('A10','C10','V9')` y salieron **5 filas en vez
+de 3**: `A10` es la pieza *"Cpo Uña LK C/M Pint."* (id 85) **y** el *"Fleje N° 8"* (id 174);
+`C10` es *"Uñas Zinc."* (id 103) **y** el *"Fleje N° 62"* (id 208). Los dos flejes entraron
+como si fueran partes del abrelatas. Corregido cargando por id.
+**Los códigos de componente NO son únicos: siempre por `id`.** Es la misma regla que el
+usuario dictó el 2026-08-30 para cargar precios, y se rompió igual — vale para TODO, no sólo
+para precios.
 
 ## 2e. Faltantes y máximos de Crudo/Procesado: 5 cajones por ubicación (2026-08-31)
 
