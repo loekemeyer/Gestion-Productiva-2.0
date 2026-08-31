@@ -514,6 +514,18 @@ componente que tiene precio cargado y NUNCA es salida de un paso productivo — 
 es su precio, viva en el sector que viva (el caso C13: comprado pero con posición en SP;
 antes daba costo $0).
 
+## 2h. 119 y 809 discontinuados: ahora se importan (2026-08-31)
+
+`[usuario 2026-08-31]` *"119 y 809 son discontinuos, ahora se importan"* — los corta
+quesos de mango de alambre ya no se fabrican acá; entran como importados (la familia
+del sufijo E; en la Est Madre existe 809E con 1.095 uni/mes — cuál código E reemplaza
+al 119 queda por confirmar si hace falta). Modelado: columna nueva
+`articulo.discontinuado` (true para ambos; primer caso en GP2). Sus rutas y recetas
+quedan como historia — sin fila en Est Madre no generan consumo, verificado. El 574
+(mismo mango de alambre) SIGUE activo: el usuario no lo incluyó.
+**Pendiente**: el 101 (Abrelatas) sigue sin fila en Est Madre y sin respuesta —
+¿también discontinuado/importado?
+
 ## 3. Reglas del negocio ya incorporadas
 
 - **Algunos talleristas pueden entregar partes EN CERVANTES** (además de Virgilio):
