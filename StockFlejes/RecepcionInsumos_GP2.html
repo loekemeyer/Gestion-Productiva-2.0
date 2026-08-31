@@ -495,8 +495,8 @@ function abrirPopup(i){
     $('unitRow').classList.add('hidden');
     $('kgValue').placeholder='paquetes de '+PAQ();
     updateConv();
-  } else if (esFleje(i)) {
-    // Flejes: siempre KG (nadie compra flejes en unidades). El toggle sale.
+  } else if (esFleje(i) && String(provSel).toLowerCase()==='basconia') {
+    // Basconia (solo este proveedor): siempre KG y sin toggle Kg/Uni.
     $('unitRow').classList.add('hidden');
     $('kgValue').placeholder='kg';
     setUnit('kg');
