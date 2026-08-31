@@ -449,10 +449,15 @@ componentes de Crudo y 12 de Procesado en esa condición `[dato: v_faltante_esta
 ## 3. Reglas del negocio ya incorporadas
 
 - **Algunos talleristas pueden entregar partes EN CERVANTES** (además de Virgilio):
-  **Martín Cornejo, Carlos Aguirre e IJUPA.** `[usuario 2026-08-30]` Normalizado en
-  `GP2.tallerista.entrega_cervantes` (boolean, true para los ids 6, 9 y 10 — migración
-  `talleristas_que_entregan_en_cervantes`). Ninguna pantalla lo usa todavía; el dato
-  queda listo para cuando se arme el flujo de recepción Cervantes en GP2.
+  **Martín Cornejo, ALEX ESCALANTE e IJUPA.** `[usuario 2026-08-31, corregido]` El dato
+  original decía Carlos Aguirre, pero el usuario lo corrigió: *"Carlos es el papá de
+  Alex, por eso le erré"* — son familia y por eso el cruce de nombres. Normalizado en
+  `GP2.tallerista.entrega_cervantes` (true para ids 6, 2 y 10 — migraciones
+  `talleristas_que_entregan_en_cervantes` + `entrega_cervantes_correccion_alex_no_carlos`).
+  Cierra con las rutas: Alex arma los GRJ (ej. Batidor Pera del 544) y los entrega en el
+  Sector Garage de Cervantes. OJO: `Recepcion Cervantes.html` del programa VIEJO tiene
+  hardcodeado ARTICULOS_EMPRESA con CARLOS y MARTIN — puede venir de la misma confusión
+  padre/hijo; revisar cuando se arme el flujo GP2. Ninguna pantalla GP2 lo usa todavía.
 
 - **La Est Madre manda hacia atrás.** El máximo de flejes e insumos NO sale de
   relevamiento físico: sale de la Est Madre explotada por receta y rutas × los meses de
