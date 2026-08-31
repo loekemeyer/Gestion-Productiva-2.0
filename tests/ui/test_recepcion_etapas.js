@@ -57,6 +57,27 @@ const EXE = process.env.CHROMIUM_PATH || (fs.existsSync('/opt/pw-browsers/chromi
   await page.click('.pes-chip >> nth=1');
   ok(await page.locator('.pes-pallet input[data-f="peso"]').inputValue() === '230', 'lo cargado sobrevive la navegacion');
 
+  // UNA SOLA FILA (v3.17.0, pedido del usuario: "toda esta info esta ancha al pedo").
+  // Balanza y la primera linea de rollos comparten renglon, y los inputs miden lo
+  // que tienen que medir en vez de estirarse a todo el ancho del popup.
+  {
+    const geo = await page.evaluate(() => {
+      const pal = document.querySelector('.pes-pallet');
+      const bal = pal.querySelector('.peso-row input'), kg = pal.querySelector('.kgw input');
+      const stp = pal.querySelector('.stp');
+      const y = el => Math.round(el.getBoundingClientRect().top);
+      const h = el => Math.round(el.getBoundingClientRect().height);
+      return { balW: Math.round(bal.getBoundingClientRect().width),
+               kgW: Math.round(kg.getBoundingClientRect().width),
+               mismaFila: y(bal) === y(kg), balH: h(bal), stpH: h(stp),
+               ancho: pal.getBoundingClientRect().width };
+    });
+    ok(geo.balW <= 140 && geo.kgW <= 140, `los inputs no se estiran (balanza ${geo.balW}px, kg ${geo.kgW}px)`);
+    ok(geo.balW < geo.ancho / 2, 'la balanza no se come media fila');
+    // el stepper lleva 2px de borde de cada lado: 4px de diferencia es el tope
+    ok(Math.abs(geo.stpH - geo.balH) <= 4, `balanza y stepper a la misma altura (${geo.balH} vs ${geo.stpH})`);
+  }
+
   // AUTO-CALCULO (v3.14.0): balanza 450 y 5 rollos => kg c/u = (450-6)/5 = 88,8 solo;
   // corregirlo a mano lo fija y el auto no lo pisa mas
   await page.evaluate(its => montarPesaje(its), [
