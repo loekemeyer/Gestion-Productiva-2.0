@@ -328,6 +328,10 @@ let rubroSel="", sidSel=0, provSel="", provsRubro=[];
 //   peso_total:    factura en uni, se pesa el total (Bella Vista)
 function provModo(nom){ var f=PROVFLAGS[nom]; return (f&&f.modo_control)||'ninguno'; }
 function provPideRollos(nom){ return provModo(nom)==='rollos_remito'; }
+// El pesaje/rollos/pallets es EXCLUSIVO de flejes (sector_id=5). Para
+// cajas/plasticos/cartones/remaches/bombillas la recepcion es simple
+// (elegir insumo, cantidad, listo), como en la casa del vecino.
+function esFleje(it){ return !!it && Number(it.sector_id)===5; }
 function provControlaPeso(nom){ return provModo(nom)==='peso_total'; }
 let itemSel=null, unitSel="uni";
 
@@ -462,7 +466,7 @@ function abrirPopup(i){
     var u = (UMBY[i.comp_id]==='kg') ? 'kg' : (UMBY[i.comp_id]==='unidad' ? 'uni' : (RUBRO_UM[rubroSel]||'uni'));
     setUnit(u);
   }
-  var pide = provPideRollos(provSel);
+  var pide = provPideRollos(provSel) && esFleje(i);
   $('rolloPallRow').classList.toggle('hidden', !pide);
   $('kgRollos').value=''; $('kgPallets').value='';
   $('kgPopup').classList.add('open');
@@ -928,8 +932,8 @@ async function guardar(){
   $('kgConfirm').disabled=true;
   try{
     var fiso=$('txtFecha').value?($('txtFecha').value+'T12:00:00'):null;
-    var pide = provPideRollos(provSel);
-    var modoCtl = provModo(provSel);
+    var pide = provPideRollos(provSel) && esFleje(itemSel);
+    var modoCtl = esFleje(itemSel) ? provModo(provSel) : 'ninguno';
     var rll = pide ? (parseInt(($('kgRollos').value||'').replace(/\D/g,''),10)||null) : null;
     var pll = pide ? (parseInt(($('kgPallets').value||'').replace(/\D/g,''),10)||null) : null;
     // Regla: la carga y el control son un solo proceso. Sin rollos y pallets
