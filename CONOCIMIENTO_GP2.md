@@ -446,6 +446,28 @@ componentes de Crudo y 12 de Procesado en esa condición `[dato: v_faltante_esta
 
 ---
 
+## 2f. Bombillas con resorte 557/558 — la cadena que FALTA construir (2026-08-31)
+
+`[usuario 2026-08-31]` Los artículos **557 (Bombilla Resorte Chata)** y **558 (Bombilla
+Resorte Tradicional)** se venden (Est Madre: 1.040 y 2.123 uni/mes) pero **no existen
+en GP2**: ni artículo, ni componentes (GRJ5/GRJ6, BOM8, BOM11, BOM12, BOMB12,
+cartones), ni rutas. La cadena real, dicha por el usuario:
+
+- **Doble origen del cuerpo armado** (GRJ6 chata / GRJ5 tradicional):
+  (a) **se fabrica**: caño + resorte se le mandan a **Martín Cornejo**, que devuelve la
+  bombilla armada "lista para el garage"; o (b) **se le compra a Cimarrón** el mismo
+  cuerpo armado. Cimarrón es proveedor ya habitual: le compramos **de manera fija los
+  artículos 654, 658 y 659** `[usuario]` (esos tres tampoco existen en GP2, solo en
+  Est Madre: 568/150/86 uni/mes).
+- Del garage, las bombillas van a **Oscar = Gentile Norberto** `[usuario, confirmado]`
+  (alias "Oscar" cargado en contraparte_alias → tallerista id 8, mismo patrón que
+  Jade=Becker). **PENDIENTE: qué hace exactamente Oscar** — el usuario marcó que no es
+  ni "termina y embala" ni "solo embala"; falta su explicación para armar la ruta.
+  El despiece del vecino le manda: cuerpo armado + resorte BOM8 + tapita aluminio
+  (557) o caño inox 140mm (558) + limpia bombilla + cartón propio.
+- Al construirla, respetar el orden de normalización del CLAUDE.md y modelar el doble
+  origen fabricado/comprado (primer caso de artículo con dos fuentes en GP2).
+
 ## 3. Reglas del negocio ya incorporadas
 
 - **Algunos talleristas pueden entregar partes EN CERVANTES** (además de Virgilio):
