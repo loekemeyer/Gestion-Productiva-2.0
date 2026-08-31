@@ -2640,7 +2640,7 @@ AS $function$
     'comp', (select coalesce(jsonb_object_agg(id::text, jsonb_build_object('cod',codigo,'d',descripcion,'s',sector_id,'um',unidad_medida,'kg_x_uni',kg_x_uni,'uxc',uni_x_cajon)),'{}'::jsonb) from componente),
     'prov_serv', (select coalesce(jsonb_object_agg(id::text, jsonb_build_object('nom',nombre,'proceso',proceso)),'{}'::jsonb) from proveedor_servicio),
     'tall', (select coalesce(jsonb_object_agg(id::text, jsonb_build_object('nom',nombre)),'{}'::jsonb) from tallerista),
-    'mat', (select coalesce(jsonb_object_agg(id::text, jsonb_build_object('n',n_matriz,'d',descripcion,'tipo',tipo,'ppk',partes_por_kilo_de_fleje,'primera',(primera_del_fleje='SI'),'uxg',uni_x_golpe,'maq',maquina)),'{}'::jsonb) from matriz),
+    'mat', (select coalesce(jsonb_object_agg(id::text, jsonb_build_object('n',n_matriz,'d',descripcion,'tipo',tipo,'ppk',partes_por_kilo_de_fleje,'primera',(primera_del_fleje='SI'),'uxg',uni_x_golpe,'maq',maquina,'act',activa)),'{}'::jsonb) from matriz),
     'bom_art', (select coalesce(jsonb_object_agg(articulo_id::text, arr),'{}'::jsonb) from (
         select articulo_id, jsonb_agg(jsonb_build_object('c',componente_id,'q',cantidad)) arr
         from articulo_componente group by articulo_id) x),
@@ -3890,7 +3890,7 @@ AS $function$
       from "GP2".empleado e),
     'matrices', (select coalesce(jsonb_agg(jsonb_build_object(
         'n',m.n_matriz,'d',m.descripcion,'ppk',m.partes_por_kilo_de_fleje,
-        'uxg',m.uni_x_golpe,'maq',m.maquina) order by m.n_matriz),'[]'::jsonb)
+        'uxg',m.uni_x_golpe,'maq',m.maquina,'act',m.activa) order by m.n_matriz),'[]'::jsonb)
       from "GP2".matriz m),
     'matriz_fleje', (select coalesce(jsonb_object_agg(q.n_matriz, jsonb_build_object(
         'comp_id',q.comp_id,'codigo',q.codigo,'descripcion',q.descripcion)),'{}'::jsonb)

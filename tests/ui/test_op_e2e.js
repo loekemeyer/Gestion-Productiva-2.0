@@ -9,8 +9,9 @@ const BUNDLE = {
   empleados: { '19': { nombre: 'Eduardo B', activo: true, hora_entrada: '08:00' } },
   registro_en_golpes: true,
   // 28 saca 1 pieza por golpe (el caso normal), 348 saca 2 (Corte Cuch Untar Mgo Madera)
-  matrices: [ { n: '28', d: 'Pinza Grande', ppk: 30, uxg: 1, maq: 'alimentador' },
-              { n: '348', d: 'Corte Cuch Untar Mgo Madera', ppk: 84, uxg: 2, maq: 'alimentador' } ],
+  matrices: [ { n: '28', d: 'Pinza Grande', ppk: 30, uxg: 1, maq: 'alimentador', act: true },
+              { n: '348', d: 'Corte Cuch Untar Mgo Madera', ppk: 84, uxg: 2, maq: 'alimentador', act: true },
+              { n: '62', d: 'Corte Pinza Fiambre Derecha', ppk: 40, uxg: 1, maq: 'alimentador', act: false } ],
   matriz_fleje: { '28': { comp_id: 176, codigo: 'A1', descripcion: 'Fleje 13' } },
   matriz_salidas: {},
   rollos_saldo: [ { comp_id: 176, codigo: 'A1', kg_por_rollo: 50, rollos: 3 } ],
@@ -130,6 +131,20 @@ window.supabase = { createClient: function(){ return {
   cs = await calls();
   const evG = cs.find(c => c.name === 'registrar_evento_prod' && c.args.p.golpes === 240);
   ok(evG.args.p.matriz === '348' && evG.args.p.uni === undefined, 'matriz de 2 por golpe: manda 240 golpes, no 480 uni');
+
+  // Matriz dada de baja: ni aparece en la lista ni se acepta tipeada
+  await page.click('#btnContinuar');
+  await page.waitForSelector('.box[data-code="E"]');
+  await page.click('.box[data-code="E"]');
+  await page.fill('#matrizSearch', '62');
+  await page.dispatchEvent('#matrizSearch', 'input');
+  ok(!(await page.textContent('#matrizGrid')).includes('Fiambre'), 'la matriz de baja no se ofrece en la lista');
+  const antes = (await calls()).length;
+  await page.fill('#textInput', '62');
+  await page.dispatchEvent('#textInput', 'input');
+  await page.click('#btnEnviar');
+  ok((await calls()).length === antes, 'la matriz de baja tampoco se acepta tipeada');
+  await page.click('#btnResetSelection');
 
   // badge sync sin pendientes
   const badge = await page.textContent('#syncBadge');

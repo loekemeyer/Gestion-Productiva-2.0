@@ -16,7 +16,7 @@
     // Pide este mismo HTML sin cache, compara el ?v= del script y recarga si difiere.
     // sessionStorage evita loops si el server sigue sirviendo la version vieja.
     (function(){
-      var MI_V = '1.6.1';
+      var MI_V = '1.8.0';
       function chequear(){
         fetch(location.pathname, { cache: 'no-store' }).then(function(r){ return r.text(); }).then(function(html){
           var m = html.match(/operarios_gp2\.js\?v=([\d.]+)/);
@@ -131,7 +131,7 @@
 </head>
 <body>
 
-<div id="syncBadge" title="Tocar para forzar envio">GP2 v1.7.0 &#10003;</div>
+<div id="syncBadge" title="Tocar para forzar envio">GP2 v1.8.0 &#10003;</div>
 
 <!-- LEGAJO -->
 <div id="legajoScreen">
@@ -253,7 +253,7 @@
   </div>
 </div>
 
-<script src="../../supabase-config.js?v=20260831c"></script>
-<script src="operarios_gp2.js?v=1.7.0"></script>
+<script src="../../supabase-config.js?v=20260831d"></script>
+<script src="operarios_gp2.js?v=1.8.0"></script>
 </body>
 </html>

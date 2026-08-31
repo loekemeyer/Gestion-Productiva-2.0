@@ -236,6 +236,7 @@ create table "GP2".matriz (
   tiempo_unidad text not null default 'uni'::text,
   tipo_matriz text,
   maquina text,
+  activa boolean not null default true,
   constraint matriz_pkey PRIMARY KEY (id),
   constraint matriz_maquina_chk CHECK (((maquina IS NULL) OR (maquina = ANY (ARRAY['alimentador'::text, 'balancin'::text, 'piedra'::text])))),
   constraint matriz_tiempo_unidad_chk CHECK ((tiempo_unidad = ANY (ARRAY['uni'::text, 'kg'::text]))),

@@ -8,7 +8,7 @@
    ============================================================ */
 
 const LEGAJO_EDUARDO = "19";
-const APP_VERSION = "1.6.1"; // bumpear en cada actualizacion (junto con el ?v= del HTML y el MI_V del chequeo de cache)
+const APP_VERSION = "1.8.0"; // bumpear en cada actualizacion (junto con el ?v= del HTML y el MI_V del chequeo de cache)
 
 const SB = supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
   db: { schema: "GP2" },
@@ -20,7 +20,7 @@ const SB = supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
    ============================================================ */
 /* Shape real de registro_operarios_bundle():
    empleados    { legajo -> {nombre, activo, hora_entrada} }
-   matrices     [ {n, d, ppk, uxg, maq} ]   uxg = unidades que salen por golpe
+   matrices     [ {n, d, ppk, uxg, maq, act} ]   uxg = unidades por golpe, act = activa
    registro_en_golpes  true = el cajon se cierra anotando GOLPES del contador
    matriz_fleje { n_matriz -> {comp_id, codigo, descripcion} }
    rollos_saldo [ {comp_id, codigo, kg_por_rollo, rollos} ]              */
@@ -52,6 +52,12 @@ function uniXGolpe(n) {
   return v > 0 ? v : 1;
 }
 function pideGolpes() { return D.registro_en_golpes !== false; }
+/* Matriz dada de baja: sigue en el diccionario para poder ponerle nombre a un registro
+   viejo, pero no se ofrece para elegir ni se acepta tipeada. */
+function matrizActiva(n) {
+  const m = D.matricesMap?.get(String(n || "").trim());
+  return !!m && m.act !== false;
+}
 function golpesAUni(nMatriz, golpes) {
   const g = Number(golpes) || 0;
   return pideGolpes() ? g * uniXGolpe(nMatriz) : g;
@@ -483,6 +489,7 @@ function renderMatrizPicker(filtro) {
   // Si el buscador esta vacio pero el operario tipeo un numero, filtrar por eso.
   const q = String(filtro || "").trim().toLowerCase() || elegida.toLowerCase();
   const matrices = (D.matrices || []).filter(m => {
+    if (m.act === false) return false;          // matriz dada de baja: no se ofrece
     if (!q) return true;
     return String(m.n || "").toLowerCase().includes(q) ||
            String(m.d || "").toLowerCase().includes(q);
@@ -724,10 +731,16 @@ async function sendFast() {
     if (!D.matricesMap?.has(texto)) {
       alert(`La matriz ${texto} no existe. Verifica el número.`); return;
     }
+    if (!matrizActiva(texto)) {
+      alert(`La matriz ${texto} está dada de baja, no se usa más.`); return;
+    }
   }
   if (selected.code === "CM") {
     if (!D.matricesMap?.has(texto)) {
       alert(`La matriz ${texto} no existe.`); return;
+    }
+    if (!matrizActiva(texto)) {
+      alert(`La matriz ${texto} está dada de baja, no se usa más.`); return;
     }
   }
   if (["E", "CM"].includes(selected.code) && salidasDeMatriz(texto).length > 1 && !piezaSel) {

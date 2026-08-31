@@ -750,7 +750,7 @@ factor > 1** y 98 en 1:
 |---|---|
 | **4** | m16 Corte Arandela manguito (fleje 38 / D4) |
 | **3** | m71 Arandela Grande Afila (10 / F2) · m344 Arandela Base (74 / F10) · mS/N Arandela Cuchillitos (38 / D5) |
-| **5** | m72 Arandela Chica Afila (10-11 / F2) — **el único dudoso**, el Excel dice 5 en la hoja principal y 3 en el bloque de kits del final |
+| **5** | m72 Arandela Chica Afila (10-11 / F2) — **resuelto abajo**: la hoja buena dice 5, el bloque del final está corrupto |
 | **2** | m7 Cuchilla Abrelatas (2/C7) · m20 Engranaje Gr (3/B8) · m21 Buje 501 (4/C9) · m22 Arandela fina 501 (5/D6) · m15 Arandela fina 502 (5/D6) · m14 Engranaje chico (8/A10) · m40 Sacatapita (25/C1) · m60 Pinza Fideos (39/A4) · **m64 Pinza Fiambre (40/A4)** · **m348 Corte Cuch Untar Mgo Madera (41/B2)** · m66 Pinza Ensalada (45/F5) · m29 Corte Uña (57/B4) · m116 Corte de Aleta (92/C2) |
 
 **Cómo leer la columna sin equivocarse**: la hoja tiene DOS columnas parecidas, *"Uni x Art
@@ -766,6 +766,24 @@ dijeron al usuario es **por golpe** → **≈ 0,6–0,75 s por unidad**, que es 
 ahora ya se sabe por cuánto hay que dividir.
 
 **Pinza de fiambre: GP2 la tenía mal modelada y se corrigió** — ver §2c-quinquies.
+
+**Arandela chica de afilar (m72): queda en 5, y el archivo lo demuestra.** El Excel se
+contradice — la hoja principal dice *8 por artículo / 5 por golpe* y el bloque del final
+dice *3 / 3* para los mismos artículos (504 y 97). **Gana la hoja principal**, por dos
+pruebas:
+
+1. **El bloque del final tiene la columna 13 pisada.** Se ve con la arandela **grande**, que
+   va justo al lado: la hoja principal dice *6 por artículo / 3 por golpe*, y el bloque del
+   final dice *3 / 3*. Ese 6 → 3 es un dato que sabemos que está mal, y demuestra que ahí la
+   columna "Uni x Art Term" quedó pisada con el valor de golpe. El 3 de la chica en ese
+   bloque es, muy probablemente, el mismo 3 arrastrado de la grande.
+2. **La hoja principal cierra sola.** `KG x Uni c/Desp = Peso Neto ÷ (1 − Desperdicio)`, y da
+   exacto en las dos: grande 0,00495 ÷ (1 − 0,2703) = **0,0067835** ✓ y chica 0,00172 ÷
+   (1 − 0,28234) = **0,0023967** ✓. El bloque del final **no tiene ni peso neto ni
+   desperdicio** (columnas vacías): no se puede verificar nada de ahí.
+
+**Regla que deja**: cuando el Excel de flejes diga dos cosas distintas, ganar la fila que
+tenga **peso neto y desperdicio cargados** — es la que se puede verificar con la cuenta.
 
 ### La app YA pide GOLPES (2026-08-31)
 
@@ -835,8 +853,11 @@ equivocado); la **64 se renombró** de *"Corte Pinza Fiambre Izquierda"* a **"Co
 Fiambre"**, porque ya no corta un lado sino la pieza entera; y **`uni_x_golpe = 2`**, que es
 lo que decía el Excel y ahora cierra: un golpe saca las dos punteras.
 
-**La 62 NO se borró** — la matriz física existe. Quedó **fuera de todas las rutas** y es la
-única matriz de GP2 en esa situación. `[pendiente]` preguntarle al usuario qué hace hoy la 62.
+**La 62 NO se borró** — la matriz física existe, pero `[usuario 2026-08-31]` está
+**inactiva**. Se agregó `GP2.matriz.activa` (boolean, default true) y la 62 quedó en `false`:
+las apps **no la ofrecen** en el buscador de matrices ni la aceptan tipeada ("está dada de
+baja, no se usa más"), pero sigue en el diccionario para poder ponerle nombre a un registro
+viejo. Es la única matriz inactiva de GP2.
 
 **Impacto en el costo — el error valía plata**: el artículo 595 (y su gemelo 53) pasó de
 **$353,08 a $270,46**. Contaba **la tira dos veces**: al salir F9 y F10 de tiras distintas,
@@ -854,6 +875,36 @@ nombre y **la de fiambre era la única mal modelada**.
 US$ 0,094316 y US$ 0,096879 de material. La diferencia que queda ($304,52 vs $270,46) es
 **sólo mano de obra**: fideos tiene 19 s cargados (m60 3 + m61 8 + m75 8) y fiambre tiene 0
 porque la 63, la 64 y la 65 están entre las 34 matrices sin tiempo medido.
+
+## 2c-sexies. Tiempos de la pinza de fiambre: qué tiene el vecino (2026-08-31)
+
+`[dato 2026-08-31]` Se buscó en **las 4 tablas** del vecino. Resultado:
+
+| Matriz | Maestro `Matrices` | `db_n8n_espejo` (+histórico) | `Registros Historicos` |
+|---|---|---|---|
+| 62 Corte Fiambre Der | 0 | — | — |
+| 63 Estampado Fiambre Der | 0 | — | — |
+| **64 Corte Fiambre** | 0 | — | **17 registros, ago–sep 2025** |
+| 65 Estampado Fiambre Izq | 0 | — | — |
+
+O sea: **63 y 65 no tienen ni un registro en ningún lado**. La 64 sí, pero **no sirve como
+está**: de los 17 registros, **5 están anulados** (`Anular_Tiempo = true`) y los 12 que
+quedan van de **9,3 a 50 s por unidad** — una dispersión de 5x. Los mejores son las tandas
+largas de un mismo operario (394, 553, 387 y 670 uni): **9,3 / 11,2 / 11,4 / 14,1**.
+
+**Lo que NO cierra y hay que resolver antes de cargar nada** `[pendiente]`: la 64 es
+**alimentador** (tipo A en el vecino) y el usuario dijo que el alimentador va a **≈1 golpe
+por segundo**; sacando 2 por golpe eso daría **~0,5 s/uni**, no 9–14. Y su **gemela exacta**,
+la m60 *Corte Pinza Fideos* — mismo fleje A4, mismo alimentador, misma operación, también 2
+por golpe — mide **2,30 s/uni** en el espejo (12 registros, 12.009 uni). La 64 daría **4 a 6
+veces más lenta que su gemela haciendo lo mismo**. Alguna de estas tres es cierta y hay que
+saber cuál: (a) el operario cargaba **cajones o golpes** en vez de unidades, (b) esos
+registros de 2025 no son de esta operación, (c) la 64 realmente tarda eso.
+
+`[dato]` Tiempos reales de la gemela, por si sirven de referencia mientras tanto — **medidos,
+no los del maestro**: m60 corte **2,30** s/uni (maestro dice 3) · m61 estampado der **11,02**
+(maestro 8) · m75 estampado izq **10,49** (maestro 8). Los tres estampados de balancín dan
+~10-11 s, que sí cierra con "el balancín tarda 6 a 10 segundos" (§2c-ter).
 
 ## 2e. Faltantes y máximos de Crudo/Procesado: 5 cajones por ubicación (2026-08-31)
 

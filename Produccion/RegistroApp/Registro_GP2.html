@@ -7,7 +7,7 @@
 <link rel="icon" type="image/png" href="../../GP2_favicon.png">
 <link rel="apple-touch-icon" href="../../GP2_favicon.png">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="../../supabase-config.js?v=20260831c"></script>
+<script src="../../supabase-config.js?v=20260831d"></script>
 <style>
   *{box-sizing:border-box;margin:0;padding:0}
   body{font-family:Arial,sans-serif;background:#f5f6f8;padding:12px;color:#111}
@@ -114,7 +114,9 @@ function paresMatriz(mid){var set={};for(var rid in D.rp)D.rp[rid].forEach(p=>{i
 function renderMats(){
   if(!D)return;
   var q=norm($('q').value.trim());
-  var keys=matKeys.filter(k=>{var m=D.mat[k];return !q||norm('N°'+m.n+' '+(m.d||'')).indexOf(q)>=0;});
+  var keys=matKeys.filter(k=>{var m=D.mat[k];
+    if(m.act===false) return false;               // matriz dada de baja: no se ofrece
+    return !q||norm('N°'+m.n+' '+(m.d||'')).indexOf(q)>=0;});
   var g=$('matGrid'); g.innerHTML='';
   keys.slice(0,300).forEach(k=>{
     var m=D.mat[k];
