@@ -3438,6 +3438,11 @@ AS $function$
         'sector_id',c.sector_id,'um',c.unidad_medida,'uni_x_cajon',c.uni_x_cajon,
         'proveedor',nullif(trim(c.proveedor),''),
         'n_fleje',fd.n_fleje,'medida',fd.medida_mm,
+        'stock', coalesce((select sum(i.cantidad)
+                     from "GP2".inventario i
+                     join "GP2".ubicacion u on u.id = i.ubicacion_id
+                    where i.componente_id = c.id
+                      and u.tipo = 'sector' and u.ref_id = c.sector_id), 0),
         'ultima', (select jsonb_build_object(
                      'fecha', r.fecha, 'cantidad', r.cantidad, 'unidad', r.unidad,
                      'rollos', r.rollos, 'pallets', r.pallets,

@@ -5,9 +5,12 @@ const fs = require('fs');
 const ROOT = 'file://' + path.resolve(__dirname, '..', '..').replace(/\\/g, '/');
 const EXE = process.env.CHROMIUM_PATH || (fs.existsSync('/opt/pw-browsers/chromium') ? '/opt/pw-browsers/chromium' : undefined);
 
-/* Fija el formato de la tarjeta de insumo en Recepcion, pedido por el usuario
-   (2026-08-29): la ultima carga muestra SOLO los kg (sin fecha, sin pallets ni
-   rollos) y la OC abierta se resume como "OC: <lo que falta> <unidad>". */
+/* Fija el formato de la tarjeta de insumo en Recepcion: el numero verde es el
+   STOCK ACTUAL del insumo (pedido del usuario 2026-08-31: la tarjeta mostraba
+   la ultima carga y "esta mostrando lo ultimo que recibi, esta mal"), solo el
+   numero sin fecha/pallets/rollos (2026-08-29), y la OC abierta se resume como
+   "OC: <lo que falta> <unidad>". La 'ultima' sigue en el bundle pero NO se
+   muestra. */
 const BUNDLE = {
   tara: { tara_pallet: '20', tol_ctrl_peso_pct: '5', carton_uni_x_paquete: '250' },
   sectores: [{ id: 5, nombre: 'Sector Fleje' }],
@@ -15,16 +18,16 @@ const BUNDLE = {
   recepciones: [], pallets: [], rollos: [],
   insumos: [
     { comp_id: 1, codigo: 'A1', descripcion: 'Fleje N° 13', sector: 'Sector Fleje', sector_id: 5, um: 'kg',
-      proveedor: 'Basconia', n_fleje: 13, medida: '84 x 1,75',
+      proveedor: 'Basconia', n_fleje: 13, medida: '84 x 1,75', stock: 959,
       ultima: { fecha: '2026-08-29T12:00:00Z', cantidad: 360, unidad: 'kg', rollos: 7, pallets: 2 },
       oc_pend: { ocs: '4', n_ocs: 1, pendiente: 640, unidad: 'kg', unidades_mezcladas: false } },
     { comp_id: 2, codigo: 'A10', descripcion: 'Fleje N° 8', sector: 'Sector Fleje', sector_id: 5, um: 'kg',
-      proveedor: 'Basconia', n_fleje: 8, medida: '33 x 2', ultima: null, oc_pend: null },
+      proveedor: 'Basconia', n_fleje: 8, medida: '33 x 2', stock: 0, ultima: null, oc_pend: null },
     { comp_id: 3, codigo: 'A11', descripcion: 'Fleje N° 23', sector: 'Sector Fleje', sector_id: 5, um: 'kg',
-      proveedor: 'Basconia', n_fleje: 23, medida: '20 x 2,8', ultima: null,
+      proveedor: 'Basconia', n_fleje: 23, medida: '20 x 2,8', stock: 500, ultima: null,
       oc_pend: { ocs: '4, 5', n_ocs: 2, pendiente: 1200, unidad: 'kg', unidades_mezcladas: false } },
     { comp_id: 4, codigo: 'A12', descripcion: 'Fleje N° 5', sector: 'Sector Fleje', sector_id: 5, um: 'kg',
-      proveedor: 'Basconia', n_fleje: 5, medida: '15 x 1', ultima: null,
+      proveedor: 'Basconia', n_fleje: 5, medida: '15 x 1', stock: 0, ultima: null,
       oc_pend: { ocs: '6', n_ocs: 1, pendiente: 50, unidad: 'kg', unidades_mezcladas: true } },
   ],
 };
@@ -60,9 +63,9 @@ const STUB = 'window.supabase={createClient:function(){return{'
   const cards = await page.$$eval('.item-btn', bs => bs.map(b => b.innerText.replace(/\n/g, ' | ')));
   ok(cards.length === 4, '4 insumos del proveedor');
 
-  // la ultima carga: solo los kg
-  // v3.9.1: sin la palabra "ult." — la ultima carga es solo el numero en verde
-  ok(/\| 360 kg \|/.test(cards[0]) && !/últ\./.test(cards[0]), 'ultima carga = "360 kg" (sin "ult."): ' + cards[0]);
+  // el numero verde es el STOCK actual, no la ultima carga (v3.19.0)
+  ok(/\| 959 kg \|/.test(cards[0]) && !/últ\./.test(cards[0]), 'stock = "959 kg" (sin etiqueta): ' + cards[0]);
+  ok(!/360 kg/.test(cards[0]), 'la ultima carga (360 kg) ya NO se muestra: ' + cards[0]);
   ok(!/29\/8|2 pallets|7 rollo/.test(cards[0]), 'sin fecha, sin pallets, sin rollos');
 
   // la OC abierta: "OC: <lo que falta> <unidad>" (640 = 1000 pedidos - 360 recibidos)
@@ -71,9 +74,10 @@ const STUB = 'window.supabase={createClient:function(){return{'
 
   // sin OC abierta no se muestra nada
   ok(!/OC/.test(cards[1]), 'sin OC no aparece la linea: ' + cards[1]);
-  ok(/sin cargas/.test(cards[1]), 'sin cargas cuando nunca se recibio');
+  ok(/sin stock/.test(cards[1]) && !/sin cargas/.test(cards[1]), 'stock 0 = "sin stock" en gris');
 
-  // varias OC: se suma lo que falta de todas
+  // varias OC: se suma lo que falta de todas (y el stock convive con la OC)
+  ok(/\| 500 kg \|/.test(cards[2]), 'stock y OC conviven en la tarjeta: ' + cards[2]);
   ok(/OC: 1\.200 kg/.test(cards[2]), 'dos OC suman lo pendiente: ' + cards[2]);
 
   // misma parte pedida en dos unidades: se muestra el numero SIN unidad, no se inventa

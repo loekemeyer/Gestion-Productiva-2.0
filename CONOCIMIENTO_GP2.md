@@ -1073,6 +1073,18 @@ se stockea, se pesa por kilo o se guarda en cajones ni que se "repone" a un mín
 esos campos nunca se cargaron y salían "—". El stock en **Uni** es correcto igual. Cargar
 `kg_x_uni`/`uni_x_cajon` ahí sería inventar un dato que el negocio no usa.
 
+## 2c-duodecies. La tarjeta de Recepción muestra STOCK, no la última carga (2026-08-31)
+
+`[usuario 2026-08-31, con foto]` sobre `StockFlejes/RecepcionInsumos_GP2.html`: **"está
+mostrando lo último que recibí, está mal"**. El número verde de la tarjeta del insumo era la
+ÚLTIMA RECEPCIÓN (A1 decía "280 kg" = lo recibido ese día) y, sin etiqueta (la palabra "ult."
+se había sacado el 2026-08-29 a pedido), se leía como si fuera el stock — y el stock real de
+A1 era ~959 kg. Desde v3.19.0 el verde es el **stock actual** del insumo (`GP2.inventario` en
+la ubicación de su propio sector, clave `stock` nueva de `recepcion_bundle`); sin stock dice
+"sin stock" en gris. Regla general que deja esto: **un número sin etiqueta en una tarjeta se
+lee como stock** — si alguna vez se quiere mostrar otra cosa (última carga, consumo), lleva
+etiqueta sí o sí. La `ultima` sigue viniendo en el bundle por si hace falta, pero no se pinta.
+
 ## 2e. Faltantes y máximos de Crudo/Procesado: 5 cajones por ubicación (2026-08-31)
 
 `[usuario 2026-08-30]` **"En crudo y procesado, el stock máximo tendría que ser 5
