@@ -389,9 +389,11 @@ completa.** La cascada, sector por sector (motor: `v_costo_componente` +
    final es la unificación futura: receta `articulo_componente` + `componente_bom` ×
    costo de cada componente, más los pasos propios).
 
-**Valor de stock** = stock × costo, por componente y ubicación. **Pedido a máximo** =
-Σ por ubicación de greatest(0, máximo − stock) × costo — "cuánto me genera de pedido
-llenar al máximo".
+**Valor de stock** = stock × costo, por componente y ubicación. **MÁXIMO POR SECTOR** =
+Σ por ubicación de greatest(0, máximo − stock) × costo. `[usuario 2026-08-31]` **Se llama
+así: "máximo por sector"** — NO "tope" ni "pedido a máximo". Y suma **todo el circuito**
+(sector propio + talleristas + Virgilio), no solo lo propio: de los $678 M, $476 M son del
+sector propio, $114 M Virgilio y $89 M talleristas.
 
 ### Semántica verificada y trampas
 
@@ -619,13 +621,13 @@ en ese archivo):
   de afilado + 1,3 s de las otras matrices = 34,2 s → $68,39 de mano de obra, y el costo
   pasa de **$15.349,70 a $115,49**. Verificado con snapshot: cambiaron exactamente esos 4
   componentes y ninguno más de los 538.
-  **El pedido a máximo cayó de $2.608 M a $678 M** y el stock de $23,0 M a $13,9 M.
+  **El máximo por sector cayó de $2.608 M a $678 M** y el stock de $23,0 M a $13,9 M.
   Regla que deja: antes de dar por malo un tiempo raro, preguntar **en qué unidad se mide**.
 - `[dato]` **`inventario.maximo` no significa lo mismo en toda ubicación.** Solo los de
   `maximo_origen` est_madre / cinco_cajones / fisico tienen dueño; los de tallerista y
   Virgilio están en NULL, heredados. `v_valor_pedido` los suma todos → cuenta el mismo
   requerimiento hasta 5 veces: **$1.556 M, el 56% del pedido**. Decisión pendiente: ¿el
-  pedido a máximo incluye reponer lo que está en poder de terceros?
+  máximo por sector incluye reponer lo que está en poder de terceros? SÍ: va todo el circuito.
 - `[dato]` **Un fleje puede tener el máximo cargado en PIEZAS**: C3 (25.200 en IJUPA), E4 y
   E5 (9.000 en Alex) — el fleje se stockea en kg y sus máximos legítimos son ~2.900 kg.
   Regla: si un fleje tiene máximo en ubicación de tallerista, sospechar.

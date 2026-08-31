@@ -157,7 +157,10 @@ los tres talleristas **y** la de Virgilio, todas a tope a la vez.
 Virgilio $677,4 MM). Y los máximos de tallerista/Virgilio tienen **`maximo_origen` NULL**: no
 salieron ni de la Est Madre ni de la regla de 5 cajones, son números heredados sin dueño.
 
-**Decisión de negocio**: ¿el "pedido a máximo" es solo del sector propio, o incluye reponer
+**RESUELTO `[usuario 2026-08-31]`: va TODO EL CIRCUITO** (sector propio + talleristas +
+Virgilio), y el nombre correcto del indicador es **"Máximo por sector"** — no "tope" ni
+"pedido a máximo". Del total: $476 M sector propio, $114 M Virgilio, $89 M talleristas.
+Queda la pregunta vieja de si conviene reponer
 lo que está en poder de terceros? Hoy la vista ni siquiera expone `ubicacion_tipo` (a
 diferencia de `v_valor_stock`), así que las pantallas no pueden cortar.
 
