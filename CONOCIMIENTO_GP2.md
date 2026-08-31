@@ -1145,6 +1145,59 @@ que es la verdad. Cargar el precio real cuando venga.
 - Z19A (Alambre Corta Queso, 546), F12 (Fleje N° 49), C13 (Bastidor Corta Queso), V10 (Rem
   Alum Canel), V14 (Remache Pinza), V11 (Rem Sacacorcho), CV14, CV16.
 
+## 2c-quaterdecies. Tiempos de matrices derivados del vecino (2026-08-31)
+
+`[usuario 2026-08-31]` "los tiempos que puedas sacar del vecino, sacalos". El agente
+`gp2-auditor-costos` propuso el protocolo (mediana + IQR, filtros por máquina, exclusiones
+por dispersión), la sesión principal ejecutó y verificó con snapshot antes/después.
+
+**Método**: unión de las 3 tablas del vecino con producción — `db_n8n_espejo`, su
+histórica (`_20260419`), `Registros Historicos`. Filtros: `Eliminar<>'S'`, `Anular_Tiempo`
+false, `Uni>0`, `Segundos_Trabajados>0`. Cada registro da `seg/uni`. Sobre esos:
+
+- **N usado**: solo tandas con `Uni >= 10` (las de <10 mienten mucho).
+- **Mediana** (no promedio, resiste outliers).
+- **Dispersión** = `IQR / mediana`. Si `IQR > 2 x mediana` → DUDOSA, no se carga.
+- **Rango por máquina** (§2c-ter): alimentador 0,4–4 s/uni; balancín 4–12. Fuera de esos
+  rangos = DUDOSA.
+
+**CARGADAS (15)** — 34 activas sin tiempo → 19:
+
+| Nº | Descripción | Máquina | N | Mediana s/uni |
+|---|---|---|---|---|
+| 14 | Corte Engranaje chico (uxg=2) | alim | 5/5 | 0,53 |
+| 32 | Corte Cuerpo 3 en 1 | alim | 5/5 | 2,61 |
+| 40 | Corte Sacatapita (uxg=2) | alim | 24/24 | 0,84 |
+| 44 | Corte Cuchufli | alim | 7/7 | 1,06 |
+| 68 | Corte Resorte U | alim | 6/6 | 1,41 |
+| 137 | Cortar arandela Batidor | alim | 5/5 | 0,73 |
+| 152 | Corte Pza Ch Sacaf Gast | alim | 4/4 | 2,10 |
+| 153 | Corte Pza Grande Sacaf Gast | alim | 7/7 | 3,69 |
+| 155 | Estampado Pza Ch Sacaf Gast | balan | 11/11 | 8,04 |
+| 169 | Doblado Vast Pala Canelón | balan | 3/3 | 6,09 |
+| 346 | Corte Vast Corta Pizza Gr | alim | 4/4 | 1,84 |
+| 347 | Corte Cuch Untar Mgo Plast | alim | 7/7 | 1,37 |
+| 355 | Corte Pala Canelón | alim | 6/6 | 3,02 |
+| 365 | Corte Pza Gr Sacaf Pizz | alim | 5/5 | 2,41 |
+| 366 | Corte Super Mariposita | alim | 12/12 | 2,00 |
+
+**DUDOSAS (2)** — NO cargadas:
+- **m64 Corte Pinza Fiambre**: mediana 25,58 s/uni. Confirmado lo de la mañana: cargaban
+  golpes o cajones, no unidades. Su gemela m60 (mismo alimentador, misma operación) mide
+  2,30. Sigue en 0 hasta cronometrar en planta.
+- **m16 Corte Arandela manguito (uxg=4)**: mediana 0,26 s/uni, muy bajo para alimentador
+  (piso 0,4). Sospecha simétrica a la 64: pudieron haber cargado unidades × 4 (o sea el
+  golpe multiplicado). Como uxg=4 es el mayor de la fábrica, el ruido es mayor.
+
+**Impacto medido**: 76 componentes movidos, todos hacia arriba, delta máximo $27,66 (art
+508: corte engranaje chico + estampado 3en1). Ningún componente ajeno cambió — el snapshot
+demostró que las cirugías previas siguen aisladas.
+
+**Bug propio detectado**: el auditor `gp2-auditor-costos` no tenía `execute_sql` — su
+frontmatter decía `mcp__Supabase__` pero el server real del proyecto es
+`mcp__c1349a3b-...__`. Corregido en los 3 agentes que tocan la base. La sesión principal
+tomó el protocolo (la parte útil) y ejecutó las consultas.
+
 ## 2e. Faltantes y máximos de Crudo/Procesado: 5 cajones por ubicación (2026-08-31)
 
 `[usuario 2026-08-30]` **"En crudo y procesado, el stock máximo tendría que ser 5

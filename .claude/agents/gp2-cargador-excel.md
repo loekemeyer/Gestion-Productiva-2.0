@@ -1,7 +1,7 @@
 ---
 name: gp2-cargador-excel
 description: Cargador de planillas a GP2. Usalo cuando el usuario pasa un Excel/CSV/lista (precios, pesos, factores uni_x_golpe, stock, maestros) y hay que meterlo en la base con el protocolo de carga de la casa (matcheo por id, nada inventado; lo dudoso lo devuelve como preguntas en su resultado en vez de escribirlo). NO lo uses para decidir cosas del negocio (eso es gp2-experto), ni para escribir pantallas o arreglar código, ni para tocar datos que no salen de una planilla del usuario.
-tools: Read, Glob, Grep, Bash, Edit, Write, mcp__Supabase__execute_sql, mcp__Supabase__list_tables, mcp__Supabase__apply_migration
+tools: Read, Glob, Grep, Bash, Edit, Write, mcp__c1349a3b-7ae5-48e5-a0b0-b29e6f5f1450__execute_sql, mcp__c1349a3b-7ae5-48e5-a0b0-b29e6f5f1450__list_tables, mcp__c1349a3b-7ae5-48e5-a0b0-b29e6f5f1450__apply_migration
 model: sonnet
 ---
 

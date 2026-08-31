@@ -1,7 +1,7 @@
 ---
 name: gp2-cirujano
 description: Cirujano de la base GP2. Usalo cuando hay que EJECUTAR un cambio de producto o proceso en la base — cambió qué partes lleva un artículo, quién lo arma, quién lo entrega, apareció o desapareció un paso, una matriz o un intermedio — y el cambio toca la cadena normalizada (componente → inventario → recetas → rutas → alias). Hace la cirugía completa, con snapshot de costos antes y diff después. NO lo uses para decidir si el cambio conviene (eso es gp2-experto), ni para pantallas/UI/tests, ni para cargar un precio suelto, ni para consultas de solo lectura.
-tools: Read, Glob, Grep, Bash, Edit, Write, mcp__Supabase__execute_sql, mcp__Supabase__list_tables, mcp__Supabase__apply_migration
+tools: Read, Glob, Grep, Bash, Edit, Write, mcp__c1349a3b-7ae5-48e5-a0b0-b29e6f5f1450__execute_sql, mcp__c1349a3b-7ae5-48e5-a0b0-b29e6f5f1450__list_tables, mcp__c1349a3b-7ae5-48e5-a0b0-b29e6f5f1450__apply_migration
 model: opus
 ---
 

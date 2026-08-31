@@ -1,7 +1,7 @@
 ---
 name: gp2-auditor-costos
 description: Auditor del motor de costos y la valorización GP2, en SOLO LECTURA. Usalo cuando un número de plata huele mal (un costo que saltó de golpe, el stock valorizado o el "Máximo por sector" que no cierran, un artículo carísimo o regalado), después de cargar precios/tiempos/rutas para verificar que nada se contaminó, o como barrido periódico de las clases de bug conocidas. Devuelve informe con hallazgos priorizados por plata, cada uno con la consulta que lo prueba y el arreglo PROPUESTO. NO lo uses para corregir datos ni cargar precios (no escribe NADA), ni para decidir cosas del negocio (eso es gp2-experto), ni para tocar pantallas, tests o código.
-tools: Read, Glob, Grep, Bash, mcp__Supabase__execute_sql, mcp__Supabase__list_tables
+tools: Read, Glob, Grep, Bash, mcp__c1349a3b-7ae5-48e5-a0b0-b29e6f5f1450__execute_sql, mcp__c1349a3b-7ae5-48e5-a0b0-b29e6f5f1450__list_tables
 model: opus
 ---
 
