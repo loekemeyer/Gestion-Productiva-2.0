@@ -1054,6 +1054,25 @@ Varios pedidos del usuario sobre `Produccion/RegistroApp/Operarios_GP2.html` en 
   **colapsa a una línea** ("Fabricás A15 · … — cambiar"). Tocar "cambiar" reabre el grid.
 
 
+## 2c-undecies. Stock en Movimiento (Sector Tránsito): sin mín/máx ni carteles (2026-08-31)
+
+`[usuario 2026-08-31, con foto]` sobre `StockMovimiento/StockMovimiento_GP2.html`:
+
+- **Solo el botón "Atrás"** en el header: sacados "Exportar CSV", "Stock SC" y "Stock SP".
+- **Sacados los dos carteles amarillos**: el explicativo ("Piezas entre matrices…") y el de
+  factores ("De 43 componentes, 43 sin `kg_x_uni`…").
+- **No van mínimo ni máximo**: se quitaron las columnas Mínimo/Máximo, el KPI "Bajo mínimo" y
+  el filtro "Bajo mínimo". Se hizo con un flag `sin_min_max: true` en el `STOCK_CFG` de esta
+  pantalla, honrado por el renderer compartido `gp2-stock-sector.js` (bumpeado a ?v=1.3.0 en
+  las 9 pantallas que lo usan). **StockSC / StockSP siguen con min/máx** — verificado.
+
+**Por qué el Sector Tránsito no tiene mín/máx ni `kg_x_uni`/`uni_x_cajon`** `[dato]`: son las
+piezas **intermedias entre matrices** (los `X-M##`, "Fleje N° 13 tras M28"): una matriz ya las
+cortó y la siguiente todavía no las consumió. Es **trabajo en curso transitorio**, no algo que
+se stockea, se pesa por kilo o se guarda en cajones ni que se "repone" a un mínimo — por eso
+esos campos nunca se cargaron y salían "—". El stock en **Uni** es correcto igual. Cargar
+`kg_x_uni`/`uni_x_cajon` ahí sería inventar un dato que el negocio no usa.
+
 ## 2e. Faltantes y máximos de Crudo/Procesado: 5 cajones por ubicación (2026-08-31)
 
 `[usuario 2026-08-30]` **"En crudo y procesado, el stock máximo tendría que ser 5

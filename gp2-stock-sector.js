@@ -69,7 +69,7 @@ async function cargar(){
    van a salir en "—". Se avisa en vez de dejar al usuario adivinando por qué. */
 function avisarFactores(){
   var el = $("avisoFactores");
-  if (!el) return;
+  if (!el || CFG.sin_min_max) { if (el) el.classList.add("hidden"); return; }
   var filas = D.filas || [];
   if (!filas.length){ el.classList.add("hidden"); return; }
   var sinKg  = filas.filter(function(x){ return !x.kg_x_uni; }).length;
@@ -137,8 +137,9 @@ function render(){
       celdasMov +
       '<td class="num sep">'+(x.kg_x_uni?fmt(x.kg_x_uni,6):"—")+'</td>'+
       '<td class="num">'+(x.uni_x_cajon?fmt(x.uni_x_cajon,0):"—")+'</td>'+
-      '<td class="num">'+(x.minimo!=null?fmt(x.minimo,0):"—")+'</td>'+
-      '<td class="num">'+(x.maximo!=null?fmt(x.maximo,0):"—")+'</td>'+
+      (CFG.sin_min_max ? "" :
+        '<td class="num">'+(x.minimo!=null?fmt(x.minimo,0):"—")+'</td>'+
+        '<td class="num">'+(x.maximo!=null?fmt(x.maximo,0):"—")+'</td>')+
       (CFG.mostrar_fleje ? '<td class="num">'+(x.n_fleje!=null?esc(x.n_fleje):"—")+'</td>' : "");
     tb.appendChild(tr);
   });
@@ -147,7 +148,8 @@ function render(){
     '<div class="kpi"><div class="k">Componentes</div><div class="v">'+arr.length+'</div></div>'+
     '<div class="kpi"><div class="k">Total uni</div><div class="v">'+fmt(tUni,0)+'</div></div>'+
     '<div class="kpi"><div class="k">Total kg</div><div class="v">'+fmt(tKg,0)+'</div></div>'+
-    '<div class="kpi"><div class="k">Bajo mínimo</div><div class="v '+(tBajo?"neg":"cero")+'">'+tBajo+'</div></div>'+
+    (CFG.sin_min_max ? "" :
+      '<div class="kpi"><div class="k">Bajo mínimo</div><div class="v '+(tBajo?"neg":"cero")+'">'+tBajo+'</div></div>')+
     '<div class="kpi"><div class="k">Con movimientos</div><div class="v">'+tConMov+'</div></div>';
 }
 
@@ -229,7 +231,7 @@ function exportarCSV(){
    depende de la config de cada pantalla. */
 function renderHead(){
   var cols = CFG.columnas || [];
-  var nInfo = 4 + (CFG.mostrar_fleje ? 1 : 0);
+  var nInfo = (CFG.sin_min_max ? 2 : 4) + (CFG.mostrar_fleje ? 1 : 0);
   $("thead").innerHTML =
     '<tr>'+
       '<th colspan="2">Base</th>'+
@@ -244,7 +246,7 @@ function renderHead(){
         return '<th class="num'+(i===0?" sep":"")+'" title="Tocá una celda para ver el detalle">'+esc(c.label)+'</th>';
       }).join("")+
       '<th class="num sep">Kg × Uni</th><th class="num">Uni × Cajón</th>'+
-      '<th class="num">Mínimo</th><th class="num">Máximo</th>'+
+      (CFG.sin_min_max ? "" : '<th class="num">Mínimo</th><th class="num">Máximo</th>')+
       (CFG.mostrar_fleje ? '<th class="num">N° Fleje</th>' : "")+
     '</tr>';
 }
@@ -253,7 +255,7 @@ function init(){
   renderHead();
 
   $("q").addEventListener("input", render);
-  $("btnCSV").addEventListener("click", exportarCSV);
+  var _csv = $("btnCSV"); if (_csv) _csv.addEventListener("click", exportarCSV);  // opcional: hay pantallas sin CSV
 
   document.querySelectorAll(".seg-btn").forEach(function(b){
     b.addEventListener("click", function(){

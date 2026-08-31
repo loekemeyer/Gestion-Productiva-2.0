@@ -29,26 +29,18 @@
   <div class="header">
     <h1>Stock en Movimiento · Sector Tránsito</h1>
     <div class="hbtns">
-      <button class="hlink" id="btnCSV" type="button">⬇ Exportar CSV</button>
-      <a href="../StockSC/StockSC_GP2.html">Stock SC</a>
-      <a href="../StockSP/StockSP_GP2.html">Stock SP</a>
       <a href="../GP2_MODULOS.html">Atrás</a>
     </div>
   </div>
 
   <div class="steps">
-    <div class="aviso" id="avisoSM">Piezas <b>entre matrices</b>: lo que una matriz ya cortó y la
-    siguiente todavía no consumió (componentes "tras M#" del Sector Tránsito). <b>Fabricado</b> =
-    lo que produjo la matriz que las hace; <b>Consumido</b> = lo que se llevó la matriz siguiente.</div>
     <div class="kpis" id="kpis"></div>
-    <div class="aviso hidden" id="avisoFactores"></div>
 
     <div class="row">
       <div class="seg">
         <button class="seg-btn active" data-f="todos" type="button">Todos</button>
         <button class="seg-btn" data-f="con" type="button">Con stock</button>
         <button class="seg-btn" data-f="sin" type="button">Sin stock</button>
-        <button class="seg-btn" data-f="bajo" type="button">Bajo mínimo</button>
         <button class="seg-btn" data-f="mov" type="button">Con movimientos</button>
       </div>
     </div>
@@ -92,6 +84,10 @@ window.STOCK_CFG = {
   sector_id: 3,
   titulo: "Stock en Movimiento",
   mostrar_fleje: false,
+  // Sector Transito = piezas intermedias entre matrices: no tienen minimo/maximo (son WIP
+  // transitorio, no algo que se repone). El renderer oculta esas columnas, el KPI "Bajo
+  // minimo" y el aviso de factores cuando esta prendido. [usuario 2026-08-31]
+  sin_min_max: true,
   columnas: [
     { k:"fabricado", label:"Fabricado", tipos:["fabricacion","produccion"], lado:"ent" },
     { k:"consumido", label:"Consumido", tipos:["fabricacion","produccion","consumo_prod"], lado:"sal" }
@@ -99,6 +95,6 @@ window.STOCK_CFG = {
 };
 </script>
 <script src="../gp2-composicion.js?v=1.2.1"></script>
-<script src="../gp2-stock-sector.js?v=1.2.1"></script>
+<script src="../gp2-stock-sector.js?v=1.3.0"></script>
 </body>
 </html>
