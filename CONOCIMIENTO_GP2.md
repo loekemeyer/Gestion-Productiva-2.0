@@ -460,9 +460,15 @@ peladores/cucharas/espátulas, y 88 códigos con sufijo "E".
 **Sufijo E = IMPORTADO** `[usuario 2026-08-31]`: *"no vas a tener intervención desde
 GP2"* — llegan terminados de afuera, sin proceso propio, así que esos 88 códigos
 quedan FUERA del alcance de GP2 (no se construyen rutas ni recetas; solo existen en
-la Est Madre por la demanda). El backlog real de artículos a incorporar baja de 276 a
-~188 nacionales sin fleje (bombillas, coladores, cepillos, etc.), que se van
-incorporando de a uno con el usuario, empezando por las bombillas (2f).
+la Est Madre por la demanda). El backlog se achica en capas `[dato 2026-08-31]`:
+276 faltantes → −88 importados (E) → −45 ya cubiertos por el circuito **Prov. Art.
+Terminado** (comprados terminados; el módulo AT ya los controla — ej. **los coladores
+son de López José**, prov AT con 10 coladores activos `[usuario]`: 26, 27, 29, 110,
+111, 112, 824, 825, 828, 830) → **backlog real: 143 artículos, 18.584 uni/mes** que sí
+necesitan cadena en GP2. Se van incorporando de a uno con el usuario, empezando por
+las bombillas (2f). Regla que deja esto: un artículo "faltante" primero se chequea
+contra Articulos x Prov AT — si es comprado terminado, su lugar es el circuito AT,
+no una ruta productiva.
 
 ## 2f. Bombillas con resorte 557/558 — la cadena que FALTA construir (2026-08-31)
 
