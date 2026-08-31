@@ -329,6 +329,89 @@ rollos) y `recepcion_tara()` la promedia — por proveedor primero (n≥5), glob
 orden y recién sin datos cae al punto medio del parámetro 4–8. No hay nada que
 mantener a mano: cada pesaje que se guarda mejora el próximo cálculo.
 
+## 2c. Costos y valorización: el motor de precios (2026-08-30)
+
+`[usuario 2026-08-30]` Dicho textual: *"Quiero que yo te suba los precios de los insumos
+y en función de ese precio me calcules cuánto vale mi stock y cuánto es lo que me genera
+pedido para llenar al máximo. Para empezar considerá que todo vale un dólar. Los costos
+del sector crudo: si lleva el fleje que vale un dólar el kilo, cotizalo a valor de
+cuántos gramos pesa la pieza; y agregale un aporte por mano de obra a razón de DOS PESOS
+POR SEGUNDO de demora por matriz. En sector procesado, si lleva pintado, agregale el
+costo del pintado. Por ahora todos los precios un dólar para regular... después paso los
+precios reales y cambiamos todo; la lógica es la misma."*
+
+Y el remarque: *"si para que una parte llegue a sector crudo necesita que se ejecuten
+dos matrices, hay que sumar los tiempos de las dos."*
+
+**Los precios de hoy son de REGULACIÓN, no reales**: todo insumo comprado vale 1 USD
+(flejes POR KG, el resto por unidad) y las cajas $ 1.000 ARS fijos (`[usuario]`: *"inventale
+un valor, prefiero que sea un valor fijo para todos, cosa que pueda chequear"* — las
+listas de cajas vienen en pesos). Los placeholder están marcados
+`PLACEHOLDER 1 USD (regulacion)` / `PLACEHOLDER $1000 (regulacion)` en
+`precio_proveedor.producto` y `precio_servicio.origen` para pisarlos limpio con las
+listas reales sin tocar precios verdaderos. Lo ÚNICO real desde el día uno: la mano de
+obra **$ 2 por segundo de matriz** (`parametro.costo_segundo_pesos`) `[usuario]` y el
+**dólar oficial del cron** (`parametro.tipo_cambio_usd_pesos` + historia en
+`GP2.tipo_cambio`, lo mantiene pg_cron desde dolarapi.com — NO tocarlos a mano).
+
+**Monedas SIEMPRE separadas** `[usuario]`: material y servicios en US$, mano de obra (y
+cajas) en $. Las pantallas muestran "US$ X + $ Y" y ADEMÁS el combinado en pesos usando
+el dólar del cron — nunca un tipo de cambio inventado.
+
+### La lógica de costos por sector (para la unificación futura)
+
+`[usuario 2026-08-30]` **Objetivo final: esto se unifica con otro repo de costos; el
+costo del ARTÍCULO tiene que surgir de sus componentes considerando la producción
+completa.** La cascada, sector por sector (motor: `v_costo_componente` +
+`v_valor_stock` / `v_valor_pedido`, RPC `valorizacion_bundle`):
+
+1. **Fleje (5)**: vale su precio POR KG (`precio_proveedor`). Su stock está en kg, así
+   que valor stock = kg × precio directo.
+2. **Insumo comprado (plástico 6, bombilla 7, remache 8, cartón 10, caja 11)**: vale su
+   precio por unidad. USD → columna dólares; ARS → columna pesos. Los marcados
+   `estado_compra` fabricacion/discontinuo NO llevan precio de compra: se costean por
+   su ruta (los resortes fabricados) o quedan en cero con aviso (discontinuos).
+3. **Crudo (1) y tránsito (3)**: material = precio_kg del fleje × kg de la pieza
+   (el `kg_x_uni` más cercano al corte; si la cadena no tiene kg cargado, cae a
+   1/`partes_por_kilo_de_fleje` de la matriz de corte, que incluye scrap) + mano de
+   obra = Σ `tiempo_historico` de TODAS las matrices de la cadena × $/seg (dos matrices
+   = se suman las dos; verificado K5: 1,2+1,8+1,8 = 4,8 s → $ 9,60).
+4. **Procesado (2)**: costo del componente de entrada + el precio del servicio del PS
+   (`precio_servicio` por pieza: pintado, cromado, niquelado, temple...). Un servicio
+   sobre la misma pieza (temple FAAT L13→L13) también suma.
+5. **Armados con convergencia** (H11 = varilla H7 + cuchilla I16): las ramas SUMAN
+   (material de cada fleje + su cadena). Rutas alternativas del mismo fleje (G7 se
+   registró con y sin el paso de aplastado M77) NO duplican: la mano de obra se
+   deduplica por matriz y el corte se cuenta una vez.
+6. **GRJ / BOM (`componente_bom`)**: los hijos comprados no-fleje (remaches, bombillas)
+   suman × cantidad encima de lo que trae la ruta.
+7. **Terminado (12)**: queda AFUERA de la valorización de stock (el costo del artículo
+   final es la unificación futura: receta `articulo_componente` + `componente_bom` ×
+   costo de cada componente, más los pasos propios).
+
+**Valor de stock** = stock × costo, por componente y ubicación. **Pedido a máximo** =
+Σ por ubicación de greatest(0, máximo − stock) × costo — "cuánto me genera de pedido
+llenar al máximo".
+
+### Semántica verificada y trampas
+
+- `[dato 2026-08-30: public.db_n8n_espejo]` **`matriz.tiempo_historico` = SEGUNDOS POR
+  PIEZA** (no por golpe): en el espejo, `Segundos_Historico = Uni × Tiempo_Historico`
+  EXACTO en todas las filas revisadas, y `Segundos_Trabajados` (reloj real) da la misma
+  magnitud. GP2.matriz coincide 100% con `public."Matrices"`.
+- `[dato]` **`matriz.uni_x_golpe` no sirve hoy**: 113 matrices en 0 y 2 en null. No se usa.
+- `[dato]` **N1/N2 (Ahuecafruta/Ahuecapapa) tienen DOS matrices de soldado** para el
+  mismo armado (183 genérica + 362/363 específica): el motor suma ambas (~$ 21 de más
+  si en realidad es una sola). Si es data duplicada del vecino, corregir las rutas.
+- `[dato]` **GRJ10/GRJ10A: los flejes E4/E5 entran DIRECTO al armado** (sin matriz de
+  corte), así que no hay forma de repartir el kg entre los dos flejes: cada uno toma el
+  kg total del GRJ (sobreconta material). Sector en vaciamiento; se corrige cargando
+  kg reales por hijo cuando importe.
+- `[dato]` El precio vigente de un componente = la fila más nueva de `precio_proveedor`
+  por `fecha_lista` (después por id). **La OC guarda la foto histórica del precio al
+  crearla** (`orden_compra_item.precio_uni/moneda` via `crear_oc`): si el precio cambia
+  después, la OC vieja no se mueve.
+
 ## 3. Reglas del negocio ya incorporadas
 
 - **La Est Madre manda hacia atrás.** El máximo de flejes e insumos NO sale de

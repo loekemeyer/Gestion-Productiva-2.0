@@ -11,25 +11,32 @@ const BUNDLE = {
     { comp_id: 1, codigo: 'A1', descripcion: 'Fleje N 13', sector: 'Sector Fleje', sector_id: 5,
       proveedor: 'Basconia', um: 'kg', unidad: 'kg', kg_x_uni: null,
       consumo: 424.9, meses: 6, online: 100, pendiente_oc: 0, sugerido: 2449,
+      precio: 1, moneda: 'USD',
       carton_formato: null, pliegos_multiplo: null, codigo_multiplo: null, min_codigo_x_multiplo: null },
     { comp_id: 2, codigo: 'B1', descripcion: 'Fleje N 2', sector: 'Sector Fleje', sector_id: 5,
       proveedor: 'Hermac', um: 'kg', unidad: 'kg', kg_x_uni: null,
       consumo: 50, meses: 6, online: 0, pendiente_oc: 0, sugerido: 300,
+      precio: 1, moneda: 'USD',
       carton_formato: null, pliegos_multiplo: null, codigo_multiplo: null, min_codigo_x_multiplo: null },
     { comp_id: 3, codigo: 'CART506', descripcion: 'Carton 506', sector: 'Sector Carton', sector_id: 10,
       proveedor: 'Cartonero', um: 'uni', unidad: 'uni', kg_x_uni: null,
       consumo: 3000, meses: 6, online: 2000, pendiente_oc: 0, sugerido: 16000,
+      precio: 1, moneda: 'USD',
       carton_formato: 'C', pliegos_multiplo: 12000, codigo_multiplo: 1000, min_codigo_x_multiplo: 1000 },
     { comp_id: 4, codigo: 'CARTPP', descripcion: 'Carton Pelapapas', sector: 'Sector Carton', sector_id: 10,
       proveedor: 'Cartonero', um: 'uni', unidad: 'uni', kg_x_uni: null,
       consumo: 1000, meses: 6, online: 0, pendiente_oc: 0, sugerido: 6000,
+      precio: 1000, moneda: 'ARS',
       carton_formato: 'C', pliegos_multiplo: 12000, codigo_multiplo: 1000, min_codigo_x_multiplo: 1000 },
   ],
   ocs: [
     { id: 9, numero: 1, proveedor: 'Basconia', rubro: 'Fleje', estado: 'borrador', nota: 'prueba',
       creado_en: '2026-08-29T10:00:00Z',
-      items: [ { codigo: 'A1', descripcion: 'Fleje N 13', cantidad: 500, unidad: 'kg', recibido: 0 } ] },
+      total_usd: 500, total_ars: 0,
+      items: [ { codigo: 'A1', descripcion: 'Fleje N 13', cantidad: 500, unidad: 'kg', recibido: 0,
+                 precio_uni: 1, moneda: 'USD', subtotal: 500 } ] },
   ],
+  tc: 1535,
   generado_en: '2026-08-29T10:00:00Z',
 };
 
@@ -78,7 +85,14 @@ window.supabase = { createClient: function(){ return {
   // sugerido A1 = 424.9*6-100 = 2449 (redondeo servidor); click en sugerido llena Pedir
   await page.click('.sug[data-sug="1"]');
   ok(await page.$eval('.pedir-in[data-in="1"]', x => x.value) === '2449', 'click sugerido llena 2449');
-  ok((await page.textContent('#tot')).trim() === '1 ítems', 'barra: 1 items');
+  const tot1 = (await page.textContent('#tot')).trim();
+  ok(tot1.startsWith('1 ítems'), 'barra: 1 items (' + tot1 + ')');
+  // 2449 kg x US$ 1 = US$ 2.449; con el dolar del cron (1535) ~ $ 3.759.215
+  ok(tot1.includes('US$ 2.449') && tot1.includes('3.759.215'), 'barra valorizada: ' + tot1);
+  // columna de precio y subtotal por fila
+  const filaA1 = await page.textContent('tr[data-id="1"]');
+  ok(filaA1.includes('US$ 1/kg'), 'precio del fleje por kg visible');
+  ok(filaA1.includes('US$ 2.449'), 'subtotal de la fila = pedir x precio');
   ok(!(await page.$eval('#btnCrear', b => b.disabled)), 'btnCrear habilitado');
 
   // filtro proveedor Basconia y crear OC
@@ -95,6 +109,8 @@ window.supabase = { createClient: function(){ return {
   // tras crear pasa a tab Ordenes
   ok(!(await page.$eval('#panOcs', x => x.classList.contains('hidden'))), 'muestra tab Ordenes tras crear');
   ok((await page.textContent('.oc-card .num-oc')).includes('OC N° 1'), 'OC listada');
+  const cardTxt = await page.textContent('.oc-card');
+  ok(cardTxt.includes('US$ 500'), 'OC listada con total y subtotal US$ 500');
 
   // volver a Generar y validar reglas de carton
   await page.click('#tabGen');

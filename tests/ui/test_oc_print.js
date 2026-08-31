@@ -8,7 +8,11 @@ const BUNDLE = {
   paq: 250, insumos: [],
   ocs: [ { id: 9, numero: 1, proveedor: 'Basconia', rubro: 'Fleje', estado: 'enviada', nota: 'urgente',
     creado_en: '2026-08-29T10:00:00Z',
-    items: [ { codigo: 'A1', descripcion: 'Fleje N 13', cantidad: 500, unidad: 'kg', recibido: 0 } ] } ],
+    total_usd: 750, total_ars: 12000,
+    items: [ { codigo: 'A1', descripcion: 'Fleje N 13', cantidad: 500, unidad: 'kg', recibido: 0,
+               precio_uni: 1.5, moneda: 'USD', subtotal: 750 },
+             { codigo: 'CAJ1', descripcion: 'Caja 12', cantidad: 12, unidad: 'uni', recibido: 0,
+               precio_uni: 1000, moneda: 'ARS', subtotal: 12000 } ] } ],
 };
 const STUB = `
 window.supabase = { createClient: function(){ return {
@@ -38,6 +42,11 @@ window.supabase = { createClient: function(){ return {
   const txt = await pop.textContent('body');
   ok(txt.includes('Orden de Compra N° 1') && txt.includes('Basconia') && txt.includes('A1') && txt.includes('500') && txt.includes('urgente'),
      'hoja de impresion completa');
+  // precios en la hoja del proveedor: unitario, subtotales por moneda y total mixto
+  ok(txt.includes('Precio unit.') && txt.includes('US$ 1,5') && txt.includes('US$ 750'),
+     'precio unitario y subtotal USD impresos');
+  ok(txt.includes('$ 1.000') && txt.includes('$ 12.000'), 'precio y subtotal en pesos impresos');
+  ok(txt.includes('Total: US$ 750 + $ 12.000'), 'total mixto impreso (US$ + $ separados)');
   await browser.close();
   console.log(process.exitCode ? 'HAY FALLOS' : 'TODO OK');
 })();

@@ -1,7 +1,10 @@
 <!doctype html>
 <html lang="es">
 <head>
-<!-- v1.2.0 — la celda de consumo es TOCABLE: abre el sustento por articulo
+<!-- v1.3.0 — la OC sale VALORIZADA: precio vigente y subtotal por insumo (precio_proveedor,
+     hoy regulacion 1 USD / $1000 cajas), total de lo pedido en la barra (US$ y $ separados,
+     + equivalente en pesos con el dolar del cron), precios y total en la hoja de impresion,
+     y cada OC guarda la foto historica del precio al crearla (crear_oc). v1.2.0 — la celda de consumo es TOCABLE: abre el sustento por articulo
      (consumo-detalle.js, RPC consumo_detalle). El bundle ademas ya sale de
      v_consumo_componente / v_consumo_fleje_kg_v2 (atribucion por articulo).
      v1.1.1 — fix: "Pedir" acepta decimales es-AR (12,5 ya no se convertía en 125) y la OC solo lleva los items del rubro/proveedor seleccionado. v1.1.0 — Ordenes de Compra de insumos: sugerido = consumo Est Madre x meses - stock - pendiente OC; imprimir OC -->
@@ -76,7 +79,7 @@
             <th>Insumo</th><th>Proveedor</th>
             <th class="num">Consumo<br>/mes</th><th class="num">Meses</th>
             <th class="num">Stock</th><th class="num">Pend.<br>OC</th>
-            <th class="num">Sugerido</th><th class="num">Pedir</th>
+            <th class="num">Sugerido</th><th class="num">Precio</th><th class="num">Pedir</th><th class="num">Subtotal</th>
           </tr></thead>
           <tbody id="tbody"></tbody>
         </table>
@@ -112,6 +115,18 @@ function esc(t){ return String(t==null?'':t).replace(/&/g,'&amp;').replace(/</g,
 function fmt(n,d){ return n==null?'—':Number(n).toLocaleString('es-AR',{maximumFractionDigits:d==null?0:d}); }
 // es-AR: punto = miles, coma = decimal ("12,5" -> 12.5; antes parseInt borraba la coma y daba 125)
 function parseNum(s){ var x=parseFloat(String(s==null?'':s).replace(/\./g,'').replace(/,/g,'.')); return (isNaN(x)||x<0)?0:x; }
+// precio: {precio, moneda} -> "US$ 1" / "$ 1.000". Flejes se compran por kg.
+function fmtPrecio(i){
+  if(i.precio==null) return '—';
+  return (i.moneda==='ARS'?'$ ':'US$ ')+fmt(i.precio,2)+(i.sector_id===5?'/kg':'');
+}
+// total mixto: nunca inventar tipo de cambio propio — solo mostrar el del cron si vino.
+function fmtTotalMon(usd, ars){
+  var partes=[];
+  if(usd>0) partes.push('US$ '+fmt(usd,2));
+  if(ars>0) partes.push('$ '+fmt(ars,2));
+  return partes.length?partes.join(' + '):'—';
+}
 
 var D={}, PAQ=250, rubroSel=null, provSel=null;
 var PEDIDO={}; // comp_id -> cantidad
@@ -186,7 +201,9 @@ function render(){
       '<td class="num">'+fmt(i.online)+' '+i.unidad+'</td>'+
       '<td class="num">'+(i.pendiente_oc>0?fmt(i.pendiente_oc):'—')+'</td>'+
       '<td class="num"><span class="sug" data-sug="'+i.comp_id+'">'+fmt(i.sugerido)+'</span></td>'+
+      '<td class="num">'+fmtPrecio(i)+'</td>'+
       '<td class="num"><input class="pedir-in" data-in="'+i.comp_id+'" inputmode="decimal" value="'+(ped?String(ped).replace('.',','):'')+'" placeholder="'+i.unidad+'">'+paqEq+'</td>'+
+      '<td class="num sub-item">'+(ped>0&&i.precio!=null?((i.moneda==='ARS'?'$ ':'US$ ')+fmt(ped*i.precio,2)):'—')+'</td>'+
     '</tr>';
   }).join('');
   $('tblEmpty').classList.toggle('hidden', fs.length>0);
@@ -259,7 +276,17 @@ function barra(){
   var rc=$('reglaCarton');
   if(errs.length){ rc.classList.remove('hidden'); rc.classList.add('mal'); rc.innerHTML=errs.map(esc).join('<br>'); }
   else rc.classList.add('hidden');
-  $('tot').textContent=items.length+' ítems';
+  var tUsd=0, tArs=0;
+  items.forEach(function(x){
+    if(x.it.precio==null) return;
+    if(x.it.moneda==='ARS') tArs+=x.cantidad*x.it.precio; else tUsd+=x.cantidad*x.it.precio;
+  });
+  var tot=items.length+' ítems';
+  if(tUsd>0||tArs>0){
+    tot+=' · '+fmtTotalMon(tUsd,tArs);
+    if(D.tc && tUsd>0) tot+=' (≈ $ '+fmt(tUsd*Number(D.tc)+tArs,0)+')';
+  }
+  $('tot').textContent=tot;
   $('btnCrear').disabled = items.length===0 || errs.length>0;
 }
 
@@ -307,13 +334,16 @@ function pintarOcs(){
       (o.proveedor?('<span>'+esc(o.proveedor)+'</span>'):'')+
       (o.rubro?('<span style="color:#777">'+esc(o.rubro)+'</span>'):'')+
       '<span style="color:#777">'+new Date(o.creado_en).toLocaleDateString('es-AR')+'</span>'+
+      ((o.total_usd>0||o.total_ars>0)?('<span style="font-weight:800">'+fmtTotalMon(Number(o.total_usd)||0,Number(o.total_ars)||0)+'</span>'):'')+
       '<div class="oc-acts">'+acts+'</div></div>'+
       (o.nota?('<div style="color:#555;font-size:14px;margin-top:4px">'+esc(o.nota)+'</div>'):'')+
       '<div class="table-wrap" style="margin-top:8px"><table class="t"><thead><tr>'+
-      '<th>Insumo</th><th class="num">Pedido</th><th class="num">Recibido</th></tr></thead><tbody>'+
+      '<th>Insumo</th><th class="num">Pedido</th><th class="num">Precio</th><th class="num">Subtotal</th><th class="num">Recibido</th></tr></thead><tbody>'+
       (o.items||[]).map(function(it){
         return '<tr><td><b>'+esc(it.codigo)+'</b> <small style="color:#777">'+esc(it.descripcion||'')+'</small></td>'+
           '<td class="num">'+fmt(it.cantidad)+' '+esc(it.unidad)+'</td>'+
+          '<td class="num">'+(it.precio_uni==null?'—':((it.moneda==='ARS'?'$ ':'US$ ')+fmt(it.precio_uni,2)))+'</td>'+
+          '<td class="num">'+(it.subtotal==null?'—':((it.moneda==='ARS'?'$ ':'US$ ')+fmt(it.subtotal,2)))+'</td>'+
           '<td class="num">'+(it.recibido>0?fmt(it.recibido):'—')+'</td></tr>';
       }).join('')+
       '</tbody></table></div></div>';
@@ -350,12 +380,17 @@ function imprimirOC(ocId){
     '<h1>Orden de Compra N° '+o.numero+'</h1>'+
     '<div class="meta">'+(o.proveedor?('Proveedor: <b>'+esc(o.proveedor)+'</b> · '):'')+
     (o.rubro?('Rubro: '+esc(o.rubro)+' · '):'')+'Fecha: '+new Date(o.creado_en).toLocaleDateString('es-AR')+'</div>'+
-    '<table><thead><tr><th>Código</th><th>Descripción</th><th style="text-align:right">Cantidad</th></tr></thead><tbody>'+
+    '<table><thead><tr><th>Código</th><th>Descripción</th><th style="text-align:right">Cantidad</th>'+
+    '<th style="text-align:right">Precio unit.</th><th style="text-align:right">Subtotal</th></tr></thead><tbody>'+
     (o.items||[]).map(function(it){
+      var mon=it.moneda==='ARS'?'$ ':'US$ ';
       return '<tr><td><b>'+esc(it.codigo)+'</b></td><td>'+esc(it.descripcion||'')+'</td>'+
-        '<td class="num">'+fmt(it.cantidad)+' '+esc(it.unidad)+'</td></tr>';
+        '<td class="num">'+fmt(it.cantidad)+' '+esc(it.unidad)+'</td>'+
+        '<td class="num">'+(it.precio_uni==null?'—':mon+fmt(it.precio_uni,2))+'</td>'+
+        '<td class="num">'+(it.subtotal==null?'—':mon+fmt(it.subtotal,2))+'</td></tr>';
     }).join('')+
     '</tbody></table>'+
+    ((o.total_usd>0||o.total_ars>0)?('<div style="text-align:right;font-size:17px;font-weight:800;margin-top:10px">Total: '+fmtTotalMon(Number(o.total_usd)||0,Number(o.total_ars)||0)+'</div>'):'')+
     (o.nota?('<div class="nota">Nota: '+esc(o.nota)+'</div>'):'')+
     '<div class="pie">Loekemeyer · Gestión Productiva 2.0</div>'+
     '</body></html>';
