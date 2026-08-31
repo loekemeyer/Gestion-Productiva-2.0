@@ -50,16 +50,33 @@ const STUB = 'window.supabase={createClient:function(){return{'
     await page.click('button:has-text("Basconia")');
     await page.click('#btnContinuar');
     await page.waitForSelector('.item-btn');
-    // cargar() re-renderiza la lista al terminar (limpia statusMsg): clickear antes
-    // agarra un boton que se reemplaza y el popup abre sin item -> flaky
-    await page.waitForFunction(() => document.getElementById('statusMsg').textContent === '');
-    await page.click('.item-btn');
-    await page.waitForSelector('#kgPopup.open');
-    await page.fill('#kgValue', '360');
-    await page.fill('#kgRollos', '7');
-    await page.fill('#kgPallets', '2');
-    await page.click('#kgConfirm');
-    await page.waitForSelector('#btnFinRemito');
+    // cargar() es async y al terminar RE-RENDERIZA: puede reemplazar el boton del item
+    // justo cuando se lo clickea, o vaciar los campos del popup recien llenados. No hay
+    // un evento de "ya termine" al que engancharse, asi que se reintenta la secuencia
+    // ENTERA (abrir -> llenar -> confirmar) hasta que sale. Aislado casi nunca pasaba;
+    // dentro de la suite, con la maquina cargada, fallaba ~1 de cada 3 corridas.
+    for (let intento = 1; ; intento++) {
+      try {
+        await page.click('.item-btn');
+        await page.waitForSelector('#kgPopup.open', { timeout: 3000 });
+        await page.fill('#kgValue', '360');
+        await page.fill('#kgRollos', '7');
+        await page.fill('#kgPallets', '2');
+        await page.waitForFunction(() => document.getElementById('kgValue').value === '360'
+                                      && document.getElementById('kgRollos').value === '7'
+                                      && document.getElementById('kgPallets').value === '2',
+                                   null, { timeout: 3000 });
+        await page.click('#kgConfirm');
+        await page.waitForSelector('#btnFinRemito', { timeout: 3000 });
+        break;
+      } catch (e) {
+        if (intento >= 6) throw e;
+        await page.waitForTimeout(300);
+        // si quedo el popup abierto de un intento a medias, cerrarlo antes de reintentar
+        await page.evaluate(() => { const p = document.getElementById('kgPopup');
+                                    if (p) p.classList.remove('open'); });
+      }
+    }
     await page.click('#btnFinRemito');
     await page.waitForSelector('#pesajeWrap:not(.hidden)');
   }

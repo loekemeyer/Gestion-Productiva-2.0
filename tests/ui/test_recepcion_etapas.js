@@ -57,6 +57,34 @@ const EXE = process.env.CHROMIUM_PATH || (fs.existsSync('/opt/pw-browsers/chromi
   await page.click('.pes-chip >> nth=1');
   ok(await page.locator('.pes-pallet input[data-f="peso"]').inputValue() === '230', 'lo cargado sobrevive la navegacion');
 
+  // EL CONTROL DEL REMITO DESCUENTA EL PALLET (v3.18.0, pedido del usuario: "esto parece
+  // que lo muestra como mal pero esta bien si descontas el pallet"). La balanza pesa
+  // producto + pallet: compararla cruda contra el remito marcaba ROJO con la balanza dando
+  // JUSTO, y encima decia "dio menos" cuando la diferencia era 0.
+  {
+    const linea = async (peso) => {
+      await page.evaluate(p => montarPesaje([{ recId: 1, codigo: 'B1', desc: 'F', modo: 'rollos',
+        remitoKg: 1200, blocks: { 1: { peso: p, rollos: [{ c: '5', k: '88,5' }] } } }]), peso);
+      await page.waitForTimeout(80);
+      const el = page.locator('[data-itemcalc]').first();
+      return { txt: (await el.innerText()).replace(/\s+/g, ' '),
+               ok: await el.evaluate(n => !!n.querySelector('.okc')) };
+    };
+    const justo = await linea('1200');
+    ok(justo.ok, 'balanza JUSTO el remito da verde (el pallet explica la diferencia)');
+    ok(!/dio menos/.test(justo.txt), 'con dif 0 ya no dice "dio menos", que era falso');
+    ok(/1 pallet/.test(justo.txt) && /1\.195/.test(justo.txt), 'muestra la cuenta con el pallet descontado — ' + justo.txt);
+    ok((await linea('1212')).ok, 'balanza +12 sigue en verde');
+    const corto = await linea('1100');
+    ok(!corto.ok && /dio menos/.test(corto.txt), 'un faltante de verdad (-100) sigue avisando');
+    const sobra = await linea('1400');
+    ok(!sobra.ok && /dio más/.test(sobra.txt), 'un excedente de verdad (+200) ahora tambien avisa');
+    // dejar el item de siempre para lo que sigue
+    await page.evaluate(() => montarPesaje([{ recId: 1, codigo: 'B1', desc: 'F', modo: 'rollos',
+      remitoKg: 1200, blocks: { 1: { peso: '450', rollos: [{ c: '5', k: '88,5' }] } } }]));
+    await page.waitForTimeout(80);
+  }
+
   // UNA SOLA FILA (v3.17.0, pedido del usuario: "toda esta info esta ancha al pedo").
   // Balanza y la primera linea de rollos comparten renglon, y los inputs miden lo
   // que tienen que medir en vez de estirarse a todo el ancho del popup.
