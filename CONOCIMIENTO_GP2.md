@@ -521,8 +521,13 @@ quesos de mango de alambre ya no se fabrican acá; entran como importados (la fa
 del sufijo E; en la Est Madre existe 809E con 1.095 uni/mes — cuál código E reemplaza
 al 119 queda por confirmar si hace falta). Modelado: columna nueva
 `articulo.discontinuado` (true para ambos; primer caso en GP2). Sus rutas y recetas
-quedan como historia — sin fila en Est Madre no generan consumo, verificado. El 574
-(mismo mango de alambre) SIGUE activo: el usuario no lo incluyó.
+quedan como historia — sin fila en Est Madre no generan consumo, verificado. **El 574 también** `[usuario 2026-08-31, "574 discontinuo"]`: la familia entera de
+corta quesos de mango de alambre (119, 574, 809) quedó discontinuada. OJO: el 574 SÍ
+tenía demanda en Est Madre (936/mes), así que esto obligó a una regla nueva del motor
+(migración `consumo_excluye_articulos_discontinuados`): **un artículo discontinuado no
+genera demanda aunque la Est Madre lo proyecte**. Verificado: el mango de alambre A9
+(id 84) quedó sin consumo — y de paso, A9 existe TRES veces (parte, Fleje 75 y Caja
+N°22): otra prueba de que los joins van por id, nunca por código.
 **Pendiente**: el 101 (Abrelatas) sigue sin fila en Est Madre y sin respuesta —
 ¿también discontinuado/importado?
 
