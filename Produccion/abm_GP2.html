@@ -9,7 +9,7 @@
   <link rel="apple-touch-icon" href="../GP2_favicon.png">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="../supabase-config.js?v=20260830e"></script>
+<script src="../supabase-config.js?v=20260831a"></script>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { font-family: 'Inter', sans-serif; background: #d9d9de; padding: 20px; min-height: 100vh; }
@@ -204,10 +204,12 @@
       activo: $('mActivo').value === 'true'
     };
 
+    if (editId) payload.id = editId;
+
     $('mSave').disabled = true;
-    var r = editId
-      ? await sb.from('empleado').update(payload).eq('id', editId)
-      : await sb.from('empleado').insert(payload);
+    // La escritura pasa por RPC SECURITY DEFINER: anon no escribe empleado directo
+    // (el legajo cruza con la produccion, ver AUDITORIA_GP2_2026-08-31.md).
+    var r = await sb.rpc('empleado_guardar', { p: payload });
     $('mSave').disabled = false;
 
     if (r.error) { $('mErr').textContent = r.error.message; return; }
@@ -221,7 +223,7 @@
     if (!emp) return;
     var nuevo = emp.activo === false;
     if (!nuevo && !confirm('¿Dar de baja a ' + emp.nombre + '? Queda inactivo, no se borra el historial.')) return;
-    var r = await sb.from('empleado').update({ activo: nuevo }).eq('id', id);
+    var r = await sb.rpc('empleado_activar', { p_id: id, p_activo: nuevo });
     if (r.error) { topmsg('Error: ' + r.error.message, false); return; }
     topmsg(nuevo ? 'Operario reactivado.' : 'Operario dado de baja.', true);
     cargar();

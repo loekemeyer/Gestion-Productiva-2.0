@@ -49,6 +49,43 @@ siguen intactos ($3,58/kg, se piden en kg).
 
 ---
 
+## ✅ SEGUNDA PASADA — arreglado sin esperar respuestas (2026-08-31, noche)
+
+- **Los dos agujeros de escritura anónima, cerrados.** `inv_delta` revocada (había que
+  sacarla de PUBLIC, no alcanzaba con revocar a anon). Y `GP2.empleado`: se crearon las
+  RPC `empleado_guardar` / `empleado_activar` (SECURITY DEFINER, validan legajo único y
+  campos obligatorios), se migró `Produccion/abm_GP2.html` a usarlas y recién ahí se
+  revocaron las policies de INSERT/UPDATE. Verificado: anon ya no escribe, sigue leyendo,
+  y la RPC frena un legajo duplicado. También se revocaron los GRANTs huérfanos de
+  `ruta_confirmada` / `ruta_problema` / `devolucion_tallerista` (ninguna pantalla escribe
+  ahí: todo pasa por RPC), se habilitó RLS en la única tabla que no lo tenía
+  (`_bak_inventario_maximo_20260830`) y las dos policies `TO PUBLIC` volvieron al patrón
+  de la casa (`TO anon, authenticated`).
+- **$175 M de pedido inventado, fuera.** Los tres máximos de fleje cargados en piezas en
+  ubicaciones de tallerista (C3, E4, E5) quedaron en NULL — un fleje se stockea en kg y
+  esos números tenían `maximo_origen` NULL, o sea que nadie los derivó. Y se borraron los
+  10 placeholders de 1 USD de `precio_servicio`: ahora un servicio sin precio da NULL y
+  **cuenta en `faltan_precios`**, en vez de inventar $1.535. El pedido bajó de $2.783 M a
+  **$2.608 M**.
+- **El aviso de Valorización dice la verdad.** El banner fijo de "precios de regulación"
+  (que ya mentía: 241 de 278 filas tienen precio real) se reemplazó por uno que sale de
+  los datos: cuenta cuántos componentes declaran falta de precio, de kg o de tiempo, y se
+  esconde solo cuando no falta nada.
+- **El test que habría atrapado el bug del clavo, agregado.** `tests/ui/test_oc.js` ahora
+  tiene un insumo cotizado por kg y comprado por unidad, y falla si el precio vuelve a
+  llegar sin convertir. Suite completa: **29/29 en verde.**
+- **Migración retroactiva de cartones** aplicada (idempotente, no cambió nada en
+  producción): ahora `carton_formato`, `carton_categoria` y las columnas de `componente`
+  están en el historial, con la semántica correcta documentada en la propia migración.
+
+**Lo que NO se tocó, a propósito**: los 34 tiempos de matriz en cero. Iba a pasarlos a
+NULL para que el semáforo los detecte, pero `registrar_evento_prod` lee
+`matriz.tiempo_historico` para calcular **el premio del operario**, y 0 y NULL no se
+comportan igual en esa cuenta. No vale la pena arriesgar la plata de la gente por
+encender un aviso: queda como pendiente, y el arreglo de fondo es medir esas matrices.
+
+---
+
 ## 🔴 EL PEDIDO A MÁXIMO ESTÁ INFLADO 3,3× — dos causas, las dos verificadas
 
 El pedido daba **$2.783 millones** contra $23,0 M de stock (120×). Ese ratio era la señal.
@@ -93,7 +130,7 @@ salieron ni de la Est Madre ni de la regla de 5 cajones, son números heredados 
 lo que está en poder de terceros? Hoy la vista ni siquiera expone `ubicacion_tipo` (a
 diferencia de `v_valor_stock`), así que las pantallas no pueden cortar.
 
-### C. Tres flejes con el máximo cargado en piezas, no en kg ($124,1 M)
+### C. Tres flejes con el máximo cargado en piezas, no en kg ($124,1 M) — ✅ RESUELTO
 
 | Fleje | Dónde | Máximo | Valor |
 |---|---|---|---|

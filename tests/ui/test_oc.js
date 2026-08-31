@@ -28,6 +28,15 @@ const BUNDLE = {
       consumo: 1000, meses: 6, online: 0, pendiente_oc: 0, sugerido: 6000,
       precio: 1000, moneda: 'ARS',
       carton_formato: 'C', pliegos_multiplo: 12000, codigo_multiplo: 1000, min_codigo_x_multiplo: 1000 },
+    // Insumo cotizado POR KG pero comprado por unidad (el clavo PCP3). El bundle tiene que
+    // mandar el precio YA CONVERTIDO a la unidad de pedido: 3,30 USD/kg x 6,53 g = 0,0215.
+    // Si algun dia vuelve a llegar 3,30 crudo, la OC infla el precio 153x y sale asi en la
+    // hoja al proveedor (bug real del 2026-08-31, ver AUDITORIA_GP2_2026-08-31.md).
+    { comp_id: 5, codigo: 'PCP3', descripcion: 'Clavo 505', sector: 'Sector Plastico', sector_id: 6,
+      proveedor: 'Altrak', um: 'unidad', unidad: 'uni', kg_x_uni: 0.00653,
+      consumo: 5000, meses: 2, online: 0, pendiente_oc: 0, sugerido: 10000,
+      precio: 0.021549, moneda: 'USD',
+      carton_formato: null, pliegos_multiplo: null, codigo_multiplo: null, min_codigo_x_multiplo: null },
   ],
   ocs: [
     { id: 9, numero: 1, proveedor: 'Basconia', rubro: 'Fleje', estado: 'borrador', nota: 'prueba',
@@ -71,10 +80,17 @@ window.supabase = { createClient: function(){ return {
 
   // rubro chips
   const chips = await page.$$eval('#rubros .chip', xs => xs.map(x => x.textContent));
-  ok(chips.join(',') === 'Fleje,Carton', 'chips de rubro: ' + chips.join(','));
+  ok(chips.join(',') === 'Fleje,Carton,Plastico', 'chips de rubro: ' + chips.join(','));
 
   // sin filtro: 4 filas
-  ok(await page.$$eval('#tbody tr', x => x.length) === 4, '4 insumos sin filtro');
+  ok(await page.$$eval('#tbody tr', x => x.length) === 5, '5 insumos sin filtro');
+
+  // El clavo se cotiza POR KG pero se compra por unidad: el bundle tiene que mandar el
+  // precio ya convertido (3,30 USD/kg x 6,53 g = 0,0215). Si vuelve a llegar 3,30 crudo,
+  // la OC lo infla 153x y sale asi en la hoja al proveedor (bug real del 2026-08-31).
+  const filaClavo = await page.textContent('tr[data-id="5"]');
+  ok(!/US\$ 3[,.]3/.test(filaClavo), 'el clavo NO sale al precio por kilo (bug 153x)');
+  ok(!filaClavo.includes('/kg'), 'el clavo se compra por unidad, no lleva /kg');
 
   // filtro Fleje -> 2 filas + chips proveedor
   await page.click('#rubros .chip:has-text("Fleje")');

@@ -627,6 +627,15 @@ en ese archivo):
 - `[dato]` **La receta del 519 tiene el blister ×2 a medias**: hoja y arandela ×2 pero el
   mango PEP5 en ×1; y el 719 (mismo cuchillo, marca Chef) no lo tiene en ningún componente.
   Afecta consumo y máximos, no costo. Pendiente de confirmar.
+- `[dato 2026-08-31, arreglado]` **El modelo de seguridad quedó parejo**: la única
+  escritura anon que quedaba (`GP2.empleado`) pasó por RPC — `empleado_guardar` /
+  `empleado_activar`, SECURITY DEFINER, validan legajo único — y `Produccion/abm_GP2.html`
+  las usa. `inv_delta` revocada (ojo: el EXECUTE estaba en **PUBLIC**, revocar a anon no
+  alcanzaba). **Regla: una pantalla nueva NUNCA escribe una tabla directo, va por RPC.**
+- `[dato 2026-08-31]` **`registrar_evento_prod` lee `matriz.tiempo_historico` para calcular
+  el PREMIO del operario.** Por eso los 34 tiempos en cero NO se pasaron a NULL aunque eso
+  encendería el semáforo de la valorización: 0 y NULL no se comportan igual en esa cuenta
+  y el riesgo cae sobre la plata de la gente. El arreglo de fondo es medir esas matrices.
 - `[dato]` **5 raíces huérfanas en Sector Procesado** costando $0: D1 (Espiral Sacacorcho),
   Z23A, Z23B, Z25A, Z25B. Son compradas sin precio ni estado — el caso C13 sin resolver.
   Ojo que **D1 existe además como Fleje N°28**.

@@ -14,7 +14,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>Valorización · GP2</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="../supabase-config.js?v=20260830e"></script>
+<script src="../supabase-config.js?v=20260831a"></script>
 <link rel="stylesheet" href="../gp2-modulo.css?v=20260830q"/>
 <link rel="icon" type="image/png" href="../GP2_favicon.png">
 <link rel="apple-touch-icon" href="../GP2_favicon.png">
@@ -48,8 +48,7 @@
 
   <div class="steps">
     <div class="tcbar" id="tcbar"></div>
-    <div class="aviso-reg">Precios de <b>regulación</b>: todo insumo vale 1 USD (cajas $ 1.000)
-      hasta cargar las listas reales. La lógica no cambia cuando entren los precios de verdad.</div>
+    <div class="aviso-reg" id="avisoReg" hidden></div>
 
     <div class="kpis">
       <div class="kpi"><div class="lbl">Stock valorizado (todo)</div>
@@ -124,6 +123,7 @@ async function boot(){
     return c;
   });
   pintarTc();
+  pintarAviso();
   pintarKpis();
   pintarSectores();
   $('status').textContent='';
@@ -135,6 +135,26 @@ function pintarTc(){
   $('tcbar').innerHTML=
     'Dólar oficial: <b>$ '+fmt(D.tc)+'</b>'+(f?(' <span style="color:#777">('+esc(f)+(i.fuente?(' · '+esc(i.fuente)):'')+')</span>'):'')+
     ' &nbsp;·&nbsp; Mano de obra: <b>$ '+fmt(D.costo_seg)+'/seg</b> de matriz';
+}
+
+// El aviso sale de los datos, no de un texto fijo: mientras queden componentes sin
+// precio (o sin kg / sin tiempo de matriz) el numero de arriba esta incompleto.
+function pintarAviso(){
+  var sinPrecio=0, sinKg=0, sinTiempo=0;
+  COMPS.forEach(function(c){
+    if(n(c.faltan_precios)>0) sinPrecio++;
+    if(n(c.faltan_kg)>0)      sinKg++;
+    if(n(c.faltan_tiempos)>0) sinTiempo++;
+  });
+  var partes=[];
+  if(sinPrecio) partes.push('<b>'+sinPrecio+'</b> sin precio');
+  if(sinKg)     partes.push('<b>'+sinKg+'</b> sin kg cargado');
+  if(sinTiempo) partes.push('<b>'+sinTiempo+'</b> sin tiempo de matriz');
+  var el=$('avisoReg');
+  if(!partes.length){ el.hidden=true; return; }
+  el.hidden=false;
+  el.innerHTML='Faltan datos: '+partes.join(' · ')+'. Esos componentes valen de menos, '+
+    'asi que el total es un piso, no el numero final.';
 }
 
 function pintarKpis(){
