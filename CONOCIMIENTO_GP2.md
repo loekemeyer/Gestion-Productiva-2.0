@@ -504,8 +504,9 @@ llevan mango de alambre propio hecho de fleje; el 546 es todo comprado + armado.
 Migración `articulo_546_corta_queso`: componentes, inventario, receta, 5 rutas
 (patrón "Insumo X -> Art"), precios placeholder. Verificado: consumo fluye exacto
 (C13 y CCC4 = 5.655/mes, sin duplicar).
-**Pendiente a preguntar**: la receta y ruta del 119 todavía listan el PB1 discontinuado
-— ¿se lo saco al 119 también?
+**Resuelto (mismo día, "Avanza" del usuario)**: PB1 se sacó también de las recetas y
+rutas del 574, 119 y 809 (migración `pb1_discontinuado_fuera_de_recetas_y_rutas`);
+quedó sin referencias ni consumo, discontinuo, con su inventario en 0 como historia.
 
 **Regla nueva del motor de costos** `[dato]` (migración
 `costo_componente_comprado_fuera_de_sector_insumo`): también es "comprado" el
