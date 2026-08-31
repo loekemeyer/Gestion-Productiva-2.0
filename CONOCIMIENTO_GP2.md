@@ -456,9 +456,13 @@ con demanda, 116.817 uni/mes); faltan los comprados/sin proceso interno (276 có
 con demanda, 79.490 uni/mes — el 40% de las unidades)**. `[dato]` Los que más venden
 de los faltantes: coladores 26/27 (9.469 + 6.294), corta queso 546 (5.655), rallador
 321 (3.035), filtro bombilla 550 (2.532), bombillas 558/557, cepillos 555/535,
-peladores/cucharas/espátulas, y 88 códigos con sufijo "E" (529E, 582E… significado a
-confirmar con el usuario). Se van incorporando de a uno con el usuario, empezando por
-las bombillas (2f).
+peladores/cucharas/espátulas, y 88 códigos con sufijo "E".
+**Sufijo E = IMPORTADO** `[usuario 2026-08-31]`: *"no vas a tener intervención desde
+GP2"* — llegan terminados de afuera, sin proceso propio, así que esos 88 códigos
+quedan FUERA del alcance de GP2 (no se construyen rutas ni recetas; solo existen en
+la Est Madre por la demanda). El backlog real de artículos a incorporar baja de 276 a
+~188 nacionales sin fleje (bombillas, coladores, cepillos, etc.), que se van
+incorporando de a uno con el usuario, empezando por las bombillas (2f).
 
 ## 2f. Bombillas con resorte 557/558 — la cadena que FALTA construir (2026-08-31)
 
