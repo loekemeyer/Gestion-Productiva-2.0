@@ -496,13 +496,57 @@ exactos por pieza; la vista de costos usa el exacto y cae al plano si no hay).
 - **Fechas de lista MUY dispares** (Basconia ago-25 vs Aperam jun-26): el "precio
   vigente" puede tener un año. La fecha real quedó en `fecha_lista` de cada fila.
 
+### REGLA DE ORO del costeo (2026-08-31, dicho textual del usuario)
+
+`[usuario]` *"Yo quiero que registres el peso del clavo y cuánto vale el niquelaje:
+si el día de mañana cambia, no vas a cambiar el precio del clavo, vas a cambiar el
+precio del niquelaje. Lo mismo en los demás rubros."* Y la macro: *"poder valorizar
+mi stock en cada punto de su estadío al valor actual"* — cada posición = cantidad ×
+costo del estadío, armado EN VIVO.
+
+**El peso vive en el componente (`kg_x_uni`), la tarifa vive en el proveedor, el
+costo se CALCULA — nunca se guarda cocinado.** Implementado:
+- `precio_proveedor.precio_por_kg` (bool): el precio es $/kg y la vista lo multiplica
+  por el peso vivo. Primer caso: PCP3 clavo = Altrak USD 3,30/kg × 6,53 g.
+- `precio_servicio_pieza.precio_kg` + `proceso`: tarifas $/kg por proceso (Guazzaroni
+  niquelado $2.606 / zincado y pulido $1.172, FAAT temple $3.336 / cementado $3.084,
+  MABRA pavonado $1.300, Pedernera cromado: tarifa propia por pieza) × peso vivo.
+  Sube el niquelaje → UN update por proceso, todo se revaloriza solo.
+- Consecuencia: **si un costo da raro, se corrige el PESO del componente, no el
+  precio.** Dudas abiertas: A9 (GP2 39 g vs lista Pedernera 21 g) y W7P (GP2 0,7 g
+  vs lista 2,2 g — huele a error de carga; el crudo W7 dice 2,1 g).
+- Verificado en vivo: V1 remache niquelado = crudo Barres $4,45 + $2.606/kg × 0,35 g
+  = $5,36. Los V* pasaron a `fabricacion` (patrón crudo → Guazzaroni → niquelado).
+
+### Cartones: cómo se compran de verdad (2026-08-31, archivo Conteo_Pedido_Cartones)
+
+- **El precio va por FORMATO físico, y la hoja "Costos" col "Carton" es LA referencia
+  por artículo** (la hoja " Cartones" tiene mapeos viejos/errados: 544 decía $89 y va
+  $43 corbata ocho; 515/542/543/559/562/570 van $48 huevo).
+- **Cartones COMPARTIDOS**: la OC pide por grupos "Carton Cod. 519D" (059/551/597),
+  "Cod. 570D" (055/312/318/518/533), "Cod. 546D", "Cod. 562D" (564)... — varios
+  artículos, UN SKU físico. En GP2 hay un componente cartón por artículo: para precio
+  da igual, para la OC habrá que normalizar algún día.
+- **Bolsas**: 031 = Vihal $63; 034 y 867 = $63 y ADEMÁS comparten el cartón del 544
+  (falta referenciarlo en receta). 516 va EN BOLSA (sin cartón propio). Hay dos bolsas
+  de filtro: Vihal $63 (19×5cm) y Cabral $39,32.
+- **Cuchillos de untar: blister ×2 por cartón** `[usuario]` — todo el costo ×2 salvo
+  el cartón. Los precios cargados son POR UNIDAD; el ×2 va en la receta (y el motor
+  aún no multiplica cantidades — mismo pendiente del tocho/pliego).
+- Decisiones puntuales del usuario: 587 = $89 (NO como sus hermanos peladores 79),
+  580 = $43 (como 544, aunque hoja Costos diga 89), 099/713 = $72,85 (factura
+  Pelapapas Chef, no los $89 de la hoja), 120 = $35,50 (el cartón que él recordaba).
+- Cargados 76/85. Sin dato: 097, 516, 609, 700, 706, 719, 878 (719/878/097 comparten
+  grupo con 099/713/043/816 según "Carton x Categ." 2024 — falta saber cuál de los
+  dos precios). Discontinuados: 574, 119, Skin 506.
+
 ### Placeholders que quedan (1 USD, listados — no inventar)
 
-85 cartones (formato a validar) · 14 plásticos dudosos (PA4/PA5 untar, PEP1/3/4,
-PB6/PB8B/PC7 insertos, PC12, PCP3 clavo, PEP5/7/8 madera, PB1 discontinuado) ·
-flejes D7 (EstaMetal sin lista), F12, Z19A · remaches CV13/CV14/V14/CV16/CV18D/V20 ·
-BOM12/BOM8/BOM13/BOM14 (Cimarrón, sesión bombillas) · servicios sin exacto: A7
-(¿cromado? no está en lista Pedernera), B12/Z22 llavero pie (ningún pintor lo lista).
+Cartones 097/516/609/700/706/719/878 · flejes D7 (EstaMetal sin lista), F12, Z19A ·
+remaches CV13/CV14/V14/CV16/CV18D · BOM12/BOM8/BOM13/BOM14 (Cimarrón, sesión
+bombillas) · servicios: B12/Z22 llavero pie (ningún pintor lo lista — pendiente por
+decisión del usuario). Modelado pendiente: partir el clavo niquelado (patrón
+remaches) y cantidades por paso en armados N→1.
 
 ## 2e. Faltantes y máximos de Crudo/Procesado: 5 cajones por ubicación (2026-08-31)
 

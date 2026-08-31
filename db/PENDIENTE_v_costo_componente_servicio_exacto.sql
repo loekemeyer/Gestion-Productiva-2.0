@@ -1,4 +1,8 @@
 -- APLICADO 2026-08-31 por el usuario en el SQL Editor (verificado: B4 $314,55 / C10 $33,11).
+-- SEGUNDA CIRUGIA APLICADA el mismo dia (tambien corrida por el usuario): precio_por_kg en
+-- precio_proveedor y precio_kg+proceso en precio_servicio_pieza — el peso vive en el
+-- componente, la tarifa en el proveedor, el costo se calcula en vivo (regla del usuario).
+-- Verificado: PCP3 = 3,30 USD/kg x 6,53 g; V1 = crudo 4,45 + niquelado 2606/kg x 0,35 g = 5,36.
 -- Queda como documentacion; es idempotente, correrlo de nuevo no hace nada.
 -- PENDIENTE (2026-08-31): servicios EXACTOS por pieza en el motor de costos.
 -- Contexto: el usuario pidio que el costo de servicios (cromado, temple, niquelado, pintado...)
