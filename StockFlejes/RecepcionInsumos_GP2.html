@@ -368,10 +368,10 @@ function fieldsFleje(nom){
   var p = String(nom||'').trim().toLowerCase();
   if (p==='basconia') return { kgPorRollo:true };
   if (p==='hermac') return { rollos:true };
-  // Aperam / Brawin / Szapiro / JL Metales / Altrak: solo Cantidad (kg o uni
-  // segun la UM del fleje), sin campos extra. Altrak vuelve al comportamiento
-  // previo [usuario 2026-09-01: "altrak dejalo como estaba antes, no es kg
-  // total, eran las unidades, tal y como se hacia antes"].
+  // Aperam / Brawin / Szapiro / JL Metales / Altrak: sin campos extra ademas
+  // del Kg total. Altrak fuerza kg en abrirPopup (junto con Basconia); los
+  // demas respetan la UM canonica del fleje [usuario 2026-09-01: "altrack es
+  // en KG totales" — flip respecto al mensaje anterior que decia unidades].
   return {};
 }
 // EstaMetal salio de circulacion (usuario 2026-09-01: "y saca EstaMetal") — se
@@ -669,8 +669,13 @@ function abrirPopup(i){
     // oculta y se fuerza la UM del componente. Basconia siempre kg (no entrega
     // unidades). [usuario 2026-08-31]
     $('unitRow').classList.add('hidden');
-    var uFleje = String(provSel).toLowerCase()==='basconia' ? 'kg'
-      : (UMBY[i.comp_id]==='unidad' ? 'uni' : 'kg');
+    // Proveedores que SIEMPRE cargan en kg (aunque el fleje tenga UM 'unidad'
+    // en el componente): Basconia y Altrak. El resto respeta la UM canonica
+    // del fleje. [usuario 2026-09-01: "altrack es en KG totales" — flip
+    // respecto al mensaje anterior que decia unidades].
+    var provLC = String(provSel).toLowerCase();
+    var provForzaKg = provLC==='basconia' || provLC==='altrak' || provLC==='altrack';
+    var uFleje = provForzaKg ? 'kg' : (UMBY[i.comp_id]==='unidad' ? 'uni' : 'kg');
     $('kgValue').placeholder = uFleje==='kg' ? 'kg' : 'unidades';
     setUnit(uFleje);
   } else {
