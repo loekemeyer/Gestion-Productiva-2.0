@@ -114,39 +114,29 @@
    Por proveedor: que le enviamos (carton y cajas), que nos entrego
    (articulo terminado) y que le queda.
 
-   De donde sale cada dato
-   -----------------------
+   De donde sale cada dato (TODO local GP2, 2026-08-31)
+   ----------------------------------------------------
    GP2.movimiento tipo_mov='envio_prov_at'  -> enviado (carton/cajas)
    GP2.inventario en ubicacion proveedor_at -> saldo que todavia tiene
-   public."Entregas Prov AT"                -> entregado, EN CAJAS
-   public."Articulos x Prov AT"             -> catalogo por proveedor
-   public."Uni_x_Articulo_x_Caja"           -> unidades por caja
+   GP2.entrega_prov_at                      -> entregado, EN CAJAS
+   GP2.articulo_prov_at                     -> catalogo por proveedor (FK)
+   GP2.uni_x_articulo_x_caja                -> unidades por caja
 
-   Por que dos esquemas
-   --------------------
-   El lado ENVIO ya esta migrado a GP2 (el modulo "Envio Carton/Cajas"
-   escribe movimiento + inventario). El lado ENTREGA todavia no: GP2 no
-   tiene un tipo_mov 'entrega_prov_at', asi que las entregas se leen de
-   la tabla vieja. Cuando se migren, solo cambia cargarEntregas().
-
-   Los articulos de Prov AT no estan en GP2.articulo (ahi viven los que
-   fabricamos nosotros), por eso el catalogo y las unidades por caja
-   salen de las tablas viejas.
+   Migracion 2026-08-31: se dejo de leer del vecino public. Las 3 tablas
+   viejas ("Articulos x Prov AT", "Entregas Prov AT", "Uni_x_Articulo_x_Caja")
+   se copiaron a GP2 con FK a proveedor_at, y "Envios Prov AT" (vieja tabla
+   sin uso) se saco del bundle porque los envios ahora son GP2.movimiento.
 
    OJO CON LA UNIDAD
    -----------------
-   "Entregas Prov AT".Cantidad esta en CAJAS, no en unidades. El nombre
-   de la columna enganya: el modulo que la carga titula la columna
-   "Cajas" (Entregas/EntregasAT.html:44) y arma el detalle como
-   "Cajas: N" (EntregasAT.js:189) antes de guardarla en "Cantidad".
-   Regla del usuario (2026-08-30): todas las entregas se cuentan en
-   cajas. Por eso las unidades se DERIVAN (cajas x uni_x_caja) y no al
-   reves.
+   entrega_prov_at.cantidad_cajas esta en CAJAS (nombre explicito ahora,
+   antes se llamaba "Cantidad" y despistaba). Regla del usuario 2026-08-30:
+   todas las entregas se cuentan en cajas; las unidades se DERIVAN (cajas
+   x uni_x_caja).
    ===================================================================== */
 
 
 var SB   = supabase.createClient(SUPABASE_URL, SUPABASE_KEY, { db: { schema: "GP2" } });
-var SBpub = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 /* ===== DOM ===== */
 var elStatus = document.getElementById("status");
@@ -217,15 +207,14 @@ async function cargar(){
       todas(SB, "componente", "id,codigo,descripcion,sector_id,unidad_medida"),
       todas(SB, "inventario", "componente_id,ubicacion_id,cantidad"),
       todas(SB, "movimiento", "tipo_mov,comp_id,ubic_destino_id,cantidad,_delta_dest,fecha"),
-      todas(SBpub, "Articulos x Prov AT", '"Proveedor","Cod_Art","Descripcion","Activo","N_Caja","marca"'),
-      todas(SBpub, "Entregas Prov AT", '"Proveedor","Cod_Art","Descripcion","Cantidad","Remito","Fecha_RTO","Dia_mes"'),
-      todas(SBpub, "Uni_x_Articulo_x_Caja", "cod_art,uni_x_caja,n_caja,empresa"),
-      todas(SBpub, "Envios Prov AT", '"Proveedor","Cod_Art","Carton","Cajas","Dia_mes"')
+      todas(SB, "articulo_prov_at", "proveedor_at_id,cod_art,descripcion,activo,n_caja,marca"),
+      todas(SB, "entrega_prov_at", "proveedor_at_id,cod_art,descripcion,cantidad_cajas,remito,fecha_rto,dia_mes"),
+      todas(SB, "uni_x_articulo_x_caja", "cod_art,uni_x_caja,n_caja,empresa")
     ]);
 
     D = indexar({
       provs: res[0], ubics: res[1], comps: res[2], inv: res[3], movs: res[4],
-      artsProv: res[5], entregas: res[6], uxc: res[7], enviosViejos: res[8]
+      artsProv: res[5], entregas: res[6], uxc: res[7]
     });
 
     renderGrid();
@@ -288,45 +277,38 @@ function indexar(r){
     uniXCaja.set(cod, { valores: vals, unico: vals.length === 1 ? vals[0] : null });
   });
 
-  // Entregas acumuladas por (proveedor, articulo).
+  // Nombre de proveedor por id (para las tablas que ya vienen con FK numerica).
+  var provNombrePorId = new Map();
+  r.provs.forEach(function(p){ provNombrePorId.set(p.id, p.nombre); });
+
+  // Entregas acumuladas por (proveedor, articulo). Todo GP2.entrega_prov_at:
+  // cantidad_cajas en CAJAS (nombre explicito), FK proveedor_at_id.
   var entregas = new Map();
   r.entregas.forEach(function(e){
-    var prov = String(e.Proveedor || "").trim();
-    var cod  = String(e.Cod_Art || "").trim();
+    var prov = provNombrePorId.get(e.proveedor_at_id) || "";
+    var cod  = String(e.cod_art || "").trim();
     if (!prov || !cod) return;
     var k = prov + "|" + cod;
     var acc = entregas.get(k);
     if (!acc) { acc = { cajas:0, ultima:null, remitos:0, desc:"" }; entregas.set(k, acc); }
-    acc.cajas += n(e.Cantidad);   // Cantidad viene en CAJAS
+    acc.cajas += n(e.cantidad_cajas);
     acc.remitos += 1;
-    if (!acc.desc && e.Descripcion) acc.desc = e.Descripcion;
-    var f = e.Fecha_RTO || null;
+    if (!acc.desc && e.descripcion) acc.desc = e.descripcion;
+    var f = e.fecha_rto || null;
     if (f && (!acc.ultima || f > acc.ultima)) acc.ultima = f;
   });
 
-  // Envios viejos (tabla que quedo sin uso). Se suman por si alguien
-  // todavia carga ahi; hoy esta vacia.
-  var enviosViejos = new Map();
-  r.enviosViejos.forEach(function(v){
-    var prov = String(v.Proveedor || "").trim();
-    if (!prov) return;
-    var acc = enviosViejos.get(prov) || { carton:0, cajas:0 };
-    acc.carton += n(v.Carton);
-    acc.cajas  += n(v.Cajas);
-    enviosViejos.set(prov, acc);
-  });
-
-  // Catalogo de articulos por proveedor.
+  // Catalogo de articulos por proveedor. GP2.articulo_prov_at con FK.
   var artsPorProv = new Map();
   r.artsProv.forEach(function(a){
-    if (a.Activo === false) return;
-    var prov = String(a.Proveedor || "").trim();
+    if (a.activo === false) return;
+    var prov = provNombrePorId.get(a.proveedor_at_id) || "";
     if (!prov) return;
     if (!artsPorProv.has(prov)) artsPorProv.set(prov, []);
     artsPorProv.get(prov).push({
-      cod: String(a.Cod_Art || "").trim(),
-      desc: a.Descripcion || "",
-      nCaja: a.N_Caja,
+      cod: String(a.cod_art || "").trim(),
+      desc: a.descripcion || "",
+      nCaja: a.n_caja,
       marca: a.marca || ""
     });
   });
@@ -336,7 +318,7 @@ function indexar(r){
                   .sort(function(a,b){ return String(a.nombre).localeCompare(String(b.nombre),"es"); }),
     ubicPorProv: ubicPorProv, compPorId: compPorId,
     enviado: enviado, saldo: saldo, uniXCaja: uniXCaja,
-    entregas: entregas, enviosViejos: enviosViejos, artsPorProv: artsPorProv
+    entregas: entregas, artsPorProv: artsPorProv
   };
 }
 
@@ -445,22 +427,15 @@ function render(){
 
   // --- aviso segun el estado real de los datos ---
   var hayEnvios = ins.some(function(i){ return i.enviado > 0; });
-  var viejos = D.enviosViejos.get(provSel.nombre);
   var avisos = [];
   if (!hayEnvios){
     avisos.push("⚠ <b>Todavía no hay ningún envío de cartón o cajas cargado</b> para este proveedor. " +
       "El envío se registra en «Envío Cartón/Cajas» y recién ahí se puede saber qué le queda. " +
       "Por ahora solo se ve lo que entregó.");
   }
-  if (viejos && (viejos.carton || viejos.cajas)){
-    avisos.push("Además figuran envíos en la tabla vieja «Envios Prov AT»: " +
-      fmt(viejos.carton) + " cartón y " + fmt(viejos.cajas) + " cajas. No están en GP2.");
-  }
   avisos.push("Las entregas se cuentan en <b>cajas</b> (es como las carga «Entrega Prov AT»); " +
     "las unidades salen de multiplicar por las uni x caja. Los artículos cargados con más de un " +
     "valor de uni x caja quedan sin unidades, porque no se puede saber cuál corresponde.");
-  avisos.push("Las entregas salen de la tabla vieja «Entregas Prov AT»: GP2 todavía no tiene " +
-    "un tipo de movimiento para la entrega de artículo terminado.");
   elAviso.innerHTML = avisos.join("<br>");
 
   // --- KPIs ---
