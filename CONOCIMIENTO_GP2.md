@@ -1516,6 +1516,11 @@ si dice "buscalo vos", se busca — no se inventa ni se asume.
   inventario. Consumo se suma en aplicación.
 - **Al `precio_tallerista` no le apunten `articulo_id`** (no existe la columna). Se apunta
   al **componente Terminado** por su `codigo` (igual al código del articulo pero en sector 12).
+- **Cada articulo tiene su propio cartón/pliego** aunque comparta costo y proveedor con otro
+  (la impresión es específica del SKU). `[usuario 2026-09-01, correctivo]`: el cartón 550
+  cuesta lo mismo que el del 501 ($89 de Pol) pero son **componentes distintos** en GP2 —
+  CCG6B "Cartón 550" y D2A "Cartón 501". No reusar componentes de cartón/pliego entre
+  articulos distintos, aunque el precio y el proveedor sean idénticos.
 
 ## 3. Reglas del negocio ya incorporadas
 
