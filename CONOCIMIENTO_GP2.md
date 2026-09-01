@@ -1388,6 +1388,125 @@ N°22): otra prueba de que los joins van por id, nunca por código.
 **Pendiente**: el 101 (Abrelatas) sigue sin fila en Est Madre y sin respuesta —
 ¿también discontinuado/importado?
 
+## 2c-quindecies. Costos cargados con datos reales del Excel `A_Costos_VIGENTES.xlsx` (2026-09-01)
+
+`[usuario 2026-09-01, sesión en vivo]` "vamos con los costos". Se cargaron los precios reales
+del **506** y **11 bombillas** desde el Excel oficial (planilla que el usuario mantiene, no
+inventar valores). El agente `gp2-cargador-excel` está para cargas grandes con el mismo
+protocolo. **Regla capital**: el usuario NO responde de memoria valores de plata — TODO se
+verifica contra el Excel (`/root/.claude/uploads/.../A_Costos_VIGENTES.xlsx` o el que aporte)
+y contra `public."Lista de Precios "`, `public."Bombillas"`, `public."Talleristas"`,
+`public."Cajas "`, `public." Cartones"` en el vecino. Si no está en el Excel, se le pregunta y
+si dice "buscalo vos", se busca — no se inventa ni se asume.
+
+### Convenciones descubiertas para MODELAR pliegos con skin en GP2 (todos los productos que se blistereann)
+
+**El proceso real** (Loeke lo hace igual para 506 y para las bombillas Mate):
+1. **Talleres Gráficos Pol** (prov 2147) imprime la **cartulina** y la vende en **paquetes
+   de 100 pliegos** con la impresión específica del articulo (uno por SKU).
+2. Cervantes **manda a AJ - Adhesivos Termoactivos** (prov 697) mínimo 2 paquetes; AJ pega el
+   **skin** (adhesivo termoactivo) sobre cada pliego y devuelve.
+3. El **pliego con skin** va a **Gentile Norberto** (prov 3709, tallerista_id=8) con las
+   piezas del garage; Gentile envasa y entrega en Virgilio.
+
+**Cómo se modela en GP2** (mismo patrón para todos):
+- `CART506` / `CART_MATE` / etc. — **componente "paquete"** (sector cartón=10,
+  `unidad_medida='paquete'`), precio en pesos por PAQUETE (ej. $77.700 el 506, $78.600 la
+  línea Mate). Stock se lleva en paquetes.
+- `V3A` (Skin 506) / `PLIEGO557`, `PLIEGO558`, `PLIEGO654`, etc. — **componente "pliego"**
+  (sector cartón=10, `unidad_medida='pliego'`), precio en pesos por PLIEGO **ya adhesivado**
+  = precio Pol/100 pliegos + precio AJ/pliego (ej. $917/pliego para 506 = $777+$140; $915
+  para bombillas = $786+$129). Stock se lleva en pliegos.
+- **Ruta de trazabilidad** `CART_XXX → PLIEGO_XXX (via AJ)` — solo para OC/auditoría, no
+  calcula costo (el precio del pliego con skin va directo como `precio_proveedor`).
+- **Ruta insumo del articulo terminado**: consume el pliego con skin, con
+  `cantidad = 1/N` donde N es el rendimiento del pliego (12 para el 506, **16 para las
+  bombillas Mate**). El cartón crudo NO entra en la ruta del articulo — se estropea la
+  trazabilidad al pretender que el articulo consume paquetes.
+- **Precio del adhesivado por medida** en `precio_servicio_pieza(AJ, pliego, precio)` para
+  trazabilidad — el motor no lo suma porque el pliego ya viene con precio directo, pero deja
+  registro de la tarifa AJ por pliego (útil para OC y auditorías).
+
+**Medidas y precios AJ 2026-06-17** (fila 225-227 LP, precio POR PLIEGO):
+- 56 x 41 mm = **$140** (Uña 506)
+- 56 x 38 mm = $134,28
+- 47 x 43 mm = **$129** (Bombillas)
+
+### Costo del 506 (Uña) cargado completo
+
+`[usuario 2026-09-01, aprobado paso a paso]`
+
+| Concepto | Componente/Servicio | $ | Cantidad | Aporte al 506 |
+|---|---|---|---|---|
+| Cartulina Pol | CART506 (paquete 100 pliegos) | $77.700/paq | (via V3A) | — |
+| Pliego c/skin | **V3A** (Skin 506) $917/pliego | (agrupa $777+$140) | 1/12 | **$76,42** |
+| Uña armada | Alex/Martin arma GRJ7 (A10 pintado o C10 zincado + V9 remache) | — | 1 | ~$260 |
+| Envasado | **Gentile** (tallerista) | $70/uni | 1 | **$70** |
+| Caja | A11 Caja N°29 $166,86 | (dentro caja) | 1/12 | $13,90 |
+
+**Total 506: $420,88** (era $274,46 antes de esta carga). PLIEGO506 fue creado y luego
+**fusionado en V3A por normalización** — V3A es el código nativo y ya existía.
+
+### Costo de 10 bombillas (5 modelos × 2 códigos LK/Chef) cargado completo
+
+`[usuario 2026-09-01, aprobado paso a paso]`
+
+**Los 5 modelos físicos** (con doble código LK/Chef — el Chef NO se stockea; se descuenta del stock LK):
+
+| Modelo físico | LK | Chef | Fabricación | Costo total |
+|---|---|---|---|---|
+| Resorte Chata | 557 | 762 | LK fabrica: BOM12 caño+BOM8 resorte, Martin arma GRJ6 | **$401,54** |
+| Resorte Trad | 558 | 763 | LK fabrica: idem, arma GRJ5 | **$401,54** |
+| Autolimpiante Inox | 654 | 769 | Compra a **Cimarron** (GRJ4 = $1.578) | **$1.715,10** |
+| Plana Ancha Metalizada | 658 | 758 | Compra a Cimarron (GRJ15 = $1.035) | **$1.172,10** |
+| Pico de Loro | 659 | 759 | Compra a Cimarron (GRJ14 = $2.005) | **$2.142,10** |
+
+**Componentes comunes** (para todas las bombillas Mate):
+- **Cartulina** en paquete `CART_MATE` = $78.600 (100 pliegos) — Pol prov 2147
+- **PLIEGO xxx c/Skin** = $915/pliego = $786 (Pol/100) + $129 (AJ 47x43 mm) — uno por SKU
+- **Rendimiento**: 16 uni por pliego (⚠️ contradicción histórica: la fórmula del cartón usaba
+  /12 en versiones viejas; el usuario aclaró **es /16**)
+- **Caja A8 (Caja N°2)** $261,82 / **24 uni** por caja → $10,91/uni (todas las bombillas usan la misma caja)
+- **Envasado Gentile** $69/uni (fila 233 LP, cod ISIS "557/558/654" pero aplica a los 10)
+
+**Componentes de fabricación LK (para 557/558/762/763)**:
+- **BOM12 Caño Inox 140mm**: **$12,48 USD/kg × kg_x_uni=0,0095** (9,5 grs) — prov **3327 Metalurgica Giser**
+- **BOM8 Resorte Bombilla Niquelado**: **$35,80 ARS/uni fijo** — prov **4466 Grudzien Claudia Laura**
+- **Martin Cornejo** (prov 3805, tallerista_id=6) arma GRJ5/GRJ6 = **$47,25/uni**
+
+**Componentes comprados a Cimarron** (para 654/658/659):
+- Los 3 componentes en Sector Garage (GRJ4, GRJ14, GRJ15) ya existían, se les cargó
+  `precio_proveedor` con `cod_prov='Cimarron'`. **Cimarron entrega en Garage** (mismo lugar
+  para todos los modelos).
+
+**Costo del 550** (Filtro Para Bombillas, modelo distinto de las Mate):
+- **Precintos Omega** (prov 4444 "4 Zurdos") $38 c/u × **2 por uni** = $76
+- **Filtro s/Envasar** (prov 4444) $13,25 c/u × 2 por uni = $26,50
+- **Envasado García** (prov 4317) $51/uni
+- **Cartón C** $89/uni (NO es el pliego Mate — es otro tipo de cartón)
+- **Caja A8 (Caja N°2)** $146,42 / **36 uni** (rinde 36, no 24) = $4,07
+- **Total 550: ~$247** aprox
+
+### Reglas duras para próximas cargas de costos
+
+- **Precio directo del componente `precio_proveedor(componente_id, precio, moneda,
+  precio_por_kg)`** — SÍ pasa al costo del articulo.
+- **Motor tiene bug residual con GRJ fabricados sin `precio_proveedor`**: los articulos que
+  usan un GRJ armado internamente (no comprado) muestran `faltan_precios=1` aunque el costo
+  esté bien calculado por la ruta. Ignorar el flag, mirar el `total_pesos`.
+- **`estado_compra='fabricacion'`** en un componente del sector "comprado por defecto"
+  (fleje/cartón/plástico/etc.) lo excluye del CTE `comprado` y lo trata como fabricado por su
+  ruta. Cuidado con esto — si además tiene `precio_proveedor`, el motor lo vuelve a tratar
+  como comprado.
+- **NO INVENTAR CÓDIGOS DE PROVEEDOR**: el `cod_prov` en `precio_proveedor` es el que aparece
+  en `public."Lista de Precios "` col2 ("Cod Prov"). El nombre a veces no está en
+  `public."Proveedores"` (razón social vacía) — el usuario lo dice cuando corresponde.
+- **Convención doble código LK/Chef**: cuando un modelo físico tiene 2 códigos (uno por
+  marca), **stock solo LK**; los articulos Chef se crean para reportes de venta pero SIN
+  inventario. Consumo se suma en aplicación.
+- **Al `precio_tallerista` no le apunten `articulo_id`** (no existe la columna). Se apunta
+  al **componente Terminado** por su `codigo` (igual al código del articulo pero en sector 12).
+
 ## 3. Reglas del negocio ya incorporadas
 
 - **Algunos talleristas pueden entregar partes EN CERVANTES** (además de Virgilio):
