@@ -1,7 +1,5 @@
 "use strict";
 
-const SUPABASE_URL = "https://hrxfctzncixxqmpfhskv.supabase.co";
-const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhyeGZjdHpuY2l4eHFtcGZoc2t2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI3MjQyNjEsImV4cCI6MjA4ODMwMDI2MX0.4L6wguch8UZGhC2VpzrWcCjJGUV-IkYsl9JoCWrOLUs";
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 const fechaDesde = document.getElementById("fechaDesde");
@@ -980,7 +978,7 @@ function renderUnidadesMatriz(rows, matMap) {
       </div>
       <div id="wrapModoDias" style="display:flex;align-items:center;gap:8px">
         <label style="font-weight:600">Ultimos</label>
-        <input type="number" id="inputDiasProd" value="${diasDefault}" min="1" max="${totalDiasProd}" style="width:60px;height:32px;border:1px solid #ccc;border-radius:6px;text-align:center;font-size:14px" />
+        <input inputmode="numeric" type="number" id="inputDiasProd" value="${diasDefault}" min="1" max="${totalDiasProd}" style="width:60px;height:32px;border:1px solid #ccc;border-radius:6px;text-align:center;font-size:14px" />
         <span style="color:#888;font-size:13px">(hay ${totalDiasProd} dias)</span>
       </div>
       <div id="wrapModoFecha" style="display:none;align-items:center;gap:8px">

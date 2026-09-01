@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="es">
 <head>
-  <script src="../../auth-guard.js"></script>
+  <script src="../../auth-guard.js?v=20260829f"></script>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Faltante Partes Tallerista</title>
@@ -35,7 +35,7 @@
 
     <div class="row controls-row">
       <label>Umbral % Lleno:
-        <input id="umbralPct" type="number" min="0" max="100" step="1" value="25" /> %
+        <input inputmode="numeric" id="umbralPct" type="number" min="0" max="100" step="1" value="25" /> %
       </label>
       <button id="btnRecargar" class="btn-recargar">Recargar</button>
       <button id="btnConectarOC" class="btn-conectar" title="Apuntar a la carpeta U:\AA  LOGISTICA\A3 OC Art Term\A2 OC Art Term VIGENTE (1 sola vez)">
@@ -61,7 +61,8 @@
   </div>
 
   <!-- Cargamos ControlTall.js para reusar cargarConsumos, buscar, etc. -->
-  <script src="../Control Tall/ControlTall.js?v=20260522b"></script>
+  <script src="../../supabase-config.js?v=20260831d"></script>
+<script src="../Control Tall/ControlTall.js?v=20260522b"></script>
   <!-- Logica propia del modulo -->
   <script src="faltante.js?v=20260522b"></script>
 

@@ -1,12 +1,13 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <script src="../auth-guard.js"></script>
+  <script src="../auth-guard.js?v=20260829f"></script>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Maestro Produccion</title>
   <link rel="icon" href="data:," />
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="../supabase-config.js?v=20260831d"></script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     body {
@@ -415,8 +416,6 @@
 (function() {
   'use strict';
 
-  const SUPABASE_URL = 'https://hrxfctzncixxqmpfhskv.supabase.co';
-  const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhyeGZjdHpuY2l4eHFtcGZoc2t2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI3MjQyNjEsImV4cCI6MjA4ODMwMDI2MX0.4L6wguch8UZGhC2VpzrWcCjJGUV-IkYsl9JoCWrOLUs';
   const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
   // Cache
@@ -1194,14 +1193,14 @@
   function agregarFilaCM(prefill) {
     const tr = document.createElement('tr');
     tr.innerHTML =
-      '<td><input type="number" class="cm-dia" min="1" max="31" style="height:34px;width:60px;border:1px solid #c9d1d9;border-radius:8px;padding:0 6px;font-size:13px;text-align:center;" /></td>' +
-      '<td><input type="number" class="cm-diafin" min="1" max="31" title="Dejar vacío = mismo día. Distinto = cajón que cruza días (usa horario del operario)." style="height:34px;width:60px;border:1px solid #c9d1d9;border-radius:8px;padding:0 6px;font-size:13px;text-align:center;" /></td>' +
+      '<td><input inputmode="numeric" type="number" class="cm-dia" min="1" max="31" style="height:34px;width:60px;border:1px solid #c9d1d9;border-radius:8px;padding:0 6px;font-size:13px;text-align:center;" /></td>' +
+      '<td><input inputmode="numeric" type="number" class="cm-diafin" min="1" max="31" title="Dejar vacío = mismo día. Distinto = cajón que cruza días (usa horario del operario)." style="height:34px;width:60px;border:1px solid #c9d1d9;border-radius:8px;padding:0 6px;font-size:13px;text-align:center;" /></td>' +
       '<td><select class="cm-tipo" style="height:34px;border:1px solid #c9d1d9;border-radius:8px;padding:0 6px;font-size:13px;"><option value="matriz">Matriz</option><option value="tm">Tiempo Muerto</option></select></td>' +
       '<td><select class="cm-codigo" style="height:34px;border:1px solid #c9d1d9;border-radius:8px;padding:0 6px;font-size:13px;width:180px;">' + buildMatrizSelect('matriz') + '</select></td>' +
       '<td class="cm-desc" style="font-size:12px;color:#666;"></td>' +
       '<td><input type="time" class="cm-hini" style="height:34px;border:1px solid #c9d1d9;border-radius:8px;padding:0 6px;font-size:13px;" /></td>' +
       '<td><input type="time" class="cm-hfin" style="height:34px;border:1px solid #c9d1d9;border-radius:8px;padding:0 6px;font-size:13px;" /></td>' +
-      '<td><input type="number" class="cm-uni" min="0" value="0" style="height:34px;width:70px;border:1px solid #c9d1d9;border-radius:8px;padding:0 8px;font-size:13px;text-align:center;" /></td>' +
+      '<td><input inputmode="numeric" type="number" class="cm-uni" min="0" value="0" style="height:34px;width:70px;border:1px solid #c9d1d9;border-radius:8px;padding:0 8px;font-size:13px;text-align:center;" /></td>' +
       '<td><button class="btn-action btn-del cm-borrar" style="font-size:16px;">&#10005;</button></td>';
     cmBody.appendChild(tr);
 

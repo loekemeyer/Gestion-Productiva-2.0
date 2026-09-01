@@ -1,7 +1,5 @@
 "use strict";
 
-const SUPABASE_URL = "https://hrxfctzncixxqmpfhskv.supabase.co";
-const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhyeGZjdHpuY2l4eHFtcGZoc2t2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI3MjQyNjEsImV4cCI6MjA4ODMwMDI2MX0.4L6wguch8UZGhC2VpzrWcCjJGUV-IkYsl9JoCWrOLUs";
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 const statusEl = document.getElementById("status");
@@ -371,7 +369,7 @@ function renderTabla(rows) {
       html += `<tr class="row-grupo-header">
         <td colspan="5" style="font-size:14px;font-weight:800">${esc(r.prov)}</td>
         <td style="text-align:right;font-size:11px">Meses</td>
-        <td><input id="meses_${gId}" type="number" value="${mVal}" min="1" max="24"
+        <td><input inputmode="numeric" id="meses_${gId}" type="number" value="${mVal}" min="1" max="24"
           onchange="setMesesGrupo('${esc(grupo)}')" /></td>
       </tr>`;
       prevGrupo = grupo;

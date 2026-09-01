@@ -1,7 +1,5 @@
 "use strict";
 
-const SUPABASE_URL = "https://hrxfctzncixxqmpfhskv.supabase.co";
-const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhyeGZjdHpuY2l4eHFtcGZoc2t2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI3MjQyNjEsImV4cCI6MjA4ODMwMDI2MX0.4L6wguch8UZGhC2VpzrWcCjJGUV-IkYsl9JoCWrOLUs";
 const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 const statusEl = document.getElementById("status");
@@ -178,7 +176,7 @@ function renderCard(a){
     <div class="tallerista-row">
       <div class="tallerista-nombre" title="${esc(t.tallerista)}">${esc(t.tallerista)}${t.dirty ? '<span class="dirty-mark"> ●</span>' : ""}</div>
       <div class="tallerista-bar"><div class="tallerista-bar-fill" style="width:${Math.min(100, Math.max(0, t.porcentaje))}%"></div></div>
-      <input type="number" class="input-pct" min="0" max="100" step="0.1"
+      <input inputmode="decimal" type="number" class="input-pct" min="0" max="100" step="0.1"
         value="${t.porcentaje}"
         data-cod="${esc(a.cod_art)}" data-idx="${idx}">
       <span style="font-size:14px;color:#666;font-weight:500">%</span>

@@ -5,6 +5,11 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
   <title>Gestión Productiva — Ingresar</title>
+  <!-- PWA: el SW lo registra pwa.js al final del body. -->
+  <link rel="manifest" href="manifest.json?v=20260829h">
+  <link rel="apple-touch-icon" href="apple-touch-icon.png?v=20260829j">
+  <meta name="theme-color" content="#ffffff">
+  <link rel="icon" type="image/png" href="GP2_favicon.png?v=1.2.0">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -82,7 +87,8 @@
       <h1>Gestión Productiva</h1>
       <div class="subtitle">Ingresá con tu cuenta de Google</div>
     </div>
-    <div class="version">Versión <b>2.0</b></div>
+    <div class="version">Versión <b id="appVersion">2.0</b></div>
+    <script src="version.js?v=20260831l"></script>
 
     <button id="btnGoogle" class="btn-google" onclick="loginGoogle()">
       <svg viewBox="0 0 48 48">
@@ -103,9 +109,8 @@
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="supabase-config.js?v=20260831d"></script>
   <script>
-    const SUPABASE_URL = "https://hrxfctzncixxqmpfhskv.supabase.co";
-    const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhyeGZjdHpuY2l4eHFtcGZoc2t2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI3MjQyNjEsImV4cCI6MjA4ODMwMDI2MX0.4L6wguch8UZGhC2VpzrWcCjJGUV-IkYsl9JoCWrOLUs";
     const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
     const btnGoogle = document.getElementById("btnGoogle");
@@ -137,6 +142,16 @@
       }
     }
 
+    // Si el usuario vuelve con Atras desde Google, el browser restaura la pagina
+    // desde bfcache con el boton deshabilitado y el spinner girando: resetear.
+    window.addEventListener("pageshow", (e) => {
+      if (e.persisted) {
+        btnGoogle.disabled = false;
+        btnGoogle.style.display = "";
+        spinnerWrap.classList.remove("visible");
+      }
+    });
+
     let _handled = false;
     // Si vinimos con ?logout=1 marcamos esto desde el inicio para que ningun
     // SIGNED_IN/INITIAL_SESSION de supabase-js (leido del localStorage cacheado)
@@ -155,8 +170,19 @@
 
       const email = session.user?.email || "";
       // Chequear whitelist via RPC (pasamos email explicito desde el JWT verificado de Google)
-      const { data: role, error } = await sb.rpc("get_role_for_email", { p_email: email });
-      if (error || !role) {
+      // Auth compartida con el vecino: se llama al puente GP2.get_role_for_email
+      // (SECURITY DEFINER) que delega en public.get_role_for_email para no acoplar
+      // el frontend GP2 al schema public (Auditoria 2026-08-31, Alta 3).
+      const { data: role, error } = await sb.schema('GP2').rpc("get_role_for_email", { p_email: email });
+      if (error) {
+        // Fallo transitorio del RPC (red caida, timeout, 5xx): NO cerrar la sesion
+        // ni acusar "no autorizado" — dejar reintentar.
+        showError("No se pudo verificar el acceso (problema de conexión). Reintentá en unos segundos.");
+        btnGoogle.style.display = "";
+        _handled = false; // permitir otro intento
+        return;
+      }
+      if (!role) {
         await sb.auth.signOut();
         sessionStorage.clear();
         showError("Tu cuenta (" + email + ") no está autorizada para usar esta aplicación. Para solicitar acceso comunicate con loekemeyer.n8n@gmail.com");
@@ -167,7 +193,7 @@
       sessionStorage.setItem("gp_auth", "ok");
       sessionStorage.setItem("gp_role", role);
       sessionStorage.setItem("gp_email", email);
-      window.location.href = (role === "envios") ? "envios-only.html" : "Inicio/index.html";
+      window.location.href = (role === "envios") ? "envios-only.html" : "GP2_MODULOS.html";
     }
 
     // Escuchar el evento SIGNED_IN — dispara cuando supabase-js termina de procesar
@@ -206,5 +232,6 @@
       if (session) procesarSesion(session, "initial");
     })();
   </script>
+  <script src="pwa.js?v=20260830e"></script>
 </body>
 </html>

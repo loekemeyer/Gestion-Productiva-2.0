@@ -1,0 +1,416 @@
+<!doctype html>
+<html lang="es">
+<head>
+<!-- v1.3.0 — la OC sale VALORIZADA: precio vigente y subtotal por insumo (precio_proveedor,
+     hoy regulacion 1 USD / $1000 cajas), total de lo pedido en la barra (US$ y $ separados,
+     + equivalente en pesos con el dolar del cron), precios y total en la hoja de impresion,
+     y cada OC guarda la foto historica del precio al crearla (crear_oc). v1.2.0 — la celda de consumo es TOCABLE: abre el sustento por articulo
+     (consumo-detalle.js, RPC consumo_detalle). El bundle ademas ya sale de
+     v_consumo_componente / v_consumo_fleje_kg_v2 (atribucion por articulo).
+     v1.1.1 — fix: "Pedir" acepta decimales es-AR (12,5 ya no se convertía en 125) y la OC solo lleva los items del rubro/proveedor seleccionado. v1.1.0 — Ordenes de Compra de insumos: sugerido = consumo Est Madre x meses - stock - pendiente OC; imprimir OC -->
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Órdenes de Compra · GP2</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="../supabase-config.js?v=20260831d"></script>
+<script src="../consumo-detalle.js?v=20260830k"></script>
+<link rel="stylesheet" href="../gp2-modulo.css?v=20260830q"/>
+<link rel="icon" type="image/png" href="../GP2_favicon.png">
+<link rel="apple-touch-icon" href="../GP2_favicon.png">
+<style>
+  .tabs{display:flex;gap:8px;margin:10px 0}
+  .tab-btn{padding:10px 18px;border-radius:10px;border:2px solid #d0d7de;background:#fff;font-weight:800;font-size:17px;cursor:pointer;color:#111}
+  .tab-btn.active{background:#111;color:#fff;border-color:#111}
+  .chips{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0}
+  .chip{padding:8px 14px;border-radius:20px;border:2px solid #d0d7de;background:#fff;font-weight:700;font-size:15px;cursor:pointer;color:#111}
+  .chip.active{background:#e7eff8;color:#fff;border-color:#cddaea}
+  td.num{text-align:right;font-variant-numeric:tabular-nums}
+  .pedir-in{width:110px;padding:8px;font-size:18px;text-align:right;border:2px solid #d0d7de;border-radius:8px}
+  .pedir-in.err{border-color:#eacdcd;background:#ffebee}
+  tr.con-pedido td{background:#eef7ee}
+  .sug{color:#b45309;font-weight:800;cursor:pointer;text-decoration:underline dotted}
+  .paq-eq{font-size:12px;color:#0b3b73;display:block}
+  .barra{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:12px 0;padding:12px;background:#f6f8fa;border-radius:10px}
+  .barra .tot{font-size:17px;font-weight:800}
+  .barra input[type=text]{padding:9px;font-size:16px;border:2px solid #d0d7de;border-radius:8px;flex:1;min-width:160px}
+  .btn-crear{padding:12px 22px;font-size:18px;font-weight:800;border-radius:8px;border:2px solid #111;background:#111;color:#fff;cursor:pointer}
+  .btn-crear:disabled{opacity:.4;cursor:default}
+  .btn-sug{padding:10px 14px;font-size:15px;font-weight:700;border-radius:8px;border:2px solid #ead9cd;background:#fff;color:#b45309;cursor:pointer}
+  .btn-limpiar{padding:10px 14px;font-size:15px;font-weight:700;border-radius:8px;border:2px solid #d0d7de;background:#fff;cursor:pointer}
+  .regla-carton{border:2px solid #eae0cd;background:#fff8e1;color:#7a5b00;border-radius:10px;padding:8px 12px;font-size:14px;margin:8px 0}
+  .regla-carton.mal{border-color:#eacdcd;background:#ffebee;color:#b71c1c}
+  .oc-card{border:2px solid #d0d7de;border-radius:12px;padding:14px;margin:10px 0;background:#fff}
+  .oc-head{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+  .oc-head .num-oc{font-size:20px;font-weight:800}
+  .badge{padding:4px 12px;border-radius:14px;font-size:13px;font-weight:800}
+  .badge.borrador{background:#f6f8fa;color:#555;border:1px solid #d0d7de}
+  .badge.enviada{background:#e3f2fd;color:#0b3b73}
+  .badge.recibida{background:#e8f5e9;color:#0a7a2f}
+  .badge.anulada{background:#ffebee;color:#b71c1c}
+  .oc-acts{margin-left:auto;display:flex;gap:8px}
+  .oc-acts button{padding:8px 12px;font-size:14px;font-weight:700;border-radius:8px;border:2px solid #d0d7de;background:#fff;cursor:pointer}
+  .oc-acts button.env{border-color:#cddaea;color:#0b3b73}
+  .oc-acts button.rec{border-color:#cdead6;color:#0a7a2f}
+  .oc-acts button.anu{border-color:#eacdcd;color:#c62828}
+</style>
+</head>
+<body>
+
+<div class="card">
+  <div class="header">
+    <h1>Órdenes de Compra · Insumos</h1>
+    <div class="hbtns"><a href="../GP2_MODULOS.html">Atrás</a></div>
+  </div>
+
+  <div class="steps">
+    <div class="tabs">
+      <button type="button" class="tab-btn active" id="tabGen">Generar OC</button>
+      <button type="button" class="tab-btn" id="tabOcs">Órdenes <span id="ocsN"></span></button>
+    </div>
+
+    <div id="panGen">
+      <div class="chips" id="rubros"></div>
+      <div class="chips" id="provs"></div>
+      <div class="regla-carton hidden" id="reglaCarton"></div>
+      <div class="search-box"><input type="text" id="q" placeholder="Buscar insumo…"></div>
+      <div class="table-wrap">
+        <table class="t">
+          <thead><tr>
+            <th>Insumo</th><th>Proveedor</th>
+            <th class="num">Consumo<br>/mes</th><th class="num">Meses</th>
+            <th class="num">Stock</th><th class="num">Pend.<br>OC</th>
+            <th class="num">Sugerido</th><th class="num">Precio</th><th class="num">Pedir</th><th class="num">Subtotal</th>
+          </tr></thead>
+          <tbody id="tbody"></tbody>
+        </table>
+      </div>
+      <div id="tblEmpty" class="empty hidden">Sin insumos en este rubro.</div>
+
+      <div class="barra">
+        <button type="button" class="btn-sug" id="btnSug">Usar sugeridos</button>
+        <button type="button" class="btn-limpiar" id="btnLimpiar">Limpiar</button>
+        <span class="tot" id="tot">0 ítems</span>
+        <input type="text" id="nota" placeholder="Nota (opcional)">
+        <button type="button" class="btn-crear" id="btnCrear" disabled>Crear OC</button>
+      </div>
+    </div>
+
+    <div id="panOcs" class="hidden">
+      <div id="ocsList"></div>
+      <div id="ocsEmpty" class="empty hidden">Todavía no hay órdenes de compra.</div>
+    </div>
+
+    <div id="status" class="status">Cargando…</div>
+  </div>
+</div>
+
+<script>
+var SB = supabase.createClient(
+  SUPABASE_URL,
+  SUPABASE_KEY,
+  { db:{ schema:"GP2" }, auth:{ persistSession:false } }
+);
+function $(id){ return document.getElementById(id); }
+function esc(t){ return String(t==null?'':t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function fmt(n,d){ return n==null?'—':Number(n).toLocaleString('es-AR',{maximumFractionDigits:d==null?0:d}); }
+// es-AR: punto = miles, coma = decimal ("12,5" -> 12.5; antes parseInt borraba la coma y daba 125)
+function parseNum(s){ var x=parseFloat(String(s==null?'':s).replace(/\./g,'').replace(/,/g,'.')); return (isNaN(x)||x<0)?0:x; }
+// precio: {precio, moneda} -> "US$ 1" / "$ 1.000". Flejes se compran por kg.
+function fmtPrecio(i){
+  if(i.precio==null) return '—';
+  return (i.moneda==='ARS'?'$ ':'US$ ')+fmt(i.precio,2)+(i.sector_id===5?'/kg':'');
+}
+// total mixto: nunca inventar tipo de cambio propio — solo mostrar el del cron si vino.
+function fmtTotalMon(usd, ars){
+  var partes=[];
+  if(usd>0) partes.push('US$ '+fmt(usd,2));
+  if(ars>0) partes.push('$ '+fmt(ars,2));
+  return partes.length?partes.join(' + '):'—';
+}
+
+var D={}, PAQ=250, rubroSel=null, provSel=null;
+var PEDIDO={}; // comp_id -> cantidad
+
+async function boot(){
+  var r=await SB.rpc('oc_bundle');
+  if(r.error){ $('status').textContent='Error: '+r.error.message; return; }
+  D=r.data||{};
+  PAQ=Number(D.paq)||250;
+  pintarRubros();
+  pintarOcs();
+  $('status').textContent='';
+}
+
+function rubrosDistintos(){
+  var seen={}, out=[];
+  (D.insumos||[]).forEach(function(i){
+    if(!seen[i.sector_id]){ seen[i.sector_id]=true; out.push({id:i.sector_id, nombre:i.sector.replace(/^Sector\s+/i,'')}); }
+  });
+  return out;
+}
+
+function pintarRubros(){
+  var g=$('rubros'); g.innerHTML='';
+  rubrosDistintos().forEach(function(rb){
+    var b=document.createElement('button'); b.type='button'; b.className='chip'+(rubroSel===rb.id?' active':''); b.textContent=rb.nombre;
+    b.addEventListener('click',function(){ rubroSel=(rubroSel===rb.id?null:rb.id); provSel=null; pintarRubros(); });
+    g.appendChild(b);
+  });
+  pintarProvs();
+  render();
+}
+
+function pintarProvs(){
+  var g=$('provs'); g.innerHTML='';
+  if(rubroSel==null) return;
+  var seen={}, provs=[];
+  (D.insumos||[]).filter(function(i){ return i.sector_id===rubroSel; }).forEach(function(i){
+    var p=i.proveedor||'(sin proveedor)';
+    if(!seen[p]){ seen[p]=true; provs.push(p); }
+  });
+  if(provs.length<2) return;
+  provs.forEach(function(p){
+    var b=document.createElement('button'); b.type='button'; b.className='chip'+(provSel===p?' active':''); b.textContent=p;
+    b.addEventListener('click',function(){ provSel=(provSel===p?null:p); pintarProvs(); render(); });
+    g.appendChild(b);
+  });
+}
+
+function filtradas(){
+  var q=($('q').value||'').trim().toLowerCase();
+  return (D.insumos||[]).filter(function(i){
+    if(rubroSel!=null && i.sector_id!==rubroSel) return false;
+    if(provSel!=null && (i.proveedor||'(sin proveedor)')!==provSel) return false;
+    if(q && !(((i.codigo||'')+' '+(i.descripcion||'')+' '+(i.proveedor||'')).toLowerCase().includes(q))) return false;
+    return true;
+  });
+}
+
+function render(){
+  var fs=filtradas();
+  $('tbody').innerHTML=fs.map(function(i){
+    var ped=PEDIDO[i.comp_id]||'';
+    var esCarton=i.sector_id===10;
+    var paqEq=(esCarton && ped>0)?('<span class="paq-eq">= '+fmt(ped/PAQ,1)+' paq de '+PAQ+'</span>'):'';
+    return '<tr data-id="'+i.comp_id+'"'+(ped>0?' class="con-pedido"':'')+'>'+
+      '<td><b>'+esc(i.codigo||'—')+'</b><br><small style="color:#777">'+esc(i.descripcion||'')+
+        (i.carton_formato?(' · Formato '+esc(i.carton_formato)):'')+'</small></td>'+
+      '<td>'+esc(i.proveedor||'—')+'</td>'+
+      '<td class="num">'+(i.consumo==null?'—':('<span class="cd-tocable" data-det="'+i.comp_id+'">'+fmt(i.consumo,1)+' '+i.unidad+'</span>'))+'</td>'+
+      '<td class="num">'+(i.meses==null?'—':i.meses)+'</td>'+
+      '<td class="num">'+fmt(i.online)+' '+i.unidad+'</td>'+
+      '<td class="num">'+(i.pendiente_oc>0?fmt(i.pendiente_oc):'—')+'</td>'+
+      '<td class="num"><span class="sug" data-sug="'+i.comp_id+'">'+fmt(i.sugerido)+'</span></td>'+
+      '<td class="num">'+fmtPrecio(i)+'</td>'+
+      '<td class="num"><input class="pedir-in" data-in="'+i.comp_id+'" inputmode="decimal" value="'+(ped?String(ped).replace('.',','):'')+'" placeholder="'+i.unidad+'">'+paqEq+'</td>'+
+      '<td class="num sub-item">'+(ped>0&&i.precio!=null?((i.moneda==='ARS'?'$ ':'US$ ')+fmt(ped*i.precio,2)):'—')+'</td>'+
+    '</tr>';
+  }).join('');
+  $('tblEmpty').classList.toggle('hidden', fs.length>0);
+
+  document.querySelectorAll('.pedir-in').forEach(function(inp){
+    inp.addEventListener('change',function(){
+      var v=parseNum(inp.value);
+      var id=Number(inp.dataset.in);
+      if(v>0) PEDIDO[id]=v; else delete PEDIDO[id];
+      render(); barra();
+    });
+  });
+  document.querySelectorAll('.cd-tocable').forEach(function(sp){
+    sp.addEventListener('click',function(){ GP2ConsumoDetalle.abrir(SB, Number(sp.dataset.det)); });
+  });
+  document.querySelectorAll('.sug').forEach(function(sp){
+    sp.addEventListener('click',function(){
+      var id=Number(sp.dataset.sug);
+      var it=(D.insumos||[]).filter(function(x){return x.comp_id===id;})[0];
+      if(it && it.sugerido>0){ PEDIDO[id]=it.sugerido; render(); barra(); }
+    });
+  });
+  barra();
+}
+
+/* Solo los pedidos del rubro/proveedor seleccionado: lo cargado en otros chips
+   queda guardado para su propia OC, no se mezcla en la OC de este rubro. */
+function itemsPedidos(){
+  return (D.insumos||[]).filter(function(i){
+    if(!(PEDIDO[i.comp_id]>0)) return false;
+    if(rubroSel!=null && i.sector_id!==rubroSel) return false;
+    if(provSel!=null && (i.proveedor||'(sin proveedor)')!==provSel) return false;
+    return true;
+  }).map(function(i){ return {comp_id:i.comp_id, cantidad:PEDIDO[i.comp_id], unidad:i.unidad, it:i}; });
+}
+
+// Reglas de carton (REGLAS_OC_INSUMOS.md): total multiplo de pliegos_multiplo,
+// cada codigo multiplo de codigo_multiplo y minimo min_codigo_x_multiplo x (total/pliegos_multiplo).
+// Solo aplica a items con carton_formato asignado (hoy pendiente de cargar por precio).
+function validarCarton(items){
+  var porFmt={};
+  items.forEach(function(x){
+    if(x.it.sector_id===10 && x.it.carton_formato && x.it.pliegos_multiplo){
+      (porFmt[x.it.carton_formato]=porFmt[x.it.carton_formato]||[]).push(x);
+    }
+  });
+  var errores=[];
+  Object.keys(porFmt).forEach(function(f){
+    var xs=porFmt[f], cf=xs[0].it;
+    var total=xs.reduce(function(a,x){return a+x.cantidad;},0);
+    if(total % cf.pliegos_multiplo !== 0){
+      errores.push('Formato '+f+': el total ('+fmt(total)+') debe ser múltiplo de '+fmt(cf.pliegos_multiplo)+'.');
+      return;
+    }
+    var mult=total/cf.pliegos_multiplo;
+    var minCod=cf.min_codigo_x_multiplo*mult;
+    xs.forEach(function(x){
+      if(x.cantidad % cf.codigo_multiplo !== 0)
+        errores.push('Formato '+f+' · '+x.it.codigo+': '+fmt(x.cantidad)+' no es múltiplo de '+fmt(cf.codigo_multiplo)+'.');
+      else if(x.cantidad < minCod)
+        errores.push('Formato '+f+' · '+x.it.codigo+': mínimo '+fmt(minCod)+' por código para un pedido de '+fmt(total)+'.');
+    });
+  });
+  return errores;
+}
+
+function barra(){
+  var items=itemsPedidos();
+  var errs=validarCarton(items);
+  var rc=$('reglaCarton');
+  if(errs.length){ rc.classList.remove('hidden'); rc.classList.add('mal'); rc.innerHTML=errs.map(esc).join('<br>'); }
+  else rc.classList.add('hidden');
+  var tUsd=0, tArs=0;
+  items.forEach(function(x){
+    if(x.it.precio==null) return;
+    if(x.it.moneda==='ARS') tArs+=x.cantidad*x.it.precio; else tUsd+=x.cantidad*x.it.precio;
+  });
+  var tot=items.length+' ítems';
+  if(tUsd>0||tArs>0){
+    tot+=' · '+fmtTotalMon(tUsd,tArs);
+    if(D.tc && tUsd>0) tot+=' (≈ $ '+fmt(tUsd*Number(D.tc)+tArs,0)+')';
+  }
+  $('tot').textContent=tot;
+  $('btnCrear').disabled = items.length===0 || errs.length>0;
+}
+
+$('btnSug').addEventListener('click',function(){
+  filtradas().forEach(function(i){ if(i.sugerido>0) PEDIDO[i.comp_id]=i.sugerido; });
+  render();
+});
+$('btnLimpiar').addEventListener('click',function(){ PEDIDO={}; render(); });
+
+$('btnCrear').addEventListener('click', async function(){
+  var items=itemsPedidos();
+  if(!items.length) return;
+  $('btnCrear').disabled=true;
+  try{
+    var rubro = rubroSel!=null ? (rubrosDistintos().filter(function(r){return r.id===rubroSel;})[0]||{}).nombre : null;
+    var r=await SB.rpc('crear_oc',{ p:{
+      proveedor: provSel && provSel!=='(sin proveedor)' ? provSel : null,
+      rubro: rubro, nota: ($('nota').value||'').trim() || null, usuario: null,
+      items: items.map(function(x){ return {comp_id:x.comp_id, cantidad:x.cantidad, unidad:x.unidad}; })
+    }});
+    if(r.error) throw r.error;
+    PEDIDO={}; $('nota').value='';
+    await boot();
+    mostrarTab('ocs');
+    $('status').className='status ok';
+    $('status').textContent='✓ OC N° '+r.data.numero+' creada con '+r.data.items+' ítems (queda en borrador).';
+    setTimeout(function(){ $('status').textContent=''; $('status').className='status'; }, 6000);
+  }catch(e){ $('status').className='status bad'; $('status').textContent='Error: '+(e.message||e); }
+  finally{ $('btnCrear').disabled=false; }
+});
+
+function pintarOcs(){
+  var ocs=D.ocs||[];
+  $('ocsN').textContent=ocs.length?('('+ocs.length+')'):'';
+  $('ocsEmpty').classList.toggle('hidden', ocs.length>0);
+  $('ocsList').innerHTML=ocs.map(function(o){
+    var acts='<button type="button" class="imp" data-imp="'+o.id+'">🖨 Imprimir</button>';
+    if(o.estado==='borrador') acts+='<button type="button" class="env" data-oc="'+o.id+'" data-est="enviada">Marcar enviada</button>'+
+      '<button type="button" class="anu" data-oc="'+o.id+'" data-est="anulada">Anular</button>';
+    else if(o.estado==='enviada') acts+='<button type="button" class="rec" data-oc="'+o.id+'" data-est="recibida">Marcar recibida</button>'+
+      '<button type="button" class="anu" data-oc="'+o.id+'" data-est="anulada">Anular</button>';
+    return '<div class="oc-card">'+
+      '<div class="oc-head"><span class="num-oc">OC N° '+o.numero+'</span>'+
+      '<span class="badge '+o.estado+'">'+o.estado+'</span>'+
+      (o.proveedor?('<span>'+esc(o.proveedor)+'</span>'):'')+
+      (o.rubro?('<span style="color:#777">'+esc(o.rubro)+'</span>'):'')+
+      '<span style="color:#777">'+new Date(o.creado_en).toLocaleDateString('es-AR')+'</span>'+
+      ((o.total_usd>0||o.total_ars>0)?('<span style="font-weight:800">'+fmtTotalMon(Number(o.total_usd)||0,Number(o.total_ars)||0)+'</span>'):'')+
+      '<div class="oc-acts">'+acts+'</div></div>'+
+      (o.nota?('<div style="color:#555;font-size:14px;margin-top:4px">'+esc(o.nota)+'</div>'):'')+
+      '<div class="table-wrap" style="margin-top:8px"><table class="t"><thead><tr>'+
+      '<th>Insumo</th><th class="num">Pedido</th><th class="num">Precio</th><th class="num">Subtotal</th><th class="num">Recibido</th></tr></thead><tbody>'+
+      (o.items||[]).map(function(it){
+        return '<tr><td><b>'+esc(it.codigo)+'</b> <small style="color:#777">'+esc(it.descripcion||'')+'</small></td>'+
+          '<td class="num">'+fmt(it.cantidad)+' '+esc(it.unidad)+'</td>'+
+          '<td class="num">'+(it.precio_uni==null?'—':((it.moneda==='ARS'?'$ ':'US$ ')+fmt(it.precio_uni,2)))+'</td>'+
+          '<td class="num">'+(it.subtotal==null?'—':((it.moneda==='ARS'?'$ ':'US$ ')+fmt(it.subtotal,2)))+'</td>'+
+          '<td class="num">'+(it.recibido>0?fmt(it.recibido):'—')+'</td></tr>';
+      }).join('')+
+      '</tbody></table></div></div>';
+  }).join('');
+
+  document.querySelectorAll('.oc-acts button.imp').forEach(function(b){
+    b.addEventListener('click', function(){ imprimirOC(Number(b.dataset.imp)); });
+  });
+  document.querySelectorAll('.oc-acts button:not(.imp)').forEach(function(b){
+    b.addEventListener('click', async function(){
+      var est=b.dataset.est;
+      if(est==='anulada' && !confirm('¿Anular la OC?')) return;
+      b.disabled=true;
+      try{
+        var r=await SB.rpc('oc_marcar',{ p_oc_id:Number(b.dataset.oc), p_estado:est });
+        if(r.error) throw r.error;
+        await boot(); mostrarTab('ocs');
+      }catch(e){ $('status').className='status bad'; $('status').textContent='Error: '+(e.message||e); b.disabled=false; }
+    });
+  });
+}
+
+// Hoja limpia para mandar/imprimir la OC al proveedor
+function imprimirOC(ocId){
+  var o=(D.ocs||[]).filter(function(x){ return x.id===ocId; })[0];
+  if(!o) return;
+  var w=window.open('','_blank');
+  if(!w){ alert('El navegador bloqueó la ventana de impresión.'); return; }
+  var html='<!doctype html><html lang="es"><head><meta charset="utf-8"><title>OC N° '+o.numero+'</title>'+
+    '<style>body{font-family:Arial;padding:32px;color:#111}h1{font-size:24px;margin:0 0 4px}'+
+    '.meta{color:#555;margin-bottom:18px;font-size:15px}table{width:100%;border-collapse:collapse;font-size:15px}'+
+    'th{background:#f0f0f0;text-align:left;padding:8px;border:1px solid #bbb}td{padding:8px;border:1px solid #bbb}'+
+    'td.num{text-align:right}.nota{margin-top:16px;color:#444;font-size:14px}.pie{margin-top:28px;color:#888;font-size:12px}</style></head><body>'+
+    '<h1>Orden de Compra N° '+o.numero+'</h1>'+
+    '<div class="meta">'+(o.proveedor?('Proveedor: <b>'+esc(o.proveedor)+'</b> · '):'')+
+    (o.rubro?('Rubro: '+esc(o.rubro)+' · '):'')+'Fecha: '+new Date(o.creado_en).toLocaleDateString('es-AR')+'</div>'+
+    '<table><thead><tr><th>Código</th><th>Descripción</th><th style="text-align:right">Cantidad</th>'+
+    '<th style="text-align:right">Precio unit.</th><th style="text-align:right">Subtotal</th></tr></thead><tbody>'+
+    (o.items||[]).map(function(it){
+      var mon=it.moneda==='ARS'?'$ ':'US$ ';
+      return '<tr><td><b>'+esc(it.codigo)+'</b></td><td>'+esc(it.descripcion||'')+'</td>'+
+        '<td class="num">'+fmt(it.cantidad)+' '+esc(it.unidad)+'</td>'+
+        '<td class="num">'+(it.precio_uni==null?'—':mon+fmt(it.precio_uni,2))+'</td>'+
+        '<td class="num">'+(it.subtotal==null?'—':mon+fmt(it.subtotal,2))+'</td></tr>';
+    }).join('')+
+    '</tbody></table>'+
+    ((o.total_usd>0||o.total_ars>0)?('<div style="text-align:right;font-size:17px;font-weight:800;margin-top:10px">Total: '+fmtTotalMon(Number(o.total_usd)||0,Number(o.total_ars)||0)+'</div>'):'')+
+    (o.nota?('<div class="nota">Nota: '+esc(o.nota)+'</div>'):'')+
+    '<div class="pie">Loekemeyer · Gestión Productiva 2.0</div>'+
+    '</body></html>';
+  w.document.write(html);
+  w.document.close();
+  w.focus();
+  setTimeout(function(){ w.print(); }, 250);
+}
+
+function mostrarTab(t){
+  $('panGen').classList.toggle('hidden', t==='ocs');
+  $('panOcs').classList.toggle('hidden', t!=='ocs');
+  $('tabGen').classList.toggle('active', t!=='ocs');
+  $('tabOcs').classList.toggle('active', t==='ocs');
+}
+$('tabGen').addEventListener('click',function(){ mostrarTab('gen'); });
+$('tabOcs').addEventListener('click',function(){ mostrarTab('ocs'); });
+
+$('q').addEventListener('input', render);
+boot();
+</script>
+</body>
+</html>

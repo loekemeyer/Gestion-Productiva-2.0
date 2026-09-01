@@ -1,7 +1,5 @@
 "use strict";
 
-const SUPABASE_URL = "https://hrxfctzncixxqmpfhskv.supabase.co";
-const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhyeGZjdHpuY2l4eHFtcGZoc2t2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI3MjQyNjEsImV4cCI6MjA4ODMwMDI2MX0.4L6wguch8UZGhC2VpzrWcCjJGUV-IkYsl9JoCWrOLUs";
 const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 const TABLA_ARTS     = "Articulos x Prov AT";
@@ -28,23 +26,12 @@ let selectedProv = "";
 let fetchedArts  = [];
 let isSubmitting = false;
 
-/* HELPERS */
+/* HELPERS (esc / fecha AR / codigo: compartidos en gp2-envios-common.js) */
 function setStatus(t, c = "") { statusEl.className = "status" + (c ? ` ${c}` : ""); statusEl.textContent = t; }
 function setTableMsg(t, c = "") { tableMsg.className = "status" + (c ? ` ${c}` : ""); tableMsg.textContent = t; }
-function escapeHtml(v) { return String(v ?? "").replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;"); }
-
-function arDateISO() {
-  return new Intl.DateTimeFormat("sv-SE", {
-    timeZone: "America/Argentina/Buenos_Aires",
-    year: "numeric", month: "2-digit", day: "2-digit"
-  }).format(new Date());
-}
-
-function genCode(len = 4) {
-  const min = Math.pow(10, len - 1);
-  const max = Math.pow(10, len) - 1;
-  return String(Math.floor(min + Math.random() * (max - min + 1)));
-}
+const escapeHtml = GP2EE.esc;
+const arDateISO = GP2EE.fechaAR;
+const genCode = GP2EE.genCode;
 
 /* DATA */
 async function getProveedores() {

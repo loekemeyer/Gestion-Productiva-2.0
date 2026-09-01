@@ -5,8 +5,6 @@
    ECharts 5 + Supabase JS v2
    ============================================================ */
 
-const SUPABASE_URL = "https://hrxfctzncixxqmpfhskv.supabase.co";
-const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhyeGZjdHpuY2l4eHFtcGZoc2t2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI3MjQyNjEsImV4cCI6MjA4ODMwMDI2MX0.4L6wguch8UZGhC2VpzrWcCjJGUV-IkYsl9JoCWrOLUs";
 // MIGRADO a schema GP2: los datos salen del RPC "GP2".produccion_bundle
 // (espejo de la produccion vieja en "GP2".produccion). Ver __run/cargarDatos.
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY, { db: { schema: 'GP2' } });
@@ -29,6 +27,7 @@ let zoomDebounce = null;
 let fullStartMs = null, fullEndMs = null;
 let chart = null;
 let suppressZoomHandler = false;
+let cargaSeq = 0;               // token: descarta respuestas viejas del RPC
 
 // ----- DOM -----
 const $matriz   = document.getElementById("selMatriz");
@@ -180,7 +179,11 @@ async function cargarDatos() {
   // GP2: el RPC ya aplica los filtros (Eliminar<>S, Legajo<>1, Uni>0, Tiempo_Toma>0,
   // matriz y anio) y devuelve las filas ordenadas por fecha/hora con las claves viejas
   // (Matriz, Legajo, Uni, Fecha, Segundos_Trabajados, Tiempo_Toma, Premio, ...).
+  const seq = ++cargaSeq;
   const { data: bundle, error } = await sb.rpc("produccion_bundle", { p_matriz: nMatriz, p_anio: anio });
+  // Si mientras esperabamos se disparo otra carga (cambio de matriz/anio),
+  // esta respuesta quedo vieja: no pisar los datos de la carga mas nueva.
+  if (seq !== cargaSeq) return;
   if (error) { console.error(error); $loading.style.display = "none"; $empty.classList.add("visible"); return; }
   const rows = (bundle && bundle.rows) || [];
 

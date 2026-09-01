@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="es">
 <head>
-  <script src="../auth-guard.js"></script>
+  <script src="../auth-guard.js?v=20260829f"></script>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Stock Cajas</title>
@@ -54,7 +54,7 @@
         </div>
         <div class="field">
           <label for="numMeses">Meses</label>
-          <input id="numMeses" type="number" value="4" min="1" max="24" step="1" style="width:60px" />
+          <input inputmode="numeric" id="numMeses" type="number" value="4" min="1" max="24" step="1" style="width:60px" />
         </div>
       </div>
 
@@ -81,6 +81,7 @@
     </div>
   </div>
 
-  <script src="cajas.js"></script>
+  <script src="../supabase-config.js?v=20260831d"></script>
+<script src="cajas.js"></script>
 </body>
 </html>

@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="es">
 <head>
-<script src="../auth-guard.js"></script>
+<script src="../auth-guard.js?v=20260829f"></script>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>Entrega Proveedores Cervantes</title>
@@ -116,11 +116,10 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="../supabase-config.js?v=20260831d"></script>
 <script>
 "use strict";
 
-const SUPABASE_URL = "https://hrxfctzncixxqmpfhskv.supabase.co";
-const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhyeGZjdHpuY2l4eHFtcGZoc2t2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI3MjQyNjEsImV4cCI6MjA4ODMwMDI2MX0.4L6wguch8UZGhC2VpzrWcCjJGUV-IkYsl9JoCWrOLUs";
 const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 // Sector SC (lo que le mandamos) por proveedor PS
@@ -408,7 +407,7 @@ function buildModalPS() {
     const codsList = it.cods.map(c => `${c.cod_art} ${c.desc}`).join(' / ');
     row.innerHTML = `
       <input type="text" value="${esc(it.sector_factura)}" readonly class="codeRO">
-      <input type="number" min="0" step="1" placeholder="0" data-role="unidades" data-i="${i}">
+      <input inputmode="numeric" type="number" min="0" step="1" placeholder="0" data-role="unidades" data-i="${i}">
       <div class="descCell">${esc(it.parte_sp_desc)} <span style="color:#666;font-size:12px">(${it.kgxuni_sp ? Number(it.kgxuni_sp).toFixed(5) : '?'} kg/uni — usado por: ${esc(codsList)})</span></div>
     `;
     linesWrap.appendChild(row);
@@ -427,7 +426,7 @@ function buildModalRecepcion() {
     row.style.padding = '6px 0';
     row.innerHTML = `
       <input type="text" value="${esc(it.cod)}" readonly class="codeRO">
-      <input type="number" min="0" step="1" placeholder="0" data-role="cantidad" data-i="${i}">
+      <input inputmode="numeric" type="number" min="0" step="1" placeholder="0" data-role="cantidad" data-i="${i}">
       <div class="descCell">${esc(it.desc)}</div>
     `;
     linesWrap.appendChild(row);

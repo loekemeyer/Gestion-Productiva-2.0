@@ -1,4 +1,27 @@
+/* ============================================================
+   INTERRUPTOR DEL LOGIN — una sola linea prende y apaga todo.
+
+     false = SUELTO (hoy). No pide login: se entra directo al menu.
+     true  = con login de Google + whitelist, como estaba.
+
+   APAGADO el 2026-08-29 por pedido del usuario: "la pagina ya esta
+   privada y va a costar que accedan, por ahora prefiero que este suelto".
+   Es momentaneo. Para volver a prenderlo: poner true aca y bumpear el ?v=
+   de auth-guard.js en los HTML (si no, las tablets siguen con el cacheado).
+
+   OJO, lo que este interruptor NO cambia: el login siempre fue una tranquera
+   de PANTALLA, no una barrera de datos. La clave anon viaja en el HTML de
+   cada pagina, asi que quien tenga la URL siempre pudo llamar a las RPCs.
+   Lo que de verdad protege la base es la RLS + que toda escritura pase por
+   RPCs SECURITY DEFINER que validan. Eso sigue igual, prendido o apagado.
+   ============================================================ */
+var GP2_AUTH_ON = false;
+window.GP2_AUTH_ON = GP2_AUTH_ON;
+
 (function() {
+  // 0) Login apagado -> no se controla nada, se entra suelto.
+  if (!GP2_AUTH_ON) return;
+
   // 1) Sin login (sessionStorage) -> mandar a login.
   if (sessionStorage.getItem('gp_auth') !== 'ok') {
     redirigirLogin();

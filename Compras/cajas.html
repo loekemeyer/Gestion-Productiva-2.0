@@ -1,11 +1,12 @@
 <!doctype html>
 <html lang="es">
 <head>
-  <script src="../auth-guard.js"></script>
+  <script src="../auth-guard.js?v=20260829f"></script>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Insumos - Cajas</title>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="../supabase-config.js?v=20260831d"></script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -267,7 +268,7 @@
         </div>
         <div class="field">
           <label>Meses cobertura</label>
-          <input id="numMeses" type="number" value="4" min="1" max="24" step="1" style="width:70px" oninput="renderStock()" />
+          <input inputmode="numeric" id="numMeses" type="number" value="4" min="1" max="24" step="1" style="width:70px" oninput="renderStock()" />
         </div>
       </div>
       <div id="infoConteo" style="padding:10px 14px;background:#eff6ff;border:1px solid #bfdbfe;border-radius:10px;margin-bottom:12px;font-size:13px;color:#1e40af;display:none">
@@ -308,7 +309,7 @@
       <div class="filters">
         <div class="field">
           <label>Meses cobertura</label>
-          <input id="numMesesRelev" type="number" value="4" min="1" max="24" step="1" style="width:70px" oninput="recalcRelev()" />
+          <input inputmode="numeric" id="numMesesRelev" type="number" value="4" min="1" max="24" step="1" style="width:70px" oninput="recalcRelev()" />
         </div>
         <div class="field">
           <label>Observaciones</label>
@@ -360,8 +361,6 @@
 <script>
 "use strict";
 
-const SUPABASE_URL = "https://hrxfctzncixxqmpfhskv.supabase.co";
-const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhyeGZjdHpuY2l4eHFtcGZoc2t2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI3MjQyNjEsImV4cCI6MjA4ODMwMDI2MX0.4L6wguch8UZGhC2VpzrWcCjJGUV-IkYsl9JoCWrOLUs";
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 const UNI_X_PAQUETE = 25;
@@ -953,7 +952,7 @@ function mostrarResumenPedido(origen) {
     totalUni += p.cantidad;
     totalPaq += p.paq;
     html += "<tr>" +
-      "<td style='text-align:center;padding:4px'><input class='inp-cell' type='number' id='pp_pr_" + i + "' value='" + (p.prioridad || "") + "' min='1' style='width:50px'></td>" +
+      "<td style='text-align:center;padding:4px'><input inputmode="numeric" class='inp-cell' type='number' id='pp_pr_" + i + "' value='" + (p.prioridad || "") + "' min='1' style='width:50px'></td>" +
       "<td style='padding:4px;font-weight:700'>Caja " + p.nCaja + "</td>" +
       "<td style='text-align:right;padding:4px'>" + fmt(p.stockTotal) + "</td>" +
       "<td style='text-align:right;padding:4px'>" + fmt(p.consMes) + "</td>" +
