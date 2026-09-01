@@ -103,7 +103,24 @@ pantalla de Inyectores, con los botones **Se fabrica** / **Discontinuo**.
 - **Cartones → Talleres Gráficos Pol**, siempre el mismo, los 85. `[usuario]`
 - **Cajas → Corrugadora del Sur**, siempre el mismo, las 9. `[usuario]`
 - **Flejes →** cada uno tiene el suyo (Basconia, Aperam, Hermac, Brawin, Szapiro,
-  JL Metales, EstaMetal, Altrak). `[dato: GP2.fleje_detalle]`
+  JL Metales, Altrak). `[dato: GP2.fleje_detalle]`. **EstaMetal salió de circulación**
+  `[usuario 2026-09-01]`: se filtra del listado de proveedores y sus insumos ya no
+  aparecen en Recepción; la data cruda del componente queda en la BD para no perder
+  historial, si se quiere purgar pasa por gp2-cirujano.
+
+### Recepción de flejes: qué informa cada proveedor en el remito `[usuario 2026-09-01]`
+El popup de Recepción Insumos arma los campos según el proveedor (además del **KG
+total** que va siempre):
+
+- **Basconia** → `Kg total` + **`Kg x Rollo`** (promedio; el proveedor no informa
+  rollo por rollo). Internamente se guarda `rollos = round(kg / kg_x_rollo)` para
+  que el pesaje del paso 2 tenga la cuenta.
+- **Altrak / Hermac** → `Kg total` + **`Rollos totales`**.
+- **Aperam / Brawin / Szapiro / JL Metales** → **solo `Kg total`**, nada más.
+
+El campo Pallets del remito se sacó: el paso 2 arma 1 pallet por default y el
+operario suma con "+ pallet" si el remito trajo más. Ver `fieldsFleje(prov)` en
+`StockFlejes/RecepcionInsumos_GP2.html`.
 - **Importado** (marcador, no es una empresa): la **Cremallera (E13)** y los insumos del
   **corta queso** (Z19A alambre, PB1 cilindro, V20 tornillo) **ya no se fabrican, se
   importan**. `[usuario 2026-08-29]`
