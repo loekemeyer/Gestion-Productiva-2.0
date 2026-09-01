@@ -388,11 +388,18 @@ function fieldsFleje(nom){
   // en KG totales" — flip respecto al mensaje anterior que decia unidades].
   return {};
 }
-// EstaMetal salio de circulacion (usuario 2026-09-01: "y saca EstaMetal") — se
-// filtra del listado de proveedores y de los insumos visibles. La data cruda del
-// componente sigue en la BD; si en el futuro se quiere purgar por completo,
-// pasa por gp2-cirujano.
-function ocultarProv(nom){ return String(nom||'').trim().toLowerCase()==='estametal'; }
+// Proveedores ocultos del listado del operario (no llegan sus entregas a
+// Cervantes/Virgilio, asi que no tiene sentido que el operario los vea):
+//   - EstaMetal (2026-09-01: "y saca EstaMetal") — fuera de circulacion.
+//   - Altrak (2026-09-01: entrega alambre a Charcas, NO en Cervantes. Charcas
+//     lo corta y entrega los filtros 031/034 en Cervantes con su propio
+//     proveedor. La factura de Altrak la carga Pagos por otro flujo).
+// La data cruda del componente sigue en la BD; si se quiere purgar por
+// completo pasa por gp2-cirujano.
+function ocultarProv(nom){
+  var p = String(nom||'').trim().toLowerCase();
+  return p==='estametal' || p==='altrak' || p==='altrack';
+}
 function pintarFieldsFleje(flds){
   var row = $('rolloPallRow');
   var partes = [];
