@@ -625,6 +625,15 @@ costo se CALCULA — nunca se guarda cocinado.** Implementado:
   preguntar. OJO: `codigo_multiplo`/`min_codigo_x_multiplo` de la tabla maestra se
   cargaron con el pedido mínimo (12.000/16.000/25.000/30.000) y 1 — semántica a
   confirmar, la puso esta sesión `[deducido]`.
+- `[usuario 2026-09-01]` **Bolsa de cartón embolsado** = paquete de paquetes. Cada
+  bolsa tiene N paquetes según el formato (todos los paquetes = 250 uni): **Huevo**
+  2000 uni/bolsa = 8 paq · **8** 3000 uni/bolsa = 12 paq · **C** 1000 uni/bolsa = 4
+  paq · **LOKE** 1000 uni/bolsa = 4 paq. Guardado en columna nueva
+  `GP2.carton_formato.uni_x_bolsa` (Pliego/Bolsa = NULL, no son cartón formal). En
+  Recepción: **el remito se anota en PAQUETES** (lo que dice el proveedor), pero **el
+  control físico se cuenta en BOLSAS** (más rápido que contar paquete por paquete).
+  La RPC `guardar_control_cartones` acepta `bolsas` o `paquetes` por ítem y calcula
+  `total_uni = bolsas*uni_x_bolsa` cuando aplica.
 
 ### Auditoría del 2026-08-31 (5 agentes) — ver `AUDITORIA_GP2_2026-08-31.md`
 
