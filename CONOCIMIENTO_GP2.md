@@ -115,8 +115,10 @@ total** que va siempre):
 - **Basconia** → `Kg total` + **`Kg x Rollo`** (promedio; el proveedor no informa
   rollo por rollo). Internamente se guarda `rollos = round(kg / kg_x_rollo)` para
   que el pesaje del paso 2 tenga la cuenta.
-- **Altrak / Hermac** → `Kg total` + **`Rollos totales`**.
-- **Aperam / Brawin / Szapiro / JL Metales** → **solo `Kg total`**, nada más.
+- **Hermac** → `Kg total` + **`Rollos totales`**.
+- **Aperam / Brawin / Szapiro / JL Metales / Altrak** → **solo `Cantidad`** (kg
+  o uni según la UM del fleje), sin campos extra. Altrak historicamente cargaba
+  unidades (rollos) `[usuario 2026-09-01]`.
 
 El campo Pallets del remito se sacó: el paso 2 arma 1 pallet por default y el
 operario suma con "+ pallet" si el remito trajo más. Ver `fieldsFleje(prov)` en

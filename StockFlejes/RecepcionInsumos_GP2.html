@@ -348,10 +348,11 @@ function provPideRollos(nom){ return provModo(nom)==='rollos_remito'; }
 function fieldsFleje(nom){
   var p = String(nom||'').trim().toLowerCase();
   if (p==='basconia') return { kgPorRollo:true };
-  if (p==='altrak' || p==='altrack') return { rollos:true };
   if (p==='hermac') return { rollos:true };
-  // Aperam / Brawin / Szapiro / JL Metales: solo Kg total, sin campos extra
-  // [usuario 2026-09-01: "KG totales jl metales" — confirmado como los demas].
+  // Aperam / Brawin / Szapiro / JL Metales / Altrak: solo Cantidad (kg o uni
+  // segun la UM del fleje), sin campos extra. Altrak vuelve al comportamiento
+  // previo [usuario 2026-09-01: "altrak dejalo como estaba antes, no es kg
+  // total, eran las unidades, tal y como se hacia antes"].
   return {};
 }
 // EstaMetal salio de circulacion (usuario 2026-09-01: "y saca EstaMetal") — se
