@@ -541,7 +541,7 @@ function pintarMarcaChips(){
 /* Formatos por marca (regla del negocio):
    LOEKE -> C, 8, Huevo   |   CHEF -> LOKE, 8, Huevo
    Sin marca -> los 4 (por si aparece algo huerfano) */
-var FORMATOS_POR_MARCA = { LOEKE:['C','8','Huevo','LOKE','Pliego C','Bombilla'], CHEF:['LOKE','8','Huevo','Bombilla'], _sin:['C','8','Huevo','LOKE','Pliego C','Bombilla'] };
+var FORMATOS_POR_MARCA = { LOEKE:['C','8','Huevo','LOKE','Bolsa','Pliego C','Bombilla'], CHEF:['LOKE','8','Huevo','Bombilla'], _sin:['C','8','Huevo','LOKE','Bolsa','Pliego C','Bombilla'] };
 function pintarFormatoChips(){
   var fw=$('formatoWrap'), fg=$('formatoChips');
   if (!marcaSel){ fw.classList.add('hidden'); fg.innerHTML=''; return; }
