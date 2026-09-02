@@ -6,7 +6,11 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<!-- v3.40.0 (2026-09-02) — UI cartones: se sacaron los botones -N/-1/tacho y el texto
+<!-- v3.40.1 (2026-09-02) — FIX: cargar un CARTON por el popup (lapiz) dejaba la entrada
+     del buffer sin 'paq' (pushPend guardaba solo 'paquetes'), asi que no salia el chip
+     y flushPend calculaba p.paq*PAQ() = NaN -> el RPC rechazaba y no se podia terminar
+     el remito. Ahora pushPend setea paq desde cantRaw y flushPend/chip tienen fallback.
+     v3.40.0 (2026-09-02) — UI cartones: se sacaron los botones -N/-1/tacho y el texto
      "N paq pendientes"; ahora el chip amarillo del remito va debajo de CADA tarjeta en
      TODOS los rubros, con un lapiz (✏️) que abre el popup para corregir a mano.
      v3.39.0 (2026-09-02) — UI: el chip del remito en curso (cantidad + tacho) se movio
@@ -761,7 +765,10 @@ function pintarItems(list){
     var _pnd = PEND[String(i.comp_id)];
     if (_pnd){
       var _txt = '';
-      if (i.sector_id===10){ if (Number(_pnd.paq)>0) _txt = _pnd.paq+' paq'; }
+      if (i.sector_id===10){
+        var _pq = Number(_pnd.paq) || Number(_pnd.cantRaw) || 0;  // +N/+1 usa paq, el popup cantRaw
+        if (_pq>0) _txt = _pq+' paq';
+      }
       else if (Number(_pnd.cant)||Number(_pnd.cantRaw)){ _txt = String(_pnd.cantRaw||_pnd.cant)+' '+(_pnd.unidadRaw||_pnd.unidad||'uni'); }
       if (_txt){
         quick += '<div class="qrow qrow-pend" style="justify-content:center">'+
@@ -844,6 +851,11 @@ function pushPend(item, opts){
     rollos: (opts.rollos!=null?Number(opts.rollos):null),
     pallets: (opts.pallets!=null?Number(opts.pallets):null),
     paquetes: (opts.paquetes!=null?Number(opts.paquetes):null),
+    // CARTONES: bumpPend (+N/+1) y flushPend trabajan con 'paq' = nro de PAQUETES.
+    // El popup guardaba solo 'paquetes' y dejaba paq undefined -> flushPend hacia
+    // p.paq * PAQ() = NaN y el RPC rechazaba la carga (bug 2026-09-02). cantRaw es
+    // lo que tipeo el operario en paquetes, tanto para carton como para pliego.
+    paq: (opts.modo === 'carton' ? (Number(opts.cantRaw)||0) : 0),
     pideControl: !!opts.pideControl,
     esCarton: !!opts.esCarton,
     esPliego: !!opts.esPliego,
@@ -890,13 +902,16 @@ async function flushPend(){
       if (p.modo === 'carton'){
         // Cartones (bufferizados por +N/+1 desde la tarjeta): cant en uni.
         var pliegoIt = esPliegoIt(p.item);
+        // Defensivo: si la entrada vino del popup vieja (sin 'paq'), caer a cantRaw
+        // para no mandar NaN al RPC.
+        var _paq = Number(p.paq) || Number(p.cantRaw) || 0;
         if (pliegoIt){
           var uxb = Number(p.item.uni_x_bolsa_cat)||100;
-          cantSrv = p.paq * uxb; uSrv = 'uni';
+          cantSrv = _paq * uxb; uSrv = 'uni';
           p.cant = cantSrv; p.unidad = 'uni'; p.paquetes = cantSrv;
         } else {
-          cantSrv = p.paq * PAQ(); uSrv = 'uni';
-          p.cant = cantSrv; p.unidad = 'uni'; p.paquetes = p.paq;
+          cantSrv = _paq * PAQ(); uSrv = 'uni';
+          p.cant = cantSrv; p.unidad = 'uni'; p.paquetes = _paq;
         }
       } else {
         cantSrv = p.cant; uSrv = p.unidad;
