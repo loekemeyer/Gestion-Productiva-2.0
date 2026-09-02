@@ -192,6 +192,26 @@ laminación del 430 varía chapa por chapa; el 28% puede moverse entre
 ~25% y ~30% en pedidos futuros. Ajustar `eclipse_desperdicio_pct` cuando
 haya más muestras.
 
+### Prov Servicios "híbridos" (Charcas / Eclipse) `[usuario 2026-09-02]`
+Charcas y Eclipse son prov_servicio pero **no siguen el flujo PS normal**
+(Envío desde Cervantes → Entrega desde el PS). La MP les llega **directo
+del proveedor externo** (alambre Altrak → Charcas, chapa Aperam → Eclipse)
+y por eso **no hay Envío**: la carga se hace en las pantallas Pagos
+(`Compra Altrak → Charcas`, `Compra Aperam → Eclipse`), y el stock queda
+depositado en la ubicación del PS.
+
+- **Pantalla dedicada**: `Prov Serv/CharcasEclipse/CharcasEclipse_GP2.html`
+  (grupo PS del menú, "Charcas y Eclipse"). Muestra stock MP del PS
+  seleccionado + registra Entrega + historial últimas 20. Fase A del rework
+  aplicado el 2026-09-02 (versión menú v1.17.0).
+- **OC**: se hace a Charcas/Eclipse con OC gemela automática a Altrak/Aperam
+  (`crear_oc` con las 2 ramas, sin cambios).
+- **Stock online** visible en la pantalla nueva: kg de ALAM_FILTRO en
+  Charcas (ubic 13) y kg de CHAPA430 en Eclipse (ubic 48).
+- **Pendiente Fase B (rework 2026-09-02)**: sacar rubros Filtros/Cortados
+  de `RecepcionInsumos_GP2.html` para no duplicar el flujo. Por ahora
+  coexisten ambas entradas mientras se prueba la pantalla nueva.
+
 **Paridad Altrak/Charcas ↔ Aperam/Eclipse `[dato 2026-09-02]`:** los dos
 modelos son gemelos estructurales. Igual: ubicación tipo `proveedor_servicio`
 (Charcas 13 / Eclipse 48), MP en sector 13 Alambre en kg (ALAM_FILTRO

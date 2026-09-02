@@ -1,0 +1,292 @@
+<!doctype html>
+<html lang="es">
+<head>
+<!-- v1.0.0 — PS HIBRIDO CHARCAS + ECLIPSE (usuario 2026-09-02).
+     Prov servicios "hibridos": no reciben Envio desde Cervantes (la MP les llega
+     directo del proveedor externo: alambre Altrak -> Charcas, chapa Aperam ->
+     Eclipse) y por eso no viven en la pantalla PS normal (Envios/Entregas).
+     Aca:
+       - Stock online de MP almacenada en el prov servicio (kg de ALAM_FILTRO en
+         Charcas ubic 13, kg de CHAPA430 en Eclipse ubic 48).
+       - Registrar ENTREGA del prov servicio hacia Cervantes: Charcas -> F90/F90B
+         en Sector Fleje (5) con RPC cargar_recepcion_charcas (paq de 10 kg);
+         Eclipse -> 1686 en Sector Procesado (2) con RPC cargar_recepcion_eclipse
+         (uni del remito).
+       - Historial ultimas 20 entregas del prov seleccionado.
+     La carga de la MP (Altrak/Aperam) se sigue haciendo en las pantallas Pagos
+     ("Compra Altrak -> Charcas" y "Compra Aperam -> Eclipse") - esta pantalla
+     solo consulta el stock resultante y descuenta cuando el PS entrega. -->
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Charcas y Eclipse · PS · GP2</title>
+<script src="../../auth-guard.js?v=20260829f"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="../../supabase-config.js?v=20260831d"></script>
+<link rel="stylesheet" href="../../gp2-modulo.css?v=20260830q"/>
+<link rel="icon" type="image/png" href="../../GP2_favicon.png">
+<link rel="apple-touch-icon" href="../../GP2_favicon.png">
+<style>
+.card{max-width:760px}
+.steps{padding:16px 18px 24px}
+.tabs{display:flex;gap:8px;margin-bottom:20px}
+.tab{flex:1;padding:14px 12px;font-size:19px;font-weight:800;border:2px solid #d0d7de;border-radius:12px;background:#fff;cursor:pointer;color:#334155;font-family:inherit;text-align:center}
+.tab.act{background:#cddaea;border-color:#7ea3c7;color:#0b3b73}
+.stock-panel{background:#eef4fb;border:2px solid #cddaea;border-radius:12px;padding:16px 20px;margin:0 0 20px;text-align:center}
+.stock-panel .lbl{font-size:14px;font-weight:800;color:#475569;text-transform:uppercase;letter-spacing:.5px}
+.stock-panel .val{font-size:38px;font-weight:900;color:#0b3b73;margin-top:4px;font-variant-numeric:tabular-nums}
+.stock-panel .val small{font-size:20px;color:#0b5cad;font-weight:800}
+.stock-panel .sub{font-size:13px;color:#475569;margin-top:4px;font-weight:600}
+.form-row{display:flex;flex-wrap:wrap;gap:14px;margin:12px 0}
+.field{display:flex;flex-direction:column;gap:6px;flex:1 1 220px;min-width:160px}
+.field label{font-size:16px;font-weight:700;color:#333}
+.field input,.field select{height:48px;padding:0 14px;border:2px solid #d0d7de;border-radius:10px;font-size:20px;font-weight:600;background:#fff;font-family:inherit}
+.field input:focus,.field select:focus{outline:none;border-color:#0b3b73}
+.field.qty input{text-align:right;font-size:26px;font-weight:800}
+.hint{font-size:13px;color:#666;font-weight:600}
+.eq-line{font-size:15px;color:#0b3b73;font-weight:700;padding:4px 0;min-height:20px}
+#btnGuardar{min-height:52px;padding:14px 28px;font-size:20px;font-weight:900;margin-top:8px;width:100%}
+#btnGuardar:disabled{opacity:.45;cursor:not-allowed}
+.hist{margin-top:24px}
+.hist h3{font-size:16px;font-weight:800;color:#475569;text-transform:uppercase;letter-spacing:.5px;margin:0 0 8px}
+.hist table{width:100%;border-collapse:collapse;font-size:16px;font-variant-numeric:tabular-nums}
+.hist th{text-align:left;font-weight:800;color:#475569;padding:8px 10px;border-bottom:2px solid #d0d7de;background:#f6f8fa}
+.hist td{padding:10px;border-bottom:1px solid #e6eaee}
+.hist tr:hover td{background:#f6faff}
+.hist td.n{text-align:right;font-weight:700;color:#0b3b73}
+.hist .empty{color:#888;font-style:italic;padding:14px;text-align:center}
+@media(max-width:480px){.steps{padding:12px}.form-row{gap:10px}.field{flex:1 1 100%}.tab{font-size:16px}}
+</style>
+</head>
+<body>
+
+<div class="card">
+  <div class="header">
+    <h1>Charcas y Eclipse · PS</h1>
+    <div class="hbtns"><a href="../../GP2_MODULOS.html">Atrás</a></div>
+  </div>
+
+  <div class="steps">
+    <div class="tabs">
+      <button class="tab act" id="tabCharcas" data-ps="charcas">Charcas</button>
+      <button class="tab" id="tabEclipse" data-ps="eclipse">Eclipse</button>
+    </div>
+
+    <div class="stock-panel">
+      <div class="lbl" id="stkLbl">Stock actual en Charcas</div>
+      <div class="val"><span id="stkVal">0</span> <small id="stkUm">kg de alambre</small></div>
+      <div class="sub" id="stkSub">MP que le llegó de Altrak. Se descuenta cuando entrega F90/F90B.</div>
+    </div>
+
+    <div class="form-row">
+      <div class="field">
+        <label for="selProd">Producto entregado</label>
+        <select id="selProd"></select>
+      </div>
+      <div class="field">
+        <label for="txtFecha">Fecha</label>
+        <input type="date" id="txtFecha">
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="field">
+        <label for="txtRemito">N° remito (opcional)</label>
+        <input type="text" id="txtRemito" placeholder="Opcional" inputmode="text">
+      </div>
+      <div class="field qty" style="flex:1 1 220px">
+        <label id="qtyLbl" for="txtQty">Cantidad</label>
+        <input type="text" id="txtQty" inputmode="decimal" placeholder="0">
+        <div class="eq-line" id="eqLine"></div>
+      </div>
+    </div>
+
+    <div class="form-row">
+      <button id="btnGuardar" class="btn btn-primary" disabled>✓ Registrar entrega</button>
+    </div>
+
+    <div id="statusMsg" class="status"></div>
+
+    <div class="hist">
+      <h3 id="histTitle">Últimas entregas de Charcas</h3>
+      <table>
+        <thead><tr><th>Fecha</th><th>Producto</th><th>Remito</th><th class="n">Cantidad</th><th class="n">Consumió MP</th></tr></thead>
+        <tbody id="histTbody"><tr><td colspan="5" class="empty">Cargando…</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<script>
+const SB = window.supabase.createClient(SB_URL, SB_ANON, {db:{schema:'GP2'}});
+const $  = id => document.getElementById(id);
+
+// Config de los dos PS hibridos: MP consumida + productos entregados + RPC + ubicaciones
+const PS = {
+  charcas: {
+    nombre:'Charcas',
+    provFactura:'Altrak',
+    mpCodigo:'ALAM_FILTRO', mpUbic:13, mpUm:'kg', mpNombre:'alambre',
+    prodProveedor:'Resortes Charcas',
+    prodSector:5, prodUbic:5,
+    rpc:'cargar_recepcion_charcas',
+    unidad:'paq', unidadLbl:'Cantidad paq. (10 kg c/u)', unidadPh:'paquetes',
+    unidadKgFactor:10   // 1 paq = 10 kg
+  },
+  eclipse: {
+    nombre:'Eclipse',
+    provFactura:'Aperam',
+    mpCodigo:'CHAPA430', mpUbic:48, mpUm:'kg', mpNombre:'chapa 430',
+    prodProveedor:'Eclipse',
+    prodSector:2, prodUbic:2,
+    rpc:'cargar_recepcion_eclipse',
+    unidad:'uni', unidadLbl:'Cantidad uni', unidadPh:'unidades del remito',
+    unidadKgFactor:null   // depende de kg_x_uni del producto
+  }
+};
+
+let psSel='charcas', PROD=[], stockMP=0, desperdicioPct=0;
+
+function hoy(){ var d=new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+function esc(s){ return (s==null?'':String(s)).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+function fmt(n){ var x=Number(n)||0; return Number.isInteger(x)?x.toLocaleString('es-AR'):x.toLocaleString('es-AR',{maximumFractionDigits:2}); }
+function fmtFecha(iso){ if(!iso)return''; var d=new Date(iso); return String(d.getDate()).padStart(2,'0')+'/'+String(d.getMonth()+1).padStart(2,'0')+'/'+d.getFullYear(); }
+function parseNumTol(s){
+  var str=String(s==null?'':s).trim(); if(!str)return NaN;
+  if(str.indexOf(',')>=0) return parseFloat(str.replace(/\./g,'').replace(',','.'));
+  var p=(str.match(/\./g)||[]).length;
+  return p<=1?parseFloat(str):parseFloat(str.replace(/\./g,''));
+}
+function sanDec(v){ return String(v==null?'':v).replace(',','.').replace(/[^\d.]/g,'').replace(/(\..*)\./g,'$1'); }
+
+$('txtFecha').value = hoy();
+
+// ---- Tabs ----
+document.querySelectorAll('.tab').forEach(function(t){
+  t.addEventListener('click', function(){
+    if(psSel===t.dataset.ps) return;
+    psSel = t.dataset.ps;
+    document.querySelectorAll('.tab').forEach(x=>x.classList.remove('act'));
+    t.classList.add('act');
+    cargarTodo();
+  });
+});
+
+// ---- Refrescar equivalencia y estado del boton ----
+$('txtQty').addEventListener('input', function(){
+  var pos=this.selectionStart, ori=this.value, out=sanDec(ori);
+  if(out!==ori){ this.value=out; try{ this.setSelectionRange(Math.max(0,pos-(ori.length-out.length)), Math.max(0,pos-(ori.length-out.length))); }catch(_){}}
+  refreshEq(); refreshBtn();
+});
+$('selProd').addEventListener('change', function(){ refreshEq(); refreshBtn(); });
+$('txtFecha').addEventListener('input', refreshBtn);
+
+function refreshBtn(){
+  var q=parseNumTol($('txtQty').value);
+  $('btnGuardar').disabled = !(q>0 && $('txtFecha').value && $('selProd').value);
+}
+function refreshEq(){
+  var conf=PS[psSel], q=parseNumTol($('txtQty').value)||0, prod=PROD.find(p=>String(p.id)===String($('selProd').value));
+  if(!q||!prod){ $('eqLine').textContent=''; return; }
+  var kgProd, uniOrPaq;
+  if(psSel==='charcas'){
+    kgProd = q * conf.unidadKgFactor;    // paq × 10 kg
+    uniOrPaq = prod.kg_x_uni ? Math.round(kgProd / prod.kg_x_uni) : 0;
+    var kgMP = Math.round(kgProd * (1 + desperdicioPct/100) * 100)/100;
+    $('eqLine').textContent = '= '+fmt(kgProd)+' kg producto ('+fmt(uniOrPaq)+' uni) · consume ~'+fmt(kgMP)+' kg '+conf.mpNombre;
+  } else {
+    kgProd = prod.kg_x_uni ? q * prod.kg_x_uni : 0;
+    var kgMPe = Math.round(kgProd * (1 + desperdicioPct/100) * 10000)/10000;
+    $('eqLine').textContent = '= '+fmt(kgProd)+' kg producto · consume ~'+fmt(kgMPe)+' kg '+conf.mpNombre;
+  }
+}
+
+// ---- Guardar entrega ----
+$('btnGuardar').addEventListener('click', async function(){
+  var m=$('statusMsg'); m.className='status'; m.textContent='';
+  var conf=PS[psSel];
+  var q=parseNumTol($('txtQty').value), fecha=$('txtFecha').value, remito=$('txtRemito').value.trim();
+  var prod=PROD.find(p=>String(p.id)===String($('selProd').value));
+  if(!(q>0)||!prod){ m.className='status bad'; m.textContent='Elegí producto y cantidad válida.'; return; }
+  var conf1 = confirm('Registrar entrega '+conf.nombre+':\n\n'+
+    'Producto: '+prod.codigo+' — '+(prod.descripcion||'')+'\n'+
+    'Fecha: '+fmtFecha(fecha)+'\n'+
+    (remito?('Remito: '+remito+'\n'):'')+
+    conf.unidadLbl+': '+fmt(q)+'\n\n¿Confirmar?');
+  if(!conf1) return;
+  $('btnGuardar').disabled=true; m.textContent='Registrando…';
+  try{
+    var fiso=fecha+'T12:00:00';
+    var params = { p_comp_id: prod.id, p_remito: remito||null, p_fecha: fiso };
+    if(psSel==='charcas') params.p_paquetes = q;
+    else                  params.p_unidades = q;
+    var res = await SB.rpc(conf.rpc, params);
+    if(res.error) throw res.error;
+    var d = res.data||{};
+    m.className='status ok';
+    var stkAntes = d.stock_alambre_charcas_antes ?? d.stock_chapa_eclipse_antes;
+    var stkDesp  = d.stock_alambre_charcas_despues ?? d.stock_chapa_eclipse_despues;
+    var kgMP     = d.kg_alambre_consumido ?? d.kg_chapa_consumida;
+    m.innerHTML='✓ Entrega registrada. Consumió <b>'+fmt(kgMP)+' kg '+conf.mpNombre+'</b>. Stock '+conf.nombre+': '+fmt(stkAntes)+' → <b>'+fmt(stkDesp)+' kg</b>'+
+      (d.alambre_negativo||d.chapa_negativa?' <span style="color:#b42318;font-weight:800">⚠ stock NEGATIVO — revisar</span>':'');
+    $('txtQty').value=''; $('txtRemito').value=''; $('eqLine').textContent='';
+    await cargarTodo(); refreshBtn();
+    setTimeout(function(){ if(m.className==='status ok') m.textContent=''; }, 10000);
+  }catch(e){ m.className='status bad'; m.textContent='Error: '+(e.message||e); }
+  finally{ refreshBtn(); }
+});
+
+// ---- Cargar datos del PS seleccionado ----
+async function cargarTodo(){
+  var conf=PS[psSel];
+  $('stkLbl').textContent = 'Stock actual en '+conf.nombre;
+  $('stkUm').textContent = 'kg de '+conf.mpNombre;
+  $('stkSub').textContent = 'MP que le llegó de '+conf.provFactura+'. Se descuenta cuando entrega '+(psSel==='charcas'?'F90/F90B':'1686')+'.';
+  $('qtyLbl').textContent = conf.unidadLbl;
+  $('txtQty').placeholder = conf.unidadPh;
+  $('histTitle').textContent = 'Últimas entregas de '+conf.nombre;
+
+  // Stock MP en el prov servicio
+  var st = await SB.from('inventario')
+    .select('cantidad, componente:componente_id(codigo)')
+    .eq('ubicacion_id', conf.mpUbic);
+  stockMP=0;
+  if(!st.error){ (st.data||[]).forEach(function(r){ if(r.componente && r.componente.codigo===conf.mpCodigo) stockMP=Number(r.cantidad)||0; }); }
+  $('stkVal').textContent = fmt(stockMP);
+
+  // Desperdicio configurado
+  var claveDesp = (psSel==='charcas') ? 'charcas_desperdicio_pct' : 'eclipse_desperdicio_pct';
+  var p = await SB.from('parametro').select('valor').eq('clave', claveDesp).maybeSingle();
+  desperdicioPct = p.data && p.data.valor ? Number(p.data.valor)||0 : 0;
+
+  // Productos entregables (por proveedor del componente)
+  var pr = await SB.from('componente')
+    .select('id, codigo, descripcion, kg_x_uni, sector_id, unidad_medida')
+    .eq('proveedor', conf.prodProveedor)
+    .order('codigo');
+  PROD = (pr.error?[]:pr.data)||[];
+  $('selProd').innerHTML = ['<option value="">— Elegí —</option>'].concat(
+    PROD.map(p => '<option value="'+p.id+'">'+esc(p.codigo)+' — '+esc(p.descripcion||'')+'</option>')
+  ).join('');
+
+  // Historial
+  var res = await SB.from('recepcion_insumo')
+    .select('fecha, remito, cantidad, unidad, componente:componente_id(codigo, descripcion), rollos_json')
+    .eq('proveedor', conf.prodProveedor).order('fecha',{ascending:false}).limit(20);
+  var tb=$('histTbody');
+  if(res.error){ tb.innerHTML='<tr><td colspan="5" class="empty">Error: '+esc(res.error.message)+'</td></tr>'; return; }
+  var rows=res.data||[];
+  if(!rows.length){ tb.innerHTML='<tr><td colspan="5" class="empty">Sin entregas registradas todavía.</td></tr>'; return; }
+  tb.innerHTML=rows.map(function(r){
+    var cod = r.componente && r.componente.codigo || '—';
+    var kgMP = r.rollos_json && (r.rollos_json.kg_alambre_consumido ?? r.rollos_json.kg_chapa_consumida);
+    var cantStr = fmt(r.cantidad)+' '+(r.unidad||'');
+    if(r.rollos_json && r.rollos_json.paquetes){ cantStr = fmt(r.rollos_json.paquetes)+' paq · '+cantStr; }
+    return '<tr><td>'+fmtFecha(r.fecha)+'</td><td><b>'+esc(cod)+'</b></td><td>'+esc(r.remito||'—')+'</td><td class="n">'+cantStr+'</td><td class="n">'+(kgMP?fmt(kgMP)+' kg':'—')+'</td></tr>';
+  }).join('');
+
+  refreshEq();
+}
+
+cargarTodo();
+</script>
+</body>
+</html>
