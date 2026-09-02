@@ -1517,6 +1517,36 @@ frontmatter decía `mcp__Supabase__` pero el server real del proyecto es
 `mcp__c1349a3b-...__`. Corregido en los 3 agentes que tocan la base. La sesión principal
 tomó el protocolo (la parte útil) y ejecutó las consultas.
 
+## 2e-bis. `minimo` y `maximo` no miden lo mismo (2026-09-02)
+
+Se confundieron una vez, así que queda escrito:
+
+- **`minimo` = lo que consumís.** `consumo_uni_mes × ubicacion.meses_minimo` (en flejes, kg).
+  Lo calcula **`recalcular_minimos()`** (creada el 2026-09-02, idea 7211), el espejo de las
+  de máximos que ya existían. Marca las filas que toca con `minimo_origen = 'consumo'`.
+- **`maximo` = lo que entra.** En crudo/procesado es físico (5 cajones ×`uni_x_cajon`,
+  `maximo_origen 'cinco_cajones'` o `'fisico'`); en los sectores de insumo sale de la Est
+  Madre, que también es consumo (`consumo × meses_stock`, `maximo_origen 'est_madre'`).
+
+**Por eso `minimo > maximo` puede ser correcto**: significa que en ese lugar **no entra lo
+que gastás** en esos meses. Después del recálculo quedan **77 filas así**, todas de máximo
+físico — el caso más duro es **V9 en Sector Remache**: mínimo 113.912, máximo 10.581,
+consumo 28.478/mes, o sea que ahí entran **menos de 15 días** de remaches. No es un dato
+para arreglar: es la planta, y el que compra tiene que saberlo.
+
+**Lo que NO se hizo, a propósito**: se había propuesto "topar el faltante contra el
+máximo". Mirando el código no corresponde — `oc_bundle` y `crear_oc` **no usan `minimo` ni
+`maximo`** (la OC pide por `consumo × meses_stock − stock`), así que nunca pedían de más
+por esto. El único que usa el mínimo es `faltantes_bundle`, y ahí la marca de faltante
+**tiene que quedar prendida** en esas 77 filas: es verdad que falta. Topearla sería tapar
+la señal.
+
+**Cuidado al recalcular**: los mínimos son **carga original del usuario** (los 766 del
+estado limpio). `recalcular_minimos()` por eso **no toca** las filas cuyo consumo es 0 o
+desconocido — el número del usuario es mejor dato que un cero calculado — ni las de
+tallerista y proveedor de servicio, que tienen otro origen. La foto previa quedó en
+`GP2.inventario_minimo_backup_20260902` para poder volver atrás.
+
 ## 2e. Faltantes y máximos de Crudo/Procesado: 5 cajones por ubicación (2026-08-31)
 
 `[usuario 2026-08-30]` **"En crudo y procesado, el stock máximo tendría que ser 5
