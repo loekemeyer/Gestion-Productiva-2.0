@@ -119,8 +119,13 @@ una **decisión ya tomada**. Por eso `componente.estado_compra`:
   Se confirmó que Esther no estaba en `GP2.proveedor_servicio` (eran 12 PS) y se la **dio de
   alta el 2026-09-02** (`id 14`, proceso *Calado*, migración `alta_ps_esther_calado`;
   `cod_prov` queda null hasta que el usuario lo aporte) `[dato: GP2.proveedor_servicio]`.
-  **Falta todavía la ruta**: el paso `proveedor_servicio` PC1A crudo → PC1A calado no está
-  cargado, y sin tarifa de Esther el costo de ese calado sigue en 0.
+  **Esther cala los DOS mangos, no solo el 505** `[usuario 2026-09-02]`: **PC1A** (Mgo
+  Pelapapa 505 Calado) y **PC1B** (Mgo Pelapapa 123) — "el mango que se usa para 505 y para
+  123". Los dos se compran a Pettofrezza Rafael y los dos pasan por el calado de Esther.
+  **Falta todavía la ruta**: el paso `proveedor_servicio` crudo → calado no está cargado
+  (ni para PC1A ni para PC1B), y sin tarifa de Esther el costo de ese calado sigue en 0.
+  **Traba concreta**: hoy NO existe un componente "crudo" (sin calar) separado de PC1A/PC1B,
+  y sin ese par crudo→calado no se puede trazar el paso sin inventar un componente nuevo.
 - **`PCP3` (Clavo 505): se compra a Trefilados Industriales.** `[usuario 2026-09-02]` Compra
   directa (sin proceso). **Ya aplicado** `[dato: GP2, verificado 2026-09-02]`: Trefilados
   Industriales está en el maestro `proveedor_insumo` (rubro *Sector Plástico*) y PCP3
