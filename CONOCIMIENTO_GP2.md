@@ -1398,6 +1398,33 @@ N°22): otra prueba de que los joins van por id, nunca por código.
 **Pendiente**: el 101 (Abrelatas) sigue sin fila en Est Madre y sin respuesta —
 ¿también discontinuado/importado?
 
+## 2i-ter. Módulo "Recepciones · Checklist Pagos" (2026-09-02)
+
+`[usuario 2026-09-02]` *"Hace un módulo que reciba todas las recepciones de los insumos o de
+los talleristas... aquí tengo un checklist de las facturas que tiene que cargar el sector
+de pagos al sistema. Después vemos qué información le agregamos, mínima tienen que estar
+los ítems que reciben y las cantidades, con el cod de prov y el cod de isis de cada item"*.
+Pantalla nueva `Compras/Recepciones_GP2.html` alimentada por la vista
+`GP2.v_recepcion_unificada` (UNION de `recepcion_insumo` + `entrega_prov_at`). Cada línea
+trae `cod_prov` (código ISIS del proveedor: viene de `proveedor_insumo.cod_prov` para
+insumos y de `proveedor_at.cod_prov` para talleristas — nuevo campo agregado a
+`proveedor_insumo`, se llena a demanda) y `cod_isis` (código del componente/artículo).
+Filtros: origen (Insumo/Tallerista/Todo), con/sin factura, rango de fechas, buscador
+libre. KPIs con conteos y botón imprimir. Enlace en el menú, grupo Insumos, como secundario
+(los 2 principales del grupo son y siguen siendo Órdenes de Compra + Recepción Insumos).
+El sector Pagos usa esta pantalla como checklist antes de cargar las facturas al sistema.
+
+## 2i-bis-800. Aclaración: la pinza chica 800 NO se importa (2026-09-02)
+
+`[usuario 2026-09-02]` *"800 no la importa chef. es la misma que 560 pero de chef. ya lo
+hablamos y ya te contesté esto"*. El artículo 800 es la **versión Chef** de la pinza chica
+(el 560 es la versión Loeke); ambos comparten cuerpo N7, remache CV14 y proceso completo
+(fabricación en Cervantes → Pedernera croma todo entero → Carlos Aguirre envasa y entrega
+en Virgilio). NO hay componente "800_importado" ni proveedor Chef en la cadena de armado —
+Chef es solo el cliente al que se le vende esa versión. **Cero cambios estructurales para
+el 800**: sigue con las 4 rutas actuales (201 cuerpo, 458 remache CV14, 428 cartón O5A,
+533 caja A8) todas rematando en Carlos Aguirre → virgilio, cruzando con Pedernera.
+
 ## 2i. Pinza Chica 560 (y 800): Pedernera croma + envasa + entrega (2026-09-02)
 
 `[usuario 2026-09-02]` *"el proceso del 560 es largo, pero lo importante es que su
