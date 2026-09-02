@@ -231,9 +231,13 @@ depositado en la ubicación del PS.
   (`crear_oc` con las 2 ramas, sin cambios).
 - **Stock online** visible en la pantalla nueva: kg de ALAM_FILTRO en
   Charcas (ubic 13) y kg de CHAPA430 en Eclipse (ubic 48).
-- **Pendiente Fase B (rework 2026-09-02)**: sacar rubros Filtros/Cortados
-  de `RecepcionInsumos_GP2.html` para no duplicar el flujo. Por ahora
-  coexisten ambas entradas mientras se prueba la pantalla nueva.
+- **Fase B aplicada 2026-09-02**: se sacaron los rubros Filtros/Cortados de
+  `RecepcionInsumos_GP2.html` (v3.36.0). Ya no hay entrada duplicada — la
+  carga de F90/F90B/1686 vive únicamente en la pantalla dedicada. Los
+  helpers `esFiltroCharcas()`/`esCortadoEclipse()` quedaron como stubs
+  (return false) para no romper llamadas remanentes. Las RPCs
+  `cargar_recepcion_charcas`/`cargar_recepcion_eclipse` siguen desplegadas
+  en Supabase — solo cambia quién las llama (ahora la pantalla nueva).
 
 **Paridad Altrak/Charcas ↔ Aperam/Eclipse `[dato 2026-09-02]`:** los dos
 modelos son gemelos estructurales. Igual: ubicación tipo `proveedor_servicio`
