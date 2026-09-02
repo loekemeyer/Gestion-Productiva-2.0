@@ -146,30 +146,67 @@ sector por el material de la pieza** — se corrige solo si la pieza cambió de 
 Esto vale para todo el sistema: Recepción Insumos agrupa por sector (el chip *Plásticos*
 muestra el clavo, y está bien), y el rubro del proveedor sale del mismo lado.
 
-### `PCP3` (Clavo 505): dónde se usa y por dónde va `[dato: GP2, relevado 2026-09-02]`
+### El clavo 505 se NIQUELA antes de ir al tallerista `[usuario 2026-09-02, aplicado]`
 
-- **7 artículos, 1 clavo por unidad** (`articulo_componente.cantidad = 1` en todos):
-  **099, 108, 123, 505, 513, 586, 713**.
-- **8 rutas** (505 tiene dos, una por tallerista) y **todas el mismo patrón de 3 pasos**:
-  `insumo PCP3` → `tallerista` (arma el artículo) → `virgilio`. Sin matriz y sin proveedor
-  de servicio: el clavo entra comprado y sale dentro del artículo terminado.
-  - **IJUPA**: 108 (`ruta 259`), 513 (`316`), 713 (`584`).
-  - **Lucho**: 123 (`272`), 505 (`297`), 099 (`571`), 586 (`578`).
-  - **Danica García**: 505 (`549`, la segunda ruta del mismo artículo).
-- **Nombre huérfano**: 5 de las 8 rutas se llaman `Insumo CLV505 -> Art N` y las otras 3
-  `Insumo PCP3 -> Art N`. **`CLV505` no existe** como componente, ni en GP2 ni en el
-  `Sector Proce` del despiece del vecino: es un nombre viejo que quedó del alta. El paso
-  apunta bien a PCP3 (`comp_entrada_id`), así que es solo cosmético — conviene unificarlo
-  a PCP3 para no volver a buscar un código que no está.
-- **Peso y costo**: `kg_x_uni = 0,00653`, así que el motor tiene con qué valorizarlo.
-- ⚠ **El precio contradice al proveedor**: la única fila de `precio_proveedor` de PCP3
-  (`id 234`) dice **"Altrak - Clavo Pelapapas 97/92mm"**, `cod_prov 3789`, USD 3,30 **por
-  kg**, lista del 2026-08-27, y arrastra la nota *"falta paso niquelado en ruta, patrón
-  remaches"*. Pero el usuario dijo el 2026-09-02 que **el clavo se compra a Trefilados
-  Industriales**. Los dos no pueden ser: o el precio quedó cargado con el proveedor
-  equivocado, o el clavo viene crudo de un lado y se niquela en otro (patrón de los
-  remaches) y entonces falta ese paso en las 8 rutas. **Pendiente de definir con el
-  usuario** (idea 7208).
+El usuario preguntó *"¿el clavo primero se niquela o va directo al tallerista?"*. Se
+niquela. La cadena real es:
+
+```
+PCP3 (clavo crudo, comprado) → Guazzaroni (niquelado) → D9 (clavo niq.) → tallerista → Virgilio
+```
+
+`[dato: public."Partes x PS" id 237]` — PS *Guazzaroni*, parte *"Clavos 505"*, **SC `PCP3`
+→ SP `D9`**, proceso *Niquelado*, `KG x Uni 0,00653` (el mismo peso que tiene GP2). Y en
+`public."Despiece x Articulo"` cada uno de los 7 artículos lleva **dos** líneas: `PCP3
+"Clavos 505"` y `D9 "Clavos Niq."`, 1 por unidad. Es el mismo patrón que los remaches
+(`CV9 → Guazzaroni → V9`), tal como anticipaba la nota que arrastraba el precio.
+
+**Dónde se usa**: 7 artículos, 1 clavo por unidad — **099, 108, 123, 505, 513, 586, 713**.
+**8 rutas** (el 505 tiene dos, una por tallerista): IJUPA arma 108/513/713, Lucho
+123/505/099/586, Danica García la segunda del 505.
+
+**Lo que se aplicó el 2026-09-02** (migraciones `clavo_505_paso_niquelado_patron_remaches`,
+`d9_mismo_sector_que_el_crudo`, `clavo_tallerista_declara_entrada_d9`,
+`clavo_stock_talleristas_pcp3_a_d9`, `precio_clavo_505_proveedor_trefilados`):
+
+- **`D9` (Clavo 505 Niq.) creado** con `kg_x_uni 0,00653` y `estado_compra 'fabricacion'`
+  (no se compra: se compra el crudo). Vive en el **mismo sector que su crudo**, Sector
+  Plástico — igual que `CV9` y `V9`, que están los dos en Sector Remache.
+- Las **8 rutas pasan de 3 pasos a 4**: `ingreso PCP3` → `proveedor_servicio PCP3→D9
+  (Guazzaroni)` → `tallerista` → `virgilio`. Se renombraron a `Insumo D9 -> Art N` (con eso
+  muere el `CLV505`, que no existía como componente en ningún lado).
+- **`articulo_componente` ahora apunta a D9**, no a PCP3: el artículo lleva el clavo
+  niquelado, igual que los remaches listan `V9` y no `CV9`.
+- **El stock de tallerista pasó de PCP3 a D9** por `GP2.movimiento` (transformación en la
+  misma ubicación): IJUPA tenía −4.908 y ese rojo es del niquelado, que es lo que consume.
+  Los mínimos (Danica 15.000, Lucho 27.108, IJUPA 20.892) también se movieron a D9. El
+  crudo PCP3 queda solo en Sector Plástico (720 uni), que es donde entra.
+- **Costo**: el niquelado son **$17,02 por clavo** (0,00653 kg × $2.606/kg, tarifa
+  Guazzaroni). Los 7 artículos suben ese monto, salvo el **505**, que además **dejaba de
+  contar el clavo dos veces** (tenía dos rutas y el CTE viejo sumaba una por ruta): pasa de
+  $493,57 a $477,51. Los otros: 099 $267,59→$284,61 · 108 $276,21→$293,23 ·
+  123 $175,99→$193,01 · 513 $403,70→$420,72 · 586 $300,71→$317,73 · 713 $391,45→$408,47.
+- **Precio**: la fila (`id 234`) pasa a nombre de **Trefilados Industriales** `[usuario]`.
+  Los **USD 3,30 por kg quedan marcados como NO confirmados** — venían de la fila vieja a
+  nombre de Altrak y el usuario dijo que el costo no lo sabe. `cod_prov` a null (el 3789 era
+  de Altrak).
+
+### ⚠ El paso de tallerista tiene que declarar QUÉ ENTRA `[hallazgo 2026-09-02]`
+
+`v_costo_componente` arma el grafo de la ruta en el CTE `edges`, y **solo toma los pasos que
+tienen `comp_entrada_id` Y `comp_salida_id`**. Si el paso `tallerista` viene con la entrada
+en null, la cadena se corta ahí: **lo que entró al tallerista nunca llega al costo del
+artículo**. Las rutas de fleje lo declaran bien (ruta 44: `tallerista` entrada `A8` → salida
+`103`), pero el patrón "Insumo X → Art Y" de los crudos niquelados quedó con la entrada
+vacía.
+
+Por eso, al pasar el clavo a ese patrón, los 7 artículos perdían el clavo entero. Se
+arregló declarando la entrada (`D9`) en el paso de tallerista de las 8 rutas.
+
+**Lo mismo le pasa hoy a 52 rutas de 12 remaches** (`V1, V2, V3, V4, V5, V6, V7, V8, V9,
+V12, V13, V18D`): su crudo y su niquelado **no están entrando en el costo de los artículos
+que los llevan**. Es el mismo `UPDATE` de una línea. Queda como idea **7210** porque mueve
+el costo de muchos artículos y lo tiene que mirar el usuario.
 
 ### Resto de los rubros
 - **Cartones → Talleres Gráficos Pol**, siempre el mismo, los 85. `[usuario]`
