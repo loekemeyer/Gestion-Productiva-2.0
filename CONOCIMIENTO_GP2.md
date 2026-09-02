@@ -93,11 +93,13 @@ una **decisión ya tomada**. Por eso `componente.estado_compra`:
   (Resorte Batidor Mini y Batidor Pera; LLF8 se compra igual que EP10) y los remaches
   V4, V10, V14, V18D, CV13, CV18D. Los **remaches se compran todos**. `[usuario]`
 - **V13 → Electronica Mandelli** y **W8 → Imel**. `[dato: public."Remaches SP/SC"]`
-- **`PB8B` (Inser. Neg. Batidor Calado) NO es un plástico comprado más: se CALA en
-  fábrica.** `[usuario 2026-09-02]` Hoy en la base está mal: figura en Sector Plástico
-  con proveedor "Pat Bet Plast" y **sin ruta de calado** `[deducido: GP2.componente]`.
-  Cuando se toque va como `fabricacion` (o con una ruta calado sobre el plástico crudo),
-  no como compra directa — no debería ofrecerse comprarlo en Recepción.
+- **`PB8B` (Inser. Neg. Batidor Calado): se COMPRA a Pat Bet Plast (plástico crudo) y
+  DESPUÉS se CALA en fábrica.** `[usuario 2026-09-02]` O sea el proveedor **Pat Bet Plast
+  está BIEN** (sí se compra, sí va en Recepción). Lo que le falta al modelo es el **paso
+  de calado interno** (una ruta/proceso propio sobre el plástico comprado) — hoy figura
+  como plástico comprado a secas, sin ese paso `[deducido: GP2.componente]`. No es
+  `fabricacion` pura ni compra directa a secas: es **compra + proceso propio** (patrón
+  parecido al crudo→niquelado de los remaches, pero acá el proceso lo hacemos nosotros).
 
 Marcar el estado **saca la parte de la Orden de Compra** y deja de contarla como faltante.
 NO se usa el campo `proveedor` para esto: la OC agrupa por proveedor y terminaría
