@@ -1,7 +1,11 @@
 <!doctype html>
 <html lang="es">
 <head>
-<!-- v1.5.0 — OC A ECLIPSE TAMBIÉN DISPARA OC GEMELA A APERAM (Fase 4 modelo Aperam->Eclipse->Cervantes, usuario 2026-09-01: "con altrak y charcas sucede lo mismo con aperam y Eclipse"). crear_oc en Supabase agrega el caso: si proveedor='Eclipse', suma kg_chapa = Σ (uni × kg_x_uni) por item, aplica desperdicio (parametro eclipse_desperdicio_pct=0 default) y crea OC gemela a 'Aperam' con esos kg de CHAPA430. Frontend muestra el N° de la gemela y sus kg en el success box. oc_bundle ya trae 1686 (sector 14 esta en _es_sector_insumo). v1.4.0 — OC A CHARCAS DISPARA OC GEMELA A ALTRAK (Fase 4 modelo Altrak->Charcas->Cervantes, usuario 2026-09-01: "a la par que se emite la orden a charcas se tiene que emitir la orden al track, porque en realidad charcas lo unico que hace es transforma el material del track"). oc_bundle amplia el where con OR proveedor='Resortes Charcas' para que 031/034 aparezcan en el listado; su stock online se busca en Virgilio (ubic 33). Nuevo helper JS esCharcasIt(i)+uniPorPaqCharcas(i): cuando el proveedor es Charcas, el sugerido se convierte de uni a paquetes de 10 kg (round up); el input queda en paquetes con "= N uni" al lado; el submit manda unidad='paq'. La RPC crear_oc detecta proveedor='Resortes Charcas' y crea automaticamente una segunda OC a 'Altrak' con Σ (paquetes × 10 × (1+desperdicio/100)) kg de ALAM_FILTRO, y enlaza las dos por numero en la nota. Success muestra el N° de la gemela y sus kg. v1.3.0 — la OC sale VALORIZADA: precio vigente y subtotal por insumo (precio_proveedor,
+<!-- v1.6.0 — esCharcasIt() detecta por proveedor solo (ya no filtra por sector 12).
+     Motivo: migracion f90(_v2) y f90b (2026-09-02) movieron F90 (id 372) y F90B
+     (id 373) al sector 5 (Fleje) con unidad='kg'. La OC a Charcas sigue pidiendo
+     en paquetes de 10 kg y disparando OC gemela a Altrak por kg de ALAM_FILTRO.
+     v1.5.0 — OC A ECLIPSE TAMBIÉN DISPARA OC GEMELA A APERAM (Fase 4 modelo Aperam->Eclipse->Cervantes, usuario 2026-09-01: "con altrak y charcas sucede lo mismo con aperam y Eclipse"). crear_oc en Supabase agrega el caso: si proveedor='Eclipse', suma kg_chapa = Σ (uni × kg_x_uni) por item, aplica desperdicio (parametro eclipse_desperdicio_pct=0 default) y crea OC gemela a 'Aperam' con esos kg de CHAPA430. Frontend muestra el N° de la gemela y sus kg en el success box. oc_bundle ya trae 1686 (sector 14 esta en _es_sector_insumo). v1.4.0 — OC A CHARCAS DISPARA OC GEMELA A ALTRAK (Fase 4 modelo Altrak->Charcas->Cervantes, usuario 2026-09-01: "a la par que se emite la orden a charcas se tiene que emitir la orden al track, porque en realidad charcas lo unico que hace es transforma el material del track"). oc_bundle amplia el where con OR proveedor='Resortes Charcas' para que 031/034 aparezcan en el listado; su stock online se busca en Virgilio (ubic 33). Nuevo helper JS esCharcasIt(i)+uniPorPaqCharcas(i): cuando el proveedor es Charcas, el sugerido se convierte de uni a paquetes de 10 kg (round up); el input queda en paquetes con "= N uni" al lado; el submit manda unidad='paq'. La RPC crear_oc detecta proveedor='Resortes Charcas' y crea automaticamente una segunda OC a 'Altrak' con Σ (paquetes × 10 × (1+desperdicio/100)) kg de ALAM_FILTRO, y enlaza las dos por numero en la nota. Success muestra el N° de la gemela y sus kg. v1.3.0 — la OC sale VALORIZADA: precio vigente y subtotal por insumo (precio_proveedor,
      hoy regulacion 1 USD / $1000 cajas), total de lo pedido en la barra (US$ y $ separados,
      + equivalente en pesos con el dolar del cron), precios y total en la hoja de impresion,
      y cada OC guarda la foto historica del precio al crearla (crear_oc). v1.2.0 — la celda de consumo es TOCABLE: abre el sustento por articulo
@@ -187,8 +191,11 @@ function filtradas(){
 }
 
 function esCharcasIt(i){
-  return i && Number(i.sector_id)===12
-      && String(i.proveedor||'').trim().toLowerCase()==='resortes charcas';
+  // Cualquier componente cuyo proveedor sea Resortes Charcas se pide en paquetes
+  // de 10 kg. Antes filtraba tambien por sector_id=12; desde la migracion
+  // f90_alambre_filtro_cafe_y_cod_prov_charcas_v2 (2026-09-02) los flejes F90/F90B
+  // viven en sector 5 (Fleje). uniPorPaqCharcas() sigue valido: 10 / kg_x_uni.
+  return i && String(i.proveedor||'').trim().toLowerCase()==='resortes charcas';
 }
 // Uni por paquete de Charcas (10 kg de producto): 10 / kg_x_uni.
 function uniPorPaqCharcas(i){ return i && i.kg_x_uni>0 ? Math.round(10 / Number(i.kg_x_uni)) : 0; }

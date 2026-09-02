@@ -135,12 +135,14 @@ alambre + mismo proceso + mismo ISIS 4596 sale con dos longitudes distintas —
   (que estaba mal — 031 en el vecino es el artículo terminado, no lo que Charcas
   entrega). Stock convertido: 2520 uni × 0,00830 = 20,92 kg de Virgilio (33) a
   Sector Fleje (5), vía dos movimientos tipo ajuste.
-- `F90B` (id 373, aún `codigo='034' desc='34 Terminado' sector=12 unidad='unidad'`)
-  — **pendiente de migrar** con la misma lógica que F90. Otro compañero maneja
-  bombillas de Charcas (los 4 primeros ítems de la lista de precios: Resorte
-  Bicónico, Batidor Pera, Bombilla p/niquelar, Bombilla inox), pero F90B (Filtro
-  Café Gastronómico) es del mismo negocio filtro café — hay que aplicarle el
-  mismo tratamiento cuando el usuario lo confirme.
+- `F90B` (id 373) — kg, prov **Resortes Charcas**, sector 5 (Fleje),
+  `kg_x_uni=0,01162`. **Migrado en `f90b_alambre_filtro_cafe_gastronomico`
+  (2026-09-02, usuario "lo mismo para el filtro cafe")** desde `codigo='034'
+  desc='34 Terminado' sector=12 unidad='unidad'`. Stock convertido: 720 uni ×
+  0,01162 = 8,37 kg de Virgilio (33) a Sector Fleje (5). Otro compañero maneja
+  las **bombillas de Charcas** (los 4 primeros ítems de la lista de precios:
+  Resorte Bicónico, Batidor Pera, Bombilla p/niquelar, Bombilla inox) — F90B
+  no es bombilla, es filtro café gastronómico, mismo negocio que F90.
 
 **Pantallas / flujos:**
 - **Compra Altrak (Pagos)** — `Compras/AltrakCharcas_GP2.html` carga kg del
