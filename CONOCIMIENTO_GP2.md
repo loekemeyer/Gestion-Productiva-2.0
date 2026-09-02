@@ -106,8 +106,25 @@ Dicho textual: *"D1: costo TN 0.067usd. Vende a LK a 0.24usd"*.
 - **Impacto**: los 6 suben **$368,40** cada uno y quedan con `faltan_precios = 0`. En el
   **581** pesa fuerte — pasa de $331,20 a $699,60, o sea que **el espiral es más de la mitad
   del costo del sacacorchos**.
-- **Pendiente menor**: quién es **"TN"**. `componente.proveedor` de D1 sigue en null porque
-  no sé el nombre completo; cuando el usuario lo diga, se asigna y se le pone el `cod_prov`.
+- **"TN" es Tierra Nativa SA** `[usuario 2026-09-02]`, `cod_prov` **3917**. D1 ya quedó
+  asignado a ella, con el `cod_prov` en la fila de precio.
+
+### Tierra Nativa SA (3917): nos VENDE, no arma `[usuario 2026-09-02]`
+
+Dicho textual: *"Tierra nativa (Prov art importados y 231,232,233,234,591). Prov 3917"*.
+
+- Es **proveedor de artículos TERMINADOS IMPORTADOS**: nos vende **231, 232, 233, 234 y
+  591** ya hechos. Cargados en `GP2.articulo_prov_at`. **Sólo el 234 tiene descripción**
+  (*Palo de Amasar Francés 40 cm*, sale del despiece del vecino); los otros cuatro quedaron
+  en null a propósito — el usuario los tiene que dictar, no se inventan.
+- Además nos vende **insumos importados sueltos**: el espiral de sacacorchos **D1**.
+- **Rol dual mal cargado**: estaba **sólo** en `GP2.tallerista` (id 12, con el 3917 ya
+  puesto, cero rutas y cero precios). Ese rol es el equivocado — no arma nada. Se dio de
+  alta donde corresponde (`proveedor_at`, y también `proveedor_insumo` porque
+  `componente.proveedor` es FK contra esa tabla). **La fila de tallerista sigue existiendo**:
+  no se borra sin que el usuario lo confirme, pero ensucia el listado de talleristas.
+- Es otra vuelta de la regla de siempre: **un mismo nombre puede tener varios roles**, y hay
+  que fijarse en cuál es el que de verdad cumple antes de cargarlo.
 
 ### No todo insumo se compra
 `[usuario 2026-08-29]` Una parte sin proveedor no siempre es un dato que falta: puede ser
