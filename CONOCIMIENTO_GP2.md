@@ -117,8 +117,22 @@ Aperam entrega la **chapa 430** (1250×2500×0,8 mm) directo en **Eclipse**
 (proveedor de servicio: corte chapa). Eclipse corta y entrega el insumo
 **1686** en Cervantes (remito en unidades, en cajas que se pesan para
 confirmar). Rendimiento: **1 chapa = 760 unidades**
-→ `kg_x_uni(1686) = 0,01376` `[usuario 2026-09-02, corrige mi cálculo previo
-de 0,025823]` → peso chapa ≈ 10,46 kg. Desperdicio Eclipse: 0%.
+→ **`kg_x_uni(1686) = 0,01376`** `[usuario 2026-09-02, corrige mi cálculo
+previo de 0,025823]` → peso chapa ≈ 10,46 kg. Desperdicio Eclipse: 0%.
+
+**Cruce con la casa del vecino (para no volver a discutirlo)
+`[dato 2026-09-02, SQL sobre public]`:** el descorazonador vive en
+`public."SP Kg"` como **`Z32 "Descarozador de Manzana"`** (no como "1686",
+código nuevo de GP2) con `Kg X Uni = 0,0144` y `KG x Cajon = 10` (prov
+"PENDIENTE (nacional)"); y en `public."Despiece x Articulo"` con el mismo
+0,0144 (usado en el costeo de los artículos 395 y 709 del vecino). GP2
+usa 0,01376 por indicación del usuario — el 0,0144 del vecino queda como
+valor histórico desactualizado; **no se toca `public`** (regla "casa del
+vecino"). **Ojo con el `KG x Cajon = 10` del vecino**: no es un cajón
+estándar de 30 kg, es exactamente **la caja que arma Eclipse**
+`[usuario 2026-09-02]` — por lo tanto ese dato no sirve para triangular
+el kg_x_uni real (760 uni × 0,01376 ≠ 10 porque cada caja no lleva
+exactamente 760 uni; 760 es rendimiento por chapa, no capacidad por caja).
 
 - **Componentes:** `CHAPA430` (kg, prov Aperam, sector 13 Alambre, vive en
   ubic 48 Eclipse) + `1686` **descorazonador** (uni, prov Eclipse, **sector 2
