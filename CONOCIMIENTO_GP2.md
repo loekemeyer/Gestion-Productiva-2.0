@@ -92,6 +92,23 @@ Reglas comunes que ya viven adentro:
   - **Kollplast se quedó sin piezas asignadas**: figura como inyector pero no tiene ninguna.
     Pendiente menor: confirmar si le corresponde alguna o si por ahora no le compramos.
 
+### `D1` (Espiral Sacacorcho): lo importado con su margen a la vista `[usuario 2026-09-02]`
+
+Dicho textual: *"D1: costo TN 0.067usd. Vende a LK a 0.24usd"*.
+
+- **El precio que carga GP2 es USD 0,24 por unidad** — lo que **paga Loekemeyer**. Es el
+  número que va a `precio_proveedor` y el que usa el motor de costos.
+- Los **USD 0,067 son el costo de la contraparte**, no el nuestro. Se anota igual porque es
+  el único caso donde tenemos las dos puntas: **nos lo venden a 3,6 veces su costo**. Si
+  algún día se discute importar directo, ese es el número de la conversación.
+- D1 está como `estado_compra = 'importado'` y **ninguna ruta lo produce**: entra comprado y
+  va a los **6 sacacorchos** (520, 521, 530, 531, 581, 730), 1 por unidad.
+- **Impacto**: los 6 suben **$368,40** cada uno y quedan con `faltan_precios = 0`. En el
+  **581** pesa fuerte — pasa de $331,20 a $699,60, o sea que **el espiral es más de la mitad
+  del costo del sacacorchos**.
+- **Pendiente menor**: quién es **"TN"**. `componente.proveedor` de D1 sigue en null porque
+  no sé el nombre completo; cuando el usuario lo diga, se asigna y se le pone el `cod_prov`.
+
 ### No todo insumo se compra
 `[usuario 2026-08-29]` Una parte sin proveedor no siempre es un dato que falta: puede ser
 una **decisión ya tomada**. Por eso `componente.estado_compra`:
