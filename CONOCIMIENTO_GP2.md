@@ -144,6 +144,23 @@ laminación del 430 varía chapa por chapa; el 28% puede moverse entre
 ~25% y ~30% en pedidos futuros. Ajustar `eclipse_desperdicio_pct` cuando
 haya más muestras.
 
+**Paridad Altrak/Charcas ↔ Aperam/Eclipse `[dato 2026-09-02]`:** los dos
+modelos son gemelos estructurales. Igual: ubicación tipo `proveedor_servicio`
+(Charcas 13 / Eclipse 48), MP en sector 13 Alambre en kg (ALAM_FILTRO
+Altrak / CHAPA430 Aperam), RPC de compra (`cargar_compra_altrak` /
+`cargar_compra_aperam_chapa`), RPC de recepción (`cargar_recepcion_charcas`
+/ `cargar_recepcion_eclipse`), OC gemela dentro de `crear_oc`, parámetro
+de desperdicio, pantalla Pagos. `proveedor_insumo.modo_control` = `peso_total`
+en ambos `[usuario 2026-09-02: "los paquetes se pesan"]` — semántico, el
+HTML detecta por rubro (Filtros/Cortados) no por modo_control. **Ojo**:
+hoy ninguno de los dos popups pide un peso separado; asumen `paq × 10` y
+`uni × kg_x_uni`. Distinto por diseño: sector del producto final (031/034
+en 12 Filtros; 1686 en 2 Procesado); Aperam sigue en Recepción de Flejes
+(entrega dual chapa+flejes), Altrak no (100% va a Charcas). **Pendiente
+menor**: `Charcas.rubro='Bombillas'` (debería ser 'Filtros' o 'Sector
+Procesado'); `Aperam.rubro=NULL` (Altrak tiene 'Sector Alambre'). Ambos
+cosméticos, no afectan lógica.
+
 **Cruce con la casa del vecino (para no volver a discutirlo)
 `[dato 2026-09-02, SQL sobre public]`:** el descorazonador vive en
 `public."SP Kg"` como **`Z32 "Descarozador de Manzana"`** (no como "1686",
