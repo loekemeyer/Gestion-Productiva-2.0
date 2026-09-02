@@ -1,7 +1,10 @@
 <!doctype html>
 <html lang="es">
 <head>
-<!-- v3.38.0 (2026-09-02) — UI: boton "Terminé de cargar remito" a la DERECHA del
+<!-- v3.39.0 (2026-09-02) — UI: el chip del remito en curso (cantidad + tacho) se movio
+     de la barra de arriba a DEBAJO DE CADA TARJETA, centrado; se saco el texto
+     "N pendiente". La barra deja solo el encabezado "Remito en curso · N ítems".
+     v3.38.0 (2026-09-02) — UI: boton "Terminé de cargar remito" a la DERECHA del
      buscador (todos los rubros), sacado el texto "Podés seguir agregando…", y el
      pendiente del remito ahora figura BAJO CADA TARJETA (antes solo cartones).
      v3.37.0 (2026-09-02) — Fase B rework Charcas/Eclipse: se SACAN de Recepcion
@@ -756,7 +759,11 @@ function pintarItems(list){
     if (i.sector_id!==10){
       var _pnc = PEND[String(i.comp_id)];
       if (_pnc && (Number(_pnc.cant)||Number(_pnc.cantRaw))){
-        quick += '<div class="qrow qrow-pend"><span class="pend-info">⏳ '+esc(String(_pnc.cantRaw||_pnc.cant))+' '+esc(_pnc.unidadRaw||_pnc.unidad||'uni')+' pendiente</span></div>';
+        // Chip del remito en curso (cantidad + tacho) CENTRADO debajo de la tarjeta
+        // (regla usuario 2026-09-02). Antes vivia en la barra de arriba.
+        quick += '<div class="qrow qrow-pend" style="justify-content:center">'+
+                 '<span class="rb-pend-item">'+esc(String(_pnc.cantRaw||_pnc.cant))+' '+esc(_pnc.unidadRaw||_pnc.unidad||'uni')+
+                 ' <button class="qbtn qbtn-del" data-pend-del="'+esc(String(i.comp_id))+'" type="button" title="Eliminar del remito">🗑</button></span></div>';
       }
     }
     b.innerHTML='<span class="code">'+esc(i.codigo)+'</span>'+
@@ -767,6 +774,8 @@ function pintarItems(list){
       var q = ev.target.closest && ev.target.closest('.qbtn');
       if (q){
         ev.stopPropagation();
+        // Tacho del chip del remito que ahora vive dentro de la tarjeta.
+        if (q.dataset.pendDel){ delPend(q.dataset.pendDel); return; }
         var qm = q.dataset.qm;
         if (qm === 'all'){ bumpPend(i, -1e9); return; }
         if (qm){ bumpPend(i, -(Number(qm)||1)); return; }
@@ -1252,8 +1261,9 @@ function renderRemitoBar(){
       return '<span class="rb-pend-item"><b style="color:#0066cc">'+esc(p.item.codigo)+'</b> '+lbl+
              ' <button class="qbtn qbtn-del" data-pend-del="'+esc(p.item.comp_id)+'" type="button" title="Eliminar del remito">🗑</button></span>';
     }).join(' ');
-    h+='<b>⏳ Remito en curso · '+pendKeys.length+' ítem'+(pendKeys.length===1?'':'s')+' (sin bajar todavía)</b>'+
-       '<div class="rb-items">'+lineas+'</div>';
+    // Los chips por item (cantidad + tacho) ahora se muestran DEBAJO DE CADA TARJETA
+    // (regla usuario 2026-09-02), por eso la barra solo deja el encabezado.
+    h+='<b>⏳ Remito en curso · '+pendKeys.length+' ítem'+(pendKeys.length===1?'':'s')+' (sin bajar todavía)</b>';
   }
   if(REMITO.length){
     // Cartones vs flejes: si TODO el remito es de cartones, la fase 2 es el
