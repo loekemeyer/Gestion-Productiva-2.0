@@ -112,14 +112,15 @@ pantalla de Inyectores, con los botones **Se fabrica** / **Discontinuo**.
 El popup de Recepción Insumos arma los campos según el proveedor (además del **KG
 total** que va siempre):
 
-- **Basconia** → `Kg total` + **`Kg x Rollo`** (promedio; el proveedor no informa
-  rollo por rollo). Internamente se guarda `rollos = round(kg / kg_x_rollo)` para
-  que el pesaje del paso 2 tenga la cuenta.
-- **Hermac** → `Kg total` + **`Rollos totales`**.
-- **Aperam / Brawin / Szapiro / JL Metales / Altrak** → **solo `Kg total`**,
-  sin campos extra. Altrak fuerza kg (junto con Basconia), aunque el fleje
-  tenga UM `unidad` en el componente; el resto respeta la UM canónica del
-  fleje. `[usuario 2026-09-01, reconfirmado: "altrack es en KG totales"]`.
+**Revisión final `[usuario 2026-09-01]`:** TODOS los proveedores de fleje piden
+**solo `Kg total`**, con dos excepciones:
+- **Hermac** → `Kg total` + **`Paquetes`** (entero, se guarda en `p_pallets`).
+- **Importado** → sin cambios (nunca tuvo campo extra; queda como los demás).
+
+Los demás (Basconia, Aperam, Brawin, Szapiro, JL Metales, Altrak, EstaMetal
+—que ya está oculto—) solo Kg total. Basconia y Altrak fuerzan `kg` en
+`abrirPopup` aunque el fleje tenga UM `unidad` en el componente; el resto
+respeta la UM canónica.
 
 El campo Pallets del remito se sacó: el paso 2 arma 1 pallet por default y el
 operario suma con "+ pallet" si el remito trajo más. Ver `fieldsFleje(prov)` en
