@@ -112,6 +112,52 @@ pantalla de Inyectores, con los botones **Se fabrica** / **Discontinuo**.
 El popup de Recepción Insumos arma los campos según el proveedor (además del **KG
 total** que va siempre):
 
+### Altrak → Charcas → Cervantes (fleje cortado) `[usuario 2026-09-02, alineado al vecino]`
+Altrak vende **una sola varilla** (`ALAM_FILTRO`, kg, prov Altrak, sector 13
+Alambre, vive en ubic 13 Prov. Serv. Charcas). Charcas es **prov_servicio**:
+solo **corta el alambre a medida** (no le da forma) → el output sigue siendo
+alambre y se guarda en **Sector Fleje (id 5)**, no en Terminado/SP como
+pensaba antes. Diferencia clave con Eclipse: Eclipse **da forma** (corta+dobla)
+→ SP; Charcas **solo corta** → Fleje. Charcas cobra por el servicio de corte
+(ISIS único **4596**, ~$9,50 IPC 10 al 2026-08-05).
+
+**Un mismo material, dos formatos de corte** `[usuario 2026-09-02]`: el mismo
+alambre + mismo proceso + mismo ISIS 4596 sale con dos longitudes distintas —
+`F90` (Filtro Café, 0,00830 kg/uni) y `F90B` (Filtro Café Gastronómico,
+0,01162 kg/uni). En el vecino: `public."Flejes"` N° 90 y 90B con proveedor
+"Altrak", sector FC3/FB3B, ISIS 1395 (90; 90B sin ISIS).
+
+**Componentes GP2 (2026-09-02):**
+- `ALAM_FILTRO` (id 583) — kg, prov Altrak, sector 13, ubic 13 (Charcas).
+- `F90` (id 372, ex '031') — kg, prov **Resortes Charcas**, sector 5 (Fleje),
+  `kg_x_uni=0,00830`. **Renombrado y migrado en `f90_alambre_filtro_cafe_y_cod_prov_charcas_v2`
+  (2026-09-02)** desde `codigo='031' desc='31 Terminado' sector=12 unidad='unidad'`
+  (que estaba mal — 031 en el vecino es el artículo terminado, no lo que Charcas
+  entrega). Stock convertido: 2520 uni × 0,00830 = 20,92 kg de Virgilio (33) a
+  Sector Fleje (5), vía dos movimientos tipo ajuste.
+- `F90B` (id 373, aún `codigo='034' desc='34 Terminado' sector=12 unidad='unidad'`)
+  — **pendiente de migrar** con la misma lógica que F90. Otro compañero maneja
+  bombillas de Charcas (los 4 primeros ítems de la lista de precios: Resorte
+  Bicónico, Batidor Pera, Bombilla p/niquelar, Bombilla inox), pero F90B (Filtro
+  Café Gastronómico) es del mismo negocio filtro café — hay que aplicarle el
+  mismo tratamiento cuando el usuario lo confirme.
+
+**Pantallas / flujos:**
+- **Compra Altrak (Pagos)** — `Compras/AltrakCharcas_GP2.html` carga kg del
+  alambre cuando llega factura de Altrak → suma stock en Charcas.
+- **Recepción operario** — rubro **Flejes** → F90 con proveedor Charcas → RPC
+  `cargar_recepcion_charcas` (dual): si el componente tiene ubic tipo=sector y
+  unidad=kg (F90), suma kg en esa ubic; si no (034, sector 12 sin ubic), cae al
+  flujo viejo (Virgilio uni). Así el 034 no se rompe mientras el compañero lo
+  migra. La RPC descuenta `paq × 10 × 1,02` kg de alambre en Charcas
+  (parámetro `charcas_desperdicio_pct = 2`).
+- **OC gemela** — OC a Charcas dispara OC gemela a Altrak por kg de alambre.
+- **Frontend** — `esFiltroCharcas()` en `RecepcionInsumos_GP2.html` detecta solo
+  por proveedor (ya no por sector), así F90 en sector Flejes también dispara el
+  popup `paq_charcas` (no el de balanza+pallets+rollos de flejes normales).
+
+**cod_prov Charcas = 3605** `[usuario 2026-09-02, foto lista de precios]`.
+
 ### Aperam → Eclipse → Cervantes (misma lógica Altrak/Charcas) `[usuario 2026-09-01, calibrado con remito real 2026-09-02]`
 Aperam entrega la **chapa 430** (1250×2500×0,8 mm) directo en **Eclipse**
 (proveedor de servicio: corte chapa). Eclipse corta y entrega el insumo
