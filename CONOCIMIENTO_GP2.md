@@ -77,8 +77,20 @@ Reglas comunes que ya viven adentro:
   GP2 lo tiene como *Becker Sandra Nora* (el nombre formal) y en la casa del vecino figura
   como *Jade* (como se lo nombra todos los días). No son dos proveedores. Otra vuelta de la
   trampa de siempre: **el mismo nombre escrito distinto en las dos casas**.
-- PENDIENTE: repartir los 29 plásticos entre los tres. Hoy están todos bajo Pat Bet Plast
-  porque esa era la foto del vecino, que es data vieja.
+- **El reparto YA ESTÁ HECHO** `[usuario 2026-09-02, verificado en la base]`. La nota vieja
+  decía "PENDIENTE: repartir los 29 plásticos, hoy están todos bajo Pat Bet Plast" y **eso
+  ya no es cierto**. Foto real de `GP2.componente` del Sector Plástico (37 piezas):
+  - **Pat Bet Plast (19)**: PA1, PA2, PA7A, PA7B, PA8A, PA8B, PA9, PA10B, PA12, PA13,
+    PA18, PA19, PB6, PB8A, PB8B, PC7, PC10, PC11, PC16.
+  - **Pettofrezza Rafael (12)**: PA4, PA5, PB5, PC1A, PC1B, PC8, PC13, PC14, PC15A, PC15B,
+    PEP1, PEP4.
+  - **Máspoli SRL (3)**: PC12, PEP7, PEP8.
+  - Y los tres que no son plástico inyectado aunque vivan en esa zona (el sector es la
+    zona física, ver §1-bis): **PEP5** mango de madera → Pintos, **PCP3** clavo →
+    Trefilados Industriales, **D9** clavo niquelado → sin proveedor porque no se compra
+    (sale del niquelado de Guazzaroni).
+  - **Kollplast se quedó sin piezas asignadas**: figura como inyector pero no tiene ninguna.
+    Pendiente menor: confirmar si le corresponde alguna o si por ahora no le compramos.
 
 ### No todo insumo se compra
 `[usuario 2026-08-29]` Una parte sin proveedor no siempre es un dato que falta: puede ser
