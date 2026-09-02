@@ -125,8 +125,10 @@ El campo Pallets del remito se sacó: el paso 2 arma 1 pallet por default y el
 operario suma con "+ pallet" si el remito trajo más. Ver `fieldsFleje(prov)` en
 `StockFlejes/RecepcionInsumos_GP2.html`.
 - **Importado** (marcador, no es una empresa): la **Cremallera (E13)** y los insumos del
-  **corta queso** (Z19A alambre, PB1 cilindro, V20 tornillo) **ya no se fabrican, se
-  importan**. `[usuario 2026-08-29]`
+  **corta queso PB1 cilindro y V20 tornillo** **ya no se fabrican, se importan**.
+  `[usuario 2026-08-29]`. **Z19A (alambre corta queso) NO va en Importados**
+  `[usuario 2026-09-01, corrección al anterior]` — está `estado_compra=discontinuo`
+  con `proveedor=null`, no aparece en OC ni en Recepción Insumos.
   El tornillo se importa **ya niquelado**: el código **CV20** ("p/Niquelar") **no se compra
   más** y el paso de niquelado en Guazzaroni se sacó de las rutas 382/577/589, que ahora
   entran el V20 comprado y van derecho al tallerista. `[usuario 2026-08-29]`
