@@ -203,10 +203,18 @@ vacía.
 Por eso, al pasar el clavo a ese patrón, los 7 artículos perdían el clavo entero. Se
 arregló declarando la entrada (`D9`) en el paso de tallerista de las 8 rutas.
 
-**Lo mismo le pasa hoy a 52 rutas de 12 remaches** (`V1, V2, V3, V4, V5, V6, V7, V8, V9,
-V12, V13, V18D`): su crudo y su niquelado **no están entrando en el costo de los artículos
-que los llevan**. Es el mismo `UPDATE` de una línea. Queda como idea **7210** porque mueve
-el costo de muchos artículos y lo tiene que mirar el usuario.
+**Lo mismo le pasaba a 52 rutas de 12 remaches** (`V1, V2, V3, V4, V5, V6, V7, V8, V9,
+V12, V13, V18D`): su crudo y su niquelado no entraban en el costo del artículo.
+**Arreglado el 2026-09-02** (idea 7210, autorizada por el usuario; migración
+`remaches_tallerista_declara_entrada`): la entrada del paso de tallerista pasa a ser la
+pieza que sale del paso de servicio de esa misma ruta — el remache ya niquelado, que es
+lo que el tallerista realmente recibe. **35 artículos subieron, ninguno bajó**, entre
+**+$5,92 y +$45,14** cada uno (~+$913 en total). Quedan **0 rutas** con la entrada en
+null en ese patrón.
+
+**Regla para adelante:** toda ruta nueva tiene que declarar `comp_entrada_id` en el paso
+de tallerista. Si queda en null, el costo de lo que entra se pierde en silencio — no
+falla nada, simplemente el artículo sale más barato de lo que es.
 
 ### Resto de los rubros
 - **Cartones → Talleres Gráficos Pol**, siempre el mismo, los 85. `[usuario]`
