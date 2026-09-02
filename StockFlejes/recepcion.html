@@ -536,10 +536,45 @@ rubroGrid.querySelectorAll(".prov-btn").forEach(btn => {
   });
 });
 
-function renderProveedores() {
-  const provs = PROVEEDORES[rubroSel] || [];
-  provGrid.innerHTML = "";
+// Split "A / B" -> ["A","B"]; excluye basura (vacío, #N/D, Por definir).
+const PROV_JUNK = new Set(["", "#N/D", "N/D", "POR DEFINIR", "(VACIO)"]);
+function splitProvs(v) {
+  const raw = String(v ?? "").trim();
+  if (!raw || PROV_JUNK.has(raw.toUpperCase())) return [];   // "#N/D" entero = basura, no partir
+  return raw.split("/").map(s => s.trim()).filter(s => s && !PROV_JUNK.has(s.toUpperCase()));
+}
+
+// Proveedores REALES del rubro, leídos de la tabla (no hardcode). Soporta "A / B".
+async function cargarProveedoresRubro(rubro) {
+  const cfg = TABLAS[rubro] || {};
+  let valores = [];
+  if (cfg.especial === "remaches") {
+    const [sc, sp] = await Promise.all([
+      sb.from("Remaches SC").select("Proveedor"),
+      sb.from("Remaches SP").select("Proveedor")
+    ]);
+    valores = [...(sc.data || []), ...(sp.data || [])].map(r => r["Proveedor"]);
+  } else if (cfg.colProv) {
+    let q = sb.from(cfg.tabla).select(`"${cfg.colProv}"`);
+    if (cfg.filtro) q = q.eq(cfg.filtro.col, cfg.filtro.val);
+    const { data } = await q;
+    valores = (data || []).map(r => r[cfg.colProv]);
+  } else {
+    // Rubros sin columna de proveedor (Cajas, Cartones, Bombillas): botón único estático.
+    return PROVEEDORES[rubro] || [];
+  }
+  const set = new Set();
+  valores.forEach(v => splitProvs(v).forEach(p => set.add(p)));
+  return [...set].sort((a, b) => a.localeCompare(b, "es"));
+}
+
+async function renderProveedores() {
+  provGrid.innerHTML = "Cargando proveedores…";
   provSel = "";
+  let provs = [];
+  try { provs = await cargarProveedoresRubro(rubroSel); }
+  catch (e) { console.error(e); provs = PROVEEDORES[rubroSel] || []; }
+  provGrid.innerHTML = "";
 
   if (provs.length === 1) {
     provSel = provs[0];
@@ -583,22 +618,23 @@ btnContinuar.addEventListener("click", async () => {
     if (cfg.especial === "remaches") {
       // Remaches: une Remaches SC + Remaches SP filtrando por proveedor
       const [scRes, spRes] = await Promise.all([
-        sb.from("Remaches SC").select("*").eq("Proveedor", provSel),
-        sb.from("Remaches SP").select("*").eq("Proveedor", provSel)
+        sb.from("Remaches SC").select("*"),
+        sb.from("Remaches SP").select("*")
       ]);
       if (scRes.error) throw scRes.error;
       if (spRes.error) throw spRes.error;
-      const scRows = (scRes.data || []).map(r => ({ cod: r["SC"], desc: r["Descripción"], isis: r["Cod_ISIS"] || "", medida: "", sector: r["SC"] || "" }));
-      const spRows = (spRes.data || []).map(r => ({ cod: r["SP"], desc: r["Descripción"], isis: r["Cod_ISIS"] || "", medida: "", sector: r["SP"] || "" }));
+      const scRows = (scRes.data || []).filter(r => splitProvs(r["Proveedor"]).includes(provSel)).map(r => ({ cod: r["SC"], desc: r["Descripción"], isis: r["Cod_ISIS"] || "", medida: "", sector: r["SC"] || "" }));
+      const spRows = (spRes.data || []).filter(r => splitProvs(r["Proveedor"]).includes(provSel)).map(r => ({ cod: r["SP"], desc: r["Descripción"], isis: r["Cod_ISIS"] || "", medida: "", sector: r["SP"] || "" }));
       data = [...scRows, ...spRows];
       data.sort((a,b) => String(a.cod).localeCompare(String(b.cod), "es"));
     } else {
       let query = sb.from(cfg.tabla).select("*");
-      if (cfg.colProv && provSel) query = query.eq(cfg.colProv, provSel);
       if (cfg.filtro) query = query.eq(cfg.filtro.col, cfg.filtro.val);
       const res = await query.order(cfg.colCod, { ascending: true });
       if (res.error) throw res.error;
-      data = (res.data || []).map(r => ({
+      let rows = res.data || [];
+      if (cfg.colProv && provSel) rows = rows.filter(r => splitProvs(r[cfg.colProv]).includes(provSel));
+      data = rows.map(r => ({
         cod: String(r[cfg.colCod] ?? "").trim(),
         desc: String(r[cfg.colDesc] ?? "").trim(),
         isis: cfg.colIsis ? String(r[cfg.colIsis] ?? "").trim() : "",
