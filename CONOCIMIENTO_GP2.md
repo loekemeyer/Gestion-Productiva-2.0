@@ -733,7 +733,7 @@ rollos) y `recepcion_tara()` la promedia — por proveedor primero (n≥5), glob
 orden y recién sin datos cae al punto medio del parámetro 4–8. No hay nada que
 mantener a mano: cada pesaje que se guarda mejora el próximo cálculo.
 
-## 2c-bis. Hay talleristas que cobran POR KILO (2026-09-02)
+## 2c-sexdecies. Hay talleristas que cobran POR KILO (2026-09-02)
 
 `[usuario 2026-09-02]` Sobre el $775,01 de la Cuchilla Pelapapa Cerrada en el Excel de
 Martin: *"es x Kg"*. **No todas las tarifas de tallerista son por unidad.**
@@ -753,9 +753,48 @@ error de tipeo — vale la pena frenar y preguntar.
   viejo. Hay que volver a tocar la fila (un `UPDATE precio_kg = precio_kg` alcanza, el
   trigger recalcula).
 
-En el mismo Excel hay otras dos líneas por kilo — *Puntas 520 Afilado (KG)* $3.361,18 y
-*Puntas 523 Afilado (KG)* $4.830 — que todavía no se pueden cargar porque no está claro
-sobre qué componente de GP2 caen.
+En el mismo Excel hay otras dos líneas por kilo. **Puntas 523 Afilado ($4.830) ya no se
+hace más** `[usuario 2026-09-02]` — línea muerta, no se carga. Queda sólo *Puntas 520
+Afilado (KG)* $3.361,18, que todavía no se puede cargar porque no está claro sobre qué
+componente de GP2 cae.
+
+## 2c-septdecies. El Excel de costos arrastra quién hacía el trabajo ANTES (2026-09-02)
+
+El bloque de un tallerista en `A Costos VIGENTES` **no es la lista de lo que hace hoy**:
+tiene renglones de trabajos que ya se mudaron a otro. En el de Martin aparecían cuatro que
+GP2 tenía en otro lado, y el usuario confirmó que **GP2 está bien y el Excel viejo**
+`[usuario 2026-09-02: "todos esos ahora es pettofrezza y fabrica, ya no martin"]`:
+
+| Línea del Excel de Martin | Precio | Quién lo hace hoy |
+|---|---|---|
+| 523 Sacacorcho Doble Aleta AyE | $44,81 | **Pettofrezza** |
+| 551 Cuchillo Untar x 2 Plast AyE | $61,17 | **Pettofrezza** |
+| 507-707 Rompenueces AyE | $45,43 | **Fábrica** |
+| 570 Pala Canelones AyE | $84,77 | **Fábrica** |
+
+También caen ahí **57 Destapacorona** ($49,35, hoy de **Danica**) y **546 Cortaqueso**
+($110, hoy de **Lucho**).
+
+**Regla al cargar tarifas desde ese Excel:** el bloque dice el precio, pero **quién hace la
+pieza lo dice GP2**. Si no coinciden, se frena y se pregunta — no se carga la tarifa a
+nombre del que figura en la hoja. Y **esos precios no se trasladan solos al nuevo
+tallerista**: cada uno cobra lo suyo, así que hay que buscarlos en el bloque propio de
+Pettofrezza y de Fábrica.
+
+## 2c-octodecies. Artículo 104 (Sac Ergo LOKE) = clon del 581 (2026-09-02)
+
+`[usuario 2026-09-02]` *"104 es igual con mismos componentes que 581"*. En el Excel los dos
+comparten un solo renglón — *"581/104 Sac. Cabo Plástico AyE $60,35"* — y en el vecino son
+**104 = Sac Ergo LOKE** y **581 = Sac Plast LK**.
+
+GP2 no tenía el 104. Se clonó el 581 tal cual: componente terminado (sector 12), artículo
+(familia Sacacorchos, 12 por caja A9) y **las 5 rutas** — `D1 + PB8A + V11 + CCE2B + A9 a
+1/12`, todas armadas por Martin y entregadas a Virgilio — más la tarifa de $60,35. Quedó
+con el **mismo costo que el 581: $759,95**, sin precios faltantes.
+
+**Detalle que hay que saber para clonar rutas:** `GP2.ruta.articulo_id` **viene en NULL** en
+estas rutas. La convención de la casa es identificarlas por el **nombre** (`Insumo X -> Art
+N`) y por sus pasos, no por esa FK. Un clon filtrado por `articulo_id` no copia nada.
 
 ## 2c. Costos y valorización: el motor de precios (2026-08-30)
 
