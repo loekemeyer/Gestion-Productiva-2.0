@@ -112,9 +112,11 @@ una **decisión ya tomada**. Por eso `componente.estado_compra`:
 - **`PCP3` (Clavo 505): se compra a Trefilados Industriales.** `[usuario 2026-09-02]` Compra
   directa (sin proceso). **Ya aplicado** `[dato: GP2, verificado 2026-09-02]`: Trefilados
   Industriales está en el maestro `proveedor_insumo` (rubro *Sector Plástico*) y PCP3
-  (`id 256`) lo tiene asignado en `componente.proveedor`. Queda una sola cosa por decidir:
-  PCP3 vive en **Sector Plástico** (`sector_id 6`) aunque es un clavo metálico, y su
-  proveedor heredó ese mismo rubro — revisar el sector si molesta (decisión del usuario).
+  (`id 256`) lo tiene asignado en `componente.proveedor`. **Que esté en Sector Plástico
+  siendo un clavo metálico ESTÁ BIEN** `[usuario 2026-09-02]`: el sector es la **zona
+  física** donde vive la pieza, no el material del que está hecha — en la zona de plásticos
+  también hay cosas que no son plásticas, y el clavo es una de ellas (ver §1-bis). No se
+  toca. Lo que sí quedó abierto es el **precio**, más abajo.
 - **`PEP5` (Mango Madera): se compra a Eduardo Pintos.** `[usuario 2026-09-02]` En la base
   ya figura con proveedor **"Pintos"** = **Eduardo Pintos** (el que hace la madera). Ya está
   bien asignado; se anota el nombre completo. **Decisión 2026-09-02: NO se renombra el
@@ -130,6 +132,44 @@ Marcar el estado **saca la parte de la Orden de Compra** y deja de contarla como
 NO se usa el campo `proveedor` para esto: la OC agrupa por proveedor y terminaría
 ofreciendo comprarle a un proveedor llamado "Discontinuo". Se marca desde la misma
 pantalla de Inyectores, con los botones **Se fabrica** / **Discontinuo**.
+
+### 1-bis. El sector es la ZONA FÍSICA, no el material `[usuario 2026-09-02]`
+
+*"El sector es sector plástico… si está en la zona de sector plásticos, pero además de haber
+cosas plásticas hay cosas que no son plásticas, por eso es que está ahí. Es correcto que eso
+esté ahí."*
+
+`GP2.sector` (y la `ubicacion` tipo *sector*) dice **dónde está guardada** la pieza en la
+planta, no de qué está hecha. Que en *Sector Plástico* haya un clavo de acero o un mango de
+madera **no es un error de carga**: es que ese cajón está en esa zona. **Nunca "corregir" un
+sector por el material de la pieza** — se corrige solo si la pieza cambió de lugar físico.
+Esto vale para todo el sistema: Recepción Insumos agrupa por sector (el chip *Plásticos*
+muestra el clavo, y está bien), y el rubro del proveedor sale del mismo lado.
+
+### `PCP3` (Clavo 505): dónde se usa y por dónde va `[dato: GP2, relevado 2026-09-02]`
+
+- **7 artículos, 1 clavo por unidad** (`articulo_componente.cantidad = 1` en todos):
+  **099, 108, 123, 505, 513, 586, 713**.
+- **8 rutas** (505 tiene dos, una por tallerista) y **todas el mismo patrón de 3 pasos**:
+  `insumo PCP3` → `tallerista` (arma el artículo) → `virgilio`. Sin matriz y sin proveedor
+  de servicio: el clavo entra comprado y sale dentro del artículo terminado.
+  - **IJUPA**: 108 (`ruta 259`), 513 (`316`), 713 (`584`).
+  - **Lucho**: 123 (`272`), 505 (`297`), 099 (`571`), 586 (`578`).
+  - **Danica García**: 505 (`549`, la segunda ruta del mismo artículo).
+- **Nombre huérfano**: 5 de las 8 rutas se llaman `Insumo CLV505 -> Art N` y las otras 3
+  `Insumo PCP3 -> Art N`. **`CLV505` no existe** como componente, ni en GP2 ni en el
+  `Sector Proce` del despiece del vecino: es un nombre viejo que quedó del alta. El paso
+  apunta bien a PCP3 (`comp_entrada_id`), así que es solo cosmético — conviene unificarlo
+  a PCP3 para no volver a buscar un código que no está.
+- **Peso y costo**: `kg_x_uni = 0,00653`, así que el motor tiene con qué valorizarlo.
+- ⚠ **El precio contradice al proveedor**: la única fila de `precio_proveedor` de PCP3
+  (`id 234`) dice **"Altrak - Clavo Pelapapas 97/92mm"**, `cod_prov 3789`, USD 3,30 **por
+  kg**, lista del 2026-08-27, y arrastra la nota *"falta paso niquelado en ruta, patrón
+  remaches"*. Pero el usuario dijo el 2026-09-02 que **el clavo se compra a Trefilados
+  Industriales**. Los dos no pueden ser: o el precio quedó cargado con el proveedor
+  equivocado, o el clavo viene crudo de un lado y se niquela en otro (patrón de los
+  remaches) y entonces falta ese paso en las 8 rutas. **Pendiente de definir con el
+  usuario** (idea 7208).
 
 ### Resto de los rubros
 - **Cartones → Talleres Gráficos Pol**, siempre el mismo, los 85. `[usuario]`
