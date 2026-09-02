@@ -112,13 +112,37 @@ pantalla de Inyectores, con los botones **Se fabrica** / **Discontinuo**.
 El popup de Recepción Insumos arma los campos según el proveedor (además del **KG
 total** que va siempre):
 
-### Aperam → Eclipse → Cervantes (misma lógica Altrak/Charcas) `[usuario 2026-09-01]`
+### Aperam → Eclipse → Cervantes (misma lógica Altrak/Charcas) `[usuario 2026-09-01, calibrado con remito real 2026-09-02]`
 Aperam entrega la **chapa 430** (1250×2500×0,8 mm) directo en **Eclipse**
 (proveedor de servicio: corte chapa). Eclipse corta y entrega el insumo
-**1686** en Cervantes (remito en unidades, en cajas que se pesan para
-confirmar). Rendimiento: **1 chapa = 760 unidades**
-→ **`kg_x_uni(1686) = 0,01376`** `[usuario 2026-09-02, corrige mi cálculo
-previo de 0,025823]` → peso chapa ≈ 10,46 kg. Desperdicio Eclipse: 0%.
+**1686** (descorazonador) en Cervantes (remito en unidades, en cajas que
+se pesan para confirmar).
+
+**Números calibrados con remito real `[usuario + factura Aperam 2026-09-02]`:**
+- Aperam: **4 chapas = 74,92 kg** de balanza → **18,73 kg/chapa real**
+  (el teórico por densidad×volumen daría 19,25 kg → la laminación viene
+  ~2,7% por debajo del nominal, dentro de la tolerancia normal del 430).
+- Eclipse: **3940 uni = 55 kg netos** de pieza → **985 uni/chapa real**
+  (el "760 uni/chapa" que yo tenía asentado antes era estimación
+  incorrecta; el número que manda es el del remito).
+- `kg_x_uni(1686) = 0,01376` (queda como está) `[usuario, "el que estaba
+  en la tabla"]`. El empírico crudo daría 0,01396 (55/3940); GP2 subestima
+  el peso de pieza en ~1,4% y ese punto se compensa vía el desperdicio.
+- **Desperdicio Eclipse: `eclipse_desperdicio_pct = 28`**
+  `[GP2.parametro, migración eclipse_desperdicio_pct_28, 2026-09-02]`. Sale
+  de (74,92 − contable) / 74,92, con contable = 985 × 0,01376 × 4 = 54,2 kg
+  → desperdicio ≈ 27,6% → redondeo a 28% para no sub-pedir.
+
+**Cómo lo usa `crear_oc`:** ya lee el parámetro en la rama Eclipse — kg de
+chapa 430 en la OC gemela a Aperam = `Σ uni × kg_x_uni × (1 +
+eclipse_desperdicio_pct/100)`. Ejemplo: 3940 uni → 3940 × 0,01376 × 1,28
+= 69,4 kg = **3,7 chapas → redondeo a 4 chapas enteras** (Aperam vende
+completas). Coincide con lo entregado en el remito real. ✓
+
+**Provisorio, revisar con próximos 2–3 remitos**: la tolerancia de
+laminación del 430 varía chapa por chapa; el 28% puede moverse entre
+~25% y ~30% en pedidos futuros. Ajustar `eclipse_desperdicio_pct` cuando
+haya más muestras.
 
 **Cruce con la casa del vecino (para no volver a discutirlo)
 `[dato 2026-09-02, SQL sobre public]`:** el descorazonador vive en
@@ -128,11 +152,8 @@ código nuevo de GP2) con `Kg X Uni = 0,0144` y `KG x Cajon = 10` (prov
 0,0144 (usado en el costeo de los artículos 395 y 709 del vecino). GP2
 usa 0,01376 por indicación del usuario — el 0,0144 del vecino queda como
 valor histórico desactualizado; **no se toca `public`** (regla "casa del
-vecino"). **Ojo con el `KG x Cajon = 10` del vecino**: no es un cajón
-estándar de 30 kg, es exactamente **la caja que arma Eclipse**
-`[usuario 2026-09-02]` — por lo tanto ese dato no sirve para triangular
-el kg_x_uni real (760 uni × 0,01376 ≠ 10 porque cada caja no lleva
-exactamente 760 uni; 760 es rendimiento por chapa, no capacidad por caja).
+vecino"). El `KG x Cajon = 10` del vecino no es un cajón estándar de 30
+kg, es exactamente **la caja que arma Eclipse** `[usuario 2026-09-02]`.
 
 - **Componentes:** `CHAPA430` (kg, prov Aperam, sector 13 Alambre, vive en
   ubic 48 Eclipse) + `1686` **descorazonador** (uni, prov Eclipse, **sector 2
