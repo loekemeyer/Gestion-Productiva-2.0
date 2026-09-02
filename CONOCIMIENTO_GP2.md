@@ -123,39 +123,39 @@ pensaba antes. Diferencia clave con Eclipse: Eclipse **da forma** (corta+dobla)
 
 **Un mismo material, dos formatos de corte** `[usuario 2026-09-02]`: el mismo
 alambre + mismo proceso + mismo ISIS 4596 sale con dos longitudes distintas —
-`F90` (Filtro Café, 0,00830 kg/uni) y `F90B` (Filtro Café Gastronómico,
+`IF90` (Filtro Café, 0,00830 kg/uni) y `IF90B` (Filtro Café Gastronómico,
 0,01162 kg/uni). En el vecino: `public."Flejes"` N° 90 y 90B con proveedor
 "Altrak", sector FC3/FB3B, ISIS 1395 (90; 90B sin ISIS).
 
 **Componentes GP2 (2026-09-02):**
 - `ALAM_FILTRO` (id 583) — kg, prov Altrak, sector 13, ubic 13 (Charcas).
-- `F90` (id 372, ex '031') — kg, prov **Resortes Charcas**, sector 5 (Fleje),
+- `IF90` (id 372, ex '031') — kg, prov **Resortes Charcas**, sector 5 (Fleje),
   `kg_x_uni=0,00830`. **Renombrado y migrado en `f90_alambre_filtro_cafe_y_cod_prov_charcas_v2`
   (2026-09-02)** desde `codigo='031' desc='31 Terminado' sector=12 unidad='unidad'`
   (que estaba mal — 031 en el vecino es el artículo terminado, no lo que Charcas
   entrega). Stock convertido: 2520 uni × 0,00830 = 20,92 kg de Virgilio (33) a
   Sector Fleje (5), vía dos movimientos tipo ajuste.
-- `F90B` (id 373) — kg, prov **Resortes Charcas**, sector 5 (Fleje),
+- `IF90B` (id 373) — kg, prov **Resortes Charcas**, sector 5 (Fleje),
   `kg_x_uni=0,01162`. **Migrado en `f90b_alambre_filtro_cafe_gastronomico`
   (2026-09-02, usuario "lo mismo para el filtro cafe")** desde `codigo='034'
   desc='34 Terminado' sector=12 unidad='unidad'`. Stock convertido: 720 uni ×
   0,01162 = 8,37 kg de Virgilio (33) a Sector Fleje (5). Otro compañero maneja
   las **bombillas de Charcas** (los 4 primeros ítems de la lista de precios:
-  Resorte Bicónico, Batidor Pera, Bombilla p/niquelar, Bombilla inox) — F90B
-  no es bombilla, es filtro café gastronómico, mismo negocio que F90.
+  Resorte Bicónico, Batidor Pera, Bombilla p/niquelar, Bombilla inox) — IF90B
+  no es bombilla, es filtro café gastronómico, mismo negocio que IF90.
 
 **Pantallas / flujos:**
 - **Compra Altrak (Pagos)** — `Compras/AltrakCharcas_GP2.html` carga kg del
   alambre cuando llega factura de Altrak → suma stock en Charcas.
-- **Recepción operario** — rubro **Flejes** → F90 con proveedor Charcas → RPC
+- **Recepción operario** — rubro **Flejes** → IF90 con proveedor Charcas → RPC
   `cargar_recepcion_charcas` (dual): si el componente tiene ubic tipo=sector y
-  unidad=kg (F90), suma kg en esa ubic; si no (034, sector 12 sin ubic), cae al
+  unidad=kg (IF90), suma kg en esa ubic; si no (034, sector 12 sin ubic), cae al
   flujo viejo (Virgilio uni). Así el 034 no se rompe mientras el compañero lo
   migra. La RPC descuenta `paq × 10 × 1,02` kg de alambre en Charcas
   (parámetro `charcas_desperdicio_pct = 2`).
 - **OC gemela** — OC a Charcas dispara OC gemela a Altrak por kg de alambre.
 - **Frontend** — `esFiltroCharcas()` en `RecepcionInsumos_GP2.html` detecta solo
-  por proveedor (ya no por sector), así F90 en sector Flejes también dispara el
+  por proveedor (ya no por sector), así IF90 en sector Flejes también dispara el
   popup `paq_charcas` (no el de balanza+pallets+rollos de flejes normales).
 
 **cod_prov Charcas = 3605** `[usuario 2026-09-02, foto lista de precios]`.
@@ -191,6 +191,17 @@ completas). Coincide con lo entregado en el remito real. ✓
 laminación del 430 varía chapa por chapa; el 28% puede moverse entre
 ~25% y ~30% en pedidos futuros. Ajustar `eclipse_desperdicio_pct` cuando
 haya más muestras.
+
+### Convención código de flejes: prefijo `I` (Insumo) `[usuario 2026-09-02]`
+Todos los flejes en `GP2.componente` (sector 5, "Sector Fleje") llevan **prefijo
+`I`** antepuesto — `I` = Insumo. La migración `flejes_prefijo_i_insumo` (55 filas)
+renombró `A1 → IA1, A10 → IA10, B3 → IB3, F90 → IF90, F90B → IF90B`, etc. La
+regla aplica **solo a flejes por ahora** (otros sectores mantienen su convención).
+Motivo: distinguir a simple vista los códigos de insumos comprables. El renombre
+fue seguro — todas las tablas relacionadas usan `componente_id` (FK bigint), no
+`codigo` como string; `fleje_detalle.n_fleje` es dato descriptivo (número del
+vecino, no FK). Cero hardcodes de códigos de fleje en RPCs, vistas, triggers o
+frontend, así que no rompe nada.
 
 ### Prov Servicios "híbridos" (Charcas / Eclipse) `[usuario 2026-09-02]`
 Charcas y Eclipse son prov_servicio pero **no siguen el flujo PS normal**
