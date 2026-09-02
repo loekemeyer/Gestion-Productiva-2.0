@@ -39,6 +39,17 @@ async function cargar(SB){
     else if (u.tipo === "tallerista") UB["tall:" + u.ref] = id;
     else if (u.tipo === "virgilio") UBIC_VIRGILIO = id;
   }
+  // Override: si un tallerista comparte depósito con otro actor (típicamente
+  // un proveedor_servicio: Pedernera / Carlos Aguirre son el mismo taller),
+  // tallerista.ubicacion_stock_id apunta a la ubi compartida. Se resuelve acá
+  // para que todo el motor (ubicTall, envíos, stock) use esa ubi sin saber
+  // que hubo redirección.
+  if (D.tall){
+    for (var tid in D.tall){
+      var t = D.tall[tid];
+      if (t && t.ubi_stock) UB["tall:" + parseInt(tid)] = parseInt(t.ubi_stock);
+    }
+  }
   return D;
 }
 

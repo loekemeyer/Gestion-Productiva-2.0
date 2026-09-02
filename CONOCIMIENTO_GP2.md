@@ -1437,6 +1437,41 @@ completo al cromado, el cromado del remache/tornillo NO se modela como paso sepa
 con el cuerpo. Un paso `proveedor_servicio X→Xniquelado` en la ruta del remache es
 sospechoso: casi siempre sobra.
 
+## 2i-bis. Pedernera / Carlos Aguirre: 1 depósito, 2 códigos ISIS (2026-09-02)
+
+`[usuario 2026-09-02]` *"me entrega Carlos Aguirre pero debe descontar stock de Pedernera"*
++ *"a Pedernera se le manda en función del stock que tenemos nosotros en sector procesado,
+pero a Carlos Aguirre hay que mandarle para un mes de estadística madre... no tienen las
+mismas reglas"* + *"es medio lo mismo, porque se entrega a la misma persona"* + *"pedernera
+y carlos aguirre son dos prov diferentes para ISIS"*. **Regla capital**:
+
+- **Stock físico unificado**. Pedernera (taller) y Carlos Aguirre (dueño / persona que firma
+  el remito) son el mismo depósito. Al entregar cajas en Virgilio, la pieza se descuenta de
+  ahí. Migración `unificar_pedernera_carlos_aguirre_ubi_stock`: se agregó
+  `tallerista.ubicacion_stock_id` (nullable, FK a ubicacion); Carlos Aguirre (id 9) apunta
+  a ubi 18 (Pedernera). El inventario de la ubi 29 se consolidó en ubi 18 (sumando
+  cantidades, tomando el máximo de mínimos y máximos por componente), y la ubi 29 fue
+  borrada. Ubi 18 renombrada "Pedernera / Carlos Aguirre".
+- **Reglas de reposición distintas por componente en esa misma ubi** `[deducido, pendiente
+  de implementar]`: los crudos/cromados (N7, GRJ10, GRJ10A, cuerpos p/cromar) se reponen en
+  kg según lo que Cervantes tiene en Sector Procesado; los insumos de envasado (cartones
+  G3C, O5A, C1A, G7A, P4A, I2A + cajas A8, A2, A4, A5, A11) se reponen en uni según 1 mes
+  de est madre del artículo terminado. La ubicación es una, la regla por fila.
+- **Facturación ISIS separada**. Aunque el depósito es uno, en ISIS son 2 proveedores:
+  Pedernera Ilario cod_prov 701 (factura el cromado como servicio) y Carlos Aguirre
+  cod_prov 4306 (factura la mano de obra del tallerista). Ambos catálogos conviven en la BD
+  (`proveedor_servicio` y `tallerista`) y la separación NO se toca.
+- **Frontend**: `gp2-motor.js` (v20260902a) al armar el bundle usa
+  `tall[X].ubi_stock` para redirigir `UB["tall:" + X]` a la ubi compartida cuando
+  corresponde. Todo lo demás (pantallas de Envíos a Talleristas, Envíos a Proveedores,
+  Stock, etc.) no cambia — ambas puertas llegan al mismo stock.
+- **Deuda residual** `[dato]`: la ubi 18 tiene cantidades negativas históricas por descuentos
+  mal aplicados antes de la unificación: A2 (-51), A4 (-63), C1A (-612), P4A (-1512),
+  GRJ10 (-2124). Falta decidir con el usuario si se blanquean a 0 con un movimiento de
+  ajuste (para no perder trazabilidad) o si primero se investiga el desfase.
+- **Pendiente**: aplicar el mismo criterio al **700** (hoy Jade + Danica Garcia) si el
+  usuario confirma que también lo entrega Carlos Aguirre.
+
 ## 2c-quindecies. Costos cargados con datos reales del Excel `A_Costos_VIGENTES.xlsx` (2026-09-01)
 
 `[usuario 2026-09-01, sesión en vivo]` "vamos con los costos". Se cargaron los precios reales
