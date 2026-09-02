@@ -112,6 +112,10 @@ una **decisión ya tomada**. Por eso `componente.estado_compra`:
   Industriales NO está en el maestro `proveedor_insumo`** `[deducido: GP2.componente]` → hay
   que darlo de alta como proveedor antes de asignarlo. (Ojo: PCP3 figura en Sector Plástico
   aunque es un clavo metálico — revisar el sector si molesta.)
+- **`PEP5` (Mango Madera): se compra a Eduardo Pintos.** `[usuario 2026-09-02]` En la base
+  ya figura con proveedor **"Pintos"** = **Eduardo Pintos** (el que hace la madera). Ya está
+  bien asignado; se anota el nombre completo. Si se quiere, renombrar el maestro
+  `proveedor_insumo` "Pintos" → "Eduardo Pintos".
 
 Marcar el estado **saca la parte de la Orden de Compra** y deja de contarla como faltante.
 NO se usa el campo `proveedor` para esto: la OC agrupa por proveedor y terminaría
