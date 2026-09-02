@@ -80,7 +80,9 @@ function agrupar(rows) {
   for (const r of rows) {
     const rem = r.remito ? String(r.remito) : "SR";
     const fecha = String(r.fecha || "").slice(0, 10);
-    const key = `${fecha}||${r.proveedor||""}||${rem}`;
+    // Agrupar por REMITO, no por dia (regla usuario 2026-09-02). Sin remito ("SR")
+    // se cae al fallback por fecha para no mezclar cargas de dias distintos.
+    const key = rem === "SR" ? `SR||${fecha}||${r.proveedor||""}` : `${r.proveedor||""}||${rem}`;
     if (!map.has(key)) map.set(key, { fecha, proveedor: r.proveedor, remito: r.remito, items: [] });
     map.get(key).items.push(r);
   }

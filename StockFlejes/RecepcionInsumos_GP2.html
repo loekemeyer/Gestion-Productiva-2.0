@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="es">
 <head>
-<!-- v3.35.0 (2026-09-02) — FIX cajas/remaches al Terminé remito: con el buffer, cajas (sector 11) y remaches (sector 8) quedaban en modo directo y flushPend no llevaba al control; ahora flushPend junta pideCajas/pideRemaches y al terminar muestra el successBox con "Ir a Control Cajas →" / "Ir a Control Remaches →" (y oculta las salidas: el control es obligatorio). v3.34.0 (2026-09-02) — REMITO BUFFERIZADO para TODOS los rubros (regla usuario 2026-09-02: "no quiero que por cada +4 o +1 se haga un remito. cuando arranco a tocar aparece un boton terminé de cargar remito con un tilde, que cada remito pueda tener varios cartones, y se pueda restar o eliminar si toqué mal en +4/+1" + "quiero que aparezca en todo tipo de recepción de insumos, tanto flejes como cajas como plásticos como cartones como remaches como bombillas... capaz pongo fleje 13 que recepcioné 10 kg y después fleje 8, 8 kg... y que me tiene que poder dejar, porque en un remito capaz hay más de una medida. Y recién cuando confirmé las medidas... arriba a la derecha... terminé de pasar remito"). PEND {} = buffer LOCAL por comp_id de items cargados que aun no bajaron a la BD. cargarRapidoCarton (+N/+1) hace bumpPend; popup kgConfirm de flejes/cajas/plasticos/remaches/bombillas/cartones hace pushPend; ninguno llama cargar_recepcion directo. Boton "✓ Terminé de cargar remito" (btnTerminarRemito) dispara flushPend() = N cargar_recepcion con el MISMO p_remito y sigue al paso 2 (montarControlCartones/montarPesaje). 🗑 por item en la barra; -N/-1/🗑 en la tarjeta de carton. syncExits/beforeunload consideran PEND. CSS qbtn-minus/qbtn-del/qrow-pend/pend-info/rb-pend-item. v3.33.0 — F90 (Alambre Filtro Café) alineado al vecino: id 372 renombrado
+<!-- v3.36.0 (2026-09-02) — REMITO AUTOMATICO POR LOTE (regla usuario 2026-09-02: "aparece por día. quiero que aparezca por remito. asi en todo tipo de recepcion"). flushPend: si el operario no puso numero de remito, genera "s/n HH:MM:SS" por cada Terminé, asi cada lote queda como un grupo propio en los controles (control-cajas.js / control-remaches.js agrupan ahora por proveedor||remito, sin la fecha en la key cuando hay remito real). v3.35.0 (2026-09-02) — FIX cajas/remaches al Terminé remito: con el buffer, cajas (sector 11) y remaches (sector 8) quedaban en modo directo y flushPend no llevaba al control; ahora flushPend junta pideCajas/pideRemaches y al terminar muestra el successBox con "Ir a Control Cajas →" / "Ir a Control Remaches →" (y oculta las salidas: el control es obligatorio). v3.34.0 (2026-09-02) — REMITO BUFFERIZADO para TODOS los rubros (regla usuario 2026-09-02: "no quiero que por cada +4 o +1 se haga un remito. cuando arranco a tocar aparece un boton terminé de cargar remito con un tilde, que cada remito pueda tener varios cartones, y se pueda restar o eliminar si toqué mal en +4/+1" + "quiero que aparezca en todo tipo de recepción de insumos, tanto flejes como cajas como plásticos como cartones como remaches como bombillas... capaz pongo fleje 13 que recepcioné 10 kg y después fleje 8, 8 kg... y que me tiene que poder dejar, porque en un remito capaz hay más de una medida. Y recién cuando confirmé las medidas... arriba a la derecha... terminé de pasar remito"). PEND {} = buffer LOCAL por comp_id de items cargados que aun no bajaron a la BD. cargarRapidoCarton (+N/+1) hace bumpPend; popup kgConfirm de flejes/cajas/plasticos/remaches/bombillas/cartones hace pushPend; ninguno llama cargar_recepcion directo. Boton "✓ Terminé de cargar remito" (btnTerminarRemito) dispara flushPend() = N cargar_recepcion con el MISMO p_remito y sigue al paso 2 (montarControlCartones/montarPesaje). 🗑 por item en la barra; -N/-1/🗑 en la tarjeta de carton. syncExits/beforeunload consideran PEND. CSS qbtn-minus/qbtn-del/qrow-pend/pend-info/rb-pend-item. v3.33.0 — F90 (Alambre Filtro Café) alineado al vecino: id 372 renombrado
      de codigo='031' desc='31 Terminado' sector=12 unidad='unidad' a codigo='F90'
      desc='Alambre Filtro de Café (Charcas corta)' sector=5 (Fleje) unidad='kg'
      kg_x_uni=0.00830 proveedor='Resortes Charcas'. Motivo (usuario 2026-09-02):
@@ -835,7 +835,17 @@ function pendCount(){ var n=0; for (var k in PEND) n++; return n; }
 async function flushPend(){
   if (!pendTieneItems()) return;
   var s=$('statusMsg');
-  var remito = ($('txtRemito')&&$('txtRemito').value)||null;
+  // Remito: si el operario no puso numero, se genera uno automatico POR LOTE
+  // (regla usuario 2026-09-02: "aparece por día. quiero que aparezca por remito").
+  // Asi cada "Terminé de cargar remito" queda como un grupo propio en los
+  // controles (cajas/remaches/etc.), en vez de mezclarse por fecha con otras
+  // cargas del mismo dia. Formato "s/n HH:MM:SS" (visible y unico por lote).
+  var remito = ($('txtRemito')&&$('txtRemito').value||'').trim();
+  if (!remito){
+    var d = new Date();
+    var pad = function(n){ return (n<10?'0':'')+n; };
+    remito = 's/n ' + pad(d.getHours())+':'+pad(d.getMinutes())+':'+pad(d.getSeconds());
+  }
   var fiso = $('txtFecha') && $('txtFecha').value ? ($('txtFecha').value+'T12:00:00') : null;
   var keys = Object.keys(PEND);
   var procesados = 0, fallados = 0;

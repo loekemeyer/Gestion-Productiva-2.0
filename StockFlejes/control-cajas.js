@@ -80,11 +80,15 @@ function filtrar() {
 }
 
 function agrupar(rows) {
+  // Agrupar por REMITO (regla usuario 2026-09-02: "aparece por día, quiero que
+  // aparezca por remito"). Con remito real la key NO lleva fecha, asi cada remito
+  // es un grupo aunque cruce dias. Solo las recepciones viejas sin remito ("SR")
+  // caen al fallback por fecha para no juntar cargas de dias distintos.
   const map = new Map();
   for (const r of rows) {
     const rem = r.remito ? String(r.remito) : "SR";
     const fecha = String(r.fecha || "").slice(0, 10);
-    const key = `${fecha}||${r.proveedor||""}||${rem}`;
+    const key = rem === "SR" ? `SR||${fecha}||${r.proveedor||""}` : `${r.proveedor||""}||${rem}`;
     if (!map.has(key)) map.set(key, { fecha, proveedor: r.proveedor, remito: r.remito, items: [] });
     map.get(key).items.push(r);
   }
