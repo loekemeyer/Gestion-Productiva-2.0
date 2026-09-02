@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="es">
 <head>
-<!-- v3.33.0 — F90 (Alambre Filtro Café) alineado al vecino: id 372 renombrado
+<!-- v3.34.0 (2026-09-02) — REMITO BUFFERIZADO para TODOS los rubros (regla usuario 2026-09-02: "no quiero que por cada +4 o +1 se haga un remito. cuando arranco a tocar aparece un boton terminé de cargar remito con un tilde, que cada remito pueda tener varios cartones, y se pueda restar o eliminar si toqué mal en +4/+1" + "quiero que aparezca en todo tipo de recepción de insumos, tanto flejes como cajas como plásticos como cartones como remaches como bombillas... capaz pongo fleje 13 que recepcioné 10 kg y después fleje 8, 8 kg... y que me tiene que poder dejar, porque en un remito capaz hay más de una medida. Y recién cuando confirmé las medidas... arriba a la derecha... terminé de pasar remito"). PEND {} = buffer LOCAL por comp_id de items cargados que aun no bajaron a la BD. cargarRapidoCarton (+N/+1) hace bumpPend; popup kgConfirm de flejes/cajas/plasticos/remaches/bombillas/cartones hace pushPend; ninguno llama cargar_recepcion directo. Boton "✓ Terminé de cargar remito" (btnTerminarRemito) dispara flushPend() = N cargar_recepcion con el MISMO p_remito y sigue al paso 2 (montarControlCartones/montarPesaje). 🗑 por item en la barra; -N/-1/🗑 en la tarjeta de carton. syncExits/beforeunload consideran PEND. CSS qbtn-minus/qbtn-del/qrow-pend/pend-info/rb-pend-item. v3.33.0 — F90 (Alambre Filtro Café) alineado al vecino: id 372 renombrado
      de codigo='031' desc='31 Terminado' sector=12 unidad='unidad' a codigo='F90'
      desc='Alambre Filtro de Café (Charcas corta)' sector=5 (Fleje) unidad='kg'
      kg_x_uni=0.00830 proveedor='Resortes Charcas'. Motivo (usuario 2026-09-02):
@@ -104,6 +104,14 @@ input[type="text"]{width:200px}
 .qbtn{flex:1;min-height:44px;padding:6px 10px;border:2px solid #111;border-radius:8px;background:#fff;color:#111;font-weight:800;font-size:17px;cursor:pointer;line-height:1}
 .qbtn:hover{background:#f6f8fa}
 .qbtn-primary{background:#111;color:#fff}
+.qbtn-minus{border-color:#7c4b00;color:#7c4b00;background:#fff8e1}
+.qbtn-minus:hover{background:#fff2c4}
+.qbtn-del{flex:0 0 44px;border-color:#a12222;color:#a12222;background:#ffebee;font-size:19px}
+.qbtn-del:hover{background:#ffcdd2}
+.qrow-pend{margin-top:6px;align-items:center}
+.pend-info{flex:1;font-size:14px;color:#7c4b00;font-weight:700;text-align:right;padding-right:4px}
+.rb-pend-item{display:inline-flex;align-items:center;gap:6px;padding:4px 8px;margin:2px 4px;background:#fff8e1;border:1px solid #eae0cd;border-radius:8px;font-size:14px}
+.rb-pend-item .qbtn-del{min-height:32px;padding:2px 6px;font-size:14px}
 .qbtn-primary:hover{background:#333}
 .item-btn .cargado-info{display:block;font-size:15px;font-weight:800;line-height:1.25;margin-top:6px;
                         color:#0a7a2f;background:#dcfae4;border-radius:8px;padding:5px 8px}
@@ -396,6 +404,13 @@ const RUBRO_UM={Flejes:"kg",Remaches:"kg",Cajas:"uni",Plasticos:"uni",Cartones:"
 
 let INS=[], UMBY={}, KGXUNI={}, PROVFLAGS={}, RECS=[], PALL=[], ROLL=[], TARA={tara_pallet_min:4,tara_pallet_max:8};
 let REMITO=[];    // items anotados del remito en curso, esperando el pesaje: {recId,codigo,desc,cant,unidad,rollos,pallets}
+// PEND: buffer LOCAL para cartones (regla usuario 2026-09-02: "no quiero que
+// por cada +4 o +1 se haga un remito. cuando arranco a tocar aparece un boton
+// 'terminé de cargar remito', varios cartones por remito, y se pueda restar
+// o eliminar"). Los +N/+1 acumulan aca; recien al presionar "Terminé" se
+// bajan a la BD como recepcion_insumo (una fila por comp_id, todas con el
+// mismo remito). Estructura: { comp_id: { item, paq } }.
+let PEND = {};
 let rubroSel="", sidSel=0, provSel="", provsRubro=[], marcaSel="", formatoSel="";
 // modo de control del proveedor (parametrizado en proveedor_insumo.modo_control):
 //   rollos_remito: remito con rollos+pallets (Basconia, Aperam)
@@ -716,6 +731,17 @@ function pintarItems(list){
       if (pxb>1) qb += '<button class="qbtn qbtn-primary" data-qn="'+pxb+'">+'+pxb+'</button>';
       qb += '<button class="qbtn" data-qn="1">+1</button>';
       quick = '<div class="qrow">'+qb+'</div>';
+      // Fila de RESTAR / BORRAR si hay algo pendiente en PEND para este item
+      // (regla usuario 2026-09-02: "que se pueda restar o eliminar si toqué mal").
+      var p = PEND[String(i.comp_id)];
+      if (p && p.paq>0){
+        var qm = '';
+        if (pxb>1) qm += '<button class="qbtn qbtn-minus" data-qm="'+pxb+'">−'+pxb+'</button>';
+        qm += '<button class="qbtn qbtn-minus" data-qm="1">−1</button>';
+        qm += '<button class="qbtn qbtn-del" data-qm="all">🗑</button>';
+        qm += '<span class="pend-info">⏳ '+p.paq+' paq pendiente'+(p.paq===1?'':'s')+'</span>';
+        quick += '<div class="qrow qrow-pend">'+qm+'</div>';
+      }
     }
     b.innerHTML='<span class="code">'+esc(i.codigo)+'</span>'+
       '<span class="desc">'+esc(i.descripcion||'')+'</span>'+ med + fmt + resumenOC(i.oc_pend) + cargado + quick;
@@ -723,49 +749,174 @@ function pintarItems(list){
     // para cargar cantidad libre).
     b.addEventListener('click',function(ev){
       var q = ev.target.closest && ev.target.closest('.qbtn');
-      if (q){ ev.stopPropagation(); cargarRapidoCarton(i, Number(q.dataset.qn)||1); return; }
+      if (q){
+        ev.stopPropagation();
+        var qm = q.dataset.qm;
+        if (qm === 'all'){ bumpPend(i, -1e9); return; }
+        if (qm){ bumpPend(i, -(Number(qm)||1)); return; }
+        cargarRapidoCarton(i, Number(q.dataset.qn)||1);
+        return;
+      }
       abrirPopup(i);
     });
     g.appendChild(b);
   });
 }
 /* Carga rapida de un cartón/pliego desde la tarjeta (botones +N/+1).
-   No abre popup: llama cargar_recepcion en background y suma al REMITO.
-   - Pliegos (es_pliego=true): 1 "paquete" = 100 pliegos = cant en unidades = 100.
-   - Cartones (no pliego): 1 "paquete" = 250 unidades (parámetro).
-   El paq_x_bolsa del formato ya se traduce en el N del boton (C=4, Ocho=12, etc.). */
-async function cargarRapidoCarton(item, paqOrPliegoPaq){
+   NO baja a la BD: acumula en PEND (buffer local). Recien al presionar
+   "Terminé de cargar remito" se materializa en recepcion_insumo (una fila
+   por item con el mismo numero de remito). Asi un remito puede tener varios
+   cartones sin generar N recepciones.
+   - Pliegos (es_pliego=true): 1 "paquete" = uni_x_bolsa pliegos (default 100).
+   - Cartones (no pliego): 1 "paquete" = PAQ() unidades (parametro, default 250). */
+function cargarRapidoCarton(item, paqOrPliegoPaq){
   if (!item || !provSel) return;
   var paq = Math.max(1, Number(paqOrPliegoPaq)||1);
-  var esPliego = esPliegoIt(item);
-  var cant, uReal, declRemito;
-  if (esPliego){
-    // 1 paq = uni_x_bolsa (100 pliegos por paquete)
-    var uxb = Number(item.uni_x_bolsa_cat)||100;
-    cant = paq * uxb; uReal='uni'; declRemito = cant;
-  } else {
-    // Cartones: 1 paq = 250 uni (parametro PAQ)
-    cant = paq * PAQ(); uReal='uni'; declRemito = paq;
-  }
+  bumpPend(item, +paq);
   var s=$('statusMsg');
-  try{
-    var fiso = $('txtFecha') && $('txtFecha').value ? ($('txtFecha').value+'T12:00:00') : null;
-    var res = await SB.rpc('cargar_recepcion', {
-      p_comp_id: item.comp_id, p_proveedor: provSel||null,
-      p_cantidad: cant, p_unidad: uReal, p_remito: ($('txtRemito')&&$('txtRemito').value)||null,
-      p_rollos: null, p_pallets: null, p_fecha: fiso });
-    if (res.error) throw res.error;
-    var recId = res.data && res.data.recepcion_id;
-    if (recId){
-      REMITO.push({ recId: recId, codigo: item.codigo, desc: item.descripcion||'',
-                    cant: cant, unidad: uReal, paquetes: declRemito, modo: 'carton',
-                    carton_formato: item.carton_formato||null, es_pliego: !!item.es_pliego });
+  if (s){
+    var p = PEND[String(item.comp_id)];
+    var tot = p ? p.paq : paq;
+    s.className='status';
+    s.innerHTML='⏳ '+esc(item.codigo)+': '+tot+' paq en el remito (sin bajar todavía). Tocá "✓ Terminé de cargar remito" para confirmar.';
+    setTimeout(function(){ s.textContent=''; },4000);
+  }
+}
+/* bumpPend: cartones (+N/-N/-all). Actualiza PEND[comp_id].paq y refresca UI. */
+function bumpPend(item, delta){
+  if (!item || !item.comp_id) return;
+  var key = String(item.comp_id);
+  var d = Number(delta)||0;
+  var cur = PEND[key] || { item: item, paq: 0, modo: 'carton' };
+  cur.item = item;
+  cur.paq = cur.paq + d;
+  if (cur.paq <= 0) delete PEND[key]; else PEND[key] = cur;
+  renderRemitoBar();
+  filtrarItems();
+}
+/* pushPend: no-cartones (flejes/cajas/plasticos/remaches/bombillas).
+   Reemplaza la entrada del comp_id (si el usuario carga el mismo item 2 veces,
+   la segunda pisa a la primera; para acumular tiene que eliminar y volver a
+   cargar). Guarda TODO lo que despues necesita cargar_recepcion + REMITO. */
+function pushPend(item, opts){
+  if (!item || !item.comp_id) return;
+  var key = String(item.comp_id);
+  PEND[key] = {
+    item: item,
+    modo: opts.modo || 'directo',       // 'carton' | 'peso' | 'rollos' | 'directo'
+    cant: Number(opts.cant)||0,          // cantidad final en unidad canonica del server
+    cantRaw: Number(opts.cantRaw)||0,    // cantidad tal como la tipeo el user (para mostrar)
+    unidad: opts.unidad || 'uni',        // 'kg' | 'uni'
+    unidadRaw: opts.unidadRaw || opts.unidad || 'uni',
+    rollos: (opts.rollos!=null?Number(opts.rollos):null),
+    pallets: (opts.pallets!=null?Number(opts.pallets):null),
+    paquetes: (opts.paquetes!=null?Number(opts.paquetes):null),
+    pideControl: !!opts.pideControl,
+    esCarton: !!opts.esCarton,
+    esPliego: !!opts.esPliego,
+    esFleje: !!opts.esFleje,
+    esRemache: !!opts.esRemache,
+    esCaja: !!opts.esCaja
+  };
+  renderRemitoBar();
+  filtrarItems();
+}
+/* delPend: eliminar una entrada del buffer (boton 🗑 en la barra o tarjeta). */
+function delPend(compId){
+  var key = String(compId);
+  if (PEND[key]){ delete PEND[key]; renderRemitoBar(); filtrarItems(); }
+}
+function pendTieneItems(){ for (var k in PEND) return true; return false; }
+function pendCount(){ var n=0; for (var k in PEND) n++; return n; }
+/* flushPend: al presionar "Terminé de cargar remito". Crea 1 recepcion_insumo
+   por cada PEND[key] usando el mismo p_remito. Colecta recIds y arma REMITO[]
+   con la estructura que consume el flujo posterior (montarControlCartones o
+   montarPesaje segun modo). */
+async function flushPend(){
+  if (!pendTieneItems()) return;
+  var s=$('statusMsg');
+  var remito = ($('txtRemito')&&$('txtRemito').value)||null;
+  var fiso = $('txtFecha') && $('txtFecha').value ? ($('txtFecha').value+'T12:00:00') : null;
+  var keys = Object.keys(PEND);
+  var procesados = 0, fallados = 0;
+  for (var i=0;i<keys.length;i++){
+    var p = PEND[keys[i]];
+    try {
+      var cantSrv, uSrv, rll = null, pll = null;
+      if (p.modo === 'carton'){
+        // Cartones (bufferizados por +N/+1 desde la tarjeta): cant en uni.
+        var pliegoIt = esPliegoIt(p.item);
+        if (pliegoIt){
+          var uxb = Number(p.item.uni_x_bolsa_cat)||100;
+          cantSrv = p.paq * uxb; uSrv = 'uni';
+          p.cant = cantSrv; p.unidad = 'uni'; p.paquetes = cantSrv;
+        } else {
+          cantSrv = p.paq * PAQ(); uSrv = 'uni';
+          p.cant = cantSrv; p.unidad = 'uni'; p.paquetes = p.paq;
+        }
+      } else {
+        cantSrv = p.cant; uSrv = p.unidad;
+        rll = p.rollos; pll = p.pallets;
+      }
+      var res = await SB.rpc('cargar_recepcion', {
+        p_comp_id: p.item.comp_id, p_proveedor: provSel||null,
+        p_cantidad: cantSrv, p_unidad: uSrv, p_remito: remito,
+        p_rollos: rll, p_pallets: pll, p_fecha: fiso });
+      if (res.error) throw res.error;
+      var recId = res.data && res.data.recepcion_id;
+      if (recId){
+        p.recId = recId;
+        // cajas/remaches: guardar cantidad_declarada como hacia el popup viejo
+        if (p.pideControl){
+          try { await SB.from('recepcion_insumo').update({ cantidad_declarada: cantSrv }).eq('id', recId); } catch(e){}
+        }
+        // Agregar a REMITO[] con la forma esperada por el flujo posterior
+        if (p.modo === 'carton'){
+          REMITO.push({ recId: recId, codigo: p.item.codigo, desc: p.item.descripcion||'',
+                        cant: p.cant, unidad: 'uni', paquetes: p.paquetes, modo: 'carton',
+                        carton_formato: p.item.carton_formato||null, es_pliego: !!p.item.es_pliego });
+        } else if (p.modo === 'peso' || p.modo === 'rollos'){
+          REMITO.push({ recId: recId, codigo: p.item.codigo, desc: p.item.descripcion||'',
+                        cant: cantSrv, unidad: uSrv, rollos: rll, pallets: pll,
+                        modo: p.modo });
+        }
+        // items 'directo' (cajas/remaches/plasticos/bombillas sin control especial):
+        // no van a REMITO ni al pesaje posterior — quedan como recepcion cerrada.
+      }
+      procesados++;
+    } catch(e){
+      fallados++;
+      console.error('flushPend', e);
     }
-    renderRemitoBar();
-    filtrarItems();
-    if (s){ s.className='status'; s.innerHTML='✓ '+esc(item.codigo)+': +'+paq+(esPliego?' paq (= '+cant+' pliegos)':' paq (= '+cant+' uni)'); setTimeout(function(){ s.textContent=''; },4000); }
-  } catch(e){
-    if (s){ s.className='status bad'; s.textContent='Error: '+(e.message||e); }
+  }
+  PEND = {};
+  renderRemitoBar();
+  filtrarItems();
+  if (s){
+    s.className = (fallados ? 'status bad' : 'status');
+    s.innerHTML = '✓ Remito confirmado: '+procesados+' ítem'+(procesados===1?'':'s')+
+                  (fallados?(' · '+fallados+' con error'):'');
+    setTimeout(function(){ s.textContent=''; },5000);
+  }
+  // Si hay items en REMITO (cartones o flejes con control), continuar al paso 2
+  // como hacia el flujo original (btnFinRemito -> montarControlCartones/Pesaje).
+  if (REMITO.length){
+    var todosCarton = REMITO.every(function(x){ return x.modo==='carton'; });
+    if (todosCarton){
+      montarControlCartones(REMITO.map(function(x){
+        return { recId:x.recId, codigo:x.codigo, desc:x.desc,
+                 declaradoPaq: Number(x.paquetes)||0, controlado:'',
+                 carton_formato: x.carton_formato||null,
+                 es_pliego: !!x.es_pliego };
+      }));
+    } else {
+      montarPesaje(REMITO.filter(function(x){ return x.modo!=='carton'; }).map(function(x){
+        return { recId:x.recId, codigo:x.codigo, desc:x.desc, pallets:x.pallets,
+                 modo:x.modo||'rollos',
+                 remitoKg:(x.unidad==='kg'?x.cant:null),
+                 blocks:(x.modo==='peso'?{1:{peso:'',rollos:[]}}:bloquesVacios(x.pallets)) };
+      }));
+    }
   }
 }
 function filtrarItems(){
@@ -1042,7 +1193,7 @@ function pendientesDePesaje(){
    ocultan las salidas (Atrás del header y ← Volver del paso 2). Se
    restauran al terminar (successBox) o al hacer "Nueva recepción". */
 function syncExits(){
-  var lock = REMITO.length>0 || !!PES || !!CTL;
+  var lock = REMITO.length>0 || !!PES || !!CTL || pendTieneItems();
   var a=$('btnAtrasHeader'); if(a) a.style.display = lock ? 'none' : '';
   var v=$('btnVolver1'); if(v) v.style.display = lock ? 'none' : '';
 }
@@ -1050,7 +1201,7 @@ function syncExits(){
    recepcion queda como "sin controlar" igual y aparece en la barra al
    volver — pero el aviso empuja a terminar antes. */
 window.addEventListener('beforeunload',function(e){
-  if(REMITO.length>0 || PES || CTL){ e.preventDefault(); e.returnValue=''; return ''; }
+  if(REMITO.length>0 || PES || CTL || pendTieneItems()){ e.preventDefault(); e.returnValue=''; return ''; }
 });
 
 function renderRemitoBar(){
@@ -1062,22 +1213,40 @@ function renderRemitoBar(){
   if (typeof filtrarItems === 'function' && document.getElementById('itemsGrid')) {
     try { filtrarItems(); } catch(_){ }
   }
-  if(!REMITO.length && !pend.length){ bar.classList.add('hidden'); bar.innerHTML=''; return; }
+  var pendKeys = Object.keys(PEND);
+  if(!REMITO.length && !pend.length && !pendKeys.length){ bar.classList.add('hidden'); bar.innerHTML=''; return; }
   var h='';
+  // NUEVO (2026-09-02): buffer PEND — items cargados en la sesion que todavia
+  // no bajaron a la BD. Se muestran con boton eliminar por item; el boton
+  // "Terminé de cargar remito" los materializa todos con el mismo p_remito.
+  if(pendKeys.length){
+    var lineas = pendKeys.map(function(k){
+      var p = PEND[k]; var lbl;
+      if (p.modo === 'carton'){
+        lbl = p.paq + ' paq';
+      } else {
+        lbl = fmt(p.cantRaw||p.cant) + ' ' + esc(p.unidadRaw||p.unidad);
+        if (p.pallets) lbl += ' ('+p.pallets+' pallet'+(p.pallets===1?'':'s')+')';
+      }
+      return '<span class="rb-pend-item"><b style="color:#0066cc">'+esc(p.item.codigo)+'</b> '+lbl+
+             ' <button class="qbtn qbtn-del" data-pend-del="'+esc(p.item.comp_id)+'" type="button" title="Eliminar del remito">🗑</button></span>';
+    }).join(' ');
+    h+='<b>⏳ Remito en curso · '+pendKeys.length+' ítem'+(pendKeys.length===1?'':'s')+' (sin bajar todavía)</b>'+
+       '<div class="rb-items">'+lineas+'</div>'+
+       '<button class="btn btn-primary" id="btnTerminarRemito" type="button">✓ Terminé de cargar remito</button>'+
+       ' <small style="color:#555">Podés seguir agregando ítems al mismo remito. Se bajan todos juntos con el número de remito de arriba.</small>';
+  }
   if(REMITO.length){
     // Cartones vs flejes: si TODO el remito es de cartones, la fase 2 es el
     // control fisico (base x pisos + sueltas), no el pesaje en balanza.
     var todosCarton = REMITO.every(function(x){ return x.modo==='carton'; });
-    h+='<b>📋 Remito en curso · '+REMITO.length+' ítem'+(REMITO.length===1?'':'s')+'</b>'+
+    h+='<b>📋 En fase 2 · '+REMITO.length+' ítem'+(REMITO.length===1?'':'s')+'</b>'+
        '<div class="rb-items">'+REMITO.map(function(x){
          if (x.modo==='carton') return '<b style="color:#0066cc">'+esc(x.codigo)+'</b> '+fmt(x.paquetes)+' paq';
          return '<b style="color:#0066cc">'+esc(x.codigo)+'</b> '+fmt(x.cant)+' '+esc(x.unidad)+
            (x.pallets?(' ('+x.pallets+' pallet'+(x.pallets===1?'':'s')+')'):'');
        }).join(' · ')+'</div>'+
-       '<button class="btn btn-primary" id="btnFinRemito" type="button">✓ Terminé de pasar remito</button>'+
-       ' <small style="color:#555">'+(todosCarton
-         ? 'La recepción se termina contando los paquetes reales.'
-         : 'La recepción se termina con el pesaje en balanza.')+'</small>';
+       '<button class="btn btn-primary" id="btnFinRemito" type="button">'+(todosCarton?'✓ Controlar cartones':'⚖ Pesar')+'</button>';
   }
   if(pend.length){
     h+='<div class="rb-pend">⚠ '+pend.length+' recepción'+(pend.length===1?'':'es')+
@@ -1086,6 +1255,15 @@ function renderRemitoBar(){
   }
   bar.innerHTML=h;
   bar.classList.remove('hidden');
+  // Handlers de eliminacion por item PEND (boton 🗑 en la barra)
+  bar.querySelectorAll('[data-pend-del]').forEach(function(btn){
+    btn.addEventListener('click', function(ev){
+      ev.stopPropagation();
+      delPend(btn.getAttribute('data-pend-del'));
+    });
+  });
+  var t=$('btnTerminarRemito');
+  if(t) t.onclick=function(){ flushPend(); };
   var f=$('btnFinRemito');
   if(f) f.onclick=function(){
     // Cartones: fase 2 es el control fisico (base x pisos + sueltas en paquetes).
@@ -2000,93 +2178,45 @@ async function guardar(){
       pll = parseInt(($('kgPaquetes').value||'').replace(/\D/g,''),10)||null;
       if(!pll){ m.className='status bad'; m.textContent='Cargá los paquetes del remito.'; $('kgConfirm').disabled=false; return; }
     }
-    var res=await SB.rpc('cargar_recepcion',{
-      p_comp_id:itemSel.comp_id, p_proveedor:provSel||null,
-      p_cantidad:cant, p_unidad:uReal, p_remito:$('txtRemito').value||null,
-      p_rollos:rll, p_pallets:pll, p_fecha:fiso});
-    if(res.error) throw res.error;
-    // Con proveedor que informa rollos, el item queda ANOTADO en el remito en
-    // curso y se sigue con el proximo. El pesaje es de TODO el remito junto,
-    // cuando el usuario toca "Terminé de pasar remito".
-    // Cruce con las ordenes de compra abiertas (lo hace la BD y devuelve el detalle)
-    var ocTxt='';
-    var ocs=(res.data&&res.data.oc_cruzada)||[];
-    if(ocs.length){
-      ocTxt=ocs.map(function(o){
-        return o.completa ? ('OC N° '+o.numero+' <b>COMPLETA</b>') :
-          ('OC N° '+o.numero+': '+fmt(o.aplicado)+' '+esc(o.unidad||'')+' aplicados');
-      }).join(' · ');
-    } else {
-      ocTxt='sin OC pendiente para este insumo';
-    }
-
-    var recId = res.data && res.data.recepcion_id;
-    // Cartones: se anota el remito en PAQUETES y despues se cuenta fisicamente
-    // (fase 2 con base x pisos + sueltas). Igual esqueleto que flejes, con
-    // "Terminé de pasar remito" -> montarControlCartones. cantRaw es lo que
-    // dijo el proveedor (paquetes), cant es en unidades (cantRaw * 250).
-    if (itemSel.sector_id===10 && recId){
-      // Pliegos (Pliego C / Bombilla): declaradoPaq = UNIDADES (pliegos); no hay
-      // paquetes en el remito. Cartones: declaradoPaq = PAQUETES (250 uni c/u).
-      var pliegoIt = esPliegoIt(itemSel);
-      var declRemito = pliegoIt ? cant : cantRaw;
-      REMITO.push({ recId: recId, codigo: itemSel.codigo, desc: itemSel.descripcion||'',
-                    cant: cant, unidad: uReal, paquetes: declRemito, modo: 'carton',
-                    carton_formato: itemSel.carton_formato||null,
-                    es_pliego: !!itemSel.es_pliego });
-      var codSelC=itemSel.codigo;
-      cerrarPopup();
-      renderRemitoBar();
-      $('statusMsg').className='status';
-      var uniLbl = pliegoIt ? ('pliego'+(cantRaw===1?'':'s')) : ('paquete'+(cantRaw===1?'':'s'));
-      $('statusMsg').innerHTML=esc(codSelC)+': '+fmt(cantRaw)+' '+uniLbl+' anotados. '+ocTxt+'.';
-      setTimeout(function(){ if($('statusMsg').innerHTML.indexOf(pliegoIt?'pliego':'paquete')>=0) $('statusMsg').textContent=''; },7000);
-      return;
-    }
-    if (modoCtl!=='ninguno' && modoCtl!=='pendiente' && recId){
-      REMITO.push({ recId: recId, codigo: itemSel.codigo, desc: itemSel.descripcion||'',
-                    cant: cant, unidad: uReal, rollos: rll, pallets: pll,
-                    modo: (modoCtl==='peso_total' ? 'peso' : 'rollos') });
-      var codSel=itemSel.codigo;   // cerrarPopup() pone itemSel=null: capturar antes
-      cerrarPopup();
-      renderRemitoBar();
-      $('statusMsg').className='status';
-      $('statusMsg').innerHTML=esc(codSel)+': '+ocTxt+'.';
-      setTimeout(function(){ if($('statusMsg').innerHTML.indexOf('OC')>=0||$('statusMsg').innerHTML.indexOf('sin OC')>=0) $('statusMsg').textContent=''; },7000);
-      return;
-    }
-
-    // Sin rollos (cajas, remaches, plásticos, etc.): la carga sola completa la
-    // recepción. Cajas (sector 11) y Remaches (sector 8) quedan PENDIENTES de
-    // control: se guarda cantidad_declarada para comparar despues declarado vs
-    // controlado, y se ofrece el link al modulo de control correspondiente.
+    // NUEVO (2026-09-02): NO llamar cargar_recepcion aca. Bufferizar en PEND
+    // y bajar todo junto al presionar "✓ Terminé de cargar remito" (para que
+    // varios items compartan el mismo remito y se pueda restar/eliminar).
     var esCaja = (itemSel.sector_id === 11);
     var esRemache = (itemSel.sector_id === 8);
     var pideControl = esCaja || esRemache;
-    if (pideControl && recId) {
-      try { await SB.from('recepcion_insumo').update({ cantidad_declarada: cant }).eq('id', recId); } catch(e){ console.warn('cantidad_declarada:', e); }
+    var esCarton = (itemSel.sector_id === 10);
+    var pliegoIt = esPliegoIt(itemSel);
+    var modoFinal, paquetesPend = null;
+    if (esCarton){
+      modoFinal = 'carton';
+      paquetesPend = pliegoIt ? cant : cantRaw;
+    } else if (modoCtl!=='ninguno' && modoCtl!=='pendiente'){
+      modoFinal = (modoCtl==='peso_total' ? 'peso' : 'rollos');
+    } else {
+      modoFinal = 'directo';
     }
-    var sb=$('successBox'); sb.style.display='block';
-    $('successBox').querySelector('.title').textContent='✓ Recepción registrada';
-    var detUni= (unitSel==='paq') ? (fmt(cantRaw)+' paquetes = <b>'+fmt(cant)+' uni</b>') : ((uReal==='kg'&&kx&&unitSel==='uni') ? (fmt(cantRaw)+' uni = <b>'+fmt(cant)+' kg</b>') : '<b>'+fmt(cant)+' '+esc(uReal)+'</b>');
-    var extraCtrl = '';
-    if (esCaja) {
-      extraCtrl = '<br><br><b style="color:#0b5cad">Pendiente de control físico</b> (base × pisos + sueltas)<br>' +
-        '<a href="control-cajas.html" style="display:inline-block;margin-top:8px;padding:12px 22px;background:#0b5cad;color:#fff;border-radius:8px;text-decoration:none;font-weight:900;font-size:18px">Ir a Control Cajas →</a>';
-    } else if (esRemache) {
-      extraCtrl = '<br><br><b style="color:#0b5cad">Pendiente de control</b> (pesar y anotar los kg)<br>' +
-        '<a href="control-remaches.html" style="display:inline-block;margin-top:8px;padding:12px 22px;background:#0b5cad;color:#fff;border-radius:8px;text-decoration:none;font-weight:900;font-size:18px">Ir a Control Remaches →</a>';
-    }
-    $('successDetail').innerHTML=esc(itemSel.codigo)+' — '+esc(itemSel.descripcion||'')+' · '+detUni+(provSel?(' ('+esc(provSel)+')'):'')+'. Stock actualizado. Mov '+(res.data&&res.data.movimiento_id)+'. '+ocTxt+'.'+extraCtrl;
-    // Cajas/Remaches: el control es OBLIGATORIO despues de recibir, asi que se
-    // ocultan las salidas (Atrás del header y Volver del paso 2) para que la
-    // unica via sea "Ir a Control ..." o "Nueva recepción" (que recarga y las restaura).
-    if (pideControl) {
-      var _atras=$('btnAtrasHeader'); if(_atras) _atras.style.display='none';
-      var _volver=$('btnVolver1'); if(_volver) _volver.style.display='none';
-    }
+    pushPend(itemSel, {
+      modo: modoFinal,
+      cant: cant, cantRaw: cantRaw,
+      unidad: uReal, unidadRaw: unitSel,
+      rollos: rll, pallets: pll, paquetes: paquetesPend,
+      pideControl: pideControl,
+      esCarton: esCarton, esPliego: pliegoIt, esFleje: esFleje(itemSel),
+      esRemache: esRemache, esCaja: esCaja
+    });
+    var codSel = itemSel.codigo, descSel = itemSel.descripcion || '';
     cerrarPopup();
-    // el box queda visible; el usuario cierra con 'Nueva recepcion' (reset)
+    $('statusMsg').className='status';
+    var lblCant;
+    if (esCarton){
+      var uniLbl = pliegoIt ? ('pliego'+(cantRaw===1?'':'s')) : ('paquete'+(cantRaw===1?'':'s'));
+      lblCant = fmt(cantRaw)+' '+uniLbl;
+    } else {
+      lblCant = fmt(cant)+' '+esc(uReal);
+    }
+    $('statusMsg').innerHTML='⏳ '+esc(codSel)+' — '+esc(descSel)+' · '+lblCant+
+      ' en el remito (sin bajar todavía). Seguí cargando o tocá "✓ Terminé de cargar remito".';
+    setTimeout(function(){ if($('statusMsg').innerHTML.indexOf('sin bajar')>=0) $('statusMsg').textContent=''; },6000);
   }catch(e){ m.className='status bad'; m.textContent='Error: '+(e.message||e); }
   finally{ $('kgConfirm').disabled=false; }
 }
