@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="es">
 <head>
-<!-- v3.34.0 (2026-09-02) — REMITO BUFFERIZADO para TODOS los rubros (regla usuario 2026-09-02: "no quiero que por cada +4 o +1 se haga un remito. cuando arranco a tocar aparece un boton terminé de cargar remito con un tilde, que cada remito pueda tener varios cartones, y se pueda restar o eliminar si toqué mal en +4/+1" + "quiero que aparezca en todo tipo de recepción de insumos, tanto flejes como cajas como plásticos como cartones como remaches como bombillas... capaz pongo fleje 13 que recepcioné 10 kg y después fleje 8, 8 kg... y que me tiene que poder dejar, porque en un remito capaz hay más de una medida. Y recién cuando confirmé las medidas... arriba a la derecha... terminé de pasar remito"). PEND {} = buffer LOCAL por comp_id de items cargados que aun no bajaron a la BD. cargarRapidoCarton (+N/+1) hace bumpPend; popup kgConfirm de flejes/cajas/plasticos/remaches/bombillas/cartones hace pushPend; ninguno llama cargar_recepcion directo. Boton "✓ Terminé de cargar remito" (btnTerminarRemito) dispara flushPend() = N cargar_recepcion con el MISMO p_remito y sigue al paso 2 (montarControlCartones/montarPesaje). 🗑 por item en la barra; -N/-1/🗑 en la tarjeta de carton. syncExits/beforeunload consideran PEND. CSS qbtn-minus/qbtn-del/qrow-pend/pend-info/rb-pend-item. v3.33.0 — F90 (Alambre Filtro Café) alineado al vecino: id 372 renombrado
+<!-- v3.35.0 (2026-09-02) — FIX cajas/remaches al Terminé remito: con el buffer, cajas (sector 11) y remaches (sector 8) quedaban en modo directo y flushPend no llevaba al control; ahora flushPend junta pideCajas/pideRemaches y al terminar muestra el successBox con "Ir a Control Cajas →" / "Ir a Control Remaches →" (y oculta las salidas: el control es obligatorio). v3.34.0 (2026-09-02) — REMITO BUFFERIZADO para TODOS los rubros (regla usuario 2026-09-02: "no quiero que por cada +4 o +1 se haga un remito. cuando arranco a tocar aparece un boton terminé de cargar remito con un tilde, que cada remito pueda tener varios cartones, y se pueda restar o eliminar si toqué mal en +4/+1" + "quiero que aparezca en todo tipo de recepción de insumos, tanto flejes como cajas como plásticos como cartones como remaches como bombillas... capaz pongo fleje 13 que recepcioné 10 kg y después fleje 8, 8 kg... y que me tiene que poder dejar, porque en un remito capaz hay más de una medida. Y recién cuando confirmé las medidas... arriba a la derecha... terminé de pasar remito"). PEND {} = buffer LOCAL por comp_id de items cargados que aun no bajaron a la BD. cargarRapidoCarton (+N/+1) hace bumpPend; popup kgConfirm de flejes/cajas/plasticos/remaches/bombillas/cartones hace pushPend; ninguno llama cargar_recepcion directo. Boton "✓ Terminé de cargar remito" (btnTerminarRemito) dispara flushPend() = N cargar_recepcion con el MISMO p_remito y sigue al paso 2 (montarControlCartones/montarPesaje). 🗑 por item en la barra; -N/-1/🗑 en la tarjeta de carton. syncExits/beforeunload consideran PEND. CSS qbtn-minus/qbtn-del/qrow-pend/pend-info/rb-pend-item. v3.33.0 — F90 (Alambre Filtro Café) alineado al vecino: id 372 renombrado
      de codigo='031' desc='31 Terminado' sector=12 unidad='unidad' a codigo='F90'
      desc='Alambre Filtro de Café (Charcas corta)' sector=5 (Fleje) unidad='kg'
      kg_x_uni=0.00830 proveedor='Resortes Charcas'. Motivo (usuario 2026-09-02):
@@ -839,6 +839,7 @@ async function flushPend(){
   var fiso = $('txtFecha') && $('txtFecha').value ? ($('txtFecha').value+'T12:00:00') : null;
   var keys = Object.keys(PEND);
   var procesados = 0, fallados = 0;
+  var pideCajas = false, pideRemaches = false;   // cajas/remaches -> control despues
   for (var i=0;i<keys.length;i++){
     var p = PEND[keys[i]];
     try {
@@ -869,6 +870,8 @@ async function flushPend(){
         // cajas/remaches: guardar cantidad_declarada como hacia el popup viejo
         if (p.pideControl){
           try { await SB.from('recepcion_insumo').update({ cantidad_declarada: cantSrv }).eq('id', recId); } catch(e){}
+          if (p.esCaja) pideCajas = true;
+          if (p.esRemache) pideRemaches = true;
         }
         // Agregar a REMITO[] con la forma esperada por el flujo posterior
         if (p.modo === 'carton'){
@@ -916,6 +919,23 @@ async function flushPend(){
                  remitoKg:(x.unidad==='kg'?x.cant:null),
                  blocks:(x.modo==='peso'?{1:{peso:'',rollos:[]}}:bloquesVacios(x.pallets)) };
       }));
+    }
+    return;
+  }
+  // Cajas / Remaches: no van a fase 2 en esta pantalla, van al control externo
+  // (control-cajas.html / control-remaches.html). Antes del buffer esto lo hacia
+  // el successBox del popup; con el remito bufferizado se muestra al Terminé.
+  if (pideCajas || pideRemaches){
+    var sb=$('successBox'); if(sb){
+      sb.style.display='block';
+      sb.querySelector('.title').textContent='✓ Remito recibido — falta el control';
+      var links='';
+      if (pideCajas) links += '<a href="control-cajas.html" style="display:inline-block;margin:8px 6px 0;padding:12px 22px;background:#0b5cad;color:#fff;border-radius:8px;text-decoration:none;font-weight:900;font-size:18px">Ir a Control Cajas →</a>';
+      if (pideRemaches) links += '<a href="control-remaches.html" style="display:inline-block;margin:8px 6px 0;padding:12px 22px;background:#0b5cad;color:#fff;border-radius:8px;text-decoration:none;font-weight:900;font-size:18px">Ir a Control Remaches →</a>';
+      $('successDetail').innerHTML='El remito quedó cargado y pendiente de control físico (base × pisos + sueltas para cajas; pesar para remaches).<br>'+links;
+      // El control es obligatorio: ocultar las salidas hasta que vaya al control
+      var _atras=$('btnAtrasHeader'); if(_atras) _atras.style.display='none';
+      var _volver=$('btnVolver1'); if(_volver) _volver.style.display='none';
     }
   }
 }
