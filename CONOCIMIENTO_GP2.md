@@ -1398,6 +1398,45 @@ N°22): otra prueba de que los joins van por id, nunca por código.
 **Pendiente**: el 101 (Abrelatas) sigue sin fila en Est Madre y sin respuesta —
 ¿también discontinuado/importado?
 
+## 2i. Pinza Chica 560 (y 800): Pedernera croma + envasa + entrega (2026-09-02)
+
+`[usuario 2026-09-02]` *"el proceso del 560 es largo, pero lo importante es que su
+fabricación entera se hace en Cervantes y cuando ya está listo para cromar, se le manda a
+Pedernera (el dueño es Carlos Aguirre) para que lo crome y él mismo (Carlos Aguirre) lo
+envasa y entrega en Virgilio"* + *"este artículo se arma entero en crudo y se manda a
+cromar entero"* + *"no existe V, V14 niquelado"*. **Clave**: Pedernera (proveedor de
+servicio) y Carlos Aguirre (tallerista) son la MISMA persona / mismo taller — Cervantes le
+manda el 560 crudo entero, él croma **todo junto** (cuerpo + remache + lo que lleve
+adentro), envasa y lo entrega en Virgilio como 560 terminado.
+
+**Consecuencia estructural**: el remache "V14 niquelado" NO existe como pieza aparte. Solo
+existe CV14 (crudo). Todo lo que hoy se veía como "cromar el remache aparte" era ruido de
+modelado. **Aplicado**:
+- Componente V14 (id 283) BORRADO. articulo_componente 445 (560) y 461 (800): componente_id
+  283 → 525 (CV14).
+- Ruta 457 (art 560): se sacó el paso `proveedor_servicio` que "cromaba" el remache (era
+  Guazzaroni CV14→V14) y quedó: `ingreso CV14 → tallerista Carlos Aguirre → 560 → virgilio`.
+  El cromado del cuerpo+remache YA está en la ruta 200 (N7 → Pedernera → Carlos Aguirre →
+  virgilio).
+- Ruta 458 (art 800): mismo criterio, `insumo V14` cambió a `insumo CV14`.
+- Precio CV14 = $4,4487 ARS (Excel `A_Costos_VIGENTES` hoja Costos, columna Remaches del
+  560). Proveedor: Bella Vista (mismo que el resto de los remaches acá).
+
+**Cruce Pedernera / Carlos Aguirre — artículos que él entrega en Virgilio**
+`[usuario 2026-09-02: "pedernera/carlos aguirre... 544/802/580/560/700"]`:
+- **544, 802, 580, 560**: ya correctos. Cadena típica: `Alex Escalante arma el GRJ10/10A/N7
+  crudo → Pedernera Ilario croma → Carlos Aguirre envasa → virgilio`. Prov 544 en 4 rutas,
+  802 en 4, 580 en 5, 560 en 4 — todas cruzan bien.
+- **700 (Sacacorchos Cimarrón)**: NO cruza así hoy — hoy figura Jade (G2→B8) + Danica Garcia
+  como entrega. Falta confirmación del usuario para reasignar el cromado y entrega a
+  Pedernera + Carlos Aguirre y aclarar si el código de salida del cromado sigue siendo B8 o
+  pasa a ser una sola pieza como en los otros (entrada = salida). **Pendiente**.
+
+**Regla derivada** `[deducido]`: cuando un artículo se ensambla entero en crudo y va
+completo al cromado, el cromado del remache/tornillo NO se modela como paso separado — va
+con el cuerpo. Un paso `proveedor_servicio X→Xniquelado` en la ruta del remache es
+sospechoso: casi siempre sobra.
+
 ## 2c-quindecies. Costos cargados con datos reales del Excel `A_Costos_VIGENTES.xlsx` (2026-09-01)
 
 `[usuario 2026-09-01, sesión en vivo]` "vamos con los costos". Se cargaron los precios reales
