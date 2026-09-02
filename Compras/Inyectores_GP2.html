@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="es">
 <head>
-<!-- v1.2.0 — botones "Se fabrica" y "Discontinuo": lo que no se compra deja de figurar como faltante y sale de la OC. v1.1.0 — celular: encabezado, rubros y resumen compactados a una linea, botonera en grilla de 2 columnas con alto de dedo (44px); nota plegable. v1.0.0 — Quien fabrica cada parte: botonera por proveedor. Lo que se asigne aca es lo que despues separa la OC (cada proveedor recibe SOLO lo suyo). -->
+<!-- v1.2.1 — contraste: la opcion marcada tenia letra blanca sobre fondo claro (casi invisible); ahora texto oscuro legible sobre cada fondo. v1.2.0 — botones "Se fabrica" y "Discontinuo": lo que no se compra deja de figurar como faltante y sale de la OC. v1.1.0 — celular: encabezado, rubros y resumen compactados a una linea, botonera en grilla de 2 columnas con alto de dedo (44px); nota plegable. v1.0.0 — Quien fabrica cada parte: botonera por proveedor. Lo que se asigne aca es lo que despues separa la OC (cada proveedor recibe SOLO lo suyo). -->
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>Inyectores · Quién hace cada parte · GP2</title>
@@ -13,7 +13,7 @@
 <style>
   .chips{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0;align-items:center}
   .chip{padding:8px 14px;border-radius:20px;border:2px solid #d0d7de;background:#fff;font-weight:700;font-size:15px;cursor:pointer;color:#111}
-  .chip.active{background:#e7eff8;color:#fff;border-color:#cddaea}
+  .chip.active{background:#dbe7f6;color:#0b3b73;border-color:#9dbbdd}
   .chip .badge{display:inline-block;margin-left:6px;padding:1px 7px;border-radius:10px;background:#fde68a;color:#7c2d12;font-size:12px;font-weight:800}
   .chip.active .badge{background:#fff;color:#0b3b73}
 
@@ -31,13 +31,13 @@
   .pbtn{padding:10px 16px;border-radius:10px;border:2px solid #d0d7de;background:#fff;
         font-weight:800;font-size:15px;cursor:pointer;color:#111;white-space:nowrap}
   .pbtn:hover{border-color:#111}
-  .pbtn.on{background:#e7f8ed;color:#fff;border-color:#cdead6}
+  .pbtn.on{background:#d8f0e2;color:#166534;border-color:#8fccaa}
   .pbtn.clear{font-weight:700;color:#777}
-  .pbtn.clear.on{background:#ffffff;color:#fff;border-color:#e2e8f0}
+  .pbtn.clear.on{background:#eef1f5;color:#334155;border-color:#c2ccd8}
   .pbtn:disabled{opacity:.45;cursor:wait}
   /* no se compra: se fabrica adentro o esta discontinuado */
   .pbtn.est{font-weight:700;color:#5b21b6;border-color:#ddd6fe}
-  .pbtn.est.on{background:#eee7f8;color:#fff;border-color:#d8cdea}
+  .pbtn.est.on{background:#e5daf6;color:#5b21b6;border-color:#c3aee6}
   .parte.nocompra{background:#faf5ff}
   .parte.nocompra:hover{background:#f3e8ff}
 
