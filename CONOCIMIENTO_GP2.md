@@ -120,8 +120,9 @@ pesan para confirmar). Rendimiento: **1 chapa = 760 unidades**
 → `kg_x_uni(1686) = 0,025823`. Desperdicio Eclipse: 0% (por chapa salen 760 uni).
 
 - **Componentes:** `CHAPA430` (kg, prov Aperam, sector 13 Alambre, vive en
-  ubic 48 Eclipse) + `1686` (uni, prov Eclipse, sector 14 nuevo "Sector
-  Cortados", vive en ubic 47).
+  ubic 48 Eclipse) + `1686` **descorazonador** (uni, prov Eclipse, **sector 2
+  Procesado = SP**, vive en ubic 2). `[usuario 2026-09-01: "el insumo
+  entregado es descorazonador, tiene sector es SP"]`.
 - **Pantalla Pagos:** `Compras/AperamEclipse_GP2.html` carga kg de chapa
   cuando llega la factura de Aperam → suma stock en Eclipse.
 - **Recepción operario:** rubro nuevo "**Cortados**" → 1686 con proveedor
