@@ -113,11 +113,12 @@ El popup de Recepción Insumos arma los campos según el proveedor (además del 
 total** que va siempre):
 
 ### Aperam → Eclipse → Cervantes (misma lógica Altrak/Charcas) `[usuario 2026-09-01]`
-Aperam entrega la **chapa 430** (1250×2500×0,8 mm, ~19,625 kg cada chapa)
-directo en **Eclipse** (proveedor de servicio: corte chapa). Eclipse corta y
-entrega el insumo **1686** en Cervantes (remito en unidades, en cajas que se
-pesan para confirmar). Rendimiento: **1 chapa = 760 unidades**
-→ `kg_x_uni(1686) = 0,025823`. Desperdicio Eclipse: 0% (por chapa salen 760 uni).
+Aperam entrega la **chapa 430** (1250×2500×0,8 mm) directo en **Eclipse**
+(proveedor de servicio: corte chapa). Eclipse corta y entrega el insumo
+**1686** en Cervantes (remito en unidades, en cajas que se pesan para
+confirmar). Rendimiento: **1 chapa = 760 unidades**
+→ `kg_x_uni(1686) = 0,01376` `[usuario 2026-09-02, corrige mi cálculo previo
+de 0,025823]` → peso chapa ≈ 10,46 kg. Desperdicio Eclipse: 0%.
 
 - **Componentes:** `CHAPA430` (kg, prov Aperam, sector 13 Alambre, vive en
   ubic 48 Eclipse) + `1686` **descorazonador** (uni, prov Eclipse, **sector 2
