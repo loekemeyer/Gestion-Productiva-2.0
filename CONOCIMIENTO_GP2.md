@@ -100,6 +100,13 @@ una **decisión ya tomada**. Por eso `componente.estado_compra`:
   como plástico comprado a secas, sin ese paso `[deducido: GP2.componente]`. No es
   `fabricacion` pura ni compra directa a secas: es **compra + proceso propio** (patrón
   parecido al crudo→niquelado de los remaches, pero acá el proceso lo hacemos nosotros).
+- **`PC1A` (Mgo Pelapapa 505 Calado): se COMPRA a Pettofrezza Rafael (crudo) y lo CALA
+  Esther** (proveedor de servicio, proceso Calado). `[usuario 2026-09-02]` El proveedor de
+  compra **Pettofrezza Rafael está BIEN**; falta modelar el paso de **calado de Esther (PS)**.
+  Mismo patrón compra+proceso que PB8B, pero acá el proceso lo hace un PS, no nosotros.
+  **Ojo:** Esther hoy NO figura en `GP2.proveedor_servicio` (la lista actual son 12 PS sin
+  Esther) `[deducido, verificar]` → habría que darla de alta como PS Calado antes de trazar
+  ese paso.
 
 Marcar el estado **saca la parte de la Orden de Compra** y deja de contarla como faltante.
 NO se usa el campo `proveedor` para esto: la OC agrupa por proveedor y terminaría
