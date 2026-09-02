@@ -193,15 +193,27 @@ laminación del 430 varía chapa por chapa; el 28% puede moverse entre
 haya más muestras.
 
 ### Convención código de flejes: prefijo `I` (Insumo) `[usuario 2026-09-02]`
-Todos los flejes en `GP2.componente` (sector 5, "Sector Fleje") llevan **prefijo
-`I`** antepuesto — `I` = Insumo. La migración `flejes_prefijo_i_insumo` (55 filas)
-renombró `A1 → IA1, A10 → IA10, B3 → IB3, F90 → IF90, F90B → IF90B`, etc. La
-regla aplica **solo a flejes por ahora** (otros sectores mantienen su convención).
-Motivo: distinguir a simple vista los códigos de insumos comprables. El renombre
-fue seguro — todas las tablas relacionadas usan `componente_id` (FK bigint), no
-`codigo` como string; `fleje_detalle.n_fleje` es dato descriptivo (número del
-vecino, no FK). Cero hardcodes de códigos de fleje en RPCs, vistas, triggers o
-frontend, así que no rompe nada.
+Todos los flejes en `GP2.componente` llevan **prefijo `I`** antepuesto — `I` =
+Insumo. **Aplica a los 88 flejes de la base**, distribuidos en 2 sectores:
+
+- **Sector 5 "Sector Fleje" (55)** — migración `flejes_prefijo_i_insumo`:
+  `A1 → IA1, A10 → IA10, B3 → IB3, F90 → IF90, F90B → IF90B`, etc.
+- **Sector 3 "Sector Transito" (33)** — migración `flejes_transito_prefijo_i`:
+  variantes del mismo fleje después de pasar por una matriz.
+  `A10-M365 → IA10-M365, B3-M32 → IB3-M32, F3-M37 → IF3-M37`, etc. Se filtró
+  por `descripcion ILIKE '%fleje%'` para no tocar los 10 no-flejes del sector 3
+  (Rompenuez, Cuchilla, Varilla, Destapa) que comparten el patrón `código-Mn`.
+
+La regla **aplica solo a flejes por ahora** (otros insumos —cartones, cajas,
+plásticos, remaches, bombillas— mantienen su convención sin prefijo). Motivo:
+distinguir a simple vista los códigos de flejes en cualquier contexto.
+
+**Renombre seguro** — verificado antes de aplicar: todas las tablas relacionadas
+usan `componente_id` (FK bigint), no `codigo` como string; `fleje_detalle.n_fleje`
+es dato descriptivo (número del vecino, no FK); cero hardcodes de códigos de fleje
+en RPCs, vistas, triggers o frontend GP2; ningún esquema fuera de GP2 referencia
+`GP2.componente` (ni vía función, ni vía FK). Verificación final: cero componentes
+en toda la base con `descripcion ILIKE '%fleje%'` cuyo código no empiece con `I`.
 
 ### Prov Servicios "híbridos" (Charcas / Eclipse) `[usuario 2026-09-02]`
 Charcas y Eclipse son prov_servicio pero **no siguen el flujo PS normal**
