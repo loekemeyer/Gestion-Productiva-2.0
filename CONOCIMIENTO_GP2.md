@@ -733,6 +733,30 @@ rollos) y `recepcion_tara()` la promedia — por proveedor primero (n≥5), glob
 orden y recién sin datos cae al punto medio del parámetro 4–8. No hay nada que
 mantener a mano: cada pesaje que se guarda mejora el próximo cálculo.
 
+## 2c-bis. Hay talleristas que cobran POR KILO (2026-09-02)
+
+`[usuario 2026-09-02]` Sobre el $775,01 de la Cuchilla Pelapapa Cerrada en el Excel de
+Martin: *"es x Kg"*. **No todas las tarifas de tallerista son por unidad.**
+
+Eso era una trampa cara: `precio_tallerista` sólo tenía `precio_uni`, así que cargar ese
+número tal cual habría multiplicado el costo de esa pieza **por 200**. Un número que parece
+absurdo al lado de sus vecinos (775 contra 8,99) casi siempre es **otra unidad**, no un
+error de tipeo — vale la pena frenar y preguntar.
+
+- Se agregó **`precio_tallerista.precio_kg`**, igual que ya lo tenía `precio_servicio_pieza`.
+- El trigger **`trg_precio_tallerista_kg`** calcula solo `precio_uni = precio_kg ×
+  componente.kg_x_uni`, que es lo que lee `v_costo_componente` (la vista suma `precio_uni`,
+  no sabe de kilos). Si la pieza no tiene `kg_x_uni`, la carga **falla con un mensaje
+  claro** en vez de guardar un costo en cero.
+- Ejemplo cargado: **X4** a $775,01/kg × 0,00492 kg = **$3,81 por unidad**.
+- **Ojo**: si después cambia el `kg_x_uni` de la pieza, el `precio_uni` guardado queda
+  viejo. Hay que volver a tocar la fila (un `UPDATE precio_kg = precio_kg` alcanza, el
+  trigger recalcula).
+
+En el mismo Excel hay otras dos líneas por kilo — *Puntas 520 Afilado (KG)* $3.361,18 y
+*Puntas 523 Afilado (KG)* $4.830 — que todavía no se pueden cargar porque no está claro
+sobre qué componente de GP2 caen.
+
 ## 2c. Costos y valorización: el motor de precios (2026-08-30)
 
 `[usuario 2026-08-30]` Dicho textual: *"Quiero que yo te suba los precios de los insumos
