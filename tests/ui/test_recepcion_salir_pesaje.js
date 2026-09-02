@@ -55,15 +55,20 @@ const STUB = 'window.supabase={createClient:function(){return{'
       try {
         await page.click('.item-btn');
         await page.waitForSelector('#kgPopup.open', { timeout: 3000 });
+        // Desde v3.31.1 (revision usuario 2026-09-01) el popup de fleje pide SOLO el
+        // Kg total: Basconia perdio su "Kg x Rollo" y el unico proveedor con campo
+        // extra es Hermac (Paquetes). Por eso aca ya no se llenan #kgRollos/#kgPallets
+        // — no existen en el DOM.
         await page.fill('#kgValue', '360');
-        await page.fill('#kgRollos', '7');
-        await page.fill('#kgPallets', '2');
-        await page.waitForFunction(() => document.getElementById('kgValue').value === '360'
-                                      && document.getElementById('kgRollos').value === '7'
-                                      && document.getElementById('kgPallets').value === '2',
+        await page.waitForFunction(() => document.getElementById('kgValue').value === '360',
                                    null, { timeout: 3000 });
         await page.click('#kgConfirm');
-        await page.waitForSelector('#btnFinRemito', { timeout: 3000 });
+        // Desde v3.34.0 el remito esta BUFFERIZADO: Confirmar deja el item en PEND
+        // (nada baja a la BD todavia) y lo que aparece es "✓ Terminé de cargar remito"
+        // al lado del buscador. Ese boton es el que dispara flushPend() -> N
+        // cargar_recepcion con el mismo remito -> paso 2. El viejo #btnFinRemito
+        // hoy solo sale cuando ya hay recepciones bajadas esperando control.
+        await page.waitForSelector('#btnTerminarRemito', { timeout: 3000 });
         break;
       } catch (e) {
         if (intento >= 6) throw e;
@@ -72,23 +77,25 @@ const STUB = 'window.supabase={createClient:function(){return{'
                                     if (p) p.classList.remove('open'); });
       }
     }
-    await page.click('#btnFinRemito');
+    await page.click('#btnTerminarRemito');
     await page.waitForSelector('#pesajeWrap:not(.hidden)');
   }
 
   await llegarAlPesaje();
 
   // 1) el paso 2 NO ofrece "Salir sin pesar" (control obligatorio)
+  // La X del popup se saco en v3.24.0 [usuario: "el funcionamiento de no poder salir
+  // esta bien pero saca la X no se va a usar"], asi que ya no se chequea: se sale por
+  // Cancelar (paso 1) o Guardar (paso 2), y Escape sigue avisando (punto 4).
   const pie = await page.evaluate(() => {
     const vis = id => { const e = document.getElementById(id); return !!e && !e.classList.contains('hidden'); };
-    const x = document.getElementById('kgX').getBoundingClientRect();
     return { salir: vis('kgPesajeSalir'), guardar: vis('kgPesajeOk'), cancelar: vis('kgCancel'),
-             xEnPantalla: x.top >= 0 && x.bottom <= window.innerHeight && x.width >= 40 };
+             hayX: !!document.getElementById('kgX') };
   });
   ok(!pie.salir, 'el paso 2 NO muestra "Salir sin pesar" (control obligatorio)');
   ok(pie.guardar, 'sigue estando "Guardar pesaje"');
   ok(!pie.cancelar, 'el "Cancelar" del paso 1 no se mezcla');
-  ok(pie.xEnPantalla, 'la X esta visible y es tocable (>=40px)');
+  ok(!pie.hayX, 'la X del popup sigue afuera (se saco en v3.24.0)');
 
   // 2) Atras del header y Volver del paso 2 estan OCULTOS mientras hay REMITO/PES
   const salidasOcultas = await page.evaluate(() => {
@@ -99,17 +106,9 @@ const STUB = 'window.supabase={createClient:function(){return{'
   ok(salidasOcultas.atras, 'con PES activo, "Atras" del header queda oculto');
   ok(salidasOcultas.volver, 'con PES activo, "← Volver" del paso 2 queda oculto');
 
-  // 3) la X NO cierra el popup durante PES: muestra "Terminá el control..."
-  await page.click('#kgX');
-  await page.waitForTimeout(200);
-  const trasX = await page.evaluate(() => ({
-    abierto: document.getElementById('kgPopup').classList.contains('open'),
-    msg: document.getElementById('kgMsg').textContent,
-  }));
-  ok(trasX.abierto, 'la X NO cierra el popup durante el pesaje');
-  ok(/termin[aá] el control/i.test(trasX.msg), 'la X avisa "Terminá el control..." (' + trasX.msg + ')');
+  // 3) (el punto de la X quedo sin objeto desde v3.24.0 — ver arriba)
 
-  // 4) Escape tampoco
+  // 4) Escape tampoco cierra
   await page.keyboard.press('Escape');
   await page.waitForTimeout(200);
   const trasEsc = await page.evaluate(() => ({

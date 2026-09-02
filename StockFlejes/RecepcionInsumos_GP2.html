@@ -2141,7 +2141,9 @@ async function guardarControlCartones(){
 
 // En el paso 2 el click en el fondo sigue SIN cerrar: scrolleando un pesaje largo
 // en la tablet es facil pegarle sin querer y perder lo cargado en pantalla. Para
-// salir estan la X, "Salir sin pesar" y Escape, que avisan antes.
+// salir esta Escape, que avisa antes ("Terminá el control para salir"). La X del
+// popup se saco en v3.24.0 y "Salir sin pesar" queda oculto en el paso 2 desde
+// v3.22.0 (control obligatorio): el paso 2 se cierra guardando.
 $('kgPopup').addEventListener('click',e=>{ if(e.target===$('kgPopup') && !PES && !CTL) cerrarPopup(); });
 $('kgConfirm').addEventListener('click',guardar);
 

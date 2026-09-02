@@ -34,9 +34,20 @@ const EXE = process.env.CHROMIUM_PATH || (fs.existsSync('/opt/pw-browsers/chromi
   ok(await page.locator('.pes-chip').count() === 3, 'chips de los 3 items');
   ok(await page.locator('#kgPesajeOk').isHidden(), 'Guardar oculto hasta el ultimo item');
 
+  // Al pasar de item, si la balanza no llega al remito la pantalla pide una
+  // confirmacion nativa antes de dejar seguir [usuario 2026-09-01: "cuando tenes 2
+  // flejes en vez de guardar pasas al siguiente, que eso tambien te tire el mensaje
+  // de guardar"]. El item 1 esta en ese caso (balanza 200 contra remito 360), asi
+  // que el test la acepta — sin este handler Playwright la descarta sola y la
+  // navegacion queda bloqueada.
+  const confirms = [];
+  page.on('dialog', async d => { confirms.push(d.message()); await d.accept(); });
+
   await page.click('.pes-nav .sig');
   t = await page.locator('#pesajeWrap').innerText();
   ok(t.includes('Ítem 2 de 3') && t.includes('Fleje N° 22'), 'Siguiente pasa al 2do item');
+  ok(confirms.length === 1 && /no llega al remito/i.test(confirms[0]),
+     'balanza < remito avisa antes de pasar de item (' + (confirms[0] || 'sin aviso').split('\n')[0] + ')');
 
   // completar el 2do y seguir: el chip queda en verde
   await page.fill('.pes-pallet input[data-f="peso"]', '230');
@@ -120,7 +131,9 @@ const EXE = process.env.CHROMIUM_PATH || (fs.existsSync('/opt/pw-browsers/chromi
   await page.fill('.kgw input', '88,5');                              // correccion manual
   await page.click('[data-step="1"]');                                // 5 -> 6 rollos
   kAuto = await page.locator('.kgw input').inputValue();
-  ok(kAuto === '88,5', 'corregido a mano, el auto no lo pisa mas (quedo ' + kAuto + ')');
+  // Se tipea con coma y la pantalla muestra punto: sanDec normaliza sobre la marcha
+  // [usuario 2026-09-01: "los inputs numericos con coma o punto que ambos pongan punto"].
+  ok(kAuto === '88.5', 'corregido a mano, el auto no lo pisa mas (quedo ' + kAuto + ')');
 
   // con UN item: sin chips, sin nav, Guardar visible
   await page.evaluate(its => montarPesaje(its), [items3[0]]);
