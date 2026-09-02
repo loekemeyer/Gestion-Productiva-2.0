@@ -1,0 +1,165 @@
+<!doctype html>
+<html lang="es">
+<head>
+<!-- v1.0.0 — COMPRA APERAM CHAPA 430 -> ECLIPSE (2026-09-01, Fase 2 del modelo Aperam->Eclipse->Cervantes).
+     Aperam entrega la chapa 430 (1250×2500×0,8 mm) directo en Eclipse. Eclipse la corta y entrega el
+     insumo 1686 en Cervantes por Recepcion Insumos (rubro Cortados). Esta pantalla la usa PAGOS cuando
+     llega la factura de Aperam por la chapa: registra los kg y suma stock en Eclipse. -->
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Compra Aperam → Eclipse · GP2</title>
+<script src="../auth-guard.js?v=20260829f"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="../supabase-config.js?v=20260831d"></script>
+<link rel="stylesheet" href="../gp2-modulo.css?v=20260830q"/>
+<link rel="icon" type="image/png" href="../GP2_favicon.png">
+<link rel="apple-touch-icon" href="../GP2_favicon.png">
+<style>
+.card{max-width:720px}
+.steps{padding:16px 18px 24px}
+.stock-panel{background:#eef4fb;border:2px solid #cddaea;border-radius:12px;padding:16px 20px;margin:0 0 20px;text-align:center}
+.stock-panel .lbl{font-size:14px;font-weight:800;color:#475569;text-transform:uppercase;letter-spacing:.5px}
+.stock-panel .val{font-size:38px;font-weight:900;color:#0b3b73;margin-top:4px;font-variant-numeric:tabular-nums}
+.stock-panel .val small{font-size:20px;color:#0b5cad;font-weight:800}
+.form-row{display:flex;flex-wrap:wrap;gap:14px;margin:12px 0}
+.field{display:flex;flex-direction:column;gap:6px;flex:1 1 200px;min-width:160px}
+.field label{font-size:16px;font-weight:700;color:#333}
+.field input{height:48px;padding:0 14px;border:2px solid #d0d7de;border-radius:10px;font-size:22px;font-weight:600}
+.field input:focus{outline:none;border-color:#0b3b73}
+.field.kg input{text-align:right;font-size:26px;font-weight:800}
+.hint{font-size:13px;color:#666;font-weight:600}
+#btnGuardar{min-height:52px;padding:14px 28px;font-size:20px;font-weight:900;margin-top:8px}
+#btnGuardar:disabled{opacity:.45;cursor:not-allowed}
+.hist{margin-top:24px}
+.hist h3{font-size:16px;font-weight:800;color:#475569;text-transform:uppercase;letter-spacing:.5px;margin:0 0 8px}
+.hist table{width:100%;border-collapse:collapse;font-size:16px;font-variant-numeric:tabular-nums}
+.hist th{text-align:left;font-weight:800;color:#475569;padding:8px 10px;border-bottom:2px solid #d0d7de;background:#f6f8fa}
+.hist td{padding:10px;border-bottom:1px solid #e6eaee}
+.hist tr:hover td{background:#f6faff}
+.hist td.kg{text-align:right;font-weight:700;color:#0b3b73}
+.hist .empty{color:#888;font-style:italic;padding:14px;text-align:center}
+@media(max-width:480px){.steps{padding:12px}.form-row{gap:10px}.field{flex:1 1 100%}#btnGuardar{width:100%}}
+</style>
+</head>
+<body>
+
+<div class="card">
+  <div class="header">
+    <h1>Compra Aperam → Eclipse</h1>
+    <div class="hbtns"><a href="../GP2_MODULOS.html">Atrás</a></div>
+  </div>
+
+  <div class="steps">
+    <div class="stock-panel">
+      <div class="lbl">Stock actual en Eclipse</div>
+      <div class="val"><span id="stockKg">0</span> <small>kg de chapa 430</small></div>
+    </div>
+
+    <div class="form-row">
+      <div class="field">
+        <label for="txtFecha">Fecha factura</label>
+        <input type="date" id="txtFecha">
+      </div>
+      <div class="field">
+        <label for="txtRemito">N° remito / factura</label>
+        <input type="text" id="txtRemito" placeholder="Opcional" inputmode="text">
+      </div>
+    </div>
+
+    <div class="form-row">
+      <div class="field kg" style="flex:1 1 100%">
+        <label for="txtKg">Kg de chapa 430 comprados</label>
+        <input type="text" id="txtKg" inputmode="decimal" placeholder="0,0">
+        <div class="hint">Se suman al stock de Eclipse. Eclipse la corta y entrega el 1686 en Cervantes.</div>
+      </div>
+    </div>
+
+    <div class="form-row">
+      <button id="btnGuardar" class="btn btn-primary" disabled>✓ Registrar compra</button>
+    </div>
+
+    <div id="statusMsg" class="status"></div>
+
+    <div class="hist">
+      <h3>Últimas compras a Aperam (chapa 430)</h3>
+      <table>
+        <thead><tr><th>Fecha</th><th>Remito</th><th class="kg">Kg</th></tr></thead>
+        <tbody id="histTbody"><tr><td colspan="3" class="empty">Cargando…</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<script>
+const SB = window.supabase.createClient(SB_URL, SB_ANON, {db:{schema:'GP2'}});
+const $  = id => document.getElementById(id);
+
+function hoy(){ var d=new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+function esc(s){ return (s==null?'':String(s)).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+function fmt(n){ var x=Number(n)||0; return Number.isInteger(x)?x.toLocaleString('es-AR'):x.toLocaleString('es-AR',{maximumFractionDigits:2}); }
+function fmtFecha(iso){ if(!iso)return''; var d=new Date(iso); return String(d.getDate()).padStart(2,'0')+'/'+String(d.getMonth()+1).padStart(2,'0')+'/'+d.getFullYear(); }
+function parseNumTol(s){
+  var str=String(s==null?'':s).trim(); if(!str)return NaN;
+  if(str.indexOf(',')>=0) return parseFloat(str.replace(/\./g,'').replace(',','.'));
+  var p=(str.match(/\./g)||[]).length;
+  return p<=1?parseFloat(str):parseFloat(str.replace(/\./g,''));
+}
+function sanDec(v){ return String(v==null?'':v).replace(',','.').replace(/[^\d.]/g,'').replace(/(\..*)\./g,'$1'); }
+
+$('txtFecha').value = hoy();
+
+$('txtKg').addEventListener('input', function(){
+  var pos=this.selectionStart, ori=this.value, out=sanDec(ori);
+  if(out!==ori){ this.value=out; try{ this.setSelectionRange(Math.max(0,pos-(ori.length-out.length)), Math.max(0,pos-(ori.length-out.length))); }catch(_){}}
+  refreshBtn();
+});
+$('txtRemito').addEventListener('input', refreshBtn);
+$('txtFecha').addEventListener('input', refreshBtn);
+function refreshBtn(){ $('btnGuardar').disabled = !(parseNumTol($('txtKg').value)>0 && $('txtFecha').value); }
+
+$('btnGuardar').addEventListener('click', async function(){
+  var m=$('statusMsg'); m.className='status'; m.textContent='';
+  var kg=parseNumTol($('txtKg').value), fecha=$('txtFecha').value, remito=$('txtRemito').value.trim();
+  if(!(kg>0)){ m.className='status bad'; m.textContent='Cargá los kg (mayor a 0).'; return; }
+  var conf=confirm('Registrar compra Aperam (chapa 430):\n\n'+
+    'Fecha: '+fmtFecha(fecha)+'\n'+
+    (remito?('Remito: '+remito+'\n'):'')+
+    'Kg: '+fmt(kg)+'\n\nSe suma al stock de Eclipse.\n\n¿Confirmar?');
+  if(!conf) return;
+  $('btnGuardar').disabled=true; m.textContent='Registrando…';
+  try{
+    var fiso=fecha+'T12:00:00';
+    var res=await SB.rpc('cargar_compra_aperam_chapa',{ p_kg:kg, p_remito:remito||null, p_fecha:fiso });
+    if(res.error) throw res.error;
+    var d=res.data||{};
+    m.className='status ok';
+    m.innerHTML='✓ Compra registrada. Stock Eclipse: <b>'+fmt(d.stock_eclipse_kg)+' kg</b> (mov '+d.movimiento_id+').';
+    $('txtKg').value=''; $('txtRemito').value='';
+    await cargar(); refreshBtn();
+    setTimeout(function(){ if(m.className==='status ok') m.textContent=''; }, 8000);
+  }catch(e){ m.className='status bad'; m.textContent='Error: '+(e.message||e); }
+  finally{ refreshBtn(); }
+});
+
+async function cargar(){
+  var st=await SB.from('inventario').select('cantidad, componente:componente_id(codigo)').eq('ubicacion_id', 48);
+  var kg=0;
+  if(!st.error){ (st.data||[]).forEach(function(r){ if(r.componente && r.componente.codigo==='CHAPA430') kg=Number(r.cantidad)||0; }); }
+  $('stockKg').textContent=fmt(kg);
+
+  var res=await SB.from('recepcion_insumo')
+    .select('fecha, remito, cantidad, componente:componente_id(codigo)')
+    .eq('proveedor','Aperam').order('fecha',{ascending:false}).limit(20);
+  var tb=$('histTbody');
+  if(res.error){ tb.innerHTML='<tr><td colspan="3" class="empty">Error: '+esc(res.error.message)+'</td></tr>'; return; }
+  var rows=(res.data||[]).filter(function(r){ return r.componente && r.componente.codigo==='CHAPA430'; });
+  if(!rows.length){ tb.innerHTML='<tr><td colspan="3" class="empty">Sin compras registradas todavía.</td></tr>'; return; }
+  tb.innerHTML=rows.map(function(r){
+    return '<tr><td>'+fmtFecha(r.fecha)+'</td><td>'+esc(r.remito||'—')+'</td><td class="kg">'+fmt(r.cantidad)+' kg</td></tr>';
+  }).join('');
+}
+
+cargar();
+</script>
+</body>
+</html>

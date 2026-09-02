@@ -112,6 +112,27 @@ pantalla de Inyectores, con los botones **Se fabrica** / **Discontinuo**.
 El popup de Recepción Insumos arma los campos según el proveedor (además del **KG
 total** que va siempre):
 
+### Aperam → Eclipse → Cervantes (misma lógica Altrak/Charcas) `[usuario 2026-09-01]`
+Aperam entrega la **chapa 430** (1250×2500×0,8 mm, ~19,625 kg cada chapa)
+directo en **Eclipse** (proveedor de servicio: corte chapa). Eclipse corta y
+entrega el insumo **1686** en Cervantes (remito en unidades, en cajas que se
+pesan para confirmar). Rendimiento: **1 chapa = 760 unidades**
+→ `kg_x_uni(1686) = 0,025823`. Desperdicio Eclipse: 0% (por chapa salen 760 uni).
+
+- **Componentes:** `CHAPA430` (kg, prov Aperam, sector 13 Alambre, vive en
+  ubic 48 Eclipse) + `1686` (uni, prov Eclipse, sector 14 nuevo "Sector
+  Cortados", vive en ubic 47).
+- **Pantalla Pagos:** `Compras/AperamEclipse_GP2.html` carga kg de chapa
+  cuando llega la factura de Aperam → suma stock en Eclipse.
+- **Recepción operario:** rubro nuevo "**Cortados**" → 1686 con proveedor
+  Eclipse → RPC `cargar_recepcion_eclipse` suma uni en Cortados + descuenta
+  chapa en Eclipse.
+- **OC gemela:** OC a Eclipse dispara OC gemela a Aperam por
+  `Σ uni × kg_x_uni × (1 + desperdicio/100)` kg de chapa.
+- **Aperam sigue apareciendo como proveedor de flejes en Recepción Insumos**
+  (a diferencia de Altrak que salió del listado): la chapa 430 es un flujo
+  nuevo, los flejes que ya entregaba siguen igual.
+
 **Revisión final `[usuario 2026-09-01]`:** TODOS los proveedores de fleje piden
 **solo `Kg total`**, con dos excepciones:
 - **Hermac** → `Kg total` + **`Paquetes`** (entero, se guarda en `p_pallets`).

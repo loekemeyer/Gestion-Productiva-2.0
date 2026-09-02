@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="es">
 <head>
-<!-- v1.4.0 — OC A CHARCAS DISPARA OC GEMELA A ALTRAK (Fase 4 modelo Altrak->Charcas->Cervantes, usuario 2026-09-01: "a la par que se emite la orden a charcas se tiene que emitir la orden al track, porque en realidad charcas lo unico que hace es transforma el material del track"). oc_bundle amplia el where con OR proveedor='Resortes Charcas' para que 031/034 aparezcan en el listado; su stock online se busca en Virgilio (ubic 33). Nuevo helper JS esCharcasIt(i)+uniPorPaqCharcas(i): cuando el proveedor es Charcas, el sugerido se convierte de uni a paquetes de 10 kg (round up); el input queda en paquetes con "= N uni" al lado; el submit manda unidad='paq'. La RPC crear_oc detecta proveedor='Resortes Charcas' y crea automaticamente una segunda OC a 'Altrak' con Σ (paquetes × 10 × (1+desperdicio/100)) kg de ALAM_FILTRO, y enlaza las dos por numero en la nota. Success muestra el N° de la gemela y sus kg. v1.3.0 — la OC sale VALORIZADA: precio vigente y subtotal por insumo (precio_proveedor,
+<!-- v1.5.0 — OC A ECLIPSE TAMBIÉN DISPARA OC GEMELA A APERAM (Fase 4 modelo Aperam->Eclipse->Cervantes, usuario 2026-09-01: "con altrak y charcas sucede lo mismo con aperam y Eclipse"). crear_oc en Supabase agrega el caso: si proveedor='Eclipse', suma kg_chapa = Σ (uni × kg_x_uni) por item, aplica desperdicio (parametro eclipse_desperdicio_pct=0 default) y crea OC gemela a 'Aperam' con esos kg de CHAPA430. Frontend muestra el N° de la gemela y sus kg en el success box. oc_bundle ya trae 1686 (sector 14 esta en _es_sector_insumo). v1.4.0 — OC A CHARCAS DISPARA OC GEMELA A ALTRAK (Fase 4 modelo Altrak->Charcas->Cervantes, usuario 2026-09-01: "a la par que se emite la orden a charcas se tiene que emitir la orden al track, porque en realidad charcas lo unico que hace es transforma el material del track"). oc_bundle amplia el where con OR proveedor='Resortes Charcas' para que 031/034 aparezcan en el listado; su stock online se busca en Virgilio (ubic 33). Nuevo helper JS esCharcasIt(i)+uniPorPaqCharcas(i): cuando el proveedor es Charcas, el sugerido se convierte de uni a paquetes de 10 kg (round up); el input queda en paquetes con "= N uni" al lado; el submit manda unidad='paq'. La RPC crear_oc detecta proveedor='Resortes Charcas' y crea automaticamente una segunda OC a 'Altrak' con Σ (paquetes × 10 × (1+desperdicio/100)) kg de ALAM_FILTRO, y enlaza las dos por numero en la nota. Success muestra el N° de la gemela y sus kg. v1.3.0 — la OC sale VALORIZADA: precio vigente y subtotal por insumo (precio_proveedor,
      hoy regulacion 1 USD / $1000 cajas), total de lo pedido en la barra (US$ y $ separados,
      + equivalente en pesos con el dolar del cron), precios y total en la hoja de impresion,
      y cada OC guarda la foto historica del precio al crearla (crear_oc). v1.2.0 — la celda de consumo es TOCABLE: abre el sustento por articulo
@@ -337,11 +337,13 @@ $('btnCrear').addEventListener('click', async function(){
     PEDIDO={}; $('nota').value='';
     await boot();
     mostrarTab('ocs');
-    var gem = r.data && r.data.oc_gemela_altrak;
+    var gemA = r.data && r.data.oc_gemela_altrak;
+    var gemP = r.data && r.data.oc_gemela_aperam;
     $('status').className='status ok';
     $('status').innerHTML='✓ OC N° '+r.data.numero+' creada con '+r.data.items+' ítems (borrador).' +
-      (gem ? ('<br><b style="color:#0b3b73">✓ OC gemela N° '+gem.numero+' a Altrak con '+fmt(gem.kg_alambre)+' kg de alambre.</b>') : '');
-    setTimeout(function(){ $('status').innerHTML=''; $('status').className='status'; }, gem ? 12000 : 6000);
+      (gemA ? ('<br><b style="color:#0b3b73">✓ OC gemela N° '+gemA.numero+' a Altrak con '+fmt(gemA.kg_alambre)+' kg de alambre.</b>') : '') +
+      (gemP ? ('<br><b style="color:#0b3b73">✓ OC gemela N° '+gemP.numero+' a Aperam con '+fmt(gemP.kg_chapa)+' kg de chapa 430.</b>') : '');
+    setTimeout(function(){ $('status').innerHTML=''; $('status').className='status'; }, (gemA||gemP) ? 12000 : 6000);
   }catch(e){ $('status').className='status bad'; $('status').textContent='Error: '+(e.message||e); }
   finally{ $('btnCrear').disabled=false; }
 });
