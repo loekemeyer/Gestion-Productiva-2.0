@@ -107,6 +107,11 @@ una **decisión ya tomada**. Por eso `componente.estado_compra`:
   **Ojo:** Esther hoy NO figura en `GP2.proveedor_servicio` (la lista actual son 12 PS sin
   Esther) `[deducido, verificar]` → habría que darla de alta como PS Calado antes de trazar
   ese paso.
+- **`PCP3` (Clavo 505): se compra a Trefilados Industriales.** `[usuario 2026-09-02]` Compra
+  directa (sin proceso). Hoy PCP3 está **sin proveedor** en la base y **Trefilados
+  Industriales NO está en el maestro `proveedor_insumo`** `[deducido: GP2.componente]` → hay
+  que darlo de alta como proveedor antes de asignarlo. (Ojo: PCP3 figura en Sector Plástico
+  aunque es un clavo metálico — revisar el sector si molesta.)
 
 Marcar el estado **saca la parte de la Orden de Compra** y deja de contarla como faltante.
 NO se usa el campo `proveedor` para esto: la OC agrupa por proveedor y terminaría

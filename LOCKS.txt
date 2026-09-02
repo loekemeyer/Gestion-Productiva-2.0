@@ -3,6 +3,7 @@
 (vacío)
 
 [HISTORIAL]
+2026-09-02 - CONOCIMIENTO_GP2.md: anotado PCP3 (Clavo 505) -> se compra a Trefilados Industriales [usuario 2026-09-02]. Compra directa; hoy PCP3 sin proveedor y Trefilados no esta en el maestro proveedor_insumo -> alta pendiente. Sin cambios en la base. loekemeyer (claude-remote).
 2026-09-02 - CONOCIMIENTO_GP2.md: anotado PC1A (Mgo Pelapapa 505 Calado) [usuario 2026-09-02]: se compra a Pettofrezza Rafael (crudo) y lo cala Esther (PS Calado). Proveedor de compra OK; falta el paso de calado. Ojo: Esther no figura hoy en GP2.proveedor_servicio (12 PS sin Esther) -> verificar/alta antes de trazar. Sin cambios en la base. loekemeyer (claude-remote).
 2026-09-02 - CONOCIMIENTO_GP2.md: CORRECCION nota PB8B [usuario 2026-09-02]. SI se compra a Pat Bet Plast (plastico crudo) y DESPUES se cala en fabrica -> el proveedor esta bien, lo que falta es el paso de calado interno (ruta/proceso propio). No es "no comprado" como habia anotado antes. Sin cambios en la base. loekemeyer (claude-remote).
 2026-09-02 - CONOCIMIENTO_GP2.md: anotado que PB8B (Inser. Neg. Batidor Calado) NO es plastico comprado, se CALA en fabrica [usuario 2026-09-02]. Hoy en la base esta mal (Sector Plastico, proveedor Pat Bet Plast, sin ruta de calado); queda anotado para corregir cuando se toque (fabricacion o ruta de calado). Sin cambios en la base. loekemeyer (claude-remote).
