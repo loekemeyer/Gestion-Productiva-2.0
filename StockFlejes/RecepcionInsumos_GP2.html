@@ -6,7 +6,10 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<!-- v3.39.0 (2026-09-02) — UI: el chip del remito en curso (cantidad + tacho) se movio
+<!-- v3.40.0 (2026-09-02) — UI cartones: se sacaron los botones -N/-1/tacho y el texto
+     "N paq pendientes"; ahora el chip amarillo del remito va debajo de CADA tarjeta en
+     TODOS los rubros, con un lapiz (✏️) que abre el popup para corregir a mano.
+     v3.39.0 (2026-09-02) — UI: el chip del remito en curso (cantidad + tacho) se movio
      de la barra de arriba a DEBAJO DE CADA TARJETA, centrado; se saco el texto
      "N pendiente". La barra deja solo el encabezado "Remito en curso · N ítems".
      v3.38.0 (2026-09-02) — UI: boton "Terminé de cargar remito" a la DERECHA del
@@ -747,28 +750,26 @@ function pintarItems(list){
       if (pxb>1) qb += '<button class="qbtn qbtn-primary" data-qn="'+pxb+'">+'+pxb+'</button>';
       qb += '<button class="qbtn" data-qn="1">+1</button>';
       quick = '<div class="qrow">'+qb+'</div>';
-      // Fila de RESTAR / BORRAR si hay algo pendiente en PEND para este item
-      // (regla usuario 2026-09-02: "que se pueda restar o eliminar si toqué mal").
-      var p = PEND[String(i.comp_id)];
-      if (p && p.paq>0){
-        var qm = '';
-        if (pxb>1) qm += '<button class="qbtn qbtn-minus" data-qm="'+pxb+'">−'+pxb+'</button>';
-        qm += '<button class="qbtn qbtn-minus" data-qm="1">−1</button>';
-        qm += '<button class="qbtn qbtn-del" data-qm="all">🗑</button>';
-        qm += '<span class="pend-info">⏳ '+p.paq+' paq pendiente'+(p.paq===1?'':'s')+'</span>';
-        quick += '<div class="qrow qrow-pend">'+qm+'</div>';
-      }
+      // Los -N/-1/tacho y el texto "N paq pendientes" se SACARON (regla usuario 2026-09-02):
+      // ahora va el chip amarillo con el lapiz (modificar a mano) debajo de cada tarjeta.
     }
     // Pendiente del remito bajo CADA tarjeta para no-cartones (regla usuario 2026-09-02:
     // "las entregas que figuren abajo del numero de caja"). Cartones ya lo muestran arriba.
-    if (i.sector_id!==10){
-      var _pnc = PEND[String(i.comp_id)];
-      if (_pnc && (Number(_pnc.cant)||Number(_pnc.cantRaw))){
-        // Chip del remito en curso (cantidad + tacho) CENTRADO debajo de la tarjeta
-        // (regla usuario 2026-09-02). Antes vivia en la barra de arriba.
+    // Chip amarillo del remito en curso, CENTRADO debajo de CADA tarjeta, en TODOS los
+    // rubros (regla usuario 2026-09-02: "el chip amarillo aparece en cada bloque").
+    // El lapiz abre el popup para corregir la cantidad a mano.
+    var _pnd = PEND[String(i.comp_id)];
+    if (_pnd){
+      var _txt = '';
+      if (i.sector_id===10){ if (Number(_pnd.paq)>0) _txt = _pnd.paq+' paq'; }
+      else if (Number(_pnd.cant)||Number(_pnd.cantRaw)){ _txt = String(_pnd.cantRaw||_pnd.cant)+' '+(_pnd.unidadRaw||_pnd.unidad||'uni'); }
+      if (_txt){
         quick += '<div class="qrow qrow-pend" style="justify-content:center">'+
-                 '<span class="rb-pend-item">'+esc(String(_pnc.cantRaw||_pnc.cant))+' '+esc(_pnc.unidadRaw||_pnc.unidad||'uni')+
-                 ' <button class="qbtn qbtn-del" data-pend-del="'+esc(String(i.comp_id))+'" type="button" title="Eliminar del remito">🗑</button></span></div>';
+                 '<span class="rb-pend-item">'+esc(_txt)+
+                 ' <button class="qbtn" data-pend-edit="1" type="button" title="Modificar a mano">✏️</button>'+
+                 (i.sector_id===10 ? '' :
+                   ' <button class="qbtn qbtn-del" data-pend-del="'+esc(String(i.comp_id))+'" type="button" title="Eliminar del remito">🗑</button>')+
+                 '</span></div>';
       }
     }
     b.innerHTML='<span class="code">'+esc(i.codigo)+'</span>'+
@@ -781,6 +782,8 @@ function pintarItems(list){
         ev.stopPropagation();
         // Tacho del chip del remito que ahora vive dentro de la tarjeta.
         if (q.dataset.pendDel){ delPend(q.dataset.pendDel); return; }
+        // Lapiz: abre el popup para corregir la cantidad a mano.
+        if (q.dataset.pendEdit){ abrirPopup(i); return; }
         var qm = q.dataset.qm;
         if (qm === 'all'){ bumpPend(i, -1e9); return; }
         if (qm){ bumpPend(i, -(Number(qm)||1)); return; }
