@@ -104,18 +104,27 @@ una **decisión ya tomada**. Por eso `componente.estado_compra`:
   Esther** (proveedor de servicio, proceso Calado). `[usuario 2026-09-02]` El proveedor de
   compra **Pettofrezza Rafael está BIEN**; falta modelar el paso de **calado de Esther (PS)**.
   Mismo patrón compra+proceso que PB8B, pero acá el proceso lo hace un PS, no nosotros.
-  **Ojo:** Esther hoy NO figura en `GP2.proveedor_servicio` (la lista actual son 12 PS sin
-  Esther) `[deducido, verificar]` → habría que darla de alta como PS Calado antes de trazar
-  ese paso.
+  Se confirmó que Esther no estaba en `GP2.proveedor_servicio` (eran 12 PS) y se la **dio de
+  alta el 2026-09-02** (`id 14`, proceso *Calado*, migración `alta_ps_esther_calado`;
+  `cod_prov` queda null hasta que el usuario lo aporte) `[dato: GP2.proveedor_servicio]`.
+  **Falta todavía la ruta**: el paso `proveedor_servicio` PC1A crudo → PC1A calado no está
+  cargado, y sin tarifa de Esther el costo de ese calado sigue en 0.
 - **`PCP3` (Clavo 505): se compra a Trefilados Industriales.** `[usuario 2026-09-02]` Compra
-  directa (sin proceso). Hoy PCP3 está **sin proveedor** en la base y **Trefilados
-  Industriales NO está en el maestro `proveedor_insumo`** `[deducido: GP2.componente]` → hay
-  que darlo de alta como proveedor antes de asignarlo. (Ojo: PCP3 figura en Sector Plástico
-  aunque es un clavo metálico — revisar el sector si molesta.)
+  directa (sin proceso). **Ya aplicado** `[dato: GP2, verificado 2026-09-02]`: Trefilados
+  Industriales está en el maestro `proveedor_insumo` (rubro *Sector Plástico*) y PCP3
+  (`id 256`) lo tiene asignado en `componente.proveedor`. Queda una sola cosa por decidir:
+  PCP3 vive en **Sector Plástico** (`sector_id 6`) aunque es un clavo metálico, y su
+  proveedor heredó ese mismo rubro — revisar el sector si molesta (decisión del usuario).
 - **`PEP5` (Mango Madera): se compra a Eduardo Pintos.** `[usuario 2026-09-02]` En la base
   ya figura con proveedor **"Pintos"** = **Eduardo Pintos** (el que hace la madera). Ya está
-  bien asignado; se anota el nombre completo. Si se quiere, renombrar el maestro
-  `proveedor_insumo` "Pintos" → "Eduardo Pintos".
+  bien asignado; se anota el nombre completo. **Decisión 2026-09-02: NO se renombra el
+  maestro** `proveedor_insumo` "Pintos" → "Eduardo Pintos" `[deducido, revisado con el repo]`.
+  Motivo: "Pintos" es el nombre de todos los días y aparece con ese string en la casa del
+  vecino y en el código que la lee — `Talleristas/Control Tall/ControlTall.js` (rol dual
+  Maspoli/Pintos), `Facturas/EntregaProveedoresCervantes.html` (`SECTOR_SC_POR_PROV`),
+  `StockFlejes/recepcion.html` y `tests/ui/test_entregas_at.js`. Renombrarlo solo en GP2
+  vuelve a abrir la trampa de siempre (el mismo proveedor escrito distinto en las dos
+  casas). Si algún día se renombra, se renombra en los dos lados y en el mismo commit.
 
 Marcar el estado **saca la parte de la Orden de Compra** y deja de contarla como faltante.
 NO se usa el campo `proveedor` para esto: la OC agrupa por proveedor y terminaría

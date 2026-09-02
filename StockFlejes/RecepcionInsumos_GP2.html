@@ -6,7 +6,13 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<!-- v3.40.1 (2026-09-02) — FIX: cargar un CARTON por el popup (lapiz) dejaba la entrada
+<!-- v3.40.2 (2026-09-02) — LIMPIEZA de codigo muerto que dejaron v3.40.0 y la Fase B:
+     (a) CSS .qbtn-minus / .qbtn-minus:hover — el boton -N/-1 de cartones se saco en
+     v3.40.0 y la clase ya no la usa nadie; (b) los stubs esFiltroCharcas() /
+     esCortadoEclipse() (return false) que quedaron de la Fase B Charcas/Eclipse —
+     no tienen un solo llamador desde que los rubros Filtros/Cortados salieron de esta
+     pantalla. Sin cambio de comportamiento.
+     v3.40.1 (2026-09-02) — FIX: cargar un CARTON por el popup (lapiz) dejaba la entrada
      del buffer sin 'paq' (pushPend guardaba solo 'paquetes'), asi que no salia el chip
      y flushPend calculaba p.paq*PAQ() = NaN -> el RPC rechazaba y no se podia terminar
      el remito. Ahora pushPend setea paq desde cantRaw y flushPend/chip tienen fallback.
@@ -134,8 +140,6 @@ input[type="text"]{width:200px}
 .qbtn{flex:1;min-height:44px;padding:6px 10px;border:2px solid #111;border-radius:8px;background:#fff;color:#111;font-weight:800;font-size:17px;cursor:pointer;line-height:1}
 .qbtn:hover{background:#f6f8fa}
 .qbtn-primary{background:#111;color:#fff}
-.qbtn-minus{border-color:#7c4b00;color:#7c4b00;background:#fff8e1}
-.qbtn-minus:hover{background:#fff2c4}
 .qbtn-del{flex:0 0 44px;border-color:#a12222;color:#a12222;background:#ffebee;font-size:19px}
 .qbtn-del:hover{background:#ffcdd2}
 .qrow-pend{margin-top:6px;align-items:center}
@@ -581,9 +585,8 @@ function insumosDelRubro(){
 // sacaron. Los PS hibridos Charcas/Eclipse viven ahora en su pantalla dedicada
 // (Prov Serv/CharcasEclipse/CharcasEclipse_GP2.html) y ya no se cargan por
 // Recepcion Insumos. Todo lo relacionado (rubros Filtros/Cortados, ramas de
-// abrirPopup/guardar) tambien se elimino.
-function esFiltroCharcas(){ return false; }
-function esCortadoEclipse(){ return false; }
+// abrirPopup/guardar) tambien se elimino. En v3.40.2 se borraron tambien los
+// dos stubs `return false` que habian quedado sin ningun llamador.
 function insumosVista(){
   var l=insumosDelRubro();
   if(provSel) l=l.filter(i=>i.proveedor===provSel);
