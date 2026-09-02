@@ -1,7 +1,10 @@
 <!doctype html>
 <html lang="es">
 <head>
-<!-- v3.37.0 (2026-09-02) — Fase B rework Charcas/Eclipse: se SACAN de Recepcion
+<!-- v3.38.0 (2026-09-02) — UI: boton "Terminé de cargar remito" a la DERECHA del
+     buscador (todos los rubros), sacado el texto "Podés seguir agregando…", y el
+     pendiente del remito ahora figura BAJO CADA TARJETA (antes solo cartones).
+     v3.37.0 (2026-09-02) — Fase B rework Charcas/Eclipse: se SACAN de Recepcion
      Insumos los rubros "Filtros" (data-sid=12) y "Cortados" (data-sid=2), los
      helpers esFiltroCharcas()/esCortadoEclipse() quedan como stubs (return
      false) para no romper llamadas remanentes, se elimina la rama del popup
@@ -349,6 +352,7 @@ input[type="text"]{width:200px}
                  oninput="document.getElementById('searchInput').value=this.value;filtrarItems();"
                  style="flex:1;min-width:220px;max-width:360px;height:44px;padding:0 14px;
                         border:2px solid #111;border-radius:8px;font-size:17px;font-weight:700;background:#fff">
+          <span id="remitoBtnSlotCart" style="flex:0 0 auto"></span>
         </div>
       </div>
       <!-- Formato (solo Cartones, tras marca): LOEKE={C,8,Huevo} / CHEF={LOKE,8,Huevo} -->
@@ -358,8 +362,9 @@ input[type="text"]{width:200px}
       </div>
       <!-- Remito en curso: los items anotados esperan el pesaje de TODO el remito -->
       <div id="remitoBar" class="remito-bar hidden"></div>
-      <div class="search-box" id="searchBoxDefault">
-        <input type="text" id="searchInput" placeholder="Buscar por código o descripción…" oninput="filtrarItems()">
+      <div class="search-box" id="searchBoxDefault" style="display:flex;gap:8px;align-items:center">
+        <input type="text" id="searchInput" placeholder="Buscar por código o descripción…" oninput="filtrarItems()" style="flex:1 1 auto">
+        <span id="remitoBtnSlot" style="flex:0 0 auto"></span>
       </div>
       <div class="items-grid" id="itemsGrid"></div>
       <div id="itemsEmpty" class="empty hidden">No hay insumos en este rubro.</div>
@@ -744,6 +749,14 @@ function pintarItems(list){
         qm += '<button class="qbtn qbtn-del" data-qm="all">🗑</button>';
         qm += '<span class="pend-info">⏳ '+p.paq+' paq pendiente'+(p.paq===1?'':'s')+'</span>';
         quick += '<div class="qrow qrow-pend">'+qm+'</div>';
+      }
+    }
+    // Pendiente del remito bajo CADA tarjeta para no-cartones (regla usuario 2026-09-02:
+    // "las entregas que figuren abajo del numero de caja"). Cartones ya lo muestran arriba.
+    if (i.sector_id!==10){
+      var _pnc = PEND[String(i.comp_id)];
+      if (_pnc && (Number(_pnc.cant)||Number(_pnc.cantRaw))){
+        quick += '<div class="qrow qrow-pend"><span class="pend-info">⏳ '+esc(String(_pnc.cantRaw||_pnc.cant))+' '+esc(_pnc.unidadRaw||_pnc.unidad||'uni')+' pendiente</span></div>';
       }
     }
     b.innerHTML='<span class="code">'+esc(i.codigo)+'</span>'+
@@ -1240,9 +1253,7 @@ function renderRemitoBar(){
              ' <button class="qbtn qbtn-del" data-pend-del="'+esc(p.item.comp_id)+'" type="button" title="Eliminar del remito">🗑</button></span>';
     }).join(' ');
     h+='<b>⏳ Remito en curso · '+pendKeys.length+' ítem'+(pendKeys.length===1?'':'s')+' (sin bajar todavía)</b>'+
-       '<div class="rb-items">'+lineas+'</div>'+
-       '<button class="btn btn-primary" id="btnTerminarRemito" type="button">✓ Terminé de cargar remito</button>'+
-       ' <small style="color:#555">Podés seguir agregando ítems al mismo remito. Se bajan todos juntos con el número de remito de arriba.</small>';
+       '<div class="rb-items">'+lineas+'</div>';
   }
   if(REMITO.length){
     // Cartones vs flejes: si TODO el remito es de cartones, la fase 2 es el
@@ -1263,6 +1274,14 @@ function renderRemitoBar(){
   }
   bar.innerHTML=h;
   bar.classList.remove('hidden');
+  // Boton "Terminé de cargar remito" a la DERECHA DEL BUSCADOR (regla usuario 2026-09-02),
+  // en el buscador que este visible (default para todos los rubros, o el de cartones).
+  var _termHtml = pendKeys.length ? '<button class="btn btn-primary" id="btnTerminarRemito" type="button">✓ Terminé de cargar remito</button>' : '';
+  var _sd = document.getElementById('searchBoxDefault');
+  var _slot = (_sd && !_sd.classList.contains('hidden')) ? document.getElementById('remitoBtnSlot') : document.getElementById('remitoBtnSlotCart');
+  var _otherSlot = (_slot && _slot.id === 'remitoBtnSlot') ? document.getElementById('remitoBtnSlotCart') : document.getElementById('remitoBtnSlot');
+  if (_slot) _slot.innerHTML = _termHtml;
+  if (_otherSlot) _otherSlot.innerHTML = '';
   // Handlers de eliminacion por item PEND (boton 🗑 en la barra)
   bar.querySelectorAll('[data-pend-del]').forEach(function(btn){
     btn.addEventListener('click', function(ev){
