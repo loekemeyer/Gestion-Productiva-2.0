@@ -3016,3 +3016,28 @@ pantallas del grupo: cada una va adonde se usa, y el grupo del menú se borra (v
   | Huevo | CHEF | — | 2 |
   | 8 | LOEKE | — | 2 |
   | Bolsa | LOEKE / CHEF | — | 2 / 1 |
+
+## 4h. La demanda sale de `GP2.est_madre`, NO de `articulo.estadistica_madre_uni_mes` (2026-09-03)
+
+- `[usuario 2026-09-03]` **"El parámetro del consumo lo tenés que levantar de donde está la
+  estadística madre, ¿por qué no lo tendrías internamente acá?"** Tenía razón, y me sacó de
+  un diagnóstico equivocado.
+- `[dato]` **Hay DOS lugares con la Est Madre y sólo uno manda.**
+  - **`GP2.est_madre`** (`cod`, `proy_cajas_mes`, `uxb`, `proy_uni_mes`) — **ésta es la
+    fuente**. Se sincroniza sola del programa viejo. `v_consumo_demanda` y `v_consumo_parte`
+    leen `proy_uni_mes` de acá, matcheando el código sin ceros a la izquierda.
+  - **`articulo.estadistica_madre_uni_mes`** — **no la usa nadie** para el consumo. Está
+    cargada a mano y **difiere en los 77 artículos** donde las dos tienen valor, casi siempre
+    redondeada hacia arriba (505: 30.000 contra 28.184 · 504: 10.000 contra 7.826 · 510:
+    8.000 contra 6.352), pero no siempre (502: 6.000 contra 6.244 · 586: 6.996 contra 7.960).
+- **Trampa, y me mordió**: mirar la columna del artículo y concluir "este artículo no tiene
+  Est Madre". Los 12 que figuran en null ahí **sí tienen proyección en `est_madre`**. Antes
+  de decir que un dato falta, buscar de dónde lo lee la vista que lo usa.
+- `[dato, arreglado 2026-09-03]` **Lo que faltaba de verdad era la receta.** Ocho artículos
+  de bombilla (654, 658, 659, 758, 759, 762, 763, 769) tenían **una sola parte**: su Pliego
+  Ad. Sin el GRJ en la receta la demanda nunca llegaba a la bombilla, así que **GRJ4, GRJ14 y
+  GRJ15 pedían cero** aunque son compra limpia y con precio de Cimarrón cargado. Qué GRJ va
+  en cada uno lo dice la **ruta** del propio artículo, y la cantidad (1) sale del patrón de
+  los dos hermanos que sí estaban cargados: 557 lleva GRJ6 x1 y 558 lleva GRJ5 x1.
+  Resultado: GRJ4 pide 3.480 · GRJ15 1.616 · GRJ14 832, y GRJ5/GRJ6 suben al sumarles la
+  demanda de sus gemelos CHEF (763 y 762).
