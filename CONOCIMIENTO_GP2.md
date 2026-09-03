@@ -2821,3 +2821,40 @@ pantallas del grupo: cada una va adonde se usa, y el grupo del menú se borra (v
 - `[dato, PENDIENTE DE DECISIÓN]` **GRJ13 (Bowls 330ml) está huérfano**: 0 pasos de ruta, 0
   recetas, 0 precio, costo $0 (ahora sí tiene fila de inventario en 0). O se le construye la
   cadena entera, o se da de baja. No es una bombilla.
+
+## 4d. Insumo → tallerista → Virgilio: los tres eventos de una ruta de armado (2026-09-03)
+
+- `[usuario]` **"Se compra el insumo, después se va al tallerista, y después el tallerista
+  entrega el artículo terminado en Virgilio."** Esa es la lectura correcta de las rutas del
+  tipo `Insumo CARTxxx -> Art xxx`: son **tres eventos reales**, uno por paso, y por eso van
+  tres pasos y no uno solo. El paso `insumo` es la COMPRA (el insumo entra a la casa), el
+  paso `tallerista` es el armado, el paso `virgilio` es la entrega del terminado.
+- `[dato]` **El paso `insumo` no transforma: entra y sale la misma pieza** (`comp_entrada_id
+  = comp_salida_id`), igual que el paso `ingreso` de un fleje. Lo que transforma es el paso
+  `tallerista`: entra el insumo, sale el artículo. Un insumo no cambia de código porque lo
+  compres — cambia cuando alguien lo trabaja.
+- `[dato, arreglado 2026-09-03]` **339 rutas tenían la cadena cortada** justo ahí: el paso
+  `insumo` con `comp_salida_id` en NULL y el paso `tallerista` con `comp_entrada_id` en NULL.
+  El insumo entraba y desaparecía; el artículo salía de la nada. No era un error de negocio
+  sino carga incompleta: las dos columnas de enganche vacías. Emparejamiento perfecto
+  (339 y 339, cada ruta con un solo insumo, el tallerista siempre inmediatamente después),
+  así que se completó con un UPDATE sin ninguna ambigüedad.
+- `[dato]` **Es el hallazgo #15 de `AUDITORIA_GP2_2026-08-31.md`** ("los 88 terminados
+  pierden todo su material"), que había bajado de 366 a 339 pasos sin resolverse. Efecto
+  medido del arreglo: cambiaron **exactamente los 98 terminados y nada más** — 0 componentes
+  de crudo/procesado/fleje, 0 máximos y 0 mínimos recalculados, ninguno bajó de costo y
+  ninguno quedó en $0. Todo el delta es **material**; servicios y mano de obra sin tocar.
+  Ejemplos: 557/558 $402,14 → $1.796,75 · 546 $1.456,56 → $3.028,34 · 550 $249,77 → $651,84.
+- `[dato]` **No hay doble conteo.** `v_costo_componente` solo camina aristas con
+  `comp_entrada_id <> comp_salida_id` y tipo `matriz|proveedor_servicio|tallerista`: el paso
+  `insumo` (que ahora tiene entrada = salida) queda fuera del walk por definición, y el
+  material entra una sola vez, por el paso del tallerista.
+- `[dato]` **Cerrar la cadena NO hace que el costo del terminado sea igual al de la receta.**
+  El motor sigue costeando por ruta (ver § 4c: "el costo llega al artículo por la RUTA, no
+  por `articulo_componente`"), así que donde la receta y la ruta no coinciden el número sigue
+  corto — 557/558 quedan en $1.796,75 contra ~$3.076 por receta, porque el GRJ de bombilla no
+  está en la receta. **El arreglo de fondo sigue pendiente**: costear el terminado desde la
+  receta, que es la que tiene las cantidades.
+- `[dato]` **Estado después del arreglo: 0 eslabones vacíos y 0 saltos duros en las 619
+  rutas.** Cualquier paso cuyo `comp_salida` no sea el `comp_entrada` del siguiente es, desde
+  ahora, un bug — vale como invariante para un test.
