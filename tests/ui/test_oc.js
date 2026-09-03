@@ -218,11 +218,24 @@ window.supabase = { createClient: function(){ return {
   const paq = await page.textContent('tr[data-id="3"] .paq-eq');
   ok(paq.includes('44') && paq.includes('paq'), 'equivalencia paquetes: ' + paq.trim());
 
-  // 24000 total: 23000+1000 -> minimo por codigo escala a 2000 -> error
+  // El minimo por codigo es FIJO (el paquete), NO escala con el multiplo [usuario
+  // 2026-09-03: "el paquete viene a mil, se puede recibir a mil"]. 23.000 + 1.000 = 24.000,
+  // dos multiplos, y el de 1.000 sigue estando bien: con el minimo escalado habria dado
+  // error pidiendole 2.000, y una familia con muchos codigos no cerraba nunca.
   await page.fill('.pedir-in[data-in="3"]', '23000');
   await page.$eval('.pedir-in[data-in="3"]', x => x.dispatchEvent(new Event('change')));
+  ok(await page.$eval('#reglaCarton', x => x.classList.contains('hidden')),
+     'el minimo por codigo NO escala: 23.000 + 1.000 es valido');
+  // Y abajo del minimo si avisa. Se usa el HUEVO, que es el unico donde el minimo
+  // (2.000) es mayor que el paso (1.000) y por lo tanto se puede quedar corto siendo
+  // multiplo: 24.000 + 1.000 = 25.000 cierra el pliego, pero ese 1.000 no llega al minimo.
+  await page.fill('.pedir-in[data-in="9"]', '24000');
+  await page.$eval('.pedir-in[data-in="9"]', x => x.dispatchEvent(new Event('change')));
+  await page.fill('.pedir-in[data-in="10"]', '1000');
+  await page.$eval('.pedir-in[data-in="10"]', x => x.dispatchEvent(new Event('change')));
   regla = await page.textContent('#reglaCarton');
-  ok(regla.includes('mínimo 2.000'), 'minimo escala con multiplo: ' + regla.trim().slice(0, 80));
+  ok(/mínimo 2\.000 por código/.test(regla) && !/para un pedido de/.test(regla),
+     'abajo del paquete avisa, y sin hablar de multiplos: ' + regla.trim().slice(0, 90));
 
   // "Usar sugeridos" deja el carton YA VALIDO (usuario 2026-09-03: "sí, redondeá
   // para arriba"). Sugeridos 16.000 + 6.000 = 22.000 -> el total sube al multiplo

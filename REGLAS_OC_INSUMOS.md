@@ -46,9 +46,15 @@ Los cartones se **reciben en PAQUETES**: el proveedor siempre entrega alturas de
   porque la marca separa los 13 huevos en 11 LOEKE + 2 CHEF, pero si alguna vez una marca
   junta 13, ese pedido es imposible y la pantalla lo dice.
 
-- El mínimo por código **escala con el múltiplo**: si pido 12.000 tipo C, mínimo 1.000 de
-  cada código; si pido 24.000, mínimo 2.000 de cada código. Nunca cantidades intermedias
-  (1.500 no se puede).
+- **El mínimo por código es FIJO: es el PAQUETE en que viene el cartón** `[usuario
+  2026-09-03: "el paquete viene a mil, considerá que se puede recibir a mil"]`. **NO escala
+  con el múltiplo** — acá decía que sí, y estaba mal: con el mínimo escalado una familia con
+  muchos códigos **no tenía ningún pedido válido** (26 códigos LOKE CHEF × 1.000 ya se pasan
+  de 16.000, y subir al múltiplo siguiente subía también el mínimo, así que nunca cerraba).
+- **No se piden todos los códigos de la familia** `[usuario: "los códigos de resto no
+  siempre se piden, solamente se pide lo que se necesita"]`. El mínimo corre para los
+  códigos que entran en el pedido, no para el catálogo entero.
+- Nunca cantidades intermedias: cada código va en múltiplos de 1.000 (1.500 no se puede).
 - **La familia de pedido es FORMATO + MARCA + CATEGORÍA** (definido por el usuario el
   2026-09-03).
 - **LOKE lo usan las dos marcas y NO se piden juntas**: *"una marca va con un pliego y la

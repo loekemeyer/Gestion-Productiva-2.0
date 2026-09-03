@@ -1,7 +1,23 @@
 <!doctype html>
 <html lang="es">
 <head>
-<!-- v1.12.0 (2026-09-03) — EL PLIEGO SE PIDE DE A 100, Y EL CARTON DEL 104 ES LOKE
+<!-- v1.13.0 (2026-09-03) — EL MINIMO POR CODIGO ES FIJO, NO ESCALA [usuario 2026-09-03:
+     "el formato LOKE o CHEF, acepto que el paquete viene a mil, considera que se puede
+     recibir a mil" + "los codigos de resto no siempre se piden, solamente se pide lo que
+     se necesita"].
+     REGLAS_OC_INSUMOS.md decia que el minimo por codigo ESCALA con el multiplo (pido
+     12.000 -> 1.000 de cada uno; pido 24.000 -> 2.000 de cada uno). Con esa regla, una
+     familia con muchos codigos NO TENIA NINGUN PEDIDO VALIDO: los 26 codigos de LOKE CHEF
+     x 1.000 ya se pasan de los 16.000 del multiplo, y subir al multiplo siguiente subia
+     tambien el minimo, asi que nunca cerraba. Igual C LOEKE Resto (15 codigos x 1.000
+     contra 12.000) y el Huevo con 13 codigos.
+     El minimo es el PAQUETE en que viene el carton, y es fijo. Con eso el multiplo sube y
+     entra: los 26 de LOKE CHEF cierran en 80.000. Se saco tambien la guardia de "esta
+     familia no entra", que era correcta para la regla vieja y ya no tiene caso.
+     VERIFICADO sobre los sugeridos de hoy: las 11 familias cierran (antes 3 eran
+     imposibles). El minimo sigue avisando cuando un codigo se queda corto — se ve en el
+     Huevo, el unico donde el minimo (2.000) es mayor que el paso (1.000).
+     v1.12.0 (2026-09-03) — EL PLIEGO SE PIDE DE A 100, Y EL CARTON DEL 104 ES LOKE
      [usuario 2026-09-03: "los pliegos del quinientos, quinientos seis y bombillas se
      tienen en paquetes de 100 pliegos" + "104 es formato Loke" + "deja recibir/pedir
      1000 entonces" (confirma el paso de 1.000 por codigo en el Huevo)].
@@ -602,9 +618,16 @@ function itemsPedidos(){
 /* ===== Cartones: como se pide cada familia (REGLAS_OC_INSUMOS.md) =====
    El carton NO se pide codigo por codigo: se pide por FAMILIA. El total de la
    familia va en multiplos de pliegos_multiplo (C 12.000 · LOKE 16.000 · "8"
-   30.000, confirmado por el usuario 2026-09-03), cada codigo de a
-   codigo_multiplo (1.000) y con un minimo por codigo que ESCALA con el multiplo:
-   pido 12.000 -> 1.000 de cada uno; pido 24.000 -> 2.000 de cada uno.
+   30.000 · Huevo 25.000, confirmado por el usuario 2026-09-03), cada codigo de a
+   codigo_multiplo (1.000) y con un MINIMO POR CODIGO FIJO — el paquete en que
+   viene el carton [usuario 2026-09-03: "el paquete viene a mil, se puede recibir
+   a mil"]. NO escala con el multiplo, aunque REGLAS_OC_INSUMOS.md decia que si:
+   con el minimo escalado, una familia con muchos codigos no tenia NINGUN pedido
+   valido (26 codigos LOKE CHEF x 1.000 ya se pasan de 16.000, y subir al multiplo
+   siguiente subia tambien el minimo, asi que nunca cerraba). Con el minimo fijo
+   sube el multiplo y entra. Ademas [usuario]: "los codigos de resto no siempre se
+   piden, solamente se pide lo que se necesita" — el minimo corre para los codigos
+   QUE ENTRAN en el pedido, no para todos los de la familia.
    La familia es formato + categoria de pliego: el tipo C agrupa por categoria
    (Pisapapas, Pelapapas, Sacacorchos, Abrelatas, Resto) y solo en Resto se puede
    mezclar cualquier codigo. Mientras carton_categoria siga vacia en la base cada
@@ -693,27 +716,19 @@ function validarCarton(items){
   gruposCarton(items).forEach(function(grupo){
     var xs=grupo.xs, cf=reglaDe(grupo.cf), lbl=grupo.lbl;
     var total=xs.reduce(function(a,x){return a+x.cantidad;},0);
-    // Familia imposible: si el minimo por codigo x la cantidad de codigos ya se pasa del
-    // multiplo, no hay pedido valido y no tiene sentido inflarlo hasta el multiplo
-    // siguiente (que sube el minimo y vuelve a pasarse). Pasa con el Huevo: minimo 2.000
-    // y multiplo 25.000 dan como maximo 12 codigos por pedido.
-    if(xs.length * cf.min_codigo_x_multiplo > cf.pliegos_multiplo){
-      errores.push(lbl+': no entra en un pedido — '+xs.length+' códigos × mínimo '+
-        fmt(cf.min_codigo_x_multiplo)+' se pasan del múltiplo de '+fmt(cf.pliegos_multiplo)+
-        '. Sacá algún código del pedido.');
-      return;
-    }
     if(total % cf.pliegos_multiplo !== 0){
       errores.push(lbl+': el total ('+fmt(total)+') debe ser múltiplo de '+fmt(cf.pliegos_multiplo)+'.');
       return;
     }
-    var mult=total/cf.pliegos_multiplo;
-    var minCod=cf.min_codigo_x_multiplo*mult;
+    // El minimo por codigo es FIJO: es el PAQUETE en que viene el carton, no una cuota
+    // que crezca con el pedido [usuario 2026-09-03: "el paquete viene a mil, se puede
+    // recibir a mil"]. Ver el comentario de arriba: la doc vieja decia que escalaba.
+    var minCod=cf.min_codigo_x_multiplo;
     xs.forEach(function(x){
       if(x.cantidad % cf.codigo_multiplo !== 0)
         errores.push(lbl+' · '+x.it.codigo+': '+fmt(x.cantidad)+' no es múltiplo de '+fmt(cf.codigo_multiplo)+'.');
       else if(x.cantidad < minCod)
-        errores.push(lbl+' · '+x.it.codigo+': mínimo '+fmt(minCod)+' por código para un pedido de '+fmt(total)+'.');
+        errores.push(lbl+' · '+x.it.codigo+': mínimo '+fmt(minCod)+' por código.');
     });
   });
   return errores;
@@ -728,8 +743,6 @@ function ajustarFamilia(xs){
   var cf=xs[0];
   var pm=Number(cf.pliegos_multiplo)||0, cm=Number(cf.codigo_multiplo)||1, mc=Number(cf.min_codigo_x_multiplo)||0;
   if(!(pm>0)) return null;
-  // Imposible de cerrar (ver validarCarton): no se toca nada y el cartel lo explica.
-  if(xs.length*mc > pm) return null;
   var q={};
   xs.forEach(function(x){ q[x.comp_id]=techo(Math.max(0,Number(x.cant)||0), cm); });
   var ids=Object.keys(q);
@@ -737,7 +750,7 @@ function ajustarFamilia(xs){
   for(var iter=0; iter<25; iter++){
     var total=ids.reduce(function(a,k){ return a+q[k]; },0);
     var mult=Math.max(1, Math.ceil(total/pm));
-    var minCod=mc*mult;
+    var minCod=mc;   // FIJO: el paquete, no una cuota que crezca con el pedido
     var subio=false;
     ids.forEach(function(k){ if(q[k]<minCod){ q[k]=techo(minCod,cm); subio=true; } });
     // Subir el piso puede empujar el total al multiplo siguiente: se recalcula.
