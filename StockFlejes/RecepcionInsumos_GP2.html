@@ -442,6 +442,18 @@ input[type="text"]{width:200px}
 const SB=window.supabase.createClient(SB_URL,SB_ANON,{db:{schema:'GP2'}});
 const $=id=>document.getElementById(id);
 
+/* Sectores cuya fase 2 (el control fisico) vive en OTRA pagina, y en cual.
+   Flejes y cartones NO estan aca: su fase 2 se abre en esta misma pantalla
+   (montarPesaje / montarControlCartones). Bombillas tampoco: no lleva control.
+   La pantalla de control por peso naciendo para remaches quedo generalizada por
+   sector, asi que plasticos entra a la misma con ?sector=6 en vez de tener una
+   copia propia [usuario 2026-09-03: "que sea control en kg" para plasticos].
+   Sumar un sector nuevo al control por peso es agregar una linea aca. */
+const CONTROL_URL = {
+  11: 'control-cajas.html',             // Cajas: base x pisos + sueltas
+  8:  'control-remaches.html',          // Remaches: pesar (8 es el default de esa pantalla)
+  6:  'control-remaches.html?sector=6'  // Plasticos: misma pantalla de peso, otro sector
+};
 // Unidad default por rubro (kg / uni). Los flejes y remaches se compran en kg.
 const RUBRO_UM={Flejes:"kg",Remaches:"kg",Cajas:"uni",Plasticos:"uni",Cartones:"uni",Bombillas:"uni"};
 
@@ -512,6 +524,11 @@ let itemSel=null, unitSel="uni";
 function hoy(){const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
 function esc(s){return (s==null?'':String(s)).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
 function fmt(n){var x=Number(n)||0;return Number.isInteger(x)?x.toLocaleString('es-AR'):x.toLocaleString('es-AR',{maximumFractionDigits:2});}
+/* fmt() corta en 2 decimales y un remache pesa entre 0,00011 y 0,036 kg: el
+   cartel del popup mostraba "1 uni = 0 kg" y el operario no le podia creer a la
+   conversion [usuario 2026-09-03]. fmtKgUni llega a 6 decimales para que el peso
+   chico se vea de verdad; se usa solo en los carteles de kg por unidad. */
+function fmtKgUni(n){var x=Number(n)||0;return x.toLocaleString('es-AR',{maximumFractionDigits:6});}
 /* parseNum tolera coma o punto como decimal (usuario 2026-09-01: "los inputs
    numericos con coma o punto que ambos pongan punto"). Con coma presente se
    usa formato AR (miles con punto, decimal con coma); sin coma, un solo punto
@@ -864,7 +881,9 @@ function pushPend(item, opts){
     esPliego: !!opts.esPliego,
     esFleje: !!opts.esFleje,
     esRemache: !!opts.esRemache,
-    esCaja: !!opts.esCaja
+    esCaja: !!opts.esCaja,
+    // A que pagina de control va este item (null = no lleva control externo).
+    ctrlUrl: opts.ctrlUrl || null
   };
   renderRemitoBar();
   filtrarItems();
@@ -897,7 +916,7 @@ async function flushPend(){
   var fiso = $('txtFecha') && $('txtFecha').value ? ($('txtFecha').value+'T12:00:00') : null;
   var keys = Object.keys(PEND);
   var procesados = 0, fallados = 0;
-  var pideCajas = false, pideRemaches = false;   // cajas/remaches -> control despues
+  var destinosCtrl = [];   // paginas de control que reclama este remito (sin repetir)
   for (var i=0;i<keys.length;i++){
     var p = PEND[keys[i]];
     try {
@@ -931,8 +950,7 @@ async function flushPend(){
         // cajas/remaches: guardar cantidad_declarada como hacia el popup viejo
         if (p.pideControl){
           try { await SB.from('recepcion_insumo').update({ cantidad_declarada: cantSrv }).eq('id', recId); } catch(e){}
-          if (p.esCaja) pideCajas = true;
-          if (p.esRemache) pideRemaches = true;
+          if (p.ctrlUrl && destinosCtrl.indexOf(p.ctrlUrl) < 0) destinosCtrl.push(p.ctrlUrl);
         }
         // Agregar a REMITO[] con la forma esperada por el flujo posterior
         if (p.modo === 'carton'){
@@ -983,20 +1001,47 @@ async function flushPend(){
     }
     return;
   }
-  // Cajas / Remaches: no van a fase 2 en esta pantalla, van al control externo
+  // Sectores de CONTROL_URL (cajas, remaches, plasticos): no van a fase 2 en esta
+  // pantalla, van al control externo
   // (control-cajas.html / control-remaches.html). Antes del buffer esto lo hacia
   // el successBox del popup; con el remito bufferizado se muestra al Terminé.
-  if (pideCajas || pideRemaches){
+  if (destinosCtrl.length){
+    // DIRECTO al control, sin cartel intermedio [usuario 2026-09-03: "el ir a control
+    // cajas me aparece abajo. me gusta que me mande directo como en el caso de flejes"].
+    // Flejes y cartones ya abrian su fase 2 solos (montarPesaje /
+    // montarControlCartones); los sectores de CONTROL_URL son los que la tienen en
+    // OTRA pagina, y por eso eran los unicos que pedian un click de mas.
+    // El rubro se elige ANTES de cargar, asi que un remito nunca reclama dos
+    // controles distintos; si igual llegara a pasar no se puede navegar a dos lados
+    // a la vez, y ahi si se deja elegir con el cartel.
+    if (destinosCtrl.length === 1){
+      window.location.href = destinosCtrl[0];
+      return;
+    }
     var sb=$('successBox'); if(sb){
       sb.style.display='block';
       sb.querySelector('.title').textContent='✓ Remito recibido — falta el control';
-      var links='';
-      if (pideCajas) links += '<a href="control-cajas.html" style="display:inline-block;margin:8px 6px 0;padding:12px 22px;background:#0b5cad;color:#fff;border-radius:8px;text-decoration:none;font-weight:900;font-size:18px">Ir a Control Cajas →</a>';
-      if (pideRemaches) links += '<a href="control-remaches.html" style="display:inline-block;margin:8px 6px 0;padding:12px 22px;background:#0b5cad;color:#fff;border-radius:8px;text-decoration:none;font-weight:900;font-size:18px">Ir a Control Remaches →</a>';
-      $('successDetail').innerHTML='El remito quedó cargado y pendiente de control físico (base × pisos + sueltas para cajas; pesar para remaches).<br>'+links;
+      var links = destinosCtrl.map(function(u){
+        return '<a href="'+esc(u)+'" style="display:inline-block;margin:8px 6px 0;padding:12px 22px;background:#0b5cad;color:#fff;border-radius:8px;text-decoration:none;font-weight:900;font-size:18px">Ir al control →</a>';
+      }).join('');
+      $('successDetail').innerHTML='El remito quedó cargado y pendiente de control físico.<br>'+links;
       // El control es obligatorio: ocultar las salidas hasta que vaya al control
       var _atras=$('btnAtrasHeader'); if(_atras) _atras.style.display='none';
       var _volver=$('btnVolver1'); if(_volver) _volver.style.display='none';
+    }
+  } else if (procesados && !fallados){
+    // Bombillas es el unico rubro que queda SIN control fisico: la recepcion queda
+    // cerrada al confirmar y no hay adonde mandar al operario (plasticos salio de
+    // aca el 2026-09-03, ahora tiene control por peso). Se cierra con el mismo cartel
+    // que usan las otras pantallas en vez de dejar solo un status que se borra a los
+    // 5 segundos, asi los 6 rubros terminan igual de claros.
+    // [usuario 2026-09-03: "que sea de este estilo en los 6 tipos de insumo"]
+    // Aca NO se ocultan Atras/Volver: no hay control pendiente que obligar.
+    var sbOk=$('successBox'); if(sbOk){
+      sbOk.style.display='block';
+      sbOk.querySelector('.title').textContent='✓ Recepción completa';
+      $('successDetail').textContent='El remito quedó cargado: '+procesados+' ítem'+
+        (procesados===1?'':'s')+'. Este insumo no lleva control físico.';
     }
   }
 }
@@ -1012,6 +1057,11 @@ function setUnit(u){
   unitSel=u;
   $('unitKg').classList.toggle('active',u==='kg');
   $('unitUni').classList.toggle('active',u==='uni');
+  // El teclado del celular tiene que seguir a la unidad: unidades y paquetes son
+  // enteros (el sanitizador ya les aplica sanInt), kg lleva coma. Sin esto el
+  // operario cargaba unidades con un teclado que ofrece la coma.
+  var kv=$('kgValue');
+  if(kv) kv.setAttribute('inputmode', (u==='kg') ? 'decimal' : 'numeric');
   updateConv();
 }
 function PAQ(){ return Number(TARA.carton_uni_x_paquete)||250; }
@@ -1052,7 +1102,7 @@ function updateConv(){
     d.textContent=v>0?('= '+fmt(v*PAQ())+' unidades'):'';
   } else {
     var kx=itemSel&&KGXUNI[itemSel.comp_id];
-    if(unitSel==='uni'&&kx){ d.textContent=v>0?('= '+fmt(v*kx)+' kg'):''; }
+    if(unitSel==='uni'&&kx){ d.textContent=v>0?('= '+fmtKgUni(v*kx)+' kg'):''; }
     else { d.textContent=''; }
   }
   // Aviso EN VIVO de multiplo para cartones (no pliegos) — se muestra debajo del
@@ -1092,7 +1142,7 @@ function abrirPopup(i){
   resetPiePopup();
   $('kgTitle').textContent='Recepción · '+rubroSel;
   var kx=KGXUNI[i.comp_id];
-  var convHint=kx?' <small style="color:#9a6700;font-weight:600">(1 uni = '+fmt(kx)+' kg)</small>':'';
+  var convHint=kx?' <small style="color:#9a6700;font-weight:600">(1 uni = '+fmtKgUni(kx)+' kg)</small>':'';
   $('kgItemInfo').innerHTML='<b>'+esc(i.codigo)+'</b> — '+esc(i.descripcion||'')+(i.medida?(' · '+esc(i.medida)+' mm'):'')+convHint+'<br><small style="color:#666">'+esc(i.sector)+(provSel?(' · '+esc(provSel)):'')+'</small>';
   $('kgValue').value=''; $('kgMsg').textContent=''; $('kgConvDisplay').textContent='';
   // Label "Cantidad" con la unidad que corresponde al rubro (usuario 2026-09-01:
@@ -1127,12 +1177,25 @@ function abrirPopup(i){
     $('kgValueLabel').textContent='Cantidad uni';
     setUnit('uni');
   } else if (i.sector_id===8) {
-    // Remaches: recepcion en KG del remito (sin toggle). El control (pesar y
-    // anotar los kg controlados) se hace despues en Control Remaches.
+    // Remaches: el remito viene en UNIDADES [usuario 2026-09-03: "la recepcion de
+    // remaches quiero que sea en unidades, no en kg"]. Se carga en uni y guardar()
+    // lo convierte a kg con kg_x_uni (31 de los 34 del sector lo tienen cargado,
+    // de 0,00011 a 0,036). Guardar kg es a proposito: el stock del remache y el
+    // Control Remaches (que PESA y compara contra cantidad_declarada) siguen
+    // trabajando en kg, asi que no se toca nada aguas abajo.
+    // Sin kg_x_uni no hay conversion posible y se guardarian unidades dentro de un
+    // circuito de kg, asi que esos caen a kg: hoy son los 3 tornillos
+    // (V18D / CV18D / V20), que ademas estan en 0 recepciones y 0 stock.
     $('unitRow').classList.add('hidden');
-    $('kgValue').placeholder='kg del remito';
-    $('kgValueLabel').textContent='Cantidad kg';
-    setUnit('kg');
+    if (kx){
+      $('kgValue').placeholder='unidades del remito';
+      $('kgValueLabel').textContent='Cantidad uni';
+      setUnit('uni');
+    } else {
+      $('kgValue').placeholder='kg del remito';
+      $('kgValueLabel').textContent='Cantidad kg';
+      setUnit('kg');
+    }
   } else if (esFleje(i)) {
     // Flejes: cada fleje tiene su UM canonica fija (46 en kg, 7 en unidad
     // como F12/E13/Z19A/E4/E5/E1/C3). El toggle Kg/Uni solo confunde. Se
@@ -1260,6 +1323,15 @@ window.addEventListener('beforeunload',function(e){
   if(REMITO.length>0 || PES || CTL || pendTieneItems()){ e.preventDefault(); e.returnValue=''; return ''; }
 });
 
+/* El boton "✓ Terminé de cargar remito" NO vive dentro de #remitoBar: se pinta en
+   un slot al lado del buscador (hay dos, el default y el de cartones) y siempre se
+   llena uno y se vacia el otro. Por eso limpiarlo necesita su propia funcion: la
+   barra se puede esconder sin que el boton se vaya con ella. */
+function limpiarSlotsRemito(){
+  ['remitoBtnSlot','remitoBtnSlotCart'].forEach(function(id){
+    var el=document.getElementById(id); if(el) el.innerHTML='';
+  });
+}
 function renderRemitoBar(){
   var bar=$('remitoBar'); if(!bar) return;
   var pend=pendientesDePesaje();
@@ -1270,7 +1342,18 @@ function renderRemitoBar(){
     try { filtrarItems(); } catch(_){ }
   }
   var pendKeys = Object.keys(PEND);
-  if(!REMITO.length && !pend.length && !pendKeys.length){ bar.classList.add('hidden'); bar.innerHTML=''; return; }
+  if(!REMITO.length && !pend.length && !pendKeys.length){
+    bar.classList.add('hidden'); bar.innerHTML='';
+    // Este return temprano se saltaba la limpieza del slot, asi que el "Terminé de
+    // cargar remito" seguia vivo despues de confirmar. Se veia en cajas, remaches,
+    // plasticos y bombillas — los rubros que NO dejan fase 2, donde todo queda
+    // vacio; en flejes y cartones no pasaba porque REMITO no queda vacio y la
+    // funcion seguia de largo hasta la limpieza de abajo. [usuario 2026-09-03:
+    // "termino de cargar el remito y me sigue apareciendo la opcion de termine de
+    // cargar remito sin haber tocado de nuevo otro item"]
+    limpiarSlotsRemito();
+    return;
+  }
   var h='';
   // NUEVO (2026-09-02): buffer PEND — items cargados en la sesion que todavia
   // no bajaron a la BD. Se muestran con boton eliminar por item; el boton
@@ -1315,9 +1398,8 @@ function renderRemitoBar(){
   var _termHtml = pendKeys.length ? '<button class="btn btn-primary" id="btnTerminarRemito" type="button">✓ Terminé de cargar remito</button>' : '';
   var _sd = document.getElementById('searchBoxDefault');
   var _slot = (_sd && !_sd.classList.contains('hidden')) ? document.getElementById('remitoBtnSlot') : document.getElementById('remitoBtnSlotCart');
-  var _otherSlot = (_slot && _slot.id === 'remitoBtnSlot') ? document.getElementById('remitoBtnSlotCart') : document.getElementById('remitoBtnSlot');
+  limpiarSlotsRemito();
   if (_slot) _slot.innerHTML = _termHtml;
-  if (_otherSlot) _otherSlot.innerHTML = '';
   // Handlers de eliminacion por item PEND (boton 🗑 en la barra)
   bar.querySelectorAll('[data-pend-del]').forEach(function(btn){
     btn.addEventListener('click', function(ev){
@@ -2190,7 +2272,10 @@ async function guardar(){
     // varios items compartan el mismo remito y se pueda restar/eliminar).
     var esCaja = (itemSel.sector_id === 11);
     var esRemache = (itemSel.sector_id === 8);
-    var pideControl = esCaja || esRemache;
+    // El control externo ya no es una lista de booleanos: lo decide CONTROL_URL.
+    // Asi sumar un sector (plasticos, 2026-09-03) no obliga a tocar el if-chain.
+    var ctrlUrl = CONTROL_URL[itemSel.sector_id] || null;
+    var pideControl = !!ctrlUrl;
     var esCarton = (itemSel.sector_id === 10);
     var pliegoIt = esPliegoIt(itemSel);
     var modoFinal, paquetesPend = null;
@@ -2209,7 +2294,7 @@ async function guardar(){
       rollos: rll, pallets: pll, paquetes: paquetesPend,
       pideControl: pideControl,
       esCarton: esCarton, esPliego: pliegoIt, esFleje: esFleje(itemSel),
-      esRemache: esRemache, esCaja: esCaja
+      esRemache: esRemache, esCaja: esCaja, ctrlUrl: ctrlUrl
     });
     var codSel = itemSel.codigo, descSel = itemSel.descripcion || '';
     cerrarPopup();
@@ -2218,6 +2303,12 @@ async function guardar(){
     if (esCarton){
       var uniLbl = pliegoIt ? ('pliego'+(cantRaw===1?'':'s')) : ('paquete'+(cantRaw===1?'':'s'));
       lblCant = fmt(cantRaw)+' '+uniLbl;
+    } else if (unitSel==='uni' && uReal==='kg'){
+      // Se cargo en unidades y se guardo convertido a kg (remaches y cualquier
+      // insumo con kg_x_uni): mostrar LO QUE TIPEO primero y el kg entre
+      // parentesis, si no el operario carga 5000 y la pantalla le contesta
+      // "1,75 kg" sin decirle de donde salio.
+      lblCant = fmt(cantRaw)+' uni (= '+fmtKgUni(cant)+' kg)';
     } else {
       lblCant = fmt(cant)+' '+esc(uReal);
     }

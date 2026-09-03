@@ -1,5 +1,5 @@
 // Versión global de la app. Cambiar acá actualiza todas las pantallas que lo muestren.
-window.APP_VERSION = "v1.69.0";
+window.APP_VERSION = "v1.72.0";
 
 // Inyecta la versión en cualquier elemento con id="appVersion"
 document.addEventListener("DOMContentLoaded", function () {
