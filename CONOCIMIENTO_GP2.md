@@ -989,6 +989,104 @@ se puede derivar de los pasos `insumo`**: en el 580, que es el hermano sano, la 
 el artículo lleva (incluido un GRJ ya armado) y las rutas las entradas de cada cadena. **No
 son lo mismo y no se deducen una de la otra.**
 
+**HAY CODIGOS DE COMPONENTE REPETIDOS: nunca joinear por `codigo` (2026-09-03)** `[dato]` —
+me mordió el mismo día. **Cuatro códigos existen dos veces**, y en los cuatro choca una pieza
+del Sector Procesado con una Caja: **`A1`** (Mgo Plano 501 Pint. / Caja N°1), **`A4`** (Mgo
+Plano 501 Serig / Caja N°10), **`A8`** (Cuerpo Uña CH Serigr. / Caja N°2) y **`A9`** (Cpo Mango
+Alambre Corta Queso Crom. / Caja N°22). Cargando la receta del 581 hice el join por código y me
+llevé **las dos filas**. **Regla: unir por `componente.id`, y si hay que resolver desde un
+código, desambiguar por sector.** La numeración de cajas y la de piezas procesadas se pisan.
+
+**Los remaches: cuál se compra crudo y cuál se compra hecho (2026-09-03)** `[usuario]`. El
+patrón bueno es **`CV9` → Guazzaroni → `V9`**: se le compra el remache **crudo a Bella Vista**,
+Guazzaroni lo niquela, y el niquelado queda en `estado_compra='fabricacion'` **sin precio
+propio**, porque su costo es el crudo más el baño.
+
+- **El sacacorcho va por ahí** `[usuario: "el CV11 agregalo en Bellavista y sacá el V11. El V11
+  es después de mandarlo a niquelar a Guazzaroni"]`. Las rutas del **581** y del **104**
+  entraban con `insumo V11` directo, o sea el remache se compraba ya niquelado **y el niquelado
+  no se pagaba**. Corregido al patrón CV9/V9: el V11 pasa de $28,66 a $30,57.
+- **El canelón NO** `[usuario: "el CV10 eliminalo porque el que se compra es el V10, remache
+  aluminio canelón"]`. Ese se compra ya hecho: `CV10` era un alta de más y se dio de baja.
+  **No todos los `CVxx` existen: sólo los que efectivamente se mandan a niquelar.**
+- Al pasar `V11` a niquelado entra a la lista de piezas de Guazzaroni con la tarifa en `NULL`,
+  igual que TODAS las suyas: hueco conocido, queda marcado y no inventado.
+
+**Un GRJ armado reemplaza a sus componentes en la receta, no se suma (2026-09-03)** `[usuario:
+"GRJ1 se usa para el quinientos"]`: la receta del **500** tenía `C1 + C10 + V9` sueltos, que son
+**exactamente el BOM del `GRJ1`**. Se reemplazaron por el GRJ1, igual que el **506** lleva
+`GRJ7` en vez de `A10 + C10 + V9`. **Si se dejan los dos, el armado se cuenta dos veces.** El
+costo del 500 no se movió ni un peso, que es la prueba de que el reemplazo era exacto. La
+receta quedó `A11 + GRJ1 + Pliego Ad 500`, calcada del 506.
+
+**La receta del 581 y del 104 (2026-09-03)** `[usuario, con la pantalla a la vista: "por ahora
+mandale así"]`: **Caja N°22 (1/12) + su cartón + `D1` Espiral Sacacorcho + `PB8A` Mgo Sacac
+Plast + `V11` Remache Sacacorcho**, todos ×1 salvo la caja. En la receta va el remache
+**niquelado** (`V11`), que es lo que el artículo lleva; el crudo `CV11` y el baño son pasos de
+la ruta. Los dos tenían rutas y Est Madre pero **cero receta**, así que no pedían nada. Ahora
+piden 7 partes cada uno (581: 2.532 uni/mes · 104: 3.162). **De paso se corrigió un error del
+clonado del 2026-09-02**: las rutas del 104 entraban con `CCE2B`, que es el **Cartón 581**. El
+104 lleva su propio cartón, `K5D`, que no existía en GP2 y se dio de alta **sin precio** — por
+eso su costo baja a $672,86 y queda con `faltan_precios: 1`.
+
+**EL PLIEGO NUNCA VA CON CANTIDAD 1 EN LA RECETA (2026-09-03)** `[usuario]`: textual, *"en el
+BOM no pongas un pliego por artículo, sino que cada pliego se usa para varios artículos"*. **El
+rinde sale de `componente.carton_formato`** y el precio lo confirma, que es la forma rápida de
+chequear que un pliego está bien cargado:
+
+| formato | posiciones | precio unitario |
+|---|---|---|
+| `C` | 12 | $89 |
+| `LOKE` | 16 | $66,75 |
+| `Huevo` | 25 | $42,72 |
+| `8` | 30 | $35,60 |
+| `Pliego` (ex-Bombilla) | **16** | skin $915 el pliego |
+
+En la receta va **`1/posiciones`**. **Los 12 artículos que llevan pliego quedaron uniformes el
+2026-09-03** `[usuario: "los pliegos de bombilla todos, el 557 al 769 vienen de dieciséis. Y el
+pliego del 506 y el 500 vienen de doce"]`: **500 y 506 a 1/12** ($917 el pliego → $76,42 por
+artículo) y los **diez de bombilla a 1/16** ($915 → $57,19). El `Pliego Ad 500` estaba con
+precio $89 y cantidad 1, o sea con el precio POR POSICIÓN: pasó al pliego entero, como todos.
+Eso cierra la idea 6116.
+
+**Y ojo con el número: los de bombilla son 16, no 25.** Lo tenía anotado mal en dos lados y
+cargué 1/25 antes de que el usuario me corrigiera. La pista estaba: la idea 7223 marcaba que en
+el 557/558 la **receta** decía 1/25 y la **ruta** 1/16 — **tenía razón la ruta**. Cuando receta y
+ruta no coinciden, mirar cuál de las dos se cargó con el dato del usuario.
+
+**Copiar un precio "de un gemelo" es copiar del MISMO FORMATO (2026-09-03)** `[dato]` — me
+equivoqué el mismo día. Al `C1B` (Cartón 574) le puse $89 porque era el precio más repetido de
+los cartones, pero **C1B es formato `Huevo`**, o sea 25 posiciones, y ese formato vale **$42,72**;
+los $89 son del formato `C`. El gemelo del que hay que copiar es uno de su misma columna de la
+tabla de arriba, no cualquiera. En cambio el `K5D` (Cartón 104) **sí** iba a $89, porque su
+gemelo exacto es el Cartón 581, que es formato C.
+
+**Los códigos duplicados NO se renumeran (2026-09-03)** `[usuario: "los componentes que te mandé
+son los que ya existen, no los dupliques"]`: los cuatro pares `A1`, `A4`, `A8` y `A9` (una pieza
+de Procesado y una Caja en cada uno) **se quedan como están**. Lo que hay que hacer es
+**desambiguar por sector** cada vez que se resuelva un componente desde su código — y mejor,
+unir por `componente.id`.
+
+**Un insumo se paga UNA vez, aunque el artículo tenga varias rutas (2026-09-03)** `[usuario:
+"uno u otro, no x2 de costo"]` — es la misma regla que se aplicó a los talleristas a la mañana,
+y el CTE **`insumox`** tenía el mismo agujero: sumaba una vez **por cada ruta**, así que un
+artículo con dos rutas alternativas (el mismo trabajo hecho por dos talleristas) **pagaba sus
+insumos dos veces**. Eran **16 casos en 6 artículos**, y no era poca plata:
+
+| Artículo | Antes | Ahora | |
+|---|---|---|---|
+| **609** | $1.198,35 | $725,28 | −$473,07 |
+| **315** | $867,57 | $559,89 | −$307,68 |
+| **505** | $514,32 | $358,36 | −$155,96 |
+| **500** | $557,31 | $441,82 | −$115,49 |
+| **510** | $334,22 | $231,31 | −$102,91 |
+
+**~$1.155 que se estaban cobrando de más.** Ahora `insumox` arma una fila por (artículo, insumo)
+tomando la cantidad mayor, igual que `talx` toma la tarifa más cara. **Regla general: cuando dos
+rutas alternativas describen el mismo trabajo, todo lo que comparten se cuenta una sola vez** —
+el insumo, el armado del tallerista, el servicio. Si aparece otro CTE que sume por ruta, tiene
+el mismo bug.
+
 ## 3c-bis. Accesibilidad de carga: letra grande + teclado numérico (2026-08-30)
 
 `[usuario 2026-08-30]` Dicho textual: *"Siempre quiero letras bien grandes y legibles
