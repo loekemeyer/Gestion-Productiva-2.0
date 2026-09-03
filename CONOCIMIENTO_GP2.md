@@ -733,6 +733,42 @@ rollos) y `recepcion_tara()` la promedia — por proveedor primero (n≥5), glob
 orden y recién sin datos cae al punto medio del parámetro 4–8. No hay nada que
 mantener a mano: cada pesaje que se guarda mejora el próximo cálculo.
 
+## 2c-novodecies. Filtros de café: el alambre NO es el filtro (2026-09-02)
+
+`[usuario 2026-09-02]` *"cuando entrega charcas va a IF90 y de ahí va a ijupa que después
+entrega en virgilio"*. La cadena real de los artículos **031** y **034**:
+
+```
+IC3 (Fleje 90) → Resortes Charcas CORTA → IF90 (alambre cortado)
+               → IJUPA ARMA → 031 (filtro terminado) → Virgilio
+```
+
+**Lo que había estaba mal en dos lugares**: el paso de Charcas devolvía `IC3` (o sea no
+producía nada) y era **IJUPA** quien "producía" `IF90`. Con eso el **alambre ocupaba el
+lugar del terminado** y el artículo 031 se quedaba sin componente propio.
+
+**De dónde salió el error, que es la parte que conviene recordar:** la migración que creó
+el alambre el 2026-09-02 **reusó el componente 372, que era "31 Terminado"**, y lo renombró
+a F90 → IF90. Renombrar un componente existente en vez de crear uno nuevo **le robó la
+identidad al terminado**. Si una pieza nueva aparece en la cadena, se crea; no se recicla
+la que ya estaba ocupando otro rol.
+
+Se recuperaron los componentes `031` y `034` (sector 12, como sus gemelos Chef 836 y 867),
+se reescribieron los 4 pasos de las rutas de fleje y los 8 de las rutas de insumo, y la
+tarifa de IJUPA se mudó del alambre al terminado.
+
+**El alambre lleva `estado_compra = 'fabricacion'`**, igual que D9 y V9. Sin eso, al vivir
+en sector 5 (Fleje) el motor lo tomaba por comprado, **cortaba la cadena de material** y el
+filtro quedaba con material en 0. Es la misma regla de siempre: **una pieza intermedia que
+sale de un proceso propio no es "comprada", aunque viva en un sector de insumo.**
+
+**La prueba de que quedó bien**: 031 = **$333,02** y 034 = **$362,00**, *exactamente* los
+mismos números que sus gemelos Chef 836 y 867, que llegan por otro camino. Cuando dos
+gemelos LK/Chef dan igual, la cadena cierra.
+
+Fleco menor: 031/034 y el alambre quedan con `faltan_precios = 1` mientras los gemelos
+tienen 0, aunque el costo total da idéntico. No cambia ningún número; hay que mirarlo.
+
 ## 2c-sexdecies. Hay talleristas que cobran POR KILO (2026-09-02)
 
 `[usuario 2026-09-02]` Sobre el $775,01 de la Cuchilla Pelapapa Cerrada en el Excel de
