@@ -31,10 +31,23 @@ Los cartones se **reciben en PAQUETES**: el proveedor siempre entrega alturas de
 - El mínimo por código **escala con el múltiplo**: si pido 12.000 tipo C, mínimo 1.000 de
   cada código; si pido 24.000, mínimo 2.000 de cada código. Nunca cantidades intermedias
   (1.500 no se puede).
-- **LOKE** lo usan Chef y los artículos LOKE.
-- **Tipo C** agrupa los códigos por categoría de pliego (`GP2.carton_categoria`):
-  Pisapapas, Pelapapas, Sacacorchos, Abrelatas, y **Resto** — solo en Resto se puede
-  mezclar cualquier código con cualquiera.
+- **La familia de pedido es FORMATO + MARCA + CATEGORÍA** (definido por el usuario el
+  2026-09-03).
+- **LOKE lo usan las dos marcas y NO se piden juntas**: *"una marca va con un pliego y la
+  otra con el otro"*. Hoy son 7 códigos LOEKE y 28 CHEF, y cada uno es su propio pedido de
+  16.000. La marca ya está cargada en los 110 cartones (`componente.marca`).
+- **Tipo C**, las familias son: **Pelapapas** (4 códigos), **Sacacorchos** (7),
+  **Abrelatas** (6) y **Resto** (16, todos mezclables entre sí). La clasificación NO se
+  cargó a mano: sale de `GP2.articulo.familia`, que ya la tenía (Peladores → Pelapapas), y
+  el cartón se llama "Cartón NNN" donde NNN es el artículo.
+- **El sacacorchos es COMODÍN**: *"sacacorcho se puede mezclar con cualquiera"*. En
+  `GP2.carton_categoria` eso es `mezcla_libre`, prendido sólo en Sacacorchos. En la OC no
+  forma familia propia: se suma a la familia de su mismo formato y marca a la que más le
+  falta para llegar al múltiplo. Si no hay otra familia en el pedido, va solo.
+  (Ojo: **Resto no es comodín**. Que dentro de Resto se mezclen todos con todos es
+  simplemente ser una familia; no habilita mezclarlos con Pelapapas.)
+- `Pisapapas` quedó en el catálogo **sin uso**: no lo nombró el usuario y ningún artículo
+  tiene esa familia. Probablemente fue una mala transcripción de "pelapapas".
 - Cada cartón se asigna a su formato/categoría en `componente.carton_formato` /
   `componente.carton_categoria`. **El formato ya está cargado en los 110 cartones**
   (C 37 · LOKE 35 · Pliego 20 · Huevo 13 · Bolsa 3 · "8" 2); **la categoría sigue VACÍA**

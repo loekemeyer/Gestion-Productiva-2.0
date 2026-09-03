@@ -22,12 +22,14 @@ const BUNDLE = {
       proveedor: 'Cartonero', um: 'uni', unidad: 'uni', kg_x_uni: null,
       consumo: 3000, meses: 6, online: 2000, pendiente_oc: 0, sugerido: 16000,
       precio: 1, moneda: 'USD',
-      carton_formato: 'C', pliegos_multiplo: 12000, codigo_multiplo: 1000, min_codigo_x_multiplo: 1000 },
+      carton_formato: 'C', carton_categoria: 'Resto', marca: 'LOEKE', mezcla_libre: false,
+      pliegos_multiplo: 12000, codigo_multiplo: 1000, min_codigo_x_multiplo: 1000 },
     { comp_id: 4, codigo: 'CARTPP', descripcion: 'Carton Pelapapas', sector: 'Sector Carton', sector_id: 10,
       proveedor: 'Cartonero', um: 'uni', unidad: 'uni', kg_x_uni: null,
       consumo: 1000, meses: 6, online: 0, pendiente_oc: 0, sugerido: 6000,
       precio: 1000, moneda: 'ARS',
-      carton_formato: 'C', pliegos_multiplo: 12000, codigo_multiplo: 1000, min_codigo_x_multiplo: 1000 },
+      carton_formato: 'C', carton_categoria: 'Resto', marca: 'LOEKE', mezcla_libre: false,
+      pliegos_multiplo: 12000, codigo_multiplo: 1000, min_codigo_x_multiplo: 1000 },
     // Insumo cotizado POR KG pero comprado por unidad (el clavo PCP3). El bundle tiene que
     // mandar el precio YA CONVERTIDO a la unidad de pedido: 3,30 USD/kg x 6,53 g = 0,0215.
     // Si algun dia vuelve a llegar 3,30 crudo, la OC infla el precio 153x y sale asi en la
@@ -37,6 +39,27 @@ const BUNDLE = {
       consumo: 5000, meses: 2, online: 0, pendiente_oc: 0, sugerido: 10000,
       precio: 0.021549, moneda: 'USD',
       carton_formato: null, pliegos_multiplo: null, codigo_multiplo: null, min_codigo_x_multiplo: null },
+    // El COMODIN: un sacacorchos se puede sumar a cualquier otra familia del tipo C
+    // para completar el multiplo [usuario 2026-09-03].
+    { comp_id: 6, codigo: 'CARTSC', descripcion: 'Carton 520', sector: 'Sector Carton', sector_id: 10,
+      proveedor: 'Cartonero', um: 'unidad', unidad: 'uni', kg_x_uni: null,
+      consumo: 500, meses: 6, online: 0, pendiente_oc: 0, sugerido: 3000,
+      precio: 1, moneda: 'USD',
+      carton_formato: 'C', carton_categoria: 'Sacacorchos', marca: 'LOEKE', mezcla_libre: true,
+      pliegos_multiplo: 12000, codigo_multiplo: 1000, min_codigo_x_multiplo: 1000 },
+    // Mismo formato LOKE, distinta MARCA: son dos pedidos distintos, no se suman.
+    { comp_id: 7, codigo: 'LOKELK', descripcion: 'Carton LOKE Loekemeyer', sector: 'Sector Carton', sector_id: 10,
+      proveedor: 'Cartonero', um: 'unidad', unidad: 'uni', kg_x_uni: null,
+      consumo: 1000, meses: 6, online: 0, pendiente_oc: 0, sugerido: 8000,
+      precio: 1, moneda: 'USD',
+      carton_formato: 'LOKE', carton_categoria: null, marca: 'LOEKE', mezcla_libre: false,
+      pliegos_multiplo: 16000, codigo_multiplo: 1000, min_codigo_x_multiplo: 1000 },
+    { comp_id: 8, codigo: 'LOKECH', descripcion: 'Carton LOKE Chef', sector: 'Sector Carton', sector_id: 10,
+      proveedor: 'Cartonero', um: 'unidad', unidad: 'uni', kg_x_uni: null,
+      consumo: 1000, meses: 6, online: 0, pendiente_oc: 0, sugerido: 8000,
+      precio: 1, moneda: 'USD',
+      carton_formato: 'LOKE', carton_categoria: null, marca: 'CHEF', mezcla_libre: false,
+      pliegos_multiplo: 16000, codigo_multiplo: 1000, min_codigo_x_multiplo: 1000 },
   ],
   ocs: [
     { id: 9, numero: 1, proveedor: 'Basconia', rubro: 'Fleje', estado: 'borrador', nota: 'prueba',
@@ -83,7 +106,7 @@ window.supabase = { createClient: function(){ return {
   ok(chips.join(',') === 'Fleje,Carton,Plastico', 'chips de rubro: ' + chips.join(','));
 
   // sin filtro: 4 filas
-  ok(await page.$$eval('#tbody tr', x => x.length) === 5, '5 insumos sin filtro');
+  ok(await page.$$eval('#tbody tr', x => x.length) === 8, '8 insumos sin filtro');
 
   // El clavo se cotiza POR KG pero se compra por unidad: el bundle tiene que mandar el
   // precio ya convertido (3,30 USD/kg x 6,53 g = 0,0215). Si vuelve a llegar 3,30 crudo,
@@ -184,10 +207,17 @@ window.supabase = { createClient: function(){ return {
   // por codigo pasa a 2.000 y los dos lo cumplen.
   await page.click('#btnLimpiar');
   await page.click('#btnSug');
-  const cart506 = await page.$eval('.pedir-in[data-in="3"]', x => x.value);
-  const cartPP = await page.$eval('.pedir-in[data-in="4"]', x => x.value);
-  ok(Number(cart506) === 17000 && Number(cartPP) === 7000,
-     'usar sugeridos redondea la familia a 24.000 (' + cart506 + ' + ' + cartPP + ')');
+  const val = async id => Number(await page.$eval('.pedir-in[data-in="' + id + '"]', x => x.value));
+  // Familia C · LOEKE: Resto (16.000 + 6.000) + el sacacorchos comodin (3.000) = 25.000,
+  // que sube al multiplo siguiente, 36.000, y lo que falta se reparte de a 1.000.
+  const totC = (await val(3)) + (await val(4)) + (await val(6));
+  ok(totC === 36000, 'la familia C junta al sacacorchos y redondea a 36.000 (dio ' + totC + ')');
+  ok((await val(6)) >= 3000, 'el comodin tambien respeta el minimo por codigo (3.000 con multiplo 3)');
+  // LOKE: las dos marcas NO se suman. 8.000 de cada una serian 16.000 juntas, pero como
+  // van por separado cada una sube a su propio 16.000 [usuario: "una marca va con un
+  // pliego y la otra con el otro"].
+  ok((await val(7)) === 16000 && (await val(8)) === 16000,
+     'LOKE LOEKE y LOKE CHEF se piden por separado, 16.000 cada una');
   ok(await page.$eval('#reglaCarton', x => x.classList.contains('hidden')), 'y no queda ningun error de regla');
   ok(!(await page.$eval('#btnCrear', b => b.disabled)), 'la OC de cartones queda lista para crear');
 
@@ -198,11 +228,11 @@ window.supabase = { createClient: function(){ return {
   await page.click('#btnAjustarCart');
   ok(await page.$eval('#reglaCarton', x => x.classList.contains('hidden')),
      '"Ajustar al múltiplo" lo deja valido de nuevo');
-  // 1.500 sube a 2.000 (multiplo de codigo) y con los 7.000 del otro quedan 9.000:
-  // los 3.000 que faltan hasta 12.000 se reparten de a 1.000 empezando por el mayor.
-  const ajust = await page.$$eval('.pedir-in[data-in="3"], .pedir-in[data-in="4"]', xs => xs.map(x => Number(x.value)));
-  ok(ajust[0] + ajust[1] === 12000 && ajust[0] >= 1000 && ajust[1] >= 1000,
-     'ajusta para arriba hasta 12.000 respetando el minimo por codigo (' + ajust.join(' + ') + ')');
+  // 1.500 sube a 2.000 (multiplo de codigo); con los otros dos de la familia quedan
+  // 18.000, que sube al multiplo siguiente (24.000) repartiendo de a 1.000.
+  const a3 = await val(3), a4 = await val(4), a6 = await val(6);
+  ok(a3 + a4 + a6 === 24000 && a3 >= 2000 && a4 >= 2000 && a6 >= 2000,
+     'ajusta para arriba a 24.000 respetando el minimo por codigo (' + [a3, a4, a6].join(' + ') + ')');
 
   // acciones de OC: marcar enviada
   await page.click('#tabOcs');

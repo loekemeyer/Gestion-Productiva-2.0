@@ -1,7 +1,28 @@
 <!doctype html>
 <html lang="es">
 <head>
-<!-- v1.9.0 (2026-09-03) — EL CARTON SE PIDE POR FAMILIA, Y EL SUGERIDO YA SALE REDONDEADO
+<!-- v1.10.0 (2026-09-03) — LAS FAMILIAS DE VERDAD: MARCA + CATEGORIA, Y EL SACACORCHOS
+     ES COMODIN [usuario 2026-09-03: "dentro de C las familias son pela papas, saca corchos
+     —que sacacorcho se puede mezclar con cualquiera— y abre latas. Despues todo el resto de
+     los que son C son la misma familia y se pueden mezclar todos con todos" + "dentro del
+     formato LOKE tenes que tener clara la separacion de los articulos que se venden por
+     Loekemeyer y los que se venden por Chef ... una marca va con un pliego y la otra con
+     el otro"].
+     (a) La familia pasa a ser FORMATO + MARCA + CATEGORIA. La marca ya estaba cargada en
+         los 110 cartones (LOEKE / CHEF), asi que el LOKE se parte solo: 7 LOEKE y 28 CHEF,
+         que ahora son dos pedidos distintos y no se suman entre si.
+     (b) La CATEGORIA del tipo C se cargo cruzando con GP2.articulo.familia, que ya la tenia:
+         Peladores -> Pelapapas (4), Sacacorchos (7), Abrelatas (6) y todo el resto -> Resto
+         (16). No se invento ninguna clasificacion. Migracion carton_categoria_familias_tipo_c.
+     (c) EL COMODIN: carton_categoria.mezcla_libre queda prendido SOLO en Sacacorchos (antes
+         estaba en Resto, que no es lo mismo: que dentro de Resto se mezclen todos con todos
+         es ser una familia, no poder sumarse a Pelapapas). gruposCarton() no le da familia
+         propia: lo suma a la familia de su mismo formato y marca a la que MAS le falta para
+         llegar al multiplo. Si en el pedido no hay otra familia, va solo.
+     (d) Los 4 pliegos del 500/506 tienen formato C porque son 12 POSICIONES (que es para lo
+         que carton_formato se usa en el costo) pero NO son cartones: quedan sin categoria y
+         por lo tanto en su propia familia. PENDIENTE preguntarle al usuario como se piden.
+     v1.9.0 (2026-09-03) — EL CARTON SE PIDE POR FAMILIA, Y EL SUGERIDO YA SALE REDONDEADO
      [usuario 2026-09-03, tres respuestas: el multiplo de pedido es 12.000 C / 16.000 LOKE /
      30.000 "8"; el tipo C agrupa por categoria de pliego y la clasificacion la pasa el
      usuario; y el sugerido tiene que redondear PARA ARRIBA solo].
@@ -549,21 +570,68 @@ function itemsPedidos(){
    (Pisapapas, Pelapapas, Sacacorchos, Abrelatas, Resto) y solo en Resto se puede
    mezclar cualquier codigo. Mientras carton_categoria siga vacia en la base cada
    formato es una sola familia, que es como venia funcionando. */
-function famKey(it){ return String(it.carton_formato||'')+'||'+String(it.carton_categoria||''); }
+/* La familia de pedido es FORMATO + MARCA + CATEGORIA:
+     - marca: el formato LOKE lo usan las dos marcas y NO se piden juntas [usuario
+       2026-09-03: "los dos usan formato LOKE, pero una marca va con un pliego y la
+       otra con el otro"]. Vale para todos los formatos: el pliego es de una marca.
+     - categoria: solo el tipo C la tiene (Pelapapas, Sacacorchos, Abrelatas, Resto). */
+function famKey(it){
+  return String(it.carton_formato||'')+'|'+String(it.marca||'(sin marca)')+'|'+String(it.carton_categoria||'');
+}
+/* Base = formato + marca, sin la categoria: es el universo dentro del cual el comodin
+   se puede mover (un sacacorchos LOEKE no completa un pedido CHEF). */
+function famBase(it){ return String(it.carton_formato||'')+'|'+String(it.marca||'(sin marca)'); }
 function famLabel(it){
-  return 'Formato '+String(it.carton_formato||'')+(it.carton_categoria?(' · '+it.carton_categoria):'');
+  return 'Formato '+String(it.carton_formato||'')+
+         (it.marca?(' '+it.marca):'')+
+         (it.carton_categoria?(' · '+it.carton_categoria):'');
 }
 function esCartonRegla(it){ return !!(it && it.sector_id===10 && it.carton_formato && it.pliegos_multiplo>0); }
 function techo(n,m){ m=Number(m)||0; return m>0 ? Math.ceil(n/m)*m : n; }
 
-function validarCarton(items){
-  var porFam={};
+/* Arma las familias del pedido. El COMODIN (categoria con mezcla_libre; hoy solo
+   Sacacorchos) no forma familia propia: se suma a la familia de su mismo formato y
+   marca a la que MAS le falta para llegar al multiplo, que es exactamente para lo
+   que sirve [usuario 2026-09-03: "sacacorcho se puede mezclar con cualquiera"]. Si
+   en el pedido no hay ninguna otra familia, entonces si va sola.
+   Recibe [{cantidad, it}] y devuelve [{cf, lbl, xs:[...]}]. */
+function gruposCarton(items){
+  var g={};
   items.forEach(function(x){
-    if(esCartonRegla(x.it)) (porFam[famKey(x.it)]=porFam[famKey(x.it)]||[]).push(x);
+    if(!esCartonRegla(x.it)) return;
+    var k=famKey(x.it);
+    if(!g[k]) g[k]={cf:x.it, xs:[], comodin:!!x.it.mezcla_libre};
+    g[k].xs.push(x);
   });
+  var fijas={}, libres={};
+  Object.keys(g).forEach(function(k){
+    if(g[k].comodin) (libres[famBase(g[k].cf)]=libres[famBase(g[k].cf)]||[]).push(g[k]);
+    else fijas[k]=g[k];
+  });
+  Object.keys(libres).forEach(function(base){
+    var cand=Object.keys(fijas).filter(function(k){ return famBase(fijas[k].cf)===base; });
+    if(!cand.length){ libres[base].forEach(function(grp,n){ fijas[base+'|comodin'+n]=grp; }); return; }
+    var elegida=cand.map(function(k){
+      var pm=Number(fijas[k].cf.pliegos_multiplo)||1;
+      var t=fijas[k].xs.reduce(function(a,x){return a+x.cantidad;},0);
+      return {k:k, falta:Math.ceil(t/pm)*pm-t};
+    }).sort(function(a,b){ return b.falta-a.falta; })[0].k;
+    libres[base].forEach(function(grp){
+      fijas[elegida].xs=fijas[elegida].xs.concat(grp.xs);
+      fijas[elegida].conComodin=true;
+    });
+  });
+  return Object.keys(fijas).map(function(k){
+    var grp=fijas[k];
+    return {cf:grp.cf, xs:grp.xs,
+            lbl:famLabel(grp.cf)+(grp.conComodin?' (+ sacacorchos)':'')};
+  });
+}
+
+function validarCarton(items){
   var errores=[];
-  Object.keys(porFam).forEach(function(k){
-    var xs=porFam[k], cf=xs[0].it, lbl=famLabel(cf);
+  gruposCarton(items).forEach(function(grupo){
+    var xs=grupo.xs, cf=grupo.cf, lbl=grupo.lbl;
     var total=xs.reduce(function(a,x){return a+x.cantidad;},0);
     if(total % cf.pliegos_multiplo !== 0){
       errores.push(lbl+': el total ('+fmt(total)+') debe ser múltiplo de '+fmt(cf.pliegos_multiplo)+'.');
@@ -615,18 +683,18 @@ function ajustarFamilia(xs){
 /* Aplica el ajuste a lo que hay cargado en PEDIDO, familia por familia. Solo toca
    los codigos que YA tienen pedido: no agrega codigos que nadie pidio. */
 function ajustarPedidoCarton(){
-  var fams={};
+  var cargados=[];
   filtradas().forEach(function(i){
-    if(!esCartonRegla(i)) return;
     var c=Number(PEDIDO[i.comp_id])||0;
-    if(!(c>0)) return;
-    (fams[famKey(i)]=fams[famKey(i)]||[]).push({comp_id:i.comp_id, cant:c,
-      pliegos_multiplo:i.pliegos_multiplo, codigo_multiplo:i.codigo_multiplo,
-      min_codigo_x_multiplo:i.min_codigo_x_multiplo});
+    if(c>0) cargados.push({comp_id:i.comp_id, cantidad:c, it:i});
   });
   var toco=false;
-  Object.keys(fams).forEach(function(k){
-    var q=ajustarFamilia(fams[k]);
+  gruposCarton(cargados).forEach(function(grupo){
+    var q=ajustarFamilia(grupo.xs.map(function(x){
+      return {comp_id:x.comp_id, cant:x.cantidad,
+              pliegos_multiplo:x.it.pliegos_multiplo, codigo_multiplo:x.it.codigo_multiplo,
+              min_codigo_x_multiplo:x.it.min_codigo_x_multiplo};
+    }));
     if(!q) return;
     Object.keys(q).forEach(function(id){
       if(PEDIDO[Number(id)]!==q[id]){ PEDIDO[Number(id)]=q[id]; toco=true; }
