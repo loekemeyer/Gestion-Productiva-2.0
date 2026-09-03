@@ -2996,6 +2996,23 @@ pantallas del grupo: cada una va adonde se usa, y el grupo del menú se borra (v
   arman con las marcas que traen los datos. **Regla general: nada que sea una lista de
   valores del negocio (marcas, formatos, categorías) se escribe a mano en el JS** — el día
   que aparece uno nuevo, lo que hace la pantalla no es mostrarlo mal, es esconderlo.
-- `[dato]` Hoy el único componente con marca `LOKE` es **K5D (Cartón 104)**, que además es
-  el único que estaba sin marca. En la OC eso lo deja en su propia familia de pedido, que es
-  lo correcto: una marca distinta va en otro pliego.
+- `[usuario 2026-09-03, confirmado]` **Los 7 cartones de formato LOKE que figuraban como
+  LOEKE son en realidad de la submarca LOKE** (H1A, H1C, H2C, H4C, I2B, I3B, I42). Con el
+  K5D del 104 son **8 códigos**, y ésa es la familia de pedido "formato LOKE · marca LOKE",
+  separada de los **28 CHEF** que usan el mismo formato. Antes esos 7 se agrupaban con los
+  cartones LOEKE de otros formatos, que es justo lo que el usuario quería evitar.
+- **Cómo quedan las familias de pedido del cartón** (sin contar los 24 pliegos, que van
+  aparte de a 100):
+
+  | Formato | Marca | Categoría | Códigos |
+  |---|---|---|---|
+  | C | LOEKE | Pelapapas | 4 |
+  | C | LOEKE | Sacacorchos *(comodín)* | 6 |
+  | C | LOEKE | Abrelatas | 6 |
+  | C | LOEKE | Resto | 16 |
+  | LOKE | **LOKE** | — | **8** |
+  | LOKE | CHEF | — | 28 |
+  | Huevo | LOEKE | — | 11 |
+  | Huevo | CHEF | — | 2 |
+  | 8 | LOEKE | — | 2 |
+  | Bolsa | LOEKE / CHEF | — | 2 / 1 |
