@@ -130,7 +130,13 @@ function renderPS(){
   E.gridContrapartes("psGrid", D.ps, {
     vacio: "Sin proveedores configurados.",
     meta: function(p){
-      var n = ((D.partes||{})[p.id]||[]).length;
+      // Cuenta PIEZAS A ENVIAR, no pares (pieza que entra, pieza que sale). A
+      // Maspoli se le manda UNA virola y devuelve tres mangos distintos: el
+      // boton decia "3 partes" cuando lo que se envia es una sola
+      // [usuario 2026-09-03: "en envio a Maspoli deberia aparecer 1 parte, lo
+      // que hace es entregar 3 partes"]. Misma correccion que ya se hizo en la
+      // tabla; esto era lo que faltaba.
+      var n = agruparPorSC((D.partes||{})[p.id]||[]).length;
       var cargado = E.cargadasDe(BUF.all[p.id], tieneAlgo).length;
       return esc(p.proceso||"—") + " · " + n + " partes" + (cargado? " · "+cargado+" cargadas":"");
     },
