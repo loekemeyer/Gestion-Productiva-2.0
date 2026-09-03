@@ -177,6 +177,33 @@ window.supabase = { createClient: function(){ return {
   regla = await page.textContent('#reglaCarton');
   ok(regla.includes('mínimo 2.000'), 'minimo escala con multiplo: ' + regla.trim().slice(0, 80));
 
+  // "Usar sugeridos" deja el carton YA VALIDO (usuario 2026-09-03: "sí, redondeá
+  // para arriba"). Sugeridos 16.000 + 6.000 = 22.000 -> el total sube al multiplo
+  // siguiente (24.000) y lo que falta se reparte de a 1.000 empezando por el que
+  // mas pidio: 17.000 + 7.000. Ademas 24.000 son dos multiplos, asi que el minimo
+  // por codigo pasa a 2.000 y los dos lo cumplen.
+  await page.click('#btnLimpiar');
+  await page.click('#btnSug');
+  const cart506 = await page.$eval('.pedir-in[data-in="3"]', x => x.value);
+  const cartPP = await page.$eval('.pedir-in[data-in="4"]', x => x.value);
+  ok(Number(cart506) === 17000 && Number(cartPP) === 7000,
+     'usar sugeridos redondea la familia a 24.000 (' + cart506 + ' + ' + cartPP + ')');
+  ok(await page.$eval('#reglaCarton', x => x.classList.contains('hidden')), 'y no queda ningun error de regla');
+  ok(!(await page.$eval('#btnCrear', b => b.disabled)), 'la OC de cartones queda lista para crear');
+
+  // Y si se escribe a mano algo que rompe la regla, el cartel ofrece arreglarlo
+  await page.fill('.pedir-in[data-in="3"]', '1500');
+  await page.$eval('.pedir-in[data-in="3"]', x => x.dispatchEvent(new Event('change')));
+  ok(!(await page.$eval('#reglaCarton', x => x.classList.contains('hidden'))), 'a mano se puede romper la regla');
+  await page.click('#btnAjustarCart');
+  ok(await page.$eval('#reglaCarton', x => x.classList.contains('hidden')),
+     '"Ajustar al múltiplo" lo deja valido de nuevo');
+  // 1.500 sube a 2.000 (multiplo de codigo) y con los 7.000 del otro quedan 9.000:
+  // los 3.000 que faltan hasta 12.000 se reparten de a 1.000 empezando por el mayor.
+  const ajust = await page.$$eval('.pedir-in[data-in="3"], .pedir-in[data-in="4"]', xs => xs.map(x => Number(x.value)));
+  ok(ajust[0] + ajust[1] === 12000 && ajust[0] >= 1000 && ajust[1] >= 1000,
+     'ajusta para arriba hasta 12.000 respetando el minimo por codigo (' + ajust.join(' + ') + ')');
+
   // acciones de OC: marcar enviada
   await page.click('#tabOcs');
   await page.click('.oc-acts button.env');

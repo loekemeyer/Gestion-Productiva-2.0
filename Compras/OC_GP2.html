@@ -1,7 +1,26 @@
 <!doctype html>
 <html lang="es">
 <head>
-<!-- v1.8.0 (2026-09-03) — EL PRECIO SE PUEDE PISAR, Y LA FECHA DE ENTREGA SE GUARDA
+<!-- v1.9.0 (2026-09-03) — EL CARTON SE PIDE POR FAMILIA, Y EL SUGERIDO YA SALE REDONDEADO
+     [usuario 2026-09-03, tres respuestas: el multiplo de pedido es 12.000 C / 16.000 LOKE /
+     30.000 "8"; el tipo C agrupa por categoria de pliego y la clasificacion la pasa el
+     usuario; y el sugerido tiene que redondear PARA ARRIBA solo].
+     (a) MULTIPLOS CORREGIDOS EN LA BASE: GP2.carton_formato tenia cargado el tamaño de la
+         BOLSA (pliegos_multiplo == uni_x_bolsa en las 6 filas: C 1.000, LOKE 1.000, 8
+         3.000), no el multiplo de pedido a Grafica Pol. Migracion
+         oc_carton_multiplos_familia_y_categoria. Huevo queda SIN CONFIRMAR (hoy 2.000).
+     (b) LA FAMILIA ES FORMATO + CATEGORIA: la validacion agrupaba solo por formato. Ahora
+         la clave es famKey() = carton_formato + carton_categoria, y oc_bundle devuelve la
+         categoria. Mientras carton_categoria siga VACIA en los 110 cartones (dato pendiente
+         del usuario), cada formato es una sola familia — o sea, se comporta igual que antes
+         y el dia que llegue la clasificacion empieza a agrupar sin tocar codigo.
+     (c) "Usar sugeridos" deja el carton YA VALIDO: ajustarFamilia() lleva cada codigo al
+         multiplo de codigo, aplica el piso por codigo (que escala con el multiplo) y
+         reparte lo que falta hasta el multiplo de familia, de a 1.000, empezando por el que
+         mas pidio. Siempre hacia arriba: nunca deja corto lo que hace falta. Y si se rompe
+         la regla escribiendo a mano, el cartel rojo ahora trae el boton "Ajustar al
+         multiplo" que hace la misma cuenta.
+     v1.8.0 (2026-09-03) — EL PRECIO SE PUEDE PISAR, Y LA FECHA DE ENTREGA SE GUARDA
      [usuario 2026-09-03: "que se genere el pedido de manera automatica por el cruce
      entre el stock que tengo y el maximo que deberia tener ... pero que si quiero
      modificar el importe o la cantidad a pedir, pueda pedirlo"].
@@ -520,41 +539,113 @@ function itemsPedidos(){
   });
 }
 
-// Reglas de carton (REGLAS_OC_INSUMOS.md): total multiplo de pliegos_multiplo,
-// cada codigo multiplo de codigo_multiplo y minimo min_codigo_x_multiplo x (total/pliegos_multiplo).
-// Solo aplica a items con carton_formato asignado (hoy pendiente de cargar por precio).
+/* ===== Cartones: como se pide cada familia (REGLAS_OC_INSUMOS.md) =====
+   El carton NO se pide codigo por codigo: se pide por FAMILIA. El total de la
+   familia va en multiplos de pliegos_multiplo (C 12.000 · LOKE 16.000 · "8"
+   30.000, confirmado por el usuario 2026-09-03), cada codigo de a
+   codigo_multiplo (1.000) y con un minimo por codigo que ESCALA con el multiplo:
+   pido 12.000 -> 1.000 de cada uno; pido 24.000 -> 2.000 de cada uno.
+   La familia es formato + categoria de pliego: el tipo C agrupa por categoria
+   (Pisapapas, Pelapapas, Sacacorchos, Abrelatas, Resto) y solo en Resto se puede
+   mezclar cualquier codigo. Mientras carton_categoria siga vacia en la base cada
+   formato es una sola familia, que es como venia funcionando. */
+function famKey(it){ return String(it.carton_formato||'')+'||'+String(it.carton_categoria||''); }
+function famLabel(it){
+  return 'Formato '+String(it.carton_formato||'')+(it.carton_categoria?(' · '+it.carton_categoria):'');
+}
+function esCartonRegla(it){ return !!(it && it.sector_id===10 && it.carton_formato && it.pliegos_multiplo>0); }
+function techo(n,m){ m=Number(m)||0; return m>0 ? Math.ceil(n/m)*m : n; }
+
 function validarCarton(items){
-  var porFmt={};
+  var porFam={};
   items.forEach(function(x){
-    if(x.it.sector_id===10 && x.it.carton_formato && x.it.pliegos_multiplo){
-      (porFmt[x.it.carton_formato]=porFmt[x.it.carton_formato]||[]).push(x);
-    }
+    if(esCartonRegla(x.it)) (porFam[famKey(x.it)]=porFam[famKey(x.it)]||[]).push(x);
   });
   var errores=[];
-  Object.keys(porFmt).forEach(function(f){
-    var xs=porFmt[f], cf=xs[0].it;
+  Object.keys(porFam).forEach(function(k){
+    var xs=porFam[k], cf=xs[0].it, lbl=famLabel(cf);
     var total=xs.reduce(function(a,x){return a+x.cantidad;},0);
     if(total % cf.pliegos_multiplo !== 0){
-      errores.push('Formato '+f+': el total ('+fmt(total)+') debe ser múltiplo de '+fmt(cf.pliegos_multiplo)+'.');
+      errores.push(lbl+': el total ('+fmt(total)+') debe ser múltiplo de '+fmt(cf.pliegos_multiplo)+'.');
       return;
     }
     var mult=total/cf.pliegos_multiplo;
     var minCod=cf.min_codigo_x_multiplo*mult;
     xs.forEach(function(x){
       if(x.cantidad % cf.codigo_multiplo !== 0)
-        errores.push('Formato '+f+' · '+x.it.codigo+': '+fmt(x.cantidad)+' no es múltiplo de '+fmt(cf.codigo_multiplo)+'.');
+        errores.push(lbl+' · '+x.it.codigo+': '+fmt(x.cantidad)+' no es múltiplo de '+fmt(cf.codigo_multiplo)+'.');
       else if(x.cantidad < minCod)
-        errores.push('Formato '+f+' · '+x.it.codigo+': mínimo '+fmt(minCod)+' por código para un pedido de '+fmt(total)+'.');
+        errores.push(lbl+' · '+x.it.codigo+': mínimo '+fmt(minCod)+' por código para un pedido de '+fmt(total)+'.');
     });
   });
   return errores;
+}
+
+/* Lleva una familia a un pedido valido, SIEMPRE para arriba (nunca deja corto lo
+   que hace falta): cada codigo al multiplo de codigo, el piso por codigo, y lo
+   que falte hasta el multiplo de familia repartido de a codigo_multiplo
+   empezando por el que mas pidio. Devuelve {comp_id: cantidad} o null si la
+   familia no tiene regla. */
+function ajustarFamilia(xs){
+  var cf=xs[0];
+  var pm=Number(cf.pliegos_multiplo)||0, cm=Number(cf.codigo_multiplo)||1, mc=Number(cf.min_codigo_x_multiplo)||0;
+  if(!(pm>0)) return null;
+  var q={};
+  xs.forEach(function(x){ q[x.comp_id]=techo(Math.max(0,Number(x.cant)||0), cm); });
+  var ids=Object.keys(q);
+  if(!ids.length) return null;
+  for(var iter=0; iter<25; iter++){
+    var total=ids.reduce(function(a,k){ return a+q[k]; },0);
+    var mult=Math.max(1, Math.ceil(total/pm));
+    var minCod=mc*mult;
+    var subio=false;
+    ids.forEach(function(k){ if(q[k]<minCod){ q[k]=techo(minCod,cm); subio=true; } });
+    // Subir el piso puede empujar el total al multiplo siguiente: se recalcula.
+    if(subio) continue;
+    var falta=mult*pm-total;
+    if(falta<=0) return q;
+    var orden=ids.slice().sort(function(a,b){ return q[b]-q[a]; });
+    var i=0;
+    while(falta>0){ var d=Math.min(cm,falta); q[orden[i%orden.length]]+=d; falta-=d; i++; }
+    return q;
+  }
+  return q;
+}
+
+/* Aplica el ajuste a lo que hay cargado en PEDIDO, familia por familia. Solo toca
+   los codigos que YA tienen pedido: no agrega codigos que nadie pidio. */
+function ajustarPedidoCarton(){
+  var fams={};
+  filtradas().forEach(function(i){
+    if(!esCartonRegla(i)) return;
+    var c=Number(PEDIDO[i.comp_id])||0;
+    if(!(c>0)) return;
+    (fams[famKey(i)]=fams[famKey(i)]||[]).push({comp_id:i.comp_id, cant:c,
+      pliegos_multiplo:i.pliegos_multiplo, codigo_multiplo:i.codigo_multiplo,
+      min_codigo_x_multiplo:i.min_codigo_x_multiplo});
+  });
+  var toco=false;
+  Object.keys(fams).forEach(function(k){
+    var q=ajustarFamilia(fams[k]);
+    if(!q) return;
+    Object.keys(q).forEach(function(id){
+      if(PEDIDO[Number(id)]!==q[id]){ PEDIDO[Number(id)]=q[id]; toco=true; }
+    });
+  });
+  return toco;
 }
 
 function barra(){
   var items=itemsPedidos();
   var errs=validarCarton(items);
   var rc=$('reglaCarton');
-  if(errs.length){ rc.classList.remove('hidden'); rc.classList.add('mal'); rc.innerHTML=errs.map(esc).join('<br>'); }
+  if(errs.length){
+    rc.classList.remove('hidden'); rc.classList.add('mal');
+    rc.innerHTML=errs.map(esc).join('<br>')+
+      '<br><button type="button" id="btnAjustarCart" class="btn-sug" style="margin-top:8px">Ajustar al múltiplo</button>';
+    var ba=$('btnAjustarCart');
+    if(ba) ba.addEventListener('click',function(){ ajustarPedidoCarton(); render(); });
+  }
   else rc.classList.add('hidden');
   var tUsd=0, tArs=0;
   items.forEach(function(x){
@@ -572,6 +663,9 @@ function barra(){
 
 $('btnSug').addEventListener('click',function(){
   filtradas().forEach(function(i){ var v=valorSugerido(i); if(v>0) PEDIDO[i.comp_id]=v; });
+  // Los cartones salen ya redondeados a su familia [usuario 2026-09-03: "si,
+  // redondea para arriba"], asi la OC queda valida sin corregirla a mano.
+  ajustarPedidoCarton();
   render();
 });
 $('btnLimpiar').addEventListener('click',function(){ PEDIDO={}; PRECIO={}; MONEDA={}; render(); });

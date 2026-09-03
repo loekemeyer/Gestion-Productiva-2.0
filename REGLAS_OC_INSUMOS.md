@@ -36,7 +36,19 @@ Los cartones se **reciben en PAQUETES**: el proveedor siempre entrega alturas de
   Pisapapas, Pelapapas, Sacacorchos, Abrelatas, y **Resto** — solo en Resto se puede
   mezclar cualquier código con cualquiera.
 - Cada cartón se asigna a su formato/categoría en `componente.carton_formato` /
-  `componente.carton_categoria` — **datos pendientes de cargar** (los define el usuario).
+  `componente.carton_categoria`. **El formato ya está cargado en los 110 cartones**
+  (C 37 · LOKE 35 · Pliego 20 · Huevo 13 · Bolsa 3 · "8" 2); **la categoría sigue VACÍA**
+  y hasta que llegue, cada formato valida como una sola familia.
+- **Los múltiplos los confirmó el usuario el 2026-09-03** (12.000 / 16.000 / 30.000) y viven
+  en `GP2.carton_formato`. Ojo: hasta ese día la tabla tenía cargado el tamaño de la **bolsa**
+  (1.000 / 1.000 / 3.000) y no el múltiplo de pedido — si algún número no cierra, mirar
+  primero si `pliegos_multiplo` no volvió a quedar igual a `uni_x_bolsa`.
+- **Huevo queda SIN CONFIRMAR**: hoy vale 2.000 (el tamaño de bolsa). El usuario nombró
+  25.000 el 2026-08-31 pero no lo confirmó — falta preguntarle a Gráfica Pol.
+- **La OC ya arma el pedido sola**: "Usar sugeridos" redondea cada familia hacia arriba al
+  múltiplo, aplica el mínimo por código y reparte el resto de a 1.000 empezando por el que
+  más pidió. Si se escribe a mano algo que rompe la regla, el cartel rojo trae el botón
+  "Ajustar al múltiplo".
 
 ## Proveedores de servicio — cuánto mandarles
 
