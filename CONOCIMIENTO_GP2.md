@@ -2553,3 +2553,55 @@ pantallas del grupo: cada una va adonde se usa, y el grupo del menú se borra (v
 - `[dato]` **El nombre está escrito de 3 formas:** "Maspoli SRL" (tallerista), "Máspoli SRL"
   con tilde (proveedor_insumo), "Maspoli" (código operativo). Hoy la reconciliación aguanta
   porque va por id, pero cualquier módulo que matchee por string se parte en silencio.
+
+## 4c. Las bombillas GRJ: rutas, make-or-buy y el paso fijo de Gentile (2026-09-03)
+
+- `[dato]` **Los 6 GRJ de bombilla son sector 9 (Sector Garage), proveedor Cimarron.** Que
+  estén en Garage es correcto — GRJ *es* Garaje, no es el sector del material (regla §1-bis:
+  el sector es la zona física). El artículo terminado es familia `Bombillas`.
+
+| GRJ | Descripción | Artículos finales | Origen del costo |
+|---|---|---|---|
+| GRJ4 | Bomb AutoLimp Inox | 654, 769 | precio ($1.578) |
+| GRJ5 | Bombilla Resorte Trad 558 | 558, 763 | ruta (se fabrica) |
+| GRJ6 | Bombilla Resorte Chata 557 | 557, 762 | ruta (se fabrica) |
+| GRJ13 | Bowls 330ml | **ninguno** | — |
+| GRJ14 | Bombilla Pico de Loro | 659, 759 | precio ($2.005) |
+| GRJ15 | Bombilla Plana Ancha | 658, 758 | precio ($1.035) |
+
+- `[dato]` **El paso final de Gentile Norberto cuesta $137,10 y es igual para los 10
+  artículos.** Todos siguen `artículo = su GRJ + $137,10`, sin una sola excepción: 654/769 =
+  1578+137,10 · 658/758 = 1035+137,10 · 659/759 = 2005+137,10 · 557/558/762/763 =
+  265,04+137,10. Sirve como control: si un artículo de bombilla se sale de ese patrón, algo
+  se rompió.
+- `[dato]` **GRJ5 y GRJ6 son MAKE-OR-BUY: tienen 3 rutas cada uno por artículo** — comprarlas
+  a Cimarron, o fabricarlas desde **BOM12** (Caño Inox 140 mm, Metalúrgica Giser) o **BOM8**
+  (Resorte para Bombilla, Grudzien Claudia Laura), armadas por **Martin Cornejo**. Las otras
+  siempre pasan por Gentile al final.
+- `[dato, IMPORTANTE — desmiente una sospecha]` **Varias rutas para un mismo componente NO
+  inflan el costo.** `v_costo_componente` elige UNA ruta, no las suma: GRJ5 = BOM8 ($35,80) +
+  BOM12 ($181,99) + servicio ($47,25) = **$265,04** exacto, y toma la ruta de fabricación, no
+  el precio de compra. Antes de acusar a un artículo de contar dos veces por tener rutas
+  paralelas, **hacer la cuenta**: acá la sospecha era infundada.
+- `[dato]` **El costo llega al artículo por la RUTA, no por `articulo_componente`.** GRJ4,
+  GRJ14 y GRJ15 no figuran en ninguna receta y aun así su costo llega (654 = GRJ4 + 137,10).
+  La receta faltante rompe consumo/faltantes/OC, **no** el costo. Solo GRJ5→558 y GRJ6→557
+  tienen fila de receta, con cantidad 1.
+- `[dato]` **GRJ5 y GRJ6 no tienen precio de Cimarron cargado** aunque tienen ruta de compra
+  (rutas 615 y 611). Por eso 557/558/762/763 salen con `faltan_precios=1` y los otros 6
+  artículos en 0. Sin ese precio no se puede comparar fabricar contra comprar.
+- `[dato, aplicado 2026-09-03]` **GRJ4, GRJ13, GRJ14 y GRJ15 no tenían NINGUNA fila en
+  `inventario`**, así que Faltantes y la OC no los veían en planta — el mismo agujero de D9
+  (§ historial 2026-09-02). Migración `grj_filas_inventario_en_sector_garage`: fila en la
+  ubicación 9 (Sector Garage) con cantidad 0 y mínimo/máximo en null, espejando a GRJ5/GRJ6.
+  **El mínimo queda en null a propósito**: sale del consumo, el consumo sale de la Est Madre
+  y esos artículos la tienen en null, y `recalcular_minimos` no pisa una fila con consumo 0 o
+  desconocido. Se llena solo cuando se cargue la Est Madre.
+- `[deducido, SIN CONFIRMAR]` **Los artículos parecen ir de a pares 5xx/7xx** (557↔762,
+  558↔763, 654↔769, 658↔758, 659↔759) y **solo el de la izquierda tiene Est Madre** (557 =
+  1040, 558 = 2123; los otros 8 en null). Huele al patrón "clon" ya visto en 104 = clon del
+  581: la demanda viviría en el hermano y el 7xx sería la otra marca. **Falta que el usuario
+  lo confirme** — si no es así, hay que cargar la Est Madre de los 8 o la OC nunca los pide.
+- `[dato, PENDIENTE DE DECISIÓN]` **GRJ13 (Bowls 330ml) está huérfano**: 0 pasos de ruta, 0
+  recetas, 0 precio, costo $0 (ahora sí tiene fila de inventario en 0). O se le construye la
+  cadena entera, o se da de baja. No es una bombilla.
