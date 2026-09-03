@@ -1123,6 +1123,38 @@ lo mismo —
 **Blist-Pack es el 3227** `[usuario 2026-09-03]`. Era el único tallerista sin `cod_prov`, y por eso
 en Envíos/Entregas a talleristas aparecía sin código mientras los demás sí lo mostraban.
 
+**EL CLAVO 505 NO SE CUENTA: VIENE EN CAJAS Y SE PESA (2026-09-03)** `[usuario]` — *"que tire por
+default kg y borra unidades en el caso de Trefilados Industriales Clavo 505"* y *"en el caso del
+control de este componente que me deje poner cant de cajas y kg por caja"*. Es **un dato del
+componente con dos consecuencias**, y quedó como tal: la columna nueva
+**`componente.recibe_en_cajas`** (hoy sólo el `PCP3`, el único insumo de Trefilados).
+
+- **Recepción**: se carga siempre en **kg** y **no se muestra el toggle Kg/Unidades** — el mismo
+  criterio que ya valía para los flejes: si la casa sabe la unidad, el toggle sólo se presta a
+  equivocarse.
+- **Control**: aparecen **Cajas** y **Kg por caja**, que multiplican y completan los kg
+  controlados (el campo de kg sigue mandando: se puede escribir a mano).
+
+**Lo que NO se tocó, y es importante: `componente.unidad_medida` sigue en `unidad`.** El stock
+del plástico vive en **unidades** (hoy 153.859 uni de clavo) y el trigger del movimiento convierte
+los kg del remito con `kg_x_uni` (0,00653 kg cada clavo). Cambiar la UM canónica para que la
+pantalla arranque en kg habría roto esa conversión: **la unidad del REMITO y la unidad del STOCK
+son dos cosas distintas**.
+
+**LA UNIDAD DEL REMITO NO ES LA DEL STOCK, Y CADA RUBRO TIENE LA SUYA (2026-09-03)** `[usuario]`
+— *"en recepción de bombillas que tire por default unidades (que no aparezca kg) y que en el
+control ponga kg y me haga el pasaje a unidades con el kg por uni"*. Bombillas y remaches son el
+mismo caso y ahora se comportan igual: **se reciben CONTANDO unidades** (sin toggle: el kg no
+aparece), el movimiento **viaja en kg** cuando el componente tiene `kg_x_uni`, y el **stock del
+sector vive en unidades** porque el trigger lo devuelve. El **control es por peso** (se pesa la
+caja), así que ahí el operario ve las dos caras: los kg que pesó y **a cuántas unidades
+equivalen**, contra las declaradas.
+
+La regla general que queda, y que ya se aplicó a flejes, cartones, remaches, bombillas y al clavo:
+**si la casa sabe en qué unidad viene el remito de ese insumo, el toggle Kg/Unidades no se
+muestra.** El toggle sólo sirve donde de verdad puede venir de las dos formas; en todo lo demás es
+una invitación a equivocarse.
+
 ## 3c-bis. Accesibilidad de carga: letra grande + teclado numérico (2026-08-30)
 
 `[usuario 2026-08-30]` Dicho textual: *"Siempre quiero letras bien grandes y legibles

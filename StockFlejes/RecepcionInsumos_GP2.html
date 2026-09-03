@@ -6,7 +6,20 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<!-- v3.41.1 (2026-09-03) — FIX: cargar un paquete de 100 pliegos disparaba el falso aviso de
+<!-- v3.43.0 (2026-09-03) — BOMBILLAS SIEMPRE EN UNIDADES (usuario: "en recepcion de bombillas
+     que tire por default unidades, que no aparezca kg"). El sector 7 pasa a tener su propia
+     rama, como remaches: se oculta el toggle y se carga en uni. Si el componente tiene
+     kg_x_uni, guardar() sigue pasandolo a kg para el movimiento (el stock del sector vive en
+     unidades y el trigger lo devuelve a unidades); el control por peso ahora muestra ese
+     pasaje a la vista (control-remaches.js v1.4.0).
+     v3.42.0 (2026-09-03) — EL CLAVO 505 SE RECIBE EN KG, SIN TOGGLE (usuario: "que tire por
+     default kg y borra unidades en el caso de Trefilados Industriales Clavo 505"). Dato nuevo
+     en la base: componente.recibe_en_cajas — el proveedor lo entrega en cajas que se PESAN.
+     Con ese flag la recepcion se carga siempre en kg (se oculta el toggle Kg/Unidades, mismo
+     criterio que ya se usaba en flejes) y el control se cuenta en cajas x kg por caja (ver
+     control-remaches.js v1.3.0). NO se toca la unidad_medida del componente: el stock del
+     plastico vive en UNIDADES y el trigger convierte los kg del remito con kg_x_uni.
+     v3.41.1 (2026-09-03) — FIX: cargar un paquete de 100 pliegos disparaba el falso aviso de
      "diferencia mayor al 10%" (usuario: "cuando voy a cargar un paquete de pliegos (100) me
      aparece el cartel por que?"). Decia "declarado 100 paq - contado 0 paq - dif -100" por dos
      cuentas distintas: (a) el pliego se DECLARA en unidades (100 pliegos) y se CONTROLA en
@@ -470,6 +483,10 @@ const CONTROL_URL = {
 const RUBRO_UM={Flejes:"kg",Remaches:"kg",Cajas:"uni",Plasticos:"uni",Cartones:"uni",Bombillas:"uni"};
 
 let INS=[], UMBY={}, KGXUNI={}, PROVFLAGS={}, RECS=[], PALL=[], ROLL=[], TARA={tara_pallet_min:4,tara_pallet_max:8};
+/* Insumos que el proveedor entrega en CAJAS y se pesan (componente.recibe_en_cajas).
+   Hoy el Clavo 505 de Trefilados. Se cargan siempre en kg y el toggle Kg/Unidades
+   no se muestra [usuario 2026-09-03: "que tire por default kg y borra unidades"]. */
+let ENCAJAS={};
 let REMITO=[];    // items anotados del remito en curso, esperando el pesaje: {recId,codigo,desc,cant,unidad,rollos,pallets}
 // PEND: buffer LOCAL para cartones (regla usuario 2026-09-02: "no quiero que
 // por cada +4 o +1 se haga un remito. cuando arranco a tocar aparece un boton
@@ -1209,6 +1226,18 @@ function abrirPopup(i){
       $('kgValueLabel').textContent='Cantidad kg';
       setUnit('kg');
     }
+  } else if (i.sector_id===7) {
+    // Bombillas: el remito viene en UNIDADES y nadie pesa al recibir
+    // [usuario 2026-09-03: "en recepcion de bombillas que tire por default
+    // unidades (que no aparezca kg)"]. Igual que remaches: se carga en uni y,
+    // si el componente tiene kg_x_uni, guardar() lo pasa a kg — que es como
+    // viaja el movimiento; el stock del sector vive en unidades y el trigger lo
+    // devuelve a unidades. El control despues PESA (control-remaches.js
+    // ?sector=7) y muestra el pasaje a unidades con ese mismo kg_x_uni.
+    $('unitRow').classList.add('hidden');
+    $('kgValue').placeholder='unidades del remito';
+    $('kgValueLabel').textContent='Cantidad uni';
+    setUnit('uni');
   } else if (esFleje(i)) {
     // Flejes: cada fleje tiene su UM canonica fija (46 en kg, 7 en unidad
     // como F12/E13/Z19A/E4/E5/E1/C3). El toggle Kg/Uni solo confunde. Se
@@ -1225,6 +1254,17 @@ function abrirPopup(i){
     $('kgValue').placeholder = uFleje==='kg' ? 'kg' : 'unidades';
     $('kgValueLabel').textContent = uFleje==='kg' ? 'Cantidad kg' : 'Cantidad uni';
     setUnit(uFleje);
+  } else if (ENCAJAS[i.comp_id]) {
+    // Viene en CAJAS y se pesa (hoy el Clavo 505 de Trefilados): el remito es en
+    // kg y nadie cuenta clavos, asi que el toggle Kg/Unidades solo se presta a
+    // equivocarse [usuario 2026-09-03: "que tire por default kg y borra unidades
+    // en el caso de Trefilados Industriales Clavo 505"]. Mismo criterio que ya
+    // se usa en flejes. guardar() sigue guardando kg y el trigger lo pasa a
+    // unidades con kg_x_uni, que es como vive el stock del plastico.
+    $('unitRow').classList.add('hidden');
+    $('kgValue').placeholder='kg del remito';
+    $('kgValueLabel').textContent='Cantidad kg';
+    setUnit('kg');
   } else {
     $('unitRow').classList.remove('hidden');
     $('kgValue').placeholder='';
@@ -2361,8 +2401,11 @@ async function cargar(){
   // Cargar factores de conversión kg/uni para componentes de sectores insumo
   // sector 12 incluido para 031/034 (Charcas) y sector 2 para 1686 (Eclipse):
   // la conversion paq/uni -> kg usa kg_x_uni.
-  var kxRes=await SB.from('componente').select('id,kg_x_uni').in('sector_id',[2,5,6,7,8,9,10,11,12]);
-  if(!kxRes.error){KGXUNI={};(kxRes.data||[]).forEach(c=>{if(c.kg_x_uni) KGXUNI[c.id]=c.kg_x_uni;});}
+  var kxRes=await SB.from('componente').select('id,kg_x_uni,recibe_en_cajas').in('sector_id',[2,5,6,7,8,9,10,11,12]);
+  if(!kxRes.error){KGXUNI={};ENCAJAS={};(kxRes.data||[]).forEach(c=>{
+    if(c.kg_x_uni) KGXUNI[c.id]=c.kg_x_uni;
+    if(c.recibe_en_cajas) ENCAJAS[c.id]=true;
+  });}
   $('statusMsg').textContent='';
   renderRemitoBar();
   renderPendPortada();

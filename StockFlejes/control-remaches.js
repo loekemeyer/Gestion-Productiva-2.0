@@ -21,6 +21,22 @@
    plasticos y no me mando al control. que sea control en kg"]
    El nombre del archivo quedo historico para no romper los links que ya
    existen; el titulo de la pantalla sale del sector que devuelve el bundle.
+
+   v1.4.0 (2026-09-03) — PASAJE KG -> UNIDADES. Si el insumo tiene kg_x_uni, el
+   popup muestra a cuantas UNIDADES equivalen los kg pesados y cuantas declaro
+   el proveedor [usuario 2026-09-03: "en el control ponga kg y me haga el pasaje
+   a unidades con el kg por uni"]. Es el caso de bombillas y remaches: se
+   reciben CONTANDO unidades, el movimiento viaja en kg y el stock del sector
+   vive en unidades, asi que el operario necesita ver las dos caras.
+
+   v1.3.0 (2026-09-03) — CAJAS x KG POR CAJA. Los insumos marcados
+   componente.recibe_en_cajas (hoy el Clavo 505 de Trefilados) no se cuentan:
+   vienen en cajas y se pesan. Para esos aparecen dos campos arriba de los kg
+   —cajas y kg por caja— que multiplican y completan los kg controlados
+   [usuario 2026-09-03: "en el caso del control de este componente que me deje
+   poner cant de cajas y kg por caja"]. El campo de kg sigue mandando: se puede
+   escribir a mano. Ademas la pantalla pasa a usar gp2-numero.js (la regla de
+   numero de la casa) en vez del saneador propio que tenia.
    ============================================================ */
 
 const SB = window.supabase.createClient(self.SB_URL, self.SB_ANON, { db: { schema: "GP2" } });
@@ -35,10 +51,19 @@ const ov = $("ovCtrl");
 const inKg = $("inKg"), lblDiff = $("lblDiff");
 const ctrlTitle = $("ctrlTitle"), ctrlInfo = $("ctrlInfo"), ctrlMsg = $("ctrlMsg");
 const btnCancel = $("btnCancel"), btnConfirm = $("btnConfirm"), btnDesmarcar = $("btnDesmarcar");
+/* Cajas x kg por caja: solo para los insumos marcados recibe_en_cajas. */
+const cajasBox = $("cajasBox"), inCajas = $("inCajas"), inKgCaja = $("inKgCaja"), lblCajas = $("lblCajas");
+/* Pasaje a unidades: solo si el insumo tiene kg_x_uni. */
+const lblUni = $("lblUni");
 
 const esc = (s) => String(s ?? "").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
 const fmt = (n) => Number(n||0).toLocaleString("es-AR", { maximumFractionDigits: 3 });
-const parseKg = (v) => { const n = Number(String(v||"").replace(/[^0-9.,]/g,"").replace(",", ".")); return isNaN(n) ? 0 : n; };
+// El kg por unidad es chico (0,0046 kg un resorte): con 3 decimales se ve "0,005"
+// y no sirve para controlar la cuenta.
+const fmtKx = (n) => Number(n||0).toLocaleString("es-AR", { maximumFractionDigits: 6 });
+/* La regla de numero es una sola y vive en gp2-numero.js: el punto es el
+   separador de miles y la coma el decimal. Nada de sanear a mano. */
+const parseKg = (v) => window.GP2N.num(v);
 
 let recepciones = [];
 let selected = null;
@@ -175,8 +200,32 @@ function render() {
   });
 }
 
+/* Pasaje kg -> unidades con el kg_x_uni del insumo [usuario 2026-09-03: "en el
+   control ponga kg y me haga el pasaje a unidades con el kg por uni"]. Vale para
+   bombillas y remaches por igual: se reciben CONTANDO unidades, el movimiento
+   viaja en kg y el stock del sector vive en unidades. Sin kg_x_uni no hay pasaje
+   posible y no se muestra nada. */
+function pintarUnidades(kg) {
+  const kx = Number(selected && selected.kg_x_uni) || 0;
+  if (!lblUni) return;
+  if (!kx) { lblUni.style.display = "none"; return; }
+  lblUni.style.display = "block";
+  const decl = Number(selected.cantidad_declarada != null ? selected.cantidad_declarada : selected.cantidad) || 0;
+  const uniDecl = decl > 0 ? Math.round(decl / kx) : 0;
+  if (kg > 0) {
+    const uni = Math.round(kg / kx);
+    lblUni.innerHTML = `<b>${fmt(uni)}</b> unidades` +
+      (uniDecl ? ` · declaradas <b>${fmt(uniDecl)}</b>` : "") +
+      ` <span class="uni-nota">(1 uni = ${fmtKx(kx)} kg)</span>`;
+  } else {
+    lblUni.innerHTML = (uniDecl ? `Declaradas <b>${fmt(uniDecl)}</b> unidades ` : "") +
+      `<span class="uni-nota">(1 uni = ${fmtKx(kx)} kg)</span>`;
+  }
+}
+
 function calc() {
   const kg = parseKg(inKg.value);
+  pintarUnidades(kg);
   if (selected) {
     const decl = Number(selected.cantidad_declarada != null ? selected.cantidad_declarada : selected.cantidad) || 0;
     if (kg > 0 && decl > 0) {
@@ -198,6 +247,21 @@ function calc() {
   return kg;
 }
 
+/* Cajas x kg por caja -> kg controlados. El campo de kg sigue siendo el que
+   manda (se puede escribir a mano); esto solo lo completa. */
+function calcCajas() {
+  const cajas = parseKg(inCajas.value), kgCaja = parseKg(inKgCaja.value);
+  if (cajas > 0 && kgCaja > 0) {
+    const total = cajas * kgCaja;
+    lblCajas.textContent = `${fmt(cajas)} caja${cajas === 1 ? "" : "s"} x ${fmt(kgCaja)} kg = ${fmt(total)} kg`;
+    // Redondeo a gramos para que 3 x 8,4 no termine en 25,199999999999996
+    inKg.value = String(Math.round(total * 1000) / 1000).replace(".", ",");
+  } else {
+    lblCajas.textContent = cajas > 0 || kgCaja > 0 ? "Falta uno de los dos datos" : "";
+  }
+  calc();
+}
+
 function abrirPopup(it) {
   selected = it;
   ctrlMsg.textContent = ""; ctrlMsg.className = "msg";
@@ -209,10 +273,15 @@ function abrirPopup(it) {
     <br>Declarado por proveedor: <b>${fmt(decl)}</b> kg
   `;
   inKg.value = it.controlado ? String(it.cantidad).replace(".", ",") : "";
+  // Cajas x kg por caja: el insumo lo dice (recibe_en_cajas). Arranca vacio
+  // siempre — las cajas y el peso son de ESTA entrega, no del insumo.
+  const enCajas = !!it.recibe_en_cajas;
+  cajasBox.style.display = enCajas ? "" : "none";
+  inCajas.value = ""; inKgCaja.value = ""; lblCajas.textContent = "";
   btnDesmarcar.style.display = it.controlado ? "" : "none";
   calc();
   ov.classList.add("open");
-  setTimeout(() => inKg.focus(), 60);
+  setTimeout(() => (enCajas ? inCajas : inKg).focus(), 60);
 }
 
 function cerrarPopup() { ov.classList.remove("open"); selected = null; }
@@ -274,10 +343,12 @@ async function desmarcar() {
 }
 
 /* ===== Listeners ===== */
-inKg.addEventListener("input", () => {
-  inKg.value = inKg.value.replace(/[^0-9.,]/g, "").replace(/([.,].*)[.,]/g, "$1");
-  calc();
-});
+// El formato lo pone gp2-numero.js (auto-enganche por inputmode); aca solo se
+// recalcula la diferencia contra lo declarado.
+inKg.addEventListener("input", calc);
+inCajas.addEventListener("input", calcCajas);
+inKgCaja.addEventListener("input", calcCajas);
+inKgCaja.addEventListener("keydown", e => { if (e.key === "Enter") btnConfirm.click(); });
 inKg.addEventListener("keydown", e => { if (e.key === "Enter") btnConfirm.click(); });
 btnCancel.addEventListener("click", cerrarPopup);
 btnConfirm.addEventListener("click", confirmar);
