@@ -3058,3 +3058,26 @@ pantallas del grupo: cada una va adonde se usa, y el grupo del menú se borra (v
   además como comprable. Un componente con `origen='ruta'` y `estado_compra` en null es la
   firma de este bug: mirá si sus partes ya se están pidiendo. Y al revés — `origen='precio'`
   es la marca de lo que sí se compra (GRJ4, GRJ14 y GRJ15, que sí tienen precio de Cimarrón).
+
+## 4j. El pliego: a Pol sin adhesivar, AJ lo adhesiva (2026-09-03)
+
+- `[usuario 2026-09-03]` **"A Pol se le compra sin adhesivar, AJ lo adhesiva."**
+- **La cadena correcta**: `Pliego NNN` (se compra a Talleres Gráficos Pol) → **AJ Adhesivos**
+  pone el skin → `Pliego Ad NNN` → entra al artículo. El adhesivado **se fabrica, no se
+  compra**.
+- `[dato]` **El precio del adhesivado ya traía el servicio adentro** y lo decía en el propio
+  campo: *"Pliego 557 c/Skin ($786 Pol + $129 AJ)"*. Con eso la OC le pedía a Pol $915 por
+  pliego, $129 de más, y el servicio de AJ no aparecía en ningún pedido. **Un precio que es
+  la suma de dos proveedores es siempre la firma de una cadena sin modelar.**
+- `[dato]` El molde bueno **ya existía para uno solo, el 506**: la ruta 632, **sin
+  `articulo_id`**, con dos pasos — `ingreso` del pliego y `proveedor_servicio` (AJ) que sale
+  al adhesivado. Ése es el patrón para cualquier transformación por servicio, y se replicó
+  en los otros 11.
+- **Trampa del consumo**: `v_consumo_demanda` sólo camina aristas de rutas **con artículo**,
+  así que una ruta de transformación (sin artículo) **no baja la demanda**. El enganche va
+  por **`componente_bom`**, que la vista sí camina. Las dos cosas hacen falta: el BOM para
+  el consumo y la ruta para el costo.
+- `[dato]` **Dos bugs de plata que aparecieron al mirar**: el `Pliego 506` tenía cargado
+  **$77.700, que es el paquete de 100** — y la OC pide en pliegos, así que lo valuaba **100
+  veces de más**; y la tarifa de AJ del 506 estaba **por posición** ($11,67 = $140/12) en vez
+  de por pliego. **Al cargar un precio, mirar siempre en qué unidad pide la pantalla.**
