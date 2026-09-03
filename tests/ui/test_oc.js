@@ -60,6 +60,19 @@ const BUNDLE = {
       precio: 1, moneda: 'USD',
       carton_formato: 'LOKE', carton_categoria: null, marca: 'CHEF', mezcla_libre: false,
       pliegos_multiplo: 16000, codigo_multiplo: 1000, min_codigo_x_multiplo: 1000 },
+    // HUEVO: el pliego es de 25.000 y el minimo por codigo 2.000 [usuario 2026-09-03].
+    { comp_id: 9, codigo: 'HUEVO1', descripcion: 'Carton Huevo 1', sector: 'Sector Carton', sector_id: 10,
+      proveedor: 'Cartonero', um: 'unidad', unidad: 'uni', kg_x_uni: null,
+      consumo: 3000, meses: 6, online: 0, pendiente_oc: 0, sugerido: 18000,
+      precio: 1, moneda: 'USD',
+      carton_formato: 'Huevo', carton_categoria: null, marca: 'LOEKE', mezcla_libre: false,
+      pliegos_multiplo: 25000, codigo_multiplo: 1000, min_codigo_x_multiplo: 2000 },
+    { comp_id: 10, codigo: 'HUEVO2', descripcion: 'Carton Huevo 2', sector: 'Sector Carton', sector_id: 10,
+      proveedor: 'Cartonero', um: 'unidad', unidad: 'uni', kg_x_uni: null,
+      consumo: 100, meses: 6, online: 0, pendiente_oc: 0, sugerido: 600,
+      precio: 1, moneda: 'USD',
+      carton_formato: 'Huevo', carton_categoria: null, marca: 'LOEKE', mezcla_libre: false,
+      pliegos_multiplo: 25000, codigo_multiplo: 1000, min_codigo_x_multiplo: 2000 },
   ],
   ocs: [
     { id: 9, numero: 1, proveedor: 'Basconia', rubro: 'Fleje', estado: 'borrador', nota: 'prueba',
@@ -106,7 +119,7 @@ window.supabase = { createClient: function(){ return {
   ok(chips.join(',') === 'Fleje,Carton,Plastico', 'chips de rubro: ' + chips.join(','));
 
   // sin filtro: 4 filas
-  ok(await page.$$eval('#tbody tr', x => x.length) === 8, '8 insumos sin filtro');
+  ok(await page.$$eval('#tbody tr', x => x.length) === 10, '10 insumos sin filtro');
 
   // El clavo se cotiza POR KG pero se compra por unidad: el bundle tiene que mandar el
   // precio ya convertido (3,30 USD/kg x 6,53 g = 0,0215). Si vuelve a llegar 3,30 crudo,
@@ -218,6 +231,11 @@ window.supabase = { createClient: function(){ return {
   // pliego y la otra con el otro"].
   ok((await val(7)) === 16000 && (await val(8)) === 16000,
      'LOKE LOEKE y LOKE CHEF se piden por separado, 16.000 cada una');
+  // HUEVO: 18.000 + 600 = 18.600 sube al pliego de 25.000, y el chico (600) tiene que
+  // llegar al minimo de 2.000 por codigo aunque haya pedido mucho menos.
+  const h1 = await val(9), h2 = await val(10);
+  ok(h1 + h2 === 25000, 'el huevo cierra en el pliego de 25.000 (' + h1 + ' + ' + h2 + ')');
+  ok(h2 >= 2000, 'y el codigo chico sube al minimo de 2.000 (pidio 600, va ' + h2 + ')');
   ok(await page.$eval('#reglaCarton', x => x.classList.contains('hidden')), 'y no queda ningun error de regla');
   ok(!(await page.$eval('#btnCrear', b => b.disabled)), 'la OC de cartones queda lista para crear');
 

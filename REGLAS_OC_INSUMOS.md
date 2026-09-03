@@ -27,6 +27,18 @@ Los cartones se **reciben en PAQUETES**: el proveedor siempre entrega alturas de
 | C | 12.000 | 1.000 | 1.000 por cada múltiplo de 12.000 |
 | LOKE | 16.000 | 1.000 | 1.000 por cada múltiplo de 16.000 |
 | 8 | 30.000 | 1.000 | 1.000 por cada múltiplo de 30.000 |
+| Huevo | 25.000 | 1.000 | **2.000** por cada múltiplo de 25.000 |
+
+- **Huevo, ojo**: `[usuario 2026-09-03]` *"los paquetes del cartón huevo vienen de múltiplos
+  de dos mil, pero el pliego viene de veinticinco mil… necesito pedir un mínimo de dos mil
+  por cada una y los de veinticinco mil"*. **Los dos números no cierran entre sí**: si cada
+  código fuera en múltiplos de 2.000, la suma nunca podría dar 25.000 (25.000/2.000 = 12,5).
+  Quedó cargado con el 2.000 como **mínimo** y el paso en 1.000 — la única lectura donde las
+  dos frases conviven. **Falta que el usuario lo confirme**; si el paso fuera 2.000 de
+  verdad, hay que revisar el 25.000 con Gráfica Pol.
+- Con mínimo 2.000 entran **como mucho 12 códigos** en un pedido de 25.000. Hoy no molesta
+  porque la marca separa los 13 huevos en 11 LOEKE + 2 CHEF, pero si alguna vez una marca
+  junta 13, ese pedido es imposible y la pantalla lo dice.
 
 - El mínimo por código **escala con el múltiplo**: si pido 12.000 tipo C, mínimo 1.000 de
   cada código; si pido 24.000, mínimo 2.000 de cada código. Nunca cantidades intermedias

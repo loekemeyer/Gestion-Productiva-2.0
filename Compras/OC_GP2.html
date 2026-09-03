@@ -1,7 +1,21 @@
 <!doctype html>
 <html lang="es">
 <head>
-<!-- v1.10.0 (2026-09-03) — LAS FAMILIAS DE VERDAD: MARCA + CATEGORIA, Y EL SACACORCHOS
+<!-- v1.11.0 (2026-09-03) — EL HUEVO: PLIEGO DE 25.000 CON MINIMO 2.000 POR CODIGO
+     [usuario 2026-09-03: "los paquetes del carton huevo vienen de multiplos de dos mil,
+     pero el pliego viene de veinticinco mil. Entonces la realidad es que yo necesito
+     pedir un minimo de dos mil por cada una y los de veinticinco mil"].
+     OJO: LOS DOS NUMEROS NO CIERRAN ENTRE SI. Si cada codigo tuviera que ir en multiplos
+     de 2.000 la suma nunca podria dar 25.000 (25.000/2.000 = 12,5). La unica lectura
+     donde las dos frases conviven es que el 2.000 es el MINIMO por codigo y el paso
+     sigue siendo 1.000 como en C/LOKE/8 — asi quedo cargado, y esta anotado para que el
+     usuario lo confirme.
+     Consecuencia que aparece sola: con minimo 2.000 entran como mucho 12 codigos en un
+     pedido de 25.000 (13 x 2.000 = 26.000). Hoy no molesta porque la marca separa los 13
+     huevos en 11 LOEKE + 2 CHEF, pero la pantalla ahora AVISA cuando una familia no entra
+     ("N codigos x minimo se pasan del multiplo") en vez de inflar el pedido al multiplo
+     siguiente, que subiria el minimo y volveria a pasarse — un lazo infinito de plata.
+     v1.10.0 (2026-09-03) — LAS FAMILIAS DE VERDAD: MARCA + CATEGORIA, Y EL SACACORCHOS
      ES COMODIN [usuario 2026-09-03: "dentro de C las familias son pela papas, saca corchos
      —que sacacorcho se puede mezclar con cualquiera— y abre latas. Despues todo el resto de
      los que son C son la misma familia y se pueden mezclar todos con todos" + "dentro del
@@ -633,6 +647,16 @@ function validarCarton(items){
   gruposCarton(items).forEach(function(grupo){
     var xs=grupo.xs, cf=grupo.cf, lbl=grupo.lbl;
     var total=xs.reduce(function(a,x){return a+x.cantidad;},0);
+    // Familia imposible: si el minimo por codigo x la cantidad de codigos ya se pasa del
+    // multiplo, no hay pedido valido y no tiene sentido inflarlo hasta el multiplo
+    // siguiente (que sube el minimo y vuelve a pasarse). Pasa con el Huevo: minimo 2.000
+    // y multiplo 25.000 dan como maximo 12 codigos por pedido.
+    if(xs.length * cf.min_codigo_x_multiplo > cf.pliegos_multiplo){
+      errores.push(lbl+': no entra en un pedido — '+xs.length+' códigos × mínimo '+
+        fmt(cf.min_codigo_x_multiplo)+' se pasan del múltiplo de '+fmt(cf.pliegos_multiplo)+
+        '. Sacá algún código del pedido.');
+      return;
+    }
     if(total % cf.pliegos_multiplo !== 0){
       errores.push(lbl+': el total ('+fmt(total)+') debe ser múltiplo de '+fmt(cf.pliegos_multiplo)+'.');
       return;
@@ -658,6 +682,8 @@ function ajustarFamilia(xs){
   var cf=xs[0];
   var pm=Number(cf.pliegos_multiplo)||0, cm=Number(cf.codigo_multiplo)||1, mc=Number(cf.min_codigo_x_multiplo)||0;
   if(!(pm>0)) return null;
+  // Imposible de cerrar (ver validarCarton): no se toca nada y el cartel lo explica.
+  if(xs.length*mc > pm) return null;
   var q={};
   xs.forEach(function(x){ q[x.comp_id]=techo(Math.max(0,Number(x.cant)||0), cm); });
   var ids=Object.keys(q);
