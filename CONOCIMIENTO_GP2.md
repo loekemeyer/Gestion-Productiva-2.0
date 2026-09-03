@@ -933,8 +933,12 @@ tallerista. Le mandamos la virola **D13** (niquelada por Guazzaroni) y devuelve 
   **`Máspoli SRL` CON acento** en `proveedor_insumo`. Un `ilike '%aspoli%'` no encuentra
   `Máspoli`. **Al buscar una contraparte, buscar por las dos escrituras** (o por `cod_prov`,
   que acá era 2339 en las tres).
-- **Los $683,72 pasaron de precio de material a tarifa de servicio** (`precio_servicio_pieza`,
-  proceso `inyectado`, que hubo que crear en el maestro `proceso`). Y los 3 mangos fueron a
+- **Máspoli NO inyecta: le agrega a la virola el mango de MADERA, y la madera la pone él**
+  `[usuario 2026-09-03]`. Lo de "inyectado" lo deduje mal el mismo día, arrastrado por que sus
+  3 salidas están en el Sector Plástico — pero `PEP8` se llama literalmente *"Mango Madera
+  Pizza Ø9"*. El proceso es **`armado de mango`**. Que la madera la ponga él es lo que hace
+  que la ruta cierre sin una entrada de madera: está adentro de la tarifa.
+- **Los $683,72 pasaron de precio de material a tarifa de servicio** (`precio_servicio_pieza`). Y los 3 mangos fueron a
   `estado_compra = 'fabricacion'`: **si sólo se les sacaba el precio quedaban como "comprados
   sin precio", o sea en $0**, porque el CTE `comprado` de `v_costo_componente` mete TODO el
   sector 6. Mismo recurso que con los filtros de café.
@@ -957,6 +961,33 @@ la **capacidad física** del lugar (5 cajones en crudo/procesado) — y pasó a 
 cambio de TÍTULO: las dos columnas de la base siguen como estaban, con sus nombres, y esto
 explica de una vez el `minimo > maximo` de 77 filas que la idea 7211 dejó abierto — no es un
 error, es que lo que consumís no entra en el lugar donde lo guardás.
+
+**En el ENVÍO a un PS va una fila por PIEZA; en la ENTREGA, una por par (2026-09-03)**
+`[usuario: "no tiene que aparecer 3 veces. es la misma virola"]`: lo destapó Máspoli, que
+recibe una sola virola `D13` y devuelve tres mangos distintos. La pantalla de Envío mostraba
+**una fila por cada salida**, o sea la misma virola tres veces. **No era sólo feo**:
+`crear_envio_ps` recibe únicamente `p_comp_sc_id` — el SP no se usa para nada al enviar — así
+que cargar las tres filas registraba **tres envíos de la misma virola**. Ahora la pantalla
+agrupa por pieza enviada, lista las salidas al costado y **suma el sugerido** de cada una (hay
+que mandar para todas); si a alguna le falta el máximo físico, el total dice "—" en vez de
+quedar corto sin avisar. **En Entregas es al revés y sigue por par**: `crear_entrega_ps` sí
+recibe `p_comp_sp_id`, porque al recibir hay que decir cuál de los tres mangos volvió.
+
+**`RULETA` no va a ningún artículo y está bien (2026-09-03)** `[usuario]`: la ruta 35
+(*Fleje 8 → Art* , sin artículo) termina en `RULETA` y ahí corta porque **la ruleta es para
+afilar las piedras**, no es una parte de nada. No es una ruta rota: es una herramienta. Las
+otras dos rutas sin `articulo_id` son la 632 (produce el pliego adhesivado, un intermedio) y
+ya ninguna más — las 10 del 581 y el 104 lo recuperaron.
+
+**El `articulo_id` de la ruta y la receta son DOS cosas, y hacen falta las dos (2026-09-03)**
+`[dato]`: al 581 y a su clon 104 se les puso el `articulo_id` que les faltaba `[usuario:
+"sacale el null y ponele el articulo ID, porque están continuos"]`, y **igual siguen sin pedir
+nada**: tienen **0 filas en `articulo_componente`**. Es la otra cara de lo aprendido con el
+pliego del 506 — el consumo se arma con la RECETA y después camina la ruta. Y la receta **no
+se puede derivar de los pasos `insumo`**: en el 580, que es el hermano sano, la receta dice
+`A11 + G7A + GRJ10A` mientras sus rutas entran por `A11 + EP10 + G7A`. La receta lista lo que
+el artículo lleva (incluido un GRJ ya armado) y las rutas las entradas de cada cadena. **No
+son lo mismo y no se deducen una de la otra.**
 
 ## 3c-bis. Accesibilidad de carga: letra grande + teclado numérico (2026-08-30)
 

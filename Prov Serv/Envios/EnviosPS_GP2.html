@@ -103,7 +103,15 @@ var selPS = null;      // {id,nombre,cod_prov,proceso}
 /* buffer por par (SC, SP): hay proveedores con el mismo SC en 2 filas con SP
    distinto; con solo sc_id se pisan. (clave v2, ver keyDe) */
 var BUF = E.buffer("gp2_enviosPS_buffer2", function(){ return { caj:"", kg:"", falt:false, tandas:[] }; });
-function keyDe(x){ return String(x.sc_id)+":"+String(x.sp_id); }
+/* La clave es SOLO la pieza que se envia. Antes era el par (SC, SP) y eso
+   hacia que una pieza con VARIAS salidas apareciera repetida: Maspoli recibe
+   una sola virola D13 y devuelve tres mangos distintos (PEP7, PC12, PEP8), asi
+   que la pantalla mostraba tres filas de la MISMA virola. No era solo feo: el
+   envio no usa el SP para nada (crear_envio_ps recibe unicamente p_comp_sc_id),
+   asi que cargar las tres filas registraba TRES envios de la misma virola.
+   En Entregas es al reves y ahi sigue por par: al recibir hay que decir cual de
+   los tres mangos devolvio (crear_entrega_ps si recibe p_comp_sp_id). */
+function keyDe(x){ return String(x.sc_id); }
 
 function esCargada(it){ return num(it.caj)>0 || num(it.kg)>0; }
 function tieneAlgo(it){ return esCargada(it) || it.falt; }
@@ -147,10 +155,31 @@ function volverPS(){
 
 /* ---------- tabla ---------- */
 function partesFiltradas(){
-  return E.filtrar((D.partes||{})[selPS.id] || [], $("q").value, function(x){
+  var arr = E.filtrar((D.partes||{})[selPS.id] || [], $("q").value, function(x){
     return String(x.sc_cod||"")+" "+String(x.sc_desc||"")+" "+
            String(x.sp_cod||"")+" "+String(x.sp_desc||"");
   });
+  return agruparPorSC(arr);
+}
+
+/* Junta en UNA fila las salidas de la misma pieza enviada. Lo que se manda es
+   la pieza; que vuelva convertida en una cosa o en tres es asunto de la
+   entrega. El sugerido se SUMA (hay que mandar para las tres salidas) y el
+   online del SP tambien. */
+function agruparPorSC(arr){
+  var porSC = {}, orden = [];
+  arr.forEach(function(x){
+    var k = String(x.sc_id);
+    if (!porSC[k]) {
+      porSC[k] = Object.assign({}, x, { salidas: [] });
+      orden.push(k);
+    }
+    if (x.sp_id != null) porSC[k].salidas.push({
+      sp_id: x.sp_id, sp_cod: x.sp_cod, sp_desc: x.sp_desc,
+      sp_unixcaj: x.sp_unixcaj, online_sp: x.online_sp, maximo_sp: x.maximo_sp
+    });
+  });
+  return orden.map(function(k){ return porSC[k]; });
 }
 
 function renderTabla(){
@@ -166,13 +195,24 @@ function renderTabla(){
     var vKg  = t.hayT ? (t.tot.kg ||"") : it.kg;
 
     var onPS  = aCajones(x.online_ps, x.sc_unixcaj);
-    var onSP  = aCajones(x.online_sp, x.sp_unixcaj);
     // maximo/maximo_sp llegan sin coalesce: null = dato faltante, no 0
     var maxCaj= (x.maximo==null)    ? null : aCajones(x.maximo, x.sc_unixcaj);
+
     // Sugerido a enviar = maximo FISICO del Sector Procesado - online SP - online PS
     // (todo en cajones; regla usuario 2026-08-29). Sin maximo fisico cargado -> "—".
-    var maxSPc= (x.maximo_sp==null) ? null : aCajones(x.maximo_sp, x.sp_unixcaj);
-    var sug   = (maxSPc==null || onSP==null || onPS==null) ? null : Math.max(0, maxSPc - onSP - onPS);
+    // Con varias salidas se SUMA una por una: hay que mandar para todas. Si a
+    // alguna le falta el maximo fisico, esa no aporta y el total queda corto,
+    // asi que se marca con "—" en vez de mentir un numero.
+    var sals  = x.salidas || [];
+    var onSP = 0, sug = 0, faltaDato = (onPS == null) || sals.length === 0;
+    sals.forEach(function(sp){
+      var o = aCajones(sp.online_sp, sp.sp_unixcaj);
+      var m = (sp.maximo_sp == null) ? null : aCajones(sp.maximo_sp, sp.sp_unixcaj);
+      if (o == null || m == null) { faltaDato = true; return; }
+      onSP += o;
+      sug  += Math.max(0, m - o - onPS);
+    });
+    if (faltaDato) { onSP = null; sug = null; }
 
     var tr = document.createElement("tr");
     tr.dataset.k = keyDe(x);
@@ -183,7 +223,11 @@ function renderTabla(){
       E.tdInput("kg",  vKg,  t.hayT, null, "decimal")+
       E.tdTanda(it)+
       E.tdFalt(it)+
-      '<td class="sep">'+esc(x.sp_cod||"—")+'<br><small style="color:#777">'+esc(x.sp_desc||"")+'</small></td>'+
+      '<td class="sep">'+((x.salidas||[]).length
+          ? (x.salidas||[]).map(function(sp){
+              return esc(sp.sp_cod)+'<br><small style="color:#777">'+esc(sp.sp_desc||"")+'</small>';
+            }).join('<br>')
+          : "—")+'</td>'+
       '<td class="num">'+(onPS==null?"—":fmt(onPS))+'</td>'+
       '<td class="num">'+(onSP==null?"—":fmt(onSP))+'</td>'+
       '<td class="num">'+(maxCaj==null?"—":fmt(maxCaj))+'</td>'+
