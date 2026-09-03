@@ -733,6 +733,30 @@ rollos) y `recepcion_tara()` la promedia — por proveedor primero (n≥5), glob
 orden y recién sin datos cae al punto medio del parámetro 4–8. No hay nada que
 mantener a mano: cada pesaje que se guarda mejora el próximo cálculo.
 
+## 2c-vicies. "Fábrica" no cobra tarifa: va por tiempo de matriz (2026-09-02)
+
+`[usuario 2026-09-02]` *"hay que fijarse el tiempo de las matrices para el armado y
+envasado y calcularlas a $2 por segundo"*.
+
+**Fábrica es la única contraparte interna**, y por eso **no lleva `precio_tallerista`**: su
+costo sale de los **tiempos de matriz × `costo_segundo_pesos`** (hoy **$2**). Ya funciona
+así — sus 8 artículos tienen la mano de obra calculada y `faltan_tiempos = 0`:
+
+| Artículos | Segundos | Mano de obra |
+|---|---|---|
+| 507 / 707 | 34,27 | $68,54 |
+| 542 / 543 / 720 / 722 | 23,60 | $47,20 |
+| 570 / 858 | 43,21 | $86,42 |
+
+**Sus 8 filas "sin tarifa de tallerista" NO son deuda** — igual que las 3 de Máspoli, que
+van por precio de material. Al contar cuánto falta de la idea 6117, estas 11 no cuentan.
+
+**Lo que sí falta es tiempo en las matrices.** De las **115 matrices, 18 que están en uso
+tienen `tiempo_historico` en 0 o null**, así que ese trabajo se hace y no se cobra. Las
+más caras por cantidad de rutas: **69** Doblado Resorte (6 rutas), **182** Estampado Flecha
+de Ahueca, **360** Corte Ahueca, **361** Corte Flechita Ahueca y **64** Corte Pinza Fiambre
+(4 cada una). Cuatro de ellas caen justo en las cadenas de Fábrica. Ver idea **7213**.
+
 ## 2c-novodecies. Filtros de café: el alambre NO es el filtro (2026-09-02)
 
 `[usuario 2026-09-02]` *"cuando entrega charcas va a IF90 y de ahí va a ijupa que después
