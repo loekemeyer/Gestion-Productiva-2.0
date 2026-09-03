@@ -3041,3 +3041,20 @@ pantallas del grupo: cada una va adonde se usa, y el grupo del menú se borra (v
   los dos hermanos que sí estaban cargados: 557 lleva GRJ6 x1 y 558 lleva GRJ5 x1.
   Resultado: GRJ4 pide 3.480 · GRJ15 1.616 · GRJ14 832, y GRJ5/GRJ6 suben al sumarles la
   demanda de sus gemelos CHEF (763 y 762).
+
+## 4i. Un armado que se compra Y se fabrica se pide dos veces (2026-09-03)
+
+- `[usuario 2026-09-03]` **"El costo es la suma del caño, más el resorte, más la mano de obra
+  de Martín."** Vale para GRJ5 (Bombilla Resorte Tradicional) y GRJ6 (Chata).
+- `[dato]` **El costo ya estaba bien armado**: BOM12 Caño Inox 140 mm $181,99 + BOM8 Resorte
+  $35,80 + armado de Martín Cornejo $47,25 = **$265,04**, y `v_costo_componente` les pone
+  `origen='ruta'`. La tarifa de Martín está en `precio_tallerista` desde el 2026-09-01.
+- `[dato, arreglado]` **Lo que estaba mal era la compra.** Los dos figuraban como comprables
+  (`estado_compra` null) con proveedor Cimarrón y **sin ningún precio**, así que la OC los
+  pedía a $0 — 4.312 y 2.800 — **mientras sus partes se pedían por separado**: 10.668 de caño
+  a Metalúrgica Giser y 7.968 de resorte a Grudzien, con un consumo de 3.556 que es
+  exactamente 2.156 + 1.400, o sea GRJ5 + GRJ6. **La misma bombilla pedida dos veces.**
+- **Regla general**: si el costo de una pieza sale por RUTA (se fabrica), no puede estar
+  además como comprable. Un componente con `origen='ruta'` y `estado_compra` en null es la
+  firma de este bug: mirá si sus partes ya se están pidiendo. Y al revés — `origen='precio'`
+  es la marca de lo que sí se compra (GRJ4, GRJ14 y GRJ15, que sí tienen precio de Cimarrón).
