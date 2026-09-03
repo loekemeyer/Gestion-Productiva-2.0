@@ -804,6 +804,42 @@ receta. **Regla: cuando una parte rinde N unidades, la división va en LAS DOS �
 `articulo_componente.cantidad` y `ruta_paso.cantidad` — o el consumo y el costo dicen cosas
 distintas.** Quedan 8 desacuerdos receta≠ruta sin resolver (ver ideas 7223 y 6116).
 
+**Los flejes van en KILOS, sin excepción (2026-09-03)** `[usuario: "4 Dale"]`: `IC3`
+(*Fleje N° 90*, el alambre galvanizado Ø 1,63 mm de Altrak con el que se hacen los filtros
+de café), `IE13` e `IZ19A` eran los únicos **3 de los 50 flejes** con
+`componente.unidad_medida = 'unidad'`. Como se compran, se reciben y se cotizan **por kilo**
+(IC3: USD 1,715/kg), el inventario guardaba unidades mientras el precio era de kilo, y
+`v_valor_stock` y la valorización de la OC multiplicaban una cosa por la otra: **IC3 figuraba
+con $27,3 millones de stock cuando valía ~$226.000**, y $50,3M/mes de consumo. Pasados a kg.
+Dos cosas que valen como regla:
+
+- **El costo de los ARTÍCULOS ya estaba bien y no se movió ni un peso.** El CTE `mat` de
+  `v_costo_componente` convierte solo para `sector_id = 5` (031 y 836 = $333,02; 034 y 867 =
+  $362,00). Lo único que estaba mal era el **costo unitario del fleje en sí**, que es lo que
+  usan el stock valorizado y la OC. Si un número de plata huele mal, mirar **por dónde entra
+  la parte**: el mismo dato puede estar bien por un camino y mal por el otro.
+- **Para reexpresar un stock NO se toca `inventario` a mano ni se inventa un ajuste.** Se
+  cambia `unidad_medida` y después se *toca* el movimiento (`update movimiento set cantidad =
+  cantidad`): `to_canonical` lo reconvierte con la unidad nueva y `fn_movimiento_aplicar`
+  revierte el delta viejo y aplica el nuevo. El movimiento sigue diciendo la verdad de lo que
+  se cargó ("480 unidades") y el inventario queda en kg (3,984). El motor de inventario vive
+  en la BD: se le habla por `movimiento`, nunca por `UPDATE inventario`.
+
+**Las 81 recepciones de insumos que había eran TODAS de prueba (2026-09-03)** `[usuario:
+"eliminalas todas, fueron todas de prueba"]`: nacieron con el módulo (29/08 al 02/09), 74 sin
+remito, y se veían las tandas repetidas (*Caja N°1* cuatro veces a 10.000, *Cartón 510* seis
+veces en el mismo minuto). Borradas. **Cómo se borra una recepción**: primero el
+`movimiento` — `fn_movimiento_aplicar` corre también en DELETE, así que el trigger revierte
+el stock solo — y después la fila de `recepcion_insumo` (`recepcion_control` y
+`recepcion_control_rollo` caen por CASCADE). Ninguna OC tenía `recibido <> 0`, así que no
+hubo cruce que deshacer. **Un solo rojo quedó**: `IA1` a −40,88 kg, porque el movimiento 1373
+del 31/08 (fabricación de 40,876 kg de IA1 → 1.250 uni de `J2`) consumió ese stock de prueba.
+Ese movimiento **no se borró a propósito**: `J2` tiene una cadena entera colgando (envío a
+Jade, entrega de vuelta a Procesado y los dos ajustes del blanqueo de negativos del 02/09),
+y borrarlo reabriría negativos ya limpiados. Se blanqueó con un `ajuste` trazado, mismo
+patrón que las ideas 7204 y 7212. **El stock valorizado total baja de ~$116M a $9,54M** — y
+ese $9,54M es el número que hay que creerle.
+
 ## 3c-bis. Accesibilidad de carga: letra grande + teclado numérico (2026-08-30)
 
 `[usuario 2026-08-30]` Dicho textual: *"Siempre quiero letras bien grandes y legibles
