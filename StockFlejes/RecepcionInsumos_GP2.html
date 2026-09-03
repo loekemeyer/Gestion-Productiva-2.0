@@ -2402,6 +2402,11 @@ async function cargar(){
   // sector 12 incluido para 031/034 (Charcas) y sector 2 para 1686 (Eclipse):
   // la conversion paq/uni -> kg usa kg_x_uni.
   var kxRes=await SB.from('componente').select('id,kg_x_uni,recibe_en_cajas').in('sector_id',[2,5,6,7,8,9,10,11,12]);
+  // Si la API todavia no conoce la columna nueva (schema cache viejo), la
+  // consulta entera falla y nos quedariamos SIN los kg_x_uni, que es peor.
+  // Se reintenta sin el flag: el toggle vuelve a aparecer, pero las cuentas no
+  // se rompen.
+  if(kxRes.error) kxRes=await SB.from('componente').select('id,kg_x_uni').in('sector_id',[2,5,6,7,8,9,10,11,12]);
   if(!kxRes.error){KGXUNI={};ENCAJAS={};(kxRes.data||[]).forEach(c=>{
     if(c.kg_x_uni) KGXUNI[c.id]=c.kg_x_uni;
     if(c.recibe_en_cajas) ENCAJAS[c.id]=true;
