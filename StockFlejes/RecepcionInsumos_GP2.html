@@ -512,6 +512,11 @@ let itemSel=null, unitSel="uni";
 function hoy(){const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
 function esc(s){return (s==null?'':String(s)).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
 function fmt(n){var x=Number(n)||0;return Number.isInteger(x)?x.toLocaleString('es-AR'):x.toLocaleString('es-AR',{maximumFractionDigits:2});}
+/* fmt() corta en 2 decimales y un remache pesa entre 0,00011 y 0,036 kg: el
+   cartel del popup mostraba "1 uni = 0 kg" y el operario no le podia creer a la
+   conversion [usuario 2026-09-03]. fmtKgUni llega a 6 decimales para que el peso
+   chico se vea de verdad; se usa solo en los carteles de kg por unidad. */
+function fmtKgUni(n){var x=Number(n)||0;return x.toLocaleString('es-AR',{maximumFractionDigits:6});}
 /* parseNum tolera coma o punto como decimal (usuario 2026-09-01: "los inputs
    numericos con coma o punto que ambos pongan punto"). Con coma presente se
    usa formato AR (miles con punto, decimal con coma); sin coma, un solo punto
@@ -1012,6 +1017,11 @@ function setUnit(u){
   unitSel=u;
   $('unitKg').classList.toggle('active',u==='kg');
   $('unitUni').classList.toggle('active',u==='uni');
+  // El teclado del celular tiene que seguir a la unidad: unidades y paquetes son
+  // enteros (el sanitizador ya les aplica sanInt), kg lleva coma. Sin esto el
+  // operario cargaba unidades con un teclado que ofrece la coma.
+  var kv=$('kgValue');
+  if(kv) kv.setAttribute('inputmode', (u==='kg') ? 'decimal' : 'numeric');
   updateConv();
 }
 function PAQ(){ return Number(TARA.carton_uni_x_paquete)||250; }
@@ -1052,7 +1062,7 @@ function updateConv(){
     d.textContent=v>0?('= '+fmt(v*PAQ())+' unidades'):'';
   } else {
     var kx=itemSel&&KGXUNI[itemSel.comp_id];
-    if(unitSel==='uni'&&kx){ d.textContent=v>0?('= '+fmt(v*kx)+' kg'):''; }
+    if(unitSel==='uni'&&kx){ d.textContent=v>0?('= '+fmtKgUni(v*kx)+' kg'):''; }
     else { d.textContent=''; }
   }
   // Aviso EN VIVO de multiplo para cartones (no pliegos) — se muestra debajo del
@@ -1092,7 +1102,7 @@ function abrirPopup(i){
   resetPiePopup();
   $('kgTitle').textContent='Recepción · '+rubroSel;
   var kx=KGXUNI[i.comp_id];
-  var convHint=kx?' <small style="color:#9a6700;font-weight:600">(1 uni = '+fmt(kx)+' kg)</small>':'';
+  var convHint=kx?' <small style="color:#9a6700;font-weight:600">(1 uni = '+fmtKgUni(kx)+' kg)</small>':'';
   $('kgItemInfo').innerHTML='<b>'+esc(i.codigo)+'</b> — '+esc(i.descripcion||'')+(i.medida?(' · '+esc(i.medida)+' mm'):'')+convHint+'<br><small style="color:#666">'+esc(i.sector)+(provSel?(' · '+esc(provSel)):'')+'</small>';
   $('kgValue').value=''; $('kgMsg').textContent=''; $('kgConvDisplay').textContent='';
   // Label "Cantidad" con la unidad que corresponde al rubro (usuario 2026-09-01:
@@ -1127,12 +1137,25 @@ function abrirPopup(i){
     $('kgValueLabel').textContent='Cantidad uni';
     setUnit('uni');
   } else if (i.sector_id===8) {
-    // Remaches: recepcion en KG del remito (sin toggle). El control (pesar y
-    // anotar los kg controlados) se hace despues en Control Remaches.
+    // Remaches: el remito viene en UNIDADES [usuario 2026-09-03: "la recepcion de
+    // remaches quiero que sea en unidades, no en kg"]. Se carga en uni y guardar()
+    // lo convierte a kg con kg_x_uni (31 de los 34 del sector lo tienen cargado,
+    // de 0,00011 a 0,036). Guardar kg es a proposito: el stock del remache y el
+    // Control Remaches (que PESA y compara contra cantidad_declarada) siguen
+    // trabajando en kg, asi que no se toca nada aguas abajo.
+    // Sin kg_x_uni no hay conversion posible y se guardarian unidades dentro de un
+    // circuito de kg, asi que esos caen a kg: hoy son los 3 tornillos
+    // (V18D / CV18D / V20), que ademas estan en 0 recepciones y 0 stock.
     $('unitRow').classList.add('hidden');
-    $('kgValue').placeholder='kg del remito';
-    $('kgValueLabel').textContent='Cantidad kg';
-    setUnit('kg');
+    if (kx){
+      $('kgValue').placeholder='unidades del remito';
+      $('kgValueLabel').textContent='Cantidad uni';
+      setUnit('uni');
+    } else {
+      $('kgValue').placeholder='kg del remito';
+      $('kgValueLabel').textContent='Cantidad kg';
+      setUnit('kg');
+    }
   } else if (esFleje(i)) {
     // Flejes: cada fleje tiene su UM canonica fija (46 en kg, 7 en unidad
     // como F12/E13/Z19A/E4/E5/E1/C3). El toggle Kg/Uni solo confunde. Se
@@ -2218,6 +2241,12 @@ async function guardar(){
     if (esCarton){
       var uniLbl = pliegoIt ? ('pliego'+(cantRaw===1?'':'s')) : ('paquete'+(cantRaw===1?'':'s'));
       lblCant = fmt(cantRaw)+' '+uniLbl;
+    } else if (unitSel==='uni' && uReal==='kg'){
+      // Se cargo en unidades y se guardo convertido a kg (remaches y cualquier
+      // insumo con kg_x_uni): mostrar LO QUE TIPEO primero y el kg entre
+      // parentesis, si no el operario carga 5000 y la pantalla le contesta
+      // "1,75 kg" sin decirle de donde salio.
+      lblCant = fmt(cantRaw)+' uni (= '+fmtKgUni(cant)+' kg)';
     } else {
       lblCant = fmt(cant)+' '+esc(uReal);
     }
