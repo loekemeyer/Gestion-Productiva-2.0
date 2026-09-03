@@ -107,9 +107,30 @@ window.supabase = { createClient: function(){ return {
   ok(tot1.includes('US$ 2.449') && tot1.includes('3.759.215'), 'barra valorizada: ' + tot1);
   // columna de precio y subtotal por fila
   const filaA1 = await page.textContent('tr[data-id="1"]');
-  ok(filaA1.includes('US$ 1/kg'), 'precio del fleje por kg visible');
+  // El precio dejo de ser texto: es un campo que se puede pisar (v1.8.0). Arranca con
+  // el de la lista, con la moneda al lado en un boton y el "por kg" debajo.
+  ok(await page.$eval('.precio-in[data-pr="1"]', x => x.value) === '1', 'el precio de lista llena el campo');
+  ok(await page.$eval('.mon-btn[data-mon="1"]', x => x.textContent) === 'US$', 'la moneda se ve al lado');
+  ok(filaA1.includes('por kg'), 'el fleje aclara que el precio es por kg');
   ok(filaA1.includes('US$ 2.449'), 'subtotal de la fila = pedir x precio');
   ok(!(await page.$eval('#btnCrear', b => b.disabled)), 'btnCrear habilitado');
+
+  // PRECIO PISADO A MANO (usuario: "si quiero modificar el importe ... pueda pedirlo").
+  // Se escribe 2,5: subtotal, total de la barra y payload tienen que seguirlo, y el
+  // campo queda marcado con el de lista debajo.
+  await page.fill('.precio-in[data-pr="1"]', '2,5');
+  await page.dispatchEvent('.precio-in[data-pr="1"]', 'change');
+  const filaPis = await page.textContent('tr[data-id="1"]');
+  ok(/6\.122,5/.test(filaPis), 'subtotal con el precio pisado (2449 x 2,5): ' + filaPis.replace(/\s+/g, ' ').slice(0, 140));
+  ok(filaPis.includes('lista US$ 1'), 'debajo queda el precio de lista, para no perder la referencia');
+  ok(await page.$eval('.precio-in[data-pr="1"]', x => x.className.includes('pisado')), 'el campo pisado se marca');
+  ok((await page.textContent('#tot')).includes('US$ 6.122,5'), 'el total de la barra usa el precio pisado');
+  // Vaciar el campo vuelve al de la lista
+  await page.fill('.precio-in[data-pr="1"]', '');
+  await page.dispatchEvent('.precio-in[data-pr="1"]', 'change');
+  ok((await page.textContent('#tot')).includes('US$ 2.449'), 'vaciar el campo vuelve al precio de lista');
+  await page.fill('.precio-in[data-pr="1"]', '2,5');
+  await page.dispatchEvent('.precio-in[data-pr="1"]', 'change');
 
   // filtro proveedor Basconia y crear OC
   await page.click('#provs .chip:has-text("Basconia")');

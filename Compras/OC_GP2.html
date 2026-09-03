@@ -1,7 +1,23 @@
 <!doctype html>
 <html lang="es">
 <head>
-<!-- v1.7.1 — MODULO COMPLETO DE OC POR PROVEEDOR (usuario 2026-09-03: "desarrolla el
+<!-- v1.8.0 (2026-09-03) — EL PRECIO SE PUEDE PISAR, Y LA FECHA DE ENTREGA SE GUARDA
+     [usuario 2026-09-03: "que se genere el pedido de manera automatica por el cruce
+     entre el stock que tengo y el maximo que deberia tener ... pero que si quiero
+     modificar el importe o la cantidad a pedir, pueda pedirlo"].
+     (a) La columna Precio pasa de texto a CAMPO: arranca con el de la lista
+         (precio_proveedor) y lo que se escriba pisa SOLO esta OC — el campo queda en
+         ambar y debajo se ve el de lista para no perder la referencia. Vaciarlo vuelve
+         al de lista. Al lado, un boton de moneda US$/$ (hace falta: hay insumos con
+         sugerido y SIN precio de lista, hoy BOM10, CV13 y CV18D). Subtotales y totales
+         de la barra siguen el precio pisado. NO se toca precio_proveedor: la lista
+         oficial se sigue cargando por su lado.
+     (b) crear_oc ahora RESPETA ese precio (antes lo pisaba siempre con el de la lista,
+         mandaras lo que mandaras) — migracion oc_precio_editable_y_fecha_entrega.
+     (c) BUG: la fecha de entrega estimada se elegia en pantalla, viajaba a la RPC y se
+         PERDIA. La columna orden_compra.fecha_entrega_estimada existia pero el insert
+         nunca la escribia. Ahora se guarda, en la OC y en sus gemelas (Altrak/Aperam).
+     v1.7.1 — MODULO COMPLETO DE OC POR PROVEEDOR (usuario 2026-09-03: "desarrolla el
      modulo completo para la generacion de OCs de los insumos de todos los proveedores.
      Con el maximo que hablamos. Tiene que funcionar contra el stock actual y el maximo.
      Y la orden debe generarse prolija con un lugar para poner la fecha de entrega
@@ -50,6 +66,13 @@
   .chip.active{background:#0b3b73;color:#fff;border-color:#0b3b73}
   td.num{text-align:right;font-variant-numeric:tabular-nums}
   .pedir-in{width:112px;padding:10px 8px;font-size:19px;text-align:right;border:2px solid #d0d7de;border-radius:8px}
+  /* Precio: se puede pisar el de la lista sin salir de la OC. Cuando esta pisado
+     queda en ambar y debajo se ve el de lista, para que nadie pierda la referencia. */
+  .precio-in{width:104px;padding:10px 8px;font-size:18px;text-align:right;border:2px solid #d0d7de;border-radius:8px}
+  .precio-in.pisado{border-color:#d18b00;background:#fff8e6}
+  .mon-btn{min-width:44px;min-height:44px;margin-right:4px;padding:0 8px;font-size:16px;font-weight:800;
+           border:2px solid #d0d7de;border-radius:8px;background:#fff;cursor:pointer;color:#0b3b73}
+  .precio-lista{font-size:12px;color:#9a6700;display:block}
   .pedir-in.err{border-color:#eacdcd;background:#ffebee}
   tr.con-pedido td{background:#eef7ee}
   .sug{color:#b45309;font-weight:800;cursor:pointer;text-decoration:underline dotted}
@@ -123,7 +146,7 @@
       <div class="prov-info" id="provInfo"></div>
       <div class="regla-carton hidden" id="reglaCarton"></div>
       <div class="search-box"><input type="text" id="q" placeholder="Buscar insumo…"></div>
-      <div class="leyenda">Sugerido = <b>Máximo</b> − <b>Stock</b> − <b>Pendiente de OC</b>. Tocá el número naranja y pasa a “Pedir”.</div>
+      <div class="leyenda">Sugerido = <b>Máximo</b> − <b>Stock</b> − <b>Pendiente de OC</b>. Tocá el número naranja y pasa a “Pedir”, o usá <b>“Usar sugeridos”</b> para cargarlos todos de una. <b>Cantidad y precio se pueden pisar a mano</b>: lo que quede en pantalla es lo que sale en la OC.</div>
       <div class="table-wrap">
         <table class="t">
           <thead><tr>
@@ -230,6 +253,16 @@ function explicaSug(i){
 
 var D={}, PAQ=250, rubroSel=null, provSel=null;
 var PEDIDO={}; // comp_id -> cantidad
+/* Precio pisado a mano [usuario 2026-09-03: "si quiero modificar el importe o la
+   cantidad a pedir, pueda pedirlo"]. El de precio_proveedor es el DEFAULT, no una
+   imposicion: lo que quede aca viaja a crear_oc y es lo que se guarda en la OC (y
+   por lo tanto lo que sale impreso). Vacio = se usa el de la lista. */
+var PRECIO={};   // comp_id -> precio pisado
+var MONEDA={};   // comp_id -> 'USD' | 'ARS' pisada
+function precioDe(i){ return PRECIO[i.comp_id]!=null ? PRECIO[i.comp_id] : (i.precio!=null?Number(i.precio):null); }
+function monedaDe(i){ return MONEDA[i.comp_id] || i.moneda || 'ARS'; }
+function precioPisado(i){ return PRECIO[i.comp_id]!=null; }
+function simboloMon(m){ return m==='ARS' ? '$' : 'US$'; }
 // Fecha de entrega: se propone sola (hoy + dias_entrega del proveedor). Si el usuario la
 // pisa a mano, se respeta mientras siga en el mismo proveedor.
 var fechaTocada=false, fechaTocadaProv=null;
@@ -385,6 +418,17 @@ function valorSugerido(i){
   return i.sugerido;
 }
 
+/* Celda de precio: moneda tocable + input. Arranca con el de la lista; lo que se
+   escriba pisa SOLO esta OC (no toca precio_proveedor, que es la lista oficial). */
+function celdaPrecio(i){
+  var pr=precioDe(i), mon=monedaDe(i), pisado=precioPisado(i);
+  return '<button type="button" class="mon-btn" data-mon="'+i.comp_id+'" title="Cambiar moneda">'+simboloMon(mon)+'</button>'+
+    '<input class="precio-in'+(pisado?' pisado':'')+'" data-pr="'+i.comp_id+'" inputmode="decimal" '+
+      'value="'+(pr!=null?String(pr).replace('.',','):'')+'" placeholder="—">'+
+    (i.sector_id===5?'<span class="paq-eq">por kg</span>':'')+
+    (pisado&&i.precio!=null?('<span class="precio-lista">lista '+fmtPrecio(i)+'</span>'):'');
+}
+
 function render(){
   var fs=filtradas();
   $('tbody').innerHTML=fs.map(function(i){
@@ -393,6 +437,7 @@ function render(){
     var esChar=esCharcasIt(i);
     var uxpChar=esChar ? uniPorPaqCharcas(i) : 0;
     var st=vStock(i), mx=vMaximo(i), pe=vPend(i), co=vConsumo(i), calc=explicaSug(i);
+    var pr=precioDe(i), mon=monedaDe(i);
     var bajoMin=(i.minimo!=null && st!=null && st<Number(i.minimo));
     // Charcas: input en PAQUETES; el sugerido se convierte a paq (round up).
     // La equivalencia "= N uni" se muestra al lado del input.
@@ -410,9 +455,9 @@ function render(){
       '<td class="num">'+(pe>0?fmt(pe):'—')+'</td>'+
       '<td class="num"><span class="sug" data-sug="'+i.comp_id+'" title="Tocá y pasa a Pedir">'+fmt(i.sugerido)+'</span>'+
         (calc?('<span class="sug-calc">'+esc(calc)+'</span>'):'')+'</td>'+
-      '<td class="num">'+fmtPrecio(i)+'</td>'+
+      '<td class="num">'+celdaPrecio(i)+'</td>'+
       '<td class="num"><input class="pedir-in" data-in="'+i.comp_id+'" inputmode="decimal" value="'+(ped?String(ped).replace('.',','):'')+'" placeholder="'+i.unidad+'">'+paqEq+'</td>'+
-      '<td class="num sub-item">'+(ped>0&&i.precio!=null?((i.moneda==='ARS'?'$ ':'US$ ')+fmt(ped*i.precio,2)):'—')+'</td>'+
+      '<td class="num sub-item">'+(ped>0&&pr!=null?(simboloMon(mon)+' '+fmt(ped*pr,2)):'—')+'</td>'+
     '</tr>';
   }).join('');
   $('tblEmpty').classList.toggle('hidden', fs.length>0);
@@ -422,6 +467,25 @@ function render(){
       var v=parseNum(inp.value);
       var id=Number(inp.dataset.in);
       if(v>0) PEDIDO[id]=v; else delete PEDIDO[id];
+      render(); barra();
+    });
+  });
+  document.querySelectorAll('.precio-in').forEach(function(inp){
+    inp.addEventListener('change',function(){
+      var id=Number(inp.dataset.pr);
+      var it=(D.insumos||[]).filter(function(x){return x.comp_id===id;})[0];
+      var v=parseNum(inp.value);
+      // Vaciar el campo = volver al precio de la lista.
+      if(!inp.value.trim() || (it && it.precio!=null && v===Number(it.precio))) delete PRECIO[id];
+      else PRECIO[id]=v;
+      render(); barra();
+    });
+  });
+  document.querySelectorAll('.mon-btn').forEach(function(b){
+    b.addEventListener('click',function(){
+      var id=Number(b.dataset.mon);
+      var it=(D.insumos||[]).filter(function(x){return x.comp_id===id;})[0];
+      MONEDA[id] = (monedaDe(it)==='ARS') ? 'USD' : 'ARS';
       render(); barra();
     });
   });
@@ -451,7 +515,8 @@ function itemsPedidos(){
     // Charcas: el PEDIDO viene ya en paquetes; unidad='paq' para la RPC
     // (crear_oc se encarga de la OC gemela a Altrak).
     var u = esCharcasIt(i) ? 'paq' : i.unidad;
-    return {comp_id:i.comp_id, cantidad:PEDIDO[i.comp_id], unidad:u, it:i};
+    return {comp_id:i.comp_id, cantidad:PEDIDO[i.comp_id], unidad:u,
+            precio:precioDe(i), moneda:monedaDe(i), it:i};
   });
 }
 
@@ -493,8 +558,8 @@ function barra(){
   else rc.classList.add('hidden');
   var tUsd=0, tArs=0;
   items.forEach(function(x){
-    if(x.it.precio==null) return;
-    if(x.it.moneda==='ARS') tArs+=x.cantidad*x.it.precio; else tUsd+=x.cantidad*x.it.precio;
+    if(x.precio==null) return;
+    if(x.moneda==='ARS') tArs+=x.cantidad*x.precio; else tUsd+=x.cantidad*x.precio;
   });
   var tot=items.length+' ítems';
   if(tUsd>0||tArs>0){
@@ -509,7 +574,7 @@ $('btnSug').addEventListener('click',function(){
   filtradas().forEach(function(i){ var v=valorSugerido(i); if(v>0) PEDIDO[i.comp_id]=v; });
   render();
 });
-$('btnLimpiar').addEventListener('click',function(){ PEDIDO={}; render(); });
+$('btnLimpiar').addEventListener('click',function(){ PEDIDO={}; PRECIO={}; MONEDA={}; render(); });
 $('fechaEnt').addEventListener('change',function(){
   fechaTocada=!!$('fechaEnt').value; fechaTocadaProv=provSel; pintarAyudaFecha();
 });
@@ -527,10 +592,13 @@ $('btnCrear').addEventListener('click', async function(){
       proveedor: provSel && provSel!=='(sin proveedor)' ? provSel : null,
       rubro: rubro, nota: ($('nota').value||'').trim() || null, usuario: null,
       fecha_entrega: fEnt,
-      items: items.map(function(x){ return {comp_id:x.comp_id, cantidad:x.cantidad, unidad:x.unidad}; })
+      // precio/moneda viajan SIEMPRE: si no se toco nada son los de la lista, y si
+      // se pisaron, crear_oc guarda estos y no los de precio_proveedor.
+      items: items.map(function(x){ return {comp_id:x.comp_id, cantidad:x.cantidad, unidad:x.unidad,
+                                            precio:x.precio, moneda:x.moneda}; })
     }, p_fecha_entrega: fEnt });
     if(r.error) throw r.error;
-    PEDIDO={}; $('nota').value='';
+    PEDIDO={}; PRECIO={}; MONEDA={}; $('nota').value='';
     fechaTocada=false; fechaTocadaProv=null;
     await boot();
     mostrarTab('ocs');
