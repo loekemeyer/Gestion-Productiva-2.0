@@ -73,6 +73,16 @@ const BUNDLE = {
       precio: 1, moneda: 'USD',
       carton_formato: 'Huevo', carton_categoria: null, marca: 'LOEKE', mezcla_libre: false,
       pliegos_multiplo: 25000, codigo_multiplo: 1000, min_codigo_x_multiplo: 2000 },
+    // EL PLIEGO DEL 500: lleva carton_formato 'C' porque son 12 POSICIONES (eso es para el
+    // costo), pero NO se pide por la familia del carton C — va de a 100 pliegos
+    // [usuario 2026-09-03]. El bundle manda igual los multiplos del formato: el que tiene
+    // que ignorarlos es la pantalla, mirando es_pliego.
+    { comp_id: 11, codigo: 'Pliego 500', descripcion: 'Sin adhesivar', sector: 'Sector Carton', sector_id: 10,
+      proveedor: 'Cartonero', um: 'unidad', unidad: 'uni', kg_x_uni: null,
+      consumo: 40, meses: 6, online: 0, pendiente_oc: 0, sugerido: 250,
+      precio: 917, moneda: 'ARS', es_pliego: true,
+      carton_formato: 'C', carton_categoria: null, marca: 'LOEKE', mezcla_libre: false,
+      pliegos_multiplo: 12000, codigo_multiplo: 1000, min_codigo_x_multiplo: 1000 },
   ],
   ocs: [
     { id: 9, numero: 1, proveedor: 'Basconia', rubro: 'Fleje', estado: 'borrador', nota: 'prueba',
@@ -81,6 +91,7 @@ const BUNDLE = {
       items: [ { codigo: 'A1', descripcion: 'Fleje N 13', cantidad: 500, unidad: 'kg', recibido: 0,
                  precio_uni: 1, moneda: 'USD', subtotal: 500 } ] },
   ],
+  pliego_uni_x_paquete: 100,
   tc: 1535,
   generado_en: '2026-08-29T10:00:00Z',
 };
@@ -119,7 +130,7 @@ window.supabase = { createClient: function(){ return {
   ok(chips.join(',') === 'Fleje,Carton,Plastico', 'chips de rubro: ' + chips.join(','));
 
   // sin filtro: 4 filas
-  ok(await page.$$eval('#tbody tr', x => x.length) === 10, '10 insumos sin filtro');
+  ok(await page.$$eval('#tbody tr', x => x.length) === 11, '11 insumos sin filtro');
 
   // El clavo se cotiza POR KG pero se compra por unidad: el bundle tiene que mandar el
   // precio ya convertido (3,30 USD/kg x 6,53 g = 0,0215). Si vuelve a llegar 3,30 crudo,
@@ -236,6 +247,9 @@ window.supabase = { createClient: function(){ return {
   const h1 = await val(9), h2 = await val(10);
   ok(h1 + h2 === 25000, 'el huevo cierra en el pliego de 25.000 (' + h1 + ' + ' + h2 + ')');
   ok(h2 >= 2000, 'y el codigo chico sube al minimo de 2.000 (pidio 600, va ' + h2 + ')');
+  // EL PLIEGO no se contagia del formato C: 250 sube a 300 (paquetes de 100), no a 12.000.
+  const pl = await val(11);
+  ok(pl === 300, 'el pliego va de a 100, no arrastra el multiplo del carton C (dio ' + pl + ')');
   ok(await page.$eval('#reglaCarton', x => x.classList.contains('hidden')), 'y no queda ningun error de regla');
   ok(!(await page.$eval('#btnCrear', b => b.disabled)), 'la OC de cartones queda lista para crear');
 

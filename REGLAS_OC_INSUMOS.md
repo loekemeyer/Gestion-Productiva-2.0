@@ -29,6 +29,12 @@ Los cartones se **reciben en PAQUETES**: el proveedor siempre entrega alturas de
 | 8 | 30.000 | 1.000 | 1.000 por cada múltiplo de 30.000 |
 | Huevo | 25.000 | 1.000 | **2.000** por cada múltiplo de 25.000 |
 
+- **El PLIEGO se pide de a 100** `[usuario 2026-09-03: "los pliegos del quinientos,
+  quinientos seis y bombillas se tienen en paquetes de 100 pliegos"]`. Los 24 pliegos
+  (`componente.es_pliego`) llevan `carton_formato` porque el formato dice sus **posiciones**
+  —que es para lo que se usa en el **costo**— pero **la regla de pedido es otra**: paquetes
+  de 100 pliegos, sin múltiplo de familia. El Pliego 500/506 tiene formato C (12 posiciones)
+  y **no** va en múltiplos de 12.000. El 100 vive en `GP2.parametro.pliego_uni_x_paquete`.
 - **Huevo, ojo**: `[usuario 2026-09-03]` *"los paquetes del cartón huevo vienen de múltiplos
   de dos mil, pero el pliego viene de veinticinco mil… necesito pedir un mínimo de dos mil
   por cada una y los de veinticinco mil"*. **Los dos números no cierran entre sí**: si cada
