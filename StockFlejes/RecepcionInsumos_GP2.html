@@ -992,16 +992,41 @@ async function flushPend(){
   // (control-cajas.html / control-remaches.html). Antes del buffer esto lo hacia
   // el successBox del popup; con el remito bufferizado se muestra al Terminé.
   if (pideCajas || pideRemaches){
+    // DIRECTO al control, sin cartel intermedio [usuario 2026-09-03: "el ir a control
+    // cajas me aparece abajo. me gusta que me mande directo como en el caso de flejes"].
+    // Flejes y cartones ya abrian su fase 2 solos (montarPesaje /
+    // montarControlCartones); cajas y remaches son los unicos cuya fase 2 vive en OTRA
+    // pagina, y por eso eran los unicos que pedian un click de mas.
+    // El rubro se elige ANTES de cargar, asi que un remito nunca mezcla cajas con
+    // remaches; si igual llegara a pasar no se puede navegar a dos lados a la vez, y
+    // ahi si se deja elegir con el cartel de siempre.
+    if (pideCajas !== pideRemaches){
+      window.location.href = pideCajas ? 'control-cajas.html' : 'control-remaches.html';
+      return;
+    }
     var sb=$('successBox'); if(sb){
       sb.style.display='block';
       sb.querySelector('.title').textContent='✓ Remito recibido — falta el control';
       var links='';
-      if (pideCajas) links += '<a href="control-cajas.html" style="display:inline-block;margin:8px 6px 0;padding:12px 22px;background:#0b5cad;color:#fff;border-radius:8px;text-decoration:none;font-weight:900;font-size:18px">Ir a Control Cajas →</a>';
-      if (pideRemaches) links += '<a href="control-remaches.html" style="display:inline-block;margin:8px 6px 0;padding:12px 22px;background:#0b5cad;color:#fff;border-radius:8px;text-decoration:none;font-weight:900;font-size:18px">Ir a Control Remaches →</a>';
+      links += '<a href="control-cajas.html" style="display:inline-block;margin:8px 6px 0;padding:12px 22px;background:#0b5cad;color:#fff;border-radius:8px;text-decoration:none;font-weight:900;font-size:18px">Ir a Control Cajas →</a>';
+      links += '<a href="control-remaches.html" style="display:inline-block;margin:8px 6px 0;padding:12px 22px;background:#0b5cad;color:#fff;border-radius:8px;text-decoration:none;font-weight:900;font-size:18px">Ir a Control Remaches →</a>';
       $('successDetail').innerHTML='El remito quedó cargado y pendiente de control físico (base × pisos + sueltas para cajas; pesar para remaches).<br>'+links;
       // El control es obligatorio: ocultar las salidas hasta que vaya al control
       var _atras=$('btnAtrasHeader'); if(_atras) _atras.style.display='none';
       var _volver=$('btnVolver1'); if(_volver) _volver.style.display='none';
+    }
+  } else if (procesados && !fallados){
+    // Plasticos y Bombillas son los unicos 2 rubros SIN control fisico: la recepcion
+    // queda cerrada al confirmar y no hay adonde mandar al operario. Se cierra con el
+    // mismo cartel que usan las otras pantallas en vez de dejar solo un status que se
+    // borra a los 5 segundos, asi los 6 rubros terminan igual de claros.
+    // [usuario 2026-09-03: "que sea de este estilo en los 6 tipos de insumo"]
+    // Aca NO se ocultan Atras/Volver: no hay control pendiente que obligar.
+    var sbOk=$('successBox'); if(sbOk){
+      sbOk.style.display='block';
+      sbOk.querySelector('.title').textContent='✓ Recepción completa';
+      $('successDetail').textContent='El remito quedó cargado: '+procesados+' ítem'+
+        (procesados===1?'':'s')+'. Este insumo no lleva control físico.';
     }
   }
 }
@@ -1283,6 +1308,15 @@ window.addEventListener('beforeunload',function(e){
   if(REMITO.length>0 || PES || CTL || pendTieneItems()){ e.preventDefault(); e.returnValue=''; return ''; }
 });
 
+/* El boton "✓ Terminé de cargar remito" NO vive dentro de #remitoBar: se pinta en
+   un slot al lado del buscador (hay dos, el default y el de cartones) y siempre se
+   llena uno y se vacia el otro. Por eso limpiarlo necesita su propia funcion: la
+   barra se puede esconder sin que el boton se vaya con ella. */
+function limpiarSlotsRemito(){
+  ['remitoBtnSlot','remitoBtnSlotCart'].forEach(function(id){
+    var el=document.getElementById(id); if(el) el.innerHTML='';
+  });
+}
 function renderRemitoBar(){
   var bar=$('remitoBar'); if(!bar) return;
   var pend=pendientesDePesaje();
@@ -1293,7 +1327,18 @@ function renderRemitoBar(){
     try { filtrarItems(); } catch(_){ }
   }
   var pendKeys = Object.keys(PEND);
-  if(!REMITO.length && !pend.length && !pendKeys.length){ bar.classList.add('hidden'); bar.innerHTML=''; return; }
+  if(!REMITO.length && !pend.length && !pendKeys.length){
+    bar.classList.add('hidden'); bar.innerHTML='';
+    // Este return temprano se saltaba la limpieza del slot, asi que el "Terminé de
+    // cargar remito" seguia vivo despues de confirmar. Se veia en cajas, remaches,
+    // plasticos y bombillas — los rubros que NO dejan fase 2, donde todo queda
+    // vacio; en flejes y cartones no pasaba porque REMITO no queda vacio y la
+    // funcion seguia de largo hasta la limpieza de abajo. [usuario 2026-09-03:
+    // "termino de cargar el remito y me sigue apareciendo la opcion de termine de
+    // cargar remito sin haber tocado de nuevo otro item"]
+    limpiarSlotsRemito();
+    return;
+  }
   var h='';
   // NUEVO (2026-09-02): buffer PEND — items cargados en la sesion que todavia
   // no bajaron a la BD. Se muestran con boton eliminar por item; el boton
@@ -1338,9 +1383,8 @@ function renderRemitoBar(){
   var _termHtml = pendKeys.length ? '<button class="btn btn-primary" id="btnTerminarRemito" type="button">✓ Terminé de cargar remito</button>' : '';
   var _sd = document.getElementById('searchBoxDefault');
   var _slot = (_sd && !_sd.classList.contains('hidden')) ? document.getElementById('remitoBtnSlot') : document.getElementById('remitoBtnSlotCart');
-  var _otherSlot = (_slot && _slot.id === 'remitoBtnSlot') ? document.getElementById('remitoBtnSlotCart') : document.getElementById('remitoBtnSlot');
+  limpiarSlotsRemito();
   if (_slot) _slot.innerHTML = _termHtml;
-  if (_otherSlot) _otherSlot.innerHTML = '';
   // Handlers de eliminacion por item PEND (boton 🗑 en la barra)
   bar.querySelectorAll('[data-pend-del]').forEach(function(btn){
     btn.addEventListener('click', function(ev){
