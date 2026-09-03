@@ -839,7 +839,14 @@
 
       kg.addEventListener("input", () => {
         if (esCarlosInput || esGrj){
-          kg.value = kg.value.replace(/[^\d.]/g, "");
+          // El campo pide teclado decimal y en es-AR el celular ofrece la COMA. El
+          // saneador viejo la borraba tecla por tecla, asi que "12,5" terminaba siendo
+          // 125 (x10) y "250,75" 25075 (x100): se registraba diez o cien veces mas kg
+          // de los entregados, y ademas se le sumaba esa diferencia al Stock Inicial de
+          // SC Kg, que es tabla madre. Ahora se normaliza coma -> punto, que es la regla
+          // ya aprobada para toda la casa (usuario 2026-09-01: "los inputs numericos con
+          // coma o punto que ambos pongan punto"), y se deja un solo punto decimal.
+          kg.value = kg.value.replace(",", ".").replace(/[^\d.]/g, "").replace(/(\..*)\./g, "$1");
         } else {
           kg.value = kg.value.replace(/\D/g, "");
         }

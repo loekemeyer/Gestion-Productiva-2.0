@@ -714,10 +714,18 @@ cliente Supabase GP2, esc/num/fmt es-AR, buffer de carga en localStorage por con
 (sobrevive F5; lo registrado sale del buffer ítem por ítem, así un reintento no duplica),
 fases fase0/fase1/fase3 con `#btnVolver`, grilla de contrapartes, popup de tandas y
 celdas de carga. Una pantalla nueva de envío/entrega se cablea a `GP2EE`, no se copia.
-OJO: conviven DOS parsers de número a propósito — `GP2EE.num(v)` (PS, entiende
-"1.234,5") y `GP2EE.num(v,"simple")` (talleristas, con "." y "," juntos pisa las comas y
-lee "1.234,5" como 1,2345). Es un bug histórico de las pantallas de talleristas que el
-refactor NO corrigió para no cambiar comportamiento; si un día se unifica, va con aviso.
+**El parser de número quedó UNO SOLO (corrección 2026-09-03)** `[dato]`: el modo
+`GP2EE.num(v,"simple")` (el que leía "1.234,5" como 1,2345) se ELIMINÓ el 2026-08-30 —
+`num()` acepta el parámetro `modo` y lo ignora, y todas las pantallas cableadas a `GP2EE`
+usan la regla buena: el último separador es el decimal. Lo que sigue vivo es OTRO
+problema, y está FUERA de `GP2EE`: las pantallas que NO usan el helper tienen su propio
+saneador local de `input`, y varios son destructivos. El peor ya mordió: en
+`Recepcion Cervantes.html` los campos de kg hacían `replace(/[^\d.]/g,"")` **al tipear**,
+así que la coma que ofrece el teclado es-AR se borraba tecla por tecla y "12,5" quedaba
+125 (x10), "250,75" quedaba 25075 (x100) — datos de producción inflados en silencio.
+Arreglado 2026-09-03 normalizando la coma a punto ANTES de sanear. Regla: **un saneador
+de `input` nunca borra la coma, la traduce**; y si la pantalla es de envío/entrega, va
+cableada a `GP2EE.num` en vez de tener parser propio.
 
 **Orden de Producción repuntada a DEMANDA (2026-08-30, v1.49.0)** `[dato]`: el módulo
 `OrdenProduccion/` calculaba `faltante = máximo físico − stock` (llenar la estantería):

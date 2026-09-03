@@ -316,7 +316,12 @@ function recepcionTall(o){
     var bom = D.bom_comp[String(comp_transformado)] || [];
     var used = cid;
     var principal = bom.filter(function(b){ return b.c === used; })[0];
-    if (principal && principal.q > 1) qty = qty * principal.q;
+    // Guard invertido: las demas lineas del BOM multiplican SIEMPRE por su q, pero la
+    // principal solo lo hacia si q > 1. Hoy zafa porque el unico caso distinto de 1 es
+    // GRJ10/GRJ10A -> IE4 x3, pero apenas se cargue un BOM con q fraccionario (una
+    // entrada que rinde dos salidas, q = 0,5) la recepcion consumiria el DOBLE de esa
+    // entrada. Con q > 0 el caso q = 1 sigue dando lo mismo.
+    if (principal && principal.q > 0) qty = qty * principal.q;
     bom.forEach(function(b){
       if (b.c === used) return;
       rows.push({

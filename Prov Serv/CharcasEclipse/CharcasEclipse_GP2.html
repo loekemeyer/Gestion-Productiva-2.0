@@ -1,14 +1,14 @@
 <!doctype html>
 <html lang="es">
 <head>
-<!-- v1.0.0 — PS HIBRIDO CHARCAS + ECLIPSE (usuario 2026-09-02).
+<!-- v1.1.0 — PS HIBRIDO CHARCAS + ECLIPSE (usuario 2026-09-02).
      Prov servicios "hibridos": no reciben Envio desde Cervantes (la MP les llega
      directo del proveedor externo: alambre Altrak -> Charcas, chapa Aperam ->
      Eclipse) y por eso no viven en la pantalla PS normal (Envios/Entregas).
      Aca:
        - Stock online de MP almacenada en el prov servicio (kg de ALAM_FILTRO en
          Charcas ubic 13, kg de CHAPA430 en Eclipse ubic 48).
-       - Registrar ENTREGA del prov servicio hacia Cervantes: Charcas -> F90/F90B
+       - Registrar ENTREGA del prov servicio hacia Cervantes: Charcas -> IF90/IF90B (alambre cortado)
          en Sector Fleje (5) con RPC cargar_recepcion_charcas (paq de 10 kg);
          Eclipse -> 1686 en Sector Procesado (2) con RPC cargar_recepcion_eclipse
          (uni del remito).
@@ -74,7 +74,7 @@
     <div class="stock-panel">
       <div class="lbl" id="stkLbl">Stock actual en Charcas</div>
       <div class="val"><span id="stkVal">0</span> <small id="stkUm">kg de alambre</small></div>
-      <div class="sub" id="stkSub">MP que le llegó de Altrak. Se descuenta cuando entrega F90/F90B.</div>
+      <div class="sub" id="stkSub">MP que le llegó de Altrak. Se descuenta cuando entrega el alambre cortado.</div>
     </div>
 
     <div class="form-row">
@@ -216,8 +216,10 @@ $('btnGuardar').addEventListener('click', async function(){
   try{
     var fiso=fecha+'T12:00:00';
     var params = { p_comp_id: prod.id, p_remito: remito||null, p_fecha: fiso };
-    if(psSel==='charcas') params.p_paquetes = q;
-    else                  params.p_unidades = q;
+    // Las dos RPC declaran integer: un decimal (que ademas podia colarse por el saneo
+    // de la coma) llegaba a un parametro entero y el operario veia un error de cast.
+    if(psSel==='charcas') params.p_paquetes = Math.round(q);
+    else                  params.p_unidades = Math.round(q);
     var res = await SB.rpc(conf.rpc, params);
     if(res.error) throw res.error;
     var d = res.data||{};
@@ -239,7 +241,7 @@ async function cargarTodo(){
   var conf=PS[psSel];
   $('stkLbl').textContent = 'Stock actual en '+conf.nombre;
   $('stkUm').textContent = 'kg de '+conf.mpNombre;
-  $('stkSub').textContent = 'MP que le llegó de '+conf.provFactura+'. Se descuenta cuando entrega '+(psSel==='charcas'?'F90/F90B':'1686')+'.';
+  $('stkSub').textContent = 'MP que le llegó de '+conf.provFactura+'. Se descuenta cuando entrega '+((PROD||[]).length ? PROD.map(function(x){return x.codigo;}).join(' / ') : (psSel==='charcas'?'el alambre cortado':'1686'))+'.';
   $('qtyLbl').textContent = conf.unidadLbl;
   $('txtQty').placeholder = conf.unidadPh;
   $('histTitle').textContent = 'Últimas entregas de '+conf.nombre;
@@ -258,9 +260,16 @@ async function cargarTodo(){
   desperdicioPct = p.data && p.data.valor ? Number(p.data.valor)||0 : 0;
 
   // Productos entregables (por proveedor del componente)
+  // Filtrado por SECTOR y UNIDAD, no solo por proveedor: 'Resortes Charcas' tambien es
+  // el proveedor de los resortes BOM10 / EP10 / LLF8 (sector 7, en unidades), que NO son
+  // parte de este circuito. Si el operario elegia uno de esos, la RPC lo dejaba pasar,
+  // le forzaba destino a la ubicacion 33 (Virgilio) y le descontaba kg de ALAM_FILTRO,
+  // que no tiene nada que ver con un resorte.
   var pr = await SB.from('componente')
     .select('id, codigo, descripcion, kg_x_uni, sector_id, unidad_medida')
     .eq('proveedor', conf.prodProveedor)
+    .eq('sector_id', conf.prodSector)
+    .eq('unidad_medida', psSel==='charcas' ? 'kg' : 'unidad')
     .order('codigo');
   PROD = (pr.error?[]:pr.data)||[];
   $('selProd').innerHTML = ['<option value="">— Elegí —</option>'].concat(

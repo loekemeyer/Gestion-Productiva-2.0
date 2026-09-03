@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="es">
 <head>
-<!-- v1.0.1 — Devolucion de partes de talleristas: vuelve al sector o queda "Para Analizar" -->
+<!-- v1.0.2 — Devolucion de partes de talleristas: vuelve al sector o queda "Para Analizar" -->
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>Devolución Cervantes · GP2</title>
@@ -111,6 +111,11 @@ async function boot(){
     var b=document.createElement('button'); b.type='button';
     b.className='chip'+(tallSel&&tallSel.id===t.id?' active':''); b.textContent=t.nombre;
     b.addEventListener('click',function(){
+      // DEV vive solo en memoria: cambiar de tallerista borraba TODO lo cargado sin
+      // preguntar. Un chip tocado sin querer despues de cargar 15 partes las perdia.
+      if (tallSel && tallSel.id !== t.id && Object.keys(DEV).length &&
+          !confirm('Tenés ' + Object.keys(DEV).length + ' parte(s) cargadas de ' + tallSel.nombre +
+                   ' sin registrar.\n\nSi cambiás a ' + t.nombre + ' se pierden. ¿Cambiar igual?')) return;
       tallSel=t; DEV={};
       g.querySelectorAll('.chip').forEach(x=>x.classList.remove('active'));
       b.classList.add('active');

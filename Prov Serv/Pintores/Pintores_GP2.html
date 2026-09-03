@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="es">
 <head>
-<!-- v2.1.0 — el consumo es TOCABLE: abre el sustento por articulo (consumo-detalle.js,
+<!-- v2.1.1 — el consumo es TOCABLE: abre el sustento por articulo (consumo-detalle.js,
      RPC consumo_detalle). Ademas el bundle ya viene de v_consumo_componente
      (atribucion por articulo): K2 46 uni, no 2.784.
      v2.0.0 — REPARTO POR PIEZA ENTERA (correccion del usuario). La v1 repartia
@@ -231,8 +231,13 @@ function render(){
     b.addEventListener('click', function(){ darParte(b); });
     // toque largo / click derecho = habilitar o deshabilitar a ese pintor
     b.addEventListener('contextmenu', function(e){ e.preventDefault(); habilitar(b); });
-    var t=null;
-    b.addEventListener('touchstart', function(){ t=setTimeout(function(){ habilitar(b); }, 600); });
+    // Toque largo = habilitar/deshabilitar. Sin touchmove, apoyar el dedo sobre un
+    // pintor y SCROLLEAR la lista disparaba habilitar() a los 600 ms (una escritura que
+    // nadie pidio) y despues el click disparaba darParte(): dos cambios de un scroll.
+    var t=null, movio=false;
+    b.addEventListener('touchstart', function(){ movio=false; t=setTimeout(function(){ if(!movio) habilitar(b); }, 600); });
+    b.addEventListener('touchmove',  function(){ movio=true; if(t) clearTimeout(t); });
+    b.addEventListener('touchcancel',function(){ movio=true; if(t) clearTimeout(t); });
     b.addEventListener('touchend',   function(){ if(t) clearTimeout(t); });
   });
 }
