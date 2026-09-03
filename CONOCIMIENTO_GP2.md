@@ -1040,14 +1040,19 @@ chequear que un pliego está bien cargado:
 | `LOKE` | 16 | $66,75 |
 | `Huevo` | 25 | $42,72 |
 | `8` | 30 | $35,60 |
-| `Pliego` (ex-Bombilla) | 25 | skin $915 el pliego |
+| `Pliego` (ex-Bombilla) | **16** | skin $915 el pliego |
 
-En la receta va **`1/posiciones`**. Se cargaron así los 8 pliegos de bombilla que no estaban en
-ninguna receta (654, 658, 659, 758, 759, 762, 763, 769), a **1/25**, igual que sus hermanos 557
-y 558 que ya estaban. **Ojo con el `Pliego Ad 500`**: es formato C como el 506, pero está
-cargado con precio **$89 y cantidad 1** mientras el 506 va con **$917 y 1/12**. Los dos dan un
-costo por artículo parecido ($89 contra $76,4), pero **están expresados distinto**: en el 500 el
-precio es POR POSICIÓN y en el 506 es el PLIEGO ENTERO. Sigue abierto en la idea 6116.
+En la receta va **`1/posiciones`**. **Los 12 artículos que llevan pliego quedaron uniformes el
+2026-09-03** `[usuario: "los pliegos de bombilla todos, el 557 al 769 vienen de dieciséis. Y el
+pliego del 506 y el 500 vienen de doce"]`: **500 y 506 a 1/12** ($917 el pliego → $76,42 por
+artículo) y los **diez de bombilla a 1/16** ($915 → $57,19). El `Pliego Ad 500` estaba con
+precio $89 y cantidad 1, o sea con el precio POR POSICIÓN: pasó al pliego entero, como todos.
+Eso cierra la idea 6116.
+
+**Y ojo con el número: los de bombilla son 16, no 25.** Lo tenía anotado mal en dos lados y
+cargué 1/25 antes de que el usuario me corrigiera. La pista estaba: la idea 7223 marcaba que en
+el 557/558 la **receta** decía 1/25 y la **ruta** 1/16 — **tenía razón la ruta**. Cuando receta y
+ruta no coinciden, mirar cuál de las dos se cargó con el dato del usuario.
 
 **Copiar un precio "de un gemelo" es copiar del MISMO FORMATO (2026-09-03)** `[dato]` — me
 equivoqué el mismo día. Al `C1B` (Cartón 574) le puse $89 porque era el precio más repetido de
@@ -1061,6 +1066,26 @@ son los que ya existen, no los dupliques"]`: los cuatro pares `A1`, `A4`, `A8` y
 de Procesado y una Caja en cada uno) **se quedan como están**. Lo que hay que hacer es
 **desambiguar por sector** cada vez que se resuelva un componente desde su código — y mejor,
 unir por `componente.id`.
+
+**Un insumo se paga UNA vez, aunque el artículo tenga varias rutas (2026-09-03)** `[usuario:
+"uno u otro, no x2 de costo"]` — es la misma regla que se aplicó a los talleristas a la mañana,
+y el CTE **`insumox`** tenía el mismo agujero: sumaba una vez **por cada ruta**, así que un
+artículo con dos rutas alternativas (el mismo trabajo hecho por dos talleristas) **pagaba sus
+insumos dos veces**. Eran **16 casos en 6 artículos**, y no era poca plata:
+
+| Artículo | Antes | Ahora | |
+|---|---|---|---|
+| **609** | $1.198,35 | $725,28 | −$473,07 |
+| **315** | $867,57 | $559,89 | −$307,68 |
+| **505** | $514,32 | $358,36 | −$155,96 |
+| **500** | $557,31 | $441,82 | −$115,49 |
+| **510** | $334,22 | $231,31 | −$102,91 |
+
+**~$1.155 que se estaban cobrando de más.** Ahora `insumox` arma una fila por (artículo, insumo)
+tomando la cantidad mayor, igual que `talx` toma la tarifa más cara. **Regla general: cuando dos
+rutas alternativas describen el mismo trabajo, todo lo que comparten se cuenta una sola vez** —
+el insumo, el armado del tallerista, el servicio. Si aparece otro CTE que sume por ruta, tiene
+el mismo bug.
 
 ## 3c-bis. Accesibilidad de carga: letra grande + teclado numérico (2026-08-30)
 
