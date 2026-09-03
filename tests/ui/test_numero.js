@@ -1,0 +1,103 @@
+/* Guardia de la REGLA DE NUMERO de la casa [usuario 2026-09-03]: "si hay un
+ * punto, el punto para el separador de mil; la coma para los decimales" y "en
+ * cada lugar que ponga cuatro digitos, que se ponga automatico un separador de
+ * miles".
+ *
+ * Existe porque la regla habia quedado escrita SEIS veces y ninguna igual
+ * (idea 7217), asi que cada pantalla contestaba distinto que era "1.234". Este
+ * test chequea dos cosas:
+ *   1. gp2-numero.js cumple la regla (tabla de casos, ida y vuelta).
+ *   2. Ninguna pantalla GP2 se escribe SU PROPIO parser: si aparece un
+ *      replace(/\D/g) sobre el .value de un input, o un parseFloat con
+ *      replace(',','.') a mano, es una copia nueva de la regla y falla.
+ */
+const fs = require('fs');
+const path = require('path');
+
+const ROOT = path.resolve(__dirname, '..', '..');
+let fallas = 0;
+const ok = (c, m) => { console.log((c ? 'OK  ' : 'FAIL') + ' ' + m); if (!c) { fallas++; process.exitCode = 1; } };
+
+// ── 1) la regla ──────────────────────────────────────────────────────────
+const g = { document: { addEventListener() {} } };
+new Function('window', 'document', fs.readFileSync(path.join(ROOT, 'gp2-numero.js'), 'utf8'))(g, g.document);
+const { num, entero, conMiles } = g.GP2N;
+
+const CASOS_NUM = [
+  ['1.234', 1234],        // el punto es MILES, no decimal
+  ['1.234,5', 1234.5],
+  ['1.234.567,89', 1234567.89],
+  ['12,5', 12.5],
+  ['12.5', 125],          // "12.5" son ciento veinticinco
+  ['250,75', 250.75],
+  ['999', 999],
+  ['0,5', 0.5],
+  ['-1.500,25', -1500.25],
+  ['12,5,7', 12.57],      // una sola coma: las demas se ignoran
+  ['', 0], [null, 0], ['abc', 0],
+];
+let malos = CASOS_NUM.filter(([e, s]) => num(e) !== s);
+malos.forEach(([e, s]) => console.log('     num(' + JSON.stringify(e) + ') = ' + num(e) + ', esperaba ' + s));
+ok(malos.length === 0, 'el punto es separador de miles y la coma decimal (' + CASOS_NUM.length + ' casos)');
+
+const CASOS_MILES = [
+  ['999', '999'],         // tres digitos: SIN separador
+  ['1000', '1.000'],      // cuatro: aparece
+  ['12345', '12.345'],
+  ['1234567', '1.234.567'],
+  ['1234,5', '1.234,5'],
+  ['12,50', '12,50'],
+  ['-12345', '-12.345'],
+  ['', ''],
+];
+malos = CASOS_MILES.filter(([e, s]) => conMiles(e) !== s);
+malos.forEach(([e, s]) => console.log('     conMiles(' + JSON.stringify(e) + ') = ' + JSON.stringify(conMiles(e)) + ', esperaba ' + JSON.stringify(s)));
+ok(malos.length === 0, 'el separador de miles aparece recien con cuatro digitos (' + CASOS_MILES.length + ' casos)');
+
+// lo que el operario VE tiene que volver a leerse como el mismo numero
+const IDA_VUELTA = [999, 1000, 12345, 1234.5, 250.75, 1234567.89];
+malos = IDA_VUELTA.filter(n => Math.abs(num(conMiles(String(n).replace('.', ','))) - n) > 1e-9);
+ok(malos.length === 0, 'ida y vuelta: lo que se ve en pantalla se lee igual (' + IDA_VUELTA.length + ' numeros)');
+
+ok(entero('1.234,9') === 1234, 'entero() corta los decimales sin redondear');
+
+// ── 2) nadie se escribe su propio parser ─────────────────────────────────
+// Las pantallas viejas del programa anterior quedan afuera: se van a morir.
+const EXCLUIR = /(^|[\\/])(_backup|node_modules|\.git|tests)([\\/]|$)/;
+const archivos = [];
+(function walk(dir) {
+  for (const f of fs.readdirSync(dir)) {
+    const p = path.join(dir, f);
+    if (EXCLUIR.test(p)) continue;
+    if (fs.statSync(p).isDirectory()) walk(p);
+    else if (f.endsWith('_GP2.html')) archivos.push(p);
+  }
+})(ROOT);
+// y los .js que esas pantallas cargan: ahi tambien se puede colar una copia
+for (const p of archivos.slice()) {
+  const txt = fs.readFileSync(p, 'utf8');
+  for (const m of txt.matchAll(/src\s*=\s*["']([^"'>]+\.js)(?:\?[^"'>]*)?["']/g)) {
+    const abs = path.resolve(path.dirname(p), m[1]);
+    if (fs.existsSync(abs) && !archivos.includes(abs)) archivos.push(abs);
+  }
+}
+
+// Un saneador propio se reconoce por pisar el .value de un campo con \D, o por
+// armar el numero a mano con replace(',','.') antes de parseFloat/Number.
+const PROPIOS = [
+  { re: /\.value\s*=\s*[^;\n]*replace\(\/\\D\/g/, que: 'sanea el input con replace(/\\D/g) en vez de GP2N.autoMiles' },
+  { re: /(?:parseFloat|Number)\([^)]*replace\(\s*["'],["']\s*,\s*["']\.["']/, que: "arma el numero con replace(',','.') en vez de GP2N.num" },
+];
+const infractores = [];
+for (const p of archivos) {
+  const txt = fs.readFileSync(p, 'utf8');
+  for (const { re, que } of PROPIOS) {
+    const m = txt.match(re);
+    if (m) infractores.push(path.relative(ROOT, p) + ':' + txt.slice(0, m.index).split('\n').length + '  ' + que);
+  }
+}
+infractores.forEach(i => console.log('     ' + i));
+ok(infractores.length === 0,
+   'ninguna pantalla GP2 se escribe su propio parser de numero (' + archivos.length + ' pantallas)');
+
+console.log(fallas ? 'HAY FALLOS' : 'TODO OK');

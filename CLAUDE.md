@@ -78,6 +78,10 @@ En TODA pantalla, nueva o tocada:
    verifica el render en 390px (sin desbordes, sin solapamientos, touch ≥44px).
 5. El test `tests/ui/test_teclado_numerico.js` lo vigila: falla si aparece un
    `type="number"` sin `inputmode`.
+6. **La regla de número es una sola y vive en `gp2-numero.js` (`GP2N`)** — el punto es
+   separador de miles, la coma el decimal, y el separador se pone automático a partir de
+   cuatro dígitos. Una pantalla que lo carga ya tiene el formato en todos sus campos.
+   **Nunca escribir un saneador de número propio**: `tests/ui/test_numero.js` lo rechaza.
 
 ## Versionado (OBLIGATORIO en cada actualización)
 

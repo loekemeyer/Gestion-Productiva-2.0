@@ -67,9 +67,9 @@
       onConfirm: null
     }, opts || {});
     tandas = (config.initial || []).map(t => ({
-      caj: Number(t.caj) || 0,
+      caj: parseEntero(t.caj) || 0,
       kg: parseDecimal(t.kg),
-      uni: Number(t.uni) || 0
+      uni: parseEntero(t.uni) || 0
     }));
     if (!tandas.length) tandas.push({ caj: 0, kg: 0, uni: 0 });
     document.getElementById("tandasTitulo").textContent = config.titulo;
@@ -96,7 +96,7 @@
     if (config.pedirCaj) req.push("caj");
     if (config.pedirKg) req.push("kg");
     if (config.pedirUni) req.push("uni");
-    const val = (t, f) => f === "kg" ? (parseDecimal(t.kg) || 0) : (Number(t[f]) || 0);
+    const val = (t, f) => f === "kg" ? (parseDecimal(t.kg) || 0) : (parseEntero(t[f]) || 0);
     if (config.exigirCompletos){
       // Ninguna tanda que tenga algún dato puede dejar otro campo pedido vacío.
       const hayIncompleta = tandas.some(t => {
@@ -112,9 +112,9 @@
       ? tandas.filter(t => req.every(f => val(t, f) > 0))
       : tandas.filter(t => t.caj > 0 || t.kg > 0 || t.uni > 0);
     const totales = {
-      caj: validas.reduce((s, t) => s + (Number(t.caj) || 0), 0),
+      caj: validas.reduce((s, t) => s + (parseEntero(t.caj) || 0), 0),
       kg: validas.reduce((s, t) => s + kgDe(t), 0),
-      uni: validas.reduce((s, t) => s + (Number(t.uni) || 0), 0)
+      uni: validas.reduce((s, t) => s + (parseEntero(t.uni) || 0), 0)
     };
     if (typeof config.onConfirm === "function"){
       config.onConfirm(validas, totales);
@@ -138,18 +138,29 @@
   // Kg que aporta una tanda: normal = su kg; con multiplicar = cant x kg (ej. flejes)
   function kgDe(t){
     const kg = parseDecimal(t.kg) || 0;
-    return (config && config.multiplicar) ? (Number(t.caj) || 0) * kg : kg;
+    return (config && config.multiplicar) ? (parseEntero(t.caj) || 0) * kg : kg;
   }
 
+  /* Un solo parser: el de la casa (GP2EE.num) — el punto es separador de
+     miles y la coma el decimal. Lo que habia aca leia "1.234" como 1,234 y,
+     peor, los cajones y unidades se leian con Number() crudo, que hace de
+     "1.000" un 1. Se deja una copia identica de la regla por si el popup se
+     usara sin el helper cargado (idea 7217). */
   function parseDecimal(v){
+    if (window.GP2N) return GP2N.num(v);
+    if (window.GP2EE && GP2EE.num) return GP2EE.num(v);
     if (v == null || v === "") return 0;
     if (typeof v === "number") return Number.isFinite(v) ? v : 0;
     let s = String(v).trim().replace(/[^\d,.-]/g, "");
-    if (s.includes(",") && !s.includes(".")) s = s.replace(",", ".");
-    else s = s.replace(/,/g, "");
+    const neg = s.charAt(0) === "-";
+    s = s.replace(/-/g, "").replace(/\./g, "");
+    const i = s.indexOf(",");
+    if (i >= 0) s = s.slice(0, i) + "." + s.slice(i + 1).replace(/,/g, "");
     const n = Number(s);
-    return Number.isFinite(n) ? n : 0;
+    return Number.isFinite(n) ? (neg ? -n : n) : 0;
   }
+  /* Enteros (cajones, unidades): misma regla, sin decimales. */
+  function parseEntero(v){ return Math.trunc(parseDecimal(v)); }
 
   function render(){
     const body = document.getElementById("tandasBody");
@@ -183,9 +194,9 @@
     // Totales
     const totales = { caj: 0, kg: 0, uni: 0 };
     tandas.forEach(t => {
-      totales.caj += Number(t.caj) || 0;
+      totales.caj += parseEntero(t.caj) || 0;
       totales.kg += kgDe(t);
-      totales.uni += Number(t.uni) || 0;
+      totales.uni += parseEntero(t.uni) || 0;
     });
     const totalCells = [`<div class="lbl">Total</div>`];
     if (config.pedirCaj) totalCells.push(`<div>${totales.caj}</div>`);
@@ -199,9 +210,15 @@
     // Wire events
     body.querySelectorAll("input").forEach(inp => {
       inp.addEventListener("input", () => {
-        const fld = inp.dataset.fld;
-        if (fld === "caj" || fld === "uni") inp.value = inp.value.replace(/\D/g, "");
-        else inp.value = inp.value.replace(/[^0-9,.\-]/g, "");
+        // Regla de numero de la casa (idea 7217): el punto es separador de
+        // miles y la coma el decimal, y el separador aparece solo a partir de
+        // cuatro digitos. Antes cajones y unidades saneaban con \D, o sea que
+        // borraban el punto tecla por tecla y no se podia ver "1.000".
+        if (window.GP2N) {
+          const fld = inp.dataset.fld;
+          const soloEnteros = (fld === "caj" || fld === "uni");
+          inp.value = GP2N.conMiles(soloEnteros ? inp.value.replace(/,/g, "") : inp.value);
+        }
         mostrarMsg("");
       });
       inp.addEventListener("change", () => {
@@ -240,14 +257,14 @@
     if (!tot) return render();
     const totales = { caj: 0, kg: 0, uni: 0 };
     tandas.forEach(t => {
-      totales.caj += Number(t.caj) || 0;
+      totales.caj += parseEntero(t.caj) || 0;
       totales.kg += kgDe(t);
-      totales.uni += Number(t.uni) || 0;
+      totales.uni += parseEntero(t.uni) || 0;
     });
     const cells = [`<div class="lbl">Total</div>`];
-    if (config.pedirCaj) cells.push(`<div>${totales.caj}</div>`);
+    if (config.pedirCaj) cells.push(`<div>${totales.caj.toLocaleString('es-AR')}</div>`);
     if (config.pedirKg) cells.push(`<div>${totales.kg.toLocaleString('es-AR', { maximumFractionDigits: 3 })}</div>`);
-    if (config.pedirUni) cells.push(`<div>${totales.uni}</div>`);
+    if (config.pedirUni) cells.push(`<div>${totales.uni.toLocaleString('es-AR')}</div>`);
     cells.push(`<div></div>`);
     tot.innerHTML = cells.join("");
   }

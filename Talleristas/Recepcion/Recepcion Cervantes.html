@@ -3,7 +3,7 @@
 <head>
 <script src="../../auth-guard.js?v=20260829f"></script>
 <link rel="stylesheet" href="../../tandas-popup.css?v=20260903b">
-<script src="../../tandas-popup.js?v=20260830e"></script>
+<script src="../../tandas-popup.js?v=20260903b"></script>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>Recepción (test)</title>
@@ -276,6 +276,7 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="../../gp2-numero.js?v=20260903b"></script>
 <script src="../../supabase-config.js?v=20260831d"></script>
 
 <script>
@@ -837,20 +838,16 @@
       kg.setAttribute("data-role", esCarlosInput ? "kg-carlos" : (esGrj ? "kg-grj" : "cajas"));
       kg.setAttribute("data-idx", String(i));
 
-      kg.addEventListener("input", () => {
-        if (esCarlosInput || esGrj){
-          // El campo pide teclado decimal y en es-AR el celular ofrece la COMA. El
-          // saneador viejo la borraba tecla por tecla, asi que "12,5" terminaba siendo
-          // 125 (x10) y "250,75" 25075 (x100): se registraba diez o cien veces mas kg
-          // de los entregados, y ademas se le sumaba esa diferencia al Stock Inicial de
-          // SC Kg, que es tabla madre. Ahora se normaliza coma -> punto, que es la regla
-          // ya aprobada para toda la casa (usuario 2026-09-01: "los inputs numericos con
-          // coma o punto que ambos pongan punto"), y se deja un solo punto decimal.
-          kg.value = kg.value.replace(",", ".").replace(/[^\d.]/g, "").replace(/(\..*)\./g, "$1");
-        } else {
-          kg.value = kg.value.replace(/\D/g, "");
-        }
-      });
+      // El campo pide teclado decimal y en es-AR el celular ofrece la COMA. El
+      // saneador original la borraba tecla por tecla, asi que "12,5" terminaba
+      // siendo 125 (x10) y "250,75" 25075 (x100): se registraban diez o cien
+      // veces mas kg de los entregados, y esa diferencia ademas se le sumaba al
+      // Stock Inicial de SC Kg, que es tabla madre.
+      // La regla es ahora la de la casa y vive en gp2-numero.js [usuario
+      // 2026-09-03]: el punto es separador de miles, la coma el decimal, y el
+      // separador se pone solo a partir de cuatro digitos. Reemplaza a la regla
+      // del 2026-09-01 ("que ambos pongan punto"), que era al reves.
+      GP2N.autoMiles(kg);
 
       kg.addEventListener("keydown", (e) => {
         if (e.key === "Enter"){
@@ -878,9 +875,7 @@
         uni.setAttribute("data-role", "unidades");
         uni.setAttribute("data-idx", String(i));
 
-        uni.addEventListener("input", () => {
-          uni.value = uni.value.replace(/\D/g, "");
-        });
+        GP2N.autoMiles(uni);
 
         uni.addEventListener("keydown", (e) => {
           if (e.key === "Enter"){
@@ -902,9 +897,7 @@
         cajGrj.setAttribute("data-role", "cajas-grj");
         cajGrj.setAttribute("data-idx", String(i));
 
-        cajGrj.addEventListener("input", () => {
-          cajGrj.value = cajGrj.value.replace(/\D/g, "");
-        });
+        GP2N.autoMiles(cajGrj);
 
         cajGrj.addEventListener("keydown", (e) => {
           if (e.key === "Enter"){
@@ -933,7 +926,7 @@
         if (hayTandasRow){
           const totCaj = tandaArr.reduce((s, t) => s + (Number(t.caj) || 0), 0);
           const totKg = tandaArr.reduce((s, t) => {
-            const n = parseFloat(String(t.kg || "0").replace(",", "."));
+            const n = GP2N.num(t.kg);
             return s + (Number.isFinite(n) ? n : 0);
           }, 0);
           kg.value = String(totKg);
@@ -965,7 +958,7 @@
     if (initial.length === 0){
       const kgIn = linesWrap.querySelector(`input[data-role="kg-grj"][data-idx="${idx}"]`);
       const cajIn = linesWrap.querySelector(`input[data-role="cajas-grj"][data-idx="${idx}"]`);
-      const kg = parseFloat(String(kgIn?.value || "0").replace(",", ".")) || 0;
+      const kg = GP2N.num(kgIn?.value) || 0;
       const caj = parseInt(cajIn?.value, 10) || 0;
       if (kg > 0 || caj > 0) initial = [{ caj, kg, uni: 0 }];
     }

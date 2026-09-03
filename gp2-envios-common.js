@@ -45,25 +45,27 @@
     });
   }
 
-  /* Parsea un numero escrito a mano ("1.234,5", "12,5", "12.5"): el ultimo
-     separador es el decimal. El viejo modo 'simple' de talleristas (que leia
-     "1.234,5" como 1,2345, bug historico) se ELIMINO 2026-08-30 con OK del
-     usuario ("todo lo que puedas arrancar, arrancalo"): todas las pantallas
-     usan este parser. El parametro modo se acepta y se ignora. */
+  /* La regla de numero vive en gp2-numero.js (GP2N), una sola vez para todo
+     el proyecto (idea 7217). Aca queda el alias para no tocar las pantallas
+     que ya llaman GP2EE.num, y una copia de la regla por si el archivo no
+     estuviera cargado. El parametro modo es historico: se acepta y se ignora. */
   function num(v, modo) {
+    if (global.GP2N) return global.GP2N.num(v);
     if (v == null || v === "") return 0;
     if (typeof v === "number") return isFinite(v) ? v : 0;
     var s = String(v).trim().replace(/[^\d,.-]/g, "");
-    if (s.indexOf(",") >= 0 && s.indexOf(".") >= 0) {
-      // ambos separadores: el ultimo es el decimal (AR "1.234,5" / EN "1,234.5")
-      if (s.lastIndexOf(",") > s.lastIndexOf(".")) s = s.replace(/\./g, "").replace(",", ".");
-      else s = s.replace(/,/g, "");
-    } else if (s.indexOf(",") >= 0) {
-      s = s.replace(",", ".");
-    }
+    var neg = s.charAt(0) === "-";
+    s = s.replace(/-/g, "").replace(/\./g, "");
+    var i = s.indexOf(",");
+    if (i >= 0) s = s.slice(0, i) + "." + s.slice(i + 1).replace(/,/g, "");
     var n = Number(s);
-    return isFinite(n) ? n : 0;
+    if (!isFinite(n)) return 0;
+    return neg ? -n : n;
   }
+
+  function conMiles(t)   { return global.GP2N ? global.GP2N.conMiles(t) : String(t == null ? "" : t); }
+  function autoMiles(el) { return global.GP2N ? global.GP2N.autoMiles(el) : el; }
+  function autoMilesEn(n){ if (global.GP2N) global.GP2N.autoMilesEn(n); }
 
   /* es-AR con hasta d decimales (default 1) — el de las pantallas de carga. */
   function fmt(n, d) {
@@ -289,6 +291,7 @@
 
   global.GP2EE = {
     sb: sb, $: $, esc: esc, num: num, fmt: fmt, fmt0: fmt0,
+    conMiles: conMiles, autoMiles: autoMiles, autoMilesEn: autoMilesEn,
     aCajones: aCajones, hoyISO: hoyISO, fechaAR: fechaAR, mesAR: mesAR,
     genCode: genCode, clsSaldo: clsSaldo,
     buffer: buffer, cargadasDe: cargadasDe,

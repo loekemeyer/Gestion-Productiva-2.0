@@ -35,6 +35,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>Órdenes de Compra · GP2</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="../gp2-numero.js?v=20260903b"></script>
 <script src="../supabase-config.js?v=20260831d"></script>
 <script src="../consumo-detalle.js?v=20260830k"></script>
 <link rel="stylesheet" href="../gp2-modulo.css?v=20260903b"/>
@@ -175,7 +176,9 @@ function $(id){ return document.getElementById(id); }
 function esc(t){ return String(t==null?'':t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 function fmt(n,d){ return n==null?'—':Number(n).toLocaleString('es-AR',{maximumFractionDigits:d==null?0:d}); }
 // es-AR: punto = miles, coma = decimal ("12,5" -> 12.5; antes parseInt borraba la coma y daba 125)
-function parseNum(s){ var x=parseFloat(String(s==null?'':s).replace(/\./g,'').replace(/,/g,'.')); return (isNaN(x)||x<0)?0:x; }
+/* La regla de numero es la de la casa y vive en gp2-numero.js (idea 7217).
+   Esta pantalla ya la aplicaba bien; ahora la comparte en vez de repetirla. */
+function parseNum(s){ var x=GP2N.num(s); return x<0?0:x; }
 // precio: {precio, moneda} -> "US$ 1" / "$ 1.000". Flejes se compran por kg.
 function fmtPrecio(i){
   if(i.precio==null) return '—';

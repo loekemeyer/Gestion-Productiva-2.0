@@ -714,6 +714,31 @@ cliente Supabase GP2, esc/num/fmt es-AR, buffer de carga en localStorage por con
 (sobrevive F5; lo registrado sale del buffer ítem por ítem, así un reintento no duplica),
 fases fase0/fase1/fase3 con `#btnVolver`, grilla de contrapartes, popup de tandas y
 celdas de carga. Una pantalla nueva de envío/entrega se cablea a `GP2EE`, no se copia.
+**LA REGLA DE NÚMERO DE LA CASA, y vive en UN archivo (2026-09-03, v1.67.0)** `[usuario]`:
+textual, *"si hay un punto, el punto para el separador de mil; la coma para los decimales"*
+y *"en cada lugar que ponga cuatro dígitos, que se ponga automático un separador de miles"*.
+O sea, sin adivinar nunca: **`1.234` son mil doscientos treinta y cuatro** (no uno coma dos
+tres cuatro), `12,5` son doce y medio, `999` se queda quieto y `1000` se ve `1.000`. **Esto
+reemplaza la regla del 2026-09-01** (*"los inputs numéricos con coma o punto que ambos pongan
+punto"*), que era al revés.
+
+Vive en **`gp2-numero.js` (namespace `GP2N`)**, en la raíz, suelto y sin dependencias:
+`GP2N.num()` (texto→número), `GP2N.entero()`, `GP2N.conMiles()` (formatea lo tipeado),
+`GP2N.autoMiles(input)` y `GP2N.autoMilesEn(nodo)`. **Una pantalla que lo carga ya tiene el
+formato en todos sus campos numéricos sin hacer nada**: se engancha sola al enfocar, así que
+también agarra las tablas que se repintan. Un campo lleva coma o no **según su teclado**, que
+es la convención que ya estaba en CLAUDE.md — `inputmode="decimal"` lleva coma,
+`inputmode="numeric"` son enteros (`data-dec="si"/"no"` lo fuerza si hace falta).
+
+Existe porque la regla estaba escrita **seis veces y ninguna igual** (idea 7217) y cada
+pantalla contestaba distinto qué era `"1.234"`: `GP2EE.num` decidía *"el último separador es
+el decimal"*, el `parseNumTol` de Altrak/Aperam adivinaba según cuántos puntos hubiera, el
+popup de tandas leía los cajones con `Number()` crudo (que hace de `"1.000"` un 1) y Recepción
+Cervantes borraba la coma tecla por tecla. **Regla nueva: una pantalla NO escribe su propio
+parser de número — carga `gp2-numero.js`.** El test `tests/ui/test_numero.js` lo vigila: falla
+si aparece un `.value = ...replace(/\D/g...)` o un `parseFloat(...replace(',','.'))` en una
+pantalla GP2 o en un JS que esas pantallas carguen.
+
 **El parser de número quedó UNO SOLO (corrección 2026-09-03)** `[dato]`: el modo
 `GP2EE.num(v,"simple")` (el que leía "1.234,5" como 1,2345) se ELIMINÓ el 2026-08-30 —
 `num()` acepta el parámetro `modo` y lo ignora, y todas las pantallas cableadas a `GP2EE`

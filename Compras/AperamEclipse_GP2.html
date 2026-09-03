@@ -10,6 +10,7 @@
 <title>Compra Aperam → Eclipse · GP2</title>
 <script src="../auth-guard.js?v=20260829f"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="../gp2-numero.js?v=20260903b"></script>
 <script src="../supabase-config.js?v=20260831d"></script>
 <link rel="stylesheet" href="../gp2-modulo.css?v=20260903b"/>
 <link rel="icon" type="image/png" href="../GP2_favicon.png">
@@ -104,21 +105,19 @@ function hoy(){ var d=new Date(); return d.getFullYear()+'-'+String(d.getMonth()
 function esc(s){ return (s==null?'':String(s)).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
 function fmt(n){ var x=Number(n)||0; return Number.isInteger(x)?x.toLocaleString('es-AR'):x.toLocaleString('es-AR',{maximumFractionDigits:2}); }
 function fmtFecha(iso){ if(!iso)return''; var d=new Date(iso); return String(d.getDate()).padStart(2,'0')+'/'+String(d.getMonth()+1).padStart(2,'0')+'/'+d.getFullYear(); }
-function parseNumTol(s){
-  var str=String(s==null?'':s).trim(); if(!str)return NaN;
-  if(str.indexOf(',')>=0) return parseFloat(str.replace(/\./g,'').replace(',','.'));
-  var p=(str.match(/\./g)||[]).length;
-  return p<=1?parseFloat(str):parseFloat(str.replace(/\./g,''));
-}
-function sanDec(v){ return String(v==null?'':v).replace(',','.').replace(/[^\d.]/g,'').replace(/(\..*)\./g,'$1'); }
+/* La regla de numero es la de la casa y vive en gp2-numero.js (idea 7217).
+   parseNumTol adivinaba: con UN punto lo leia como decimal ("1.234" = 1,234) y
+   con dos o mas lo tomaba de miles. Ahora el punto es SIEMPRE miles. */
+function parseNumTol(s){ var t=String(s==null?'':s).trim(); return t?GP2N.num(t):NaN; }
 
 $('txtFecha').value = hoy();
 
-$('txtKg').addEventListener('input', function(){
-  var pos=this.selectionStart, ori=this.value, out=sanDec(ori);
-  if(out!==ori){ this.value=out; try{ this.setSelectionRange(Math.max(0,pos-(ori.length-out.length)), Math.max(0,pos-(ori.length-out.length))); }catch(_){}}
-  refreshBtn();
-});
+/* El formateo al tipear lo hace GP2N.autoMiles (gp2-numero.js): pone el
+   separador de miles a partir de 4 digitos y respeta el cursor. Antes habia
+   un sanDec propio que hacia lo contrario de la regla de la casa — pisaba la
+   coma tipeada con un punto (idea 7217). */
+GP2N.autoMiles($('txtKg'));
+$('txtKg').addEventListener('input', refreshBtn);
 $('txtRemito').addEventListener('input', refreshBtn);
 $('txtFecha').addEventListener('input', refreshBtn);
 function refreshBtn(){ $('btnGuardar').disabled = !(parseNumTol($('txtKg').value)>0 && $('txtFecha').value); }
