@@ -771,6 +771,39 @@ vez, y ninguno lo agarraba la suite. Lo que se aprendió:
   el test decía OK. Los dos se ampliaron: el de campos ahora parsea todo el CSS de las
   pantallas GP2 y el de tokens lee el atributo `src=`/`href=` completo.
 
+**Cuando dos talleristas hacen la MISMA pieza, se paga UNA sola vez (2026-09-03)** `[usuario]`:
+textual, *"uno u otro, no x2 de costo"*. El CTE `talx` de `v_costo_componente` sumaba las
+tarifas de todas las rutas que producen una pieza, así que un artículo cuyo armado hacen
+dos talleristas lo pagaba dos veces. Corregido: ahora se elige **una tarifa por pieza** (se
+toma la más cara, para no subestimar) y recién después se suman las piezas **distintas** de
+la cadena, que sí deben sumar. Afectaba 6 piezas: 315 y 609 (Pettofrezza $140 / Cavallero
+$85), 505 (Danica / Lucho $33), 510 (Alex / Martin $27,14), 500 y GRJ7 (Martin / Alex $8,99).
+**La regla vale para cualquier caso nuevo**: dos talleristas alternativos para la misma
+pieza no son dos pasos, son una elección.
+
+**El armado de tochos del 504 se estaba cobrando dos veces (2026-09-03)** `[usuario]`:
+mismo criterio que arriba. La ruta 37 (*Fleje 10 → Art 504*) pasa primero por **Lucho**
+(F7 → **J1**, *Tochos Zinc p/Rectificar*) y después por **Martin** (E4 → 504, el afilado).
+Pero al cargar las tarifas del Excel el 2026-09-02 la línea *"Afila Cuchillos 504 Arm
+Tochos"* se sumó **además** adentro del precio de Martin ($131,46 + $194,25 = $325,71),
+cuando ese mismo trabajo ya estaba cobrado en el J1 de Lucho ($173,817). Se queda el de
+Lucho — que es quien la ruta dice que hace los tochos — y **Martin vuelve a $131,46**, igual
+que en sus gemelos 097 y 114. El 504 baja de $2.626,49 a $2.432,24. **Trampa a recordar**:
+cuando una línea del Excel describe un paso que en GP2 es un COMPONENTE aparte, no se
+suma al precio del artículo — se carga en ese componente.
+
+**El consumo sale de la RECETA, no de la RUTA (2026-09-03)** `[dato]` — la trampa más cara
+encontrada hasta ahora. `v_consumo_demanda` arma el consumo con
+`articulo_componente.cantidad` (y `componente_bom`), y después **camina la ruta hacia atrás
+sin multiplicar por la cantidad de cada paso**. O sea: `ruta_paso.cantidad` **no participa
+del consumo**, solo del costo (CTE `insumox`). Consecuencia real: el `Pliego Ad 506` tenía
+1/12 en la ruta y **1 en la receta**, así que la Est Madre pedía 16.968 pliegos/mes en vez
+de 1.414 — **$15,5M/mes** de pedido fantasma, ~$85,6M sobre los 6 meses de la OC. El
+usuario confirmó el 2026-09-03: **el pliego del 506 rinde 12** (*"1 12"*). Corregido en la
+receta. **Regla: cuando una parte rinde N unidades, la división va en LAS DOS —
+`articulo_componente.cantidad` y `ruta_paso.cantidad` — o el consumo y el costo dicen cosas
+distintas.** Quedan 8 desacuerdos receta≠ruta sin resolver (ver ideas 7223 y 6116).
+
 ## 3c-bis. Accesibilidad de carga: letra grande + teclado numérico (2026-08-30)
 
 `[usuario 2026-08-30]` Dicho textual: *"Siempre quiero letras bien grandes y legibles
