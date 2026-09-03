@@ -83,6 +83,15 @@ const BUNDLE = {
       precio: 917, moneda: 'ARS', es_pliego: true,
       carton_formato: 'C', carton_categoria: null, marca: 'LOEKE', mezcla_libre: false,
       pliegos_multiplo: 12000, codigo_multiplo: 1000, min_codigo_x_multiplo: 1000 },
+    // BOLSA: no tiene multiplo (va de a 1) pero si PEDIDO MINIMO — 20.000 a Envases Vihal
+    // [usuario 2026-09-03]. Son dos cosas distintas: el multiplo dice de a cuanto sube el
+    // total, el minimo dice el piso para que el proveedor lo tome.
+    { comp_id: 12, codigo: 'A1B', descripcion: 'Cartón 031', sector: 'Sector Carton', sector_id: 10,
+      proveedor: 'Envases Vihal', um: 'unidad', unidad: 'uni', kg_x_uni: null,
+      consumo: 500, meses: 6, online: 0, pendiente_oc: 0, sugerido: 3000,
+      precio: 63, moneda: 'ARS',
+      carton_formato: 'Bolsa', carton_categoria: null, marca: 'LOEKE', mezcla_libre: false,
+      pliegos_multiplo: 1, codigo_multiplo: 1, min_codigo_x_multiplo: 1, pedido_minimo: 20000 },
   ],
   ocs: [
     { id: 9, numero: 1, proveedor: 'Basconia', rubro: 'Fleje', estado: 'borrador', nota: 'prueba',
@@ -130,7 +139,7 @@ window.supabase = { createClient: function(){ return {
   ok(chips.join(',') === 'Fleje,Carton,Plastico', 'chips de rubro: ' + chips.join(','));
 
   // sin filtro: 4 filas
-  ok(await page.$$eval('#tbody tr', x => x.length) === 11, '11 insumos sin filtro');
+  ok(await page.$$eval('#tbody tr', x => x.length) === 12, '12 insumos sin filtro');
 
   // El clavo se cotiza POR KG pero se compra por unidad: el bundle tiene que mandar el
   // precio ya convertido (3,30 USD/kg x 6,53 g = 0,0215). Si vuelve a llegar 3,30 crudo,
@@ -263,6 +272,9 @@ window.supabase = { createClient: function(){ return {
   // EL PLIEGO no se contagia del formato C: 250 sube a 300 (paquetes de 100), no a 12.000.
   const pl = await val(11);
   ok(pl === 300, 'el pliego va de a 100, no arrastra el multiplo del carton C (dio ' + pl + ')');
+  // LA BOLSA: pide 3.000 por consumo pero el proveedor no toma menos de 20.000.
+  const bolsa = await val(12);
+  ok(bolsa === 20000, 'la bolsa sube al pedido mínimo de 20.000 (pidió 3.000, va ' + bolsa + ')');
   ok(await page.$eval('#reglaCarton', x => x.classList.contains('hidden')), 'y no queda ningun error de regla');
   ok(!(await page.$eval('#btnCrear', b => b.disabled)), 'la OC de cartones queda lista para crear');
 
@@ -278,6 +290,13 @@ window.supabase = { createClient: function(){ return {
   const a3 = await val(3), a4 = await val(4), a6 = await val(6);
   ok(a3 + a4 + a6 === 24000 && a3 >= 2000 && a4 >= 2000 && a6 >= 2000,
      'ajusta para arriba a 24.000 respetando el minimo por codigo (' + [a3, a4, a6].join(' + ') + ')');
+
+  // Bajarla a mano por debajo del mínimo tiene que avisar, y con las palabras del piso
+  // (no del múltiplo, que en la bolsa es 1 y siempre da bien).
+  await page.fill('.pedir-in[data-in="12"]', '10000');
+  await page.$eval('.pedir-in[data-in="12"]', x => x.dispatchEvent(new Event('change')));
+  regla = await page.textContent('#reglaCarton');
+  ok(/pedido mínimo es 20\.000/.test(regla), 'avisa si no llega al mínimo: ' + regla.trim().slice(0, 90));
 
   // acciones de OC: marcar enviada
   await page.click('#tabOcs');

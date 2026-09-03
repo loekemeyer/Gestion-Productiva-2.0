@@ -29,6 +29,14 @@ Los cartones se **reciben en PAQUETES**: el proveedor siempre entrega alturas de
 | 8 | 30.000 | 1.000 | 1.000 por cada múltiplo de 30.000 |
 | Huevo | 25.000 | 1.000 | **2.000** por cada múltiplo de 25.000 |
 
+- **Las BOLSAS son de `Envases Vihal`, no de Pol**, y tienen **pedido mínimo de 20.000
+  unidades** `[usuario 2026-09-03: "ponele veinte mil y mañana lo chequeo"]` — **SIN
+  CONFIRMAR**. El mínimo es una cosa distinta del múltiplo y vive en su propia columna,
+  `carton_formato.pedido_minimo`: el múltiplo dice de a cuánto sube el total, el mínimo dice
+  el piso para que el proveedor lo tome. La bolsa va de a 1 pero no baja de 20.000.
+  **No se afloja solo** `[usuario]`: *"ya me ha pasado que el proveedor acepta pedidos más
+  chicos, como de diez mil, pero con un precio más caro… sobre todo para el 031"*. Pedir por
+  debajo cambia el precio, así que si se habilita tiene que venir con su propia lista.
 - **El PLIEGO se pide de a 100** `[usuario 2026-09-03: "los pliegos del quinientos,
   quinientos seis y bombillas se tienen en paquetes de 100 pliegos"]`. Los 24 pliegos
   (`componente.es_pliego`) llevan `carton_formato` porque el formato dice sus **posiciones**

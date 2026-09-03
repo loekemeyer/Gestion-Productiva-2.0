@@ -1,7 +1,22 @@
 <!doctype html>
 <html lang="es">
 <head>
-<!-- v1.13.0 (2026-09-03) — EL MINIMO POR CODIGO ES FIJO, NO ESCALA [usuario 2026-09-03:
+<!-- v1.14.0 (2026-09-03) — PEDIDO MINIMO POR FAMILIA: LAS BOLSAS, 20.000 [usuario
+     2026-09-03: "ponele veinte mil y mañana lo chequeo" — SIN CONFIRMAR].
+     Es un concepto DISTINTO del multiplo y por eso es una columna nueva
+     (carton_formato.pedido_minimo): el MULTIPLO dice de a cuanto sube el total (12.000,
+     24.000, 36.000...), el MINIMO dice cuanto hay que juntar para que el proveedor tome
+     el pedido. La Bolsa no tiene multiplo (va de a 1) pero si tiene piso, asi que con la
+     maquinaria vieja no se podia expresar.
+     "Usar sugeridos" sube la familia al piso, y bajarla a mano por debajo avisa.
+     POR QUE NO SE AFLOJA SOLO [usuario]: "ya me ha pasado que el proveedor acepta pedidos
+     mas chicos, como de diez mil, pero con un precio mas caro, entonces no quiero asumir
+     eso si no tengo la necesidad, sobre todo para el 031". O sea que pedir por debajo del
+     minimo NO es gratis: cambia el precio. Si algun dia se habilita, tiene que venir con
+     su propia lista, no bajando este numero.
+     Las bolsas ya estaban bien en lo demas: son de Envases Vihal, que ya es su propio
+     proveedor en la OC, no de Pol.
+     v1.13.0 (2026-09-03) — EL MINIMO POR CODIGO ES FIJO, NO ESCALA [usuario 2026-09-03:
      "el formato LOKE o CHEF, acepto que el paquete viene a mil, considera que se puede
      recibir a mil" + "los codigos de resto no siempre se piden, solamente se pide lo que
      se necesita"].
@@ -662,12 +677,16 @@ function reglaDe(it){
   if(!it || it.sector_id!==10) return null;
   if(it.es_pliego){
     var q=paqPliego();
-    return {pliegos_multiplo:q, codigo_multiplo:q, min_codigo_x_multiplo:q, pliego:true};
+    return {pliegos_multiplo:q, codigo_multiplo:q, min_codigo_x_multiplo:q, pedido_minimo:0, pliego:true};
   }
   if(!(it.pliegos_multiplo>0)) return null;
   return {pliegos_multiplo:Number(it.pliegos_multiplo),
           codigo_multiplo:Number(it.codigo_multiplo)||1,
-          min_codigo_x_multiplo:Number(it.min_codigo_x_multiplo)||0, pliego:false};
+          min_codigo_x_multiplo:Number(it.min_codigo_x_multiplo)||0,
+          // PEDIDO MINIMO de la familia: cosa distinta del multiplo. El multiplo dice de
+          // a cuanto sube el total; el minimo, cuanto hay que juntar para que el proveedor
+          // lo tome. Hoy solo lo tiene la Bolsa (20.000, Envases Vihal).
+          pedido_minimo:Number(it.pedido_minimo)||0, pliego:false};
 }
 function esCartonRegla(it){ return !!reglaDe(it); }
 function techo(n,m){ m=Number(m)||0; return m>0 ? Math.ceil(n/m)*m : n; }
@@ -716,6 +735,10 @@ function validarCarton(items){
   gruposCarton(items).forEach(function(grupo){
     var xs=grupo.xs, cf=reglaDe(grupo.cf), lbl=grupo.lbl;
     var total=xs.reduce(function(a,x){return a+x.cantidad;},0);
+    if(cf.pedido_minimo > 0 && total < cf.pedido_minimo){
+      errores.push(lbl+': el pedido mínimo es '+fmt(cf.pedido_minimo)+' y hay '+fmt(total)+'.');
+      return;
+    }
     if(total % cf.pliegos_multiplo !== 0){
       errores.push(lbl+': el total ('+fmt(total)+') debe ser múltiplo de '+fmt(cf.pliegos_multiplo)+'.');
       return;
@@ -742,6 +765,7 @@ function validarCarton(items){
 function ajustarFamilia(xs){
   var cf=xs[0];
   var pm=Number(cf.pliegos_multiplo)||0, cm=Number(cf.codigo_multiplo)||1, mc=Number(cf.min_codigo_x_multiplo)||0;
+  var pmin=Number(cf.pedido_minimo)||0;
   if(!(pm>0)) return null;
   var q={};
   xs.forEach(function(x){ q[x.comp_id]=techo(Math.max(0,Number(x.cant)||0), cm); });
@@ -750,6 +774,9 @@ function ajustarFamilia(xs){
   for(var iter=0; iter<25; iter++){
     var total=ids.reduce(function(a,k){ return a+q[k]; },0);
     var mult=Math.max(1, Math.ceil(total/pm));
+    // El piso de la familia manda sobre el multiplo: si 20.000 es el minimo, el pedido
+    // arranca ahi aunque el consumo pida menos.
+    if(pmin>0 && mult*pm < pmin) mult=Math.ceil(techo(pmin,pm)/pm);
     var minCod=mc;   // FIJO: el paquete, no una cuota que crezca con el pedido
     var subio=false;
     ids.forEach(function(k){ if(q[k]<minCod){ q[k]=techo(minCod,cm); subio=true; } });
@@ -779,7 +806,7 @@ function ajustarPedidoCarton(){
     var q=ajustarFamilia(grupo.xs.map(function(x){
       return {comp_id:x.comp_id, cant:x.cantidad,
               pliegos_multiplo:rg.pliegos_multiplo, codigo_multiplo:rg.codigo_multiplo,
-              min_codigo_x_multiplo:rg.min_codigo_x_multiplo};
+              min_codigo_x_multiplo:rg.min_codigo_x_multiplo, pedido_minimo:rg.pedido_minimo};
     }));
     if(!q) return;
     Object.keys(q).forEach(function(id){
