@@ -12,7 +12,8 @@
  .filters select,.filters input{background:#eaeff6;color:#385475;border:1px solid #cddaea;border-radius:6px;padding:6px 10px;font-size:18px;font-family:inherit}
  .filters input{min-width:220px}
  .filters select{min-width:200px}
- .btn{background:#e9eff7;color:#385475;border:none;border-radius:6px;padding:6px 12px;cursor:pointer;font-size:17px;font-family:inherit}
+ /* 44px = minimo tactil de la casa (2026-09-03). */
+ .btn{background:#e9eff7;color:#385475;border:none;border-radius:6px;padding:10px 14px;min-height:44px;cursor:pointer;font-size:17px;font-family:inherit}
  .btn:hover{background:#e9eff7}
  .btn:disabled{background:#ebeef4;color:#5a6a7a;cursor:not-allowed}
  .btn-new{background:#e9f6f0}.btn-new:hover:not(:disabled){background:#eaf6f0}
@@ -31,7 +32,7 @@
  .art-head .stats{margin-left:auto;display:flex;gap:16px;font-size:11px;color:#475569;align-items:center;flex-wrap:wrap}
  .art-head .stats b{color:#385475;font-size:13px}
  .art-head .acts{display:flex;gap:6px}
- .art-head .acts .btn{padding:4px 9px;font-size:11px}
+ .art-head .acts .btn{padding:6px 12px;min-height:44px;font-size:15px}
  .art-body{display:none;padding:0;overflow-x:auto}
  .art-section.open .art-body{display:block}
  .metarow{padding:8px 14px;background:#eaeff6;border-bottom:1px solid #d1dae6;font-size:11px;color:#385775;display:flex;gap:22px;flex-wrap:wrap}
@@ -75,7 +76,7 @@
  .fmsg.err{display:block;background:#f7e9e9;border:1px solid #eacdcd;color:#981616}
 </style><link rel="icon" type="image/png" href="../../GP2_favicon.png">
 <link rel="apple-touch-icon" href="../../GP2_favicon.png">
-<link rel="stylesheet" href="../../gp2-claro.css?v=20260830t">
+<link rel="stylesheet" href="../../gp2-claro.css?v=20260903b">
 </head>
 <body>
 <div id="gp2-logobar" style="position:relative;background:#e8edf7;text-align:center;padding:6px 0;border-bottom:1px solid #d0dae7"><a href="../../GP2_MODULOS.html" style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:#385475;text-decoration:none;font-weight:700;font-size:15px;padding:5px 10px;border:1px solid #d1d9e5;border-radius:8px;background:#e9eef7">← Atrás</a><a href="../../GP2_MODULOS.html" style="text-decoration:none"><img src="../../GP2_logo.png" alt="GP2 · Gestión Productiva" style="height:40px;vertical-align:middle"></a></div>
@@ -116,7 +117,7 @@
     <div class="mbody">
       <div class="fmsg" id="formMsg"></div>
       <input type="hidden" id="fId">
-      <div class="fld"><label>Código *</label><input id="fCod" placeholder="Ej: 31" autocomplete="off"></div>
+      <div class="fld"><label>Código *</label><input id="fCod" inputmode="numeric" placeholder="Ej: 31" autocomplete="off"></div>
       <div class="fld"><label>Familia</label><input id="fFam" list="famList" placeholder="Elegí de la lista o escribí una nueva" autocomplete="off"><datalist id="famList"></datalist></div>
       <div class="fld"><label>Caja (Sector Caja)</label><select id="fCaja"><option value="">— sin caja —</option></select></div>
       <div class="fld"><label>Artículos por caja</label><input inputmode="numeric" id="fPor" type="number" min="0" step="1" placeholder="Ej: 24"></div>

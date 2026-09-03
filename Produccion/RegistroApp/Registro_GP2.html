@@ -49,7 +49,10 @@
 
   .recent{margin-top:10px}
   .recent h2{font-size:18px;color:#333;margin:6px 0}
-  table.rec{width:100%;border-collapse:collapse;font-size:16px}
+  /* La tabla mide ~436px: sin wrapper, a 390px Golpes y Uni quedaban afuera de
+     la pantalla y sin scroll (2026-09-03). */
+  .table-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
+  table.rec{width:100%;min-width:420px;border-collapse:collapse;font-size:16px}
   table.rec th{color:#555;text-align:left;padding:7px 8px;border-bottom:2px solid #e5e9ee;font-size:13px;text-transform:uppercase}
   table.rec td{padding:8px;border-bottom:1px solid #eef1f4}
   table.rec td.n{text-align:right;font-variant-numeric:tabular-nums}
@@ -67,7 +70,7 @@
   <div class="steps">
     <div class="row">
       <div class="fld grow"><span>Fecha</span><input type="date" id="fFecha"></div>
-      <div class="fld grow"><span>Legajo</span><input type="text" id="fLegajo" placeholder="Legajo del operario"></div>
+      <div class="fld grow"><span>Legajo</span><input type="text" id="fLegajo" inputmode="numeric" placeholder="Legajo del operario"></div>
       <div class="fld grow"><span>Nombre (opcional)</span><input type="text" id="fNombre" placeholder="Nombre"></div>
     </div>
 
@@ -164,10 +167,10 @@ async function cargarUltimos(){
   if(res.error){t.innerHTML='<p class="empty">Error cargando</p>';return;}
   var data=res.data||[];
   if(!data.length){t.innerHTML='<p class="empty">Sin registros todavía</p>';return;}
-  t.innerHTML='<table class="rec"><thead><tr><th>Fecha</th><th>Legajo</th><th>Nombre</th><th>Matriz</th><th class="n">Golpes</th><th class="n">Uni</th></tr></thead><tbody>'+
+  t.innerHTML='<div class="table-wrap"><table class="rec"><thead><tr><th>Fecha</th><th>Legajo</th><th>Nombre</th><th>Matriz</th><th class="n">Golpes</th><th class="n">Uni</th></tr></thead><tbody>'+
     data.map(r=>{var f=r.fecha?new Date(r.fecha).toLocaleDateString('es-AR'):'';
       return '<tr><td>'+f+'</td><td>'+esc(r.legajo||'')+'</td><td>'+esc(r.nombre_empleado||'')+'</td><td>'+esc(r.matriz_raw||'')+' · '+esc(r.nombre_matriz||'')+'</td><td class="n">'+(r.golpes==null?'—':r.golpes)+'</td><td class="n">'+(r.uni==null?'':r.uni)+'</td></tr>';}).join('')+
-    '</tbody></table>';
+    '</tbody></table></div>';
 }
 async function guardar(){
   var m=$('msg'); m.className='msg'; m.textContent='';

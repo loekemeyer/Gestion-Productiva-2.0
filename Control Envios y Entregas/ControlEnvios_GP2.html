@@ -1,22 +1,23 @@
 <!doctype html>
 <html lang="es">
 <head>
-<!-- v1.1.0 — refactor: helpers compartidos en gp2-envios-common.js -->
+<!-- v1.1.1 — refactor: helpers compartidos en gp2-envios-common.js -->
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>Control Envíos y Entregas · GP2</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="../supabase-config.js?v=20260831d"></script>
 <script src="../gp2-envios-common.js?v=20260831a"></script>
-<link rel="stylesheet" href="../gp2-modulo.css?v=20260830q"/>
+<link rel="stylesheet" href="../gp2-modulo.css?v=20260903b"/>
 <link rel="icon" type="image/png" href="../GP2_favicon.png">
 <link rel="apple-touch-icon" href="../GP2_favicon.png">
 <style>
   .chips{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0;align-items:center}
   .chips .lbl{font-weight:800;font-size:15px;min-width:70px}
-  .chip{padding:8px 14px;border-radius:20px;border:2px solid #d0d7de;background:#fff;font-weight:700;font-size:15px;cursor:pointer;color:#111}
+  /* 44px = minimo tactil de la casa (2026-09-03). */
+  .chip{padding:10px 16px;min-height:44px;border-radius:20px;border:2px solid #d0d7de;background:#fff;font-weight:700;font-size:16px;cursor:pointer;color:#111}
   .chip.active{background:#e7eff8;color:#fff;border-color:#cddaea}
-  input[type=month]{padding:8px;border:2px solid #d0d7de;border-radius:8px;font-size:16px}
+  input[type=month]{padding:10px;min-height:44px;border:2px solid #d0d7de;border-radius:8px;font-size:18px}
   td.num,th.num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
   table.t td.tot,table.t th.tot{background:#f0f4f8;font-weight:800}
   .t tbody tr:hover td{background:#f6faff}

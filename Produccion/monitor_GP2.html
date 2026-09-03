@@ -14,7 +14,7 @@
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { font-family: 'Inter', sans-serif; background: #d9d9de; padding: 20px; min-height: 100vh; }
     .top-bar { max-width: 1400px; margin: 0 auto 16px; display: flex; align-items: center; gap: 14px; }
-    .btn-volver { height: 40px; padding: 0 20px; border-radius: 999px; border: 2px solid #b9b9b9; background: #f7f7f7; font-size: 14px; cursor: pointer; font-weight: 700; font-family: inherit; }
+    .btn-volver { height: 44px; padding: 0 22px; border-radius: 999px; border: 2px solid #b9b9b9; background: #f7f7f7; font-size: 16px; cursor: pointer; font-weight: 700; font-family: inherit; }
     .btn-volver:hover { background: #e5e5e5; border-color: #e2e8f0; }
     .top-bar h1 { font-size: 22px; flex: 1; color: #1e293b; }
     .main-card { max-width: 1400px; margin: 0 auto 20px; background: #fff; border: 1px solid #cfcfcf; border-radius: 14px; overflow: hidden; }
@@ -26,9 +26,12 @@
     .card-body { padding: 16px 22px 22px; }
     .controls-row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-bottom: 14px; }
     .ctrl-group { display: flex; align-items: center; gap: 6px; }
-    .ctrl-group label { font-size: 12px; font-weight: 700; color: #475569; }
-    .ctrl-input { height: 36px; padding: 0 10px; border: 1.5px solid #cbd5e1; border-radius: 10px; font-size: 13px; font-family: inherit; background: #fff; }
-    .btn-act { height: 36px; padding: 0 16px; border-radius: 10px; border: 1.5px solid #111; background: #111; color: #fff; font-size: 13px; font-weight: 700; cursor: pointer; font-family: inherit; }
+    .ctrl-group label { font-size: 15px; font-weight: 700; color: #475569; }
+    /* Los .ctrl-* estaban en 13px con 36px de alto: por debajo del piso de la casa
+       (campos 18px, tactil 44px). Estas pantallas no cargan gp2-modulo.css ni
+       gp2-claro.css, asi que nada las levantaba (corregido 2026-09-03). */
+    .ctrl-input { height: 44px; padding: 0 10px; border: 1.5px solid #cbd5e1; border-radius: 10px; font-size: 19px; font-family: inherit; background: #fff; }
+    .btn-act { height: 44px; padding: 0 18px; border-radius: 10px; border: 1.5px solid #111; background: #111; color: #fff; font-size: 16px; font-weight: 700; cursor: pointer; font-family: inherit; }
     .btn-act:hover { background: #333; }
     .btn-act.ghost { background: #f8fafc; color: #475569; border-color: #cbd5e1; }
     .push { margin-left: auto; }

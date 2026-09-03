@@ -57,14 +57,17 @@
 .tanda-row .num{
   font-weight: 800;
   color: #555;
-  font-size: 14px;
+  font-size: 16px;
 }
+/* Es carga de CANTIDADES: va con el piso de la casa (campos >=18px, tactil 44px).
+   Estaba en 16px/38px — existia una variante grande (.tandas-lg) pero ninguna
+   pantalla pasaba grande:true, o sea era codigo muerto. Subido 2026-09-03. */
 .tanda-row input{
-  height: 38px;
+  height: 48px;
   border: 2px solid #d0d7de;
   border-radius: 8px;
   padding: 0 10px;
-  font-size: 16px;
+  font-size: 20px;
   text-align: center;
   font-weight: 700;
   width: 100%;

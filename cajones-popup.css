@@ -59,9 +59,10 @@
 .cajpop-actions {
   display: flex; gap: 10px; justify-content: flex-end;
 }
+/* 44px = minimo tactil de la casa (2026-09-03). */
 .cajpop-btn {
-  padding: 10px 20px; border-radius: 8px; border: 0;
-  font-weight: 700; font-size: 14px; cursor: pointer;
+  padding: 12px 22px; min-height: 44px; border-radius: 8px; border: 0;
+  font-weight: 700; font-size: 16px; cursor: pointer;
 }
 .cajpop-cancel { background: #f1f5f9; color: #333; }
 .cajpop-cancel:hover { background: #e2e8f0; }
@@ -72,11 +73,12 @@
 .cajpop-trigger {
   display: inline-flex; align-items: center; justify-content: center;
   min-width: 70px;
-  padding: 6px 10px;
+  min-height: 44px;
+  padding: 8px 12px;
   border: 1px solid #bbb;
   border-radius: 6px;
   background: #fff;
-  font-size: 13px; font-weight: 700;
+  font-size: 16px; font-weight: 700;
   cursor: pointer;
   white-space: nowrap;
 }

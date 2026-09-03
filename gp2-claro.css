@@ -158,5 +158,11 @@ h2 { font-size: 20px !important; }
 /* == LETRA +1 (agrandar tipografia) — pedido usuario 2026-08-31 == */
 html, body { font-size: 17px !important; }
 h1 { font-size: 26px !important; } h2 { font-size: 22px !important; } h3 { font-size: 19px !important; }
-input, select, textarea, button { font-size: 17px !important; }
+/* OJO: este bloque va DESPUES del piso de accesibilidad de arriba y con la misma
+   especificidad, asi que lo PISA. Escrito como "input, select, textarea, button"
+   a 17px, bajaba los campos de carga de 18 a 17 en las 13 pantallas que cargan
+   este CSS (corregido 2026-09-03). Si se vuelve a tocar la tipografia, los campos
+   suben, nunca bajan: el piso son 18px (regla usuario 2026-08-30). */
+input:not([type=checkbox]):not([type=radio]), select, textarea { font-size: 19px !important; }
+button { font-size: 18px !important; }
 th { font-size: 12.5px !important; } td { font-size: 15.5px !important; }

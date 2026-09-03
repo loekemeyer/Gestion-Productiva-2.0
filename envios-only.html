@@ -90,6 +90,20 @@
       letter-spacing: .5px;
     }
     .salir:hover { color: #ef4444; }
+
+    /* La pantalla nacio para el monitor grande del galpon y no tenia NINGUNA media
+       query: a 390px "TALLERISTAS" (.col-label a 40px, en mayusculas) mide 286px
+       dentro de una columna de ~120 y la pagina desbordaba 102px en horizontal.
+       Los botones siguen grandes y tocables, la tipografia baja (2026-09-03). */
+    @media (max-width: 480px) {
+      body { padding: 12px; }
+      .card { padding: 24px 16px; border-radius: 20px; }
+      h1 { font-size: 28px; letter-spacing: .8px; margin-bottom: 18px; }
+      .col-label { font-size: 17px; letter-spacing: .5px; }
+      .col-labels, .grid-2, .grid-1 { gap: 10px; }
+      .btn { font-size: 18px; letter-spacing: .6px; padding: 22px 10px; min-height: 76px; border-radius: 16px; }
+      .salir { min-height: 44px; }
+    }
   </style>
 </head>
 <body>
@@ -126,7 +140,7 @@
     <div class="app-version" id="appVersion"></div>
   </div>
 
-  <script src="version.js?v=20260903a"></script>
+  <script src="version.js?v=20260903b"></script>
   <script>
     function cerrarSesion(){
       sessionStorage.clear();

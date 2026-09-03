@@ -740,6 +740,37 @@ como contexto, el stock se puede pisar a mano, y el consumo es tocable (sustento
 artículo). Un destino sin consumo conocido dice "sin consumo" y no aporta faltante — no
 se inventa.
 
+**Barrido de accesibilidad de TODAS las pantallas (2026-09-03, v1.66.0)** `[dato]`: una
+auditoría global encontró que la regla de letra grande estaba rota en varios frentes a la
+vez, y ninguno lo agarraba la suite. Lo que se aprendió:
+
+- **`gp2-claro.css` se pisaba a sí mismo.** El bloque "LETRA +1" (2026-08-31) escribió
+  `input, select, textarea, button { font-size:17px !important }` DESPUÉS del piso de 18px
+  y con la misma especificidad, así que ganaba el 17 en las 13 pantallas que cargan ese
+  CSS. Y encima se tocó el archivo sin bumpear el `?v=`, así que las tablets seguían con
+  la versión de antes del "letra +1" — el clásico "no veo los cambios". **Regla: cuando se
+  toca la tipografía, los campos SUBEN, nunca bajan; y todo cambio de CSS compartido bumpea
+  su token en las páginas que lo cargan.**
+- **El cluster `Produccion/` (abm, entrevistas, tiempos, monitor, rendimiento) no carga
+  `gp2-modulo.css` ni `gp2-claro.css`**, así que nada le levantaba los campos: estaban en
+  13px con 36px de alto. Una pantalla sin el CSS de la casa hay que revisarla a mano.
+- **La app de operarios tenía 8 reglas con `color:#fff` sobre fondos casi blancos**
+  (`#e7ebf8`, `#e7f8ed`, `#f8e7e7`): botón Continuar, cajas seleccionadas, Terminar Día.
+  Contraste ≈1,2:1, ilegible en la tablet del galpón. Vino de un pase masivo que aclaró
+  los fondos sin tocar los textos. **Regla: fondo pálido = ESTADO (una caja elegida), y
+  ahí el texto va oscuro; un BOTÓN de acción va sólido con texto blanco.** Mismo bug
+  aparecía en `ControlPS_GP2` (botón Guardar) y en `ABM_Articulos_GP2` (dos inputs).
+- **`.seg-btn` estaba copiado idéntico en 9 pantallas de stock** (Flejes ×6, SC, SP,
+  Movimiento) y en las 9 medía 38px. Se unificó en `gp2-modulo.css` a 44px: ahora se toca
+  una vez. Lo mismo vale para cualquier regla que aparezca 3+ veces igual.
+- **Los guardias de la suite tenían agujeros y por eso nada de esto saltaba**:
+  `test_teclado_numerico` sólo miraba el piso en `gp2-modulo.css` (no el resto del CSS ni
+  los `type="text"` que piden números), y la regex de `test_tokens_cache` no incluía el
+  espacio, así que **toda ruta con carpeta espaciada** (`Control Tall/`, `Prov Serv/`,
+  `Stocks General/`) se salteaba sin avisar — `ControlTall.css` convivía con dos tokens y
+  el test decía OK. Los dos se ampliaron: el de campos ahora parsea todo el CSS de las
+  pantallas GP2 y el de tokens lee el atributo `src=`/`href=` completo.
+
 ## 3c-bis. Accesibilidad de carga: letra grande + teclado numérico (2026-08-30)
 
 `[usuario 2026-08-30]` Dicho textual: *"Siempre quiero letras bien grandes y legibles

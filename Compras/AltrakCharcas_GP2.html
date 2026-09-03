@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="es">
 <head>
-<!-- v1.0.0 — COMPRA ALTRAK -> CHARCAS (2026-09-01, Fase 2 del modelo Altrak->Charcas->Cervantes).
+<!-- v1.0.1 — COMPRA ALTRAK -> CHARCAS (2026-09-01, Fase 2 del modelo Altrak->Charcas->Cervantes).
      Altrak entrega alambre directo en Resortes Charcas (ubic 13), no en Cervantes.
      Charcas despues corta el alambre y entrega los filtros 031/034 en Cervantes por Recepcion Insumos.
      Esta pantalla la usa PAGOS cuando llega la factura de Altrak al mail: registra los kg comprados
@@ -13,7 +13,7 @@
 <script src="../auth-guard.js?v=20260829f"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="../supabase-config.js?v=20260831d"></script>
-<link rel="stylesheet" href="../gp2-modulo.css?v=20260830q"/>
+<link rel="stylesheet" href="../gp2-modulo.css?v=20260903b"/>
 <link rel="icon" type="image/png" href="../GP2_favicon.png">
 <link rel="apple-touch-icon" href="../GP2_favicon.png">
 <style>
@@ -55,6 +55,10 @@
   .field{flex:1 1 100%}
   #btnGuardar{width:100%}
 }
+    /* La tabla del historial no tenia contenedor propio: adentro del .card (que
+       es overflow:hidden) las ultimas columnas quedaban inalcanzables a 390px.
+       Con el wrapper scrollea ella sola y la pagina nunca scrollea (2026-09-03). */
+    .hist .table-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
 </style>
 </head>
 <body>
@@ -98,6 +102,7 @@
 
     <div class="hist">
       <h3>Últimas compras a Altrak</h3>
+      <div class="table-wrap">
       <table>
         <thead>
           <tr><th>Fecha</th><th>Remito</th><th class="kg">Kg</th></tr>
@@ -106,6 +111,7 @@
           <tr><td colspan="3" class="empty">Cargando…</td></tr>
         </tbody>
       </table>
+      </div>
     </div>
   </div>
 </div>

@@ -40,7 +40,13 @@ function htmls(dir, acc = []) {
 const porAsset = new Map();
 for (const f of htmls(ROOT)) {
   const txt = fs.readFileSync(f, 'utf8');
-  for (const m of txt.matchAll(/([A-Za-z0-9_.\/-]+\.(?:js|css))\?v=([0-9A-Za-z.]+)/g)) {
+  // Se lee el atributo COMPLETO (src=/href=) en vez de "cualquier cosa que
+  // termine en .js/.css": la version vieja usaba la clase [A-Za-z0-9_./-], SIN
+  // espacio, asi que toda ruta con carpeta espaciada ("../Control Tall/...",
+  // "Prov Serv/...", "Stocks General/...") no matcheaba y el asset se salteaba
+  // sin avisar. Con eso, ControlTall.css convivia con dos tokens distintos y
+  // este test decia OK igual (corregido 2026-09-03).
+  for (const m of txt.matchAll(/(?:src|href)\s*=\s*["']([^"'>]+\.(?:js|css))\?v=([0-9A-Za-z.]+)/g)) {
     // Se agrupa por la RUTA RESUELTA, no por el nombre: hay varios app.js y
     // varios styles.css distintos en carpetas distintas, y no son el mismo
     // archivo. Lo que importa es que UN archivo no se pida con dos tokens.

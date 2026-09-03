@@ -21,15 +21,16 @@
     .field { display:flex; flex-direction:column; gap:4px; }
     .field label { font-size:12px; color:var(--muted); }
     .field input { padding:6px 8px; border:1px solid var(--line); border-radius:8px; }
-    .btn { padding:8px 14px; border:1px solid var(--line); border-radius:8px; background:#fff; cursor:pointer; font-size:13px; }
+    /* 44px = minimo tactil de la casa (2026-09-03). */
+    .btn { padding:10px 16px; min-height:44px; border:1px solid var(--line); border-radius:8px; background:#fff; cursor:pointer; font-size:16px; }
     .btn-dark { background:var(--dark); color:#fff; border-color:var(--dark); }
     .btn-icon { border:1px solid var(--line); background:#fff; border-radius:6px; padding:2px 7px; cursor:pointer; margin:0 1px; }
     .hidden { display:none !important; }
     .emp-chips { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:12px; }
-    .emp-chip { display:flex; flex-direction:column; align-items:center; line-height:1.1; padding:5px 9px;
-                border:1px solid var(--line); border-radius:8px; background:#fff; cursor:pointer; font-size:12px; }
+    .emp-chip { display:flex; flex-direction:column; justify-content:center; align-items:center; line-height:1.1; padding:7px 11px;
+                min-height:44px; border:1px solid var(--line); border-radius:8px; background:#fff; cursor:pointer; font-size:14px; }
     .emp-chip.active { background:var(--dark); color:#fff; border-color:var(--dark); }
-    .emp-chip-l2 { font-size:10px; opacity:.75; }
+    .emp-chip-l2 { font-size:12px; opacity:.75; }
     .status { color:var(--muted); font-size:13px; margin:8px 0; }
     .resumen { display:flex; gap:12px; flex-wrap:wrap; margin:8px 0 16px; }
     .resumen-card { border:1px solid var(--line); border-radius:10px; padding:10px 18px; min-width:120px; text-align:center; }
@@ -54,7 +55,7 @@
   </style>
 <link rel="icon" type="image/png" href="../GP2_favicon.png">
 <link rel="apple-touch-icon" href="../GP2_favicon.png">
-<link rel="stylesheet" href="../gp2-claro.css?v=20260830t">
+<link rel="stylesheet" href="../gp2-claro.css?v=20260903b">
 </head>
 <body>
 <div id="gp2-logobar" style="position:relative;background:#0b1220;text-align:center;padding:6px 0;border-bottom:1px solid #1c2836"><a href="../GP2_MODULOS.html" style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:#cbd5e1;text-decoration:none;font-weight:700;font-size:15px;padding:5px 10px;border:1px solid #33415a;border-radius:8px;background:#101a2b">← Atrás</a><a href="../GP2_MODULOS.html" style="text-decoration:none"><img src="../GP2_logo.png" alt="GP2 · Gestión Productiva" style="height:40px;vertical-align:middle"></a></div>

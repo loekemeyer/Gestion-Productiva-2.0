@@ -12,7 +12,7 @@
 <script src="../../supabase-config.js?v=20260831d"></script>
 
   <!-- CSS reutilizado de la pagina vieja -->
-  <link rel="stylesheet" href="ControlPS.css?v=20260830e" />
+  <link rel="stylesheet" href="ControlPS.css?v=20260903b" />
 
   <style>
     /* Banner de datos parciales (propio de la version GP2) */
@@ -45,6 +45,9 @@
     /* Resumen general partes x PS */
     #resumenPS{ margin-top:16px; }
     .resumen-wrap{ overflow-x:auto; }
+    /* La tabla de detalle mide ~427px y estaba suelta: a 390px hacia scrollear la
+       PAGINA entera en horizontal (62px de desborde). Ahora scrollea ella sola. */
+    .table-wrap{ overflow-x:auto; -webkit-overflow-scrolling:touch; }
     .resumen-wrap table{ min-width:640px; }
     .resumen-wrap th.ps-col{ text-align:right; }
     .resumen-wrap td.vacio{ color:#bbb !important; text-align:right !important; }
@@ -66,19 +69,22 @@
     .gp2-modo label{ cursor:pointer; user-select:none; }
     .gp2-form{ display:flex; flex-wrap:wrap; gap:12px; align-items:flex-end; }
     .gp2-field{ display:flex; flex-direction:column; gap:3px; }
-    .gp2-field > label{ font-size:11px; color:#556; font-weight:bold; text-transform:uppercase; letter-spacing:.03em; }
+    .gp2-field > label{ font-size:15px; color:#556; font-weight:bold; text-transform:uppercase; letter-spacing:.03em; }
+    /* Panel de CARGA de movimientos PS: va con el piso de la casa (18px, 44px). */
     .gp2-field select,
     .gp2-field input{
-      font-size:13px; padding:6px 8px; border:1px solid #c3ccd8; border-radius:6px;
+      font-size:19px; padding:10px 10px; min-height:44px; border:1px solid #c3ccd8; border-radius:6px;
       background:#fff; color:#1e2a3a; min-width:120px;
     }
     .gp2-field input[type=number]{ width:120px; text-align:right; }
     .gp2-field input[type=date]{ width:150px; }
+    /* Era color:#fff sobre background:#e7eef8 — blanco sobre casi blanco, no se
+       leia. Y median 36px de alto (minimo tactil 44). Corregido 2026-09-03. */
     .gp2-btn-guardar{
-      font-size:13px; font-weight:bold; padding:8px 18px; border:none; border-radius:6px;
-      background:#e7eef8; color:#fff; cursor:pointer;
+      font-size:16px; font-weight:bold; padding:10px 20px; min-height:44px; border:none; border-radius:6px;
+      background:#1d4ed8; color:#fff; cursor:pointer;
     }
-    .gp2-btn-guardar:hover{ background:#e7eef8; }
+    .gp2-btn-guardar:hover{ background:#1e40af; }
     .gp2-btn-guardar:disabled{ background:#9db4d6; cursor:default; }
     .mv-hidden{ display:none !important; }
     .gp2-msg{ margin-top:10px; font-size:13px; min-height:1em; }
@@ -106,7 +112,7 @@
 </style>
 <link rel="icon" type="image/png" href="../../GP2_favicon.png">
 <link rel="apple-touch-icon" href="../../GP2_favicon.png">
-<link rel="stylesheet" href="../../gp2-claro.css?v=20260830t">
+<link rel="stylesheet" href="../../gp2-claro.css?v=20260903b">
 </head>
 <body>
 <div id="gp2-logobar" style="position:relative;background:#e8edf7;text-align:center;padding:6px 0;border-bottom:1px solid #d0dae7"><a href="../../GP2_MODULOS.html" style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:#385475;text-decoration:none;font-weight:700;font-size:15px;padding:5px 10px;border:1px solid #d1d9e5;border-radius:8px;background:#e9eef7">← Atrás</a><a href="../../GP2_MODULOS.html" style="text-decoration:none"><img src="../../GP2_logo.png" alt="GP2 · Gestión Productiva" style="height:40px;vertical-align:middle"></a></div>
@@ -380,7 +386,7 @@
         return;
       }
 
-      h += '<table><thead><tr>' +
+      h += '<div class="table-wrap"><table><thead><tr>' +
            '<th>#</th><th>Codigo</th><th>Descripcion</th><th>Sector</th>' +
            '<th>Enviado</th><th>Entregado</th><th>Saldo en PS</th>' +
            '</tr></thead><tbody>';
@@ -398,7 +404,7 @@
       h += '</tbody><tfoot><tr>' +
            '<td colspan="4" style="text-align:right;font-weight:bold">TOTALES</td>' +
            numCell(tEnv) + numCell(tEnt) + numCell(tSal) +
-           '</tr></tfoot></table>';
+           '</tr></tfoot></table></div>';
 
       elResult.innerHTML = h;
       elStatus.textContent = partes.length + ' partes' +

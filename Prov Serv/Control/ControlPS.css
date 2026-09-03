@@ -112,11 +112,11 @@ td:nth-child(12){
 /* INPUT COD PROV EXTERNO */
 .cod-prov-input{
   width:90px;
-  height:28px;
+  height:44px;
   border:1px solid #d1d5db;
   border-radius:6px;
   padding:0 6px;
-  font-size:13px;
+  font-size:18px;
   font-family:inherit;
   text-align:center;
   transition:border-color .3s;
@@ -251,7 +251,8 @@ td:nth-child(12){
   font-size:14px;
 }
 .btn-index{
-  padding:10px 14px;
+  padding:11px 14px;
+  min-height:44px;
   border-radius:10px;
   border:1px solid #111;
   background:#111;

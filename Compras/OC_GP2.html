@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="es">
 <head>
-<!-- v1.7.0 — MODULO COMPLETO DE OC POR PROVEEDOR (usuario 2026-09-03: "desarrolla el
+<!-- v1.7.1 — MODULO COMPLETO DE OC POR PROVEEDOR (usuario 2026-09-03: "desarrolla el
      modulo completo para la generacion de OCs de los insumos de todos los proveedores.
      Con el maximo que hablamos. Tiene que funcionar contra el stock actual y el maximo.
      Y la orden debe generarse prolija con un lugar para poner la fecha de entrega
@@ -37,7 +37,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="../supabase-config.js?v=20260831d"></script>
 <script src="../consumo-detalle.js?v=20260830k"></script>
-<link rel="stylesheet" href="../gp2-modulo.css?v=20260830q"/>
+<link rel="stylesheet" href="../gp2-modulo.css?v=20260903b"/>
 <link rel="icon" type="image/png" href="../GP2_favicon.png">
 <link rel="apple-touch-icon" href="../GP2_favicon.png">
 <style>
@@ -55,11 +55,11 @@
   .paq-eq{font-size:12px;color:#0b3b73;display:block}
   .barra{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:12px 0;padding:12px;background:#f6f8fa;border-radius:10px}
   .barra .tot{font-size:17px;font-weight:800}
-  .barra input[type=text]{padding:9px;font-size:16px;border:2px solid #d0d7de;border-radius:8px;flex:1;min-width:160px}
+  .barra input[type=text]{padding:10px;min-height:44px;font-size:18px;border:2px solid #d0d7de;border-radius:8px;flex:1;min-width:160px}
   .btn-crear{padding:12px 22px;font-size:18px;font-weight:800;border-radius:8px;border:2px solid #111;background:#111;color:#fff;cursor:pointer}
   .btn-crear:disabled{opacity:.4;cursor:default}
-  .btn-sug{padding:10px 14px;font-size:15px;font-weight:700;border-radius:8px;border:2px solid #ead9cd;background:#fff;color:#b45309;cursor:pointer}
-  .btn-limpiar{padding:10px 14px;font-size:15px;font-weight:700;border-radius:8px;border:2px solid #d0d7de;background:#fff;cursor:pointer}
+  .btn-sug{padding:11px 14px;min-height:44px;font-size:16px;font-weight:700;border-radius:8px;border:2px solid #ead9cd;background:#fff;color:#b45309;cursor:pointer}
+  .btn-limpiar{padding:11px 14px;min-height:44px;font-size:16px;font-weight:700;border-radius:8px;border:2px solid #d0d7de;background:#fff;cursor:pointer}
   .regla-carton{border:2px solid #eae0cd;background:#fff8e1;color:#7a5b00;border-radius:10px;padding:8px 12px;font-size:14px;margin:8px 0}
   .regla-carton.mal{border-color:#eacdcd;background:#ffebee;color:#b71c1c}
   .oc-card{border:2px solid #d0d7de;border-radius:12px;padding:14px;margin:10px 0;background:#fff}

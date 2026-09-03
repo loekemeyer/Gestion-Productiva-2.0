@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="es">
 <head>
-<!-- v1.0.0 — COMPRA APERAM CHAPA 430 -> ECLIPSE (2026-09-01, Fase 2 del modelo Aperam->Eclipse->Cervantes).
+<!-- v1.0.1 — COMPRA APERAM CHAPA 430 -> ECLIPSE (2026-09-01, Fase 2 del modelo Aperam->Eclipse->Cervantes).
      Aperam entrega la chapa 430 (1250×2500×0,8 mm) directo en Eclipse. Eclipse la corta y entrega el
      insumo 1686 en Cervantes por Recepcion Insumos (rubro Cortados). Esta pantalla la usa PAGOS cuando
      llega la factura de Aperam por la chapa: registra los kg y suma stock en Eclipse. -->
@@ -11,7 +11,7 @@
 <script src="../auth-guard.js?v=20260829f"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="../supabase-config.js?v=20260831d"></script>
-<link rel="stylesheet" href="../gp2-modulo.css?v=20260830q"/>
+<link rel="stylesheet" href="../gp2-modulo.css?v=20260903b"/>
 <link rel="icon" type="image/png" href="../GP2_favicon.png">
 <link rel="apple-touch-icon" href="../GP2_favicon.png">
 <style>
@@ -39,6 +39,10 @@
 .hist td.kg{text-align:right;font-weight:700;color:#0b3b73}
 .hist .empty{color:#888;font-style:italic;padding:14px;text-align:center}
 @media(max-width:480px){.steps{padding:12px}.form-row{gap:10px}.field{flex:1 1 100%}#btnGuardar{width:100%}}
+    /* La tabla del historial no tenia contenedor propio: adentro del .card (que
+       es overflow:hidden) las ultimas columnas quedaban inalcanzables a 390px.
+       Con el wrapper scrollea ella sola y la pagina nunca scrollea (2026-09-03). */
+    .hist .table-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
 </style>
 </head>
 <body>
@@ -82,10 +86,12 @@
 
     <div class="hist">
       <h3>Últimas compras a Aperam (chapa 430)</h3>
+      <div class="table-wrap">
       <table>
         <thead><tr><th>Fecha</th><th>Remito</th><th class="kg">Kg</th></tr></thead>
         <tbody id="histTbody"><tr><td colspan="3" class="empty">Cargando…</td></tr></tbody>
       </table>
+      </div>
     </div>
   </div>
 </div>

@@ -33,7 +33,7 @@ label.lbl{font-weight:800;font-size:20px}
 input[type="date"]{height:40px;border:2px solid #d0d7de;border-radius:8px;padding:0 10px;font-size:20px}
 
 /* ---- botones ---- */
-.btn{padding:10px 16px;border-radius:8px;border:none;font-weight:800;cursor:pointer;font-size:20px}
+.btn{padding:10px 16px;min-height:44px;border-radius:8px;border:none;font-weight:800;cursor:pointer;font-size:20px}
 .btn-primary{background:#111;color:#fff}
 .btn-secondary{background:#fff;border:2px solid #d0d7de;color:#111}
 .btn:disabled{opacity:.45;cursor:not-allowed}
@@ -66,13 +66,24 @@ table.t tfoot td{font-weight:900;background:#f6f8fa;border-top:2px solid #e5e9ee
 .proc{color:#555}
 .sub{color:#777;font-size:14px}
 
+/* ---- filtros segmentados (Todos / Con stock / Sin stock / ...) ----
+   Estaban copiados IDENTICOS en 9 pantallas de stock (Flejes x6, SC, SP,
+   Movimiento) y median 38px de alto, por debajo del minimo tactil de 44.
+   Unificados aca 2026-09-03: se toca una vez y valen para las 9. */
+.seg-btn{padding:11px 14px;min-height:44px;border-radius:8px;border:2px solid #d0d7de;background:#fff;font-weight:700;cursor:pointer;font-size:17px;color:#111}
+.seg-btn.active{background:#111;color:#fff;border-color:#111}
+
 /* ---- celdas editables ---- */
 .cell-in{width:96px;padding:7px 8px;font-size:18px;border:2px solid #d0d7de;border-radius:6px;text-align:right;font-variant-numeric:tabular-nums}
 .cell-in:focus{outline:none;border-color:#111}
 .cell-in.ro{background:#f6f8fa;color:#555}
-.tanda-btn{width:34px;height:34px;border-radius:8px;border:2px solid #d0d7de;background:#fff;font-weight:900;cursor:pointer;font-size:16px;color:#111}
+/* 44px = minimo tactil de la casa. Median 34 y son los botones de TODA la carga
+   de envios y entregas (tandas y faltante), que se tocan con el dedo en la
+   tablet del galpon. El .cell-in de al lado tiene ancho fijo, asi que agrandarlos
+   no revienta la columna (2026-09-03). */
+.tanda-btn{width:44px;height:44px;border-radius:8px;border:2px solid #d0d7de;background:#fff;font-weight:900;cursor:pointer;font-size:18px;color:#111}
 .tanda-btn.on{background:#0066cc;border-color:#0066cc;color:#fff}
-.falt-box{width:34px;height:34px;border-radius:8px;border:2px solid #d0d7de;background:#fff;font-weight:900;cursor:pointer;font-size:16px;color:#111}
+.falt-box{width:44px;height:44px;border-radius:8px;border:2px solid #d0d7de;background:#fff;font-weight:900;cursor:pointer;font-size:18px;color:#111}
 .falt-box.on{background:#c2410c;border-color:#c2410c;color:#fff}
 
 /* ---- saldos ---- */

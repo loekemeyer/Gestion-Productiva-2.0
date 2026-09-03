@@ -1,7 +1,7 @@
 <!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <script src="../auth-guard.js?v=20260829f"></script>
 <title>Stock por ubicación · GP2</title>
-<!-- v1.1.0 - la pantalla hereda lo unico propio de Movimientos/Registrar_Movimiento.html
+<!-- v1.1.1 - la pantalla hereda lo unico propio de Movimientos/Registrar_Movimiento.html
      (borrada 2026-08-30, aprobado por el usuario): los flujos de Ajuste +/- y Armado en
      fabrica (mismos modales y mismo payload de registrar_movimientos, ahora via
      gp2-motor.js) y la vista de ultimos 50 movimientos. Las otras 7 tarjetas de esa
@@ -22,7 +22,8 @@
  .toolbar input[type=text]{flex:1 1 260px;background:#eaeff6;color:#385475;border:1px solid #cddaea;border-radius:8px;padding:9px 12px;font-size:18px;font-family:inherit}
  .toolbar input:focus{outline:none;border-color:#cddeea}
  .chk{display:flex;align-items:center;gap:6px;font-size:13px;color:#2a5783;cursor:pointer;user-select:none}
- .btn-sm{background:#eaeff6;border:1px solid #cfd9e8;color:#255588;border-radius:8px;padding:8px 12px;font-size:17px;font-family:inherit;cursor:pointer}
+ /* 44px = minimo tactil de la casa (2026-09-03). */
+ .btn-sm{background:#eaeff6;border:1px solid #cfd9e8;color:#255588;border-radius:8px;padding:10px 14px;min-height:44px;font-size:17px;font-family:inherit;cursor:pointer}
  .btn-sm:hover{border-color:#cddbea}
  .grp{border:1px solid #d1dae6;border-radius:10px;margin-bottom:10px;background:#ebf0f5;overflow:hidden}
  .grp>.gh{display:flex;align-items:center;gap:10px;padding:12px 14px;cursor:pointer;user-select:none}
@@ -89,7 +90,7 @@
 </style>
 <link rel="icon" type="image/png" href="../GP2_favicon.png">
 <link rel="apple-touch-icon" href="../GP2_favicon.png">
-<link rel="stylesheet" href="../gp2-claro.css?v=20260830t">
+<link rel="stylesheet" href="../gp2-claro.css?v=20260903b">
 </head>
 <body>
 <div class="logobar" style="position:relative"><a href="../GP2_MODULOS.html" style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:#385475;text-decoration:none;font-weight:700;font-size:15px;padding:5px 10px;border:1px solid #d1d9e5;border-radius:8px;background:#e9eef7">← Atrás</a><a href="../GP2_MODULOS.html"><img src="../GP2_logo.png" alt="GP2"></a></div>

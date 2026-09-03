@@ -1,21 +1,21 @@
 <!doctype html>
 <html lang="es">
 <head>
-<!-- v1.0.0 — Monitor 2.0: ultimos cajones cerrados del dia con premio + alertas <=-3 / >=3 -->
+<!-- v1.0.1 — Monitor 2.0: ultimos cajones cerrados del dia con premio + alertas <=-3 / >=3 -->
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>Cierres del Día · Premios · GP2</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="../supabase-config.js?v=20260831d"></script>
-<link rel="stylesheet" href="../gp2-modulo.css?v=20260830q"/>
+<link rel="stylesheet" href="../gp2-modulo.css?v=20260903b"/>
 <link rel="icon" type="image/png" href="../GP2_favicon.png">
 <link rel="apple-touch-icon" href="../GP2_favicon.png">
 <style>
   .live-dot{display:inline-block;width:10px;height:10px;background:#f44336;border-radius:50%;animation:pulse 1.5s infinite;margin-left:6px}
   @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
   .barra{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:8px 0}
-  .barra input[type=date]{padding:8px;border:2px solid #d0d7de;border-radius:8px;font-size:15px}
-  .barra button{padding:8px 14px;border-radius:8px;border:2px solid #d0d7de;background:#fff;font-weight:700;cursor:pointer}
+  .barra input[type=date]{padding:10px;min-height:44px;border:2px solid #d0d7de;border-radius:8px;font-size:18px}
+  .barra button{padding:11px 16px;min-height:44px;font-size:16px;border-radius:8px;border:2px solid #d0d7de;background:#fff;font-weight:700;cursor:pointer}
   td.num{text-align:right;font-variant-numeric:tabular-nums}
   .premio-good{color:#2e7d32;font-weight:800}
   .premio-bad{color:#c62828;font-weight:800}
