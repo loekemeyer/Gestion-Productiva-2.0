@@ -25,7 +25,7 @@
 
 <div class="card">
   <div class="header">
-    <h1>Stock en Movimiento · Sector Tránsito</h1>
+    <h1>Stock en Movimiento · Sector Movimiento</h1>
     <div class="hbtns">
       <a href="../GP2_MODULOS.html">Atrás</a>
     </div>
@@ -75,14 +75,14 @@ window.SB_CLIENT = supabase.createClient(
   { db:{ schema:"GP2" }, auth:{ persistSession:false } }
 );
 
-/* Sector Transito (3): las piezas intermedias entre matrices ("tras M#").
+/* Sector Movimiento (3): las piezas intermedias entre matrices ("tras M#").
    Fabricado = entradas por produccion/fabricacion (la matriz que las hace).
    Consumido = salidas por produccion/fabricacion (la matriz siguiente). */
 window.STOCK_CFG = {
   sector_id: 3,
   titulo: "Stock en Movimiento",
   mostrar_fleje: false,
-  // Sector Transito = piezas intermedias entre matrices: no tienen minimo/maximo (son WIP
+  // Sector Movimiento = piezas intermedias entre matrices: no tienen minimo/maximo (son WIP
   // transitorio, no algo que se repone). El renderer oculta esas columnas, el KPI "Bajo
   // minimo" y el aviso de factores cuando esta prendido. [usuario 2026-08-31]
   sin_min_max: true,

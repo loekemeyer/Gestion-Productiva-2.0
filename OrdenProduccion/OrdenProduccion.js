@@ -29,7 +29,7 @@
    Por eso la orden se agrupa por FLEJE dentro de cada matriz: cada bloque
    es un fleje distinto y no se mezclan al cortar.
 
-   Cuando la matriz entrega a un sector de transito (piezas a medio hacer
+   Cuando la matriz entrega al Sector Movimiento (piezas a medio hacer
    tipo "E6-M132"), se sigue la cadena hasta el sector crudo o procesado
    final, porque el faltante que manda es el de la punta de la cadena.
    ===================================================================== */
@@ -146,20 +146,20 @@ function construirOrdenes(d) {
   const pasosMatriz = (d.pasos || []).filter(p =>
     p.matriz_id && p.comp_entrada_id && p.comp_salida_id);
 
-  // Para seguir cadenas de transito: que pasos arrancan desde cada componente.
+  // Para seguir cadenas del Sector Movimiento: que pasos arrancan desde cada componente.
   const pasosPorEntrada = new Map();
   pasosMatriz.forEach(p => {
     if (!pasosPorEntrada.has(p.comp_entrada_id)) pasosPorEntrada.set(p.comp_entrada_id, []);
     pasosPorEntrada.get(p.comp_entrada_id).push(p);
   });
 
-  // Un componente de transito no tiene maximo propio: el faltante que manda
+  // Un componente del Sector Movimiento no tiene maximo propio: el faltante que manda
   // es el del sector crudo/procesado donde termina la cadena.
   function resolverDestinos(compId, visitados, saltos) {
     const comp = compPorId.get(compId);
     if (!comp) return [];
     if (comp.tipo === "crudo" || comp.tipo === "procesado") return [compId];
-    if (comp.tipo !== "transito") return [];
+    if (comp.tipo !== "movimiento") return [];
     if (saltos >= MAX_SALTOS_CADENA || visitados.has(compId)) return [];
     visitados.add(compId);
     const salidas = pasosPorEntrada.get(compId) || [];

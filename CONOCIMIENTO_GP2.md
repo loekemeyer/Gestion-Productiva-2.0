@@ -2822,3 +2822,32 @@ pantallas del grupo: cada una va adonde se usa, y el grupo del menú se borra (v
 - `[dato]` **Estado después del arreglo: 0 eslabones vacíos y 0 saltos duros en las 619
   rutas.** Cualquier paso cuyo `comp_salida` no sea el `comp_entrada` del siguiente es, desde
   ahora, un bug — vale como invariante para un test.
+
+## 4e. "Movimiento" y "Tránsito" son DOS cosas distintas (renombre 2026-09-03)
+
+- `[usuario]` **"En vez de que se llame Sector Tránsito en las tablas, que se llame Sector
+  Movimiento, al que pasa de matriz en matriz. Sector Tránsito es el de los proveedores de
+  servicio."** El nombre correcto es el que ya usaba el programa; el que estaba mal era el
+  de la tabla.
+- **Los dos, sin confundirlos nunca más:**
+  - **Sector Movimiento** (sector id 3, 43 componentes) = la pieza a medio hacer que va **de
+    matriz en matriz** (los códigos "tras M#", tipo `E6-M132`). Es WIP: no tiene mín/máx ni
+    `kg_x_uni`/`uni_x_cajon` (ver § 2c-undecies). Lo muestra `StockMovimiento_GP2.html`,
+    que trae el `sector_id: 3` hardcodeado.
+  - **Stock Tránsito PS** = la pieza que un **proveedor de servicio** ya entregó y espera
+    hasta mandarse **al PS siguiente**. No es un sector: sale de la RPC
+    `stock_transito_ps_bundle` y lo muestra `StockTransitoPS_GP2.html`.
+- `[dato, aplicado 2026-09-03]` Se renombró **`sector.nombre`** ('Sector Transito' →
+  'Sector Movimiento'), **`sector.tipo`** ('transito' → 'movimiento') y el
+  **`ubicacion.nombre`** de la ubicación 3. Se cambió el `tipo` y no solo el nombre a
+  propósito: dejarlo en `'transito'` mantenía viva justamente la confusión que el usuario
+  quiere eliminar, porque el `tipo` es lo que viaja en los bundles.
+- `[dato]` **El `tipo` lo leen exactamente DOS lugares** (verificado con barrido del repo, y
+  cero funciones o vistas de la BD dependen de él): `Programa/Programa.html` en el
+  `SECT2CLS` (la clase CSS del nodo) y `OrdenProduccion/OrdenProduccion.js` en
+  `resolverDestinos`, que sigue la cadena hasta el sector crudo/procesado final. Los dos
+  quedaron actualizados en el mismo commit. **Si mañana aparece un tercer consumidor del
+  `tipo`, este es el lugar donde mirar.**
+- **Trampa**: casi todas las demás menciones de "tránsito" en el repo (ControlPS,
+  StocksGeneral, Verificación, Despiece) hablan del **`ST` del programa viejo**, que es el
+  tránsito de PS y está bien nombrado. No tocarlas al buscar y reemplazar.
