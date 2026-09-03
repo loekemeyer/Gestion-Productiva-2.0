@@ -1029,6 +1029,39 @@ clonado del 2026-09-02**: las rutas del 104 entraban con `CCE2B`, que es el **Ca
 104 lleva su propio cartón, `K5D`, que no existía en GP2 y se dio de alta **sin precio** — por
 eso su costo baja a $672,86 y queda con `faltan_precios: 1`.
 
+**EL PLIEGO NUNCA VA CON CANTIDAD 1 EN LA RECETA (2026-09-03)** `[usuario]`: textual, *"en el
+BOM no pongas un pliego por artículo, sino que cada pliego se usa para varios artículos"*. **El
+rinde sale de `componente.carton_formato`** y el precio lo confirma, que es la forma rápida de
+chequear que un pliego está bien cargado:
+
+| formato | posiciones | precio unitario |
+|---|---|---|
+| `C` | 12 | $89 |
+| `LOKE` | 16 | $66,75 |
+| `Huevo` | 25 | $42,72 |
+| `8` | 30 | $35,60 |
+| `Pliego` (ex-Bombilla) | 25 | skin $915 el pliego |
+
+En la receta va **`1/posiciones`**. Se cargaron así los 8 pliegos de bombilla que no estaban en
+ninguna receta (654, 658, 659, 758, 759, 762, 763, 769), a **1/25**, igual que sus hermanos 557
+y 558 que ya estaban. **Ojo con el `Pliego Ad 500`**: es formato C como el 506, pero está
+cargado con precio **$89 y cantidad 1** mientras el 506 va con **$917 y 1/12**. Los dos dan un
+costo por artículo parecido ($89 contra $76,4), pero **están expresados distinto**: en el 500 el
+precio es POR POSICIÓN y en el 506 es el PLIEGO ENTERO. Sigue abierto en la idea 6116.
+
+**Copiar un precio "de un gemelo" es copiar del MISMO FORMATO (2026-09-03)** `[dato]` — me
+equivoqué el mismo día. Al `C1B` (Cartón 574) le puse $89 porque era el precio más repetido de
+los cartones, pero **C1B es formato `Huevo`**, o sea 25 posiciones, y ese formato vale **$42,72**;
+los $89 son del formato `C`. El gemelo del que hay que copiar es uno de su misma columna de la
+tabla de arriba, no cualquiera. En cambio el `K5D` (Cartón 104) **sí** iba a $89, porque su
+gemelo exacto es el Cartón 581, que es formato C.
+
+**Los códigos duplicados NO se renumeran (2026-09-03)** `[usuario: "los componentes que te mandé
+son los que ya existen, no los dupliques"]`: los cuatro pares `A1`, `A4`, `A8` y `A9` (una pieza
+de Procesado y una Caja en cada uno) **se quedan como están**. Lo que hay que hacer es
+**desambiguar por sector** cada vez que se resuelva un componente desde su código — y mejor,
+unir por `componente.id`.
+
 ## 3c-bis. Accesibilidad de carga: letra grande + teclado numérico (2026-08-30)
 
 `[usuario 2026-08-30]` Dicho textual: *"Siempre quiero letras bien grandes y legibles
