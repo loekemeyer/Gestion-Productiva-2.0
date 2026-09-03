@@ -1,7 +1,26 @@
 <!doctype html>
 <html lang="es">
 <head>
-<!-- v1.6.0 — esCharcasIt() detecta por proveedor solo (ya no filtra por sector 12).
+<!-- v1.7.0 — MODULO COMPLETO DE OC POR PROVEEDOR (usuario 2026-09-03: "desarrolla el
+     modulo completo para la generacion de OCs de los insumos de todos los proveedores.
+     Con el maximo que hablamos. Tiene que funcionar contra el stock actual y el maximo.
+     Y la orden debe generarse prolija con un lugar para poner la fecha de entrega
+     estimada x prov"):
+     (1) TODOS LOS PROVEEDORES: la botonera de proveedor se muestra SIEMPRE (antes solo
+         aparecia con un rubro elegido y 2+ proveedores, asi que habia proveedores a los
+         que no se les podia armar la OC). El proveedor es la eleccion principal — la OC
+         sale con SUS insumos — y el rubro quedo como filtro de arriba: al cambiarlo el
+         proveedor solo se limpia si ese proveedor no vende nada del rubro nuevo.
+     (2) CONTRA EL MAXIMO: columna Maximo (con su origen EM/fisico/5 caj) al lado de
+         Stock y Pend. OC, y debajo del sugerido la cuenta que lo explica
+         ("max - stock - pend"). El numero lo calcula el backend (oc_bundle):
+         sugerido = max(0, maximo - stock - pendiente_oc).
+     (3) FECHA DE ENTREGA ESTIMADA por OC: se propone sola con los dias_entrega del
+         proveedor (hoy + dias), se puede pisar a mano y viaja a crear_oc como
+         p_fecha_entrega (ademas de p.fecha_entrega). Se ve en la tarjeta de la OC.
+     (4) HOJA IMPRESA PROLIJA: membrete, bloque de datos con la entrega estimada
+         destacada, tabla con cebra y totales por moneda, y pie de firmas.
+     v1.6.0 — esCharcasIt() detecta por proveedor solo (ya no filtra por sector 12).
      Motivo: migracion f90(_v2) y f90b (2026-09-02) movieron F90 (id 372) y F90B
      (id 373) al sector 5 (Fleje) con unidad='kg'. La OC a Charcas sigue pidiendo
      en paquetes de 10 kg y disparando OC gemela a Altrak por kg de ALAM_FILTRO.
@@ -23,13 +42,13 @@
 <link rel="apple-touch-icon" href="../GP2_favicon.png">
 <style>
   .tabs{display:flex;gap:8px;margin:10px 0}
-  .tab-btn{padding:10px 18px;border-radius:10px;border:2px solid #d0d7de;background:#fff;font-weight:800;font-size:17px;cursor:pointer;color:#111}
+  .tab-btn{min-height:44px;padding:10px 18px;border-radius:10px;border:2px solid #d0d7de;background:#fff;font-weight:800;font-size:17px;cursor:pointer;color:#111}
   .tab-btn.active{background:#111;color:#fff;border-color:#111}
   .chips{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0}
-  .chip{padding:8px 14px;border-radius:20px;border:2px solid #d0d7de;background:#fff;font-weight:700;font-size:15px;cursor:pointer;color:#111}
-  .chip.active{background:#e7eff8;color:#fff;border-color:#cddaea}
+  .chip{padding:11px 16px;border-radius:22px;border:2px solid #d0d7de;background:#fff;font-weight:700;font-size:16px;cursor:pointer;color:#111;min-height:44px}
+  .chip.active{background:#0b3b73;color:#fff;border-color:#0b3b73}
   td.num{text-align:right;font-variant-numeric:tabular-nums}
-  .pedir-in{width:110px;padding:8px;font-size:18px;text-align:right;border:2px solid #d0d7de;border-radius:8px}
+  .pedir-in{width:112px;padding:10px 8px;font-size:19px;text-align:right;border:2px solid #d0d7de;border-radius:8px}
   .pedir-in.err{border-color:#eacdcd;background:#ffebee}
   tr.con-pedido td{background:#eef7ee}
   .sug{color:#b45309;font-weight:800;cursor:pointer;text-decoration:underline dotted}
@@ -56,6 +75,31 @@
   .oc-acts button.env{border-color:#cddaea;color:#0b3b73}
   .oc-acts button.rec{border-color:#cdead6;color:#0a7a2f}
   .oc-acts button.anu{border-color:#eacdcd;color:#c62828}
+  /* Filtros: el proveedor es la eleccion principal (la OC sale con SUS insumos),
+     el rubro es un filtro de arriba. Etiqueta visible al lado de cada botonera. */
+  .filtro{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:6px 0}
+  .filtro-lb{font-size:14px;font-weight:800;color:#555;text-transform:uppercase;letter-spacing:.5px;min-width:86px}
+  .filtro .chips{margin:0;flex:1}
+  .prov-info{background:#f6f8fa;border:2px solid #e6ebf0;border-radius:10px;padding:9px 12px;font-size:15px;color:#333;margin:8px 0}
+  .leyenda{font-size:14px;color:#555;margin:8px 0 4px}
+  .sub-nota{display:block;font-size:12px;color:#777;font-weight:400}
+  .sug-calc{display:block;font-size:12px;color:#8a6d3b;font-weight:600;white-space:nowrap}
+  td.bajo-min b, td.bajo-min{color:#b71c1c}
+  .campo{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+  .campo label{font-size:16px;font-weight:800;color:#333}
+  .campo-nota{flex:1;min-width:230px}
+  .campo-nota input{flex:1;min-width:170px}
+  .barra input[type=date]{padding:9px;font-size:19px;font-weight:700;min-height:44px;border:2px solid #d0d7de;border-radius:8px;color:#111;background:#fff}
+  .ayuda{font-size:13px;color:#0b3b73}
+  .badge.entrega{background:#fff3e0;color:#8a4b00;border:1px solid #f0d9b5}
+  /* 390px: nada de scroll horizontal en la pagina (las tablas scrollean en .table-wrap) */
+  @media(max-width:430px){
+    .filtro{flex-direction:column;align-items:flex-start;gap:4px}
+    .filtro-lb{min-width:0}
+    .campo,.campo-nota{width:100%}
+    .campo-nota input,.barra input[type=date]{width:100%}
+    .barra .btn-crear,.barra .btn-sug,.barra .btn-limpiar{flex:1;min-width:140px}
+  }
 </style>
 </head>
 <body>
@@ -73,16 +117,18 @@
     </div>
 
     <div id="panGen">
-      <div class="chips" id="rubros"></div>
-      <div class="chips" id="provs"></div>
+      <div class="filtro"><span class="filtro-lb">Rubro</span><div class="chips" id="rubros"></div></div>
+      <div class="filtro"><span class="filtro-lb">Proveedor</span><div class="chips" id="provs"></div></div>
+      <div class="prov-info" id="provInfo"></div>
       <div class="regla-carton hidden" id="reglaCarton"></div>
       <div class="search-box"><input type="text" id="q" placeholder="Buscar insumo…"></div>
+      <div class="leyenda">Sugerido = <b>Máximo</b> − <b>Stock</b> − <b>Pendiente de OC</b>. Tocá el número naranja y pasa a “Pedir”.</div>
       <div class="table-wrap">
         <table class="t">
           <thead><tr>
             <th>Insumo</th><th>Proveedor</th>
-            <th class="num">Consumo<br>/mes</th><th class="num">Meses</th>
-            <th class="num">Stock</th><th class="num">Pend.<br>OC</th>
+            <th class="num">Consumo<br>/mes</th>
+            <th class="num">Stock<br>actual</th><th class="num">Máximo</th><th class="num">Pend.<br>OC</th>
             <th class="num">Sugerido</th><th class="num">Precio</th><th class="num">Pedir</th><th class="num">Subtotal</th>
           </tr></thead>
           <tbody id="tbody"></tbody>
@@ -94,7 +140,18 @@
         <button type="button" class="btn-sug" id="btnSug">Usar sugeridos</button>
         <button type="button" class="btn-limpiar" id="btnLimpiar">Limpiar</button>
         <span class="tot" id="tot">0 ítems</span>
-        <input type="text" id="nota" placeholder="Nota (opcional)">
+      </div>
+
+      <div class="barra">
+        <div class="campo">
+          <label for="fechaEnt">Entrega estimada</label>
+          <input type="date" id="fechaEnt">
+          <span class="ayuda" id="fechaAyuda"></span>
+        </div>
+        <div class="campo campo-nota">
+          <label for="nota">Nota</label>
+          <input type="text" id="nota" placeholder="Opcional: dónde entregar, contacto…">
+        </div>
         <button type="button" class="btn-crear" id="btnCrear" disabled>Crear OC</button>
       </div>
     </div>
@@ -132,8 +189,47 @@ function fmtTotalMon(usd, ars){
   return partes.length?partes.join(' + '):'—';
 }
 
+// Fechas: el <input type=date> trabaja en ISO (aaaa-mm-dd) y en pantalla va dd/mm/aaaa.
+// Se arma en hora LOCAL a proposito (toISOString correria un dia con el huso de AR).
+function isoLocal(d){
+  var m=String(d.getMonth()+1), dd=String(d.getDate());
+  return d.getFullYear()+'-'+(m.length<2?'0':'')+m+'-'+(dd.length<2?'0':'')+dd;
+}
+function hoyMas(dias){ var d=new Date(); d.setDate(d.getDate()+(Number(dias)||0)); return isoLocal(d); }
+function fmtFecha(iso){
+  if(!iso) return '';
+  var p=String(iso).slice(0,10).split('-');
+  return p.length===3 ? (p[2]+'/'+p[1]+'/'+p[0]) : String(iso);
+}
+// Lectura tolerante del bundle: el contrato nuevo manda stock / consumo_uni_mes / maximo,
+// el viejo mandaba online / consumo. La pantalla entiende los dos y no se rompe si falta.
+function vStock(i){ return i.stock!=null ? Number(i.stock) : (i.online!=null?Number(i.online):null); }
+function vConsumo(i){ return i.consumo_uni_mes!=null ? Number(i.consumo_uni_mes) : (i.consumo!=null?Number(i.consumo):null); }
+function vMaximo(i){ return i.maximo!=null ? Number(i.maximo) : null; }
+function vPend(i){ return Number(i.pendiente_oc)||0; }
+// De donde viene el maximo (CONOCIMIENTO_GP2 §2e-bis): est_madre = derivado del consumo,
+// fisico / cinco_cajones = lo que entra fisicamente en el lugar.
+function tagOrigen(o){
+  o=String(o||'');
+  if(o==='est_madre') return 'EM';
+  if(o==='cinco_cajones') return '5 caj';
+  if(o==='fisico') return 'físico';
+  return o;
+}
+// La cuenta que explica el sugerido, debajo del numero: que nadie tenga que adivinarlo.
+function explicaSug(i){
+  var mx=vMaximo(i), st=vStock(i), pe=vPend(i);
+  if(mx!=null) return 'máx '+fmt(mx)+' − stock '+fmt(st==null?0:st)+(pe>0?(' − pend '+fmt(pe)):'');
+  var c=vConsumo(i);
+  if(c!=null && i.meses!=null) return 'cons '+fmt(c,1)+' × '+i.meses+' m − stock '+fmt(st==null?0:st)+(pe>0?(' − pend '+fmt(pe)):'');
+  return '';
+}
+
 var D={}, PAQ=250, rubroSel=null, provSel=null;
 var PEDIDO={}; // comp_id -> cantidad
+// Fecha de entrega: se propone sola (hoy + dias_entrega del proveedor). Si el usuario la
+// pisa a mano, se respeta mientras siga en el mismo proveedor.
+var fechaTocada=false, fechaTocadaProv=null;
 
 async function boot(){
   var r=await SB.rpc('oc_bundle');
@@ -141,6 +237,7 @@ async function boot(){
   D=r.data||{};
   PAQ=Number(D.paq)||250;
   pintarRubros();
+  proponerFecha();
   pintarOcs();
   $('status').textContent='';
 }
@@ -157,27 +254,101 @@ function pintarRubros(){
   var g=$('rubros'); g.innerHTML='';
   rubrosDistintos().forEach(function(rb){
     var b=document.createElement('button'); b.type='button'; b.className='chip'+(rubroSel===rb.id?' active':''); b.textContent=rb.nombre;
-    b.addEventListener('click',function(){ rubroSel=(rubroSel===rb.id?null:rb.id); provSel=null; pintarRubros(); });
+    b.addEventListener('click',function(){
+      rubroSel=(rubroSel===rb.id?null:rb.id);
+      // El proveedor NO se limpia siempre: solo si ya no vende nada de este rubro. Asi se
+      // puede elegir primero el proveedor (que es como se arma la OC) y despues afinar.
+      if(provSel!=null && provsDistintos().indexOf(provSel)<0) provSel=null;
+      pintarRubros();
+      proponerFecha();
+    });
     g.appendChild(b);
   });
   pintarProvs();
   render();
 }
 
+// Todos los proveedores que tienen insumos en el rubro elegido (o TODOS si no hay rubro).
+// Antes esta lista solo aparecia con un rubro elegido y 2+ proveedores: a un proveedor
+// solitario o de varios rubros no se le podia armar la OC.
+function provsDistintos(){
+  var seen={}, out=[];
+  (D.insumos||[]).forEach(function(i){
+    if(rubroSel!=null && i.sector_id!==rubroSel) return;
+    var p=i.proveedor||'(sin proveedor)';
+    if(!seen[p]){ seen[p]=true; out.push(p); }
+  });
+  out.sort(function(a,b){ return String(a).localeCompare(String(b),'es'); });
+  return out;
+}
+
 function pintarProvs(){
   var g=$('provs'); g.innerHTML='';
-  if(rubroSel==null) return;
-  var seen={}, provs=[];
-  (D.insumos||[]).filter(function(i){ return i.sector_id===rubroSel; }).forEach(function(i){
-    var p=i.proveedor||'(sin proveedor)';
-    if(!seen[p]){ seen[p]=true; provs.push(p); }
-  });
-  if(provs.length<2) return;
-  provs.forEach(function(p){
+  provsDistintos().forEach(function(p){
     var b=document.createElement('button'); b.type='button'; b.className='chip'+(provSel===p?' active':''); b.textContent=p;
-    b.addEventListener('click',function(){ provSel=(provSel===p?null:p); pintarProvs(); render(); });
+    b.addEventListener('click',function(){
+      provSel=(provSel===p?null:p);
+      pintarProvs(); proponerFecha(); render();
+    });
     g.appendChild(b);
   });
+  pintarProvInfo();
+}
+
+// Datos del proveedor tal como los manda oc_bundle (lista proveedores con dias_entrega).
+function nombreProv(p){ return String((p&&(p.nombre||p.proveedor||p.prov))||''); }
+function provInfo(nom){
+  if(!nom) return null;
+  var k=String(nom).trim().toLowerCase(), ps=D.proveedores||[];
+  for(var x=0;x<ps.length;x++) if(nombreProv(ps[x]).trim().toLowerCase()===k) return ps[x];
+  return null;
+}
+function diasEntregaProv(nom){
+  var p=provInfo(nom), d=p?Number(p.dias_entrega):NaN;
+  if(!(isFinite(d)&&d>0)){
+    // por si el plazo viaja en la fila del insumo en vez de la lista de proveedores
+    var it=(D.insumos||[]).filter(function(i){ return (i.proveedor||'')===nom && i.dias_entrega!=null; })[0];
+    d = it?Number(it.dias_entrega):NaN;
+  }
+  return (isFinite(d)&&d>0)?d:null;
+}
+
+function pintarProvInfo(){
+  var el=$('provInfo');
+  if(!el) return;
+  if(provSel==null){
+    el.innerHTML='<b>Elegí un proveedor</b> — la orden sale sólo con SUS insumos. El rubro es un filtro de arriba, no hace falta para pedir.';
+    return;
+  }
+  var xs=(D.insumos||[]).filter(function(i){
+    return (i.proveedor||'(sin proveedor)')===provSel && (rubroSel==null || i.sector_id===rubroSel);
+  });
+  var conSug=xs.filter(function(i){ return i.sugerido>0; }).length;
+  var d=diasEntregaProv(provSel);
+  el.innerHTML='<b>'+esc(provSel)+'</b> · '+xs.length+' insumo'+(xs.length===1?'':'s')+
+    ' · '+conSug+' con sugerido'+(d!=null?(' · entrega en '+d+' día'+(d===1?'':'s')):' · sin plazo de entrega cargado');
+}
+
+// Propone hoy + dias_entrega del proveedor. No pisa lo que el usuario escribio a mano
+// mientras siga parado en el mismo proveedor.
+function proponerFecha(){
+  var inp=$('fechaEnt');
+  if(!inp) return;
+  if(!(fechaTocada && fechaTocadaProv===provSel)){
+    var d=(provSel!=null)?diasEntregaProv(provSel):null;
+    inp.value = (d!=null) ? hoyMas(d) : '';
+    fechaTocada=false; fechaTocadaProv=null;
+  }
+  pintarAyudaFecha();
+}
+function pintarAyudaFecha(){
+  var ay=$('fechaAyuda');
+  if(!ay) return;
+  if(provSel==null){ ay.textContent='Elegí el proveedor y se propone sola.'; return; }
+  var d=diasEntregaProv(provSel);
+  if(fechaTocada) ay.textContent='Puesta a mano para '+provSel+'.';
+  else if(d!=null) ay.textContent='Hoy + '+d+' día'+(d===1?'':'s')+' ('+provSel+').';
+  else ay.textContent=provSel+' no tiene plazo cargado: ponela a mano.';
 }
 
 function filtradas(){
@@ -200,6 +371,17 @@ function esCharcasIt(i){
 // Uni por paquete de Charcas (10 kg de producto): 10 / kg_x_uni.
 function uniPorPaqCharcas(i){ return i && i.kg_x_uni>0 ? Math.round(10 / Number(i.kg_x_uni)) : 0; }
 
+// Cuanto se carga en "Pedir" cuando se toma el sugerido. Charcas viene en uni y se
+// pide en paquetes de 10 kg: se convierte y se redondea PARA ARRIBA (no quedar corto).
+function valorSugerido(i){
+  if(!(i && i.sugerido>0)) return 0;
+  if(esCharcasIt(i)){
+    var uxp=uniPorPaqCharcas(i);
+    if(uxp>0) return Math.max(1, Math.ceil(i.sugerido/uxp));
+  }
+  return i.sugerido;
+}
+
 function render(){
   var fs=filtradas();
   $('tbody').innerHTML=fs.map(function(i){
@@ -207,6 +389,8 @@ function render(){
     var esCarton=i.sector_id===10;
     var esChar=esCharcasIt(i);
     var uxpChar=esChar ? uniPorPaqCharcas(i) : 0;
+    var st=vStock(i), mx=vMaximo(i), pe=vPend(i), co=vConsumo(i), calc=explicaSug(i);
+    var bajoMin=(i.minimo!=null && st!=null && st<Number(i.minimo));
     // Charcas: input en PAQUETES; el sugerido se convierte a paq (round up).
     // La equivalencia "= N uni" se muestra al lado del input.
     var paqEq=(esCarton && ped>0)?('<span class="paq-eq">= '+fmt(ped/PAQ,1)+' paq de '+PAQ+'</span>')
@@ -215,11 +399,14 @@ function render(){
       '<td><b>'+esc(i.codigo||'—')+'</b><br><small style="color:#777">'+esc(i.descripcion||'')+
         (i.carton_formato?(' · Formato '+esc(i.carton_formato)):'')+'</small></td>'+
       '<td>'+esc(i.proveedor||'—')+'</td>'+
-      '<td class="num">'+(i.consumo==null?'—':('<span class="cd-tocable" data-det="'+i.comp_id+'">'+fmt(i.consumo,1)+' '+i.unidad+'</span>'))+'</td>'+
-      '<td class="num">'+(i.meses==null?'—':i.meses)+'</td>'+
-      '<td class="num">'+fmt(i.online)+' '+i.unidad+'</td>'+
-      '<td class="num">'+(i.pendiente_oc>0?fmt(i.pendiente_oc):'—')+'</td>'+
-      '<td class="num"><span class="sug" data-sug="'+i.comp_id+'">'+fmt(i.sugerido)+'</span></td>'+
+      '<td class="num">'+(co==null?'—':('<span class="cd-tocable" data-det="'+i.comp_id+'">'+fmt(co,1)+' '+i.unidad+'</span>'))+'</td>'+
+      '<td class="num'+(bajoMin?' bajo-min':'')+'">'+(st==null?'—':(fmt(st)+' '+esc(i.unidad)))+
+        (i.minimo!=null?('<span class="sub-nota">mín '+fmt(i.minimo)+'</span>'):'')+'</td>'+
+      '<td class="num">'+(mx==null?'—':fmt(mx))+
+        (mx!=null&&i.maximo_origen?('<span class="sub-nota">'+esc(tagOrigen(i.maximo_origen))+'</span>'):'')+'</td>'+
+      '<td class="num">'+(pe>0?fmt(pe):'—')+'</td>'+
+      '<td class="num"><span class="sug" data-sug="'+i.comp_id+'" title="Tocá y pasa a Pedir">'+fmt(i.sugerido)+'</span>'+
+        (calc?('<span class="sug-calc">'+esc(calc)+'</span>'):'')+'</td>'+
       '<td class="num">'+fmtPrecio(i)+'</td>'+
       '<td class="num"><input class="pedir-in" data-in="'+i.comp_id+'" inputmode="decimal" value="'+(ped?String(ped).replace('.',','):'')+'" placeholder="'+i.unidad+'">'+paqEq+'</td>'+
       '<td class="num sub-item">'+(ped>0&&i.precio!=null?((i.moneda==='ARS'?'$ ':'US$ ')+fmt(ped*i.precio,2)):'—')+'</td>'+
@@ -242,16 +429,8 @@ function render(){
     sp.addEventListener('click',function(){
       var id=Number(sp.dataset.sug);
       var it=(D.insumos||[]).filter(function(x){return x.comp_id===id;})[0];
-      if(it && it.sugerido>0){
-        // Charcas: el sugerido esta en uni, se pide en paq. Convertir y
-        // redondear para arriba (no queremos quedar cortos por decimal).
-        var val = it.sugerido;
-        if(esCharcasIt(it)){
-          var uxp = uniPorPaqCharcas(it);
-          if(uxp>0) val = Math.max(1, Math.ceil(it.sugerido / uxp));
-        }
-        PEDIDO[id]=val; render(); barra();
-      }
+      var val=valorSugerido(it);
+      if(val>0){ PEDIDO[id]=val; render(); barra(); }
     });
   });
   barra();
@@ -324,10 +503,13 @@ function barra(){
 }
 
 $('btnSug').addEventListener('click',function(){
-  filtradas().forEach(function(i){ if(i.sugerido>0) PEDIDO[i.comp_id]=i.sugerido; });
+  filtradas().forEach(function(i){ var v=valorSugerido(i); if(v>0) PEDIDO[i.comp_id]=v; });
   render();
 });
 $('btnLimpiar').addEventListener('click',function(){ PEDIDO={}; render(); });
+$('fechaEnt').addEventListener('change',function(){
+  fechaTocada=!!$('fechaEnt').value; fechaTocadaProv=provSel; pintarAyudaFecha();
+});
 
 $('btnCrear').addEventListener('click', async function(){
   var items=itemsPedidos();
@@ -335,19 +517,25 @@ $('btnCrear').addEventListener('click', async function(){
   $('btnCrear').disabled=true;
   try{
     var rubro = rubroSel!=null ? (rubrosDistintos().filter(function(r){return r.id===rubroSel;})[0]||{}).nombre : null;
+    // Fecha de entrega estimada: viaja como parametro propio (p_fecha_entrega, el que
+    // agrego crear_oc) y tambien dentro de p, para que no dependa del orden de deploy.
+    var fEnt = ($('fechaEnt').value||'').trim() || null;
     var r=await SB.rpc('crear_oc',{ p:{
       proveedor: provSel && provSel!=='(sin proveedor)' ? provSel : null,
       rubro: rubro, nota: ($('nota').value||'').trim() || null, usuario: null,
+      fecha_entrega: fEnt,
       items: items.map(function(x){ return {comp_id:x.comp_id, cantidad:x.cantidad, unidad:x.unidad}; })
-    }});
+    }, p_fecha_entrega: fEnt });
     if(r.error) throw r.error;
     PEDIDO={}; $('nota').value='';
+    fechaTocada=false; fechaTocadaProv=null;
     await boot();
     mostrarTab('ocs');
     var gemA = r.data && r.data.oc_gemela_altrak;
     var gemP = r.data && r.data.oc_gemela_aperam;
     $('status').className='status ok';
     $('status').innerHTML='✓ OC N° '+r.data.numero+' creada con '+r.data.items+' ítems (borrador).' +
+      (fEnt?(' Entrega estimada: '+fmtFecha(fEnt)+'.'):'') +
       (gemA ? ('<br><b style="color:#0b3b73">✓ OC gemela N° '+gemA.numero+' a Altrak con '+fmt(gemA.kg_alambre)+' kg de alambre.</b>') : '') +
       (gemP ? ('<br><b style="color:#0b3b73">✓ OC gemela N° '+gemP.numero+' a Aperam con '+fmt(gemP.kg_chapa)+' kg de chapa 430.</b>') : '');
     setTimeout(function(){ $('status').innerHTML=''; $('status').className='status'; }, (gemA||gemP) ? 12000 : 6000);
@@ -371,6 +559,7 @@ function pintarOcs(){
       (o.proveedor?('<span>'+esc(o.proveedor)+'</span>'):'')+
       (o.rubro?('<span style="color:#777">'+esc(o.rubro)+'</span>'):'')+
       '<span style="color:#777">'+new Date(o.creado_en).toLocaleDateString('es-AR')+'</span>'+
+      (o.fecha_entrega?('<span class="badge entrega">Entrega '+fmtFecha(o.fecha_entrega)+'</span>'):'')+
       ((o.total_usd>0||o.total_ars>0)?('<span style="font-weight:800">'+fmtTotalMon(Number(o.total_usd)||0,Number(o.total_ars)||0)+'</span>'):'')+
       '<div class="oc-acts">'+acts+'</div></div>'+
       (o.nota?('<div style="color:#555;font-size:14px;margin-top:4px">'+esc(o.nota)+'</div>'):'')+
@@ -403,34 +592,78 @@ function pintarOcs(){
   });
 }
 
-// Hoja limpia para mandar/imprimir la OC al proveedor
+// Hoja limpia para mandar/imprimir la OC al proveedor.
+// Membrete + bloque de datos (con la ENTREGA ESTIMADA destacada) + tabla + total + firmas.
 function imprimirOC(ocId){
   var o=(D.ocs||[]).filter(function(x){ return x.id===ocId; })[0];
   if(!o) return;
   var w=window.open('','_blank');
   if(!w){ alert('El navegador bloqueó la ventana de impresión.'); return; }
-  var html='<!doctype html><html lang="es"><head><meta charset="utf-8"><title>OC N° '+o.numero+'</title>'+
-    '<style>body{font-family:Arial;padding:32px;color:#111}h1{font-size:24px;margin:0 0 4px}'+
-    '.meta{color:#555;margin-bottom:18px;font-size:15px}table{width:100%;border-collapse:collapse;font-size:15px}'+
-    'th{background:#f0f0f0;text-align:left;padding:8px;border:1px solid #bbb}td{padding:8px;border:1px solid #bbb}'+
-    'td.num{text-align:right}.nota{margin-top:16px;color:#444;font-size:14px}.pie{margin-top:28px;color:#888;font-size:12px}</style></head><body>'+
-    '<h1>Orden de Compra N° '+o.numero+'</h1>'+
-    '<div class="meta">'+(o.proveedor?('Proveedor: <b>'+esc(o.proveedor)+'</b> · '):'')+
-    (o.rubro?('Rubro: '+esc(o.rubro)+' · '):'')+'Fecha: '+new Date(o.creado_en).toLocaleDateString('es-AR')+'</div>'+
-    '<table><thead><tr><th>Código</th><th>Descripción</th><th style="text-align:right">Cantidad</th>'+
-    '<th style="text-align:right">Precio unit.</th><th style="text-align:right">Subtotal</th></tr></thead><tbody>'+
-    (o.items||[]).map(function(it){
-      var mon=it.moneda==='ARS'?'$ ':'US$ ';
-      return '<tr><td><b>'+esc(it.codigo)+'</b></td><td>'+esc(it.descripcion||'')+'</td>'+
-        '<td class="num">'+fmt(it.cantidad)+' '+esc(it.unidad)+'</td>'+
-        '<td class="num">'+(it.precio_uni==null?'—':mon+fmt(it.precio_uni,2))+'</td>'+
-        '<td class="num">'+(it.subtotal==null?'—':mon+fmt(it.subtotal,2))+'</td></tr>';
-    }).join('')+
+  var entrega = o.fecha_entrega ? fmtFecha(o.fecha_entrega) : '';
+  var emision = new Date(o.creado_en).toLocaleDateString('es-AR');
+  var totLinea = (o.total_usd>0||o.total_ars>0) ? fmtTotalMon(Number(o.total_usd)||0,Number(o.total_ars)||0) : '';
+  var css=
+    '@page{size:A4;margin:14mm}'+
+    '*{box-sizing:border-box}'+
+    'body{font-family:Arial,Helvetica,sans-serif;color:#111;margin:0;padding:26px;font-size:14px;background:#fff}'+
+    '.hoja{max-width:840px;margin:0 auto}'+
+    '.top{display:flex;justify-content:space-between;align-items:flex-start;gap:20px;border-bottom:3px solid #111;padding-bottom:10px}'+
+    '.emp{font-size:23px;font-weight:800;letter-spacing:.5px;line-height:1.1}'+
+    '.emp span{display:block;font-size:12px;font-weight:400;color:#555;letter-spacing:0;margin-top:3px}'+
+    '.oc-n{text-align:right}'+
+    '.oc-n .n{font-size:21px;font-weight:800;white-space:nowrap}'+
+    '.oc-n .e{font-size:12px;color:#555;margin-top:4px}'+
+    '.datos{display:flex;gap:10px;margin:16px 0 8px;flex-wrap:wrap}'+
+    '.dato{flex:1;min-width:150px;border:1px solid #bbb;border-radius:6px;padding:8px 10px}'+
+    '.dato .lb{font-size:10px;text-transform:uppercase;color:#666;letter-spacing:.7px}'+
+    '.dato .vl{font-size:16px;font-weight:700;margin-top:3px}'+
+    '.dato.entrega{border:2px solid #111;background:#f0f0f0}'+
+    '.dato.entrega .lb{color:#111;font-weight:800}'+
+    '.dato.entrega .vl{font-size:19px}'+
+    'table{width:100%;border-collapse:collapse;font-size:14px;margin-top:10px}'+
+    'th{background:#ececec;text-align:left;padding:8px;border:1px solid #999;font-size:11px;text-transform:uppercase;letter-spacing:.5px}'+
+    'td{padding:8px;border:1px solid #bbb;vertical-align:top}'+
+    'tbody tr:nth-child(even) td{background:#fafafa}'+
+    'td.num,th.num{text-align:right;white-space:nowrap}'+
+    '.cod{font-weight:800}'+
+    '.tot{margin-top:12px;text-align:right;font-size:18px;font-weight:800}'+
+    '.tot small{display:block;font-size:11px;font-weight:400;color:#666;margin-top:2px}'+
+    '.nota{margin-top:14px;border-left:4px solid #999;padding:6px 12px;color:#333;font-size:13px}'+
+    '.firmas{display:flex;gap:44px;margin-top:52px}'+
+    '.firma{flex:1;border-top:1px solid #111;padding-top:6px;font-size:11px;color:#555;text-align:center}'+
+    '.pie{margin-top:26px;border-top:1px solid #ddd;padding-top:8px;color:#888;font-size:11px;display:flex;justify-content:space-between;gap:10px}'+
+    '@media print{body{padding:0}tbody tr{page-break-inside:avoid}thead{display:table-header-group}}';
+  var filas=(o.items||[]).map(function(it){
+    var mon=it.moneda==='ARS'?'$ ':'US$ ';
+    return '<tr><td class="cod">'+esc(it.codigo)+'</td><td>'+esc(it.descripcion||'')+'</td>'+
+      '<td class="num">'+fmt(it.cantidad)+' '+esc(it.unidad)+'</td>'+
+      '<td class="num">'+(it.precio_uni==null?'—':mon+fmt(it.precio_uni,2))+'</td>'+
+      '<td class="num">'+(it.subtotal==null?'—':mon+fmt(it.subtotal,2))+'</td></tr>';
+  }).join('');
+  var html='<!doctype html><html lang="es"><head><meta charset="utf-8">'+
+    '<title>OC N° '+o.numero+(o.proveedor?(' · '+esc(o.proveedor)):'')+'</title><style>'+css+'</style></head><body><div class="hoja">'+
+    '<div class="top">'+
+      '<div class="emp">LOEKEMEYER<span>Gestión Productiva 2.0 · Compras</span></div>'+
+      '<div class="oc-n"><div class="n">Orden de Compra N° '+o.numero+'</div>'+
+      '<div class="e">Emitida el '+emision+(o.estado?(' · '+esc(o.estado)):'')+'</div></div>'+
+    '</div>'+
+    '<div class="datos">'+
+      '<div class="dato"><div class="lb">Proveedor</div><div class="vl">'+esc(o.proveedor||'—')+'</div></div>'+
+      '<div class="dato"><div class="lb">Rubro</div><div class="vl">'+esc(o.rubro||'—')+'</div></div>'+
+      '<div class="dato entrega"><div class="lb">Fecha de entrega estimada</div>'+
+        '<div class="vl">'+(entrega||'____ / ____ / ________')+'</div></div>'+
+    '</div>'+
+    '<table><thead><tr><th>Código</th><th>Descripción</th><th class="num">Cantidad</th>'+
+    '<th class="num">Precio unit.</th><th class="num">Subtotal</th></tr></thead><tbody>'+
+    (filas||'<tr><td colspan="5">Sin ítems.</td></tr>')+
     '</tbody></table>'+
-    ((o.total_usd>0||o.total_ars>0)?('<div style="text-align:right;font-size:17px;font-weight:800;margin-top:10px">Total: '+fmtTotalMon(Number(o.total_usd)||0,Number(o.total_ars)||0)+'</div>'):'')+
-    (o.nota?('<div class="nota">Nota: '+esc(o.nota)+'</div>'):'')+
-    '<div class="pie">Loekemeyer · Gestión Productiva 2.0</div>'+
-    '</body></html>';
+    (totLinea?('<div class="tot">Total: '+totLinea+'<small>Precios sin IVA</small></div>'):'')+
+    (o.nota?('<div class="nota"><b>Nota:</b> '+esc(o.nota)+'</div>'):'')+
+    '<div class="firmas"><div class="firma">Firma y aclaración · Loekemeyer</div>'+
+    '<div class="firma">Recibido por · '+esc(o.proveedor||'proveedor')+'</div></div>'+
+    '<div class="pie"><span>Loekemeyer · Gestión Productiva 2.0</span>'+
+    '<span>Impreso el '+new Date().toLocaleDateString('es-AR')+'</span></div>'+
+    '</div></body></html>';
   w.document.write(html);
   w.document.close();
   w.focus();
