@@ -6,7 +6,17 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<!-- v3.41.0 (2026-09-03) — BOMBILLAS VA AL CONTROL AL CERRAR EL REMITO (usuario: "en bombillas, cuando termina de cargar un remito, no me manda al control de bombillas, quiero que me mande"). Faltaba el sector 7 en CONTROL_URL: era la unica linea, porque control-remaches.js ya es generico por sector (?sector=N, el titulo sale del bundle) y control_kg_bundle(7) ya devolvia "Sector Bombilla". v3.40.2 (2026-09-02) — LIMPIEZA de codigo muerto que dejaron v3.40.0 y la Fase B:
+<!-- v3.41.1 (2026-09-03) — FIX: cargar un paquete de 100 pliegos disparaba el falso aviso de
+     "diferencia mayor al 10%" (usuario: "cuando voy a cargar un paquete de pliegos (100) me
+     aparece el cartel por que?"). Decia "declarado 100 paq - contado 0 paq - dif -100" por dos
+     cuentas distintas: (a) el pliego se DECLARA en unidades (100 pliegos) y se CONTROLA en
+     paquetes (1), y el aviso comparaba los dos numeros como si fueran la misma unidad;
+     (b) los paquetes equivalentes de un pliego salian de Math.round(uni_x_bolsa/uni_x_paquete)
+     = Math.round(100/250) = 0, asi que el contado siempre daba cero. Ahora un solo helper
+     ctlComparacion(it) pone declarado y contado en la MISMA unidad y lo usan la linea de la
+     pantalla y el aviso; y el paquete de un pliego vale 1 paquete, no 0. Lo que se guardaba en
+     la base ya estaba bien (la RPC hace 1 x 100 = 100 uni): era solo el aviso.
+     v3.41.0 (2026-09-03) — BOMBILLAS VA AL CONTROL AL CERRAR EL REMITO (usuario: "en bombillas, cuando termina de cargar un remito, no me manda al control de bombillas, quiero que me mande"). Faltaba el sector 7 en CONTROL_URL: era la unica linea, porque control-remaches.js ya es generico por sector (?sector=N, el titulo sale del bundle) y control_kg_bundle(7) ya devolvia "Sector Bombilla". v3.40.2 (2026-09-02) — LIMPIEZA de codigo muerto que dejaron v3.40.0 y la Fase B:
      (a) CSS .qbtn-minus / .qbtn-minus:hover — el boton -N/-1 de cartones se saco en
      v3.40.0 y la clase ya no la usa nadie; (b) los stubs esFiltroCharcas() /
      esCortadoEclipse() (return false) que quedaron de la Fase B Charcas/Eclipse —
@@ -1868,12 +1878,28 @@ function ctlTotales(it){
   var raw = pint(it.controlado)||0, upp = PAQ();
   var uxb = uniXCtlItem(it);
   if (uxb){
-    var pxb = paqXBolsaDelItem(it)||Math.round(uxb/upp);
+    // Para un pliego la "bolsa" ES el paquete (100 pliegos): 1 contado = 1 paquete.
+    // Derivarlo de uni_x_paquete daba Math.round(100/250) = 0 y el control de
+    // pliegos mostraba SIEMPRE 0 paquetes contados.
+    var pxb = esPliegoIt(it) ? 1 : (paqXBolsaDelItem(it)||Math.round(uxb/upp));
     return { unidad_ctl:'bolsa', bolsas:raw, uni_x_bolsa:uxb, paq_x_bolsa:pxb,
              paq: raw*pxb, uni: raw*uxb, upp:upp };
   }
   return { unidad_ctl:'paq', bolsas:null, uni_x_bolsa:null, paq_x_bolsa:null,
            paq:raw, uni:raw*upp, upp:upp };
+}
+/* Declarado y contado EN LA MISMA UNIDAD, para poder compararlos.
+   Un pliego se declara en el remito en UNIDADES (pliegos) y se controla en
+   PAQUETES de 100, asi que la comparacion va en pliegos; un carton se declara
+   y se compara en paquetes. Mezclarlos daba el falso aviso de "diferencia
+   mayor al 10%" al cargar un paquete de 100 pliegos (leia 100 declarados
+   contra 1 contado) [usuario 2026-09-03]. */
+function ctlComparacion(it){
+  var t = ctlTotales(it), decl = Number(it.declaradoPaq)||0;
+  var pliego = esPliegoIt(it);
+  var ctl = pliego ? t.uni : t.paq;
+  return { decl:decl, ctl:ctl, dif:ctl-decl, unidad:(pliego?'pliegos':'paq'),
+           pct:(decl>0 ? Math.abs(ctl-decl)*100/decl : 0) };
 }
 function ctlLinea(it){
   var t = ctlTotales(it), decl = Number(it.declaradoPaq)||0;
@@ -1892,10 +1918,10 @@ function ctlLinea(it){
     }
     return declLbl+' · cargá los paquetes que contaste.';
   }
-  // Diferencia: para pliegos comparamos uni (declarado) vs t.uni (controlado); para cartón comparamos paq vs paq.
-  var declComp = pliego ? decl : decl;
-  var ctlComp  = pliego ? t.uni : t.paq;
-  var dif = ctlComp - declComp, pct = declComp>0 ? Math.abs(dif)*100/declComp : 0;
+  // Diferencia: para pliegos comparamos pliegos (declarado) vs t.uni (controlado);
+  // para cartón comparamos paq vs paq. Lo resuelve ctlComparacion, el mismo que usa el aviso del 10%.
+  var cmp = ctlComparacion(it);
+  var dif = cmp.dif, pct = cmp.pct;
   var color = (dif===0 ? '#0a7a2f' : (pct<=10 ? '#b45309' : '#b42318'));
   var izq = declLbl;
   var ctr;
@@ -2184,11 +2210,12 @@ async function guardarControlCartones(){
     return;
   }
   var alertas = CTL.items.filter(function(it){
-    var decl=Number(it.declaradoPaq)||0, paq=ctlTotales(it).paq;
-    return decl>0 && Math.abs(paq-decl)*100/decl > 10;
+    var c = ctlComparacion(it);
+    return c.decl>0 && c.pct > 10;
   }).map(function(it){
-    var t=ctlTotales(it), d=t.paq-(Number(it.declaradoPaq)||0);
-    return it.codigo+': declarado '+fmt(it.declaradoPaq)+' paq · contado '+fmt(t.paq)+' paq · dif '+(d>0?'+':'')+fmt(d);
+    var c = ctlComparacion(it);
+    return it.codigo+': declarado '+fmt(c.decl)+' '+c.unidad+' · contado '+fmt(c.ctl)+' '+c.unidad+
+           ' · dif '+(c.dif>0?'+':'')+fmt(c.dif);
   });
   if(alertas.length && !confirm(
     '⚠ Diferencia mayor al 10% en:\n\n'+alertas.join('\n')+

@@ -1087,6 +1087,42 @@ rutas alternativas describen el mismo trabajo, todo lo que comparten se cuenta u
 el insumo, el armado del tallerista, el servicio. Si aparece otro CTE que sume por ruta, tiene
 el mismo bug.
 
+**CADA ARTICULO LLEVA UN CARTON O UN PLIEGO — uno, y sólo uno (2026-09-03)** `[usuario]`:
+textual, *"chequea que cada artículo tenga un cartón o pliego. No estaría bien que alguno no
+tenga o tenga cartón + pliego"*. **Es una regla de integridad y hoy se cumple**: de los 99
+artículos, **ninguno lleva los dos** y todos llevan uno, con una sola excepción — el **071**,
+que **va sin cartón a propósito** `[usuario 2026-09-03: "al 071 no le hagas cartón"]`. O sea que
+la regla es "uno o ninguno, nunca los dos": si un artículo no lleva cartón ni pliego **no hay que
+inventarle uno**, hay que preguntar.
+
+El chequeo hay que hacerlo **por receta Y por ruta**, porque son dos cosas distintas (la receta
+manda el consumo, la ruta manda el costo) y pueden no coincidir. Así apareció el **516**: tenía
+el cartón `L4B1` en la receta pero **ninguna ruta lo declaraba**, o sea el consumo lo pedía y el
+costo no lo pagaba. La causa era que la ruta 323 (*Insumo CART516 → Art 516*) **existía sin su
+paso 1**, el que declara el cartón: arrancaba directo en el paso del tallerista, mientras sus
+hermanas sí lo tenían. Se buscó el patrón en todo el proyecto y **era la única ruta con ese
+agujero**. Corregida, el 516 sube $89.
+
+La consulta que lo verifica, por si hay que repetirla: contar los componentes del Sector Cartón
+que cada artículo declara en `articulo_componente` y en `ruta_paso` (pasos `insumo`/`ingreso`),
+y pedir que las dos cuentas den **exactamente 1**.
+
+**El nombre que se ve NO es la llave del proceso (2026-09-03)** `[usuario]` — pidió prolijidad en
+Envío/Entrega a Proveedores de Servicio: *"el de AJ, que en realidad es AJ Adhesivos nomás sin la
+barra, y el de Máspoli, que dice armado de mango. No tiene mayúscula ninguno de los dos... y en
+vez de armado de mango, armado mango"*. Quedaron **`AJ Adhesivos · Adhesivado`** y **`Maspoli SRL
+· Armado Mango`**. Lo importante para la próxima vez: hay **dos lugares** con el proceso y no son
+lo mismo —
+
+- **`proveedor_servicio.nombre` y `.proceso`** = el **rótulo** que muestra la pantalla. Texto
+  libre, va en mayúscula y como lo quiera leer el usuario.
+- **`GP2.proceso`** = el **catálogo canónico**, en minúscula, con FK desde
+  `precio_servicio_pieza.proceso` y usado para cruzar con `tarifa_servicio`. **Ese no se toca por
+  una cuestión de estética**: cambiarlo rompe el FK (lo probé y la base lo rechazó, bien hecho).
+
+**Blist-Pack es el 3227** `[usuario 2026-09-03]`. Era el único tallerista sin `cod_prov`, y por eso
+en Envíos/Entregas a talleristas aparecía sin código mientras los demás sí lo mostraban.
+
 ## 3c-bis. Accesibilidad de carga: letra grande + teclado numérico (2026-08-30)
 
 `[usuario 2026-08-30]` Dicho textual: *"Siempre quiero letras bien grandes y legibles
