@@ -36,7 +36,7 @@ __boot();
 |---|---|
 | `sect` | dict `String(sector_id)` → `{ t }`. `t` = tipo en minusculas: crudo, procesado, transito, afilado, fleje, plástico, bombilla, remache, garage, cartón, caja, terminado |
 | `comp` | dict `String(comp_id)` → `{ cod, d, s (sector_id), id }` |
-| `rp` | dict `String(ruta_id)` → lista de pasos `{ o, tp, ce, cs, m, pr, ta }`. **Nombres CORTOS**: `tp` ∈ ingreso\|fleje\|matriz\|proveedor_servicio\|tallerista\|afilado\|virgilio; `m`→mat, `pr`→prov, `ta`→tall. Se ordena por `o` |
+| `rp` | dict `String(ruta_id)` → lista de pasos `{ o, tp, ce, cs, m, pr, ta }`. **Nombres CORTOS**: `tp` = `ruta_paso.tipo_paso` tal cual, y los valores que existen en la base (verificado 2026-09-03) son ingreso\|insumo\|matriz\|proveedor_servicio\|tallerista\|virgilio — **`fleje` y `afilado` NO existen**; `m`→mat, `pr`→prov, `ta`→tall. Se ordena por `o` |
 | `art` | LISTA `{ id, cod, fam }` |
 | `bom` | LISTA plana `{ a (art_id), c (comp_id), q }` |
 | `children` | dict `String(comp_padre)` → lista `{ c, q }` (sub-BOM; su existencia define "convergencia") |
