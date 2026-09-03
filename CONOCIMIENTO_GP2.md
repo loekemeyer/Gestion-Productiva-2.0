@@ -1161,6 +1161,21 @@ La regla general que queda, y que ya se aplicó a flejes, cartones, remaches, bo
 muestra.** El toggle sólo sirve donde de verdad puede venir de las dos formas; en todo lo demás es
 una invitación a equivocarse.
 
+**PUSHEAR A LA RAMA ADEMÁS DE A MAIN GASTA EL DOBLE DE DEPLOYS (2026-09-03)** `[dato]` — el
+usuario avisó que no veía los cambios en `gesti-n-productiva-2-0.vercel.app`: producción estaba
+clavada en un commit viejo y **los dos últimos no habían generado ninguna fila** en Vercel. La
+lista de Deployments lo explicaba: cada commit aparecía **dos veces** — un *Preview* por la rama
+`claude/...` y un *Production* por `main`. El plan es **Hobby**, con tope diario de deploys, y a
+doble consumo se agota a la mitad de camino; cuando se agota, Vercel simplemente **deja de tomar
+los pushes**, sin error visible en el proyecto.
+
+**La regla: se pushea SOLO a `main`** (que ya era la regla de la casa por otro motivo). Si la
+sesión viene con una rama asignada, `git push origin HEAD:main` y nada más — no pushear también la
+rama. Y del lado de Vercel conviene dejar los Preview Deployments limitados a `main`.
+
+Para diagnosticarlo rápido la próxima vez: abrir **`/version.js` directo en el navegador**. Si el
+archivo servido tiene una versión vieja, el problema es el deploy y no la caché del celular.
+
 ## 3c-bis. Accesibilidad de carga: letra grande + teclado numérico (2026-08-30)
 
 `[usuario 2026-08-30]` Dicho textual: *"Siempre quiero letras bien grandes y legibles
