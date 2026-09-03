@@ -6,6 +6,10 @@
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>Entrega Proveedores Cervantes</title>
 <style>
+/* Piso de letra grande de la casa: los campos nunca bajan de 18px
+   (regla usuario 2026-08-30). Esta pantalla es del programa viejo y habia
+   quedado afuera del barrido del 2026-09-03; corregida con la idea 7214. */
+
   *{box-sizing:border-box}
   body{font-family:Arial;background:#f5f6f8;padding:20px;margin:0;color:#222}
   .card{max-width:900px;margin:auto;background:#fff;border:1px solid #d9dde3;border-radius:14px;padding:18px}
@@ -23,7 +27,7 @@
   .prov-btn .badge{position:absolute;top:-6px;right:-6px;background:#3b82f6;color:#fff;font-size:9px;padding:1px 5px;border-radius:8px;font-weight:800}
   .prov-btn.ps .badge{background:#f59e0b}
   .grupo-rubro{margin-bottom:6px;font-size:12px;font-weight:800;color:#666;text-transform:uppercase}
-  input[type=date],input[type=text]{height:36px;padding:0 10px;border:1px solid #cfd2d8;border-radius:8px;font-size:14px}
+  input[type=date],input[type=text]{height: 44px;padding:0 10px;border:1px solid #cfd2d8;border-radius:8px;font-size:19px}
   .send{background:#111;color:#fff;border:0;padding:10px 18px;font-size:14px;border-radius:8px;font-weight:800;cursor:pointer}
   .status{margin-top:10px;font-size:14px;color:#444}
   .ok{color:#0a7a2f;font-weight:700}
@@ -40,7 +44,7 @@
   .grid-ps{display:grid;grid-template-columns:120px 110px minmax(220px,1fr);gap:10px;align-items:center}
   .grid-rec{display:grid;grid-template-columns:120px 90px minmax(220px,1fr);gap:10px;align-items:center}
   .grid-ps .h,.grid-rec .h{font-weight:800;font-size:13px;color:#333;padding-bottom:4px;border-bottom:2px solid #eef0f3}
-  .grid-ps input,.grid-rec input{width:100%;height:34px;padding:0 8px;border:1px solid #cfd2d8;border-radius:8px;font-size:13px;text-align:right}
+  .grid-ps input,.grid-rec input{width:100%;height: 44px;padding:0 8px;border:1px solid #cfd2d8;border-radius:8px;font-size:19px;text-align:right}
   .grid-ps input.codeRO,.grid-rec input.codeRO{background:#f6f8fa;text-align:left;color:#333}
   .descCell{font-size:13px;color:#333;line-height:1.3;word-break:break-word}
 

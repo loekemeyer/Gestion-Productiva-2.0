@@ -889,6 +889,24 @@ artículos, `entrega_prov_at` con sus 125 filas). Detalles que hay que respetar 
   bookmark viejo no termine escribiendo en `public` sin que nadie se entere. El original quedó
   al lado como `_legacy_EntregasAT.*.bak`, de referencia.
 
+**Las pantallas del programa viejo también entraron en regla (2026-09-03, v1.69.0)**
+`[usuario: "7014, dale"]`: el barrido de accesibilidad del 2026-09-03 había dejado afuera a
+propósito las ~26 pantallas del programa anterior, que seguían con campos de 11 a 16px y
+botones de 24 a 40px. Ahora están todas al piso de la casa: campos ≥18px, táctil ≥44px, y
+ninguna desborda a 390px. Dos cosas que se aprendieron barriendo:
+
+- **No alcanza con buscar selectores que nombren la etiqueta.** El primer pase miró reglas del
+  tipo `input`/`select`/`textarea` y se le escaparon las que estilan el campo **por clase o
+  por id** (`.search-input`, `.date-input`) y, peor, las que lo escriben **directo en el
+  `style=""` del tag** (`#fechaDevolucion`, `#fechaEnvio`). Al revisar tamaños hay que mirar
+  el **render**, no solo el CSS: por eso el chequeo real es abrir la pantalla a 390px y medir
+  el `computedStyle`, que es lo que hace el script de verificación.
+- **Subir la letra puede desbordar la página.** `Produccion/import.html` empezó a desbordar
+  5px cuando los campos pasaron a 19px, porque tenía un `width: 90px` fijo. Se arregla con
+  una media query a 480px, no bajando la letra otra vez.
+
+Quedan afuera a propósito los `_backup_*` y los `_legacy_*.bak`, que son fotos congeladas.
+
 ## 3c-bis. Accesibilidad de carga: letra grande + teclado numérico (2026-08-30)
 
 `[usuario 2026-08-30]` Dicho textual: *"Siempre quiero letras bien grandes y legibles

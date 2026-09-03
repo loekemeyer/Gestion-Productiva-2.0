@@ -9,6 +9,10 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="../../supabase-config.js?v=20260831d"></script>
   <style>
+/* Piso de letra grande de la casa: los campos nunca bajan de 18px
+   (regla usuario 2026-08-30). Esta pantalla es del programa viejo y habia
+   quedado afuera del barrido del 2026-09-03; corregida con la idea 7214. */
+
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     body {
       font-family: 'Inter', Arial, sans-serif;
@@ -23,8 +27,7 @@
     .btn-back {
       background: #f5f5f5; border: 2px solid #ccc; border-radius: 999px;
       padding: 8px 18px; font-size: 14px; color: #555; cursor: pointer;
-      text-decoration: none; font-weight: 600;
-    }
+      text-decoration: none; font-weight: 600; min-height: 44px;}
     .btn-back:hover { border-color: #888; }
     .top-bar h1 { font-size: 22px; color: #111; flex: 1; }
 
@@ -44,15 +47,15 @@
     .field { display: flex; flex-direction: column; gap: 4px; }
     .field label { font-size: 12px; font-weight: 700; color: #555; }
     .field select, .field input[type="date"], .field input[type="text"] {
-      height: 40px; border: 1px solid #c9d1d9; border-radius: 10px;
-      padding: 0 12px; font-size: 14px; outline: none; background: #fff;
+      height: 44px; border: 1px solid #c9d1d9; border-radius: 10px;
+      padding: 0 12px; font-size: 19px; outline: none; background: #fff;
       min-width: 160px; max-width: 240px;
     }
     .field select:focus, .field input:focus { border-color: #4b89ff; }
     .btn {
       background: #111; color: #fff; border: none; border-radius: 10px;
       padding: 10px 24px; font-size: 14px; font-weight: 700; cursor: pointer;
-      height: 40px;
+      height: 44px;
     }
     .btn:hover { opacity: 0.85; }
     .btn:disabled { opacity: 0.4; cursor: not-allowed; }

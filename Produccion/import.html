@@ -9,11 +9,15 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="../supabase-config.js?v=20260831d"></script>
   <style>
+/* Piso de letra grande de la casa: los campos nunca bajan de 18px
+   (regla usuario 2026-08-30). Esta pantalla es del programa viejo y habia
+   quedado afuera del barrido del 2026-09-03; corregida con la idea 7214. */
+
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     body { font-family: 'Inter', Arial, sans-serif; background: #f0f0f4; padding: 16px; color: #222; font-size: 14px; }
 
     .top-bar { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; }
-    .btn-back { background: #f5f5f5; border: 2px solid #ccc; border-radius: 999px; padding: 7px 16px; font-size: 13px; color: #555; cursor: pointer; text-decoration: none; font-weight: 600; }
+    .btn-back { background: #f5f5f5; border: 2px solid #ccc; border-radius: 999px; padding: 7px 16px; font-size: 13px; color: #555; cursor: pointer; text-decoration: none; font-weight: 600; min-height: 44px;}
     .btn-back:hover { border-color: #888; }
     .top-bar h1 { font-size: 20px; }
 
@@ -22,19 +26,19 @@
     .input-row { display: flex; gap: 12px; align-items: flex-end; flex-wrap: wrap; }
     .field { display: flex; flex-direction: column; gap: 4px; }
     .field label { font-size: 12px; color: #666; font-weight: 600; }
-    .field input[type="number"] { border: 1px solid #ccc; border-radius: 6px; padding: 7px 10px; font-size: 14px; width: 90px; }
-    .field input[type="file"] { font-size: 13px; }
+    .field input[type="number"] { border: 1px solid #ccc; border-radius: 6px; padding: 7px 10px; font-size: 19px; width: 90px; }
+    .field input[type="file"] { font-size: 19px; }
 
-    textarea.csv-paste { width: 100%; height: 120px; border: 1px solid #ccc; border-radius: 8px; padding: 10px; font-family: monospace; font-size: 12px; resize: vertical; margin-top: 10px; }
+    textarea.csv-paste { width: 100%; height: 120px; border: 1px solid #ccc; border-radius: 8px; padding: 10px; font-family: monospace; font-size: 19px; resize: vertical; margin-top: 10px; }
 
     .sep { color: #bbb; font-size: 13px; margin: 8px 0 4px; }
 
-    .btn { border: none; border-radius: 8px; padding: 9px 20px; font-size: 14px; font-weight: 700; cursor: pointer; transition: opacity 0.15s; }
+    .btn { border: none; border-radius: 8px; padding: 9px 20px; font-size: 14px; font-weight: 700; cursor: pointer; transition: opacity 0.15s; min-height: 44px;}
     .btn:hover { opacity: 0.85; }
     .btn:disabled { opacity: 0.4; cursor: not-allowed; }
     .btn-primary { background: #1976d2; color: #fff; }
     .btn-success { background: #2e7d32; color: #fff; }
-    .btn-sm { padding: 6px 14px; font-size: 13px; }
+    .btn-sm { padding: 6px 14px; font-size: 13px; min-height: 44px;}
 
     .summary { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 14px; }
     .sum-card { border-radius: 8px; padding: 10px 16px; font-size: 13px; }
@@ -74,6 +78,17 @@
 
     .spinner { display: inline-block; width: 14px; height: 14px; border: 2px solid #fff; border-top-color: transparent; border-radius: 50%; animation: spin 0.7s linear infinite; vertical-align: middle; margin-right: 6px; }
     @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* A 390px la pagina desbordaba 5px: los campos subieron a 19px con la idea
+       7214 y el ancho fijo de 90px del numero dejo de entrar. La tabla ancha
+       scrollea sola y la pagina no scrollea nunca en horizontal. */
+    @media (max-width: 480px) {
+      body { padding: 12px; }
+      .field input[type="number"] { width: 100%; max-width: 120px; }
+      table { font-size: 12px; }
+      * { max-width: 100%; }
+      .table-wrap, .tabla-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    }
   </style>
 </head>
 <body>

@@ -9,6 +9,10 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="../supabase-config.js?v=20260831d"></script>
   <style>
+/* Piso de letra grande de la casa: los campos nunca bajan de 18px
+   (regla usuario 2026-08-30). Esta pantalla es del programa viejo y habia
+   quedado afuera del barrido del 2026-09-03; corregida con la idea 7214. */
+
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     body {
       font-family: 'Inter', Arial, sans-serif;
@@ -35,8 +39,7 @@
       color: #555;
       cursor: pointer;
       text-decoration: none;
-      font-weight: 600;
-    }
+      font-weight: 600; min-height: 44px;}
     .btn-back:hover { border-color: #888; }
     .top-bar h1 { font-size: 22px; color: #111; }
 
@@ -69,11 +72,11 @@
     .field label { font-size: 12px; font-weight: 700; color: #555; }
     .field select,
     .field input[type="date"] {
-      height: 40px;
+      height: 44px;
       border: 1px solid #c9d1d9;
       border-radius: 10px;
       padding: 0 12px;
-      font-size: 14px;
+      font-size: 19px;
       outline: none;
       background: #fff;
       min-width: 180px;
@@ -91,7 +94,7 @@
       font-size: 14px;
       font-weight: 700;
       cursor: pointer;
-      height: 40px;
+      height: 44px;
       display: inline-flex;
       align-items: center;
       justify-content: center;
@@ -171,8 +174,7 @@
       padding: 5px 10px;
       font-size: 12px;
       font-weight: 700;
-      cursor: pointer;
-    }
+      cursor: pointer; min-height: 44px;}
     .btn-edit { background: #e8eaf6; color: #283593; }
     .btn-edit:hover { background: #c5cae9; }
     .btn-del { background: #fce4ec; color: #b71c1c; }
@@ -213,11 +215,11 @@
     .modal-field label { font-size: 12px; font-weight: 700; color: #444; }
     .modal-field input,
     .modal-field select {
-      height: 40px;
+      height: 44px;
       border: 1px solid #c9d1d9;
       border-radius: 10px;
       padding: 0 12px;
-      font-size: 15px;
+      font-size: 19px;
       outline: none;
       background: #fff;
     }
@@ -237,8 +239,7 @@
       padding: 10px 22px;
       font-weight: 700;
       font-size: 14px;
-      cursor: pointer;
-    }
+      cursor: pointer; min-height: 44px;}
     .btn-cancel { background: #f3f4f6; color: #333; }
     .btn-cancel:hover { background: #e5e7eb; }
     .btn-save { background: #111; color: #fff; }

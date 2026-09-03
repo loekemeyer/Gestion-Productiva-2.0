@@ -1,3 +1,6 @@
+/* Piso de letra grande de la casa: los campos nunca bajan de 18px
+   (regla usuario 2026-08-30). Esta pantalla es del programa viejo y habia
+   quedado afuera del barrido del 2026-09-03; corregida con la idea 7214. */
 * { box-sizing: border-box; }
 body {
   font-family: -apple-system, Segoe UI, Roboto, sans-serif;
@@ -35,7 +38,7 @@ header h1 { margin: 0; font-size: 30px; }
   padding: 8px 12px;
   border: 2px solid #c8d4e3;
   border-radius: 8px;
-  font-size: 15px;
+  font-size: 19px;
   font-weight: 600;
   color: #1652a8;
   background: white;

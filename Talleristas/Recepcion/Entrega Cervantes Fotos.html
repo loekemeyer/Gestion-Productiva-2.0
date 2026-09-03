@@ -7,6 +7,10 @@
   <title>Entrega Cervantes Fotos</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <style>
+/* Piso de letra grande de la casa: los campos nunca bajan de 18px
+   (regla usuario 2026-08-30). Esta pantalla es del programa viejo y habia
+   quedado afuera del barrido del 2026-09-03; corregida con la idea 7214. */
+
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
       font-family: 'Inter', sans-serif;
@@ -17,9 +21,9 @@
       display: flex; align-items: center; gap: 14px;
     }
     .btn-volver {
-      height: 40px; padding: 0 20px; border-radius: 999px;
+      height: 44px; padding: 0 20px; border-radius: 999px;
       border: 2px solid #b9b9b9; background: #f7f7f7;
-      font-size: 14px; cursor: pointer; font-weight: 700;
+      font-size: 19px; cursor: pointer; font-weight: 700;
     }
     .btn-volver:hover { background: #e5e5e5; border-color: #7f7f7f; }
     .top-bar h1 { font-size: 22px; flex: 1; color: #1e293b; }
@@ -166,8 +170,8 @@
     .dato-card.full { grid-column: 1 / -1; }
 
     .dato-card input {
-      width: 100%; height: 32px; border: 1px solid #cbd5e1; border-radius: 6px;
-      padding: 0 8px; font-size: 14px; font-weight: 600; color: #1e293b;
+      width: 100%; height: 44px; border: 1px solid #cbd5e1; border-radius: 6px;
+      padding: 0 8px; font-size: 19px; font-weight: 600; color: #1e293b;
       font-family: inherit;
     }
 
@@ -196,7 +200,7 @@
     .items-table .num { text-align: right; font-variant-numeric: tabular-nums; }
     .items-table input {
       width: 100%; border: 1px solid #cbd5e1; border-radius: 4px;
-      padding: 4px 6px; font-size: 13px; font-family: inherit;
+      padding: 4px 6px; font-size: 19px; font-family: inherit;
     }
 
     /* TOTALES */
@@ -261,7 +265,7 @@
     .btn-save-row:hover { background: #16a34a; }
     .items-table input.inline-edit {
       width: 100%; border: 1.5px solid #3b82f6; border-radius: 4px;
-      padding: 3px 6px; font-size: 13px; font-family: inherit; background: #eff6ff;
+      padding: 3px 6px; font-size: 19px; font-family: inherit; background: #eff6ff;
     }
 
     /* CONFIANZA BADGES (motor rectificado) */

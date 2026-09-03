@@ -11,6 +11,10 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
   <style>
+/* Piso de letra grande de la casa: los campos nunca bajan de 18px
+   (regla usuario 2026-08-30). Esta pantalla es del programa viejo y habia
+   quedado afuera del barrido del 2026-09-03; corregida con la idea 7214. */
+
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
       font-family: 'Inter', sans-serif;
@@ -23,7 +27,7 @@
       transition: max-width .2s;
     }
     .btn-volver {
-      height: 40px; padding: 0 20px; border-radius: 999px;
+      height: 44px; padding: 0 20px; border-radius: 999px;
       border: 2px solid #b9b9b9; background: #f7f7f7;
       font-size: 14px; cursor: pointer; font-weight: 700;
     }
@@ -48,12 +52,12 @@
       display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 16px;
     }
     .search-input {
-      height: 38px; padding: 0 10px; border: 1.5px solid #cbd5e1; border-radius: 10px;
-      font-size: 13px; font-family: inherit; width: 200px; min-width: 200px; flex-shrink: 0;
+      height: 44px; padding: 0 10px; border: 1.5px solid #cbd5e1; border-radius: 10px;
+      font-size: 19px; font-family: inherit; width: 200px; min-width: 200px; flex-shrink: 0;
     }
     .search-input:focus { border-color: #3b82f6; outline: none; }
     .filter-btn {
-      height: 38px; padding: 0 10px; border: 1.5px solid #e2e8f0; border-radius: 10px;
+      height: 44px; padding: 0 10px; border: 1.5px solid #e2e8f0; border-radius: 10px;
       background: #f8fafc; font-size: 12px; font-weight: 600; cursor: pointer; white-space: nowrap;
       font-family: inherit; color: #64748b; transition: all .15s;
     }
@@ -68,7 +72,7 @@
     .tipo-chip:hover { background:#f3f4f6; border-color:#999; }
     .tipo-chip.active { background:#111; color:#fff; border-color:#111; }
     .btn-excel {
-      height: 38px; padding: 0 12px; border: 1.5px solid #16a34a; border-radius: 10px;
+      height: 44px; padding: 0 12px; border: 1.5px solid #16a34a; border-radius: 10px;
       background: #f0fdf4; font-size: 12px; font-weight: 700; cursor: pointer; white-space: nowrap;
       font-family: inherit; color: #16a34a; transition: all .15s;
     }
@@ -143,12 +147,12 @@
     .date-group { display: flex; align-items: center; gap: 5px; }
     .date-group label { font-size: 12px; font-weight: 600; color: #64748b; }
     .date-input {
-      height: 36px; padding: 0 10px; border: 1.5px solid #cbd5e1; border-radius: 10px;
-      font-size: 13px; font-family: inherit; width: 145px;
+      height: 44px; padding: 0 10px; border: 1.5px solid #cbd5e1; border-radius: 10px;
+      font-size: 19px; font-family: inherit; width: 145px;
     }
     .date-input:focus { border-color: #3b82f6; outline: none; }
     .btn-limpiar-fechas {
-      height: 36px; padding: 0 12px; border: 1.5px solid #e2e8f0; border-radius: 10px;
+      height: 44px; padding: 0 12px; border: 1.5px solid #e2e8f0; border-radius: 10px;
       background: #f8fafc; font-size: 12px; font-weight: 600; cursor: pointer;
       font-family: inherit; color: #64748b; transition: all .15s;
     }
@@ -174,7 +178,7 @@
     }
     .popup-header h3 { font-size: 16px; font-weight: 800; color: #111; }
     .popup-header .close-btn {
-      width: 32px; height: 32px; border: none; background: #f1f5f9;
+      width: 32px; height: 44px; border: none; background: #f1f5f9;
       border-radius: 8px; font-size: 18px; cursor: pointer; color: #64748b;
       display: flex; align-items: center; justify-content: center;
     }
@@ -201,7 +205,7 @@
     .popup-table tr:hover { background: #f8fafc; }
     .popup-table tr.anulado { opacity: .45; text-decoration: line-through; }
     .eye-btn {
-      width: 30px; height: 30px; border: none; border-radius: 8px;
+      width: 30px; height: 44px; border: none; border-radius: 8px;
       cursor: pointer; font-size: 16px; display: inline-flex;
       align-items: center; justify-content: center; transition: all .15s;
     }
@@ -280,8 +284,8 @@
     .mini-field { display: flex; flex-direction: column; gap: 4px; }
     .mini-field label { font-size: 12px; font-weight: 700; color: #475569; }
     .mini-field input, .mini-field select {
-      height: 38px; border: 1.5px solid #cbd5e1; border-radius: 8px;
-      padding: 0 12px; font-size: 14px; font-family: inherit; outline: none;
+      height: 44px; border: 1.5px solid #cbd5e1; border-radius: 8px;
+      padding: 0 12px; font-size: 19px; font-family: inherit; outline: none;
     }
     .mini-field input:focus, .mini-field select:focus { border-color: #3b82f6; }
     .mini-box .footer {
@@ -290,15 +294,14 @@
     }
     .mini-btn {
       border: none; border-radius: 8px; padding: 9px 18px;
-      font-weight: 700; font-size: 13px; cursor: pointer; font-family: inherit;
-    }
+      font-weight: 700; font-size: 13px; cursor: pointer; font-family: inherit; min-height: 44px;}
     .mini-btn.cancel { background: #f3f4f6; color: #333; }
     .mini-btn.cancel:hover { background: #e5e7eb; }
     .mini-btn.save { background: #111; color: #fff; }
     .mini-btn.save:hover { opacity: .85; }
 
     .btn-nueva {
-      height: 38px; padding: 0 14px; border: 1.5px solid #3b82f6; border-radius: 10px;
+      height: 44px; padding: 0 14px; border: 1.5px solid #3b82f6; border-radius: 10px;
       background: #eff6ff; font-size: 12px; font-weight: 700; cursor: pointer; white-space: nowrap;
       font-family: inherit; color: #1d4ed8; transition: all .15s;
     }
@@ -306,8 +309,7 @@
     .btn-borrar-row {
       border: none; background: transparent; cursor: pointer;
       color: #dc2626; font-size: 14px; padding: 2px 6px; border-radius: 5px;
-      transition: all .15s;
-    }
+      transition: all .15s; min-height: 44px;}
     .btn-borrar-row:hover { background: #fee2e2; color: #991b1b; }
   </style>
 </head>

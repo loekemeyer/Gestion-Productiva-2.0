@@ -1,3 +1,6 @@
+/* Piso de letra grande de la casa: los campos nunca bajan de 18px
+   (regla usuario 2026-08-30). Esta pantalla es del programa viejo y habia
+   quedado afuera del barrido del 2026-09-03; corregida con la idea 7214. */
 body{font-family:Arial,sans-serif;margin:0;padding:12px;}
 
 .btn-volver{
@@ -68,7 +71,7 @@ button{
 .edit-modal-body{padding:18px;display:flex;flex-direction:column;gap:14px;}
 .edit-field{display:flex;flex-direction:column;gap:4px;}
 .edit-field label{font-size:12px;font-weight:700;color:#444;}
-.edit-field input,.edit-field select{height:40px;border:1px solid #c9d1d9;border-radius:10px;padding:0 12px;font-size:16px;outline:none;background:#fff;}
+.edit-field input,.edit-field select{height: 44px;border:1px solid #c9d1d9;border-radius:10px;padding:0 12px;font-size:19px;outline:none;background:#fff;}
 .edit-field input:disabled{background:#f3f4f6;color:#888;}
 .edit-field input:focus,.edit-field select:focus{border-color:#4b89ff;}
 .edit-modal-footer{display:flex;justify-content:flex-end;gap:8px;padding:14px 18px;border-top:1px solid #e3e6eb;}
@@ -144,7 +147,7 @@ button{
 .td-cont-no-title{font-weight:700;color:#854d0e;margin-bottom:8px;}
 .td-cont-no-row{margin-bottom:8px;}
 .td-cont-no-row label{display:block;font-size:13px;color:#1f2937;margin-bottom:4px;}
-.td-cont-no-row input,.td-cont-no-row select{width:100%;padding:8px;font-size:14px;border:1px solid #d1d5db;border-radius:6px;box-sizing:border-box;}
+.td-cont-no-row input,.td-cont-no-row select{width:100%;padding:8px;font-size:19px;border:1px solid #d1d5db;border-radius:6px;box-sizing:border-box;}
 .td-cont-no-cargar{width:100%;padding:10px;font-size:14px;font-weight:700;background:#1e6bd6;color:#fff;border:none;border-radius:6px;cursor:pointer;margin-top:4px;}
 .td-cont-no-cargar:disabled{opacity:0.5;cursor:not-allowed;background:#94a3b8;}
 .td-cont-no-feedback{margin-top:6px;font-size:13px;font-weight:600;}

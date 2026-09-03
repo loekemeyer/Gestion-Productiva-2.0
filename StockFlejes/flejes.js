@@ -71,20 +71,20 @@ function renderTabla() {
         <td class="col-prov">${esc(prov)}</td>
         <td class="rollo-cell">
           <div class="rollo-pair">
-            <input class="rollo-input inp-num" data-f="${nf}" data-r="1n" placeholder="N°" />
-            <input class="rollo-input inp-kg"  data-f="${nf}" data-r="1k" placeholder="Kg" />
+            <input class="rollo-input inp-num" inputmode="numeric" data-f="${nf}" data-r="1n" placeholder="N°" />
+            <input class="rollo-input inp-kg" inputmode="decimal"  data-f="${nf}" data-r="1k" placeholder="Kg" />
           </div>
         </td>
         <td class="rollo-cell">
           <div class="rollo-pair">
-            <input class="rollo-input inp-num" data-f="${nf}" data-r="2n" placeholder="N°" />
-            <input class="rollo-input inp-kg"  data-f="${nf}" data-r="2k" placeholder="Kg" />
+            <input class="rollo-input inp-num" inputmode="numeric" data-f="${nf}" data-r="2n" placeholder="N°" />
+            <input class="rollo-input inp-kg" inputmode="decimal"  data-f="${nf}" data-r="2k" placeholder="Kg" />
           </div>
         </td>
         <td class="rollo-cell">
           <div class="rollo-pair">
-            <input class="rollo-input inp-num" data-f="${nf}" data-r="3n" placeholder="N°" />
-            <input class="rollo-input inp-kg"  data-f="${nf}" data-r="3k" placeholder="Kg" />
+            <input class="rollo-input inp-num" inputmode="numeric" data-f="${nf}" data-r="3n" placeholder="N°" />
+            <input class="rollo-input inp-kg" inputmode="decimal"  data-f="${nf}" data-r="3k" placeholder="Kg" />
           </div>
         </td>
         <td class="col-total" id="total-${nf}">0</td>

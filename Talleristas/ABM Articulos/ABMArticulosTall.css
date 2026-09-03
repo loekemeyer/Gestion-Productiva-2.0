@@ -1,3 +1,6 @@
+/* Piso de letra grande de la casa: los campos nunca bajan de 18px
+   (regla usuario 2026-08-30). Esta pantalla es del programa viejo y habia
+   quedado afuera del barrido del 2026-09-03; corregida con la idea 7214. */
 *{box-sizing:border-box}
 
 body{
@@ -274,11 +277,11 @@ h1{
 .modal-body input,
 .modal-body select{
   width:100%;
-  height:40px;
+  height: 44px;
   border:1px solid #c9d1d9;
   border-radius:10px;
   padding:0 12px;
-  font-size:14px;
+  font-size:19px;
   outline:none;
   background:#fff;
 }

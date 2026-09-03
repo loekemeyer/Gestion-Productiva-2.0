@@ -9,11 +9,15 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="../supabase-config.js?v=20260831d"></script>
   <style>
+/* Piso de letra grande de la casa: los campos nunca bajan de 18px
+   (regla usuario 2026-08-30). Esta pantalla es del programa viejo y habia
+   quedado afuera del barrido del 2026-09-03; corregida con la idea 7214. */
+
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     body { font-family: 'Inter', Arial, sans-serif; background: #d9d9de; padding: 16px; color: #222; }
 
     .top-bar { display: flex; align-items: center; gap: 16px; margin-bottom: 16px; }
-    .btn-back { background: #f5f5f5; border: 2px solid #ccc; border-radius: 999px; padding: 8px 18px; font-size: 14px; color: #555; cursor: pointer; text-decoration: none; font-weight: 600; }
+    .btn-back { background: #f5f5f5; border: 2px solid #ccc; border-radius: 999px; padding: 8px 18px; font-size: 14px; color: #555; cursor: pointer; text-decoration: none; font-weight: 600; min-height: 44px;}
     .btn-back:hover { border-color: #888; }
     .top-bar h1 { font-size: 22px; color: #111; }
 
@@ -23,8 +27,8 @@
     .field { display: flex; flex-direction: column; gap: 4px; }
     .field label { font-size: 12px; font-weight: 700; color: #444; }
     .field input, .field select {
-      height: 38px; border: 1px solid #c9d1d9; border-radius: 10px; padding: 0 12px;
-      font-size: 15px; outline: none; background: #fff;
+      height: 44px; border: 1px solid #c9d1d9; border-radius: 10px; padding: 0 12px;
+      font-size: 19px; outline: none; background: #fff;
     }
     .field input:focus, .field select:focus { border-color: #4b89ff; }
     .field-nombre input { width: 280px; }
@@ -36,8 +40,8 @@
     td > div { text-align: center; }
     td.num { font-variant-numeric: tabular-nums; font-weight: 700; }
     td input, td select {
-      height: 40px; border: 1px solid #c9d1d9; border-radius: 8px; padding: 0 4px;
-      font-size: 15px; outline: none; background: #fff; width: 100%; box-sizing: border-box;
+      height: 44px; border: 1px solid #c9d1d9; border-radius: 8px; padding: 0 4px;
+      font-size: 19px; outline: none; background: #fff; width: 100%; box-sizing: border-box;
       text-align: center;
     }
     td select { text-align-last: center; padding: 0 2px; }
@@ -69,11 +73,11 @@
     .ref-inline-item { display: inline-block; background: #eef; border-radius: 4px; padding: 1px 6px; margin: 1px 2px; font-weight: 600; }
     .ref-inline-item.entrev { background: #fef3c7; }
     .ref-inline-old { color: #f57c00; font-size: 10px; font-weight: 600; }
-    .btn { background: #111; color: #fff; border: none; border-radius: 10px; padding: 9px 18px; font-weight: 700; font-size: 14px; cursor: pointer; }
+    .btn { background: #111; color: #fff; border: none; border-radius: 10px; padding: 9px 18px; font-weight: 700; font-size: 14px; cursor: pointer; min-height: 44px;}
     .btn:hover { opacity: 0.9; }
     .btn-secondary { background: #888; }
     .btn-print { background: #1565c0; }
-    .btn-action { background: #e8eaf6; color: #283593; padding: 4px 8px; border-radius: 6px; font-size: 12px; min-width: 28px; width: 28px; }
+    .btn-action { background: #e8eaf6; color: #283593; padding: 4px 8px; border-radius: 6px; font-size: 12px; min-width: 28px; width: 28px; min-height: 44px;}
     .btn-del { background: #fee2e2; color: #c62828; }
     .actions { display: flex; gap: 10px; margin-top: 16px; justify-content: flex-end; }
 
@@ -136,7 +140,7 @@
     .v-table td { padding: 8px 16px; border: 1px solid #000; text-align: center; font-variant-numeric: tabular-nums; }
     .v-table td.tarea { text-align: left; font-weight: 700; }
     .v-table td.mxh { font-weight: 800; }
-    .v-table input { height: 38px; border: 1px solid #c9d1d9; border-radius: 8px; padding: 0 8px; font-size: 15px; text-align: center; width: 110px; box-sizing: border-box; outline: none; }
+    .v-table input { height: 44px; border: 1px solid #c9d1d9; border-radius: 8px; padding: 0 8px; font-size: 19px; text-align: center; width: 110px; box-sizing: border-box; outline: none; }
     .v-table input:focus { border-color: #4b89ff; }
     #vPromTable tr.actual { background: #fff7d6; font-weight: 800; }
   </style>

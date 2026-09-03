@@ -1,3 +1,6 @@
+/* Piso de letra grande de la casa: los campos nunca bajan de 18px
+   (regla usuario 2026-08-30). Esta pantalla es del programa viejo y habia
+   quedado afuera del barrido del 2026-09-03; corregida con la idea 7214. */
 * { box-sizing: border-box; }
 
 body {
@@ -91,11 +94,11 @@ h2 { margin: 24px 0 10px; font-size: 22px; border-bottom: 2px solid #eee; paddin
 .field { display: flex; flex-direction: column; gap: 5px; min-width: 180px; }
 .field label { font-size: 13px; font-weight: 700; color: #444; }
 .field input, .field select {
-  height: 40px;
+  height: 44px;
   border: 1px solid #c9d1d9;
   border-radius: 12px;
   padding: 0 12px;
-  font-size: 14px;
+  font-size: 19px;
 }
 
 /* Tablas */
@@ -197,7 +200,7 @@ tr.fila-semi:hover { background: #fef3c7; }
 .editor-row { display:flex;gap:8px;flex-wrap:wrap; }
 .editor-field { display:flex;flex-direction:column;gap:3px;flex:1;min-width:140px; }
 .editor-field label { font-size:11px;font-weight:700;color:#555; }
-.editor-field input, .editor-field select { height:34px;border:1px solid #cbd5e1;border-radius:6px;padding:0 8px;font-size:13px; }
+.editor-field input, .editor-field select { height: 44px;border:1px solid #cbd5e1;border-radius:6px;padding:0 8px;font-size:19px; }
 .editor-field input:focus, .editor-field select:focus { outline:none;border-color:#4b89ff; }
 .editor-actions { display:flex;gap:8px;margin-top:8px; }
 .editor-btn { padding:8px 18px;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer; }

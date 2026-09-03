@@ -1,3 +1,6 @@
+/* Piso de letra grande de la casa: los campos nunca bajan de 18px
+   (regla usuario 2026-08-30). Esta pantalla es del programa viejo y habia
+   quedado afuera del barrido del 2026-09-03; corregida con la idea 7214. */
 .controls-row {
   display: flex;
   align-items: center;
@@ -17,7 +20,7 @@
 .controls-row input[type=number] {
   width: 72px;
   padding: 6px 8px;
-  font-size: 15px;
+  font-size: 19px;
   border: 1px solid #c9c9c9;
   border-radius: 6px;
   text-align: center;

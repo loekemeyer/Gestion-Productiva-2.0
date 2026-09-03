@@ -9,6 +9,10 @@
 <script src="../supabase-config.js?v=20260831d"></script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <style>
+/* Piso de letra grande de la casa: los campos nunca bajan de 18px
+   (regla usuario 2026-08-30). Esta pantalla es del programa viejo y habia
+   quedado afuera del barrido del 2026-09-03; corregida con la idea 7214. */
+
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
       font-family: 'Inter', -apple-system, sans-serif;
@@ -38,8 +42,7 @@
       color: #fff;
       font-weight: 700;
       font-size: 13px;
-      cursor: pointer;
-    }
+      cursor: pointer; min-height: 44px;}
     .btn-inicio:hover { background: #333; }
 
     /* STATUS */
@@ -102,11 +105,11 @@
     .field { display: flex; flex-direction: column; gap: 4px; }
     .field label { font-size: 11px; font-weight: 700; color: #64748b; text-transform: uppercase; }
     .field input, .field select {
-      height: 38px;
+      height: 44px;
       border: 1.5px solid #e2e8f0;
       border-radius: 8px;
       padding: 0 10px;
-      font-size: 14px;
+      font-size: 19px;
       font-family: inherit;
     }
     .field input:focus, .field select:focus { outline: none; border-color: #111; }
@@ -144,12 +147,12 @@
     /* INPUT en tabla */
     .inp-cell {
       width: 70px;
-      height: 32px;
+      height: 44px;
       border: 1.5px solid #d0d7de;
       border-radius: 6px;
       text-align: right;
       padding: 0 6px;
-      font-size: 13px;
+      font-size: 19px;
       font-family: inherit;
     }
     .inp-cell:focus { outline: none; border-color: #111; }
@@ -175,8 +178,7 @@
       font-weight: 700;
       font-size: 13px;
       cursor: pointer;
-      transition: all .2s;
-    }
+      transition: all .2s; min-height: 44px;}
     .btn-primary { background: #111; color: #fff; }
     .btn-primary:hover { background: #333; }
     .btn-danger { background: #b42318; color: #fff; }
