@@ -989,6 +989,46 @@ se puede derivar de los pasos `insumo`**: en el 580, que es el hermano sano, la 
 el artículo lleva (incluido un GRJ ya armado) y las rutas las entradas de cada cadena. **No
 son lo mismo y no se deducen una de la otra.**
 
+**HAY CODIGOS DE COMPONENTE REPETIDOS: nunca joinear por `codigo` (2026-09-03)** `[dato]` —
+me mordió el mismo día. **Cuatro códigos existen dos veces**, y en los cuatro choca una pieza
+del Sector Procesado con una Caja: **`A1`** (Mgo Plano 501 Pint. / Caja N°1), **`A4`** (Mgo
+Plano 501 Serig / Caja N°10), **`A8`** (Cuerpo Uña CH Serigr. / Caja N°2) y **`A9`** (Cpo Mango
+Alambre Corta Queso Crom. / Caja N°22). Cargando la receta del 581 hice el join por código y me
+llevé **las dos filas**. **Regla: unir por `componente.id`, y si hay que resolver desde un
+código, desambiguar por sector.** La numeración de cajas y la de piezas procesadas se pisan.
+
+**Los remaches: cuál se compra crudo y cuál se compra hecho (2026-09-03)** `[usuario]`. El
+patrón bueno es **`CV9` → Guazzaroni → `V9`**: se le compra el remache **crudo a Bella Vista**,
+Guazzaroni lo niquela, y el niquelado queda en `estado_compra='fabricacion'` **sin precio
+propio**, porque su costo es el crudo más el baño.
+
+- **El sacacorcho va por ahí** `[usuario: "el CV11 agregalo en Bellavista y sacá el V11. El V11
+  es después de mandarlo a niquelar a Guazzaroni"]`. Las rutas del **581** y del **104**
+  entraban con `insumo V11` directo, o sea el remache se compraba ya niquelado **y el niquelado
+  no se pagaba**. Corregido al patrón CV9/V9: el V11 pasa de $28,66 a $30,57.
+- **El canelón NO** `[usuario: "el CV10 eliminalo porque el que se compra es el V10, remache
+  aluminio canelón"]`. Ese se compra ya hecho: `CV10` era un alta de más y se dio de baja.
+  **No todos los `CVxx` existen: sólo los que efectivamente se mandan a niquelar.**
+- Al pasar `V11` a niquelado entra a la lista de piezas de Guazzaroni con la tarifa en `NULL`,
+  igual que TODAS las suyas: hueco conocido, queda marcado y no inventado.
+
+**Un GRJ armado reemplaza a sus componentes en la receta, no se suma (2026-09-03)** `[usuario:
+"GRJ1 se usa para el quinientos"]`: la receta del **500** tenía `C1 + C10 + V9` sueltos, que son
+**exactamente el BOM del `GRJ1`**. Se reemplazaron por el GRJ1, igual que el **506** lleva
+`GRJ7` en vez de `A10 + C10 + V9`. **Si se dejan los dos, el armado se cuenta dos veces.** El
+costo del 500 no se movió ni un peso, que es la prueba de que el reemplazo era exacto. La
+receta quedó `A11 + GRJ1 + Pliego Ad 500`, calcada del 506.
+
+**La receta del 581 y del 104 (2026-09-03)** `[usuario, con la pantalla a la vista: "por ahora
+mandale así"]`: **Caja N°22 (1/12) + su cartón + `D1` Espiral Sacacorcho + `PB8A` Mgo Sacac
+Plast + `V11` Remache Sacacorcho**, todos ×1 salvo la caja. En la receta va el remache
+**niquelado** (`V11`), que es lo que el artículo lleva; el crudo `CV11` y el baño son pasos de
+la ruta. Los dos tenían rutas y Est Madre pero **cero receta**, así que no pedían nada. Ahora
+piden 7 partes cada uno (581: 2.532 uni/mes · 104: 3.162). **De paso se corrigió un error del
+clonado del 2026-09-02**: las rutas del 104 entraban con `CCE2B`, que es el **Cartón 581**. El
+104 lleva su propio cartón, `K5D`, que no existía en GP2 y se dio de alta **sin precio** — por
+eso su costo baja a $672,86 y queda con `faltan_precios: 1`.
+
 ## 3c-bis. Accesibilidad de carga: letra grande + teclado numérico (2026-08-30)
 
 `[usuario 2026-08-30]` Dicho textual: *"Siempre quiero letras bien grandes y legibles

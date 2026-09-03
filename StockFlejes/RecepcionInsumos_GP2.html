@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<!-- v3.40.2 (2026-09-02) — LIMPIEZA de codigo muerto que dejaron v3.40.0 y la Fase B:
+<!-- v3.41.0 (2026-09-03) — BOMBILLAS VA AL CONTROL AL CERRAR EL REMITO (usuario: "en bombillas, cuando termina de cargar un remito, no me manda al control de bombillas, quiero que me mande"). Faltaba el sector 7 en CONTROL_URL: era la unica linea, porque control-remaches.js ya es generico por sector (?sector=N, el titulo sale del bundle) y control_kg_bundle(7) ya devolvia "Sector Bombilla". v3.40.2 (2026-09-02) — LIMPIEZA de codigo muerto que dejaron v3.40.0 y la Fase B:
      (a) CSS .qbtn-minus / .qbtn-minus:hover — el boton -N/-1 de cartones se saco en
      v3.40.0 y la clase ya no la usa nadie; (b) los stubs esFiltroCharcas() /
      esCortadoEclipse() (return false) que quedaron de la Fase B Charcas/Eclipse —
@@ -444,15 +444,17 @@ const $=id=>document.getElementById(id);
 
 /* Sectores cuya fase 2 (el control fisico) vive en OTRA pagina, y en cual.
    Flejes y cartones NO estan aca: su fase 2 se abre en esta misma pantalla
-   (montarPesaje / montarControlCartones). Bombillas tampoco: no lleva control.
+   (montarPesaje / montarControlCartones). Con bombillas adentro (2026-09-03) ya
+   NO queda ningun rubro sin control: los 6 terminan yendo a algun lado.
    La pantalla de control por peso naciendo para remaches quedo generalizada por
    sector, asi que plasticos entra a la misma con ?sector=6 en vez de tener una
    copia propia [usuario 2026-09-03: "que sea control en kg" para plasticos].
    Sumar un sector nuevo al control por peso es agregar una linea aca. */
 const CONTROL_URL = {
-  11: 'control-cajas.html',             // Cajas: base x pisos + sueltas
-  8:  'control-remaches.html',          // Remaches: pesar (8 es el default de esa pantalla)
-  6:  'control-remaches.html?sector=6'  // Plasticos: misma pantalla de peso, otro sector
+  11: 'control-cajas.html',              // Cajas: base x pisos + sueltas
+  8:  'control-remaches.html',           // Remaches: pesar (8 es el default de esa pantalla)
+  6:  'control-remaches.html?sector=6',  // Plasticos: misma pantalla de peso, otro sector
+  7:  'control-remaches.html?sector=7'   // Bombillas: idem [usuario 2026-09-03]
 };
 // Unidad default por rubro (kg / uni). Los flejes y remaches se compran en kg.
 const RUBRO_UM={Flejes:"kg",Remaches:"kg",Cajas:"uni",Plasticos:"uni",Cartones:"uni",Bombillas:"uni"};
@@ -1030,18 +1032,19 @@ async function flushPend(){
       var _volver=$('btnVolver1'); if(_volver) _volver.style.display='none';
     }
   } else if (procesados && !fallados){
-    // Bombillas es el unico rubro que queda SIN control fisico: la recepcion queda
-    // cerrada al confirmar y no hay adonde mandar al operario (plasticos salio de
-    // aca el 2026-09-03, ahora tiene control por peso). Se cierra con el mismo cartel
-    // que usan las otras pantallas en vez de dejar solo un status que se borra a los
-    // 5 segundos, asi los 6 rubros terminan igual de claros.
-    // [usuario 2026-09-03: "que sea de este estilo en los 6 tipos de insumo"]
+    // Rama de cortesia: hoy NINGUN rubro cae aca. Bombillas era el ultimo sin
+    // control fisico y entro a CONTROL_URL el 2026-09-03 [usuario: "despues de
+    // tocar termine de cargar remito me deberia aparecer la pantalla de control
+    // bombilla, al igual que en los otros insumos"], igual que plasticos ese
+    // mismo dia. Se deja el cartel por si se suma un rubro nuevo sin control:
+    // cierra con el mismo estilo que las demas pantallas en vez de un status que
+    // se borra a los 5 segundos.
     // Aca NO se ocultan Atras/Volver: no hay control pendiente que obligar.
     var sbOk=$('successBox'); if(sbOk){
       sbOk.style.display='block';
       sbOk.querySelector('.title').textContent='✓ Recepción completa';
       $('successDetail').textContent='El remito quedó cargado: '+procesados+' ítem'+
-        (procesados===1?'':'s')+'. Este insumo no lleva control físico.';
+        (procesados===1?'':'s')+'. Este insumo no lleva control físico.';   // ver el comentario de arriba: hoy no entra ningun rubro
     }
   }
 }
