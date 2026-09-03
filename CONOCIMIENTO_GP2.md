@@ -826,9 +826,12 @@ Dos cosas que valen como regla:
   en la BD: se le habla por `movimiento`, nunca por `UPDATE inventario`.
 
 **Las 81 recepciones de insumos que había eran TODAS de prueba (2026-09-03)** `[usuario:
-"eliminalas todas, fueron todas de prueba"]`: nacieron con el módulo (29/08 al 02/09), 74 sin
-remito, y se veían las tandas repetidas (*Caja N°1* cuatro veces a 10.000, *Cartón 510* seis
-veces en el mismo minuto). Borradas. **Cómo se borra una recepción**: primero el
+"eliminalas todas, fueron todas de prueba"]`: nacieron con el módulo (29/08 al 02/09) y se
+veían las tandas repetidas (*Caja N°1* cuatro veces a 10.000, *Cartón 510* seis veces en el
+mismo minuto). Borradas. **El remito NO tiene nada que ver**: 74 de las 81 no lo tenían y
+eso me sirvió para encontrarlas, pero es una huella, no la causa — el campo es **opcional a
+propósito** (`placeholder="Opcional"`) porque el remito no siempre está a mano cuando entra
+la mercadería. Que sea opcional no fue lo que generó las pruebas. **Cómo se borra una recepción**: primero el
 `movimiento` — `fn_movimiento_aplicar` corre también en DELETE, así que el trigger revierte
 el stock solo — y después la fila de `recepcion_insumo` (`recepcion_control` y
 `recepcion_control_rollo` caen por CASCADE). Ninguna OC tenía `recibido <> 0`, así que no
