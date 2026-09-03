@@ -22,20 +22,36 @@
    El nombre del archivo quedo historico para no romper los links que ya
    existen; el titulo de la pantalla sale del sector que devuelve el bundle.
 
-   SE PESA EN KG, SE GUARDA EN LA UNIDAD DE LA RECEPCION (2026-09-03)
-   [usuario: "en el control que pueda poner los kg y con el kg por uni de cada
-   componente me lo pase a uni"]. Los remitos de remaches y de los plasticos de
-   Eduardo Pintos / Pat Bet Plast / Pettofrezza Rafael vienen en UNIDADES y la
-   recepcion se guarda en unidades (recepcion_insumo.unidad='uni'), que ademas
-   es la unidad canonica del inventario de esos sectores. Contar 5.000 piezas a
-   mano no se puede, asi que el control se sigue haciendo con la balanza: se
-   tipean los KG pesados y la pantalla los divide por componente.kg_x_uni para
-   llegar a las unidades reales, que son las que se comparan contra lo declarado
-   y las que se guardan.
-     recepcion.unidad = 'uni' + kg_x_uni  -> input en kg, se guarda uni
-     recepcion.unidad = 'uni' sin kg_x_uni -> input directo en unidades
-     recepcion.unidad = 'kg'               -> input en kg, se guarda kg (lo de siempre)
-   La ultima rama mantiene andando las recepciones viejas, que quedaron en kg.
+   v1.5.0 (2026-09-03) — LO QUE SE PESA SE GUARDA EN LA UNIDAD DE LA RECEPCION
+   [usuario 2026-09-03: "en el control que pueda poner los kg y con el kg por uni
+   de cada componente me lo pase a uni"]. Desde v3.44.0 de la recepcion, los
+   remitos que vienen contados (remaches, bombillas y los plasticos de piezas) se
+   GUARDAN en unidades, no en kg. Contar 5.000 piezas sigue sin ser posible, asi
+   que el control se hace igual con la balanza: se tipean los KG pesados, se
+   dividen por kg_x_uni y lo que se guarda son las UNIDADES resultantes — que son
+   ademas las que se comparan contra lo declarado.
+   Cada fila decide sola, por su propio recepcion_insumo.unidad:
+     'uni' + kg_x_uni -> se tipean kg, se guardan unidades
+     'uni' sin kg_x_uni -> se cuentan unidades a mano (no hay con que convertir)
+     'kg'             -> se tipean y se guardan kg, con el equivalente en unidades
+                          a la vista (v1.4.0). Es el caso del Clavo 505 y el de
+                          todas las recepciones viejas, que quedaron en kg.
+
+   v1.4.0 (2026-09-03) — PASAJE KG -> UNIDADES. Si el insumo tiene kg_x_uni, el
+   popup muestra a cuantas UNIDADES equivalen los kg pesados y cuantas declaro
+   el proveedor [usuario 2026-09-03: "en el control ponga kg y me haga el pasaje
+   a unidades con el kg por uni"]. Es el caso de bombillas y remaches: se
+   reciben CONTANDO unidades, el movimiento viaja en kg y el stock del sector
+   vive en unidades, asi que el operario necesita ver las dos caras.
+
+   v1.3.0 (2026-09-03) — CAJAS x KG POR CAJA. Los insumos marcados
+   componente.recibe_en_cajas (hoy el Clavo 505 de Trefilados) no se cuentan:
+   vienen en cajas y se pesan. Para esos aparecen dos campos arriba de los kg
+   —cajas y kg por caja— que multiplican y completan los kg controlados
+   [usuario 2026-09-03: "en el caso del control de este componente que me deje
+   poner cant de cajas y kg por caja"]. El campo de kg sigue mandando: se puede
+   escribir a mano. Ademas la pantalla pasa a usar gp2-numero.js (la regla de
+   numero de la casa) en vez del saneador propio que tenia.
    ============================================================ */
 
 const SB = window.supabase.createClient(self.SB_URL, self.SB_ANON, { db: { schema: "GP2" } });
@@ -50,30 +66,33 @@ const ov = $("ovCtrl");
 const inKg = $("inKg"), lblDiff = $("lblDiff");
 const ctrlTitle = $("ctrlTitle"), ctrlInfo = $("ctrlInfo"), ctrlMsg = $("ctrlMsg");
 const btnCancel = $("btnCancel"), btnConfirm = $("btnConfirm"), btnDesmarcar = $("btnDesmarcar");
-
-const esc = (s) => String(s ?? "").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
-const fmt = (n) => Number(n||0).toLocaleString("es-AR", { maximumFractionDigits: 3 });
-const parseKg = (v) => { const n = Number(String(v||"").replace(/[^0-9.,]/g,"").replace(",", ".")); return isNaN(n) ? 0 : n; };
+/* Cajas x kg por caja: solo para los insumos marcados recibe_en_cajas. */
+const cajasBox = $("cajasBox"), inCajas = $("inCajas"), inKgCaja = $("inKgCaja"), lblCajas = $("lblCajas");
+/* Pasaje a unidades: solo si el insumo tiene kg_x_uni. */
+const lblUni = $("lblUni");
 
 /* ===== Unidad de cada recepcion =====
    La recepcion manda: si se cargo en unidades, el control tiene que terminar en
-   unidades aunque el operario pese kg. kg_x_uni viene en el bundle por item. */
+   unidades aunque el operario pese kg. unidad y kg_x_uni vienen en el bundle. */
 const kxDe    = (it) => Number(it && it.kg_x_uni) || 0;
-/* El kg por unidad tiene 6 decimales (0,00035 en el remache espiral): con el
-   fmt() general, que corta en 3, el cartel decia "1 uni = 0 kg" y parecia que
-   el dato faltaba. Ya nos mordio una vez (CONOCIMIENTO_GP2.md 4a). */
-const fmtKx   = (n) => Number(n||0).toLocaleString("es-AR", { maximumFractionDigits: 6 });
 const umDe    = (it) => (String((it && it.unidad) || "kg").toLowerCase() === "kg" ? "kg" : "uni");
 /* true = se tipea la balanza en kg y se guarda la cantidad convertida a unidades. */
 const pesaAUni = (it) => umDe(it) === "uni" && kxDe(it) > 0;
-/* Unidad en la que se TIPEA (siempre kg, salvo que no haya kg_x_uni para convertir). */
+/* Unidad en la que se TIPEA: siempre kg, salvo que la recepcion sea en unidades
+   y no haya kg_x_uni con que convertir — ahi hay que contar. */
 const umInput = (it) => (umDe(it) === "uni" && !kxDe(it) ? "uni" : "kg");
-/* De lo tipeado a la cantidad real en la unidad de la recepcion. Las unidades
-   se redondean: media pieza no existe, y la balanza nunca da exacto. */
-function aReal(it, v) {
-  if (!pesaAUni(it)) return v;
-  return Math.round(v / kxDe(it));
-}
+/* De lo tipeado a la cantidad real en la unidad de la recepcion. Las unidades se
+   redondean: media pieza no existe y la balanza nunca da exacto. */
+const aReal   = (it, v) => (pesaAUni(it) ? Math.round(v / kxDe(it)) : v);
+
+const esc = (s) => String(s ?? "").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+const fmt = (n) => Number(n||0).toLocaleString("es-AR", { maximumFractionDigits: 3 });
+// El kg por unidad es chico (0,0046 kg un resorte): con 3 decimales se ve "0,005"
+// y no sirve para controlar la cuenta.
+const fmtKx = (n) => Number(n||0).toLocaleString("es-AR", { maximumFractionDigits: 6 });
+/* La regla de numero es una sola y vive en gp2-numero.js: el punto es el
+   separador de miles y la coma el decimal. Nada de sanear a mano. */
+const parseKg = (v) => window.GP2N.num(v);
 
 let recepciones = [];
 let selected = null;
@@ -180,7 +199,7 @@ function render() {
     for (const it of g.items) {
       const cls = it.controlado ? "item-btn done" : "item-btn";
       const decl = Number(it.cantidad_declarada != null ? it.cantidad_declarada : it.cantidad) || 0;
-      const um = umDe(it);   // unidad de la recepcion: 'uni' o 'kg'
+      const um = umDe(it);   // la unidad de ESTA recepcion: 'uni' o 'kg'
       let ctrlLine = "";
       if (it.controlado) {
         const real = Number(it.cantidad) || 0;
@@ -211,21 +230,38 @@ function render() {
   });
 }
 
-/* calc(): lee lo tipeado, lo pasa a la unidad de la recepcion y pinta la
-   conversion + la diferencia. Devuelve la cantidad REAL (la que se guarda). */
-function calc() {
-  const v = parseKg(inKg.value);          // lo tipeado (kg, salvo sin kg_x_uni)
-  const real = selected ? aReal(selected, v) : v;
-  const conv = $("convLine");
-  if (selected && pesaAUni(selected)) {
-    // El operario pesa; la pantalla le muestra en vivo cuantas piezas son.
-    conv.style.display = v > 0 ? "block" : "none";
-    conv.innerHTML = v > 0
-      ? `= <b>${fmt(real)}</b> uni <span style="color:#666;font-weight:600">(1 uni = ${fmtKx(kxDe(selected))} kg)</span>`
-      : "";
-  } else if (conv) {
-    conv.style.display = "none"; conv.innerHTML = "";
+/* Pasaje kg -> unidades con el kg_x_uni del insumo [usuario 2026-09-03: "en el
+   control ponga kg y me haga el pasaje a unidades con el kg por uni"]. Vale para
+   bombillas y remaches por igual: se reciben CONTANDO unidades, el movimiento
+   viaja en kg y el stock del sector vive en unidades. Sin kg_x_uni no hay pasaje
+   posible y no se muestra nada. */
+function pintarUnidades(kg) {
+  const kx = kxDe(selected);
+  if (!lblUni) return;
+  if (!kx || umInput(selected) !== "kg") { lblUni.style.display = "none"; return; }
+  lblUni.style.display = "block";
+  const decl = Number(selected.cantidad_declarada != null ? selected.cantidad_declarada : selected.cantidad) || 0;
+  // Con la recepcion en unidades lo declarado YA son unidades; en kg hay que pasarlo.
+  const enUni = umDe(selected) === "uni";
+  const uniDecl = decl > 0 ? (enUni ? decl : Math.round(decl / kx)) : 0;
+  if (kg > 0) {
+    const uni = Math.round(kg / kx);
+    lblUni.innerHTML = `<b>${fmt(uni)}</b> unidades` +
+      (uniDecl ? ` · declaradas <b>${fmt(uniDecl)}</b>` : "") +
+      ` <span class="uni-nota">(1 uni = ${fmtKx(kx)} kg)</span>` +
+      (enUni ? ` <span class="uni-nota">— se guardan estas unidades</span>` : "");
+  } else {
+    lblUni.innerHTML = (uniDecl ? `Declaradas <b>${fmt(uniDecl)}</b> unidades ` : "") +
+      `<span class="uni-nota">(1 uni = ${fmtKx(kx)} kg)</span>`;
   }
+}
+
+/* calc(): lee lo tipeado, lo pasa a la unidad de la recepcion y pinta las dos
+   caras + la diferencia. Devuelve la cantidad REAL, que es la que se guarda. */
+function calc() {
+  const v = parseKg(inKg.value);                       // lo tipeado (kg, o uni si no hay con que convertir)
+  const real = selected ? aReal(selected, v) : v;      // en la unidad de la recepcion
+  pintarUnidades(v);
   if (selected) {
     const um = umDe(selected);
     const decl = Number(selected.cantidad_declarada != null ? selected.cantidad_declarada : selected.cantidad) || 0;
@@ -248,21 +284,35 @@ function calc() {
   return real;
 }
 
+/* Cajas x kg por caja -> kg controlados. El campo de kg sigue siendo el que
+   manda (se puede escribir a mano); esto solo lo completa. */
+function calcCajas() {
+  const cajas = parseKg(inCajas.value), kgCaja = parseKg(inKgCaja.value);
+  if (cajas > 0 && kgCaja > 0) {
+    const total = cajas * kgCaja;
+    lblCajas.textContent = `${fmt(cajas)} caja${cajas === 1 ? "" : "s"} x ${fmt(kgCaja)} kg = ${fmt(total)} kg`;
+    // Redondeo a gramos para que 3 x 8,4 no termine en 25,199999999999996
+    inKg.value = String(Math.round(total * 1000) / 1000).replace(".", ",");
+  } else {
+    lblCajas.textContent = cajas > 0 || kgCaja > 0 ? "Falta uno de los dos datos" : "";
+  }
+  calc();
+}
+
 function abrirPopup(it) {
   selected = it;
   ctrlMsg.textContent = ""; ctrlMsg.className = "msg";
   const decl = Number(it.cantidad_declarada != null ? it.cantidad_declarada : it.cantidad) || 0;
-  const um = umDe(it);
   ctrlTitle.textContent = it.controlado ? `Revisar control — ${it.codigo || ""}` : `Control — ${it.codigo || ""}`;
   ctrlInfo.innerHTML = `
     <b>${esc(it.codigo || "")}</b>${it.descripcion ? " — " + esc(it.descripcion) : ""}
     <br>Proveedor: ${esc(it.proveedor || "—")} · Remito ${esc(it.remito || "—")} · ${esc(fmtFechaCorta(it.fecha))}
-    <br>Declarado por proveedor: <b>${fmt(decl)}</b> ${um}
-    ${um === "uni" && !kxDe(it)
+    <br>Declarado por proveedor: <b>${fmt(decl)}</b> ${umDe(it)}
+    ${umDe(it) === "uni" && !kxDe(it)
       ? '<br><span style="color:#b42318;font-weight:800">Sin kg por unidad cargado: contá las unidades (no se puede convertir el peso).</span>'
       : ""}
   `;
-  // Que se pide tipear: la balanza (kg) salvo que no haya kg_x_uni para convertir.
+  // Que se pide tipear: la balanza (kg) salvo que no haya kg_x_uni con que convertir.
   const entrada = umInput(it);
   $("lblKg").textContent = entrada === "kg"
     ? (pesaAUni(it) ? "Kg pesados en la balanza" : "Kg controlados (pesados)")
@@ -270,13 +320,18 @@ function abrirPopup(it) {
   inKg.placeholder = entrada === "kg" ? "0,0" : "0";
   inKg.setAttribute("inputmode", entrada === "kg" ? "decimal" : "numeric");
   // Al revisar un control ya hecho se repone lo TIPEADO, no lo guardado: si se
-  // guardo en uni hay que volver a mostrar los kg que se habian pesado.
+  // guardo en unidades hay que volver a mostrar los kg que se habian pesado.
   const previo = pesaAUni(it) ? (Number(it.cantidad) || 0) * kxDe(it) : Number(it.cantidad) || 0;
   inKg.value = it.controlado ? String(previo).replace(".", ",") : "";
+  // Cajas x kg por caja: el insumo lo dice (recibe_en_cajas). Arranca vacio
+  // siempre — las cajas y el peso son de ESTA entrega, no del insumo.
+  const enCajas = !!it.recibe_en_cajas;
+  cajasBox.style.display = enCajas ? "" : "none";
+  inCajas.value = ""; inKgCaja.value = ""; lblCajas.textContent = "";
   btnDesmarcar.style.display = it.controlado ? "" : "none";
   calc();
   ov.classList.add("open");
-  setTimeout(() => inKg.focus(), 60);
+  setTimeout(() => (enCajas ? inCajas : inKg).focus(), 60);
 }
 
 function cerrarPopup() { ov.classList.remove("open"); selected = null; }
@@ -284,7 +339,7 @@ function cerrarPopup() { ov.classList.remove("open"); selected = null; }
 async function confirmar() {
   if (!selected) return;
   const um = umDe(selected);
-  const real = calc();   // ya convertido a la unidad de la recepcion
+  const real = calc();   // ya expresado en la unidad de la recepcion
   if (real <= 0) {
     ctrlMsg.textContent = umInput(selected) === "kg"
       ? (parseKg(inKg.value) > 0 ? "Ese peso no llega a 1 unidad." : "Ingresá los kg controlados.")
@@ -309,8 +364,9 @@ async function confirmar() {
     // OJO con el nombre del parametro: controlar_recepcion_kg NO convierte nada,
     // pisa recepcion_insumo.cantidad (y el movimiento) con el numero que recibe.
     // La unidad de la recepcion no cambia, asi que se le manda la cantidad YA
-    // expresada en esa unidad: unidades para los remitos en uni, kg para los
-    // viejos en kg. El "kg" del nombre quedo del dia que solo servia a remaches.
+    // expresada en esa unidad: unidades para los remitos contados, kg para los
+    // que vienen pesados. El "kg" del nombre quedo del dia que solo servia a
+    // remaches, cuando todo el circuito era en kg.
     const { data, error } = await SB.rpc("controlar_recepcion_kg", {
       p_recepcion_id: selected.id, p_kg: real, p_usuario: usuario || null
     });
@@ -349,12 +405,12 @@ async function desmarcar() {
 }
 
 /* ===== Listeners ===== */
-inKg.addEventListener("input", () => {
-  inKg.value = inKg.value.replace(/[^0-9.,]/g, "").replace(/([.,].*)[.,]/g, "$1");
-  // Contando unidades no hay decimales: media pieza no existe.
-  if (selected && umInput(selected) === "uni") inKg.value = inKg.value.replace(/[.,]/g, "");
-  calc();
-});
+// El formato lo pone gp2-numero.js (auto-enganche por inputmode); aca solo se
+// recalcula la diferencia contra lo declarado.
+inKg.addEventListener("input", calc);
+inCajas.addEventListener("input", calcCajas);
+inKgCaja.addEventListener("input", calcCajas);
+inKgCaja.addEventListener("keydown", e => { if (e.key === "Enter") btnConfirm.click(); });
 inKg.addEventListener("keydown", e => { if (e.key === "Enter") btnConfirm.click(); });
 btnCancel.addEventListener("click", cerrarPopup);
 btnConfirm.addEventListener("click", confirmar);

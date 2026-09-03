@@ -67,8 +67,10 @@ window.supabase = { createClient: function(){ return {
 
   // fase 0
   const provTxt = await page.$eval('#psGrid .prov-btn', b => b.textContent);
-  ok(provTxt.includes('Becker') && provTxt.includes('Pintado'),
-     'fase0: boton Becker con proceso — ' + provTxt.trim());
+  // El contador dice PIEZAS A ENVIAR, no pares: el fixture tiene 3 pares pero
+  // son 2 piezas (la cuchilla cruda sale de dos maneras). Decia 3.
+  ok(provTxt.includes('Becker') && provTxt.includes('Pintado') && /\b2 partes\b/.test(provTxt),
+     'fase0: el boton cuenta piezas a enviar, no pares — ' + provTxt.trim());
   ok((await page.$eval('#status', e => e.textContent)).includes('1 proveedores'), 'status: 1 proveedores');
 
   // elegir proveedor

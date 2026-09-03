@@ -989,6 +989,178 @@ se puede derivar de los pasos `insumo`**: en el 580, que es el hermano sano, la 
 el artículo lleva (incluido un GRJ ya armado) y las rutas las entradas de cada cadena. **No
 son lo mismo y no se deducen una de la otra.**
 
+**HAY CODIGOS DE COMPONENTE REPETIDOS: nunca joinear por `codigo` (2026-09-03)** `[dato]` —
+me mordió el mismo día. **Cuatro códigos existen dos veces**, y en los cuatro choca una pieza
+del Sector Procesado con una Caja: **`A1`** (Mgo Plano 501 Pint. / Caja N°1), **`A4`** (Mgo
+Plano 501 Serig / Caja N°10), **`A8`** (Cuerpo Uña CH Serigr. / Caja N°2) y **`A9`** (Cpo Mango
+Alambre Corta Queso Crom. / Caja N°22). Cargando la receta del 581 hice el join por código y me
+llevé **las dos filas**. **Regla: unir por `componente.id`, y si hay que resolver desde un
+código, desambiguar por sector.** La numeración de cajas y la de piezas procesadas se pisan.
+
+**Los remaches: cuál se compra crudo y cuál se compra hecho (2026-09-03)** `[usuario]`. El
+patrón bueno es **`CV9` → Guazzaroni → `V9`**: se le compra el remache **crudo a Bella Vista**,
+Guazzaroni lo niquela, y el niquelado queda en `estado_compra='fabricacion'` **sin precio
+propio**, porque su costo es el crudo más el baño.
+
+- **El sacacorcho va por ahí** `[usuario: "el CV11 agregalo en Bellavista y sacá el V11. El V11
+  es después de mandarlo a niquelar a Guazzaroni"]`. Las rutas del **581** y del **104**
+  entraban con `insumo V11` directo, o sea el remache se compraba ya niquelado **y el niquelado
+  no se pagaba**. Corregido al patrón CV9/V9: el V11 pasa de $28,66 a $30,57.
+- **El canelón NO** `[usuario: "el CV10 eliminalo porque el que se compra es el V10, remache
+  aluminio canelón"]`. Ese se compra ya hecho: `CV10` era un alta de más y se dio de baja.
+  **No todos los `CVxx` existen: sólo los que efectivamente se mandan a niquelar.**
+- Al pasar `V11` a niquelado entra a la lista de piezas de Guazzaroni con la tarifa en `NULL`,
+  igual que TODAS las suyas: hueco conocido, queda marcado y no inventado.
+
+**Un GRJ armado reemplaza a sus componentes en la receta, no se suma (2026-09-03)** `[usuario:
+"GRJ1 se usa para el quinientos"]`: la receta del **500** tenía `C1 + C10 + V9` sueltos, que son
+**exactamente el BOM del `GRJ1`**. Se reemplazaron por el GRJ1, igual que el **506** lleva
+`GRJ7` en vez de `A10 + C10 + V9`. **Si se dejan los dos, el armado se cuenta dos veces.** El
+costo del 500 no se movió ni un peso, que es la prueba de que el reemplazo era exacto. La
+receta quedó `A11 + GRJ1 + Pliego Ad 500`, calcada del 506.
+
+**La receta del 581 y del 104 (2026-09-03)** `[usuario, con la pantalla a la vista: "por ahora
+mandale así"]`: **Caja N°22 (1/12) + su cartón + `D1` Espiral Sacacorcho + `PB8A` Mgo Sacac
+Plast + `V11` Remache Sacacorcho**, todos ×1 salvo la caja. En la receta va el remache
+**niquelado** (`V11`), que es lo que el artículo lleva; el crudo `CV11` y el baño son pasos de
+la ruta. Los dos tenían rutas y Est Madre pero **cero receta**, así que no pedían nada. Ahora
+piden 7 partes cada uno (581: 2.532 uni/mes · 104: 3.162). **De paso se corrigió un error del
+clonado del 2026-09-02**: las rutas del 104 entraban con `CCE2B`, que es el **Cartón 581**. El
+104 lleva su propio cartón, `K5D`, que no existía en GP2 y se dio de alta **sin precio** — por
+eso su costo baja a $672,86 y queda con `faltan_precios: 1`.
+
+**EL PLIEGO NUNCA VA CON CANTIDAD 1 EN LA RECETA (2026-09-03)** `[usuario]`: textual, *"en el
+BOM no pongas un pliego por artículo, sino que cada pliego se usa para varios artículos"*. **El
+rinde sale de `componente.carton_formato`** y el precio lo confirma, que es la forma rápida de
+chequear que un pliego está bien cargado:
+
+| formato | posiciones | precio unitario |
+|---|---|---|
+| `C` | 12 | $89 |
+| `LOKE` | 16 | $66,75 |
+| `Huevo` | 25 | $42,72 |
+| `8` | 30 | $35,60 |
+| `Pliego` (ex-Bombilla) | **16** | skin $915 el pliego |
+
+En la receta va **`1/posiciones`**. **Los 12 artículos que llevan pliego quedaron uniformes el
+2026-09-03** `[usuario: "los pliegos de bombilla todos, el 557 al 769 vienen de dieciséis. Y el
+pliego del 506 y el 500 vienen de doce"]`: **500 y 506 a 1/12** ($917 el pliego → $76,42 por
+artículo) y los **diez de bombilla a 1/16** ($915 → $57,19). El `Pliego Ad 500` estaba con
+precio $89 y cantidad 1, o sea con el precio POR POSICIÓN: pasó al pliego entero, como todos.
+Eso cierra la idea 6116.
+
+**Y ojo con el número: los de bombilla son 16, no 25.** Lo tenía anotado mal en dos lados y
+cargué 1/25 antes de que el usuario me corrigiera. La pista estaba: la idea 7223 marcaba que en
+el 557/558 la **receta** decía 1/25 y la **ruta** 1/16 — **tenía razón la ruta**. Cuando receta y
+ruta no coinciden, mirar cuál de las dos se cargó con el dato del usuario.
+
+**Copiar un precio "de un gemelo" es copiar del MISMO FORMATO (2026-09-03)** `[dato]` — me
+equivoqué el mismo día. Al `C1B` (Cartón 574) le puse $89 porque era el precio más repetido de
+los cartones, pero **C1B es formato `Huevo`**, o sea 25 posiciones, y ese formato vale **$42,72**;
+los $89 son del formato `C`. El gemelo del que hay que copiar es uno de su misma columna de la
+tabla de arriba, no cualquiera. En cambio el `K5D` (Cartón 104) **sí** iba a $89, porque su
+gemelo exacto es el Cartón 581, que es formato C.
+
+**Los códigos duplicados NO se renumeran (2026-09-03)** `[usuario: "los componentes que te mandé
+son los que ya existen, no los dupliques"]`: los cuatro pares `A1`, `A4`, `A8` y `A9` (una pieza
+de Procesado y una Caja en cada uno) **se quedan como están**. Lo que hay que hacer es
+**desambiguar por sector** cada vez que se resuelva un componente desde su código — y mejor,
+unir por `componente.id`.
+
+**Un insumo se paga UNA vez, aunque el artículo tenga varias rutas (2026-09-03)** `[usuario:
+"uno u otro, no x2 de costo"]` — es la misma regla que se aplicó a los talleristas a la mañana,
+y el CTE **`insumox`** tenía el mismo agujero: sumaba una vez **por cada ruta**, así que un
+artículo con dos rutas alternativas (el mismo trabajo hecho por dos talleristas) **pagaba sus
+insumos dos veces**. Eran **16 casos en 6 artículos**, y no era poca plata:
+
+| Artículo | Antes | Ahora | |
+|---|---|---|---|
+| **609** | $1.198,35 | $725,28 | −$473,07 |
+| **315** | $867,57 | $559,89 | −$307,68 |
+| **505** | $514,32 | $358,36 | −$155,96 |
+| **500** | $557,31 | $441,82 | −$115,49 |
+| **510** | $334,22 | $231,31 | −$102,91 |
+
+**~$1.155 que se estaban cobrando de más.** Ahora `insumox` arma una fila por (artículo, insumo)
+tomando la cantidad mayor, igual que `talx` toma la tarifa más cara. **Regla general: cuando dos
+rutas alternativas describen el mismo trabajo, todo lo que comparten se cuenta una sola vez** —
+el insumo, el armado del tallerista, el servicio. Si aparece otro CTE que sume por ruta, tiene
+el mismo bug.
+
+**CADA ARTICULO LLEVA UN CARTON O UN PLIEGO — uno, y sólo uno (2026-09-03)** `[usuario]`:
+textual, *"chequea que cada artículo tenga un cartón o pliego. No estaría bien que alguno no
+tenga o tenga cartón + pliego"*. **Es una regla de integridad y hoy se cumple**: de los 99
+artículos, **ninguno lleva los dos** y todos llevan uno, con una sola excepción — el **071**,
+que **va sin cartón a propósito** `[usuario 2026-09-03: "al 071 no le hagas cartón"]`. O sea que
+la regla es "uno o ninguno, nunca los dos": si un artículo no lleva cartón ni pliego **no hay que
+inventarle uno**, hay que preguntar.
+
+El chequeo hay que hacerlo **por receta Y por ruta**, porque son dos cosas distintas (la receta
+manda el consumo, la ruta manda el costo) y pueden no coincidir. Así apareció el **516**: tenía
+el cartón `L4B1` en la receta pero **ninguna ruta lo declaraba**, o sea el consumo lo pedía y el
+costo no lo pagaba. La causa era que la ruta 323 (*Insumo CART516 → Art 516*) **existía sin su
+paso 1**, el que declara el cartón: arrancaba directo en el paso del tallerista, mientras sus
+hermanas sí lo tenían. Se buscó el patrón en todo el proyecto y **era la única ruta con ese
+agujero**. Corregida, el 516 sube $89.
+
+La consulta que lo verifica, por si hay que repetirla: contar los componentes del Sector Cartón
+que cada artículo declara en `articulo_componente` y en `ruta_paso` (pasos `insumo`/`ingreso`),
+y pedir que las dos cuentas den **exactamente 1**.
+
+**El nombre que se ve NO es la llave del proceso (2026-09-03)** `[usuario]` — pidió prolijidad en
+Envío/Entrega a Proveedores de Servicio: *"el de AJ, que en realidad es AJ Adhesivos nomás sin la
+barra, y el de Máspoli, que dice armado de mango. No tiene mayúscula ninguno de los dos... y en
+vez de armado de mango, armado mango"*. Quedaron **`AJ Adhesivos · Adhesivado`** y **`Maspoli SRL
+· Armado Mango`**. Lo importante para la próxima vez: hay **dos lugares** con el proceso y no son
+lo mismo —
+
+- **`proveedor_servicio.nombre` y `.proceso`** = el **rótulo** que muestra la pantalla. Texto
+  libre, va en mayúscula y como lo quiera leer el usuario.
+- **`GP2.proceso`** = el **catálogo canónico**, en minúscula, con FK desde
+  `precio_servicio_pieza.proceso` y usado para cruzar con `tarifa_servicio`. **Ese no se toca por
+  una cuestión de estética**: cambiarlo rompe el FK (lo probé y la base lo rechazó, bien hecho).
+
+**Blist-Pack es el 3227** `[usuario 2026-09-03]`. Era el único tallerista sin `cod_prov`, y por eso
+en Envíos/Entregas a talleristas aparecía sin código mientras los demás sí lo mostraban.
+
+**EL CLAVO 505 NO SE CUENTA: VIENE EN CAJAS Y SE PESA (2026-09-03)** `[usuario]` — *"que tire por
+default kg y borra unidades en el caso de Trefilados Industriales Clavo 505"* y *"en el caso del
+control de este componente que me deje poner cant de cajas y kg por caja"*. Es **un dato del
+componente con dos consecuencias**, y quedó como tal: la columna nueva
+**`componente.recibe_en_cajas`** (hoy sólo el `PCP3`, el único insumo de Trefilados).
+
+- **Recepción**: se carga siempre en **kg** y **no se muestra el toggle Kg/Unidades** — el mismo
+  criterio que ya valía para los flejes: si la casa sabe la unidad, el toggle sólo se presta a
+  equivocarse.
+- **Control**: aparecen **Cajas** y **Kg por caja**, que multiplican y completan los kg
+  controlados (el campo de kg sigue mandando: se puede escribir a mano).
+
+**Lo que NO se tocó, y es importante: `componente.unidad_medida` sigue en `unidad`.** El stock
+del plástico vive en **unidades** (hoy 153.859 uni de clavo) y el trigger del movimiento convierte
+los kg del remito con `kg_x_uni` (0,00653 kg cada clavo). Cambiar la UM canónica para que la
+pantalla arranque en kg habría roto esa conversión: **la unidad del REMITO y la unidad del STOCK
+son dos cosas distintas**.
+
+**LA UNIDAD DEL REMITO NO ES LA DEL STOCK, Y CADA RUBRO TIENE LA SUYA (2026-09-03)** `[usuario]`
+— *"en recepción de bombillas que tire por default unidades (que no aparezca kg) y que en el
+control ponga kg y me haga el pasaje a unidades con el kg por uni"*. Bombillas y remaches son el
+mismo caso y ahora se comportan igual: **se reciben CONTANDO unidades** (sin toggle: el kg no
+aparece) y el **stock del sector vive en unidades**. El **control es por peso** (se pesa la
+caja), así que ahí el operario ve las dos caras: los kg que pesó y **a cuántas unidades
+equivalen**, contra las declaradas.
+
+> **Corregido el mismo día — ver § 4f.** Acá decía que "el movimiento viaja en kg cuando el
+> componente tiene `kg_x_uni`". Ya no: esos remitos se **guardan en unidades**. El paso por kg
+> era un rodeo (la unidad canónica del inventario de esos sectores ya es `unidad`, así que el
+> trigger lo volvía a dividir) y encima dejaba sin poder recibirse a los componentes sin
+> `kg_x_uni`. Lo que sigue valiendo tal cual es lo de arriba: **la unidad del remito y la del
+> stock son cosas distintas**, y el clavo, que se pesa, se sigue guardando en kg.
+
+La regla general que queda, y que ya se aplicó a flejes, cartones, remaches, bombillas y al clavo:
+**si la casa sabe en qué unidad viene el remito de ese insumo, el toggle Kg/Unidades no se
+muestra.** El toggle sólo sirve donde de verdad puede venir de las dos formas; en todo lo demás es
+una invitación a equivocarse.
+
 ## 3c-bis. Accesibilidad de carga: letra grande + teclado numérico (2026-08-30)
 
 `[usuario 2026-08-30]` Dicho textual: *"Siempre quiero letras bien grandes y legibles
@@ -2685,7 +2857,73 @@ pantallas del grupo: cada una va adonde se usa, y el grupo del menú se borra (v
   recetas, 0 precio, costo $0 (ahora sí tiene fila de inventario en 0). O se le construye la
   cadena entera, o se da de baja. No es una bombilla.
 
-## 4d. La unidad de una recepción la manda `componente.unidad_medida`, no el rubro (2026-09-03)
+## 4d. Insumo → tallerista → Virgilio: los tres eventos de una ruta de armado (2026-09-03)
+
+- `[usuario]` **"Se compra el insumo, después se va al tallerista, y después el tallerista
+  entrega el artículo terminado en Virgilio."** Esa es la lectura correcta de las rutas del
+  tipo `Insumo CARTxxx -> Art xxx`: son **tres eventos reales**, uno por paso, y por eso van
+  tres pasos y no uno solo. El paso `insumo` es la COMPRA (el insumo entra a la casa), el
+  paso `tallerista` es el armado, el paso `virgilio` es la entrega del terminado.
+- `[dato]` **El paso `insumo` no transforma: entra y sale la misma pieza** (`comp_entrada_id
+  = comp_salida_id`), igual que el paso `ingreso` de un fleje. Lo que transforma es el paso
+  `tallerista`: entra el insumo, sale el artículo. Un insumo no cambia de código porque lo
+  compres — cambia cuando alguien lo trabaja.
+- `[dato, arreglado 2026-09-03]` **339 rutas tenían la cadena cortada** justo ahí: el paso
+  `insumo` con `comp_salida_id` en NULL y el paso `tallerista` con `comp_entrada_id` en NULL.
+  El insumo entraba y desaparecía; el artículo salía de la nada. No era un error de negocio
+  sino carga incompleta: las dos columnas de enganche vacías. Emparejamiento perfecto
+  (339 y 339, cada ruta con un solo insumo, el tallerista siempre inmediatamente después),
+  así que se completó con un UPDATE sin ninguna ambigüedad.
+- `[dato]` **Es el hallazgo #15 de `AUDITORIA_GP2_2026-08-31.md`** ("los 88 terminados
+  pierden todo su material"), que había bajado de 366 a 339 pasos sin resolverse. Efecto
+  medido del arreglo: cambiaron **exactamente los 98 terminados y nada más** — 0 componentes
+  de crudo/procesado/fleje, 0 máximos y 0 mínimos recalculados, ninguno bajó de costo y
+  ninguno quedó en $0. Todo el delta es **material**; servicios y mano de obra sin tocar.
+  Ejemplos: 557/558 $402,14 → $1.796,75 · 546 $1.456,56 → $3.028,34 · 550 $249,77 → $651,84.
+- `[dato]` **No hay doble conteo.** `v_costo_componente` solo camina aristas con
+  `comp_entrada_id <> comp_salida_id` y tipo `matriz|proveedor_servicio|tallerista`: el paso
+  `insumo` (que ahora tiene entrada = salida) queda fuera del walk por definición, y el
+  material entra una sola vez, por el paso del tallerista.
+- `[dato]` **Cerrar la cadena NO hace que el costo del terminado sea igual al de la receta.**
+  El motor sigue costeando por ruta (ver § 4c: "el costo llega al artículo por la RUTA, no
+  por `articulo_componente`"), así que donde la receta y la ruta no coinciden el número sigue
+  corto — 557/558 quedan en $1.796,75 contra ~$3.076 por receta, porque el GRJ de bombilla no
+  está en la receta. **El arreglo de fondo sigue pendiente**: costear el terminado desde la
+  receta, que es la que tiene las cantidades.
+- `[dato]` **Estado después del arreglo: 0 eslabones vacíos y 0 saltos duros en las 619
+  rutas.** Cualquier paso cuyo `comp_salida` no sea el `comp_entrada` del siguiente es, desde
+  ahora, un bug — vale como invariante para un test.
+
+## 4e. "Movimiento" y "Tránsito" son DOS cosas distintas (renombre 2026-09-03)
+
+- `[usuario]` **"En vez de que se llame Sector Tránsito en las tablas, que se llame Sector
+  Movimiento, al que pasa de matriz en matriz. Sector Tránsito es el de los proveedores de
+  servicio."** El nombre correcto es el que ya usaba el programa; el que estaba mal era el
+  de la tabla.
+- **Los dos, sin confundirlos nunca más:**
+  - **Sector Movimiento** (sector id 3, 43 componentes) = la pieza a medio hacer que va **de
+    matriz en matriz** (los códigos "tras M#", tipo `E6-M132`). Es WIP: no tiene mín/máx ni
+    `kg_x_uni`/`uni_x_cajon` (ver § 2c-undecies). Lo muestra `StockMovimiento_GP2.html`,
+    que trae el `sector_id: 3` hardcodeado.
+  - **Stock Tránsito PS** = la pieza que un **proveedor de servicio** ya entregó y espera
+    hasta mandarse **al PS siguiente**. No es un sector: sale de la RPC
+    `stock_transito_ps_bundle` y lo muestra `StockTransitoPS_GP2.html`.
+- `[dato, aplicado 2026-09-03]` Se renombró **`sector.nombre`** ('Sector Transito' →
+  'Sector Movimiento'), **`sector.tipo`** ('transito' → 'movimiento') y el
+  **`ubicacion.nombre`** de la ubicación 3. Se cambió el `tipo` y no solo el nombre a
+  propósito: dejarlo en `'transito'` mantenía viva justamente la confusión que el usuario
+  quiere eliminar, porque el `tipo` es lo que viaja en los bundles.
+- `[dato]` **El `tipo` lo leen exactamente DOS lugares** (verificado con barrido del repo, y
+  cero funciones o vistas de la BD dependen de él): `Programa/Programa.html` en el
+  `SECT2CLS` (la clase CSS del nodo) y `OrdenProduccion/OrdenProduccion.js` en
+  `resolverDestinos`, que sigue la cadena hasta el sector crudo/procesado final. Los dos
+  quedaron actualizados en el mismo commit. **Si mañana aparece un tercer consumidor del
+  `tipo`, este es el lugar donde mirar.**
+- **Trampa**: casi todas las demás menciones de "tránsito" en el repo (ControlPS,
+  StocksGeneral, Verificación, Despiece) hablan del **`ST` del programa viejo**, que es el
+  tránsito de PS y está bien nombrado. No tocarlas al buscar y reemplazar.
+
+## 4f. La unidad de una recepción la manda `componente.unidad_medida`, no el rubro (2026-09-03)
 
 - `[usuario 2026-09-03]` **"En el caso de Eduardo Pintos, Pat Bet Plast, Pettofrezza Rafael:
   cuando voy a cargar un remito que me tire por default unidades (kg borralo), y en el

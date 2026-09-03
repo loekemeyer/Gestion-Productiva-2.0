@@ -6,27 +6,50 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<!-- v3.41.0 (2026-09-03) — REMACHES Y 3 PLASTICOS: EL REMITO SE GUARDA EN UNIDADES.
-     [usuario: "en el caso de eduardo pintos, pat bet plast, pettofrezza rafael. cuando
-     voy a cargar un remito que me tire por default unidades (kg borralo) y en el control
-     que pueda poner los kg y con el kg por uni de cada componente me lo pase a uni" +
-     "y en el caso de tornillos suipacha lo mismo ... (como en todos lo de sector remaches)"].
-     Antes el popup de esos rubros dejaba elegir Kg, y guardar() convertia lo tipeado en
-     unidades a kg con kg_x_uni. Ahora hay UN solo criterio, cargaEnUni(): sector 8 entero
-     + los 3 proveedores de piezas del sector 6 se tipean y se GUARDAN en unidades.
-     Por que importa, mas alla de la pantalla:
-       (a) la unidad canonica del inventario de los dos sectores ya es 'unidad'
-           (componente.unidad_medida), asi que el ida y vuelta por kg solo agregaba error
-           de redondeo — de ahi stocks como 10.099,999999999999988571 en CV1;
-       (b) los 3 tornillos SIN kg_x_uni (CV18D de Tornillos Suipacha, V18D, V20) eran
-           IMPOSIBLES de recibir: caian a kg y GP2.to_canonical corta con "sin kg_x_uni
-           valido para kg->uni". Cargados en uni entran derecho.
-     El control (control-remaches.js, ?sector=6|8) acompaña: se sigue pesando en balanza y
-     la pantalla divide los kg por kg_x_uni para llegar a las unidades reales. Las
-     recepciones viejas que quedaron en kg se siguen controlando en kg.
-     PENDIENTE DEL USUARIO: el kg por unidad de CV18D, V18D y V20 (hoy null). Sin ese dato
-     su control no se puede pesar y hay que contar las unidades a mano. -->
-<!-- v3.40.2 (2026-09-02) — LIMPIEZA de codigo muerto que dejaron v3.40.0 y la Fase B:
+<!-- v3.44.0 (2026-09-03) — LO QUE SE CUENTA SE GUARDA EN UNIDADES [usuario: "en el caso
+     de eduardo pintos, pat bet plast, pettofrezza rafael ... que me tire por default
+     unidades (kg borralo) y en el control que pueda poner los kg y con el kg por uni de
+     cada componente me lo pase a uni" + "y en el caso de tornillos suipacha lo mismo ...
+     (como en todos lo de sector remaches)"]. Los plasticos de esos 3 proveedores entran al
+     mismo grupo que remaches y bombillas, y las tres ramas se unifican en un solo criterio,
+     cargaEnUni(). El cambio de fondo: esos rubros ya no se guardan en kg. Antes se tipeaba
+     en uni y guardar() multiplicaba por kg_x_uni; ahora la recepcion queda en unidades.
+     (a) La unidad canonica del inventario de esos sectores YA es 'unidad'
+         (componente.unidad_medida, la que usa GP2.to_canonical), asi que el paso por kg era
+         un ida y vuelta que solo sumaba redondeo — de ahi stocks como
+         10.099,999999999999988571 en CV1.
+     (b) Los 3 tornillos SIN kg_x_uni (CV18D de Tornillos Suipacha, V18D, V20) eran
+         IMPOSIBLES de recibir: caian a kg y to_canonical corta con "sin kg_x_uni valido
+         para kg->uni". Cargados en uni entran derecho.
+     Trefilados (Clavo 505) NO cambia: sigue en kg por recibe_en_cajas, que es la marca del
+     insumo que se pesa. El control (control-remaches.js v1.5.0) decide fila por fila con
+     recepcion_insumo.unidad: en las de uni se pesan los kg y se guardan las unidades.
+     PENDIENTE DEL USUARIO: el kg por unidad de CV18D, V18D y V20 (hoy null) — sin ese dato
+     su control fisico se cuenta a mano en vez de pesarse. -->
+<!-- v3.43.0 (2026-09-03) — BOMBILLAS SIEMPRE EN UNIDADES (usuario: "en recepcion de bombillas
+     que tire por default unidades, que no aparezca kg"). El sector 7 pasa a tener su propia
+     rama, como remaches: se oculta el toggle y se carga en uni. Si el componente tiene
+     kg_x_uni, guardar() sigue pasandolo a kg para el movimiento (el stock del sector vive en
+     unidades y el trigger lo devuelve a unidades); el control por peso ahora muestra ese
+     pasaje a la vista (control-remaches.js v1.4.0).
+     v3.42.0 (2026-09-03) — EL CLAVO 505 SE RECIBE EN KG, SIN TOGGLE (usuario: "que tire por
+     default kg y borra unidades en el caso de Trefilados Industriales Clavo 505"). Dato nuevo
+     en la base: componente.recibe_en_cajas — el proveedor lo entrega en cajas que se PESAN.
+     Con ese flag la recepcion se carga siempre en kg (se oculta el toggle Kg/Unidades, mismo
+     criterio que ya se usaba en flejes) y el control se cuenta en cajas x kg por caja (ver
+     control-remaches.js v1.3.0). NO se toca la unidad_medida del componente: el stock del
+     plastico vive en UNIDADES y el trigger convierte los kg del remito con kg_x_uni.
+     v3.41.1 (2026-09-03) — FIX: cargar un paquete de 100 pliegos disparaba el falso aviso de
+     "diferencia mayor al 10%" (usuario: "cuando voy a cargar un paquete de pliegos (100) me
+     aparece el cartel por que?"). Decia "declarado 100 paq - contado 0 paq - dif -100" por dos
+     cuentas distintas: (a) el pliego se DECLARA en unidades (100 pliegos) y se CONTROLA en
+     paquetes (1), y el aviso comparaba los dos numeros como si fueran la misma unidad;
+     (b) los paquetes equivalentes de un pliego salian de Math.round(uni_x_bolsa/uni_x_paquete)
+     = Math.round(100/250) = 0, asi que el contado siempre daba cero. Ahora un solo helper
+     ctlComparacion(it) pone declarado y contado en la MISMA unidad y lo usan la linea de la
+     pantalla y el aviso; y el paquete de un pliego vale 1 paquete, no 0. Lo que se guardaba en
+     la base ya estaba bien (la RPC hace 1 x 100 = 100 uni): era solo el aviso.
+     v3.41.0 (2026-09-03) — BOMBILLAS VA AL CONTROL AL CERRAR EL REMITO (usuario: "en bombillas, cuando termina de cargar un remito, no me manda al control de bombillas, quiero que me mande"). Faltaba el sector 7 en CONTROL_URL: era la unica linea, porque control-remaches.js ya es generico por sector (?sector=N, el titulo sale del bundle) y control_kg_bundle(7) ya devolvia "Sector Bombilla". v3.40.2 (2026-09-02) — LIMPIEZA de codigo muerto que dejaron v3.40.0 y la Fase B:
      (a) CSS .qbtn-minus / .qbtn-minus:hover — el boton -N/-1 de cartones se saco en
      v3.40.0 y la clase ya no la usa nadie; (b) los stubs esFiltroCharcas() /
      esCortadoEclipse() (return false) que quedaron de la Fase B Charcas/Eclipse —
@@ -464,20 +487,26 @@ const $=id=>document.getElementById(id);
 
 /* Sectores cuya fase 2 (el control fisico) vive en OTRA pagina, y en cual.
    Flejes y cartones NO estan aca: su fase 2 se abre en esta misma pantalla
-   (montarPesaje / montarControlCartones). Bombillas tampoco: no lleva control.
+   (montarPesaje / montarControlCartones). Con bombillas adentro (2026-09-03) ya
+   NO queda ningun rubro sin control: los 6 terminan yendo a algun lado.
    La pantalla de control por peso naciendo para remaches quedo generalizada por
    sector, asi que plasticos entra a la misma con ?sector=6 en vez de tener una
    copia propia [usuario 2026-09-03: "que sea control en kg" para plasticos].
    Sumar un sector nuevo al control por peso es agregar una linea aca. */
 const CONTROL_URL = {
-  11: 'control-cajas.html',             // Cajas: base x pisos + sueltas
-  8:  'control-remaches.html',          // Remaches: pesar (8 es el default de esa pantalla)
-  6:  'control-remaches.html?sector=6'  // Plasticos: misma pantalla de peso, otro sector
+  11: 'control-cajas.html',              // Cajas: base x pisos + sueltas
+  8:  'control-remaches.html',           // Remaches: pesar (8 es el default de esa pantalla)
+  6:  'control-remaches.html?sector=6',  // Plasticos: misma pantalla de peso, otro sector
+  7:  'control-remaches.html?sector=7'   // Bombillas: idem [usuario 2026-09-03]
 };
 // Unidad default por rubro (kg / uni). Los flejes y remaches se compran en kg.
 const RUBRO_UM={Flejes:"kg",Remaches:"kg",Cajas:"uni",Plasticos:"uni",Cartones:"uni",Bombillas:"uni"};
 
 let INS=[], UMBY={}, KGXUNI={}, PROVFLAGS={}, RECS=[], PALL=[], ROLL=[], TARA={tara_pallet_min:4,tara_pallet_max:8};
+/* Insumos que el proveedor entrega en CAJAS y se pesan (componente.recibe_en_cajas).
+   Hoy el Clavo 505 de Trefilados. Se cargan siempre en kg y el toggle Kg/Unidades
+   no se muestra [usuario 2026-09-03: "que tire por default kg y borra unidades"]. */
+let ENCAJAS={};
 let REMITO=[];    // items anotados del remito en curso, esperando el pesaje: {recId,codigo,desc,cant,unidad,rollos,pallets}
 // PEND: buffer LOCAL para cartones (regla usuario 2026-09-02: "no quiero que
 // por cada +4 o +1 se haga un remito. cuando arranco a tocar aparece un boton
@@ -508,42 +537,32 @@ function fieldsFleje(nom){
   if (p==='hermac') return { paquetes:true };
   return {};
 }
-/* PLASTICOS QUE SE CARGAN Y SE GUARDAN EN UNIDADES (usuario 2026-09-03:
-   "en el caso de eduardo pintos, pat bet plast, pettofrezza rafael. cuando voy
-   a cargar un remito que me tire por default unidades (kg borralo) y en el
-   control que pueda poner los kg y con el kg por uni de cada componente me lo
-   pase a uni").
-   Estos 3 entregan PIEZAS (mangos, capuchones, pirolos): el remito viene en
-   unidades y la recepcion se guarda en unidades. Antes el popup mostraba el
-   toggle Kg/Uni y guardar() convertia uni -> kg con kg_x_uni, asi que el
-   operario tipeaba 100 y la recepcion quedaba en 0,63 kg; el control despues
-   le pedia kg contra ese 0,63 y el numero del remito no se veia por ningun
-   lado. Ahora la unidad del circuito es la unidad (el inventario de plasticos
-   YA esta en unidades) y el peso aparece solo donde sirve: como ayuda al
-   costado en la carga, y como forma de contar en el control (se pesa y se
-   divide por kg_x_uni).
-   NO alcanza con "es del sector 6": Trefilados Industriales tambien es un
-   plastico (Clavo 505) y ese SI se compra por kg. Por eso la regla es por
-   PROVEEDOR y son estos tres, no el rubro entero. */
+/* SE CARGA Y SE GUARDA EN UNIDADES (usuario 2026-09-03: "en el caso de eduardo
+   pintos, pat bet plast, pettofrezza rafael. cuando voy a cargar un remito que
+   me tire por default unidades (kg borralo) y en el control que pueda poner los
+   kg y con el kg por uni de cada componente me lo pase a uni" + "y en el caso
+   de tornillos suipacha lo mismo ... (como en todos lo de sector remaches)").
+   Son los rubros que el proveedor entrega CONTADOS: remaches (8), bombillas (7)
+   y los plasticos de piezas (6). El remito viene en unidades y la recepcion se
+   guarda en unidades.
+   POR QUE NO PASAR POR KG, que es lo que se hacia antes: la unidad canonica del
+   inventario de esos sectores YA es 'unidad' (componente.unidad_medida, la que
+   usa GP2.to_canonical), asi que convertir a kg al guardar solo agregaba un ida
+   y vuelta — de ahi salian stocks como 10.099,999999999999988571 en CV1. Y sin
+   kg_x_uni la conversion ni siquiera es posible: los 3 tornillos que no lo
+   tienen (CV18D de Tornillos Suipacha, V18D, V20) caian a kg y el RPC los
+   rechazaba con "sin kg_x_uni valido para kg->uni", o sea que NO se podian
+   recibir. Cargados en uni entran derecho, con o sin peso por unidad.
+   NO es el sector 6 entero: Trefilados Industriales tambien es un plastico
+   (PCP3 Clavo 505) y ese SI se compra por kg — lo maneja recibe_en_cajas. Por
+   eso en plasticos la regla es por PROVEEDOR. */
 const PLAST_UNI = ['eduardo pintos','pat bet plast','pettofrezza rafael'];
 function provPlastUni(nom){ return PLAST_UNI.indexOf(String(nom||'').trim().toLowerCase())>=0; }
-/* true = este item se carga en unidades y se GUARDA en unidades (sin pasar por kg).
-   - Sector 8 (REMACHES) entero, Tornillos Suipacha incluido [usuario 2026-09-03:
-     "en el caso de tornillos suipacha lo mismo ... (como en todos lo de sector
-     remaches)"]. Antes se tipeaba en uni y se guardaba en kg; eso ademas dejaba
-     a los 3 tornillos SIN kg_x_uni (CV18D de Suipacha, V18D, V20) imposibles de
-     recibir: se cargaban en kg y GP2.to_canonical corta con "sin kg_x_uni valido
-     para kg->uni" porque el inventario de remaches es en unidades.
-   - Sector 6 (PLASTICOS) solo para los 3 proveedores de piezas.
-   La unidad canonica del inventario de los dos sectores YA es 'unidad'
-   (componente.unidad_medida), asi que guardar en uni es el camino directo: sin
-   ida y vuelta por kg no hay perdida de precision (de ahi salian stocks como
-   10.099,999999999999988571 en CV1). */
 function cargaEnUni(it){
   if (!it) return false;
   var sid = Number(it.sector_id);
-  if (sid===8) return true;
-  return sid===6 && provPlastUni(provSel);
+  if (sid===8 || sid===7) return true;              // remaches y bombillas
+  return sid===6 && provPlastUni(provSel);          // plasticos: solo los de piezas
 }
 // Proveedores ocultos del listado del operario (no llegan sus entregas a
 // Cervantes/Virgilio, asi que no tiene sentido que el operario los vea):
@@ -1087,18 +1106,19 @@ async function flushPend(){
       var _volver=$('btnVolver1'); if(_volver) _volver.style.display='none';
     }
   } else if (procesados && !fallados){
-    // Bombillas es el unico rubro que queda SIN control fisico: la recepcion queda
-    // cerrada al confirmar y no hay adonde mandar al operario (plasticos salio de
-    // aca el 2026-09-03, ahora tiene control por peso). Se cierra con el mismo cartel
-    // que usan las otras pantallas en vez de dejar solo un status que se borra a los
-    // 5 segundos, asi los 6 rubros terminan igual de claros.
-    // [usuario 2026-09-03: "que sea de este estilo en los 6 tipos de insumo"]
+    // Rama de cortesia: hoy NINGUN rubro cae aca. Bombillas era el ultimo sin
+    // control fisico y entro a CONTROL_URL el 2026-09-03 [usuario: "despues de
+    // tocar termine de cargar remito me deberia aparecer la pantalla de control
+    // bombilla, al igual que en los otros insumos"], igual que plasticos ese
+    // mismo dia. Se deja el cartel por si se suma un rubro nuevo sin control:
+    // cierra con el mismo estilo que las demas pantallas en vez de un status que
+    // se borra a los 5 segundos.
     // Aca NO se ocultan Atras/Volver: no hay control pendiente que obligar.
     var sbOk=$('successBox'); if(sbOk){
       sbOk.style.display='block';
       sbOk.querySelector('.title').textContent='✓ Recepción completa';
       $('successDetail').textContent='El remito quedó cargado: '+procesados+' ítem'+
-        (procesados===1?'':'s')+'. Este insumo no lleva control físico.';
+        (procesados===1?'':'s')+'. Este insumo no lleva control físico.';   // ver el comentario de arriba: hoy no entra ningun rubro
     }
   }
 }
@@ -1234,12 +1254,12 @@ function abrirPopup(i){
     $('kgValueLabel').textContent='Cantidad uni';
     setUnit('uni');
   } else if (cargaEnUni(i)) {
-    // REMACHES (sector 8, todos los proveedores) y PLASTICOS de Eduardo Pintos /
-    // Pat Bet Plast / Pettofrezza Rafael: el remito viene en UNIDADES y se guarda
-    // en unidades. Sin toggle Kg/Uni (usuario: "que me tire por default unidades
-    // (kg borralo)"): el boton Kg ahi solo servia para cargar mal. Los kg se ven
-    // igual abajo del input (updateConv) cuando el componente tiene kg_x_uni,
-    // porque son los que va a marcar la balanza en el control.
+    // REMACHES (8), BOMBILLAS (7) y los PLASTICOS de piezas (6, los 3 proveedores
+    // de PLAST_UNI): el remito viene en UNIDADES y se guarda en unidades. Sin
+    // toggle Kg/Uni [usuario 2026-09-03: "que me tire por default unidades (kg
+    // borralo)" / "que no aparezca kg"] — el boton Kg ahi solo servia para cargar
+    // mal. Los kg se siguen viendo abajo del input (updateConv) cuando el
+    // componente tiene kg_x_uni: son los que va a marcar la balanza en el control.
     $('unitRow').classList.add('hidden');
     $('kgValue').placeholder='unidades del remito';
     $('kgValueLabel').textContent='Cantidad uni';
@@ -1260,6 +1280,17 @@ function abrirPopup(i){
     $('kgValue').placeholder = uFleje==='kg' ? 'kg' : 'unidades';
     $('kgValueLabel').textContent = uFleje==='kg' ? 'Cantidad kg' : 'Cantidad uni';
     setUnit(uFleje);
+  } else if (ENCAJAS[i.comp_id]) {
+    // Viene en CAJAS y se pesa (hoy el Clavo 505 de Trefilados): el remito es en
+    // kg y nadie cuenta clavos, asi que el toggle Kg/Unidades solo se presta a
+    // equivocarse [usuario 2026-09-03: "que tire por default kg y borra unidades
+    // en el caso de Trefilados Industriales Clavo 505"]. Mismo criterio que ya
+    // se usa en flejes. guardar() sigue guardando kg y el trigger lo pasa a
+    // unidades con kg_x_uni, que es como vive el stock del plastico.
+    $('unitRow').classList.add('hidden');
+    $('kgValue').placeholder='kg del remito';
+    $('kgValueLabel').textContent='Cantidad kg';
+    setUnit('kg');
   } else {
     $('unitRow').classList.remove('hidden');
     $('kgValue').placeholder='';
@@ -1913,12 +1944,28 @@ function ctlTotales(it){
   var raw = pint(it.controlado)||0, upp = PAQ();
   var uxb = uniXCtlItem(it);
   if (uxb){
-    var pxb = paqXBolsaDelItem(it)||Math.round(uxb/upp);
+    // Para un pliego la "bolsa" ES el paquete (100 pliegos): 1 contado = 1 paquete.
+    // Derivarlo de uni_x_paquete daba Math.round(100/250) = 0 y el control de
+    // pliegos mostraba SIEMPRE 0 paquetes contados.
+    var pxb = esPliegoIt(it) ? 1 : (paqXBolsaDelItem(it)||Math.round(uxb/upp));
     return { unidad_ctl:'bolsa', bolsas:raw, uni_x_bolsa:uxb, paq_x_bolsa:pxb,
              paq: raw*pxb, uni: raw*uxb, upp:upp };
   }
   return { unidad_ctl:'paq', bolsas:null, uni_x_bolsa:null, paq_x_bolsa:null,
            paq:raw, uni:raw*upp, upp:upp };
+}
+/* Declarado y contado EN LA MISMA UNIDAD, para poder compararlos.
+   Un pliego se declara en el remito en UNIDADES (pliegos) y se controla en
+   PAQUETES de 100, asi que la comparacion va en pliegos; un carton se declara
+   y se compara en paquetes. Mezclarlos daba el falso aviso de "diferencia
+   mayor al 10%" al cargar un paquete de 100 pliegos (leia 100 declarados
+   contra 1 contado) [usuario 2026-09-03]. */
+function ctlComparacion(it){
+  var t = ctlTotales(it), decl = Number(it.declaradoPaq)||0;
+  var pliego = esPliegoIt(it);
+  var ctl = pliego ? t.uni : t.paq;
+  return { decl:decl, ctl:ctl, dif:ctl-decl, unidad:(pliego?'pliegos':'paq'),
+           pct:(decl>0 ? Math.abs(ctl-decl)*100/decl : 0) };
 }
 function ctlLinea(it){
   var t = ctlTotales(it), decl = Number(it.declaradoPaq)||0;
@@ -1937,10 +1984,10 @@ function ctlLinea(it){
     }
     return declLbl+' · cargá los paquetes que contaste.';
   }
-  // Diferencia: para pliegos comparamos uni (declarado) vs t.uni (controlado); para cartón comparamos paq vs paq.
-  var declComp = pliego ? decl : decl;
-  var ctlComp  = pliego ? t.uni : t.paq;
-  var dif = ctlComp - declComp, pct = declComp>0 ? Math.abs(dif)*100/declComp : 0;
+  // Diferencia: para pliegos comparamos pliegos (declarado) vs t.uni (controlado);
+  // para cartón comparamos paq vs paq. Lo resuelve ctlComparacion, el mismo que usa el aviso del 10%.
+  var cmp = ctlComparacion(it);
+  var dif = cmp.dif, pct = cmp.pct;
   var color = (dif===0 ? '#0a7a2f' : (pct<=10 ? '#b45309' : '#b42318'));
   var izq = declLbl;
   var ctr;
@@ -2229,11 +2276,12 @@ async function guardarControlCartones(){
     return;
   }
   var alertas = CTL.items.filter(function(it){
-    var decl=Number(it.declaradoPaq)||0, paq=ctlTotales(it).paq;
-    return decl>0 && Math.abs(paq-decl)*100/decl > 10;
+    var c = ctlComparacion(it);
+    return c.decl>0 && c.pct > 10;
   }).map(function(it){
-    var t=ctlTotales(it), d=t.paq-(Number(it.declaradoPaq)||0);
-    return it.codigo+': declarado '+fmt(it.declaradoPaq)+' paq · contado '+fmt(t.paq)+' paq · dif '+(d>0?'+':'')+fmt(d);
+    var c = ctlComparacion(it);
+    return it.codigo+': declarado '+fmt(c.decl)+' '+c.unidad+' · contado '+fmt(c.ctl)+' '+c.unidad+
+           ' · dif '+(c.dif>0?'+':'')+fmt(c.dif);
   });
   if(alertas.length && !confirm(
     '⚠ Diferencia mayor al 10% en:\n\n'+alertas.join('\n')+
@@ -2292,9 +2340,9 @@ async function guardar(){
   var kx=KGXUNI[itemSel.comp_id];
   var cant=cantRaw, uReal=unitSel;
   if(unitSel==='paq'){ cant=cantRaw*PAQ(); uReal='uni'; }
-  // Excepcion: los rubros que se cargan Y se guardan en unidades (cargaEnUni:
-  // remaches enteros + los 3 proveedores de plastico) NO se convierten — la
-  // cantidad se guarda tal como la tipeo el operario, en uni.
+  // Los rubros de cargaEnUni (remaches, bombillas, plasticos de piezas) NO se
+  // convierten: se guardan tal como los tipeo el operario, en unidades, que es
+  // la unidad canonica del inventario de esos sectores.
   else if(unitSel==='uni'&&kx&&!cargaEnUni(itemSel)){ cant=cantRaw*kx; uReal='kg'; }
 
   // La validacion "cantRaw es multiplo de la bolsa" ahora es EN VIVO (actualizarAvisoMultiplo),
@@ -2382,8 +2430,16 @@ async function cargar(){
   // Cargar factores de conversión kg/uni para componentes de sectores insumo
   // sector 12 incluido para 031/034 (Charcas) y sector 2 para 1686 (Eclipse):
   // la conversion paq/uni -> kg usa kg_x_uni.
-  var kxRes=await SB.from('componente').select('id,kg_x_uni').in('sector_id',[2,5,6,7,8,9,10,11,12]);
-  if(!kxRes.error){KGXUNI={};(kxRes.data||[]).forEach(c=>{if(c.kg_x_uni) KGXUNI[c.id]=c.kg_x_uni;});}
+  var kxRes=await SB.from('componente').select('id,kg_x_uni,recibe_en_cajas').in('sector_id',[2,5,6,7,8,9,10,11,12]);
+  // Si la API todavia no conoce la columna nueva (schema cache viejo), la
+  // consulta entera falla y nos quedariamos SIN los kg_x_uni, que es peor.
+  // Se reintenta sin el flag: el toggle vuelve a aparecer, pero las cuentas no
+  // se rompen.
+  if(kxRes.error) kxRes=await SB.from('componente').select('id,kg_x_uni').in('sector_id',[2,5,6,7,8,9,10,11,12]);
+  if(!kxRes.error){KGXUNI={};ENCAJAS={};(kxRes.data||[]).forEach(c=>{
+    if(c.kg_x_uni) KGXUNI[c.id]=c.kg_x_uni;
+    if(c.recibe_en_cajas) ENCAJAS[c.id]=true;
+  });}
   $('statusMsg').textContent='';
   renderRemitoBar();
   renderPendPortada();

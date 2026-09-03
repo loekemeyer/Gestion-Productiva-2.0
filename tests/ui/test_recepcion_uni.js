@@ -42,7 +42,9 @@ const BUNDLE = {
 /* Los kg_x_uni NO vienen en el bundle: la pantalla los pide aparte con
    from('componente').select('id,kg_x_uni').in('sector_id',[...]). Sin esa
    respuesta el stub no probaria nada (la conversion no se intentaria siquiera). */
-const KX = [{ id: 1, kg_x_uni: 0.0063 }, { id: 2, kg_x_uni: 0.00653 }, { id: 3, kg_x_uni: null }];
+const KX = [{ id: 1, kg_x_uni: 0.0063, recibe_en_cajas: false },
+            { id: 2, kg_x_uni: 0.00653, recibe_en_cajas: true },   // el clavo: viene en cajas y se pesa
+            { id: 3, kg_x_uni: null, recibe_en_cajas: false }];
 
 /* El stub reporta cada RPC a Node por un binding (window.__log) en vez de a una
    variable del window: al terminar el remito la pantalla NAVEGA sola al control,
@@ -100,14 +102,17 @@ const STUB = 'window.supabase={createClient:function(){return{'
   ok(carga && carga.p_unidad === 'uni' && carga.p_cantidad === 100,
      'baja 100 uni, no 0,63 kg (bajó: ' + JSON.stringify(carga && { c: carga.p_cantidad, u: carga.p_unidad }) + ')');
 
-  // Trefilados compra el mismo sector POR KG: ahí el toggle tiene que seguir
+  // Trefilados compra en el MISMO sector pero por kg (su clavo viene en cajas y se
+  // pesa): la regla de unidades es por proveedor, no por rubro.
   await page.goto(ROOT + '/StockFlejes/RecepcionInsumos_GP2.html');
   await page.click('#rubroGrid button:has-text("Plásticos")');
   await page.click('#provGrid button:has-text("Trefilados")');
   await page.click('#btnContinuar');
   await page.click('.item-btn:has-text("PCP3")');
   await page.waitForSelector('#kgPopup.open');
-  ok(await page.locator('#unitRow').isVisible(), 'Trefilados (kg) conserva el toggle Kg/Uni');
+  ok(await page.locator('#unitRow').isHidden() &&
+     (await page.locator('#kgValueLabel').innerText()).includes('kg'),
+     'el clavo de Trefilados sigue en kg: la regla de unidades no se lo lleva puesto');
 
   // Tornillos Suipacha: sin kg_x_uni y aun así en unidades
   await page.goto(ROOT + '/StockFlejes/RecepcionInsumos_GP2.html');
@@ -161,8 +166,9 @@ const STUB = 'window.supabase={createClient:function(){return{'
   ok(/[Kk]g/.test(await page.locator('#lblKg').innerText()), 'pide los kg de la balanza');
   await page.fill('#inKg', '3,5');
   await page.waitForTimeout(120);
-  const conv = await page.locator('#convLine').innerText();
+  const conv = await page.locator('#lblUni').innerText();
   ok(/10\.000/.test(conv), 'convierte en vivo: 3,5 kg = 10.000 uni (' + conv + ')');
+  ok(/se guardan estas unidades/.test(conv), 'y avisa que ESAS unidades son las que se guardan');
   // El kg por unidad tiene 6 decimales: con un formateador de 3 decia "1 uni = 0 kg"
   // y parecia que el dato faltaba (la trampa de CONOCIMIENTO_GP2.md 4a).
   ok(/0,00035/.test(conv), 'el kg por unidad se muestra con sus decimales, no redondeado a 0');
@@ -185,7 +191,11 @@ const STUB = 'window.supabase={createClient:function(){return{'
   await page.waitForSelector('#ovCtrl.open');
   await page.fill('#inKg', '3,5');
   await page.waitForTimeout(120);
-  ok(await page.locator('#convLine').isHidden(), 'la recepción en kg no muestra conversión a uni');
+  // La recepcion en kg SI muestra el equivalente en unidades (es informativo,
+  // de la otra mitad del cambio), pero lo que se guarda son los kg.
+  // 3,5 kg / 0,00388 = 902 unidades. Se muestran, pero lo que se guarda son los kg.
+  ok(/902/.test(await page.locator('#lblUni').innerText()),
+     'la recepción en kg muestra el equivalente en unidades (' + (await page.locator('#lblUni').innerText()) + ')');
   await page.click('#btnConfirm');
   await page.waitForTimeout(200);
   ctl = ultimo('controlar_recepcion_kg');
