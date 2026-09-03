@@ -2499,3 +2499,57 @@ pantallas del grupo: cada una va adonde se usa, y el grupo del menú se borra (v
   por defecto). Los campos de Despiece/Programa/StockGeneral pasaron a
   `font-size:18px;font-family:inherit` — si una pantalla usa el shorthand `font: Npx
   inherit`, la letra grande NO está aplicando aunque el CSS lo diga.
+
+## 4a. El remito de REMACHES viene en UNIDADES, no en kg (2026-09-03)
+
+- `[usuario 2026-09-03]` **"La recepción de remaches quiero que sea en unidades, no en kg."**
+  El proveedor entrega los remaches contados, no pesados: el remito dice unidades. La
+  pantalla pedía kg y obligaba al operario a traducir de cabeza.
+- `[dato]` **Los pesos por remache SÍ están cargados** — esto tumbó mi primer diagnóstico.
+  31 de los 34 componentes del sector 8 tienen `kg_x_uni`, de **0,00011** (CV13 Plaquita
+  3 en 1) a **0,036** (CV17 Cremallera Doble Aleta). CV1 Remache Espiral = **0,00035 kg**.
+  Los 3 sin peso son **tornillos** (V18D, CV18D Tornillo Sacafuente, V20 Tornillo Corta
+  Queso) y están en **0 recepciones y 0 stock**.
+- `[dato]` **Por qué parecía que no había pesos:** `fmt()` de `RecepcionInsumos_GP2.html`
+  corta en 2 decimales, así que 0,00035 se renderizaba como **"1 uni = 0 kg"**. Era un bug
+  de formato, no un dato faltante. Se agregó `fmtKgUni()` (6 decimales) para los carteles
+  de kg por unidad. **Trampa general: antes de concluir "el dato no está cargado" porque la
+  pantalla muestra 0, mirar el formateador.** El usuario lo cazó preguntando "¿no tenés los
+  pesos por remache?".
+- `[deducido, aplicado]` **Se carga en uni pero se GUARDA en kg**, convirtiendo con
+  `kg_x_uni`. Es deliberado: el stock del remache y **Control Remaches** (que pesa y compara
+  contra `cantidad_declarada`) trabajan en kg. Cambiar solo la entrada y guardar unidades
+  metería uni en un circuito de kg y rompería la comparación del control. La conversión
+  uni→kg ya existía en `guardar()`; para remaches estaba apagada porque la rama forzaba
+  `setUnit('kg')`.
+- `[deducido]` Sin `kg_x_uni` no hay conversión posible, así que esos componentes caen a kg
+  por fallback. **Si se dan de alta remaches nuevos, cargarles el `kg_x_uni` o la recepción
+  les vuelve a pedir kg.**
+
+## 4b. Maspoli es FASONERO: patrón tallerista + insumo a la vez (2026-09-03)
+
+- `[usuario 2026-09-03]` **"A Maspoli le entregamos las virolas para que nos entregue los
+  mangos de madera."** Le mandamos un componente nuestro y él devuelve un producto que
+  incorpora ese componente **más material propio (la madera)** por el que nos cobra.
+- `[dato]` **GP2 ya lo modela híbrido, no hay que construir nada:** `GP2.tallerista` id 7
+  "Maspoli SRL" (paso de ruta que transforma la virola **D13** en el mango **PC12 / PEP7 /
+  PEP8**) + `GP2.proveedor_insumo` "Máspoli SRL" (rubro Sector Plástico) sobre el componente
+  mango, que es lo que se paga. El envío lo trata como tallerista (la virola queda de stock
+  en él = **WIP**, no es un bug) y la entrega descuenta la virola
+  (`SECTOR_SC_POR_PROV={'Maspoli':'D13'}` en `Facturas/EntregaProveedoresCervantes.html` y
+  `Talleristas/Control Tall/ControlTall.js`).
+- `[deducido]` **REGLA GENERAL: un fasonero que aporta material propio NO es un PS.** El PS
+  (Guazzaroni niquela, Pedernera croma) hace servicio sobre material 100% nuestro y solo
+  cobra mano de obra — no tiene dónde anotar la compra del material. El fasonero se modela
+  **tallerista-en-ruta** (para rastrear lo que le mandaste) **+ insumo-en-componente** (para
+  pagar lo que aporta).
+- `[dato, PENDIENTE DE CONFIRMAR CON EL USUARIO]` **Riesgo de pagar la virola dos veces.**
+  Las recetas de 508 y 518 listan **D13 (virola) Y el mango juntos**, y el mango ya contiene
+  la virola. El consumo está blindado (`v_consumo_demanda` corta el walk, ver §3b), pero
+  falta verificar que `v_costo_componente` no cuente la virola dos veces. Y el precio del
+  mango (**$683,72**, `precio_proveedor` id 16/17/18, cod_prov 2339, etiquetado "Mango
+  Sacafuente Barnizado (madera)") **debe ser solo madera+barniz+armado, no el mango con la
+  virola puesta** — hay que cotejarlo contra la lista de Maspoli.
+- `[dato]` **El nombre está escrito de 3 formas:** "Maspoli SRL" (tallerista), "Máspoli SRL"
+  con tilde (proveedor_insumo), "Maspoli" (código operativo). Hoy la reconciliación aguanta
+  porque va por id, pero cualquier módulo que matchee por string se parte en silencio.
