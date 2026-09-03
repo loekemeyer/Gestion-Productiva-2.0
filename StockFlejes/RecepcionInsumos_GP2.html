@@ -442,6 +442,18 @@ input[type="text"]{width:200px}
 const SB=window.supabase.createClient(SB_URL,SB_ANON,{db:{schema:'GP2'}});
 const $=id=>document.getElementById(id);
 
+/* Sectores cuya fase 2 (el control fisico) vive en OTRA pagina, y en cual.
+   Flejes y cartones NO estan aca: su fase 2 se abre en esta misma pantalla
+   (montarPesaje / montarControlCartones). Bombillas tampoco: no lleva control.
+   La pantalla de control por peso naciendo para remaches quedo generalizada por
+   sector, asi que plasticos entra a la misma con ?sector=6 en vez de tener una
+   copia propia [usuario 2026-09-03: "que sea control en kg" para plasticos].
+   Sumar un sector nuevo al control por peso es agregar una linea aca. */
+const CONTROL_URL = {
+  11: 'control-cajas.html',             // Cajas: base x pisos + sueltas
+  8:  'control-remaches.html',          // Remaches: pesar (8 es el default de esa pantalla)
+  6:  'control-remaches.html?sector=6'  // Plasticos: misma pantalla de peso, otro sector
+};
 // Unidad default por rubro (kg / uni). Los flejes y remaches se compran en kg.
 const RUBRO_UM={Flejes:"kg",Remaches:"kg",Cajas:"uni",Plasticos:"uni",Cartones:"uni",Bombillas:"uni"};
 
@@ -869,7 +881,9 @@ function pushPend(item, opts){
     esPliego: !!opts.esPliego,
     esFleje: !!opts.esFleje,
     esRemache: !!opts.esRemache,
-    esCaja: !!opts.esCaja
+    esCaja: !!opts.esCaja,
+    // A que pagina de control va este item (null = no lleva control externo).
+    ctrlUrl: opts.ctrlUrl || null
   };
   renderRemitoBar();
   filtrarItems();
@@ -902,7 +916,7 @@ async function flushPend(){
   var fiso = $('txtFecha') && $('txtFecha').value ? ($('txtFecha').value+'T12:00:00') : null;
   var keys = Object.keys(PEND);
   var procesados = 0, fallados = 0;
-  var pideCajas = false, pideRemaches = false;   // cajas/remaches -> control despues
+  var destinosCtrl = [];   // paginas de control que reclama este remito (sin repetir)
   for (var i=0;i<keys.length;i++){
     var p = PEND[keys[i]];
     try {
@@ -936,8 +950,7 @@ async function flushPend(){
         // cajas/remaches: guardar cantidad_declarada como hacia el popup viejo
         if (p.pideControl){
           try { await SB.from('recepcion_insumo').update({ cantidad_declarada: cantSrv }).eq('id', recId); } catch(e){}
-          if (p.esCaja) pideCajas = true;
-          if (p.esRemache) pideRemaches = true;
+          if (p.ctrlUrl && destinosCtrl.indexOf(p.ctrlUrl) < 0) destinosCtrl.push(p.ctrlUrl);
         }
         // Agregar a REMITO[] con la forma esperada por el flujo posterior
         if (p.modo === 'carton'){
@@ -988,38 +1001,40 @@ async function flushPend(){
     }
     return;
   }
-  // Cajas / Remaches: no van a fase 2 en esta pantalla, van al control externo
+  // Sectores de CONTROL_URL (cajas, remaches, plasticos): no van a fase 2 en esta
+  // pantalla, van al control externo
   // (control-cajas.html / control-remaches.html). Antes del buffer esto lo hacia
   // el successBox del popup; con el remito bufferizado se muestra al Terminé.
-  if (pideCajas || pideRemaches){
+  if (destinosCtrl.length){
     // DIRECTO al control, sin cartel intermedio [usuario 2026-09-03: "el ir a control
     // cajas me aparece abajo. me gusta que me mande directo como en el caso de flejes"].
     // Flejes y cartones ya abrian su fase 2 solos (montarPesaje /
-    // montarControlCartones); cajas y remaches son los unicos cuya fase 2 vive en OTRA
-    // pagina, y por eso eran los unicos que pedian un click de mas.
-    // El rubro se elige ANTES de cargar, asi que un remito nunca mezcla cajas con
-    // remaches; si igual llegara a pasar no se puede navegar a dos lados a la vez, y
-    // ahi si se deja elegir con el cartel de siempre.
-    if (pideCajas !== pideRemaches){
-      window.location.href = pideCajas ? 'control-cajas.html' : 'control-remaches.html';
+    // montarControlCartones); los sectores de CONTROL_URL son los que la tienen en
+    // OTRA pagina, y por eso eran los unicos que pedian un click de mas.
+    // El rubro se elige ANTES de cargar, asi que un remito nunca reclama dos
+    // controles distintos; si igual llegara a pasar no se puede navegar a dos lados
+    // a la vez, y ahi si se deja elegir con el cartel.
+    if (destinosCtrl.length === 1){
+      window.location.href = destinosCtrl[0];
       return;
     }
     var sb=$('successBox'); if(sb){
       sb.style.display='block';
       sb.querySelector('.title').textContent='✓ Remito recibido — falta el control';
-      var links='';
-      links += '<a href="control-cajas.html" style="display:inline-block;margin:8px 6px 0;padding:12px 22px;background:#0b5cad;color:#fff;border-radius:8px;text-decoration:none;font-weight:900;font-size:18px">Ir a Control Cajas →</a>';
-      links += '<a href="control-remaches.html" style="display:inline-block;margin:8px 6px 0;padding:12px 22px;background:#0b5cad;color:#fff;border-radius:8px;text-decoration:none;font-weight:900;font-size:18px">Ir a Control Remaches →</a>';
-      $('successDetail').innerHTML='El remito quedó cargado y pendiente de control físico (base × pisos + sueltas para cajas; pesar para remaches).<br>'+links;
+      var links = destinosCtrl.map(function(u){
+        return '<a href="'+esc(u)+'" style="display:inline-block;margin:8px 6px 0;padding:12px 22px;background:#0b5cad;color:#fff;border-radius:8px;text-decoration:none;font-weight:900;font-size:18px">Ir al control →</a>';
+      }).join('');
+      $('successDetail').innerHTML='El remito quedó cargado y pendiente de control físico.<br>'+links;
       // El control es obligatorio: ocultar las salidas hasta que vaya al control
       var _atras=$('btnAtrasHeader'); if(_atras) _atras.style.display='none';
       var _volver=$('btnVolver1'); if(_volver) _volver.style.display='none';
     }
   } else if (procesados && !fallados){
-    // Plasticos y Bombillas son los unicos 2 rubros SIN control fisico: la recepcion
-    // queda cerrada al confirmar y no hay adonde mandar al operario. Se cierra con el
-    // mismo cartel que usan las otras pantallas en vez de dejar solo un status que se
-    // borra a los 5 segundos, asi los 6 rubros terminan igual de claros.
+    // Bombillas es el unico rubro que queda SIN control fisico: la recepcion queda
+    // cerrada al confirmar y no hay adonde mandar al operario (plasticos salio de
+    // aca el 2026-09-03, ahora tiene control por peso). Se cierra con el mismo cartel
+    // que usan las otras pantallas en vez de dejar solo un status que se borra a los
+    // 5 segundos, asi los 6 rubros terminan igual de claros.
     // [usuario 2026-09-03: "que sea de este estilo en los 6 tipos de insumo"]
     // Aca NO se ocultan Atras/Volver: no hay control pendiente que obligar.
     var sbOk=$('successBox'); if(sbOk){
@@ -2257,7 +2272,10 @@ async function guardar(){
     // varios items compartan el mismo remito y se pueda restar/eliminar).
     var esCaja = (itemSel.sector_id === 11);
     var esRemache = (itemSel.sector_id === 8);
-    var pideControl = esCaja || esRemache;
+    // El control externo ya no es una lista de booleanos: lo decide CONTROL_URL.
+    // Asi sumar un sector (plasticos, 2026-09-03) no obliga a tocar el if-chain.
+    var ctrlUrl = CONTROL_URL[itemSel.sector_id] || null;
+    var pideControl = !!ctrlUrl;
     var esCarton = (itemSel.sector_id === 10);
     var pliegoIt = esPliegoIt(itemSel);
     var modoFinal, paquetesPend = null;
@@ -2276,7 +2294,7 @@ async function guardar(){
       rollos: rll, pallets: pll, paquetes: paquetesPend,
       pideControl: pideControl,
       esCarton: esCarton, esPliego: pliegoIt, esFleje: esFleje(itemSel),
-      esRemache: esRemache, esCaja: esCaja
+      esRemache: esRemache, esCaja: esCaja, ctrlUrl: ctrlUrl
     });
     var codSel = itemSel.codigo, descSel = itemSel.descripcion || '';
     cerrarPopup();

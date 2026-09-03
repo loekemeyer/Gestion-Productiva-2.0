@@ -1,17 +1,26 @@
 "use strict";
 
 /* ============================================================
-   CONTROL REMACHES · GP2
+   CONTROL POR PESO · GP2   (archivo historicamente "control-remaches")
    ============================================================
-   Recepciones de remaches (GP2.recepcion_insumo donde el componente
-   es del Sector Remache = sector_id 8) pendientes de control.
-   La recepcion se carga rapido en KG del remito. El control se hace
-   despues aca: se pesa y se anotan los KG controlados.
+   Recepciones pendientes de control POR PESO: se pesa y se anotan los
+   KG controlados contra lo que declaro el proveedor (cantidad_declarada).
    Al confirmar llama al RPC GP2.controlar_recepcion_kg que:
      - pisa la cantidad con los kg controlados
      - marca controlado=true + controlado_en + controlado_por
      - ajusta el movimiento asociado (los triggers recalculan inventario)
-   La cantidad declarada por el proveedor queda en cantidad_declarada.
+
+   SIRVE PARA VARIOS SECTORES (2026-09-03). Nacio atado al Sector Remache
+   (8), pero lo unico especifico de remaches era ese numero: pesar y comparar
+   vale igual para cualquier insumo que se controle en kg, y
+   controlar_recepcion_kg ya era generico. El sector llega por querystring
+   (?sector=N) y por defecto es 8, asi que el link viejo sin parametro sigue
+   entrando al control de remaches como siempre.
+     ?sector=8 -> Remaches        ?sector=6 -> Plasticos
+   [usuario 2026-09-03: "termine de cargar una entrega de maspoli de
+   plasticos y no me mando al control. que sea control en kg"]
+   El nombre del archivo quedo historico para no romper los links que ya
+   existen; el titulo de la pantalla sale del sector que devuelve el bundle.
    ============================================================ */
 
 const SB = window.supabase.createClient(self.SB_URL, self.SB_ANON, { db: { schema: "GP2" } });
@@ -33,6 +42,12 @@ const parseKg = (v) => { const n = Number(String(v||"").replace(/[^0-9.,]/g,"").
 
 let recepciones = [];
 let selected = null;
+/* Sector a controlar. Sin ?sector= cae en 8 (Remaches), que es como entraba
+   esta pantalla antes de que sirviera para varios sectores. */
+const SECTOR_ID = Number(new URLSearchParams(location.search).get("sector")) || 8;
+/* Como llamar al insumo en los carteles de "no hay nada". El nombre lindo del
+   sector lo manda el bundle; esto es solo para el plural de la frase. */
+const NOMBRE_PLURAL = { 8: "remaches", 6: "plásticos" }[SECTOR_ID] || "ítems";
 
 function fmtFechaCorta(iso) {
   if (!iso) return "—";
@@ -43,9 +58,13 @@ function fmtFechaCorta(iso) {
 async function cargar() {
   statusMsg.textContent = "Cargando…"; statusMsg.className = "status";
   try {
-    const { data, error } = await SB.rpc("control_remaches_bundle");
+    const { data, error } = await SB.rpc("control_kg_bundle", { p_sector_id: SECTOR_ID });
     if (error) throw error;
     recepciones = (data && data.recepciones) || [];
+    // El titulo sale del sector que devuelve el bundle, asi no hay que mantener
+    // una lista de nombres en el JS cuando se sume otro sector al control por peso.
+    const h1 = $("pageTitle");
+    if (h1 && data && data.sector) h1.textContent = "Control " + String(data.sector).replace(/^Sector\s+/i, "");
     poblarProveedores();
     render();
     statusMsg.textContent = "";
@@ -100,9 +119,9 @@ function render() {
   const grupos = agrupar(rows);
   if (!grupos.length) {
     const est = selEstado.value;
-    const txt = est === "pendientes" ? "No hay remaches pendientes de control." :
-                est === "controladas" ? "No hay remaches controlados todavía." :
-                "No hay recepciones de remaches.";
+    const txt = est === "pendientes" ? `No hay ${NOMBRE_PLURAL} pendientes de control.` :
+                est === "controladas" ? `No hay ${NOMBRE_PLURAL} controlados todavía.` :
+                `No hay recepciones de ${NOMBRE_PLURAL}.`;
     listaEl.innerHTML = `<div class="empty">${txt}</div>`;
     return;
   }
