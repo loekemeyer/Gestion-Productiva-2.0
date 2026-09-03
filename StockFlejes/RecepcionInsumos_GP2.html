@@ -6,6 +6,26 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
+<!-- v3.41.0 (2026-09-03) — REMACHES Y 3 PLASTICOS: EL REMITO SE GUARDA EN UNIDADES.
+     [usuario: "en el caso de eduardo pintos, pat bet plast, pettofrezza rafael. cuando
+     voy a cargar un remito que me tire por default unidades (kg borralo) y en el control
+     que pueda poner los kg y con el kg por uni de cada componente me lo pase a uni" +
+     "y en el caso de tornillos suipacha lo mismo ... (como en todos lo de sector remaches)"].
+     Antes el popup de esos rubros dejaba elegir Kg, y guardar() convertia lo tipeado en
+     unidades a kg con kg_x_uni. Ahora hay UN solo criterio, cargaEnUni(): sector 8 entero
+     + los 3 proveedores de piezas del sector 6 se tipean y se GUARDAN en unidades.
+     Por que importa, mas alla de la pantalla:
+       (a) la unidad canonica del inventario de los dos sectores ya es 'unidad'
+           (componente.unidad_medida), asi que el ida y vuelta por kg solo agregaba error
+           de redondeo — de ahi stocks como 10.099,999999999999988571 en CV1;
+       (b) los 3 tornillos SIN kg_x_uni (CV18D de Tornillos Suipacha, V18D, V20) eran
+           IMPOSIBLES de recibir: caian a kg y GP2.to_canonical corta con "sin kg_x_uni
+           valido para kg->uni". Cargados en uni entran derecho.
+     El control (control-remaches.js, ?sector=6|8) acompaña: se sigue pesando en balanza y
+     la pantalla divide los kg por kg_x_uni para llegar a las unidades reales. Las
+     recepciones viejas que quedaron en kg se siguen controlando en kg.
+     PENDIENTE DEL USUARIO: el kg por unidad de CV18D, V18D y V20 (hoy null). Sin ese dato
+     su control no se puede pesar y hay que contar las unidades a mano. -->
 <!-- v3.40.2 (2026-09-02) — LIMPIEZA de codigo muerto que dejaron v3.40.0 y la Fase B:
      (a) CSS .qbtn-minus / .qbtn-minus:hover — el boton -N/-1 de cartones se saco en
      v3.40.0 y la clase ya no la usa nadie; (b) los stubs esFiltroCharcas() /
@@ -487,6 +507,43 @@ function fieldsFleje(nom){
   // tenia; Altrak/Aperam/Brawin/Szapiro/JL Metales siguen igual (solo kg).
   if (p==='hermac') return { paquetes:true };
   return {};
+}
+/* PLASTICOS QUE SE CARGAN Y SE GUARDAN EN UNIDADES (usuario 2026-09-03:
+   "en el caso de eduardo pintos, pat bet plast, pettofrezza rafael. cuando voy
+   a cargar un remito que me tire por default unidades (kg borralo) y en el
+   control que pueda poner los kg y con el kg por uni de cada componente me lo
+   pase a uni").
+   Estos 3 entregan PIEZAS (mangos, capuchones, pirolos): el remito viene en
+   unidades y la recepcion se guarda en unidades. Antes el popup mostraba el
+   toggle Kg/Uni y guardar() convertia uni -> kg con kg_x_uni, asi que el
+   operario tipeaba 100 y la recepcion quedaba en 0,63 kg; el control despues
+   le pedia kg contra ese 0,63 y el numero del remito no se veia por ningun
+   lado. Ahora la unidad del circuito es la unidad (el inventario de plasticos
+   YA esta en unidades) y el peso aparece solo donde sirve: como ayuda al
+   costado en la carga, y como forma de contar en el control (se pesa y se
+   divide por kg_x_uni).
+   NO alcanza con "es del sector 6": Trefilados Industriales tambien es un
+   plastico (Clavo 505) y ese SI se compra por kg. Por eso la regla es por
+   PROVEEDOR y son estos tres, no el rubro entero. */
+const PLAST_UNI = ['eduardo pintos','pat bet plast','pettofrezza rafael'];
+function provPlastUni(nom){ return PLAST_UNI.indexOf(String(nom||'').trim().toLowerCase())>=0; }
+/* true = este item se carga en unidades y se GUARDA en unidades (sin pasar por kg).
+   - Sector 8 (REMACHES) entero, Tornillos Suipacha incluido [usuario 2026-09-03:
+     "en el caso de tornillos suipacha lo mismo ... (como en todos lo de sector
+     remaches)"]. Antes se tipeaba en uni y se guardaba en kg; eso ademas dejaba
+     a los 3 tornillos SIN kg_x_uni (CV18D de Suipacha, V18D, V20) imposibles de
+     recibir: se cargaban en kg y GP2.to_canonical corta con "sin kg_x_uni valido
+     para kg->uni" porque el inventario de remaches es en unidades.
+   - Sector 6 (PLASTICOS) solo para los 3 proveedores de piezas.
+   La unidad canonica del inventario de los dos sectores YA es 'unidad'
+   (componente.unidad_medida), asi que guardar en uni es el camino directo: sin
+   ida y vuelta por kg no hay perdida de precision (de ahi salian stocks como
+   10.099,999999999999988571 en CV1). */
+function cargaEnUni(it){
+  if (!it) return false;
+  var sid = Number(it.sector_id);
+  if (sid===8) return true;
+  return sid===6 && provPlastUni(provSel);
 }
 // Proveedores ocultos del listado del operario (no llegan sus entregas a
 // Cervantes/Virgilio, asi que no tiene sentido que el operario los vea):
@@ -1176,26 +1233,17 @@ function abrirPopup(i){
     $('kgValue').placeholder='unidades del remito';
     $('kgValueLabel').textContent='Cantidad uni';
     setUnit('uni');
-  } else if (i.sector_id===8) {
-    // Remaches: el remito viene en UNIDADES [usuario 2026-09-03: "la recepcion de
-    // remaches quiero que sea en unidades, no en kg"]. Se carga en uni y guardar()
-    // lo convierte a kg con kg_x_uni (31 de los 34 del sector lo tienen cargado,
-    // de 0,00011 a 0,036). Guardar kg es a proposito: el stock del remache y el
-    // Control Remaches (que PESA y compara contra cantidad_declarada) siguen
-    // trabajando en kg, asi que no se toca nada aguas abajo.
-    // Sin kg_x_uni no hay conversion posible y se guardarian unidades dentro de un
-    // circuito de kg, asi que esos caen a kg: hoy son los 3 tornillos
-    // (V18D / CV18D / V20), que ademas estan en 0 recepciones y 0 stock.
+  } else if (cargaEnUni(i)) {
+    // REMACHES (sector 8, todos los proveedores) y PLASTICOS de Eduardo Pintos /
+    // Pat Bet Plast / Pettofrezza Rafael: el remito viene en UNIDADES y se guarda
+    // en unidades. Sin toggle Kg/Uni (usuario: "que me tire por default unidades
+    // (kg borralo)"): el boton Kg ahi solo servia para cargar mal. Los kg se ven
+    // igual abajo del input (updateConv) cuando el componente tiene kg_x_uni,
+    // porque son los que va a marcar la balanza en el control.
     $('unitRow').classList.add('hidden');
-    if (kx){
-      $('kgValue').placeholder='unidades del remito';
-      $('kgValueLabel').textContent='Cantidad uni';
-      setUnit('uni');
-    } else {
-      $('kgValue').placeholder='kg del remito';
-      $('kgValueLabel').textContent='Cantidad kg';
-      setUnit('kg');
-    }
+    $('kgValue').placeholder='unidades del remito';
+    $('kgValueLabel').textContent='Cantidad uni';
+    setUnit('uni');
   } else if (esFleje(i)) {
     // Flejes: cada fleje tiene su UM canonica fija (46 en kg, 7 en unidad
     // como F12/E13/Z19A/E4/E5/E1/C3). El toggle Kg/Uni solo confunde. Se
@@ -2244,7 +2292,10 @@ async function guardar(){
   var kx=KGXUNI[itemSel.comp_id];
   var cant=cantRaw, uReal=unitSel;
   if(unitSel==='paq'){ cant=cantRaw*PAQ(); uReal='uni'; }
-  else if(unitSel==='uni'&&kx){ cant=cantRaw*kx; uReal='kg'; }
+  // Excepcion: los rubros que se cargan Y se guardan en unidades (cargaEnUni:
+  // remaches enteros + los 3 proveedores de plastico) NO se convierten — la
+  // cantidad se guarda tal como la tipeo el operario, en uni.
+  else if(unitSel==='uni'&&kx&&!cargaEnUni(itemSel)){ cant=cantRaw*kx; uReal='kg'; }
 
   // La validacion "cantRaw es multiplo de la bolsa" ahora es EN VIVO (actualizarAvisoMultiplo),
   // no confirm() al submit (regla usuario 2026-09-01: "quiero que la alerta me

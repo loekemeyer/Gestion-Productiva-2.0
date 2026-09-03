@@ -21,6 +21,21 @@
    plasticos y no me mando al control. que sea control en kg"]
    El nombre del archivo quedo historico para no romper los links que ya
    existen; el titulo de la pantalla sale del sector que devuelve el bundle.
+
+   SE PESA EN KG, SE GUARDA EN LA UNIDAD DE LA RECEPCION (2026-09-03)
+   [usuario: "en el control que pueda poner los kg y con el kg por uni de cada
+   componente me lo pase a uni"]. Los remitos de remaches y de los plasticos de
+   Eduardo Pintos / Pat Bet Plast / Pettofrezza Rafael vienen en UNIDADES y la
+   recepcion se guarda en unidades (recepcion_insumo.unidad='uni'), que ademas
+   es la unidad canonica del inventario de esos sectores. Contar 5.000 piezas a
+   mano no se puede, asi que el control se sigue haciendo con la balanza: se
+   tipean los KG pesados y la pantalla los divide por componente.kg_x_uni para
+   llegar a las unidades reales, que son las que se comparan contra lo declarado
+   y las que se guardan.
+     recepcion.unidad = 'uni' + kg_x_uni  -> input en kg, se guarda uni
+     recepcion.unidad = 'uni' sin kg_x_uni -> input directo en unidades
+     recepcion.unidad = 'kg'               -> input en kg, se guarda kg (lo de siempre)
+   La ultima rama mantiene andando las recepciones viejas, que quedaron en kg.
    ============================================================ */
 
 const SB = window.supabase.createClient(self.SB_URL, self.SB_ANON, { db: { schema: "GP2" } });
@@ -39,6 +54,26 @@ const btnCancel = $("btnCancel"), btnConfirm = $("btnConfirm"), btnDesmarcar = $
 const esc = (s) => String(s ?? "").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
 const fmt = (n) => Number(n||0).toLocaleString("es-AR", { maximumFractionDigits: 3 });
 const parseKg = (v) => { const n = Number(String(v||"").replace(/[^0-9.,]/g,"").replace(",", ".")); return isNaN(n) ? 0 : n; };
+
+/* ===== Unidad de cada recepcion =====
+   La recepcion manda: si se cargo en unidades, el control tiene que terminar en
+   unidades aunque el operario pese kg. kg_x_uni viene en el bundle por item. */
+const kxDe    = (it) => Number(it && it.kg_x_uni) || 0;
+/* El kg por unidad tiene 6 decimales (0,00035 en el remache espiral): con el
+   fmt() general, que corta en 3, el cartel decia "1 uni = 0 kg" y parecia que
+   el dato faltaba. Ya nos mordio una vez (CONOCIMIENTO_GP2.md 4a). */
+const fmtKx   = (n) => Number(n||0).toLocaleString("es-AR", { maximumFractionDigits: 6 });
+const umDe    = (it) => (String((it && it.unidad) || "kg").toLowerCase() === "kg" ? "kg" : "uni");
+/* true = se tipea la balanza en kg y se guarda la cantidad convertida a unidades. */
+const pesaAUni = (it) => umDe(it) === "uni" && kxDe(it) > 0;
+/* Unidad en la que se TIPEA (siempre kg, salvo que no haya kg_x_uni para convertir). */
+const umInput = (it) => (umDe(it) === "uni" && !kxDe(it) ? "uni" : "kg");
+/* De lo tipeado a la cantidad real en la unidad de la recepcion. Las unidades
+   se redondean: media pieza no existe, y la balanza nunca da exacto. */
+function aReal(it, v) {
+  if (!pesaAUni(it)) return v;
+  return Math.round(v / kxDe(it));
+}
 
 let recepciones = [];
 let selected = null;
@@ -145,20 +180,21 @@ function render() {
     for (const it of g.items) {
       const cls = it.controlado ? "item-btn done" : "item-btn";
       const decl = Number(it.cantidad_declarada != null ? it.cantidad_declarada : it.cantidad) || 0;
+      const um = umDe(it);   // unidad de la recepcion: 'uni' o 'kg'
       let ctrlLine = "";
       if (it.controlado) {
         const real = Number(it.cantidad) || 0;
         const dif = real - decl;
-        ctrlLine = `<div class="ctrl">Real: ${fmt(real)} kg</div>`;
+        ctrlLine = `<div class="ctrl">Real: ${fmt(real)} ${um}</div>`;
         ctrlLine += (Math.abs(dif) < 0.001)
           ? `<div class="diff ok">coincide ✓</div>`
-          : `<div class="diff dif">${dif > 0 ? "+" : ""}${fmt(dif)} kg vs declarado</div>`;
+          : `<div class="diff dif">${dif > 0 ? "+" : ""}${fmt(dif)} ${um} vs declarado</div>`;
       }
       html += `<div class="${cls}" data-id="${it.id}">
         <span class="tilde">✓</span>
         <span class="cod">${esc(it.codigo || "—")}</span>
         <span class="desc">${esc(it.descripcion || "")}</span>
-        <span class="decl">Declarado: <b>${fmt(decl)}</b> kg</span>
+        <span class="decl">Declarado: <b>${fmt(decl)}</b> ${um}</span>
         ${ctrlLine}
       </div>`;
     }
@@ -175,40 +211,68 @@ function render() {
   });
 }
 
+/* calc(): lee lo tipeado, lo pasa a la unidad de la recepcion y pinta la
+   conversion + la diferencia. Devuelve la cantidad REAL (la que se guarda). */
 function calc() {
-  const kg = parseKg(inKg.value);
+  const v = parseKg(inKg.value);          // lo tipeado (kg, salvo sin kg_x_uni)
+  const real = selected ? aReal(selected, v) : v;
+  const conv = $("convLine");
+  if (selected && pesaAUni(selected)) {
+    // El operario pesa; la pantalla le muestra en vivo cuantas piezas son.
+    conv.style.display = v > 0 ? "block" : "none";
+    conv.innerHTML = v > 0
+      ? `= <b>${fmt(real)}</b> uni <span style="color:#666;font-weight:600">(1 uni = ${fmtKx(kxDe(selected))} kg)</span>`
+      : "";
+  } else if (conv) {
+    conv.style.display = "none"; conv.innerHTML = "";
+  }
   if (selected) {
+    const um = umDe(selected);
     const decl = Number(selected.cantidad_declarada != null ? selected.cantidad_declarada : selected.cantidad) || 0;
-    if (kg > 0 && decl > 0) {
-      const dif = kg - decl;
+    if (real > 0 && decl > 0) {
+      const dif = real - decl;
       lblDiff.style.display = "block";
       if (Math.abs(dif) < 0.001) {
         lblDiff.className = "diff-line ok";
-        lblDiff.textContent = `Coincide con lo declarado (${fmt(decl)} kg) ✓`;
+        lblDiff.textContent = `Coincide con lo declarado (${fmt(decl)} ${um}) ✓`;
       } else {
         lblDiff.className = "diff-line bad";
         const s2 = dif > 0 ? "sobran" : "faltan";
-        lblDiff.textContent = `Declarado ${fmt(decl)} kg · ${s2} ${fmt(Math.abs(dif))} kg`;
+        lblDiff.textContent = `Declarado ${fmt(decl)} ${um} · ${s2} ${fmt(Math.abs(dif))} ${um}`;
       }
     } else {
       lblDiff.style.display = "none";
     }
   }
-  btnConfirm.disabled = !(kg > 0);
-  return kg;
+  btnConfirm.disabled = !(real > 0);
+  return real;
 }
 
 function abrirPopup(it) {
   selected = it;
   ctrlMsg.textContent = ""; ctrlMsg.className = "msg";
   const decl = Number(it.cantidad_declarada != null ? it.cantidad_declarada : it.cantidad) || 0;
+  const um = umDe(it);
   ctrlTitle.textContent = it.controlado ? `Revisar control — ${it.codigo || ""}` : `Control — ${it.codigo || ""}`;
   ctrlInfo.innerHTML = `
     <b>${esc(it.codigo || "")}</b>${it.descripcion ? " — " + esc(it.descripcion) : ""}
     <br>Proveedor: ${esc(it.proveedor || "—")} · Remito ${esc(it.remito || "—")} · ${esc(fmtFechaCorta(it.fecha))}
-    <br>Declarado por proveedor: <b>${fmt(decl)}</b> kg
+    <br>Declarado por proveedor: <b>${fmt(decl)}</b> ${um}
+    ${um === "uni" && !kxDe(it)
+      ? '<br><span style="color:#b42318;font-weight:800">Sin kg por unidad cargado: contá las unidades (no se puede convertir el peso).</span>'
+      : ""}
   `;
-  inKg.value = it.controlado ? String(it.cantidad).replace(".", ",") : "";
+  // Que se pide tipear: la balanza (kg) salvo que no haya kg_x_uni para convertir.
+  const entrada = umInput(it);
+  $("lblKg").textContent = entrada === "kg"
+    ? (pesaAUni(it) ? "Kg pesados en la balanza" : "Kg controlados (pesados)")
+    : "Unidades controladas (contadas)";
+  inKg.placeholder = entrada === "kg" ? "0,0" : "0";
+  inKg.setAttribute("inputmode", entrada === "kg" ? "decimal" : "numeric");
+  // Al revisar un control ya hecho se repone lo TIPEADO, no lo guardado: si se
+  // guardo en uni hay que volver a mostrar los kg que se habian pesado.
+  const previo = pesaAUni(it) ? (Number(it.cantidad) || 0) * kxDe(it) : Number(it.cantidad) || 0;
+  inKg.value = it.controlado ? String(previo).replace(".", ",") : "";
   btnDesmarcar.style.display = it.controlado ? "" : "none";
   calc();
   ov.classList.add("open");
@@ -219,16 +283,22 @@ function cerrarPopup() { ov.classList.remove("open"); selected = null; }
 
 async function confirmar() {
   if (!selected) return;
-  const kg = calc();
-  if (kg <= 0) { ctrlMsg.textContent = "Ingresá los kg controlados."; ctrlMsg.className = "msg bad"; return; }
+  const um = umDe(selected);
+  const real = calc();   // ya convertido a la unidad de la recepcion
+  if (real <= 0) {
+    ctrlMsg.textContent = umInput(selected) === "kg"
+      ? (parseKg(inKg.value) > 0 ? "Ese peso no llega a 1 unidad." : "Ingresá los kg controlados.")
+      : "Ingresá las unidades contadas.";
+    ctrlMsg.className = "msg bad"; return;
+  }
 
   const decl = Number(selected.cantidad_declarada != null ? selected.cantidad_declarada : selected.cantidad) || 0;
   if (decl > 0) {
-    const dif = kg - decl;
+    const dif = real - decl;
     const pct = Math.abs(dif) / decl;
     if (pct > 0.10) {
       const txt = dif > 0 ? `sobran ${fmt(dif)}` : `faltan ${fmt(-dif)}`;
-      if (!confirm(`Difiere ±${(pct*100).toFixed(1)}% de lo declarado.\nDeclarado: ${fmt(decl)} kg · Controlado: ${fmt(kg)} kg (${txt}).\n¿Confirmar de todos modos?`)) return;
+      if (!confirm(`Difiere ±${(pct*100).toFixed(1)}% de lo declarado.\nDeclarado: ${fmt(decl)} ${um} · Controlado: ${fmt(real)} ${um} (${txt}).\n¿Confirmar de todos modos?`)) return;
     }
   }
 
@@ -236,11 +306,16 @@ async function confirmar() {
   btnConfirm.disabled = true;
   ctrlMsg.textContent = "Guardando…"; ctrlMsg.className = "msg";
   try {
+    // OJO con el nombre del parametro: controlar_recepcion_kg NO convierte nada,
+    // pisa recepcion_insumo.cantidad (y el movimiento) con el numero que recibe.
+    // La unidad de la recepcion no cambia, asi que se le manda la cantidad YA
+    // expresada en esa unidad: unidades para los remitos en uni, kg para los
+    // viejos en kg. El "kg" del nombre quedo del dia que solo servia a remaches.
     const { data, error } = await SB.rpc("controlar_recepcion_kg", {
-      p_recepcion_id: selected.id, p_kg: kg, p_usuario: usuario || null
+      p_recepcion_id: selected.id, p_kg: real, p_usuario: usuario || null
     });
     if (error) throw error;
-    ctrlMsg.textContent = "OK ✓ · " + fmt((data && data.kg) || kg) + " kg"; ctrlMsg.className = "msg ok";
+    ctrlMsg.textContent = "OK ✓ · " + fmt((data && data.kg) || real) + " " + um; ctrlMsg.className = "msg ok";
     setTimeout(async () => { cerrarPopup(); await cargar(); }, 350);
   } catch (err) {
     console.error(err);
@@ -276,6 +351,8 @@ async function desmarcar() {
 /* ===== Listeners ===== */
 inKg.addEventListener("input", () => {
   inKg.value = inKg.value.replace(/[^0-9.,]/g, "").replace(/([.,].*)[.,]/g, "$1");
+  // Contando unidades no hay decimales: media pieza no existe.
+  if (selected && umInput(selected) === "uni") inKg.value = inKg.value.replace(/[.,]/g, "");
   calc();
 });
 inKg.addEventListener("keydown", e => { if (e.key === "Enter") btnConfirm.click(); });

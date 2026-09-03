@@ -2598,15 +2598,12 @@ pantallas del grupo: cada una va adonde se usa, y el grupo del menú se borra (v
   de kg por unidad. **Trampa general: antes de concluir "el dato no está cargado" porque la
   pantalla muestra 0, mirar el formateador.** El usuario lo cazó preguntando "¿no tenés los
   pesos por remache?".
-- `[deducido, aplicado]` **Se carga en uni pero se GUARDA en kg**, convirtiendo con
-  `kg_x_uni`. Es deliberado: el stock del remache y **Control Remaches** (que pesa y compara
-  contra `cantidad_declarada`) trabajan en kg. Cambiar solo la entrada y guardar unidades
-  metería uni en un circuito de kg y rompería la comparación del control. La conversión
-  uni→kg ya existía en `guardar()`; para remaches estaba apagada porque la rama forzaba
-  `setUnit('kg')`.
-- `[deducido]` Sin `kg_x_uni` no hay conversión posible, así que esos componentes caen a kg
-  por fallback. **Si se dan de alta remaches nuevos, cargarles el `kg_x_uni` o la recepción
-  les vuelve a pedir kg.**
+- `[deducido, aplicado — CORREGIDO el mismo día, ver 4d]` Se cargaba en uni pero se
+  **guardaba en kg**, convirtiendo con `kg_x_uni`. Lo justifiqué diciendo que "el stock del
+  remache trabaja en kg". **Era falso**: la unidad canónica del inventario la fija
+  `componente.unidad_medida`, que en todo el sector 8 es `unidad`. O sea que el kg era un
+  rodeo — se convertía a kg al guardar y el trigger lo volvía a dividir para el inventario.
+  Desde 4d se guarda en unidades.
 
 ## 4b. Maspoli es FASONERO: patrón tallerista + insumo a la vez (2026-09-03)
 
@@ -2687,3 +2684,40 @@ pantallas del grupo: cada una va adonde se usa, y el grupo del menú se borra (v
 - `[dato, PENDIENTE DE DECISIÓN]` **GRJ13 (Bowls 330ml) está huérfano**: 0 pasos de ruta, 0
   recetas, 0 precio, costo $0 (ahora sí tiene fila de inventario en 0). O se le construye la
   cadena entera, o se da de baja. No es una bombilla.
+
+## 4d. La unidad de una recepción la manda `componente.unidad_medida`, no el rubro (2026-09-03)
+
+- `[usuario 2026-09-03]` **"En el caso de Eduardo Pintos, Pat Bet Plast, Pettofrezza Rafael:
+  cuando voy a cargar un remito que me tire por default unidades (kg borralo), y en el
+  control que pueda poner los kg y con el kg por uni de cada componente me lo pase a uni"**
+  + **"Y en el caso de Tornillos Suipacha lo mismo... (como en todos los de sector
+  remaches)"**. Son dos cosas distintas y conviene no mezclarlas: **el remito viene en
+  unidades** (el proveedor entrega piezas contadas) y **el control se hace con la balanza**
+  (nadie cuenta 5.000 piezas). La balanza es una forma de CONTAR, no otra unidad.
+- `[dato]` **El inventario de plásticos y remaches YA está en unidades.** `GP2.to_canonical`
+  convierte todo movimiento a `componente.unidad_medida`, y los 37 plásticos y los 33
+  remaches la tienen en `unidad`. Guardar la recepción en kg obligaba a un ida y vuelta
+  (uni → kg al cargar, kg → uni en el trigger) que sólo agregaba error de redondeo: de ahí
+  salían stocks como **10.099,999999999999988571** en CV1.
+- `[dato]` **Los tornillos sin `kg_x_uni` eran IMPOSIBLES de recibir.** CV18D (Tornillos
+  Suipacha), V18D y V20 no tienen peso por unidad, así que la pantalla los mandaba a kg y
+  `to_canonical` cortaba con *"componente X sin kg_x_uni válido para kg→uni"*. Cargados en
+  unidades entran derecho, sin necesitar el peso. **Pendiente del usuario: el kg por unidad
+  de esos tres** — sin él, su control físico no se puede pesar y hay que contar a mano.
+- `[deducido, aplicado]` Regla general para la recepción: **se carga y se guarda en la unidad
+  canónica del componente**; el kg aparece sólo donde la balanza es la herramienta (el
+  control), y ahí se divide por `kg_x_uni` para volver a unidades. En el código es un solo
+  criterio, `cargaEnUni()` en `RecepcionInsumos_GP2.html`: sector 8 entero + sector 6 sólo
+  para los 3 proveedores de piezas.
+- `[dato]` **No es todo el sector 6.** `Trefilados Industriales` también es un plástico
+  (PCP3 Clavo 505) y ese **sí se compra por kg** (último remito: 1.000 kg). Por eso la regla
+  de plásticos es **por proveedor** y no por rubro. Si aparece un proveedor nuevo de piezas,
+  hay que sumarlo a `PLAST_UNI`.
+- `[dato]` `controlar_recepcion_kg` **no convierte nada**: pisa `recepcion_insumo.cantidad`
+  (y el movimiento) con el número que recibe. El "kg" del nombre quedó del día que sólo
+  servía a remaches. La pantalla le manda la cantidad ya expresada en la unidad de la
+  recepción. Las recepciones viejas, que quedaron en kg, se siguen controlando en kg: cada
+  fila decide por su propio `unidad`.
+- `[dato]` Volvió a aparecer la trampa de 4a: el cartel *"1 uni = 0 kg"* del control era
+  `fmt()` cortando en 3 decimales sobre 0,00035. **Todo cartel que muestre `kg_x_uni` va con
+  6 decimales.**
