@@ -38,6 +38,27 @@ Está también arriba de todo en `CLAUDE.md`.
 
 ---
 
+### Si CONOCIMIENTO ya lo aprueba, se hace `[usuario 2026-09-02]`
+
+Dicho textual: *"Si encontras cosas para resolver que conocimientos aprueba, dale curso"*.
+
+Cuando una auditoría (propia o de un agente) encuentra algo para arreglar, **no se pregunta
+si el arreglo ya está decidido en este archivo**. Se aplica y se avisa después.
+
+**Se aplica solo** cuando el arreglo se apoya en algo ya escrito acá: un patrón fijado
+(crudo → niquelado, gemelos LK/Chef, el paso de tallerista que declara su entrada,
+`estado_compra='fabricacion'` para un intermedio que sale de un proceso propio), una regla
+de pantalla de la casa (letra grande, `inputmode`, `.table-wrap`, 390px), un test que quedó
+viejo respecto de la pantalla, o un número que se deduce de un dato ya confirmado.
+
+**Se anota y NO se toca** cuando hace falta un dato de negocio que no tenemos (un precio,
+una tarifa, un tiempo de matriz), cuando contradice algo ya documentado — ahí primero se
+revisa cuál de los dos está viejo — o cuando mueve plata en muchos artículos a la vez: eso
+lo mira el usuario antes.
+
+La contracara de esta regla es que **este archivo tiene que estar al día**: si algo se
+decidió y no está escrito acá, nadie le puede dar curso.
+
 ## 0-bis. Los agentes de GP2 (creados el 2026-08-31)
 
 Además de `gp2-experto` (que **discute** ideas de negocio, no ejecuta) el repo tiene 4
