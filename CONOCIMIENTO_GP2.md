@@ -2974,3 +2974,28 @@ pantallas del grupo: cada una va adonde se usa, y el grupo del menú se borra (v
 - `[dato]` Volvió a aparecer la trampa de 4a: el cartel *"1 uni = 0 kg"* del control era
   `fmt()` cortando en 3 decimales sobre 0,00035. **Todo cartel que muestre `kg_x_uni` va con
   6 decimales.**
+
+## 4g. Las marcas son TRES, y una se llama igual que un formato (2026-09-03)
+
+- `[usuario 2026-09-03]` **"Ciento cuatro es marca LOKE. No sé qué tan claro tenés qué es
+  la marca LOKE, l-o-k-e. Es una submarca dentro de Loekemeyer."**
+- **Las tres marcas** (`componente.marca`):
+  - **LOEKE** = Loekemeyer, la marca principal.
+  - **LOKE** = **submarca dentro de Loekemeyer**. No es un typo de LOEKE ni lo mismo.
+  - **CHEF** = la otra marca.
+- `[dato]` **Ojo con el choque de nombres: `LOKE` es también un `carton_formato`.** Son dos
+  cosas distintas: el **formato** dice cómo se imprime el pliego (LOKE = 16 posiciones) y la
+  **marca** dice de quién es el producto. Que el formato se llame igual que la submarca es
+  histórico. **Al leer un dato, mirar siempre de qué columna sale**; una frase como "el 104
+  es LOKE" puede querer decir cualquiera de las dos (de hecho el usuario la usó primero para
+  el formato y después para la marca, en dos mensajes seguidos).
+- `[dato, arreglado 2026-09-03]` **Una lista de marcas escrita a mano hacía desaparecer
+  productos.** `RecepcionInsumos_GP2.html` tenía los chips de marca hardcodeados en LOEKE y
+  CHEF: un cartón con marca LOKE no entraba en ningún chip y **no se podía recibir** — ni
+  siquiera caía en "Sin marca", porque ese chip filtra por marca vacía. Ahora los chips se
+  arman con las marcas que traen los datos. **Regla general: nada que sea una lista de
+  valores del negocio (marcas, formatos, categorías) se escribe a mano en el JS** — el día
+  que aparece uno nuevo, lo que hace la pantalla no es mostrarlo mal, es esconderlo.
+- `[dato]` Hoy el único componente con marca `LOKE` es **K5D (Cartón 104)**, que además es
+  el único que estaba sin marca. En la OC eso lo deja en su propia familia de pedido, que es
+  lo correcto: una marca distinta va en otro pliego.

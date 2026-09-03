@@ -6,6 +6,16 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
+<!-- v3.45.0 (2026-09-03) — LAS MARCAS SALEN DE LOS DATOS [usuario: "ciento cuatro es marca
+     LOKE ... es una submarca dentro de loekemeyer"]. Los chips de marca estaban escritos a
+     mano (LOEKE y CHEF), asi que la tercera marca real —LOKE, la submarca— no entraba en
+     ninguno y sus cartones DESAPARECIAN de la pantalla: ni siquiera caian en "Sin marca",
+     que filtra por marca vacia. O sea que el Carton 104 no se podia recibir. Ahora los
+     chips se arman con las marcas que traen los datos (marcasDe()), LOEKE y CHEF quedan
+     primero y ultimo como estaban, y una marca sin lista propia de formatos muestra los
+     que efectivamente tiene en vez de esconderle todo. Test nuevo test_marcas.js.
+     OJO: 'LOKE' es tambien un carton_formato — el formato dice las POSICIONES del pliego,
+     la marca dice de quien es el producto. Ver CONOCIMIENTO 4g.
 <!-- v3.44.0 (2026-09-03) — LO QUE SE CUENTA SE GUARDA EN UNIDADES [usuario: "en el caso
      de eduardo pintos, pat bet plast, pettofrezza rafael ... que me tire por default
      unidades (kg borralo) y en el control que pueda poner los kg y con el kg por uni de
@@ -716,11 +726,30 @@ function irStep2(){
     pintarItems(insumosVista());
   }
 }
+/* Las marcas salen de los DATOS, no de una lista escrita a mano. Hasta el 2026-09-03
+   estaban hardcodeadas LOEKE y CHEF, asi que el dia que aparecio la tercera —LOKE, la
+   submarca dentro de Loekemeyer [usuario: "es una submarca dentro de loekemeyer"]— sus
+   cartones no entraban en ningun chip y DESAPARECIAN de la pantalla. Ahora una marca
+   nueva aparece sola. */
+function marcasDe(base){
+  var vistas=[], n={};
+  base.forEach(function(i){
+    var m=String(i.marca||'').trim();
+    if(!m) return;
+    if(n[m]==null){ n[m]=0; vistas.push(m); }
+    n[m]++;
+  });
+  // LOEKE y CHEF primero (son las de siempre), el resto alfabetico.
+  var orden={LOEKE:0, LOKE:1, CHEF:2};
+  vistas.sort(function(a,b){
+    var oa=orden[a]!=null?orden[a]:9, ob=orden[b]!=null?orden[b]:9;
+    return oa!==ob ? oa-ob : a.localeCompare(b);
+  });
+  return vistas.map(function(m){ return {marca:m, n:n[m]}; });
+}
 function pintarMarcaChips(){
   var mg=$('marcaChips'); mg.innerHTML='';
   var base=insumosDelRubro().filter(i=>!provSel||i.proveedor===provSel);
-  var loeke=base.filter(i=>i.marca==='LOEKE').length;
-  var chef =base.filter(i=>i.marca==='CHEF').length;
   var sin  =base.filter(i=>!i.marca).length;
   function chip(val,label,n){
     var b=document.createElement('button'); b.className='prov-btn'; b.type='button';
@@ -738,8 +767,7 @@ function pintarMarcaChips(){
   }
   // Solo se muestran las marcas con al menos 1 item para el proveedor
   // seleccionado (usuario 2026-09-01: "todo lo que sea 0 no me aparezca como opcion").
-  if (loeke>0) chip('LOEKE','LOEKE',loeke);
-  if (chef>0)  chip('CHEF','CHEF',chef);
+  marcasDe(base).forEach(function(x){ chip(x.marca, x.marca, x.n); });
   if (sin>0)   chip('_sin','Sin marca',sin);
 }
 
@@ -756,7 +784,11 @@ function pintarFormatoChips(){
   if (!marcaSel){ fw.classList.add('hidden'); fg.innerHTML=''; return; }
   var base = insumosDelRubro().filter(function(i){ return !provSel || i.proveedor===provSel; })
                               .filter(function(i){ return marcaSel==='_sin' ? !i.marca : i.marca===marcaSel; });
-  var permitidos = FORMATOS_POR_MARCA[marcaSel] || ['C','8','Huevo','LOKE'];
+  // Marca sin lista propia (una nueva, como LOKE): se muestran los formatos que
+  // efectivamente tiene, en vez de esconderle todo.
+  var permitidos = FORMATOS_POR_MARCA[marcaSel] ||
+    base.map(function(i){ return i.carton_formato; })
+        .filter(function(f,ix,arr){ return f && arr.indexOf(f)===ix; });
   var cont = {}; permitidos.forEach(function(f){ cont[f]=0; }); var sinF=0;
   base.forEach(function(i){ if(i.carton_formato && permitidos.indexOf(i.carton_formato)>=0) cont[i.carton_formato]++; else sinF++; });
   fg.innerHTML='';
