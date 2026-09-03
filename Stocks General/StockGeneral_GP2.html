@@ -165,7 +165,7 @@ function filtRows(rows){
 }
 function tablaRows(rows){
  if(!rows.length)return '<p class="empty">— sin componentes —</p>';
- var h='<table><thead><tr><th>Cód</th><th>Descripción</th><th class="num">Cantidad</th><th class="num">Mínimo</th></tr></thead><tbody>';
+ var h='<table><thead><tr><th>Cód</th><th>Descripción</th><th class="num">Cantidad</th><th class="num">Máximo</th></tr></thead><tbody>';
  rows.forEach(r=>{var c=D.comp[String(r.cid)]||{cod:'?',d:''};
   var cls=r.cant>0?'stock':(r.cant<0?'neg':'zero');
   h+='<tr class="'+cls+'"><td class="cod">'+esc(c.cod||'')+'</td><td>'+esc(c.d||'')+'</td>'+

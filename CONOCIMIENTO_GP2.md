@@ -921,6 +921,43 @@ pantalla), y **Recepción de Insumos tiene pasos que ninguna otra tiene** (pesaj
 control de cartones, cruce FIFO contra las OC abiertas) que no se pueden aplanar al mínimo
 común. Anotada como idea **7225**, para hablarla antes de empezar.
 
+**Máspoli es PROVEEDOR DE SERVICIO, no tallerista (2026-09-03, v1.73.0)** `[usuario]`:
+textual, *"lo quiero empezar a tratar como un proveedor de servicio, y que ya no aparezca más
+dentro de recepción de insumos de plásticos"*. **Reemplaza lo anotado el 2026-09-02** (*"sus
+3 mangos se compran, van a `precio_proveedor`"*), que era el modelo de cuando figuraba como
+tallerista. Le mandamos la virola **D13** (niquelada por Guazzaroni) y devuelve el mango
+(**PC12**, **PEP7**, **PEP8**), cobrando el trabajo.
+
+- **Estaba cargado TRES veces y con dos escrituras distintas**, y por eso no aparecía en las
+  búsquedas: `Maspoli SRL` **sin acento** en `tallerista`, `Maspoli` en `proveedor_at` y
+  **`Máspoli SRL` CON acento** en `proveedor_insumo`. Un `ilike '%aspoli%'` no encuentra
+  `Máspoli`. **Al buscar una contraparte, buscar por las dos escrituras** (o por `cod_prov`,
+  que acá era 2339 en las tres).
+- **Los $683,72 pasaron de precio de material a tarifa de servicio** (`precio_servicio_pieza`,
+  proceso `inyectado`, que hubo que crear en el maestro `proceso`). Y los 3 mangos fueron a
+  `estado_compra = 'fabricacion'`: **si sólo se les sacaba el precio quedaban como "comprados
+  sin precio", o sea en $0**, porque el CTE `comprado` de `v_costo_componente` mete TODO el
+  sector 6. Mismo recurso que con los filtros de café.
+- **Resultado: los 3 mangos y los 4 artículos (508, 518, 564, 708) suben $27,17.** Esos $27,17
+  son la virola D13 que ahora sí entra al costo — antes se perdía, porque el mango era
+  "comprado" y la cadena no caminaba hacia atrás. El cambio no sólo reordena: **arregla un
+  costo que estaba mal**.
+- Para sacarlo de las listas de tallerista se agregó **`tallerista.activo`**. No se filtró por
+  "no tiene piezas configuradas", que era lo automático, porque eso también hacía desaparecer
+  a **Blist-Pack** y **Tierra Nativa SA**, que son altas nuevas todavía sin rutas y tienen que
+  seguir a la vista.
+
+**La columna de inventario se llama MÁXIMO, no mínimo (2026-09-03)** `[usuario]`: *"quiero que
+la columna de mínimo en inventario se pase a llamar máximo"*, y la razón que dio es la que
+importa: **"el mínimo/máximo es lo que tendría que haber en cada ubicación/sector según la
+demanda"**. O sea `inventario.minimo` (consumo mensual × `ubicacion.meses_minimo`) **no es un
+piso, es el nivel objetivo**. La otra columna, la que se llamaba "Máximo", es otra cosa —
+la **capacidad física** del lugar (5 cajones en crudo/procesado) — y pasó a titularse
+**"Capacidad"** para que no queden dos "Máximo" y se entienda que no miden lo mismo. Es un
+cambio de TÍTULO: las dos columnas de la base siguen como estaban, con sus nombres, y esto
+explica de una vez el `minimo > maximo` de 77 filas que la idea 7211 dejó abierto — no es un
+error, es que lo que consumís no entra en el lugar donde lo guardás.
+
 ## 3c-bis. Accesibilidad de carga: letra grande + teclado numérico (2026-08-30)
 
 `[usuario 2026-08-30]` Dicho textual: *"Siempre quiero letras bien grandes y legibles

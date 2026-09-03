@@ -246,7 +246,13 @@ function renderHead(){
         return '<th class="num'+(i===0?" sep":"")+'" title="Tocá una celda para ver el detalle">'+esc(c.label)+'</th>';
       }).join("")+
       '<th class="num sep">Kg × Uni</th><th class="num">Uni × Cajón</th>'+
-      (CFG.sin_min_max ? "" : '<th class="num">Mínimo</th><th class="num">Máximo</th>')+
+      /* "Máximo" = lo que TENDRIA QUE HABER en esta ubicacion segun la demanda
+         (consumo mensual x los meses de la ubicacion). Se llamaba "Mínimo"
+         [usuario 2026-09-03: "el minimo/maximo es lo que tendria que haber en
+         cada ubicacion/sector segun la demanda"] — no es un piso, es el nivel
+         objetivo. La de al lado es otra cosa: la CAPACIDAD FISICA del lugar
+         (5 cajones en crudo/procesado), por eso ya no se llama "Máximo". */
+      (CFG.sin_min_max ? "" : '<th class="num">Máximo</th><th class="num">Capacidad</th>')+
       (CFG.mostrar_fleje ? '<th class="num">N° Fleje</th>' : "")+
     '</tr>';
 }
