@@ -1,69 +1,24 @@
 <!doctype html>
 <html lang="es">
 <head>
-  <script src="../../auth-guard.js?v=20260829f"></script>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Entregas Prov. Art. Terminado</title>
-  <link rel="stylesheet" href="EntregasAT.css?v=20260830m" />
+<!-- Redirect. Esta era la ultima pantalla del modulo Prov AT que escribia en el
+     esquema del vecino (public."Entregas Prov AT") mientras Envios ya escribia en
+     GP2 y el Control ya leia GP2: lo que se cargaba por una punta no se veia por
+     la otra (idea 7216). La reemplaza EntregasAT_GP2.html, nativa de GP2.
+
+     No la linkeaba nadie, pero se deja este redirect para que un bookmark viejo
+     no termine escribiendo en public sin que nadie se entere. El archivo original
+     queda al lado como _legacy_EntregasAT.html.bak, de referencia.
+     [usuario 2026-09-03: "que no escriba en public, que migre, y que vaya todo
+     directo al esquema GP2"]. -->
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Entrega Prov AT · GP2</title>
+<meta http-equiv="refresh" content="0; url=EntregasAT_GP2.html">
+<script>location.replace("EntregasAT_GP2.html");</script>
 </head>
-<body>
-
-  <div class="card">
-    <div class="header-bar">
-      <div class="header-left">
-        <button onclick="window.location.href='../../Inicio/index.html'" class="btn-home">← Inicio</button>
-        <h1>Entregas Art. Terminado</h1>
-        <button id="btnEnviar" class="btn-enviar hidden" type="button">Registrar</button>
-      </div>
-
-      <div class="header-right hidden" id="selectedBar">
-        <button id="btnVolver" class="btn-volver" type="button">← Cambiar proveedor</button>
-        <div id="selectedBadge" class="selected-badge"></div>
-      </div>
-    </div>
-
-    <div id="status" class="status">Cargando proveedores...</div>
-
-    <!-- Vista proveedores -->
-    <div id="provGridWrap" class="selector-wrap hidden">
-      <div id="provGrid" class="ps-grid"></div>
-    </div>
-
-    <!-- Vista detalle -->
-    <div id="detailWrap" class="detail-wrap hidden">
-      <div class="table-shell">
-        <table class="table">
-          <thead>
-            <tr class="table-title-row">
-              <th colspan="3" id="tableTitle">Proveedor</th>
-            </tr>
-            <tr>
-              <th>Cod</th>
-              <th>Artículo</th>
-              <th>Cajas</th>
-            </tr>
-          </thead>
-          <tbody id="resultBody"></tbody>
-        </table>
-      </div>
-      <div class="bottom-actions">
-        <div id="tableMsg" class="status"></div>
-      </div>
-    </div>
-
-    <div id="successBox" class="successBox">
-      <div class="title">Entrega registrada</div>
-      <div>Tu código de entrega:</div>
-      <div id="successCode" class="successCode">—</div>
-      <button id="okBtn" class="okBtn" type="button">OK</button>
-    </div>
-  </div>
-
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
-  <script src="../../supabase-config.js?v=20260831d"></script>
-  <script src="../../gp2-numero.js?v=20260903b"></script>
-  <script src="../../gp2-envios-common.js?v=20260903b"></script>
-<script src="EntregasAT.js?v=20260830m"></script>
+<body style="font-family:system-ui,sans-serif;padding:24px;font-size:18px">
+  Esta pantalla se mudó. Si no te redirige sola,
+  <a href="EntregasAT_GP2.html">entrá acá</a>.
 </body>
 </html>

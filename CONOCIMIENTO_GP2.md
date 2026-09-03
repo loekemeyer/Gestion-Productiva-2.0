@@ -868,6 +868,27 @@ y borrarlo reabriría negativos ya limpiados. Se blanqueó con un `ajuste` traza
 patrón que las ideas 7204 y 7212. **El stock valorizado total baja de ~$116M a $9,54M** — y
 ese $9,54M es el número que hay que creerle.
 
+**Prov AT quedó entero en GP2 (2026-09-03, v1.68.0)** `[usuario: "que no escriba en public,
+que migre, y que vaya todo directo al esquema GP2"]`: el módulo estaba partido al medio.
+**Envíos** ya escribía en GP2 (`crear_envio_prov_at`) y el **Control** ya leía GP2, pero
+**Entregas** — la pantalla donde el proveedor devuelve el artículo terminado — seguía
+escribiendo en `public."Entregas Prov AT"`, la casa del vecino. O sea: lo que se cargaba por
+una punta no se veía por la otra.
+
+Pantalla nueva `Prov Art Terminado/Entregas/EntregasAT_GP2.html` + RPCs
+`entregas_prov_at_bundle()` y `crear_entrega_prov_at()`. **No se copió NADA de `public`** —
+las tablas GP2 ya tenían todo lo necesario (`proveedor_at` 11 activos, `articulo_prov_at` 91
+artículos, `entrega_prov_at` con sus 125 filas). Detalles que hay que respetar si se toca:
+
+- **La fecha que importa es `fecha_rto`**, no `dia_mes`. `fecha_rto` es la que lee
+  `v_recepcion_unificada`, o sea el checklist del sector de **Pagos**. `dia_mes` es texto
+  `DD/MM/YY` y se sigue escribiendo solo para no romper lo que ya lo mira.
+- **La descripción se toma del maestro** (`articulo_prov_at`), no de lo que mande la pantalla:
+  si mañana cambia ahí, no quedan entregas viejas con el nombre de antes.
+- La pantalla vieja **no la linkeaba nadie**, pero se dejó como **redirect** al GP2 para que un
+  bookmark viejo no termine escribiendo en `public` sin que nadie se entere. El original quedó
+  al lado como `_legacy_EntregasAT.*.bak`, de referencia.
+
 ## 3c-bis. Accesibilidad de carga: letra grande + teclado numérico (2026-08-30)
 
 `[usuario 2026-08-30]` Dicho textual: *"Siempre quiero letras bien grandes y legibles
