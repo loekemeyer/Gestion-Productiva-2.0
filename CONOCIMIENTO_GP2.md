@@ -907,6 +907,20 @@ ninguna desborda a 390px. Dos cosas que se aprendieron barriendo:
 
 Quedan afuera a propósito los `_backup_*` y los `_legacy_*.bak`, que son fotos congeladas.
 
+**Hacia dónde va la carga: UN módulo de Recepciones y UNO de Entregas (2026-09-03)** `[usuario]`:
+textual, *"las recepciones ya sean de prov de servicio o de insumo deberían ir en un mismo
+módulo 'Recepciones Cervantes', lo mismo con las entregas"*. Es una decisión de **forma del
+sistema**, no una tarea: hoy lo que entra a Cervantes vive en 5 pantallas (tallerista, PS,
+Prov AT, insumos y devolución) y lo que sale en 3 (tallerista, PS, Prov AT), todas con el
+mismo esqueleto `GP2EE` y distinto nombre. **Al armar una pantalla nueva de carga, tenerlo en
+cuenta**: la contraparte se elige primero y la pantalla se adapta, en vez de crear otra
+pantalla por contraparte. El modelo ya existe y funciona: `ControlEnvios_GP2` es el historial
+unificado y distingue con `?origen=tall|ps|provat`. Ojo con dos cosas: la **base sigue
+separada a propósito** (cada contraparte tiene su RPC y su tabla; lo que se unifica es la
+pantalla), y **Recepción de Insumos tiene pasos que ninguna otra tiene** (pesaje de pallets,
+control de cartones, cruce FIFO contra las OC abiertas) que no se pueden aplanar al mínimo
+común. Anotada como idea **7225**, para hablarla antes de empezar.
+
 ## 3c-bis. Accesibilidad de carga: letra grande + teclado numérico (2026-08-30)
 
 `[usuario 2026-08-30]` Dicho textual: *"Siempre quiero letras bien grandes y legibles
