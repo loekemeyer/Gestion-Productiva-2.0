@@ -750,8 +750,15 @@ debe**: se compra el crudo `CV*` y el `V*` niquelado queda en `fabricacion` sin 
 - **Proveedores**: están Bella Vista, Tornillos Suipacha, Electrónica Mandelli e Imel (la
   planilla lo llama "Fijaciones Imel"). **`Dilmax` se dio de alta el 2026-09-04**
   (`rubro='Sector Remache'`) con sus dos fluidos, por orden del usuario.
-- **Falta de verdad**: `V15C` **Rem Tapón Hierro (12 x 2,75)** no existe en GP2 de ninguna
-  forma.
+- **`V15C` Rem Tapón Hierro (12 x 2,75) — CARGADO** `[usuario 2026-09-04: "rem tapon hierro
+  agregalo v15c"]`. Era el único faltante real del sector. Componente **617** en Sector
+  Remache, proveedor Bella Vista, `kg_x_uni = 0,0008`, inventario en 0. **Sin precio**: la
+  planilla trae 0 en Prec x KG. Se respetó el código que dictó el usuario (`V15C`, el del
+  sector crudo de la planilla) aunque el resto de los crudos usa el prefijo `CV`.
+  **⚠ Discrepancia de envase que quedó a la vista**: se cargó con `uni_x_cajon = 2500`, o sea
+  la **bolsa de 2 kg que dice la planilla**, pero **los 12 crudos `CV*` de GP2 tienen todos
+  bolsa de 20 kg** (`kg_x_uni × uni_x_cajon = 20` en los doce), mientras la misma planilla les
+  pone 2 o 10 kg. Uno de los dos números está mal y el relevamiento cuenta por ése.
 - **Existen pero marcados discontinuos, y la planilla vigente los pide**: `CV16` Vástago
   Sacafuente 5,2 x 100, `CV17` Cremallera Doble Aleta, `V18C` (que además **se llama "Vastago
   Alu"** cuando la planilla dice Vástago Pisapapas 8 x 97) y `V20` Tornillo Corta Queso —
