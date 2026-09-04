@@ -1,15 +1,17 @@
 <!doctype html>
 <html lang="es">
 <head>
-<!-- v1.1.1 — PS HIBRIDO CHARCAS + ECLIPSE (usuario 2026-09-02).
+<!-- v1.2.0 — PS HIBRIDO CHARCAS + ECLIPSE (usuario 2026-09-02; recepcion corto/largo 2026-09-04).
      Prov servicios "hibridos": no reciben Envio desde Cervantes (la MP les llega
      directo del proveedor externo: alambre Altrak -> Charcas, chapa Aperam ->
      Eclipse) y por eso no viven en la pantalla PS normal (Envios/Entregas).
      Aca:
-       - Stock online de MP almacenada en el prov servicio (kg de ALAM_FILTRO en
+       - Stock online de MP almacenada en el prov servicio (kg de FLEJE90_BRUTO en
          Charcas ubic 13, kg de CHAPA430 en Eclipse ubic 48).
-       - Registrar ENTREGA del prov servicio hacia Cervantes: Charcas -> IF90/IF90B (alambre cortado)
-         en Sector Fleje (5) con RPC cargar_recepcion_charcas (paq de 10 kg);
+       - Registrar ENTREGA del prov servicio hacia Cervantes/Virgilio:
+         Charcas -> IC3 (corto, a Cervantes) o IC3V (largo, a Virgilio), en kg,
+         con RPC cargar_recepcion_charcas nueva (p_uni_remito + p_kg_balanza,
+         verifica uni vs balanza con tolerancia 5%);
          Eclipse -> 1686 en Sector Procesado (2) con RPC cargar_recepcion_eclipse
          (uni del remito).
        - Historial ultimas 20 entregas del prov seleccionado.
@@ -96,12 +98,16 @@
         <label for="txtRemito">N° remito (opcional)</label>
         <input type="text" id="txtRemito" placeholder="Opcional" inputmode="text">
       </div>
-      <div class="field qty" style="flex:1 1 220px">
+      <div class="field qty" style="flex:1 1 160px">
         <label id="qtyLbl" for="txtQty">Cantidad</label>
-        <input type="text" id="txtQty" inputmode="decimal" placeholder="0">
-        <div class="eq-line" id="eqLine"></div>
+        <input type="text" id="txtQty" inputmode="numeric" placeholder="0">
+      </div>
+      <div class="field qty" id="fieldKg" style="flex:1 1 160px" hidden>
+        <label for="txtKgBal">Kg de balanza</label>
+        <input type="text" id="txtKgBal" inputmode="decimal" placeholder="0,0">
       </div>
     </div>
+    <div class="form-row" style="margin-top:0"><div class="eq-line" id="eqLine" style="flex:1 1 100%"></div></div>
 
     <div class="form-row">
       <button id="btnGuardar" class="btn btn-primary" disabled>✓ Registrar entrega</button>
@@ -130,12 +136,12 @@ const PS = {
   charcas: {
     nombre:'Charcas',
     provFactura:'Altrak',
-    mpCodigo:'ALAM_FILTRO', mpUbic:13, mpUm:'kg', mpNombre:'alambre',
+    mpCodigo:'FLEJE90_BRUTO', mpUbic:13, mpUm:'kg', mpNombre:'alambre',
     prodProveedor:'Resortes Charcas',
     prodSector:5, prodUbic:5,
     rpc:'cargar_recepcion_charcas',
-    unidad:'paq', unidadLbl:'Cantidad paq. (10 kg c/u)', unidadPh:'paquetes',
-    unidadKgFactor:10   // 1 paq = 10 kg
+    dual:true,   // corto/largo: pide uni del remito + kg de balanza (RPC nueva IC3/IC3V)
+    unidad:'kg', unidadLbl:'Unidades del remito', unidadPh:'unidades'
   },
   eclipse: {
     nombre:'Eclipse',
@@ -184,22 +190,32 @@ $('txtQty').addEventListener('input', function(){
 });
 $('selProd').addEventListener('change', function(){ refreshEq(); refreshBtn(); });
 $('txtFecha').addEventListener('input', refreshBtn);
+$('txtKgBal').addEventListener('input', function(){
+  var pos=this.selectionStart, ori=this.value, out=sanDec(ori);
+  if(out!==ori){ this.value=out; try{ this.setSelectionRange(Math.max(0,pos-(ori.length-out.length)), Math.max(0,pos-(ori.length-out.length))); }catch(_){}}
+  refreshEq(); refreshBtn();
+});
 
 function refreshBtn(){
-  var q=parseNumTol($('txtQty').value);
-  $('btnGuardar').disabled = !(q>0 && $('txtFecha').value && $('selProd').value);
+  var conf=PS[psSel], q=parseNumTol($('txtQty').value);
+  var ok = q>0 && $('txtFecha').value && $('selProd').value;
+  if(conf.dual){ var kg=parseNumTol($('txtKgBal').value); ok = ok && kg>0; }
+  $('btnGuardar').disabled = !ok;
 }
 function refreshEq(){
   var conf=PS[psSel], q=parseNumTol($('txtQty').value)||0, prod=PROD.find(p=>String(p.id)===String($('selProd').value));
   if(!q||!prod){ $('eqLine').textContent=''; return; }
-  var kgProd, uniOrPaq;
-  if(psSel==='charcas'){
-    kgProd = q * conf.unidadKgFactor;    // paq × 10 kg
-    uniOrPaq = prod.kg_x_uni ? Math.round(kgProd / prod.kg_x_uni) : 0;
-    var kgMP = Math.round(kgProd * (1 + desperdicioPct/100) * 100)/100;
-    $('eqLine').textContent = '= '+fmt(kgProd)+' kg producto ('+fmt(uniOrPaq)+' uni) · consume ~'+fmt(kgMP)+' kg '+conf.mpNombre;
+  if(conf.dual){
+    // Charcas: verifica uni del remito contra los kg de balanza (kg / kg_x_uni), tolerancia 5%
+    var kgBal=parseNumTol($('txtKgBal').value)||0;
+    if(!(kgBal>0)){ $('eqLine').textContent='Falta el peso de balanza para verificar.'; return; }
+    var uniCalc = prod.kg_x_uni ? Math.round(kgBal/prod.kg_x_uni) : 0;
+    var diff = q>0 ? Math.round(Math.abs(q-uniCalc)/q*10000)/100 : 0;
+    var ok = diff<=5;
+    $('eqLine').innerHTML = '≈ <b>'+fmt(uniCalc)+' uni</b> por balanza vs '+fmt(q)+' del remito · dif '+fmt(diff)+'% '+
+      (ok?'<span style="color:#0a7c2f;font-weight:800">✓ tolerancia OK</span>':'<span style="color:#b42318;font-weight:800">⚠ fuera de 5%</span>');
   } else {
-    kgProd = prod.kg_x_uni ? q * prod.kg_x_uni : 0;
+    var kgProd = prod.kg_x_uni ? q * prod.kg_x_uni : 0;
     var kgMPe = Math.round(kgProd * (1 + desperdicioPct/100) * 10000)/10000;
     $('eqLine').textContent = '= '+fmt(kgProd)+' kg producto · consume ~'+fmt(kgMPe)+' kg '+conf.mpNombre;
   }
@@ -211,31 +227,40 @@ $('btnGuardar').addEventListener('click', async function(){
   var conf=PS[psSel];
   var q=parseNumTol($('txtQty').value), fecha=$('txtFecha').value, remito=$('txtRemito').value.trim();
   var prod=PROD.find(p=>String(p.id)===String($('selProd').value));
+  var kgBal = conf.dual ? parseNumTol($('txtKgBal').value) : null;
   if(!(q>0)||!prod){ m.className='status bad'; m.textContent='Elegí producto y cantidad válida.'; return; }
+  if(conf.dual && !(kgBal>0)){ m.className='status bad'; m.textContent='Cargá los kg de balanza (mayor a 0).'; return; }
   var conf1 = confirm('Registrar entrega '+conf.nombre+':\n\n'+
     'Producto: '+prod.codigo+' — '+(prod.descripcion||'')+'\n'+
     'Fecha: '+fmtFecha(fecha)+'\n'+
     (remito?('Remito: '+remito+'\n'):'')+
-    conf.unidadLbl+': '+fmt(q)+'\n\n¿Confirmar?');
+    conf.unidadLbl+': '+fmt(q)+'\n'+
+    (conf.dual?('Kg de balanza: '+fmt(kgBal)+'\n'):'')+
+    '\n¿Confirmar?');
   if(!conf1) return;
   $('btnGuardar').disabled=true; m.textContent='Registrando…';
   try{
     var fiso=fecha+'T12:00:00';
     var params = { p_comp_id: prod.id, p_remito: remito||null, p_fecha: fiso };
-    // Las dos RPC declaran integer: un decimal (que ademas podia colarse por el saneo
-    // de la coma) llegaba a un parametro entero y el operario veia un error de cast.
-    if(psSel==='charcas') params.p_paquetes = Math.round(q);
-    else                  params.p_unidades = Math.round(q);
+    // Charcas (dual): RPC nueva pide uni del remito + kg de balanza; Eclipse: unidades.
+    // Los parametros integer no toleran decimal -> round en las unidades.
+    if(conf.dual){ params.p_uni_remito = Math.round(q); params.p_kg_balanza = kgBal; }
+    else         { params.p_unidades = Math.round(q); }
     var res = await SB.rpc(conf.rpc, params);
     if(res.error) throw res.error;
     var d = res.data||{};
     m.className='status ok';
-    var stkAntes = d.stock_alambre_charcas_antes ?? d.stock_chapa_eclipse_antes;
-    var stkDesp  = d.stock_alambre_charcas_despues ?? d.stock_chapa_eclipse_despues;
-    var kgMP     = d.kg_alambre_consumido ?? d.kg_chapa_consumida;
-    m.innerHTML='✓ Entrega registrada. Consumió <b>'+fmt(kgMP)+' kg '+conf.mpNombre+'</b>. Stock '+conf.nombre+': '+fmt(stkAntes)+' → <b>'+fmt(stkDesp)+' kg</b>'+
-      (d.alambre_negativo||d.chapa_negativa?' <span style="color:#b42318;font-weight:800">⚠ stock NEGATIVO — revisar</span>':'');
-    $('txtQty').value=''; $('txtRemito').value=''; $('eqLine').textContent='';
+    if(conf.dual){
+      m.innerHTML='✓ Entrega registrada ('+(d.producto||'')+'). Consumió <b>'+fmt(d.kg_balanza)+' kg alambre</b>. '+
+        'Stock Charcas: '+fmt(d.stock_bruto_charcas_antes)+' → <b>'+fmt(d.stock_bruto_charcas_despues)+' kg</b>'+
+        (d.dentro_tolerancia===false?' <span style="color:#b42318;font-weight:800">⚠ dif '+fmt(d.diferencia_pct)+'% fuera de tolerancia</span>':'')+
+        (d.bruto_negativo?' <span style="color:#b42318;font-weight:800">⚠ stock NEGATIVO — revisar</span>':'');
+    } else {
+      var stkAntes = d.stock_chapa_eclipse_antes, stkDesp = d.stock_chapa_eclipse_despues, kgMP = d.kg_chapa_consumida;
+      m.innerHTML='✓ Entrega registrada. Consumió <b>'+fmt(kgMP)+' kg '+conf.mpNombre+'</b>. Stock '+conf.nombre+': '+fmt(stkAntes)+' → <b>'+fmt(stkDesp)+' kg</b>'+
+        (d.chapa_negativa?' <span style="color:#b42318;font-weight:800">⚠ stock NEGATIVO — revisar</span>':'');
+    }
+    $('txtQty').value=''; $('txtRemito').value=''; if($('txtKgBal')) $('txtKgBal').value=''; $('eqLine').textContent='';
     await cargarTodo(); refreshBtn();
     setTimeout(function(){ if(m.className==='status ok') m.textContent=''; }, 10000);
   }catch(e){ m.className='status bad'; m.textContent='Error: '+(e.message||e); }
@@ -250,6 +275,7 @@ async function cargarTodo(){
   $('stkSub').textContent = 'MP que le llegó de '+conf.provFactura+'. Se descuenta cuando entrega '+((PROD||[]).length ? PROD.map(function(x){return x.codigo;}).join(' / ') : (psSel==='charcas'?'el alambre cortado':'1686'))+'.';
   $('qtyLbl').textContent = conf.unidadLbl;
   $('txtQty').placeholder = conf.unidadPh;
+  $('fieldKg').hidden = !conf.dual;   // el campo "Kg de balanza" solo lo pide Charcas
   $('histTitle').textContent = 'Últimas entregas de '+conf.nombre;
 
   // Stock MP en el prov servicio
