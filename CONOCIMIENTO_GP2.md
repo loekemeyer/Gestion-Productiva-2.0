@@ -612,6 +612,65 @@ las 3 cajas nuevas tampoco (las otras 9 las tienen en `precio_proveedor.producto
 
 ---
 
+## 1-quater. Flejes: la planilla vigente tiene 54 y GP2 recibía 48 (2026-09-04)
+
+`[dato: planilla del usuario "Conteo Gral FLEJES y Alambre VACIO", hoja "Pedido Flejes"
+A1:AP69 — de la 70 para abajo es discontinuo]` Los **7 proveedores están todos y activos**
+(Basconia 24 flejes, Aperam 13, Brawin 7, Hermac 6, Szapiro 2, Altrak 1, JL Metales 1).
+Alami aparece con hoja de OC vieja pero **no tiene flejes vigentes**.
+
+**Lo grave no era lo que faltaba, sino lo que ya está mal enrutado.** Cruzando cada
+descripción de fleje contra las rutas cargadas:
+
+- **El fleje 28 estaba escondido y se consume todos los días** `[hallazgo, ARREGLADO
+  2026-09-04 por orden del usuario: "destraba el fleje n°28"]`. `ID1` (Hermac, 10 x 2 m)
+  alimenta rutas **activas**: `ID1` → `LL7A` Vástago Pelapapa (art 587) y `ID1-M375` → `L8`
+  Vástagos Cortos → `F2` Vástago Canelón (arts 570 y 858). Estaba marcado
+  `estado_compra='importado'`, y como `recepcion_bundle` sólo muestra los de
+  `estado_compra is null`, **no había dónde recepcionarlo**: entraba el remito de Hermac y no
+  se podía cargar. Se le puso `estado_compra=null`; ya aparece en Recepción y la OC lo pide
+  (máximo 292 kg). **Lección general: `estado_compra` esconde el insumo de la pantalla, así
+  que un fleje que alguna ruta consume NUNCA puede tener estado.**
+- **La arandela chica sale del fleje de la grande** `[hallazgo 2026-09-04, SIN RESOLVER]`.
+  `K9` "Arandela Chica Afila **Inox**" se produce en 3 rutas (afiladores 97, 114, 504) desde
+  el **fleje 10** (`IF2`, Basconia laminado, 77 x 1,25), que es el de la arandela **grande**
+  (`K11` → zincado → `F7`; cada afilador tiene las dos rutas en paralelo). La planilla tiene
+  un **fleje 12** con la misma medida 77 x 1,25 pero **Aperam inox 430**, sector F2B, llamado
+  exactamente "Arandela Chica Afila" — y **no existe en GP2**. Si la chica inox sale del 12,
+  hoy se está costeando inox a precio de laminado en tres artículos. Falta que el usuario lo
+  confirme.
+- **Fleje 59 vs 95: el 59 es el que va** `[usuario 2026-09-04: "SÍ, N°59 hace Vast. C Pizza /
+  Flech. Ahueca"]`. Las dos piezas salen del **fleje 59** (`IB7`, Hermac, 60 x 2): `L15`
+  Vástago Corta Pizza Chico (arts 116, 559, 562, 859, 862) y `N3` Flechita Ahueca vía matriz
+  M361 (arts 542, 543, 720, 722). La planilla lista además un **fleje 95** (Aperam, mismo
+  sector B7, misma medida) que no está en GP2 — **las rutas no se tocan**; queda pendiente
+  decidir si el 95 se compra igual (y entonces hay que poder recepcionarlo) o si la planilla
+  arrastra un fleje que ya no entra.
+- **El corta queso tiene dos entradas y una es huérfana** `[hallazgo, SIN RESOLVER]`. Los
+  arts 119, 574 y 809 tienen ruta desde el **fleje 80** (`IE3`, Brawin Ø4 x 380 → `A9`
+  cromado, hoy discontinuo) y otra desde `IZ19A` "Alambre Corta Queso", que está **sin n° de
+  fleje, sin proveedor y marcado discontinuo**. La planilla vigente tiene un **fleje 78**
+  (Brawin, sector E7, Ø4 x 118) que no existe en GP2. **[Probable] `IZ19A` es el 78** y quedó
+  huérfano en la migración: conviene unificarlo, no crear otro.
+- **Fleje 47 (Espiral Doble Aleta, Szapiro): la planilla y la ruta se contradicen**
+  `[SIN RESOLVER]`. La pieza es `D1` Espiral Sacacorcho, que entra como **insumo importado**
+  en 7 rutas (104, 520, 521, 530, 531, 581, 730) por la decisión del 2026-09-02. Coherente
+  con que `IF12` esté discontinuo — pero ojo, en GP2 `IF12` se llama **"Fleje N° 49"**,
+  mientras la planilla lo numera **47** en el mismo sector F12. O la planilla quedó vieja, o
+  se sigue comprando alambre a Szapiro y la ruta miente.
+- **Fleje 91 (Estribo Bombilla, Basconia): NO va** `[usuario 2026-09-04: "estribo bombilla es
+  discontinuo"]`. No se carga. Concuerda con lo que muestran las rutas: **ninguna bombilla
+  usa fleje**, todas arrancan de piezas ya compradas (`BOM12` caño de Metalúrgica Giser,
+  `BOM8` resorte de Grudzien, `BOM10` de Resortes Charcas, `BOM13`/`BOM14` de Cimarrón).
+- **El fleje 90 partido en bruto/corto/largo está bien**: la planilla lo pone en Altrak y GP2
+  lo tiene como `FLEJE90_BRUTO` (Altrak) + `IC3`/`IC3V` (Charcas corta). No es un faltante.
+
+**Sobran respecto de la planilla, y está bien**: `ID7` (fleje 50, EstaMetal, discontinuo),
+`IZ19A`, y los tres sin número que sí se reciben — `CHAPA430` (Aperam → Eclipse), `IC3V`
+(fleje 90 largo) y `IE13` (Cremallera, importado).
+
+---
+
 ## 2. Materiales y procesos: la lógica del inoxidable
 
 `[usuario 2026-08-29]` **Regla estratégica: conviene pasar partes de fleje laminado a
