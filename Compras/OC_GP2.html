@@ -1,7 +1,22 @@
 <!doctype html>
 <html lang="es">
 <head>
-<!-- v1.14.1 (2026-09-04) — EL "SUGERIDO" Y EL "CONSUMO/MES" SE TOCABAN CON EL DEDO Y MEDIAN
+<!-- v1.15.0 (2026-09-04) — GENERAR OC EMPIEZA POR EL RUBRO: LOS PROVEEDORES NO SE MUESTRAN
+     HASTA TOCAR UN RUBRO [usuario 2026-09-04: "separado por rubro, que no aparezcan los
+     proveedores, y cuando toco el rubro que aparezcan los proveedores"]. Al soltar el rubro
+     (o al arrancar) la botonera de proveedor y su cartel quedan ocultos (.hidden) y el
+     proveedor elegido se limpia. Ademas, dos reglas de PANTALLA sobre el rubro: el Sector
+     Alambre (13) se muestra DENTRO de Fleje (5) —el alambre es MP del fleje— y el Sector
+     Procesado (2) NO aparece en OC (Eclipse es proveedor de SERVICIO, no de insumo). Es
+     mapeo de pantalla via RUBRO_MAP/RUBRO_OCULTO + rubroDe()/ocultoRubro(): NO toca la base;
+     cuando el usuario confirme se baja a datos (mover rubro en proveedor_insumo / Eclipse a PS).
+     rubrosDistintos/provsDistintos/filtradas/itemsPedidos ahora agrupan por rubroDe(i).
+     Ademas se SACO la columna "Pend. OC" de la tabla y de la leyenda/cuenta [usuario
+     2026-09-04: "por ahora borralo"]. El backend (oc_bundle) SIGUE restando pendiente_oc
+     al sugerido; hoy no se nota porque esta en 0. Si se quiere que el sugerido tampoco lo
+     reste, es cambio de oc_bundle (pendiente).
+
+     v1.14.1 (2026-09-04) — EL "SUGERIDO" Y EL "CONSUMO/MES" SE TOCABAN CON EL DEDO Y MEDIAN
      28x19 Y 42x19. Los dos son controles, no texto: tocando el sugerido pasa a "Pedir" y
      tocando el consumo se abre el detalle. Ahora van con caja de 44px como el resto de los
      botones de la casa. Lo midio el gate de UI a 390px; test_oc.js lo vigila de ahora en mas.
@@ -255,17 +270,17 @@
 
     <div id="panGen">
       <div class="filtro"><span class="filtro-lb">Rubro</span><div class="chips" id="rubros"></div></div>
-      <div class="filtro"><span class="filtro-lb">Proveedor</span><div class="chips" id="provs"></div></div>
-      <div class="prov-info" id="provInfo"></div>
+      <div class="filtro hidden" id="filtroProv"><span class="filtro-lb">Proveedor</span><div class="chips" id="provs"></div></div>
+      <div class="prov-info hidden" id="provInfo"></div>
       <div class="regla-carton hidden" id="reglaCarton"></div>
       <div class="search-box"><input type="text" id="q" placeholder="Buscar insumo…"></div>
-      <div class="leyenda">Sugerido = <b>Máximo</b> − <b>Stock</b> − <b>Pendiente de OC</b>. Tocá el número naranja y pasa a “Pedir”, o usá <b>“Usar sugeridos”</b> para cargarlos todos de una. <b>Cantidad y precio se pueden pisar a mano</b>: lo que quede en pantalla es lo que sale en la OC.</div>
+      <div class="leyenda">Sugerido = <b>Máximo</b> − <b>Stock</b>. Tocá el número naranja y pasa a “Pedir”, o usá <b>“Usar sugeridos”</b> para cargarlos todos de una. <b>Cantidad y precio se pueden pisar a mano</b>: lo que quede en pantalla es lo que sale en la OC.</div>
       <div class="table-wrap">
         <table class="t">
           <thead><tr>
             <th>Insumo</th><th>Proveedor</th>
             <th class="num">Consumo<br>/mes</th>
-            <th class="num">Stock<br>actual</th><th class="num">Máximo</th><th class="num">Pend.<br>OC</th>
+            <th class="num">Stock<br>actual</th><th class="num">Máximo</th>
             <th class="num">Sugerido</th><th class="num">Precio</th><th class="num">Pedir</th><th class="num">Subtotal</th>
           </tr></thead>
           <tbody id="tbody"></tbody>
@@ -357,10 +372,12 @@ function tagOrigen(o){
 }
 // La cuenta que explica el sugerido, debajo del numero: que nadie tenga que adivinarlo.
 function explicaSug(i){
-  var mx=vMaximo(i), st=vStock(i), pe=vPend(i);
-  if(mx!=null) return 'máx '+fmt(mx)+' − stock '+fmt(st==null?0:st)+(pe>0?(' − pend '+fmt(pe)):'');
+  // La columna "Pend. OC" se sacó de la pantalla [usuario 2026-09-04: "por ahora borralo"],
+  // así que la cuenta tampoco la menciona.
+  var mx=vMaximo(i), st=vStock(i);
+  if(mx!=null) return 'máx '+fmt(mx)+' − stock '+fmt(st==null?0:st);
   var c=vConsumo(i);
-  if(c!=null && i.meses!=null) return 'cons '+fmt(c,1)+' × '+i.meses+' m − stock '+fmt(st==null?0:st)+(pe>0?(' − pend '+fmt(pe)):'');
+  if(c!=null && i.meses!=null) return 'cons '+fmt(c,1)+' × '+i.meses+' m − stock '+fmt(st==null?0:st);
   return '';
 }
 
@@ -397,10 +414,28 @@ async function boot(){
    el default por si el parametro no esta. */
 function paqPliego(){ return Number(D.pliego_uni_x_paquete)||PAQ_PLIEGO; }
 
+/* El RUBRO de la OC es el SECTOR del componente, con dos reglas de PANTALLA
+   [usuario 2026-09-04]: el Alambre (13) se muestra dentro de Fleje (5) —el alambre es
+   materia prima del fleje— y el Procesado (2) NO se pide por OC (Eclipse es proveedor de
+   SERVICIO, no de insumo). Es mapeo de pantalla: NO toca la base. Si algún día se baja a
+   datos, se saca de acá. */
+var RUBRO_MAP={13:5};          // alambre -> fleje
+var RUBRO_OCULTO={2:true};     // procesado no aparece en OC
+function rubroDe(i){ var s=Number(i.sector_id); return RUBRO_MAP[s]||s; }
+function ocultoRubro(i){ return !!RUBRO_OCULTO[Number(i.sector_id)]; }
+// Nombre del rubro: prioriza el sector canónico (5 = "Fleje"), no el del alambre mapeado.
+function nombreRubro(id){
+  var xs=(D.insumos||[]);
+  var it=xs.filter(function(x){ return Number(x.sector_id)===id; })[0]
+       || xs.filter(function(x){ return rubroDe(x)===id; })[0];
+  return it ? String(it.sector).replace(/^Sector\s+/i,'') : String(id);
+}
 function rubrosDistintos(){
   var seen={}, out=[];
   (D.insumos||[]).forEach(function(i){
-    if(!seen[i.sector_id]){ seen[i.sector_id]=true; out.push({id:i.sector_id, nombre:i.sector.replace(/^Sector\s+/i,'')}); }
+    if(ocultoRubro(i)) return;
+    var id=rubroDe(i);
+    if(!seen[id]){ seen[id]=true; out.push({id:id, nombre:nombreRubro(id)}); }
   });
   return out;
 }
@@ -429,7 +464,8 @@ function pintarRubros(){
 function provsDistintos(){
   var seen={}, out=[];
   (D.insumos||[]).forEach(function(i){
-    if(rubroSel!=null && i.sector_id!==rubroSel) return;
+    if(ocultoRubro(i)) return;
+    if(rubroSel!=null && rubroDe(i)!==rubroSel) return;
     var p=i.proveedor||'(sin proveedor)';
     if(!seen[p]){ seen[p]=true; out.push(p); }
   });
@@ -438,7 +474,18 @@ function provsDistintos(){
 }
 
 function pintarProvs(){
-  var g=$('provs'); g.innerHTML='';
+  var g=$('provs'), wrap=$('filtroProv'), info=$('provInfo');
+  g.innerHTML='';
+  // Los proveedores NO se muestran hasta tocar un rubro [usuario 2026-09-04:
+  // "que no me aparezcan los proveedores, y cuando toco el rubro que aparezcan"].
+  if(rubroSel==null){
+    if(provSel!=null) provSel=null;
+    if(wrap) wrap.classList.add('hidden');
+    if(info) info.classList.add('hidden');
+    return;
+  }
+  if(wrap) wrap.classList.remove('hidden');
+  if(info) info.classList.remove('hidden');
   provsDistintos().forEach(function(p){
     var b=document.createElement('button'); b.type='button'; b.className='chip'+(provSel===p?' active':''); b.textContent=p;
     b.addEventListener('click',function(){
@@ -509,7 +556,8 @@ function pintarAyudaFecha(){
 function filtradas(){
   var q=($('q').value||'').trim().toLowerCase();
   return (D.insumos||[]).filter(function(i){
-    if(rubroSel!=null && i.sector_id!==rubroSel) return false;
+    if(ocultoRubro(i)) return false;
+    if(rubroSel!=null && rubroDe(i)!==rubroSel) return false;
     if(provSel!=null && (i.proveedor||'(sin proveedor)')!==provSel) return false;
     if(q && !(((i.codigo||'')+' '+(i.descripcion||'')+' '+(i.proveedor||'')).toLowerCase().includes(q))) return false;
     return true;
@@ -571,7 +619,6 @@ function render(){
         (i.minimo!=null?('<span class="sub-nota">mín '+fmt(i.minimo)+'</span>'):'')+'</td>'+
       '<td class="num">'+(mx==null?'—':fmt(mx))+
         (mx!=null&&i.maximo_origen?('<span class="sub-nota">'+esc(tagOrigen(i.maximo_origen))+'</span>'):'')+'</td>'+
-      '<td class="num">'+(pe>0?fmt(pe):'—')+'</td>'+
       '<td class="num"><span class="sug" data-sug="'+i.comp_id+'" title="Tocá y pasa a Pedir">'+fmt(i.sugerido)+'</span>'+
         (calc?('<span class="sug-calc">'+esc(calc)+'</span>'):'')+'</td>'+
       '<td class="num">'+celdaPrecio(i)+'</td>'+
@@ -627,7 +674,8 @@ function render(){
 function itemsPedidos(){
   return (D.insumos||[]).filter(function(i){
     if(!(PEDIDO[i.comp_id]>0)) return false;
-    if(rubroSel!=null && i.sector_id!==rubroSel) return false;
+    if(ocultoRubro(i)) return false;
+    if(rubroSel!=null && rubroDe(i)!==rubroSel) return false;
     if(provSel!=null && (i.proveedor||'(sin proveedor)')!==provSel) return false;
     return true;
   }).map(function(i){

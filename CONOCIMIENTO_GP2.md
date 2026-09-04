@@ -3443,3 +3443,90 @@ para lo que no cruza solo). Con eso la OC y Faltantes verían el stock de Virgil
 nadie cargue nada dos veces**, que es la regla de la casa: la fuente es una. Lo que hoy NO
 hay que hacer es cargar `GP2.inventario` de Virgilio a mano: se desincronizaría en una
 semana. Idea **7243**, reescrita.
+
+---
+
+## 4p. El circuito Relevamiento → Stock → OC, y los rubros de la OC (2026-09-04)
+
+**El orden real del trabajo `[usuario 2026-09-04]`:** el relevamiento no es un informe
+suelto, es **el paso previo a comprar**. La secuencia que pidió el usuario, textual:
+"cuando subo el relevamiento, luego de eso tengo que hacer una orden de compra".
+
+1. **Se releva** (conteo físico de un sector: flejes, cajas, cartones, garage…).
+2. **Se compara** lo contado contra el stock que el programa venía calculando por
+   movimientos. El usuario **elige cuál vale**, y el default es **el conteo**
+   `[usuario: "que me tire por default que el correcto es el del conteo"]`.
+3. **Se actualiza el stock** con lo elegido.
+4. **Recién ahí se genera la OC**, contra ese stock ya corregido.
+
+Por qué importa: la OC pide contra el stock. Si el stock viene desviado de la realidad, el
+pedido sale mal. El relevamiento es el que lo endereza justo antes de comprar.
+
+### El objetivo del pedido: máximo, y si no hay, consumo × meses `[usuario 2026-09-04]`
+
+El usuario primero planteó usar `inventario.minimo` como respaldo cuando `maximo` está
+vacío, y **al rato se corrigió solo**: "sí, en realidad es consumo por meses". O sea que
+**la regla que ya estaba es la correcta y no se toca**:
+
+- objetivo = `inventario.maximo` si tiene número;
+- si está vacío → **consumo × meses** (no `minimo`).
+
+**El dato de consumo por parte SÍ existe** `[dato: consulta 2026-09-04]`:
+`GP2.v_consumo_parte` — 260 filas, columnas `componente_id, codigo, descripcion,
+sector_id, consumo_uni_mes, en_articulos`. Ejemplos medidos: K9 Arandela 66.616/mes,
+D9 Clavo 505 55.334/mes, B3A Cartón 505 28.184/mes, GRJ7 16.968/mes. Para flejes, en kg:
+`v_consumo_fleje_kg`. La explosión completa está en `v_consumo_componente` (446).
+
+### Los rubros de la OC son 7, y salen del SECTOR `[usuario 2026-09-04]`
+
+Fleje · Plástico · Bombilla · Remache · Garage · Cartón · Caja.
+
+- **El "rubro" de la pantalla de OC es el `sector_id` del componente**, no la columna
+  `proveedor_insumo.rubro` `[dato: lectura de OC_GP2.html 2026-09-04]`. Son dos cosas
+  distintas con el mismo nombre — trampa para el que venga después.
+- **Alambre va DENTRO de Fleje**: el alambre es materia prima del fleje, no un rubro aparte.
+- **Procesado NO va**: **Eclipse es proveedor de SERVICIO, no de consumo**
+  `[usuario: "el descorazonador dentro de Eclipse, quiero que esté como proveedor de
+  servicio, no como proveedor de consumo"]`. Eclipse hace el **descorazonador**.
+
+**Cómo quedó implementado (v1.15.0):** por ahora es **mapeo de PANTALLA**
+(`RUBRO_MAP {13:5}` + `RUBRO_OCULTO {2}` en `OC_GP2.html`), **no toca la base**. Se hizo así
+a propósito: mover el rubro en `proveedor_insumo` y pasar Eclipse a proveedor de servicio
+toca recepción, stock y costos, y eso se baja a datos **cuando el usuario lo confirme**.
+
+### La OC empieza por el rubro `[usuario 2026-09-04]`
+
+Textual: "separado por rubro, que no me aparezcan los proveedores, y cuando toco el rubro,
+que ahí me aparezcan los proveedores". Implementado en v1.15.0: sin rubro elegido, la
+botonera de proveedor y su cartel quedan ocultos y el proveedor seleccionado se limpia.
+
+### "Pend. OC" se sacó de la pantalla `[usuario 2026-09-04: "por ahora borralo"]`
+
+Se quitó la columna, la leyenda y la cuenta explicativa. **OJO — deuda viva:** el backend
+(`oc_bundle`) **sigue restando `pendiente_oc`** al sugerido. Hoy no se nota porque está en
+0, pero el día que haya una OC abierta el sugerido va a restar algo que no se ve en
+pantalla. Si se quiere que tampoco lo reste, es cambio de `oc_bundle`.
+
+### PENDIENTES que el usuario dejó planteados y NO están hechos
+
+- **P10 y P3 dentro de Plástico, bajo Pat Bet Plast** `[usuario 2026-09-04]`: "no sé por qué
+  P10 y P3 no están adentro de plástico". **No existen como código de componente en GP2**
+  `[dato: consulta 2026-09-04]`, así que falta que el usuario diga qué son antes de tocar nada.
+- **Garage como rubro de OC**: el sector existe (9) pero **no hay proveedor de insumo de
+  Garage** — los GRJ los arman talleristas. Falta definir qué se pide ahí.
+- **Bajar el mapeo de rubros a datos** (Alambre→Fleje, Eclipse→servicio) cuando se confirme.
+
+### El módulo Relevamiento de hoy NO es de GP2 `[dato: lectura del código 2026-09-04]`
+
+`Relevamiento/relevamiento.js` está cableado al **schema viejo**: `relevamiento_cervantes`
+vía funciones `public.rc_*`, con el modelo de plantas Cervantes/Virgilio. O sea que hacer el
+relevamiento "de GP2 mirando esa lógica" es **rehacer el módulo** (casa del vecino: se mira
+la lógica, no se copia la casa), no ajustar el que está.
+
+Lo que pidió el usuario para el de GP2:
+- **Cronograma cargado con las fechas de conteo** (pasó la foto del Excel "conteo": Cartones,
+  Garage, Remaches, Bombillas, Flejes, Plásticos, Bolsa Plást, Cajas — Garage se repite
+  varias veces por mes).
+- **Mostrar sólo el MÁS PRÓXIMO por tipo**, no toda la lista.
+- **Al entrar, todos los componentes de ese sector** para completar (en flejes el total de
+  kilos, en cajas todas las cajas, en cartones todos los cartones…).
