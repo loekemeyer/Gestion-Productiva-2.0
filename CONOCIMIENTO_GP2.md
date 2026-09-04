@@ -3130,3 +3130,35 @@ De los 6 que quedaban colgados el 03/09:
   `Z2A`, `D13`, `G2C`, `A8`), mientras el 518 y el 708 llevan `W8` (Vástago Sacafuente
   Pizzero, de Imel). Pendiente saber si el 508 lleva `W8` o el `CV16` — si es `CV16`,
   hay que armarle también la ruta crudo → niquelado como las de arriba.
+
+### Cerrado: los tres precios se acomodaron y el 508 recuperó su vástago (2026-09-04)
+
+Con lo que contestó el usuario quedó resuelto todo lo que arriba figuraba como pendiente:
+
+- **El $68,70 "Tornillo sacafuentes" era del `CV18D`** *[usuario]*. Se movió del `W8` al
+  `CV18D`. Efecto: `CV18D` pasa de $0 a $68,70, `V18D` (que sale de ruta) hereda ese costo
+  y el 508 sube de $1.836,03 a $1.904,73. `W8` queda **sin precio**: hay que pedirle a Imel
+  el precio real del vástago pizzero.
+- **Mandelli entrega el `CV13` CRUDO** *[usuario]*. El precio ($15,37) se movió del `V13`
+  al `CV13`, y `V13` quedó `estado_compra='fabricacion'` como su gemelo `V18D`. Ahora el
+  niquelado de Guazzaroni se suma de verdad: `V13` pasa de $15,37 a $15,65, y los artículos
+  043 y 511 suben $0,29 cada uno. Antes ese servicio no se estaba cobrando en ningún lado.
+- **El 508 es el 708 con otro cartón y otro SP** *[usuario 2026-09-04: "508=708 pero con
+  cartón chef y otro sp usa"]*. Comparando las rutas de los dos artículos, son gemelas paso
+  a paso (Fleje 16 → Pedernera, Fleje 17 → `Z1A`, Fleje 27 → Guazzaroni → Maspoli → `PC12`,
+  `CV6`→`V6`, `CV18D`→`V18D`, caja, cartón) y la **única** diferencia real era que al 708 le
+  colgaba la ruta "Insumo W8 → Art 708" y al 508 no. O sea: el 508 sí lleva vástago, y es el
+  mismo `W8`. Se le agregó la fila de `articulo_componente` (cantidad 1) y la ruta
+  "Insumo W8 → Art 508" espejo de la 228. El costo del 508 no se movió todavía porque `W8`
+  está sin precio; sus `faltan_precios` pasaron de 1 a 3, que es la señal correcta.
+- **`CV16` sigue sin dueño.** Como el vástago del 508 resultó ser el `W8`, el `CV16` (Bella
+  Vista) no lo usa nadie: 0 recetas, 0 BOM, 0 rutas, 0 precios. Candidato a `discontinuo`,
+  falta que el usuario lo confirme.
+
+Los comprables sin precio bajaron de **6 a 2**, y los 2 que quedan son los dos vástagos:
+`W8` (precio de Imel) y `CV16` (que probablemente ni exista más).
+
+**Diferencia que quedó marcada, sin tocar:** el 508 y el 518 listan `D13` (Virola
+Sacafuente Niq) en `articulo_componente`, pero `D13` es un intermedio de la ruta 95/92
+(`ID8` → matriz → `D13B` → Guazzaroni → `D13` → Maspoli → `PC12`). El 708 NO lo lista. O
+sobra en el 508/518 o falta en el 708; revisar antes de creerle al costo de esos tres.
