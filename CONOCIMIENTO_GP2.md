@@ -301,53 +301,60 @@ falla nada, simplemente el artículo sale más barato de lo que es.
 El popup de Recepción Insumos arma los campos según el proveedor (además del **KG
 total** que va siempre):
 
-### Altrak → Charcas → Cervantes (fleje cortado) `[usuario 2026-09-02, alineado al vecino]`
-Altrak vende **una sola varilla** (`ALAM_FILTRO`, kg, prov Altrak, sector 13
-Alambre, vive en ubic 13 Prov. Serv. Charcas). Charcas es **prov_servicio**:
-solo **corta el alambre a medida** (no le da forma) → el output sigue siendo
-alambre y se guarda en **Sector Fleje (id 5)**, no en Terminado/SP como
-pensaba antes. Diferencia clave con Eclipse: Eclipse **da forma** (corta+dobla)
-→ SP; Charcas **solo corta** → Fleje. Charcas cobra por el servicio de corte
-(ISIS único **4596**, ~$9,50 IPC 10 al 2026-08-05).
+### Altrak → Charcas → Cervantes/Virgilio (Fleje 90 corto/largo) `[usuario 2026-09-02..04, CORREGIDO 2026-09-04 contra BD]`
+Altrak vende **una sola varilla**: `FLEJE90_BRUTO` (id 583, kg, prov Altrak,
+sector 13 Alambre, ubic 13 Prov. Serv. Charcas) — el alambre entero antes de
+cortar. Charcas es **prov_servicio**: **solo corta el alambre a medida** (no le
+da forma), cobra el servicio de corte (ISIS único **4596**, ~$9,50 al 2026-08-05).
+Diferencia clave con Eclipse: Eclipse **da forma** (corta+dobla) → SP; Charcas
+**solo corta** → sigue siendo fleje.
 
-**Un mismo material, dos formatos de corte** `[usuario 2026-09-02]`: el mismo
-alambre + mismo proceso + mismo ISIS 4596 sale con dos longitudes distintas —
-`IF90` (Filtro Café, 0,00830 kg/uni) y `IF90B` (Filtro Café Gastronómico,
-0,01162 kg/uni). En el vecino: `public."Flejes"` N° 90 y 90B con proveedor
-"Altrak", sector FC3/FB3B, ISIS 1395 (90; 90B sin ISIS).
+**Un mismo alambre, dos MEDIDAS de corte** `[usuario 2026-09-04]`:
+- **CORTO → `IC3` (id 214)** — kg, prov Resortes Charcas, sector 5 (Fleje),
+  `kg_x_uni=0,0083`. Se **guarda en Cervantes** (Sector Fleje). Lo usan los
+  arts **031, 120, 836**.
+- **LARGO → `IC3V` (id 373)** — kg, prov Resortes Charcas, sector 5,
+  `kg_x_uni=0,0134`. **Va directo a Virgilio** (se guarda allá; IJUPA lo va a
+  buscar para armar). Lo usan los arts **034, 867**.
+- Los códigos siguen la **estantería**, no el número del fleje (I=insumo + C3;
+  IC3V = variante Virgilio/largo). El nombre real es "Fleje N° 90".
 
-**Componentes GP2 (2026-09-02):**
-- `ALAM_FILTRO` (id 583) — kg, prov Altrak, sector 13, ubic 13 (Charcas).
-- `IF90` (id 372, ex '031') — kg, prov **Resortes Charcas**, sector 5 (Fleje),
-  `kg_x_uni=0,00830`. **Renombrado y migrado en `f90_alambre_filtro_cafe_y_cod_prov_charcas_v2`
-  (2026-09-02)** desde `codigo='031' desc='31 Terminado' sector=12 unidad='unidad'`
-  (que estaba mal — 031 en el vecino es el artículo terminado, no lo que Charcas
-  entrega). Stock convertido: 2520 uni × 0,00830 = 20,92 kg de Virgilio (33) a
-  Sector Fleje (5), vía dos movimientos tipo ajuste.
-- `IF90B` (id 373) — kg, prov **Resortes Charcas**, sector 5 (Fleje),
-  `kg_x_uni=0,01162`. **Migrado en `f90b_alambre_filtro_cafe_gastronomico`
-  (2026-09-02, usuario "lo mismo para el filtro cafe")** desde `codigo='034'
-  desc='34 Terminado' sector=12 unidad='unidad'`. Stock convertido: 720 uni ×
-  0,01162 = 8,37 kg de Virgilio (33) a Sector Fleje (5). Otro compañero maneja
-  las **bombillas de Charcas** (los 4 primeros ítems de la lista de precios:
-  Resorte Bicónico, Batidor Pera, Bombilla p/niquelar, Bombilla inox) — IF90B
-  no es bombilla, es filtro café gastronómico, mismo negocio que IF90.
+**⚠️ CORRECCIÓN 2026-09-04 — reemplaza el modelo viejo IF90/IF90B/ALAM_FILTRO:**
+antes esto se modelaba como `IF90`/`IF90B` (Filtro Café / Gastronómico) +
+`ALAM_FILTRO`. Se remodeló a **corto/largo**:
+- `ALAM_FILTRO` → renombrado **`FLEJE90_BRUTO`** (mismo id 583).
+- `IF90` (id 372) era **duplicado de IC3** (mismo kg_x_uni 0,0083, misma prov, 0
+  recetas, marcado "duplicado de IC3 - no usar"): **ELIMINADO** (componente +
+  inventario + movimientos, con el trigger apagado, sin mover saldos). El corto
+  quedó vivo en **IC3 con sus 480 kg**.
+- `IF90B` (id 373) → repurposeado a **`IC3V`** (largo, `kg_x_uni` 0,0134 — antes
+  0,01162).
+
+**Rutas Fleje 90 (5, todas "Filtros de café", corregidas 2026-09-04 contra receta):**
+cada ruta es `ingreso fleje → Charcas (prov serv, corta) → IJUPA (arma) → Virgilio (entrega Art)`.
+La **receta** (`articulo_componente`) manda qué fleje usa cada art — la ruta es
+sospechosa hasta cruzarla contra la receta, gana la receta:
+- CORTO (IC3): 031 (ruta 206), 120 (205), 836 (207).
+- LARGO (IC3V): 034 (209), 867 (208).
+Las 206/208/209 estaban mal cargadas (206 apuntaba al dup IF90; 208 cargada como
+corto siendo largo; 209 ingresaba con corto) → repuntadas a IC3/IC3V para
+coincidir con la receta. Charcas queda como **prov_servicio** en las 5.
 
 **Pantallas / flujos:**
-- **Compra Altrak (Pagos)** — `Compras/AltrakCharcas_GP2.html` carga kg del
-  alambre cuando llega factura de Altrak → suma stock en Charcas.
-- **Recepción operario** — rubro **Flejes** → IF90 con proveedor Charcas → RPC
-  `cargar_recepcion_charcas` (dual): si el componente tiene ubic tipo=sector y
-  unidad=kg (IF90), suma kg en esa ubic; si no (034, sector 12 sin ubic), cae al
-  flujo viejo (Virgilio uni). Así el 034 no se rompe mientras el compañero lo
-  migra. La RPC descuenta `paq × 10 × 1,02` kg de alambre en Charcas
-  (parámetro `charcas_desperdicio_pct = 2`).
-- **OC gemela** — OC a Charcas dispara OC gemela a Altrak por kg de alambre.
-- **Frontend** — `esFiltroCharcas()` en `RecepcionInsumos_GP2.html` detecta solo
-  por proveedor (ya no por sector), así IF90 en sector Flejes también dispara el
-  popup `paq_charcas` (no el de balanza+pallets+rollos de flejes normales).
+- **Compra Altrak (Pagos)** — carga kg de `FLEJE90_BRUTO` cuando llega factura de
+  Altrak → suma stock en Charcas (ubic 13).
+- **Recepción Charcas** — RPC `cargar_recepcion_charcas`: registra el corte
+  (corto IC3 / largo IC3V), suma kg en el destino y descuenta del bruto en Charcas.
+- **Pantalla dedicada** — `Prov Serv/CharcasEclipse/CharcasEclipse_GP2.html` (grupo PS del menú).
 
-**cod_prov Charcas = 3605** `[usuario 2026-09-02, foto lista de precios]`.
+**cod_prov Charcas = 3605** `[usuario 2026-09-02]`. **cod_prov Altrak = 3711** `[usuario 2026-09-03]`.
+
+**OC — DECIDIDO 2026-09-04, pendiente de implementar en `OC_GP2.html`** `[usuario]`:
+la OC del Fleje 90 va **SOLO a Altrak** (kg de `FLEJE90_BRUTO`). **NO hay OC gemela
+a Charcas** — el corte se registra por la recepción, no por OC. (Reemplaza el
+modelo anterior "OC a Charcas dispara gemela a Altrak".) Merma del corte de
+Charcas: **sin dato, asumir 0** hasta que el usuario lo aporte (el 28% era de
+Aperam/Eclipse, NO de Altrak).
 
 ### Aperam → Eclipse → Cervantes (misma lógica Altrak/Charcas) `[usuario 2026-09-01, calibrado con remito real 2026-09-02]`
 Aperam entrega la **chapa 430** (1250×2500×0,8 mm) directo en **Eclipse**
@@ -416,9 +423,10 @@ depositado en la ubicación del PS.
   (grupo PS del menú, "Charcas y Eclipse"). Muestra stock MP del PS
   seleccionado + registra Entrega + historial últimas 20. Fase A del rework
   aplicado el 2026-09-02 (versión menú v1.17.0).
-- **OC**: se hace a Charcas/Eclipse con OC gemela automática a Altrak/Aperam
-  (`crear_oc` con las 2 ramas, sin cambios).
-- **Stock online** visible en la pantalla nueva: kg de ALAM_FILTRO en
+- **OC** (⚠️ divergen desde 2026-09-04): **Eclipse** sí lleva OC gemela a Aperam
+  (`crear_oc` rama Eclipse). **Charcas NO**: la OC va SOLO a Altrak, sin gemela
+  (ver bloque "OC — DECIDIDO 2026-09-04" arriba). Pendiente implementar en `OC_GP2.html`.
+- **Stock online** visible en la pantalla nueva: kg de `FLEJE90_BRUTO` en
   Charcas (ubic 13) y kg de CHAPA430 en Eclipse (ubic 48).
 - **Fase B aplicada 2026-09-02**: se sacaron los rubros Filtros/Cortados de
   `RecepcionInsumos_GP2.html` (v3.36.0). Ya no hay entrada duplicada — la
@@ -430,11 +438,12 @@ depositado en la ubicación del PS.
 
 **Paridad Altrak/Charcas ↔ Aperam/Eclipse `[dato 2026-09-02]`:** los dos
 modelos son gemelos estructurales. Igual: ubicación tipo `proveedor_servicio`
-(Charcas 13 / Eclipse 48), MP en sector 13 Alambre en kg (ALAM_FILTRO
+(Charcas 13 / Eclipse 48), MP en sector 13 Alambre en kg (`FLEJE90_BRUTO`
 Altrak / CHAPA430 Aperam), RPC de compra (`cargar_compra_altrak` /
 `cargar_compra_aperam_chapa`), RPC de recepción (`cargar_recepcion_charcas`
-/ `cargar_recepcion_eclipse`), OC gemela dentro de `crear_oc`, parámetro
-de desperdicio, pantalla Pagos. `proveedor_insumo.modo_control` = `peso_total`
+/ `cargar_recepcion_eclipse`), parámetro de desperdicio, pantalla Pagos.
+**⚠️ Ya NO son gemelos en la OC** (desde 2026-09-04): Eclipse mantiene OC gemela
+a Aperam; Charcas va SOLO a Altrak, sin gemela. `proveedor_insumo.modo_control` = `peso_total`
 en ambos `[usuario 2026-09-02: "los paquetes se pesan"]` — semántico, el
 HTML detecta por rubro (Filtros/Cortados) no por modo_control. **Ojo**:
 hoy ninguno de los dos popups pide un peso separado; asumen `paq × 10` y
