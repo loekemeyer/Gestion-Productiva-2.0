@@ -3325,3 +3325,59 @@ se le compra más seguido. (Es el mismo `W8` que además está sin precio.)
 - **Las bolsas caen en 2 familias, no en 1**: son 3 códigos de formato `Bolsa` repartidos en
   dos marcas, así que el piso de 20.000 se cobra **dos veces (40.000 bolsas)**. Y el piso
   sigue **sin confirmar** desde el 03/09.
+
+## 4o. Virgilio: qué se guarda allá, y por qué la OC hoy no lo ve (2026-09-04)
+
+*[usuario 2026-09-04, textual: "Espiral es importado, no se pide en ocs pero hay insumos en
+virgilio… Allá se guardan: flejes, cajas, insumos importados, bolsas plásticas (que hay que
+mandarle a los prov de inyección), partes plásticas, etc"]*.
+
+### DECIDIDO: los importados NO se piden por OC
+
+El `D1` (Espiral Sacacorcho) es importado y **no va a la orden de compra**. O sea que
+`oc_bundle` filtrando `estado_compra is null` **está bien** y el hallazgo del auditor sobre
+los `'importado'` queda **cerrado, sin cambio**. Son 5 y quedan afuera a propósito: `Z23A`
+Cuch China, `D1` Espiral, `C13` Corta Queso Bastidor, `ID1` Fleje N° 28, `Z23B` Cuchilla
+Laser. El campo `estado_compra` sirve entonces para tres cosas distintas y las tres sacan
+al componente de la OC: **`fabricacion`** (sale de una ruta), **`discontinuo`** (ya no se
+usa) e **`importado`** (se compra, pero por otro circuito, no con una OC nuestra).
+
+### Qué hay hoy en Virgilio, buscado en los tres lados
+
+**En GP2** (`ubicacion` 33, "Virgilio (Distribución)"): 179 filas de inventario —
+**91 Terminado** (18 con stock, **$20.442.712**), **78 Sector Procesado** (con máximo, sin
+stock), **9 Sector Caja** (con máximo, sin stock) y **1 Sector Fleje**. O sea: de insumos,
+**stock cero**; lo único vivo es producto terminado. Y de las categorías que nombra el
+usuario **faltan tres**: importados, bolsas plásticas y partes plásticas no tienen ninguna
+fila en la ubicación de Virgilio.
+
+**En la casa del vecino** (`public`, misma base): el catálogo **sí sabe** qué vive en
+Virgilio — `v_rc_catalogo.en_virgilio` marca **76 ítems, todos `tipo='plasticos'`**: las
+partes (PA1 Plaquita 3 en 1, PB8 Mgo Sacac Plast, PC12 Mgo Sacafuente Articulado, PEP7 Mgo
+pizzero…) **y la materia prima de inyección** (Master Bach de 5 colores, Nylon Virgen, Ny
+C/Carga, PP 2630, ABS, PE, PS HF 555, AL 4600, Santo Prene). Pero **el conteo nunca se
+hizo**: `v_rc_relevamientos` tiene **8 relevamientos y los 8 son de Cervantes**, y las tres
+tablas de stock por planta —`flejes_stock_planta` (54), `cajas_stock_planta` (14),
+`partes_plasticas_stock_planta` (77)— tienen **únicamente filas con `planta='Cervantes'`**.
+
+**En el repo/base de Producción Virgilio** (`kwkclwhmoygunqmlegrg`, "loekemeyer's web"): es
+el lado **comercial** — pedidos, entregas, facturación, bot de WhatsApp, expo, leads. El
+schema `virgilio` tiene 10 tablas y ninguna es de stock de insumos.
+
+**Conclusión: el stock de insumos que está físicamente en Virgilio no está cargado en
+ningún lado.** No es que GP2 no lo lea: no existe el dato. Hay que contarlo.
+
+### Y la trampa que se activa el día que se cargue
+
+`oc_bundle` lee el stock de **una sola** ubicación — la del sector del componente:
+
+```sql
+(select i.cantidad from inventario i join ubicacion iu on iu.id=i.ubicacion_id
+  where i.componente_id=c.id and iu.tipo='sector' and iu.ref_id=c.sector_id limit 1)
+```
+
+Hoy eso es inofensivo (Virgilio tiene 0 de insumos) y de hecho **nos protege** de las 32
+filas negativas de talleristas. Pero apenas se cargue el conteo de Virgilio, **ese stock no
+se va a descontar del pedido y la OC va a comprar de más**. Lo mismo con los **9 máximos de
+Caja** que Virgilio ya tiene cargados y que la OC tampoco suma. Hay que decidirlo antes de
+cargar, no después. Idea **7243**.
