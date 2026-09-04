@@ -341,10 +341,15 @@ corto siendo largo; 209 ingresaba con corto) → repuntadas a IC3/IC3V para
 coincidir con la receta. Charcas queda como **prov_servicio** en las 5.
 
 **Pantallas / flujos:**
-- **Compra Altrak (Pagos)** — carga kg de `FLEJE90_BRUTO` cuando llega factura de
-  Altrak → suma stock en Charcas (ubic 13).
-- **Recepción Charcas** — RPC `cargar_recepcion_charcas`: registra el corte
-  (corto IC3 / largo IC3V), suma kg en el destino y descuenta del bruto en Charcas.
+El Fleje 90 va en **2 pasos** `[usuario 2026-09-04]`:
+- **1) Confirmar entrega de Altrak (Pagos)** — carga kg de `FLEJE90_BRUTO` cuando
+  llega la entrega de Altrak → suma stock del bruto en Charcas (ubic 13). **Acá se
+  decide el % corto/largo** (ej. 30% IC3 / 70% IC3V); ese % fija **lo que Charcas
+  tiene que entregar de cada medida**. No se decide ni en la OC ni en un paso aparte.
+- **2) Recepción de Charcas** — RPC `cargar_recepcion_charcas`: cuando Charcas
+  corta y entrega, registra el corte (corto IC3 → Cervantes / largo IC3V → Virgilio),
+  suma kg en el destino y descuenta del bruto en Charcas. **Acá se genera el stock
+  real** de IC3/IC3V.
 - **Pantalla dedicada** — `Prov Serv/CharcasEclipse/CharcasEclipse_GP2.html` (grupo PS del menú).
 
 **cod_prov Charcas = 3605** `[usuario 2026-09-02]`. **cod_prov Altrak = 3711** `[usuario 2026-09-03]`.
