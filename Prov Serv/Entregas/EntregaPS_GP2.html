@@ -1,7 +1,11 @@
 <!doctype html>
 <html lang="es">
 <head>
-<!-- v1.1.0 — refactor: helpers/fases/buffer/tandas compartidos en gp2-envios-common.js; CSS a gp2-modulo.css -->
+<!-- v1.2.0 (2026-09-04) — CHARCAS ENTREGA ACA (hibrido, usuario "se carga en entrega prov serv").
+     Charcas no recibe Envio (el bundle lo excluye); se inyecta a mano como chip y abre un panel
+     propio (faseCharcas) para el corte corto/largo: selector IC3/IC3V + uni del remito + kg de
+     balanza (verificacion 5%), via cargar_recepcion_charcas. NO usa la tabla SC->SP normal.
+     Pendiente: Eclipse igual + jubilar CharcasEclipse. v1.1.0 — refactor: helpers/fases/buffer/tandas compartidos en gp2-envios-common.js; CSS a gp2-modulo.css -->
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>Entrega de Proveedores de Servicios · GP2</title>
@@ -70,6 +74,43 @@
       <div id="msg1" class="status"></div>
     </div>
 
+    <!-- FASE CHARCAS — entrega del corte corto/largo (hibrido). Charcas no recibe Envio;
+         su MP (alambre bruto) entra por Recepcion Insumos->Altrak. Aca registra lo que
+         entrega: corto (IC3 -> Cervantes) / largo (IC3V -> Virgilio), uni del remito + kg de
+         balanza (tolerancia 5%), via cargar_recepcion_charcas. Panel propio, no la tabla SC->SP. -->
+    <div id="faseCharcas" class="hidden">
+      <div class="row" style="justify-content:space-between">
+        <label class="lbl" id="chTitle">Resortes Charcas · Corte Alambre</label>
+        <div class="row" style="margin:0">
+          <label class="lbl" style="font-size:16px">Fecha</label>
+          <input type="date" id="chFecha">
+        </div>
+      </div>
+      <div style="background:#eef4fb;border:2px solid #cddaea;border-radius:12px;padding:12px 16px;margin:10px 0;text-align:center">
+        <div style="font-size:13px;font-weight:800;color:#475569;text-transform:uppercase;letter-spacing:.4px">Stock de alambre en Charcas</div>
+        <div style="font-size:28px;font-weight:900;color:#0b3b73"><span id="chStock">0</span> <small style="font-size:16px;color:#0b5cad">kg</small></div>
+      </div>
+      <div class="row" style="flex-wrap:wrap;gap:12px">
+        <div style="display:flex;flex-direction:column;gap:6px;flex:1 1 200px">
+          <label class="lbl" for="chProd">Producto entregado</label>
+          <select id="chProd" style="height:48px;font-size:19px;font-weight:600;padding:0 12px;border:2px solid #d0d7de;border-radius:10px"></select>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:6px;flex:1 1 130px">
+          <label class="lbl" for="chUni">Unidades del remito</label>
+          <input type="text" id="chUni" inputmode="numeric" placeholder="0" style="height:48px;font-size:20px;font-weight:700;padding:0 12px;border:2px solid #d0d7de;border-radius:10px">
+        </div>
+        <div style="display:flex;flex-direction:column;gap:6px;flex:1 1 130px">
+          <label class="lbl" for="chKg">Kg de balanza</label>
+          <input type="text" id="chKg" inputmode="decimal" placeholder="0,0" style="height:48px;font-size:20px;font-weight:700;padding:0 12px;border:2px solid #d0d7de;border-radius:10px">
+        </div>
+      </div>
+      <div id="chVerif" style="font-size:14px;color:#0b3b73;font-weight:700;padding:4px 0;min-height:20px"></div>
+      <div class="row">
+        <button class="btn btn-primary" id="chGuardar" type="button" disabled>✓ Registrar entrega de Charcas</button>
+      </div>
+      <div id="chMsg" class="status"></div>
+    </div>
+
     <!-- FASE 3 — confirmación -->
     <div id="fase3" class="hidden">
       <div class="successBox">
@@ -105,19 +146,37 @@ function keyDe(x){ return String(x.sc_id)+":"+String(x.sp_id); }
 function esCargada(it){ return num(it.kg)>0; }
 function tieneAlgo(it){ return num(it.caj)>0 || num(it.kg)>0 || it.falt; }
 
+// Charcas es hibrido: no recibe Envio (por eso el bundle lo excluye), pero SI entrega
+// aca con panel propio. Se inyecta a mano en la grilla.
+var CHARCAS_PS = { id:1, nombre:"Resortes Charcas", cod_prov:"3605", proceso:"Corte Alambre", hibrido:true, panel:"charcas" };
+var CH_PROD = [];
+
 async function cargar(){
   var r = await SB.rpc("envios_ps_bundle");
   if (r.error){ $("status").textContent = "Error: "+r.error.message; return; }
   D = r.data || { ps:[], partes:{} };
+  D.ps = (D.ps||[]).concat([CHARCAS_PS]);   // Charcas entrega aca (hibrido)
   BUF.load();
   renderPS();
   $("status").textContent = (D.ps||[]).length + " proveedores con partes configuradas.";
+  cargarProdCharcas();   // async sin await: no bloquea el render aunque la query falle
+}
+async function cargarProdCharcas(){
+  try{
+    var pr = await SB.from("componente").select("id,codigo,descripcion,kg_x_uni")
+      .eq("proveedor","Resortes Charcas").eq("sector_id",5).eq("unidad_medida","kg").order("codigo");
+    CH_PROD = pr.data || [];
+    $("chProd").innerHTML = CH_PROD.map(function(p){
+      return '<option value="'+p.id+'">'+esc(p.codigo)+' — '+esc(p.descripcion||"")+'</option>';
+    }).join("");
+  }catch(e){ CH_PROD=[]; }
 }
 
 function renderPS(){
   E.gridContrapartes("psGrid", D.ps, {
     vacio: "Sin proveedores configurados.",
     meta: function(p){
+      if(p.panel==="charcas") return esc(p.proceso||"—") + " · corte corto/largo";
       var n = ((D.partes||{})[p.id]||[]).length;
       var cargado = E.cargadasDe(BUF.all[p.id], tieneAlgo).length;
       return esc(p.proceso||"—") + " · " + n + " partes" + (cargado? " · "+cargado+" cargadas":"");
@@ -127,6 +186,7 @@ function renderPS(){
 }
 
 function elegirPS(p){
+  if (p.panel==="charcas"){ irCharcas(p); return; }   // hibrido: panel corto/largo propio
   selPS = p;
   $("fase1Title").textContent = p.nombre + (p.proceso? (" · "+p.proceso) : "");
   E.mostrarFase(1);
@@ -136,9 +196,63 @@ function elegirPS(p){
 }
 function volverPS(){
   selPS = null;
+  $("faseCharcas").classList.add("hidden");
   E.mostrarFase(0);
   renderPS();
 }
+
+// ===== Charcas (hibrido): entrega del corte corto/largo (RPC cargar_recepcion_charcas) =====
+function chProdSel(){ return CH_PROD.find(function(p){ return String(p.id)===String($("chProd").value); }); }
+async function chStock(){
+  try{
+    var st = await SB.from("inventario").select("cantidad, componente:componente_id(codigo)").eq("ubicacion_id",13);
+    var kg=0; (st.data||[]).forEach(function(r){ if(r.componente && r.componente.codigo==="FLEJE90_BRUTO") kg=Number(r.cantidad)||0; });
+    $("chStock").textContent = fmt(kg);
+  }catch(e){ $("chStock").textContent="—"; }
+}
+function irCharcas(p){
+  selPS = p;
+  $("fase0").classList.add("hidden"); $("fase1").classList.add("hidden"); $("fase3").classList.add("hidden");
+  $("faseCharcas").classList.remove("hidden");
+  var bv=$("btnVolver"); if(bv) bv.classList.remove("hidden");
+  if(!$("chFecha").value) $("chFecha").value = hoyISO();
+  $("chUni").value=""; $("chKg").value=""; $("chVerif").textContent="";
+  $("chMsg").textContent=""; $("chMsg").className="status";
+  chRefresh(); chStock();
+}
+function chRefresh(){
+  var prod=chProdSel(), uni=num($("chUni").value), kg=num($("chKg").value);
+  if(prod && uni>0 && kg>0){
+    var uniCalc = prod.kg_x_uni ? Math.round(kg/prod.kg_x_uni) : 0;
+    var diff = uni>0 ? Math.round(Math.abs(uni-uniCalc)/uni*10000)/100 : 0;
+    $("chVerif").innerHTML = "≈ <b>"+fmt(uniCalc)+" uni</b> por balanza vs "+fmt(uni)+" del remito · dif "+fmt(diff)+"% "+
+      (diff<=5 ? '<span style="color:#0a7c2f;font-weight:800">✓ OK</span>' : '<span style="color:#b42318;font-weight:800">⚠ fuera de 5%</span>');
+  } else { $("chVerif").textContent=""; }
+  $("chGuardar").disabled = !(prod && uni>0 && kg>0 && $("chFecha").value);
+}
+$("chProd").addEventListener("change", chRefresh);
+$("chUni").addEventListener("input", chRefresh);
+$("chKg").addEventListener("input", chRefresh);
+$("chFecha").addEventListener("input", chRefresh);
+$("chGuardar").addEventListener("click", async function(){
+  var prod=chProdSel(), uni=Math.round(num($("chUni").value)), kg=num($("chKg").value), fecha=$("chFecha").value||hoyISO();
+  var m=$("chMsg"); m.className="status"; m.textContent="";
+  if(!prod || !(uni>0) || !(kg>0)){ m.className="status bad"; m.textContent="Elegí producto, unidades y kg de balanza."; return; }
+  if(!confirm("Registrar entrega de Charcas:\n\n"+prod.codigo+" — "+(prod.descripcion||"")+"\nUnidades: "+fmt(uni)+"\nKg balanza: "+fmt(kg)+"\n\n¿Confirmar?")) return;
+  $("chGuardar").disabled=true; m.textContent="Registrando…";
+  try{
+    var res = await SB.rpc("cargar_recepcion_charcas", { p_comp_id:prod.id, p_uni_remito:uni, p_kg_balanza:kg, p_remito:null, p_fecha:fecha+"T12:00:00" });
+    if(res.error) throw res.error;
+    var d=res.data||{};
+    m.className="status ok";
+    m.innerHTML="✓ Entrega registrada ("+(d.producto||"")+"). Consumió <b>"+fmt(d.kg_balanza)+" kg alambre</b>. Stock Charcas: "+fmt(d.stock_bruto_charcas_antes)+" → <b>"+fmt(d.stock_bruto_charcas_despues)+" kg</b>"+
+      (d.dentro_tolerancia===false?' <span style="color:#b42318;font-weight:800">⚠ dif '+fmt(d.diferencia_pct)+'% fuera de tolerancia</span>':'')+
+      (d.bruto_negativo?' <span style="color:#b42318;font-weight:800">⚠ stock NEGATIVO</span>':'');
+    $("chUni").value=""; $("chKg").value=""; $("chVerif").textContent="";
+    chStock(); chRefresh();
+  }catch(e){ m.className="status bad"; m.textContent="Error: "+(e.message||e); }
+  finally{ chRefresh(); }
+});
 
 /* la entrega es SC -> SP: las filas sin SP no se listan */
 function partesFiltradas(){
