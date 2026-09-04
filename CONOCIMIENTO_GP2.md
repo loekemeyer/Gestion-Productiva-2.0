@@ -144,6 +144,13 @@ Dicho textual: *"Tierra nativa (Prov art importados y 231,232,233,234,591). Prov
   alta donde corresponde (`proveedor_at`, y también `proveedor_insumo` porque
   `componente.proveedor` es FK contra esa tabla). **La fila de tallerista sigue existiendo**:
   no se borra sin que el usuario lo confirme, pero ensucia el listado de talleristas.
+- **RESUELTO 2026-09-04** `[usuario: "no quiero que aparezca más Tierra Nativa SA en
+  tallerista... envío y en control"]`: `GP2.tallerista.activo = false` para el id 12. La
+  fila **no se borró** (sigue el historial y el `cod_prov`), pero `talleristas_bundle`
+  filtra `where t.activo`, así que **desaparece de Envío Talleristas y de Control
+  Talleristas** — y de cualquier pantalla que use ese bundle. Se verificó antes de tocar:
+  0 pasos de ruta, 0 movimientos y 0 de stock en su ubicación, así que no esconde nada.
+  Mismo mecanismo que Maspoli SRL (id 7). **Blist-Pack (13) sigue visible.**
 - Es otra vuelta de la regla de siempre: **un mismo nombre puede tener varios roles**, y hay
   que fijarse en cuál es el que de verdad cumple antes de cargarlo.
 
@@ -974,7 +981,10 @@ tallerista. Le mandamos la virola **D13** (niquelada por Guazzaroni) y devuelve 
 - Para sacarlo de las listas de tallerista se agregó **`tallerista.activo`**. No se filtró por
   "no tiene piezas configuradas", que era lo automático, porque eso también hacía desaparecer
   a **Blist-Pack** y **Tierra Nativa SA**, que son altas nuevas todavía sin rutas y tienen que
-  seguir a la vista.
+  seguir a la vista. **Corrección 2026-09-04**: Tierra Nativa SA **ya no va a la vista** —
+  el usuario la sacó de tallerista (`activo=false`, ver §Tierra Nativa arriba). Blist-Pack
+  sigue visible. El criterio de fondo no cambia: **quién se ve lo decide el flag, no la
+  ausencia de rutas.**
 
 **La columna de inventario se llama MÁXIMO, no mínimo (2026-09-03)** `[usuario]`: *"quiero que
 la columna de mínimo en inventario se pase a llamar máximo"*, y la razón que dio es la que
