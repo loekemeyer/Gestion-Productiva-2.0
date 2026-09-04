@@ -3342,42 +3342,79 @@ Laser. El campo `estado_compra` sirve entonces para tres cosas distintas y las t
 al componente de la OC: **`fabricacion`** (sale de una ruta), **`discontinuo`** (ya no se
 usa) e **`importado`** (se compra, pero por otro circuito, no con una OC nuestra).
 
-### Qué hay hoy en Virgilio, buscado en los tres lados
+### Dónde vive el stock de Virgilio (corregido el mismo día — antes decía "no existe")
 
-**En GP2** (`ubicacion` 33, "Virgilio (Distribución)"): 179 filas de inventario —
-**91 Terminado** (18 con stock, **$20.442.712**), **78 Sector Procesado** (con máximo, sin
-stock), **9 Sector Caja** (con máximo, sin stock) y **1 Sector Fleje**. O sea: de insumos,
-**stock cero**; lo único vivo es producto terminado. Y de las categorías que nombra el
-usuario **faltan tres**: importados, bolsas plásticas y partes plásticas no tienen ninguna
-fila en la ubicación de Virgilio.
+**Primero dije que no estaba cargado en ningún lado. Estaba mal**: miré `*_stock_planta`
+e `Insumos_Ubicaciones` (que casi no tienen cantidades) y me salteé la tabla que la app
+de Virgilio usa de verdad. El usuario mostró la pantalla **"Stock y Compras → Insumos"**
+de Producción Virgilio (v12.78) con 127 insumos, 578 de historial y 7 categorías, y con
+eso se encontró:
 
-**En la casa del vecino** (`public`, misma base): el catálogo **sí sabe** qué vive en
-Virgilio — `v_rc_catalogo.en_virgilio` marca **76 ítems, todos `tipo='plasticos'`**: las
-partes (PA1 Plaquita 3 en 1, PB8 Mgo Sacac Plast, PC12 Mgo Sacafuente Articulado, PEP7 Mgo
-pizzero…) **y la materia prima de inyección** (Master Bach de 5 colores, Nylon Virgen, Ny
-C/Carga, PP 2630, ABS, PE, PS HF 555, AL 4600, Santo Prene). Pero **el conteo nunca se
-hizo**: `v_rc_relevamientos` tiene **8 relevamientos y los 8 son de Cervantes**, y las tres
-tablas de stock por planta —`flejes_stock_planta` (54), `cajas_stock_planta` (14),
-`partes_plasticas_stock_planta` (77)— tienen **únicamente filas con `planta='Cervantes'`**.
+**La app de Producción Virgilio pega contra ESTA MISMA base** (`hrxfctzncixxqmpfhskv`,
+lo dice su `supabase-config.js`), y su stock de insumos es un **libro de movimientos**:
 
-**En el repo/base de Producción Virgilio** (`kwkclwhmoygunqmlegrg`, "loekemeyer's web"): es
-el lado **comercial** — pedidos, entregas, facturación, bot de WhatsApp, expo, leads. El
-schema `virgilio` tiene 10 tablas y ninguna es de stock de insumos.
-
-**Conclusión: el stock de insumos que está físicamente en Virgilio no está cargado en
-ningún lado.** No es que GP2 no lo lea: no existe el dato. Hay que contarlo.
-
-### Y la trampa que se activa el día que se cargue
-
-`oc_bundle` lee el stock de **una sola** ubicación — la del sector del componente:
-
-```sql
-(select i.cantidad from inventario i join ubicacion iu on iu.id=i.ubicacion_id
-  where i.componente_id=c.id and iu.tipo='sector' and iu.ref_id=c.sector_id limit 1)
+```
+public."Movimientos_Stock"  where deposito = 'insumos'
+   cod_art · delta · unidad · tipo · ref · legajo · ts
+   tipos: inicial (95) · ajuste (153) · recepcion_insumo ⬇ ingreso a Virgilio (41)
+          · entrega_insumo ⬆ egreso de Virgilio (61) · ingreso (1)
+   stock = sum(delta) por (cod_art, unidad)
 ```
 
-Hoy eso es inofensivo (Virgilio tiene 0 de insumos) y de hecho **nos protege** de las 32
-filas negativas de talleristas. Pero apenas se cargue el conteo de Virgilio, **ese stock no
-se va a descontar del pedido y la OC va a comprar de más**. Lo mismo con los **9 máximos de
-Caja** que Virgilio ya tiene cargados y que la OC tampoco suma. Hay que decidirlo antes de
-cargar, no después. Idea **7243**.
+Está **vivo**: 351 movimientos, 132 códigos, del 2026-06-29 al **2026-09-03** (ayer:
+Virgilio recibió de Cervantes 540 kg del fleje `1060500`, 145 kg del `N°94`, y el 01/09
+entregó a Cervantes los `942P…967H`). El catálogo es `public."Insumos"` (cod, nombre,
+categoria, isis), con `Insumos_Categorias`, `Insumos_Unidades` y `Insumos_Factores` (factor
+de conversión entre unidades del mismo insumo). **Las 7 categorías son exactamente las que
+nombró el usuario**: `fleje` Flejes y alambres (Kg), `cajas` (Paquetes/Uni), `importados`,
+`plastico` **Bolsas plásticas** (la materia prima de inyección: ABS, Nylon Virgen,
+Recuperado, c/Carga 25%, PP 2630, PE, PS, EBA, Alto Impacto — en **Bolsas**),
+`partes_plasticas`, `parte_procesado` y `partes_crudo`.
+
+**Lo que hay, con saldo ≠ 0** (94 códigos):
+
+| categoría | códigos | lo gordo |
+|---|---|---|
+| fleje | 34 | **17.286 kg** en total: `N°13` 3.251 · `N°2` 1.286 · `N°92` 1.220 · `N°22` 1.014 · `N°56` 873 · `N°46B` 859 · `N°94` 835 |
+| importados | 15 | `505C` Cuchilla 505 **142.000** · `H201Part` **Espiral TN 104.000** · `546P` Vastidor 31.968 · `H201Lever` 26.400 · `523C` 6.000 · `337P` 4.464 · `007` Espiral Chef 3.500 |
+| parte_procesado | 22 | en **cajones** (7 `A1`, 8 `A4`, 14 `C6`, 26 `DISC1`…), sin unidades |
+| partes_crudo | 13 | en cajones (20 `G11`, 13 `N7`, 10 `H1`…) |
+| plastico (bolsas) | 9 | `PP 2630` 89 · `AI` 37 · `NY Virgen` 23 · `EBA` 20 · `NY Recup` 18 · `ABS` 14 · `PE` 10 |
+| partes_plasticas | 3 | `Mgo Pelador 505` 27.000 · `Mgo Pelador Ergonomico` 8.750 · `TMP-0002` 4.056 |
+| cajas | 3 | `Caja 22` 8.625 · `Caja Nº 1` 2.000 · `Caja Nº 12` 750 |
+
+(El `Espiral TN` es el `D1` de GP2 — el importado que no va por OC — y tiene **104.000** en
+Virgilio. El `546P` es el `C13` Corta Queso Bastidor.)
+
+**Sigue siendo cierto** que la casa del vecino marca 76 plásticos `en_virgilio` en
+`v_rc_catalogo` y que sus `*_stock_planta` sólo tienen `planta='Cervantes'`: esas tablas son
+del **relevamiento de Cervantes**, otra cosa. Y la base comercial de Virgilio
+(`kwkclwhmoygunqmlegrg`) sigue sin stock de insumos: el stock vive acá, en `public`.
+
+### El cruce con GP2: los códigos no son los mismos
+
+Virgilio usa **sus propios códigos**. Contra `GP2.componente.codigo` coinciden **22 de
+127**, y son todos partes de Procesado/Crudo (`A1`, `A4`, `A9`, `C1`, `G11`, `H1`…) — y
+ojo que `A1`/`A4`/`A9` en GP2 existen **dos veces** (parte y Caja), así que hay que cruzar
+por sector. Para lo demás:
+
+- **Flejes**: Virgilio dice `N°13`, GP2 dice `IA1` con descripción `Fleje N° 13`. Cruzando
+  por el número: de los 34 con saldo, **27 tienen N° parseable y 16 matchean** un fleje de
+  GP2 — **12.195 kg de los 17.286**. Los otros 18 son `TMP-000x` (altas provisorias), los
+  `FLEJES CHEF·1.00 X 84` (dimensión sin número) y N° que GP2 no tiene (`N°17`, `N°18`,
+  `N°44`, `N°63`, `N°64`…).
+- **Cajas**: `Caja 22` / `Caja Nº 1` / `Caja Nº 12` ↔ GP2 `A9` / `A1` / `A2`. Las 3 cruzan
+  por el número.
+- **Importados**: a mano y `[deducido]`: `H201Part`→`D1`, `546P`→`C13`, `505C`→`Z23A` (Cuch
+  China = la cuchilla del 505). El resto (`437E` colador, `584E` aceitera, `590E` pincel,
+  `337P` tenedor…) son **artículos de reventa, no insumos de GP2**.
+- **Bolsas de inyección**: GP2 **no las tiene como componente** (no son insumo de un
+  artículo, se le mandan al proveedor de inyección). Falta decidir si entran.
+
+**Qué hacer con esto (a decidir, no hecho):** GP2 puede **mirar** ese libro sin copiarlo —
+una vista `GP2.v_stock_virgilio` que lea `Movimientos_Stock deposito='insumos'` y traduzca
+`cod_art` → `componente_id` con una tabla de alias (`GP2.virgilio_alias`, cargada a mano
+para lo que no cruza solo). Con eso la OC y Faltantes verían el stock de Virgilio **sin que
+nadie cargue nada dos veces**, que es la regla de la casa: la fuente es una. Lo que hoy NO
+hay que hacer es cargar `GP2.inventario` de Virgilio a mano: se desincronizaría en una
+semana. Idea **7243**, reescrita.
