@@ -1,7 +1,11 @@
 <!doctype html>
 <html lang="es">
 <head>
-<!-- v1.0.1 — COMPRA ALTRAK -> CHARCAS (2026-09-01, Fase 2 del modelo Altrak->Charcas->Cervantes).
+<!-- v1.1.0 — COMPRA ALTRAK -> CHARCAS (2026-09-01; % corto/largo por entrega 2026-09-04).
+     Al confirmar la entrega de Altrak se define el % corto/largo: la INSTRUCCION de corte
+     para Charcas (varia por entrega segun stock/pedido). Se guarda como metadato del batch
+     (recepcion_insumo.rollos_json via cargar_compra_altrak p_pct_corto) -- NO mueve stock de
+     IC3/IC3V, eso lo genera la recepcion de Charcas. Stock/hist leen FLEJE90_BRUTO (ex ALAM_FILTRO).
      Altrak entrega alambre directo en Resortes Charcas (ubic 13), no en Cervantes.
      Charcas despues corta el alambre y entrega los filtros 031/034 en Cervantes por Recepcion Insumos.
      Esta pantalla la usa PAGOS cuando llega la factura de Altrak al mail: registra los kg comprados
@@ -91,9 +95,21 @@
       <div class="field kg" style="flex:1 1 100%">
         <label for="txtKg">Kg de alambre comprados</label>
         <input type="text" id="txtKg" inputmode="decimal" placeholder="0,0">
-        <div class="hint">Se suman al stock de Charcas. Charcas los corta despues y entrega 031/034 en Cervantes.</div>
+        <div class="hint">Se suman al stock de Charcas. Después Charcas corta el alambre en corto (IC3 → Cervantes) y largo (IC3V → Virgilio).</div>
       </div>
     </div>
+
+    <div class="form-row">
+      <div class="field">
+        <label for="txtPctCorto">% Corto (IC3) → Cervantes</label>
+        <input type="text" id="txtPctCorto" inputmode="numeric" placeholder="70">
+      </div>
+      <div class="field">
+        <label for="txtPctLargo">% Largo (IC3V) → Virgilio</label>
+        <input type="text" id="txtPctLargo" inputmode="numeric" placeholder="30">
+      </div>
+    </div>
+    <div class="form-row" style="margin-top:0"><div class="hint" id="splitLine" style="flex:1 1 100%">Definí cómo Charcas tiene que cortar este alambre (se completan solos a 100).</div></div>
 
     <div class="form-row">
       <button id="btnGuardar" class="btn btn-primary" disabled>✓ Registrar compra</button>
@@ -141,13 +157,35 @@ $('txtFecha').value = hoy();
    un sanDec propio que hacia lo contrario de la regla de la casa — pisaba la
    coma tipeada con un punto (idea 7217). */
 GP2N.autoMiles($('txtKg'));
-$('txtKg').addEventListener('input', refreshBtn);
+$('txtKg').addEventListener('input', function(){ refreshSplit(); refreshBtn(); });
 $('txtRemito').addEventListener('input', refreshBtn);
 $('txtFecha').addEventListener('input', refreshBtn);
 
+// % corto/largo: la instruccion de corte para Charcas. Se completan entre si (suman 100).
+function soloEntero(el){ el.value = el.value.replace(/[^\d]/g,'').slice(0,3); }
+$('txtPctCorto').addEventListener('input', function(){
+  soloEntero(this);
+  var c = parseInt(this.value,10);
+  if(!isNaN(c)) $('txtPctLargo').value = String(Math.max(0, 100 - Math.min(100,c)));
+  refreshSplit(); refreshBtn();
+});
+$('txtPctLargo').addEventListener('input', function(){
+  soloEntero(this);
+  var l = parseInt(this.value,10);
+  if(!isNaN(l)) $('txtPctCorto').value = String(Math.max(0, 100 - Math.min(100,l)));
+  refreshSplit(); refreshBtn();
+});
+function pctCorto(){ var c = parseInt($('txtPctCorto').value,10); return isNaN(c)?NaN:c; }
+function refreshSplit(){
+  var kg = parseNumTol($('txtKg').value)||0, c = pctCorto();
+  if(!(kg>0) || isNaN(c) || c<0 || c>100){ $('splitLine').textContent='Definí cómo Charcas tiene que cortar este alambre (se completan solos a 100).'; return; }
+  var kgC = Math.round(kg*c/100*100)/100, kgL = Math.round(kg*(100-c)/100*100)/100;
+  $('splitLine').innerHTML = 'Charcas tiene que entregar: <b>'+fmt(kgC)+' kg corto</b> (IC3) · <b>'+fmt(kgL)+' kg largo</b> (IC3V).';
+}
+
 function refreshBtn(){
-  var kg = parseNumTol($('txtKg').value);
-  $('btnGuardar').disabled = !(kg>0 && $('txtFecha').value);
+  var kg = parseNumTol($('txtKg').value), c = pctCorto();
+  $('btnGuardar').disabled = !(kg>0 && $('txtFecha').value && !isNaN(c) && c>=0 && c<=100);
 }
 
 $('btnGuardar').addEventListener('click', async function(){
@@ -155,12 +193,16 @@ $('btnGuardar').addEventListener('click', async function(){
   var kg = parseNumTol($('txtKg').value);
   var fecha = $('txtFecha').value;
   var remito = $('txtRemito').value.trim();
+  var c = pctCorto();
   if(!(kg>0)){ m.className='status bad'; m.textContent='Cargá los kg (mayor a 0).'; return; }
+  if(isNaN(c)||c<0||c>100){ m.className='status bad'; m.textContent='Definí el % corto/largo (0 a 100).'; return; }
+  var kgC = Math.round(kg*c/100*100)/100, kgL = Math.round(kg*(100-c)/100*100)/100;
 
   var conf = confirm('Registrar compra Altrak:\n\n' +
     'Fecha: ' + fmtFecha(fecha) + '\n' +
     (remito ? ('Remito: ' + remito + '\n') : '') +
-    'Kg: ' + fmt(kg) + '\n\n' +
+    'Kg alambre: ' + fmt(kg) + '\n' +
+    'Charcas corta: ' + c + '% corto (' + fmt(kgC) + ' kg) / ' + (100-c) + '% largo (' + fmt(kgL) + ' kg)\n\n' +
     'Se suma al stock de Resortes Charcas.\n\n¿Confirmar?');
   if(!conf) return;
 
@@ -171,14 +213,18 @@ $('btnGuardar').addEventListener('click', async function(){
     var res = await SB.rpc('cargar_compra_altrak', {
       p_kg: kg,
       p_remito: remito || null,
-      p_fecha: fiso
+      p_fecha: fiso,
+      p_pct_corto: c
     });
     if(res.error) throw res.error;
     var d = res.data || {};
     m.className='status ok';
-    m.innerHTML = '✓ Compra registrada. Stock Charcas: <b>' + fmt(d.stock_charcas_kg) + ' kg</b> (movimiento ' + d.movimiento_id + ').';
+    m.innerHTML = '✓ Compra registrada. Stock Charcas: <b>' + fmt(d.stock_charcas_kg) + ' kg</b>. Charcas debe entregar <b>' + fmt(d.kg_corto_objetivo) + ' kg corto</b> / <b>' + fmt(d.kg_largo_objetivo) + ' kg largo</b> (mov ' + d.movimiento_id + ').';
     $('txtKg').value = '';
     $('txtRemito').value = '';
+    $('txtPctCorto').value = '';
+    $('txtPctLargo').value = '';
+    $('splitLine').textContent = 'Definí cómo Charcas tiene que cortar este alambre (se completan solos a 100).';
     await cargar();
     refreshBtn();
     setTimeout(function(){ if(m.className==='status ok') m.textContent=''; }, 8000);
@@ -191,14 +237,14 @@ $('btnGuardar').addEventListener('click', async function(){
 });
 
 async function cargar(){
-  // Stock actual de ALAM_FILTRO en ubic 13 + ultimas 20 compras a Altrak
+  // Stock actual de FLEJE90_BRUTO en ubic 13 + ultimas 20 compras a Altrak
   var st = await SB.from('inventario')
     .select('cantidad, componente:componente_id(codigo)')
     .eq('ubicacion_id', 13);
   var kg = 0;
   if(!st.error){
     (st.data||[]).forEach(function(r){
-      if(r.componente && r.componente.codigo === 'ALAM_FILTRO') kg = Number(r.cantidad) || 0;
+      if(r.componente && r.componente.codigo === 'FLEJE90_BRUTO') kg = Number(r.cantidad) || 0;
     });
   }
   $('stockKg').textContent = fmt(kg);
@@ -213,7 +259,7 @@ async function cargar(){
     tb.innerHTML = '<tr><td colspan="3" class="empty">Error: ' + esc(res.error.message) + '</td></tr>';
     return;
   }
-  var rows = (res.data||[]).filter(function(r){ return r.componente && r.componente.codigo==='ALAM_FILTRO'; });
+  var rows = (res.data||[]).filter(function(r){ return r.componente && r.componente.codigo==='FLEJE90_BRUTO'; });
   if(!rows.length){
     tb.innerHTML = '<tr><td colspan="3" class="empty">Sin compras registradas todavía.</td></tr>';
     return;
