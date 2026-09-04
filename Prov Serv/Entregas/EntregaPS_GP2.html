@@ -1,7 +1,10 @@
 <!doctype html>
 <html lang="es">
 <head>
-<!-- v1.4.0 (2026-09-04) — el panel de Charcas muestra LO PENDIENTE POR ENTREGAR (usuario: "esa
+<!-- v1.5.0 (2026-09-04) — panel Charcas: el producto se elige con 2 BOTONES (Corto IC3 / Largo
+     IC3V) en vez de un <select> (usuario "que sea 2 botones"). #chProdBtns se arma desde CH_PROD;
+     la seleccion vive en chSelId; se resetea al abrir y al registrar. Eclipse queda con su
+     desplegable (un solo producto). v1.4.0 (2026-09-04) — el panel de Charcas muestra LO PENDIENTE POR ENTREGAR (usuario: "esa
      info no tendria que aparecer aca tambien?"). Linea nueva chObjetivo con corto/largo pendiente
      = objetivo acumulado (el % de cada recepcion de Altrak, en rollos_json) menos lo ya entregado,
      via RPC charcas_pendiente(). Se refresca al abrir el panel y al registrar una entrega.
@@ -22,6 +25,11 @@
 <link rel="stylesheet" href="../../tandas-popup.css?v=20260903b"/>
 <link rel="icon" type="image/png" href="../../GP2_favicon.png">
 <link rel="apple-touch-icon" href="../../GP2_favicon.png">
+<style>
+/* Botones Corto/Largo del panel de entrega de Charcas (reemplazan al <select>) */
+.chprod-btn{flex:1 1 130px;min-height:52px;font-size:18px;font-weight:800;border:2px solid #d0d7de;border-radius:10px;background:#fff;color:#334155;cursor:pointer;font-family:inherit;padding:8px 12px}
+.chprod-btn.act{background:#cddaea;border-color:#7ea3c7;color:#0b3b73}
+</style>
 </head>
 <body>
 
@@ -99,9 +107,9 @@
       </div>
       <div id="chObjetivo" style="font-size:15px;font-weight:700;color:#0b3b73;text-align:center;background:#f6faff;border:1px solid #cddaea;border-radius:8px;padding:8px 10px;margin:0 0 10px"></div>
       <div class="row" style="flex-wrap:wrap;gap:12px">
-        <div style="display:flex;flex-direction:column;gap:6px;flex:1 1 200px">
-          <label class="lbl" for="chProd">Producto entregado</label>
-          <select id="chProd" style="height:48px;font-size:19px;font-weight:600;padding:0 12px;border:2px solid #d0d7de;border-radius:10px"></select>
+        <div style="display:flex;flex-direction:column;gap:6px;flex:1 1 260px">
+          <label class="lbl">Producto entregado</label>
+          <div id="chProdBtns" style="display:flex;gap:10px;flex-wrap:wrap"></div>
         </div>
         <div style="display:flex;flex-direction:column;gap:6px;flex:1 1 130px">
           <label class="lbl" for="chUni">Unidades del remito</label>
@@ -190,7 +198,7 @@ function tieneAlgo(it){ return num(it.caj)>0 || num(it.kg)>0 || it.falt; }
 // aca con panel propio. Se inyecta a mano en la grilla.
 var CHARCAS_PS = { id:1, nombre:"Resortes Charcas", cod_prov:"3605", proceso:"Corte Alambre", hibrido:true, panel:"charcas" };
 var ECLIPSE_PS = { id:13, nombre:"Eclipse", cod_prov:null, proceso:"Corte Chapa 430", hibrido:true, panel:"eclipse" };
-var CH_PROD = [], EC_PROD = [];
+var CH_PROD = [], EC_PROD = [], chSelId = null;
 
 async function cargar(){
   var r = await SB.rpc("envios_ps_bundle");
@@ -208,8 +216,9 @@ async function cargarProdCharcas(){
     var pr = await SB.from("componente").select("id,codigo,descripcion,kg_x_uni")
       .eq("proveedor","Resortes Charcas").eq("sector_id",5).eq("unidad_medida","kg").order("codigo");
     CH_PROD = pr.data || [];
-    $("chProd").innerHTML = CH_PROD.map(function(p){
-      return '<option value="'+p.id+'">'+esc(p.codigo)+' — '+esc(p.descripcion||"")+'</option>';
+    $("chProdBtns").innerHTML = CH_PROD.map(function(p){
+      var lbl = p.codigo==='IC3' ? 'Corto (IC3)' : (p.codigo==='IC3V' ? 'Largo (IC3V)' : esc(p.codigo));
+      return '<button type="button" class="chprod-btn" data-id="'+p.id+'">'+lbl+'</button>';
     }).join("");
   }catch(e){ CH_PROD=[]; }
 }
@@ -257,7 +266,7 @@ function volverPS(){
 }
 
 // ===== Charcas (hibrido): entrega del corte corto/largo (RPC cargar_recepcion_charcas) =====
-function chProdSel(){ return CH_PROD.find(function(p){ return String(p.id)===String($("chProd").value); }); }
+function chProdSel(){ return CH_PROD.find(function(p){ return String(p.id)===String(chSelId); }); }
 async function chStock(){
   try{
     var st = await SB.from("inventario").select("cantidad, componente:componente_id(codigo)").eq("ubicacion_id",13);
@@ -283,6 +292,8 @@ function irCharcas(p){
   if(!$("chFecha").value) $("chFecha").value = hoyISO();
   $("chUni").value=""; $("chKg").value=""; $("chVerif").textContent="";
   $("chMsg").textContent=""; $("chMsg").className="status";
+  chSelId=null;
+  Array.prototype.forEach.call(document.querySelectorAll("#chProdBtns .chprod-btn"), function(b){ b.classList.remove("act"); });
   chRefresh(); chStock(); chPendiente();
 }
 function chRefresh(){
@@ -295,7 +306,13 @@ function chRefresh(){
   } else { $("chVerif").textContent=""; }
   $("chGuardar").disabled = !(prod && uni>0 && kg>0 && $("chFecha").value);
 }
-$("chProd").addEventListener("change", chRefresh);
+$("chProdBtns").addEventListener("click", function(e){
+  var b = e.target.closest(".chprod-btn"); if(!b) return;
+  chSelId = b.dataset.id;
+  Array.prototype.forEach.call(this.querySelectorAll(".chprod-btn"), function(x){ x.classList.remove("act"); });
+  b.classList.add("act");
+  chRefresh();
+});
 $("chUni").addEventListener("input", chRefresh);
 $("chKg").addEventListener("input", chRefresh);
 $("chFecha").addEventListener("input", chRefresh);
@@ -314,6 +331,8 @@ $("chGuardar").addEventListener("click", async function(){
       (d.dentro_tolerancia===false?' <span style="color:#b42318;font-weight:800">⚠ dif '+fmt(d.diferencia_pct)+'% fuera de tolerancia</span>':'')+
       (d.bruto_negativo?' <span style="color:#b42318;font-weight:800">⚠ stock NEGATIVO</span>':'');
     $("chUni").value=""; $("chKg").value=""; $("chVerif").textContent="";
+    chSelId=null;
+    Array.prototype.forEach.call(document.querySelectorAll("#chProdBtns .chprod-btn"), function(b){ b.classList.remove("act"); });
     chStock(); chPendiente(); chRefresh();
   }catch(e){ m.className="status bad"; m.textContent="Error: "+(e.message||e); }
   finally{ chRefresh(); }
