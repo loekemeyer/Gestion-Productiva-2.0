@@ -3715,3 +3715,30 @@ Con Sector Caja: los 9 componentes salen con envase "Paquetes" y factor 25; carg
 paquetes + 10 sueltas en A1 el total dio **85** contra **1.120** del programa. Los stocks
 coinciden con la pantalla que mostró el usuario (A1 1.120, A11 60, A2 20, A9 80). Los datos
 de prueba se borraron.
+
+### Relevamiento: SOLO CERVANTES, Virgilio apagado `[usuario 2026-09-04]`
+
+*"todo lo que es relevamiento de virgilio por ahora no, solo cervantes"* — dicho mirando los
+chips rojos **`Virg. ✗`** del cronograma del módulo viejo.
+
+**Dónde se apagó:** `Relevamiento/relevamiento.js`, constante `PLANTAS_TIPO` (y `PLANTAS`).
+Todo el módulo se maneja con esa constante — los chips del cronograma, si el ciclo está
+completo, el selector de lugar al realizar y el cálculo de vencimiento — así que sacando
+Virgilio de ahí desaparece de todas esas partes de una sola vez. Los tres tipos que lo tenían
+eran **flejes, cajas y plásticos**; los otros cuatro (cartones, remaches, bombillas, garage)
+ya eran sólo Cervantes.
+
+Es un **filtro de pantalla**: no se borró ningún relevamiento de Virgilio ya cargado ni se
+tocó `rc_plantas_tipo` en la base. Para volver a prenderlo está escrito cómo, en el propio
+comentario del código.
+
+**El módulo GP2 nuevo ya era Cervantes-only por construcción** `[dato: consulta 2026-09-04]`:
+filtra `ubicacion.tipo='sector'`, y esos son los **11 sectores físicos de Cervantes**.
+Virgilio es otro tipo (`ubicacion.tipo='virgilio'`, una sola fila "Virgilio (Distribución)"),
+así que nunca lo toca. Además hay **exactamente una ubicación por sector**, por eso el
+`LIMIT 1` de `relevamiento_aplicar` no es ambiguo.
+
+**Pista para cuando se retome:** el chip de plásticos de Virgilio se llamaba **"Virg. bolsas"**
+(`PLASTICO_LUGAR`). Es muy probable que el renglón **"Bolsa Plást"** del Excel del cronograma
+sea justamente ese conteo — encaja con que caiga siempre el mismo día que Plásticos. **Sin
+confirmar**; el usuario dijo "bolsas plast por ahora no".

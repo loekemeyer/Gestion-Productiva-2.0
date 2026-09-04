@@ -28,14 +28,23 @@
     { key: "garage",    label: "Garage" },
   ];
   const TIPO_LABEL = Object.fromEntries(TIPOS.map(t => [t.key, t.label]));
-  const PLANTAS = ["Cervantes", "Virgilio"];
+  const PLANTAS = ["Cervantes"];
   const ABREV_PLANTA = { "Cervantes": "Cerv.", "Virgilio": "Virg." };
 
-  // Plantas donde aplica cada tipo (espejo de rc_plantas_tipo)
+  /* SOLO CERVANTES [usuario 2026-09-04: "todo lo que es relevamiento de virgilio por ahora
+     no, solo cervantes" — dicho mirando los chips rojos "Virg. ✗" del cronograma].
+     Todo el modulo se maneja con esta constante: los chips del cronograma, si el ciclo esta
+     completo, el selector de lugar al realizar y el calculo de vencimiento. Sacando Virgilio
+     de aca desaparece de TODAS esas partes de una, sin tocar nada mas.
+     Es un filtro de PANTALLA: no se borro ningun relevamiento de Virgilio ya cargado, ni se
+     toco rc_plantas_tipo en la base.
+     PARA VOLVER A PRENDERLO, dejar como estaba:
+       const PLANTAS = ["Cervantes", "Virgilio"];
+       flejes / cajas / plasticos: ["Cervantes", "Virgilio"] */
   const PLANTAS_TIPO = {
-    flejes: ["Cervantes", "Virgilio"],
-    cajas: ["Cervantes", "Virgilio"],
-    plasticos: ["Cervantes", "Virgilio"],
+    flejes: ["Cervantes"],
+    cajas: ["Cervantes"],
+    plasticos: ["Cervantes"],
     cartones: ["Cervantes"],
     remaches: ["Cervantes"],
     bombillas: ["Cervantes"],
