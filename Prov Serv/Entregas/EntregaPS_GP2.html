@@ -1,7 +1,10 @@
 <!doctype html>
 <html lang="es">
 <head>
-<!-- v1.5.0 (2026-09-04) — panel Charcas: el producto se elige con 2 BOTONES (Corto IC3 / Largo
+<!-- v1.5.1 (2026-09-04) — FECHA REAL en la entrega Charcas: si la carga es de hoy sella el
+     instante real (new Date().toISOString()) en vez de 'T12:00:00' fijo, asi dos entregas del
+     mismo dia no caen todas al mediodia en el ledger del bruto. Fecha pasada sigue con mediodia.
+     v1.5.0 (2026-09-04) — panel Charcas: el producto se elige con 2 BOTONES (Corto IC3 / Largo
      IC3V) en vez de un <select> (usuario "que sea 2 botones"). #chProdBtns se arma desde CH_PROD;
      la seleccion vive en chSelId; se resetea al abrir y al registrar. Eclipse queda con su
      desplegable (un solo producto). v1.4.0 (2026-09-04) — el panel de Charcas muestra LO PENDIENTE POR ENTREGAR (usuario: "esa
@@ -186,6 +189,10 @@ var $ = E.$, esc = E.esc, num = E.num, fmt = E.fmt, aCajones = E.aCajones, hoyIS
 
 var SB = E.sb();
 
+/* Si la carga es de hoy, sella el instante real (asi dos cargas del mismo dia no caen todas a las 12:00);
+   para una fecha pasada mantiene el mediodia (evita que la zona horaria corra el dia). */
+function fechaHora(f){ return (!f || f===hoyISO()) ? new Date().toISOString() : (f+"T12:00:00"); }
+
 var D = { ps:[], partes:{} };
 var selPS = null;
 var BUF = E.buffer("gp2_entregaPS_buffer", function(){ return { caj:"", kg:"", falt:false, tandas:[] }; });
@@ -323,7 +330,7 @@ $("chGuardar").addEventListener("click", async function(){
   if(!confirm("Registrar entrega de Charcas:\n\n"+prod.codigo+" — "+(prod.descripcion||"")+"\nUnidades: "+fmt(uni)+"\nKg balanza: "+fmt(kg)+"\n\n¿Confirmar?")) return;
   $("chGuardar").disabled=true; m.textContent="Registrando…";
   try{
-    var res = await SB.rpc("cargar_recepcion_charcas", { p_comp_id:prod.id, p_uni_remito:uni, p_kg_balanza:kg, p_remito:null, p_fecha:fecha+"T12:00:00" });
+    var res = await SB.rpc("cargar_recepcion_charcas", { p_comp_id:prod.id, p_uni_remito:uni, p_kg_balanza:kg, p_remito:null, p_fecha:fechaHora(fecha) });
     if(res.error) throw res.error;
     var d=res.data||{};
     m.className="status ok";

@@ -6,6 +6,9 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
+<!-- v3.48.1 (2026-09-04) — FECHA REAL en la compra Altrak: si la carga es de hoy sella el
+     instante real (new Date().toISOString()) en vez de 'T12:00:00' fijo, asi dos cargas del
+     mismo dia no caen todas al mediodia en el ledger. Fecha pasada sigue con mediodia. -->
 <!-- v3.48.0 (2026-09-04) — DESLIZANTE para el reparto corto/largo en el panel de Altrak
      (usuario: "esto si se puede, un deslizante"). Un <input type=range> 0-100 sincronizado
      con los 2 campos %: deslizar o escribir cualquiera actualiza los otros dos y el desglose
@@ -676,6 +679,9 @@ function provControlaPeso(nom){ return provModo(nom)==='peso_total'; }
 let itemSel=null, unitSel="uni";
 
 function hoy(){const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
+/* Si la carga es de hoy, sella el instante real (asi dos cargas del mismo dia no caen todas a las 12:00);
+   para una fecha pasada mantiene el mediodia (evita que la zona horaria corra el dia). */
+function fechaHora(f){ return (!f || f===hoy()) ? new Date().toISOString() : (f+'T12:00:00'); }
 function esc(s){return (s==null?'':String(s)).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
 function fmt(n){var x=Number(n)||0;return Number.isInteger(x)?x.toLocaleString('es-AR'):x.toLocaleString('es-AR',{maximumFractionDigits:2});}
 /* fmt() corta en 2 decimales y un remache pesa entre 0,00011 y 0,036 kg: el
@@ -870,7 +876,7 @@ if($('akKg')){
     if(!confirm('Registrar entrega de Altrak:\n\nKg alambre: '+fmt(kg)+'\nCharcas corta: '+c+'% corto ('+fmt(kgC)+' kg) / '+(100-c)+'% largo ('+fmt(kgL)+' kg)\n\nSe suma al stock de Charcas.\n\n¿Confirmar?')) return;
     $('akGuardar').disabled=true; m.textContent='Registrando…';
     try{
-      var res = await SB.rpc('cargar_compra_altrak', { p_kg:kg, p_remito:remito||null, p_fecha:fecha+'T12:00:00', p_pct_corto:c });
+      var res = await SB.rpc('cargar_compra_altrak', { p_kg:kg, p_remito:remito||null, p_fecha:fechaHora(fecha), p_pct_corto:c });
       if(res.error) throw res.error;
       var d=res.data||{};
       m.className='status ok';
