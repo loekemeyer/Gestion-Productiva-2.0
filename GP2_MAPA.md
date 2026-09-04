@@ -2,7 +2,7 @@
 
 > **Para que sirve:** antes de escribir o tocar una pantalla que hable con GP2, buscar
 > aca el contrato del bundle. Extraido del codigo de los modulos conectados
-> (2026-08-28). Complementa `ANALISIS_GP2_2026-08-28.md` y `SQL_GP2_PENDIENTES.sql`.
+> (2026-08-28, revisado 2026-09-04). Complementa `ANALISIS_GP2_2026-08-28.md` y `REFACTOR_GP2.md`.
 
 ## Regla de oro
 
@@ -96,8 +96,8 @@ cantidad_transformada, unidad_origen, unidad_destino }])` — los triggers
 | `rutas[].pasos` | lista ordenada `{ tp, actor, ... }`. `tp` ∈ ingreso\|matriz\|insumo\|proveedor_servicio\|tallerista\|virgilio |
 | `counts` | `{ rutas, arts, pasos }` (informativo) |
 
-Falta persistencia: no puede guardar confirmaciones/problemas (ver
-`SQL_GP2_PENDIENTES.sql` §2: `ruta_confirmada` / `ruta_problema` + RPCs).
+La persistencia de confirmaciones/problemas vive en `ruta_revision` (RPCs `ruta_confirmar` /
+`ruta_reportar` / `ruta_resolver`); la pantalla de esta seccion se fusiono en Despiece_GP2.
 
 ## despiece_bundle() — Despiece x Articulo/Despiece_GP2.html (solo lectura)
 
@@ -115,7 +115,7 @@ Se llama 2 veces: sin args al init (usa `matrices` + `empleados`) y con
 | Clave | Forma |
 |---|---|
 | `matrices` | LISTA `{ N_Matriz, Matriz }` (N_Matriz admite sufijo tipo "101B") |
-| `empleados` | dict legajo → nombre (string). **Suplanta la tabla empleado que no existe** (ver SQL_GP2_PENDIENTES.sql §1) |
+| `empleados` | dict legajo → nombre (string), derivado de `produccion` (la tabla `empleado` existe y la usan otros bundles; este todavia no la lee) |
 | `rows` | LISTA de filas de produccion YA filtradas por el RPC (Eliminar<>'S', Legajo<>1, Uni>0, Tiempo_Toma>0). Campos con nombre LEGACY: `Fecha` ("YYYY-MM-DD..."), `Legajo`, `Uni`, `Segundos_Trabajados`, `Tiempo_Toma`, `Premio`, ... |
 
 ---
@@ -162,8 +162,14 @@ unidad_destino, _delta_orig, _delta_dest` (los dos ultimos los calcula el trigge
 `proveedor_servicio` y **`virgilio`** (id 33, la distribucion). Los 84 articulos
 terminados (sector 12) no tienen ubicacion de sector: viven en Virgilio.
 
-`tipo_mov` en uso: `compra`, `envio_ps`, `envio_tallerista`, `fabricacion`,
-`entrega_tallerista`, `consumo_armado`. `crear_entrega_ps` escribe `entrega_ps`.
+`tipo_mov` (vocabulario del ledger, verificado 2026-09-04): `compra` (recepciones de insumo y
+compras de MP), `consumo` (MP consumida por un PS híbrido: Charcas/Eclipse), `envio_ps` /
+`entrega_ps`, `envio_tallerista` / `entrega_tallerista` / `consumo_tall` (partes consumidas al
+entregar un armado) / `devolucion_tallerista`, `envio_prov_at`, `fabricacion` (producción con
+matriz), `armado_fabrica` / `consumo_prod` (armado en fábrica desde Stocks General),
+`recepcion_virgilio` / `consumo_virgilio` (espejo de las entregas en Virgilio), `stock_inicial`,
+`ajuste`. Antes convivían `recepcion_tall` (JS) y `consumo_armado` (SQL) para lo mismo: se
+unificaron en la auditoría del 2026-09-04.
 
 **Como funciona el motor de stock**: al insertar en `movimiento`,
 `fn_movimiento_calc` convierte cantidades a la unidad canonica del componente con
@@ -187,4 +193,4 @@ Hoy coinciden en las 11 filas, pero renombrar un sector rompe las tres primeras.
 3. `fn_espejo_produccion` / `fn_espejo_entrega_tallerista`: sobre que tablas
    estan colgados y en que direccion espejan.
 
-Las queries exactas estan al final de `SQL_GP2_PENDIENTES.sql`.
+Las queries de verificacion estan en los informes de la auditoria del 2026-09-04 (`REFACTOR_GP2.md`).

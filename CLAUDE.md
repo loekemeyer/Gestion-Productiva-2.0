@@ -46,15 +46,16 @@ código, comentarios ni mensajes de commit).
   el Excel original que cargó el usuario (art 84, componente 471, proveedor_servicio 8,
   tallerista 12, matriz 115, ruta 555, ruta_paso 2346, ubicacion 32, articulo_componente
   505, componente_bom 32, inventario 848 con stock 0 + 766 mínimos). Snapshot de referencia:
-  el `var D` embebido en los 3 HTML (`Registro_Movimientos.html`, `Programa_Stock_Loekemeyer.html`,
-  `Faltantes_Loekemeyer.html`) = ESA foto limpia.
+  el `var D` embebido en los 3 HTML originales del usuario (`Registro_Movimientos.html`,
+  `Programa_Stock_Loekemeyer.html`, `Faltantes_Loekemeyer.html`, que NO están en el repo) = ESA
+  foto limpia.
 - **NO inventar / NO asumir:** nunca crear datos de negocio inventados. Si falta un dato,
   marcarlo pendiente/null y que lo aporte el usuario. Agregar cosas nuevas a la casa se hace
   **deliberadamente**, no contaminando las tablas base.
 - **El motor de inventario vive en la BD**, no en el JS: la app inserta filas crudas en
   `GP2.movimiento` y los triggers (`fn_movimiento_calc` + `fn_movimiento_aplicar`) calculan
   y aplican el delta en `GP2.inventario`. El `var D` de los HTML mapea 1:1 a tablas GP2
-  (ver `ANALISIS_LOGICA_GP2.md`).
+  (los contratos de los bundles y los nombres reales de las tablas están en `GP2_MAPA.md`).
 
 ## Campos de carga: letra grande + teclado numérico (OBLIGATORIO)
 
@@ -103,6 +104,16 @@ Las tablets y celulares cachean fuerte; sin bump siguen corriendo la versión vi
    `GP2_MODULOS.html`, que es quien carga `version.js`.)
    Al soltar features, subir `window.APP_VERSION` **y** el `?v=` de los `<script src="version.js?v=...">`
    (si no se bumpea el `?v=`, el celular sigue con el archivo viejo cacheado y muestra la versión de antes).
+
+## 🧭 Otros archivos vivos que hay que conocer
+
+- `GP2_MAPA.md`: contratos de los `*_bundle` y nombres reales de tablas/columnas (mirar antes de
+  tocar una pantalla que hable con GP2).
+- `REFACTOR_GP2.md`: bitácora de la auditoría de arquitectura del 2026-09-04 (qué se borró, qué se
+  fusionó, por qué). `PREGUNTAS_ARQUITECTURA_GP2.md`: las dudas de negocio que salieron de ahí y
+  esperan respuesta del usuario; si el usuario contesta alguna, aplicar y tachar.
+- `db/`: respaldo del schema (tablas, funciones, vistas). Regenerarlo al terminar una sesión que
+  cambió la base.
 
 ## 🧠 CONOCIMIENTO_GP2.md — la memoria del negocio (LEER AL INICIO, ESCRIBIR SIEMPRE)
 

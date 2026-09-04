@@ -151,4 +151,94 @@ Vercel (`vercel.json`).
 
 ---
 
-## 7. (se van agregando a medida que los agentes terminan)
+## 7. ¿«CARLOS» en las entregas de Virgilio es Alex Escalante (2) o Carlos Aguirre (9)?
+
+**Problema encontrado.** `contraparte_alias` tenía `'CARLOS' → 9 (Carlos Aguirre)` y también
+`'Carlos' → 2 (Alex Escalante)`; el trigger que espeja las entregas de Virgilio compara en
+mayúsculas, así que la segunda nunca matcheó (se borró en el ciclo 2; hoy manda la primera). En
+`public."Entregas Tallerista Virgilio"` «CARLOS» entrega 535, 307, 335, 248, 635/636, 515, 395,
+510, 580…; «AGUIRRE CARLOS RODOLFO» entrega 544 y 561 por separado. En GP2 el 510 y el 515 los
+hacen **Alex Escalante / Martin Cornejo** (rutas y precios a nombre de Alex), el 544 lo hace
+**Carlos Aguirre**, y el 580 figura de Carlos Aguirre aunque en Virgilio lo entrega «CARLOS».
+
+**Alternativa A.** `'CARLOS' → 2` (Alex Escalante) y revisar la ruta del 580.
+**Alternativa B.** Queda `'CARLOS' → 9` (Carlos Aguirre).
+
+**Recomendación.** A: la evidencia de Virgilio (510/515) apunta a Alex; «Aguirre Carlos Rodolfo»
+ya tiene su alias propio.
+
+**Impacto.** Una fila de `contraparte_alias`; las entregas espejadas de «CARLOS» descuentan las
+partes del tallerista equivocado mientras esté mal.
+
+**Pregunta concreta.** ¿A o B? ¿Y el 580 lo envasa Alex o Carlos Aguirre?
+
+---
+
+## 8. Datos que el sistema no puede deducir (lista corta, una línea cada uno)
+
+Cada uno tiene la consulta y el detalle en los informes de auditoría (`REFACTOR_GP2.md`).
+
+1. **550**: la columna dice caja **A8** y la receta dice **A9** (el catálogo viejo también dice
+   N° 22 = A9). ¿Cuál es? (recomendación: A9, corregir la columna).
+2. **PA10 / PEP3**: están en sector Procesado (decisión 2026-09-04) pero los 240 de stock de
+   PEP3 viven en la ubicación *Sector Plástico* y no hay fila en Procesado. ¿Se mueven con dos
+   ajustes (−240 Plástico, +240 Procesado)? (recomendación: sí).
+3. **32 stocks negativos en talleristas** (IJUPA −1.896 en 11 piezas, Pettofrezza −1.200 en 12,
+   W6 −2.400): son consumos de Virgilio sin envío ni stock inicial cargado. ¿Se releva el stock
+   de esos dos talleristas y se carga como ajuste trazado, o se blanquea a 0? (recomendación:
+   relevar; los negativos son la lista exacta de lo que hay que contar).
+4. **574** está `discontinuado` pero la Est Madre le pide 1.060/mes (también 119: 150, 615: 24,
+   809: 16). ¿Sigue discontinuado?
+5. **GRJ1**: está en la receta del 500 y tiene inventario, pero ninguna ruta lo produce ni lo
+   consume (las 10 rutas del 500 entran por C1/V9/pliego/A11). ¿Quién arma el GRJ1
+   (Alex/Martin, espejo del GRJ7) o el 500 se envasa con las partes sueltas?
+6. **863** tiene PEP8 en la receta y ninguna ruta lo toca. ¿Falta la ruta `Fleje 27 -> Art 863`
+   con Maspoli, o PEP8 no va en el 863?
+7. **Federico Realini** tiene dos legajos (274 inactivo, 401 activo). ¿Reingreso (se deja) o
+   error de carga (unificar)?
+8. **Matriz «S/N» (117)** está en 2 rutas (ID5→W5) sin tiempo ni tipo; **138 (119)** dice tipo A
+   (alimentador) y tipo_matriz B (balancín). ¿Cuál vale? (`tipo_matriz` se va a borrar: nadie la
+   lee).
+9. **Mínimo > máximo en 80 filas** (X4 87.892 vs 20.020; V9 113.912 vs 10.581): el mínimo es
+   consumo × meses y el máximo es el lugar. Como la OC pide «llenar el lugar», ¿el mínimo se
+   topea en el máximo o se deja como alerta?
+10. **IE3, IC2 e IF12** (flejes) no tienen `kg_x_uni`: cualquier movimiento en unidades falla.
+    ¿Peso por pieza? (dato físico).
+11. **Z12, C13 y 1686** (crudo/procesado) no tienen `uni_x_cajon` (Z12 y C13 tampoco
+    `kg_x_uni`): sin eso no se calcula el máximo de 5 cajones.
+12. **`precio_proveedor.cod_prov` contradice `componente.proveedor`** en 6 códigos (797 Pat Bet
+    Plast en 9 piezas de Pettofrezza; 2147 Pol en Vihal/Blist-Pack; 2339 Maspoli en PEP5 de
+    Pintos; 2635 Aperam en IB7 de Hermac; 3810 Hermac en IA1 de Basconia; 3917 Tierra Nativa en
+    IE13 «Importado»). ¿Quién cotiza y quién entrega?
+13. **`proveedor_insumo.cod_prov` está vacío en 35 de 39**; los precios permiten deducir 18
+    (Basconia 302, Brawin 419, Bella Vista 890, Vihal 1218, Szapiro 116, JL Metales 1744,
+    Pettofrezza 1895, Mandelli 2224, Giser 3327, Suipacha 3808, Grudzien 4466, Cimarron 4444, Pol
+    2147, Pat Bet Plast 797, Aperam 2635, Hermac 3810, AJ Adhesivos 697; ¿Pintos 2339?). ¿Se
+    cargan así?
+14. **`fleje_detalle.kg_uni_desp`** difiere de `componente.kg_x_uni` en 2 flejes (IE4 0,01463 vs
+    0,01482; IE5 0,01603 vs 0,01642). ¿El kg oficial ya incluye el desperdicio (se borra la
+    columna) o no (se conserva como `kg_x_uni_desp`)?
+15. **`uni_x_articulo_x_caja`** (434 filas, copia del Excel «Cajas» de LK y CH): nadie la lee
+    salvo `ControlAT_GP2`; es la única fuente del catálogo **CH** (18 códigos son otro producto
+    en CH que en LK) y de las unidades por caja de 48 artículos de Prov AT que no están en
+    `articulo`; contradice `articulo.articulos_por_caja` en 5 (508: 12 vs 6; 034/043/658/802: 12
+    vs 24). ¿GP2 modela CH (columna `empresa` en `articulo`) o se descarta y se borra la tabla?
+16. **`proveedor_at` (12) vs `tallerista`**: misma clase de contraparte (recibe cartón/cajas y
+    entrega terminado a Virgilio) y 3 personas están en las dos (Maspoli, Pettofrezza, Tierra
+    Nativa). Fusionarla en `tallerista` con `clase='prov_at'` saca una tabla y 2 FKs pero toca
+    ~15 funciones. ¿Se hace? (recomendación: sí, en un ciclo propio).
+17. **13 artículos entregados en Virgilio que no existen en GP2** (535 con 482 cajas históricas,
+    727E, 877E, 599, 943, 948, 207, 584E, 590E, 590ES, 823, 817, 760): quedan en
+    `virgilio_espejo_pend`. ¿Se dan de alta?
+18. **071**: la ruta lleva la caja A4 y ahora la receta también (ciclo 2); el usuario dijo «al 071
+    no le hagas cartón» (cartón ≠ caja). ¿La caja A4 va? Si no, se saca la fila.
+19. **Cronograma de relevamiento «Bolsa Plást»** (2 fechas) no tiene `sector_id`, así que ese
+    conteo no se puede abrir. ¿Es sector Plástico (6) o Cartón (10)?
+20. **`recepcion_control` / `recepcion_control_rollo`** (pesaje por pallet con rollos) siguen en
+    0 filas: ninguna recepción de Basconia/Hermac se controló todavía desde la pantalla. ¿El
+    pesaje por pallet se usa de verdad? Si no se va a usar, son 2 tablas + 3 vistas + 3
+    funciones para borrar.
+
+---
+
+## 9. (se van agregando a medida que los agentes terminan)

@@ -91,10 +91,10 @@ window.supabase = { createClient: function(){ return {
   const call = await page.evaluate(() => (window.__calls || []).filter(c => c.name === 'registrar_movimientos'));
   ok(call.length === 1 && call[0].args.p_rows.length === 1, 'una llamada registrar_movimientos con 1 fila');
   const m = call[0].args.p_rows[0];
-  ok(m.tipo_mov === 'recepcion_tall' && m.comp_id === 70 && m.ubic_origen_id === 1 && m.ubic_destino_id === 2 &&
+  ok(m.tipo_mov === 'entrega_tallerista' && m.comp_id === 70 && m.ubic_origen_id === 1 && m.ubic_destino_id === 2 &&
      m.cantidad === 50 && m.comp_transformado_id === 71 && m.cantidad_transformada === 50 &&
      m.fecha === fecha + 'T12:00:00' && m.unidad_origen === 'uni' && m.unidad_destino === 'uni',
-     'payload recepcion_tall: ' + JSON.stringify(m));
+     'payload entrega_tallerista: ' + JSON.stringify(m));
 
   // recarga del motor despues de registrar (movimientos_bundle 2 veces) + exito
   const nBundle = await page.evaluate(() => (window.__calls || []).filter(c => c.name === 'movimientos_bundle').length);

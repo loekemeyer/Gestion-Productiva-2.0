@@ -2389,7 +2389,7 @@ Varios pedidos del usuario sobre `Produccion/RegistroApp/Operarios_GP2.html` en 
 
 ## 2c-undecies. Stock en Movimiento (Sector Tránsito): sin mín/máx ni carteles (2026-08-31)
 
-`[usuario 2026-08-31, con foto]` sobre `StockMovimiento/StockMovimiento_GP2.html`:
+`[usuario 2026-08-31, con foto]` sobre `StockSector/StockSector_GP2.html?sector=3`:
 
 - **Solo el botón "Atrás"** en el header: sacados "Exportar CSV", "Stock SC" y "Stock SP".
 - **Sacados los dos carteles amarillos**: el explicativo ("Piezas entre matrices…") y el de
@@ -4312,3 +4312,22 @@ Verificado en lectura pura: con el Garage del 11-sep validado, el sector pasa a 
 
 **Los ya aplicados no se pierden:** quedan en el historial de la pantalla de Validación de
 Stock (`validacion_bundle` → `aplicados`, últimos 20).
+
+## 3c-quater. La tablet de logística: specs físicas de `envios-only.html` (2026-09-04, fusión de TABLET_LOGISTICA.md)
+
+`envios-only.html` es la portada que se usa **exclusivamente en la tablet del galpón**
+(≈8,7", portrait, 19 × 11,25 cm; iPad mini o Android de 8"). Lo que importa para diseñar:
+
+- **Ancho útil ≈ 744 px** (iPad mini) / 800 (Android) / 600 (Android barata 1024×600). Es la
+  limitación principal: una tabla de 11 columnas no entra sin scroll horizontal explícito.
+- **Alto útil ≈ 1.044 px** (descontando ~2,3 cm de barra de Chrome y ~0,9 cm de botones
+  Android). Headers sticky de 60+ px se sienten enormes.
+- Setup para probar en Chrome DevTools: Responsive **744 × 1044**, DPR 2.
+- Botones táctiles ≥ 44 px en todo el flujo crítico (regla general de la casa).
+- Una PWA a pantalla completa recuperaría los ~150 px de la barra de Chrome (hoy `pwa.js`
+  registra el manifest en las 3 páginas de entrada).
+
+`[dato: TABLET_LOGISTICA.md, 2026-07]` Pendientes que traía ese archivo y siguen abiertos:
+auditar `envios-only.html` y las pantallas de Envíos/Entrega PS en 744×1044 (las tablas anchas
+van en `.table-wrap`), y decidir si la tablet abre las pantallas GP2 (ver
+`PREGUNTAS_ARQUITECTURA_GP2.md` pregunta 2).

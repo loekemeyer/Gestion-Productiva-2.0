@@ -39,6 +39,7 @@ base): verifican payloads de RPC, filtros, cálculos en pantalla y flujos comple
 | test_recepcion_salir_pesaje.js | Recepción v3.22: no se puede salir sin controlar |
 | test_recepcion_uni.js | El remito en unidades se guarda en unidades (remaches/bombillas); control en kg con pasaje a unidades |
 | test_stock_general.js | Stocks General: los dos flujos heredados de Registrar Movimiento (Ajuste +/- y Armado en fábrica), payload exacto de `registrar_movimientos` |
+| test_stock_sector.js | La pantalla única de stock por sector (`StockSector_GP2.html?sector=N`, ex 9 pantallas): título, botones, columnas, KPIs, popup, RPC y menú para cada uno de los 9 sectores, a 390px |
 | test_teclado_numerico.js | Letra grande (>=18px) y `inputmode` numérico en todos los campos de número de las pantallas GP2 |
 | test_tokens_cache.js | Guardia de caché y clave: un solo ?v= por asset compartido, versión/token nunca reusados, y la clave anon sólo en supabase-config.js (sin navegador, lee git) |
 | test_valorizacion.js | Valorización: stock y pedido-a-máximo valorizados con el motor de costos |

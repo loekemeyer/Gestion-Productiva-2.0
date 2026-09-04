@@ -250,7 +250,7 @@ function armadoFabrica(o){
 }
 
 /* ---------- constructor de movimientos: recepcion de tallerista ----------
-   Reproduce el bloque tipo==='recepcion_tall' de saveMov().
+   Reproduce el bloque tipo==='entrega_tallerista' (ex recepcion_tall) de saveMov().
 
    Devuelve { rows:[...] } listo para registrar, o
             { elegir:[comp_ids] } cuando el componente recibido puede venir
@@ -335,7 +335,7 @@ function recepcionTall(o){
   }
 
   rows.push({
-    tipo: "recepcion_tall", fecha: fecha, comp_id: cid,
+    tipo: "entrega_tallerista", fecha: fecha, comp_id: cid,
     ubic_origen_id: ubic_o, ubic_destino_id: ubic_d,
     cantidad: qty,
     comp_transformado_id: comp_transformado, cantidad_transformada: cant_transformada,

@@ -130,6 +130,104 @@ idénticas, `control-cajas` / `control-remaches` 74 % iguales, `gp2-modulo.css` 
 
 ---
 
+## Ciclo 2 — funciones, vistas y seguridad (agente A4, 18:50–19:30 AR)
+
+### Bug vivo corregido: `talleristas_bundle` no coincidía con sus pantallas
+La versión en la base devolvía `partes` como **lista plana** (`codigo`, `descripcion`,
+`online`), pero `EnviosTalleristas_GP2.html` y `ControlTalleristas_GP2.html` leen
+`D.partes[tallerista_id].entrada[]` con `cod`, `desc`, `online_tall`, `online_sector`, `saldo` —
+el contrato que la función tenía en el export del 2026-08-31. Con la función de hoy cada
+tallerista mostraba **0 partes** (los tests no lo veían porque stubean el bundle con la forma
+que espera el JS). Se restauró el diccionario por tallerista conservando el filtro
+`tallerista.activo` y los saldos actuales; la clave `bom`, que nadie leía, se fue.
+Verificado: 10 talleristas con partes, Martin Cornejo 83 de entrada, claves correctas.
+Migración `refactor_20260904_talleristas_bundle_partes_por_tallerista`.
+
+### Borrados
+- `cargar_recepcion_charcas(p_comp_id, p_paquetes, p_remito, p_fecha)`: modelo viejo por paquetes
+  que exigía el componente `ALAM_FILTRO`, que **no existe** (explotaba siempre); la pantalla llama
+  a la de 5 args (`p_uni_remito` + `p_kg_balanza`).
+- Vistas sin ningún lector: `v_consumo_fleje_kg` (v1: contradecía a la `_v2` en 5 flejes),
+  `v_consumo_parte` (contradecía a `v_consumo_componente` en 209 componentes), `v_punto_stock`,
+  `v_valor_pedido`, `v_valor_stock` (Valorización recalcula lo mismo en su bundle). 16 → 11 vistas.
+  Migración `refactor_20260904_drop_vistas_y_overload_muertas`.
+- `crear_oc(p jsonb, p_fecha_entrega date)`: wrapper que metía en `p` un dato que `OC_GP2.html`
+  ya mandaba adentro de `p`. La pantalla pasó a llamar con un solo parámetro (ciclo 1b); la
+  overload se borra en cuanto el deploy de la pantalla esté publicado.
+
+### Seguridad
+- 20 funciones internas (helpers `_aplicar_recepcion_a_oc`, `to_canonical`, `_es_sector_insumo`,
+  `relev_*`, `recepcion_tara`, `crear_recepcion_insumo`; las 8 trigger functions `fn_*`;
+  `recepcion_virgilio`; mantenimiento `recalcular_*`; cron `actualizar_dolar_oficial`) tenían
+  EXECUTE para `anon` por el default de Postgres: con la clave anon cualquiera podía pisar
+  máximos/mínimos, marcar OC recibidas o disparar el HTTP del dólar. **REVOKE** a
+  public/anon/authenticated. Verificado con una prueba con rollback que un trigger dispara aunque
+  el rol que hace el DML no tenga EXECUTE sobre su función.
+- `alter default privileges ... revoke execute on functions from public`: las funciones nuevas
+  ya no nacen públicas; las 18 RPC de pantalla que dependían del default pasan a GRANT explícito.
+  Migración `refactor_20260904_revoke_funciones_internas`.
+
+### Performance
+- `movimiento` no tenía índice por `fecha` ni por `tipo_mov` (8 bundles filtran por eso):
+  `movimiento_fecha_idx (fecha desc, id desc)` y `movimiento_tipo_comp_idx (tipo_mov, comp_id)`.
+
+### Datos corregidos (agente A2, «corregible sin duda»; migraciones `refactor_20260904_datos_corregibles_1`, `_est_madre_guard_y_crear_oc_overload`, `_borrar_pruebas_rollos_produccion`)
+| Qué | Filas | Detalle |
+|---|---|---|
+| `componente.unidad_medida` fuera de {kg, unidad} | 19 | `uni`×7, `pliego`×11, `paquete`×1 → `unidad` + CHECK para que no vuelva |
+| Familias inexistentes | 2 | `Bombillas` (11 artículos) y `Bowls` (071) faltaban en `familia`; ahora `articulo.familia` es FK |
+| Caja en la columna pero no en la receta | 13 | 11 bombillas + 103 + 120 + 071 tenían `componente_caja_id` (y 11 de ellos el paso `insumo` de la caja en su ruta) sin la fila 1/`articulos_por_caja` en `articulo_componente`, como llevan los otros 86. La demanda de A8/A11/A9/A4 no llegaba a OC ni a máximos. (071: ver PREGUNTAS 8.18) |
+| `est_madre` con filas contables | 5 | `E`, `GASTOTRRECH`, `CHEQRECHAZAO`, `ANTICIPO VTA MERCAERIA`, `TRANSFRECH` venían de `public.proyeccion_madre`; borradas y el trigger `fn_est_madre_sync` ahora saltea todo código que no empiece con dígito |
+| Mínimos en unidades sobre componentes en kg | 7 | IC3 100.800 → 836,64 kg, IE13, IZ19A y sus filas en tallerista/Virgilio: convertidos con `kg_x_uni`, `minimo_origen='excel_uni_convertido_kg'` |
+| Inventario ≠ ledger (IC3 / IC3V) | 4 | al pasar IC3/IC3V de unidad a kg quedaron 2 movimientos con `_delta` viejos y 4 filas de inventario sin re-derivar (IC3@Fleje decía 510; el ledger 33,98 kg). Se recalcularon los deltas (1459, 1463) y se re-derivó el inventario de los dos componentes desde el ledger. Conservación: **0 filas que no cierran** en todo el inventario |
+| Restos de pruebas | 31 + 1 + 3 | 31 `rollo_evento` (61 rollos fantasma de recepciones de prueba ya borradas), el `rollo_uso` abierto y las 3 filas de `produccion` del legajo 1 «Pruebas» |
+| BOM13 / BOM14 | 3 | filas en cantidad 0 en Sector Garage (resto de cuando eran sector 9) borradas; BOM14 sin fila en Sector Bombilla, creada |
+| `precio_proveedor` | 14 | `moneda='Peso'`×11 → `ARS`; `cod_prov='Cimarron'`×3 → `4444` |
+| `empleado.tipo` | 3 | `Operario` → `operario` |
+| Recepción 415 | 1 | pliego con `uni_x_paq=250` → 100 (regla del paquete de pliegos) |
+| `ruta.nombre` | 3 | 611/615 «(Cimarron)» → «(Gentile Norberto)» (el tallerista real del paso); 35 = RULETA (herramienta, sin artículo) |
+| Alias | 3 | `LUCHO`/`MASPOLI` pasan de `tallerista_alias` a `contraparte_alias`; `Oscar` y `Becker Sandra Nora` a mayúsculas (el trigger compara `upper()`, nunca matcheaban); `'Carlos'→Alex` borrado (contradecía `'CARLOS'→Carlos Aguirre`; PREGUNTAS 7); CHECK `alias = upper(alias)` |
+
+### Tablas y columnas eliminadas (ciclo 2a)
+- `pedido` (0 filas, ningún uso), `tallerista_alias` (sin lector desde el ciclo 1), `tipo_cambio.moneda`
+  (constante, la PK es la fecha).
+
+### Vocabulario de `tipo_mov`: una sola palabra para "el tallerista entregó"
+El motor JS (`gp2-motor.js`, pantalla Entregas Talleristas GP2) escribía `recepcion_tall`, la
+API SQL (`crear_entrega_tallerista`) escribe `entrega_tallerista`, y los bundles de talleristas
+(`talleristas_bundle`, `faltante_partes_tallerista_bundle`, `control_envios_bundle`) sólo leen
+`entrega_tallerista` → las 3 entregas cargadas desde la pantalla GP2 **no contaban como
+entregadas** en Control Talleristas ni en Faltante Partes. Se unificó en `entrega_tallerista`
+(JS, test y las 3 filas del ledger; los deltas no cambian). Queda para el cierre del ciclo 2:
+`consumo_armado`/`consumo_transformacion` (SQL) → `consumo_tall` (lo que leen los bundles) y un
+CHECK con el vocabulario cerrado.
+
+### Docs
+- `TABLET_LOGISTICA.md` (specs físicas de la tablet) se fusionó en `CONOCIMIENTO_GP2.md` §3c-quater
+  y se borró. `SQL_GP2_PENDIENTES.sql` tenía todos sus bloques aplicados (los `_bak_*` que
+  esperaban confirmación ya no existen) y se borró; `GP2_MAPA.md` dejó de citarlo y corrigió dos
+  frases viejas ("la tabla empleado no existe", "falta persistencia de Verificación").
+- `CLAUDE.md`: referencias a archivos que no están en el repo (`ANALISIS_LOGICA_GP2.md`, los 3
+  HTML con `var D`) corregidas; sección nueva que apunta a `GP2_MAPA.md`, `REFACTOR_GP2.md`,
+  `PREGUNTAS_ARQUITECTURA_GP2.md` y `db/`.
+
+### Código: 9 pantallas de stock por sector → 1 (agente B4)
+`StockSC_GP2`, `StockSP_GP2`, `StockMovimiento_GP2` y las 6 de `StockFlejes/*_GP2` (Cajas,
+Cartones, Plásticos, Remaches, Bombillas, Garage) eran 9 HTML de ~98 líneas, 86–96 % idénticos
+(sólo cambiaba `window.STOCK_CFG`). Ahora es **una** pantalla,
+`StockSector/StockSector_GP2.html?sector=<id>`, con la configuración por sector en el mapa
+`SECTORES` de `gp2-stock-sector.js`. El menú mantiene los 9 botones con los mismos rótulos y
+orden. Verificado por diff del DOM renderizado viejo vs nuevo (7 byte-idénticas; SC/SP sólo cambian
+el link cruzado, que apuntaba a un archivo que ya no existe) y render a 390 px en los 9 sectores.
+Test nuevo `tests/ui/test_stock_sector.js` (186 aserciones). Neto: −662 líneas de app.
+Los rótulos de tipos de movimiento de `gp2-composicion.js` y de Stocks General pasan al
+vocabulario real del ledger (tenían los nombres del programa viejo).
+
+### Estado tras el ciclo 2a
+51 tablas · 11 vistas · 120 funciones.
+
+---
+
 ## Decisiones arquitectónicas (acumuladas)
 
 1. **Las copias de datos no viven en la base.** Un snapshot "por si hay que volver atrás" va a

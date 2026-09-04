@@ -1,14 +1,17 @@
 <!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <script src="../auth-guard.js?v=20260904t"></script>
 <title>Stock por ubicación · GP2</title>
-<!-- v1.1.1 - la pantalla hereda lo unico propio de Movimientos/Registrar_Movimiento.html
+<!-- v1.1.2 (2026-09-04) - la tabla de rotulos de los ultimos movimientos pasa al vocabulario REAL del ledger
+     (envio_ps/entrega_ps/envio_tallerista/entrega_tallerista/fabricacion...): tenia los nombres del programa viejo y
+     casi todo salia con el codigo crudo (auditoria de arquitectura).
+     v1.1.1 - la pantalla hereda lo unico propio de Movimientos/Registrar_Movimiento.html
      (borrada 2026-08-30, aprobado por el usuario): los flujos de Ajuste +/- y Armado en
      fabrica (mismos modales y mismo payload de registrar_movimientos, ahora via
      gp2-motor.js) y la vista de ultimos 50 movimientos. Las otras 7 tarjetas de esa
      pantalla duplicaban pantallas dedicadas y escribian tipos de movimiento distintos. -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="../supabase-config.js?v=20260831d"></script>
-<script src="../gp2-motor.js?v=20260902a"></script>
+<script src="../gp2-motor.js?v=20260904v"></script>
 <style>
  *{box-sizing:border-box}
  body{margin:0;background:#ebeff4;color:#385475;font:14px/1.5 -apple-system,Segoe UI,Roboto,sans-serif}
@@ -305,13 +308,19 @@ async function saveModal(){
 }
 
 /* ═══ Ultimos movimientos (misma tabla/labels que Registrar_Movimiento) ═══ */
+/* Vocabulario del ledger (GP2.movimiento.tipo_mov), el mismo que escriben las RPC y el motor:
+   antes esta tabla tenia los nombres del Registrar_Movimiento viejo (envio_prov, recepcion_tall...)
+   y la mayoria de los movimientos reales salian con el codigo crudo. */
 var TIPOS={
- compra:{lbl:'Compra',cls:'t-compra'}, produccion:{lbl:'Producción',cls:'t-prod'},
- armado_fabrica:{lbl:'Armado fábrica',cls:'t-prod'}, envio_prov:{lbl:'Env prov serv',cls:'t-envio'},
- recepcion_prov:{lbl:'Rec prov serv',cls:'t-recep'}, envio_tall:{lbl:'Env tall',cls:'t-envio'},
- recepcion_tall:{lbl:'Rec tall',cls:'t-recep'}, recepcion_virgilio:{lbl:'Rec Virgilio',cls:'t-virgilio'},
- consumo_prod:{lbl:'Consumo prod',cls:'t-prod'}, consumo_tall:{lbl:'Consumo tall',cls:'t-recep'},
- ajuste:{lbl:'Ajuste',cls:'t-ajuste'}
+ compra:{lbl:'Compra',cls:'t-compra'}, fabricacion:{lbl:'Fabricación',cls:'t-prod'},
+ armado_fabrica:{lbl:'Armado fábrica',cls:'t-prod'}, consumo_prod:{lbl:'Consumo prod',cls:'t-prod'},
+ envio_ps:{lbl:'Env prov serv',cls:'t-envio'}, entrega_ps:{lbl:'Entrega prov serv',cls:'t-recep'},
+ consumo:{lbl:'Consumo prov serv',cls:'t-recep'},
+ envio_tallerista:{lbl:'Env tall',cls:'t-envio'}, entrega_tallerista:{lbl:'Entrega tall',cls:'t-recep'},
+ consumo_tall:{lbl:'Consumo tall',cls:'t-recep'}, devolucion_tallerista:{lbl:'Devolución tall',cls:'t-recep'},
+ envio_prov_at:{lbl:'Env prov AT',cls:'t-envio'},
+ recepcion_virgilio:{lbl:'Rec Virgilio',cls:'t-virgilio'}, consumo_virgilio:{lbl:'Consumo Virgilio',cls:'t-virgilio'},
+ stock_inicial:{lbl:'Stock inicial',cls:'t-ajuste'}, ajuste:{lbl:'Ajuste',cls:'t-ajuste'}
 };
 function fmtNum(n){if(n==null)return '';var x=Number(n);return Number.isInteger(x)?String(x):x.toFixed(2);}
 function fmtFecha(f){if(!f)return '';try{return new Date(f).toLocaleDateString('es-AR');}catch(e){return f;}}

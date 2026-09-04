@@ -2,27 +2,145 @@
 /* ============================================================
    gp2-stock-sector.js — pantalla de stock por sector.
 
-   Una sola implementacion para Stock SC y Stock SP (y sirve para
-   cualquier otro sector). Reproduce la estructura de Gestion
-   Productiva Entero: Base | Online (Kg/Caj/Uni) | Movimientos | Info,
-   con las celdas de movimiento clickeables para ver el detalle.
+   Una sola implementacion para todos los sectores con stock por
+   componente. Reproduce la estructura de Gestion Productiva Entero:
+   Base | Online (Kg/Caj/Uni) | Movimientos | Info, con las celdas de
+   movimiento clickeables para ver el detalle.
 
    El stock sale del motor (GP2.inventario). La pantalla NO recalcula
    stock: solo convierte a kg/cajones con los factores del componente.
 
-   Config por pagina:
-     window.STOCK_CFG = {
-       sector_id: 1,
-       titulo: "Stock SC",
-       columnas: [ {k:'fabricacion', label:'Fabricación', tipos:['fabricacion','produccion'], lado:'neto'}, ... ]
-     }
+   Config: la pantalla StockSector/StockSector_GP2.html?sector=N toma su
+   STOCK_CFG del mapa SECTORES de abajo (titulo, nombre del sector para el
+   h1, botones del header, filtros y columnas de movimiento). Hasta el
+   2026-09-04 eran 9 HTML casi iguales que solo cambiaban ese objeto; ahora
+   lo que difiere por sector vive UNICAMENTE aca. Si una pagina define
+   window.STOCK_CFG antes de cargar este script, ese objeto pisa al mapa
+   (misma forma: sector_id, titulo, columnas, sin_min_max, mostrar_fleje).
    ============================================================ */
 
 (function(){
 
-var CFG = window.STOCK_CFG;
+/* ---------- mapa de sectores (id de GP2.sector -> config de pantalla) ----------
+   Campos:
+     titulo      lo que ve el usuario en el <title>, el h1 y el nombre del CSV
+     sector_nom  segunda parte del h1 ("Bombillas · Sector Bombilla")
+     links       botones del header entre "Exportar CSV" y "Atras":
+                 [rotulo, href, "destacado"?] — "destacado" = fondo azul (los Control)
+     columnas    columnas de Movimientos (Uni): k, label, tipos de movimiento, lado
+                 (ent = suma entradas, sal = suma salidas, neto = ent - sal)
+     sin_csv     sin boton "Exportar CSV"
+     sin_min_max sin Maximo/Capacidad, sin KPI "Bajo minimo", sin filtro "Bajo el
+                 maximo" y sin aviso de factores
+     buscar      placeholder del buscador (si no es el generico)
+     mostrar_fleje  columna "N° Fleje" (ninguna de estas la usa; Flejes tiene su
+                 propia pantalla, StockFlejes/Flejes_GP2.html)
+   Los hrefs son relativos a StockSector/. */
+
+/* Insumos: entran por compra y salen por consumo de producción o
+   por envío a un proveedor / tallerista. */
+var COLS_INSUMO = [
+  { k:"compras", label:"Compras", tipos:["compra"],                                   lado:"ent" },
+  { k:"consumo", label:"Consumo", tipos:["consumo_prod","consumo_tall","produccion","fabricacion"], lado:"sal" },
+  { k:"envios",  label:"Envíos",  tipos:["envio_ps","envio_tallerista"],               lado:"sal" }
+];
+var LINK_RECEPCION = ["Recepción", "../StockFlejes/RecepcionInsumos_GP2.html"];
+
+var SECTORES = {
+  /* Mismas columnas de movimiento que Stock SC del programa viejo:
+     lo que entra por fabricación y lo que sale hacia PS / talleristas. */
+  1: { titulo:"Stock SC", sector_nom:"Sector Crudo",
+       links:[["Stock SP", "?sector=2"]],
+       columnas:[
+         { k:"fabricacion", label:"Fabricación", tipos:["fabricacion","produccion","armado_fabrica"], lado:"neto" },
+         { k:"envios",      label:"Envíos",      tipos:["envio_ps","envio_prov","envio_tallerista","envio_tall"], lado:"sal"  }
+       ] },
+  /* Mismas columnas de movimiento que Stock SP del programa viejo:
+     lo que devuelve el PS, lo que se fabrica y lo que sale al tallerista. */
+  2: { titulo:"Stock SP", sector_nom:"Sector Procesado",
+       links:[["Stock SC", "?sector=1"]],
+       columnas:[
+         { k:"entregas_ps", label:"Entregas PS",      tipos:["entrega_ps","recepcion_prov"],             lado:"ent"  },
+         { k:"fabricacion", label:"Fabricación",      tipos:["fabricacion","produccion","armado_fabrica"], lado:"neto" },
+         { k:"envios_tall", label:"Envíos Tallerista", tipos:["envio_tallerista","envio_tall"],           lado:"sal"  },
+         { k:"recep_tall",  label:"Recep. Tallerista", tipos:["recepcion_tall","entrega_tallerista"],     lado:"ent"  }
+       ] },
+  /* Sector Movimiento (3): las piezas intermedias entre matrices ("tras M#").
+     Fabricado = entradas por produccion/fabricacion (la matriz que las hace).
+     Consumido = salidas por produccion/fabricacion (la matriz siguiente).
+     No tienen minimo/maximo (son WIP transitorio, no algo que se repone): el
+     renderer oculta esas columnas, el KPI "Bajo minimo" y el aviso de factores
+     cuando sin_min_max esta prendido. [usuario 2026-08-31]. Sin CSV ni Recepción. */
+  3: { titulo:"Stock en Movimiento", sector_nom:"Sector Movimiento",
+       sin_min_max:true, sin_csv:true, links:[],
+       buscar:"Buscar por código, matriz o descripción…",
+       columnas:[
+         { k:"fabricado", label:"Fabricado", tipos:["fabricacion","produccion"], lado:"ent" },
+         { k:"consumido", label:"Consumido", tipos:["fabricacion","produccion","consumo_prod"], lado:"sal" }
+       ] },
+  6:  { titulo:"Partes Plásticas", sector_nom:"Sector Plástico", links:[LINK_RECEPCION], columnas:COLS_INSUMO },
+  7:  { titulo:"Bombillas",        sector_nom:"Sector Bombilla", links:[LINK_RECEPCION], columnas:COLS_INSUMO },
+  8:  { titulo:"Remaches",         sector_nom:"Sector Remache",
+        links:[LINK_RECEPCION, ["Control Remaches", "../StockFlejes/control-remaches.html", "destacado"]],
+        columnas:COLS_INSUMO },
+  9:  { titulo:"Garage",           sector_nom:"Sector Garage",   links:[LINK_RECEPCION], columnas:COLS_INSUMO },
+  10: { titulo:"Cartones",         sector_nom:"Sector Cartón",   links:[LINK_RECEPCION], columnas:COLS_INSUMO },
+  11: { titulo:"Cajas",            sector_nom:"Sector Caja",
+        links:[LINK_RECEPCION, ["Control Cajas", "../StockFlejes/control-cajas.html", "destacado"]],
+        columnas:COLS_INSUMO }
+};
+
+/* config de un sector del mapa (null si no existe) */
+function configDe(sector_id){
+  var base = SECTORES[Number(sector_id)];
+  if (!base) return null;
+  var cfg = { sector_id: Number(sector_id), mostrar_fleje: false };
+  Object.keys(base).forEach(function(k){ cfg[k] = base[k]; });
+  return cfg;
+}
+function sectorDeURL(){
+  try { return new URLSearchParams(location.search).get("sector"); } catch(e){ return null; }
+}
+
+var CFG = window.STOCK_CFG || configDe(sectorDeURL());
 var SB = window.SB_CLIENT;
 var $ = function(id){ return document.getElementById(id); };
+
+/* Completa lo que cambia por sector en el HTML unico: titulo, h1, botones del
+   header (CSV + links, antes del "Atras" fijo), filtro "Bajo el maximo", aviso de
+   factores y placeholder. Deja el DOM igual al que tenia cada HTML viejo. */
+function montarPantalla(){
+  document.title = CFG.titulo + " · GP2";
+  var h1 = $("titulo");
+  if (h1) h1.textContent = CFG.titulo + (CFG.sector_nom ? " · " + CFG.sector_nom : "");
+
+  var hb = $("hbtns");
+  if (hb){
+    var atras = hb.querySelector('a[href$="GP2_MODULOS.html"]');   // queda ultimo
+    var frag = document.createDocumentFragment();
+    if (!CFG.sin_csv){
+      var b = document.createElement("button");
+      b.className = "hlink"; b.id = "btnCSV"; b.type = "button";
+      b.textContent = "⬇ Exportar CSV";
+      frag.appendChild(b);
+    }
+    (CFG.links || []).forEach(function(l){
+      var a = document.createElement("a");
+      a.href = l[1]; a.textContent = l[0];
+      if (l[2] === "destacado") a.setAttribute("style", "background:#0b5cad;color:#fff");
+      frag.appendChild(a);
+    });
+    hb.insertBefore(frag, atras);
+  }
+
+  if (CFG.sin_min_max){
+    var bajo = document.querySelector('.seg-btn[data-f="bajo"]');
+    if (bajo) bajo.remove();
+    var av = $("avisoFactores");
+    if (av) av.remove();
+  }
+  if (CFG.buscar && $("q")) $("q").placeholder = CFG.buscar;
+}
 
 var D = { filas: [], sector: {}, ubicacion_id: null };
 var filtro = "todos";
@@ -258,6 +376,15 @@ function renderHead(){
 }
 
 function init(){
+  if (!CFG){
+    // sin ?sector= valido no hay nada que cargar: se dice cual falta y que hay
+    var sec = sectorDeURL();
+    var lista = Object.keys(SECTORES).map(function(k){ return k + " = " + SECTORES[k].titulo; }).join(", ");
+    $("status").textContent = (sec ? "Sector \"" + sec + "\" desconocido." : "Falta el sector en la URL (?sector=N).") +
+      " Sectores: " + lista + ".";
+    return;
+  }
+  montarPantalla();
   renderHead();
 
   $("q").addEventListener("input", render);
@@ -295,6 +422,9 @@ function init(){
     $("status").textContent = "Error: " + (e && e.message ? e.message : e);
   });
 }
+
+/* el mapa a la vista (tests y el menu lo cruzan contra sus links) */
+window.GP2StockSector = { SECTORES: SECTORES, configDe: configDe };
 
 if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", init);
 else init();

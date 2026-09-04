@@ -41,12 +41,14 @@ window.GP2Composicion = (function () {
   /* tipo_mov es el nombre tecnico del ledger; en pantalla va en castellano.
      Un tipo nuevo que no este acá se muestra tal cual, no se pierde. */
   var TIPOS = {
-    compra: "Compra", recepcion: "Recepción", recepcion_tall: "Recepción de tallerista",
-    fabricacion: "Fabricación", produccion: "Producción",
+    compra: "Compra", consumo: "Consumo de MP en prov. servicio",
+    fabricacion: "Fabricación", armado_fabrica: "Armado en fábrica", consumo_prod: "Consumo de producción",
     envio_ps: "Envío a PS", entrega_ps: "Entrega de PS",
-    envio_tallerista: "Envío a tallerista",
-    consumo_prod: "Consumo de producción", consumo_tall: "Consumo de tallerista",
-    ajuste: "Ajuste", devolucion: "Devolución"
+    envio_tallerista: "Envío a tallerista", entrega_tallerista: "Entrega de tallerista",
+    consumo_tall: "Consumo de tallerista", devolucion_tallerista: "Devolución de tallerista",
+    envio_prov_at: "Envío a prov. art. terminado",
+    recepcion_virgilio: "Entrega en Virgilio", consumo_virgilio: "Consumo en Virgilio",
+    stock_inicial: "Stock inicial", ajuste: "Ajuste"
   };
   function nombreTipo(t) { return TIPOS[t] || String(t || "").replace(/_/g, " "); }
 
