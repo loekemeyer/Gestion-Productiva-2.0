@@ -3081,3 +3081,52 @@ pantallas del grupo: cada una va adonde se usa, y el grupo del menú se borra (v
   **$77.700, que es el paquete de 100** — y la OC pide en pliegos, así que lo valuaba **100
   veces de más**; y la tarifa de AJ del 506 estaba **por posición** ($11,67 = $140/12) en vez
   de por pliego. **Al cargar un precio, mirar siempre en qué unidad pide la pantalla.**
+
+## 4k. El par `CVxx` / `Vxx`: lo que se compra es el CRUDO, no el niquelado (2026-09-04)
+
+**El código que empieza con `CV` es la pieza cruda "p/Niquelar"; el `V` sin C es la misma
+pieza ya niquelada.** El niquelado no se compra: lo hace un proveedor de servicio
+(Guazzaroni Patricio) en un paso de la ruta. O sea que la plata sale UNA sola vez, por el
+crudo, y el niquelado entra como costo de servicio.
+
+Las dos rutas que hoy existen con esa forma (`tipo_paso`: ingreso → proveedor_servicio →
+tallerista) son idénticas:
+
+| Crudo | Proveedor del crudo | Niquela | Niquelado | Arma | Artículos |
+|---|---|---|---|---|---|
+| `CV18D` Tornillo Sacafuente p/Niquelar | Tornillos Suipacha | Guazzaroni Patricio | `V18D` | Martin Cornejo | 508, 708 |
+| `CV13` Rem Plaquita 3 en 1 p/Niquelar | Electrónica Mandelli | Guazzaroni Patricio | `V13` | Martin Cornejo | 043, 511 |
+
+**Consecuencia para precios (regla):** el `precio_proveedor` va SIEMPRE colgado del `CV`
+(lo que se factura), y el `V` va marcado `estado_compra='fabricacion'` para que la OC no
+lo pida. `V18D` ya está así. **`V13` NO**: hoy tiene el precio ($15,37, lista Mandelli
+12/02, "Oj. Hierro niquelado 3x6x5,5") colgado del niquelado y `CV13` quedó en cero —
+está del lado equivocado del par. Pendiente de confirmar con el usuario si Mandelli
+entrega crudo (el precio se muda a `CV13`) o ya niquelado (entonces sobra el paso de
+Guazzaroni en las rutas 238 y 307).
+
+**Y un precio pegado al componente equivocado:** la fila `precio_proveedor` id 66,
+lista 21/08, producto **"Tornillo sacafuentes" $68,70**, está colgada de **`W8`
+(Vástago Sacafuente Pizzero, de Imel)**. Un vástago no es un tornillo: ese precio
+pinta ser el del `CV18D` de Suipacha, que es justamente el que figura sin precio.
+Pendiente de confirmar antes de moverlo (si se mueve, `W8` queda sin precio y hay que
+cargarle el del vástago).
+
+### Comprables sin precio: cómo se cerraron (2026-09-04)
+
+De los 6 que quedaban colgados el 03/09:
+
+- **`IC3V`** (Fleje N° 90 LARGO) — *[usuario]* "3 va el mismo precio": lleva el mismo
+  precio que `IC3` (US$ 1,715, lista fleje 3711, Ø 1.63 mm alambre galvanizado). Cargado.
+- **`BOM10`** (Resorte Bicónico, Resortes Charcas) — *[usuario]* discontinuo.
+  `estado_compra='discontinuo'`.
+- **`ID7`** (Fleje N° 50, EstaMetal) — *[usuario]* discontinuo. `estado_compra='discontinuo'`.
+  Además no lo usaba nadie (0 recetas, 0 rutas).
+- **`CV18D`** — sí se compra: es el crudo de la tabla de arriba. Falta el precio.
+- **`CV13`** — ídem, pendiente de la confirmación de Mandelli.
+- **`CV16`** (Vástago Sacafuente 5.2 x 100 Rosca 41 p/Niquelar, Bella Vista) — huérfano
+  puro: 0 recetas, 0 BOM, 0 pasos de ruta, 0 precios. *[usuario]* "508 lleva ese vástago",
+  pero la receta del 508 hoy no tiene NINGÚN vástago (sí `PC12`, `V18D`, `V6`, `Z1A`,
+  `Z2A`, `D13`, `G2C`, `A8`), mientras el 518 y el 708 llevan `W8` (Vástago Sacafuente
+  Pizzero, de Imel). Pendiente saber si el 508 lleva `W8` o el `CV16` — si es `CV16`,
+  hay que armarle también la ruta crudo → niquelado como las de arriba.
