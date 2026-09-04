@@ -68,6 +68,8 @@
      background:#fff;font-size:17px;font-weight:800;cursor:pointer;color:#111}
   .b.pri{background:#111;color:#fff;border-color:#111}
   .b.ok{background:#0a7a2f;color:#fff;border-color:#0a7a2f}
+  /* Borrar es destructivo: se ve distinto, pero sin gritar (no es la accion principal). */
+  .b.del{border-color:#eacdcd;color:#c00;background:#fff}
   .b:disabled{opacity:.45;cursor:not-allowed}
   .b.sm{min-height:44px;padding:9px 14px;font-size:15px}
 
@@ -167,6 +169,7 @@
       </div>
       <div class="barra">
         <span class="info" id="compResumen"></span>
+        <button type="button" class="b del" id="btnEliminarComp">Eliminar conteo</button>
         <button type="button" class="b ok" id="btnAplicar">Aplicar al stock</button>
       </div>
     </div>
@@ -236,12 +239,14 @@ function pintarCrono(){
       // aparezca un tilde"], y al lado el paso que queda.
       hecho = true;
       acts = '<span class="tilde">✓ Contado</span>'+
-             '<button type="button" class="b sm pri" data-comp="'+rel.id+'">Ver comparación →</button>';
+             '<button type="button" class="b sm pri" data-comp="'+rel.id+'">Ver comparación →</button>'+
+             '<button type="button" class="b sm del" data-del="'+rel.id+'" title="Borrar el conteo y volver a empezar">Eliminar</button>';
     } else if(estado === 'en_curso' && rel.contados > 0){
       // Solo se ofrece seguir si HAY algo cargado. Un conteo abierto y vacio se descarta
       // al salir (ver salirDeCarga), asi que este caso no aparece por haber entrado a mirar.
       acts = '<button type="button" class="b sm pri" data-abrir="'+c.sector_id+'" data-crono="'+c.crono_id+'">'+
-             'Seguir cargando ('+rel.contados+'/'+rel.items+')</button>';
+             'Seguir cargando ('+rel.contados+'/'+rel.items+')</button>'+
+             '<button type="button" class="b sm del" data-del="'+rel.id+'" title="Borrar lo cargado y volver a empezar">Eliminar</button>';
     } else {
       acts = '<button type="button" class="b sm pri" data-abrir="'+c.sector_id+'" data-crono="'+c.crono_id+'">Contar</button>';
     }
@@ -260,6 +265,20 @@ function pintarCrono(){
   document.querySelectorAll('[data-comp]').forEach(function(b){
     b.addEventListener('click', function(){ verComparacion(Number(b.dataset.comp)); });
   });
+  document.querySelectorAll('[data-del]').forEach(function(b){
+    b.addEventListener('click', function(){ eliminar(Number(b.dataset.del)); });
+  });
+}
+
+/* Borrar un conteo y volver a empezar. Solo se puede mientras el stock NO se toco
+   (en_curso o contado); si ya se aplico, la base lo rechaza y se avisa. */
+async function eliminar(relId){
+  if(!confirm('Se borra el conteo entero y el sector vuelve a quedar como antes, para contarlo de nuevo.\n\n¿Eliminar?')) return;
+  var r = await SB.rpc('relevamiento_eliminar', { p_id: relId });
+  if(r.error){ msg('No se pudo eliminar: '+r.error.message, true); return; }
+  msg('✓ Conteo eliminado');
+  await boot();
+  mostrar('crono');
 }
 
 /* ---------------- PASO 2: carga ---------------- */
@@ -487,6 +506,7 @@ async function salirDeCarga(){
   await boot();
   mostrar('crono');
 }
+$('btnEliminarComp').addEventListener('click', function(){ if(REL && REL.id) eliminar(REL.id); });
 $('btnVolver').addEventListener('click', salirDeCarga);
 $('btnVolver2').addEventListener('click', async function(){ await boot(); mostrar('crono'); });
 
