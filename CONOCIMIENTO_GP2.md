@@ -3600,3 +3600,85 @@ donde estaban.
 `OC_GP2.html` v1.16.0 las lee en `boot()` con `cargarReglasRubro()`; el `RUBRO_MAP` /
 `RUBRO_OCULTO` hardcodeado quedó **sólo como fallback** por si la consulta falla. Para sumar
 un rubro nuevo o sacar uno, **ya no se toca código**: se actualizan esas dos columnas.
+
+---
+
+## 4q. Relevamiento GP2: el conteo físico que endereza el stock antes de comprar (2026-09-04)
+
+**Arrancado el 2026-09-04. Backend hecho y verificado; falta el cierre/comparación y la
+pantalla.** Registro del SQL en `db/relevamiento_GP2.sql`.
+
+### Por qué es módulo nuevo y no un ajuste `[dato: lectura del código]`
+
+`Relevamiento/relevamiento.js` (el que ya existía) lee del **schema viejo**
+(`relevamiento_cervantes` vía `public.rc_*`) y está armado sobre **plantas**
+(Cervantes/Virgilio). GP2 está armado sobre **sector + ubicación**. No es el mismo modelo:
+se mira la **lógica** del vecino (cómo cuenta cada tipo, cómo compone envases + sueltas) pero
+no se copia su casa.
+
+### Los 7 tipos del viejo mapean 1:1 a sectores GP2
+
+| Tipo (Excel) | Sector GP2 | Componentes |
+|---|---|---|
+| Cajas | 11 | 9 |
+| Flejes | 5 | 54 |
+| Cartones | 10 | 110 |
+| Plásticos | 6 | 37 |
+| Remaches | 8 | 33 |
+| Bombillas | 7 | 12 |
+| Garage | 9 | 10 |
+
+**`Bolsa Plást` NO es uno de los 7 y no tiene sector.** Aparece en el Excel del usuario
+(siempre el mismo día que Plásticos: 02-oct y 09-nov). Quedó cargado en el cronograma con
+`sector_id NULL` y la pantalla lo va a mostrar como **no mapeado**. **PENDIENTE del usuario:
+decir qué sector es.** No se inventó.
+
+### El cronograma
+
+Cargado con la foto del Excel "conteo" (28 fechas, sept–nov 2026) en
+`GP2.relevamiento_cronograma`. `relevamiento_bundle()` devuelve **el más próximo por tipo**
+`[usuario: "en el cronograma aparecen varias veces garage porque se hace más de una vez por
+mes, pero quiero que me pongas el más próximo"]`. Si un tipo ya no tiene fechas futuras,
+muestra la última vencida en vez de desaparecer.
+
+### El envase cambia por sector, y ese es el único pedazo que varía
+
+`GP2.relev_factor(componente_id)` devuelve **cuántas unidades entran en un envase** y **cómo
+se llama ese envase**: Paquetes (cartón/caja), Bolsas (plástico/remache), Bolsa/Caj/Rollo
+(bombilla), Cajones (garage). El **fleje se cuenta en kilos**, no en envases.
+
+**El total lo calcula la BASE** (`relev_total_uni`), nunca el JS — el motor vive en la BD.
+
+### Hallazgo: los factores de cartón y caja NO están por componente `[dato: medido]`
+
+`componente.uni_x_cajon` está en **0 de 110** en Cartón y **0 de 9** en Caja (se ve en la
+pantalla de stock: la columna "Uni × Cajón" toda en "—"). **No es un bug: son parámetros
+globales**, no por pieza:
+
+- `carton_uni_x_paquete` = **250**
+- `pliego_uni_x_paquete` = **100** (los `es_pliego`)
+- `caja_uni_x_paquete` = **25** — este **estaba hardcodeado** en `control-cajas.js` y se bajó
+  a `GP2.parametro` para que el relevamiento y el control usen el mismo número.
+
+Los que sí van por componente: Plástico 34/37, Garage 9/10, Bombilla 8/12, Remache 14/33.
+**Los que faltan quedan con factor NULL y la pantalla los marca**: no se calcula un total
+inventado (regla de la casa).
+
+### El circuito completo `[usuario 2026-09-04]`
+
+1. Se releva (conteo físico del sector).
+2. Se compara **conteo vs programa**; el usuario elige cuál vale, **default el conteo**.
+3. Se actualiza el stock.
+4. **Recién ahí** se genera la OC, contra ese stock ya corregido.
+
+**Decisión de cómo se aplica el ajuste:** por **movimiento** (`GP2.movimiento`, delta =
+conteo − programa), **no** pisando `inventario.cantidad`. Motivo: el motor de inventario vive
+en la BD (triggers `fn_movimiento_calc` / `fn_movimiento_aplicar`) y así el ajuste queda
+trazado. Los pasos 2–3 son lo que falta construir (`relevamiento_cerrar` / `relevamiento_aplicar`).
+
+### Verificado end-to-end el mismo día
+
+Con Sector Caja: los 9 componentes salen con envase "Paquetes" y factor 25; cargando 3
+paquetes + 10 sueltas en A1 el total dio **85** contra **1.120** del programa. Los stocks
+coinciden con la pantalla que mostró el usuario (A1 1.120, A11 60, A2 20, A9 80). Los datos
+de prueba se borraron.
