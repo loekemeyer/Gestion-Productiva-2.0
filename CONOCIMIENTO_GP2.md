@@ -750,11 +750,13 @@ debe**: se compra el crudo `CV*` y el `V*` niquelado queda en `fabricacion` sin 
 - **Proveedores**: están Bella Vista, Tornillos Suipacha, Electrónica Mandelli e Imel (la
   planilla lo llama "Fijaciones Imel"). **`Dilmax` se dio de alta el 2026-09-04**
   (`rubro='Sector Remache'`) con sus dos fluidos, por orden del usuario.
-- **`V15C` Rem Tapón Hierro (12 x 2,75) — CARGADO** `[usuario 2026-09-04: "rem tapon hierro
+- **`CV15` Rem Tapón Hierro (12 x 2,75) — CARGADO** `[usuario 2026-09-04: "rem tapon hierro
   agregalo v15c"]`. Era el único faltante real del sector. Componente **617** en Sector
   Remache, proveedor Bella Vista, `kg_x_uni = 0,0008`, inventario en 0. **Sin precio**: la
-  planilla trae 0 en Prec x KG. Se respetó el código que dictó el usuario (`V15C`, el del
-  sector crudo de la planilla) aunque el resto de los crudos usa el prefijo `CV`.
+  planilla trae 0 en Prec x KG. Se cargó primero como `V15C` (el código del sector crudo de
+  la planilla) y se **renombró a `CV15`** en el momento `[usuario: "si renombra para que
+  quede parejo"]`: **todos los crudos de remache llevan prefijo `CV`**, y la parejidad del
+  maestro pesa más que copiar el código del Excel.
   **⚠ Discrepancia de envase que quedó a la vista**: se cargó con `uni_x_cajon = 2500`, o sea
   la **bolsa de 2 kg que dice la planilla**, pero **los 12 crudos `CV*` de GP2 tienen todos
   bolsa de 20 kg** (`kg_x_uni × uni_x_cajon = 20` en los doce), mientras la misma planilla les
@@ -782,6 +784,48 @@ debe**: se compra el crudo `CV*` y el `V*` niquelado queda en `fabricacion` sin 
 - **⚠ Códigos de sector pisados entre planillas**: `EST1`/`EST2` son el aceite y el soluble en
   la planilla de remaches, y los Insertos Mgo Madera / Pisa Papas en la de plásticos. Si
   algún día se cargan los dos, no se distinguen por sector.
+
+## 1-septies. Bombillas: 5 de 17, y dos códigos pisados (2026-09-04)
+
+`[dato: planilla "Conteo Bombilla VACIO", hoja "Conteo VACIO" A1:AO65 — el resto es
+discontinuo]` 10 bloques de proveedor y 17 partes. En Recepción aparecían 5: `BOM12` Caño
+Inox 140 (Giser), `BOM8` Resorte p/Bombilla Niq (Grudzien), `EP10` Resorte Mini Batidor y
+`LLF8` Resorte Batidor Pera (Charcas), y el `Z32`/1686 de Eclipse.
+
+**Proveedores**: ya estaban Metalúrgica Giser, Bella Vista, Casa Landau, Resortes Charcas,
+Eclipse y **Grudzien Claudia Laura — que la planilla llama "Resortes Alfredo"** (otro alias
+para la lista de nombres dobles).
+
+**`Melinox` y `Rueda` se dieron de alta el 2026-09-04** `[usuario: "agrega melinox y
+rueda"]`, rubro `Bombillas`, con sus partes en Sector Bombilla e inventario en 0:
+- **`Z22` Pala de Torta** (id 618, Melinox), `kg_x_uni = 0,037333`, 300 uni por bolsa, precio
+  **$ 1.100 por unidad**. **⚠ El código `Z22` queda repetido a propósito**: el otro es el
+  "Llavero Pie" (id 135, Sector Procesado). Se respetó el código del maestro del usuario en
+  vez de inventar uno — vale la regla de siempre: unir por `componente.id`, nunca por
+  `codigo`.
+- **`BOM8B` Tela Manga Repostera** (id 619, Rueda). **Se cuenta por ROLLO**: la unidad de
+  stock es el rollo (`unidad_medida='unidad'` = 1 rollo) y, según la planilla, **1 rollo rinde
+  950 unidades**. Sin precio (la planilla no lo trae) y sin `uni_x_cajon`, porque no hay
+  envase por encima del rollo.
+
+**Siguen sin existir (3 proveedores)**: `Alambres Rumbo`, `Colodis Kufo` y **`Ruffo`** — el
+caño inox dice **"Giser/Ruffo"**, o sea dos proveedores para la misma pieza y GP2 sólo conoce
+a Giser.
+
+**Partes que siguen faltando (10)**:
+- **No existen (6)**: `BOM5` Buje Bombilla Bronce y `BOM6` Adorno Bombilla Bronce (Giser),
+  `BOM11` Tapita Aluminio (Bella Vista), `Z2S` Aro p/Llavero Grande y `Z2SB` Argolla
+  p/Llavero Chica (Casa Landau), `AA6/AE10` Rallador Cilíndrico 14 cm (Colodis Kufo), `BOM4`
+  Resorte p/Bombilla Autolimpiante (Grudzien).
+- **`BOM10` Resorte Bicónico** (Charcas) existe pero está **discontinuo**, y la planilla lo
+  pide con ~500 uni/mes de consumo. O el consumo es viejo o el discontinuo está mal.
+- **`BOM14` es un código pisado** `[dato, YA NOS FRENÓ ANTES]`: en la planilla es el **Caño
+  Inox 170 mm de Giser**; en GP2 es el **Precinto p/Bombilla de Cimarrón**. Por esto se había
+  abortado la carga de factores del 2026-09-04 anterior.
+- **`Z19A` Alambre Corta Queso está mal ubicado** `[CORRECCIÓN]`: en GP2 es `IZ19A`, en
+  **Sector Fleje**, sin proveedor y discontinuo. **No es el fleje 78 de Brawin** como se
+  supuso en la auditoría de flejes de este mismo día: es el alambre de **Alambres Rumbo** y
+  vive en la planilla de bombillas. El fleje 78 sigue siendo un faltante aparte.
 
 ---
 
