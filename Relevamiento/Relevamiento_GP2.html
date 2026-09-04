@@ -1,7 +1,18 @@
 <!doctype html>
 <html lang="es">
 <head>
-<!-- v1.2.0 (2026-09-04) — LA COMPARACION SE VA A OTRO MODULO, Y EL ELIMINAR SALE DEL
+<!-- v1.3.0 (2026-09-04) — ELIMINAR VUELVE AFUERA, Y SIN FACTOR SE CUENTA SUELTO
+     [usuario 2026-09-04]. (a) "que no me aparezca el eliminar cuando estoy haciendo el conteo
+     adentro de la pagina ... porque no tiene sentido poder ir para atras, sino que me
+     aparezca afuera": el boton sale de la barra de carga y vuelve a la linea del cronograma
+     (en "Seguir cargando" y en "Contado"). Mientras se cuenta no se ofrece tirar todo por la
+     borda. En "Hecho" no va: ese ya toco el stock.
+     (b) "con respecto a todos los que falta factor, dejame cargar uni sueltas y elimina el
+     boton, ya sea bolsa, cajon, lo que fuere": cuando no hay factor ya no se muestra el campo
+     de envase deshabilitado con el cartel rojo -- era un callejon, pedia un dato que no esta.
+     Ahora dice "solo sueltas" y se cuenta directo en unidades. Son 15 componentes.
+
+     v1.2.0 (2026-09-04) — LA COMPARACION SE VA A OTRO MODULO, Y EL ELIMINAR SALE DEL
      CRONOGRAMA [usuario 2026-09-04: "que no me aparezca aca el eliminar, solo adentro" +
      "no quiero que me aparezca despues de hacer el relevamiento en el mismo modulo, porque
      eso lo van a hacer los operarios, y el operador de aca del sistema va a hacer el
@@ -94,7 +105,6 @@
   .in-num:focus{outline:none;border-color:#111}
   td.tot{font-size:20px;font-weight:800;font-variant-numeric:tabular-nums}
   td.num{text-align:right;font-variant-numeric:tabular-nums}
-  .falta-factor{font-size:13px;color:#c00;font-weight:700;display:block}
   /* NO es un error: esta pieza no se cuenta por envase. Por eso no va en rojo. */
   .solo-sueltas{font-size:14px;color:#5a6672;font-style:italic}
   tr.cargado td{background:#f2faf5}
@@ -157,7 +167,6 @@
       <div class="barra">
         <button type="button" class="b" id="btnGuardar">Guardar</button>
         <button type="button" class="b pri" id="btnCompletar">Completar conteo →</button>
-        <button type="button" class="b del" id="btnEliminar">Eliminar conteo</button>
       </div>
     </div>
 
@@ -217,22 +226,26 @@ function pintarCrono(){
     var rel = c.relevamiento;
     var estado = rel ? rel.estado : null;
     var acts, hecho = false;
-    /* En el cronograma NO va ningun boton destructivo ni la comparacion
-       [usuario 2026-09-04: "que no me aparezca aca el eliminar, solo adentro"].
-       Eliminar vive ADENTRO de la pantalla de carga; la comparacion se mudo entera al
-       modulo Validacion de Stock, que lo maneja el operador del sistema, no el operario. */
+    /* Eliminar va AFUERA, en el cronograma, NO adentro de la carga [usuario 2026-09-04:
+       "que no me aparezca el eliminar cuando estoy haciendo el conteo adentro de la pagina
+       ... porque no tiene sentido poder ir para atras, sino que me aparezca afuera"].
+       Mientras se cuenta no se ofrece tirar todo por la borda; se decide desde la lista.
+       La comparacion no esta aca: vive en Validacion de Stock, que lo maneja el operador
+       del sistema, no el operario. */
+    var btnDel = rel ? ('<button type="button" class="b sm del" data-del="'+rel.id+
+                        '" title="Borrar el conteo y volver a empezar">Eliminar</button>') : '';
     if(estado === 'aplicado'){
       hecho = true;
-      acts = '<span class="tilde">✓ Hecho</span>';
+      acts = '<span class="tilde">✓ Hecho</span>';   // ya toco el stock: no se borra
     } else if(estado === 'contado'){
       // El operario ya termino: tilde y listo. La validacion no es cosa suya.
       hecho = true;
-      acts = '<span class="tilde">✓ Contado</span>';
+      acts = '<span class="tilde">✓ Contado</span>' + btnDel;
     } else if(estado === 'en_curso' && rel.contados > 0){
       // Solo se ofrece seguir si HAY algo cargado. Un conteo abierto y vacio se descarta
       // al salir (ver salirDeCarga), asi que este caso no aparece por haber entrado a mirar.
       acts = '<button type="button" class="b sm pri" data-abrir="'+c.sector_id+'" data-crono="'+c.crono_id+'">'+
-             'Seguir cargando ('+rel.contados+'/'+rel.items+')</button>';
+             'Seguir cargando ('+rel.contados+'/'+rel.items+')</button>' + btnDel;
     } else {
       acts = '<button type="button" class="b sm pri" data-abrir="'+c.sector_id+'" data-crono="'+c.crono_id+'">Contar</button>';
     }
@@ -302,21 +315,20 @@ function pintarCarga(){
     if(i.cuenta_kg){
       celdas = '<td class="num"><input class="in-num" inputmode="decimal" data-k="kg" data-id="'+i.item_id+'" value="'+(i.kg!=null?String(i.kg).replace('.',','):'')+'"></td>';
     } else {
-      /* Dos casos distintos, y NO hay que confundirlos:
-         - envase NULL  -> esta pieza NO se cuenta por envase, solo por unidades sueltas
-                           (ej. GRJ13 Bowls 330ml). El dato no falta: no aplica.
-         - factor NULL  -> el envase aplica pero no sabemos cuantas unidades entran.
-                           Se avisa y NO se inventa un total. */
-      var soloSueltas = (i.envase==null);
-      var sinF = !soloSueltas && (i.factor==null);
+      /* No se pide envase en dos casos, y en los dos se carga DIRECTO en uni sueltas
+         [usuario 2026-09-04: "con respecto a todos los que falta factor, dejame cargar uni
+         sueltas y elimina el boton, ya sea bolsa, cajon, lo que fuere"]:
+           - envase NULL -> la pieza no se cuenta por envase (ej. GRJ13 Bowls 330ml)
+           - factor NULL -> no sabemos cuantas unidades entran en el envase
+         Antes el campo quedaba deshabilitado con un cartel rojo, y era un callejon: pedia
+         un dato que no esta. Ahora simplemente no aparece y se cuenta suelto. */
+      var sinEnvase = (i.envase==null) || (i.factor==null);
       celdas =
         '<td class="num">'+
-          (soloSueltas
+          (sinEnvase
             ? '<span class="solo-sueltas">solo sueltas</span>'
-            : '<input class="in-num" inputmode="numeric" data-k="envases" data-id="'+i.item_id+'" '+
-              (sinF?'disabled title="Falta cuántas unidades entran en un '+esc(nombreEnvase())+'"':'')+
-              ' value="'+(i.envases!=null?i.envases:'')+'">'+
-              (sinF?'<span class="falta-factor">falta el factor</span>':''))+
+            : '<input class="in-num" inputmode="numeric" data-k="envases" data-id="'+i.item_id+'"'+
+              ' value="'+(i.envases!=null?i.envases:'')+'">')+
         '</td>'+
         '<td class="num"><input class="in-num" inputmode="numeric" data-k="sueltas" data-id="'+i.item_id+'" value="'+(i.sueltas!=null?i.sueltas:'')+'"></td>';
     }
@@ -348,8 +360,8 @@ function recalcularFila(id){
   if(i.cuenta_kg){
     var kg = valorDe(id,'kg');
     if(kg!=null) t = (i.unidad==='kg') ? kg : (i.kg_x_uni>0 ? Math.round(kg/Number(i.kg_x_uni)) : null);
-  } else if(i.envase==null){
-    t = valorDe(id,'sueltas');            // solo sueltas: el total ES lo suelto
+  } else if(i.envase==null || i.factor==null){
+    t = valorDe(id,'sueltas');            // sin envase: el total ES lo suelto
   } else {
     var e = valorDe(id,'envases'), s = valorDe(id,'sueltas');
     if(e==null && s==null) t = null;
@@ -430,7 +442,6 @@ async function salirDeCarga(){
   await boot();
   mostrar('crono');
 }
-$('btnEliminar').addEventListener('click', function(){ if(REL && REL.id) eliminar(REL.id); });
 $('btnVolver').addEventListener('click', salirDeCarga);
 
 boot();

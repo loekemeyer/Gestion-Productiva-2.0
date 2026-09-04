@@ -3867,9 +3867,15 @@ gente distinta. Por eso al completar el conteo la pantalla vuelve al cronograma 
 difieren** del programa (que es lo que el operador quiere ver de un golpe), más un historial
 corto de los ya aplicados.
 
-**El "Eliminar" salió del cronograma** `[usuario: "que no me aparezca acá el eliminar, solo
-adentro"]`: vive adentro de la pantalla de carga (operario) y en la barra de la comparación
-(operador). En la lista no va nada destructivo.
+**Dónde va el "Eliminar" — el usuario lo cambió dos veces, y la segunda tiene mejor razón.**
+Primero pidió sacarlo del cronograma (*"que no me aparezca acá el eliminar, solo adentro"*), y
+al rato lo revirtió: *"que no me aparezca el eliminar cuando estoy haciendo el conteo adentro
+de la página... porque no tiene sentido poder ir para atrás, sino que me aparezca afuera"*.
+
+**Queda afuera, en la línea del cronograma** (en "Seguir cargando" y en "Contado"), y también
+en la barra de la comparación del módulo de validación. **Mientras se cuenta no aparece**: es
+un botón para arrepentirse en el peor momento. En "✓ Hecho" tampoco va — ese ya tocó el stock
+y la base lo rechaza.
 
 ### "Solo sueltas" NO es lo mismo que "falta el factor" `[usuario 2026-09-04]`
 
@@ -3879,10 +3885,17 @@ no se cuenta en cajones."*
 Nueva columna **`componente.relev_solo_sueltas`** (hoy sólo `GRJ13` Bowls 330ml). Cuando está
 en true, `relev_factor` devuelve **envase NULL** y `relev_total_uni` toma directamente lo suelto.
 
-**Son dos cosas distintas y la pantalla las muestra distinto:**
+**Los dos casos terminan mostrando lo mismo, pero por motivos distintos:**
 
-- **`envase` NULL → "solo sueltas"** (gris, itálica). El envase **no aplica**. No falta nada.
-- **`factor` NULL → "falta el factor"** (rojo, campo deshabilitado). El envase **sí aplica**
-  pero no sabemos cuántas unidades entran, así que no se calcula un total inventado.
+- **`envase` NULL** → el envase **no aplica** (el Bowl no viene en cajones).
+- **`factor` NULL** → el envase aplica pero **no sabemos cuántas unidades entran**.
 
-Mezclarlos haría que la pantalla pida para siempre un dato que nunca va a existir.
+En los dos la pantalla dice **"solo sueltas"** y se cuenta directo en unidades
+`[usuario 2026-09-04: "con respecto a todos los que falta factor, dejame cargar uni sueltas y
+eliminá el botón, ya sea bolsa, cajón, lo que fuere"]`. Antes el segundo caso mostraba el campo
+deshabilitado con un cartel rojo "falta el factor", y **era un callejón**: la pantalla pedía un
+dato que no está y no dejaba avanzar. Son **15 componentes** (`D9, PC16, BOM13, BOM14, C12,
+CV12, CV18D, CV6, CV9, V18D, V20, GRJ13` y los 3 cartones formato "Bolsa": `A1B, A1B1, G8C`).
+
+La distinción sigue viva en los datos (`relev_solo_sueltas` vs factor faltante), así que el día
+que aparezca un factor se carga y esa pieza vuelve sola a contarse por envase.
