@@ -459,12 +459,19 @@ depositado en la ubicación del PS.
   `cargar_recepcion_charcas`/`cargar_recepcion_eclipse` siguen desplegadas
   en Supabase — solo cambia quién las llama (ahora la pantalla nueva).
 
-**Paridad Altrak/Charcas ↔ Aperam/Eclipse `[dato 2026-09-02]`:** los dos
+**Paridad Altrak/Charcas ↔ Aperam/Eclipse `[dato 2026-09-02, act. 2026-09-04]`:** los dos
 modelos son gemelos estructurales. Igual: ubicación tipo `proveedor_servicio`
-(Charcas 13 / Eclipse 48), MP en sector 13 Alambre en kg (`FLEJE90_BRUTO`
-Altrak / CHAPA430 Aperam), RPC de compra (`cargar_compra_altrak` /
+(Charcas 13 / Eclipse 48), MP en kg (`FLEJE90_BRUTO` Altrak sector 13 Alambre /
+`CHAPA430` Aperam sector 5 Fleje desde 2026-09-04), RPC de compra (`cargar_compra_altrak` /
 `cargar_compra_aperam_chapa`), RPC de recepción (`cargar_recepcion_charcas`
-/ `cargar_recepcion_eclipse`), parámetro de desperdicio, pantalla Pagos.
+/ `cargar_recepcion_eclipse`), parámetro de desperdicio.
+**Ambos entran igual (desde 2026-09-04, "misma forma"):** la MP se recibe por
+Recepción Insumos → Flejes (Altrak = provderor propio con panel; chapa Aperam =
+ruteo por ítem `CHAPA430` → panel `stepChapa`), la ENTREGA del corte va por Entrega PS
+(faseCharcas IC3/IC3V, faseEclipse 1686), y en Control PS el `consumo` de la MP bruta
+NO cuenta como "entregado" (se corta, no se entrega) — el "entregado" es la `compra`
+del producto cortado atribuida al PS. Los módulos "Pagos" (AltrakCharcas / AperamEclipse)
+quedaron JUBILADOS (legacy sin link).
 **⚠️ Ya NO son gemelos en la OC** (desde 2026-09-04): Eclipse mantiene OC gemela
 a Aperam; Charcas va SOLO a Altrak, sin gemela. `proveedor_insumo.modo_control` = `peso_total`
 en ambos `[usuario 2026-09-02: "los paquetes se pesan"]` — semántico, el

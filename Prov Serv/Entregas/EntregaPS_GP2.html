@@ -1,7 +1,8 @@
 <!doctype html>
 <html lang="es">
 <head>
-<!-- v1.5.1 (2026-09-04) — FECHA REAL en la entrega Charcas: si la carga es de hoy sella el
+<!-- v1.5.2 (2026-09-04) — FECHA REAL tambien en la entrega Eclipse (mismo fechaHora que Charcas).
+     v1.5.1 (2026-09-04) — FECHA REAL en la entrega Charcas: si la carga es de hoy sella el
      instante real (new Date().toISOString()) en vez de 'T12:00:00' fijo, asi dos entregas del
      mismo dia no caen todas al mediodia en el ledger del bruto. Fecha pasada sigue con mediodia.
      v1.5.0 (2026-09-04) — panel Charcas: el producto se elige con 2 BOTONES (Corto IC3 / Largo
@@ -383,7 +384,7 @@ $("ecGuardar").addEventListener("click", async function(){
   if(!confirm("Registrar entrega de Eclipse:\n\n"+prod.codigo+" — "+(prod.descripcion||"")+"\nUnidades: "+fmt(uni)+"\n\n¿Confirmar?")) return;
   $("ecGuardar").disabled=true; m.textContent="Registrando…";
   try{
-    var res = await SB.rpc("cargar_recepcion_eclipse", { p_comp_id:prod.id, p_unidades:uni, p_remito:null, p_fecha:fecha+"T12:00:00" });
+    var res = await SB.rpc("cargar_recepcion_eclipse", { p_comp_id:prod.id, p_unidades:uni, p_remito:null, p_fecha:fechaHora(fecha) });
     if(res.error) throw res.error;
     var d=res.data||{};
     m.className="status ok";

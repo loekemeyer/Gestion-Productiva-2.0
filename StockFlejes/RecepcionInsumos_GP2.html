@@ -6,6 +6,11 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
+<!-- v3.49.0 (2026-09-04) — CHAPA 430 DE APERAM SE RECIBE ACA (misma forma que Altrak, jubila
+     el modulo Pagos Aperam->Eclipse). Al tocar el item CHAPA430 en Flejes se abre un panel
+     propio stepChapa (kg + remito, sin %) que llama cargar_compra_aperam_chapa -> suma la
+     chapa al stock de Eclipse (ubic 48). Ruteo por ITEM (no por proveedor): Aperam vende 13
+     flejes normales + la chapa. -->
 <!-- v3.48.1 (2026-09-04) — FECHA REAL en la compra Altrak: si la carga es de hoy sella el
      instante real (new Date().toISOString()) en vez de 'T12:00:00' fijo, asi dos cargas del
      mismo dia no caen todas al mediodia en el ledger. Fecha pasada sigue con mediodia. -->
@@ -477,6 +482,36 @@ input[type="text"]{width:200px}
       <div id="akMsg" class="status" style="margin-top:10px"></div>
     </div>
 
+    <!-- Recepcion de Aperam (chapa 430 -> Eclipse), mismo patron que Altrak pero SIN % (la
+         chapa no se reparte): solo kg + remito. cargar_compra_aperam_chapa la suma al stock
+         de Eclipse (ubic 48); el 1686 lo genera despues la entrega de Eclipse en Entrega PS. -->
+    <div id="stepChapa" class="hidden">
+      <div class="row">
+        <button class="btn btn-secondary" id="btnVolverChapa">← Volver</button>
+        <div style="font-size:22px;font-weight:900;color:#0b3b73">Flejes · Aperam → Eclipse (chapa)</div>
+      </div>
+      <div style="background:#eef4fb;border:2px solid #cddaea;border-radius:12px;padding:14px 18px;margin:12px 0;text-align:center">
+        <div style="font-size:13px;font-weight:800;color:#475569;text-transform:uppercase;letter-spacing:.4px">Stock de chapa 430 en Eclipse</div>
+        <div style="font-size:32px;font-weight:900;color:#0b3b73"><span id="chStock">0</span> <small style="font-size:18px;color:#0b5cad">kg</small></div>
+      </div>
+      <div style="display:flex;gap:14px;flex-wrap:wrap;margin:12px 0">
+        <div style="flex:1 1 150px;display:flex;flex-direction:column;gap:6px">
+          <label for="chFecha" style="font-size:16px;font-weight:700">Fecha</label>
+          <input type="date" id="chFecha" style="height:48px;font-size:20px;padding:0 12px;border:2px solid #d0d7de;border-radius:10px">
+        </div>
+        <div style="flex:1 1 150px;display:flex;flex-direction:column;gap:6px">
+          <label for="chRemito" style="font-size:16px;font-weight:700">N° remito (opcional)</label>
+          <input type="text" id="chRemito" inputmode="text" placeholder="Opcional" style="height:48px;font-size:20px;padding:0 12px;border:2px solid #d0d7de;border-radius:10px">
+        </div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:6px;margin:12px 0">
+        <label for="chKg" style="font-size:16px;font-weight:700">Kg de chapa 430 comprados</label>
+        <input type="text" id="chKg" inputmode="decimal" placeholder="0,0" style="height:52px;font-size:26px;font-weight:800;text-align:right;padding:0 14px;border:2px solid #d0d7de;border-radius:10px">
+      </div>
+      <button id="chGuardar" class="btn btn-primary" disabled style="min-height:52px;font-size:20px;font-weight:900;width:100%;margin-top:14px">✓ Registrar chapa de Aperam</button>
+      <div id="chMsg" class="status" style="margin-top:10px"></div>
+    </div>
+
     <div id="step2" class="hidden">
       <div class="row">
         <button class="btn btn-secondary" id="btnVolver1">← Volver</button>
@@ -887,6 +922,54 @@ if($('akKg')){
       cargarStockAltrak(); akRefresh();
     }catch(e){ m.className='status bad'; m.textContent='Error: '+(e.message||e); }
     finally{ akRefresh(); }
+  });
+}
+
+// ============ Recepcion de Aperam (chapa 430 -> Eclipse) 2026-09-04 ============
+// Se abre al tocar el item CHAPA430 en Flejes (Aperam vende 13 flejes + la chapa, asi que
+// el ruteo es por ITEM, no por proveedor como Altrak). Solo kg + remito (sin %). Llama
+// cargar_compra_aperam_chapa, que suma la chapa al stock de Eclipse (ubic 48).
+function irChapa(){
+  $('step1').classList.add('hidden');
+  $('step2').classList.add('hidden');
+  $('stepChapa').classList.remove('hidden');
+  $('chFecha').value = hoy();
+  $('chKg').value=''; $('chRemito').value='';
+  $('chMsg').textContent=''; $('chMsg').className='status';
+  chRefresh();
+  cargarStockChapa();
+}
+async function cargarStockChapa(){
+  try{
+    var st = await SB.from('inventario').select('cantidad, componente:componente_id(codigo)').eq('ubicacion_id', 48);
+    var kg=0; (st.data||[]).forEach(function(r){ if(r.componente && r.componente.codigo==='CHAPA430') kg=Number(r.cantidad)||0; });
+    $('chStock').textContent = fmt(kg);
+  }catch(e){ $('chStock').textContent='—'; }
+}
+function chRefresh(){
+  var kg=parseNum($('chKg').value);
+  $('chGuardar').disabled = !(kg>0 && $('chFecha').value);
+}
+if($('chKg')){
+  $('chKg').addEventListener('input', function(){ this.value=sanDec(this.value); chRefresh(); });
+  $('chFecha').addEventListener('input', chRefresh);
+  $('btnVolverChapa').addEventListener('click', function(){ $('stepChapa').classList.add('hidden'); $('step1').classList.remove('hidden'); });
+  $('chGuardar').addEventListener('click', async function(){
+    var m=$('chMsg'); m.className='status'; m.textContent='';
+    var kg=parseNum($('chKg').value), fecha=$('chFecha').value, remito=$('chRemito').value.trim();
+    if(!(kg>0)){ m.className='status bad'; m.textContent='Cargá los kg (mayor a 0).'; return; }
+    if(!confirm('Registrar chapa 430 de Aperam:\n\nKg: '+fmt(kg)+'\n\nSe suma al stock de Eclipse.\n\n¿Confirmar?')) return;
+    $('chGuardar').disabled=true; m.textContent='Registrando…';
+    try{
+      var res = await SB.rpc('cargar_compra_aperam_chapa', { p_kg:kg, p_remito:remito||null, p_fecha:fechaHora(fecha) });
+      if(res.error) throw res.error;
+      var d=res.data||{};
+      m.className='status ok';
+      m.innerHTML='✓ Registrada. Stock chapa en Eclipse: <b>'+fmt(d.stock_eclipse_kg)+' kg</b>.';
+      $('chKg').value=''; $('chRemito').value='';
+      cargarStockChapa(); chRefresh();
+    }catch(e){ m.className='status bad'; m.textContent='Error: '+(e.message||e); }
+    finally{ chRefresh(); }
   });
 }
 
@@ -1411,6 +1494,9 @@ function actualizarAvisoMultiplo(){
 $('unitKg').addEventListener('click',()=>setUnit('kg'));
 $('unitUni').addEventListener('click',()=>setUnit('uni'));
 function abrirPopup(i){
+  // La chapa 430 (Aperam) no se recibe en el sector: es MP de Eclipse y va a su stock
+  // (ubic 48) via cargar_compra_aperam_chapa. Se rutea a su panel propio.
+  if(i && i.codigo==='CHAPA430'){ irChapa(); return; }
   itemSel=i;
   resetPiePopup();
   $('kgTitle').textContent='Recepción · '+rubroSel;
