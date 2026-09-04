@@ -3162,3 +3162,35 @@ Los comprables sin precio bajaron de **6 a 2**, y los 2 que quedan son los dos v
 Sacafuente Niq) en `articulo_componente`, pero `D13` es un intermedio de la ruta 95/92
 (`ID8` → matriz → `D13B` → Guazzaroni → `D13` → Maspoli → `PC12`). El 708 NO lo lista. O
 sobra en el 508/518 o falta en el 708; revisar antes de creerle al costo de esos tres.
+
+## 4l. `D13` es la virola, y va DENTRO del mango: por eso no va suelta en la receta (2026-09-04)
+
+`CV16` quedó **`discontinuo`** *[usuario 2026-09-04]*: era el último vástago sin dueño, y
+con el 508 llevando `W8` ya no lo usa nadie.
+
+**Qué es `D13`.** Es un eslabón de la cadena de la virola del sacafuente, no un insumo que
+alguien compre ni que el tallerista reciba suelto:
+
+```
+ID8  Fleje N° 27 (Basconia, kg)
+  → matriz          → D13B  Virola Sacafuente (cruda, sector 1)
+  → Guazzaroni      → D13   Virola Sacafuente Niq (niquelada, sector 2)   $27,17
+  → Máspoli SRL     → PC12  Mgo Sacafuente Articulado 4.25 mm  $710,89   (508, 564, 708)
+                     PEP7  Mgo sacafuente pizzero             $710,89   (518)
+  → tallerista      → el artículo
+```
+
+O sea: Máspoli recibe la virola ya niquelada y devuelve **el mango con la virola adentro**.
+El costo del mango ($710,89) **ya contiene** los $27,17 de la virola.
+
+**Consecuencia — el doble conteo:** la receta de un artículo tiene que listar el **mango**,
+no la virola. Hoy:
+
+| Artículo | Mango en la receta | ¿Además lista `D13`? |
+|---|---|---|
+| 708 | `PC12` | no — **así va bien** |
+| 508 | `PC12` | **sí** → cuenta la virola dos veces |
+| 518 | `PEP7` | **sí** → cuenta la virola dos veces |
+
+Sacar `D13` de las recetas del 508 y del 518 les baja **$27,17 a cada uno**. Pendiente de
+que el usuario dé el OK antes de tocarlo: es plata.
