@@ -834,6 +834,40 @@ a Giser.
   supuso en la auditoría de flejes de este mismo día: es el alambre de **Alambres Rumbo** y
   vive en la planilla de bombillas. El fleje 78 sigue siendo un faltante aparte.
 
+## 1-octies. Garage: la numeración GRJ está corrida entre la planilla y GP2 (2026-09-04)
+
+`[dato: planilla "Relevamiento Garage VACIO", hoja "Pedido Garage VACIO"]` 17 renglones. **No
+se cargó nada: está bloqueado por la numeración.** Tres códigos son dos cosas distintas al
+mismo tiempo:
+
+| código | en la planilla del usuario | en GP2 |
+|---|---|---|
+| `GRJ13` | Cepillo Limpia Mamadera (Gilardi) | Bowls 330ml (Cimarrón, discontinuo) |
+| `GRJ14` | Cepillo Limpia Vajilla (Gilardi) | Bombilla Pico de Loro (Cimarrón) |
+| `GRJ15` | Pintura Azul Mate (Ortiz Yanina) | Bombilla Plana Ancha (Cimarrón) |
+
+Y del otro lado, los **`GRJ18`/`GRJ19`** de la planilla (Bombilla Pico de Loro y Bombilla
+Plana Chata) **son los que GP2 llama `GRJ14`/`GRJ15`**: las mismas bombillas con dos números.
+Cargar por código acá mezcla un cepillo con una bombilla. **Lo decide el usuario** (idea
+7248): o se renumeran las bombillas de GP2 a 18/19, o las tres partes nuevas entran con otro
+código.
+
+**Coinciden y están bien**: `GRJ1`, `GRJ4`, `GRJ5`, `GRJ6`, `GRJ7` (la planilla lo llama
+`GRJ7/8`) y `GRJ10`. Los que están en `fabricacion` no salen en Recepción y eso es correcto:
+los arma un tallerista, no se compran.
+
+**Contrapartes**: están Martin Cornejo, Alex Escalante, Pettofrezza Rafael y Cimarrón (la
+planilla lo llama "Cooperativa Cimarron"). **No existen `Gilardi Esther` (3847)** ni
+**`Ortiz Yanina` (4288)**. **Pintos** existe sólo como proveedor de insumo y acá es tallerista
+de garage. Y **Tierra Nativa**, desactivada como tallerista el mismo día por pedido del
+usuario, es la que hace `GRJ16` y `GRJ17` — hay que decidir por dónde entran.
+
+**Faltan 7 partes**: `GRJ9` Abrelata Uña Ac Inox, `GRJ12`/`GRJ12B` Ñoqueras (que en la
+planilla de plásticos son `PGRJ12`/`PGRJ12B` — mismo bicho, dos códigos), `GRJ16`
+Despolvillador de Yerba, **`GRJ17` Palo de Amasar Francés 40 cm** (el que va en la caja N°15),
+`GRJ20` Set Tapers, más los dos cepillos y la pintura que están trabados por la numeración.
+**Sobra** en GP2 el `GRJ10A` Batidor Pera Mini, que la planilla vigente no lista.
+
 ---
 
 ## 2. Materiales y procesos: la lógica del inoxidable
