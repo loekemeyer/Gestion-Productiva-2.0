@@ -1,7 +1,11 @@
 <!doctype html>
 <html lang="es">
 <head>
-<!-- v1.3.0 (2026-09-04) — ECLIPSE ENTREGA ACA TAMBIEN (hibrido). Como Charcas: se inyecta como
+<!-- v1.4.0 (2026-09-04) — el panel de Charcas muestra LO PENDIENTE POR ENTREGAR (usuario: "esa
+     info no tendria que aparecer aca tambien?"). Linea nueva chObjetivo con corto/largo pendiente
+     = objetivo acumulado (el % de cada recepcion de Altrak, en rollos_json) menos lo ya entregado,
+     via RPC charcas_pendiente(). Se refresca al abrir el panel y al registrar una entrega.
+     v1.3.0 (2026-09-04) — ECLIPSE ENTREGA ACA TAMBIEN (hibrido). Como Charcas: se inyecta como
      chip y abre panel propio (faseEclipse) para el cortado 1686 en unidades -> cargar_recepcion_eclipse
      (suma uni en Procesado, descuenta kg de chapa 430 en Eclipse). Con esto se jubila el modulo
      CharcasEclipse (sacado del menu). v1.2.0 (2026-09-04) — CHARCAS ENTREGA ACA (hibrido, usuario "se carga en entrega prov serv").
@@ -93,6 +97,7 @@
         <div style="font-size:13px;font-weight:800;color:#475569;text-transform:uppercase;letter-spacing:.4px">Stock de alambre en Charcas</div>
         <div style="font-size:28px;font-weight:900;color:#0b3b73"><span id="chStock">0</span> <small style="font-size:16px;color:#0b5cad">kg</small></div>
       </div>
+      <div id="chObjetivo" style="font-size:15px;font-weight:700;color:#0b3b73;text-align:center;background:#f6faff;border:1px solid #cddaea;border-radius:8px;padding:8px 10px;margin:0 0 10px"></div>
       <div class="row" style="flex-wrap:wrap;gap:12px">
         <div style="display:flex;flex-direction:column;gap:6px;flex:1 1 200px">
           <label class="lbl" for="chProd">Producto entregado</label>
@@ -260,6 +265,16 @@ async function chStock(){
     $("chStock").textContent = fmt(kg);
   }catch(e){ $("chStock").textContent="—"; }
 }
+async function chPendiente(){
+  try{
+    var r = await SB.rpc("charcas_pendiente");
+    var d = r.data || {};
+    var c = Number(d.corto_pendiente)||0, l = Number(d.largo_pendiente)||0;
+    $("chObjetivo").innerHTML = (c>0.001 || l>0.001)
+      ? 'Charcas debe entregar (pendiente): <b>'+fmt(c)+' kg corto</b> (IC3) · <b>'+fmt(l)+' kg largo</b> (IC3V)'
+      : 'Sin objetivo pendiente de corte por ahora.';
+  }catch(e){ $("chObjetivo").textContent=""; }
+}
 function irCharcas(p){
   selPS = p;
   $("fase0").classList.add("hidden"); $("fase1").classList.add("hidden"); $("fase3").classList.add("hidden");
@@ -268,7 +283,7 @@ function irCharcas(p){
   if(!$("chFecha").value) $("chFecha").value = hoyISO();
   $("chUni").value=""; $("chKg").value=""; $("chVerif").textContent="";
   $("chMsg").textContent=""; $("chMsg").className="status";
-  chRefresh(); chStock();
+  chRefresh(); chStock(); chPendiente();
 }
 function chRefresh(){
   var prod=chProdSel(), uni=num($("chUni").value), kg=num($("chKg").value);
@@ -299,7 +314,7 @@ $("chGuardar").addEventListener("click", async function(){
       (d.dentro_tolerancia===false?' <span style="color:#b42318;font-weight:800">⚠ dif '+fmt(d.diferencia_pct)+'% fuera de tolerancia</span>':'')+
       (d.bruto_negativo?' <span style="color:#b42318;font-weight:800">⚠ stock NEGATIVO</span>':'');
     $("chUni").value=""; $("chKg").value=""; $("chVerif").textContent="";
-    chStock(); chRefresh();
+    chStock(); chPendiente(); chRefresh();
   }catch(e){ m.className="status bad"; m.textContent="Error: "+(e.message||e); }
   finally{ chRefresh(); }
 });
