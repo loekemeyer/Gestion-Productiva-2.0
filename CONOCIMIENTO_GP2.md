@@ -671,6 +671,113 @@ descripción de fleje contra las rutas cargadas:
 
 ---
 
+## 1-quinquies. Plásticos: la planilla tiene 61 partes y GP2 recibía 23 (2026-09-04)
+
+`[dato: planilla del usuario "Conteo y Pedido Sector Plastico VACIO", hoja "Pedido VACIO"
+A1:AU105 — de la 106 para abajo es discontinuo]` Es **el sector más desfasado de los cuatro
+auditados**. La planilla tiene 10 bloques de proveedor y 61 partes; en Recepción de Insumos
+aparecían 23.
+
+**Cargado el 2026-09-04 por orden del usuario** (`"agregame los proveedores… con las
+respectivas partes. y agrega esas partes al sector plastico"`): 4 proveedores nuevos —
+**JL Matriceria, Ing. Barbetta Alberto, Packaging y Servicios, CC Galvanoquimica** (todos
+`rubro='Sector Plástico'`, activos) — y **8 partes** en Sector Plástico (6) con inventario en
+0, ids 607-614:
+
+| código | qué es | proveedor | uni x bolsa |
+|---|---|---|---|
+| `PC4` | Cierra Bolsas Blanc. | JL Matriceria | 1.400 |
+| `PEP9` | Cuchillo de Untar Blanc | JL Matriceria | 1.250 |
+| `PIEA` | Rueda Recta 50A36.20 945*48*70 | Ing. Barbetta Alberto | — |
+| `PIEB` | Rueda Recta 710*48*50.8 | Ing. Barbetta Alberto | — |
+| `PCP4A` | Cintas Adhesivas 48x100 | Packaging y Servicios | — |
+| `PCP2` | Plancha de Niquel | CC Galvanoquimica | — |
+| `PB2` | Cuchara Ny | Pettofrezza Rafael | 200 |
+| `PEP2` | Mango Pelador 586 S/M | Pettofrezza Rafael | 350 |
+
+**Telleria NO se dio de alta** `[usuario 2026-09-04: "con respecto a telleria, las partes que
+están en el archivo agregaselas a pettofrezza, (excepto pep1 que ya está)"]`. Sus dos partes
+nuevas (`PB2`, `PEP2`) quedaron a nombre de **Pettofrezza Rafael**, y `PEP1` no se tocó
+(ya existía, también con Pettofrezza). O sea: **lo que la planilla llama Telleria, en GP2 es
+Pettofrezza.**
+
+**Ojo con dos de las altas**: las ruedas de Barbetta y la plancha de níquel **no son
+plásticos** (son abrasivo y baño de galvánica), pero van al Sector Plástico porque es donde
+el usuario los cuenta y los pide. `PCP2` quedó en `unidad`, aunque la planilla la maneja en
+kg — **si se va a pesar, hay que corregir la unidad**. El `uni_x_cajon` de las cuatro sin
+valor quedó vacío a propósito: en esos bloques la planilla corre las columnas y el número no
+es confiable. Sin ese factor el relevamiento las marca en rojo.
+
+**Lo que sigue faltando (26 partes)** — no se cargó nada de esto:
+- **La familia entera de utensilios de nylon `PV*` (9)**: Pisa Papa, Cucharón, Espátula Lisa,
+  Cuchara Fideos, Cuchara Calada, Espátula Calada, Corta Torta, Picos Reposteros, Pela
+  Naranjas. Todos de Pat Bet Plast en NY reciclado. **GP2 no conoce esta familia**, igual que
+  no conoce las cucharas de madera ni los palos de amasar.
+- **8 altas más de Pat Bet Plast**: `PA3` Muñeco Antiderrame, `PA15` Capuchón ф10, `PA16`
+  Mangos ф10 LK, `PA17` Mangos Cuch y P Torta, `PB1` Cilindro Corta Queso, `PC6` Ojales
+  Neg/Blanco, `PEST1` Insertos Mgo Madera, `PEST2` Insertos Pisa Papas.
+- **Desdobles pendientes**: `PC2A`/`PC2B` (mangos pelapapa **s/calar**; GP2 sólo tiene los
+  calados `PC1A`/`PC1B`) y `PEP4A`/`PEP4B` (afila caladas azul y blanca; GP2 tiene un solo
+  `PEP4` sin color).
+- **Renombres, no faltantes** (confirmar y tachar): `PB8` = `PB8A`, `PB7` = `PB8B`, `PC15`
+  está desdoblado en `PC15A`/`PC15B`. El `PA10` de la planilla existe pero en **Sector
+  Procesado** (es el capuchón serigrafiado); el crudo del inyector es `PA10B`.
+
+**Tres conflictos de proveedor sin resolver** `[SIN RESOLVER]`:
+1. `PCP3` **Clavo 505**: la planilla lo pone en **Martin Facciolo**, GP2 en **Trefilados
+   Industriales**.
+2. `PA17` Mangos Cuch y P Torta es de **Pat Bet** en la planilla, pero GP2 tiene `PA4`/`PA5`
+   (Mang Cuch Unt Rojo/Chef) a nombre de **Pettofrezza**. Si son la misma pieza, el costo
+   sale del inyector equivocado.
+3. El bloque de Pettofrezza se titula **"Rodar"** en la planilla. Nombre que GP2 no conoce.
+
+**Máspoli está bien como está**: sus 3 mangos (`PC12`, `PEP7`, `PEP8`) figuran en
+`fabricacion` y por eso no salen en Recepción — es fasonero (se le manda la virola `D13` y
+devuelve el mango), entra por el circuito de tallerista, no por compra de insumo. La planilla
+los pide como compra; son dos miradas del mismo hecho, no un error.
+
+**Discrepancia de factor detectada de paso** `[dato]`: para `PEP1` la planilla dice **280 uni
+por bolsa** y GP2 tiene `uni_x_cajon = 800`. Uno de los dos está mal y el relevamiento cuenta
+por ese número.
+
+## 1-sexies. Remaches: 15 de 22, y lo que falta son discontinuos vivos (2026-09-04)
+
+`[dato: planilla "Conteo Remaches VACIO", hoja "Conteo VACIO" A7:AL49]` **El sector mejor
+parado.** 5 proveedores, 22 partes; en Recepción aparecen 15 y **el mecanismo funciona como
+debe**: se compra el crudo `CV*` y el `V*` niquelado queda en `fabricacion` sin precio propio
+(su costo es crudo + baño). Que los `V*` no estén en Recepción **no es un faltante**.
+
+- **Proveedores**: están Bella Vista, Tornillos Suipacha, Electrónica Mandelli e Imel (la
+  planilla lo llama "Fijaciones Imel"). **`Dilmax` se dio de alta el 2026-09-04**
+  (`rubro='Sector Remache'`) con sus dos fluidos, por orden del usuario.
+- **Falta de verdad**: `V15C` **Rem Tapón Hierro (12 x 2,75)** no existe en GP2 de ninguna
+  forma.
+- **Existen pero marcados discontinuos, y la planilla vigente los pide**: `CV16` Vástago
+  Sacafuente 5,2 x 100, `CV17` Cremallera Doble Aleta, `V18C` (que además **se llama "Vastago
+  Alu"** cuando la planilla dice Vástago Pisapapas 8 x 97) y `V20` Tornillo Corta Queso —
+  este último con proveedor **"Importado"** mientras la planilla lo pide a **Tornillos
+  Suipacha**.
+- **Los 2 de Dilmax no son remaches, pero viven en Sector Remache** `[usuario 2026-09-04:
+  "agrega a dilmax y sus correspondientes partes"]`. `EST1` Aceite de Corte D-91 (id 615) y
+  `EST2` Soluble SOL-MEC ST20 (id 616), con inventario en 0 y el precio por litro de la
+  planilla ($ 5.815,105 y $ 6.092,455). Van al sector 8 por el mismo criterio que las ruedas
+  de Barbetta en plásticos: **el insumo vive donde el usuario lo cuenta y lo pide**, no donde
+  dice la química.
+  **⚠ Truco de unidad que hay que respetar**: son litros, pero se cargaron como
+  `unidad_medida='unidad'` con `uni_x_cajon=20`, o sea **1 "unidad" = 1 litro y 1 envase = 20
+  litros**. No se puso `'litro'` porque la pantalla de Recepción sólo entiende `kg` y
+  `unidad`: cualquier otro valor cae al default del rubro, que en Remaches es **kg** — y el
+  operario habría cargado litros creyendo que pesa. Si algún día se agrega `litro` de verdad,
+  hay que tocar `RUBRO_UM`/`UMBY` en `StockFlejes/RecepcionInsumos_GP2.html`.
+- **La planilla se contradice sola en el Tornillo Sacafuente**: está bajo el bloque
+  "Fijaciones Imel" pero su columna Proveedor dice "Bella Vista"; GP2 lo tiene como `CV18D`
+  a nombre de **Tornillos Suipacha**. Tres respuestas para una pieza.
+- **⚠ Códigos de sector pisados entre planillas**: `EST1`/`EST2` son el aceite y el soluble en
+  la planilla de remaches, y los Insertos Mgo Madera / Pisa Papas en la de plásticos. Si
+  algún día se cargan los dos, no se distinguen por sector.
+
+---
+
 ## 2. Materiales y procesos: la lógica del inoxidable
 
 `[usuario 2026-08-29]` **Regla estratégica: conviene pasar partes de fleje laminado a
