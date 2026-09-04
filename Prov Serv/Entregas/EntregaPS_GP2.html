@@ -1,7 +1,10 @@
 <!doctype html>
 <html lang="es">
 <head>
-<!-- v1.2.0 (2026-09-04) — CHARCAS ENTREGA ACA (hibrido, usuario "se carga en entrega prov serv").
+<!-- v1.3.0 (2026-09-04) — ECLIPSE ENTREGA ACA TAMBIEN (hibrido). Como Charcas: se inyecta como
+     chip y abre panel propio (faseEclipse) para el cortado 1686 en unidades -> cargar_recepcion_eclipse
+     (suma uni en Procesado, descuenta kg de chapa 430 en Eclipse). Con esto se jubila el modulo
+     CharcasEclipse (sacado del menu). v1.2.0 (2026-09-04) — CHARCAS ENTREGA ACA (hibrido, usuario "se carga en entrega prov serv").
      Charcas no recibe Envio (el bundle lo excluye); se inyecta a mano como chip y abre un panel
      propio (faseCharcas) para el corte corto/largo: selector IC3/IC3V + uni del remito + kg de
      balanza (verificacion 5%), via cargar_recepcion_charcas. NO usa la tabla SC->SP normal.
@@ -111,6 +114,38 @@
       <div id="chMsg" class="status"></div>
     </div>
 
+    <!-- FASE ECLIPSE — entrega del cortado (hibrido). Eclipse corta chapa 430 (de Aperam) y
+         entrega el 1686 en unidades. Panel propio: uni del remito -> cargar_recepcion_eclipse
+         (suma uni en Procesado, descuenta kg de chapa en Eclipse). -->
+    <div id="faseEclipse" class="hidden">
+      <div class="row" style="justify-content:space-between">
+        <label class="lbl">Eclipse · Corte Chapa 430</label>
+        <div class="row" style="margin:0">
+          <label class="lbl" style="font-size:16px">Fecha</label>
+          <input type="date" id="ecFecha">
+        </div>
+      </div>
+      <div style="background:#eef4fb;border:2px solid #cddaea;border-radius:12px;padding:12px 16px;margin:10px 0;text-align:center">
+        <div style="font-size:13px;font-weight:800;color:#475569;text-transform:uppercase;letter-spacing:.4px">Stock de chapa 430 en Eclipse</div>
+        <div style="font-size:28px;font-weight:900;color:#0b3b73"><span id="ecStock">0</span> <small style="font-size:16px;color:#0b5cad">kg</small></div>
+      </div>
+      <div class="row" style="flex-wrap:wrap;gap:12px">
+        <div style="display:flex;flex-direction:column;gap:6px;flex:1 1 200px">
+          <label class="lbl" for="ecProd">Producto entregado</label>
+          <select id="ecProd" style="height:48px;font-size:19px;font-weight:600;padding:0 12px;border:2px solid #d0d7de;border-radius:10px"></select>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:6px;flex:1 1 160px">
+          <label class="lbl" for="ecUni">Unidades del remito</label>
+          <input type="text" id="ecUni" inputmode="numeric" placeholder="0" style="height:48px;font-size:20px;font-weight:700;padding:0 12px;border:2px solid #d0d7de;border-radius:10px">
+        </div>
+      </div>
+      <div id="ecVerif" style="font-size:14px;color:#0b3b73;font-weight:700;padding:4px 0;min-height:20px"></div>
+      <div class="row">
+        <button class="btn btn-primary" id="ecGuardar" type="button" disabled>✓ Registrar entrega de Eclipse</button>
+      </div>
+      <div id="ecMsg" class="status"></div>
+    </div>
+
     <!-- FASE 3 — confirmación -->
     <div id="fase3" class="hidden">
       <div class="successBox">
@@ -149,17 +184,19 @@ function tieneAlgo(it){ return num(it.caj)>0 || num(it.kg)>0 || it.falt; }
 // Charcas es hibrido: no recibe Envio (por eso el bundle lo excluye), pero SI entrega
 // aca con panel propio. Se inyecta a mano en la grilla.
 var CHARCAS_PS = { id:1, nombre:"Resortes Charcas", cod_prov:"3605", proceso:"Corte Alambre", hibrido:true, panel:"charcas" };
-var CH_PROD = [];
+var ECLIPSE_PS = { id:13, nombre:"Eclipse", cod_prov:null, proceso:"Corte Chapa 430", hibrido:true, panel:"eclipse" };
+var CH_PROD = [], EC_PROD = [];
 
 async function cargar(){
   var r = await SB.rpc("envios_ps_bundle");
   if (r.error){ $("status").textContent = "Error: "+r.error.message; return; }
   D = r.data || { ps:[], partes:{} };
-  D.ps = (D.ps||[]).concat([CHARCAS_PS]);   // Charcas entrega aca (hibrido)
+  D.ps = (D.ps||[]).concat([CHARCAS_PS, ECLIPSE_PS]);   // hibridos: entregan aca, no reciben Envio
   BUF.load();
   renderPS();
   $("status").textContent = (D.ps||[]).length + " proveedores con partes configuradas.";
-  cargarProdCharcas();   // async sin await: no bloquea el render aunque la query falle
+  cargarProdCharcas();   // async sin await: no bloquean el render aunque la query falle
+  cargarProdEclipse();
 }
 async function cargarProdCharcas(){
   try{
@@ -171,12 +208,23 @@ async function cargarProdCharcas(){
     }).join("");
   }catch(e){ CH_PROD=[]; }
 }
+async function cargarProdEclipse(){
+  try{
+    var pr = await SB.from("componente").select("id,codigo,descripcion,kg_x_uni")
+      .eq("proveedor","Eclipse").order("codigo");
+    EC_PROD = pr.data || [];
+    $("ecProd").innerHTML = EC_PROD.map(function(p){
+      return '<option value="'+p.id+'">'+esc(p.codigo)+' — '+esc(p.descripcion||"")+'</option>';
+    }).join("");
+  }catch(e){ EC_PROD=[]; }
+}
 
 function renderPS(){
   E.gridContrapartes("psGrid", D.ps, {
     vacio: "Sin proveedores configurados.",
     meta: function(p){
       if(p.panel==="charcas") return esc(p.proceso||"—") + " · corte corto/largo";
+      if(p.panel==="eclipse") return esc(p.proceso||"—") + " · cortado (uni)";
       var n = ((D.partes||{})[p.id]||[]).length;
       var cargado = E.cargadasDe(BUF.all[p.id], tieneAlgo).length;
       return esc(p.proceso||"—") + " · " + n + " partes" + (cargado? " · "+cargado+" cargadas":"");
@@ -187,6 +235,7 @@ function renderPS(){
 
 function elegirPS(p){
   if (p.panel==="charcas"){ irCharcas(p); return; }   // hibrido: panel corto/largo propio
+  if (p.panel==="eclipse"){ irEclipse(p); return; }   // hibrido: panel uni propio
   selPS = p;
   $("fase1Title").textContent = p.nombre + (p.proceso? (" · "+p.proceso) : "");
   E.mostrarFase(1);
@@ -197,6 +246,7 @@ function elegirPS(p){
 function volverPS(){
   selPS = null;
   $("faseCharcas").classList.add("hidden");
+  $("faseEclipse").classList.add("hidden");
   E.mostrarFase(0);
   renderPS();
 }
@@ -252,6 +302,56 @@ $("chGuardar").addEventListener("click", async function(){
     chStock(); chRefresh();
   }catch(e){ m.className="status bad"; m.textContent="Error: "+(e.message||e); }
   finally{ chRefresh(); }
+});
+
+// ===== Eclipse (hibrido): entrega del cortado en unidades (RPC cargar_recepcion_eclipse) =====
+function ecProdSel(){ return EC_PROD.find(function(p){ return String(p.id)===String($("ecProd").value); }); }
+async function ecStock(){
+  try{
+    var st = await SB.from("inventario").select("cantidad, componente:componente_id(codigo)").eq("ubicacion_id",48);
+    var kg=0; (st.data||[]).forEach(function(r){ if(r.componente && r.componente.codigo==="CHAPA430") kg=Number(r.cantidad)||0; });
+    $("ecStock").textContent = fmt(kg);
+  }catch(e){ $("ecStock").textContent="—"; }
+}
+function irEclipse(p){
+  selPS = p;
+  $("fase0").classList.add("hidden"); $("fase1").classList.add("hidden"); $("fase3").classList.add("hidden");
+  $("faseCharcas").classList.add("hidden");
+  $("faseEclipse").classList.remove("hidden");
+  var bv=$("btnVolver"); if(bv) bv.classList.remove("hidden");
+  if(!$("ecFecha").value) $("ecFecha").value = hoyISO();
+  $("ecUni").value=""; $("ecVerif").textContent="";
+  $("ecMsg").textContent=""; $("ecMsg").className="status";
+  ecRefresh(); ecStock();
+}
+function ecRefresh(){
+  var prod=ecProdSel(), uni=num($("ecUni").value);
+  if(prod && uni>0){
+    var kgProd = prod.kg_x_uni ? Math.round(uni*prod.kg_x_uni*10000)/10000 : 0;
+    $("ecVerif").innerHTML = "= <b>"+fmt(uni)+" uni</b> · "+fmt(kgProd)+" kg producto";
+  } else { $("ecVerif").textContent=""; }
+  $("ecGuardar").disabled = !(prod && uni>0 && $("ecFecha").value);
+}
+$("ecProd").addEventListener("change", ecRefresh);
+$("ecUni").addEventListener("input", ecRefresh);
+$("ecFecha").addEventListener("input", ecRefresh);
+$("ecGuardar").addEventListener("click", async function(){
+  var prod=ecProdSel(), uni=Math.round(num($("ecUni").value)), fecha=$("ecFecha").value||hoyISO();
+  var m=$("ecMsg"); m.className="status"; m.textContent="";
+  if(!prod || !(uni>0)){ m.className="status bad"; m.textContent="Elegí producto y unidades."; return; }
+  if(!confirm("Registrar entrega de Eclipse:\n\n"+prod.codigo+" — "+(prod.descripcion||"")+"\nUnidades: "+fmt(uni)+"\n\n¿Confirmar?")) return;
+  $("ecGuardar").disabled=true; m.textContent="Registrando…";
+  try{
+    var res = await SB.rpc("cargar_recepcion_eclipse", { p_comp_id:prod.id, p_unidades:uni, p_remito:null, p_fecha:fecha+"T12:00:00" });
+    if(res.error) throw res.error;
+    var d=res.data||{};
+    m.className="status ok";
+    m.innerHTML="✓ Entrega registrada. Consumió <b>"+fmt(d.kg_chapa_consumida)+" kg chapa</b>. Stock chapa: "+fmt(d.stock_chapa_eclipse_antes)+" → <b>"+fmt(d.stock_chapa_eclipse_despues)+" kg</b>"+
+      (d.chapa_negativa?' <span style="color:#b42318;font-weight:800">⚠ stock NEGATIVO</span>':'');
+    $("ecUni").value=""; $("ecVerif").textContent="";
+    ecStock(); ecRefresh();
+  }catch(e){ m.className="status bad"; m.textContent="Error: "+(e.message||e); }
+  finally{ ecRefresh(); }
 });
 
 /* la entrega es SC -> SP: las filas sin SP no se listan */

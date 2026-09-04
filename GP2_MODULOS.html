@@ -1,6 +1,6 @@
 <!doctype html><html lang="es"><head><meta charset="utf-8">
 <script src="auth-guard.js?v=20260829f"></script>
-<!-- v1.18.0 (2026-09-04) - se saca "Compra Altrak -> Charcas (Pagos)": la entrega de Altrak ahora se carga desde Recepcion Insumos -> Flejes -> Altrak (opcion B, flujo propio kg + % corto/largo). Aperam -> Eclipse queda por ahora. v1.17.0 - entra "Charcas y Eclipse" al grupo PS (Prov. Servicio). Pantalla nueva
+<!-- v1.19.0 (2026-09-04) - se saca "Charcas y Eclipse" del grupo PS: la MP de Altrak entra por Recepcion Insumos -> Flejes -> Altrak, y las ENTREGAS de Charcas (corto/largo) y Eclipse (1686) ahora se cargan en Entrega Prov Serv (paneles propios). El modulo separado CharcasEclipse queda jubilado (archivo legacy sin link). v1.18.0 (2026-09-04) - se saca "Compra Altrak -> Charcas (Pagos)": la entrega de Altrak ahora se carga desde Recepcion Insumos -> Flejes -> Altrak (opcion B, flujo propio kg + % corto/largo). Aperam -> Eclipse queda por ahora. v1.17.0 - entra "Charcas y Eclipse" al grupo PS (Prov. Servicio). Pantalla nueva
      para los prov servicio "hibridos" que NO reciben Envio desde Cervantes (la MP
      les llega directo del proveedor externo: Altrak->Charcas, Aperam->Eclipse) y
      por eso no encajan en el flujo Envio/Entrega normal. Muestra stock MP del PS
@@ -185,7 +185,7 @@ span.op.lock .lk{font-size:14px;margin-left:auto;opacity:.7}
     (GP2_AUTH_ON=false) no hay sesion que cerrar: el link se oculta solo -->
     <span id="kpiResumen"></span><span id="sesion" hidden>&nbsp;·&nbsp; <a href="login.html?logout=1" onclick="try{sessionStorage.clear();}catch(e){}"
     style="color:#b42318;text-decoration:none;font-weight:700">⎋ Cerrar sesión</a></span></div>
-  <script src="version.js?v=20260904g"></script>
+  <script src="version.js?v=20260904h"></script>
   <script>if (window.GP2_AUTH_ON !== false) document.getElementById('sesion').hidden = false;</script>
 </div>
 
@@ -210,7 +210,6 @@ const MENU = [
    ["Control", "Prov%20Serv/Control/ControlPS_GP2.html"],
    ["Envío", "Prov%20Serv/Envios/EnviosPS_GP2.html"],
    ["Entrega", "Prov%20Serv/Entregas/EntregaPS_GP2.html"],
-   ["Charcas y Eclipse", "Prov%20Serv/CharcasEclipse/CharcasEclipse_GP2.html"],
    ["Historial x Fecha", "Control%20Envios%20y%20Entregas/ControlEnvios_GP2.html?origen=ps"],
  ]],
  ["📦","Prov. Art. Terminado", [
