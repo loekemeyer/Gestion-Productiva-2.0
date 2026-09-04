@@ -378,8 +378,11 @@ Leer ese archivo antes de tocar el modulo de OC.**
   consumo x meses y la doc quedo desactualizada un dia). El `maximo` sale de
   `inventario.maximo`, y **solo si esta vacio** cae al consumo (Est Madre explotada:
   `v_consumo_parte` / `v_consumo_fleje_kg` en kg para flejes) x meses, marcado
-  `maximo_origen='consumo_x_meses'`. Ojo con la diferencia: un maximo `fisico` es el
-  lugar en el estante, NO el consumo — puede pedir de mas o de menos. Tablas `GP2.orden_compra` / `orden_compra_item`,
+  `maximo_origen='consumo_x_meses'`. **Asi se decidio y asi se queda** [usuario 2026-09-04:
+  "llena el lugar (maximo segun norma de cada rubro)"]: el sugerido llena el maximo, y la
+  norma del rubro (multiplos y minimos de carton, paquetes de 100 en pliegos, piso de
+  bolsas, paquetes de 10 kg de Charcas) se aplica DESPUES, redondeando para arriba.
+  Primero el lugar, despues el envase. Tablas `GP2.orden_compra` / `orden_compra_item`,
   RPCs `oc_bundle` / `crear_oc` / `oc_marcar` / `abm_bom_guardar`. Cada OC se puede IMPRIMIR
   (hoja limpia para el proveedor). Estados: borrador -> enviada -> recibida / anulada.
 - **La recepcion CRUZA contra OC**: `crear_recepcion_insumo` aplica lo recibido al campo

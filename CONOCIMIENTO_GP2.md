@@ -3278,8 +3278,27 @@ más"* — hoy es falso y era la única garantía escrita.
 O sea: en cajas de poca rotación el lugar es enorme y la OC **llena el estante** ($7,6 M de
 más entre A5, A4 y A6); en las de mucha rotación el lugar no alcanza y **compra menos de lo
 que se consume** ($2,3 M de menos entre A1 y A9, y el `W8` pide 726 contra un consumo de
-5.476/mes). **Decisión pendiente del usuario**: si el sugerido llena el lugar físico o
-cubre los meses de consumo.
+5.476/mes).
+
+### DECIDIDO: la OC llena el lugar
+
+*[usuario 2026-09-04, textual: "llena el lugar (máximo según norma de cada rubro)"]*. **El
+sugerido llena el máximo, no cubre los meses de consumo.** O sea que la fórmula de hoy
+(`maximo − stock − pendiente`) **está bien y se queda**, y las 6 discrepancias de arriba
+**no son bugs**: son el estante, que es lo que manda. El `consumo × meses` queda donde
+está, de respaldo para cuando el máximo está vacío.
+
+Y hay un segundo tramo en la frase que no es lo mismo: **"según norma de cada rubro"**. El
+máximo dice cuánto entra; la norma del rubro dice de a cuánto se puede pedir, y se aplica
+**después**, redondeando para arriba — múltiplos y mínimos de cartón (`ajustarFamilia`),
+paquetes de 100 en pliegos, el piso de las bolsas, los paquetes de 10 kg de Charcas. Las
+dos reglas conviven en ese orden: primero el lugar, después el envase.
+
+**La única consecuencia que hay que mirar**, medida: con esta regla queda **un solo**
+componente cuyo lugar no alcanza para un mes de consumo — el **`W8`** (Vástago Sacafuente
+Pizzero): entran **726** y se consumen **1.369/mes**, o sea **medio mes**. Todos los demás
+aguantan un mes o más. Es un problema de estante, no de la OC: o se le agranda el lugar, o
+se le compra más seguido. (Es el mismo `W8` que además está sin precio.)
 
 ### Lo demás que buscó la auditoría, medido: NO está pasando
 
