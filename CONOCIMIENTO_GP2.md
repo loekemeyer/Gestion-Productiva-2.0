@@ -3796,3 +3796,30 @@ aparece solo.
 **El módulo viejo salió del menú** `[usuario: "borrá relevamientos (viejo) y dejá solo
 relevamiento gp2 (nuevo) pero renombralo y ponele Relevamientos"]`. `Relevamiento/relevamiento.html`
 queda en el repo pero ya no se entra desde `GP2_MODULOS`.
+
+### En qué unidad se cuenta cada sector `[usuario 2026-09-04]`
+
+| Sector | Se cuenta en |
+|---|---|
+| Fleje | **Kilos** |
+| Bombilla | **Bolsas** |
+| Plástico | Bolsas |
+| Remache | Bolsas |
+| Garage | Cajones |
+| Caja | Paquetes (+ uni sueltas) |
+| Cartón | Paquetes (+ uni sueltas) — los `es_pliego`, paq. de 100 pliegos |
+
+**Sólo se cambió Bombillas** (migración `relev_factor_bombillas_en_bolsas`): decía
+"Bolsa/Caj/Rollo", heredado del módulo viejo, y el usuario lo corrigió a **Bolsas**. El resto
+ya estaba bien — el usuario lo confirmó con *"el único que quiero que cambies es bombillas"*.
+
+**PENDIENTE, sin aplicar** — el usuario había dicho antes dos cosas que después acotó a sólo
+bombillas, así que **quedaron sin hacer** y hay que confirmarlas antes de tocar:
+
+1. *"remaches crudo, es decir todos los que tienen la c, en kilos, y todo lo que es procesado
+   en bolsas"* → hoy **todo Remache cuenta en Bolsas**. Partirlo es fácil: los crudos son los
+   16 `CV*` (todos dicen "p/Niquelar" en la descripción; 15 de 16 tienen `kg_x_uni`), los
+   procesados son los otros 17.
+2. *"dentro de cajas y cartones también tendría que ir uni sueltas"* → hoy la columna de
+   **uni sueltas aparece en todos** los sectores que no cuentan en kilos, no sólo en cajas y
+   cartones.

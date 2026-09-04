@@ -106,7 +106,7 @@ language sql stable as $$
       when 10 then case when coalesce(c.es_pliego,false) then 'Paq. de pliegos' else 'Paquetes' end
       when 11 then 'Paquetes'
       when  6 then 'Bolsas'
-      when  7 then 'Bolsa/Caj/Rollo'
+      when  7 then 'Bolsas'          -- antes 'Bolsa/Caj/Rollo' (migracion relev_factor_bombillas_en_bolsas)
       when  9 then 'Cajones'
       when  8 then 'Bolsas'
       else 'Cajones'
