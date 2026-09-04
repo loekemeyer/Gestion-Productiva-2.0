@@ -156,8 +156,13 @@ create or replace function "GP2".relevamiento_bundle()
 returns jsonb
 language sql stable security definer set search_path = "GP2", public as $$
   with base as (
-    select k.*, coalesce(k.sector_id::text, 'tipo:'||k.tipo) as clave
+    select k.*, k.sector_id::text as clave
     from "GP2".relevamiento_cronograma k
+    where k.sector_id is not null                 -- sin sector no se muestra (Bolsa Plast)
+      and not exists (                            -- ya validado: fuera, que pase el siguiente
+        select 1 from "GP2".relevamiento r
+        where r.cronograma_id = k.id and r.estado = 'aplicado'
+      )
   ),
   prox as (
     select distinct on (b.clave) b.clave, b.tipo, b.sector_id, b.fecha, b.id crono_id

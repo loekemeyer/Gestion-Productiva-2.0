@@ -3899,3 +3899,26 @@ CV12, CV18D, CV6, CV9, V18D, V20, GRJ13` y los 3 cartones formato "Bolsa": `A1B,
 
 La distinción sigue viva en los datos (`relev_solo_sueltas` vs factor faltante), así que el día
 que aparezca un factor se carga y esa pieza vuelve sola a contarse por envase.
+
+### El ciclo de vida de una fecha del cronograma `[usuario 2026-09-04]`
+
+*"los pasos serían cargar el relevamiento y después hacer la validación de stock, y que
+desaparezca de la página de relevamiento el relevamiento correspondiente al cual nos estamos
+refiriendo, que se le hizo la validación de stock, y que aparezca el próximo relevamiento."*
+
+| Estado | Qué muestra el cronograma |
+|---|---|
+| sin abrir | **Contar** |
+| `en_curso` | **Seguir cargando (n/m)** + Eliminar |
+| `contado` | **✓ Contado** + Eliminar — el operario terminó, espera al operador |
+| `aplicado` | **desaparece**, y sube la próxima fecha de ese sector |
+
+El salteo se hace en el CTE `base` de `relevamiento_bundle`, o sea **antes** de elegir el
+próximo por sector: si se filtrara después, la fecha ya validada seguiría ocupando el lugar
+del que sigue y el sector quedaría sin nada que mostrar.
+
+Verificado en lectura pura: con el Garage del 11-sep validado, el sector pasa a mostrar el
+**18-sep** y se reordena solo en la lista.
+
+**Los ya aplicados no se pierden:** quedan en el historial de la pantalla de Validación de
+Stock (`validacion_bundle` → `aplicados`, últimos 20).
