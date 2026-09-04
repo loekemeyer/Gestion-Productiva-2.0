@@ -107,13 +107,11 @@ if (!commits.length) {
 
 // ── 4) la clave anon vive en UN solo archivo ─────────────────────────────
 // Antes estaba escrita a mano en 112 archivos y rotarla era tocarlos todos.
-// Los 2 permitidos son codigo muerto que no se toco a proposito: dos archivos
-// que ninguna pagina carga (el backup de Relevamiento se borro el 2026-09-04).
+// Desde la auditoria del 2026-09-04 no hay excepciones: los archivos muertos que
+// la tenian embebida (backup de Relevamiento, flejes.js, _export/) se borraron.
 const KEY_PREFIJO = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9';
 const PERMITIDOS = new Set([
   'supabase-config.js',
-  'StockFlejes/flejes.js',
-  'Despiece x Articulo/_export/despiece_lib.js',
 ]);
 function todos(dir, acc = []) {
   for (const e of fs.readdirSync(dir, { withFileTypes: true })) {

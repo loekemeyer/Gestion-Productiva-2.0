@@ -1,70 +1,14 @@
 <!doctype html>
 <html lang="es">
 <head>
-  <script src="../auth-guard.js?v=20260904t"></script>
-  <!-- Esta landing quedo fuera del flujo (decision usuario 2026-08-29): del login se
-       va DIRECTO a Todos los modulos. Se deja el redirect para links/bookmarks viejos. -->
-  <script>window.location.replace("../GP2_MODULOS.html");</script>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>GP2 · Inicio</title>
-  <link rel="icon" type="image/png" href="../GP2_favicon.png">
-  <link rel="apple-touch-icon" href="../GP2_favicon.png">
-  <style>
-    *{box-sizing:border-box}
-    body{margin:0;min-height:100vh;background:linear-gradient(135deg,#ebeff4 0%,#e8eff7 100%);
-      color:#385475;font:15px/1.5 -apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
-      display:flex;flex-direction:column;align-items:center;padding:24px 18px 40px}
-    .logo{margin:8px 0 4px}
-    .logo img{height:56px}
-    .sub{color:#475569;font-size:13px;margin:0 0 28px;text-align:center}
-    .cards{display:grid;grid-template-columns:1fr 1fr;gap:20px;width:100%;max-width:760px}
-    @media (max-width:640px){.cards{grid-template-columns:1fr}}
-    .card{display:flex;flex-direction:column;gap:8px;text-decoration:none;color:#385475;
-      border-radius:20px;padding:32px 26px;min-height:190px;justify-content:center;
-      border:1px solid #cfd9e8;box-shadow:0 10px 40px rgba(0,0,0,.35);
-      transition:transform .2s cubic-bezier(.23,1,.32,1),box-shadow .2s,border-color .2s}
-    .card:hover{transform:translateY(-5px);box-shadow:0 18px 54px rgba(0,0,0,.5)}
-    .card .ico{font-size:46px;line-height:1}
-    .card .lbl{font-size:24px;font-weight:800;letter-spacing:.3px}
-    .card .desc{font-size:13px;color:#385575;line-height:1.45}
-    .card.stock{background:linear-gradient(135deg,#e7f8f1 0%,#e8f8f1 100%);border-color:#cde9d9}
-    .card.stock:hover{border-color:#cdeade}
-    .card.mov{background:linear-gradient(135deg,#e7f0f8 0%,#e7f0f8 100%);border-color:#cddbea}
-    .card.mov:hover{border-color:#cddeea}
-    .card .go{margin-top:6px;font-size:13px;font-weight:700;opacity:.9}
-    .foot{margin-top:30px;display:flex;gap:16px;flex-wrap:wrap;justify-content:center;align-items:center}
-    .foot a{color:#475569;font-size:13px;text-decoration:none;border:1px solid #cfd9e8;
-      border-radius:999px;padding:8px 16px;transition:.15s}
-    .foot a:hover{color:#255588;border-color:#cddbea}
-    .logout{color:#773737 !important;border-color:#e5d1d1 !important}
-    .logout:hover{color:#921c1c !important;border-color:#eacdcd !important}
-  </style>
+  <!-- Landing vieja. Desde el 2026-08-30 el menu real es GP2_MODULOS.html (los KPIs y el
+       badge de Disruptivas que vivian aca se mudaron ahi). Queda solo como redirect para que
+       los bookmarks viejos sigan andando; index_GP2.html, que hacia exactamente lo mismo,
+       se borro el 2026-09-04 (auditoria de arquitectura). -->
+  <script>window.location.replace("../GP2_MODULOS.html");</script>
+  <link rel="icon" type="image/png" href="../GP2_favicon.png?v=1.2.0">
 </head>
-<body>
-  <div class="logo"><img src="../GP2_logo.png" alt="GP2 · Gestión Productiva — Loekemeyer"></div>
-  <p class="sub">Gestión Productiva 2.0</p>
-
-  <div class="cards">
-    <a class="card stock" href="../Stocks General/StockGeneral_GP2.html">
-      <span class="ico">▦</span>
-      <span class="lbl">Stock</span>
-      <span class="desc">Todo el inventario subdividido por ubicación: sectores, proveedores de servicio (uno por uno), talleristas (uno por uno) y Virgilio.</span>
-      <span class="go">Ver stock ›</span>
-    </a>
-    <!-- Registrar_Movimiento.html se borro (2026-08-30): Ajuste y Armado en fabrica
-         viven ahora en Stocks General; el resto tiene pantalla dedicada en el menu. -->
-    <a class="card mov" href="../Stocks%20General/StockGeneral_GP2.html">
-      <span class="ico">📋</span>
-      <span class="lbl">Movimientos</span>
-      <span class="desc">Ajuste de inventario, armado en fábrica y últimos movimientos viven en la pantalla de Stock. Los envíos/recepciones tienen su módulo en el menú.</span>
-      <span class="go">Ver stock y movimientos ›</span>
-    </a>
-  </div>
-
-  <div class="foot">
-    <a href="../GP2_MODULOS.html">Todos los módulos</a>
-    <a class="logout" href="../login.html?logout=1" onclick="try{sessionStorage.clear();}catch(e){}">⎋ Cerrar sesión</a>
-  </div>
-</body>
+<body></body>
 </html>

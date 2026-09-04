@@ -6,25 +6,42 @@ Suite creada 2026-08-29. Dos capas:
 
 Cada `test_*.js` abre la pantalla real del repo con **Supabase stubeado** (no tocan la
 base): verifican payloads de RPC, filtros, cálculos en pantalla y flujos completos.
+`run.sh` corre **todos** los `test_*.js` de la carpeta (hoy 33); si agregás uno, entra solo.
 
 | Test | Pantalla / flujo |
 |---|---|
-| test_op_e2e.js | App Operarios entera: legajo → E con rollo → C → RM → baja vía RPC → cola ✓. El stub **revienta** si la app toca una tabla directo. |
-| test_botones_fuera.js | Botones sacados 2026-08-29 (RD/CM/REM) fuera y el resto presente; menú sin los candados muertos |
-| test_login_flow.js | GP2_MODULOS con auth-guard, Cerrar sesión, redirect de la landing vieja |
-| test_oc.js / test_oc_print.js | Órdenes de Compra: sugeridos, reglas de cartón C/LOKE/8, crear, imprimir |
-| test_dev.js | Devolución Cervantes (sector / Para Analizar) |
-| test_ctrl.js | Control Envíos y Entregas (pivote, medidas Kg/Uni/Cajas) |
-| test_pm.js | Problemas con Matrices (RM/PM, uni acumuladas, golpes) |
-| test_mon2.js | Cierres del Día · Premios, ex "Monitor 2.0" (premio espejo y calculado, alertas ±3) |
 | test_bom.js | Editor de BOM del ABM Artículos |
-| test_ps_em.js | Punto de Stock: tag EM en máximos derivados de Est Madre |
+| test_botones_fuera.js | Botones sacados 2026-08-29 (RD/CM/REM) fuera y el resto presente; menú sin los candados muertos |
+| test_control_tall_gp2.js | Control Talleristas GP2: caracterización previa a la unificación de pantallas |
+| test_ctrl.js | Control Envíos y Entregas (pivote, medidas Kg/Uni/Cajas) |
+| test_despiece_verif.js | Despiece x Artículo v2 (fusión de Verificación + VerifMadres): receta, rutas, faltantes prorrateados |
+| test_dev.js | Devolución Cervantes (sector / Para Analizar) |
+| test_entrega_ps_gp2.js | Entrega Prov Serv GP2: caracterización previa a la unificación |
+| test_entregas_at_gp2.js | Entrega Prov AT nativa GP2 (idea 7216): bundle, buffer, payload de `crear_entrega_prov_at`, cliente apunta a GP2 |
+| test_entregas_tall_gp2.js | Entregas Talleristas GP2: caracterización previa a la unificación |
+| test_envios_ps_gp2.js | Envíos Prov Serv GP2: fase 0/1, cálculo de cajones, payload de `crear_envio_ps` |
+| test_envios_tall_gp2.js | Envíos Talleristas GP2: caracterización previa a la unificación |
+| test_faltantes_gp2.js | Faltantes: automáticos por stock online de Crudo/Procesado + marcas manuales |
 | test_inicio_pend.js | Alerta de cargas de Virgilio sin aplicar (espejo_pend) |
-| test_menu_una_pantalla.js | El menu en celular: los 13 grupos entran en una pantalla, tocables (>=44px) y legibles (>=14px), version visible, sin texto de relleno, y al abrir un grupo se ve solo ese |
-| test_pwa_icono.js | El icono de la app llega al telefono: apple-touch-icon en las 4 paginas de entrada, iconos del manifest existentes, maskable declarado y con token de version |
-| test_recepcion_oc.js | Recepción: la tarjeta muestra "últ. 360 kg" (sin fecha) y "OC: 640" (lo que falta de las OC abiertas) |
-| test_tokens_cache.js | Guardia de caché y clave: un solo ?v= por asset compartido, version/token nunca reusados, y la clave anon sólo en supabase-config.js (sin navegador, lee git) |
 | test_inyectores.js | Inyectores: botonera por proveedor, asignar/desasignar (payload de la RPC), aviso de partes que fabrica un tallerista, resumen y chips de rubro |
+| test_kg_y_unidades.js | El insumo que viene en cajas y se pesa (`componente.recibe_en_cajas`): recepción en kg, control cajas × kg/caja |
+| test_login_flow.js | GP2_MODULOS con auth-guard, Cerrar sesión, redirect de la landing vieja (`Inicio/index.html`) |
+| test_marcas.js | Las marcas salen de los datos (`componente.marca`), no de una lista escrita a mano |
+| test_menu_una_pantalla.js | El menú en celular: los 13 grupos entran en una pantalla, tocables (>=44px) y legibles (>=14px), versión visible, sin texto de relleno, y al abrir un grupo se ve solo ese |
+| test_mon2.js | Cierres del Día · Premios, ex "Monitor 2.0" (premio espejo y calculado, alertas ±3) |
+| test_numero.js | Guardia de la regla de número (`gp2-numero.js`): punto de miles, coma decimal, separador automático; rechaza saneadores propios en pantallas GP2 |
+| test_oc.js / test_oc_print.js | Órdenes de Compra: sugeridos, reglas de cartón C/LOKE/8, crear, imprimir. **Ojo**: el fixture de `test_oc.js` trae el contrato viejo (consumo × meses); la fórmula vigente máximo − stock − pendiente queda sin cubrir hasta la idea 7242 |
+| test_op_e2e.js | App Operarios entera: legajo → E con rollo → C → RM → baja vía RPC → cola ✓. El stub **revienta** si la app toca una tabla directo |
+| test_pm.js | Problemas con Matrices (RM/PM, uni acumuladas, golpes) |
+| test_pwa_icono.js | El icono de la app llega al teléfono: apple-touch-icon en las páginas de entrada, iconos del manifest existentes, maskable declarado y con token de versión |
+| test_recepcion_etapas.js | Recepción: pesaje por etapas con varios ítems |
+| test_recepcion_oc.js | Recepción: la tarjeta muestra "OC: N" (lo que falta de las OC abiertas) |
+| test_recepcion_salir_pesaje.js | Recepción v3.22: no se puede salir sin controlar |
+| test_recepcion_uni.js | El remito en unidades se guarda en unidades (remaches/bombillas); control en kg con pasaje a unidades |
+| test_stock_general.js | Stocks General: los dos flujos heredados de Registrar Movimiento (Ajuste +/- y Armado en fábrica), payload exacto de `registrar_movimientos` |
+| test_teclado_numerico.js | Letra grande (>=18px) y `inputmode` numérico en todos los campos de número de las pantallas GP2 |
+| test_tokens_cache.js | Guardia de caché y clave: un solo ?v= por asset compartido, versión/token nunca reusados, y la clave anon sólo en supabase-config.js (sin navegador, lee git) |
+| test_valorizacion.js | Valorización: stock y pedido-a-máximo valorizados con el motor de costos |
 
 **Correr**: `bash tests/ui/run.sh`
 Requiere `node` + `playwright` (local o global: `npm i -g playwright`). Si Chromium no

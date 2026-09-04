@@ -1235,7 +1235,8 @@ artículos, `entrega_prov_at` con sus 125 filas). Detalles que hay que respetar 
   si mañana cambia ahí, no quedan entregas viejas con el nombre de antes.
 - La pantalla vieja **no la linkeaba nadie**, pero se dejó como **redirect** al GP2 para que un
   bookmark viejo no termine escribiendo en `public` sin que nadie se entere. El original quedó
-  al lado como `_legacy_EntregasAT.*.bak`, de referencia.
+  un tiempo al lado como `_legacy_EntregasAT.*.bak`; `[2026-09-04]` esas copias se borraron del
+  árbol en la auditoría de arquitectura (están en git si hacen falta).
 
 **Las pantallas del programa viejo también entraron en regla (2026-09-03, v1.69.0)**
 `[usuario: "7014, dale"]`: el barrido de accesibilidad del 2026-09-03 había dejado afuera a
@@ -1253,7 +1254,8 @@ ninguna desborda a 390px. Dos cosas que se aprendieron barriendo:
   5px cuando los campos pasaron a 19px, porque tenía un `width: 90px` fijo. Se arregla con
   una media query a 480px, no bajando la letra otra vez.
 
-Quedan afuera a propósito los `_backup_*` y los `_legacy_*.bak`, que son fotos congeladas.
+Quedaron afuera a propósito los `_backup_*` y los `_legacy_*.bak`, que eran fotos congeladas
+(`[2026-09-04]` ya no existen: se borraron en la auditoría de arquitectura).
 
 **Hacia dónde va la carga: UN módulo de Recepciones y UNO de Entregas (2026-09-03)** `[usuario]`:
 textual, *"las recepciones ya sean de prov de servicio o de insumo deberían ir en un mismo

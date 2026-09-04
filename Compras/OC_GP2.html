@@ -1,7 +1,8 @@
 <!doctype html>
 <html lang="es">
 <head>
-<!-- v1.19.0 (2026-09-04) — SE LLAMA SECTOR, NO RUBRO, Y SIN ELEGIR NO HAY LISTA [usuario
+<!-- v1.19.1 (2026-09-04) — crear_oc se llama con un solo parametro (p); la overload con p_fecha_entrega se borro (auditoria).
+     v1.19.0 (2026-09-04) — SE LLAMA SECTOR, NO RUBRO, Y SIN ELEGIR NO HAY LISTA [usuario
      2026-09-04: "no pongas rubro, sector quiero que pongas" + "si no pongo el sector y no
      pongo el proveedor, que no me aparezca la lista"].
      (a) La etiqueta de la botonera dice SECTOR (y tambien la hoja impresa de la OC). Es un
@@ -1025,8 +1026,9 @@ $('btnCrear').addEventListener('click', async function(){
   $('btnCrear').disabled=true;
   try{
     var rubro = rubroSel!=null ? (rubrosDistintos().filter(function(r){return r.id===rubroSel;})[0]||{}).nombre : null;
-    // Fecha de entrega estimada: viaja como parametro propio (p_fecha_entrega, el que
-    // agrego crear_oc) y tambien dentro de p, para que no dependa del orden de deploy.
+    // Fecha de entrega estimada: viaja dentro de p (crear_oc la lee de p.fecha_entrega).
+    // La overload crear_oc(p, p_fecha_entrega) se borro el 2026-09-04: era un wrapper que
+    // repetia un dato que ya viajaba en p.
     var fEnt = ($('fechaEnt').value||'').trim() || null;
     var r=await SB.rpc('crear_oc',{ p:{
       proveedor: provSel && provSel!=='(sin proveedor)' ? provSel : null,
@@ -1036,7 +1038,7 @@ $('btnCrear').addEventListener('click', async function(){
       // se pisaron, crear_oc guarda estos y no los de precio_proveedor.
       items: items.map(function(x){ return {comp_id:x.comp_id, cantidad:x.cantidad, unidad:x.unidad,
                                             precio:x.precio, moneda:x.moneda}; })
-    }, p_fecha_entrega: fEnt });
+    } });
     if(r.error) throw r.error;
     PEDIDO={}; PRECIO={}; MONEDA={}; SIN_PEDIDO={}; $('nota').value='';
     fechaTocada=false; fechaTocadaProv=null;

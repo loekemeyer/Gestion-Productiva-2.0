@@ -71,4 +71,84 @@ JS/CSS (≈120 KB).
 
 ---
 
-## 3. (se van agregando a medida que los agentes terminan)
+## 3. Los 5 módulos con candado del menú: ¿se migran o se borran?
+
+**Problema encontrado.** `GP2_MODULOS.html` tiene 5 botones bloqueados (🔒) cuyas pantallas
+viejas siguen en el repo: *Lectura de Facturas Entrantes* (`Facturas/index.html`, 100 KB,
+borra e inserta en `public."Entregas PS"`), *Entrega Proveedores Cervantes* (23 KB), *Ver
+Cargas* (`ControlRemitos/`, 9 KB), *Entrega Cervantes Fotos* (47 KB) y *Chat Bot Ventas*
+(`Ventas Chat/`, 51 KB, sin Supabase). 230 KB que ni se abren ni se migran.
+
+**Por qué existe una duda.** Un candado significa "pendiente de migrar"; no sé si siguen en
+plan o si ya se descartaron (Pagos podría estar usando `Facturas/index.html` por URL directa).
+
+**Alternativa A.** Se migran a GP2 (cada una es un módulo nuevo: hay que diseñarlo).
+**Alternativa B.** Se borran, y los 5 botones desaparecen del menú.
+
+**Recomendación.** B para *Chat Bot Ventas* (es un stub sin datos) y *Entrega Cervantes Fotos*
+(prototipo OCR). Para las 3 de Pagos/Remitos, decidir con el sector Pagos.
+
+**Impacto.** Solo archivos + 5 líneas del menú.
+
+**Pregunta concreta.** Por cada uno de los 5: ¿A, B, o "lo usa alguien hoy por URL"?
+
+---
+
+## 4. Documentos del programa viejo que CLAUDE.md todavía manda leer
+
+**Problema encontrado.** `CLAUDE.md` tiene secciones enteras que describen la casa del vecino
+(`public`): *Verificación - Trazado de Rutas* (tablas `Rutas_Confirmadas`/`Rutas_Problemas`),
+*Patrón GRJ* (configura `Recepcion Cervantes.html` vieja), *Tablas Madre y Derivadas* (`SP Kg`,
+`SC Kg`, `Despiece x Articulo`…), *Causa-Efecto*, y referencia archivos que no existen
+(`ANALISIS_LOGICA_GP2.md`, los 3 HTML con `var D`). Además hay 3 puertos distintos para el
+servidor local (5501 en CLAUDE.md, 5503 en `.vscode`, 5509 en `.claude/launch.json`).
+`GP2_MAPA.md` (los contratos de los bundles, viva y útil) no la linkea nadie.
+
+**Por qué existe una duda.** Si el programa viejo sigue operando desde este repo, esas
+secciones siguen siendo instrucciones válidas para quien lo toque; si el vecino vive en otro
+lado, son ruido que confunde a cada sesión nueva.
+
+**Alternativa A.** CLAUDE.md queda solo GP2: se quitan las 4 secciones del vecino (quedan en
+git y en `Tablas_Madre_y_Dependencias.xls`), se linkea `GP2_MAPA.md`, se unifica el puerto.
+**Alternativa B.** Se dejan, marcadas "(programa viejo — solo si tocás `public`)".
+
+**Recomendación.** A, junto con la respuesta a la pregunta 1.
+
+**Impacto.** `CLAUDE.md`, `AUDITORIA_RUTAS_2026-04-18.md`, `Tablas_Madre_y_Dependencias.xls`.
+
+**Pregunta concreta.** ¿A o B? ¿Y cuál es el puerto real del Live Server?
+
+---
+
+## 5. `PENDIENTES_UBICACIONES_2026-08-30.md` + `SQL_MAXIMOS_POR_UBICACIONES.sql`: ¿regla vigente?
+
+**Problema encontrado.** El doc describe la regla *"sólo se nombra la primera ubicación
+ocupada"* y el SQL define `maximos_sector_por_ubicaciones_ocupadas()`, que **no existe en la
+base**. Lo que sí corre hoy es `recalcular_maximos_cajones()` (5 cajones por ubicación,
+`parametro.max_cajones_x_ubicacion`, columnas `inventario.cajones_x_ubicacion/ubicaciones`).
+
+**Por qué existe una duda.** No sé si la regla de "ubicaciones ocupadas" se descartó o si
+quedó pendiente de aplicar.
+
+**Alternativa A.** Se descartó: borrar los 2 archivos.
+**Alternativa B.** Sigue pendiente: pasarla a `IDEAS-GP2.md` con código, y borrar los archivos.
+
+**Recomendación.** B (la idea queda registrada, el SQL en git).
+
+**Pregunta concreta.** ¿A o B?
+
+---
+
+## 6. `MACRO_ENTREGAS_SUPABASE.bas` y `.nojekyll`
+
+**Problema encontrado.** La macro VBA lee `public` desde el Excel "Control Partes
+Talleristas" (¿sigue sincronizando?). `.nojekyll` sólo sirve para GitHub Pages y el deploy es
+Vercel (`vercel.json`).
+
+**Recomendación.** Borrar los dos (la macro real vive en el `.xlsm`, no acá).
+
+**Pregunta concreta.** ¿El Excel sigue sincronizando desde `public`? ¿El deploy es solo Vercel?
+
+---
+
+## 7. (se van agregando a medida que los agentes terminan)
