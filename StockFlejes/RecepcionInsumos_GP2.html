@@ -6,6 +6,12 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
+<!-- v3.46.0 (2026-09-04) — CHARCAS NO ES PROVEEDOR DE FLEJES. IC3/IC3V (el corte que
+     entrega Charcas, proveedor 'Resortes Charcas', sector 5) se colaban en el rubro Flejes
+     (Charcas aparecia con (2)). Son el corte de un prov_servicio: se reciben en CharcasEclipse,
+     no aca. Filtro esCorteDePS() en insumosDelRubro() los saca del rubro Flejes SIN esconder a
+     Charcas global (tiene bombillas reales en sector 7: BOM10/EP10/LLF8). Altrak sigue oculto
+     (ocultarProv) y su alambre se carga por AltrakCharcas -- si hay que mostrarlo aca es otro cambio. -->
 <!-- v3.45.0 (2026-09-03) — LAS MARCAS SALEN DE LOS DATOS [usuario: "ciento cuatro es marca
      LOKE ... es una submarca dentro de loekemeyer"]. Los chips de marca estaban escritos a
      mano (LOEKE y CHEF), asi que la tercera marca real —LOKE, la submarca— no entraba en
@@ -681,8 +687,17 @@ function refreshContinuar(){ $('btnContinuar').disabled = !rubroSel || (provsRub
 $('btnContinuar').addEventListener('click',irStep2);
 
 // ---- Paso 2: grilla de insumos del rubro (+ proveedor si aplica) ----
+// Los flejes que salen del CORTE de un prov_servicio (IC3/IC3V, proveedor
+// 'Resortes Charcas', sector 5) NO se reciben aca: se reciben en la pantalla PS
+// dedicada (CharcasEclipse) cuando el PS entrega el corte. Charcas es prov_servicio,
+// no proveedor de flejes -- por eso se colaba en el rubro Flejes con (2). Ojo: NO se
+// esconde a Charcas global (tiene bombillas reales en sector 7: BOM10/EP10/LLF8).
+var PS_CORTE_FLEJE = ['resortes charcas'];
+function esCorteDePS(i){
+  return Number(i.sector_id)===5 && PS_CORTE_FLEJE.indexOf(String(i.proveedor||'').trim().toLowerCase())>=0;
+}
 function insumosDelRubro(){
-  return INS.filter(i=>i.sector_id===sidSel && !ocultarProv(i.proveedor));
+  return INS.filter(i=>i.sector_id===sidSel && !ocultarProv(i.proveedor) && !esCorteDePS(i));
 }
 // Fase B rework 2026-09-02: los helpers esFiltroCharcas / esCortadoEclipse se
 // sacaron. Los PS hibridos Charcas/Eclipse viven ahora en su pantalla dedicada
