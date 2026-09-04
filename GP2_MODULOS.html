@@ -185,7 +185,7 @@ span.op.lock .lk{font-size:14px;margin-left:auto;opacity:.7}
     (GP2_AUTH_ON=false) no hay sesion que cerrar: el link se oculta solo -->
     <span id="kpiResumen"></span><span id="sesion" hidden>&nbsp;·&nbsp; <a href="login.html?logout=1" onclick="try{sessionStorage.clear();}catch(e){}"
     style="color:#b42318;text-decoration:none;font-weight:700">⎋ Cerrar sesión</a></span></div>
-  <script src="version.js?v=20260904m"></script>
+  <script src="version.js?v=20260904n"></script>
   <script>if (window.GP2_AUTH_ON !== false) document.getElementById('sesion').hidden = false;</script>
 </div>
 
@@ -275,7 +275,11 @@ const MENU = [
     solo relevamiento gp2 (nuevo) pero renombralo y ponele Relevamientos"]. El modulo viejo
     (Relevamiento/relevamiento.html, schema relevamiento_cervantes) queda en el repo pero
     YA NO SE ENTRA desde el menu. */
- ["🗒","Relevamiento", [ ["Relevamientos", "Relevamiento/Relevamiento_GP2.html"] ]],
+ /* DOS ROLES, DOS PANTALLAS [usuario 2026-09-04]: el OPERARIO cuenta en "Relevamientos"
+    y ahi termina; el OPERADOR DEL SISTEMA compara conteo vs programa y toca el stock en
+    "Validacion de Stock". El operario nunca decide sobre el stock. */
+ ["🗒","Relevamiento", [ ["Relevamientos", "Relevamiento/Relevamiento_GP2.html"],
+                        ["Validación de Stock", "Relevamiento/Validacion_Stock.html"] ]],
  ["🔗","Ventas", [ ["Chat Bot Ventas", null] ]],
 ];
 

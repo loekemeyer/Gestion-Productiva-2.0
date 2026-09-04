@@ -3847,3 +3847,42 @@ relevamiento y **roto la OC**. Se dejó el parámetro quieto y el relevamiento l
 Cobertura: **106 de 110** cartones quedan con paquetón. Los 3 de formato **"Bolsa"** (que no es
 cartón: es packaging de Envases Vihal) no tienen `uni_x_bolsa` → factor NULL y la pantalla los
 marca "falta el factor". Los 24 `es_pliego` siguen con su regla propia de 100 pliegos.
+
+### Relevamiento y Validación son DOS módulos, porque son DOS ROLES `[usuario 2026-09-04]`
+
+*"necesito que me aparezca dentro de módulo relevamiento otro módulo que sea validación de
+stock... pero no quiero que me aparezca después de hacer el relevamiento en el mismo módulo,
+porque eso lo van a hacer los operarios, y el operador de acá del sistema va a hacer el chequeo."*
+
+| Pantalla | Quién | Qué hace |
+|---|---|---|
+| `Relevamiento_GP2.html` | **Operario** | Cuenta y cierra. Ahí termina su trabajo. |
+| `Validacion_Stock.html` | **Operador del sistema** | Compara conteo vs programa, elige cuál vale y **recién ahí toca el stock**. |
+
+**El operario nunca decide sobre el stock.** Contar y decidir son cosas distintas y las hace
+gente distinta. Por eso al completar el conteo la pantalla vuelve al cronograma con el tilde y
+**no** salta a la comparación.
+
+`validacion_bundle()` lista los conteos cerrados esperando validación, con **cuántas filas
+difieren** del programa (que es lo que el operador quiere ver de un golpe), más un historial
+corto de los ya aplicados.
+
+**El "Eliminar" salió del cronograma** `[usuario: "que no me aparezca acá el eliminar, solo
+adentro"]`: vive adentro de la pantalla de carga (operario) y en la barra de la comparación
+(operador). En la lista no va nada destructivo.
+
+### "Solo sueltas" NO es lo mismo que "falta el factor" `[usuario 2026-09-04]`
+
+*"dentro de garage, el Bowl 330 ml, que aparezca solo la opción de cargar uni sueltas, porque
+no se cuenta en cajones."*
+
+Nueva columna **`componente.relev_solo_sueltas`** (hoy sólo `GRJ13` Bowls 330ml). Cuando está
+en true, `relev_factor` devuelve **envase NULL** y `relev_total_uni` toma directamente lo suelto.
+
+**Son dos cosas distintas y la pantalla las muestra distinto:**
+
+- **`envase` NULL → "solo sueltas"** (gris, itálica). El envase **no aplica**. No falta nada.
+- **`factor` NULL → "falta el factor"** (rojo, campo deshabilitado). El envase **sí aplica**
+  pero no sabemos cuántas unidades entran, así que no se calcula un total inventado.
+
+Mezclarlos haría que la pantalla pida para siempre un dato que nunca va a existir.
