@@ -3198,3 +3198,42 @@ la ruta la virola aparece una sola vez porque `D13` se transforma en el mango. O
 listar un intermedio en la receta no lo cobra dos veces — pero tampoco lo agrega: si un
 componente no está en ninguna ruta, no existe para el costo ni para la OC por más que
 figure en la receta.
+
+## 4m. Las tarifas de servicio que faltaban: 2 cargadas, 2 sin fuente (2026-09-04)
+
+*[usuario 2026-09-04: "dale, cargá las tarifas que falten"]*. Barriendo **todos** los pasos
+`proveedor_servicio` de las 633 rutas contra `precio_servicio_pieza` → `tarifa_servicio` →
+`precio_servicio`, los huecos reales eran **cuatro**, no seis:
+
+**Cargadas** (las dos tenían fuente documentada en la propia base, no se inventó nada):
+
+- **`IC3V`** — Resortes Charcas, proceso `corte alambre`, **$9,50/u**. Es la misma lista
+  (2026-08-05) y el mismo proceso que ya tenía el `IC3`; el `IC3V` es el LARGO, el que va
+  directo a Virgilio. Cierra los artículos **034** ($646,73 → $656,23) y **867** ($677,32 →
+  $686,82), los dos con `faltan_precios` en 0.
+- **`V18D`** — Guazzaroni, proceso `niquelado`. La tarifa no se escribe en la pieza: vive en
+  `GP2.tarifa_servicio` por proceso ($2.606/kg) y la pieza sólo declara **qué proceso** es,
+  como las otras 20 piezas de Guazzaroni. **Todavía no resuelve**, y no es culpa de la
+  tarifa: **ni el `V18D` ni el `CV18D` tienen `kg_x_uni`**, o sea que falta el **peso del
+  tornillo sacafuente**. Ojo con el patrón: en los pares CV/V el peso es **el mismo** de los
+  dos lados (`CV13`=`V13`=0,00011; `CV6`=`V6`=0,00215), así que alcanza con pesarlo una vez.
+
+**Sin fuente, hacen falta del usuario** — el proveedor cobra **distinto por pieza**, así que
+no hay una tarifa única que aplicar:
+
+- **`Z22`** Llavero Pie — Hernández Julio, serigrafiado. Sus otras piezas están a $18 y $19.
+- **`B12`** Llavero Pie Pint. — Jade, pintado. Sus otras piezas están a $127, $150 y $305.
+
+Las dos son del artículo **499**, que es el peor de todos con 4 precios faltantes.
+
+### Lo que NO era una tarifa faltante
+
+`G4` y `M1` figuraban con `faltan_precios = 1` y **sus servicios están todos pagos**. El
+conteo viene del CTE `bomx` de `v_costo_componente`, que mira **sólo el precio de compra**
+del hijo del BOM: si el hijo es **fabricado**, no tiene precio de compra, y `bomx` lo cuenta
+como faltante **y además no le suma el costo**. Afecta a `G4` (no cobra su `V3`, $6,49) y a
+los `GRJ1`/`GRJ7` (no cobran su `V9`, $5,93); `M1`→`V18C` y `C12`→`BOM10` dan $0 igual
+porque son discontinuos. Plata chica, pero es un agujero del motor y no un dato que falte:
+queda como **idea 7241**.
+
+**Comprables sin precio: 1** — el `W8` (Vástago Sacafuente Pizzero, Imel).
