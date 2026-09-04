@@ -96,14 +96,18 @@ language sql stable as $$
       when c.sector_id = 10 and coalesce(c.es_pliego,false)
         then (select valor::numeric from "GP2".parametro where clave='pliego_uni_x_paquete')
       when c.sector_id = 10
-        then (select valor::numeric from "GP2".parametro where clave='carton_uni_x_paquete')
+        -- PAQUETON, no paquete: carton_formato.uni_x_bolsa (C 1.000, LOKE 1.000, Huevo
+        -- 2.000, "8" 3.000). NO se usa carton_uni_x_paquete=250: ese es el paquete de
+        -- PEDIDO que usa la OC. Se PIDE por paquete de 250 y se CUENTA por paqueton.
+        then (select nullif(cf.uni_x_bolsa,0)
+              from "GP2".carton_formato cf where cf.nombre = c.carton_formato)
       when c.sector_id = 11
         then (select valor::numeric from "GP2".parametro where clave='caja_uni_x_paquete')
       when c.sector_id = 5 then null                      -- fleje se cuenta en kg
       else nullif(c.uni_x_cajon, 0)
     end,
     case c.sector_id
-      when 10 then case when coalesce(c.es_pliego,false) then 'Paq. de pliegos' else 'Paquetes' end
+      when 10 then case when coalesce(c.es_pliego,false) then 'Paq. de pliegos' else 'Paquetones' end
       when 11 then 'Paquetes'
       when  6 then 'Bolsas'
       when  7 then 'Bolsas'          -- antes 'Bolsa/Caj/Rollo' (migracion relev_factor_bombillas_en_bolsas)

@@ -3823,3 +3823,27 @@ bombillas, así que **quedaron sin hacer** y hay que confirmarlas antes de tocar
 2. *"dentro de cajas y cartones también tendría que ir uni sueltas"* → hoy la columna de
    **uni sueltas aparece en todos** los sectores que no cuentan en kilos, no sólo en cajas y
    cartones.
+
+### El cartón se CUENTA por paquetón, pero se PIDE por paquete `[usuario 2026-09-04]`
+
+*"los cartones vienen en paquetones, o sea vienen de a mil según el formato. Entonces no
+tendría que ser doscientos cincuenta. Yo cuento por paquetón, no por paquete. Y después en uni
+sueltas ahí sí puedo poner."*
+
+**Son dos números distintos y conviven:**
+
+| | Cuánto | Dónde vive | Quién lo usa |
+|---|---|---|---|
+| **Paquete de pedido** | 250 | `parametro.carton_uni_x_paquete` | **OC** ("= N paq de 250") |
+| **Paquetón de conteo** | 1.000 / 2.000 / 3.000 | `carton_formato.uni_x_bolsa` | **Relevamiento** |
+
+El dato **ya estaba en la base** y varía por formato tal como lo dijo: **C 1.000, LOKE 1.000,
+Huevo 2.000, "8" 3.000**. La nota del formato Huevo lo decía textual: *"Bolsa de 2.000 uni (8
+paquetes de 250)"* — o sea el paquetón son 8 paquetes.
+
+**Trampa evitada:** cambiar `carton_uni_x_paquete` de 250 a 1.000 habría "arreglado" el
+relevamiento y **roto la OC**. Se dejó el parámetro quieto y el relevamiento lee el formato.
+
+Cobertura: **106 de 110** cartones quedan con paquetón. Los 3 de formato **"Bolsa"** (que no es
+cartón: es packaging de Envases Vihal) no tienen `uni_x_bolsa` → factor NULL y la pantalla los
+marca "falta el factor". Los 24 `es_pliego` siguen con su regla propia de 100 pliegos.
