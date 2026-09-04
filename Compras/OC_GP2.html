@@ -1,7 +1,26 @@
 <!doctype html>
 <html lang="es">
 <head>
-<!-- v1.17.0 (2026-09-04) — SE VAN CONSUMO/MES Y SUGERIDO: EL SUGERIDO YA VIENE CARGADO EN
+<!-- v1.18.0 (2026-09-04) — TAMBIEN SE VAN PRECIO Y SUBTOTAL, EL "MIN" DEBAJO DEL STOCK, Y LA
+     OC ANULADA DESAPARECE DE LA LISTA [usuario 2026-09-04: "precio se va y subtotal tambien"
+     + "lo que dice abajo de stock actual... mínimo. Eso no lo quiero ver" + "si anula una
+     orden de compra, no quiero que me siga apareciendo en ordenes"].
+     (a) La tabla de pedir queda en 5 columnas y en lo FISICO: Insumo · Proveedor · Stock
+         actual · Máximo · Pedir. La plata se mira en la barra de abajo (total de la OC, US$ y
+         $ separados + equivalente en pesos) y en la OC ya creada.
+         El precio SIGUE EN EL CIRCUITO: sale de precio_proveedor (bundle), valoriza el total
+         de la barra, viaja a crear_oc y es el que sale impreso. Lo unico que se pierde es
+         PISARLO desde esta pantalla (v1.8.0). Se fueron con la columna: celdaPrecio(), los
+         handlers de .precio-in / .mon-btn y fmtPrecio/precioPisado/simboloMon.
+     (b) Se saco el "mín N" debajo del Stock actual. El minimo sigue en la base y sigue
+         pintando el stock en ROJO cuando esta abajo: lo que se fue es el numero.
+     (c) pintarOcs() filtra estado='anulada'. Se esconde de la PANTALLA nada mas: la fila
+         sigue en GP2.orden_compra (historial, y explica una numeracion con huecos).
+     (d) 390px: la columna Proveedor se esconde y el proveedor pasa a leerse debajo del
+         codigo (.prov-mini). Con 5 columnas de ancho fijo "Pedir" -el campo que se usa-
+         quedaba fuera de pantalla; asi la tabla entra entera (328px) y no scrollea.
+
+     v1.17.0 (2026-09-04) — SE VAN CONSUMO/MES Y SUGERIDO: EL SUGERIDO YA VIENE CARGADO EN
      "PEDIR" Y EL CARTEL LO ACLARA [usuario 2026-09-04: "que me aparezca insumo proveedor,
      stock actual maximo... que me aparezca el sugerido directamente en pedir" + la aclaracion
      del alcance en el mismo momento: "en resumen, tendrias que eliminar consumo mes. Y
@@ -224,27 +243,17 @@
   /* Sin Consumo/mes ni Sugerido, la tabla estirada al 100% dejaba huecos entre las
      columnas de números. Van con ancho fijo y el sobrante se lo queda Insumo, que es
      el que tiene texto largo: nada de espacio vacío solo para llenar la pantalla. */
-  .t-insumos th:nth-child(2),.t-insumos td:nth-child(2){width:160px}
-  .t-insumos th:nth-child(3),.t-insumos td:nth-child(3){width:115px}
-  .t-insumos th:nth-child(4),.t-insumos td:nth-child(4){width:105px}
-  /* Precio entra ancho a proposito: la moneda y el importe van EN LA MISMA LINEA
-     (con menos ancho el boton se caia arriba del campo y la fila quedaba fea). */
-  .t-insumos th:nth-child(5),.t-insumos td:nth-child(5){width:210px}
-  .t-insumos th:nth-child(6),.t-insumos td:nth-child(6){width:200px}
-  .t-insumos th:nth-child(7),.t-insumos td:nth-child(7){width:115px}
-  .t-insumos td:nth-child(5){white-space:nowrap}
+  .t-insumos th:nth-child(2),.t-insumos td:nth-child(2){width:170px}
+  .t-insumos th:nth-child(3),.t-insumos td:nth-child(3){width:120px}
+  .t-insumos th:nth-child(4),.t-insumos td:nth-child(4){width:110px}
+  .t-insumos th:nth-child(5),.t-insumos td:nth-child(5){width:230px}
   /* Pedir es el campo principal de la pantalla: llega con el sugerido puesto. */
   .pedir-in{width:120px;padding:10px 8px;font-size:20px;font-weight:700;text-align:right;border:2px solid #d0d7de;border-radius:8px}
   .pedir-in.err{border-color:#eacdcd;background:#ffebee}
   tr.con-pedido td{background:#eef7ee}
-  /* Precio: se puede pisar el de la lista sin salir de la OC. Cuando esta pisado
-     queda en ambar y debajo se ve el de lista, para que nadie pierda la referencia. */
-  .precio-in{width:104px;padding:10px 8px;font-size:18px;text-align:right;border:2px solid #d0d7de;border-radius:8px}
-  .precio-in.pisado{border-color:#d18b00;background:#fff8e6}
-  .mon-btn{min-width:44px;min-height:44px;margin-right:4px;padding:0 8px;font-size:16px;font-weight:800;
-           border:2px solid #d0d7de;border-radius:8px;background:#fff;cursor:pointer;color:#0b3b73}
-  .precio-lista{font-size:12px;color:#9a6700;display:block}
   .paq-eq{font-size:12px;color:#0b3b73;display:block}
+  /* El proveedor dentro de la celda del insumo: solo se ve en pantalla chica. */
+  .prov-mini{display:none}
   .barra{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:12px 0;padding:12px;background:#f6f8fa;border-radius:10px}
   .barra .tot{font-size:17px;font-weight:800}
   .barra input[type=text]{padding:10px;min-height:44px;font-size:18px;border:2px solid #d0d7de;border-radius:8px;flex:1;min-width:160px}
@@ -289,6 +298,16 @@
   .badge.entrega{background:#fff3e0;color:#8a4b00;border:1px solid #f0d9b5}
   /* 390px: nada de scroll horizontal en la pagina (las tablas scrollean en .table-wrap) */
   @media(max-width:430px){
+    /* En el celular los anchos fijos empujaban "Pedir" fuera de la pantalla, que es
+       justo el campo que se usa. Se sueltan los anchos, la fila se aprieta y el
+       cartel del sugerido puede cortar en dos lineas: asi entran las 5 columnas. */
+    .t-insumos th,.t-insumos td{width:auto;padding:8px 4px;font-size:14px}
+    /* La columna Proveedor se esconde en el celular: sola se comia 100px y dejaba
+       "Pedir" fuera de pantalla. El proveedor pasa a leerse abajo del insumo. */
+    .t-insumos th:nth-child(2),.t-insumos td:nth-child(2){display:none}
+    .prov-mini{display:inline}
+    .pedir-in{width:84px;font-size:19px;padding:9px 5px}
+    .sug-calc{white-space:normal}
     .filtro{flex-direction:column;align-items:flex-start;gap:4px}
     .filtro-lb{min-width:0}
     .campo,.campo-nota{width:100%}
@@ -317,13 +336,13 @@
       <div class="prov-info hidden" id="provInfo"></div>
       <div class="regla-carton hidden" id="reglaCarton"></div>
       <div class="search-box"><input type="text" id="q" placeholder="Buscar insumo…"></div>
-      <div class="leyenda"><b>“Pedir” ya viene cargado con el sugerido</b> (<b>Máximo</b> − <b>Stock</b>): debajo de cada campo dice cuánto es el sugerido y de dónde sale. Cambiá la cantidad o <b>dejá el campo vacío</b> para no pedir ese insumo. <b>Cantidad y precio se pueden pisar a mano</b>: lo que quede en pantalla es lo que sale en la OC.</div>
+      <div class="leyenda"><b>“Pedir” ya viene cargado con el sugerido</b> (<b>Máximo</b> − <b>Stock</b>): debajo de cada campo dice cuánto es el sugerido y de dónde sale. Cambiá la cantidad o <b>dejá el campo vacío</b> para no pedir ese insumo. Lo que quede en pantalla es lo que sale en la OC; <b>el total en plata está acá abajo</b>.</div>
       <div class="table-wrap">
         <table class="t t-insumos">
           <thead><tr>
             <th>Insumo</th><th>Proveedor</th>
             <th class="num">Stock<br>actual</th><th class="num">Máximo</th>
-            <th class="num">Precio</th><th class="num">Pedir</th><th class="num">Subtotal</th>
+            <th class="num">Pedir</th>
           </tr></thead>
           <tbody id="tbody"></tbody>
         </table>
@@ -372,11 +391,6 @@ function fmt(n,d){ return n==null?'—':Number(n).toLocaleString('es-AR',{maximu
 /* La regla de numero es la de la casa y vive en gp2-numero.js (idea 7217).
    Esta pantalla ya la aplicaba bien; ahora la comparte en vez de repetirla. */
 function parseNum(s){ var x=GP2N.num(s); return x<0?0:x; }
-// precio: {precio, moneda} -> "US$ 1" / "$ 1.000". Flejes se compran por kg.
-function fmtPrecio(i){
-  if(i.precio==null) return '—';
-  return (i.moneda==='ARS'?'$ ':'US$ ')+fmt(i.precio,2)+(i.sector_id===5?'/kg':'');
-}
 // total mixto: nunca inventar tipo de cambio propio — solo mostrar el del cron si vino.
 function fmtTotalMon(usd, ars){
   var partes=[];
@@ -429,19 +443,18 @@ var PEDIDO={}; // comp_id -> cantidad
    solo en "Pedir", sin esta marca cada render volveria a llenar lo que el acaba de
    borrar. Se limpia con "Usar sugeridos". */
 var SIN_PEDIDO={}; // comp_id -> true
-/* Precio pisado a mano [usuario 2026-09-03: "si quiero modificar el importe o la
-   cantidad a pedir, pueda pedirlo"]. El de precio_proveedor es el DEFAULT, no una
-   imposicion: lo que quede aca viaja a crear_oc y es lo que se guarda en la OC (y
-   por lo tanto lo que sale impreso). Vacio = se usa el de la lista.
-   La columna SE QUEDA: el 2026-09-04 se llego a sacar y el usuario aclaro el alcance
-   en el mismo momento ("en resumen, tendrias que eliminar consumo mes. Y sugerido"),
-   asi que lo unico que salio de la tabla es Consumo/mes y Sugerido. */
+/* Precio y Subtotal SALIERON DE LA TABLA en v1.18.0 [usuario 2026-09-04: "precio se va
+   y subtotal tambien"]. La pantalla de pedir quedo en lo fisico (que hay, cuanto entra,
+   cuanto pido) y la plata se mira en la barra de abajo y en la OC ya creada.
+   El precio NO desaparecio del circuito: precioDe/monedaDe siguen leyendo el de
+   precio_proveedor (que llega en el bundle), valorizan el total de la barra, viajan a
+   crear_oc y son los que salen en la hoja impresa. Lo unico que ya no se puede es
+   PISARLO desde esta pantalla. Estos dos objetos son el canal: si vuelve a hacer falta
+   pisarlo, se repone la celda y funciona. */
 var PRECIO={};   // comp_id -> precio pisado
 var MONEDA={};   // comp_id -> 'USD' | 'ARS' pisada
 function precioDe(i){ return PRECIO[i.comp_id]!=null ? PRECIO[i.comp_id] : (i.precio!=null?Number(i.precio):null); }
 function monedaDe(i){ return MONEDA[i.comp_id] || i.moneda || 'ARS'; }
-function precioPisado(i){ return PRECIO[i.comp_id]!=null; }
-function simboloMon(m){ return m==='ARS' ? '$' : 'US$'; }
 // Fecha de entrega: se propone sola (hoy + dias_entrega del proveedor). Si el usuario la
 // pisa a mano, se respeta mientras siga en el mismo proveedor.
 var fechaTocada=false, fechaTocadaProv=null;
@@ -670,17 +683,6 @@ function cargarSugeridos(){
   if(toco) ajustarPedidoCarton();
 }
 
-/* Celda de precio: moneda tocable + input. Arranca con el de la lista; lo que se
-   escriba pisa SOLO esta OC (no toca precio_proveedor, que es la lista oficial). */
-function celdaPrecio(i){
-  var pr=precioDe(i), mon=monedaDe(i), pisado=precioPisado(i);
-  return '<button type="button" class="mon-btn" data-mon="'+i.comp_id+'" title="Cambiar moneda">'+simboloMon(mon)+'</button>'+
-    '<input class="precio-in'+(pisado?' pisado':'')+'" data-pr="'+i.comp_id+'" inputmode="decimal" '+
-      'value="'+(pr!=null?String(pr).replace('.',','):'')+'" placeholder="—">'+
-    (i.sector_id===5?'<span class="paq-eq">por kg</span>':'')+
-    (pisado&&i.precio!=null?('<span class="precio-lista">lista '+fmtPrecio(i)+'</span>'):'');
-}
-
 /* El cartelito debajo del campo Pedir: DICE que ese numero es el sugerido y de donde
    sale [usuario 2026-09-04: "que me aclare que es el sugerido"]. Se muestra siempre,
    tambien si la cantidad se piso a mano — asi se ve contra que se esta cambiando. */
@@ -701,7 +703,6 @@ function render(){
     var esChar=esCharcasIt(i);
     var uxpChar=esChar ? uniPorPaqCharcas(i) : 0;
     var st=vStock(i), mx=vMaximo(i), pe=vPend(i);
-    var pr=precioDe(i), mon=monedaDe(i);
     var bajoMin=(i.minimo!=null && st!=null && st<Number(i.minimo));
     // Charcas: input en PAQUETES; el sugerido se convierte a paq (round up).
     // La equivalencia "= N uni" se muestra al lado del input.
@@ -709,16 +710,18 @@ function render(){
              :(esChar && ped>0 && uxpChar>0)?('<span class="paq-eq">= '+fmt(ped*uxpChar)+' uni</span>'):'';
     return '<tr data-id="'+i.comp_id+'"'+(ped>0?' class="con-pedido"':'')+'>'+
       '<td><b>'+esc(i.codigo||'—')+'</b><br><small style="color:#777">'+esc(i.descripcion||'')+
-        (i.carton_formato?(' · Formato '+esc(i.carton_formato)):'')+'</small></td>'+
+        (i.carton_formato?(' · Formato '+esc(i.carton_formato)):'')+
+        // En el celular la columna Proveedor se esconde (no entraba y dejaba "Pedir"
+        // fuera de pantalla) y el proveedor se lee acá mismo. Nada se pierde.
+        '<span class="prov-mini"> · '+esc(i.proveedor||'—')+'</span></small></td>'+
       '<td>'+esc(i.proveedor||'—')+'</td>'+
-      '<td class="num'+(bajoMin?' bajo-min':'')+'">'+(st==null?'—':(fmt(st)+' '+esc(i.unidad)))+
-        (i.minimo!=null?('<span class="sub-nota">mín '+fmt(i.minimo)+'</span>'):'')+'</td>'+
+      // El "mín N" debajo del stock se saco [usuario 2026-09-04: "eso no lo quiero ver"].
+      // El minimo sigue vivo en la base y sigue pintando el stock en rojo cuando esta abajo.
+      '<td class="num'+(bajoMin?' bajo-min':'')+'">'+(st==null?'—':(fmt(st)+' '+esc(i.unidad)))+'</td>'+
       '<td class="num">'+(mx==null?'—':fmt(mx))+
         (mx!=null&&i.maximo_origen?('<span class="sub-nota">'+esc(tagOrigen(i.maximo_origen))+'</span>'):'')+'</td>'+
-      '<td class="num">'+celdaPrecio(i)+'</td>'+
       '<td class="num"><input class="pedir-in" data-in="'+i.comp_id+'" inputmode="decimal" value="'+(ped?String(ped).replace('.',','):'')+'" placeholder="'+i.unidad+'">'+paqEq+
         notaSugerido(i)+'</td>'+
-      '<td class="num sub-item">'+(ped>0&&pr!=null?(simboloMon(mon)+' '+fmt(ped*pr,2)):'—')+'</td>'+
     '</tr>';
   }).join('');
   $('tblEmpty').classList.toggle('hidden', fs.length>0);
@@ -731,25 +734,6 @@ function render(){
       // sugerido NO se vuelva a cargar solo en el proximo render.
       if(v>0){ PEDIDO[id]=v; delete SIN_PEDIDO[id]; }
       else { delete PEDIDO[id]; SIN_PEDIDO[id]=true; }
-      render(); barra();
-    });
-  });
-  document.querySelectorAll('.precio-in').forEach(function(inp){
-    inp.addEventListener('change',function(){
-      var id=Number(inp.dataset.pr);
-      var it=(D.insumos||[]).filter(function(x){return x.comp_id===id;})[0];
-      var v=parseNum(inp.value);
-      // Vaciar el campo = volver al precio de la lista.
-      if(!inp.value.trim() || (it && it.precio!=null && v===Number(it.precio))) delete PRECIO[id];
-      else PRECIO[id]=v;
-      render(); barra();
-    });
-  });
-  document.querySelectorAll('.mon-btn').forEach(function(b){
-    b.addEventListener('click',function(){
-      var id=Number(b.dataset.mon);
-      var it=(D.insumos||[]).filter(function(x){return x.comp_id===id;})[0];
-      MONEDA[id] = (monedaDe(it)==='ARS') ? 'USD' : 'ARS';
       render(); barra();
     });
   });
@@ -1043,7 +1027,12 @@ $('btnCrear').addEventListener('click', async function(){
 });
 
 function pintarOcs(){
-  var ocs=D.ocs||[];
+  /* La OC ANULADA no se muestra mas [usuario 2026-09-04: "si anula una orden de compra,
+     no quiero que me siga apareciendo en ordenes"]. Se esconde de la PANTALLA nada mas:
+     la fila sigue en GP2.orden_compra (es el historial y lo que explica una numeracion
+     con huecos). Anular una OC ya no descuenta ni suma nada, asi que esconderla no
+     cambia ningun numero. */
+  var ocs=(D.ocs||[]).filter(function(o){ return String(o.estado||'')!=='anulada'; });
   $('ocsN').textContent=ocs.length?('('+ocs.length+')'):'';
   $('ocsEmpty').classList.toggle('hidden', ocs.length>0);
   $('ocsList').innerHTML=ocs.map(function(o){

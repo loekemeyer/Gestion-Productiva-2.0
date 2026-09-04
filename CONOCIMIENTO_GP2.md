@@ -3524,13 +3524,31 @@ actual · Máximo · Precio · Pedir · Subtotal**.
   estando si la cantidad se pisa a mano, para ver contra qué se está cambiando.
 - **Vaciar el campo = "este no lo pido"**: queda marcado y el render no lo vuelve a
   llenar. "Usar sugeridos" borra esas marcas y repone todo.
-- **El Precio se queda.** Se llegó a sacar junto con el Sugerido (lectura de más de "en
-  vez de sugerido precio") y el usuario acotó el alcance en el momento: sigue el campo
-  pisable con su moneda tocable, como desde v1.8.0. **Lección: cuando la frase junta dos
-  columnas, preguntar antes de sacar la segunda.**
 - También se fue de esta pantalla el **detalle de consumo tocable** (era la celda
   Consumo/mes): `consumo-detalle.js` ya no se carga en la OC. Sigue vivo en Pintores y
   Orden de Producción.
+
+**Y enseguida se fueron también Precio y Subtotal (v1.18.0)** `[usuario 2026-09-04:
+"precio se va y subtotal tambien"]`. La tabla de pedir quedó en lo **físico**: qué hay,
+cuánto entra, cuánto pido. **La plata no desapareció del circuito**: el precio sigue
+saliendo de `precio_proveedor`, valoriza el total de la barra, viaja a `crear_oc` y es el
+que sale impreso — lo único que se perdió es **pisarlo desde esta pantalla** (estaba desde
+v1.8.0, pedido el 2026-09-03). Si vuelve a hacer falta, se repone la celda: `PRECIO` y
+`MONEDA` siguen en el código.
+
+Dos cosas más del mismo día:
+
+- **El "mín N" debajo del Stock actual se sacó** `[usuario: "eso no lo quiero ver"]`. El
+  mínimo sigue en la base y sigue pintando el stock en **rojo** cuando está abajo; lo que
+  se fue es el número en pantalla.
+- **La OC anulada ya no se lista** `[usuario: "si anula una orden de compra, no quiero que
+  me siga apareciendo en órdenes"]`. `pintarOcs()` la filtra: se esconde de la pantalla,
+  **la fila queda en `GP2.orden_compra`** (es el historial y explica que la numeración
+  tenga huecos).
+- **PENDIENTE que el usuario dejó planteado**: los insumos **sin máximo cargado** no
+  pueden calcular pedido — *"después lo vamos a agregar"*. Hoy caen al consumo × meses
+  (`maximo_origen='consumo_x_meses'`); cuando se carguen los máximos, revisar si conviene
+  sacar ese fallback.
 
 ### PENDIENTES que el usuario dejó planteados y NO están hechos
 

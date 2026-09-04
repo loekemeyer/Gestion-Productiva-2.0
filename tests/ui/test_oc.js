@@ -99,6 +99,9 @@ const BUNDLE = {
       total_usd: 500, total_ars: 0,
       items: [ { codigo: 'A1', descripcion: 'Fleje N 13', cantidad: 500, unidad: 'kg', recibido: 0,
                  precio_uni: 1, moneda: 'USD', subtotal: 500 } ] },
+    // La ANULADA no se muestra [usuario 2026-09-04]: sigue en la base, pero fuera de la lista.
+    { id: 8, numero: 7, proveedor: 'Basconia', rubro: 'Fleje', estado: 'anulada', nota: null,
+      creado_en: '2026-08-28T10:00:00Z', total_usd: 0, total_ars: 0, items: [] },
   ],
   pliego_uni_x_paquete: 100,
   tc: 1535,
@@ -146,16 +149,12 @@ window.supabase = { createClient: function(){ return {
   const heads = await page.evaluate(() => [].map.call(
     document.getElementById('tbody').closest('table').querySelectorAll('thead th'),
     x => x.textContent.replace(/\s+/g, '').trim()));
-  ok(heads.join('|') === 'Insumo|Proveedor|Stockactual|Máximo|Precio|Pedir|Subtotal',
+  ok(heads.join('|') === 'Insumo|Proveedor|Stockactual|Máximo|Pedir',
      'columnas: ' + heads.join(' · '));
-
-  // El clavo se cotiza POR KG pero se compra por unidad: el bundle tiene que mandar el
-  // precio ya convertido (3,30 USD/kg x 6,53 g = 0,0215). Si vuelve a llegar 3,30 crudo,
-  // la OC lo infla 153x y sale asi en la hoja al proveedor (bug real del 2026-08-31).
-  const filaClavo = await page.textContent('tr[data-id="5"]');
-  ok(filaClavo.includes('US$ 215,49'), 'el clavo se valoriza por unidad: ' + filaClavo.replace(/\s+/g, ' ').slice(0, 120));
-  ok(!/US\$ 3[,.]3/.test(filaClavo), 'el clavo NO sale al precio por kilo (bug 153x)');
-  ok(!filaClavo.includes('/kg'), 'el clavo se compra por unidad, no lleva /kg');
+  // La plata no se muestra por fila: se mira en la barra y en la OC ya creada.
+  ok(!(await page.textContent('#tbody')).includes('US$'), 'no hay precios ni subtotales en la tabla');
+  // El "mín N" debajo del stock tambien se saco [usuario: "eso no lo quiero ver"].
+  ok(!(await page.textContent('#tbody')).includes('mín'), 'no aparece el minimo debajo del stock');
 
   // filtro Fleje -> 2 filas + chips proveedor
   await page.click('#rubros .chip:has-text("Fleje")');
@@ -179,7 +178,6 @@ window.supabase = { createClient: function(){ return {
   ok(tot1.startsWith('2 ítems'), 'barra: los 2 flejes del rubro ya cuentan (' + tot1 + ')');
   // (2449 + 300) kg x US$ 1 = US$ 2.749; con el dolar del cron (1535) ~ $ 4.219.715
   ok(tot1.includes('US$ 2.749') && tot1.includes('4.219.715'), 'barra valorizada: ' + tot1);
-  ok(filaA1.includes('US$ 2.449'), 'subtotal de la fila = pedir x precio de lista');
   ok(!(await page.$eval('#btnCrear', b => b.disabled)), 'btnCrear habilitado');
 
   // VACIAR EL CAMPO = "este no lo pido": el sugerido NO se vuelve a cargar solo.
@@ -195,24 +193,10 @@ window.supabase = { createClient: function(){ return {
   await page.click('#btnSug');
   ok(await page.$eval('.pedir-in[data-in="2"]', x => x.value) === '300', '"Usar sugeridos" repone lo vaciado');
 
-  // PRECIO PISADO A MANO (usuario 2026-09-03: "si quiero modificar el importe ... pueda
-  // pedirlo"). La columna SE QUEDA: se escribe 2,5 y subtotal, total de la barra y payload
-  // tienen que seguirlo, con el de lista visible debajo.
-  ok(await page.$eval('.precio-in[data-pr="1"]', x => x.value) === '1', 'el precio de lista llena el campo');
-  ok(await page.$eval('.mon-btn[data-mon="1"]', x => x.textContent) === 'US$', 'la moneda se ve al lado');
-  ok((await page.textContent('tr[data-id="1"]')).includes('por kg'), 'el fleje aclara que el precio es por kg');
-  await page.fill('.precio-in[data-pr="1"]', '2,5');
-  await page.dispatchEvent('.precio-in[data-pr="1"]', 'change');
-  const filaPis = await page.textContent('tr[data-id="1"]');
-  ok(/6\.122,5/.test(filaPis), 'subtotal con el precio pisado (2449 x 2,5): ' + filaPis.replace(/\s+/g, ' ').slice(0, 140));
-  ok(filaPis.includes('lista US$ 1'), 'debajo queda el precio de lista, para no perder la referencia');
-  ok(await page.$eval('.precio-in[data-pr="1"]', x => x.className.includes('pisado')), 'el campo pisado se marca');
-  // 2449 x 2,5 + los 300 del otro fleje a US$ 1 = US$ 6.422,5
-  ok((await page.textContent('#tot')).includes('US$ 6.422,5'), 'el total de la barra usa el precio pisado');
-  // Vaciar el campo vuelve al de la lista
-  await page.fill('.precio-in[data-pr="1"]', '');
-  await page.dispatchEvent('.precio-in[data-pr="1"]', 'change');
-  ok((await page.textContent('#tot')).includes('US$ 2.749'), 'vaciar el campo vuelve al precio de lista');
+  // EL PRECIO SE FUE DE LA TABLA [usuario 2026-09-04: "precio se va y subtotal tambien"],
+  // pero NO del circuito: sigue valorizando la barra (y mas abajo, el payload de crear_oc).
+  ok((await page.$$('.precio-in')).length === 0 && (await page.$$('.mon-btn')).length === 0,
+     'no queda campo de precio ni boton de moneda en la tabla');
 
   // filtro proveedor Basconia y crear OC
   await page.click('#provs .chip:has-text("Basconia")');
@@ -233,6 +217,11 @@ window.supabase = { createClient: function(){ return {
   ok((await page.textContent('.oc-card .num-oc')).includes('OC N° 1'), 'OC listada');
   const cardTxt = await page.textContent('.oc-card');
   ok(cardTxt.includes('US$ 500'), 'OC listada con total y subtotal US$ 500');
+  // La ANULADA no se muestra [usuario 2026-09-04: "si anula una orden de compra, no
+  // quiero que me siga apareciendo en ordenes"]. Sigue en la base, no en la pantalla.
+  ok((await page.$$('.oc-card')).length === 1, 'la OC anulada no se lista');
+  ok(!(await page.textContent('#ocsList')).includes('OC N° 7'), 'y no queda rastro de la anulada');
+  ok((await page.textContent('#ocsN')).trim() === '(1)', 'el contador del tab no cuenta la anulada');
 
   // volver a Generar y validar reglas de carton
   await page.click('#tabGen');
