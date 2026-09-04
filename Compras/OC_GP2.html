@@ -1,7 +1,22 @@
 <!doctype html>
 <html lang="es">
 <head>
-<!-- v1.15.0 (2026-09-04) — GENERAR OC EMPIEZA POR EL RUBRO: LOS PROVEEDORES NO SE MUESTRAN
+<!-- v1.16.0 (2026-09-04) — LAS REGLAS DE RUBRO BAJAN A LA BASE [usuario 2026-09-04: "baja el
+     mapeo a datos"]. Nuevas columnas GP2.sector.oc_rubro_id (a que rubro sube el sector en la
+     OC) y GP2.sector.oc_pide (si se compra por OC), migracion sector_reglas_de_rubro_oc:
+     Alambre(13).oc_rubro_id=5 (Fleje) y Procesado(2).oc_pide=false. cargarReglasRubro() las
+     lee en boot(); el RUBRO_MAP/RUBRO_OCULTO hardcodeado queda SOLO como fallback.
+     NO se movio el sector fisico de ningun componente: el sector es la ZONA FISICA y moverlo
+     corrompe el stock. Se probo mover PA10/PEP3 a Plastico y se REVIRTIO el mismo dia
+     [usuario: "perdon, me confundi lo de los plasticos. Dejalo en sector procesado, pero no
+     va en orden de compra, porque eso serian plasticos que se mandan a serigrafear"]: son
+     plastico que sale a SERIGRAFIAR (un servicio), por eso viven en Procesado y por eso
+     ocultar Procesado en la OC es la regla correcta. La evidencia: PEP3 es "c/Serig" y en la
+     tabla vieja existe PA10B "S/Serig".
+     Ademas el sugerido YA NO RESTA lo pendiente de OC (migracion oc_sugerido_sin_pendiente_oc,
+     backend): la columna se habia sacado de pantalla en v1.15.0 y ahora la cuenta coincide.
+
+     v1.15.0 (2026-09-04) — GENERAR OC EMPIEZA POR EL RUBRO: LOS PROVEEDORES NO SE MUESTRAN
      HASTA TOCAR UN RUBRO [usuario 2026-09-04: "separado por rubro, que no aparezcan los
      proveedores, y cuando toco el rubro que aparezcan los proveedores"]. Al soltar el rubro
      (o al arrancar) la botonera de proveedor y su cartel quedan ocultos (.hidden) y el
@@ -402,6 +417,7 @@ async function boot(){
   if(r.error){ $('status').textContent='Error: '+r.error.message; return; }
   D=r.data||{};
   PAQ=Number(D.paq)||250;
+  await cargarReglasRubro();
   pintarRubros();
   proponerFecha();
   pintarOcs();
@@ -419,8 +435,26 @@ function paqPliego(){ return Number(D.pliego_uni_x_paquete)||PAQ_PLIEGO; }
    materia prima del fleje— y el Procesado (2) NO se pide por OC (Eclipse es proveedor de
    SERVICIO, no de insumo). Es mapeo de pantalla: NO toca la base. Si algún día se baja a
    datos, se saca de acá. */
+/* Desde el 2026-09-04 la regla VIVE EN LA BASE: GP2.sector.oc_rubro_id (a que rubro sube
+   este sector) y GP2.sector.oc_pide (si se compra por OC). Lo de aca abajo es solo el
+   FALLBACK por si la consulta falla, para que la pantalla nunca quede sin agrupar.
+   No se movio el sector fisico de ningun componente a proposito: el sector es la ZONA
+   FISICA y moverlo corrompe el stock. */
 var RUBRO_MAP={13:5};          // alambre -> fleje
-var RUBRO_OCULTO={2:true};     // procesado no aparece en OC
+var RUBRO_OCULTO={2:true};     // procesado (serigrafia = servicio) no se compra por OC
+async function cargarReglasRubro(){
+  try{
+    var r=await SB.from('sector').select('id,oc_rubro_id,oc_pide');
+    if(r.error || !r.data || !r.data.length) return;   // se queda con el fallback
+    var map={}, ocu={};
+    r.data.forEach(function(s){
+      var id=Number(s.id);
+      if(s.oc_rubro_id!=null && Number(s.oc_rubro_id)!==id) map[id]=Number(s.oc_rubro_id);
+      if(s.oc_pide===false) ocu[id]=true;
+    });
+    RUBRO_MAP=map; RUBRO_OCULTO=ocu;
+  }catch(e){ /* sin conexion a la tabla: fallback */ }
+}
 function rubroDe(i){ var s=Number(i.sector_id); return RUBRO_MAP[s]||s; }
 function ocultoRubro(i){ return !!RUBRO_OCULTO[Number(i.sector_id)]; }
 // Nombre del rubro: prioriza el sector canónico (5 = "Fleje"), no el del alambre mapeado.

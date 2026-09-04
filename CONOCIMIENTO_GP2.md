@@ -3500,18 +3500,18 @@ Textual: "separado por rubro, que no me aparezcan los proveedores, y cuando toco
 que ahí me aparezcan los proveedores". Implementado en v1.15.0: sin rubro elegido, la
 botonera de proveedor y su cartel quedan ocultos y el proveedor seleccionado se limpia.
 
-### "Pend. OC" se sacó de la pantalla `[usuario 2026-09-04: "por ahora borralo"]`
+### "Pend. OC" se sacó, de la pantalla Y del cálculo `[usuario 2026-09-04]`
 
-Se quitó la columna, la leyenda y la cuenta explicativa. **OJO — deuda viva:** el backend
-(`oc_bundle`) **sigue restando `pendiente_oc`** al sugerido. Hoy no se nota porque está en
-0, pero el día que haya una OC abierta el sugerido va a restar algo que no se ve en
-pantalla. Si se quiere que tampoco lo reste, es cambio de `oc_bundle`.
+Primero se quitó la columna, la leyenda y la cuenta ("por ahora borralo"). Ese mismo día el
+usuario pidió cerrarlo bien ("sí, hacé el cambio de back-end"), así que **el sugerido tampoco
+lo resta**: migración `oc_sugerido_sin_pendiente_oc` sacó `- pendiente_oc` de `sugerido` y de
+`sugerido_consumo` en `GP2.oc_bundle`. El campo `pendiente_oc` **sigue viajando** en el bundle
+(es informativo). Hoy la cuenta es exactamente **máximo − stock**, que es lo que dice la
+pantalla. **Deuda saldada, no queda nada oculto.**
 
 ### PENDIENTES que el usuario dejó planteados y NO están hechos
 
-- **P10 y P3 dentro de Plástico, bajo Pat Bet Plast** `[usuario 2026-09-04]`: "no sé por qué
-  P10 y P3 no están adentro de plástico". **No existen como código de componente en GP2**
-  `[dato: consulta 2026-09-04]`, así que falta que el usuario diga qué son antes de tocar nada.
+- ~~**P10 y P3 dentro de Plástico**~~ **RESUELTO el mismo día — ver 4p-bis abajo.**
 - **Garage como rubro de OC**: el sector existe (9) pero **no hay proveedor de insumo de
   Garage** — los GRJ los arman talleristas. Falta definir qué se pide ahí.
 - **Bajar el mapeo de rubros a datos** (Alambre→Fleje, Eclipse→servicio) cuando se confirme.
@@ -3530,3 +3530,73 @@ Lo que pidió el usuario para el de GP2:
 - **Mostrar sólo el MÁS PRÓXIMO por tipo**, no toda la lista.
 - **Al entrar, todos los componentes de ese sector** para completar (en flejes el total de
   kilos, en cajas todas las cajas, en cartones todos los cartones…).
+
+---
+
+## 4p-bis. "P10 y P3" son PA10 y PEP3, y salen a SERIGRAFIAR (2026-09-04)
+
+**El caso completo, incluida la corrección — vale la pena leerlo entero porque es un ejemplo
+de por qué la regla "NO inventar / NO asumir" existe.**
+
+### Quiénes son `[dato: consulta 2026-09-04]`
+
+El usuario los dictó por voz como "P10 y P3". No existen con ese código. Son:
+
+| Código | Descripción | Sector | Proveedor |
+|---|---|---|---|
+| `PA10` (id 234) | Capuchón ф 8 | **Sector Procesado** | Pat Bet Plast |
+| `PEP3` (id 246) | Mango Pelador LK 586 **c/Serig** | **Sector Procesado** | Pat Bet Plast |
+
+Se los encontró cruzando `GP2.componente` contra `public."SectorPlasticos"` (la casa del
+vecino, sólo lectura): son los **únicos dos** plásticos que están fuera del sector Plástico.
+
+### La corrección `[usuario 2026-09-04, TEXTUAL]`
+
+Primero el usuario dijo "no sé por qué P10 y P3 no están adentro de plástico. Dentro de Pat
+Bet Plast", y se los movió al Sector Plástico. **Al rato lo corrigió:** *"perdón, me confundí
+lo de los plásticos. Dejalo en sector procesado, pero no va en orden de compra, porque eso
+sería plásticos que se mandan a serigrafear"*. Se **revirtió** (migraciones
+`plasticos_pa10_pep3_al_sector_plastico` y su `revert_pa10_pep3_vuelven_a_procesado`).
+
+**Por qué la corrección es la correcta, y la evidencia lo respalda:** no son una COMPRA de
+plástico, son plástico propio que **sale a serigrafiar** — un **servicio**, no un insumo. Se
+ve en los propios nombres: `PEP3` es "Mango Pelador LK 586 **c/Serig**" y en la tabla vieja
+existe `PA10B` "Capuchón ф 8 **S/Serig**" (la versión sin serigrafiar). Por eso viven en
+**Procesado** (que es donde va lo que está en proceso) y por eso **no deben aparecer en OC**.
+
+**Consecuencia buena:** ocultar el Sector Procesado en Generar OC no es un parche, es **la
+regla correcta** — ese sector no se compra.
+
+### Qué NO se rompió, y por qué el revert fue barato
+
+El movimiento tocó sólo `componente.sector_id`. **El inventario de PA10 y PEP3 ya vivía en la
+ubicación "Sector Plástico"** (tipo sector), así que nada se movió físicamente ni se tocó
+stock, recetas ni rutas. Lección: antes de mover un `sector_id`, mirar dónde está el
+`inventario` — si no coinciden, hay algo mal clasificado y conviene preguntar antes de tocar.
+
+### Lo que quedó en Procesado y NO va a OC
+
+Además de PA10/PEP3, en Procesado hay 88 componentes, de los cuales **sólo 4 tenían precio**:
+los dos de serigrafía, más `C13` (Corta Queso, **Importado**) y `D1` (Espiral Sacacorcho,
+**Tierra Nativa SA**). Los dos últimos ya estaban cubiertos por la decisión de §4o
+(**los importados no se piden por OC**), así que ocultar Procesado **no deja afuera nada que
+debiera comprarse**.
+
+## 4p-ter. Las reglas de rubro de la OC viven en `GP2.sector` (2026-09-04)
+
+`[usuario 2026-09-04: "baja el mapeo a datos"]`. Migración `sector_reglas_de_rubro_oc`:
+
+- **`GP2.sector.oc_rubro_id`** — a qué rubro **sube** este sector en la pantalla de OC.
+  NULL = es su propio rubro. Hoy: **Alambre (13) → Fleje (5)** (el alambre es MP del fleje).
+- **`GP2.sector.oc_pide`** — si el sector **se compra por OC**. Hoy: **Procesado (2) = false**
+  (serigrafía = servicio).
+
+**Regla de oro que se respetó:** NO se movió el `sector_id` de ningún componente. El sector es
+la **zona física** (§1-bis) y moverlo corrompe el stock. Lo que bajó a datos es la **regla de
+agrupación de la pantalla**, no la ubicación de las piezas. En Sector Alambre viven
+`CHAPA430` (Aperam → Eclipse corta) y `FLEJE90_BRUTO` (Altrak, antes de cortar), que siguen
+donde estaban.
+
+`OC_GP2.html` v1.16.0 las lee en `boot()` con `cargarReglasRubro()`; el `RUBRO_MAP` /
+`RUBRO_OCULTO` hardcodeado quedó **sólo como fallback** por si la consulta falla. Para sumar
+un rubro nuevo o sacar uno, **ya no se toca código**: se actualizan esas dos columnas.

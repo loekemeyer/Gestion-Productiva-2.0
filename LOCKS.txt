@@ -1,4 +1,5 @@
 [LOCKS]
+LockX | Compras/OC_GP2.html | loekemeyer-claude | 2026-09-04 | OC lee las reglas de rubro desde GP2.sector (oc_rubro_id / oc_pide) en vez del hardcode
 [WAIT QUEUE]
 (vacío)
 
