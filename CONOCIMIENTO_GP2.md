@@ -342,15 +342,26 @@ coincidir con la receta. Charcas queda como **prov_servicio** en las 5.
 
 **Pantallas / flujos:**
 El Fleje 90 va en **2 pasos** `[usuario 2026-09-04]`:
-- **1) Confirmar entrega de Altrak (Pagos)** — carga kg de `FLEJE90_BRUTO` cuando
-  llega la entrega de Altrak → suma stock del bruto en Charcas (ubic 13). **Acá se
-  decide el % corto/largo** (ej. 30% IC3 / 70% IC3V); ese % fija **lo que Charcas
-  tiene que entregar de cada medida**. No se decide ni en la OC ni en un paso aparte.
+- **1) Recepción de Altrak** — en **Recepción Insumos → Flejes → Altrak** `[usuario
+  "altrak tiene que estar en prov insumo flejes", opción B 2026-09-04]`. Altrak es
+  proveedor de insumo (fleje); aparece en el rubro Flejes con un flujo propio (`irAltrak`)
+  que pide **kg + % corto/largo** y llama `cargar_compra_altrak(p_kg, p_remito, p_fecha,
+  p_pct_corto)`. Suma `FLEJE90_BRUTO` al stock de Charcas (ubic 13). **Acá se decide el
+  % corto/largo** (ej. 30/70, **varía por entrega** según stock/pedido); ese % fija **lo
+  que Charcas tiene que entregar de cada medida** (se guarda como objetivo en
+  `recepcion_insumo.rollos_json`). Se **jubiló** la pantalla `Compra Altrak → Charcas`
+  (`AltrakCharcas_GP2.html`, sin link en el menú).
 - **2) Recepción de Charcas** — RPC `cargar_recepcion_charcas`: cuando Charcas
   corta y entrega, registra el corte (corto IC3 → Cervantes / largo IC3V → Virgilio),
   suma kg en el destino y descuenta del bruto en Charcas. **Acá se genera el stock
-  real** de IC3/IC3V.
-- **Pantalla dedicada** — `Prov Serv/CharcasEclipse/CharcasEclipse_GP2.html` (grupo PS del menú).
+  real** de IC3/IC3V. Pantalla: `Prov Serv/CharcasEclipse/CharcasEclipse_GP2.html`.
+
+**Charcas y Eclipse NO reciben Envío** `[usuario 2026-09-04: "charcas no puede aparecer
+en envío prov serv porque no le enviamos; ahí le entra directo cuando cargamos la recepción
+insumo de Altrak"]`. Son prov_servicio **híbridos**: la MP les llega directo del proveedor
+externo (Altrak/Aperam), no por Envío desde Cervantes. Se marcan con
+`proveedor_servicio.hibrido = true` (Charcas id 1, Eclipse id 13) y `envios_ps_bundle` los
+**excluye** de Prov Serv → Envíos. Su entrega se registra en CharcasEclipse, no en Entregas PS normal.
 
 **cod_prov Charcas = 3605** `[usuario 2026-09-02]`. **cod_prov Altrak = 3711** `[usuario 2026-09-03]`.
 
