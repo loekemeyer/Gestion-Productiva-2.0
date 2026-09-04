@@ -3560,6 +3560,21 @@ Dos cosas más del mismo día:
   (`maximo_origen='consumo_x_meses'`); cuando se carguen los máximos, revisar si conviene
   sacar ese fallback.
 
+### En pantalla se llama SECTOR, y sin elegir no hay lista (v1.19.0) `[usuario 2026-09-04]`
+
+Textual: *"no pongas rubro, sector quiero que pongas"* + *"si no pongo el sector y no pongo
+el proveedor, que no me aparezca la lista"*.
+
+- **"Rubro" era una palabra nuestra, no del usuario.** La botonera y la hoja impresa dicen
+  ahora **Sector**. Es sólo el rótulo: el campo sigue siendo `GP2.orden_compra.rubro` y el
+  JS sigue usando `rubroSel`/`rubroDe`/`RUBRO_MAP` — **no se renombra media pantalla y una
+  columna de la base por un texto**.
+- **Sin sector ni proveedor elegido no se muestra nada**: `filtradas()` devuelve `[]` y toda
+  la zona de armar la OC queda oculta. Efecto de fondo que importa: **la pantalla ya no
+  arranca con todos los insumos de la fábrica con cantidad puesta** — el sugerido se carga
+  recién cuando decís dónde estás comprando. Antes de esto, abrir la pantalla ya era un
+  pedido gigante armado solo.
+
 ### PENDIENTES que el usuario dejó planteados y NO están hechos
 
 - ~~**P10 y P3 dentro de Plástico**~~ **RESUELTO el mismo día — ver 4p-bis abajo.**

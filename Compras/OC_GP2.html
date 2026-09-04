@@ -1,7 +1,19 @@
 <!doctype html>
 <html lang="es">
 <head>
-<!-- v1.18.0 (2026-09-04) — TAMBIEN SE VAN PRECIO Y SUBTOTAL, EL "MIN" DEBAJO DEL STOCK, Y LA
+<!-- v1.19.0 (2026-09-04) — SE LLAMA SECTOR, NO RUBRO, Y SIN ELEGIR NO HAY LISTA [usuario
+     2026-09-04: "no pongas rubro, sector quiero que pongas" + "si no pongo el sector y no
+     pongo el proveedor, que no me aparezca la lista"].
+     (a) La etiqueta de la botonera dice SECTOR (y tambien la hoja impresa de la OC). Es un
+         ROTULO: el campo de la base se sigue llamando GP2.orden_compra.rubro y el JS sigue
+         usando rubroSel/rubroDe -- no se renombra media pantalla por un texto.
+     (b) haySeleccion(): sin sector NI proveedor, filtradas() devuelve [] y toda la zona de
+         armar la OC (buscador, leyenda, tabla, barras y Crear OC) queda oculta detras de
+         #zonaLista; en su lugar se ve #elegiSector. Efecto de fondo importante: la pantalla
+         ya NO arranca con los ~600 insumos de la fabrica con cantidad puesta -- el sugerido
+         se carga recien cuando elegis donde estas comprando.
+
+     <!-- v1.18.0 (2026-09-04) — TAMBIEN SE VAN PRECIO Y SUBTOTAL, EL "MIN" DEBAJO DEL STOCK, Y LA
      OC ANULADA DESAPARECE DE LA LISTA [usuario 2026-09-04: "precio se va y subtotal tambien"
      + "lo que dice abajo de stock actual... mínimo. Eso no lo quiero ver" + "si anula una
      orden de compra, no quiero que me siga apareciendo en ordenes"].
@@ -331,10 +343,14 @@
     </div>
 
     <div id="panGen">
-      <div class="filtro"><span class="filtro-lb">Rubro</span><div class="chips" id="rubros"></div></div>
+      <div class="filtro"><span class="filtro-lb">Sector</span><div class="chips" id="rubros"></div></div>
       <div class="filtro hidden" id="filtroProv"><span class="filtro-lb">Proveedor</span><div class="chips" id="provs"></div></div>
       <div class="prov-info hidden" id="provInfo"></div>
       <div class="regla-carton hidden" id="reglaCarton"></div>
+      <!-- Sin sector ni proveedor elegido no se muestra NADA de la lista [usuario
+           2026-09-04: "si no pongo el sector y no pongo el proveedor, que no me aparezca
+           la lista"]: la pantalla arranca en los botones de sector y nada mas. -->
+      <div id="zonaLista" class="hidden">
       <div class="search-box"><input type="text" id="q" placeholder="Buscar insumo…"></div>
       <div class="leyenda"><b>“Pedir” ya viene cargado con el sugerido</b> (<b>Máximo</b> − <b>Stock</b>): debajo de cada campo dice cuánto es el sugerido y de dónde sale. Cambiá la cantidad o <b>dejá el campo vacío</b> para no pedir ese insumo. Lo que quede en pantalla es lo que sale en la OC; <b>el total en plata está acá abajo</b>.</div>
       <div class="table-wrap">
@@ -347,7 +363,7 @@
           <tbody id="tbody"></tbody>
         </table>
       </div>
-      <div id="tblEmpty" class="empty hidden">Sin insumos en este rubro.</div>
+      <div id="tblEmpty" class="empty hidden">Sin insumos en este sector.</div>
 
       <div class="barra">
         <button type="button" class="btn-sug" id="btnSug">Usar sugeridos</button>
@@ -367,6 +383,8 @@
         </div>
         <button type="button" class="btn-crear" id="btnCrear" disabled>Crear OC</button>
       </div>
+      </div>
+      <div id="elegiSector" class="empty">Elegí un <b>sector</b> arriba para ver los insumos y armar la orden.</div>
     </div>
 
     <div id="panOcs" class="hidden">
@@ -600,7 +618,7 @@ function pintarProvInfo(){
   var el=$('provInfo');
   if(!el) return;
   if(provSel==null){
-    el.innerHTML='<b>Elegí un proveedor</b> — la orden sale sólo con SUS insumos. El rubro es un filtro de arriba, no hace falta para pedir.';
+    el.innerHTML='<b>Elegí un proveedor</b> — la orden sale sólo con SUS insumos, y con las partes del sector que elegiste arriba.';
     return;
   }
   var xs=(D.insumos||[]).filter(function(i){
@@ -634,7 +652,13 @@ function pintarAyudaFecha(){
   else ay.textContent=provSel+' no tiene plazo cargado: ponela a mano.';
 }
 
+/* Sin sector NI proveedor elegido no hay lista [usuario 2026-09-04: "si no pongo el
+   sector y no pongo el proveedor, que no me aparezca la lista"]. Devolver [] de una
+   tiene un efecto de fondo: cargarSugeridos() tampoco carga nada, asi que la pantalla
+   ya no arranca con TODOS los insumos de la fabrica con cantidad puesta. */
+function haySeleccion(){ return rubroSel!=null || provSel!=null; }
 function filtradas(){
+  if(!haySeleccion()) return [];
   var q=($('q').value||'').trim().toLowerCase();
   return (D.insumos||[]).filter(function(i){
     if(ocultoRubro(i)) return false;
@@ -724,6 +748,10 @@ function render(){
         notaSugerido(i)+'</td>'+
     '</tr>';
   }).join('');
+  // Toda la zona de armar la OC (buscador, leyenda, tabla y barras) aparece recien
+  // cuando hay sector o proveedor elegido; hasta entonces solo se ve el cartel.
+  $('zonaLista').classList.toggle('hidden', !haySeleccion());
+  $('elegiSector').classList.toggle('hidden', haySeleccion());
   $('tblEmpty').classList.toggle('hidden', fs.length>0);
 
   document.querySelectorAll('.pedir-in').forEach(function(inp){
@@ -1137,7 +1165,9 @@ function imprimirOC(ocId){
     '</div>'+
     '<div class="datos">'+
       '<div class="dato"><div class="lb">Proveedor</div><div class="vl">'+esc(o.proveedor||'—')+'</div></div>'+
-      '<div class="dato"><div class="lb">Rubro</div><div class="vl">'+esc(o.rubro||'—')+'</div></div>'+
+      // La etiqueta que se lee es "Sector" [usuario 2026-09-04]; el campo de la base
+      // se sigue llamando rubro (GP2.orden_compra.rubro), no se toca por un rotulo.
+      '<div class="dato"><div class="lb">Sector</div><div class="vl">'+esc(o.rubro||'—')+'</div></div>'+
       '<div class="dato entrega"><div class="lb">Fecha de entrega estimada</div>'+
         '<div class="vl">'+(entrega||'____ / ____ / ________')+'</div></div>'+
     '</div>'+

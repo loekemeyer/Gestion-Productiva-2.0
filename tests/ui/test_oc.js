@@ -137,12 +137,24 @@ window.supabase = { createClient: function(){ return {
 
   const ok = (c, msg) => { console.log((c ? 'OK  ' : 'FAIL') + ' ' + msg); if (!c) process.exitCode = 1; };
 
-  // rubro chips
+  // chips de SECTOR (asi se llama en pantalla desde v1.19.0; el campo de la base
+  // sigue siendo 'rubro')
+  ok((await page.textContent('#panGen')).includes('Sector'), 'la botonera se llama Sector, no Rubro');
   const chips = await page.$$eval('#rubros .chip', xs => xs.map(x => x.textContent));
-  ok(chips.join(',') === 'Fleje,Carton,Plastico', 'chips de rubro: ' + chips.join(','));
+  ok(chips.join(',') === 'Fleje,Carton,Plastico', 'chips de sector: ' + chips.join(','));
 
-  // sin filtro: 4 filas
-  ok(await page.$$eval('#tbody tr', x => x.length) === 12, '12 insumos sin filtro');
+  // SIN SECTOR NI PROVEEDOR NO HAY LISTA [usuario 2026-09-04: "si no pongo el sector y
+  // no pongo el proveedor, que no me aparezca la lista"].
+  ok(await page.$eval('#zonaLista', x => x.classList.contains('hidden')), 'sin elegir nada, no se muestra la lista');
+  ok(!(await page.$eval('#elegiSector', x => x.classList.contains('hidden'))), 'se ve el cartel que pide elegir sector');
+  ok(await page.$$eval('#tbody tr', x => x.length) === 0, 'y no hay ninguna fila cargada');
+
+  // Al elegir el sector aparece todo
+  await page.click('#rubros .chip:has-text("Carton")');
+  ok(!(await page.$eval('#zonaLista', x => x.classList.contains('hidden'))), 'al elegir sector aparece la lista');
+  await page.click('#rubros .chip:has-text("Carton")');   // se suelta: vuelve a esconderse
+  ok(await page.$eval('#zonaLista', x => x.classList.contains('hidden')), 'al soltar el sector se esconde de nuevo');
+  await page.click('#rubros .chip:has-text("Plastico")');
 
   // La tabla quedo en lo que se mira para pedir (v1.17.0): salieron Consumo/mes,
   // Sugerido y Precio.
