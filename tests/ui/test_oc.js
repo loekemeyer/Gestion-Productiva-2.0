@@ -298,6 +298,15 @@ window.supabase = { createClient: function(){ return {
   regla = await page.textContent('#reglaCarton');
   ok(/pedido mínimo es 20\.000/.test(regla), 'avisa si no llega al mínimo: ' + regla.trim().slice(0, 90));
 
+  // El "Sugerido" y el "Consumo/mes" NO son texto: se tocan con el dedo. Tocando el
+  // sugerido pasa a "Pedir", tocando el consumo se abre el detalle. El gate de UI los
+  // midio a 390px el 2026-09-04 y daban 28x19 y 42x19, o sea imposibles de acertar en
+  // un celular. La regla de la casa es 44px, y vale para lo tocable aunque no sea <button>.
+  for (const [sel, nombre] of [['.sug', 'Sugerido'], ['.cd-tocable', 'Consumo/mes']]) {
+    const caja = await page.$eval(sel, x => { const r = x.getBoundingClientRect(); return [Math.round(r.width), Math.round(r.height)]; });
+    ok(caja[0] >= 44 && caja[1] >= 44, 'el ' + nombre + ' se puede tocar (' + caja.join('x') + ')');
+  }
+
   // acciones de OC: marcar enviada
   await page.click('#tabOcs');
   await page.click('.oc-acts button.env');

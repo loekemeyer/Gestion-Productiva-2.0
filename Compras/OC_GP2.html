@@ -1,7 +1,12 @@
 <!doctype html>
 <html lang="es">
 <head>
-<!-- v1.14.0 (2026-09-03) — PEDIDO MINIMO POR FAMILIA: LAS BOLSAS, 20.000 [usuario
+<!-- v1.14.1 (2026-09-04) — EL "SUGERIDO" Y EL "CONSUMO/MES" SE TOCABAN CON EL DEDO Y MEDIAN
+     28x19 Y 42x19. Los dos son controles, no texto: tocando el sugerido pasa a "Pedir" y
+     tocando el consumo se abre el detalle. Ahora van con caja de 44px como el resto de los
+     botones de la casa. Lo midio el gate de UI a 390px; test_oc.js lo vigila de ahora en mas.
+
+     v1.14.0 (2026-09-03) — PEDIDO MINIMO POR FAMILIA: LAS BOLSAS, 20.000 [usuario
      2026-09-03: "ponele veinte mil y mañana lo chequeo" — SIN CONFIRMAR].
      Es un concepto DISTINTO del multiplo y por eso es una columna nueva
      (carton_formato.pedido_minimo): el MULTIPLO dice de a cuanto sube el total (12.000,
@@ -179,7 +184,11 @@
   .precio-lista{font-size:12px;color:#9a6700;display:block}
   .pedir-in.err{border-color:#eacdcd;background:#ffebee}
   tr.con-pedido td{background:#eef7ee}
-  .sug{color:#b45309;font-weight:800;cursor:pointer;text-decoration:underline dotted}
+  /* Sugerido y Consumo/mes se tocan con el dedo, no son texto: van con caja de 44px
+     como cualquier boton de la casa (regla de UX de CLAUDE.md, la vigila test_oc.js). */
+  .sug,.cd-tocable{display:inline-block;min-width:44px;min-height:44px;line-height:44px;
+    padding:0 8px;box-sizing:border-box;cursor:pointer;text-decoration:underline dotted}
+  .sug{color:#b45309;font-weight:800}
   .paq-eq{font-size:12px;color:#0b3b73;display:block}
   .barra{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:12px 0;padding:12px;background:#f6f8fa;border-radius:10px}
   .barra .tot{font-size:17px;font-weight:800}
