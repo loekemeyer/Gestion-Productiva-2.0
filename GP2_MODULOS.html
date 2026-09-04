@@ -185,7 +185,7 @@ span.op.lock .lk{font-size:14px;margin-left:auto;opacity:.7}
     (GP2_AUTH_ON=false) no hay sesion que cerrar: el link se oculta solo -->
     <span id="kpiResumen"></span><span id="sesion" hidden>&nbsp;·&nbsp; <a href="login.html?logout=1" onclick="try{sessionStorage.clear();}catch(e){}"
     style="color:#b42318;text-decoration:none;font-weight:700">⎋ Cerrar sesión</a></span></div>
-  <script src="version.js?v=20260904l"></script>
+  <script src="version.js?v=20260904m"></script>
   <script>if (window.GP2_AUTH_ON !== false) document.getElementById('sesion').hidden = false;</script>
 </div>
 
@@ -271,8 +271,11 @@ const MENU = [
    ["Inyectores · Quién hace cada parte", "Compras/Inyectores_GP2.html", "secundario"],
    ["Pintores · Quién pinta cada parte", "Prov%20Serv/Pintores/Pintores_GP2.html", "secundario"],
  ]],
- ["🗒","Relevamiento", [ ["Relevamientos", "Relevamiento/relevamiento.html"],
-                        ["Relevamiento GP2 (nuevo)", "Relevamiento/Relevamiento_GP2.html"] ]],
+ /* Solo el Relevamiento GP2 nativo [usuario 2026-09-04: "borra relevamientos (viejo) y deja
+    solo relevamiento gp2 (nuevo) pero renombralo y ponele Relevamientos"]. El modulo viejo
+    (Relevamiento/relevamiento.html, schema relevamiento_cervantes) queda en el repo pero
+    YA NO SE ENTRA desde el menu. */
+ ["🗒","Relevamiento", [ ["Relevamientos", "Relevamiento/Relevamiento_GP2.html"] ]],
  ["🔗","Ventas", [ ["Chat Bot Ventas", null] ]],
 ];
 

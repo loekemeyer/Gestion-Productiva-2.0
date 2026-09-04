@@ -1,7 +1,14 @@
 <!doctype html>
 <html lang="es">
 <head>
-<!-- v1.0.0 (2026-09-04) — RELEVAMIENTO GP2 NATIVO.
+<!-- v1.1.0 (2026-09-04) — TILDE AL TERMINAR, NO SE DEJA RASTRO SI SE ENTRA A MIRAR, Y
+     SIN "Bolsa Plast" [usuario 2026-09-04]. (a) Al tocar Volver, si NO se cargo nada el
+     conteo se DESCARTA (relevamiento_descartar_si_vacio): entrar a mirar no es empezar a
+     contar, y ya no aparece "Seguir cargando" por una prueba. Si hay aunque sea un dato se
+     guarda y queda para seguir. (b) Terminado = TILDE: "Contado" o "Hecho" en verde.
+     (c) Los tipos sin sector no se listan (Bolsa Plast). (d) El modulo viejo salio del menu.
+
+     v1.0.0 (2026-09-04) — RELEVAMIENTO GP2 NATIVO.
      Pantalla nueva. NO reemplaza a Relevamiento/relevamiento.html todavia: ese lee del
      schema VIEJO (relevamiento_cervantes via public.rc_*) y esta armado sobre "plantas"
      (Cervantes/Virgilio). Este esta armado sobre SECTOR + ubicacion de GP2. Se miro la
@@ -51,8 +58,10 @@
   .dias.cerca{background:#fdf1cc;color:#8a6a00}
   .dias.ya{background:#ffe6cc;color:#c65a00}
   .dias.vencido{background:#fbe0e0;color:#c00}
-  .cl.sin-map{border-color:#e6cf9a;background:#fffbf0}
-  .aviso-map{font-size:14px;color:#8a6a00;font-weight:700}
+  /* Terminado: verde y con tilde, para que se vea de un golpe cuál ya está. */
+  .cl.hecho{border-color:#bfe3cd;background:#f2faf5}
+  .tilde{font-size:18px;font-weight:800;color:#0a7a2f;background:#dff3e6;
+         border-radius:20px;padding:8px 16px;white-space:nowrap}
 
   /* ---- Botones ---- */
   .b{min-height:48px;padding:12px 20px;border-radius:10px;border:2px solid #d0d7de;
@@ -217,24 +226,30 @@ function pintarCrono(){
   $('crono').innerHTML = CRONO.map(function(c){
     var rel = c.relevamiento;
     var estado = rel ? rel.estado : null;
-    var acts;
-    if(!c.mapeado){
-      acts = '<span class="aviso-map">Sin sector asignado — no se puede contar todavía</span>';
-    } else if(estado === 'aplicado'){
-      acts = '<span class="dias lejos">✓ Aplicado</span>';
+    var acts, hecho = false;
+    if(estado === 'aplicado'){
+      // Terminado y ya aplicado al stock: tilde y nada mas que hacer.
+      hecho = true;
+      acts = '<span class="tilde">✓ Hecho</span>';
     } else if(estado === 'contado'){
-      acts = '<button type="button" class="b sm pri" data-comp="'+rel.id+'">Ver comparación →</button>';
-    } else if(estado === 'en_curso'){
+      // Contado: TILDE [usuario 2026-09-04: "cuando lo termino de cargar quiero que me
+      // aparezca un tilde"], y al lado el paso que queda.
+      hecho = true;
+      acts = '<span class="tilde">✓ Contado</span>'+
+             '<button type="button" class="b sm pri" data-comp="'+rel.id+'">Ver comparación →</button>';
+    } else if(estado === 'en_curso' && rel.contados > 0){
+      // Solo se ofrece seguir si HAY algo cargado. Un conteo abierto y vacio se descarta
+      // al salir (ver salirDeCarga), asi que este caso no aparece por haber entrado a mirar.
       acts = '<button type="button" class="b sm pri" data-abrir="'+c.sector_id+'" data-crono="'+c.crono_id+'">'+
              'Seguir cargando ('+rel.contados+'/'+rel.items+')</button>';
     } else {
       acts = '<button type="button" class="b sm pri" data-abrir="'+c.sector_id+'" data-crono="'+c.crono_id+'">Contar</button>';
     }
-    return '<div class="cl'+(c.mapeado?'':' sin-map')+'">'+
+    return '<div class="cl'+(hecho?' hecho':'')+'">'+
       '<span class="cl-tipo">'+esc(c.tipo)+'</span>'+
       '<span class="cl-fecha"><span class="lb">Próximo</span><span class="d">'+fmtFecha(c.fecha)+'</span></span>'+
       '<span class="dias '+claseDias(c.dias)+'">'+textoDias(c.dias)+'</span>'+
-      '<span class="cl-comp">'+(c.mapeado ? (fmt(c.componentes)+' componentes') : '')+'</span>'+
+      '<span class="cl-comp">'+fmt(c.componentes)+' componentes</span>'+
       '<span class="cl-acts">'+acts+'</span>'+
     '</div>';
   }).join('') || '<div class="empty">No hay conteos programados.</div>';
@@ -457,7 +472,22 @@ function mostrar(p){
   $('panCarga').classList.toggle('hidden', p!=='carga');
   $('panComp').classList.toggle('hidden', p!=='comp');
 }
-$('btnVolver').addEventListener('click', async function(){ await boot(); mostrar('crono'); });
+/* Salir de la carga. Si se entro y no se cargo NADA, el conteo se descarta: entrar a mirar
+   no es empezar a contar [usuario 2026-09-04: "que si salgo, despues de haber puesto contar,
+   no me aparezca seguir cargando, porque lo estoy usando como prueba"].
+   Si hay aunque sea un dato, se guarda y queda para seguir: eso NO se pierde. */
+async function salirDeCarga(){
+  try{
+    if(REL && REL.id){
+      if(filasCargadas() > 0) await guardar(true);
+      else await SB.rpc('relevamiento_descartar_si_vacio', { p_id: REL.id });
+    }
+  }catch(e){ /* si falla, igual se vuelve al cronograma */ }
+  REL = null; ITEMS = [];
+  await boot();
+  mostrar('crono');
+}
+$('btnVolver').addEventListener('click', salirDeCarga);
 $('btnVolver2').addEventListener('click', async function(){ await boot(); mostrar('crono'); });
 
 boot();

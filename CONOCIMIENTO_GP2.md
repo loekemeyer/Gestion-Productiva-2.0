@@ -3742,3 +3742,57 @@ así que nunca lo toca. Además hay **exactamente una ubicación por sector**, p
 (`PLASTICO_LUGAR`). Es muy probable que el renglón **"Bolsa Plást"** del Excel del cronograma
 sea justamente ese conteo — encaja con que caiga siempre el mismo día que Plásticos. **Sin
 confirmar**; el usuario dijo "bolsas plast por ahora no".
+
+### Factores de envase recuperados de la casa del vecino (2026-09-04)
+
+`[usuario: "todos los que no tienen factor intentá encontrarlo en gestión productiva vieja, si
+encontrás agregalo"]`. De **27 componentes sin factor se bajó a 12**.
+
+**Lo que se cargó, y de dónde:**
+
+| Código | Factor | Fuente en el viejo |
+|---|---|---|
+| PB8A | 500 | `SectorPlasticos."Uni x Bolsa"` |
+| BOM12 | 1.760 | `Sector Bombilla."Uni_x_Bolsa"` |
+| V11 | 2.729 | `Remaches SP`: 2 kg/bolsa ÷ 0,000733 kg/uni |
+| **12 remaches `CV*`** | 556 a 100.000 | `Remaches SC` (crudos), mismo cálculo |
+
+**La trampa de los remaches, y cómo se resolvió** `[usuario]`: los `CV*` ("p/Niquelar")
+matcheaban por descripción en **las dos** tablas del viejo con factores que difieren **de 2x a
+10x** (CV1: 57.143 en SC vs 5.714 en SP). Elegir a ojo dejaba el conteo diez veces mal. Lo
+destrabó el usuario: *"en el viejo aparecían los remaches crudos con la c al final me parece"*
+→ los `CV*` son **crudos**, así que la fuente es **`Remaches SC`**. 11 de los 12 llevan
+efectivamente la C (V1C, V11C, V14C, V16C, V17C, V2C, V3C, V4C, V5C, V7C, V8C); `CV13` figura
+como `V13` pero está **en la tabla de crudos**, que es lo que manda.
+
+**Lo que NO se cargó, a propósito:**
+
+- **`BOM14` — colisión de código.** En GP2 es "Precinto p/Bombilla"; en el viejo el mismo
+  código es "Caño Inox 170 mm". **Son cosas distintas.** Copiar ese 1.000 metía el dato de
+  otra pieza. **Regla que deja: al traer datos del vecino, matchear por código Y descripción,
+  nunca sólo por código.**
+- Los 12 que siguen sin factor: `BOM13, BOM14, C12, GRJ13, D9, PC16, CV12, CV18D, CV6, CV9,
+  V18D, V20`. No están en el viejo, o el código no coincide. Quedan en NULL y la pantalla los
+  muestra como **"falta el factor"** con el campo deshabilitado: no se inventa un total.
+
+### Relevamiento: entrar a mirar no es empezar a contar (2026-09-04)
+
+`[usuario: "que si salgo, después de haber puesto contar, no me aparezca seguir cargando,
+porque lo estoy usando como prueba"]`. `relevamiento_descartar_si_vacio(id)` borra el
+relevamiento **sólo** si está `en_curso` y **no tiene ni una fila contada**; si hay aunque sea
+un dato, se niega y guarda. La pantalla la llama al tocar "Volver".
+
+Se aplicó a lo que ya había: se descartaron dos aperturas vacías (Remache y Plástico) y
+**se dejó intacto el de Bombillas, que tenía 8 de 12 cargados de verdad**.
+
+**Tilde al terminar** `[usuario: "cuando lo termino de cargar quiero que me aparezca un
+tilde"]`: `contado` → **✓ Contado** (+ botón a la comparación), `aplicado` → **✓ Hecho**, y la
+línea entera se pinta verde.
+
+**"Bolsa Plást" no se muestra** `[usuario: "bolsas plásticas no lo quiero ver por ahora"]`:
+el bundle filtra los tipos sin sector. Sigue cargado en el cronograma; el día que tenga sector
+aparece solo.
+
+**El módulo viejo salió del menú** `[usuario: "borrá relevamientos (viejo) y dejá solo
+relevamiento gp2 (nuevo) pero renombralo y ponele Relevamientos"]`. `Relevamiento/relevamiento.html`
+queda en el repo pero ya no se entra desde `GP2_MODULOS`.
