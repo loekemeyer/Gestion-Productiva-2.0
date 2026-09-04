@@ -13,7 +13,7 @@
    Mismo criterio que el SW de Produccion Virgilio.
    ========================================================= */
 
-const SW_VERSION = "gp2-v1";
+const SW_VERSION = "gp2-v2";
 
 self.addEventListener("install", () => {
   // La version nueva toma control de inmediato, sin quedar en waiting.
@@ -32,7 +32,18 @@ self.addEventListener("activate", (event) => {
   })());
 });
 
-/* Handler de fetch vacio: no interceptamos ningun request, todo va derecho a
-   la red. Existe porque algunos navegadores solo consideran "completo" a un
-   SW que tenga handler de fetch. */
-self.addEventListener("fetch", () => {});
+/* Navegaciones (abrir una pantalla) SIEMPRE de la red, sin pasar por el cache
+   HTTP del navegador: 'reload' fuerza ir a la red ignorando la copia cacheada.
+   Sin esto, el HTML (que se navega directo, sin ?v= propio) se queda pegado a una
+   version vieja aunque el codigo ya este actualizado -- justo lo que este SW dice
+   evitar. Los demas requests (Supabase, CDN, assets con ?v=) NO se interceptan:
+   van derecho a la red y su frescura la maneja el token ?v=. Fallback a fetch
+   normal si la red con 'reload' falla, para no romper la navegacion. */
+self.addEventListener("fetch", (event) => {
+  var req = event.request;
+  if (req.mode === "navigate") {
+    event.respondWith(
+      fetch(req, { cache: "reload" }).catch(function () { return fetch(req); })
+    );
+  }
+});
