@@ -6,6 +6,10 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
+<!-- v3.48.0 (2026-09-04) — DESLIZANTE para el reparto corto/largo en el panel de Altrak
+     (usuario: "esto si se puede, un deslizante"). Un <input type=range> 0-100 sincronizado
+     con los 2 campos %: deslizar o escribir cualquiera actualiza los otros dos y el desglose
+     en kg (akSetCorto). Suman 100 siempre. -->
 <!-- v3.47.0 (2026-09-04) — ALTRAK EN EL RUBRO FLEJES (opcion B, usuario). Altrak entrega el
      fleje bruto (FLEJE90_BRUTO, sector 13) que va a Charcas: aparece como proveedor en Flejes
      (inyectado a mano, no cae por sector) y al elegirlo abre un flujo propio irAltrak() con kg
@@ -449,7 +453,13 @@ input[type="text"]{width:200px}
         <label for="akKg" style="font-size:16px;font-weight:700">Kg de alambre comprados</label>
         <input type="text" id="akKg" inputmode="decimal" placeholder="0,0" style="height:52px;font-size:26px;font-weight:800;text-align:right;padding:0 14px;border:2px solid #d0d7de;border-radius:10px">
       </div>
-      <div style="display:flex;gap:14px;flex-wrap:wrap;margin:12px 0">
+      <div style="margin:12px 0 2px">
+        <label style="font-size:16px;font-weight:700">Reparto corto / largo (deslizá o escribí)</label>
+        <input type="range" id="akPctSlider" min="0" max="100" step="1" value="50"
+               style="width:100%;height:40px;margin-top:8px;accent-color:#0b3b73;cursor:pointer">
+        <div id="akSliderLbl" style="text-align:center;font-size:18px;font-weight:800;color:#0b3b73">Definí el reparto</div>
+      </div>
+      <div style="display:flex;gap:14px;flex-wrap:wrap;margin:8px 0 0">
         <div style="flex:1 1 150px;display:flex;flex-direction:column;gap:6px">
           <label for="akPctCorto" style="font-size:16px;font-weight:700">% Corto (IC3) → Cervantes</label>
           <input type="text" id="akPctCorto" inputmode="numeric" placeholder="70" style="height:48px;font-size:22px;font-weight:700;padding:0 14px;border:2px solid #d0d7de;border-radius:10px">
@@ -459,7 +469,7 @@ input[type="text"]{width:200px}
           <input type="text" id="akPctLargo" inputmode="numeric" placeholder="30" style="height:48px;font-size:22px;font-weight:700;padding:0 14px;border:2px solid #d0d7de;border-radius:10px">
         </div>
       </div>
-      <div id="akSplit" style="font-size:14px;color:#666;font-weight:600;margin-top:6px">Definí cómo Charcas tiene que cortar este alambre (se completan solos a 100).</div>
+      <div id="akSplit" style="font-size:14px;color:#666;font-weight:600;margin-top:6px">Definí cómo Charcas tiene que cortar este alambre (deslizá o escribí, se completan solos a 100).</div>
       <button id="akGuardar" class="btn btn-primary" disabled style="min-height:52px;font-size:20px;font-weight:900;width:100%;margin-top:14px">✓ Registrar entrega de Altrak</button>
       <div id="akMsg" class="status" style="margin-top:10px"></div>
     </div>
@@ -809,8 +819,9 @@ function irAltrak(){
   $('stepAltrak').classList.remove('hidden');
   $('akFecha').value = hoy();
   $('akKg').value=''; $('akRemito').value=''; $('akPctCorto').value=''; $('akPctLargo').value='';
+  $('akPctSlider').value='50'; $('akSliderLbl').textContent='Definí el reparto';
   $('akMsg').textContent=''; $('akMsg').className='status';
-  $('akSplit').textContent='Definí cómo Charcas tiene que cortar este alambre (se completan solos a 100).';
+  $('akSplit').textContent='Definí cómo Charcas tiene que cortar este alambre (deslizá o escribí, se completan solos a 100).';
   akRefresh();
   cargarStockAltrak();
 }
@@ -832,11 +843,23 @@ function akRefresh(){
   var kg=parseNum($('akKg').value), c=akPct();
   $('akGuardar').disabled = !(kg>0 && $('akFecha').value && !isNaN(c) && c>=0 && c<=100);
 }
+// Fija el % corto en los 3 controles a la vez (deslizante + campo corto + campo largo),
+// salvo el que disparo el cambio (from). Suman 100 siempre.
+function akSetCorto(c, from){
+  if(isNaN(c)){ $('akSliderLbl').textContent='Definí el reparto'; akSplitShow(); akRefresh(); return; }
+  c = Math.max(0, Math.min(100, c));
+  if(from!=='corto')  $('akPctCorto').value = String(c);
+  if(from!=='largo')  $('akPctLargo').value = String(100-c);
+  if(from!=='slider') $('akPctSlider').value = String(c);
+  $('akSliderLbl').textContent = c+'% corto · '+(100-c)+'% largo';
+  akSplitShow(); akRefresh();
+}
 if($('akKg')){
   $('akKg').addEventListener('input', function(){ this.value=sanDec(this.value); akSplitShow(); akRefresh(); });
   $('akFecha').addEventListener('input', akRefresh);
-  $('akPctCorto').addEventListener('input', function(){ this.value=sanInt(this.value).slice(0,3); var c=parseInt(this.value,10); if(!isNaN(c)) $('akPctLargo').value=String(Math.max(0,100-Math.min(100,c))); akSplitShow(); akRefresh(); });
-  $('akPctLargo').addEventListener('input', function(){ this.value=sanInt(this.value).slice(0,3); var l=parseInt(this.value,10); if(!isNaN(l)) $('akPctCorto').value=String(Math.max(0,100-Math.min(100,l))); akSplitShow(); akRefresh(); });
+  $('akPctCorto').addEventListener('input', function(){ this.value=sanInt(this.value).slice(0,3); akSetCorto(parseInt(this.value,10),'corto'); });
+  $('akPctLargo').addEventListener('input', function(){ this.value=sanInt(this.value).slice(0,3); var l=parseInt(this.value,10); akSetCorto(isNaN(l)?NaN:100-l,'largo'); });
+  $('akPctSlider').addEventListener('input', function(){ akSetCorto(parseInt(this.value,10),'slider'); });
   $('btnVolverAltrak').addEventListener('click', function(){ $('stepAltrak').classList.add('hidden'); $('step1').classList.remove('hidden'); });
   $('akGuardar').addEventListener('click', async function(){
     var m=$('akMsg'); m.className='status'; m.textContent='';
@@ -853,7 +876,8 @@ if($('akKg')){
       m.className='status ok';
       m.innerHTML='✓ Registrada. Stock Charcas: <b>'+fmt(d.stock_charcas_kg)+' kg</b>. Charcas debe entregar <b>'+fmt(d.kg_corto_objetivo)+' kg corto</b> / <b>'+fmt(d.kg_largo_objetivo)+' kg largo</b>.';
       $('akKg').value=''; $('akRemito').value=''; $('akPctCorto').value=''; $('akPctLargo').value='';
-      $('akSplit').textContent='Definí cómo Charcas tiene que cortar este alambre (se completan solos a 100).';
+      $('akPctSlider').value='50'; $('akSliderLbl').textContent='Definí el reparto';
+      $('akSplit').textContent='Definí cómo Charcas tiene que cortar este alambre (deslizá o escribí, se completan solos a 100).';
       cargarStockAltrak(); akRefresh();
     }catch(e){ m.className='status bad'; m.textContent='Error: '+(e.message||e); }
     finally{ akRefresh(); }
