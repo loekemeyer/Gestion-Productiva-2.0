@@ -128,8 +128,10 @@ Vista: `GP2.v_consumo_fleje_kg`; el Punto de Stock de flejes usa esos kg × 6 me
 
 ## Estado 2026-08-29: el módulo YA EXISTE
 
-`Compras/OC_GP2.html` (menú Insumos → Órdenes de Compra): genera OC desde el consumo con
-sugerido = consumo × meses − stock − pendiente OC, valida las reglas de cartón (dormidas
+`Compras/OC_GP2.html` (menú Insumos → Órdenes de Compra): genera OC con
+**sugerido = máximo − stock − pendiente OC** (cambiado el 2026-09-03; antes era
+consumo × meses, que hoy sólo se usa como respaldo cuando el máximo está vacío —
+ahí el `maximo_origen` dice `consumo_x_meses`), valida las reglas de cartón (dormidas
 hasta asignar formato), imprime la OC para el proveedor, y la **recepción cruza sola**
 contra las OC abiertas (`recibido` + estado `recibida` automático). RPCs: `oc_bundle`,
 `crear_oc`, `oc_marcar`, `_aplicar_recepcion_a_oc`.

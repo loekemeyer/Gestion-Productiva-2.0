@@ -2174,9 +2174,13 @@ consumo 28.478/mes, o sea que ahí entran **menos de 15 días** de remaches. No 
 para arreglar: es la planta, y el que compra tiene que saberlo.
 
 **Lo que NO se hizo, a propósito**: se había propuesto "topar el faltante contra el
-máximo". Mirando el código no corresponde — `oc_bundle` y `crear_oc` **no usan `minimo` ni
-`maximo`** (la OC pide por `consumo × meses_stock − stock`), así que nunca pedían de más
-por esto. El único que usa el mínimo es `faltantes_bundle`, y ahí la marca de faltante
+máximo". Mirando el código no correspondía — `oc_bundle` y `crear_oc` no usaban `minimo`
+ni `maximo`, así que nunca pedían de más por esto.
+
+> ⚠️ **CORREGIDO EL 2026-09-04: esta frase dejó de ser cierta al día siguiente.** El
+> 2026-09-03 `oc_bundle` se reescribió y hoy pide **`maximo − stock − pendiente`**; el
+> `consumo × meses` quedó de respaldo, sólo cuando el máximo está vacío. Así que sí usa el
+> máximo, y la garantía de "nunca pide de más por esto" **ya no vale**. Ver §4n. El único que usa el mínimo es `faltantes_bundle`, y ahí la marca de faltante
 **tiene que quedar prendida** en esas 77 filas: es verdad que falta. Topearla sería tapar
 la señal.
 
@@ -3237,3 +3241,68 @@ porque son discontinuos. Plata chica, pero es un agujero del motor y no un dato 
 queda como **idea 7241**.
 
 **Comprables sin precio: 1** — el `W8` (Vástago Sacafuente Pizzero, Imel).
+
+## 4n. La OC pide contra el MÁXIMO, no contra el consumo (auditoría 2026-09-04)
+
+*[usuario 2026-09-04: pidió revisar el módulo de OC con un agente antes de usarlo]*. La
+auditoría de plata encontró que **la fórmula cambió el 2026-09-03 y la documentación no**.
+Verificado contra la función viva:
+
+```sql
+'sugerido', greatest(0, round(coalesce(maximo_ef,0) - coalesce(online,0) - pendiente_oc))
+-- maximo_ef = inventario.maximo, y SOLO si es null cae a round(consumo * meses_stock)
+```
+
+`oc_bundle` además devuelve `sugerido_consumo` (la fórmula vieja) al lado, sin usarla.
+Corregidos en el mismo commit `CLAUDE.md`, `REGLAS_OC_INSUMOS.md` y el §2e-bis de acá, que
+afirmaba textual *"la OC pide por consumo × meses_stock − stock, así que nunca pedían de
+más"* — hoy es falso y era la única garantía escrita.
+
+**Lo bueno, medido y no supuesto:** el desastre que temía la auditoría **no está**. De los
+**200** insumos comprables con máximo y consumo:
+
+- **0** con `maximo_origen` NULL (el 56% sin origen ya se arregló),
+- **1** sin máximo, y cae bien al consumo,
+- **6** discrepan, y las 6 tienen `maximo_origen='fisico'` — o sea, es el lugar del estante,
+  no un error.
+
+| | máximo (lugar) | por consumo | diferencia |
+|---|---|---|---|
+| `A5` Caja N°6 | 9.400 | 42 | **+$4.676.567** |
+| `A4` Caja N°10 | 4.000 | 252 | **+$2.126.653** |
+| `A6` Caja N°7 | 2.375 | 498 | +$864.603 |
+| `A1` Caja N°1 | 11.625 | 13.026 | −$343.988 |
+| `A9` Caja N°22 | 17.000 | 26.286 | **−$1.931.488** |
+| `W8` Vástago Pizzero | 726 | 5.476 | (sin precio) |
+
+O sea: en cajas de poca rotación el lugar es enorme y la OC **llena el estante** ($7,6 M de
+más entre A5, A4 y A6); en las de mucha rotación el lugar no alcanza y **compra menos de lo
+que se consume** ($2,3 M de menos entre A1 y A9, y el `W8` pide 726 contra un consumo de
+5.476/mes). **Decisión pendiente del usuario**: si el sugerido llena el lugar físico o
+cubre los meses de consumo.
+
+### Lo demás que buscó la auditoría, medido: NO está pasando
+
+- **`precio_por_kg` sobre una línea que se pide en kg** (rompería el rubro fleje, el más
+  caro): hay **2** filas con el flag en toda la base y **ninguna** cae sobre un componente
+  que se pida en kg. Es una trampa dormida, no un bug vivo — el día que alguien cargue un
+  precio de fleje "por kg" (que es lo semánticamente correcto) se rompe.
+- **La unidad `'paq'` de Charcas**, que ni `_aplicar_recepcion_a_oc` ni el CTE `pend`
+  saben convertir: **0 OC abiertas**, así que hoy no hay nada mal guardado. Dormida también.
+- **Precios sin moneda** (se valorizarían en USD por el default del backend y en ARS por el
+  de la pantalla): **0**.
+- **Doble pedido / pedir y fabricar a la vez**: sigue vacío.
+
+### Dos cosas vivas que sí hay que decidir
+
+- **`estado_compra='importado'` deja al componente FUERA de la OC** (`oc_bundle` filtra
+  `estado_compra is null`). Son **5**, y **se compran igual, sólo que afuera**: `Z23A` Cuch
+  China (consumo 11.388/mes), **`D1` Espiral Sacacorcho** (9.588/mes, US$ 0,24, a Tierra
+  Nativa — es más de la mitad del costo del 581), `C13` Corta Queso (7.700/mes, US$ 0,68),
+  `ID1` Fleje N° 28 (3.090/mes, US$ 3,16, Hermac) y `Z23B` Cuchilla Laser (2.294/mes).
+  El campo mezcla dos preguntas distintas: *"¿se compra?"* y *"¿de dónde sale?"*. Lo que
+  tiene que salir de la OC es lo que **no se compra** (`fabricacion`, `discontinuo`), no lo
+  importado.
+- **Las bolsas caen en 2 familias, no en 1**: son 3 códigos de formato `Bolsa` repartidos en
+  dos marcas, así que el piso de 20.000 se cobra **dos veces (40.000 bolsas)**. Y el piso
+  sigue **sin confirmar** desde el 03/09.

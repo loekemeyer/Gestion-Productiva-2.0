@@ -373,9 +373,13 @@ componentes/CE/asignacion (ver AUDITORIA_RUTAS_2026-04-18.md punto 7).
 parametrizadas en `GP2.carton_formato` / `carton_categoria` / `proveedor_insumo.modo_control`.
 Leer ese archivo antes de tocar el modulo de OC.**
 
-- **El modulo existe**: `Compras/OC_GP2.html` genera las OC desde el consumo (Est Madre
-  explotada: `v_consumo_parte` / `v_consumo_fleje_kg` en kg para flejes) con sugerido =
-  consumo x meses - stock - pendiente OC. Tablas `GP2.orden_compra` / `orden_compra_item`,
+- **El modulo existe**: `Compras/OC_GP2.html` genera las OC con
+  **sugerido = maximo - stock - pendiente OC** (desde el 2026-09-03; ANTES era
+  consumo x meses y la doc quedo desactualizada un dia). El `maximo` sale de
+  `inventario.maximo`, y **solo si esta vacio** cae al consumo (Est Madre explotada:
+  `v_consumo_parte` / `v_consumo_fleje_kg` en kg para flejes) x meses, marcado
+  `maximo_origen='consumo_x_meses'`. Ojo con la diferencia: un maximo `fisico` es el
+  lugar en el estante, NO el consumo — puede pedir de mas o de menos. Tablas `GP2.orden_compra` / `orden_compra_item`,
   RPCs `oc_bundle` / `crear_oc` / `oc_marcar` / `abm_bom_guardar`. Cada OC se puede IMPRIMIR
   (hoja limpia para el proveedor). Estados: borrador -> enviada -> recibida / anulada.
 - **La recepcion CRUZA contra OC**: `crear_recepcion_insumo` aplica lo recibido al campo
