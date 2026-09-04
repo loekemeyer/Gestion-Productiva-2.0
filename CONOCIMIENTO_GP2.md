@@ -3685,10 +3685,29 @@ inventado (regla de la casa).
 3. Se actualiza el stock.
 4. **Recién ahí** se genera la OC, contra ese stock ya corregido.
 
-**Decisión de cómo se aplica el ajuste:** por **movimiento** (`GP2.movimiento`, delta =
-conteo − programa), **no** pisando `inventario.cantidad`. Motivo: el motor de inventario vive
-en la BD (triggers `fn_movimiento_calc` / `fn_movimiento_aplicar`) y así el ajuste queda
-trazado. Los pasos 2–3 son lo que falta construir (`relevamiento_cerrar` / `relevamiento_aplicar`).
+**Decisión de cómo se aplica el ajuste:** por **movimiento** (`GP2.movimiento`, tipo
+`ajuste`, `ubic_destino` = la del sector, cantidad **con signo**), **no** pisando
+`inventario.cantidad`. Motivo: el motor de inventario vive en la BD (triggers
+`fn_movimiento_calc` / `fn_movimiento_aplicar`) y así el ajuste queda **trazado**.
+
+**Los pasos 2–3 ya están construidos** (`relevamiento_cerrar`, `relevamiento_comparar`,
+`relevamiento_decidir`, `relevamiento_aplicar`). Dos reglas que salieron al construirlo:
+
+- **Lo que NO se contó no se toca.** Al cerrar, sólo lo contado queda con `decision='conteo'`;
+  el resto queda en `'programa'`. **Contar es afirmar; no contar no significa "hay cero"** —
+  poner 0 a lo no contado borraría stock real. Es la trampa obvia de un conteo parcial.
+- **El delta se calcula contra el stock DE AHORA, no contra la foto del cierre.** Si algo se
+  movió entre que cerraste el conteo y que aplicaste, el resultado final sigue siendo
+  exactamente lo contado. La foto (`stock_programa`) queda igual, como registro de lo que
+  viste al decidir.
+
+**Verificado end-to-end** (Sector Caja, 2026-09-04, datos de prueba borrados): A1 contó 85
+contra 1.120 del programa → se aplicó un ajuste de −1.035 y el stock quedó en 85. A9 coincidía
+(80 = 80) y **no generó movimiento**. Los 7 sin contar quedaron intactos. Después se restauró:
+**borrar el movimiento de ajuste revierte el inventario solo**, porque `trg_movimiento_aplicar`
+corre `AFTER INSERT OR DELETE OR UPDATE` — dato útil para deshacer un ajuste mal aplicado.
+
+**Falta la pantalla.** El backend está completo.
 
 ### Verificado end-to-end el mismo día
 

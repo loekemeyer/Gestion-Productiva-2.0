@@ -293,15 +293,152 @@ grant execute on function "GP2".relevamiento_abrir(bigint,bigint,text)         t
 grant execute on function "GP2".relevamiento_detalle(bigint)                   to anon, authenticated;
 grant execute on function "GP2".relevamiento_guardar(bigint,jsonb)             to anon, authenticated;
 
+-- ------------------------------------- 3) CIERRE, COMPARACION Y AJUSTE ------
+-- Migracion: relevamiento_gp2_cerrar_comparar_aplicar
+-- [usuario 2026-09-04]: "cuando termino de cargar el conteo quiero poder poner completar
+-- relevamiento, y que me mande a un modulo que me compare lo que hay en stock segun el
+-- programa y lo que hay segun el conteo, en que yo tenga que seleccionar cual es el
+-- correcto, que me tire por default que el correcto es el del conteo."
+
+-- CERRAR: saca la foto de lo que dice el programa y propone la decision.
+-- REGLA DE SEGURIDAD: lo que NO se conto queda en 'programa' (no se toca). Contar es
+-- afirmar; NO contar no significa "hay cero". Poner 0 a lo no contado borraria stock real.
+create or replace function "GP2".relevamiento_cerrar(p_id bigint)
+returns jsonb
+language plpgsql security definer set search_path = "GP2", public as $$
+DECLARE v_sector bigint; v_estado text; n_cont int; n_sin int;
+BEGIN
+  SELECT r.sector_id, r.estado INTO v_sector, v_estado FROM "GP2".relevamiento r WHERE r.id = p_id;
+  IF v_sector IS NULL THEN RAISE EXCEPTION 'No existe el relevamiento %', p_id; END IF;
+  IF v_estado <> 'en_curso' THEN RAISE EXCEPTION 'El relevamiento % ya esta %', p_id, v_estado; END IF;
+
+  UPDATE "GP2".relevamiento_item ri
+  SET stock_programa = coalesce((
+        SELECT i.cantidad FROM "GP2".inventario i
+        JOIN "GP2".ubicacion u ON u.id = i.ubicacion_id
+        WHERE i.componente_id = ri.componente_id AND u.tipo='sector' AND u.ref_id = v_sector
+        LIMIT 1), 0),
+      decision = CASE WHEN ri.contado AND ri.total_uni IS NOT NULL THEN 'conteo' ELSE 'programa' END
+  WHERE ri.relevamiento_id = p_id;
+
+  UPDATE "GP2".relevamiento SET estado='contado', cerrado_en=now() WHERE id = p_id;
+
+  SELECT count(*) FILTER (WHERE decision='conteo'), count(*) FILTER (WHERE decision='programa')
+    INTO n_cont, n_sin FROM "GP2".relevamiento_item WHERE relevamiento_id = p_id;
+
+  RETURN jsonb_build_object('id',p_id,'estado','contado','con_conteo',n_cont,'sin_conteo',n_sin);
+END $$;
+
+-- COMPARACION: programa vs conteo, con la diferencia. Ordena primero lo que NO coincide.
+create or replace function "GP2".relevamiento_comparar(p_id bigint)
+returns jsonb
+language sql stable security definer set search_path = "GP2", public as $$
+  select jsonb_build_object(
+    'relevamiento', jsonb_build_object('id', r.id, 'estado', r.estado, 'fecha', r.fecha,
+                                       'encargado', r.encargado, 'sector', s.nombre),
+    'items', coalesce((
+      select jsonb_agg(jsonb_build_object(
+        'item_id', ri.id, 'codigo', c.codigo, 'descripcion', c.descripcion,
+        'unidad', c.unidad_medida,
+        'conteo', ri.total_uni, 'programa', ri.stock_programa,
+        'diferencia', (coalesce(ri.total_uni,0) - coalesce(ri.stock_programa,0)),
+        'contado', ri.contado, 'decision', ri.decision,
+        'coincide', (ri.total_uni IS NOT NULL AND ri.total_uni = ri.stock_programa)
+      ) order by
+          (case when ri.contado and ri.total_uni is distinct from ri.stock_programa then 0 else 1 end),
+          abs(coalesce(ri.total_uni,0) - coalesce(ri.stock_programa,0)) desc,
+          c.codigo)
+      from "GP2".relevamiento_item ri
+      join "GP2".componente c on c.id = ri.componente_id
+      where ri.relevamiento_id = r.id
+    ), '[]'::jsonb)
+  )
+  from "GP2".relevamiento r join "GP2".sector s on s.id = r.sector_id
+  where r.id = p_id;
+$$;
+
+-- El usuario cambia quien gana en las filas que quiera.
+-- p_items: [{"item_id":1,"decision":"programa"}, ...]
+create or replace function "GP2".relevamiento_decidir(p_id bigint, p_items jsonb)
+returns integer
+language plpgsql security definer set search_path = "GP2", public as $$
+DECLARE n int := 0;
+BEGIN
+  IF (SELECT estado FROM "GP2".relevamiento WHERE id=p_id) <> 'contado' THEN
+    RAISE EXCEPTION 'El relevamiento % no esta en estado contado', p_id;
+  END IF;
+  WITH d AS (
+    SELECT (x->>'item_id')::bigint item_id, x->>'decision' decision
+    FROM jsonb_array_elements(p_items) x
+  ), upd AS (
+    UPDATE "GP2".relevamiento_item ri SET decision = d.decision
+    FROM d WHERE ri.id = d.item_id AND ri.relevamiento_id = p_id
+      AND d.decision IN ('conteo','programa')
+      AND (d.decision = 'programa' OR (ri.contado AND ri.total_uni IS NOT NULL))
+    RETURNING 1
+  ) SELECT count(*) INTO n FROM upd;
+  RETURN n;
+END $$;
+
+-- APLICAR: donde gana el conteo, deja el stock IGUAL al conteo.
+-- El ajuste entra por GP2.movimiento (tipo 'ajuste', ubic_destino = la del sector, cantidad
+-- CON SIGNO) y NO pisando inventario.cantidad: el motor vive en la BD (triggers
+-- fn_movimiento_calc / fn_movimiento_aplicar) y asi el ajuste queda TRAZADO.
+-- El delta se calcula contra el stock DE AHORA, no contra la foto: si algo se movio entre
+-- el cierre y el aplicar, el resultado final sigue siendo exactamente lo contado.
+create or replace function "GP2".relevamiento_aplicar(p_id bigint)
+returns jsonb
+language plpgsql security definer set search_path = "GP2", public as $$
+DECLARE v_sector bigint; v_ubic bigint; v_estado text; n_mov int := 0;
+BEGIN
+  SELECT r.sector_id, r.estado INTO v_sector, v_estado FROM "GP2".relevamiento r WHERE r.id=p_id;
+  IF v_sector IS NULL THEN RAISE EXCEPTION 'No existe el relevamiento %', p_id; END IF;
+  IF v_estado <> 'contado' THEN RAISE EXCEPTION 'El relevamiento % esta %, no contado', p_id, v_estado; END IF;
+
+  SELECT u.id INTO v_ubic FROM "GP2".ubicacion u
+  WHERE u.tipo='sector' AND u.ref_id = v_sector LIMIT 1;
+  IF v_ubic IS NULL THEN RAISE EXCEPTION 'El sector % no tiene ubicacion', v_sector; END IF;
+
+  WITH cand AS (
+    SELECT ri.componente_id, ri.total_uni,
+           coalesce((SELECT i.cantidad FROM "GP2".inventario i
+                     WHERE i.componente_id = ri.componente_id AND i.ubicacion_id = v_ubic
+                     LIMIT 1), 0) AS stock_hoy,
+           c.unidad_medida
+    FROM "GP2".relevamiento_item ri
+    JOIN "GP2".componente c ON c.id = ri.componente_id
+    WHERE ri.relevamiento_id = p_id AND ri.decision = 'conteo' AND ri.total_uni IS NOT NULL
+  ), ins AS (
+    INSERT INTO "GP2".movimiento
+      (fecha, tipo_mov, comp_id, ubic_origen_id, ubic_destino_id, cantidad,
+       unidad_origen, unidad_destino)
+    SELECT now(), 'ajuste', cand.componente_id, NULL, v_ubic,
+           (cand.total_uni - cand.stock_hoy), cand.unidad_medida, cand.unidad_medida
+    FROM cand
+    WHERE cand.total_uni <> cand.stock_hoy      -- si ya coincide, no se genera movimiento
+    RETURNING 1
+  ) SELECT count(*) INTO n_mov FROM ins;
+
+  UPDATE "GP2".relevamiento SET estado='aplicado', aplicado_en=now() WHERE id=p_id;
+
+  RETURN jsonb_build_object('id',p_id,'estado','aplicado','ajustes',n_mov);
+END $$;
+
+grant execute on function "GP2".relevamiento_cerrar(bigint)        to anon, authenticated;
+grant execute on function "GP2".relevamiento_comparar(bigint)      to anon, authenticated;
+grant execute on function "GP2".relevamiento_decidir(bigint,jsonb) to anon, authenticated;
+grant execute on function "GP2".relevamiento_aplicar(bigint)       to anon, authenticated;
+
 -- ============================================================================
--- PENDIENTE (todavia NO construido): el cierre y la comparacion.
---   relevamiento_cerrar(p_id)  -> estado='contado' + foto de stock_programa
---   relevamiento_aplicar(p_id) -> por cada item con decision='conteo', inserta el
---                                 MOVIMIENTO DE AJUSTE (delta = conteo - programa) en
---                                 GP2.movimiento y deja estado='aplicado'.
---   El ajuste va por movimiento y no pisando inventario.cantidad, porque el motor de
---   inventario vive en la BD (triggers fn_movimiento_calc/fn_movimiento_aplicar) y asi
---   el ajuste queda trazado.
+-- VERIFICADO END-TO-END (2026-09-04, Sector Caja; datos de prueba BORRADOS):
+--   abrir -> guardar (A1: 3 paq x25 + 10 = 85; A9: 2 x25 + 30 = 80) -> cerrar
+--   -> comparar (A1 programa 1.120 vs conteo 85, dif -1.035, decision 'conteo' por default)
+--   -> aplicar  -> A1 quedo en 85 con un ajuste de -1.035; A9 coincidia y NO genero
+--                  movimiento; los 7 sin contar quedaron INTACTOS.
+--   Restaurado despues: borrar el movimiento de ajuste revierte el inventario solo, porque
+--   trg_movimiento_aplicar corre AFTER INSERT OR DELETE OR UPDATE. A1 volvio a 1.120.
+--
+-- FALTA: la pantalla (Relevamiento GP2 nativo). El backend esta completo.
 -- ============================================================================
 
 -- ============================================================================
