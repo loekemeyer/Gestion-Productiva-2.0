@@ -554,6 +554,64 @@ OC**: cada proveedor recibe una orden sólo con sus partes.
 
 ---
 
+## 1-ter. Las cajas: son 13, no 9 (2026-09-04)
+
+`[dato: planilla del usuario "Conteo Cajas VACIO", hoja "Relevamiento VACIO" A1:H18]` El
+relevamiento vacío de cajas —el papel que se imprime para contar— tiene **13 cajas**, todas
+de **Corrugadora del Plata** (único proveedor vigente; Recicor está sólo como precio de
+referencia sin vincular). **GP2 tenía 9**: faltaban las cajas **N°8 (`A7`), N°15 (`A9B`),
+N°16 (`A7B`) y N°27 (`Z9`)** — no existían ni como componente, ni en inventario, ni con
+precio, así que **no aparecían en Recepción de Insumos**: si llegaban en un remito, no había
+dónde cargarlas.
+
+**Cargadas 3 el 2026-09-04** en Sector Caja (11) con su fila de inventario en 0 y el precio
+de la lista jul-26 que trae la propia planilla (344,26 / 289,62 / 481,66 ARS por unidad —
+los mismos valores que ya tenían cargadas las otras 9, o sea es la misma lista). Ids nuevos:
+604 (N°15), 605 (N°16), 606 (N°27). **En Recepción de Insumos hay 12 cajas.** También se
+completó `proveedor_insumo.cod_prov = '69587'` de Corrugadora (estaba en null; el cód. ISIS
+del proveedor sólo vivía en `precio_proveedor`, y la pantalla de Recepciones lo mostraba
+vacío).
+
+**La caja N°8 (`A7`) NO va: es discontinua** `[usuario 2026-09-04]`. Sigue en el papel del
+relevamiento, pero no entra más. **No existe en GP2 y no hay que cargarla**: se creó por
+error en esta misma sesión y se borró entera (componente, inventario y precio). Se marcó
+`estado_compra='discontinuo'` primero, pero **eso no alcanzaba**: `relevamiento_abrir` toma
+TODOS los componentes del sector sin mirar `estado_compra`, así que igual iba a aparecer para
+contar. Queda anotado acá para que la próxima auditoría del relevamiento no la vuelva a
+cargar como "faltante".
+
+**⚠ Hoy el relevamiento cuenta lo discontinuo** `[dato 2026-09-04, sin decidir]`. Hay **14
+componentes con `estado_compra='discontinuo'`** en sectores que se relevan (`C12`, `BOM10`,
+`IF12`, `IZ19A`, `GRJ13`, `V20`, `V18C`, `I3B`, `CV16`, `CV17`, `ID7`, `A1C1`, `L4B1` y el
+`A9` del Sector Procesado) y `relevamiento_abrir` los mete igual en la hoja de conteo. Puede
+estar bien (queda stock viejo que hay que vaciar) o ser ruido para el operario — **lo decide
+el usuario**; no se tocó la RPC.
+
+**Para qué son las que faltaban** `[usuario 2026-09-04]`:
+- **Caja N°27 (`Z9`)** → envasa las **cucharas de madera**.
+- **Caja N°15 (`A9B`)** → envasa los **palos de amasar**.
+- N°16 (`A7B`): uso todavía **sin declarar** — preguntar, no deducir.
+
+**Ni las cucharas de madera ni los palos de amasar existen como artículo en GP2**
+`[dato: los 84 artículos, ninguna familia se les parece]`. Por eso las 3 cajas quedan
+**huérfanas**: ningún `articulo.componente_caja_id` las apunta, así que no tienen consumo y
+la OC no las va a pedir sola hasta que se carguen esos artículos con sus rutas. Pendiente
+acordado con el usuario ("después agregamos a las rutas").
+
+**El código `A7` no llegó a quedar repetido** porque la N°8 se borró, pero el choque estaba:
+`A7` es también el "Mgo Plano 701 Crom." del Sector Procesado (id 82). Es el mismo patrón de
+los cuatro choques ya conocidos (`A1`, `A4`, `A8`, `A9` — ver la trampa de 2026-09-03): la
+numeración de cajas y la de piezas procesadas se pisan. Si alguna vez entra una caja con
+código ya usado, se carga igual con el código real del relevamiento (no se inventa uno) y
+vale la regla de siempre: unir por `componente.id`, nunca por `codigo`.
+
+**Falta un dato del usuario**: los **cód. ISIS LK/CH por caja** (0027/0047 para la N°1,
+etc.) que trae el relevamiento no se guardan en ningún campo de GP2, y las **medidas** de
+las 3 cajas nuevas tampoco (las otras 9 las tienen en `precio_proveedor.producto`, tipo
+"Caja Nº 1 (240*167*113)"; las nuevas dicen "medidas pendientes").
+
+---
+
 ## 2. Materiales y procesos: la lógica del inoxidable
 
 `[usuario 2026-08-29]` **Regla estratégica: conviene pasar partes de fleje laminado a
