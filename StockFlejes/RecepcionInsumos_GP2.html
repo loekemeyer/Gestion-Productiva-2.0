@@ -6,6 +6,13 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
+<!-- v3.47.0 (2026-09-04) — ALTRAK EN EL RUBRO FLEJES (opcion B, usuario). Altrak entrega el
+     fleje bruto (FLEJE90_BRUTO, sector 13) que va a Charcas: aparece como proveedor en Flejes
+     (inyectado a mano, no cae por sector) y al elegirlo abre un flujo propio irAltrak() con kg
+     + % corto/largo (instruccion de corte a Charcas) que llama cargar_compra_altrak. NO usa
+     pesaje/pallets/buffer. Suma el bruto al stock de Charcas (ubic 13); el stock real de
+     IC3/IC3V lo genera despues la recepcion de Charcas (CharcasEclipse). Se jubila la pantalla
+     Compra Altrak->Charcas del menu. ocultarProv ya no esconde Altrak. -->
 <!-- v3.46.0 (2026-09-04) — CHARCAS NO ES PROVEEDOR DE FLEJES. IC3/IC3V (el corte que
      entrega Charcas, proveedor 'Resortes Charcas', sector 5) se colaban en el rubro Flejes
      (Charcas aparecia con (2)). Son el corte de un prov_servicio: se reciben en CharcasEclipse,
@@ -416,6 +423,47 @@ input[type="text"]{width:200px}
     </div>
 
     <!-- Paso 2 -->
+    <!-- Recepcion de Altrak (opcion B, 2026-09-04): el fleje bruto va a Charcas. Flujo
+         propio (kg + % corto/largo = instruccion de corte). Llama cargar_compra_altrak;
+         NO usa pesaje/pallets/buffer. -->
+    <div id="stepAltrak" class="hidden">
+      <div class="row">
+        <button class="btn btn-secondary" id="btnVolverAltrak">← Volver</button>
+        <div style="font-size:22px;font-weight:900;color:#0b3b73">Flejes · Altrak → Charcas</div>
+      </div>
+      <div style="background:#eef4fb;border:2px solid #cddaea;border-radius:12px;padding:14px 18px;margin:12px 0;text-align:center">
+        <div style="font-size:13px;font-weight:800;color:#475569;text-transform:uppercase;letter-spacing:.4px">Stock de alambre en Charcas</div>
+        <div style="font-size:32px;font-weight:900;color:#0b3b73"><span id="akStock">0</span> <small style="font-size:18px;color:#0b5cad">kg</small></div>
+      </div>
+      <div style="display:flex;gap:14px;flex-wrap:wrap;margin:12px 0">
+        <div style="flex:1 1 150px;display:flex;flex-direction:column;gap:6px">
+          <label for="akFecha" style="font-size:16px;font-weight:700">Fecha</label>
+          <input type="date" id="akFecha" style="height:48px;font-size:20px;padding:0 12px;border:2px solid #d0d7de;border-radius:10px">
+        </div>
+        <div style="flex:1 1 150px;display:flex;flex-direction:column;gap:6px">
+          <label for="akRemito" style="font-size:16px;font-weight:700">N° remito (opcional)</label>
+          <input type="text" id="akRemito" inputmode="text" placeholder="Opcional" style="height:48px;font-size:20px;padding:0 12px;border:2px solid #d0d7de;border-radius:10px">
+        </div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:6px;margin:12px 0">
+        <label for="akKg" style="font-size:16px;font-weight:700">Kg de alambre comprados</label>
+        <input type="text" id="akKg" inputmode="decimal" placeholder="0,0" style="height:52px;font-size:26px;font-weight:800;text-align:right;padding:0 14px;border:2px solid #d0d7de;border-radius:10px">
+      </div>
+      <div style="display:flex;gap:14px;flex-wrap:wrap;margin:12px 0">
+        <div style="flex:1 1 150px;display:flex;flex-direction:column;gap:6px">
+          <label for="akPctCorto" style="font-size:16px;font-weight:700">% Corto (IC3) → Cervantes</label>
+          <input type="text" id="akPctCorto" inputmode="numeric" placeholder="70" style="height:48px;font-size:22px;font-weight:700;padding:0 14px;border:2px solid #d0d7de;border-radius:10px">
+        </div>
+        <div style="flex:1 1 150px;display:flex;flex-direction:column;gap:6px">
+          <label for="akPctLargo" style="font-size:16px;font-weight:700">% Largo (IC3V) → Virgilio</label>
+          <input type="text" id="akPctLargo" inputmode="numeric" placeholder="30" style="height:48px;font-size:22px;font-weight:700;padding:0 14px;border:2px solid #d0d7de;border-radius:10px">
+        </div>
+      </div>
+      <div id="akSplit" style="font-size:14px;color:#666;font-weight:600;margin-top:6px">Definí cómo Charcas tiene que cortar este alambre (se completan solos a 100).</div>
+      <button id="akGuardar" class="btn btn-primary" disabled style="min-height:52px;font-size:20px;font-weight:900;width:100%;margin-top:14px">✓ Registrar entrega de Altrak</button>
+      <div id="akMsg" class="status" style="margin-top:10px"></div>
+    </div>
+
     <div id="step2" class="hidden">
       <div class="row">
         <button class="btn btn-secondary" id="btnVolver1">← Volver</button>
@@ -590,7 +638,11 @@ function cargaEnUni(it){
 // completo pasa por gp2-cirujano.
 function ocultarProv(nom){
   var p = String(nom||'').trim().toLowerCase();
-  return p==='estametal' || p==='altrak' || p==='altrack';
+  // Altrak YA NO se oculta (2026-09-04, opcion B): aparece como proveedor en el rubro
+  // Flejes y su entrega (fleje bruto FLEJE90_BRUTO -> Charcas, kg + %) se carga con el
+  // flujo propio irAltrak(), no con el de flejes normales. EstaMetal sigue oculto (fuera
+  // de circulacion).
+  return p==='estametal';
 }
 function pintarFieldsFleje(flds){
   var row = $('rolloPallRow');
@@ -657,6 +709,9 @@ document.querySelectorAll('#rubroGrid .prov-btn').forEach(btn=>{
     btn.classList.add('active');
     // Proveedores REALES de GP2 para este rubro (los que figuran en las tablas)
     provsRubro=[...new Set(insumosDelRubro().map(i=>i.proveedor).filter(Boolean))].sort();
+    // Altrak entrega el fleje bruto (FLEJE90_BRUTO, sector 13, va a Charcas): no cae por
+    // sector en el rubro Flejes (sector 5), asi que se inyecta a mano y abre irAltrak().
+    if(rubroSel==='Flejes' && provsRubro.indexOf('Altrak')<0) provsRubro.push('Altrak');
     if(provsRubro.length){ pintarProvs(); $('provSection').classList.remove('hidden'); }
     else { $('provGrid').innerHTML=''; $('provSection').classList.add('hidden'); }
     $('remitoSection').classList.remove('hidden');
@@ -670,7 +725,7 @@ function pintarProvs(){
   // Solo proveedores con al menos 1 insumo (usuario 2026-09-01: "todo lo que sea
   // 0 no me aparezca como opcion").
   provsRubro.forEach(p=>{
-    var n=insumosDelRubro().filter(i=>i.proveedor===p).length;
+    var n=(p==='Altrak')?1:insumosDelRubro().filter(i=>i.proveedor===p).length;
     if (n===0) return;
     var b=document.createElement('button'); b.className='prov-btn'; b.innerHTML=esc(p)+' <span style="opacity:.6;font-weight:600">('+n+')</span>';
     b.addEventListener('click',()=>{
@@ -721,6 +776,7 @@ function insumosVista(){
   return l;
 }
 function irStep2(){
+  if(provSel==='Altrak'){ irAltrak(); return; }   // fleje bruto -> Charcas: flujo propio
   $('step1').classList.add('hidden');
   $('step2').classList.remove('hidden');
   $('step2Title').textContent=rubroSel+(provSel?(' · '+provSel):'');
@@ -741,6 +797,69 @@ function irStep2(){
     pintarItems(insumosVista());
   }
 }
+
+// ================= Recepcion de Altrak (fleje bruto -> Charcas), opcion B 2026-09-04 =================
+// Flujo propio, aislado del de flejes normales: kg + % corto/largo (instruccion de corte
+// a Charcas). Llama cargar_compra_altrak, que suma el bruto al stock de Charcas (ubic 13)
+// y guarda el split como objetivo. El stock real de IC3/IC3V lo genera despues la
+// recepcion de Charcas (CharcasEclipse). No usa pesaje/pallets/buffer.
+function irAltrak(){
+  $('step1').classList.add('hidden');
+  $('step2').classList.add('hidden');
+  $('stepAltrak').classList.remove('hidden');
+  $('akFecha').value = hoy();
+  $('akKg').value=''; $('akRemito').value=''; $('akPctCorto').value=''; $('akPctLargo').value='';
+  $('akMsg').textContent=''; $('akMsg').className='status';
+  $('akSplit').textContent='Definí cómo Charcas tiene que cortar este alambre (se completan solos a 100).';
+  akRefresh();
+  cargarStockAltrak();
+}
+async function cargarStockAltrak(){
+  try{
+    var st = await SB.from('inventario').select('cantidad, componente:componente_id(codigo)').eq('ubicacion_id', 13);
+    var kg=0; (st.data||[]).forEach(function(r){ if(r.componente && r.componente.codigo==='FLEJE90_BRUTO') kg=Number(r.cantidad)||0; });
+    $('akStock').textContent = fmt(kg);
+  }catch(e){ $('akStock').textContent='—'; }
+}
+function akPct(){ var c=parseInt($('akPctCorto').value,10); return isNaN(c)?NaN:c; }
+function akSplitShow(){
+  var kg=parseNum($('akKg').value)||0, c=akPct();
+  if(!(kg>0)||isNaN(c)||c<0||c>100){ $('akSplit').textContent='Definí cómo Charcas tiene que cortar este alambre (se completan solos a 100).'; return; }
+  var kgC=Math.round(kg*c/100*100)/100, kgL=Math.round(kg*(100-c)/100*100)/100;
+  $('akSplit').innerHTML='Charcas tiene que entregar: <b>'+fmt(kgC)+' kg corto</b> (IC3) · <b>'+fmt(kgL)+' kg largo</b> (IC3V).';
+}
+function akRefresh(){
+  var kg=parseNum($('akKg').value), c=akPct();
+  $('akGuardar').disabled = !(kg>0 && $('akFecha').value && !isNaN(c) && c>=0 && c<=100);
+}
+if($('akKg')){
+  $('akKg').addEventListener('input', function(){ this.value=sanDec(this.value); akSplitShow(); akRefresh(); });
+  $('akFecha').addEventListener('input', akRefresh);
+  $('akPctCorto').addEventListener('input', function(){ this.value=sanInt(this.value).slice(0,3); var c=parseInt(this.value,10); if(!isNaN(c)) $('akPctLargo').value=String(Math.max(0,100-Math.min(100,c))); akSplitShow(); akRefresh(); });
+  $('akPctLargo').addEventListener('input', function(){ this.value=sanInt(this.value).slice(0,3); var l=parseInt(this.value,10); if(!isNaN(l)) $('akPctCorto').value=String(Math.max(0,100-Math.min(100,l))); akSplitShow(); akRefresh(); });
+  $('btnVolverAltrak').addEventListener('click', function(){ $('stepAltrak').classList.add('hidden'); $('step1').classList.remove('hidden'); });
+  $('akGuardar').addEventListener('click', async function(){
+    var m=$('akMsg'); m.className='status'; m.textContent='';
+    var kg=parseNum($('akKg').value), fecha=$('akFecha').value, remito=$('akRemito').value.trim(), c=akPct();
+    if(!(kg>0)){ m.className='status bad'; m.textContent='Cargá los kg (mayor a 0).'; return; }
+    if(isNaN(c)||c<0||c>100){ m.className='status bad'; m.textContent='Definí el % corto/largo (0 a 100).'; return; }
+    var kgC=Math.round(kg*c/100*100)/100, kgL=Math.round(kg*(100-c)/100*100)/100;
+    if(!confirm('Registrar entrega de Altrak:\n\nKg alambre: '+fmt(kg)+'\nCharcas corta: '+c+'% corto ('+fmt(kgC)+' kg) / '+(100-c)+'% largo ('+fmt(kgL)+' kg)\n\nSe suma al stock de Charcas.\n\n¿Confirmar?')) return;
+    $('akGuardar').disabled=true; m.textContent='Registrando…';
+    try{
+      var res = await SB.rpc('cargar_compra_altrak', { p_kg:kg, p_remito:remito||null, p_fecha:fecha+'T12:00:00', p_pct_corto:c });
+      if(res.error) throw res.error;
+      var d=res.data||{};
+      m.className='status ok';
+      m.innerHTML='✓ Registrada. Stock Charcas: <b>'+fmt(d.stock_charcas_kg)+' kg</b>. Charcas debe entregar <b>'+fmt(d.kg_corto_objetivo)+' kg corto</b> / <b>'+fmt(d.kg_largo_objetivo)+' kg largo</b>.';
+      $('akKg').value=''; $('akRemito').value=''; $('akPctCorto').value=''; $('akPctLargo').value='';
+      $('akSplit').textContent='Definí cómo Charcas tiene que cortar este alambre (se completan solos a 100).';
+      cargarStockAltrak(); akRefresh();
+    }catch(e){ m.className='status bad'; m.textContent='Error: '+(e.message||e); }
+    finally{ akRefresh(); }
+  });
+}
+
 /* Las marcas salen de los DATOS, no de una lista escrita a mano. Hasta el 2026-09-03
    estaban hardcodeadas LOEKE y CHEF, asi que el dia que aparecio la tercera —LOKE, la
    submarca dentro de Loekemeyer [usuario: "es una submarca dentro de loekemeyer"]— sus
