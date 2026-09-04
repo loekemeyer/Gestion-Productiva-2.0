@@ -3509,6 +3509,29 @@ lo resta**: migración `oc_sugerido_sin_pendiente_oc` sacó `- pendiente_oc` de 
 (es informativo). Hoy la cuenta es exactamente **máximo − stock**, que es lo que dice la
 pantalla. **Deuda saldada, no queda nada oculto.**
 
+### Se van Consumo/mes y Sugerido: el sugerido nace en "Pedir" `[usuario 2026-09-04]`
+
+Textual: "que me aparezca insumo proveedor, stock actual máximo... que me aparezca el
+sugerido directamente en pedir" + la aclaración de alcance, en el mismo momento: **"en
+resumen, tendrías que eliminar consumo mes. Y sugerido... y que me aclare que es el
+sugerido"**. Implementado en v1.17.0: la tabla queda en **Insumo · Proveedor · Stock
+actual · Máximo · Precio · Pedir · Subtotal**.
+
+- El sugerido ya no es un número para tocar: **cada fila visible llega con la cantidad
+  puesta en Pedir**, y el cartón ya viene redondeado a su familia (lo que antes hacía
+  "Usar sugeridos").
+- **Debajo del campo dice qué es**: "sugerido 3.562 · máx 3.922 − stock 360". Sigue
+  estando si la cantidad se pisa a mano, para ver contra qué se está cambiando.
+- **Vaciar el campo = "este no lo pido"**: queda marcado y el render no lo vuelve a
+  llenar. "Usar sugeridos" borra esas marcas y repone todo.
+- **El Precio se queda.** Se llegó a sacar junto con el Sugerido (lectura de más de "en
+  vez de sugerido precio") y el usuario acotó el alcance en el momento: sigue el campo
+  pisable con su moneda tocable, como desde v1.8.0. **Lección: cuando la frase junta dos
+  columnas, preguntar antes de sacar la segunda.**
+- También se fue de esta pantalla el **detalle de consumo tocable** (era la celda
+  Consumo/mes): `consumo-detalle.js` ya no se carga en la OC. Sigue vivo en Pintores y
+  Orden de Producción.
+
 ### PENDIENTES que el usuario dejó planteados y NO están hechos
 
 - ~~**P10 y P3 dentro de Plástico**~~ **RESUELTO el mismo día — ver 4p-bis abajo.**

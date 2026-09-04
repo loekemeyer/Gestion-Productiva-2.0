@@ -1,7 +1,25 @@
 <!doctype html>
 <html lang="es">
 <head>
-<!-- v1.16.0 (2026-09-04) — LAS REGLAS DE RUBRO BAJAN A LA BASE [usuario 2026-09-04: "baja el
+<!-- v1.17.0 (2026-09-04) — SE VAN CONSUMO/MES Y SUGERIDO: EL SUGERIDO YA VIENE CARGADO EN
+     "PEDIR" Y EL CARTEL LO ACLARA [usuario 2026-09-04: "que me aparezca insumo proveedor,
+     stock actual maximo... que me aparezca el sugerido directamente en pedir" + la aclaracion
+     del alcance en el mismo momento: "en resumen, tendrias que eliminar consumo mes. Y
+     sugerido... y que me aclare que es el sugerido"]. La tabla queda en 7 columnas:
+     Insumo · Proveedor · Stock actual · Maximo · Precio · Pedir · Subtotal.
+     (a) Ya no hay que tocar el numero naranja: cada fila visible llega con el sugerido puesto
+         en Pedir (cargarSugeridos(), solo filas VISIBLES, y redondea el carton a su familia).
+     (b) Debajo del campo queda notaSugerido(): "sugerido 3.562 · max 3.922 - stock 360". Dice
+         QUE es y DE DONDE sale, y sigue estando si la cantidad se pisa a mano (para ver contra
+         que se esta cambiando).
+     (c) Vaciar el campo = "este no lo pido": queda en SIN_PEDIDO y el render no lo vuelve a
+         llenar. "Usar sugeridos" borra esas marcas y repone todo; "Limpiar" hace lo contrario.
+     (d) El PRECIO SE QUEDA (se llego a sacar y el usuario aclaro el alcance): se sigue
+         pudiendo pisar, con su moneda tocable, igual que en v1.8.0.
+     (e) Se fue el detalle de consumo tocable de esta pantalla (era la celda Consumo/mes):
+         consumo-detalle.js ya no se carga aca. Sigue vivo en Pintores y OrdenProduccion.
+
+     v1.16.0 (2026-09-04) — LAS REGLAS DE RUBRO BAJAN A LA BASE [usuario 2026-09-04: "baja el
      mapeo a datos"]. Nuevas columnas GP2.sector.oc_rubro_id (a que rubro sube el sector en la
      OC) y GP2.sector.oc_pide (si se compra por OC), migracion sector_reglas_de_rubro_oc:
      Alambre(13).oc_rubro_id=5 (Fleje) y Procesado(2).oc_pide=false. cargarReglasRubro() las
@@ -192,7 +210,6 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="../gp2-numero.js?v=20260903b"></script>
 <script src="../supabase-config.js?v=20260831d"></script>
-<script src="../consumo-detalle.js?v=20260830k"></script>
 <link rel="stylesheet" href="../gp2-modulo.css?v=20260903b"/>
 <link rel="icon" type="image/png" href="../GP2_favicon.png">
 <link rel="apple-touch-icon" href="../GP2_favicon.png">
@@ -204,7 +221,22 @@
   .chip{padding:11px 16px;border-radius:22px;border:2px solid #d0d7de;background:#fff;font-weight:700;font-size:16px;cursor:pointer;color:#111;min-height:44px}
   .chip.active{background:#0b3b73;color:#fff;border-color:#0b3b73}
   td.num{text-align:right;font-variant-numeric:tabular-nums}
-  .pedir-in{width:112px;padding:10px 8px;font-size:19px;text-align:right;border:2px solid #d0d7de;border-radius:8px}
+  /* Sin Consumo/mes ni Sugerido, la tabla estirada al 100% dejaba huecos entre las
+     columnas de números. Van con ancho fijo y el sobrante se lo queda Insumo, que es
+     el que tiene texto largo: nada de espacio vacío solo para llenar la pantalla. */
+  .t-insumos th:nth-child(2),.t-insumos td:nth-child(2){width:160px}
+  .t-insumos th:nth-child(3),.t-insumos td:nth-child(3){width:115px}
+  .t-insumos th:nth-child(4),.t-insumos td:nth-child(4){width:105px}
+  /* Precio entra ancho a proposito: la moneda y el importe van EN LA MISMA LINEA
+     (con menos ancho el boton se caia arriba del campo y la fila quedaba fea). */
+  .t-insumos th:nth-child(5),.t-insumos td:nth-child(5){width:210px}
+  .t-insumos th:nth-child(6),.t-insumos td:nth-child(6){width:200px}
+  .t-insumos th:nth-child(7),.t-insumos td:nth-child(7){width:115px}
+  .t-insumos td:nth-child(5){white-space:nowrap}
+  /* Pedir es el campo principal de la pantalla: llega con el sugerido puesto. */
+  .pedir-in{width:120px;padding:10px 8px;font-size:20px;font-weight:700;text-align:right;border:2px solid #d0d7de;border-radius:8px}
+  .pedir-in.err{border-color:#eacdcd;background:#ffebee}
+  tr.con-pedido td{background:#eef7ee}
   /* Precio: se puede pisar el de la lista sin salir de la OC. Cuando esta pisado
      queda en ambar y debajo se ve el de lista, para que nadie pierda la referencia. */
   .precio-in{width:104px;padding:10px 8px;font-size:18px;text-align:right;border:2px solid #d0d7de;border-radius:8px}
@@ -212,13 +244,6 @@
   .mon-btn{min-width:44px;min-height:44px;margin-right:4px;padding:0 8px;font-size:16px;font-weight:800;
            border:2px solid #d0d7de;border-radius:8px;background:#fff;cursor:pointer;color:#0b3b73}
   .precio-lista{font-size:12px;color:#9a6700;display:block}
-  .pedir-in.err{border-color:#eacdcd;background:#ffebee}
-  tr.con-pedido td{background:#eef7ee}
-  /* Sugerido y Consumo/mes se tocan con el dedo, no son texto: van con caja de 44px
-     como cualquier boton de la casa (regla de UX de CLAUDE.md, la vigila test_oc.js). */
-  .sug,.cd-tocable{display:inline-block;min-width:44px;min-height:44px;line-height:44px;
-    padding:0 8px;box-sizing:border-box;cursor:pointer;text-decoration:underline dotted}
-  .sug{color:#b45309;font-weight:800}
   .paq-eq{font-size:12px;color:#0b3b73;display:block}
   .barra{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:12px 0;padding:12px;background:#f6f8fa;border-radius:10px}
   .barra .tot{font-size:17px;font-weight:800}
@@ -251,6 +276,9 @@
   .leyenda{font-size:14px;color:#555;margin:8px 0 4px}
   .sub-nota{display:block;font-size:12px;color:#777;font-weight:400}
   .sug-calc{display:block;font-size:12px;color:#8a6d3b;font-weight:600;white-space:nowrap}
+  /* Debajo del campo: la palabra "sugerido" con el número, para que se entienda de
+     dónde salió lo que ya viene cargado (y siga estando si se pisa a mano). */
+  .sug-lb{color:#b45309;font-weight:800}
   td.bajo-min b, td.bajo-min{color:#b71c1c}
   .campo{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
   .campo label{font-size:16px;font-weight:800;color:#333}
@@ -289,14 +317,13 @@
       <div class="prov-info hidden" id="provInfo"></div>
       <div class="regla-carton hidden" id="reglaCarton"></div>
       <div class="search-box"><input type="text" id="q" placeholder="Buscar insumo…"></div>
-      <div class="leyenda">Sugerido = <b>Máximo</b> − <b>Stock</b>. Tocá el número naranja y pasa a “Pedir”, o usá <b>“Usar sugeridos”</b> para cargarlos todos de una. <b>Cantidad y precio se pueden pisar a mano</b>: lo que quede en pantalla es lo que sale en la OC.</div>
+      <div class="leyenda"><b>“Pedir” ya viene cargado con el sugerido</b> (<b>Máximo</b> − <b>Stock</b>): debajo de cada campo dice cuánto es el sugerido y de dónde sale. Cambiá la cantidad o <b>dejá el campo vacío</b> para no pedir ese insumo. <b>Cantidad y precio se pueden pisar a mano</b>: lo que quede en pantalla es lo que sale en la OC.</div>
       <div class="table-wrap">
-        <table class="t">
+        <table class="t t-insumos">
           <thead><tr>
             <th>Insumo</th><th>Proveedor</th>
-            <th class="num">Consumo<br>/mes</th>
             <th class="num">Stock<br>actual</th><th class="num">Máximo</th>
-            <th class="num">Sugerido</th><th class="num">Precio</th><th class="num">Pedir</th><th class="num">Subtotal</th>
+            <th class="num">Precio</th><th class="num">Pedir</th><th class="num">Subtotal</th>
           </tr></thead>
           <tbody id="tbody"></tbody>
         </table>
@@ -398,10 +425,17 @@ function explicaSug(i){
 
 var D={}, PAQ=250, PAQ_PLIEGO=100, rubroSel=null, provSel=null;
 var PEDIDO={}; // comp_id -> cantidad
+/* Insumos que el usuario DEJO VACIOS a proposito. Como el sugerido ahora se carga
+   solo en "Pedir", sin esta marca cada render volveria a llenar lo que el acaba de
+   borrar. Se limpia con "Usar sugeridos". */
+var SIN_PEDIDO={}; // comp_id -> true
 /* Precio pisado a mano [usuario 2026-09-03: "si quiero modificar el importe o la
    cantidad a pedir, pueda pedirlo"]. El de precio_proveedor es el DEFAULT, no una
    imposicion: lo que quede aca viaja a crear_oc y es lo que se guarda en la OC (y
-   por lo tanto lo que sale impreso). Vacio = se usa el de la lista. */
+   por lo tanto lo que sale impreso). Vacio = se usa el de la lista.
+   La columna SE QUEDA: el 2026-09-04 se llego a sacar y el usuario aclaro el alcance
+   en el mismo momento ("en resumen, tendrias que eliminar consumo mes. Y sugerido"),
+   asi que lo unico que salio de la tabla es Consumo/mes y Sugerido. */
 var PRECIO={};   // comp_id -> precio pisado
 var MONEDA={};   // comp_id -> 'USD' | 'ARS' pisada
 function precioDe(i){ return PRECIO[i.comp_id]!=null ? PRECIO[i.comp_id] : (i.precio!=null?Number(i.precio):null); }
@@ -619,6 +653,23 @@ function valorSugerido(i){
   return i.sugerido;
 }
 
+/* El sugerido se carga SOLO en "Pedir" [usuario 2026-09-04: "que me aparezca el
+   sugerido directamente en pedir"]. Ya no hay columna Sugerido para tocar: la fila
+   llega con la cantidad puesta y el que quiera cambiarla la pisa, y el que no quiera
+   pedir ese insumo VACIA el campo (queda en SIN_PEDIDO y no se vuelve a llenar).
+   Solo se llenan las filas VISIBLES: lo de otro rubro/proveedor no se toca. */
+function cargarSugeridos(){
+  var toco=false;
+  filtradas().forEach(function(i){
+    if(PEDIDO[i.comp_id]!=null || SIN_PEDIDO[i.comp_id]) return;
+    var v=valorSugerido(i);
+    if(v>0){ PEDIDO[i.comp_id]=v; toco=true; }
+  });
+  // El carton se pide por familia: si entro un sugerido nuevo, se redondea al
+  // multiplo para que la OC no nazca invalida (misma logica que "Usar sugeridos").
+  if(toco) ajustarPedidoCarton();
+}
+
 /* Celda de precio: moneda tocable + input. Arranca con el de la lista; lo que se
    escriba pisa SOLO esta OC (no toca precio_proveedor, que es la lista oficial). */
 function celdaPrecio(i){
@@ -630,14 +681,26 @@ function celdaPrecio(i){
     (pisado&&i.precio!=null?('<span class="precio-lista">lista '+fmtPrecio(i)+'</span>'):'');
 }
 
+/* El cartelito debajo del campo Pedir: DICE que ese numero es el sugerido y de donde
+   sale [usuario 2026-09-04: "que me aclare que es el sugerido"]. Se muestra siempre,
+   tambien si la cantidad se piso a mano — asi se ve contra que se esta cambiando. */
+function notaSugerido(i){
+  var v=valorSugerido(i);
+  if(!(v>0)) return '';
+  var calc=explicaSug(i);
+  return '<span class="sug-calc"><span class="sug-lb">sugerido '+fmt(v)+'</span>'+
+    (calc?(' · '+esc(calc)):'')+'</span>';
+}
+
 function render(){
+  cargarSugeridos();
   var fs=filtradas();
   $('tbody').innerHTML=fs.map(function(i){
     var ped=PEDIDO[i.comp_id]||'';
     var esCarton=i.sector_id===10;
     var esChar=esCharcasIt(i);
     var uxpChar=esChar ? uniPorPaqCharcas(i) : 0;
-    var st=vStock(i), mx=vMaximo(i), pe=vPend(i), co=vConsumo(i), calc=explicaSug(i);
+    var st=vStock(i), mx=vMaximo(i), pe=vPend(i);
     var pr=precioDe(i), mon=monedaDe(i);
     var bajoMin=(i.minimo!=null && st!=null && st<Number(i.minimo));
     // Charcas: input en PAQUETES; el sugerido se convierte a paq (round up).
@@ -648,15 +711,13 @@ function render(){
       '<td><b>'+esc(i.codigo||'—')+'</b><br><small style="color:#777">'+esc(i.descripcion||'')+
         (i.carton_formato?(' · Formato '+esc(i.carton_formato)):'')+'</small></td>'+
       '<td>'+esc(i.proveedor||'—')+'</td>'+
-      '<td class="num">'+(co==null?'—':('<span class="cd-tocable" data-det="'+i.comp_id+'">'+fmt(co,1)+' '+i.unidad+'</span>'))+'</td>'+
       '<td class="num'+(bajoMin?' bajo-min':'')+'">'+(st==null?'—':(fmt(st)+' '+esc(i.unidad)))+
         (i.minimo!=null?('<span class="sub-nota">mín '+fmt(i.minimo)+'</span>'):'')+'</td>'+
       '<td class="num">'+(mx==null?'—':fmt(mx))+
         (mx!=null&&i.maximo_origen?('<span class="sub-nota">'+esc(tagOrigen(i.maximo_origen))+'</span>'):'')+'</td>'+
-      '<td class="num"><span class="sug" data-sug="'+i.comp_id+'" title="Tocá y pasa a Pedir">'+fmt(i.sugerido)+'</span>'+
-        (calc?('<span class="sug-calc">'+esc(calc)+'</span>'):'')+'</td>'+
       '<td class="num">'+celdaPrecio(i)+'</td>'+
-      '<td class="num"><input class="pedir-in" data-in="'+i.comp_id+'" inputmode="decimal" value="'+(ped?String(ped).replace('.',','):'')+'" placeholder="'+i.unidad+'">'+paqEq+'</td>'+
+      '<td class="num"><input class="pedir-in" data-in="'+i.comp_id+'" inputmode="decimal" value="'+(ped?String(ped).replace('.',','):'')+'" placeholder="'+i.unidad+'">'+paqEq+
+        notaSugerido(i)+'</td>'+
       '<td class="num sub-item">'+(ped>0&&pr!=null?(simboloMon(mon)+' '+fmt(ped*pr,2)):'—')+'</td>'+
     '</tr>';
   }).join('');
@@ -666,7 +727,10 @@ function render(){
     inp.addEventListener('change',function(){
       var v=parseNum(inp.value);
       var id=Number(inp.dataset.in);
-      if(v>0) PEDIDO[id]=v; else delete PEDIDO[id];
+      // Vaciar el campo = "este no lo pido": queda anotado en SIN_PEDIDO para que el
+      // sugerido NO se vuelva a cargar solo en el proximo render.
+      if(v>0){ PEDIDO[id]=v; delete SIN_PEDIDO[id]; }
+      else { delete PEDIDO[id]; SIN_PEDIDO[id]=true; }
       render(); barra();
     });
   });
@@ -687,17 +751,6 @@ function render(){
       var it=(D.insumos||[]).filter(function(x){return x.comp_id===id;})[0];
       MONEDA[id] = (monedaDe(it)==='ARS') ? 'USD' : 'ARS';
       render(); barra();
-    });
-  });
-  document.querySelectorAll('.cd-tocable').forEach(function(sp){
-    sp.addEventListener('click',function(){ GP2ConsumoDetalle.abrir(SB, Number(sp.dataset.det)); });
-  });
-  document.querySelectorAll('.sug').forEach(function(sp){
-    sp.addEventListener('click',function(){
-      var id=Number(sp.dataset.sug);
-      var it=(D.insumos||[]).filter(function(x){return x.comp_id===id;})[0];
-      var val=valorSugerido(it);
-      if(val>0){ PEDIDO[id]=val; render(); barra(); }
     });
   });
   barra();
@@ -933,14 +986,23 @@ function barra(){
   $('btnCrear').disabled = items.length===0 || errs.length>0;
 }
 
+// Vuelve a poner los sugeridos: borra las marcas de "este no lo pido" de lo que se ve.
 $('btnSug').addEventListener('click',function(){
-  filtradas().forEach(function(i){ var v=valorSugerido(i); if(v>0) PEDIDO[i.comp_id]=v; });
+  filtradas().forEach(function(i){
+    delete SIN_PEDIDO[i.comp_id];
+    var v=valorSugerido(i); if(v>0) PEDIDO[i.comp_id]=v;
+  });
   // Los cartones salen ya redondeados a su familia [usuario 2026-09-03: "si,
   // redondea para arriba"], asi la OC queda valida sin corregirla a mano.
   ajustarPedidoCarton();
   render();
 });
-$('btnLimpiar').addEventListener('click',function(){ PEDIDO={}; PRECIO={}; MONEDA={}; render(); });
+// Limpiar deja la pantalla en cero: marca lo visible como "no pedir" para que el
+// sugerido no se vuelva a cargar solo apenas se repinta.
+$('btnLimpiar').addEventListener('click',function(){
+  filtradas().forEach(function(i){ SIN_PEDIDO[i.comp_id]=true; });
+  PEDIDO={}; PRECIO={}; MONEDA={}; render();
+});
 $('fechaEnt').addEventListener('change',function(){
   fechaTocada=!!$('fechaEnt').value; fechaTocadaProv=provSel; pintarAyudaFecha();
 });
@@ -964,7 +1026,7 @@ $('btnCrear').addEventListener('click', async function(){
                                             precio:x.precio, moneda:x.moneda}; })
     }, p_fecha_entrega: fEnt });
     if(r.error) throw r.error;
-    PEDIDO={}; PRECIO={}; MONEDA={}; $('nota').value='';
+    PEDIDO={}; PRECIO={}; MONEDA={}; SIN_PEDIDO={}; $('nota').value='';
     fechaTocada=false; fechaTocadaProv=null;
     await boot();
     mostrarTab('ocs');

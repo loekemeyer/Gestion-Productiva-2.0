@@ -141,10 +141,19 @@ window.supabase = { createClient: function(){ return {
   // sin filtro: 4 filas
   ok(await page.$$eval('#tbody tr', x => x.length) === 12, '12 insumos sin filtro');
 
+  // La tabla quedo en lo que se mira para pedir (v1.17.0): salieron Consumo/mes,
+  // Sugerido y Precio.
+  const heads = await page.evaluate(() => [].map.call(
+    document.getElementById('tbody').closest('table').querySelectorAll('thead th'),
+    x => x.textContent.replace(/\s+/g, '').trim()));
+  ok(heads.join('|') === 'Insumo|Proveedor|Stockactual|Máximo|Precio|Pedir|Subtotal',
+     'columnas: ' + heads.join(' · '));
+
   // El clavo se cotiza POR KG pero se compra por unidad: el bundle tiene que mandar el
   // precio ya convertido (3,30 USD/kg x 6,53 g = 0,0215). Si vuelve a llegar 3,30 crudo,
   // la OC lo infla 153x y sale asi en la hoja al proveedor (bug real del 2026-08-31).
   const filaClavo = await page.textContent('tr[data-id="5"]');
+  ok(filaClavo.includes('US$ 215,49'), 'el clavo se valoriza por unidad: ' + filaClavo.replace(/\s+/g, ' ').slice(0, 120));
   ok(!/US\$ 3[,.]3/.test(filaClavo), 'el clavo NO sale al precio por kilo (bug 153x)');
   ok(!filaClavo.includes('/kg'), 'el clavo se compra por unidad, no lleva /kg');
 
@@ -154,39 +163,56 @@ window.supabase = { createClient: function(){ return {
   const provChips = await page.$$eval('#provs .chip', xs => xs.map(x => x.textContent));
   ok(provChips.join(',') === 'Basconia,Hermac', 'chips proveedor: ' + provChips.join(','));
 
-  // sugerido A1 = 424.9*6-100 = 2449 (redondeo servidor); click en sugerido llena Pedir
-  await page.click('.sug[data-sug="1"]');
-  ok(await page.$eval('.pedir-in[data-in="1"]', x => x.value) === '2449', 'click sugerido llena 2449');
-  const tot1 = (await page.textContent('#tot')).trim();
-  ok(tot1.startsWith('1 ítems'), 'barra: 1 items (' + tot1 + ')');
-  // 2449 kg x US$ 1 = US$ 2.449; con el dolar del cron (1535) ~ $ 3.759.215
-  ok(tot1.includes('US$ 2.449') && tot1.includes('3.759.215'), 'barra valorizada: ' + tot1);
-  // columna de precio y subtotal por fila
+  // EL SUGERIDO YA VIENE EN "PEDIR" [usuario 2026-09-04]. A1 = 424,9 x 6 - 100 = 2449
+  // (lo redondea el servidor): la fila llega con el numero puesto, sin tocar nada.
+  ok(await page.$eval('.pedir-in[data-in="1"]', x => x.value) === '2449', 'el sugerido llega cargado en Pedir (2449)');
+  ok(await page.$eval('.pedir-in[data-in="2"]', x => x.value) === '300', 'y el del otro fleje tambien (300)');
   const filaA1 = await page.textContent('tr[data-id="1"]');
-  // El precio dejo de ser texto: es un campo que se puede pisar (v1.8.0). Arranca con
-  // el de la lista, con la moneda al lado en un boton y el "por kg" debajo.
-  ok(await page.$eval('.precio-in[data-pr="1"]', x => x.value) === '1', 'el precio de lista llena el campo');
-  ok(await page.$eval('.mon-btn[data-mon="1"]', x => x.textContent) === 'US$', 'la moneda se ve al lado');
-  ok(filaA1.includes('por kg'), 'el fleje aclara que el precio es por kg');
-  ok(filaA1.includes('US$ 2.449'), 'subtotal de la fila = pedir x precio');
+  // El cartel de abajo DICE que ese numero es el sugerido y de donde sale [usuario:
+  // "que me aclare que es el sugerido"]. (En el bundle de prueba no hay maximo cargado,
+  // asi que la cuenta cae al consumo.)
+  ok(await page.$eval('tr[data-id="1"] .sug-lb', x => x.textContent.trim()) === 'sugerido 2.449',
+     'el cartel aclara que es el sugerido y cuanto es');
+  ok(/(?:máx|cons)/.test(filaA1) && filaA1.includes('stock'), 'y de donde sale: ' +
+     filaA1.replace(/\s+/g, ' ').slice(0, 120));
+  const tot1 = (await page.textContent('#tot')).trim();
+  ok(tot1.startsWith('2 ítems'), 'barra: los 2 flejes del rubro ya cuentan (' + tot1 + ')');
+  // (2449 + 300) kg x US$ 1 = US$ 2.749; con el dolar del cron (1535) ~ $ 4.219.715
+  ok(tot1.includes('US$ 2.749') && tot1.includes('4.219.715'), 'barra valorizada: ' + tot1);
+  ok(filaA1.includes('US$ 2.449'), 'subtotal de la fila = pedir x precio de lista');
   ok(!(await page.$eval('#btnCrear', b => b.disabled)), 'btnCrear habilitado');
 
-  // PRECIO PISADO A MANO (usuario: "si quiero modificar el importe ... pueda pedirlo").
-  // Se escribe 2,5: subtotal, total de la barra y payload tienen que seguirlo, y el
-  // campo queda marcado con el de lista debajo.
+  // VACIAR EL CAMPO = "este no lo pido": el sugerido NO se vuelve a cargar solo.
+  await page.fill('.pedir-in[data-in="2"]', '');
+  await page.dispatchEvent('.pedir-in[data-in="2"]', 'change');
+  ok(await page.$eval('.pedir-in[data-in="2"]', x => x.value) === '', 'vaciado se queda vacio (no se recarga solo)');
+  ok((await page.textContent('#tot')).trim().startsWith('1 ítems'), 'y sale de la cuenta de la barra');
+  // El cartel del sugerido sigue estando aunque el campo este vacio o pisado: es la
+  // referencia contra la que se cambia.
+  ok(await page.$eval('tr[data-id="2"] .sug-lb', x => x.textContent.trim()) === 'sugerido 300',
+     'el cartel del sugerido queda aunque el campo este vacio');
+  // "Usar sugeridos" lo repone
+  await page.click('#btnSug');
+  ok(await page.$eval('.pedir-in[data-in="2"]', x => x.value) === '300', '"Usar sugeridos" repone lo vaciado');
+
+  // PRECIO PISADO A MANO (usuario 2026-09-03: "si quiero modificar el importe ... pueda
+  // pedirlo"). La columna SE QUEDA: se escribe 2,5 y subtotal, total de la barra y payload
+  // tienen que seguirlo, con el de lista visible debajo.
+  ok(await page.$eval('.precio-in[data-pr="1"]', x => x.value) === '1', 'el precio de lista llena el campo');
+  ok(await page.$eval('.mon-btn[data-mon="1"]', x => x.textContent) === 'US$', 'la moneda se ve al lado');
+  ok((await page.textContent('tr[data-id="1"]')).includes('por kg'), 'el fleje aclara que el precio es por kg');
   await page.fill('.precio-in[data-pr="1"]', '2,5');
   await page.dispatchEvent('.precio-in[data-pr="1"]', 'change');
   const filaPis = await page.textContent('tr[data-id="1"]');
   ok(/6\.122,5/.test(filaPis), 'subtotal con el precio pisado (2449 x 2,5): ' + filaPis.replace(/\s+/g, ' ').slice(0, 140));
   ok(filaPis.includes('lista US$ 1'), 'debajo queda el precio de lista, para no perder la referencia');
   ok(await page.$eval('.precio-in[data-pr="1"]', x => x.className.includes('pisado')), 'el campo pisado se marca');
-  ok((await page.textContent('#tot')).includes('US$ 6.122,5'), 'el total de la barra usa el precio pisado');
+  // 2449 x 2,5 + los 300 del otro fleje a US$ 1 = US$ 6.422,5
+  ok((await page.textContent('#tot')).includes('US$ 6.422,5'), 'el total de la barra usa el precio pisado');
   // Vaciar el campo vuelve al de la lista
   await page.fill('.precio-in[data-pr="1"]', '');
   await page.dispatchEvent('.precio-in[data-pr="1"]', 'change');
-  ok((await page.textContent('#tot')).includes('US$ 2.449'), 'vaciar el campo vuelve al precio de lista');
-  await page.fill('.precio-in[data-pr="1"]', '2,5');
-  await page.dispatchEvent('.precio-in[data-pr="1"]', 'change');
+  ok((await page.textContent('#tot')).includes('US$ 2.749'), 'vaciar el campo vuelve al precio de lista');
 
   // filtro proveedor Basconia y crear OC
   await page.click('#provs .chip:has-text("Basconia")');
@@ -198,6 +224,9 @@ window.supabase = { createClient: function(){ return {
   ok(call.proveedor === 'Basconia' && call.rubro === 'Fleje' && call.nota === 'nota test', 'payload cabecera OK');
   ok(call.items.length === 1 && call.items[0].comp_id === 1 && call.items[0].cantidad === 2449 && call.items[0].unidad === 'kg',
      'payload items OK: ' + JSON.stringify(call.items));
+  // El precio ya no se pisa en pantalla, pero SIGUE viajando (el de la lista): sin esto
+  // la OC se guardaria sin plata y la hoja al proveedor saldria en blanco.
+  ok(call.items[0].precio === 1 && call.items[0].moneda === 'USD', 'el precio de lista viaja igual: ' + JSON.stringify(call.items[0]));
 
   // tras crear pasa a tab Ordenes
   ok(!(await page.$eval('#panOcs', x => x.classList.contains('hidden'))), 'muestra tab Ordenes tras crear');
@@ -208,6 +237,13 @@ window.supabase = { createClient: function(){ return {
   // volver a Generar y validar reglas de carton
   await page.click('#tabGen');
   await page.click('#rubros .chip:has-text("Carton")');
+  // Los cartones tambien llegan con el sugerido puesto y YA redondeado a su familia:
+  // asi era antes con "Usar sugeridos" y asi tiene que estar sin tocar nada.
+  ok(await page.$eval('#reglaCarton', x => x.classList.contains('hidden')),
+     'el carton llega valido de fabrica (el sugerido entra redondeado a la familia)');
+  // Para probar las reglas a mano se parte de la tabla vacia.
+  await page.click('#btnLimpiar');
+  ok(await page.$eval('.pedir-in[data-in="3"]', x => x.value) === '', '"Limpiar" deja los campos vacios y no los recarga');
   // 1500 no es multiplo de 1000
   await page.fill('.pedir-in[data-in="3"]', '1500');
   await page.$eval('.pedir-in[data-in="3"]', x => x.dispatchEvent(new Event('change')));
@@ -298,14 +334,16 @@ window.supabase = { createClient: function(){ return {
   regla = await page.textContent('#reglaCarton');
   ok(/pedido mínimo es 20\.000/.test(regla), 'avisa si no llega al mínimo: ' + regla.trim().slice(0, 90));
 
-  // El "Sugerido" y el "Consumo/mes" NO son texto: se tocan con el dedo. Tocando el
-  // sugerido pasa a "Pedir", tocando el consumo se abre el detalle. El gate de UI los
-  // midio a 390px el 2026-09-04 y daban 28x19 y 42x19, o sea imposibles de acertar en
-  // un celular. La regla de la casa es 44px, y vale para lo tocable aunque no sea <button>.
-  for (const [sel, nombre] of [['.sug', 'Sugerido'], ['.cd-tocable', 'Consumo/mes']]) {
-    const caja = await page.$eval(sel, x => { const r = x.getBoundingClientRect(); return [Math.round(r.width), Math.round(r.height)]; });
-    ok(caja[0] >= 44 && caja[1] >= 44, 'el ' + nombre + ' se puede tocar (' + caja.join('x') + ')');
-  }
+  // "Pedir" es AHORA el unico campo de la fila: tiene que ser tocable (44px) y con
+  // letra grande, que es la regla de la casa para todo lo que se carga a mano.
+  const cajaPedir = await page.$eval('.pedir-in',
+    x => { const r = x.getBoundingClientRect(); const s = getComputedStyle(x);
+           return [Math.round(r.width), Math.round(r.height), parseFloat(s.fontSize)]; });
+  ok(cajaPedir[0] >= 44 && cajaPedir[1] >= 44, 'el campo Pedir se toca bien (' + cajaPedir[0] + 'x' + cajaPedir[1] + ')');
+  ok(cajaPedir[2] >= 18, 'y la letra del campo Pedir es grande (' + cajaPedir[2] + 'px)');
+  // Y no quedan restos de las dos columnas que se fueron (Sugerido y Consumo/mes).
+  ok((await page.$$('.sug')).length === 0 && (await page.$$('.cd-tocable')).length === 0,
+     'no quedan celdas de Sugerido ni de Consumo/mes en la tabla');
 
   // acciones de OC: marcar enviada
   await page.click('#tabOcs');
