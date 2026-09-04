@@ -52,8 +52,8 @@ window.GP2_AUTH_ON = GP2_AUTH_ON;
       'prov serv/entregas/entregaps.html',
       // Recepción Insumos
       'stockflejes/recepcion.html',
-      // Relevamiento (insumos - logística)
-      'relevamiento/relevamiento.html',
+      // Relevamiento (insumos - logística): el GP2 nativo, el viejo se borro el 2026-09-04
+      'relevamiento/relevamiento_gp2.html',
       // Avanzado (solo pantalla grande, gated por CSS en envios-only.html)
       'produccion/monitor.html',
       'produccion/maestro.html',

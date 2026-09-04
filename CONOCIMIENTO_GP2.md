@@ -2539,7 +2539,10 @@ la señal.
 estado limpio). `recalcular_minimos()` por eso **no toca** las filas cuyo consumo es 0 o
 desconocido — el número del usuario es mejor dato que un cero calculado — ni las de
 tallerista y proveedor de servicio, que tienen otro origen. La foto previa quedó en
-`GP2.inventario_minimo_backup_20260902` para poder volver atrás.
+`db/respaldo_inventario_minimo_20260902.csv` (en el repo: las 378 filas que cambiaron, con el
+mínimo de antes y el recalculado) para poder volver atrás. `[2026-09-04]` La tabla
+`GP2.inventario_minimo_backup_20260902` se borró en la auditoría de arquitectura (ver
+`REFACTOR_GP2.md`): las copias de datos no viven en la base, viven en git.
 
 ## 2e. Faltantes y máximos de Crudo/Procesado: 5 cajones por ubicación (2026-08-31)
 
@@ -4177,7 +4180,10 @@ aparece solo.
 
 **El módulo viejo salió del menú** `[usuario: "borrá relevamientos (viejo) y dejá solo
 relevamiento gp2 (nuevo) pero renombralo y ponele Relevamientos"]`. `Relevamiento/relevamiento.html`
-queda en el repo pero ya no se entra desde `GP2_MODULOS`.
+quedó primero en el repo sin link; `[2026-09-04, auditoría de arquitectura]` se **borró del todo**
+(html, js, el backup del 31/07 y su `db.sql`), junto con los 4 shims `GP2.rc_*` que sólo
+existían para que esa pantalla llegara a `public.rc_*`. La tablet (`envios-only.html`) y la lista
+de páginas del rol `envios` en `auth-guard.js` apuntan ahora al GP2. Ver `REFACTOR_GP2.md`.
 
 ### En qué unidad se cuenta cada sector `[usuario 2026-09-04]`
 
