@@ -3183,14 +3183,18 @@ ID8  Fleje N° 27 (Basconia, kg)
 O sea: Máspoli recibe la virola ya niquelada y devuelve **el mango con la virola adentro**.
 El costo del mango ($710,89) **ya contiene** los $27,17 de la virola.
 
-**Consecuencia — el doble conteo:** la receta de un artículo tiene que listar el **mango**,
-no la virola. Hoy:
+**El que estaba incompleto era el 708, y NO había doble conteo** *[usuario 2026-09-04:
+"falta en 708"]*. El 508 y el 518 listaban `D13` en `articulo_componente` y el 708 no; se
+le agregó la fila al 708 (cantidad 1) y ahora los tres están iguales.
 
-| Artículo | Mango en la receta | ¿Además lista `D13`? |
-|---|---|---|
-| 708 | `PC12` | no — **así va bien** |
-| 508 | `PC12` | **sí** → cuenta la virola dos veces |
-| 518 | `PEP7` | **sí** → cuenta la virola dos veces |
+**Por qué no se movió ni un peso al agregarla** (medido, no supuesto): agregar y sacar la
+fila deja el costo de los tres artículos idéntico — 508 $1.904,73, 518 $2.189,20, 708
+$1.882,06 — y el consumo de `D13`/`D13B`/`ID8` clavado en 1.949 uni/mes con o sin ella.
 
-Sacar `D13` de las recetas del 508 y del 518 les baja **$27,17 a cada uno**. Pendiente de
-que el usuario dé el OK antes de tocarlo: es plata.
+**La regla que sale de ahí, y que conviene no olvidar:** `articulo_componente` es la
+**lista de partes** del artículo (trazabilidad, "de qué está hecho"), NO la fórmula del
+costo. Tanto `v_costo_componente` como `v_consumo_componente` caminan las **rutas**, y en
+la ruta la virola aparece una sola vez porque `D13` se transforma en el mango. O sea que
+listar un intermedio en la receta no lo cobra dos veces — pero tampoco lo agrega: si un
+componente no está en ninguna ruta, no existe para el costo ni para la OC por más que
+figure en la receta.
