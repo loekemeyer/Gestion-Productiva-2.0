@@ -3636,10 +3636,24 @@ decir qué sector es.** No se inventó.
 ### El cronograma
 
 Cargado con la foto del Excel "conteo" (28 fechas, sept–nov 2026) en
-`GP2.relevamiento_cronograma`. `relevamiento_bundle()` devuelve **el más próximo por tipo**
+`GP2.relevamiento_cronograma`. `relevamiento_bundle()` devuelve **el más próximo por SECTOR**
 `[usuario: "en el cronograma aparecen varias veces garage porque se hace más de una vez por
-mes, pero quiero que me pongas el más próximo"]`. Si un tipo ya no tiene fechas futuras,
+mes, pero quiero que me pongas el más próximo"]`. Si un sector ya no tiene fechas futuras,
 muestra la última vencida en vez de desaparecer.
+
+**Corregido el mismo día, tres cosas `[usuario 2026-09-04]`:**
+
+1. *"me tendrían que aparecer todos a realizar, porque son todos futuros relevamientos"* —
+   los 8 se muestran.
+2. *"el de garage no me pongas el de hoy, poneme el próximo"* — la fecha tiene que ser
+   **estrictamente futura** (`fecha > hoy`). Antes era `>=` y Garage mostraba el de hoy;
+   ahora muestra el 11-sep.
+3. *"me tendría que aparecer solo uno por sector, acordate"* — la clave de deduplicación es
+   el **sector**, no la etiqueta del Excel. Los tipos sin sector (hoy "Bolsa Plást") se
+   agrupan por su propio nombre para no fusionarse entre sí ni con ningún sector.
+
+Resultado medido: Garage 11-sep (7 días), Remaches 16-sep, Bombillas 24-sep, Flejes 28-sep,
+Bolsa Plást y Plásticos 02-oct, Cajas 06-oct, Cartones 13-oct.
 
 ### El envase cambia por sector, y ese es el único pedazo que varía
 

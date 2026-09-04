@@ -138,23 +138,34 @@ BEGIN
   RETURN p_envases * f + coalesce(p_sueltas,0);
 END $$;
 
--- Cronograma con el MAS PROXIMO POR TIPO [usuario 2026-09-04: "en el cronograma aparecen
+-- Cronograma con el MAS PROXIMO POR SECTOR [usuario 2026-09-04: "en el cronograma aparecen
 -- varias veces garage porque se hace mas de una vez por mes, pero quiero el mas proximo"].
--- Si un tipo ya no tiene fechas futuras, muestra la ultima pasada (vencida).
+-- Correcciones del mismo dia [usuario]:
+--  (a) "me tendrian que aparecer todos a realizar, porque son todos futuros relevamientos"
+--  (b) "el de garage no me pongas el de hoy, poneme el proximo" -> la fecha tiene que ser
+--      ESTRICTAMENTE FUTURA (fecha > hoy). Antes era >= y Garage mostraba el de hoy.
+--  (c) "me tendria que aparecer solo uno por sector, acordate" -> la clave de deduplicacion
+--      es el SECTOR, no la etiqueta del Excel. Los tipos sin sector (hoy "Bolsa Plast") se
+--      agrupan por su propio nombre para que no se fusionen entre si ni con ningun sector.
+-- Si un sector ya no tiene fechas futuras, muestra la ultima pasada (vencida).
 create or replace function "GP2".relevamiento_bundle()
 returns jsonb
 language sql stable security definer set search_path = "GP2", public as $$
-  with prox as (
-    select distinct on (k.tipo) k.tipo, k.sector_id, k.fecha, k.id crono_id
+  with base as (
+    select k.*, coalesce(k.sector_id::text, 'tipo:'||k.tipo) as clave
     from "GP2".relevamiento_cronograma k
-    where k.fecha >= current_date
-    order by k.tipo, k.fecha
+  ),
+  prox as (
+    select distinct on (b.clave) b.clave, b.tipo, b.sector_id, b.fecha, b.id crono_id
+    from base b
+    where b.fecha > current_date
+    order by b.clave, b.fecha
   ),
   ult as (
-    select distinct on (k.tipo) k.tipo, k.sector_id, k.fecha, k.id crono_id
-    from "GP2".relevamiento_cronograma k
-    where not exists (select 1 from prox p where p.tipo = k.tipo)
-    order by k.tipo, k.fecha desc
+    select distinct on (b.clave) b.clave, b.tipo, b.sector_id, b.fecha, b.id crono_id
+    from base b
+    where not exists (select 1 from prox p where p.clave = b.clave)
+    order by b.clave, b.fecha desc
   ),
   fila as (select * from prox union all select * from ult)
   select jsonb_build_object(
@@ -165,6 +176,7 @@ language sql stable security definer set search_path = "GP2", public as $$
     select jsonb_build_object(
       'tipo', f.tipo, 'sector_id', f.sector_id, 'sector', s.nombre,
       'crono_id', f.crono_id, 'fecha', f.fecha, 'dias', (f.fecha - current_date),
+      'vencido', (f.fecha < current_date),
       'componentes', (select count(*) from "GP2".componente c where c.sector_id = f.sector_id),
       'mapeado', (f.sector_id is not null),
       'relevamiento', (
