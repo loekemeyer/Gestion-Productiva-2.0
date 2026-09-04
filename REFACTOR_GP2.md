@@ -228,6 +228,29 @@ vocabulario real del ledger (tenían los nombres del programa viejo).
 
 ---
 
+## Ciclo 2b — podas y fusiones con edición de funciones (agente B2, 19:15–19:55 AR)
+
+Cada migración `refactor_20260904_b2_*` comparó el md5 del JSON de los bundles antes/después
+(sin `generado_en`) y abortaba si algo cambiaba fuera de lo pedido.
+
+| Cambio | Detalle | Verificación |
+|---|---|---|
+| `ruta_confirmada` + `ruta_problema` → **`ruta_revision`** | una fila por firma con `estado` confirmada/pendiente/resuelto; `ruta_confirmar/reportar/resolver` reescritas con la misma firma; `despiece_verif_bundle` devuelve las mismas claves que lee Despiece_GP2 | prueba con rollback: reportar → re-reportar (mismo id) → resolver → confirmar |
+| `ruta_paso.articulo_id` y `componente_fleje_id` **borradas** | 620/620 = `ruta.articulo_id`; 216/216 = entrada del paso 1 (tipo `ingreso`, sector Fleje). Los 4 bundles que las exportaban las derivan por join | 47/47 claves de bundle idénticas antes y después |
+| `articulo.estadistica_madre_uni_mes` **borrada** | difería de `est_madre.proy_uni_mes` en 87/87 y Despiece calculaba demanda con ese número viejo. `abm_articulos_bundle`, `despiece_verif_bundle`, `faltantes_bundle`, `movimientos_bundle` devuelven `est` desde `est_madre`; `abm_articulo_upsert` pierde `p_estadistica` (firma de 5 args); el ABM muestra el campo sólo lectura | sólo cambia la clave `art`; test_bom OK |
+| `matriz.tipo_matriz` y `primera_del_fleje` **borradas** | `tipo_matriz` sin ningún lector (la 118 «501» pasa a `tipo='P'`, piedra); `primera_del_fleje='SI'` ≡ `partes_por_kilo_de_fleje is not null` en 115/115, los 3 bundles lo derivan | md5 de `mat` idéntico salvo el tipo de la 118 |
+| `tallerista.entrega_cervantes` **borrada** | 0 usos (era true en Alex, Martin, IJUPA: el dato queda en CONOCIMIENTO) | guard por regex en la migración |
+| `precio_servicio` **borrada** | modelo viejo (precio único por PS), 0 filas; `v_costo_componente` sin la CTE `psrv` | md5 de las 591 filas de la vista idéntico |
+
+Desvío documentado: el "fleje de la ruta" se define como entrada del paso 1 **de tipo `ingreso`**
+(5 rutas con paso 1 `insumo` IE13/IZ19A nunca tuvieron fleje marcado y siguen igual; si el
+negocio quiere contarlas, es sacar esa condición en 4 bundles).
+
+### Estado tras el ciclo 2b
+49 tablas · 11 vistas · 121 funciones (hubo +1 por `ubic_de`, ver ciclo 2c).
+
+---
+
 ## Decisiones arquitectónicas (acumuladas)
 
 1. **Las copias de datos no viven en la base.** Un snapshot "por si hay que volver atrás" va a

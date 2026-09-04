@@ -1,5 +1,9 @@
 <!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>ABM Artículos (GP2)</title>
+<!-- v1.1.0 - ESTADISTICA MADRE SOLO LECTURA (2026-09-04, refactor C14): la demanda del articulo
+     sale de GP2.est_madre.proy_uni_mes (CONOCIMIENTO 4h). Se borro la columna
+     articulo.estadistica_madre_uni_mes y abm_articulo_upsert ya no recibe p_estadistica: el campo
+     del modal muestra a.est (lo trae abm_articulos_bundle desde est_madre) y no se edita aca. -->
 <style>
  *{box-sizing:border-box}
  body{margin:0;background:#ebeff4;color:#385475;font:13px/1.4 -apple-system,Segoe UI,Roboto,sans-serif}
@@ -121,7 +125,7 @@
       <div class="fld"><label>Familia</label><input id="fFam" list="famList" placeholder="Elegí de la lista o escribí una nueva" autocomplete="off"><datalist id="famList"></datalist></div>
       <div class="fld"><label>Caja (Sector Caja)</label><select id="fCaja"><option value="">— sin caja —</option></select></div>
       <div class="fld"><label>Artículos por caja</label><input inputmode="numeric" id="fPor" type="number" min="0" step="1" placeholder="Ej: 24"></div>
-      <div class="fld"><label>Estadística madre (uni/mes)</label><input inputmode="decimal" id="fEst" type="number" step="any" placeholder="Ej: 20000"></div>
+      <div class="fld"><label>Estadística madre (uni/mes)</label><input inputmode="decimal" id="fEst" type="number" step="any" placeholder="—" readonly title="Solo lectura: sale de la Est Madre" style="background:#e3e8ef;color:#5a6a7a"><small class="muted">Solo lectura: sale de la Est Madre (est_madre), no se carga acá.</small></div>
     </div>
     <div class="foot">
       <button class="btn" id="fCancel">Cancelar</button>
@@ -499,8 +503,8 @@ async function saveForm(){
     p_codigo: cod,
     p_familia: fFam.value.trim()||null,
     p_caja_id: fCaja.value?Number(fCaja.value):null,
-    p_por_caja: fPor.value===''?null:parseInt(fPor.value,10),
-    p_estadistica: fEst.value===''?null:Number(fEst.value)
+    p_por_caja: fPor.value===''?null:parseInt(fPor.value,10)
+    // (sin p_estadistica desde 2026-09-04: la demanda vive en est_madre, el campo es solo lectura)
   };
   var btn=document.getElementById('fSave');btn.disabled=true;
   try{
