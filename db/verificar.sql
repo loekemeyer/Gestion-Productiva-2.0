@@ -107,6 +107,25 @@ select 'Q_recepcion_y_movimiento_con_distinta_cantidad', count(*) from "GP2".rec
 union all
 select 'R_compra_sin_recepcion', count(*) from "GP2".movimiento m
  where m.tipo_mov = 'compra' and not exists (select 1 from "GP2".recepcion_insumo r where r.movimiento_id = m.id)
+union all
+-- S..Y) Estructura de recetas y rutas: un terminado no es parte de una receta (abm_bom_guardar lo
+--    rechaza), el BOM no tiene ciclos, los pasos de una ruta no repiten orden ni quedan sin actor,
+--    las cantidades de receta son positivas y todo componente tiene sector.
+select 'S_receta_con_terminado', count(*) from "GP2".articulo_componente ac join "GP2".componente c on c.id = ac.componente_id where c.sector_id = 12
+union all
+select 'T_bom_ciclo_directo', count(*) from "GP2".componente_bom b where b.componente_padre_id = b.componente_hijo_id
+union all
+select 'T2_bom_ciclo_indirecto', count(*) from "GP2".componente_bom a join "GP2".componente_bom b
+  on a.componente_hijo_id = b.componente_padre_id and b.componente_hijo_id = a.componente_padre_id
+union all
+select 'U_ruta_paso_orden_repetido', count(*) from (select ruta_id, orden from "GP2".ruta_paso group by 1, 2 having count(*) > 1) d
+union all
+select 'W_paso_sin_actor', count(*) from "GP2".ruta_paso rp
+ where rp.tipo_paso in ('matriz', 'proveedor_servicio', 'tallerista') and coalesce(rp.matriz_id, rp.proveedor_id, rp.tallerista_id) is null
+union all
+select 'X_receta_cantidad_no_positiva', count(*) from "GP2".articulo_componente where coalesce(cantidad, 0) <= 0
+union all
+select 'Y_componente_sin_sector', count(*) from "GP2".componente where sector_id is null
 ) chequeos
 order by regla;
 
@@ -119,7 +138,8 @@ order by regla;
 -- union all select 'espejo_virgilio_pendiente_datos', count(*), '(pregunta 8.17: artículos de Virgilio sin equivalente en GP2)' from "GP2".virgilio_espejo_pend where motivo not like 'error%'
 -- union all select 'est_madre_sin_articulo_gp2', count(*), '(idea 7244: familias que GP2 no modela)' from "GP2".est_madre em where not exists (select 1 from "GP2".articulo a where regexp_replace(a.codigo,'^0+','') = regexp_replace(em.cod,'^0+',''))
 -- union all select 'componentes_discontinuos_en_rutas', count(distinct c.id), '(pregunta 8.4)' from "GP2".componente c join "GP2".ruta_paso rp on rp.comp_entrada_id = c.id or rp.comp_salida_id = c.id where c.estado_compra = 'discontinuo'
--- union all select 'contrapartes_sin_partes_en_rutas', count(*), '(PS sin pasos: Rec Color, Daniel, Esther, Eclipse...)' from "GP2".proveedor_servicio ps where not exists (select 1 from "GP2".v_contraparte_parte v where v.tipo = 'proveedor_servicio' and v.ref_id = ps.id);
+-- union all select 'contrapartes_sin_partes_en_rutas', count(*), '(PS sin pasos: Rec Color, Daniel, Esther, Eclipse...)' from "GP2".proveedor_servicio ps where not exists (select 1 from "GP2".v_contraparte_parte v where v.tipo = 'proveedor_servicio' and v.ref_id = ps.id)
+-- union all select 'rutas_sin_articulo', count(*), '(rutas de intermedios: es un modelo valido, no un error; 13 al 2026-09-05)' from "GP2".ruta where articulo_id is null;
 
 -- ---------------------------------------------------------------------
 -- PENDIENTE (pregunta 27 de PREGUNTAS_ARQUITECTURA_GP2.md). OJO: "mínimo ≤ máximo" NO es un

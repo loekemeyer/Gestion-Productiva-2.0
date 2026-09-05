@@ -12,7 +12,7 @@ base): verifican payloads de RPC, filtros, cálculos en pantalla y flujos comple
 |---|---|
 | test_bom.js | Editor de BOM del ABM Artículos |
 | test_botones_fuera.js | Botones sacados 2026-08-29 (RD/CM/REM) fuera y el resto presente; menú sin los candados muertos |
-| test_contratos_db.js | Guardia del contrato pantalla ↔ base: toda `rpc('x')` y todo `from('x')` de las pantallas GP2 (las `_GP2`, las de entrada y `control-cajas`/`control-remaches`) existe en `db/` (funciones, tablas, vistas); en cada llamada con objeto literal, cada clave es un parámetro real de la función y no falta ninguno sin DEFAULT. Si falla porque `db/` está viejo, se regenera `db/`, no se toca el test (sin navegador, lee archivos) |
+| test_contratos_db.js | Guardia del contrato pantalla ↔ base: toda `rpc('x')` y todo `from('x')` de las pantallas GP2 (las `_GP2`, las de entrada y `control-cajas`/`control-remaches`) existe en `db/` (funciones, tablas, vistas); cada columna pedida en `from(tabla).select(...)` existe en la tabla; en cada llamada con objeto literal, cada clave es un parámetro real de la función y no falta ninguno sin DEFAULT. Si falla porque `db/` está viejo, se regenera `db/`, no se toca el test (sin navegador, lee archivos) |
 | test_control_tall_gp2.js | Control Talleristas GP2: caracterización previa a la unificación de pantallas |
 | test_ctrl.js | Control Envíos y Entregas (pivote, medidas Kg/Uni/Cajas) |
 | test_despiece_verif.js | Despiece x Artículo v2 (fusión de Verificación + VerifMadres): receta, rutas, faltantes prorrateados |

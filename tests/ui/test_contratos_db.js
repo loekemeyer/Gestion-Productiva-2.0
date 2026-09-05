@@ -11,7 +11,9 @@
  *      parametro real de esa funcion (una clave con un typo llega a PostgREST como
  *      "function not found" recien en produccion);
  *   4. esa llamada mande todos los parametros SIN DEFAULT de la funcion (el mismo error, al
- *      reves: falta uno obligatorio y PostgREST no encuentra la firma).
+ *      reves: falta uno obligatorio y PostgREST no encuentra la firma);
+ *   5. cada columna que una pantalla pide con from(tabla).select('a,b,...') exista en la tabla
+ *      (una columna borrada o renombrada en la base es un 400 silencioso en la pantalla).
  * Si falla porque db/ esta viejo, la respuesta es regenerar db/ (db/regenerar.sql), no
  * tocar el test. Sin navegador: lee archivos.
  */
@@ -48,7 +50,11 @@ for (const m of leer(path.join(ROOT, 'db', 'funciones_GP2.sql'))
   funciones[m[1]] = { params, requeridos };
 }
 const relaciones = new Set();
-for (const m of leer(path.join(ROOT, 'db', 'tablas_GP2.sql')).matchAll(/create table "GP2"\.(\w+) \(/g)) relaciones.add(m[1]);
+const columnas = {};   // tabla -> Set de columnas (solo tablas: las vistas no declaran la lista)
+for (const m of leer(path.join(ROOT, 'db', 'tablas_GP2.sql')).matchAll(/create table "GP2"\.(\w+) \(\n([\s\S]*?)\n\);/g)) {
+  relaciones.add(m[1]);
+  columnas[m[1]] = new Set(m[2].split('\n').map(l => l.trim()).filter(l => l && !l.startsWith('constraint')).map(l => l.split(/\s+/)[0]));
+}
 for (const m of leer(path.join(ROOT, 'db', 'vistas_GP2.sql')).matchAll(/create or replace view "GP2"\.(\w+) as/g)) relaciones.add(m[1]);
 ok(Object.keys(funciones).length > 100 && relaciones.size > 50,
    'db/ se pudo leer (' + Object.keys(funciones).length + ' funciones, ' + relaciones.size + ' tablas+vistas)');
@@ -81,6 +87,7 @@ const rpcInexistentes = [];
 const fromInexistentes = [];
 const clavesMalas = [];
 const faltanRequeridos = [];
+const columnasMalas = [];
 let nRpc = 0, nFrom = 0, nLlamadasConObjeto = 0;
 
 // objeto literal que sigue a rpc('x', { ... }): claves de PRIMER nivel
@@ -122,15 +129,36 @@ for (const p of archivos) {
       }
     }
   }
-  for (const m of txt.matchAll(/\.from\(\s*["'](\w+)["']/g)) {
+  for (const m of txt.matchAll(/\.from\(\s*["'](\w+)["']\s*\)(?:\s*\.select\(\s*["']([^"']*)["']\s*\))?/g)) {
     nFrom++;
-    if (!relaciones.has(m[1])) fromInexistentes.push(rel(p) + ':' + txt.slice(0, m.index).split('\n').length + '  ' + m[1]);
+    const linea = txt.slice(0, m.index).split('\n').length;
+    if (!relaciones.has(m[1])) { fromInexistentes.push(rel(p) + ':' + linea + '  ' + m[1]); continue; }
+    // columnas del select literal, solo para TABLAS (las vistas no declaran columnas en db/):
+    // "a, b, alias:col, rel:fk_col(sub, cols)" -> a, b, col, fk_col
+    if (m[2] && columnas[m[1]] && m[2].trim() !== '*') {
+      let depth = 0, item = '', items = [];
+      for (const ch of m[2]) {
+        if (ch === '(') depth++;
+        if (ch === ')') depth--;
+        if (ch === ',' && depth === 0) { items.push(item); item = ''; } else item += ch;
+      }
+      items.push(item);
+      for (let it of items) {
+        it = it.trim(); if (!it) continue;
+        const sinEmbebido = it.split('(')[0];
+        const col = sinEmbebido.includes(':') ? sinEmbebido.split(':').pop().trim() : sinEmbebido.trim();
+        if (col && col !== '*' && !columnas[m[1]].has(col)) columnasMalas.push(rel(p) + ':' + linea + '  ' + m[1] + '.' + col);
+      }
+    }
   }
 }
 rpcInexistentes.forEach(i => console.log('     ' + i));
 ok(rpcInexistentes.length === 0, 'toda RPC que nombra una pantalla existe en la base (' + nRpc + ' llamadas en ' + archivos.length + ' archivos)');
 fromInexistentes.forEach(i => console.log('     ' + i));
 ok(fromInexistentes.length === 0, 'toda tabla/vista que lee una pantalla existe (' + nFrom + ' from())');
+// una columna borrada o renombrada en la base rompe la pantalla en silencio (PostgREST 400)
+columnasMalas.forEach(i => console.log('     ' + i));
+ok(columnasMalas.length === 0, 'cada columna que una pantalla pide en from(tabla).select(...) existe en la tabla');
 clavesMalas.forEach(i => console.log('     ' + i));
 ok(clavesMalas.length === 0, 'cada clave del objeto de una llamada rpc es un parametro real de la funcion (' + nLlamadasConObjeto + ' llamadas con objeto literal)');
 // un parametro sin DEFAULT que no viaja: PostgREST no encuentra la firma y la pantalla ve "function not found"
