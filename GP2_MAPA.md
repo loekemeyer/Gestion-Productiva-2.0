@@ -147,7 +147,8 @@ confirmar acá que la clave existe; si un bundle cambia, actualizar esta tabla e
 | `faltantes_bundle()` | Despiece x Artículo (lazy) | `art, bom_art, bom_comp, c2a, comp, inv, mat, prov_serv, rp, sect, tall, ubic` (= `movimientos_bundle`, `art` como lista) |
 | `faltantes_estado_bundle()` | Faltantes | `estado, marcas, max_cajones, pendientes_uxc, umbral_cajones` |
 | `flejes_bundle()` | Flejes | **LISTA** de 55 flejes: `cod_isis, codigo, comp_id, cons, descripcion, kg_uni_desp, kg_x_cajon, maximo, medida, minimo, n_fleje, parte, proveedor, stock` |
-| `informes_bundle(p_desde, p_hasta)` / `informes_matriz_bundle(...)` | Informes por persona / por matriz | (agregados de producción) |
+| `informes_bundle(p_desde, p_hasta)` | Informe por persona | `desde, hasta, personas` |
+| `informes_matriz_bundle(p_desde, p_hasta, p_incluir_piedra)` | Informe por matriz | `desde, hasta, empleados, hsTotalByEmp, matrices` |
 | `inicio_bundle()` | GP2_MODULOS (menú) | `alertas, dia, generado_en, hoy, mes` |
 | `inyectores_bundle()` | Inyectores | `generado_en, partes, proveedores, sector, sectores` |
 | `movimientos_bundle()` | gp2-motor.js (Stocks General, Entregas Talleristas), Registro operarios | `art, bom_art, bom_comp, c2a, comp, inv, mat, prov_serv, rp, sect, tall, ubic` |

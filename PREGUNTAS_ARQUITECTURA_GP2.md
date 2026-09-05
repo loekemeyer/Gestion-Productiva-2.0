@@ -393,6 +393,38 @@ caso ambiguo y descuenta el BOM) y `recepcionTall` se borra del JS.
 
 ---
 
+## 27. 80 renglones de inventario tienen el mínimo por ENCIMA del máximo
+
+**Problema encontrado.** `[dato 2026-09-05]` En 80 filas de `inventario` el `minimo` es mayor que
+el `maximo`: 30 en Sector Procesado, 30 en Crudo, 10 en Bombilla, 4 en Remache, 3 en Plástico,
+2 en Cartón, 1 en Caja. Ejemplos: `Z23` mínimo 87.892 / máximo 11.630; `X1` 87.892 / 20.020;
+`W6` 29.124 / 25.000. El mínimo sale de `recalcular_minimos` (consumo de la Est Madre × meses) y
+el máximo de la regla "5 cajones por ubicación" (`maximo_origen = cinco_cajones`) o de la Est
+Madre — dos reglas que nadie cruzó.
+
+**Por qué existe una duda.** Con mínimo > máximo el renglón está SIEMPRE "bajo mínimo"
+(Faltantes lo lista para siempre) y la OC, que llena hasta el máximo, nunca lo saca de ahí. No sé
+cuál de las dos reglas manda: si el lugar físico (5 cajones) es el techo real, el mínimo está
+mal calculado (meses de más); si el consumo es la verdad, el máximo de 5 cajones es chico para
+esas 80 piezas y hay que darles más lugar o más ubicaciones.
+
+**Alternativa A.** Manda el lugar: `minimo = least(minimo, maximo)` en esas 80 filas (o mínimo =
+una fracción del máximo, p.ej. 50 %), y `recalcular_minimos` lo respeta de ahí en más.
+
+**Alternativa B.** Manda el consumo: se corrige el máximo (más cajones/ubicaciones para esas
+piezas, `inventario.ubicaciones` o `cajones_x_ubicacion`, ver pregunta 5) y el mínimo queda.
+
+**Recomendación.** A para Crudo/Procesado (el lugar es físico y el "5 cajones" lo fijó el usuario
+el 2026-08-31); B mirado pieza por pieza para insumos (Bombilla/Remache/Plástico/Cartón/Caja),
+donde el máximo viene de la Est Madre y puede estar corto.
+
+**Impacto.** Una consulta de datos (80 filas) y una línea en `recalcular_minimos`; Faltantes y la
+OC dejan de contradecirse. Se puede agregar como invariante a `db/verificar.sql` (mínimo ≤ máximo).
+
+**Pregunta concreta.** ¿A, B, o A para Crudo/Procesado y B para el resto?
+
+---
+
 ## Cómo responder
 
 Con el número y la letra alcanza ("1B", "21A"...). Lo que se responda se aplica en la sesión

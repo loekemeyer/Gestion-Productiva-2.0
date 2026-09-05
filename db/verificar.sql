@@ -89,3 +89,9 @@ select 'M_rpc_de_pantalla_sin_execute_anon', count(*) from pg_proc p
                          'recepcion_virgilio', 'actualizar_dolar_oficial', 'crear_recepcion_insumo'))
 ) chequeos
 order by regla;
+
+-- ---------------------------------------------------------------------
+-- PENDIENTE (pregunta 27 de PREGUNTAS_ARQUITECTURA_GP2.md): cuando el usuario decida cuál regla
+-- manda, esta regla entra en la lista de arriba. Hoy da 80 (2026-09-05).
+-- select 'N_minimo_mayor_que_maximo' regla, count(*) n from "GP2".inventario
+--  where minimo is not null and maximo is not null and minimo > maximo;

@@ -22,7 +22,8 @@
 | Tests | 33 | **36** (+`test_stock_sector`, `test_helpers_ui` con 5 reglas, `test_smoke_gp2` sobre las 47 pantallas; `test_numero` con 4 reglas) |
 | Bugs vivos encontrados y arreglados | — | **8**: `talleristas_bundle` sin `partes` (Control Talleristas vacío), `recepcion_tall` vs `entrega_tallerista` (dos palabras, un evento), `consumo_armado` no contado como entregado, `crear_entrega_ps` con la unidad de la SC en una cantidad de SP, «Desmarcar» del control de recepciones roto desde el 31/08, PS 12 AJ Adhesivos sin ubicación (`crear_envio_ps` explotaba), 6 "hoy" en UTC (día corrido después de las 21:00), y otros 3 PS + 1 Prov AT sin ubicación porque `alta_proveedor_servicio` no la creaba (causa raíz arreglada, ciclo 2s) |
 | Invariantes de la base | — | **14** en `db/verificar.sql` (contrapartes con ubicación, inventario = ledger, grants, RLS, PS híbridos, códigos, rutas), todas en 0 |
-| Preguntas para el usuario | — | 26 en `PREGUNTAS_ARQUITECTURA_GP2.md` (la 8 con 20 datos) |
+| Preguntas para el usuario | — | 27 en `PREGUNTAS_ARQUITECTURA_GP2.md` (la 8 con 20 datos; la 27 con 80 renglones mínimo > máximo) |
+| RPC probadas en vivo (rollback) | — | **105**: 45 de lectura + ~60 de escritura con deltas de inventario verificados, 0 errores (ciclos 2o, 2q, 2s, 2u) |
 | Ideas registradas | — | 7250–7260 en `IDEAS-GP2.md` (7253 y 7256 ya hechas) |
 
 Verificaciones al cierre: conservación ledger↔inventario 0 desvíos; 97 RPC de pantalla existen y
@@ -722,6 +723,51 @@ se regenera al cierre: cambiaron `cargar_compra_mp` y `alta_proveedor_servicio`.
 
 ### Estado tras el ciclo 2t
 **47 tablas · 13 vistas · 120 funciones · 36 tests · 14 invariantes en 0.**
+
+---
+
+## Ciclo 2u — VALIDAR: las 97 RPC corridas de verdad (con rollback), 04:15–04:50 AR
+
+Después de tocar 30+ funciones en el día, la única prueba que vale es correrlas. Todo dentro de
+bloques `DO` que terminan en `raise exception 'OK_ROLLBACK …'` (nada queda escrito) y que
+verifican los deltas de inventario, no sólo que "no explote":
+
+- **Bundles de lectura**: los 37 `*_bundle` + `partes_por_ps`, `charcas_pendiente`,
+  `composicion_stock`, `consumo_detalle` → 45 llamadas, 0 errores.
+- **Producción**: `registrar_evento_prod` (mueve stock 0→10 en la pieza de la matriz, detecta
+  el `id_ejecucion` duplicado), `anular_evento_prod` (eliminar='S'), `registrar_produccion`,
+  `anular_produccion`, `marcar_revisado`.
+- **Relevamiento completo**: abrir → guardar (2 envases + 3 sueltas = 503 uni) → comparar →
+  cerrar (estado `contado`) → decidir `conteo` → aplicar: el stock pasa de 100 a 503 con 1
+  ajuste; `descartar_si_vacio` y `eliminar` también.
+- **Recepción de insumos**: `cargar_recepcion` (caja, cartón y fleje con rollos/pallets),
+  `controlar_recepcion_cajas` (4 base × 2 pisos + 3 sueltas = 203 contra 200 declaradas),
+  `controlar_recepcion_kg`, `pesar_pallet` (2 rollos × 125 kg, balanza 262,5 → "sobrante
+  alto"), `descontrolar_recepcion` (vuelve a la declarada), `anular_recepcion` (1 recepción, 1
+  movimiento), `guardar_control_cartones` (48 paquetes × 250).
+- **PS híbridos**: `cargar_compra_mp` (ya en 2q/2s), `cargar_recepcion_charcas` y
+  `cargar_recepcion_eclipse` (consumen la MP del PS).
+- **Prov AT**: `crear_envio_prov_at` (sector 11 −7 / prov +7 exactos) y `crear_entrega_prov_at`.
+- **Talleristas**: el circuito de 2o (envío/entrega/devolución) más `crear_entrega_tallerista`,
+  la RPC que hoy no llama nadie (pregunta 26): funciona (Danica Garcia → Virgilio, 4 uni).
+- **Rollos**: `tomar_rollo` → `cerrar_rollo` → `ajustar_rollos`.
+- **ABM y maestros**: `abm_articulo_upsert` (alta) → `abm_bom_guardar` (con su aviso de ruta) →
+  `abm_articulo_baja`; `empleado_guardar`, `empleado_activar`; `alta_proveedor_insumo`,
+  `alta_proveedor_servicio`, `fleje_detalle_upsert`, `asignar_pintor_parte/activo`,
+  `asignar_proveedor_parte`, `marcar_estado_compra`; `marcar_faltante` → `resolver_faltante`;
+  `ruta_reportar` → `ruta_resolver`, `ruta_confirmar`; `registrar_movimientos` con una fila
+  armada como la arma `gp2-motor.js` (ajuste +5 exacto).
+
+**Resultado: 0 errores en las ~60 RPC de escritura y 45 de lectura.** Ningún bug nuevo; los
+que había (ubicaciones, Desmarcar, unidades) ya estaban arreglados.
+
+**Dato que salió de paso** (a `PREGUNTAS` como **27**): 80 renglones de inventario con
+`minimo > maximo` (30 Procesado, 30 Crudo, 10 Bombilla…): dos reglas de reposición que nadie
+cruzó — el renglón queda "bajo mínimo" para siempre y la OC nunca lo saca de ahí. Es de negocio;
+cuando se responda, entra como invariante en `db/verificar.sql`.
+
+### Estado tras el ciclo 2u
+**47 tablas · 13 vistas · 120 funciones · 36 tests · 14 invariantes en 0 · 105 RPC probadas en vivo.**
 
 ---
 
