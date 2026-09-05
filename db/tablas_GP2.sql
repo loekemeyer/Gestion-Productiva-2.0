@@ -1,7 +1,7 @@
 -- =====================================================================
 -- TABLAS del schema GP2 (DDL reconstruido de pg_catalog: columnas, identity, defaults, constraints, comentarios) — export automatico 2026-09-05 desde Supabase (hrxfctzncixxqmpfhskv)
 -- Respaldo/referencia. La fuente de verdad es la base; regenerar al cambiar el schema.
--- 47 tablas, 138 constraints, 49 indices sueltos, 9 triggers, RLS en 47 tablas, 47 policies.
+-- 47 tablas, 140 constraints, 49 indices sueltos, 9 triggers, RLS en 47 tablas, 47 policies.
 -- =====================================================================
 
 -- ---------- articulo ----------
@@ -279,9 +279,13 @@ create table "GP2".movimiento (
   constraint movimiento_comp_transformado_id_fkey FOREIGN KEY (comp_transformado_id) REFERENCES "GP2".componente(id),
   constraint movimiento_ubic_destino_id_fkey FOREIGN KEY (ubic_destino_id) REFERENCES "GP2".ubicacion(id),
   constraint movimiento_ubic_origen_id_fkey FOREIGN KEY (ubic_origen_id) REFERENCES "GP2".ubicacion(id),
-  constraint movimiento_tipo_mov_chk CHECK ((tipo_mov = ANY (ARRAY['compra'::text, 'fabricacion'::text, 'armado_fabrica'::text, 'consumo_prod'::text, 'envio_ps'::text, 'entrega_ps'::text, 'consumo'::text, 'envio_tallerista'::text, 'entrega_tallerista'::text, 'consumo_tall'::text, 'devolucion_tallerista'::text, 'envio_prov_at'::text, 'recepcion_virgilio'::text, 'consumo_virgilio'::text, 'stock_inicial'::text, 'ajuste'::text])))
+  constraint movimiento_tipo_mov_chk CHECK ((tipo_mov = ANY (ARRAY['compra'::text, 'fabricacion'::text, 'armado_fabrica'::text, 'consumo_prod'::text, 'envio_ps'::text, 'entrega_ps'::text, 'consumo'::text, 'envio_tallerista'::text, 'entrega_tallerista'::text, 'consumo_tall'::text, 'devolucion_tallerista'::text, 'envio_prov_at'::text, 'recepcion_virgilio'::text, 'consumo_virgilio'::text, 'stock_inicial'::text, 'ajuste'::text]))),
+  constraint movimiento_unidad_destino_chk CHECK (((unidad_destino IS NULL) OR (unidad_destino = ANY (ARRAY['kg'::text, 'uni'::text])))),
+  constraint movimiento_unidad_origen_chk CHECK (((unidad_origen IS NULL) OR (unidad_origen = ANY (ARRAY['kg'::text, 'uni'::text]))))
 );
 comment on table "GP2".movimiento is 'El libro (ledger) de stock: cada fila es un evento con tipo_mov del vocabulario cerrado (CHECK). Los triggers calculan _delta_orig/_delta_dest y los aplican en inventario. Solo se escribe por RPC.';
+comment on column "GP2".movimiento.unidad_origen is 'Unidad en que vino la cantidad del origen: kg o uni (vocabulario cerrado, CHECK; el trigger fn_movimiento_calc normaliza unidad/pliego/KG a uni/kg antes de calcular). null = la misma que unidad_destino.';
+comment on column "GP2".movimiento.unidad_destino is 'Unidad de la cantidad del destino (cantidad_transformada cuando hay comp_transformado_id): kg o uni (vocabulario cerrado, CHECK). null = la misma que unidad_origen.';
 comment on column "GP2".movimiento._delta_orig is 'delta canonico restado al ORIGEN (congelado al aplicar; usado para revertir sin drift)';
 comment on column "GP2".movimiento._delta_dest is 'delta canonico sumado al DESTINO (congelado al aplicar)';
 comment on column "GP2".movimiento.cajones is 'Conteo fisico de cajones del movimiento. Independiente de cantidad (peso/unidades). kg/cajones = carga real del cajon.';

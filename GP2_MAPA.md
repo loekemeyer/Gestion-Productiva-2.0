@@ -207,11 +207,14 @@ cantidad, comp_transformado_id, cantidad_transformada, unidad_origen,
 unidad_destino, _delta_orig, _delta_dest, cajones, faltante, nota` (`_delta_*` los calcula el
 trigger `fn_movimiento_calc`, no escribirlos a mano; `nota` es el texto libre del operario —
 el motivo de una devolucion, desde el 2026-09-05 — y reemplaza a la tabla cabecera
-`devolucion_tallerista`, borrada).
+`devolucion_tallerista`, borrada). `unidad_origen` / `unidad_destino` son **`kg` o `uni`**
+(CHECK desde el 2026-09-05; el trigger traduce `unidad`, `pliego`, `KG`… antes de calcular, asi
+que una pantalla puede mandar `componente.unidad_medida` tal cual; null = la del otro lado).
 
-**`ubicacion.tipo` tiene CUATRO valores, no tres**: `sector`, `tallerista`,
-`proveedor_servicio` y **`virgilio`** (id 33, la distribucion). Los 84 articulos
-terminados (sector 12) no tienen ubicacion de sector: viven en Virgilio.
+**`ubicacion.tipo` tiene SEIS valores**: `sector`, `tallerista`, `proveedor_servicio`,
+`proveedor_at` (los 12 proveedores de articulos terminados), **`virgilio`** (id 33, la
+distribucion) y `analisis` (id 46 «Para Analizar», adonde va una devolucion que hay que mirar).
+Los 84 articulos terminados (sector 12) no tienen ubicacion de sector: viven en Virgilio.
 
 `tipo_mov` (vocabulario del ledger, verificado 2026-09-04): `compra` (recepciones de insumo y
 compras de MP), `consumo` (MP consumida por un PS híbrido: Charcas/Eclipse), `envio_ps` /

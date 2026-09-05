@@ -1,9 +1,10 @@
 [LOCKS]
-(vacío)
+LockX | db/funciones_GP2.sql, db/tablas_GP2.sql, db/README.md, REFACTOR_GP2.md, GP2_MAPA.md, CONOCIMIENTO_GP2.md, LOCKS.txt | loekemeyer (Claude, auditoria GP2 ciclo 8) | 2026-09-05 | vocabulario de unidades del ledger (kg/uni) + cierre de la auditoria
 [WAIT QUEUE]
 (vacío)
 
 [HISTORIAL]
+2026-09-05 - AUDITORIA GP2, CICLO 8 (REFACTOR_GP2.md). Vocabulario cerrado de unidades del ledger: fn_movimiento_calc normaliza unidad_origen/unidad_destino a kg/uni antes de calcular, 38 ajustes del 02/09 con 'unidad'/'pliego' normalizados (inventario identico, md5), CHECK en las dos columnas (140 constraints). verificar.sql 26 en 0; db/ regenerado (md5 119/119).
 2026-09-05 - AUDITORIA GP2, CICLO 7 (REFACTOR_GP2.md). test_contratos_db.js regla 5: cada columna de from(tabla).select() existe en la tabla (probado en negativo); db/verificar.sql +7 invariantes de recetas/rutas (S-Y) -> 26 en 0. Suite 37/37.
 2026-09-05 - AUDITORIA GP2, CICLO 6 (REFACTOR_GP2.md). test_contratos_db.js regla 4 (ningun parametro sin DEFAULT puede faltar en una llamada con objeto literal) y cubre control-cajas/control-remaches; 70 llamadas verificadas, probado en negativo. EXPLAIN v_costo_componente 4 ms. Suite 37/37.
 2026-09-05 - AUDITORIA GP2, CICLO 5 (REFACTOR_GP2.md). Idea 7262 hecha: v_costo_componente calcula la tarifa del tallerista como coalesce(precio_kg x kg_x_uni, precio_uni) (591 filas identicas, md5); pregunta 8 items 21-22 (12 insumos comprables sin precio, entre ellos CHAPA430; 44 precios sin componente). db/vistas_GP2.sql regenerado.
@@ -13,4 +14,3 @@
 2026-09-05 - AUDITORIA GP2, CICLO 2y (REFACTOR_GP2.md). control_cajas_bundle + control_kg_bundle -> UNA control_recepcion_bundle(p_sector_id) (md5 identico para 11 y 5; el 25 sale de parametro.caja_uni_x_paquete); control-cajas.js 1.1.2 y control-remaches.js 1.5.2 la llaman; tests con el stub nuevo. 47 tablas / 13 vistas / 119 funciones. Idea 7255: mitad SQL hecha.
 2026-09-05 - AUDITORIA GP2, CICLO 2x (REFACTOR_GP2.md). 102 llamadas rpc en pantallas GP2: 0 silenciosas (6 marcadas por la heuristica, todas falsos positivos). Datos: 0 stock en talleristas inactivos, 0 articulos sin uxc, 0 fechas raras; 37 negativos = hueco del stock inicial (pregunta 8). Idea 7261 (reintento del espejo Virgilio).
 2026-09-05 - AUDITORIA GP2, CICLO 2w (REFACTOR_GP2.md). search_path = GP2 solo en 46 funciones (probado en transaccion con 64 llamadas antes de aplicar; quedan con public get_role_for_email y actualizar_dolar_oficial). BUG VIVO 9: entrega de Virgilio 2308 (Carlos, 160 cajas del 510) perdida por el espejo (sin ubicacion esa manana, sin reintento) -> repuesta con recepcion_virgilio y fecha original. Invariantes N y O en db/verificar.sql (16 en 0).
-2026-09-05 - AUDITORIA GP2, CICLO 2v (REFACTOR_GP2.md). GP2_MAPA: tabla de los 9 triggers + 2 espejos sobre public, el cron gp2-dolar-oficial, lista cerrada de puntos de contacto con public (4) y los 3 'pendientes de verificacion' resueltos. Nomenclatura medida (consistente); advisor performance: 19 INFO, sin accion. Comentario en las 47 tablas (43 no tenian). db/ regenerado.

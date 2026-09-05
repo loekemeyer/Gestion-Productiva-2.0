@@ -2678,6 +2678,10 @@ CREATE OR REPLACE FUNCTION "GP2".fn_movimiento_calc()
  SET search_path TO 'GP2'
 AS $function$
 begin
+  -- vocabulario cerrado de unidades del ledger: 'kg' o 'uni' (null = "la del otro lado");
+  -- to_canonical ya trataba cualquier cosa que no fuera kg como uni, aca queda escrito
+  new.unidad_origen  := case when new.unidad_origen  is null then null when lower(new.unidad_origen)  = 'kg' then 'kg' else 'uni' end;
+  new.unidad_destino := case when new.unidad_destino is null then null when lower(new.unidad_destino) = 'kg' then 'kg' else 'uni' end;
   if new.comp_transformado_id is null then
     new._delta_orig := "GP2".to_canonical(new.comp_id, new.cantidad,
                                           coalesce(new.unidad_origen, new.unidad_destino));

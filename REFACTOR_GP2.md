@@ -59,7 +59,7 @@ Problemas principales detectados en el mapa inicial (detalle en las secciones de
 
 ---
 
-## Ciclo 1 — limpieza segura de la base (17:45–18:30 AR)
+## Ciclo 1 — limpieza segura de la base (17:45–18:05 AR)
 
 ### Tablas eliminadas (14)
 | Tabla | Filas | Por qué | Respaldo |
@@ -120,7 +120,7 @@ Verificado: `grep -r` del nombre en todo HTML/JS (sin tests) = 0 llamadas; ning�
 
 ---
 
-## Ciclo 1b — código muerto del repo (agente A3, 18:15–18:50 AR)
+## Ciclo 1b — código muerto del repo (agente A3, 18:05–18:21 AR)
 
 Auditoría de alcance desde las 7 entradas (index, login, GP2_MODULOS, envios-only, manifest,
 los 2 sw.js) siguiendo todo href/src/location/MENU: **247 assets → 121 alcanzables / 126 no**.
@@ -163,7 +163,7 @@ idénticas, `control-cajas` / `control-remaches` 74 % iguales, `gp2-modulo.css` 
 
 ---
 
-## Ciclo 2 — funciones, vistas y seguridad (agente A4, 18:50–19:30 AR)
+## Ciclo 2 — funciones, vistas y seguridad (agente A4, 18:21–18:46 AR)
 
 ### Bug vivo corregido: `talleristas_bundle` no coincidía con sus pantallas
 La versión en la base devolvía `partes` como **lista plana** (`codigo`, `descripcion`,
@@ -261,7 +261,7 @@ vocabulario real del ledger (tenían los nombres del programa viejo).
 
 ---
 
-## Ciclo 2b — podas y fusiones con edición de funciones (agente B2, 19:15–19:55 AR)
+## Ciclo 2b — podas y fusiones con edición de funciones (agente B2, 18:46–18:57 AR)
 
 Cada migración `refactor_20260904_b2_*` comparó el md5 del JSON de los bundles antes/después
 (sin `generado_en`) y abortaba si algo cambiaba fuera de lo pedido.
@@ -284,7 +284,7 @@ negocio quiere contarlas, es sacar esa condición en 4 bundles).
 
 ---
 
-## Ciclo 2c — una sola puerta para las ubicaciones (agente B1) + helpers de pantalla en un archivo (agente B5), 18:26–22:40 AR
+## Ciclo 2c — una sola puerta para las ubicaciones (agente B1) + helpers de pantalla en un archivo (agente B5), 18:26–22:15 AR (con el primer corte, 19:13–22:00, en el medio)
 
 Los dos agentes murieron a mitad de camino por el límite de uso de la cuenta (22:13 UTC; volvió a
 la 01:00 UTC). Lo que dejaron se verificó a mano y se terminó desde la sesión principal.
@@ -347,7 +347,7 @@ la 01:00 UTC). Lo que dejaron se verificó a mano y se terminó desde la sesión
 
 ---
 
-## Ciclo 2d — vocabulario cerrado del ledger, dos tablas menos, tres bugs de lógica (22:40–23:10 AR, sesión principal)
+## Ciclo 2d — vocabulario cerrado del ledger, dos tablas menos, tres bugs de lógica (22:15–22:27 AR, sesión principal)
 
 Migraciones `refactor_20260905_*` (5), cada una verificada con un `DO` que termina en
 `OK_ROLLBACK`.
@@ -371,7 +371,7 @@ con datos de remito/factura: se deja y se pregunta).
 
 ---
 
-## Ciclo 2e — auditoría de columnas (todas-null, constantes, ids sin FK), 23:10–23:25 AR
+## Ciclo 2e — auditoría de columnas (todas-null, constantes, ids sin FK), 22:27–22:33 AR
 
 Consulta generada sobre `information_schema.columns` (count / count(col) / count(distinct col)
 para las ~330 columnas de las 47 tablas) + búsqueda de cada columna sospechosa en `pg_proc`,
@@ -388,7 +388,7 @@ para las ~330 columnas de las 47 tablas) + búsqueda de cada columna sospechosa 
 | `recepcion_insumo.base/pallets/pisos/rollos/sueltas/controlado_por` (25 filas, todas null) | pesaje por pallet, pregunta 20 |
 | `movimiento.cajones` (2 de 221 con valor) y `faltante` (siempre false) | se quedan: los escriben `crear_envio_ps` / `crear_entrega_ps` cuando la pantalla los manda |
 
-## Ciclo 2f — las 30 pantallas restantes pasan a `gp2-ui.js` + test de humo de las 47 pantallas, 23:25–23:45 AR
+## Ciclo 2f — las 30 pantallas restantes pasan a `gp2-ui.js` + test de humo de las 47 pantallas, 22:27–22:33 AR (mismo commit que 2e)
 
 - Script `migra_gp2ui.py` (scratchpad): sólo toca definiciones que reconoce exactamente
   (`function $(id){...getElementById...}`, `const $=id=>...`, `var $ = function(id){...}`, y
@@ -410,7 +410,7 @@ para las ~330 columnas de las 47 tablas) + búsqueda de cada columna sospechosa 
 
 ---
 
-## Ciclo 2g — lógica duplicada en la base (A4 3c/3e/3f/4.7), 23:45–00:10 AR
+## Ciclo 2g — lógica duplicada en la base (A4 3c/3e/3f/4.7), 22:33–22:41 AR
 
 Migraciones `refactor_20260905_bundles_duplicados_y_fecha_ar` y `refactor_20260905_v_nivel_stock`.
 
@@ -434,7 +434,7 @@ cortos en `Programa.html`), helper común de `registrar_evento_prod`/`registrar_
 
 ---
 
-## Ciclo 2h — el cliente Supabase en un solo lugar + una columna duplicada menos, 00:10–00:30 AR
+## Ciclo 2h — el cliente Supabase en un solo lugar + una columna duplicada menos, 22:41–22:52 AR
 
 - **`fleje_detalle.kg_x_uni` borrada** (`refactor_20260905_fleje_detalle_sin_kg_x_uni`):
   duplicaba `componente.kg_x_uni` (3 filas con valor, las 3 iguales; ninguna función, vista ni
@@ -456,7 +456,7 @@ cortos en `Programa.html`), helper común de `registrar_evento_prod`/`registrar_
 
 ---
 
-## Ciclo 2i — reglas de la casa escritas, tres `fmt` menos, índice para operarios, conservación verificada, 00:30–00:50 AR
+## Ciclo 2i — reglas de la casa escritas, tres `fmt` menos, índice para operarios, conservación verificada, 22:52–22:56 AR
 
 - **`CLAUDE.md`**: sección nueva «Helpers de pantalla y cliente Supabase: UNA copia
   (OBLIGATORIO)»: `GP2UI`, `GP2N`, `GP2_SB()`, orden de carga y los tres tests guardianes. Es lo
@@ -478,7 +478,7 @@ cortos en `Programa.html`), helper común de `registrar_evento_prod`/`registrar_
 
 ---
 
-## Ciclo 2j — primera tanda de `fmt` a `GP2N.fmt` (idea 7256), 00:50–01:05 AR
+## Ciclo 2j — primera tanda de `fmt` a `GP2N.fmt` (idea 7256), 22:56–23:01 AR
 
 Ocho pantallas sin campos numéricos (para que enganchar `gp2-numero.js` no cambie ningún
 input): Inyectores, Recepciones, Valorización, Faltante Partes Tallerista, Faltantes,
@@ -493,7 +493,7 @@ campos numéricos y las dos con decimales fijos.
 
 ---
 
-## Ciclo 2k — segunda tanda de la regla de número: las pantallas con campos, 01:05–01:20 AR
+## Ciclo 2k — segunda tanda de la regla de número: las pantallas con campos, 23:01–23:07 AR
 
 - Los patrones de `test_numero.js` ahora ven también `Number($('x').value)`, `$R(...)` y
   `parseFloat(String(...).replace(',','.'))` con paréntesis anidados. Con eso aparecieron
@@ -518,7 +518,7 @@ campos numéricos y las dos con decimales fijos.
 
 ---
 
-## Ciclo 2l — un botón roto desde el 31/08 y el respaldo `db/`, 01:20–01:45 AR
+## Ciclo 2l — un botón roto desde el 31/08 y el respaldo `db/`, 23:07–23:16 AR
 
 - **Bug vivo**: «Desmarcar» (deshacer el control de una recepción) en `control-cajas.js` y
   `control-remaches.js` hacía `UPDATE` directo sobre `recepcion_insumo` y `movimiento` desde el
@@ -542,7 +542,7 @@ campos numéricos y las dos con decimales fijos.
 
 ---
 
-## Ciclo 2m — barrido de escrituras directas y de RPC fantasma, 01:45–02:00 AR
+## Ciclo 2m — barrido de escrituras directas y de RPC fantasma, 23:16–23:20 AR
 
 Después del botón roto del ciclo 2l se buscó **todo** `.from('tabla').insert/update/delete`
 en las 62 pantallas/JS GP2: quedaba **uno** más, en Recepción Insumos (`update cantidad_declarada`
@@ -562,7 +562,7 @@ distinta forma en el ledger). No se borró ninguna: es la pregunta 26 / idea 726
 
 ---
 
-## Ciclo 2n — contratos pantalla ↔ base y espejos, 02:00–02:30 AR (solo lectura)
+## Ciclo 2n — contratos pantalla ↔ base y espejos, 23:20–23:27 AR (solo lectura)
 
 | Chequeo | Resultado |
 |---|---|
@@ -586,7 +586,7 @@ salvo Recepción Insumos (7259, a propósito).
 
 ---
 
-## Ciclo 2o — circuito completo con rollback (VALIDÁ), 02:30–02:40 AR
+## Ciclo 2o — circuito completo con rollback (VALIDÁ), 23:27–23:33 AR
 
 Un solo `DO` que termina en `OK_ROLLBACK` recorre las RPC reescritas hoy, en el orden real de la
 planta, y verifica cada delta de `inventario`:
@@ -613,7 +613,7 @@ IZ19A, L4B1, V20).
 
 ---
 
-## Ciclo 2p — `v_contraparte_parte` (idea 7257), 02:40–02:50 AR
+## Ciclo 2p — `v_contraparte_parte` (idea 7257), 23:33–23:35 AR
 
 "Qué parte entra y sale por cada contraparte" se derivaba de `ruta_paso` en tres funciones con
 tres textos distintos: `control_ps_bundle.cfg`, `partes_por_ps` (dos subconsultas correlacionadas)
@@ -629,7 +629,7 @@ Migración `refactor_20260905_v_contraparte_parte`.
 
 ---
 
-## Ciclo 2q — `cargar_compra_mp` (idea 7251, primer paso), 02:50–03:05 AR
+## Ciclo 2q — `cargar_compra_mp` (idea 7251, primer paso), 23:35–23:43 AR
 
 `cargar_compra_altrak` y `cargar_compra_aperam_chapa` eran la misma función con tres constantes
 adentro (qué componente bruto, qué PS híbrido lo recibe, qué proveedor lo vende) y el reparto
@@ -647,7 +647,7 @@ Insumos llama la genérica (dos líneas, `stock_kg` en vez de `stock_charcas_kg`
 
 ---
 
-## Ciclo 2r — `db/` al día y los literales de `control_ps_bundle`, 03:05–03:15 AR
+## Ciclo 2r — `db/` al día y los literales de `control_ps_bundle`, 23:43–23:52 AR
 
 - `db/funciones_GP2.sql` regenerado con `db/regenerar.sql` (120 funciones, **md5 120/120 contra la
   base**, 0 distintas, 0 sólo en la base); `db/README.md` con los números reales (120 funciones =
@@ -663,7 +663,7 @@ Insumos llama la genérica (dos líneas, `stock_kg` en vez de `stock_charcas_kg`
 
 ---
 
-## Ciclo 2s — otros ángulos: grants, columnas muertas, contrapartes sin ubicación, invariantes, 03:15–03:50 AR
+## Ciclo 2s — otros ángulos: grants, columnas muertas, contrapartes sin ubicación, invariantes, 23:52–00:07 AR
 
 Barrido desde ángulos que no se habían mirado. Hallazgos y qué se hizo:
 
@@ -707,7 +707,7 @@ se regenera al cierre: cambiaron `cargar_compra_mp` y `alta_proveedor_servicio`.
 
 ---
 
-## Ciclo 2t — código muerto fino, vocabulario, páginas huérfanas, CSS, 03:50–04:15 AR
+## Ciclo 2t — código muerto fino, vocabulario, páginas huérfanas, CSS, 00:07–00:13 AR
 
 - **Funciones JS sin ningún llamador** en las 42 pantallas GP2 + 18 JS compartidos: 3, todas en
   Recepción Insumos (`provPideRollos`, `provControlaPeso`, `pendCount`) → borradas. En los JS
@@ -733,7 +733,7 @@ se regenera al cierre: cambiaron `cargar_compra_mp` y `alta_proveedor_servicio`.
 
 ---
 
-## Ciclo 2u — VALIDAR: las 97 RPC corridas de verdad (con rollback), 04:15–04:50 AR
+## Ciclo 2u — VALIDAR: las 97 RPC corridas de verdad (con rollback), 00:13–00:24 AR
 
 Después de tocar 30+ funciones en el día, la única prueba que vale es correrlas. Todo dentro de
 bloques `DO` que terminan en `raise exception 'OK_ROLLBACK …'` (nada queda escrito) y que
@@ -778,7 +778,7 @@ cuando se responda, entra como invariante en `db/verificar.sql`.
 
 ---
 
-## Ciclo 2v — mapa de la casa: triggers, cron, puntos de contacto con `public`, nomenclatura, 04:50–05:10 AR
+## Ciclo 2v — mapa de la casa: triggers, cron, puntos de contacto con `public`, nomenclatura, 00:24–00:32 AR
 
 - **`GP2_MAPA.md`**: sección nueva con los **9 triggers propios + 2 espejos sobre `public`** (qué
   tabla, qué función, qué hace) y el único cron de GP2 (`gp2-dolar-oficial`, entre 49 jobs del
@@ -806,7 +806,7 @@ cuando se responda, entra como invariante en `db/verificar.sql`.
 
 ---
 
-## Ciclo 2w — seguridad fina: `search_path` sólo GP2, y una entrega de Virgilio perdida, 05:10–05:35 AR
+## Ciclo 2w — seguridad fina: `search_path` sólo GP2, y una entrega de Virgilio perdida, 00:32–00:40 AR
 
 - **`search_path`**: 46 funciones tenían `"GP2", public`. Cualquier nombre no calificado que no
   existiera en GP2 se resolvía en la casa del vecino (una tabla homónima, una función
@@ -831,7 +831,7 @@ cuando se responda, entra como invariante en `db/verificar.sql`.
 
 ---
 
-## Ciclo 2x — errores silenciosos y datos raros, 05:35–05:50 AR
+## Ciclo 2x — errores silenciosos y datos raros, 00:40–00:45 AR
 
 - **RPC sin manejo de error** en las 42 pantallas + JS compartidos: 102 llamadas `rpc(`; la
   heurística marcó 6 sin `error`/`catch` a ±5 líneas y las 6 son falsos positivos (el chequeo
@@ -851,7 +851,7 @@ cuando se responda, entra como invariante en `db/verificar.sql`.
 
 ---
 
-## Ciclo 2y — `control_recepcion_bundle` (idea 7255, mitad SQL), 05:50–06:05 AR
+## Ciclo 2y — `control_recepcion_bundle` (idea 7255, mitad SQL), 00:45–00:51 AR
 
 `control_cajas_bundle()` y `control_kg_bundle(p_sector_id)` eran **la misma consulta** sobre
 `recepcion_insumo` (una con el sector 11 fijo y las columnas del control por cajas, la otra con
@@ -869,7 +869,7 @@ visual y se hace con el operario al lado.
 
 ---
 
-## Ciclo 2z — segunda opinión: dos agentes sobre costos y sobre las preguntas, 06:05–06:40 AR
+## Ciclo 2z — segunda opinión: dos agentes sobre costos y sobre las preguntas, 00:51–01:04 AR
 
 Se lanzaron dos agentes de sólo lectura: **`gp2-auditor-costos`** (¿el refactor contaminó algún
 número de plata?) y **`gp2-experto`** (¿las recomendaciones de las preguntas 21–27 cierran con
@@ -911,7 +911,7 @@ lo que el usuario ya decidió?). Lo que salió y qué se hizo:
 
 ---
 
-## Ciclo 3 — cierre: el contrato pantalla ↔ base como test, 06:40–07:00 AR
+## Ciclo 3 — cierre: el contrato pantalla ↔ base como test, 01:04–01:31 AR
 
 Lo que hoy se chequeó a mano cuatro veces (¿existe la RPC que nombra la pantalla?, ¿la tabla del
 `from()`?, ¿las claves `p_*` son parámetros reales?) queda como guardia automática:
@@ -923,7 +923,7 @@ parámetros de verdad (probado: un `p_kgs` a propósito lo atrapa en dos líneas
 **37/37**. Últimas verificaciones antes de cerrar: 16 invariantes en 0, 46 lecturas ok, advisor
 de seguridad 0 en GP2, md5 de `db/` exacto contra la base.
 
-## Ciclo 4 — re-validación tras el segundo corte, 06:40–07:00 AR
+## Ciclo 4 — re-validación tras el segundo corte, 06:40–06:50 AR
 
 La cuenta volvió a quedarse sin uso a la 01:32 AR; al retomar (06:40 AR): `main` no se movió
 (nadie pusheó, el agente diario de las 06:00 no dejó commits), la base sigue en 47 / 13 / 119,
@@ -937,7 +937,7 @@ con nombres parecidos, contrapartes repetidas entre tallerista / PS / Prov AT, a
 misma descripción): lo que salió está en la pregunta 8 (ítem 16, las 3 personas que son
 tallerista y Prov AT a la vez) o no es un duplicado.
 
-## Ciclo 5 — idea 7262 y los precios que faltan, 07:00–07:20 AR
+## Ciclo 5 — idea 7262 y los precios que faltan, 06:50–06:55 AR
 
 - **`v_costo_componente` ya no lee un costo congelado**: la tarifa del tallerista sale de
   `coalesce(precio_kg × componente.kg_x_uni, precio_uni)` (como ya hacía con
@@ -947,7 +947,7 @@ tallerista y Prov AT a la vez) o no es un duplicado.
   `CHAPA430`, la chapa de Eclipse, con lo que el 1686 se costea sin material — y 44 precios de
   `precio_proveedor` sin componente (resinas de Beta Plásticos y otros que GP2 no modela).
 
-## Ciclo 6 — la guardia del contrato, completa, 07:20–07:35 AR
+## Ciclo 6 — la guardia del contrato, completa, 06:55–07:00 AR
 
 `test_contratos_db.js` gana la regla 4: en cada llamada `rpc('x', {…})` con objeto literal no
 puede faltar ningún parámetro **sin DEFAULT** (el mismo "function not found" de PostgREST, al
@@ -956,7 +956,7 @@ objeto literal verificadas; probado en negativo (sacar `p_sector_id` lo atrapa).
 `v_costo_componente`: 4 ms para las 591 filas, todo en memoria — la vista recursiva no es un
 problema de performance.
 
-## Ciclo 7 — columnas que leen las pantallas e invariantes de recetas y rutas, 07:35–07:50 AR
+## Ciclo 7 — columnas que leen las pantallas e invariantes de recetas y rutas, 07:00–07:05 AR
 
 - `test_contratos_db.js` regla 5: cada columna que una pantalla pide con `from(tabla).select('a,b,…')`
   existe en la tabla según `db/tablas_GP2.sql` (maneja alias `x:col` y recursos embebidos
@@ -967,6 +967,26 @@ problema de performance.
   BOM sin ciclos directos ni indirectos, pasos de ruta sin orden repetido y con actor, cantidades
   de receta positivas, todo componente con sector. Todos en 0 → **26 invariantes**. Las 13 rutas
   sin artículo son rutas de intermedios (modelo válido): quedaron como consulta informativa.
+
+## Ciclo 8 — vocabulario de unidades del ledger, 07:05–07:20 AR
+
+- `movimiento.unidad_origen` / `unidad_destino` traían cinco palabras para dos dimensiones: `uni`
+  ×159, `unidad` ×36, `kg` ×24, `pliego` ×2 y null (los 38 raros eran ajustes del 02/09 que pasaron
+  `componente.unidad_medida` tal cual). `to_canonical` ya trataba todo lo que no fuera `kg` como
+  `uni`, así que el stock era correcto — pero la palabra quedaba guardada como vino y cualquier
+  consulta que filtrara por `unidad_origen = 'uni'` perdía filas.
+- Migración `refactor_20260905_movimiento_unidad_vocabulario`: `fn_movimiento_calc` normaliza las
+  dos columnas ANTES de calcular (`kg` / `uni` / null = "la del otro lado"), las 38 filas se tocaron
+  (el BEFORE UPDATE normaliza, el AFTER UPDATE revierte y reaplica el mismo delta) y la tabla lo
+  exige con `movimiento_unidad_origen_chk` / `_destino_chk` (140 constraints). Comentario en las
+  dos columnas.
+- Verificado en rollback antes de aplicar y en vivo después: inventario md5 idéntico (`0ec559b8`),
+  conservación ledger ↔ inventario 0, `registrar_movimientos` con `unidad`/`Pliego` guarda
+  `uni`/`uni`, un insert con `KG` guarda `kg`; `db/verificar.sql` 26 en 0. `db/` regenerado (md5
+  119/119).
+- Decisión: `componente.unidad_medida` sigue diciendo `unidad` y el ledger `uni` (decisión 4: no se
+  renombra por prolijidad; el trigger traduce). Ninguna pantalla cambia: `gp2-motor.js` ya mandaba
+  `uni` y el resto de las RPC también.
 
 ### Estado final
 **47 tablas · 13 vistas · 119 funciones (96 RPC + 23 internas) · 37 tests · 26 invariantes en 0 · 27 preguntas (la 8 con 22 datos) · ideas 7250–7263 (7253, 7256, 7257 y 7262 hechas).**

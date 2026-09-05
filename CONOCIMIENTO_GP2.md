@@ -4403,6 +4403,14 @@ evento que ya tenía nombre (`recepcion_tall`, `consumo_armado`, `consumo_transf
 pantallas de control no la sumaban. Si hace falta un evento nuevo, se agrega al CHECK y al mapa
 de etiquetas, deliberadamente.
 
+`[dato 2026-09-05: GP2.movimiento.unidad_origen/unidad_destino]` **Las unidades del ledger son
+dos palabras: `kg` y `uni`** (CHECK desde la auditoría, ciclo 8). Antes convivían `uni`, `unidad`
+(la palabra de `componente.unidad_medida`) y `pliego` en 38 ajustes del 02/09; `to_canonical` ya
+las trataba a todas como unidades, así que el stock era correcto, pero la palabra quedaba guardada
+como vino. Hoy el trigger `fn_movimiento_calc` traduce cualquier cosa que no sea `kg` a `uni`
+antes de calcular (y `KG` a `kg`), con lo que una pantalla puede mandar `unidad_medida` tal cual.
+`componente.unidad_medida` sigue diciendo `unidad`: no se renombra por prolijidad.
+
 `[dato 2026-09-05: GP2.sector.es_insumo]` Qué sectores son **de insumo comprado** (entran por
 Recepción, salen en la OC, no los produce ninguna ruta) ahora es una columna del sector, no una
 lista de ids adentro de una función: Fleje (5), Plástico (6), Bombilla (7), Remache (8), Garage
