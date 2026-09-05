@@ -70,9 +70,7 @@ var SB = GP2_SB();
 var $ = GP2UI.$;
 var esc = GP2UI.esc;   /* helper de la casa, gp2-ui.js (2026-09-05) */
 function fmt(n,d){ return GP2N.fmt(n, d==null?0:d, '—', true); }   /* decimales fijos; '—' sin valor */
-function hoyAR(){
-  return new Intl.DateTimeFormat('sv-SE',{timeZone:'America/Argentina/Buenos_Aires'}).format(new Date());
-}
+var hoyAR = GP2UI.hoyAR;   /* helper de la casa, gp2-ui.js (2026-09-05): era una copia identica */
 function horaAR(iso){
   try{ return new Intl.DateTimeFormat('es-AR',{timeZone:'America/Argentina/Buenos_Aires',hour:'2-digit',minute:'2-digit',hour12:false}).format(new Date(iso)); }
   catch(e){ return ''; }

@@ -94,9 +94,7 @@ var SB = GP2_SB();
 var $ = GP2UI.$;
 var esc = GP2UI.esc;   /* helper de la casa, gp2-ui.js (2026-09-05) */
 function fmt(n,d){ return GP2N.fmt(n, d==null?0:d, '—'); }   /* la regla de numero de la casa (gp2-numero.js) */
-function hoyAR(){
-  return new Intl.DateTimeFormat('sv-SE',{timeZone:'America/Argentina/Buenos_Aires'}).format(new Date());
-}
+var hoyAR = GP2UI.hoyAR;   /* helper de la casa, gp2-ui.js (2026-09-05): era una copia identica */
 
 var D={}, tallSel=null, destino=null, DEV={}; // comp_id -> cantidad
 

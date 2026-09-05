@@ -1096,11 +1096,12 @@ problema de performance.
 - Docs de la OC al día con los ciclos 9–10: `REGLAS_OC_INSUMOS.md` (sección nueva «PS híbridos
   — OC gemela», y el sugerido decía todavía «− pendiente OC»), `CLAUDE.md` (los paquetes de
   Charcas salen de `parametro.charcas_kg_x_paquete`), changelog v1.20.0 en `OC_GP2.html`.
-- Cinco pantallas cargan `gp2-ui.js` y conservan un `hoyAR()` / `fechaAR()` propio que tapa al de
-  la casa (`EntregasAT`, `DevolucionCervantes`, `entrevistas`, `ProblemasMatrices`, `monitor2`);
-  el guardia sólo mira las implementaciones en UTC, no el nombre. No se unificó a ciegas: el
-  `fechaAR` local de EntregasAT muestra el año con 2 cifras y el de la casa con 4, y en 390px eso
-  es una decisión de pantalla → **idea 7265** (unificar + regla nueva en el guardia).
+- Cuatro pantallas cargaban `gp2-ui.js` y conservaban un `hoyAR()` propio byte a byte igual al de
+  la casa (`EntregasAT`, `DevolucionCervantes`, `ProblemasMatrices` — con el mismo offset en días
+  —, `monitor2`); el guardia sólo miraba las implementaciones en UTC, no el nombre. Pasan a
+  `var hoyAR = GP2UI.hoyAR` (cero cambio de semántica) y `test_helpers_ui` gana la regla "sin
+  `function hoyAR` propio". Los `fechaAR` locales NO se tocaron: el de EntregasAT muestra el año
+  con 2 cifras y el de la casa con 4, y en 390px eso es una decisión de pantalla → **idea 7265**.
 - Pregunta 8 ítem 24: `matriz.tipo` (A/B/D/P, nadie lo lee) y `empleado.tipo` (texto libre en el
   ABM) — con la respuesta se cierran con CHECK o se borran.
 

@@ -87,9 +87,7 @@ var SB = GP2_SB();
 var $ = GP2UI.$;
 var esc = GP2UI.esc;   /* helper de la casa, gp2-ui.js (2026-09-05) */
 function fmt(n){ return GP2N.fmt(n, 0); }
-function hoyAR(){
-  return new Intl.DateTimeFormat('sv-SE',{timeZone:'America/Argentina/Buenos_Aires'}).format(new Date());
-}
+var hoyAR = GP2UI.hoyAR;   /* helper de la casa, gp2-ui.js (2026-09-05): era una copia identica */
 function fechaAR(f){
   if(!f) return '';
   // fecha_rto viene "YYYY-MM-DD"; las filas viejas traen el dia_mes "DD/MM/YY".

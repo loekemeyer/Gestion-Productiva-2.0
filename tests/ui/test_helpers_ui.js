@@ -79,6 +79,8 @@ for (const p of html) {
     [/getTimezoneOffset\(\)/, 'fecha "hoy" con getTimezoneOffset (usar GP2UI.hoyAR)'],
     [/sep=;/, 'CSV armado a mano (usar GP2UI.exportarCSV)'],
     [/toISOString\(\)\.slice\(0,\s*10\)/, 'fecha "hoy" en UTC con toISOString (usar GP2UI.hoyAR)'],
+    // 2026-09-05: cuatro pantallas conservaban un hoyAR() byte a byte igual al de la casa
+    [/function\s+hoyAR\s*\(/, 'function hoyAR() propia (usar var hoyAR = GP2UI.hoyAR)'],
   ];
   for (const [re, que] of COPIAS) {
     const m = re.exec(txt);

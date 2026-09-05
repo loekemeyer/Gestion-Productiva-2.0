@@ -76,10 +76,7 @@ var SB = GP2_SB();
 var $ = GP2UI.$;
 var esc = GP2UI.esc;   /* helper de la casa, gp2-ui.js (2026-09-05) */
 function fmt(n){ return GP2N.fmt(n, 0); }   /* la regla de numero de la casa (gp2-numero.js) */
-function hoyAR(off){
-  var d=new Date(Date.now()+(off||0)*86400000);
-  return new Intl.DateTimeFormat('sv-SE',{timeZone:'America/Argentina/Buenos_Aires'}).format(d);
-}
+var hoyAR = GP2UI.hoyAR;   /* helper de la casa, gp2-ui.js (2026-09-05): hoyAR(-30) = hace 30 dias, igual que la copia que habia */
 function dur(seg){
   seg=Math.round(Number(seg)||0);
   if(!seg) return '—';
