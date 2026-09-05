@@ -314,6 +314,30 @@ la 01:00 UTC). Lo que dejaron se verificó a mano y se terminó desde la sesión
 
 ---
 
+## Ciclo 2d — vocabulario cerrado del ledger, dos tablas menos, tres bugs de lógica (22:40–23:10 AR, sesión principal)
+
+Migraciones `refactor_20260905_*` (5), cada una verificada con un `DO` que termina en
+`OK_ROLLBACK`.
+
+| Qué | Antes | Ahora |
+|---|---|---|
+| `crear_entrega_tallerista` | escribía `consumo_armado` / `consumo_transformacion`; los bundles (`talleristas_bundle`, `faltante_partes_tallerista_bundle`) y el motor JS cuentan `consumo_tall` → lo que el tallerista consumía al armar **no se contaba como entregado** | escribe `consumo_tall` (T1: armado H11, 2 hijos, los dos salen como `consumo_tall`) |
+| `movimiento.tipo_mov` | texto libre (el JS manda lo que sea por `registrar_movimientos`); tres veces apareció una palabra nueva para un evento con nombre | **CHECK `movimiento_tipo_mov_chk`** con las 16 palabras (T4: `recepcion_tall` rechazado) |
+| `devolucion_tallerista` (tabla cabecera, 0 filas) | repetía tallerista (= origen) y destino (= ubic destino) y agregaba `motivo` | **borrada**; `movimiento.nota` (texto libre del operario) guarda el motivo; `crear_devolucion_tallerista` devuelve `id` = movimiento; `devoluciones_tallerista_bundle.ultimas` sale del ledger (T2) |
+| `proveedor_servicio_alias` (6 filas: nombre_viejo, ps_nombre, confianza, nota) | un atributo del PS disfrazado de tabla; única lectora `control_ps_bundle` | **borrada**; `proveedor_servicio.nombre_corto` (FAAT, Guazzaroni, Pedernera, Scor, Jade, Ximpa); Control PS muestra «en planta: Jade»; las notas fueron a `CONOCIMIENTO_GP2.md` §4r |
+| `v_consumo_fleje_kg_v2` | nombre heredado de cuando convivía con la v1 (borrada el 04) | `v_consumo_fleje_kg`; las 4 funciones que la nombran (`recalcular_maximos_insumos`, `consumo_detalle`, `oc_bundle`, `recalcular_minimos`) reescritas por `replace()` sobre su propia definición |
+| `_es_sector_insumo(p)` | `p in (5,6,7,8,9,10,11)` escrito en la función; 6 lectoras | `sector.es_insumo` (columna) + función STABLE que la lee. Comportamiento idéntico; el sector 13 «Alambre» queda fuera como estaba → pregunta 21 |
+| `crear_entrega_ps` | la cantidad consumida de la SC se calcula en la canónica de la **SP** pero se declaraba con la unidad de la **SC**: con SC en kg el trigger habría leído piezas como kg | `unidad_origen` sigue a la dimensión de la cantidad (la de la SP); el trigger convierte a la canónica de la SC (T3: IA2 en kg ← A1 en uni: 25,19 uni × 0,0502 = 1,264 kg ✓) |
+| `control_ps_bundle`, `control_kg_bundle`, `control_cajas_bundle`, `pintores_bundle` | VOLATILE sin escribir nada | STABLE |
+
+También: pregunta 22 (`entrega_prov_at` es un segundo ledger paralelo a `movimiento`, 125 filas
+con datos de remito/factura: se deja y se pregunta).
+
+### Estado tras el ciclo 2d
+**47 tablas · 11 vistas · 121 funciones · 35 tests.**
+
+---
+
 ## Decisiones arquitectónicas (acumuladas)
 
 1. **Las copias de datos no viven en la base.** Un snapshot "por si hay que volver atrás" va a

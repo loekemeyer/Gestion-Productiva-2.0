@@ -1038,7 +1038,8 @@ del walk de `v_consumo_fleje_kg` de producción; cambiarla cascadea a OC y a
   vs la vieja: crudo 4→76, fleje 3→51, tránsito 0→38, procesado 75→81. De los 230 que ya
   tenían número, 229 idénticos; el único que cambia es D13 822→1.264 y está BIEN (la
   vieja no veía las virolas que viajan adentro de los mangos de 564/708).
-- **`v_consumo_fleje_kg_v2`**: kg de fleje con la demanda atribuida. vs la vieja: 43/45
+- **`v_consumo_fleje_kg_v2`** (desde el 2026-09-05 se llama `v_consumo_fleje_kg`, la vieja ya
+  no existe): kg de fleje con la demanda atribuida. vs la vieja: 43/45
   iguales; A11 32,8→22,7 (la vieja le colgaba demanda del cuerpo C15 que no sale de ese
   fleje) y D8 4,3→6,6 (le faltaban las virolas de 564/708). Las dos diferencias son
   errores de la vieja.
@@ -4343,3 +4344,28 @@ Stock (`validacion_bundle` → `aplicados`, últimos 20).
 auditar `envios-only.html` y las pantallas de Envíos/Entrega PS en 744×1044 (las tablas anchas
 van en `.table-wrap`), y decidir si la tablet abre las pantallas GP2 (ver
 `PREGUNTAS_ARQUITECTURA_GP2.md` pregunta 2).
+
+## 4r. Nombres cortos de los PS, vocabulario cerrado del ledger, sectores de insumo (2026-09-05)
+
+`[dato 2026-09-05: ex GP2.proveedor_servicio_alias, hoy proveedor_servicio.nombre_corto]` Cómo
+se llama en la planta a cada proveedor de servicio (lo que muestra Control PS al lado del
+nombre): **FAAT** = Laboratorio FAAT (templado/cementado), **Guazzaroni** = Guazzaroni Patricio
+(niquelado), **Pedernera** = Pedernera Ilario (cromado), **Scor** = Scorrano Mario
+(rectificado), **Jade** = Becker Sandra Nora `[usuario: "Becker Sandra Nora ES Jade"]`,
+**Ximpa** = Hernandez Julio `[usuario: "Ximpa ES Hernandez Julio"]`. Es un atributo del
+proveedor (`nombre_corto`), no una tabla aparte: la tabla de alias con "confianza" y "nota" se
+borró en la auditoría.
+
+`[deducido 2026-09-05]` El ledger (`GP2.movimiento.tipo_mov`) tiene **vocabulario cerrado** por
+CHECK (16 palabras, ver `GP2_MAPA.md`). Razón: tres veces apareció una palabra nueva para un
+evento que ya tenía nombre (`recepcion_tall`, `consumo_armado`, `consumo_transformacion`) y las
+pantallas de control no la sumaban. Si hace falta un evento nuevo, se agrega al CHECK y al mapa
+de etiquetas, deliberadamente.
+
+`[dato 2026-09-05: GP2.sector.es_insumo]` Qué sectores son **de insumo comprado** (entran por
+Recepción, salen en la OC, no los produce ninguna ruta) ahora es una columna del sector, no una
+lista de ids adentro de una función: Fleje (5), Plástico (6), Bombilla (7), Remache (8), Garage
+(9), Cartón (10), Caja (11). El sector 13 «Alambre» (tipo `crudo`, rubro de OC 5, único
+componente FLEJE90_BRUTO que compra Altrak) quedó **fuera**, igual que antes, hasta que el
+usuario diga si es comprable como los otros (`PREGUNTAS_ARQUITECTURA_GP2.md`, punto 21).
+

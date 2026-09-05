@@ -238,6 +238,22 @@ Cada uno tiene la consulta y el detalle en los informes de auditoría (`REFACTOR
     0 filas: ninguna recepción de Basconia/Hermac se controló todavía desde la pantalla. ¿El
     pesaje por pallet se usa de verdad? Si no se va a usar, son 2 tablas + 3 vistas + 3
     funciones para borrar.
+21. **Sector 13 «Alambre»** (creado el 2026-09-04 para FLEJE90_BRUTO, que compra Altrak): tiene
+    `tipo = 'crudo'` (como el Sector Crudo de piezas propias) y rubro de OC 5, pero NO está entre
+    los sectores de insumo (`sector.es_insumo`, antes lista fija 5..11). Efecto: no aparece en
+    la lista de Recepción de insumos ni en los máximos automáticos, y `crear_recepcion_insumo`
+    lo rechaza (hoy entra sólo por el flujo Altrak). ¿Es un sector de insumo comprado como
+    Fleje/Plástico? Si sí: `update sector set es_insumo = true, tipo = 'fleje' where id = 13`
+    (una línea). Recomendación: sí, es material comprado.
+22. **`entrega_prov_at`** (125 filas: proveedor, cod_art, cajas, remito, factura) es un **segundo
+    ledger** paralelo a `movimiento`: las entregas de los proveedores de artículo terminado no
+    mueven stock GP2 (van directo a Virgilio) y guardan datos de factura que `movimiento` no
+    tiene. Alternativa A: dejarla como está (es un registro comercial, no de stock).
+    Alternativa B: que cada entrega sea un `movimiento` tipo `entrega_prov_at` hacia la
+    ubicación Virgilio (requiere que cada `cod_art` exista como `componente` terminado, hoy
+    `articulo_prov_at.cod_art` es texto sin FK) y los datos de remito/factura en `nota` o en
+    una tabla chica de factura. Recomendación: A por ahora; B sólo si se quiere ver el stock de
+    Virgilio completo (propio + AT) en una sola pantalla.
 
 ---
 

@@ -155,8 +155,10 @@ SQL o RPCs nuevas, estos son los buenos:
 
 `movimiento`: `id, fecha, tipo_mov, comp_id, ubic_origen_id, ubic_destino_id,
 cantidad, comp_transformado_id, cantidad_transformada, unidad_origen,
-unidad_destino, _delta_orig, _delta_dest` (los dos ultimos los calcula el trigger
-`fn_movimiento_calc`; no escribirlos a mano).
+unidad_destino, _delta_orig, _delta_dest, cajones, faltante, nota` (`_delta_*` los calcula el
+trigger `fn_movimiento_calc`, no escribirlos a mano; `nota` es el texto libre del operario —
+el motivo de una devolucion, desde el 2026-09-05 — y reemplaza a la tabla cabecera
+`devolucion_tallerista`, borrada).
 
 **`ubicacion.tipo` tiene CUATRO valores, no tres**: `sector`, `tallerista`,
 `proveedor_servicio` y **`virgilio`** (id 33, la distribucion). Los 84 articulos
@@ -168,8 +170,11 @@ compras de MP), `consumo` (MP consumida por un PS híbrido: Charcas/Eclipse), `e
 entregar un armado) / `devolucion_tallerista`, `envio_prov_at`, `fabricacion` (producción con
 matriz), `armado_fabrica` / `consumo_prod` (armado en fábrica desde Stocks General),
 `recepcion_virgilio` / `consumo_virgilio` (espejo de las entregas en Virgilio), `stock_inicial`,
-`ajuste`. Antes convivían `recepcion_tall` (JS) y `consumo_armado` (SQL) para lo mismo: se
-unificaron en la auditoría del 2026-09-04.
+`ajuste`. Antes convivían `recepcion_tall` (JS) y `consumo_armado` / `consumo_transformacion`
+(SQL) para lo mismo: se unificaron en la auditoría del 2026-09-04. **Desde el 2026-09-05 el
+vocabulario es cerrado**: `movimiento_tipo_mov_chk` rechaza cualquier otra palabra (también las
+que manda el JS por `registrar_movimientos`). Un tipo nuevo se agrega en el CHECK y en el mapa
+`TIPOS` de Stocks General / `gp2-composicion.js`.
 
 **Como funciona el motor de stock**: al insertar en `movimiento`,
 `fn_movimiento_calc` convierte cantidades a la unidad canonica del componente con

@@ -256,7 +256,7 @@
         var b = document.createElement('button');
         b.type = 'button';
         b.className = 'tallerista-btn';
-        var viejo = p.nombre_viejo ? (' &middot; ' + esc(p.nombre_viejo)) : '';
+        var viejo = p.nombre_corto ? (' &middot; ' + esc(p.nombre_corto)) : '';
         b.innerHTML = esc(p.nombre) +
           '<div class="prov-meta">' + esc(p.proceso||'') +
           ' &middot; ' + partes.length + ' partes' + viejo + '</div>';
@@ -270,7 +270,7 @@
       var elRes = document.getElementById('resumenPS');
       if(!provs.length){ elRes.innerHTML=''; return; }
       var labels = provs.map(function(p){
-        return p.nombre_viejo || String(p.nombre||'').split(' ')[0];
+        return p.nombre_corto || String(p.nombre||'').split(' ')[0];
       });
       var mapa = {};
       provs.forEach(function(p, i){
@@ -356,7 +356,7 @@
         tSal += Number(x.saldo)||0;
       });
 
-      var viejo = provSel.nombre_viejo ? (' &middot; nombre viejo: <b>'+esc(provSel.nombre_viejo)+'</b>') : '';
+      var viejo = provSel.nombre_corto ? (' &middot; en planta: <b>'+esc(provSel.nombre_corto)+'</b>') : '';
       var h = '<h2 style="margin:6px 0 4px">'+esc(provSel.nombre)+'</h2>' +
               '<div class="prov-meta" style="margin-bottom:10px">Proceso: '+esc(provSel.proceso||'?')+
               ' &middot; Cod. Prov.: '+esc(provSel.cod_prov||'?')+viejo+'</div>';
