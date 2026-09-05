@@ -254,6 +254,23 @@ Cada uno tiene la consulta y el detalle en los informes de auditoría (`REFACTOR
     `articulo_prov_at.cod_art` es texto sin FK) y los datos de remito/factura en `nota` o en
     una tabla chica de factura. Recomendación: A por ahora; B sólo si se quiere ver el stock de
     Virgilio completo (propio + AT) en una sola pantalla.
+23. **Una OC en `borrador` se puede "recibir"**: `_aplicar_recepcion_a_oc` cruza lo recibido contra
+    las OC `enviada` **y también** `borrador` (primero las enviadas). Así una OC que nunca se mandó
+    al proveedor queda `recibida` sola. Alternativa A: sólo `enviada` (el borrador es un papel de
+    trabajo). Alternativa B: como hoy (si en la práctica no se marca "enviada" y la mercadería
+    llega igual). Recomendación: A, y que la pantalla de OC avise "hay OC en borrador de este
+    proveedor" al recibir. Impacto: una línea en la función.
+24. **Alerta «stock bajo mínimo»** en `alertas_bundle`: está desactivada desde agosto con un
+    motivo viejo ("stock negativo irreal"). Hoy el inventario cierra con el ledger. ¿Se reactiva?
+    Con qué regla: `cantidad < minimo` por ubicación de sector (lo que ya muestra Faltantes) o
+    `cantidad < maximo` (lo que pide la OC). Recomendación: reactivar con `minimo` sólo para
+    sectores de insumo y mostrar la cantidad de renglones, no la lista.
+25. **`recalcular_minimos()` hoy cambiaría 48 mínimos** (el consumo de la Est Madre se movió desde
+    el 2026-09-02, cuando se corrió por última vez; el respaldo de esa corrida está en
+    `db/respaldo_inventario_minimo_20260902.csv`). Es una herramienta manual sin llamador. ¿La
+    corro? ¿O los mínimos se recalculan solos cuando cambia la Est Madre, como ya pasa con los
+    máximos (`trg_maximos_est_madre`)? Recomendación: colgarla del mismo trigger, así mínimo y
+    máximo salen del mismo consumo y no se desfasan.
 
 ---
 

@@ -283,14 +283,17 @@ async function abrirDetalle(comp_id, colKey){
   $("popBody").innerHTML = '<div class="empty">Cargando…</div>';
   $("popup").classList.add("open");
 
-  var r = await SB.rpc("movimientos_componente", {
+  /* composicion_stock es la misma RPC del popup de composicion (gp2-composicion.js): su
+     lista 'movs' era identica a la de movimientos_componente, que se borro (2026-09-05). */
+  var r = await SB.rpc("composicion_stock", {
     p_comp_id: Number(comp_id), p_ubic_id: Number(D.ubicacion_id), p_limit: DET_LIMIT
   });
   if (miSeq !== DET_SEQ) return;
   if (r.error){ $("popBody").innerHTML = '<div class="empty">Error: '+esc(r.error.message)+'</div>'; return; }
 
-  var truncado = (r.data||[]).length >= DET_LIMIT;
-  var rows = (r.data||[]).filter(function(m){
+  var movs = (r.data && r.data.movs) || [];
+  var truncado = movs.length >= DET_LIMIT;
+  var rows = movs.filter(function(m){
     return !col.tipos.length || col.tipos.indexOf(m.tipo) >= 0;
   });
   if (!rows.length){ $("popBody").innerHTML = '<div class="empty">Sin movimientos de este tipo.</div>'; return; }

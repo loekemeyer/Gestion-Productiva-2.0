@@ -46,7 +46,11 @@ __boot();
 | `rutas_by_art` | dict `String(art_id)` → lista `{ id (→rp), f (comp_id del fleje; null = ruta de insumo) }` |
 | `tall_art` | dict `String(art_id)` → lista de NOMBRES (strings) de talleristas alternativos |
 
-## faltantes_bundle() — Faltantes/Faltantes.html (solo lectura)
+## faltantes_bundle() — Despiece x Articulo/Despiece_GP2.html (solo lectura; lazy)
+
+**Desde el 2026-09-05 es un envoltorio de `movimientos_bundle()`**: mismo diccionario, con `art`
+como LISTA (ordenada por id) y `mat.primera` siempre boolean. Cualquier clave nueva de
+`movimientos_bundle` aparece acá sola.
 
 | Clave | Forma |
 |---|---|

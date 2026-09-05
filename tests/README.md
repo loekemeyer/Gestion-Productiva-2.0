@@ -6,7 +6,7 @@ Suite creada 2026-08-29. Dos capas:
 
 Cada `test_*.js` abre la pantalla real del repo con **Supabase stubeado** (no tocan la
 base): verifican payloads de RPC, filtros, cálculos en pantalla y flujos completos.
-`run.sh` corre **todos** los `test_*.js` de la carpeta (hoy 37); si agregás uno, entra solo.
+`run.sh` corre **todos** los `test_*.js` de la carpeta (hoy 36); si agregás uno, entra solo.
 
 | Test | Pantalla / flujo |
 |---|---|

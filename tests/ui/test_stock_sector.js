@@ -39,7 +39,7 @@ window.supabase = { createClient: function(){ return {
     window.__rpc.push({ n: name, a: args || null });
     if (name === 'stock_sector_bundle') return { data: { filas: JSON.parse(JSON.stringify(${JSON.stringify(FILAS)})),
       sector: { id: args.p_sector_id, nombre: 'Sector ' + args.p_sector_id }, ubicacion_id: 100 + args.p_sector_id }, error: null };
-    if (name === 'movimientos_componente') return { data: JSON.parse(JSON.stringify(${JSON.stringify(MOVS)})), error: null };
+    if (name === 'composicion_stock') return { data: { movs: JSON.parse(JSON.stringify(${JSON.stringify(MOVS)})) }, error: null };
     return { data: null, error: { message: 'rpc desconocida ' + name } };
   },
   from: function(){ throw new Error('la pantalla no usa from()'); }
@@ -157,12 +157,12 @@ const VIEJOS = ['StockFlejes/Bombillas_GP2.html', 'StockFlejes/Cajas_GP2.html', 
     titulo: document.getElementById('popTitle').textContent.replace(/\s+/g, ' ').trim(),
     filas: document.querySelectorAll('#popBody tbody tr').length,
     cuerpo: document.getElementById('popBody').textContent,
-    rpc: window.__rpc.filter(c => c.n === 'movimientos_componente').map(c => c.a),
+    rpc: window.__rpc.filter(c => c.n === 'composicion_stock').map(c => c.a),
   }));
   ok(/A10/.test(pop.titulo) && /Fabricación/.test(pop.titulo), 'popup: titulo con el componente y la columna (' + pop.titulo + ')');
   ok(pop.filas === 1 && /800/.test(pop.cuerpo) && !/Basconia/.test(pop.cuerpo), 'popup: solo los movimientos de esa columna (1 fila, +800)');
   ok(pop.rpc.length === 1 && pop.rpc[0].p_comp_id === 10 && pop.rpc[0].p_ubic_id === 101,
-     'popup: movimientos_componente con el comp y la ubicacion del bundle (' + JSON.stringify(pop.rpc[0]) + ')');
+     'popup: composicion_stock con el comp y la ubicacion del bundle (' + JSON.stringify(pop.rpc[0]) + ')');
   await page.click('#popClose');
   ok(!(await page.evaluate(() => document.getElementById('popup').classList.contains('open'))), 'popup: Cerrar lo cierra');
 

@@ -370,10 +370,34 @@ para las ~330 columnas de las 47 tablas) + búsqueda de cada columna sospechosa 
   red; falla si falta un `<script src>` local o si revienta un helper de la casa. Se verificó
   que detecta las dos cosas con una página trampa (`nope.js` + `GP2UI` sin cargar).
 - Resultado: 41 pantallas cargan `gp2-ui.js` (eran 11), 0 copias de `esc`/`$`/hoy/CSV en
-  ellas (`test_helpers_ui.js`), 37 tests.
+  ellas (`test_helpers_ui.js`), 36 tests.
 
 ### Estado tras el ciclo 2f
-**47 tablas · 11 vistas · 121 funciones · 37 tests.**
+**47 tablas · 11 vistas · 121 funciones · 36 tests.**
+
+---
+
+## Ciclo 2g — lógica duplicada en la base (A4 3c/3e/3f/4.7), 23:45–00:10 AR
+
+Migraciones `refactor_20260905_bundles_duplicados_y_fecha_ar` y `refactor_20260905_v_nivel_stock`.
+
+| Qué | Antes | Ahora | Verificación |
+|---|---|---|---|
+| `faltantes_bundle` | el mismo diccionario que `movimientos_bundle` escrito dos veces (2,2 KB), único llamador Despiece_GP2 | envoltorio: `movimientos_bundle()` con `art` como lista y `mat.primera` nunca null | claves iguales; `comp`/`inv`/`rp`/`bom_*` contenidos; `art` 99/99 contenidos; 61 matrices `primera=true` como antes |
+| `movimientos_componente` | copia del CTE de `composicion_stock` | **borrada**; `gp2-stock-sector.js` pide `composicion_stock` y lee `movs` | md5 de la salida idéntico en 3 muestras; `test_stock_sector.js` actualizado |
+| `recalcular_maximos_insumos` / `recalcular_minimos` | el CTE «consumo mensual × meses de la ubicación» dos veces | vista **`v_nivel_stock`** (consumo_mes, max_calc, min_calc, es_insumo) y cada función es un `update ... from v_nivel_stock` | md5 de `inventario` (mínimo/máximo/orígenes) tras correr las dos: **idéntico** antes y después (`04d81610…`) |
+| `registrar_produccion` | `dia/mes/quincena` en UTC (`registrar_evento_prod` los hace en hora argentina): a las 22:00 caían en días distintos | los tres en `America/Argentina/Buenos_Aires` | texto verificado |
+| `alertas_bundle` | motivo de la alerta «stock bajo mínimo» describía agosto (stock negativo irreal) | motivo real: desactivada a propósito, falta la regla → pregunta 24 | |
+
+Quedan anotadas: pregunta 23 (OC en borrador se "recibe"), 24 (alerta), 25 (`recalcular_minimos`
+cambiaría 48 mínimos hoy; colgarla del trigger de la Est Madre como los máximos).
+No se hizo (riesgo > valor a esta hora): `catalogo_bundle` común a `programa_bundle` (nombres
+cortos en `Programa.html`), helper común de `registrar_evento_prod`/`registrar_produccion`
+(RPC de la app de operarios), `cargar_recepcion` única sobre configuración
+(`proveedor_servicio.mp_componente_id`...). Están en IDEAS-GP2.md.
+
+### Estado tras el ciclo 2g
+**47 tablas · 12 vistas · 120 funciones · 36 tests.**
 
 ---
 
