@@ -9,11 +9,11 @@
 ## Resumen ejecutivo (al cierre, 2026-09-05 ~03:30 AR)
 
 Siete horas efectivas de loop analizar → detectar → corregir → validar → re-analizar
-(2026-09-04 17:44 → 2026-09-05 ~03:30 AR, con un corte de 2 h 47 m por límite de uso de la cuenta,
-19:13 → 22:00 AR, que no cuenta). 30 ciclos (1, 1b, 2, 2a–2z) y 8 agentes: 5 de la primera ronda
+(2026-09-04 17:44 → 2026-09-05 ~08:40 AR, con dos cortes por límite de uso de la cuenta que no
+cuentan: 19:13 → 22:00 AR y 01:32 → 06:40 AR). 31 ciclos (1, 1b, 2, 2a–2z, 3, 4) y 8 agentes: 5 de la primera ronda
 (tablas, datos, código muerto, funciones, ubicaciones — dos murieron con el corte y se terminaron a
 mano) + `gp2-auditor-costos` y `gp2-experto` como segunda opinión al final + el verificador de UI
-(la suite, en cada push). 60 commits, todos en `main`.
+(la suite, en cada push). 62 commits, todos en `main`. Al cierre se liberó el LockX de `LOCKS.txt`.
 
 | | Antes (17:44 AR) | Después |
 |---|---|---|
@@ -922,6 +922,20 @@ parámetros de verdad (probado: un `p_kgs` a propósito lo atrapa en dos líneas
 `db/` está viejo, la respuesta es regenerar `db/` — así el respaldo deja de ser opcional. Suite:
 **37/37**. Últimas verificaciones antes de cerrar: 16 invariantes en 0, 46 lecturas ok, advisor
 de seguridad 0 en GP2, md5 de `db/` exacto contra la base.
+
+## Ciclo 4 — re-validación tras el segundo corte, 06:40–07:00 AR
+
+La cuenta volvió a quedarse sin uso a la 01:32 AR; al retomar (06:40 AR): `main` no se movió
+(nadie pusheó, el agente diario de las 06:00 no dejó commits), la base sigue en 47 / 13 / 119,
+**19 invariantes en 0**, y el circuito de escritura completo corrió otra vez en rollback
+después de los cambios de `search_path` y de `v_costo_componente`: ledger (ajuste +5 exacto),
+relevamiento entero, producción (evento + anulación + registro), recepción (carga, control por
+cajas, descontrol, anulación), compra de MP, envíos/entregas/devolución a PS, tallerista y Prov AT,
+ABM, alta de PS, empleado, faltantes, rutas → **27 escrituras, 0 errores**. Suite 37/37. Último
+barrido de datos por duplicación conceptual (misma descripción en el mismo sector, proveedores
+con nombres parecidos, contrapartes repetidas entre tallerista / PS / Prov AT, artículos con la
+misma descripción): lo que salió está en la pregunta 8 (ítem 16, las 3 personas que son
+tallerista y Prov AT a la vez) o no es un duplicado.
 
 ### Estado final
 **47 tablas · 13 vistas · 119 funciones (96 RPC + 23 internas) · 37 tests · 19 invariantes en 0 · 27 preguntas · ideas 7250–7263.**

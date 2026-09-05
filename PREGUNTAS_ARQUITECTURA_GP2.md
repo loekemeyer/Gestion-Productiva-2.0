@@ -10,11 +10,10 @@
 
 ## 1. ¿Se borran del repo las pantallas del programa viejo (schema `public`)?
 
-**Problema encontrado.** El repo tiene ≈50 páginas HTML (+≈30 JS) que pegan al schema `public`
-(la casa del vecino): `StockSC/StockSC.html`, `Produccion/monitor.html`, `Facturas/index.html`,
-`Talleristas/Envios/EnviosTall.html`, etc. Ninguna está linkeada desde el menú `GP2_MODULOS.html`
-salvo *Entrega Virgilio* (marcada "app vieja"). Son un tercio del repo y todas escriben o leen
-tablas que GP2 no mira.
+**Problema encontrado.** El repo tiene **58 páginas del programa viejo** (2,4 MB con su JS; 56 pegan al schema `public`; lista completa en el **Anexo A** al final; la casa del vecino): `StockSC/StockSC.html`,
+`Produccion/monitor.html`, `Facturas/index.html`, `Talleristas/Envios/EnviosTall.html`, etc.
+Ninguna está linkeada desde el menú `GP2_MODULOS.html` salvo *Recepción Virgilio* (marcada "app
+vieja"). Son un tercio del repo y casi todas escriben o leen tablas que GP2 no mira.
 
 **Por qué existe una duda.** Técnicamente no puedo saber si alguien las abre por URL directa
 (bookmark, tablet, el sector Pagos con `Facturas/index.html` según `PERFILES.md`) o si el programa
@@ -471,6 +470,78 @@ siguen "gritando" a propósito.
 
 **Pregunta concreta.** ¿A o B? Si A: en Bombilla, Crudo y Procesado, ¿bajo `meses_minimo` o subo
 `meses_stock`?
+
+---
+
+## Anexo A — las 58 páginas del programa viejo (para las preguntas 1, 2 y 3)
+
+`[dato 2026-09-05]` Todo `.html` del repo que no es `_GP2` ni parte de GP2 (menú, login, tablet,
+calculadoras, `Programa`, `Validacion_Stock`, `OrdenProduccion`, `control-cajas/remaches`), con el
+peso de su JS propio y si toca la casa del vecino. Ninguna la linkea el menú GP2 salvo
+*Recepción Virgilio* ("app vieja"); la tablet linkea 4 (pregunta 2).
+
+| Página | KB (con su JS) | Base | JS propio |
+|---|---|---|---|
+| `Alertas/index.html` | 15 | pega a `public` | app.js |
+| `Compras/cajas.html` | 50 | pega a `public` |  |
+| `Control Envios y Entregas/exportar.html` | 26 | pega a `public` | exportar.js |
+| `Control Envios y Entregas/index.html` | 26 | pega a `public` | app.js |
+| `Control Envios y Entregas/stock.html` | 33 | pega a `public` | stock.js |
+| `ControlRemitos/index.html` | 9 | pega a `public` | controlRemitos.js |
+| `Despiece x Articulo/index-inverso.html` | 33 | pega a `public` | app-inverso.js |
+| `Despiece x Articulo/index.html` | 27 | pega a `public` | app.js |
+| `Despiece/Despiece.html` | 49 | pega a `public` | Despiece.js |
+| `Disruptivas/index.html` | 20 | pega a `public` | disruptivas.js |
+| `Facturas/EntregaProveedoresCervantes.html` | 22 | pega a `public` |  |
+| `Facturas/index.html` | 97 | pega a `public` |  |
+| `Informes/index.html` | 134 | pega a `public` | informes.js |
+| `Preavisos/index.html` | 10 | pega a `public` |  |
+| `Produccion/InformesVirgilio/index.html` | 123 | pega a `public` | calculo.js, renderer.js |
+| `Produccion/ProblemasMatrices/index.html` | 15 | pega a `public` |  |
+| `Produccion/RegistroApp/index.html` | 124 | pega a `public` | app.js |
+| `Produccion/abm.html` | 16 | pega a `public` |  |
+| `Produccion/entrevistas.html` | 44 | pega a `public` |  |
+| `Produccion/import.html` | 21 | pega a `public` |  |
+| `Produccion/maestro.html` | 76 | pega a `public` |  |
+| `Produccion/monitor.html` | 46 | pega a `public` |  |
+| `Produccion/monitor2.html` | 15 | pega a `public` |  |
+| `Produccion/rendimiento.html` | 49 | pega a `public` | rendimiento.js |
+| `Produccion/tiempos.html` | 71 | pega a `public` |  |
+| `Prov Art Terminado/Control/ControlAT.html` | 26 | pega a `public` | ControlAT.js |
+| `Prov Art Terminado/Entregas/EntregasAT.html` | 1 | pega a `public` |  |
+| `Prov Art Terminado/Envios/EnviosAT.html` | 11 | pega a `public` | EnviosAT.js |
+| `Prov Serv/Control/ControlPS.html` | 43 | pega a `public` | ControlPS.js |
+| `Prov Serv/Entregas/EntregaPS.html` | 53 | pega a `public` | EntregaPS.js |
+| `Prov Serv/Envios/EnviosPS.html` | 82 | pega a `public` | EnviosPS.js |
+| `StockFlejes/bombillas.html` | 18 | pega a `public` | bombillas.js |
+| `StockFlejes/cajas.html` | 44 | pega a `public` | cajas.js |
+| `StockFlejes/cartones.html` | 39 | pega a `public` | cartones.js |
+| `StockFlejes/flejes.html` | 37 | pega a `public` | stock-flejes.js |
+| `StockFlejes/garage.html` | 11 | pega a `public` | garage.js |
+| `StockFlejes/index.html` | 1 | sin base |  |
+| `StockFlejes/plasticos.html` | 26 | pega a `public` | plasticos.js |
+| `StockFlejes/recepcion.html` | 108 | pega a `public` |  |
+| `StockFlejes/remaches.html` | 21 | pega a `public` | remaches.js |
+| `StockMovimiento/StockMovimiento.html` | 16 | pega a `public` | StockMovimiento.js |
+| `StockSC/StockSC.html` | 28 | pega a `public` | StockSC.js |
+| `StockSP/StockSP.html` | 38 | pega a `public` | StockSP.js |
+| `StockTransitoPS/index.html` | 15 | pega a `public` | StockTransitoPS.js |
+| `Stocks General/StocksGeneral.html` | 45 | pega a `public` | StocksGeneral.js |
+| `Talleristas/ABM Articulos/ABMArticulosTall.html` | 14 | pega a `public` | ABMArticulosTall.js |
+| `Talleristas/Control Tall/ControlTall.html` | 101 | pega a `public` | ControlTall.js |
+| `Talleristas/Envios/EnviosTall.html` | 78 | pega a `public` | EnviosTall.js |
+| `Talleristas/Faltante Partes Tallerista/index.html` | 123 | pega a `public` | ControlTall.js, faltante.js |
+| `Talleristas/Proporciones/index.html` | 13 | pega a `public` | proporciones.js |
+| `Talleristas/Recepcion/Devolucion Cervantes.html` | 29 | pega a `public` |  |
+| `Talleristas/Recepcion/Entrega Cervantes Fotos.html` | 45 | pega a `public` |  |
+| `Talleristas/Recepcion/Recepcion Cervantes.html` | 51 | pega a `public` |  |
+| `Talleristas/Recepcion/Recepcion Virgilio.html` | 25 | pega a `public` |  |
+| `Ventas Chat/index.html` | 15 | sin base | chatbot.js |
+| `VerifMadres/VerifMadres.html` | 12 | pega a `public` | VerifMadres.js |
+| `Verificacion/verificacion.html` | 42 | pega a `public` | verificacion.js |
+| `calcular-cajones.html` | 17 | pega a `public` |  |
+
+58 páginas, 2409 KB en total; 56 pegan a `public`.
 
 ---
 
