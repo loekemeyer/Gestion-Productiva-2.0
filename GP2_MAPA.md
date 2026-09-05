@@ -16,7 +16,7 @@ un bundle a otro modulo sin verificar.** Al crear bundles nuevos, converger al
 Patron de consumo comun a todos:
 
 ```js
-var SB = createClient(URL, ANON_KEY, { db: { schema: 'GP2' } });
+var SB = GP2_SB();   // supabase-config.js: schema GP2, sin sesion persistida (desde 2026-09-05; antes cada pantalla hacia su createClient)
 var D = {};
 function __run(){ /* todo el codigo que usa D */ }
 async function __boot(){

@@ -74,7 +74,7 @@ const STUB = 'window.supabase={createClient:function(){return{'
   // Regex y no glob: control-remaches.html pide el CDN con la URL larga
   // (@supabase/supabase-js@2/dist/umd/supabase.js) y el * del glob no cruza barras.
   await page.route(/supabase-js@2/, r => r.fulfill({ contentType: 'application/javascript', body: STUB }));
-  await page.route('**/supabase-config.js*', r => r.fulfill({ contentType: 'application/javascript', body: 'self.SB_URL="x";self.SB_ANON="y";' }));
+  await page.route('**/supabase-config.js*', r => r.fulfill({ contentType: 'application/javascript', body: 'self.SB_URL="x";self.SB_ANON="y";self.GP2_SB=function(o){return self.supabase.createClient("x","y",o||{db:{schema:"GP2"}});};' }));   // el stub de supabase-config.js trae la fabrica GP2_SB (2026-09-05)
   await page.route('**/auth-guard.js*', r => r.fulfill({ contentType: 'application/javascript', body: 'window.GP2_AUTH_ON=false;' }));
   await page.route('**/GP2_favicon.png*', r => r.fulfill({ contentType: 'image/png', body: Buffer.from('') }));
 

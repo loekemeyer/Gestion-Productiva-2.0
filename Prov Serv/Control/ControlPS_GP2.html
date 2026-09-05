@@ -11,7 +11,7 @@
 
   <!-- Supabase -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="../../supabase-config.js?v=20260831d"></script>
+<script src="../../supabase-config.js?v=20260905k"></script>
 
   <!-- CSS reutilizado de la pagina vieja -->
   <link rel="stylesheet" href="ControlPS.css?v=20260903b" />
@@ -219,11 +219,7 @@
   <script>
   var D = {};
 
-  var SB = window.supabase.createClient(
-    SUPABASE_URL,
-    SUPABASE_KEY,
-    { db:{ schema:'GP2' } }
-  );
+  var SB = GP2_SB();
 
   function __run(){
     var provs = (D && D.proveedores) ? D.proveedores : [];

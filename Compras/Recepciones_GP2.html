@@ -9,7 +9,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>Recepciones · Checklist Pagos · GP2</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="../supabase-config.js?v=20260831d"></script>
+<script src="../supabase-config.js?v=20260905k"></script>
 <script src="../gp2-ui.js?v=20260905a"></script>
 <link rel="stylesheet" href="../gp2-modulo.css?v=20260903b"/>
 <link rel="icon" type="image/png" href="../GP2_favicon.png">
@@ -103,7 +103,7 @@
 
 <script>
 (function(){
-  const SB = supabase.createClient(window.SB_URL, window.SB_ANON);
+  const SB = GP2_SB();
   let ROWS = [];
   let filt = { origen:'todo', fact:'todo', q:'', desde:null, hasta:null };
 

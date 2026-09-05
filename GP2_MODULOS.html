@@ -347,7 +347,7 @@ MENU.forEach(([icon, titulo, items]) => {
 if (MENU.length % 2 === 1) grid.lastElementChild.classList.add("solo");
 </script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="supabase-config.js?v=20260831d"></script>
+<script src="supabase-config.js?v=20260905k"></script>
 <script>
 /* Datos vivos del menu. Antes vivian en Inicio/index_GP2.html, que era una copia
    del menu viejo y quedo como redirect: el RPC "GP2".inicio_bundle() se trajo aca
@@ -355,11 +355,7 @@ if (MENU.length % 2 === 1) grid.lastElementChild.classList.add("solo");
    cargas de Virgilio que el espejo no pudo aplicar. */
 (async () => {
   try {
-    const sb = supabase.createClient(
-      SUPABASE_URL,
-      SUPABASE_KEY,
-      { db: { schema: "GP2" }, auth: { persistSession: false } }
-    );
+    const sb = GP2_SB();
     const { data: bundle, error } = await sb.rpc("inicio_bundle");
     if (error) { console.error(error); return; }
     if (!bundle) return;

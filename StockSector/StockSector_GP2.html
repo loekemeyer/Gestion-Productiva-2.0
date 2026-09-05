@@ -12,7 +12,7 @@
      botones de cada una son los mismos de antes: lo que cambia por sector vive
      en el mapa, no aca. -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="../supabase-config.js?v=20260831d"></script>
+<script src="../supabase-config.js?v=20260905k"></script>
 <link rel="stylesheet" href="../gp2-modulo.css?v=20260903b"/>
 <link rel="icon" type="image/png" href="../GP2_favicon.png">
 <link rel="apple-touch-icon" href="../GP2_favicon.png">
@@ -80,11 +80,7 @@
 </div>
 
 <script>
-window.SB_CLIENT = supabase.createClient(
-  SUPABASE_URL,
-  SUPABASE_KEY,
-  { db:{ schema:"GP2" }, auth:{ persistSession:false } }
-);
+window.SB_CLIENT = GP2_SB();
 </script>
 <script src="../gp2-ui.js?v=20260905a"></script>
 <script src="../gp2-numero.js?v=20260905b"></script>

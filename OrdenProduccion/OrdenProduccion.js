@@ -34,7 +34,7 @@
    final, porque el faltante que manda es el de la punta de la cadena.
    ===================================================================== */
 
-const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY, { db: { schema: "GP2" } });
+const sb = GP2_SB();
 
 /* ===== BLOQUE: DOM ===== */
 const statusEl = document.getElementById("status");

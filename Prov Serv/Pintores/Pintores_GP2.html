@@ -17,7 +17,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>Pintores · Quién pinta cada parte · GP2</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="../../supabase-config.js?v=20260831d"></script>
+<script src="../../supabase-config.js?v=20260905k"></script>
 <script src="../../gp2-ui.js?v=20260905a"></script>
 <script src="../../gp2-numero.js?v=20260905b"></script>
 <script src="../../consumo-detalle.js?v=20260905g"></script>
@@ -127,8 +127,7 @@
 </div>
 
 <script>
-var SB = supabase.createClient(SUPABASE_URL, SUPABASE_KEY,
-  { db:{ schema:"GP2" }, auth:{ persistSession:false } });
+var SB = GP2_SB();
 
 /* helpers de la casa (gp2-ui.js / gp2-numero.js, 2026-09-04); "—" cuando no hay valor */
 var $ = GP2UI.$, esc = GP2UI.esc;

@@ -10,7 +10,7 @@
   <link rel="apple-touch-icon" href="../GP2_favicon.png">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="../supabase-config.js?v=20260831d"></script>
+<script src="../supabase-config.js?v=20260905k"></script>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { font-family: 'Inter', sans-serif; background: #d9d9de; padding: 20px; min-height: 100vh; }
@@ -109,7 +109,7 @@
 <script>
 (function () {
   "use strict";
-  var sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY, { db: { schema: 'GP2' } });
+  var sb = GP2_SB();
 
   var $ = GP2UI.$;
   var ROWS = [], SORT = { k: 'uni', dir: -1 };

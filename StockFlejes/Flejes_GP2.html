@@ -7,7 +7,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>Stock Flejes · GP2</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="../supabase-config.js?v=20260831d"></script>
+<script src="../supabase-config.js?v=20260905k"></script>
 <style>
   *{box-sizing:border-box;margin:0;padding:0}
   body{font-family:Arial,sans-serif;background:#f5f6f8;padding:12px;color:#111}
@@ -242,7 +242,7 @@
 <div id="toast"></div>
 
 <script>
-const SB=window.supabase.createClient(SB_URL,SB_ANON,{db:{schema:'GP2'}});
+const SB=GP2_SB();
 var $ = GP2UI.$;
 let FL=[], provSel="", stSel="todos";
 const SIN="(sin proveedor)";

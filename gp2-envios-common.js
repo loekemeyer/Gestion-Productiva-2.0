@@ -36,11 +36,7 @@
 
   /* Cliente Supabase apuntando al schema GP2 (el de todas las pantallas GP2). */
   function sb(opts) {
-    return global.supabase.createClient(
-      global.SUPABASE_URL,
-      global.SUPABASE_KEY,
-      opts || { db: { schema: "GP2" }, auth: { persistSession: false } }
-    );
+    return global.GP2_SB(opts);   /* el cliente vive en supabase-config.js (2026-09-05) */
   }
 
   /* Dependencias duras (las 6 pantallas que cargan este archivo cargan antes

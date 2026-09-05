@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1" />
 <title>Informe Rendimiento x Matriz (GP2)</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="../supabase-config.js?v=20260831d"></script>
+<script src="../supabase-config.js?v=20260905k"></script>
 <script src="../gp2-ui.js?v=20260905a"></script>
 <style>
   :root{--bg:#ebeff4;--card:#ffffff;--line:#d0d7de;--txt:#1e293b;--muted:#64748b;--accent:#0066cc;--pos:#0a7a2f;--neg:#b91c1c;}
@@ -82,11 +82,7 @@
 // que agrega "GP2".produccion server-side y devuelve la tabla cruzada matriz x empleado ya armada.
 // Equivalente a la vista "matriz" (renderMatriz) del informes.js viejo.
 // No existe tabla Empleados/Matrices en GP2: nombre_empleado y nombre_matriz vienen embebidos en produccion.
-var SB = window.supabase.createClient(
-  SUPABASE_URL,
-  SUPABASE_KEY,
-  { db: { schema: 'GP2' } }
-);
+var SB = GP2_SB();
 
 var $ = GP2UI.$;
 var $status = $('status'), $result = $('result'), $btn = $('btn');

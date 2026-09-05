@@ -9,7 +9,7 @@
    Premio, Segundos_Trabajados, Tiempo_Historico, ...) para no tocar el render.
    ============================================================ */
 
-const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY, { db: { schema: 'GP2' } });
+const sb = GP2_SB();   // el cliente GP2 vive en supabase-config.js (2026-09-05)
 
 const fechaDesde = document.getElementById("fechaDesde");
 const fechaHasta = document.getElementById("fechaHasta");

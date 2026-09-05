@@ -58,10 +58,10 @@
 </div>
 <div class="canvas" id="canvas"><div class="empty">Cargando…</div></div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="../../supabase-config.js?v=20260831d"></script>
+<script src="../../supabase-config.js?v=20260905k"></script>
 <script src="../../gp2-ui.js?v=20260905a"></script>
 <script>var D={};
-var SB=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY,{db:{schema:'GP2'}});
+var SB=GP2_SB();
 
 var esc = GP2UI.esc;   /* helper de la casa, gp2-ui.js (2026-09-05) */
 function norm(s){return String(s||"").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"");}

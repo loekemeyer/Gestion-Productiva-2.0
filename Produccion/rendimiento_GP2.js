@@ -7,7 +7,7 @@
 
 // MIGRADO a schema GP2: los datos salen del RPC "GP2".produccion_bundle
 // (espejo de la produccion vieja en "GP2".produccion). Ver __run/cargarDatos.
-const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY, { db: { schema: 'GP2' } });
+const sb = GP2_SB();
 
 // ----- Estado -----
 let matrices = [];

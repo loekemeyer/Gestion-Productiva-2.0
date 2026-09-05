@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1" />
 <title>Informe Rendimiento x Persona (GP2)</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="../supabase-config.js?v=20260831d"></script>
+<script src="../supabase-config.js?v=20260905k"></script>
 <script src="../gp2-ui.js?v=20260905a"></script>
 <style>
   :root{--bg:#ebeff4;--card:#ffffff;--line:#d0d7de;--txt:#1e293b;--muted:#64748b;--accent:#0066cc;--pos:#0a7a2f;--neg:#b91c1c;}
@@ -68,11 +68,7 @@
 // MIGRADO a schema GP2: los datos salen del RPC "GP2".informes_bundle(p_desde,p_hasta),
 // que agrega "GP2".produccion server-side (evita traer 14k filas al front).
 // No existe tabla Empleados en GP2: nombre/legajo vienen embebidos en produccion.nombre_empleado.
-var SB = window.supabase.createClient(
-  SUPABASE_URL,
-  SUPABASE_KEY,
-  { db: { schema: 'GP2' } }
-);
+var SB = GP2_SB();
 
 var $status = document.getElementById('status');
 var $result = document.getElementById('result');

@@ -11,7 +11,7 @@
      gp2-motor.js) y la vista de ultimos 50 movimientos. Las otras 7 tarjetas de esa
      pantalla duplicaban pantallas dedicadas y escribian tipos de movimiento distintos. -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="../supabase-config.js?v=20260831d"></script>
+<script src="../supabase-config.js?v=20260905k"></script>
 <script src="../gp2-motor.js?v=20260905f"></script>
 <style>
  *{box-sizing:border-box}
@@ -142,7 +142,7 @@
 <div id="toast"></div>
 
 <script>
-const SB=window.supabase.createClient(SB_URL,SB_ANON,{db:{schema:'GP2'}});
+const SB=GP2_SB();
 var D=null;
 // orden de sectores pedido por el usuario (id de sector)
 const SECT_ORDER=[1,2,4,5,6,7,8,9,10,11,3]; // crudo,proc,afilado,fleje,plastico,bombilla,remache,garage,carton,caja,(transito al final)

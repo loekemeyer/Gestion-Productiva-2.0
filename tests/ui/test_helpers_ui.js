@@ -91,4 +91,34 @@ conCopia.forEach(x => console.log('     ' + x));
 ok(conCopia.length === 0, 'ninguna pagina que carga gp2-ui.js tiene su propia copia de un helper (' + conUI.length + ' paginas)');
 ok(conUI.length >= 11, 'gp2-ui.js esta en las pantallas que lo necesitan (' + conUI.length + ')');
 
+// ── 4) el cliente Supabase se crea en UN lugar (GP2_SB en supabase-config.js) ──────
+// 2026-09-05: habia 40 createClient inline en cinco formas distintas. Las pantallas GP2 y los
+// JS que cargan llaman GP2_SB(); un createClient propio es una copia nueva y falla.
+const PERMITIDO_CLIENTE = new Set([
+  'supabase-config.js',                          // la fabrica misma
+  'login.html',                                  // cliente de auth (schema public), no de datos
+  'Produccion/RegistroApp/operarios_gp2.js',     // opciones de auth propias (storageKey de operarios)
+]);
+const ES_GP2 = p => /_GP2\.html$/.test(p) || /(^|[\\/])(Programa|Validacion_Stock|OrdenProduccion|GP2_MODULOS|envios-only)\.html$/.test(p);
+const conCliente = [];
+const vistos = new Set();
+for (const p of html.filter(ES_GP2)) {
+  const archivos = [p];
+  const txt = fs.readFileSync(p, 'utf8');
+  for (const m of txt.matchAll(/src\s*=\s*["']([^"'>]+\.js)(?:\?[^"'>]*)?["']/g)) {
+    const abs = path.resolve(path.dirname(p), m[1]);
+    if (fs.existsSync(abs)) archivos.push(abs);
+  }
+  for (const a of archivos) {
+    const rel = path.relative(ROOT, a).replace(/\\/g, '/');
+    if (vistos.has(rel) || PERMITIDO_CLIENTE.has(rel)) continue;
+    vistos.add(rel);
+    const t = fs.readFileSync(a, 'utf8');
+    const m = /\bcreateClient\s*\(/.exec(t);
+    if (m) conCliente.push(rel + ':' + t.slice(0, m.index).split('\n').length);
+  }
+}
+conCliente.forEach(x => console.log('     ' + x));
+ok(conCliente.length === 0, 'ninguna pantalla GP2 crea su propio cliente Supabase: usan GP2_SB() (' + vistos.size + ' archivos)');
+
 console.log(fallas ? 'HAY FALLOS' : 'TODO OK');

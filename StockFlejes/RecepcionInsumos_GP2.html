@@ -138,7 +138,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>Recepción de Insumos · GP2</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="../supabase-config.js?v=20260831d"></script>
+<script src="../supabase-config.js?v=20260905k"></script>
 <link rel="stylesheet" href="../gp2-modulo.css?v=20260903b"/>
 <style>
 /* ============================================================
@@ -595,7 +595,7 @@ input[type="text"]{width:200px}
 </div>
 
 <script>
-const SB=window.supabase.createClient(SB_URL,SB_ANON,{db:{schema:'GP2'}});
+const SB=GP2_SB();
 var $ = GP2UI.$;
 
 /* Sectores cuya fase 2 (el control fisico) vive en OTRA pagina, y en cual.

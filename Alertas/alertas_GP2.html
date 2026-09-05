@@ -135,7 +135,7 @@
   <div class="toast-container" id="toastContainer"></div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="../supabase-config.js?v=20260831d"></script>
+<script src="../supabase-config.js?v=20260905k"></script>
   <script>
   document.addEventListener("DOMContentLoaded", () => {
     "use strict";
@@ -143,7 +143,7 @@
     /* ================= SUPABASE (schema GP2) ================= */
     // MIGRADO a schema GP2: todas las alertas salen de un unico RPC "GP2".alertas_bundle()
     // (se apoya en GP2.produccion, espejo de db_n8n_espejo).
-    const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY, { db: { schema: 'GP2' } });
+    const sb = GP2_SB();
     const EDGE_FN_URL = SUPABASE_URL + "/functions/v1/send-whatsapp";
 
     /* ================= DOM ================= */

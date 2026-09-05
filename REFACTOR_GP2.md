@@ -401,6 +401,28 @@ cortos en `Programa.html`), helper común de `registrar_evento_prod`/`registrar_
 
 ---
 
+## Ciclo 2h — el cliente Supabase en un solo lugar + una columna duplicada menos, 00:10–00:30 AR
+
+- **`fleje_detalle.kg_x_uni` borrada** (`refactor_20260905_fleje_detalle_sin_kg_x_uni`):
+  duplicaba `componente.kg_x_uni` (3 filas con valor, las 3 iguales; ninguna función, vista ni
+  pantalla la leía o escribía). El peso del fleje tiene una sola fuente.
+- **`GP2_SB()` en `supabase-config.js`** (idea 7253): había 40 `createClient(...)` inline en
+  cinco formas de texto (con y sin `persistSession:false`, con `SUPABASE_URL`/`SB_URL`/
+  `window.SB_URL`, en una o cuatro líneas). Ahora las 38 pantallas/JS GP2 llaman `GP2_SB()`
+  (schema `GP2`, sin sesión persistida) y `GP2EE.sb()` delega en él. Quedan a propósito:
+  `login.html` (cliente de auth sobre `public`) y `operarios_gp2.js` (opciones de auth propias,
+  y su token está atado al auto-recargador). Token `supabase-config.js 20260905k` en las 103
+  páginas que lo cargan; `disruptivas_GP2.js 20260905l`.
+- **Guardia nueva** (`test_helpers_ui.js` punto 4): ninguna pantalla GP2 ni JS que cargue crea su
+  propio `createClient`. `test_smoke_gp2.js`: 47 páginas, 0 fallos, 0 avisos.
+- Verificación de seguridad de paso: las 23 funciones sin EXECUTE para `anon` son todas internas
+  (helpers, triggers, mantenimiento, cron); ninguna pantalla las llama (grep de `rpc('...')`).
+
+### Estado tras el ciclo 2h
+**47 tablas · 12 vistas · 120 funciones · 36 tests.**
+
+---
+
 ## Decisiones arquitectónicas (acumuladas)
 
 1. **Las copias de datos no viven en la base.** Un snapshot "por si hay que volver atrás" va a

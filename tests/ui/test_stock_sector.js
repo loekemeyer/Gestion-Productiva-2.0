@@ -83,7 +83,7 @@ const VIEJOS = ['StockFlejes/Bombillas_GP2.html', 'StockFlejes/Cajas_GP2.html', 
   page.on('pageerror', e => { console.log('PAGEERROR:', e.message); process.exitCode = 1; });
   page.on('dialog', d => { console.log('DIALOG:', d.message()); d.accept(); });
   await page.route(/supabase-js@2/, r => r.fulfill({ contentType: 'application/javascript', body: STUB }));
-  await page.route('**/supabase-config.js*', r => r.fulfill({ contentType: 'application/javascript', body: 'self.SUPABASE_URL="x";self.SUPABASE_KEY="y";' }));
+  await page.route('**/supabase-config.js*', r => r.fulfill({ contentType: 'application/javascript', body: 'self.SUPABASE_URL="x";self.SUPABASE_KEY="y";self.GP2_SB=function(o){return self.supabase.createClient("x","y",o||{db:{schema:"GP2"}});};' }));   // el stub de supabase-config.js trae la fabrica GP2_SB (2026-09-05)
   await page.route('**/GP2_favicon.png*', r => r.fulfill({ contentType: 'image/png', body: Buffer.from('') }));
 
   const abrir = async (query) => {

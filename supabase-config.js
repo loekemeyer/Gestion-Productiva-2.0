@@ -27,3 +27,12 @@ self.SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS
 self.SUPABASE_ANON_KEY = self.SUPABASE_KEY;
 self.SB_URL            = self.SUPABASE_URL;
 self.SB_ANON           = self.SUPABASE_KEY;
+
+/* El cliente GP2, UNA sola vez (2026-09-05): schema GP2 y sin sesion persistida. Antes cada
+   pantalla escribia su propio createClient (40 copias, cinco formas distintas). Se resuelve
+   al llamarlo, asi no importa si el CDN de supabase-js se cargo antes o despues de este
+   archivo. En un service worker no hay cliente (no hay window.supabase). */
+self.GP2_SB = function (opts) {
+  return self.supabase.createClient(self.SUPABASE_URL, self.SUPABASE_KEY,
+    opts || { db: { schema: "GP2" }, auth: { persistSession: false } });
+};
