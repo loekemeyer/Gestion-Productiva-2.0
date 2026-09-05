@@ -604,6 +604,22 @@ IZ19A, L4B1, V20).
 
 ---
 
+## Ciclo 2p — `v_contraparte_parte` (idea 7257), 02:40–02:50 AR
+
+"Qué parte entra y sale por cada contraparte" se derivaba de `ruta_paso` en tres funciones con
+tres textos distintos: `control_ps_bundle.cfg`, `partes_por_ps` (dos subconsultas correlacionadas)
+y `talleristas_bundle.cfg` (un `union` de entrada/salida). Ahora es la vista
+**`v_contraparte_parte(tipo, ref_id, comp_id, lado)`** (662 filas) y las tres la leen. Verificación:
+md5 de la salida de las tres funciones (sin `generado_en`) **idéntico antes y después**
+(`10426b61…`, `06d74310…`, `21ac3190…`). Los "pares" (`envios_ps_bundle`: sc→sp del mismo paso;
+`stock_transito_ps_bundle`: dos PS consecutivos) son otro concepto y quedan como están.
+Migración `refactor_20260905_v_contraparte_parte`.
+
+### Estado tras el ciclo 2p
+**47 tablas · 13 vistas · 121 funciones · 36 tests.**
+
+---
+
 ## Decisiones arquitectónicas (acumuladas)
 
 1. **Las copias de datos no viven en la base.** Un snapshot "por si hay que volver atrás" va a
