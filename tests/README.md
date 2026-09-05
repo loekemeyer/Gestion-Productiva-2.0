@@ -6,12 +6,13 @@ Suite creada 2026-08-29. Dos capas:
 
 Cada `test_*.js` abre la pantalla real del repo con **Supabase stubeado** (no tocan la
 base): verifican payloads de RPC, filtros, cálculos en pantalla y flujos completos.
-`run.sh` corre **todos** los `test_*.js` de la carpeta (hoy 36); si agregás uno, entra solo.
+`run.sh` corre **todos** los `test_*.js` de la carpeta (hoy 37); si agregás uno, entra solo.
 
 | Test | Pantalla / flujo |
 |---|---|
 | test_bom.js | Editor de BOM del ABM Artículos |
 | test_botones_fuera.js | Botones sacados 2026-08-29 (RD/CM/REM) fuera y el resto presente; menú sin los candados muertos |
+| test_contratos_db.js | Guardia del contrato pantalla ↔ base: toda `rpc('x')` y todo `from('x')` de las pantallas GP2 existe en `db/` (funciones, tablas, vistas) y cada clave `p_*` de una llamada con objeto literal es un parámetro real de la función. Si falla porque `db/` está viejo, se regenera `db/`, no se toca el test (sin navegador, lee archivos) |
 | test_control_tall_gp2.js | Control Talleristas GP2: caracterización previa a la unificación de pantallas |
 | test_ctrl.js | Control Envíos y Entregas (pivote, medidas Kg/Uni/Cajas) |
 | test_despiece_verif.js | Despiece x Artículo v2 (fusión de Verificación + VerifMadres): receta, rutas, faltantes prorrateados |

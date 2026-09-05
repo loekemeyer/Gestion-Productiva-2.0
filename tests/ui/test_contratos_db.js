@@ -1,0 +1,114 @@
+/* Guardia del CONTRATO pantalla <-> base (2026-09-05).
+ *
+ * Existe porque en la auditoria de arquitectura se borraron y renombraron funciones y
+ * tablas (control_cajas_bundle + control_kg_bundle -> control_recepcion_bundle,
+ * cargar_compra_altrak -> cargar_compra_mp, movimientos_componente, v_valor_stock...) y la
+ * unica red era grepear a mano. Este test lee el respaldo del schema en db/ y chequea que:
+ *   1. toda RPC que nombra una pantalla GP2 (rpc('x')) exista en db/funciones_GP2.sql;
+ *   2. toda tabla/vista que lee una pantalla (from('x')) exista en db/tablas_GP2.sql o
+ *      db/vistas_GP2.sql;
+ *   3. cada clave p_* que viaja en el objeto literal de una llamada rpc('x', {...}) sea un
+ *      parametro real de esa funcion (una clave con un typo llega a PostgREST como
+ *      "function not found" recien en produccion).
+ * Si falla porque db/ esta viejo, la respuesta es regenerar db/ (db/regenerar.sql), no
+ * tocar el test. Sin navegador: lee archivos.
+ */
+const fs = require('fs');
+const path = require('path');
+
+const ROOT = path.resolve(__dirname, '..', '..');
+let fallas = 0;
+const ok = (c, m) => { console.log((c ? 'OK  ' : 'FAIL') + ' ' + m); if (!c) { fallas++; process.exitCode = 1; } };
+const leer = (p) => fs.readFileSync(p, 'utf8');
+
+// ── el schema, segun db/ ────────────────────────────────────────────────
+const funciones = {};
+// la firma termina en el ")" que precede a RETURNS (los DEFAULT now() traen parentesis adentro)
+for (const m of leer(path.join(ROOT, 'db', 'funciones_GP2.sql'))
+       .matchAll(/CREATE OR REPLACE FUNCTION "GP2"\.(\w+)\(([\s\S]*?)\)\s*\n\s*RETURNS/g)) {
+  const params = new Set();
+  for (const parte of m[2].split(',')) {
+    const nombre = parte.trim().split(/\s+/)[0];
+    if (nombre) params.add(nombre.replace(/^"|"$/g, ''));
+  }
+  funciones[m[1]] = params;
+}
+const relaciones = new Set();
+for (const m of leer(path.join(ROOT, 'db', 'tablas_GP2.sql')).matchAll(/create table "GP2"\.(\w+) \(/g)) relaciones.add(m[1]);
+for (const m of leer(path.join(ROOT, 'db', 'vistas_GP2.sql')).matchAll(/create or replace view "GP2"\.(\w+) as/g)) relaciones.add(m[1]);
+ok(Object.keys(funciones).length > 100 && relaciones.size > 50,
+   'db/ se pudo leer (' + Object.keys(funciones).length + ' funciones, ' + relaciones.size + ' tablas+vistas)');
+
+// ── las pantallas GP2 y los JS que cargan ───────────────────────────────
+const EXCLUIR = /(^|[\\/])(_backup|node_modules|\.git|tests)([\\/]|$)/;
+const ENTRADAS = new Set(['GP2_MODULOS.html', 'login.html', 'envios-only.html']);
+const archivos = [];
+(function walk(dir) {
+  for (const f of fs.readdirSync(dir)) {
+    const p = path.join(dir, f);
+    if (EXCLUIR.test(p)) continue;
+    if (fs.statSync(p).isDirectory()) walk(p);
+    else if (f.endsWith('_GP2.html') || (dir === ROOT && ENTRADAS.has(f))) archivos.push(p);
+  }
+})(ROOT);
+for (const p of archivos.slice()) {
+  for (const m of leer(p).matchAll(/src\s*=\s*["']([^"'>]+\.js)(?:\?[^"'>]*)?["']/g)) {
+    const abs = path.resolve(path.dirname(p), m[1]);
+    if (fs.existsSync(abs) && !archivos.includes(abs)) archivos.push(abs);
+  }
+}
+const rel = (p) => path.relative(ROOT, p).replace(/\\/g, '/');
+
+// ── 1) rpc('x') existe ───────────────────────────────────────────────────
+const rpcInexistentes = [];
+const fromInexistentes = [];
+const clavesMalas = [];
+let nRpc = 0, nFrom = 0, nLlamadasConObjeto = 0;
+
+// objeto literal que sigue a rpc('x', { ... }): claves de PRIMER nivel
+function clavesTopLevel(txt, desde) {
+  // una clave es un identificador seguido de ":" cuyo ultimo caracter significativo anterior
+  // (a profundidad 1) es "{" o "," — asi un ternario "a ? b : null" no cuenta como clave
+  let i = desde, depth = 0, claves = [], inStr = null, prev = '';
+  for (; i < txt.length; i++) {
+    const ch = txt[i];
+    if (inStr) { if (ch === inStr && txt[i - 1] !== '\\') inStr = null; continue; }
+    if (ch === '"' || ch === "'" || ch === '`') { inStr = ch; prev = ch; continue; }
+    if (ch === '{' || ch === '[' || ch === '(') { depth++; prev = ch; continue; }
+    if (ch === '}' || ch === ']' || ch === ')') { depth--; prev = ch; if (depth === 0) break; continue; }
+    if (depth === 1) {
+      const m = /^([A-Za-z_$][\w$]*)\s*:/.exec(txt.slice(i, i + 60));
+      if (m && (prev === '{' || prev === ',')) { claves.push(m[1]); i += m[0].length - 1; prev = ':'; continue; }
+    }
+    if (!/\s/.test(ch)) prev = ch;
+  }
+  return claves;
+}
+
+for (const p of archivos) {
+  const txt = leer(p);
+  for (const m of txt.matchAll(/\.rpc\(\s*["'](\w+)["']\s*(,\s*)?/g)) {
+    nRpc++;
+    const fn = m[1];
+    if (!funciones[fn]) { rpcInexistentes.push(rel(p) + ':' + txt.slice(0, m.index).split('\n').length + '  ' + fn); continue; }
+    const after = m.index + m[0].length;
+    if (m[2] && txt[after] === '{') {
+      nLlamadasConObjeto++;
+      for (const k of clavesTopLevel(txt, after)) {
+        if (!funciones[fn].has(k)) clavesMalas.push(rel(p) + ':' + txt.slice(0, m.index).split('\n').length + '  ' + fn + '(' + k + ')');
+      }
+    }
+  }
+  for (const m of txt.matchAll(/\.from\(\s*["'](\w+)["']/g)) {
+    nFrom++;
+    if (!relaciones.has(m[1])) fromInexistentes.push(rel(p) + ':' + txt.slice(0, m.index).split('\n').length + '  ' + m[1]);
+  }
+}
+rpcInexistentes.forEach(i => console.log('     ' + i));
+ok(rpcInexistentes.length === 0, 'toda RPC que nombra una pantalla existe en la base (' + nRpc + ' llamadas en ' + archivos.length + ' archivos)');
+fromInexistentes.forEach(i => console.log('     ' + i));
+ok(fromInexistentes.length === 0, 'toda tabla/vista que lee una pantalla existe (' + nFrom + ' from())');
+clavesMalas.forEach(i => console.log('     ' + i));
+ok(clavesMalas.length === 0, 'cada clave del objeto de una llamada rpc es un parametro real de la funcion (' + nLlamadasConObjeto + ' llamadas con objeto literal)');
+
+console.log(fallas ? 'HAY FALLOS' : 'TODO OK');

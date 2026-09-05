@@ -26,7 +26,7 @@ mano) + `gp2-auditor-costos` y `gp2-experto` como segunda opinión al final + el
 | Constraints nuevos | — | CHECK vocabulario `tipo_mov` (16 palabras), `componente.unidad_medida`, `familia.nombre` UNIQUE, alias en mayúsculas; FKs `articulo.familia`, `articulo.componente_caja_id`, `recepcion_insumo.movimiento_id`; índices únicos `ubicacion(tipo,ref_id)` y singletons; índices `movimiento(fecha,id)`, `movimiento(tipo_mov,comp_id)`, `produccion(legajo,fecha)` |
 | Archivos del repo | 133 HTML + ~160 JS/MD/… | **−90** (74 muertos, 9 pantallas de stock → 1, docs fusionadas) |
 | Copias de helpers en pantallas | 79 `esc`, 42 `$`, 45 `fmt`, 12 "hoy", 40 `createClient`, 3 CSV | **0** (viven en `gp2-ui.js`, `gp2-numero.js`, `supabase-config.js:GP2_SB`); sólo Recepción Insumos conserva su parser a propósito (7259) |
-| Tests | 33 | **36** (+`test_stock_sector`, `test_helpers_ui` con 5 reglas, `test_smoke_gp2` sobre las 47 pantallas; `test_numero` con 4 reglas) |
+| Tests | 33 | **37** (+`test_stock_sector`, `test_helpers_ui` con 5 reglas, `test_smoke_gp2` sobre las 47 pantallas, `test_contratos_db` — toda `rpc()`/`from()` de las pantallas existe en `db/` y cada clave `p_*` es un parámetro real —; `test_numero` con 4 reglas) |
 | Bugs vivos encontrados y arreglados | — | **9**: `talleristas_bundle` sin `partes` (Control Talleristas vacío), `recepcion_tall` vs `entrega_tallerista` (dos palabras, un evento), `consumo_armado` no contado como entregado, `crear_entrega_ps` con la unidad de la SC en una cantidad de SP, «Desmarcar» del control de recepciones roto desde el 31/08, PS 12 AJ Adhesivos sin ubicación (`crear_envio_ps` explotaba), 6 "hoy" en UTC (día corrido después de las 21:00), otros 3 PS + 1 Prov AT sin ubicación porque `alta_proveedor_servicio` no la creaba (causa raíz arreglada, ciclo 2s), y una entrega de Virgilio (160 cajas del 510) que el espejo perdió por ese mismo hueco y nadie reintentaba (repuesta, ciclo 2w) |
 | Invariantes de la base | — | **16** en `db/verificar.sql` (contrapartes con ubicación, inventario = ledger, grants, RLS, `search_path`, PS híbridos, códigos, rutas, espejo de Virgilio), todas en 0 |
 | Preguntas para el usuario | — | 27 en `PREGUNTAS_ARQUITECTURA_GP2.md` (la 8 con 20 datos; la 27 con 80 renglones mínimo > máximo) |
@@ -908,6 +908,23 @@ lo que el usuario ya decidió?). Lo que salió y qué se hizo:
 
 ### Estado tras el ciclo 2z
 **47 tablas · 13 vistas · 119 funciones · 36 tests · 16 invariantes en 0 · 27 preguntas (la 8 con 22 datos).**
+
+---
+
+## Ciclo 3 — cierre: el contrato pantalla ↔ base como test, 06:40–07:00 AR
+
+Lo que hoy se chequeó a mano cuatro veces (¿existe la RPC que nombra la pantalla?, ¿la tabla del
+`from()`?, ¿las claves `p_*` son parámetros reales?) queda como guardia automática:
+**`tests/ui/test_contratos_db.js`** lee `db/funciones_GP2.sql`, `db/tablas_GP2.sql` y
+`db/vistas_GP2.sql` y recorre las 42 pantallas + 3 páginas de entrada + los 18 JS que cargan:
+98 `rpc()` y 26 `from()` existen, y en las 60 llamadas con objeto literal las claves son
+parámetros de verdad (probado: un `p_kgs` a propósito lo atrapa en dos líneas). Si falla porque
+`db/` está viejo, la respuesta es regenerar `db/` — así el respaldo deja de ser opcional. Suite:
+**37/37**. Últimas verificaciones antes de cerrar: 16 invariantes en 0, 46 lecturas ok, advisor
+de seguridad 0 en GP2, md5 de `db/` exacto contra la base.
+
+### Estado final
+**47 tablas · 13 vistas · 119 funciones (96 RPC + 23 internas) · 37 tests · 16 invariantes en 0 · 27 preguntas · ideas 7250–7263.**
 
 ---
 

@@ -102,9 +102,11 @@ Ninguna pantalla GP2 escribe su propio `esc()`, `$()`, "hoy", exportador CSV ni
    compartidos que dependen de ellos (`gp2-envios-common.js`, `gp2-composicion.js`,
    `gp2-stock-sector.js`, `consumo-detalle.js`) → el script de la pantalla.
 5. Guardianes: `tests/ui/test_helpers_ui.js` (helpers, orden, copias, cliente),
-   `test_numero.js` (regla de número, parses crudos, formateadores propios) y
+   `test_numero.js` (regla de número, parses crudos, formateadores propios),
    `test_smoke_gp2.js` (abre las 47 pantallas con Supabase stubeado: falta un script o
-   revienta un helper → falla).
+   revienta un helper → falla) y `test_contratos_db.js` (toda `rpc('x')` / `from('x')` de las
+   pantallas existe en `db/` y cada clave `p_*` es un parámetro real de la función: si falla
+   porque `db/` está viejo, se regenera `db/`).
 
 ## Versionado (OBLIGATORIO en cada actualización)
 
