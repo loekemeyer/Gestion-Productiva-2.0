@@ -3,6 +3,7 @@
 <head>
   <script src="../auth-guard.js?v=20260904t"></script>
 <script src="../gp2-ui.js?v=20260905a"></script>
+<script src="../gp2-numero.js?v=20260905b"></script>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Monitor en Vivo · Operarios · GP2</title>
@@ -115,7 +116,7 @@
   var EMP = {}, timer = null, auto = true;
 
   var esc = GP2UI.esc;   /* helper de la casa, gp2-ui.js (2026-09-05) */
-  function n0(v) { return (v == null || isNaN(v)) ? '0' : Number(v).toLocaleString('es-AR', { maximumFractionDigits: 0 }); }
+  function n0(v) { return GP2N.fmt(v, 0); }   /* la regla de numero de la casa (gp2-numero.js) */
   function hoy() { return new Intl.DateTimeFormat('sv-SE', { timeZone: 'America/Argentina/Buenos_Aires' }).format(new Date()); }
   function horaAR(iso) {
     try {

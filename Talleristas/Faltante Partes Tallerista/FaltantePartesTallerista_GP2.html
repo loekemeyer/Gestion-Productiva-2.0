@@ -63,11 +63,12 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="../../supabase-config.js?v=20260905k"></script>
 <script src="../../gp2-ui.js?v=20260905a"></script>
+<script src="../../gp2-numero.js?v=20260905b"></script>
 <script>var D={};
 var SB=GP2_SB();
 
 var esc = GP2UI.esc;   /* helper de la casa, gp2-ui.js (2026-09-05) */
-function fmt(n){n=Number(n||0);return n.toLocaleString("es-AR",{minimumFractionDigits:0,maximumFractionDigits:2});}
+function fmt(n){ return GP2N.fmt(n, 2); }   /* la regla de numero de la casa (gp2-numero.js) */
 function norm(s){return String(s||"").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"");}
 
 function partesFiltradas(t,q,soloPos){

@@ -3,6 +3,7 @@
 <head>
   <script src="../auth-guard.js?v=20260904t"></script>
 <script src="../gp2-ui.js?v=20260905a"></script>
+<script src="../gp2-numero.js?v=20260905b"></script>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Entrevistas · GP2</title>
@@ -118,8 +119,8 @@
   var ROWS = [];
 
   var esc = GP2UI.esc;   /* helper de la casa, gp2-ui.js (2026-09-05) */
-  function n2(v) { return (v == null || isNaN(v)) ? '—' : Number(v).toLocaleString('es-AR', { maximumFractionDigits: 2 }); }
-  function n0(v) { return (v == null || isNaN(v)) ? '—' : Number(v).toLocaleString('es-AR', { maximumFractionDigits: 0 }); }
+  function n2(v) { return GP2N.fmt(v, 2, '—'); }
+  function n0(v) { return GP2N.fmt(v, 0, '—'); }   /* la regla de numero de la casa (gp2-numero.js) */
   /* fechas en Argentina (gp2-ui.js): antes toISOString corria el dia despues de las 21:00 */
   function hoy() { return GP2UI.hoyAR(); }
   function haceUnMes() { var d = new Date(); d.setMonth(d.getMonth() - 1); return GP2UI.hoyAR(d); }

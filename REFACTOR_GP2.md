@@ -445,6 +445,21 @@ cortos en `Programa.html`), helper común de `registrar_evento_prod`/`registrar_
 
 ---
 
+## Ciclo 2j — primera tanda de `fmt` a `GP2N.fmt` (idea 7256), 00:50–01:05 AR
+
+Ocho pantallas sin campos numéricos (para que enganchar `gp2-numero.js` no cambie ningún
+input): Inyectores, Recepciones, Valorización, Faltante Partes Tallerista, Faltantes,
+Entrevistas, Monitor y Tiempos. Cada `fmt`/`n0`/`n2`/`fmtNum` propio pasa a
+`GP2N.fmt(n, decimales, sinValor)` conservando su default (0 ó 2 decimales, «—» o «0» sin
+valor). `test_numero.js` regla 4 (sin `toLocaleString` propio donde está la regla) y regla 3
+(sin parses crudos) en verde; `test_smoke_gp2.js` 47/47. Quedan (IDEAS 7256): las pantallas con
+campos numéricos y las dos con decimales fijos.
+
+### Estado tras el ciclo 2j
+**47 tablas · 12 vistas · 120 funciones · 36 tests.**
+
+---
+
 ## Decisiones arquitectónicas (acumuladas)
 
 1. **Las copias de datos no viven en la base.** Un snapshot "por si hay que volver atrás" va a
