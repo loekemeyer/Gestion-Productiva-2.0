@@ -8,7 +8,7 @@
 <meta http-equiv="Expires" content="0">
 <!-- v3.49.0 (2026-09-04) — CHAPA 430 DE APERAM SE RECIBE ACA (misma forma que Altrak, jubila
      el modulo Pagos Aperam->Eclipse). Al tocar el item CHAPA430 en Flejes se abre un panel
-     propio stepChapa (kg + remito, sin %) que llama cargar_compra_aperam_chapa -> suma la
+     propio stepChapa (kg + remito, sin %) que llama cargar_compra_mp('Aperam') -> suma la
      chapa al stock de Eclipse (ubic 48). Ruteo por ITEM (no por proveedor): Aperam vende 13
      flejes normales + la chapa. -->
 <!-- v3.48.1 (2026-09-04) — FECHA REAL en la compra Altrak: si la carga es de hoy sella el
@@ -21,7 +21,7 @@
 <!-- v3.47.0 (2026-09-04) — ALTRAK EN EL RUBRO FLEJES (opcion B, usuario). Altrak entrega el
      fleje bruto (FLEJE90_BRUTO, sector 13) que va a Charcas: aparece como proveedor en Flejes
      (inyectado a mano, no cae por sector) y al elegirlo abre un flujo propio irAltrak() con kg
-     + % corto/largo (instruccion de corte a Charcas) que llama cargar_compra_altrak. NO usa
+     + % corto/largo (instruccion de corte a Charcas) que llama cargar_compra_mp('Altrak'). NO usa
      pesaje/pallets/buffer. Suma el bruto al stock de Charcas (ubic 13); el stock real de
      IC3/IC3V lo genera despues la recepcion de Charcas (CharcasEclipse). Se jubila la pantalla
      Compra Altrak->Charcas del menu. ocultarProv ya no esconde Altrak. -->
@@ -437,7 +437,7 @@ input[type="text"]{width:200px}
 
     <!-- Paso 2 -->
     <!-- Recepcion de Altrak (opcion B, 2026-09-04): el fleje bruto va a Charcas. Flujo
-         propio (kg + % corto/largo = instruccion de corte). Llama cargar_compra_altrak;
+         propio (kg + % corto/largo = instruccion de corte). Llama cargar_compra_mp('Altrak');
          NO usa pesaje/pallets/buffer. -->
     <div id="stepAltrak" class="hidden">
       <div class="row">
@@ -484,7 +484,7 @@ input[type="text"]{width:200px}
     </div>
 
     <!-- Recepcion de Aperam (chapa 430 -> Eclipse), mismo patron que Altrak pero SIN % (la
-         chapa no se reparte): solo kg + remito. cargar_compra_aperam_chapa la suma al stock
+         chapa no se reparte): solo kg + remito. cargar_compra_mp('Aperam') la suma al stock
          de Eclipse (ubic 48); el 1686 lo genera despues la entrega de Eclipse en Entrega PS. -->
     <div id="stepChapa" class="hidden">
       <div class="row">
@@ -852,7 +852,7 @@ function irStep2(){
 
 // ================= Recepcion de Altrak (fleje bruto -> Charcas), opcion B 2026-09-04 =================
 // Flujo propio, aislado del de flejes normales: kg + % corto/largo (instruccion de corte
-// a Charcas). Llama cargar_compra_altrak, que suma el bruto al stock de Charcas (ubic 13)
+// a Charcas). Llama cargar_compra_mp('Altrak'), que suma el bruto al stock de Charcas (ubic 13)
 // y guarda el split como objetivo. El stock real de IC3/IC3V lo genera despues la
 // recepcion de Charcas (CharcasEclipse). No usa pesaje/pallets/buffer.
 function irAltrak(){
@@ -912,11 +912,13 @@ if($('akKg')){
     if(!confirm('Registrar entrega de Altrak:\n\nKg alambre: '+fmt(kg)+'\nCharcas corta: '+c+'% corto ('+fmt(kgC)+' kg) / '+(100-c)+'% largo ('+fmt(kgL)+' kg)\n\nSe suma al stock de Charcas.\n\n¿Confirmar?')) return;
     $('akGuardar').disabled=true; m.textContent='Registrando…';
     try{
-      var res = await SB.rpc('cargar_compra_altrak', { p_kg:kg, p_remito:remito||null, p_fecha:fechaHora(fecha), p_pct_corto:c });
+      // cargar_compra_mp (2026-09-05): una RPC para toda materia prima bruta; el PS que la
+      // recibe sale de proveedor_servicio.mp_componente_id + componente.proveedor.
+      var res = await SB.rpc('cargar_compra_mp', { p_proveedor:'Altrak', p_kg:kg, p_remito:remito||null, p_fecha:fechaHora(fecha), p_pct_corto:c });
       if(res.error) throw res.error;
       var d=res.data||{};
       m.className='status ok';
-      m.innerHTML='✓ Registrada. Stock Charcas: <b>'+fmt(d.stock_charcas_kg)+' kg</b>. Charcas debe entregar <b>'+fmt(d.kg_corto_objetivo)+' kg corto</b> / <b>'+fmt(d.kg_largo_objetivo)+' kg largo</b>.';
+      m.innerHTML='✓ Registrada. Stock Charcas: <b>'+fmt(d.stock_kg)+' kg</b>. Charcas debe entregar <b>'+fmt(d.kg_corto_objetivo)+' kg corto</b> / <b>'+fmt(d.kg_largo_objetivo)+' kg largo</b>.';
       $('akKg').value=''; $('akRemito').value=''; $('akPctCorto').value=''; $('akPctLargo').value='';
       $('akPctSlider').value='50'; $('akSliderLbl').textContent='Definí el reparto';
       $('akSplit').textContent='Definí cómo Charcas tiene que cortar este alambre (deslizá o escribí, se completan solos a 100).';
@@ -929,7 +931,7 @@ if($('akKg')){
 // ============ Recepcion de Aperam (chapa 430 -> Eclipse) 2026-09-04 ============
 // Se abre al tocar el item CHAPA430 en Flejes (Aperam vende 13 flejes + la chapa, asi que
 // el ruteo es por ITEM, no por proveedor como Altrak). Solo kg + remito (sin %). Llama
-// cargar_compra_aperam_chapa, que suma la chapa al stock de Eclipse (ubic 48).
+// cargar_compra_mp('Aperam'), que suma la chapa al stock de Eclipse (ubic 48).
 function irChapa(){
   $('step1').classList.add('hidden');
   $('step2').classList.add('hidden');
@@ -962,11 +964,11 @@ if($('chKg')){
     if(!confirm('Registrar chapa 430 de Aperam:\n\nKg: '+fmt(kg)+'\n\nSe suma al stock de Eclipse.\n\n¿Confirmar?')) return;
     $('chGuardar').disabled=true; m.textContent='Registrando…';
     try{
-      var res = await SB.rpc('cargar_compra_aperam_chapa', { p_kg:kg, p_remito:remito||null, p_fecha:fechaHora(fecha) });
+      var res = await SB.rpc('cargar_compra_mp', { p_proveedor:'Aperam', p_kg:kg, p_remito:remito||null, p_fecha:fechaHora(fecha) });
       if(res.error) throw res.error;
       var d=res.data||{};
       m.className='status ok';
-      m.innerHTML='✓ Registrada. Stock chapa en Eclipse: <b>'+fmt(d.stock_eclipse_kg)+' kg</b>.';
+      m.innerHTML='✓ Registrada. Stock chapa en Eclipse: <b>'+fmt(d.stock_kg)+' kg</b>.';
       $('chKg').value=''; $('chRemito').value='';
       cargarStockChapa(); chRefresh();
     }catch(e){ m.className='status bad'; m.textContent='Error: '+(e.message||e); }
@@ -1497,7 +1499,7 @@ $('unitKg').addEventListener('click',()=>setUnit('kg'));
 $('unitUni').addEventListener('click',()=>setUnit('uni'));
 function abrirPopup(i){
   // La chapa 430 (Aperam) no se recibe en el sector: es MP de Eclipse y va a su stock
-  // (ubic 48) via cargar_compra_aperam_chapa. Se rutea a su panel propio.
+  // (ubic 48) via cargar_compra_mp('Aperam'). Se rutea a su panel propio.
   if(i && i.codigo==='CHAPA430'){ irChapa(); return; }
   itemSel=i;
   resetPiePopup();

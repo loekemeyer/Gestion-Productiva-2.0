@@ -620,6 +620,24 @@ Migración `refactor_20260905_v_contraparte_parte`.
 
 ---
 
+## Ciclo 2q — `cargar_compra_mp` (idea 7251, primer paso), 02:50–03:05 AR
+
+`cargar_compra_altrak` y `cargar_compra_aperam_chapa` eran la misma función con tres constantes
+adentro (qué componente bruto, qué PS híbrido lo recibe, qué proveedor lo vende) y el reparto
+corto/largo sólo en una. Ahora: **`proveedor_servicio.mp_componente_id`** (Charcas → FLEJE90_BRUTO,
+Eclipse → CHAPA430; quién lo vende ya estaba en `componente.proveedor`) y **una** RPC
+`cargar_compra_mp(p_proveedor, p_kg, p_remito, p_fecha, p_pct_corto)` que resuelve el PS por
+datos. Un tercer proveedor de materia prima es una fila, no una función.
+Verificación con rollback: vieja vs nueva, para Altrak (con 70/30) y Aperam: misma recepción
+(proveedor, kg, `rollos_json`), misma ubicación destino, mismos deltas de inventario, misma
+respuesta de reparto; proveedor sin PS híbrido rechazado. Las dos viejas se borraron; Recepción
+Insumos llama la genérica (dos líneas, `stock_kg` en vez de `stock_charcas_kg`/`stock_eclipse_kg`).
+
+### Estado tras el ciclo 2q
+**47 tablas · 13 vistas · 120 funciones · 36 tests.**
+
+---
+
 ## Decisiones arquitectónicas (acumuladas)
 
 1. **Las copias de datos no viven en la base.** Un snapshot "por si hay que volver atrás" va a

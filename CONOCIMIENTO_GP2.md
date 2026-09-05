@@ -352,7 +352,7 @@ El Fleje 90 va en **2 pasos** `[usuario 2026-09-04]`:
 - **1) Recepción de Altrak** — en **Recepción Insumos → Flejes → Altrak** `[usuario
   "altrak tiene que estar en prov insumo flejes", opción B 2026-09-04]`. Altrak es
   proveedor de insumo (fleje); aparece en el rubro Flejes con un flujo propio (`irAltrak`)
-  que pide **kg + % corto/largo** y llama `cargar_compra_altrak(p_kg, p_remito, p_fecha,
+  que pide **kg + % corto/largo** y llama `cargar_compra_mp('Altrak', p_kg, p_remito, p_fecha,
   p_pct_corto)`. Suma `FLEJE90_BRUTO` al stock de Charcas (ubic 13). **Acá se decide el
   % corto/largo** (ej. 30/70, **varía por entrega** según stock/pedido); ese % fija **lo
   que Charcas tiene que entregar de cada medida** (se guarda como objetivo en
@@ -462,8 +462,8 @@ depositado en la ubicación del PS.
 **Paridad Altrak/Charcas ↔ Aperam/Eclipse `[dato 2026-09-02, act. 2026-09-04]`:** los dos
 modelos son gemelos estructurales. Igual: ubicación tipo `proveedor_servicio`
 (Charcas 13 / Eclipse 48), MP en kg (`FLEJE90_BRUTO` Altrak sector 13 Alambre /
-`CHAPA430` Aperam sector 5 Fleje desde 2026-09-04), RPC de compra (`cargar_compra_altrak` /
-`cargar_compra_aperam_chapa`), RPC de recepción (`cargar_recepcion_charcas`
+`CHAPA430` Aperam sector 5 Fleje desde 2026-09-04), RPC de compra (`cargar_compra_mp('Altrak'|'Aperam', ...)`, una sola desde el
+2026-09-05: el PS que recibe sale de `proveedor_servicio.mp_componente_id`), RPC de recepción (`cargar_recepcion_charcas`
 / `cargar_recepcion_eclipse`), parámetro de desperdicio.
 **Ambos entran igual (desde 2026-09-04, "misma forma"):** la MP se recibe por
 Recepción Insumos → Flejes (Altrak = provderor propio con panel; chapa Aperam =
