@@ -187,9 +187,12 @@ Cada uno tiene la consulta y el detalle en los informes de auditoría (`REFACTOR
    N° 22 = A9). ¿Cuál es? (recomendación: A9, corregir la columna).
 2. **PA10 / PEP3**: están en sector Procesado (decisión 2026-09-04) pero los 240 de stock de
    PEP3 viven en la ubicación *Sector Plástico* y no hay fila en Procesado. ¿Se mueven con dos
-   ajustes (−240 Plástico, +240 Procesado)? (recomendación: sí).
-3. **32 stocks negativos en talleristas** (IJUPA −1.896 en 11 piezas, Pettofrezza −1.200 en 12,
-   W6 −2.400): son consumos de Virgilio sin envío ni stock inicial cargado. ¿Se releva el stock
+   ajustes (−240 Plástico, +240 Procesado)? (recomendación: sí). Consecuencia mientras tanto
+   `[dato 2026-09-05]`: como no tienen fila en su sector, `oc_bundle` les toma el máximo (de Est
+   Madre) de la ubicación ajena — es la regla "primero la propia, si no la que tenga stock".
+3. **37 stocks negativos en talleristas** (IJUPA −1.896 en 11 piezas, Pettofrezza −1.200 en 12,
+   W6 −2.400; +4 en Pedernera/Carlos −1.920 por la entrega 2308 repuesta el 05/09): son consumos
+   de Virgilio sin envío ni stock inicial cargado. ¿Se releva el stock
    de esos dos talleristas y se carga como ajuste trazado, o se blanquea a 0? (recomendación:
    relevar; los negativos son la lista exacta de lo que hay que contar).
 4. **574** está `discontinuado` pero la Est Madre le pide 1.060/mes (también 119: 150, 615: 24,
@@ -203,11 +206,11 @@ Cada uno tiene la consulta y el detalle en los informes de auditoría (`REFACTOR
 7. **Federico Realini** tiene dos legajos (274 inactivo, 401 activo). ¿Reingreso (se deja) o
    error de carga (unificar)?
 8. **Matriz «S/N» (117)** está en 2 rutas (ID5→W5) sin tiempo ni tipo; **138 (119)** dice tipo A
-   (alimentador) y tipo_matriz B (balancín). ¿Cuál vale? (`tipo_matriz` se va a borrar: nadie la
-   lee).
-9. **Mínimo > máximo en 80 filas** (X4 87.892 vs 20.020; V9 113.912 vs 10.581): el mínimo es
-   consumo × meses y el máximo es el lugar. Como la OC pide «llenar el lugar», ¿el mínimo se
-   topea en el máximo o se deja como alerta?
+   (alimentador) y decía tipo_matriz B (balancín). ¿Cuál vale? (`tipo_matriz` ya se borró el
+   04/09: nadie la leía; queda `tipo`).
+9. **Mínimo > máximo en 80 filas** (X4 87.892 vs 20.020; V9 113.912 vs 10.581): NO se topea
+   (el usuario ya lo decidió el 02/09, §2e-bis de `CONOCIMIENTO`); lo que sí hay que decidir son
+   los parámetros `meses_minimo > meses_stock` de tres ubicaciones → **pregunta 27**.
 10. **IE3, IC2 e IF12** (flejes) no tienen `kg_x_uni`: cualquier movimiento en unidades falla.
     ¿Peso por pieza? (dato físico).
 11. **Z12, C13 y 1686** (crudo/procesado) no tienen `uni_x_cajon` (Z12 y C13 tampoco
@@ -244,13 +247,6 @@ Cada uno tiene la consulta y el detalle en los informes de auditoría (`REFACTOR
     0 filas: ninguna recepción de Basconia/Hermac se controló todavía desde la pantalla. ¿El
     pesaje por pallet se usa de verdad? Si no se va a usar, son 2 tablas + 3 vistas + 3
     funciones para borrar.
-21. **`PEP3` y `PA10` están en Sector Procesado pero su único stock (y su máximo de Est Madre)
-    vive en la ubicación de Sector Plástico** `[dato 2026-09-05]`. Como no tienen fila en la
-    ubicación de su sector, `oc_bundle` les toma el máximo de la ubicación ajena (es la regla
-    "primero la propia, si no la que tenga stock"). ¿Son piezas de Plástico mal clasificadas
-    (cambiar `sector_id` a 6) o de Procesado que se guardan ahí?
-22. **Tres flejes sin `kg_x_uni`**: `IF12`, `IE3`, `IC2` (no lo tenían ni en `fleje_detalle`, que
-    se borró el 05/09): sin peso no costean ni convierten kg ↔ uni. ¿Los pesos?
 
 ---
 
@@ -291,7 +287,8 @@ lo manda ahí), pero `ubic_de_componente()` lo resuelve a Virgilio. Si A, hay qu
 dónde "vive" el alambre bruto (¿ubicación "Sector Alambre" o la de Charcas?) — `db/verificar.sql`
 (regla A) va a marcar el sector insumo sin ubicación hasta que se resuelva.
 
-**Pregunta concreta.** ¿A o B? Y si A, ¿el stock del alambre bruto queda en Charcas o en un sector propio?
+**Pregunta concreta.** ¿A, B o C? (con C el stock del bruto sigue en Charcas y el sector 13 se
+borra; con A hay que decidir además dónde "vive" el alambre).
 
 ---
 
@@ -311,7 +308,13 @@ sin FK a `articulo`). Unificar exige que cada artículo AT exista como component
 Virgilio; remito/factura en `nota` o en una tabla chica de facturas.
 
 **Recomendación.** A por ahora. B sólo si se quiere ver el stock de Virgilio completo (propio +
-AT) en una sola pantalla.
+AT) en una sola pantalla. **Nota del experto (2026-09-05):** A cierra con dos cosas que el usuario
+ya dijo — "Virgilio no se analiza, existe sólo para medir a los talleristas" (§3) y "no cargar
+`GP2.inventario` de Virgilio a mano, se desincroniza en una semana" (§4o). B además obligaría a
+inventar 57 componentes (sólo 27 de los 84 `cod_art` de `articulo_prov_at` existen como
+`componente`) y degradaría el checklist de Pagos, que lee remito/factura/fecha de esta tabla vía
+`v_recepcion_unificada`. Si algún día se quiere ver Virgilio entero, el camino ya elegido es la
+vista sobre el libro de Virgilio (idea 7243), no un segundo ledger.
 
 **Impacto.** A: nada. B: tabla, RPC, pantalla Entregas AT y el espejo de Virgilio.
 

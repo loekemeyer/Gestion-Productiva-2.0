@@ -6,7 +6,14 @@
 > Los cambios en Supabase quedan aplicados como migraciones `refactor_20260904_*` (no las
 > versiona git; `db/` se regenera al final).
 
-## Resumen ejecutivo (al cierre, 2026-09-05 ~00:00 AR)
+## Resumen ejecutivo (al cierre, 2026-09-05 ~03:30 AR)
+
+Siete horas efectivas de loop analizar → detectar → corregir → validar → re-analizar
+(2026-09-04 17:44 → 2026-09-05 ~03:30 AR, con un corte de 2 h 47 m por límite de uso de la cuenta,
+19:13 → 22:00 AR, que no cuenta). 30 ciclos (1, 1b, 2, 2a–2z) y 8 agentes: 5 de la primera ronda
+(tablas, datos, código muerto, funciones, ubicaciones — dos murieron con el corte y se terminaron a
+mano) + `gp2-auditor-costos` y `gp2-experto` como segunda opinión al final + el verificador de UI
+(la suite, en cada push). 60 commits, todos en `main`.
 
 | | Antes (17:44 AR) | Después |
 |---|---|---|
@@ -876,15 +883,15 @@ lo que el usuario ya decidió?). Lo que salió y qué se hizo:
      escritos a mano dentro de `v_costo_componente` sin el 9 Garage. Se probó en transacción
      (591 filas, **0 cambios** de costo hoy) y se aplicó: la vista lee `es_insumo`. Una fuente.
   2. `oc_bundle` toma el máximo de una ubicación ajena cuando la pieza no tiene fila en la de su
-     sector: hoy pasa con 2 (`PEP3`, `PA10`, Procesado con stock en Plástico) → pregunta 8.21
-     (¿mal clasificadas?), no se toca la regla.
+     sector: hoy pasa con 2 (`PEP3`, `PA10`, Procesado con stock en Plástico) → anotado en la
+     pregunta 8, ítem 2 (ya preguntaba por esas dos); no se toca la regla.
   3. `recalcular_minimos` **sí pisa** las 697 filas con `minimo_origen` null cuando hay consumo
      (el comentario de la columna decía lo contrario): comentario corregido en la base, dato en
      `CONOCIMIENTO` y en la pregunta 25 (si A, agregar la guarda de `'fisico'`).
   4. `precio_tallerista.precio_uni` es un costo congelado (trigger al insertar; si cambia el
      peso no se mueve): hoy 0 filas desfasadas → idea **7262**.
   5. `fleje_detalle.kg_x_uni` borrada: los 3 flejes sin peso (`IF12`, `IE3`, `IC2`) tampoco lo
-     tenían ahí → pregunta 8.22.
+     tenían ahí (ya estaban en la pregunta 8, ítem 10): no se perdió ningún dato.
   6. **Doc desviada**: el sugerido de la OC es `maximo − stock` (sin `pendiente_oc` desde el
      04/09, "por ahora borralo") y `CLAUDE.md`, `OC_GP2.html` y `Valorizacion_GP2.html` decían
      otra cosa (y nombraban `v_valor_stock`/`v_valor_pedido`, que no existen) → corregidos.
@@ -900,7 +907,7 @@ lo que el usuario ya decidió?). Lo que salió y qué se hizo:
 - `db/vistas_GP2.sql` regenerado; `version.js` **v1.109.1** (token `20260905r`).
 
 ### Estado tras el ciclo 2z
-**47 tablas · 13 vistas · 119 funciones · 36 tests · 16 invariantes en 0 · 28 preguntas (8 con 22 datos).**
+**47 tablas · 13 vistas · 119 funciones · 36 tests · 16 invariantes en 0 · 27 preguntas (la 8 con 22 datos).**
 
 ---
 
