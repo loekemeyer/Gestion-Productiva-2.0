@@ -2843,6 +2843,13 @@ y carlos aguirre son dos prov diferentes para ISIS"*. **Regla capital**:
   proveedor (Altrak está en `proveedor_insumo`), pero nada consume el bruto — el consumo está en
   `IC3` (150 uni/mes) e `IC3V` (15): la demanda del alambre habría que derivarla de IC3 + IC3V +
   merma de corte (pregunta 21).
+- **Un sector de insumo puede tener piezas FABRICADAS** `[dato 2026-09-05]`: 11 componentes de
+  sectores `es_insumo` no tienen proveedor porque se hacen por ruta y llevan
+  `estado_compra = 'fabricacion'` (resortes `C9`, `D14`, `I2`, `I3`; clavo `D9`; `V18D`, `V4`; y
+  los armados de garage `GRJ1`, `GRJ7`, `GRJ10`, `GRJ10A`). Esa marca es la que los saca de la OC
+  y del costo "comprado" (`v_costo_componente` los costea por ruta): no es un dato que falte.
+  El único artículo activo sin Est Madre es el **071** (Bowls): sus partes no tienen demanda ni
+  máximo automático (pregunta 8, ítem 18).
 - **Reglas de reposición distintas por componente en esa misma ubi** `[deducido, pendiente
   de implementar]`: los crudos/cromados (N7, GRJ10, GRJ10A, cuerpos p/cromar) se reponen en
   kg según lo que Cervantes tiene en Sector Procesado; los insumos de envasado (cartones

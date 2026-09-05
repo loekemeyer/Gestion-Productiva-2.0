@@ -240,7 +240,9 @@ Cada uno tiene la consulta y el detalle en los informes de auditoría (`REFACTOR
     727E, 877E, 599, 943, 948, 207, 584E, 590E, 590ES, 823, 817, 760): quedan en
     `virgilio_espejo_pend`. ¿Se dan de alta?
 18. **071**: la ruta lleva la caja A4 y ahora la receta también (ciclo 2); el usuario dijo «al 071
-    no le hagas cartón» (cartón ≠ caja). ¿La caja A4 va? Si no, se saca la fila.
+    no le hagas cartón» (cartón ≠ caja). ¿La caja A4 va? Si no, se saca la fila. Además es el
+    **único artículo activo sin Est Madre** `[dato 2026-09-05]`: sin demanda, sus partes no tienen
+    máximo ni mínimo automático. ¿Se vende todavía?
 19. **Cronograma de relevamiento «Bolsa Plást»** (2 fechas) no tiene `sector_id`, así que ese
     conteo no se puede abrir. ¿Es sector Plástico (6) o Cartón (10)?
 20. **`recepcion_control` / `recepcion_control_rollo`** (pesaje por pallet con rollos) siguen en
