@@ -231,7 +231,7 @@ comment on table "GP2".inventario is 'Stock por componente y ubicacion (cantidad
 comment on column "GP2".inventario.maximo is 'Maximo en UNIDADES = cajones_x_ubicacion * ubicaciones * componente.uni_x_cajon.';
 comment on column "GP2".inventario.cajones_x_ubicacion is 'Cajones que entran en UNA ubicacion fisica. Origen: SC Kg."Max Caj Cerv" / SP Kg."Max Cajon SP Cerv".';
 comment on column "GP2".inventario.ubicaciones is 'Ubicaciones fisicas consecutivas que ocupa el sector. Solo se nombra la primera, asi que se deduce como (numero del proximo codigo de la misma letra) - (numero propio). Minimo 1.';
-comment on column "GP2".inventario.minimo_origen is 'De donde sale el minimo: ''consumo'' = lo calculo recalcular_minimos() como consumo_uni_mes x ubicacion.meses_minimo; null = carga original del usuario (Excel), que la funcion no pisa.';
+comment on column "GP2".inventario.minimo_origen is 'null = carga original del usuario (Excel); consumo = lo calculo recalcular_minimos (que SI pisa las filas con origen null cuando el consumo es > 0; solo respeta consumo 0/desconocido); excel_uni_convertido_kg = conversion de la carga original.';
 
 -- ---------- matriz ----------
 create table "GP2".matriz (

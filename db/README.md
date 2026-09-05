@@ -57,4 +57,7 @@ que `v_recepcion_control`); los archivos van alfabéticos, así que si algo fall
 
 **Para regenerar este export**: pedirle a Claude "regenerá db/". Son las tres consultas de
 **`db/regenerar.sql`** (solo lectura sobre `pg_catalog`; cada una devuelve el texto de un archivo),
-y se verifica con `md5(pg_get_functiondef)` contra el archivo.
+y se verifica con `md5(pg_get_functiondef)` contra el archivo. Truco con el MCP de Supabase: si el
+resultado es chico viene "inline" y no se puede guardar tal cual; concatenar `|| repeat(' ', 300000)`
+al final fuerza que quede en un archivo de tool-result, y después se recorta (así se regeneró
+`vistas_GP2.sql` el 2026-09-05).
