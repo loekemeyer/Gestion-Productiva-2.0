@@ -1,7 +1,7 @@
 -- =====================================================================
 -- TABLAS del schema GP2 (DDL reconstruido de pg_catalog: columnas, identity, defaults, constraints, comentarios) — export automatico 2026-09-05 desde Supabase (hrxfctzncixxqmpfhskv)
 -- Respaldo/referencia. La fuente de verdad es la base; regenerar al cambiar el schema.
--- 47 tablas, 137 constraints, 49 indices sueltos, 9 triggers, RLS en 47 tablas, 47 policies.
+-- 47 tablas, 138 constraints, 49 indices sueltos, 9 triggers, RLS en 47 tablas, 47 policies.
 -- =====================================================================
 
 -- ---------- articulo ----------
@@ -16,6 +16,7 @@ create table "GP2".articulo (
   constraint articulo_componente_caja_id_fkey FOREIGN KEY (componente_caja_id) REFERENCES "GP2".componente(id),
   constraint articulo_familia_fkey FOREIGN KEY (familia) REFERENCES "GP2".familia(nombre) ON UPDATE CASCADE
 );
+comment on table "GP2".articulo is 'Articulo terminado (codigo de venta) con familia, caja y unidades por caja. Receta en articulo_componente; ruta en ruta/ruta_paso.';
 comment on column "GP2".articulo.discontinuado is 'true = ya no se fabrica (ej. 119 y 809: ahora se importan — ver sufijo E en CONOCIMIENTO). Sin fila activa en Est Madre no generan consumo; el flag es para que las pantallas los distingan.';
 
 -- ---------- articulo_componente ----------
@@ -28,6 +29,7 @@ create table "GP2".articulo_componente (
   constraint articulo_componente_articulo_id_fkey FOREIGN KEY (articulo_id) REFERENCES "GP2".articulo(id),
   constraint articulo_componente_componente_id_fkey FOREIGN KEY (componente_id) REFERENCES "GP2".componente(id)
 );
+comment on table "GP2".articulo_componente is 'Receta directa del articulo: que componentes lleva y cuantos por unidad. La escribe abm_bom_guardar.';
 
 -- ---------- articulo_prov_at ----------
 create table "GP2".articulo_prov_at (
@@ -43,6 +45,7 @@ create table "GP2".articulo_prov_at (
   constraint articulo_prov_at_proveedor_at_id_cod_art_key UNIQUE (proveedor_at_id, cod_art),
   constraint articulo_prov_at_proveedor_at_id_fkey FOREIGN KEY (proveedor_at_id) REFERENCES "GP2".proveedor_at(id)
 );
+comment on table "GP2".articulo_prov_at is 'Catalogo de articulos que fabrica cada proveedor de articulo terminado (cod_art, caja, marca).';
 
 -- ---------- carton_categoria ----------
 create table "GP2".carton_categoria (
@@ -66,6 +69,7 @@ create table "GP2".carton_formato (
   pedido_minimo numeric,
   constraint carton_formato_pkey PRIMARY KEY (nombre)
 );
+comment on table "GP2".carton_formato is 'Formatos de carton y su regla de envase (multiplo de compra, pedido minimo, uni x bolsa, paquetes x bolsa) para la OC y el control de recepcion (REGLAS_OC_INSUMOS.md).';
 comment on column "GP2".carton_formato.uni_x_bolsa is 'Unidades por bolsa: cuantos codigos entran en una bolsa envasada. Huevo=2000, 8=3000, C=1000, LOKE=1000. NULL para Pliego/Bolsa (formatos que no van embolsados por codigos).';
 comment on column "GP2".carton_formato.pedido_minimo is 'Pedido minimo de la familia, en unidades. Distinto del multiplo: el multiplo dice de a cuanto sube el total, el minimo dice el piso para que el proveedor lo tome. NULL = sin piso.';
 
@@ -94,6 +98,7 @@ create table "GP2".componente (
   constraint componente_estado_compra_chk CHECK (((estado_compra IS NULL) OR (estado_compra = ANY (ARRAY['fabricacion'::text, 'discontinuo'::text, 'importado'::text, 'compra'::text])))),
   constraint componente_unidad_medida_chk CHECK ((unidad_medida = ANY (ARRAY['kg'::text, 'unidad'::text])))
 );
+comment on table "GP2".componente is 'Maestro de piezas e insumos: codigo, sector, unidad, kg/uni, uni x cajon, proveedor, estado de compra. Un codigo puede repetirse en OTRO sector (A1 pieza / A1 caja): la clave es id.';
 comment on column "GP2".componente.estado_compra is 'null = se compra; fabricacion = se hace adentro; discontinuo = ya no se usa. Los que tienen estado quedan fuera de la OC y no cuentan como "sin proveedor".';
 comment on column "GP2".componente.recibe_en_cajas is 'El proveedor lo entrega en cajas que se PESAN: la recepcion va siempre en kg (sin toggle) y el control se carga como cajas x kg por caja. No cambia la unidad_medida canonica del componente.';
 comment on column "GP2".componente.relev_solo_sueltas is 'true = en el relevamiento se cuenta SOLO por unidades sueltas, sin envase (no aplica cajon/bolsa/paquete).';
@@ -108,6 +113,7 @@ create table "GP2".componente_bom (
   constraint componente_bom_componente_hijo_id_fkey FOREIGN KEY (componente_hijo_id) REFERENCES "GP2".componente(id),
   constraint componente_bom_componente_padre_id_fkey FOREIGN KEY (componente_padre_id) REFERENCES "GP2".componente(id)
 );
+comment on table "GP2".componente_bom is 'Receta de un componente armado (intermedio): que componentes consume y cuantos.';
 
 -- ---------- contraparte_alias ----------
 create table "GP2".contraparte_alias (
@@ -118,6 +124,7 @@ create table "GP2".contraparte_alias (
   constraint contraparte_alias_tipo_check CHECK ((tipo = ANY (ARRAY['tallerista'::text, 'proveedor_at'::text, 'proveedor_servicio'::text, 'interno'::text]))),
   constraint contraparte_alias_upper_chk CHECK ((alias = upper(alias)))
 );
+comment on table "GP2".contraparte_alias is 'Alias (siempre en mayusculas) con que planillas y espejos nombran a una contraparte (tipo + ref_id), para cruzar por texto.';
 
 -- ---------- empleado ----------
 create table "GP2".empleado (
@@ -130,6 +137,7 @@ create table "GP2".empleado (
   constraint empleado_pkey PRIMARY KEY (id),
   constraint empleado_legajo_key UNIQUE (legajo)
 );
+comment on table "GP2".empleado is 'Operarios de la fabrica (legajo, nombre, tipo, hora de entrada, activo) para la app de produccion. La escriben empleado_guardar / empleado_activar.';
 
 -- ---------- entrega_prov_at ----------
 create table "GP2".entrega_prov_at (
@@ -148,6 +156,7 @@ create table "GP2".entrega_prov_at (
   constraint entrega_prov_at_pkey PRIMARY KEY (id),
   constraint entrega_prov_at_proveedor_at_id_fkey FOREIGN KEY (proveedor_at_id) REFERENCES "GP2".proveedor_at(id)
 );
+comment on table "GP2".entrega_prov_at is 'Entregas de articulo terminado de los Prov AT (cajas por cod_art, remito, factura). Es un segundo ledger fuera de movimiento (pregunta 22).';
 
 -- ---------- est_madre ----------
 create table "GP2".est_madre (
@@ -159,6 +168,7 @@ create table "GP2".est_madre (
   copiado_en timestamp with time zone not null default now(),
   constraint proyeccion_venta_pkey PRIMARY KEY (cod)
 );
+comment on table "GP2".est_madre is 'Espejo de la Estadistica Madre (public.proyeccion_madre, trigger fn_est_madre_sync): unidades por mes de cada articulo; alimenta minimos y maximos.';
 
 -- ---------- faltante_marcado ----------
 create table "GP2".faltante_marcado (
@@ -173,6 +183,7 @@ create table "GP2".faltante_marcado (
   constraint faltante_marcado_componente_id_fkey FOREIGN KEY (componente_id) REFERENCES "GP2".componente(id),
   constraint faltante_marcado_origen_check CHECK ((origen = ANY (ARRAY['envios_tall'::text, 'envios_ps'::text, 'operario'::text, 'manual'::text])))
 );
+comment on table "GP2".faltante_marcado is 'Faltantes marcados a mano (componente, origen, nota, quien) hasta que se resuelven (resuelto_en).';
 
 -- ---------- familia ----------
 create table "GP2".familia (
@@ -181,6 +192,7 @@ create table "GP2".familia (
   constraint familia_pkey PRIMARY KEY (id),
   constraint familia_nombre_key UNIQUE (nombre)
 );
+comment on table "GP2".familia is 'Familias de articulos (nombre unico).';
 
 -- ---------- fleje_detalle ----------
 create table "GP2".fleje_detalle (
@@ -196,6 +208,7 @@ create table "GP2".fleje_detalle (
   constraint fleje_detalle_pkey PRIMARY KEY (componente_id),
   constraint fleje_detalle_componente_id_fkey FOREIGN KEY (componente_id) REFERENCES "GP2".componente(id) ON DELETE CASCADE
 );
+comment on table "GP2".fleje_detalle is 'Datos propios de cada fleje (n° de fleje, medida, codigo ISIS, kg por unidad despiece, consumo mensual, kg x cajon); una fila por componente de Sector Fleje.';
 
 -- ---------- inventario ----------
 create table "GP2".inventario (
@@ -214,6 +227,7 @@ create table "GP2".inventario (
   constraint inventario_componente_id_fkey FOREIGN KEY (componente_id) REFERENCES "GP2".componente(id),
   constraint inventario_ubicacion_id_fkey FOREIGN KEY (ubicacion_id) REFERENCES "GP2".ubicacion(id)
 );
+comment on table "GP2".inventario is 'Stock por componente y ubicacion (cantidad canonica, minimo, maximo y su origen). La cantidad la escriben SOLO los triggers de movimiento; minimo/maximo, las RPC de recalculo.';
 comment on column "GP2".inventario.maximo is 'Maximo en UNIDADES = cajones_x_ubicacion * ubicaciones * componente.uni_x_cajon.';
 comment on column "GP2".inventario.cajones_x_ubicacion is 'Cajones que entran en UNA ubicacion fisica. Origen: SC Kg."Max Caj Cerv" / SP Kg."Max Cajon SP Cerv".';
 comment on column "GP2".inventario.ubicaciones is 'Ubicaciones fisicas consecutivas que ocupa el sector. Solo se nombra la primera, asi que se deduce como (numero del proximo codigo de la misma letra) - (numero propio). Minimo 1.';
@@ -236,6 +250,7 @@ create table "GP2".matriz (
   constraint matriz_tiempo_unidad_chk CHECK ((tiempo_unidad = ANY (ARRAY['uni'::text, 'kg'::text]))),
   constraint matriz_uni_x_golpe_positivo CHECK ((uni_x_golpe > (0)::numeric))
 );
+comment on table "GP2".matriz is 'Matrices de la fabrica (n°, descripcion, tiempo historico, uni x golpe, piezas por kg de fleje).';
 comment on column "GP2".matriz.uni_x_golpe is 'Unidades que salen por cada golpe del contador de la matriz (alimentador o balancin). El operario anota GOLPES; las unidades producidas = golpes * uni_x_golpe. Fuente inicial: Conteo_Gral_FLEJES_y_Alambre.xls, hoja Consumo KG x Art, columna "Uni x Golpe" (2026-08-31).';
 comment on column "GP2".matriz.tiempo_unidad is 'En que se mide tiempo_historico: "uni" = segundos por pieza (el caso normal, verificado contra db_n8n_espejo) o "kg" = segundos por kilo procesado. La 501 (afilado de cuchillas) es por kg [usuario 2026-08-31].';
 comment on column "GP2".matriz.maquina is 'Donde se produce: alimentador (un golpe por segundo) o balancin (6 a 10 s minimo). Mapeo del usuario 2026-08-31: A=alimentador, B y D=balancin, P=piedra (501, se mide por kg). Sirve para leer bien un tiempo: no se compara un tiempo de alimentador con uno de balancin.';
@@ -266,6 +281,7 @@ create table "GP2".movimiento (
   constraint movimiento_ubic_origen_id_fkey FOREIGN KEY (ubic_origen_id) REFERENCES "GP2".ubicacion(id),
   constraint movimiento_tipo_mov_chk CHECK ((tipo_mov = ANY (ARRAY['compra'::text, 'fabricacion'::text, 'armado_fabrica'::text, 'consumo_prod'::text, 'envio_ps'::text, 'entrega_ps'::text, 'consumo'::text, 'envio_tallerista'::text, 'entrega_tallerista'::text, 'consumo_tall'::text, 'devolucion_tallerista'::text, 'envio_prov_at'::text, 'recepcion_virgilio'::text, 'consumo_virgilio'::text, 'stock_inicial'::text, 'ajuste'::text])))
 );
+comment on table "GP2".movimiento is 'El libro (ledger) de stock: cada fila es un evento con tipo_mov del vocabulario cerrado (CHECK). Los triggers calculan _delta_orig/_delta_dest y los aplican en inventario. Solo se escribe por RPC.';
 comment on column "GP2".movimiento._delta_orig is 'delta canonico restado al ORIGEN (congelado al aplicar; usado para revertir sin drift)';
 comment on column "GP2".movimiento._delta_dest is 'delta canonico sumado al DESTINO (congelado al aplicar)';
 comment on column "GP2".movimiento.cajones is 'Conteo fisico de cajones del movimiento. Independiente de cantidad (peso/unidades). kg/cajones = carga real del cajon.';
@@ -286,6 +302,7 @@ create table "GP2".orden_compra (
   constraint orden_compra_pkey PRIMARY KEY (id),
   constraint orden_compra_estado_check CHECK ((estado = ANY (ARRAY['borrador'::text, 'enviada'::text, 'recibida'::text, 'anulada'::text])))
 );
+comment on table "GP2".orden_compra is 'Ordenes de compra de insumos por proveedor y rubro (borrador -> enviada -> recibida / anulada). Las crea crear_oc; la recepcion las cruza (recibido).';
 comment on column "GP2".orden_compra.fecha_entrega_estimada is 'Fecha de entrega estimada de esta OC, la que se imprime en la hoja que va al proveedor. Se propone desde proveedor_insumo.dias_entrega pero es editable y se guarda por OC (el proveedor puede confirmar otra). NULL = sin fecha acordada.';
 
 -- ---------- orden_compra_item ----------
@@ -303,6 +320,7 @@ create table "GP2".orden_compra_item (
   constraint orden_compra_item_oc_id_fkey FOREIGN KEY (oc_id) REFERENCES "GP2".orden_compra(id) ON DELETE CASCADE,
   constraint orden_compra_item_cantidad_check CHECK ((cantidad > (0)::numeric))
 );
+comment on table "GP2".orden_compra_item is 'Renglones de la OC: componente, cantidad pedida, unidad, recibido (lo va llenando la recepcion), precio.';
 
 -- ---------- parametro ----------
 create table "GP2".parametro (
@@ -311,6 +329,7 @@ create table "GP2".parametro (
   descripcion text,
   constraint parametro_pkey PRIMARY KEY (clave)
 );
+comment on table "GP2".parametro is 'Parametros con nombre (clave/valor), p.ej. max_cajones_x_ubicacion = 5 y caja_uni_x_paquete.';
 
 -- ---------- parte_proveedor_servicio ----------
 create table "GP2".parte_proveedor_servicio (
@@ -322,6 +341,7 @@ create table "GP2".parte_proveedor_servicio (
   constraint parte_proveedor_servicio_componente_id_fkey FOREIGN KEY (componente_id) REFERENCES "GP2".componente(id) ON DELETE CASCADE,
   constraint parte_proveedor_servicio_proveedor_servicio_id_fkey FOREIGN KEY (proveedor_servicio_id) REFERENCES "GP2".proveedor_servicio(id) ON DELETE CASCADE
 );
+comment on table "GP2".parte_proveedor_servicio is 'Que piezas pinta/procesa cada proveedor de servicio (asignacion de pintores) y cual es el asignado activo.';
 
 -- ---------- precio_proveedor ----------
 create table "GP2".precio_proveedor (
@@ -338,6 +358,7 @@ create table "GP2".precio_proveedor (
   constraint precio_proveedor_pkey PRIMARY KEY (id),
   constraint precio_proveedor_componente_id_fkey FOREIGN KEY (componente_id) REFERENCES "GP2".componente(id)
 );
+comment on table "GP2".precio_proveedor is 'Precios de compra de insumos por proveedor y componente (lista, moneda, fecha, precio por kg).';
 comment on column "GP2".precio_proveedor.precio_por_kg is 'true = el precio es por KG: la vista de costos lo multiplica por componente.kg_x_uni en vivo (regla del usuario: el peso vive en el componente, la tarifa en el proveedor)';
 
 -- ---------- precio_servicio_pieza ----------
@@ -357,6 +378,7 @@ create table "GP2".precio_servicio_pieza (
   constraint precio_servicio_pieza_proceso_fkey FOREIGN KEY (proceso) REFERENCES "GP2".proceso(nombre) ON UPDATE CASCADE,
   constraint precio_servicio_pieza_proveedor_servicio_id_fkey FOREIGN KEY (proveedor_servicio_id) REFERENCES "GP2".proveedor_servicio(id)
 );
+comment on table "GP2".precio_servicio_pieza is 'Precio del servicio de un PS por pieza y proceso (por unidad o por kg).';
 comment on column "GP2".precio_servicio_pieza.precio_kg is 'tarifa $/kg del proceso; la vista multiplica por el kg_x_uni VIVO de la pieza. Si esta, gana sobre precio_uni';
 
 -- ---------- precio_tallerista ----------
@@ -375,6 +397,7 @@ create table "GP2".precio_tallerista (
   constraint precio_tallerista_componente_id_fkey FOREIGN KEY (componente_id) REFERENCES "GP2".componente(id),
   constraint precio_tallerista_tallerista_id_fkey FOREIGN KEY (tallerista_id) REFERENCES "GP2".tallerista(id)
 );
+comment on table "GP2".precio_tallerista is 'Tarifa del tallerista por pieza/articulo (concepto descriptivo, precio; el precio por kg lo deriva el trigger fn_precio_tallerista_kg).';
 comment on column "GP2".precio_tallerista.precio_kg is 'Tarifa POR KILO cuando el tallerista cobra asi. Es el dato de origen; el trigger trg_precio_tallerista_kg calcula precio_uni = precio_kg x componente.kg_x_uni, que es lo que lee v_costo_componente. Si se carga solo precio_uni, esta columna queda null y no pasa nada.';
 
 -- ---------- proceso ----------
@@ -383,6 +406,7 @@ create table "GP2".proceso (
   descripcion text,
   constraint proceso_pkey PRIMARY KEY (nombre)
 );
+comment on table "GP2".proceso is 'Catalogo de procesos de servicio (pintado, calado, cromado, ...).';
 
 -- ---------- produccion ----------
 create table "GP2".produccion (
@@ -415,6 +439,7 @@ create table "GP2".produccion (
   constraint produccion_pkey PRIMARY KEY (id),
   constraint produccion_matriz_id_fkey FOREIGN KEY (matriz_id) REFERENCES "GP2".matriz(id)
 );
+comment on table "GP2".produccion is 'Registros de produccion de la app de operarios (legajo, matriz, unidades/golpes, horas, premio). Soft delete con eliminar = S. Los escriben registrar_evento_prod / registrar_produccion.';
 comment on column "GP2".produccion.golpes is 'Golpes que marco el contador de la matriz. NULL = el registro vino en unidades directas (app vieja).';
 comment on column "GP2".produccion.uni_x_golpe is 'Foto del matriz.uni_x_golpe usado para pasar golpes -> uni en este registro.';
 
@@ -428,6 +453,7 @@ create table "GP2".proveedor_at (
   constraint proveedor_at_pkey PRIMARY KEY (id),
   constraint proveedor_at_nombre_key UNIQUE (nombre)
 );
+comment on table "GP2".proveedor_at is 'Proveedores de articulo terminado (nos venden producto armado). Cada uno tiene su ubicacion de stock.';
 
 -- ---------- proveedor_insumo ----------
 create table "GP2".proveedor_insumo (
@@ -442,6 +468,7 @@ create table "GP2".proveedor_insumo (
   constraint proveedor_insumo_pkey PRIMARY KEY (nombre),
   constraint proveedor_insumo_modo_control_chk CHECK ((modo_control = ANY (ARRAY['ninguno'::text, 'rollos_remito'::text, 'pesaje'::text, 'peso_total'::text, 'pendiente'::text])))
 );
+comment on table "GP2".proveedor_insumo is 'Proveedores de insumos (rubro, modo de control de la recepcion: rollos_remito / pesaje / peso_total / ninguno).';
 comment on column "GP2".proveedor_insumo.rubro is 'Nombre del sector que provee (ej. "Sector Plástico"). Sirve para que el proveedor aparezca en la botonera de ese rubro aunque todavia no tenga ninguna parte asignada.';
 comment on column "GP2".proveedor_insumo.cod_prov is 'Código de proveedor en ISIS (contable). Se muestra en el módulo de Recepción unificada para el checklist del sector Pagos.';
 comment on column "GP2".proveedor_insumo.dias_entrega is 'Dias tipicos de entrega de este proveedor (plazo desde que se le manda la OC hasta que entrega). Se usa para PROPONER orden_compra.fecha_entrega_estimada = fecha de la OC + dias_entrega. NULL = todavia no se sabe (no se inventa): la pantalla no propone fecha y el usuario la escribe a mano.';
@@ -454,9 +481,13 @@ create table "GP2".proveedor_servicio (
   proceso text,
   hibrido boolean not null default false,
   nombre_corto text,
-  constraint proveedor_servicio_pkey PRIMARY KEY (id)
+  mp_componente_id bigint,
+  constraint proveedor_servicio_pkey PRIMARY KEY (id),
+  constraint proveedor_servicio_mp_componente_id_fkey FOREIGN KEY (mp_componente_id) REFERENCES "GP2".componente(id)
 );
+comment on table "GP2".proveedor_servicio is 'Proveedores de servicio (PS): proceso, nombre corto para pantallas, hibrido (tambien compra materia prima: mp_componente_id). Cada uno tiene su ubicacion (la crea alta_proveedor_servicio).';
 comment on column "GP2".proveedor_servicio.nombre_corto is 'Como lo llaman en la planta (Jade, Ximpa, Scor, FAAT). Antes: proveedor_servicio_alias.nombre_viejo (tabla borrada 2026-09-05).';
+comment on column "GP2".proveedor_servicio.mp_componente_id is 'PS hibrido: la materia prima BRUTA que recibe y consume (Charcas -> FLEJE90_BRUTO, Eclipse -> CHAPA430). Quien la vende es componente.proveedor. Lo usa cargar_compra_mp (2026-09-05).';
 
 -- ---------- recepcion_control ----------
 create table "GP2".recepcion_control (
@@ -485,6 +516,7 @@ create table "GP2".recepcion_control_rollo (
   constraint recepcion_control_rollo_cantidad_check CHECK ((cantidad > 0)),
   constraint recepcion_control_rollo_kg_por_rollo_check CHECK ((kg_por_rollo > (0)::numeric))
 );
+comment on table "GP2".recepcion_control_rollo is 'Rollos declarados al pesar un pallet (cantidad, kg por rollo); el trigger fn_rollo_desde_control da de alta el rollo.';
 
 -- ---------- recepcion_insumo ----------
 create table "GP2".recepcion_insumo (
@@ -514,6 +546,7 @@ create table "GP2".recepcion_insumo (
   constraint recepcion_insumo_movimiento_id_fkey FOREIGN KEY (movimiento_id) REFERENCES "GP2".movimiento(id) ON DELETE SET NULL,
   constraint recepcion_insumo_pallets_check CHECK (((pallets IS NULL) OR (pallets > 0)))
 );
+comment on table "GP2".recepcion_insumo is 'Recepciones de insumos: componente, proveedor, remito, cantidad declarada y controlada, movimiento asociado, rollos/pallets. Cruza contra las OC abiertas (_aplicar_recepcion_a_oc).';
 comment on column "GP2".recepcion_insumo.rollos is 'Cantidad de rollos declarada en el remito. Solo la informan algunos proveedores (Aperam, Basconia). Null = el remito no la trae.';
 comment on column "GP2".recepcion_insumo.pallets is 'Cantidad de pallets que llegaron, anotada en la carga junto con los kg y los rollos del remito. Cada pallet se pesa por separado en el control.';
 comment on column "GP2".recepcion_insumo.controlado is 'true = ya se hizo el control fisico (base x pisos + sueltas para cajas)';
@@ -535,6 +568,7 @@ create table "GP2".relevamiento (
   constraint relevamiento_sector_id_fkey FOREIGN KEY (sector_id) REFERENCES "GP2".sector(id),
   constraint relevamiento_estado_ck CHECK ((estado = ANY (ARRAY['en_curso'::text, 'contado'::text, 'aplicado'::text, 'anulado'::text])))
 );
+comment on table "GP2".relevamiento is 'Conteo fisico de un sector (en_curso -> contado -> aplicado), con encargado, cronograma y fechas.';
 
 -- ---------- relevamiento_cronograma ----------
 create table "GP2".relevamiento_cronograma (
@@ -569,6 +603,7 @@ create table "GP2".relevamiento_item (
   constraint relevamiento_item_relevamiento_id_fkey FOREIGN KEY (relevamiento_id) REFERENCES "GP2".relevamiento(id) ON DELETE CASCADE,
   constraint relevamiento_item_decision_ck CHECK ((decision = ANY (ARRAY['conteo'::text, 'programa'::text])))
 );
+comment on table "GP2".relevamiento_item is 'Renglones del conteo: envases, sueltas, kg, total en unidades, stock del programa al momento y la decision (conteo / programa).';
 
 -- ---------- rollo_evento ----------
 create table "GP2".rollo_evento (
@@ -588,6 +623,7 @@ create table "GP2".rollo_evento (
   constraint rollo_evento_kg_por_rollo_check CHECK ((kg_por_rollo > (0)::numeric)),
   constraint rollo_evento_motivo_check CHECK ((motivo = ANY (ARRAY['inicial'::text, 'recepcion'::text, 'toma_operario'::text, 'ajuste'::text, 'devolucion'::text])))
 );
+comment on table "GP2".rollo_evento is 'Eventos de rollos de fleje (alta desde el control, ajustes, tomas): componente, kg por rollo, delta, motivo, legajo.';
 
 -- ---------- rollo_uso ----------
 create table "GP2".rollo_uso (
@@ -606,6 +642,7 @@ create table "GP2".rollo_uso (
   constraint rollo_uso_componente_id_fkey FOREIGN KEY (componente_id) REFERENCES "GP2".componente(id),
   constraint rollo_uso_rollo_evento_id_fkey FOREIGN KEY (rollo_evento_id) REFERENCES "GP2".rollo_evento(id)
 );
+comment on table "GP2".rollo_uso is 'Uso de un rollo por un operario (legajo, matriz, inicio/fin, quedo resto, unidades producidas vs esperadas).';
 
 -- ---------- ruta ----------
 create table "GP2".ruta (
@@ -615,6 +652,7 @@ create table "GP2".ruta (
   constraint ruta_pkey PRIMARY KEY (id),
   constraint ruta_articulo_id_fkey FOREIGN KEY (articulo_id) REFERENCES "GP2".articulo(id)
 );
+comment on table "GP2".ruta is 'Ruta productiva de un articulo (una por tallerista cuando mas de uno hace el mismo paso). Sus pasos en ruta_paso.';
 
 -- ---------- ruta_paso ----------
 create table "GP2".ruta_paso (
@@ -636,6 +674,7 @@ create table "GP2".ruta_paso (
   constraint ruta_paso_ruta_id_fkey FOREIGN KEY (ruta_id) REFERENCES "GP2".ruta(id),
   constraint ruta_paso_tallerista_id_fkey FOREIGN KEY (tallerista_id) REFERENCES "GP2".tallerista(id)
 );
+comment on table "GP2".ruta_paso is 'Pasos de la ruta en orden: tipo (matriz / proveedor_servicio / tallerista), quien, componente que entra y componente que sale, cantidad. Fuente de v_contraparte_parte.';
 
 -- ---------- ruta_revision ----------
 create table "GP2".ruta_revision (
@@ -665,6 +704,7 @@ create table "GP2".sector (
   constraint sector_pkey PRIMARY KEY (id),
   constraint sector_oc_rubro_id_fkey FOREIGN KEY (oc_rubro_id) REFERENCES "GP2".sector(id)
 );
+comment on table "GP2".sector is 'Sectores de la fabrica (tipo, es_insumo, rubro y si pide OC). Cada sector es una ubicacion de stock.';
 comment on column "GP2".sector.oc_rubro_id is 'Rubro al que sube este sector en la pantalla de OC. NULL = es su propio rubro.';
 comment on column "GP2".sector.oc_pide is 'false = este sector NO se compra por OC (no aparece en Generar OC).';
 comment on column "GP2".sector.es_insumo is 'true = sector de insumos comprados (entra por Recepcion, sale en la OC, sin ruta que lo produzca). Antes: lista fija de ids en _es_sector_insumo.';
@@ -679,6 +719,7 @@ create table "GP2".tallerista (
   constraint tallerista_pkey PRIMARY KEY (id),
   constraint tallerista_ubicacion_stock_id_fkey FOREIGN KEY (ubicacion_stock_id) REFERENCES "GP2".ubicacion(id)
 );
+comment on table "GP2".tallerista is 'Talleristas (activo, ubicacion_stock_id cuando comparten deposito, p.ej. Carlos Aguirre en Pedernera). Cada uno tiene su ubicacion.';
 comment on column "GP2".tallerista.ubicacion_stock_id is 'Ubicación de stock efectiva. Cuando el tallerista comparte depósito con otro actor (típicamente un proveedor_servicio), apunta a la ubi de ese depósito compartido. Si es NULL, se usa la ubi nativa (tipo=tallerista, ref_id=this.id).';
 comment on column "GP2".tallerista.activo is 'false = no aparece en las pantallas de Envio/Entrega de talleristas. Se usa para sacar de circulacion sin borrar la fila, que arrastra ubicacion e historial de movimientos. Maspoli (id 7) quedo inactivo el 2026-09-03 al pasar a proveedor de servicio.';
 
@@ -699,6 +740,7 @@ create table "GP2".tarifa_servicio (
   constraint tarifa_servicio_proveedor_servicio_id_fkey FOREIGN KEY (proveedor_servicio_id) REFERENCES "GP2".proveedor_servicio(id),
   constraint tarifa_servicio_precio_chk CHECK (((precio_kg IS NOT NULL) OR (precio_uni IS NOT NULL)))
 );
+comment on table "GP2".tarifa_servicio is 'Tarifa de un proceso de servicio por PS (precio por kg o por unidad, moneda, origen).';
 
 -- ---------- tipo_cambio ----------
 create table "GP2".tipo_cambio (
@@ -709,6 +751,7 @@ create table "GP2".tipo_cambio (
   obtenido_en timestamp with time zone not null default now(),
   constraint tipo_cambio_pkey PRIMARY KEY (fecha)
 );
+comment on table "GP2".tipo_cambio is 'Dolar oficial diario (compra/venta/fuente); lo carga el cron gp2-dolar-oficial via actualizar_dolar_oficial.';
 
 -- ---------- ubicacion ----------
 create table "GP2".ubicacion (
@@ -720,6 +763,7 @@ create table "GP2".ubicacion (
   meses_stock numeric,
   constraint ubicacion_pkey PRIMARY KEY (id)
 );
+comment on table "GP2".ubicacion is 'Ubicaciones de stock: una por sector, PS, tallerista y Prov AT, mas Virgilio y "Para Analizar" (singletons). Se resuelven con ubic_de(tipo, ref_id); indice unico (tipo, ref_id).';
 comment on column "GP2".ubicacion.ref_id is 'Referencia al id del sector/proveedor/tallerista según tipo. Es NULL sólo para tipos generales sin fila propia: virgilio, analisis.';
 
 -- ---------- uni_x_articulo_x_caja ----------
@@ -733,6 +777,7 @@ create table "GP2".uni_x_articulo_x_caja (
   creado_en timestamp with time zone not null default now(),
   constraint uni_x_articulo_x_caja_pkey PRIMARY KEY (id)
 );
+comment on table "GP2".uni_x_articulo_x_caja is 'Unidades de cada articulo que entran por caja, por empresa (CH / LK). Lo lee Control AT.';
 
 -- ---------- virgilio_espejo_pend ----------
 create table "GP2".virgilio_espejo_pend (
@@ -746,6 +791,7 @@ create table "GP2".virgilio_espejo_pend (
   creado_en timestamp with time zone not null default now(),
   constraint virgilio_espejo_pend_pkey PRIMARY KEY (id)
 );
+comment on table "GP2".virgilio_espejo_pend is 'Entregas de Virgilio (public."Entregas Tallerista Virgilio") que el espejo no pudo cruzar a GP2 (falta alias o codigo), con el motivo.';
 
 -- ============ INDICES (no asociados a constraints) ============
 

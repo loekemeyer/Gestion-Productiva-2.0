@@ -771,6 +771,34 @@ cuando se responda, entra como invariante en `db/verificar.sql`.
 
 ---
 
+## Ciclo 2v — mapa de la casa: triggers, cron, puntos de contacto con `public`, nomenclatura, 04:50–05:10 AR
+
+- **`GP2_MAPA.md`**: sección nueva con los **9 triggers propios + 2 espejos sobre `public`** (qué
+  tabla, qué función, qué hace) y el único cron de GP2 (`gp2-dolar-oficial`, entre 49 jobs del
+  proyecto); y la lista cerrada de **puntos de contacto con la casa del vecino**: dos triggers
+  espejo (`public` → GP2), `virgilio_espejo_pend.entrega_id`, `get_role_for_email` (delega en
+  `public`) y `actualizar_dolar_oficial` (extensión `http`). Ninguna función, vista ni pantalla
+  GP2 lee tablas de `public`. La sección "Pendiente de verificación" del mapa (3 puntos de agosto)
+  quedó resuelta y dice dónde está cada verificación.
+- **Nomenclatura** (374 columnas): `componente_id` ×13 vs `comp_id` ×1 (`movimiento`, más
+  `comp_entrada_id`/`comp_salida_id` en `ruta_paso`); `creado_en` ×9 vs `created_at` ×1 vs
+  `fecha` ×8; `codigo` ×2 vs `cod` ×2 vs `cod_art` ×3; `nota` ×7 vs `notas` ×1. Consistente en lo
+  grueso; los pocos desvíos quedan (decisión 4: no se renombra por prolijidad). 33 tablas
+  maestras sin columna de creación — no hace falta: son maestros, no eventos.
+- **Advisor de performance** (re-corrido tras los cambios del día): 19 INFO en GP2 — 14 FKs sin
+  índice (tablas de 12 a 600 filas) y 5 índices "sin uso" (dos son de hoy y todavía no los
+  consultó nadie). Tabla más grande: `ruta_paso`, 2.595 filas / 792 kB. Decisión sostenida: no
+  se indexa por indexar.
+- **Comentarios en la base**: 43 de las 47 tablas no tenían `comment on table`. Ahora las 47 lo
+  tienen (qué es, quién la escribe, con qué se cruza) — visible en el panel de Supabase y en
+  `db/tablas_GP2.sql`. Cero cambio de comportamiento.
+- `db/tablas_GP2.sql` y `db/funciones_GP2.sql` regenerados (md5 exacto).
+
+### Estado tras el ciclo 2v
+**47 tablas · 13 vistas · 120 funciones · 36 tests · 14 invariantes en 0.**
+
+---
+
 ## Decisiones arquitectónicas (acumuladas)
 
 1. **Las copias de datos no viven en la base.** Un snapshot "por si hay que volver atrás" va a

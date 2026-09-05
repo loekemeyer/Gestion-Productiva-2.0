@@ -6,7 +6,7 @@ Export automático **2026-09-05** (cierre de la auditoría de arquitectura del 2
 
 | Archivo | Contenido | Exactitud |
 |---|---|---|
-| `tablas_GP2.sql` | **47 tablas** (columnas, identity, defaults, comentarios de tabla y columna) + 137 constraints (PK, UNIQUE, FK, CHECK) + 49 índices sueltos + 9 triggers + RLS en las 47 + 47 policies (todas SELECT) | DDL reconstruido de `pg_catalog`; constraints/índices/triggers exactos vía `pg_get_*def` |
+| `tablas_GP2.sql` | **47 tablas** (columnas, identity, defaults, **comentario en las 47 tablas** y en 41 columnas) + 138 constraints (PK, UNIQUE, FK, CHECK) + 49 índices sueltos + 9 triggers + RLS en las 47 + 47 policies (todas SELECT) | DDL reconstruido de `pg_catalog`; constraints/índices/triggers exactos vía `pg_get_*def` |
 | `funciones_GP2.sql` | Las **120 funciones/RPC** del schema (97 RPC de pantalla + 23 internas) | Exacto (`pg_get_functiondef`), **verificado md5 contra la base** (120/120 el 2026-09-05 02:55 UTC, tras fusionar `cargar_compra_altrak`+`aperam_chapa` en `cargar_compra_mp`) |
 | `vistas_GP2.sql` | Las **13 vistas** (con sus `comment on view`) | Exacto (`pg_get_viewdef`) |
 | `verificar.sql` | **Invariantes** de la base en una consulta (contrapartes con ubicación, inventario = ledger, grants, RLS, PS híbridos, códigos, rutas): cada fila debe dar `n = 0` | Sólo lectura; correrla antes de tocar la base y al cerrar; el agente diario la corre al empezar |

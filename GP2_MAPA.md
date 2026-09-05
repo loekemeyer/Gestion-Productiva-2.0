@@ -245,13 +245,46 @@ Antes `crear_envio_ps`, `crear_entrega_ps` y `crear_envio_tallerista` buscaban l
 respuesta sea una sola. Ninguna funcion busca mas una ubicacion por nombre
 (`tests`: consulta `prosrc ~ 'from ubicacion .* where nombre'` da vacio).
 
-## Pendiente de verificacion
+## Triggers (9 propios + 2 sobre `public`) y el cron
 
-1. `has_function_privilege('anon', oid, 'EXECUTE')` — que puede tocar la anon key
-   (critico: GP2 concentra todo el stock en `inventario`/`movimiento`).
-2. Cuerpo de los bundles de lectura, para confirmar los shapes de arriba contra
-   el SQL (hoy estan inferidos del JS que los consume).
-3. `fn_espejo_produccion` / `fn_espejo_entrega_tallerista`: sobre que tablas
-   estan colgados y en que direccion espejan.
+| Tabla | Trigger | Funcion | Que hace |
+|---|---|---|---|
+| `movimiento` | `trg_movimiento_calc` / `trg_movimiento_aplicar` | `fn_movimiento_calc`, `fn_movimiento_aplicar` | El motor de inventario: convierte kg/uni a `_delta_*` y aplica el delta en `inventario` |
+| `componente`, `parametro` | `trg_maximos_cajones_*` | `fn_recalc_maximos_cajones` | Maximo "5 cajones" de Crudo/Procesado al cambiar `uni_x_cajon` o el parametro |
+| `articulo_componente`, `est_madre`, `ruta_paso` | `trg_maximos_receta` / `_est_madre` / `_rutas` | `fn_recalc_maximos_insumos` | Maximo de insumos por Est Madre explotada |
+| `precio_tallerista` | `trg_precio_tallerista_kg` | `fn_precio_tallerista_kg` | Precio por kg derivado |
+| `recepcion_control_rollo` | `trg_rollo_desde_control` | `fn_rollo_desde_control` | Da de alta el rollo al pesar el pallet |
+| `public."Entregas Tallerista Virgilio"` | `trg_virgilio_espejo_gp2` | `fn_entregas_virgilio_espejo` | **Espejo public → GP2**: cada entrega en Virgilio se registra en `movimiento` (o queda en `virgilio_espejo_pend` si no cruza) |
+| `public.proyeccion_madre` | `trg_est_madre_sync_gp2` | `fn_est_madre_sync` | **Espejo public → GP2**: `est_madre` (uni = cajas × articulos_por_caja cuando el origen no trae uxb) |
 
-Las queries de verificacion estan en los informes de la auditoria del 2026-09-04 (`REFACTOR_GP2.md`).
+Cron: un solo job de GP2 entre los 49 del proyecto, `gp2-dolar-oficial` (`10 9 * * *` UTC →
+`"GP2".actualizar_dolar_oficial()`). Los otros 48 son de `public`/`planify` (la casa del vecino).
+
+## Puntos de contacto con `public` (la casa del vecino) — son estos y nada mas
+
+GP2 no lee tablas de `public` desde ninguna funcion, vista ni pantalla. Las excepciones, todas
+deliberadas y en una sola direccion (`public` → GP2):
+
+1. Los dos triggers espejo de arriba (`fn_entregas_virgilio_espejo`, `fn_est_madre_sync`).
+2. `virgilio_espejo_pend.entrega_id` apunta a la entrega de `public` que no pudo cruzar (sin FK,
+   es otro schema).
+3. `get_role_for_email(p_email)` delega en `public.get_role_for_email` (el rol del login es del
+   programa viejo, pregunta 1 de `PREGUNTAS_ARQUITECTURA_GP2.md`).
+4. `actualizar_dolar_oficial()` usa `public.http_get` (la extension `http`, no una tabla).
+
+Verificado el 2026-09-05: `grep 'public\.'` sobre `db/funciones_GP2.sql` y `db/vistas_GP2.sql`
+da solo los puntos 3 y 4; las pantallas GP2 hacen `from()` solo sobre 11 tablas/vistas GP2
+(`produccion`, `empleado`, `componente`, `sector`, `inventario`, `v_recepcion_unificada`,
+`proveedor_servicio`, `movimiento`, `familia`) y todo lo demas por RPC.
+
+## Verificaciones ya hechas (eran "pendientes" de este mapa)
+
+1. Que puede tocar la anon key: **nada directo** — 0 policies de escritura, 0 grants
+   INSERT/UPDATE/DELETE, 0 secuencias con USAGE; 97 RPC con EXECUTE y 23 funciones internas sin
+   EXECUTE. `db/verificar.sql` lo chequea (reglas C, D, D2, E, F, M).
+2. Los shapes de los bundles del indice de arriba estan verificados contra la base (claves
+   reales de `jsonb_object_keys`, 2026-09-05).
+3. Los espejos: son los dos triggers de la tabla de arriba (los nombres viejos
+   `fn_espejo_produccion` / `fn_espejo_entrega_tallerista` no existen).
+
+Las consultas de verificacion estan en `REFACTOR_GP2.md` (auditoria 2026-09-04/05) y en `db/verificar.sql`.

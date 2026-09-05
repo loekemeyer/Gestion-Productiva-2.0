@@ -378,7 +378,7 @@ AS $function$
 declare
   v_nom text := nullif(btrim(coalesce(p_nombre,'')),'');
   v_proc text := nullif(btrim(coalesce(p_proceso,'')),'');
-  v_id bigint;
+  v_id bigint; v_ubic bigint;
 begin
   if v_nom is null then raise exception 'Falta el nombre del proveedor.'; end if;
   if v_proc is null then raise exception 'Falta el proceso.'; end if;
@@ -392,7 +392,11 @@ begin
   insert into proveedor_servicio (nombre, proceso, cod_prov)
   values (v_nom, v_proc, null) returning id into v_id;
 
-  return jsonb_build_object('ok', true, 'id', v_id, 'nombre', v_nom, 'proceso', v_proc);
+  -- cada contraparte tiene SU ubicacion de stock (sin ella, crear_envio_ps no puede mandarle nada)
+  insert into ubicacion (tipo, ref_id, nombre, meses_minimo)
+  values ('proveedor_servicio', v_id, 'Prov. Serv. ' || v_nom, 0) returning id into v_ubic;
+
+  return jsonb_build_object('ok', true, 'id', v_id, 'nombre', v_nom, 'proceso', v_proc, 'ubicacion_id', v_ubic);
 end $function$
 ;
 
@@ -600,12 +604,16 @@ begin
   end if;
 
   -- que materia prima vende este proveedor y que PS hibrido la recibe (configuracion, no literales)
-  select ps.id, ps.nombre, c.id, c.codigo into v_ps, v_ps_nombre, v_comp, v_cod
-    from proveedor_servicio ps join componente c on c.id = ps.mp_componente_id
-   where ps.hibrido and c.proveedor = p_proveedor;
-  if v_ps is null then
-    raise exception 'Ningun PS hibrido recibe materia prima de "%" (falta proveedor_servicio.mp_componente_id o componente.proveedor)', p_proveedor;
-  end if;
+  begin
+    select ps.id, ps.nombre, c.id, c.codigo into strict v_ps, v_ps_nombre, v_comp, v_cod
+      from proveedor_servicio ps join componente c on c.id = ps.mp_componente_id
+     where ps.hibrido and c.proveedor = p_proveedor;
+  exception
+    when no_data_found then
+      raise exception 'Ningun PS hibrido recibe materia prima de "%" (falta proveedor_servicio.mp_componente_id o componente.proveedor)', p_proveedor;
+    when too_many_rows then
+      raise exception 'Mas de un PS hibrido recibe materia prima de "%": configuracion ambigua en proveedor_servicio.mp_componente_id', p_proveedor;
+  end;
   v_ubic := ubic_de('proveedor_servicio', v_ps);
   if v_ubic is null then raise exception 'El PS "%" no tiene ubicacion', v_ps_nombre; end if;
 
