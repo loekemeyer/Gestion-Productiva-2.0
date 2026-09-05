@@ -1,7 +1,7 @@
 -- =====================================================================
 -- VISTAS del schema GP2 (pg_get_viewdef, exacto) — export automatico 2026-09-05 desde Supabase (hrxfctzncixxqmpfhskv)
 -- Respaldo/referencia. La fuente de verdad es la base; regenerar al cambiar el schema.
--- 12 vistas. Orden de creacion: las que dependen de otra van despues (v_consumo_demanda antes que v_consumo_componente; v_consumo_fleje_kg y v_consumo_componente antes que v_nivel_stock; v_control_pallet antes que v_recepcion_control).
+-- 13 vistas. Orden de creacion: las que dependen de otra van despues (v_consumo_demanda antes que v_consumo_componente; v_consumo_fleje_kg y v_consumo_componente antes que v_nivel_stock; v_control_pallet antes que v_recepcion_control).
 -- =====================================================================
 
 -- ---------- v_consumo_componente ----------
@@ -98,6 +98,37 @@ create or replace view "GP2".v_consumo_fleje_kg as
      JOIN "GP2".componente f ON f.id = p.fleje_id
   GROUP BY f.id, f.codigo, f.descripcion;
 comment on view "GP2".v_consumo_fleje_kg is 'Kg/mes de fleje. Igual que v_consumo_fleje_kg pero tomando la demanda atribuida por articulo (v_consumo_demanda) en vez del consumo entero del primer nodo aguas abajo.';
+
+-- ---------- v_contraparte_parte ----------
+create or replace view "GP2".v_contraparte_parte as
+ SELECT 'proveedor_servicio'::text AS tipo,
+    rp.proveedor_id AS ref_id,
+    rp.comp_entrada_id AS comp_id,
+    'entrada'::text AS lado
+   FROM "GP2".ruta_paso rp
+  WHERE rp.tipo_paso = 'proveedor_servicio'::text AND rp.proveedor_id IS NOT NULL AND rp.comp_entrada_id IS NOT NULL
+UNION
+ SELECT 'proveedor_servicio'::text AS tipo,
+    rp.proveedor_id AS ref_id,
+    rp.comp_salida_id AS comp_id,
+    'salida'::text AS lado
+   FROM "GP2".ruta_paso rp
+  WHERE rp.tipo_paso = 'proveedor_servicio'::text AND rp.proveedor_id IS NOT NULL AND rp.comp_salida_id IS NOT NULL
+UNION
+ SELECT 'tallerista'::text AS tipo,
+    rp.tallerista_id AS ref_id,
+    rp.comp_entrada_id AS comp_id,
+    'entrada'::text AS lado
+   FROM "GP2".ruta_paso rp
+  WHERE rp.tipo_paso = 'tallerista'::text AND rp.tallerista_id IS NOT NULL AND rp.comp_entrada_id IS NOT NULL
+UNION
+ SELECT 'tallerista'::text AS tipo,
+    rp.tallerista_id AS ref_id,
+    rp.comp_salida_id AS comp_id,
+    'salida'::text AS lado
+   FROM "GP2".ruta_paso rp
+  WHERE rp.tipo_paso = 'tallerista'::text AND rp.tallerista_id IS NOT NULL AND rp.comp_salida_id IS NOT NULL;
+comment on view "GP2".v_contraparte_parte is 'Que componente ENTRA (lado=entrada: se le manda) y SALE (lado=salida: devuelve hecho) por cada contraparte (tipo + ref_id), derivado de ruta_paso. Unica definicion (2026-09-05).';
 
 -- ---------- v_control_pallet ----------
 create or replace view "GP2".v_control_pallet as

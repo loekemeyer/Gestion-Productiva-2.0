@@ -8,7 +8,7 @@ Export automático **2026-09-05** (cierre de la auditoría de arquitectura del 2
 |---|---|---|
 | `tablas_GP2.sql` | **47 tablas** (columnas, identity, defaults, comentarios de tabla y columna) + 137 constraints (PK, UNIQUE, FK, CHECK) + 49 índices sueltos + 9 triggers + RLS en las 47 + 47 policies (todas SELECT) | DDL reconstruido de `pg_catalog`; constraints/índices/triggers exactos vía `pg_get_*def` |
 | `funciones_GP2.sql` | Las **121 funciones/RPC** del schema | Exacto (`pg_get_functiondef`), **verificado md5 contra la base** (120/120 el 2026-09-05 02:10 UTC; después se agregó `descontrolar_recepcion` y se regeneró) |
-| `vistas_GP2.sql` | Las **12 vistas** (con sus `comment on view`) | Exacto (`pg_get_viewdef`) |
+| `vistas_GP2.sql` | Las **13 vistas** (con sus `comment on view`) | Exacto (`pg_get_viewdef`) |
 | `relevamiento_GP2.sql` | Registro de las 3 migraciones del Relevamiento nativo (2026-09-04) con su porqué | Documental; el estado vigente está en los tres archivos de arriba |
 | `PENDIENTE_v_costo_componente_servicio_exacto.sql` | Cirugías de costos aplicadas el 2026-08-31 + el pendiente de servicios exactos por pieza | Documental / idempotente |
 | `respaldo_inventario_minimo_20260902.csv` | Las 378 filas de `inventario` cuyo mínimo cambió el 2026-09-02 (mínimo anterior y recalculado) | Reemplaza a la tabla `inventario_minimo_backup_20260902`, borrada el 2026-09-04 |
@@ -21,7 +21,7 @@ llegó a tener 67 / 135 / 16 el 2026-09-04 por las fotos `snap_*` y funciones hu
 (→ `movimiento.nota`), `proveedor_servicio_alias` (→ `proveedor_servicio.nombre_corto`); vistas
 `v_consumo_parte`, `v_consumo_fleje_kg` v1 (la v2 volvió a llamarse así), `v_punto_stock`,
 `v_valor_stock`, `v_valor_pedido`; y las funciones sin llamador. Nuevo: `ubic_de(tipo, ref_id)`
-(una sola forma de resolver ubicaciones), `v_nivel_stock`, `sector.es_insumo`, `movimiento.nota`,
+(una sola forma de resolver ubicaciones), `v_nivel_stock`, `v_contraparte_parte`, `sector.es_insumo`, `movimiento.nota`,
 el CHECK de vocabulario de `movimiento.tipo_mov`, y FKs/índices que faltaban.
 
 **Qué NO incluye**: los DATOS (maestros e inventario viven en la base), los GRANT/REVOKE

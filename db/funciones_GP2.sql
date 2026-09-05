@@ -1165,9 +1165,9 @@ with ps as (
   join lateral (select "GP2".ubic_de('proveedor_servicio', p.id) ubic_id) u on u.ubic_id is not null
 ),
 cfg as (
-  select distinct ps.ubic_id, rp.comp_entrada_id comp_id
-  from ps join ruta_paso rp on rp.tipo_paso='proveedor_servicio' and rp.proveedor_id=ps.ps_id
-  where rp.comp_entrada_id is not null
+  -- que parte entra por PS: v_contraparte_parte (una sola definicion)
+  select distinct ps.ubic_id, v.comp_id
+  from ps join v_contraparte_parte v on v.tipo = 'proveedor_servicio' and v.ref_id = ps.ps_id and v.lado = 'entrada'
 ),
 env as (
   select ubic_destino_id ubic_id, comp_id, sum(_delta_orig) enviado
@@ -3596,17 +3596,20 @@ CREATE OR REPLACE FUNCTION "GP2".partes_por_ps()
  STABLE SECURITY DEFINER
  SET search_path TO 'GP2'
 AS $function$
+  -- Para cada PS: que partes le mandan (sc = entrada) y que partes devuelve (sp = salida).
+  -- Sale de v_contraparte_parte (una sola definicion, 2026-09-05).
   select coalesce(jsonb_object_agg(prov_id::text, jsonb_build_object('sc', coalesce(sc,'[]'::jsonb), 'sp', coalesce(sp,'[]'::jsonb))), '{}'::jsonb)
   from (
-    select rp.proveedor_id prov_id,
+    select v.ref_id prov_id,
       (select jsonb_agg(distinct jsonb_build_object('id',c.id,'codigo',c.codigo,'descripcion',c.descripcion,'sector',s.nombre))
-         from "GP2".ruta_paso r2 join "GP2".componente c on c.id=r2.comp_entrada_id join "GP2".sector s on s.id=c.sector_id
-         where r2.tipo_paso='proveedor_servicio' and r2.proveedor_id=rp.proveedor_id) sc,
+         from "GP2".v_contraparte_parte v2 join "GP2".componente c on c.id=v2.comp_id join "GP2".sector s on s.id=c.sector_id
+        where v2.tipo='proveedor_servicio' and v2.ref_id=v.ref_id and v2.lado='entrada') sc,
       (select jsonb_agg(distinct jsonb_build_object('id',c.id,'codigo',c.codigo,'descripcion',c.descripcion,'sector',s.nombre))
-         from "GP2".ruta_paso r2 join "GP2".componente c on c.id=r2.comp_salida_id join "GP2".sector s on s.id=c.sector_id
-         where r2.tipo_paso='proveedor_servicio' and r2.proveedor_id=rp.proveedor_id) sp
-    from "GP2".ruta_paso rp where rp.tipo_paso='proveedor_servicio' and rp.proveedor_id is not null
-    group by rp.proveedor_id
+         from "GP2".v_contraparte_parte v2 join "GP2".componente c on c.id=v2.comp_id join "GP2".sector s on s.id=c.sector_id
+        where v2.tipo='proveedor_servicio' and v2.ref_id=v.ref_id and v2.lado='salida') sp
+    from "GP2".v_contraparte_parte v
+    where v.tipo='proveedor_servicio'
+    group by v.ref_id
   ) x;
 $function$
 ;
@@ -5284,13 +5287,10 @@ with ub as (
     join lateral (select "GP2".ubic_de('tallerista', t.id) ubic_id) u on u.ubic_id is not null
 ),
 cfg as (
-  select distinct rp.tallerista_id, rp.comp_entrada_id comp_id, 'entrada'::text lado
-    from ruta_paso rp
-   where rp.tipo_paso='tallerista' and rp.tallerista_id is not null and rp.comp_entrada_id is not null
-  union
-  select distinct rp.tallerista_id, rp.comp_salida_id, 'salida'
-    from ruta_paso rp
-   where rp.tipo_paso='tallerista' and rp.tallerista_id is not null and rp.comp_salida_id is not null
+  -- que parte entra y sale por tallerista: v_contraparte_parte (una sola definicion)
+  select ref_id as tallerista_id, comp_id, lado
+    from v_contraparte_parte
+   where tipo = 'tallerista'
 ),
 mov as (
   select u.tall_id, m.comp_id,

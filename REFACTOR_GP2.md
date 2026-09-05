@@ -11,7 +11,7 @@
 | | Antes (17:44 AR) | Después |
 |---|---|---|
 | Tablas GP2 | 67 | **47** (−20: 13 fotos `snap_*`/backup, `agente_propuestas`, `tallerista_alias`, `ruta_confirmada`+`ruta_problema`→`ruta_revision`, `estadistica`, `entrega_cervantes`, `precio_servicio`, `devolucion_tallerista`→`movimiento.nota`, `proveedor_servicio_alias`→`proveedor_servicio.nombre_corto`) |
-| Vistas | 16 | **12** (−5 muertas, +1 `v_nivel_stock` que reemplaza un CTE escrito dos veces) |
+| Vistas | 16 | **13** (−5 muertas, +`v_nivel_stock` y +`v_contraparte_parte`, cada una reemplaza un CTE escrito dos o tres veces) |
 | Funciones/RPC | 135 | **121** (−16 sin llamador o duplicadas, +`ubic_de`, +`descontrolar_recepcion`) |
 | Tablas sin RLS | 16 | **0** |
 | Funciones internas ejecutables por `anon` | 20 | **0** (23 internas con REVOKE; 98 RPC de pantalla) |
