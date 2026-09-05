@@ -7,6 +7,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="../supabase-config.js?v=20260905k"></script>
 <script src="../gp2-ui.js?v=20260905a"></script>
+<script src="../gp2-numero.js?v=20260905m"></script>
 <style>
   :root{--bg:#ebeff4;--card:#ffffff;--line:#d0d7de;--txt:#1e293b;--muted:#64748b;--accent:#0066cc;--pos:#0a7a2f;--neg:#b91c1c;}
   *{box-sizing:border-box}
@@ -76,7 +77,7 @@ var $btn = document.getElementById('btn');
 
 /* ===== Helpers (portados del informes.js viejo) ===== */
 function n(v){ var x = Number(v); return Number.isFinite(x) ? x : 0; }
-function f(v, d){ d = d || 0; return Number(v || 0).toLocaleString('es-AR', { minimumFractionDigits: 0, maximumFractionDigits: d }); }
+function f(v, d){ return GP2N.fmt(v, d || 0); }   /* la regla de numero de la casa (gp2-numero.js) */
 var esc = GP2UI.esc;   /* helper de la casa, gp2-ui.js (2026-09-05) */
 function hs(seg){ return f(seg / 3600, 1); }          // segundos -> horas
 function dias85(seg){ return f(seg / 30600, 1); }      // jornada de 8.5 h

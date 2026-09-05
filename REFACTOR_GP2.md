@@ -529,6 +529,30 @@ distinta forma en el ledger). No se borró ninguna: es la pregunta 26 / idea 726
 
 ---
 
+## Ciclo 2n — contratos pantalla ↔ base y espejos, 02:00–02:30 AR (solo lectura)
+
+| Chequeo | Resultado |
+|---|---|
+| Nombres de RPC que llaman las 62 pantallas/JS GP2 (97) existen en la base y tienen EXECUTE para `anon` | **97/97** |
+| Claves `p_*` que las pantallas mandan en cada `rpc('x', {...})` vs la firma real de la función (61 llamadas con argumentos) | **0 claves inexistentes** |
+| Nombres que las pantallas leen con `.from('...')` (10) existen como tabla o vista | **10/10** |
+| `href` locales de las 50 páginas de entrada GP2 (menú, tablet, login, `*_GP2`) apuntan a archivos que existen | **0 rotos** |
+| Escrituras directas a tablas desde pantallas | **0** (guardia en `test_helpers_ui.js`) |
+| Ledger vs inventario | **0 desvíos** (1078 filas, 221 movimientos) |
+| `GP2.est_madre` vs `public.proyeccion_madre` | 5 filas contables del origen (no son artículos) que el espejo omite a propósito; **36 con `proy_uni_mes` distinto porque el origen trae `uxb` vacío y su "uni" es en realidad cajas**: `fn_est_madre_sync` recalcula uni = cajas × `articulo.articulos_por_caja` (ej. 43: 4 cajas × 24 = 96). Es lo diseñado, no un desvío |
+| `articulo` activos sin ruta / componentes de receta que ninguna ruta produce | 0 / 0 |
+| `virgilio_espejo_pend` | 14 entregas de Virgilio sin aplicar (pregunta 8: 13 artículos que GP2 no conoce) |
+
+De paso, las tres últimas copias de formateador fuera de la regla (Informes por matriz, Informes
+por persona, Disruptivas — esta última con su `esc` propio y un "hoy" en UTC) pasan a
+`GP2N`/`GP2UI`: **no queda ningún parser ni formateador de números propio en las pantallas GP2**,
+salvo Recepción Insumos (7259, a propósito).
+
+### Estado tras el ciclo 2n
+**47 tablas · 12 vistas · 121 funciones · 36 tests.**
+
+---
+
 ## Decisiones arquitectónicas (acumuladas)
 
 1. **Las copias de datos no viven en la base.** Un snapshot "por si hay que volver atrás" va a
@@ -536,6 +560,14 @@ distinta forma en el ledger). No se borró ninguna: es la pregunta 26 / idea 726
 2. **Una función sin llamador se borra**, no se guarda "por si acaso": está en git
    (`db/funciones_GP2.sql`) si hace falta recuperarla.
 3. **Toda tabla GP2 tiene RLS + policy de lectura**; escritura sólo por RPC SECURITY DEFINER.
+4. **No se renombran columnas por prolijidad.** Conviven `comp_id` (`movimiento`, `ruta_paso`) y
+   `componente_id` (`inventario`, `articulo_componente`...), `cod`/`codigo`, `fecha`/`creado_en`.
+   Renombrar toca decenas de funciones y pantallas por cero valor de negocio; la regla es
+   **no agregar una tercera forma** (una tabla nueva usa `componente_id`, `codigo`, `creado_en`).
+5. **Los helpers de pantalla y el cliente viven en un archivo cada uno** (`gp2-ui.js`,
+   `gp2-numero.js`, `supabase-config.js:GP2_SB`) y hay tests que fallan si vuelve una copia.
+6. **El vocabulario del ledger es cerrado** (CHECK) y **la escritura es sólo por RPC**: una
+   palabra nueva o un `from().update()` en una pantalla se agregan a propósito, no por accidente.
 
 ## Riesgos pendientes
 - `auth-guard.js` tiene la lista de páginas del rol `envios` apuntando a pantallas del programa

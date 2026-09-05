@@ -18,8 +18,8 @@ const resultEl = document.getElementById("result");
 
 /* ================= HELPERS ================= */
 function n(v) { const x = Number(v); return Number.isFinite(x) ? x : 0; }
-function f(v, d = 0) { return Number(v || 0).toLocaleString("es-AR", { minimumFractionDigits: 0, maximumFractionDigits: d }); }
-function esc(s) { return String(s ?? "").replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;"); }
+function f(v, d = 0) { return GP2N.fmt(v, d); }   /* la regla de numero de la casa (gp2-numero.js) */
+const esc = GP2UI.esc;   /* helper de la casa (gp2-ui.js) */
 function cls(v) { return n(v) > 0 ? "pos" : n(v) < 0 ? "neg" : ""; }
 // Fecha viene del RPC como 'YYYY-MM-DD': formatear a mano (new Date() la parsea
 // como medianoche UTC y en AR se mostraba el dia anterior).
@@ -39,7 +39,7 @@ const empGrid = document.getElementById("empGrid");
 
 /* ================= INIT ================= */
 async function init() {
-  fechaHasta.value = new Date().toISOString().slice(0, 10);
+  fechaHasta.value = GP2UI.hoyAR();   // hoy en Argentina (antes: UTC, corria el dia despues de las 21:00)
   fechaDesde.value = "2020-01-01";
 
   statusEl.textContent = "Cargando datos...";
@@ -286,9 +286,9 @@ function timeToSec(t) {
 function calcFromModal() {
   const horaIni = document.getElementById("modalHoraIni").value;
   const horaFin = document.getElementById("modalHoraFin").value;
-  const tmHs = n(document.getElementById("modalTM").value);
+  const tmHs = GP2N.num(document.getElementById("modalTM").value);   // campos: la regla de numero de la casa
   const tm = Math.round(tmHs * 3600);
-  const uni = n(document.getElementById("modalUni").value);
+  const uni = GP2N.num(document.getElementById("modalUni").value);
   // GP2: el tiempo historico promedio viene por fila (Tiempo_Historico)
   const tProm = n(editingRow.Tiempo_Historico);
 
