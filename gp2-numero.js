@@ -57,12 +57,16 @@
      que se muestra cuando NO hay valor (null, undefined o ""): "—", "0", ""...
      Sin nullTxt nada cambia: el vacio se muestra como 0. Es LA fmt de la casa;
      una pantalla que quiera otro default lo envuelve (fmt(n,d){ return
-     GP2N.fmt(n, d==null?0:d, "—"); }), no se escribe la suya. */
-  function fmt(n, dec, nullTxt) {
+     GP2N.fmt(n, d==null?0:d, "—"); }), no se escribe la suya. El cuarto parametro
+     (fijo) deja SIEMPRE esa cantidad de decimales. */
+  function fmt(n, dec, nullTxt, fijo) {
     if (nullTxt != null && (n == null || n === "")) return nullTxt;
     var x = Number(n);
     if (!isFinite(x)) x = 0;
-    return x.toLocaleString("es-AR", { maximumFractionDigits: dec == null ? 2 : dec });
+    var d = dec == null ? 2 : dec;
+    /* fijo = true: siempre esa cantidad de decimales ("1,50" y no "1,5"), para columnas
+       alineadas (Control AT, Cierres del dia). */
+    return x.toLocaleString("es-AR", fijo ? { minimumFractionDigits: d, maximumFractionDigits: d } : { maximumFractionDigits: d });
   }
 
   /* Un campo admite coma segun su teclado, que es la convencion de la casa

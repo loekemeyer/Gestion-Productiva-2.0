@@ -86,10 +86,15 @@ for (const p of archivos.slice()) {
 // armar el numero a mano con replace(',','.') antes de parseFloat/Number.
 const PROPIOS = [
   { re: /\.value\s*=\s*[^;\n]*replace\(\/\\D\/g/, que: 'sanea el input con replace(/\\D/g) en vez de GP2N.autoMiles' },
-  { re: /(?:parseFloat|Number)\([^)]*replace\(\s*["'],["']\s*,\s*["']\.["']/, que: "arma el numero con replace(',','.') en vez de GP2N.num" },
+  { re: /(?:parseFloat|Number)\((?:[^()]|\([^()]*\))*replace\(\s*["'],["']\s*,\s*["']\.["']/, que: "arma el numero con replace(',','.') en vez de GP2N.num" },
 ];
+// Recepcion Insumos trae parseNum + sanitizadores propios (usuario 2026-09-01) que contradicen
+// la regla del 2026-09-03 ("12.5" es 12,5 ahi y 125 en la casa). Es la pantalla de carga mas
+// usada: se migra con el operario al lado (IDEAS 7259), no a ciegas. Hasta entonces, permitida.
+const PERMITIDO_PARSER = new Set(['StockFlejes/RecepcionInsumos_GP2.html']);
 const infractores = [];
 for (const p of archivos) {
+  if (PERMITIDO_PARSER.has(path.relative(ROOT, p).replace(/\\/g, '/'))) continue;
   const txt = fs.readFileSync(p, 'utf8');
   for (const { re, que } of PROPIOS) {
     const m = txt.match(re);
@@ -115,7 +120,7 @@ for (const p of archivos) {
     if (fs.existsSync(abs)) conRegla.add(abs);
   }
 }
-const CRUDO = /(?:\bNumber|\bparseFloat|\bparseInt)\(\s*[^()]*?\.value\b/g;
+const CRUDO = /(?:\bNumber|\bparseFloat|\bparseInt)\(\s*(?:String\()?\s*\(?\s*(?:\$R?\(['"][^'"]*['"]\)|document\.getElementById\(['"][^'"]*['"]\)|[\w.]+)\.value\b/g;
 const crudos = [];
 for (const p of conRegla) {
   const txt = fs.readFileSync(p, 'utf8');

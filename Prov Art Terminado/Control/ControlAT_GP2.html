@@ -3,6 +3,7 @@
 <head>
 <script src="../../auth-guard.js?v=20260904t"></script>
 <script src="../../gp2-ui.js?v=20260905a"></script>
+<script src="../../gp2-numero.js?v=20260905m"></script>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>Control Stocks Prov. Art. Terminado · GP2</title>
@@ -164,15 +165,8 @@ function norm(s){
   return String(s == null ? "" : s).toLowerCase()
     .normalize("NFD").replace(/[\u0300-\u036f]/g,"").trim();
 }
-function n(v){
-  if (v == null || v === "") return 0;
-  var x = parseFloat(String(v).replace(",", "."));
-  return isFinite(x) ? x : 0;
-}
-function fmt(v, dec){
-  dec = dec || 0;
-  return Number(v).toLocaleString("es-AR", {minimumFractionDigits:dec, maximumFractionDigits:dec});
-}
+function n(v){ return GP2N.num(v); }   /* la regla de numero de la casa (gp2-numero.js) */
+function fmt(v, dec){ return GP2N.fmt(v, dec || 0, null, true); }   /* decimales fijos, columnas alineadas */
 function fecha(s){
   if (!s) return "";
   var m = String(s).match(/^(\d{4})-(\d{2})-(\d{2})/);

@@ -3,6 +3,7 @@
 <head>
 <script src="../auth-guard.js?v=20260904t"></script>
 <script src="../gp2-ui.js?v=20260905a"></script>
+<script src="../gp2-numero.js?v=20260905m"></script>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>Stock Flejes · GP2</title>
@@ -246,7 +247,7 @@ const SB=GP2_SB();
 var $ = GP2UI.$;
 let FL=[], provSel="", stSel="todos";
 const SIN="(sin proveedor)";
-function fmt(n){var x=Number(n)||0;return Number.isInteger(x)?x.toLocaleString('es-AR'):x.toLocaleString('es-AR',{maximumFractionDigits:2});}
+function fmt(n){ return GP2N.fmt(n, 2); }   /* la regla de numero de la casa (gp2-numero.js) */
 var esc = GP2UI.esc;   /* helper de la casa, gp2-ui.js (2026-09-05) */
 function provOf(f){return f.proveedor && String(f.proveedor).trim() ? f.proveedor : SIN;}
 
@@ -389,8 +390,8 @@ async function guardar(){
   try{
     var res=await SB.rpc('fleje_detalle_upsert',{
       p_comp_id:EDIT.comp_id, p_proveedor:$('mProv').value||null, p_medida:$('mMed').value||null,
-      p_cons:$('mCons').value?Number($('mCons').value):null, p_kgcaj:$('mKgc').value?Number($('mKgc').value):null,
-      p_cod_isis:$('mIsis').value||null, p_kg_uni_desp:$('mKgud').value?Number($('mKgud').value):null, p_parte:$('mParte').value||null});
+      p_cons:$('mCons').value?GP2N.num($('mCons').value):null, p_kgcaj:$('mKgc').value?GP2N.num($('mKgc').value):null,
+      p_cod_isis:$('mIsis').value||null, p_kg_uni_desp:$('mKgud').value?GP2N.num($('mKgud').value):null, p_parte:$('mParte').value||null});
     if(res.error) throw res.error;
     cerrar(); await cargar(); toast('✔ Guardado');
   }catch(e){ toast('Error: '+(e.message||e), true); }
@@ -425,8 +426,7 @@ cargar();
   var $R = function(id){ return document.getElementById(id); };
   function escR(s){ return (s==null?'':String(s)).replace(/[&<>"]/g,function(c){
     return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
-  function fmtR(n,d){ if(n==null||isNaN(n)) return '—';
-    return Number(n).toLocaleString('es-AR',{maximumFractionDigits:d==null?2:d}); }
+  function fmtR(n,d){ return GP2N.fmt(n, d==null?2:d, '—'); }   /* la regla de numero de la casa (gp2-numero.js) */
   function ffecha(x){ return String(x||'').replace('T',' ').slice(0,16); }
   var MOTIVOS={inicial:'Estado inicial',recepcion:'Recepción',toma_operario:'Tomó operario',
                ajuste:'Ajuste',devolucion:'Devolución'};
@@ -525,9 +525,9 @@ cargar();
   $R('ajCancel').onclick=function(){ $R('popAjuste').classList.remove('open'); };
   $R('ajOk').onclick=async function(){
     var m=$R('ajMsg'); m.className='status'; m.textContent='';
-    var peso=parseFloat(String($R('ajPeso').value).replace(',','.'));
-    var cant=Number(String($R('ajCant').value).replace(',','.').trim());
-    var cid=Number($R('ajFleje').value);
+    var peso=GP2N.num($R('ajPeso').value);   // la regla de numero de la casa: punto de miles, coma decimal
+    var cant=GP2N.num($R('ajCant').value);
+    var cid=GP2N.entero($R('ajFleje').value);
     if(!cid){ m.className='status bad'; m.textContent='Elegí el fleje (si la lista está vacía, esperá que termine de cargar).'; return; }
     if(!peso||peso<=0){ m.className='status bad'; m.textContent='Poné el peso del rollo.'; return; }
     if(!cant||!Number.isInteger(cant)){ m.className='status bad'; m.textContent='Poné cuántos rollos (entero ≠ 0, sin decimales).'; return; }

@@ -460,6 +460,31 @@ campos numéricos y las dos con decimales fijos.
 
 ---
 
+## Ciclo 2k — segunda tanda de la regla de número: las pantallas con campos, 01:05–01:20 AR
+
+- Los patrones de `test_numero.js` ahora ven también `Number($('x').value)`, `$R(...)` y
+  `parseFloat(String(...).replace(',','.'))` con paréntesis anidados. Con eso aparecieron
+  **cuatro parsers propios más** que la primera pasada no vio: Flejes (`Number(...)` en el modal y
+  `parseFloat(...replace(',','.'))` en el ajuste de rollos), Devolución (`parseFloat(replace(',','.'))`),
+  Envíos AT (`parseInt(replace(/\D/g,''))`), Control AT (`n(v)` con `replace(',','.')`) y
+  Stock General (`parseFloat(val('f_qty'))`). Todos → `GP2N.num` / `GP2N.entero`, y esas
+  pantallas cargan `gp2-numero.js` (con lo que sus campos ganan el separador de miles).
+- Problemas con Matrices: el campo «Matriz» es un código (`101B`), no una cantidad:
+  `data-miles="no"` para que el separador no lo toque.
+- `GP2N.fmt(n, dec, sinValor, fijo)`: cuarto parámetro para decimales **fijos** («1,50»),
+  que necesitaban Control AT y Cierres del Día (`monitor2`) y era la razón de sus `fmt` propios.
+  Token `gp2-numero.js 20260905m` en las 32 páginas que lo cargan.
+- **Recepción Insumos queda fuera a propósito** (idea 7259): su `parseNum` sigue OTRA regla
+  («12.5» = 12,5) y sus sanitizadores pelean con el separador automático; es la pantalla de
+  carga más usada y se migra con el operario al lado. `test_numero.js` la lista como permitida
+  con ese motivo, así no se pierde.
+- 18 pantallas sin formateador ni parser propio; smoke 47/47.
+
+### Estado tras el ciclo 2k
+**47 tablas · 12 vistas · 120 funciones · 36 tests.**
+
+---
+
 ## Decisiones arquitectónicas (acumuladas)
 
 1. **Las copias de datos no viven en la base.** Un snapshot "por si hay que volver atrás" va a

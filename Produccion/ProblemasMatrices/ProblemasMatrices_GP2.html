@@ -8,6 +8,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="../../supabase-config.js?v=20260905k"></script>
 <script src="../../gp2-ui.js?v=20260905a"></script>
+<script src="../../gp2-numero.js?v=20260905m"></script>
 <link rel="stylesheet" href="../../gp2-modulo.css?v=20260903b"/>
 <link rel="icon" type="image/png" href="../../GP2_favicon.png">
 <link rel="apple-touch-icon" href="../../GP2_favicon.png">
@@ -49,7 +50,7 @@
         <option value="PM">Solo Pares (PM)</option>
       </select></div>
       <div class="f"><label>Operario</label><select id="oper"><option value="">Todos</option></select></div>
-      <div class="f"><label>Matriz</label><input type="text" id="mat" inputmode="numeric" placeholder="N°" style="width:90px"></div>
+      <div class="f"><label>Matriz</label><input type="text" id="mat" inputmode="numeric" data-miles="no" placeholder="N°" style="width:90px"></div>
     </div>
 
     <div class="kpis">
@@ -74,7 +75,7 @@
 var SB = GP2_SB();
 var $ = GP2UI.$;
 var esc = GP2UI.esc;   /* helper de la casa, gp2-ui.js (2026-09-05) */
-function fmt(n){ return Number(n||0).toLocaleString('es-AR',{maximumFractionDigits:0}); }
+function fmt(n){ return GP2N.fmt(n, 0); }   /* la regla de numero de la casa (gp2-numero.js) */
 function hoyAR(off){
   var d=new Date(Date.now()+(off||0)*86400000);
   return new Intl.DateTimeFormat('sv-SE',{timeZone:'America/Argentina/Buenos_Aires'}).format(d);

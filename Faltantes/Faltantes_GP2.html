@@ -8,7 +8,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="../supabase-config.js?v=20260905k"></script>
 <script src="../gp2-ui.js?v=20260905a"></script>
-<script src="../gp2-numero.js?v=20260905b"></script>
+<script src="../gp2-numero.js?v=20260905m"></script>
 <link rel="stylesheet" href="../gp2-modulo.css?v=20260903b"/>
 <link rel="icon" type="image/png" href="../GP2_favicon.png">
 <link rel="apple-touch-icon" href="../GP2_favicon.png">
@@ -257,7 +257,7 @@ $("mCancelar").addEventListener("click", function(){ $("ovMarcar").classList.add
 $("ovMarcar").addEventListener("click", function(e){ if (e.target === $("ovMarcar")) $("ovMarcar").classList.add("hidden"); });
 
 $("mConfirmar").addEventListener("click", async function(){
-  var compId = Number($("mComp").value);
+  var compId = GP2N.entero($("mComp").value);
   if (!compId) return;
   var usuario = $("mUser").value.trim();
   if (usuario) try { localStorage.setItem("gp2_usuario", usuario); } catch (e) {}

@@ -1,6 +1,7 @@
 <!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <script src="../auth-guard.js?v=20260904t"></script>
 <script src="../gp2-ui.js?v=20260905a"></script>
+<script src="../gp2-numero.js?v=20260905m"></script>
 <title>Stock por ubicación · GP2</title>
 <!-- v1.1.2 (2026-09-04) - la tabla de rotulos de los ultimos movimientos pasa al vocabulario REAL del ledger
      (envio_ps/entrega_ps/envio_tallerista/entrega_tallerista/fabricacion...): tenia los nombres del programa viejo y
@@ -149,7 +150,7 @@ const SECT_ORDER=[1,2,4,5,6,7,8,9,10,11,3]; // crudo,proc,afilado,fleje,plastico
 var $ = GP2UI.$;
 var esc = GP2UI.esc;   /* helper de la casa, gp2-ui.js (2026-09-05) */
 function unidad(c){return (c&&c.um==='kg')?'kg':'uni';}
-function fmt(n){var x=Number(n);if(!isFinite(x))return '0';return Number.isInteger(x)?x.toLocaleString('es-AR'):x.toLocaleString('es-AR',{maximumFractionDigits:2});}
+function fmt(n){ return GP2N.fmt(n, 2); }   /* la regla de numero de la casa (gp2-numero.js) */
 
 // arma: por cada ubic id -> [{cid, cant, min}]
 function invPorUbic(){
@@ -277,7 +278,7 @@ function openArmado(){
  $('modalBg').classList.add('on');
 }
 function onAjComp(){
- var cid=parseInt(val('f_comp'));var sel=$('f_ubic');
+ var cid=GP2N.entero(val('f_comp'));var sel=$('f_ubic');
  if(!cid){sel.innerHTML='<option value="">Elegí componente primero</option>';return;}
  var ubics=GP2M.ubicacionesDeComp(cid);
  if(!ubics.length){sel.innerHTML='<option value="">(sin ubicación)</option>';return;}
@@ -293,9 +294,9 @@ async function saveModal(){
  var r;
  try{
   if(MODAL_TIPO==='ajuste')
-   r=GP2M.ajuste({comp_id:val('f_comp'),ubic_id:val('f_ubic'),cantidad:parseFloat(val('f_qty')),fecha:val('f_fecha')});
+   r=GP2M.ajuste({comp_id:val('f_comp'),ubic_id:val('f_ubic'),cantidad:GP2N.num(val('f_qty')),fecha:val('f_fecha')});
   else
-   r=GP2M.armadoFabrica({comp_id:val('f_comp'),cantidad:parseFloat(val('f_qty')),fecha:val('f_fecha')});
+   r=GP2M.armadoFabrica({comp_id:val('f_comp'),cantidad:GP2N.num(val('f_qty')),fecha:val('f_fecha')});
  }catch(e){alert((e&&e.message)||e);return;}
  setBusy(true);
  try{

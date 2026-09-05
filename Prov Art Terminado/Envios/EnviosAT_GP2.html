@@ -8,6 +8,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="../../supabase-config.js?v=20260905k"></script>
 <script src="../../gp2-ui.js?v=20260905a"></script>
+<script src="../../gp2-numero.js?v=20260905m"></script>
 <link rel="stylesheet" href="../../gp2-modulo.css?v=20260903b"/>
 <link rel="icon" type="image/png" href="../../GP2_favicon.png">
 <link rel="apple-touch-icon" href="../../GP2_favicon.png">
@@ -82,7 +83,7 @@
 var SB = GP2_SB();
 var $ = GP2UI.$;
 var esc = GP2UI.esc;   /* helper de la casa, gp2-ui.js (2026-09-05) */
-function fmt(n,d){ return Number(n||0).toLocaleString('es-AR',{maximumFractionDigits:d==null?0:d}); }
+function fmt(n,d){ return GP2N.fmt(n, d==null?0:d); }   /* la regla de numero de la casa (gp2-numero.js) */
 
 var D={}, provSel=null, itemSel=null, PAQ=250;
 
@@ -142,7 +143,7 @@ function abrirPopup(i){
 }
 
 $('popQty').addEventListener('input', function(){
-  var v=parseInt(($('popQty').value||'').replace(/\D/g,''),10)||0;
+  var v=GP2N.entero($('popQty').value);
   var esCarton=itemSel&&itemSel.sector_id===10;
   $('popConv').textContent = (esCarton&&v>0) ? ('= '+fmt(v*PAQ)+' unidades') : '';
 });
@@ -151,7 +152,7 @@ $('popup').addEventListener('click', function(e){ if(e.target===$('popup')) $('p
 
 $('popOk').addEventListener('click', async function(){
   var m=$('popMsg');
-  var v=parseInt(($('popQty').value||'').replace(/\D/g,''),10)||0;
+  var v=GP2N.entero($('popQty').value);
   if(v<=0){ m.className='status bad'; m.textContent='Ingresá una cantidad (> 0).'; return; }
   var esCarton=itemSel.sector_id===10;
   var uni = esCarton ? v*PAQ : v;
