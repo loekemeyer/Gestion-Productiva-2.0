@@ -338,6 +338,45 @@ con datos de remito/factura: se deja y se pregunta).
 
 ---
 
+## Ciclo 2e — auditoría de columnas (todas-null, constantes, ids sin FK), 23:10–23:25 AR
+
+Consulta generada sobre `information_schema.columns` (count / count(col) / count(distinct col)
+para las ~330 columnas de las 47 tablas) + búsqueda de cada columna sospechosa en `pg_proc`,
+`pg_views` y el código. Migración `refactor_20260905_produccion_columnas_muertas_fks_clase`.
+
+| Hallazgo | Decisión |
+|---|---|
+| `produccion.espejo_id`, `fecha_inicio`, `fecha_fin`, `espejado_en`: herencia del espejo `db_n8n_espejo`, ninguna función/vista/pantalla las lee | **borradas** (30 → 26 columnas) |
+| `produccion.dia`, `mes`, `quincena`: derivables de `fecha`, pero las escriben `registrar_evento_prod` / `registrar_produccion` (la app de operarios) y las lee `produccion_maestro_bundle` | se dejan: tocar la RPC de operarios sin poder correr el flujo real no vale 3 columnas de una tabla vacía. Anotado como deuda |
+| `tallerista.clase`: `'tallerista'` en las 13 filas (los proveedores AT tienen su tabla); única lectora `despiece_verif_bundle` como subtítulo | **borrada**; el bundle devuelve el mismo texto fijo |
+| `articulo.componente_caja_id` y `recepcion_insumo.movimiento_id`: ids sin FK, 0 huérfanos | **FKs agregadas** (`on delete set null` en la segunda: `anular_recepcion` borra el movimiento y conserva la recepción) |
+| `sector.oc_rubro_id` (sólo Alambre=5): ninguna función la usa | se queda: la lee `OC_GP2.html` directo (`from('sector')`) |
+| `orden_compra.creado_por`, `proveedor_insumo.dias_entrega`, `tarifa_servicio.precio_uni`, `articulo_prov_at.marca`: todas null hoy | se quedan: las escriben/leen funciones vivas; son datos que todavía no se cargaron |
+| `recepcion_insumo.base/pallets/pisos/rollos/sueltas/controlado_por` (25 filas, todas null) | pesaje por pallet, pregunta 20 |
+| `movimiento.cajones` (2 de 221 con valor) y `faltante` (siempre false) | se quedan: los escriben `crear_envio_ps` / `crear_entrega_ps` cuando la pantalla los manda |
+
+## Ciclo 2f — las 30 pantallas restantes pasan a `gp2-ui.js` + test de humo de las 47 pantallas, 23:25–23:45 AR
+
+- Script `migra_gp2ui.py` (scratchpad): sólo toca definiciones que reconoce exactamente
+  (`function $(id){...getElementById...}`, `const $=id=>...`, `var $ = function(id){...}`, y
+  `function esc(...)` cuyo cuerpo sea uno de los idiomas conocidos: `replace(`, `replaceAll(`,
+  `createElement('div')`); inserta `<script src=".../gp2-ui.js?v=20260905a">` después de
+  `supabase-config.js`. 30 pantallas, 30 OK, ninguna con cuerpo desconocido.
+- A mano: 6 "hoy" con `toISOString().slice(0,10)` (fecha UTC: después de las 21:00 era el día
+  siguiente) → `GP2UI.hoyAR()` (Despiece, ABM Artículos, Faltante Partes, Proporciones,
+  Entrevistas, Tiempos); 3 CSV a mano → `GP2UI.exportarCSV` (Problemas con Matrices,
+  Entrevistas, Tiempos).
+- **Test nuevo `test_smoke_gp2.js`**: abre las 47 pantallas GP2 con Supabase stubeado y sin
+  red; falla si falta un `<script src>` local o si revienta un helper de la casa. Se verificó
+  que detecta las dos cosas con una página trampa (`nope.js` + `GP2UI` sin cargar).
+- Resultado: 41 pantallas cargan `gp2-ui.js` (eran 11), 0 copias de `esc`/`$`/hoy/CSV en
+  ellas (`test_helpers_ui.js`), 37 tests.
+
+### Estado tras el ciclo 2f
+**47 tablas · 11 vistas · 121 funciones · 37 tests.**
+
+---
+
 ## Decisiones arquitectónicas (acumuladas)
 
 1. **Las copias de datos no viven en la base.** Un snapshot "por si hay que volver atrás" va a

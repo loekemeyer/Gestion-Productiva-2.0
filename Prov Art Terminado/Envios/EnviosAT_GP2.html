@@ -7,6 +7,7 @@
 <title>Envío Cartón/Cajas · Prov AT · GP2</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="../../supabase-config.js?v=20260831d"></script>
+<script src="../../gp2-ui.js?v=20260905a"></script>
 <link rel="stylesheet" href="../../gp2-modulo.css?v=20260903b"/>
 <link rel="icon" type="image/png" href="../../GP2_favicon.png">
 <link rel="apple-touch-icon" href="../../GP2_favicon.png">
@@ -83,8 +84,8 @@ var SB = supabase.createClient(
   SUPABASE_KEY,
   { db:{ schema:"GP2" }, auth:{ persistSession:false } }
 );
-function $(id){ return document.getElementById(id); }
-function esc(t){ return String(t==null?'':t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+var $ = GP2UI.$;
+var esc = GP2UI.esc;   /* helper de la casa, gp2-ui.js (2026-09-05) */
 function fmt(n,d){ return Number(n||0).toLocaleString('es-AR',{maximumFractionDigits:d==null?0:d}); }
 
 var D={}, provSel=null, itemSel=null, PAQ=250;

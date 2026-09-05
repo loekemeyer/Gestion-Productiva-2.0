@@ -2,6 +2,7 @@
 <html lang="es">
 <head>
   <script src="../auth-guard.js?v=20260904t"></script>
+<script src="../gp2-ui.js?v=20260905a"></script>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Tiempos Matrices · GP2</title>
@@ -110,15 +111,16 @@
   "use strict";
   var sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY, { db: { schema: 'GP2' } });
 
-  var $ = function (id) { return document.getElementById(id); };
+  var $ = GP2UI.$;
   var ROWS = [], SORT = { k: 'uni', dir: -1 };
 
-  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]; }); }
+  var esc = GP2UI.esc;   /* helper de la casa, gp2-ui.js (2026-09-05) */
   function n2(v) { return (v == null || isNaN(v)) ? '—' : Number(v).toLocaleString('es-AR', { maximumFractionDigits: 2 }); }
   function n0(v) { return (v == null || isNaN(v)) ? '—' : Number(v).toLocaleString('es-AR', { maximumFractionDigits: 0 }); }
 
-  function primerDiaMes() { var d = new Date(); return new Date(d.getFullYear(), d.getMonth(), 1).toISOString().slice(0, 10); }
-  function hoy() { return new Date().toISOString().slice(0, 10); }
+  /* fechas en Argentina (gp2-ui.js): antes toISOString corria el dia despues de las 21:00 */
+  function primerDiaMes() { return GP2UI.hoyAR().slice(0, 8) + '01'; }
+  function hoy() { return GP2UI.hoyAR(); }
 
   async function cargarOperarios() {
     var r = await sb.from('empleado').select('legajo,nombre,activo').order('nombre');
@@ -224,19 +226,15 @@
   }
 
   function csv() {
-    var rows = filtradas();
-    var head = ['Matriz', 'Nombre', 'Producciones', 'Unidades', 'Seg trabajados', 'Seg/uni real', 'Seg/uni historico', 'Desvio %'];
-    var lines = [head.join(';')].concat(rows.map(function (r) {
-      return [r.matriz, r.nombre, r.prods, r.uni, r.segs,
-        r.segUni == null ? '' : r.segUni.toFixed(3),
-        r.segUniHist == null ? '' : r.segUniHist.toFixed(3),
-        r.desvio == null ? '' : r.desvio.toFixed(2)].join(';');
-    }));
-    var blob = new Blob(['sep=;\n﻿' + lines.join('\n')], { type: 'text/csv;charset=utf-8;' });
-    var a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = 'tiempos_matrices_GP2.csv';
-    a.click();
+    /* el armado del CSV (;, BOM, coma decimal) es el de la casa: GP2UI.exportarCSV */
+    var filas = [['Matriz', 'Nombre', 'Producciones', 'Unidades', 'Seg trabajados', 'Seg/uni real', 'Seg/uni historico', 'Desvio %']];
+    filtradas().forEach(function (r) {
+      filas.push([r.matriz, r.nombre, r.prods, r.uni, r.segs,
+        r.segUni == null ? '' : Number(r.segUni.toFixed(3)),
+        r.segUniHist == null ? '' : Number(r.segUniHist.toFixed(3)),
+        r.desvio == null ? '' : Number(r.desvio.toFixed(2))]);
+    });
+    GP2UI.exportarCSV('tiempos_matrices_GP2', filas);
   }
 
   document.addEventListener('DOMContentLoaded', function () {

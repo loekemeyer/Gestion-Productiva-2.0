@@ -2,6 +2,7 @@
 <html lang="es">
 <head>
   <script src="../auth-guard.js?v=20260904t"></script>
+<script src="../gp2-ui.js?v=20260905a"></script>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Entrevistas · GP2</title>
@@ -113,14 +114,15 @@
   "use strict";
   var sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY, { db: { schema: 'GP2' } });
 
-  var $ = function (id) { return document.getElementById(id); };
+  var $ = GP2UI.$;
   var ROWS = [];
 
-  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]; }); }
+  var esc = GP2UI.esc;   /* helper de la casa, gp2-ui.js (2026-09-05) */
   function n2(v) { return (v == null || isNaN(v)) ? '—' : Number(v).toLocaleString('es-AR', { maximumFractionDigits: 2 }); }
   function n0(v) { return (v == null || isNaN(v)) ? '—' : Number(v).toLocaleString('es-AR', { maximumFractionDigits: 0 }); }
-  function hoy() { return new Date().toISOString().slice(0, 10); }
-  function haceUnMes() { var d = new Date(); d.setMonth(d.getMonth() - 1); return d.toISOString().slice(0, 10); }
+  /* fechas en Argentina (gp2-ui.js): antes toISOString corria el dia despues de las 21:00 */
+  function hoy() { return GP2UI.hoyAR(); }
+  function haceUnMes() { var d = new Date(); d.setMonth(d.getMonth() - 1); return GP2UI.hoyAR(d); }
   function fechaAR(iso) {
     try {
       return new Intl.DateTimeFormat('es-AR', { timeZone: 'America/Argentina/Buenos_Aires', day: '2-digit', month: '2-digit', year: '2-digit' }).format(new Date(iso));
@@ -226,18 +228,15 @@
   function csv() {
     var rows = filtradas();
     if (!rows.length) return;
-    var head = ['#', 'Fecha', 'Matriz', 'Nombre matriz', 'Hora inicio', 'Hora fin', 'Uni', 'T total seg', 'T total min', 'T hist seg', 'Seg/uni', 'Puntaje %'];
-    var lines = [head.join(';')].concat(rows.map(function (r, i) {
-      return [i + 1, fechaAR(r.fecha), r.matriz, r.nombre, hhmm(r.hi), hhmm(r.hf), r.uni, r.segs,
-        (r.segs / 60).toFixed(2), r.hist,
-        r.segUni == null ? '' : r.segUni.toFixed(3),
-        r.puntaje == null ? '' : r.puntaje.toFixed(2)].join(';');
-    }));
-    var blob = new Blob(['sep=;\n﻿' + lines.join('\n')], { type: 'text/csv;charset=utf-8;' });
-    var a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = 'entrevista_GP2.csv';
-    a.click();
+    /* el armado del CSV (;, BOM, coma decimal) es el de la casa: GP2UI.exportarCSV */
+    var filas = [['#', 'Fecha', 'Matriz', 'Nombre matriz', 'Hora inicio', 'Hora fin', 'Uni', 'T total seg', 'T total min', 'T hist seg', 'Seg/uni', 'Puntaje %']];
+    rows.forEach(function (r, i) {
+      filas.push([i + 1, fechaAR(r.fecha), r.matriz, r.nombre, hhmm(r.hi), hhmm(r.hf), r.uni, r.segs,
+        Number((r.segs / 60).toFixed(2)), r.hist,
+        r.segUni == null ? '' : Number(r.segUni.toFixed(3)),
+        r.puntaje == null ? '' : Number(r.puntaje.toFixed(2))]);
+    });
+    GP2UI.exportarCSV('entrevista_GP2', filas);
   }
 
   document.addEventListener('DOMContentLoaded', function () {

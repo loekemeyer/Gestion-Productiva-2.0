@@ -18,6 +18,7 @@
      Por DEFAULT gana el CONTEO. Lo que no se conto queda con el programa y no se toca:
      contar es afirmar, no contar no significa "hay cero". -->
 <script src="../auth-guard.js?v=20260904t"></script>
+<script src="../gp2-ui.js?v=20260905a"></script>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>Validación de Stock · GP2</title>
@@ -139,8 +140,8 @@ var SB = supabase.createClient(
   SUPABASE_URL, SUPABASE_KEY,
   { db:{ schema:"GP2" }, auth:{ persistSession:false } }
 );
-function $(id){ return document.getElementById(id); }
-function esc(t){ return String(t==null?'':t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+var $ = GP2UI.$;
+var esc = GP2UI.esc;   /* helper de la casa, gp2-ui.js (2026-09-05) */
 function fmt(n,d){ return n==null||n==='' ? '—' : Number(n).toLocaleString('es-AR',{maximumFractionDigits:d==null?0:d}); }
 function fmtFecha(iso){
   if(!iso) return '';

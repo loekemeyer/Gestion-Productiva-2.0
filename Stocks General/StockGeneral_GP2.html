@@ -1,5 +1,6 @@
 <!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <script src="../auth-guard.js?v=20260904t"></script>
+<script src="../gp2-ui.js?v=20260905a"></script>
 <title>Stock por ubicación · GP2</title>
 <!-- v1.1.2 (2026-09-04) - la tabla de rotulos de los ultimos movimientos pasa al vocabulario REAL del ledger
      (envio_ps/entrega_ps/envio_tallerista/entrega_tallerista/fabricacion...): tenia los nombres del programa viejo y
@@ -145,8 +146,8 @@ const SB=window.supabase.createClient(SB_URL,SB_ANON,{db:{schema:'GP2'}});
 var D=null;
 // orden de sectores pedido por el usuario (id de sector)
 const SECT_ORDER=[1,2,4,5,6,7,8,9,10,11,3]; // crudo,proc,afilado,fleje,plastico,bombilla,remache,garage,carton,caja,(transito al final)
-const $=id=>document.getElementById(id);
-function esc(t){return String(t==null?'':t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+var $ = GP2UI.$;
+var esc = GP2UI.esc;   /* helper de la casa, gp2-ui.js (2026-09-05) */
 function unidad(c){return (c&&c.um==='kg')?'kg':'uni';}
 function fmt(n){var x=Number(n);if(!isFinite(x))return '0';return Number.isInteger(x)?x.toLocaleString('es-AR'):x.toLocaleString('es-AR',{maximumFractionDigits:2});}
 

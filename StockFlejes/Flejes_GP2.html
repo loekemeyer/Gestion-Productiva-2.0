@@ -2,6 +2,7 @@
 <html lang="es">
 <head>
 <script src="../auth-guard.js?v=20260904t"></script>
+<script src="../gp2-ui.js?v=20260905a"></script>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>Stock Flejes · GP2</title>
@@ -242,11 +243,11 @@
 
 <script>
 const SB=window.supabase.createClient(SB_URL,SB_ANON,{db:{schema:'GP2'}});
-const $=id=>document.getElementById(id);
+var $ = GP2UI.$;
 let FL=[], provSel="", stSel="todos";
 const SIN="(sin proveedor)";
 function fmt(n){var x=Number(n)||0;return Number.isInteger(x)?x.toLocaleString('es-AR'):x.toLocaleString('es-AR',{maximumFractionDigits:2});}
-function esc(s){return (s==null?'':String(s)).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
+var esc = GP2UI.esc;   /* helper de la casa, gp2-ui.js (2026-09-05) */
 function provOf(f){return f.proveedor && String(f.proveedor).trim() ? f.proveedor : SIN;}
 
 // ---- Chips de proveedor (desde datos GP2) ----

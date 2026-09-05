@@ -7,6 +7,7 @@
 <title>Inyectores · Quién hace cada parte · GP2</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="../supabase-config.js?v=20260831d"></script>
+<script src="../gp2-ui.js?v=20260905a"></script>
 <link rel="stylesheet" href="../gp2-modulo.css?v=20260903b"/>
 <link rel="icon" type="image/png" href="../GP2_favicon.png">
 <link rel="apple-touch-icon" href="../GP2_favicon.png">
@@ -130,9 +131,8 @@ var SB = supabase.createClient(
   { db:{ schema:"GP2" }, auth:{ persistSession:false } }
 );
 
-function $(id){ return document.getElementById(id); }
-function esc(s){ return String(s==null?"":s).replace(/[&<>"]/g, function(c){
-  return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]; }); }
+var $ = GP2UI.$;
+var esc = GP2UI.esc;   /* helper de la casa, gp2-ui.js (2026-09-05) */
 function fmt(n,d){ d=(d==null?0:d);
   return Number(n||0).toLocaleString("es-AR",{maximumFractionDigits:d}); }
 

@@ -2,6 +2,7 @@
 <html lang="es">
 <head>
   <script src="../auth-guard.js?v=20260904t"></script>
+<script src="../gp2-ui.js?v=20260905a"></script>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>ABM Operarios · GP2</title>
@@ -130,10 +131,10 @@
   "use strict";
   var sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY, { db: { schema: 'GP2' } });
 
-  var $ = function (id) { return document.getElementById(id); };
+  var $ = GP2UI.$;
   var ROWS = [], estado = 'activos', editId = null;
 
-  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]; }); }
+  var esc = GP2UI.esc;   /* helper de la casa, gp2-ui.js (2026-09-05) */
   function topmsg(txt, ok) {
     var el = $('topmsg');
     el.className = 'topmsg ' + (ok ? 'ok' : 'bad');

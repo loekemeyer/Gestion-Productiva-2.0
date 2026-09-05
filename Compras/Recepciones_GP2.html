@@ -10,6 +10,7 @@
 <title>Recepciones · Checklist Pagos · GP2</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="../supabase-config.js?v=20260831d"></script>
+<script src="../gp2-ui.js?v=20260905a"></script>
 <link rel="stylesheet" href="../gp2-modulo.css?v=20260903b"/>
 <link rel="icon" type="image/png" href="../GP2_favicon.png">
 <link rel="apple-touch-icon" href="../GP2_favicon.png">
@@ -106,7 +107,7 @@
   let ROWS = [];
   let filt = { origen:'todo', fact:'todo', q:'', desde:null, hasta:null };
 
-  function esc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  var esc = GP2UI.esc;   /* helper de la casa, gp2-ui.js (2026-09-05) */
   function fmtNum(n){ return Number(n).toLocaleString('es-AR',{maximumFractionDigits:2}); }
   function fmtFecha(s){
     if (!s) return '';

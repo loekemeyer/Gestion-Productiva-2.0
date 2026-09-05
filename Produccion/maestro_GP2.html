@@ -2,6 +2,7 @@
 <html lang="es">
 <head>
   <script src="../auth-guard.js?v=20260904t"></script>
+<script src="../gp2-ui.js?v=20260905a"></script>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Maestro Produccion (GP2)</title>
@@ -217,7 +218,7 @@
   var detailTitle = document.getElementById('detailTitle');
   var detailBody  = document.getElementById('detailBody');
 
-  function esc(v) { return v == null ? '' : String(v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  var esc = GP2UI.esc;   /* helper de la casa, gp2-ui.js (2026-09-05) */
   function num(v) { return (v == null || v === '' || isNaN(Number(v))) ? '' : Number(v); }
   function fmt(v) { var n = num(v); return n === '' ? '' : n.toFixed(2); }
   function isTM(r) { return Number(r.uni || 0) === 0 || TM_SET[String(r.matriz || '').toUpperCase()]; }

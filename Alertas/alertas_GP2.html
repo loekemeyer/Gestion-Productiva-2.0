@@ -2,6 +2,7 @@
 <html lang="es">
 <head>
   <script src="../auth-guard.js?v=20260904t"></script>
+<script src="../gp2-ui.js?v=20260905a"></script>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Alertas (GP2)</title>
@@ -172,7 +173,7 @@
       toastContainer.appendChild(el);
       setTimeout(() => { el.style.opacity = "0"; setTimeout(() => el.remove(), 300); }, 5000);
     }
-    function esc(s) { return String(s == null ? "" : s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); }
+    var esc = GP2UI.esc;   /* helper de la casa, gp2-ui.js (2026-09-05) */
     function formatNow() { return new Date().toLocaleString("es-AR", { timeZone: "America/Argentina/Buenos_Aires" }); }
     function setStatus(ok) {
       statusDot.className = "status-dot" + (ok ? "" : " offline");

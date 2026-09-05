@@ -6,7 +6,7 @@ Suite creada 2026-08-29. Dos capas:
 
 Cada `test_*.js` abre la pantalla real del repo con **Supabase stubeado** (no tocan la
 base): verifican payloads de RPC, filtros, cálculos en pantalla y flujos completos.
-`run.sh` corre **todos** los `test_*.js` de la carpeta (hoy 35); si agregás uno, entra solo.
+`run.sh` corre **todos** los `test_*.js` de la carpeta (hoy 37); si agregás uno, entra solo.
 
 | Test | Pantalla / flujo |
 |---|---|
@@ -39,6 +39,7 @@ base): verifican payloads de RPC, filtros, cálculos en pantalla y flujos comple
 | test_recepcion_oc.js | Recepción: la tarjeta muestra "OC: N" (lo que falta de las OC abiertas) |
 | test_recepcion_salir_pesaje.js | Recepción v3.22: no se puede salir sin controlar |
 | test_recepcion_uni.js | El remito en unidades se guarda en unidades (remaches/bombillas); control en kg con pasaje a unidades |
+| test_smoke_gp2.js | Humo de las 47 pantallas GP2 con Supabase stubeado y sin red: falla si falta un `<script src>` local (ruta/token mal) o si revienta un helper de la casa (`GP2UI`, `GP2N`, `esc`, `$`...); los errores de datos por el stub vacío se listan como aviso |
 | test_stock_general.js | Stocks General: los dos flujos heredados de Registrar Movimiento (Ajuste +/- y Armado en fábrica), payload exacto de `registrar_movimientos` |
 | test_stock_sector.js | La pantalla única de stock por sector (`StockSector_GP2.html?sector=N`, ex 9 pantallas): título, botones, columnas, KPIs, popup, RPC y menú para cada uno de los 9 sectores, a 390px |
 | test_teclado_numerico.js | Letra grande (>=18px) y `inputmode` numérico en todos los campos de número de las pantallas GP2 |

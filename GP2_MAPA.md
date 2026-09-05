@@ -150,7 +150,7 @@ SQL o RPCs nuevas, estos son los buenos:
 | `comp[].cod` / `.d` / `.s` / `.um` / `.kg_x_uni` | `componente.codigo` / `.descripcion` / `.sector_id` / `.unidad_medida` / `.kg_x_uni` — **y ademas `uni_x_cajon`**, que ningun bundle expone todavia (228 componentes lo tienen cargado) |
 | `ubic[].tipo` / `.ref` / `.nom` / `.meses` | `ubicacion.tipo` / **`.ref_id`** / `.nombre` / **`.meses_minimo`** |
 | `inv['c:u'].cant` / `.min` | `inventario.cantidad` / **`.minimo`** (+ `componente_id`, `ubicacion_id`, `actualizado_en`) |
-| `tall[].nom` | `tallerista.nombre` (+ `cod_prov`, `clase`) |
+| `tall[].nom` | `tallerista.nombre` (+ `cod_prov`; la columna `clase` se borró el 2026-09-05: era `'tallerista'` en las 13 filas) |
 | `bom_comp` | `componente_bom.componente_padre_id` / `.componente_hijo_id` / `.cantidad` |
 
 `movimiento`: `id, fecha, tipo_mov, comp_id, ubic_origen_id, ubic_destino_id,
