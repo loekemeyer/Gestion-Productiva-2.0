@@ -485,6 +485,30 @@ campos numéricos y las dos con decimales fijos.
 
 ---
 
+## Ciclo 2l — un botón roto desde el 31/08 y el respaldo `db/`, 01:20–01:45 AR
+
+- **Bug vivo**: «Desmarcar» (deshacer el control de una recepción) en `control-cajas.js` y
+  `control-remaches.js` hacía `UPDATE` directo sobre `recepcion_insumo` y `movimiento` desde el
+  navegador. Desde el 2026-08-31 `anon` no tiene UPDATE en ninguna tabla GP2 → el botón fallaba
+  con "permission denied" (y el `update` de `movimiento` ni siquiera chequeaba el error). Se
+  encontró buscando `from('movimiento')` en el código para actualizar `GP2_MAPA.md`.
+  **Arreglo**: RPC `descontrolar_recepcion(p_recepcion_id)` (SECURITY DEFINER, simétrica de
+  `controlar_recepcion_cajas/_kg`: vuelve la cantidad al declarado, borra el desglose y ajusta el
+  movimiento; idempotente). Probada con rollback sobre la recepción 418. Tokens
+  `control-cajas.js 1.1.1`, `control-remaches.js 1.5.1`.
+- `GP2_MAPA.md`: la sección "Escritura" decía que se insertaba en `movimiento` directo y que
+  `registrar_movimientos` estaba sin usar; hoy es al revés y quedó escrito.
+- **`db/` regenerado** (47 tablas · 120 funciones md5 120/120 · 12 vistas) con `db/regenerar.sql`
+  para la próxima vez; `db/README.md` reescrito (qué se fue, grants vigentes, orden de restauración).
+- ABM Artículos y Programa pasan a `GP2N` (parses y `fmt`; el campo «Código» del ABM con
+  `data-miles="no"` porque es un código, no una cantidad; Programa muestra decimales según
+  magnitud pero en es-AR).
+
+### Estado tras el ciclo 2l
+**47 tablas · 12 vistas · 121 funciones · 36 tests.**
+
+---
+
 ## Decisiones arquitectónicas (acumuladas)
 
 1. **Las copias de datos no viven en la base.** Un snapshot "por si hay que volver atrás" va a

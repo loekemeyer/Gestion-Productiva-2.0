@@ -86,11 +86,13 @@ codigo CONSUME: sect, ubic, comp, prov_serv, tall, mat, bom_art, bom_comp, rp, c
 | `inv` | dict `'compId:ubicId'` → `{ cant, min }` |
 | `c2a` | dict `String(comp_id)` → art_id (componente terminado → su articulo) |
 
-**Escritura**: `SB.from('movimiento').insert([{ fecha, tipo_mov, comp_id,
-ubic_origen_id, ubic_destino_id, cantidad, comp_transformado_id,
-cantidad_transformada, unidad_origen, unidad_destino }])` — los triggers
-`fn_movimiento_calc`/`fn_movimiento_aplicar` actualizan `inventario`. Existe la RPC
-`registrar_movimientos(p_rows jsonb)` sin usar: decidir una via y borrar la otra.
+**Escritura**: SOLO por RPC. Desde el 2026-08-31 `anon` no tiene INSERT/UPDATE en ninguna
+tabla GP2: `gp2-motor.js` manda las filas a `registrar_movimientos(p_rows jsonb)` (que las
+inserta tal cual, con el CHECK de vocabulario de `tipo_mov`) y cada flujo tiene su
+`crear_*`. Los triggers `fn_movimiento_calc` / `fn_movimiento_aplicar` actualizan `inventario`.
+Un `SB.from('movimiento').insert/update` desde una pantalla falla con "permission denied"
+(así estaba roto «Desmarcar» en control-cajas/control-remaches hasta el 2026-09-05:
+ahora `descontrolar_recepcion`).
 
 ## verificacion_bundle() — Verificacion/Verificacion_GP2.html (solo lectura)
 

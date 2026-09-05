@@ -75,6 +75,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="../supabase-config.js?v=20260905k"></script>
 <script src="../gp2-ui.js?v=20260905a"></script>
+<script src="../gp2-numero.js?v=20260905m"></script>
 <script>var D={};
 
 var SB=GP2_SB();
@@ -84,7 +85,7 @@ function sName(sid){var s=D.sect[String(sid)];return s?s.t:"?"}
 var SECT2CLS={"crudo":"crudo","procesado":"proc","movimiento":"tr","afilado":"afil","fleje":"fleje","plástico":"insu","bombilla":"insu","remache":"insu","garage":"sub","cartón":"insu","caja":"insu","terminado":"virg"};
 function sCls(sid){return SECT2CLS[sName(sid)]||"crudo"}
 function cById(cid){return D.comp[String(cid)]||{cod:"?",d:"",s:null}}
-function fmt(n){if(n==null||isNaN(n))return "?";n=Number(n);return n>=100?n.toFixed(0):n>=10?n.toFixed(1):n>=1?n.toFixed(2):n.toFixed(3)}
+function fmt(n){if(n==null||isNaN(n))return "?";n=Number(n);return GP2N.fmt(n, n>=100?0:n>=10?1:n>=1?2:3, null, true);}   /* la regla de numero de la casa; decimales segun magnitud */
 
 // Defensive: ordenar rp por 'orden' aunque en Excel esté fuera de orden físico
 for(var _rid in D.rp)D.rp[_rid].sort(function(a,b){return a.o-b.o;});
@@ -285,8 +286,8 @@ function renderConvergenceLane(padre_id,ruta_list,need,uni,flejesTotal,aid){
 }
 
 function render(){
- var aid=parseInt(sel.value);
- var uni=Math.max(1,parseFloat(document.getElementById("uni").value)||1);
+ var aid=GP2N.entero(sel.value);
+ var uni=Math.max(1,GP2N.num(document.getElementById("uni").value)||1);
  var a=D.art.find(function(x){return x.id===aid;});
  if(!a){document.getElementById("canvas").innerHTML='<div style="padding:20px">Artículo no encontrado</div>';return;}
  var ex=expandBOM(aid);
@@ -306,7 +307,7 @@ function render(){
    tallsIds.forEach(function(tid){tallAlt.innerHTML+='<option value="'+tid+'">'+esc((D.tall[String(tid)]||'').trim())+'</option>';});
    tallAlt.dataset.aid=String(aid);
   }
-  var tallElegidoId=parseInt(tallAlt.value);
+  var tallElegidoId=GP2N.entero(tallAlt.value);
   rutas=rutas.filter(function(r){
    var pasos=D.rp[String(r.id)]||[];
    var tids=pasos.filter(function(p){return p.tp==='tallerista' && p.ta;}).map(function(p){return parseInt(p.ta);});

@@ -383,18 +383,13 @@ async function confirmar() {
 async function desmarcar() {
   if (!selected || !selected.controlado) return;
   if (!confirm("¿Desmarcar el control? La cantidad vuelve al valor declarado.")) return;
-  const decl = Number(selected.cantidad_declarada != null ? selected.cantidad_declarada : selected.cantidad) || 0;
   btnDesmarcar.disabled = true;
   ctrlMsg.textContent = "Deshaciendo…"; ctrlMsg.className = "msg";
   try {
-    const { error } = await SB
-      .from("recepcion_insumo")
-      .update({ controlado: false, controlado_en: null, controlado_por: null, cantidad: decl })
-      .eq("id", selected.id);
+    // Por RPC (2026-09-05): anon no escribe tablas GP2 directo desde el 2026-08-31; el UPDATE
+    // que habia aca fallaba con "permission denied". Misma RPC que control-cajas.
+    const { error } = await SB.rpc("descontrolar_recepcion", { p_recepcion_id: selected.id });
     if (error) throw error;
-    if (selected.movimiento_id) {
-      await SB.from("movimiento").update({ cantidad: decl }).eq("id", selected.movimiento_id);
-    }
     ctrlMsg.textContent = "Desmarcado ✓"; ctrlMsg.className = "msg ok";
     setTimeout(async () => { cerrarPopup(); await cargar(); }, 300);
   } catch (err) {

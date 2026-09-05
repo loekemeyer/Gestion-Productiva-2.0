@@ -257,32 +257,15 @@ async function confirmar() {
 async function desmarcar() {
   if (!selected || !selected.controlado) return;
   if (!confirm("¿Desmarcar el control? La cantidad vuelve al valor declarado y se borra el desglose.")) return;
-  const decl = Number(selected.cantidad_declarada != null ? selected.cantidad_declarada : selected.cantidad) || 0;
   btnDesmarcar.disabled = true;
   ctrlMsg.textContent = "Deshaciendo…"; ctrlMsg.className = "msg";
   try {
-    // UPDATE directo: sacar flags, dejar cantidad = declarada. El trigger del
-    // movimiento no se toca aca porque no hay RPC de reversion; se usa la misma
-    // RPC pero con el valor declarado como si fuera el nuevo control -> lo mas
-    // simple es actualizar via RPC "controlar" con el declarado y despues bajar
-    // los flags. Por simplicidad, dejamos SIN RPC de reverso: solo restaura
-    // cantidad y borra flags (movimiento queda con el ultimo total; si el usuario
-    // lo desmarca es porque quiere re-controlar, y el proximo confirmar pisa todo).
-    const { error } = await SB
-      .from("recepcion_insumo")
-      .update({
-        controlado: false,
-        controlado_en: null,
-        controlado_por: null,
-        base: null, pisos: null, sueltas: null, paquetes: null, uni_x_paq: null,
-        cantidad: decl
-      })
-      .eq("id", selected.id);
+    // Por RPC (2026-09-05): anon no puede escribir tablas GP2 directo desde el 2026-08-31,
+    // asi que el UPDATE que habia aca fallaba con "permission denied". La RPC vuelve la
+    // cantidad al declarado, borra el desglose y ajusta el movimiento (el trigger recalcula
+    // el inventario).
+    const { error } = await SB.rpc("descontrolar_recepcion", { p_recepcion_id: selected.id });
     if (error) throw error;
-    // El movimiento tambien vuelve al declarado (el trigger recalcula inventario).
-    if (selected.movimiento_id) {
-      await SB.from("movimiento").update({ cantidad: decl }).eq("id", selected.movimiento_id);
-    }
     ctrlMsg.textContent = "Desmarcado ✓"; ctrlMsg.className = "msg ok";
     setTimeout(async () => { cerrarPopup(); await cargar(); }, 300);
   } catch (err) {

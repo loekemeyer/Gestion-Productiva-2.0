@@ -121,7 +121,7 @@
     <div class="mbody">
       <div class="fmsg" id="formMsg"></div>
       <input type="hidden" id="fId">
-      <div class="fld"><label>Código *</label><input id="fCod" inputmode="numeric" placeholder="Ej: 31" autocomplete="off"></div>
+      <div class="fld"><label>Código *</label><input id="fCod" inputmode="numeric" data-miles="no" placeholder="Ej: 31" autocomplete="off"></div>
       <div class="fld"><label>Familia</label><input id="fFam" list="famList" placeholder="Elegí de la lista o escribí una nueva" autocomplete="off"><datalist id="famList"></datalist></div>
       <div class="fld"><label>Caja (Sector Caja)</label><select id="fCaja"><option value="">— sin caja —</option></select></div>
       <div class="fld"><label>Artículos por caja</label><input inputmode="numeric" id="fPor" type="number" min="0" step="1" placeholder="Ej: 24"></div>
@@ -137,6 +137,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="../../supabase-config.js?v=20260905k"></script>
 <script src="../../gp2-ui.js?v=20260905a"></script>
+<script src="../../gp2-numero.js?v=20260905m"></script>
 <script>var D={};</script>
 <script>
 var SB=GP2_SB();
@@ -369,7 +370,7 @@ function bomEditHtml(a){
 function bomLeerCantidades(){
   document.querySelectorAll('input[data-bq]').forEach(function(inp){
     var i=Number(inp.dataset.bq);
-    if(bomEdit&&bomEdit.lineas[i]) bomEdit.lineas[i].q=parseFloat(inp.value)||0;
+    if(bomEdit&&bomEdit.lineas[i]) bomEdit.lineas[i].q=GP2N.num(inp.value);
   });
 }
 
@@ -500,11 +501,11 @@ async function saveForm(){
   var cod=fCod.value.trim();
   if(!cod){setFormMsg('El código es obligatorio.',false);fCod.focus();return;}
   var args={
-    p_id: fId.value?Number(fId.value):null,
+    p_id: fId.value?GP2N.entero(fId.value):null,
     p_codigo: cod,
     p_familia: fFam.value.trim()||null,
-    p_caja_id: fCaja.value?Number(fCaja.value):null,
-    p_por_caja: fPor.value===''?null:parseInt(fPor.value,10)
+    p_caja_id: fCaja.value?GP2N.entero(fCaja.value):null,
+    p_por_caja: fPor.value===''?null:GP2N.entero(fPor.value)
     // (sin p_estadistica desde 2026-09-04: la demanda vive en est_madre, el campo es solo lectura)
   };
   var btn=document.getElementById('fSave');btn.disabled=true;
