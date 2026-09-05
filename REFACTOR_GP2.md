@@ -12,9 +12,9 @@
 |---|---|---|
 | Tablas GP2 | 67 | **47** (−20: 13 fotos `snap_*`/backup, `agente_propuestas`, `tallerista_alias`, `ruta_confirmada`+`ruta_problema`→`ruta_revision`, `estadistica`, `entrega_cervantes`, `precio_servicio`, `devolucion_tallerista`→`movimiento.nota`, `proveedor_servicio_alias`→`proveedor_servicio.nombre_corto`) |
 | Vistas | 16 | **13** (−5 muertas, +`v_nivel_stock` y +`v_contraparte_parte`, cada una reemplaza un CTE escrito dos o tres veces) |
-| Funciones/RPC | 135 | **121** (−16 sin llamador o duplicadas, +`ubic_de`, +`descontrolar_recepcion`) |
+| Funciones/RPC | 135 | **120** (−18: 16 sin llamador o duplicadas + `cargar_compra_altrak`/`aperam_chapa`; +`ubic_de`, +`descontrolar_recepcion`, +`cargar_compra_mp`) |
 | Tablas sin RLS | 16 | **0** |
-| Funciones internas ejecutables por `anon` | 20 | **0** (23 internas con REVOKE; 98 RPC de pantalla) |
+| Funciones internas ejecutables por `anon` | 20 | **0** (23 internas con REVOKE; 97 RPC de pantalla) |
 | Columnas borradas | — | 11 (`produccion` ×4, `tallerista.clase`, `fleje_detalle.kg_x_uni`, `ruta_paso.articulo_id`, `matriz.tipo_matriz`, `articulo.estadistica_madre_uni_mes`…) |
 | Constraints nuevos | — | CHECK vocabulario `tipo_mov` (16 palabras), `componente.unidad_medida`, `familia.nombre` UNIQUE, alias en mayúsculas; FKs `articulo.familia`, `articulo.componente_caja_id`, `recepcion_insumo.movimiento_id`; índices únicos `ubicacion(tipo,ref_id)` y singletons; índices `movimiento(fecha,id)`, `movimiento(tipo_mov,comp_id)`, `produccion(legajo,fecha)` |
 | Archivos del repo | 133 HTML + ~160 JS/MD/… | **−90** (74 muertos, 9 pantallas de stock → 1, docs fusionadas) |
@@ -634,6 +634,22 @@ respuesta de reparto; proveedor sin PS híbrido rechazado. Las dos viejas se bor
 Insumos llama la genérica (dos líneas, `stock_kg` en vez de `stock_charcas_kg`/`stock_eclipse_kg`).
 
 ### Estado tras el ciclo 2q
+**47 tablas · 13 vistas · 120 funciones · 36 tests.**
+
+---
+
+## Ciclo 2r — `db/` al día y los literales de `control_ps_bundle`, 03:05–03:15 AR
+
+- `db/funciones_GP2.sql` regenerado con `db/regenerar.sql` (120 funciones, **md5 120/120 contra la
+  base**, 0 distintas, 0 sólo en la base); `db/README.md` con los números reales (120 funciones =
+  97 RPC de pantalla + 23 internas).
+- Los últimos literales de negocio en SQL que quedaban de la auditoría A4 (`control_ps_bundle`:
+  `ps_id=1` con `IC3`/`IC3V`, `ps_id=13` con `1686`) se evaluaron contra `v_contraparte_parte`:
+  la salida de Charcas sí sale de la vista, **Eclipse no tiene pasos en `ruta_paso`** (su producto
+  1686 no se deriva de ninguna ruta). Reemplazar uno solo dejaría dos mecanismos para lo mismo,
+  peor que el literal. Se deja, anotado en la idea 7258: el día que Eclipse tenga ruta, salen juntos.
+
+### Estado tras el ciclo 2r
 **47 tablas · 13 vistas · 120 funciones · 36 tests.**
 
 ---

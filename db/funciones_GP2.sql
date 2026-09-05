@@ -1,7 +1,7 @@
 -- =====================================================================
 -- FUNCIONES del schema GP2 — export automatico 2026-09-05 (pg_get_functiondef, exacto)
 -- Fuente de verdad: Supabase (hrxfctzncixxqmpfhskv). Este archivo es respaldo/referencia.
--- 121 funciones. Los GRANT/REVOKE no estan aca: EXECUTE para anon solo en las RPC de pantalla (ver db/README.md).
+-- 120 funciones. Los GRANT/REVOKE no estan aca: EXECUTE para anon solo en las RPC de pantalla (ver db/README.md).
 -- =====================================================================
 
 -- ---------- _aplicar_recepcion_a_oc ----------
@@ -583,15 +583,15 @@ begin
 end $function$
 ;
 
--- ---------- cargar_compra_altrak ----------
-CREATE OR REPLACE FUNCTION "GP2".cargar_compra_altrak(p_kg numeric, p_remito text DEFAULT NULL::text, p_fecha timestamp with time zone DEFAULT now(), p_pct_corto numeric DEFAULT NULL::numeric)
+-- ---------- cargar_compra_mp ----------
+CREATE OR REPLACE FUNCTION "GP2".cargar_compra_mp(p_proveedor text, p_kg numeric, p_remito text DEFAULT NULL::text, p_fecha timestamp with time zone DEFAULT now(), p_pct_corto numeric DEFAULT NULL::numeric)
  RETURNS jsonb
  LANGUAGE plpgsql
  SECURITY DEFINER
  SET search_path TO 'GP2'
 AS $function$
 declare
-  v_comp bigint; v_ps bigint; v_ubic bigint; v_mov bigint; v_rec bigint;
+  v_ps bigint; v_ps_nombre text; v_comp bigint; v_cod text; v_ubic bigint; v_mov bigint; v_rec bigint;
   v_f timestamptz := coalesce(p_fecha, now()); v_stock numeric;
   v_pc numeric; v_pl numeric; v_kg_corto numeric; v_kg_largo numeric; v_split jsonb := null;
 begin
@@ -599,6 +599,17 @@ begin
     raise exception 'Los kg deben ser mayores a 0 (recibido: %)', p_kg;
   end if;
 
+  -- que materia prima vende este proveedor y que PS hibrido la recibe (configuracion, no literales)
+  select ps.id, ps.nombre, c.id, c.codigo into v_ps, v_ps_nombre, v_comp, v_cod
+    from proveedor_servicio ps join componente c on c.id = ps.mp_componente_id
+   where ps.hibrido and c.proveedor = p_proveedor;
+  if v_ps is null then
+    raise exception 'Ningun PS hibrido recibe materia prima de "%" (falta proveedor_servicio.mp_componente_id o componente.proveedor)', p_proveedor;
+  end if;
+  v_ubic := ubic_de('proveedor_servicio', v_ps);
+  if v_ubic is null then raise exception 'El PS "%" no tiene ubicacion', v_ps_nombre; end if;
+
+  -- reparto corto/largo (instruccion de corte; hoy solo Charcas lo usa)
   if p_pct_corto is not null then
     if p_pct_corto < 0 or p_pct_corto > 100 then
       raise exception 'El %% de corto debe estar entre 0 y 100 (recibido: %)', p_pct_corto;
@@ -606,74 +617,23 @@ begin
     v_pc := p_pct_corto; v_pl := 100 - p_pct_corto;
     v_kg_corto := round((p_kg * v_pc/100)::numeric, 3);
     v_kg_largo := round((p_kg * v_pl/100)::numeric, 3);
-    v_split := jsonb_build_object(
-      'pct_corto', v_pc, 'pct_largo', v_pl,
-      'kg_corto_objetivo', v_kg_corto, 'kg_largo_objetivo', v_kg_largo);
+    v_split := jsonb_build_object('pct_corto', v_pc, 'pct_largo', v_pl,
+                                  'kg_corto_objetivo', v_kg_corto, 'kg_largo_objetivo', v_kg_largo);
   end if;
 
-  select id into v_comp from "GP2".componente where codigo='FLEJE90_BRUTO';
-  if v_comp is null then raise exception 'Componente FLEJE90_BRUTO no existe'; end if;
+  insert into movimiento(fecha, tipo_mov, comp_id, ubic_origen_id, ubic_destino_id, cantidad, unidad_origen, unidad_destino)
+  values (v_f, 'compra', v_comp, null, v_ubic, p_kg, 'kg', 'kg') returning id into v_mov;
 
-  -- destino: la ubicacion del PS Resortes Charcas (el alambre bruto vive ahi)  [era el literal 13]
-  select id into v_ps from "GP2".proveedor_servicio where nombre = 'Resortes Charcas';
-  if v_ps is null then raise exception 'No existe el proveedor de servicio "Resortes Charcas"'; end if;
-  v_ubic := "GP2".ubic_de('proveedor_servicio', v_ps);
-  if v_ubic is null then raise exception 'El PS "Resortes Charcas" no tiene ubicacion'; end if;
-
-  insert into "GP2".movimiento(fecha,tipo_mov,comp_id,ubic_origen_id,ubic_destino_id,cantidad,unidad_origen,unidad_destino)
-  values (v_f,'compra',v_comp,null,v_ubic,p_kg,'kg','kg') returning id into v_mov;
-
-  insert into "GP2".recepcion_insumo(fecha,componente_id,proveedor,remito,cantidad,unidad,movimiento_id,rollos_json)
-  values (v_f,v_comp,'Altrak',nullif(btrim(coalesce(p_remito,'')),''),p_kg,'kg',v_mov,v_split)
+  insert into recepcion_insumo(fecha, componente_id, proveedor, remito, cantidad, unidad, movimiento_id, rollos_json)
+  values (v_f, v_comp, p_proveedor, nullif(btrim(coalesce(p_remito,'')),''), p_kg, 'kg', v_mov, v_split)
   returning id into v_rec;
 
-  perform "GP2"._aplicar_recepcion_a_oc(v_comp, p_kg, 'kg');
-  select cantidad into v_stock from "GP2".inventario where componente_id=v_comp and ubicacion_id=v_ubic;
+  perform _aplicar_recepcion_a_oc(v_comp, p_kg, 'kg');
+  select cantidad into v_stock from inventario where componente_id = v_comp and ubicacion_id = v_ubic;
 
-  return jsonb_build_object('ok',true,'recepcion_id',v_rec,'movimiento_id',v_mov,
-    'kg_cargados',p_kg,'stock_charcas_kg',coalesce(v_stock,0),
-    'pct_corto', v_pc, 'pct_largo', v_pl,
-    'kg_corto_objetivo', v_kg_corto, 'kg_largo_objetivo', v_kg_largo);
-end $function$
-;
-
--- ---------- cargar_compra_aperam_chapa ----------
-CREATE OR REPLACE FUNCTION "GP2".cargar_compra_aperam_chapa(p_kg numeric, p_remito text DEFAULT NULL::text, p_fecha timestamp with time zone DEFAULT now())
- RETURNS jsonb
- LANGUAGE plpgsql
- SECURITY DEFINER
- SET search_path TO 'GP2'
-AS $function$
-declare
-  v_comp bigint; v_ps bigint; v_ubic bigint;   -- Prov. Serv. Eclipse (era el literal 48)
-  v_mov bigint; v_rec bigint; v_stock numeric;
-  v_f timestamptz := coalesce(p_fecha, now());
-begin
-  if p_kg is null or p_kg <= 0 then raise exception 'Los kg deben ser mayores a 0 (recibido: %)', p_kg; end if;
-  select id into v_comp from "GP2".componente where codigo='CHAPA430';
-  if v_comp is null then raise exception 'Componente CHAPA430 no existe (Fase 1 pendiente)'; end if;
-
-  select id into v_ps from "GP2".proveedor_servicio where nombre = 'Eclipse';
-  if v_ps is null then raise exception 'No existe el proveedor de servicio "Eclipse"'; end if;
-  v_ubic := "GP2".ubic_de('proveedor_servicio', v_ps);
-  if v_ubic is null then raise exception 'El PS "Eclipse" no tiene ubicacion'; end if;
-
-  insert into "GP2".movimiento(fecha, tipo_mov, comp_id, ubic_origen_id, ubic_destino_id,
-                               cantidad, unidad_origen, unidad_destino)
-  values (v_f, 'compra', v_comp, null, v_ubic, p_kg, 'kg', 'kg')
-  returning id into v_mov;
-
-  insert into "GP2".recepcion_insumo(fecha, componente_id, proveedor, remito,
-                                     cantidad, unidad, movimiento_id)
-  values (v_f, v_comp, 'Aperam', nullif(btrim(coalesce(p_remito,'')),''),
-          p_kg, 'kg', v_mov)
-  returning id into v_rec;
-
-  perform "GP2"._aplicar_recepcion_a_oc(v_comp, p_kg, 'kg');
-
-  select cantidad into v_stock from "GP2".inventario where componente_id=v_comp and ubicacion_id=v_ubic;
   return jsonb_build_object('ok', true, 'recepcion_id', v_rec, 'movimiento_id', v_mov,
-                            'kg_cargados', p_kg, 'stock_eclipse_kg', coalesce(v_stock,0));
+    'kg_cargados', p_kg, 'stock_kg', coalesce(v_stock, 0), 'ps_id', v_ps, 'ps', v_ps_nombre, 'componente', v_cod,
+    'pct_corto', v_pc, 'pct_largo', v_pl, 'kg_corto_objetivo', v_kg_corto, 'kg_largo_objetivo', v_kg_largo);
 end $function$
 ;
 
