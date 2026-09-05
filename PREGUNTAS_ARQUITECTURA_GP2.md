@@ -188,7 +188,8 @@ Cada uno tiene la consulta y el detalle en los informes de auditoría (`REFACTOR
    de esos dos talleristas y se carga como ajuste trazado, o se blanquea a 0? (recomendación:
    relevar; los negativos son la lista exacta de lo que hay que contar).
 4. **574** está `discontinuado` pero la Est Madre le pide 1.060/mes (también 119: 150, 615: 24,
-   809: 16). ¿Sigue discontinuado?
+   809: 16). ¿Sigue discontinuado? Y 9 componentes `discontinuo` siguen en rutas vivas (A1C1,
+   A9, BOM10, C12, GRJ13, I3B, IZ19A, L4B1, V20): ¿se sacan de la ruta o vuelven a activos?
 5. **GRJ1**: está en la receta del 500 y tiene inventario, pero ninguna ruta lo produce ni lo
    consume (las 10 rutas del 500 entran por C1/V9/pliego/A11). ¿Quién arma el GRJ1
    (Alex/Martin, espejo del GRJ7) o el 500 se envasa con las partes sueltas?

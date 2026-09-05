@@ -577,6 +577,33 @@ salvo Recepción Insumos (7259, a propósito).
 
 ---
 
+## Ciclo 2o — circuito completo con rollback (VALIDÁ), 02:30–02:40 AR
+
+Un solo `DO` que termina en `OK_ROLLBACK` recorre las RPC reescritas hoy, en el orden real de la
+planta, y verifica cada delta de `inventario`:
+
+| Paso | RPC | Delta verificado |
+|---|---|---|
+| OC a Pettofrezza por 5 PA4 + recepción de 3 | `crear_oc`, `crear_recepcion_insumo` | Plástico +3; `orden_compra_item.recibido` = 3 (cruce FIFO) |
+| Envío de 100 A1 a FAAT | `crear_envio_ps` | Procesado −100, PS FAAT +100 |
+| Entrega de 1 kg de IA2 hecha con A1 | `crear_entrega_ps` | PS FAAT −25,19 A1 (1 kg ÷ 0,0397 kg/uni), Fleje +1 kg IA2 |
+| Envío de 50 Z23 a Danica Garcia | `crear_envio_tallerista` | Procesado −50, tallerista +50 |
+| Entrega de 20 + consumo de 5 (forma del motor JS) | `registrar_movimientos` | tallerista −25, Procesado +20 |
+| Devolución de 5 a Para Analizar | `crear_devolucion_tallerista` | tallerista −5, Analizar +5 |
+| Lo que ve Control Talleristas | `talleristas_bundle` | enviado 50 · entregado 25 · devuelto 5 · saldo 20 |
+
+Integridad referencial de datos (solo lectura): 0 pasos de ruta sin actor o sin entrada, 0
+recetas/BOM con cantidad inválida, 0 movimientos sin ubicación, 0 ubicaciones de sector
+huérfanas, 0 talleristas inactivos con stock. Lo que queda es de negocio y ya está en la
+pregunta 8 (PEP3/PA10 en Plástico, IE3/IC2 sin `kg_x_uni`, 574/119/615/809 discontinuados con
+demanda, 9 componentes discontinuados que siguen en rutas: A1C1, A9, BOM10, C12, GRJ13, I3B,
+IZ19A, L4B1, V20).
+
+### Estado tras el ciclo 2o
+**47 tablas · 12 vistas · 121 funciones · 36 tests.**
+
+---
+
 ## Decisiones arquitectónicas (acumuladas)
 
 1. **Las copias de datos no viven en la base.** Un snapshot "por si hay que volver atrás" va a
