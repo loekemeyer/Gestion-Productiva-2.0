@@ -127,4 +127,23 @@ crudos.forEach(i => console.log('     ' + i));
 ok(crudos.length === 0,
    'donde esta cargado gp2-numero.js los campos se leen con GP2N.num/entero, no con Number/parseInt crudo (' + conRegla.size + ' archivos)');
 
+// ── 4) donde esta la regla, tampoco hay un formateador propio ────────────
+// toLocaleString('es-AR') escrito en la pantalla es GP2N.fmt copiado (con otro default de
+// decimales o de "sin valor": para eso GP2N.fmt tiene los parametros).
+// Se mira el formateo de NUMEROS (con FractionDigits o sobre Number(...)); las fechas
+// (new Date().toLocaleString('es-AR')) no son esta regla. tandas-popup.js queda afuera
+// mientras lo carguen las pantallas viejas sin gp2-numero.js (pregunta 2 de PREGUNTAS).
+const PERMITIDO_FMT = new Set(['tandas-popup.js']);
+const copiasFmt = [];
+for (const p of conRegla) {
+  if (path.basename(p) === 'gp2-numero.js' || PERMITIDO_FMT.has(path.basename(p))) continue;
+  const txt = fs.readFileSync(p, 'utf8');
+  for (const m of txt.matchAll(/(?:Number\([^)]*\)\.toLocaleString\(\s*["']es-AR["']|toLocaleString\(\s*["']es-AR["']\s*,\s*\{[^}]*FractionDigits)/g)) {
+    copiasFmt.push(path.relative(ROOT, p) + ':' + txt.slice(0, m.index).split('\n').length);
+  }
+}
+copiasFmt.forEach(i => console.log('     ' + i));
+ok(copiasFmt.length === 0,
+   'donde esta cargado gp2-numero.js no hay toLocaleString(es-AR) propio: se usa GP2N.fmt (' + conRegla.size + ' archivos)');
+
 console.log(fallas ? 'HAY FALLOS' : 'TODO OK');

@@ -423,6 +423,28 @@ cortos en `Programa.html`), helper común de `registrar_evento_prod`/`registrar_
 
 ---
 
+## Ciclo 2i — reglas de la casa escritas, tres `fmt` menos, índice para operarios, conservación verificada, 00:30–00:50 AR
+
+- **`CLAUDE.md`**: sección nueva «Helpers de pantalla y cliente Supabase: UNA copia
+  (OBLIGATORIO)»: `GP2UI`, `GP2N`, `GP2_SB()`, orden de carga y los tres tests guardianes. Es lo
+  que hace que el refactor de hoy no se deshaga en la próxima sesión.
+- Relevamiento, Validación de Stock y OC: su `fmt` propio (`toLocaleString('es-AR')` con «—»
+  sin valor) pasa a `GP2N.fmt(n, d, '—')`. Regla 4 nueva en `test_numero.js`: donde está cargado
+  `gp2-numero.js` no hay formateador propio de números (`tandas-popup.js` permitido mientras lo
+  carguen pantallas viejas sin la regla, pregunta 2).
+- Índice `produccion_legajo_fecha_idx` (A4 6.2): `registro_operarios_bundle` suma la producción
+  por legajo y fecha para cada rollo abierto; la tabla nace vacía y crece con la app.
+- **Conservación del inventario re-verificada** tras todos los cambios del día: ledger
+  (`_delta_orig`/`_delta_dest` agregados por componente y ubicación) vs `inventario.cantidad`:
+  **0 desvíos** en 1078 filas / 221 movimientos. Los 32 negativos son los de la pregunta 8.
+- Mirada la idea 7257 (`v_contraparte_parte`): la vista sirve para 3 de las 5 copias; las otras
+  dos son "pares" (sc→sp, dos PS consecutivos). Queda como idea con esa precisión.
+
+### Estado tras el ciclo 2i
+**47 tablas · 12 vistas · 120 funciones · 36 tests.**
+
+---
+
 ## Decisiones arquitectónicas (acumuladas)
 
 1. **Las copias de datos no viven en la base.** Un snapshot "por si hay que volver atrás" va a

@@ -84,6 +84,28 @@ En TODA pantalla, nueva o tocada:
    cuatro dígitos. Una pantalla que lo carga ya tiene el formato en todos sus campos.
    **Nunca escribir un saneador de número propio**: `tests/ui/test_numero.js` lo rechaza.
 
+## Helpers de pantalla y cliente Supabase: UNA copia (OBLIGATORIO desde 2026-09-05)
+
+Ninguna pantalla GP2 escribe su propio `esc()`, `$()`, "hoy", exportador CSV ni
+`createClient`. Existen una sola vez y hay tests que fallan si vuelve a aparecer una copia:
+
+1. **`gp2-ui.js` (`GP2UI`)**: `esc`, `$`, `cls` (pos/neg/cero), `hoyAR()` (la fecha de HOY en
+   Argentina; `toISOString().slice(0,10)` es UTC y después de las 21:00 da el día siguiente),
+   `fechaAR(iso)` (dd/mm/aaaa), `exportarCSV(nombre, filas)` (`;`, BOM, coma decimal).
+2. **`gp2-numero.js` (`GP2N`)**: `num` / `entero` para leer un campo, `fmt(n, dec, sinValor)`
+   para mostrar. Donde está cargado, ningún `.value` se lee con `Number()`/`parseInt()` crudo
+   (el campo se ve con separador de miles y "1.500" daría 1,5) y no hay `toLocaleString`
+   propio.
+3. **`GP2_SB()` (en `supabase-config.js`)**: el cliente GP2 (schema `GP2`, sin sesión
+   persistida). `var SB = GP2_SB();` — nunca `supabase.createClient(...)` en una pantalla.
+4. **Orden de carga**: `supabase-config.js` → `gp2-ui.js` → `gp2-numero.js` → los JS
+   compartidos que dependen de ellos (`gp2-envios-common.js`, `gp2-composicion.js`,
+   `gp2-stock-sector.js`, `consumo-detalle.js`) → el script de la pantalla.
+5. Guardianes: `tests/ui/test_helpers_ui.js` (helpers, orden, copias, cliente),
+   `test_numero.js` (regla de número, parses crudos, formateadores propios) y
+   `test_smoke_gp2.js` (abre las 47 pantallas con Supabase stubeado: falta un script o
+   revienta un helper → falla).
+
 ## Versionado (OBLIGATORIO en cada actualización)
 
 **Cada vez que se modifica el JS/CSS/HTML de un módulo, bumpear la versión en el mismo commit.**

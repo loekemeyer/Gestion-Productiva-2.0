@@ -402,7 +402,7 @@
 var SB = GP2_SB();
 var $ = GP2UI.$;
 var esc = GP2UI.esc;   /* helper de la casa, gp2-ui.js (2026-09-05) */
-function fmt(n,d){ return n==null?'—':Number(n).toLocaleString('es-AR',{maximumFractionDigits:d==null?0:d}); }
+function fmt(n,d){ return GP2N.fmt(n, d==null?0:d, '—'); }   /* la regla de numero de la casa; '—' sin valor */
 // es-AR: punto = miles, coma = decimal ("12,5" -> 12.5; antes parseInt borraba la coma y daba 125)
 /* La regla de numero es la de la casa y vive en gp2-numero.js (idea 7217).
    Esta pantalla ya la aplicaba bien; ahora la comparte en vez de repetirla. */

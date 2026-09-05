@@ -139,7 +139,7 @@
 var SB = GP2_SB();
 var $ = GP2UI.$;
 var esc = GP2UI.esc;   /* helper de la casa, gp2-ui.js (2026-09-05) */
-function fmt(n,d){ return n==null||n==='' ? '—' : Number(n).toLocaleString('es-AR',{maximumFractionDigits:d==null?0:d}); }
+function fmt(n,d){ return GP2N.fmt(n, d==null?0:d, '—'); }   /* la regla de numero de la casa; '—' sin valor */
 function fmtFecha(iso){
   if(!iso) return '';
   var p=String(iso).slice(0,10).split('-');
