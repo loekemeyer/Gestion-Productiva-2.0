@@ -7,6 +7,9 @@ const EXE = process.env.CHROMIUM_PATH || (fs.existsSync('/opt/pw-browsers/chromi
 
 const BUNDLE = {
   paq: 250,
+  // Kg por paquete de Charcas: viene del bundle (GP2.parametro.charcas_kg_x_paquete). Aca vale
+  // 20 a proposito: si la pantalla siguiera con el 10 escrito, la cuenta de paquetes cambia.
+  charcas_kg_x_paquete: 20,
   insumos: [
     { comp_id: 1, codigo: 'A1', descripcion: 'Fleje N 13', sector: 'Sector Fleje', sector_id: 5,
       proveedor: 'Basconia', um: 'kg', unidad: 'kg', kg_x_uni: null,
@@ -92,6 +95,14 @@ const BUNDLE = {
       precio: 63, moneda: 'ARS',
       carton_formato: 'Bolsa', carton_categoria: null, marca: 'LOEKE', mezcla_libre: false,
       pliegos_multiplo: 1, codigo_multiplo: 1, min_codigo_x_multiplo: 1, pedido_minimo: 20000 },
+    // CHARCAS: se pide en PAQUETES de charcas_kg_x_paquete kg (20 en este fixture / 0,01 kg
+    // por unidad = 2.000 uni por paquete). El sugerido de 2.500 uni se redondea para arriba a
+    // 2 paquetes, la pantalla manda unidad 'paq' y crear_oc lo guarda en kg.
+    { comp_id: 13, codigo: 'EP10', descripcion: 'Bombilla EP10', sector: 'Sector Plastico', sector_id: 6,
+      proveedor: 'Resortes Charcas', um: 'unidad', unidad: 'uni', kg_x_uni: 0.01,
+      consumo: 400, meses: 6, online: 0, pendiente_oc: 0, sugerido: 2500,
+      precio: 1, moneda: 'USD',
+      carton_formato: null, pliegos_multiplo: null, codigo_multiplo: null, min_codigo_x_multiplo: null },
   ],
   ocs: [
     { id: 9, numero: 1, proveedor: 'Basconia', rubro: 'Fleje', estado: 'borrador', nota: 'prueba',
@@ -114,7 +125,10 @@ window.supabase = { createClient: function(){ return {
     window.__calls = window.__calls || [];
     window.__calls.push({name:name, args:args});
     if(name==='oc_bundle') return { data: ${JSON.stringify(BUNDLE)}, error: null };
-    if(name==='crear_oc') return { data: { ok:true, oc_id: 10, numero: 2, items: (args.p.items||[]).length }, error: null };
+    if(name==='crear_oc') return { data: { ok:true, oc_id: 10, numero: 2, items: (args.p.items||[]).length,
+      // la OC a un PS hibrido devuelve la gemela al proveedor de su materia prima (generica desde 2026-09-05)
+      oc_gemela: args.p.proveedor === 'Resortes Charcas'
+        ? { oc_id: 11, numero: 3, proveedor: 'Altrak', componente: 'FLEJE90_BRUTO', kg: 40.8 } : null }, error: null };
     if(name==='oc_marcar') return { data: { ok:true }, error: null };
     return { data: null, error: { message: 'rpc desconocida '+name } };
   }
@@ -234,6 +248,32 @@ window.supabase = { createClient: function(){ return {
   ok((await page.$$('.oc-card')).length === 1, 'la OC anulada no se lista');
   ok(!(await page.textContent('#ocsList')).includes('OC N° 7'), 'y no queda rastro de la anulada');
   ok((await page.textContent('#ocsN')).trim() === '(1)', 'el contador del tab no cuenta la anulada');
+
+  // ── CHARCAS: paquetes de charcas_kg_x_paquete kg (del bundle), unidad 'paq' a crear_oc y la
+  // OC gemela generica en el mensaje (2026-09-05, ciclos 9-10 de la auditoria) ──
+  await page.click('#tabGen');
+  await page.click('#rubros .chip:has-text("Plastico")');
+  await page.click('#provs .chip:has-text("Resortes Charcas")');
+  ok(await page.$$eval('#tbody tr', x => x.length) === 1, 'Charcas: 1 fila (EP10)');
+  // 2.500 uni sugeridas; 1 paquete = 20 kg / 0,01 kg = 2.000 uni -> 2 paquetes (para arriba).
+  // Con el 10 que antes estaba escrito en la pantalla darian 3.
+  ok(await page.$eval('.pedir-in[data-in="13"]', x => x.value) === '2', 'el sugerido de Charcas llega en paquetes y usa el kg por paquete del bundle (2)');
+  const eqCh = (await page.textContent('tr[data-id="13"] .paq-eq')).replace(/\s+/g, ' ').trim();
+  ok(eqCh.includes('4.000') && eqCh.includes('uni'), 'la equivalencia dice 2 paq = 4.000 uni: ' + eqCh);
+  await page.click('#btnCrear');
+  await page.waitForFunction(() => (window.__calls || []).filter(c => c.name === 'crear_oc').length === 2);
+  const callCh = await page.evaluate(() => window.__calls.filter(c => c.name === 'crear_oc')[1].args.p);
+  ok(callCh.proveedor === 'Resortes Charcas' && callCh.items.length === 1 && callCh.items[0].comp_id === 13
+     && callCh.items[0].cantidad === 2 && callCh.items[0].unidad === 'paq',
+     'a crear_oc viajan los PAQUETES con unidad paq (la base los guarda en kg): ' + JSON.stringify(callCh.items));
+  await page.waitForFunction(() => document.getElementById('status').textContent.includes('gemela'));
+  const stCh = (await page.textContent('#status')).replace(/\s+/g, ' ').trim();
+  ok(stCh.includes('OC gemela N° 3 a Altrak') && stCh.includes('40,8 kg de FLEJE90_BRUTO'),
+     'el mensaje de la OC gemela sale de la respuesta generica (proveedor + componente + kg): ' + stCh.slice(0, 140));
+  // se suelta el proveedor para que el bloque de cartones vea todas sus filas
+  await page.click('#tabGen');
+  if (await page.evaluate(() => provSel !== null)) await page.click('#provs .chip:has-text("Resortes Charcas")');
+  ok(await page.evaluate(() => provSel === null), 'proveedor Charcas soltado');
 
   // volver a Generar y validar reglas de carton
   await page.click('#tabGen');

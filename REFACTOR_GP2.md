@@ -1078,6 +1078,15 @@ problema de performance.
 - `version.js` v1.109.2 (token `20260905s` en `login`, `GP2_MODULOS`, `envios-only`): la OC
   cambió de comportamiento (Charcas en kg, gemela genérica) y el celular tiene que saberlo.
 
+## Ciclo 13 — el test de la OC cubre a Charcas, 07:50–07:58 AR
+
+- `test_oc.js` gana un insumo de Resortes Charcas y prueba lo de los ciclos 9–10 desde la
+  pantalla: el sugerido en unidades se convierte a PAQUETES con el `charcas_kg_x_paquete` del
+  bundle (el fixture manda 20, no 10: si la pantalla siguiera con el 10 escrito, la cuenta
+  cambia), la equivalencia «= N uni», el payload a `crear_oc` con `unidad='paq'`, y el mensaje de
+  la OC gemela armado desde la respuesta genérica. El test atrapó de entrada una imprecisión: el
+  mensaje redondeaba 40,8 kg a «41» (`fmt` sin decimales) — ahora muestra un decimal.
+
 ### Estado final
 **47 tablas · 13 vistas · 119 funciones (96 RPC + 23 internas) · 153 constraints (17 vocabularios cerrados) · 37 tests · 29 invariantes en 0 · 27 preguntas (la 8 con 23 datos) · ideas 7250–7263 (7253, 7256, 7257 y 7262 hechas).**
 

@@ -32,7 +32,7 @@ base): verifican payloads de RPC, filtros, cálculos en pantalla y flujos comple
 | test_menu_una_pantalla.js | El menú en celular: los 13 grupos entran en una pantalla, tocables (>=44px) y legibles (>=14px), versión visible, sin texto de relleno, y al abrir un grupo se ve solo ese |
 | test_mon2.js | Cierres del Día · Premios, ex "Monitor 2.0" (premio espejo y calculado, alertas ±3) |
 | test_numero.js | Guardia de la regla de número (`gp2-numero.js`): punto de miles, coma decimal, separador automático; rechaza saneadores propios en pantallas GP2 y, donde la regla está cargada, cualquier `.value` leído con `Number/parseInt` crudo |
-| test_oc.js / test_oc_print.js | Órdenes de Compra: sugeridos, reglas de cartón C/LOKE/8, crear, imprimir. **Ojo**: el fixture de `test_oc.js` trae el contrato viejo (consumo × meses); la fórmula vigente máximo − stock queda sin cubrir hasta la idea 7242 |
+| test_oc.js / test_oc_print.js | Órdenes de Compra: sugeridos, reglas de cartón C/LOKE/8, crear, imprimir; Charcas en paquetes (`charcas_kg_x_paquete` del bundle, unidad `paq` a `crear_oc`) y el mensaje de la OC gemela genérica. **Ojo**: el fixture de `test_oc.js` trae el contrato viejo (consumo × meses); la fórmula vigente máximo − stock queda sin cubrir hasta la idea 7242 |
 | test_op_e2e.js | App Operarios entera: legajo → E con rollo → C → RM → baja vía RPC → cola ✓. El stub **revienta** si la app toca una tabla directo |
 | test_pm.js | Problemas con Matrices (RM/PM, uni acumuladas, golpes) |
 | test_pwa_icono.js | El icono de la app llega al teléfono: apple-touch-icon en las páginas de entrada, iconos del manifest existentes, maskable declarado y con token de versión |

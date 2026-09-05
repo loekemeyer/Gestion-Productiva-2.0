@@ -1052,7 +1052,7 @@ $('btnCrear').addEventListener('click', async function(){
     $('status').className='status ok';
     $('status').innerHTML='✓ OC N° '+r.data.numero+' creada con '+r.data.items+' ítems (borrador).' +
       (fEnt?(' Entrega estimada: '+fmtFecha(fEnt)+'.'):'') +
-      (gem ? ('<br><b style="color:#0b3b73">✓ OC gemela N° '+gem.numero+' a '+esc(gem.proveedor)+' con '+fmt(gem.kg)+' kg de '+esc(gem.componente)+'.</b>') : '');
+      (gem ? ('<br><b style="color:#0b3b73">✓ OC gemela N° '+gem.numero+' a '+esc(gem.proveedor)+' con '+fmt(gem.kg,1)+' kg de '+esc(gem.componente)+'.</b>') : '');
     setTimeout(function(){ $('status').innerHTML=''; $('status').className='status'; }, gem ? 12000 : 6000);
   }catch(e){ $('status').className='status bad'; $('status').textContent='Error: '+(e.message||e); }
   finally{ $('btnCrear').disabled=false; }
