@@ -87,6 +87,16 @@ select 'M_rpc_de_pantalla_sin_execute_anon', count(*) from pg_proc p
         or p.proname like 'relev\_%' or p.proname like 'recalcular\_%'
         or p.proname in ('to_canonical', 'inv_delta', 'ubic_de', 'ubic_de_componente', 'recepcion_tara',
                          'recepcion_virgilio', 'actualizar_dolar_oficial', 'crear_recepcion_insumo'))
+union all
+-- N) Ninguna funcion GP2 resuelve nombres en public (search_path = GP2 solo), salvo las dos que
+--    lo necesitan a proposito (get_role_for_email delega en public; actualizar_dolar_oficial usa http).
+select 'N_funciones_con_public_en_search_path', count(*) from pg_proc p
+ where p.pronamespace = '"GP2"'::regnamespace and array_to_string(p.proconfig, ';') ilike '%public%'
+   and p.proname not in ('actualizar_dolar_oficial', 'get_role_for_email')
+union all
+-- O) El espejo de Virgilio no dejo entregas sin cruzar por un ERROR (los "sin equivalente" y
+--    "contraparte sin resolver" son datos pendientes del usuario, pregunta 8; un 'error:' es un bug).
+select 'O_espejo_virgilio_con_error', count(*) from "GP2".virgilio_espejo_pend where motivo like 'error%'
 ) chequeos
 order by regla;
 

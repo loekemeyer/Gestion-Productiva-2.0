@@ -20,8 +20,8 @@
 | Archivos del repo | 133 HTML + ~160 JS/MD/… | **−90** (74 muertos, 9 pantallas de stock → 1, docs fusionadas) |
 | Copias de helpers en pantallas | 79 `esc`, 42 `$`, 45 `fmt`, 12 "hoy", 40 `createClient`, 3 CSV | **0** (viven en `gp2-ui.js`, `gp2-numero.js`, `supabase-config.js:GP2_SB`); sólo Recepción Insumos conserva su parser a propósito (7259) |
 | Tests | 33 | **36** (+`test_stock_sector`, `test_helpers_ui` con 5 reglas, `test_smoke_gp2` sobre las 47 pantallas; `test_numero` con 4 reglas) |
-| Bugs vivos encontrados y arreglados | — | **8**: `talleristas_bundle` sin `partes` (Control Talleristas vacío), `recepcion_tall` vs `entrega_tallerista` (dos palabras, un evento), `consumo_armado` no contado como entregado, `crear_entrega_ps` con la unidad de la SC en una cantidad de SP, «Desmarcar» del control de recepciones roto desde el 31/08, PS 12 AJ Adhesivos sin ubicación (`crear_envio_ps` explotaba), 6 "hoy" en UTC (día corrido después de las 21:00), y otros 3 PS + 1 Prov AT sin ubicación porque `alta_proveedor_servicio` no la creaba (causa raíz arreglada, ciclo 2s) |
-| Invariantes de la base | — | **14** en `db/verificar.sql` (contrapartes con ubicación, inventario = ledger, grants, RLS, PS híbridos, códigos, rutas), todas en 0 |
+| Bugs vivos encontrados y arreglados | — | **9**: `talleristas_bundle` sin `partes` (Control Talleristas vacío), `recepcion_tall` vs `entrega_tallerista` (dos palabras, un evento), `consumo_armado` no contado como entregado, `crear_entrega_ps` con la unidad de la SC en una cantidad de SP, «Desmarcar» del control de recepciones roto desde el 31/08, PS 12 AJ Adhesivos sin ubicación (`crear_envio_ps` explotaba), 6 "hoy" en UTC (día corrido después de las 21:00), otros 3 PS + 1 Prov AT sin ubicación porque `alta_proveedor_servicio` no la creaba (causa raíz arreglada, ciclo 2s), y una entrega de Virgilio (160 cajas del 510) que el espejo perdió por ese mismo hueco y nadie reintentaba (repuesta, ciclo 2w) |
+| Invariantes de la base | — | **16** en `db/verificar.sql` (contrapartes con ubicación, inventario = ledger, grants, RLS, `search_path`, PS híbridos, códigos, rutas, espejo de Virgilio), todas en 0 |
 | Preguntas para el usuario | — | 27 en `PREGUNTAS_ARQUITECTURA_GP2.md` (la 8 con 20 datos; la 27 con 80 renglones mínimo > máximo) |
 | RPC probadas en vivo (rollback) | — | **105**: 45 de lectura + ~60 de escritura con deltas de inventario verificados, 0 errores (ciclos 2o, 2q, 2s, 2u) |
 | Ideas registradas | — | 7250–7260 en `IDEAS-GP2.md` (7253 y 7256 ya hechas) |
@@ -796,6 +796,31 @@ cuando se responda, entra como invariante en `db/verificar.sql`.
 
 ### Estado tras el ciclo 2v
 **47 tablas · 13 vistas · 120 funciones · 36 tests · 14 invariantes en 0.**
+
+---
+
+## Ciclo 2w — seguridad fina: `search_path` sólo GP2, y una entrega de Virgilio perdida, 05:10–05:35 AR
+
+- **`search_path`**: 46 funciones tenían `"GP2", public`. Cualquier nombre no calificado que no
+  existiera en GP2 se resolvía en la casa del vecino (una tabla homónima, una función
+  sobrecargada). Ninguna usa objetos de `public` sin calificar: se probó **dentro de una
+  transacción** (`ALTER FUNCTION … search_path = GP2` para las 46 + 64 llamadas: bundles, ledger,
+  relevamiento, producción, recepción, envíos, ABM, rutas → 0 errores → rollback) y después se
+  aplicó de verdad. Quedan con `public` sólo `get_role_for_email` (delega en `public`) y
+  `actualizar_dolar_oficial` (extensión `http`).
+- **BUG VIVO nº 9 — una entrega de Virgilio que el espejo perdió**: `virgilio_espejo_pend`
+  tenía 14 filas; 13 son "artículo sin equivalente en GP2" (datos: códigos 535, 584E, 590E,
+  590ES, 760, 207, 599, 727E, 877E, 943, 948, 817, 823 — pregunta 8), pero **una era un error**:
+  la entrega 2308 (Carlos, 160 cajas del 510, remito 37996, 04/09 08:44) falló con "El origen
+  tallerista 9 no tiene ubicación" — Carlos Aguirre todavía no tenía `ubicacion_stock_id` esa
+  mañana — y **nadie la reintenta** (el espejo no tiene cola de reproceso). Se reprodujo con
+  `dry_run` (1.920 uni = 160 × 12; consume las 4 partes de la receta en Pedernera/Carlos y
+  recibe 1.920 del 510 terminado en Virgilio) y se aplicó con la fecha original; la fila
+  pendiente se borró. Dos invariantes nuevos en `db/verificar.sql`: **N** (ninguna función con
+  `public` en el `search_path`) y **O** (ningún `error:` en el espejo de Virgilio).
+
+### Estado tras el ciclo 2w
+**47 tablas · 13 vistas · 120 funciones · 36 tests · 16 invariantes en 0.**
 
 ---
 

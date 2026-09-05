@@ -75,7 +75,7 @@ CREATE OR REPLACE FUNCTION "GP2".abm_articulo_baja(p_id bigint)
  RETURNS jsonb
  LANGUAGE plpgsql
  SECURITY DEFINER
- SET search_path TO 'GP2', 'public'
+ SET search_path TO 'GP2'
 AS $function$
 declare v_cod text; v_bom int;
 begin
@@ -92,7 +92,7 @@ CREATE OR REPLACE FUNCTION "GP2".abm_articulo_upsert(p_id bigint, p_codigo text,
  RETURNS jsonb
  LANGUAGE plpgsql
  SECURITY DEFINER
- SET search_path TO 'GP2', 'public'
+ SET search_path TO 'GP2'
 AS $function$
 declare v_id bigint; v_accion text;
 begin
@@ -121,7 +121,7 @@ CREATE OR REPLACE FUNCTION "GP2".abm_articulos_bundle()
  RETURNS jsonb
  LANGUAGE sql
  STABLE SECURITY DEFINER
- SET search_path TO 'GP2', 'public'
+ SET search_path TO 'GP2'
 AS $function$
 select jsonb_build_object(
   'sect', (select jsonb_object_agg(id::text, jsonb_build_object('tipo',tipo,'nom',nombre)) from "GP2".sector),
@@ -292,7 +292,7 @@ CREATE OR REPLACE FUNCTION "GP2".alertas_bundle()
  RETURNS jsonb
  LANGUAGE sql
  STABLE SECURITY DEFINER
- SET search_path TO 'GP2', 'public'
+ SET search_path TO 'GP2'
 AS $function$
 with ref as (
   select max(fecha)::date d from "GP2".produccion where (eliminar is null or eliminar <> 'S')
@@ -449,7 +449,7 @@ CREATE OR REPLACE FUNCTION "GP2".anular_recepcion(p_recepcion_ids bigint[])
  RETURNS TABLE(anuladas integer, movimientos_borrados integer)
  LANGUAGE plpgsql
  SECURITY DEFINER
- SET search_path TO 'GP2', 'public'
+ SET search_path TO 'GP2'
 AS $function$
 declare
   v_mov_ids bigint[];
@@ -1046,7 +1046,7 @@ CREATE OR REPLACE FUNCTION "GP2".control_cajas_bundle()
  RETURNS jsonb
  LANGUAGE sql
  STABLE SECURITY DEFINER
- SET search_path TO 'GP2', 'public'
+ SET search_path TO 'GP2'
 AS $function$
   WITH cajas AS (
     SELECT r.id, r.fecha, r.componente_id, r.proveedor, r.remito, r.cantidad,
@@ -1099,7 +1099,7 @@ CREATE OR REPLACE FUNCTION "GP2".control_kg_bundle(p_sector_id integer)
  RETURNS jsonb
  LANGUAGE sql
  STABLE SECURITY DEFINER
- SET search_path TO 'GP2', 'public'
+ SET search_path TO 'GP2'
 AS $function$
   WITH rec AS (
     SELECT r.id, r.fecha, r.componente_id, r.proveedor, r.remito, r.cantidad,
@@ -1125,7 +1125,7 @@ CREATE OR REPLACE FUNCTION "GP2".control_ps_bundle()
  RETURNS jsonb
  LANGUAGE sql
  STABLE SECURITY DEFINER
- SET search_path TO 'GP2', 'public'
+ SET search_path TO 'GP2'
 AS $function$
 with ps as (
   select p.id ps_id, p.cod_prov, p.nombre, p.proceso, u.ubic_id
@@ -1213,7 +1213,7 @@ CREATE OR REPLACE FUNCTION "GP2".controlar_recepcion_cajas(p_recepcion_id bigint
  RETURNS jsonb
  LANGUAGE plpgsql
  SECURITY DEFINER
- SET search_path TO 'GP2', 'public'
+ SET search_path TO 'GP2'
 AS $function$
 DECLARE
   r "GP2".recepcion_insumo%ROWTYPE;
@@ -1273,7 +1273,7 @@ CREATE OR REPLACE FUNCTION "GP2".controlar_recepcion_kg(p_recepcion_id bigint, p
  RETURNS jsonb
  LANGUAGE plpgsql
  SECURITY DEFINER
- SET search_path TO 'GP2', 'public'
+ SET search_path TO 'GP2'
 AS $function$
 DECLARE
   r "GP2".recepcion_insumo%ROWTYPE;
@@ -1430,7 +1430,7 @@ CREATE OR REPLACE FUNCTION "GP2".crear_entrega_ps(p_ps_id bigint, p_comp_sc_id b
  RETURNS jsonb
  LANGUAGE plpgsql
  SECURITY DEFINER
- SET search_path TO 'GP2', 'public'
+ SET search_path TO 'GP2'
 AS $function$
 declare v_ps bigint; v_dest bigint; v_sec_id bigint; v_secsp text; v_umsp text;
         v_codsp text; v_codsc text; v_cons numeric; v_id bigint;
@@ -1464,7 +1464,7 @@ CREATE OR REPLACE FUNCTION "GP2".crear_entrega_tallerista(p_tallerista_id bigint
  RETURNS jsonb
  LANGUAGE plpgsql
  SECURITY DEFINER
- SET search_path TO 'GP2', 'public'
+ SET search_path TO 'GP2'
 AS $function$
 declare
   v_unidad            text    := lower(trim(coalesce(p_unidad, 'uni')));
@@ -1647,7 +1647,7 @@ CREATE OR REPLACE FUNCTION "GP2".crear_envio_ps(p_ps_id bigint, p_comp_sc_id big
  RETURNS jsonb
  LANGUAGE plpgsql
  SECURITY DEFINER
- SET search_path TO 'GP2', 'public'
+ SET search_path TO 'GP2'
 AS $function$
 declare v_orig bigint; v_dest bigint; v_sec_id bigint; v_sec text; v_cod text; v_id bigint;
 begin
@@ -1678,7 +1678,7 @@ CREATE OR REPLACE FUNCTION "GP2".crear_envio_tallerista(p_tallerista_id bigint, 
  RETURNS jsonb
  LANGUAGE plpgsql
  SECURITY DEFINER
- SET search_path TO 'GP2', 'public'
+ SET search_path TO 'GP2'
 AS $function$
 declare
   v_tall_nombre   text;
@@ -1954,7 +1954,7 @@ CREATE OR REPLACE FUNCTION "GP2".despiece_verif_bundle()
  RETURNS jsonb
  LANGUAGE sql
  STABLE SECURITY DEFINER
- SET search_path TO 'GP2', 'public'
+ SET search_path TO 'GP2'
 AS $function$
 with sec_rel as (
   -- sector "relevante para peso": tiene al menos un componente con kg cargado
@@ -2128,7 +2128,7 @@ CREATE OR REPLACE FUNCTION "GP2".disruptivas_bundle(p_desde date DEFAULT NULL::d
  RETURNS jsonb
  LANGUAGE sql
  STABLE SECURITY DEFINER
- SET search_path TO 'GP2', 'public'
+ SET search_path TO 'GP2'
 AS $function$
 select jsonb_build_object(
   'empleados', coalesce((
@@ -2355,7 +2355,7 @@ CREATE OR REPLACE FUNCTION "GP2".faltante_partes_tallerista_bundle()
  RETURNS jsonb
  LANGUAGE sql
  STABLE SECURITY DEFINER
- SET search_path TO 'GP2', 'public'
+ SET search_path TO 'GP2'
 AS $function$
 with mov as (
   -- normaliza cada movimiento a: tallerista, componente, enviado/entregado en unidades + kg crudo
@@ -2569,7 +2569,7 @@ CREATE OR REPLACE FUNCTION "GP2".fn_entregas_virgilio_espejo()
  RETURNS trigger
  LANGUAGE plpgsql
  SECURITY DEFINER
- SET search_path TO 'GP2', 'public'
+ SET search_path TO 'GP2'
 AS $function$
 declare
   v_nom  text := upper(btrim(coalesce(NEW."Nombre_Tall",'')));
@@ -2632,7 +2632,7 @@ CREATE OR REPLACE FUNCTION "GP2".fn_est_madre_sync()
  RETURNS trigger
  LANGUAGE plpgsql
  SECURITY DEFINER
- SET search_path TO 'GP2', 'public'
+ SET search_path TO 'GP2'
 AS $function$
 declare
   v_uni numeric;
@@ -2676,7 +2676,7 @@ CREATE OR REPLACE FUNCTION "GP2".fn_movimiento_aplicar()
  RETURNS trigger
  LANGUAGE plpgsql
  SECURITY DEFINER
- SET search_path TO 'GP2', 'public'
+ SET search_path TO 'GP2'
 AS $function$
 begin
   if tg_op in ('UPDATE','DELETE') then
@@ -2699,7 +2699,7 @@ CREATE OR REPLACE FUNCTION "GP2".fn_movimiento_calc()
  RETURNS trigger
  LANGUAGE plpgsql
  SECURITY DEFINER
- SET search_path TO 'GP2', 'public'
+ SET search_path TO 'GP2'
 AS $function$
 begin
   if new.comp_transformado_id is null then
@@ -2802,7 +2802,7 @@ CREATE OR REPLACE FUNCTION "GP2".guardar_control_cartones(p_items jsonb, p_usuar
  RETURNS jsonb
  LANGUAGE plpgsql
  SECURITY DEFINER
- SET search_path TO 'GP2', 'public'
+ SET search_path TO 'GP2'
 AS $function$
 DECLARE
   it            jsonb;
@@ -2934,7 +2934,7 @@ CREATE OR REPLACE FUNCTION "GP2".informes_bundle(p_desde date DEFAULT NULL::date
  RETURNS jsonb
  LANGUAGE sql
  STABLE SECURITY DEFINER
- SET search_path TO 'GP2', 'public'
+ SET search_path TO 'GP2'
 AS $function$
 with base as (
   select
@@ -3012,7 +3012,7 @@ CREATE OR REPLACE FUNCTION "GP2".informes_matriz_bundle(p_desde date DEFAULT NUL
  RETURNS jsonb
  LANGUAGE sql
  STABLE SECURITY DEFINER
- SET search_path TO 'GP2', 'public'
+ SET search_path TO 'GP2'
 AS $function$
 with base as (
   select
@@ -3088,7 +3088,7 @@ CREATE OR REPLACE FUNCTION "GP2".inicio_bundle()
  RETURNS jsonb
  LANGUAGE sql
  STABLE SECURITY DEFINER
- SET search_path TO 'GP2', 'public'
+ SET search_path TO 'GP2'
 AS $function$
 with base as (
   select *
@@ -3161,7 +3161,7 @@ CREATE OR REPLACE FUNCTION "GP2".inv_delta(p_comp bigint, p_ubic bigint, p_delta
  RETURNS void
  LANGUAGE plpgsql
  SECURITY DEFINER
- SET search_path TO 'GP2', 'public'
+ SET search_path TO 'GP2'
 AS $function$
 begin
   if p_comp is null or p_ubic is null or p_delta is null or p_delta = 0 then
@@ -3770,7 +3770,7 @@ CREATE OR REPLACE FUNCTION "GP2".produccion_bundle(p_matriz text DEFAULT NULL::t
  RETURNS jsonb
  LANGUAGE sql
  STABLE SECURITY DEFINER
- SET search_path TO 'GP2', 'public'
+ SET search_path TO 'GP2'
 AS $function$
 select jsonb_build_object(
   'matrices', coalesce((
@@ -3828,7 +3828,7 @@ CREATE OR REPLACE FUNCTION "GP2".produccion_maestro_bundle(p_desde date DEFAULT 
  RETURNS jsonb
  LANGUAGE sql
  STABLE SECURITY DEFINER
- SET search_path TO 'GP2', 'public'
+ SET search_path TO 'GP2'
 AS $function$
 with lims as (
   select coalesce(p_desde, p_hasta, current_date) as d0,
@@ -3893,7 +3893,7 @@ CREATE OR REPLACE FUNCTION "GP2".programa_bundle()
  RETURNS jsonb
  LANGUAGE sql
  STABLE SECURITY DEFINER
- SET search_path TO 'GP2', 'public'
+ SET search_path TO 'GP2'
 AS $function$
 with ruta_fleje as (
   -- fleje de la ruta = entrada del paso 1 de tipo 'ingreso' cuando es un componente del Sector Fleje (5)
@@ -3945,7 +3945,7 @@ CREATE OR REPLACE FUNCTION "GP2".proporciones_bundle()
  RETURNS jsonb
  LANGUAGE sql
  STABLE SECURITY DEFINER
- SET search_path TO 'GP2', 'public'
+ SET search_path TO 'GP2'
 AS $function$
 WITH pares AS (
   SELECT DISTINCT
@@ -4440,7 +4440,7 @@ CREATE OR REPLACE FUNCTION "GP2".registrar_produccion(p_legajo text, p_matriz te
  RETURNS jsonb
  LANGUAGE plpgsql
  SECURITY DEFINER
- SET search_path TO 'GP2', 'public'
+ SET search_path TO 'GP2'
 AS $function$
 declare
   v_mid bigint; v_mname text; v_partes numeric; v_id bigint; v_f timestamptz;
@@ -4674,7 +4674,7 @@ CREATE OR REPLACE FUNCTION "GP2".relevamiento_abrir(p_sector_id bigint, p_crono_
  RETURNS bigint
  LANGUAGE plpgsql
  SECURITY DEFINER
- SET search_path TO 'GP2', 'public'
+ SET search_path TO 'GP2'
 AS $function$
 DECLARE v_id bigint; v_fecha date;
 BEGIN
@@ -4707,7 +4707,7 @@ CREATE OR REPLACE FUNCTION "GP2".relevamiento_aplicar(p_id bigint)
  RETURNS jsonb
  LANGUAGE plpgsql
  SECURITY DEFINER
- SET search_path TO 'GP2', 'public'
+ SET search_path TO 'GP2'
 AS $function$
 DECLARE v_sector bigint; v_ubic bigint; v_estado text; n_mov int := 0;
 BEGIN
@@ -4749,7 +4749,7 @@ CREATE OR REPLACE FUNCTION "GP2".relevamiento_bundle()
  RETURNS jsonb
  LANGUAGE sql
  STABLE SECURITY DEFINER
- SET search_path TO 'GP2', 'public'
+ SET search_path TO 'GP2'
 AS $function$
   with base as (
     select k.*, k.sector_id::text as clave
@@ -4803,7 +4803,7 @@ CREATE OR REPLACE FUNCTION "GP2".relevamiento_cerrar(p_id bigint)
  RETURNS jsonb
  LANGUAGE plpgsql
  SECURITY DEFINER
- SET search_path TO 'GP2', 'public'
+ SET search_path TO 'GP2'
 AS $function$
 DECLARE v_sector bigint; v_ubic bigint; v_estado text; n_cont int; n_sin int;
 BEGIN
@@ -4836,7 +4836,7 @@ CREATE OR REPLACE FUNCTION "GP2".relevamiento_comparar(p_id bigint)
  RETURNS jsonb
  LANGUAGE sql
  STABLE SECURITY DEFINER
- SET search_path TO 'GP2', 'public'
+ SET search_path TO 'GP2'
 AS $function$
   select jsonb_build_object(
     'relevamiento', jsonb_build_object('id', r.id, 'estado', r.estado, 'fecha', r.fecha,
@@ -4871,7 +4871,7 @@ CREATE OR REPLACE FUNCTION "GP2".relevamiento_decidir(p_id bigint, p_items jsonb
  RETURNS integer
  LANGUAGE plpgsql
  SECURITY DEFINER
- SET search_path TO 'GP2', 'public'
+ SET search_path TO 'GP2'
 AS $function$
 DECLARE n int := 0;
 BEGIN
@@ -4898,7 +4898,7 @@ CREATE OR REPLACE FUNCTION "GP2".relevamiento_descartar_si_vacio(p_id bigint)
  RETURNS boolean
  LANGUAGE plpgsql
  SECURITY DEFINER
- SET search_path TO 'GP2', 'public'
+ SET search_path TO 'GP2'
 AS $function$
 DECLARE v_estado text; v_cont int;
 BEGIN
@@ -4919,7 +4919,7 @@ CREATE OR REPLACE FUNCTION "GP2".relevamiento_detalle(p_id bigint)
  RETURNS jsonb
  LANGUAGE sql
  STABLE SECURITY DEFINER
- SET search_path TO 'GP2', 'public'
+ SET search_path TO 'GP2'
 AS $function$
   select jsonb_build_object(
     'relevamiento', to_jsonb(r) - 'creado_en',
@@ -4961,7 +4961,7 @@ CREATE OR REPLACE FUNCTION "GP2".relevamiento_eliminar(p_id bigint)
  RETURNS boolean
  LANGUAGE plpgsql
  SECURITY DEFINER
- SET search_path TO 'GP2', 'public'
+ SET search_path TO 'GP2'
 AS $function$
 DECLARE v_estado text;
 BEGIN
@@ -4982,7 +4982,7 @@ CREATE OR REPLACE FUNCTION "GP2".relevamiento_guardar(p_id bigint, p_items jsonb
  RETURNS integer
  LANGUAGE plpgsql
  SECURITY DEFINER
- SET search_path TO 'GP2', 'public'
+ SET search_path TO 'GP2'
 AS $function$
 DECLARE n integer := 0;
 BEGIN
@@ -5064,7 +5064,7 @@ CREATE OR REPLACE FUNCTION "GP2".ruta_confirmar(p_firma text, p_articulo text, p
  RETURNS bigint
  LANGUAGE plpgsql
  SECURITY DEFINER
- SET search_path TO 'GP2', 'public'
+ SET search_path TO 'GP2'
 AS $function$
 declare v_id bigint;
 begin
@@ -5089,7 +5089,7 @@ CREATE OR REPLACE FUNCTION "GP2".ruta_reportar(p_firma text, p_articulo text, p_
  RETURNS bigint
  LANGUAGE plpgsql
  SECURITY DEFINER
- SET search_path TO 'GP2', 'public'
+ SET search_path TO 'GP2'
 AS $function$
 declare v_id bigint;
 begin
@@ -5116,7 +5116,7 @@ CREATE OR REPLACE FUNCTION "GP2".ruta_resolver(p_id bigint)
  RETURNS void
  LANGUAGE plpgsql
  SECURITY DEFINER
- SET search_path TO 'GP2', 'public'
+ SET search_path TO 'GP2'
 AS $function$
 begin
   update "GP2".ruta_revision
@@ -5322,7 +5322,7 @@ CREATE OR REPLACE FUNCTION "GP2".to_canonical(p_comp bigint, p_qty numeric, p_un
  RETURNS numeric
  LANGUAGE plpgsql
  STABLE SECURITY DEFINER
- SET search_path TO 'GP2', 'public'
+ SET search_path TO 'GP2'
 AS $function$
 declare
   v_canon   text;
@@ -5433,7 +5433,7 @@ CREATE OR REPLACE FUNCTION "GP2".validacion_bundle()
  RETURNS jsonb
  LANGUAGE sql
  STABLE SECURITY DEFINER
- SET search_path TO 'GP2', 'public'
+ SET search_path TO 'GP2'
 AS $function$
   select jsonb_build_object(
     'hoy', current_date,

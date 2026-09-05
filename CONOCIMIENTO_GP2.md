@@ -2817,6 +2817,13 @@ y carlos aguirre son dos prov diferentes para ISIS"*. **Regla capital**:
   crea en la misma transacción ("Prov. Serv. <nombre>") y se crearon las 4 que faltaban (51–54).
   Los sectores 12 Terminado y 13 Alambre no tienen ubicación a propósito (Terminado vive en
   Virgilio; el 13 es la pregunta 21).
+- **El espejo de Virgilio no reintenta** `[dato 2026-09-05]`: lo que no puede cruzar queda en
+  `virgilio_espejo_pend` con el motivo y ahí se queda. Los "artículo sin equivalente en GP2"
+  (13 códigos al 05/09: 535, 584E, 590E, 590ES, 760, 207, 599, 727E, 877E, 943, 948, 817, 823)
+  son datos que faltan cargar (pregunta 8); un motivo `error: …` es un bug y hay que reponer la
+  entrega a mano con `recepcion_virgilio(jsonb)` (se hizo con la entrega 2308: Carlos, 160 cajas
+  del 510 del 04/09, que había fallado porque Carlos Aguirre todavía no tenía ubicación).
+  `db/verificar.sql` regla O avisa si vuelve a pasar.
 - **Reglas de reposición distintas por componente en esa misma ubi** `[deducido, pendiente
   de implementar]`: los crudos/cromados (N7, GRJ10, GRJ10A, cuerpos p/cromar) se reponen en
   kg según lo que Cervantes tiene en Sector Procesado; los insumos de envasado (cartones

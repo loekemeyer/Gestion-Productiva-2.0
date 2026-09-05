@@ -44,6 +44,9 @@ explícito). Las 97 RPC de pantalla sí. Al crear una RPC nueva: `grant execute 
 "GP2".x to anon, authenticated`. Las **secuencias** tampoco tienen USAGE para `anon`/`authenticated`
 (las 4 que lo conservaban — `movimiento`, `entrega_prov_at`, `articulo_prov_at`,
 `uni_x_articulo_x_caja` — se revocaron el 2026-09-05; ninguna función no-DEFINER escribe).
+**`search_path`**: todas las funciones GP2 tienen `set search_path = GP2` (sólo GP2; desde el
+2026-09-05), salvo `get_role_for_email` (`public`, delega) y `actualizar_dolar_oficial`
+(`GP2, public, extensions`, usa `http`). Una función nueva se crea con `set search_path to 'GP2'`.
 
 **Para restaurar en una base vacía**: correr en orden `tablas_GP2.sql` → `funciones_GP2.sql` →
 `vistas_GP2.sql`, después los 2 triggers de `public`, el cron y los grants. Ojo con el orden de
