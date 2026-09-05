@@ -1,6 +1,7 @@
 -- =====================================================================
--- VISTAS del schema GP2 (pg_get_viewdef, exacto) — export automatico 2026-08-31 desde Supabase (hrxfctzncixxqmpfhskv)
+-- VISTAS del schema GP2 (pg_get_viewdef, exacto) — export automatico 2026-09-05 desde Supabase (hrxfctzncixxqmpfhskv)
 -- Respaldo/referencia. La fuente de verdad es la base; regenerar al cambiar el schema.
+-- 12 vistas. Orden de creacion: las que dependen de otra van despues (v_consumo_demanda antes que v_consumo_componente; v_consumo_fleje_kg y v_consumo_componente antes que v_nivel_stock; v_control_pallet antes que v_recepcion_control).
 -- =====================================================================
 
 -- ---------- v_consumo_componente ----------
@@ -16,6 +17,7 @@ create or replace view "GP2".v_consumo_componente as
      JOIN "GP2".componente c ON c.id = d.componente_id
      LEFT JOIN "GP2".sector s ON s.id = c.sector_id
   GROUP BY c.id, c.codigo, c.descripcion, c.sector_id, s.nombre;
+comment on view "GP2".v_consumo_componente is 'Consumo uni/mes por componente, todos los sectores. Sucesora de v_consumo_parte (que solo cubria la receta directa).';
 
 -- ---------- v_consumo_demanda ----------
 create or replace view "GP2".v_consumo_demanda as
@@ -71,60 +73,10 @@ create or replace view "GP2".v_consumo_demanda as
    FROM walk w
      JOIN seed s ON s.art_id = w.art_id AND s.comp_id = w.seed
   GROUP BY w.art_id, w.comp_id;
+comment on view "GP2".v_consumo_demanda is 'Consumo uni/mes por (articulo, componente) para TODA la cadena, caminando la ruta hacia atras desde la receta del articulo terminado. Reemplaza al parche "primer nodo con consumo" que sobrecontaba.';
 
 -- ---------- v_consumo_fleje_kg ----------
 create or replace view "GP2".v_consumo_fleje_kg as
- WITH RECURSIVE arranque AS (
-         SELECT rp.ruta_id,
-            rp.orden,
-            rp.comp_salida_id AS comp,
-            ce.id AS fleje_id,
-            m.partes_por_kilo_de_fleje AS ppk
-           FROM "GP2".ruta_paso rp
-             JOIN "GP2".matriz m ON m.id = rp.matriz_id
-             JOIN "GP2".componente ce ON ce.id = rp.comp_entrada_id
-          WHERE ce.sector_id = 5 AND COALESCE(m.partes_por_kilo_de_fleje, 0::numeric) > 0::numeric
-        ), walk AS (
-         SELECT a.fleje_id,
-            a.ruta_id,
-            a.orden,
-            a.comp,
-            a.ppk,
-            0 AS depth
-           FROM arranque a
-        UNION ALL
-         SELECT w.fleje_id,
-            w.ruta_id,
-            rp.orden,
-            rp.comp_salida_id,
-            w.ppk,
-            w.depth + 1
-           FROM walk w
-             JOIN "GP2".ruta_paso rp ON rp.ruta_id = w.ruta_id AND rp.orden = (w.orden + 1) AND rp.comp_entrada_id = w.comp
-          WHERE w.depth < 12 AND rp.comp_salida_id IS NOT NULL AND NOT (EXISTS ( SELECT 1
-                   FROM "GP2".v_consumo_parte cp_1
-                  WHERE cp_1.componente_id = w.comp))
-        ), terminales AS (
-         SELECT DISTINCT w.fleje_id,
-            w.comp,
-            w.ppk
-           FROM walk w
-          WHERE (EXISTS ( SELECT 1
-                   FROM "GP2".v_consumo_parte cp_1
-                  WHERE cp_1.componente_id = w.comp))
-        )
- SELECT f.id AS componente_id,
-    f.codigo,
-    f.descripcion,
-    round(sum(cp.consumo_uni_mes / t.ppk), 1) AS consumo_kg_mes,
-    count(*) AS piezas
-   FROM terminales t
-     JOIN "GP2".componente f ON f.id = t.fleje_id
-     JOIN "GP2".v_consumo_parte cp ON cp.componente_id = t.comp
-  GROUP BY f.id, f.codigo, f.descripcion;
-
--- ---------- v_consumo_fleje_kg_v2 ----------
-create or replace view "GP2".v_consumo_fleje_kg_v2 as
  WITH paso AS (
          SELECT DISTINCT r.articulo_id AS art_id,
             rp.comp_entrada_id AS fleje_id,
@@ -145,20 +97,7 @@ create or replace view "GP2".v_consumo_fleje_kg_v2 as
      JOIN "GP2".v_consumo_demanda d ON d.articulo_id = p.art_id AND d.componente_id = p.sal
      JOIN "GP2".componente f ON f.id = p.fleje_id
   GROUP BY f.id, f.codigo, f.descripcion;
-
--- ---------- v_consumo_parte ----------
-create or replace view "GP2".v_consumo_parte as
- SELECT ac.componente_id,
-    c.codigo,
-    c.descripcion,
-    c.sector_id,
-    round(sum(em.proy_uni_mes * ac.cantidad)) AS consumo_uni_mes,
-    count(DISTINCT ac.articulo_id) AS en_articulos
-   FROM "GP2".articulo_componente ac
-     JOIN "GP2".articulo a ON a.id = ac.articulo_id
-     JOIN "GP2".est_madre em ON regexp_replace(em.cod, '^0+'::text, ''::text) = regexp_replace(a.codigo, '^0+'::text, ''::text)
-     JOIN "GP2".componente c ON c.id = ac.componente_id
-  GROUP BY ac.componente_id, c.codigo, c.descripcion, c.sector_id;
+comment on view "GP2".v_consumo_fleje_kg is 'Kg/mes de fleje. Igual que v_consumo_fleje_kg pero tomando la demanda atribuida por articulo (v_consumo_demanda) en vez del consumo entero del primer nodo aguas abajo.';
 
 -- ---------- v_control_pallet ----------
 create or replace view "GP2".v_control_pallet as
@@ -228,14 +167,6 @@ create or replace view "GP2".v_costo_componente as
            FROM "GP2".precio_proveedor
           WHERE precio_proveedor.componente_id IS NOT NULL AND precio_proveedor.precio IS NOT NULL
           ORDER BY precio_proveedor.componente_id, precio_proveedor.fecha_lista DESC NULLS LAST, precio_proveedor.id DESC
-        ), psrv AS (
-         SELECT precio_servicio.proveedor_servicio_id,
-            precio_servicio.precio_uni,
-                CASE
-                    WHEN upper(COALESCE(precio_servicio.moneda, 'USD'::text)) ~~ '%US%'::text OR upper(COALESCE(precio_servicio.moneda, 'USD'::text)) = 'USD'::text THEN 'USD'::text
-                    ELSE 'ARS'::text
-                END AS moneda
-           FROM "GP2".precio_servicio
         ), comprado AS (
          SELECT c_1.id,
             c_1.sector_id,
@@ -245,7 +176,7 @@ create or replace view "GP2".v_costo_componente as
              LEFT JOIN pc ON pc.componente_id = c_1.id
           WHERE ((c_1.sector_id = ANY (ARRAY[5::bigint, 6::bigint, 7::bigint, 8::bigint, 10::bigint, 11::bigint])) OR pc.precio IS NOT NULL AND NOT (EXISTS ( SELECT 1
                    FROM "GP2".ruta_paso rp2
-                  WHERE rp2.comp_salida_id = c_1.id AND (rp2.tipo_paso = ANY (ARRAY['matriz'::text, 'proveedor_servicio'::text, 'tallerista'::text]))))) AND c_1.estado_compra IS NULL
+                  WHERE rp2.comp_salida_id = c_1.id AND (rp2.tipo_paso = ANY (ARRAY['matriz'::text, 'proveedor_servicio'::text, 'tallerista'::text]))))) AND (c_1.estado_compra IS NULL OR (c_1.estado_compra = ANY (ARRAY['importado'::text, 'compra'::text])))
         ), edges AS (
          SELECT DISTINCT rp.comp_entrada_id AS ent,
             rp.comp_salida_id AS sal,
@@ -319,13 +250,20 @@ create or replace view "GP2".v_costo_componente as
           GROUP BY x.comp_id
         ), lab AS (
          SELECT y.comp_id,
-            COALESCE(sum(m.tiempo_historico), 0::numeric) AS segundos,
+            COALESCE(sum(
+                CASE
+                    WHEN m.tiempo_unidad = 'kg'::text THEN m.tiempo_historico * cm.kg_x_uni
+                    ELSE m.tiempo_historico
+                END), 0::numeric) AS segundos,
             count(*) FILTER (WHERE m.tiempo_historico IS NULL) AS sin_tiempo
-           FROM ( SELECT DISTINCT wd.comp_id,
-                    wd.matriz_id
+           FROM ( SELECT wd.comp_id,
+                    wd.matriz_id,
+                    max(wd.sal) AS sal
                    FROM wd
-                  WHERE wd.tipo_paso = 'matriz'::text AND wd.matriz_id IS NOT NULL) y
+                  WHERE wd.tipo_paso = 'matriz'::text AND wd.matriz_id IS NOT NULL
+                  GROUP BY wd.comp_id, wd.matriz_id) y
              JOIN "GP2".matriz m ON m.id = y.matriz_id
+             LEFT JOIN "GP2".componente cm ON cm.id = y.sal
           GROUP BY y.comp_id
         ), nodos AS (
          SELECT f.id AS comp_id,
@@ -341,9 +279,9 @@ create or replace view "GP2".v_costo_componente as
            FROM wd
         ), srv AS (
          SELECT z.comp_id,
-            COALESCE(sum(COALESCE(pz.precio_kg * cz.kg_x_uni, pz.precio_uni, ts.precio_kg * cz.kg_x_uni, ts.precio_uni, p.precio_uni)) FILTER (WHERE COALESCE(pz.moneda, ts.moneda, p.moneda) = 'USD'::text), 0::numeric) AS usd,
-            COALESCE(sum(COALESCE(pz.precio_kg * cz.kg_x_uni, pz.precio_uni, ts.precio_kg * cz.kg_x_uni, ts.precio_uni, p.precio_uni)) FILTER (WHERE COALESCE(pz.moneda, ts.moneda, p.moneda) = 'ARS'::text), 0::numeric) AS ars,
-            count(*) FILTER (WHERE COALESCE(pz.precio_kg * cz.kg_x_uni, pz.precio_uni, ts.precio_kg * cz.kg_x_uni, ts.precio_uni, p.precio_uni) IS NULL) AS sin_precio
+            COALESCE(sum(COALESCE(pz.precio_kg * cz.kg_x_uni, pz.precio_uni, ts.precio_kg * cz.kg_x_uni, ts.precio_uni)) FILTER (WHERE COALESCE(pz.moneda, ts.moneda) = 'USD'::text), 0::numeric) AS usd,
+            COALESCE(sum(COALESCE(pz.precio_kg * cz.kg_x_uni, pz.precio_uni, ts.precio_kg * cz.kg_x_uni, ts.precio_uni)) FILTER (WHERE COALESCE(pz.moneda, ts.moneda) = 'ARS'::text), 0::numeric) AS ars,
+            count(*) FILTER (WHERE COALESCE(pz.precio_kg * cz.kg_x_uni, pz.precio_uni, ts.precio_kg * cz.kg_x_uni, ts.precio_uni) IS NULL) AS sin_precio
            FROM ( SELECT DISTINCT wd.comp_id,
                     wd.sal AS pieza,
                     wd.proveedor_id
@@ -358,7 +296,6 @@ create or replace view "GP2".v_costo_componente as
              LEFT JOIN "GP2".precio_servicio_pieza pz ON pz.proveedor_servicio_id = z.proveedor_id AND pz.componente_id = z.pieza
              LEFT JOIN "GP2".componente cz ON cz.id = z.pieza
              LEFT JOIN "GP2".tarifa_servicio ts ON ts.proveedor_servicio_id = z.proveedor_id AND ts.proceso = pz.proceso
-             LEFT JOIN psrv p ON p.proveedor_servicio_id = z.proveedor_id
           GROUP BY z.comp_id
         ), bomx AS (
          SELECT b.componente_padre_id AS comp_id,
@@ -372,10 +309,39 @@ create or replace view "GP2".v_costo_componente as
                    FROM edges e
                   WHERE e.ent = b.componente_hijo_id AND e.sal = b.componente_padre_id))
           GROUP BY b.componente_padre_id
-        ), talx AS (
-         SELECT n.comp_id,
-            COALESCE(sum(pt.precio_uni) FILTER (WHERE upper(COALESCE(pt.moneda, 'ARS'::text)) ~~ '%US%'::text), 0::numeric) AS usd,
-            COALESCE(sum(pt.precio_uni) FILTER (WHERE NOT upper(COALESCE(pt.moneda, 'ARS'::text)) ~~ '%US%'::text), 0::numeric) AS ars
+        ), insumo_por_art AS (
+         SELECT x.art_id,
+            x.insumo_id,
+            max(x.cantidad) AS cantidad
+           FROM ( SELECT rp_ins.comp_entrada_id AS insumo_id,
+                    rp_ins.cantidad,
+                    ( SELECT rp2.comp_salida_id
+                           FROM "GP2".ruta_paso rp2
+                          WHERE rp2.ruta_id = rp_ins.ruta_id AND rp2.comp_salida_id IS NOT NULL AND rp2.tipo_paso <> 'virgilio'::text
+                          ORDER BY rp2.orden DESC
+                         LIMIT 1) AS art_id
+                   FROM "GP2".ruta_paso rp_ins
+                  WHERE rp_ins.tipo_paso = 'insumo'::text AND rp_ins.comp_entrada_id IS NOT NULL) x
+          WHERE x.art_id IS NOT NULL
+          GROUP BY x.art_id, x.insumo_id
+        ), insumox AS (
+         SELECT y.art_id AS comp_id,
+            COALESCE(sum(y.cantidad * pc.precio) FILTER (WHERE pc.moneda = 'USD'::text), 0::numeric) AS usd,
+            COALESCE(sum(y.cantidad * pc.precio) FILTER (WHERE pc.moneda = 'ARS'::text), 0::numeric) AS ars,
+            count(*) FILTER (WHERE pc.precio IS NULL AND NOT (EXISTS ( SELECT 1
+                   FROM edges e
+                  WHERE e.sal = y.insumo_id))) AS sin_precio
+           FROM insumo_por_art y
+             LEFT JOIN pc ON pc.componente_id = y.insumo_id
+          GROUP BY y.art_id
+        ), talpieza AS (
+         SELECT DISTINCT ON (n.comp_id, n.comp) n.comp_id,
+            n.comp,
+            pt.precio_uni AS precio,
+                CASE
+                    WHEN upper(COALESCE(pt.moneda, 'ARS'::text)) ~~ '%US%'::text THEN 'USD'::text
+                    ELSE 'ARS'::text
+                END AS moneda
            FROM ( SELECT DISTINCT n0.comp_id,
                     t.comp,
                     t.tallerista_id
@@ -387,7 +353,13 @@ create or replace view "GP2".v_costo_componente as
                            FROM nodos) n0 ON n0.nodo = t.comp
                   WHERE rp0.tipo_paso = 'tallerista'::text AND rp0.tallerista_id IS NOT NULL AND rp0.comp_salida_id IS NOT NULL) n
              JOIN "GP2".precio_tallerista pt ON pt.tallerista_id = n.tallerista_id AND pt.componente_id = n.comp
-          GROUP BY n.comp_id
+          ORDER BY n.comp_id, n.comp, pt.precio_uni DESC NULLS LAST
+        ), talx AS (
+         SELECT tp.comp_id,
+            COALESCE(sum(tp.precio) FILTER (WHERE tp.moneda = 'USD'::text), 0::numeric) AS usd,
+            COALESCE(sum(tp.precio) FILTER (WHERE tp.moneda = 'ARS'::text), 0::numeric) AS ars
+           FROM talpieza tp
+          GROUP BY tp.comp_id
         )
  SELECT c.id AS comp_id,
     c.codigo,
@@ -405,7 +377,7 @@ create or replace view "GP2".v_costo_componente as
                 WHEN cb.moneda = 'USD'::text THEN COALESCE(cb.precio, 0::numeric)
                 ELSE 0::numeric
             END
-            ELSE COALESCE(mat.usd, 0::numeric) + COALESCE(bx.usd, 0::numeric)
+            ELSE COALESCE(mat.usd, 0::numeric) + COALESCE(bx.usd, 0::numeric) + COALESCE(ix.usd, 0::numeric)
         END AS material_usd,
         CASE
             WHEN cb.id IS NOT NULL THEN
@@ -413,7 +385,7 @@ create or replace view "GP2".v_costo_componente as
                 WHEN cb.moneda = 'ARS'::text THEN COALESCE(cb.precio, 0::numeric)
                 ELSE 0::numeric
             END
-            ELSE COALESCE(mat.ars, 0::numeric) + COALESCE(bx.ars, 0::numeric)
+            ELSE COALESCE(mat.ars, 0::numeric) + COALESCE(bx.ars, 0::numeric) + COALESCE(ix.ars, 0::numeric)
         END AS material_pesos,
         CASE
             WHEN cb.id IS NOT NULL THEN 0::numeric
@@ -440,7 +412,7 @@ create or replace view "GP2".v_costo_componente as
                     WHEN cb.moneda = 'USD'::text THEN COALESCE(cb.precio, 0::numeric)
                     ELSE 0::numeric
                 END
-                ELSE COALESCE(mat.usd, 0::numeric) + COALESCE(bx.usd, 0::numeric) + COALESCE(srv.usd, 0::numeric) + COALESCE(tx.usd, 0::numeric)
+                ELSE COALESCE(mat.usd, 0::numeric) + COALESCE(bx.usd, 0::numeric) + COALESCE(ix.usd, 0::numeric) + COALESCE(srv.usd, 0::numeric) + COALESCE(tx.usd, 0::numeric)
             END * par.tc +
             CASE
                 WHEN cb.id IS NOT NULL THEN
@@ -448,12 +420,12 @@ create or replace view "GP2".v_costo_componente as
                     WHEN cb.moneda = 'ARS'::text THEN COALESCE(cb.precio, 0::numeric)
                     ELSE 0::numeric
                 END
-                ELSE COALESCE(mat.ars, 0::numeric) + COALESCE(bx.ars, 0::numeric) + COALESCE(srv.ars, 0::numeric) + COALESCE(tx.ars, 0::numeric) + round(COALESCE(lab.segundos, 0::numeric) * COALESCE(par.costo_seg, 0::numeric), 4)
+                ELSE COALESCE(mat.ars, 0::numeric) + COALESCE(bx.ars, 0::numeric) + COALESCE(ix.ars, 0::numeric) + COALESCE(srv.ars, 0::numeric) + COALESCE(tx.ars, 0::numeric) + round(COALESCE(lab.segundos, 0::numeric) * COALESCE(par.costo_seg, 0::numeric), 4)
             END, 2)
         END AS total_pesos,
         CASE
             WHEN cb.id IS NOT NULL THEN (cb.precio IS NULL)::integer::bigint
-            ELSE COALESCE(mat.sin_precio, 0::bigint) + COALESCE(srv.sin_precio, 0::bigint) + COALESCE(bx.sin_precio, 0::bigint)
+            ELSE COALESCE(mat.sin_precio, 0::bigint) + COALESCE(srv.sin_precio, 0::bigint) + COALESCE(bx.sin_precio, 0::bigint) + COALESCE(ix.sin_precio, 0::bigint)
         END AS faltan_precios,
         CASE
             WHEN cb.id IS NOT NULL THEN 0::bigint
@@ -471,6 +443,7 @@ create or replace view "GP2".v_costo_componente as
      LEFT JOIN lab ON lab.comp_id = c.id AND cb.id IS NULL
      LEFT JOIN srv ON srv.comp_id = c.id AND cb.id IS NULL
      LEFT JOIN bomx bx ON bx.comp_id = c.id AND cb.id IS NULL
+     LEFT JOIN insumox ix ON ix.comp_id = c.id AND cb.id IS NULL
      LEFT JOIN talx tx ON tx.comp_id = c.id AND cb.id IS NULL;
 
 -- ---------- v_faltante_estado ----------
@@ -507,59 +480,45 @@ create or replace view "GP2".v_faltante_estado as
     COALESCE(cp.consumo_uni_mes, 0::numeric) > 0::numeric AND i.maximo IS NOT NULL AND (i.maximo / (cp.consumo_uni_mes / 30.0)) < 30::numeric AS ubicacion_corta
    FROM "GP2".componente c
      JOIN "GP2".sector s ON s.id = c.sector_id
-     JOIN "GP2".ubicacion u ON u.tipo = 'sector'::text AND u.ref_id = c.sector_id
-     JOIN "GP2".inventario i ON i.componente_id = c.id AND i.ubicacion_id = u.id
+     JOIN "GP2".inventario i ON i.componente_id = c.id AND i.ubicacion_id = "GP2".ubic_de('sector'::text, c.sector_id)
      LEFT JOIN "GP2".v_consumo_componente cp ON cp.componente_id = c.id
      CROSS JOIN umbral u2
   WHERE c.sector_id = ANY (ARRAY[1::bigint, 2::bigint]);
 
--- ---------- v_punto_stock ----------
-create or replace view "GP2".v_punto_stock as
- SELECT c.id AS componente_id,
-    c.codigo,
-    c.descripcion,
-    s.nombre AS sector,
-    u.id AS ubicacion_id,
-    u.nombre AS ubicacion,
-    u.tipo AS ubicacion_tipo,
+-- ---------- v_nivel_stock ----------
+create or replace view "GP2".v_nivel_stock as
+ SELECT i.id AS inv_id,
+    i.componente_id,
+    i.ubicacion_id,
+    c.sector_id,
+    COALESCE(
+        CASE
+            WHEN c.sector_id = 5 THEN fk.consumo_kg_mes
+            ELSE cp.consumo_uni_mes
+        END, 0::numeric) AS consumo_mes,
     u.meses_stock,
+    u.meses_minimo,
+    round(COALESCE(
         CASE
             WHEN c.sector_id = 5 THEN fk.consumo_kg_mes
             ELSE cp.consumo_uni_mes
-        END AS consumo_uni_mes,
-    round(
+        END, 0::numeric) * u.meses_stock) AS max_calc,
+    round(COALESCE(
         CASE
             WHEN c.sector_id = 5 THEN fk.consumo_kg_mes
             ELSE cp.consumo_uni_mes
-        END * u.meses_stock) AS punto_stock_uni,
-    i.maximo AS maximo_fisico,
-    i.cantidad AS online,
-        CASE
-            WHEN u.meses_stock IS NULL THEN 'sin meses definidos'::text
-            WHEN COALESCE(
-            CASE
-                WHEN c.sector_id = 5 THEN fk.consumo_kg_mes
-                ELSE cp.consumo_uni_mes
-            END, 0::numeric) = 0::numeric THEN 'sin consumo'::text
-            WHEN i.maximo IS NULL THEN 'sin maximo fisico'::text
-            WHEN i.maximo < (
-            CASE
-                WHEN c.sector_id = 5 THEN fk.consumo_kg_mes
-                ELSE cp.consumo_uni_mes
-            END * u.meses_stock) THEN 'maximo insuficiente'::text
-            ELSE 'ok'::text
-        END AS estado,
-        CASE
-            WHEN c.sector_id = 5 THEN 'kg'::text
-            ELSE 'uni'::text
-        END AS unidad,
-    i.maximo_origen
+        END, 0::numeric) * u.meses_minimo) AS min_calc,
+    "GP2"._es_sector_insumo(u.ref_id) AS es_insumo,
+    i.maximo,
+    i.maximo_origen,
+    i.minimo,
+    i.minimo_origen
    FROM "GP2".inventario i
-     JOIN "GP2".ubicacion u ON u.id = i.ubicacion_id
-     JOIN "GP2".componente c ON c.id = i.componente_id
-     JOIN "GP2".sector s ON s.id = c.sector_id
-     LEFT JOIN "GP2".v_consumo_componente cp ON cp.componente_id = c.id AND c.sector_id <> 5
-     LEFT JOIN "GP2".v_consumo_fleje_kg_v2 fk ON fk.componente_id = c.id AND c.sector_id = 5;
+     JOIN "GP2".ubicacion u ON u.id = i.ubicacion_id AND u.tipo = 'sector'::text
+     JOIN "GP2".componente c ON c.id = i.componente_id AND c.sector_id = u.ref_id
+     LEFT JOIN "GP2".v_consumo_fleje_kg fk ON fk.componente_id = c.id AND c.sector_id = 5
+     LEFT JOIN "GP2".v_consumo_componente cp ON cp.componente_id = c.id AND c.sector_id <> 5;
+comment on view "GP2".v_nivel_stock is 'Consumo mensual (Est Madre explotada) por fila de inventario de SECTOR y los niveles que salen de el: max_calc = consumo x meses_stock, min_calc = consumo x meses_minimo. Unica definicion (2026-09-05); la usan recalcular_maximos_insumos y recalcular_minimos.';
 
 -- ---------- v_recepcion_control ----------
 create or replace view "GP2".v_recepcion_control as
@@ -593,6 +552,7 @@ create or replace view "GP2".v_recepcion_control as
     COALESCE(a.pallets_con_problema, 0::bigint) AS pallets_con_problema,
     a.problemas,
         CASE
+            WHEN c.sector_id <> 5 THEN 'ok'::text
             WHEN a.recepcion_id IS NULL THEN 'sin controlar'::text
             WHEN ri.pallets IS NOT NULL AND (COALESCE(ri.pallets, 0) - COALESCE(a.pallets_pesados, 0::bigint)) <> 0 THEN 'faltan pallets por pesar'::text
             WHEN ri.rollos IS NOT NULL AND (COALESCE(ri.rollos, 0)::numeric - COALESCE(a.rollos_contados, 0::numeric)) <> 0::numeric THEN 'rollos sin clasificar'::text
@@ -602,6 +562,41 @@ create or replace view "GP2".v_recepcion_control as
    FROM "GP2".recepcion_insumo ri
      JOIN "GP2".componente c ON c.id = ri.componente_id
      LEFT JOIN a ON a.recepcion_id = ri.id;
+
+-- ---------- v_recepcion_unificada ----------
+create or replace view "GP2".v_recepcion_unificada as
+ SELECT 'insumo'::text AS origen,
+    ri.id,
+    ri.fecha AS fecha_recepcion,
+    ri.remito,
+    ri.proveedor AS nombre_prov,
+    pi.cod_prov,
+    c.codigo AS cod_isis,
+    COALESCE(c.descripcion, ri.proveedor, ''::text) AS descripcion,
+    ri.cantidad,
+    COALESCE(ri.unidad, 'uni'::text) AS unidad,
+    NULL::text AS numero_factura,
+    NULL::date AS fecha_factura,
+    COALESCE(ri.controlado, false) AS controlado
+   FROM "GP2".recepcion_insumo ri
+     LEFT JOIN "GP2".componente c ON c.id = ri.componente_id
+     LEFT JOIN "GP2".proveedor_insumo pi ON pi.nombre = ri.proveedor
+UNION ALL
+ SELECT 'tallerista'::text AS origen,
+    ea.id,
+    COALESCE(ea.fecha_rto::timestamp with time zone, ea.creado_en) AS fecha_recepcion,
+    ea.remito,
+    pa.nombre AS nombre_prov,
+    pa.cod_prov,
+    ea.cod_art AS cod_isis,
+    COALESCE(ea.descripcion, ''::text) AS descripcion,
+    ea.cantidad_cajas::numeric AS cantidad,
+    'cajas'::text AS unidad,
+    ea.numero_factura,
+    ea.fecha_factura,
+    ea.numero_factura IS NOT NULL AS controlado
+   FROM "GP2".entrega_prov_at ea
+     LEFT JOIN "GP2".proveedor_at pa ON pa.id = ea.proveedor_at_id;
 
 -- ---------- v_rollo_evolucion ----------
 create or replace view "GP2".v_rollo_evolucion as
@@ -648,48 +643,4 @@ create or replace view "GP2".v_tara_pallet_real as
   WHERE (EXISTS ( SELECT 1
            FROM "GP2".recepcion_control_rollo cr
           WHERE cr.control_id = rc.id));
-
--- ---------- v_valor_pedido ----------
-create or replace view "GP2".v_valor_pedido as
- WITH ped AS (
-         SELECT i.componente_id,
-            sum(GREATEST(0::numeric, COALESCE(i.maximo, 0::numeric) - COALESCE(i.cantidad, 0::numeric))) AS pedido
-           FROM "GP2".inventario i
-          GROUP BY i.componente_id
-        )
- SELECT cc.comp_id,
-    cc.codigo,
-    cc.descripcion,
-    cc.sector_id,
-    cc.sector,
-    p.pedido,
-    round(p.pedido * cc.material_usd, 2) AS valor_material_usd,
-    round(p.pedido * cc.servicios_usd, 2) AS valor_servicios_usd,
-    round(p.pedido * (cc.material_pesos + cc.servicios_pesos), 2) AS valor_material_pesos,
-    round(p.pedido * cc.mano_obra_pesos, 2) AS valor_mano_obra_pesos,
-    round(p.pedido * (cc.material_usd + cc.servicios_usd), 2) AS valor_usd,
-    round(p.pedido * cc.total_pesos, 2) AS valor_total_pesos
-   FROM ped p
-     JOIN "GP2".v_costo_componente cc ON cc.comp_id = p.componente_id
-  WHERE p.pedido > 0::numeric;
-
--- ---------- v_valor_stock ----------
-create or replace view "GP2".v_valor_stock as
- SELECT i.componente_id AS comp_id,
-    cc.codigo,
-    cc.descripcion,
-    cc.sector_id,
-    cc.sector,
-    i.ubicacion_id,
-    u.nombre AS ubicacion,
-    i.cantidad AS stock,
-    round(i.cantidad * cc.material_usd, 2) AS valor_material_usd,
-    round(i.cantidad * cc.servicios_usd, 2) AS valor_servicios_usd,
-    round(i.cantidad * (cc.material_pesos + cc.servicios_pesos), 2) AS valor_material_pesos,
-    round(i.cantidad * cc.mano_obra_pesos, 2) AS valor_mano_obra_pesos,
-    round(i.cantidad * (cc.material_usd + cc.servicios_usd), 2) AS valor_usd,
-    round(i.cantidad * cc.total_pesos, 2) AS valor_total_pesos
-   FROM "GP2".inventario i
-     JOIN "GP2".v_costo_componente cc ON cc.comp_id = i.componente_id
-     JOIN "GP2".ubicacion u ON u.id = i.ubicacion_id
-  WHERE i.cantidad <> 0::numeric;
+comment on view "GP2".v_tara_pallet_real is 'Tara real por pallet pesado (balanza - suma de rollos). Alimenta la tara aprendida del bundle de recepcion.';
