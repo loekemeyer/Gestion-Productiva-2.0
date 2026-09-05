@@ -2,7 +2,7 @@
 
 > **Para que sirve:** antes de escribir o tocar una pantalla que hable con GP2, buscar
 > aca el contrato del bundle. Extraido del codigo de los modulos conectados
-> (2026-08-28, revisado 2026-09-04). Complementa `ANALISIS_GP2_2026-08-28.md` y `REFACTOR_GP2.md`.
+> (2026-08-28, revisado 2026-09-05 al cierre de la auditoría). Complementa `ANALISIS_GP2_2026-08-28.md` y `REFACTOR_GP2.md`.
 
 ## Regla de oro
 
@@ -94,24 +94,21 @@ Un `SB.from('movimiento').insert/update` desde una pantalla falla con "permissio
 (así estaba roto «Desmarcar» en control-cajas/control-remaches hasta el 2026-09-05:
 ahora `descontrolar_recepcion`).
 
-## verificacion_bundle() — Verificacion/Verificacion_GP2.html (solo lectura)
+## despiece_verif_bundle() — Despiece x Articulo/Despiece_GP2.html (solo lectura)
+
+Reemplazo (2026-08-30) de los viejos `despiece_bundle` y `verificacion_bundle`, que ya no existen.
 
 | Clave | Forma |
 |---|---|
-| `rutas` | LISTA `{ art, fam, fleje, fleje_desc, nom, ce_sect, cs_sect, pasos[] }`. `nom/ce_sect/cs_sect` solo alimentan la busqueda |
-| `rutas[].pasos` | lista ordenada `{ tp, actor, ... }`. `tp` ∈ ingreso\|matriz\|insumo\|proveedor_servicio\|tallerista\|virgilio |
-| `counts` | `{ rutas, arts, pasos }` (informativo) |
-
-La persistencia de confirmaciones/problemas vive en `ruta_revision` (RPCs `ruta_confirmar` /
-`ruta_reportar` / `ruta_resolver`); la pantalla de esta seccion se fusiono en Despiece_GP2.
-
-## despiece_bundle() — Despiece x Articulo/Despiece_GP2.html (solo lectura)
-
-| Clave | Forma |
-|---|---|
-| `art` | LISTA `{ cod, fam, por, comp[] }` — **sin `id`**: la identidad es `cod` |
+| `art` | LISTA `{ id, cod, fam, por, caja, est, comp[] }` (mismo bloque que `abm_articulos_bundle.art`, + `fkg`, `fuxc`) |
 | `art[].comp` | lista `{ cod, d, s, q, kg, uxc, um }` |
-| `sect` | dict → `{ nom, tipo }`. `nom` obligatorio (lo usa el export CSV) |
+| `sect` | dict → `{ nom, tipo }` |
+| `rutas` | LISTA `{ art, fam, fleje, fleje_desc, nom, ce_sect, cs_sect, pasos[] }`; `pasos[]` ordenados `{ tp, actor, actor_desc, ce, cs, ... }`, `tp` ∈ ingreso\|matriz\|insumo\|proveedor_servicio\|tallerista\|virgilio |
+| `confirmadas` / `problemas` | filas de `ruta_revision` (RPCs `ruta_confirmar` / `ruta_reportar` / `ruta_resolver`) |
+| `madres` | lo que antes daba VerifMadres (fusionada acá el 2026-08-30) |
+
+La pantalla pide además `faltantes_bundle` (lazy, al abrir un artículo) para la matemática de
+faltantes prorrateados: ver más arriba, hoy es un envoltorio de `movimientos_bundle`.
 
 ## produccion_bundle(p_matriz, p_anio) — Produccion/rendimiento_GP2.js (solo lectura)
 
@@ -126,12 +123,58 @@ Se llama 2 veces: sin args al init (usa `matrices` + `empleados`) y con
 
 ---
 
+## Índice de bundles (claves de primer nivel reales, verificado contra la base el 2026-09-05)
+
+Cada `*_bundle` devuelve UN objeto jsonb. Estas son sus claves de primer nivel tal como salen de
+la base hoy, y la pantalla que lo pide (grep de `rpc('..._bundle')`). Antes de tocar una pantalla,
+confirmar acá que la clave existe; si un bundle cambia, actualizar esta tabla en el mismo commit.
+
+| Bundle | Pantalla que lo pide | Claves de primer nivel |
+|---|---|---|
+| `abm_articulos_bundle()` | ABM Artículos | `art, partes, sect` |
+| `alertas_bundle()` | Alertas | `generado_en, matriz_sin_tiempo, pendientes, pm, ref_fecha, rm, ventana_dias` |
+| `control_cajas_bundle()` | control-cajas.js | `recepciones, uni_x_paq_default` |
+| `control_envios_bundle(p_desde, p_hasta)` | Control Envíos y Entregas | (por vista/tipo, ver la pantalla) |
+| `control_kg_bundle(p_sector_id)` | control-remaches.js | (recepciones del sector) |
+| `control_ps_bundle()` | Control PS | `generado_en, proveedores` (cada proveedor trae `nombre_corto`) |
+| `despiece_verif_bundle()` | Despiece x Artículo | `art, confirmadas, madres, problemas, rutas, sect` |
+| `devoluciones_tallerista_bundle()` | Devolución Cervantes | `analizar, online, talleristas, ultimas` |
+| `disruptivas_bundle(...)` | Disruptivas | (filas de producción con premio anómalo) |
+| `entregas_prov_at_bundle()` | Entregas AT | `arts, provs, ultimas` |
+| `envios_prov_at_bundle()` | Envíos AT | `insumos, online_prov, paq, provs, ultimos` |
+| `envios_ps_bundle()` | Envíos PS y Entrega PS | `partes, ps` |
+| `faltante_partes_tallerista_bundle()` | Faltante Partes Tallerista | `generado_en, talleristas` |
+| `faltantes_bundle()` | Despiece x Artículo (lazy) | `art, bom_art, bom_comp, c2a, comp, inv, mat, prov_serv, rp, sect, tall, ubic` (= `movimientos_bundle`, `art` como lista) |
+| `faltantes_estado_bundle()` | Faltantes | `estado, marcas, max_cajones, pendientes_uxc, umbral_cajones` |
+| `flejes_bundle()` | Flejes | **LISTA** de 55 flejes: `cod_isis, codigo, comp_id, cons, descripcion, kg_uni_desp, kg_x_cajon, maximo, medida, minimo, n_fleje, parte, proveedor, stock` |
+| `informes_bundle(p_desde, p_hasta)` / `informes_matriz_bundle(...)` | Informes por persona / por matriz | (agregados de producción) |
+| `inicio_bundle()` | GP2_MODULOS (menú) | `alertas, dia, generado_en, hoy, mes` |
+| `inyectores_bundle()` | Inyectores | `generado_en, partes, proveedores, sector, sectores` |
+| `movimientos_bundle()` | gp2-motor.js (Stocks General, Entregas Talleristas), Registro operarios | `art, bom_art, bom_comp, c2a, comp, inv, mat, prov_serv, rp, sect, tall, ubic` |
+| `oc_bundle()` | OC | `generado_en, insumos, ocs, pliego_uni_x_paquete, proveedores, tc` |
+| `orden_produccion_bundle()` | Orden de Producción | `componentes, destinos, generado_en, matrices, pasos` |
+| `pintores_bundle()` | Pintores | `partes, pintores` |
+| `problemas_matrices_bundle(p_desde, p_hasta)` | Problemas con Matrices | (eventos RM/PM) |
+| `produccion_bundle(p_matriz, p_anio)` | rendimiento_GP2.js | `matrices, empleados, rows` (ver sección propia) |
+| `produccion_maestro_bundle(p_desde, p_hasta)` | Maestro de producción | `desde, empleados, hasta, matrices, rows` |
+| `programa_bundle()` | Programa | `art, bom, children, comp, fl, mat, prov, rp, rutas, rutas_by_art, sect, tall, tall_art` (nombres CORTOS, ver sección propia; idea 7252) |
+| `proporciones_bundle()` | Proporciones | `articulos_compartidos, generado_en, nota, proporcion_disponible, talleristas` |
+| `recepcion_bundle()` | Recepción Insumos | `insumos, pallets, proveedores, recepciones, rollos, sectores, tara` |
+| `registro_operarios_bundle()` | App de operarios | `empleados, matrices, matriz_fleje, matriz_fleje_pieza, matriz_salidas, registro_en_golpes, rollos_abiertos, rollos_saldo` |
+| `relevamiento_bundle()` | Relevamiento | `cronograma, hoy` |
+| `rollos_bundle()` | Flejes (rollos) | `eventos, flejes, saldos, usos` |
+| `stock_sector_bundle(p_sector_id)` | gp2-stock-sector.js (los 9 sectores) | `filas, generado_en, sector, ubicacion_id` |
+| `stock_transito_ps_bundle()` | Stock Tránsito PS | `filas, generado_en` |
+| `talleristas_bundle()` | Envíos Talleristas y Control Talleristas | `generado_en, partes, tall` (`partes` = dict por tallerista `{entrada:[...], salida:[...]}`) |
+| `validacion_bundle()` | Validación de Stock | `aplicados, hoy, pendientes` |
+| `valorizacion_bundle()` | Valorización | `comps, costo_seg, generado_en, tc, tc_info` |
+
 ## Convenciones implicitas (fragiles — hoy viven hardcodeadas en el JS)
 
-- **Ids de ubicacion por offset** en Registrar_Movimiento.html: `ubic_tall = 20 + tall_id`,
-  `ubic_prov = 12 + prov_id`, `33 = Virgilio`, `TALL_FABRICA = 3`. Si se insertan
-  ubicaciones nuevas fuera de ese orden, esa cuenta se rompe. Lo correcto es resolver
-  por `ubic.tipo + ubic.ref` (como hace Faltantes).
+- ~~Ids de ubicacion por offset~~ (resuelto 2026-09-04/05): la pantalla vieja que sumaba
+  `20 + tall_id` ya no existe; `gp2-motor.js` arma `UB["tipo:ref"]` desde `ubic.tipo + ubic.ref`
+  y la base resuelve todo con `ubic_de(tipo, ref_id)`. Queda un solo literal:
+  `TALL_FABRICA = 3` en `ControlTalleristas_GP2.html` (Fábrica no es un tallerista externo).
 - **Sectores con semantica fija**: `comp.s === 12` = articulo terminado, `s === 9` =
   garage (Faltantes y Movimientos dependen de esos ids literales).
 - `mat.r` (Programa) y `mat.ppk` (Faltantes/Movimientos) son el mismo dato con dos nombres.
