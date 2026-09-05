@@ -395,20 +395,21 @@ se pesan para confirmar).
 - `kg_x_uni(1686) = 0,01376` (queda como está) `[usuario, "el que estaba
   en la tabla"]`. El empírico crudo daría 0,01396 (55/3940); GP2 subestima
   el peso de pieza en ~1,4% y ese punto se compensa vía el desperdicio.
-- **Desperdicio Eclipse: `eclipse_desperdicio_pct = 28`**
-  `[GP2.parametro, migración eclipse_desperdicio_pct_28, 2026-09-02]`. Sale
+- **Desperdicio Eclipse: 28 %** — hoy `proveedor_servicio.desperdicio_pct` del PS Eclipse
+  (desde el 2026-09-05; antes era `GP2.parametro.eclipse_desperdicio_pct`, migración
+  `eclipse_desperdicio_pct_28` del 2026-09-02). Sale
   de (74,92 − contable) / 74,92, con contable = 985 × 0,01376 × 4 = 54,2 kg
   → desperdicio ≈ 27,6% → redondeo a 28% para no sub-pedir.
 
-**Cómo lo usa `crear_oc`:** ya lee el parámetro en la rama Eclipse — kg de
+**Cómo lo usa `crear_oc`:** con la regla única de OC gemela (2026-09-05) — kg de
 chapa 430 en la OC gemela a Aperam = `Σ uni × kg_x_uni × (1 +
-eclipse_desperdicio_pct/100)`. Ejemplo: 3940 uni → 3940 × 0,01376 × 1,28
+desperdicio_pct/100)`. Ejemplo: 3940 uni → 3940 × 0,01376 × 1,28
 = 69,4 kg = **3,7 chapas → redondeo a 4 chapas enteras** (Aperam vende
 completas). Coincide con lo entregado en el remito real. ✓
 
 **Provisorio, revisar con próximos 2–3 remitos**: la tolerancia de
 laminación del 430 varía chapa por chapa; el 28% puede moverse entre
-~25% y ~30% en pedidos futuros. Ajustar `eclipse_desperdicio_pct` cuando
+~25% y ~30% en pedidos futuros. Ajustar `proveedor_servicio.desperdicio_pct` de Eclipse cuando
 haya más muestras.
 
 ### Convención código de flejes: prefijo `I` (Insumo) `[usuario 2026-09-02]`
@@ -4416,7 +4417,7 @@ paquetes de 10 kg de producto y se guarda en kg.** La pantalla de OC muestra el 
 (con el «= N uni» que sale de `kg_x_uni`) y manda `unidad='paq'`; `crear_oc` lo convierte a kg con
 ese parámetro (antes el 10 estaba escrito en `OC_GP2.html`). Así la recepción de Charcas, que
 entra en kg de balanza, cruza directo contra la OC, y la OC gemela a Altrak suma esos kg ×
-(1 + `charcas_desperdicio_pct`). Hasta el 2026-09-05 `crear_oc` sumaba los paquetes como si
+(1 + `proveedor_servicio.desperdicio_pct`, 2 %). Hasta el 2026-09-05 `crear_oc` sumaba los paquetes como si
 fueran kg (3 paquetes → 3 kg de alambre): bug latente, sin ninguna OC de Charcas afectada.
 
 `[dato 2026-09-05: GP2.proveedor_servicio.desperdicio_pct]` **El desperdicio de un PS híbrido es

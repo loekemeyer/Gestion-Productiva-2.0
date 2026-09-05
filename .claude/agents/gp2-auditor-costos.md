@@ -20,8 +20,9 @@ corregís nada — informás, proponés el arreglo, y la sesión principal decid
    no reportes como nuevo lo ya anotado ahí — verificá si sigue igual, empeoró o se arregló.
 2. **Sacá la FOTO antes de mirar nada**: los ~538 costos de `v_costo_componente` (comp_id,
    codigo, material_usd, servicios_usd, mano_obra_pesos, total_pesos) al scratchpad, más los
-   dos totales de control: **stock valorizado** (`v_valor_stock`) y **"Máximo por sector"**
-   (`v_valor_pedido`). Última referencia 2026-08-31: stock neto **$8,6 M** (incluye −$7,27 M
+   dos totales de control: **stock valorizado** y **"Máximo por sector"** (los dos salen de
+   `select "GP2".valorizacion_bundle()`; las vistas `v_valor_stock` / `v_valor_pedido` se
+   borraron el 2026-09-04). Última referencia 2026-08-31: stock neto **$8,6 M** (incluye −$7,27 M
    de 16 filas negativas pendientes de causa; sin ese neteo la foto post-501 daba $13,9 M) /
    Máximo por sector **$678 M** ($476 M propio + $114 M Virgilio + $89 M talleristas). El
    ratio pedido/stock ES la señal: la matriz 501 se descubrió porque daba 120×.
@@ -67,11 +68,12 @@ como verdad final.
    Componentes sin ruta que los fabrique, recetas con partes que ninguna ruta produce. Y la
    variante silenciosa: un componente de receta que NO es el último de la ruta deja lo que
    sigue en consumo 0 y sin mano de obra (E6-M194→570/858; D5/D6-M78→507; B1/B2-M78→707).
-5. **STOCK NEGATIVO y totales que no cuadran.** `select * from "GP2".v_valor_stock where
-   stock < 0` (o directo `"GP2".inventario where cantidad < 0`): al 2026-08-31, 16 filas por
-   −$7,27 M, pendiente de causa. Y `v_valor_stock` vs `valorizacion_bundle` siguen con
-   criterios distintos (la RPC excluye terminados, la vista no; al 31-08 la brecha era $23,0
-   vs $19,0 M pre-501): medí la brecha del día y reportá por cuál entra cada pantalla.
+5. **STOCK NEGATIVO y totales que no cuadran.** `select * from "GP2".v_nivel_stock where
+   cantidad < 0` (o directo `"GP2".inventario where cantidad < 0`): al 2026-09-05 son 37
+   renglones, todos de talleristas y PS sin stock inicial cargado (pregunta 8 de
+   `PREGUNTAS_ARQUITECTURA_GP2.md`). El único total valorizado es el de `valorizacion_bundle`
+   (excluye terminados; `v_valor_stock` ya no existe): si Valorización y la OC no cuadran
+   entre sí, reportá por cuál entra cada pantalla.
 6. **REGLA DE ORO violada.** Un costo cocinado a mano donde debería ser peso vivo × tarifa
    viva: *"no se toca el precio del clavo, se toca el kilo de niquelado"*. Firma: el mismo
    precio repetido en N filas (las 4 tarifas de cartón siguen cocinadas en 73 filas de

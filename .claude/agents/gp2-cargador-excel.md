@@ -31,7 +31,8 @@ respuestas.
    es `supabase-gp` — el otro server, `supabase-lk`, es OTRA base). Antes del primer write
    verificá que estás ahí (`select count(*) from "GP2".componente` responde) y sacá la foto del
    panel: 3-4 costos de componentes conocidos (`v_costo_componente`), stock valorizado total
-   (`v_valor_stock`) y el máximo por sector (se llama así — no "tope"). La comparás en §8.
+   y el máximo por sector (se llama así — no "tope"; los dos salen de
+   `select "GP2".valorizacion_bundle()`, `v_valor_stock` ya no existe). La comparás en §8.
 
 ## 1. Leé el archivo ENTERO con python, y verificá lo que leés
 

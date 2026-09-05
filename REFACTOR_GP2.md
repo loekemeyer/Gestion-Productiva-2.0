@@ -28,7 +28,7 @@ mano) + `gp2-auditor-costos` y `gp2-experto` como segunda opinión al final + el
 | Copias de helpers en pantallas | 79 `esc`, 42 `$`, 45 `fmt`, 12 "hoy", 40 `createClient`, 3 CSV | **0** (viven en `gp2-ui.js`, `gp2-numero.js`, `supabase-config.js:GP2_SB`); sólo Recepción Insumos conserva su parser a propósito (7259) |
 | Tests | 33 | **37** (+`test_stock_sector`, `test_helpers_ui` con 5 reglas, `test_smoke_gp2` sobre las 47 pantallas, `test_contratos_db` con 5 reglas — toda `rpc()`/`from()` de las pantallas existe en `db/`, cada columna pedida existe, cada clave `p_*` es un parámetro real y no falta ninguno obligatorio —; `test_numero` con 4 reglas) |
 | Bugs vivos encontrados y arreglados | — | **10**: `talleristas_bundle` sin `partes` (Control Talleristas vacío), `recepcion_tall` vs `entrega_tallerista` (dos palabras, un evento), `consumo_armado` no contado como entregado, `crear_entrega_ps` con la unidad de la SC en una cantidad de SP, «Desmarcar» del control de recepciones roto desde el 31/08, PS 12 AJ Adhesivos sin ubicación (`crear_envio_ps` explotaba), 6 "hoy" en UTC (día corrido después de las 21:00), otros 3 PS + 1 Prov AT sin ubicación porque `alta_proveedor_servicio` no la creaba (causa raíz arreglada, ciclo 2s), una entrega de Virgilio (160 cajas del 510) que el espejo perdió por ese mismo hueco y nadie reintentaba (repuesta, ciclo 2w), y `crear_oc` sumando los paquetes de Charcas como kg para la OC gemela a Altrak (latente: sin OC afectada, ciclo 9) |
-| Invariantes de la base | — | **26** en `db/verificar.sql` (contrapartes con ubicación, inventario = ledger, grants, RLS, `search_path`, PS híbridos, códigos, rutas y recetas, espejo de Virgilio, recepción ↔ ledger), todas en 0; más 7 consultas informativas con su pregunta/idea |
+| Invariantes de la base | — | **29** en `db/verificar.sql` (contrapartes con ubicación, inventario = ledger, grants, RLS, `search_path`, PS híbridos y su materia prima, códigos, rutas y recetas, espejo de Virgilio, recepción ↔ ledger, claves de `parametro` que lee el código), todas en 0; más 7 consultas informativas con su pregunta/idea |
 | Preguntas para el usuario | — | 27 en `PREGUNTAS_ARQUITECTURA_GP2.md` (la 8 con 23 datos; la 27 con 80 renglones mínimo > máximo) |
 | RPC probadas en vivo (rollback) | — | **105**: 45 de lectura + ~60 de escritura con deltas de inventario verificados, 0 errores (ciclos 2o, 2q, 2s, 2u) |
 | Ideas registradas | — | 7250–7264 en `IDEAS-GP2.md` (7253, 7256, 7257 y 7262 ya hechas) |
@@ -988,7 +988,7 @@ problema de performance.
   renombra por prolijidad; el trigger traduce). Ninguna pantalla cambia: `gp2-motor.js` ya mandaba
   `uni` y el resto de las RPC también.
 
-## Ciclo 9 — vocabularios cerrados en el resto de las tablas, y la OC de Charcas en kg, 07:20–07:45 AR
+## Ciclo 9 — vocabularios cerrados en el resto de las tablas, y la OC de Charcas en kg, 07:20–07:33 AR
 
 - Barrido de todas las columnas de texto con ≤ 8 valores distintos (una consulta con
   `query_to_xml` sobre `information_schema`): 30 columnas de tablas, 8 ya tenían CHECK. Para cada
@@ -1025,7 +1025,7 @@ problema de performance.
   datos: `test_marcas`) — aunque `LOEKE` ×73 y `LOKE` ×8 huelen a la misma marca (pregunta 8,
   ítem 23).
 
-## Ciclo 10 — una sola regla de OC gemela (PS híbrido → proveedor de la materia prima), 07:45–08:00 AR
+## Ciclo 10 — una sola regla de OC gemela (PS híbrido → proveedor de la materia prima), 07:33–07:43 AR
 
 - `crear_oc` tenía dos ramas escritas a mano con el proveedor por nombre: «si es Resortes Charcas,
   OC gemela a Altrak por FLEJE90_BRUTO con `charcas_desperdicio_pct`» y «si es Eclipse, OC gemela
@@ -1045,8 +1045,41 @@ problema de performance.
   (rubro Sector Alambre), Eclipse 100 uni → Aperam 1,76 kg, una OC a Altrak (no híbrido) → sin
   gemela, recepción de Eclipse con el 28 % del PS (1,761 kg de chapa). Suite 37/37.
 
+## Ciclo 11 — validación final: docs desviadas por los renombres de hoy, advisors, circuito de escritura, 07:43–07:50 AR
+
+- Barrido de los nombres que cambiaron hoy (`oc_gemela_altrak`, `*_desperdicio_pct`,
+  `tarifa_servicio.unidad`, `control_cajas_bundle`, `v_valor_stock`, `tallerista_alias`…) en
+  docs, pantallas y agentes: 4 docs vivos los seguían usando como si existieran —
+  `CONOCIMIENTO_GP2.md` (el 28 % de Eclipse "en `parametro`"; la fórmula de la gemela),
+  `.claude/agents/gp2-auditor-costos.md` y `gp2-cargador-excel.md` (mandaban a leer
+  `v_valor_stock`, borrada el 04/09: el auditor de costos habría arrancado con un error) y
+  `tests/README.md` (la fórmula de la OC con "− pendiente"). Corregidos; las menciones en
+  bitácoras históricas (`ANALISIS_*`, `AUDITORIA_*`, changelogs de pantallas) se dejan.
+- Advisors de Supabase tras las 4 migraciones de hoy: seguridad **0 hallazgos en GP2** (los 697
+  que lista son todos de `public`, la casa del vecino: 42 vistas SECURITY DEFINER, 10 tablas sin
+  RLS, 65 funciones con `search_path` mutable…); performance en GP2 sólo INFO (14 FKs sin índice
+  en tablas de decenas de filas, 5 índices sin uso todavía — el de `produccion(legajo, fecha)` es
+  de ayer). Misma decisión: no indexar tablas chicas.
+- Circuito de escritura completo en rollback, después de los ciclos 8–10: recepción de insumo en
+  kg, envío a PS, envío + entrega de tallerista, ajuste con la palabra vieja `unidad`, OC a Charcas
+  en paquetes y su recepción en kg de balanza — 7 llamadas, IC3 en Fleje +40 kg exactos, B8 en
+  Danica +13, la OC de 2 paquetes (20 kg) queda `recibida` con 20 kg cruzados, conservación
+  ledger ↔ inventario 0 desvíos, 0 unidades fuera de vocabulario. `db/verificar.sql` 26 en 0.
+
+## Ciclo 12 — la configuración también tiene invariantes, y versión, 07:50–08:05 AR
+
+- `db/verificar.sql` gana 3 reglas: **Z** toda clave de `parametro` que lee el código (12: los
+  `clave = '…'` de funciones y vistas) existe — si falta, la función cae a un default escrito en
+  el código y nadie se entera —, **Z2** ninguna clave que nadie lea (hoy las 12 filas de la tabla
+  son exactamente las 12 que lee el código: las dos `*_desperdicio_pct` que quedaron huérfanas al
+  pasar a `proveedor_servicio` se borraron en el ciclo 10), **Z3** todo PS híbrido tiene una
+  materia prima con proveedor de insumo (sin eso `crear_oc` no puede armar la gemela). Las 3 en 0
+  → **29 invariantes**.
+- `version.js` v1.109.2 (token `20260905s` en `login`, `GP2_MODULOS`, `envios-only`): la OC
+  cambió de comportamiento (Charcas en kg, gemela genérica) y el celular tiene que saberlo.
+
 ### Estado final
-**47 tablas · 13 vistas · 119 funciones (96 RPC + 23 internas) · 153 constraints (17 vocabularios cerrados) · 37 tests · 26 invariantes en 0 · 27 preguntas (la 8 con 23 datos) · ideas 7250–7263 (7253, 7256, 7257 y 7262 hechas).**
+**47 tablas · 13 vistas · 119 funciones (96 RPC + 23 internas) · 153 constraints (17 vocabularios cerrados) · 37 tests · 29 invariantes en 0 · 27 preguntas (la 8 con 23 datos) · ideas 7250–7263 (7253, 7256, 7257 y 7262 hechas).**
 
 ---
 

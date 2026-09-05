@@ -126,6 +126,29 @@ union all
 select 'X_receta_cantidad_no_positiva', count(*) from "GP2".articulo_componente where coalesce(cantidad, 0) <= 0
 union all
 select 'Y_componente_sin_sector', count(*) from "GP2".componente where sector_id is null
+union all
+-- Z) Configuración: toda clave de parametro que lee el código existe (si falta, la función cae a
+--    un default escrito en el código y nadie se entera) y no hay claves que nadie lee (una clave
+--    muerta es una regla que el usuario cree que manda y no manda). La lista es la de los
+--    `clave = '...'` de db/funciones_GP2.sql y db/vistas_GP2.sql: al agregar una clave en el
+--    código se agrega acá, a propósito.
+select 'Z_parametro_que_lee_el_codigo_faltante', count(*) from unnest(array[
+    'caja_uni_x_paquete', 'carton_uni_x_paquete', 'charcas_kg_x_paquete', 'costo_segundo_pesos',
+    'faltante_cajones_umbral', 'max_cajones_x_ubicacion', 'pliego_uni_x_paquete', 'registro_en_golpes',
+    'tara_pallet_max', 'tara_pallet_min', 'tipo_cambio_usd_pesos', 'tol_ctrl_peso_pct']) k
+ where not exists (select 1 from "GP2".parametro p where p.clave = k)
+union all
+select 'Z2_parametro_que_nadie_lee', count(*) from "GP2".parametro p
+ where p.clave not in (
+    'caja_uni_x_paquete', 'carton_uni_x_paquete', 'charcas_kg_x_paquete', 'costo_segundo_pesos',
+    'faltante_cajones_umbral', 'max_cajones_x_ubicacion', 'pliego_uni_x_paquete', 'registro_en_golpes',
+    'tara_pallet_max', 'tara_pallet_min', 'tipo_cambio_usd_pesos', 'tol_ctrl_peso_pct')
+union all
+-- Z3) Un PS híbrido tiene una materia prima con proveedor de insumo: si no, crear_oc no puede
+--     armar la OC gemela (Charcas → Altrak, Eclipse → Aperam).
+select 'Z3_ps_hibrido_mp_sin_proveedor', count(*) from "GP2".proveedor_servicio ps
+  join "GP2".componente c on c.id = ps.mp_componente_id
+ where ps.hibrido and (c.proveedor is null or not exists (select 1 from "GP2".proveedor_insumo pi where pi.nombre = c.proveedor))
 ) chequeos
 order by regla;
 
