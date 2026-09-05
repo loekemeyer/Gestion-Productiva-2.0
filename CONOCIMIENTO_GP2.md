@@ -4369,3 +4369,11 @@ lista de ids adentro de una función: Fleje (5), Plástico (6), Bombilla (7), Re
 componente FLEJE90_BRUTO que compra Altrak) quedó **fuera**, igual que antes, hasta que el
 usuario diga si es comprable como los otros (`PREGUNTAS_ARQUITECTURA_GP2.md`, punto 21).
 
+`[dato 2026-09-05: GP2.fn_est_madre_sync]` **El espejo de la Est Madre corrige al origen.**
+`public.proyeccion_madre` trae 36 artículos con `uxb` vacío y, en esos, su `proy_uni_mes` es en
+realidad la cantidad de cajas redondeada (43: 4 cajas → "4 uni"). El trigger que copia a
+`GP2.est_madre` lo detecta y recalcula `proy_uni_mes = cajas × articulo.articulos_por_caja` (43:
+4 × 24 = 96). Por eso GP2 y `public` difieren en esas 36 filas **a propósito**: la demanda buena
+es la de GP2. Las 5 filas contables del origen (ANTICIPO VTA, CHEQ RECHAZADO…) no entran al
+espejo porque no empiezan con dígito.
+

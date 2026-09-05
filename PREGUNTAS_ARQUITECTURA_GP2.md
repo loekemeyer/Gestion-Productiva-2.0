@@ -238,51 +238,151 @@ Cada uno tiene la consulta y el detalle en los informes de auditoría (`REFACTOR
     0 filas: ninguna recepción de Basconia/Hermac se controló todavía desde la pantalla. ¿El
     pesaje por pallet se usa de verdad? Si no se va a usar, son 2 tablas + 3 vistas + 3
     funciones para borrar.
-21. **Sector 13 «Alambre»** (creado el 2026-09-04 para FLEJE90_BRUTO, que compra Altrak): tiene
-    `tipo = 'crudo'` (como el Sector Crudo de piezas propias) y rubro de OC 5, pero NO está entre
-    los sectores de insumo (`sector.es_insumo`, antes lista fija 5..11). Efecto: no aparece en
-    la lista de Recepción de insumos ni en los máximos automáticos, y `crear_recepcion_insumo`
-    lo rechaza (hoy entra sólo por el flujo Altrak). ¿Es un sector de insumo comprado como
-    Fleje/Plástico? Si sí: `update sector set es_insumo = true, tipo = 'fleje' where id = 13`
-    (una línea). Recomendación: sí, es material comprado.
-22. **`entrega_prov_at`** (125 filas: proveedor, cod_art, cajas, remito, factura) es un **segundo
-    ledger** paralelo a `movimiento`: las entregas de los proveedores de artículo terminado no
-    mueven stock GP2 (van directo a Virgilio) y guardan datos de factura que `movimiento` no
-    tiene. Alternativa A: dejarla como está (es un registro comercial, no de stock).
-    Alternativa B: que cada entrega sea un `movimiento` tipo `entrega_prov_at` hacia la
-    ubicación Virgilio (requiere que cada `cod_art` exista como `componente` terminado, hoy
-    `articulo_prov_at.cod_art` es texto sin FK) y los datos de remito/factura en `nota` o en
-    una tabla chica de factura. Recomendación: A por ahora; B sólo si se quiere ver el stock de
-    Virgilio completo (propio + AT) en una sola pantalla.
-23. **Una OC en `borrador` se puede "recibir"**: `_aplicar_recepcion_a_oc` cruza lo recibido contra
-    las OC `enviada` **y también** `borrador` (primero las enviadas). Así una OC que nunca se mandó
-    al proveedor queda `recibida` sola. Alternativa A: sólo `enviada` (el borrador es un papel de
-    trabajo). Alternativa B: como hoy (si en la práctica no se marca "enviada" y la mercadería
-    llega igual). Recomendación: A, y que la pantalla de OC avise "hay OC en borrador de este
-    proveedor" al recibir. Impacto: una línea en la función.
-24. **Alerta «stock bajo mínimo»** en `alertas_bundle`: está desactivada desde agosto con un
-    motivo viejo ("stock negativo irreal"). Hoy el inventario cierra con el ledger. ¿Se reactiva?
-    Con qué regla: `cantidad < minimo` por ubicación de sector (lo que ya muestra Faltantes) o
-    `cantidad < maximo` (lo que pide la OC). Recomendación: reactivar con `minimo` sólo para
-    sectores de insumo y mostrar la cantidad de renglones, no la lista.
-25. **`recalcular_minimos()` hoy cambiaría 48 mínimos** (el consumo de la Est Madre se movió desde
-    el 2026-09-02, cuando se corrió por última vez; el respaldo de esa corrida está en
-    `db/respaldo_inventario_minimo_20260902.csv`). Es una herramienta manual sin llamador. ¿La
-    corro? ¿O los mínimos se recalculan solos cuando cambia la Est Madre, como ya pasa con los
-    máximos (`trg_maximos_est_madre`)? Recomendación: colgarla del mismo trigger, así mínimo y
-    máximo salen del mismo consumo y no se desfasan.
-26. **La entrega del tallerista está escrita DOS veces**: la pantalla Entregas Talleristas usa el
-    motor JS (`gp2-motor.js` → `recepcionTall` arma las filas y las manda por
-    `registrar_movimientos`: la entrega como *transformación* entrada→salida más `consumo_tall`
-    por las otras líneas del BOM), y en la base existe la RPC `crear_entrega_tallerista` (misma
-    regla de negocio, otra forma en el ledger: la salida "nace" y TODAS las líneas del BOM son
-    `consumo_tall`) **que ninguna pantalla llama**. El inventario queda igual por los dos
-    caminos; lo que cambia es cómo se lee después el ledger. Alternativa A: la pantalla pasa a
-    llamar la RPC (motor en la base, como dice la filosofía GP2) y `recepcionTall` se borra del
-    JS. Alternativa B: se borra la RPC y el JS queda como única implementación. Recomendación:
-    A, con el test `test_entregas_tall_gp2.js` reescrito al contrato de la RPC. Impacto: una
-    pantalla, un test, ~80 líneas menos de JS.
 
 ---
 
-## 9. (se van agregando a medida que los agentes terminan)
+## 21. El sector 13 «Alambre»: ¿es un sector de insumo comprado?
+
+**Problema encontrado.** El sector 13 se creó el 2026-09-04 para `FLEJE90_BRUTO` (lo compra
+Altrak, entra por el flujo Altrak de Recepción Insumos). Tiene `tipo = 'crudo'` (el mismo tipo que
+el Sector Crudo de piezas propias) y rubro de OC 5 (sube a Fleje en la OC), pero **no está entre
+los sectores de insumo** (`sector.es_insumo`, que hasta hoy era una lista fija de ids 5..11 adentro
+de `_es_sector_insumo`).
+
+**Por qué existe una duda.** Con `es_insumo = false` la lista genérica de Recepción no lo
+muestra, `crear_recepcion_insumo` lo rechaza ("no es un insumo") y los máximos automáticos lo
+saltean; hoy funciona sólo porque Altrak tiene su flujo propio. No sé si eso es lo buscado (Altrak
+es especial) o un descuido al crear el sector.
+
+**Alternativa A.** `update sector set es_insumo = true, tipo = 'fleje' where id = 13`: pasa a ser
+un insumo comprado como Fleje/Plástico (aparece en Recepción y en máximos automáticos).
+
+**Alternativa B.** Dejarlo como está (sólo entra por Altrak) y que `tipo` quede en `crudo`.
+
+**Recomendación.** A: es material comprado, no una pieza propia. Y `tipo='crudo'` en un sector
+comprable confunde a cualquier consulta por tipo.
+
+**Impacto.** Una línea de datos; ninguna función (`es_insumo` es la columna que leen las 6).
+
+**Pregunta concreta.** ¿A o B?
+
+---
+
+## 22. `entrega_prov_at` es un segundo ledger: ¿se deja o se lleva a `movimiento`?
+
+**Problema encontrado.** Las entregas de los proveedores de artículo terminado (125 filas:
+proveedor, cod_art, cajas, remito, factura) viven en `entrega_prov_at`, no en `movimiento`: no
+mueven stock GP2 (van directo a Virgilio) y guardan datos comerciales que el ledger no tiene.
+
+**Por qué existe una duda.** Es conceptualmente el mismo evento que "el tallerista entregó",
+pero con destino Virgilio y sin `componente` (el `cod_art` es texto libre de `articulo_prov_at`,
+sin FK a `articulo`). Unificar exige que cada artículo AT exista como componente terminado.
+
+**Alternativa A.** Dejarla como está: registro comercial, no de stock.
+
+**Alternativa B.** Cada entrega es un `movimiento` tipo `entrega_prov_at` hacia la ubicación
+Virgilio; remito/factura en `nota` o en una tabla chica de facturas.
+
+**Recomendación.** A por ahora. B sólo si se quiere ver el stock de Virgilio completo (propio +
+AT) en una sola pantalla.
+
+**Impacto.** A: nada. B: tabla, RPC, pantalla Entregas AT y el espejo de Virgilio.
+
+**Pregunta concreta.** ¿A o B?
+
+---
+
+## 23. Una OC en `borrador` se puede "recibir"
+
+**Problema encontrado.** `_aplicar_recepcion_a_oc` cruza lo recibido contra las OC `enviada` **y
+también** `borrador` (primero las enviadas). Una OC que nunca se mandó al proveedor queda
+`recibida` sola.
+
+**Por qué existe una duda.** Puede ser un descuido o puede reflejar la práctica (nadie marca
+"enviada" y la mercadería llega igual).
+
+**Alternativa A.** Cruzar sólo contra `enviada`; el borrador es un papel de trabajo.
+
+**Alternativa B.** Como hoy.
+
+**Recomendación.** A, y que la pantalla de OC avise "hay OC en borrador de este proveedor" al
+recibir.
+
+**Impacto.** Una línea en la función.
+
+**Pregunta concreta.** ¿A o B?
+
+---
+
+## 24. La alerta «stock bajo mínimo» está apagada desde agosto
+
+**Problema encontrado.** `alertas_bundle` trae la alerta desactivada con un motivo viejo
+("stock negativo irreal"). Hoy el inventario cierra con el ledger (0 desvíos).
+
+**Por qué existe una duda.** Falta la regla: avisar por `cantidad < minimo` por ubicación de
+sector (lo que ya muestra Faltantes) o por `cantidad < maximo` (lo que pide la OC), y a quién.
+
+**Alternativa A.** Reactivar con `minimo`, sólo sectores de insumo, mostrando la cantidad de
+renglones (no la lista).
+
+**Alternativa B.** Dejarla apagada; Faltantes y la OC ya cubren el aviso.
+
+**Recomendación.** A.
+
+**Impacto.** Sólo `alertas_bundle` y la pantalla de Inicio.
+
+**Pregunta concreta.** ¿A o B?
+
+---
+
+## 25. `recalcular_minimos()` hoy cambiaría 48 mínimos
+
+**Problema encontrado.** Es una herramienta manual sin llamador; la última corrida fue el
+2026-09-02 (respaldo en `db/respaldo_inventario_minimo_20260902.csv`). El consumo de la Est
+Madre se movió desde entonces: correrla hoy cambia 48 mínimos.
+
+**Por qué existe una duda.** Los máximos sí se recalculan solos cuando cambia la Est Madre
+(`trg_maximos_est_madre`); los mínimos no. No sé si eso fue una decisión (los mínimos los fija la
+persona) o quedó a medio hacer.
+
+**Alternativa A.** Colgar `recalcular_minimos` del mismo trigger que los máximos: mínimo y máximo
+salen del mismo consumo y no se desfasan.
+
+**Alternativa B.** Seguir corriéndola a mano cuando el usuario lo pida.
+
+**Recomendación.** A.
+
+**Impacto.** Una línea en `fn_recalc_maximos_insumos`; la primera corrida cambia 48 mínimos.
+
+**Pregunta concreta.** ¿A o B? Si B: ¿la corro ahora?
+
+---
+
+## 26. La entrega del tallerista está escrita DOS veces
+
+**Problema encontrado.** La pantalla Entregas Talleristas usa el motor JS (`gp2-motor.js` →
+`recepcionTall` arma las filas y las manda por `registrar_movimientos`: la entrega como
+*transformación* entrada→salida más `consumo_tall` por las otras líneas del BOM). En la base
+existe la RPC `crear_entrega_tallerista` (misma regla de negocio, otra forma en el ledger: la
+salida "nace" y TODAS las líneas del BOM son `consumo_tall`) **que ninguna pantalla llama**.
+
+**Por qué existe una duda.** El inventario queda igual por los dos caminos; lo que cambia es
+cómo se lee después el ledger, y la filosofía GP2 dice que el motor vive en la base.
+
+**Alternativa A.** La pantalla llama la RPC por renglón (ya acepta `p_comp_entrada_id` para el
+caso ambiguo y descuenta el BOM) y `recepcionTall` se borra del JS.
+
+**Alternativa B.** Se borra la RPC y el JS queda como única implementación.
+
+**Recomendación.** A, con `test_entregas_tall_gp2.js` reescrito al contrato de la RPC.
+
+**Impacto.** Una pantalla, un test, ~80 líneas menos de JS (idea 7260).
+
+**Pregunta concreta.** ¿A o B?
+
+---
+
+## Cómo responder
+
+Con el número y la letra alcanza ("1B", "21A"...). Lo que se responda se aplica en la sesión
+siguiente y se tacha acá.

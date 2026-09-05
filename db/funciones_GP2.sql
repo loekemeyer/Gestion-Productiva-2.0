@@ -1,7 +1,7 @@
 -- =====================================================================
 -- FUNCIONES del schema GP2 — export automatico 2026-09-05 (pg_get_functiondef, exacto)
 -- Fuente de verdad: Supabase (hrxfctzncixxqmpfhskv). Este archivo es respaldo/referencia.
--- 120 funciones. Los GRANT/REVOKE no estan aca: EXECUTE para anon solo en las RPC de pantalla (ver db/README.md).
+-- 121 funciones. Los GRANT/REVOKE no estan aca: EXECUTE para anon solo en las RPC de pantalla (ver db/README.md).
 -- =====================================================================
 
 -- ---------- _aplicar_recepcion_a_oc ----------
@@ -1941,6 +1941,43 @@ begin
   returning id into v_recid;
   v_oc := "GP2"._aplicar_recepcion_a_oc(p_comp_id, p_cantidad, v_u);
   return jsonb_build_object('ok',true,'recepcion_id',v_recid,'movimiento_id',v_movid,'unidad',v_u,'oc_cruzada',v_oc);
+end $function$
+;
+
+-- ---------- descontrolar_recepcion ----------
+CREATE OR REPLACE FUNCTION "GP2".descontrolar_recepcion(p_recepcion_id bigint)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'GP2'
+AS $function$
+declare
+  r recepcion_insumo%rowtype;
+  v_decl numeric;
+begin
+  select * into r from recepcion_insumo where id = p_recepcion_id;
+  if not found then
+    raise exception 'Recepción % no existe', p_recepcion_id using errcode = 'P0002';
+  end if;
+  if not coalesce(r.controlado, false) then
+    return jsonb_build_object('recepcion_id', p_recepcion_id, 'ya_estaba', true, 'cantidad', r.cantidad);
+  end if;
+  -- vuelve a lo declarado en el remito (la primera vez que se controlo quedo guardado)
+  v_decl := coalesce(r.cantidad_declarada, r.cantidad);
+
+  update recepcion_insumo
+     set controlado = false, controlado_en = null, controlado_por = null,
+         base = null, pisos = null, sueltas = null, paquetes = null, uni_x_paq = null,
+         cantidad = v_decl
+   where id = p_recepcion_id;
+
+  -- el movimiento tambien vuelve al declarado: los triggers recalculan el inventario
+  if r.movimiento_id is not null and v_decl <> r.cantidad then
+    update movimiento set cantidad = v_decl where id = r.movimiento_id;
+  end if;
+
+  return jsonb_build_object('recepcion_id', p_recepcion_id, 'movimiento_id', r.movimiento_id,
+                            'cantidad', v_decl, 'antes', r.cantidad);
 end $function$
 ;
 

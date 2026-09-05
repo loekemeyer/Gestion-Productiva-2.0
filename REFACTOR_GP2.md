@@ -6,6 +6,30 @@
 > Los cambios en Supabase quedan aplicados como migraciones `refactor_20260904_*` (no las
 > versiona git; `db/` se regenera al final).
 
+## Resumen ejecutivo (al cierre, 2026-09-05 ~00:00 AR)
+
+| | Antes (17:44 AR) | Después |
+|---|---|---|
+| Tablas GP2 | 67 | **47** (−20: 13 fotos `snap_*`/backup, `agente_propuestas`, `tallerista_alias`, `ruta_confirmada`+`ruta_problema`→`ruta_revision`, `estadistica`, `entrega_cervantes`, `precio_servicio`, `devolucion_tallerista`→`movimiento.nota`, `proveedor_servicio_alias`→`proveedor_servicio.nombre_corto`) |
+| Vistas | 16 | **12** (−5 muertas, +1 `v_nivel_stock` que reemplaza un CTE escrito dos veces) |
+| Funciones/RPC | 135 | **121** (−16 sin llamador o duplicadas, +`ubic_de`, +`descontrolar_recepcion`) |
+| Tablas sin RLS | 16 | **0** |
+| Funciones internas ejecutables por `anon` | 20 | **0** (23 internas con REVOKE; 98 RPC de pantalla) |
+| Columnas borradas | — | 11 (`produccion` ×4, `tallerista.clase`, `fleje_detalle.kg_x_uni`, `ruta_paso.articulo_id`, `matriz.tipo_matriz`, `articulo.estadistica_madre_uni_mes`…) |
+| Constraints nuevos | — | CHECK vocabulario `tipo_mov` (16 palabras), `componente.unidad_medida`, `familia.nombre` UNIQUE, alias en mayúsculas; FKs `articulo.familia`, `articulo.componente_caja_id`, `recepcion_insumo.movimiento_id`; índices únicos `ubicacion(tipo,ref_id)` y singletons; índices `movimiento(fecha,id)`, `movimiento(tipo_mov,comp_id)`, `produccion(legajo,fecha)` |
+| Archivos del repo | 133 HTML + ~160 JS/MD/… | **−90** (74 muertos, 9 pantallas de stock → 1, docs fusionadas) |
+| Copias de helpers en pantallas | 79 `esc`, 42 `$`, 45 `fmt`, 12 "hoy", 40 `createClient`, 3 CSV | **0** (viven en `gp2-ui.js`, `gp2-numero.js`, `supabase-config.js:GP2_SB`); sólo Recepción Insumos conserva su parser a propósito (7259) |
+| Tests | 33 | **36** (+`test_stock_sector`, `test_helpers_ui` con 5 reglas, `test_smoke_gp2` sobre las 47 pantallas; `test_numero` con 4 reglas) |
+| Bugs vivos encontrados y arreglados | — | **7**: `talleristas_bundle` sin `partes` (Control Talleristas vacío), `recepcion_tall` vs `entrega_tallerista` (dos palabras, un evento), `consumo_armado` no contado como entregado, `crear_entrega_ps` con la unidad de la SC en una cantidad de SP, «Desmarcar» del control de recepciones roto desde el 31/08, PS 12 AJ Adhesivos sin ubicación (`crear_envio_ps` explotaba), 6 "hoy" en UTC (día corrido después de las 21:00) |
+| Preguntas para el usuario | — | 26 en `PREGUNTAS_ARQUITECTURA_GP2.md` (la 8 con 20 datos) |
+| Ideas registradas | — | 7250–7260 en `IDEAS-GP2.md` (7253 y 7256 ya hechas) |
+
+Verificaciones al cierre: conservación ledger↔inventario 0 desvíos; 97 RPC de pantalla existen y
+tienen EXECUTE; 0 claves `p_*` inexistentes; 0 `from()` a objetos borrados; 0 hrefs rotos;
+advisor de seguridad de Supabase: 0 hallazgos en GP2; advisor de performance: sólo INFO (13 FKs
+sin índice en tablas de <500 filas, 5 índices sin uso) — decisión: no indexar tablas de decenas
+de filas. `db/` regenerado (md5 exacto). Todo en `main`.
+
 ## Punto de partida (2026-09-04 17:44 AR)
 
 | | Antes |
