@@ -2809,6 +2809,14 @@ y carlos aguirre son dos prov diferentes para ISIS"*. **Regla capital**:
   a ubi 18 (Pedernera). El inventario de la ubi 29 se consolidó en ubi 18 (sumando
   cantidades, tomando el máximo de mínimos y máximos por componente), y la ubi 29 fue
   borrada. Ubi 18 renombrada "Pedernera / Carlos Aguirre".
+- **Toda contraparte tiene UNA ubicación de stock** `[dato 2026-09-05, db/verificar.sql regla A]`:
+  PS, talleristas activos y Prov AT activos resuelven por `ubic_de(tipo, id)`; sin esa fila,
+  `crear_envio_ps` / `crear_envio_prov_at` explotan ("No hay ubicación para…"). Pasó con AJ
+  Adhesivos (04/09) y con Rec Color, Daniel, Esther y Tierra Nativa SA (05/09): el botón "nuevo
+  pintor" (`alta_proveedor_servicio`) creaba el PS sin ubicación. Desde el 2026-09-05 la RPC la
+  crea en la misma transacción ("Prov. Serv. <nombre>") y se crearon las 4 que faltaban (51–54).
+  Los sectores 12 Terminado y 13 Alambre no tienen ubicación a propósito (Terminado vive en
+  Virgilio; el 13 es la pregunta 21).
 - **Reglas de reposición distintas por componente en esa misma ubi** `[deducido, pendiente
   de implementar]`: los crudos/cromados (N7, GRJ10, GRJ10A, cuerpos p/cromar) se reponen en
   kg según lo que Cervantes tiene en Sector Procesado; los insumos de envasado (cartones

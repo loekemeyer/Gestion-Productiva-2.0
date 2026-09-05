@@ -135,7 +135,9 @@ Las tablets y celulares cachean fuerte; sin bump siguen corriendo la versión vi
   fusionó, por qué). `PREGUNTAS_ARQUITECTURA_GP2.md`: las dudas de negocio que salieron de ahí y
   esperan respuesta del usuario; si el usuario contesta alguna, aplicar y tachar.
 - `db/`: respaldo del schema (tablas, funciones, vistas). Regenerarlo al terminar una sesión que
-  cambió la base.
+  cambió la base. **`db/verificar.sql`**: los invariantes de la base en una consulta (cada fila
+  debe dar `n = 0`); correrla antes de tocar la base y al cerrar, y si algo da > 0 es lo primero
+  que se arregla.
 
 ## 🧠 CONOCIMIENTO_GP2.md — la memoria del negocio (LEER AL INICIO, ESCRIBIR SIEMPRE)
 

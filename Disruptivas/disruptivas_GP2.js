@@ -20,7 +20,7 @@ const resultEl = document.getElementById("result");
 function n(v) { const x = Number(v); return Number.isFinite(x) ? x : 0; }
 function f(v, d = 0) { return GP2N.fmt(v, d); }   /* la regla de numero de la casa (gp2-numero.js) */
 const esc = GP2UI.esc;   /* helper de la casa (gp2-ui.js) */
-function cls(v) { return n(v) > 0 ? "pos" : n(v) < 0 ? "neg" : ""; }
+const cls = GP2UI.cls;   /* "pos" | "neg" | "cero" segun el signo (el cero queda gris) */
 // Fecha viene del RPC como 'YYYY-MM-DD': formatear a mano (new Date() la parsea
 // como medianoche UTC y en AR se mostraba el dia anterior).
 function fechaCorta(s) {

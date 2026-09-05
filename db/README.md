@@ -9,6 +9,7 @@ Export automático **2026-09-05** (cierre de la auditoría de arquitectura del 2
 | `tablas_GP2.sql` | **47 tablas** (columnas, identity, defaults, comentarios de tabla y columna) + 137 constraints (PK, UNIQUE, FK, CHECK) + 49 índices sueltos + 9 triggers + RLS en las 47 + 47 policies (todas SELECT) | DDL reconstruido de `pg_catalog`; constraints/índices/triggers exactos vía `pg_get_*def` |
 | `funciones_GP2.sql` | Las **120 funciones/RPC** del schema (97 RPC de pantalla + 23 internas) | Exacto (`pg_get_functiondef`), **verificado md5 contra la base** (120/120 el 2026-09-05 02:55 UTC, tras fusionar `cargar_compra_altrak`+`aperam_chapa` en `cargar_compra_mp`) |
 | `vistas_GP2.sql` | Las **13 vistas** (con sus `comment on view`) | Exacto (`pg_get_viewdef`) |
+| `verificar.sql` | **Invariantes** de la base en una consulta (contrapartes con ubicación, inventario = ledger, grants, RLS, PS híbridos, códigos, rutas): cada fila debe dar `n = 0` | Sólo lectura; correrla antes de tocar la base y al cerrar; el agente diario la corre al empezar |
 | `relevamiento_GP2.sql` | Registro de las 3 migraciones del Relevamiento nativo (2026-09-04) con su porqué | Documental; el estado vigente está en los tres archivos de arriba |
 | `PENDIENTE_v_costo_componente_servicio_exacto.sql` | Cirugías de costos aplicadas el 2026-08-31 + el pendiente de servicios exactos por pieza | Documental / idempotente |
 | `respaldo_inventario_minimo_20260902.csv` | Las 378 filas de `inventario` cuyo mínimo cambió el 2026-09-02 (mínimo anterior y recalculado) | Reemplaza a la tabla `inventario_minimo_backup_20260902`, borrada el 2026-09-04 |
@@ -40,7 +41,9 @@ funciones internas** (helpers `_aplicar_recepcion_a_oc`, `_es_sector_insumo`, `t
 `recalcular_*`; `recepcion_virgilio`; `actualizar_dolar_oficial`) **no tienen EXECUTE para
 `anon`** (`alter default privileges ... revoke execute on functions from public` + REVOKE
 explícito). Las 97 RPC de pantalla sí. Al crear una RPC nueva: `grant execute on function
-"GP2".x to anon, authenticated`.
+"GP2".x to anon, authenticated`. Las **secuencias** tampoco tienen USAGE para `anon`/`authenticated`
+(las 4 que lo conservaban — `movimiento`, `entrega_prov_at`, `articulo_prov_at`,
+`uni_x_articulo_x_caja` — se revocaron el 2026-09-05; ninguna función no-DEFINER escribe).
 
 **Para restaurar en una base vacía**: correr en orden `tablas_GP2.sql` → `funciones_GP2.sql` →
 `vistas_GP2.sql`, después los 2 triggers de `public`, el cron y los grants. Ojo con el orden de

@@ -20,7 +20,8 @@
 | Archivos del repo | 133 HTML + ~160 JS/MD/… | **−90** (74 muertos, 9 pantallas de stock → 1, docs fusionadas) |
 | Copias de helpers en pantallas | 79 `esc`, 42 `$`, 45 `fmt`, 12 "hoy", 40 `createClient`, 3 CSV | **0** (viven en `gp2-ui.js`, `gp2-numero.js`, `supabase-config.js:GP2_SB`); sólo Recepción Insumos conserva su parser a propósito (7259) |
 | Tests | 33 | **36** (+`test_stock_sector`, `test_helpers_ui` con 5 reglas, `test_smoke_gp2` sobre las 47 pantallas; `test_numero` con 4 reglas) |
-| Bugs vivos encontrados y arreglados | — | **7**: `talleristas_bundle` sin `partes` (Control Talleristas vacío), `recepcion_tall` vs `entrega_tallerista` (dos palabras, un evento), `consumo_armado` no contado como entregado, `crear_entrega_ps` con la unidad de la SC en una cantidad de SP, «Desmarcar» del control de recepciones roto desde el 31/08, PS 12 AJ Adhesivos sin ubicación (`crear_envio_ps` explotaba), 6 "hoy" en UTC (día corrido después de las 21:00) |
+| Bugs vivos encontrados y arreglados | — | **8**: `talleristas_bundle` sin `partes` (Control Talleristas vacío), `recepcion_tall` vs `entrega_tallerista` (dos palabras, un evento), `consumo_armado` no contado como entregado, `crear_entrega_ps` con la unidad de la SC en una cantidad de SP, «Desmarcar» del control de recepciones roto desde el 31/08, PS 12 AJ Adhesivos sin ubicación (`crear_envio_ps` explotaba), 6 "hoy" en UTC (día corrido después de las 21:00), y otros 3 PS + 1 Prov AT sin ubicación porque `alta_proveedor_servicio` no la creaba (causa raíz arreglada, ciclo 2s) |
+| Invariantes de la base | — | **14** en `db/verificar.sql` (contrapartes con ubicación, inventario = ledger, grants, RLS, PS híbridos, códigos, rutas), todas en 0 |
 | Preguntas para el usuario | — | 26 en `PREGUNTAS_ARQUITECTURA_GP2.md` (la 8 con 20 datos) |
 | Ideas registradas | — | 7250–7260 en `IDEAS-GP2.md` (7253 y 7256 ya hechas) |
 
@@ -651,6 +652,50 @@ Insumos llama la genérica (dos líneas, `stock_kg` en vez de `stock_charcas_kg`
 
 ### Estado tras el ciclo 2r
 **47 tablas · 13 vistas · 120 funciones · 36 tests.**
+
+---
+
+## Ciclo 2s — otros ángulos: grants, columnas muertas, contrapartes sin ubicación, invariantes, 03:15–03:50 AR
+
+Barrido desde ángulos que no se habían mirado. Hallazgos y qué se hizo:
+
+- **Secuencias con USAGE para `anon`/`authenticated`** (4: `movimiento`, `entrega_prov_at`,
+  `articulo_prov_at`, `uni_x_articulo_x_caja`; resto de cuando esas tablas aceptaban INSERT directo).
+  Ninguna función no-DEFINER escribe, así que el grant no servía: revocado.
+- **`cargar_compra_mp` con `SELECT INTO` no estricto**: si dos PS híbridos recibieran materia prima
+  del mismo proveedor, tomaba uno cualquiera en silencio. Ahora `INTO STRICT` con dos errores
+  claros (sin PS / ambiguo). Probado con rollback: camino normal igual, proveedor inexistente
+  rechazado, ambigüedad simulada detectada.
+- **BUG VIVO nº 8 — contrapartes sin ubicación**: los PS 9 «Rec Color», 10 «Daniel» y 14 «Esther»
+  y el Prov AT 13 «Tierra Nativa SA» no tenían fila en `ubicacion`: `crear_envio_ps` /
+  `crear_envio_prov_at` explotaban con "No hay ubicación para…" (el mismo bug de AJ Adhesivos,
+  A2-06). **Causa raíz**: `alta_proveedor_servicio` (botón "nuevo pintor" de Pintores) daba de
+  alta el PS sin su ubicación. Se crearon las 4 que faltaban (ubicaciones 51–54, misma convención
+  de nombre) y la RPC crea la ubicación en la misma transacción (devuelve `ubicacion_id`).
+  Verificado con rollback. Sectores 12 «Terminado» y 13 «Alambre» siguen sin ubicación a
+  propósito: Terminado vive en Virgilio (`ubic_de_componente` cae ahí) y el 13 es la pregunta 21
+  (se le agregó el dato).
+- **Columnas que no lee nadie** (374 columnas × funciones + vistas + pantallas): una sola,
+  `inventario.cajones_x_ubicacion` (154 valores del Excel viejo) → agregada a la pregunta 5, no se
+  borra sin respuesta. Las otras 6 "sólo pantallas" (`sector.oc_pide/oc_rubro_id`, `uni_x_articulo_x_caja.*`,
+  `precio_tallerista.concepto`, `proveedor_at.notas`) sí se leen desde `from()` o son texto libre.
+- **JS huérfanos**: 0 (59 archivos, todos referenciados). **Nombres de función repetidos entre
+  archivos JS**: 201, casi todos en pantallas del programa viejo (pregunta 1) o pares
+  `x.js`/`x_GP2.js` deliberados; en GP2 sólo quedaba `cls` en Disruptivas → `GP2UI.cls` (token 20260905q).
+- **Advisor de seguridad**: 697 hallazgos en el proyecto, **0 en GP2** (todos en `public`,
+  `planify`, etc. — la casa del vecino). **`pg_stat_statements`**: ningún bundle GP2 pasa de 310 ms
+  promedio (`despiece_verif_bundle` 303, `oc_bundle` 134, `recepcion_bundle` 81 con un pico de 2,7 s
+  en 323 llamadas). Sin acción.
+- **Extensiones/tipos**: sin tipos ni secuencias huérfanos en GP2.
+- **`db/verificar.sql`** (nuevo): 14 invariantes en una consulta (contrapartes con ubicación,
+  inventario = ledger, funciones internas sin EXECUTE, RLS + policies sólo SELECT, secuencias y
+  tablas sin escritura anónima, PS híbrido con MP y sin ambigüedad, código único por sector,
+  movimientos con ubicación, inventario sin pares repetidos, rutas con pasos, RPC de pantalla con
+  EXECUTE). Hoy: 14/14 en 0. Cada regla es un bug que ya pasó.
+
+### Estado tras el ciclo 2s
+**47 tablas · 13 vistas · 120 funciones · 36 tests · 14 invariantes en 0.** (`db/funciones_GP2.sql`
+se regenera al cierre: cambiaron `cargar_compra_mp` y `alta_proveedor_servicio`.)
 
 ---
 

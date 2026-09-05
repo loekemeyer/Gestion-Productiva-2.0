@@ -135,7 +135,12 @@ quedó pendiente de aplicar.
 
 **Recomendación.** B (la idea queda registrada, el SQL en git).
 
-**Pregunta concreta.** ¿A o B?
+**Dato agregado el 2026-09-05 (ciclo 2s).** La columna `inventario.cajones_x_ubicacion` (154 valores
+en Crudo/Procesado, "Max Caj Cerv" del Excel viejo) **no la lee nadie**: ninguna función, vista ni
+pantalla (el máximo vigente sale de `parametro.max_cajones_x_ubicacion` = 5 para todos). Si A,
+se borra la columna (con respaldo CSV en `db/`); si B, es el dato de entrada de la regla pendiente.
+
+**Pregunta concreta.** ¿A o B? (y con eso, ¿se borra `cajones_x_ubicacion`?)
 
 ---
 
@@ -264,8 +269,13 @@ un insumo comprado como Fleje/Plástico (aparece en Recepción y en máximos aut
 comprable confunde a cualquier consulta por tipo.
 
 **Impacto.** Una línea de datos; ninguna función (`es_insumo` es la columna que leen las 6).
+Dato agregado el 2026-09-05 (ciclo 2s): el sector 13 **no tiene ubicación** propia. Su único
+componente, `FLEJE90_BRUTO` (50 kg), vive en la ubicación de Resortes Charcas (`cargar_compra_mp`
+lo manda ahí), pero `ubic_de_componente()` lo resuelve a Virgilio. Si A, hay que decidir también
+dónde "vive" el alambre bruto (¿ubicación "Sector Alambre" o la de Charcas?) — `db/verificar.sql`
+(regla A) va a marcar el sector insumo sin ubicación hasta que se resuelva.
 
-**Pregunta concreta.** ¿A o B?
+**Pregunta concreta.** ¿A o B? Y si A, ¿el stock del alambre bruto queda en Charcas o en un sector propio?
 
 ---
 

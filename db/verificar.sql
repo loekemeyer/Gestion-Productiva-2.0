@@ -1,0 +1,91 @@
+-- =====================================================================
+-- INVARIANTES del schema GP2 — chequeo de salud en una sola consulta (solo lectura).
+-- Cada fila es una regla que la base tiene que cumplir SIEMPRE; la columna n tiene que ser 0.
+-- Salieron de la auditoría de arquitectura del 2026-09-04/05 (REFACTOR_GP2.md): cada una es un
+-- bug que ya pasó una vez (PS sin ubicación → crear_envio_ps explotaba; ledger e inventario
+-- desfasados; función interna ejecutable por anon; secuencia con USAGE para anon; …).
+-- Cómo usarla: correrla entera (Supabase MCP / SQL editor) y mirar sólo las filas con n > 0.
+-- El agente diario la corre al empezar; si algo da > 0 es lo primero que se arregla.
+-- =====================================================================
+
+with ledger as (
+  -- lo que dice el libro (movimiento) por componente y ubicación, con la misma regla que
+  -- fn_movimiento_aplicar: el destino recibe +_delta_dest en el componente transformado
+  -- (o el mismo), el origen pierde _delta_orig en el componente original
+  select comp, ubic, sum(d) d from (
+    select coalesce(comp_transformado_id, comp_id) comp, ubic_destino_id ubic, sum(_delta_dest) d
+      from "GP2".movimiento where ubic_destino_id is not null group by 1, 2
+    union all
+    select comp_id, ubic_origen_id, -sum(_delta_orig)
+      from "GP2".movimiento where ubic_origen_id is not null group by 1, 2) l
+   group by 1, 2
+)
+select * from (
+
+-- A) Toda contraparte que puede recibir o entregar stock tiene SU ubicación (ubic_de la resuelve).
+select 'A_contrapartes_sin_ubicacion' regla, count(*) n from (
+    select id from "GP2".proveedor_servicio ps where "GP2".ubic_de('proveedor_servicio', ps.id) is null
+    union all select id from "GP2".tallerista t where t.activo and "GP2".ubic_de('tallerista', t.id) is null
+    union all select id from "GP2".proveedor_at p where p.activo and "GP2".ubic_de('proveedor_at', p.id) is null
+    union all select id from "GP2".sector s where s.es_insumo and "GP2".ubic_de('sector', s.id) is null) x
+union all
+-- B) El inventario es exactamente la suma del libro (el motor vive en los triggers).
+select 'B_inventario_distinto_del_ledger', count(*)
+  from ledger s full join "GP2".inventario i on i.componente_id = s.comp and i.ubicacion_id = s.ubic
+ where abs(coalesce(i.cantidad, 0) - coalesce(s.d, 0)) > 0.0005
+union all
+-- C) Ninguna función interna (triggers, helpers, recálculos) es ejecutable por anon.
+select 'C_funciones_internas_con_execute_anon', count(*) from pg_proc p
+ where p.pronamespace = '"GP2"'::regnamespace and has_function_privilege('anon', p.oid, 'EXECUTE')
+   and (p.prorettype = 'trigger'::regtype or p.proname like '\_%' or p.proname like 'fn\_%'
+        or p.proname like 'relev\_%' or p.proname like 'recalcular\_%'
+        or p.proname in ('to_canonical', 'inv_delta', 'ubic_de', 'ubic_de_componente', 'recepcion_tara',
+                         'recepcion_virgilio', 'actualizar_dolar_oficial', 'crear_recepcion_insumo'))
+union all
+-- D) Toda tabla tiene RLS y una policy; ninguna policy es de escritura (la escritura va por RPC).
+select 'D_tablas_sin_rls_o_sin_policy', count(*) from pg_class c
+ where c.relnamespace = '"GP2"'::regnamespace and c.relkind = 'r'
+   and (not c.relrowsecurity or not exists (select 1 from pg_policies p where p.schemaname = 'GP2' and p.tablename = c.relname))
+union all
+select 'D2_policies_de_escritura', count(*) from pg_policies p where p.schemaname = 'GP2' and p.cmd <> 'SELECT'
+union all
+-- E/F) Ni secuencias ni tablas aceptan escritura de anon/authenticated.
+select 'E_secuencias_con_usage_anon', count(*) from pg_class c
+ where c.relnamespace = '"GP2"'::regnamespace and c.relkind = 'S'
+   and (has_sequence_privilege('anon', c.oid, 'USAGE') or has_sequence_privilege('authenticated', c.oid, 'USAGE'))
+union all
+select 'F_tablas_con_escritura_anon', count(*) from information_schema.role_table_grants g
+ where g.table_schema = 'GP2' and g.grantee in ('anon', 'authenticated') and g.privilege_type in ('INSERT', 'UPDATE', 'DELETE')
+union all
+-- G) Un PS híbrido sin materia prima configurada no puede recibir compras (cargar_compra_mp).
+select 'G_ps_hibrido_sin_mp_componente', count(*) from "GP2".proveedor_servicio where hibrido and mp_componente_id is null
+union all
+-- H) Un proveedor de materia prima alimenta a UN solo PS híbrido (si no, cargar_compra_mp es ambigua).
+select 'H_proveedor_mp_ambiguo', count(*) from (
+    select c.proveedor from "GP2".proveedor_servicio ps join "GP2".componente c on c.id = ps.mp_componente_id
+     where ps.hibrido group by c.proveedor having count(*) > 1) d
+union all
+-- I) Dentro de un sector el código de componente es único (entre sectores puede repetirse:
+--    A1/A4/A8/A9/Z22 son piezas y cajas con el mismo código, ver IDEAS 7244).
+select 'I_codigo_repetido_en_el_mismo_sector', count(*) from (
+    select sector_id, lower(btrim(codigo)) from "GP2".componente group by 1, 2 having count(*) > 1) d
+union all
+-- J) Todo movimiento toca al menos una ubicación, y el inventario no tiene pares repetidos.
+select 'J_movimientos_sin_ubicacion', count(*) from "GP2".movimiento where ubic_origen_id is null and ubic_destino_id is null
+union all
+select 'K_inventario_par_repetido', count(*) from (
+    select componente_id, ubicacion_id from "GP2".inventario group by 1, 2 having count(*) > 1) d
+union all
+-- L) Toda ruta tiene pasos y todo paso pertenece a una ruta con artículo.
+select 'L_rutas_sin_pasos', count(*) from "GP2".ruta r where not exists (select 1 from "GP2".ruta_paso p where p.ruta_id = r.id)
+union all
+-- M) Las RPC de pantalla (todo lo que no es interno) tienen EXECUTE para anon: si falta, la
+--    pantalla muestra "permission denied" (pasó con «Desmarcar», ciclo 2l).
+select 'M_rpc_de_pantalla_sin_execute_anon', count(*) from pg_proc p
+ where p.pronamespace = '"GP2"'::regnamespace and not has_function_privilege('anon', p.oid, 'EXECUTE')
+   and not (p.prorettype = 'trigger'::regtype or p.proname like '\_%' or p.proname like 'fn\_%'
+        or p.proname like 'relev\_%' or p.proname like 'recalcular\_%'
+        or p.proname in ('to_canonical', 'inv_delta', 'ubic_de', 'ubic_de_componente', 'recepcion_tara',
+                         'recepcion_virgilio', 'actualizar_dolar_oficial', 'crear_recepcion_insumo'))
+) chequeos
+order by regla;
