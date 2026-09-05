@@ -27,16 +27,12 @@ window.GP2Composicion = (function () {
   var LIMITE = 300;
   var montado = false;
 
-  function esc(s) {
-    return String(s == null ? "" : s).replace(/[&<>"]/g, function (c) {
-      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c];
-    });
-  }
-  function fmt(n, d) {
-    d = (d == null ? 0 : d);
-    return Number(n || 0).toLocaleString("es-AR", { minimumFractionDigits: 0, maximumFractionDigits: d });
-  }
-  function clsNum(n) { n = Number(n || 0); return n > 0 ? "cp-pos" : (n < 0 ? "cp-neg" : "cp-cero"); }
+  /* Helpers de la casa (la pagina los carga antes que este archivo, 2026-09-04):
+     gp2-ui.js -> esc y la clase por signo; gp2-numero.js -> fmt (aca sin
+     decimales por default: el popup muestra unidades enteras). */
+  var esc = window.GP2UI.esc;
+  function fmt(n, d) { return window.GP2N.fmt(n, d == null ? 0 : d); }
+  function clsNum(n) { return "cp-" + window.GP2UI.cls(n); }
 
   /* tipo_mov es el nombre tecnico del ledger; en pantalla va en castellano.
      Un tipo nuevo que no este acá se muestra tal cual, no se pierde. */

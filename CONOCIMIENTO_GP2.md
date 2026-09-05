@@ -1991,6 +1991,8 @@ en ese archivo):
   tallerista guarda `comp_entrada_id = NULL` (366 pasos, 88 terminados). Los terminados hay
   que costearlos por RECETA, no por walk — que es lo que ya dice la cascada de 2c.
 - `[dato]` **`precio_servicio` (el plano) quedó entero en 1 USD** — nunca se pisó, porque
+  (`[2026-09-04]` la tabla `precio_servicio` se borró: estaba vacía y el motor usa
+  `precio_servicio_pieza` + `tarifa_servicio`)
   los reales fueron a `precio_servicio_pieza`. Vale $49 M de pedido inventado en Z22, B12 y
   V18D, y mete pesos en la columna dólares.
 - `[dato, verificado]` **Las rutas alternativas NO duplican el material** (G7 con y sin M77
@@ -2054,7 +2056,7 @@ significa lo que parece `[dato, verificado]`:
 | **D** | **Balancín** también `[usuario]` | 11 | 13,16 (6,2 a 21,5) |
 | **P** | **Piedra** — es la 501, y en el vecino se llama "Piedra (TP)" | 1 | por kg, ver arriba |
 
-Copiado a GP2 en `matriz.tipo_matriz` (la letra cruda) y `matriz.maquina`
+Copiado a GP2 en `matriz.tipo` (la letra; la columna `tipo_matriz` duplicada se borró el 2026-09-04) y `matriz.maquina`
 (`alimentador` / `balancin` / `piedra`, con CHECK). **No se inventó nada: es el dato del
 vecino con el mapeo que dio el usuario.** En el vecino hay además 90 matrices tipo `E` y
 22 tipo `T` que GP2 no usa.
@@ -2755,6 +2757,14 @@ servicio) y Carlos Aguirre (tallerista) son la MISMA persona / mismo taller — 
 manda el 560 crudo entero, él croma **todo junto** (cuerpo + remache + lo que lleve
 adentro), envasa y lo entrega en Virgilio como 560 terminado.
 
+`[dato 2026-09-04: GP2.tallerista.ubicacion_stock_id, GP2.ubicacion]` Por eso en la base el
+tallerista Carlos Aguirre (9) **no tiene ubicación propia**: su stock vive en la ubicación 18
+«Pedernera / Carlos Aguirre» (tipo `proveedor_servicio`, ref Pedernera 6), vía
+`tallerista.ubicacion_stock_id = 18`. Es el único tallerista con ese override, y es la razón
+de que `ubic_de('tallerista', 9)` mire primero ese campo (ver `GP2_MAPA.md`). Si algún día
+Carlos Aguirre pasa a tener depósito aparte, se le pone `ubicacion_stock_id = null` y se le
+crea su ubicación `tallerista/9`: nada más cambia.
+
 **Consecuencia estructural**: el remache "V14 niquelado" NO existe como pieza aparte. Solo
 existe CV14 (crudo). Todo lo que hoy se veía como "cromar el remache aparte" era ruido de
 modelado. **Aplicado**:
@@ -2950,6 +2960,8 @@ si dice "buscalo vos", se busca — no se inventa ni se asume.
   Alex, por eso le erré"* — son familia y por eso el cruce de nombres. Normalizado en
   `GP2.tallerista.entrega_cervantes` (true para ids 6, 2 y 10 — migraciones
   `talleristas_que_entregan_en_cervantes` + `entrega_cervantes_correccion_alex_no_carlos`).
+  `[2026-09-04]` Esa columna se **borró** (ningún código la leía); el dato queda acá: los que
+  entregan en Cervantes son Martin Cornejo (6), Alex Escalante (2) e IJUPA (10).
   Cierra con las rutas: Alex arma los GRJ (ej. Batidor Pera del 544) y los entrega en el
   Sector Garage de Cervantes. OJO: `Recepcion Cervantes.html` del programa VIEJO tiene
   hardcodeado ARTICULOS_EMPRESA con CARLOS y MARTIN — puede venir de la misma confusión

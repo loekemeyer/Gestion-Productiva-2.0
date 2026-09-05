@@ -129,9 +129,11 @@
       const inputCaj = row.querySelector('input[data-fld="caj"]');
       const inputKg = row.querySelector('input[data-fld="kg"]');
       const inputUni = row.querySelector('input[data-fld="uni"]');
-      if (inputCaj) tandas[i].caj = parseInt(inputCaj.value, 10) || 0;
+      /* parseEntero y no parseInt: el campo se ve con separador de miles
+         ("1.500") y parseInt lo leia como 1 (auditoria 2026-09-04). */
+      if (inputCaj) tandas[i].caj = parseEntero(inputCaj.value) || 0;
       if (inputKg) tandas[i].kg = parseDecimal(inputKg.value);
-      if (inputUni) tandas[i].uni = parseInt(inputUni.value, 10) || 0;
+      if (inputUni) tandas[i].uni = parseEntero(inputUni.value) || 0;
     });
   }
 

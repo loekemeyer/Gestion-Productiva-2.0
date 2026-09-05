@@ -6,7 +6,7 @@ Suite creada 2026-08-29. Dos capas:
 
 Cada `test_*.js` abre la pantalla real del repo con **Supabase stubeado** (no tocan la
 base): verifican payloads de RPC, filtros, cálculos en pantalla y flujos completos.
-`run.sh` corre **todos** los `test_*.js` de la carpeta (hoy 33); si agregás uno, entra solo.
+`run.sh` corre **todos** los `test_*.js` de la carpeta (hoy 35); si agregás uno, entra solo.
 
 | Test | Pantalla / flujo |
 |---|---|
@@ -22,6 +22,7 @@ base): verifican payloads de RPC, filtros, cálculos en pantalla y flujos comple
 | test_envios_ps_gp2.js | Envíos Prov Serv GP2: fase 0/1, cálculo de cajones, payload de `crear_envio_ps` |
 | test_envios_tall_gp2.js | Envíos Talleristas GP2: caracterización previa a la unificación |
 | test_faltantes_gp2.js | Faltantes: automáticos por stock online de Crudo/Procesado + marcas manuales |
+| test_helpers_ui.js | Guardia de `gp2-ui.js` (helpers de pantalla en UNA copia): cada helper hace lo que promete, toda pagina que carga un JS compartido carga antes `gp2-ui.js` + `gp2-numero.js`, y ninguna pagina que ya los carga conserva un `esc`/`$`/"hoy"/CSV propio (sin navegador, lee archivos) |
 | test_inicio_pend.js | Alerta de cargas de Virgilio sin aplicar (espejo_pend) |
 | test_inyectores.js | Inyectores: botonera por proveedor, asignar/desasignar (payload de la RPC), aviso de partes que fabrica un tallerista, resumen y chips de rubro |
 | test_kg_y_unidades.js | El insumo que viene en cajas y se pesa (`componente.recibe_en_cajas`): recepción en kg, control cajas × kg/caja |
@@ -29,7 +30,7 @@ base): verifican payloads de RPC, filtros, cálculos en pantalla y flujos comple
 | test_marcas.js | Las marcas salen de los datos (`componente.marca`), no de una lista escrita a mano |
 | test_menu_una_pantalla.js | El menú en celular: los 13 grupos entran en una pantalla, tocables (>=44px) y legibles (>=14px), versión visible, sin texto de relleno, y al abrir un grupo se ve solo ese |
 | test_mon2.js | Cierres del Día · Premios, ex "Monitor 2.0" (premio espejo y calculado, alertas ±3) |
-| test_numero.js | Guardia de la regla de número (`gp2-numero.js`): punto de miles, coma decimal, separador automático; rechaza saneadores propios en pantallas GP2 |
+| test_numero.js | Guardia de la regla de número (`gp2-numero.js`): punto de miles, coma decimal, separador automático; rechaza saneadores propios en pantallas GP2 y, donde la regla está cargada, cualquier `.value` leído con `Number/parseInt` crudo |
 | test_oc.js / test_oc_print.js | Órdenes de Compra: sugeridos, reglas de cartón C/LOKE/8, crear, imprimir. **Ojo**: el fixture de `test_oc.js` trae el contrato viejo (consumo × meses); la fórmula vigente máximo − stock − pendiente queda sin cubrir hasta la idea 7242 |
 | test_op_e2e.js | App Operarios entera: legajo → E con rollo → C → RM → baja vía RPC → cola ✓. El stub **revienta** si la app toca una tabla directo |
 | test_pm.js | Problemas con Matrices (RM/PM, uni acumuladas, golpes) |

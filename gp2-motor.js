@@ -59,18 +59,12 @@ function sectorNom(sid){ return ((D && D.sect[String(sid)]) || { nom:"" }).nom; 
 function ubicSector(s){ return UB["sector:" + parseInt(s)] || null; }
 function ubicProvServ(p){ return UB["prov:" + parseInt(p)] || null; }
 function ubicTall(t){ return UB["tall:" + parseInt(t)] || null; }
-function ubicNom(uid){ return uid ? ((D && D.ubic[String(uid)]) || { nom:"?" }).nom : ""; }
 
 /* stock de un componente en una ubicacion, leido del inventario del bundle */
 function stock(cid, ubicId){
   var k = String(cid) + ":" + String(ubicId);
   var i = (D && D.inv && D.inv[k]) || null;
   return i ? Number(i.cant || 0) : 0;
-}
-function minimo(cid, ubicId){
-  var k = String(cid) + ":" + String(ubicId);
-  var i = (D && D.inv && D.inv[k]) || null;
-  return i ? Number(i.min || 0) : 0;
 }
 
 /* ---------- derivaciones sobre ruta_paso ----------
@@ -369,31 +363,26 @@ async function registrar(SB, rows){
   return res.data;
 }
 
+/* Se exporta solo lo que alguna pantalla llama (StockGeneral_GP2,
+   EntregasTalleristas_GP2). Lo interno del motor (ubicSector, ubicProvServ,
+   entradaEfectiva, compsFor, entradaPrincipal, SECTOR_TERMINADO, el bundle D)
+   dejo de exportarse el 2026-09-04: nadie lo llamaba de afuera. */
 global.GP2M = {
   cargar: cargar,
   registrar: registrar,
-  get D(){ return D; },
   comp: comp,
   sectorNom: sectorNom,
-  ubicSector: ubicSector,
-  ubicProvServ: ubicProvServ,
   ubicTall: ubicTall,
-  ubicNom: ubicNom,
   stock: stock,
-  minimo: minimo,
-  entradaEfectiva: entradaEfectiva,
-  compsFor: compsFor,
   compsRecepcionTall: compsRecepcionTall,
   entradasPosibles: entradasPosibles,
-  entradaPrincipal: entradaPrincipal,
   bomDe: bomDe,
   talleristas: talleristas,
   recepcionTall: recepcionTall,
   artsFabricaDirecto: artsFabricaDirecto,
   ubicacionesDeComp: ubicacionesDeComp,
   ajuste: ajuste,
-  armadoFabrica: armadoFabrica,
-  SECTOR_TERMINADO: SECTOR_TERMINADO
+  armadoFabrica: armadoFabrica
 };
 
 })(window);

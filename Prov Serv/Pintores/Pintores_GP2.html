@@ -18,7 +18,9 @@
 <title>Pintores · Quién pinta cada parte · GP2</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="../../supabase-config.js?v=20260831d"></script>
-<script src="../../consumo-detalle.js?v=20260830k"></script>
+<script src="../../gp2-ui.js?v=20260905a"></script>
+<script src="../../gp2-numero.js?v=20260905b"></script>
+<script src="../../consumo-detalle.js?v=20260905g"></script>
 <link rel="stylesheet" href="../../gp2-modulo.css?v=20260903b"/>
 <link rel="icon" type="image/png" href="../../GP2_favicon.png">
 <link rel="apple-touch-icon" href="../../apple-touch-icon.png?v=20260829j">
@@ -128,9 +130,9 @@
 var SB = supabase.createClient(SUPABASE_URL, SUPABASE_KEY,
   { db:{ schema:"GP2" }, auth:{ persistSession:false } });
 
-function $(id){ return document.getElementById(id); }
-function esc(t){ return String(t==null?'':t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
-function fmt(n,d){ return n==null ? '—' : Number(n).toLocaleString('es-AR',{maximumFractionDigits:d==null?0:d}); }
+/* helpers de la casa (gp2-ui.js / gp2-numero.js, 2026-09-04); "—" cuando no hay valor */
+var $ = GP2UI.$, esc = GP2UI.esc;
+function fmt(n,d){ return GP2N.fmt(n, d==null?0:d, '—'); }
 
 var PINTORES = [], PARTES = [], filtro = 'todas';
 var FILTROS = { todas:'Todas', sin:'Sin asignar', varios:'Pueden varios' };

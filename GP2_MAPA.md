@@ -179,10 +179,16 @@ destino (`coalesce(comp_transformado_id, comp_id)`). Una ubicacion en `null` se
 ignora, asi que una compra (sin origen) solo suma y un consumo (sin destino) solo
 resta. **En DELETE el trigger revierte exactamente** — verificado.
 
-⚠ **Inconsistencia a vigilar**: `crear_envio_ps`, `crear_entrega_ps` y
-`crear_envio_tallerista` buscan la ubicacion de un sector **por nombre**;
-`crear_recepcion_insumo` y `crear_entrega_tallerista` la buscan **por `ref_id`**.
-Hoy coinciden en las 11 filas, pero renombrar un sector rompe las tres primeras.
+**Resolucion de ubicaciones (desde el 2026-09-04): una sola puerta, `ubic_de(tipo, ref_id)`.**
+Antes `crear_envio_ps`, `crear_entrega_ps` y `crear_envio_tallerista` buscaban la ubicacion
+**por nombre** y el resto por `ref_id` (renombrar un sector rompia tres funciones). Ahora las
+~25 busquedas de 32 funciones/vistas pasan por `"GP2".ubic_de(p_tipo, p_ref_id)`: devuelve el
+`ubicacion.id` de `(tipo, ref_id)`, y para `tallerista` respeta primero
+`tallerista.ubicacion_stock_id` (deposito compartido: Carlos Aguirre guarda en la ubicacion 18
+«Pedernera / Carlos Aguirre», que es de tipo `proveedor_servicio`). Indices unicos sobre
+`ubicacion(tipo, ref_id)` y sobre los singletons (`virgilio`, `analisis`) garantizan que la
+respuesta sea una sola. Ninguna funcion busca mas una ubicacion por nombre
+(`tests`: consulta `prosrc ~ 'from ubicacion .* where nombre'` da vacio).
 
 ## Pendiente de verificacion
 

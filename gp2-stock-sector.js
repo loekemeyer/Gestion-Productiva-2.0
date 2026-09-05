@@ -17,6 +17,9 @@
    lo que difiere por sector vive UNICAMENTE aca. Si una pagina define
    window.STOCK_CFG antes de cargar este script, ese objeto pisa al mapa
    (misma forma: sector_id, titulo, columnas, sin_min_max, mostrar_fleje).
+
+   Depende de gp2-ui.js (GP2UI: esc, $, cls, exportarCSV) y gp2-numero.js
+   (GP2N.fmt), cargados antes por la pagina (2026-09-04).
    ============================================================ */
 
 (function(){
@@ -104,7 +107,7 @@ function sectorDeURL(){
 
 var CFG = window.STOCK_CFG || configDe(sectorDeURL());
 var SB = window.SB_CLIENT;
-var $ = function(id){ return document.getElementById(id); };
+var $ = GP2UI.$;
 
 /* Completa lo que cambia por sector en el HTML unico: titulo, h1, botones del
    header (CSV + links, antes del "Atras" fijo), filtro "Bajo el maximo", aviso de
@@ -145,11 +148,9 @@ function montarPantalla(){
 var D = { filas: [], sector: {}, ubicacion_id: null };
 var filtro = "todos";
 
-/* ---------- helpers ---------- */
-function esc(s){ return String(s==null?"":s).replace(/[&<>"]/g, function(c){
-  return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]; }); }
-function fmt(n,d){ d=(d==null?1:d);
-  return Number(n||0).toLocaleString("es-AR",{minimumFractionDigits:0,maximumFractionDigits:d}); }
+/* ---------- helpers (gp2-ui.js / gp2-numero.js) ---------- */
+var esc = GP2UI.esc, clsNum = GP2UI.cls;
+function fmt(n,d){ return GP2N.fmt(n, d==null?1:d); }   // esta pantalla muestra hasta 1 decimal
 function fmtFecha(f){ if(!f) return ""; try{ return new Date(f).toLocaleDateString("es-AR"); }catch(e){ return f; } }
 
 /* uni es la unidad canonica de las piezas; kg y cajones son derivados */
@@ -169,8 +170,6 @@ function valorCol(x, col){
   });
   return hubo ? tot : null;
 }
-
-function clsNum(n){ n=Number(n||0); return n>0?"pos":(n<0?"neg":"cero"); }
 
 /* ---------- carga ---------- */
 async function cargar(){
@@ -326,22 +325,15 @@ function exportarCSV(){
     .concat((CFG.columnas||[]).map(function(c){ return c.label; }))
     .concat(["Kg x Uni","Uni x Cajon","Minimo","Maximo"]);
   if (CFG.mostrar_fleje) cols.push("N Fleje");
-  var q = function(v){ return '"'+String(v==null?"":v).replace(/"/g,'""')+'"'; };
-  var dec = function(v){ return v==null?"":String(v).replace(".",","); };
-  var lineas = [cols.map(q).join(";")];
+  var filas = [cols];
   arr.forEach(function(x){
-    var f = [x.cod||"", x["desc"]||"", dec(kgDe(x)), dec(cajDe(x)), dec(x.online)]
-      .concat((CFG.columnas||[]).map(function(c){ return dec(valorCol(x,c)); }))
-      .concat([dec(x.kg_x_uni), dec(x.uni_x_cajon), dec(x.minimo), dec(x.maximo)]);
-    if (CFG.mostrar_fleje) f.push(x.n_fleje==null?"":x.n_fleje);
-    lineas.push(f.map(q).join(";"));
+    var f = [x.cod||"", x["desc"]||"", kgDe(x), cajDe(x), x.online]
+      .concat((CFG.columnas||[]).map(function(c){ return valorCol(x,c); }))
+      .concat([x.kg_x_uni, x.uni_x_cajon, x.minimo, x.maximo]);
+    if (CFG.mostrar_fleje) f.push(x.n_fleje);
+    filas.push(f);
   });
-  var blob = new Blob(["﻿"+"sep=;\n"+lineas.join("\n")], {type:"text/csv;charset=utf-8"});
-  var a = document.createElement("a");
-  a.href = URL.createObjectURL(blob);
-  a.download = (CFG.titulo||"stock").toLowerCase().replace(/\s+/g,"_")+".csv";
-  a.click();
-  setTimeout(function(){ URL.revokeObjectURL(a.href); }, 1000);
+  GP2UI.exportarCSV((CFG.titulo||"stock").toLowerCase().replace(/\s+/g,"_"), filas);
 }
 
 /* ---------- eventos ---------- */

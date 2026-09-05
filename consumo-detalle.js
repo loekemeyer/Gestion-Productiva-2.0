@@ -7,7 +7,9 @@
 
    Uso: GP2ConsumoDetalle.abrir(SB, compId)
    - SB: el cliente supabase de la pagina (creado con schema GP2).
-   - compId: componente.id (siempre id, nunca codigo: hay codigos repetidos). */
+   - compId: componente.id (siempre id, nunca codigo: hay codigos repetidos).
+   Depende de gp2-ui.js (GP2UI.esc) y gp2-numero.js (GP2N.fmt), que la pagina
+   carga antes que este archivo (2026-09-04). */
 "use strict";
 window.GP2ConsumoDetalle = (function () {
 
@@ -28,15 +30,10 @@ window.GP2ConsumoDetalle = (function () {
     ".cd-tocable{cursor:pointer;text-decoration:underline dotted #94a3b8;text-underline-offset:3px}"
   ].join("\n");
 
-  function fmt(n, d) {
-    if (n == null) return "—";
-    return Number(n).toLocaleString("es-AR", { maximumFractionDigits: (d == null ? 0 : d) });
-  }
-  function esc(s) {
-    return String(s == null ? "" : s).replace(/[&<>"]/g, function (c) {
-      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c];
-    });
-  }
+  /* sin decimales por default y "—" cuando no hay valor (el sustento del
+     consumo son unidades enteras) */
+  function fmt(n, d) { return window.GP2N.fmt(n, d == null ? 0 : d, "—"); }
+  var esc = window.GP2UI.esc;
 
   function asegurarCss() {
     if (document.getElementById("cdCss")) return;

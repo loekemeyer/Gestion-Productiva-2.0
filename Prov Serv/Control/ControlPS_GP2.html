@@ -2,7 +2,9 @@
 <html lang="es">
 <head>
   <script src="../../auth-guard.js?v=20260904t"></script>
-  <script src="../../gp2-composicion.js?v=20260904x"></script>
+  <script src="../../gp2-ui.js?v=20260905a"></script>
+  <script src="../../gp2-numero.js?v=20260905b"></script>
+  <script src="../../gp2-composicion.js?v=20260905d"></script>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Control Prov. Servicios (GP2)</title>
@@ -236,31 +238,11 @@
 
     var provSel = null; // proveedor elegido
 
-    // ---- helpers de formato ----
+    // ---- helpers de formato (gp2-ui.js / gp2-numero.js, 2026-09-04) ----
     /* Todas las columnas de esta pantalla (Enviado / Entregado / Saldo en PS)
        estan en unidades: van sin decimales. */
-    function fmt(n){
-      if(n===null || n===undefined || isNaN(n)) return '0';
-      n = Math.round(Number(n));
-      var neg = n < 0;
-      var abs = Math.abs(n);
-      // hasta 3 decimales, sin ceros colgando
-      var s;
-      if(Math.abs(abs - Math.round(abs)) < 1e-9){
-        s = String(Math.round(abs));
-      } else {
-        s = abs.toFixed(3).replace(/0+$/,'').replace(/\.$/,'');
-      }
-      // separador de miles (parte entera)
-      var parts = s.split('.');
-      parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, '.');
-      s = parts.join(',');
-      return (neg ? '-' : '') + s;
-    }
-    function esc(t){
-      return String(t==null?'':t)
-        .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-    }
+    function fmt(n){ return GP2N.fmt(n, 0); }
+    var esc = GP2UI.esc;
 
     // ---- grilla de proveedores ----
     function renderGrid(){
@@ -591,10 +573,8 @@
     var elGuardar= document.getElementById('mvGuardar');
     var modoRadios = document.getElementsByName('mvModo');
 
-    // fecha default = hoy (yyyy-mm-dd local)
-    var hoy = new Date();
-    var off = hoy.getTimezoneOffset();
-    elFecha.value = new Date(hoy.getTime() - off*60000).toISOString().slice(0,10);
+    // fecha default = hoy en Argentina (gp2-ui.js; antes era la del dispositivo)
+    elFecha.value = GP2UI.hoyAR();
 
     function setMsg(txt, cls){
       elMsg.textContent = txt || '';
@@ -675,14 +655,14 @@
 
     async function guardar(){
       setMsg('');
-      var psId = Number(elProv.value);
+      var psId = GP2N.num(elProv.value);
       if(!psId){ setMsg('Elegi un proveedor.', 'err'); return; }
       var fechaTs = elFecha.value ? new Date(elFecha.value + 'T12:00:00').toISOString() : null;
 
       var payload, rpcName;
       if(modo() === 'envio'){
         var scId = pkEnvioSC.getId();
-        var cant = Number(elCant.value);
+        var cant = GP2N.num(elCant.value);   // la regla de numero de la casa ("1.500" son mil quinientos)
         if(!scId){ setMsg('Elegi la parte SC a enviar.', 'err'); return; }
         if(!(cant > 0)){ setMsg('La cantidad debe ser mayor a 0.', 'err'); return; }
         rpcName = 'crear_envio_ps';
@@ -690,7 +670,7 @@
       } else {
         var scId2 = pkEntSC.getId();
         var spId  = pkEntSP.getId();
-        var kg    = Number(elKg.value);
+        var kg    = GP2N.num(elKg.value);
         if(!scId2){ setMsg('Elegi la parte SC que se consume.', 'err'); return; }
         if(!spId){ setMsg('Elegi la parte SP que se recibe.', 'err'); return; }
         if(!(kg > 0)){ setMsg('Los kg deben ser mayores a 0.', 'err'); return; }

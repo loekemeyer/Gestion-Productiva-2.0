@@ -14,9 +14,15 @@
      Talleristas/Recepcion/EntregasTalleristas_GP2.html
      Prov Serv/Envios/EnviosPS_GP2.html
      Prov Serv/Entregas/EntregaPS_GP2.html
-     Prov Art Terminado/Entregas/EntregasAT.js
      Control Envios y Entregas/ControlEnvios_GP2.html
      Talleristas/Control Tall/ControlTalleristas_GP2.html
+
+   Depende de DOS archivos que la pagina carga antes que este (2026-09-04):
+     gp2-ui.js     (GP2UI: esc, $, cls, hoyAR)  — los helpers de pantalla
+     gp2-numero.js (GP2N: num, fmt)             — la regla de numero
+   Aca ya no hay copia de ninguno de los dos: lo que exporta GP2EE es lo
+   propio de las pantallas de Envios/Entregas (buffer, fases, tandas,
+   grilla, guardado). esc/$ se toman de GP2UI directo.
 
    Convenciones que fija (y que una pantalla nueva hereda gratis):
      - numeros SIEMPRE formateados es-AR;
@@ -37,46 +43,22 @@
     );
   }
 
-  function $(id) { return document.getElementById(id); }
-
-  function esc(s) {
-    return String(s == null ? "" : s).replace(/[&<>"]/g, function (c) {
-      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c];
-    });
-  }
+  /* Dependencias duras (las 6 pantallas que cargan este archivo cargan antes
+     gp2-ui.js y gp2-numero.js): si falta alguna, revienta aca, a la vista. */
+  var UI = global.GP2UI, N = global.GP2N;
+  var $ = UI.$, esc = UI.esc;
 
   /* La regla de numero vive en gp2-numero.js (GP2N), una sola vez para todo
      el proyecto (idea 7217). Aca queda el alias para no tocar las pantallas
-     que ya llaman GP2EE.num, y una copia de la regla por si el archivo no
-     estuviera cargado. El parametro modo es historico: se acepta y se ignora. */
-  function num(v, modo) {
-    if (global.GP2N) return global.GP2N.num(v);
-    if (v == null || v === "") return 0;
-    if (typeof v === "number") return isFinite(v) ? v : 0;
-    var s = String(v).trim().replace(/[^\d,.-]/g, "");
-    var neg = s.charAt(0) === "-";
-    s = s.replace(/-/g, "").replace(/\./g, "");
-    var i = s.indexOf(",");
-    if (i >= 0) s = s.slice(0, i) + "." + s.slice(i + 1).replace(/,/g, "");
-    var n = Number(s);
-    if (!isFinite(n)) return 0;
-    return neg ? -n : n;
-  }
-
-  function conMiles(t)   { return global.GP2N ? global.GP2N.conMiles(t) : String(t == null ? "" : t); }
-  function autoMiles(el) { return global.GP2N ? global.GP2N.autoMiles(el) : el; }
-  function autoMilesEn(n){ if (global.GP2N) global.GP2N.autoMilesEn(n); }
+     que ya llaman GP2EE.num. El parametro modo es historico: se acepta y se
+     ignora. */
+  function num(v, modo) { return N.num(v); }
 
   /* es-AR con hasta d decimales (default 1) — el de las pantallas de carga. */
-  function fmt(n, d) {
-    d = (d == null ? 1 : d);
-    return Number(n || 0).toLocaleString("es-AR", { minimumFractionDigits: 0, maximumFractionDigits: d });
-  }
+  function fmt(n, d) { return N.fmt(n, d == null ? 1 : d); }
 
   /* es-AR con hasta d decimales (default 0) — el de los controles/pivotes. */
-  function fmt0(n, d) {
-    return Number(n || 0).toLocaleString("es-AR", { maximumFractionDigits: d == null ? 0 : d });
-  }
+  function fmt0(n, d) { return N.fmt(n, d == null ? 0 : d); }
 
   /* cantidad canonica (uni) -> cajones; null si no hay factor. */
   function aCajones(cantidad, uniXCaj) {
@@ -85,27 +67,15 @@
     return Number(cantidad || 0) / u;
   }
 
-  /* Fecha de hoy YYYY-MM-DD en el huso del dispositivo. */
-  function hoyISO() {
-    var d = new Date();
-    return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
-  }
-
-  /* Fecha de hoy YYYY-MM-DD en Argentina (independiente del huso del dispositivo). */
-  function fechaAR() {
-    return new Intl.DateTimeFormat("sv-SE", {
-      timeZone: "America/Argentina/Buenos_Aires",
-      year: "numeric", month: "2-digit", day: "2-digit"
-    }).format(new Date());
-  }
+  /* Fecha de hoy YYYY-MM-DD en Argentina (gp2-ui.js). Se sigue llamando hoyISO
+     porque asi la llaman las pantallas; antes era la fecha del dispositivo. */
+  function hoyISO() { return UI.hoyAR(); }
 
   /* Mes actual YYYY-MM en Argentina. */
-  function mesAR() { return fechaAR().slice(0, 7); }
+  function mesAR() { return UI.hoyAR().slice(0, 7); }
 
-  /* Codigo de comprobante de 4 digitos (1000-9999). */
+  /* Codigo de comprobante de 4 digitos (1000-9999), para el cartel de exito. */
   function genCode() { return String(Math.floor(1000 + Math.random() * 9000)); }
-
-  function clsSaldo(n) { n = Number(n || 0); return n > 0 ? "pos" : (n < 0 ? "neg" : "cero"); }
 
   /* ---------- buffer de carga en localStorage ----------
      Estructura: { "<contraparte_id>": { "<clave item>": {campos...} } }.
@@ -289,11 +259,12 @@
     return { ok: ok, errs: errs };
   }
 
+  /* Solo lo que alguna pantalla llama. Lo que era pass-through a GP2N/GP2UI
+     ($, esc, conMiles, autoMiles, autoMilesEn, fechaAR, clsSaldo) o interno
+     (genCode) ya no se exporta: se toma de GP2UI / GP2N (2026-09-04). */
   global.GP2EE = {
-    sb: sb, $: $, esc: esc, num: num, fmt: fmt, fmt0: fmt0,
-    conMiles: conMiles, autoMiles: autoMiles, autoMilesEn: autoMilesEn,
-    aCajones: aCajones, hoyISO: hoyISO, fechaAR: fechaAR, mesAR: mesAR,
-    genCode: genCode, clsSaldo: clsSaldo,
+    sb: sb, num: num, fmt: fmt, fmt0: fmt0,
+    aCajones: aCajones, hoyISO: hoyISO, mesAR: mesAR,
     buffer: buffer, cargadasDe: cargadasDe,
     mostrarFase: mostrarFase, gridContrapartes: gridContrapartes,
     filtrar: filtrar, buscarMeta: buscarMeta, actualizarEnviar: actualizarEnviar,

@@ -251,6 +251,69 @@ negocio quiere contarlas, es sacar esa condición en 4 bundles).
 
 ---
 
+## Ciclo 2c — una sola puerta para las ubicaciones (agente B1) + helpers de pantalla en un archivo (agente B5), 18:26–22:40 AR
+
+Los dos agentes murieron a mitad de camino por el límite de uso de la cuenta (22:13 UTC; volvió a
+la 01:00 UTC). Lo que dejaron se verificó a mano y se terminó desde la sesión principal.
+
+### Base: `ubic_de(tipo, ref_id)` (32 migraciones `refactor_20260904_ubic_*`)
+- **Problema**: 25 búsquedas de `ubicacion` repartidas en 15 funciones, tres de ellas **por
+  nombre** (`crear_envio_ps`, `crear_entrega_ps`, `crear_envio_tallerista`: renombrar un sector
+  las rompía), el resto por `ref_id`, y dos funciones que ignoraban el override
+  `tallerista.ubicacion_stock_id`.
+- **Hecho**: función `"GP2".ubic_de(p_tipo, p_ref_id)` (STABLE, `coalesce(override del
+  tallerista, ubicacion por (tipo, ref_id))`). Reescritas para usarla: `crear_envio_ps`,
+  `crear_entrega_ps`, `crear_envio_tallerista`, `crear_entrega_tallerista`,
+  `crear_devolucion_tallerista` (ahora por `ref_id`, ya no por nombre), `crear_envio_prov_at`
+  (valida la ubicación del proveedor), `crear_recepcion_insumo`, `cargar_recepcion_charcas`,
+  `cargar_recepcion_eclipse`, `cargar_compra_altrak`, `cargar_compra_aperam_chapa`,
+  `registrar_evento_prod`, `registrar_produccion`, `recepcion_virgilio`, `relevamiento_aplicar`,
+  `relevamiento_cerrar`, `relevamiento_detalle`, `composicion_stock` y los bundles `oc`, `flejes`,
+  `envios_ps`, `stock_transito_ps`, `talleristas`, `envios_prov_at`, `control_ps`, `stock_sector`,
+  `recepcion`, `orden_produccion`, más la vista `v_faltante_estado`.
+- **Índices únicos** `ubicacion_tipo_ref_uq (tipo, ref_id) where ref_id is not null` y
+  `ubicacion_singleton_uq (tipo) where tipo in ('virgilio','analisis')`: una respuesta por clave.
+- **Dato corregido (A2-06)**: el PS 12 «AJ Adhesivos» tenía 12 pasos de ruta y 12 precios pero
+  **ninguna ubicación** (`crear_envio_ps` explotaba). Se creó la ubicación 50 con la misma
+  convención que los otros PS.
+- **Verificación**: md5 de la salida de 12 bundles/vistas antes y después de reescribirlos:
+  idénticos, salvo `talleristas_bundle`, que cambia solo por `now()` (se comprobó que el hash
+  cambia también entre dos ejecuciones sin tocar nada). Consulta de control: ninguna función
+  del schema contiene ya `from ubicacion ... where nombre`.
+
+### Código: `gp2-ui.js` (helpers de pantalla, UNA copia)
+- **Problema (A3)**: 40 `esc()` con tres implementaciones, 33 `$()`, 6 clases por signo, 12
+  "hoy" con tres semánticas (UTC / hora del aparato / Argentina: las dos primeras corren el día
+  después de las 21:00) y 3 exportadores a CSV, cada uno distinto.
+- **Hecho**: `gp2-ui.js` con `GP2UI.esc / $ / cls / hoyAR / fechaAR / exportarCSV`. Los JS
+  compartidos (`gp2-envios-common.js`, `gp2-composicion.js`, `gp2-stock-sector.js`,
+  `consumo-detalle.js`) ya no traen copia: dependen de `GP2UI` y `GP2N` (que la página carga
+  antes; el test `test_helpers_ui.js` vigila el orden). `GP2EE` dejó de reexportar lo que era
+  pass-through (`$`, `esc`, `conMiles`, `autoMiles`, `autoMilesEn`, `fechaAR`, `clsSaldo`,
+  `genCode`) y `GP2M` dejó de exportar 9 internos que nadie llamaba. `GP2N.fmt` gana un tercer
+  parámetro (`nullTxt`) para que las pantallas que muestran «—» sin valor no se escriban su
+  propio `fmt`.
+- **Pantallas tocadas** (11): Control PS, Pintores, Stock Tránsito PS, Control Talleristas,
+  Control Envíos, Envíos/Entregas PS, Envíos/Entregas Talleristas, Stock por sector, Orden de
+  Producción: cargan `gp2-ui.js` (+ `gp2-numero.js` las 5 que no lo tenían) y usan los helpers
+  de la casa; los tres CSV a mano (Control Talleristas, Control Envíos, Stock Tránsito) pasan a
+  `GP2UI.exportarCSV`. "Hoy" en Control PS ahora es la fecha **argentina**.
+- **Bug encontrado al hacerlo**: en Control PS la cantidad y los kg se leían con `Number(el.value)`;
+  al cargar `gp2-numero.js` (que formatea «1.500» mientras se tipea) eso leería 1,5. Pasan a
+  `GP2N.num`. Lo mismo en el popup de tandas (`parseInt` sobre cajones/unidades → `parseEntero`).
+  Nueva regla en `test_numero.js`: donde está cargado `gp2-numero.js`, ningún `.value` se lee
+  con `Number/parseFloat/parseInt` crudo.
+- **Tokens**: `gp2-ui.js 20260905a`, `gp2-numero.js 20260905b`, `gp2-envios-common.js 20260905c`,
+  `gp2-composicion.js 20260905d`, `gp2-stock-sector.js 20260905e`, `gp2-motor.js 20260905f`,
+  `consumo-detalle.js 20260905g`, `version.js 20260905h` (v1.109.0), `tandas-popup.js 20260905i`.
+- **Queda** (para un ciclo siguiente): las ~30 pantallas que todavía no cargan `gp2-ui.js`
+  conservan su `esc`/`$` propio; se migran de a tandas con el mismo test como red.
+
+### Estado tras el ciclo 2c
+49 tablas · 11 vistas · 121 funciones · 35 tests.
+
+---
+
 ## Decisiones arquitectónicas (acumuladas)
 
 1. **Las copias de datos no viven en la base.** Un snapshot "por si hay que volver atrás" va a

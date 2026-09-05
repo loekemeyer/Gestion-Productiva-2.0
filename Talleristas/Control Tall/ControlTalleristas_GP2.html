@@ -6,9 +6,10 @@
 <title>Control Partes Tallerista · GP2</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="../../supabase-config.js?v=20260831d"></script>
-<script src="../../gp2-composicion.js?v=20260904x"></script>
-<script src="../../gp2-numero.js?v=20260903b"></script>
-<script src="../../gp2-envios-common.js?v=20260903b"></script>
+<script src="../../gp2-ui.js?v=20260905a"></script>
+<script src="../../gp2-numero.js?v=20260905b"></script>
+<script src="../../gp2-composicion.js?v=20260905d"></script>
+<script src="../../gp2-envios-common.js?v=20260905c"></script>
 <link rel="stylesheet" href="../../gp2-modulo.css?v=20260903b"/>
 <link rel="icon" type="image/png" href="../../GP2_favicon.png">
 <link rel="apple-touch-icon" href="../../GP2_favicon.png">
@@ -92,7 +93,7 @@
 
 var SB = GP2EE.sb();
 
-var $ = GP2EE.$, esc = GP2EE.esc, fmt = GP2EE.fmt, clsSaldo = GP2EE.clsSaldo;
+var $ = GP2UI.$, esc = GP2UI.esc, fmt = GP2EE.fmt, clsSaldo = GP2UI.cls;
 var D = { tall:[], partes:{} };
 var selT = null;
 
@@ -247,39 +248,25 @@ function render(){
     '<div class="kpi"><div class="k">Saldo</div><div class="v '+clsSaldo(totSal)+'">'+fmt(totSal,0)+'</div></div>';
 }
 
-/* CSV con separador ; y BOM, para que Excel en es-AR lo abra en columnas */
+/* CSV para Excel es-AR: el armado (separador ;, BOM, coma decimal) es el de la
+   casa, GP2UI.exportarCSV (gp2-ui.js, 2026-09-04); aca solo se eligen las columnas. */
 function exportarCSV(){
   var arr = filtradas();
   if (!arr.length){ alert("No hay filas para exportar."); return; }
-  var cols = (selT ? [] : ["Tallerista"]).concat(
-    ["Sector","Codigo","Descripcion","Kg","Caj","Uni","Enviado","Entregado","Devuelto","Saldo"]);
-  var q = function(v){ return '"'+String(v==null?"":v).replace(/"/g,'""')+'"'; };
-  var lineas = [cols.map(q).join(";")];
+  var filas = [(selT ? [] : ["Tallerista"]).concat(
+    ["Sector","Codigo","Descripcion","Kg","Caj","Uni","Enviado","Entregado","Devuelto","Saldo"])];
 
   arr.forEach(function(x){
     var uni = Number(x.online_tall||0);
     var kg  = x.kg_x_uni ? uni*Number(x.kg_x_uni) : "";
     var caj = x.uni_x_cajon ? uni/Number(x.uni_x_cajon) : "";
-    var fila = (selT ? [] : [x._tall||""]).concat([
-      x.sector||"", x.cod||"", x["desc"]||"",
-      kg===""?"":String(kg).replace(".",","),
-      caj===""?"":String(caj).replace(".",","),
-      String(uni).replace(".",","),
-      String(x.enviado||0).replace(".",","),
-      String(x.entregado||0).replace(".",","),
-      String(x.devuelto||0).replace(".",","),
-      String(x.saldo||0).replace(".",",")
-    ]);
-    lineas.push(fila.map(q).join(";"));
+    filas.push((selT ? [] : [x._tall||""]).concat([
+      x.sector||"", x.cod||"", x["desc"]||"", kg, caj, uni,
+      Number(x.enviado||0), Number(x.entregado||0), Number(x.devuelto||0), Number(x.saldo||0)
+    ]));
   });
 
-  var nombre = "control_talleristas_" + (selT ? selT.nombre.replace(/\s+/g,"_") : "todos") + ".csv";
-  var blob = new Blob(["﻿"+"sep=;\n"+lineas.join("\n")], {type:"text/csv;charset=utf-8"});
-  var a = document.createElement("a");
-  a.href = URL.createObjectURL(blob);
-  a.download = nombre;
-  a.click();
-  setTimeout(function(){ URL.revokeObjectURL(a.href); }, 1000);
+  GP2UI.exportarCSV("control_talleristas_" + (selT ? selT.nombre.replace(/\s+/g,"_") : "todos"), filas);
 }
 
 /* El stock del tallerista sale del mismo ledger que el resto de GP2:

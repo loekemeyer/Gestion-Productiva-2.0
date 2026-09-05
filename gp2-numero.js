@@ -53,8 +53,13 @@
     return (neg ? "-" : "") + ent + (dec === null ? "" : "," + dec);
   }
 
-  /* Igual pero para mostrar un numero ya calculado (no tipeado). */
-  function fmt(n, dec) {
+  /* Igual pero para mostrar un numero ya calculado (no tipeado). nullTxt es lo
+     que se muestra cuando NO hay valor (null, undefined o ""): "—", "0", ""...
+     Sin nullTxt nada cambia: el vacio se muestra como 0. Es LA fmt de la casa;
+     una pantalla que quiera otro default lo envuelve (fmt(n,d){ return
+     GP2N.fmt(n, d==null?0:d, "—"); }), no se escribe la suya. */
+  function fmt(n, dec, nullTxt) {
+    if (nullTxt != null && (n == null || n === "")) return nullTxt;
     var x = Number(n);
     if (!isFinite(x)) x = 0;
     return x.toLocaleString("es-AR", { maximumFractionDigits: dec == null ? 2 : dec });

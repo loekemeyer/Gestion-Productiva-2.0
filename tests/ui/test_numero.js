@@ -100,4 +100,31 @@ infractores.forEach(i => console.log('     ' + i));
 ok(infractores.length === 0,
    'ninguna pantalla GP2 se escribe su propio parser de numero (' + archivos.length + ' pantallas)');
 
+// ── 3) donde esta cargada la regla, los campos se leen con ella ──────────
+// gp2-numero.js formatea lo tipeado con separador de miles ("1.500"), asi que
+// un Number()/parseFloat()/parseInt() crudo sobre el .value de un campo lee 1,5
+// (o 1). Encontrado en Control PS y en el popup de tandas (2026-09-04).
+const conRegla = new Set();
+for (const p of archivos) {
+  if (!p.endsWith('.html')) continue;
+  const txt = fs.readFileSync(p, 'utf8');
+  if (!/<script[^>]+src="[^"]*gp2-numero\.js/.test(txt)) continue;
+  conRegla.add(p);
+  for (const m of txt.matchAll(/src\s*=\s*["']([^"'>]+\.js)(?:\?[^"'>]*)?["']/g)) {
+    const abs = path.resolve(path.dirname(p), m[1]);
+    if (fs.existsSync(abs)) conRegla.add(abs);
+  }
+}
+const CRUDO = /(?:\bNumber|\bparseFloat|\bparseInt)\(\s*[^()]*?\.value\b/g;
+const crudos = [];
+for (const p of conRegla) {
+  const txt = fs.readFileSync(p, 'utf8');
+  for (const m of txt.matchAll(CRUDO)) {
+    crudos.push(path.relative(ROOT, p) + ':' + txt.slice(0, m.index).split('\n').length + '  ' + m[0].trim());
+  }
+}
+crudos.forEach(i => console.log('     ' + i));
+ok(crudos.length === 0,
+   'donde esta cargado gp2-numero.js los campos se leen con GP2N.num/entero, no con Number/parseInt crudo (' + conRegla.size + ' archivos)');
+
 console.log(fallas ? 'HAY FALLOS' : 'TODO OK');

@@ -7,8 +7,9 @@
 <title>Control Envíos y Entregas · GP2</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="../supabase-config.js?v=20260831d"></script>
-<script src="../gp2-numero.js?v=20260903b"></script>
-<script src="../gp2-envios-common.js?v=20260903b"></script>
+<script src="../gp2-ui.js?v=20260905a"></script>
+<script src="../gp2-numero.js?v=20260905b"></script>
+<script src="../gp2-envios-common.js?v=20260905c"></script>
 <link rel="stylesheet" href="../gp2-modulo.css?v=20260903b"/>
 <link rel="icon" type="image/png" href="../GP2_favicon.png">
 <link rel="apple-touch-icon" href="../GP2_favicon.png">
@@ -56,7 +57,7 @@
 
 <script>
 var SB = GP2EE.sb();
-var $ = GP2EE.$, esc = GP2EE.esc, fmt = GP2EE.fmt0;
+var $ = GP2UI.$, esc = GP2UI.esc, fmt = GP2EE.fmt0;
 
 // tipos de movimiento del ledger por vista; contraparte: envio_* y compra miran el
 // destino (compra viene con origen null), el resto el origen del movimiento
@@ -188,17 +189,15 @@ function render(){
 }
 
 $('btnCSV').addEventListener('click',function(){
-  var fs=filtradas(), p=pivotear(fs), sep=';';
-  var head=['Parte','Descripcion','Nombre','Unidad'].concat(p.cols.map(String)).concat(['Total']);
-  var lines=p.rows.map(function(r){
-    return [r.codigo,r.descripcion||'',r.contraparte,r.unidad]
-      .concat(p.cols.map(function(d){ return r.celdas[d]!=null?String(Math.round(r.celdas[d]*100)/100).replace('.',','):''; }))
-      .concat([String(Math.round(r.total*100)/100).replace('.',',')])
-      .map(function(v){return String(v).replace(/;/g,',');}).join(sep);
+  /* el armado del CSV (;, BOM, coma decimal) es el de la casa: GP2UI.exportarCSV */
+  var p=pivotear(filtradas());
+  var filas=[['Parte','Descripcion','Nombre','Unidad'].concat(p.cols.map(String)).concat(['Total'])];
+  p.rows.forEach(function(r){
+    filas.push([r.codigo,r.descripcion||'',r.contraparte,r.unidad]
+      .concat(p.cols.map(function(d){ return r.celdas[d]!=null?Math.round(r.celdas[d]*100)/100:''; }))
+      .concat([Math.round(r.total*100)/100]));
   });
-  var blob=new Blob(['﻿sep=;\n'+head.join(sep)+'\n'+lines.join('\n')],{type:'text/csv;charset=utf-8'});
-  var a=document.createElement('a'); a.href=URL.createObjectURL(blob);
-  a.download='control_'+(origSel||'')+'_'+(tipoSel||'')+'_'+($('mes').value||'')+'.csv'; a.click();
+  GP2UI.exportarCSV('control_'+(origSel||'')+'_'+(tipoSel||'')+'_'+($('mes').value||''), filas);
 });
 
 $('q').addEventListener('input', render);

@@ -7,6 +7,8 @@
 <title>Stock Tránsito PS · GP2</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="../supabase-config.js?v=20260831d"></script>
+<script src="../gp2-ui.js?v=20260905a"></script>
+<script src="../gp2-numero.js?v=20260905b"></script>
 <link rel="stylesheet" href="../gp2-modulo.css?v=20260903b"/>
 <link rel="icon" type="image/png" href="../GP2_favicon.png">
 <link rel="apple-touch-icon" href="../GP2_favicon.png">
@@ -58,10 +60,10 @@ window.SB_CLIENT = supabase.createClient(
   { db:{ schema:"GP2" }, auth:{ persistSession:false } }
 );
 var SB = window.SB_CLIENT;
-function $(id){ return document.getElementById(id); }
-function esc(t){ return String(t==null?'':t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
-function uni(n){ return n==null?'—':Number(n).toLocaleString('es-AR',{maximumFractionDigits:0}); }
-function caj(n){ return n==null?'—':Number(n).toLocaleString('es-AR',{minimumFractionDigits:0,maximumFractionDigits:1}); }
+/* helpers de la casa (gp2-ui.js / gp2-numero.js, 2026-09-04); unidades enteras, "—" sin valor */
+var $ = GP2UI.$, esc = GP2UI.esc;
+function uni(n){ return GP2N.fmt(n, 0, '—'); }
+function caj(n){ return GP2N.fmt(n, 1, '—'); }
 
 var FILAS=[];
 
@@ -112,16 +114,15 @@ function render(){
 
 $('q').addEventListener('input', render);
 $('btnCSV').addEventListener('click', function(){
-  var fs=filtradas(), sep=';';
-  var head=['Parte','Descripcion','SC','PS Origen','PS Siguiente','Online Uni','Entrega PS Origen','Envio PS Siguiente'];
-  var lines=fs.map(function(x){ return [x.codigo,x.descripcion||'',x.sc_cod||'',x.ps1_nombre,x.ps2_nombre,x.online||0,x.entregado_origen||0,x.enviado_siguiente||0]
-    .map(function(v){return String(v).replace(/;/g,',');}).join(sep); });
-  var blob=new Blob(['﻿sep=;\n'+head.join(sep)+'\n'+lines.join('\n')],{type:'text/csv;charset=utf-8'});
-  var a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='stock_transito_ps.csv'; a.click();
+  /* el armado del CSV (;, BOM, coma decimal) es el de la casa: GP2UI.exportarCSV */
+  var filas=[['Parte','Descripcion','SC','PS Origen','PS Siguiente','Online Uni','Entrega PS Origen','Envio PS Siguiente']];
+  filtradas().forEach(function(x){ filas.push([x.codigo,x.descripcion||'',x.sc_cod||'',x.ps1_nombre,x.ps2_nombre,
+    Number(x.online||0),Number(x.entregado_origen||0),Number(x.enviado_siguiente||0)]); });
+  GP2UI.exportarCSV('stock_transito_ps', filas);
 });
 
 boot();
 </script>
-<script src="../gp2-composicion.js?v=20260904x"></script>
+<script src="../gp2-composicion.js?v=20260905d"></script>
 </body>
 </html>
