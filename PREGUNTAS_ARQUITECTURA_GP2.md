@@ -244,6 +244,13 @@ Cada uno tiene la consulta y el detalle en los informes de auditoría (`REFACTOR
     0 filas: ninguna recepción de Basconia/Hermac se controló todavía desde la pantalla. ¿El
     pesaje por pallet se usa de verdad? Si no se va a usar, son 2 tablas + 3 vistas + 3
     funciones para borrar.
+21. **`PEP3` y `PA10` están en Sector Procesado pero su único stock (y su máximo de Est Madre)
+    vive en la ubicación de Sector Plástico** `[dato 2026-09-05]`. Como no tienen fila en la
+    ubicación de su sector, `oc_bundle` les toma el máximo de la ubicación ajena (es la regla
+    "primero la propia, si no la que tenga stock"). ¿Son piezas de Plástico mal clasificadas
+    (cambiar `sector_id` a 6) o de Procesado que se guardan ahí?
+22. **Tres flejes sin `kg_x_uni`**: `IF12`, `IE3`, `IC2` (no lo tenían ni en `fleje_detalle`, que
+    se borró el 05/09): sin peso no costean ni convierten kg ↔ uni. ¿Los pesos?
 
 ---
 
@@ -265,8 +272,17 @@ un insumo comprado como Fleje/Plástico (aparece en Recepción y en máximos aut
 
 **Alternativa B.** Dejarlo como está (sólo entra por Altrak) y que `tipo` quede en `crudo`.
 
-**Recomendación.** A: es material comprado, no una pieza propia. Y `tipo='crudo'` en un sector
-comprable confunde a cualquier consulta por tipo.
+**Alternativa C** (revisión del experto, 2026-09-05). Mover `FLEJE90_BRUTO` al **sector 5 Fleje** y
+jubilar el sector 13: es exactamente lo que ya se hizo con su gemelo `CHAPA430` el 2026-09-04.
+Con eso `es_insumo` ya es verdadero, no hace falta inventarle ubicación al sector (el stock del
+bruto sigue en Charcas, como el usuario ya decidió) y la regla A de `db/verificar.sql` queda en 0.
+
+**Recomendación.** C. B contradice lo que el usuario ya dijo ("Altrak tiene que estar en prov
+insumo flejes" y "la OC del Fleje 90 va SOLO a Altrak", `CONOCIMIENTO_GP2.md` §1): el alambre
+**es** comprable. A no cambia nada en la práctica: `FLEJE90_BRUTO` ya entra a `oc_bundle` por la
+rama del proveedor, pero con **sugerido 0**, porque nada consume el bruto (el consumo está en
+`IC3` 150 uni/mes e `IC3V` 15): lo que falta de verdad es derivar la demanda del alambre de
+IC3 + IC3V + merma de corte, y eso es un dato del usuario.
 
 **Impacto.** Una línea de datos; ninguna función (`es_insumo` es la columna que leen las 6).
 Dato agregado el 2026-09-05 (ciclo 2s): el sector 13 **no tiene ubicación** propia. Su único
@@ -317,9 +333,12 @@ también** `borrador` (primero las enviadas). Una OC que nunca se mandó al prov
 **Alternativa B.** Como hoy.
 
 **Recomendación.** A, y que la pantalla de OC avise "hay OC en borrador de este proveedor" al
-recibir.
+recibir. **Nota del experto (2026-09-05):** hoy hay 0 OC en borrador y 0 enviadas (1 anulada):
+todavía no hay práctica que respetar, así que es barato ahora y caro en un mes. Y mejor que un
+botón "enviada" que alguien tiene que acordarse: marcarla `enviada` sola **al imprimirla**
+(imprimir es mandar).
 
-**Impacto.** Una línea en la función.
+**Impacto.** Una línea en la función (+ una en la impresión si se elige "enviada al imprimir").
 
 **Pregunta concreta.** ¿A o B?
 
@@ -338,7 +357,12 @@ renglones (no la lista).
 
 **Alternativa B.** Dejarla apagada; Faltantes y la OC ya cubren el aviso.
 
-**Recomendación.** A.
+**Recomendación.** A. **Nota del experto (2026-09-05):** ojo con dos cosas. (1) "Avisar por
+mínimo" es una regla NUEVA, no una reactivación: el faltante de Crudo/Procesado ya es automático
+**por 1 cajón** (§2e), no por mínimo. (2) Si se prende sin filtrar, las 56 filas legítimas de la
+pregunta 27 (mínimo > máximo por lugar físico) quedan encendidas para siempre. Alternativa que no
+mete ruido: avisar por lo **accionable** (renglones con sugerido > 0 en la OC, o la cobertura en
+días de §2e), y respetar que Sector Movimiento no lleva mín/máx ni carteles (§2c-undecies).
 
 **Impacto.** Sólo `alertas_bundle` y la pantalla de Inicio.
 
@@ -364,8 +388,14 @@ salen del mismo consumo y no se desfasan.
 **Recomendación.** A.
 
 **Impacto.** Una línea en `fn_recalc_maximos_insumos`; la primera corrida cambia 48 mínimos.
+Dos datos más (2026-09-05): (1) el comentario de `inventario.minimo_origen` dice que la función
+"no pisa la carga original del usuario (null)", pero **sí la pisa** cuando hay consumo > 0 (697
+filas tienen origen null; la guarda que sí tiene `recalcular_maximos_insumos` con `'fisico'` acá
+no existe) — si A, conviene agregar esa guarda primero; (2) como el trigger cuelga de `est_madre`,
+que se sincroniza sola desde `public.proyeccion_madre`, los mínimos se moverían solos; si eso
+incomoda, la variante es un job diario en vez del trigger.
 
-**Pregunta concreta.** ¿A o B? Si B: ¿la corro ahora?
+**Pregunta concreta.** ¿A o B? Si B: ¿la corro ahora? Si A: ¿con la guarda de `'fisico'`?
 
 ---
 
@@ -402,26 +432,40 @@ el `maximo`: 30 en Sector Procesado, 30 en Crudo, 10 en Bombilla, 4 en Remache, 
 el máximo de la regla "5 cajones por ubicación" (`maximo_origen = cinco_cajones`) o de la Est
 Madre — dos reglas que nadie cruzó.
 
-**Por qué existe una duda.** Con mínimo > máximo el renglón está SIEMPRE "bajo mínimo"
-(Faltantes lo lista para siempre) y la OC, que llena hasta el máximo, nunca lo saca de ahí. No sé
-cuál de las dos reglas manda: si el lugar físico (5 cajones) es el techo real, el mínimo está
-mal calculado (meses de más); si el consumo es la verdad, el máximo de 5 cajones es chico para
-esas 80 piezas y hay que darles más lugar o más ubicaciones.
+**Por qué existe una duda — corregida el mismo día.** El usuario YA decidió esto el 2026-09-02
+(`CONOCIMIENTO_GP2.md` §2e-bis): *"mínimo > máximo puede ser correcto: no es un dato para
+arreglar, es la planta, y el que compra tiene que saberlo"* y *"topearla sería tapar la señal"*.
+O sea: **no se topa el mínimo al máximo** (la primera versión de esta pregunta proponía eso y
+contradecía esa decisión; queda anulada). Lo que sí salió al desarmar las 80 filas por causa
+`[dato 2026-09-05]` es que **no son un problema sino tres**:
 
-**Alternativa A.** Manda el lugar: `minimo = least(minimo, maximo)` en esas 80 filas (o mínimo =
-una fracción del máximo, p.ej. 50 %), y `recalcular_minimos` lo respeta de ahí en más.
+1. **56 filas `cinco_cajones`** (Crudo/Procesado): el lugar físico es más chico que el consumo.
+   Es la planta; se dejan y el que compra lo ve.
+2. **10 filas de Bombilla son una contradicción de parámetros**: la ubicación Sector Bombilla
+   tiene `meses_minimo = 4` y `meses_stock = 3`, así que **todo** componente con consumo da
+   mínimo > máximo por aritmética (BOM8: 12.784 / 10.668 = 4/3 exacto). No es la planta, es un
+   parámetro mal puesto. Y no es sólo Bombilla: Crudo y Procesado también tienen
+   `meses_minimo 2 > meses_stock 1` (ahí no se nota porque el máximo es "5 cajones", no meses).
+3. **14 filas sueltas** (Procesado 4 con máximo de Est Madre, Plástico 3, Remache 4 con máximo
+   `fisico`, Cartón 2, Caja 1): el pliego `Pliego Ad 506` tiene mínimo 67.872 (4 meses) contra
+   máximo 8.484 (6 meses) — consumos que difieren 12×, huele a unidad de pliego, no a negocio.
 
-**Alternativa B.** Manda el consumo: se corrige el máximo (más cajones/ubicaciones para esas
-piezas, `inventario.ubicaciones` o `cajones_x_ubicacion`, ver pregunta 5) y el mínimo queda.
+**Alternativa A.** Corregir los parámetros: `ubicacion.meses_minimo ≤ meses_stock` en Bombilla,
+Crudo y Procesado (¿4→3? ¿o `meses_stock` 3→4?), recalcular mínimos y máximos juntos (pregunta
+25 A), y mirar una por una las 14 sueltas. Las 56 de cinco cajones no se tocan.
 
-**Recomendación.** A para Crudo/Procesado (el lugar es físico y el "5 cajones" lo fijó el usuario
-el 2026-08-31); B mirado pieza por pieza para insumos (Bombilla/Remache/Plástico/Cartón/Caja),
-donde el máximo viene de la Est Madre y puede estar corto.
+**Alternativa B.** Dejar todo como está (el que compra sabe).
 
-**Impacto.** Una consulta de datos (80 filas) y una línea en `recalcular_minimos`; Faltantes y la
-OC dejan de contradecirse. Se puede agregar como invariante a `db/verificar.sql` (mínimo ≤ máximo).
+**Recomendación.** A. El invariante que sí sirve para `db/verificar.sql` no es "mínimo ≤ máximo"
+(marcaría 56 filas legítimas para siempre) sino **"ninguna ubicación con `meses_minimo >
+meses_stock`"** — hoy da 3.
 
-**Pregunta concreta.** ¿A, B, o A para Crudo/Procesado y B para el resto?
+**Impacto.** Tres filas de `ubicacion` (parámetros del usuario) + una corrida de mínimos/máximos +
+14 filas a mano. Faltantes y la OC dejan de contradecirse en Bombilla/insumos; en Crudo/Procesado
+siguen "gritando" a propósito.
+
+**Pregunta concreta.** ¿A o B? Si A: en Bombilla, Crudo y Procesado, ¿bajo `meses_minimo` o subo
+`meses_stock`?
 
 ---
 

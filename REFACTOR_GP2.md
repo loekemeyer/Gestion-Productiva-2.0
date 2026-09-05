@@ -862,6 +862,48 @@ visual y se hace con el operario al lado.
 
 ---
 
+## Ciclo 2z — segunda opinión: dos agentes sobre costos y sobre las preguntas, 06:05–06:40 AR
+
+Se lanzaron dos agentes de sólo lectura: **`gp2-auditor-costos`** (¿el refactor contaminó algún
+número de plata?) y **`gp2-experto`** (¿las recomendaciones de las preguntas 21–27 cierran con
+lo que el usuario ya decidió?). Lo que salió y qué se hizo:
+
+- **Costos — sano en lo grueso**: `valorizacion_bundle` byte-idéntica al 31/08; borrar
+  `precio_servicio` no movió un peso (md5 de las 591 filas de `v_costo_componente` ya verificado);
+  `recalcular_maximos_insumos` → `v_nivel_stock` es la misma cuenta; el motor de inventario sólo
+  cambió `search_path`; las tarifas no pueden duplicar (UNIQUE). Hallazgos y acción:
+  1. **"Sector de insumo" tenía dos definiciones**: `sector.es_insumo` (OC, máximos) y dos arrays
+     escritos a mano dentro de `v_costo_componente` sin el 9 Garage. Se probó en transacción
+     (591 filas, **0 cambios** de costo hoy) y se aplicó: la vista lee `es_insumo`. Una fuente.
+  2. `oc_bundle` toma el máximo de una ubicación ajena cuando la pieza no tiene fila en la de su
+     sector: hoy pasa con 2 (`PEP3`, `PA10`, Procesado con stock en Plástico) → pregunta 8.21
+     (¿mal clasificadas?), no se toca la regla.
+  3. `recalcular_minimos` **sí pisa** las 697 filas con `minimo_origen` null cuando hay consumo
+     (el comentario de la columna decía lo contrario): comentario corregido en la base, dato en
+     `CONOCIMIENTO` y en la pregunta 25 (si A, agregar la guarda de `'fisico'`).
+  4. `precio_tallerista.precio_uni` es un costo congelado (trigger al insertar; si cambia el
+     peso no se mueve): hoy 0 filas desfasadas → idea **7262**.
+  5. `fleje_detalle.kg_x_uni` borrada: los 3 flejes sin peso (`IF12`, `IE3`, `IC2`) tampoco lo
+     tenían ahí → pregunta 8.22.
+  6. **Doc desviada**: el sugerido de la OC es `maximo − stock` (sin `pendiente_oc` desde el
+     04/09, "por ahora borralo") y `CLAUDE.md`, `OC_GP2.html` y `Valorizacion_GP2.html` decían
+     otra cosa (y nombraban `v_valor_stock`/`v_valor_pedido`, que no existen) → corregidos.
+- **Preguntas — una estaba mal planteada**: la **27** proponía topar el mínimo al máximo, que es
+  exactamente lo que el usuario **descartó** el 02/09 ("es la planta, topearla sería tapar la
+  señal", §2e-bis). Reescrita: las 80 filas son tres cosas (56 legítimas de 5 cajones; 10 de
+  Bombilla por `meses_minimo 4 > meses_stock 3` — y Crudo/Procesado tienen 2 > 1 —; 14 sueltas), y
+  el invariante correcto es "ninguna ubicación con `meses_minimo > meses_stock`" (hoy 3,
+  pendiente en `db/verificar.sql`). La **21** gana la alternativa C (mover `FLEJE90_BRUTO` al
+  sector 5 como ya se hizo con `CHAPA430`; B contradice al usuario, A no cambia nada porque el
+  bruto no tiene consumo propio). La 25 y la 22/26 cierran (se anotaron las condiciones). Se
+  corrigió `CONOCIMIENTO` (CHAPA430 es sector 5 desde el 04/09, no 13) y se agregaron 5 `[dato]`.
+- `db/vistas_GP2.sql` regenerado; `version.js` **v1.109.1** (token `20260905r`).
+
+### Estado tras el ciclo 2z
+**47 tablas · 13 vistas · 119 funciones · 36 tests · 16 invariantes en 0 · 28 preguntas (8 con 22 datos).**
+
+---
+
 ## Decisiones arquitectónicas (acumuladas)
 
 1. **Las copias de datos no viven en la base.** Un snapshot "por si hay que volver atrás" va a

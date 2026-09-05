@@ -77,9 +77,10 @@
      cuando el usuario confirme se baja a datos (mover rubro en proveedor_insumo / Eclipse a PS).
      rubrosDistintos/provsDistintos/filtradas/itemsPedidos ahora agrupan por rubroDe(i).
      Ademas se SACO la columna "Pend. OC" de la tabla y de la leyenda/cuenta [usuario
-     2026-09-04: "por ahora borralo"]. El backend (oc_bundle) SIGUE restando pendiente_oc
-     al sugerido; hoy no se nota porque esta en 0. Si se quiere que el sugerido tampoco lo
-     reste, es cambio de oc_bundle (pendiente).
+     2026-09-04: "por ahora borralo"]. El backend (oc_bundle) TAMPOCO resta pendiente_oc
+     (migracion oc_sugerido_sin_pendiente_oc, 2026-09-04): sugerido = max(0, maximo - stock).
+     El dia que haya OC abiertas, lo que ya viene en camino se vuelve a pedir; si eso molesta,
+     la resta vuelve a oc_bundle (una linea).
 
      v1.14.1 (2026-09-04) — EL "SUGERIDO" Y EL "CONSUMO/MES" SE TOCABAN CON EL DEDO Y MEDIAN
      28x19 Y 42x19. Los dos son controles, no texto: tocando el sugerido pasa a "Pedir" y
@@ -218,8 +219,8 @@
          proveedor solo se limpia si ese proveedor no vende nada del rubro nuevo.
      (2) CONTRA EL MAXIMO: columna Maximo (con su origen EM/fisico/5 caj) al lado de
          Stock y Pend. OC, y debajo del sugerido la cuenta que lo explica
-         ("max - stock - pend"). El numero lo calcula el backend (oc_bundle):
-         sugerido = max(0, maximo - stock - pendiente_oc).
+         ("max - stock"). El numero lo calcula el backend (oc_bundle):
+         sugerido = max(0, maximo - stock)  [sin pendiente_oc desde 2026-09-04].
      (3) FECHA DE ENTREGA ESTIMADA por OC: se propone sola con los dias_entrega del
          proveedor (hoy + dias), se puede pisar a mano y viaja a crear_oc como
          p_fecha_entrega (ademas de p.fecha_entrega). Se ve en la tarjeta de la OC.

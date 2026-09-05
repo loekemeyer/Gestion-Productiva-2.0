@@ -7,8 +7,10 @@
      de PS (pintado, cromado...) + mano de obra (segundos de matriz x $/seg).
      Monedas SIEMPRE separadas (US$ material/servicios, $ mano de obra y cajas) +
      total combinado en pesos con el dólar oficial del cron (parametro
-     tipo_cambio_usd_pesos). Motor en la BD: v_costo_componente / v_valor_stock /
-     v_valor_pedido, RPC valorizacion_bundle. HOY corre con precios de REGULACIÓN:
+     tipo_cambio_usd_pesos). Motor en la BD: v_costo_componente y la RPC valorizacion_bundle
+     (v_valor_stock / v_valor_pedido se borraron el 2026-09-04: el bundle es la unica puerta y
+     EXCLUYE terminados, asi que no es comparable con los totales anteriores al 04/09).
+     HOY corre con precios de REGULACIÓN:
      todo insumo 1 USD (cajas $1.000) hasta cargar las listas reales. -->
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>

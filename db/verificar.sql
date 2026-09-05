@@ -101,7 +101,10 @@ select 'O_espejo_virgilio_con_error', count(*) from "GP2".virgilio_espejo_pend w
 order by regla;
 
 -- ---------------------------------------------------------------------
--- PENDIENTE (pregunta 27 de PREGUNTAS_ARQUITECTURA_GP2.md): cuando el usuario decida cuál regla
--- manda, esta regla entra en la lista de arriba. Hoy da 80 (2026-09-05).
--- select 'N_minimo_mayor_que_maximo' regla, count(*) n from "GP2".inventario
---  where minimo is not null and maximo is not null and minimo > maximo;
+-- PENDIENTE (pregunta 27 de PREGUNTAS_ARQUITECTURA_GP2.md). OJO: "mínimo ≤ máximo" NO es un
+-- invariante — el usuario decidió el 2026-09-02 que mínimo > máximo puede ser correcto (es la
+-- planta; CONOCIMIENTO §2e-bis). El que sí sirve es este: una ubicación con meses_minimo >
+-- meses_stock hace mínimo > máximo por aritmética en todo lo que consume. Hoy da 3 (Crudo,
+-- Procesado, Bombilla); entra en la lista de arriba cuando el usuario corrija los parámetros.
+-- select 'P_ubicacion_meses_minimo_mayor_que_stock' regla, count(*) n from "GP2".ubicacion
+--  where meses_minimo is not null and meses_stock is not null and meses_minimo > meses_stock;

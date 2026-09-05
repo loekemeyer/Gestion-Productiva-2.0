@@ -1,7 +1,7 @@
 -- =====================================================================
 -- VISTAS del schema GP2 (pg_get_viewdef, exacto) — export automatico 2026-09-05 desde Supabase (hrxfctzncixxqmpfhskv)
 -- Respaldo/referencia. La fuente de verdad es la base; regenerar al cambiar el schema.
--- 13 vistas. Orden de creacion: las que dependen de otra van despues (v_consumo_demanda antes que v_consumo_componente; v_consumo_fleje_kg y v_consumo_componente antes que v_nivel_stock; v_control_pallet antes que v_recepcion_control).
+-- 13 vistas. Orden de creacion: las que dependen de otra van despues.
 -- =====================================================================
 
 -- ---------- v_consumo_componente ----------
@@ -205,7 +205,9 @@ create or replace view "GP2".v_costo_componente as
             pc.moneda
            FROM "GP2".componente c_1
              LEFT JOIN pc ON pc.componente_id = c_1.id
-          WHERE ((c_1.sector_id = ANY (ARRAY[5::bigint, 6::bigint, 7::bigint, 8::bigint, 10::bigint, 11::bigint])) OR pc.precio IS NOT NULL AND NOT (EXISTS ( SELECT 1
+          WHERE ((EXISTS ( SELECT 1
+                   FROM "GP2".sector s9
+                  WHERE s9.id = c_1.sector_id AND s9.es_insumo)) OR pc.precio IS NOT NULL AND NOT (EXISTS ( SELECT 1
                    FROM "GP2".ruta_paso rp2
                   WHERE rp2.comp_salida_id = c_1.id AND (rp2.tipo_paso = ANY (ARRAY['matriz'::text, 'proveedor_servicio'::text, 'tallerista'::text]))))) AND (c_1.estado_compra IS NULL OR (c_1.estado_compra = ANY (ARRAY['importado'::text, 'compra'::text])))
         ), edges AS (
@@ -336,7 +338,9 @@ create or replace view "GP2".v_costo_componente as
            FROM "GP2".componente_bom b
              JOIN "GP2".componente ch ON ch.id = b.componente_hijo_id
              LEFT JOIN pc ON pc.componente_id = ch.id
-          WHERE (ch.sector_id = ANY (ARRAY[6::bigint, 7::bigint, 8::bigint, 10::bigint, 11::bigint])) AND NOT (EXISTS ( SELECT 1
+          WHERE (EXISTS ( SELECT 1
+                   FROM "GP2".sector s9
+                  WHERE s9.id = ch.sector_id AND s9.es_insumo AND s9.id <> 5)) AND NOT (EXISTS ( SELECT 1
                    FROM edges e
                   WHERE e.ent = b.componente_hijo_id AND e.sal = b.componente_padre_id))
           GROUP BY b.componente_padre_id

@@ -409,8 +409,9 @@ parametrizadas en `GP2.carton_formato` / `carton_categoria` / `proveedor_insumo.
 Leer ese archivo antes de tocar el modulo de OC.**
 
 - **El modulo existe**: `Compras/OC_GP2.html` genera las OC con
-  **sugerido = maximo - stock - pendiente OC** (desde el 2026-09-03; ANTES era
-  consumo x meses y la doc quedo desactualizada un dia). El `maximo` sale de
+  **sugerido = maximo - stock** (desde el 2026-09-03; ANTES era consumo x meses y la doc
+  quedo desactualizada un dia; el "- pendiente OC" se saco el 2026-09-04 por pedido del usuario,
+  "por ahora borralo": `oc_bundle` hoy NO resta lo que ya viene en camino). El `maximo` sale de
   `inventario.maximo`, y **solo si esta vacio** cae al consumo (Est Madre explotada:
   `v_consumo_parte` / `v_consumo_fleje_kg` en kg para flejes) x meses, marcado
   `maximo_origen='consumo_x_meses'`. **Asi se decidio y asi se queda** [usuario 2026-09-04:

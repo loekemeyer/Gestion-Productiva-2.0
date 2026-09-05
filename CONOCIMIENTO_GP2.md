@@ -495,7 +495,8 @@ valor histórico desactualizado; **no se toca `public`** (regla "casa del
 vecino"). El `KG x Cajon = 10` del vecino no es un cajón estándar de 30
 kg, es exactamente **la caja que arma Eclipse** `[usuario 2026-09-02]`.
 
-- **Componentes:** `CHAPA430` (kg, prov Aperam, sector 13 Alambre, vive en
+- **Componentes:** `CHAPA430` (kg, prov Aperam, **sector 5 Fleje desde el 2026-09-04** —
+  antes decía sector 13 Alambre; corregido `[dato 2026-09-05]` —, vive en
   ubic 48 Eclipse) + `1686` **descorazonador** (uni, prov Eclipse, **sector 2
   Procesado = SP**, vive en ubic 2). `[usuario 2026-09-01: "el insumo
   entregado es descorazonador, tiene sector es SP"]`.
@@ -2824,6 +2825,24 @@ y carlos aguirre son dos prov diferentes para ISIS"*. **Regla capital**:
   entrega a mano con `recepcion_virgilio(jsonb)` (se hizo con la entrega 2308: Carlos, 160 cajas
   del 510 del 04/09, que había fallado porque Carlos Aguirre todavía no tenía ubicación).
   `db/verificar.sql` regla O avisa si vuelve a pasar.
+- **Los totales de control cambiaron de puerta** `[dato 2026-09-05, auditor de costos]`:
+  `v_valor_stock` / `v_valor_pedido` no existen más (04/09); el stock valorizado y el "Máximo
+  por sector" salen de `valorizacion_bundle()`, que **excluye terminados**. Los $8,6 M / $678 M
+  de referencia del 31/08 los incluían: no son comparables de frente con el número de hoy.
+- **"Sector de insumo" tiene UNA definición** `[dato 2026-09-05]`: `sector.es_insumo`
+  (5,6,7,8,9,10,11). La OC, los máximos y — desde el 05/09 — también `v_costo_componente` la
+  leen de ahí (antes la vista tenía dos arrays escritos a mano sin el 9 Garage; hoy da lo mismo
+  fila por fila, pero era una segunda fuente de verdad).
+- **`recalcular_minimos` sí pisa la carga original** `[dato 2026-09-05]`: las 697 filas con
+  `minimo_origen` null (Excel) se recalculan cuando el consumo es > 0; sólo respeta consumo
+  0/desconocido. El comentario de la columna decía lo contrario y se corrigió.
+- **Tres ubicaciones con `meses_minimo > meses_stock`** `[dato 2026-09-05]`: Sector Crudo (2 >
+  1), Sector Procesado (2 > 1) y Sector Bombilla (4 > 3). En Bombilla eso hace mínimo > máximo
+  por aritmética en sus 10 componentes con consumo (pregunta 27).
+- **`FLEJE90_BRUTO` entra a la OC con sugerido 0** `[dato 2026-09-05]`: llega por la rama del
+  proveedor (Altrak está en `proveedor_insumo`), pero nada consume el bruto — el consumo está en
+  `IC3` (150 uni/mes) e `IC3V` (15): la demanda del alambre habría que derivarla de IC3 + IC3V +
+  merma de corte (pregunta 21).
 - **Reglas de reposición distintas por componente en esa misma ubi** `[deducido, pendiente
   de implementar]`: los crudos/cromados (N7, GRJ10, GRJ10A, cuerpos p/cromar) se reponen en
   kg según lo que Cervantes tiene en Sector Procesado; los insumos de envasado (cartones
