@@ -97,6 +97,16 @@ union all
 -- O) El espejo de Virgilio no dejo entregas sin cruzar por un ERROR (los "sin equivalente" y
 --    "contraparte sin resolver" son datos pendientes del usuario, pregunta 8; un 'error:' es un bug).
 select 'O_espejo_virgilio_con_error', count(*) from "GP2".virgilio_espejo_pend where motivo like 'error%'
+union all
+-- P/Q/R) Recepcion y ledger van juntos: toda recepcion tiene su movimiento de compra con la
+--    misma cantidad (el control la cambia en los dos lados) y toda compra tiene su recepcion.
+select 'P_recepcion_sin_movimiento', count(*) from "GP2".recepcion_insumo where movimiento_id is null
+union all
+select 'Q_recepcion_y_movimiento_con_distinta_cantidad', count(*) from "GP2".recepcion_insumo r
+  join "GP2".movimiento m on m.id = r.movimiento_id where abs(coalesce(r.cantidad, 0) - m.cantidad) > 0.0005
+union all
+select 'R_compra_sin_recepcion', count(*) from "GP2".movimiento m
+ where m.tipo_mov = 'compra' and not exists (select 1 from "GP2".recepcion_insumo r where r.movimiento_id = m.id)
 ) chequeos
 order by regla;
 

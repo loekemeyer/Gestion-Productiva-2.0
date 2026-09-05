@@ -28,7 +28,7 @@ mano) + `gp2-auditor-costos` y `gp2-experto` como segunda opinión al final + el
 | Copias de helpers en pantallas | 79 `esc`, 42 `$`, 45 `fmt`, 12 "hoy", 40 `createClient`, 3 CSV | **0** (viven en `gp2-ui.js`, `gp2-numero.js`, `supabase-config.js:GP2_SB`); sólo Recepción Insumos conserva su parser a propósito (7259) |
 | Tests | 33 | **37** (+`test_stock_sector`, `test_helpers_ui` con 5 reglas, `test_smoke_gp2` sobre las 47 pantallas, `test_contratos_db` — toda `rpc()`/`from()` de las pantallas existe en `db/` y cada clave `p_*` es un parámetro real —; `test_numero` con 4 reglas) |
 | Bugs vivos encontrados y arreglados | — | **9**: `talleristas_bundle` sin `partes` (Control Talleristas vacío), `recepcion_tall` vs `entrega_tallerista` (dos palabras, un evento), `consumo_armado` no contado como entregado, `crear_entrega_ps` con la unidad de la SC en una cantidad de SP, «Desmarcar» del control de recepciones roto desde el 31/08, PS 12 AJ Adhesivos sin ubicación (`crear_envio_ps` explotaba), 6 "hoy" en UTC (día corrido después de las 21:00), otros 3 PS + 1 Prov AT sin ubicación porque `alta_proveedor_servicio` no la creaba (causa raíz arreglada, ciclo 2s), y una entrega de Virgilio (160 cajas del 510) que el espejo perdió por ese mismo hueco y nadie reintentaba (repuesta, ciclo 2w) |
-| Invariantes de la base | — | **16** en `db/verificar.sql` (contrapartes con ubicación, inventario = ledger, grants, RLS, `search_path`, PS híbridos, códigos, rutas, espejo de Virgilio), todas en 0 |
+| Invariantes de la base | — | **19** en `db/verificar.sql` (contrapartes con ubicación, inventario = ledger, grants, RLS, `search_path`, PS híbridos, códigos, rutas, espejo de Virgilio, recepción ↔ ledger), todas en 0; más 6 consultas informativas con su pregunta/idea |
 | Preguntas para el usuario | — | 27 en `PREGUNTAS_ARQUITECTURA_GP2.md` (la 8 con 20 datos; la 27 con 80 renglones mínimo > máximo) |
 | RPC probadas en vivo (rollback) | — | **105**: 45 de lectura + ~60 de escritura con deltas de inventario verificados, 0 errores (ciclos 2o, 2q, 2s, 2u) |
 | Ideas registradas | — | 7250–7260 en `IDEAS-GP2.md` (7253 y 7256 ya hechas) |
@@ -924,7 +924,7 @@ parámetros de verdad (probado: un `p_kgs` a propósito lo atrapa en dos líneas
 de seguridad 0 en GP2, md5 de `db/` exacto contra la base.
 
 ### Estado final
-**47 tablas · 13 vistas · 119 funciones (96 RPC + 23 internas) · 37 tests · 16 invariantes en 0 · 27 preguntas · ideas 7250–7263.**
+**47 tablas · 13 vistas · 119 funciones (96 RPC + 23 internas) · 37 tests · 19 invariantes en 0 · 27 preguntas · ideas 7250–7263.**
 
 ---
 
