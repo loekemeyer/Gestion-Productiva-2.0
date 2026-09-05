@@ -1303,9 +1303,10 @@ async function flushPend(){
       var recId = res.data && res.data.recepcion_id;
       if (recId){
         p.recId = recId;
-        // cajas/remaches: guardar cantidad_declarada como hacia el popup viejo
+        // cajas/remaches: la cantidad declarada la guarda la RPC de control la primera vez
+        // (controlar_recepcion_cajas/_kg: coalesce(cantidad_declarada, cantidad)). Aca habia un
+        // UPDATE directo que fallaba en silencio desde el 2026-08-31 (anon sin UPDATE).
         if (p.pideControl){
-          try { await SB.from('recepcion_insumo').update({ cantidad_declarada: cantSrv }).eq('id', recId); } catch(e){}
           if (p.ctrlUrl && destinosCtrl.indexOf(p.ctrlUrl) < 0) destinosCtrl.push(p.ctrlUrl);
         }
         // Agregar a REMITO[] con la forma esperada por el flujo posterior

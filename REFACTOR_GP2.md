@@ -509,6 +509,26 @@ campos numéricos y las dos con decimales fijos.
 
 ---
 
+## Ciclo 2m — barrido de escrituras directas y de RPC fantasma, 01:45–02:00 AR
+
+Después del botón roto del ciclo 2l se buscó **todo** `.from('tabla').insert/update/delete`
+en las 62 pantallas/JS GP2: quedaba **uno** más, en Recepción Insumos (`update cantidad_declarada`
+tras cargar, con `try/catch` que se tragaba el "permission denied"). Era redundante: la RPC de
+control guarda la declarada la primera vez. Fuera. **Guardia nueva** (`test_helpers_ui.js` regla
+5): ninguna pantalla GP2 escribe una tabla directo; probada con una página trampa.
+También se verificó que los 10 nombres que las pantallas leen con `.from()` (`componente`,
+`produccion`, `inventario`, `empleado`, `sector`, `v_recepcion_unificada`, `recepcion_insumo`,
+`proveedor_servicio`, `movimiento`, `familia`) existen, y que las RPC que las pantallas nombran
+existen todas en la base: las 97 RPC que nombran las pantallas existen y tienen EXECUTE para
+`anon`; la única RPC con EXECUTE que ninguna pantalla llama es `crear_entrega_tallerista` — y
+eso destapó que **la entrega del tallerista está implementada dos veces** (motor JS vs RPC, con
+distinta forma en el ledger). No se borró ninguna: es la pregunta 26 / idea 7260.
+
+### Estado tras el ciclo 2m
+**47 tablas · 12 vistas · 121 funciones · 36 tests.**
+
+---
+
 ## Decisiones arquitectónicas (acumuladas)
 
 1. **Las copias de datos no viven en la base.** Un snapshot "por si hay que volver atrás" va a

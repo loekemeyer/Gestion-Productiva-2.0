@@ -121,4 +121,19 @@ for (const p of html.filter(ES_GP2)) {
 conCliente.forEach(x => console.log('     ' + x));
 ok(conCliente.length === 0, 'ninguna pantalla GP2 crea su propio cliente Supabase: usan GP2_SB() (' + vistos.size + ' archivos)');
 
+// ── 5) ninguna pantalla GP2 escribe una tabla directo ─────────────────────
+// Desde el 2026-08-31 anon no tiene INSERT/UPDATE/DELETE en ninguna tabla GP2: toda escritura
+// va por RPC SECURITY DEFINER. Un .from('x').update(...) en una pantalla falla con
+// "permission denied" (asi estuvo roto "Desmarcar" en control-cajas/remaches 5 dias).
+const escriben = [];
+for (const rel of vistos) {
+  if (PERMITIDO_CLIENTE.has(rel) && rel !== 'Produccion/RegistroApp/operarios_gp2.js') continue;
+  const t = fs.readFileSync(path.join(ROOT, rel), 'utf8');
+  for (const m of t.matchAll(/\.from\(\s*['"][A-Za-z_]+['"]\s*\)[^;\n]*\.(insert|update|delete|upsert)\s*\(/g)) {
+    escriben.push(rel + ':' + t.slice(0, m.index).split('\n').length + '  .' + m[1] + '(');
+  }
+}
+escriben.forEach(x => console.log('     ' + x));
+ok(escriben.length === 0, 'ninguna pantalla GP2 escribe una tabla directo (todo por RPC) (' + vistos.size + ' archivos)');
+
 console.log(fallas ? 'HAY FALLOS' : 'TODO OK');

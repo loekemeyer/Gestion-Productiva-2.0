@@ -271,6 +271,17 @@ Cada uno tiene la consulta y el detalle en los informes de auditoría (`REFACTOR
     corro? ¿O los mínimos se recalculan solos cuando cambia la Est Madre, como ya pasa con los
     máximos (`trg_maximos_est_madre`)? Recomendación: colgarla del mismo trigger, así mínimo y
     máximo salen del mismo consumo y no se desfasan.
+26. **La entrega del tallerista está escrita DOS veces**: la pantalla Entregas Talleristas usa el
+    motor JS (`gp2-motor.js` → `recepcionTall` arma las filas y las manda por
+    `registrar_movimientos`: la entrega como *transformación* entrada→salida más `consumo_tall`
+    por las otras líneas del BOM), y en la base existe la RPC `crear_entrega_tallerista` (misma
+    regla de negocio, otra forma en el ledger: la salida "nace" y TODAS las líneas del BOM son
+    `consumo_tall`) **que ninguna pantalla llama**. El inventario queda igual por los dos
+    caminos; lo que cambia es cómo se lee después el ledger. Alternativa A: la pantalla pasa a
+    llamar la RPC (motor en la base, como dice la filosofía GP2) y `recepcionTall` se borra del
+    JS. Alternativa B: se borra la RPC y el JS queda como única implementación. Recomendación:
+    A, con el test `test_entregas_tall_gp2.js` reescrito al contrato de la RPC. Impacto: una
+    pantalla, un test, ~80 líneas menos de JS.
 
 ---
 
