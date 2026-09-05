@@ -10,11 +10,13 @@ El módulo de OC debe **generar los pedidos a partir del consumo**, no de import
 
 1. El consumo nace de la **Est Madre** (`GP2.est_madre`, sincronizada sola del programa viejo):
    unidades por mes de cada artículo terminado.
-2. Se explota por la receta (`articulo_componente`) hasta cada insumo: flejes, cartones,
-   cajas, remaches, etc. Eso ya existe como vista: **`GP2.v_consumo_parte`**
-   (consumo_uni_mes por componente).
-3. Con el consumo + stock + mínimos se decide cuánto pedir, y el pedido se arma
-   respetando las reglas de cada tipo de insumo (abajo).
+2. Se explota por la receta (`articulo_componente`) y por las rutas hasta cada insumo: flejes,
+   cartones, cajas, remaches, etc. Eso ya existe como vista: **`GP2.v_consumo_componente`**
+   (consumo_uni_mes por componente, toda la cadena; sucesora de `v_consumo_parte`, que sólo
+   cubría la receta directa y se borró el 2026-09-04) y `v_consumo_fleje_kg` para los flejes.
+3. Con el máximo (`inventario.maximo`; si está vacío, consumo × meses) y el stock se decide cuánto
+   pedir (**sugerido = máximo − stock**, sin restar lo pendiente de OC desde el 2026-09-04), y el
+   pedido se arma respetando las reglas de cada tipo de insumo (abajo).
 
 ## Cartones (parametrizado en `GP2.carton_formato`)
 

@@ -415,7 +415,7 @@ Leer ese archivo antes de tocar el modulo de OC.**
   quedo desactualizada un dia; el "- pendiente OC" se saco el 2026-09-04 por pedido del usuario,
   "por ahora borralo": `oc_bundle` hoy NO resta lo que ya viene en camino). El `maximo` sale de
   `inventario.maximo`, y **solo si esta vacio** cae al consumo (Est Madre explotada:
-  `v_consumo_parte` / `v_consumo_fleje_kg` en kg para flejes) x meses, marcado
+  `v_consumo_componente` / `v_consumo_fleje_kg` en kg para flejes) x meses, marcado
   `maximo_origen='consumo_x_meses'`. **Asi se decidio y asi se queda** [usuario 2026-09-04:
   "llena el lugar (maximo segun norma de cada rubro)"]: el sugerido llena el maximo, y la
   norma del rubro (multiplos y minimos de carton, paquetes de 100 en pliegos, piso de
