@@ -675,8 +675,12 @@ function esCharcasIt(i){
   // viven en sector 5 (Fleje). uniPorPaqCharcas() sigue valido: 10 / kg_x_uni.
   return i && String(i.proveedor||'').trim().toLowerCase()==='resortes charcas';
 }
-// Uni por paquete de Charcas (10 kg de producto): 10 / kg_x_uni.
-function uniPorPaqCharcas(i){ return i && i.kg_x_uni>0 ? Math.round(10 / Number(i.kg_x_uni)) : 0; }
+// Kg de producto por paquete de Charcas: vive en GP2.parametro (charcas_kg_x_paquete) y llega
+// en el bundle; el 10 de aca es solo el default por si el parametro no esta. crear_oc usa el
+// mismo parametro para guardar la OC en kg (la pantalla manda paquetes con unidad 'paq').
+function kgPorPaqCharcas(){ return Number(D.charcas_kg_x_paquete)||10; }
+// Uni por paquete de Charcas: kg del paquete / kg_x_uni.
+function uniPorPaqCharcas(i){ return i && i.kg_x_uni>0 ? Math.round(kgPorPaqCharcas() / Number(i.kg_x_uni)) : 0; }
 
 // Cuanto se carga en "Pedir" cuando se toma el sugerido. Charcas viene en uni y se
 // pide en paquetes de 10 kg: se convierte y se redondea PARA ARRIBA (no quedar corto).
@@ -1042,14 +1046,14 @@ $('btnCrear').addEventListener('click', async function(){
     fechaTocada=false; fechaTocadaProv=null;
     await boot();
     mostrarTab('ocs');
-    var gemA = r.data && r.data.oc_gemela_altrak;
-    var gemP = r.data && r.data.oc_gemela_aperam;
+    // OC gemela al proveedor de la materia prima de un PS hibrido (Charcas -> Altrak, Eclipse ->
+    // Aperam, o el que se configure en proveedor_servicio): crear_oc la crea y la devuelve.
+    var gem = r.data && r.data.oc_gemela;
     $('status').className='status ok';
     $('status').innerHTML='✓ OC N° '+r.data.numero+' creada con '+r.data.items+' ítems (borrador).' +
       (fEnt?(' Entrega estimada: '+fmtFecha(fEnt)+'.'):'') +
-      (gemA ? ('<br><b style="color:#0b3b73">✓ OC gemela N° '+gemA.numero+' a Altrak con '+fmt(gemA.kg_alambre)+' kg de alambre.</b>') : '') +
-      (gemP ? ('<br><b style="color:#0b3b73">✓ OC gemela N° '+gemP.numero+' a Aperam con '+fmt(gemP.kg_chapa)+' kg de chapa 430.</b>') : '');
-    setTimeout(function(){ $('status').innerHTML=''; $('status').className='status'; }, (gemA||gemP) ? 12000 : 6000);
+      (gem ? ('<br><b style="color:#0b3b73">✓ OC gemela N° '+gem.numero+' a '+esc(gem.proveedor)+' con '+fmt(gem.kg)+' kg de '+esc(gem.componente)+'.</b>') : '');
+    setTimeout(function(){ $('status').innerHTML=''; $('status').className='status'; }, gem ? 12000 : 6000);
   }catch(e){ $('status').className='status bad'; $('status').textContent='Error: '+(e.message||e); }
   finally{ $('btnCrear').disabled=false; }
 });

@@ -22,16 +22,16 @@ mano) + `gp2-auditor-costos` y `gp2-experto` como segunda opinión al final + el
 | Funciones/RPC | 135 | **119** (−20: 16 sin llamador o duplicadas, `cargar_compra_altrak`/`aperam_chapa`, `control_cajas_bundle`/`control_kg_bundle`; +`ubic_de`, +`descontrolar_recepcion`, +`cargar_compra_mp`, +`control_recepcion_bundle`) |
 | Tablas sin RLS | 16 | **0** |
 | Funciones internas ejecutables por `anon` | 20 | **0** (23 internas con REVOKE; 96 RPC de pantalla) |
-| Columnas borradas | — | 11 (`produccion` ×4, `tallerista.clase`, `fleje_detalle.kg_x_uni`, `ruta_paso.articulo_id`, `matriz.tipo_matriz`, `articulo.estadistica_madre_uni_mes`…) |
-| Constraints nuevos | — | CHECK vocabulario `tipo_mov` (16 palabras), `componente.unidad_medida`, `familia.nombre` UNIQUE, alias en mayúsculas; FKs `articulo.familia`, `articulo.componente_caja_id`, `recepcion_insumo.movimiento_id`; índices únicos `ubicacion(tipo,ref_id)` y singletons; índices `movimiento(fecha,id)`, `movimiento(tipo_mov,comp_id)`, `produccion(legajo,fecha)` |
+| Columnas borradas | — | 12 (`produccion` ×4, `tallerista.clase`, `fleje_detalle.kg_x_uni`, `ruta_paso.articulo_id`, `matriz.tipo_matriz`, `articulo.estadistica_madre_uni_mes`, `tarifa_servicio.unidad`…) |
+| Constraints nuevos | — | CHECK vocabulario `tipo_mov` (16 palabras), `componente.unidad_medida`, `familia.nombre` UNIQUE, alias en mayúsculas; FKs `articulo.familia`, `articulo.componente_caja_id`, `recepcion_insumo.movimiento_id`; índices únicos `ubicacion(tipo,ref_id)` y singletons; índices `movimiento(fecha,id)`, `movimiento(tipo_mov,comp_id)`, `produccion(legajo,fecha)`; ciclos 8–9: 15 vocabularios cerrados más (`movimiento.unidad_*` `kg`/`uni`, `ubicacion.tipo`, `ruta_paso.tipo_paso`, `inventario.*_origen`, `moneda` ×5, `unidad` ×2, `empresa`, `tipo_entrega`) |
 | Archivos del repo | 133 HTML + ~160 JS/MD/… | **−90** (74 muertos, 9 pantallas de stock → 1, docs fusionadas) |
 | Copias de helpers en pantallas | 79 `esc`, 42 `$`, 45 `fmt`, 12 "hoy", 40 `createClient`, 3 CSV | **0** (viven en `gp2-ui.js`, `gp2-numero.js`, `supabase-config.js:GP2_SB`); sólo Recepción Insumos conserva su parser a propósito (7259) |
 | Tests | 33 | **37** (+`test_stock_sector`, `test_helpers_ui` con 5 reglas, `test_smoke_gp2` sobre las 47 pantallas, `test_contratos_db` con 5 reglas — toda `rpc()`/`from()` de las pantallas existe en `db/`, cada columna pedida existe, cada clave `p_*` es un parámetro real y no falta ninguno obligatorio —; `test_numero` con 4 reglas) |
-| Bugs vivos encontrados y arreglados | — | **9**: `talleristas_bundle` sin `partes` (Control Talleristas vacío), `recepcion_tall` vs `entrega_tallerista` (dos palabras, un evento), `consumo_armado` no contado como entregado, `crear_entrega_ps` con la unidad de la SC en una cantidad de SP, «Desmarcar» del control de recepciones roto desde el 31/08, PS 12 AJ Adhesivos sin ubicación (`crear_envio_ps` explotaba), 6 "hoy" en UTC (día corrido después de las 21:00), otros 3 PS + 1 Prov AT sin ubicación porque `alta_proveedor_servicio` no la creaba (causa raíz arreglada, ciclo 2s), y una entrega de Virgilio (160 cajas del 510) que el espejo perdió por ese mismo hueco y nadie reintentaba (repuesta, ciclo 2w) |
+| Bugs vivos encontrados y arreglados | — | **10**: `talleristas_bundle` sin `partes` (Control Talleristas vacío), `recepcion_tall` vs `entrega_tallerista` (dos palabras, un evento), `consumo_armado` no contado como entregado, `crear_entrega_ps` con la unidad de la SC en una cantidad de SP, «Desmarcar» del control de recepciones roto desde el 31/08, PS 12 AJ Adhesivos sin ubicación (`crear_envio_ps` explotaba), 6 "hoy" en UTC (día corrido después de las 21:00), otros 3 PS + 1 Prov AT sin ubicación porque `alta_proveedor_servicio` no la creaba (causa raíz arreglada, ciclo 2s), una entrega de Virgilio (160 cajas del 510) que el espejo perdió por ese mismo hueco y nadie reintentaba (repuesta, ciclo 2w), y `crear_oc` sumando los paquetes de Charcas como kg para la OC gemela a Altrak (latente: sin OC afectada, ciclo 9) |
 | Invariantes de la base | — | **26** en `db/verificar.sql` (contrapartes con ubicación, inventario = ledger, grants, RLS, `search_path`, PS híbridos, códigos, rutas y recetas, espejo de Virgilio, recepción ↔ ledger), todas en 0; más 7 consultas informativas con su pregunta/idea |
-| Preguntas para el usuario | — | 27 en `PREGUNTAS_ARQUITECTURA_GP2.md` (la 8 con 20 datos; la 27 con 80 renglones mínimo > máximo) |
+| Preguntas para el usuario | — | 27 en `PREGUNTAS_ARQUITECTURA_GP2.md` (la 8 con 23 datos; la 27 con 80 renglones mínimo > máximo) |
 | RPC probadas en vivo (rollback) | — | **105**: 45 de lectura + ~60 de escritura con deltas de inventario verificados, 0 errores (ciclos 2o, 2q, 2s, 2u) |
-| Ideas registradas | — | 7250–7260 en `IDEAS-GP2.md` (7253 y 7256 ya hechas) |
+| Ideas registradas | — | 7250–7264 en `IDEAS-GP2.md` (7253, 7256, 7257 y 7262 ya hechas) |
 
 Verificaciones al cierre: conservación ledger↔inventario 0 desvíos; 97 RPC de pantalla existen y
 tienen EXECUTE; 0 claves `p_*` inexistentes; 0 `from()` a objetos borrados; 0 hrefs rotos;
@@ -988,8 +988,65 @@ problema de performance.
   renombra por prolijidad; el trigger traduce). Ninguna pantalla cambia: `gp2-motor.js` ya mandaba
   `uni` y el resto de las RPC también.
 
+## Ciclo 9 — vocabularios cerrados en el resto de las tablas, y la OC de Charcas en kg, 07:20–07:45 AR
+
+- Barrido de todas las columnas de texto con ≤ 8 valores distintos (una consulta con
+  `query_to_xml` sobre `information_schema`): 30 columnas de tablas, 8 ya tenían CHECK. Para cada
+  una se miró quién la escribe (funciones y pantallas) y quién la lee.
+- Migración `refactor_20260905_vocabularios_cerrados`: 11 CHECK nuevos donde el único escritor es
+  una función o una carga y alguna función compara con el literal — `ubicacion.tipo` (6 valores;
+  `GP2_MAPA` decía cuatro), `ruta_paso.tipo_paso` (6), `inventario.maximo_origen` /
+  `minimo_origen` (`recalcular_*` los comparan con `'fisico'`, `'est_madre'`…), `moneda` en las 4
+  tablas de precios y en `orden_compra_item` (`v_costo_componente` y Valorización filtran por
+  `'USD'`/`'ARS'`), `recepcion_insumo.unidad`, `uni_x_articulo_x_caja.empresa` (`CH`/`LK`). Todos
+  pasan con los datos de hoy (probado en rollback antes de aplicar).
+- **Bug vivo 10 (latente): la OC a Resortes Charcas.** La pantalla pide en PAQUETES de 10 kg y
+  mandaba `unidad='paq'`; `crear_oc` guardaba `paq` tal cual y **sumaba los paquetes como si
+  fueran kg** para la OC gemela a Altrak (3 paquetes → 3 kg de alambre en vez de 30), y
+  `_aplicar_recepcion_a_oc` trataba `paq` como unidades al cruzar la recepción (kg de balanza ÷
+  `kg_x_uni` contra una cantidad en paquetes). Todavía no había ninguna OC de Charcas (la única OC
+  es la 1, Aperam, anulada), así que ningún dato quedó mal. Migración
+  `refactor_20260905_oc_unidades_kg_uni`: el 10 pasa a `parametro.charcas_kg_x_paquete` (estaba
+  hardcodeado en `OC_GP2.html`), `crear_oc` convierte `paq` → kg y `unidad` → `uni` al guardar (la
+  OC queda en kg: la recepción cruza kg contra kg y la gemela suma kg de verdad), `oc_bundle` emite
+  `paq` (la pantalla caía siempre al 250 de fallback aunque su comentario decía que llegaba del
+  bundle) y `charcas_kg_x_paquete`, `OC_GP2.html` lee el parámetro, y `orden_compra_item.unidad`
+  queda con CHECK `kg`/`uni`. Probado en rollback: 3 paq → item «30 kg», gemela Altrak 30,60 kg
+  (×1,02), cruce de 12,5 kg aplicado directo; Eclipse 100 `unidad` → «100 uni», gemela Aperam
+  1,76 kg; un `paq` insertado directo lo rechaza el CHECK.
+- `crear_entrega_prov_at` escribía `tipo_entrega = 'entrega'`, una palabra que no existía en la
+  columna (`factura` / `remito_factura`, dato del programa viejo que la pantalla nueva no
+  pregunta): ahora deja null y la columna tiene CHECK.
+- `tarifa_servicio.unidad` (6 filas, siempre `kg`) no la leía nadie — la tarifa ya dice su unidad
+  con `precio_kg` / `precio_uni` —: columna borrada (12 columnas borradas en la auditoría).
+- Se dejaron abiertas a propósito: `matriz.tipo` (A/B/D/P, clasificación del usuario),
+  `empleado.tipo` (texto libre en el ABM y nadie lo lee), `proveedor_insumo.rubro` y
+  `relevamiento_cronograma.tipo` (datos del usuario), `componente.marca` (las marcas salen de los
+  datos: `test_marcas`) — aunque `LOEKE` ×73 y `LOKE` ×8 huelen a la misma marca (pregunta 8,
+  ítem 23).
+
+## Ciclo 10 — una sola regla de OC gemela (PS híbrido → proveedor de la materia prima), 07:45–08:00 AR
+
+- `crear_oc` tenía dos ramas escritas a mano con el proveedor por nombre: «si es Resortes Charcas,
+  OC gemela a Altrak por FLEJE90_BRUTO con `charcas_desperdicio_pct`» y «si es Eclipse, OC gemela
+  a Aperam por CHAPA430 con `eclipse_desperdicio_pct`» — 60 líneas casi iguales, dos claves de
+  `parametro` con el nombre del PS adentro, y un tercer PS híbrido habría pedido una rama más.
+- Migración `refactor_20260905_oc_gemela_generica`: el desperdicio pasa a ser un atributo del PS
+  (`proveedor_servicio.desperdicio_pct`: Charcas 2, Eclipse 28; las dos claves de `parametro` se
+  borran y `cargar_recepcion_eclipse` lee la columna), y `crear_oc` tiene UNA regla: si el
+  proveedor de la OC es un PS híbrido (`hibrido`, `mp_componente_id`), la gemela va al proveedor de
+  esa MP (`componente.proveedor`) por kg de producto pedido × (1 + `desperdicio_pct`), con el rubro
+  del proveedor de la MP (o el sector de la MP). Ningún proveedor ni componente por nombre en el
+  código. Con las unidades ya normalizadas (ciclo 9) las dos fórmulas viejas eran la misma: kg en
+  kg, uni × `kg_x_uni`.
+- La respuesta pasa de `oc_gemela_altrak` / `oc_gemela_aperam` a un `oc_gemela` genérico
+  (`proveedor`, `componente`, `kg`) y `OC_GP2.html` arma el mensaje con eso.
+- Probado en rollback con los mismos números que las ramas viejas: Charcas 3 paq → Altrak 30,60 kg
+  (rubro Sector Alambre), Eclipse 100 uni → Aperam 1,76 kg, una OC a Altrak (no híbrido) → sin
+  gemela, recepción de Eclipse con el 28 % del PS (1,761 kg de chapa). Suite 37/37.
+
 ### Estado final
-**47 tablas · 13 vistas · 119 funciones (96 RPC + 23 internas) · 37 tests · 26 invariantes en 0 · 27 preguntas (la 8 con 22 datos) · ideas 7250–7263 (7253, 7256, 7257 y 7262 hechas).**
+**47 tablas · 13 vistas · 119 funciones (96 RPC + 23 internas) · 153 constraints (17 vocabularios cerrados) · 37 tests · 26 invariantes en 0 · 27 preguntas (la 8 con 23 datos) · ideas 7250–7263 (7253, 7256, 7257 y 7262 hechas).**
 
 ---
 
@@ -1016,6 +1073,17 @@ problema de performance.
    pantalla por cero valor. Una RPC nueva se llama `<verbo>_<cosa>` con parámetros `p_*`.
 8. **Toda contraparte nace con su ubicación** (`alta_proveedor_servicio` la crea; los talleristas y
    Prov AT nuevos también tienen que crearla) y `db/verificar.sql` lo vigila.
+9. **Toda columna de tipo / estado / origen / unidad / moneda tiene vocabulario cerrado (CHECK)**
+   cuando alguna función compara con el literal: 17 al cierre (`tipo_mov`, `unidad_medida`,
+   `estado_compra`, `modo_control`, `maquina`, `tiempo_unidad`, `contraparte_alias.tipo`,
+   `movimiento.unidad_*`, `ubicacion.tipo`, `ruta_paso.tipo_paso`, `inventario.*_origen`,
+   `moneda`, `unidad`, `empresa`, `tipo_entrega`). Las unidades son dos palabras, `kg` y `uni`,
+   y el trigger del ledger traduce lo que venga. Quedan abiertas las clasificaciones que carga el
+   usuario (`matriz.tipo`, `marca`, `rubro`).
+10. **Nada por nombre en el código.** Un proveedor, un PS o un componente no se reconocen por su
+    nombre en una función: se resuelven por datos (`proveedor_servicio.hibrido` +
+    `mp_componente_id` + `desperdicio_pct` → la OC gemela; `sector.es_insumo`; `ubic_de`). Un PS
+    híbrido nuevo se configura en la tabla, sin tocar `crear_oc`.
 
 ## Riesgos pendientes
 - `auth-guard.js` tiene la lista de páginas del rol `envios` apuntando a pantallas del programa

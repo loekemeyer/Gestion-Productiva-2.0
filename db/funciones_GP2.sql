@@ -819,7 +819,7 @@ begin
 
   select id into v_chapa from "GP2".componente where codigo='CHAPA430';
   if v_chapa is null then raise exception 'CHAPA430 no existe (Fase 1 pendiente)'; end if;
-  select coalesce(valor, 0) into v_desperdicio from "GP2".parametro where clave='eclipse_desperdicio_pct';
+  select coalesce(desperdicio_pct, 0) into v_desperdicio from "GP2".proveedor_servicio where id = v_ps_eclipse;  -- el % vive en el PS
 
   v_kg_producto := p_unidades * v_kg_x_uni;
   v_kg_chapa := round((v_kg_producto * (1 + v_desperdicio/100))::numeric, 3);
@@ -1388,13 +1388,15 @@ begin
 
   v_fecha := coalesce(p_fecha, (now() at time zone 'America/Argentina/Buenos_Aires')::date);
 
+  -- tipo_entrega (factura / remito_factura) es un dato del programa viejo que la pantalla no
+  -- pregunta: queda null (antes se escribia 'entrega', una palabra que no existia).
   insert into entrega_prov_at
     (proveedor_at_id, cod_art, descripcion, cantidad_cajas, remito,
      fecha_rto, dia_mes, tipo_entrega)
   values
     (p_prov_at_id, p_cod_art, v_desc, p_cajas,
      nullif(btrim(coalesce(p_remito,'')),''),
-     v_fecha, to_char(v_fecha, 'DD/MM/YY'), 'entrega')
+     v_fecha, to_char(v_fecha, 'DD/MM/YY'), null)
   returning id into v_id;
 
   return jsonb_build_object('ok', true, 'id', v_id, 'descripcion', v_desc);
@@ -1722,22 +1724,26 @@ CREATE OR REPLACE FUNCTION "GP2".crear_oc(p jsonb)
 AS $function$
 declare
   v_oc bigint; v_num int; it jsonb; v_n int := 0;
-  v_prov text; v_es_charcas boolean; v_es_eclipse boolean;
-  v_kg_alambre_total numeric := 0;
-  v_kg_chapa_total numeric := 0;
-  v_desperdicio numeric;
-  v_uni numeric; v_kg_x_uni_it numeric;
-  v_alam_id bigint; v_chapa_id bigint;
-  v_oc_alt bigint; v_num_alt int;
-  v_oc_ape bigint; v_num_ape int;
-  v_nota_orig text;
-  v_fent date;
+  v_prov text; v_nota_orig text; v_fent date;
+  v_u text; v_cant numeric; v_kg_x_paq numeric; v_kg_x_uni_it numeric;
+  -- OC gemela al proveedor de la materia prima (PS hibrido)
+  v_mp_id bigint; v_pct numeric; v_kg_producto numeric := 0;
+  v_mp_codigo text; v_mp_prov text; v_mp_rubro text; v_kg_mp numeric;
+  v_oc_mp bigint; v_num_mp int;
 begin
   v_prov := nullif(p->>'proveedor','');
-  v_es_charcas := (v_prov = 'Resortes Charcas');
-  v_es_eclipse := (v_prov = 'Eclipse');
   v_nota_orig := nullif(p->>'nota','');
   v_fent := nullif(p->>'fecha_entrega','')::date;
+  -- Charcas se pide en PAQUETES de v_kg_x_paq kg (parametro charcas_kg_x_paquete) y la OC se
+  -- guarda en kg: la recepcion (kg de balanza) cruza directo y la OC gemela suma kg.
+  v_kg_x_paq := coalesce((select valor from parametro where clave='charcas_kg_x_paquete'), 10);
+  -- PS HIBRIDO: la OC a un proveedor de servicio que procesa una materia prima nuestra (Charcas
+  -- corta el alambre de Altrak, Eclipse estampa la chapa 430 de Aperam) dispara la OC gemela al
+  -- proveedor de esa MP: kg de producto pedido x (1 + desperdicio_pct del PS). Todo sale de
+  -- proveedor_servicio (hibrido, mp_componente_id, desperdicio_pct) y del componente MP
+  -- (proveedor, sector): ningun proveedor por nombre en el codigo.
+  select ps.mp_componente_id, ps.desperdicio_pct into v_mp_id, v_pct
+    from proveedor_servicio ps where ps.hibrido and ps.nombre = v_prov;
 
   select coalesce(max(numero),0)+1 into v_num from orden_compra;
   insert into orden_compra (numero, proveedor, rubro, nota, creado_por, fecha_entrega_estimada)
@@ -1746,12 +1752,20 @@ begin
 
   for it in select * from jsonb_array_elements(coalesce(p->'items','[]'::jsonb)) loop
     if coalesce((it->>'cantidad')::numeric,0) > 0 then
+      -- unidad del item: kg o uni (vocabulario cerrado, CHECK en orden_compra_item). 'paq' (Charcas)
+      -- se convierte a kg; 'unidad' o cualquier otra cosa es uni.
+      v_u := lower(coalesce(nullif(it->>'unidad',''),'uni'));
+      v_cant := (it->>'cantidad')::numeric;
+      if v_u = 'paq' then
+        v_cant := v_cant * v_kg_x_paq; v_u := 'kg';
+      elsif v_u <> 'kg' then
+        v_u := 'uni';
+      end if;
       -- precio: el que mande el item pisa al de la lista. La moneda acompaña al
       -- precio elegido (si el item trae precio y no dice moneda, se asume la de
       -- la lista, y si tampoco hay lista, USD).
       insert into orden_compra_item (oc_id, componente_id, cantidad, unidad, precio_uni, moneda)
-      select v_oc, (it->>'comp_id')::bigint, (it->>'cantidad')::numeric,
-             coalesce(nullif(it->>'unidad',''),'uni'),
+      select v_oc, (it->>'comp_id')::bigint, v_cant, v_u,
              coalesce(nullif(it->>'precio','')::numeric, pv.precio),
              case
                when nullif(it->>'precio','') is not null then
@@ -1769,93 +1783,63 @@ begin
       ) pv on true;
       v_n := v_n + 1;
 
-      if v_es_charcas then
-        v_kg_alambre_total := v_kg_alambre_total + coalesce((it->>'cantidad')::numeric,0);
-      end if;
-
-      if v_es_eclipse and coalesce(nullif(it->>'unidad',''),'') in ('uni','unidad') then
-        v_uni := (it->>'cantidad')::numeric;
-        select kg_x_uni into v_kg_x_uni_it from componente where id=(it->>'comp_id')::bigint;
-        if v_kg_x_uni_it > 0 then
-          v_kg_chapa_total := v_kg_chapa_total + v_uni * v_kg_x_uni_it;
+      -- kg de producto pedido al PS hibrido (lo que en kg va en kg, lo que va en uni por kg_x_uni)
+      if v_mp_id is not null then
+        if v_u = 'kg' then
+          v_kg_producto := v_kg_producto + v_cant;
+        else
+          select kg_x_uni into v_kg_x_uni_it from componente where id=(it->>'comp_id')::bigint;
+          v_kg_producto := v_kg_producto + v_cant * coalesce(v_kg_x_uni_it, 0);
         end if;
       end if;
     end if;
   end loop;
   if v_n = 0 then raise exception 'La OC no tiene items'; end if;
 
-  -- OC GEMELA a Altrak (Charcas): kg de FLEJE90_BRUTO
-  if v_es_charcas and v_kg_alambre_total > 0 then
-    select coalesce(valor, 2) into v_desperdicio from parametro where clave='charcas_desperdicio_pct';
-    v_kg_alambre_total := round(v_kg_alambre_total * (1 + v_desperdicio/100), 2);
-    select id into v_alam_id from componente where codigo='FLEJE90_BRUTO';
-    if v_alam_id is null then raise exception 'FLEJE90_BRUTO no existe: no se puede crear OC gemela'; end if;
+  -- OC GEMELA al proveedor de la materia prima
+  if v_mp_id is not null and v_kg_producto > 0 then
+    select c.codigo, c.proveedor, coalesce(pi.rubro, s.nombre)
+      into v_mp_codigo, v_mp_prov, v_mp_rubro
+      from componente c
+      left join proveedor_insumo pi on pi.nombre = c.proveedor
+      left join sector s on s.id = c.sector_id
+     where c.id = v_mp_id;
+    if v_mp_prov is null then
+      raise exception 'La materia prima % del PS % no tiene proveedor: no se puede crear la OC gemela', v_mp_codigo, v_prov;
+    end if;
+    v_kg_mp := round(v_kg_producto * (1 + coalesce(v_pct,0)/100), 2);
 
-    select coalesce(max(numero),0)+1 into v_num_alt from orden_compra;
+    select coalesce(max(numero),0)+1 into v_num_mp from orden_compra;
     insert into orden_compra (numero, proveedor, rubro, nota, creado_por, fecha_entrega_estimada)
-    values (v_num_alt, 'Altrak', 'Sector Alambre',
-            'OC gemela de OC N° '||v_num||' (Resortes Charcas). Kg alambre = Σ kg cortado × '||(1+v_desperdicio/100)||'.',
+    values (v_num_mp, v_mp_prov, v_mp_rubro,
+            'OC gemela de OC N° '||v_num||' ('||v_prov||'). Kg de '||v_mp_codigo||' = kg de producto pedido × '||(1+coalesce(v_pct,0)/100)||'.',
             nullif(p->>'usuario',''), v_fent)
-    returning id into v_oc_alt;
+    returning id into v_oc_mp;
 
     insert into orden_compra_item (oc_id, componente_id, cantidad, unidad, precio_uni, moneda)
-    select v_oc_alt, v_alam_id, v_kg_alambre_total, 'kg', pv.precio,
+    select v_oc_mp, v_mp_id, v_kg_mp, 'kg', pv.precio,
            case when pv.precio is null then null
                 when upper(coalesce(pv.moneda,'USD')) like '%US%' then 'USD' else 'ARS' end
     from (select 1) x
     left join lateral (
       select case when pp.precio_por_kg then pp.precio * cc.kg_x_uni else pp.precio end precio, pp.moneda
       from precio_proveedor pp join componente cc on cc.id = pp.componente_id
-      where pp.componente_id = v_alam_id and pp.precio is not null
+      where pp.componente_id = v_mp_id and pp.precio is not null
       order by pp.fecha_lista desc nulls last, pp.id desc limit 1
     ) pv on true;
 
     update orden_compra
        set nota = coalesce(v_nota_orig || E'\n', '') ||
-                  'OC gemela a Altrak N° '||v_num_alt||' con '||v_kg_alambre_total||' kg de alambre (Fleje 90 bruto).'
-     where id = v_oc;
-  end if;
-
-  -- OC GEMELA a Aperam (Eclipse)
-  if v_es_eclipse and v_kg_chapa_total > 0 then
-    select coalesce(valor, 0) into v_desperdicio from parametro where clave='eclipse_desperdicio_pct';
-    v_kg_chapa_total := round(v_kg_chapa_total * (1 + v_desperdicio/100), 2);
-    select id into v_chapa_id from componente where codigo='CHAPA430';
-    if v_chapa_id is null then raise exception 'CHAPA430 no existe: no se puede crear OC gemela'; end if;
-
-    select coalesce(max(numero),0)+1 into v_num_ape from orden_compra;
-    insert into orden_compra (numero, proveedor, rubro, nota, creado_por, fecha_entrega_estimada)
-    values (v_num_ape, 'Aperam', 'Sector Alambre',
-            'OC gemela de OC N° '||v_num||' (Eclipse). Kg chapa 430 = uni × kg_x_uni × '||(1+v_desperdicio/100)||'.',
-            nullif(p->>'usuario',''), v_fent)
-    returning id into v_oc_ape;
-
-    insert into orden_compra_item (oc_id, componente_id, cantidad, unidad, precio_uni, moneda)
-    select v_oc_ape, v_chapa_id, v_kg_chapa_total, 'kg', pv.precio,
-           case when pv.precio is null then null
-                when upper(coalesce(pv.moneda,'USD')) like '%US%' then 'USD' else 'ARS' end
-    from (select 1) x
-    left join lateral (
-      select case when pp.precio_por_kg then pp.precio * cc.kg_x_uni else pp.precio end precio, pp.moneda
-      from precio_proveedor pp join componente cc on cc.id = pp.componente_id
-      where pp.componente_id = v_chapa_id and pp.precio is not null
-      order by pp.fecha_lista desc nulls last, pp.id desc limit 1
-    ) pv on true;
-
-    update orden_compra
-       set nota = coalesce(v_nota_orig || E'\n', '') ||
-                  'OC gemela a Aperam N° '||v_num_ape||' con '||v_kg_chapa_total||' kg de chapa 430.'
+                  'OC gemela a '||v_mp_prov||' N° '||v_num_mp||' con '||v_kg_mp||' kg de '||v_mp_codigo||'.'
      where id = v_oc;
   end if;
 
   return jsonb_build_object(
     'ok', true, 'oc_id', v_oc, 'numero', v_num, 'items', v_n,
     'fecha_entrega_estimada', v_fent,
-    'oc_gemela_altrak', case when v_oc_alt is not null
-      then jsonb_build_object('oc_id', v_oc_alt, 'numero', v_num_alt, 'kg_alambre', v_kg_alambre_total)
-      else null end,
-    'oc_gemela_aperam', case when v_oc_ape is not null
-      then jsonb_build_object('oc_id', v_oc_ape, 'numero', v_num_ape, 'kg_chapa', v_kg_chapa_total)
+    'oc_gemela', case when v_oc_mp is not null
+      then jsonb_build_object('oc_id', v_oc_mp, 'numero', v_num_mp, 'proveedor', v_mp_prov,
+                              'componente', v_mp_codigo, 'kg', v_kg_mp)
       else null end
   );
 end $function$
@@ -3422,6 +3406,8 @@ select jsonb_build_object(
       'codigo_multiplo',codigo_multiplo,'min_codigo_x_multiplo',min_codigo_x_multiplo
     ) order by sector_id, codigo),'[]'::jsonb) from calc),
   'pliego_uni_x_paquete', (select valor from parametro where clave='pliego_uni_x_paquete'),
+  'paq', (select valor from parametro where clave='carton_uni_x_paquete'),
+  'charcas_kg_x_paquete', (select valor from parametro where clave='charcas_kg_x_paquete'),
   'proveedores', (select coalesce(jsonb_agg(jsonb_build_object(
       'nombre',pi.nombre,'rubro',pi.rubro,'modo_control',pi.modo_control,
       'cod_prov',pi.cod_prov,'activo',pi.activo,'dias_entrega',pi.dias_entrega,

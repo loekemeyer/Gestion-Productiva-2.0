@@ -6,8 +6,8 @@ Export automático **2026-09-05** (cierre de la auditoría de arquitectura del 2
 
 | Archivo | Contenido | Exactitud |
 |---|---|---|
-| `tablas_GP2.sql` | **47 tablas** (columnas, identity, defaults, **comentario en las 47 tablas** y en 41 columnas) + 138 constraints (PK, UNIQUE, FK, CHECK) + 49 índices sueltos + 9 triggers + RLS en las 47 + 47 policies (todas SELECT) | DDL reconstruido de `pg_catalog`; constraints/índices/triggers exactos vía `pg_get_*def` |
-| `funciones_GP2.sql` | Las **119 funciones/RPC** del schema (96 RPC de pantalla + 23 internas) | Exacto (`pg_get_functiondef`), **verificado md5 contra la base** (119/119 el 2026-09-05 ~04:00 UTC, tras `cargar_compra_mp`, `search_path` sólo GP2 y `control_recepcion_bundle`) |
+| `tablas_GP2.sql` | **47 tablas** (columnas, identity, defaults, **comentario en las 47 tablas** y en 44 columnas) + 153 constraints (PK, UNIQUE, FK, CHECK — 17 vocabularios cerrados) + 49 índices sueltos + 9 triggers + RLS en las 47 + 47 policies (todas SELECT) | DDL reconstruido de `pg_catalog`; constraints/índices/triggers exactos vía `pg_get_*def` |
+| `funciones_GP2.sql` | Las **119 funciones/RPC** del schema (96 RPC de pantalla + 23 internas) | Exacto (`pg_get_functiondef`), **verificado md5 contra la base** (119/119 el 2026-09-05 ~10:30 UTC, tras los ciclos 8–9: `fn_movimiento_calc`, `crear_oc`, `oc_bundle`, `crear_entrega_prov_at`) |
 | `vistas_GP2.sql` | Las **13 vistas** (con sus `comment on view`) | Exacto (`pg_get_viewdef`) |
 | `verificar.sql` | **Invariantes** de la base en una consulta (contrapartes con ubicación, inventario = ledger, grants, RLS, PS híbridos, códigos, rutas): cada fila debe dar `n = 0` | Sólo lectura; correrla antes de tocar la base y al cerrar; el agente diario la corre al empezar |
 | `relevamiento_GP2.sql` | Registro de las 3 migraciones del Relevamiento nativo (2026-09-04) con su porqué | Documental; el estado vigente está en los tres archivos de arriba |

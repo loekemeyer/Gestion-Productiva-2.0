@@ -151,7 +151,7 @@ confirmar acá que la clave existe; si un bundle cambia, actualizar esta tabla e
 | `inicio_bundle()` | GP2_MODULOS (menú) | `alertas, dia, generado_en, hoy, mes` |
 | `inyectores_bundle()` | Inyectores | `generado_en, partes, proveedores, sector, sectores` |
 | `movimientos_bundle()` | gp2-motor.js (Stocks General, Entregas Talleristas), Registro operarios | `art, bom_art, bom_comp, c2a, comp, inv, mat, prov_serv, rp, sect, tall, ubic` |
-| `oc_bundle()` | OC | `generado_en, insumos, ocs, pliego_uni_x_paquete, proveedores, tc` |
+| `oc_bundle()` | OC | `charcas_kg_x_paquete, generado_en, insumos, ocs, paq, pliego_uni_x_paquete, proveedores, tc` |
 | `orden_produccion_bundle()` | Orden de Producción | `componentes, destinos, generado_en, matrices, pasos` |
 | `pintores_bundle()` | Pintores | `partes, pintores` |
 | `problemas_matrices_bundle(p_desde, p_hasta)` | Problemas con Matrices | (eventos RM/PM) |

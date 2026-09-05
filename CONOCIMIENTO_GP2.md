@@ -4411,6 +4411,22 @@ como vino. Hoy el trigger `fn_movimiento_calc` traduce cualquier cosa que no sea
 antes de calcular (y `KG` a `kg`), con lo que una pantalla puede mandar `unidad_medida` tal cual.
 `componente.unidad_medida` sigue diciendo `unidad`: no se renombra por prolijidad.
 
+`[dato 2026-09-05: GP2.parametro.charcas_kg_x_paquete = 10]` **La OC a Resortes Charcas se pide en
+paquetes de 10 kg de producto y se guarda en kg.** La pantalla de OC muestra el pedido en paquetes
+(con el «= N uni» que sale de `kg_x_uni`) y manda `unidad='paq'`; `crear_oc` lo convierte a kg con
+ese parámetro (antes el 10 estaba escrito en `OC_GP2.html`). Así la recepción de Charcas, que
+entra en kg de balanza, cruza directo contra la OC, y la OC gemela a Altrak suma esos kg ×
+(1 + `charcas_desperdicio_pct`). Hasta el 2026-09-05 `crear_oc` sumaba los paquetes como si
+fueran kg (3 paquetes → 3 kg de alambre): bug latente, sin ninguna OC de Charcas afectada.
+
+`[dato 2026-09-05: GP2.proveedor_servicio.desperdicio_pct]` **El desperdicio de un PS híbrido es
+un atributo del PS**: Charcas 2 % (corta el alambre de Altrak), Eclipse 28 % (estampa la chapa 430
+de Aperam; `[usuario 2026-09-01]` 1 chapa de 19,625 kg rinde 760 uni). Antes eran dos claves de
+`parametro` con el nombre del PS adentro. La **OC gemela** sale de una sola regla: si la OC es a un
+PS híbrido, se crea otra al proveedor de su materia prima (`mp_componente_id` →
+`componente.proveedor`) por kg de producto pedido × (1 + desperdicio), y la recepción de ese PS
+descuenta la MP con el mismo %. Un PS híbrido nuevo se configura en la tabla, sin tocar código.
+
 `[dato 2026-09-05: GP2.sector.es_insumo]` Qué sectores son **de insumo comprado** (entran por
 Recepción, salen en la OC, no los produce ninguna ruta) ahora es una columna del sector, no una
 lista de ids adentro de una función: Fleje (5), Plástico (6), Bombilla (7), Remache (8), Garage

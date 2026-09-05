@@ -256,6 +256,11 @@ Cada uno tiene la consulta y el detalle en los informes de auditoría (`REFACTOR
     Beta Plásticos — AI, PE, PP — y "Batidor Pera LK Env"): son materiales que GP2 no modela
     (bolsas de inyección, idea 7243/7244) o códigos que no cruzaron. ¿Se crean los componentes o
     se borran esas filas?
+23. **`componente.marca` tiene `LOEKE` (73 cartones y pliegos) y `LOKE` (8 cartones: H1A, H1C,
+    H2C, H4C, I2B, I3B, I42, K5D — justo los de `carton_formato = 'LOKE'`)** `[dato 2026-09-05]`.
+    Las pantallas muestran las marcas tal como están en la tabla (`test_marcas`), así que hoy se
+    ven como dos marcas. ¿Es la misma marca escrita de dos formas (y se unifica a `LOEKE`), o
+    `LOKE` es otra cosa? No se tocó.
 
 ---
 
