@@ -699,6 +699,32 @@ se regenera al cierre: cambiaron `cargar_compra_mp` y `alta_proveedor_servicio`.
 
 ---
 
+## Ciclo 2t — código muerto fino, vocabulario, páginas huérfanas, CSS, 03:50–04:15 AR
+
+- **Funciones JS sin ningún llamador** en las 42 pantallas GP2 + 18 JS compartidos: 3, todas en
+  Recepción Insumos (`provPideRollos`, `provControlaPeso`, `pendCount`) → borradas. En los JS
+  compartidos, 0.
+- **Vocabulario `tipo_mov`**: las 16 palabras del CHECK están vivas (13 en RPC, `stock_inicial` en
+  datos, `armado_fabrica` / `consumo_prod` las emite el motor JS de Stocks General). El trigger
+  `fn_movimiento_calc` no ramifica por tipo: el tipo es semántico, el delta sale de las unidades.
+  Anotado como decisión 6.
+- **Páginas GP2 sin ningún link** que las alcance: 0 de 42 (todas llegan desde `GP2_MODULOS.html`
+  u otra pantalla).
+- **Contrato de claves bundle → pantalla** (qué claves lee cada pantalla vs qué devuelve el
+  bundle): la heurística por nombre de variable es demasiado ruidosa (DOM y filas anidadas se
+  confunden con claves) — no sirve como guardia automática; el contrato queda en el índice de
+  `GP2_MAPA.md` y en `test_smoke_gp2.js`.
+- **CSS**: 145 KB de CSS inline en 42 pantallas (1.578 reglas). Sólo 30 son idénticas a
+  `gp2-modulo.css` y sólo 9 se repiten en ≥5 pantallas sin estar en el compartido (2,8 KB): las
+  pantallas están estilizadas una por una, no hay una capa común que extraer. Sin acción (mover
+  CSS es riesgo visual por cero valor medible).
+- Decisiones 7 (no renombrar RPC/parámetros) y 8 (toda contraparte nace con ubicación).
+
+### Estado tras el ciclo 2t
+**47 tablas · 13 vistas · 120 funciones · 36 tests · 14 invariantes en 0.**
+
+---
+
 ## Decisiones arquitectónicas (acumuladas)
 
 1. **Las copias de datos no viven en la base.** Un snapshot "por si hay que volver atrás" va a
@@ -714,6 +740,14 @@ se regenera al cierre: cambiaron `cargar_compra_mp` y `alta_proveedor_servicio`.
    `gp2-numero.js`, `supabase-config.js:GP2_SB`) y hay tests que fallan si vuelve una copia.
 6. **El vocabulario del ledger es cerrado** (CHECK) y **la escritura es sólo por RPC**: una
    palabra nueva o un `from().update()` en una pantalla se agregan a propósito, no por accidente.
+   Las 16 palabras están todas vivas: 13 las escriben las RPC, `stock_inicial` es la carga del
+   28/08, y `armado_fabrica` / `consumo_prod` las emite el motor JS (Stocks General → armado en
+   fábrica) vía `registrar_movimientos`.
+7. **Tampoco se renombran RPC ni parámetros por prolijidad** (`crear_*` / `cargar_*` /
+   `registrar_*` / `alta_*` / `abm_*` conviven; `row_id` vs `p_id`): cada renombre toca una
+   pantalla por cero valor. Una RPC nueva se llama `<verbo>_<cosa>` con parámetros `p_*`.
+8. **Toda contraparte nace con su ubicación** (`alta_proveedor_servicio` la crea; los talleristas y
+   Prov AT nuevos también tienen que crearla) y `db/verificar.sql` lo vigila.
 
 ## Riesgos pendientes
 - `auth-guard.js` tiene la lista de páginas del rol `envios` apuntando a pantallas del programa

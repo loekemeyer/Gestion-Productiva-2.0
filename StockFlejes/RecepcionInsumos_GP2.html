@@ -634,7 +634,6 @@ let rubroSel="", sidSel=0, provSel="", provsRubro=[], marcaSel="", formatoSel=""
 //   pesaje:        remito solo kg, mismo pesaje por pallet (resto de flejeros)
 //   peso_total:    factura en uni, se pesa el total (Bella Vista)
 function provModo(nom){ var f=PROVFLAGS[nom]; return (f&&f.modo_control)||'ninguno'; }
-function provPideRollos(nom){ return provModo(nom)==='rollos_remito'; }
 /* Campos extra en el popup de recepcion segun proveedor de flejes (usuario
    2026-09-01): "añadir los datos en los que tienen mas datos aparte de KG
    total (KG total ya aparece)". Retorno: {rollos, kgPorRollo}. Si el prov
@@ -711,7 +710,6 @@ function pintarFieldsFleje(flds){
 // cajas/plasticos/cartones/remaches/bombillas la recepcion es simple
 // (elegir insumo, cantidad, listo), como en la casa del vecino.
 function esFleje(it){ return !!it && Number(it.sector_id)===5; }
-function provControlaPeso(nom){ return provModo(nom)==='peso_total'; }
 let itemSel=null, unitSel="uni";
 
 function hoy(){const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
@@ -1252,7 +1250,6 @@ function delPend(compId){
   if (PEND[key]){ delete PEND[key]; renderRemitoBar(); filtrarItems(); }
 }
 function pendTieneItems(){ for (var k in PEND) return true; return false; }
-function pendCount(){ var n=0; for (var k in PEND) n++; return n; }
 /* flushPend: al presionar "Terminé de cargar remito". Crea 1 recepcion_insumo
    por cada PEND[key] usando el mismo p_remito. Colecta recIds y arma REMITO[]
    con la estructura que consume el flujo posterior (montarControlCartones o
