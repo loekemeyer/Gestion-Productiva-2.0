@@ -947,6 +947,15 @@ tallerista y Prov AT a la vez) o no es un duplicado.
   `CHAPA430`, la chapa de Eclipse, con lo que el 1686 se costea sin material — y 44 precios de
   `precio_proveedor` sin componente (resinas de Beta Plásticos y otros que GP2 no modela).
 
+## Ciclo 6 — la guardia del contrato, completa, 07:20–07:35 AR
+
+`test_contratos_db.js` gana la regla 4: en cada llamada `rpc('x', {…})` con objeto literal no
+puede faltar ningún parámetro **sin DEFAULT** (el mismo "function not found" de PostgREST, al
+revés), y cubre también `control-cajas` / `control-remaches` (GP2 sin sufijo): 70 llamadas con
+objeto literal verificadas; probado en negativo (sacar `p_sector_id` lo atrapa). `EXPLAIN` de
+`v_costo_componente`: 4 ms para las 591 filas, todo en memoria — la vista recursiva no es un
+problema de performance.
+
 ### Estado final
 **47 tablas · 13 vistas · 119 funciones (96 RPC + 23 internas) · 37 tests · 19 invariantes en 0 · 27 preguntas (la 8 con 22 datos) · ideas 7250–7263 (7253, 7256, 7257 y 7262 hechas).**
 

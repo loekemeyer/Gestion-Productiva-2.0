@@ -105,8 +105,8 @@ Ninguna pantalla GP2 escribe su propio `esc()`, `$()`, "hoy", exportador CSV ni
    `test_numero.js` (regla de número, parses crudos, formateadores propios),
    `test_smoke_gp2.js` (abre las 47 pantallas con Supabase stubeado: falta un script o
    revienta un helper → falla) y `test_contratos_db.js` (toda `rpc('x')` / `from('x')` de las
-   pantallas existe en `db/` y cada clave `p_*` es un parámetro real de la función: si falla
-   porque `db/` está viejo, se regenera `db/`).
+   pantallas existe en `db/`, cada clave `p_*` es un parámetro real de la función y no falta
+   ninguno obligatorio: si falla porque `db/` está viejo, se regenera `db/`).
 
 ## Versionado (OBLIGATORIO en cada actualización)
 

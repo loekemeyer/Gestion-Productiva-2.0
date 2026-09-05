@@ -9,7 +9,9 @@
  *      db/vistas_GP2.sql;
  *   3. cada clave p_* que viaja en el objeto literal de una llamada rpc('x', {...}) sea un
  *      parametro real de esa funcion (una clave con un typo llega a PostgREST como
- *      "function not found" recien en produccion).
+ *      "function not found" recien en produccion);
+ *   4. esa llamada mande todos los parametros SIN DEFAULT de la funcion (el mismo error, al
+ *      reves: falta uno obligatorio y PostgREST no encuentra la firma).
  * Si falla porque db/ esta viejo, la respuesta es regenerar db/ (db/regenerar.sql), no
  * tocar el test. Sin navegador: lee archivos.
  */
@@ -26,12 +28,24 @@ const funciones = {};
 // la firma termina en el ")" que precede a RETURNS (los DEFAULT now() traen parentesis adentro)
 for (const m of leer(path.join(ROOT, 'db', 'funciones_GP2.sql'))
        .matchAll(/CREATE OR REPLACE FUNCTION "GP2"\.(\w+)\(([\s\S]*?)\)\s*\n\s*RETURNS/g)) {
-  const params = new Set();
-  for (const parte of m[2].split(',')) {
-    const nombre = parte.trim().split(/\s+/)[0];
-    if (nombre) params.add(nombre.replace(/^"|"$/g, ''));
+  const params = new Set(), requeridos = new Set();
+  // los DEFAULT pueden traer comas adentro ('{}'::jsonb no, pero ARRAY[...] o now() si parentesis):
+  // se parte por coma solo a profundidad 0 de parentesis/corchetes
+  const partes = []; let depth = 0, cur = '';
+  for (const ch of m[2]) {
+    if (ch === '(' || ch === '[') depth++;
+    if (ch === ')' || ch === ']') depth--;
+    if (ch === ',' && depth === 0) { partes.push(cur); cur = ''; } else cur += ch;
   }
-  funciones[m[1]] = params;
+  partes.push(cur);
+  for (const parte of partes) {
+    const nombre = parte.trim().split(/\s+/)[0];
+    if (!nombre) continue;
+    const n = nombre.replace(/^"|"$/g, '');
+    params.add(n);
+    if (!/\sDEFAULT\s/i.test(parte)) requeridos.add(n);
+  }
+  funciones[m[1]] = { params, requeridos };
 }
 const relaciones = new Set();
 for (const m of leer(path.join(ROOT, 'db', 'tablas_GP2.sql')).matchAll(/create table "GP2"\.(\w+) \(/g)) relaciones.add(m[1]);
@@ -41,14 +55,17 @@ ok(Object.keys(funciones).length > 100 && relaciones.size > 50,
 
 // ── las pantallas GP2 y los JS que cargan ───────────────────────────────
 const EXCLUIR = /(^|[\\/])(_backup|node_modules|\.git|tests)([\\/]|$)/;
-const ENTRADAS = new Set(['GP2_MODULOS.html', 'login.html', 'envios-only.html']);
+// pantallas GP2 sin sufijo: las de entrada y las que test_smoke_gp2 tambien abre, mas los dos
+// controles de recepcion (control-cajas / control-remaches), que son GP2 aunque no lleven _GP2
+const SIN_SUFIJO = new Set(['GP2_MODULOS.html', 'login.html', 'envios-only.html', 'Programa.html',
+  'Validacion_Stock.html', 'OrdenProduccion.html', 'control-cajas.html', 'control-remaches.html']);
 const archivos = [];
 (function walk(dir) {
   for (const f of fs.readdirSync(dir)) {
     const p = path.join(dir, f);
     if (EXCLUIR.test(p)) continue;
     if (fs.statSync(p).isDirectory()) walk(p);
-    else if (f.endsWith('_GP2.html') || (dir === ROOT && ENTRADAS.has(f))) archivos.push(p);
+    else if (f.endsWith('_GP2.html') || SIN_SUFIJO.has(f)) archivos.push(p);
   }
 })(ROOT);
 for (const p of archivos.slice()) {
@@ -63,6 +80,7 @@ const rel = (p) => path.relative(ROOT, p).replace(/\\/g, '/');
 const rpcInexistentes = [];
 const fromInexistentes = [];
 const clavesMalas = [];
+const faltanRequeridos = [];
 let nRpc = 0, nFrom = 0, nLlamadasConObjeto = 0;
 
 // objeto literal que sigue a rpc('x', { ... }): claves de PRIMER nivel
@@ -94,8 +112,13 @@ for (const p of archivos) {
     const after = m.index + m[0].length;
     if (m[2] && txt[after] === '{') {
       nLlamadasConObjeto++;
-      for (const k of clavesTopLevel(txt, after)) {
-        if (!funciones[fn].has(k)) clavesMalas.push(rel(p) + ':' + txt.slice(0, m.index).split('\n').length + '  ' + fn + '(' + k + ')');
+      const claves = clavesTopLevel(txt, after);
+      const linea = txt.slice(0, m.index).split('\n').length;
+      for (const k of claves) {
+        if (!funciones[fn].params.has(k)) clavesMalas.push(rel(p) + ':' + linea + '  ' + fn + '(' + k + ')');
+      }
+      for (const k of funciones[fn].requeridos) {
+        if (!claves.includes(k)) faltanRequeridos.push(rel(p) + ':' + linea + '  ' + fn + ' sin ' + k);
       }
     }
   }
@@ -110,5 +133,8 @@ fromInexistentes.forEach(i => console.log('     ' + i));
 ok(fromInexistentes.length === 0, 'toda tabla/vista que lee una pantalla existe (' + nFrom + ' from())');
 clavesMalas.forEach(i => console.log('     ' + i));
 ok(clavesMalas.length === 0, 'cada clave del objeto de una llamada rpc es un parametro real de la funcion (' + nLlamadasConObjeto + ' llamadas con objeto literal)');
+// un parametro sin DEFAULT que no viaja: PostgREST no encuentra la firma y la pantalla ve "function not found"
+faltanRequeridos.forEach(i => console.log('     ' + i));
+ok(faltanRequeridos.length === 0, 'cada llamada con objeto literal manda todos los parametros sin DEFAULT de la funcion');
 
 console.log(fallas ? 'HAY FALLOS' : 'TODO OK');
