@@ -100,6 +100,17 @@ select 'O_espejo_virgilio_con_error', count(*) from "GP2".virgilio_espejo_pend w
 ) chequeos
 order by regla;
 
+-- =====================================================================
+-- INFORMATIVAS (no son invariantes: dan > 0 por datos que faltan o decisiones pendientes del
+-- usuario; sirven para ver si crecen). Cada una dice a qué pregunta/idea pertenece.
+-- =====================================================================
+-- select 'stock_negativo' que, count(*) n, '(pregunta 8.3: stock inicial de talleristas no cargado)' ref from "GP2".inventario where cantidad < -0.0005
+-- union all select 'minimo_mayor_que_maximo', count(*), '(pregunta 27: 56 legítimas de 5 cajones + parámetros meses de 3 ubicaciones)' from "GP2".inventario where minimo is not null and maximo is not null and minimo > maximo
+-- union all select 'espejo_virgilio_pendiente_datos', count(*), '(pregunta 8.17: artículos de Virgilio sin equivalente en GP2)' from "GP2".virgilio_espejo_pend where motivo not like 'error%'
+-- union all select 'est_madre_sin_articulo_gp2', count(*), '(idea 7244: familias que GP2 no modela)' from "GP2".est_madre em where not exists (select 1 from "GP2".articulo a where regexp_replace(a.codigo,'^0+','') = regexp_replace(em.cod,'^0+',''))
+-- union all select 'componentes_discontinuos_en_rutas', count(distinct c.id), '(pregunta 8.4)' from "GP2".componente c join "GP2".ruta_paso rp on rp.comp_entrada_id = c.id or rp.comp_salida_id = c.id where c.estado_compra = 'discontinuo'
+-- union all select 'contrapartes_sin_partes_en_rutas', count(*), '(PS sin pasos: Rec Color, Daniel, Esther, Eclipse...)' from "GP2".proveedor_servicio ps where not exists (select 1 from "GP2".v_contraparte_parte v where v.tipo = 'proveedor_servicio' and v.ref_id = ps.id);
+
 -- ---------------------------------------------------------------------
 -- PENDIENTE (pregunta 27 de PREGUNTAS_ARQUITECTURA_GP2.md). OJO: "mínimo ≤ máximo" NO es un
 -- invariante — el usuario decidió el 2026-09-02 que mínimo > máximo puede ser correcto (es la

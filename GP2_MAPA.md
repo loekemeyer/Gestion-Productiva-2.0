@@ -276,6 +276,10 @@ da solo los puntos 3 y 4; las pantallas GP2 hacen `from()` solo sobre 11 tablas/
 (`produccion`, `empleado`, `componente`, `sector`, `inventario`, `v_recepcion_unificada`,
 `proveedor_servicio`, `movimiento`, `familia`) y todo lo demas por RPC.
 
+**El contrato de este mapa tiene guardia automática**: `tests/ui/test_contratos_db.js` lee `db/` y
+falla si una pantalla nombra una RPC, tabla o vista que no existe, o manda una clave `p_*` que
+la función no tiene. Si el test falla porque `db/` está viejo, se regenera `db/` (no el test).
+
 ## Verificaciones ya hechas (eran "pendientes" de este mapa)
 
 1. Que puede tocar la anon key: **nada directo** — 0 policies de escritura, 0 grants
