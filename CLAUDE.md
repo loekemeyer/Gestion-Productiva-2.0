@@ -420,7 +420,8 @@ Leer ese archivo antes de tocar el modulo de OC.**
   `maximo_origen='consumo_x_meses'`. **Asi se decidio y asi se queda** [usuario 2026-09-04:
   "llena el lugar (maximo segun norma de cada rubro)"]: el sugerido llena el maximo, y la
   norma del rubro (multiplos y minimos de carton, paquetes de 100 en pliegos, piso de
-  bolsas, paquetes de 10 kg de Charcas) se aplica DESPUES, redondeando para arriba.
+  bolsas, paquetes de Charcas — `parametro.charcas_kg_x_paquete`, hoy 10 kg; la OC se guarda
+  en kg) se aplica DESPUES, redondeando para arriba.
   Primero el lugar, despues el envase. Tablas `GP2.orden_compra` / `orden_compra_item`,
   RPCs `oc_bundle` / `crear_oc` / `oc_marcar` / `abm_bom_guardar`. Cada OC se puede IMPRIMIR
   (hoja limpia para el proveedor). Estados: borrador -> enviada -> recibida / anulada.

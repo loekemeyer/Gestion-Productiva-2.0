@@ -261,6 +261,12 @@ Cada uno tiene la consulta y el detalle en los informes de auditoría (`REFACTOR
     Las pantallas muestran las marcas tal como están en la tabla (`test_marcas`), así que hoy se
     ven como dos marcas. ¿Es la misma marca escrita de dos formas (y se unifica a `LOEKE`), o
     `LOKE` es otra cosa? No se tocó.
+24. **Dos clasificaciones que hoy son texto libre** `[dato 2026-09-05]`: `matriz.tipo` (A ×45,
+    B ×58, D ×11, P ×1 — ninguna función ni pantalla lo lee) y `empleado.tipo` (`operario` ×N,
+    `administrativo`; en el ABM de empleados es un campo de texto donde se puede escribir
+    cualquier cosa). ¿Qué significan A/B/D/P y son los únicos? ¿Los tipos de empleado son sólo
+    esos dos? Con la respuesta se cierran con CHECK y el ABM pasa a un desplegable; si nadie los
+    usa, se borran.
 
 ---
 

@@ -1,7 +1,13 @@
 <!doctype html>
 <html lang="es">
 <head>
-<!-- v1.19.1 (2026-09-04) — crear_oc se llama con un solo parametro (p); la overload con p_fecha_entrega se borro (auditoria).
+<!-- v1.20.0 (2026-09-05) — CHARCAS EN KG Y OC GEMELA GENERICA (auditoria, ciclos 9-10): el kg por
+     paquete de Charcas llega del bundle (parametro charcas_kg_x_paquete, antes 10 escrito aca);
+     la pantalla sigue mandando paquetes con unidad 'paq' y crear_oc guarda la OC en kg (asi la
+     recepcion cruza kg contra kg y la gemela a Altrak suma kg de verdad: antes sumaba los
+     paquetes como si fueran kg). La respuesta trae oc_gemela {proveedor, componente, kg} para
+     cualquier PS hibrido (Charcas -> Altrak, Eclipse -> Aperam) y el mensaje se arma con eso.
+     v1.19.1 (2026-09-04) — crear_oc se llama con un solo parametro (p); la overload con p_fecha_entrega se borro (auditoria).
      v1.19.0 (2026-09-04) — SE LLAMA SECTOR, NO RUBRO, Y SIN ELEGIR NO HAY LISTA [usuario
      2026-09-04: "no pongas rubro, sector quiero que pongas" + "si no pongo el sector y no
      pongo el proveedor, que no me aparezca la lista"].

@@ -1087,6 +1087,23 @@ problema de performance.
   la OC gemela armado desde la respuesta genérica. El test atrapó de entrada una imprecisión: el
   mensaje redondeaba 40,8 kg a «41» (`fmt` sin decimales) — ahora muestra un decimal.
 
+## Ciclo 14 — últimos ángulos: tablas chicas, docs de la OC, copias de helpers, 07:56–08:10 AR
+
+- El barrido de vocabularios del ciclo 9 se saltaba las tablas de menos de 5 filas: se repitió
+  sobre ellas (`orden_compra.estado`, `relevamiento.estado`, `ruta_revision.estado`,
+  `rollo_evento.motivo`, `faltante_marcado.origen`) y **todas ya tenían CHECK**; `oc_marcar`
+  además valida el estado. Nada que agregar: el vocabulario de la base queda cerrado.
+- Docs de la OC al día con los ciclos 9–10: `REGLAS_OC_INSUMOS.md` (sección nueva «PS híbridos
+  — OC gemela», y el sugerido decía todavía «− pendiente OC»), `CLAUDE.md` (los paquetes de
+  Charcas salen de `parametro.charcas_kg_x_paquete`), changelog v1.20.0 en `OC_GP2.html`.
+- Cinco pantallas cargan `gp2-ui.js` y conservan un `hoyAR()` / `fechaAR()` propio que tapa al de
+  la casa (`EntregasAT`, `DevolucionCervantes`, `entrevistas`, `ProblemasMatrices`, `monitor2`);
+  el guardia sólo mira las implementaciones en UTC, no el nombre. No se unificó a ciegas: el
+  `fechaAR` local de EntregasAT muestra el año con 2 cifras y el de la casa con 4, y en 390px eso
+  es una decisión de pantalla → **idea 7265** (unificar + regla nueva en el guardia).
+- Pregunta 8 ítem 24: `matriz.tipo` (A/B/D/P, nadie lo lee) y `empleado.tipo` (texto libre en el
+  ABM) — con la respuesta se cierran con CHECK o se borran.
+
 ### Estado final
 **47 tablas · 13 vistas · 119 funciones (96 RPC + 23 internas) · 153 constraints (17 vocabularios cerrados) · 37 tests · 29 invariantes en 0 · 27 preguntas (la 8 con 23 datos) · ideas 7250–7263 (7253, 7256, 7257 y 7262 hechas).**
 

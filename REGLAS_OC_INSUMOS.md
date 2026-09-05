@@ -128,12 +128,28 @@ Vista: `GP2.v_consumo_fleje_kg`; el Punto de Stock de flejes usa esos kg × 6 me
   uni→kg (kg_x_uni) y el control pesa el total contra el remito (tolerancia
   `parametro.tol_ctrl_peso_pct`, hoy 2% o 0,5 kg).
 
+## PS híbridos — la OC dispara una OC gemela al proveedor de la materia prima (2026-09-05)
+
+Un **PS híbrido** (`proveedor_servicio.hibrido` con `mp_componente_id`) procesa una materia
+prima nuestra: Resortes Charcas corta el alambre de Altrak (`FLEJE90_BRUTO`), Eclipse estampa la
+chapa 430 de Aperam (`CHAPA430`). Una OC a ese PS crea sola la **OC gemela** al proveedor de la
+MP (`componente.proveedor`) por **kg de producto pedido × (1 + `proveedor_servicio.desperdicio_pct`)**
+— Charcas 2 %, Eclipse 28 % — y la recepción del PS descuenta la MP con el mismo %. Es UNA regla
+en `crear_oc`, sin proveedores por nombre: un PS híbrido nuevo se configura en la tabla.
+
+- **Charcas se pide en PAQUETES** de `parametro.charcas_kg_x_paquete` kg (hoy 10): la pantalla
+  muestra paquetes y «= N uni», manda `unidad='paq'` y `crear_oc` **guarda la OC en kg**, así la
+  recepción (kg de balanza) cruza directo y la gemela suma kg de verdad.
+- **Eclipse se pide en unidades** (el 1686); la gemela convierte con `kg_x_uni`.
+- `orden_compra_item.unidad` sólo admite `kg` / `uni` (CHECK).
+
 ## Estado 2026-08-29: el módulo YA EXISTE
 
 `Compras/OC_GP2.html` (menú Insumos → Órdenes de Compra): genera OC con
-**sugerido = máximo − stock − pendiente OC** (cambiado el 2026-09-03; antes era
-consumo × meses, que hoy sólo se usa como respaldo cuando el máximo está vacío —
-ahí el `maximo_origen` dice `consumo_x_meses`), valida las reglas de cartón (dormidas
+**sugerido = máximo − stock** (cambiado el 2026-09-03; el «− pendiente OC» se sacó el
+2026-09-04 por pedido del usuario; antes era consumo × meses, que hoy sólo se usa como
+respaldo cuando el máximo está vacío — ahí el `maximo_origen` dice `consumo_x_meses`),
+valida las reglas de cartón (dormidas
 hasta asignar formato), imprime la OC para el proveedor, y la **recepción cruza sola**
 contra las OC abiertas (`recibido` + estado `recibida` automático). RPCs: `oc_bundle`,
 `crear_oc`, `oc_marcar`, `_aplicar_recepcion_a_oc`.
