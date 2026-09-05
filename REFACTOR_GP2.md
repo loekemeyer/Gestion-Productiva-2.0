@@ -937,8 +937,18 @@ con nombres parecidos, contrapartes repetidas entre tallerista / PS / Prov AT, a
 misma descripción): lo que salió está en la pregunta 8 (ítem 16, las 3 personas que son
 tallerista y Prov AT a la vez) o no es un duplicado.
 
+## Ciclo 5 — idea 7262 y los precios que faltan, 07:00–07:20 AR
+
+- **`v_costo_componente` ya no lee un costo congelado**: la tarifa del tallerista sale de
+  `coalesce(precio_kg × componente.kg_x_uni, precio_uni)` (como ya hacía con
+  `precio_servicio_pieza`), así que si mañana se corrige el peso de una pieza el costo se mueve
+  solo. Probado en transacción antes de aplicar: las 591 filas idénticas (md5). Idea 7262 hecha.
+- **Datos que faltan (a la pregunta 8)**: 12 insumos comprables sin ningún precio — entre ellos
+  `CHAPA430`, la chapa de Eclipse, con lo que el 1686 se costea sin material — y 44 precios de
+  `precio_proveedor` sin componente (resinas de Beta Plásticos y otros que GP2 no modela).
+
 ### Estado final
-**47 tablas · 13 vistas · 119 funciones (96 RPC + 23 internas) · 37 tests · 19 invariantes en 0 · 27 preguntas · ideas 7250–7263.**
+**47 tablas · 13 vistas · 119 funciones (96 RPC + 23 internas) · 37 tests · 19 invariantes en 0 · 27 preguntas (la 8 con 22 datos) · ideas 7250–7263 (7253, 7256, 7257 y 7262 hechas).**
 
 ---
 

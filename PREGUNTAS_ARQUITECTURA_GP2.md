@@ -248,6 +248,14 @@ Cada uno tiene la consulta y el detalle en los informes de auditoría (`REFACTOR
     0 filas: ninguna recepción de Basconia/Hermac se controló todavía desde la pantalla. ¿El
     pesaje por pallet se usa de verdad? Si no se va a usar, son 2 tablas + 3 vistas + 3
     funciones para borrar.
+21. **12 insumos comprables sin ningún precio** `[dato 2026-09-05]`: `BOM8B`, `CHAPA430` (la chapa
+    de Eclipse: sin precio, el 1686 se costea sin material), `CV15`, `PB2`, `PC4`, `PCP2`,
+    `PCP4A`, `PEP2`, `PEP9`, `PIEA`, `PIEB`, `W8`. Valorización los muestra con
+    `faltan_precios` y la OC no los puede valuar. ¿Precios?
+22. **44 precios de `precio_proveedor` sin componente** `[dato 2026-09-05]` (p.ej. las resinas de
+    Beta Plásticos — AI, PE, PP — y "Batidor Pera LK Env"): son materiales que GP2 no modela
+    (bolsas de inyección, idea 7243/7244) o códigos que no cruzaron. ¿Se crean los componentes o
+    se borran esas filas?
 
 ---
 

@@ -372,7 +372,7 @@ create or replace view "GP2".v_costo_componente as
         ), talpieza AS (
          SELECT DISTINCT ON (n.comp_id, n.comp) n.comp_id,
             n.comp,
-            pt.precio_uni AS precio,
+            COALESCE(pt.precio_kg * cpt.kg_x_uni, pt.precio_uni) AS precio,
                 CASE
                     WHEN upper(COALESCE(pt.moneda, 'ARS'::text)) ~~ '%US%'::text THEN 'USD'::text
                     ELSE 'ARS'::text
@@ -388,7 +388,8 @@ create or replace view "GP2".v_costo_componente as
                            FROM nodos) n0 ON n0.nodo = t.comp
                   WHERE rp0.tipo_paso = 'tallerista'::text AND rp0.tallerista_id IS NOT NULL AND rp0.comp_salida_id IS NOT NULL) n
              JOIN "GP2".precio_tallerista pt ON pt.tallerista_id = n.tallerista_id AND pt.componente_id = n.comp
-          ORDER BY n.comp_id, n.comp, pt.precio_uni DESC NULLS LAST
+             LEFT JOIN "GP2".componente cpt ON cpt.id = pt.componente_id
+          ORDER BY n.comp_id, n.comp, (COALESCE(pt.precio_kg * cpt.kg_x_uni, pt.precio_uni)) DESC NULLS LAST
         ), talx AS (
          SELECT tp.comp_id,
             COALESCE(sum(tp.precio) FILTER (WHERE tp.moneda = 'USD'::text), 0::numeric) AS usd,
