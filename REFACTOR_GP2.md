@@ -824,6 +824,26 @@ cuando se responda, entra como invariante en `db/verificar.sql`.
 
 ---
 
+## Ciclo 2x — errores silenciosos y datos raros, 05:35–05:50 AR
+
+- **RPC sin manejo de error** en las 42 pantallas + JS compartidos: 102 llamadas `rpc(`; la
+  heurística marcó 6 sin `error`/`catch` a ±5 líneas y las 6 son falsos positivos (el chequeo
+  está 6–8 líneas más abajo, o lo hace `E.guardarItems` de `gp2-envios-common.js`, o un
+  `try/catch` envolvente). **0 llamadas silenciosas** (la única que había, Recepción Insumos, se
+  sacó en 2m).
+- **Datos**: 0 renglones de stock en talleristas inactivos; 0 artículos sin `articulos_por_caja`
+  (el espejo de Virgilio los necesita); 0 movimientos con fecha fuera de rango. **37 renglones
+  con stock negativo**, casi todos en ubicaciones de talleristas (IJUPA −1.896, Pettofrezza
+  −2.400, Pedernera/Carlos −1.920 ×4 — estos últimos son la entrega repuesta en 2w): es el hueco
+  del **stock inicial** (las piezas se consumieron en Virgilio antes de que GP2 tuviera cargado lo
+  que cada tallerista tenía), ya en la pregunta 8. No es un bug del motor: el ledger cierra.
+- Idea **7261** (cola de reintento del espejo de Virgilio) registrada.
+
+### Estado tras el ciclo 2x
+**47 tablas · 13 vistas · 120 funciones · 36 tests · 16 invariantes en 0.**
+
+---
+
 ## Decisiones arquitectónicas (acumuladas)
 
 1. **Las copias de datos no viven en la base.** Un snapshot "por si hay que volver atrás" va a
@@ -852,3 +872,16 @@ cuando se responda, entra como invariante en `db/verificar.sql`.
 - `auth-guard.js` tiene la lista de páginas del rol `envios` apuntando a pantallas del programa
   viejo (login apagado hoy, así que no aplica; si se prende, la tablet queda restringida a las
   viejas). Se resuelve con la respuesta a la pregunta 1 de `PREGUNTAS_ARQUITECTURA_GP2.md`.
+- **Stock inicial de talleristas y PS no cargado**: 37 renglones negativos (IJUPA, Pettofrezza,
+  Pedernera/Carlos…) porque Virgilio consume lo que GP2 nunca vio entrar. El motor cierra, los
+  números de "qué tiene cada tallerista" no sirven hasta cargar ese stock (pregunta 8).
+- **80 renglones con mínimo > máximo** (pregunta 27): Faltantes y la OC se contradicen en esas
+  piezas hasta que el usuario diga qué regla manda.
+- **El espejo de Virgilio no reintenta** (idea 7261): un `error:` técnico en una entrega queda
+  perdido hasta que alguien mire `db/verificar.sql` (regla O) o Alertas (`espejo_pend`).
+- **Recepción Insumos lee números con otra regla** (idea 7259): `12.5` es 12,5 ahí y 125 en el
+  resto de la casa; se migra con el operario al lado.
+- **Sector 13 «Alambre» sin ubicación** (pregunta 21): `FLEJE90_BRUTO` vive en Charcas y
+  `ubic_de_componente` lo manda a Virgilio; cualquier función genérica que lo toque se equivoca.
+- **Las 70 páginas del programa viejo** (44 pegan a `public`) siguen en el repo y en el menú de
+  `auth-guard.js`; se borran con la respuesta a la pregunta 1.
