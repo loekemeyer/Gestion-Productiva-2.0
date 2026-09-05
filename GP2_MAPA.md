@@ -133,9 +133,8 @@ confirmar acá que la clave existe; si un bundle cambia, actualizar esta tabla e
 |---|---|---|
 | `abm_articulos_bundle()` | ABM Artículos | `art, partes, sect` |
 | `alertas_bundle()` | Alertas | `generado_en, matriz_sin_tiempo, pendientes, pm, ref_fecha, rm, ventana_dias` |
-| `control_cajas_bundle()` | control-cajas.js | `recepciones, uni_x_paq_default` |
+| `control_recepcion_bundle(p_sector_id)` | control-cajas.js (11) y control-remaches.js (5, 8, …) | `recepciones, sector, sector_id, uni_x_paq_default` (reemplaza a `control_cajas_bundle` + `control_kg_bundle`, 2026-09-05) |
 | `control_envios_bundle(p_desde, p_hasta)` | Control Envíos y Entregas | (por vista/tipo, ver la pantalla) |
-| `control_kg_bundle(p_sector_id)` | control-remaches.js | (recepciones del sector) |
 | `control_ps_bundle()` | Control PS | `generado_en, proveedores` (cada proveedor trae `nombre_corto`) |
 | `despiece_verif_bundle()` | Despiece x Artículo | `art, confirmadas, madres, problemas, rutas, sect` |
 | `devoluciones_tallerista_bundle()` | Devolución Cervantes | `analizar, online, talleristas, ultimas` |

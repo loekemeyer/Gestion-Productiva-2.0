@@ -12,9 +12,9 @@
 |---|---|---|
 | Tablas GP2 | 67 | **47** (−20: 13 fotos `snap_*`/backup, `agente_propuestas`, `tallerista_alias`, `ruta_confirmada`+`ruta_problema`→`ruta_revision`, `estadistica`, `entrega_cervantes`, `precio_servicio`, `devolucion_tallerista`→`movimiento.nota`, `proveedor_servicio_alias`→`proveedor_servicio.nombre_corto`) |
 | Vistas | 16 | **13** (−5 muertas, +`v_nivel_stock` y +`v_contraparte_parte`, cada una reemplaza un CTE escrito dos o tres veces) |
-| Funciones/RPC | 135 | **120** (−18: 16 sin llamador o duplicadas + `cargar_compra_altrak`/`aperam_chapa`; +`ubic_de`, +`descontrolar_recepcion`, +`cargar_compra_mp`) |
+| Funciones/RPC | 135 | **119** (−20: 16 sin llamador o duplicadas, `cargar_compra_altrak`/`aperam_chapa`, `control_cajas_bundle`/`control_kg_bundle`; +`ubic_de`, +`descontrolar_recepcion`, +`cargar_compra_mp`, +`control_recepcion_bundle`) |
 | Tablas sin RLS | 16 | **0** |
-| Funciones internas ejecutables por `anon` | 20 | **0** (23 internas con REVOKE; 97 RPC de pantalla) |
+| Funciones internas ejecutables por `anon` | 20 | **0** (23 internas con REVOKE; 96 RPC de pantalla) |
 | Columnas borradas | — | 11 (`produccion` ×4, `tallerista.clase`, `fleje_detalle.kg_x_uni`, `ruta_paso.articulo_id`, `matriz.tipo_matriz`, `articulo.estadistica_madre_uni_mes`…) |
 | Constraints nuevos | — | CHECK vocabulario `tipo_mov` (16 palabras), `componente.unidad_medida`, `familia.nombre` UNIQUE, alias en mayúsculas; FKs `articulo.familia`, `articulo.componente_caja_id`, `recepcion_insumo.movimiento_id`; índices únicos `ubicacion(tipo,ref_id)` y singletons; índices `movimiento(fecha,id)`, `movimiento(tipo_mov,comp_id)`, `produccion(legajo,fecha)` |
 | Archivos del repo | 133 HTML + ~160 JS/MD/… | **−90** (74 muertos, 9 pantallas de stock → 1, docs fusionadas) |
@@ -841,6 +841,24 @@ cuando se responda, entra como invariante en `db/verificar.sql`.
 
 ### Estado tras el ciclo 2x
 **47 tablas · 13 vistas · 120 funciones · 36 tests · 16 invariantes en 0.**
+
+---
+
+## Ciclo 2y — `control_recepcion_bundle` (idea 7255, mitad SQL), 05:50–06:05 AR
+
+`control_cajas_bundle()` y `control_kg_bundle(p_sector_id)` eran **la misma consulta** sobre
+`recepcion_insumo` (una con el sector 11 fijo y las columnas del control por cajas, la otra con
+las del pesaje) y la primera tenía el "25" de unidades por paquete escrito adentro, mientras
+`parametro.caja_uni_x_paquete` dice lo mismo. Ahora **una** RPC `control_recepcion_bundle(p_sector_id)`
+con la unión de columnas y el 25 leído del parámetro; `control-cajas.js` la llama con 11 y
+`control-remaches.js` con su sector. Verificación: md5 de las recepciones (proyectadas a las
+columnas de cada bundle viejo) idéntico para el 11 y el 5, mismo `uni_x_paq_default`, mismo
+nombre de sector; suite con los stubs actualizados. Las dos viejas se borraron. Queda para la
+idea 7255 la mitad de pantalla (dos HTML al 74 % iguales → uno con `?modo=`), que es riesgo
+visual y se hace con el operario al lado.
+
+### Estado tras el ciclo 2y
+**47 tablas · 13 vistas · 119 funciones · 36 tests · 16 invariantes en 0.**
 
 ---
 

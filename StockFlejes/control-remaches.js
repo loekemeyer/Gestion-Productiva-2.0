@@ -112,7 +112,7 @@ function fmtFechaCorta(iso) {
 async function cargar() {
   statusMsg.textContent = "Cargando…"; statusMsg.className = "status";
   try {
-    const { data, error } = await SB.rpc("control_kg_bundle", { p_sector_id: SECTOR_ID });
+    const { data, error } = await SB.rpc("control_recepcion_bundle", { p_sector_id: SECTOR_ID });
     if (error) throw error;
     recepciones = (data && data.recepciones) || [];
     // El titulo sale del sector que devuelve el bundle, asi no hay que mantener

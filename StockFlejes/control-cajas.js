@@ -47,7 +47,8 @@ function fmtFechaCorta(iso) {
 async function cargar() {
   statusMsg.textContent = "Cargando…"; statusMsg.className = "status";
   try {
-    const { data, error } = await SB.rpc("control_cajas_bundle");
+    // misma RPC que control-remaches.js (control_recepcion_bundle), sector Caja = 11
+    const { data, error } = await SB.rpc("control_recepcion_bundle", { p_sector_id: 11 });
     if (error) throw error;
     recepciones = (data && data.recepciones) || [];
     poblarProveedores();

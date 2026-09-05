@@ -1,7 +1,7 @@
 -- =====================================================================
 -- FUNCIONES del schema GP2 — export automatico 2026-09-05 (pg_get_functiondef, exacto)
 -- Fuente de verdad: Supabase (hrxfctzncixxqmpfhskv). Este archivo es respaldo/referencia.
--- 120 funciones. Los GRANT/REVOKE no estan aca: EXECUTE para anon solo en las RPC de pantalla (ver db/README.md).
+-- 119 funciones. Los GRANT/REVOKE no estan aca: EXECUTE para anon solo en las RPC de pantalla (ver db/README.md).
 -- =====================================================================
 
 -- ---------- _aplicar_recepcion_a_oc ----------
@@ -1041,32 +1041,6 @@ where c.id = p_comp_id;
 $function$
 ;
 
--- ---------- control_cajas_bundle ----------
-CREATE OR REPLACE FUNCTION "GP2".control_cajas_bundle()
- RETURNS jsonb
- LANGUAGE sql
- STABLE SECURITY DEFINER
- SET search_path TO 'GP2'
-AS $function$
-  WITH cajas AS (
-    SELECT r.id, r.fecha, r.componente_id, r.proveedor, r.remito, r.cantidad,
-           r.unidad, r.movimiento_id, r.created_at, r.controlado,
-           r.cantidad_declarada, r.base, r.pisos, r.sueltas, r.paquetes,
-           r.uni_x_paq, r.controlado_en, r.controlado_por,
-           c.codigo, c.descripcion
-    FROM "GP2".recepcion_insumo r
-    JOIN "GP2".componente c ON c.id = r.componente_id
-    WHERE c.sector_id = 11
-    ORDER BY r.fecha DESC, r.id DESC
-    LIMIT 500
-  )
-  SELECT jsonb_build_object(
-    'recepciones', COALESCE((SELECT jsonb_agg(row_to_json(cajas)) FROM cajas), '[]'::jsonb),
-    'uni_x_paq_default', 25
-  );
-$function$
-;
-
 -- ---------- control_envios_bundle ----------
 CREATE OR REPLACE FUNCTION "GP2".control_envios_bundle(p_desde date, p_hasta date)
  RETURNS jsonb
@@ -1091,32 +1065,6 @@ select jsonb_build_object(
                          'recepcion_virgilio','devolucion_tallerista','envio_prov_at','compra')
       and (m.fecha at time zone 'America/Argentina/Buenos_Aires')::date between p_desde and p_hasta),
   'desde', p_desde, 'hasta', p_hasta, 'generado_en', now());
-$function$
-;
-
--- ---------- control_kg_bundle ----------
-CREATE OR REPLACE FUNCTION "GP2".control_kg_bundle(p_sector_id integer)
- RETURNS jsonb
- LANGUAGE sql
- STABLE SECURITY DEFINER
- SET search_path TO 'GP2'
-AS $function$
-  WITH rec AS (
-    SELECT r.id, r.fecha, r.componente_id, r.proveedor, r.remito, r.cantidad,
-           r.unidad, r.movimiento_id, r.created_at, r.controlado,
-           r.cantidad_declarada, r.controlado_en, r.controlado_por,
-           c.codigo, c.descripcion, c.recibe_en_cajas, c.kg_x_uni
-    FROM "GP2".recepcion_insumo r
-    JOIN "GP2".componente c ON c.id = r.componente_id
-    WHERE c.sector_id = p_sector_id
-    ORDER BY r.fecha DESC, r.id DESC
-    LIMIT 500
-  )
-  SELECT jsonb_build_object(
-    'sector', (SELECT nombre FROM "GP2".sector WHERE id = p_sector_id),
-    'sector_id', p_sector_id,
-    'recepciones', COALESCE((SELECT jsonb_agg(row_to_json(rec)) FROM rec), '[]'::jsonb)
-  );
 $function$
 ;
 
@@ -1205,6 +1153,34 @@ select jsonb_build_object('generado_en', now(),
 from ps
 left join lateral (select p2.nombre_corto from proveedor_servicio p2 where p2.id=ps.ps_id) al on true
 left join partes_j pj on pj.ps_id=ps.ps_id;
+$function$
+;
+
+-- ---------- control_recepcion_bundle ----------
+CREATE OR REPLACE FUNCTION "GP2".control_recepcion_bundle(p_sector_id integer)
+ RETURNS jsonb
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'GP2'
+AS $function$
+  with rec as (
+    select r.id, r.fecha, r.componente_id, r.proveedor, r.remito, r.cantidad,
+           r.unidad, r.movimiento_id, r.created_at, r.controlado,
+           r.cantidad_declarada, r.base, r.pisos, r.sueltas, r.paquetes,
+           r.uni_x_paq, r.controlado_en, r.controlado_por,
+           c.codigo, c.descripcion, c.recibe_en_cajas, c.kg_x_uni
+    from recepcion_insumo r
+    join componente c on c.id = r.componente_id
+    where c.sector_id = p_sector_id
+    order by r.fecha desc, r.id desc
+    limit 500
+  )
+  select jsonb_build_object(
+    'sector', (select nombre from sector where id = p_sector_id),
+    'sector_id', p_sector_id,
+    'recepciones', coalesce((select jsonb_agg(row_to_json(rec)) from rec), '[]'::jsonb),
+    'uni_x_paq_default', coalesce((select valor::numeric from parametro where clave = 'caja_uni_x_paquete'), 25)
+  );
 $function$
 ;
 

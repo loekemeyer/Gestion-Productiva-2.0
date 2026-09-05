@@ -51,7 +51,7 @@ const COMPS = [{ id: 256, kg_x_uni: 0.00653, recibe_en_cajas: true },
                { id: 539, kg_x_uni: 0.0046, recibe_en_cajas: false }];
 
 const STUB = 'window.supabase={createClient:function(){return{'
-  + 'rpc:async function(n,a){ if(n==="control_kg_bundle") return {data:' + JSON.stringify(BUNDLE) + ',error:null};'
+  + 'rpc:async function(n,a){ if(n==="control_recepcion_bundle") return {data:' + JSON.stringify(BUNDLE) + ',error:null};'
   + ' if(n==="recepcion_bundle") return {data:' + JSON.stringify(RECEP) + ',error:null};'
   + ' return {data:{ok:true},error:null}; },'
   + 'from:function(){ var q={select:function(){return q;},update:function(){return q;},'
