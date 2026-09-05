@@ -130,12 +130,20 @@ Vista: `GP2.v_consumo_fleje_kg`; el Punto de Stock de flejes usa esos kg × 6 me
 
 ## PS híbridos — la OC dispara una OC gemela al proveedor de la materia prima (2026-09-05)
 
+> **OJO — en duda (pregunta 28 de `PREGUNTAS_ARQUITECTURA_GP2.md`)**: el 04/09 el usuario decidió
+> que la OC del Fleje 90 va SOLO a Altrak y que NO hay OC gemela en el flujo de Charcas (el corte
+> entra por la recepción). El código siguió con el modelo de abajo y la auditoría del 05/09 lo
+> arregló y generalizó en vez de apagarlo. Hasta que conteste, esto describe lo que HACE el código,
+> no lo que está decidido. El desperdicio de Charcas ya está en 0 (decisión del 04/09).
+
 Un **PS híbrido** (`proveedor_servicio.hibrido` con `mp_componente_id`) procesa una materia
 prima nuestra: Resortes Charcas corta el alambre de Altrak (`FLEJE90_BRUTO`), Eclipse estampa la
 chapa 430 de Aperam (`CHAPA430`). Una OC a ese PS crea sola la **OC gemela** al proveedor de la
 MP (`componente.proveedor`) por **kg de producto pedido × (1 + `proveedor_servicio.desperdicio_pct`)**
-— Charcas 2 %, Eclipse 28 % — y la recepción del PS descuenta la MP con el mismo %. Es UNA regla
-en `crear_oc`, sin proveedores por nombre: un PS híbrido nuevo se configura en la tabla.
+— Charcas 0 % (sin dato, decisión del 04/09; su recepción descuenta el alambre 1:1), Eclipse 28 %
+(calibrado con remito; su recepción descuenta la chapa con ese %). Es UNA regla en `crear_oc`, sin
+proveedores por nombre — aunque `oc_bundle` y la pantalla todavía nombran a Charcas y Eclipse
+(idea 7267).
 
 - **Charcas se pide en PAQUETES** de `parametro.charcas_kg_x_paquete` kg (hoy 10): la pantalla
   muestra paquetes y «= N uni», manda `unidad='paq'` y `crear_oc` **guarda la OC en kg**, así la

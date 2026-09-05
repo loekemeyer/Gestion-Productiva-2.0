@@ -6,14 +6,18 @@
 > Los cambios en Supabase quedan aplicados como migraciones `refactor_20260904_*` (no las
 > versiona git; `db/` se regenera al final).
 
-## Resumen ejecutivo (al cierre, 2026-09-05 ~03:30 AR)
+## Resumen ejecutivo (al cierre, 2026-09-05 08:40 AR)
 
-Siete horas efectivas de loop analizar → detectar → corregir → validar → re-analizar
-(2026-09-04 17:44 → 2026-09-05 ~08:40 AR, con dos cortes por límite de uso de la cuenta que no
-cuentan: 19:13 → 22:00 AR y 01:32 → 06:40 AR). 31 ciclos (1, 1b, 2, 2a–2z, 3, 4) y 8 agentes: 5 de la primera ronda
-(tablas, datos, código muerto, funciones, ubicaciones — dos murieron con el corte y se terminaron a
-mano) + `gp2-auditor-costos` y `gp2-experto` como segunda opinión al final + el verificador de UI
-(la suite, en cada push). 62 commits, todos en `main`. Al cierre se liberó el LockX de `LOCKS.txt`.
+Siete horas efectivas de loop analizar → detectar → corregir → validar → re-analizar, de reloj:
+2026-09-04 17:44 → 19:13 AR (1 h 29), 22:00 → 01:32 AR (3 h 32) y 06:40 → 08:40 AR (2 h 00), con
+dos cortes por límite de uso de la cuenta en el medio (19:13 → 22:00 y 01:32 → 06:40 AR) que no
+cuentan. Las horas de cada ciclo son las de sus commits en git. 40 ciclos (1, 1b, 2, 2a–2z, 3–15)
+y 9 agentes: 5 de la primera ronda (tablas, datos, código muerto, funciones, ubicaciones — dos
+murieron con el primer corte y se terminaron a mano), `gp2-auditor-costos` y `gp2-experto` como
+segunda opinión (el experto dos veces: al final de la primera noche y al cierre, donde encontró
+que la regla de OC gemela generalizada en el ciclo 10 era un modelo que el usuario había dado de
+baja el 04/09 → pregunta 28), y `gp2-verificador-ui` como gate final (3 corridas de la suite,
+render a 390 px: APTO). 50 commits, todos en `main`. Al cierre se liberó el LockX de `LOCKS.txt`.
 
 | | Antes (17:44 AR) | Después |
 |---|---|---|
@@ -29,15 +33,18 @@ mano) + `gp2-auditor-costos` y `gp2-experto` como segunda opinión al final + el
 | Tests | 33 | **37** (+`test_stock_sector`, `test_helpers_ui` con 5 reglas, `test_smoke_gp2` sobre las 47 pantallas, `test_contratos_db` con 5 reglas — toda `rpc()`/`from()` de las pantallas existe en `db/`, cada columna pedida existe, cada clave `p_*` es un parámetro real y no falta ninguno obligatorio —; `test_numero` con 4 reglas) |
 | Bugs vivos encontrados y arreglados | — | **10**: `talleristas_bundle` sin `partes` (Control Talleristas vacío), `recepcion_tall` vs `entrega_tallerista` (dos palabras, un evento), `consumo_armado` no contado como entregado, `crear_entrega_ps` con la unidad de la SC en una cantidad de SP, «Desmarcar» del control de recepciones roto desde el 31/08, PS 12 AJ Adhesivos sin ubicación (`crear_envio_ps` explotaba), 6 "hoy" en UTC (día corrido después de las 21:00), otros 3 PS + 1 Prov AT sin ubicación porque `alta_proveedor_servicio` no la creaba (causa raíz arreglada, ciclo 2s), una entrega de Virgilio (160 cajas del 510) que el espejo perdió por ese mismo hueco y nadie reintentaba (repuesta, ciclo 2w), y `crear_oc` sumando los paquetes de Charcas como kg para la OC gemela a Altrak (latente: sin OC afectada, ciclo 9) |
 | Invariantes de la base | — | **29** en `db/verificar.sql` (contrapartes con ubicación, inventario = ledger, grants, RLS, `search_path`, PS híbridos y su materia prima, códigos, rutas y recetas, espejo de Virgilio, recepción ↔ ledger, claves de `parametro` que lee el código), todas en 0; más 7 consultas informativas con su pregunta/idea |
-| Preguntas para el usuario | — | 27 en `PREGUNTAS_ARQUITECTURA_GP2.md` (la 8 con 23 datos; la 27 con 80 renglones mínimo > máximo) |
+| Preguntas para el usuario | — | 28 en `PREGUNTAS_ARQUITECTURA_GP2.md` (la 8 con 24 datos; la 27 con 80 renglones mínimo > máximo; la 28, la OC gemela de Charcas: modelo dado de baja el 04/09 que el código sigue haciendo) |
 | RPC probadas en vivo (rollback) | — | **105**: 45 de lectura + ~60 de escritura con deltas de inventario verificados, 0 errores (ciclos 2o, 2q, 2s, 2u) |
-| Ideas registradas | — | 7250–7264 en `IDEAS-GP2.md` (7253, 7256, 7257 y 7262 ya hechas) |
+| Ideas registradas | — | 7250–7266 en `IDEAS-GP2.md` (7253, 7256, 7257 y 7262 ya hechas; 7255 y 7265 a medias) |
 
-Verificaciones al cierre: conservación ledger↔inventario 0 desvíos; 97 RPC de pantalla existen y
-tienen EXECUTE; 0 claves `p_*` inexistentes; 0 `from()` a objetos borrados; 0 hrefs rotos;
-advisor de seguridad de Supabase: 0 hallazgos en GP2; advisor de performance: sólo INFO (13 FKs
-sin índice en tablas de <500 filas, 5 índices sin uso) — decisión: no indexar tablas de decenas
-de filas. `db/` regenerado (md5 exacto). Todo en `main`.
+Verificaciones al cierre (08:30 AR): `db/verificar.sql` 29 invariantes en 0; conservación
+ledger↔inventario 0 desvíos tras un circuito de escritura de 7 llamadas en rollback; las 111
+llamadas `rpc()` y 26 `from()` de las pantallas cruzadas contra `db/` (`test_contratos_db`, 5
+reglas); 0 hrefs rotos; advisor de seguridad de Supabase: 0 hallazgos en GP2 (697, todos en
+`public`); advisor de performance: sólo INFO (14 FKs sin índice en tablas de decenas de filas, 5
+índices sin uso todavía) — decisión: no indexar tablas chicas; suite 37/37 en 7 corridas hoy (una
+falló por solaparse con la suite del verificador: idea 7266) y gate de UI APTO; `db/` regenerado
+(md5 119/119). Todo en `main`.
 
 ## Punto de partida (2026-09-04 17:44 AR)
 
@@ -1105,8 +1112,32 @@ problema de performance.
 - Pregunta 8 ítem 24: `matriz.tipo` (A/B/D/P, nadie lo lee) y `empleado.tipo` (texto libre en el
   ABM) — con la respuesta se cierran con CHECK o se borran.
 
+## Ciclo 15 — segunda opinión sobre la OC gemela: la regla generalizada era un modelo dado de baja, 08:10–08:35 AR
+
+- Se le pidió a `gp2-experto` que cruzara la regla única de OC gemela (ciclo 10) con lo decidido.
+  Respuesta incómoda y correcta: **el 04/09 el usuario había decidido** (`CONOCIMIENTO`, §Altrak/
+  Charcas, "pendiente de implementar en `OC_GP2.html`") que la OC del Fleje 90 va SOLO a Altrak y
+  que NO hay OC gemela en el flujo de Charcas — el corte entra por la recepción. El código siguió
+  vivo con el modelo anterior (pantalla en paquetes + gemela a Altrak) y los ciclos 9–10 lo
+  arreglaron y generalizaron **sin haber leído esa sección**. El arreglo del bug (paquetes sumados
+  como kg) y la normalización de unidades siguen valiendo; la existencia misma de la gemela para
+  Charcas queda como **pregunta 28** (A: apagarla, como decidiste; B: dejarla y completar vínculo
+  padre–hijo + norma de envase). `REGLAS_OC_INSUMOS.md` lo marca como "lo que hace el código, no
+  lo decidido".
+- **El 2 % de desperdicio de Charcas era un default inventado** por un agente el 01/09
+  (`coalesce(valor, 2)`), y el 04/09 el usuario dijo "sin dato, asumir 0". Al pasarlo a columna se
+  le dio categoría de dato. Migración `refactor_20260905_charcas_desperdicio_0`: Charcas 0,
+  Eclipse 28 (ese sí calibrado con remito). Con 0 la OC y la recepción de Charcas (1:1) vuelven a
+  ser coherentes.
+- Siete hallazgos más del experto sobre el circuito de la gemela (OC mixta sin validar, `paq`
+  convertido para cualquier proveedor, `kg_x_uni` nulo → 0 kg en silencio, sin vínculo entre las
+  dos OC, sin norma de envase, Eclipse no pedible desde la pantalla, precios de IC3/IC3V cargados
+  como de Altrak y MP sin precio) → **idea 7267** y `CONOCIMIENTO` (+2 datos con 7 puntos).
+- Lección para la bitácora: antes de generalizar una regla de negocio hay que leer su sección en
+  `CONOCIMIENTO_GP2.md` entera, no sólo el código vivo. El código puede ir atrás de una decisión.
+
 ### Estado final
-**47 tablas · 13 vistas · 119 funciones (96 RPC + 23 internas) · 153 constraints (17 vocabularios cerrados) · 37 tests · 29 invariantes en 0 · 27 preguntas (la 8 con 23 datos) · ideas 7250–7263 (7253, 7256, 7257 y 7262 hechas).**
+**47 tablas · 13 vistas · 119 funciones (96 RPC + 23 internas) · 153 constraints (17 vocabularios cerrados) · 37 tests (guardias con 5 + 6 + 4 reglas) · 29 invariantes en 0 · 12 claves de `parametro`, todas leídas · 28 preguntas (la 8 con 24 datos; la 28 es la OC gemela de Charcas) · ideas 7250–7267 (7253, 7256, 7257 y 7262 hechas; 7255 y 7265 a medias).**
 
 ---
 
@@ -1162,3 +1193,15 @@ problema de performance.
   `ubic_de_componente` lo manda a Virgilio; cualquier función genérica que lo toque se equivoca.
 - **Las 70 páginas del programa viejo** (44 pegan a `public`) siguen en el repo y en el menú de
   `auth-guard.js`; se borran con la respuesta a la pregunta 1.
+- **`componente.marca` con `LOEKE` ×73 y `LOKE` ×8** (pregunta 8, ítem 23): las pantallas las
+  muestran como dos marcas hasta que el usuario diga si son una.
+- **`entrega_prov_at.dia_mes`** (idea 7264): 112 entregas viejas sólo tienen la fecha ahí (4 sin
+  año); `entregas_at_bundle` hace `coalesce(fecha_rto, dia_mes)` mientras tanto.
+- **`test_kg_y_unidades.js` sensible a la carga** (idea 7266): pasa solo y en 6 de 7 corridas de
+  la suite; falló en la que se solapó con otra suite. No es un bug de la pantalla.
+- **La OC gemela de Charcas es un modelo que el usuario dio de baja el 04/09 y el código sigue
+  haciendo** (pregunta 28, ciclo 15): hasta que conteste, `CONOCIMIENTO` y `REGLAS_OC_INSUMOS` se
+  contradicen a propósito (uno dice lo decidido, el otro lo que hace el código). Si alguien crea
+  una OC a Charcas hoy, sale la gemela a Altrak con 0 % y sin vínculo con la primera (idea 7267).
+- **La OC de Charcas nunca se probó con una OC real** (ciclos 9–10): el circuito paquetes → kg →
+  gemela a Altrak → recepción está probado en rollback y en `test_oc`, no con un pedido de verdad.

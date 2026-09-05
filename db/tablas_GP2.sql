@@ -502,7 +502,7 @@ create table "GP2".proveedor_servicio (
 comment on table "GP2".proveedor_servicio is 'Proveedores de servicio (PS): proceso, nombre corto para pantallas, hibrido (tambien compra materia prima: mp_componente_id). Cada uno tiene su ubicacion (la crea alta_proveedor_servicio).';
 comment on column "GP2".proveedor_servicio.nombre_corto is 'Como lo llaman en la planta (Jade, Ximpa, Scor, FAAT). Antes: proveedor_servicio_alias.nombre_viejo (tabla borrada 2026-09-05).';
 comment on column "GP2".proveedor_servicio.mp_componente_id is 'PS hibrido: la materia prima BRUTA que recibe y consume (Charcas -> FLEJE90_BRUTO, Eclipse -> CHAPA430). Quien la vende es componente.proveedor. Lo usa cargar_compra_mp (2026-09-05).';
-comment on column "GP2".proveedor_servicio.desperdicio_pct is 'PS hibrido: % de desperdicio al procesar nuestra materia prima (mp_componente_id). La OC gemela al proveedor de la MP pide kg de producto x (1 + pct/100) y la recepcion descuenta la MP con el mismo %. Charcas 2 (alambre de Altrak), Eclipse 28 (chapa 430 de Aperam). Antes: parametro charcas_/eclipse_desperdicio_pct.';
+comment on column "GP2".proveedor_servicio.desperdicio_pct is 'PS hibrido: % de desperdicio al procesar nuestra materia prima (mp_componente_id). crear_oc lo usa para la OC gemela al proveedor de la MP (kg de producto x (1 + pct/100)) y cargar_recepcion_eclipse para descontar la chapa. Eclipse 28 (calibrado con remito, usuario 2026-09-02). Charcas 0 (usuario 2026-09-04: sin dato, asumir 0; la recepcion descuenta 1:1). Antes: parametro charcas_/eclipse_desperdicio_pct.';
 
 -- ---------- recepcion_control ----------
 create table "GP2".recepcion_control (

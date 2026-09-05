@@ -270,6 +270,41 @@ Cada uno tiene la consulta y el detalle en los informes de auditoría (`REFACTOR
 
 ---
 
+## 28. La OC a Charcas y su gemela a Altrak: dos decisiones tuyas que se contradicen en el código
+
+- **Problema.** El 04/09 dijiste (`CONOCIMIENTO_GP2.md`, §Altrak/Charcas): *"la OC del Fleje 90 va
+  SOLO a Altrak (kg de FLEJE90_BRUTO). NO hay OC gemela a Charcas — el corte se registra por la
+  recepción, no por OC"*, y *"merma del corte de Charcas: sin dato, asumir 0"*. Pero el código
+  siguió vivo con el modelo anterior (la pantalla de OC pide a Charcas en paquetes y `crear_oc`
+  dispara sola la OC gemela a Altrak), y la auditoría del 05/09 (ciclos 9–10) lo **arregló y
+  generalizó** en vez de apagarlo: hoy la OC de Charcas se guarda en kg (antes sumaba paquetes
+  como kg, bug real) y la gemela sale por una regla única para cualquier PS híbrido. El 2 % de
+  Charcas era un default inventado el 01/09: ya quedó en 0 (tu decisión). Las dos docs vivas
+  (`CONOCIMIENTO` vs `REGLAS_OC_INSUMOS`) se contradicen hasta que contestes.
+- **Por qué es duda.** Las dos formas cierran con el stock: (A) OC directa a Altrak y el corte
+  entra por la recepción de Charcas; (B) OC a Charcas en paquetes y la gemela a Altrak sale sola.
+  Cambia quién pide qué y qué hoja recibe cada proveedor.
+- **Alternativa A (tu decisión del 04/09).** Se apaga la gemela para Charcas (bandera
+  `proveedor_servicio.oc_gemela = false`), la pantalla deja de ofrecer a Charcas como proveedor de
+  OC y el alambre se pide a Altrak como cualquier insumo. Eclipse → Aperam queda como está (Fase
+  4, decidido el 01/09), aunque hoy no se puede pedir Eclipse desde la pantalla
+  (`sector.oc_pide=false` en Procesado).
+- **Alternativa B (lo que hace el código hoy).** OC a Charcas en paquetes → gemela a Altrak por
+  kg × (1 + 0 %). Faltaría: vínculo padre–hijo entre las dos OC (anular una no anula la otra y la
+  huérfana cruza contra la próxima recepción de Altrak), redondeo al envase de Altrak (¿kg sueltos
+  o rollo mínimo?), y que `FLEJE90_BRUTO` deje de aparecer para pedir a mano (doble pedido).
+- **Recomendación.** A: es lo último que decidiste y es más simple (una OC menos, sin vínculo
+  padre–hijo que inventar). B sólo si de verdad querés que Charcas reciba una hoja de pedido.
+- **Impacto.** A: 1 bandera + esconder a Charcas en la pantalla (media hora). B: vínculo entre OC,
+  cascada al anular, norma de envase de Altrak (medio día).
+- **Preguntas concretas.** (1) ¿A o B? (2) Si B: ¿cuánto alambre se pierde de verdad al cortar
+  (hoy 0) y Altrak vende kg sueltos o rollo/atado mínimo? (3) El precio 1,715 USD de IC3/IC3V está
+  cargado con `cod_prov` de Altrak: ¿es por kg de alambre de Altrak o por unidad de fleje cortado
+  por Charcas? Con eso se valoriza hoy la OC de Charcas, y `FLEJE90_BRUTO` / `CHAPA430` no tienen
+  precio (las gemelas salen sin valorizar).
+
+---
+
 ## 21. El sector 13 «Alambre»: ¿es un sector de insumo comprado?
 
 **Problema encontrado.** El sector 13 se creó el 2026-09-04 para `FLEJE90_BRUTO` (lo compra

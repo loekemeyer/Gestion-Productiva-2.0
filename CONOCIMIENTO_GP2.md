@@ -4417,16 +4417,32 @@ paquetes de 10 kg de producto y se guarda en kg.** La pantalla de OC muestra el 
 (con el «= N uni» que sale de `kg_x_uni`) y manda `unidad='paq'`; `crear_oc` lo convierte a kg con
 ese parámetro (antes el 10 estaba escrito en `OC_GP2.html`). Así la recepción de Charcas, que
 entra en kg de balanza, cruza directo contra la OC, y la OC gemela a Altrak suma esos kg ×
-(1 + `proveedor_servicio.desperdicio_pct`, 2 %). Hasta el 2026-09-05 `crear_oc` sumaba los paquetes como si
+(1 + `proveedor_servicio.desperdicio_pct`, hoy 0). Hasta el 2026-09-05 `crear_oc` sumaba los paquetes como si
 fueran kg (3 paquetes → 3 kg de alambre): bug latente, sin ninguna OC de Charcas afectada.
 
 `[dato 2026-09-05: GP2.proveedor_servicio.desperdicio_pct]` **El desperdicio de un PS híbrido es
-un atributo del PS**: Charcas 2 % (corta el alambre de Altrak), Eclipse 28 % (estampa la chapa 430
-de Aperam; `[usuario 2026-09-01]` 1 chapa de 19,625 kg rinde 760 uni). Antes eran dos claves de
-`parametro` con el nombre del PS adentro. La **OC gemela** sale de una sola regla: si la OC es a un
-PS híbrido, se crea otra al proveedor de su materia prima (`mp_componente_id` →
-`componente.proveedor`) por kg de producto pedido × (1 + desperdicio), y la recepción de ese PS
-descuenta la MP con el mismo %. Un PS híbrido nuevo se configura en la tabla, sin tocar código.
+un atributo del PS**: Eclipse 28 % (estampa la chapa 430 de Aperam; `[usuario 2026-09-02]`
+calibrado con remito), Charcas **0** (`[usuario 2026-09-04]` "sin dato, asumir 0"; el 2 % que
+había era un default que escribió un agente el 01/09 y quedó como si fuera dato — corregido al
+cierre de la auditoría). Antes eran dos claves de `parametro` con el nombre del PS adentro. La
+**OC gemela** sale de una sola regla en `crear_oc`: si la OC es a un PS híbrido, se crea otra al
+proveedor de su materia prima (`mp_componente_id` → `componente.proveedor`) por kg de producto
+pedido × (1 + desperdicio). **Pero ese modelo está en duda** (pregunta 28): el 04/09 el usuario
+decidió que la OC del Fleje 90 va SOLO a Altrak y que no hay gemela en el flujo de Charcas; el
+código siguió con el modelo viejo y la auditoría lo generalizó antes de ver esa decisión.
+
+`[dato 2026-09-05, segunda opinión gp2-experto]` Lo que hoy tiene el circuito de la OC gemela,
+para cuando el usuario conteste la 28: (1) la recepción de Charcas descuenta el alambre **1:1**
+(sólo la de Eclipse aplica el %); (2) **Eclipse no se puede pedir desde la pantalla** — el 1686 es
+sector 2 Procesado con `sector.oc_pide=false` — así que la gemela a Aperam sólo se alcanza por RPC;
+(3) las dos OC gemelas **no tienen vínculo en datos** (sólo texto en `nota`): anular una deja viva
+la otra, y la huérfana cruza contra la próxima recepción; (4) la gemela **no aplica la norma de
+envase** del proveedor de la MP (Aperam vende chapas enteras de 19,625 kg); (5) `crear_oc` suma a
+la gemela todos los ítems de la OC sin verificar que sean del PS; (6) el precio 1,715 USD de
+IC3/IC3V está cargado con `cod_prov` 3711 (Altrak, "Ø 1.63 mm alambre galvanizado") y
+`precio_por_kg=false`, y `FLEJE90_BRUTO` / `CHAPA430` no tienen precio: la OC de Charcas se
+valoriza con el precio del alambre y las gemelas salen sin valorizar; (7) `oc_bundle` y
+`esCharcasIt()` siguen nombrando a Charcas/Eclipse: la configurabilidad es sólo de `crear_oc`.
 
 `[dato 2026-09-05: GP2.sector.es_insumo]` Qué sectores son **de insumo comprado** (entran por
 Recepción, salen en la OC, no los produce ninguna ruta) ahora es una columna del sector, no una
