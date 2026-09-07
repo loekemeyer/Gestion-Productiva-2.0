@@ -4701,3 +4701,65 @@ artículos que hacía Gentile** antes de escribir 11 filas en `precio_tallerista
 el artículo 502 y la uña es el 506/510: si «Skin Mariposa Uña» cubre a los dos o sólo a uno, lo
 tiene que decir el usuario. Tampoco hay precio de Blist-Pack para el envasado del 506 Chef (706)
 ni para el 555 (Limpia Bombilla) que Gentile también hacía.
+
+## 4v. La planilla madre de costos vive en la base (2026-09-07)
+
+`[usuario 2026-09-07]` Pedido textual: *"Guarda costos de alguna manera en supabase para que no
+lo tenga que subir siempre a cada sesion. Que quede alla como archivo de consulta"*. Eligió
+**crudo + vistas encima** y **las 16 hojas de costos** de las 58 del libro.
+
+### Cómo quedó
+
+**No se guardó el `.xlsx`**: un blob de 7,8 MB no se consulta con SQL y habría que bajarlo
+entero igual. Se guardó el contenido, en dos tablas:
+
+| Tabla | Qué es |
+|---|---|
+| `GP2.planilla_snapshot` | Una fila por subida del archivo. `vigente=true` es la última. |
+| `GP2.planilla_fila` | Una fila por fila del Excel: `hoja`, `fila`, `datos` (jsonb, las celdas por letra de columna), `formulas` (jsonb, sólo donde se guardaron) y `bloque` (el encabezado de proveedor arrastrado). |
+
+Y dos vistas con columnas de verdad, que es como se consulta en el día a día:
+
+- **`GP2.v_planilla_costo`** — la hoja «Costos»: `cod`, `familia`, `fabricante`, `descripcion`,
+  `compra_3ros`, `material`, `remaches`, `tratamientos`, `tallerista`, `plastico_mango`,
+  **`envasado_terceros`**, `carton`, `cajas`, `cod_y_precinto`, `costo_sin_aporte`,
+  `aporte_produccion`, más **`formula_envasado`** y el jsonb `formulas` entero.
+- **`GP2.v_planilla_precio`** — la hoja «Lista de Precios »: `proveedor` (del encabezado de
+  bloque), `cod_prov`, `cod_isis`, `moneda`, `precio_proveedor`, `precio_ipc_al_dia`,
+  `fecha_lista`, `cod_art`, `producto`, `tomado_en_costos`, `rubro`, `ultima_compra`, `detalle`.
+
+Dos helpers, porque la planilla mezcla texto y plata en la misma columna (`"xx"`, `#REF!`,
+direcciones y teléfonos donde en otras filas hay precios): **`GP2.planilla_num(text)`** y
+**`GP2.planilla_fecha(text)`** devuelven `null` en vez de reventar.
+
+### Por qué se guardan las FÓRMULAS y no sólo los valores
+
+Porque fue **la fórmula la que explicó el dato**. `v_planilla_costo.formula_envasado` del 506
+dice `='Lista de Precios '!L225/12 + L232`, o sea **AJ por pliego ÷ 12 + Gentile por unidad**;
+la del 557/558 es `L227/16 + L233`. Sin eso, «Envas. Terc. = $81,67» es un número mudo. El 510
+tiene esa celda **vacía**, que es exactamente lo que sostiene la idea 7268. Un valor dice
+cuánto; la fórmula dice de quién.
+
+### Cómo se recarga cuando el usuario mande una planilla nueva
+
+1. `select "GP2".planilla_snapshot_nuevo('A_Costos_VIGENTES.xlsx', '<nota>', '<quien>');` —
+   marca los anteriores `vigente=false` y devuelve el id nuevo.
+2. `select "GP2".planilla_cargar(<id>, '<lote>'::jsonb)` por lote. Formato del lote:
+   `{"<hoja>": [[fila, {celdas}, bloque?, {formulas}?], ...]}`. Es **idempotente**: reejecutar
+   un lote no duplica.
+3. Las vistas no hay que tocarlas: leen la tabla, sea cual sea el snapshot.
+
+⚠️ **El cuello de botella es el canal, no la base.** El proxy de egreso **bloquea
+`*.supabase.co`** (403 de política, no se rodea), así que la API REST no se puede usar desde
+la sesión y **todo tiene que entrar por el MCP**, en lotes de ~26 KB. Por eso la carga es lenta
+y se hace por tandas. El repo es privado, así que tampoco sirve dejar los datos en
+`raw.githubusercontent.com` para que los baje la extensión `http` de Postgres (que **sí** está
+instalada, versión 1.6, por si algún día hay una fuente alcanzable y confidencial).
+
+### Estado de la carga (snapshot 1, 2026-09-07)
+
+- **`Costos`: 277 de 277 filas — COMPLETA**, con todas sus fórmulas. Es la hoja que más valía.
+- **`Lista de Precios `: 204 de 1.234** — en curso.
+- Las otras 14 hojas (` Cartones`, `Cajas `, `Talleristas`, `Talleristas-Procesos`, `Flejes`,
+  `Plasticos`, `Bombillas`, `Remaches`, `Importados`, `Tratamientos `, `Materiales`,
+  `Materiales Loeke`, `Conversion cod Loeke Chef`, `Ranking Compra Prov`): **pendientes**.
