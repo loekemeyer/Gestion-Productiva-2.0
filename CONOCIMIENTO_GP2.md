@@ -4459,3 +4459,58 @@ realidad la cantidad de cajas redondeada (43: 4 cajas → "4 uni"). El trigger q
 es la de GP2. Las 5 filas contables del origen (ANTICIPO VTA, CHEQ RECHAZADO…) no entran al
 espejo porque no empiezan con dígito.
 
+
+## 4s. Murió Gentile: hay que reemplazar el envasado skin (2026-09-07)
+
+`[usuario 2026-09-07]` **Falleció Gentile Norberto** (tallerista id 8, cod_prov 3709, alias
+"Oscar"). Hay que conseguir otro proveedor para el envasado en skin. **Todavía no se tocó nada
+en la base**: sigue `activo=true` y sigue en las rutas, porque hasta que no haya reemplazo
+borrarlo dejaría 11 artículos sin paso final y sin costo.
+
+**Qué se cae con él** `[dato 2026-09-07]`: **48 pasos de ruta** (`ruta_paso.tallerista_id=8`)
+sobre **11 artículos** — el **506** (uña) y las **10 bombillas** (557/558/654/658/659 y sus
+gemelos Chef 762/763/769/758/759). En todos es el **último paso**: recibe el cuerpo del garage
++ el pliego adhesivado, hace el skin y entrega en Virgilio. Su precio son 11 filas de
+`GP2.precio_tallerista`: **$69/uni** las 10 bombillas ("Skin Bombillas", lista 2026-07-20) y
+**$70/uni** el 506 ("Envasado 506", usuario 2026-09-01).
+
+### Cotización RC Pack SRL (Gustavo Carmona) — recibida 2026-09-07
+
+`[dato: cotización en papel, At. LOCKEMEYER HNOS / Sr. Thomas, 2026-09-07]` RC Pack SRL,
+Calle 39 N°2425, Villa Maipú, San Martín. Tel 5067-1877, gcarmona@rcpack.com.ar.
+**Ojo: no es lo mismo que cotizó Gentile — RC Pack PONE EL CARTÓN**, así que reemplaza a la
+vez a Gentile (envasado), a Pol (cartón) y a AJ (adhesivado).
+
+| Concepto | Abrelatas (506) | Bombilla |
+|---|---|---|
+| Por unidad | $125 + US$ 0,09 material | $108 + US$ 0,07 material |
+| Unidades por cartón | 12 | 16 |
+| Con dólar $1.530 (`parametro.tipo_cambio_usd_pesos`) | **$262,70/uni** | **$215,10/uni** |
+| **Hoy (Pol + AJ + Gentile)** | **$146,42/uni** (pliego $917/12 = $76,42 + envasado $70) | **$126,19/uni** (pliego $915/16 = $57,19 + envasado $69) |
+| Diferencia | **+$116,28 (+79%)** | **+$88,91 (+70%)** |
+
+Más **gasto por única vez: cortante de abrelatas $300.000 y cortante de bombillas $350.000**
+($650.000 los dos).
+
+Incluye: colocación en cartón, provisión del material y sellado skin, troquelado de bocas,
+guardado y cierre de caja, etiqueta de caja y paletizado. **Caja y pallets los pone Loeke.**
+
+**Antes de comparar en serio, tres cosas a preguntarle a RC Pack** `[deducido]`:
+1. **¿El cartón viene impreso con el arte del SKU?** El de Pol sí ($786–$777 por pliego, uno
+   por SKU) y es la mitad del costo actual. Si RC Pack cotiza cartón liso, la comparación de
+   arriba no vale y hay que sumarle la impresión.
+2. **La caja**: el papel dice "guardado en caja por 16 unidades" para bombillas, pero la caja
+   A8 (N°2) hoy es **de 24**. Y en el mismo párrafo dice "cerrar caja por 12 unidades", que
+   parece copiado del ítem del abrelatas. Confirmar.
+3. **US$ a qué cambio y a qué fecha** se factura la parte en dólares.
+
+### Blist-Pack: NO tenemos precio de envasado
+
+`[dato 2026-09-07]` Se buscó y **no hay ningún precio de envasado de Blist-Pack cargado**:
+es tallerista id 13 (cod_prov 3227) con **cero filas en `precio_tallerista`** y **cero pasos
+en `ruta_paso`** — está dado de alta y nada más. Lo único suyo que existe es la nota de la
+lista **2026-08-07: pliego adhesivado $147,97 por pliego** (§ lista de precios ago-26), que es
+**otro producto** (el pliego, no el envasado) y encima **ni siquiera está en
+`precio_proveedor`**: los pliegos con skin están cargados a **Pol 2147 + AJ 697**
+($786 + $129 = $915 bombillas; $777 + $140 = $917 el 506). Para que Blist-Pack compita hay que
+**pedirle cotización de envasado por unidad**.
