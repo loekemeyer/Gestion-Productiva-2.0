@@ -4474,7 +4474,11 @@ gemelos Chef 762/763/769/758/759). En todos es el **último paso**: recibe el cu
 `GP2.precio_tallerista`: **$69/uni** las 10 bombillas ("Skin Bombillas", lista 2026-07-20) y
 **$70/uni** el 506 ("Envasado 506", usuario 2026-09-01).
 
-### Cotización RC Pack SRL (Gustavo Carmona) — recibida 2026-09-07
+### Cotización RC Pack SRL (Gustavo Carmona) — recibida 2026-09-07, **DESCARTADA**
+
+`[usuario 2026-09-07]` Dicho textual: *"esta cotización es malísima. Así que esta no la
+consideres"*. **No se usa para nada**: ni para costear, ni como piso de negociación. Queda
+asentada abajo sólo para no volver a pedirla ni volver a evaluarla.
 
 `[dato: cotización en papel, At. LOCKEMEYER HNOS / Sr. Thomas, 2026-09-07]` RC Pack SRL,
 Calle 39 N°2425, Villa Maipú, San Martín. Tel 5067-1877, gcarmona@rcpack.com.ar.
@@ -4504,7 +4508,20 @@ guardado y cierre de caja, etiqueta de caja y paletizado. **Caja y pallets los p
    parece copiado del ítem del abrelatas. Confirmar.
 3. **US$ a qué cambio y a qué fecha** se factura la parte en dólares.
 
-### Blist-Pack: NO tenemos precio de envasado
+### Blist-Pack es el proveedor activo del skin (2026-09-07)
+
+`[usuario 2026-09-07]` **Blist-Pack pasa a ser el proveedor activo del envasado skin**, en
+lugar de Gentile. Textual: *"la de Blisspack sí, porque va a ser el proveedor activo de
+momento"*. **"De momento"**: es el reemplazo con el que se sigue trabajando hoy, no
+necesariamente el definitivo.
+
+⚠️ **LOS PRECIOS TODAVÍA NO ESTÁN CARGADOS.** El usuario los pasó en un mensaje que llegó
+**sin el archivo adjunto**, así que a la fecha no hay un solo número de Blist-Pack en la base
+ni acá. **Lo primero de la próxima sesión: pedirlos y cargarlos** en `GP2.precio_tallerista`
+(tallerista_id 13), reemplazando las 11 filas de Gentile (id 8), y recién ahí dar de baja a
+Gentile de las rutas.
+
+### Lo que había de Blist-Pack antes de esto
 
 `[dato 2026-09-07]` Se buscó y **no hay ningún precio de envasado de Blist-Pack cargado**:
 es tallerista id 13 (cod_prov 3227) con **cero filas en `precio_tallerista`** y **cero pasos
@@ -4514,3 +4531,52 @@ lista **2026-08-07: pliego adhesivado $147,97 por pliego** (§ lista de precios 
 `precio_proveedor`**: los pliegos con skin están cargados a **Pol 2147 + AJ 697**
 ($786 + $129 = $915 bombillas; $777 + $140 = $917 el 506). Para que Blist-Pack compita hay que
 **pedirle cotización de envasado por unidad**.
+
+## 4t. El 506 podría dejar de ir con skin y pasar a ser como el 510 (idea 7268, 2026-09-07)
+
+`[usuario 2026-09-07]` Dicho textual: *"probablemente hagamos que dejemos de hacer el 506 con
+skin, porque también desaparecería lo de AJ, para que pase a ser como el 510. El que va a
+entregar va a ser el tallerista directo en Virgilio, en lugar de tener que ir a entregar a
+Cervantes"*. **Es una idea, no una decisión** — queda registrada como **7268** en
+`IDEAS-GP2.md`, con el análisis completo de qué habría que tocar.
+
+**Contradice a §2c-septies** ("El 506 va con skin", usuario 2026-08-31). No se corrige esa
+sección todavía porque la de hoy es una intención, no un hecho: si se ejecuta, se tacha aquella
+y se anota el cambio de realidad.
+
+### La diferencia real entre el 506 y el 510 es sólo el packaging
+
+`[dato 2026-09-07]` Los dos son la uña; lo que cambia es cómo se envasa y quién entrega:
+
+| | 506 (hoy, con skin) | 510 (el molde a copiar) |
+|---|---|---|
+| Cartón en la receta | `Pliego Ad 506` ×**1/12** ($917/pliego → $76,42/uni) | `A2B` "Cartón 510" ×**1** ($89/uni, formato C, Pol 2147) |
+| Adhesivado | **AJ (prov 697)**, ruta 632, $140/pliego | — |
+| Envasado | **Gentile** $70/uni | — (lo hace el mismo tallerista que arma) |
+| Quién cierra | Alex/Martin arman GRJ7 → **entregan en Cervantes** → sale a Gentile → Virgilio | Alex/Martin arman y envasan → **`virgilio` directo** |
+| Caja | `A11` N°29 ×1/12 | `A11` N°29 ×1/12 (**la misma**) |
+| Rutas | 10 con paso de Gentile (42, 158, 159, 298, 572, 592, 593, 594, 595, 596) | 10 sin él, duplicadas por tallerista (160/215/302/303/490 Alex · 601/602/604/605/607 Martin) |
+
+**El molde ya existe y está probado**: el 510 es exactamente el patrón destino, incluso con la
+misma caja y los mismos dos talleristas. No hay que inventar nada, hay que copiarlo.
+
+**Plata**: se van $76,42 (pliego) + $70 (Gentile) = **$146,42/uni** y entra el cartón suelto a
+**$89** → **ahorro ~$57/uni** `[deducido, a confirmar el precio del cartón 506 troquelado
+individual con Pol: el $89 es el que hoy paga el 510, y el 506 es del mismo formato C]`. Más lo
+que se ahorre de logística, que es la mitad del planteo del usuario.
+
+**⚠️ Antes de usar cualquier número de estos para decidir, hay un desfasaje que entender**
+`[dato 2026-09-07, sin explicar]`: `v_costo_componente` da hoy **506 = $1.519,65** contra
+**510 = $486,93**, pero la cuenta a mano del 506 (GRJ7 $275,47 + pliego $76,42 + caja $13,90 +
+Gentile $70) da **~$436**. Sobran ~$1.084 que no salen de la receta. La sospecha es que las dos
+variantes de cuerpo (Fleje 13 → J2 → `A10` vía Jade, y Fleje 57 → L13 → `C10` vía FAAT +
+Guazzaroni) se **suman** en vez de que la vista elija una — que es justo lo contrario de lo que
+se verificó para GRJ5/GRJ6 en §4c. **Hay que medirlo antes y después del cambio**, si no el
+ahorro no se va a poder ver en el costo.
+
+### AJ no se queda sin trabajo
+
+`[dato 2026-09-07]` AJ adhesiva **12 pliegos**: el 506, el 500 (discontinuo) y los 10 de
+bombillas (rutas 632, 672-682). Sacar el 506 le quita **1 de 12**, no lo da de baja. El que sí
+queda tocado es **el volumen que se le cotiza al proveedor de skin**: si el 506 sale, a
+Blist-Pack hay que pedirle el precio **por las 10 bombillas solas**, no por los 11 artículos.
