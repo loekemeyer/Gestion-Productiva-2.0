@@ -4615,7 +4615,15 @@ literalmente **AJ por pliego ÷ bocas + Gentile por unidad**:
 - **510** (fila 27): **la celda está VACÍA.** No tiene envasado tercero — es exactamente lo que
   dijo el usuario y lo que motiva la idea 7268.
 
-**Tres cosas se deducen de esto, y hay que decidirlas antes de cargar nada** `[deducido]`:
+> ⚠️ **CORREGIDO EL 2026-09-07 POR EL USUARIO.** Lo que sigue en esta lista (los tres puntos
+> «deducidos») **estaba mal**. Textual: *"Blistpack cobra $193 x unidad de skineado"*. Los
+> precios de Blist-Pack son **POR UNIDAD**, igual que los de Gentile — las notas «12 bocas» /
+> «20 bocas» describen la herramienta, no la unidad de venta. Se deja el razonamiento tachado
+> abajo porque el error es instructivo: **parecerse en el importe a otro proveedor no dice nada
+> sobre la unidad de medida**, y acá esa suposición se comió el dato. Las conclusiones buenas
+> están en §4u-bis.
+
+~~**Tres cosas se deducen de esto, y hay que decidirlas antes de cargar nada**~~ `[deducido, ERRÓNEO]`:
 
 1. **Los precios de Blist-Pack son POR PLIEGO, no por unidad.** Las notas «12 bocas» / «20
    bocas» son las posiciones del pliego, y los importes ($131,89 – $193,05) son **del mismo
@@ -4651,3 +4659,45 @@ El 506 es el único que no cierra: **planilla $89 vs GP2 $76,42, con $24,25/uni 
 contra el pliego real de Pol. Huele a que el $89 se copió de la fila del 510 sin ajustar. **Si
 se ejecuta la idea 7268 el problema se disuelve solo** (el 506 pasaría a usar cartón suelto y
 $89 sería el número correcto); si no, hay que corregir uno de los dos lados.
+
+## 4u-bis. Blist-Pack cobra POR UNIDAD: qué queda en pie (2026-09-07)
+
+`[usuario 2026-09-07]` Textual: **"Blistpack cobra $193 x unidad de skineado"**. Corrige la
+deducción de §4u. Los 5 precios de su lista son **$/unidad**, no por pliego.
+
+### Lo que cuesta el skineado, por unidad, con cada uno
+
+| | Gentile (†) | **Blist-Pack** | Salto |
+|---|---|---|---|
+| Uña 506 | $70 | **$193,05** | **+$123,05 (+176%)** |
+| Bombillas (las 10) | $69 | **$147,97** | **+$78,97 (+114%)** |
+
+**El reemplazo de Gentile sale entre 2,1 y 2,8 veces lo que se pagaba.** Eso no es una
+objeción — Gentile ya no está y hay que envasar igual — pero es la plata que se mueve, y
+cambia dos cosas que ya estaban escritas:
+
+**1. La cotización de RC Pack deja de ser "malísima" contra esta referencia.** RC Pack incluye
+el cartón; Blist-Pack no, así que para comparar hay que sumarle el pliego:
+
+| Por unidad | RC Pack (con cartón) | Blist-Pack + pliego | Gana |
+|---|---|---|---|
+| **506** | **$262,70** | $193,05 + $76,42 = **$269,47** | **RC Pack, por $6,77** |
+| **Bombilla** | **$215,10** | $147,97 + $57,19 = **$205,16** | Blist-Pack, por $9,94 |
+
+Quedan casi empatados, y en el 506 **RC Pack sale más barato**. El usuario descartó a RC Pack
+el 2026-09-07 (§4u) **cuando todavía se creía que Blist-Pack cobraba por pliego**; con el precio
+real la comparación es otra. `[deducido]` Falta meter en la cuenta los **$650.000 de cortantes**
+de RC Pack por única vez, que a volumen alto se diluyen y a volumen bajo no.
+
+**2. La idea 7268 (el 506 sin skin) pasa a valer mucho más.** Si el 506 deja el skin, no se
+ahorran los $70 de Gentile sino **los $193,05 de Blist-Pack**: contra el cartón suelto de $89,
+el ahorro salta de ~$57 a **~$180/uni**. Es, de lejos, la palanca más grande que hay sobre la
+mesa.
+
+⚠️ **Sigue sin cargarse en la base.** Ahora la unidad está clara, pero falta lo otro: los 5
+productos de Blist-Pack son «Skin Bombilla», «Skin Mariposa Uña», «Skin Patita Pie», «Skin
+Mariposa Uña Chef» y «Etiquetas EAN» — **y hay que mapear cuál corresponde a cada uno de los 11
+artículos que hacía Gentile** antes de escribir 11 filas en `precio_tallerista`. «Mariposa» es
+el artículo 502 y la uña es el 506/510: si «Skin Mariposa Uña» cubre a los dos o sólo a uno, lo
+tiene que decir el usuario. Tampoco hay precio de Blist-Pack para el envasado del 506 Chef (706)
+ni para el 555 (Limpia Bombilla) que Gentile también hacía.
