@@ -4580,3 +4580,74 @@ ahorro no se va a poder ver en el costo.
 bombillas (rutas 632, 672-682). Sacar el 506 le quita **1 de 12**, no lo da de baja. El que sí
 queda tocado es **el volumen que se le cotiza al proveedor de skin**: si el 506 sale, a
 Blist-Pack hay que pedirle el precio **por las 10 bombillas solas**, no por los 11 artículos.
+
+## 4u. La lista de Blist-Pack, y cómo arma el envasado la planilla madre (2026-09-07)
+
+`[dato 2026-09-07: `A_Costos_VIGENTES.xlsx` que pasó el usuario, hoja «Lista de Precios », y
+las fórmulas de la hoja «Costos»]` El usuario pidió registrar los costos de Blist-Pack. Están
+acá abajo tal como figuran. **No se cargaron en la base todavía**, y el porqué está al final:
+la planilla dice que son otra cosa que lo que se esperaba.
+
+### Los 5 precios de Blist-Pack SA (3227) — lista 2026-08-07
+
+Contacto: **Héctor 11 5609-5499 / 11 3072-3749**. Nota del bloque: *"15.000 piezas en un turno"*.
+
+| Cod ISIS | Producto | $ ARS | Detalle | Últ. compra |
+|---|---|---|---|---|
+| 1906 | **Skin Bombilla** | **147,97** | — | 2026-04-15 |
+| 1896 | **Skin Mariposa Uña** | **193,05** | **12 bocas** | 2026-05-19 |
+| 2906 | **Skin Patita Pie** | **193,05** | — | 2026-05-11 |
+| 0406 | **Skin Mariposa Uña Chef** | **131,89** | **20 bocas** | 2026-05-04 |
+| 1907 | **Etiquetas EAN** | **92,40** | — | 2026-03-25 |
+
+Historia de la 1906: 147,97 (ago-26) ← 135,33 ← 125 ← 80 ← 76,08 ← 68 ← 29,50 ← 11,84 ← 6,97
+← 6,24. En tres de las cinco filas el propio usuario dejó escrito **«VER A QUIEN REEMPLAZA»**.
+
+### Cómo arma la planilla el "Envas. Terc." — y por qué Blist-Pack no es el reemplazo de Gentile
+
+`[dato 2026-09-07: fórmulas de la hoja «Costos», columna K]` La columna **«Envas. Terc.»** es
+literalmente **AJ por pliego ÷ bocas + Gentile por unidad**:
+
+- **506** (fila 29): `='Lista de Precios'!L225/12 + L232` = **$140 (AJ, 56×41 mm) ÷ 12 + $70
+  (Gentile)** = **$81,67/uni**.
+- **557 y 558** (filas 205 y 207): `=L227/16 + L233` = **$129 (AJ, 47×43 mm) ÷ 16 + $69
+  (Gentile)** = **$77,06/uni**.
+- **510** (fila 27): **la celda está VACÍA.** No tiene envasado tercero — es exactamente lo que
+  dijo el usuario y lo que motiva la idea 7268.
+
+**Tres cosas se deducen de esto, y hay que decidirlas antes de cargar nada** `[deducido]`:
+
+1. **Los precios de Blist-Pack son POR PLIEGO, no por unidad.** Las notas «12 bocas» / «20
+   bocas» son las posiciones del pliego, y los importes ($131,89 – $193,05) son **del mismo
+   orden que los de AJ** ($129 – $140 por pliego), no del orden de Gentile ($69 – $70 por
+   unidad). Si fueran por unidad, Blist-Pack cobraría **2,8 veces** lo de Gentile por el mismo
+   trabajo.
+2. **Entonces Blist-Pack compite con AJ (el adhesivado del pliego), no con Gentile (el
+   envasado).** Y encima **más caro**: para la uña, $193,05 ÷ 12 = **$16,09/uni** contra los
+   **$11,67/uni** de AJ. Eso explica el «VER A QUIEN REEMPLAZA» que escribió el usuario: ni él
+   tenía claro a quién sustituye esta lista.
+3. **Ninguna de las 5 filas alimenta un solo costo**: se buscaron todas las fórmulas del libro
+   y hay **cero referencias** a las filas 241-245. La lista está cargada pero no la usa nadie.
+
+⚠️ **Por eso NO se escribieron en `GP2.precio_tallerista`.** Meter $147,97 como precio por
+unidad del envasado duplicaría el costo de las 10 bombillas con un dato mal leído, y la casa no
+inventa datos de negocio (regla de `CLAUDE.md`). **Pregunta abierta al usuario**: ¿Blist-Pack va
+a hacer el **envasado completo** que hacía Gentile (y entonces falta que cotice eso, por
+unidad), o va a hacer **el skin del pliego** en lugar de AJ (y entonces estos 5 precios se
+cargan en `precio_proveedor` / `precio_servicio_pieza`, no en `precio_tallerista`)?
+
+### Hallazgo lateral: el cartón del 506 no coincide entre la planilla y GP2
+
+`[dato 2026-09-07]` La hoja « Cartones» le da al **506 un cartón de $89 — el mismo que al 510**
+(filas 255 y 250, las dos «Abrelatas», las dos $89). Pero el 506 va en **pliego de 12**: el
+pliego sin adhesivar de Pol sale $777, o sea **$64,75 la posición**. GP2, por su lado, lo cobra
+a **$76,42** (el `Pliego Ad 506` de $917 ÷ 12).
+
+Las bombillas **sí cierran**: la planilla pone $49,125 de cartón (= $786 ÷ 16, el pliego sin
+adhesivar) y $8,06 de AJ en otra columna; GP2 pone los dos juntos en el `Pliego Ad` de $915 ÷ 16
+= $57,19. **Misma plata, distinta columna.**
+
+El 506 es el único que no cierra: **planilla $89 vs GP2 $76,42, con $24,25/uni de diferencia**
+contra el pliego real de Pol. Huele a que el $89 se copió de la fila del 510 sin ajustar. **Si
+se ejecuta la idea 7268 el problema se disuelve solo** (el 506 pasaría a usar cartón suelto y
+$89 sería el número correcto); si no, hay que corregir uno de los dos lados.
