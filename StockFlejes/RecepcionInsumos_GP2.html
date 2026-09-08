@@ -6,6 +6,10 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
+<!-- v3.50.0 (2026-09-08) — ORDEN POR N° REAL. Los items salian por codigo (A1, A11, A2...) y
+     el N° quedaba saltado (Caja N°1, 29, 12...). insumosVista() ahora ordena por el N° que
+     trae la descripcion ("Caja N°1", "Fleje N° 45"); lo que no tiene N° (cartones) cae a
+     codigo con orden numerico-aware. -->
 <!-- v3.49.0 (2026-09-04) — CHAPA 430 DE APERAM SE RECIBE ACA (misma forma que Altrak, jubila
      el modulo Pagos Aperam->Eclipse). Al tocar el item CHAPA430 en Flejes se abre un panel
      propio stepChapa (kg + remito, sin %) que llama cargar_compra_mp('Aperam') -> suma la
@@ -823,6 +827,18 @@ function insumosVista(){
       else l=l.filter(i=>i.carton_formato===formatoSel);
     }
   }
+  // Orden por N° real de la pieza (Caja N°1, Fleje N° 45...) y no por codigo:
+  // el codigo (A1, A11, A2) no coincide con el N° (A1=1, A11=29) y salia saltado.
+  // Si la descripcion no trae "N°<num>" (cartones, etc.) cae a codigo con orden
+  // numerico-aware (A1, A2 ... A11, no A1, A11, A2).
+  function _numDesc(d){ var m=/N°\s*(\d+)/i.exec(String(d||'')); return m?parseInt(m[1],10):null; }
+  l = l.slice().sort(function(a,b){
+    var na=_numDesc(a.descripcion), nb=_numDesc(b.descripcion);
+    if(na!=null && nb!=null) return na-nb;
+    if(na!=null) return -1;
+    if(nb!=null) return 1;
+    return String(a.codigo||'').localeCompare(String(b.codigo||''), 'es', {numeric:true});
+  });
   return l;
 }
 function irStep2(){

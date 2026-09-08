@@ -62,25 +62,32 @@ const STUB = 'window.supabase={createClient:function(){return{'
   const cards = await page.$$eval('.item-btn', bs => bs.map(b => b.innerText.replace(/\n/g, ' | ')));
   ok(cards.length === 4, '4 insumos del proveedor');
 
-  // ni stock ni ultima carga en la tarjeta (v3.20.0): solo la OC
-  ok(!/959 kg|360 kg|sin stock|sin cargas/.test(cards[0]),
-     'ni stock ni ultima carga en la tarjeta: ' + cards[0]);
-  ok(!/29\/8|2 pallets|7 rollo/.test(cards[0]), 'sin fecha, sin pallets, sin rollos');
+  // v3.50.0: los items salen ordenados por N° real (Fleje N° 5, 8, 13, 23), NO por codigo
+  // (A1, A10, A11, A12). Por eso los indices de abajo siguen ese orden.
+  ok(/Fleje N° 5\b/.test(cards[0]) && /Fleje N° 8\b/.test(cards[1])
+     && /Fleje N° 13\b/.test(cards[2]) && /Fleje N° 23\b/.test(cards[3]),
+     'items ordenados por N°: ' + cards.map(c => c.split(' | ')[1]).join(', '));
 
-  // la OC abierta: "OC: <lo que falta> <unidad>" (640 = 1000 pedidos - 360 recibidos)
-  ok(/OC: 640 kg/.test(cards[0]), 'OC pendiente = "OC: 640 kg": ' + cards[0]);
+  // ni stock ni ultima carga en la tarjeta (v3.20.0): solo la OC. El fleje con stock/ultima
+  // es el N° 13 (A1), ahora en la 3ra posicion por el orden por N°.
+  ok(!/959 kg|360 kg|sin stock|sin cargas/.test(cards[2]),
+     'ni stock ni ultima carga en la tarjeta: ' + cards[2]);
+  ok(!/29\/8|2 pallets|7 rollo/.test(cards[2]), 'sin fecha, sin pallets, sin rollos');
+
+  // la OC abierta: "OC: <lo que falta> <unidad>" (640 = 1000 pedidos - 360 recibidos) — N° 13
+  ok(/OC: 640 kg/.test(cards[2]), 'OC pendiente = "OC: 640 kg": ' + cards[2]);
   ok(await page.$('.item-btn .oc-pend') !== null, 'la OC va resaltada en su propio span');
 
-  // sin OC abierta, NADA abajo de la medida: la tarjeta termina en "33 x 2 mm"
+  // sin OC abierta, NADA abajo de la medida: la tarjeta termina en "33 x 2 mm" — N° 8 (cards[1])
   ok(/33 x 2 mm$/.test(cards[1].trim()), 'sin OC la tarjeta termina en la medida: ' + cards[1]);
 
-  // varias OC: se suma lo que falta de todas (y el stock 500 no aparece)
-  ok(/OC: 1\.200 kg/.test(cards[2]) && !/500 kg/.test(cards[2]),
-     'dos OC suman lo pendiente, sin stock: ' + cards[2]);
+  // varias OC: se suma lo que falta de todas (y el stock 500 no aparece) — N° 23 (cards[3])
+  ok(/OC: 1\.200 kg/.test(cards[3]) && !/500 kg/.test(cards[3]),
+     'dos OC suman lo pendiente, sin stock: ' + cards[3]);
 
-  // misma parte pedida en dos unidades: se muestra el numero SIN unidad, no se inventa
-  ok(/OC: 50(\s|$)/.test(cards[3]) && !/OC: 50 kg/.test(cards[3]),
-     'con unidades mezcladas no pone unidad: ' + cards[3]);
+  // misma parte pedida en dos unidades: se muestra el numero SIN unidad — N° 5 (cards[0])
+  ok(/OC: 50(\s|$)/.test(cards[0]) && !/OC: 50 kg/.test(cards[0]),
+     'con unidades mezcladas no pone unidad: ' + cards[0]);
 
   await browser.close();
   console.log(process.exitCode ? 'HAY FALLOS' : 'TODO OK');
