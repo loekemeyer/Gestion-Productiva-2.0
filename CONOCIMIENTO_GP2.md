@@ -588,9 +588,24 @@ operario suma con "+ pallet" si el remito trajo más. Ver `fieldsFleje(prov)` en
   + receta + rutas + inventario **+ precio_tallerista/precio_servicio_pieza del armado**.
 - **Bombillas — la bolsa** `[usuario 2026-09-08]`: el 550 y el 760 llevan una **bolsa** que se
   compra a **Papelera Nueve de Julio** (nuevo proveedor de insumo, rubro Sector Cartón); componente
-  `BOLSA550`, sector Cartón, sin precio por ahora. Va sólo en el 550 y el 760 (no en las otras
-  bombillas). El 550/760 se arman con filtro (BOM13) + precinto (BOM14) + cartón 550 (CCG6B) +
-  caja + bolsa, por **Danica García**, y entregan en Virgilio.
+  `BOLSA550`, descripción **"Bolsa 550/760"**, sector Cartón, sin precio por ahora. Va sólo en el
+  550 y el 760 (no en las otras bombillas). El 550/760 se arman con filtro (BOM13) + precinto
+  (BOM14) + cartón 550 (CCG6B) + caja + bolsa, por **Danica García**, y entregan en Virgilio.
+  **Se trata "como las de Vihal"** `[usuario 2026-09-08, elección]`: `carton_formato = 'Bolsa'`
+  (el formato 'Bolsa' *significa* "es bolsa, no cartón" → múltiplo 1, sin redondeo que sume de
+  más, piso 20.000 de la familia). **`marca` queda NULL a propósito**: la comparten el 550 (LOEKE)
+  y el 760 (CHEF), no lleva una sola marca — con marca vacía `famLabel` muestra "Formato Bolsa"
+  limpio (sin "(sin marca)"). Carga **manual** en la OC: sin `maximo` no hay sugerido automático, y
+  el piso 20.000 sólo **avisa**, no fuerza. Suma una **3ª familia Bolsa** (`Bolsa|(sin marca)`),
+  aparte de las dos de Vihal (LOEKE/CHEF); es de otro proveedor, no se mezclan.
+- **Una ruta "GRJ como insumo" es falsa cuando el GRJ lo arma un tallerista** `[dato 2026-09-08]`:
+  557/762/558/763 tenían una ruta "Insumo GRJ6/GRJ5 → art (Gentile)" **además** de las rutas del
+  caño (BOM12) y el resorte (BOM8) que van a **Martín Cornejo**. El GRJ NO se compra: Martín lo arma
+  de caño+resorte, y las rutas de las partes ya trazan todo el camino
+  (caño/resorte → Martín → GRJ → Gentile → art). La ruta "GRJ insumo" era un duplicado que ensuciaba
+  el trazado; **borrarla no cambia el costo** (test de reversa: 1.795,56 → 1.795,56). Regla: si un
+  intermedio (GRJ) lo fabrica un tallerista de sus partes, NO va también como ruta de insumo — se
+  costea/traza por las rutas de las partes.
 
 ### El proveedor vive en UN solo lugar
 `[dato 2026-08-30]` `componente.proveedor` es la **única fuente**. Antes el proveedor del
