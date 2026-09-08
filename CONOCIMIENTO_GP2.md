@@ -5335,3 +5335,15 @@ en 0 (Ester tiene ubicación, sin códigos ni pasos duplicados).
    de Pat Bet Plast; reconciliar al confirmar.)
 2. **Ester no tiene tarifa de calado** — por eso el costo del 123 ahora marca `faltan_precios` (el
    servicio suma $0 hasta cargarla). El costo total no cambió sólo porque el calado todavía vale 0.
+
+**Mismo circuito para el 505 (2026-09-08, mismo pedido).** `[usuario: "con el 505 vamos a hacer lo
+mismo. Pat Bet Plast entrega el mango sin calar y se manda a Ester para calar. El sin calar sería
+el PC2 y el calado en la ruta del 505 está como PC1A"]`. Se creó **`PC2`** = "Mgo Pelapapa 505 Sin
+Calar" (proveedor Pat Bet Plast; tomó el punto de compra de PC1A, máx 112.736, y su precio $63,06);
+**`PC1A`** pasó a `estado_compra='fabricacion'` + `proveedor=null` (lo produce Ester; conserva sus
+240 uni en stock). El calado de Ester (PC2→PC1A) se insertó en **las DOS rutas** del 505 (296 con
+Lucho, 548 con Danica García) — el 505 se arma por dos talleristas alternativos, y el paso va antes
+del tallerista en ambas. El código lo eligió el usuario: **PC2**, sin la letra A (no PC2A).
+Verificado: costo del 505 estable en $667,09; OC pasa de "PC1A → Pettofrezza" a "PC2 → Pat Bet
+Plast" (sug 112.736); invariantes en 0 (inventario = ledger, los 240 de PC1A intactos). Mismos dos
+pendientes que el 123: confirmar proveedor de PC2 y cargar la tarifa de calado de Ester.
