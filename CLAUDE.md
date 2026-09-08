@@ -28,6 +28,25 @@ código, comentarios ni mensajes de commit).
 - **`desactiva caveman`** = responder solo el **próximo mensaje** normal/completo, y después **volver solo** a caveman.
 - **`caveman desactivacion total`** = apagar caveman por completo (queda desactivado hasta que se reactive).
 
+### 📏 EL LARGO DE LA RESPUESTA (regla del usuario, 2026-09-08, textual)
+
+**"Me mandaste un mensaje eterno para que lea, imposible que te lea. Tus mensajes, por más de
+que vos hagas tu trabajo interno, a lo último tenés que mandar un resumen conciso y breve para
+que pueda leer solamente eso y no tener que leer todo tu proceso de análisis."**
+
+- **El análisis se hace, pero NO se escribe.** Consultas, cruces, verificaciones: todo eso queda
+  adentro. Lo que llega al chat es la **conclusión**.
+- **Apuntar a ~10 líneas.** Si no entra, es porque se está contando el camino en vez del
+  resultado. Sacar el camino, no el resultado.
+- **Nada de volcar tablas de 20 filas, listados completos ni el paso a paso de cómo se llegó.**
+  Si el detalle hace falta, va a un **archivo** (`.md` / `.xlsx`) y en el chat va **el link y una
+  línea**. Ese es el lugar del detalle, no el chat.
+- **Estructura fija:** (1) la respuesta en una o dos frases; (2) lo que hay que decidir o el
+  número que falta; nada más. Los "hallazgos de paso" van al archivo o a `IDEAS-GP2.md`, no al
+  mensaje.
+- Vale igual cuando el hallazgo es grande o entusiasma: **un hallazgo grande se dice en una
+  línea**, no en tres tablas.
+
 ## 🏠 Filosofía GP2: "la casa del vecino" (LEER SIEMPRE — analogía guía)
 
 **Analogía base para todo el proyecto GP2 (usarla en todos los chats):**
