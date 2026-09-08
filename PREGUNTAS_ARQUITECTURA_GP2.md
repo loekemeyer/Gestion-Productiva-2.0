@@ -197,9 +197,11 @@ Cada uno tiene la consulta y el detalle en los informes de auditoría (`REFACTOR
 4. **574** está `discontinuado` pero la Est Madre le pide 1.060/mes (también 119: 150, 615: 24,
    809: 16). ¿Sigue discontinuado? Y 9 componentes `discontinuo` siguen en rutas vivas (A1C1,
    A9, BOM10, C12, GRJ13, I3B, IZ19A, L4B1, V20): ¿se sacan de la ruta o vuelven a activos?
-5. **GRJ1**: está en la receta del 500 y tiene inventario, pero ninguna ruta lo produce ni lo
-   consume (las 10 rutas del 500 entran por C1/V9/pliego/A11). ¿Quién arma el GRJ1
-   (Alex/Martin, espejo del GRJ7) o el 500 se envasa con las partes sueltas?
+5. ~~**GRJ1**: está en la receta del 500 y tiene inventario, pero ninguna ruta lo produce ni lo
+   consume.~~ **RESUELTO 2026-09-08 [usuario]:** el 500 se arma con las partes sueltas, como el 510
+   (sin intermedio de Garage). Se aplanó la receta del 500 a C1 + C10 + V9 + A11 + Pliego Ad 500 y
+   se retiró GRJ1 por completo (BOM, inventario en 0, componente). Las rutas ya mandaban las partes
+   por separado a Alex Escalante y Martin Cornejo. Costo del 500 sin cambios ($1.525,12).
 6. **863** tiene PEP8 en la receta y ninguna ruta lo toca. ¿Falta la ruta `Fleje 27 -> Art 863`
    con Maspoli, o PEP8 no va en el 863?
 7. **Federico Realini** tiene dos legajos (274 inactivo, 401 activo). ¿Reingreso (se deja) o

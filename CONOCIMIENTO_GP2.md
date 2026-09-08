@@ -564,7 +564,13 @@ operario suma con "+ pallet" si el remito trajo más. Ver `fieldsFleje(prov)` en
   más** y el paso de niquelado en Guazzaroni se sacó de las rutas 382/577/589, que ahora
   entran el V20 comprado y van derecho al tallerista. `[usuario 2026-08-29]`
 - **Garage (GRJ*)**: no llevan proveedor, los arman los talleristas. Además el sector se
-  está vaciando: hoy quedan 4 códigos y sólo GRJ10 tiene stock. `[usuario + dato]`
+  está vaciando: hoy quedan 3 códigos (`[usuario + dato]`). **Un GRJ se jubila cuando el
+  tallerista arma las partes sueltas en vez de un sub-armado previo** `[usuario 2026-09-08]`:
+  se aplana la receta del terminado (las partes del BOM del GRJ pasan a la receta) y el GRJ
+  se borra. Ejemplo: **GRJ1 (Abrelata Uña Pie 500)** se retiró el 2026-09-08 — el 500 quedó
+  como el 510 (receta plana: C1 + C10 + V9 + A11 + Pliego Ad 500, sin intermedio). Las rutas
+  ya mandaban las partes por separado a Alex Escalante y Martin Cornejo, así que no cambiaron;
+  el costo del 500 tampoco ($1.525,12, sale de la ruta, no de la receta).
 
 ### El proveedor vive en UN solo lugar
 `[dato 2026-08-30]` `componente.proveedor` es la **única fuente**. Antes el proveedor del

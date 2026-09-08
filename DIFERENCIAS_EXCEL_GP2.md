@@ -23,9 +23,13 @@ Excel: `Conteo_Gral_FLEJES_y_Alambre_VACIO.xls`. GP2: 56 flejes, 48 completos.
      - Aparte → cargar Basconia + medida 40 x 0,45 + sacar discontinuo.
      - Mismo que 27 → borrar el 49.
 
-2. **Fleje 45 (`IF5`)** — GP2 **sin medida** en `fleje_detalle`.
-   - El Excel se contradice consigo mismo: hoja *Pedido Flejes* dice **117 x 0,8** ("Pinza Ensalada", Aperam); hoja *FLEJES* dice **123 x 0,8** ("Cuchara Inox", Aperam).
-   - **DUDA:** ¿cuál es la medida real del fleje 45?
+2. **Fleje 45 (`IF5`, código F5) = Pinza Ensalada** — GP2 **sin medida** en `fleje_detalle`.
+   - GP2: id 199, "Fleje N° 45", código **F5**, proveedor **Aperam**, `medida_mm` = **null**.
+   - Excel (cruzando por **código**, no por N°): F5 / cód 0145 = **Pinza Ensalada / Espumadera Inox, 117 x 0,8, Aperam** (hojas *Pedido Flejes*, *Stock Fleje Virgilio*, *Conteo Cervantes*).
+   - **NO había contradicción** (corrijo la versión anterior): el 117x0,8 y el 123x0,8 son **dos flejes distintos** que la hoja *FLEJES* renumera:
+     - Pinza Ensalada 117x0,8 = **F5 / N°45** operativas, pero *FLEJES* la llama **N°36**.
+     - Cuchara Inox 123x0,8 = **F6 / N°43**, pero *FLEJES* la llama **N°45**.
+   - **✅ HECHO (2026-09-08):** cargada `medida_mm = '117 x 0,8'` en `GP2.fleje_detalle` (componente 199). La pantalla ya la muestra.
 
 3. **IE13 "Cremallera"** (proveedor GP2 = Importado) — GP2 **sin detalle**.
    - Excel: "Cremallera Espumante", medida **74,5 x 1,25** (JL Metales / Materiales San Roque).
