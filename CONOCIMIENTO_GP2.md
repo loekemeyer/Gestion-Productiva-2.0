@@ -473,6 +473,14 @@ ruteo por ítem `CHAPA430` → panel `stepChapa`), la ENTREGA del corte va por E
 NO cuenta como "entregado" (se corta, no se entrega) — el "entregado" es la `compra`
 del producto cortado atribuida al PS. Los módulos "Pagos" (AltrakCharcas / AperamEclipse)
 quedaron JUBILADOS (legacy sin link).
+**Desperdicio del corte de chapa (Eclipse) `[dato/usuario 2026-09-04]`:** medido con
+la última compra real — Aperam entregó 3 chapas = 59,28 kg (39,52 LK + 19,76 CH),
+Eclipse devolvió 2.440 uni de 1686 que pesan 35,4 kg (11,8 kg/813 u LK + 23,6 kg/1627 u CH),
+se corta TODO → recorte 23,88 kg. Peso real del 1686 = 35,4/2.440 = **0,014508 kg/u**
+(los dos lotes coincidían; el `kg_x_uni` viejo 0,01376 estaba 5% bajo, se corrigió).
+Desperdicio = 59,28/35,4 − 1 = **67,46 %** sobre el producto (= 40,3 % de la chapa),
+cargado en `parametro.eclipse_desperdicio_pct` (antes 0). Regla de rinde: **1 kg de chapa 430 ≈ 41,2 uni de 1686** (50 kg → ~2.058 uni). El 1686 no está en recetas/BOM/rutas,
+así que cambiar su peso no arrastra costeo.
 **⚠️ Ya NO son gemelos en la OC** (desde 2026-09-04): Eclipse mantiene OC gemela
 a Aperam; Charcas va SOLO a Altrak, sin gemela. `proveedor_insumo.modo_control` = `peso_total`
 en ambos `[usuario 2026-09-02: "los paquetes se pesan"]` — semántico, el
