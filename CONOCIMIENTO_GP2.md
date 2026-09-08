@@ -5687,3 +5687,37 @@ va al 121 **y** alimenta a PA10.
 **El calado de Ester quedó cargado a $3,87** (PC1A y PC1B) [usuario 2026-09-08, eligió el precio
 de lista sobre el IPC al día de $5,1837]. **El 505 pasó a `faltan_precios = 0`**: $667,09 → $670,96.
 Hubo que dar de alta el proceso `calado` en la tabla `proceso`, que no existía.
+
+### 4ad-ter. Serigrafía: las 3 que se hicieron por evidencia, y por qué las otras 7 esperan (2026-09-08)
+
+**Cerradas** (se creó la pieza en blanco, el precio de compra se mudó a ella, la serigrafiada pasó
+a `fabricacion` y la ruta lleva el paso de Julio):
+
+| En blanco (se compra) | Julio | Serigrafiada (va al tallerista) | Artículos |
+|---|--:|---|---|
+| `PEP2` $147,30 | $24 | `PEP3` | 586 |
+| `PA10B` $58,74 | $19 | `PA10` | 315 |
+| `PA18B` $58,74 | $19 | `PA18` | 542, 543, 546, 559, 562, 587, 116 |
+| `PA13B` $58,74 | $19 | `PA13` | 515 |
+| `PC15AB` $513,36 | $24 | `PC15A` | 523 |
+
+**El criterio para aplicar fue el ARTÍCULO, no el nombre de la pieza** — porque el nombre del
+ítem de Julio ("Capuchón Espátula Serigrafiado") no trae código GP2 y cruzarlo por descripción es
+adivinar. Se aplicó sólo donde la hoja **Tratamientos** de la planilla marca el artículo en la
+columna `Serigrafiado`: los 6 artículos de PA18 figuran, el 515 de PA13 figura, el 523 de PC15A
+figura.
+
+**Las 7 que NO se tocaron y por qué** [dato 2026-09-08]: `PA4`, `PA5` (arts 551, 878), `PC13`
+(701), `PC14` (501), `PB5` (101), `PC15B` (723), `PEP1` (099). **Ninguno de esos artículos aparece
+en la columna `Serigrafiado` de Tratamientos.** El caso que más engaña es el **501**: sí figura
+con serigrafía $19, pero la fila dice **"Planchuela Manija"** — es el mango de METAL (`A4`, que
+GP2 ya tiene bien cableado), **no** el manguito plástico `PC14`. Así que la lista de precios de
+Julio tiene ítems ("Manguito PP Plásticos Serigrafiado" $24, "Mango Untadores Plásticos
+Serigrafiado" $19) que **no se pueden atar a ningún artículo** con lo que hay: o se usan en
+artículos que GP2 no modela, o son ítems viejos. **Falta que el usuario diga cuáles van.**
+
+**El efecto en el costo tiene dos formas, y conviene saber cuál toca antes de aplicar:**
+- Si el precio de compra **ya incluía** la serigrafía (lo dice la descripción de la fila de
+  precio), se **reparte** y el costo del artículo **no se mueve**. Fue el caso del 586.
+- Si el precio dice **"(mat+iny)"**, la serigrafía **no estaba** y el costo **sube** lo que cobra
+  Julio. Fue el caso de PA10, PA18, PA13 y PC15A.
