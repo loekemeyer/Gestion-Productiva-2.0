@@ -5625,3 +5625,38 @@ Por orden de lo que le va a doler primero — el detalle está en las ideas **72
   tampoco los rescata y `sugerido = 0` siempre. Contarles el stock no cambia nada. Los que más
   llaman la atención tienen mínimo cargado y el máximo vacío: `IE4` (Fleje N° 31, mín 108.000),
   `IE5` (Fleje N° 32, mín 36.000) y `O6A` (Cartón 809, mín 5.184).
+
+## 4ad. La serigrafía de Hernández Julio (ximpa): el mango sale, se serigrafía y vuelve (2026-09-08)
+
+**[usuario, textual]: "Julio no va para 505. Sí para 586. El mango plástico que entregan, va a
+Julio y después vuelve. El que vuelve va a talleristas."**
+
+- **El modelo es el mismo que el de Ester con el 505**: se compra la pieza EN BLANCO, un
+  proveedor de servicio la trabaja, y la que vuelve es la que va al tallerista. Nunca se compra
+  la pieza ya terminada.
+- **586 aplicado** (migración `serigrafia_julio_586_pep2_a_pep3`): `PEP2` (Mango Pelador 586 S/M,
+  en blanco, $147,30 a Pat Bet Plast) → **Hernández Julio** serigrafía ($24) → `PEP3` (Mango
+  Pelador LK 586 c/Serig) → Lucho → 586. `PEP3` pasó a `estado_compra='fabricacion'` y el punto
+  de compra se mudó a `PEP2`.
+- **No se inventó ningún número**: la propia fila de `precio_proveedor` de PEP3 ya decía
+  `"mango $147,30 + serig Ximpa $24"` [usuario, cargado el 2026-08-30]. Sólo se separó lo que ya
+  estaba junto. **Ximpa = Hernández Julio** (el título del bloque en la planilla dice
+  `1149 - Hernandez Julio (ximpa)`).
+- **PEP2 no era huérfana**: yo la había reportado como componente sin ruta ni receta. Era la
+  pieza en blanco de una cadena que faltaba cargar. **Regla: antes de dar una pieza por huérfana,
+  fijarse si su nombre dice "S/Serig", "S/M" o "Sin Calar" — eso significa que es el ANTES de un
+  proceso, no una baja.**
+- ⚠️ **El $67 de la planilla NO va**: en el bloque de Julio hay dos filas, `PELADOR 505 $67` y
+  `PELADPR 586 $67`, que el usuario descartó explícitamente para el 505. La serigrafía del mango
+  es la de $24 (`Mango Pelador Serigrafiado`, fila 778). Las de $67 quedan sin explicar.
+- **Cómo leer la planilla de precios [usuario 2026-09-08]: el proveedor es el TÍTULO del bloque,
+  no el `cod_prov` de las columnas.** Y buscar por palabra clave se pierde ítems: las filas de
+  $67 están en el bloque de serigrafía y no dicen "serigrafía" en ningún lado.
+- **Falta hacer lo mismo en los capuchones y manguitos** (PA18, PA10, PA13, PA4, PA5, PC13, PC14,
+  PB5, PC15A, PC15B, PEP1). Para PA10 el par ya existe (`PA10B` es el S/Serig); para las otras hay
+  un solo código y hay que crear la pieza en blanco. Precios de Julio: capuchones y mangos
+  untadores $19, manguitos y cuerpos $24, cuchara de cocina $28.
+- **Proveedores de proceso de la planilla que GP2 NO tiene** [dato 2026-09-08, por título de
+  bloque]: `3131 - New Metal` (13 ítems), `559 - Becker Sandra Nora (GUSTAVO SETTON)` (10),
+  `1673 - Industermic Chromium` (7), `4750-3157` (15, el título no trae nombre). Y
+  `3149-Recubrimientos Color` existe en GP2 como "Rec Color" pero con 0 pasos y 0 precios.
