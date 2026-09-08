@@ -880,6 +880,50 @@ a Giser.
   supuso en la auditoría de flejes de este mismo día: es el alambre de **Alambres Rumbo** y
   vive en la planilla de bombillas. El fleje 78 sigue siendo un faltante aparte.
 
+## 1-nonies. Control de Partes: cómo se llaman las hojas y quién es cada una (2026-09-08)
+
+`[usuario 2026-09-08 + dato: los dos Excel "AA Control Partes Talleristas" y "Control Partes
+Prov de Servicios"]` **Las hojas del control de partes usan apodos, no los nombres de GP2.**
+Traducción confirmada:
+
+| hoja del Excel | es en GP2 | cómo se supo |
+|---|---|---|
+| Martin | Martin Cornejo (tallerista 6) | alias `MARTIN` |
+| Poly | **IJUPA** (tallerista 10) | `[usuario]` + alias `POLY` |
+| **Carlos** | **Alex Escalante** (tallerista 2) | `[usuario 2026-09-08]` |
+| **Pedernera** (en el Excel de TALLERISTAS) | **Carlos Aguirre** (tallerista 9) | `[usuario 2026-09-08]` |
+| Garcia | Danica Garcia (1) · Lucho | Lucho (5) · Rafael | Pettofrezza (11) | alias |
+| German | Cavallero German (4) | alias `GERMAN` |
+| **Yabran** | **Gentile Norberto** (tallerista 8) | alias `OSCAR`; la hoja dice "OSCAR" en el encabezado y lista los mismos GRJ que Gentile tiene en sus rutas |
+| Ester | **Ester**, que en GP2 es `proveedor_servicio` 14 (Calado), no tallerista | dato |
+| Ximpa | **Hernandez Julio** (`proveedor_servicio` 8, Serigrafiado). La hoja dice **"NO SE LE MANDA MÁS"** | dato |
+| Pedernera (en el Excel de PS) | Pedernera Ilario (`proveedor_servicio` 6, Cromado) | alias |
+| Pintura y Serigrafia | una sola hoja para **varios** PS: Jade, Rec Color, Daniel (pintado) y Ximpa (serigrafiado) | dato |
+
+**⚠ El alias `CARLOS` de `contraparte_alias` apunta al tallerista equivocado** `[hallazgo
+2026-09-08]`: hoy dice `CARLOS → 9 (Carlos Aguirre)`, pero el usuario aclaró que **la hoja
+"Carlos" es Alex Escalante** y que el Carlos Aguirre del control es la hoja "Pedernera". El
+alias `AGUIRRE CARLOS RODOLFO → 9` sí está bien. Mientras `CARLOS` apunte a 9, cualquier
+importación desde esas planillas le carga a Aguirre lo que hace Escalante. **No se tocó**:
+lo decide el usuario.
+
+**Contrapartes del Excel que NO existen en GP2**: talleristas **Ezequiel** (su hoja arranca
+con el título "German", así que puede ser una copia), **Edwin**, **Nacho** y **Ruben** (la
+hoja más grande de las cuatro, 48 códigos); proveedores de servicio **New Metal**,
+**Chormium**, **Gaston Almafuerte** (los tres hacen lo mismo que Mabra: el pavonado
+`X5 → Y1`) y **Valeria** (hace la horqueta del corta queso: `V15C` Tornillo Corta Queso +
+`VCCQ` Varilla Cuerpo).
+
+**⚠ `V15C` en el maestro viejo es el Tornillo Corta Queso de Valeria**, no el Rem Tapón
+Hierro: el Excel de remaches usa `V15C` para los dos. Por suerte el tapón se cargó el
+2026-09-04 como **`CV15`** (renombre pedido por el usuario), así que no hay colisión activa
+— pero si algún día entra el tornillo de Valeria, va con `V15C`.
+
+**Los cajones no existen en GP2** `[dato]`: `CAJ1` (Cajón Plástico s/Calado), `CAJ2` (Cajón
+Plástico Calado) y `CAJ3` (Cajón Metálico) están en **9 de las 14 hojas de talleristas** —
+se cuentan y se mandan como cualquier otra parte, porque son el envase con el que va y viene
+el trabajo. GP2 no los conoce, así que no se pueden enviar ni contar.
+
 ## 1-octies. Garage: la numeración GRJ está corrida entre la planilla y GP2 (2026-09-04)
 
 `[dato: planilla "Relevamiento Garage VACIO", hoja "Pedido Garage VACIO"]` 17 renglones. **No
