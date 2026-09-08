@@ -3422,6 +3422,16 @@ pantallas del grupo: cada una va adonde se usa, y el grupo del menú se borra (v
 
 ## 4g. Las marcas son TRES, y una se llama igual que un formato (2026-09-03)
 
+> **REVERTIDO EN PARTE 2026-09-08: la submarca LOKE YA NO VA.** `[usuario 2026-09-08, viendo los
+> chips MARCA de Recepción de Cartones — LOEKE (51) / LOKE (7): "la marca loke no va. todo lo que
+> esta en loke ponelo en marca loeke y dentro del formato loke"]`. Aplicado (DB-only): los **8
+> cartones** que tenían `marca='LOKE'` (H1A, H1C, H2C, H4C, I2B, I3B, I42, K5D) pasaron a
+> `marca='LOEKE'`, **conservando `carton_formato='LOKE'`**. Ahora quedan **dos marcas** (LOEKE 81,
+> CHEF 41); el chip LOKE desaparece solo porque las marcas salen de los datos (ver más abajo).
+> **El formato LOKE se queda** — lo comparten esos 8 más los 28 CHEF: la familia de pedido sigue
+> siendo "formato LOKE", lo que cambió es que su marca ahora es LOEKE. Todo lo de abajo describe
+> el modelo VIEJO de tres marcas; se conserva por la historia.
+
 - `[usuario 2026-09-03]` **"Ciento cuatro es marca LOKE. No sé qué tan claro tenés qué es
   la marca LOKE, l-o-k-e. Es una submarca dentro de Loekemeyer."**
 - **Las tres marcas** (`componente.marca`):
@@ -3455,7 +3465,7 @@ pantallas del grupo: cada una va adonde se usa, y el grupo del menú se borra (v
   | C | LOEKE | Sacacorchos *(comodín)* | 6 |
   | C | LOEKE | Abrelatas | 6 |
   | C | LOEKE | Resto | 16 |
-  | LOKE | **LOKE** | — | **8** |
+  | LOKE | ~~LOKE~~ **LOEKE** *(era submarca LOKE hasta 2026-09-08)* | — | **8** |
   | LOKE | CHEF | — | 28 |
   | Huevo | LOEKE | — | 11 |
   | Huevo | CHEF | — | 2 |
