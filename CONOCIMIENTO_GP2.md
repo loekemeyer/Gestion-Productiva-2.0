@@ -571,6 +571,14 @@ operario suma con "+ pallet" si el remito trajo más. Ver `fieldsFleje(prov)` en
   como el 510 (receta plana: C1 + C10 + V9 + A11 + Pliego Ad 500, sin intermedio). Las rutas
   ya mandaban las partes por separado a Alex Escalante y Martin Cornejo, así que no cambiaron;
   el costo del 500 tampoco ($1.525,12, sale de la ruta, no de la receta).
+- **Una parte de la receta sin ruta que la produzca = artículo subcosteado** `[dato 2026-09-08,
+  pregunta 8.6]`. El **863** tenía `PEP8` (Mango Madera Pizza Ø9) en la receta pero ninguna de sus
+  rutas lo construía → su costo no incluía el mango. Se replicó la ruta del **564** (que sí lo
+  arma: Fleje 27 `ID8` → matriz 85 → Guazzaroni → **Maspoli** → PEP8 → Martin Cornejo → art).
+  Costo del 863 corregido $909,73 → $1.620,57. Regla: el costo del terminado sale de las **rutas**,
+  no de la receta; una parte de la receta sin ruta productora no suma su costo (a diferencia de
+  GRJ1, que costaba $0 y no cambió nada al sacarlo). `db/verificar.sql` no lo detecta hoy — vale
+  revisar recetas cuyos componentes no aparecen como `comp_salida` de ninguna ruta del artículo.
 
 ### El proveedor vive en UN solo lugar
 `[dato 2026-08-30]` `componente.proveedor` es la **única fuente**. Antes el proveedor del

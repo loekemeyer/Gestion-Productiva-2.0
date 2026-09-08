@@ -184,11 +184,17 @@ Cada uno tiene la consulta y el detalle en los informes de auditoría (`REFACTOR
 
 1. **550**: la columna dice caja **A8** y la receta dice **A9** (el catálogo viejo también dice
    N° 22 = A9). ¿Cuál es? (recomendación: A9, corregir la columna).
-2. **PA10 / PEP3**: están en sector Procesado (decisión 2026-09-04) pero los 240 de stock de
-   PEP3 viven en la ubicación *Sector Plástico* y no hay fila en Procesado. ¿Se mueven con dos
-   ajustes (−240 Plástico, +240 Procesado)? (recomendación: sí). Consecuencia mientras tanto
-   `[dato 2026-09-05]`: como no tienen fila en su sector, `oc_bundle` les toma el máximo (de Est
-   Madre) de la ubicación ajena — es la regla "primero la propia, si no la que tenga stock".
+2. **PA10 / PEP3** `[CONTRADICCIÓN 2026-09-08 — sin resolver]`: hoy el usuario dijo "las partes
+   plásticas van en Sector Plástico, no Procesado" y "PA10 se compra". Pero **eso contradice su
+   propia decisión textual del 2026-09-04** (§4p de `CONOCIMIENTO`, que fue una auto-corrección):
+   *"dejalo en sector procesado, pero no va en orden de compra, porque eso sería plásticos que se
+   mandan a serigrafear"*. Dato duro: **PA10 es el capuchón YA serigrafiado; el que se compra es
+   `PA10B` (Capuchón ф8 S/Serig)**; ídem `PEP3` (Mango Pelador **c/Serig**), cuyo crudo es `PEP2`.
+   Se aplicó el cambio de PA10 a Plástico-comprable y **se revirtió** al ver la contradicción
+   (`refactor_20260908_revert_pa10_vuelve_a_procesado`): PA10 quedó en Procesado como el 04/09.
+   **Falta que el usuario confirme:** ¿manda la decisión del 04/09 (PA10/PEP3 en Procesado, fuera de
+   OC, porque son plástico que sale a serigrafiar) o la de hoy (van a Plástico)? De esto depende la
+   cirugía del 586 (agregarle el paso de serigrafía Ximpa PEP2→PEP3).
 3. **37 stocks negativos en talleristas** (IJUPA −1.896 en 11 piezas, Pettofrezza −1.200 en 12,
    W6 −2.400; +4 en Pedernera/Carlos −1.920 por la entrega 2308 repuesta el 05/09): son consumos
    de Virgilio sin envío ni stock inicial cargado. ¿Se releva el stock
@@ -202,8 +208,11 @@ Cada uno tiene la consulta y el detalle en los informes de auditoría (`REFACTOR
    (sin intermedio de Garage). Se aplanó la receta del 500 a C1 + C10 + V9 + A11 + Pliego Ad 500 y
    se retiró GRJ1 por completo (BOM, inventario en 0, componente). Las rutas ya mandaban las partes
    por separado a Alex Escalante y Martin Cornejo. Costo del 500 sin cambios ($1.525,12).
-6. **863** tiene PEP8 en la receta y ninguna ruta lo toca. ¿Falta la ruta `Fleje 27 -> Art 863`
-   con Maspoli, o PEP8 no va en el 863?
+6. ~~**863** tiene PEP8 en la receta y ninguna ruta lo toca.~~ **RESUELTO 2026-09-08 [usuario:
+   "mismo caso que 564, ruta del fleje 27"]:** faltaba la ruta que construye el PEP8. Se replicó
+   la del 564 (ruta 93: Fleje 27 `ID8` → matriz 85 → Guazzaroni → Maspoli → PEP8 → Martin Cornejo →
+   863). Costo del 863 corregido de $909,73 a $1.620,57 (+$710,84: el mango pizza que faltaba
+   costear). Migración `refactor_20260908_863_ruta_fleje27_pep8`.
 7. ~~**Federico Realini** tiene dos legajos (274 inactivo, 401 activo).~~ **RESUELTO 2026-09-08
    [usuario: "borralo"]:** era error de carga. Se borró el legajo 274 (empleado id 20, inactivo);
    no tenía datos colgados (0 producción, 0 rollos) ni FK. Queda el 401 activo.
