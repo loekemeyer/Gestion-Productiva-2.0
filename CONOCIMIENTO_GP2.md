@@ -4831,3 +4831,84 @@ exacto):
 
 El `nota` del snapshot 1 dice todo esto en la base, para el que consulte desde SQL sin tener
 este archivo a mano.
+
+## 4w. El cruce planilla vs GP2: `v_costo_componente` ignora las cantidades (2026-09-08)
+
+`[usuario 2026-09-08]` Pedido: *"Revisa que el costo sin aportes de la hoja costos te de igual
+que en tu programa, salvo por cod/precinto"*. **No da igual.** Y el cruce encontró un bug de
+fondo en el motor de costos.
+
+### Cómo se comparó
+
+- **Planilla**: `costo_sin_aporte` (columna O de `Costos`) **menos** `cod_y_precinto` (columna N),
+  como pidió el usuario. La hoja cierra sola: en las 264 filas con costo,
+  `O = suma(E..N)` exacto, así que la columna es confiable.
+- **GP2**: `v_costo_componente.total_pesos` del componente `«<cod> Terminado»`.
+- **Universo comparable: 60 artículos.** GP2 modela 99 (91 con el componente `«cod Terminado»`);
+  la planilla tiene 264 filas (incluye Chef, importados y discontinuos que GP2 no modela).
+
+### El resultado
+
+| | Dentro del 2 % | Dentro del 10 % | Sobrevalúa | Sesgo medio | Peor caso |
+|---|---|---|---|---|---|
+| **`v_costo_componente` (hoy)** | **1 de 60** | 5 | **54 de 60** | **+73 %** | **+347 %** (557) |
+| Recalculado por receta | 6 de 60 | 9 | 7 de 60 | −24 % | +137 % |
+
+**El sesgo es de una punta: GP2 sale más caro en 54 de 60**, y el exceso está casi todo en
+`material_pesos`.
+
+### La causa: la vista cobra el insumo ENTERO, no la parte que se usa
+
+`v_costo_componente` no recorre la receta (`articulo_componente`): recorre el **grafo de rutas**
+(`ruta_paso`, CTE recursivo `w`/`wd`) y suma el costo de cada insumo que alcanza. **En esa
+recursión nunca entra `ruta_paso.cantidad`.** En el CTE `mat` se ve la línea exacta:
+
+```sql
+CASE WHEN cb_1.sector_id = 5   -- flejes: sí multiplica, por kg_ref
+     THEN cb_1.precio * COALESCE(wd.kg_ref, 1/m.partes_por_kilo_de_fleje)
+     ELSE cb_1.precio          -- <<< TODO LO DEMÁS: precio entero, sin cantidad
+END AS val
+```
+
+O sea: **sólo los flejes (sector 5) se prorratean**, vía `kg_ref`. Todo lo demás —cartones,
+pliegos, cajas— entra al costo **por unidad entera de insumo**, no por la fracción que consume
+un artículo.
+
+**El caso más claro, la bombilla 557** (planilla: $401,96 sin cod/precinto):
+
+| Insumo | Se usa | Cuesta | Debería aportar | La vista carga |
+|---|---|---|---|---|
+| `GRJ6` Bombilla Resorte Chata | 1 | $264,45 | $264,45 | $264,45 ✅ |
+| `Pliego Ad 557` | **1/16** | $915,00 | **$57,19** | **$915,00** ❌ |
+| `Caja N°2` (`A8`) | **1/24** | $261,82 | **$10,91** | **$261,82** ❌ |
+
+Un pliego rinde 16 bombillas y una caja lleva 24, pero la vista le carga a **cada** bombilla el
+pliego entero y la caja entera. Por eso 557 da $1.796 en vez de $402: **+347 %**.
+
+### La prueba de que la receta sí está bien
+
+Recalculando a mano `Σ(articulo_componente.cantidad × costo del hijo) + envasado`:
+
+| | 557 | 558 | 659 | 658 | 104 | 505 | 550 |
+|---|---|---|---|---|---|---|---|
+| Planilla | 402 | 403 | 2.142 | 1.172 | 704 | 330 | 204 |
+| **Por receta** | **402** | **402** | **2.142** | **1.172** | **700** | **325** | **197** |
+| Vista hoy | 1.796 | 1.796 | 5.324 | 3.384 | 1.621 | 667 | 652 |
+
+**Clavado.** Los datos de GP2 (recetas, cantidades, precios) están bien; **lo que está mal es
+cómo la vista los suma.**
+
+### Lo que esto desbloquea y lo que ensucia
+
+- **Explica el misterio del 506** que estaba anotado como bloqueante de la idea 7268: la vista
+  daba $1.519,65 y la cuenta a mano ~$436. La sospecha vieja era "se suman las dos variantes de
+  cuerpo (Jade→`A10` y FAAT/Guazzaroni→`C10`)"; **era falsa**. Es esto: el pliego y la caja se
+  cobran enteros. Por receta el 506 da **$436** contra $494 de la planilla (−12 %), coherente.
+- **Todo lo que lee `v_costo_componente` está inflado**: valorización de stock, "Máximo por
+  sector", el costo que se mira para decidir precios. Cuanto más comparte el artículo un envase
+  (pliegos de 12/16, cajas de 24), más se infla.
+- El residual **−24 %** del método por receta es otra cosa y más chica: recetas incompletas
+  (falta cargar algún componente), no un error de fórmula.
+
+**Está anotado como idea 7269. No se tocó la vista**: arreglarla mueve todos los números de
+plata de la app y es una cirugía que el usuario tiene que autorizar.
