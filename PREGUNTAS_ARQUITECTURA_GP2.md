@@ -270,7 +270,17 @@ Cada uno tiene la consulta y el detalle en los informes de auditoría (`REFACTOR
 
 ---
 
-## 28. La OC a Charcas y su gemela a Altrak: dos decisiones tuyas que se contradicen en el código
+## ~~28. La OC a Charcas y su gemela a Altrak: dos decisiones tuyas que se contradicen en el código~~
+
+> **CONTESTADA 2026-09-08 — gana la ALTERNATIVA A.** El usuario, viendo IC3 e IC3V en la OC de
+> flejes: *"estos dos items de ordenes de compra en flejes hay que sacarlos porque esas dos partes
+> de charcas se tratan como proveedor de servicio"*. Aplicado: `oc_bundle` ya no lista lo que un PS
+> produce (IC3/IC3V), así que **la OC del Fleje 90 va sólo a Altrak** (`FLEJE90_BRUTO`, rubro
+> Alambre) y el corte entra por Entrega PS. Charcas sigue en la pantalla **sólo como vendedor de
+> bombillas** (BOM10/EP10/LLF8, que sí le compramos), y `crear_oc` ya no dispara la gemela con esos
+> items (antes una OC de bombillas a Charcas generaba una OC de alambre a Altrak que nadie pidió).
+> Eclipse → Aperam queda como estaba. Sub-preguntas (2) y (3) siguen abiertas: la merma real del
+> corte (hoy 0) y qué significa el precio 1,715 USD de IC3/IC3V. Ver `CONOCIMIENTO_GP2.md` §4z.
 
 - **Problema.** El 04/09 dijiste (`CONOCIMIENTO_GP2.md`, §Altrak/Charcas): *"la OC del Fleje 90 va
   SOLO a Altrak (kg de FLEJE90_BRUTO). NO hay OC gemela a Charcas — el corte se registra por la

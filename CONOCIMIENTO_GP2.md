@@ -5213,3 +5213,38 @@ planilla, para el 586, cobra material $66,90 = **cuchilla de fleje nacional + cl
 cuchilla importada. Antes de cargar los $230,03 hay que definir **si esos artículos van con
 cuchilla china o con la nacional** — si van con la nacional, el error no es el precio, es que
 sobra el componente.
+
+## 4z. Lo que un PS PRODUCE no se compra: IC3/IC3V fuera de la OC (2026-09-08)
+
+**[usuario]** Viendo IC3 y IC3V en la OC de flejes: *"estos dos items de ordenes de compra en
+flejes hay que sacarlos porque esas dos partes de charcas se tratan como proveedor de servicio"*.
+Esto **contesta la pregunta 28** de `PREGUNTAS_ARQUITECTURA_GP2.md` (alternativa A) y confirma lo
+que ya había dicho el 04/09: la OC del Fleje 90 va **sólo a Altrak**.
+
+**El circuito del Fleje N° 90, como queda:**
+
+1. **Se compra `FLEJE90_BRUTO` a Altrak** (sector 13 Alambre, kg). Ése es el ítem de la OC.
+2. **Se le manda a Charcas** (envío PS) y Charcas lo **corta**: es un servicio, no una venta.
+3. **Vuelve como IC3** (corto, se guarda en Cervantes) e **IC3V** (largo, va directo a Virgilio),
+   por **Entrega PS** — nunca por una OC ni por una recepción de compra.
+
+**La regla en la base** (`oc_bundle`, 2026-09-08): un componente NO aparece en la OC cuando el
+`proveedor` que tiene cargado es el **mismo PS que lo produce** en una ruta (`ruta_paso` de tipo
+`proveedor_servicio` con `comp_salida` = ese componente). Hoy eso es exactamente IC3 y IC3V.
+Se mira **el proveedor del componente**, no el paso suelto, y eso es a propósito:
+
+- un insumo que **compramos** y mandamos a pintar/zincar (paso PS con entrada = salida) **sigue**
+  en la OC — su proveedor es quien nos lo vende, no el que lo pinta;
+- **Charcas es las dos cosas a la vez**: nos **corta** el alambre (servicio) y nos **vende**
+  bombillas (BOM10, EP10, LLF8, sector Bombilla). Las bombillas siguen en la OC.
+
+**Efecto colateral que había que tapar en el mismo movimiento** (`crear_oc`): la OC gemela al
+proveedor de la materia prima sumaba **todos** los ítems de la OC. Con IC3/IC3V afuera, lo único
+que se le puede pedir a Charcas son bombillas → **una OC de bombillas habría disparado una OC de
+alambre a Altrak que nadie pidió**. Ahora la gemela suma **sólo lo que el PS produce** (componente
+de un sector que NO es de insumo). Probado: OC de LLF8 a Charcas → sin gemela; OC de 35,4 kg del
+1686 a Eclipse → gemela a Aperam por 59,28 kg de CHAPA430 (los mismos números de la compra real).
+
+**Queda pendiente de decisión del usuario:** la pantalla de OC convierte a **paquetes de 10 kg**
+todo lo que sea de Charcas (`esCharcasIt()` mira sólo el proveedor). Esa regla nació para el
+alambre cortado, que ya no se pide; hoy sólo alcanza a las bombillas, que van en unidades.

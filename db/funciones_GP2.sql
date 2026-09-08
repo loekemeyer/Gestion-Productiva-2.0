@@ -1736,7 +1736,7 @@ AS $function$
 declare
   v_oc bigint; v_num int; it jsonb; v_n int := 0;
   v_prov text; v_nota_orig text; v_fent date;
-  v_u text; v_cant numeric; v_kg_x_paq numeric; v_kg_x_uni_it numeric;
+  v_u text; v_cant numeric; v_kg_x_paq numeric; v_kg_x_uni_it numeric; v_sec_it bigint;
   -- OC gemela al proveedor de la materia prima (PS hibrido)
   v_mp_id bigint; v_pct numeric; v_kg_producto numeric := 0;
   v_mp_codigo text; v_mp_prov text; v_mp_rubro text; v_kg_mp numeric;
@@ -1750,9 +1750,9 @@ begin
   v_kg_x_paq := coalesce((select valor from parametro where clave='charcas_kg_x_paquete'), 10);
   -- PS HIBRIDO: la OC a un proveedor de servicio que procesa una materia prima nuestra (Charcas
   -- corta el alambre de Altrak, Eclipse estampa la chapa 430 de Aperam) dispara la OC gemela al
-  -- proveedor de esa MP. desperdicio_pct es % DE LA CHAPA: kg de chapa = producto / (1 - desperdicio_pct/100). Todo sale de
-  -- proveedor_servicio (hibrido, mp_componente_id, desperdicio_pct) y del componente MP
-  -- (proveedor, sector): ningun proveedor por nombre en el codigo.
+  -- proveedor de esa MP. desperdicio_pct es % DE LA CHAPA (materia prima), asi que la chapa a
+  -- comprar = kg de producto pedido / (1 - desperdicio_pct/100). Todo sale de proveedor_servicio
+  -- (hibrido, mp_componente_id, desperdicio_pct) y del componente MP; ningun proveedor por nombre.
   select ps.mp_componente_id, ps.desperdicio_pct into v_mp_id, v_pct
     from proveedor_servicio ps where ps.hibrido and ps.nombre = v_prov;
   if v_pct is not null and (v_pct < 0 or v_pct >= 100) then v_pct := 0; end if;  -- guard division
@@ -1795,13 +1795,21 @@ begin
       ) pv on true;
       v_n := v_n + 1;
 
-      -- kg de producto pedido al PS hibrido (lo que en kg va en kg, lo que va en uni por kg_x_uni)
+      -- kg de producto pedido al PS hibrido (lo que en kg va en kg, lo que va en uni por kg_x_uni).
+      -- Para la OC gemela SOLO cuenta lo que el PS nos PRODUCE con nuestra materia prima. Un PS
+      -- hibrido puede ademas VENDERNOS insumos (Charcas nos vende las bombillas BOM10/EP10/LLF8)
+      -- y esos no consumen alambre nuestro: si contaran, una OC de bombillas a Charcas dispararia
+      -- una OC de alambre a Altrak que nadie pidio. Se distinguen por el sector: lo que el PS
+      -- produce no vive en un sector de insumo (2026-09-08).
       if v_mp_id is not null then
-        if v_u = 'kg' then
-          v_kg_producto := v_kg_producto + v_cant;
-        else
-          select kg_x_uni into v_kg_x_uni_it from componente where id=(it->>'comp_id')::bigint;
-          v_kg_producto := v_kg_producto + v_cant * coalesce(v_kg_x_uni_it, 0);
+        select sector_id, kg_x_uni into v_sec_it, v_kg_x_uni_it
+          from componente where id=(it->>'comp_id')::bigint;
+        if not "GP2"._es_sector_insumo(v_sec_it) then
+          if v_u = 'kg' then
+            v_kg_producto := v_kg_producto + v_cant;
+          else
+            v_kg_producto := v_kg_producto + v_cant * coalesce(v_kg_x_uni_it, 0);
+          end if;
         end if;
       end if;
     end if;
@@ -3387,6 +3395,21 @@ with pend as (
               and exists (select 1 from proveedor_insumo pi where pi.nombre = c.proveedor))
         )
     and c.estado_compra is null
+    -- LO QUE PRODUCE UN PS NO SE COMPRA (usuario 2026-09-08: "esas dos partes de charcas se
+    -- tratan como proveedor de servicio"). Si el proveedor que figura en el componente es el
+    -- MISMO PS que lo produce en una ruta (ruta_paso tipo proveedor_servicio, comp_salida = el
+    -- componente), no hay OC: se le manda la materia prima y se recibe por Entrega PS. Hoy son
+    -- IC3 e IC3V (Charcas corta el FLEJE90_BRUTO de Altrak, que SI se compra, en su rubro
+    -- Alambre). Se mira el proveedor DEL COMPONENTE, no el paso suelto: un insumo que compramos
+    -- y mandamos a pintar (paso PS con entrada=salida) sigue en la OC, y las bombillas que
+    -- Charcas nos VENDE (BOM10/EP10/LLF8) tambien.
+    and not exists (
+      select 1 from ruta_paso rp
+      join proveedor_servicio ps2 on ps2.id = rp.proveedor_id
+      where rp.tipo_paso = 'proveedor_servicio'
+        and rp.comp_salida_id = c.id
+        and ps2.nombre = c.proveedor
+    )
 ), calc as (
   select ins.*,
          case when maximo_inv is not null then maximo_inv

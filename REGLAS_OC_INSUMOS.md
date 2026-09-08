@@ -130,11 +130,16 @@ Vista: `GP2.v_consumo_fleje_kg`; el Punto de Stock de flejes usa esos kg × 6 me
 
 ## PS híbridos — la OC dispara una OC gemela al proveedor de la materia prima (2026-09-05)
 
-> **OJO — en duda (pregunta 28 de `PREGUNTAS_ARQUITECTURA_GP2.md`)**: el 04/09 el usuario decidió
-> que la OC del Fleje 90 va SOLO a Altrak y que NO hay OC gemela en el flujo de Charcas (el corte
-> entra por la recepción). El código siguió con el modelo de abajo y la auditoría del 05/09 lo
-> arregló y generalizó en vez de apagarlo. Hasta que conteste, esto describe lo que HACE el código,
-> no lo que está decidido. El desperdicio de Charcas ya está en 0 (decisión del 04/09).
+> **RESUELTO 2026-09-08 (pregunta 28 contestada) — CHARCAS QUEDA FUERA DE ESTE MECANISMO.**
+> El usuario: *"esos dos items de ordenes de compra en flejes hay que sacarlos porque esas dos
+> partes de charcas se tratan como proveedor de servicio"*. **Lo que un PS produce no se compra**:
+> `oc_bundle` ya no lista un componente cuyo `proveedor` es el MISMO PS que lo produce en una ruta
+> (`ruta_paso` tipo `proveedor_servicio` con `comp_salida` = ese componente). Hoy son IC3 e IC3V.
+> Entonces: **la OC del Fleje 90 va SOLO a Altrak** (`FLEJE90_BRUTO`, rubro Alambre) y el corte
+> entra por Entrega PS. La gemela sigue viva **sólo para Eclipse**; y `crear_oc` ahora suma al kg
+> de la gemela **sólo lo que el PS produce** (sector que no es de insumo), porque Charcas además
+> nos VENDE bombillas (BOM10/EP10/LLF8) y una OC de esas disparaba una OC de alambre a Altrak que
+> nadie pidió.
 
 Un **PS híbrido** (`proveedor_servicio.hibrido` con `mp_componente_id`) procesa una materia
 prima nuestra: Resortes Charcas corta el alambre de Altrak (`FLEJE90_BRUTO`), Eclipse estampa la
@@ -148,6 +153,11 @@ proveedores por nombre — aunque `oc_bundle` y la pantalla todavía nombran a C
 - **Charcas se pide en PAQUETES** de `parametro.charcas_kg_x_paquete` kg (hoy 10): la pantalla
   muestra paquetes y «= N uni», manda `unidad='paq'` y `crear_oc` **guarda la OC en kg**, así la
   recepción (kg de balanza) cruza directo y la gemela suma kg de verdad.
+  ⚠ **PENDIENTE (2026-09-08)**: esa regla se escribió para el alambre cortado (IC3/IC3V), que ya
+  NO se pide por OC. Lo único que hoy le pedimos a Charcas son bombillas en unidades, y la
+  pantalla se las sigue mostrando en paquetes de 10 kg (`esCharcasIt()` mira sólo el proveedor).
+  Falta que el usuario diga si las bombillas también vienen en paquetes de 10 kg o si esa
+  conversión hay que sacarla.
 - **Eclipse se pide en unidades** (el 1686); la gemela convierte con `kg_x_uni`.
 - `orden_compra_item.unidad` sólo admite `kg` / `uni` (CHECK).
 
