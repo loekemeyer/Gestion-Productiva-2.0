@@ -4982,3 +4982,83 @@ los dos modelos es el real.
 2. **Cargar los precios faltantes** (idea 7270), empezando por `Cuch China` (11.388 uni/mes).
 3. **Decidir el modelo del 031** (compra vs fabricación) — el 3.º más vendido.
 4. **Revisar el cartón del 506** ($76,42 vs $89) — ya estaba anotado en §4t.
+
+### 4x-bis. El 505 componente por componente (2026-09-08)
+
+`[usuario 2026-09-08]` *"Veamos el 505. Decime los componentes que tiene el archivo de costos y
+los componentes que tiene en Gestión Productiva."* El 505 es el más vendido (28.184 uni/mes).
+
+**Planilla** (`Costos` fila 9, "Pelador Mgo Plast"), siguiendo cada fórmula hasta su hoja:
+
+| Componente | $ | Sale de |
+|---|---|---|
+| Cuchilla Pelador — fleje 13,6×0,8, **6,7558 g c/desp** × $5.183,34/kg | 35,02 | `Materiales!I74` |
+| Clavo — 6,3 g × $5.060,66/kg | 31,88 | idem |
+| Cuchilla — cementado | 36,53 | `Tratamientos !N84` |
+| Cuchilla — zincado/pavonado | 9,40 | idem |
+| Clavo — niquelado | 20,16 | idem |
+| **Calado Manguito Pelador** (prov 4247) | 3,87 | `Lista de Precios !L522` |
+| Cerrado de la cuchilla (prov 3805, $775,005/kg × 4,95 g) | 3,84 | `L592/1000*4,95` |
+| Pelador Plastico(505) **AyE** (prov 3806) | 33,00 | `L555` |
+| Mgo Pelador (505) Rojo — PP 5,72 g $20,58 + inyección $42,48 | 63,06 | `Plasticos!K23` |
+| Cartón 505 (tipo 2) | 79,00 | `' Cartones'!B:F` |
+| Caja 505M makro — $166,86 ÷ 12 | 13,91 | `'Cajas '!G129` |
+| **Total sin cod/precinto** | **329,66** | |
+
+**GP2** — 5 filas en `articulo_componente` **más** un paso de ruta:
+
+| Componente | Cant | Costo | Aporta |
+|---|---|---|---|
+| Cuchilla Pela Afilada Caja | 1 | 119,22 | 119,22 |
+| Cartón 505 | 1 | 79,00 | 79,00 |
+| Mgo Pelapapa 505 Calado | 1 | 63,06 | 63,06 |
+| Clavo 505 Niq. | 1 | 49,99 | 49,99 |
+| Caja N°29 | 1/12 | 166,86 | 13,91 |
+| *(en `ruta_paso`, no en la receta)* AyE Danica/Lucho | | 33,00 | 33,00 |
+| **Total** | | | **358,17** |
+
+La cuchilla y el clavo no son insumos sueltos: son cadenas de 8 rutas (57, 58, 295–297, 486,
+547–550). `Fleje N° 19` → matriz 1 → `Cuchilla Pelapapa Abierta` → **Martin Cornejo** (cerrar) →
+FAAT (cementado) → Mabra (pavonado) → matriz 501 → `Cuchilla Pela Afilada Caja`. Y
+`Clavo 505` → **Guazzaroni** (niquelado) → `Clavo 505 Niq.`
+
+### El cruce, línea por línea
+
+| Concepto | Planilla | GP2 | Δ |
+|---|---|---|---|
+| Cuchilla — fleje | 35,02 (**6,76 g** c/desp) | 25,44 (**4,92 g** netos) | **−9,58** |
+| Cuchilla — cementado + pavonado | 45,93 | 25,38 | **−20,55** |
+| Cuchilla — cerrado (Martin) | 3,84 | 3,81 | −0,03 ✅ |
+| Cuchilla — MO de matriz (1 y 501) | **0** (va a Aportes) | **68,39** | **+68,39** |
+| Clavo — material + niquelado | 52,04 | 49,99 | −2,05 |
+| Mango plástico | 63,06 | 63,06 | **0** ✅ |
+| **Calado del manguito** | 3,87 | **no está** | **−3,87** |
+| Cartón | 79,00 | 79,00 | **0** ✅ |
+| Caja (1/12) | 13,91 | 13,91 | **0** ✅ |
+| AyE | 33,00 | 33,00 | **0** ✅ |
+| **Total** | **329,66** | **358,17** | **+28,51** |
+
+**Cuatro conceptos dan exacto** (mango, cartón, caja, AyE). Los que no:
+
+1. **La planilla NO pone la mano de obra interna en `Costo sin aportes`** — va a la columna
+   `Aporte Produccion` (para el 505, $571,24). GP2 sí la mete en `total_pesos` ($68,39 de
+   matricería). **Sacándola, GP2 da $289,78 contra $329,66: −12 %.** Medido sobre los 59
+   artículos, esta mano de obra son **$5,1 M/mes, el 5 % del inflado** — no cambia el
+   diagnóstico de la 7269 (el 95 % restante sigue siendo la cantidad), pero para comparar
+   contra la planilla hay que restarla.
+2. **GP2 no cobra el desperdicio del fleje.** El `Fleje N° 19` tiene `kg_x_uni` = **6,84 g** (con
+   desperdicio, casi igual a los 6,7558 g de la planilla) y su precio coincide ($5.171,40/kg vs
+   $5.183,34), pero la vista termina cobrando **4,92 g** — el peso de la `Cuchilla Pelapapa
+   Abierta`. El CTE `mat` usa el `kg_ref` de la pieza que sale, no del fleje que entra.
+3. **Los servicios de la cuchilla salen a la mitad**: $25,38 contra $45,93. `precio_servicio_pieza`
+   tiene el precio en NULL para el cementado de FAAT y el pavonado de Mabra, y cae a
+   `tarifa_servicio`.
+4. **Falta el calado del manguito** ($3,87, prov 4247). En GP2 el mango entra como insumo ya
+   calado (`Mgo Pelapapa 505 Calado`, $63,06 = material + inyección) y el servicio de calado no
+   está en ninguna ruta.
+
+⚠️ **Corrección de §4x**: ahí figura que el 505 "tiene la receta completa, cierra al −1,4 %".
+Ese −1,4 % salió de comparar sólo las 5 filas de `articulo_componente` ($325,17) **sin sumarle el
+AyE de $33** (el cálculo buscaba el envasado en `precio_tallerista` del tallerista 8, Gentile, que
+el 505 no tiene). Sumando el AyE da $358,17, **+8,6 %**. La receta del 505 igual es la más sana de
+los 10 más vendidos, pero no cierra sola: le falta el calado y le sobra la MO de matriz.
