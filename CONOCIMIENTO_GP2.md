@@ -493,6 +493,13 @@ y un campo **`Kg de entrega` manual** = **peso total de las unidades entregadas*
 `uni × kg_x_uni`) y saca la chapa con `proveedor_servicio.desperdicio_pct` (40,28). Validado con la compra real: entrega
 11,8 kg → 19,76 kg chapa (1 chapa Aperam) y 23,6 → 39,52 (2 chapas) — calzan justo. El panel
 muestra en vivo la chapa a descontar. (Ojo: NO es "kg de chapa consumida"; es el peso del producto.)
+**El 1686 se GUARDA EN KG `[usuario 2026-09-08: "no estamos guardando en unidades... son los KG
+los que cargamos"]`:** TODOS los prov serv trabajan/cobran en KG (se pesa lo que se manda y se
+recibe; tarifa $/kg). Las unidades del remito son solo referencia (lo que declara el proveedor).
+Por eso `cargar_recepcion_eclipse` inserta el movimiento del 1686 en **kg** (`v_kg_producto`, no
+`p_unidades`), `componente."1686".unidad_medida='kg'`, y las uni van a `rollos_json.uni_referencia`.
+Igual que Charcas guarda el corte en kg de balanza. Así Control PS de Eclipse queda TODO en kg
+(chapa enviada vs producto entregado, comparable). El 1686 es huérfano (0 recetas/OC) → sin ripple.
 **⚠️ Ya NO son gemelos en la OC** (desde 2026-09-04): Eclipse mantiene OC gemela
 a Aperam; Charcas va SOLO a Altrak, sin gemela. `proveedor_insumo.modo_control` = `peso_total`
 en ambos `[usuario 2026-09-02: "los paquetes se pesan"]` — semántico, el

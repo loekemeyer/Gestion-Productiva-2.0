@@ -835,9 +835,10 @@ begin
   select coalesce(cantidad,0) into v_stock_chapa_antes
     from "GP2".inventario where componente_id=v_chapa and ubicacion_id=v_ubic_eclipse;
 
+  -- Producto 1686: se guarda EN KG (lo pesado), NO en unidades.
   insert into "GP2".movimiento(fecha, tipo_mov, comp_id, ubic_origen_id, ubic_destino_id,
                                cantidad, unidad_origen, unidad_destino)
-  values (v_f, 'compra', p_comp_id, null, v_ubic_procesado, p_unidades, 'uni', 'uni')
+  values (v_f, 'compra', p_comp_id, null, v_ubic_procesado, v_kg_producto, 'kg', 'kg')
   returning id into v_mov_prod;
 
   insert into "GP2".movimiento(fecha, tipo_mov, comp_id, ubic_origen_id, ubic_destino_id,
@@ -848,14 +849,14 @@ begin
   insert into "GP2".recepcion_insumo(fecha, componente_id, proveedor, remito,
                                      cantidad, unidad, movimiento_id, rollos_json)
   values (v_f, p_comp_id, 'Eclipse', nullif(btrim(coalesce(p_remito,'')),''),
-          p_unidades, 'uni', v_mov_prod,
-          jsonb_build_object('unidades', p_unidades, 'kg_producto', v_kg_producto,
+          v_kg_producto, 'kg', v_mov_prod,
+          jsonb_build_object('uni_referencia', p_unidades, 'kg_entregado', v_kg_producto,
                              'kg_entrega_manual', v_manual,
                              'kg_chapa_consumida', v_kg_chapa, 'desperdicio_pct', v_desperdicio,
                              'movimiento_chapa_id', v_mov_chapa))
   returning id into v_rec;
 
-  perform "GP2"._aplicar_recepcion_a_oc(p_comp_id, p_unidades, 'uni');
+  perform "GP2"._aplicar_recepcion_a_oc(p_comp_id, v_kg_producto, 'kg');
 
   select coalesce(cantidad,0) into v_stock_chapa_despues
     from "GP2".inventario where componente_id=v_chapa and ubicacion_id=v_ubic_eclipse;
@@ -863,7 +864,7 @@ begin
   return jsonb_build_object(
     'ok', true, 'recepcion_id', v_rec,
     'movimiento_producto_id', v_mov_prod, 'movimiento_chapa_id', v_mov_chapa,
-    'codigo', v_codigo, 'uni_recibidas', p_unidades,
+    'codigo', v_codigo, 'uni_referencia', p_unidades, 'kg_entregado', v_kg_producto,
     'kg_producto', v_kg_producto, 'kg_entrega_manual', v_manual,
     'kg_chapa_consumida', v_kg_chapa,
     'stock_chapa_eclipse_antes', v_stock_chapa_antes,
