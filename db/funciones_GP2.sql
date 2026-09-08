@@ -775,7 +775,7 @@ end $function$
 ;
 
 -- ---------- cargar_recepcion_eclipse ----------
-CREATE OR REPLACE FUNCTION "GP2".cargar_recepcion_eclipse(p_comp_id bigint, p_unidades integer, p_remito text DEFAULT NULL::text, p_fecha timestamp with time zone DEFAULT now())
+CREATE OR REPLACE FUNCTION "GP2".cargar_recepcion_eclipse(p_comp_id bigint, p_unidades integer, p_remito text DEFAULT NULL::text, p_fecha timestamp with time zone DEFAULT now(), p_kg_chapa numeric DEFAULT NULL::numeric)
  RETURNS jsonb
  LANGUAGE plpgsql
  SECURITY DEFINER
@@ -784,7 +784,7 @@ AS $function$
 declare
   v_codigo text; v_prov text; v_kg_x_uni numeric; v_sec int;
   v_chapa bigint; v_desperdicio numeric;
-  v_kg_producto numeric; v_kg_chapa numeric;
+  v_kg_producto numeric; v_kg_chapa numeric; v_manual boolean := false;
   v_mov_prod bigint; v_mov_chapa bigint; v_rec bigint;
   v_ubic_procesado bigint;
   v_ps_eclipse bigint;        -- proveedor_servicio "Eclipse", resuelto por nombre una vez
@@ -822,7 +822,15 @@ begin
   select coalesce(desperdicio_pct, 0) into v_desperdicio from "GP2".proveedor_servicio where id = v_ps_eclipse;  -- el % vive en el PS
 
   v_kg_producto := p_unidades * v_kg_x_uni;
-  v_kg_chapa := round((v_kg_producto * (1 + v_desperdicio/100))::numeric, 3);
+
+  -- Kg de chapa consumida: si viene MANUAL (real del remito/balanza), se usa tal cual;
+  -- el desperdicio varia por corte, asi que el calculo teorico queda solo de fallback.
+  if p_kg_chapa is not null and p_kg_chapa > 0 then
+    v_kg_chapa := round(p_kg_chapa::numeric, 3);
+    v_manual := true;
+  else
+    v_kg_chapa := round((v_kg_producto * (1 + v_desperdicio/100))::numeric, 3);
+  end if;
 
   select coalesce(cantidad,0) into v_stock_chapa_antes
     from "GP2".inventario where componente_id=v_chapa and ubicacion_id=v_ubic_eclipse;
@@ -842,7 +850,8 @@ begin
   values (v_f, p_comp_id, 'Eclipse', nullif(btrim(coalesce(p_remito,'')),''),
           p_unidades, 'uni', v_mov_prod,
           jsonb_build_object('unidades', p_unidades, 'kg_producto', v_kg_producto,
-                             'kg_chapa_consumida', v_kg_chapa, 'desperdicio_pct', v_desperdicio,
+                             'kg_chapa_consumida', v_kg_chapa, 'kg_chapa_manual', v_manual,
+                             'desperdicio_pct', v_desperdicio,
                              'movimiento_chapa_id', v_mov_chapa))
   returning id into v_rec;
 
@@ -855,7 +864,7 @@ begin
     'ok', true, 'recepcion_id', v_rec,
     'movimiento_producto_id', v_mov_prod, 'movimiento_chapa_id', v_mov_chapa,
     'codigo', v_codigo, 'uni_recibidas', p_unidades,
-    'kg_producto', v_kg_producto, 'kg_chapa_consumida', v_kg_chapa,
+    'kg_producto', v_kg_producto, 'kg_chapa_consumida', v_kg_chapa, 'kg_chapa_manual', v_manual,
     'stock_chapa_eclipse_antes', v_stock_chapa_antes,
     'stock_chapa_eclipse_despues', v_stock_chapa_despues,
     'chapa_negativa', (v_stock_chapa_despues < 0)

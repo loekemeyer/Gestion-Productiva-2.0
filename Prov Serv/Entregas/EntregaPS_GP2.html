@@ -1,7 +1,14 @@
 <!doctype html>
 <html lang="es">
 <head>
-<!-- v1.5.2 (2026-09-04) — FECHA REAL tambien en la entrega Eclipse (mismo fechaHora que Charcas).
+<!-- v1.6.0 (2026-09-08) — ECLIPSE: KG DE CHAPA MANUAL (usuario: "las uni son de referencia y lo
+     que estipula el remito, despues se pone manual el KG"). El desperdicio del corte varia por
+     tanda, asi que el kg teorico (uni x kg_x_uni x desperdicio) no sirve: se agrego el campo
+     'Kg de chapa consumida' (ecKg, manual, libre) que es lo que descuenta la chapa; las unidades
+     quedan de referencia (suman el 1686 al stock). cargar_recepcion_eclipse recibe p_kg_chapa
+     y lo usa tal cual si viene; el desperdicio (proveedor_servicio.desperdicio_pct 67,46) queda
+     de fallback. El panel muestra el desperdicio implicito (kg/producto teorico).
+     v1.5.2 (2026-09-04) — FECHA REAL tambien en la entrega Eclipse (mismo fechaHora que Charcas).
      v1.5.1 (2026-09-04) — FECHA REAL en la entrega Charcas: si la carga es de hoy sella el
      instante real (new Date().toISOString()) en vez de 'T12:00:00' fijo, asi dos entregas del
      mismo dia no caen todas al mediodia en el ledger del bruto. Fecha pasada sigue con mediodia.
@@ -151,9 +158,13 @@
           <label class="lbl" for="ecProd">Producto entregado</label>
           <select id="ecProd" style="height:48px;font-size:19px;font-weight:600;padding:0 12px;border:2px solid #d0d7de;border-radius:10px"></select>
         </div>
-        <div style="display:flex;flex-direction:column;gap:6px;flex:1 1 160px">
-          <label class="lbl" for="ecUni">Unidades del remito</label>
+        <div style="display:flex;flex-direction:column;gap:6px;flex:1 1 150px">
+          <label class="lbl" for="ecUni">Unidades del remito <small style="color:#64748b;font-weight:700">(referencia)</small></label>
           <input type="text" id="ecUni" inputmode="numeric" placeholder="0" style="height:48px;font-size:20px;font-weight:700;padding:0 12px;border:2px solid #d0d7de;border-radius:10px">
+        </div>
+        <div style="display:flex;flex-direction:column;gap:6px;flex:1 1 150px">
+          <label class="lbl" for="ecKg">Kg de chapa consumida</label>
+          <input type="text" id="ecKg" inputmode="decimal" placeholder="0,0" style="height:48px;font-size:20px;font-weight:800;padding:0 12px;border:2px solid #0b3b73;border-radius:10px">
         </div>
       </div>
       <div id="ecVerif" style="font-size:14px;color:#0b3b73;font-weight:700;padding:4px 0;min-height:20px"></div>
@@ -363,35 +374,38 @@ function irEclipse(p){
   $("faseEclipse").classList.remove("hidden");
   var bv=$("btnVolver"); if(bv) bv.classList.remove("hidden");
   if(!$("ecFecha").value) $("ecFecha").value = hoyISO();
-  $("ecUni").value=""; $("ecVerif").textContent="";
+  $("ecUni").value=""; $("ecKg").value=""; $("ecVerif").textContent="";
   $("ecMsg").textContent=""; $("ecMsg").className="status";
   ecRefresh(); ecStock();
 }
 function ecRefresh(){
-  var prod=ecProdSel(), uni=num($("ecUni").value);
+  var prod=ecProdSel(), uni=num($("ecUni").value), kg=num($("ecKg").value);
   if(prod && uni>0){
     var kgProd = prod.kg_x_uni ? Math.round(uni*prod.kg_x_uni*10000)/10000 : 0;
-    $("ecVerif").innerHTML = "= <b>"+fmt(uni)+" uni</b> · "+fmt(kgProd)+" kg producto";
+    var extra = (kg>0 && kgProd>0) ? (" · desperdicio " + (Math.round((kg/kgProd-1)*1000)/10) + "%") : "";
+    $("ecVerif").innerHTML = "Producto teórico <b>"+fmt(kgProd)+" kg</b>"+extra+". Se descuenta el KG de chapa que cargues.";
   } else { $("ecVerif").textContent=""; }
-  $("ecGuardar").disabled = !(prod && uni>0 && $("ecFecha").value);
+  $("ecGuardar").disabled = !(prod && uni>0 && kg>0 && $("ecFecha").value);
 }
 $("ecProd").addEventListener("change", ecRefresh);
 $("ecUni").addEventListener("input", ecRefresh);
+$("ecKg").addEventListener("input", ecRefresh);
 $("ecFecha").addEventListener("input", ecRefresh);
 $("ecGuardar").addEventListener("click", async function(){
-  var prod=ecProdSel(), uni=Math.round(num($("ecUni").value)), fecha=$("ecFecha").value||hoyISO();
+  var prod=ecProdSel(), uni=Math.round(num($("ecUni").value)), kg=num($("ecKg").value), fecha=$("ecFecha").value||hoyISO();
   var m=$("ecMsg"); m.className="status"; m.textContent="";
   if(!prod || !(uni>0)){ m.className="status bad"; m.textContent="Elegí producto y unidades."; return; }
-  if(!confirm("Registrar entrega de Eclipse:\n\n"+prod.codigo+" — "+(prod.descripcion||"")+"\nUnidades: "+fmt(uni)+"\n\n¿Confirmar?")) return;
+  if(!(kg>0)){ m.className="status bad"; m.textContent="Cargá los kg de chapa consumida (a mano, del remito)."; return; }
+  if(!confirm("Registrar entrega de Eclipse:\n\n"+prod.codigo+" — "+(prod.descripcion||"")+"\nUnidades (referencia): "+fmt(uni)+"\nChapa consumida: "+fmt(kg)+" kg\n\n¿Confirmar?")) return;
   $("ecGuardar").disabled=true; m.textContent="Registrando…";
   try{
-    var res = await SB.rpc("cargar_recepcion_eclipse", { p_comp_id:prod.id, p_unidades:uni, p_remito:null, p_fecha:fechaHora(fecha) });
+    var res = await SB.rpc("cargar_recepcion_eclipse", { p_comp_id:prod.id, p_unidades:uni, p_remito:null, p_fecha:fechaHora(fecha), p_kg_chapa:kg });
     if(res.error) throw res.error;
     var d=res.data||{};
     m.className="status ok";
     m.innerHTML="✓ Entrega registrada. Consumió <b>"+fmt(d.kg_chapa_consumida)+" kg chapa</b>. Stock chapa: "+fmt(d.stock_chapa_eclipse_antes)+" → <b>"+fmt(d.stock_chapa_eclipse_despues)+" kg</b>"+
       (d.chapa_negativa?' <span style="color:#b42318;font-weight:800">⚠ stock NEGATIVO</span>':'');
-    $("ecUni").value=""; $("ecVerif").textContent="";
+    $("ecUni").value=""; $("ecKg").value=""; $("ecVerif").textContent="";
     ecStock(); ecRefresh();
   }catch(e){ m.className="status bad"; m.textContent="Error: "+(e.message||e); }
   finally{ ecRefresh(); }
