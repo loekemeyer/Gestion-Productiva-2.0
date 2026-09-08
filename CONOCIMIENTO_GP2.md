@@ -4969,11 +4969,13 @@ del 586, el 123, el 099 y el 108 — **11.388 uni/mes con la cuchilla a costo ce
 `Cartón 516`, `Cartón 515`, `Cartón 119`, y `Abrelata Uña Pie 500`. **No se inventó ningún
 precio**: van como idea 7270 para que los aporte el usuario.
 
-**c) El 031 está modelado distinto en cada lado.** La planilla lo **compra hecho a terceros**
-(`Compra 3ros` $230 de $279 totales); GP2 lo **fabrica** desde `Fleje N° 90` (receta $93). Y el
-cartón no cierra por lejos: planilla **$0,252** contra **$63** de GP2 — el $0,252 huele a número
-roto de la planilla (ver el `IFERROR(...,0)` de §4w). Antes de tocar nada hay que decidir cuál de
-los dos modelos es el real.
+**c) El 031: es el cartón, no el modelo.** ⚠️ **Corregido el 2026-09-08 al armar el archivo de
+comparación.** Acá decía que la planilla lo compra hecho a terceros y GP2 lo fabrica: **es falso**.
+Los $230 de `Compra 3ros` de la planilla son `Lista de Precios !L532` = **el AyE de IJUPA**, y GP2
+tiene ese mismo AyE de IJUPA a **$230 exactos**. Los dos lados lo modelan igual. La diferencia real
+es **el cartón: $0,252 en la planilla contra $63 en GP2** — y el $0,252 sale del `IFERROR(...,0)`
+de §4w, o sea que **no es un precio, es un cero disfrazado**. El resto: material $42,08 vs $21,78 y
+caja $6,95 vs $8,67.
 
 ### El orden de trabajo que sale de esto
 
@@ -5062,3 +5064,42 @@ Ese −1,4 % salió de comparar sólo las 5 filas de `articulo_componente` ($325
 AyE de $33** (el cálculo buscaba el envasado en `precio_tallerista` del tallerista 8, Gentile, que
 el 505 no tiene). Sumando el AyE da $358,17, **+8,6 %**. La receta del 505 igual es la más sana de
 los 10 más vendidos, pero no cierra sola: le falta el calado y le sobra la MO de matriz.
+
+### 4x-ter. El archivo de comparación de los 10 (2026-09-08)
+
+`[usuario 2026-09-08]` Pedido: un archivo para ver, de los 10 más vendidos, cuáles cuadran y
+cuáles no, y cuál es la diferencia entre el Excel y GP2.
+→ **`Informes/salidas/Comparacion_Costos_Top10.xlsx`**, 5 hojas: `Resumen`, `Por concepto`
+(la que importa: los 6 conceptos lado a lado con semáforo), `Componentes GP2`,
+`De dónde sale el Excel` (la fórmula real de cada celda de `Costos`) y `Cómo leerlo`.
+
+**Comparando bien** — Excel = `Costo sin aportes` − cod/precinto; GP2 = **receta + el AyE del
+tallerista que vive en la ruta** (no la vista, que tiene el bug 7269):
+
+| Cód | Excel | GP2 | Dif | ¿Cuadra? |
+|---|---|---|---|---|
+| 546 | 1.463,97 | 1.453,16 | −0,7 % | **SÍ** |
+| 513 | 619,72 | 597,07 | −3,7 % | **SÍ** |
+| 501 | 1.996,65 | 1.861,66 | −6,8 % | CASI |
+| 505 | 329,66 | 358,17 | +8,6 % | CASI |
+| 502 | 1.201,56 | 1.097,28 | −8,7 % | CASI |
+| 506 | 493,82 | 435,79 | −11,8 % | CASI |
+| 586 | 409,77 | 352,12 | −14,1 % | CASI |
+| 031 | 279,28 | 323,45 | +15,8 % | NO |
+| 504 | 1.358,19 | 1.012,08 | −25,5 % | NO |
+| 510 | 381,81 | 231,08 | −39,5 % | NO |
+
+**Lo importante: sacando el bug de la vista, GP2 no está lejos.** 2 cuadran dentro del 5 %, 5 más
+dentro del 15 %, y sólo 3 se van feo. Contra la vista actual el mismo grupo daba +73 % de sesgo:
+**la distancia real entre el Excel y GP2 es chica; lo que estaba roto era la vista.**
+
+**Conceptos que dan exacto en varios artículos** (los buenos, para no perderlos de vista): el AyE
+del tallerista coincide al centavo en el 501 ($491), el 502 ($133,50), el 510 ($27,14) y el 031
+($230); el cartón coincide en 8 de 10; la caja en 7 de 10.
+
+**Los tres que no cuadran, y por qué:**
+- **510 (−39,5 %)**: GP2 no cobra el cromado del cuerpo ni el zincado de la uña ($83,81 de
+  tratamientos en la planilla contra mucho menos en GP2).
+- **504 (−25,5 %)**: material + tratamientos $448,28 en la planilla contra $179,68 en GP2 —
+  falta el zincado y el rectificado de los tochos.
+- **031 (+15,8 %)**: el cartón, ver el punto c) de §4x.
