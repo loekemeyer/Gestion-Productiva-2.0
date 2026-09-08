@@ -4912,3 +4912,73 @@ cómo la vista los suma.**
 
 **Está anotado como idea 7269. No se tocó la vista**: arreglarla mueve todos los números de
 plata de la app y es una cirugía que el usuario tiene que autorizar.
+
+## 4x. El costo de los más vendidos (Est Madre) — por dónde empezar (2026-09-08)
+
+`[usuario 2026-09-08]` *"Empezá por el costo de los más vendidos de la est madre"*. Ordenado el
+error de costo (§4w) por volumen de venta, para atacar por plata y no por código.
+
+### El tamaño del problema, en plata
+
+`GP2.est_madre` proyecta **267.595 uni/mes** en 405 productos. **59 artículos** cruzan las tres
+puntas (Est Madre + planilla + GP2) y son **164.498 uni/mes, el 61 % del volumen**:
+
+| | $/mes |
+|---|---|
+| Costo según la planilla | **$123.948.841** |
+| Costo según `v_costo_componente` | **$221.397.987** |
+| **Inflado** | **+$97.449.146/mes (+79 %)** |
+
+**Y está concentrado**: el **top 10 explica el 71 %** del inflado y el top 20 el **87 %**.
+Arreglando diez artículos se corrige casi todo.
+
+### Los 10 más vendidos, uno por uno
+
+| # | Cod | Uni/mes | Planilla | Vista | Receta | Inflado/mes | Qué le pasa |
+|---|---|---|---|---|---|---|---|
+| 1 | **505** | 28.184 | $330 | $667 | **$325** | $9,5 M | **Sólo la vista.** La receta cierra al −1,4 % |
+| 2 | **506** | 16.968 | $494 | $1.520 | $436 | **$17,4 M** | Vista +208 %; y el cartón: GP2 $76,42 vs planilla $89 |
+| 3 | **031** | 15.144 | $279 | $582 | $93 | $4,6 M | **Modelo distinto** (abajo) |
+| 4 | **513** | 14.252 | $620 | $884 | $511 | $3,8 M | A la receta le falta el tallerista ($219 en la planilla) |
+| 5 | **586** | 7.960 | $410 | $810 | $318 | $3,2 M | **`Cuch China` vale $0** en GP2 |
+| 6 | **504** | 7.826 | $1.358 | $3.267 | $881 | **$14,9 M** | Vista +141 %; falta el tallerista ($234) |
+| 7 | **546** | 7.700 | $1.464 | $3.022 | $1.343 | **$12,0 M** | Vista +106 %; la receta cierra al −8 % |
+| 8 | **501** | 6.680 | $1.997 | $2.268 | $1.371 | $1,8 M | Vista +14 % |
+| 9 | **510** | 6.352 | $382 | $487 | $204 | $0,7 M | Vista +28 % |
+| 10 | **502** | 6.244 | $1.202 | $1.489 | $964 | $1,8 M | Vista +24 % |
+
+**Los tres de arriba en plata son el 506 ($17,4 M), el 504 ($14,9 M) y el 546 ($12,0 M)** —
+juntos, $44,3 M/mes, casi la mitad del total. No son los tres más vendidos: son los que combinan
+volumen con un error grande.
+
+### Lo que aprendimos ordenando por volumen: no alcanza con arreglar la vista
+
+De los 10 más vendidos, **sólo 1 (el 505) tiene la receta completa**. En los otros nueve, aun
+arreglando la 7269 el número seguiría mal, por tres motivos distintos:
+
+**a) A la receta le falta el paso del tallerista.** El 513 ($219/uni) y el 504 ($234/uni) pagan
+un tallerista que la planilla cobra y `articulo_componente` no tiene: ese paso vive en
+`ruta_paso`, no en la receta. **Esto es importante para el arreglo de la 7269**: la solución NO
+es cambiar la vista para que lea la receta — es que **siga recorriendo la ruta (que es la que
+trae talleristas y servicios) pero multiplicando por `ruta_paso.cantidad`**.
+
+**b) Hay componentes que valen $0.** El que más pega es **`Cuch China`**, que está en la receta
+del 586, el 123, el 099 y el 108 — **11.388 uni/mes con la cuchilla a costo cero**. Otros:
+`Cuchilla Laser` (587), `Alambre Corta Queso` y `Tornillo Corta Queso` (574, 119, 809),
+`Argolla Grande`/`Chica` (057, 516, 498, 499, 700), `Vastago Sacafuente Pizzero` (518, 508, 708),
+`Cartón 516`, `Cartón 515`, `Cartón 119`, y `Abrelata Uña Pie 500`. **No se inventó ningún
+precio**: van como idea 7270 para que los aporte el usuario.
+
+**c) El 031 está modelado distinto en cada lado.** La planilla lo **compra hecho a terceros**
+(`Compra 3ros` $230 de $279 totales); GP2 lo **fabrica** desde `Fleje N° 90` (receta $93). Y el
+cartón no cierra por lejos: planilla **$0,252** contra **$63** de GP2 — el $0,252 huele a número
+roto de la planilla (ver el `IFERROR(...,0)` de §4w). Antes de tocar nada hay que decidir cuál de
+los dos modelos es el real.
+
+### El orden de trabajo que sale de esto
+
+1. **Arreglar la 7269** (la vista multiplica por `ruta_paso.cantidad`, siguiendo la ruta). Es lo
+   que destraba los 10 de una: hoy sobrevalúa a los 59 en $97,4 M/mes.
+2. **Cargar los precios faltantes** (idea 7270), empezando por `Cuch China` (11.388 uni/mes).
+3. **Decidir el modelo del 031** (compra vs fabricación) — el 3.º más vendido.
+4. **Revisar el cartón del 506** ($76,42 vs $89) — ya estaba anotado en §4t.
