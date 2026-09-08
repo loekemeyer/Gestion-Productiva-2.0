@@ -579,6 +579,18 @@ operario suma con "+ pallet" si el remito trajo más. Ver `fieldsFleje(prov)` en
   no de la receta; una parte de la receta sin ruta productora no suma su costo (a diferencia de
   GRJ1, que costaba $0 y no cambió nada al sacarlo). `db/verificar.sql` no lo detecta hoy — vale
   revisar recetas cuyos componentes no aparecen como `comp_salida` de ninguna ruta del artículo.
+- **Clonar un artículo NO es solo copiar receta y rutas: hay que copiar la tarifa de armado**
+  `[dato 2026-09-08]`. Al dar de alta el **760** como clon del **550** (el gemelo 7xx que faltaba,
+  "igual al 550"), el 760 daba $600,84 vs $651,84 del 550 — $51 menos. La diferencia era la
+  **tarifa del tallerista por armar el terminado** (`precio_tallerista` de Danica García para el
+  550 = $51 ARS), que va por `componente_id` del terminado: el clon no la tenía. Copiándola, el
+  760 quedó en $651,84 = 550. Lección para toda alta que clona un terminado: componente + articulo
+  + receta + rutas + inventario **+ precio_tallerista/precio_servicio_pieza del armado**.
+- **Bombillas — la bolsa** `[usuario 2026-09-08]`: el 550 y el 760 llevan una **bolsa** que se
+  compra a **Papelera Nueve de Julio** (nuevo proveedor de insumo, rubro Sector Cartón); componente
+  `BOLSA550`, sector Cartón, sin precio por ahora. Va sólo en el 550 y el 760 (no en las otras
+  bombillas). El 550/760 se arman con filtro (BOM13) + precinto (BOM14) + cartón 550 (CCG6B) +
+  caja + bolsa, por **Danica García**, y entregan en Virgilio.
 
 ### El proveedor vive en UN solo lugar
 `[dato 2026-08-30]` `componente.proveedor` es la **única fuente**. Antes el proveedor del
