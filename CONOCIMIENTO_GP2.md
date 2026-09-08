@@ -5660,3 +5660,30 @@ Julio y después vuelve. El que vuelve va a talleristas."**
   bloque]: `3131 - New Metal` (13 ítems), `559 - Becker Sandra Nora (GUSTAVO SETTON)` (10),
   `1673 - Industermic Chromium` (7), `4750-3157` (15, el título no trae nombre). Y
   `3149-Recubrimientos Color` existe en GP2 como "Rec Color" pero con 0 pasos y 0 precios.
+
+### 4ad-bis. Cómo saber qué pieza lleva serigrafía (2026-09-08)
+
+**[usuario]: "Buscar las partes que parezca que tengan el nombre serig o algo así, para que te
+diga, porque esas son claramente las que tienen serigrafía."** Funciona, pero sólo encuentra la
+mitad — y la otra mitad se detecta por el PRECIO:
+
+1. **Por nombre**: el marcador vive en la pieza EN BLANCO, no en la terminada — `S/Serig`, `S/M`,
+   `Sin Calar`, `p/Pintar`, `p/Estampar`, `p/cromar`. En plástico sólo dos piezas lo tienen:
+   `PA10B` (Capuchón ⌀8 S/Serig) y `PEP2` (Mango Pelador 586 S/M). **Las dos ya están cableadas.**
+2. **Por precio**: donde GP2 tiene UN SOLO código no hay marcador de nombre, pero la fila de
+   `precio_proveedor` lo delata: dice **"(mat+iny)"** — material más inyección, **sin serigrafía**.
+   Confirmado en PA18, PA13, PC13, PC14, PB5, PC15A, PC15B ("Capuchón LK (mat+iny)", "Manguito
+   Abrelata (mat+iny)", "Cuerpo Doble Aleta (mat+iny)"), PA4/PA5 ("mat $19,04 + iny Pettofrezza
+   $36,50") y PEP1 ("mat $61,10 + iny $86,20"). **En ninguna está el $19/$24 de Julio.**
+   Para esas hay que CREAR la pieza en blanco antes de poder meter el paso.
+3. **En metal el modelo YA está bien hecho** y sirve de plantilla: `G13 p/Pintar → A1 Pint. →
+   A4 Serig`, `K2 S/marca p/pintar → B4B Pint. → B7 Serig`, `J13 p/Pintar → C2 Pint. → C1 Serig`.
+   Cada flecha es un paso de proveedor de servicio real. El plástico es el que quedó a medias.
+
+**Cerrado el 2026-09-08**: `PEP2 → Julio $24 → PEP3` (586) y `PA10B → Julio $19 → PA10` (315).
+El 121 sigue usando `PA10B` derecho porque va sin serigrafiar — por eso PA10B se sigue comprando:
+va al 121 **y** alimenta a PA10.
+
+**El calado de Ester quedó cargado a $3,87** (PC1A y PC1B) [usuario 2026-09-08, eligió el precio
+de lista sobre el IPC al día de $5,1837]. **El 505 pasó a `faltan_precios = 0`**: $667,09 → $670,96.
+Hubo que dar de alta el proceso `calado` en la tabla `proceso`, que no existía.
