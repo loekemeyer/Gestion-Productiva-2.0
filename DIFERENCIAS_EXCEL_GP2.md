@@ -29,7 +29,7 @@ Excel: `Conteo_Gral_FLEJES_y_Alambre_VACIO.xls`. GP2: 56 flejes, 48 completos.
    - **NO había contradicción** (corrijo la versión anterior): el 117x0,8 y el 123x0,8 son **dos flejes distintos** que la hoja *FLEJES* renumera:
      - Pinza Ensalada 117x0,8 = **F5 / N°45** operativas, pero *FLEJES* la llama **N°36**.
      - Cuchara Inox 123x0,8 = **F6 / N°43**, pero *FLEJES* la llama **N°45**.
-   - **Firme (para cargar):** fleje 45 = medida **117 x 0,8**, Aperam. Solo falta poner `medida_mm` en GP2.
+   - **✅ HECHO (2026-09-08):** cargada `medida_mm = '117 x 0,8'` en `GP2.fleje_detalle` (componente 199). La pantalla ya la muestra.
 
 3. **IE13 "Cremallera"** (proveedor GP2 = Importado) — GP2 **sin detalle**.
    - Excel: "Cremallera Espumante", medida **74,5 x 1,25** (JL Metales / Materiales San Roque).
