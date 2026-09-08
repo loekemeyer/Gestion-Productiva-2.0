@@ -775,7 +775,7 @@ end $function$
 ;
 
 -- ---------- cargar_recepcion_eclipse ----------
-CREATE OR REPLACE FUNCTION "GP2".cargar_recepcion_eclipse(p_comp_id bigint, p_unidades integer, p_remito text DEFAULT NULL::text, p_fecha timestamp with time zone DEFAULT now())
+CREATE OR REPLACE FUNCTION "GP2".cargar_recepcion_eclipse(p_comp_id bigint, p_unidades integer, p_remito text DEFAULT NULL::text, p_fecha timestamp with time zone DEFAULT now(), p_kg_entrega numeric DEFAULT NULL::numeric)
  RETURNS jsonb
  LANGUAGE plpgsql
  SECURITY DEFINER
@@ -784,7 +784,7 @@ AS $function$
 declare
   v_codigo text; v_prov text; v_kg_x_uni numeric; v_sec int;
   v_chapa bigint; v_desperdicio numeric;
-  v_kg_producto numeric; v_kg_chapa numeric;
+  v_kg_producto numeric; v_kg_chapa numeric; v_manual boolean := false;
   v_mov_prod bigint; v_mov_chapa bigint; v_rec bigint;
   v_ubic_procesado bigint;
   v_ps_eclipse bigint;        -- proveedor_servicio "Eclipse", resuelto por nombre una vez
@@ -820,16 +820,25 @@ begin
   select id into v_chapa from "GP2".componente where codigo='CHAPA430';
   if v_chapa is null then raise exception 'CHAPA430 no existe (Fase 1 pendiente)'; end if;
   select coalesce(desperdicio_pct, 0) into v_desperdicio from "GP2".proveedor_servicio where id = v_ps_eclipse;  -- el % vive en el PS
+  if v_desperdicio < 0 or v_desperdicio >= 100 then v_desperdicio := 0; end if;  -- proteccion division
 
-  v_kg_producto := p_unidades * v_kg_x_uni;
-  v_kg_chapa := round((v_kg_producto * (1 + v_desperdicio/100))::numeric, 3);
+  -- Peso del producto entregado: el KG del remito (real, se pesa) si viene; si no, el teorico.
+  if p_kg_entrega is not null and p_kg_entrega > 0 then
+    v_kg_producto := round(p_kg_entrega::numeric, 3);
+    v_manual := true;
+  else
+    v_kg_producto := round((p_unidades * v_kg_x_uni)::numeric, 3);
+  end if;
+  -- La chapa consumida se deriva del peso entregado: el desperdicio es % DE LA CHAPA.
+  v_kg_chapa := round((v_kg_producto / (1 - v_desperdicio/100))::numeric, 3);
 
   select coalesce(cantidad,0) into v_stock_chapa_antes
     from "GP2".inventario where componente_id=v_chapa and ubicacion_id=v_ubic_eclipse;
 
+  -- Producto 1686: se guarda EN KG (lo pesado), NO en unidades.
   insert into "GP2".movimiento(fecha, tipo_mov, comp_id, ubic_origen_id, ubic_destino_id,
                                cantidad, unidad_origen, unidad_destino)
-  values (v_f, 'compra', p_comp_id, null, v_ubic_procesado, p_unidades, 'uni', 'uni')
+  values (v_f, 'compra', p_comp_id, null, v_ubic_procesado, v_kg_producto, 'kg', 'kg')
   returning id into v_mov_prod;
 
   insert into "GP2".movimiento(fecha, tipo_mov, comp_id, ubic_origen_id, ubic_destino_id,
@@ -840,13 +849,14 @@ begin
   insert into "GP2".recepcion_insumo(fecha, componente_id, proveedor, remito,
                                      cantidad, unidad, movimiento_id, rollos_json)
   values (v_f, p_comp_id, 'Eclipse', nullif(btrim(coalesce(p_remito,'')),''),
-          p_unidades, 'uni', v_mov_prod,
-          jsonb_build_object('unidades', p_unidades, 'kg_producto', v_kg_producto,
+          v_kg_producto, 'kg', v_mov_prod,
+          jsonb_build_object('uni_referencia', p_unidades, 'kg_entregado', v_kg_producto,
+                             'kg_entrega_manual', v_manual,
                              'kg_chapa_consumida', v_kg_chapa, 'desperdicio_pct', v_desperdicio,
                              'movimiento_chapa_id', v_mov_chapa))
   returning id into v_rec;
 
-  perform "GP2"._aplicar_recepcion_a_oc(p_comp_id, p_unidades, 'uni');
+  perform "GP2"._aplicar_recepcion_a_oc(p_comp_id, v_kg_producto, 'kg');
 
   select coalesce(cantidad,0) into v_stock_chapa_despues
     from "GP2".inventario where componente_id=v_chapa and ubicacion_id=v_ubic_eclipse;
@@ -854,8 +864,9 @@ begin
   return jsonb_build_object(
     'ok', true, 'recepcion_id', v_rec,
     'movimiento_producto_id', v_mov_prod, 'movimiento_chapa_id', v_mov_chapa,
-    'codigo', v_codigo, 'uni_recibidas', p_unidades,
-    'kg_producto', v_kg_producto, 'kg_chapa_consumida', v_kg_chapa,
+    'codigo', v_codigo, 'uni_referencia', p_unidades, 'kg_entregado', v_kg_producto,
+    'kg_producto', v_kg_producto, 'kg_entrega_manual', v_manual,
+    'kg_chapa_consumida', v_kg_chapa,
     'stock_chapa_eclipse_antes', v_stock_chapa_antes,
     'stock_chapa_eclipse_despues', v_stock_chapa_despues,
     'chapa_negativa', (v_stock_chapa_despues < 0)
@@ -1739,11 +1750,12 @@ begin
   v_kg_x_paq := coalesce((select valor from parametro where clave='charcas_kg_x_paquete'), 10);
   -- PS HIBRIDO: la OC a un proveedor de servicio que procesa una materia prima nuestra (Charcas
   -- corta el alambre de Altrak, Eclipse estampa la chapa 430 de Aperam) dispara la OC gemela al
-  -- proveedor de esa MP: kg de producto pedido x (1 + desperdicio_pct del PS). Todo sale de
+  -- proveedor de esa MP. desperdicio_pct es % DE LA CHAPA: kg de chapa = producto / (1 - desperdicio_pct/100). Todo sale de
   -- proveedor_servicio (hibrido, mp_componente_id, desperdicio_pct) y del componente MP
   -- (proveedor, sector): ningun proveedor por nombre en el codigo.
   select ps.mp_componente_id, ps.desperdicio_pct into v_mp_id, v_pct
     from proveedor_servicio ps where ps.hibrido and ps.nombre = v_prov;
+  if v_pct is not null and (v_pct < 0 or v_pct >= 100) then v_pct := 0; end if;  -- guard division
 
   select coalesce(max(numero),0)+1 into v_num from orden_compra;
   insert into orden_compra (numero, proveedor, rubro, nota, creado_por, fecha_entrega_estimada)
@@ -1807,12 +1819,12 @@ begin
     if v_mp_prov is null then
       raise exception 'La materia prima % del PS % no tiene proveedor: no se puede crear la OC gemela', v_mp_codigo, v_prov;
     end if;
-    v_kg_mp := round(v_kg_producto * (1 + coalesce(v_pct,0)/100), 2);
+    v_kg_mp := round(v_kg_producto / (1 - coalesce(v_pct,0)/100), 2);
 
     select coalesce(max(numero),0)+1 into v_num_mp from orden_compra;
     insert into orden_compra (numero, proveedor, rubro, nota, creado_por, fecha_entrega_estimada)
     values (v_num_mp, v_mp_prov, v_mp_rubro,
-            'OC gemela de OC N° '||v_num||' ('||v_prov||'). Kg de '||v_mp_codigo||' = kg de producto pedido × '||(1+coalesce(v_pct,0)/100)||'.',
+            'OC gemela de OC N° '||v_num||' ('||v_prov||'). Kg de '||v_mp_codigo||' = kg de producto pedido / (1 - '||coalesce(v_pct,0)/100||').',
             nullif(p->>'usuario',''), v_fent)
     returning id into v_oc_mp;
 
