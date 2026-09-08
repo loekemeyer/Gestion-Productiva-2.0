@@ -4694,13 +4694,58 @@ ahorran los $70 de Gentile sino **los $193,05 de Blist-Pack**: contra el cartón
 el ahorro salta de ~$57 a **~$180/uni**. Es, de lejos, la palanca más grande que hay sobre la
 mesa.
 
-⚠️ **Sigue sin cargarse en la base.** Ahora la unidad está clara, pero falta lo otro: los 5
-productos de Blist-Pack son «Skin Bombilla», «Skin Mariposa Uña», «Skin Patita Pie», «Skin
-Mariposa Uña Chef» y «Etiquetas EAN» — **y hay que mapear cuál corresponde a cada uno de los 11
-artículos que hacía Gentile** antes de escribir 11 filas en `precio_tallerista`. «Mariposa» es
-el artículo 502 y la uña es el 506/510: si «Skin Mariposa Uña» cubre a los dos o sólo a uno, lo
-tiene que decir el usuario. Tampoco hay precio de Blist-Pack para el envasado del 506 Chef (706)
-ni para el 555 (Limpia Bombilla) que Gentile también hacía.
+✅ **Mapeado y cargado el 2026-09-08** — ver §4u-ter.
+
+## 4u-ter. El mapeo Blist-Pack, contestado por el usuario (2026-09-08)
+
+`[usuario 2026-09-08]` Los 5 productos de la lista de Blist-Pack contra los 11 artículos que
+hacía Gentile. Respuestas textuales a las 6 preguntas:
+
+| Producto de Blist-Pack | $ | Va a | |
+|---|---|---|---|
+| `Skin Mariposa Uña` | $193,05 | **506** | ✅ cargado |
+| `Skin Bombilla` | $147,97 | **las 10 bombillas** (557, 558, 654, 658, 659, 758, 759, 762, 763, 769) | ✅ cargado |
+| `Skin Mariposa Uña Chef` | $131,89 | *(era para el 706, que ya no lleva skin)* | ❌ no se usa |
+| `Skin Patita Pie` | $193,05 | *"deja sin blistpack, que quede como ahora"* | ❌ no se usa |
+| `Etiquetas EAN` | $92,40 | *"no va"* | ❌ no se usa |
+
+**Lo que define el alcance del precio** (esto es lo que hace que el número sirva o no):
+
+- **Blist-Pack arma y encaja**, no sólo skinea `[usuario]`. O sea: el precio cubre lo mismo que
+  cubría el "Skin **y Arm.**" de Gentile. No hay que agregar un paso de armado a nadie.
+- **El cartón se lo damos nosotros**, *"misma lógica que Gentile"* `[usuario]`. **El pliego de AJ
+  sigue en pie**: el costo real por unidad es `$193,05 + pliego/12` para el 506 y
+  `$147,97 + pliego/16` para las bombillas. Blist-Pack **no** reemplaza a AJ.
+
+**Dos artículos salen del circuito de skin:**
+
+- **706 (Uña Chef): ya no va más con skin, entrega Martín directo** `[usuario]`. La base ya
+  estaba así — el paso final del 706 es Martín Cornejo con `Cartón 706` suelto, y Gentile nunca
+  tuvo un `ruta_paso` del 706 pese a tener precio en su lista. No hubo nada que cambiar.
+- **555 (Limpia Bombilla): mismo costo que las bombillas** ($147,97) `[usuario]`. **Pero el 555
+  no existe en GP2**: ni artículo, ni componente. No se cargó nada (no se inventan datos); queda
+  el precio anotado acá para cuando el 555 se dé de alta.
+
+### Lo que quedó escrito en la base
+
+11 filas nuevas en `GP2.precio_tallerista` para el tallerista 13 (Blist-Pack), una por cada
+`XXX Terminado`, con el `referencia` diciendo que el cartón no está incluido. Los precios viejos
+de Gentile (tallerista 8) **quedan**: sirven de comparación y son el histórico de lo que se pagó.
+
+### ⚠️ Lo que todavía NO se hizo: las rutas siguen apuntando a Gentile
+
+**Los 48 `ruta_paso` de los 11 artículos siguen con `tallerista_id = 8` (Gentile, fallecido).**
+Cargar el precio no mueve la ruta. Mientras eso siga así, el motor de costos sigue valorizando
+con los $70/$69 de Gentile y las pantallas siguen mandando el trabajo a un tallerista muerto.
+Cambiar los 48 pasos a Blist-Pack es una cirugía aparte, y **no es sólo un UPDATE**: mueve a
+quién se le envía y de quién se recibe (ubicación, envíos, recepción). Falta el OK del usuario.
+
+**Cuando se haga, esto es la plata que se mueve** (sólo el envasado, sin el pliego):
+
+| | Gentile (†) | Blist-Pack | Salto |
+|---|---|---|---|
+| 506 | $70 | $193,05 | **+$123,05 (+176%)** |
+| Cada bombilla (x10) | $69 | $147,97 | **+$78,97 (+114%)** |
 
 ## 4v. La planilla madre de costos vive en la base (2026-09-07)
 
