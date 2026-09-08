@@ -204,8 +204,9 @@ Cada uno tiene la consulta y el detalle en los informes de auditoría (`REFACTOR
    por separado a Alex Escalante y Martin Cornejo. Costo del 500 sin cambios ($1.525,12).
 6. **863** tiene PEP8 en la receta y ninguna ruta lo toca. ¿Falta la ruta `Fleje 27 -> Art 863`
    con Maspoli, o PEP8 no va en el 863?
-7. **Federico Realini** tiene dos legajos (274 inactivo, 401 activo). ¿Reingreso (se deja) o
-   error de carga (unificar)?
+7. ~~**Federico Realini** tiene dos legajos (274 inactivo, 401 activo).~~ **RESUELTO 2026-09-08
+   [usuario: "borralo"]:** era error de carga. Se borró el legajo 274 (empleado id 20, inactivo);
+   no tenía datos colgados (0 producción, 0 rollos) ni FK. Queda el 401 activo.
 8. **Matriz «S/N» (117)** está en 2 rutas (ID5→W5) sin tiempo ni tipo; **138 (119)** dice tipo A
    (alimentador) y decía tipo_matriz B (balancín). ¿Cuál vale? (`tipo_matriz` ya se borró el
    04/09: nadie la leía; queda `tipo`).
