@@ -4756,10 +4756,33 @@ y se hace por tandas. El repo es privado, así que tampoco sirve dejar los datos
 `raw.githubusercontent.com` para que los baje la extensión `http` de Postgres (que **sí** está
 instalada, versión 1.6, por si algún día hay una fuente alcanzable y confidencial).
 
-### Estado de la carga (snapshot 1, 2026-09-07)
+### Estado de la carga (snapshot 1) — TERMINADA el 2026-09-08
 
-- **`Costos`: 277 de 277 filas — COMPLETA**, con todas sus fórmulas. Es la hoja que más valía.
-- **`Lista de Precios `: 204 de 1.234** — en curso.
-- Las otras 14 hojas (` Cartones`, `Cajas `, `Talleristas`, `Talleristas-Procesos`, `Flejes`,
-  `Plasticos`, `Bombillas`, `Remaches`, `Importados`, `Tratamientos `, `Materiales`,
-  `Materiales Loeke`, `Conversion cod Loeke Chef`, `Ranking Compra Prov`): **pendientes**.
+**Las 16 hojas de costos están adentro: 4.456 filas.** No hay que volver a subir el Excel.
+
+| Hoja | Filas | Hoja | Filas |
+|---|---|---|---|
+| `Costos` (con fórmulas) | 278 | `Materiales` | 299 |
+| `Lista de Precios ` | 1.046 | `Talleristas-Procesos` | 290 |
+| `Cajas ` | 473 | `Tratamientos ` | 275 |
+| ` Cartones` | 434 | `Conversion cod Loeke Chef` | 234 |
+| `Materiales Loeke` | 226 | `Talleristas` | 205 |
+| `Remaches` | 169 | `Importados` | 151 |
+| `Bombillas` | 138 | `Flejes` | 83 |
+| `Ranking Compra Prov` | 83 | `Plasticos` | 72 |
+
+**Lo que NO entró, y por qué** (contado contra el Excel, hoja por hoja: todo lo demás cierra
+exacto):
+
+- Se guardaron las columnas **A..P**; lo que vive más a la derecha se perdió. En
+  `Lista de Precios ` eso son las columnas `Q..AS`, que son el **historial de fechas de compra**
+  (una fecha por compra, hasta 29 columnas). Los precios están todos.
+- En `Lista de Precios ` faltan **174 de 1.220 filas**, y ninguna trae un precio: **90 son la
+  cabecera repetida** de cada bloque de proveedor (esa información ya está, en la columna
+  `bloque` de cada fila), **69 son filas de ceros** que separan bloques, y **15 traían solo
+  `H=0` más fechas de compra en `Q..AS`**.
+- Las tres filas sueltas que el generador se había salteado (`Costos` 1 = "Lista Chef" en la
+  columna W, `Materiales` 297 y 320 = un número suelto en E) se cargaron a mano después.
+
+El `nota` del snapshot 1 dice todo esto en la base, para el que consulte desde SQL sin tener
+este archivo a mano.
