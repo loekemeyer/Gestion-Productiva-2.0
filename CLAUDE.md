@@ -428,8 +428,12 @@ Leer ese archivo antes de tocar el modulo de OC.**
 - **La recepcion CRUZA contra OC**: `crear_recepcion_insumo` aplica lo recibido al campo
   `recibido` de las OC abiertas (FIFO, conversion kg/uni) y marca la OC `recibida` sola.
   La pantalla de Recepcion muestra el cruce.
-- La validacion de cartones (multiplos C/LOKE/8) esta DORMIDA hasta que el usuario asigne
-  `componente.carton_formato` por precio (precios en `GP2.precio_proveedor`).
+- **La validacion de cartones (multiplos C/LOKE/8) esta VIVA** (verificado 2026-09-08): los 110
+  cartones tienen `componente.carton_formato` y el tipo C ya tiene `carton_categoria` cargada
+  (Abrelatas 6, Pelapapas 4, Resto 16, Sacacorchos 6). Familia = formato+marca+categoria,
+  multiplos, minimo por codigo, comodin sacacorchos, pliegos de 100 y piso de bolsa 20.000
+  funcionan y los cubre `test_oc.js`. (Hasta el 2026-09-08 esta linea decia que estaba DORMIDA
+  "hasta que el usuario asigne el formato": era falso y hacia perder tiempo.)
 - El viejo `StockFlejes/recepcion.html` (importar PDF del proveedor) es del programa viejo;
   el flujo GP2 no importa PDFs.
 

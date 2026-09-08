@@ -1,7 +1,17 @@
 <!doctype html>
 <html lang="es">
 <head>
-<!-- v1.20.0 (2026-09-05) — CHARCAS EN KG Y OC GEMELA GENERICA (auditoria, ciclos 9-10): el kg por
+<!-- v1.20.1 (2026-09-08) — LA FECHA DE ENTREGA VUELVE A LA TARJETA Y A LA HOJA (idea 7271). La
+     pantalla leia o.fecha_entrega y oc_bundle emite fecha_entrega_estimada (asi se llama la
+     columna): el badge quedaba vacio y la hoja del proveedor salia con la linea en blanco, aunque
+     la fecha estuviera guardada bien. Ahora hay un lector tolerante vFechaEnt(o) que entiende los
+     dos nombres, en la misma linea que vStock/vConsumo/vMaximo. Es la SEGUNDA vez que esta fecha
+     se pierde: en v1.18.0 (c) se perdia al ESCRIBIR (el insert no llenaba la columna) y ahora se
+     perdia al LEER. test_oc_print.js la verifica en la tarjeta y en la hoja para que no haya una
+     tercera.
+     OJO, la otra mitad sigue abierta: proveedor_insumo.dias_entrega esta NULL en los 40
+     proveedores, asi que proponerFecha() nunca propone y hay que ponerla a mano.
+     v1.20.0 (2026-09-05) — CHARCAS EN KG Y OC GEMELA GENERICA (auditoria, ciclos 9-10): el kg por
      paquete de Charcas llega del bundle (parametro charcas_kg_x_paquete, antes 10 escrito aca);
      la pantalla sigue mandando paquetes con unidad 'paq' y crear_oc guarda la OC en kg (asi la
      recepcion cruza kg contra kg y la gemela a Altrak suma kg de verdad: antes sumaba los
@@ -440,6 +450,10 @@ function vStock(i){ return i.stock!=null ? Number(i.stock) : (i.online!=null?Num
 function vConsumo(i){ return i.consumo_uni_mes!=null ? Number(i.consumo_uni_mes) : (i.consumo!=null?Number(i.consumo):null); }
 function vMaximo(i){ return i.maximo!=null ? Number(i.maximo) : null; }
 function vPend(i){ return Number(i.pendiente_oc)||0; }
+// La OC guarda la fecha en orden_compra.fecha_entrega_estimada y asi la emite oc_bundle;
+// el payload que se MANDA a crear_oc la llama fecha_entrega. Se leen las dos: la fecha ya se
+// perdio una vez por esta diferencia de nombre (ver changelog v1.18.0) y no se pierde de nuevo.
+function vFechaEnt(o){ return o.fecha_entrega_estimada || o.fecha_entrega || ''; }
 // De donde viene el maximo (CONOCIMIENTO_GP2 §2e-bis): est_madre = derivado del consumo,
 // fisico / cinco_cajones = lo que entra fisicamente en el lugar.
 function tagOrigen(o){
@@ -1085,7 +1099,7 @@ function pintarOcs(){
       (o.proveedor?('<span>'+esc(o.proveedor)+'</span>'):'')+
       (o.rubro?('<span style="color:#777">'+esc(o.rubro)+'</span>'):'')+
       '<span style="color:#777">'+new Date(o.creado_en).toLocaleDateString('es-AR')+'</span>'+
-      (o.fecha_entrega?('<span class="badge entrega">Entrega '+fmtFecha(o.fecha_entrega)+'</span>'):'')+
+      (vFechaEnt(o)?('<span class="badge entrega">Entrega '+fmtFecha(vFechaEnt(o))+'</span>'):'')+
       ((o.total_usd>0||o.total_ars>0)?('<span style="font-weight:800">'+fmtTotalMon(Number(o.total_usd)||0,Number(o.total_ars)||0)+'</span>'):'')+
       '<div class="oc-acts">'+acts+'</div></div>'+
       (o.nota?('<div style="color:#555;font-size:14px;margin-top:4px">'+esc(o.nota)+'</div>'):'')+
@@ -1125,7 +1139,7 @@ function imprimirOC(ocId){
   if(!o) return;
   var w=window.open('','_blank');
   if(!w){ alert('El navegador bloqueó la ventana de impresión.'); return; }
-  var entrega = o.fecha_entrega ? fmtFecha(o.fecha_entrega) : '';
+  var entrega = vFechaEnt(o) ? fmtFecha(vFechaEnt(o)) : '';
   var emision = new Date(o.creado_en).toLocaleDateString('es-AR');
   var totLinea = (o.total_usd>0||o.total_ars>0) ? fmtTotalMon(Number(o.total_usd)||0,Number(o.total_ars)||0) : '';
   var css=

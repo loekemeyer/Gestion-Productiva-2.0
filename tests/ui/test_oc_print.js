@@ -8,6 +8,9 @@ const BUNDLE = {
   paq: 250, insumos: [],
   ocs: [ { id: 9, numero: 1, proveedor: 'Basconia', rubro: 'Fleje', estado: 'enviada', nota: 'urgente',
     creado_en: '2026-08-29T10:00:00Z',
+    // Asi la manda oc_bundle: la columna se llama fecha_entrega_estimada. La pantalla leia
+    // o.fecha_entrega y la fecha se perdia (idea 7271, y ya habia pasado en v1.18.0).
+    fecha_entrega_estimada: '2026-09-20',
     total_usd: 750, total_ars: 12000,
     items: [ { codigo: 'A1', descripcion: 'Fleje N 13', cantidad: 500, unidad: 'kg', recibido: 0,
                precio_uni: 1.5, moneda: 'USD', subtotal: 750 },
@@ -35,6 +38,9 @@ window.supabase = { createClient: function(){ return {
   const ok = (c, m) => { console.log((c?'OK  ':'FAIL')+' '+m); if(!c) process.exitCode = 1; };
   await page.click('#tabOcs');
   ok(await page.$('.oc-acts button.imp') !== null, 'boton imprimir presente');
+  // La fecha de entrega llega como fecha_entrega_estimada y tiene que verse en la tarjeta.
+  const tarjeta = await page.textContent('.oc-card');
+  ok(tarjeta.includes('Entrega 20/09/2026'), 'fecha de entrega en la tarjeta de la OC');
   // stub print en las ventanas nuevas para que no bloquee
   await ctx.addInitScript(() => { window.print = () => { window.__printed = true; }; });
   const [pop] = await Promise.all([ ctx.waitForEvent('page'), page.click('.oc-acts button.imp') ]);
@@ -47,6 +53,8 @@ window.supabase = { createClient: function(){ return {
      'precio unitario y subtotal USD impresos');
   ok(txt.includes('$ 1.000') && txt.includes('$ 12.000'), 'precio y subtotal en pesos impresos');
   ok(txt.includes('Total: US$ 750 + $ 12.000'), 'total mixto impreso (US$ + $ separados)');
+  // La hoja que va al proveedor tiene que llevar la fecha, no la linea en blanco para completar.
+  ok(txt.includes('20/09/2026'), 'fecha de entrega impresa en la hoja del proveedor');
   await browser.close();
   console.log(process.exitCode ? 'HAY FALLOS' : 'TODO OK');
 })();

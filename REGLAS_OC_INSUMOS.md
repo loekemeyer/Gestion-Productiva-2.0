@@ -144,9 +144,12 @@ Vista: `GP2.v_consumo_fleje_kg`; el Punto de Stock de flejes usa esos kg × 6 me
 Un **PS híbrido** (`proveedor_servicio.hibrido` con `mp_componente_id`) procesa una materia
 prima nuestra: Resortes Charcas corta el alambre de Altrak (`FLEJE90_BRUTO`), Eclipse estampa la
 chapa 430 de Aperam (`CHAPA430`). Una OC a ese PS crea sola la **OC gemela** al proveedor de la
-MP (`componente.proveedor`) por **kg de producto pedido × (1 + `proveedor_servicio.desperdicio_pct`)**
-— Charcas 0 % (sin dato, decisión del 04/09; su recepción descuenta el alambre 1:1), Eclipse 28 %
-(calibrado con remito; su recepción descuenta la chapa con ese %). Es UNA regla en `crear_oc`, sin
+MP (`componente.proveedor`) por **kg de producto pedido ÷ (1 − `proveedor_servicio.desperdicio_pct`/100)**
+— Charcas 0 % (sin dato, decisión del 04/09; su recepción descuenta el alambre 1:1), Eclipse
+**40,28 %** (el desperdicio se razona como recorte/chapa; su recepción descuenta la chapa con ese
+%). ⚠️ **Corregido el 2026-09-08**: acá decía "Eclipse 28 %" y la fórmula con `× (1 + pct)`; las dos
+cosas estaban viejas — el cambio a división y al 40,28 se hizo el 2026-09-08 (ver
+`CONOCIMIENTO_GP2.md`, bloque de desperdicio). Es UNA regla en `crear_oc`, sin
 proveedores por nombre — aunque `oc_bundle` y la pantalla todavía nombran a Charcas y Eclipse
 (idea 7267).
 
@@ -167,8 +170,10 @@ proveedores por nombre — aunque `oc_bundle` y la pantalla todavía nombran a C
 **sugerido = máximo − stock** (cambiado el 2026-09-03; el «− pendiente OC» se sacó el
 2026-09-04 por pedido del usuario; antes era consumo × meses, que hoy sólo se usa como
 respaldo cuando el máximo está vacío — ahí el `maximo_origen` dice `consumo_x_meses`),
-valida las reglas de cartón (dormidas
-hasta asignar formato), imprime la OC para el proveedor, y la **recepción cruza sola**
+valida las reglas de cartón (**vivas**: los 110
+cartones tienen formato y el tipo C ya tiene categoría — verificado 2026-09-08), imprime la OC
+para el proveedor (**con la fecha de entrega**, que hasta el 2026-09-08 se perdía por un nombre de
+campo, idea 7271), y la **recepción cruza sola**
 contra las OC abiertas (`recibido` + estado `recibida` automático). RPCs: `oc_bundle`,
 `crear_oc`, `oc_marcar`, `_aplicar_recepcion_a_oc`.
 
