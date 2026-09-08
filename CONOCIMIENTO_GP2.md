@@ -1350,6 +1350,19 @@ tallerista. Le mandamos la virola **D13** (niquelada por Guazzaroni) y devuelve 
   el usuario la sacó de tallerista (`activo=false`, ver §Tierra Nativa arriba). Blist-Pack
   sigue visible. El criterio de fondo no cambia: **quién se ve lo decide el flag, no la
   ausencia de rutas.**
+- **Corrección 2026-09-08 `[usuario, textual: "a Blist-Pack quiero que lo tomemos como prov de
+  servicio no como tallerista"]`: Blist-Pack pasó de tallerista a proveedor de servicio**
+  (PS id 20, proceso **`blisteado`** — alta nueva en la tabla catálogo `proceso`). Hace un
+  **servicio** (blister/envasado) sobre artículos terminados, no arma como un tallerista. Estaba
+  casi sin cablear (0 rutas, 0 stock, 0 movimientos): sólo tenía identidad + 11 precios por pieza
+  de los terminados que blistea (506 a $193,05; 557/558/654/658/659/758/759/762/763/769 a
+  $147,97, ARS). La cirugía movió esos 11 de `precio_tallerista` → `precio_servicio_pieza`
+  (proceso `blisteado`), repuntó la ubicación 45 (`tallerista`→`proveedor_servicio`, "Prov. Serv.
+  Blist-Pack") y el alias `BLIST-PACK`, y borró el tallerista 13. **`Blist-Pack SA` (proveedor de
+  insumo, cod_prov 3227, el del pliego adhesivado skin) es OTRO sombrero y no se tocó.**
+  **Pendiente:** Blist-Pack (PS) **no está en ninguna ruta**, así que el costo del blisteo todavía
+  NO entra en el costo de esos 11 artículos (el costo sale de la ruta); falta agregar el paso de
+  blisteo a sus rutas para que se costee.
 
 **La columna de inventario se llama MÁXIMO, no mínimo (2026-09-03)** `[usuario]`: *"quiero que
 la columna de mínimo en inventario se pase a llamar máximo"*, y la razón que dio es la que
