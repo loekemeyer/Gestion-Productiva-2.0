@@ -1,13 +1,15 @@
 <!doctype html>
 <html lang="es">
 <head>
-<!-- v1.6.0 (2026-09-08) — ECLIPSE: KG DE CHAPA MANUAL (usuario: "las uni son de referencia y lo
-     que estipula el remito, despues se pone manual el KG"). El desperdicio del corte varia por
-     tanda, asi que el kg teorico (uni x kg_x_uni x desperdicio) no sirve: se agrego el campo
-     'Kg de chapa consumida' (ecKg, manual, libre) que es lo que descuenta la chapa; las unidades
-     quedan de referencia (suman el 1686 al stock). cargar_recepcion_eclipse recibe p_kg_chapa
-     y lo usa tal cual si viene; el desperdicio (proveedor_servicio.desperdicio_pct 67,46) queda
-     de fallback. El panel muestra el desperdicio implicito (kg/producto teorico).
+<!-- v1.6.1 (2026-09-08) — ECLIPSE: EL KG ES "DE ENTREGA" (peso total de las unidades entregadas),
+     NO la chapa (usuario: "es el peso total de las unidades entregadas... por eso se carga en KG
+     los prov serv"). El campo (ecKg, manual, libre) es el peso del 1686 entregado; las unidades
+     quedan de referencia (suman el 1686 al stock). La CHAPA consumida se DERIVA = kg_entrega x
+     (1 + desperdicio). Validado con la compra real: entrega 11,8 kg x1,6746 = 19,76 kg chapa (1
+     chapa) y 23,6 kg -> 39,52 (2 chapas), calzan justo con Aperam. cargar_recepcion_eclipse recibe
+     p_kg_entrega (usa ese peso si viene, si no el teorico uni x kg_x_uni) y saca la chapa con el
+     desperdicio (proveedor_servicio.desperdicio_pct 67,46). El panel muestra en vivo la chapa a descontar.
+     v1.6.0 (2026-09-08) — (reemplazado el mismo dia) primer intento: el KG se interpretaba como chapa consumida.
      v1.5.2 (2026-09-04) — FECHA REAL tambien en la entrega Eclipse (mismo fechaHora que Charcas).
      v1.5.1 (2026-09-04) — FECHA REAL en la entrega Charcas: si la carga es de hoy sella el
      instante real (new Date().toISOString()) en vez de 'T12:00:00' fijo, asi dos entregas del
@@ -163,7 +165,7 @@
           <input type="text" id="ecUni" inputmode="numeric" placeholder="0" style="height:48px;font-size:20px;font-weight:700;padding:0 12px;border:2px solid #d0d7de;border-radius:10px">
         </div>
         <div style="display:flex;flex-direction:column;gap:6px;flex:1 1 150px">
-          <label class="lbl" for="ecKg">Kg de chapa consumida</label>
+          <label class="lbl" for="ecKg">Kg de entrega <small style="color:#64748b;font-weight:700">(peso del producto)</small></label>
           <input type="text" id="ecKg" inputmode="decimal" placeholder="0,0" style="height:48px;font-size:20px;font-weight:800;padding:0 12px;border:2px solid #0b3b73;border-radius:10px">
         </div>
       </div>
@@ -367,6 +369,16 @@ async function ecStock(){
     $("ecStock").textContent = fmt(kg);
   }catch(e){ $("ecStock").textContent="—"; }
 }
+// Desperdicio del corte (vive en proveedor_servicio.desperdicio_pct de Eclipse); se usa solo
+// para MOSTRAR en vivo cuanta chapa va a descontar la entrega. El calculo real lo hace el RPC.
+var ecDesp = 0;
+async function ecDespFetch(){
+  try{
+    var r = await SB.from("proveedor_servicio").select("desperdicio_pct").eq("nombre","Eclipse").maybeSingle();
+    ecDesp = Number(r.data && r.data.desperdicio_pct) || 0;
+  }catch(e){ ecDesp = 0; }
+  ecRefresh();
+}
 function irEclipse(p){
   selPS = p;
   $("fase0").classList.add("hidden"); $("fase1").classList.add("hidden"); $("fase3").classList.add("hidden");
@@ -376,14 +388,15 @@ function irEclipse(p){
   if(!$("ecFecha").value) $("ecFecha").value = hoyISO();
   $("ecUni").value=""; $("ecKg").value=""; $("ecVerif").textContent="";
   $("ecMsg").textContent=""; $("ecMsg").className="status";
-  ecRefresh(); ecStock();
+  ecRefresh(); ecStock(); ecDespFetch();
 }
 function ecRefresh(){
   var prod=ecProdSel(), uni=num($("ecUni").value), kg=num($("ecKg").value);
-  if(prod && uni>0){
-    var kgProd = prod.kg_x_uni ? Math.round(uni*prod.kg_x_uni*10000)/10000 : 0;
-    var extra = (kg>0 && kgProd>0) ? (" · desperdicio " + (Math.round((kg/kgProd-1)*1000)/10) + "%") : "";
-    $("ecVerif").innerHTML = "Producto teórico <b>"+fmt(kgProd)+" kg</b>"+extra+". Se descuenta el KG de chapa que cargues.";
+  if(prod && uni>0 && kg>0){
+    var chapa = Math.round(kg*(1+ecDesp/100)*1000)/1000;
+    $("ecVerif").innerHTML = "Entregás <b>"+fmt(kg)+" kg</b> ("+fmt(uni)+" uni). Descuenta <b>"+fmt(chapa)+" kg de chapa</b> (desperdicio "+fmt(ecDesp)+"%).";
+  } else if(prod && uni>0){
+    $("ecVerif").innerHTML = "Cargá el peso entregado (kg). La chapa se descuenta = peso × (1 + desperdicio "+fmt(ecDesp)+"%).";
   } else { $("ecVerif").textContent=""; }
   $("ecGuardar").disabled = !(prod && uni>0 && kg>0 && $("ecFecha").value);
 }
@@ -395,11 +408,12 @@ $("ecGuardar").addEventListener("click", async function(){
   var prod=ecProdSel(), uni=Math.round(num($("ecUni").value)), kg=num($("ecKg").value), fecha=$("ecFecha").value||hoyISO();
   var m=$("ecMsg"); m.className="status"; m.textContent="";
   if(!prod || !(uni>0)){ m.className="status bad"; m.textContent="Elegí producto y unidades."; return; }
-  if(!(kg>0)){ m.className="status bad"; m.textContent="Cargá los kg de chapa consumida (a mano, del remito)."; return; }
-  if(!confirm("Registrar entrega de Eclipse:\n\n"+prod.codigo+" — "+(prod.descripcion||"")+"\nUnidades (referencia): "+fmt(uni)+"\nChapa consumida: "+fmt(kg)+" kg\n\n¿Confirmar?")) return;
+  if(!(kg>0)){ m.className="status bad"; m.textContent="Cargá el peso de la entrega (kg del remito)."; return; }
+  var chapa = Math.round(kg*(1+ecDesp/100)*1000)/1000;
+  if(!confirm("Registrar entrega de Eclipse:\n\n"+prod.codigo+" — "+(prod.descripcion||"")+"\nUnidades (referencia): "+fmt(uni)+"\nPeso entregado: "+fmt(kg)+" kg\nDescuenta ~"+fmt(chapa)+" kg de chapa\n\n¿Confirmar?")) return;
   $("ecGuardar").disabled=true; m.textContent="Registrando…";
   try{
-    var res = await SB.rpc("cargar_recepcion_eclipse", { p_comp_id:prod.id, p_unidades:uni, p_remito:null, p_fecha:fechaHora(fecha), p_kg_chapa:kg });
+    var res = await SB.rpc("cargar_recepcion_eclipse", { p_comp_id:prod.id, p_unidades:uni, p_remito:null, p_fecha:fechaHora(fecha), p_kg_entrega:kg });
     if(res.error) throw res.error;
     var d=res.data||{};
     m.className="status ok";

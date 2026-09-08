@@ -483,13 +483,15 @@ Desperdicio = 59,28/35,4 − 1 = **67,46 %** sobre el producto (= 40,3 % de la c
 `parametro.eclipse_desperdicio_pct`, que quedó vestigial — NO usar ese). Regla de rinde:
 **1 kg de chapa 430 ≈ 41,2 uni de 1686** (50 kg → ~2.058 uni). El 1686 no está en
 recetas/BOM/rutas, así que cambiar su peso no arrastra costeo.
-**⚠️ El KG de chapa se carga A MANO, no se calcula `[usuario 2026-09-08]`:** el desperdicio
-varía por tanda, así que la entrega de Eclipse (Entrega PS → faseEclipse, v1.6.0) toma las
-**unidades como referencia** (lo que dice el remito, suman el 1686 al stock) y un campo
-**`Kg de chapa consumida` manual** (libre, puede ser mayor al peso teórico) que es lo que
-descuenta la chapa. `cargar_recepcion_eclipse(…, p_kg_chapa)` usa ese kg tal cual si viene;
-el `desperdicio_pct` del PS queda solo de **fallback/referencia** (para mostrar el % implícito).
-Mismo espíritu que el "kg de balanza" de Charcas.
+**⚠️ La entrega de Eclipse se carga en KG DE ENTREGA `[usuario 2026-09-08]`:** los prov serv
+se cargan en KG (peso de lo que entregan). La entrega de Eclipse (Entrega PS → faseEclipse,
+v1.6.1) toma las **unidades como referencia** (lo que dice el remito, suman el 1686 al stock)
+y un campo **`Kg de entrega` manual** = **peso total de las unidades entregadas** (el 1686). La
+**chapa consumida se DERIVA** = `kg_entrega × (1 + desperdicio)`. `cargar_recepcion_eclipse(…,
+p_kg_entrega)` usa ese peso como producto (si no viene, cae al teórico `uni × kg_x_uni`) y saca
+la chapa con `proveedor_servicio.desperdicio_pct` (67,46). Validado con la compra real: entrega
+11,8 kg → 19,76 kg chapa (1 chapa Aperam) y 23,6 → 39,52 (2 chapas) — calzan justo. El panel
+muestra en vivo la chapa a descontar. (Ojo: NO es "kg de chapa consumida"; es el peso del producto.)
 **⚠️ Ya NO son gemelos en la OC** (desde 2026-09-04): Eclipse mantiene OC gemela
 a Aperam; Charcas va SOLO a Altrak, sin gemela. `proveedor_insumo.modo_control` = `peso_total`
 en ambos `[usuario 2026-09-02: "los paquetes se pesan"]` — semántico, el
