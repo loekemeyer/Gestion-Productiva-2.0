@@ -5574,3 +5574,40 @@ Por orden de lo que le va a doler primero — el detalle está en las ideas **72
 6. Contestar las preguntas **23** y **28** de `PREGUNTAS_ARQUITECTURA_GP2.md`.
 7. Confirmar con Gráfica Pol el **pliego de 25.000 del cartón Huevo** (sin confirmar y ya empujando
    pedidos).
+
+## 4ac. El gatillo de reposición de la OC: el mínimo dispara, el máximo dimensiona (2026-09-08)
+
+**Es la regla de reposición de GP2, y ya estaba en la base sin que nadie la mirara.**
+
+- **La cuenta de CUÁNTO no cambió**: sigue siendo `máximo − stock` (§4ab, decisión del usuario
+  del 2026-09-04: "llena el lugar"). Lo que se agregó es **CUÁNDO** [deducido, implementado en
+  `Compras/OC_GP2.html` v1.21.0]: `inventario.minimo` es el punto de pedido y ya viaja en
+  `oc_bundle`; la pantalla lo había dejado de dibujar y por eso proponía llenar el techo de todo
+  lo que estuviera un peso abajo del máximo.
+- **Tres estados** (`estadoRepo(i)`):
+  - `pedir` — `stock <= minimo`. Se carga solo, hasta el máximo.
+  - `viaje` — `stock > minimo`. Campo vacío. Botón **"Aprovechar el viaje (N)"** los suma de una.
+    Ese botón NO es un adorno: el cartón se pide por familia y necesita completar el múltiplo del
+    pliego aunque un código puntual no esté bajo mínimo.
+  - `sin-gatillo` — sin mínimo, sin stock, o `minimo >= maximo` (config rota). **Se comporta como
+    antes y se carga solo.** El fail-safe es deliberado: ante la duda, que no se esconda algo que
+    hace falta.
+- **"Ya lo pediste" es AVISO, no resta** [usuario 2026-09-04: "por ahora borralo"]. La fila con
+  `pendiente_oc > 0` muestra cuánto viene en camino y no se autocarga; la cuenta a la vista sigue
+  siendo `máximo − stock`, sin el "− pendiente" que el usuario mandó sacar.
+- **"Usar sugeridos" es la orden explícita del usuario y pisa las dos cosas**: carga todo lo
+  visible que tenga sugerido, gatillo y aviso incluidos.
+- **La pregunta abierta de §4ab quedó cerrada por el argumento del doble conteo** [deducido]:
+  el vecino hace `máximo − stock + pedidos de clientes`, pero en GP2 el máximo NO es físico —
+  194 de 235 son `maximo_origen='est_madre'`, y `v_consumo_demanda` arranca justamente de
+  `est_madre.proy_uni_mes`. Sumar pedidos de clientes contaría la misma venta dos veces. Si algún
+  día los máximos pasan a ser físicos, la pregunta se reabre.
+- ⚠️ **HONESTO, y hay que decirlo cada vez que se hable del gatillo** [dato, consulta del
+  2026-09-08]: **hoy casi no recorta**. Agrupando lo que tiene `sugerido > 0`: 144 líneas
+  (ARS 100,7 M) caen en "hay que pedir", 52 (ARS 72,6 M) en config rota, 5 (ARS 10,0 M) sin
+  config, y **una sola** en "aprovechá el viaje". La razón es que 256 de 285 insumos tienen
+  stock 0. **El gatillo empieza a servir recién cuando se cargue el stock** — por eso el orden
+  correcto es contar primero y pedir después.
+- **La config rota que hay que corregir** (es `ubicacion.meses_minimo`, no la pantalla)
+  [dato 2026-09-08]: Plástico 30 de 31, Remache 15 de 16, Bombilla 4 de 6, Procesado 2 de 2,
+  Caja 1 de 9. Mientras estén así esas líneas caen en `sin-gatillo` y se piden como antes.

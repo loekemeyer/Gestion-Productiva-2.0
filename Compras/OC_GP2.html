@@ -1,7 +1,27 @@
 <!doctype html>
 <html lang="es">
 <head>
-<!-- v1.20.1 (2026-09-08) — LA FECHA DE ENTREGA VUELVE A LA TARJETA Y A LA HOJA (idea 7271). La
+<!-- v1.21.0 (2026-09-08) — EL GATILLO DE REPOSICION: EL MINIMO DISPARA, EL MAXIMO DIMENSIONA
+     (idea 7273). Hasta aca la pantalla proponia llenar el techo de TODO lo que estuviera un peso
+     abajo del maximo: una corrida completa de sugeridos daban ~ARS 367,6 M en 201 lineas, con
+     techos de 6 meses en carton y fleje que se reciben todas las semanas. El punto de pedido YA
+     estaba en la base (inventario.minimo, 1.079 de 1.085 filas) y YA viajaba en oc_bundle: lo
+     unico que faltaba era mirarlo. No se creo ningun campo ni se toco SQL.
+     (a) estadoRepo(i): 'pedir' (stock <= minimo), 'viaje' (todavia no hace falta) y
+         'sin-gatillo' (sin minimo, sin stock, o minimo >= maximo = config rota). cargarSugeridos()
+         llena solo 'pedir' y 'sin-gatillo'. El fail-safe es a proposito: ante la duda NO se
+         esconde algo que hace falta, se comporta como antes.
+     (b) "Aprovechar el viaje (N)": boton que suma los 'viaje' de una. Hace falta porque el
+         carton necesita completar el multiplo de la familia aunque un codigo no este bajo minimo.
+     (c) AVISO "ya lo pediste": la fila con pendiente_oc > 0 muestra cuanto viene en camino y NO
+         se carga sola. Es AVISO, no resta -- la resta se saco en su momento porque rompia la
+         cuenta a la vista [usuario 2026-09-04: "por ahora borralo"]. "Usar sugeridos" es la orden
+         explicita del usuario y pisa las dos cosas: carga todo lo visible.
+     OJO, HONESTO: hoy el gatillo casi no recorta, porque 256 de 285 insumos tienen stock 0 y
+     todo cae en 'pedir'. Empieza a servir cuando se cargue el stock. Ademas hay 52 lineas con
+     minimo >= maximo (Plastico 30/31, Remache 15/16, Bombilla 4/6, Procesado 2/2, Caja 1/9): eso
+     es ubicacion.meses_minimo mal y lo tiene que corregir el usuario.
+     v1.20.1 (2026-09-08) — LA FECHA DE ENTREGA VUELVE A LA TARJETA Y A LA HOJA (idea 7271). La
      pantalla leia o.fecha_entrega y oc_bundle emite fecha_entrega_estimada (asi se llama la
      columna): el badge quedaba vacio y la hoja del proveedor salia con la linea en blanco, aunque
      la fecha estuviera guardada bien. Ahora hay un lector tolerante vFechaEnt(o) que entiende los
@@ -319,6 +339,10 @@
   /* Debajo del campo: la palabra "sugerido" con el número, para que se entienda de
      dónde salió lo que ya viene cargado (y siga estando si se pisa a mano). */
   .sug-lb{color:#b45309;font-weight:800}
+  .rep-tag{display:block;font-size:12px;font-weight:700;white-space:nowrap}
+  .rep-pedir{color:#b71c1c}
+  .rep-viaje{color:#2e7d32}
+  .rep-pend{color:#0b3b73}
   td.bajo-min b, td.bajo-min{color:#b71c1c}
   .campo{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
   .campo label{font-size:16px;font-weight:800;color:#333}
@@ -339,6 +363,7 @@
     .prov-mini{display:inline}
     .pedir-in{width:84px;font-size:19px;padding:9px 5px}
     .sug-calc{white-space:normal}
+    .rep-tag{white-space:normal}
     .filtro{flex-direction:column;align-items:flex-start;gap:4px}
     .filtro-lb{min-width:0}
     .campo,.campo-nota{width:100%}
@@ -386,6 +411,7 @@
 
       <div class="barra">
         <button type="button" class="btn-sug" id="btnSug">Usar sugeridos</button>
+        <button type="button" class="btn-sug hidden" id="btnViaje">Aprovechar el viaje</button>
         <button type="button" class="btn-limpiar" id="btnLimpiar">Limpiar</button>
         <span class="tot" id="tot">0 ítems</span>
       </div>
@@ -450,6 +476,26 @@ function vStock(i){ return i.stock!=null ? Number(i.stock) : (i.online!=null?Num
 function vConsumo(i){ return i.consumo_uni_mes!=null ? Number(i.consumo_uni_mes) : (i.consumo!=null?Number(i.consumo):null); }
 function vMaximo(i){ return i.maximo!=null ? Number(i.maximo) : null; }
 function vPend(i){ return Number(i.pendiente_oc)||0; }
+function vMinimo(i){ return i.minimo!=null ? Number(i.minimo) : null; }
+/* EL GATILLO DE REPOSICION: el MINIMO dispara, el MAXIMO dimensiona.
+   Hasta v1.20.1 la pantalla proponia llenar el techo de TODO lo que estuviera un peso
+   abajo del maximo: una corrida completa daban ~ARS 367 M en 201 lineas, con techos de
+   6 meses en carton y fleje que se reciben todas las semanas. El punto de pedido ya
+   existe en la base (inventario.minimo, cargado en 1.079 de 1.085 filas) y viaja en el
+   bundle; lo unico que faltaba era mirarlo. No se crea ningun campo nuevo.
+     'pedir'       stock <= minimo  -> hay que pedirlo, y se pide hasta el maximo.
+     'viaje'       stock  > minimo  -> todavia no hace falta. No se carga solo; se puede
+                                       sumar a mano o con "Aprovechar el viaje" (el carton
+                                       lo necesita para llegar al multiplo de la familia).
+     'sin-gatillo' no hay con que decidir (sin minimo, sin stock, o minimo >= maximo, que
+                   es config rota) -> se comporta como antes y se carga solo. Es a
+                   proposito: ante la duda, que NO se esconda algo que hace falta. */
+function estadoRepo(i){
+  var st=vStock(i), mn=vMinimo(i), mx=vMaximo(i);
+  if(st==null || mn==null) return 'sin-gatillo';
+  if(mx!=null && mn>=mx) return 'sin-gatillo';
+  return st<=mn ? 'pedir' : 'viaje';
+}
 // La OC guarda la fecha en orden_compra.fecha_entrega_estimada y asi la emite oc_bundle;
 // el payload que se MANDA a crear_oc la llama fecha_entrega. Se leen las dos: la fecha ya se
 // perdio una vez por esta diferencia de nombre (ver changelog v1.18.0) y no se pierde de nuevo.
@@ -722,6 +768,12 @@ function cargarSugeridos(){
   var toco=false;
   filtradas().forEach(function(i){
     if(PEDIDO[i.comp_id]!=null || SIN_PEDIDO[i.comp_id]) return;
+    // El gatillo (v1.21.0): lo que todavia esta arriba del minimo NO se carga solo.
+    if(estadoRepo(i)==='viaje') return;
+    // Y lo que YA se pidio y viene en camino tampoco: se avisa en la fila y decide el
+    // usuario. Es AVISO, no resta -- la resta se saco en v1.19.x porque rompia la cuenta
+    // a la vista [usuario 2026-09-04: "por ahora borralo"].
+    if(vPend(i)>0) return;
     var v=valorSugerido(i);
     if(v>0){ PEDIDO[i.comp_id]=v; toco=true; }
   });
@@ -739,6 +791,17 @@ function notaSugerido(i){
   var calc=explicaSug(i);
   return '<span class="sug-calc"><span class="sug-lb">sugerido '+fmt(v)+'</span>'+
     (calc?(' · '+esc(calc)):'')+'</span>';
+}
+
+/* El cartelito de POR QUE esa fila esta (o no esta) cargada: el estado del gatillo y,
+   si corresponde, el aviso de lo que ya viene en camino. */
+function notaRepo(i){
+  var out='', e=estadoRepo(i), mn=vMinimo(i);
+  if(e==='pedir') out+='<span class="rep-tag rep-pedir">hay que pedir · stock ≤ mín '+fmt(mn)+'</span>';
+  else if(e==='viaje') out+='<span class="rep-tag rep-viaje">no hace falta · mín '+fmt(mn)+'</span>';
+  var pe=vPend(i);
+  if(pe>0) out+='<span class="rep-tag rep-pend">ya pediste '+fmt(pe)+' '+esc(i.unidad||'')+' (en camino)</span>';
+  return out;
 }
 
 function render(){
@@ -768,7 +831,7 @@ function render(){
       '<td class="num">'+(mx==null?'—':fmt(mx))+
         (mx!=null&&i.maximo_origen?('<span class="sub-nota">'+esc(tagOrigen(i.maximo_origen))+'</span>'):'')+'</td>'+
       '<td class="num"><input class="pedir-in" data-in="'+i.comp_id+'" inputmode="decimal" value="'+(ped?String(ped).replace('.',','):'')+'" placeholder="'+i.unidad+'">'+paqEq+
-        notaSugerido(i)+'</td>'+
+        notaSugerido(i)+notaRepo(i)+'</td>'+
     '</tr>';
   }).join('');
   // Toda la zona de armar la OC (buscador, leyenda, tabla y barras) aparece recien
@@ -776,6 +839,13 @@ function render(){
   $('zonaLista').classList.toggle('hidden', !haySeleccion());
   $('elegiSector').classList.toggle('hidden', haySeleccion());
   $('tblEmpty').classList.toggle('hidden', fs.length>0);
+  // "Aprovechar el viaje": los que todavia no hacen falta, para sumarlos a esta OC de
+  // una (el carton lo necesita para completar el multiplo de la familia). Aparece solo
+  // si hay alguno sin cargar.
+  var nViaje=fs.filter(function(i){ return estadoRepo(i)==='viaje' && PEDIDO[i.comp_id]==null && valorSugerido(i)>0; }).length;
+  var bv=$('btnViaje');
+  bv.classList.toggle('hidden', nViaje===0);
+  bv.textContent='Aprovechar el viaje ('+nViaje+')';
 
   document.querySelectorAll('.pedir-in').forEach(function(inp){
     inp.addEventListener('change',function(){
@@ -1021,7 +1091,20 @@ function barra(){
   $('btnCrear').disabled = items.length===0 || errs.length>0;
 }
 
+/* Suma los que el gatillo dejo afuera por no hacer falta todavia. Es la valvula de
+   escape del gatillo: si igual va el camion, se aprovecha. */
+$('btnViaje').addEventListener('click',function(){
+  filtradas().forEach(function(i){
+    if(estadoRepo(i)!=='viaje') return;
+    delete SIN_PEDIDO[i.comp_id];
+    var v=valorSugerido(i); if(v>0) PEDIDO[i.comp_id]=v;
+  });
+  ajustarPedidoCarton();
+  render();
+});
 // Vuelve a poner los sugeridos: borra las marcas de "este no lo pido" de lo que se ve.
+// Es la ORDEN EXPLICITA del usuario, asi que pisa el gatillo y el aviso de "en camino":
+// carga TODO lo visible que tenga sugerido.
 $('btnSug').addEventListener('click',function(){
   filtradas().forEach(function(i){
     delete SIN_PEDIDO[i.comp_id];
