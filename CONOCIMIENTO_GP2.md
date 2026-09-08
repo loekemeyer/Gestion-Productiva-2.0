@@ -5134,3 +5134,58 @@ del tallerista coincide al centavo en el 501 ($491), el 502 ($133,50), el 510 ($
 - **504 (−25,5 %)**: material + tratamientos $448,28 en la planilla contra $179,68 en GP2 —
   falta el zincado y el rectificado de los tochos.
 - **031 (+15,8 %)**: el cartón, ver el punto c) de §4x.
+
+### 4x-quater. Los 3 que no cuadran, cerrados (2026-09-08)
+
+Cada uno tiene una causa distinta y concreta. Ninguna es "el costo está mal": a los tres les
+falta **un dato puntual**.
+
+**510 (−39,5 %) — a la ruta le falta el cromado del cuerpo.** La planilla cobra
+`cromado mariposa $69,49` (`Tratamientos !N225`). En GP2 el componente se llama
+`Cpo Uña Crom. LK C/M` ("Crom." de cromado) pero su costo es **$62,04 con `servicios_pesos` = 0**:
+en las rutas del 510 hay pasos de FAAT (cementado de la uña), Guazzaroni (zincado de la uña) y
+Guazzaroni (niquelado del remache), **pero ningún paso de cromado para el cuerpo**. El servicio no
+está mal cotizado — no existe el paso.
+
+**504 (−25,5 %) — a la receta le falta la Arandela Grande.** La planilla cobra
+`Arandela Grande Afila $200,98` dentro de `Materiales!I94`. En GP2 `articulo_componente` del 504
+tiene `Arandela Chica Afila Inox` ×8 ($71,28) **y nada más de arandelas**. Pero la **ruta sí la
+tiene**: `Arandela grande Afila p/cementar y zincar` → FAAT (cementado, $3.084,02/kg) → Guazzaroni
+(zincado, $1.172/kg) → `Arandela Gde Afila Zinc.`. O sea: **la pieza está modelada en la ruta y
+falta en la receta.**
+
+**031 (+15,8 %) — el cartón.** Ya cerrado en §4x punto c): $0,252 del `IFERROR(...,0)` de la
+planilla contra $63 de GP2.
+
+**Los tres refuerzan el diseño del arreglo de la 7269**: el 504 es otro caso donde la receta está
+incompleta y la ruta está bien. La vista tiene que **seguir recorriendo la ruta** y sólo agregarle
+la multiplicación por `ruta_paso.cantidad`.
+
+### 4x-quinquies. Los precios que faltan ya están en la planilla (idea 7270)
+
+Buscados en `GP2.planilla_fila` ahora que la planilla vive en la base. **Nada de esto se cargó** —
+son candidatos para que el usuario confirme el mapeo:
+
+| Componente GP2 (hoy $0) | Candidato en la planilla | $ | Dónde |
+|---|---|---|---|
+| `Cuch China` | Cuchilla 505 Ac Inox (`505C`, prov 2222) | **230,03** | `Lista de Precios ` 1006 · US$0,15 · lista 2026-05-29 |
+| `Cuchilla Laser` | Cuchilla Laser (`587C`, prov 2222) | **184,02** | `Lista de Precios ` 1007 · US$0,12 · lista 2026-05-29 |
+| `Argolla Grande` | Argolla | **32,99** | `Materiales` 166 |
+| `Argolla Chica` | Argolla Redonda 70 mm × 1,7 mm | **17,56** | `Materiales` 167 · `Lista de Precios ` 26 |
+| `Alambre Corta Queso` | alambre inoxidable 0,50 mm (1,936 g) | **63,98** | `Materiales` 213 / 218 / 226 |
+| `Tornillo Corta Queso` | Tornillo cortaqueso | **12,10** | `Lista de Precios ` 20 · lista 2026-07-30 |
+| `Cartón 515` | Batidor Resorte, cartón tipo 15 | **48,00** | ` Cartones` 376 |
+| `Cartón 119` | Corta Queso (entero) Loke, tipo 17 | **48,00** | ` Cartones` 305 |
+
+**Tres quedan sin candidato claro y los tiene que decir el usuario:**
+- `Cartón 516` (Destapa Corona Suelto): **no hay fila de cartón para el 516** en ` Cartones`.
+- `Vastago Sacafuente Pizzero`: el más parecido es `Perno (Trompo)` $598,91 (`Materiales` 179),
+  pero el nombre no coincide.
+- `Abrelata Uña Pie 500`: es el artículo terminado del 500, no un insumo — hay que ver por qué
+  está en una receta a costo cero.
+
+⚠️ **Ojo con `Cuch China`**: GP2 la tiene en la receta del **586, 123, 099 y 108**, pero la
+planilla, para el 586, cobra material $66,90 = **cuchilla de fleje nacional + clavo**, no una
+cuchilla importada. Antes de cargar los $230,03 hay que definir **si esos artículos van con
+cuchilla china o con la nacional** — si van con la nacional, el error no es el precio, es que
+sobra el componente.
