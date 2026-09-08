@@ -5289,3 +5289,49 @@ de un sector que NO es de insumo). Probado: OC de LLF8 a Charcas → sin gemela;
 **Queda pendiente de decisión del usuario:** la pantalla de OC convierte a **paquetes de 10 kg**
 todo lo que sea de Charcas (`esCharcasIt()` mira sólo el proveedor). Esa regla nació para el
 alambre cortado, que ya no se pide; hoy sólo alcanza a las bombillas, que van en unidades.
+
+## 4aa. Ester (calado) cala el mango PC3B → PC1B; el 123 se compra SIN calar (2026-09-08)
+
+**[usuario]** *"Esther está como proveedora de servicio. No es con H, es Ester, y no tiene ninguna
+parte que se lleva. Lo que se lleva es el mango 123. El PC1B es el que ya está calado. Antes de esa
+ruta tenés que agregar de qué Ester lo cala: el mango PC3B. Le compramos el mango sin calar
+[a Pat Bet Plast, «en principio»] y se lo enviamos a Ester para que lo cale, y después viene como
+PC1B."*
+
+**El circuito del mango del Pelapapa 123, como queda** (art 123, ruta 269):
+
+1. **Se compra `PC3B`** = "Mgo Pelapapa 123 Sin Calar" a **Pat Bet Plast** (Sector Plástico, insumo).
+   Es el mango inyectado, todavía sin el calado.
+2. **Se le manda a Ester** (PS id 14, proceso **Calado**) por Envío PS. Ester lo **cala**.
+3. **Vuelve como `PC1B`** = "Mgo Pelapapa 123" (calado) por Entrega PS, y de ahí va al tallerista
+   **Lucho**, que arma el 123.
+
+Ruta: `insumo PC3B → PS Ester (PC3B→PC1B) → tallerista Lucho (PC1B→123) → virgilio`.
+
+**Cómo se modeló, y una diferencia fina con Charcas:**
+
+- **`PC3B` es lo que se compra** (proveedor `Pat Bet Plast`, `estado_compra=null`): aparece en la OC
+  con el punto de compra que antes tenía PC1B (mín/máx 6704, est_madre). El **precio $62,01** ("Mgo
+  Pelador 123 Negro, mat+iny") se **movió de PC1B a PC3B**: es el precio del mango en sí, sin el
+  calado.
+- **`PC1B` ya NO se compra: lo produce Ester.** Se marcó `estado_compra='fabricacion'` y
+  `proveedor=null`. Eso lo saca de la OC y hace que su costo se **derive de la ruta** (PC3B + el
+  servicio de Ester), no de un precio propio. En Control/Entrega PS, PC1B es la parte que Ester
+  **devuelve** y PC3B la que **recibe** (`partes_por_ps` de Ester: sc=PC3B, sp=PC1B).
+- **Por qué `fabricacion` y no el truco de Charcas** (regla §4z, `proveedor = el PS`): la regla 4z
+  necesita que el nombre del PS exista en `proveedor_insumo` (Charcas está ahí porque además nos
+  **vende** bombillas). **Ester es servicio puro, no nos vende nada**, así que no va en
+  `proveedor_insumo` — y hay un FK `componente.proveedor → proveedor_insumo.nombre` que lo impediría.
+  Para una parte de **sector insumo** que pasa a ser **producida por un PS que no es proveedor de
+  insumo**, la herramienta es `estado_compra='fabricacion'` (la saca de la OC) + `proveedor=null`.
+
+**Verificado:** costo del 123 estable en **$520,27** (el material sigue entrando vía PC3B); la OC
+pasa de "PC1B → Pettofrezza $6704" a "PC3B → Pat Bet Plast $6704"; invariantes de `verificar.sql`
+en 0 (Ester tiene ubicación, sin códigos ni pasos duplicados).
+
+**PENDIENTE (lo dijo el usuario):**
+1. **El proveedor de PC3B es "en principio" Pat Bet Plast** — falta que el usuario confirme a quién
+   le compramos el mango sin calar. (El precio $62,01 quedó con `cod_prov=797`, que puede no ser el
+   de Pat Bet Plast; reconciliar al confirmar.)
+2. **Ester no tiene tarifa de calado** — por eso el costo del 123 ahora marca `faltan_precios` (el
+   servicio suma $0 hasta cargarla). El costo total no cambió sólo porque el calado todavía vale 0.
