@@ -494,8 +494,11 @@ y un campo **`Kg de entrega` manual** = **peso total de las unidades entregadas*
 11,8 kg → 19,76 kg chapa (1 chapa Aperam) y 23,6 → 39,52 (2 chapas) — calzan justo. El panel
 muestra en vivo la chapa a descontar. (Ojo: NO es "kg de chapa consumida"; es el peso del producto.)
 **El 1686 se GUARDA EN KG `[usuario 2026-09-08: "no estamos guardando en unidades... son los KG
-los que cargamos"]`:** TODOS los prov serv trabajan/cobran en KG (se pesa lo que se manda y se
-recibe; tarifa $/kg). Las unidades del remito son solo referencia (lo que declara el proveedor).
+los que cargamos"]`:** los prov serv que procesan **metal por peso** trabajan/cobran en KG (se pesa
+lo enviado/recibido; tarifa $/kg): Guazzaroni niquelado, Jade pintado, FAAT templado, Pedernera
+cromado, Charcas (fleje) y Eclipse (chapa). **NO todos: los de cartón** (AJ Adhesivos, adhesivado)
+van en **unidades** — se cuentan cartones, no se pesan `[usuario 2026-09-08: "los de cartones como
+aj no son en KG"]`. Para Eclipse, las unidades del remito son solo referencia (lo que declara el proveedor).
 Por eso `cargar_recepcion_eclipse` inserta el movimiento del 1686 en **kg** (`v_kg_producto`, no
 `p_unidades`), `componente."1686".unidad_medida='kg'`, y las uni van a `rollos_json.uni_referencia`.
 Igual que Charcas guarda el corte en kg de balanza. Así Control PS de Eclipse queda TODO en kg
