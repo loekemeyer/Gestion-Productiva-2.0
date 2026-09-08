@@ -5374,3 +5374,101 @@ del tallerista en ambas. El código lo eligió el usuario: **PC2**, sin la letra
 Verificado: costo del 505 estable en $667,09; OC pasa de "PC1A → Pettofrezza" a "PC2 → Pat Bet
 Plast" (sug 112.736); invariantes en 0 (inventario = ledger, los 240 de PC1A intactos). Mismos dos
 pendientes que el 123: confirmar proveedor de PC2 y cargar la tarifa de calado de Ester.
+
+
+## 4ab. Estado real del módulo de OC, auditado (2026-09-08)
+
+`[usuario 2026-09-08]` Pedido: *"¿Qué más hay para hacer, que no sea costos? Del módulo de órdenes
+de compra. ¿Es lo que necesitemos terminar o está todo para vos ya hecho bien?"*. Se lanzaron dos
+revisores: uno auditó el circuito completo, otro la lógica de reabastecimiento.
+
+### El dato que ordena todo
+
+`[dato]` **`GP2.orden_compra` tiene UNA fila: la OC N° 1 a Aperam, estado `anulada`, 10 ítems, 0
+recibidos.** Ninguna OC llegó jamás a `enviada` ni a `recibida`. **El módulo está construido pero
+nunca se usó de verdad** — todo lo que "anda", anda en teoría.
+
+Y el stock tampoco está: **256 de 285 insumos tienen cantidad 0**. Sólo 29 tienen stock cargado.
+Por eso la pantalla ve "falta todo": no es que falte, es que nunca se cargó.
+
+### La cuenta que asusta
+
+`[dato]` **Una corrida completa de sugeridos hoy: ~ARS 367.600.000** (183,5 M ARS + US$ 120.302 a
+TC 1.530), con **201 de 235 líneas cargadas**. Reparto: cartón 77,8 M · plástico 55,5 M · cajas
+25,6 M · garage 8,8 M · remaches 5,5 M · fleje US$ 119 k.
+
+Eso no es una orden de compra, es el inventario objetivo entero. **Falta el gatillo**: hoy se
+propone llenar el techo de todo lo que esté un peso por debajo. Y el techo es alto — cartón y fleje
+están a **6 meses** de consumo, mientras en la realidad se recibe **todas las semanas**
+(Corrugadora 3 visitas en 16 días, Basconia 2 en 7, Aperam 2 en 4).
+
+### El gatillo ya existe y nadie lo usa
+
+`[dato]` **`inventario.minimo` está cargado en 1.079 de 1.085 filas** (232 de 235 en el universo
+OC), viaja en `oc_bundle` como `minimo`, y **la pantalla lo dejó de dibujar**. Lo lee sólo
+`faltantes_bundle`. Con eso alcanza: **el mínimo dispara, el máximo dimensiona** — no hay que crear
+ningún campo.
+
+Sirve tal cual en **cartón, fleje y caja** (`meses_minimo` 4 contra `meses_stock` 6 → lote de 2
+meses, ~6 OC al año). **No sirve** en plástico y remache (mínimo = máximo = 4 meses: cualquier
+consumo dispara) ni en bombilla (**mínimo 4 > máximo 3**: siempre disparado). Hay 9 líneas del
+universo OC con `minimo > maximo`.
+
+### El máximo casi nunca es el lugar físico
+
+`[dato]` De 235 líneas: **194 con `maximo_origen='est_madre'`** (consumo × meses), **10 `fisico`**,
+**31 sin máximo**. O sea el lema "la OC llena el lugar" describe 10 filas; en las otras 194 el
+"lugar" es consumo × meses ya materializado en `inventario.maximo`. **El fallback en vivo de
+`oc_bundle` a consumo × meses está muerto** (0 filas lo usan): los que no tienen máximo tampoco
+tienen consumo, así que quedan en sugerido 0.
+
+### Lo que hace el vecino, y que GP2 no tiene
+
+`[dato]` **`public."Ordenes_Compra"` calcula `máximo − stock + PEDIDOS`** y da exacto en 380 de 495
+líneas. Ese `oc_pedidos` es **demanda comprometida con el cliente** y **suma**, no resta. Guarda
+`oc_max`, `oc_stock`, `oc_pedidos`, `oc_proy` por línea.
+`[dato]` **El vecino le pide a los 17 proveedores el mismo día, cada 7 días** (29/07, 12/08, 19/08,
+26/08, 02/09; 93-104 líneas por fecha). Un flete por ronda, no por urgencia.
+⚠️ **Pregunta abierta al usuario**: cuando dijo *"se ve en función de lo que se pide el
+reabastecimiento"*, ¿se refería a **pedidos de clientes** (la fórmula del vecino) o a **lo que ya se
+le pidió al proveedor**? Cambia el diseño: si es lo primero, GP2 **no tiene de dónde sacar ese
+dato**.
+
+### La concentración: 7 proveedores = 81 %
+
+`[dato]` Pol 92 ítems · Basconia 23 · Pat Bet Plast 23 · Aperam 14 · Bella Vista 14 · Pettofrezza
+12 · Corrugadora 12 = **190 de 235**. Con 7 OC se compra casi todo, así que agrupar por proveedor
+y arrastrar todo lo suyo (aunque no sea urgente) es lo que evita pagar dos fletes. En cartón
+además es **obligatorio**: para llegar al múltiplo de 12.000/16.000 hay que meter códigos que no
+eran urgentes — `ajustarFamilia()` ya lo hace bien.
+
+### Lo que está BIEN y no hay que tocar
+
+- **La maquinaria de cartones** es la parte más sólida: familia = formato+marca+categoría, comodín
+  sacacorchos, mínimo por código fijo, pliegos de 100 aparte, piso de bolsa 20.000. 30+ asserts en
+  verde en `test_oc.js`.
+- ⚠️ **La doc miente**: `CLAUDE.md` y `REGLAS_OC_INSUMOS.md` dicen que la validación de cartones
+  está **DORMIDA** hasta que se asigne `carton_formato`. **Es falso**: los 110 cartones tienen
+  formato y el tipo C ya tiene categoría (Abrelatas 6, Pelapapas 4, Resto 16, Sacacorchos 6). Las
+  reglas están **vivas**. Hay que corregir las dos docs.
+- `explicaSug()` muestra la cuenta debajo de cada campo ("sugerido 2.449 · máx 2.500 − stock 51"):
+  el comprador ve de dónde sale el número.
+- Los totales por moneda no inventan cotización (US$ y $ separados; el equivalente sólo si el TC
+  vino del cron).
+- La regla de OC gemela sale toda de datos (`proveedor_servicio.hibrido/mp_componente_id/
+  desperdicio_pct`), sin un nombre de proveedor escrito.
+- El cruce FIFO de recepción convierte kg/uni en las dos direcciones y descuenta en la unidad de la
+  recepción (no en la del ítem, que sería el error fácil).
+
+### Lo que falta para que un comprador lo use solo
+
+Por orden de lo que le va a doler primero — el detalle está en las ideas **7271 a 7274**:
+
+1. **Que la hoja lleve la fecha de entrega.** Hoy se pierde por un nombre de campo.
+2. **Que avise "esto ya lo pediste".**
+3. **Los 31 insumos sin máximo**, que hoy muestran "—" sin explicar.
+4. **Poder corregir**: editar/borrar una OC en borrador, des-anular una anulada por error.
+5. **Que anular una recepción devuelva el `recibido`.**
+6. Contestar las preguntas **23** y **28** de `PREGUNTAS_ARQUITECTURA_GP2.md`.
+7. Confirmar con Gráfica Pol el **pliego de 25.000 del cartón Huevo** (sin confirmar y ya empujando
+   pedidos).
