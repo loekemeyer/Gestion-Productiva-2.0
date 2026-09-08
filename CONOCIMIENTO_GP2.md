@@ -5605,9 +5605,23 @@ Por orden de lo que le va a doler primero — el detalle está en las ideas **72
 - ⚠️ **HONESTO, y hay que decirlo cada vez que se hable del gatillo** [dato, consulta del
   2026-09-08]: **hoy casi no recorta**. Agrupando lo que tiene `sugerido > 0`: 144 líneas
   (ARS 100,7 M) caen en "hay que pedir", 52 (ARS 72,6 M) en config rota, 5 (ARS 10,0 M) sin
-  config, y **una sola** en "aprovechá el viaje". La razón es que 256 de 285 insumos tienen
-  stock 0. **El gatillo empieza a servir recién cuando se cargue el stock** — por eso el orden
-  correcto es contar primero y pedir después.
+  config, y **una sola** en "aprovechá el viaje". La razón es que **205 de 236 insumos tienen
+  stock 0** (86,9 %). **El gatillo empieza a servir recién cuando se cargue el stock** — por eso
+  el orden correcto es contar primero y pedir después. Ver `STOCK_A_CONTAR_2026-09-08.md`.
+- **CUÁL ES EL UNIVERSO DE LA OC — no es `estado_compra='compra'`** [dato 2026-09-08, leído del
+  `prosrc` de `GP2.oc_bundle`]. Es `_es_sector_insumo(sector_id)` (o proveedor Charcas/Eclipse, o
+  un proveedor que exista en `proveedor_insumo`) **con `estado_compra IS NULL`**, sacando lo que
+  produce un PS; y el stock/mínimo/máximo salen de la fila de `inventario` que elige un `LATERAL`
+  que prioriza la ubicación del sector. **Son 236 insumos, no 285** — el 285 de §4ab contaba otra
+  cosa. Antes de volver a medir "cuántos insumos pide la OC", leer la función, no suponer.
 - **La config rota que hay que corregir** (es `ubicacion.meses_minimo`, no la pantalla)
-  [dato 2026-09-08]: Plástico 30 de 31, Remache 15 de 16, Bombilla 4 de 6, Procesado 2 de 2,
-  Caja 1 de 9. Mientras estén así esas líneas caen en `sin-gatillo` y se piden como antes.
+  [dato 2026-09-08]: son **53 líneas**, y 52 salen de 4 sectores donde `meses_minimo >=
+  meses_stock`: Plástico (4 vs 4) 31, Remache (4 vs 4) 15, Bombilla (4 vs 3) 4, Procesado
+  (2 vs 1) 2. **Cartón y Fleje están sanos** (4 vs 6: 0 rotos sobre 136 líneas). La 53ª es `A9`
+  (Caja N°22), cargada a mano contra la fórmula. Mientras estén así esas líneas caen en
+  `sin-gatillo` y se piden como antes.
+- **31 insumos son invisibles para la OC** [dato 2026-09-08]: tienen proveedor pero
+  `inventario.maximo IS NULL` **y** consumo 0, así que el fallback `consumo × meses_stock`
+  tampoco los rescata y `sugerido = 0` siempre. Contarles el stock no cambia nada. Los que más
+  llaman la atención tienen mínimo cargado y el máximo vacío: `IE4` (Fleje N° 31, mín 108.000),
+  `IE5` (Fleje N° 32, mín 36.000) y `O6A` (Cartón 809, mín 5.184).

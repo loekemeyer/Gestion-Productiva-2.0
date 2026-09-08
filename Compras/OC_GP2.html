@@ -17,10 +17,12 @@
          se carga sola. Es AVISO, no resta -- la resta se saco en su momento porque rompia la
          cuenta a la vista [usuario 2026-09-04: "por ahora borralo"]. "Usar sugeridos" es la orden
          explicita del usuario y pisa las dos cosas: carga todo lo visible.
-     OJO, HONESTO: hoy el gatillo casi no recorta, porque 256 de 285 insumos tienen stock 0 y
-     todo cae en 'pedir'. Empieza a servir cuando se cargue el stock. Ademas hay 52 lineas con
-     minimo >= maximo (Plastico 30/31, Remache 15/16, Bombilla 4/6, Procesado 2/2, Caja 1/9): eso
-     es ubicacion.meses_minimo mal y lo tiene que corregir el usuario.
+     OJO, HONESTO: hoy el gatillo casi no recorta, porque 205 de los 236 insumos que pide la OC
+     tienen stock 0 (86,9%) y casi todo cae en 'pedir'. Empieza a servir cuando se cargue el
+     stock (que contar y en que orden: STOCK_A_CONTAR_2026-09-08.md). Ademas hay 53 lineas con
+     minimo >= maximo: 52 son ubicacion.meses_minimo mal en 4 sectores (Plastico 4 vs 4 -> 31,
+     Remache 4 vs 4 -> 15, Bombilla 4 vs 3 -> 4, Procesado 2 vs 1 -> 2; Carton y Fleje, 4 vs 6,
+     estan sanos) y la 53a es A9 cargada a mano. Lo corrige el usuario en la base, no la pantalla.
      v1.20.1 (2026-09-08) — LA FECHA DE ENTREGA VUELVE A LA TARJETA Y A LA HOJA (idea 7271). La
      pantalla leia o.fecha_entrega y oc_bundle emite fecha_entrega_estimada (asi se llama la
      columna): el badge quedaba vacio y la hoja del proveedor salia con la linea en blanco, aunque
