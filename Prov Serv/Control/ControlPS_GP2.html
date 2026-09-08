@@ -1,730 +1,254 @@
 <!doctype html>
 <html lang="es">
 <head>
-  <script src="../../auth-guard.js?v=20260904t"></script>
-  <script src="../../gp2-ui.js?v=20260905a"></script>
-  <script src="../../gp2-numero.js?v=20260905m"></script>
-  <script src="../../gp2-composicion.js?v=20260905d"></script>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Control Prov. Servicios (GP2)</title>
-
-  <!-- Supabase -->
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Control Partes Prov. Servicio · GP2</title>
+<script src="../../auth-guard.js?v=20260904t"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="../../supabase-config.js?v=20260905k"></script>
-
-  <!-- CSS reutilizado de la pagina vieja -->
-  <link rel="stylesheet" href="ControlPS.css?v=20260903b" />
-
-  <style>
-    /* Banner de datos parciales (propio de la version GP2) */
-    .gp2-banner{
-      background:#fff8e1;
-      border:1px solid #eae0cd;
-      color:#7a5b00;
-      border-radius:10px;
-      padding:10px 14px;
-      font-size:13px;
-      line-height:1.4;
-      margin-bottom:16px;
-    }
-    .gp2-banner b{ color:#5a4400; }
-    .gp2-tag{
-      display:inline-block;
-      background:#111;
-      color:#fff;
-      font-size:11px;
-      border-radius:6px;
-      padding:2px 8px;
-      margin-left:8px;
-      vertical-align:middle;
-    }
-    .prov-meta{ font-weight:normal; font-size:12px; color:#666; }
-    td.num{ text-align:right !important; font-variant-numeric:tabular-nums; }
-    td.neg{ color:#b3402f; }
-    .empty-msg{ color:#666; font-size:14px; padding:10px 0; }
-
-    /* Resumen general partes x PS */
-    #resumenPS{ margin-top:16px; }
-    .resumen-wrap{ overflow-x:auto; }
-    /* La tabla de detalle mide ~427px y estaba suelta: a 390px hacia scrollear la
-       PAGINA entera en horizontal (62px de desborde). Ahora scrollea ella sola. */
-    .table-wrap{ overflow-x:auto; -webkit-overflow-scrolling:touch; }
-    .resumen-wrap table{ min-width:640px; }
-    .resumen-wrap th.ps-col{ text-align:right; }
-    .resumen-wrap td.vacio{ color:#bbb !important; text-align:right !important; }
-
-    /* ---- Panel de carga de movimientos PS (GP2) ---- */
-    .gp2-carga{
-      background:#f7f9fc;
-      border:1px solid #d7dee8;
-      border-radius:10px;
-      padding:12px 14px;
-      margin-bottom:16px;
-    }
-    .gp2-carga-head{
-      display:flex; align-items:center; gap:16px; flex-wrap:wrap;
-      margin-bottom:10px;
-    }
-    .gp2-carga-head b{ font-size:14px; color:#1e2a3a; }
-    .gp2-modo{ display:flex; gap:14px; font-size:13px; }
-    .gp2-modo label{ cursor:pointer; user-select:none; }
-    .gp2-form{ display:flex; flex-wrap:wrap; gap:12px; align-items:flex-end; }
-    .gp2-field{ display:flex; flex-direction:column; gap:3px; }
-    .gp2-field > label{ font-size:15px; color:#556; font-weight:bold; text-transform:uppercase; letter-spacing:.03em; }
-    /* Panel de CARGA de movimientos PS: va con el piso de la casa (18px, 44px). */
-    .gp2-field select,
-    .gp2-field input{
-      font-size:19px; padding:10px 10px; min-height:44px; border:1px solid #c3ccd8; border-radius:6px;
-      background:#fff; color:#1e2a3a; min-width:120px;
-    }
-    .gp2-field input[type=number]{ width:120px; text-align:right; }
-    .gp2-field input[type=date]{ width:150px; }
-    /* Era color:#fff sobre background:#e7eef8 — blanco sobre casi blanco, no se
-       leia. Y median 36px de alto (minimo tactil 44). Corregido 2026-09-03. */
-    .gp2-btn-guardar{
-      font-size:16px; font-weight:bold; padding:10px 20px; min-height:44px; border:none; border-radius:6px;
-      background:#1d4ed8; color:#fff; cursor:pointer;
-    }
-    .gp2-btn-guardar:hover{ background:#1e40af; }
-    .gp2-btn-guardar:disabled{ background:#9db4d6; cursor:default; }
-    .mv-hidden{ display:none !important; }
-    .gp2-msg{ margin-top:10px; font-size:13px; min-height:1em; }
-    .gp2-msg.ok{ color:#1a7a34; }
-    .gp2-msg.err{ color:#b3402f; }
-    /* buscador de componentes */
-    .gp2-picker{ position:relative; }
-    .gp2-picker input{ min-width:280px; }
-    .gp2-picker-list{
-      position:absolute; z-index:30; top:100%; left:0; right:0;
-      background:#fff; border:1px solid #c3ccd8; border-top:none;
-      border-radius:0 0 6px 6px; max-height:240px; overflow:auto;
-      box-shadow:0 6px 16px rgba(0,0,0,.12); display:none;
-    }
-    .gp2-picker-list.open{ display:block; }
-    .gp2-picker-item{ padding:6px 9px; font-size:12px; cursor:pointer; border-bottom:1px solid #eef1f5; }
-    .gp2-picker-item:last-child{ border-bottom:none; }
-    .gp2-picker-item:hover, .gp2-picker-item.active{ background:#eaf1fb; }
-    .gp2-picker-item .cod{ font-weight:bold; color:#1e2a3a; }
-    .gp2-picker-item .desc{ color:#333; }
-    .gp2-picker-item .sec{ color:#788; }
-    .gp2-picker-empty{ padding:8px 9px; font-size:12px; color:#889; }
-    td.stk-cell{cursor:pointer;text-decoration:underline dotted}
-  td.stk-cell:hover{background:#eef4fb}
-</style>
+<script src="../../gp2-ui.js?v=20260905a"></script>
+<script src="../../gp2-numero.js?v=20260905m"></script>
+<script src="../../gp2-composicion.js?v=20260905d"></script>
+<script src="../../gp2-envios-common.js?v=20260905c"></script>
+<link rel="stylesheet" href="../../gp2-modulo.css?v=20260903b"/>
 <link rel="icon" type="image/png" href="../../GP2_favicon.png">
 <link rel="apple-touch-icon" href="../../GP2_favicon.png">
-<link rel="stylesheet" href="../../gp2-claro.css?v=20260903b">
 </head>
 <body>
-<div id="gp2-logobar" style="position:relative;background:#e8edf7;text-align:center;padding:6px 0;border-bottom:1px solid #d0dae7"><a href="../../GP2_MODULOS.html" style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:#385475;text-decoration:none;font-weight:700;font-size:15px;padding:5px 10px;border:1px solid #d1d9e5;border-radius:8px;background:#e9eef7">← Atrás</a><a href="../../GP2_MODULOS.html" style="text-decoration:none"><img src="../../GP2_logo.png" alt="GP2 · Gestión Productiva" style="height:40px;vertical-align:middle"></a></div>
 
-
-  <div class="card">
-
-    <h1>Control Proveedores de Servicios <span class="gp2-tag">schema GP2</span></h1>
-
-    <div class="gp2-banner">
-      <b>Datos parciales (schema GP2):</b> proveedores con mapeo confirmado. Saldos en unidades
-      canonicas. Ledger historico incompleto &mdash; faltan remaches y proveedores por mapear.
+<div class="card">
+  <div class="header">
+    <h1>Control Partes Prov. Servicio</h1>
+    <div class="hbtns">
+      <button class="hlink hidden" id="btnVolver" type="button">← Cambiar proveedor</button>
+      <button class="hlink hidden" id="btnCSV" type="button">⬇ Exportar CSV</button>
+      <button class="hlink hidden" id="btnImprimir" type="button">🖨 Imprimir</button>
+      <a href="../Envios/EnviosPS_GP2.html">Envío</a>
+      <a href="../Entregas/EntregaPS_GP2.html">Entrega</a>
+      <a href="../../GP2_MODULOS.html">Atrás</a>
     </div>
-
-    <!-- Panel de carga de movimientos PS (fuera de los contenedores que se re-renderizan) -->
-    <div id="gp2-carga" class="gp2-carga">
-      <div class="gp2-carga-head">
-        <b>Cargar movimiento PS</b>
-        <div class="gp2-modo">
-          <label><input type="radio" name="mvModo" value="envio" checked> Env&iacute;o</label>
-          <label><input type="radio" name="mvModo" value="entrega"> Entrega</label>
-        </div>
-      </div>
-
-      <div class="gp2-form">
-        <div class="gp2-field">
-          <label>Proveedor</label>
-          <select id="mvProv"><option value="">Cargando&hellip;</option></select>
-        </div>
-
-        <!-- ENVIO -->
-        <div class="gp2-field mv-only-envio">
-          <label>Parte (SC &mdash; cruda)</label>
-          <div class="gp2-picker" id="mvEnvioSC"></div>
-        </div>
-        <div class="gp2-field mv-only-envio">
-          <label>Cantidad</label>
-          <input inputmode="decimal" id="mvCant" type="number" step="any" min="0" placeholder="0" />
-        </div>
-        <div class="gp2-field mv-only-envio">
-          <label>Unidad</label>
-          <select id="mvUnidad">
-            <option value="kg">Kg</option>
-            <option value="uni">Uni</option>
-          </select>
-        </div>
-
-        <!-- ENTREGA -->
-        <div class="gp2-field mv-only-entrega mv-hidden">
-          <label>Parte SC (se consume)</label>
-          <div class="gp2-picker" id="mvEntSC"></div>
-        </div>
-        <div class="gp2-field mv-only-entrega mv-hidden">
-          <label>Parte SP (se recibe)</label>
-          <div class="gp2-picker" id="mvEntSP"></div>
-        </div>
-        <div class="gp2-field mv-only-entrega mv-hidden">
-          <label>Kg entregados</label>
-          <input inputmode="decimal" id="mvKg" type="number" step="any" min="0" placeholder="0" />
-        </div>
-
-        <!-- comun -->
-        <div class="gp2-field">
-          <label>Fecha</label>
-          <input id="mvFecha" type="date" />
-        </div>
-        <div class="gp2-field">
-          <button id="mvGuardar" class="gp2-btn-guardar" type="button">Guardar</button>
-        </div>
-      </div>
-
-      <div id="mvMsg" class="gp2-msg"></div>
-    </div>
-
-    <div class="row-tools">
-      <button id="btnIndex" class="btn-index" type="button">&#8962; Inicio</button>
-
-      <button id="btnVolver" class="btn-volver hidden" type="button">&larr; Cambiar proveedor</button>
-
-      <input id="filtroDesc" class="filtro-desc hidden" type="text"
-             placeholder="&#128269; Filtrar por descripcion..." autocomplete="off" />
-
-      <button id="btnImprimir" class="btn-imprimir hidden" type="button">&#128424; Imprimir</button>
-    </div>
-
-    <div class="row">
-      <div id="talleristasGrid" class="talleristas-grid"></div>
-    </div>
-
-    <!-- Resumen general: partes en filas, saldo por PS en columnas (vista inicial) -->
-    <div id="resumenPS"></div>
-
-    <div id="status" class="status"></div>
-
-    <div id="result"></div>
-
   </div>
 
-  <!-- Area de impresion (oculta en pantalla) -->
-  <div id="printArea" class="print-only"></div>
+  <div class="steps">
 
-  <script>
-  var D = {};
+    <!-- FASE 0 — elegir proveedor -->
+    <div id="fase0">
+      <div class="row"><label class="lbl">Proveedor de servicio</label></div>
+      <div class="provs-grid" id="provGrid"></div>
+      <div id="status" class="status">Cargando…</div>
+    </div>
 
-  var SB = GP2_SB();
+    <!-- FASE 1 — control -->
+    <div id="fase1" class="hidden">
+      <div class="row"><label class="lbl" id="fase1Title">Proveedor</label></div>
 
-  function __run(){
-    var provs = (D && D.proveedores) ? D.proveedores : [];
-    var elGrid   = document.getElementById('talleristasGrid');
-    var elResult = document.getElementById('result');
-    var elStatus = document.getElementById('status');
-    var elFiltro = document.getElementById('filtroDesc');
-    var btnVolver= document.getElementById('btnVolver');
-    var btnImpr  = document.getElementById('btnImprimir');
-    var btnIndex = document.getElementById('btnIndex');
-    var printArea= document.getElementById('printArea');
+      <div class="aviso">
+        ⚠ <b>Datos parciales (schema GP2):</b> solo los proveedores con mapeo confirmado.
+        Los saldos están en unidades canónicas y el ledger histórico está incompleto
+        (faltan remaches y proveedores por mapear), así que algunos saldos pueden dar
+        negativos. Se muestran tal cual, sin corregir.
+      </div>
 
-    var provSel = null; // proveedor elegido
+      <div class="kpis" id="kpis"></div>
 
-    // ---- helpers de formato (gp2-ui.js / gp2-numero.js, 2026-09-04) ----
-    /* Todas las columnas de esta pantalla (Enviado / Entregado / Saldo en PS)
-       estan en unidades: van sin decimales. */
-    function fmt(n){ return GP2N.fmt(n, 0); }
-    var esc = GP2UI.esc;
+      <div class="search-box no-print">
+        <input type="text" id="q" placeholder="Buscar por sector, descripción o código…">
+      </div>
 
-    // ---- grilla de proveedores ----
-    function renderGrid(){
-      elGrid.innerHTML = '';
-      if(!provs.length){
-        elGrid.innerHTML = '<div class="empty-msg">No hay proveedores con datos GP2.</div>';
-        return;
-      }
-      provs.forEach(function(p){
-        var partes = p.partes || [];
-        var b = document.createElement('button');
-        b.type = 'button';
-        b.className = 'tallerista-btn';
-        var viejo = p.nombre_corto ? (' &middot; ' + esc(p.nombre_corto)) : '';
-        b.innerHTML = esc(p.nombre) +
-          '<div class="prov-meta">' + esc(p.proceso||'') +
-          ' &middot; ' + partes.length + ' partes' + viejo + '</div>';
-        b.addEventListener('click', function(){ elegir(p, b); });
-        elGrid.appendChild(b);
-      });
-    }
+      <div class="table-wrap">
+        <table class="t">
+          <thead>
+            <tr>
+              <th id="colProv" class="hidden">Proveedor</th>
+              <th>Sector</th>
+              <th>Código</th>
+              <th>Descripción</th>
+              <th class="num sep">Enviado</th>
+              <th class="num">Entregado</th>
+              <th class="num">Saldo en PS</th>
+            </tr>
+          </thead>
+          <tbody id="tbody"></tbody>
+          <tfoot id="tfoot"></tfoot>
+        </table>
+      </div>
+      <div id="tblEmpty" class="empty hidden">Este proveedor no tiene partes configuradas.</div>
+    </div>
 
-    // ---- resumen general: partes en filas, saldo por PS en columnas ----
-    function renderResumen(){
-      var elRes = document.getElementById('resumenPS');
-      if(!provs.length){ elRes.innerHTML=''; return; }
-      var labels = provs.map(function(p){
-        return p.nombre_corto || String(p.nombre||'').split(' ')[0];
-      });
-      var mapa = {};
-      provs.forEach(function(p, i){
-        (p.partes||[]).forEach(function(x){
-          var k = String(x.codigo||'')+'|'+String(x.descripcion||'');
-          if(!mapa[k]) mapa[k] = { codigo:x.codigo, descripcion:x.descripcion, saldos:{} };
-          mapa[k].saldos[i] = (mapa[k].saldos[i]||0) + (Number(x.saldo)||0);
-        });
-      });
-      var filas = Object.keys(mapa).map(function(k){ return mapa[k]; });
-      filas.sort(function(a,b){
-        return String(a.codigo||'').localeCompare(String(b.codigo||''), 'es', { numeric:true });
-      });
+  </div>
+</div>
 
-      var h = '<h2 style="margin:6px 0 4px">Stock en PS por parte</h2>' +
-              '<div class="prov-meta" style="margin-bottom:10px">' + filas.length +
-              ' partes &middot; saldo actual en cada proveedor (unidades canonicas GP2)</div>' +
-              '<div class="resumen-wrap"><table><thead><tr>' +
-              '<th>#</th><th>Codigo</th><th>Descripcion</th>';
-      labels.forEach(function(l){ h += '<th class="ps-col">'+esc(l)+'</th>'; });
-      h += '</tr></thead><tbody>';
+<script>
+"use strict";
 
-      var tot = provs.map(function(){ return 0; });
-      filas.forEach(function(f, idx){
-        h += '<tr><td>'+(idx+1)+'</td><td>'+esc(f.codigo)+'</td><td>'+esc(f.descripcion)+'</td>';
-        provs.forEach(function(_, i){
-          if(f.saldos[i] === undefined){
-            h += '<td class="vacio">&mdash;</td>';
-          } else {
-            tot[i] += f.saldos[i];
-            h += numCell(f.saldos[i]);
-          }
-        });
-        h += '</tr>';
-      });
-      h += '</tbody><tfoot><tr>' +
-           '<td colspan="3" style="text-align:right;font-weight:bold">TOTALES</td>';
-      provs.forEach(function(_, i){ h += numCell(tot[i]); });
-      h += '</tr></tfoot></table></div>';
-      elRes.innerHTML = h;
-    }
+/* Pantalla de SOLO CONSULTA, igual que Control Partes Tallerista (2026-09-08).
+   Antes tenia arriba un panel "Cargar movimiento PS" (envio/entrega) que
+   duplicaba las pantallas de Envio PS y Entrega PS del menu; se saco por
+   pedido del usuario: el control se mira, se carga en su pantalla. Los links
+   Envio / Entrega del header llevan justo ahi. */
 
-    function elegir(p, btn){
-      provSel = p;
-      Array.prototype.forEach.call(elGrid.querySelectorAll('.tallerista-btn'), function(x){ x.classList.remove('active'); });
-      if(btn) btn.classList.add('active');
-      // ocultar los chips del resto y el resumen general: se vuelve con "Cambiar proveedor"
-      elGrid.classList.add('hidden');
-      document.getElementById('resumenPS').classList.add('hidden');
-      // mostrar toolbar de detalle
-      btnVolver.classList.remove('hidden');
-      elFiltro.classList.remove('hidden');
-      btnImpr.classList.remove('hidden');
-      elFiltro.value = '';
-      renderTabla('');
-    }
+var SB = GP2EE.sb();
 
-    function partesFiltradas(txt){
-      var partes = (provSel && provSel.partes) ? provSel.partes.slice() : [];
-      txt = (txt||'').trim().toLowerCase();
-      if(txt){
-        partes = partes.filter(function(x){
-          return (String(x.descripcion||'').toLowerCase().indexOf(txt) >= 0) ||
-                 (String(x.codigo||'').toLowerCase().indexOf(txt) >= 0);
-        });
-      }
-      return partes;
-    }
+var $ = GP2UI.$, esc = GP2UI.esc, fmt = GP2EE.fmt, clsSaldo = GP2UI.cls;
+var D = { proveedores: [] };
+var selP = null;   /* null en fase1 => modo "Todos" */
 
-    function numCell(v){
-      var cls = 'num' + (Number(v) < 0 ? ' neg' : '');
-      return '<td class="'+cls+'">'+fmt(v)+'</td>';
-    }
+function provs(){ return D.proveedores || []; }
+function partesDe(p){ return (p && p.partes) ? p.partes : []; }
 
-    function renderTabla(filtro){
-      if(!provSel){ elResult.innerHTML=''; elStatus.textContent=''; return; }
-      var partes = partesFiltradas(filtro);
+async function cargar(){
+  var r = await SB.rpc("control_ps_bundle");
+  if (r.error){ $("status").textContent = "Error: " + r.error.message; return; }
+  D = r.data || { proveedores: [] };
+  renderProv();
+  var gen = D.generado_en ? (" · generado " + new Date(D.generado_en).toLocaleString("es-AR")) : "";
+  $("status").textContent = provs().length + " proveedores con datos GP2." + gen;
+}
 
-      var tEnv=0, tEnt=0, tSal=0;
-      partes.forEach(function(x){
-        tEnv += Number(x.enviado)||0;
-        tEnt += Number(x.entregado)||0;
-        tSal += Number(x.saldo)||0;
-      });
+function renderProv(){
+  var g = GP2EE.gridContrapartes("provGrid", provs(), {
+    vacio: "Sin proveedores con datos GP2.",
+    meta: function(p){
+      return esc(p.proceso || "—") + " · " + partesDe(p).length + " partes" +
+             (p.nombre_corto ? (" · " + esc(p.nombre_corto)) : "");
+    },
+    onPick: elegir
+  });
+  if (!provs().length) return;
 
-      var viejo = provSel.nombre_corto ? (' &middot; en planta: <b>'+esc(provSel.nombre_corto)+'</b>') : '';
-      var h = '<h2 style="margin:6px 0 4px">'+esc(provSel.nombre)+'</h2>' +
-              '<div class="prov-meta" style="margin-bottom:10px">Proceso: '+esc(provSel.proceso||'?')+
-              ' &middot; Cod. Prov.: '+esc(provSel.cod_prov||'?')+viejo+'</div>';
+  // "Todos" — las partes de todos los proveedores juntas, con el proveedor como columna
+  var bt = document.createElement("button");
+  bt.type = "button"; bt.className = "prov-btn";
+  var totPartes = provs().reduce(function(s,p){ return s + partesDe(p).length; }, 0);
+  bt.innerHTML = "<b>Todos</b>" + '<span class="meta">' + provs().length + " proveedores · " + totPartes + " partes</span>";
+  bt.addEventListener("click", function(){ elegir(null); });
+  g.insertBefore(bt, g.firstChild);
+}
 
-      if(!partes.length){
-        h += '<div class="empty-msg">Sin partes que coincidan.</div>';
-        elResult.innerHTML = h;
-        elStatus.textContent = '0 partes';
-        return;
-      }
+function elegir(p){
+  selP = p;
+  $("fase1Title").textContent = p
+    ? (p.nombre + (p.proceso ? (" · " + p.proceso) : "") + (p.cod_prov ? (" · cod " + p.cod_prov) : ""))
+    : "Todos los proveedores";
+  $("colProv").classList.toggle("hidden", !!p);
+  $("fase0").classList.add("hidden");
+  $("fase1").classList.remove("hidden");
+  $("btnVolver").classList.remove("hidden");
+  $("btnImprimir").classList.remove("hidden");
+  $("btnCSV").classList.remove("hidden");
+  $("q").value = "";
+  render();
+}
 
-      h += '<div class="table-wrap"><table><thead><tr>' +
-           '<th>#</th><th>Codigo</th><th>Descripcion</th><th>Sector</th>' +
-           '<th>Enviado</th><th>Entregado</th><th>Saldo en PS</th>' +
-           '</tr></thead><tbody>';
-      partes.forEach(function(x, i){
-        h += '<tr>' +
-             '<td>'+(i+1)+'</td>' +
-             '<td>'+esc(x.codigo)+'</td>' +
-             '<td>'+esc(x.descripcion)+'</td>' +
-             '<td>'+esc(x.sector||'')+'</td>' +
-             numCell(x.enviado) + numCell(x.entregado) +
-             '<td class="num stk-cell'+(Number(x.saldo)<0?' neg':'')+'" data-cid="'+x.comp_id+'"'+
-               ' title="Ver cómo se compone">'+fmt(x.saldo)+'</td>' +
-             '</tr>';
-      });
-      h += '</tbody><tfoot><tr>' +
-           '<td colspan="4" style="text-align:right;font-weight:bold">TOTALES</td>' +
-           numCell(tEnv) + numCell(tEnt) + numCell(tSal) +
-           '</tr></tfoot></table></div>';
+function volver(){
+  selP = null;
+  $("fase1").classList.add("hidden");
+  $("fase0").classList.remove("hidden");
+  $("btnVolver").classList.add("hidden");
+  $("btnImprimir").classList.add("hidden");
+  $("btnCSV").classList.add("hidden");
+  renderProv();
+}
 
-      elResult.innerHTML = h;
-      elStatus.textContent = partes.length + ' partes' +
-        (filtro && filtro.trim() ? ' (filtradas)' : '') +
-        ' · unidades canonicas GP2';
-    }
-
-    // El saldo en PS sale del mismo ledger que el resto del stock GP2:
-    // se abre la composicion apuntando a la ubicacion del proveedor.
-    elResult.addEventListener('click', function(e){
-      var td = e.target.closest && e.target.closest('td.stk-cell');
-      if(!td || !provSel || !window.GP2Composicion) return;
-      var x = (provSel.partes||[]).filter(function(y){
-        return String(y.comp_id) === String(td.dataset.cid); })[0] || {};
-      window.GP2Composicion.abrir({
-        SB: SB, comp_id: td.dataset.cid,
-        ubic_tipo: 'proveedor_servicio', ref_id: provSel.ps_id,
-        cod: x.codigo, desc: x.descripcion
-      });
+/* Cada fila lleva su proveedor para poder mostrarlo y exportarlo en modo Todos */
+function filasBase(){
+  var out = [];
+  (selP ? [selP] : provs()).forEach(function(p){
+    partesDe(p).forEach(function(x){
+      out.push(Object.assign({}, x, { _prov: p.nombre, _pid: p.ps_id }));
     });
+  });
+  return out.sort(function(a,b){
+    return (selP ? 0 : String(a._prov).localeCompare(String(b._prov))) ||
+           String(a.codigo||"").localeCompare(String(b.codigo||""), "es", { numeric:true });
+  });
+}
 
-    // ---- impresion ----
-    function construirPrint(){
-      if(!provSel) return;
-      var partes = partesFiltradas(elFiltro.value);
-      var tEnv=0, tEnt=0, tSal=0;
-      partes.forEach(function(x){
-        tEnv += Number(x.enviado)||0; tEnt += Number(x.entregado)||0; tSal += Number(x.saldo)||0;
-      });
-      var fecha = new Date().toLocaleString('es-AR');
-      var h = '<div class="print-header">' +
-                '<div><div class="print-doc">Control Prov. Servicios (GP2)</div>' +
-                '<h2 class="print-title">'+esc(provSel.nombre)+'</h2></div>' +
-                '<div class="print-head-right">'+esc(provSel.proceso||'')+'<br>'+
-                'Cod. Prov. '+esc(provSel.cod_prov||'?')+'<br>'+
-                '<span class="print-count">'+partes.length+' partes &middot; '+esc(fecha)+'</span></div>' +
-              '</div>';
-      h += '<table class="print-table"><thead><tr>' +
-           '<th class="p-num">#</th><th>Codigo</th><th>Descripcion</th><th>Sector</th>' +
-           '<th class="p-caj">Enviado</th><th class="p-caj">Entregado</th><th class="p-cjn">Saldo en PS</th>' +
-           '</tr></thead><tbody>';
-      partes.forEach(function(x,i){
-        h += '<tr'+(i%2?' class="zebra"':'')+'>' +
-             '<td class="p-num">'+(i+1)+'</td>' +
-             '<td>'+esc(x.codigo)+'</td><td>'+esc(x.descripcion)+'</td><td>'+esc(x.sector||'')+'</td>' +
-             '<td class="p-caj">'+fmt(x.enviado)+'</td>' +
-             '<td class="p-caj">'+fmt(x.entregado)+'</td>' +
-             '<td class="p-cjn">'+fmt(x.saldo)+'</td>' +
-             '</tr>';
-      });
-      h += '</tbody><tfoot><tr class="print-total">' +
-           '<td colspan="4" style="text-align:right">TOTALES</td>' +
-           '<td class="p-caj">'+fmt(tEnv)+'</td><td class="p-caj">'+fmt(tEnt)+'</td>' +
-           '<td class="p-cjn">'+fmt(tSal)+'</td></tr></tfoot></table>' +
-           '<div style="margin-top:10px;font-size:11px;color:#666">Datos parciales (schema GP2). '+
-           'Saldos en unidades canonicas. Ledger historico incompleto.</div>';
-      printArea.innerHTML = h;
-    }
+function filtradas(){
+  return GP2EE.filtrar(filasBase(), $("q").value, function(x){
+    return String(x.codigo||"") + " " + String(x.descripcion||"") + " " +
+           String(x.sector||"") + " " + String(x._prov||"");
+  });
+}
 
-    // ---- eventos ----
-    btnVolver.addEventListener('click', function(){
-      provSel = null;
-      btnVolver.classList.add('hidden');
-      elFiltro.classList.add('hidden');
-      btnImpr.classList.add('hidden');
-      elGrid.classList.remove('hidden');
-      document.getElementById('resumenPS').classList.remove('hidden');
-      Array.prototype.forEach.call(elGrid.querySelectorAll('.tallerista-btn'), function(x){ x.classList.remove('active'); });
-      elResult.innerHTML = '';
-      elStatus.textContent = '';
-    });
-    elFiltro.addEventListener('input', function(){ renderTabla(elFiltro.value); });
-    btnImpr.addEventListener('click', function(){ construirPrint(); window.print(); });
-    btnIndex.addEventListener('click', function(){ window.location.href = '../../Inicio/index.html'; });
+function render(){
+  var arr = filtradas(), tb = $("tbody");
+  tb.innerHTML = "";
+  $("tblEmpty").classList.toggle("hidden", arr.length > 0);
 
-    function pintarProveedores(){
-      var gen = D && D.generado_en ? (' · generado ' + new Date(D.generado_en).toLocaleString('es-AR')) : '';
-      elStatus.textContent = provs.length + ' proveedores con datos GP2' + gen;
-    }
+  var totEnv = 0, totEnt = 0, totSal = 0;
 
-    renderGrid();
-    renderResumen();
-    pintarProveedores();
+  arr.forEach(function(x){
+    totEnv += Number(x.enviado||0);
+    totEnt += Number(x.entregado||0);
+    totSal += Number(x.saldo||0);
 
-    // Hook para recargar la grilla tras cargar un movimiento (sin re-enganchar listeners).
-    window.__gp2rerender = function(){
-      provs = (D && D.proveedores) ? D.proveedores : [];
-      provSel = null;
-      btnVolver.classList.add('hidden');
-      elFiltro.classList.add('hidden');
-      btnImpr.classList.add('hidden');
-      elGrid.classList.remove('hidden');
-      document.getElementById('resumenPS').classList.remove('hidden');
-      elFiltro.value = '';
-      elResult.innerHTML = '';
-      renderGrid();
-      renderResumen();
-      pintarProveedores();
-    };
-  }
+    var tr = document.createElement("tr");
+    tr.innerHTML =
+      (selP ? "" : '<td>'+esc(x._prov||"")+'</td>')+
+      '<td>'+esc(x.sector||"—")+'</td>'+
+      '<td><span class="cod">'+esc(x.codigo)+'</span></td>'+
+      '<td>'+esc(x.descripcion||"")+'</td>'+
+      '<td class="num sep">'+fmt(x.enviado,0)+'</td>'+
+      '<td class="num">'+fmt(x.entregado,0)+'</td>'+
+      '<td class="num stk-cell '+clsSaldo(x.saldo)+'" data-cid="'+x.comp_id+'" data-pid="'+x._pid+'"'+
+        ' title="Ver cómo se compone">'+fmt(x.saldo,0)+'</td>';
+    tb.appendChild(tr);
+  });
 
-  // ================= Carga de movimientos PS =================
-  // Recarga el bundle y re-renderiza la grilla existente.
-  async function reloadBundle(){
-    var r = await SB.rpc('control_ps_bundle');
-    if(r.error) throw r.error;
-    D = r.data || {};
-    if(window.__gp2rerender) window.__gp2rerender();
-  }
+  $("tfoot").innerHTML = arr.length ? ('<tr>'+
+    '<td colspan="'+(selP?3:4)+'">'+arr.length+' partes</td>'+
+    '<td class="num sep">'+fmt(totEnv,0)+'</td>'+
+    '<td class="num">'+fmt(totEnt,0)+'</td>'+
+    '<td class="num '+clsSaldo(totSal)+'">'+fmt(totSal,0)+'</td></tr>') : "";
 
-  // Buscador de componentes: input + lista filtrable. Guarda el comp_id elegido.
-  function makePicker(host, items){
-    var input = document.createElement('input');
-    input.type = 'text';
-    input.setAttribute('autocomplete','off');
-    input.placeholder = 'Buscar codigo o descripcion...';
-    var list = document.createElement('div');
-    list.className = 'gp2-picker-list';
-    host.appendChild(input);
-    host.appendChild(list);
+  $("kpis").innerHTML =
+    '<div class="kpi"><div class="k">Partes</div><div class="v">'+arr.length+'</div></div>'+
+    '<div class="kpi"><div class="k">Enviado</div><div class="v">'+fmt(totEnv,0)+'</div></div>'+
+    '<div class="kpi"><div class="k">Entregado</div><div class="v">'+fmt(totEnt,0)+'</div></div>'+
+    '<div class="kpi"><div class="k">Saldo en PS</div><div class="v '+clsSaldo(totSal)+'">'+fmt(totSal,0)+'</div></div>';
+}
 
-    var selId = null;
-    var vis = [];
+/* CSV para Excel es-AR: el armado (separador ;, BOM, coma decimal) es el de la
+   casa, GP2UI.exportarCSV (gp2-ui.js); aca solo se eligen las columnas. */
+function exportarCSV(){
+  var arr = filtradas();
+  if (!arr.length){ alert("No hay filas para exportar."); return; }
+  var filas = [(selP ? [] : ["Proveedor"]).concat(
+    ["Sector","Codigo","Descripcion","Enviado","Entregado","Saldo en PS"])];
 
-    function esc2(t){
-      return String(t==null?'':t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-    }
-    function render(txt){
-      txt = (txt||'').trim().toLowerCase();
-      vis = items.filter(function(it){
-        if(!txt) return true;
-        return (String(it.codigo||'').toLowerCase().indexOf(txt) >= 0) ||
-               (String(it.descripcion||'').toLowerCase().indexOf(txt) >= 0);
-      }).slice(0, 60);
-      if(!vis.length){
-        list.innerHTML = '<div class="gp2-picker-empty">Sin coincidencias.</div>';
-      } else {
-        var h = '';
-        vis.forEach(function(it){
-          h += '<div class="gp2-picker-item" data-id="'+it.id+'">' +
-               '<span class="cod">'+esc2(it.codigo)+'</span> ' +
-               '<span class="desc">'+esc2(it.descripcion)+'</span>' +
-               (it.sector ? ' <span class="sec">['+esc2(it.sector)+']</span>' : '') +
-               '</div>';
-        });
-        list.innerHTML = h;
-      }
-    }
-    function open(){ render(input.value); list.classList.add('open'); }
-    function close(){ list.classList.remove('open'); }
+  arr.forEach(function(x){
+    filas.push((selP ? [] : [x._prov||""]).concat([
+      x.sector||"", x.codigo||"", x.descripcion||"",
+      Number(x.enviado||0), Number(x.entregado||0), Number(x.saldo||0)
+    ]));
+  });
 
-    input.addEventListener('focus', open);
-    input.addEventListener('input', function(){ selId = null; open(); });
-    list.addEventListener('mousedown', function(ev){
-      var el = ev.target;
-      while(el && el !== list && !el.classList.contains('gp2-picker-item')) el = el.parentNode;
-      if(!el || el === list) return;
-      ev.preventDefault();
-      var id = Number(el.getAttribute('data-id'));
-      var it = items.filter(function(x){ return x.id === id; })[0];
-      if(it){
-        selId = it.id;
-        input.value = it.codigo + ' - ' + it.descripcion + (it.sector ? ' ['+it.sector+']' : '');
-      }
-      close();
-    });
-    input.addEventListener('blur', function(){ setTimeout(close, 150); });
+  GP2UI.exportarCSV("control_ps_" + (selP ? String(selP.nombre).replace(/\s+/g,"_") : "todos"), filas);
+}
 
-    return {
-      getId: function(){ return selId; },
-      clear: function(){ selId = null; input.value = ''; },
-      disable: function(d){ input.disabled = !!d; },
-      setItems: function(newItems){ items = newItems || []; selId = null; input.value = ''; close(); }
-    };
-  }
+/* El saldo en PS sale del mismo ledger que el resto del stock GP2:
+   la celda abre la composicion apuntando a la ubicacion de ese proveedor. */
+$("tbody").addEventListener("click", function(e){
+  var td = e.target.closest && e.target.closest("td.stk-cell");
+  if (!td || !window.GP2Composicion) return;
+  var x = filasBase().filter(function(y){
+    return String(y.comp_id) === String(td.dataset.cid) &&
+           String(y._pid)    === String(td.dataset.pid); })[0] || {};
+  window.GP2Composicion.abrir({
+    SB: SB, comp_id: td.dataset.cid,
+    ubic_tipo: "proveedor_servicio", ref_id: td.dataset.pid,
+    cod: x.codigo, desc: x.descripcion
+  });
+});
 
-  async function initCarga(){
-    var elProv   = document.getElementById('mvProv');
-    var elFecha  = document.getElementById('mvFecha');
-    var elCant   = document.getElementById('mvCant');
-    var elUnidad = document.getElementById('mvUnidad');
-    var elKg     = document.getElementById('mvKg');
-    var elMsg    = document.getElementById('mvMsg');
-    var elGuardar= document.getElementById('mvGuardar');
-    var modoRadios = document.getElementsByName('mvModo');
+$("q").addEventListener("input", render);
+$("btnVolver").addEventListener("click", volver);
+$("btnCSV").addEventListener("click", exportarCSV);
+$("btnImprimir").addEventListener("click", function(){ window.print(); });
 
-    // fecha default = hoy en Argentina (gp2-ui.js; antes era la del dispositivo)
-    elFecha.value = GP2UI.hoyAR();
-
-    function setMsg(txt, cls){
-      elMsg.textContent = txt || '';
-      elMsg.className = 'gp2-msg' + (cls ? ' ' + cls : '');
-    }
-
-    // Cargar selectores en paralelo
-    var provRes, compRes, secRes;
-    try{
-      var res = await Promise.all([
-        SB.from('proveedor_servicio').select('id,cod_prov,nombre,proceso').order('nombre'),
-        SB.from('componente').select('id,codigo,descripcion,sector_id').order('codigo'),
-        SB.from('sector').select('id,nombre')
-      ]);
-      provRes = res[0]; compRes = res[1]; secRes = res[2];
-      if(provRes.error) throw provRes.error;
-      if(compRes.error) throw compRes.error;
-      if(secRes.error)  throw secRes.error;
-    }catch(e){
-      setMsg('No se pudieron cargar los selectores: ' + (e && (e.message||e.hint) || e), 'err');
-      elProv.innerHTML = '<option value="">(error)</option>';
-      return;
-    }
-
-    // Proveedores (escapar texto: viene de la BD y va a innerHTML)
-    var escOpt = function(t){ return String(t==null?'':t)
-      .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); };
-    var opts = '<option value="">-- Elegir proveedor --</option>';
-    (provRes.data||[]).forEach(function(p){
-      var meta = [p.proceso, p.cod_prov].filter(Boolean).join(' · ');
-      opts += '<option value="'+Number(p.id)+'">'+ escOpt(String(p.nombre||('#'+p.id))
-            + (meta ? ' ('+meta+')' : '')) + '</option>';
-    });
-    elProv.innerHTML = opts;
-
-    // Componentes con sector resuelto
-    var secMap = {};
-    (secRes.data||[]).forEach(function(s){ secMap[s.id] = s.nombre; });
-    var comps = (compRes.data||[]).map(function(c){
-      return { id:c.id, codigo:c.codigo, descripcion:c.descripcion, sector: secMap[c.sector_id] || '' };
-    });
-
-    // Pickers (arrancan vacios: se llenan con las partes del proveedor elegido)
-    var pkEnvioSC = makePicker(document.getElementById('mvEnvioSC'), []);
-    var pkEntSC   = makePicker(document.getElementById('mvEntSC'),   []);
-    var pkEntSP   = makePicker(document.getElementById('mvEntSP'),   []);
-
-    // Partes por proveedor (las que realmente se le llevan / recibe, segun rutas)
-    var PARTES_PS = {};
-    try{ var _rp = await SB.rpc('partes_por_ps'); if(!_rp.error) PARTES_PS = _rp.data || {}; }catch(e){}
-    function aplicarProvPartes(){
-      var pid = String(elProv.value||'');
-      var d = (pid && PARTES_PS[pid]) ? PARTES_PS[pid] : {sc:[],sp:[]};
-      pkEnvioSC.setItems(d.sc || []);
-      pkEntSC.setItems(d.sc || []);
-      pkEntSP.setItems(d.sp || []);
-    }
-    elProv.addEventListener('change', aplicarProvPartes);
-    aplicarProvPartes();
-
-    function modo(){
-      var m = 'envio';
-      Array.prototype.forEach.call(modoRadios, function(r){ if(r.checked) m = r.value; });
-      return m;
-    }
-    function aplicarModo(){
-      var m = modo();
-      Array.prototype.forEach.call(document.querySelectorAll('.mv-only-envio'), function(el){
-        el.classList.toggle('mv-hidden', m !== 'envio');
-      });
-      Array.prototype.forEach.call(document.querySelectorAll('.mv-only-entrega'), function(el){
-        el.classList.toggle('mv-hidden', m !== 'entrega');
-      });
-      setMsg('');
-    }
-    Array.prototype.forEach.call(modoRadios, function(r){ r.addEventListener('change', aplicarModo); });
-    aplicarModo();
-
-    async function guardar(){
-      setMsg('');
-      var psId = GP2N.num(elProv.value);
-      if(!psId){ setMsg('Elegi un proveedor.', 'err'); return; }
-      var fechaTs = elFecha.value ? new Date(elFecha.value + 'T12:00:00').toISOString() : null;
-
-      var payload, rpcName;
-      if(modo() === 'envio'){
-        var scId = pkEnvioSC.getId();
-        var cant = GP2N.num(elCant.value);   // la regla de numero de la casa ("1.500" son mil quinientos)
-        if(!scId){ setMsg('Elegi la parte SC a enviar.', 'err'); return; }
-        if(!(cant > 0)){ setMsg('La cantidad debe ser mayor a 0.', 'err'); return; }
-        rpcName = 'crear_envio_ps';
-        payload = { p_ps_id:psId, p_comp_sc_id:scId, p_cantidad:cant, p_unidad:elUnidad.value, p_fecha:fechaTs };
-      } else {
-        var scId2 = pkEntSC.getId();
-        var spId  = pkEntSP.getId();
-        var kg    = GP2N.num(elKg.value);
-        if(!scId2){ setMsg('Elegi la parte SC que se consume.', 'err'); return; }
-        if(!spId){ setMsg('Elegi la parte SP que se recibe.', 'err'); return; }
-        if(!(kg > 0)){ setMsg('Los kg deben ser mayores a 0.', 'err'); return; }
-        rpcName = 'crear_entrega_ps';
-        payload = { p_ps_id:psId, p_comp_sc_id:scId2, p_comp_sp_id:spId, p_kg:kg, p_fecha:fechaTs };
-      }
-
-      elGuardar.disabled = true;
-      setMsg('Guardando...', '');
-      try{
-        var r = await SB.rpc(rpcName, payload);
-        if(r.error) throw r.error;
-        var d = r.data || {};
-        var id = d.id != null ? d.id : '?';
-        var det;
-        if(rpcName === 'crear_envio_ps'){
-          det = 'Envio guardado (id ' + id + '): ' + (d.parte||'') +
-                ' · ' + (d.cantidad!=null?d.cantidad:'') + ' ' + (d.unidad||'');
-        } else {
-          det = 'Entrega guardada (id ' + id + '): ' + (d.sc||'') + ' -> ' + (d.sp||'') +
-                ' · ' + (d.kg!=null?d.kg:'') + ' kg';
-        }
-        setMsg(det, 'ok');
-        // limpiar form
-        elCant.value = ''; elKg.value = '';
-        pkEnvioSC.clear(); pkEntSC.clear(); pkEntSP.clear();
-        // recargar pantalla (el guardado ya esta OK: si falla el refresh,
-        // no dejar que el catch de abajo pise el mensaje verde con "Error")
-        try{ await reloadBundle(); }
-        catch(e2){ setMsg(det + ' — guardado OK, pero no se pudo refrescar la pantalla (recargá con F5).', 'ok'); }
-      }catch(e){
-        setMsg('Error: ' + (e && (e.message||e.hint||e.details) || e), 'err');
-      }finally{
-        elGuardar.disabled = false;
-      }
-    }
-    elGuardar.addEventListener('click', guardar);
-  }
-
-  async function __boot(){
-    try{
-      document.body.style.cursor = 'progress';
-      var r = await SB.rpc('control_ps_bundle');
-      if(r.error) throw r.error;
-      D = r.data || {};
-      __run();
-      initCarga();
-    }catch(e){
-      document.body.innerHTML =
-        '<p style="padding:24px;font-family:system-ui;color:#b3402f">' +
-        'Error cargando datos de Supabase (GP2): ' + (e && (e.message||e.hint||e.details) || e) + '</p>';
-      console.error(e);
-    }finally{
-      document.body.style.cursor = '';
-    }
-  }
-  __boot();
-  </script>
-
+cargar().catch(function(e){ $("status").textContent = "Error: "+(e&&e.message?e.message:e); });
+</script>
 </body>
 </html>

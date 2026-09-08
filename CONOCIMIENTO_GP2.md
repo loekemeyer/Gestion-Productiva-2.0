@@ -5134,3 +5134,28 @@ del tallerista coincide al centavo en el 501 ($491), el 502 ($133,50), el 510 ($
 - **504 (−25,5 %)**: material + tratamientos $448,28 en la planilla contra $179,68 en GP2 —
   falta el zincado y el rectificado de los tochos.
 - **031 (+15,8 %)**: el cartón, ver el punto c) de §4x.
+
+## 4y. Las pantallas de CONTROL se miran, no se cargan (2026-09-08)
+
+**[usuario]** Viendo `Control Prov. Servicios` pidió: *"quiero que elimines esa parte"* (el panel
+"Cargar movimiento PS" que estaba arriba de todo) y *"quiero que sea la misma lógica de control
+partes talleristas"*.
+
+**La regla que queda, para toda pantalla de control GP2:**
+
+- **Un control es de SOLO CONSULTA.** No lleva formulario de carga adentro. Lo que se carga se
+  carga en su pantalla: **Envío** (`EnviosPS_GP2.html`) y **Entrega** (`EntregaPS_GP2.html`),
+  que ya estaban en el menú y usan las mismas RPC (`crear_envio_ps` / `crear_entrega_ps`).
+  El panel de `ControlPS_GP2` era un **tercer** lugar para hacer lo mismo, con su propio
+  buscador de componentes y sus propias validaciones: dos maneras de cargar el mismo
+  movimiento es una de más.
+- **El molde es `Talleristas/Control Tall/ControlTalleristas_GP2.html`**: `gp2-modulo.css` +
+  `GP2EE`, header con `Volver / Exportar CSV / Imprimir` + links a Envío/Entrega/Atrás,
+  fase0 (chips de contraparte, con un chip **"Todos"** al principio) → fase1 (aviso del estado
+  de los datos, KPIs, buscador, tabla con totales). El saldo de cada fila abre la
+  **composición** (`GP2Composicion.abrir`) apuntando a la ubicación de esa contraparte.
+  En modo "Todos" aparece la columna de la contraparte; con una elegida, se oculta.
+- **Lo que se ganó de paso** al pasar `ControlPS_GP2` a ese molde: exportar CSV (no lo tenía),
+  el modo "Todos", los KPIs y la letra grande de la casa. Se fue el pivote "Stock en PS por
+  parte" (partes en filas × PS en columnas), que hacía lo mismo que el modo "Todos" pero
+  ancho y con celdas vacías.
