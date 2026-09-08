@@ -820,6 +820,7 @@ begin
   select id into v_chapa from "GP2".componente where codigo='CHAPA430';
   if v_chapa is null then raise exception 'CHAPA430 no existe (Fase 1 pendiente)'; end if;
   select coalesce(desperdicio_pct, 0) into v_desperdicio from "GP2".proveedor_servicio where id = v_ps_eclipse;  -- el % vive en el PS
+  if v_desperdicio < 0 or v_desperdicio >= 100 then v_desperdicio := 0; end if;  -- proteccion division
 
   -- Peso del producto entregado: el KG del remito (real, se pesa) si viene; si no, el teorico.
   if p_kg_entrega is not null and p_kg_entrega > 0 then
@@ -828,8 +829,8 @@ begin
   else
     v_kg_producto := round((p_unidades * v_kg_x_uni)::numeric, 3);
   end if;
-  -- La chapa consumida se deriva del peso entregado con el desperdicio del corte.
-  v_kg_chapa := round((v_kg_producto * (1 + v_desperdicio/100))::numeric, 3);
+  -- La chapa consumida se deriva del peso entregado: el desperdicio es % DE LA CHAPA.
+  v_kg_chapa := round((v_kg_producto / (1 - v_desperdicio/100))::numeric, 3);
 
   select coalesce(cantidad,0) into v_stock_chapa_antes
     from "GP2".inventario where componente_id=v_chapa and ubicacion_id=v_ubic_eclipse;
@@ -1748,11 +1749,12 @@ begin
   v_kg_x_paq := coalesce((select valor from parametro where clave='charcas_kg_x_paquete'), 10);
   -- PS HIBRIDO: la OC a un proveedor de servicio que procesa una materia prima nuestra (Charcas
   -- corta el alambre de Altrak, Eclipse estampa la chapa 430 de Aperam) dispara la OC gemela al
-  -- proveedor de esa MP: kg de producto pedido x (1 + desperdicio_pct del PS). Todo sale de
+  -- proveedor de esa MP. desperdicio_pct es % DE LA CHAPA: kg de chapa = producto / (1 - desperdicio_pct/100). Todo sale de
   -- proveedor_servicio (hibrido, mp_componente_id, desperdicio_pct) y del componente MP
   -- (proveedor, sector): ningun proveedor por nombre en el codigo.
   select ps.mp_componente_id, ps.desperdicio_pct into v_mp_id, v_pct
     from proveedor_servicio ps where ps.hibrido and ps.nombre = v_prov;
+  if v_pct is not null and (v_pct < 0 or v_pct >= 100) then v_pct := 0; end if;  -- guard division
 
   select coalesce(max(numero),0)+1 into v_num from orden_compra;
   insert into orden_compra (numero, proveedor, rubro, nota, creado_por, fecha_entrega_estimada)
@@ -1816,12 +1818,12 @@ begin
     if v_mp_prov is null then
       raise exception 'La materia prima % del PS % no tiene proveedor: no se puede crear la OC gemela', v_mp_codigo, v_prov;
     end if;
-    v_kg_mp := round(v_kg_producto * (1 + coalesce(v_pct,0)/100), 2);
+    v_kg_mp := round(v_kg_producto / (1 - coalesce(v_pct,0)/100), 2);
 
     select coalesce(max(numero),0)+1 into v_num_mp from orden_compra;
     insert into orden_compra (numero, proveedor, rubro, nota, creado_por, fecha_entrega_estimada)
     values (v_num_mp, v_mp_prov, v_mp_rubro,
-            'OC gemela de OC N° '||v_num||' ('||v_prov||'). Kg de '||v_mp_codigo||' = kg de producto pedido × '||(1+coalesce(v_pct,0)/100)||'.',
+            'OC gemela de OC N° '||v_num||' ('||v_prov||'). Kg de '||v_mp_codigo||' = kg de producto pedido / (1 - '||coalesce(v_pct,0)/100||').',
             nullif(p->>'usuario',''), v_fent)
     returning id into v_oc_mp;
 

@@ -395,22 +395,18 @@ se pesan para confirmar).
 - `kg_x_uni(1686) = 0,01376` (queda como está) `[usuario, "el que estaba
   en la tabla"]`. El empírico crudo daría 0,01396 (55/3940); GP2 subestima
   el peso de pieza en ~1,4% y ese punto se compensa vía el desperdicio.
-- **Desperdicio Eclipse: 28 %** — hoy `proveedor_servicio.desperdicio_pct` del PS Eclipse
-  (desde el 2026-09-05; antes era `GP2.parametro.eclipse_desperdicio_pct`, migración
-  `eclipse_desperdicio_pct_28` del 2026-09-02). Sale
-  de (74,92 − contable) / 74,92, con contable = 985 × 0,01376 × 4 = 54,2 kg
-  → desperdicio ≈ 27,6% → redondeo a 28% para no sub-pedir.
+- **Desperdicio Eclipse: 40,28 % de la chapa** `[act. 2026-09-08]` — `proveedor_servicio.desperdicio_pct`
+  del PS Eclipse. Recalibrado con la compra real: Aperam 59,28 kg de chapa → Eclipse entregó 35,4 kg
+  de producto → recorte 23,88 kg = 23,88/59,28 = **40,28 %**. (Antes figuraba 28 %, y en una tanda
+  intermedia 67,46 % "sobre el producto"; se unificó a **% de la chapa** porque se razona en KG.)
 
-**Cómo lo usa `crear_oc`:** con la regla única de OC gemela (2026-09-05) — kg de
-chapa 430 en la OC gemela a Aperam = `Σ uni × kg_x_uni × (1 +
-desperdicio_pct/100)`. Ejemplo: 3940 uni → 3940 × 0,01376 × 1,28
-= 69,4 kg = **3,7 chapas → redondeo a 4 chapas enteras** (Aperam vende
-completas). Coincide con lo entregado en el remito real. ✓
+**Cómo lo usa `crear_oc`:** OC gemela (regla única) — kg de chapa 430 en la OC gemela a Aperam =
+`Σ (kg de producto pedido) / (1 − desperdicio_pct/100)` (DIVISIÓN, porque el % es de la chapa).
+Con 40,28: producto / 0,5972 = producto × 1,6746. Aperam vende chapas enteras (redondeo hacia arriba).
 
-**Provisorio, revisar con próximos 2–3 remitos**: la tolerancia de
-laminación del 430 varía chapa por chapa; el 28% puede moverse entre
-~25% y ~30% en pedidos futuros. Ajustar `proveedor_servicio.desperdicio_pct` de Eclipse cuando
-haya más muestras.
+**Provisorio, revisar con próximos 2–3 remitos**: la tolerancia de laminación del 430 varía chapa
+por chapa; el 40,28 % puede moverse. Ajustar `proveedor_servicio.desperdicio_pct` de Eclipse cuando
+haya más muestras (siempre como % de la chapa).
 
 ### Convención código de flejes: prefijo `I` (Insumo) `[usuario 2026-09-02]`
 Todos los flejes en `GP2.componente` llevan **prefijo `I`** antepuesto — `I` =
@@ -478,18 +474,23 @@ la última compra real — Aperam entregó 3 chapas = 59,28 kg (39,52 LK + 19,76
 Eclipse devolvió 2.440 uni de 1686 que pesan 35,4 kg (11,8 kg/813 u LK + 23,6 kg/1627 u CH),
 se corta TODO → recorte 23,88 kg. Peso real del 1686 = 35,4/2.440 = **0,014508 kg/u**
 (los dos lotes coincidían; el `kg_x_uni` viejo 0,01376 estaba 5% bajo, se corrigió).
-Desperdicio = 59,28/35,4 − 1 = **67,46 %** sobre el producto (= 40,3 % de la chapa).
-**Vive en `GP2.proveedor_servicio.desperdicio_pct` del PS Eclipse** (una sesión lo movió de
-`parametro.eclipse_desperdicio_pct`, que quedó vestigial — NO usar ese). Regla de rinde:
+Desperdicio = recorte/chapa = 23,88/59,28 = **40,28 % de la chapa** `[usuario 2026-09-08: "usar
+el 40 porque lo que usamos son los KG"]`. Se guarda ese 40,28 en `GP2.proveedor_servicio.desperdicio_pct`
+del PS Eclipse (una sesión lo movió de `parametro.eclipse_desperdicio_pct`, vestigial — NO usar ese).
+**Convención (OBLIGATORIA, las DOS funciones que lo usan):** `desperdicio_pct` es % **de la chapa**,
+así que la chapa sale con **DIVISIÓN**: `chapa = producto / (1 − desperdicio_pct/100)` (NO `× (1+…)`).
+Lo usan `cargar_recepcion_eclipse` (chapa consumida) y `crear_oc` (OC gemela de chapa) — las dos con ÷.
+Con 40,28: 35,4 / (1−0,4028) = 59,28 = mismo resultado que el viejo × 1,6746, pero el número que se
+razona/guarda es el 40 en KG. Regla de rinde:
 **1 kg de chapa 430 ≈ 41,2 uni de 1686** (50 kg → ~2.058 uni). El 1686 no está en
 recetas/BOM/rutas, así que cambiar su peso no arrastra costeo.
 **⚠️ La entrega de Eclipse se carga en KG DE ENTREGA `[usuario 2026-09-08]`:** los prov serv
 se cargan en KG (peso de lo que entregan). La entrega de Eclipse (Entrega PS → faseEclipse,
 v1.6.1) toma las **unidades como referencia** (lo que dice el remito, suman el 1686 al stock)
 y un campo **`Kg de entrega` manual** = **peso total de las unidades entregadas** (el 1686). La
-**chapa consumida se DERIVA** = `kg_entrega × (1 + desperdicio)`. `cargar_recepcion_eclipse(…,
-p_kg_entrega)` usa ese peso como producto (si no viene, cae al teórico `uni × kg_x_uni`) y saca
-la chapa con `proveedor_servicio.desperdicio_pct` (67,46). Validado con la compra real: entrega
+**chapa consumida se DERIVA** = `kg_entrega / (1 − desperdicio/100)` (desperdicio % de la chapa).
+`cargar_recepcion_eclipse(…, p_kg_entrega)` usa ese peso como producto (si no viene, cae al teórico
+`uni × kg_x_uni`) y saca la chapa con `proveedor_servicio.desperdicio_pct` (40,28). Validado con la compra real: entrega
 11,8 kg → 19,76 kg chapa (1 chapa Aperam) y 23,6 → 39,52 (2 chapas) — calzan justo. El panel
 muestra en vivo la chapa a descontar. (Ojo: NO es "kg de chapa consumida"; es el peso del producto.)
 **⚠️ Ya NO son gemelos en la OC** (desde 2026-09-04): Eclipse mantiene OC gemela
@@ -526,7 +527,7 @@ kg, es exactamente **la caja que arma Eclipse** `[usuario 2026-09-02]`.
   Eclipse → RPC `cargar_recepcion_eclipse` suma uni en Cortados + descuenta
   chapa en Eclipse.
 - **OC gemela:** OC a Eclipse dispara OC gemela a Aperam por
-  `Σ uni × kg_x_uni × (1 + desperdicio/100)` kg de chapa.
+  `Σ (uni × kg_x_uni) / (1 − desperdicio/100)` kg de chapa (÷, el % es de la chapa).
 - **Aperam sigue apareciendo como proveedor de flejes en Recepción Insumos**
   (a diferencia de Altrak que salió del listado): la chapa 430 es un flujo
   nuevo, los flejes que ya entregaba siguen igual.
@@ -4435,18 +4436,19 @@ antes de calcular (y `KG` a `kg`), con lo que una pantalla puede mandar `unidad_
 paquetes de 10 kg de producto y se guarda en kg.** La pantalla de OC muestra el pedido en paquetes
 (con el «= N uni» que sale de `kg_x_uni`) y manda `unidad='paq'`; `crear_oc` lo convierte a kg con
 ese parámetro (antes el 10 estaba escrito en `OC_GP2.html`). Así la recepción de Charcas, que
-entra en kg de balanza, cruza directo contra la OC, y la OC gemela a Altrak suma esos kg ×
-(1 + `proveedor_servicio.desperdicio_pct`, hoy 0). Hasta el 2026-09-05 `crear_oc` sumaba los paquetes como si
+entra en kg de balanza, cruza directo contra la OC, y la OC gemela a Altrak suma esos kg
+÷ (1 − `proveedor_servicio.desperdicio_pct`/100) `[act. 2026-09-08: el desperdicio es % DE LA CHAPA,
+fórmula DIVISIÓN — Charcas 0 así que no cambia; Eclipse 40,28]`. Hasta el 2026-09-05 `crear_oc` sumaba los paquetes como si
 fueran kg (3 paquetes → 3 kg de alambre): bug latente, sin ninguna OC de Charcas afectada.
 
 `[dato 2026-09-05: GP2.proveedor_servicio.desperdicio_pct]` **El desperdicio de un PS híbrido es
-un atributo del PS**: Eclipse 28 % (estampa la chapa 430 de Aperam; `[usuario 2026-09-02]`
-calibrado con remito), Charcas **0** (`[usuario 2026-09-04]` "sin dato, asumir 0"; el 2 % que
+un atributo del PS**: Eclipse **40,28 % de la chapa** (`[usuario 2026-09-08]` calibrado con la compra
+real Aperam vs Eclipse; antes figuraba 28 %/67,46 % — ver bloque "Desperdicio Eclipse" arriba), Charcas **0** (`[usuario 2026-09-04]` "sin dato, asumir 0"; el 2 % que
 había era un default que escribió un agente el 01/09 y quedó como si fuera dato — corregido al
 cierre de la auditoría). Antes eran dos claves de `parametro` con el nombre del PS adentro. La
 **OC gemela** sale de una sola regla en `crear_oc`: si la OC es a un PS híbrido, se crea otra al
 proveedor de su materia prima (`mp_componente_id` → `componente.proveedor`) por kg de producto
-pedido × (1 + desperdicio). **Pero ese modelo está en duda** (pregunta 28): el 04/09 el usuario
+pedido ÷ (1 − desperdicio/100). **Pero ese modelo está en duda** (pregunta 28): el 04/09 el usuario
 decidió que la OC del Fleje 90 va SOLO a Altrak y que no hay gemela en el flujo de Charcas; el
 código siguió con el modelo viejo y la auditoría lo generalizó antes de ver esa decisión.
 

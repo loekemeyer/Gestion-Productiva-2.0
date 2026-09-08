@@ -1,7 +1,11 @@
 <!doctype html>
 <html lang="es">
 <head>
-<!-- v1.6.1 (2026-09-08) — ECLIPSE: EL KG ES "DE ENTREGA" (peso total de las unidades entregadas),
+<!-- v1.6.2 (2026-09-08) — ECLIPSE: el desperdicio se expresa como % DE LA CHAPA (usuario: "usar el 40
+     porque lo que usamos son los KG"). proveedor_servicio.desperdicio_pct pasa de 67,46 (sobre producto)
+     a 40,28 (sobre chapa); la formula del RPC se invierte: chapa = kg_entrega / (1 - desp/100). Da lo
+     mismo (29,85 / (1-0,4028) = 49,98) pero el numero guardado es el 40% que se razona en KG.
+     v1.6.1 (2026-09-08) — ECLIPSE: EL KG ES "DE ENTREGA" (peso total de las unidades entregadas),
      NO la chapa (usuario: "es el peso total de las unidades entregadas... por eso se carga en KG
      los prov serv"). El campo (ecKg, manual, libre) es el peso del 1686 entregado; las unidades
      quedan de referencia (suman el 1686 al stock). La CHAPA consumida se DERIVA = kg_entrega x
@@ -392,11 +396,12 @@ function irEclipse(p){
 }
 function ecRefresh(){
   var prod=ecProdSel(), uni=num($("ecUni").value), kg=num($("ecKg").value);
+  var f = (ecDesp>=0 && ecDesp<100) ? 1/(1-ecDesp/100) : 1;  // desperdicio como % DE LA CHAPA
   if(prod && uni>0 && kg>0){
-    var chapa = Math.round(kg*(1+ecDesp/100)*1000)/1000;
-    $("ecVerif").innerHTML = "Entregás <b>"+fmt(kg)+" kg</b> ("+fmt(uni)+" uni). Descuenta <b>"+fmt(chapa)+" kg de chapa</b> (desperdicio "+fmt(ecDesp)+"%).";
+    var chapa = Math.round(kg*f*1000)/1000;
+    $("ecVerif").innerHTML = "Entregás <b>"+fmt(kg)+" kg</b> ("+fmt(uni)+" uni). Descuenta <b>"+fmt(chapa)+" kg de chapa</b> (desperdicio "+fmt(ecDesp)+"% de la chapa).";
   } else if(prod && uni>0){
-    $("ecVerif").innerHTML = "Cargá el peso entregado (kg). La chapa se descuenta = peso × (1 + desperdicio "+fmt(ecDesp)+"%).";
+    $("ecVerif").innerHTML = "Cargá el peso entregado (kg). La chapa se descuenta = peso ÷ (1 − desperdicio "+fmt(ecDesp)+"%).";
   } else { $("ecVerif").textContent=""; }
   $("ecGuardar").disabled = !(prod && uni>0 && kg>0 && $("ecFecha").value);
 }
@@ -409,7 +414,7 @@ $("ecGuardar").addEventListener("click", async function(){
   var m=$("ecMsg"); m.className="status"; m.textContent="";
   if(!prod || !(uni>0)){ m.className="status bad"; m.textContent="Elegí producto y unidades."; return; }
   if(!(kg>0)){ m.className="status bad"; m.textContent="Cargá el peso de la entrega (kg del remito)."; return; }
-  var chapa = Math.round(kg*(1+ecDesp/100)*1000)/1000;
+  var chapa = Math.round(kg*((ecDesp>=0&&ecDesp<100)?1/(1-ecDesp/100):1)*1000)/1000;
   if(!confirm("Registrar entrega de Eclipse:\n\n"+prod.codigo+" — "+(prod.descripcion||"")+"\nUnidades (referencia): "+fmt(uni)+"\nPeso entregado: "+fmt(kg)+" kg\nDescuenta ~"+fmt(chapa)+" kg de chapa\n\n¿Confirmar?")) return;
   $("ecGuardar").disabled=true; m.textContent="Registrando…";
   try{
