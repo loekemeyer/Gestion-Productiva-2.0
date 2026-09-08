@@ -5124,9 +5124,40 @@ tallerista que vive en la ruta** (no la vista, que tiene el bug 7269):
 dentro del 15 %, y sólo 3 se van feo. Contra la vista actual el mismo grupo daba +73 % de sesgo:
 **la distancia real entre el Excel y GP2 es chica; lo que estaba roto era la vista.**
 
-**Conceptos que dan exacto en varios artículos** (los buenos, para no perderlos de vista): el AyE
-del tallerista coincide al centavo en el 501 ($491), el 502 ($133,50), el 510 ($27,14) y el 031
-($230); el cartón coincide en 8 de 10; la caja en 7 de 10.
+⚠️ **CORREGIDO el 2026-09-08 — el usuario marcó que los rubros no cerraban.** La primera versión
+del archivo agrupaba los costos de GP2 **por el sector donde se guarda cada pieza**, y el sector de
+GP2 no es el rubro del Excel: el `Clavo 505 Niq.` vive en `Sector Plástico` pero **es una pieza de
+metal**, así que caía en la columna de plástico en vez de material. Los totales daban bien y los
+rubros no eran comparables — un total parecido tapando diferencias que se compensan. **Ahora los 6
+rubros se arman por TIPO DE COSTO en los dos lados**, usando el desglose real de la vista
+(`material_usd × TC + material_pesos`, `servicios_*`, `mano_obra_pesos`) más el AyE de la ruta.
+
+Con el bucketeo bien, **el 505 pasa a tener 4 de 6 rubros exactos**:
+
+| Rubro (505) | Excel | GP2 | |
+|---|---|---|---|
+| Material (metal / fleje) | 66,90 | 58,41 | −8,49 |
+| Tratamientos y trabajo s/ piezas | 73,80 | 42,40 | −31,40 |
+| **Armado y envasado** | **33,00** | **33,00** | ✅ |
+| **Plástico / mango** | **63,06** | **63,06** | ✅ |
+| **Cartón** | **79,00** | **79,00** | ✅ |
+| **Cajas** | **13,91** | **13,91** | ✅ |
+| (memo) MO interna de matriz | 0 | 68,39 | el Excel la manda a Aportes |
+
+**Rubros exactos por artículo**: 505 y 510 **4 de 6**; 506, 031 y 502 **3 de 6**; 513, 504 y 501
+**2 de 6**; 586 y 546 **1 de 6**. El **AyE del tallerista coincide al centavo en 6 de 10**
+(501 $491, 502 $133,50, 510 $27,14, 031 $230, 546 $109,85, 506 $70); el **cartón en 6 de 10** y la
+**caja en 5 de 10**.
+
+**Dos de los que "no cuadran" son clasificación, no plata:**
+- **586**: GP2 mete el mango plástico ($171,30) en Material porque el componente está en
+  `Sector Procesado`; el Excel lo pone en Plástico ($147,24).
+- **546**: `Corta Queso Bastidor c/Cilindro` ($1.040,40) trae todo adentro, incluido el bastidor
+  de Valeria que el Excel cobra en la columna Tallerista. Por eso su total cierra al −0,7 % pero
+  sólo un rubro coincide.
+
+**Lección**: comparar totales no alcanza. La columna "Rubros OK" del archivo es la que dice si de
+verdad cierra.
 
 **Los tres que no cuadran, y por qué:**
 - **510 (−39,5 %)**: GP2 no cobra el cromado del cuerpo ni el zincado de la uña ($83,81 de
