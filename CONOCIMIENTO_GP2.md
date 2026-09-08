@@ -892,6 +892,37 @@ a Giser.
   supuso en la auditoría de flejes de este mismo día: es el alambre de **Alambres Rumbo** y
   vive en la planilla de bombillas. El fleje 78 sigue siendo un faltante aparte.
 
+## 1-decies. Cartones: 74 de 161, y casi todo lo que falta es cartón de un artículo que no existe (2026-09-08)
+
+`[dato: planilla "Conteo Cartones VACIO", hoja "Pedido VACIO"]` 229 renglones, **161 códigos
+de cartón distintos**; GP2 tiene **74**. Pero el número asusta más de lo que es: **de los 87
+que faltan, 77 son el cartón de un artículo que GP2 tampoco tiene** (cucharas de madera,
+coladores, ralladores, utensilios de nylon e inox, tapones de vino, pinceles). No son altas
+sueltas: entran cuando entren esas familias — la misma decisión de la idea 7244.
+
+**Los que sí son faltantes duros — el artículo está vivo y no tiene su cartón (6)**:
+`A1D` Bolsa Filtro Café LOKE (art 120, Envases Vihal) · `D5A` Corta Queso Blandos (546) ·
+`E2B` Sacacorcho Mgo Ergonómico (581) · `G6A` Filtro Para Bombillas (550) · `H2A` Sac Cabo
+Ergonómico Nylon (104) · `P1A` Filtro de Bombilla CH (760) — los cinco últimos de Talleres
+Gráficos Pol.
+
+**Insumos del sector que GP2 no conoce (14)**, todos de uso general y no de un artículo:
+5 precintos negros (N° 8 a 16, **Precinter**, por 20.000), 5 etiquetas y el ribbon
+(**Sumatik**, por 8.000), film stretch y fleje de polipropileno (**Packaging y Servicios**),
+y las 4 bolsas de filtro de café de los arts 031, 034, 836 y 867 (Envases Vihal y Papelera 9
+de Julio) — esos cuatro artículos están vivos y ninguno tiene su bolsa.
+
+**Proveedores de cartón**: ya están Talleres Gráficos Pol, Papelera Nueve de Julio, Envases
+Vihal y Packaging y Servicios. **Faltan `Precinter`, `Sumatik` y `Cia Integral Etiquetas`** —
+este último es sólo el proveedor: sus tres piezas (`C3A`, `H4C`, `T4A`, las etiquetas de los
+afiladores 504, 114 y 97) **ya existen en GP2 pero sin quién las provee**.
+
+**`AJ Adhesivos` aparece VENDIENDO el pliego** `[SIN RESOLVER]`: en GP2 existe sólo como
+`proveedor_servicio` (adhesivado), y acá figura como proveedor de los pliegos de abrelatas y
+bombillas. Sus códigos `A2A` / `V3A` son los `Pliego Ad 500` y `Pliego Ad 506` de GP2 — o sea
+renombre, no alta; el de "Bombilla Chef" (`A1C`) no tiene equivalente. Falta decidir si además
+se da de alta como proveedor de insumo.
+
 ## 1-nonies. Control de Partes: cómo se llaman las hojas y quién es cada una (2026-09-08)
 
 `[usuario 2026-09-08 + dato: los dos Excel "AA Control Partes Talleristas" y "Control Partes
