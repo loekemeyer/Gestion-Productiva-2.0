@@ -5936,3 +5936,23 @@ compra a **Rueda**, sector Bombilla, por rollo de 950) + cartón F1A + caja A2 (
 Fábrica. `BOM8B` no se tocó (ya estaba bien: prov Rueda, estado NULL). Costo $390, `faltan_precios=6`
 (precio de PV14 + tarifa de envasado, pendientes). Invariantes en 0. **Los 4 artículos quedaron
 cargados.**
+
+## 4ag. Palo de Amasar Francés (art 234) en el módulo Garaje de Recepción (2026-09-09)
+
+**[usuario: "agregá en recepción de insumos un módulo que se llame garaje y agregá el palo de
+amasar francés que se lo compramos a Tierra Nativa y envasa Fábrica"]**
+
+- **El módulo Garaje YA existía**: `recepcion_bundle` arma la lista de módulos con los sectores que
+  tienen `sector.es_insumo = true` (la función `_es_sector_insumo` lee ese flag), y **Sector Garage
+  (9) ya lo tenía en true** — sólo no se veía poblado con un insumo comprable nuevo. No hubo que
+  crear ningún módulo ni tocar HTML. **OJO con el nombre: en todo GP2 el sector se llama "Sector
+  Garage" (con G, no "Garaje")** y los tests (`test_stock_sector.js`) y 6 pantallas dependen de ese
+  string — renombrarlo a "Garaje" rompería tests, así que se dejó "Garage".
+- **Alta** (migración `alta_art_234_palo_amasar_tierra_nativa`): componente `PALO234` "Palo de
+  Amasar Frances 40 cm" en **Sector Garage** (código propio, NO GRJ: los GRJ del sector son
+  bombillas), proveedor **Tierra Nativa SA**, `estado_compra` NULL (se compra). Terminado 234 en
+  sector 12. Ruta: insumo palo → **Fábrica** envasa → 234 → virgilio. Demanda ya en est_madre
+  (234 = 396/mes). Aparece en Recepción bajo Sector Garage. Invariantes en 0.
+- **PENDIENTE (NO inventado)**: precio del palo (Tierra Nativa) y tarifa de envasado de Fábrica; y
+  **si el 234 lleva caja y/o cartón** — el usuario no los mencionó, así que la receta es sólo el
+  palo y el artículo quedó sin caja (con `articulos_por_caja=12` del catálogo). familia='Otros'.
