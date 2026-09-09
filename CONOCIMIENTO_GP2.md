@@ -975,10 +975,20 @@ el **389** "Espumadera Nylon con Mgo" (cartón `K6A`, LOEKE, formato Huevo) y el
 "Espátula Lisa Nylon Mgo" (CHEF, 1.000 uni x paq, **el cartón figura sin código**). Los dos
 llevan mango, como el pisa papa.
 
+**Las cajas: los 14 ya la tienen** `[usuario 2026-09-09, planilla de Est. Madre LOEKE con la
+columna "N° Caja" + "para el caso de Chef, usá la misma caja que usa el gemelo"]`. **Caja
+N°7** (`A6`) para los pisa papas, los cucharones y las cucharas fideos (355/789, 392/845,
+391/844); **Caja N°12** (`A2`) para las espátulas, las cucharas caladas y las cucharas de 33
+(393/846, 394/842, 390/843, 248/908). Cada una con su ruta y la fracción que corresponde
+(1/24, o 1/12 en las cucharas de 33). **La caja NO va en `articulo_componente`**: vive en
+`articulo.componente_caja_id` y en la ruta, igual que en el 315.
+
+**Ojo con el nombre de la cuchara de fideos**: en LOEKE el 391 se llama **"Cuchara Pulpo"** y
+en CHEF el 844 igual — es la misma pieza que la planilla de plásticos llama "Cuchara Fideos"
+(`PV5`).
+
 **Lo que quedó pendiente y hace falta para que la cuenta cierre**:
-1. **Ningún artículo tiene caja** (`componente_caja_id` en null): falta saber cuál lleva cada
-   uno. Sin eso la caja no se consume ni se pide.
-2. **El cartón del 355 y del 908**, que la planilla no trae.
+1. **El cartón del 355 y del 908**, que la planilla no trae.
 3. **`456` Espátula Lisa Nylon C/Mango y `389` Espumadera Nylon con Mgo NO se cargaron**: son
    los dos que llevan mango y no se sabe qué parte usan.
 4. Las 6 partes y los 12 cartones están **sin precio**, y las partes sin `kg_x_uni`, así que
