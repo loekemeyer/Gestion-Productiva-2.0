@@ -5953,6 +5953,27 @@ amasar francés que se lo compramos a Tierra Nativa y envasa Fábrica"]**
   bombillas), proveedor **Tierra Nativa SA**, `estado_compra` NULL (se compra). Terminado 234 en
   sector 12. Ruta: insumo palo → **Fábrica** envasa → 234 → virgilio. Demanda ya en est_madre
   (234 = 396/mes). Aparece en Recepción bajo Sector Garage. Invariantes en 0.
-- **PENDIENTE (NO inventado)**: precio del palo (Tierra Nativa) y tarifa de envasado de Fábrica; y
-  **si el 234 lleva caja y/o cartón** — el usuario no los mencionó, así que la receta es sólo el
-  palo y el artículo quedó sin caja (con `articulos_por_caja=12` del catálogo). familia='Otros'.
+- **Completado el 2026-09-09** [usuario]: (a) **lleva caja N°15** (`A9B`) → agregada a la receta
+  (1/12), al FK del artículo y a su ruta; **no lleva cartón** (GP2 no tiene cartón 234 y el usuario
+  no lo mencionó). (b) **Precio del palo = $600** (Tierra Nativa, Lista de Precios f888 "Palo de
+  Amasar Frances 40cm", tomado en costos; la planilla costea el 234 justamente con L888, NO con el
+  "Torneado Palo de Amasar" $1245 de la misma hoja). (c) **La tarifa de envasado de Fábrica NO se
+  carga** [usuario: "la tarifa de fábrica no la agregues"]. `234` quedó con `faltan_precios=0`
+  (costo inflado por 7275, como todos). familia='Otros'.
+
+## 4ah. Ñoqueras de madera (arts 207, 229, 909) — GRJ12 / GRJ12B (2026-09-09)
+
+**[usuario]** Ñoqueras de madera compradas a **Eduardo Pintos**, envasa **Fábrica** con cartón y
+caja. Mismo patrón que el Corta Torta (parte + cartón + caja 1/12; cada componente por su ruta →
+Fábrica → terminado → virgilio). Van en **Sector Garage** (son GRJ).
+
+| Art | Parte | Cartón | Caja |
+|---|---|---|---|
+| 207 Ñoquera Mgo Redondo | `GRJ12B` | G1C | A1 (N°1) |
+| 229 Ñoquera Madera | `GRJ12` | G2B | A9 (N°22) |
+| 909 Ñoquera Madera | `GRJ12` | S2A | A9 (N°22) |
+
+`GRJ12` (plana) alimenta **229 y 909**; `GRJ12B` (mango redondo) el **207**. Migración
+`alta_noqueras_madera_grj12_207_229_909`. Cartones ya existían. Demanda en est_madre (207=890,
+229=800, 909=18). Invariantes en 0. Aparecen en Recepción bajo Sector Garage.
+**PENDIENTE (null)**: precio de las ñoqueras (Pintos) y tarifa de envasado de Fábrica.
