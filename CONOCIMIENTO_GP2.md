@@ -907,6 +907,62 @@ a Giser.
   supuso en la auditoría de flejes de este mismo día: es el alambre de **Alambres Rumbo** y
   vive en la planilla de bombillas. El fleje 78 sigue siendo un faltante aparte.
 
+## 1-undecies. Los utensilios de nylon: la primera familia entera que entra a GP2 (2026-09-09)
+
+`[usuario 2026-09-09: "toda la familia nylon se compra a Pat Bet Plast, excepto la cuchara 33
+centímetros, y se manda a tallerista Fábrica para que envase, excepto el pisa papa nylon que
+ensambla y envasa Rafael Pettofrezza"]`. Era la familia que faltaba desde la auditoría de
+plásticos (idea 7246) y **es el molde para las que vienen**: cucharas de madera, palos de
+amasar, coladores, exportación.
+
+**La regla del negocio, corta**: la parte de nylon **se compra hecha** a Pat Bet Plast y el
+tallerista sólo **envasa**. No hay matriz, ni proceso, ni proveedor de servicio en el medio —
+por eso la ruta tiene tres pasos y no diez.
+
+**Las 6 partes** (Sector Plástico, Pat Bet Plast, inventario en 0, ids 636-641): `PV1` Pisa
+Papa (500 uni x bolsa) · `PV2` Cucharón · `PV3` Espátula Lisa · `PV5` Cuchara Fideos · `PV6`
+Cuchara Calada · `PV7` Espátula Calada (250 uni x bolsa las cinco). Todas en **NY reciclado**.
+
+**La cuchara de 33 cm es la excepción y ya estaba**: es el `PB2` "Cuchara Ny" (Ny con carga,
+200 uni x bolsa) que se cargó el 2026-09-04 **a nombre de Pettofrezza** — venía de la hoja de
+Telleria y el usuario la reasignó. Encaja con que "toda la familia se compra a Pat Bet **menos
+la cuchara 33**".
+
+**Los 14 artículos** (ids 120-133), con su parte y las unidades por caja que muestra la web:
+
+| LOEKE | CHEF | parte | uni x caja |
+|---|---|---|---|
+| 355 Pisa Papas | 789 Pisa Papas | `PV1` | 24 |
+| 392 Cucharón | 845 Cucharón | `PV2` | 24 |
+| 394 Espátula Lisa | 842 Espátula Lisa | `PV3` | 24 |
+| 391 Cuchara Fideos | 844 Cuchara Fideos | `PV5` | 24 |
+| 390 Cuchara Calada | 843 Cuchara Calada | `PV6` | 24 |
+| 393 Espátula Calada | 846 Espátula Calada | `PV7` | 24 |
+| 248 Cuchara 33 cm | 908 Cuchara 33 cm | `PB2` | 12 |
+
+**Quién envasa**: los 12 utensilios simples van a **Fábrica**; los dos pisa papas, a
+**Pettofrezza Rafael**, que además **ensambla**.
+
+**El pisa papa es el único con más de una parte** `[usuario: "copiá el modelo del 315, que usa
+todas las partes, excepto el disco con vástago, porque esa sería la parte de nylon"]`. Sus 3
+rutas replican al 315 cambiando el disco `M1` por el `PV1`: `PV1` → Pettofrezza · `PC11`
+Mangos ф8 → Pettofrezza · `PA10B` Capuchón → **Ximpa serigrafía** → `PA10` → Pettofrezza.
+
+**Decisiones que tomó el agente y hay que confirmar** `[deducido]`:
+- Familia nueva **"Utensilios de nylon"** para los 12, pero los **dos pisa papas fueron a la
+  familia "Pisa papas"** que ya existía, para que queden junto al 121/315/609.
+- El paso de serigrafía de Ximpa en el capuchón salió de copiar el 315 al pie de la letra: si
+  el capuchón del nylon va sin serigrafiar, ese paso sobra.
+
+**Lo que quedó pendiente y hace falta para que la cuenta cierre**:
+1. **Ningún artículo tiene caja** (`componente_caja_id` en null): falta saber cuál lleva cada
+   uno. Sin eso la caja no se consume ni se pide.
+2. **Ningún artículo tiene cartón**: los suyos (`K6A`…`K7C` en LOEKE, `Q3A`/`R1A`/`R1B`…/`R3A`
+   en CHEF) están entre los 77 cartones que tampoco existen.
+3. **`456` Espátula Lisa Nylon C/Mango (CHEF, 12 por caja) NO se cargó**: es la única que
+   lleva mango y no se sabe qué parte usa.
+4. Las 6 partes están **sin precio y sin `kg_x_uni`**, así que hoy entran al costo en $0.
+
 ## 1-decies. Cartones: 74 de 161, y casi todo lo que falta es cartón de un artículo que no existe (2026-09-08)
 
 `[dato: planilla "Conteo Cartones VACIO", hoja "Pedido VACIO"]` 229 renglones, **161 códigos
