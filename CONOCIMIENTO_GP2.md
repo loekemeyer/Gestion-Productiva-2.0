@@ -954,14 +954,35 @@ Mangos ф8 → Pettofrezza · `PA10B` Capuchón → **Ximpa serigrafía** → `P
 - El paso de serigrafía de Ximpa en el capuchón salió de copiar el 315 al pie de la letra: si
   el capuchón del nylon va sin serigrafiar, ese paso sobra.
 
+**Los cartones: 12 de 14 estaban en la planilla de Gráfica Pol** `[dato 2026-09-09, cruce de
+la hoja "Pedido VACIO" del Conteo Cartones]`. Se cargaron los 12 (Sector Cartón, Talleres
+Gráficos Pol, inventario en 0) con su receta y su ruta de tres pasos, igual que la parte:
+
+| LOEKE (formato **8**, 2.500 uni x paq) | CHEF (formato **Huevo**, 1.000 uni x paq) |
+|---|---|
+| `A1A` → 248 · `K6B` → 390 · `K6C` → 391 | `R3A` → 789 · `R2C` → 842 · `R1B` → 843 |
+| `K7A` → 392 · `K7B` → 393 · `K7C` → 394 | `Q3A` → 844 · `Q3B` → 845 · `R1A` → 846 |
+
+**El "Corb8" de la planilla es el formato `8` de GP2**, y el de CHEF es `Huevo` — los dos
+formatos ya existían. Ningún código chocó con los de GP2.
+
+**Dos artículos quedaron sin cartón porque la planilla no los tiene**: el **355** (Pisa Papas
+LOEKE) y el **908** (Cuchara 33 cm CHEF). El resto de su familia sí lo tiene, así que
+probablemente falte el renglón en el Excel, no el cartón.
+
+**Aparecieron dos artículos de nylon más que no están en las capturas del usuario** `[dato]`:
+el **389** "Espumadera Nylon con Mgo" (cartón `K6A`, LOEKE, formato Huevo) y el **456**
+"Espátula Lisa Nylon Mgo" (CHEF, 1.000 uni x paq, **el cartón figura sin código**). Los dos
+llevan mango, como el pisa papa.
+
 **Lo que quedó pendiente y hace falta para que la cuenta cierre**:
 1. **Ningún artículo tiene caja** (`componente_caja_id` en null): falta saber cuál lleva cada
    uno. Sin eso la caja no se consume ni se pide.
-2. **Ningún artículo tiene cartón**: los suyos (`K6A`…`K7C` en LOEKE, `Q3A`/`R1A`/`R1B`…/`R3A`
-   en CHEF) están entre los 77 cartones que tampoco existen.
-3. **`456` Espátula Lisa Nylon C/Mango (CHEF, 12 por caja) NO se cargó**: es la única que
-   lleva mango y no se sabe qué parte usa.
-4. Las 6 partes están **sin precio y sin `kg_x_uni`**, así que hoy entran al costo en $0.
+2. **El cartón del 355 y del 908**, que la planilla no trae.
+3. **`456` Espátula Lisa Nylon C/Mango y `389` Espumadera Nylon con Mgo NO se cargaron**: son
+   los dos que llevan mango y no se sabe qué parte usan.
+4. Las 6 partes y los 12 cartones están **sin precio**, y las partes sin `kg_x_uni`, así que
+   hoy entran al costo en $0.
 
 ## 1-decies. Cartones: 74 de 161, y casi todo lo que falta es cartón de un artículo que no existe (2026-09-08)
 
