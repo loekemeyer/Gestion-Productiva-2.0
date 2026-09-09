@@ -5912,9 +5912,18 @@ en la receta a `1/articulos_por_caja`.
 ya existían (F6B/G5C/G6B). Demanda ya cargada en est_madre (547=24, 569=80, 299=176/mes).
 Invariantes en 0; costo 547=$614,69, 569/299=$180,76.
 
-**Lo que quedó PENDIENTE, marcado null (no inventado):**
-- **Precio de las 3 partes** (PV8, PV17, PA3) y **tarifa de envasado** de Alex/Lucho/Fábrica →
-  por eso `faltan_precios=4` en cada uno. Cuando el usuario los pase, el costo cierra.
+**Precios de las partes cargados el 2026-09-09** [usuario: "está en costos, buscá por proveedor"]
+— planilla, Lista de Precios, bloque Pat Bet Plast (cod 797), tomado en costos: **PV8 $625,72**
+(Pinza Corta Torta, f1180), **PV17 $118,64** (Pela Naranja, f339), **PA3 $171,68** (Muñeco
+Antiderrame, f343). Migración `precio_partes_pat_bet_plast_547_569_299`. Las 3 partes costean
+bien solas.
+- ⚠️ **El costo del ARTÍCULO sale inflado por el bug 7275** (la vista cuenta cada componente dos
+  veces: en la receta Y en su ruta). Ej.: 547 muestra $1.866 = parte $625,72 contada 2× + cartón
+  + caja también 2×. NO es error de carga — lo tienen los 4 y todos los artículos de GP2; se
+  corrige cuando se arregle 7275.
+- **PENDIENTE**: (a) **precio de PV14** (Picos) — la planilla dice "Picos Reposteros **(4)**"
+  $54,60 y falta que el usuario confirme si es por pico ($13,65) o por los 4 ($54,60); (b)
+  **tarifa de envasado** de Alex/Lucho/Fábrica (van en `precio_tallerista`, todavía null).
 - **familia**: es FK a la tabla `familia`. 569='Peladores' (existe); 547 y 299 no tienen familia
   propia → quedaron en **'Otros'** (el usuario los reubica si quiere).
 - `uni_x_cajon` de las partes quedó **NULL**: el "UxB 12" del catálogo es del terminado
