@@ -5893,3 +5893,35 @@ precio "Tomado en Costos". Cuál es cuál lo resolvió la hoja **Materiales**, q
 (ítem "Argolla Redonda 70 mm", ISIS 1485). Los destapadores 057/498/516/700 quedaron sin
 faltantes. (El 499 sigue con 2 faltantes, pero por el paso de Julio `B12→Z22` sin precio, no por
 la argolla — ver §4ad-quater.)
+
+## 4af. Altas de artículos comprados a Pat Bet Plast y envasados (2026-09-09)
+
+**[usuario]** 4 productos que se compran hechos a **Pat Bet Plast** y sólo se envasan. GP2 no los
+tenía. Patrón copiado del art **054** (Pinza): la parte se compra, un tallerista la **ENVASA**, y
+**cada componente (parte + cartón + caja) entra por su PROPIA ruta** que converge en el terminado
+→ virgilio. La caja va de dos formas: FK `articulo.componente_caja_id` con `articulos_por_caja`, y
+en la receta a `1/articulos_por_caja`.
+
+| Art | Parte (Pat Bet Plast) | Envasa | Cartón | Caja | UxB |
+|---|---|---|---|---|--:|
+| 547 Corta Torta | PV8 | **Alex Escalante** | F6B | A4 (N°10) | 12 |
+| 569 Pela Naranjas | PV17 | **Lucho** | G5C | A11 (N°29) | 12 |
+| 299 Muñeco Antiderrame | PA3 | **Fábrica** | G6B | A11 (N°29) | 12 |
+| 280 Manga Repostera + 4 Boquillas | PV14 | Fábrica | F1A | A2 (N°12) | 12 | ← **PENDIENTE** |
+
+**Hechos** (migración `alta_arts_547_569_299_pat_bet_plast_display`): 547, 569, 299. Los cartones
+ya existían (F6B/G5C/G6B). Demanda ya cargada en est_madre (547=24, 569=80, 299=176/mes).
+Invariantes en 0; costo 547=$614,69, 569/299=$180,76.
+
+**Lo que quedó PENDIENTE, marcado null (no inventado):**
+- **Precio de las 3 partes** (PV8, PV17, PA3) y **tarifa de envasado** de Alex/Lucho/Fábrica →
+  por eso `faltan_precios=4` en cada uno. Cuando el usuario los pase, el costo cierra.
+- **familia**: es FK a la tabla `familia`. 569='Peladores' (existe); 547 y 299 no tienen familia
+  propia → quedaron en **'Otros'** (el usuario los reubica si quiere).
+- `uni_x_cajon` de las partes quedó **NULL**: el "UxB 12" del catálogo es del terminado
+  (`articulos_por_caja`), no de cómo Pat Bet Plast entrega la parte.
+
+**280 (Manga Repostera + 4 Boquillas) NO se hizo**: su receta no es 1 parte simple — lleva la
+**tela manga** (`BOM8B`, ya existe, se cuenta por rollo, 950 uni/rollo) MÁS las boquillas (`PV14`,
+"Picos Reposteros"). Falta que el usuario diga: ¿la receta es tela manga + PV14? ¿cuántos picos
+(¿4?) por manga? ¿la tela manga se compra o de dónde sale?
