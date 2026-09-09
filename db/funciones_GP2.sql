@@ -3932,7 +3932,8 @@ select jsonb_build_object(
   'tall_art', (select jsonb_object_agg(a::text, arr) from (
        select r.articulo_id a, jsonb_agg(distinct t.nombre) arr
        from "GP2".ruta_paso rp join "GP2".ruta r on r.id = rp.ruta_id join "GP2".tallerista t on t.id = rp.tallerista_id
-       where rp.tallerista_id is not null and r.articulo_id is not null group by r.articulo_id) x),
+       join "GP2".componente cs on cs.id = rp.comp_salida_id
+       where rp.tallerista_id is not null and r.articulo_id is not null and cs.sector_id = 12 group by r.articulo_id) x),
   'sect', (select jsonb_object_agg(id::text, jsonb_build_object('t',tipo)) from "GP2".sector),
   'rutas_by_art', (select jsonb_object_agg(a::text, arr) from (
        select a, jsonb_agg(jsonb_build_object('id',id,'nom',nom,'f',f,'a',a) order by id) arr
