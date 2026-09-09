@@ -5727,3 +5727,25 @@ artículos que GP2 no modela, o son ítems viejos. **Falta que el usuario diga c
   precio), se **reparte** y el costo del artículo **no se mueve**. Fue el caso del 586.
 - Si el precio dice **"(mat+iny)"**, la serigrafía **no estaba** y el costo **sube** lo que cobra
   Julio. Fue el caso de PA10, PA18, PA13 y PC15A.
+
+### 4ad-quater. Julio: la lista completa y lo que quedó sin atar (2026-09-09)
+
+**El detalle vive en `SERIGRAFIA_JULIO_2026-09-09.md`** (qué recibe, qué devuelve, a qué artículo
+y a qué precio). Lo que hay que recordar acá:
+
+- **GP2 tiene 10 pasos de Julio con precio**: 3 de metal (A4, B7, C1) y 7 de plástico, todos
+  cargados el 08–09/09/2026.
+- **Los manguitos abrelata NO llevan serigrafía** [usuario 2026-09-09: "no va en ninguno"]:
+  `PC13` (701), `PC14` (501) y `PB5` (101) quedan cerrados así. El ítem "Manguito PP Plásticos
+  Serigrafiado" $24 de la lista de Julio **no corresponde a ningún artículo de GP2**.
+- **El 499 tiene el paso de Julio (`B12 → Z22`) SIN precio** → está subcosteado. Tratamientos
+  marca el 499 con $24 en "Cuerpo pie", pero la lista de Julio no tiene ningún ítem que diga
+  "llavero". Falta confirmar.
+- **Contradicción a mirar**: `A8` se llama "Cuerpo Uña CH **Serigr.**" y su paso lo hace **Jade
+  a $127** (pintado), no Julio — mientras Julio lista "Cuerpo Mariposa Uña Serigrafiado" $19 sin
+  asignar. O falta el paso de Julio además del de Jade, o el nombre de A8 miente.
+- **Quedan 5 ítems de Julio sin asignar**: Capuchón 10 Mm $19, Capuchón Pela Pica Ajo $24, Tapa
+  Cucaracha $24, Patitas $24, Cuchara de Cocina $28. Varios con última compra de 2023–2025, así
+  que pueden ser de artículos que GP2 no modela.
+- **Y el `PELADPR 586` $67 sigue sin explicación**: el 586 se costea con el mango de $24, no con
+  esa fila. (El `PELADOR 505` $67 el usuario ya lo descartó el 08/09.)
