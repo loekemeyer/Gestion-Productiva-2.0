@@ -5572,7 +5572,7 @@ Lucho, 548 con Danica García) — el 505 se arma por dos talleristas alternativ
 del tallerista en ambas. El código lo eligió el usuario: **PC2**, sin la letra A (no PC2A).
 Verificado: costo del 505 estable en $667,09; OC pasa de "PC1A → Pettofrezza" a "PC2 → Pat Bet
 Plast" (sug 112.736); invariantes en 0 (inventario = ledger, los 240 de PC1A intactos). Mismos dos
-pendientes que el 123: confirmar proveedor de PC2 y cargar la tarifa de calado de Ester.
+pendientes que el 123. CERRADO 2026-09-09: **PC2 y PC3B (los mangos SIN CALAR de 505 y 123) se compran a Pettofrezza Rafael** [usuario: "no aparecen para comprárselos a Pettofrezza Rafael"] — estaban en Pat Bet Plast y por eso no salían bajo Pettofrezza en la OC/Recepción; migración `pc2_pc3b_proveedor_pettofrezza`. Sigue pendiente la tarifa de calado de Ester.
 
 
 ## 4ab. Estado real del módulo de OC, auditado (2026-09-08)
