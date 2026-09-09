@@ -5907,7 +5907,7 @@ en la receta a `1/articulos_por_caja`.
 | 547 Corta Torta | PV8 | **Alex Escalante** | F6B | A4 (N°10) | 12 |
 | 569 Pela Naranjas | PV17 | **Lucho** | G5C | A11 (N°29) | 12 |
 | 299 Muñeco Antiderrame | PA3 | **Fábrica** | G6B | A11 (N°29) | 12 |
-| 280 Manga Repostera + 4 Boquillas | PV14 | Fábrica | F1A | A2 (N°12) | 12 | ← **PENDIENTE** |
+| 280 Manga Repostera + 4 Boquillas | 4× PV14 + 1 manga BOM8B | Fábrica | F1A | A2 (N°12) | 12 |
 
 **Hechos** (migración `alta_arts_547_569_299_pat_bet_plast_display`): 547, 569, 299. Los cartones
 ya existían (F6B/G5C/G6B). Demanda ya cargada en est_madre (547=24, 569=80, 299=176/mes).
@@ -5921,7 +5921,10 @@ Invariantes en 0; costo 547=$614,69, 569/299=$180,76.
 - `uni_x_cajon` de las partes quedó **NULL**: el "UxB 12" del catálogo es del terminado
   (`articulos_por_caja`), no de cómo Pat Bet Plast entrega la parte.
 
-**280 (Manga Repostera + 4 Boquillas) NO se hizo**: su receta no es 1 parte simple — lleva la
-**tela manga** (`BOM8B`, ya existe, se cuenta por rollo, 950 uni/rollo) MÁS las boquillas (`PV14`,
-"Picos Reposteros"). Falta que el usuario diga: ¿la receta es tela manga + PV14? ¿cuántos picos
-(¿4?) por manga? ¿la tela manga se compra o de dónde sale?
+**280 HECHO el 2026-09-09** (migración `alta_art_280_manga_repostera_4_picos`) [usuario: "además
+de cuatro PV14 lleva una manga que se la compramos a Rueda"]. Receta = **4× PV14** (Picos
+Reposteros, nuevo, Pat Bet Plast) + **1 manga `BOM8B`** (Tela Manga Repostera, ya existía, se
+compra a **Rueda**, sector Bombilla, por rollo de 950) + cartón F1A + caja A2 (1/12). Envasa
+Fábrica. `BOM8B` no se tocó (ya estaba bien: prov Rueda, estado NULL). Costo $390, `faltan_precios=6`
+(precio de PV14 + tarifa de envasado, pendientes). Invariantes en 0. **Los 4 artículos quedaron
+cargados.**
