@@ -5995,3 +5995,28 @@ pero **marca CHEF**), envasa **Alex Escalante**. Terminado 818, receta = PV8B + 
 (parte y cartón) → Alex → 818 → virgilio. Invariantes en 0. PV8B y O2D aparecen en Recepción.
 **PENDIENTE (null)**: precio de PV8B, tarifa de Alex, la **caja** (el usuario no la dio; el gemelo
 547 usa N°10/A4) y la **demanda** (est_madre 818 no existe).
+
+## 4aj. "Sin formato" en Recepción de Cartones: bolsa 550/760 partida + formatos Manga/C (2026-09-09)
+
+**[usuario]** El chip "Sin formato" en la Recepción de cartones NO significa formato NULL —ningún
+cartón tiene formato NULL—. La pantalla arma los chips con un **mapa fijo** `FORMATOS_POR_MARCA`
+(en `RecepcionInsumos_GP2.html`), y todo cartón cuyo `carton_formato` no esté en la lista de su
+marca cae en "Sin formato". Los que caían:
+- **LOEKE → F1A** "Cartón 280", formato **"Manga"** (de Talleres Gráficos Pol) — "Manga" no estaba
+  en la lista.
+- **CHEF → S2A (909) y O2D (818)**, formato **"C"** — **la lista de CHEF no tenía 'C'** (bug del
+  mapa; CHEF sí tiene cartones tipo C).
+
+**Fix (v3.51.0)**: se agregó `'Manga'` a las tres listas y `'C'` a la de CHEF. No queda ningún
+"Sin formato". Es sólo el mapa de chips (lógica de display), no toca datos.
+
+**Split de la bolsa 550/760** [usuario: "son dos bolsas distintas: 550 es de LOEKE y 760 de CHEF;
+las trae Papelera Nueve de Julio"]: eran UNA sola (`BOLSA550`, marca null) compartida por los dos
+artículos (decisión previa del 2026-09-08 "como las de Vihal"). Ahora son dos:
+- `BOLSA550` → marca **LOEKE**, art 550.
+- `BOLSA760` → marca **CHEF**, art 760 (nueva; se repuntó la receta y la ruta del 760).
+Proveedor **Papelera Nueve de Julio** en las dos (ya lo era). Costo 550/760 sin cambio ($651,84).
+
+**Correcciones que resultaron NO necesarias** (los datos ya estaban bien): F1A ya tenía proveedor
+Talleres Gráficos Pol; `G8C` (836), `A1B` (031), `A1B1` (120) ya tenían **Envases Vihal**. El
+usuario los mencionó pensando que estaban mal, pero no había que tocarlos.

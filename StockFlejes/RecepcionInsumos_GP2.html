@@ -6,7 +6,11 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<!-- v3.50.0 (2026-09-08) — ORDEN POR N° REAL. Los items salian por codigo (A1, A11, A2...) y
+<!-- v3.51.0 (2026-09-09) — FORMATOS 'Manga' Y 'C' EN CHEF: se agrega 'Manga' a las tres listas de
+     FORMATOS_POR_MARCA (el cartón del 280 es formato Manga) y 'C' a CHEF (faltaba, y por eso los
+     cartones C de Chef —818, 909— aparecian en "Sin formato"). Con esto no queda ningun "Sin
+     formato" ni en LOEKE ni en CHEF [usuario 2026-09-09]. Solo el mapa de chips; nada de datos.
+     v3.50.0 (2026-09-08) — ORDEN POR N° REAL. Los items salian por codigo (A1, A11, A2...) y
      el N° quedaba saltado (Caja N°1, 29, 12...). insumosVista() ahora ordena por el N° que
      trae la descripcion ("Caja N°1", "Fleje N° 45"); lo que no tiene N° (cartones) cae a
      codigo con orden numerico-aware. -->
@@ -1039,10 +1043,10 @@ function pintarMarcaChips(){
    LOEKE -> C, 8, Huevo   |   CHEF -> LOKE, 8, Huevo
    Sin marca -> los 4 (por si aparece algo huerfano) */
 /* Formatos por marca (regla del usuario 2026-09-01):
-   LOEKE: C, 8, Huevo, LOKE, Bombilla (5 formatos reales) + 'Bolsa' (bolsas de envases Vihal — no es cartón real pero está en el sector).
-   CHEF:  LOKE, 8, Huevo, Bombilla.
+   LOEKE: C, 8, Huevo, LOKE + 'Bolsa' (bolsas de Papelera Nueve de Julio / Envases Vihal) + 'Manga' (cartón manga del 280, Gráficos Pol).
+   CHEF:  C, LOKE, 8, Huevo + 'Bolsa' + 'Manga'. (El 'C' faltaba y por eso los cartones C de Chef —818, 909— caían en "Sin formato" [usuario 2026-09-09].)
    Los "pliegos" (500/506 en C, 557/558/654... en Bombilla, CART506 en C, CART_MATE en Bombilla) NO son un formato aparte: son PIEZAS DENTRO del formato correspondiente, marcadas con componente.es_pliego. La lógica de packaging la define es_pliego, no el formato. */
-var FORMATOS_POR_MARCA = { LOEKE:['C','8','Huevo','LOKE','Pliego','Bolsa'], CHEF:['LOKE','8','Huevo','Pliego','Bolsa'], _sin:['C','8','Huevo','LOKE','Pliego','Bolsa'] };
+var FORMATOS_POR_MARCA = { LOEKE:['C','8','Huevo','LOKE','Pliego','Bolsa','Manga'], CHEF:['C','LOKE','8','Huevo','Pliego','Bolsa','Manga'], _sin:['C','8','Huevo','LOKE','Pliego','Bolsa','Manga'] };
 function pintarFormatoChips(){
   var fw=$('formatoWrap'), fg=$('formatoChips');
   if (!marcaSel){ fw.classList.add('hidden'); fg.innerHTML=''; return; }
