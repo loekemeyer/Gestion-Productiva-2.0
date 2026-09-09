@@ -5886,5 +5886,10 @@ sector movida de Procesado a Bombilla con su min/max, y `proveedor_insumo.rubro`
 Sector Bombilla. Sin movimientos ni stock (todo 0), invariante ledger=inventario en 0. Ahora
 Casa Landau aparece en Recepción y en la OC, dentro del grupo Bombilla.
 
-⚠️ **La argolla NO tiene precio cargado** (`precio_proveedor` vacío) → cuesta $0 en los 5
-destapadores que la usan. Queda pendiente que el usuario pase el precio de Casa Landau (idea 7277).
+**Precio cargado el 2026-09-09** [usuario: "está dentro del archivo de costos, en Lista de
+Precios, el precio de las dos argollas dentro de Casa Landau"]. Bloque "3228 - Casa Landau",
+precio "Tomado en Costos". Cuál es cuál lo resolvió la hoja **Materiales**, que las nombra:
+**Z25A Argolla Grande = $32,99** (ítem "Aro Llavero", ISIS 1225) y **Z25B Argolla Chica = $17,56**
+(ítem "Argolla Redonda 70 mm", ISIS 1485). Los destapadores 057/498/516/700 quedaron sin
+faltantes. (El 499 sigue con 2 faltantes, pero por el paso de Julio `B12→Z22` sin precio, no por
+la argolla — ver §4ad-quater.)
