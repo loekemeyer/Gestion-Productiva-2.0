@@ -5860,3 +5860,31 @@ que se lleva **Ximpa (Hernández Julio)** a serigrafiar son exactamente estos 7,
 
 **Esto cierra `PC15B` (723) y `PEP1` (099)**: no están en la lista → **NO llevan serigrafía**.
 Quedan como se compran, directo al tallerista. (Se habían quedado "sin definir" en §4ad-ter.)
+
+## 4ae. Casa Landau: no aparecía en Recepción — dos causas (2026-09-09)
+
+**[usuario: "casa landau dónde está? no me aparece en recepción de insumos? qué le compramos" →
+"cambialo, no es sector procesado" → "ponelo como recepción de insumos dentro de bombillas"]**
+
+Casa Landau nos vende **argollas**: `Z25A` (Argolla Grande, en 057/498/499/516/700) y `Z25B`
+(Argolla Chica, en 498/499). Familia **Destapadores**. No aparecía en Recepción por DOS cosas:
+
+1. **`estado_compra = 'compra'`** — eran los ÚNICOS 2 componentes de toda la base con ese valor.
+   **La convención es al revés de lo que suena: `estado_compra IS NULL` = SE COMPRA (569 comp).**
+   Los valores puestos (`fabricacion` 47, `discontinuo` 13, `importado` 4, y este `compra` 2) son
+   marcas que SACAN del circuito. `recepcion_bundle` y `oc_bundle` filtran `estado_compra IS NULL`
+   → las argollas quedaban afuera. **Regla: nunca poner `estado_compra='compra'`; para "se compra"
+   se deja NULL.**
+2. **Vivían en Sector Procesado, que NO es sector de insumo** (`_es_sector_insumo(2)=false`).
+   `recepcion_bundle` sólo muestra `_es_sector_insumo(sector) OR proveedor∈(Charcas,Eclipse)`, y
+   agrupa **por el sector del componente** — no hay un "sector de recepción" aparte. Así que aunque
+   se arreglara el (1), en Procesado igual no entrarían.
+
+**Aplicado** (migración `casa_landau_argollas_a_bombilla_y_estado_compra_null`): `estado_compra`
+→ NULL, `sector_id` → 7 (**Sector Bombilla**, que sí es de insumo), la fila de inventario del
+sector movida de Procesado a Bombilla con su min/max, y `proveedor_insumo.rubro` de Casa Landau →
+Sector Bombilla. Sin movimientos ni stock (todo 0), invariante ledger=inventario en 0. Ahora
+Casa Landau aparece en Recepción y en la OC, dentro del grupo Bombilla.
+
+⚠️ **La argolla NO tiene precio cargado** (`precio_proveedor` vacío) → cuesta $0 en los 5
+destapadores que la usan. Queda pendiente que el usuario pase el precio de Casa Landau (idea 7277).
