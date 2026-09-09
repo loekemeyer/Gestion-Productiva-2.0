@@ -52,7 +52,9 @@ y el proceso cargado es otro — o falta el paso de Julio además del de Jade, o
 ## 4. Las que quedaron cerradas SIN serigrafía [usuario 2026-09-09: "no va en ninguno"]
 
 `PC13` (701) · `PC14` (501) · `PB5` (101) — los tres manguitos abrelata.
-Pendientes de definir: `PC15B` (723) y `PEP1` (099).
+`PC15B` (723) · `PEP1` (099) — CERRADOS el 2026-09-09: el usuario confirmó que los plásticos que
+se lleva Ximpa son sólo los 7 en blanco (PA4B, PA5B, PA10B, PA13B, PA18B, PC15AB, PEP2), así que
+estos dos **no llevan serigrafía**.
 
 ## Cómo se leyó esto
 

@@ -5836,3 +5836,16 @@ y a qué precio). Lo que hay que recordar acá:
   que pueden ser de artículos que GP2 no modela.
 - **Y el `PELADPR 586` $67 sigue sin explicación**: el 586 se costea con el mango de $24, no con
   esa fila. (El `PELADOR 505` $67 el usuario ya lo descartó el 08/09.)
+
+### 4ad-quinquies. Lista CERRADA de lo plástico que se lleva Ximpa (2026-09-09)
+
+**[usuario, confirmando la lista de las piezas en blanco de Sector Plástico]:** los componentes
+que se lleva **Ximpa (Hernández Julio)** a serigrafiar son exactamente estos 7, y ninguno más:
+
+`PA4B` · `PA5B` · `PA10B` · `PA13B` · `PA18B` · `PC15AB` · `PEP2`
+
+(las versiones EN BLANCO; vuelven serigrafiadas como PA4, PA5, PA10, PA13, PA18, PC15A, PEP3).
+**Los 7 están cableados.** El lado plástico de la serigrafía quedó COMPLETO.
+
+**Esto cierra `PC15B` (723) y `PEP1` (099)**: no están en la lista → **NO llevan serigrafía**.
+Quedan como se compran, directo al tallerista. (Se habían quedado "sin definir" en §4ad-ter.)
