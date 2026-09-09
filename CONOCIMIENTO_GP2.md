@@ -719,13 +719,12 @@ descripción de fleje contra las rutas cargadas:
   exactamente "Arandela Chica Afila" — y **no existe en GP2**. Si la chica inox sale del 12,
   hoy se está costeando inox a precio de laminado en tres artículos. Falta que el usuario lo
   confirme.
-- **Fleje 59 vs 95: el 59 es el que va** `[usuario 2026-09-04: "SÍ, N°59 hace Vast. C Pizza /
-  Flech. Ahueca"]`. Las dos piezas salen del **fleje 59** (`IB7`, Hermac, 60 x 2): `L15`
-  Vástago Corta Pizza Chico (arts 116, 559, 562, 859, 862) y `N3` Flechita Ahueca vía matriz
-  M361 (arts 542, 543, 720, 722). La planilla lista además un **fleje 95** (Aperam, mismo
-  sector B7, misma medida) que no está en GP2 — **las rutas no se tocan**; queda pendiente
-  decidir si el 95 se compra igual (y entonces hay que poder recepcionarlo) o si la planilla
-  arrastra un fleje que ya no entra.
+- **Fleje 59 vs 95: son el MISMO fleje, el 95 se descarta** `[usuario 2026-09-04: "SÍ, N°59
+  hace Vast. C Pizza / Flech. Ahueca" + 2026-09-09: "el 95 sacalo"]`. Las dos piezas salen del
+  **fleje 59** (`IB7`, **Aperam**, 60 x 2): `L15` Vástago Corta Pizza Chico (arts 116, 559,
+  562, 859, 862) y `N3` Flechita Ahueca vía matriz M361 (arts 542, 543, 720, 722). El **fleje
+  95** de la planilla (Aperam, mismo sector B7, misma medida y misma descripción) es el mismo
+  fleje con otro número: **no se compra por separado y no se carga**.
 - **El corta queso tiene dos entradas y una es huérfana** `[hallazgo, SIN RESOLVER]`. Los
   arts 119, 574 y 809 tienen ruta desde el **fleje 80** (`IE3`, Brawin Ø4 x 380 → `A9`
   cromado, hoy discontinuo) y otra desde `IZ19A` "Alambre Corta Queso", que está **sin n° de
