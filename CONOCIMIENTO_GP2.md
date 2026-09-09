@@ -5707,8 +5707,14 @@ adivinar. Se aplicó sólo donde la hoja **Tratamientos** de la planilla marca e
 columna `Serigrafiado`: los 6 artículos de PA18 figuran, el 515 de PA13 figura, el 523 de PC15A
 figura.
 
-**Las 7 que NO se tocaron y por qué** [dato 2026-09-08]: `PA4`, `PA5` (arts 551, 878), `PC13`
-(701), `PC14` (501), `PB5` (101), `PC15B` (723), `PEP1` (099). **Ninguno de esos artículos aparece
+**`PA4` y `PA5` cerradas el 2026-09-09** [usuario: **"$19 a 551 y 878"**]: el ítem
+"Mango Untadores Plásticos Serigrafiado" $19 de Julio va a esos dos artículos, que en GP2 son
+`PA4` (Mang Cuch Unt Rojo, art 551) y `PA5` (Mang Cuch Unt Chef, art 878). Se creó `PA4B` y
+`PA5B`; el mango queda en $74,54 = $55,54 + $19. **Esto confirma que la columna `Serigrafiado`
+de Tratamientos NO es la lista completa**: ni el 551 ni el 878 figuran ahí y sin embargo llevan
+serigrafía. La planilla tiene el dato incompleto; la fuente buena es el usuario.
+
+**Las 5 que NO se tocaron y por qué** [dato 2026-09-08]: `PC13` (701), `PC14` (501), `PB5` (101), `PC15B` (723), `PEP1` (099). **Ninguno de esos artículos aparece
 en la columna `Serigrafiado` de Tratamientos.** El caso que más engaña es el **501**: sí figura
 con serigrafía $19, pero la fila dice **"Planchuela Manija"** — es el mango de METAL (`A4`, que
 GP2 ya tiene bien cableado), **no** el manguito plástico `PC14`. Así que la lista de precios de
