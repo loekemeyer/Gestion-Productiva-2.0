@@ -5981,3 +5981,17 @@ Fábrica → terminado → virgilio). Van en **Sector Garage** (son GRJ).
 por CÓDIGO de artículo (no por nombre): 229→L476, 207→L478. **GRJ12 (229 y 909) = $494,69**
 ("Ñoquera - Madera sin envasar"); **GRJ12B (207) = $693,73** ("Ñoquera Fresada madera a 200").
 Migración `precio_noqueras_pintos`. Queda pendiente la tarifa de envasado de Fábrica.
+
+## 4ai. Art 818 "Corta Torta" Chef (gemelo plástico del 547) (2026-09-09)
+
+**Aclaración de historia**: en el primer pedido el usuario listó el 818 pero pasó 4 partes, todas
+plásticas de Pat Bet Plast (PV8/PV14/PV17/PA3), y las instrucciones de envasado fueron para
+547/569/280/299. El **818 no traía parte ni envasador**, así que quedó afuera (no se saltó: le
+faltaban datos). **No es de inox** —la foto blanca engaña— **es Corta Torta plástico** [usuario].
+
+**Hecho** (migración `alta_art_818_corta_torta_chef`): parte **PV8B** (Corta Torta Chef, Pat Bet
+Plast, nueva), cartón **O2D** (Cartón 818, creado como el del 547 `F6B` —formato C, Gráficos Pol—
+pero **marca CHEF**), envasa **Alex Escalante**. Terminado 818, receta = PV8B + O2D, dos rutas
+(parte y cartón) → Alex → 818 → virgilio. Invariantes en 0. PV8B y O2D aparecen en Recepción.
+**PENDIENTE (null)**: precio de PV8B, tarifa de Alex, la **caja** (el usuario no la dio; el gemelo
+547 usa N°10/A4) y la **demanda** (est_madre 818 no existe).
