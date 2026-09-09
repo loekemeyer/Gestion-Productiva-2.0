@@ -987,8 +987,19 @@ N°7** (`A6`) para los pisa papas, los cucharones y las cucharas fideos (355/789
 en CHEF el 844 igual — es la misma pieza que la planilla de plásticos llama "Cuchara Fideos"
 (`PV5`).
 
+**Cartón del 355 y del 908: creados según gemelo** `[usuario 2026-09-09: "creá los cartones que
+faltan según gemelos"]`. La planilla no los traía; el formato lo dicta el gemelo, no la marca:
+`F3C` "Cartón 355" (LOEKE, **Huevo** como el R3A del gemelo 789, y como el 315) y `Q3D`
+"Cartón 908" (CHEF, **formato 8** como el A1A del gemelo 248). Los dos de Pol, con receta y
+ruta.
+
+**La caja va también en el BOM, no sólo en la ruta** `[usuario 2026-09-09 + confirmado contra
+el 315]`. Cada uno de los 14 tiene ahora la caja en `articulo_componente` con **cantidad =
+1 / uni_x_caja** (0,0417 los de 24, 0,0833 los de 12) — además de `componente_caja_id` y el
+paso de ruta. Regla general: **una caja rinde N artículos, así que cada artículo consume
+1/N de caja**; eso es lo que va al BOM. El cartón va con cantidad 1 (uno por artículo).
+
 **Lo que quedó pendiente y hace falta para que la cuenta cierre**:
-1. **El cartón del 355 y del 908**, que la planilla no trae.
 3. **`456` Espátula Lisa Nylon C/Mango y `389` Espumadera Nylon con Mgo NO se cargaron**: son
    los dos que llevan mango y no se sabe qué parte usan.
 4. Las 6 partes y los 12 cartones están **sin precio**, y las partes sin `kg_x_uni`, así que
