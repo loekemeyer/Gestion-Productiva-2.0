@@ -5976,4 +5976,8 @@ Fábrica → terminado → virgilio). Van en **Sector Garage** (son GRJ).
 `GRJ12` (plana) alimenta **229 y 909**; `GRJ12B` (mango redondo) el **207**. Migración
 `alta_noqueras_madera_grj12_207_229_909`. Cartones ya existían. Demanda en est_madre (207=890,
 229=800, 909=18). Invariantes en 0. Aparecen en Recepción bajo Sector Garage.
-**PENDIENTE (null)**: precio de las ñoqueras (Pintos) y tarifa de envasado de Fábrica.
+**Precio de las ñoqueras cargado el 2026-09-09** [usuario "está dentro de Pintos"], bloque
+"3904 - Pintos Lorenzo Eduardo", tomado en costos. Cuál es cuál lo resolvió el Costos del vecino
+por CÓDIGO de artículo (no por nombre): 229→L476, 207→L478. **GRJ12 (229 y 909) = $494,69**
+("Ñoquera - Madera sin envasar"); **GRJ12B (207) = $693,73** ("Ñoquera Fresada madera a 200").
+Migración `precio_noqueras_pintos`. Queda pendiente la tarifa de envasado de Fábrica.
