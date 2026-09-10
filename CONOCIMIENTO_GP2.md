@@ -6059,3 +6059,32 @@ usa la ruta de insumo como fallback y esa ruta ya no se repite abajo en el bloqu
 Lo cubre `tests/ui/test_programa_conv.js`.
 
 **Peso de K8**: `0,013956667 kg` = **13,96 g**, ya estaba cargado en GP2 (el usuario dudaba).
+
+### 4al. Stock Tránsito PS: qué es y por qué no hay stock de sector (2026-09-10)
+
+[usuario 2026-09-10, textual]: *"Son partes que van de un proveedor de servicio a otro proveedor de
+servicio. Lo que el proveedor de servicio de origen ya entregó y espera hasta mandarse al proveedor
+de servicio siguiente es lo que se le llama stock tránsito. Después de que vuelva de FAAT vuelve el
+Resorte U templado, pero después se tiene que ir a niquelar, entonces **no hay un stock de sector
+procesado para esa parte, porque queda en tránsito** y después se va al otro proveedor de servicio."*
+
+**La regla ya estaba en la base y es una sola** (`stock_transito_ps_bundle`, módulo *Stock Tránsito
+PS*): **dos pasos `proveedor_servicio` consecutivos de la misma ruta donde el segundo consume lo que
+salió del primero**. No hay un "Sector Tránsito" en `GP2.sector` (los 13 sectores no lo incluyen):
+tránsito es un **estado**, no un lugar. Al 2026-09-10 hay **61 tramos** así, todos en rutas de fleje.
+
+**Caso testigo — Resorte U, ruta 90 (Fleje 26 → art 053)**:
+`M68 → M69 → I2 (Sector Bombilla) → FAAT (Templado) → ⟨tránsito⟩ → Guazzaroni (Niquelado) →
+⟨tránsito⟩ → Pedernera (Cromado) → C9 (Sector Bombilla) → Pettofrezza`.
+El I2 pasa por Sector Bombilla **una sola vez**: cuando lo deja la Matriz 69 y espera para salir.
+Después de cada PS ya no vuelve.
+
+**Ojo con la diferencia**: de **matriz → PS** SÍ hay stock de sector (la pieza se fabrica y espera
+que la manden). De **PS → PS** NO. Sólo el segundo caso es tránsito.
+
+**En pantalla** (`Programa/Programa.html`, desde v1.115.0): ese nodo dice **`🚚 Sector / TRÁNSITO`**
+con el código, la descripción **sin su destino viejo** y el proceso que espera —
+`I2 · Resorte U p/Niquelar`, y debajo a quién va (`→ Guazzaroni Patricio`). O sea: la descripción
+del componente sigue diciendo "Resorte U p/Templar" en la base (es su nombre), pero una vez
+templado lo que espera es el niquelado, y eso es lo que se muestra. El proceso se pasa a infinitivo
+con un mapa chico (`PROC_INF`) + la regla `-ado → -ar`. Lo cubre `tests/ui/test_programa_transito.js`.

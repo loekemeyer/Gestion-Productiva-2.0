@@ -125,7 +125,47 @@ function sectorNode(sec,cod,qty){
  return h;
 }
 
-function pasoNode(p,need,uni){
+/* ---- Stock Tránsito PS -------------------------------------------------------------
+   Una pieza que sale de un proveedor de servicio y se va DERECHO a otro no vuelve a
+   ningún sector: espera "en tránsito" hasta que se manda al siguiente. Dibujar ahí un
+   "stock Sector X" es mentira — ese stock no existe.
+   La regla es LA MISMA que usa stock_transito_ps_bundle (módulo Stock Tránsito PS):
+   dos pasos proveedor_servicio consecutivos donde el segundo consume lo que salió del
+   primero. No se inventa nada acá.                                                     */
+function esTransitoPS(p,pNext){
+ return !!(p && pNext && p.tp==='proveedor_servicio' && pNext.tp==='proveedor_servicio'
+           && p.cs && pNext.ce===p.cs);
+}
+// El proceso que espera, en infinitivo, para leerlo como el resto de las descripciones
+// ("Resorte U p/Templar" que ya se templó y espera niquelado → "Resorte U p/Niquelar").
+var PROC_INF={"Niquelado":"Niquelar","Cromado":"Cromar","Zincado":"Zincar","Pintado":"Pintar",
+ "Serigrafiado":"Serigrafiar","Pavonado":"Pavonar","Rectificado":"Rectificar","Calado":"Calar",
+ "Adhesivado":"Adhesivar","Blisteado":"Blistear","blisteado":"Blistear","Armado Mango":"Armar Mango",
+ "Templado, Cementado":"Templar"};
+function procInf(proc){
+ proc=String(proc||"").trim();
+ if(!proc)return "";
+ if(PROC_INF[proc])return PROC_INF[proc];
+ return /ado$/.test(proc)?proc.replace(/ado$/,"ar"):proc;   // niquelado → niquelar
+}
+// "Resorte U p/Templar" → "Resorte U": el estado viejo ya no aplica, la pieza espera otra cosa
+function descSinDestino(d){ return String(d||"").replace(/\s*p\/\s*.*$/i,"").trim(); }
+function transitoNode(comp,pNext,qty){
+ var px=D.prov[String(pNext.pr)]||{};
+ var inf=procInf(px.p);
+ var base=descSinDestino(comp.d);
+ var ex=(comp.cod||"?")+(base?(" · "+base):"")+(inf?(" p/"+inf):"");
+ var h='<div class="node n-tr n-sector">';
+ h+='<div class="tp">🚚 Sector</div>';
+ h+='<div class="nm">TRÁNSITO</div>';
+ h+='<div class="ex">'+esc(ex)+'</div>';
+ h+='<div class="rend">→ '+esc(px.n||"?")+'</div>';
+ if(qty!=null)h+='<div class="qty">× '+fmt(qty)+'</div>';
+ h+='</div>';
+ return h;
+}
+
+function pasoNode(p,need,uni,pNext){
  var tp="",cls="",nm="",ex="",extra="";
  var ce=cById(p.ce), cs=cById(p.cs);
  if(p.tp==="matriz"){var mx=D.mat[String(p.m)]||{};tp="MATRIZ N°"+mx.n;cls="matriz";nm=cs.cod||"?";ex=(cs.d||mx.d||"");if(mx.r)extra="⚙️ "+mx.r+" uni/kg";}
@@ -138,9 +178,12 @@ function pasoNode(p,need,uni){
  var out=node(tp,cls,nm,ex,extra,null,null);
  if(p.cs && p.tp!=='virgilio' && p.tp!=='tallerista'){
   var csComp=cById(p.cs);var sn=sName(csComp.s);
-  if(sn && sn!=='terminado' && sn!=='fleje' && sn!=='?'){
-   // Solo el nodo sector lleva qty (fallback 1:1 con uni si no hay explícita)
-   var pq=(need[p.cs]?need[p.cs]*uni:uni);
+  // Solo el nodo sector lleva qty (fallback 1:1 con uni si no hay explícita)
+  var pq=(need[p.cs]?need[p.cs]*uni:uni);
+  if(esTransitoPS(p,pNext)){
+   // No hay stock de sector: la pieza queda en tránsito esperando al PS siguiente
+   out+='<span class="arr">→</span>'+transitoNode(csComp,pNext,pq);
+  } else if(sn && sn!=='terminado' && sn!=='fleje' && sn!=='?'){
    out+='<span class="arr">→</span>'+sectorNode(sn,csComp.cod,pq);
   }
  }
@@ -165,9 +208,9 @@ function renderStandaloneLane(r,pasos,fl,need,uni,flejesTotal){
     (kg?'<span class="fkg">'+fmt(kg)+' kg fleje</span>':(qty?'<span style="color:#475569">sin rendimiento</span>':""))+
     '</div><div class="flow">';
  H+=node("INSUMO","fleje",flComp.cod||"?",flComp.d||"",rend?rend+" uni/kg":"",null,kg||null);
- pasos.forEach(function(p){
+ pasos.forEach(function(p,i,arr){
   if((p.tp==="fleje"||p.tp==="ingreso"))return;
-  H+='<span class="arr">→</span>'+pasoNode(p,need,uni);
+  H+='<span class="arr">→</span>'+pasoNode(p,need,uni,arr[i+1]);
  });
  H+='</div></div>';
  return H;
@@ -242,8 +285,8 @@ function renderConvergenceLane(padre_id,ruta_list,need,uni,flejesTotal,aid,insum
     H+='<div class="branch-lbl">Rama '+brN+' — '+esc((flComp2.cod||"?")+' produce '+hc.cod)+(kg?' · '+fmt(kg)+' kg fleje':'')+'</div>';
     H+='<div class="flow branch">';
     H+=node("INSUMO",matchRuta.f?"fleje":sCls(flComp2.s),flComp2.cod||"?",flComp2.d||"",rend?rend+" uni/kg":"",matchRuta.f?null:qty_hijo,kg||null);
-    pasosNoFleje.forEach(function(p){
-     H+='<span class="arr">→</span>'+pasoNode(p,mergedNeed,uni);
+    pasosNoFleje.forEach(function(p,i,arr){
+     H+='<span class="arr">→</span>'+pasoNode(p,mergedNeed,uni,arr[i+1]);
     });
     if(pasosNoFleje.length===0){
      var _sn=sName(hc.s);
@@ -279,12 +322,14 @@ function renderConvergenceLane(padre_id,ruta_list,need,uni,flejesTotal,aid,insum
  else if(convPaso.tp==="proveedor_servicio"){var _px=D.prov[String(convPaso.pr)]||{};convTp="PROV "+(_px.n||"?");convCls="prov";convNm=pc.cod;convEx=(_px.p||"")+" · "+(pc.d||"");}
  else {convTp=convPaso.tp.toUpperCase();convCls="prov";convNm=pc.cod;convEx=pc.d||"";}
  H+=node(convTp,convCls,convNm,convEx,extra,qty_padre,null);
- var _snConv=sName(pc.s);
- if(_snConv && _snConv!=='terminado' && _snConv!=='fleje' && _snConv!=='?'){
+ var _snConv=sName(pc.s), _post=postPasos||[];
+ if(esTransitoPS(convPaso,_post[0])){
+  H+='<span class="arr">→</span>'+transitoNode(pc,_post[0],qty_padre);
+ } else if(_snConv && _snConv!=='terminado' && _snConv!=='fleje' && _snConv!=='?'){
   H+='<span class="arr">→</span>'+sectorNode(_snConv,pc.cod,qty_padre);
  }
- (postPasos||[]).forEach(function(p){
-  H+='<span class="arr">→</span>'+pasoNode(p,need,uni);
+ _post.forEach(function(p,i,arr){
+  H+='<span class="arr">→</span>'+pasoNode(p,need,uni,arr[i+1]);
  });
  H+='</div></div>';
  return H;
@@ -446,7 +491,8 @@ function render(){
      var pv=D.prov[String(p.pr)]||{n:"(sin prov)",p:""};
      var csComp=cById(p.cs);
      H+='<span class="arr">→</span>'+node("PROV.SERV.","prov",pv.n.trim(),pv.p||"","",qFin,null);
-     if(csComp)H+='<span class="arr">→</span>'+node((csComp.s?sName(csComp.s).toUpperCase():"COMP"),sCls(csComp.s),csComp.cod,csComp.d||"","",qFin,null);
+     if(esTransitoPS(p,pasos[idx+1]))H+='<span class="arr">→</span>'+transitoNode(csComp,pasos[idx+1],qFin);
+     else if(csComp)H+='<span class="arr">→</span>'+node((csComp.s?sName(csComp.s).toUpperCase():"COMP"),sCls(csComp.s),csComp.cod,csComp.d||"","",qFin,null);
     }
     else if(p.tp==="tallerista"){
      var tallsEtapa=g.tallsPorPos[idx]||[(D.tall[String(p.ta)]||'').trim()];
