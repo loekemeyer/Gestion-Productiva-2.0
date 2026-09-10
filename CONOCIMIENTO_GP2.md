@@ -6571,9 +6571,10 @@ textual: "Lo que necesite para su oc"]`; *(4)* **desperdicio 4 %** (el de la pla
   Stocks General / composición rotulan los dos tipos nuevos.
 
 **Pendientes que dejó (no se inventa nada):** **conteo de Master Bach**; material de **PC16
-«Inserto Chef»** (`[usuario 2026-09-10]` "te lo consigo" — material y gramos); y la duda del código
-**1135 «Al Alto Impacto»** que muestra el sistema del usuario (en la planilla 1135 es un PE PEBD y
-el AI 4600 es 2465 — se usó 2465). **PC12 «Mgo Sacafuente Articulado» NO lleva material nuestro:
+«Inserto Chef»** (`[usuario 2026-09-10]` "te lo consigo" — material y gramos). ~~Código 1135 del
+Alto Impacto~~ → **1135 es código VIEJO; el vigente es 2465 (el de Santa Rosa y Beta)** `[usuario
+2026-09-10, textual: "1135 es cod viejo / 2465 es de santa rosa y beta"]` — GP2 ya usa 2465.
+**PC12 «Mgo Sacafuente Articulado» NO lleva material nuestro:
 es de Máspoli** `[usuario 2026-09-10: "PC12 es de Maspoli"]` — lo inyecta con material propio (está
 `fabricacion`, lo produce como tallerista), así que queda sin `material_id` a propósito. ~~Precio de PE / Nylon Virgen /
 Nylon Rec~~ → resuelto con la regla de abajo.
