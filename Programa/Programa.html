@@ -9,6 +9,7 @@
  /* letra grande (regla de accesibilidad: minimo 18px en campos de carga) */
  .top select,.top input{background:#eaeff6;color:#385475;border:1px solid #cddaea;border-radius:6px;padding:6px 10px;font-size:18px;font-family:inherit}
  .top input{width:110px}
+ .top input#buscar{width:210px;max-width:70vw}
  .top select{max-width:70vw}
  .canvas{padding:14px;overflow-x:auto;min-height:calc(100vh - 50px)}
  .hero{background:linear-gradient(135deg,#f8eee7,#f8ede7);border:1px solid #eadbcd;border-radius:12px;padding:12px 16px;margin-bottom:14px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px}
@@ -67,6 +68,7 @@
  <h1>🏭 Loekemeyer · ¿Qué necesito para producir?</h1>
  <div class="sel">
   Marca <select id="marca"><option value="">Todas</option><option value="LOEKE">Loeke</option><option value="LOKE">Loke</option><option value="CHEF">Chef</option></select>
+  Buscar <input id="buscar" type="search" placeholder="código o nombre" autocomplete="off">
   Artículo <select id="art"></select>
   Unidades <input inputmode="numeric" id="uni" type="number" value="1000" min="1">
   <span id="tallAltBox" style="display:none">Tallerista <select id="tallAlt"></select></span>
@@ -92,12 +94,19 @@ function fmt(n){if(n==null||isNaN(n))return "?";n=Number(n);return GP2N.fmt(n, n
 for(var _rid in D.rp)D.rp[_rid].sort(function(a,b){return a.o-b.o;});
 var sel=document.getElementById("art");
 var selMarca=document.getElementById("marca");
+var inpBuscar=document.getElementById("buscar");
+/* busca por codigo o por descripcion, sin acentos ni mayusculas */
+function norm(t){return (t||"").toString().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"");}
 /* El combo se arma por FAMILIA (optgroup) y cada opcion muestra la descripcion del articulo,
    no la familia repetida. La familia y la descripcion salen de GP2.articulo (catalogo mayorista,
    2026-09-10). El filtro de marca deja LOEKE / CHEF / todas. */
 function llenarArticulos(){
- var mk=selMarca.value, prev=sel.value;
- var arts=D.art.filter(function(a){return !mk||a.mk===mk;})
+ var mk=selMarca.value, prev=sel.value, q=norm(inpBuscar.value).trim();
+ var arts=D.art.filter(function(a){
+     if(mk&&a.mk!==mk)return false;
+     if(!q)return true;
+     return norm(a.cod).indexOf(q)>=0||norm(a.d).indexOf(q)>=0||norm(a.fam).indexOf(q)>=0;
+   })
    .sort(function(a,b){
      var fa=a.fam||"zzz", fb=b.fam||"zzz";
      if(fa!==fb)return fa.localeCompare(fb,"es");
@@ -112,7 +121,8 @@ function llenarArticulos(){
   o.textContent=a.cod+"  —  "+(a.d||a.fam||"")+(a.disc?"  (discontinuado)":"");
   grupo.appendChild(o);
  });
- if(!arts.length){sel.innerHTML='<option value="">(sin artículos de esa marca)</option>';return false;}
+ if(!arts.length){sel.innerHTML='<option value="">(ningún artículo con ese filtro)</option>';return false;}
+ if(!arts.some(function(a){return String(a.id)===String(prev);}))sel.selectedIndex=0;
  if(prev&&arts.some(function(a){return String(a.id)===String(prev);}))sel.value=prev;
  return true;
 }
@@ -545,10 +555,12 @@ function render(){
 }
 
 sel.addEventListener("change",function(){document.getElementById('tallAlt').dataset.aid='';render();});
-selMarca.addEventListener("change",function(){
+function refiltrar(){
  document.getElementById('tallAlt').dataset.aid='';
  if(llenarArticulos())render();
-});
+}
+selMarca.addEventListener("change",refiltrar);
+inpBuscar.addEventListener("input",refiltrar);
 document.getElementById("uni").addEventListener("input",render);
 document.getElementById("tallAlt").addEventListener("change",render);
 var a501=D.art.find(function(a){return a.cod==="501";});

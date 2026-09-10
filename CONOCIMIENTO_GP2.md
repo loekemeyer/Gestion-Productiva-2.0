@@ -6345,3 +6345,22 @@ depende cómo se agrupan los pedidos en la OC (la familia de pedido es formato +
   Chef). Los rótulos son **"Loeke"** y **"Loke"** por pedido textual del usuario
   (*"en vez de loekemeyer que sea loeke"*) — **se parecen muchísimo a un ojo apurado**; si alguna
   vez confunde, la salida es rotular "Loeke (principal)" / "Loke (submarca)", no cambiar el dato.
+
+### 4ar. Buscador de artículo en "¿Qué necesito para producir?" (2026-09-10)
+
+`[usuario 2026-09-10]`: *"que me aparezca para buscar"*. Con 120 artículos el combo agrupado por
+familia ya era largo para encontrar uno a mano. `Programa/Programa.html` v1.119.0:
+
+- Campo **Buscar** entre Marca y Artículo. Filtra por **código, descripción o familia**, sin acentos
+  ni mayúsculas (`norm()` con `NFD` + borrado de diacríticos: "sacacorcho" encuentra "Sacacorcho",
+  "pelapapas" encuentra "Pelapapas Mango Metálico").
+- **Se combina con el filtro de marca**, no lo pisa; si la combinación no deja nada, el combo dice
+  *"(ningún artículo con ese filtro)"* y la pantalla **no se redibuja** en vez de romperse buscando
+  un artículo que no está.
+- Si el artículo que estaba elegido sigue en la lista filtrada, queda elegido; si no, pasa al primero
+  y se redibuja.
+- Ancho propio (`#buscar`, 210px con tope de 70vw) porque la regla general de la barra deja los
+  inputs en 110px, que es el ancho de "Unidades". Los 18px de la regla de accesibilidad se respetan.
+
+Lo cubre `tests/ui/test_programa_marca.js` (búsqueda por descripción, por código, sin acentos, y
+combinada con la marca).

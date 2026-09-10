@@ -67,6 +67,25 @@ window.supabase = { createClient: function(){ return {
   const n = await page.$$eval('#art option', os => os.length);
   check(n === 5, 'Todas vuelve a los 5 — ' + n);
 
+  // buscador: por descripcion, por codigo, sin acentos, y combinado con la marca
+  await page.fill('#buscar', 'pelapapas');
+  const b1 = await page.$$eval('#art option', os => os.map(o => o.textContent.trim().split(' ')[0]));
+  check(JSON.stringify(b1) === JSON.stringify(['108']), 'busca por descripcion — ' + b1.join(','));
+
+  await page.fill('#buscar', 'sacacorcho');
+  const b2 = await page.$$eval('#art option', os => os.map(o => o.textContent.trim().split(' ')[0]));
+  check(JSON.stringify(b2) === JSON.stringify(['520']), 'busca sin acentos ni mayusculas — ' + b2.join(','));
+
+  await page.fill('#buscar', '70');
+  const b3 = await page.$$eval('#art option', os => os.map(o => o.textContent.trim().split(' ')[0]));
+  check(JSON.stringify(b3) === JSON.stringify(['701']), 'busca por codigo — ' + b3.join(','));
+
+  await page.selectOption('#marca', 'LOEKE');
+  const b4 = await page.$$eval('#art option', os => os.map(o => o.textContent.trim()));
+  check(b4.length === 1 && /ningún artículo/.test(b4[0]), 'buscador y marca se combinan — ' + b4.join(','));
+
+  await page.fill('#buscar', '');
+  await page.selectOption('#marca', '');
   await page.selectOption('#art', '25');
   const hero = await page.$eval('.hero .fam', e => e.textContent);
   check(/Abrelatas A Manija/.test(hero) && /LOEKE/.test(hero),
