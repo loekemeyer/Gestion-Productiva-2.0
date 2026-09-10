@@ -6589,7 +6589,9 @@ hay proveedor fijo por material, hay uno por precio.**
 - Se cargaron en `precio_proveedor` los precios de los **tres** (Indarnyl 202, Beta 3527, Santa Rosa
   837) por material, de la hoja «Lista de Precios» (filas 271-305). Fuera a propósito por ser otro
   grado: Santa Rosa «PE PEBD 26500» (1115) y «ABS GP 35» (2445), Beta «PP COPO» (2415). Indarnyl
-  «AI Nacional» (0355) entra como Alto Impacto.
+  «AI Nacional» (0355) entra como Alto Impacto: **es el competidor del 2465** `[usuario 2026-09-10,
+  textual: "Es el competidor"]` (0355 cotiza en USD 2,84; el 2465 en USD 3,54 en Beta y en pesos 4.040
+  en Santa Rosa — Indarnyl y Santa Rosa quedan a ~8 % y se pueden dar vuelta con el dólar).
 - **`v_material_precio_proveedor`**: precio por kg de cada proveedor **llevado a pesos al dólar
   oficial del día** (`parametro tipo_cambio_usd_pesos`, el mismo que usa la OC) y rankeado. Se
   compara así y no por el «IPC al día» de la planilla: la OC ya convierte USD con ese parámetro,
