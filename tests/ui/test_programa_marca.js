@@ -11,6 +11,7 @@ const B = {
     { id: 25, cod: '501', fam: 'Abrelatas',   d: 'Abrelatas A Manija',  mk: 'LOEKE', disc: false },
     { id: 64, cod: '701', fam: 'Abrelatas',   d: 'Abrelatas A Manija',  mk: 'CHEF',  disc: false },
     { id: 40, cod: '520', fam: 'Sacacorchos', d: 'Sacacorcho Tipo Mozo Cromado', mk: 'LOEKE', disc: false },
+    { id: 13, cod: '108', fam: 'Peladores',   d: 'Pelapapas Mango Metálico', mk: 'LOKE', disc: false },
     { id: 77, cod: '809', fam: 'Cortadores',  d: null,                  mk: null,    disc: true },
   ],
   sect: { '12': { t: 'terminado' } },
@@ -40,7 +41,7 @@ window.supabase = { createClient: function(){ return {
   await page.waitForSelector('#art option', { state: 'attached' });
 
   const grupos = await page.$$eval('#art optgroup', gs => gs.map(g => g.label));
-  check(JSON.stringify(grupos) === JSON.stringify(['Abrelatas', 'Cortadores', 'Sacacorchos']),
+  check(JSON.stringify(grupos) === JSON.stringify(['Abrelatas', 'Cortadores', 'Peladores', 'Sacacorchos']),
     'el combo se agrupa por familia — ' + grupos.join(' / '));
 
   const txt501 = await page.$eval('#art option[value="25"]', o => o.textContent);
@@ -58,10 +59,15 @@ window.supabase = { createClient: function(){ return {
   const cods2 = await page.$$eval('#art option', os => os.map(o => o.textContent.trim().split(' ')[0]));
   check(JSON.stringify(cods2) === JSON.stringify(['501', '520']), 'filtrando por LOEKE quedan 501 y 520 — ' + cods2.join(','));
 
+  await page.selectOption('#marca', 'LOKE');
+  const cods3 = await page.$$eval('#art option', os => os.map(o => o.textContent.trim().split(' ')[0]));
+  check(JSON.stringify(cods3) === JSON.stringify(['108']), 'LOKE es una marca propia, no se mezcla con LOEKE — ' + cods3.join(','));
+
   await page.selectOption('#marca', '');
   const n = await page.$$eval('#art option', os => os.length);
-  check(n === 4, 'Todas vuelve a los 4 — ' + n);
+  check(n === 5, 'Todas vuelve a los 5 — ' + n);
 
+  await page.selectOption('#art', '25');
   const hero = await page.$eval('.hero .fam', e => e.textContent);
   check(/Abrelatas A Manija/.test(hero) && /LOEKE/.test(hero),
     'el encabezado muestra descripcion, familia y marca — ' + hero.trim());

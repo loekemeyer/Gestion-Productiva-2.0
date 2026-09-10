@@ -6297,3 +6297,51 @@ decir qué es el artículo. Ahora (`Programa/Programa.html`, v1.117.0):
 - `programa_bundle` devuelve ahora `d` (descripción), `mk` (marca) y `disc` en cada `art`
   (migración `programa_bundle_art_con_descripcion_y_marca`) — cambio aditivo, ninguna pantalla que
   ya lo usaba se rompe.
+
+### 4aq. Baja REAL de los 3 corta queso: 119, 574 y 809 (2026-09-10)
+
+`[usuario 2026-09-10]`: *"hacé la baja de los cortaquesos"*, sobre los tres que ya estaban
+`discontinuado = true` porque hoy se importan (§4ao, sufijo E). Migración
+`baja_articulos_corta_queso_119_574_809`. Se borró **el artículo y su cadena productiva propia**,
+en este orden (las FK son `NO ACTION`, así que el orden no es decorativo):
+
+| Qué | Filas |
+|---|---|
+| `ruta_paso` de sus rutas | 66 (22 por artículo) |
+| `ruta` | 15 (5 por artículo: el Fleje 80 más 4 de insumo) |
+| `articulo_componente` | 15 |
+| `articulo` | 3 |
+
+GP2 queda con **120 artículos**, todos con descripción y marca. Invariantes en 0 (`L_rutas_sin_pasos`
+y el ledger incluidos). La familia `Cortadores (queso)` quedó sin artículos.
+
+**LOS COMPONENTES NO SE BORRARON**, a propósito: `componente` lo referencian 21 tablas y la baja
+pedida era la del artículo. Quedaron **16 huérfanos**, todos con stock 0 y sin un solo movimiento:
+`IE3` Fleje N° 80 (Brawin) y sus 6 derivados `IE3-M*`, `IZ19A` Alambre Corta Queso (Alambres Rumbo),
+`V20` Tornillo Corta Queso (Importado, ya discontinuo), `A9` Cpo Mango Alambre (ya discontinuo), los
+3 cartones `I3B`/`C1B`/`O6A` (Gráficos Pol) y los 3 terminados `119`/`574`/`809`. **Ninguno queda
+compartido**: lo único compartido de la receta era `A1` "Caja N°1", que sigue viva en 18 rutas y 9
+recetas. Pendiente decidir si se barren o quedan.
+
+### 4aq-bis. LOKE vuelve a ser marca, pero SOLO a nivel artículo (2026-09-10)
+
+`[usuario 2026-09-10]`: *"falta la marca Loke. Pusiste solo loeke y chef no?"* y acto seguido pasó
+**la lista exacta**: los 10 artículos LOKE son **101, 103, 104, 108, 114, 115, 116, 120, 121 y 123**
+— justo los que **no figuran en ningún listado mayorista**, y ahora se entiende por qué: los
+listados traen un solo bloque "Loekemeyer" y la submarca no aparece ahí. Migración
+`articulo_marca_loke_submarca`: el check de `articulo.marca` pasa a `LOEKE / LOKE / CHEF` y esos 10
+quedan en **LOKE** (antes los había cargado como LOEKE por la descripción dictada, §4ao).
+
+Reparto final de los 120 artículos: **LOEKE 66 · CHEF 44 · LOKE 10**.
+
+**Ojo con la contradicción, que sigue viva del lado de los cartones.** El 2026-09-08 el usuario
+había dicho lo contrario para `componente`: *"la marca loke no va. todo lo que esta en loke ponelo
+en marca loeke y dentro del formato loke"* (§4g), y los 8 cartones que tenían `marca='LOKE'` pasaron
+a `marca='LOEKE'` conservando `carton_formato='LOKE'`. **Eso NO se revirtió**: hoy LOKE es marca de
+**artículo** y no de **componente**. Antes de tocar los cartones hay que preguntarle, porque de eso
+depende cómo se agrupan los pedidos en la OC (la familia de pedido es formato + marca + categoría).
+
+- **`Programa/Programa.html` v1.118.0**: el filtro de marca tiene las tres (Todas / Loeke / Loke /
+  Chef). Los rótulos son **"Loeke"** y **"Loke"** por pedido textual del usuario
+  (*"en vez de loekemeyer que sea loeke"*) — **se parecen muchísimo a un ojo apurado**; si alguna
+  vez confunde, la salida es rotular "Loeke (principal)" / "Loke (submarca)", no cambiar el dato.
