@@ -5179,6 +5179,18 @@ exacto):
 El `nota` del snapshot 1 dice todo esto en la base, para el que consulte desde SQL sin tener
 este archivo a mano.
 
+### 2026-09-10: el usuario la siguió subiendo en cada sesión — y el archivo ahora VIVE EN EL REPO
+
+`[usuario 2026-09-10, textual]` *"lo subo acá. Ya lo subí muchísimas veces. No sé qué hacer para
+que lo tengas guardado."* Pasaba porque **ninguna sesión sabía que estaba en la base** (no estaba en
+`CLAUDE.md`) y porque `.gitignore` excluye todo `*.xlsx`. Arreglo doble:
+1. **`db/A_Costos_VIGENTES.xlsx` está en el repo** (excepción en `.gitignore`, 7,8 MB). Toda
+   sesión lo tiene sin que nadie lo suba. Si el usuario manda una versión nueva, **se reemplaza
+   ese archivo** (misma ruta) y se refresca el snapshot con `planilla_snapshot_nuevo` +
+   `planilla_cargar`.
+2. **Regla en `CLAUDE.md`** («🧭 Otros archivos vivos»): la planilla vive en la base
+   (`v_planilla_precio` / `v_planilla_costo`) y en `db/`; **no se le pide al usuario**.
+
 ## 4w. El cruce planilla vs GP2: `v_costo_componente` ignora las cantidades (2026-09-08)
 
 `[usuario 2026-09-08]` Pedido: *"Revisa que el costo sin aportes de la hoja costos te de igual

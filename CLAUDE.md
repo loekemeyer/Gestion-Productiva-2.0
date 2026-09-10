@@ -151,6 +151,14 @@ Las tablets y celulares cachean fuerte; sin bump siguen corriendo la versión vi
 
 ## 🧭 Otros archivos vivos que hay que conocer
 
+- **`db/A_Costos_VIGENTES.xlsx` — LA PLANILLA DE COSTOS DEL USUARIO YA ESTÁ GUARDADA. NO PEDIRLA.**
+  Vive en dos lugares: el archivo en el repo (esa ruta, 59 hojas) y su contenido en la base
+  (`GP2.planilla_fila`, 16 hojas de costos; consultar por `GP2.v_planilla_precio` — lista de
+  precios por proveedor/cod ISIS — y `GP2.v_planilla_costo` — hoja Costos con fórmulas). El
+  usuario la subió "muchísimas veces" porque las sesiones no sabían que estaba (2026-09-10): una
+  sesión que la necesite la lee de ahí. Si el usuario manda una versión nueva, se reemplaza el
+  archivo en esa misma ruta y se refresca el snapshot (`planilla_snapshot_nuevo` +
+  `planilla_cargar`, ver CONOCIMIENTO §4v).
 - `GP2_MAPA.md`: contratos de los `*_bundle` y nombres reales de tablas/columnas (mirar antes de
   tocar una pantalla que hable con GP2).
 - `REFACTOR_GP2.md`: bitácora de la auditoría de arquitectura del 2026-09-04 (qué se borró, qué se
