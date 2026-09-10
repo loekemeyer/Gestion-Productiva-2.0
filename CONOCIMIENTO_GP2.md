@@ -6439,3 +6439,79 @@ palos, así que la regla vieja no aplica más.
 4. La **tarifa de envasado de Fábrica no se carga**, por la regla del usuario del 2026-09-09.
 5. Los tres siguen además en `articulo_prov_at` como artículos terminados de Tierra Nativa — igual
    que el 234; las dos vías conviven.
+
+### 4at. Stock de material plástico: vive en VIRGILIO, va a los INYECTORES, y hay que conectarlo a Gestión Productiva (2026-09-10)
+
+Salió de analizar el Excel del usuario `Conteo_y_Pedido_Sector_Plastico_31-8` (no está en el repo).
+Es la memoria del **circuito de materia prima plástica**, que hoy **GP2 no gestiona** y hay que
+incorporar.
+
+**El circuito (cómo funciona) `[usuario 2026-09-10]`:**
+- La **materia prima plástica** viene en **bolsas de 25 kg** (PP 2630, ABS, Alto Impacto,
+  Nylon Virgen, Nylon Recuperado, Nylon c/Carga, PE, PS h555, + aditivos **Master Bach** de color).
+- Ese stock **se guarda en VIRGILIO** y **se gestiona desde "gestión Virgilio"** (no desde
+  Cervantes). **El Master Bach también debería mandarse ahí** (hoy figura aparte).
+- Desde Virgilio, las bolsas **se le mandan a los INYECTORES**. El inyector **inyecta piezas
+  plásticas** (mangos, cachas, bujes, pirolos, insertos, etc.) y **las va entregando**.
+- **Objetivo del usuario (lo que hay que construir):** cuando el inyector **entrega** piezas, el
+  sistema tiene que **"gastar" automáticamente el material** que consumió al inyectar (kg de cada
+  material) y con eso **disparar la reposición**. Cada inyector debe mantener un **stock fijo de X
+  días** de material plástico.
+
+**Implicancia para Gestión Productiva:** hoy el motor de costos/inventario cuenta la pieza plástica
+como comprada al inyector, pero **no descuenta la materia prima** (el kg de PP/ABS/etc.).
+
+**Estado real en GP2 (2026-09-10, dos agentes read-only sobre el repo):**
+- **La materia prima cruda NO existe en GP2**: ni como `componente`, ni en `inventario`, ni con
+  ubicación. El rubro "Plásticos" (sector 6) que sí existe son las **partes YA inyectadas que
+  compramos** (PA10B, PC16…) a Pat Bet Plast / Pettofrezza / Kollplast, recibidas en unidades. Idea
+  **7243**: las bolsas viven hoy en el programa viejo (`public."Movimientos_Stock"`, "gestión
+  Virgilio" = app vieja), que GP2 no mira.
+- **"Virgilio" en GP2 hoy es otra cosa**: `ubicacion` singleton tipo `virgilio` (id 33), la
+  distribución de producto terminado. Y hay una decisión vieja registrada
+  (`REGLAS_OC_INSUMOS.md:240`, 2026-08-29): *"Virgilio: no interesa analizar su entrada/salida,
+  existe solo para medir talleristas"* — **choca de frente con este pedido** y hay que actualizarla.
+- **Master Bach: cero presencia** en repo y BD.
+- **La maquinaria de "objetivo de stock" ya está**: `ubicacion.meses_stock` / `meses_minimo` +
+  motor `maximo = consumo_mes × meses_stock − stock` (`db/funciones_GP2.sql`). Pero trabaja en
+  **meses** (no días), calcula desde Est Madre de terminados, y **no tiene tope por capacidad
+  física** (los 20 pallets × 15 bolsas).
+- **El molde de "una entrega gasta materia prima" YA existe** y es el camino:
+  `cargar_recepcion_eclipse` (suma el producto y descuenta chapa 430 por ratio desde la ubicación
+  del PS) y `crear_entrega_tallerista(p_descontar_bom=true)` (descuenta el BOM desde la ubicación
+  del tercero). El motor es `GP2.movimiento` → triggers `fn_movimiento_calc`/`fn_movimiento_aplicar`
+  → `GP2.inventario` (stock por componente+ubicación).
+
+**Gaps para construirlo (sin implementar aún):** (1) alta de las ~10 bolsas como `componente` (kg) +
+`inventario` en Virgilio; (2) ubicación/stock **por inyector** (hoy `ubicacion.tipo` no tiene
+"inyector"); (3) vínculo **pieza inyectada → material (kg x uni)** — no existe (el "gramos por
+pieza" vive en el Excel del vecino, no en GP2); (4) RPC `crear_entrega_inyector` calcada de
+`cargar_recepcion_eclipse`; (5) regla **stock-fijo-X-días** = `inventario.minimo` del material en el
+inyector = consumo_diario × X, con envío Virgilio→inyector al tocar el mínimo.
+
+**Layout físico de Virgilio `[usuario 2026-09-10]`:** **20 pallets**, cada pallet **15 bolsas**, cada
+bolsa **25 kg** → **300 bolsas / 7.500 kg** de tope. Un material no se achica por debajo de su
+pallet asignado: sólo se saca lo que no entra en los pallets que tiene.
+
+**Consumo mensual por material `[dato: hoja "Relev y OP Bolsas Plast 31-8"]`:**
+PP 2630 ~1.071 · Al/Alto Impacto ~273 · ABS ~112 · Ny Recup ~107 · PS h555 ~71 · Ny c/Carga ~56 ·
+PE ~17 · Nylon Virgen ~6. Master Bach chico (Rojo ~12, Blanco ~11, Azul ~6, Negro ~3). El **PP es
+lejos el más usado**; lo que más PP consume son los **Mango 505** y el **Mango Pelador 586**.
+
+**Trampas del Excel del usuario (para no arrastrarlas a GP2):**
+- **El "Mango 505" está DUPLICADO** `[dato]`: dos partes ("P/Calar" y "Calados") con el **mismo Cod
+  Art 505 y la misma Est Madre (30.000 u)** → suma **162 kg/mes de más** al PP. El PP real es
+  ~**909 kg/mes**, no 1.071. En GP2 el 505 es **una sola pieza**.
+- **La hoja `Consumo x Parte` está incompleta/desalineada** `[dato]`: la columna de kg sólo está
+  calculada para el bloque CH; en las partes LK queda en 0 → **no usarla para totales**. Fuente
+  buena: `Consumo x Cod Articulo` / `Relev y OP Bolsas Plast`.
+- **Nylon Virgen (PA6N)** es sólo para los **bujes de los abrelatas mariposa** (arts 502/66/512)
+  `[dato]` — ~6 kg/mes, nylon de mejor calidad porque el buje va a rosca/giro.
+- **EBA está DISCONTINUO** `[usuario 2026-09-10]` → sale entero de Virgilio, no ocupa pallet.
+- **13 artículos consumen parte plástica pero NO figuran en el catálogo por familia** de su empresa
+  `[dato]`: LK 333/334/336/339 (Inox), 389 Espumadera Nylon, 548 Pincel, 655 Bombilla Eco;
+  CH 452/453/454/455 (Nylon c/Mango), 864 Pincel, 879 Set X3 Espátulas. Patrón: **Inox, Nylon
+  c/Mango, Pincel, Bombilla**.
+
+*(El detalle numérico y las tablas de pallets quedaron en `.xlsx` que se le pasaron al usuario en el
+chat — regla de la casa: el detalle va al archivo, la memoria guarda la lógica.)*
