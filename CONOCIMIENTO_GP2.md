@@ -6142,3 +6142,26 @@ Arreglado en la **v1.116.0**: el origen de la rama también se toma del paso `in
 —como `ingreso`— no cuenta como paso productivo. Lo cubre `tests/ui/test_programa_insumo_conv.js`
 con la convergencia C12 real. **Lección**: al ampliar qué rutas entran a un render, revisar el caso
 de la ruta de **un solo paso**.
+
+### 4an-ter. Cierre del 515/615: C12 lo fabrica Alex, el Cartón 515 es de Gráficos Pol (2026-09-10)
+
+[usuario 2026-09-10, textual: *"C12 lo fabrica Alex Escalante. No está discontinuo"* / *"el cartón es
+de talleres gráficos pol"*]. Cierra lo que había quedado colgado en §4an:
+
+| Componente | Antes | Ahora |
+|---|---|---|
+| `C12` Paleta Batidor Resorte | `discontinuo`, sin proveedor | **`fabricacion`** (la hace Alex Escalante desde IE1/W1B) |
+| `A1C1` Cartón 515 | `discontinuo`, **sin proveedor** (se lo había borrado el marcado) | **se compra** (estado null), proveedor **Talleres Gráficos Pol** |
+
+Efecto: el cartón volvió a costar en el 515 → **$1.261,14 → $1.303,86** (los $42,72 del cartón, que
+sí tenía precio cargado). El 615 no se movió ($1.559,63). Quedan 10 componentes en `discontinuo`,
+ninguno de esta familia.
+
+**Lo que falta y es plata real: `BOM10` "Resorte Bicónico" no tiene precio** — se compra a
+**Resortes Charcas** (`kg_x_uni` 0,00963; Charcas cobra por kg y se pide por paquete, ver
+`parametro.charcas_kg_x_paquete`). Mientras no esté, el resorte entra gratis al costo del 515 y del
+615. Demanda actual: 515 = 486 uni/mes, 615 = 24 uni/mes.
+
+**[deducido, SIN confirmar]**: `A1C1` "Cartón 515" tiene `marca = CHEF`, pero el 515 es el artículo
+de **Loekemeyer** (el gemelo Chef es el 615, y su cartón `O2A` también figura CHEF). Si la marca del
+A1C1 está mal, la Recepción de cartones lo va a listar bajo la marca equivocada. Preguntar.
