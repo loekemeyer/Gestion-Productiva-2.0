@@ -6531,8 +6531,15 @@ chat — regla de la casa: el detalle va al archivo, la memoria guarda la lógic
 ### 4at-bis. CONSTRUIDO: la materia prima plástica entra nativa a GP2 (2026-09-10)
 
 **Decisiones del usuario (mismo día):** *(1)* el material se compra a **3 proveedores** — Indarnyl,
-Santa Rosa Plásticos y Beta Plásticos (Master Bach: Arcolor y Julio Garcia) `[dato: v_planilla_precio;
-el bloque cod_prov 837 perdió el nombre en la planilla y es Santa Rosa por lo que vende — deducido]`;
+Santa Rosa Plásticos y Beta Plásticos (Master Bach: Arcolor y Julio Garcia) `[dato: hoja "Lista de
+Precios" del Excel, filas 271/283/296: "202 - Indarnyl", "3527 - Beta Plasticos", "837 - Santa Rosa
+Plasticos". El snapshot 1 había guardado el bloque 837 con el TELÉFONO como nombre (la fila del
+encabezado tiene el nombre en la columna K y el cargador tomó la fila siguiente); corregido en
+planilla_fila el 2026-09-10]`. **Ojo con la columna "Se Compró Última Vez" de esa hoja**: a Santa Rosa
+**no figura ninguna compra**; PP/ABS/PS/PE/Ny c-Carga/Ny Rec se compraron a Indarnyl y Beta (mismas
+fechas en los dos bloques: PP 2026-05-05, ABS 2026-05-05, PS 2026-03-18…), y **Nylon Virgen dice
+"NO" — nunca se compró**. El workbook del usuario igual asigna PE/PS/AI/Nylons a Santa Rosa: queda
+como lo dice el usuario, pero es una contradicción a resolver;
 *(2)* los gramos por pieza salen del workbook `Conteo_y_Pedido_Sector_Plastico` (col «Kg x Parte»);
 *(3)* **el inyector no tiene X días fijos: tiene que tener lo que necesite para su OC** `[usuario,
 textual: "Lo que necesite para su oc"]`; *(4)* **desperdicio 4 %** (el de la planilla del vecino);
