@@ -1,7 +1,7 @@
 -- =====================================================================
 -- FUNCIONES del schema GP2 — export automatico 2026-09-05 (pg_get_functiondef, exacto)
 -- Fuente de verdad: Supabase (hrxfctzncixxqmpfhskv). Este archivo es respaldo/referencia.
--- 120 funciones. Los GRANT/REVOKE no estan aca: EXECUTE para anon solo en las RPC de pantalla (ver db/README.md).
+-- 122 funciones. Los GRANT/REVOKE no estan aca: EXECUTE para anon solo en las RPC de pantalla (ver db/README.md).
 -- =====================================================================
 
 -- ---------- _aplicar_recepcion_a_oc ----------
@@ -242,7 +242,7 @@ CREATE OR REPLACE FUNCTION "GP2".actualizar_dolar_oficial()
  SECURITY DEFINER
  SET search_path TO 'GP2', 'public', 'extensions'
 AS $function$
-declare r record; j jsonb; v_fecha date; v_venta numeric; v_compra numeric;
+declare r record; j jsonb; v_fecha date; v_venta numeric; v_compra numeric; v_prov jsonb;
 begin
   select * into r from public.http_get('https://dolarapi.com/v1/dolares/oficial');
   if r.status <> 200 then
@@ -265,10 +265,16 @@ begin
   values ('tipo_cambio_usd_pesos', v_venta, 'Dolar oficial VENTA, actualizado solo por pg_cron (fuente dolarapi.com). Historia en GP2.tipo_cambio.')
   on conflict (clave) do update set valor = excluded.valor, descripcion = excluded.descripcion;
 
-  return jsonb_build_object('ok', true, 'fecha', v_fecha, 'venta', v_venta, 'compra', v_compra);
-end $function$
-;
+  -- materia prima plastica: con el dolar nuevo puede cambiar quien es el mas barato (2026-09-10).
+  -- Si falla, el dolar igual queda actualizado.
+  begin
+    v_prov := "GP2".recalcular_proveedor_material();
+  exception when others then
+    v_prov := jsonb_build_object('ok', false, 'error', sqlerrm);
+  end;
 
+  return jsonb_build_object('ok', true, 'fecha', v_fecha, 'venta', v_venta, 'compra', v_compra, 'proveedor_material', v_prov);
+end $function$;
 -- ---------- ajustar_rollos ----------
 CREATE OR REPLACE FUNCTION "GP2".ajustar_rollos(p_comp_id bigint, p_kg_por_rollo numeric, p_delta integer, p_motivo text DEFAULT 'ajuste'::text, p_nota text DEFAULT NULL::text)
  RETURNS jsonb
@@ -1779,7 +1785,8 @@ begin
       end if;
       -- precio: el que mande el item pisa al de la lista. La moneda acompaña al
       -- precio elegido (si el item trae precio y no dice moneda, se asume la de
-      -- la lista, y si tampoco hay lista, USD).
+      -- la lista, y si tampoco hay lista, USD). La lista es la del proveedor ASIGNADO al
+      -- componente si tiene precio suyo; si no, la mas nueva (2026-09-10).
       insert into orden_compra_item (oc_id, componente_id, cantidad, unidad, precio_uni, moneda)
       select v_oc, (it->>'comp_id')::bigint, v_cant, v_u,
              coalesce(nullif(it->>'precio','')::numeric, pv.precio),
@@ -1794,8 +1801,10 @@ begin
       left join lateral (
         select case when pp.precio_por_kg then pp.precio * cc.kg_x_uni else pp.precio end precio, pp.moneda
         from precio_proveedor pp join componente cc on cc.id = pp.componente_id
+        left join proveedor_insumo pi on pi.nombre = cc.proveedor
         where pp.componente_id = (it->>'comp_id')::bigint and pp.precio is not null
-        order by pp.fecha_lista desc nulls last, pp.id desc limit 1
+        order by (pi.cod_prov is not null and pp.cod_prov = pi.cod_prov) desc,
+                 pp.fecha_lista desc nulls last, pp.id desc limit 1
       ) pv on true;
       v_n := v_n + 1;
 
@@ -1848,8 +1857,10 @@ begin
     left join lateral (
       select case when pp.precio_por_kg then pp.precio * cc.kg_x_uni else pp.precio end precio, pp.moneda
       from precio_proveedor pp join componente cc on cc.id = pp.componente_id
+      left join proveedor_insumo pi on pi.nombre = cc.proveedor
       where pp.componente_id = v_mp_id and pp.precio is not null
-      order by pp.fecha_lista desc nulls last, pp.id desc limit 1
+      order by (pi.cod_prov is not null and pp.cod_prov = pi.cod_prov) desc,
+               pp.fecha_lista desc nulls last, pp.id desc limit 1
     ) pv on true;
 
     update orden_compra
@@ -2720,6 +2731,18 @@ begin
 end $function$
 ;
 
+-- ---------- fn_material_mejor_proveedor ----------
+CREATE OR REPLACE FUNCTION "GP2".fn_material_mejor_proveedor()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'GP2'
+AS $function$
+begin
+  perform "GP2".recalcular_proveedor_material();
+  return null;
+end $function$;
+
 -- ---------- fn_movimiento_aplicar ----------
 CREATE OR REPLACE FUNCTION "GP2".fn_movimiento_aplicar()
  RETURNS trigger
@@ -3419,13 +3442,18 @@ with pend as (
   where o.estado in ('borrador','enviada')
   group by oi.componente_id
 ), pv as (
+  -- precio del proveedor ASIGNADO al componente (cod_prov de proveedor_insumo = cod_prov del precio);
+  -- si no hay uno suyo, el mas nuevo. Un material con varios proveedores cotiza al elegido (2026-09-10).
   select distinct on (pp.componente_id) pp.componente_id,
          case when pp.precio_por_kg then pp.precio * cc.kg_x_uni else pp.precio end precio,
          case when upper(coalesce(pp.moneda,'USD')) like '%US%' then 'USD' else 'ARS' end moneda
   from precio_proveedor pp
   join componente cc on cc.id = pp.componente_id
+  left join proveedor_insumo pi on pi.nombre = cc.proveedor
   where pp.componente_id is not null and pp.precio is not null
-  order by pp.componente_id, pp.fecha_lista desc nulls last, pp.id desc
+  order by pp.componente_id,
+           (pi.cod_prov is not null and pp.cod_prov = pi.cod_prov) desc,
+           pp.fecha_lista desc nulls last, pp.id desc
 ), ins as (
   select c.id comp_id, c.codigo, c.descripcion, c.sector_id, s.nombre sector,
          c.unidad_medida um, c.kg_x_uni,
@@ -4209,6 +4237,31 @@ begin
   return jsonb_build_object('ok', true, 'actualizados', v_set);
 end $function$
 ;
+
+-- ---------- recalcular_proveedor_material ----------
+CREATE OR REPLACE FUNCTION "GP2".recalcular_proveedor_material()
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'GP2'
+AS $function$
+declare v_cambios jsonb;
+begin
+  with mejor as (
+    select componente_id, proveedor, precio_ars_kg
+      from v_material_precio_proveedor where orden = 1
+  ), upd as (
+    update componente c
+       set proveedor = m.proveedor
+      from mejor m
+     where c.id = m.componente_id and c.sector_id = 14
+       and c.proveedor is distinct from m.proveedor
+    returning c.codigo, c.proveedor nuevo, m.precio_ars_kg
+  )
+  select coalesce(jsonb_agg(jsonb_build_object('codigo', codigo, 'proveedor', nuevo, 'precio_ars_kg', precio_ars_kg)), '[]'::jsonb)
+    into v_cambios from upd;
+  return jsonb_build_object('ok', true, 'cambios', v_cambios);
+end $function$;
 
 -- ---------- recepcion_bundle ----------
 CREATE OR REPLACE FUNCTION "GP2".recepcion_bundle()

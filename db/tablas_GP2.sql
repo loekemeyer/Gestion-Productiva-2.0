@@ -885,6 +885,8 @@ CREATE TRIGGER trg_movimiento_aplicar AFTER INSERT OR DELETE OR UPDATE ON "GP2".
 
 CREATE TRIGGER trg_movimiento_calc BEFORE INSERT OR UPDATE ON "GP2".movimiento FOR EACH ROW EXECUTE FUNCTION "GP2".fn_movimiento_calc();
 
+CREATE TRIGGER trg_material_mejor_proveedor AFTER INSERT OR DELETE OR UPDATE ON "GP2".precio_proveedor FOR EACH STATEMENT EXECUTE FUNCTION "GP2".fn_material_mejor_proveedor();
+
 CREATE TRIGGER trg_maximos_cajones_parametro AFTER UPDATE OF valor ON "GP2".parametro FOR EACH ROW WHEN ((new.clave = 'max_cajones_x_ubicacion'::text)) EXECUTE FUNCTION "GP2".fn_recalc_maximos_cajones();
 
 CREATE TRIGGER trg_precio_tallerista_kg BEFORE INSERT OR UPDATE ON "GP2".precio_tallerista FOR EACH ROW EXECUTE FUNCTION "GP2".fn_precio_tallerista_kg();

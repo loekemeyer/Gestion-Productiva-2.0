@@ -6570,8 +6570,35 @@ textual: "Lo que necesite para su oc"]`; *(4)* **desperdicio 4 %** (el de la pla
 - Pantallas: Recepción gana el rubro «Mat. Plástica» (kg); Stock por sector gana `?sector=14`;
   Stocks General / composición rotulan los dos tipos nuevos.
 
-**Pendientes que dejó (no se inventa nada):** precio de **PE, Nylon Virgen y Nylon Recuperado** (Santa
-Rosa no los lista en la planilla; Indarnyl/Beta sí, pero el proveedor asignado es Santa Rosa);
-**conteo de Master Bach**; material de **PC12 y PC16**; y la duda del código **1135 «Al Alto
-Impacto»** que muestra el sistema del usuario (en la planilla 1135 es un PE PEBD y el AI 4600 es
-2465 — se usó 2465).
+**Pendientes que dejó (no se inventa nada):** **conteo de Master Bach**; material de **PC12 y
+PC16**; y la duda del código **1135 «Al Alto Impacto»** que muestra el sistema del usuario (en la
+planilla 1135 es un PE PEBD y el AI 4600 es 2465 — se usó 2465). ~~Precio de PE / Nylon Virgen /
+Nylon Rec~~ → resuelto con la regla de abajo.
+
+### 4at-ter. Cada material se le compra AL MÁS BARATO, y la OC lo refleja (2026-09-10)
+
+`[usuario 2026-09-10, textual: "al que sea más barato por material. la OC tiene que considerar
+eso"]` — cierra la contradicción workbook (Santa Rosa) vs planilla (compras a Indarnyl/Beta): **no
+hay proveedor fijo por material, hay uno por precio.**
+
+- Se cargaron en `precio_proveedor` los precios de los **tres** (Indarnyl 202, Beta 3527, Santa Rosa
+  837) por material, de la hoja «Lista de Precios» (filas 271-305). Fuera a propósito por ser otro
+  grado: Santa Rosa «PE PEBD 26500» (1115) y «ABS GP 35» (2445), Beta «PP COPO» (2415). Indarnyl
+  «AI Nacional» (0355) entra como Alto Impacto.
+- **`v_material_precio_proveedor`**: precio por kg de cada proveedor **llevado a pesos al dólar
+  oficial del día** (`parametro tipo_cambio_usd_pesos`, el mismo que usa la OC) y rankeado. Se
+  compara así y no por el «IPC al día» de la planilla: la OC ya convierte USD con ese parámetro,
+  y la regla tiene que ser la misma que ve el usuario en la pantalla.
+- **`recalcular_proveedor_material()`** asigna `componente.proveedor` = orden 1 (sólo sector 14).
+  Corre solo: trigger `trg_material_mejor_proveedor` (statement, al insertar/cambiar/borrar un
+  precio) y **desde `actualizar_dolar_oficial`** (el cron del dólar) — porque un precio en pesos
+  contra uno en dólares **se dan vuelta con el tipo de cambio** (Indarnyl PP 3.249 ARS vs Beta
+  2,70 USD). Si el recálculo falla, el dólar igual se actualiza.
+- **`oc_bundle` y `crear_oc` cotizan con el precio del proveedor ASIGNADO** (join por `cod_prov`);
+  antes tomaban «el de fecha más nueva», que con varios proveedores podía ser el de otro.
+- Resultado al 2026-09-10 (dólar 1.535): **Santa Rosa → PP (3.065 $/kg), PS (3.725), Alto Impacto
+  (4.040); Beta → PE (2,70 USD); Indarnyl → ABS (2,90 USD), Nylon Virgen (3,45), Nylon c/Carga
+  (3,10), Nylon Recuperado (3,35)**. Master Bach sin competencia.
+- Las funciones nuevas quedaron **sin EXECUTE para anon** (nacen públicas por default de Postgres;
+  el invariante C lo detectó). Lección: **toda función nueva interna lleva su `revoke` en la misma
+  migración.**

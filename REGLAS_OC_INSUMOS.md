@@ -243,10 +243,15 @@ Faltan proveedor: 8 plásticos (ver abajo), bombillas/resortes 8, remaches 8, fl
   se guarda físicamente en Virgilio y ESA sí se gestiona** — sector 14 «Materia Prima Plástica»,
   ver abajo.
 - **Materia prima plástica (2026-09-10)**: bolsas de 25 kg (PP 2630, ABS, Alto Impacto, Nylon
-  Virgen/Recuperado/c-Carga, PE, PS HF555 + Master Bach) → sector 14, se compran a **Indarnyl**
-  (PP, ABS), **Santa Rosa Plásticos** (PE, PS, AI, Nylons), **Beta Plásticos** (alternativo),
-  **Arcolor / Julio Garcia e Hijos** (Master Bach). Rubro propio en OC y en Recepción («Mat.
-  Plástica», en kg). **Máximo = 2,5 meses de consumo en bolsas enteras** (`maximo_origen='fisico'`,
+  Virgen/Recuperado/c-Carga, PE, PS HF555 + Master Bach) → sector 14. Tres proveedores cotizan
+  (**Indarnyl 202, Beta Plásticos 3527, Santa Rosa Plásticos 837**; Master Bach: Arcolor / Julio
+  Garcia) y **cada material se le compra AL MÁS BARATO** [usuario 2026-09-10: "al que sea más
+  barato por material, la OC tiene que considerar eso"]: `v_material_precio_proveedor` lleva el
+  precio de cada proveedor a pesos al dólar oficial del día y `recalcular_proveedor_material()`
+  pone `componente.proveedor` = el de orden 1 — corre solo por trigger cuando entra/cambia un
+  precio y desde el cron del dólar (`actualizar_dolar_oficial`). La OC (`oc_bundle` / `crear_oc`)
+  cotiza con el precio del proveedor ASIGNADO al componente. Rubro propio en OC y en Recepción
+  («Mat. Plástica», en kg). **Máximo = 2,5 meses de consumo en bolsas enteras** (`maximo_origen='fisico'`,
   los recalculos no lo pisan; el consumo mensual salió del workbook del usuario, PP ~909 kg/mes).
   Tope físico: 20 pallets × 15 bolsas en Virgilio. Las bolsas **se le mandan a los inyectores**
   (`enviar_material_inyector`, desde Inyectores) y **el inyector tiene que tener lo que necesita

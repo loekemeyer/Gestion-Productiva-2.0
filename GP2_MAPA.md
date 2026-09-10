@@ -228,7 +228,11 @@ al recepcionar la pieza (movimiento `consumo_inyector`, anotado en `recepcion_in
 que `anular_recepcion` lo revierta). `enviar_material_inyector(p_proveedor, p_comp_id, p_kg)` manda
 bolsas de Virgilio al inyector (`envio_inyector`). `v_material_inyector` / `inyectores_bundle.material`
 = lo que cada inyector necesita para sus OC abiertas menos lo que tiene, en kg y en bolsas
-(`parametro material_plastico_kg_x_bolsa` = 25).
+(`parametro material_plastico_kg_x_bolsa` = 25). **Proveedor de cada material = el más barato**:
+`v_material_precio_proveedor` (precio de cada proveedor en pesos al dólar del día, rankeado) y
+`recalcular_proveedor_material()` (asigna `componente.proveedor`; corre por trigger en
+`precio_proveedor` y desde `actualizar_dolar_oficial`). `oc_bundle` / `crear_oc` cotizan con el
+precio del proveedor asignado (join `precio_proveedor.cod_prov = proveedor_insumo.cod_prov`).
 
 `tipo_mov` (vocabulario del ledger, verificado 2026-09-04): `compra` (recepciones de insumo y
 compras de MP), `consumo` (MP consumida por un PS híbrido: Charcas/Eclipse), `envio_ps` /

@@ -1,7 +1,7 @@
 -- =====================================================================
 -- VISTAS del schema GP2 (pg_get_viewdef, exacto) — export automatico 2026-09-05 desde Supabase (hrxfctzncixxqmpfhskv)
 -- Respaldo/referencia. La fuente de verdad es la base; regenerar al cambiar el schema.
--- 14 vistas. Orden de creacion: las que dependen de otra van despues.
+-- 15 vistas. Orden de creacion: las que dependen de otra van despues.
 -- =====================================================================
 
 -- ---------- v_consumo_componente ----------
@@ -586,6 +586,40 @@ create or replace view "GP2".v_material_inyector as
      CROSS JOIN bolsa
   WHERE calc.kg_requerido_oc > 0::numeric OR calc.kg_en_inyector <> 0::numeric;
 comment on view "GP2".v_material_inyector is 'Materia prima plastica por inyector: kg que necesita para sus OC abiertas (borrador/enviada, pendiente x kg_x_uni x (1+desperdicio)), kg que ya tiene en su ubicacion, kg en Virgilio y lo que hay que ENVIARLE (en kg y en bolsas de material_plastico_kg_x_bolsa). Solo pares con algo que decir. [usuario 2026-09-10: el inyector tiene que tener lo que necesite para su OC]';
+
+-- ---------- v_material_precio_proveedor ----------
+create or replace view "GP2".v_material_precio_proveedor as
+ WITH tc AS (
+         SELECT COALESCE(( SELECT parametro.valor
+                   FROM "GP2".parametro
+                  WHERE parametro.clave = 'tipo_cambio_usd_pesos'::text), 0::numeric) AS valor
+        )
+ SELECT c.id AS componente_id,
+    c.codigo,
+    c.descripcion AS material,
+    c.proveedor AS proveedor_asignado,
+    pi.nombre AS proveedor,
+    pp.cod_prov,
+    pp.producto,
+    pp.precio,
+    pp.moneda,
+    pp.fecha_lista,
+    round(
+        CASE
+            WHEN upper(COALESCE(pp.moneda, 'USD'::text)) ~~ '%US%'::text THEN pp.precio * tc.valor
+            ELSE pp.precio
+        END, 2) AS precio_ars_kg,
+    rank() OVER (PARTITION BY c.id ORDER BY (
+        CASE
+            WHEN upper(COALESCE(pp.moneda, 'USD'::text)) ~~ '%US%'::text THEN pp.precio * tc.valor
+            ELSE pp.precio
+        END), pp.fecha_lista DESC NULLS LAST, pp.id DESC) AS orden
+   FROM "GP2".precio_proveedor pp
+     JOIN "GP2".componente c ON c.id = pp.componente_id AND c.sector_id = 14
+     JOIN "GP2".proveedor_insumo pi ON pi.cod_prov = pp.cod_prov AND pi.activo
+     CROSS JOIN tc
+  WHERE pp.precio IS NOT NULL AND pp.precio > 0::numeric;
+comment on view "GP2".v_material_precio_proveedor is 'Materia prima plastica: precio por kg de CADA proveedor, llevado a pesos al dolar oficial del dia (parametro tipo_cambio_usd_pesos) y rankeado (orden 1 = el mas barato). recalcular_proveedor_material() asigna ese al componente [usuario 2026-09-10: al que sea mas barato por material].';
 
 -- ---------- v_nivel_stock ----------
 create or replace view "GP2".v_nivel_stock as
