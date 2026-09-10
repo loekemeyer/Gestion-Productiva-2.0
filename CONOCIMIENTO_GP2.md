@@ -2840,6 +2840,44 @@ duraría la ubicación LLENA (5 cajones). Si **ni llena aguanta 30 días**
 alcanza lo que entra en la ubicación** — eso es lo que el usuario quiere ver. Hoy da 15
 componentes de Crudo y 12 de Procesado en esa condición `[dato: v_faltante_estado]`.
 
+## 2e-ter. Disparo del pedido y dimensionamiento del máximo: mínimo de reposición + reserva `[usuario 2026-09-10, SIN EJECUTAR — solo registrado]`
+
+**Todavía NO está implementado.** El usuario lo dictó para dejarlo escrito; "después vemos
+cómo lo ejecutamos". Es el criterio real con el que hay que definir mínimo/máximo/pedido en
+crudo y procesado — refina §2e (los "5 cajones" son un placeholder físico, no este criterio).
+
+**Cuándo se dispara el pedido (mínimo de disparo):**
+- **Procesado** (ej. Arandela CienGranajes): el pedido se dispara al bajar a **1 mes de
+  stock** de esa parte (mes medido por Est Madre / consumo de la parte).
+- **Crudo**: la reserva que no puede quedar en cero es de **1 a 1,5 meses** de stock; ese es
+  el piso que dispara el corte.
+
+**Cuánto se pide (lote / pedido MÍNIMO — es un concepto aparte del mínimo de disparo):**
+- **Procesado** que va a cementar (caso FAT): el lote mínimo es **1 cajón = 30 kg**. Ese
+  cajón vuelve entero y completa el sector procesado.
+- **Crudo**: el corte mínimo son **3 meses** de stock (para que el corte valga la pena).
+
+**Cómo tiene que quedar el máximo (la clave de todo esto):** el máximo del lugar NO es solo
+"5 cajones"; tiene que **contemplar el lote mínimo de reposición MÁS la reserva** que había
+cuando disparó el pedido, porque los dos van a convivir físicamente en el sector.
+- Ejemplo del usuario (procesado): si la reserva de disparo son ~15 kg (2 semanas) y el lote
+  que vuelve es 1 cajón de 30 kg → el lugar tiene que tener sitio para **~45 kg** de
+  procesado (lo que quedaba + lo que entra).
+- Regla general: `máximo ≥ reserva_de_disparo + lote_mínimo_de_reposición`. Hay que definir
+  las TRES cosas (máximo, mínimo de disparo, y lote mínimo de pedido), no solo máximo y
+  mínimo. El espacio entre "lo que había cuando disparó" y "lo que acabamos de cortar/cementar"
+  tiene que entrar TODO en el sector.
+
+**Circuito FAT (CORREGIDO por el usuario en el mismo mensaje):** FAT **no entrega directo al
+cromador**. FAT entrega en **sector tránsito**, y **del sector tránsito se manda al
+cromador**; el cromador es el que completa el sector procesado. (El dictado inicial decía
+"FAT va directo al cromador" — es falso, va por tránsito.)
+
+**Pendiente de ejecución:** traducir esto a los parámetros/funciones de máximos y mínimos
+(hoy máximo procesado/crudo = `cinco_cajones` §2e, mínimo = `consumo × meses_minimo` §2e-bis,
+OC = `maximo − stock` §4n). Falta modelar el "lote mínimo de reposición" (30 kg / cajón en
+procesado-cementado, 3 meses en crudo) y sumarlo a la reserva para calcular el máximo.
+
 ---
 
 ## 2f-bis. Por qué faltan artículos en GP2 (2026-08-31)
