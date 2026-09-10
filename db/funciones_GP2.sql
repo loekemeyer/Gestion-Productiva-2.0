@@ -4040,7 +4040,7 @@ begin
     join ubicacion u on u.id = i.ubicacion_id and u.tipo = 'sector'
     join componente c on c.id = i.componente_id and c.sector_id = u.ref_id
     where c.sector_id in (1, 2)
-      and coalesce(i.maximo_origen, '') <> 'fisico'
+      and coalesce(i.maximo_origen, '') not in ('fisico', 'faat_reserva_lote')
   ), upd as (
     update inventario i
     set maximo = o.max_nuevo, maximo_origen = 'cinco_cajones'

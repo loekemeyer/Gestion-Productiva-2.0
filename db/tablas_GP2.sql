@@ -230,7 +230,7 @@ create table "GP2".inventario (
   constraint inventario_pkey PRIMARY KEY (id),
   constraint inventario_componente_id_fkey FOREIGN KEY (componente_id) REFERENCES "GP2".componente(id),
   constraint inventario_ubicacion_id_fkey FOREIGN KEY (ubicacion_id) REFERENCES "GP2".ubicacion(id),
-  constraint inventario_maximo_origen_chk CHECK ((maximo_origen = ANY (ARRAY['cinco_cajones'::text, 'est_madre'::text, 'fisico'::text]))),
+  constraint inventario_maximo_origen_chk CHECK ((maximo_origen = ANY (ARRAY['cinco_cajones'::text, 'est_madre'::text, 'fisico'::text, 'faat_reserva_lote'::text]))),
   constraint inventario_minimo_origen_chk CHECK ((minimo_origen = ANY (ARRAY['consumo'::text, 'excel_uni_convertido_kg'::text])))
 );
 comment on table "GP2".inventario is 'Stock por componente y ubicacion (cantidad canonica, minimo, maximo y su origen). La cantidad la escriben SOLO los triggers de movimiento; minimo/maximo, las RPC de recalculo.';

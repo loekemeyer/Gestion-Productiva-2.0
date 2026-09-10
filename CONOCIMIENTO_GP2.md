@@ -2846,11 +2846,11 @@ duraría la ubicación LLENA (5 cajones). Si **ni llena aguanta 30 días**
 alcanza lo que entra en la ubicación** — eso es lo que el usuario quiere ver. Hoy da 15
 componentes de Crudo y 12 de Procesado en esa condición `[dato: v_faltante_estado]`.
 
-## 2e-ter. Disparo del pedido y dimensionamiento del máximo: mínimo de reposición + reserva `[usuario 2026-09-10, SIN EJECUTAR — solo registrado]`
+## 2e-ter. Disparo del pedido y dimensionamiento del máximo: mínimo de reposición + reserva `[usuario 2026-09-10]`
 
-**Todavía NO está implementado.** El usuario lo dictó para dejarlo escrito; "después vemos
-cómo lo ejecutamos". Es el criterio real con el que hay que definir mínimo/máximo/pedido en
-crudo y procesado — refina §2e (los "5 cajones" son un placeholder físico, no este criterio).
+Es el criterio real con el que hay que definir mínimo/máximo/pedido en crudo y procesado —
+refina §2e (los "5 cajones" son un placeholder físico, no este criterio). **Ejecutado
+parcialmente para FAAT el 2026-09-10** (ver el bloque "EJECUCIÓN FAAT" al final de esta sección).
 
 **Cuándo se dispara el pedido (mínimo de disparo):**
 - **Procesado** (ej. Arandela CienGranajes): el pedido se dispara al bajar a **1 mes de
@@ -2879,10 +2879,45 @@ cromador**. FAT entrega en **sector tránsito**, y **del sector tránsito se man
 cromador**; el cromador es el que completa el sector procesado. (El dictado inicial decía
 "FAT va directo al cromador" — es falso, va por tránsito.)
 
-**Pendiente de ejecución:** traducir esto a los parámetros/funciones de máximos y mínimos
-(hoy máximo procesado/crudo = `cinco_cajones` §2e, mínimo = `consumo × meses_minimo` §2e-bis,
-OC = `maximo − stock` §4n). Falta modelar el "lote mínimo de reposición" (30 kg / cajón en
-procesado-cementado, 3 meses en crudo) y sumarlo a la reserva para calcular el máximo.
+### EJECUCIÓN FAAT (2026-09-10) `[usuario, decisiones tomadas por AskUserQuestion]`
+
+FAAT = `proveedor_servicio` id 2, "Laboratorio FAAT" (nombre_corto "FAAT"), proceso
+"Templado, Cementado". No existe variante "FAT" ni "Arandela CienGranajes" en la base; la
+única arandela por FAAT es **K11** "Arandela grande Afila p/cementar y zincar". En las rutas
+el paso FAAT tiene entrada = salida con el MISMO código crudo (vuelve a crudo/tránsito); el
+procesado lo genera un paso posterior (cromador) → confirma el circuito FAAT → tránsito →
+cromador de esta sección.
+
+Decisiones del usuario para esta corrida: **(a)** alcance = las 10 piezas que pasan por FAAT;
+**(b)** el máximo se aplica en la ubicación del **crudo que va a FAAT** (no en el procesado
+destino); **(c)** la reserva de disparo se deja en **2 meses** (el mínimo actual `consumo × 2`,
+NO se bajó a 1); **(d)** el lote conflictivo (30 kg vs 1 cajón real en W1/W2/W7) se ve después.
+
+**Aplicado a 4 piezas de Sector Crudo** con `maximo = mínimo (reserva 2 meses) + 30 kg`
+convertido a uni por `kg_x_uni`, origen nuevo **`maximo_origen = 'faat_reserva_lote'`**:
+- I14 Cuchilla Abrelata: 17.085 → **35.719** uni (313,6 kg)
+- K11 Arandela: 30.405 → **7.191** uni (35,5 kg)
+- L13 Uñas p/Zincar: 41.360 → **64.208** uni (232,9 kg)
+- X4 Cuchilla Pelapapa Cerrada: 20.020 → **93.990** uni (462,4 kg)
+
+Migración `faat_maximo_reserva_mas_lote`: se amplió el CHECK `inventario_maximo_origen_chk`
+(+`faat_reserva_lote`) y se enseñó a **`recalcular_maximos_cajones()`** a NO pisar este origen
+(igual que ya respeta `'fisico'`). Verificado: la función corre y deja las 4 intactas; ledger
+vs inventario (invariante B) = 0. Snapshot antes/después en `db/respaldo_maximo_faat_20260910.csv`.
+
+**NO se tocó (pendiente del usuario):**
+- **W1 / W2 / W7** (Sector Crudo): su `uni_x_cajon` da ~2 kg por cajón (contra 30 kg del resto).
+  "30 kg = 1 cajón" no cierra para ellas (30 kg = ~15 cajones). El usuario lo revisa: o el
+  `uni_x_cajon` está mal cargado, o para esas piezas el cajón no son 30 kg. Quedan en `cinco_cajones`.
+- **RULETA** (Sector Crudo): sin consumo cargado → no hay reserva de 2 meses que calcular. Queda en `cinco_cajones`.
+- **I2 / I3** (Sector Bombilla, no Crudo): fuera del alcance "el crudo que va a FAAT" que eligió el usuario. Quedan en `est_madre`.
+
+**Pendiente de modelo (no ejecutado):** el máximo se fijó como UPDATE puntual, no se
+recalcula solo cuando cambia el consumo (el mínimo sí, vía `recalcular_minimos`). El "lote
+mínimo" (30 kg cementado / 3 meses crudo) NO vive todavía en un parámetro ni función; cuando
+se cierre W1/W2/W7 conviene hacerlo función. Falta también el lado CRUDO puro (corte de 3
+meses + reserva 1–1,5 meses) y el disparo automático del pedido (hoy Crudo/Procesado no entran
+a `oc_bundle`; sólo la marca de faltante de §2e los cubre, y dispara a 1 cajón, no al mínimo).
 
 ---
 
