@@ -793,8 +793,9 @@ es confiable. Sin ese factor el relevamiento las marca en rojo.
   Naranjas. Todos de Pat Bet Plast en NY reciclado. **GP2 no conoce esta familia**, igual que
   no conoce las cucharas de madera ni los palos de amasar.
 - **8 altas más de Pat Bet Plast**: `PA3` Muñeco Antiderrame, `PA15` Capuchón ф10, `PA16`
-  Mangos ф10 LK, `PA17` Mangos Cuch y P Torta, `PB1` Cilindro Corta Queso, `PC6` Ojales
-  Neg/Blanco, `PEST1` Insertos Mgo Madera, `PEST2` Insertos Pisa Papas.
+  Mangos ф10 LK, `PA17` Mangos Cuch y P Torta, `PB1` Cilindro Corta Queso, ~~`PC6` Ojales
+  Neg/Blanco~~ (**hecha el 2026-09-10**, ver §4am), `PEST1` Insertos Mgo Madera, `PEST2`
+  Insertos Pisa Papas.
 - **Desdobles pendientes**: `PC2A`/`PC2B` (mangos pelapapa **s/calar**; GP2 sólo tiene los
   calados `PC1A`/`PC1B`) y `PEP4A`/`PEP4B` (afila caladas azul y blanca; GP2 tiene un solo
   `PEP4` sin color).
@@ -6088,3 +6089,17 @@ con el código, la descripción **sin su destino viejo** y el proceso que espera
 del componente sigue diciendo "Resorte U p/Templar" en la base (es su nombre), pero una vez
 templado lo que espera es el niquelado, y eso es lo que se muestra. El proceso se pasa a infinitivo
 con un mapa chico (`PROC_INF`) + la regla `-ado → -ar`. Lo cubre `tests/ui/test_programa_transito.js`.
+
+### 4am. PC6 "Ojales Neg/Blanco": **1 ojal por artículo** (2026-09-10)
+
+[usuario 2026-09-10, textual: *"1 ojal"*] — cierra el único pendiente que había dejado el alta de
+PC6 en los artículos **720 y 722**: la cantidad era **asumida** (se clonó el patrón de PC16, que
+es 1). **Confirmada: 1 por artículo.** No hubo que tocar nada, `articulo_componente` ya tenía
+cantidad 1 en los dos [dato: consulta a `articulo_componente` del 2026-09-10].
+
+PC6 se compra a **Pat Bet Plast** (Sector Plástico) y lo ensambla el tallerista **Fábrica**.
+
+**Sigue pendiente de PC6** (no inventar): el **precio** de Pat Bet Plast y la **tarifa de
+envasado de Fábrica**. Mientras falte el precio, el 720/722 muestran `faltan_precios = 2` — es el
+doble conteo conocido (idea 7275: la vista cuenta el componente en la receta Y en la ruta), no un
+error de carga; se va a 0 solo al cargar el precio.
