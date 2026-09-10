@@ -266,7 +266,9 @@ function renderConvergenceLane(padre_id,ruta_list,need,uni,flejesTotal,aid,insum
    var pps=D.rp[String(matchRuta.id)]||[];
    var prePasos=pps.slice(0,matchIdx+1);
    var flComp2=null;
-   for(var i=0;i<prePasos.length;i++){if(prePasos[i].tp==="ingreso" && prePasos[i].ce){flComp2=cById(prePasos[i].ce);break;}}
+   // De donde arranca la rama: el fleje del paso 'ingreso' o, en una ruta de insumo, la pieza
+   // del paso 'insumo' (sin esto la rama salia con el nodo vacio, "? produce BOM10")
+   for(var i=0;i<prePasos.length;i++){if((prePasos[i].tp==="ingreso"||prePasos[i].tp==="insumo") && prePasos[i].ce){flComp2=cById(prePasos[i].ce);break;}}
    if(!flComp2)flComp2=cById(matchRuta.f);
    var mat0=null;
    for(var i=0;i<prePasos.length;i++){if(prePasos[i].tp==="matriz"){mat0=D.mat[String(prePasos[i].m)];break;}}
@@ -274,9 +276,10 @@ function renderConvergenceLane(padre_id,ruta_list,need,uni,flejesTotal,aid,insum
    var kg=(rend && qty_hijo)?qty_hijo/rend:0;
    if(kg){flejesTotal[matchRuta.f]=(flejesTotal[matchRuta.f]||0)+kg;}
    var mergedNeed=Object.assign({},need);mergedNeed[h.c]=qty_hijo/uni;
-   var pasosNoFleje=prePasos.filter(function(p){return p.tp!=='fleje'&&p.tp!=='ingreso';});
+   // 'ingreso' e 'insumo' son marcas de entrada, no pasos productivos
+   var pasosNoFleje=prePasos.filter(function(p){return p.tp!=='fleje'&&p.tp!=='ingreso'&&p.tp!=='insumo';});
    // Si el "productor" es el mismo componente y no hay pasos productivos, solo mostrar el insumo (evita duplicado)
-   if(pasosNoFleje.length===0 && flComp2.id===hc.id){
+   if(pasosNoFleje.length===0 && flComp2.cod===hc.cod){
     H+='<div class="branch-lbl">Rama '+brN+' — Insumo '+esc(hc.cod||'?')+' · × '+fmt(qty_hijo)+' u</div>';
     H+='<div class="flow branch">';
     H+=node("INSUMO",sCls(hc.s),hc.cod||"?",hc.d||"","",qty_hijo,null);

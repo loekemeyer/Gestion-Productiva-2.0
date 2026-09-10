@@ -6103,3 +6103,42 @@ PC6 se compra a **Pat Bet Plast** (Sector Plástico) y lo ensambla el tallerista
 envasado de Fábrica**. Mientras falte el precio, el 720/722 muestran `faltan_precios = 2` — es el
 doble conteo conocido (idea 7275: la vista cuenta el componente en la receta Y en la ruta), no un
 error de carga; se va a 0 solo al cargar el precio.
+
+### 4an. Batidores 515 y 615: están EN VENTA, y el Resorte Bicónico tampoco es discontinuo (2026-09-10)
+
+[usuario 2026-09-10, textual: *"no sé si en algún momento te dije que está discontinuado, pero es un
+artículo continuo, está en venta"* / *"el resorte bicónico... no es discontinuo, está activo"*].
+
+Corregido: **`articulo` 615 → `discontinuado = false`** (el 515 ya estaba activo) y **`BOM10`
+"Resorte Bicónico" → `estado_compra = null`** (se compra; su proveedor **Resortes Charcas** estaba
+intacto). El BOM10 nunca se había sacado de la receta: sigue en `componente_bom` de `C12` (cant 1)
+y tiene sus rutas 563/564 hacia el 515 y el 615.
+
+**Lo que sí lo hacía desaparecer de la pantalla era un bug nuestro, no el dato** — ver más abajo.
+
+**Sigue marcado `discontinuo` y contradice que el artículo esté activo** (pendiente del usuario):
+- **`C12` "Paleta Batidor Resorte"** — es la paleta del batidor, la fabrica Alex Escalante a
+  partir de `IE1`/`W1B`. Si se fabrica, el estado que corresponde es **`fabricacion`**, no
+  `discontinuo` (para el motor de costos da lo mismo: los dos la sacan de "comprado"; cambia lo
+  que muestran OC, Recepción y Faltantes).
+- **`A1C1` "Cartón 515"** — se compra, y **quedó sin proveedor**. `marcar_estado_compra` borra el
+  proveedor cuando se marca `fabricacion`/`discontinuo`
+  (`proveedor = case when v_e is null then proveedor else null end`), así que el dato se perdió al
+  marcarlo. Los otros cartones de la familia son de **Talleres Gráficos Pol**, pero **no se asume**:
+  lo tiene que confirmar el usuario. Mientras esté `discontinuo`, el cartón **no suma costo** al 515.
+
+**Trampa a recordar**: marcar un componente `fabricacion` o `discontinuo` **le borra el proveedor**.
+Al revertir el estado hay que volver a cargarlo — no aparece solo.
+
+### 4an-bis. Regresión propia: la Rama de un insumo quedaba vacía ("? produce BOM10")
+
+La v1.114.0 dejó que las ramas de un convergente usaran rutas de **insumo** (para mostrar el
+niquelado del V3 en el 521). Efecto no previsto: en una rama cuyo **único paso es el `insumo`** —el
+BOM10 dentro del C12— el código buscaba el origen sólo en un paso `ingreso` y el fleje de la ruta
+(`ruta.f`, null en una ruta de insumo), así que dibujaba **`Rama 1 — ? produce BOM10`** con el nodo
+vacío. Al usuario le pareció que el Resorte Bicónico se había borrado.
+
+Arreglado en la **v1.116.0**: el origen de la rama también se toma del paso `insumo`, y `insumo`
+—como `ingreso`— no cuenta como paso productivo. Lo cubre `tests/ui/test_programa_insumo_conv.js`
+con la convergencia C12 real. **Lección**: al ampliar qué rutas entran a un render, revisar el caso
+de la ruta de **un solo paso**.
