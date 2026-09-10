@@ -6,6 +6,11 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
+<!-- v3.52.0 (2026-09-10) — RUBRO GARAGE: faltaba el boton "Garage" (sector 9) en #rubroGrid y
+     su entrada en RUBRO_UM (uni), asi que nada del Sector Garage (cepillos de Gilardi Esther,
+     palo de amasar de Tierra Nativa, ñoqueras de Pintos) se podia recepcionar aunque el
+     recepcion_bundle SI los devolvia. Ahora Garage es un rubro mas (unidades, sin pesaje, como
+     Plasticos/Cartones). Los discontinuos (Bowls GRJ21) siguen sin aparecer, correcto [usuario 2026-09-10]. -->
 <!-- v3.51.0 (2026-09-09) — FORMATOS 'Manga' Y 'C' EN CHEF: se agrega 'Manga' a las tres listas de
      FORMATOS_POR_MARCA (el cartón del 280 es formato Manga) y 'C' a CHEF (faltaba, y por eso los
      cartones C de Chef —818, 909— aparecian en "Sin formato"). Con esto no queda ningun "Sin
@@ -412,6 +417,7 @@ input[type="text"]{width:200px}
         <button class="prov-btn" data-rubro="Cartones"  data-sid="10">Cartones</button>
         <button class="prov-btn" data-rubro="Remaches"  data-sid="8">Remaches</button>
         <button class="prov-btn" data-rubro="Bombillas" data-sid="7">Bombillas</button>
+        <button class="prov-btn" data-rubro="Garage"    data-sid="9">Garage</button>
         <!-- Los rubros Filtros (Charcas) y Cortados (Eclipse) se sacaron en Fase B
              del rework 2026-09-02 (usuario): ahora los PS hibridos viven en su
              pantalla dedicada Prov Serv/CharcasEclipse/CharcasEclipse_GP2.html
@@ -621,7 +627,7 @@ const CONTROL_URL = {
   7:  'control-remaches.html?sector=7'   // Bombillas: idem [usuario 2026-09-03]
 };
 // Unidad default por rubro (kg / uni). Los flejes y remaches se compran en kg.
-const RUBRO_UM={Flejes:"kg",Remaches:"kg",Cajas:"uni",Plasticos:"uni",Cartones:"uni",Bombillas:"uni"};
+const RUBRO_UM={Flejes:"kg",Remaches:"kg",Cajas:"uni",Plasticos:"uni",Cartones:"uni",Bombillas:"uni",Garage:"uni"};
 
 let INS=[], UMBY={}, KGXUNI={}, PROVFLAGS={}, RECS=[], PALL=[], ROLL=[], TARA={tara_pallet_min:4,tara_pallet_max:8};
 /* Insumos que el proveedor entrega en CAJAS y se pesan (componente.recibe_en_cajas).
