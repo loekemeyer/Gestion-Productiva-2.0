@@ -173,7 +173,7 @@ function renderStandaloneLane(r,pasos,fl,need,uni,flejesTotal){
  return H;
 }
 
-function renderConvergenceLane(padre_id,ruta_list,need,uni,flejesTotal,aid){
+function renderConvergenceLane(padre_id,ruta_list,need,uni,flejesTotal,aid,insumoEnConv){
  var pc=cById(padre_id);
  var hijos=D.children[String(padre_id)]||[];
  // Identificar paso de convergencia (matriz o tallerista que arma padre) desde primera ruta que lo tenga
@@ -203,8 +203,11 @@ function renderConvergenceLane(padre_id,ruta_list,need,uni,flejesTotal,aid){
   brN++;
   var hc=cById(h.c);
   var qty_hijo=qty_padre*(h.q||1);
-  // Buscar ruta productiva del articulo cuyo cs sea este hijo
-  var rutas_art=(D.rutas_by_art[String(aid)]||[]).filter(function(x){return x.f && !usedRutas[x.id];});
+  // Buscar ruta del articulo cuyo cs sea este hijo. Las de fleje primero; las de insumo
+  // (f null, ej. CV3 -> niquelado -> V3 que entra a la Matriz 135) son el fallback, si no
+  // la rama se dibujaba como un insumo pelado y se perdia el paso del proveedor.
+  var rutas_art=(D.rutas_by_art[String(aid)]||[]).filter(function(x){return !usedRutas[x.id];})
+    .sort(function(x,y){return (y.f?1:0)-(x.f?1:0);});
   var matchRuta=null, matchIdx=-1;
   for(var ri=0;ri<rutas_art.length;ri++){
    var rr=rutas_art[ri]; var pps=D.rp[String(rr.id)]||[];
@@ -215,6 +218,8 @@ function renderConvergenceLane(padre_id,ruta_list,need,uni,flejesTotal,aid){
   }
   if(matchRuta){
    usedRutas[matchRuta.id]=1;
+   // La ruta de insumo ya se dibuja aca: no repetirla abajo en el bloque 4
+   if(!matchRuta.f && insumoEnConv)insumoEnConv[matchRuta.id]=1;
    var pps=D.rp[String(matchRuta.id)]||[];
    var prePasos=pps.slice(0,matchIdx+1);
    var flComp2=null;
@@ -236,7 +241,7 @@ function renderConvergenceLane(padre_id,ruta_list,need,uni,flejesTotal,aid){
    } else {
     H+='<div class="branch-lbl">Rama '+brN+' — '+esc((flComp2.cod||"?")+' produce '+hc.cod)+(kg?' · '+fmt(kg)+' kg fleje':'')+'</div>';
     H+='<div class="flow branch">';
-    H+=node("INSUMO","fleje",flComp2.cod||"?",flComp2.d||"",rend?rend+" uni/kg":"",null,kg||null);
+    H+=node("INSUMO",matchRuta.f?"fleje":sCls(flComp2.s),flComp2.cod||"?",flComp2.d||"",rend?rend+" uni/kg":"",matchRuta.f?null:qty_hijo,kg||null);
     pasosNoFleje.forEach(function(p){
      H+='<span class="arr">→</span>'+pasoNode(p,mergedNeed,uni);
     });
@@ -321,6 +326,7 @@ function render(){
  var rutas_prod=rutas.filter(function(r){return r.f;});
  var rutas_ins=rutas.filter(function(r){return !r.f;});
  var flejesTotal={};
+ var insumoEnConv={}; // ruta de insumo consumida dentro de una convergencia → no repetir en el bloque 4
 
  // Agrupar por convergencia: {padre_sub_id: [ruta,...]}
  var convergences={}; // padre_id → [rutaObj]
@@ -379,8 +385,10 @@ function render(){
  if(convKeys.length){
   H+='<div class="section-title">2 · Convergencias · sub-conjuntos que unen 2+ rutas ('+convKeys.length+')</div>';
   convKeys.forEach(function(padre){
-   H+=renderConvergenceLane(parseInt(padre),convergences[padre],need,uni,flejesTotal,aid);
+   H+=renderConvergenceLane(parseInt(padre),convergences[padre],need,uni,flejesTotal,aid,insumoEnConv);
   });
+  // Las rutas de insumo que ya se dibujaron dentro de una convergencia no se repiten en el bloque 4
+  rutas_ins=rutas_ins.filter(function(r){return !insumoEnConv[r.id];});
  }
 
  // Sub-conjuntos NO cubiertos por rutas (BOM puro)

@@ -6020,3 +6020,42 @@ Proveedor **Papelera Nueve de Julio** en las dos (ya lo era). Costo 550/760 sin 
 **Correcciones que resultaron NO necesarias** (los datos ya estaban bien): F1A ya tenía proveedor
 Talleres Gráficos Pol; `G8C` (836), `A1B` (031), `A1B1` (120) ya tenían **Envases Vihal**. El
 usuario los mencionó pensando que estaban mal, pero no había que tocarlos.
+
+### 4ak. El remache V3 en la familia Sacacorchos: qué remacha en cada artículo (2026-09-10)
+
+`V3` "Rem. Sacatapita Niq" **no siempre remacha una sacatapita**. Lo que remacha es lo que haya
+en esa posición del cuerpo, y eso cambia por artículo [dato: `articulo_componente` + `ruta_paso`
+de 520/521/530/531/730/731, cruzado 2026-09-10]:
+
+| Artículo | Cuerpo | Qué lleva en esa posición | V3 | Dónde entra el V3 |
+|---|---|---|---|---|
+| 520 | C15 (Fleje 93) | Cuchufli E15 | sí | Martin Cornejo, al ensamblar |
+| 521 | C16 = G4 cromado | Sacatapita K8 **soldada al cuerpo** | sí | **Matriz 135 "Remachado Sacatapita"**, dentro del G4 |
+| 530 | B4 (pintado Jade) | Cuchufli E15 | sí | Martin Cornejo |
+| 531 | B4 | Sacatapita C8 suelta | sí | Martin Cornejo |
+| 730 | B7 (serigrafiado) | Cuchufli E15 | sí | Martin Cornejo |
+| 731 | B7 | Sacatapita C8 suelta | sí | Martin Cornejo |
+
+Dos reglas que salen de ahí:
+
+1. **El 521 NO lleva cuchufli** [usuario 2026-09-10: "en el 521 aparece el Cuchufli E15, esa ruta
+   borrala, porque no lleva cuchufli el 521"]. Su sacatapita va **soldada** al cuerpo
+   (`componente_bom` de `G4` = K5 + K8 + V3, unidos por la Matriz 135), así que no hay pieza
+   suelta que remachar aparte. Se borró la ruta `Insumo E15 -> Art 521` y su línea de receta.
+2. **El 520 SÍ lleva V3 y le faltaba** [usuario 2026-09-10: "del 520 le falta el remache a esa
+   sacatapita V3, al igual que está en el 530"]. Se agregó receta + ruta
+   `CV3 → Guazzaroni Patricio (Niquelado) → V3 → Martin Cornejo → 520`, calcada de la del 530.
+
+**Antes de ser V3 es CV3** ("Rem. Sacatapita Niq p/Niquelar"): el remache se compra a **Bella
+Vista** sin niquelar y pasa por **Guazzaroni Patricio** [usuario 2026-09-10: "antes de ser V3 es
+CV3, le falta la ruta del niquelado"]. Eso vale para los 6 artículos; al 521 le faltaba esa ruta y
+se cargó (converge en la Matriz 135, no en el tallerista).
+
+**Trampa de pantalla que salió de acá**: en "¿Qué necesito para producir?" (`Programa/Programa.html`)
+las ramas de un convergente sólo aceptaban rutas que arrancan en un **fleje** (`programa_bundle`
+marca `f` sólo si el ingreso es del Sector Fleje; CV3 es Sector Remache). Por eso la rama del V3
+se dibujaba como un insumo pelado y **se comía el paso del niquelado**. Desde la v1.114.0 la rama
+usa la ruta de insumo como fallback y esa ruta ya no se repite abajo en el bloque 4.
+Lo cubre `tests/ui/test_programa_conv.js`.
+
+**Peso de K8**: `0,013956667 kg` = **13,96 g**, ya estaba cargado en GP2 (el usuario dudaba).
