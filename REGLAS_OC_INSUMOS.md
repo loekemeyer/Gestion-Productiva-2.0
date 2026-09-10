@@ -237,8 +237,24 @@ Faltan proveedor: 8 plásticos (ver abajo), bombillas/resortes 8, remaches 8, fl
   (triggers en est_madre / recetas / rutas, función `recalcular_maximos_insumos`). Los
   máximos FÍSICOS ya relevados (cajas, 11 remaches del vecino) tienen origen `fisico`
   y nunca se pisan. En Punto de Stock los derivados se ven con el tag **EM**.
-- Virgilio: NO interesa analizar su entrada/salida — existe solo para medir a los
-  talleristas (decisión usuario 2026-08-29). No se construye módulo de despacho/venta.
+- Virgilio como DISTRIBUCIÓN de terminados: NO interesa analizar su entrada/salida — existe solo
+  para medir a los talleristas (decisión usuario 2026-08-29). No se construye módulo de
+  despacho/venta. **OJO (2026-09-10): eso es la distribución. La MATERIA PRIMA PLÁSTICA también
+  se guarda físicamente en Virgilio y ESA sí se gestiona** — sector 14 «Materia Prima Plástica»,
+  ver abajo.
+- **Materia prima plástica (2026-09-10)**: bolsas de 25 kg (PP 2630, ABS, Alto Impacto, Nylon
+  Virgen/Recuperado/c-Carga, PE, PS HF555 + Master Bach) → sector 14, se compran a **Indarnyl**
+  (PP, ABS), **Santa Rosa Plásticos** (PE, PS, AI, Nylons), **Beta Plásticos** (alternativo),
+  **Arcolor / Julio Garcia e Hijos** (Master Bach). Rubro propio en OC y en Recepción («Mat.
+  Plástica», en kg). **Máximo = 2,5 meses de consumo en bolsas enteras** (`maximo_origen='fisico'`,
+  los recalculos no lo pisan; el consumo mensual salió del workbook del usuario, PP ~909 kg/mes).
+  Tope físico: 20 pallets × 15 bolsas en Virgilio. Las bolsas **se le mandan a los inyectores**
+  (`enviar_material_inyector`, desde Inyectores) y **el inyector tiene que tener lo que necesita
+  para su OC** [usuario]: `v_material_inyector` = OC abiertas × kg_x_uni × 1,04 − lo que ya tiene.
+  Al recepcionar la pieza inyectada, `crear_recepcion_insumo` descuenta sola el material de la
+  ubicación del inyector. Pendientes: precio de PE / Nylon Virgen / Nylon Recuperado (Santa Rosa
+  no los lista en la planilla), stock inicial de Master Bach (0, sin conteo), y PC12 / PC16 sin
+  material asignado (el workbook no los trae).
 - ~~Flejes, cartones, plásticos y bombillas sin máximo~~ RESUELTO 2026-08-29: sus máximos
   se derivan de la Est Madre (ver regla arriba), ya no requieren relevamiento.
 - Cartones: el formato (C/LOKE/8) de cada cartón se va a identificar POR PRECIO —

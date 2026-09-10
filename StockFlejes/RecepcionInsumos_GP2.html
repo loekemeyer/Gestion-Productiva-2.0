@@ -6,6 +6,13 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
+<!-- v3.53.0 (2026-09-10) — RUBRO MATERIA PRIMA PLASTICA (sector 14): las bolsas de 25 kg (PP 2630, ABS,
+     Alto Impacto, Nylons, PE, PS, Master Bach) que viven en Virgilio y se compran a Indarnyl / Santa Rosa /
+     Beta / Arcolor / Julio Garcia. Boton "Mat. Plástica" en #rubroGrid + MatPlastica:'kg' en RUBRO_UM
+     (se recibe en kg, sin pesaje ni control). Sin cambio de flujo: cargar_recepcion -> crear_recepcion_insumo.
+     Lo nuevo de fondo esta en la base: al recepcionar una PIEZA inyectada (rubro Plasticos) de un proveedor
+     con ubicacion de inyector, crear_recepcion_insumo descuenta sola la materia prima de su stock
+     (kg_x_uni x 1,04) — esta pantalla no tuvo que cambiar para eso [usuario 2026-09-10]. -->
 <!-- v3.52.0 (2026-09-10) — RUBRO GARAGE: faltaba el boton "Garage" (sector 9) en #rubroGrid y
      su entrada en RUBRO_UM (uni), asi que nada del Sector Garage (cepillos de Gilardi Esther,
      palo de amasar de Tierra Nativa, ñoqueras de Pintos) se podia recepcionar aunque el
@@ -418,6 +425,7 @@ input[type="text"]{width:200px}
         <button class="prov-btn" data-rubro="Remaches"  data-sid="8">Remaches</button>
         <button class="prov-btn" data-rubro="Bombillas" data-sid="7">Bombillas</button>
         <button class="prov-btn" data-rubro="Garage"    data-sid="9">Garage</button>
+        <button class="prov-btn" data-rubro="MatPlastica" data-sid="14">Mat. Plástica</button>
         <!-- Los rubros Filtros (Charcas) y Cortados (Eclipse) se sacaron en Fase B
              del rework 2026-09-02 (usuario): ahora los PS hibridos viven en su
              pantalla dedicada Prov Serv/CharcasEclipse/CharcasEclipse_GP2.html
@@ -627,7 +635,7 @@ const CONTROL_URL = {
   7:  'control-remaches.html?sector=7'   // Bombillas: idem [usuario 2026-09-03]
 };
 // Unidad default por rubro (kg / uni). Los flejes y remaches se compran en kg.
-const RUBRO_UM={Flejes:"kg",Remaches:"kg",Cajas:"uni",Plasticos:"uni",Cartones:"uni",Bombillas:"uni",Garage:"uni"};
+const RUBRO_UM={Flejes:"kg",Remaches:"kg",Cajas:"uni",Plasticos:"uni",Cartones:"uni",Bombillas:"uni",Garage:"uni",MatPlastica:"kg"};
 
 let INS=[], UMBY={}, KGXUNI={}, PROVFLAGS={}, RECS=[], PALL=[], ROLL=[], TARA={tara_pallet_min:4,tara_pallet_max:8};
 /* Insumos que el proveedor entrega en CAJAS y se pesan (componente.recibe_en_cajas).

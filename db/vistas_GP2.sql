@@ -1,7 +1,7 @@
 -- =====================================================================
 -- VISTAS del schema GP2 (pg_get_viewdef, exacto) — export automatico 2026-09-05 desde Supabase (hrxfctzncixxqmpfhskv)
 -- Respaldo/referencia. La fuente de verdad es la base; regenerar al cambiar el schema.
--- 13 vistas. Orden de creacion: las que dependen de otra van despues.
+-- 14 vistas. Orden de creacion: las que dependen de otra van despues.
 -- =====================================================================
 
 -- ---------- v_consumo_componente ----------
@@ -520,6 +520,72 @@ create or replace view "GP2".v_faltante_estado as
      LEFT JOIN "GP2".v_consumo_componente cp ON cp.componente_id = c.id
      CROSS JOIN umbral u2
   WHERE c.sector_id = ANY (ARRAY[1::bigint, 2::bigint]);
+
+-- ---------- v_material_inyector ----------
+create or replace view "GP2".v_material_inyector as
+ WITH pct AS (
+         SELECT COALESCE(( SELECT parametro.valor
+                   FROM "GP2".parametro
+                  WHERE parametro.clave = 'inyeccion_desperdicio_pct'::text), 0::numeric) AS p
+        ), bolsa AS (
+         SELECT COALESCE(( SELECT parametro.valor
+                   FROM "GP2".parametro
+                  WHERE parametro.clave = 'material_plastico_kg_x_bolsa'::text), 25::numeric) AS kg
+        ), iny AS (
+         SELECT pi.id AS prov_id,
+            pi.nombre AS proveedor,
+            u.id AS ubic_id
+           FROM "GP2".proveedor_insumo pi
+             JOIN "GP2".ubicacion u ON u.tipo = 'inyector'::text AND u.ref_id = pi.id
+        ), req AS (
+         SELECT o.proveedor,
+            c.material_id,
+            sum((oi.cantidad - COALESCE(oi.recibido, 0::numeric)) *
+                CASE
+                    WHEN oi.unidad = 'kg'::text THEN 1::numeric
+                    ELSE COALESCE(c.kg_x_uni, 0::numeric)
+                END) AS kg_producto
+           FROM "GP2".orden_compra o
+             JOIN "GP2".orden_compra_item oi ON oi.oc_id = o.id
+             JOIN "GP2".componente c ON c.id = oi.componente_id
+          WHERE (o.estado = ANY (ARRAY['borrador'::text, 'enviada'::text])) AND c.material_id IS NOT NULL AND oi.cantidad > COALESCE(oi.recibido, 0::numeric)
+          GROUP BY o.proveedor, c.material_id
+        ), calc AS (
+         SELECT i.prov_id,
+            i.proveedor,
+            i.ubic_id,
+            m.id AS material_id,
+            m.codigo AS material_codigo,
+            m.descripcion AS material,
+            round(COALESCE(r.kg_producto, 0::numeric) * (1::numeric + pct.p / 100::numeric), 2) AS kg_requerido_oc,
+            COALESCE(inv.cantidad, 0::numeric) AS kg_en_inyector,
+            COALESCE(invv.cantidad, 0::numeric) AS kg_en_virgilio,
+            pct.p AS desperdicio_pct
+           FROM iny i
+             CROSS JOIN "GP2".componente m
+             CROSS JOIN pct
+             LEFT JOIN req r ON r.proveedor = i.proveedor AND r.material_id = m.id
+             LEFT JOIN "GP2".inventario inv ON inv.componente_id = m.id AND inv.ubicacion_id = i.ubic_id
+             LEFT JOIN "GP2".inventario invv ON invv.componente_id = m.id AND invv.ubicacion_id = "GP2".ubic_de('sector'::text, 14::bigint)
+          WHERE m.sector_id = 14
+        )
+ SELECT calc.prov_id,
+    calc.proveedor,
+    calc.ubic_id,
+    calc.material_id,
+    calc.material_codigo,
+    calc.material,
+    calc.kg_requerido_oc,
+    calc.kg_en_inyector,
+    calc.kg_en_virgilio,
+    calc.desperdicio_pct,
+    GREATEST(0::numeric, calc.kg_requerido_oc - calc.kg_en_inyector) AS kg_a_enviar,
+    ceil(GREATEST(0::numeric, calc.kg_requerido_oc - calc.kg_en_inyector) / bolsa.kg)::integer AS bolsas_a_enviar,
+    bolsa.kg AS kg_x_bolsa
+   FROM calc
+     CROSS JOIN bolsa
+  WHERE calc.kg_requerido_oc > 0::numeric OR calc.kg_en_inyector <> 0::numeric;
+comment on view "GP2".v_material_inyector is 'Materia prima plastica por inyector: kg que necesita para sus OC abiertas (borrador/enviada, pendiente x kg_x_uni x (1+desperdicio)), kg que ya tiene en su ubicacion, kg en Virgilio y lo que hay que ENVIARLE (en kg y en bolsas de material_plastico_kg_x_bolsa). Solo pares con algo que decir. [usuario 2026-09-10: el inyector tiene que tener lo que necesite para su OC]';
 
 -- ---------- v_nivel_stock ----------
 create or replace view "GP2".v_nivel_stock as

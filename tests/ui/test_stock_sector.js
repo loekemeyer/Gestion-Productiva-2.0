@@ -67,10 +67,15 @@ const ESPERADO = {
   10: { titulo: 'Cartones', h1: 'Cartones · Sector Cartón', botones: [CSV, REC, ATRAS], cols: COLS_INSUMO, a10: ['500', '400', '250'] },
   11: { titulo: 'Cajas', h1: 'Cajas · Sector Caja', botones: [CSV, REC, 'Control Cajas', ATRAS],
         destacado: 'Control Cajas', cols: COLS_INSUMO, a10: ['500', '400', '250'] },
+  // materia prima plastica (2026-09-10): bolsas en Virgilio; entra por compra, sale en bolsas al inyector
+  14: { titulo: 'Materia Prima Plástica', h1: 'Materia Prima Plástica · Sector Materia Prima Plástica (Virgilio)',
+        botones: [CSV, REC, 'Inyectores · Material', ATRAS], destacado: 'Inyectores · Material',
+        cols: ['Compras', 'Envíos a inyector'], a10: ['500', '—'] },              // compra 500 | sin envio_inyector en el stub
 };
-// rotulo del menu -> sector (mismos rotulos y mismo orden que tenia el menu con los 9 links)
+// rotulo del menu -> sector (mismos rotulos y mismo orden que tenia el menu con los 9 links, + Materia Prima)
 const MENU_ESPERADO = [['Stock SP', 2], ['Stock SC', 1], ['Stock en Movimiento', 3],
-  ['Cajas', 11], ['Cartones', 10], ['Partes Plásticas', 6], ['Remaches', 8], ['Bombillas', 7], ['Garage', 9]];
+  ['Cajas', 11], ['Cartones', 10], ['Partes Plásticas', 6], ['Remaches', 8], ['Bombillas', 7], ['Garage', 9],
+  ['Materia Prima Plástica', 14]];
 const VIEJOS = ['StockFlejes/Bombillas_GP2.html', 'StockFlejes/Cajas_GP2.html', 'StockFlejes/Cartones_GP2.html',
   'StockFlejes/Garage_GP2.html', 'StockFlejes/Plasticos_GP2.html', 'StockFlejes/Remaches_GP2.html',
   'StockSC/StockSC_GP2.html', 'StockSP/StockSP_GP2.html', 'StockMovimiento/StockMovimiento_GP2.html'];
@@ -179,10 +184,10 @@ const VIEJOS = ['StockFlejes/Bombillas_GP2.html', 'StockFlejes/Cajas_GP2.html', 
   // ── el menu manda cada rotulo al sector correcto, y los 9 HTML viejos no volvieron ──
   const menu = fs.readFileSync(path.join(ROOT_DIR, 'GP2_MODULOS.html'), 'utf8');
   const links = [...menu.matchAll(/\["([^"]+)",\s*"StockSector\/StockSector_GP2\.html\?sector=(\d+)"\]/g)].map(m => [m[1], Number(m[2])]);
-  ok(JSON.stringify(links) === JSON.stringify(MENU_ESPERADO), 'menu: los 9 rotulos van a la pantalla unica con su sector, en el orden de siempre ' + JSON.stringify(links));
+  ok(JSON.stringify(links) === JSON.stringify(MENU_ESPERADO), 'menu: los 10 rotulos van a la pantalla unica con su sector, en el orden de siempre ' + JSON.stringify(links));
   ok(links.every(([rot, sec]) => ESPERADO[sec] && ESPERADO[sec].titulo === rot), 'menu: cada rotulo coincide con el titulo de su sector');
   const mapa = await page.evaluate(() => Object.keys(window.GP2StockSector.SECTORES).map(Number).sort((a, b) => a - b));
-  ok(JSON.stringify(mapa) === JSON.stringify(Object.keys(ESPERADO).map(Number).sort((a, b) => a - b)), 'el mapa SECTORES tiene exactamente los 9 sectores (' + mapa + ')');
+  ok(JSON.stringify(mapa) === JSON.stringify(Object.keys(ESPERADO).map(Number).sort((a, b) => a - b)), 'el mapa SECTORES tiene exactamente los 10 sectores (' + mapa + ')');
   const vivos = VIEJOS.filter(v => fs.existsSync(path.join(ROOT_DIR, v)));
   ok(vivos.length === 0, 'los 9 HTML viejos siguen borrados' + (vivos.length ? ' — volvieron: ' + vivos.join(', ') : ''));
   ok(!/(Bombillas|Cajas|Cartones|Garage|Plasticos|Remaches|StockSC|StockSP|StockMovimiento)_GP2\.html/.test(menu), 'menu: ningun link a los HTML viejos');

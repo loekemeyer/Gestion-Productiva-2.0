@@ -211,18 +211,33 @@ el motivo de una devolucion, desde el 2026-09-05 — y reemplaza a la tabla cabe
 (CHECK desde el 2026-09-05; el trigger traduce `unidad`, `pliego`, `KG`… antes de calcular, asi
 que una pantalla puede mandar `componente.unidad_medida` tal cual; null = la del otro lado).
 
-**`ubicacion.tipo` tiene SEIS valores**: `sector`, `tallerista`, `proveedor_servicio`,
+**`ubicacion.tipo` tiene SIETE valores**: `sector`, `tallerista`, `proveedor_servicio`,
 `proveedor_at` (los 12 proveedores de articulos terminados), **`virgilio`** (id 33, la
-distribucion) y `analisis` (id 46 «Para Analizar», adonde va una devolucion que hay que mirar).
+distribucion), `analisis` (id 46 «Para Analizar», adonde va una devolucion que hay que mirar) e
+**`inyector`** (desde el 2026-09-10: `ref_id = proveedor_insumo.id`, una por inyector — Pat Bet
+Plast, Pettofrezza Rafael, Kollplast, JL Matriceria — con la MATERIA PRIMA plastica en su poder).
 Los 84 articulos terminados (sector 12) no tienen ubicacion de sector: viven en Virgilio.
+
+**Materia prima plastica (2026-09-10)**: sector **14** «Sector Materia Prima Plástica» (`es_insumo`,
+ubicacion tipo `sector` ref 14, fisicamente en Virgilio, `meses_stock 2.5`). 12 componentes en **kg**
+con codigo = Cod ISIS (`2405` PP 2630, `2455` ABS, `2465` Alto Impacto, `2475`/`2505`/`2485` Nylon
+Virgen/Recuperado/c-Carga, `2435` PE, `2425` PS HF555, `0235`/`0255`/`0265`/`2595` Master Bach).
+`componente.material_id` en la pieza inyectada dice de que bolsa esta hecha; `crear_recepcion_insumo`
+descuenta `uni x kg_x_uni x (1 + parametro inyeccion_desperdicio_pct/100)` de la ubicacion del inyector
+al recepcionar la pieza (movimiento `consumo_inyector`, anotado en `recepcion_insumo.rollos_json` para
+que `anular_recepcion` lo revierta). `enviar_material_inyector(p_proveedor, p_comp_id, p_kg)` manda
+bolsas de Virgilio al inyector (`envio_inyector`). `v_material_inyector` / `inyectores_bundle.material`
+= lo que cada inyector necesita para sus OC abiertas menos lo que tiene, en kg y en bolsas
+(`parametro material_plastico_kg_x_bolsa` = 25).
 
 `tipo_mov` (vocabulario del ledger, verificado 2026-09-04): `compra` (recepciones de insumo y
 compras de MP), `consumo` (MP consumida por un PS híbrido: Charcas/Eclipse), `envio_ps` /
 `entrega_ps`, `envio_tallerista` / `entrega_tallerista` / `consumo_tall` (partes consumidas al
 entregar un armado) / `devolucion_tallerista`, `envio_prov_at`, `fabricacion` (producción con
 matriz), `armado_fabrica` / `consumo_prod` (armado en fábrica desde Stocks General),
-`recepcion_virgilio` / `consumo_virgilio` (espejo de las entregas en Virgilio), `stock_inicial`,
-`ajuste`. Antes convivían `recepcion_tall` (JS) y `consumo_armado` / `consumo_transformacion`
+`recepcion_virgilio` / `consumo_virgilio` (espejo de las entregas en Virgilio), `envio_inyector` /
+`consumo_inyector` (materia prima plastica que va al inyector y la que consume al entregar la pieza,
+2026-09-10), `stock_inicial`, `ajuste`. Antes convivían `recepcion_tall` (JS) y `consumo_armado` / `consumo_transformacion`
 (SQL) para lo mismo: se unificaron en la auditoría del 2026-09-04. **Desde el 2026-09-05 el
 vocabulario es cerrado**: `movimiento_tipo_mov_chk` rechaza cualquier otra palabra (también las
 que manda el JS por `registrar_movimientos`). Un tipo nuevo se agrega en el CHECK y en el mapa

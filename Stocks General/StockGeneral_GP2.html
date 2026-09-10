@@ -3,7 +3,9 @@
 <script src="../gp2-ui.js?v=20260905a"></script>
 <script src="../gp2-numero.js?v=20260905m"></script>
 <title>Stock por ubicación · GP2</title>
-<!-- v1.1.2 (2026-09-04) - la tabla de rotulos de los ultimos movimientos pasa al vocabulario REAL del ledger
+<!-- v1.1.3 (2026-09-10) - rotulos para los dos tipos nuevos del ledger: envio_inyector (bolsas de materia prima
+     plastica de Virgilio al inyector) y consumo_inyector (material descontado al recepcionar la pieza inyectada).
+     v1.1.2 (2026-09-04) - la tabla de rotulos de los ultimos movimientos pasa al vocabulario REAL del ledger
      (envio_ps/entrega_ps/envio_tallerista/entrega_tallerista/fabricacion...): tenia los nombres del programa viejo y
      casi todo salia con el codigo crudo (auditoria de arquitectura).
      v1.1.1 - la pantalla hereda lo unico propio de Movimientos/Registrar_Movimiento.html
@@ -322,6 +324,7 @@ var TIPOS={
  consumo_tall:{lbl:'Consumo tall',cls:'t-recep'}, devolucion_tallerista:{lbl:'Devolución tall',cls:'t-recep'},
  envio_prov_at:{lbl:'Env prov AT',cls:'t-envio'},
  recepcion_virgilio:{lbl:'Rec Virgilio',cls:'t-virgilio'}, consumo_virgilio:{lbl:'Consumo Virgilio',cls:'t-virgilio'},
+ envio_inyector:{lbl:'Env inyector',cls:'t-envio'}, consumo_inyector:{lbl:'Consumo inyector',cls:'t-recep'},
  stock_inicial:{lbl:'Stock inicial',cls:'t-ajuste'}, ajuste:{lbl:'Ajuste',cls:'t-ajuste'}
 };
 function fmtNum(n){if(n==null)return '';var x=Number(n);return Number.isInteger(x)?String(x):x.toFixed(2);}

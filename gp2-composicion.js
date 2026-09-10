@@ -44,6 +44,7 @@ window.GP2Composicion = (function () {
     consumo_tall: "Consumo de tallerista", devolucion_tallerista: "Devolución de tallerista",
     envio_prov_at: "Envío a prov. art. terminado",
     recepcion_virgilio: "Entrega en Virgilio", consumo_virgilio: "Consumo en Virgilio",
+    envio_inyector: "Envío de material al inyector", consumo_inyector: "Material consumido por el inyector",
     stock_inicial: "Stock inicial", ajuste: "Ajuste"
   };
   function nombreTipo(t) { return TIPOS[t] || String(t || "").replace(/_/g, " "); }

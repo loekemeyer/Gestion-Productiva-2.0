@@ -45,9 +45,16 @@
 var COLS_INSUMO = [
   { k:"compras", label:"Compras", tipos:["compra"],                                   lado:"ent" },
   { k:"consumo", label:"Consumo", tipos:["consumo_prod","consumo_tall","produccion","fabricacion"], lado:"sal" },
-  { k:"envios",  label:"Envíos",  tipos:["envio_ps","envio_tallerista"],               lado:"sal" }
+  { k:"envios",  label:"Envíos",  tipos:["envio_ps","envio_tallerista","envio_inyector"], lado:"sal" }
 ];
 var LINK_RECEPCION = ["Recepción", "../StockFlejes/RecepcionInsumos_GP2.html"];
+/* Materia prima plastica (sector 14, 2026-09-10): bolsas de 25 kg que viven en Virgilio. Entran
+   por compra (Recepcion) y salen en bolsas hacia los INYECTORES (envio_inyector, desde Inyectores).
+   El consumo (consumo_inyector) pasa en la ubicacion del inyector, no aca. */
+var COLS_MP = [
+  { k:"compras", label:"Compras",            tipos:["compra"],          lado:"ent" },
+  { k:"envios",  label:"Envíos a inyector",  tipos:["envio_inyector"],  lado:"sal" }
+];
 
 var SECTORES = {
   /* Mismas columnas de movimiento que Stock SC del programa viejo:
@@ -90,7 +97,10 @@ var SECTORES = {
   10: { titulo:"Cartones",         sector_nom:"Sector Cartón",   links:[LINK_RECEPCION], columnas:COLS_INSUMO },
   11: { titulo:"Cajas",            sector_nom:"Sector Caja",
         links:[LINK_RECEPCION, ["Control Cajas", "../StockFlejes/control-cajas.html", "destacado"]],
-        columnas:COLS_INSUMO }
+        columnas:COLS_INSUMO },
+  14: { titulo:"Materia Prima Plástica", sector_nom:"Sector Materia Prima Plástica (Virgilio)",
+        links:[LINK_RECEPCION, ["Inyectores · Material", "../Compras/Inyectores_GP2.html", "destacado"]],
+        columnas:COLS_MP }
 };
 
 /* config de un sector del mapa (null si no existe) */

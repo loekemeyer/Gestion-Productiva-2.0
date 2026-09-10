@@ -29,6 +29,14 @@ select 'A_contrapartes_sin_ubicacion' regla, count(*) n from (
     union all select id from "GP2".proveedor_at p where p.activo and "GP2".ubic_de('proveedor_at', p.id) is null
     union all select id from "GP2".sector s where s.es_insumo and "GP2".ubic_de('sector', s.id) is null) x
 union all
+-- A2) Todo proveedor que entrega piezas con material asignado es un INYECTOR con ubicacion propia
+--     (si no, crear_recepcion_insumo recibe la pieza pero NO descuenta la materia prima y el stock
+--     de Virgilio queda inflado sin que nadie avise). 2026-09-10.
+select 'A2_inyector_con_material_sin_ubicacion', count(*) from (
+    select distinct c.proveedor from "GP2".componente c
+     where c.material_id is not null and c.estado_compra is null and c.proveedor is not null
+       and "GP2".ubic_de('inyector', (select pi.id from "GP2".proveedor_insumo pi where pi.nombre = c.proveedor)) is null) x
+union all
 -- B) El inventario es exactamente la suma del libro (el motor vive en los triggers).
 select 'B_inventario_distinto_del_ledger', count(*)
   from ledger s full join "GP2".inventario i on i.componente_id = s.comp and i.ubicacion_id = s.ubic
@@ -135,14 +143,16 @@ union all
 select 'Z_parametro_que_lee_el_codigo_faltante', count(*) from unnest(array[
     'caja_uni_x_paquete', 'carton_uni_x_paquete', 'charcas_kg_x_paquete', 'costo_segundo_pesos',
     'faltante_cajones_umbral', 'max_cajones_x_ubicacion', 'pliego_uni_x_paquete', 'registro_en_golpes',
-    'tara_pallet_max', 'tara_pallet_min', 'tipo_cambio_usd_pesos', 'tol_ctrl_peso_pct']) k
+    'tara_pallet_max', 'tara_pallet_min', 'tipo_cambio_usd_pesos', 'tol_ctrl_peso_pct',
+    'inyeccion_desperdicio_pct', 'material_plastico_kg_x_bolsa']) k
  where not exists (select 1 from "GP2".parametro p where p.clave = k)
 union all
 select 'Z2_parametro_que_nadie_lee', count(*) from "GP2".parametro p
  where p.clave not in (
     'caja_uni_x_paquete', 'carton_uni_x_paquete', 'charcas_kg_x_paquete', 'costo_segundo_pesos',
     'faltante_cajones_umbral', 'max_cajones_x_ubicacion', 'pliego_uni_x_paquete', 'registro_en_golpes',
-    'tara_pallet_max', 'tara_pallet_min', 'tipo_cambio_usd_pesos', 'tol_ctrl_peso_pct')
+    'tara_pallet_max', 'tara_pallet_min', 'tipo_cambio_usd_pesos', 'tol_ctrl_peso_pct',
+    'inyeccion_desperdicio_pct', 'material_plastico_kg_x_bolsa')
 union all
 -- Z3) Un PS híbrido tiene una materia prima con proveedor de insumo: si no, crear_oc no puede
 --     armar la OC gemela (Charcas → Altrak, Eclipse → Aperam).

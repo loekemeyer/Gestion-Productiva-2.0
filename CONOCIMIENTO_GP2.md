@@ -6515,3 +6515,44 @@ lejos el más usado**; lo que más PP consume son los **Mango 505** y el **Mango
 
 *(El detalle numérico y las tablas de pallets quedaron en `.xlsx` que se le pasaron al usuario en el
 chat — regla de la casa: el detalle va al archivo, la memoria guarda la lógica.)*
+
+### 4at-bis. CONSTRUIDO: la materia prima plástica entra nativa a GP2 (2026-09-10)
+
+**Decisiones del usuario (mismo día):** *(1)* el material se compra a **3 proveedores** — Indarnyl,
+Santa Rosa Plásticos y Beta Plásticos (Master Bach: Arcolor y Julio Garcia) `[dato: v_planilla_precio;
+el bloque cod_prov 837 perdió el nombre en la planilla y es Santa Rosa por lo que vende — deducido]`;
+*(2)* los gramos por pieza salen del workbook `Conteo_y_Pedido_Sector_Plastico` (col «Kg x Parte»);
+*(3)* **el inyector no tiene X días fijos: tiene que tener lo que necesite para su OC** `[usuario,
+textual: "Lo que necesite para su oc"]`; *(4)* **desperdicio 4 %** (el de la planilla del vecino);
+*(5)* **códigos = Cod ISIS del vecino** (2405 PP, 2455 ABS, 2465 AI, 2475/2505/2485 Nylons, 2435 PE,
+2425 PS, 0235/0255/0265/2595 Master Bach).
+
+**Cómo quedó (migración `materia_prima_plastica_virgilio_inyectores`):**
+- **Sector 14 «Materia Prima Plástica»** (es_insumo, kg), ubicación propia «en Virgilio», `meses_stock`
+  2,5. Los 12 materiales con **stock inicial = conteo del usuario del 2026-09-10** (PP 123 bolsas, AI
+  68, ABS 14, Ny c/Carga 1, Ny Rec 18, Ny Virgen 23, PE 10, PS 8 — 6.625 kg) y **máximo = 2,5 meses en
+  bolsas enteras** (origen `fisico`). Master Bach en 0 (sin conteo). EBA afuera (discontinuo).
+- **Los inyectores siguen siendo `proveedor_insumo`** (no se los convirtió en PS híbrido: ese patrón
+  admite UNA materia prima por PS y los invariantes G/H lo asumen; un inyector usa PP, ABS, PE…).
+  Ganan **ubicación tipo `inyector`** (`ref_id = proveedor_insumo.id`, columna nueva): Pat Bet
+  Plast, Pettofrezza Rafael, Kollplast, JL Matriceria.
+- **`componente.material_id`** en 54 piezas inyectadas (PP 24, ABS 9, Ny Rec 8, PE 6, PS 3, Ny Virgen
+  2, Ny c/Carga 1, AI 1) y `kg_x_uni` completado sólo donde estaba null. **Sin material a propósito**:
+  PEP5/PEP8 (mango de madera), PEP7 (palo blanco), PA3 (Santoprene, discontinuo), PC12/PC16 (el
+  workbook no los trae → pendiente del usuario).
+- **Descuento automático**: `crear_recepcion_insumo` (por donde pasa toda recepción de la pantalla) —
+  si la pieza tiene material y el proveedor tiene ubicación de inyector, descuenta
+  `uni × kg_x_uni × 1,04` de ESA ubicación (`consumo_inyector`). Probado con rollback: 1.000 Mango 505
+  de Pettofrezza → 5,616 kg de PP. `anular_recepcion` lo revierte (y también la chapa de Eclipse,
+  mismo patrón, que antes quedaba colgada).
+- **Reposición por OC**: `v_material_inyector` = Σ OC abiertas al inyector (pendiente × kg_x_uni ×
+  1,04) − stock en el inyector → kg y **bolsas a enviar**; `enviar_material_inyector` registra el
+  envío Virgilio → inyector. Panel «Material» en `Compras/Inyectores_GP2.html`.
+- Pantallas: Recepción gana el rubro «Mat. Plástica» (kg); Stock por sector gana `?sector=14`;
+  Stocks General / composición rotulan los dos tipos nuevos.
+
+**Pendientes que dejó (no se inventa nada):** precio de **PE, Nylon Virgen y Nylon Recuperado** (Santa
+Rosa no los lista en la planilla; Indarnyl/Beta sí, pero el proveedor asignado es Santa Rosa);
+**conteo de Master Bach**; material de **PC12 y PC16**; y la duda del código **1135 «Al Alto
+Impacto»** que muestra el sistema del usuario (en la planilla 1135 es un PE PEBD y el AI 4600 es
+2465 — se usó 2465).

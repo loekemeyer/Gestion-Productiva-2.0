@@ -1,7 +1,7 @@
 -- =====================================================================
 -- FUNCIONES del schema GP2 — export automatico 2026-09-05 (pg_get_functiondef, exacto)
 -- Fuente de verdad: Supabase (hrxfctzncixxqmpfhskv). Este archivo es respaldo/referencia.
--- 119 funciones. Los GRANT/REVOKE no estan aca: EXECUTE para anon solo en las RPC de pantalla (ver db/README.md).
+-- 120 funciones. Los GRANT/REVOKE no estan aca: EXECUTE para anon solo en las RPC de pantalla (ver db/README.md).
 -- =====================================================================
 
 -- ---------- _aplicar_recepcion_a_oc ----------
@@ -461,11 +461,17 @@ begin
     return;
   end if;
 
-  -- Movimientos asociados (uno por recepcion en general, pueden ser null)
-  select coalesce(array_agg(movimiento_id) filter (where movimiento_id is not null), array[]::bigint[])
+  -- Movimientos asociados: la compra (movimiento_id) y, si los hay, el consumo de materia prima que
+  -- esa recepcion disparo (rollos_json: movimiento_material_id del inyector, movimiento_chapa_id de Eclipse).
+  select coalesce(array_agg(x) filter (where x is not null), array[]::bigint[])
     into v_mov_ids
-  from "GP2".recepcion_insumo
-  where id = any(p_recepcion_ids);
+  from (
+    select movimiento_id x from "GP2".recepcion_insumo where id = any(p_recepcion_ids)
+    union all
+    select (rollos_json->>'movimiento_material_id')::bigint from "GP2".recepcion_insumo where id = any(p_recepcion_ids)
+    union all
+    select (rollos_json->>'movimiento_chapa_id')::bigint from "GP2".recepcion_insumo where id = any(p_recepcion_ids)
+  ) q;
 
   -- Borrar movimientos primero: el trigger AFTER DELETE de GP2.movimiento
   -- (fn_movimiento_aplicar) revierte el impacto en GP2.inventario.
@@ -481,9 +487,7 @@ begin
 
   return query select v_recs, v_movs;
 end;
-$function$
-;
-
+$function$;
 -- ---------- asignar_pintor_activo ----------
 CREATE OR REPLACE FUNCTION "GP2".asignar_pintor_activo(p_comp_id bigint, p_prov_id bigint)
  RETURNS jsonb
@@ -1873,9 +1877,13 @@ CREATE OR REPLACE FUNCTION "GP2".crear_recepcion_insumo(p_comp_id bigint, p_prov
  SET search_path TO 'GP2'
 AS $function$
 declare v_sec bigint; v_um text; v_ubic bigint; v_u text; v_movid bigint; v_recid bigint; v_f timestamptz; v_oc jsonb;
+        v_prov text; v_mat bigint; v_kg_x_uni numeric; v_prov_id bigint; v_ubic_iny bigint; v_pct numeric;
+        v_kg_mat numeric; v_mov_mat bigint; v_material jsonb;
 begin
   if p_cantidad is null or p_cantidad<=0 then raise exception 'La cantidad debe ser mayor a 0'; end if;
-  select sector_id, unidad_medida into v_sec, v_um from "GP2".componente where id=p_comp_id;
+  select sector_id, unidad_medida, material_id, kg_x_uni, nullif(btrim(coalesce(proveedor,'')),'')
+    into v_sec, v_um, v_mat, v_kg_x_uni, v_prov
+    from "GP2".componente where id=p_comp_id;
   if v_sec is null then raise exception 'El insumo no existe'; end if;
   if not "GP2"._es_sector_insumo(v_sec) then raise exception 'El componente % no es un insumo (sector no comprable)', p_comp_id; end if;
   v_ubic := "GP2".ubic_de('sector', v_sec);
@@ -1888,10 +1896,39 @@ begin
   values(v_f,p_comp_id,nullif(btrim(coalesce(p_proveedor,'')),''),nullif(btrim(coalesce(p_remito,'')),''),p_cantidad,v_u,v_movid)
   returning id into v_recid;
   v_oc := "GP2"._aplicar_recepcion_a_oc(p_comp_id, p_cantidad, v_u);
-  return jsonb_build_object('ok',true,'recepcion_id',v_recid,'movimiento_id',v_movid,'unidad',v_u,'oc_cruzada',v_oc);
-end $function$
-;
 
+  -- MATERIA PRIMA DEL INYECTOR (2026-09-10): la pieza tiene material_id y el proveedor que la entrega
+  -- (el de la recepcion; si no vino, el del componente) tiene ubicacion tipo 'inyector' -> el material
+  -- que consumio al inyectarla sale de SU stock: kg = uni x kg_x_uni x (1 + inyeccion_desperdicio_pct/100).
+  -- Mismo molde que cargar_recepcion_eclipse (chapa 430). El movimiento queda anotado en rollos_json
+  -- para que anular_recepcion lo revierta junto con la compra.
+  v_prov := coalesce(nullif(btrim(coalesce(p_proveedor,'')),''), v_prov);
+  if v_mat is not null and v_prov is not null then
+    select id into v_prov_id from "GP2".proveedor_insumo where nombre = v_prov;
+    v_ubic_iny := "GP2".ubic_de('inyector', v_prov_id);
+    if v_ubic_iny is not null then
+      if v_u = 'uni' and (v_kg_x_uni is null or v_kg_x_uni <= 0) then
+        raise exception 'La pieza % tiene material asignado pero no tiene kg_x_uni: no se puede descontar el material del inyector', p_comp_id;
+      end if;
+      v_pct := coalesce((select valor from "GP2".parametro where clave='inyeccion_desperdicio_pct'), 0);
+      v_kg_mat := round(((case when v_u='kg' then p_cantidad else p_cantidad * v_kg_x_uni end) * (1 + v_pct/100))::numeric, 3);
+      insert into "GP2".movimiento(fecha,tipo_mov,comp_id,ubic_origen_id,ubic_destino_id,cantidad,unidad_origen,unidad_destino,nota)
+      values(v_f,'consumo_inyector',v_mat,v_ubic_iny,null,v_kg_mat,'kg','kg',
+             'Material consumido al inyectar '||p_cantidad||' '||v_u||' del comp '||p_comp_id||' (recepcion '||v_recid||')')
+      returning id into v_mov_mat;
+      update "GP2".recepcion_insumo
+         set rollos_json = coalesce(rollos_json,'{}'::jsonb)
+                        || jsonb_build_object('movimiento_material_id', v_mov_mat, 'material_id', v_mat,
+                                              'kg_material', v_kg_mat, 'desperdicio_pct', v_pct)
+       where id = v_recid;
+      v_material := jsonb_build_object('material_id', v_mat, 'kg', v_kg_mat, 'movimiento_id', v_mov_mat,
+                      'ubicacion_inyector_id', v_ubic_iny, 'desperdicio_pct', v_pct,
+                      'stock_inyector', (select cantidad from "GP2".inventario where componente_id=v_mat and ubicacion_id=v_ubic_iny));
+    end if;
+  end if;
+
+  return jsonb_build_object('ok',true,'recepcion_id',v_recid,'movimiento_id',v_movid,'unidad',v_u,'oc_cruzada',v_oc,'material',v_material);
+end $function$;
 -- ---------- descontrolar_recepcion ----------
 CREATE OR REPLACE FUNCTION "GP2".descontrolar_recepcion(p_recepcion_id bigint)
  RETURNS jsonb
@@ -2241,6 +2278,38 @@ select jsonb_build_object(
 );
 $function$
 ;
+
+-- ---------- enviar_material_inyector ----------
+CREATE OR REPLACE FUNCTION "GP2".enviar_material_inyector(p_proveedor text, p_comp_id bigint, p_kg numeric, p_fecha timestamp with time zone DEFAULT now(), p_nota text DEFAULT NULL::text)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'GP2'
+AS $function$
+declare v_prov_id bigint; v_ubic_iny bigint; v_ubic_mp bigint; v_codigo text; v_sec bigint; v_mov bigint;
+        v_antes_mp numeric; v_desp_mp numeric; v_desp_iny numeric;
+begin
+  if p_kg is null or p_kg <= 0 then raise exception 'Los kg deben ser mayores a 0 (recibido: %)', p_kg; end if;
+  select codigo, sector_id into v_codigo, v_sec from componente where id = p_comp_id;
+  if v_codigo is null then raise exception 'El componente % no existe', p_comp_id; end if;
+  if v_sec <> 14 then raise exception 'El componente % no es materia prima plastica (sector %)', v_codigo, v_sec; end if;
+  select id into v_prov_id from proveedor_insumo where nombre = btrim(coalesce(p_proveedor,''));
+  if v_prov_id is null then raise exception 'El proveedor "%" no existe', p_proveedor; end if;
+  v_ubic_iny := "GP2".ubic_de('inyector', v_prov_id);
+  if v_ubic_iny is null then raise exception 'El proveedor "%" no es un inyector (no tiene ubicacion tipo inyector)', p_proveedor; end if;
+  v_ubic_mp := "GP2".ubic_de('sector', 14);
+  select coalesce(cantidad,0) into v_antes_mp from inventario where componente_id=p_comp_id and ubicacion_id=v_ubic_mp;
+
+  insert into movimiento(fecha, tipo_mov, comp_id, ubic_origen_id, ubic_destino_id, cantidad, unidad_origen, unidad_destino, nota)
+  values (coalesce(p_fecha, now()), 'envio_inyector', p_comp_id, v_ubic_mp, v_ubic_iny, p_kg, 'kg', 'kg', nullif(btrim(coalesce(p_nota,'')),''))
+  returning id into v_mov;
+
+  select coalesce(cantidad,0) into v_desp_mp  from inventario where componente_id=p_comp_id and ubicacion_id=v_ubic_mp;
+  select coalesce(cantidad,0) into v_desp_iny from inventario where componente_id=p_comp_id and ubicacion_id=v_ubic_iny;
+  return jsonb_build_object('ok', true, 'movimiento_id', v_mov, 'codigo', v_codigo, 'kg', p_kg,
+    'virgilio_antes', v_antes_mp, 'virgilio_despues', v_desp_mp, 'inyector_despues', v_desp_iny,
+    'virgilio_negativo', (v_desp_mp < 0));
+end $function$;
 
 -- ---------- envios_prov_at_bundle ----------
 CREATE OR REPLACE FUNCTION "GP2".envios_prov_at_bundle()
@@ -3188,7 +3257,8 @@ select jsonb_build_object(
   'proveedores', (select coalesce(jsonb_agg(jsonb_build_object(
                      'nombre', pi.nombre, 'modo_control', pi.modo_control,
                      'n', (select count(*) from componente c, sec_sel
-                            where c.sector_id=sec_sel.sid and btrim(coalesce(c.proveedor,''))=pi.nombre)
+                            where c.sector_id=sec_sel.sid and btrim(coalesce(c.proveedor,''))=pi.nombre),
+                     'es_inyector', ("GP2".ubic_de('inyector', pi.id) is not null)
                    ) order by pi.nombre), '[]'::jsonb)
                   from proveedor_insumo pi
                   where pi.activo
@@ -3201,17 +3271,28 @@ select jsonb_build_object(
                 'proveedor', nullif(btrim(coalesce(c.proveedor,'')),''),
                 'estado_compra', c.estado_compra,
                 'um', c.unidad_medida, 'kg_x_uni', c.kg_x_uni, 'uni_x_cajon', c.uni_x_cajon,
+                'material_id', c.material_id,
+                'material', (select m.codigo from componente m where m.id=c.material_id),
                 'lo_produce', (select t.nombre from ruta_paso rp
                                 join tallerista t on t.id=rp.tallerista_id
                                where rp.comp_salida_id=c.id limit 1),
                 'stock', coalesce((select sum(i.cantidad) from inventario i where i.componente_id=c.id),0),
                 'en_recetas', (select count(*) from articulo_componente ac where ac.componente_id=c.id)
               ) order by c.codigo), '[]'::jsonb)
-             from componente c, sec_sel where c.sector_id=sec_sel.sid)
+             from componente c, sec_sel where c.sector_id=sec_sel.sid),
+  -- materia prima plastica por inyector (2026-09-10): lo que necesita para sus OC abiertas vs lo que tiene
+  'material', (select coalesce(jsonb_agg(to_jsonb(v) order by v.proveedor, v.material_codigo), '[]'::jsonb)
+               from v_material_inyector v),
+  'materiales', (select coalesce(jsonb_agg(jsonb_build_object(
+                    'comp_id', m.id, 'codigo', m.codigo, 'descripcion', m.descripcion,
+                    'kg_virgilio', coalesce((select i.cantidad from inventario i
+                                              where i.componente_id=m.id and i.ubicacion_id="GP2".ubic_de('sector',14)),0)
+                  ) order by m.codigo), '[]'::jsonb)
+                 from componente m where m.sector_id=14 and m.estado_compra is null),
+  'desperdicio_pct', (select valor from parametro where clave='inyeccion_desperdicio_pct'),
+  'kg_x_bolsa', (select valor from parametro where clave='material_plastico_kg_x_bolsa')
 );
-$function$
-;
-
+$function$;
 -- ---------- marcar_estado_compra ----------
 CREATE OR REPLACE FUNCTION "GP2".marcar_estado_compra(p_comp_id bigint, p_estado text)
  RETURNS jsonb
