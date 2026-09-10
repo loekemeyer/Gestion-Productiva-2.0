@@ -3909,7 +3909,7 @@ rutas_full as (
   from "GP2".ruta r left join ruta_fleje rf on rf.ruta_id = r.id
 )
 select jsonb_build_object(
-  'art', (select jsonb_agg(jsonb_build_object('id',id,'cod',codigo,'fam',familia) order by id) from "GP2".articulo),
+  'art', (select jsonb_agg(jsonb_build_object('id',id,'cod',codigo,'fam',familia,'d',descripcion,'mk',marca,'disc',discontinuado) order by id) from "GP2".articulo),
   'comp', (select jsonb_object_agg(id::text, jsonb_build_object('cod',codigo,'d',descripcion,'s',sector_id)) from "GP2".componente),
   'fl', '{}'::jsonb,
   -- 'p' (primera matriz del fleje) = tiene partes_por_kilo_de_fleje cargado

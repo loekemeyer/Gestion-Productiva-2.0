@@ -6242,3 +6242,52 @@ que la casa reconoce. Borrarlos de verdad NO lo puede hacer `abm_articulo_baja`:
 y `articulo_componente` son `NO ACTION`, y cada uno cuelga **5 rutas, 22 pasos y 5 líneas de
 receta** (más su cartón propio CART119 / CART574 / CART809, que quedaría sin uso). Es cirugía, no
 un flag: pedir confirmación explícita antes de tocarlo.
+
+### 4ap. Las familias de GP2 pasan a ser las del CATÁLOGO MAYORISTA (2026-09-10)
+
+`[usuario 2026-09-10]`: *"antes teníamos otras familias… quiero que uses las que te mandé recién"*.
+Las 23 familias que había las inventó GP2 por criterio productivo; las que manda ahora son las
+**19 del catálogo mayorista** (los mismos dos listados del 10/09/2026 de §4ao). Migración
+`articulo_familia_segun_catalogo_mayorista`: altas de `Coladores`, `Contenedores`, `Cortadores`,
+`Mate` y `Utensilios` en la tabla `familia`, y los **123 artículos** reasignados. Quedan **15
+familias con artículos** (las 4 del catálogo que GP2 no usa —Acacia, Ralladores, Tapón Vino,
+Vidrio— son todas de artículos que GP2 todavía no tiene).
+
+**El catálogo agrupa más grueso que la producción.** Lo que se pierde, a propósito:
+
+| Familia GP2 vieja | Ahora | Arts |
+|---|---|---|
+| Bombillas | Mate | 12 |
+| Cortadores (pizza) + (queso) + (ravioles) | Cortadores | 8 |
+| Ahuecadores + Rompenueces + Sacafuentes | Accesorios | 9 |
+| Batidores | Repostería | 5 |
+| Pisa papas + Palas de canelones + Utensilios de nylon | Utensilios | 15 |
+| Bowls | Contenedores | 1 |
+
+**Dos incoherencias del catálogo que se copiaron TAL CUAL** (son del listado, no del cruce; si el
+usuario quiere otra cosa se corrigen con una línea):
+1. **El filtro de café se parte según la marca**: 031/034 (LOEKE) van a **Coladores** y los gemelos
+   836/867 (CHEF) a **Accesorios**. Mismo producto, dos familias.
+2. **248 y 908, "Cuchara Nylon 33 cm", quedan en `Madera`** porque así los lista el catálogo. Son
+   de nylon.
+
+Las 3 familias viejas que quedaron sin artículos siguen en la tabla `familia` (no se borran: son
+FK y no molestan — el filtro del ABM se arma con las familias que los artículos usan, no con la
+tabla). Ojo con **`componente.carton_categoria`**: se cargó el 2026-09-08 cruzando contra la
+familia VIEJA (Abrelatas / Pelapapas / Sacacorchos / Resto). Es un valor **materializado**, no un
+join vivo, así que la OC de cartones no se movió — pero los dos criterios ya no son el mismo y
+conviene no volver a derivar uno del otro.
+
+### 4ap-bis. "¿Qué necesito para producir?": filtro de marca y descripción en el combo
+
+Antes el combo decía `501 — Abrelatas`: el código y la **familia repetida** en cada opción, sin
+decir qué es el artículo. Ahora (`Programa/Programa.html`, v1.117.0):
+
+- **Selector de marca** (Todas / Loekemeyer / Chef) delante del de artículo; al cambiarlo se
+  rearma la lista y se redibuja.
+- El combo se agrupa por **familia** con `<optgroup>` y cada opción muestra
+  `código — descripción` (más `(discontinuado)` cuando corresponde).
+- El encabezado de la pantalla muestra **descripción · familia · marca** en vez de solo la familia.
+- `programa_bundle` devuelve ahora `d` (descripción), `mk` (marca) y `disc` en cada `art`
+  (migración `programa_bundle_art_con_descripcion_y_marca`) — cambio aditivo, ninguna pantalla que
+  ya lo usaba se rompe.

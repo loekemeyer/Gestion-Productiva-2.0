@@ -66,6 +66,7 @@
 <div class="top">
  <h1>🏭 Loekemeyer · ¿Qué necesito para producir?</h1>
  <div class="sel">
+  Marca <select id="marca"><option value="">Todas</option><option value="LOEKE">Loekemeyer</option><option value="CHEF">Chef</option></select>
   Artículo <select id="art"></select>
   Unidades <input inputmode="numeric" id="uni" type="number" value="1000" min="1">
   <span id="tallAltBox" style="display:none">Tallerista <select id="tallAlt"></select></span>
@@ -90,9 +91,32 @@ function fmt(n){if(n==null||isNaN(n))return "?";n=Number(n);return GP2N.fmt(n, n
 // Defensive: ordenar rp por 'orden' aunque en Excel esté fuera de orden físico
 for(var _rid in D.rp)D.rp[_rid].sort(function(a,b){return a.o-b.o;});
 var sel=document.getElementById("art");
-D.art.slice().sort(function(a,b){return (parseInt(a.cod)||9999)-(parseInt(b.cod)||9999);}).forEach(function(a){
- var o=document.createElement("option");o.value=a.id;o.textContent=a.cod+"  —  "+a.fam;sel.appendChild(o);
-});
+var selMarca=document.getElementById("marca");
+/* El combo se arma por FAMILIA (optgroup) y cada opcion muestra la descripcion del articulo,
+   no la familia repetida. La familia y la descripcion salen de GP2.articulo (catalogo mayorista,
+   2026-09-10). El filtro de marca deja LOEKE / CHEF / todas. */
+function llenarArticulos(){
+ var mk=selMarca.value, prev=sel.value;
+ var arts=D.art.filter(function(a){return !mk||a.mk===mk;})
+   .sort(function(a,b){
+     var fa=a.fam||"zzz", fb=b.fam||"zzz";
+     if(fa!==fb)return fa.localeCompare(fb,"es");
+     return (parseInt(a.cod)||9999)-(parseInt(b.cod)||9999);
+   });
+ sel.innerHTML="";
+ var grupo=null, famAct=null;
+ arts.forEach(function(a){
+  if(a.fam!==famAct){famAct=a.fam;grupo=document.createElement("optgroup");grupo.label=famAct||"Sin familia";sel.appendChild(grupo);}
+  var o=document.createElement("option");
+  o.value=a.id;
+  o.textContent=a.cod+"  —  "+(a.d||a.fam||"")+(a.disc?"  (discontinuado)":"");
+  grupo.appendChild(o);
+ });
+ if(!arts.length){sel.innerHTML='<option value="">(sin artículos de esa marca)</option>';return false;}
+ if(prev&&arts.some(function(a){return String(a.id)===String(prev);}))sel.value=prev;
+ return true;
+}
+llenarArticulos();
 
 function expandBOM(aid){
  var need={};
@@ -396,7 +420,7 @@ function render(){
 
  var H='';
  H+='<div class="hero">'+
-    '<div><div class="cod">'+esc(a.cod)+'</div><div class="fam">'+esc(a.fam)+'</div></div>'+
+    '<div><div class="cod">'+esc(a.cod)+'</div><div class="fam">'+esc(a.d||"")+(a.d&&a.fam?' · ':'')+esc(a.fam||"")+(a.mk?' · '+esc(a.mk):'')+'</div></div>'+
     '<div style="display:flex;gap:8px;flex-wrap:wrap">'+
       '<div class="kpi"><b>'+fmt(uni)+'</b>unidades a producir</div>'+
       '<div class="kpi"><b>'+bom.length+'</b>partes BOM</div>'+
@@ -521,6 +545,10 @@ function render(){
 }
 
 sel.addEventListener("change",function(){document.getElementById('tallAlt').dataset.aid='';render();});
+selMarca.addEventListener("change",function(){
+ document.getElementById('tallAlt').dataset.aid='';
+ if(llenarArticulos())render();
+});
 document.getElementById("uni").addEventListener("input",render);
 document.getElementById("tallAlt").addEventListener("change",render);
 var a501=D.art.find(function(a){return a.cod==="501";});
