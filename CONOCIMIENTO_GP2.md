@@ -1082,21 +1082,27 @@ el trabajo. GP2 no los conoce, así que no se pueden enviar ni contar.
 
 ## 1-octies. Garage: la numeración GRJ está corrida entre la planilla y GP2 (2026-09-04)
 
-`[dato: planilla "Relevamiento Garage VACIO", hoja "Pedido Garage VACIO"]` 17 renglones. **No
-se cargó nada: está bloqueado por la numeración.** Tres códigos son dos cosas distintas al
-mismo tiempo:
+**RESUELTO EN PARTE (2026-09-10, CAMINO A del usuario):** se alineó GP2 con la planilla.
+Se renombraron en GP2 **`GRJ14` (Bombilla Pico de Loro) → `GRJ18`**, **`GRJ15` (Bombilla Plana
+Ancha) → `GRJ19`** (que es como los llama la planilla) y **`GRJ13` (Bowls 330ml, discontinuo)
+→ `GRJ21`** (parkeado). Con 13/14 libres se cargaron los cepillos de **Gilardi Esther**
+(proveedor nuevo, cod 3847): **`GRJ13` Cepillo Limpia Mamadera** (535/307) y **`GRJ14` Cepillo
+Limpia Vajilla** (534/052), y los 4 artículos (ver HISTORIAL/1-duodecies). **Falta todavía** de
+idea 7248: la **`GRJ15` Pintura Azul Mate (Ortiz Yanina)** —el código 15 quedó libre para
+ella— y las partes `GRJ16`/`GRJ17`/`GRJ20`. Lo de abajo queda como registro del enredo original.
 
-| código | en la planilla del usuario | en GP2 |
+`[dato: planilla "Relevamiento Garage VACIO", hoja "Pedido Garage VACIO"]` 17 renglones. Tres
+códigos eran dos cosas distintas al mismo tiempo (antes de Camino A):
+
+| código | en la planilla del usuario | en GP2 (antes) |
 |---|---|---|
 | `GRJ13` | Cepillo Limpia Mamadera (Gilardi) | Bowls 330ml (Cimarrón, discontinuo) |
 | `GRJ14` | Cepillo Limpia Vajilla (Gilardi) | Bombilla Pico de Loro (Cimarrón) |
 | `GRJ15` | Pintura Azul Mate (Ortiz Yanina) | Bombilla Plana Ancha (Cimarrón) |
 
 Y del otro lado, los **`GRJ18`/`GRJ19`** de la planilla (Bombilla Pico de Loro y Bombilla
-Plana Chata) **son los que GP2 llama `GRJ14`/`GRJ15`**: las mismas bombillas con dos números.
-Cargar por código acá mezcla un cepillo con una bombilla. **Lo decide el usuario** (idea
-7248): o se renumeran las bombillas de GP2 a 18/19, o las tres partes nuevas entran con otro
-código.
+Plana Chata) eran los que GP2 llamaba `GRJ14`/`GRJ15`: las mismas bombillas con dos números.
+El Camino A lo resolvió renumerando las bombillas a 18/19.
 
 **Coinciden y están bien**: `GRJ1`, `GRJ4`, `GRJ5`, `GRJ6`, `GRJ7` (la planilla lo llama
 `GRJ7/8`) y `GRJ10`. Los que están en `fabricacion` no salen en Recepción y eso es correcto:
