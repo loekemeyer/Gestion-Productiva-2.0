@@ -6574,9 +6574,10 @@ textual: "Lo que necesite para su oc"]`; *(4)* **desperdicio 4 %** (el de la pla
 «Inserto Chef»** (`[usuario 2026-09-10]` "te lo consigo" — material y gramos). ~~Código 1135 del
 Alto Impacto~~ → **1135 es código VIEJO; el vigente es 2465 (el de Santa Rosa y Beta)** `[usuario
 2026-09-10, textual: "1135 es cod viejo / 2465 es de santa rosa y beta"]` — GP2 ya usa 2465.
-**PC12 «Mgo Sacafuente Articulado» NO lleva material nuestro:
-es de Máspoli** `[usuario 2026-09-10: "PC12 es de Maspoli"]` — lo inyecta con material propio (está
-`fabricacion`, lo produce como tallerista), así que queda sin `material_id` a propósito. ~~Precio de PE / Nylon Virgen /
+**PC12 «Mgo Sacafuente Articulado» NO es plástico inyectado: es de MADERA, lo hace Máspoli**
+`[usuario 2026-09-10: "PC12 es de Maspoli" / "Maspoli es madera, no inyectado"]` — igual que
+PEP7/PEP8 (los otros mangos de Máspoli). Queda sin `material_id` a propósito; los tres están en
+Sector Plástico por herencia del vecino, no porque sean inyectados. ~~Precio de PE / Nylon Virgen /
 Nylon Rec~~ → resuelto con la regla de abajo.
 
 ### 4at-ter. Cada material se le compra AL MÁS BARATO, y la OC lo refleja (2026-09-10)
