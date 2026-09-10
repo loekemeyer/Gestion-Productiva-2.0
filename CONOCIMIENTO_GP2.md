@@ -6399,3 +6399,43 @@ familia ya era largo para encontrar uno a mano. `Programa/Programa.html` v1.119.
 
 Lo cubre `tests/ui/test_programa_marca.js` (búsqueda por descripción, por código, sin acentos, y
 combinada con la marca).
+
+### 4as. Palos de amasar 231, 232 y 233: Tierra Nativa → Garage → Fábrica (2026-09-10)
+
+`[usuario 2026-09-10]`: *"voy a crear el articulo 231, 232 y 233. son los tres palos de amasar…
+en recepcion de insumos garage me entrega tierra nativa esos 3 palos… y despues se manda al
+tallerista fábrica"*. Es el **mismo patrón del 234** (§4ag), calcado de su ruta 763. Migración
+`alta_palos_amasar_231_232_233_tierra_nativa_fabrica`.
+
+| Artículo | Descripción | Componente Garage | Ruta |
+|---|---|---|---|
+| 231 | Palo de Amasar 30cm | `GRJ22` | 801 |
+| 232 | Palo de Amasar 40cm | `GRJ23` | 802 |
+| 233 | Palo de Amasar 50cm | `GRJ24` | 803 |
+
+Cada ruta son 3 pasos: **insumo** (el palo entra al Sector Garage) → **tallerista Fábrica** (id 3,
+envasa y saca el terminado) → **virgilio**. Receta: 1 palo por artículo. Los tres componentes de
+garage tienen proveedor **Tierra Nativa SA** y `estado_compra` NULL (se compran), inventario 0 en
+Sector Garage; los terminados, inventario 0 en Virgilio. Artículos: familia **Madera**, marca
+**LOEKE**, 24 por bulto (UxB del catálogo). Verificado: los tres salen en `recepcion_bundle` bajo
+Sector Garage / Tierra Nativa SA con la descripción del artículo terminado, como pidió el usuario.
+Invariantes en 0.
+
+**`GRJ21` NO se pudo usar: ya era `Bowls 330ml`** (proveedor Cimarrón, `discontinuo`) y **está vivo
+en la receta y en 2 pasos de ruta del artículo 071**, que es un artículo activo. Por eso la serie
+arranca en **GRJ22**. Si el usuario quiere igual 21/22/23, es un `update componente set codigo=…`
+de tres filas (el código no es FK de nada) más resolver qué pasa con el Bowl. **Ojo que esto
+contradice en parte §4ag**, donde el palo del 234 se llamó `PALO234` justamente para no usar GRJ
+("los GRJ del sector son bombillas"): hoy el sector Garage ya tiene GRJ de ñoqueras, cepillos y
+palos, así que la regla vieja no aplica más.
+
+**Lo que falta (nada inventado):**
+1. **Precio del palo** en los tres — sin él costean $0. En la planilla del vecino sólo existe el
+   234 (`L888`, $600); para el 30/40/50 no hay fila de referencia.
+2. **La caja**: quedaron con `articulos_por_caja = 24` (del catálogo) pero **sin `componente_caja_id`**.
+   El 234 usa `A9B` "Caja N°15" con 12 por caja; con 24 por bulto no se puede asumir la misma.
+3. **No tienen demanda**: `est_madre` no trae 231/232/233 (sí el 234, 396 uni/mes), así que no
+   generan consumo ni máximo de insumo hasta que la Est Madre los traiga.
+4. La **tarifa de envasado de Fábrica no se carga**, por la regla del usuario del 2026-09-09.
+5. Los tres siguen además en `articulo_prov_at` como artículos terminados de Tierra Nativa — igual
+   que el 234; las dos vías conviven.
