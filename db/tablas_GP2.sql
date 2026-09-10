@@ -12,7 +12,10 @@ create table "GP2".articulo (
   componente_caja_id bigint,
   articulos_por_caja integer,
   discontinuado boolean not null default false,
+  descripcion text,
+  marca text,
   constraint articulo_pkey PRIMARY KEY (id),
+  constraint articulo_marca_chk CHECK (marca is null or marca in ('LOEKE','CHEF')),
   constraint articulo_componente_caja_id_fkey FOREIGN KEY (componente_caja_id) REFERENCES "GP2".componente(id),
   constraint articulo_familia_fkey FOREIGN KEY (familia) REFERENCES "GP2".familia(nombre) ON UPDATE CASCADE
 );

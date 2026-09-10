@@ -6165,3 +6165,42 @@ ninguno de esta familia.
 **[deducido, SIN confirmar]**: `A1C1` "Cartón 515" tiene `marca = CHEF`, pero el 515 es el artículo
 de **Loekemeyer** (el gemelo Chef es el 615, y su cartón `O2A` también figura CHEF). Si la marca del
 A1C1 está mal, la Recepción de cartones lo va a listar bajo la marca equivocada. Preguntar.
+
+### 4ao. `articulo` ya tiene DESCRIPCIÓN y MARCA (2026-09-10)
+
+Hasta hoy `GP2.articulo` era `codigo + familia + caja` y nada más: la única "descripción" de un
+artículo era la del componente terminado, que dice **"043 Terminado"** — inútil para una pantalla.
+Migración `articulo_descripcion_marca_cruce_listados`: se agregaron **`descripcion text`** y
+**`marca text`** (check `LOEKE` / `CHEF`, el mismo dominio que ya usa `componente.marca` — no
+inventar `loekemeyer`/`chef` en minúscula).
+
+**Fuente**: los dos listados mayoristas del usuario del **10/09/2026** (`loekemeyer.com/mayorista`
+y `chefsrl.com/mayorista`), 199 y 100 códigos, 296 únicos. Cruce por código exacto:
+
+| | Códigos |
+|---|---|
+| Ya en `GP2.articulo`, descripción cargada del listado | 110 (66 LOEKE, 44 CHEF) |
+| Los 10 que no figuran en ningún listado, descripción **dictada por el usuario**, marca LOEKE | 101, 103, 104, 108, 114, 115, 116, 120, 121, 123 |
+| Sin descripción a propósito (los 3 corta queso ya discontinuados) | 119, 574, 809 |
+
+**Ningún código de los 110 aparece en los dos listados a la vez** → la marca sale sola del cruce,
+sin desempate.
+
+**Ojo con `809E`**: está en **los dos** listados con **productos distintos** — Loekemeyer lo usa
+para *"Corta Pizza Mgo Ergonómico 6cm"* y Chef para *"Corta Queso Blandos Mango Alambre"*. No se
+cargó ninguno de los dos; si alguna vez hay que asociarlo al 809 de GP2, preguntar primero.
+
+**El backlog medido contra ESTOS listados** (ojo: es otro universo que el conteo de §2f-bis, que
+salía de la Est Madre por demanda — no se comparan). De los 186 códigos que no están en
+`GP2.articulo`: **95 llevan sufijo E** (importados, fuera del alcance de GP2 — regla vieja de
+§2f-bis, reconfirmada por el usuario el 2026-09-10: *"la e significa que es importado y en
+principio los art importados no los quiero en gp2"*), **44 ya están cubiertos por
+`articulo_prov_at`** (comprados terminados: coladores, cucharas de madera, tapones, espátulas,
+ralladores…) y quedan **45 de backlog real** (20 LOEKE, 25 CHEF), sobre todo Madera, Utensilios,
+Accesorios y Repostería.
+
+**Pendiente**: los 3 corta queso (119, 574, 809) ya están `discontinuado = true`, que es la baja
+que la casa reconoce. Borrarlos de verdad NO lo puede hacer `abm_articulo_baja`: las FK de `ruta`
+y `articulo_componente` son `NO ACTION`, y cada uno cuelga **5 rutas, 22 pasos y 5 líneas de
+receta** (más su cartón propio CART119 / CART574 / CART809, que quedaría sin uso). Es cirugía, no
+un flag: pedir confirmación explícita antes de tocarlo.
