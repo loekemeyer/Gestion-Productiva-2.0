@@ -13,6 +13,13 @@
      Lo nuevo de fondo esta en la base: al recepcionar una PIEZA inyectada (rubro Plasticos) de un proveedor
      con ubicacion de inyector, crear_recepcion_insumo descuenta sola la materia prima de su stock
      (kg_x_uni x 1,04) — esta pantalla no tuvo que cambiar para eso [usuario 2026-09-10]. -->
+<!-- v3.54.0 (2026-09-11) — LOS FORMATOS DE CARTON SALEN DE LOS DATOS. FORMATOS_POR_MARCA era una
+     lista escrita a mano y decidia QUE formatos existen: los tres nuevos (Corbata, Rallador,
+     Bandita) caian en "Sin formato" y no se los podia filtrar. Ahora se llama ORDEN_FORMATO y
+     solo define el ORDEN de los conocidos; lo que existe sale de los datos y un formato nuevo se
+     agrega al final solo. "Sin formato" vuelve a ser SOLO carton_formato vacio de verdad (hoy 6:
+     los cartones de 058, 059, 311, 312, 395 y 715, que se crearon sin formato). Mismo bug que ya
+     paso con las marcas en v3.45.0 y con 'C'/'Manga' en v3.51.0: tercera vez. -->
 <!-- v3.52.0 (2026-09-10) — RUBRO GARAGE: faltaba el boton "Garage" (sector 9) en #rubroGrid y
      su entrada en RUBRO_UM (uni), asi que nada del Sector Garage (cepillos de Gilardi Esther,
      palo de amasar de Tierra Nativa, ñoqueras de Pintos) se podia recepcionar aunque el
@@ -1060,17 +1067,23 @@ function pintarMarcaChips(){
    LOEKE: C, 8, Huevo, LOKE + 'Bolsa' (bolsas de Papelera Nueve de Julio / Envases Vihal) + 'Manga' (cartón manga del 280, Gráficos Pol).
    CHEF:  C, LOKE, 8, Huevo + 'Bolsa' + 'Manga'. (El 'C' faltaba y por eso los cartones C de Chef —818, 909— caían en "Sin formato" [usuario 2026-09-09].)
    Los "pliegos" (500/506 en C, 557/558/654... en Bombilla, CART506 en C, CART_MATE en Bombilla) NO son un formato aparte: son PIEZAS DENTRO del formato correspondiente, marcadas con componente.es_pliego. La lógica de packaging la define es_pliego, no el formato. */
-var FORMATOS_POR_MARCA = { LOEKE:['C','8','Huevo','LOKE','Pliego','Bolsa','Manga'], CHEF:['C','LOKE','8','Huevo','Pliego','Bolsa','Manga'], _sin:['C','8','Huevo','LOKE','Pliego','Bolsa','Manga'] };
+/* v3.54.0 (2026-09-11) — LOS FORMATOS SALEN DE LOS DATOS, igual que las marcas (v3.45.0).
+   Esta lista ya NO decide QUE formatos existen: solo el ORDEN en que se muestran los conocidos.
+   Cualquier formato nuevo que traigan los datos (Corbata, Rallador, Bandita...) se agrega al
+   final en vez de caer en "Sin formato", que ahora es SOLO carton_formato vacio de verdad. */
+var ORDEN_FORMATO = { LOEKE:['C','8','Huevo','LOKE','Pliego','Bolsa','Manga'], CHEF:['C','LOKE','8','Huevo','Pliego','Bolsa','Manga'], _sin:['C','8','Huevo','LOKE','Pliego','Bolsa','Manga'] };
 function pintarFormatoChips(){
   var fw=$('formatoWrap'), fg=$('formatoChips');
   if (!marcaSel){ fw.classList.add('hidden'); fg.innerHTML=''; return; }
   var base = insumosDelRubro().filter(function(i){ return !provSel || i.proveedor===provSel; })
                               .filter(function(i){ return marcaSel==='_sin' ? !i.marca : i.marca===marcaSel; });
-  // Marca sin lista propia (una nueva, como LOKE): se muestran los formatos que
-  // efectivamente tiene, en vez de esconderle todo.
-  var permitidos = FORMATOS_POR_MARCA[marcaSel] ||
-    base.map(function(i){ return i.carton_formato; })
-        .filter(function(f,ix,arr){ return f && arr.indexOf(f)===ix; });
+  // Los formatos que la marca REALMENTE tiene, ordenados: primero los conocidos en su orden
+  // historico, despues cualquier formato nuevo que aparezca en los datos.
+  var enDatos = base.map(function(i){ return i.carton_formato; })
+                    .filter(function(f,ix,arr){ return f && arr.indexOf(f)===ix; });
+  var orden = ORDEN_FORMATO[marcaSel] || [];
+  var permitidos = orden.filter(function(f){ return enDatos.indexOf(f)>=0; })
+                        .concat(enDatos.filter(function(f){ return orden.indexOf(f)<0; }));
   var cont = {}; permitidos.forEach(function(f){ cont[f]=0; }); var sinF=0;
   base.forEach(function(i){ if(i.carton_formato && permitidos.indexOf(i.carton_formato)>=0) cont[i.carton_formato]++; else sinF++; });
   fg.innerHTML='';
