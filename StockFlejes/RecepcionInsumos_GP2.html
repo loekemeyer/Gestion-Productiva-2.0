@@ -13,6 +13,15 @@
      Lo nuevo de fondo esta en la base: al recepcionar una PIEZA inyectada (rubro Plasticos) de un proveedor
      con ubicacion de inyector, crear_recepcion_insumo descuenta sola la materia prima de su stock
      (kg_x_uni x 1,04) — esta pantalla no tuvo que cambiar para eso [usuario 2026-09-10]. -->
+<!-- v3.54.1 (2026-09-11) — "GUARDAR PESAJE" NO TERMINABA [usuario: "cuando pongo guardar pesaje
+     no me deja, se buguea"]. El rename de `fuera` a `itsFuera` (commit 556b111, de HOY) dejo un uso
+     sin renombrar en el armado del mensaje de exito. Esa linea corre SIEMPRE, y para ese momento las
+     RPC pesar_pallet YA guardaron: tiraba "ReferenceError: fuera is not defined" y abortaba el handler
+     antes de cerrarPopup() / REMITO=[] / cargar(), asi que el pesaje quedaba guardado en la base pero
+     la pantalla se clavaba en "Guardando pesaje..." y la recepcion seguia figurando como pendiente.
+     pesar_pallet es idempotente (on conflict do update + borra y reinserta los rollos), asi que los
+     reintentos del operario NO duplicaron nada. Test nuevo: test_recepcion_guardar_pesaje.js, que
+     aprieta el boton — los dos tests que ya habia llegaban hasta el boton y nunca lo tocaban. -->
 <!-- v3.54.0 (2026-09-11) — LOS FORMATOS DE CARTON SALEN DE LOS DATOS. FORMATOS_POR_MARCA era una
      lista escrita a mano y decidia QUE formatos existen: los tres nuevos (Corbata, Rallador,
      Bandita) caian en "Sin formato" y no se los podia filtrar. Ahora se llama ORDEN_FORMATO y
@@ -2596,7 +2605,13 @@ $('kgPesajeOk').addEventListener('click', async function(){
   $('successBox').querySelector('.title').textContent = incompletos.length ? '✓ Pesaje guardado (recepción SIN terminar)' : '✓ Recepción completa';
   $('successDetail').innerHTML=nItems+' ítem'+(nItems===1?'':'s')+' · '+ok+' pallet'+(ok===1?'':'s')+' pesado'+(ok===1?'':'s')+
     (incompletos.length?(' · <b style="color:#b42318">'+incompletos.length+' pallet'+(incompletos.length===1?'':'s')+' a medias sin guardar: queda pendiente</b>'):'')+
-    (fuera.length?(' · <b style="color:#b45309">'+fuera.length+' con sobrante fuera de rango (a revisar)</b>'):'')+'.';
+    /* itsFuera, NO `fuera`: la variable se llama asi desde el rename del 2026-09-11.
+       Este uso quedo sin renombrar y como la linea corre SIEMPRE (despues de que
+       pesar_pallet ya guardo), tiraba ReferenceError y abortaba el handler antes de
+       cerrarPopup(): el pesaje quedaba guardado pero la pantalla clavada en
+       "Guardando pesaje…" [usuario 2026-09-11: "cuando pongo guardar pesaje no me
+       deja, se buguea"]. Lo vigila test_recepcion_guardar_pesaje.js. */
+    (itsFuera.length?(' · <b style="color:#b45309">'+itsFuera.length+' con sobrante fuera de rango (a revisar)</b>'):'')+'.';
   cerrarPopup();
   REMITO=[];
   setTimeout(function(){ sb.style.display='none'; },7000);
