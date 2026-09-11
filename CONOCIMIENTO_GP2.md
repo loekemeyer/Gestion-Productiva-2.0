@@ -7401,3 +7401,26 @@ una ruta por código hay que filtrar también por sector.** Arreglado con `fix_8
 `fix_856_virgilio_duplicado`; invariantes en 0.
 
 GP2 queda con **167 artículos** (94 LOEKE, 63 CHEF, 10 LOKE).
+
+### 4bk. Dos proveedores AT = dos ALTERNATIVAS, no una ambigüedad (2026-09-11)
+
+`[usuario 2026-09-11, textual]`: *"los dos proveedores de at son dos alternativas"*. Lo que yo venía
+tratando como un dato sucio es el modelo real: **el mismo artículo se le puede pedir a cualquiera de
+los dos**, igual que cuando dos talleristas hacen el mismo paso. La ruta se **duplica por proveedor**,
+y **cada alternativa lleva la caja que ESE proveedor declara**.
+
+Ejemplo del **223** (Cuchara Madera 25 Cm), 4 rutas: cartón `M2C` → Cabral, cartón `M2C` → Pintos,
+caja `A2` (N°12) → Cabral y caja `A8` (N°2) → Pintos. Cabral y Pintos declaran cajas distintas para
+el mismo artículo y **las dos son correctas**.
+
+Otras dos decisiones del mismo mensaje:
+- *"732 y 338, ambas caja 7"* → las dos pasan a **Caja N°7** (`A6`). Pedían la N°8 y la N°24, que no
+  existen como componente; con esto **`articulo_prov_at.n_caja` ya no apunta a ninguna caja inexistente**.
+- *"los 8 van sin cartón"* → los que no tienen cartón en la planilla se modelan **sólo con la caja**.
+
+Migración `alta_14_prov_at_con_alternativas`: **14 artículos** (222, 223, 224, 246, 326, 338, 577,
+618, 619, 732, 761, 823, 900, 910). `articulo.componente_caja_id` guarda **la caja del proveedor de
+número más bajo**, porque el campo es uno solo; la otra vive en su ruta.
+
+**Quedan 2 imposibles de modelar con lo que hay: `070` (Set Tapers) y `591` (Despolvillador)** — no
+tienen cartón NI caja, así que **no hay nada que mandarle al proveedor** y la ruta quedaría vacía.
