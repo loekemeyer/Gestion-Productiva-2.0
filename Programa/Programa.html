@@ -1,77 +1,168 @@
 <!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<!-- Anti-cache: TODO el CSS y el JS de esta pantalla viven embebidos en este HTML y la pantalla
+     se navega directo desde el menu (sin ?v= propio). Sin estos meta, una copia cacheada del
+     HTML deja al usuario con la version vieja para siempre. Mismo agujero que se tapo el
+     2026-09-11 en GP2_MODULOS.html y envios-only.html. -->
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
 <title>Loekemeyer · ¿Qué necesito para producir?</title>
 <style>
+ /* ============================================================================
+    GP2 · ¿Qué necesito para producir? — rediseño 2026-09-11 (pedido del usuario:
+    "más grande, sin tantos colores, no tan claro, fondo más oscuro, más legible").
+    Tres decisiones de fondo:
+      1. FONDO OSCURO y contraste alto. Esta pantalla NO carga gp2-claro.css
+         (el tema claro global) a propósito: se pisa entera acá.
+      2. DOS colores, no once. Ámbar = lo nuestro (matriz, fleje, kg, artículo).
+         Celeste = lo de afuera (proveedor, tallerista). Todo lo demás, gris.
+         El tipo de nodo se lee por la ETIQUETA y por la barra lateral, no por
+         diez fondos de colores distintos.
+      3. El sector donde queda el stock dejó de ser un nodo suelto: es el pie de
+         la tarjeta del paso que lo produce. Eso parte al medio el largo de cada
+         cadena (de ~10 nodos a ~5), que era lo que obligaba a scrollear y a
+         achicar la letra.
+    ========================================================================== */
  *{box-sizing:border-box}
- body{margin:0;background:#ebeff4;color:#385475;font:13px/1.4 -apple-system,Segoe UI,Roboto,sans-serif}
- .top{background:linear-gradient(90deg,#e7f0f8,#e7f0f8);padding:10px 16px;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
- .top h1{margin:0;font-size:16px}
- .top .sel{display:flex;gap:8px;align-items:center;font-size:13px;flex-wrap:wrap}
- /* letra grande (regla de accesibilidad: minimo 18px en campos de carga) */
- .top select,.top input{background:#eaeff6;color:#385475;border:1px solid #cddaea;border-radius:6px;padding:6px 10px;font-size:18px;font-family:inherit}
- .top input{width:110px}
- .top input#buscar{width:210px;max-width:70vw}
- .top select{max-width:70vw}
- .canvas{padding:14px;overflow-x:auto;min-height:calc(100vh - 50px)}
- .hero{background:linear-gradient(135deg,#f8eee7,#f8ede7);border:1px solid #eadbcd;border-radius:12px;padding:12px 16px;margin-bottom:14px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px}
- .hero .cod{font-size:28px;font-weight:800;color:#985716}
- .hero .fam{font-size:14px;color:#8e4c20}
- .hero .kpi{background:rgba(0,0,0,.25);border-radius:8px;padding:6px 10px;font-size:11px;color:#865e27}
- .hero .kpi b{color:#985716;font-size:14px;margin-right:3px}
- .section-title{font-size:11px;text-transform:uppercase;letter-spacing:.6px;color:#475569;margin:16px 0 8px}
- .lane{background:#ebf0f5;border:1px solid #d1dae6;border-radius:10px;padding:10px;margin-bottom:8px}
- .lane.conv{border-color:#d8cdea;background:#edebf5}
- .lane .head{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;font-size:12px;color:#475569;flex-wrap:wrap;gap:8px}
- .lane .head b{color:#385775}
- .lane .head .fkg{background:#f6f2ea;color:#985716;padding:2px 10px;border-radius:10px;font-weight:800;font-size:12px}
- .flow{display:flex;gap:0;align-items:stretch;flex-wrap:nowrap;padding-bottom:4px;overflow-x:auto}
- .flow.branch{margin-bottom:6px;padding-left:0}
- .branch-lbl{font-size:10px;color:#4f1698;text-transform:uppercase;letter-spacing:.5px;font-weight:700;margin:6px 0 2px;padding-left:2px}
- .converge-bar{display:flex;align-items:center;gap:8px;margin:6px 0;color:#4f1698;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px}
- .converge-bar .line{flex:1;height:1px;background:linear-gradient(90deg,transparent,#eee9f6,transparent)}
- .node{background:#eaeff6;border:1px solid #d2d9e5;border-radius:7px;padding:6px 9px;min-width:110px;max-width:220px;display:flex;flex-direction:column;justify-content:center;flex-shrink:0}
- .node .tp{font-size:9px;text-transform:uppercase;letter-spacing:.4px;color:#475569;font-weight:700}
- .node .nm{font-size:12px;font-weight:700;margin-top:1px;font-family:ui-monospace,SF Mono,monospace}
- .node .ex{font-size:10px;color:#475569;margin-top:1px}
- .node .rend{font-size:10px;color:#92611b;margin-top:2px;font-weight:600}
- .node .qty{font-size:10px;color:#166398;font-weight:700;background:#eaeff5;padding:1px 6px;border-radius:6px;margin-top:3px;align-self:flex-start}
- .node.n-sector{border-style:dashed;border-width:2px;min-width:120px}
- .node.n-sector .tp{font-size:10px}
- .node.n-sector .nm{font-size:14px;letter-spacing:.6px}
- .node .kg{font-size:10px;color:#985716;font-weight:800;background:#f6f2ea;padding:1px 6px;border-radius:6px;margin-top:3px;align-self:flex-start}
- .arr{color:#3a5068;font-size:20px;padding:0 4px;align-self:center;user-select:none;flex-shrink:0}
- .arr.plus{color:#4f1698;font-size:18px;font-weight:700}
- .n-fleje{background:#e9eff7;border-color:#cddbea}.n-fleje .tp,.n-fleje .nm{color:#165d98}
- .n-matriz{background:#f5f0ea;border-color:#eadecd}.n-matriz .tp,.n-matriz .nm{color:#92611b}
- .n-crudo{background:#eaf5ef;border-color:#cde9d9}.n-crudo .tp,.n-crudo .nm{color:#258858}
- .n-prov{background:#efecf4;border-color:#d8cdea}.n-prov .tp,.n-prov .nm{color:#4f1698}
- .n-proc{background:#f4ebef;border-color:#eacdda}.n-proc .tp,.n-proc .nm{color:#981645}
- .n-tall{background:#ebf4f2;border-color:#cdeae2}.n-tall .tp,.n-tall .nm{color:#1c917b}
- .n-afil{background:#f4ecf2;border-color:#eacde1}.n-afil .tp,.n-afil .nm{color:#981679}
- .n-virg{background:#f8eee7;border-color:#eadbcd}.n-virg .tp,.n-virg .nm{color:#985716}
- .n-insu{background:#f5eeea;border-color:#eadbcd}.n-insu .tp,.n-insu .nm{color:#8e4c20}
- .n-sub{background:#efeaf5;border-color:#d8cdea}.n-sub .tp,.n-sub .nm{color:#4f1698}
- .n-tr{background:#ededf2;border-color:#d5d5e2}.n-tr .tp,.n-tr .nm{color:#363678}
- .flejes-total{background:#f5f0ea;border:1px solid #eadecd;border-radius:10px;padding:10px 14px;margin-top:14px}
- .flejes-total h3{margin:0 0 8px;color:#92611b;font-size:12px;text-transform:uppercase;letter-spacing:.5px}
- .fleje-row{display:flex;justify-content:space-between;padding:5px 0;font-size:12px;border-bottom:1px solid #e9e0ce}
+ :root{
+  --bg:#0e141b; --bar:#141e28; --lane:#18232f; --card:#22303f; --cardq:#1b2734;
+  --line:#2a3a4a; --line2:#3c5468;
+  --tx:#eef4f9; --tx2:#a6b8c8; --tx3:#7d92a5;
+  --amb:#f3af45; --blu:#7cc2f0;
+ }
+ html,body{background:var(--bg);color:var(--tx)}
+ body{margin:0;font:16px/1.45 -apple-system,Segoe UI,Roboto,sans-serif}
+
+ /* ---- barra de filtros: pegada arriba, campos grandes (regla de accesibilidad) ---- */
+ .top{position:sticky;top:0;z-index:30;background:var(--bar);border-bottom:1px solid var(--line);
+      padding:10px 16px;display:flex;justify-content:space-between;align-items:center;gap:14px;flex-wrap:wrap}
+ .top h1{margin:0;font-size:19px;font-weight:800;letter-spacing:.2px;color:var(--tx)}
+ .top .sel{display:flex;gap:14px;align-items:center;flex-wrap:wrap;font-size:13px;
+           text-transform:uppercase;letter-spacing:.7px;color:var(--tx3);font-weight:700}
+ .top .fld{display:flex;flex-direction:column;gap:3px}
+ .top select,.top input{background:#0d151d;color:var(--tx);border:1px solid var(--line2);border-radius:8px;
+                        padding:8px 11px;font-size:19px;font-family:inherit;font-weight:600}
+ .top select:focus,.top input:focus{outline:none;border-color:var(--amb)}
+ .top input#uni{width:130px;text-align:right;color:var(--amb);font-weight:800;font-size:20px}
+ .top input#buscar{width:230px;max-width:78vw;font-weight:500}
+ .top select#art{max-width:min(620px,78vw)}
+ .top select#marca,.top select#tallAlt{max-width:78vw}
+
+ .canvas{padding:18px 18px 48px;max-width:1680px}
+
+ /* ---- encabezado del artículo ---- */
+ .hero{background:linear-gradient(180deg,#1e2b3a,#18222e);border:1px solid var(--line);
+       border-left:5px solid var(--amb);border-radius:14px;padding:14px 20px;margin-bottom:14px;
+       display:flex;justify-content:space-between;align-items:center;gap:20px;flex-wrap:wrap;
+       width:fit-content;max-width:100%}
+ .hero .cod{font-size:42px;font-weight:800;color:var(--amb);line-height:1;letter-spacing:1px}
+ .hero .fam{font-size:16px;color:var(--tx2);margin-top:5px}
+ .hero .kpis{display:flex;flex-wrap:wrap;align-items:stretch;gap:0}
+ .hero .kpi{padding:2px 18px;border-left:1px solid var(--line);font-size:12px;color:var(--tx3);
+            text-transform:uppercase;letter-spacing:.6px;font-weight:700}
+ .hero .kpi b{display:block;font-size:21px;color:var(--tx);font-weight:800;text-transform:none;letter-spacing:0}
+ .hero .kpi.ens b{color:var(--blu)}
+
+ /* ---- resumen de flejes (se calculaba y se tiraba: ahora se muestra) ---- */
+ .flejes-total{background:var(--lane);border:1px solid var(--line);border-left:5px solid var(--amb);
+               border-radius:14px;padding:12px 18px;margin-bottom:16px;width:fit-content;max-width:100%}
+ .flejes-total h3{margin:0 0 6px;color:var(--tx3);font-size:12px;text-transform:uppercase;letter-spacing:1px}
+ .fleje-row{display:flex;justify-content:space-between;gap:28px;padding:7px 0;font-size:16px;
+            border-bottom:1px solid var(--line)}
  .fleje-row:last-child{border-bottom:0}
- .fleje-row .fname{color:#92611b;font-weight:600}
- .fleje-row .fkg{color:#985716;font-weight:800;background:#f6f2ea;padding:2px 10px;border-radius:10px}
+ .fleje-row .fname{color:var(--tx)}
+ .fleje-row .fname i{color:var(--tx3);font-style:normal}
+ .fleje-row .fkg{color:var(--amb);font-weight:800;white-space:nowrap}
+
+ /* ---- títulos de bloque ---- */
+ .section-title{display:flex;align-items:center;gap:10px;margin:26px 0 10px;font-size:14px;font-weight:800;
+                color:var(--tx2);text-transform:uppercase;letter-spacing:1.2px}
+ .section-title .n{display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;
+                   border-radius:50%;background:rgba(243,175,69,.15);border:1px solid rgba(243,175,69,.45);
+                   color:var(--amb);font-size:14px;font-weight:800;letter-spacing:0;flex-shrink:0}
+
+ /* ---- carril de una ruta. width:fit-content = sin espacio muerto a la derecha ---- */
+ .lane{background:var(--lane);border:1px solid var(--line);border-radius:14px;padding:12px 14px;
+       margin-bottom:10px;width:fit-content;max-width:100%}
+ .lane.conv{border-color:#4a5b6e}
+ .lane .head{display:flex;justify-content:space-between;align-items:center;gap:20px;margin-bottom:10px;
+             font-size:16px;color:var(--tx2);flex-wrap:wrap}
+ .lane .head b{color:var(--tx);font-size:17px;font-weight:800}
+ .lane .head .fkg{background:rgba(243,175,69,.13);color:var(--amb);border:1px solid rgba(243,175,69,.38);
+                  padding:3px 13px;border-radius:20px;font-weight:800;font-size:16px;white-space:nowrap}
+ .lane .head .uni{background:rgba(255,255,255,.07);border:1px solid var(--line2);color:var(--tx);
+                  padding:3px 13px;border-radius:20px;font-weight:800;font-size:16px;white-space:nowrap}
+
+ /* ---- la cadena ----
+    WRAP, no scroll horizontal: una ruta de 7 pasos no entra en ninguna pantalla y
+    el scroll lateral escondia el final de la ruta (el usuario no veia Virgilio).
+    Envuelve a un segundo renglon y se ve TODO. En 390px queda una tarjeta por fila. */
+ .flow{display:flex;gap:10px 8px;align-items:stretch;flex-wrap:wrap;padding-bottom:2px}
+ .flow.branch{margin-bottom:4px}
+ .branch-lbl{font-size:14.5px;font-weight:700;color:var(--tx2);margin:12px 0 5px}
+ .branch-lbl .r{color:var(--amb);font-weight:800}
+ .converge-bar{display:flex;align-items:center;gap:12px;margin:14px 0 10px;color:var(--amb);font-size:13px;
+               font-weight:800;text-transform:uppercase;letter-spacing:1.2px}
+ .converge-bar .line{flex:1;height:1px;background:linear-gradient(90deg,transparent,var(--line2),transparent)}
+
+ /* ---- tarjeta de paso ---- */
+ .node{background:var(--card);border:1px solid var(--line2);border-left:4px solid var(--line2);
+       border-radius:10px;padding:9px 12px;min-width:172px;max-width:265px;display:flex;flex-direction:column;
+       gap:2px;flex-shrink:0}
+ .node .tp{font-size:12px;font-weight:800;letter-spacing:.7px;text-transform:uppercase;color:var(--tx3);
+           line-height:1.25}
+ .node .nm{font-size:21px;font-weight:800;font-family:ui-monospace,SF Mono,Menlo,monospace;color:var(--tx);
+           line-height:1.15;word-break:break-word;margin-top:1px}
+ .node .ex{font-size:14px;color:var(--tx2);line-height:1.3;margin-top:1px}
+ .node .rend{font-size:14px;color:var(--amb);font-weight:700;margin-top:2px}
+ .node .foot{margin-top:auto;padding-top:8px;display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+ .node .dest{width:100%;font-size:13.5px;font-weight:700;color:var(--tx2);background:var(--cardq);
+             border:1px dashed var(--line2);border-radius:8px;padding:4px 9px;line-height:1.3}
+ .node .dest .sc{color:var(--tx);font-weight:800}
+ .node .qty{font-size:16px;font-weight:800;color:var(--tx);background:rgba(255,255,255,.09);
+            border-radius:8px;padding:2px 10px;white-space:nowrap}
+ .node .kg{font-size:16px;font-weight:800;color:var(--amb);background:rgba(243,175,69,.13);
+           border-radius:8px;padding:2px 10px;white-space:nowrap}
+
+ /* ---- SOLO DOS COLORES: ámbar = lo nuestro, celeste = lo de afuera ---- */
+ .n-matriz,.n-afil,.n-fleje{border-left-color:var(--amb)}
+ .n-matriz .tp,.n-afil .tp,.n-fleje .tp{color:var(--amb)}
+ .n-prov,.n-tall{border-left-color:var(--blu)}
+ .n-prov .tp,.n-tall .tp{color:var(--blu)}
+ .n-virg{background:linear-gradient(180deg,#2c2314,#231c11);border-color:#6a512c;border-left-color:var(--amb)}
+ .n-virg .tp{color:var(--amb)}
+ .n-virg .nm{color:var(--amb)}
+
+ .arr{color:var(--tx3);font-size:22px;align-self:center;user-select:none;flex-shrink:0;padding:0 1px}
+ .arr.plus{color:var(--amb);font-size:20px;font-weight:800}
+
+ /* ---- celular: la cadena baja en vertical y cada tarjeta ocupa el ancho ---- */
+ @media(max-width:560px){
+  .top h1{font-size:17px}
+  .canvas{padding:14px 12px 40px}
+  .hero .cod{font-size:34px}
+  .hero .kpi{padding:2px 12px}
+  .hero .kpi:first-child{border-left:0;padding-left:0}
+  .lane{width:auto;padding:12px}
+  .flow{flex-direction:column;align-items:stretch;gap:6px}
+  .node{min-width:0;max-width:none}
+  .arr{align-self:center;transform:rotate(90deg);font-size:24px;padding:0}
+  .arr.plus{transform:none}
+ }
 </style><link rel="icon" type="image/png" href="../GP2_favicon.png">
 <link rel="apple-touch-icon" href="../GP2_favicon.png">
-<link rel="stylesheet" href="../gp2-claro.css?v=20260903b">
 </head>
 <body>
-<div id="gp2-logobar" style="position:relative;background:#e8edf7;text-align:center;padding:6px 0;border-bottom:1px solid #d0dae7"><a href="../GP2_MODULOS.html" style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:#385475;text-decoration:none;font-weight:700;font-size:15px;padding:5px 10px;border:1px solid #d1d9e5;border-radius:8px;background:#e9eef7">← Atrás</a><a href="../GP2_MODULOS.html" style="text-decoration:none"><img src="../GP2_logo.png" alt="GP2 · Gestión Productiva" style="height:40px;vertical-align:middle"></a></div>
+<div id="gp2-logobar" style="position:relative;background:#141e28;text-align:center;padding:6px 0;border-bottom:1px solid #2a3a4a"><a href="../GP2_MODULOS.html" style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:#eef4f9;text-decoration:none;font-weight:700;font-size:16px;padding:6px 12px;border:1px solid #3c5468;border-radius:8px;background:#1d2836">← Atrás</a><a href="../GP2_MODULOS.html" style="text-decoration:none"><img src="../GP2_logo.png" alt="GP2 · Gestión Productiva" style="height:40px;vertical-align:middle"></a></div>
 
 <div class="top">
- <h1>🏭 Loekemeyer · ¿Qué necesito para producir?</h1>
+ <h1>🏭 ¿Qué necesito para producir?</h1>
  <div class="sel">
-  Marca <select id="marca"><option value="">Todas</option><option value="LOEKE">Loeke</option><option value="LOKE">Loke</option><option value="CHEF">Chef</option></select>
-  Buscar <input id="buscar" type="search" placeholder="código o nombre" autocomplete="off">
-  Artículo <select id="art"></select>
-  Unidades <input inputmode="numeric" id="uni" type="number" value="1000" min="1">
-  <span id="tallAltBox" style="display:none">Tallerista <select id="tallAlt"></select></span>
+  <span class="fld">Marca <select id="marca"><option value="">Todas</option><option value="LOEKE">Loeke</option><option value="LOKE">Loke</option><option value="CHEF">Chef</option></select></span>
+  <span class="fld">Buscar <input id="buscar" type="search" placeholder="código o nombre" autocomplete="off"></span>
+  <span class="fld">Artículo <select id="art"></select></span>
+  <span class="fld">Unidades <input inputmode="numeric" id="uni" type="number" value="1000" min="1"></span>
+  <span class="fld" id="tallAltBox" style="display:none">Tallerista <select id="tallAlt"></select></span>
  </div>
 </div>
 <div class="canvas" id="canvas"></div>
@@ -137,26 +228,31 @@ function expandBOM(aid){
  return {need:need,bom:bom};
 }
 
-function node(tp,cls,nm,ex,extra,qty,kg){
+/* Una tarjeta de paso. 'dest' es el pie: dónde queda lo que sale de este paso
+   (sector de stock o tránsito). Antes era un nodo aparte y duplicaba el largo
+   de la cadena; ahora vive adentro de la tarjeta que lo produce. */
+function node(tp,cls,nm,ex,extra,qty,kg,dest){
  var h='<div class="node n-'+cls+'">';
  h+='<div class="tp">'+esc(tp)+'</div>';
  h+='<div class="nm">'+esc(nm)+'</div>';
  if(ex)h+='<div class="ex">'+esc(ex)+'</div>';
  if(extra)h+='<div class="rend">'+esc(extra)+'</div>';
- if(qty!=null)h+='<div class="qty">× '+fmt(qty)+'</div>';
- if(kg!=null)h+='<div class="kg">'+fmt(kg)+' kg</div>';
+ if(dest||qty!=null||kg!=null){
+  h+='<div class="foot">';
+  if(dest)h+=dest;
+  if(qty!=null)h+='<div class="qty">× '+fmt(qty)+'</div>';
+  if(kg!=null)h+='<div class="kg">'+fmt(kg)+' kg</div>';
+  h+='</div>';
+ }
  h+='</div>';
  return h;
 }
-function sectorNode(sec,cod,qty){
- var cls=SECT2CLS[sec]||'crudo';
- var h='<div class="node n-'+cls+' n-sector">';
- h+='<div class="tp">📦 Sector</div>';
- h+='<div class="nm">'+esc(sec.toUpperCase())+'</div>';
- if(cod)h+='<div class="ex">stock '+esc(cod)+'</div>';
- if(qty!=null)h+='<div class="qty">× '+fmt(qty)+'</div>';
- h+='</div>';
- return h;
+/* pie "queda en el sector X" */
+function destSector(sec,cod,desc){
+ var t='📦 <span class="sc">'+esc(sec.toUpperCase())+'</span>';
+ if(cod)t+=' · stock '+esc(cod);
+ if(desc)t+=' · '+esc(desc);
+ return '<div class="dest">'+t+'</div>';
 }
 
 /* ---- Stock Tránsito PS -------------------------------------------------------------
@@ -184,19 +280,21 @@ function procInf(proc){
 }
 // "Resorte U p/Templar" → "Resorte U": el estado viejo ya no aplica, la pieza espera otra cosa
 function descSinDestino(d){ return String(d||"").replace(/\s*p\/\s*.*$/i,"").trim(); }
-function transitoNode(comp,pNext,qty){
+/* pie "no vuelve a ningún sector: queda en tránsito esperando al PS siguiente" */
+function destTransito(comp,pNext){
  var px=D.prov[String(pNext.pr)]||{};
  var inf=procInf(px.p);
  var base=descSinDestino(comp.d);
  var ex=(comp.cod||"?")+(base?(" · "+base):"")+(inf?(" p/"+inf):"");
- var h='<div class="node n-tr n-sector">';
- h+='<div class="tp">🚚 Sector</div>';
- h+='<div class="nm">TRÁNSITO</div>';
- h+='<div class="ex">'+esc(ex)+'</div>';
- h+='<div class="rend">→ '+esc(px.n||"?")+'</div>';
- if(qty!=null)h+='<div class="qty">× '+fmt(qty)+'</div>';
- h+='</div>';
- return h;
+ return '<div class="dest">🚚 <span class="sc">TRÁNSITO</span> · '+esc(ex)+' → '+esc(px.n||"?")+'</div>';
+}
+/* el pie que corresponde al paso p (tránsito, sector, o nada) */
+function destDePaso(p,pNext){
+ if(!p.cs)return "";
+ var cs=cById(p.cs), sn=sName(cs.s);
+ if(esTransitoPS(p,pNext))return destTransito(cs,pNext);
+ if(sn && sn!=='terminado' && sn!=='fleje' && sn!=='?')return destSector(sn,cs.cod,"");
+ return "";
 }
 
 function pasoNode(p,need,uni,pNext){
@@ -209,20 +307,13 @@ function pasoNode(p,need,uni,pNext){
  else if(p.tp==="proveedor_at"){var pa=D.provat?D.provat[String(p.pat)]:null;tp="PROV. ART. TERM.";cls="prov";nm=(pa||"(sin prov)").trim();ex="entrega terminado";}
  else if(p.tp==="virgilio"){tp="VIRGILIO";cls="virg";nm="Distribución";ex="centro";}
  else return "";
- // Nodo matriz/prov/tallerista SIN qty (no son componentes)
- var out=node(tp,cls,nm,ex,extra,null,null);
+ // El sector/tránsito y la cantidad van DENTRO de la tarjeta del paso (fallback 1:1 con uni)
+ var dest="", qty=null;
  if(p.cs && p.tp!=='virgilio' && p.tp!=='tallerista'){
-  var csComp=cById(p.cs);var sn=sName(csComp.s);
-  // Solo el nodo sector lleva qty (fallback 1:1 con uni si no hay explícita)
-  var pq=(need[p.cs]?need[p.cs]*uni:uni);
-  if(esTransitoPS(p,pNext)){
-   // No hay stock de sector: la pieza queda en tránsito esperando al PS siguiente
-   out+='<span class="arr">→</span>'+transitoNode(csComp,pNext,pq);
-  } else if(sn && sn!=='terminado' && sn!=='fleje' && sn!=='?'){
-   out+='<span class="arr">→</span>'+sectorNode(sn,csComp.cod,pq);
-  }
+  dest=destDePaso(p,pNext);
+  qty=(need[p.cs]?need[p.cs]*uni:uni);
  }
- return out;
+ return node(tp,cls,nm,ex,extra,qty,null,dest);
 }
 
 function renderStandaloneLane(r,pasos,fl,need,uni,flejesTotal){
@@ -240,9 +331,9 @@ function renderStandaloneLane(r,pasos,fl,need,uni,flejesTotal){
  if(!flComp)flComp=cById(r.f);
  var cs_desc = cs_final ? (" → "+cById(cs_final).cod+" ("+(cById(cs_final).d||"")+")") : "";
  var H='<div class="lane"><div class="head"><b>'+esc((flComp.cod||"?")+' · '+(flComp.d||"")+cs_desc)+'</b>'+
-    (kg?'<span class="fkg">'+fmt(kg)+' kg fleje</span>':(qty?'<span style="color:#475569">sin rendimiento</span>':""))+
+    (kg?'<span class="fkg">'+fmt(kg)+' kg fleje</span>':(qty?'<span style="color:#7d92a5">sin rendimiento</span>':""))+
     '</div><div class="flow">';
- H+=node("INSUMO","fleje",flComp.cod||"?",flComp.d||"",rend?rend+" uni/kg":"",null,kg||null);
+ H+=node("INSUMO","fleje",flComp.cod||"?",flComp.d||"",rend?rend+" uni/kg":"",null,kg||null,"");
  pasos.forEach(function(p,i,arr){
   if((p.tp==="fleje"||p.tp==="ingreso"))return;
   H+='<span class="arr">→</span>'+pasoNode(p,need,uni,arr[i+1]);
@@ -272,7 +363,7 @@ function renderConvergenceLane(padre_id,ruta_list,need,uni,flejesTotal,aid,insum
   }
  }
  var H='<div class="lane conv"><div class="head"><b>🔀 Convergencia · '+esc(pc.cod+' · '+(pc.d||""))+'</b>'+
-    '<span style="color:#166398">× '+fmt(qty_padre)+' u</span></div>';
+    '<span class="uni">× '+fmt(qty_padre)+' u</span></div>';
 
  // Loop puro por hijos del componente_bom
  var brN=0;
@@ -315,23 +406,21 @@ function renderConvergenceLane(padre_id,ruta_list,need,uni,flejesTotal,aid,insum
    var pasosNoFleje=prePasos.filter(function(p){return p.tp!=='fleje'&&p.tp!=='ingreso'&&p.tp!=='insumo';});
    // Si el "productor" es el mismo componente y no hay pasos productivos, solo mostrar el insumo (evita duplicado)
    if(pasosNoFleje.length===0 && flComp2.cod===hc.cod){
-    H+='<div class="branch-lbl">Rama '+brN+' — Insumo '+esc(hc.cod||'?')+' · × '+fmt(qty_hijo)+' u</div>';
+    H+='<div class="branch-lbl"><span class="r">Rama '+brN+'</span> — Insumo '+esc(hc.cod||'?')+' · × '+fmt(qty_hijo)+' u</div>';
     H+='<div class="flow branch">';
-    H+=node("INSUMO",sCls(hc.s),hc.cod||"?",hc.d||"","",qty_hijo,null);
+    H+=node("INSUMO",sCls(hc.s),hc.cod||"?",hc.d||"","",qty_hijo,null,"");
     H+='</div>';
    } else {
-    H+='<div class="branch-lbl">Rama '+brN+' — '+esc((flComp2.cod||"?")+' produce '+hc.cod)+(kg?' · '+fmt(kg)+' kg fleje':'')+'</div>';
+    H+='<div class="branch-lbl"><span class="r">Rama '+brN+'</span> — '+esc((flComp2.cod||"?")+' produce '+hc.cod)+(kg?' · '+fmt(kg)+' kg fleje':'')+'</div>';
     H+='<div class="flow branch">';
-    H+=node("INSUMO",matchRuta.f?"fleje":sCls(flComp2.s),flComp2.cod||"?",flComp2.d||"",rend?rend+" uni/kg":"",matchRuta.f?null:qty_hijo,kg||null);
+    H+=node("INSUMO",matchRuta.f?"fleje":sCls(flComp2.s),flComp2.cod||"?",flComp2.d||"",rend?rend+" uni/kg":"",matchRuta.f?null:qty_hijo,kg||null,"");
     pasosNoFleje.forEach(function(p,i,arr){
      H+='<span class="arr">→</span>'+pasoNode(p,mergedNeed,uni,arr[i+1]);
     });
     if(pasosNoFleje.length===0){
      var _sn=sName(hc.s);
-     H+='<span class="arr">→</span>'+node("COMPONENTE",sCls(hc.s),hc.cod,hc.d||"","",qty_hijo,null);
-     if(_sn && _sn!=='terminado' && _sn!=='fleje' && _sn!=='?'){
-      H+='<span class="arr">→</span>'+sectorNode(_sn,hc.cod,qty_hijo);
-     }
+     var _dest=(_sn && _sn!=='terminado' && _sn!=='fleje' && _sn!=='?')?destSector(_sn,hc.cod,""):"";
+     H+='<span class="arr">→</span>'+node("COMPONENTE",sCls(hc.s),hc.cod,hc.d||"","",qty_hijo,null,_dest);
     }
     H+='</div>';
    }
@@ -339,12 +428,10 @@ function renderConvergenceLane(padre_id,ruta_list,need,uni,flejesTotal,aid,insum
   }
   // Fallback: insumo
   var sn=sName(hc.s);
-  H+='<div class="branch-lbl">Rama '+brN+' — Insumo '+esc((hc.cod||'?')+' ('+sn+')')+' · × '+fmt(qty_hijo)+' u</div>';
+  var destIns=(sn && sn!=='terminado' && sn!=='fleje' && sn!=='?')?destSector(sn,hc.cod,""):"";
+  H+='<div class="branch-lbl"><span class="r">Rama '+brN+'</span> — Insumo '+esc((hc.cod||'?')+' ('+sn+')')+' · × '+fmt(qty_hijo)+' u</div>';
   H+='<div class="flow branch">';
-  H+=node("INSUMO",sCls(hc.s),hc.cod||"?",hc.d||"","",qty_hijo,null);
-  if(sn && sn!=='terminado' && sn!=='fleje' && sn!=='?'){
-   H+='<span class="arr">→</span>'+sectorNode(sn,hc.cod,qty_hijo);
-  }
+  H+=node("INSUMO",sCls(hc.s),hc.cod||"?",hc.d||"","",qty_hijo,null,destIns);
   H+='</div>';
  });
  // barra de convergencia
@@ -359,13 +446,11 @@ function renderConvergenceLane(padre_id,ruta_list,need,uni,flejesTotal,aid,insum
  else if(convPaso.tp==="tallerista"){var _tn=D.tall[String(convPaso.ta)]||"(sin asignar)";convTp="TALLERISTA";convCls="tall";convNm=(typeof _tn==='string'?_tn.trim():_tn.n||"?");convEx=pc.cod+" · "+(pc.d||"");}
  else if(convPaso.tp==="proveedor_servicio"){var _px=D.prov[String(convPaso.pr)]||{};convTp="PROV "+(_px.n||"?");convCls="prov";convNm=pc.cod;convEx=(_px.p||"")+" · "+(pc.d||"");}
  else {convTp=convPaso.tp.toUpperCase();convCls="prov";convNm=pc.cod;convEx=pc.d||"";}
- H+=node(convTp,convCls,convNm,convEx,extra,qty_padre,null);
  var _snConv=sName(pc.s), _post=postPasos||[];
- if(esTransitoPS(convPaso,_post[0])){
-  H+='<span class="arr">→</span>'+transitoNode(pc,_post[0],qty_padre);
- } else if(_snConv && _snConv!=='terminado' && _snConv!=='fleje' && _snConv!=='?'){
-  H+='<span class="arr">→</span>'+sectorNode(_snConv,pc.cod,qty_padre);
- }
+ var destConv="";
+ if(esTransitoPS(convPaso,_post[0]))destConv=destTransito(pc,_post[0]);
+ else if(_snConv && _snConv!=='terminado' && _snConv!=='fleje' && _snConv!=='?')destConv=destSector(_snConv,pc.cod,"");
+ H+=node(convTp,convCls,convNm,convEx,extra,qty_padre,null,destConv);
  _post.forEach(function(p,i,arr){
   H+='<span class="arr">→</span>'+pasoNode(p,need,uni,arr[i+1]);
  });
@@ -429,16 +514,9 @@ function render(){
  // filtrar convergences: solo padres que aparecen en need (bom expandido) o cuya continuación aporta
  // (todas quedan, ya que están en rutas del articulo)
 
- var H='';
- H+='<div class="hero">'+
-    '<div><div class="cod">'+esc(a.cod)+'</div><div class="fam">'+esc(a.d||"")+(a.d&&a.fam?' · ':'')+esc(a.fam||"")+(a.mk?' · '+esc(a.mk):'')+'</div></div>'+
-    '<div style="display:flex;gap:8px;flex-wrap:wrap">'+
-      '<div class="kpi"><b>'+fmt(uni)+'</b>unidades a producir</div>'+
-      '<div class="kpi"><b>'+bom.length+'</b>partes BOM</div>'+
-      '<div class="kpi"><b>'+Object.keys(need).length+'</b>componentes totales</div>'+
-      '<div class="kpi"><b>'+rutas_prod.length+'</b>rutas de producción</div>'+
-      (talls.length?'<div class="kpi"><b>'+esc(talls.join(" O "))+'</b>ensambla (alternativas)</div>':"")+
-    '</div></div>';
+ // Los bloques se arman primero (ahí se suman los kg de fleje) y el encabezado
+ // se compone al final, para poder mostrar el total de fleje arriba de todo.
+ var B='';
 
  // Marcar rutas que producen hijos de un sub-conjunto convergente (se consumen dentro de la convergencia)
  var childrenOfConv={};
@@ -454,21 +532,23 @@ function render(){
   if(lastCs && childrenOfConv[lastCs]){rutas_en_conv[r.id]=childrenOfConv[lastCs];}
  });
 
+ function titulo(n,txt){return '<div class="section-title"><span class="n">'+n+'</span>'+txt+'</div>';}
+
  // Rutas standalone
  var standalone=rutas_prod.filter(function(r){return !rutas_en_conv[r.id];});
  if(standalone.length){
-  H+='<div class="section-title">1 · Partes que se fabrican en Cervantes ('+standalone.length+' rutas simples)</div>';
+  B+=titulo(1,'Partes que se fabrican en Cervantes ('+standalone.length+(standalone.length===1?' ruta simple)':' rutas simples)'));
   standalone.forEach(function(r){
    var pasos=D.rp[String(r.id)]||[];
-   H+=renderStandaloneLane(r,pasos,{},need,uni,flejesTotal);
+   B+=renderStandaloneLane(r,pasos,{},need,uni,flejesTotal);
   });
  }
  // Rutas con convergencia
  var convKeys=Object.keys(convergences);
  if(convKeys.length){
-  H+='<div class="section-title">2 · Convergencias · sub-conjuntos que unen 2+ rutas ('+convKeys.length+')</div>';
+  B+=titulo(2,'Convergencias · sub-conjuntos que unen 2+ rutas ('+convKeys.length+')');
   convKeys.forEach(function(padre){
-   H+=renderConvergenceLane(parseInt(padre),convergences[padre],need,uni,flejesTotal,aid,insumoEnConv);
+   B+=renderConvergenceLane(parseInt(padre),convergences[padre],need,uni,flejesTotal,aid,insumoEnConv);
   });
   // Las rutas de insumo que ya se dibujaron dentro de una convergencia no se repiten en el bloque 4
   rutas_ins=rutas_ins.filter(function(r){return !insumoEnConv[r.id];});
@@ -479,25 +559,25 @@ function render(){
  convKeys.forEach(function(k){subsCubiertos[k]=1;});
  var subKeys=Object.keys(D.children).filter(function(k){return need[parseInt(k)] && !subsCubiertos[k];});
  if(subKeys.length){
-  H+='<div class="section-title">3 · Sub-conjuntos (BOM sin ruta explícita)</div>';
+  B+=titulo(3,'Sub-conjuntos (BOM sin ruta explícita)');
   subKeys.forEach(function(k){
    var pid=parseInt(k); var pc=cById(pid);
    var pq=need[pid]*uni;
-   H+='<div class="lane"><div class="head"><b>'+esc(pc.cod+' · '+(pc.d||""))+'</b><span style="color:#166398">× '+fmt(pq)+' u</span></div><div class="flow">';
+   B+='<div class="lane"><div class="head"><b>'+esc(pc.cod+' · '+(pc.d||""))+'</b><span class="uni">× '+fmt(pq)+' u</span></div><div class="flow">';
    var hijos=D.children[k];
    hijos.forEach(function(hh,i){
     var hc=cById(hh.c);
     var hq=hh.q*pq;
-    if(i>0)H+='<span class="arr plus">+</span>';
-    H+=node(sName(hc.s).toUpperCase(),sCls(hc.s),hc.cod,hc.d||"","",hq,null);
+    if(i>0)B+='<span class="arr plus">+</span>';
+    B+=node(sName(hc.s).toUpperCase(),sCls(hc.s),hc.cod,hc.d||"","",hq,null,"");
    });
-   H+='<span class="arr">=</span>'+node(sName(pc.s).toUpperCase(),"sub",pc.cod,pc.d||"","sub-conjunto",pq,null);
-   H+='</div></div>';
+   B+='<span class="arr">=</span>'+node(sName(pc.s).toUpperCase(),"sub",pc.cod,pc.d||"","sub-conjunto",pq,null,"");
+   B+='</div></div>';
   });
  }
 
  if(rutas_ins.length){
-  H+='<div class="section-title">4 · Insumos comprados / transformados (entran al tallerista)</div>';
+  B+=titulo(4,'Insumos comprados / transformados (entran al tallerista)');
   // FIX aud4-p7: agrupar por firma SIN tall → mostrar "Alex O Martin" en vez de dos líneas duplicadas
   // FIX aud5-p3: agrupar talls por POSICIÓN/etapa, no juntar todos los talls de la ruta
   var grupos={};
@@ -521,44 +601,71 @@ function render(){
    var qFin=null,csFin=cidIni;
    for(var ii=pasos.length-1;ii>=0;ii--){var pp=pasos[ii];if(pp.cs && need[pp.cs]){csFin=pp.cs;qFin=need[pp.cs]*uni;break;}}
    if(qFin===null && need[cidIni])qFin=need[cidIni]*uni;
-   H+='<div class="lane" style="padding:6px 10px"><div class="head" style="margin-bottom:4px"><b>'+esc(comp.cod+' — '+(comp.d||""))+'</b>'+(qFin?'<span style="color:#166398">× '+fmt(qFin)+' u</span>':"")+'</div><div class="flow" style="align-items:center">';
-   H+=node("INSUMO",sCls(comp.s),comp.cod||"?",comp.d||"","",qFin,null);
+   B+='<div class="lane"><div class="head"><b>'+esc(comp.cod+' — '+(comp.d||""))+'</b>'+(qFin?'<span class="uni">× '+fmt(qFin)+' u</span>':"")+'</div><div class="flow">';
+   B+=node("INSUMO",sCls(comp.s),comp.cod||"?",comp.d||"","",qFin,null,"");
    pasos.forEach(function(p,idx){
     if(idx===0)return;
     if(p.tp==="proveedor_servicio"){
      var pv=D.prov[String(p.pr)]||{n:"(sin prov)",p:""};
      var csComp=cById(p.cs);
-     H+='<span class="arr">→</span>'+node("PROV.SERV.","prov",pv.n.trim(),pv.p||"","",qFin,null);
-     if(esTransitoPS(p,pasos[idx+1]))H+='<span class="arr">→</span>'+transitoNode(csComp,pasos[idx+1],qFin);
-     else if(csComp)H+='<span class="arr">→</span>'+node((csComp.s?sName(csComp.s).toUpperCase():"COMP"),sCls(csComp.s),csComp.cod,csComp.d||"","",qFin,null);
+     // lo que sale del proveedor va en el PIE de su tarjeta, no en un nodo aparte
+     var dst="";
+     if(esTransitoPS(p,pasos[idx+1]))dst=destTransito(csComp,pasos[idx+1]);
+     else if(csComp && csComp.cod)dst=destSector(csComp.s?sName(csComp.s):"componente",csComp.cod,csComp.d||"");
+     B+='<span class="arr">→</span>'+node("PROV.SERV.","prov",pv.n.trim(),pv.p||"","",qFin,null,dst);
     }
     else if(p.tp==="tallerista"){
      var tallsEtapa=g.tallsPorPos[idx]||[(D.tall[String(p.ta)]||'').trim()];
      var lbl=tallsEtapa.length>1?tallsEtapa.join(' O '):tallsEtapa[0];
-     H+='<span class="arr">→</span>'+node("TALLERISTA","tall",lbl,tallsEtapa.length>1?"(alternativas)":"","",qFin,null);
+     B+='<span class="arr">→</span>'+node("TALLERISTA","tall",lbl,tallsEtapa.length>1?"(alternativas)":"","",qFin,null,"");
     }
     else if(p.tp==="proveedor_at"){
      /* Articulo comprado terminado: lo unico que sale de casa es el carton y la caja;
         el Prov AT los usa y entrega el articulo ya terminado en Virgilio. */
      var pa=(D.provat?D.provat[String(p.pat)]:null)||"(sin prov)";
-     H+='<span class="arr">→</span>'+node("PROV. ART. TERM.","prov",pa.trim(),"entrega terminado","",qFin,null);
+     B+='<span class="arr">→</span>'+node("PROV. ART. TERM.","prov",pa.trim(),"entrega terminado","",qFin,null,"");
     }
-    else if(p.tp==="virgilio"){H+='<span class="arr">→</span>'+node("VIRGILIO","virg","Distribución","artículo","",null,null);}
+    else if(p.tp==="virgilio"){B+='<span class="arr">→</span>'+node("VIRGILIO","virg","Distribución","artículo","",null,null,"");}
    });
-   H+='</div></div>';
+   B+='</div></div>';
   });
  }
 
- H+='<div class="section-title">5 · Convergencia final → Artículo → Virgilio</div>';
- H+='<div class="lane"><div class="flow">';
- if(talls.length){talls.forEach(function(t,i){H+=(i>0?'<span class="arr plus" style="color:#92611b">O</span>':"")+node("TALLERISTA","tall",t,"ensambla (alternativa)","",uni,null);});}
- else H+=node("TALLERISTA","tall","(sin asignar)","tabla incompleta","",uni,null);
- H+='<span class="arr">→</span>'+node("ARTÍCULO","virg",a.cod,a.fam+" terminado","",uni,null)+
-    '<span class="arr">→</span>'+node("VIRGILIO","virg","Distribución","centro logístico","",uni,null);
- H+='</div></div>';
+ B+=titulo(5,'Convergencia final → Artículo → Virgilio');
+ B+='<div class="lane"><div class="flow">';
+ if(talls.length){talls.forEach(function(t,i){B+=(i>0?'<span class="arr plus">O</span>':"")+node("TALLERISTA","tall",t,"ensambla (alternativa)","",uni,null,"");});}
+ else B+=node("TALLERISTA","tall","(sin asignar)","tabla incompleta","",uni,null,"");
+ B+='<span class="arr">→</span>'+node("ARTÍCULO","virg",a.cod,a.fam+" terminado","",uni,null,"")+
+    '<span class="arr">→</span>'+node("VIRGILIO","virg","Distribución","centro logístico","",uni,null,"");
+ B+='</div></div>';
 
+ // ---- encabezado + resumen de fleje (se arman al final: necesitan los kg sumados) ----
+ var H='<div class="hero">'+
+    '<div><div class="cod">'+esc(a.cod)+'</div><div class="fam">'+esc(a.d||"")+(a.d&&a.fam?' · ':'')+esc(a.fam||"")+(a.mk?' · '+esc(a.mk):'')+'</div></div>'+
+    '<div class="kpis">'+
+      '<div class="kpi"><b>'+fmt(uni)+'</b>unidades a producir</div>'+
+      '<div class="kpi"><b>'+bom.length+'</b>partes BOM</div>'+
+      '<div class="kpi"><b>'+Object.keys(need).length+'</b>componentes</div>'+
+      '<div class="kpi"><b>'+rutas_prod.length+'</b>rutas de producción</div>'+
+      (talls.length?'<div class="kpi ens"><b>'+esc(talls.join(" O "))+'</b>ensambla (alternativas)</div>':"")+
+    '</div></div>';
 
- document.getElementById("canvas").innerHTML=H;
+ // El kg de fleje por código ya se calculaba carril por carril y se tiraba: acá se muestra.
+ var flKeys=Object.keys(flejesTotal).filter(function(k){return flejesTotal[k]>0;});
+ if(flKeys.length){
+  flKeys.sort(function(x,y){return flejesTotal[y]-flejesTotal[x];});
+  var tot=0;flKeys.forEach(function(k){tot+=flejesTotal[k];});
+  H+='<div class="flejes-total"><h3>Fleje a pedir para estas '+fmt(uni)+' unidades</h3>';
+  flKeys.forEach(function(k){
+   var fc=cById(k);
+   H+='<div class="fleje-row"><span class="fname">'+esc(fc.cod||"?")+' <i>'+esc(fc.d||"")+'</i></span>'+
+      '<span class="fkg">'+fmt(flejesTotal[k])+' kg</span></div>';
+  });
+  if(flKeys.length>1)H+='<div class="fleje-row"><span class="fname"><b>Total</b></span><span class="fkg">'+fmt(tot)+' kg</span></div>';
+  H+='</div>';
+ }
+
+ document.getElementById("canvas").innerHTML=H+B;
 }
 
 sel.addEventListener("change",function(){document.getElementById('tallAlt').dataset.aid='';render();});
@@ -582,7 +689,7 @@ async function __boot(){
     Object.assign(D, r.data);
     __run();
   }catch(e){
-    document.body.innerHTML='<p style=\'padding:24px;font-family:system-ui;color:#b3402f\'>Error cargando datos de Supabase: '+(e.message||e)+'</p>';
+    document.body.innerHTML='<p style=\'padding:24px;font-family:system-ui;color:#ff9b8a\'>Error cargando datos de Supabase: '+(e.message||e)+'</p>';
     console.error(e);
   }finally{ document.body.style.cursor=''; }
 }

@@ -7512,3 +7512,30 @@ No bloquean nada (los 5 artículos ya están modelados por otro camino), pero el
 El Sector Caja tiene 12 cajas (N°1, 2, 6, 7, 10, 12, 13, 15, 16, 22, 27, 29). O hay que crear la N°4
 y la N°24 con su código de estantería, o esas 5 filas van a otra caja — como pasó con el 338 y el
 732, que pedían la N°24 y la N°8 y el usuario los mandó a la N°7. **Preguntado.**
+### 4bo. Cómo quiere el usuario que se vea "¿Qué necesito para producir?" (2026-09-11)
+
+`[usuario, textual]`: *"que este módulo está poco efectivo. Quiero que lo pueda ver mejor, más
+grande, sin tantos colores, no tan claro, capaz con un fondo más oscuro y para que sea más
+legible"* + *"te hablo no solo para el artículo que te mostré, para todo el módulo"*.
+
+**Lo que estaba mal no era sólo el color: era el LARGO de la cadena.** Cada ruta se dibujaba
+como ~10 nodos en fila (paso, sector, paso, sector, …), no entraba en ninguna pantalla y el
+final de la ruta —Virgilio— quedaba escondido detrás de un scroll lateral que nadie ve. Por eso
+la letra tenía que ser chica. Tres decisiones que quedan como criterio del módulo:
+
+1. **El sector donde queda el stock NO es un nodo**: es el pie de la tarjeta del paso que lo
+   produce (`📦 CRUDO · stock J12`). Lo mismo el tránsito PS (`🚚 TRÁNSITO · … → Guazzaroni`).
+   La cadena pasó de ~10 tarjetas a ~5.
+2. **Dos colores, no once.** Ámbar = lo nuestro (matriz, fleje, kg, artículo, Virgilio);
+   celeste = lo de afuera (proveedor de servicio, tallerista, prov. art. terminado). El resto,
+   gris. El tipo de paso se lee por la ETIQUETA y la barra lateral, no por el fondo.
+3. **Wrap, no scroll horizontal.** La cadena envuelve al renglón siguiente; en celular baja en
+   vertical con flechas ↓. Nunca se esconde el final de una ruta.
+
+**Fondo oscuro a propósito:** esta pantalla **no carga `gp2-claro.css`** (el tema claro global).
+Es la excepción del repo; si alguien se lo vuelve a agregar, le pisa toda la paleta con blanco.
+
+**El kg de fleje ya se calculaba y se tiraba.** `flejesTotal` se sumaba carril por carril y nunca
+se dibujaba (el CSS `.flejes-total` existía sin emisor). Ahora se muestra arriba de todo: **qué
+fleje pedir, en kg, para esas N unidades**, ordenado de mayor a menor. Es la pregunta que el
+módulo contesta.
