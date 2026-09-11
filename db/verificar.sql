@@ -246,6 +246,7 @@ order by regla;
 --   select ac.articulo_id, ac.componente_id from "GP2".articulo_componente ac join final f on f.aid = ac.articulo_id
 --    where not exists (select 1 from entregado e where e.aid=ac.articulo_id and e.cid=ac.componente_id
 --                        and e.tipo=f.tipo and e.ref=f.ref)) z
+-- union all select 'proveedor_servicio_proceso_fuera_del_catalogo' que, count(*) n, '(14 de 15: la columna es un ROTULO libre en Title Case y la relacion real PS<->proceso, que es 1:N, vive en tarifa_servicio; pintores_bundle ya no depende de como este escrito)' ref from "GP2".proveedor_servicio ps where ps.proceso is not null and not exists (select 1 from "GP2".proceso p where p.nombre = ps.proceso)
 -- union all select 'uni_x_caja_LK_contradice_articulo' que, count(*) n, '(idea 7330: el 508 Sacafuentes Articulado dice 6 en articulo y 12 en uni_x_articulo_x_caja; lo tiene que decir el usuario)' ref from "GP2".uni_x_articulo_x_caja u join "GP2".articulo a on a.codigo = u.cod_art where u.empresa = 'LK' and a.articulos_por_caja is not null and a.articulos_por_caja <> u.uni_x_caja
 -- union all select 'catalogo_prov_at_sin_descripcion' que, count(*) n, '(1: el cod_art 193 de Kuffo no es un articulo de GP2 todavia)' ref from "GP2".articulo_prov_at where nullif(btrim(coalesce(descripcion,'')),'') is null
 -- union all select 'espejo_virgilio_sin_reprocesar', count(*), '(entregas de Virgilio que no cruzaron; reprocesar_espejo_virgilio(null, true) dice cuales ya se pueden)' from "GP2".virgilio_espejo_pend where resuelto_en is null

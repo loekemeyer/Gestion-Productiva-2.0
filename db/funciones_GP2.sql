@@ -4377,7 +4377,7 @@ begin
                       where x.proveedor_servicio_id = ps.id))
            order by ps.nombre), '[]'::jsonb)
     into v_pintores
-    from proveedor_servicio ps where ps.proceso = 'Pintado';
+    from proveedor_servicio ps where lower(btrim(ps.proceso)) = 'pintado';
 
   -- Reparto propuesto: de la parte mas pesada a la mas liviana.
   for r in
@@ -4405,7 +4405,7 @@ begin
   with pintables as (
     select distinct rp.comp_entrada_id comp_id
     from ruta_paso rp
-    join proveedor_servicio p2 on p2.id = rp.proveedor_id and p2.proceso='Pintado'
+    join proveedor_servicio p2 on p2.id = rp.proveedor_id and lower(btrim(p2.proceso)) = 'pintado'
     where rp.comp_entrada_id is not null
   ),
   partes as (
