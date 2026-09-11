@@ -6819,7 +6819,16 @@ plásticas ya existen en GP2; lo que falta son los artículos, sus cartones y al
 - **059 Cuchillito de Untar Plast x2 → ALTA (hecha)** `[usuario: "059 lo mismo, 2 x cartón. caja 22"]`:
   igual al 058 pero con `PEP9` «Cuchillo de Untar Blanc.» ×2 (JL Matricería, 7,3 g) + cartón `CART059` +
   Caja N°22, 12 por caja, Fábrica. Familia «Cuchillos de untar».
-- Quedan por decidir: **715** (Cierra Bolsa ×4, misma pieza `PC4`; el vecino le pone ×2 igual que al 058
-  — parece error, y su Est Madre es 2/mes) y los **importados 94xE** (942E 132, 943E 144, 944E 74,
-  945E 82, 946E 58, 948E 108 uni/mes; todos llevan sólo el inserto de mango de madera `PEST1`, 6,6 g,
-  que no existe en GP2).
+- **715 Cierra Bolsa x4 → ALTA (hecha)** `[usuario: "1 x4"]`: `PC4` **×4** + cartón + Caja N°22, Fábrica.
+  **El vecino le pone ×2, igual que al 058: es un error suyo** — GP2 usa ×4.
+- **PEST1 + los 7 importados 94xE → ALTA (hecha)** `[usuario: "creala, pero cuando llegue la nueva impo
+  de 94xE, ya queda discontinuo"]`: `PEST1` «Insertos Mango de Madera» (6,6 g, **PP**, sector Plástico,
+  proveedor pendiente) y los artículos **941E, 942E, 943E, 944E, 945E, 946E, 948E** (familia Madera, 12
+  por caja, sin cartón: vienen importados y sólo se les pone el inserto en Fábrica). Consumo del inserto:
+  684 uni/mes. **⚠ TRANSITORIO**: cuando llegue la **nueva importación de 94xE** el inserto **queda
+  discontinuo** → marcar `PEST1.estado_compra = 'discontinuo'` y sacarlo de las 7 recetas; el PP baja
+  ~4,7 kg/mes.
+- **Cerrado el repaso de los 34**: el consumo de PP en GP2 quedó en **786 kg/mes** (era 722 antes de
+  estas altas; el Excel decía 868 con otra Est Madre). Lo que queda afuera a propósito: 333–338 y 396
+  (discontinuos), 809 (de baja), 725/909/719 (palo blanco, no es material nuestro) y la línea Chef inox
+  630–636/709/856/857/864 (no se vende).
