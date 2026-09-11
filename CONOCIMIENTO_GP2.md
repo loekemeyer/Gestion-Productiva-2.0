@@ -6879,6 +6879,47 @@ plásticas ya existen en GP2; lo que falta son los artículos, sus cartones y al
   Antes GP2 costeaba **por encima** de la planilla casi siempre; ahora queda en el mismo orden.
 - **Lección**: cuando un costo GP2 da muy por encima del de la planilla, sospechar del doble conteo
   entre la caminata de rutas y las sumas por receta/insumo, no de los precios.
+- **REGRESIÓN del mismo día, ya arreglada** (idea 7297): la guarda saca el insumo de `insumox` porque
+  «`mat` ya lo cuenta», pero `mat` lo cuenta **una vez** y **no mira `ruta_paso.cantidad`**, mientras
+  `insumox` sí la miraba. Un insumo con `cantidad = 2` pasó de cobrarse 3 veces a cobrarse **1**. Eran
+  8 pasos con cantidad > 1, 4 con precio: **BOM13 ×2 y BOM14 ×2 en los artículos 550 y 760**, −$51,25
+  cada uno. Arreglo: `insumox` no los excluye, les suma **lo que falta, `(cantidad − 1)`** (con
+  cantidad = 1 suma 0), y el contador `sin_precio` sí mantiene la guarda para no avisar dos veces por
+  el mismo precio faltante. Verificado contra foto previa: cambian **exactamente 550 y 760** y ninguno
+  de los otros 713. `[deducido]` La lección de fondo: **`mat` e `insumox` no son intercambiables** —
+  uno cuenta por arista y el otro por cantidad; mover un insumo de uno al otro cambia la aritmética.
+
+### 4az-bis. Auditoría del motor de costos: lo que se verificó y lo que quedó abierto (2026-09-11)
+
+Barrido del motor después del fix de 4az. **Lo que se comprobó con consulta, no con sospecha:**
+
+- **El 580 contra la planilla: GP2 $1.194,70 vs $432,39** (`costo_sin_aporte − cod_y_precinto`). El
+  hueco **no es la tarifa** (ya se arregló, ver 4bb) **ni el precio del fleje**: es el **peso**.
+- **`GRJ10` (Batidor Pera) y `GRJ10A` (Batidor Pera Mini) tienen el MISMO `kg_x_uni`: 0,098 kg**
+  `[dato]`. No puede ser — uno es el mini del otro. La planilla dice que el **mini pesa 16,5 g** (de la
+  fórmula del cromado de Pedernera, `$2.796,25/kg × 16,5 g × 1,125`) y el `GRJ_PESOS` del vecino dice
+  **GRJ10 = 68,88 g**. **Los 98 g no son de ninguno de los dos.** Idea 7295; es dato del usuario.
+- **Cómo ese peso se multiplica**: en `v_costo_componente`, `mat` costea un fleje como
+  `precio × kg_ref`, y `kg_ref` es el `kg_x_uni` de **la salida de la arista**. Con una matriz en el
+  medio la salida es la pieza cortada y la cuenta cierra; **cuando el fleje entra directo al armado, la
+  salida es el armado entero y cada fleje paga el peso total del producto**. En el batidor son 2 flejes
+  × 98 g = **196 g de alambre** contra los 30,66 g que suman IE4 (14,63) e IE5 (16,03) y los **6,85 g**
+  de la planilla. Pasa en **exactamente 2 nodos de todo GP2**: GRJ10 y GRJ10A. Idea 7296.
+  **Ojo con el arreglo obvio**: usar el `kg_x_uni` del propio fleje **no sirve en general** —
+  `CHAPA430` lo tiene en **1** (convención de precio por kg) y ahí la regla actual es la correcta.
+- **Lo que NO estaba mal, chequeado** (vale tanto como lo otro): el **resorte EP10 sí está** en la
+  cadena del 580 (ruta «Insumo EP10 → Art 580 (Alex Escalante)», $115, que es el `material_pesos` del
+  GRJ10A); el **precio del fleje no está inflado**; el **cartón y la caja** coinciden con la planilla;
+  y las **dos tarifas** del 580 suman $68,65, idéntico al total de la hoja Talleristas.
+- **La guarda nueva de `insumox` no dejó material sin cobrar**: la consulta de insumos que la guarda
+  excluye y que en **su** ruta no entran por ninguna arista con actor devuelve **0 filas** `[dato]`.
+- **`bomx` se quedó con la guarda angosta** (`e.ent = hijo AND e.sal = padre`): hoy **1 sola fila**
+  (`C12` ← `BOM10`) y **sin precio**, o sea sin plata en juego todavía. Idea 7298.
+- **Regla de trabajo que quedó de esto** `[deducido]`: antes de tocar la vista de costos, **foto de los
+  713 en una tabla auxiliar**, aplicar, y exigir que el diff diga *«cambian exactamente estos N y
+  ninguno más»* — incluido `faltan_precios`, que es donde se coló el error intermedio de esta misma
+  sesión (el semáforo empezó a contar dos veces el mismo precio faltante). Después **borrar la tabla
+  auxiliar**: mientras existe, el invariante D da > 0.
 
 ### 4ba. Lo que faltaba usar del Excel de plásticos (2026-09-11)
 

@@ -360,18 +360,30 @@ create or replace view "GP2".v_costo_componente as
           WHERE x.art_id IS NOT NULL
           GROUP BY x.art_id, x.insumo_id
         ), insumox AS (
+         -- 2026-09-11: el insumo que ADEMAS entra a la caminata de `edges` ya lo cuenta `mat` (antes
+         -- se sumaba en los dos lados: art 312, 1.217,48 x 2). Pero `mat` lo cuenta UNA sola vez y no
+         -- mira `ruta_paso.cantidad`, asi que excluirlo del todo dejaba los de cantidad > 1 cobrados
+         -- de menos (BOM13 x2 y BOM14 x2 en el 550 y el 760: -$51,25 cada uno). Aca se le suma lo que
+         -- FALTA, (cantidad - 1): con cantidad = 1 suma 0. Que `mat` propague la cantidad es la idea
+         -- 7269 y es cirugia del motor — la decide el usuario.
          SELECT y.art_id AS comp_id,
-            COALESCE(sum(y.cantidad * pc.precio) FILTER (WHERE pc.moneda = 'USD'::text), 0::numeric) AS usd,
-            COALESCE(sum(y.cantidad * pc.precio) FILTER (WHERE pc.moneda = 'ARS'::text), 0::numeric) AS ars,
-            count(*) FILTER (WHERE pc.precio IS NULL AND NOT (EXISTS ( SELECT 1
-                   FROM edges e
-                  WHERE e.sal = y.insumo_id))) AS sin_precio
+            COALESCE(sum(
+                CASE WHEN EXISTS (SELECT 1 FROM edges e WHERE e.ent = y.insumo_id)
+                     THEN GREATEST(y.cantidad - 1, 0) * pc.precio
+                     ELSE y.cantidad * pc.precio END
+              ) FILTER (WHERE pc.moneda = 'USD'::text), 0::numeric) AS usd,
+            COALESCE(sum(
+                CASE WHEN EXISTS (SELECT 1 FROM edges e WHERE e.ent = y.insumo_id)
+                     THEN GREATEST(y.cantidad - 1, 0) * pc.precio
+                     ELSE y.cantidad * pc.precio END
+              ) FILTER (WHERE pc.moneda = 'ARS'::text), 0::numeric) AS ars,
+            -- el semaforo NO lo cuenta dos veces: si el insumo entra a la caminata, el que avisa
+            -- "falta el precio" es `mat`.
+            count(*) FILTER (WHERE pc.precio IS NULL
+                  AND NOT (EXISTS ( SELECT 1 FROM edges e WHERE e.sal = y.insumo_id))
+                  AND NOT (EXISTS ( SELECT 1 FROM edges e WHERE e.ent = y.insumo_id))) AS sin_precio
            FROM insumo_por_art y
              LEFT JOIN pc ON pc.componente_id = y.insumo_id
-          -- 2026-09-11: solo los insumos que NO entran a la caminata de `edges`. Si el insumo ademas
-          -- tiene un paso con actor (tallerista / PS / matriz) ya lo cuenta `mat`, y sumarlo aca lo
-          -- contaba DOS VECES (art 312: 1.217,48 x 2). Misma guarda que ya tenia `bomx`.
-          WHERE NOT (EXISTS ( SELECT 1 FROM edges e WHERE e.ent = y.insumo_id))
           GROUP BY y.art_id
         ), talpieza AS (
          SELECT DISTINCT ON (n.comp_id, n.comp) n.comp_id,
