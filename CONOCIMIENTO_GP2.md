@@ -6895,10 +6895,15 @@ Barrido del motor después del fix de 4az. **Lo que se comprobó con consulta, n
 
 - **El 580 contra la planilla: GP2 $1.194,70 vs $432,39** (`costo_sin_aporte − cod_y_precinto`). El
   hueco **no es la tarifa** (ya se arregló, ver 4bb) **ni el precio del fleje**: es el **peso**.
-- **`GRJ10` (Batidor Pera) y `GRJ10A` (Batidor Pera Mini) tienen el MISMO `kg_x_uni`: 0,098 kg**
-  `[dato]`. No puede ser — uno es el mini del otro. La planilla dice que el **mini pesa 16,5 g** (de la
-  fórmula del cromado de Pedernera, `$2.796,25/kg × 16,5 g × 1,125`) y el `GRJ_PESOS` del vecino dice
-  **GRJ10 = 68,88 g**. **Los 98 g no son de ninguno de los dos.** Idea 7295; es dato del usuario.
+- **`GRJ10` (Batidor Pera) y `GRJ10A` (Batidor Pera Mini) tenían el MISMO `kg_x_uni`: 0,098 kg**.
+  **RESUELTO** `[usuario 2026-09-11, textual: "98 gms la grande, 16.5 la chica"]`: la **grande estaba
+  bien** (0,098) y la **chica tenía el peso de la grande** → `GRJ10A = 0,0165 kg`, que es exactamente el
+  que sale de la fórmula del cromado de Pedernera en la planilla (`$2.796,25/kg × 16,5 g × 1,125`). El
+  `GRJ_PESOS` del vecino (GRJ10 = 68,88 g) **no valía**. Con eso el **580 baja de $1.194,70 a $532,96**
+  y el `GRJ10A` de $975,39 a $313,66. Idea 7295 cerrada.
+  **Lo que todavía sobra** (idea 7296, abierta): la planilla dice **6,85 g de alambre** y GP2 cobra
+  **2 × 16,5 = 33 g**, porque cada fleje sigue pagando el peso del armado entero. Contra los $432,39 de
+  la planilla quedan ~$100 de diferencia, la mayor parte por ahí.
 - **Cómo ese peso se multiplica**: en `v_costo_componente`, `mat` costea un fleje como
   `precio × kg_ref`, y `kg_ref` es el `kg_x_uni` de **la salida de la arista**. Con una matriz en el
   medio la salida es la pieza cortada y la cuenta cierra; **cuando el fleje entra directo al armado, la
@@ -7041,9 +7046,11 @@ código interno** y el **envasado bajo el código del artículo**:
 | Mini (580) | f617 · `4316` · **$51,807** | f618 · `580` · **$16,842** |
 | Resorte (515) | f619 · `3946` · **$62,7375** | f620 · `515` · **$56,007** |
 
-- **En GP2 el armado va sobre la PIEZA INTERMEDIA y el envasado sobre el terminado.** Los dos primeros
-  ya están así (`GRJ10` ← f615, `GRJ10A` ← f617). **El tercero no: f619 no está cargada en ningún lado**
-  y `C12` lleva en su lugar la **f621, que es el artículo 509** (que ni siquiera existe en GP2). Idea 7299.
+- **En GP2 el armado va sobre la PIEZA INTERMEDIA y el envasado sobre el terminado.** Los tres están
+  así desde el 2026-09-11: `GRJ10` ← f615, `GRJ10A` ← f617 y `C12` ← **f619** `[usuario: "ok"]`. Antes
+  `C12` llevaba la **f621, que es el artículo 509** (que ni siquiera existe en GP2) — el mapeo se había
+  confirmado el 2026-09-02 y resultó ser de otra línea. El 515 sube $6,73 (de $999,59 a $1.006,32) y su
+  bloque de tallerista queda en los **$118,74** de la planilla. Idea 7299 cerrada.
 - **Un importe repetido no significa duplicado** `[deducido]`: los dos envasados de batidor pera valen
   $16,842 porque es el mismo trabajo en dos productos. Lo que delata un error es el **concepto**, no el
   número — el 580 se detectó porque decía *"ARMADO"* en la fila de quien envasa.
