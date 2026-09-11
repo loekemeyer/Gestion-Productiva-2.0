@@ -475,6 +475,30 @@ AS $function$
 $function$
 ;
 
+-- ---------- _oc_validar_minimo_proveedor ----------
+CREATE OR REPLACE FUNCTION "GP2"._oc_validar_minimo_proveedor(p_items jsonb)
+ RETURNS text[]
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'GP2'
+AS $function$
+  with mp as (
+    select coalesce(nullif(btrim(c.proveedor),''), '(sin proveedor)') as prov,
+           sum((it->>'cantidad')::numeric) as kg
+      from jsonb_array_elements(coalesce(p_items,'[]'::jsonb)) it
+      join componente c on c.id = (it->>'comp_id')::bigint
+     where c.sector_id = 14 and coalesce((it->>'cantidad')::numeric, 0) > 0
+     group by 1
+  )
+  select coalesce(array_agg(
+      mp.prov || ': el pedido mínimo es ' || "GP2"._oc_num(pi.pedido_minimo_kg)
+      || ' kg y hay ' || "GP2"._oc_num(mp.kg) || ' kg (faltan '
+      || "GP2"._oc_num(pi.pedido_minimo_kg - mp.kg) || ').' order by mp.prov), '{}')
+    from mp join proveedor_insumo pi on pi.nombre = mp.prov
+   where coalesce(pi.pedido_minimo_kg, 0) > 0 and mp.kg < pi.pedido_minimo_kg;
+$function$
+;
+
 -- ---------- abm_articulo_baja ----------
 CREATE OR REPLACE FUNCTION "GP2".abm_articulo_baja(p_id bigint)
  RETURNS jsonb
@@ -2234,6 +2258,13 @@ begin
   v_err_carton := "GP2"._oc_validar_carton(coalesce(p->'items','[]'::jsonb));
   if array_length(v_err_carton, 1) > 0 then
     raise exception 'El pedido de carton no cumple las reglas: %', array_to_string(v_err_carton, ' ');
+  end if;
+
+  -- PEDIDO MINIMO EN KG del proveedor de materia prima plastica. Misma historia que el
+  -- carton: bloqueaba solo desde la pantalla. Idea 7329.
+  v_err_carton := "GP2"._oc_validar_minimo_proveedor(coalesce(p->'items','[]'::jsonb));
+  if array_length(v_err_carton, 1) > 0 then
+    raise exception 'El pedido no llega al minimo del proveedor: %', array_to_string(v_err_carton, ' ');
   end if;
 
   select coalesce(max(numero),0)+1 into v_num from orden_compra;
