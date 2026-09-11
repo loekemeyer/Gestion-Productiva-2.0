@@ -163,7 +163,7 @@ confirmar acá que la clave existe; si un bundle cambia, actualizar esta tabla e
 | `registro_operarios_bundle()` | App de operarios | `empleados, matrices, matriz_fleje, matriz_fleje_pieza, matriz_salidas, registro_en_golpes, rollos_abiertos, rollos_saldo` |
 | `relevamiento_bundle()` | Relevamiento | `cronograma, hoy` |
 | `rollos_bundle()` | Flejes (rollos) | `eventos, flejes, saldos, usos` |
-| `stock_sector_bundle(p_sector_id)` | gp2-stock-sector.js (los 9 sectores) | `filas, generado_en, sector, ubicacion_id` |
+| `stock_sector_bundle(p_sector_id)` | gp2-stock-sector.js (los 10 sectores) | `filas (+en_virgilio), generado_en, sector, ubicacion_id, ubicacion_virgilio_id` |
 | `stock_transito_ps_bundle()` | Stock Tránsito PS | `filas, generado_en` |
 | `talleristas_bundle()` | Envíos Talleristas y Control Talleristas | `generado_en, partes, tall` (`partes` = dict por tallerista `{entrada:[...], salida:[...]}`) |
 | `validacion_bundle()` | Validación de Stock | `aplicados, hoy, pendientes` |
@@ -211,12 +211,26 @@ el motivo de una devolucion, desde el 2026-09-05 — y reemplaza a la tabla cabe
 (CHECK desde el 2026-09-05; el trigger traduce `unidad`, `pliego`, `KG`… antes de calcular, asi
 que una pantalla puede mandar `componente.unidad_medida` tal cual; null = la del otro lado).
 
-**`ubicacion.tipo` tiene SIETE valores**: `sector`, `tallerista`, `proveedor_servicio`,
+**`ubicacion.tipo` tiene OCHO valores**: `sector`, `tallerista`, `proveedor_servicio`,
 `proveedor_at` (los 12 proveedores de articulos terminados), **`virgilio`** (id 33, la
-distribucion), `analisis` (id 46 «Para Analizar», adonde va una devolucion que hay que mirar) e
+distribucion), `analisis` (id 46 «Para Analizar», adonde va una devolucion que hay que mirar),
 **`inyector`** (desde el 2026-09-10: `ref_id = proveedor_insumo.id`, una por inyector — Pat Bet
-Plast, Pettofrezza Rafael, Kollplast, JL Matriceria — con la MATERIA PRIMA plastica en su poder).
+Plast, Pettofrezza Rafael, Kollplast, JL Matriceria — con la MATERIA PRIMA plastica en su poder) y
+**`virgilio_sector`** (desde el 2026-09-11: `ref_id = sector.id`, solo 1 Crudo y 2 Procesado — las
+cajas/cajones de piezas que se guardan en el deposito de Virgilio; se mueven con `traslado_virgilio(
+p_comp_id, p_cantidad, p_sentido 'ida'|'vuelta')` = tipo_mov `traslado`, y `stock_sector_bundle`
+las muestra en `filas[].en_virgilio` / `ubicacion_virgilio_id`).
 Los 84 articulos terminados (sector 12) no tienen ubicacion de sector: viven en Virgilio.
+
+**Gestion Virgilio (otro repo, mismo proyecto Supabase) habla con GP2 por `schema("GP2").rpc`**
+(2026-09-11): `oc_pendientes_virgilio()` = las OC abiertas de material plastico que le van a llegar
+(items con `comp_id`, `codigo`, `pendiente` en kg) y `recibir_oc_virgilio(p_oc_id, p_items
+[{comp_id, cantidad}], p_remito, p_legajo)` = cada item pasa por `crear_recepcion_insumo` (compra
+al sector 14, cruce FIFO contra la OC, la marca recibida sola; `recepcion_insumo.rollos_json`
+guarda `recibido_en: virgilio` y el legajo). `oc_bundle.ocs[].entrega_en` /
+`proveedores[].entrega_en` = `proveedor_insumo.entrega_en` (null = Virgilio 2788; Arcolor y Julio
+Garcia = Cervantes 2868 porque el Master Bach se stockea en Cervantes por ahora). Ver
+`INTEGRACION_GESTION_VIRGILIO.md`.
 
 **Materia prima plastica (2026-09-10)**: sector **14** «Sector Materia Prima Plástica» (`es_insumo`,
 ubicacion tipo `sector` ref 14, fisicamente en Virgilio, `meses_stock 2.5`). 12 componentes en **kg**
@@ -241,7 +255,8 @@ entregar un armado) / `devolucion_tallerista`, `envio_prov_at`, `fabricacion` (p
 matriz), `armado_fabrica` / `consumo_prod` (armado en fábrica desde Stocks General),
 `recepcion_virgilio` / `consumo_virgilio` (espejo de las entregas en Virgilio), `envio_inyector` /
 `consumo_inyector` (materia prima plastica que va al inyector y la que consume al entregar la pieza,
-2026-09-10), `stock_inicial`, `ajuste`. Antes convivían `recepcion_tall` (JS) y `consumo_armado` / `consumo_transformacion`
+2026-09-10), `traslado` (cajas/cajones de Crudo/Procesado entre Cervantes y su deposito en
+Virgilio, 2026-09-11), `stock_inicial`, `ajuste`. Antes convivían `recepcion_tall` (JS) y `consumo_armado` / `consumo_transformacion`
 (SQL) para lo mismo: se unificaron en la auditoría del 2026-09-04. **Desde el 2026-09-05 el
 vocabulario es cerrado**: `movimiento_tipo_mov_chk` rechaza cualquier otra palabra (también las
 que manda el JS por `registrar_movimientos`). Un tipo nuevo se agrega en el CHECK y en el mapa

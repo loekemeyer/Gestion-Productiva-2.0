@@ -52,9 +52,9 @@ const COLS_INSUMO = ['Compras', 'Consumo', 'Envíos'];
 const PH = 'Buscar por código o descripción…';
 const ESPERADO = {
   1:  { titulo: 'Stock SC', h1: 'Stock SC · Sector Crudo', botones: [CSV, 'Stock SP', ATRAS],
-        cols: ['Fabricación', 'Envíos'], a10: ['700', '250'] },                         // neto 800-100 | sal envio_ps + envio_tallerista
+        cols: ['Fabricación', 'Envíos', 'En Virgilio'], a10: ['700', '250', '—'] },      // neto 800-100 | sal envio_ps + envio_tallerista | campo en_virgilio (el stub no lo trae)
   2:  { titulo: 'Stock SP', h1: 'Stock SP · Sector Procesado', botones: [CSV, 'Stock SC', ATRAS],
-        cols: ['Entregas PS', 'Fabricación', 'Envíos Tallerista', 'Recep. Tallerista'], a10: ['150', '700', '50', '—'] },
+        cols: ['Entregas PS', 'Fabricación', 'Envíos Tallerista', 'Recep. Tallerista', 'En Virgilio'], a10: ['150', '700', '50', '—', '—'] },
   3:  { titulo: 'Stock en Movimiento', h1: 'Stock en Movimiento · Sector Movimiento', botones: [ATRAS],
         cols: ['Fabricado', 'Consumido'], a10: ['800', '400'], sin_min_max: true,
         ph: 'Buscar por código, matriz o descripción…' },                              // ent fabricacion | sal fabricacion+consumo_prod

@@ -31,7 +31,9 @@
      links       botones del header entre "Exportar CSV" y "Atras":
                  [rotulo, href, "destacado"?] — "destacado" = fondo azul (los Control)
      columnas    columnas de Movimientos (Uni): k, label, tipos de movimiento, lado
-                 (ent = suma entradas, sal = suma salidas, neto = ent - sal)
+                 (ent = suma entradas, sal = suma salidas, neto = ent - sal); o campo =
+                 un valor de la fila del bundle tal cual (en_virgilio: lo que hay en el
+                 deposito de Virgilio de ese sector, 2026-09-11; el detalle son los traslados)
      sin_csv     sin boton "Exportar CSV"
      sin_min_max sin Maximo/Capacidad, sin KPI "Bajo minimo", sin filtro "Bajo el
                  maximo" y sin aviso de factores
@@ -63,7 +65,8 @@ var SECTORES = {
        links:[["Stock SP", "?sector=2"]],
        columnas:[
          { k:"fabricacion", label:"Fabricación", tipos:["fabricacion","produccion","armado_fabrica"], lado:"neto" },
-         { k:"envios",      label:"Envíos",      tipos:["envio_ps","envio_prov","envio_tallerista","envio_tall"], lado:"sal"  }
+         { k:"envios",      label:"Envíos",      tipos:["envio_ps","envio_prov","envio_tallerista","envio_tall"], lado:"sal"  },
+         { k:"virgilio",    label:"En Virgilio", tipos:["traslado"], campo:"en_virgilio" }
        ] },
   /* Mismas columnas de movimiento que Stock SP del programa viejo:
      lo que devuelve el PS, lo que se fabrica y lo que sale al tallerista. */
@@ -73,7 +76,8 @@ var SECTORES = {
          { k:"entregas_ps", label:"Entregas PS",      tipos:["entrega_ps","recepcion_prov"],             lado:"ent"  },
          { k:"fabricacion", label:"Fabricación",      tipos:["fabricacion","produccion","armado_fabrica"], lado:"neto" },
          { k:"envios_tall", label:"Envíos Tallerista", tipos:["envio_tallerista","envio_tall"],           lado:"sal"  },
-         { k:"recep_tall",  label:"Recep. Tallerista", tipos:["recepcion_tall","entrega_tallerista"],     lado:"ent"  }
+         { k:"recep_tall",  label:"Recep. Tallerista", tipos:["recepcion_tall","entrega_tallerista"],     lado:"ent"  },
+         { k:"virgilio",    label:"En Virgilio",       tipos:["traslado"], campo:"en_virgilio" }
        ] },
   /* Sector Movimiento (3): las piezas intermedias entre matrices ("tras M#").
      Fabricado = entradas por produccion/fabricacion (la matriz que las hace).
@@ -169,6 +173,8 @@ function cajDe(x){ return x.uni_x_cajon ? Number(x.online||0)/Number(x.uni_x_caj
 
 /* valor de una columna de movimientos segun su config */
 function valorCol(x, col){
+  // columna que muestra un campo de la fila tal cual (p.ej. en_virgilio), no una suma de movimientos
+  if (col.campo) return x[col.campo] == null ? null : Number(x[col.campo]);
   var tot = 0, hubo = false;
   (col.tipos||[]).forEach(function(t){
     var m = (x.mov||{})[t];

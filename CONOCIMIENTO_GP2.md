@@ -6691,3 +6691,40 @@ considera el programa de flejes es distinta de la tuya."* Se cruzó a tres nivel
 - **Nota de método**: la planilla lista muchas piezas por ARTÍCULO (mango integrado: «(art 546)
   Corta Queso»), no por pieza; el mango genérico PC10 de GP2 (199 kg) es la suma de 546 + 587 +
   559 + 542 + 543 + 515 + 562 + 116 en la planilla (209 kg) — cierra.
+
+### 4aw. Decisiones "por escrito" sobre el circuito de material plástico (2026-09-11)
+
+`[usuario 2026-09-11]` Respuestas a la lista de pendientes que salió del cruce (4av) y del
+mapeo de Gestión Virgilio (4au). Lo que se decidió y lo que se hizo con cada una:
+
+- **1. Est Madre: manda `proyeccion_madre`** (la que mantiene Virgilio). La planilla de plásticos
+  31-8 usa otra foto y no se le corre atrás: GP2 sigue a `GP2.est_madre`.
+- **3. Cilindro plástico del Corta Queso: discontinuo.** No se da de alta la pieza (los 3 corta
+  queso ya están de baja, 4aq).
+- **4. 570 Pala de Canelones lleva mango + capuchón** → HECHO: receta +`PC10` ×1 +`PA18` ×1 y dos
+  rutas calcadas de las del 587 pero con el tallerista **Fábrica** (el que arma el 570):
+  «Insumo PC10 → Art 570» (insumo → Fábrica → 570 → Virgilio) e «Insumo PA18 → Art 570» (PA18B →
+  PS Hernandez Julio PA18B→PA18 → Fábrica → 570 → Virgilio). Con eso el PP del 570 entra al
+  consumo de material.
+- **5. PC16 «Inserto Chef»**: material y gramos los consigue el usuario (sigue pendiente).
+- **6. Master Bach se stockea en Cervantes por ahora** → HECHO: `proveedor_insumo.entrega_en =
+  'Cervantes 2868'` para Arcolor y Julio Garcia; la hoja de OC dice ENTREGA EN Cervantes y esas
+  OC no aparecen en `oc_pendientes_virgilio()`. El stock sigue en el sector 14 (una sola ubicación
+  para todo el material) — si algún día importa dónde está cada bolsa, se abre otra ubicación.
+- **7. Material sin código de Chef → sin renglón CH** («si no lo usa») → HECHO: Nylon Virgen,
+  Nylon Recuperado, PE y Master Bach van 100 % LK en la hoja.
+- **9. Las bolsas siguen viviendo también en el catálogo `Insumos` de Virgilio** («más adelante se
+  va a unificar todo»). El ledger que manda es GP2; el doble registro se tolera hasta la
+  unificación.
+- **10. Cajas/cajones de Crudo/Procesado en Virgilio: sí se modela** → HECHO: ubicación tipo
+  `virgilio_sector` (ref = sector 1 / 2), tipo_mov `traslado`, RPC `traslado_virgilio(comp,
+  cantidad, 'ida'|'vuelta')`, columna «En Virgilio» en Stock SC / Stock SP.
+- **11. Virgilio recibe la OC de material** → HECHO del lado GP2: `oc_pendientes_virgilio()` +
+  `recibir_oc_virgilio(oc, items, remito, legajo)` (probado con rollback: cruza la OC y la marca
+  recibida). Del lado de Virgilio falta la entidad «Materia Prima (GP2)» en `recepcion.js`: spec
+  en `INTEGRACION_GESTION_VIRGILIO.md`, se hace en una sesión sobre ese repo.
+- **E. Flujo del material**: «se recibe por OC, se manda a inyectores desde el módulo Envío de
+  insumos; deberíamos modelar eso más específico cuando se elige envío de insumos». Hoy el envío de
+  bolsas al inyector vive en `Compras/Inyectores_GP2.html` (panel Material → `enviar_material_inyector`);
+  no existe una pantalla llamada «Envío de insumos». **Pendiente de definir con el usuario** qué
+  pantalla es esa y qué le falta (¿bolsas enteras en vez de kg? ¿remito? ¿quién lleva?).

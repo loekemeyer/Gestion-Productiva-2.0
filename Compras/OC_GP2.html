@@ -1,6 +1,13 @@
 <!doctype html>
 <html lang="es">
 <head>
+<!-- v1.23.0 (2026-09-11) — HOJA DE MATERIAL: SIN RENGLON CH CUANDO NO HAY CODIGO CHEF, Y ENTREGA EN SEGUN PROVEEDOR.
+     (a) Un material sin codigo_isis_ch (Nylon Virgen, Nylon Recuperado, PE, Master Bach) va en UN solo
+         renglon LK con el 100% de los kg: Chef no lo usa, no se le factura nada [usuario 2026-09-11:
+         "si no lo usa"]. El 85/15 sigue para los que tienen codigo de las dos empresas.
+     (b) ENTREGA EN sale de proveedor_insumo.entrega_en (viaja en oc_bundle.ocs[].entrega_en): null =
+         Virgilio 2788 (las bolsas viven en Virgilio); Arcolor y Julio Garcia = Cervantes 2868 porque el
+         Master Bach "se stockea en Cervantes por ahora" [usuario 2026-09-11]. -->
 <!-- v1.22.0 (2026-09-11) — OC DE MATERIA PRIMA PLASTICA CON EL FORMATO DEL USUARIO Y EMISION AUTOMATICA.
      Una OC cuyos items son todos del sector 14 (bolsas de PP/ABS/nylon...) se imprime con la hoja "O.C."
      del workbook del usuario: membrete doble (Loekemeyer Hnos S.R.L. / Chef SRL con CUIT y direccion),
@@ -1272,13 +1279,15 @@ function hojaOCMaterial(o){
   var filas = (o.items||[]).map(function(it){
     n++;
     var kg = Number(it.cantidad)||0;
-    var kgLK = Math.round(kg * pctLK / 100 * 100) / 100, kgCH = Math.round((kg - kgLK) * 100) / 100;
+    // Sin codigo de Chef no hay renglon CH: ese material lo usa solo Loekemeyer y va 100% LK.
+    var conCH = !!it.codigo_isis_ch;
+    var kgLK = conCH ? Math.round(kg * pctLK / 100 * 100) / 100 : kg, kgCH = Math.round((kg - kgLK) * 100) / 100;
     var vacias = '<td></td><td></td><td></td><td></td><td></td><td></td>';   // Fecha Ent / Kg Ent x3: se anotan a mano
     return '<tr class="lk"><td class="emp">LK</td><td class="cod">'+esc(it.codigo)+'</td><td class="num">'+n+'</td>'+
              '<td>'+esc(it.descripcion||'')+'</td><td class="num">'+fmt(kg,2)+'</td><td class="emp">LK</td>'+
              '<td class="num">'+fmt(kgLK,2)+'</td><td>'+esc(fEnt)+'</td>'+vacias+'</tr>'+
-           '<tr class="ch"><td class="emp">CH</td><td class="cod">'+esc(it.codigo_isis_ch||'—')+'</td><td></td>'+
-             '<td></td><td></td><td class="emp">CH</td><td class="num">'+fmt(kgCH,2)+'</td><td></td>'+vacias+'</tr>';
+           (conCH ? '<tr class="ch"><td class="emp">CH</td><td class="cod">'+esc(it.codigo_isis_ch)+'</td><td></td>'+
+             '<td></td><td></td><td class="emp">CH</td><td class="num">'+fmt(kgCH,2)+'</td><td></td>'+vacias+'</tr>' : '');
   }).join('');
   var emp = function(e){ return '<div class="emp"><b>'+esc(e.nombre)+'</b><div>CUIT: '+esc(e.cuit)+'<br>DIRECCION: '+esc(e.dir)+'<br>LOCALIDAD: '+esc(e.loc)+'</div></div>'; };
   return '<!doctype html><html lang="es"><head><meta charset="utf-8"><title>OC N° '+o.numero+' · '+esc(o.proveedor||'')+'</title><style>'+css+'</style></head><body><div class="hoja">'+
@@ -1286,7 +1295,7 @@ function hojaOCMaterial(o){
     '<div class="emps">'+emp(EMPRESAS.LK)+emp(EMPRESAS.CH)+'</div>'+
     '<div class="prov"><span><b>RAZON SOCIAL:</b>'+esc(String(o.proveedor||'').toUpperCase())+'</span>'+
       '<span><b>COD PROV:</b>'+esc(o.cod_prov||'—')+'</span>'+
-      '<span><b>ENTREGA EN:</b>'+esc(EMPRESAS.CH.dir)+'</span>'+
+      '<span><b>ENTREGA EN:</b>'+esc(o.entrega_en || EMPRESAS.CH.dir)+'</span>'+
       (fEnt?('<span><b>ENTREGA ESTIMADA:</b>'+esc(fEnt)+'</span>'):'')+'</div>'+
     '<div class="avisos"><span>FACTURAR Loekemeyer '+fmt(pctLK)+'% · Chef '+fmt(pctCH)+'%</span><span>ESTE PEDIDO ANULA CUALQUIER PEDIDO ANTERIOR</span></div>'+
     '<table><thead><tr><th>Empresa</th><th>Cód ISIS</th><th>N° Ord</th><th>Descripción Material</th><th>Pedido KG</th><th>Emp</th><th>KG a FC</th>'+

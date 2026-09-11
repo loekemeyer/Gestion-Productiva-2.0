@@ -3555,7 +3555,7 @@ select jsonb_build_object(
   'facturar_pct_loeke', (select valor from parametro where clave='oc_facturar_pct_loeke'),
   'proveedores', (select coalesce(jsonb_agg(jsonb_build_object(
       'nombre',pi.nombre,'rubro',pi.rubro,'modo_control',pi.modo_control,
-      'cod_prov',pi.cod_prov,'activo',pi.activo,'dias_entrega',pi.dias_entrega,
+      'cod_prov',pi.cod_prov,'activo',pi.activo,'dias_entrega',pi.dias_entrega,'entrega_en',pi.entrega_en,
       'insumos',(select count(*) from componente c3
                   where c3.proveedor = pi.nombre and c3.estado_compra is null)
     ) order by pi.nombre),'[]'::jsonb) from proveedor_insumo pi),
@@ -3564,6 +3564,7 @@ select jsonb_build_object(
       'nota',o.nota,'creado_en',o.creado_en,
       'fecha_entrega_estimada',o.fecha_entrega_estimada,
       'cod_prov',(select pi2.cod_prov from proveedor_insumo pi2 where pi2.nombre = o.proveedor),
+      'entrega_en',(select pi2.entrega_en from proveedor_insumo pi2 where pi2.nombre = o.proveedor),
       'total_usd',(select coalesce(sum(oi.cantidad*oi.precio_uni),0) from orden_compra_item oi
                    where oi.oc_id=o.id and oi.moneda='USD'),
       'total_ars',(select coalesce(sum(oi.cantidad*oi.precio_uni),0) from orden_compra_item oi
@@ -5275,6 +5276,10 @@ AS $function$
 with ubic as (
   select "GP2".ubic_de('sector', p_sector_id) id
 ),
+ubic_v as (
+  -- deposito del sector en Virgilio (cajas/cajones de Crudo/Procesado, 2026-09-11); null si el sector no tiene
+  select "GP2".ubic_de('virgilio_sector', p_sector_id) id
+),
 comps as (
   select c.* from componente c where c.sector_id = p_sector_id
 ),
@@ -5314,6 +5319,7 @@ select jsonb_build_object(
   'generado_en', now(),
   'sector', (select jsonb_build_object('id',s.id,'nombre',s.nombre) from sector s where s.id=p_sector_id),
   'ubicacion_id', (select id from ubic),
+  'ubicacion_virgilio_id', (select id from ubic_v),
   'filas', coalesce((select jsonb_agg(jsonb_build_object(
       'comp_id', c.id,
       'cod', c.codigo,
@@ -5324,11 +5330,13 @@ select jsonb_build_object(
       'online', coalesce(i.cantidad,0),
       'minimo', i.minimo,
       'maximo', i.maximo,
+      'en_virgilio', case when (select id from ubic_v) is null then null else coalesce(iv.cantidad,0) end,
       'n_fleje', fd.n_fleje,
       'mov', coalesce(mv.obj, '{}'::jsonb)
     ) order by c.codigo)
     from comps c
     left join inventario i on i.componente_id=c.id and i.ubicacion_id=(select id from ubic)
+    left join inventario iv on iv.componente_id=c.id and iv.ubicacion_id=(select id from ubic_v)
     left join fleje_detalle fd on fd.componente_id=c.id
     left join mov mv on mv.comp_id=c.id), '[]'::jsonb)
 );
@@ -5647,4 +5655,98 @@ select jsonb_build_object(
   'generado_en', now()
 );
 $function$
+;
+
+-- ---------- traslado_virgilio (2026-09-11: cajas/cajones de Crudo/Procesado guardados en Virgilio) ----------
+-- Lo llama Gestion Virgilio (schema("GP2").rpc) o una pantalla GP2. 'ida' = Cervantes -> Virgilio, 'vuelta' = al reves.
+CREATE OR REPLACE FUNCTION "GP2".traslado_virgilio(p_comp_id bigint, p_cantidad numeric, p_sentido text DEFAULT 'ida'::text, p_fecha timestamp with time zone DEFAULT now(), p_nota text DEFAULT NULL::text)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'GP2'
+AS $function$
+declare v_sec bigint; v_um text; v_cerv bigint; v_virg bigint; v_mov bigint; v_u text;
+begin
+  if p_cantidad is null or p_cantidad <= 0 then raise exception 'La cantidad debe ser mayor a 0'; end if;
+  if p_sentido not in ('ida','vuelta') then raise exception 'p_sentido debe ser ida o vuelta'; end if;
+  select sector_id, unidad_medida into v_sec, v_um from componente where id = p_comp_id;
+  if v_sec is null then raise exception 'El componente % no existe', p_comp_id; end if;
+  v_cerv := ubic_de('sector', v_sec);
+  v_virg := ubic_de('virgilio_sector', v_sec);
+  if v_virg is null then raise exception 'El sector % no tiene deposito en Virgilio (solo Crudo y Procesado)', v_sec; end if;
+  v_u := case when lower(coalesce(v_um,'uni')) = 'kg' then 'kg' else 'uni' end;
+  insert into movimiento(fecha, tipo_mov, comp_id, ubic_origen_id, ubic_destino_id, cantidad, unidad_origen, unidad_destino, nota)
+  values (coalesce(p_fecha, now()), 'traslado', p_comp_id,
+          case when p_sentido='ida' then v_cerv else v_virg end,
+          case when p_sentido='ida' then v_virg else v_cerv end,
+          p_cantidad, v_u, v_u, p_nota)
+  returning id into v_mov;
+  return jsonb_build_object('ok', true, 'movimiento_id', v_mov, 'sentido', p_sentido,
+    'stock_cervantes', (select cantidad from inventario where componente_id=p_comp_id and ubicacion_id=v_cerv),
+    'stock_virgilio',  (select cantidad from inventario where componente_id=p_comp_id and ubicacion_id=v_virg));
+end $function$
+;
+
+-- ---------- oc_pendientes_virgilio (2026-09-11: Gestion Virgilio lista las OC de material que le van a llegar) ----------
+-- OC abiertas cuyos items son todos del sector 14 y cuyo proveedor entrega en Virgilio (proveedor_insumo.entrega_en null).
+CREATE OR REPLACE FUNCTION "GP2".oc_pendientes_virgilio()
+ RETURNS jsonb
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'GP2'
+AS $function$
+select coalesce((select jsonb_agg(jsonb_build_object(
+  'oc_id', o.id, 'numero', o.numero, 'proveedor', o.proveedor,
+  'cod_prov', pi.cod_prov, 'estado', o.estado, 'creado_en', o.creado_en,
+  'fecha_entrega_estimada', o.fecha_entrega_estimada, 'nota', o.nota,
+  'items', (select jsonb_agg(jsonb_build_object(
+              'item_id', oi.id, 'comp_id', c.id, 'codigo', c.codigo, 'codigo_isis_ch', c.codigo_isis_ch,
+              'descripcion', c.descripcion, 'unidad', oi.unidad,
+              'cantidad', oi.cantidad, 'recibido', oi.recibido,
+              'pendiente', greatest(oi.cantidad - oi.recibido, 0)) order by c.codigo)
+            from orden_compra_item oi join componente c on c.id = oi.componente_id where oi.oc_id = o.id)
+) order by o.numero)
+from orden_compra o
+left join proveedor_insumo pi on pi.nombre = o.proveedor
+where o.estado in ('borrador','enviada')
+  and pi.entrega_en is null
+  and exists (select 1 from orden_compra_item oi where oi.oc_id = o.id)
+  and not exists (select 1 from orden_compra_item oi join componente c on c.id = oi.componente_id
+                   where oi.oc_id = o.id and c.sector_id <> 14)), '[]'::jsonb);
+$function$
+;
+
+-- ---------- recibir_oc_virgilio (2026-09-11: Virgilio recibio material de una OC) ----------
+-- p_items = [{"comp_id":742,"cantidad":350}] en kg. Cada item pasa por crear_recepcion_insumo (compra al sector 14 +
+-- cruce FIFO contra las OC abiertas del material, que marca la OC recibida sola). rollos_json anota quien y desde donde.
+CREATE OR REPLACE FUNCTION "GP2".recibir_oc_virgilio(p_oc_id bigint, p_items jsonb, p_remito text DEFAULT NULL::text, p_legajo text DEFAULT NULL::text)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'GP2'
+AS $function$
+declare v_oc record; v_it jsonb; v_res jsonb; v_out jsonb := '[]'::jsonb; v_comp bigint; v_cant numeric;
+begin
+  select * into v_oc from orden_compra where id = p_oc_id;
+  if v_oc.id is null then raise exception 'La OC % no existe', p_oc_id; end if;
+  if v_oc.estado not in ('borrador','enviada') then raise exception 'La OC % esta %', v_oc.numero, v_oc.estado; end if;
+  if p_items is null or jsonb_typeof(p_items) <> 'array' or jsonb_array_length(p_items) = 0 then
+    raise exception 'p_items tiene que ser un array [{comp_id, cantidad}]';
+  end if;
+  for v_it in select * from jsonb_array_elements(p_items) loop
+    v_comp := (v_it->>'comp_id')::bigint;
+    v_cant := (v_it->>'cantidad')::numeric;
+    if not exists (select 1 from orden_compra_item oi where oi.oc_id = p_oc_id and oi.componente_id = v_comp) then
+      raise exception 'El componente % no esta en la OC %', v_comp, v_oc.numero;
+    end if;
+    v_res := crear_recepcion_insumo(v_comp, v_oc.proveedor, v_cant, 'kg', p_remito, now());
+    update recepcion_insumo
+       set rollos_json = coalesce(rollos_json,'{}'::jsonb)
+                      || jsonb_build_object('recibido_en', 'virgilio', 'legajo', p_legajo, 'oc_id', p_oc_id)
+     where id = (v_res->>'recepcion_id')::bigint;
+    v_out := v_out || jsonb_build_object('comp_id', v_comp, 'kg', v_cant, 'recepcion_id', v_res->'recepcion_id', 'oc_cruzada', v_res->'oc_cruzada');
+  end loop;
+  return jsonb_build_object('ok', true, 'oc_id', p_oc_id, 'numero', v_oc.numero,
+    'estado', (select estado from orden_compra where id = p_oc_id), 'recepciones', v_out);
+end $function$
 ;
