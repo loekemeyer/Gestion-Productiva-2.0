@@ -311,3 +311,38 @@ negocio**, y está en `IDEAS-GP2.md` con su código:
 - **7316**: decidir si el motor de la entrega de tallerista vive en el JS (hoy) o en la base.
 - **7303**: Master Bach, 2 % o 4 %, adentro de los kilos o arriba.
 - **7320**: 141 filas de inventario en negativo — se cierra con un relevamiento por tallerista.
+
+## 14. Performance: los 28 bundles, medidos
+
+Medición del 2026-09-11 (cache caliente, todas las tablas de GP2 tienen menos de 5.000 filas,
+así que los índices no son el problema en ninguna). Sólo dos pasaban de 300 ms:
+
+| ms | bundle | tamaño de la respuesta |
+|---:|---|---:|
+| 832 → **294** | `faltantes_bundle` | 622 kB |
+| 401 | `despiece_verif_bundle` | 891 kB |
+| 303 | `abm_articulos_bundle` | 151 kB |
+| 179 | `oc_bundle` | 263 kB |
+| 143 | `movimientos_bundle` | 600 kB |
+| 113 | `valorizacion_bundle` | 281 kB |
+| 98 | `talleristas_bundle` | 141 kB |
+| 82 | `programa_bundle` | 608 kB |
+| 60 | `recepcion_bundle` | 170 kB |
+| ≤ 50 | los otros 19 | — |
+
+**`faltantes_bundle` llamaba a `movimientos_bundle` cuatro veces.** Se arma como
+`with m as (select movimientos_bundle() j)` y después usa `j` cuatro veces en el `select`.
+PostgreSQL **inlinea** una CTE de una sola referencia, así que la función se evaluaba **una vez
+por uso**. Medido: 4 llamadas sueltas = 582 ms, el bundle = 478 ms, con la CTE `MATERIALIZED` =
+183 ms, y el resultado **idéntico** (comparado con `=` sobre el jsonb entero). Es la clase de
+bug que no se ve en ningún plan de índices: la función se llama de más.
+
+**En `despiece_verif_bundle` la misma idea NO sirve** y se sacó: 5 corridas con `MATERIALIZED`
+dan 390–412 ms y 5 sin dan 398–413 ms. Los ~400 ms son el piso de armar y serializar 891 kB.
+Bajarlo de verdad es mandar menos, y eso es un cambio de la pantalla (idea 7333). Se sacó el
+`MATERIALIZED` en vez de dejarlo: un comentario que dice "sin esto el join se rehace 861 veces"
+sería **falso**, y un comentario falso cuesta más que 0 ms ganados.
+
+**Bloat:** `__sim_base`, la tabla de apoyo del simulador de rutas, pesaba **15 MB con 0 filas**
+—más que todo el resto del schema junto— por llenarse y revertirse cientos de veces. Un
+`vacuum full` la dejó en 16 kB: el schema `GP2` entero pasó de ~25 MB a **9,9 MB**.

@@ -3043,12 +3043,14 @@ CREATE OR REPLACE FUNCTION "GP2".faltantes_bundle()
  STABLE SECURITY DEFINER
  SET search_path TO 'GP2'
 AS $function$
-  with m as (select "GP2".movimientos_bundle() j)
-  select j
+  -- MATERIALIZED a proposito: sin eso la CTE se inlinea y movimientos_bundle() corre 4 veces
+  -- (una por cada uso de j). Medido: 478 ms -> 183 ms, con el resultado identico. No sacar.
+  with m as materialized (select "GP2".movimientos_bundle() j)
+  select m.j
       || jsonb_build_object('art', (select coalesce(jsonb_agg(v order by (v->>'id')::bigint), '[]'::jsonb)
-                                     from jsonb_each(j->'art') e(k, v)))
+                                     from jsonb_each(m.j->'art') e(k, v)))
       || jsonb_build_object('mat', (select coalesce(jsonb_object_agg(k, v || jsonb_build_object('primera', coalesce((v->>'primera')::boolean, false))), '{}'::jsonb)
-                                     from jsonb_each(j->'mat') e(k, v)))
+                                     from jsonb_each(m.j->'mat') e(k, v)))
       -- aporte['art:comp'] = unidades por mes que ESE articulo consume de ESE componente
       -- (v_consumo_demanda: receta + sub-BOM + los intermedios de la ruta, ya explotados)
       || jsonb_build_object('aporte', (select coalesce(jsonb_object_agg(d.articulo_id::text||':'||d.componente_id::text, d.uni_mes), '{}'::jsonb)
