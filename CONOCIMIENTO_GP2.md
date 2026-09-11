@@ -7831,3 +7831,38 @@ sólo va sola si en ese pedido no hay ninguna otra de su base.
 proveedor de materia prima) todavía bloquea **sólo** desde la pantalla, y
 `lineasBajoMinimoUni` (piso por pieza del inyector) **no baja nunca** porque a propósito no
 bloquea — hoy 24 de 47 sugeridos quedan abajo del piso y bloquear volvería la OC imposible.
+
+### 4bw. Los TRES juegos de nombres para los mismos sectores (2026-09-11)
+
+`[dato]` El mismo sector se escribe de tres formas distintas en la base, y sólo una es la
+buena. Salió de la auditoría de normalización:
+
+| Dónde | Cómo se escribe | Qué es |
+|---|---|---|
+| `sector.nombre` | `Sector Bombilla` | **la entidad**. Lo demás se compara contra esto. |
+| `proveedor_insumo.rubro` | decía `Bombillas` en 6 filas | a qué botonera va el proveedor |
+| `orden_compra.rubro` | `Fleje` | **etiqueta de pantalla** (OC_GP2 le saca el "Sector ") |
+| `relevamiento_cronograma.tipo` | `Bombillas`, `Garage` | **rótulo del Excel de conteo** |
+| `precio_proveedor.rubro` | 17 grafías distintas | **texto libre de la planilla**, no lo lee nadie |
+
+**Lo que se arregló:** `proveedor_insumo.rubro` es el único de los cuatro que una función
+compara **por texto** contra `sector.nombre` — `inyectores_bundle` decide con él qué
+proveedores muestra la botonera del sector. Los 6 que decían `Bombillas` nunca hacían match;
+aparecían igual sólo porque los rescataba la segunda rama del `or` (tener al menos una parte
+asignada). **El bug que esperaba**: un proveedor de bombillas nuevo, sin partes todavía —que
+es exactamente para lo que existe la columna, lo dice su propio `comment`— no iba a aparecer
+en su botonera. Se normalizaron las 6 filas y se puso FK contra `sector(nombre)` con
+`on update cascade`. Verificado: los 8 sectores de insumo devuelven la **misma lista de
+proveedores byte a byte** antes y después.
+
+**Lo que NO se tocó, y por qué:** los otros tres no son el sector, son rótulos, y ponerles FK
+rompería lo que sí funciona. `orden_compra.rubro` le saca el prefijo a propósito
+(`nombreRubro` en `OC_GP2.html`); `relevamiento_cronograma.tipo` es el rótulo del Excel del
+usuario y tiene una entrada —`Bolsa Plást`— que **no tiene sector**; `precio_proveedor.rubro`
+es referencia de la carga. Los tres quedaron con un `comment` que dice qué son, para que la
+próxima sesión no intente "normalizarlos".
+
+`[dato]` A `relevamiento_cronograma` sí le faltaba lo importante: el UNIQUE era `(tipo, fecha)`,
+o sea la clave del cronograma era el **rótulo**, no la entidad. Se agregó
+`(sector_id, fecha) where sector_id is not null` (0 violaciones) y se dejó el viejo, que es el
+que cubre `Bolsa Plást`.
