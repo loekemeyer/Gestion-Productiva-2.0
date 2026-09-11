@@ -7512,8 +7512,115 @@ No bloquean nada (los 5 artículos ya están modelados por otro camino), pero el
 El Sector Caja tiene 12 cajas (N°1, 2, 6, 7, 10, 12, 13, 15, 16, 22, 27, 29). O hay que crear la N°4
 y la N°24 con su código de estantería, o esas 5 filas van a otra caja — como pasó con el 338 y el
 732, que pedían la N°24 y la N°8 y el usuario los mandó a la N°7. **Preguntado.**
+### 4bo. Cómo quiere el usuario que se vea "¿Qué necesito para producir?" (2026-09-11)
 
-### 4bo. Se recorrieron las 861 rutas de punta a punta: qué se cortaba y por qué (2026-09-11)
+`[usuario, textual]`: *"que este módulo está poco efectivo. Quiero que lo pueda ver mejor, más
+grande, sin tantos colores, no tan claro, capaz con un fondo más oscuro y para que sea más
+legible"* + *"te hablo no solo para el artículo que te mostré, para todo el módulo"*.
+
+**Lo que estaba mal no era sólo el color: era el LARGO de la cadena.** Cada ruta se dibujaba
+como ~10 nodos en fila (paso, sector, paso, sector, …), no entraba en ninguna pantalla y el
+final de la ruta —Virgilio— quedaba escondido detrás de un scroll lateral que nadie ve. Por eso
+la letra tenía que ser chica. Tres decisiones que quedan como criterio del módulo:
+
+1. **El sector donde queda el stock NO es un nodo**: es el pie de la tarjeta del paso que lo
+   produce (`📦 CRUDO · stock J12`). Lo mismo el tránsito PS (`🚚 TRÁNSITO · … → Guazzaroni`).
+   La cadena pasó de ~10 tarjetas a ~5.
+2. **Dos colores, no once.** Ámbar = lo nuestro (matriz, fleje, kg, artículo, Virgilio);
+   celeste = lo de afuera (proveedor de servicio, tallerista, prov. art. terminado). El resto,
+   gris. El tipo de paso se lee por la ETIQUETA y la barra lateral, no por el fondo.
+3. **Wrap, no scroll horizontal.** La cadena envuelve al renglón siguiente; en celular baja en
+   vertical con flechas ↓. Nunca se esconde el final de una ruta.
+
+**Fondo oscuro a propósito:** esta pantalla **no carga `gp2-claro.css`** (el tema claro global).
+Es la excepción del repo; si alguien se lo vuelve a agregar, le pisa toda la paleta con blanco.
+
+**Segunda vuelta, el mismo día, con el usuario mirándolo** — las tres correcciones valen como
+criterio, no como detalle:
+
+- *"muy oscuro capaz y lo veo poco legible"*: el casi negro (`#0e141b`) **empeoró** la legibilidad
+  en vez de mejorarla — con el fondo muy oscuro el gris de las descripciones se apaga. Quedó un
+  **gris azulado medio** (`#29323d`) con texto blanco puro. Oscuro ≠ negro.
+- *"quiero que una misma ruta entre en una sola fila, que no se mande por abajo, para terminarla"*:
+  ni wrap ni scroll lateral. El carril que no entra **se achica solo** (`ajustarFilas()`, `zoom`
+  por carril, piso 0,62). **TRAMPA**: el ancho de la fila NO se puede medir con `offsetWidth` ni
+  `scrollWidth` del carril — es `width:fit-content` y fit-content se capea al contenedor, así que
+  mide el ancho de la pantalla aunque la cadena adentro pida 400 px más y se esté cortando. Se mide
+  de dónde arranca la primera tarjeta a dónde termina la última (`offsetLeft`).
+- *"el tallerista es reemplazado por el prov de art terminado"* `[usuario 2026-09-11, textual]`:
+  un artículo **comprado terminado no tiene tallerista, y eso no es un dato que falte**. De casa
+  sale el cartón y la caja; el proveedor entrega el artículo hecho en Virgilio. La pantalla
+  asumía que todo artículo lo ensambla alguien y dibujaba *"TALLERISTA (sin asignar) — tabla
+  incompleta"* en **39 de los 189 artículos** (lo destapó el `761` Cucharita Matera, que entrega
+  Melinox). Ahora el Prov AT ocupa ese lugar, en la tarjeta y en el encabezado, y el bloque
+  final se titula *"Artículo comprado terminado → Virgilio"*. Lo vigila
+  `tests/ui/test_programa_prov_at.js`.
+- *"eso que dice alternativas no quiero que lo diga"*: la palabra **"alternativa/alternativas"
+  salió de las tres partes** donde aparecía (el KPI del encabezado, la tarjeta del tallerista en
+  el bloque 5 y la del bloque 4). Cuando hay más de un tallerista ya se lee `ALEX O MARTIN`: el
+  "O" dice lo mismo sin la aclaración.
+- *"a pedir no me interesa mucho; en vez del a pedir, poneme el despiece"*: arriba va el **despiece
+  del artículo** (código, descripción, sector, por unidad, total), ordenado por cantidad. Los kg de
+  fleje quedan en el badge de cada carril, que es donde se leen por ruta. `flejesTotal` se seguía
+  calculando y **no se dibujaba en ningún lado** (el CSS `.flejes-total` existía sin emisor).
+
+### 4bp. LA CAJA SALE DE LA PLANILLA, LA UNI x CAJA DE LOS LISTADOS (2026-09-11)
+
+`[usuario, textual]` **"dale la hoja de cajas manda"** y **"la uni x caja te tenés que fijar del
+listado de artículos que te pasé, tanto de loeke como chef"**. Dos fuentes distintas para dos
+datos que parecían uno solo:
+
+| dato | fuente que manda | dónde vive |
+|---|---|---|
+| qué caja usa el artículo | hoja **"Cajas"** de `db/A_Costos_VIGENTES.xlsx` | `GP2.planilla_fila`, `hoja='Cajas '`, columna **D** |
+| cuántas unidades entran | los **dos listados mayoristas** (columna `UxB`) | `Loekemeyer_articulos_por_familia.xlsx` / `Chef_SRL_listado_por_familia.xlsx` |
+
+**Cómo se sabe que la columna D es la caja** `[dato]`: en la misma fila la columna E trae el
+precio de esa caja y coincide con la lista de precios de cajas en **436 de 439 filas**. No es una
+deducción: es la columna con la que el usuario costea.
+
+**Lo que estaba mal:** GP2 tenía otra caja que la planilla en **63 de los 133** artículos que
+están en las dos (47 %). Migración `caja_de_la_planilla_y_uni_x_caja_de_los_listados`: se pisaron
+52 en `articulo.componente_caja_id`, en la fila de la receta y en los pasos de ruta (entrada y
+salida). Cambia el costo del terminado — una Caja N°16 vale $289,62 y una N°12 $360.
+
+**Las cajas N°15, N°16 y N°27 existían pero no las usaba ningún artículo.** Ahora sí: salen en
+faltantes y en la OC con stock 0.
+
+**TRAMPA:** el código `A8` es la **Caja N°2**, no la "Caja N°8". Los códigos de las cajas son
+posición de estantería y **no** tienen relación con el número de caja. Nunca deducir uno del otro.
+
+**Lo que quedó afuera (11):**
+
+| motivo | artículos |
+|---|---|
+| piden Caja N°8 o N°28, que **no existen como componente** (falta su posición de estantería) | 789, 800, 823, 825, 840, 844, 845, 858, 862 |
+| excepción del usuario: el batidor pera va en la **N°12**, no en la N°6 de la planilla | 544 (LOEKE), 802 (CHEF) |
+
+**`articulo_prov_at.n_caja` queda MUERTO.** `[usuario]` GP2 es la única fuente de caja. Ese campo
+legacy difería de GP2 en 24 artículos, 15 de ellos diciendo "N°12" (huele a default), y apuntaba a
+N°24 y N°4 que ni existen como componente. **No volver a usarlo para asignar una caja.**
+
+**La uni x caja difería en 9, todos Chef** (LOEKE estaba perfecto): 043, 708, 730, 731, 760, 802,
+856, 857, 858. Se corrigió `articulo.articulos_por_caja` **y** la cantidad de la receta, que es
+exactamente `1 / articulos_por_caja`.
+
+### 4bq. El artículo se elige en DOS PASOS: marca y después artículo (2026-09-11)
+
+`[usuario, textual]` **"cuando toco articulo. que me aparezca para seleccionar marca: (loeke,
+chef o loke) y ahi se desplieguen los articulos"**.
+
+En `Programa/Programa.html` el combo plano se reemplazó por un botón que abre un panel:
+**paso 1** las cuatro marcas (Loeke / Loke / Chef / Todas), **paso 2** el buscador y la lista
+agrupada por familia. El `<select id="art">` **sigue existiendo, oculto**: es el modelo que lee el
+resto de la pantalla, así que `render()` y todo lo que cuelga de `sel.value` quedó intacto.
+
+**Regla nueva del panel:** filtrar (cambiar de marca o escribir en el buscador) **NO cambia el
+artículo elegido**; eso pasa sólo al tocar una fila. Antes el filtro movía la selección solo.
+
+Lo cubre `tests/ui/test_programa_marca.js` (20 checks, reescrito para el panel).
+
+### 4br. Se recorrieron las 861 rutas de punta a punta: qué se cortaba y por qué (2026-09-11)
 
 `[dato]` Auditoría de rutas completas. Se armó un arnés (`"GP2".__sim_ruta`, ver `GP2_MAPA.md`) que
 recorre **cada una de las 861 rutas** de los **189 artículos** llamando a las RPC de producción de
@@ -7550,7 +7657,7 @@ Los cinco cortes, y lo que cada uno enseña del negocio:
   −255.375 unidades en total. Es el stock inicial de talleristas que nunca se cargó (pregunta 8.3),
   no un error del motor: el libro y el inventario cierran exactos.
 
-### 4bp. La cola del espejo de Virgilio era un cementerio (2026-09-11)
+### 4bs. La cola del espejo de Virgilio era un cementerio (2026-09-11)
 
 `[dato]` `virgilio_espejo_pend` guardaba la entrega de Virgilio que no cruzaba a GP2 — casi siempre
 porque el artículo todavía no existía — y **nadie la volvía a mirar nunca**. Cuando el artículo se
