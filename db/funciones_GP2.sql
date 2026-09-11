@@ -4862,7 +4862,7 @@ AS $function$
         'proveedor',nullif(trim(c.proveedor),''),
         'estado_compra',c.estado_compra,
         'marca',c.marca, 'carton_formato',c.carton_formato, 'es_pliego',c.es_pliego,
-        'paq_x_bolsa',cf.paq_x_bolsa, 'uni_x_bolsa_cat',cf.uni_x_bolsa, 'kg_x_uni',c.kg_x_uni,
+        'paq_x_bolsa',cf.paq_x_bolsa, 'uni_x_bolsa_cat',cf.uni_x_bolsa, 'kg_x_uni',c.kg_x_uni,'recibe_en_cajas',coalesce(c.recibe_en_cajas,false),
         'n_fleje',fd.n_fleje,'medida',fd.medida_mm,
         'stock', coalesce((select sum(i.cantidad) from "GP2".inventario i
                     where i.componente_id = c.id and i.ubicacion_id = "GP2".ubic_de('sector', c.sector_id)),0),

@@ -6,6 +6,15 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
+<!-- v3.55.0 (2026-09-11) — LOS FACTORES kg/uni SALEN DEL BUNDLE, NO DE UNA CONSULTA APARTE.
+     La pantalla armaba KGXUNI y ENCAJAS con un from('componente') suelto, filtrando los sectores
+     a mano (2,5,6,7,8,9,10,11,12) y con un reintento por si el schema-cache de la API todavia no
+     conocia recibe_en_cajas. Eran DOS listas de insumos con criterios distintos: la que se dibuja
+     (recepcion_bundle, que filtra por _es_comprable y saca los discontinuos) y la de la conversion.
+     Mientras coincidieran no se notaba; el dia que se separaran, un insumo seleccionable se quedaba
+     sin factor y el popup decia "1 uni = 0 kg". recepcion_bundle ya traia kg_x_uni; se le agrego
+     recibe_en_cajas (migracion recepcion_bundle_trae_recibe_en_cajas, verificado: 348 filas, 0
+     diferencias contra componente) y la consulta suelta se borro. Idea 7315. -->
 <!-- v3.53.0 (2026-09-10) — RUBRO MATERIA PRIMA PLASTICA (sector 14): las bolsas de 25 kg (PP 2630, ABS,
      Alto Impacto, Nylons, PE, PS, Master Bach) que viven en Virgilio y se compran a Indarnyl / Santa Rosa /
      Beta / Arcolor / Julio Garcia. Boton "Mat. Plástica" en #rubroGrid + MatPlastica:'kg' en RUBRO_UM
@@ -2782,19 +2791,19 @@ async function cargar(){
   PROVFLAGS={}; (d.proveedores||[]).forEach(p=>PROVFLAGS[p.nombre]=p);
   RECS=d.recepciones||[]; PALL=d.pallets||[]; ROLL=d.rollos||[];
   if(d.tara) TARA=d.tara;
-  // Cargar factores de conversión kg/uni para componentes de sectores insumo
-  // sector 12 incluido para 031/034 (Charcas) y sector 2 para 1686 (Eclipse):
-  // la conversion paq/uni -> kg usa kg_x_uni.
-  var kxRes=await SB.from('componente').select('id,kg_x_uni,recibe_en_cajas').in('sector_id',[2,5,6,7,8,9,10,11,12]);
-  // Si la API todavia no conoce la columna nueva (schema cache viejo), la
-  // consulta entera falla y nos quedariamos SIN los kg_x_uni, que es peor.
-  // Se reintenta sin el flag: el toggle vuelve a aparecer, pero las cuentas no
-  // se rompen.
-  if(kxRes.error) kxRes=await SB.from('componente').select('id,kg_x_uni').in('sector_id',[2,5,6,7,8,9,10,11,12]);
-  if(!kxRes.error){KGXUNI={};ENCAJAS={};(kxRes.data||[]).forEach(c=>{
-    if(c.kg_x_uni) KGXUNI[c.id]=c.kg_x_uni;
-    if(c.recibe_en_cajas) ENCAJAS[c.id]=true;
-  });}
+  // Factores kg/uni y "se recibe en cajas": salen del MISMO bundle que los insumos.
+  // Hasta el 2026-09-11 esta pantalla hacia una segunda consulta suelta a
+  // componente filtrando sectores a mano (2,5..12), con un fallback por si el
+  // schema-cache de la API todavia no conocia recibe_en_cajas. Eran dos listas de
+  // insumos distintas: la de la pantalla (la del bundle) y la de la conversion, y
+  // la unica forma de que un item seleccionable quedara sin factor era que las dos
+  // se desfasaran. El bundle ya traia kg_x_uni; se le agrego recibe_en_cajas
+  // (migracion recepcion_bundle_trae_recibe_en_cajas) y la copia se va entera.
+  KGXUNI={}; ENCAJAS={};
+  INS.forEach(function(i){
+    if(i.kg_x_uni) KGXUNI[i.comp_id]=i.kg_x_uni;
+    if(i.recibe_en_cajas) ENCAJAS[i.comp_id]=true;
+  });
   $('statusMsg').textContent='';
   renderRemitoBar();
   renderPendPortada();
