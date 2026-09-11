@@ -6845,6 +6845,14 @@ plásticas ya existen en GP2; lo que falta son los artículos, sus cartones y al
   piezas exclusivas (`Z21` y el cartón `CCG1A`). **La receta y las rutas se dejan**: son la historia del
   artículo y el trazado tiene que seguir explicando el stock que quede. El **312 sí sigue vivo**: 61 cajas
   en 4 meses (jun 2 · jul 23 · ago 32 · sep 4), última compra de la pala a Melinox en mayo 2026.
+- **Las tarifas de armado también estaban en la planilla** `[usuario 2026-09-11: "la tarifa de 395 y 312
+  está en costos"]`: hoja «Lista de Precios», el bloque es **el tallerista que cobra** —
+  «Descorazonador Manzana AyE» (395-709) **$39,25** en el bloque *4175 - Alex Escalante*, y «Pala de
+  Torta AyE» (312-856) **$55,60** en *3805 - Martin Cornejo*. Cargadas en `precio_tallerista`
+  (terminado + concepto AyE, como las otras 105). **⚠ Contradicción a resolver en el 395**: la tarifa
+  está en el bloque de **Alex Escalante** pero el despiece del vecino dice que lo arma **Carlos
+  Aguirre** (que es lo que quedó en la ruta); se cargó a nombre de Carlos con la nota en la referencia
+  — si manda Alex, se mueven la ruta y la tarifa juntas.
 - **Dónde mirar la venta real** `[dato]`: `public.vista_venta_mensual` (cod, mes, cajas, nps) — hoy tiene
   desde **jun-2026**. Sirve para contrastar la proyección madre antes de decidir un alta o una baja.
 - **Cerrado el repaso de los 34**: el consumo de PP en GP2 quedó en **786 kg/mes** (era 722 antes de
