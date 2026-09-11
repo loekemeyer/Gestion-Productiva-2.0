@@ -6786,10 +6786,11 @@ plásticas ya existen en GP2; lo que falta son los artículos, sus cartones y al
   rutas «Chapa 430 → Art 395» (ingreso CHAPA430 → PS Eclipse CHAPA430→1686 → Carlos → 395 → Virgilio),
   «Insumo PC10 → Art 395», «Insumo PA18 → Art 395» (PA18B → Hernandez → PA18 → Carlos). Familia
   Utensilios `[deducido]`, marca LOEKE, 12 por caja (`est_madre.uxb`), terminado `395` con stock 0 en
-  Virgilio. **Pendientes (nada inventado)**: el cartón (el vecino lo llama `CCG1C`; GP2 codifica por
-  posición de estantería → falta la posición), la caja (`componente_caja_id` null) y el precio de
-  tarifa de Carlos por el armado. Con esto el 1686 (que estaba huérfano: existía sin ninguna ruta)
-  ya tiene quién lo consuma.
+  Virgilio. **Caja N°2 (A8)** `[usuario: "Caja 2"]`. **Cartón `CCG1C` «Cartón 395»** (sector Cartón,
+  Talleres Gráficos Pol, LOEKE, ruta «Insumo CCG1C → Art 395»): nace con el código del vecino porque
+  la posición de estantería no se sabe `[usuario: "no sé ubic de estantería"]` — cuando se sepa se
+  recodifica (el código no es FK); formato del cartón pendiente. Falta la tarifa de Carlos por el
+  armado. Con esto el 1686 (que estaba huérfano: existía sin ninguna ruta) ya tiene quién lo consuma.
 - Quedan por decidir: 311/312 (Martin: PA17+PA13+PA18+Z20/Z21), Chef inox 630–636 + 709 (Carlos:
   PA19+PB6+PC6; el vecino les suma PB3/PB4 «Cuchara Ny», parece error), 856/857/864 nuevos + PA19/PC6
   a 858/863, 58/715 (PC4 ×2) y 59 (PEP9 ×2) de Fábrica, y los importados 94xE (inserto PEST1).
