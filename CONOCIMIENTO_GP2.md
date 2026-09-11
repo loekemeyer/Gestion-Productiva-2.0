@@ -7424,3 +7424,25 @@ número más bajo**, porque el campo es uno solo; la otra vive en su ruta.
 
 **Quedan 2 imposibles de modelar con lo que hay: `070` (Set Tapers) y `591` (Despolvillador)** — no
 tienen cartón NI caja, así que **no hay nada que mandarle al proveedor** y la ruta quedaría vacía.
+
+### 4bl. 735 Sacacorcho Cabo Ergonómico: calcado del 581 (2026-09-11)
+
+`[usuario 2026-09-11]`: *"el 735 sí lo arma Martín y es igual al Loeke"*. Migración
+`alta_735_gemelo_chef_del_581`, **5 rutas calcadas de las del 581** (626-630):
+
+| Ruta | Entra | Pasa por |
+|---|---|---|
+| espiral | `D1` Espiral Sacacorcho | Martín Cornejo |
+| mango | `PB8A` Mgo Sacac Plast | Martín |
+| remache | `CV11` p/Niquelar | **Guazzaroni Patricio** (niquela) → `V11` → Martín |
+| cartón | `T3A` Cartón 735 (nuevo, CHEF, formato LOKE) | Martín |
+| caja | `A9` Caja N°22, **la del gemelo LK** | Martín |
+
+A diferencia de los gemelos Chef de torta y descorazonador (§4bj-bis), acá **no se cambia ninguna
+pieza**: el usuario dijo "es igual al Loeke", así que van los mismos `D1`, `PB8A` y `V11`. El cartón
+sí es propio y sale de la planilla (`T3A`, tipo T.Loke).
+
+**Estado del backlog de los listados (sin los E)**: de los 199 códigos, quedan **10 sin modelar**.
+Dos son imposibles con lo que hay (`070` y `591`, sin cartón ni caja), cinco esperan el código de
+garage y la caja (`441`, `255`, `256`, `555`, `764`) y tres los dejó pendientes el usuario (`717`,
+`537`, `567`).
