@@ -1,11 +1,97 @@
 -- =====================================================================
 -- FUNCIONES del schema GP2 — export automatico 2026-09-11 (pg_get_functiondef, exacto)
 -- Fuente de verdad: Supabase (hrxfctzncixxqmpfhskv). Este archivo es respaldo/referencia.
--- 137 funciones. Los GRANT/REVOKE no estan aca: EXECUTE para anon solo en las RPC de pantalla (ver db/README.md).
+-- 138 funciones. Los GRANT/REVOKE no estan aca: EXECUTE para anon solo en las RPC de pantalla (ver db/README.md).
 -- =====================================================================
 
+-- ---------- __sim_articulo ----------
+CREATE OR REPLACE FUNCTION "GP2".__sim_articulo(p_art_id bigint, p_n numeric DEFAULT 120)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'GP2'
+AS $function$
+declare
+  v_log jsonb := '[]'::jsonb; v_ok boolean := true; v_del jsonb := '[]'::jsonb; v_col jsonb := '[]'::jsonb;
+  r record; v_sub jsonb; v_tipo text; v_ref bigint; v_res jsonb; v_err text;
+  v_comp_term bigint; v_virg numeric;
+begin
+  begin
+    delete from "GP2".__sim_base;
+    insert into "GP2".__sim_base (comp, ubic, cantidad)
+      select componente_id, ubicacion_id, cantidad from "GP2".inventario;
+
+    -- 1) cada rama deja su parte en la contraparte que arma/entrega
+    for r in select ru.id from ruta ru where ru.articulo_id = p_art_id order by ru.id loop
+      v_sub := "GP2".__sim_exec(r.id, p_n, null, 0, true);
+      v_log := v_log || v_sub;
+      if exists (select 1 from jsonb_array_elements(v_sub) e where e ? 'ERROR') then v_ok := false; end if;
+    end loop;
+
+    -- 2) quien entrega el articulo: el actor del ultimo paso que produce el terminado
+    select case when rp.proveedor_at_id is not null then 'proveedor_at' else 'tallerista' end,
+           coalesce(rp.proveedor_at_id, rp.tallerista_id),
+           rp.comp_salida_id
+      into v_tipo, v_ref, v_comp_term
+      from ruta_paso rp join ruta ru on ru.id = rp.ruta_id
+      join componente c on c.id = rp.comp_salida_id
+     where ru.articulo_id = p_art_id and c.sector_id = 12
+       and rp.tipo_paso in ('tallerista','proveedor_at')
+     order by rp.ruta_id, rp.orden limit 1;
+
+    if v_ref is null then
+      v_ok := false;
+      v_log := v_log || jsonb_build_object('ERROR', 'ningun paso de tallerista o Prov AT produce el terminado');
+    else
+      begin
+        v_res := "GP2".recepcion_virgilio(jsonb_build_object(
+          'fecha', now(), 'origen_tipo', v_tipo, 'origen_id', v_ref,
+          'items', jsonb_build_array(jsonb_build_object('articulo_id', p_art_id, 'cantidad', p_n))));
+      exception when others then
+        v_err := sqlerrm; v_ok := false;
+        v_log := v_log || jsonb_build_object('ERROR', 'entrega a Virgilio: '||v_err);
+      end;
+    end if;
+
+    -- 3) conservacion
+    select coalesce(jsonb_agg(jsonb_build_object('cod', d.cod, 'ubic', d.ubic_nom, 'tipo', d.ubic_tipo,
+                                                 'delta', round(d.delta,4)) order by d.ubic_tipo, d.cod), '[]'::jsonb)
+      into v_del
+      from (select c.codigo cod, u.nombre ubic_nom, u.tipo ubic_tipo,
+                   i.cantidad - coalesce(b.cantidad,0) delta
+              from "GP2".inventario i
+              join "GP2".componente c on c.id = i.componente_id
+              join "GP2".ubicacion u on u.id = i.ubicacion_id
+              left join "GP2".__sim_base b on b.comp=i.componente_id and b.ubic=i.ubicacion_id
+             where abs(i.cantidad - coalesce(b.cantidad,0)) > 0.0005) d;
+
+    -- lo que quedo en una contraparte (deberia ser cero: entro y se consumio).
+    -- El inyector es la excepcion: ahi el delta negativo es la materia prima que consumio al
+    -- inyectar la pieza, que es correcto.
+    select coalesce(jsonb_agg(e order by e->>'cod'), '[]'::jsonb) into v_col
+      from jsonb_array_elements(v_del) e
+     where e->>'tipo' in ('tallerista','proveedor_at','proveedor_servicio')
+       and abs((e->>'delta')::numeric) > 0.0005;
+
+    select coalesce((e->>'delta')::numeric, 0) into v_virg
+      from jsonb_array_elements(v_del) e
+     where e->>'tipo' = 'virgilio' and e->>'cod' = (select codigo from componente where id = v_comp_term) limit 1;
+
+    raise exception 'SIM_ROLLBACK' using errcode = 'P0001';
+  exception when others then
+    if sqlerrm <> 'SIM_ROLLBACK' then
+      v_ok := false;
+      v_log := v_log || jsonb_build_object('FATAL', sqlerrm);
+    end if;
+  end;
+  return jsonb_build_object('articulo', p_art_id, 'ok', v_ok and coalesce(v_virg,0) = p_n and jsonb_array_length(v_col) = 0,
+    'sin_error', v_ok, 'a_virgilio', v_virg, 'esperado', p_n,
+    'colgado', v_col, 'deltas', v_del, 'pasos', v_log);
+end $function$
+;
+
 -- ---------- __sim_exec ----------
-CREATE OR REPLACE FUNCTION "GP2".__sim_exec(p_ruta_id bigint, p_n numeric, p_stop_comp bigint DEFAULT NULL::bigint, p_depth integer DEFAULT 0)
+CREATE OR REPLACE FUNCTION "GP2".__sim_exec(p_ruta_id bigint, p_n numeric, p_stop_comp bigint DEFAULT NULL::bigint, p_depth integer DEFAULT 0, p_solo_envio boolean DEFAULT false)
  RETURNS jsonb
  LANGUAGE plpgsql
  SECURITY DEFINER
@@ -19,7 +105,7 @@ declare
   v_prov text; v_ppk numeric; v_uni numeric;
   v_res jsonb; v_paso jsonb; v_err text;
   v_cod_art text; v_cajas int; v_uxc numeric;
-  v_up bigint; v_sub jsonb;
+  v_up bigint; v_sub jsonb; v_ppk_sig numeric;
 begin
   for r in
     select p.orden, p.tipo_paso, p.cantidad,
@@ -49,8 +135,17 @@ begin
 
       when 'ingreso', 'insumo' then
         v_qty := coalesce(r.cantidad, 1) * p_n;
+        -- fleje que va derecho a una matriz: los kg justos para p_n piezas
+        if v_um_e = 'kg' then
+          select m2.partes_por_kilo_de_fleje into v_ppk_sig
+            from ruta_paso p2 join matriz m2 on m2.id = p2.matriz_id
+           where p2.ruta_id = p_ruta_id and p2.tipo_paso = 'matriz'
+             and p2.comp_entrada_id = r.ce and p2.orden > r.orden
+           order by p2.orden limit 1;
+          if coalesce(v_ppk_sig, 0) > 0 then v_qty := ceil(p_n / v_ppk_sig * 1000) / 1000; end if;
+        end if;
         if "GP2"._es_comprable(r.ce) then
-          v_prov := coalesce(r.ce_prov, 'SIMULACION');
+          v_prov := r.ce_prov;
           v_res := crear_recepcion_insumo(r.ce, v_prov, v_qty, v_um_e, 'SIM');
         else
           -- no se compra: lo tiene que producir otra ruta (intermedio)
@@ -81,7 +176,7 @@ begin
           v_uni := floor(v_stock);
         end if;
         if v_uni <= 0 then raise exception 'rendimiento 0 (stock=% ppk=%)', v_stock, v_ppk; end if;
-        v_res := registrar_produccion('SIM', r.n_matriz, v_uni, now(), 'SIMULACION', r.cs, null);
+        v_res := registrar_produccion(null, r.n_matriz, v_uni, now(), 'SIMULACION', r.cs, null);
         if (v_res->>'aviso') is not null then raise exception 'registrar_produccion no movio stock: %', v_res->>'aviso'; end if;
         v_qty := v_uni;
 
@@ -102,6 +197,7 @@ begin
       when 'tallerista' then
         if coalesce(v_stock,0) <= 0 then raise exception 'no hay stock de % para enviar al tallerista', r.ce_cod; end if;
         v_res := crear_envio_tallerista(r.tallerista_id, r.ce, v_stock, v_um_e);
+        if p_solo_envio then v_qty := v_stock; exit; end if;
         v_qty := floor(v_stock / nullif(coalesce(r.cantidad,1),0));
         if v_qty <= 0 then v_qty := 1; end if;
         v_res := crear_entrega_tallerista(r.tallerista_id, r.cs, v_qty, v_um_s, now(), true, r.ce);
@@ -109,6 +205,7 @@ begin
       when 'proveedor_at' then
         if coalesce(v_stock,0) <= 0 then raise exception 'no hay stock de % para enviar al Prov AT', r.ce_cod; end if;
         v_res := crear_envio_prov_at(r.proveedor_at_id, r.ce, v_stock, v_um_e);
+        if p_solo_envio then v_qty := v_stock; exit; end if;
         select a.codigo, coalesce(a.articulos_por_caja,1) into v_cod_art, v_uxc
           from ruta ru join articulo a on a.id = ru.articulo_id where ru.id = p_ruta_id;
         v_cajas := greatest(1, floor(p_n / nullif(v_uxc,0))::int);

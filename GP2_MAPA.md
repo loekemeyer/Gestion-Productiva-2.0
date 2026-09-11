@@ -207,6 +207,25 @@ select count(*) rutas, count(*) filter (where (res->>'ok')::boolean) ok from s; 
 `__sim_base` es su tabla de apoyo (la foto del inventario al empezar cada corrida); fuera de una
 corrida esta vacia.
 
+### La prueba de conservacion: `"GP2".__sim_articulo(articulo_id, n)`
+
+Una rama sola no puede probar que las cantidades cierren. `__sim_articulo` corre **todas** las
+ramas del articulo hasta dejarle las partes a quien lo arma (tallerista) o lo entrega (Prov AT), y
+recien ahi hace **UNA** entrega de `n` unidades por `recepcion_virgilio`. Si el modelo cierra,
+despues de la corrida **cada contraparte queda en cero** (lo que entro se consumio) y Virgilio
+tiene exactamente `n` articulos. Lo que quede en `colgado[]` es una cantidad que no cuadra entre
+la ruta y la receta.
+
+```sql
+with s as (select a.id, "GP2".__sim_articulo(a.id, 120) r from "GP2".articulo a)
+select count(*) filter (where (r->>'ok')::boolean) cierran_perfecto,
+       count(*) filter (where jsonb_array_length(r->'colgado') > 0) con_colgado from s;
+```
+
+Al 2026-09-11: **189 de 189 dejan las 120 unidades en Virgilio**; 122 cierran perfecto y el resto
+tiene colgado, casi todo por intermedios (GRJ, sub-conjuntos) que el arnes simula rama por rama.
+Los descuadres REALES de receta contra ruta son 7 articulos y estan en la idea **7324**.
+
 ## Convenciones implicitas (fragiles — hoy viven hardcodeadas en el JS)
 
 - ~~Ids de ubicacion por offset~~ (resuelto 2026-09-04/05): la pantalla vieja que sumaba

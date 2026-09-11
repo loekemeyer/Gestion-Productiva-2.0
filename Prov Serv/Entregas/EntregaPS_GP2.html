@@ -198,7 +198,7 @@
 
 <script src="../../tandas-popup.js?v=20260905i"></script>
 <script src="../../gp2-ui.js?v=20260905a"></script>
-<script src="../../gp2-numero.js?v=20260905m"></script>
+<script src="../../gp2-numero.js?v=20260911o"></script>
 <script src="../../gp2-envios-common.js?v=20260905c"></script>
 <script>
 "use strict";
@@ -325,10 +325,17 @@ function irCharcas(p){
 function chRefresh(){
   var prod=chProdSel(), uni=num($("chUni").value), kg=num($("chKg").value);
   if(prod && uni>0 && kg>0){
-    var uniCalc = prod.kg_x_uni ? Math.round(kg/prod.kg_x_uni) : 0;
-    var diff = uni>0 ? Math.round(Math.abs(uni-uniCalc)/uni*10000)/100 : 0;
-    $("chVerif").innerHTML = "≈ <b>"+fmt(uniCalc)+" uni</b> por balanza vs "+fmt(uni)+" del remito · dif "+fmt(diff)+"% "+
-      (diff<=5 ? '<span style="color:#0a7c2f;font-weight:800">✓ OK</span>' : '<span style="color:#b42318;font-weight:800">⚠ fuera de 5%</span>');
+    // Sin kg_x_uni no hay conversion posible: se dice, no se muestra 0 (regla unica GP2N.aUni)
+    var uniCalc = GP2N.aUni(prod.kg_x_uni, kg);
+    if (uniCalc === null){
+      $("chVerif").innerHTML = '<span style="color:#b42318;font-weight:800">'+esc(prod.codigo)+
+        ' no tiene kg por unidad cargado: no se puede verificar la balanza contra el remito.</span>';
+    } else {
+      uniCalc = Math.round(uniCalc);
+      var diff = uni>0 ? Math.round(Math.abs(uni-uniCalc)/uni*10000)/100 : 0;
+      $("chVerif").innerHTML = "≈ <b>"+fmt(uniCalc)+" uni</b> por balanza vs "+fmt(uni)+" del remito · dif "+fmt(diff)+"% "+
+        (diff<=5 ? '<span style="color:#0a7c2f;font-weight:800">✓ OK</span>' : '<span style="color:#b42318;font-weight:800">⚠ fuera de 5%</span>');
+    }
   } else { $("chVerif").textContent=""; }
   $("chGuardar").disabled = !(prod && uni>0 && kg>0 && $("chFecha").value);
 }

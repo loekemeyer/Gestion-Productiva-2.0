@@ -196,7 +196,32 @@ order by regla;
 -- INFORMATIVAS (no son invariantes: dan > 0 por datos que faltan o decisiones pendientes del
 -- usuario; sirven para ver si crecen). Cada una dice a qué pregunta/idea pertenece.
 -- =====================================================================
--- select 'catalogo_prov_at_sin_descripcion' que, count(*) n, '(1: el cod_art 193 de Kuffo no es un articulo de GP2 todavia)' ref from "GP2".articulo_prov_at where nullif(btrim(coalesce(descripcion,'')),'') is null
+-- RECETA vs RUTA (2026-09-11). Sale de la prueba de conservacion de "GP2".__sim_articulo: se
+-- simulan las 189 producciones enteras y se mira que no quede nada colgado en una contraparte.
+-- Da 13 pares hoy y NINGUNO se puede arreglar sin el usuario, por eso es informativa:
+--   * 6 son del tallerista "Fábrica" (507, 570, 707, 858): no se manda nada a uno mismo, es correcto.
+--   * 508/518/708 listan D13 (virola) en la receta, pero la ruta dice que Maspoli SRL se la lleva y
+--     devuelve PC12 con la virola adentro -- o la receta cobra la virola dos veces, o Martin recibe
+--     las dos cosas. Lo tiene que decir el usuario.
+--   * 103 (caja A11), 120 (caja A9) y 564 (mango PC12) no tienen NINGUN paso de ruta para esa parte.
+--   * 547 tiene DOS A4 en la receta: la Caja N°10 (bien) y el "Mgo Plano 501 Serig" del Sector
+--     Procesado con cantidad de caja (1/12) -- el clasico codigo repetido en dos sectores.
+-- select 'receta_sin_rama_que_la_lleve' que, count(*) n, '(13; ver el informe de la sesion)' ref from (
+--   with final as (select distinct ru.articulo_id aid,
+--            case when rp.proveedor_at_id is not null then 'proveedor_at' else 'tallerista' end tipo,
+--            coalesce(rp.proveedor_at_id, rp.tallerista_id) ref
+--       from "GP2".ruta_paso rp join "GP2".ruta ru on ru.id = rp.ruta_id
+--       join "GP2".componente c on c.id = rp.comp_salida_id
+--      where c.sector_id = 12 and rp.tipo_paso in ('tallerista','proveedor_at')),
+--   entregado as (select distinct ru.articulo_id aid, rp.comp_entrada_id cid,
+--            case when rp.proveedor_at_id is not null then 'proveedor_at' else 'tallerista' end tipo,
+--            coalesce(rp.proveedor_at_id, rp.tallerista_id) ref
+--       from "GP2".ruta_paso rp join "GP2".ruta ru on ru.id = rp.ruta_id
+--      where rp.tipo_paso in ('tallerista','proveedor_at') and rp.comp_entrada_id is not null)
+--   select ac.articulo_id, ac.componente_id from "GP2".articulo_componente ac join final f on f.aid = ac.articulo_id
+--    where not exists (select 1 from entregado e where e.aid=ac.articulo_id and e.cid=ac.componente_id
+--                        and e.tipo=f.tipo and e.ref=f.ref)) z
+-- union all select 'catalogo_prov_at_sin_descripcion' que, count(*) n, '(1: el cod_art 193 de Kuffo no es un articulo de GP2 todavia)' ref from "GP2".articulo_prov_at where nullif(btrim(coalesce(descripcion,'')),'') is null
 -- union all select 'espejo_virgilio_sin_reprocesar', count(*), '(entregas de Virgilio que no cruzaron; reprocesar_espejo_virgilio(null, true) dice cuales ya se pueden)' from "GP2".virgilio_espejo_pend where resuelto_en is null
 -- union all select 'stock_negativo' que, count(*) n, '(pregunta 8.3: stock inicial de talleristas no cargado)' ref from "GP2".inventario where cantidad < -0.0005
 -- union all select 'minimo_mayor_que_maximo', count(*), '(pregunta 27: 56 legítimas de 5 cajones + parámetros meses de 3 ubicaciones)' from "GP2".inventario where minimo is not null and maximo is not null and minimo > maximo
