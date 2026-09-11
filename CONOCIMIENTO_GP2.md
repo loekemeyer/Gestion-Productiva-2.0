@@ -6816,6 +6816,10 @@ plásticas ya existen en GP2; lo que falta son los artículos, sus cartones y al
   cartón + **Caja N°22 (A9)**, 12 por caja; lo arma **Fábrica**. **El código lleva el 0 adelante** (`058`,
   como 031/043/052…): los artículos de 2 dígitos de GP2 se escriben con 3. El cartón no tiene código en
   el vecino y GP2 los codifica por posición de estantería → nace como `CART058` hasta saberla.
+- **059 Cuchillito de Untar Plast x2 → ALTA (hecha)** `[usuario: "059 lo mismo, 2 x cartón. caja 22"]`:
+  igual al 058 pero con `PEP9` «Cuchillo de Untar Blanc.» ×2 (JL Matricería, 7,3 g) + cartón `CART059` +
+  Caja N°22, 12 por caja, Fábrica. Familia «Cuchillos de untar».
 - Quedan por decidir: **715** (Cierra Bolsa ×4, misma pieza `PC4`; el vecino le pone ×2 igual que al 058
-  — parece error, y su Est Madre es 2/mes), **059** (Cuchillito de untar
-  `PEP9` ×2, Fábrica) y los **importados 94xE** (inserto de mango de madera `PEST1`, 6,6 g).
+  — parece error, y su Est Madre es 2/mes) y los **importados 94xE** (942E 132, 943E 144, 944E 74,
+  945E 82, 946E 58, 948E 108 uni/mes; todos llevan sólo el inserto de mango de madera `PEST1`, 6,6 g,
+  que no existe en GP2).
