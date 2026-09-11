@@ -236,3 +236,78 @@ arreglaron (11 corregidos, 1 abierto):
 select titulo, estado, severidad, commit_sha from github_repo_problemas.v_problemas
  where sesion_id = 'session_019X2GnRcnZFv8xq8DJMHxuS' order by detectado_en;
 ```
+
+---
+
+# Segunda parte — lógica duplicada, permisos y normalización (misma fecha)
+
+Con las 861 rutas ya cerrando, el trabajo siguió por el **objetivo 2**: sacar la lógica
+repetida, cerrar los permisos y normalizar. Ocho commits, todos a `main`, suite en verde
+antes de cada push.
+
+## 10. Lo que se corrigió, por gravedad
+
+| # | Qué estaba mal | Alcance medido | Cómo se verificó |
+|---|---|---|---|
+| 10.1 | 14 entregas del espejo de Virgilio nunca entraron al stock | **7.692 unidades**, movimientos 69922–69967 | Virgilio 67.616 → 75.308; invariante libro-vs-inventario en 0 |
+| 10.2 | El artículo 547 tenía en la receta un mango que su ruta nunca produce | 1 línea (`A4` del Sector Procesado, 1/12) | El costo no se movió ($1.193,13); el 547 ahora cierra en la prueba de conservación |
+| 10.3 | Cuatro funciones que **escriben** estaban al alcance de la clave pública | `planilla_cargar`, `planilla_snapshot_nuevo`, `reprocesar_espejo_virgilio`, `crear_entrega_tallerista` | invariantes C y M en 0 tras mover los 4 a la lista de internas |
+| 10.4 | `crear_oc` no validaba **ninguna** regla de cartón | 10 funciones de JS que la RPC ignoraba | 13 casos comparados JS vs base, mensaje por mensaje |
+| 10.5 | Ni el pedido mínimo en kg del proveedor de materia prima | 5 proveedores con mínimo (Indarnyl 400 kg el mayor) | 4 casos más, los 17 idénticos |
+| 10.6 | «El componente terminado de este artículo» estaba definido dos veces | 189 artículos | `c2a` byte a byte igual; conservación 189/189 en 120 uni |
+| 10.7 | La pantalla de Pintores dependía de la mayúscula de una palabra | 3 PS visibles, 14 de 15 filas fuera del catálogo | bundle idéntico; un PS nuevo en minúscula pasa de invisible a visible (3→4) |
+| 10.8 | Seis proveedores de bombillas no hacían match con su sector | 6 de 47 | los 8 sectores devuelven la misma lista de proveedores byte a byte |
+| 10.9 | La recepción tenía **dos** listas de insumos y sólo dibujaba una | 348 componentes | 0 diferencias contra `componente`; los tests dejan la consulta vieja en vacío a propósito |
+
+## 11. El método que se repitió (y conviene repetir)
+
+**Bajar una regla del navegador a la base sin romperla** — se usó dos veces (cartón y mínimo
+del proveedor) y quedó como molde en `tests/ui/test_oc_reglas_js_vs_db.js`:
+
+1. **Port literal, no reinterpretación.** Mismo orden de chequeos: en cartón, el
+   `pedido_minimo` corta antes que el múltiplo de familia, y el múltiplo por código se mira
+   antes que el mínimo por código (es un `else if` en el JS).
+2. **Los mismos datos de los dos lados.** El test usa `comp_id` reales, así que el mismo caso
+   corre en el navegador y en la base.
+3. **El esperado sale de la base, no de la cabeza.** Los 17 esperados son la salida real de
+   `select "GP2"._oc_validar_carton(...)` / `_oc_validar_minimo_proveedor(...)`.
+4. **La pantalla no se toca.** Sigue avisando en vivo; la que manda es la de la base.
+
+**Antes de revocar un permiso, mirar los `.md` de integración, no sólo el código.** Cinco RPC
+que ninguna pantalla de este repo llama —`material_virgilio_bundle`, `oc_pendientes_virgilio`,
+`enviar_material_virgilio`, `recibir_oc_virgilio`, `traslado_virgilio`— las llama un cliente
+**externo** con la clave anon, y el contrato está en `INTEGRACION_GESTION_VIRGILIO.md`.
+Revocarlas habría roto esa integración sin que ningún test se enterara.
+
+**Cuando un dato es computable, la respuesta no es una columna nueva.** La idea 7322 pedía
+`articulo.componente_terminado_id`; lo que hacía falta era **una sola puerta**
+(`comp_terminado_de`), como `ubic_de` para las ubicaciones. Una columna habría sido la tercera
+copia del mismo hecho.
+
+## 12. Invariantes nuevos de esta segunda parte
+
+| Invariante | Qué vigila | Hoy |
+|---|---|---|
+| `AD_articulo_sin_componente_terminado` | que todo artículo resuelva su componente terminado | 0 |
+| `AE_paso_virgilio_y_codigo_dan_distinto` | que los dos criterios viejos sigan coincidiendo | 0 |
+| `C` / `M` (ampliados) | las 4 funciones de mantenimiento fuera del alcance de `anon` | 0 / 0 |
+
+Y dos **informativas** (no son invariantes: dan > 0 por datos que faltan):
+`uni_x_caja_LK_contradice_articulo` = 1 (el 508: 6 en `articulo`, 12 en la otra tabla) y
+`proveedor_servicio_proceso_fuera_del_catalogo` = 14.
+
+## 13. Lo que queda, y qué necesita
+
+Todo lo actionable sin el usuario quedó hecho. Lo que sigue abierto espera **un dato de
+negocio**, y está en `IDEAS-GP2.md` con su código:
+
+- **7324** (6 artículos): qué parte de la receta le lleva la caja a Martín y a IJUPA, y qué
+  pasa con la virola `D13` que Maspoli devuelve adentro del `PC12`.
+- **7314 / 7330 / 7326**: los 9 códigos con dos «unidades por caja» contradictorias, el 508
+  (6 o 12) y el 553, que nombra dos bombillas distintas.
+- **7331**: FAAT dice `Templado, Cementado` en una sola celda y Guazzaroni dice `Niquelado`
+  cuando además hace pulido y zincado; y antes de normalizar hay que darles su fila a Rec
+  Color y a Daniel.
+- **7316**: decidir si el motor de la entrega de tallerista vive en el JS (hoy) o en la base.
+- **7303**: Master Bach, 2 % o 4 %, adentro de los kilos o arriba.
+- **7320**: 141 filas de inventario en negativo — se cierra con un relevamiento por tallerista.
