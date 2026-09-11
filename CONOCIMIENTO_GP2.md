@@ -7355,3 +7355,49 @@ no queda ningún cartón sin formato en toda la base.**
 **Los cartones de los gemelos Chef ya están en la planilla**: `O3D` (856) y `O3B` (857), los dos
 **Huevo**. El del **709 no tiene posición** (la celda está vacía) aunque sí tipo (**T.Loke**), y el
 **717 y el 059 no figuran** — el `CART059` que existe en GP2 también es un código inventado.
+
+### 4bj. Los comprados terminados TAMBIÉN tienen ruta: el paso `proveedor_at` (2026-09-11)
+
+`[usuario 2026-09-11]`: *"el 575 no me aparece. Debería aparecer en la ruta que se le manda el cartón,
+si es que tiene, y la caja al proveedor de artículo terminado y entrega en Virgilio"*. Ése es el
+modelo, y faltaba la pieza de base: **`ruta_paso` no tenía forma de nombrar a un `proveedor_at`**.
+
+- **`ruta_paso.proveedor_at_id`** (FK a `proveedor_at`) y el check de `tipo_paso` acepta
+  **`proveedor_at`**. Migración `ruta_paso_tipo_proveedor_at`. **Riesgo medido antes de tocar**: de
+  las 15 funciones que leen `ruta_paso`, ninguna usa `tipo_paso in (...)` ni compara con
+  `'tallerista'`; sólo buscan `'ingreso'` o `'virgilio'`, así que un valor nuevo es aditivo.
+- **`programa_bundle`** devuelve `pat` en cada paso y el diccionario **`provat`**.
+- **`Programa/Programa.html` v1.128.0**: dibuja el nodo **PROV. ART. TERM.** con "entrega terminado".
+
+**23 artículos de Prov AT creados** (`alta_23_articulos_prov_at_con_carton_y_caja`), cada uno con
+**dos rutas de 3 pasos**: `insumo` (cartón) → `proveedor_at` → `virgilio`, y lo mismo con la caja.
+La caja entra a la receta como **1 / uni por caja**. Ejemplo del 575: `F4A1` → Pettofrezza → Virgilio
+y `A9` (Caja N°22) → Pettofrezza → Virgilio.
+
+**Quedaron afuera 17**, por datos que faltan: seis tienen **dos proveedores AT** (222, 223, 224, 246,
+577, 910), dos piden una **caja que no existe** (338 → N°24, 732 → N°8), y el resto no tiene cartón.
+
+### 4bj-bis. Los gemelos Chef, construidos (2026-09-11)
+
+`[usuario]`: el mango de Chef es **`PA19`** y el inserto espátula es **`PC16`**, y **el gemelo Chef NO
+lleva serigrafía** (no pasa por Hernández Julio, a diferencia del LK). La **caja es la misma que la
+del gemelo LK**.
+
+| Artículo | Gemelo | Receta | Arma | Cartón |
+|---|---|---|---|---|
+| **857** Cuchillo De Torta | 311 | `Z21` + PA19 + PC16 + caja A2 | Martín Cornejo | `O3B` Huevo |
+| **856** Pala De Torta | 312 | `Z22` + PA19 + PC16 + caja A2 | Martín Cornejo | `O3D` Huevo |
+| **709** Descorazonador | 395 | `1686` + PA19 + PC16 + caja A8 | **Carlos Aguirre** | **falta** |
+| **718** Cuchillito De Untar | 059 | `PEP9` (el mismo) + caja A9 | Fábrica `[deducido]` | **falta** |
+
+El **717 NO se modela por ahora** `[usuario]`: queda pendiente junto al **537** (Pela y Pica Ajo) y el
+**567** (Corta Palta). La corrección importante: **el gemelo del 059 es el 718, no el 717**.
+
+**TRAMPA QUE MORDIÓ: `Z22` existe DOS VECES** — id 135 "Llavero Pie" (Sector Procesado) e id 618
+"Pala de Torta" (Sector Remache). El alta joineó por código y se llevó los dos: la ruta del 856 quedó
+con los pasos duplicados. Es el caso que el invariante `I` ya avisa
+(*"dentro de un sector el código es único; entre sectores puede repetirse"*). **Al armar una receta o
+una ruta por código hay que filtrar también por sector.** Arreglado con `fix_856_z22_duplicado` y
+`fix_856_virgilio_duplicado`; invariantes en 0.
+
+GP2 queda con **167 artículos** (94 LOEKE, 63 CHEF, 10 LOKE).

@@ -4097,6 +4097,7 @@ select jsonb_build_object(
   -- 'p' (primera matriz del fleje) = tiene partes_por_kilo_de_fleje cargado
   'mat', (select jsonb_object_agg(id::text, jsonb_build_object('n',n_matriz,'d',descripcion,'t',tipo,'r',partes_por_kilo_de_fleje,'p',(partes_por_kilo_de_fleje is not null))) from "GP2".matriz),
   'prov', (select jsonb_object_agg(id::text, jsonb_build_object('n',nombre,'p',proceso)) from "GP2".proveedor_servicio),
+  'provat', (select jsonb_object_agg(id::text, nombre) from "GP2".proveedor_at),
   'tall', (select jsonb_object_agg(id::text, nombre) from "GP2".tallerista),
   'bom', (select jsonb_agg(jsonb_build_object('a',articulo_id,'c',componente_id,'q',cantidad)) from "GP2".articulo_componente),
   'children', (select jsonb_object_agg(componente_padre_id::text, arr) from (
@@ -4104,7 +4105,7 @@ select jsonb_build_object(
        from "GP2".componente_bom where componente_padre_id is not null group by componente_padre_id) x),
   'rutas', (select jsonb_agg(jsonb_build_object('id',id,'nom',nom,'f',f,'a',a) order by id) from rutas_full),
   'rp', (select jsonb_object_agg(ruta_id::text, arr) from (
-       select rp.ruta_id, jsonb_agg(jsonb_build_object('o',rp.orden,'tp',rp.tipo_paso,'m',rp.matriz_id,'pr',rp.proveedor_id,'ta',rp.tallerista_id,'ce',rp.comp_entrada_id,'cs',rp.comp_salida_id,
+       select rp.ruta_id, jsonb_agg(jsonb_build_object('o',rp.orden,'tp',rp.tipo_paso,'m',rp.matriz_id,'pr',rp.proveedor_id,'ta',rp.tallerista_id,'pat',rp.proveedor_at_id,'ce',rp.comp_entrada_id,'cs',rp.comp_salida_id,
             'fl', case when rp.tipo_paso = 'ingreso' and rp.orden = 1 and ce.sector_id = 5 then rp.comp_entrada_id end,
             'a',  case when rp.tipo_paso = 'virgilio' then r.articulo_id end) order by rp.orden) arr
        from "GP2".ruta_paso rp

@@ -694,6 +694,7 @@ create table "GP2".ruta_paso (
   matriz_id bigint,
   proveedor_id bigint,
   tallerista_id bigint,
+  proveedor_at_id bigint,
   comp_entrada_id bigint,
   comp_salida_id bigint,
   cantidad numeric not null default 1,
@@ -704,7 +705,8 @@ create table "GP2".ruta_paso (
   constraint ruta_paso_proveedor_id_fkey FOREIGN KEY (proveedor_id) REFERENCES "GP2".proveedor_servicio(id),
   constraint ruta_paso_ruta_id_fkey FOREIGN KEY (ruta_id) REFERENCES "GP2".ruta(id),
   constraint ruta_paso_tallerista_id_fkey FOREIGN KEY (tallerista_id) REFERENCES "GP2".tallerista(id),
-  constraint ruta_paso_tipo_paso_chk CHECK ((tipo_paso = ANY (ARRAY['ingreso'::text, 'insumo'::text, 'matriz'::text, 'proveedor_servicio'::text, 'tallerista'::text, 'virgilio'::text])))
+  constraint ruta_paso_proveedor_at_id_fkey FOREIGN KEY (proveedor_at_id) REFERENCES "GP2".proveedor_at(id),
+  constraint ruta_paso_tipo_paso_chk CHECK ((tipo_paso = ANY (ARRAY['ingreso'::text, 'insumo'::text, 'matriz'::text, 'proveedor_servicio'::text, 'tallerista'::text, 'virgilio'::text, 'proveedor_at'::text])))
 );
 comment on table "GP2".ruta_paso is 'Pasos de la ruta en orden: tipo (matriz / proveedor_servicio / tallerista), quien, componente que entra y componente que sale, cantidad. Fuente de v_contraparte_parte.';
 

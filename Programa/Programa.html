@@ -206,6 +206,7 @@ function pasoNode(p,need,uni,pNext){
  else if(p.tp==="proveedor_servicio"){var px=D.prov[String(p.pr)]||{};tp="PROV "+(px.n||"?");cls="prov";nm=cs.cod||ce.cod||"?";ex=(px.p||"")+(cs.cod?(" · "+cs.cod):"");}
  else if(p.tp==="tallerista"){var tx=D.tall[String(p.ta)]||"(sin asignar)";tp="TALLERISTA";cls="tall";nm=tx.trim();ex=(ce.cod||"")+" → "+(cs.cod||"?");}
  else if(p.tp==="afilado"){tp="AFILADO";cls="afil";nm="Afilar";ex=(ce.cod||"")+" → "+(cs.cod||"?");}
+ else if(p.tp==="proveedor_at"){var pa=D.provat?D.provat[String(p.pat)]:null;tp="PROV. ART. TERM.";cls="prov";nm=(pa||"(sin prov)").trim();ex="entrega terminado";}
  else if(p.tp==="virgilio"){tp="VIRGILIO";cls="virg";nm="Distribución";ex="centro";}
  else return "";
  // Nodo matriz/prov/tallerista SIN qty (no son componentes)
@@ -535,6 +536,12 @@ function render(){
      var tallsEtapa=g.tallsPorPos[idx]||[(D.tall[String(p.ta)]||'').trim()];
      var lbl=tallsEtapa.length>1?tallsEtapa.join(' O '):tallsEtapa[0];
      H+='<span class="arr">→</span>'+node("TALLERISTA","tall",lbl,tallsEtapa.length>1?"(alternativas)":"","",qFin,null);
+    }
+    else if(p.tp==="proveedor_at"){
+     /* Articulo comprado terminado: lo unico que sale de casa es el carton y la caja;
+        el Prov AT los usa y entrega el articulo ya terminado en Virgilio. */
+     var pa=(D.provat?D.provat[String(p.pat)]:null)||"(sin prov)";
+     H+='<span class="arr">→</span>'+node("PROV. ART. TERM.","prov",pa.trim(),"entrega terminado","",qFin,null);
     }
     else if(p.tp==="virgilio"){H+='<span class="arr">→</span>'+node("VIRGILIO","virg","Distribución","artículo","",null,null);}
    });
