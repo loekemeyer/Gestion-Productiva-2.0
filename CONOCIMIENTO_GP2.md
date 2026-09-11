@@ -7077,9 +7077,10 @@ código interno** y el **envasado bajo el código del artículo**:
 ### 4bc. Los listados mayoristas son la FUENTE de descripción, marca y uni x caja (2026-09-11)
 
 `[usuario 2026-09-11]`: *"toda la inf que te falte de descripcion, marca o uni x caja sacala de los
-dos listados que te mande por excel"*. Regla nueva y permanente para `GP2.articulo`: esos **tres
-campos** salen de los listados mayoristas de Loekemeyer y Chef; **la familia NO** (esa la elige el
-usuario a mano, y hoy ya se aparta del catálogo a propósito — ver abajo).
+dos listados que te mande por excel"*, y acto seguido *"pone segun el catalogo"* para la familia.
+Regla nueva y permanente para `GP2.articulo`: **descripción, marca, uni x caja Y familia** salen de
+los listados mayoristas de Loekemeyer y Chef. **Corrige lo que decía esta misma sección unas horas
+antes** ("la familia NO"): la familia también sale del catálogo.
 
 El usuario cargó 20 artículos entre el 10 y el 11/09 (`052, 058, 059, 231, 232, 233, 307, 311, 312,
 395, 534, 535, 715` y los siete `941E`–`948E`) y borró los 3 corta queso. GP2 tiene **140 artículos,
@@ -7104,10 +7105,15 @@ descripción de los 4 cepillos (052, 307, 534, 535) y marca de esos 4 más los 7
 listado lo da como **el gemelo Chef del 058** (los dos "Cierra Bolsa x2"). 942E y 946E tenían la
 **misma descripción**, un copiar-pegar que el listado desarma.
 
-**La familia quedó como la puso el usuario, aunque contradiga al catálogo**: los 4 cepillos están en
-una familia **`Cepillos`** que el catálogo no tiene (ahí son "Accesorios"), y los 7 códigos E están
-en **`Madera`** siendo de acero inoxidable (el catálogo los pone en "Utensilios"). No se tocó porque
-el pedido fue por descripción, marca y uni x caja.
+**Migración `articulo_familia_segun_catalogo_altas_nuevas`** — 12 altas nuevas estaban en una familia
+propia y pasaron a la del catálogo: los 4 cepillos (052, 307, 534, 535) de `Cepillos` a
+**Accesorios**, los 7 códigos E de `Madera` a **Utensilios** (son de acero inoxidable, no de madera)
+y el 395 "Descorazonador De Manzana" de `Utensilios` a **Cortadores**. La familia **`Cepillos`** que
+había creado el usuario **queda sin artículos** (la fila sigue en la tabla `familia`, no molesta: el
+filtro del ABM se arma con las familias en uso).
+
+Quedan **15 familias** y las únicas 10 filas cuya familia NO sale del catálogo son los artículos
+**LOKE** (101, 103, 104, 108, 114, 115, 116, 120, 121, 123), que no figuran en ningún listado.
 
 **Y los importados SÍ entraron a GP2**: los `941E`–`948E` los cargó el usuario el 11/09, un día
 después de decir que *"en principio los art importados no los quiero en gp2"* (§4ao). La regla del
