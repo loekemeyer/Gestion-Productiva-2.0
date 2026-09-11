@@ -7230,3 +7230,50 @@ vale la pena cuando estén los datos.
 **Los `disc` salen del backlog** `[usuario: "saca todos los disc de la lista de pendientes… no los
 vamos a agregar"]`: 23 de las 36 filas de "no están en ningún lado" están marcadas `disc`, así que el
 backlog real de esa hoja baja a **13**.
+
+### 4bg. Los 30 cartones de Prov. Art. Terminado + tres formatos nuevos (2026-09-11)
+
+Salen del **Conteo de Cartones** del usuario (`Conteo_Cartones_VACIO.xlsx`, no está en el repo).
+**La columna "Sector" de esa planilla ES el `componente.codigo` de GP2** `[dato, verificado contra 6
+cartones ya cargados: 502→D3A, 512→D2B, 510→A2B, 520→E2A, 547→F6B, 280→F1A]`. Es la fuente para los
+códigos de cartón; no hay que inventarlos.
+
+**Migración `alta_30_cartones_prov_at`**: 30 cartones nuevos, GP2 pasa de 144 a **174**. Todos de
+**Talleres Gráficos Pol**, con inventario 0 y ya visibles en Recepción de Insumos.
+
+**Correcciones del usuario** `[usuario 2026-09-11]`:
+- *"corb8 es corbata"* → el formato de la planilla `Corb8` se carga como **Corbata**, NO como el
+  formato `8` que ya existía.
+- *"cuchara de helado, tipo loke. Bate bife también loke"* → 532 y 732 (cuchara) y 222 y 910 (bate
+  bife) van en **LOKE**, pisando lo que decía la planilla (Tipo C / T.Loke/Huevo / #N/A).
+- *"redondeá la uni por paquete"* → 998, 999 y 1001 son **1000**.
+- *"el formato rallador, agregalo"*.
+- *"los codigos que se pisan usa los del pedido"* → donde las dos hojas discrepaban (los 8 CHEF)
+  manda la hoja **Pedido**: 824→Q6B, 825→Q6C, 901→Q5D, 902→Q5E, 910→Q5, 911→Q7C, 920→Q7D, 922→Q7E.
+
+**LA TRAMPA: la posición de estantería NO es única — la planilla se la da a DOS artículos.** G2C es
+del 208 y del 508; F4A del 562 y del 575; F4B del 564 y del 577; Q5D del 609 y del 901; Q7C del 816
+y del 911. En GP2 el código es único por sector, así que el que llegó segundo lleva **sufijo 1**
+(como ya hacen `A1B`/`A1B1` y `A1C`/`A1C1`): **`G2C1`** (208), **`F4A1`** (575), **`F4B1`** (577),
+**`Q5D1`** (901) y **`Q7C1`** (911). El primero de cada par conserva su código.
+
+**Migración `carton_formato_corbata_rallador_bandita`** — tres formatos que GP2 no tenía:
+
+| Formato | Pliegos múltiplo | Lo usan |
+|---|---|---|
+| Corbata | 30.000 | 14 cartones |
+| Rallador | 24.000 | 1 (F5A, Cartón 321) |
+| Bandita | 24.000 | 1 (P2A, Cartón 840) |
+
+`pliegos_multiplo` = "Cant x Pliego" de la planilla × 1000, que es la regla que **ya cumplen los
+cuatro formatos viejos** (C 12, Huevo 25, LOKE 16, "8" 30). **`uni_x_bolsa` y `paq_x_bolsa` quedan
+NULL**: la planilla no los trae, y sin ellos la OC no sabe armar la bolsa de esos tres formatos.
+**`Bandita` la dedujo el agente** — el usuario sólo mencionó el Rallador.
+
+**El "uni x paquete" por formato no tiene dónde guardarse hoy**: la planilla trae 2.500 para los
+Corbata/Huevo de LK y 1.000 para los CH, pero GP2 usa un **parámetro global**
+(`parametro.carton_uni_x_paquete` = 1.000) y ningún cartón usa `componente.uni_x_cajon`. Si esa
+diferencia importa para la OC, hay que darle un lugar.
+
+**Diez artículos de Prov AT no tienen cartón en la planilla**: 070, 246, 326, 591, 618, 619, 761,
+823, 852 y 900.
