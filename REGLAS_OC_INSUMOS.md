@@ -271,7 +271,14 @@ Faltan proveedor: 8 plásticos (ver abajo), bombillas/resortes 8, remaches 8, fl
 - **Pedido mínimo del proveedor de resina** (`proveedor_insumo.pedido_minimo_kg`, del Excel, hoja «Relev y
   OP Bolsas Plast»): **Indarnyl 400 kg**, Beta Plásticos 25, Santa Rosa 25, masterbatch 5. Viaja en
   `oc_bundle.proveedores[]`; la pantalla suma los kg de la OC por proveedor y **no deja crearla si no llega
-  al piso** (dice cuántos kg faltan). No se infla sola: sumar kg es una decisión de compra. Hasta ese día los máximos eran los del workbook del usuario (PP ~909 kg/mes); OJO: hay 34
+  al piso** (dice cuántos kg faltan). No se infla sola: sumar kg es una decisión de compra.
+- **Pedido mínimo POR PIEZA** (`componente.pedido_minimo_uni`, del Excel, hoja «Pedido 31-08», columna
+  `Pedi Min Uni`): el inyector no hace una tirada de menos de N piezas (1 a 36.000 según el molde), **47
+  componentes cargados**. Viaja en `oc_bundle.insumos[].pedido_minimo_uni`. **NO bloquea**: hoy 24 de los
+  47 sugeridos quedan por debajo (el Pirolo Blanco sugiere 2.248 contra un mínimo de 36.000 = 64 meses de
+  consumo), y bloquear dejaría la OC imposible. Es un aviso amarillo con botón **«Subir al mínimo»** —
+  comprar 16 veces el consumo es una decisión del comprador, no de la pantalla. Sólo se carga sobre lo
+  que se compra (los `estado_compra='fabricacion'` quedan afuera: el mínimo es del que inyecta). Hasta ese día los máximos eran los del workbook del usuario (PP ~909 kg/mes); OJO: hay 34
   artículos del Excel sin despiece en GP2 (~70 kg/mes de PP/ABS reales), así que el máximo de PP
   queda corto hasta que se den de alta (archivo `Articulos_Excel_sin_despiece_GP2.xlsx`, chat 2026-09-11).
   Tope físico: 20 pallets × 15 bolsas en Virgilio. Las bolsas **se le mandan a los inyectores**

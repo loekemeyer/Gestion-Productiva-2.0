@@ -1,6 +1,14 @@
 <!doctype html>
 <html lang="es">
 <head>
+<!-- v1.25.0 (2026-09-11) — EL PEDIDO MINIMO POR PIEZA (uni). Segunda mitad del motor de pedido que
+     estaba en el Excel del usuario (hoja "Pedido 31-08", columna "Pedi Min Uni"): el inyector no hace
+     una tirada de menos de N piezas. 47 componentes lo tienen cargado en componente.pedido_minimo_uni
+     y viaja en oc_bundle.insumos[].pedido_minimo_uni. A DIFERENCIA del piso en kg del proveedor de
+     resina, este NO bloquea: hoy 24 de los 47 sugeridos quedan por debajo (el pirolo blanco sugiere
+     2.248 y el minimo es 36.000 = 64 meses de consumo), asi que bloquear dejaria la OC imposible.
+     Es un AVISO amarillo aparte, con boton "Subir al minimo" para las lineas que el comprador decida
+     llevar al piso. La decision de comprar 16 veces el consumo es del comprador, no de la pantalla. -->
 <!-- v1.24.0 (2026-09-11) — EL PEDIDO MINIMO DEL PROVEEDOR DE RESINA (kg). Estaba en el Excel del usuario
      (hoja "Relev y OP Bolsas Plast", columna "Pedi Minimo KG") y GP2 no lo miraba: Indarnyl no vende menos
      de 400 kg, Beta Plasticos y Santa Rosa 25, el masterbatch (Arcolor / Julio Garcia) 5. Viaja en
@@ -417,6 +425,8 @@
       <div class="filtro hidden" id="filtroProv"><span class="filtro-lb">Proveedor</span><div class="chips" id="provs"></div></div>
       <div class="prov-info hidden" id="provInfo"></div>
       <div class="regla-carton hidden" id="reglaCarton"></div>
+      <!-- Aviso (no bloquea): lineas por debajo del pedido minimo de la pieza. -->
+      <div class="regla-carton hidden" id="avisoMinUni"></div>
       <!-- Sin sector ni proveedor elegido no se muestra NADA de la lista [usuario
            2026-09-04: "si no pongo el sector y no pongo el proveedor, que no me aparezca
            la lista"]: la pantalla arranca en los botones de sector y nada mas. -->
@@ -1115,8 +1125,41 @@ function validarMinimoProveedor(items){
   return errs;
 }
 
+/* PEDIDO MINIMO POR PIEZA (componente.pedido_minimo_uni, del Excel del usuario hoja "Pedido 31-08",
+   columna `Pedi Min Uni`): el inyector no hace una tirada de menos de N piezas. NO bloquea la OC:
+   hoy 24 de los 47 sugeridos quedan por debajo del piso (el pirolo blanco sugiere 2.248 contra un
+   minimo de 36.000 = 64 meses de consumo), y bloquear volveria la OC imposible de crear. Es un aviso:
+   o se sube al piso (boton) o se saca la linea y se espera a juntar consumo. La decision de comprar
+   16 veces el consumo es del comprador. */
+function lineasBajoMinimoUni(items){
+  return items.filter(function(x){
+    var m=Number(x.it.pedido_minimo_uni)||0;
+    return m>0 && Number(x.cantidad)>0 && Number(x.cantidad)<m;
+  });
+}
+function subirAlMinimoUni(){
+  lineasBajoMinimoUni(itemsPedidos()).forEach(function(x){
+    PEDIDO[x.it.comp_id]=Number(x.it.pedido_minimo_uni);
+  });
+}
+
 function barra(){
   var items=itemsPedidos();
+  var bajos=lineasBajoMinimoUni(items);
+  var am=$('avisoMinUni');
+  if(bajos.length){
+    am.classList.remove('hidden');
+    am.innerHTML='<b>Pedido mínimo de la pieza</b> — '+bajos.length+
+      (bajos.length===1?' línea queda':' líneas quedan')+' por debajo de lo que el proveedor fabrica de una:<br>'+
+      bajos.map(function(x){
+        return esc(x.it.codigo+' '+x.it.descripcion)+': pedís '+fmt(x.cantidad)+
+               ' y el mínimo es '+fmt(Number(x.it.pedido_minimo_uni))+'.';
+      }).join('<br>')+
+      '<br><button type="button" id="btnSubirMinUni" class="btn-sug" style="margin-top:8px">Subir al mínimo</button>';
+    var bm=$('btnSubirMinUni');
+    if(bm) bm.addEventListener('click',function(){ subirAlMinimoUni(); render(); });
+  }
+  else am.classList.add('hidden');
   var errsCart=validarCarton(items);
   var errs=errsCart.concat(validarMinimoProveedor(items));
   var rc=$('reglaCarton');

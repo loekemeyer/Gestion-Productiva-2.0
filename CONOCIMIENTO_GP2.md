@@ -6903,8 +6903,29 @@ Auditoría de las 41 hojas del `Conteo_y_Pedido_Sector_Plastico_31826.xls`: adem
 - **4. Bolsas por pallet: 15** `[usuario]` — el 18 del Excel (celda M1 de «Relev y OP Bolsas») **no vale**.
 - **5. Simko** (quinto proveedor de resina del Excel, mínimo 25 kg): `[usuario: "no sé quién es"]` → **no
   se da de alta**.
-- **Lo que quedó sin usar, a propósito**: pedido mínimo por pieza (`Pedi Min Uni`, 2.000–36.000 según el
-  molde), corrida mínima de inyección (`Min Iny`), bocas por matriz, y los `cod_prov` de los inyectores
+- **2-bis. Pedido mínimo POR PIEZA → CARGADO (hecho, 2026-09-11)**. La otra mitad del mínimo: el inyector
+  no hace una tirada de menos de N piezas (`Pedi Min Uni` de la hoja «Pedido 31-08», 1 a 36.000 según el
+  molde). Vive en `componente.pedido_minimo_uni`, **47 componentes** cargados (45 del sector Plástico + 2
+  del Garage), y viaja en `oc_bundle.insumos[].pedido_minimo_uni`.
+  **A diferencia del piso en kg del proveedor de resina, éste NO bloquea la OC**: hoy **24 de los 47**
+  sugeridos quedan por debajo del piso — el Pirolo Blanco sugiere 2.248 y el mínimo del molde es 36.000,
+  que son **64 meses de consumo**; el Pirolo Negro 4.132 vs 36.000; el PC3B 6.704 vs 36.000. Bloquear
+  dejaría la OC imposible de crear. Es un **aviso amarillo aparte** (`#avisoMinUni`) con botón «Subir al
+  mínimo» para las líneas que el comprador decida llevar al piso. `[deducido]` La lectura de fondo: o el
+  máximo (4 meses) es muy corto para estas piezas, o el mínimo del molde obliga a comprar para años —
+  **es una decisión de compra, no de la pantalla**, y por eso se muestra en vez de resolverse sola.
+  **Cómo se mapearon los códigos**: 40 por código exacto + `PEST1`; y 7 renombres confirmados por
+  descripción + proveedor + `uni_x_cajon` idénticos (`PC2A`→`PC2`, `PC2B`→`PC3B`, `PC15`→`PC15AB`,
+  `PEP4A`/`PEP4B`/`CP5`→`PEP4` —GP2 no separa el color—, `PB7`→`PB8B`, `PGRJ12`/`PGRJ12B`→`GRJ12`/`GRJ12B`).
+  **No se carga sobre lo que no se compra**: `oc_bundle` filtra `estado_compra is null`, así que los
+  `fabricacion` (`PC1A`, `PC1B`, `PA10`, `PA13`, `PA18`, `PA4`…) quedan afuera — el mínimo es del que
+  inyecta, y a esos los hacemos o los cala Ester.
+  **Ocho códigos del Excel no existen en GP2** `[dato, pendiente]`: `PA15` Capuchón ⌀10, `PA16` Mangos ⌀10
+  LK, `PB1` Cilindro Corta Queso, `PB8` Mango Sacacorcho Plást (581), `PEP6` Cabo Madera 525, `CP7` Mangos
+  Corta Queso, `IP4` Clavo 513, `HP2` Inser. Neg. Cuch. y Pala. O son piezas que GP2 todavía no modela o
+  son códigos viejos del Excel; **preguntar antes de darlas de alta**.
+- **Lo que quedó sin usar, a propósito**: corrida mínima de inyección (`Min Iny`), bocas por matriz, y los
+  `cod_prov` de los inyectores
   (Pat Bet 797, Pettofrezza 1895, Kollplast 4465, JL Matricería 2661, Maspoli 2339…). Están en el archivo
   `Excel_Plastico_lo_que_falta_usar.md` que se le pasó al usuario.
 - **El Excel está roto en partes** `[dato]`: 71 celdas con error en `Pedido 31-08` (bloque de

@@ -3478,6 +3478,7 @@ with pend as (
          coalesce(c.es_pliego, false) es_pliego,
          coalesce(cc2.mezcla_libre, false) mezcla_libre,
          cf.pliegos_multiplo, cf.codigo_multiplo, cf.min_codigo_x_multiplo, cf.pedido_minimo,
+         c.pedido_minimo_uni,
          pv.precio, pv.moneda
   from componente c
   join sector s on s.id = c.sector_id
@@ -3553,7 +3554,8 @@ select jsonb_build_object(
       'carton_formato',carton_formato,'carton_categoria',carton_categoria,
       'marca',marca,'mezcla_libre',mezcla_libre,'es_pliego',es_pliego,
       'pliegos_multiplo',pliegos_multiplo,'pedido_minimo',pedido_minimo,
-      'codigo_multiplo',codigo_multiplo,'min_codigo_x_multiplo',min_codigo_x_multiplo
+      'codigo_multiplo',codigo_multiplo,'min_codigo_x_multiplo',min_codigo_x_multiplo,
+      'pedido_minimo_uni',pedido_minimo_uni
     ) order by sector_id, codigo),'[]'::jsonb) from calc),
   'pliego_uni_x_paquete', (select valor from parametro where clave='pliego_uni_x_paquete'),
   'paq', (select valor from parametro where clave='carton_uni_x_paquete'),

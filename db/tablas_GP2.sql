@@ -96,6 +96,7 @@ create table "GP2".componente (
   material_id bigint,
   codigo_isis_ch text,
   codigo_virgilio text,   -- codigo del mismo insumo en el catalogo Insumos de Gestion Virgilio (bolsas PP/ABS/AI/NV/NR/N25/PE/PS), 2026-09-11
+  pedido_minimo_uni numeric,  -- pedido minimo del proveedor para ESA pieza, en unidades (Excel del usuario, hoja "Pedido 31-08" col "Pedi Min Uni"), 2026-09-11. AVISA en la OC, no bloquea.
   constraint componente_pkey PRIMARY KEY (id),
   constraint componente_carton_categoria_fkey FOREIGN KEY (carton_categoria) REFERENCES "GP2".carton_categoria(nombre),
   constraint componente_carton_formato_fkey FOREIGN KEY (carton_formato) REFERENCES "GP2".carton_formato(nombre),
