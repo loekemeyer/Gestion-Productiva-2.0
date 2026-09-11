@@ -7673,3 +7673,32 @@ De las **23 pendientes, 14 ya se pueden** (el artículo existe y tiene receta): 
 que nunca llegaron a Virgilio en GP2 — 207 (×2), 395, 535 (×3), 735, 760, 817, 823, 856, 922, 943E,
 945E. Las 9 restantes son códigos que GP2 todavía no modela (035E, 584E, 590E, 590ES, 599, 727E,
 877E, 943, 948). **Aplicar el reproceso mueve stock de verdad: espera el OK del usuario.**
+### 4bt. El Master Bach va por COLOR de la parte — y el % está en disputa (2026-09-11)
+
+`[usuario, textual]` **"Los master bach Rojo, blanco, azul y negro es el cuatro por ciento de la
+parte plástica. Es decir, si se usan cien kilos para un capuchón rojo, cuatro kilos de esos cien
+se usa máster rojo. Entonces, guardate como idea para un futuro que te diga el color de cada parte
+plástica para calcular el master."**
+
+**Lo que dice el usuario:** el master no es un porcentaje del plástico total, es **por pieza y por
+color**: la pieza roja lleva master rojo, la blanca master blanco. Y la dosis es **4 %**, tomada
+**de adentro** de los kilos de la pieza ("cuatro kilos **de esos cien**"), no sumada aparte.
+
+**Lo que dice el Excel `[dato: hoja «Consumo x Cod Articulo», columnas MB y KG x MB]`:** la
+columna `KG x MB` es exactamente **`KG x Material + Scrp` × 0,02** en las **174 filas que declaran
+color**; las 15 que no lo declaran van en **0** (no llevan master). O sea **2,000 %** clavado, y
+**sumado aparte** de la resina. Los cuatro componentes de GP2 se llaman
+literalmente `Master Bach 2% Rojo / Blanco / Negro / Azul`. **Contradicción sin resolver: 2 % o 4 %,
+y adentro o arriba.** No tocar `recalcular_maximo_material()` hasta que el usuario lo decida.
+
+**Lo que SÍ quedó firme — el color por parte ya existe y no hay que pedirlo.** La misma hoja trae
+la columna **`MB`** con el color de cada parte plástica: `R` rojo, `B` blanco, `A` azul, `N` negro.
+De las 47 partes con consumo, **40 tienen color** y 7 no (las seis de Nylon recuperado `V1`-`V8`,
+que vienen pigmentadas, más `B2` Cuchara Ny y `EP9` Cuchillo de Untar Blanc). Resina por color:
+**Rojo 598,05 · Blanco 536,95 · Azul 291,17 · Negro 126,79 kg/mes** (más 164,84 kg sin color).
+
+**Por qué importa:** hoy `recalcular_maximo_material()` saca el 2 % del máximo de plástico
+**entero** y lo reparte entre los 4 colores con la proporción que ya estaba cargada, con un piso de
+una bolsa de 25 kg por color — un parche puesto justamente porque GP2 no sabía el color de la
+pieza. Con la columna `MB` cargada, el master sale del consumo real de cada color y el piso deja de
+ser el que manda. Queda anotado como **idea 7303**, bloqueada hasta que se defina el porcentaje.
