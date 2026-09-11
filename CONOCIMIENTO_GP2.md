@@ -7074,7 +7074,7 @@ código interno** y el **envasado bajo el código del artículo**:
   **no es el mismo que el de Alex** (f616, $16,842): son dos formatos de envasado distintos del mismo
   producto. Por eso conviven; no sobra ninguno.
 
-### 4au. Los listados mayoristas son la FUENTE de descripción, marca y uni x caja (2026-09-11)
+### 4av. Los listados mayoristas son la FUENTE de descripción, marca y uni x caja (2026-09-11)
 
 `[usuario 2026-09-11]`: *"toda la inf que te falte de descripcion, marca o uni x caja sacala de los
 dos listados que te mande por excel"*. Regla nueva y permanente para `GP2.articulo`: esos **tres
