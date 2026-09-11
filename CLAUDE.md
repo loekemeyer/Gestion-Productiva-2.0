@@ -31,9 +31,13 @@ hacer sin figurar en la agenda de alguien.
    empieza, con nombre MUY resumido (≤ 60 caracteres) y una nota de 1–3 líneas con el
    contexto. Queda `done=false` hasta que se cierre (punto 4). Si la sesión termina sin
    cerrar, la tarea queda en la agenda: ése es el objetivo.
-3. **Excepción del dueño:** Thomas Loekemeyer NO usa Planify. Sus pedidos se cargan en el
-   Planify de **Tomás Beviglia (employee_id 20)** con el nombre antepuesto por **`Th `**
-   (ej. `Th Fecha estimada de entrega por zona`).
+3. **Excepción del dueño — EN ESTE REPO NO SE REGISTRA NADA.** `[Thomas, 2026-09-11, textual:
+   "no registres tareas en planify a tomas"]`. Thomas Loekemeyer no usa Planify y **sus pedidos
+   NO se cargan en el Planify de Tomás Beviglia** — ni con el prefijo `Th ` ni de ninguna otra
+   forma. En GP2 el registro de lo pendiente vive en `CONOCIMIENTO_GP2.md`, `IDEAS-GP2.md` y el
+   `[HISTORIAL]` de `LOCKS.txt`, no en Planify. Los puntos 2, 4 y 5 de arriba **no aplican**
+   mientras el que habla sea Thomas; siguen valiendo si en esta carpeta trabaja otra persona
+   (Marianela, Luis, Gastón, …), que sí tiene su propio Planify.
 
 **Dónde:** proyecto Supabase de Gestión Virgilio `hrxfctzncixxqmpfhskv`, schema `planify`.
 Empleados activos con Planify (`planify.employees`): Marianela Becker **38**, Luis Rial Otero
