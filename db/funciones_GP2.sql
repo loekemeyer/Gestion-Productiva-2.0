@@ -1366,6 +1366,24 @@ AS $function$
 $function$
 ;
 
+-- ---------- comp_terminado_de ----------
+CREATE OR REPLACE FUNCTION "GP2".comp_terminado_de(p_art bigint)
+ RETURNS bigint
+ LANGUAGE sql
+ STABLE
+ SET search_path TO 'GP2'
+AS $function$
+  select coalesce(
+    (select rp.comp_entrada_id
+       from ruta r join ruta_paso rp on rp.ruta_id = r.id
+      where r.articulo_id = p_art and rp.tipo_paso = 'virgilio' and rp.comp_entrada_id is not null
+      order by rp.ruta_id limit 1),
+    (select c.id from componente c join articulo a on a.id = p_art
+      where c.sector_id = 12 and c.codigo = a.codigo
+      order by c.id limit 1))
+$function$
+;
+
 -- ---------- composicion_stock ----------
 CREATE OR REPLACE FUNCTION "GP2".composicion_stock(p_comp_id bigint, p_ubic_id bigint DEFAULT NULL::bigint, p_limit integer DEFAULT 300, p_ubic_tipo text DEFAULT NULL::text, p_ref_id bigint DEFAULT NULL::bigint)
  RETURNS jsonb
@@ -3961,11 +3979,12 @@ AS $function$
         left join ruta r on r.id = rp.ruta_id
         group by rp.ruta_id) x),
     'inv', (select coalesce(jsonb_object_agg(componente_id::text||':'||ubicacion_id::text, jsonb_build_object('cant',cantidad,'min',minimo,'max',maximo)),'{}'::jsonb) from inventario),
-    'c2a', (select coalesce(jsonb_object_agg(comp_entrada_id::text, articulo_id),'{}'::jsonb) from (
-        select distinct on (rp.comp_entrada_id) rp.comp_entrada_id, r.articulo_id
-        from ruta_paso rp join ruta r on r.id = rp.ruta_id
-        where rp.tipo_paso = 'virgilio' and rp.comp_entrada_id is not null and r.articulo_id is not null
-        order by rp.comp_entrada_id, rp.ruta_id) x)
+    -- componente terminado -> articulo, por la unica puerta (comp_terminado_de). Antes esto
+    -- salia del paso virgilio y recepcion_virgilio buscaba por codigo: dos criterios. Idea 7322.
+    'c2a', (select coalesce(jsonb_object_agg(comp_id::text, articulo_id),'{}'::jsonb) from (
+        select distinct on (comp_id) comp_id, articulo_id from (
+          select "GP2".comp_terminado_de(a.id) comp_id, a.id articulo_id from articulo a) y
+         where comp_id is not null order by comp_id, articulo_id) x)
   );
 $function$
 ;
@@ -5068,7 +5087,9 @@ begin
     select a.id, a.codigo into v_art from articulo a
      where a.id = nullif(it->>'articulo_id','')::bigint or a.codigo = nullif(it->>'codigo','') limit 1;
     if v_art.id is null then raise exception 'Articulo no encontrado: %', coalesce(it->>'codigo', it->>'articulo_id'); end if;
-    select c.id into v_compfin from componente c where c.sector_id=12 and c.codigo=v_art.codigo limit 1;
+    -- una sola puerta (comp_terminado_de): antes buscaba por CODIGO en el sector 12 con
+    -- limit 1, mientras movimientos_bundle lo sacaba del paso virgilio de la ruta. Idea 7322.
+    v_compfin := "GP2".comp_terminado_de(v_art.id);
     if v_compfin is null then raise exception 'El articulo % no tiene componente terminado', v_art.codigo; end if;
     select ac.componente_id, ac.cantidad, c.sector_id into v_prin
       from articulo_componente ac join componente c on c.id=ac.componente_id

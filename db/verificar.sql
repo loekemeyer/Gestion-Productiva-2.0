@@ -197,6 +197,23 @@ union all
 --     tipo_mov puede quedar fuera del catalogo (antes era un CHECK de literales copiado en el JS).
 select 'AC_tipo_mov_fuera_del_catalogo', count(*) from "GP2".movimiento m
  where not exists (select 1 from "GP2".tipo_movimiento t where t.clave = m.tipo_mov)
+union all
+-- AD) Todo articulo resuelve su componente terminado por la unica puerta (comp_terminado_de).
+--     Si da null, el circuito no cierra: recepcion_virgilio explota al entregarlo y
+--     movimientos_bundle no sabe a que articulo pertenece lo que entra a Virgilio.
+select 'AD_articulo_sin_componente_terminado', count(*) from "GP2".articulo a
+ where "GP2".comp_terminado_de(a.id) is null
+union all
+-- AE) Y los dos criterios que antes convivian (el paso 'virgilio' de la ruta y el codigo en el
+--     sector 12) siguen dando LO MISMO. Si se separan, la puerta unica elige la ruta y el que
+--     mire por codigo (una pantalla, un informe) va a ver otro componente. Idea 7322.
+select 'AE_paso_virgilio_y_codigo_dan_distinto', count(*) from "GP2".articulo a
+ where (select rp.comp_entrada_id from "GP2".ruta r join "GP2".ruta_paso rp on rp.ruta_id = r.id
+         where r.articulo_id = a.id and rp.tipo_paso = 'virgilio' and rp.comp_entrada_id is not null
+         order by rp.ruta_id limit 1)
+   is distinct from
+       (select c.id from "GP2".componente c where c.sector_id = 12 and c.codigo = a.codigo
+         order by c.id limit 1)
 ) chequeos
 order by regla;
 
