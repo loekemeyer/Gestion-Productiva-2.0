@@ -74,6 +74,10 @@ window.supabase = { createClient: function(){ return {
   const txt809 = await page.$eval('#pickList button[data-id="77"]', o => o.textContent);
   check(/discontinuado/.test(txt809), 'el discontinuado se avisa en la fila — ' + txt809.trim());
 
+  // el boton lleva la flechita de desplegar
+  const caret = await page.$eval('#artBtn .caret', e => e.textContent.trim());
+  check(caret === '\u25be', 'el boton tiene la flecha de desplegar — ' + caret);
+
   const cods = await porMarca('CHEF');
   check(JSON.stringify(cods) === JSON.stringify(['701']), 'eligiendo Chef queda solo el 701 — ' + cods.join(','));
   const tit = await page.$eval('#pickTit', e => e.textContent);
@@ -87,6 +91,18 @@ window.supabase = { createClient: function(){ return {
 
   const cods4 = await porMarca('');
   check(cods4.length === 5, 'Todas vuelve a los 5 — ' + cods4.length);
+
+  // filtrar NO mueve el articulo elegido: nada resaltado salvo el que se eligio de verdad
+  const onTodas = await page.$$eval('#pickList button.on', bs => bs.map(b => b.textContent.trim().split(' ')[0]));
+  check(JSON.stringify(onTodas) === JSON.stringify(['501']), 'solo se resalta el elegido de verdad — ' + onTodas.join(','));
+  for (const mk of ['LOEKE', 'CHEF', 'LOKE']) {
+    await porMarca(mk);
+    const on = await page.$$eval('#pickList button.on', bs => bs.map(b => b.textContent.trim().split(' ')[0]));
+    const val = await page.$eval('#art', e => e.value);
+    check(JSON.stringify(on) === JSON.stringify(mk === 'LOEKE' ? ['501'] : []) && val === '25',
+      'filtrar por ' + mk + ' no resalta ni cambia el elegido — resaltado=[' + on.join(',') + '] art=' + val);
+  }
+  await porMarca('');
 
   // buscador: por descripcion, por codigo, sin acentos, y combinado con la marca
   await page.fill('#buscar', 'pelapapas');
