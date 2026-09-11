@@ -7073,3 +7073,42 @@ código interno** y el **envasado bajo el código del artículo**:
 - **Carlos Aguirre TAMBIÉN tiene un envasado de Batidor Pera** (f926, cod 544, **$15**, *"Formato 8"*) y
   **no es el mismo que el de Alex** (f616, $16,842): son dos formatos de envasado distintos del mismo
   producto. Por eso conviven; no sobra ninguno.
+
+### 4au. Los listados mayoristas son la FUENTE de descripción, marca y uni x caja (2026-09-11)
+
+`[usuario 2026-09-11]`: *"toda la inf que te falte de descripcion, marca o uni x caja sacala de los
+dos listados que te mande por excel"*. Regla nueva y permanente para `GP2.articulo`: esos **tres
+campos** salen de los listados mayoristas de Loekemeyer y Chef; **la familia NO** (esa la elige el
+usuario a mano, y hoy ya se aparta del catálogo a propósito — ver abajo).
+
+El usuario cargó 20 artículos entre el 10 y el 11/09 (`052, 058, 059, 231, 232, 233, 307, 311, 312,
+395, 534, 535, 715` y los siete `941E`–`948E`) y borró los 3 corta queso. GP2 tiene **140 artículos,
+los 140 con descripción, marca, familia y uni x caja** — cero nulos. Reparto: **LOEKE 84 · CHEF 46 ·
+LOKE 10**.
+
+**Migración `articulo_completar_desc_y_marca_desde_listados`** — rellenó lo que estaba vacío:
+descripción de los 4 cepillos (052, 307, 534, 535) y marca de esos 4 más los 7 códigos E.
+
+**Migración `articulo_alinear_desc_marca_uxb_con_listados`** — 7 filas tenían un valor cargado
+**distinto** del listado y se alinearon:
+
+| Código | Estaba | Quedó |
+|---|---|---|
+| **715** | "Cierra Bolsa x4" · LOEKE · 12 | **"Cierra Bolsa x2" · CHEF · 24** |
+| 942E / 946E | los dos "Cuchara Mango Madera" | "Cuchara Ac. Inox" / "Cuchara Calada Ac. Inox" |
+| 941E | "Espatula Lisa Mango Madera" | "Espátula Lisa Ac. Inox" |
+| 059 | "Cuchillito De Untar Plast x2" | "Cuchillo de Untar Plástico x2" |
+| 311 / 312 | "Cuchillo de Torta" / "Pala de Torta" | "…Ac. Inox" / "…Acero Inox" |
+
+**El 715 es el que cambió de significado**, no sólo de texto: estaba cargado como Loekemeyer y el
+listado lo da como **el gemelo Chef del 058** (los dos "Cierra Bolsa x2"). 942E y 946E tenían la
+**misma descripción**, un copiar-pegar que el listado desarma.
+
+**La familia quedó como la puso el usuario, aunque contradiga al catálogo**: los 4 cepillos están en
+una familia **`Cepillos`** que el catálogo no tiene (ahí son "Accesorios"), y los 7 códigos E están
+en **`Madera`** siendo de acero inoxidable (el catálogo los pone en "Utensilios"). No se tocó porque
+el pedido fue por descripción, marca y uni x caja.
+
+**Y los importados SÍ entraron a GP2**: los `941E`–`948E` los cargó el usuario el 11/09, un día
+después de decir que *"en principio los art importados no los quiero en gp2"* (§4ao). La regla del
+sufijo E sigue valiendo para el backlog, pero ya no es absoluta.
