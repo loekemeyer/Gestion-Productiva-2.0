@@ -1,8 +1,10 @@
 # Integración Gestión Virgilio ↔ GP2 (spec para el repo `gestion-virgilio`)
 
 Escrito el 2026-09-11 desde GP2. **Del lado de GP2 ya está todo hecho y probado** (RPC en el schema
-`GP2`, con EXECUTE para `anon`/`authenticated`). Lo que falta es del lado de Virgilio (`index.html`,
-módulo **INS**) y se hace en una sesión sobre ESE repo.
+`GP2`, con EXECUTE para `anon`/`authenticated`). **Del lado de Virgilio, las secciones 1 y 2 están
+HECHAS en `gestion-virgilio` v14.95** (2026-09-11: `index.html` módulo INS, helper `insGp2Rpc` +
+`_insGp2*`; nota en su `GUIA-PROYECTO.md`). La sección 3 (cajas SC/SP) queda pendiente de definir
+dónde entra en la UI de Virgilio.
 
 Los dos programas viven en el **mismo proyecto Supabase** (`hrxfctzncixxqmpfhskv`): Virgilio ya
 llama funciones de GP2 con `supabase.schema("GP2").rpc(...)`. No hay puente ni copia de datos.

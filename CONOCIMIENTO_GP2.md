@@ -6740,3 +6740,8 @@ mapeo de Gestión Virgilio (4au). Lo que se decidió y lo que se hizo con cada u
   cod_virgilio, bolsas, inyector, legajo)` y `recibir_oc_virgilio` / `oc_pendientes_virgilio` que
   aceptan `{cod_virgilio, bolsas}`. Spec para el repo de Virgilio en `INTEGRACION_GESTION_VIRGILIO.md`.
   El ledger de Virgilio sigue escribiéndose igual (decisión 9): GP2 manda, Virgilio espeja.
+  **HECHO también del lado de Virgilio** (`gestion-virgilio` v14.95, 2026-09-11, pusheado a su main):
+  en EI los inyectores aparecen como botones con "le faltan N bolsas" y al confirmar se llama
+  `enviar_material_virgilio`; en RI aparecen las OC pendientes con las bolsas precargadas y al
+  confirmar `recibir_oc_virgilio`. GP2 va primero; si rechaza, el operario decide si registra sólo en
+  Virgilio. Tarea Planify 3050 (Tomás Beviglia, "Th", regla del repo de Virgilio).
