@@ -2168,6 +2168,7 @@ begin
       end if;
     end if;
   end loop;
+
   if v_n = 0 then raise exception 'La OC no tiene items'; end if;
 
   -- OC GEMELA al proveedor de la materia prima
@@ -4309,6 +4310,7 @@ CREATE OR REPLACE FUNCTION "GP2".planilla_fecha(p text)
  RETURNS date
  LANGUAGE sql
  IMMUTABLE
+ SET search_path TO 'GP2'
 AS $function$
   select case when p ~ '^\d{4}-\d{2}-\d{2}' then left(p,10)::date end;
 $function$
@@ -4319,6 +4321,7 @@ CREATE OR REPLACE FUNCTION "GP2".planilla_num(p text)
  RETURNS numeric
  LANGUAGE sql
  IMMUTABLE
+ SET search_path TO 'GP2'
 AS $function$
   select case when p ~ '^-?[0-9]+(\.[0-9]+)?$' then p::numeric end;
 $function$

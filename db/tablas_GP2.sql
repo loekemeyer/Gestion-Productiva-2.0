@@ -1,7 +1,7 @@
 -- =====================================================================
 -- TABLAS del schema GP2 (DDL reconstruido de pg_catalog: columnas, identity, defaults, constraints, comentarios) — export automatico 2026-09-11 desde Supabase (hrxfctzncixxqmpfhskv)
 -- Respaldo/referencia. La fuente de verdad es la base; regenerar al cambiar el schema.
--- 51 tablas, 179 constraints, 59 indices sueltos, 14 triggers, RLS en 51 tablas, 51 policies.
+-- 51 tablas, 179 constraints, 60 indices sueltos, 14 triggers, RLS en 51 tablas, 51 policies.
 -- =====================================================================
 
 -- ---------- __sim_base ----------
@@ -954,6 +954,7 @@ CREATE INDEX ix_relev_item_relev ON "GP2".relevamiento_item USING btree (relevam
 CREATE INDEX ix_relev_sector_fecha ON "GP2".relevamiento USING btree (sector_id, fecha DESC);
 CREATE INDEX movimiento_fecha_idx ON "GP2".movimiento USING btree (fecha DESC, id DESC);
 CREATE INDEX movimiento_tipo_comp_idx ON "GP2".movimiento USING btree (tipo_mov, comp_id);
+CREATE UNIQUE INDEX orden_compra_item_oc_comp_uq ON "GP2".orden_compra_item USING btree (oc_id, componente_id);
 CREATE UNIQUE INDEX planilla_snapshot_vigente_uq ON "GP2".planilla_snapshot USING btree (vigente) WHERE vigente;
 CREATE INDEX produccion_legajo_fecha_idx ON "GP2".produccion USING btree (legajo, fecha);
 CREATE UNIQUE INDEX proveedor_insumo_cod_prov_uq ON "GP2".proveedor_insumo USING btree (cod_prov) WHERE (cod_prov IS NOT NULL);
