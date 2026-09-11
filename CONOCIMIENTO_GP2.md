@@ -6811,5 +6811,11 @@ plásticas ya existen en GP2; lo que falta son los artículos, sus cartones y al
   cada uno]`: el Excel los mostraba con 12–72/mes pero hoy no se venden; su aporte al plástico es nulo.
   Si vuelven a moverse, el despiece del vecino está listo (PA19 + PB6 + PC6 + cartón CCQ5; el vecino
   les suma además PB3/PB4 «Cuchara Ny», que parece un error suyo).
-- Quedan por decidir: **58 / 715** (Cierra Bolsas `PC4` ×2, Fábrica), **59** (Cuchillito de untar
+- **058 Cierra Bolsa x2 → ALTA (hecha)** `[usuario: "058 (con 0 adelante), se compone solo de 2 partes
+  plásticas + cartón + caja" / "caja 22"]`: `PC4` «Cierra Bolsas Blanc.» **×2** (JL Matricería, 6,7 g) +
+  cartón + **Caja N°22 (A9)**, 12 por caja; lo arma **Fábrica**. **El código lleva el 0 adelante** (`058`,
+  como 031/043/052…): los artículos de 2 dígitos de GP2 se escriben con 3. El cartón no tiene código en
+  el vecino y GP2 los codifica por posición de estantería → nace como `CART058` hasta saberla.
+- Quedan por decidir: **715** (Cierra Bolsa ×4, misma pieza `PC4`; el vecino le pone ×2 igual que al 058
+  — parece error, y su Est Madre es 2/mes), **059** (Cuchillito de untar
   `PEP9` ×2, Fábrica) y los **importados 94xE** (inserto de mango de madera `PEST1`, 6,6 g).
