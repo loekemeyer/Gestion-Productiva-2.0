@@ -7017,6 +7017,30 @@ envasa y entrega en Virgilio"]`:
 - **Contradicción abierta**: la línea del envasado del 580 está en el bloque **«4175 - Alex Escalante»** de
   la planilla, no en el de **«4306 - Carlos Aguirre»** (que existe, con 544 Batidor Pera Envasado $15,
   560/561 Pinza Envasado $42 y los pulidos). O el 580 lo envasa Alex, o la planilla tiene la línea en el
-  bloque equivocado. **A confirmar.**
+  bloque equivocado. **A confirmar** — el usuario dijo que **Carlos Aguirre envasa el 580**, así que en
+  GP2 la tarifa queda a su nombre; lo que no cierra es el importe, que sale de la línea de Alex.
 - **Aparte**: el `GRJ10A` cuesta **$975** en GP2 y el 580 entero **$438** en la planilla — el costo del
-  crudo está inflado por otro lado (fleje o matriz), no por esta tarifa. Pendiente de mirar.
+  crudo está inflado por otro lado (fleje o matriz), no por esta tarifa. **RESUELTO el 2026-09-11**: es
+  el **peso**, ver §4az-bis (GRJ10 y GRJ10A tienen los dos 98 g y el fleje directo paga el armado entero).
+
+### 4bb-bis. Los batidores de Alex van de a pares: ARMADO + ENVASADO (2026-09-11)
+
+`[dato, de la planilla, bloque «4175 - Alex Escalante»]` — **la forma de leer el bloque**, que evita
+repetir el error del 580. Los tres batidores están cargados **de a dos líneas**, con el **armado bajo un
+código interno** y el **envasado bajo el código del artículo**:
+
+| | armado (cod interno) | envasado (cod art) |
+|---|---|---|
+| Batidor Pera | f615 · `4516` · **$64,2075** | f616 · `544-802` · **$16,842** |
+| Mini (580) | f617 · `4316` · **$51,807** | f618 · `580` · **$16,842** |
+| Resorte (515) | f619 · `3946` · **$62,7375** | f620 · `515` · **$56,007** |
+
+- **En GP2 el armado va sobre la PIEZA INTERMEDIA y el envasado sobre el terminado.** Los dos primeros
+  ya están así (`GRJ10` ← f615, `GRJ10A` ← f617). **El tercero no: f619 no está cargada en ningún lado**
+  y `C12` lleva en su lugar la **f621, que es el artículo 509** (que ni siquiera existe en GP2). Idea 7299.
+- **Un importe repetido no significa duplicado** `[deducido]`: los dos envasados de batidor pera valen
+  $16,842 porque es el mismo trabajo en dos productos. Lo que delata un error es el **concepto**, no el
+  número — el 580 se detectó porque decía *"ARMADO"* en la fila de quien envasa.
+- **Carlos Aguirre TAMBIÉN tiene un envasado de Batidor Pera** (f926, cod 544, **$15**, *"Formato 8"*) y
+  **no es el mismo que el de Alex** (f616, $16,842): son dos formatos de envasado distintos del mismo
+  producto. Por eso conviven; no sobra ninguno.
