@@ -6838,6 +6838,15 @@ plásticas ya existen en GP2; lo que falta son los artículos, sus cartones y al
   `Z21` se mudó al **Sector Bombilla** (donde viven las piezas de Melinox) con su proveedor y su precio.
   `proveedor_insumo.Melinox.cod_prov = 2593`. **Lección**: antes de crear una pieza comprada, buscarla en
   la planilla de costos por descripción — el código del vecino (Z20) no siempre es el de GP2 (Z22).
+- **311 → DISCONTINUO** `[usuario 2026-09-11: "311 discontinuo"]`, apenas después de darlo de alta, al ver
+  la venta real: **2 cajas en 4 meses** (jul y ago 2026, ~6 uni/mes) contra una proyección madre de 34, y
+  la pieza inox sin comprarse desde **09-2023**. Se marcó `articulo.discontinuado = true` (eso solo ya lo
+  saca de `v_consumo_demanda`, y con eso de la OC y del máximo) y `estado_compra='discontinuo'` en sus dos
+  piezas exclusivas (`Z21` y el cartón `CCG1A`). **La receta y las rutas se dejan**: son la historia del
+  artículo y el trazado tiene que seguir explicando el stock que quede. El **312 sí sigue vivo**: 61 cajas
+  en 4 meses (jun 2 · jul 23 · ago 32 · sep 4), última compra de la pala a Melinox en mayo 2026.
+- **Dónde mirar la venta real** `[dato]`: `public.vista_venta_mensual` (cod, mes, cajas, nps) — hoy tiene
+  desde **jun-2026**. Sirve para contrastar la proyección madre antes de decidir un alta o una baja.
 - **Cerrado el repaso de los 34**: el consumo de PP en GP2 quedó en **786 kg/mes** (era 722 antes de
   estas altas; el Excel decía 868 con otra Est Madre). Lo que queda afuera a propósito: 333–338 y 396
   (discontinuos), 809 (de baja), 725/909/719 (palo blanco, no es material nuestro) y la línea Chef inox
