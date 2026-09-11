@@ -7118,3 +7118,32 @@ Quedan **15 familias** y las únicas 10 filas cuya familia NO sale del catálogo
 **Y los importados SÍ entraron a GP2**: los `941E`–`948E` los cargó el usuario el 11/09, un día
 después de decir que *"en principio los art importados no los quiero en gp2"* (§4ao). La regla del
 sufijo E sigue valiendo para el backlog, pero ya no es absoluta.
+
+### 4bd. Sacafuente Pizzero: la matriz 364 saca la pieza CHICA y la 365 la GRANDE (2026-09-11)
+
+`[usuario]` textual: *"la matriz 364 saca Z6 y la matriz 365 saca Z5, y está invertido ahora"*.
+En GP2 las dos rutas del **artículo 518** terminaban en la pieza equivocada:
+
+| Ruta | Fleje | Medida | Matriz de corte | Terminaba en | Quedó en |
+|---|---|---|---|---|---|
+| 27 | 6 (`IB3`) | 18,5 × 1,9 mm | 364 "Corte Pieza Chica Sacaf Pizz" | Z5 Grande ❌ | **Z6 Chica** |
+| 34 | 8 (`IA10`) | 33 × 2 mm | 365 "Corte Pieza Grande Sacaf Pizz" | Z6 Chica ❌ | **Z5 Grande** |
+
+**El chequeo que lo prueba sin depender del nombre**: el fleje 8 mide **33 mm** de ancho y el
+fleje 6 **18,5 mm**. El fleje ancho tiene que dar la pieza grande — y daba la chica. La
+descripción de las matrices YA era correcta; lo mal cargado era el `comp_salida_id` del paso de
+doblado (M368) y el `comp_entrada_id` del remachado (M151). Se invirtieron 4 filas de
+`GP2.ruta_paso` (178, 179, 218, 219). **No se tocó** `componente_bom` (Z36 sigue = 1 Z5 + 1 Z6),
+ni `inventario`, ni los movimientos ya aplicados; lo que cambia es a qué fleje se le imputa el
+consumo y el costo de cada pieza.
+
+**Trampa para la próxima**: una ruta invertida NO la detecta ningún invariante de
+`db/verificar.sql` — la cadena cierra igual (cada paso engancha con el anterior). Se detecta sólo
+cruzando el **ancho del fleje** contra el tamaño de la pieza que sale.
+
+**Dos datos que quedaron marcados y NO se tocaron:**
+1. `fleje_detalle.descripcion_parte` miente en los dos: el fleje 8 dice *"Engranaje Chico Pizzero
+   Pza Gde"* y el fleje 6 *"Mgo Plano Marip Perfora 3 en 1"* — ninguno es sacafuente. `[deducido]`
+   es texto de arrastre de la planilla, sin confirmar.
+2. **Los pesos no cierran**: Z5 0,0587 + Z6 0,0280 = **0,0867 kg**, y Z36 armado pesa **0,1192 kg**
+   → faltan **32,50 g** sin explicar (¿el remache? ¿un peso mal cargado?). Pendiente del usuario.
