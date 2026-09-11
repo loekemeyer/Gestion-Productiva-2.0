@@ -7435,12 +7435,21 @@ tienen cartón NI caja, así que **no hay nada que mandarle al proveedor** y la 
 | espiral | `D1` Espiral Sacacorcho | Martín Cornejo |
 | mango | `PB8A` Mgo Sacac Plast | Martín |
 | remache | `CV11` p/Niquelar | **Guazzaroni Patricio** (niquela) → `V11` → Martín |
-| cartón | `T3A` Cartón 735 (nuevo, CHEF, formato LOKE) | Martín |
+| cartón | `T3A` Cartón 735 (nuevo) | Martín |
 | caja | `A9` Caja N°22, **la del gemelo LK** | Martín |
 
 A diferencia de los gemelos Chef de torta y descorazonador (§4bj-bis), acá **no se cambia ninguna
-pieza**: el usuario dijo "es igual al Loeke", así que van los mismos `D1`, `PB8A` y `V11`. El cartón
-sí es propio y sale de la planilla (`T3A`, tipo T.Loke).
+pieza**: el usuario dijo "es igual al Loeke", así que van los mismos `D1`, `PB8A` y `V11`.
+
+**El cartón también es igual al del 581 — sólo cambia la descripción** `[usuario 2026-09-11:
+"lo único que cambia del cartón es la descripción, es el mismo tipo, todo"]`. Yo lo había cargado
+como formato **LOKE** porque la hoja Pedido de la planilla dice "T.Loke": **estaba mal**. `T3A` quedó
+igual que `CCE2B` (Cartón 581) en formato **C**, categoría **Sacacorchos** y proveedor Gráficos Pol.
+Lo único que difiere es la descripción y la **marca**, que sigue al artículo (735 es CHEF) por la
+regla de §4bh. Migración `carton_735_igual_al_581`.
+
+**Aviso para la próxima**: la columna "Tipo de Cartón" de la planilla **no siempre es el formato
+real** — acá decía T.Loke y el cartón es tipo C. Ante la duda, mirar el gemelo.
 
 **Estado del backlog de los listados (sin los E)**: de los 199 códigos, quedan **10 sin modelar**.
 Dos son imposibles con lo que hay (`070` y `591`, sin cartón ni caja), cinco esperan el código de
@@ -7470,8 +7479,9 @@ insumo* (hace el pliego de las bombillas, §2f) — es la misma empresa con **do
 pasa con Pettofrezza, Maspoli y Tierra Nativa. Se le puso el mismo nombre para que se vea que son
 la misma.
 
-**Falta**: a quién se le compran los cepillos (`GRJ28`/`GRJ29` quedaron **sin proveedor**); el
-usuario dijo *"se compra"* pero no de quién.
+**Los cepillos se le compran a Cimarrón** `[usuario 2026-09-11]`, igual que las bombillas y los
+bowls: `GRJ28` y `GRJ29` quedaron con ese proveedor y **ya no hay ningún componente de garage sin
+proveedor**. Migración `cepillos_limpia_bombilla_los_compra_cimarron`.
 
 **Backlog de los listados (sin los E)**: quedan **5**. `070` y `591` siguen sin cartón ni caja, y
 `717`, `537` y `567` los dejó pendientes el usuario. GP2 va por **187 artículos**.
