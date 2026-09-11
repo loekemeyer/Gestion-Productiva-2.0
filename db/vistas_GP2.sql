@@ -368,6 +368,10 @@ create or replace view "GP2".v_costo_componente as
                   WHERE e.sal = y.insumo_id))) AS sin_precio
            FROM insumo_por_art y
              LEFT JOIN pc ON pc.componente_id = y.insumo_id
+          -- 2026-09-11: solo los insumos que NO entran a la caminata de `edges`. Si el insumo ademas
+          -- tiene un paso con actor (tallerista / PS / matriz) ya lo cuenta `mat`, y sumarlo aca lo
+          -- contaba DOS VECES (art 312: 1.217,48 x 2). Misma guarda que ya tenia `bomx`.
+          WHERE NOT (EXISTS ( SELECT 1 FROM edges e WHERE e.ent = y.insumo_id))
           GROUP BY y.art_id
         ), talpieza AS (
          SELECT DISTINCT ON (n.comp_id, n.comp) n.comp_id,

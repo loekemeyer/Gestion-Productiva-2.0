@@ -6859,3 +6859,23 @@ plásticas ya existen en GP2; lo que falta son los artículos, sus cartones y al
   estas altas; el Excel decía 868 con otra Est Madre). Lo que queda afuera a propósito: 333–338 y 396
   (discontinuos), 809 (de baja), 725/909/719 (palo blanco, no es material nuestro) y la línea Chef inox
   630–636/709/856/857/864 (no se vende).
+
+### 4az. BUG DE COSTO: los insumos se contaban dos veces (2026-09-11)
+
+`[usuario 2026-09-11, sobre el art 312: "está mal $2435 material"]` — eran **$1.217,48 exactos ×2**.
+
+- **Causa**: `v_costo_componente` junta el material de dos lados que se pisaban. `mat` camina las
+  **aristas** (`ruta_paso` de tipo matriz / proveedor_servicio / tallerista) y suma cada ancestro
+  comprado; `insumox` sumaba **además** todos los `ruta_paso` de tipo `'insumo'` por su cantidad. Una
+  ruta típica «Insumo X → Art N» tiene el paso `insumo` (X→X, que no es arista) **y** el paso
+  `tallerista` (X→N, que sí lo es): el mismo X entraba por los dos lados.
+- **Arreglo** (en la vista, que es donde está la causa): `insumox` cuenta sólo los insumos que **no son
+  entrada de ninguna arista** — la misma guarda que ya tenía `bomx`. Así sigue cubriendo su caso real
+  (rutas sin actor, donde el insumo no entra a la caminata) sin duplicar el resto.
+- **Impacto**: cambiaron **126 de 713** componentes, todos para abajo (el total de la vista pasó de
+  622.355 a 576.542). Ejemplos contra la planilla del usuario (`costo_sin_aporte`): 312 2.529 → **1.311**
+  (planilla 1.649, le faltan cartón y caja), 546 3.047 → **1.701** (planilla 1.466), 523 3.858 →
+  **1.545** (planilla 2.414), 501 2.270 → **2.035** (planilla 2.005), 505 671 → **515** (planilla 334).
+  Antes GP2 costeaba **por encima** de la planilla casi siempre; ahora queda en el mismo orden.
+- **Lección**: cuando un costo GP2 da muy por encima del de la planilla, sospechar del doble conteo
+  entre la caminata de rutas y las sumas por receta/insumo, no de los precios.
