@@ -1051,6 +1051,14 @@ problema de performance.
 - Probado en rollback con los mismos números que las ramas viejas: Charcas 3 paq → Altrak 30,60 kg
   (rubro Sector Alambre), Eclipse 100 uni → Aperam 1,76 kg, una OC a Altrak (no híbrido) → sin
   gemela, recepción de Eclipse con el 28 % del PS (1,761 kg de chapa). Suite 37/37.
+- `[act. 2026-09-08: los porcentajes y la fórmula de este ciclo son los de la migración del
+  2026-09-05 y YA NO SON LOS VIGENTES — este bloque es historia, no receta. Hoy `desperdicio_pct`
+  es **% DE LA CHAPA**, así que la MP sale con **DIVISIÓN**: `kg de producto pedido / (1 −
+  desperdicio_pct/100)`, NO `× (1 + …)`; y los valores vivos son **Charcas 0** y **Eclipse 40,28**,
+  no 2 y 28. Con 40,28 la multiplicación pediría 49,7 kg de chapa donde la división pide 59,3, o sea
+  ~10 kg de menos cada 35 kg de producto. `crear_oc` y `cargar_recepcion_eclipse` ya están con la
+  división y con guarda de `pct` fuera de [0,100). La versión vigente está en CONOCIMIENTO_GP2.md,
+  bloque "Desperdicio Eclipse", y en REGLAS_OC_INSUMOS.md.]`
 
 ## Ciclo 11 — validación final: docs desviadas por los renombres de hoy, advisors, circuito de escritura, 07:43–07:50 AR
 
