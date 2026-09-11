@@ -6797,9 +6797,12 @@ plásticas ya existen en GP2; lo que falta son los artículos, sus cartones y al
   hasta saber la posición); lo arma **Martin Cornejo** `[dato: vecino]`; 5 rutas calcadas de las del 535
   (PA13 y PA18 pasan por Hernandez: B → pintado). Familia Repostería `[deducido]`, LOEKE, 12 por caja.
   **Z21 se compra pero no se sabe a quién** `[usuario]` → tarea Planify **3058 para Alan Gonzalez** ("¿a
-  quién se compra?"); mientras, `componente.proveedor` null. Pendientes: caja, formato del cartón, tarifa
-  de Martin.
-- Quedan por decidir: 312 (Martin: PA17+PA13+PA18+Z20 pala + CCG1B — ojo, GP2 ya tiene una `Z22 «Pala de
-  Torta»` de Melinox en sector 7), Chef inox 630–636 + 709 (Carlos:
+  quién se compra?"); mientras, `componente.proveedor` null. **Caja N°12 (A2)** `[usuario: "caja 12
+  ambos"]`. Pendientes: formato del cartón, tarifa de Martin.
+- **312 Pala de Torta LK → ALTA (hecha)** `[usuario: "ok 312"]`: misma estructura que el 311 con `Z20`
+  «Pala Torta» inox (39 g, nueva en Procesado, comprada, proveedor pendiente) y cartón `CCG1B`; Martin;
+  caja N°12. **OJO**: GP2 ya tenía una `Z22 «Pala de Torta»` de Melinox (37,3 g, sector 7) — puede ser
+  la misma pieza; si el usuario lo confirma, se unifica (recodificar Z20 → Z22 y sacar la duplicada).
+- Quedan por decidir: Chef inox 630–636 + 709 (Carlos:
   PA19+PB6+PC6; el vecino les suma PB3/PB4 «Cuchara Ny», parece error), 856/857/864 nuevos + PA19/PC6
   a 858/863, 58/715 (PC4 ×2) y 59 (PEP9 ×2) de Fábrica, y los importados 94xE (inserto PEST1).
