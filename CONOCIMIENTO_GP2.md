@@ -6828,6 +6828,16 @@ plásticas ya existen en GP2; lo que falta son los artículos, sus cartones y al
   684 uni/mes. **⚠ TRANSITORIO**: cuando llegue la **nueva importación de 94xE** el inserto **queda
   discontinuo** → marcar `PEST1.estado_compra = 'discontinuo'` y sacarlo de las 7 recetas; el PP baja
   ~4,7 kg/mes.
+- **Las dos piezas inox del 311/312 son de MELINOX** `[dato 2026-09-11: planilla de costos, hoja «Lista
+  de Precios», bloque «2593 - Adolfo A Gonzalez (Melinox)»]` `[usuario: "Z20 fijate en costos"]`:
+  «Cuchillo para Torta» cod ISIS **1996**, $890 (última compra 2023-09-06) y «Pala de Torta» cod ISIS
+  **2006**, $1.250 (última compra 2026-05-13). **Las dos están marcadas «NO COMPRAR +» en la planilla**
+  — hay que preguntar por qué antes de generarles una OC. Consecuencias aplicadas: el `Z20` que se había
+  creado para el 312 **era un duplicado** del `Z22 «Pala de Torta»` que GP2 ya tenía (id 618, Sector
+  Bombilla, prov Melinox, 37,3 g, precio 1.100 del 2026-09-04) → el 312 usa el 618 y el Z20 se borró; el
+  `Z21` se mudó al **Sector Bombilla** (donde viven las piezas de Melinox) con su proveedor y su precio.
+  `proveedor_insumo.Melinox.cod_prov = 2593`. **Lección**: antes de crear una pieza comprada, buscarla en
+  la planilla de costos por descripción — el código del vecino (Z20) no siempre es el de GP2 (Z22).
 - **Cerrado el repaso de los 34**: el consumo de PP en GP2 quedó en **786 kg/mes** (era 722 antes de
   estas altas; el Excel decía 868 con otra Est Madre). Lo que queda afuera a propósito: 333–338 y 396
   (discontinuos), 809 (de baja), 725/909/719 (palo blanco, no es material nuestro) y la línea Chef inox
