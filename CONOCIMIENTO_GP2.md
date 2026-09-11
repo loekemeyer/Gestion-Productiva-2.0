@@ -6915,6 +6915,12 @@ Barrido del motor después del fix de 4az. **Lo que se comprobó con consulta, n
   excluye y que en **su** ruta no entran por ninguna arista con actor devuelve **0 filas** `[dato]`.
 - **`bomx` se quedó con la guarda angosta** (`e.ent = hijo AND e.sal = padre`): hoy **1 sola fila**
   (`C12` ← `BOM10`) y **sin precio**, o sea sin plata en juego todavía. Idea 7298.
+- **El semáforo de tiempos mentía y ya está arreglado** (idea 7301): `faltan_tiempos` contaba sólo el
+  `NULL` y hay **19 matrices con `tiempo_historico = 0`** `[dato]`. **Un cero no es un tiempo**: son
+  cortes y estampados reales en balancín o alimentador, ninguno tarda 0 segundos. **55 componentes**
+  decían «0 sin tiempo» con la mano de obra en $0 y nadie se enteraba; ahora avisan (los avisos pasan de
+  2 a 98) **sin que se mueva un peso**. Los ceros **no se tocaron en `matriz`**: `registrar_evento_prod`
+  los usa para el premio del operario, así que lo que cambia es el aviso, no el dato. Medirlas es la 7302.
 - **Regla de trabajo que quedó de esto** `[deducido]`: antes de tocar la vista de costos, **foto de los
   713 en una tabla auxiliar**, aplicar, y exigir que el diff diga *«cambian exactamente estos N y
   ninguno más»* — incluido `faltan_precios`, que es donde se coló el error intermedio de esta misma

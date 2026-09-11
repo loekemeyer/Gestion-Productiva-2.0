@@ -288,7 +288,11 @@ create or replace view "GP2".v_costo_componente as
                     WHEN m.tiempo_unidad = 'kg'::text THEN m.tiempo_historico * cm.kg_x_uni
                     ELSE m.tiempo_historico
                 END), 0::numeric) AS segundos,
-            count(*) FILTER (WHERE m.tiempo_historico IS NULL) AS sin_tiempo
+            -- 2026-09-11: el CERO tambien es "sin tiempo". Hay 19 matrices en 0 (mas 1 en null) y son
+            -- cortes y estampados reales en balancin o alimentador: ninguno tarda 0 segundos. Contando
+            -- solo el NULL, 55 componentes decian "faltan_tiempos = 0" con la mano de obra en $0.
+            -- Los ceros NO se tocan en `matriz`: registrar_evento_prod los usa para el premio.
+            count(*) FILTER (WHERE COALESCE(m.tiempo_historico, 0) <= 0) AS sin_tiempo
            FROM ( SELECT wd.comp_id,
                     wd.matriz_id,
                     max(wd.sal) AS sal
