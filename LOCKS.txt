@@ -1,4 +1,4 @@
-[LOCKS]
+LockX | db/ + CONOCIMIENTO_GP2.md + REGLAS_OC_INSUMOS.md | loekemeyer (claude-remote) | 2026-09-11 10:15 | MB = 2% del plastico por formula + minimos de compra (material y pieza) en la OC
 
 [WAIT QUEUE]
 (vacío)

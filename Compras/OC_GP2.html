@@ -1,6 +1,13 @@
 <!doctype html>
 <html lang="es">
 <head>
+<!-- v1.24.0 (2026-09-11) — EL PEDIDO MINIMO DEL PROVEEDOR DE RESINA (kg). Estaba en el Excel del usuario
+     (hoja "Relev y OP Bolsas Plast", columna "Pedi Minimo KG") y GP2 no lo miraba: Indarnyl no vende menos
+     de 400 kg, Beta Plasticos y Santa Rosa 25, el masterbatch (Arcolor / Julio Garcia) 5. Viaja en
+     oc_bundle.proveedores[].pedido_minimo_kg; validarMinimoProveedor() suma los kg de la OC por proveedor
+     (solo items del sector 14) y si no llega al piso NO deja crear la orden y dice cuanto falta. A
+     proposito no se infla solo: que falten kg lo resuelve el comprador (sumar otro material del mismo
+     proveedor o esperar), no un redondeo automatico. -->
 <!-- v1.23.0 (2026-09-11) — HOJA DE MATERIAL: SIN RENGLON CH CUANDO NO HAY CODIGO CHEF, Y ENTREGA EN SEGUN PROVEEDOR.
      (a) Un material sin codigo_isis_ch (Nylon Virgen, Nylon Recuperado, PE, Master Bach) va en UN solo
          renglon LK con el 100% de los kg: Chef no lo usa, no se le factura nada [usuario 2026-09-11:
@@ -1084,14 +1091,41 @@ function ajustarPedidoCarton(){
   return toco;
 }
 
+/* v1.24.0 — PEDIDO MINIMO DEL PROVEEDOR (kg). Del Excel del usuario (hoja "Relev y OP Bolsas Plast",
+   columna `Pedi Minimo KG`): Indarnyl no vende menos de 400 kg, Beta y Santa Rosa 25, el masterbatch 5.
+   Vale para la materia prima plastica, que se pide en kg: si la OC de ese proveedor no llega al piso,
+   NO se deja crear y se dice cuanto falta. No se infla solo — que falten kg es una decision de compra
+   (sumar otro material del mismo proveedor o esperar), no algo para resolver redondeando. */
+function validarMinimoProveedor(items){
+  if(!items.length) return [];
+  var mats=items.filter(function(x){ return Number(x.it.sector_id)===SECTOR_MATERIA_PRIMA; });
+  if(!mats.length) return [];
+  var porProv={};
+  mats.forEach(function(x){
+    var p=x.it.proveedor||'(sin proveedor)';
+    porProv[p]=(porProv[p]||0)+(Number(x.cantidad)||0);
+  });
+  var errs=[];
+  Object.keys(porProv).forEach(function(p){
+    var prov=(D.proveedores||[]).filter(function(v){ return v.nombre===p; })[0];
+    var min=prov?Number(prov.pedido_minimo_kg)||0:0;
+    if(min>0 && porProv[p]<min)
+      errs.push(p+': el pedido mínimo es '+fmt(min)+' kg y hay '+fmt(porProv[p])+' kg (faltan '+fmt(min-porProv[p])+').');
+  });
+  return errs;
+}
+
 function barra(){
   var items=itemsPedidos();
-  var errs=validarCarton(items);
+  var errsCart=validarCarton(items);
+  var errs=errsCart.concat(validarMinimoProveedor(items));
   var rc=$('reglaCarton');
   if(errs.length){
     rc.classList.remove('hidden'); rc.classList.add('mal');
+    // El boton de ajustar es del CARTON (redondea al multiplo de la familia): si lo que falla es el
+    // piso en kg del proveedor de resina no hay nada que redondear, lo resuelve el comprador.
     rc.innerHTML=errs.map(esc).join('<br>')+
-      '<br><button type="button" id="btnAjustarCart" class="btn-sug" style="margin-top:8px">Ajustar al múltiplo</button>';
+      (errsCart.length ? '<br><button type="button" id="btnAjustarCart" class="btn-sug" style="margin-top:8px">Ajustar al múltiplo</button>' : '');
     var ba=$('btnAjustarCart');
     if(ba) ba.addEventListener('click',function(){ ajustarPedidoCarton(); render(); });
   }

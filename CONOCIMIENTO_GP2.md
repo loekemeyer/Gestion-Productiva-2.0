@@ -6879,3 +6879,36 @@ plásticas ya existen en GP2; lo que falta son los artículos, sus cartones y al
   Antes GP2 costeaba **por encima** de la planilla casi siempre; ahora queda en el mismo orden.
 - **Lección**: cuando un costo GP2 da muy por encima del de la planilla, sospechar del doble conteo
   entre la caminata de rutas y las sumas por receta/insumo, no de los precios.
+
+### 4ba. Lo que faltaba usar del Excel de plásticos (2026-09-11)
+
+Auditoría de las 41 hojas del `Conteo_y_Pedido_Sector_Plastico_31826.xls`: además del consumo y el conteo
+(que ya usamos), el archivo tenía **un motor de pedido entero**. Lo que el usuario decidió de cada regla:
+
+- **1. Master Bach = 2 % del plástico → POR FÓRMULA (hecho)** `[usuario: "calculalo x fórmula"]`. En el
+  Excel cada fila calcula `Pedido MB KG = 2 % del Pedido Plast KG`, con el color (R/B/N/A/V) por pieza.
+  **GP2 no sabe todavía qué color lleva cada pieza**, así que el 2 % se aplica al total de plástico (es un
+  máximo: errar para arriba es lo correcto) y se reparte entre los 4 colores con la proporción ya cargada.
+  Da exactamente lo que estaba a mano (Blanco 2 · Negro 1 · Rojo 2 · Azul 1 bolsas): la fórmula confirmó
+  los números. **Pendiente**: el color por pieza; cuando esté, el 2 % se calcula por pieza.
+- **2. Pedido mínimo del proveedor → CONSIDERADO (hecho)** `[usuario: "consideralo"]`:
+  `proveedor_insumo.pedido_minimo_kg` = **Indarnyl 400 kg**, Beta 25, Santa Rosa 25, masterbatch 5 (hoja
+  «Relev y OP Bolsas Plast», columna `Pedi Minimo KG`). La pantalla de OC suma los kg por proveedor y no
+  deja crear la orden si no llega; **no se infla sola**. Ojo con Indarnyl: sus 4 materiales juntos llegan a
+  600 kg de máximo, pero uno solo nunca llega a 400 → sus OC van a salir combinadas.
+- **3. Meses de stock**: el Excel usa 4 meses para Pat Bet Plast / Maspoli / Barbetta y 3 para Pettofrezza
+  / Telleria. `[usuario: "usamos 2,5 para bolsas plásticas. Para inyectores tenemos que mirar cuánto entra
+  físicamente"]` → **las bolsas siguen en 2,5 meses**; el tope por inyector se va a medir en el lugar
+  (tarea Planify **3076**, Alan).
+- **4. Bolsas por pallet: 15** `[usuario]` — el 18 del Excel (celda M1 de «Relev y OP Bolsas») **no vale**.
+- **5. Simko** (quinto proveedor de resina del Excel, mínimo 25 kg): `[usuario: "no sé quién es"]` → **no
+  se da de alta**.
+- **Lo que quedó sin usar, a propósito**: pedido mínimo por pieza (`Pedi Min Uni`, 2.000–36.000 según el
+  molde), corrida mínima de inyección (`Min Iny`), bocas por matriz, y los `cod_prov` de los inyectores
+  (Pat Bet 797, Pettofrezza 1895, Kollplast 4465, JL Matricería 2661, Maspoli 2339…). Están en el archivo
+  `Excel_Plastico_lo_que_falta_usar.md` que se le pasó al usuario.
+- **El Excel está roto en partes** `[dato]`: 71 celdas con error en `Pedido 31-08` (bloque de
+  discontinuos), 21 de 45 líneas pedidas por debajo de su propio mínimo, las O.C. emitidas no coinciden con
+  lo calculado (una columna manual `Pedido Damian` pisa la fórmula: PP calculaba 1.510 kg y se pidieron
+  500), y hay dos juegos de consumo distintos dentro del mismo archivo (PP 1.071 con el mango 505
+  duplicado vs 868 sin él).

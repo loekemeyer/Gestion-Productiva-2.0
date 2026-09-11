@@ -3561,7 +3561,7 @@ select jsonb_build_object(
   'facturar_pct_loeke', (select valor from parametro where clave='oc_facturar_pct_loeke'),
   'proveedores', (select coalesce(jsonb_agg(jsonb_build_object(
       'nombre',pi.nombre,'rubro',pi.rubro,'modo_control',pi.modo_control,
-      'cod_prov',pi.cod_prov,'activo',pi.activo,'dias_entrega',pi.dias_entrega,'entrega_en',pi.entrega_en,
+      'cod_prov',pi.cod_prov,'activo',pi.activo,'dias_entrega',pi.dias_entrega,'entrega_en',pi.entrega_en,'pedido_minimo_kg',pi.pedido_minimo_kg,
       'insumos',(select count(*) from componente c3
                   where c3.proveedor = pi.nombre and c3.estado_compra is null)
     ) order by pi.nombre),'[]'::jsonb) from proveedor_insumo pi),
@@ -5814,10 +5814,15 @@ end $function$
 ;
 
 -- ---------- recalcular_maximo_material (2026-09-11: el maximo del material plastico es una REGLA VIVA) ----------
--- maximo (kg) = ceil( ubicacion.meses_stock (2,5) x consumo GP2 kg/mes con desperdicio / kg_x_bolsa ) x kg_x_bolsa.
--- Consumo GP2 = v_consumo_componente (Est Madre = proyeccion_madre) x kg_x_uni x (1 + inyeccion_desperdicio_pct).
--- Sin consumo en GP2 (Master Bach) conserva el maximo a mano. Corre a diario desde actualizar_dolar_oficial.
--- Capacidad de Virgilio (20 pallets x 15 bolsas = 300) se informa, no se recorta. Interna: sin EXECUTE para anon.
+-- (a) material que se consume: maximo (kg) = ceil( ubicacion.meses_stock (2,5) x consumo GP2 kg/mes con
+--     desperdicio / kg_x_bolsa ) x kg_x_bolsa. Consumo = v_consumo_componente (Est Madre = proyeccion_madre).
+-- (b) MASTER BACH = 2 % DEL PLASTICO (regla del Excel del usuario, 2026-09-11: alli se calcula por pieza
+--     `Pedido MB KG = 2 % del Pedido Plast KG`). GP2 todavia no sabe QUE COLOR lleva cada pieza, asi que el
+--     2 % va sobre el TOTAL de plastico -- es un maximo, errar para arriba es lo correcto -- y se reparte
+--     entre los colores con la proporcion que ya tenian cargada, en bolsas enteras (maximo_origen
+--     'mb_2pct_del_plastico'). Cuando el color por pieza este en GP2, se calcula por pieza y el reparto se cae.
+-- Corre a diario desde actualizar_dolar_oficial. La capacidad de Virgilio (20 pallets x 15 bolsas = 300) se
+-- informa, no se recorta. Interna: sin EXECUTE para anon.
 CREATE OR REPLACE FUNCTION "GP2".recalcular_maximo_material()
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -5825,11 +5830,13 @@ CREATE OR REPLACE FUNCTION "GP2".recalcular_maximo_material()
  SET search_path TO 'GP2'
 AS $function$
 declare v_kg_bolsa numeric; v_meses numeric; v_pct numeric; v_ubic bigint; v_cambios jsonb; v_tot numeric;
+        v_plastico numeric; v_mb_total numeric; v_prop numeric; v_cambios_mb jsonb;
 begin
   v_kg_bolsa := coalesce((select valor from parametro where clave='material_plastico_kg_x_bolsa'), 25);
   v_pct := coalesce((select valor from parametro where clave='inyeccion_desperdicio_pct'), 0);
   v_ubic := ubic_de('sector', 14);
   v_meses := coalesce((select meses_stock from ubicacion where id = v_ubic), 2.5);
+
   with cons as (
     select c.material_id, sum(v.consumo_uni_mes * coalesce(c.kg_x_uni,0)) * (1 + v_pct/100) kg_mes
       from v_consumo_componente v join componente c on c.id = v.componente_id
@@ -5840,18 +5847,42 @@ begin
       from componente m join cons on cons.material_id = m.id
      where m.sector_id = 14 and cons.kg_mes > 0
   ), upd as (
-    update inventario i
-       set maximo = n.maximo, maximo_origen = 'fisico'
+    update inventario i set maximo = n.maximo, maximo_origen = 'fisico'
       from nuevo n
-     where i.componente_id = n.comp_id and i.ubicacion_id = v_ubic
-       and i.maximo is distinct from n.maximo
+     where i.componente_id = n.comp_id and i.ubicacion_id = v_ubic and i.maximo is distinct from n.maximo
     returning n.codigo, i.maximo, n.kg_mes
   )
   select coalesce(jsonb_agg(jsonb_build_object('codigo', codigo, 'maximo_kg', maximo, 'bolsas', maximo / v_kg_bolsa, 'consumo_kg_mes', round(kg_mes))), '[]'::jsonb)
     into v_cambios from upd;
+
+  select coalesce(sum(i.maximo), 0) into v_plastico
+    from inventario i join componente m on m.id = i.componente_id
+   where m.sector_id = 14 and i.ubicacion_id = v_ubic and m.codigo_virgilio is not null;
+  v_mb_total := v_plastico * 0.02;
+  select coalesce(sum(i.maximo), 0) into v_prop
+    from inventario i join componente m on m.id = i.componente_id
+   where m.sector_id = 14 and i.ubicacion_id = v_ubic and m.codigo_virgilio is null;
+  with mb as (
+    select i.componente_id, m.codigo,
+           greatest(v_kg_bolsa,
+             ceil( v_mb_total * (case when v_prop > 0 then i.maximo / v_prop
+                                      else 1.0 / nullif((select count(*) from componente m2 where m2.sector_id=14 and m2.codigo_virgilio is null),0) end)
+                   / v_kg_bolsa ) * v_kg_bolsa) nuevo
+      from inventario i join componente m on m.id = i.componente_id
+     where m.sector_id = 14 and i.ubicacion_id = v_ubic and m.codigo_virgilio is null
+  ), updmb as (
+    update inventario i set maximo = mb.nuevo, maximo_origen = 'mb_2pct_del_plastico'
+      from mb where i.componente_id = mb.componente_id and i.ubicacion_id = v_ubic
+        and (i.maximo is distinct from mb.nuevo or i.maximo_origen is distinct from 'mb_2pct_del_plastico')
+    returning mb.codigo, i.maximo
+  )
+  select coalesce(jsonb_agg(jsonb_build_object('codigo', codigo, 'maximo_kg', maximo, 'bolsas', maximo / v_kg_bolsa)), '[]'::jsonb)
+    into v_cambios_mb from updmb;
+
   select coalesce(sum(i.maximo), 0) / v_kg_bolsa into v_tot
     from inventario i join componente m on m.id = i.componente_id where m.sector_id = 14 and i.ubicacion_id = v_ubic;
   return jsonb_build_object('ok', true, 'meses', v_meses, 'kg_x_bolsa', v_kg_bolsa, 'cambios', v_cambios,
+                            'plastico_kg', v_plastico, 'mb_2pct_kg', round(v_mb_total,1), 'cambios_mb', v_cambios_mb,
                             'total_bolsas', v_tot, 'pallets', ceil(v_tot / 15), 'capacidad_bolsas', 300);
 end $function$
 ;

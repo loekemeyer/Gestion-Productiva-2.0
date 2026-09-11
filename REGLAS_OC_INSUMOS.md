@@ -264,8 +264,14 @@ Faltan proveedor: 8 plásticos (ver abajo), bombillas/resortes 8, remaches 8, fl
   **Desde el 2026-09-11 es una regla viva** [usuario: "elegí uno y vamos" → recalcular con el consumo
   GP2]: `recalcular_maximo_material()` = ceil(`ubicacion.meses_stock` 2,5 × consumo GP2 kg/mes con
   desperdicio ÷ 25) × 25, con el consumo de `v_consumo_componente` (Est Madre = `proyeccion_madre`);
-  corre a diario desde `actualizar_dolar_oficial`. Master Bach (sin consumo en GP2) conserva el máximo
-  a mano. Hasta ese día los máximos eran los del workbook del usuario (PP ~909 kg/mes); OJO: hay 34
+  corre a diario desde `actualizar_dolar_oficial`. **El Master Bach sale por fórmula: 2 % del plástico**
+  (regla del Excel del usuario; como GP2 todavía no sabe el color de cada pieza, el 2 % va sobre el total
+  y se reparte entre los 4 colores con la proporción cargada, en bolsas enteras —
+  `maximo_origen='mb_2pct_del_plastico'`).
+- **Pedido mínimo del proveedor de resina** (`proveedor_insumo.pedido_minimo_kg`, del Excel, hoja «Relev y
+  OP Bolsas Plast»): **Indarnyl 400 kg**, Beta Plásticos 25, Santa Rosa 25, masterbatch 5. Viaja en
+  `oc_bundle.proveedores[]`; la pantalla suma los kg de la OC por proveedor y **no deja crearla si no llega
+  al piso** (dice cuántos kg faltan). No se infla sola: sumar kg es una decisión de compra. Hasta ese día los máximos eran los del workbook del usuario (PP ~909 kg/mes); OJO: hay 34
   artículos del Excel sin despiece en GP2 (~70 kg/mes de PP/ABS reales), así que el máximo de PP
   queda corto hasta que se den de alta (archivo `Articulos_Excel_sin_despiece_GP2.xlsx`, chat 2026-09-11).
   Tope físico: 20 pallets × 15 bolsas en Virgilio. Las bolsas **se le mandan a los inyectores**
