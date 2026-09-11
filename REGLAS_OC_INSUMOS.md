@@ -260,8 +260,14 @@ Faltan proveedor: 8 plásticos (ver abajo), bombillas/resortes 8, remaches 8, fl
   Virgilio 2788; **Master Bach (Arcolor, Julio Garcia) = Cervantes 2868, se stockea en Cervantes
   por ahora** [usuario 2026-09-11]. Gestión Virgilio ve las OC que le llegan con
   `oc_pendientes_virgilio()` y las recibe con `recibir_oc_virgilio` (ver
-  `INTEGRACION_GESTION_VIRGILIO.md`). **Máximo = 2,5 meses de consumo en bolsas enteras** (`maximo_origen='fisico'`,
-  los recalculos no lo pisan; el consumo mensual salió del workbook del usuario, PP ~909 kg/mes).
+  `INTEGRACION_GESTION_VIRGILIO.md`). **Máximo = 2,5 meses de consumo en bolsas enteras** (`maximo_origen='fisico'`).
+  **Desde el 2026-09-11 es una regla viva** [usuario: "elegí uno y vamos" → recalcular con el consumo
+  GP2]: `recalcular_maximo_material()` = ceil(`ubicacion.meses_stock` 2,5 × consumo GP2 kg/mes con
+  desperdicio ÷ 25) × 25, con el consumo de `v_consumo_componente` (Est Madre = `proyeccion_madre`);
+  corre a diario desde `actualizar_dolar_oficial`. Master Bach (sin consumo en GP2) conserva el máximo
+  a mano. Hasta ese día los máximos eran los del workbook del usuario (PP ~909 kg/mes); OJO: hay 34
+  artículos del Excel sin despiece en GP2 (~70 kg/mes de PP/ABS reales), así que el máximo de PP
+  queda corto hasta que se den de alta (archivo `Articulos_Excel_sin_despiece_GP2.xlsx`, chat 2026-09-11).
   Tope físico: 20 pallets × 15 bolsas en Virgilio. Las bolsas **se le mandan a los inyectores**
   (`enviar_material_inyector`, desde Inyectores) y **el inyector tiene que tener lo que necesita
   para su OC** [usuario]: `v_material_inyector` = OC abiertas × kg_x_uni × 1,04 − lo que ya tiene.

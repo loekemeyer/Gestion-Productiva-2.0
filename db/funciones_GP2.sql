@@ -242,7 +242,7 @@ CREATE OR REPLACE FUNCTION "GP2".actualizar_dolar_oficial()
  SECURITY DEFINER
  SET search_path TO 'GP2', 'public', 'extensions'
 AS $function$
-declare r record; j jsonb; v_fecha date; v_venta numeric; v_compra numeric; v_prov jsonb;
+declare r record; j jsonb; v_fecha date; v_venta numeric; v_compra numeric; v_prov jsonb; v_max jsonb;
 begin
   select * into r from public.http_get('https://dolarapi.com/v1/dolares/oficial');
   if r.status <> 200 then
@@ -272,8 +272,14 @@ begin
   exception when others then
     v_prov := jsonb_build_object('ok', false, 'error', sqlerrm);
   end;
+  -- y el maximo de cada material sigue al consumo del dia (2,5 meses en bolsas enteras, 2026-09-11)
+  begin
+    v_max := "GP2".recalcular_maximo_material();
+  exception when others then
+    v_max := jsonb_build_object('ok', false, 'error', sqlerrm);
+  end;
 
-  return jsonb_build_object('ok', true, 'fecha', v_fecha, 'venta', v_venta, 'compra', v_compra, 'proveedor_material', v_prov);
+  return jsonb_build_object('ok', true, 'fecha', v_fecha, 'venta', v_venta, 'compra', v_compra, 'proveedor_material', v_prov, 'maximo_material', v_max);
 end $function$;
 -- ---------- ajustar_rollos ----------
 CREATE OR REPLACE FUNCTION "GP2".ajustar_rollos(p_comp_id bigint, p_kg_por_rollo numeric, p_delta integer, p_motivo text DEFAULT 'ajuste'::text, p_nota text DEFAULT NULL::text)
@@ -5806,3 +5812,47 @@ begin
     'estado', (select estado from orden_compra where id = p_oc_id), 'recepciones', v_out);
 end $function$
 ;
+
+-- ---------- recalcular_maximo_material (2026-09-11: el maximo del material plastico es una REGLA VIVA) ----------
+-- maximo (kg) = ceil( ubicacion.meses_stock (2,5) x consumo GP2 kg/mes con desperdicio / kg_x_bolsa ) x kg_x_bolsa.
+-- Consumo GP2 = v_consumo_componente (Est Madre = proyeccion_madre) x kg_x_uni x (1 + inyeccion_desperdicio_pct).
+-- Sin consumo en GP2 (Master Bach) conserva el maximo a mano. Corre a diario desde actualizar_dolar_oficial.
+-- Capacidad de Virgilio (20 pallets x 15 bolsas = 300) se informa, no se recorta. Interna: sin EXECUTE para anon.
+CREATE OR REPLACE FUNCTION "GP2".recalcular_maximo_material()
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'GP2'
+AS $function$
+declare v_kg_bolsa numeric; v_meses numeric; v_pct numeric; v_ubic bigint; v_cambios jsonb; v_tot numeric;
+begin
+  v_kg_bolsa := coalesce((select valor from parametro where clave='material_plastico_kg_x_bolsa'), 25);
+  v_pct := coalesce((select valor from parametro where clave='inyeccion_desperdicio_pct'), 0);
+  v_ubic := ubic_de('sector', 14);
+  v_meses := coalesce((select meses_stock from ubicacion where id = v_ubic), 2.5);
+  with cons as (
+    select c.material_id, sum(v.consumo_uni_mes * coalesce(c.kg_x_uni,0)) * (1 + v_pct/100) kg_mes
+      from v_consumo_componente v join componente c on c.id = v.componente_id
+     where c.material_id is not null group by 1
+  ), nuevo as (
+    select m.id comp_id, m.codigo, cons.kg_mes,
+           ceil(cons.kg_mes * v_meses / v_kg_bolsa) * v_kg_bolsa maximo
+      from componente m join cons on cons.material_id = m.id
+     where m.sector_id = 14 and cons.kg_mes > 0
+  ), upd as (
+    update inventario i
+       set maximo = n.maximo, maximo_origen = 'fisico'
+      from nuevo n
+     where i.componente_id = n.comp_id and i.ubicacion_id = v_ubic
+       and i.maximo is distinct from n.maximo
+    returning n.codigo, i.maximo, n.kg_mes
+  )
+  select coalesce(jsonb_agg(jsonb_build_object('codigo', codigo, 'maximo_kg', maximo, 'bolsas', maximo / v_kg_bolsa, 'consumo_kg_mes', round(kg_mes))), '[]'::jsonb)
+    into v_cambios from upd;
+  select coalesce(sum(i.maximo), 0) / v_kg_bolsa into v_tot
+    from inventario i join componente m on m.id = i.componente_id where m.sector_id = 14 and i.ubicacion_id = v_ubic;
+  return jsonb_build_object('ok', true, 'meses', v_meses, 'kg_x_bolsa', v_kg_bolsa, 'cambios', v_cambios,
+                            'total_bolsas', v_tot, 'pallets', ceil(v_tot / 15), 'capacidad_bolsas', 300);
+end $function$
+;
+revoke execute on function "GP2".recalcular_maximo_material() from public, anon, authenticated;

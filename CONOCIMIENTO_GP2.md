@@ -6745,3 +6745,27 @@ mapeo de Gestión Virgilio (4au). Lo que se decidió y lo que se hizo con cada u
   `enviar_material_virgilio`; en RI aparecen las OC pendientes con las bolsas precargadas y al
   confirmar `recibir_oc_virgilio`. GP2 va primero; si rechaza, el operario decide si registra sólo en
   Virgilio. Tarea Planify 3050 (Tomás Beviglia, "Th", regla del repo de Virgilio).
+
+### 4ax. Máximos del material plástico: regla viva sobre el consumo GP2 (2026-09-11)
+
+`[usuario 2026-09-11]` Al revisar los máximos de plásticos se le presentaron dos decisiones (dar de
+alta los artículos del Excel que GP2 no tiene, o recalcular los máximos con el consumo GP2) y dijo
+**"Elegí uno y vamos"** → se eligió la segunda, porque es coherente con la decisión 1 (Est Madre =
+`proyeccion_madre`) y no exige inventar despieces.
+
+- **Regla**: `inventario.maximo` del sector 14 = ceil(2,5 meses × consumo GP2 kg/mes con 4 % de
+  desperdicio ÷ 25) × 25 (`recalcular_maximo_material()`, interna, corre a diario desde
+  `actualizar_dolar_oficial` junto con el proveedor más barato). Master Bach no tiene consumo en GP2 y
+  conserva el máximo a mano. La capacidad de Virgilio (20 pallets × 15 bolsas) se informa en la salida
+  (`total_bolsas`, `pallets`), no se recorta.
+- **Resultado del primer cálculo** `[dato]`: PP 76 bolsas (antes 91), AI 43 (antes 28 — GP2 consume
+  424 kg/mes por la Est Madre del 504), ABS 9 (12), NR 8 (11), PS 7 (8), N25 6 (6), PE 2 (2), NV 1
+  (1). Total ~152 bolsas ≈ 11 pallets de 20.
+- **Lo que queda corto y por qué** `[dato]`: **34 artículos del Excel no tienen despiece plástico en
+  GP2** (~115 kg/mes en el Excel, de los cuales ~70 son PP/ABS de artículos vivos: 395 Descorazonador
+  10,9 · 715 Cierra Bolsa 5,1 · 312 Pala Torta inox 3,8 · 396 Enrulador 3,3 · línea inox LK 333–338
+  21 · importados 94xE 16 · Chef inox 630–636 4,6 · 856/857/858/863/864/709/311 <1,5 c/u). El resto
+  no cuenta: 809 dado de baja (22), palo blanco 725/909/719 (madera, no es material nuestro). Mientras
+  no se den de alta, el máximo de PP queda ~18 % corto; cuando se agreguen, la regla lo sube sola.
+  Archivo `Articulos_Excel_sin_despiece_GP2.xlsx` (chat 2026-09-11). **Pendiente del usuario**: si
+  esos artículos se dan de alta en GP2 (con qué mango/inserto) o quedan afuera.
