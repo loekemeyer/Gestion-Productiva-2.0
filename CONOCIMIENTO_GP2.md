@@ -6632,5 +6632,62 @@ hay proveedor fijo por material, hay uno por precio.**
 - **Gestión Virgilio es OTRO repo** (`loekemeyer/Gestion-Virgilio`) y **tiene que recibir esa OC**
   «como hoy reciben las OC de los talleristas», para que desde ahí carguen lo que están por recibir.
   **En Virgilio también guardan cajas y cajones de Sector Crudo y Sector Procesado** cuando no
-  entran en Cervantes: es **otro depósito** cuyo stock GP2 tiene que considerar. *(Mapeo del repo
-  en curso; la conexión se diseña con eso.)*
+  entran en Cervantes: es **otro depósito** cuyo stock GP2 tiene que considerar.
+
+**Lo que dio el mapeo de `Gestion-Virgilio` (agente read-only, 2026-09-11)** `[dato: repo]`:
+- **Es el MISMO proyecto Supabase** (`hrxfctzncixxqmpfhskv`), schema `public`; GP2 es el schema
+  `GP2` de la misma base. Virgilio puede llamar RPC de GP2 con `supabase.schema("GP2").rpc(...)`
+  — **no hace falta puente, espejo ni FDW**. El repo de Virgilio incluso lleva una copia de GP2 en
+  `cervantes-admin/gp2/`.
+- **Cómo reciben hoy** (`recepcion.js`): el operario elige entidad (tallerista / prov AT), carga
+  código y cajas, y confirma → inserta en `"Entregas Tallerista Virgilio"` (que GP2 ya espeja) o
+  `"Entregas Prov AT"`, `rpc gv_oc_aplicar_recepcion` descuenta la OC más nueva de
+  `public."Ordenes_Compra"` (por línea; el operario no tilda la OC, carga lo que llegó),
+  `Movimientos_Stock` (`deposito='a_guardar'`) y `Control_Modo_OP` (foto → Pendientes del
+  supervisor). **No existe el tipo "proveedor de insumos"**.
+- **Virgilio ya tiene un catálogo `Insumos` con las bolsas de plástico** (`PP` AF7, `AI` AF14, `NR`
+  AF20, `NV` AF5, `EBA` Q34, `ABS` AF3, `PS` AF13, `PE` AF10, `N25` AF11 — es lo que mostraba la
+  foto del usuario) con su propio ledger `Movimientos_Stock deposito='insumos'`. **Riesgo de
+  doble registro** contra `GP2.inventario` sector 14: hay que decidir quién manda (recomendado:
+  GP2, y retirar/marcar esos 9 códigos en Virgilio).
+- **Las cajas/cajones de Crudo/Procesado guardados en Virgilio NO existen en ningún sistema**
+  (Virgilio sólo modela cajas de terminado). Lo más simple es modelarlo en GP2 (los componentes,
+  `uni_x_cajon` y el motor ya están): ubicación «en Virgilio» + `tipo_mov traslado` + RPC que
+  Virgilio llame por `schema("GP2")`.
+- Propuesta para que reciban la OC de materia prima: **2 RPC en GP2** (`oc_pendientes_virgilio()`
+  = OC enviadas del sector 14 con sus renglones; `recibir_oc_virgilio(oc, items, remito, legajo)`
+  → llama a `crear_recepcion_insumo`, que ya cruza la OC y la marca recibida) + en `recepcion.js`
+  una tercera entidad «📦 Materia Prima (GP2)». Sin escribir tablas GP2 a mano desde Virgilio.
+
+### 4av. Cruce consumo de material: GP2 vs la planilla del usuario (2026-09-11)
+
+`[usuario 2026-09-11, dictado]` *"Hay que contrastar el stock de insumos contra el consumo. Si el
+consumo no te da igual al mío, algo falta (el despiece de algún artículo) — o la Est Madre que
+considera el programa de flejes es distinta de la tuya."* Se cruzó a tres niveles (archivo
+`Cruce_Consumo_Plastico_GP2_vs_Workbook.xlsx` entregado en el chat):
+
+- **Bug propio encontrado y corregido: doble conteo por rutas.** Las piezas que el inyector entrega
+  "sin serigrafía / sin calar" (PC2, PC3B, PA4B, PA5B, PA13B, PA18B, PC15AB) y sus variantes
+  terminadas adentro (PC1A, PC1B, PA4, PA5, PA13, PA18, PC15A) tenían **las dos** `material_id`, y
+  `v_consumo_componente` explota el consumo por las rutas a las dos → PP +183 kg, ABS +60 kg de
+  más. **Regla: `material_id` va SÓLO en la pieza que se inyecta (la que se le compra al
+  inyector); la variante `fabricacion` que sale de ella NO lleva material.** Quitado a las 7.
+- **Resultado por material (kg/mes neto, GP2 vs planilla sin el 505 duplicado)**: PP 722 vs 868 ·
+  AI 408 vs 262 · ABS 79 vs 108 · Ny Rec 72 vs 103 · PS 65 vs 68 · Ny c/Carga 49 vs 54 · PE 16 vs
+  17 · Ny Virgen 6 vs 6. **Cierran PS, Ny c/Carga, PE y Ny Virgen.**
+- **La causa principal es la Est Madre**: de 107 artículos con consumo plástico, **81 tienen una Est
+  Madre distinta (>15 %) entre la planilla 31-8 y `GP2.est_madre`** (= `public.proyeccion_madre`,
+  la que mantiene Virgilio). Ej.: 504 Afila 3.498 vs 7.826 (por eso AI da 408 en GP2), 513 18.204
+  vs 14.252, 280 5.200 vs 1.566, 587 3.600 vs 2.294, 789 1.056 vs 9, 809 1.296 vs 16 (dado de
+  baja). **La planilla de plásticos usa otra foto de la Est Madre que la que ve GP2.** Hay que
+  decidir cuál manda; GP2 sigue a `proyeccion_madre`.
+- **Despiece que falta en GP2** `[dato]`: el **cilindro plástico del Corta Queso** (546/809, AI ~64
+  kg/mes en la planilla) no existe como pieza: vive adentro de `C13 «Corta Queso Bastidor
+  c/Cilindro»` (Sector Procesado) → hay que darle de alta la pieza inyectada y ponerla en la
+  receta/ruta. **570 Pala de Canelones** no tiene pieza plástica en su receta (la planilla le pone
+  el mango PP). El **123** también está duplicado en la planilla (Calados / P/Calar), como el 505.
+- **Consumo que la planilla tiene y GP2 no puede tener**: artículos que no son de GP2 (395, 396,
+  312, 715, 58, 59, la línea inox 333-338, los importados 94xE, 725) ≈ 45 kg/mes de PP.
+- **Nota de método**: la planilla lista muchas piezas por ARTÍCULO (mango integrado: «(art 546)
+  Corta Queso»), no por pieza; el mango genérico PC10 de GP2 (199 kg) es la suma de 546 + 587 +
+  559 + 542 + 543 + 515 + 562 + 116 en la planilla (209 kg) — cierra.
