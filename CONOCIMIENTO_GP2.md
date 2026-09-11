@@ -6936,6 +6936,25 @@ de alta el 395):
   1. El alias **`CARLOS` → tallerista 9** (`contraparte_alias`): si «Carlos» es Carlos E, ese alias
      debería apuntar a Alex Escalante. Hay que ver con qué nombre llegan las entregas desde Virgilio
      (no existe alias «ALEX» ni «ESCALANTE»).
-  2. El artículo **580** está en la lista de «Carlos» del vecino **y** tiene ruta con Carlos Aguirre en
-     GP2, con tarifas gemelas al mismo precio (Alex «GRJ10A Mini Batidor Pera Armado» $51,807 y Carlos
-     Aguirre «580 Mini Batidor Pera ARMADO (entrega en Garage)» $51,807). Una de las dos sobra.
+  2. ~~El 580 tiene tarifas gemelas~~ **RESUELTO abajo**.
+
+**El 580 es el ejemplo perfecto de la cadena, y la ruta de GP2 ya estaba bien** `[usuario 2026-09-11:
+"580 -> Carlos Escalante lo entrega en garage (crudo), se le manda a Pedernera (croma) y Carlos Aguirre
+envasa y entrega en Virgilio"]`:
+
+    Fleje/matriz → **Alex Escalante** arma el crudo `GRJ10A` (lo entrega en el Garage)
+                 → **PS Pedernera Ilario** lo croma
+                 → **Carlos Aguirre** lo envasa → `580` → Virgilio
+
+- Lo que estaba mal era **la tarifa**: la fila de Carlos Aguirre tenía el **ARMADO** («Mini Batidor Pera
+  ARMADO (entrega en Garage)», $51,807), que es el trabajo de Alex y **ya estaba cargado en el GRJ10A** →
+  el costo del 580 sumaba el armado dos veces. Corregida a **«Mini Batidor Pera Envasado» $16,842**
+  (planilla f618). El 580 bajó de $1.229,66 a $1.194,70.
+- Viene de una lectura vieja: `[sesión 2026-09-02: "Carlos hace armado y entrega en garaje"]` se cargó a
+  **Carlos Aguirre** cuando ese «Carlos» era Carlos E (= Alex). **Misma trampa, ahora documentada.**
+- **Contradicción abierta**: la línea del envasado del 580 está en el bloque **«4175 - Alex Escalante»** de
+  la planilla, no en el de **«4306 - Carlos Aguirre»** (que existe, con 544 Batidor Pera Envasado $15,
+  560/561 Pinza Envasado $42 y los pulidos). O el 580 lo envasa Alex, o la planilla tiene la línea en el
+  bloque equivocado. **A confirmar.**
+- **Aparte**: el `GRJ10A` cuesta **$975** en GP2 y el 580 entero **$438** en la planilla — el costo del
+  crudo está inflado por otro lado (fleje o matriz), no por esta tarifa. Pendiente de mirar.
