@@ -6803,6 +6803,13 @@ plásticas ya existen en GP2; lo que falta son los artículos, sus cartones y al
   «Pala Torta» inox (39 g, nueva en Procesado, comprada, proveedor pendiente) y cartón `CCG1B`; Martin;
   caja N°12. **OJO**: GP2 ya tenía una `Z22 «Pala de Torta»` de Melinox (37,3 g, sector 7) — puede ser
   la misma pieza; si el usuario lo confirma, se unifica (recodificar Z20 → Z22 y sacar la duplicada).
-- Quedan por decidir: Chef inox 630–636 + 709 (Carlos:
-  PA19+PB6+PC6; el vecino les suma PB3/PB4 «Cuchara Ny», parece error), 856/857/864 nuevos + PA19/PC6
-  a 858/863, 58/715 (PC4 ×2) y 59 (PEP9 ×2) de Fábrica, y los importados 94xE (inserto PEST1).
+- **858 Pala de Canelones CH y 863 Corta Pizza Chef → COMPLETADOS (hecho)** `[usuario: "dale"]`: ya
+  existían pero sin la parte plástica del mango Chef. Se les sumó, según el vecino, `PA19` mango Chef +
+  `PC6` ojales + `PC7` inserto canelones (858, arma Fábrica) y `PA19` + `PB6` inserto espátula + `PC6`
+  (863, arma Martin), con su ruta cada uno. Consumo GP2 del mango Chef PA19: 1.108 uni/mes.
+- **Chef inox 630–636, 709, 856, 857, 864 → NO se dan de alta** `[dato: proyeccion_madre 0–3 uni/mes
+  cada uno]`: el Excel los mostraba con 12–72/mes pero hoy no se venden; su aporte al plástico es nulo.
+  Si vuelven a moverse, el despiece del vecino está listo (PA19 + PB6 + PC6 + cartón CCQ5; el vecino
+  les suma además PB3/PB4 «Cuchara Ny», que parece un error suyo).
+- Quedan por decidir: **58 / 715** (Cierra Bolsas `PC4` ×2, Fábrica), **59** (Cuchillito de untar
+  `PEP9` ×2, Fábrica) y los **importados 94xE** (inserto de mango de madera `PEST1`, 6,6 g).
