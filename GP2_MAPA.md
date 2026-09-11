@@ -227,7 +227,11 @@ Los 84 articulos terminados (sector 12) no tienen ubicacion de sector: viven en 
 (items con `comp_id`, `codigo`, `pendiente` en kg) y `recibir_oc_virgilio(p_oc_id, p_items
 [{comp_id, cantidad}], p_remito, p_legajo)` = cada item pasa por `crear_recepcion_insumo` (compra
 al sector 14, cruce FIFO contra la OC, la marca recibida sola; `recepcion_insumo.rollos_json`
-guarda `recibido_en: virgilio` y el legajo). `oc_bundle.ocs[].entrega_en` /
+guarda `recibido_en: virgilio` y el legajo; los items aceptan tambien `{cod_virgilio, bolsas}`).
+Para el modulo INS de Virgilio («Entregar insumos»): `componente.codigo_virgilio` (PP, ABS, AI, NV,
+NR, N25, PE, PS en las bolsas del sector 14), `material_virgilio_bundle()` (bolsas en Virgilio,
+inyectores, bolsas que le faltan a cada uno) y `enviar_material_virgilio(p_cod_virgilio, p_bolsas,
+p_inyector, p_legajo, p_nota)` = `enviar_material_inyector` en bolsas. `oc_bundle.ocs[].entrega_en` /
 `proveedores[].entrega_en` = `proveedor_insumo.entrega_en` (null = Virgilio 2788; Arcolor y Julio
 Garcia = Cervantes 2868 porque el Master Bach se stockea en Cervantes por ahora). Ver
 `INTEGRACION_GESTION_VIRGILIO.md`.

@@ -5687,6 +5687,52 @@ begin
 end $function$
 ;
 
+-- ---------- material_virgilio_bundle (2026-09-11: lo que "Entregar insumos" de Virgilio necesita para una bolsa) ----------
+CREATE OR REPLACE FUNCTION "GP2".material_virgilio_bundle()
+ RETURNS jsonb
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'GP2'
+AS $function$
+select jsonb_build_object(
+  'kg_x_bolsa', coalesce((select valor from parametro where clave='material_plastico_kg_x_bolsa'), 25),
+  'materiales', coalesce((select jsonb_agg(jsonb_build_object(
+      'comp_id', c.id, 'codigo', c.codigo, 'codigo_virgilio', c.codigo_virgilio, 'descripcion', c.descripcion,
+      'kg_en_virgilio', coalesce(i.cantidad, 0),
+      'bolsas_en_virgilio', round(coalesce(i.cantidad, 0) / coalesce((select valor from parametro where clave='material_plastico_kg_x_bolsa'), 25), 1),
+      'inyectores', coalesce((select jsonb_agg(jsonb_build_object(
+          'proveedor', v.proveedor, 'kg_en_inyector', v.kg_en_inyector, 'kg_requerido_oc', v.kg_requerido_oc,
+          'kg_a_enviar', v.kg_a_enviar, 'bolsas_a_enviar', v.bolsas_a_enviar) order by v.bolsas_a_enviar desc, v.proveedor)
+        from v_material_inyector v where v.material_id = c.id), '[]'::jsonb)
+    ) order by c.codigo)
+    from componente c
+    left join inventario i on i.componente_id = c.id and i.ubicacion_id = ubic_de('sector', 14)
+    where c.sector_id = 14 and c.estado_compra is null), '[]'::jsonb),
+  'inyectores', coalesce((select jsonb_agg(pi.nombre order by pi.nombre)
+    from proveedor_insumo pi join ubicacion u on u.tipo='inyector' and u.ref_id = pi.id where pi.activo), '[]'::jsonb),
+  'generado_en', now());
+$function$
+;
+
+-- ---------- enviar_material_virgilio (2026-09-11: "Entregar insumos" de Virgilio a un inyector, en bolsas y con codigo de Virgilio) ----------
+CREATE OR REPLACE FUNCTION "GP2".enviar_material_virgilio(p_cod_virgilio text, p_bolsas numeric, p_inyector text, p_legajo text DEFAULT NULL::text, p_nota text DEFAULT NULL::text)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'GP2'
+AS $function$
+declare v_comp bigint; v_kg_bolsa numeric; v_res jsonb;
+begin
+  if p_bolsas is null or p_bolsas <= 0 then raise exception 'Las bolsas deben ser mayores a 0'; end if;
+  select id into v_comp from componente where sector_id = 14 and upper(btrim(codigo_virgilio)) = upper(btrim(coalesce(p_cod_virgilio,'')));
+  if v_comp is null then raise exception 'El codigo "%" no es una bolsa de material conocida en GP2', p_cod_virgilio; end if;
+  v_kg_bolsa := coalesce((select valor from parametro where clave='material_plastico_kg_x_bolsa'), 25);
+  v_res := enviar_material_inyector(p_inyector, v_comp, p_bolsas * v_kg_bolsa, now(),
+             concat_ws(' · ', 'Virgilio: ' || p_bolsas || ' bolsas', nullif('legajo ' || p_legajo, 'legajo '), nullif(btrim(coalesce(p_nota,'')), '')));
+  return v_res || jsonb_build_object('bolsas', p_bolsas, 'kg_x_bolsa', v_kg_bolsa, 'codigo_virgilio', upper(btrim(p_cod_virgilio)));
+end $function$
+;
+
 -- ---------- oc_pendientes_virgilio (2026-09-11: Gestion Virgilio lista las OC de material que le van a llegar) ----------
 -- OC abiertas cuyos items son todos del sector 14 y cuyo proveedor entrega en Virgilio (proveedor_insumo.entrega_en null).
 CREATE OR REPLACE FUNCTION "GP2".oc_pendientes_virgilio()
@@ -5701,9 +5747,12 @@ select coalesce((select jsonb_agg(jsonb_build_object(
   'fecha_entrega_estimada', o.fecha_entrega_estimada, 'nota', o.nota,
   'items', (select jsonb_agg(jsonb_build_object(
               'item_id', oi.id, 'comp_id', c.id, 'codigo', c.codigo, 'codigo_isis_ch', c.codigo_isis_ch,
+              'cod_virgilio', c.codigo_virgilio,
               'descripcion', c.descripcion, 'unidad', oi.unidad,
               'cantidad', oi.cantidad, 'recibido', oi.recibido,
-              'pendiente', greatest(oi.cantidad - oi.recibido, 0)) order by c.codigo)
+              'pendiente', greatest(oi.cantidad - oi.recibido, 0),
+              'pendiente_bolsas', round(greatest(oi.cantidad - oi.recibido, 0) / coalesce((select valor from parametro where clave='material_plastico_kg_x_bolsa'), 25), 1)
+            ) order by c.codigo)
             from orden_compra_item oi join componente c on c.id = oi.componente_id where oi.oc_id = o.id)
 ) order by o.numero)
 from orden_compra o
@@ -5717,32 +5766,39 @@ $function$
 ;
 
 -- ---------- recibir_oc_virgilio (2026-09-11: Virgilio recibio material de una OC) ----------
--- p_items = [{"comp_id":742,"cantidad":350}] en kg. Cada item pasa por crear_recepcion_insumo (compra al sector 14 +
--- cruce FIFO contra las OC abiertas del material, que marca la OC recibida sola). rollos_json anota quien y desde donde.
+-- p_items = [{"comp_id":742,"cantidad":350}] en kg o [{"cod_virgilio":"PP","bolsas":14}]. Cada item pasa por
+-- crear_recepcion_insumo (compra al sector 14 + cruce FIFO contra las OC abiertas del material, que marca la OC
+-- recibida sola). rollos_json anota quien y desde donde.
 CREATE OR REPLACE FUNCTION "GP2".recibir_oc_virgilio(p_oc_id bigint, p_items jsonb, p_remito text DEFAULT NULL::text, p_legajo text DEFAULT NULL::text)
  RETURNS jsonb
  LANGUAGE plpgsql
  SECURITY DEFINER
  SET search_path TO 'GP2'
 AS $function$
-declare v_oc record; v_it jsonb; v_res jsonb; v_out jsonb := '[]'::jsonb; v_comp bigint; v_cant numeric;
+declare v_oc record; v_it jsonb; v_res jsonb; v_out jsonb := '[]'::jsonb; v_comp bigint; v_cant numeric; v_kg_bolsa numeric;
 begin
   select * into v_oc from orden_compra where id = p_oc_id;
   if v_oc.id is null then raise exception 'La OC % no existe', p_oc_id; end if;
   if v_oc.estado not in ('borrador','enviada') then raise exception 'La OC % esta %', v_oc.numero, v_oc.estado; end if;
   if p_items is null or jsonb_typeof(p_items) <> 'array' or jsonb_array_length(p_items) = 0 then
-    raise exception 'p_items tiene que ser un array [{comp_id, cantidad}]';
+    raise exception 'p_items tiene que ser un array [{comp_id, cantidad}] o [{cod_virgilio, bolsas}]';
   end if;
+  v_kg_bolsa := coalesce((select valor from parametro where clave='material_plastico_kg_x_bolsa'), 25);
   for v_it in select * from jsonb_array_elements(p_items) loop
     v_comp := (v_it->>'comp_id')::bigint;
-    v_cant := (v_it->>'cantidad')::numeric;
+    if v_comp is null and v_it->>'cod_virgilio' is not null then
+      select id into v_comp from componente where sector_id = 14 and upper(btrim(codigo_virgilio)) = upper(btrim(v_it->>'cod_virgilio'));
+      if v_comp is null then raise exception 'El codigo "%" no es una bolsa de material conocida en GP2', v_it->>'cod_virgilio'; end if;
+    end if;
+    v_cant := coalesce((v_it->>'cantidad')::numeric, (v_it->>'bolsas')::numeric * v_kg_bolsa);
+    if v_comp is null or v_cant is null then raise exception 'Cada item necesita comp_id+cantidad (kg) o cod_virgilio+bolsas: %', v_it; end if;
     if not exists (select 1 from orden_compra_item oi where oi.oc_id = p_oc_id and oi.componente_id = v_comp) then
       raise exception 'El componente % no esta en la OC %', v_comp, v_oc.numero;
     end if;
     v_res := crear_recepcion_insumo(v_comp, v_oc.proveedor, v_cant, 'kg', p_remito, now());
     update recepcion_insumo
        set rollos_json = coalesce(rollos_json,'{}'::jsonb)
-                      || jsonb_build_object('recibido_en', 'virgilio', 'legajo', p_legajo, 'oc_id', p_oc_id)
+                      || jsonb_build_object('recibido_en', 'virgilio', 'legajo', p_legajo, 'oc_id', p_oc_id, 'bolsas', (v_it->>'bolsas')::numeric)
      where id = (v_res->>'recepcion_id')::bigint;
     v_out := v_out || jsonb_build_object('comp_id', v_comp, 'kg', v_cant, 'recepcion_id', v_res->'recepcion_id', 'oc_cruzada', v_res->'oc_cruzada');
   end loop;

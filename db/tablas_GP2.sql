@@ -95,6 +95,7 @@ create table "GP2".componente (
   relev_solo_sueltas boolean not null default false,
   material_id bigint,
   codigo_isis_ch text,
+  codigo_virgilio text,   -- codigo del mismo insumo en el catalogo Insumos de Gestion Virgilio (bolsas PP/ABS/AI/NV/NR/N25/PE/PS), 2026-09-11
   constraint componente_pkey PRIMARY KEY (id),
   constraint componente_carton_categoria_fkey FOREIGN KEY (carton_categoria) REFERENCES "GP2".carton_categoria(nombre),
   constraint componente_carton_formato_fkey FOREIGN KEY (carton_formato) REFERENCES "GP2".carton_formato(nombre),

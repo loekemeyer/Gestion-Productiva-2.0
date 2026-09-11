@@ -6724,7 +6724,19 @@ mapeo de Gestión Virgilio (4au). Lo que se decidió y lo que se hizo con cada u
   recibida). Del lado de Virgilio falta la entidad «Materia Prima (GP2)» en `recepcion.js`: spec
   en `INTEGRACION_GESTION_VIRGILIO.md`, se hace en una sesión sobre ese repo.
 - **E. Flujo del material**: «se recibe por OC, se manda a inyectores desde el módulo Envío de
-  insumos; deberíamos modelar eso más específico cuando se elige envío de insumos». Hoy el envío de
-  bolsas al inyector vive en `Compras/Inyectores_GP2.html` (panel Material → `enviar_material_inyector`);
-  no existe una pantalla llamada «Envío de insumos». **Pendiente de definir con el usuario** qué
-  pantalla es esa y qué le falta (¿bolsas enteras en vez de kg? ¿remito? ¿quién lleva?).
+  insumos; deberíamos modelar eso más específico cuando se elige envío de insumos». **El módulo es
+  de Gestión Virgilio** [usuario: "fijate que hay un módulo de entrega y envío de insumos que impacta
+  en el stock de los insumos"] `[dato: agente sobre el repo gestion-virgilio, index.html]`: botón
+  **INS** de la botonera → «Recibir insumos» (RI) / «Entregar insumos» (EI) / «Salida a Cervantes»;
+  RI y EI escriben `public.Movimientos_Stock deposito='insumos'` (`recepcion_insumo` +delta /
+  `entrega_insumo` −delta), con **destino/origen en texto libre** («Cervantes, Centro, Proveedor
+  X»), bolsas plásticas en unidad fija «Bolsas» y códigos propios (PP, ABS, AI, NV, NR, N25, PE, PS;
+  EBA discontinuo). Hoy **no toca GP2**. Lo que hay que modelar «más específico»: en EI, si el
+  insumo es una bolsa, el destino es **un inyector** (lista cerrada) y el envío impacta GP2; en RI,
+  la bolsa se recibe **contra la OC** de GP2. HECHO del lado GP2 (2026-09-11):
+  `componente.codigo_virgilio` en las 8 bolsas (PP→2405, ABS→2455, AI→2465, NV→2475, NR→2505,
+  N25→2485, PE→2435, PS→2425; Master Bach sin código en Virgilio), `material_virgilio_bundle()`
+  (bolsas en Virgilio + inyectores + cuántas bolsas le faltan a cada uno), `enviar_material_virgilio(
+  cod_virgilio, bolsas, inyector, legajo)` y `recibir_oc_virgilio` / `oc_pendientes_virgilio` que
+  aceptan `{cod_virgilio, bolsas}`. Spec para el repo de Virgilio en `INTEGRACION_GESTION_VIRGILIO.md`.
+  El ledger de Virgilio sigue escribiéndose igual (decisión 9): GP2 manda, Virgilio espeja.
