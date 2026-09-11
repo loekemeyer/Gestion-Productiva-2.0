@@ -7485,3 +7485,30 @@ proveedor**. Migración `cepillos_limpia_bombilla_los_compra_cimarron`.
 
 **Backlog de los listados (sin los E)**: quedan **5**. `070` y `591` siguen sin cartón ni caja, y
 `717`, `537` y `567` los dejó pendientes el usuario. GP2 va por **187 artículos**.
+
+### 4bn. 070 y 591 entran con la Caja N°10 — y el backlog de los listados queda en 3 (2026-09-11)
+
+`[usuario 2026-09-11]`: *"070 y 591 usan ambos caja 10"*. Con eso dejan de ser imposibles: **no llevan
+cartón**, así que lo único que sale de casa es la caja y el Prov AT entrega el terminado en Virgilio.
+Migración `alta_070_591_prov_at_caja_10`.
+
+| Artículo | Caja | Prov. Art. Terminado |
+|---|---|---|
+| **070** Set Tapers 0.8 / 1.5 / 3 Lts | N°10 (`A4`) | Pettofrezza |
+| **591** Despolvillador de Yerba | N°10 (`A4`) | Tierra Nativa SA |
+
+GP2 queda con **189 artículos**, ninguno sin ruta ni sin receta, invariantes en 0. **Del backlog de
+los listados (sin los E) quedan 3**, y los tres los dejó pendientes el usuario a propósito: `717`
+(Cuchillo De Untar Acrílico x4), `537` (Pela y Pica Ajo) y `567` (Corta Palta).
+
+**Hallazgo de paso: 5 filas de `articulo_prov_at` apuntan a una caja que no existe como componente.**
+No bloquean nada (los 5 artículos ya están modelados por otro camino), pero el dato está colgado:
+
+| Caja que piden | Artículos | Proveedor |
+|---|---|---|
+| **N°4** | 280 Manga Repostera | Cabral |
+| **N°24** | 031, 034 (Filtros de café), 535 (Cepillo), 654 (Bombilla) | Cabral |
+
+El Sector Caja tiene 12 cajas (N°1, 2, 6, 7, 10, 12, 13, 15, 16, 22, 27, 29). O hay que crear la N°4
+y la N°24 con su código de estantería, o esas 5 filas van a otra caja — como pasó con el 338 y el
+732, que pedían la N°24 y la N°8 y el usuario los mandó a la N°7. **Preguntado.**
