@@ -375,6 +375,106 @@ AS $function$
 $function$
 ;
 
+-- ---------- _oc_num ----------
+CREATE OR REPLACE FUNCTION "GP2"._oc_num(p numeric)
+ RETURNS text
+ LANGUAGE sql
+ IMMUTABLE
+AS $function$
+  select replace(to_char(round(coalesce(p,0)), 'FM999,999,999,999'), ',', '.')
+$function$
+;
+
+-- ---------- _oc_validar_carton ----------
+CREATE OR REPLACE FUNCTION "GP2"._oc_validar_carton(p_items jsonb)
+ RETURNS text[]
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'GP2'
+AS $function$
+  with paq as (
+    select coalesce((select valor::numeric from parametro where clave = 'pliego_uni_x_paquete'), 100) q
+  ),
+  base as (
+    select c.id as comp_id, c.codigo, (it->>'cantidad')::numeric as cantidad,
+           coalesce(c.es_pliego,false) as pliego,
+           case when coalesce(c.es_pliego,false)
+                then 'PLIEGO|' || coalesce(c.marca,'(sin marca)') || '|'
+                else coalesce(c.carton_formato,'') || '|' || coalesce(c.marca,'(sin marca)') || '|'
+                     || coalesce(c.carton_categoria,'') end as fam_key,
+           case when coalesce(c.es_pliego,false)
+                then 'PLIEGO|' || coalesce(c.marca,'(sin marca)')
+                else coalesce(c.carton_formato,'') || '|' || coalesce(c.marca,'(sin marca)') end as fam_base,
+           case when coalesce(c.es_pliego,false)
+                then 'Pliegos' || coalesce(' ' || c.marca, '')
+                else 'Formato ' || coalesce(c.carton_formato,'') || coalesce(' ' || c.marca, '')
+                     || coalesce(' · ' || c.carton_categoria, '') end as fam_label,
+           (not coalesce(c.es_pliego,false)) and coalesce(cc.mezcla_libre,false) as comodin,
+           case when coalesce(c.es_pliego,false) then paq.q else cf.pliegos_multiplo end as pm,
+           case when coalesce(c.es_pliego,false) then paq.q else coalesce(cf.codigo_multiplo,1) end as cm,
+           case when coalesce(c.es_pliego,false) then paq.q else coalesce(cf.min_codigo_x_multiplo,0) end as mc,
+           case when coalesce(c.es_pliego,false) then 0 else coalesce(cf.pedido_minimo,0) end as pmin
+      from jsonb_array_elements(coalesce(p_items,'[]'::jsonb)) it
+      cross join paq
+      join componente c on c.id = (it->>'comp_id')::bigint
+      left join carton_formato   cf on cf.nombre = c.carton_formato
+      left join carton_categoria cc on cc.nombre = c.carton_categoria and cc.formato = c.carton_formato
+     where c.sector_id = 10
+       and (coalesce(c.es_pliego,false) or coalesce(cf.pliegos_multiplo,0) > 0)
+       and coalesce((it->>'cantidad')::numeric, 0) > 0
+  ),
+  destino as (
+    select distinct on (fam_base) fam_base, fam_key
+      from (select fam_base, fam_key,
+                   ceil(sum(cantidad) / max(pm)) * max(pm) - sum(cantidad) as falta
+              from base where not comodin group by fam_base, fam_key) f
+     order by fam_base, falta desc, fam_key
+  ),
+  asignado as (
+    select b.*,
+           case when b.comodin and d.fam_key is not null then d.fam_key else b.fam_key end as k,
+           (b.comodin and d.fam_key is not null) as mudado
+      from base b
+      left join destino d on d.fam_base = b.fam_base and b.comodin
+  ),
+  cabecera as (
+    select distinct on (k) k, fam_label, pm, cm, mc, pmin from asignado
+     order by k, comodin, comp_id
+  ),
+  fam as (
+    select a.k,
+           max(c.fam_label) || case when bool_or(a.mudado) then ' (+ sacacorchos)' else '' end as lbl,
+           sum(a.cantidad) as total, max(c.pm) pm, max(c.cm) cm, max(c.mc) mc, max(c.pmin) pmin
+      from asignado a join cabecera c on c.k = a.k group by a.k
+  ),
+  err_fam as (
+    select f.k, 1 as orden, f.lbl || ': el pedido mínimo es ' || "GP2"._oc_num(f.pmin)
+           || ' y hay ' || "GP2"._oc_num(f.total) || '.' as msg
+      from fam f where f.pmin > 0 and f.total < f.pmin
+    union all
+    select f.k, 2, f.lbl || ': el total (' || "GP2"._oc_num(f.total) || ') debe ser múltiplo de '
+           || "GP2"._oc_num(f.pm) || '.'
+      from fam f where not (f.pmin > 0 and f.total < f.pmin)
+       and f.pm > 0 and (f.total % f.pm) <> 0
+  ),
+  err_cod as (
+    select a.k, 3 as orden, a.codigo,
+           case when f.cm > 0 and (a.cantidad % f.cm) <> 0
+                then f.lbl || ' · ' || a.codigo || ': ' || "GP2"._oc_num(a.cantidad)
+                     || ' no es múltiplo de ' || "GP2"._oc_num(f.cm) || '.'
+                when a.cantidad < f.mc
+                then f.lbl || ' · ' || a.codigo || ': mínimo ' || "GP2"._oc_num(f.mc) || ' por código.'
+           end as msg
+      from asignado a join fam f on f.k = a.k
+     where not exists (select 1 from err_fam e where e.k = a.k)
+  )
+  select coalesce(array_agg(msg order by k, orden, codigo), '{}')
+    from (select k, orden, ''::text as codigo, msg from err_fam
+          union all
+          select k, orden, codigo, msg from err_cod where msg is not null) t;
+$function$
+;
+
 -- ---------- abm_articulo_baja ----------
 CREATE OR REPLACE FUNCTION "GP2".abm_articulo_baja(p_id bigint)
  RETURNS jsonb
@@ -2092,6 +2192,7 @@ declare
   v_mp_id bigint; v_pct numeric; v_kg_producto numeric := 0;
   v_mp_codigo text; v_mp_prov text; v_mp_rubro text; v_kg_mp numeric;
   v_oc_mp bigint; v_num_mp int;
+  v_err_carton text[];
 begin
   v_prov := nullif(p->>'proveedor','');
   v_nota_orig := nullif(p->>'nota','');
@@ -2107,6 +2208,15 @@ begin
   select ps.mp_componente_id, ps.desperdicio_pct into v_mp_id, v_pct
     from proveedor_servicio ps where ps.hibrido and ps.nombre = v_prov;
   if v_pct is not null and (v_pct < 0 or v_pct >= 100) then v_pct := 0; end if;  -- guard division
+
+  -- REGLAS DE CARTON (REGLAS_OC_INSUMOS.md): multiplo de familia, multiplo por codigo,
+  -- minimo por codigo, pedido minimo de la familia, pliegos de a 100 y comodin sacacorchos.
+  -- Vivian SOLO en OC_GP2.html y esta funcion tiene EXECUTE para anon: aceptaba cualquier
+  -- cantidad. Se valida ANTES de insertar la OC, asi no queda una cabecera huerfana.
+  v_err_carton := "GP2"._oc_validar_carton(coalesce(p->'items','[]'::jsonb));
+  if array_length(v_err_carton, 1) > 0 then
+    raise exception 'El pedido de carton no cumple las reglas: %', array_to_string(v_err_carton, ' ');
+  end if;
 
   select coalesce(max(numero),0)+1 into v_num from orden_compra;
   insert into orden_compra (numero, proveedor, rubro, nota, creado_por, fecha_entrega_estimada)

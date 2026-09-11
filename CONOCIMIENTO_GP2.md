@@ -7795,3 +7795,39 @@ invariantes se prende. Para volver atrás cualquiera de las cuatro:
 tienen forma de saber quién las llamó —`recibir_oc_virgilio` y `enviar_material_virgilio`
 reciben un `legajo`, `traslado_virgilio` no—, así que un error del cliente externo entra al
 ledger sin firma.
+
+### 4bv. Las reglas de cartón ahora viven en los DOS lados, y hay un test que lo vigila (2026-09-11)
+
+`[dato]` Hasta hoy los múltiplos de cartón vivían **sólo** en `Compras/OC_GP2.html` (10
+funciones de JS) y `crear_oc` —que tiene `EXECUTE` para `anon`— aceptaba cualquier cantidad.
+Ahora la base tiene `"GP2"._oc_validar_carton(p_items)` y `crear_oc` la llama **antes de
+insertar la cabecera**, así que una OC rechazada no deja nada colgado.
+
+**Cómo se bajó una regla de pantalla a la base sin romperla** (el método, no el caso):
+
+1. **Port literal, no reinterpretación.** La función SQL es `famKey` / `famBase` / `reglaDe`
+   / `gruposCarton` / `validarCarton` traducidas una a una, incluido el orden de los
+   chequeos: el `pedido_minimo` corta antes que el múltiplo de familia, y el múltiplo por
+   código se mira **antes** que el mínimo por código (es un `else if` en el JS; si se
+   invierte, un pedido de 500 con múltiplo de 1.000 cambia de mensaje).
+2. **Los mismos datos de los dos lados.** El test usa `comp_id` **reales** (719 O2D, 712 S2A,
+   894 T3A el comodín, 288 A1B bolsa, 306/564 pliegos), así que el mismo caso se puede correr
+   en el navegador y en la base y comparar texto contra texto.
+3. **El esperado del test sale de la base, no de la cabeza.** Los 13 esperados de
+   `tests/ui/test_oc_carton_js_vs_db.js` son la salida real de
+   `select "GP2"._oc_validar_carton(...)`. Si alguien toca una de las dos implementaciones y
+   no la otra, el test se prende.
+4. **La pantalla NO se tocó.** Sigue avisando en vivo mientras el comprador tipea, que es
+   para lo que sirve; la que manda es la de la base.
+
+`[dato]` Detalle que se copió tal cual porque es fácil perderlo: **el pliego no hereda el
+múltiplo de su formato**. Lleva `carton_formato` (el formato dice sus posiciones, que es lo
+que usa el costo) pero se pide de a `parametro.pliego_uni_x_paquete` = 100, no de a 12.000.
+Y **el comodín** (categoría con `mezcla_libre`, hoy Sacacorchos) no forma familia: se suma a
+la familia de su mismo formato+marca **a la que más le falta** para llegar al múltiplo, y
+sólo va sola si en ese pedido no hay ninguna otra de su base.
+
+`[dato]` Quedan afuera dos reglas (idea 7329): `validarMinimoProveedor` (mínimo en kg del
+proveedor de materia prima) todavía bloquea **sólo** desde la pantalla, y
+`lineasBajoMinimoUni` (piso por pieza del inyector) **no baja nunca** porque a propósito no
+bloquea — hoy 24 de 47 sugeridos quedan abajo del piso y bloquear volvería la OC imposible.
