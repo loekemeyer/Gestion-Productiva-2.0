@@ -6912,3 +6912,21 @@ Auditoría de las 41 hojas del `Conteo_y_Pedido_Sector_Plastico_31826.xls`: adem
   lo calculado (una columna manual `Pedido Damian` pisa la fórmula: PP calculaba 1.510 kg y se pidieron
   500), y hay dos juegos de consumo distintos dentro del mismo archivo (PP 1.071 con el mango 505
   duplicado vs 868 sin él).
+
+### 4bb. Carlos Aguirre = Alex Escalante: el mismo tallerista está partido en dos en GP2 (2026-09-11)
+
+`[usuario 2026-09-11: "Carlos=alex"]`, contestando quién arma el 395 (la tarifa estaba en el bloque de
+Alex y el despiece decía Carlos). **Son el mismo**, y eso destapa un problema de datos:
+
+- GP2 tiene **dos talleristas vivos**: `2 Alex Escalante` (73 pasos de ruta, 7 tarifas, 12 movimientos,
+  1 componente con stock, **sin alias**) y `9 Carlos Aguirre` (36 pasos, 7 tarifas, 30 movimientos, 8 con
+  stock, alias «CARLOS» y «AGUIRRE CARLOS RODOLFO», y `ubicacion_stock_id = 18` — comparte depósito con
+  Pedernera).
+- **El vecino conoce sólo a «Carlos»**: en `public."Articulos Virgilio X Tallerista"` no existe Alex ni
+  Escalante `[dato]`. En la planilla de costos, en cambio, el bloque es **4175 - Alex Escalante**.
+- **Hay 4 artículos cargados en los dos** (115, 544, 580, 802) y tarifas repetidas al mismo precio
+  (580 «Mini Batidor Pera ARMADO» de Carlos = GRJ10A de Alex, los dos $51,807; 500 y GRJ7 igual).
+  Mientras estén partidos, **el stock del taller vive en dos ubicaciones y el trazado lo cuenta doble**.
+- **Pendiente de decisión del usuario**: unificar en `9 Carlos Aguirre` (el que tiene los alias, el
+  espejo de Virgilio y el nombre que usa el vecino) moviendo los 73 pasos, las 12 movimientos, el stock y
+  las tarifas de Alex, borrando lo duplicado y desactivando `2`. Es cirugía, no se hace sola.
