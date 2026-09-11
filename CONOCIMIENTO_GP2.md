@@ -6769,3 +6769,27 @@ alta los artículos del Excel que GP2 no tiene, o recalcular los máximos con el
   no se den de alta, el máximo de PP queda ~18 % corto; cuando se agreguen, la regla lo sube sola.
   Archivo `Articulos_Excel_sin_despiece_GP2.xlsx` (chat 2026-09-11). **Pendiente del usuario**: si
   esos artículos se dan de alta en GP2 (con qué mango/inserto) o quedan afuera.
+
+### 4ay. Los artículos del Excel sin despiece: qué se decidió de cada uno (2026-09-11)
+
+`[usuario 2026-09-11]` "Veamos los artículos que te faltan definir el despiece y los vamos resolviendo."
+El vecino tiene el despiece de TODOS (`public."Despiece x Articulo"` + `"Partes x Tallerista"`):
+Carlos = tallerista 9 Carlos Aguirre, Martin = 6 Martin Cornejo, "Log/Fabr" = 3 Fábrica. Las piezas
+plásticas ya existen en GP2; lo que falta son los artículos, sus cartones y alguna parte inox.
+
+- **333–338 (línea inox LK) → DISCONTINUOS** `[usuario]`. No se dan de alta. Explican 21 kg/mes de
+  la diferencia PP/ABS con el Excel: no hace falta reponerlos.
+- **396 Enrulador de manteca → DISCONTINUO** `[usuario]`.
+- **395 Descorazonador de Manzana → ALTA (hecha)** `[usuario: "lleva la parte que entrega Eclipse más
+  mango y capuchón"]`: receta `1686` (descorazonador que corta Eclipse desde la chapa 430, sector
+  Procesado) + `PC10` mango LK espátula + `PA18` capuchón; lo arma **Carlos Aguirre** `[dato: vecino]`;
+  rutas «Chapa 430 → Art 395» (ingreso CHAPA430 → PS Eclipse CHAPA430→1686 → Carlos → 395 → Virgilio),
+  «Insumo PC10 → Art 395», «Insumo PA18 → Art 395» (PA18B → Hernandez → PA18 → Carlos). Familia
+  Utensilios `[deducido]`, marca LOEKE, 12 por caja (`est_madre.uxb`), terminado `395` con stock 0 en
+  Virgilio. **Pendientes (nada inventado)**: el cartón (el vecino lo llama `CCG1C`; GP2 codifica por
+  posición de estantería → falta la posición), la caja (`componente_caja_id` null) y el precio de
+  tarifa de Carlos por el armado. Con esto el 1686 (que estaba huérfano: existía sin ninguna ruta)
+  ya tiene quién lo consuma.
+- Quedan por decidir: 311/312 (Martin: PA17+PA13+PA18+Z20/Z21), Chef inox 630–636 + 709 (Carlos:
+  PA19+PB6+PC6; el vecino les suma PB3/PB4 «Cuchara Ny», parece error), 856/857/864 nuevos + PA19/PC6
+  a 858/863, 58/715 (PC4 ×2) y 59 (PEP9 ×2) de Fábrica, y los importados 94xE (inserto PEST1).
