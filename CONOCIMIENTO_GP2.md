@@ -7282,3 +7282,37 @@ diferencia importa para la OC, hay que darle un lugar.
 
 **Diez artículos de Prov AT no tienen cartón en la planilla**: 070, 246, 326, 591, 618, 619, 761,
 823, 852 y 900.
+
+### 4bh. REGLA: la marca del cartón es la del artículo que nombra su descripción (2026-09-11)
+
+`[usuario 2026-09-11, textual]`: *"chequea que los cartones esten bien dividios por marca segun la
+descripcion del carton. tiene que coincidir con la marca del respectivo articulo al que hace
+referencia la descripcion del carton"*. Es un invariante chequeable: `componente.marca` de un cartón
+"Cartón NNN" tiene que ser igual a `articulo.marca` del NNN.
+
+Migración `carton_formato_5_sin_formato_y_marca_715_515`. **Formato de los 5 que estaban sin formato**
+`[usuario]`: `CART058`, `CART059`, `CART715` y `CCG1C` (395) van en **C**; `CCG1B` (312) en **Huevo**.
+Queda sin formato **sólo `CCG1A`** (Cartón 311), que está `discontinuo`.
+
+**Dos marcas corregidas por la regla nueva:**
+- `CART715` "Cartón 715" era LOEKE y el artículo 715 es **CHEF** (§4bc: el 715 es el gemelo Chef del 058).
+- `A1C1` "Cartón 515" era CHEF y el artículo 515 es **LOEKE**. Esto **cierra el pendiente de §4an-ter**,
+  que lo había marcado `[deducido, SIN confirmar]` el 2026-09-10: estaba mal, y la regla lo confirma.
+
+**LAS 10 QUE QUEDAN SON TODAS DE ARTÍCULOS LOKE Y NO SE TOCARON**, porque la regla nueva choca de
+frente con una decisión anterior del mismo usuario:
+
+| | Dice |
+|---|---|
+| 2026-09-08 (§4g) | *"la marca loke no va. todo lo que esta en loke ponelo en marca loeke y dentro del formato loke"* → los cartones LOKE pasaron a `marca='LOEKE'` |
+| 2026-09-11 (§4bc) | los 10 artículos 101, 103, 104, 108, 114, 115, 116, 120, 121 y 123 son **marca LOKE** |
+| 2026-09-11 (esta sección) | la marca del cartón tiene que ser la del artículo |
+
+Las tres juntas no pueden valer: si la del cartón sigue al artículo, `H1A`, `H1C`, `H2C`, `H4C`,
+`I2A`, `I2B`, `I3C`, `I42`, `K5D` y `A1B1` tienen que volver a **LOKE**, que es justo lo que el
+usuario mandó sacar el 08/09. **Preguntado, sin tocar.** Ojo que no es cosmético: la marca entra en
+la familia de pedido de la OC (formato + marca + categoría), así que moverla parte o junta pedidos.
+
+**57 cartones nombran un artículo que GP2 todavía no tiene** (`Cartón 026`, `Cartón 220`…): no son
+error, son el backlog de artículos sin modelar; la regla no se les puede aplicar hasta que exista el
+artículo.
