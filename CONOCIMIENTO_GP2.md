@@ -7669,10 +7669,31 @@ select "GP2".reprocesar_espejo_virgilio(null, true);   -- muestra qué haría, n
 select "GP2".reprocesar_espejo_virgilio(null, false);  -- aplica
 ```
 
-De las **23 pendientes, 14 ya se pueden** (el artículo existe y tiene receta): **7.692 unidades**
-que nunca llegaron a Virgilio en GP2 — 207 (×2), 395, 535 (×3), 735, 760, 817, 823, 856, 922, 943E,
-945E. Las 9 restantes son códigos que GP2 todavía no modela (035E, 584E, 590E, 590ES, 599, 727E,
-877E, 943, 948). **Aplicar el reproceso mueve stock de verdad: espera el OK del usuario.**
+De las **23 pendientes, 14 se pudieron** (el artículo existe y tiene receta) y **se aplicaron el
+mismo día** `[usuario: "no me pidas permiso porque te dejo trabajando y ya me voy"]`: **7.692
+unidades** que nunca habían llegado a Virgilio en GP2.
+
+| Artículo | Uni | Entregas | Desde |
+|---|---|---|---|
+| 535 | 3.600 | 3 | Pedernera / Carlos Aguirre |
+| 207 | 1.584 | 2 | interno (Log/Fabr → consume del sector) |
+| 395 | 804 | 1 | Pedernera / Carlos Aguirre |
+| 735 | 492 | 1 | Martin Cornejo |
+| 760 | 480 | 1 | Danica Garcia |
+| 945E | 276 | 1 | interno |
+| 817 | 180 | 1 | Pettofrezza Rafael |
+| 856 · 943E | 96 c/u | 1 c/u | Martin Cornejo · interno |
+| 922 | 60 | 1 | interno |
+| 823 | 24 | 1 | Pettofrezza Rafael |
+
+El stock de Virgilio pasó de **67.616 a 75.308** unidades y el invariante «inventario = ledger»
+siguió en **0**. Los movimientos son los **ids 69922 a 69967**: para revertirlo alcanza con
+`delete from "GP2".movimiento where id between 69922 and 69967;` (el trigger revierte el delta
+exacto) más `update "GP2".virgilio_espejo_pend set resuelto_en = null, resultado = null;`.
+
+Las **9 restantes** son códigos que GP2 todavía no modela (035E, 584E, 590E, 590ES, 599, 727E,
+877E, 943, 948; los `E` parecen la línea de exportación). No son un error: son el backlog de alta
+de artículos, ahora visible en vez de escondido.
 ### 4bt. El Master Bach va por COLOR de la parte — y el % está en disputa (2026-09-11)
 
 `[usuario, textual]` **"Los master bach Rojo, blanco, azul y negro es el cuatro por ciento de la
@@ -7702,3 +7723,32 @@ que vienen pigmentadas, más `B2` Cuchara Ny y `EP9` Cuchillo de Untar Blanc). R
 una bolsa de 25 kg por color — un parche puesto justamente porque GP2 no sabía el color de la
 pieza. Con la columna `MB` cargada, el master sale del consumo real de cada color y el piso deja de
 ser el que manda. Queda anotado como **idea 7303**, bloqueada hasta que se defina el porcentaje.
+
+### 4bt-bis. El código repetido en dos sectores ya mordió DOS veces (2026-09-11)
+
+`[dato]` La trampa está documentada desde el alta de los gemelos Chef (*"Z22 existe DOS VECES;
+al armar receta o ruta por código hay que filtrar TAMBIÉN por sector"*). Volvió a aparecer sola,
+esta vez en una receta vieja: el artículo **547 Corta Torta** tenía **dos `A4`**, la **Caja N°10**
+del Sector Caja (correcta) y el **"Mgo Plano 501 Serig"** del Sector Procesado, los dos con
+cantidad **1/12** — que es cantidad de *caja*, no de mango.
+
+**Por qué importaba aunque el costo no se moviera:** `v_costo_componente` camina la **ruta**, y ese
+componente no estaba en ninguna, así que el 547 costaba lo mismo con y sin la línea. Pero
+`recepcion_virgilio` consume la **receta**: cada entrega del 547 le iba a descontar a Alex Escalante
+1/12 de un mango que nunca recibió. Se borró la línea (migración
+`art_547_saca_el_A4_del_sector_procesado`, revertible con el `insert` que está en su comentario) y
+el 547 pasó a cerrar perfecto en la prueba de conservación.
+
+**Cómo encontrar el próximo** — una receta que apunta a una pieza de Crudo/Procesado/Plástico con
+cantidad igual a `1/articulos_por_caja` y que además existe con ese mismo código en el Sector Caja:
+
+```sql
+select a.codigo art, c.codigo parte, s.nombre sector, ac.cantidad
+  from "GP2".articulo a join "GP2".articulo_componente ac on ac.articulo_id = a.id
+  join "GP2".componente c on c.id = ac.componente_id join "GP2".sector s on s.id = c.sector_id
+ where s.id <> 11 and abs(ac.cantidad - 1.0/nullif(a.articulos_por_caja,0)) < 0.0001
+   and exists (select 1 from "GP2".componente c2 where c2.codigo = c.codigo and c2.sector_id = 11);
+```
+Hoy da **0**. Y hay un caso hermano en otra tabla: el código **553** de `uni_x_articulo_x_caja`
+nombra **dos bombillas distintas** (*Coco Hexagonal* y *Super Niq Larga Curva*) con el mismo
+`cod_art` — idea 7325.

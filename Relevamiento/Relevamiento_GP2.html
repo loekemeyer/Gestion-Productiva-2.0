@@ -183,11 +183,9 @@ var esc = GP2UI.esc;   /* helper de la casa, gp2-ui.js (2026-09-05) */
 /* Formato de numero: la regla es una sola y vive en gp2-numero.js. Nunca uno propio. */
 function fmt(n,d){ return GP2N.fmt(n, d==null?0:d, '—'); }   /* la regla de numero de la casa; '—' sin valor */
 function num(s){ return GP2N.num(s); }
-function fmtFecha(iso){
-  if(!iso) return '';
-  var p=String(iso).slice(0,10).split('-');
-  return p.length===3 ? (p[2]+'/'+p[1]+'/'+p[0]) : String(iso);
-}
+/* La fecha en dd/mm/aaaa es la de la casa: GP2UI.fechaAR (gp2-ui.js). Esta pantalla tenia
+   su propia copia, identica, como otras dos. Se deja el nombre local para no tocar las llamadas. */
+var fmtFecha = GP2UI.fechaAR;
 function msg(t, malo){
   $('status').className = 'status' + (malo?' bad':(t?' ok':''));
   $('status').textContent = t||'';
@@ -357,7 +355,8 @@ function recalcularFila(id){
   var t = null;
   if(i.cuenta_kg){
     var kg = valorDe(id,'kg');
-    if(kg!=null) t = (i.unidad==='kg') ? kg : (i.kg_x_uni>0 ? Math.round(kg/Number(i.kg_x_uni)) : null);
+    // regla de la casa (GP2N.aUni): sin kg_x_uni no hay conversion, y eso se dice con null
+    if(kg!=null){ var u = GP2N.aUni(i.kg_x_uni, kg); t = (i.unidad==='kg') ? kg : (u===null ? null : Math.round(u)); }
   } else if(i.envase==null || i.factor==null){
     t = valorDe(id,'sueltas');            // sin envase: el total ES lo suelto
   } else {

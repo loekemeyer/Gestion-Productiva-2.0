@@ -174,7 +174,9 @@ function fmt(n,d){ return GP2N.fmt(n, d==null?1:d); }   // esta pantalla muestra
 function fmtFecha(f){ if(!f) return ""; try{ return new Date(f).toLocaleDateString("es-AR"); }catch(e){ return f; } }
 
 /* uni es la unidad canonica de las piezas; kg y cajones son derivados */
-function kgDe(x){ return x.kg_x_uni ? Number(x.online||0)*Number(x.kg_x_uni) : null; }
+/* kg <-> uni: la regla de la casa (GP2N.aKg, misma que "GP2".to_canonical). Devuelve null
+   cuando falta kg_x_uni; nunca 0, que es lo que hace creer al operario que la pieza no pesa. */
+function kgDe(x){ return GP2N.aKg(x.kg_x_uni, x.online || 0); }
 function cajDe(x){ return x.uni_x_cajon ? Number(x.online||0)/Number(x.uni_x_cajon) : null; }
 
 /* valor de una columna de movimientos segun su config */

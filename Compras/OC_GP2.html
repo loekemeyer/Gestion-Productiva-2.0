@@ -501,11 +501,9 @@ function isoLocal(d){
   return d.getFullYear()+'-'+(m.length<2?'0':'')+m+'-'+(dd.length<2?'0':'')+dd;
 }
 function hoyMas(dias){ var d=new Date(); d.setDate(d.getDate()+(Number(dias)||0)); return isoLocal(d); }
-function fmtFecha(iso){
-  if(!iso) return '';
-  var p=String(iso).slice(0,10).split('-');
-  return p.length===3 ? (p[2]+'/'+p[1]+'/'+p[0]) : String(iso);
-}
+/* La fecha en dd/mm/aaaa es la de la casa: GP2UI.fechaAR (gp2-ui.js). Esta pantalla tenia
+   su propia copia, identica, como otras dos. Se deja el nombre local para no tocar las llamadas. */
+var fmtFecha = GP2UI.fechaAR;
 // Lectura tolerante del bundle: el contrato nuevo manda stock / consumo_uni_mes / maximo,
 // el viejo mandaba online / consumo. La pantalla entiende los dos y no se rompe si falta.
 function vStock(i){ return i.stock!=null ? Number(i.stock) : (i.online!=null?Number(i.online):null); }

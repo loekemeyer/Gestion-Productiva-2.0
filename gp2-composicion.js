@@ -213,7 +213,10 @@ window.GP2Composicion = (function () {
 
     /* ---- bloque de HOY ---- */
     var extra = [];
-    if (kgU) extra.push(fmt(online * kgU, 0) + " kg");
+    // kg <-> uni por la regla de la casa (GP2N.aKg): null cuando no hay factor, y entonces
+    // directamente no se muestra la linea de kg en vez de mostrar un 0 que no significa nada
+    var enKg = GP2N.aKg(kgU, online);
+    if (enKg !== null) extra.push(fmt(enKg, 0) + " kg");
     if (uxc) extra.push(fmt(online / uxc, 1) + " caj");
     var act = d.actualizado_en ? dt(d.actualizado_en) : null;
     document.getElementById("cpHoy").innerHTML =

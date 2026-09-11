@@ -140,11 +140,9 @@ var SB = GP2_SB();
 var $ = GP2UI.$;
 var esc = GP2UI.esc;   /* helper de la casa, gp2-ui.js (2026-09-05) */
 function fmt(n,d){ return GP2N.fmt(n, d==null?0:d, '—'); }   /* la regla de numero de la casa; '—' sin valor */
-function fmtFecha(iso){
-  if(!iso) return '';
-  var p=String(iso).slice(0,10).split('-');
-  return p.length===3 ? (p[2]+'/'+p[1]+'/'+p[0]) : String(iso);
-}
+/* La fecha en dd/mm/aaaa es la de la casa: GP2UI.fechaAR (gp2-ui.js). Esta pantalla tenia
+   su propia copia, identica, como otras dos. Se deja el nombre local para no tocar las llamadas. */
+var fmtFecha = GP2UI.fechaAR;
 function msg(t, malo){
   $('status').className = 'status' + (malo?' bad':(t?' ok':''));
   $('status').textContent = t||'';
