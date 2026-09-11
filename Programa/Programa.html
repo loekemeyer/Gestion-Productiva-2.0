@@ -50,6 +50,39 @@
  .top input#buscar{width:230px;max-width:78vw;font-weight:500}
  .top select#art{max-width:min(620px,78vw)}
  .top select#marca,.top select#tallAlt{max-width:78vw}
+ [hidden]{display:none!important}
+ /* ---- selector de articulo en DOS PASOS: primero la marca, despues el articulo
+    (pedido del usuario 2026-09-11). El <select id="art"> sigue existiendo OCULTO: es el
+    modelo que lee el resto de la pantalla. ---- */
+ .top .artbtn{background:#0d151d;color:var(--tx);border:1px solid var(--line2);border-radius:8px;
+   padding:8px 12px;font-size:19px;font-family:inherit;font-weight:700;text-align:left;cursor:pointer;
+   min-height:46px;min-width:260px;max-width:min(620px,78vw);text-transform:none;letter-spacing:0}
+ .top .artbtn:focus{outline:none;border-color:var(--amb)}
+ .pick{position:fixed;inset:0;background:rgba(10,16,22,.62);display:flex;align-items:flex-start;
+   justify-content:center;padding:20px 12px;z-index:60}
+ .pickbox{background:var(--lane);border:1px solid var(--line);border-radius:14px;width:100%;
+   max-width:480px;max-height:calc(100vh - 40px);display:flex;flex-direction:column;overflow:hidden}
+ .pickhead{display:flex;align-items:center;gap:10px;padding:10px 12px;border-bottom:1px solid var(--line);
+   font-size:17px;color:var(--tx)}
+ .pickhead b{flex:1;font-weight:800}
+ .pickhead button{background:var(--card);border:1px solid var(--line2);border-radius:9px;color:var(--tx);
+   font-size:19px;min-width:46px;min-height:46px;cursor:pointer;font-family:inherit}
+ .marcas{display:flex;flex-direction:column;gap:10px;padding:14px}
+ .marcas button{background:var(--card);border:1px solid var(--line2);border-radius:11px;color:var(--tx);
+   font-size:22px;font-weight:800;min-height:56px;cursor:pointer;font-family:inherit}
+ .marcas button:hover{border-color:var(--amb);color:var(--amb)}
+ #pickArts{display:flex;flex-direction:column;min-height:0;padding:14px;gap:10px}
+ #pickArts input{background:#0d151d;color:var(--tx);border:1px solid var(--line2);border-radius:8px;
+   padding:11px 12px;font-size:19px;font-family:inherit;width:100%}
+ #pickArts input:focus{outline:none;border-color:var(--amb)}
+ .picklist{overflow-y:auto;min-height:0}
+ .picklist .fam{font-size:12px;text-transform:uppercase;letter-spacing:1px;color:var(--tx3);
+   margin:12px 0 5px;font-weight:800}
+ .picklist button{display:block;width:100%;text-align:left;background:var(--cardq);
+   border:1px solid var(--line);border-radius:9px;color:var(--tx2);font-size:18px;padding:11px 13px;
+   min-height:46px;margin-bottom:7px;cursor:pointer;font-family:inherit}
+ .picklist button:hover{border-color:var(--line2);color:var(--tx)}
+ .picklist button.on{border-color:var(--amb);color:var(--amb);font-weight:800}
 
  .canvas{padding:18px 18px 48px;max-width:1680px;overflow-x:auto}
 
@@ -175,14 +208,34 @@
 <div class="top">
  <h1>🏭 ¿Qué necesito para producir?</h1>
  <div class="sel">
-  <span class="fld">Marca <select id="marca"><option value="">Todas</option><option value="LOEKE">Loeke</option><option value="LOKE">Loke</option><option value="CHEF">Chef</option></select></span>
-  <span class="fld">Buscar <input id="buscar" type="search" placeholder="código o nombre" autocomplete="off"></span>
-  <span class="fld">Artículo <select id="art"></select></span>
+  <span class="fld">Artículo <button type="button" id="artBtn" class="artbtn">—</button></span>
+  <select id="marca" hidden><option value="">Todas</option><option value="LOEKE">Loeke</option><option value="LOKE">Loke</option><option value="CHEF">Chef</option></select>
+  <select id="art" hidden></select>
   <span class="fld">Unidades <input inputmode="numeric" id="uni" type="number" value="1000" min="1"></span>
   <span class="fld" id="tallAltBox" style="display:none">Tallerista <select id="tallAlt"></select></span>
  </div>
 </div>
 <div class="canvas" id="canvas"></div>
+
+<div id="pick" class="pick" hidden>
+ <div class="pickbox">
+  <div class="pickhead">
+   <button type="button" id="pickBack" hidden>←</button>
+   <b id="pickTit">Elegí la marca</b>
+   <button type="button" id="pickX">✕</button>
+  </div>
+  <div id="pickMarcas" class="marcas">
+   <button type="button" data-mk="LOEKE">Loeke</button>
+   <button type="button" data-mk="LOKE">Loke</button>
+   <button type="button" data-mk="CHEF">Chef</button>
+   <button type="button" data-mk="">Todas</button>
+  </div>
+  <div id="pickArts" hidden>
+   <input id="buscar" type="search" placeholder="código o nombre" autocomplete="off">
+   <div id="pickList" class="picklist"></div>
+  </div>
+ </div>
+</div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="../supabase-config.js?v=20260905k"></script>
 <script src="../gp2-ui.js?v=20260905a"></script>
@@ -203,6 +256,11 @@ for(var _rid in D.rp)D.rp[_rid].sort(function(a,b){return a.o-b.o;});
 var sel=document.getElementById("art");
 var selMarca=document.getElementById("marca");
 var inpBuscar=document.getElementById("buscar");
+var artBtn=document.getElementById("artBtn"),pick=document.getElementById("pick"),
+    pickMarcas=document.getElementById("pickMarcas"),pickArts=document.getElementById("pickArts"),
+    pickList=document.getElementById("pickList"),pickTit=document.getElementById("pickTit"),
+    pickBack=document.getElementById("pickBack");
+var MKLBL={LOEKE:"Loeke",LOKE:"Loke",CHEF:"Chef","":"Todas"};
 /* busca por codigo o por descripcion, sin acentos ni mayusculas */
 function norm(t){return (t||"").toString().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"");}
 /* El combo se arma por FAMILIA (optgroup) y cada opcion muestra la descripcion del articulo,
@@ -229,10 +287,27 @@ function llenarArticulos(){
   o.textContent=a.cod+"  —  "+(a.d||a.fam||"")+(a.disc?"  (discontinuado)":"");
   grupo.appendChild(o);
  });
- if(!arts.length){sel.innerHTML='<option value="">(ningún artículo con ese filtro)</option>';return false;}
- if(!arts.some(function(a){return String(a.id)===String(prev);}))sel.selectedIndex=0;
- if(prev&&arts.some(function(a){return String(a.id)===String(prev);}))sel.value=prev;
- return true;
+ if(!arts.length)sel.innerHTML='<option value="">(ningún artículo con ese filtro)</option>';
+ else if(prev&&arts.some(function(a){return String(a.id)===String(prev);}))sel.value=prev;
+ pintarLista(arts);
+ return arts.length>0;
+}
+/* La lista del paso 2 del selector: mismas familias y mismo texto que el <select> oculto. */
+function pintarLista(arts){
+ pickList.innerHTML="";
+ if(!arts.length){pickList.innerHTML='<div class="fam">(ningún artículo con ese filtro)</div>';return;}
+ var famAct=null;
+ arts.forEach(function(a){
+  if(a.fam!==famAct){famAct=a.fam;var h=document.createElement("div");h.className="fam";h.textContent=famAct||"Sin familia";pickList.appendChild(h);}
+  var b=document.createElement("button");b.type="button";b.setAttribute("data-id",a.id);
+  b.textContent=a.cod+"  —  "+(a.d||a.fam||"")+(a.disc?"  (discontinuado)":"");
+  if(String(a.id)===String(sel.value))b.className="on";
+  pickList.appendChild(b);
+ });
+}
+function pintarBoton(){
+ var a=null;D.art.forEach(function(x){if(String(x.id)===String(sel.value))a=x;});
+ artBtn.textContent=a?(a.cod+"  \u2014  "+(a.d||a.fam||"")):"Elegí un artículo";
 }
 llenarArticulos();
 
@@ -725,17 +800,32 @@ function ajustarFilas(){
 var _rsz;
 window.addEventListener("resize",function(){clearTimeout(_rsz);_rsz=setTimeout(ajustarFilas,120);});
 
-sel.addEventListener("change",function(){document.getElementById('tallAlt').dataset.aid='';render();});
-function refiltrar(){
- document.getElementById('tallAlt').dataset.aid='';
- if(llenarArticulos())render();
-}
-selMarca.addEventListener("change",refiltrar);
-inpBuscar.addEventListener("input",refiltrar);
+sel.addEventListener("change",function(){document.getElementById('tallAlt').dataset.aid='';pintarBoton();render();});
+/* El articulo se elige en DOS PASOS: primero la marca, despues el articulo. Filtrar
+   (cambiar de marca o escribir en el buscador) NO cambia el articulo elegido: eso pasa
+   solo al tocar una fila de la lista. */
+function pasoMarca(){pickMarcas.hidden=false;pickArts.hidden=true;pickBack.hidden=true;pickTit.textContent="Elegí la marca";}
+function pasoArts(){pickMarcas.hidden=true;pickArts.hidden=false;pickBack.hidden=false;
+ pickTit.textContent=MKLBL[selMarca.value]+" · elegí el artículo";llenarArticulos();}
+function cerrarPicker(){pick.hidden=true;}
+artBtn.addEventListener("click",function(){pick.hidden=false;pasoMarca();});
+document.getElementById("pickX").addEventListener("click",cerrarPicker);
+pickBack.addEventListener("click",pasoMarca);
+pick.addEventListener("click",function(e){if(e.target===pick)cerrarPicker();});
+document.addEventListener("keydown",function(e){if(e.key==="Escape"&&!pick.hidden)cerrarPicker();});
+pickMarcas.addEventListener("click",function(e){
+ var b=e.target.closest("button[data-mk]");if(!b)return;
+ selMarca.value=b.getAttribute("data-mk");inpBuscar.value="";pasoArts();});
+pickList.addEventListener("click",function(e){
+ var b=e.target.closest("button[data-id]");if(!b)return;
+ sel.value=b.getAttribute("data-id");document.getElementById('tallAlt').dataset.aid='';
+ cerrarPicker();pintarBoton();render();});
+inpBuscar.addEventListener("input",function(){llenarArticulos();});
 document.getElementById("uni").addEventListener("input",render);
 document.getElementById("tallAlt").addEventListener("change",render);
 var a501=D.art.find(function(a){return a.cod==="501";});
 sel.value=a501?a501.id:D.art[0].id;
+pintarBoton();
 render();
 }
 async function __boot(){

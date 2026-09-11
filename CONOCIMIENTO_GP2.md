@@ -7555,3 +7555,59 @@ criterio, no como detalle:
   del artículo** (código, descripción, sector, por unidad, total), ordenado por cantidad. Los kg de
   fleje quedan en el badge de cada carril, que es donde se leen por ruta. `flejesTotal` se seguía
   calculando y **no se dibujaba en ningún lado** (el CSS `.flejes-total` existía sin emisor).
+
+### 4bp. LA CAJA SALE DE LA PLANILLA, LA UNI x CAJA DE LOS LISTADOS (2026-09-11)
+
+`[usuario, textual]` **"dale la hoja de cajas manda"** y **"la uni x caja te tenés que fijar del
+listado de artículos que te pasé, tanto de loeke como chef"**. Dos fuentes distintas para dos
+datos que parecían uno solo:
+
+| dato | fuente que manda | dónde vive |
+|---|---|---|
+| qué caja usa el artículo | hoja **"Cajas"** de `db/A_Costos_VIGENTES.xlsx` | `GP2.planilla_fila`, `hoja='Cajas '`, columna **D** |
+| cuántas unidades entran | los **dos listados mayoristas** (columna `UxB`) | `Loekemeyer_articulos_por_familia.xlsx` / `Chef_SRL_listado_por_familia.xlsx` |
+
+**Cómo se sabe que la columna D es la caja** `[dato]`: en la misma fila la columna E trae el
+precio de esa caja y coincide con la lista de precios de cajas en **436 de 439 filas**. No es una
+deducción: es la columna con la que el usuario costea.
+
+**Lo que estaba mal:** GP2 tenía otra caja que la planilla en **63 de los 133** artículos que
+están en las dos (47 %). Migración `caja_de_la_planilla_y_uni_x_caja_de_los_listados`: se pisaron
+52 en `articulo.componente_caja_id`, en la fila de la receta y en los pasos de ruta (entrada y
+salida). Cambia el costo del terminado — una Caja N°16 vale $289,62 y una N°12 $360.
+
+**Las cajas N°15, N°16 y N°27 existían pero no las usaba ningún artículo.** Ahora sí: salen en
+faltantes y en la OC con stock 0.
+
+**TRAMPA:** el código `A8` es la **Caja N°2**, no la "Caja N°8". Los códigos de las cajas son
+posición de estantería y **no** tienen relación con el número de caja. Nunca deducir uno del otro.
+
+**Lo que quedó afuera (11):**
+
+| motivo | artículos |
+|---|---|
+| piden Caja N°8 o N°28, que **no existen como componente** (falta su posición de estantería) | 789, 800, 823, 825, 840, 844, 845, 858, 862 |
+| excepción del usuario: el batidor pera va en la **N°12**, no en la N°6 de la planilla | 544 (LOEKE), 802 (CHEF) |
+
+**`articulo_prov_at.n_caja` queda MUERTO.** `[usuario]` GP2 es la única fuente de caja. Ese campo
+legacy difería de GP2 en 24 artículos, 15 de ellos diciendo "N°12" (huele a default), y apuntaba a
+N°24 y N°4 que ni existen como componente. **No volver a usarlo para asignar una caja.**
+
+**La uni x caja difería en 9, todos Chef** (LOEKE estaba perfecto): 043, 708, 730, 731, 760, 802,
+856, 857, 858. Se corrigió `articulo.articulos_por_caja` **y** la cantidad de la receta, que es
+exactamente `1 / articulos_por_caja`.
+
+### 4bq. El artículo se elige en DOS PASOS: marca y después artículo (2026-09-11)
+
+`[usuario, textual]` **"cuando toco articulo. que me aparezca para seleccionar marca: (loeke,
+chef o loke) y ahi se desplieguen los articulos"**.
+
+En `Programa/Programa.html` el combo plano se reemplazó por un botón que abre un panel:
+**paso 1** las cuatro marcas (Loeke / Loke / Chef / Todas), **paso 2** el buscador y la lista
+agrupada por familia. El `<select id="art">` **sigue existiendo, oculto**: es el modelo que lee el
+resto de la pantalla, así que `render()` y todo lo que cuelga de `sel.value` quedó intacto.
+
+**Regla nueva del panel:** filtrar (cambiar de marca o escribir en el buscador) **NO cambia el
+artículo elegido**; eso pasa sólo al tocar una fila. Antes el filtro movía la selección solo.
+
+Lo cubre `tests/ui/test_programa_marca.js` (20 checks, reescrito para el panel).
