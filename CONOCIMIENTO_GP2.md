@@ -6609,3 +6609,28 @@ hay proveedor fijo por material, hay uno por precio.**
 - Las funciones nuevas quedaron **sin EXECUTE para anon** (nacen públicas por default de Postgres;
   el invariante C lo detectó). Lección: **toda función nueva interna lleva su `revoke` en la misma
   migración.**
+
+### 4au. La OC de materia prima: un solo proveedor, 5 días, el formato del usuario, y Virgilio la recibe (2026-09-11)
+
+`[usuario 2026-09-11, dictado]`:
+- **La OC de un material va a UNO solo: el más barato.** *"No es que le voy a pedir a los tres el
+  mismo material proporcionalmente."* Con `componente.proveedor` = el más barato (4at-ter) y la OC
+  armada por proveedor, ya sale así; no hay reparto.
+- **Los tres siempre tienen stock y entregan rápido, ~5 días desde que se genera la OC** →
+  `proveedor_insumo.dias_entrega = 5` para Indarnyl, Beta y Santa Rosa (la OC propone la fecha).
+- **Formato**: la OC tiene que salir **como las hojas «O.C.» del workbook** y **emitirse sola al
+  generar el pedido**. Lo que dice esa hoja `[dato: hojas O.C. Indarnyl / Beta del workbook]`:
+  membrete doble (**Loekemeyer Hnos. S.R.L**, CUIT 30-51584245-0, Cervantes 2868, Villa Devoto /
+  **Chef SRL**, CUIT 30-68575625-7, Virgilio 2788, Villa Real), RAZÓN SOCIAL + COD PROV,
+  **ENTREGA EN: Virgilio 2788** (el material vive ahí), **«FACTURAR Loekemeyer 85% Chef 15%»**,
+  «ESTE PEDIDO ANULA CUALQUIER PEDIDO ANTERIOR», y **cada material en DOS renglones**: LK (Cod ISIS,
+  «KG a FC» = 85 %) y CH (**otro Cod ISIS, el de Chef** — `componente.codigo_isis_ch`: PP 0675, ABS
+  1085, PS 0635, AI 0625, Ny c/Carga 0815; PE, Nylons virgen/rec y Master Bach no tienen — 15 %),
+  con Fecha Pos Ent y tres pares Fecha Ent / Kg Ent en blanco para anotar las entregas parciales.
+  Construido: `hojaOCMaterial()` en `Compras/OC_GP2.html` v1.22.0, se abre sola al crear una OC
+  cuyos items son todos del sector 14; el % vive en `parametro.oc_facturar_pct_loeke`.
+- **Gestión Virgilio es OTRO repo** (`loekemeyer/Gestion-Virgilio`) y **tiene que recibir esa OC**
+  «como hoy reciben las OC de los talleristas», para que desde ahí carguen lo que están por recibir.
+  **En Virgilio también guardan cajas y cajones de Sector Crudo y Sector Procesado** cuando no
+  entran en Cervantes: es **otro depósito** cuyo stock GP2 tiene que considerar. *(Mapeo del repo
+  en curso; la conexión se diseña con eso.)*

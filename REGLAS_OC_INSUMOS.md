@@ -251,7 +251,10 @@ Faltan proveedor: 8 plásticos (ver abajo), bombillas/resortes 8, remaches 8, fl
   pone `componente.proveedor` = el de orden 1 — corre solo por trigger cuando entra/cambia un
   precio y desde el cron del dólar (`actualizar_dolar_oficial`). La OC (`oc_bundle` / `crear_oc`)
   cotiza con el precio del proveedor ASIGNADO al componente. Rubro propio en OC y en Recepción
-  («Mat. Plástica», en kg). **Máximo = 2,5 meses de consumo en bolsas enteras** (`maximo_origen='fisico'`,
+  («Mat. Plástica», en kg). **La OC de un material va a UN solo proveedor (el más barato), nunca
+  repartida; entregan en ~5 días (`dias_entrega`)**; se imprime con la hoja «O.C.» del usuario
+  (membrete Loekemeyer/Chef, entrega en Virgilio 2788, renglones LK 85 % / CH 15 % con
+  `codigo_isis_ch`) y **se emite sola al generarla** [usuario 2026-09-11]. **Máximo = 2,5 meses de consumo en bolsas enteras** (`maximo_origen='fisico'`,
   los recalculos no lo pisan; el consumo mensual salió del workbook del usuario, PP ~909 kg/mes).
   Tope físico: 20 pallets × 15 bolsas en Virgilio. Las bolsas **se le mandan a los inyectores**
   (`enviar_material_inyector`, desde Inyectores) y **el inyector tiene que tener lo que necesita

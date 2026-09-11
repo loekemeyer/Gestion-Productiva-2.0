@@ -1,6 +1,16 @@
 <!doctype html>
 <html lang="es">
 <head>
+<!-- v1.22.0 (2026-09-11) — OC DE MATERIA PRIMA PLASTICA CON EL FORMATO DEL USUARIO Y EMISION AUTOMATICA.
+     Una OC cuyos items son todos del sector 14 (bolsas de PP/ABS/nylon...) se imprime con la hoja "O.C."
+     del workbook del usuario: membrete doble (Loekemeyer Hnos S.R.L. / Chef SRL con CUIT y direccion),
+     RAZON SOCIAL + COD PROV, ENTREGA EN Virgilio 2788, "FACTURAR Loekemeyer 85% Chef 15%" (parametro
+     oc_facturar_pct_loeke, viaja en el bundle), "ESTE PEDIDO ANULA CUALQUIER PEDIDO ANTERIOR", y cada
+     material en DOS renglones: LK (Cod ISIS, kg x 85%) y CH (Cod ISIS de Chef = componente.codigo_isis_ch,
+     kg x 15%), con Fecha Pos Ent = entrega estimada (proveedor_insumo.dias_entrega = 5) y columnas en
+     blanco para anotar las entregas. Se EMITE SOLA al generar la OC (se abre la hoja para imprimir/mandar).
+     La OC va a UN solo proveedor, el mas barato del material (componente.proveedor lo elige la base), nunca
+     repartida entre los tres [usuario 2026-09-11]. Las demas OC siguen con la hoja de siempre. -->
 <!-- v1.21.0 (2026-09-08) — EL GATILLO DE REPOSICION: EL MINIMO DISPARA, EL MAXIMO DIMENSIONA
      (idea 7273). Hasta aca la pantalla proponia llenar el techo de TODO lo que estuviera un peso
      abajo del maximo: una corrida completa de sugeridos daban ~ARS 367,6 M en 201 lineas, con
@@ -1151,6 +1161,11 @@ $('btnCrear').addEventListener('click', async function(){
     fechaTocada=false; fechaTocadaProv=null;
     await boot();
     mostrarTab('ocs');
+    // Materia prima plastica: la OC se EMITE sola al generarla (se abre la hoja con el formato del
+    // usuario para imprimir / mandar al proveedor) [usuario 2026-09-11: "que se emita automaticamente
+    // desde gestion productiva cuando genero el pedido"].
+    var creada = (D.ocs||[]).filter(function(x){ return x.id===r.data.oc_id; })[0];
+    if (creada && esOcMaterial(creada)) imprimirOC(creada.id);
     // OC gemela al proveedor de la materia prima de un PS hibrido (Charcas -> Altrak, Eclipse ->
     // Aperam, o el que se configure en proveedor_servicio): crear_oc la crea y la devuelve.
     var gem = r.data && r.data.oc_gemela;
@@ -1217,6 +1232,71 @@ function pintarOcs(){
   });
 }
 
+/* ── OC de MATERIA PRIMA PLASTICA: el formato del usuario (hojas "O.C." del workbook) ──
+   Una OC es "de material" cuando todos sus items son del sector 14. Se imprime con membrete doble
+   (las dos empresas facturan: Loekemeyer 85 % / Chef 15 %, parametro oc_facturar_pct_loeke), entrega
+   en Virgilio 2788 (ahi vive el material), y cada material en dos renglones LK / CH con su Cod ISIS
+   de cada empresa. Los datos de las empresas son fijos de la casa (los mismos de la hoja). */
+var SECTOR_MATERIA_PRIMA = 14;
+var EMPRESAS = {
+  LK: { nombre:'Loekemeyer Hnos. S.R.L', cuit:'30-51584245-0', dir:'Cervantes 2868', loc:'Villa Devoto, CABA' },
+  CH: { nombre:'Chef SRL',               cuit:'30-68575625-7', dir:'Virgilio 2788',  loc:'Villa Real, CABA' }
+};
+function esOcMaterial(o){
+  var its = o && o.items || [];
+  return its.length > 0 && its.every(function(it){ return Number(it.sector_id) === SECTOR_MATERIA_PRIMA; });
+}
+function hojaOCMaterial(o){
+  var pctLK = Number(D.facturar_pct_loeke != null ? D.facturar_pct_loeke : 85);
+  var pctCH = 100 - pctLK;
+  var fPed = new Date(o.creado_en).toLocaleDateString('es-AR');
+  var fEnt = vFechaEnt(o) ? fmtFecha(vFechaEnt(o)) : '';
+  var css =
+    '@page{size:A4 landscape;margin:10mm}*{box-sizing:border-box}'+
+    'body{font-family:Arial,Helvetica,sans-serif;color:#111;margin:0;padding:18px;font-size:13px;background:#fff}'+
+    '.hoja{max-width:1080px;margin:0 auto}'+
+    '.tit{display:flex;justify-content:space-between;align-items:baseline;border-bottom:3px solid #111;padding-bottom:6px}'+
+    '.tit h1{margin:0;font-size:22px;letter-spacing:1px}.tit .fp{font-size:14px;font-weight:700}'+
+    '.emps{display:flex;gap:24px;margin:12px 0}.emp{flex:1;border:1px solid #bbb;border-radius:6px;padding:8px 10px}'+
+    '.emp b{display:block;font-size:15px;margin-bottom:4px}.emp div{font-size:12px;line-height:1.5}'+
+    '.prov{display:flex;gap:24px;flex-wrap:wrap;margin:6px 0;font-size:14px}.prov span b{margin-right:6px}'+
+    '.avisos{display:flex;justify-content:space-between;gap:20px;margin:10px 0;font-weight:800;font-size:13px}'+
+    'table{width:100%;border-collapse:collapse;font-size:12px;margin-top:8px}'+
+    'th{background:#ececec;text-align:left;padding:6px;border:1px solid #999;font-size:10px;text-transform:uppercase}'+
+    'td{padding:6px;border:1px solid #bbb;vertical-align:middle;height:30px}'+
+    'td.num{text-align:right;white-space:nowrap}td.emp{font-weight:800;text-align:center;width:44px}'+
+    'tr.ch td{background:#fafafa;color:#333}td.cod{font-weight:800}'+
+    '.pie{margin-top:18px;border-top:1px solid #ddd;padding-top:6px;color:#888;font-size:11px;display:flex;justify-content:space-between}'+
+    '@media print{body{padding:0}tr{page-break-inside:avoid}thead{display:table-header-group}}';
+  var n = 0;
+  var filas = (o.items||[]).map(function(it){
+    n++;
+    var kg = Number(it.cantidad)||0;
+    var kgLK = Math.round(kg * pctLK / 100 * 100) / 100, kgCH = Math.round((kg - kgLK) * 100) / 100;
+    var vacias = '<td></td><td></td><td></td><td></td><td></td><td></td>';   // Fecha Ent / Kg Ent x3: se anotan a mano
+    return '<tr class="lk"><td class="emp">LK</td><td class="cod">'+esc(it.codigo)+'</td><td class="num">'+n+'</td>'+
+             '<td>'+esc(it.descripcion||'')+'</td><td class="num">'+fmt(kg,2)+'</td><td class="emp">LK</td>'+
+             '<td class="num">'+fmt(kgLK,2)+'</td><td>'+esc(fEnt)+'</td>'+vacias+'</tr>'+
+           '<tr class="ch"><td class="emp">CH</td><td class="cod">'+esc(it.codigo_isis_ch||'—')+'</td><td></td>'+
+             '<td></td><td></td><td class="emp">CH</td><td class="num">'+fmt(kgCH,2)+'</td><td></td>'+vacias+'</tr>';
+  }).join('');
+  var emp = function(e){ return '<div class="emp"><b>'+esc(e.nombre)+'</b><div>CUIT: '+esc(e.cuit)+'<br>DIRECCION: '+esc(e.dir)+'<br>LOCALIDAD: '+esc(e.loc)+'</div></div>'; };
+  return '<!doctype html><html lang="es"><head><meta charset="utf-8"><title>OC N° '+o.numero+' · '+esc(o.proveedor||'')+'</title><style>'+css+'</style></head><body><div class="hoja">'+
+    '<div class="tit"><h1>ORDEN DE COMPRA N° '+o.numero+'</h1><div class="fp">FECHA PEDIDO: '+fPed+'</div></div>'+
+    '<div class="emps">'+emp(EMPRESAS.LK)+emp(EMPRESAS.CH)+'</div>'+
+    '<div class="prov"><span><b>RAZON SOCIAL:</b>'+esc(String(o.proveedor||'').toUpperCase())+'</span>'+
+      '<span><b>COD PROV:</b>'+esc(o.cod_prov||'—')+'</span>'+
+      '<span><b>ENTREGA EN:</b>'+esc(EMPRESAS.CH.dir)+'</span>'+
+      (fEnt?('<span><b>ENTREGA ESTIMADA:</b>'+esc(fEnt)+'</span>'):'')+'</div>'+
+    '<div class="avisos"><span>FACTURAR Loekemeyer '+fmt(pctLK)+'% · Chef '+fmt(pctCH)+'%</span><span>ESTE PEDIDO ANULA CUALQUIER PEDIDO ANTERIOR</span></div>'+
+    '<table><thead><tr><th>Empresa</th><th>Cód ISIS</th><th>N° Ord</th><th>Descripción Material</th><th>Pedido KG</th><th>Emp</th><th>KG a FC</th>'+
+    '<th>Fecha Pos Ent</th><th>Fecha Ent</th><th>Kg Ent</th><th>Fecha Ent</th><th>Kg Ent</th><th>Fecha Ent</th><th>Kg Ent</th></tr></thead><tbody>'+
+    (filas||'<tr><td colspan="14">Sin ítems.</td></tr>')+'</tbody></table>'+
+    (o.nota?('<div style="margin-top:10px;font-size:12px"><b>Nota:</b> '+esc(o.nota)+'</div>'):'')+
+    '<div class="pie"><span>Loekemeyer · Gestión Productiva 2.0 · Materia prima plástica</span><span>Impreso el '+new Date().toLocaleDateString('es-AR')+'</span></div>'+
+    '</div></body></html>';
+}
+
 // Hoja limpia para mandar/imprimir la OC al proveedor.
 // Membrete + bloque de datos (con la ENTREGA ESTIMADA destacada) + tabla + total + firmas.
 function imprimirOC(ocId){
@@ -1224,6 +1304,12 @@ function imprimirOC(ocId){
   if(!o) return;
   var w=window.open('','_blank');
   if(!w){ alert('El navegador bloqueó la ventana de impresión.'); return; }
+  if(esOcMaterial(o)){
+    w.document.write(hojaOCMaterial(o));
+    w.document.close(); w.focus();
+    setTimeout(function(){ w.print(); }, 250);
+    return;
+  }
   var entrega = vFechaEnt(o) ? fmtFecha(vFechaEnt(o)) : '';
   var emision = new Date(o.creado_en).toLocaleDateString('es-AR');
   var totLinea = (o.total_usd>0||o.total_ars>0) ? fmtTotalMon(Number(o.total_usd)||0,Number(o.total_ars)||0) : '';

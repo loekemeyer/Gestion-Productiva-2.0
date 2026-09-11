@@ -3552,6 +3552,7 @@ select jsonb_build_object(
   'pliego_uni_x_paquete', (select valor from parametro where clave='pliego_uni_x_paquete'),
   'paq', (select valor from parametro where clave='carton_uni_x_paquete'),
   'charcas_kg_x_paquete', (select valor from parametro where clave='charcas_kg_x_paquete'),
+  'facturar_pct_loeke', (select valor from parametro where clave='oc_facturar_pct_loeke'),
   'proveedores', (select coalesce(jsonb_agg(jsonb_build_object(
       'nombre',pi.nombre,'rubro',pi.rubro,'modo_control',pi.modo_control,
       'cod_prov',pi.cod_prov,'activo',pi.activo,'dias_entrega',pi.dias_entrega,
@@ -3562,6 +3563,7 @@ select jsonb_build_object(
       'id',o.id,'numero',o.numero,'proveedor',o.proveedor,'rubro',o.rubro,'estado',o.estado,
       'nota',o.nota,'creado_en',o.creado_en,
       'fecha_entrega_estimada',o.fecha_entrega_estimada,
+      'cod_prov',(select pi2.cod_prov from proveedor_insumo pi2 where pi2.nombre = o.proveedor),
       'total_usd',(select coalesce(sum(oi.cantidad*oi.precio_uni),0) from orden_compra_item oi
                    where oi.oc_id=o.id and oi.moneda='USD'),
       'total_ars',(select coalesce(sum(oi.cantidad*oi.precio_uni),0) from orden_compra_item oi
@@ -3570,6 +3572,7 @@ select jsonb_build_object(
                  'codigo',c2.codigo,'descripcion',c2.descripcion,'cantidad',oi.cantidad,
                  'unidad',oi.unidad,'recibido',oi.recibido,
                  'precio_uni',oi.precio_uni,'moneda',oi.moneda,
+                 'sector_id',c2.sector_id,'codigo_isis_ch',c2.codigo_isis_ch,
                  'subtotal',case when oi.precio_uni is null then null else round(oi.cantidad*oi.precio_uni,2) end
                ) order by c2.codigo),'[]'::jsonb)
                from orden_compra_item oi join componente c2 on c2.id=oi.componente_id
