@@ -7147,3 +7147,46 @@ cruzando el **ancho del fleje** contra el tamaño de la pieza que sale.
    es texto de arrastre de la planilla, sin confirmar.
 2. **Los pesos no cierran**: Z5 0,0587 + Z6 0,0280 = **0,0867 kg**, y Z36 armado pesa **0,1192 kg**
    → faltan **32,50 g** sin explicar (¿el remache? ¿un peso mal cargado?). Pendiente del usuario.
+
+### 4be. Las 9 maderas de Eduardo Pintos, y el molde para todo lo comprado terminado (2026-09-11)
+
+El usuario devolvió el listado de faltantes con **46 filas visibles** (el resto filtrado) y una
+columna propia con el destino de cada una: `prov at` (30), `disc` (3), en blanco (12, que son las que
+él ya cargó) y una con *"chequear"*. Pedido: *"necesito que modelemos esos articulos que no estan en
+el programa"*.
+
+**El molde ya existía y es el de las ñoqueras** (rutas 764-772) y el de los palos de amasar (§4as):
+`insumo` (la pieza comprada entra al **Sector Garage**) → `tallerista` **Fábrica** (envasa y saca el
+terminado) → `virgilio`. Las ñoqueras suman además una ruta para el **cartón** y otra para la
+**caja**; los palos y estas maderas todavía no las tienen.
+
+**Migración `alta_maderas_pintos_208_220_221_225_901_902_911_920_922`**: 9 artículos, 6 componentes
+de Garage (`GRJ25`–`GRJ30`), 9 rutas de 3 pasos. Invariantes en 0.
+
+**Una cuchara de cada medida es UN componente, compartido por el gemelo LOEKE y el CHEF**
+`[deducido del precedente GRJ12 "Ñoquera Madera", que usan el 229 y el 909]`:
+
+| Componente | Lo usan |
+|---|---|
+| `GRJ25` Cuchara Madera 25 Cm | 922 |
+| `GRJ26` Cuchara Madera 30 Cm | 911 |
+| `GRJ27` Cuchara Madera 35 Cm | 225 (LOEKE) + 901 (CHEF) |
+| `GRJ28` Cuchara Madera 40 Cm | 220 (LOEKE) + 920 (CHEF) |
+| `GRJ29` Cuchara Madera 45 Cm | 221 (LOEKE) + 902 (CHEF) |
+| `GRJ30` Cucharita 13cm Azucarera Madera | 208 |
+
+Si los gemelos LOEKE y CHEF fueran cucharas distintas, esto hay que partirlo. **Confirmarlo.**
+
+**Por qué sólo 9 de las 30 `prov at`:** son las que **Pintos provee en exclusiva**. Los otros 21
+están frenados por dos cosas concretas:
+
+1. **Seis códigos tienen más de un proveedor AT** y no se sabe quién los hace: `222` y `910` (Bate
+   Bife) entre Pintos y Maspoli; `223` y `224` (Cuchara 25 y 30) entre Pintos y Cabral; `246` y `900`
+   (Prensa Matambre) entre Maspoli y Cabral. `GRJ25` y `GRJ26` ya existen y los esperan.
+2. **`Lopez Jose`, `Carriero`, `The Plast`, `Paternal Goma`, `Maspoli` y `Cabral` NO existen como
+   `proveedor_insumo`** — hoy son sólo `proveedor_at`. Sin esa alta no se les puede colgar la pieza
+   comprada. Los que sí existen: Eduardo Pintos, Melinox, Pettofrezza Rafael, Tierra Nativa SA.
+
+Los 3 marcados `disc` (852 Pinza De Hielo, 848 Corta Torta Plástica, 338 Espátula Lisa) **no se
+modelan**. El `575` Tapón De Vino lleva la nota del usuario *"se que hay una parte para 1/2 items que
+damos nosotros"*: los 5 tapones (575, 577, 579, 816, 817) quedan a la espera de esa aclaración.
