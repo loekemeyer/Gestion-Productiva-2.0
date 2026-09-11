@@ -246,6 +246,36 @@ Los descuadres REALES de receta contra ruta son 7 articulos y estan en la idea *
 — es el shape de `movimientos_bundle`, el mas completo. Los tres bundles viejos que
 difieren (programa, faltantes, despiece) quedan como estan hasta que se los toque.
 
+## El mismo concepto con dos nombres (verificado 2026-09-11) — MIRAR ANTES DE ESCRIBIR SQL
+
+No se renombro nada: `movimiento.comp_id` toca el ledger, 30+ funciones y `gp2-motor.js`, y el
+costo supera al beneficio (la auditoria del 2026-09-04 decidio igual con `produccion.dia/mes`).
+Lo que sirve es tener la tabla a mano y no perder media hora escribiendo
+`movimiento.componente_id`, que no existe:
+
+| Concepto | Como se llama en cada lado |
+|---|---|
+| id de componente | `componente_id` (12 tablas) · **`comp_id`** (`movimiento`) · **`comp_entrada_id` / `comp_salida_id`** (`ruta_paso`) · `comp_transformado_id` |
+| id de ubicacion | `ubicacion_id` (`inventario`) · **`ubic_origen_id` / `ubic_destino_id`** (`movimiento`) · `ubicacion_stock_id` (`tallerista`) |
+| id de proveedor de servicio | `proveedor_servicio_id` (3 tablas) · **`proveedor_id`** (`ruta_paso`) |
+| numero de caja | `n_caja` **integer** (`articulo_prov_at`) · `n_caja` **text** (`uni_x_articulo_x_caja`, con 4 filas en `'P'`) |
+| unidades por caja | `articulo.articulos_por_caja` · `uni_x_articulo_x_caja.uni_x_caja` · `componente.uni_x_cajon` |
+| marca de tiempo | **16 nombres**: `actualizado, actualizado_en, aplicado_en, cerrado_en, controlado_en, copiado_en, creado_en, created_at, en, fecha, obtenido_en, origen_created_at, resuelto_en, subido_en, ts_fin, ts_inicio` |
+
+**El unico con riesgo de CALCULO, no de prolijidad**: la unidad se escribe de DOS formas.
+`componente.unidad_medida` usa `kg` / **`unidad`**, mientras `movimiento.unidad_origen` y
+`.unidad_destino`, `orden_compra_item.unidad` y `recepcion_insumo.unidad` usan `kg` / **`uni`**
+(4 CHECK identicos). `fn_movimiento_calc` traduce en runtime. **El que compare
+`unidad_medida` contra `'uni'` no matchea nunca y cae al camino de kg.** Unificar toca 733 de
+800 filas, el CHECK, `fn_movimiento_calc`, `to_canonical` y los bundles que exportan
+`comp[].um`: no es un commit suelto. Las columnas ya lo dicen en su `comment`.
+
+Y los dos enum polimorficos que se solapan: `ubicacion.tipo` tiene 8 valores
+(`sector, tallerista, proveedor_servicio, proveedor_at, virgilio, analisis, inyector,
+virgilio_sector`) y `contraparte_alias.tipo` tiene 4 (`tallerista, proveedor_at,
+proveedor_servicio, interno`). Coinciden en 3 de 4 y **no hay una fuente comun**: son dos CHECK
+escritos a mano.
+
 ## Nombres REALES de las tablas (verificado 2026-08-28)
 
 Los bundles serializan con nombres cortos; **las tablas usan otros**. Al escribir
