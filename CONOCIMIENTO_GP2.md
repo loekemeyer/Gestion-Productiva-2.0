@@ -7446,3 +7446,32 @@ sí es propio y sale de la planilla (`T3A`, tipo T.Loke).
 Dos son imposibles con lo que hay (`070` y `591`, sin cartón ni caja), cinco esperan el código de
 garage y la caja (`441`, `255`, `256`, `555`, `764`) y tres los dejó pendientes el usuario (`717`,
 `537`, `567`).
+
+### 4bm. Los 5 del garage: 441, 255, 256, 555 y 764 (2026-09-11)
+
+`[usuario 2026-09-11]`. Tres decisiones:
+- **Los códigos GRJ se numeran CONTINUOS**, sin huecos: *"si es grj13 el ultimo, ponele grj14"*. El
+  último era `GRJ24`, así que van **`GRJ25`–`GRJ29`**.
+- **441, 255 y 256** los entrega **Cimarrón** en el garage y los envasa **Fábrica**.
+  **555 y 764** los envasa **Blist-Pack**.
+- **Cajas**: los cepillos limpia bombilla van en la **Caja N°2** (`A8`); los mates y el colador de
+  pasta, en la **Caja N°10** (`A4`). **Ninguno lleva cartón.**
+
+| Artículo | Pieza | Entrega | Envasa | Caja |
+|---|---|---|---|---|
+| 441 Colador de Pasta Plástico | `GRJ25` | Cimarrón | Fábrica | A4 |
+| 255 Mate Inox Térmico | `GRJ26` | Cimarrón | Fábrica | A4 |
+| 256 Mate Madera Cerámica | `GRJ27` | Cimarrón | Fábrica | A4 |
+| 555 Cepillo Limpia Bombilla (LK) | `GRJ28` | — | Blist-Pack | A8 |
+| 764 Cepillo Limpia Bombilla (CHEF) | `GRJ29` | — | Blist-Pack | A8 |
+
+**`Blist-Pack SA` no existía como tallerista y hubo que crearlo.** Ya estaba como *proveedor de
+insumo* (hace el pliego de las bombillas, §2f) — es la misma empresa con **dos roles**, igual que
+pasa con Pettofrezza, Maspoli y Tierra Nativa. Se le puso el mismo nombre para que se vea que son
+la misma.
+
+**Falta**: a quién se le compran los cepillos (`GRJ28`/`GRJ29` quedaron **sin proveedor**); el
+usuario dijo *"se compra"* pero no de quién.
+
+**Backlog de los listados (sin los E)**: quedan **5**. `070` y `591` siguen sin cartón ni caja, y
+`717`, `537` y `567` los dejó pendientes el usuario. GP2 va por **187 artículos**.
