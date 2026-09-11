@@ -6913,20 +6913,29 @@ Auditoría de las 41 hojas del `Conteo_y_Pedido_Sector_Plastico_31826.xls`: adem
   500), y hay dos juegos de consumo distintos dentro del mismo archivo (PP 1.071 con el mango 505
   duplicado vs 868 sin él).
 
-### 4bb. Carlos Aguirre = Alex Escalante: el mismo tallerista está partido en dos en GP2 (2026-09-11)
+### 4bb. Los DOS Carlos: "Carlos" (= Carlos E, factura como Alex) y Carlos Aguirre (2026-09-11)
 
-`[usuario 2026-09-11: "Carlos=alex"]`, contestando quién arma el 395 (la tarifa estaba en el bloque de
-Alex y el despiece decía Carlos). **Son el mismo**, y eso destapa un problema de datos:
+`[usuario 2026-09-11, textual]`: *"Carlos Aguirre no es «Carlos». Carlos puede ser Carlos E, que factura
+como Alex. Carlos Aguirre es el que factura lo que entrega en Virgilio de la mercadería que le damos a
+Pedernera"*. **Son dos contrapartes distintas y es una trampa fácil de pisar** (la pisó esta sesión al dar
+de alta el 395):
 
-- GP2 tiene **dos talleristas vivos**: `2 Alex Escalante` (73 pasos de ruta, 7 tarifas, 12 movimientos,
-  1 componente con stock, **sin alias**) y `9 Carlos Aguirre` (36 pasos, 7 tarifas, 30 movimientos, 8 con
-  stock, alias «CARLOS» y «AGUIRRE CARLOS RODOLFO», y `ubicacion_stock_id = 18` — comparte depósito con
-  Pedernera).
-- **El vecino conoce sólo a «Carlos»**: en `public."Articulos Virgilio X Tallerista"` no existe Alex ni
-  Escalante `[dato]`. En la planilla de costos, en cambio, el bloque es **4175 - Alex Escalante**.
-- **Hay 4 artículos cargados en los dos** (115, 544, 580, 802) y tarifas repetidas al mismo precio
-  (580 «Mini Batidor Pera ARMADO» de Carlos = GRJ10A de Alex, los dos $51,807; 500 y GRJ7 igual).
-  Mientras estén partidos, **el stock del taller vive en dos ubicaciones y el trazado lo cuenta doble**.
-- **Pendiente de decisión del usuario**: unificar en `9 Carlos Aguirre` (el que tiene los alias, el
-  espejo de Virgilio y el nombre que usa el vecino) moviendo los 73 pasos, las 12 movimientos, el stock y
-  las tarifas de Alex, borrando lo duplicado y desactivando `2`. Es cirugía, no se hace sola.
+- **«Carlos» en el despiece del vecino = Carlos E**, y **factura como `Alex Escalante` (tallerista 2)**.
+  Por eso la planilla de costos tiene sus tarifas en el bloque **«4175 - Alex Escalante»** aunque el
+  despiece diga Carlos. En el vecino, «Carlos» tiene 39 artículos (248, 307, 332-338, 395, 509, 510, 515,
+  052, 534, 535, 547, 580, 613, 615, 630-637, 709, 710, 818, 908, A10, A15, C10, GRJ7/9/10, V9).
+- **`Carlos Aguirre` (tallerista 9) es otro**: es quien **factura lo que se entrega en Virgilio de la
+  mercadería que le damos a Pedernera** (el PS 6 «Pedernera Ilario», cromado). Por eso comparte con
+  Pedernera la **ubicación 18** (`tallerista.ubicacion_stock_id = 18`) — eso no era un parche, es el
+  modelo correcto. Sus trabajos en GP2 son envasados: 115, 544, 560, 800, 802.
+- **Regla para el futuro**: si el despiece del vecino dice «Carlos», en GP2 va **Alex Escalante**. Carlos
+  Aguirre sólo aparece en lo que viene de Pedernera.
+- **Corregido**: el 395 se había dado de alta con Carlos Aguirre por leer «Carlos» en el despiece; sus 4
+  rutas y la tarifa de $39,25 pasaron a **Alex Escalante**, que es de quien es la tarifa en la planilla.
+- **Dos cosas quedan sospechadas, a confirmar con el usuario**:
+  1. El alias **`CARLOS` → tallerista 9** (`contraparte_alias`): si «Carlos» es Carlos E, ese alias
+     debería apuntar a Alex Escalante. Hay que ver con qué nombre llegan las entregas desde Virgilio
+     (no existe alias «ALEX» ni «ESCALANTE»).
+  2. El artículo **580** está en la lista de «Carlos» del vecino **y** tiene ruta con Carlos Aguirre en
+     GP2, con tarifas gemelas al mismo precio (Alex «GRJ10A Mini Batidor Pera Armado» $51,807 y Carlos
+     Aguirre «580 Mini Batidor Pera ARMADO (entrega en Garage)» $51,807). Una de las dos sobra.
