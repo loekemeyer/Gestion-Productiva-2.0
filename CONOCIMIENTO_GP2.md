@@ -6972,10 +6972,26 @@ Auditoría de las 41 hojas del `Conteo_y_Pedido_Sector_Plastico_31826.xls`: adem
   **No se carga sobre lo que no se compra**: `oc_bundle` filtra `estado_compra is null`, así que los
   `fabricacion` (`PC1A`, `PC1B`, `PA10`, `PA13`, `PA18`, `PA4`…) quedan afuera — el mínimo es del que
   inyecta, y a esos los hacemos o los cala Ester.
-  **Ocho códigos del Excel no existen en GP2** `[dato, pendiente]`: `PA15` Capuchón ⌀10, `PA16` Mangos ⌀10
-  LK, `PB1` Cilindro Corta Queso, `PB8` Mango Sacacorcho Plást (581), `PEP6` Cabo Madera 525, `CP7` Mangos
-  Corta Queso, `IP4` Clavo 513, `HP2` Inser. Neg. Cuch. y Pala. O son piezas que GP2 todavía no modela o
-  son códigos viejos del Excel; **preguntar antes de darlas de alta**.
+  **Los códigos del Excel que GP2 no reconocía — RESUELTOS el 2026-09-11** `[usuario]`. Sirve de mapa
+  para la próxima vez que aparezca un código raro del Excel de plásticos:
+
+  | Excel | Qué resultó ser |
+  |---|---|
+  | `PA15` Capuchón ⌀10 | **Discontinuo** — regla del usuario: *"si en Excel consumo = 0, discontinuo"*, y su consumo es 0 |
+  | `PA16` Mangos ⌀10 LK | **Discontinuo** — ídem, consumo 0 |
+  | `PB1` Cilindro Corta Queso | **Discontinuo** `[usuario]` (ojo: su consumo en el Excel es 8.496, o sea el dato del Excel está vivo y la pieza no) |
+  | `PEP6` Cabo Madera 525 | **Discontinuo** `[usuario]` |
+  | `PB7` Inser. Neg. Batidor | **ACTIVO** `[usuario: "Pb7 activo, mañana lo vemos"]` — está cargado sobre `PB8B` («Inser. Neg. Batidor Calado», mismo proveedor y mismas 500 por bolsa) por equivalencia de descripción; **el mapeo queda a confirmar** |
+  | `PB8` Mango Sacacorcho (581) | **= `PB8A`** de GP2 («Mgo Sacac Plast») `[usuario: "Pb8 es igual a Pb8a"]` — mínimo 5.000 cargado |
+  | `IP4` Clavo 513 | **El 513 usa el clavo 505** `[usuario]`. GP2 **ya lo tenía bien**: la ruta «Insumo D9 → Art 513» va `PCP3` (Clavo 505) → niquelado → `D9` → 513. No hay pieza nueva |
+  | `CP7` Mangos Corta Queso | **Pendiente** — Planify 3092 (Nazareno) |
+  | `HP2` Inser. Neg. Cuch. y Pala | **Pendiente** — Planify 3092 (Nazareno) |
+
+  **Por qué `CP7` y `HP2` no se pudieron cerrar con la regla del consumo** `[dato]`: sus celdas de consumo
+  **no traen un número, traen `#REF!`** (código de error 23 de xlrd — la fórmula está rota; son dos de las
+  71 celdas con error de la hoja «Pedido 31-08»). Cuidado al leer esa hoja con un script: **una celda de
+  error devuelve un entero chico que parece un consumo bajo**. Acá `#REF!` se leía como «23».
+  **Regla que quedó** `[usuario 2026-09-11]`: **si en el Excel el consumo es 0, la pieza está discontinua.**
 - **Lo que quedó sin usar, a propósito**: corrida mínima de inyección (`Min Iny`), bocas por matriz, y los
   `cod_prov` de los inyectores
   (Pat Bet 797, Pettofrezza 1895, Kollplast 4465, JL Matricería 2661, Maspoli 2339…). Están en el archivo
