@@ -7316,3 +7316,42 @@ la familia de pedido de la OC (formato + marca + categoría), así que moverla p
 **57 cartones nombran un artículo que GP2 todavía no tiene** (`Cartón 026`, `Cartón 220`…): no son
 error, son el backlog de artículos sin modelar; la regla no se les puede aplicar hasta que exista el
 artículo.
+
+### 4bi. Los gemelos Chef de 311, 312, 395 y 059 — y el código real de sus cartones (2026-09-11)
+
+`[usuario 2026-09-11]`, y **corrige su propia anotación del Excel**, que decía 856 = 311 y 857 = 312:
+
+| Chef | Gemelo LK | Qué cambia | Arma |
+|---|---|---|---|
+| **856** Pala De Torta | **312** | — | **Martín Cornejo** |
+| **857** Cuchillo De Torta | **311** | — | **Martín Cornejo** |
+| **709** Descorazonador | **395** | — | **Carlos Aguirre** (el 395 lo arma Alex Escalante) |
+| **717** Cuchillo De Untar Acrílico x4 | **059** | — | sin definir |
+
+Dicho textual: *"La parte del metal es la misma, pero el mango y el capuchón se reemplazan en chef por
+el mango de chef y el inserto espátula"*. O sea que en la receta Chef se cambian:
+- el **mango** (`PA17` "Mangos Cuch y P Torta" en 311/312, `PC10` "Mango LK Espatula" en 395)
+- y el **capuchón** (`PA13`/`PA18`, que además pasan por la serigrafía de Hernández Julio)
+
+por **mango de Chef** + **inserto espátula**. `[SIN CONFIRMAR cuáles son]`: los únicos candidatos en la
+base son **`PA19` "Mangos Chef"** y **`PC16` "Inserto Chef"** (los dos de Pat Bet Plast), pero
+**ninguno se llama "inserto espátula"**, así que no se cargó nada. La parte de metal sí está y se
+comparte: `Z21` "Cuchillo Torta CH/LK" (ya venía nombrada CH/LK), `Z22` "Pala de Torta" y el `1686`
+que corta Eclipse desde la chapa 430.
+
+**LOS CARTONES DE 311, 312 Y 395 ESTABAN CON UN CÓDIGO INVENTADO.** Se habían cargado como
+`CCG1A`/`CCG1B`/`CCG1C`, que no existen en la planilla. El código real es la posición del Conteo:
+
+| Cartón | Era | Es | Formato |
+|---|---|---|---|
+| Cartón 311 | CCG1A | **F2C** | Huevo |
+| Cartón 312 | CCG1B | **F3A** | Huevo |
+| Cartón 395 | CCG1C | **G1A** | C |
+
+Renombrar es seguro: `componente.codigo` no es FK de nada, las rutas y recetas apuntan por id.
+Migraciones `carton_311_312_395_codigo_real_de_la_planilla` y `carton_311_formato_huevo`. **Con esto
+no queda ningún cartón sin formato en toda la base.**
+
+**Los cartones de los gemelos Chef ya están en la planilla**: `O3D` (856) y `O3B` (857), los dos
+**Huevo**. El del **709 no tiene posición** (la celda está vacía) aunque sí tipo (**T.Loke**), y el
+**717 y el 059 no figuran** — el `CART059` que existe en GP2 también es un código inventado.
