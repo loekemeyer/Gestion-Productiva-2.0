@@ -1,7 +1,7 @@
 -- =====================================================================
--- VISTAS del schema GP2 (pg_get_viewdef, exacto) — export automatico 2026-09-05 desde Supabase (hrxfctzncixxqmpfhskv)
+-- VISTAS del schema GP2 (pg_get_viewdef, exacto) — export automatico 2026-09-11 desde Supabase (hrxfctzncixxqmpfhskv)
 -- Respaldo/referencia. La fuente de verdad es la base; regenerar al cambiar el schema.
--- 15 vistas. Orden de creacion: las que dependen de otra van despues.
+-- 18 vistas. Orden de creacion: las que dependen de otra van despues.
 -- =====================================================================
 
 -- ---------- v_consumo_componente ----------
@@ -196,8 +196,10 @@ create or replace view "GP2".v_costo_componente as
                     ELSE 'ARS'::text
                 END AS moneda
            FROM "GP2".precio_proveedor
+             JOIN "GP2".componente cc9 ON cc9.id = precio_proveedor.componente_id
+             LEFT JOIN "GP2".proveedor_insumo pi9 ON pi9.nombre = cc9.proveedor
           WHERE precio_proveedor.componente_id IS NOT NULL AND precio_proveedor.precio IS NOT NULL
-          ORDER BY precio_proveedor.componente_id, precio_proveedor.fecha_lista DESC NULLS LAST, precio_proveedor.id DESC
+          ORDER BY precio_proveedor.componente_id, (pi9.cod_prov IS NOT NULL AND precio_proveedor.cod_prov = pi9.cod_prov) DESC, precio_proveedor.fecha_lista DESC NULLS LAST, precio_proveedor.id DESC
         ), comprado AS (
          SELECT c_1.id,
             c_1.sector_id,
@@ -288,11 +290,7 @@ create or replace view "GP2".v_costo_componente as
                     WHEN m.tiempo_unidad = 'kg'::text THEN m.tiempo_historico * cm.kg_x_uni
                     ELSE m.tiempo_historico
                 END), 0::numeric) AS segundos,
-            -- 2026-09-11: el CERO tambien es "sin tiempo". Hay 19 matrices en 0 (mas 1 en null) y son
-            -- cortes y estampados reales en balancin o alimentador: ninguno tarda 0 segundos. Contando
-            -- solo el NULL, 55 componentes decian "faltan_tiempos = 0" con la mano de obra en $0.
-            -- Los ceros NO se tocan en `matriz`: registrar_evento_prod los usa para el premio.
-            count(*) FILTER (WHERE COALESCE(m.tiempo_historico, 0) <= 0) AS sin_tiempo
+            count(*) FILTER (WHERE COALESCE(m.tiempo_historico, 0::numeric) <= 0::numeric) AS sin_tiempo
            FROM ( SELECT wd.comp_id,
                     wd.matriz_id,
                     max(wd.sal) AS sal
@@ -364,28 +362,26 @@ create or replace view "GP2".v_costo_componente as
           WHERE x.art_id IS NOT NULL
           GROUP BY x.art_id, x.insumo_id
         ), insumox AS (
-         -- 2026-09-11: el insumo que ADEMAS entra a la caminata de `edges` ya lo cuenta `mat` (antes
-         -- se sumaba en los dos lados: art 312, 1.217,48 x 2). Pero `mat` lo cuenta UNA sola vez y no
-         -- mira `ruta_paso.cantidad`, asi que excluirlo del todo dejaba los de cantidad > 1 cobrados
-         -- de menos (BOM13 x2 y BOM14 x2 en el 550 y el 760: -$51,25 cada uno). Aca se le suma lo que
-         -- FALTA, (cantidad - 1): con cantidad = 1 suma 0. Que `mat` propague la cantidad es la idea
-         -- 7269 y es cirugia del motor — la decide el usuario.
          SELECT y.art_id AS comp_id,
             COALESCE(sum(
-                CASE WHEN EXISTS (SELECT 1 FROM edges e WHERE e.ent = y.insumo_id)
-                     THEN GREATEST(y.cantidad - 1, 0) * pc.precio
-                     ELSE y.cantidad * pc.precio END
-              ) FILTER (WHERE pc.moneda = 'USD'::text), 0::numeric) AS usd,
+                CASE
+                    WHEN (EXISTS ( SELECT 1
+                       FROM edges e
+                      WHERE e.ent = y.insumo_id)) THEN GREATEST(y.cantidad - 1::numeric, 0::numeric) * pc.precio
+                    ELSE y.cantidad * pc.precio
+                END) FILTER (WHERE pc.moneda = 'USD'::text), 0::numeric) AS usd,
             COALESCE(sum(
-                CASE WHEN EXISTS (SELECT 1 FROM edges e WHERE e.ent = y.insumo_id)
-                     THEN GREATEST(y.cantidad - 1, 0) * pc.precio
-                     ELSE y.cantidad * pc.precio END
-              ) FILTER (WHERE pc.moneda = 'ARS'::text), 0::numeric) AS ars,
-            -- el semaforo NO lo cuenta dos veces: si el insumo entra a la caminata, el que avisa
-            -- "falta el precio" es `mat`.
-            count(*) FILTER (WHERE pc.precio IS NULL
-                  AND NOT (EXISTS ( SELECT 1 FROM edges e WHERE e.sal = y.insumo_id))
-                  AND NOT (EXISTS ( SELECT 1 FROM edges e WHERE e.ent = y.insumo_id))) AS sin_precio
+                CASE
+                    WHEN (EXISTS ( SELECT 1
+                       FROM edges e
+                      WHERE e.ent = y.insumo_id)) THEN GREATEST(y.cantidad - 1::numeric, 0::numeric) * pc.precio
+                    ELSE y.cantidad * pc.precio
+                END) FILTER (WHERE pc.moneda = 'ARS'::text), 0::numeric) AS ars,
+            count(*) FILTER (WHERE pc.precio IS NULL AND NOT (EXISTS ( SELECT 1
+                   FROM edges e
+                  WHERE e.sal = y.insumo_id)) AND NOT (EXISTS ( SELECT 1
+                   FROM edges e
+                  WHERE e.ent = y.insumo_id))) AS sin_precio
            FROM insumo_por_art y
              LEFT JOIN pc ON pc.componente_id = y.insumo_id
           GROUP BY y.art_id
@@ -501,6 +497,7 @@ create or replace view "GP2".v_costo_componente as
      LEFT JOIN bomx bx ON bx.comp_id = c.id AND cb.id IS NULL
      LEFT JOIN insumox ix ON ix.comp_id = c.id AND cb.id IS NULL
      LEFT JOIN talx tx ON tx.comp_id = c.id AND cb.id IS NULL;
+comment on view "GP2".v_costo_componente is 'Costo por componente (material + servicios + mano de obra). El precio de un insumo sale del proveedor ASIGNADO al componente (componente.proveedor), igual que en oc_bundle/crear_oc; si no hay, el mas nuevo por fecha_lista. Unica regla de precio en la base (2026-09-11).';
 
 -- ---------- v_faltante_estado ----------
 create or replace view "GP2".v_faltante_estado as
@@ -676,6 +673,53 @@ create or replace view "GP2".v_nivel_stock as
      LEFT JOIN "GP2".v_consumo_componente cp ON cp.componente_id = c.id AND c.sector_id <> 5;
 comment on view "GP2".v_nivel_stock is 'Consumo mensual (Est Madre explotada) por fila de inventario de SECTOR y los niveles que salen de el: max_calc = consumo x meses_stock, min_calc = consumo x meses_minimo. Unica definicion (2026-09-05); la usan recalcular_maximos_insumos y recalcular_minimos.';
 
+-- ---------- v_planilla_costo ----------
+create or replace view "GP2".v_planilla_costo as
+ SELECT snapshot_id,
+    fila,
+    datos ->> 'A'::text AS cod,
+    datos ->> 'B'::text AS familia,
+    datos ->> 'C'::text AS fabricante,
+    datos ->> 'D'::text AS descripcion,
+    "GP2".planilla_num(datos ->> 'E'::text) AS compra_3ros,
+    "GP2".planilla_num(datos ->> 'F'::text) AS material,
+    "GP2".planilla_num(datos ->> 'G'::text) AS remaches,
+    "GP2".planilla_num(datos ->> 'H'::text) AS tratamientos,
+    "GP2".planilla_num(datos ->> 'I'::text) AS tallerista,
+    "GP2".planilla_num(datos ->> 'J'::text) AS plastico_mango,
+    "GP2".planilla_num(datos ->> 'K'::text) AS envasado_terceros,
+    "GP2".planilla_num(datos ->> 'L'::text) AS carton,
+    "GP2".planilla_num(datos ->> 'M'::text) AS cajas,
+    "GP2".planilla_num(datos ->> 'N'::text) AS cod_y_precinto,
+    "GP2".planilla_num(datos ->> 'O'::text) AS costo_sin_aporte,
+    "GP2".planilla_num(datos ->> 'P'::text) AS aporte_produccion,
+    formulas ->> 'K'::text AS formula_envasado,
+    formulas
+   FROM "GP2".planilla_fila f
+  WHERE hoja = 'Costos'::text AND datos ? 'D'::text AND COALESCE(datos ->> 'A'::text, ''::text) <> 'Cod'::text;
+comment on view "GP2".v_planilla_costo is 'Costeo por articulo de la planilla madre. envasado_terceros trae ademas su formula, que es la que dice de que proveedores se compone.';
+
+-- ---------- v_planilla_precio ----------
+create or replace view "GP2".v_planilla_precio as
+ SELECT snapshot_id,
+    fila,
+    bloque AS proveedor,
+    datos ->> 'B'::text AS cod_prov,
+    datos ->> 'E'::text AS cod_isis,
+    datos ->> 'F'::text AS moneda,
+    "GP2".planilla_num(datos ->> 'G'::text) AS precio_proveedor,
+    "GP2".planilla_num(datos ->> 'H'::text) AS precio_ipc_al_dia,
+    "GP2".planilla_fecha(datos ->> 'I'::text) AS fecha_lista,
+    datos ->> 'J'::text AS cod_art,
+    datos ->> 'K'::text AS producto,
+    "GP2".planilla_num(datos ->> 'L'::text) AS tomado_en_costos,
+    datos ->> 'M'::text AS rubro,
+    "GP2".planilla_fecha(datos ->> 'N'::text) AS ultima_compra,
+    datos ->> 'O'::text AS detalle
+   FROM "GP2".planilla_fila f
+  WHERE hoja = 'Lista de Precios '::text AND (datos ->> 'B'::text) ~ '^[0-9]+$'::text AND datos ? 'K'::text;
+comment on view "GP2".v_planilla_precio is 'Lista de precios de la planilla madre, con el proveedor tomado del encabezado de su bloque.';
+
 -- ---------- v_recepcion_control ----------
 create or replace view "GP2".v_recepcion_control as
  WITH a AS (
@@ -753,6 +797,29 @@ UNION ALL
     ea.numero_factura IS NOT NULL AS controlado
    FROM "GP2".entrega_prov_at ea
      LEFT JOIN "GP2".proveedor_at pa ON pa.id = ea.proveedor_at_id;
+
+-- ---------- v_reposicion ----------
+create or replace view "GP2".v_reposicion as
+ SELECT DISTINCT ON (c.id) c.id AS componente_id,
+    i.ubicacion_id,
+    iu.nombre AS ubic_nombre,
+    iu.meses_stock,
+    i.cantidad,
+    i.minimo,
+    i.maximo,
+    i.maximo_origen,
+    GREATEST(0::numeric, round(COALESCE(i.maximo, 0::numeric) - COALESCE(i.cantidad, 0::numeric))) AS sugerido
+   FROM "GP2".componente c
+     JOIN "GP2".inventario i ON i.componente_id = c.id
+     JOIN "GP2".ubicacion iu ON iu.id = i.ubicacion_id
+  ORDER BY c.id, (
+        CASE
+            WHEN iu.id = "GP2".ubic_de('sector'::text, c.sector_id) OR c.sector_id = 12 AND iu.id = "GP2".ubic_de('virgilio'::text) THEN 0
+            WHEN iu.tipo = 'sector'::text THEN 1
+            WHEN iu.tipo = 'proveedor_servicio'::text THEN 2
+            ELSE 3
+        END), i.cantidad DESC NULLS LAST, i.ubicacion_id;
+comment on view "GP2".v_reposicion is 'Donde se repone cada componente: la fila de inventario de su sector (o Virgilio para los terminados), con su stock, minimo, maximo y el sugerido = maximo - stock. Unica definicion: la leen oc_bundle y valorizacion_bundle (2026-09-11).';
 
 -- ---------- v_rollo_evolucion ----------
 create or replace view "GP2".v_rollo_evolucion as

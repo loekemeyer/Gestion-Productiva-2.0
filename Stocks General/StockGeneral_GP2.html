@@ -238,6 +238,7 @@ async function reload(){
   $('tree').innerHTML='<p class="empty">No se pudo cargar: '+esc(msg)+'</p>';
   return;
  }
+ aplicarVocabulario();
  var n=Object.keys(D.inv||{}).length;
  var con=Object.values(D.inv||{}).filter(v=>Number(v.cant)!==0).length;
  $('status').textContent='GP2 · '+n+' posiciones · '+con+' con stock';
@@ -325,8 +326,17 @@ var TIPOS={
  envio_prov_at:{lbl:'Env prov AT',cls:'t-envio'},
  recepcion_virgilio:{lbl:'Rec Virgilio',cls:'t-virgilio'}, consumo_virgilio:{lbl:'Consumo Virgilio',cls:'t-virgilio'},
  envio_inyector:{lbl:'Env inyector',cls:'t-envio'}, consumo_inyector:{lbl:'Consumo inyector',cls:'t-recep'},
+ traslado:{lbl:'Traslado Virgilio',cls:'t-virgilio'},
  stock_inicial:{lbl:'Stock inicial',cls:'t-ajuste'}, ajuste:{lbl:'Ajuste',cls:'t-ajuste'}
 };
+/* La lista de arriba es el respaldo: la fuente real es GP2.tipo_movimiento, que movimientos_bundle
+   sirve en `tipos_mov`. Al cargar el bundle se pisa lo que la base diga, asi un tipo nuevo aparece
+   con su nombre sin tocar esta pantalla (2026-09-11). */
+function aplicarVocabulario(){
+  var v = (D && D.tipos_mov) || null; if(!v) return;
+  Object.keys(v).forEach(function(k){ if(v[k] && v[k].lbl) TIPOS[k] = {lbl:v[k].lbl, cls:(v[k].cls||(TIPOS[k]&&TIPOS[k].cls)||'')}; });
+  if (window.GP2Composicion && GP2Composicion.setVocabulario) GP2Composicion.setVocabulario(v);
+}
 function fmtNum(n){if(n==null)return '';var x=Number(n);return Number.isInteger(x)?String(x):x.toFixed(2);}
 function fmtFecha(f){if(!f)return '';try{return new Date(f).toLocaleDateString('es-AR');}catch(e){return f;}}
 function cNom(cid){var c=(D&&D.comp[String(cid)])||null;return c?c.cod:(cid==null?'':String(cid));}

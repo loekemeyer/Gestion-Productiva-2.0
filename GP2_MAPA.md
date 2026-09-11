@@ -143,14 +143,14 @@ confirmar acá que la clave existe; si un bundle cambia, actualizar esta tabla e
 | `envios_prov_at_bundle()` | Envíos AT | `insumos, online_prov, paq, provs, ultimos` |
 | `envios_ps_bundle()` | Envíos PS y Entrega PS | `partes, ps` |
 | `faltante_partes_tallerista_bundle()` | Faltante Partes Tallerista | `generado_en, talleristas` |
-| `faltantes_bundle()` | Despiece x Artículo (lazy) | `art, bom_art, bom_comp, c2a, comp, inv, mat, prov_serv, rp, sect, tall, ubic` (= `movimientos_bundle`, `art` como lista) |
+| `faltantes_bundle()` | Despiece x Artículo (lazy) | `aporte, art, bom_art, bom_comp, c2a, comp, inv, mat, prov_serv, rp, sect, tall, tipos_mov, ubic` (= `movimientos_bundle`, `art` como lista, + `aporte`) |
 | `faltantes_estado_bundle()` | Faltantes | `estado, marcas, max_cajones, pendientes_uxc, umbral_cajones` |
 | `flejes_bundle()` | Flejes | **LISTA** de 55 flejes: `cod_isis, codigo, comp_id, cons, descripcion, kg_uni_desp, kg_x_cajon, maximo, medida, minimo, n_fleje, parte, proveedor, stock` |
 | `informes_bundle(p_desde, p_hasta)` | Informe por persona | `desde, hasta, personas` |
 | `informes_matriz_bundle(p_desde, p_hasta, p_incluir_piedra)` | Informe por matriz | `desde, hasta, empleados, hsTotalByEmp, matrices` |
 | `inicio_bundle()` | GP2_MODULOS (menú) | `alertas, dia, generado_en, hoy, mes` |
 | `inyectores_bundle()` | Inyectores | `generado_en, partes, proveedores, sector, sectores` |
-| `movimientos_bundle()` | gp2-motor.js (Stocks General, Entregas Talleristas), Registro operarios | `art, bom_art, bom_comp, c2a, comp, inv, mat, prov_serv, rp, sect, tall, ubic` |
+| `movimientos_bundle()` | gp2-motor.js (Stocks General, Entregas Talleristas), Registro operarios | `art, bom_art, bom_comp, c2a, comp, inv, mat, prov_serv, rp, sect, tall, tipos_mov, ubic` |
 | `oc_bundle()` | OC | `charcas_kg_x_paquete, generado_en, insumos, ocs, paq, pliego_uni_x_paquete, proveedores, tc` |
 | `orden_produccion_bundle()` | Orden de Producción | `componentes, destinos, generado_en, matrices, pasos` |
 | `pintores_bundle()` | Pintores | `partes, pintores` |
@@ -168,6 +168,44 @@ confirmar acá que la clave existe; si un bundle cambia, actualizar esta tabla e
 | `talleristas_bundle()` | Envíos Talleristas y Control Talleristas | `generado_en, partes, tall` (`partes` = dict por tallerista `{entrada:[...], salida:[...]}`) |
 | `validacion_bundle()` | Validación de Stock | `aplicados, hoy, pendientes` |
 | `valorizacion_bundle()` | Valorización | `comps, costo_seg, generado_en, tc, tc_info` |
+
+## Lo que cambio el 2026-09-11 (auditoria de rutas completas)
+
+Todo esto salio de recorrer las **861 rutas** de los 189 articulos ejecutando las RPC de verdad
+(ver «El arnes de rutas» mas abajo). Al empezar, 142 rutas se cortaban; al cerrar, ninguna.
+
+| Cambio | Que hay que saber al tocar una pantalla |
+|---|---|
+| **`GP2.tipo_movimiento`** (tabla nueva) | El vocabulario de `movimiento.tipo_mov` dejo de ser un CHECK de literales: ahora es una tabla (`clave, label, lado, clase, orden`) y `movimiento.tipo_mov` tiene **FK** contra ella. `movimientos_bundle` la sirve en **`tipos_mov`** (dict `clave → {lbl, lado, cls, ord}`). Un tipo nuevo se agrega a la tabla y a `db/vocabulario_GP2.sql`; las pantallas lo muestran solas. `tests/ui/test_vocabulario_mov.js` falla si un JS nombra una palabra que no esta en el catalogo (pasaba: `gp2-stock-sector.js` sumaba columnas por `produccion`, `envio_prov`, `envio_tall`, `recepcion_prov` y `recepcion_tall`, cinco palabras que la base nunca escribio). |
+| **`faltantes_bundle.aporte`** | dict `'art:comp' → uni_mes` desde `v_consumo_demanda`: lo que ESE articulo consume de ESE componente por mes, ya explotado (receta + sub-BOM + intermedios de la ruta). Despiece lo usa en vez de recalcularlo; antes le ponia cantidad 1 a todo intermedio de ruta y en 59 pares la base decia otra cosa. |
+| **`v_reposicion`** (vista nueva) | Donde se repone cada componente (la ubicacion de su sector, o Virgilio para los terminados) con `cantidad, minimo, maximo, maximo_origen, sugerido`. **Unica definicion** de "cuanto falta para llenar el lugar": la leen `oc_bundle` y `valorizacion_bundle`, que antes calculaban cosas distintas (54 de 342 componentes no cerraban entre las dos pantallas). |
+| **`crear_entrega_ps` acepta `p_unidad`** (default `'kg'`) | Una pieza que se cuenta y no se pesa (los 11 `Pliego Ad` de AJ Adhesivos, `C12`, `V18D`: sin `kg_x_uni`) se entrega en unidades. `envios_ps_bundle.partes[]` trae `sp_um` y `sp_kgxuni` para que la pantalla sepa cual pedir. |
+| **`crear_entrega_prov_at` mueve stock** | Delega en `recepcion_virgilio(origen_tipo='proveedor_at')`: consume la receta completa del articulo desde la ubicacion del proveedor y deja el terminado en Virgilio. Antes solo escribia en `entrega_prov_at` y el articulo comprado terminado **nunca entraba al inventario** (38 articulos, 75 rutas); el carton y la caja que se le mandaban no se consumian nunca. |
+| **`_es_comprable(comp_id)`** | Reemplaza al chequeo por sector de `crear_recepcion_insumo` y al filtro hardcodeado de `recepcion_bundle`: se compra lo que es de un sector de insumo, **o** es `estado_compra='importado'`, **o** lo entrega un PS hibrido. `recepcion_bundle.insumos[]` trae ahora `estado_compra` y la pantalla de Recepcion tiene el rubro **Importados** (C13, D1, Z23A, Z23B, que viven en Sector Procesado y no se podian recepcionar por ningun lado). |
+| **`fn_ubicacion_de_contraparte`** (trigger) | Un tallerista / Prov AT / PS / sector de insumo nuevo **se crea con su ubicacion de stock**. Antes solo `alta_proveedor_servicio` la creaba y un alta por migracion la salteaba: Blist-Pack SA quedo sin ubicacion y no se le podia enviar nada. |
+| **`registrar_movimientos` valida** | cantidad > 0 (salvo `ajuste`, que puede ser negativo), al menos una ubicacion, el mismo componente no entra y sale del mismo lugar (si hay transformacion si: una matriz convierte I4 en I6 sin sacar la pieza del Sector Crudo), `comp_transformado_id` y `cantidad_transformada` van juntos. El JS puede seguir validando para dar un mensaje lindo; **el que manda es el backend**. |
+| **`reprocesar_espejo_virgilio(p_ids, p_dry_run)`** | `virgilio_espejo_pend` era un cementerio: la entrega que no cruzaba quedaba anotada y nadie la miraba mas, aunque despues se diera de alta el articulo. Ahora es una cola (`resuelto_en`, `resultado`) y esta RPC la reintenta. **Corre en seco por defecto.** |
+| **UNIQUE / NOT NULL / FK nuevos** | `articulo.codigo`, `matriz.n_matriz`, `sector.nombre`, `tallerista.nombre`, `lower(btrim(proveedor_servicio.nombre))`, `proveedor_insumo.cod_prov`, `articulo_componente(art,comp)`, `componente_bom(padre,hijo)`, `ruta_paso(ruta,orden)` *deferrable*, `planilla_snapshot(vigente)`. NOT NULL en las columnas del ledger y de las recetas. FK por nombre con `on update cascade` en `orden_compra.proveedor`, `recepcion_insumo.proveedor`, `produccion.legajo`, `rollo_evento/rollo_uso.legajo` y `entrega_prov_at(prov, cod_art)`. |
+
+### El arnes de rutas: `"GP2".__sim_ruta(ruta_id, n)`
+
+Funcion **interna** (sin EXECUTE para anon) que recorre una ruta llamando a las RPC de produccion
+de verdad — `crear_recepcion_insumo`, `registrar_produccion`, `crear_envio_ps` + `crear_entrega_ps`,
+`crear_envio_tallerista` + `crear_entrega_tallerista`, `crear_envio_prov_at` +
+`crear_entrega_prov_at` — y termina con una excepcion centinela que **revierte todo**: no queda
+nada escrito. Si un paso `insumo` pide un componente que no se compra, simula primero la ruta que
+lo produce (los intermedios: `D1`, `A10`, los `Pliego Ad`), hasta 3 niveles.
+
+Devuelve `{ruta, ok, pasos[], deltas[], colgado[]}`. Correrla sobre todas antes de cerrar una
+sesion que toco el motor de stock o alguna `crear_*`:
+
+```sql
+with s as (select r.id, "GP2".__sim_ruta(r.id, 120) res from "GP2".ruta r)
+select count(*) rutas, count(*) filter (where (res->>'ok')::boolean) ok from s;   -- 861 / 861
+```
+
+`__sim_base` es su tabla de apoyo (la foto del inventario al empezar cada corrida); fuera de una
+corrida esta vacia.
 
 ## Convenciones implicitas (fragiles — hoy viven hardcodeadas en el JS)
 
@@ -261,10 +299,14 @@ matriz), `armado_fabrica` / `consumo_prod` (armado en fábrica desde Stocks Gene
 `consumo_inyector` (materia prima plastica que va al inyector y la que consume al entregar la pieza,
 2026-09-10), `traslado` (cajas/cajones de Crudo/Procesado entre Cervantes y su deposito en
 Virgilio, 2026-09-11), `stock_inicial`, `ajuste`. Antes convivían `recepcion_tall` (JS) y `consumo_armado` / `consumo_transformacion`
-(SQL) para lo mismo: se unificaron en la auditoría del 2026-09-04. **Desde el 2026-09-05 el
-vocabulario es cerrado**: `movimiento_tipo_mov_chk` rechaza cualquier otra palabra (también las
-que manda el JS por `registrar_movimientos`). Un tipo nuevo se agrega en el CHECK y en el mapa
-`TIPOS` de Stocks General / `gp2-composicion.js`.
+(SQL) para lo mismo: se unificaron en la auditoría del 2026-09-04. **Desde el 2026-09-11 el
+vocabulario es una TABLA**, `GP2.tipo_movimiento`, y `movimiento.tipo_mov` es FK contra ella (antes
+era el CHECK `movimiento_tipo_mov_chk`, una lista de literales copiada además en tres mapas de JS,
+los tres desfasados). Un tipo nuevo se agrega **en la tabla y en `db/vocabulario_GP2.sql`**; los
+mapas `TIPOS` de Stocks General y `gp2-composicion.js` quedan como respaldo y se pisan con el
+`tipos_mov` del bundle. `tests/ui/test_vocabulario_mov.js` rechaza cualquier palabra inventada en
+el JS. **La entrega del Prov AT no tiene tipo propio**: usa `recepcion_virgilio` / `consumo_virgilio`,
+igual que la del tallerista, porque desde el 2026-09-11 el motor es el mismo (`recepcion_virgilio`).
 
 **Como funciona el motor de stock**: al insertar en `movimiento`,
 `fn_movimiento_calc` convierte cantidades a la unidad canonica del componente con
@@ -296,6 +338,7 @@ respuesta sea una sola. Ninguna funcion busca mas una ubicacion por nombre
 | `recepcion_control_rollo` | `trg_rollo_desde_control` | `fn_rollo_desde_control` | Da de alta el rollo al pesar el pallet |
 | `public."Entregas Tallerista Virgilio"` | `trg_virgilio_espejo_gp2` | `fn_entregas_virgilio_espejo` | **Espejo public → GP2**: cada entrega en Virgilio se registra en `movimiento` (o queda en `virgilio_espejo_pend` si no cruza) |
 | `public.proyeccion_madre` | `trg_est_madre_sync_gp2` | `fn_est_madre_sync` | **Espejo public → GP2**: `est_madre` (uni = cajas × articulos_por_caja cuando el origen no trae uxb) |
+| `tallerista`, `proveedor_at`, `proveedor_servicio`, `sector` | `trg_ubicacion_*` | `fn_ubicacion_de_contraparte` | Crea la ubicacion de stock de la contraparte nueva si `ubic_de` no la resuelve (2026-09-11; sin esto, Blist-Pack SA quedo sin ubicacion y no se le podia enviar nada) |
 
 Cron: un solo job de GP2 entre los 49 del proyecto, `gp2-dolar-oficial` (`10 9 * * *` UTC →
 `"GP2".actualizar_dolar_oficial()`). Los otros 48 son de `public`/`planify` (la casa del vecino).

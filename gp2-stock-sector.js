@@ -44,10 +44,14 @@
 
 /* Insumos: entran por compra y salen por consumo de producción o
    por envío a un proveedor / tallerista. */
+/* Los tipos de cada columna tienen que ser palabras del vocabulario real (GP2.tipo_movimiento,
+   antes el CHECK de movimiento.tipo_mov): un token inventado nunca matchea y la columna miente
+   por defecto. Hasta el 2026-09-11 habia cinco colados ("produccion", "envio_prov", "envio_tall",
+   "recepcion_prov", "recepcion_tall") y faltaban envio_prov_at, consumo_virgilio y traslado. */
 var COLS_INSUMO = [
   { k:"compras", label:"Compras", tipos:["compra"],                                   lado:"ent" },
-  { k:"consumo", label:"Consumo", tipos:["consumo_prod","consumo_tall","produccion","fabricacion"], lado:"sal" },
-  { k:"envios",  label:"Envíos",  tipos:["envio_ps","envio_tallerista","envio_inyector"], lado:"sal" }
+  { k:"consumo", label:"Consumo", tipos:["consumo_prod","consumo_tall","consumo_virgilio","consumo","fabricacion"], lado:"sal" },
+  { k:"envios",  label:"Envíos",  tipos:["envio_ps","envio_tallerista","envio_prov_at","envio_inyector"], lado:"sal" }
 ];
 var LINK_RECEPCION = ["Recepción", "../StockFlejes/RecepcionInsumos_GP2.html"];
 /* Materia prima plastica (sector 14, 2026-09-10): bolsas de 25 kg que viven en Virgilio. Entran
@@ -64,8 +68,9 @@ var SECTORES = {
   1: { titulo:"Stock SC", sector_nom:"Sector Crudo",
        links:[["Stock SP", "?sector=2"]],
        columnas:[
-         { k:"fabricacion", label:"Fabricación", tipos:["fabricacion","produccion","armado_fabrica"], lado:"neto" },
-         { k:"envios",      label:"Envíos",      tipos:["envio_ps","envio_prov","envio_tallerista","envio_tall"], lado:"sal"  },
+         { k:"fabricacion", label:"Fabricación", tipos:["fabricacion","armado_fabrica"], lado:"neto" },
+         { k:"envios",      label:"Envíos",      tipos:["envio_ps","envio_prov_at","envio_tallerista"], lado:"sal"  },
+         { k:"a_virgilio",  label:"A Virgilio",  tipos:["recepcion_virgilio","consumo_virgilio"], lado:"sal" },
          { k:"virgilio",    label:"En Virgilio", tipos:["traslado"], campo:"en_virgilio" }
        ] },
   /* Mismas columnas de movimiento que Stock SP del programa viejo:
@@ -73,10 +78,11 @@ var SECTORES = {
   2: { titulo:"Stock SP", sector_nom:"Sector Procesado",
        links:[["Stock SC", "?sector=1"]],
        columnas:[
-         { k:"entregas_ps", label:"Entregas PS",      tipos:["entrega_ps","recepcion_prov"],             lado:"ent"  },
-         { k:"fabricacion", label:"Fabricación",      tipos:["fabricacion","produccion","armado_fabrica"], lado:"neto" },
-         { k:"envios_tall", label:"Envíos Tallerista", tipos:["envio_tallerista","envio_tall"],           lado:"sal"  },
-         { k:"recep_tall",  label:"Recep. Tallerista", tipos:["recepcion_tall","entrega_tallerista"],     lado:"ent"  },
+         { k:"entregas_ps", label:"Entregas PS",      tipos:["entrega_ps"],                              lado:"ent"  },
+         { k:"fabricacion", label:"Fabricación",      tipos:["fabricacion","armado_fabrica"],            lado:"neto" },
+         { k:"envios_tall", label:"Envíos Tallerista", tipos:["envio_tallerista"],                       lado:"sal"  },
+         { k:"recep_tall",  label:"Recep. Tallerista", tipos:["entrega_tallerista"],                     lado:"ent"  },
+         { k:"a_virgilio",  label:"A Virgilio",        tipos:["recepcion_virgilio","consumo_virgilio"],  lado:"sal"  },
          { k:"virgilio",    label:"En Virgilio",       tipos:["traslado"], campo:"en_virgilio" }
        ] },
   /* Sector Movimiento (3): las piezas intermedias entre matrices ("tras M#").
@@ -89,8 +95,8 @@ var SECTORES = {
        sin_min_max:true, sin_csv:true, links:[],
        buscar:"Buscar por código, matriz o descripción…",
        columnas:[
-         { k:"fabricado", label:"Fabricado", tipos:["fabricacion","produccion"], lado:"ent" },
-         { k:"consumido", label:"Consumido", tipos:["fabricacion","produccion","consumo_prod"], lado:"sal" }
+         { k:"fabricado", label:"Fabricado", tipos:["fabricacion"], lado:"ent" },
+         { k:"consumido", label:"Consumido", tipos:["fabricacion","consumo_prod"], lado:"sal" }
        ] },
   6:  { titulo:"Partes Plásticas", sector_nom:"Sector Plástico", links:[LINK_RECEPCION], columnas:COLS_INSUMO },
   7:  { titulo:"Bombillas",        sector_nom:"Sector Bombilla", links:[LINK_RECEPCION], columnas:COLS_INSUMO },

@@ -22,10 +22,12 @@ const PAGINA = 'StockSector/StockSector_GP2.html';
 const FILAS = [
   { comp_id: 10, cod: 'A10', desc: 'Cpo Uña LK', online: 1200, kg_x_uni: 0.0331, uni_x_cajon: 1695, minimo: 2000, maximo: 5000,
     mov: { compra: { ent: 500, sal: 0 }, consumo_prod: { ent: 0, sal: 300 }, fabricacion: { ent: 800, sal: 100 },
-           envio_ps: { ent: 0, sal: 200 }, entrega_ps: { ent: 150, sal: 0 }, envio_tallerista: { ent: 0, sal: 50 } } },
+           envio_ps: { ent: 0, sal: 200 }, entrega_ps: { ent: 150, sal: 0 }, envio_tallerista: { ent: 0, sal: 50 },
+           envio_prov_at: { ent: 0, sal: 40 },
+           recepcion_virgilio: { ent: 0, sal: 120 }, consumo_virgilio: { ent: 0, sal: 30 } } },
   { comp_id: 11, cod: 'B5', desc: 'Parte be', online: 0, kg_x_uni: null, uni_x_cajon: null, minimo: null, maximo: null, mov: {} },
   { comp_id: 12, cod: 'C7', desc: 'Pieza tras M12', online: 40, kg_x_uni: 0.01, uni_x_cajon: 500, minimo: null, maximo: null,
-    mov: { produccion: { ent: 100, sal: 60 } } },
+    mov: { fabricacion: { ent: 100, sal: 60 } } },
 ];
 const MOVS = [
   { fecha: '2026-09-01', tipo: 'fabricacion', contraparte: 'M12', cantidad: 800, signo: 'ent', cajones: 0.5, via: null, faltante: false },
@@ -50,23 +52,28 @@ window.supabase = { createClient: function(){ return {
 const CSV = '⬇ Exportar CSV', REC = 'Recepción', ATRAS = 'Atrás';
 const COLS_INSUMO = ['Compras', 'Consumo', 'Envíos'];
 const PH = 'Buscar por código o descripción…';
+/* Los tipos del stub son los del catalogo GP2.tipo_movimiento (db/vocabulario_GP2.sql). Antes
+   habia columnas que filtraban por palabras inexistentes ("produccion", "envio_tall"...) y daban
+   0 siempre; test_vocabulario_mov.js ahora lo impide. */
 const ESPERADO = {
   1:  { titulo: 'Stock SC', h1: 'Stock SC · Sector Crudo', botones: [CSV, 'Stock SP', ATRAS],
-        cols: ['Fabricación', 'Envíos', 'En Virgilio'], a10: ['700', '250', '—'] },      // neto 800-100 | sal envio_ps + envio_tallerista | campo en_virgilio (el stub no lo trae)
+        // neto 800-100 | sal envio_ps 200 + envio_prov_at 40 + envio_tallerista 50 | recepcion+consumo_virgilio | campo en_virgilio (el stub no lo trae)
+        cols: ['Fabricación', 'Envíos', 'A Virgilio', 'En Virgilio'], a10: ['700', '290', '150', '—'] },
   2:  { titulo: 'Stock SP', h1: 'Stock SP · Sector Procesado', botones: [CSV, 'Stock SC', ATRAS],
-        cols: ['Entregas PS', 'Fabricación', 'Envíos Tallerista', 'Recep. Tallerista', 'En Virgilio'], a10: ['150', '700', '50', '—', '—'] },
+        cols: ['Entregas PS', 'Fabricación', 'Envíos Tallerista', 'Recep. Tallerista', 'A Virgilio', 'En Virgilio'],
+        a10: ['150', '700', '50', '—', '150', '—'] },
   3:  { titulo: 'Stock en Movimiento', h1: 'Stock en Movimiento · Sector Movimiento', botones: [ATRAS],
         cols: ['Fabricado', 'Consumido'], a10: ['800', '400'], sin_min_max: true,
         ph: 'Buscar por código, matriz o descripción…' },                              // ent fabricacion | sal fabricacion+consumo_prod
   // insumos: Compras 500 | Consumo 300+100 | Envíos envio_ps 200 + envio_tallerista 50
-  6:  { titulo: 'Partes Plásticas', h1: 'Partes Plásticas · Sector Plástico', botones: [CSV, REC, ATRAS], cols: COLS_INSUMO, a10: ['500', '400', '250'] },
-  7:  { titulo: 'Bombillas', h1: 'Bombillas · Sector Bombilla', botones: [CSV, REC, ATRAS], cols: COLS_INSUMO, a10: ['500', '400', '250'] },
+  6:  { titulo: 'Partes Plásticas', h1: 'Partes Plásticas · Sector Plástico', botones: [CSV, REC, ATRAS], cols: COLS_INSUMO, a10: ['500', '430', '290'] },
+  7:  { titulo: 'Bombillas', h1: 'Bombillas · Sector Bombilla', botones: [CSV, REC, ATRAS], cols: COLS_INSUMO, a10: ['500', '430', '290'] },
   8:  { titulo: 'Remaches', h1: 'Remaches · Sector Remache', botones: [CSV, REC, 'Control Remaches', ATRAS],
-        destacado: 'Control Remaches', cols: COLS_INSUMO, a10: ['500', '400', '250'] },
-  9:  { titulo: 'Garage', h1: 'Garage · Sector Garage', botones: [CSV, REC, ATRAS], cols: COLS_INSUMO, a10: ['500', '400', '250'] },
-  10: { titulo: 'Cartones', h1: 'Cartones · Sector Cartón', botones: [CSV, REC, ATRAS], cols: COLS_INSUMO, a10: ['500', '400', '250'] },
+        destacado: 'Control Remaches', cols: COLS_INSUMO, a10: ['500', '430', '290'] },
+  9:  { titulo: 'Garage', h1: 'Garage · Sector Garage', botones: [CSV, REC, ATRAS], cols: COLS_INSUMO, a10: ['500', '430', '290'] },
+  10: { titulo: 'Cartones', h1: 'Cartones · Sector Cartón', botones: [CSV, REC, ATRAS], cols: COLS_INSUMO, a10: ['500', '430', '290'] },
   11: { titulo: 'Cajas', h1: 'Cajas · Sector Caja', botones: [CSV, REC, 'Control Cajas', ATRAS],
-        destacado: 'Control Cajas', cols: COLS_INSUMO, a10: ['500', '400', '250'] },
+        destacado: 'Control Cajas', cols: COLS_INSUMO, a10: ['500', '430', '290'] },
   // materia prima plastica (2026-09-10): bolsas en Virgilio; entra por compra, sale en bolsas al inyector
   14: { titulo: 'Materia Prima Plástica', h1: 'Materia Prima Plástica · Sector Materia Prima Plástica (Virgilio)',
         botones: [CSV, REC, 'Inyectores · Material', ATRAS], destacado: 'Inyectores · Material',

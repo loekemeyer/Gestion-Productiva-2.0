@@ -159,6 +159,36 @@ union all
 select 'Z3_ps_hibrido_mp_sin_proveedor', count(*) from "GP2".proveedor_servicio ps
   join "GP2".componente c on c.id = ps.mp_componente_id
  where ps.hibrido and (c.proveedor is null or not exists (select 1 from "GP2".proveedor_insumo pi where pi.nombre = c.proveedor))
+union all
+-- AA) La cantidad de un paso de ingreso/insumo es la misma que dice la RECETA del articulo.
+--     ruta_paso.cantidad duplica articulo_componente.cantidad y los dos ya divergieron una vez:
+--     58 pasos habian quedado con cantidad 1 (las cajas piden 1/articulos_por_caja, los flejes
+--     kilos por unidad, y en 4 casos la receta pedia 2). 2026-09-11.
+select 'AA_paso_de_insumo_contradice_la_receta' regla, count(*) n
+  from "GP2".ruta_paso p
+  join "GP2".ruta r on r.id = p.ruta_id
+  join "GP2".articulo_componente ac on ac.articulo_id = r.articulo_id and ac.componente_id = p.comp_entrada_id
+ where p.tipo_paso in ('insumo','ingreso') and abs(p.cantidad - ac.cantidad) > 0.0001
+union all
+-- AB) Toda ruta arranca en algo que se PUEDE comprar o que otra ruta produce. Si un componente
+--     entra como insumo, no es comprable y nadie lo fabrica, la cadena arranca en el aire y el
+--     circuito del articulo no puede ni empezar (paso 1 y 2 del recorrido productivo).
+--     Paso el 2026-09-11 con las 4 piezas importadas del Sector Procesado (C13, D1, Z23A, Z23B):
+--     17 rutas de 16 articulos bloqueadas.
+select 'AB_ruta_que_arranca_en_el_aire', count(*) from (
+    select distinct p.comp_entrada_id cid
+      from "GP2".ruta_paso p
+     where p.tipo_paso in ('insumo','ingreso')
+       and not "GP2"._es_comprable(p.comp_entrada_id)
+       and not exists (select 1 from "GP2".ruta_paso q
+                        where q.comp_salida_id = p.comp_entrada_id
+                          and q.comp_salida_id is distinct from q.comp_entrada_id)
+       and not exists (select 1 from "GP2".componente_bom b where b.componente_padre_id = p.comp_entrada_id)) x
+union all
+-- AC) El vocabulario de movimiento es una tabla y movimiento.tipo_mov es FK contra ella: ningun
+--     tipo_mov puede quedar fuera del catalogo (antes era un CHECK de literales copiado en el JS).
+select 'AC_tipo_mov_fuera_del_catalogo', count(*) from "GP2".movimiento m
+ where not exists (select 1 from "GP2".tipo_movimiento t where t.clave = m.tipo_mov)
 ) chequeos
 order by regla;
 
@@ -166,7 +196,9 @@ order by regla;
 -- INFORMATIVAS (no son invariantes: dan > 0 por datos que faltan o decisiones pendientes del
 -- usuario; sirven para ver si crecen). Cada una dice a qué pregunta/idea pertenece.
 -- =====================================================================
--- select 'stock_negativo' que, count(*) n, '(pregunta 8.3: stock inicial de talleristas no cargado)' ref from "GP2".inventario where cantidad < -0.0005
+-- select 'catalogo_prov_at_sin_descripcion' que, count(*) n, '(1: el cod_art 193 de Kuffo no es un articulo de GP2 todavia)' ref from "GP2".articulo_prov_at where nullif(btrim(coalesce(descripcion,'')),'') is null
+-- union all select 'espejo_virgilio_sin_reprocesar', count(*), '(entregas de Virgilio que no cruzaron; reprocesar_espejo_virgilio(null, true) dice cuales ya se pueden)' from "GP2".virgilio_espejo_pend where resuelto_en is null
+-- union all select 'stock_negativo' que, count(*) n, '(pregunta 8.3: stock inicial de talleristas no cargado)' ref from "GP2".inventario where cantidad < -0.0005
 -- union all select 'minimo_mayor_que_maximo', count(*), '(pregunta 27: 56 legítimas de 5 cajones + parámetros meses de 3 ubicaciones)' from "GP2".inventario where minimo is not null and maximo is not null and minimo > maximo
 -- union all select 'espejo_virgilio_pendiente_datos', count(*), '(pregunta 8.17: artículos de Virgilio sin equivalente en GP2)' from "GP2".virgilio_espejo_pend where motivo not like 'error%'
 -- union all select 'est_madre_sin_articulo_gp2', count(*), '(idea 7244: familias que GP2 no modela)' from "GP2".est_madre em where not exists (select 1 from "GP2".articulo a where regexp_replace(a.codigo,'^0+','') = regexp_replace(em.cod,'^0+',''))

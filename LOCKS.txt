@@ -1,4 +1,17 @@
 [LOCKS]
+LockX | gp2-composicion.js | loekemeyer (claude-remote) | 2026-09-11 | tipos de movimiento nuevos del Prov AT
+LockX | Stocks General/StockGeneral_GP2.html | loekemeyer (claude-remote) | 2026-09-11 | tipos de movimiento nuevos del Prov AT
+LockX | Control Envios y Entregas/ControlEnvios_GP2.html | loekemeyer (claude-remote) | 2026-09-11 | tipos de movimiento nuevos del Prov AT
+LockX | StockFlejes/RecepcionInsumos_GP2.html | loekemeyer (claude-remote) | 2026-09-11 | rubro Importados (C13, D1, Z23A, Z23B)
+LockX | Prov Serv/Entregas/EntregaPS_GP2.html | loekemeyer (claude-remote) | 2026-09-11 | entrega en unidades cuando la pieza no se pesa
+LockX | gp2-stock-sector.js | loekemeyer (claude-remote) | 2026-09-11 | vocabulario de tipo_mov desalineado con el CHECK
+LockX | version.js | loekemeyer (claude-remote) | 2026-09-11 | bump de version global
+LockX | db/ | loekemeyer (claude-remote) | 2026-09-11 | respaldo del schema + invariantes nuevos
+LockX | CONOCIMIENTO_GP2.md | loekemeyer (claude-remote) | 2026-09-11 | auditoria de rutas completas
+LockX | Despiece x Articulo/Despiece_GP2.html | loekemeyer (claude-remote) | 2026-09-11 | el prorrateo de faltantes sale de la base
+LockX | GP2_MAPA.md | loekemeyer (claude-remote) | 2026-09-11 | contratos nuevos (tipos_mov, aporte, v_reposicion)
+LockX | GP2_MODULOS.html | loekemeyer (claude-remote) | 2026-09-11 | bump de token de version.js
+LockX | tests/ui/ | loekemeyer (claude-remote) | 2026-09-11 | guardia del vocabulario de movimiento
 
 [WAIT QUEUE]
 (vacío)

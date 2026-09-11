@@ -7512,3 +7512,57 @@ No bloquean nada (los 5 artículos ya están modelados por otro camino), pero el
 El Sector Caja tiene 12 cajas (N°1, 2, 6, 7, 10, 12, 13, 15, 16, 22, 27, 29). O hay que crear la N°4
 y la N°24 con su código de estantería, o esas 5 filas van a otra caja — como pasó con el 338 y el
 732, que pedían la N°24 y la N°8 y el usuario los mandó a la N°7. **Preguntado.**
+
+### 4bo. Se recorrieron las 861 rutas de punta a punta: qué se cortaba y por qué (2026-09-11)
+
+`[dato]` Auditoría de rutas completas. Se armó un arnés (`"GP2".__sim_ruta`, ver `GP2_MAPA.md`) que
+recorre **cada una de las 861 rutas** de los **189 artículos** llamando a las RPC de producción de
+verdad (recepción → producción → envío/entrega PS → envío/entrega tallerista → Prov AT → Virgilio) y
+revierte todo al terminar. **Al empezar se cortaban 142 rutas de 66 artículos; al cerrar, ninguna.**
+
+Los cinco cortes, y lo que cada uno enseña del negocio:
+
+| Se cortaba en | Alcance | Por qué |
+|---|---|---|
+| La entrega del **Prov. Art. Terminado** | 75 rutas, 38 artículos | La entrega sólo se anotaba en `entrega_prov_at`, un segundo libro. El artículo comprado terminado **nunca entraba al stock** y el cartón y la caja que se le habían mandado no se consumían nunca: su stock en el proveedor crecía sin techo. |
+| La **recepción de una pieza importada** | 17 rutas, 16 artículos | `C13`, `D1`, `Z23A` y `Z23B` se **compran hechas** pero viven en Sector Procesado. "Qué se puede comprar" se decidía por el sector, no por la pieza, así que no aparecían en Recepción ni las aceptaba la RPC: esas rutas no podían ni arrancar. |
+| La **entrega de un PS que se cuenta** | 18 rutas | Los 11 `Pliego Ad` (el adhesivado de AJ Adhesivos), `C12` y `V18D` **no se pesan, se cuentan**, y no tienen `kg_x_uni`. La entrega de PS sólo aceptaba kilos. |
+| El **envío a Blist-Pack SA** | los artículos 555 y 764 | El tallerista se dio de alta sin su ubicación de stock. El alta de una contraparte no la creaba (sólo `alta_proveedor_servicio` lo hacía). |
+| La **entrega de 5 artículos de Prov AT** | 193, 231, 232, 233, 591 | La función usaba la *descripción* del catálogo como chequeo de existencia; esas 5 filas la tenían vacía y la entrega se rechazaba diciendo "el artículo no está asignado a ese proveedor", que era falso. |
+
+**Lo que hay que recordar del modelo, más allá del arreglo:**
+
+- **El artículo terminado entra a Virgilio por un solo motor: `recepcion_virgilio`.** Consume la
+  **receta completa** (`articulo_componente`) desde la ubicación de quien lo entregó y deja el
+  terminado en Virgilio. Lo usan el espejo de Virgilio (talleristas) y ahora también la entrega del
+  Prov AT. No hay un segundo camino.
+- **La pantalla de Entregas de Tallerista NO cierra artículos.** `gp2-motor.js` excluye el sector 12
+  a propósito (`SECTOR_TERMINADO`) y `componente_bom` no tiene ni un solo artículo terminado: sólo
+  intermedios (GRJ, `M1`, `C12`, los `Pliego Ad`). El artículo se cierra cuando la entrega se carga
+  **en Virgilio** y el espejo la cruza.
+- **Una ruta arranca donde termina la del intermedio.** `D1`, `A10` y los `Pliego Ad` entran a la
+  ruta del artículo como `insumo`; quien los produce es **otra ruta** (13 rutas sin artículo). Para
+  ver el circuito completo hay que encadenar.
+- **`ruta_paso.cantidad` no la lee nadie** (ni una función, ni un bundle) y duplica
+  `articulo_componente.cantidad`. Los dos ya divergieron: 58 pasos habían quedado en 1 cuando la
+  receta decía 1/12 de caja, kilos de fleje, o 2 remaches. La receta es la fuente de verdad.
+- **El stock negativo es real y está a la vista**: 141 filas de `inventario`, 112 componentes,
+  −255.375 unidades en total. Es el stock inicial de talleristas que nunca se cargó (pregunta 8.3),
+  no un error del motor: el libro y el inventario cierran exactos.
+
+### 4bp. La cola del espejo de Virgilio era un cementerio (2026-09-11)
+
+`[dato]` `virgilio_espejo_pend` guardaba la entrega de Virgilio que no cruzaba a GP2 — casi siempre
+porque el artículo todavía no existía — y **nadie la volvía a mirar nunca**. Cuando el artículo se
+daba de alta, esa entrega ya no entraba al stock. Ahora la tabla es una cola (`resuelto_en`,
+`resultado`) y hay una RPC para reintentarla, **en seco por defecto**:
+
+```sql
+select "GP2".reprocesar_espejo_virgilio(null, true);   -- muestra qué haría, no escribe
+select "GP2".reprocesar_espejo_virgilio(null, false);  -- aplica
+```
+
+De las **23 pendientes, 14 ya se pueden** (el artículo existe y tiene receta): **7.692 unidades**
+que nunca llegaron a Virgilio en GP2 — 207 (×2), 395, 535 (×3), 735, 760, 817, 823, 856, 922, 943E,
+945E. Las 9 restantes son códigos que GP2 todavía no modela (035E, 584E, 590E, 590ES, 599, 727E,
+877E, 943, 948). **Aplicar el reproceso mueve stock de verdad: espera el OK del usuario.**

@@ -433,6 +433,12 @@ input[type="text"]{width:200px}
         <button class="prov-btn" data-rubro="Bombillas" data-sid="7">Bombillas</button>
         <button class="prov-btn" data-rubro="Garage"    data-sid="9">Garage</button>
         <button class="prov-btn" data-rubro="MatPlastica" data-sid="14">Mat. Plástica</button>
+        <!-- Importados (2026-09-11): piezas que se COMPRAN hechas y viven en Sector Procesado
+             (C13 Corta Queso, D1 Espiral Sacacorcho, Z23A Cuch China, Z23B Cuchilla Laser).
+             Hasta hoy no se podian recepcionar por ningun lado — ni aparecian en la pantalla ni
+             las aceptaba la RPC — y 17 rutas de 16 articulos no podian ni arrancar. Se filtran
+             por estado_compra='importado', no por sector (el 1686 de Eclipse comparte sector). -->
+        <button class="prov-btn" data-rubro="Importados" data-sid="2">Importados</button>
         <!-- Los rubros Filtros (Charcas) y Cortados (Eclipse) se sacaron en Fase B
              del rework 2026-09-02 (usuario): ahora los PS hibridos viven en su
              pantalla dedicada Prov Serv/CharcasEclipse/CharcasEclipse_GP2.html
@@ -703,6 +709,7 @@ function cargaEnUni(it){
   if (!it) return false;
   var sid = Number(it.sector_id);
   if (sid===8 || sid===7) return true;              // remaches y bombillas
+  if (it.estado_compra==='importado') return true;  // importados: se cuentan, no se pesan (2026-09-11)
   return sid===6 && provPlastUni(provSel);          // plasticos: solo los de piezas
 }
 // Proveedores ocultos del listado del operario (no llegan sus entregas a
@@ -831,7 +838,10 @@ function esCorteDePS(i){
   return Number(i.sector_id)===5 && PS_CORTE_FLEJE.indexOf(String(i.proveedor||'').trim().toLowerCase())>=0;
 }
 function insumosDelRubro(){
-  return INS.filter(i=>i.sector_id===sidSel && !ocultarProv(i.proveedor) && !esCorteDePS(i));
+  // Importados: no se agrupan por sector (viven en Procesado, junto a piezas que se fabrican)
+  // sino por estado_compra. El resto de los rubros sigue siendo su sector.
+  if (rubroSel==='Importados') return INS.filter(i=>i.estado_compra==='importado' && !ocultarProv(i.proveedor));
+  return INS.filter(i=>i.sector_id===sidSel && i.estado_compra!=='importado' && !ocultarProv(i.proveedor) && !esCorteDePS(i));
 }
 // Fase B rework 2026-09-02: los helpers esFiltroCharcas / esCortadoEclipse se
 // sacaron. Los PS hibridos Charcas/Eclipse viven ahora en su pantalla dedicada
