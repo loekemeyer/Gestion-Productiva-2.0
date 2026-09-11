@@ -1,7 +1,7 @@
 -- =====================================================================
 -- FUNCIONES del schema GP2 — export automatico 2026-09-05 (pg_get_functiondef, exacto)
 -- Fuente de verdad: Supabase (hrxfctzncixxqmpfhskv). Este archivo es respaldo/referencia.
--- 122 funciones. Los GRANT/REVOKE no estan aca: EXECUTE para anon solo en las RPC de pantalla (ver db/README.md).
+-- 132 funciones. Los GRANT/REVOKE no estan aca: EXECUTE para anon solo en las RPC de pantalla (ver db/README.md).
 -- =====================================================================
 
 -- ---------- _aplicar_recepcion_a_oc ----------
@@ -3834,6 +3834,67 @@ begin
   ) t;
 
   return jsonb_build_object('pintores', v_pintores, 'partes', v_partes);
+end $function$
+;
+
+-- ---------- planilla_cargar ----------
+CREATE OR REPLACE FUNCTION "GP2".planilla_cargar(p_snapshot_id integer, p_filas jsonb)
+ RETURNS integer
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'GP2'
+AS $function$
+declare n int;
+begin
+  if not exists (select 1 from "GP2".planilla_snapshot where id = p_snapshot_id) then
+    raise exception 'snapshot % inexistente', p_snapshot_id;
+  end if;
+  insert into "GP2".planilla_fila (snapshot_id, hoja, fila, bloque, datos, formulas)
+  select p_snapshot_id, h.key, (e->>0)::int, e->>2, e->1, e->3
+    from jsonb_each(p_filas) h,
+         jsonb_array_elements(h.value) e
+  on conflict on constraint planilla_fila_uk
+    do update set datos    = excluded.datos,
+                  bloque   = excluded.bloque,
+                  formulas = excluded.formulas;
+  get diagnostics n = row_count;
+  return n;
+end $function$
+;
+
+-- ---------- planilla_fecha ----------
+CREATE OR REPLACE FUNCTION "GP2".planilla_fecha(p text)
+ RETURNS date
+ LANGUAGE sql
+ IMMUTABLE
+AS $function$
+  select case when p ~ '^\d{4}-\d{2}-\d{2}' then left(p,10)::date end;
+$function$
+;
+
+-- ---------- planilla_num ----------
+CREATE OR REPLACE FUNCTION "GP2".planilla_num(p text)
+ RETURNS numeric
+ LANGUAGE sql
+ IMMUTABLE
+AS $function$
+  select case when p ~ '^-?[0-9]+(\.[0-9]+)?$' then p::numeric end;
+$function$
+;
+
+-- ---------- planilla_snapshot_nuevo ----------
+CREATE OR REPLACE FUNCTION "GP2".planilla_snapshot_nuevo(p_archivo text, p_nota text DEFAULT NULL::text, p_subido_por text DEFAULT NULL::text)
+ RETURNS integer
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'GP2'
+AS $function$
+declare v_id int;
+begin
+  update "GP2".planilla_snapshot set vigente = false where vigente;
+  insert into "GP2".planilla_snapshot (archivo, nota, subido_por)
+       values (p_archivo, p_nota, p_subido_por) returning id into v_id;
+  return v_id;
 end $function$
 ;
 
