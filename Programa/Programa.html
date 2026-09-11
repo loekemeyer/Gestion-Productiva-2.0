@@ -24,11 +24,14 @@
          achicar la letra.
     ========================================================================== */
  *{box-sizing:border-box}
+ /* Gris azulado MEDIO, no negro. La primera vuelta (2026-09-11) quedó casi negra y el
+    usuario la vio menos legible, no más: con el fondo muy oscuro el texto gris de las
+    descripciones se apaga. Fondo medio + texto blanco puro = más contraste real. */
  :root{
-  --bg:#0e141b; --bar:#141e28; --lane:#18232f; --card:#22303f; --cardq:#1b2734;
-  --line:#2a3a4a; --line2:#3c5468;
-  --tx:#eef4f9; --tx2:#a6b8c8; --tx3:#7d92a5;
-  --amb:#f3af45; --blu:#7cc2f0;
+  --bg:#29323d; --bar:#212a35; --lane:#343f4c; --card:#414e5d; --cardq:#3a4655;
+  --line:#4d5b6b; --line2:#64748a;
+  --tx:#ffffff; --tx2:#d3dde8; --tx3:#adbbc9;
+  --amb:#ffc046; --blu:#8fd0ff;
  }
  html,body{background:var(--bg);color:var(--tx)}
  body{margin:0;font:16px/1.45 -apple-system,Segoe UI,Roboto,sans-serif}
@@ -48,7 +51,7 @@
  .top select#art{max-width:min(620px,78vw)}
  .top select#marca,.top select#tallAlt{max-width:78vw}
 
- .canvas{padding:18px 18px 48px;max-width:1680px}
+ .canvas{padding:18px 18px 48px;max-width:1680px;overflow-x:auto}
 
  /* ---- encabezado del artículo ---- */
  .hero{background:linear-gradient(180deg,#1e2b3a,#18222e);border:1px solid var(--line);
@@ -63,16 +66,23 @@
  .hero .kpi b{display:block;font-size:21px;color:var(--tx);font-weight:800;text-transform:none;letter-spacing:0}
  .hero .kpi.ens b{color:var(--blu)}
 
- /* ---- resumen de flejes (se calculaba y se tiraba: ahora se muestra) ---- */
- .flejes-total{background:var(--lane);border:1px solid var(--line);border-left:5px solid var(--amb);
-               border-radius:14px;padding:12px 18px;margin-bottom:16px;width:fit-content;max-width:100%}
- .flejes-total h3{margin:0 0 6px;color:var(--tx3);font-size:12px;text-transform:uppercase;letter-spacing:1px}
- .fleje-row{display:flex;justify-content:space-between;gap:28px;padding:7px 0;font-size:16px;
-            border-bottom:1px solid var(--line)}
- .fleje-row:last-child{border-bottom:0}
- .fleje-row .fname{color:var(--tx)}
- .fleje-row .fname i{color:var(--tx3);font-style:normal}
- .fleje-row .fkg{color:var(--amb);font-weight:800;white-space:nowrap}
+ /* ---- despiece del artículo (qué piezas lleva y cuántas) ---- */
+ .despiece{background:var(--lane);border:1px solid var(--line);border-left:5px solid var(--amb);
+           border-radius:14px;padding:12px 18px 14px;margin-bottom:16px;width:fit-content;max-width:100%;
+           overflow-x:auto}
+ .despiece h3{margin:0 0 8px;color:var(--tx3);font-size:12.5px;text-transform:uppercase;letter-spacing:1px}
+ .despiece table{border-collapse:collapse;width:auto}
+ .despiece th{font-size:12px;text-transform:uppercase;letter-spacing:.7px;color:var(--tx3);
+              text-align:left;padding:4px 16px 6px 0;border-bottom:1px solid var(--line);white-space:nowrap}
+ .despiece td{font-size:16px;color:var(--tx2);padding:6px 16px 6px 0;border-bottom:1px solid var(--line);
+              white-space:nowrap}
+ .despiece tr:last-child td{border-bottom:0}
+ .despiece td:last-child,.despiece th:last-child{padding-right:0}
+ .despiece .cd{font-family:ui-monospace,SF Mono,Menlo,monospace;font-weight:800;color:var(--tx);font-size:16.5px}
+ .despiece .ds{color:var(--tx2);white-space:normal;max-width:380px}
+ .despiece .sc{color:var(--tx3);font-size:14px;text-transform:uppercase;letter-spacing:.5px}
+ .despiece .nu{text-align:right;font-weight:800;color:var(--tx)}
+ .despiece .tt{text-align:right;font-weight:800;color:var(--amb);font-size:17px}
 
  /* ---- títulos de bloque ---- */
  .section-title{display:flex;align-items:center;gap:10px;margin:26px 0 10px;font-size:14px;font-weight:800;
@@ -81,9 +91,11 @@
                    border-radius:50%;background:rgba(243,175,69,.15);border:1px solid rgba(243,175,69,.45);
                    color:var(--amb);font-size:14px;font-weight:800;letter-spacing:0;flex-shrink:0}
 
- /* ---- carril de una ruta. width:fit-content = sin espacio muerto a la derecha ---- */
+ /* ---- carril de una ruta. width:fit-content = sin espacio muerto a la derecha.
+        Sin max-width: si la ruta es más larga que la pantalla, el carril mide lo que
+        necesita y ajustarFilas() lo escala para que entre entero. ---- */
  .lane{background:var(--lane);border:1px solid var(--line);border-radius:14px;padding:12px 14px;
-       margin-bottom:10px;width:fit-content;max-width:100%}
+       margin-bottom:10px;width:fit-content}
  .lane.conv{border-color:#4a5b6e}
  .lane .head{display:flex;justify-content:space-between;align-items:center;gap:20px;margin-bottom:10px;
              font-size:16px;color:var(--tx2);flex-wrap:wrap}
@@ -94,10 +106,12 @@
                   padding:3px 13px;border-radius:20px;font-weight:800;font-size:16px;white-space:nowrap}
 
  /* ---- la cadena ----
-    WRAP, no scroll horizontal: una ruta de 7 pasos no entra en ninguna pantalla y
-    el scroll lateral escondia el final de la ruta (el usuario no veia Virgilio).
-    Envuelve a un segundo renglon y se ve TODO. En 390px queda una tarjeta por fila. */
- .flow{display:flex;gap:10px 8px;align-items:stretch;flex-wrap:wrap;padding-bottom:2px}
+    UNA RUTA = UNA FILA [usuario 2026-09-11: "quiero que una misma ruta entre en una sola
+    fila, que no se mande por abajo, para terminarla"]. Nada de wrap y nada de scroll
+    lateral (que escondía el final de la ruta): el carril que no entra se ACHICA solo
+    hasta que entra — lo hace ajustarFilas() en JS, con piso para que no se vuelva
+    ilegible. En celular la cadena sigue bajando en vertical. */
+ .flow{display:flex;gap:8px;align-items:stretch;flex-wrap:nowrap;padding-bottom:2px}
  .flow.branch{margin-bottom:4px}
  .branch-lbl{font-size:14.5px;font-weight:700;color:var(--tx2);margin:12px 0 5px}
  .branch-lbl .r{color:var(--amb);font-weight:800}
@@ -106,14 +120,17 @@
  .converge-bar .line{flex:1;height:1px;background:linear-gradient(90deg,transparent,var(--line2),transparent)}
 
  /* ---- tarjeta de paso ---- */
+ /* Angosta a propósito: cuanto más angosta la tarjeta, menos hay que achicar el carril
+    para que la ruta entre en una fila — y la letra queda más grande, no más chica. */
  .node{background:var(--card);border:1px solid var(--line2);border-left:4px solid var(--line2);
-       border-radius:10px;padding:9px 12px;min-width:172px;max-width:265px;display:flex;flex-direction:column;
+       border-radius:10px;padding:9px 11px;min-width:150px;max-width:225px;display:flex;flex-direction:column;
        gap:2px;flex-shrink:0}
  .node .tp{font-size:12px;font-weight:800;letter-spacing:.7px;text-transform:uppercase;color:var(--tx3);
            line-height:1.25}
  .node .nm{font-size:21px;font-weight:800;font-family:ui-monospace,SF Mono,Menlo,monospace;color:var(--tx);
            line-height:1.15;word-break:break-word;margin-top:1px}
- .node .ex{font-size:14px;color:var(--tx2);line-height:1.3;margin-top:1px}
+ .node .ex{font-size:14.5px;color:var(--tx2);line-height:1.3;margin-top:1px;
+           display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
  .node .rend{font-size:14px;color:var(--amb);font-weight:700;margin-top:2px}
  .node .foot{margin-top:auto;padding-top:8px;display:flex;flex-wrap:wrap;gap:6px;align-items:center}
  .node .dest{width:100%;font-size:13.5px;font-weight:700;color:var(--tx2);background:var(--cardq);
@@ -645,28 +662,68 @@ function render(){
     '<div class="kpis">'+
       '<div class="kpi"><b>'+fmt(uni)+'</b>unidades a producir</div>'+
       '<div class="kpi"><b>'+bom.length+'</b>partes BOM</div>'+
-      '<div class="kpi"><b>'+Object.keys(need).length+'</b>componentes</div>'+
       '<div class="kpi"><b>'+rutas_prod.length+'</b>rutas de producción</div>'+
       (talls.length?'<div class="kpi ens"><b>'+esc(talls.join(" O "))+'</b>ensambla (alternativas)</div>':"")+
     '</div></div>';
 
- // El kg de fleje por código ya se calculaba carril por carril y se tiraba: acá se muestra.
- var flKeys=Object.keys(flejesTotal).filter(function(k){return flejesTotal[k]>0;});
- if(flKeys.length){
-  flKeys.sort(function(x,y){return flejesTotal[y]-flejesTotal[x];});
-  var tot=0;flKeys.forEach(function(k){tot+=flejesTotal[k];});
-  H+='<div class="flejes-total"><h3>Fleje a pedir para estas '+fmt(uni)+' unidades</h3>';
-  flKeys.forEach(function(k){
-   var fc=cById(k);
-   H+='<div class="fleje-row"><span class="fname">'+esc(fc.cod||"?")+' <i>'+esc(fc.d||"")+'</i></span>'+
-      '<span class="fkg">'+fmt(flejesTotal[k])+' kg</span></div>';
+ // DESPIECE: qué piezas lleva el artículo y cuántas. Sale del BOM ya expandido (need),
+ // que es el mismo número con el que se dibujan las rutas — no se calcula nada aparte.
+ // [usuario 2026-09-11] pidió esto en lugar del "fleje a pedir" (los kg de fleje siguen
+ // estando en el badge de cada carril, que es donde se leen por ruta).
+ var despKeys=Object.keys(need).filter(function(k){return need[k]>0;});
+ if(despKeys.length){
+  despKeys.sort(function(x,y){return (need[y]*uni)-(need[x]*uni);});
+  H+='<div class="despiece"><h3>Despiece del artículo · '+despKeys.length+' componentes para '+fmt(uni)+' unidades</h3>'+
+     '<table><thead><tr><th>Código</th><th>Descripción</th><th>Sector</th>'+
+     '<th style="text-align:right">Por unidad</th><th style="text-align:right">Total</th></tr></thead><tbody>';
+  despKeys.forEach(function(k){
+   var c=cById(k), sn=sName(c.s);
+   H+='<tr><td class="cd">'+esc(c.cod||"?")+'</td><td class="ds">'+esc(c.d||"")+'</td>'+
+      '<td class="sc">'+esc(sn==='?'?'—':sn)+'</td>'+
+      '<td class="nu">'+fmt(need[k])+'</td><td class="tt">'+fmt(need[k]*uni)+' u</td></tr>';
   });
-  if(flKeys.length>1)H+='<div class="fleje-row"><span class="fname"><b>Total</b></span><span class="fkg">'+fmt(tot)+' kg</span></div>';
-  H+='</div>';
+  H+='</tbody></table></div>';
  }
 
  document.getElementById("canvas").innerHTML=H+B;
+ ajustarFilas();
 }
+
+/* UNA RUTA = UNA FILA. El carril mide lo que la ruta necesita (fit-content, sin tope) y
+   acá se lo achica con `zoom` hasta que entra en el ancho de la pantalla. `zoom` y no
+   `transform:scale` a propósito: zoom SÍ reacomoda el layout, así que el carril ocupa de
+   verdad lo que se ve y no deja un hueco abajo ni desborda la página.
+   PISO: por debajo de esto la letra dejaría de leerse, que es justo lo que se vino a
+   arreglar; si una ruta no entra ni al piso, ese carril (solo ese) scrollea. */
+var PISO_ZOOM=0.62;
+/* OJO: el ancho de la fila NO se puede medir con offsetWidth/scrollWidth del carril.
+   El carril es width:fit-content, y fit-content se capea al ancho del contenedor: mide
+   1.464 aunque la cadena adentro pida 1.900 y se esté cortando. El ancho REAL de la fila
+   es de dónde arranca la primera tarjeta a dónde termina la última. */
+function anchoFila(f){
+ var k=f.children;
+ if(!k.length)return 0;
+ var pri=k[0], ult=k[k.length-1];
+ return (ult.offsetLeft+ult.offsetWidth)-pri.offsetLeft;
+}
+function ajustarFilas(){
+ var cv=document.getElementById("canvas");
+ var carriles=cv.querySelectorAll(".lane");
+ var movil=window.innerWidth<=560;          // en celular la cadena va en vertical: no se escala
+ for(var i=0;i<carriles.length;i++){
+  var l=carriles[i];
+  l.style.zoom="";                          // medir siempre sin escalar
+  if(movil)continue;
+  var disp=cv.clientWidth-36;               // el padding del canvas
+  if(disp<=0)continue;
+  var filas=l.querySelectorAll(".flow"), nec=0;
+  for(var j=0;j<filas.length;j++)nec=Math.max(nec,anchoFila(filas[j]));
+  nec+=l.offsetWidth-l.clientWidth+28;      // bordes + el padding lateral del carril
+  if(nec>disp)l.style.zoom=Math.max(PISO_ZOOM,disp/nec);
+ }
+}
+var _rsz;
+window.addEventListener("resize",function(){clearTimeout(_rsz);_rsz=setTimeout(ajustarFilas,120);});
 
 sel.addEventListener("change",function(){document.getElementById('tallAlt').dataset.aid='';render();});
 function refiltrar(){

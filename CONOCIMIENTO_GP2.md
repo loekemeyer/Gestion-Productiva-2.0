@@ -7535,7 +7535,19 @@ la letra tenía que ser chica. Tres decisiones que quedan como criterio del mód
 **Fondo oscuro a propósito:** esta pantalla **no carga `gp2-claro.css`** (el tema claro global).
 Es la excepción del repo; si alguien se lo vuelve a agregar, le pisa toda la paleta con blanco.
 
-**El kg de fleje ya se calculaba y se tiraba.** `flejesTotal` se sumaba carril por carril y nunca
-se dibujaba (el CSS `.flejes-total` existía sin emisor). Ahora se muestra arriba de todo: **qué
-fleje pedir, en kg, para esas N unidades**, ordenado de mayor a menor. Es la pregunta que el
-módulo contesta.
+**Segunda vuelta, el mismo día, con el usuario mirándolo** — las tres correcciones valen como
+criterio, no como detalle:
+
+- *"muy oscuro capaz y lo veo poco legible"*: el casi negro (`#0e141b`) **empeoró** la legibilidad
+  en vez de mejorarla — con el fondo muy oscuro el gris de las descripciones se apaga. Quedó un
+  **gris azulado medio** (`#29323d`) con texto blanco puro. Oscuro ≠ negro.
+- *"quiero que una misma ruta entre en una sola fila, que no se mande por abajo, para terminarla"*:
+  ni wrap ni scroll lateral. El carril que no entra **se achica solo** (`ajustarFilas()`, `zoom`
+  por carril, piso 0,62). **TRAMPA**: el ancho de la fila NO se puede medir con `offsetWidth` ni
+  `scrollWidth` del carril — es `width:fit-content` y fit-content se capea al contenedor, así que
+  mide el ancho de la pantalla aunque la cadena adentro pida 400 px más y se esté cortando. Se mide
+  de dónde arranca la primera tarjeta a dónde termina la última (`offsetLeft`).
+- *"a pedir no me interesa mucho; en vez del a pedir, poneme el despiece"*: arriba va el **despiece
+  del artículo** (código, descripción, sector, por unidad, total), ordenado por cantidad. Los kg de
+  fleje quedan en el badge de cada carril, que es donde se leen por ruta. `flejesTotal` se seguía
+  calculando y **no se dibujaba en ningún lado** (el CSS `.flejes-total` existía sin emisor).
