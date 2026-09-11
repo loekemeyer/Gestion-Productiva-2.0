@@ -7262,8 +7262,13 @@ y del 911. En GP2 el código es único por sector, así que el que llegó segund
 | Formato | Pliegos múltiplo | Lo usan |
 |---|---|---|
 | Corbata | 30.000 | 14 cartones |
-| Rallador | 24.000 | 1 (F5A, Cartón 321) |
-| Bandita | 24.000 | 1 (P2A, Cartón 840) |
+| Rallador | 24.000 | 2 — F5A (Cartón 321, LK) y P2A (Cartón 840, CHEF) |
+
+**`Bandita` se creó y se borró el mismo día.** La había deducido el agente de la planilla y el
+usuario no la había pedido; al verla dijo *"la bandita no la pongas"* y que **los formatos nuevos son
+sólo Rallador y Corbata**. El `P2A` (Cartón 840, el rallador de Chef) pasó a **Rallador**, con el
+gemelo LK. Migración `sacar_formato_bandita_p2a_va_en_rallador`. **Lección: un formato deducido de una
+planilla no se carga sin preguntar** — la tabla `carton_formato` manda en la agrupación de la OC.
 
 `pliegos_multiplo` = "Cant x Pliego" de la planilla × 1000, que es la regla que **ya cumplen los
 cuatro formatos viejos** (C 12, Huevo 25, LOKE 16, "8" 30). **`uni_x_bolsa` y `paq_x_bolsa` quedan
