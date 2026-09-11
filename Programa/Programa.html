@@ -634,7 +634,7 @@ function render(){
     else if(p.tp==="tallerista"){
      var tallsEtapa=g.tallsPorPos[idx]||[(D.tall[String(p.ta)]||'').trim()];
      var lbl=tallsEtapa.length>1?tallsEtapa.join(' O '):tallsEtapa[0];
-     B+='<span class="arr">→</span>'+node("TALLERISTA","tall",lbl,tallsEtapa.length>1?"(alternativas)":"","",qFin,null,"");
+     B+='<span class="arr">→</span>'+node("TALLERISTA","tall",lbl,"","",qFin,null,"");
     }
     else if(p.tp==="proveedor_at"){
      /* Articulo comprado terminado: lo unico que sale de casa es el carton y la caja;
@@ -650,7 +650,7 @@ function render(){
 
  B+=titulo(5,'Convergencia final → Artículo → Virgilio');
  B+='<div class="lane"><div class="flow">';
- if(talls.length){talls.forEach(function(t,i){B+=(i>0?'<span class="arr plus">O</span>':"")+node("TALLERISTA","tall",t,"ensambla (alternativa)","",uni,null,"");});}
+ if(talls.length){talls.forEach(function(t,i){B+=(i>0?'<span class="arr plus">O</span>':"")+node("TALLERISTA","tall",t,"ensambla","",uni,null,"");});}
  else B+=node("TALLERISTA","tall","(sin asignar)","tabla incompleta","",uni,null,"");
  B+='<span class="arr">→</span>'+node("ARTÍCULO","virg",a.cod,a.fam+" terminado","",uni,null,"")+
     '<span class="arr">→</span>'+node("VIRGILIO","virg","Distribución","centro logístico","",uni,null,"");
@@ -663,7 +663,7 @@ function render(){
       '<div class="kpi"><b>'+fmt(uni)+'</b>unidades a producir</div>'+
       '<div class="kpi"><b>'+bom.length+'</b>partes BOM</div>'+
       '<div class="kpi"><b>'+rutas_prod.length+'</b>rutas de producción</div>'+
-      (talls.length?'<div class="kpi ens"><b>'+esc(talls.join(" O "))+'</b>ensambla (alternativas)</div>':"")+
+      (talls.length?'<div class="kpi ens"><b>'+esc(talls.join(" O "))+'</b>ensambla</div>':"")+
     '</div></div>';
 
  // DESPIECE: qué piezas lleva el artículo y cuántas. Sale del BOM ya expandido (need),

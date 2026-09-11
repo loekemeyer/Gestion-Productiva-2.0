@@ -7547,6 +7547,10 @@ criterio, no como detalle:
   `scrollWidth` del carril — es `width:fit-content` y fit-content se capea al contenedor, así que
   mide el ancho de la pantalla aunque la cadena adentro pida 400 px más y se esté cortando. Se mide
   de dónde arranca la primera tarjeta a dónde termina la última (`offsetLeft`).
+- *"eso que dice alternativas no quiero que lo diga"*: la palabra **"alternativa/alternativas"
+  salió de las tres partes** donde aparecía (el KPI del encabezado, la tarjeta del tallerista en
+  el bloque 5 y la del bloque 4). Cuando hay más de un tallerista ya se lee `ALEX O MARTIN`: el
+  "O" dice lo mismo sin la aclaración.
 - *"a pedir no me interesa mucho; en vez del a pedir, poneme el despiece"*: arriba va el **despiece
   del artículo** (código, descripción, sector, por unidad, total), ordenado por cantidad. Los kg de
   fleje quedan en el badge de cada carril, que es donde se leen por ruta. `flejesTotal` se seguía
