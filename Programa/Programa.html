@@ -597,6 +597,20 @@ function render(){
  } else {
   tallAltBox.style.display='none';
  }
+ /* EL PROV. DE ARTÍCULO TERMINADO REEMPLAZA AL TALLERISTA [usuario 2026-09-11, textual].
+    Un artículo comprado terminado no lo ensambla nadie acá: de casa sale el cartón y la
+    caja, y el proveedor entrega el artículo hecho en Virgilio. Antes, como tall_art no
+    traía ningún tallerista, la pantalla dibujaba "TALLERISTA (sin asignar) — tabla
+    incompleta": mentira, y encima escondía quién entrega. Son 39 de 189 artículos
+    (761 Cucharita Matera, que lo entrega Melinox, es el que lo destapó). */
+ var provAT=[];
+ rutas.forEach(function(r){
+  (D.rp[String(r.id)]||[]).forEach(function(p){
+   if(p.tp!=='proveedor_at'||!p.pat)return;
+   var n=String((D.provat&&D.provat[String(p.pat)])||'').trim();
+   if(n&&provAT.indexOf(n)<0)provAT.push(n);
+  });
+ });
  var rutas_prod=rutas.filter(function(r){return r.f;});
  var rutas_ins=rutas.filter(function(r){return !r.f;});
  var flejesTotal={};
@@ -737,9 +751,11 @@ function render(){
   });
  }
 
- B+=titulo(5,'Convergencia final → Artículo → Virgilio');
+ B+=titulo(5,(talls.length||!provAT.length)?'Convergencia final → Artículo → Virgilio'
+                                          :'Artículo comprado terminado → Virgilio');
  B+='<div class="lane"><div class="flow">';
  if(talls.length){talls.forEach(function(t,i){B+=(i>0?'<span class="arr plus">O</span>':"")+node("TALLERISTA","tall",t,"ensambla","",uni,null,"");});}
+ else if(provAT.length){provAT.forEach(function(n,i){B+=(i>0?'<span class="arr plus">O</span>':"")+node("PROV. ART. TERM.","prov",n,"entrega terminado","",uni,null,"");});}
  else B+=node("TALLERISTA","tall","(sin asignar)","tabla incompleta","",uni,null,"");
  B+='<span class="arr">→</span>'+node("ARTÍCULO","virg",a.cod,a.fam+" terminado","",uni,null,"")+
     '<span class="arr">→</span>'+node("VIRGILIO","virg","Distribución","centro logístico","",uni,null,"");
@@ -752,7 +768,8 @@ function render(){
       '<div class="kpi"><b>'+fmt(uni)+'</b>unidades a producir</div>'+
       '<div class="kpi"><b>'+bom.length+'</b>partes BOM</div>'+
       '<div class="kpi"><b>'+rutas_prod.length+'</b>rutas de producción</div>'+
-      (talls.length?'<div class="kpi ens"><b>'+esc(talls.join(" O "))+'</b>ensambla</div>':"")+
+      (talls.length?'<div class="kpi ens"><b>'+esc(talls.join(" O "))+'</b>ensambla</div>'
+        :provAT.length?'<div class="kpi ens"><b>'+esc(provAT.join(" O "))+'</b>entrega terminado</div>':"")+
     '</div></div>';
 
  // DESPIECE: qué piezas lleva el artículo y cuántas. Sale del BOM ya expandido (need),

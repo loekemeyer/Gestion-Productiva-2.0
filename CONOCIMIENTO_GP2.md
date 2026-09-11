@@ -7547,6 +7547,14 @@ criterio, no como detalle:
   `scrollWidth` del carril — es `width:fit-content` y fit-content se capea al contenedor, así que
   mide el ancho de la pantalla aunque la cadena adentro pida 400 px más y se esté cortando. Se mide
   de dónde arranca la primera tarjeta a dónde termina la última (`offsetLeft`).
+- *"el tallerista es reemplazado por el prov de art terminado"* `[usuario 2026-09-11, textual]`:
+  un artículo **comprado terminado no tiene tallerista, y eso no es un dato que falte**. De casa
+  sale el cartón y la caja; el proveedor entrega el artículo hecho en Virgilio. La pantalla
+  asumía que todo artículo lo ensambla alguien y dibujaba *"TALLERISTA (sin asignar) — tabla
+  incompleta"* en **39 de los 189 artículos** (lo destapó el `761` Cucharita Matera, que entrega
+  Melinox). Ahora el Prov AT ocupa ese lugar, en la tarjeta y en el encabezado, y el bloque
+  final se titula *"Artículo comprado terminado → Virgilio"*. Lo vigila
+  `tests/ui/test_programa_prov_at.js`.
 - *"eso que dice alternativas no quiero que lo diga"*: la palabra **"alternativa/alternativas"
   salió de las tres partes** donde aparecía (el KPI del encabezado, la tarjeta del tallerista en
   el bloque 5 y la del bloque 4). Cuando hay más de un tallerista ya se lee `ALEX O MARTIN`: el
