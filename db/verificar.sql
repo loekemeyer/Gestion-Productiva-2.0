@@ -48,7 +48,11 @@ select 'C_funciones_internas_con_execute_anon', count(*) from pg_proc p
    and (p.prorettype = 'trigger'::regtype or p.proname like '\_%' or p.proname like 'fn\_%'
         or p.proname like 'relev\_%' or p.proname like 'recalcular\_%'
         or p.proname in ('to_canonical', 'inv_delta', 'ubic_de', 'ubic_de_componente', 'recepcion_tara',
-                         'recepcion_virgilio', 'actualizar_dolar_oficial', 'crear_recepcion_insumo'))
+                         'recepcion_virgilio', 'actualizar_dolar_oficial', 'crear_recepcion_insumo',
+                         -- mantenimiento: se corren desde una sesion con SQL, nunca desde una pantalla
+                         'planilla_snapshot_nuevo', 'planilla_cargar', 'reprocesar_espejo_virgilio',
+                         -- no es el motor de la entrega de tallerista (ese es gp2-motor.js), idea 7316
+                         'crear_entrega_tallerista'))
 union all
 -- D) Toda tabla tiene RLS y una policy; ninguna policy es de escritura (la escritura va por RPC).
 select 'D_tablas_sin_rls_o_sin_policy', count(*) from pg_class c
@@ -94,7 +98,11 @@ select 'M_rpc_de_pantalla_sin_execute_anon', count(*) from pg_proc p
    and not (p.prorettype = 'trigger'::regtype or p.proname like '\_%' or p.proname like 'fn\_%'
         or p.proname like 'relev\_%' or p.proname like 'recalcular\_%'
         or p.proname in ('to_canonical', 'inv_delta', 'ubic_de', 'ubic_de_componente', 'recepcion_tara',
-                         'recepcion_virgilio', 'actualizar_dolar_oficial', 'crear_recepcion_insumo'))
+                         'recepcion_virgilio', 'actualizar_dolar_oficial', 'crear_recepcion_insumo',
+                         -- mantenimiento: se corren desde una sesion con SQL, nunca desde una pantalla
+                         'planilla_snapshot_nuevo', 'planilla_cargar', 'reprocesar_espejo_virgilio',
+                         -- no es el motor de la entrega de tallerista (ese es gp2-motor.js), idea 7316
+                         'crear_entrega_tallerista'))
 union all
 -- N) Ninguna funcion GP2 resuelve nombres en public (search_path = GP2 solo), salvo las dos que
 --    lo necesitan a proposito (get_role_for_email delega en public; actualizar_dolar_oficial usa http).

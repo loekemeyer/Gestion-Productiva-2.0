@@ -7751,4 +7751,47 @@ select a.codigo art, c.codigo parte, s.nombre sector, ac.cantidad
 ```
 Hoy da **0**. Y hay un caso hermano en otra tabla: el código **553** de `uni_x_articulo_x_caja`
 nombra **dos bombillas distintas** (*Coco Hexagonal* y *Super Niq Larga Curva*) con el mismo
-`cod_art` — idea 7325.
+`cod_art` — idea 7326.
+
+
+### 4bu. Quién puede llamar a una RPC: el barrido de `anon` (2026-09-11)
+
+`[dato]` La clave publishable vive en `supabase-config.js`, o sea **en un repo público**:
+todo lo que tenga `EXECUTE` para `anon` lo puede correr cualquiera. El barrido del
+2026-09-11 encontró **102 funciones GP2 con `EXECUTE` para `anon`** y **9 de ellas no las
+llama ninguna pantalla ni ningún test** (0 referencias en el repo). La consulta:
+
+```sql
+select p.proname from pg_proc p
+ where p.pronamespace = '"GP2"'::regnamespace
+   and has_function_privilege('anon', p.oid, 'EXECUTE')
+ order by 1;   -- después: grep de cada nombre en los .html/.js
+```
+
+**No todas las que "no llama nadie" sobran.** Cinco de las nueve las llama un **cliente
+externo** —la app de Gestión Virgilio— con la clave anon, y el contrato está escrito en
+`INTEGRACION_GESTION_VIRGILIO.md`: `material_virgilio_bundle`, `oc_pendientes_virgilio`,
+`enviar_material_virgilio`, `recibir_oc_virgilio` y `traslado_virgilio`. Sacarles el
+`EXECUTE` habría roto esa integración sin que ningún test de este repo se enterara.
+**Antes de revocar hay que mirar los `.md` de integración, no sólo el código.**
+
+Las cuatro que sí se cerraron, y por qué:
+
+| Función | Qué hace | Por qué no va para `anon` |
+|---|---|---|
+| `planilla_cargar` | reescribe `GP2.planilla_fila` | rehace el snapshot de costos; se corre con SQL cuando el usuario manda un Excel nuevo |
+| `planilla_snapshot_nuevo` | abre el snapshot | idem |
+| `reprocesar_espejo_virgilio` | escribe movimientos | mantenimiento, se corre a mano |
+| `crear_entrega_tallerista` | escribe el ledger | **no es el motor** (ese es `gp2-motor.js`), idea 7316 |
+
+Las cuatro quedaron en la lista de "internas" de los invariantes **C** y **M** de
+`db/verificar.sql`, que son complementarios y comparten esa lista: C exige que ninguna
+interna tenga `anon`, M exige que ninguna RPC de pantalla lo pierda. **Al mover una
+función de un lado al otro hay que tocar las DOS listas**, si no uno de los dos
+invariantes se prende. Para volver atrás cualquiera de las cuatro:
+`grant execute on function "GP2".<nombre>(<firma>) to anon, authenticated;`
+
+`[dato]` Queda una punta abierta (idea 7328): las tres RPC de Virgilio que **escriben** no
+tienen forma de saber quién las llamó —`recibir_oc_virgilio` y `enviar_material_virgilio`
+reciben un `legajo`, `traslado_virgilio` no—, así que un error del cliente externo entra al
+ledger sin firma.
