@@ -7190,3 +7190,43 @@ están frenados por dos cosas concretas:
 Los 3 marcados `disc` (852 Pinza De Hielo, 848 Corta Torta Plástica, 338 Espátula Lisa) **no se
 modelan**. El `575` Tapón De Vino lleva la nota del usuario *"se que hay una parte para 1/2 items que
 damos nosotros"*: los 5 tapones (575, 577, 579, 816, 817) quedan a la espera de esa aclaración.
+
+### 4bf. Prov. Art. Terminado: el circuito YA manda cajas y cartones; lo que falta son los datos (2026-09-11)
+
+Revertido el alta de las 9 maderas de Pintos de §4be `[usuario 2026-09-11: "deshace si hiciste algo"]`
+— migración `revertir_alta_maderas_pintos`, mismo día, 0 movimientos, GP2 vuelve a **140 artículos** y
+los `GRJ25`–`GRJ30` dejan de existir. **§4be describe algo que ya NO está en la base.**
+
+**Lo que el usuario quiere de los 40 "Solo en Prov Art Terminado"**: que estén en el módulo, que se
+les mande su caja y su cartón, y que **el cartón se pueda recepcionar como insumo antes de
+mandárselo**.
+
+**Tres de las cuatro cosas ya funcionan, y no hacía falta tocar código** `[dato, verificado]`:
+1. **Los 40 ya están** en `articulo_prov_at`, todos con proveedor activo.
+2. **`crear_envio_prov_at` ya manda cajas y cartones y NADA más**: rechaza cualquier componente que
+   no sea Sector Cartón (10) o Sector Caja (11). El movimiento sale del sector y entra a la ubicación
+   del Prov AT.
+3. **La recepción como insumo ya los toma**: `recepcion_bundle` arma la lista con los componentes que
+   tienen proveedor, sin mirar a quién se le manda después. Un cartón nuevo aparece solo.
+
+**Lo que falta es dato, y es lo que bloquea todo** (detalle: `ProvAT_cajas_y_cartones.xlsx`):
+
+| Hueco | Cuántos |
+|---|---|
+| Artículos de Prov AT **sin cartón** en GP2 | **40 de 40** |
+| Sin caja asignada (`n_caja` null) | 4 — 070, 222, 591, 910 |
+| Caja asignada que **no existe** como componente | 2 — 338 pide Caja N°24, 732 pide Caja N°8 |
+| Dos proveedores AT que declaran **cajas distintas** | 4 — 223, 224 (12 vs 2), 246 (2 vs 6), 577 (12 vs 22) |
+
+**Faltan tres cajas en `componente`** (Sector 11 tiene 12 y la planilla usa 15): **N°4** (la pide el
+280), **N°8** (732) y **N°24** (031, 034, 338, 535, 654). Crearlas necesita su **código de
+estantería** (A1, A8, A9B, Z9…), que es convención de la casa y no se inventa.
+
+**`articulo_prov_at.n_caja` es un número suelto, no un FK a `componente`.** Hoy nadie cruza "este
+artículo lleva esta caja" con el stock de cajas: la pantalla de Envíos AT lista **las 12 cajas y los
+110 cartones enteros**, sin filtrar por proveedor ni por artículo. Ése es el cambio de pantalla que
+vale la pena cuando estén los datos.
+
+**Los `disc` salen del backlog** `[usuario: "saca todos los disc de la lista de pendientes… no los
+vamos a agregar"]`: 23 de las 36 filas de "no están en ningún lado" están marcadas `disc`, así que el
+backlog real de esa hoja baja a **13**.
