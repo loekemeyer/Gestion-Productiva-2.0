@@ -7897,6 +7897,11 @@ terminado.** El 186 quedó costando $442,92 contra $544,17 del 099, y la diferen
 entera: $66,75 del cartón sin precio **y $34,50 de mano de obra** — `precio_tallerista` tiene
 "Pelador Ergonómico AyE" $34,50 colgada del **componente terminado del 099**, y el gemelo tiene
 componente terminado propio. `442,92 + 67 + 34,50 = 544,42` contra `544,17`: cierra con 25
-centavos (los 66,75 del cartón viejo contra los 67 del nuevo). Los dos precios **esperan al
-usuario** (idea 7326): la planilla le pone **67** al cartón del 186, y para la mano de obra la
-hoja "Talleristas" trae `Separado Cuchilla 8,4`, que no es lo mismo que los 34,50 del gemelo.
+centavos (los 66,75 del cartón viejo contra los 67 del nuevo). **Los dos los dictó el usuario el
+2026-09-12** (`"1 si"` / `"2 34.5"`) y ya están cargados: el cartón a **$67**, calcado de los de
+sus hermanos Loke (misma lista, mismo `cod_prov` 2147), y la mano de obra de Lucho a **$34,50**,
+la misma del gemelo — **NO** los `8,4` que la hoja "Talleristas" trae para el 186, que son de
+"Separado Cuchilla", otro proceso. El 186 quedó en **$544,42** contra $544,17 del 099, y esos 25
+centavos son la única diferencia real entre los dos: el cartón nuevo cuesta 67 y el viejo 66,75.
+**La posición de estantería del cartón sigue sin aparecer** (`"3 no la tengo"`), así que `CART186`
+sigue siendo el código provisorio.
