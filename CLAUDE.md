@@ -9,6 +9,14 @@ haya que trabajar con Supabase".** Se lee ANTES de escribir la primera consulta.
 - **Tablas, vistas y RPCs:** lo que necesita una pantalla GP2 **tiene que existir en `GP2`**. Si no
   existe, se crea en `GP2` (mirando la lógica del vecino si hace falta), no se apunta a `public`.
 - **Adentro de la base igual:** ninguna función ni vista de `GP2` lee tablas de negocio de `public`.
+- **Internalizar NO es copiar la tabla del vecino.** Lo que hoy se mira en `public` entra a GP2
+  **con la normalización de GP2** [usuario 2026-09-12: *"mantengamos la lógica de la normalización
+  que yo uso en schema gp2"*]: el modelo es `componente` → `inventario` → `articulo_componente` /
+  `componente_bom` → `ruta` / `ruta_paso` → `contraparte_alias` (ver "Completar tablas manteniendo
+  la NORMALIZACIÓN" más abajo). Antes de crear una tabla nueva, **preguntarse si el dato ya se
+  deduce del modelo**: caso real del 2026-09-12, "qué artículo entrega cada tallerista" NO necesitó
+  calcar `Articulos Virgilio X Tallerista` — sale del último paso con contraparte antes del paso
+  `virgilio` de la ruta. Una tabla plana del vecino copiada tal cual es deuda, no migración.
 - **`public` = la casa del vecino** (programa viejo "Gestión Productiva Entero"): **solo lectura, y
   solo para entender cómo resolvió algo**. Ni un dato de negocio de GP2 sale de ahí.
 
