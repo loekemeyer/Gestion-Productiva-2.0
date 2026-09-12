@@ -171,7 +171,10 @@ var filtro = "todos";
 /* ---------- helpers (gp2-ui.js / gp2-numero.js) ---------- */
 var esc = GP2UI.esc, clsNum = GP2UI.cls;
 function fmt(n,d){ return GP2N.fmt(n, d==null?1:d); }   // esta pantalla muestra hasta 1 decimal
-function fmtFecha(f){ if(!f) return ""; try{ return new Date(f).toLocaleDateString("es-AR"); }catch(e){ return f; } }
+/* La fecha de un movimiento sale de GP2UI.fechaTsAR: se decide en ARGENTINA. Antes era un
+   new Date(f).toLocaleDateString("es-AR") propio, que resuelve en la zona del APARATO -- un
+   movimiento sellado a las 23:30 AR se veia del dia siguiente en una tablet en UTC. */
+var fmtFecha = GP2UI.fechaTsAR;
 
 /* uni es la unidad canonica de las piezas; kg y cajones son derivados */
 /* kg <-> uni: la regla de la casa (GP2N.aKg, misma que "GP2".to_canonical). Devuelve null
