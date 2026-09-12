@@ -52,7 +52,9 @@ select 'C_funciones_internas_con_execute_anon', count(*) from pg_proc p
                          -- mantenimiento: se corren desde una sesion con SQL, nunca desde una pantalla
                          'planilla_snapshot_nuevo', 'planilla_cargar', 'reprocesar_espejo_virgilio',
                          -- no es el motor de la entrega de tallerista (ese es gp2-motor.js), idea 7316
-                         'crear_entrega_tallerista'))
+                         'crear_entrega_tallerista',
+                         -- puerta unica interna: la llaman recepcion_virgilio y movimientos_bundle, no una pantalla
+                         'comp_terminado_de'))
 union all
 -- D) Toda tabla tiene RLS y una policy; ninguna policy es de escritura (la escritura va por RPC).
 select 'D_tablas_sin_rls_o_sin_policy', count(*) from pg_class c
@@ -102,7 +104,9 @@ select 'M_rpc_de_pantalla_sin_execute_anon', count(*) from pg_proc p
                          -- mantenimiento: se corren desde una sesion con SQL, nunca desde una pantalla
                          'planilla_snapshot_nuevo', 'planilla_cargar', 'reprocesar_espejo_virgilio',
                          -- no es el motor de la entrega de tallerista (ese es gp2-motor.js), idea 7316
-                         'crear_entrega_tallerista'))
+                         'crear_entrega_tallerista',
+                         -- puerta unica interna: la llaman recepcion_virgilio y movimientos_bundle, no una pantalla
+                         'comp_terminado_de'))
 union all
 -- N) Ninguna funcion GP2 resuelve nombres en public (search_path = GP2 solo), salvo las dos que
 --    lo necesitan a proposito (get_role_for_email delega en public; actualizar_dolar_oficial usa http).
