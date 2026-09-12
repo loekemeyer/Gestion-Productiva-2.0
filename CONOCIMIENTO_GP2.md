@@ -8080,3 +8080,35 @@ carga de los 40 colores es una sola corrida. **Ojo con la trampa de la 4v**: lo 
 la planilla de costos, que el usuario subió "muchísimas veces" porque las sesiones no sabían
 que estaba — si este archivo llega, **guardarlo en el repo**.
 
+### 4ce. Barrido de convergencias contra el vecino: el rompenueces es el ÚNICO (2026-09-12)
+
+`[usuario 2026-09-12: "3 dale"]` — barrer la `Causa-Efecto` del vecino buscando más matrices con
+el modelado partido del rompenueces.
+
+**TRAMPA DEL MÉTODO, y hay que anotarla porque es tentadora**: en el vecino, `Aumenta = "Mat N"`
+es un **cajón genérico por matriz**, no una pieza real. Agrupar por `(Matriz, Aumenta)` y contar
+`Descuenta` distintos da **falsos positivos**: dice "convergen" cada vez que dos piezas pasan por
+la misma matriz, aunque sigan caminos separados.
+
+El contraejemplo que lo destapó es la **Matriz 80 "Estampa Destapacorona"**, que el vecino
+muestra juntando `G1 + J8`. En GP2 son **dos variantes del mismo producto**, no dos mitades:
+`IC8` → M79 → **`G1`** → M80 → M81 → `G2` → **Jade** → `B8` (art. **700**, blanco) y
+`IC8` → M79 → **`J8`** → M80 → M81 → `J7` → **Pedernera** → `C5` (arts. **057** y **516**,
+cromado). Ninguna receta pide las dos y el `-M80` se consume en el paso siguiente: **está bien**.
+
+**Lo que SÍ prueba una convergencia real es la receta**, no el vecino: el rompenueces converge
+porque la receta del 507 y del 707 pide **las dos mitades a la vez** (abierta y cerrada), que es
+lo que un rompenueces es. El vecino sirvió para entender **qué hace la matriz** (remachar), no
+para detectar el patrón.
+
+**Resultado del barrido** — de las 11 matrices que el vecino muestra "juntando":
+
+| Matriz | En GP2 | Estado |
+|---|---|---|
+| 10 Armado Varilla, 113 Remachado pisa papas, 151 Remachado Sacaf, 174 Varilla Curva, 183 Soldar Ahueca | convergen de verdad (2+ entradas → 1 salida, con hijos en `componente_bom`) | **bien** |
+| **78 Remachado Rompenuez** | 4 salidas distintas (`B1-M78`, `B2-M78`, `D5-M78`, `D6-M78`), 0 hijos BOM | **partida** |
+| 80 Estampa Destapacorona | dos variantes en cadena lineal | bien (falso positivo) |
+| 132, 152 | la descripción de GP2 no coincide con la del vecino (132 es "Estampado y Agujero Pinzas" contra "Pinza Larga") | sin comparar |
+| 181, 306 | no existen en GP2 | — |
+
+**Conclusión: el rompenueces es el único caso.** No hay una familia de errores atrás.
