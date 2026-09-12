@@ -4815,9 +4815,12 @@ CREATE OR REPLACE FUNCTION "GP2".recalcular_maximo_material()
 AS $function$
 declare v_kg_bolsa numeric; v_meses numeric; v_pct numeric; v_ubic bigint; v_cambios jsonb; v_tot numeric;
         v_plastico numeric; v_mb_total numeric; v_prop numeric; v_cambios_mb jsonb;
+        v_mb_pct numeric; v_kg_con_color numeric; v_kg_sin_color numeric;
 begin
   v_kg_bolsa := coalesce((select valor from parametro where clave='material_plastico_kg_x_bolsa'), 25);
   v_pct := coalesce((select valor from parametro where clave='inyeccion_desperdicio_pct'), 0);
+  -- Cuanto master lleva la pieza sobre sus kg de resina, APARTE (usuario 2026-09-12: 4 %).
+  v_mb_pct := coalesce((select valor from parametro where clave='master_bach_pct'), 4);
   v_ubic := ubic_de('sector', 14);
   v_meses := coalesce((select meses_stock from ubicacion where id = v_ubic), 2.5);
 
@@ -4839,28 +4842,61 @@ begin
   select coalesce(jsonb_agg(jsonb_build_object('codigo', codigo, 'maximo_kg', maximo, 'bolsas', maximo / v_kg_bolsa, 'consumo_kg_mes', round(kg_mes))), '[]'::jsonb)
     into v_cambios from upd;
 
-  -- Master Bach = 2 % del plastico (el Excel lo calcula por pieza; GP2 todavia no sabe el color de cada
-  -- pieza, asi que va sobre el TOTAL -- es un maximo, errar para arriba es lo correcto), repartido con la
-  -- proporcion que ya tenian cargada, en bolsas enteras.
+  -- ===== MASTER BACH =====
+  -- La regla del usuario: cada parte plastica inyectada tiene SU color, y el master es el 4 % de
+  -- los kg de resina de esa parte, APARTE de los kg de resina. Asi que el camino bueno es sumar
+  -- por color, no repartir un total.
+  --
+  -- Mientras componente.mb_color este sin cargar (necesita la columna MB del Excel de plasticos),
+  -- esas piezas caen a un pozo "sin color" que se reparte con la proporcion que ya tenian los
+  -- cuatro master. Es un maximo: errar para arriba es lo correcto. A medida que se carguen los
+  -- colores, la parte prorrateada se encoge sola y la cuenta se vuelve exacta sin tocar nada.
   select coalesce(sum(i.maximo), 0) into v_plastico
     from inventario i join componente m on m.id = i.componente_id
    where m.sector_id = 14 and i.ubicacion_id = v_ubic and m.codigo_virgilio is not null;
-  v_mb_total := v_plastico * 0.02;
+  v_mb_total := v_plastico * v_mb_pct / 100;
+
+  -- kg de resina de las piezas QUE YA declaran color, y de las que no
+  with cons as (
+    select c.mb_color, sum(v.consumo_uni_mes * coalesce(c.kg_x_uni,0)) * (1 + v_pct/100) * v_meses kg
+      from v_consumo_componente v join componente c on c.id = v.componente_id
+     where c.material_id is not null group by 1
+  )
+  select coalesce(sum(kg) filter (where mb_color is not null), 0),
+         coalesce(sum(kg) filter (where mb_color is null), 0)
+    into v_kg_con_color, v_kg_sin_color from cons;
+
   select coalesce(sum(i.maximo), 0) into v_prop
     from inventario i join componente m on m.id = i.componente_id
    where m.sector_id = 14 and i.ubicacion_id = v_ubic and m.codigo_virgilio is null;
-  with mb as (
-    select i.componente_id, m.codigo,
+
+  with color_de as (   -- que letra le toca a cada componente de master, por su descripcion
+    select m.id, i.maximo prop,
+           case when m.descripcion ilike '%rojo%'   then 'R'
+                when m.descripcion ilike '%blanco%' then 'B'
+                when m.descripcion ilike '%azul%'   then 'A'
+                when m.descripcion ilike '%negro%'  then 'N' end letra
+      from componente m join inventario i on i.componente_id = m.id and i.ubicacion_id = v_ubic
+     where m.sector_id = 14 and m.codigo_virgilio is null
+  ), por_color as (    -- kg de master que pide cada color POR SUS PIEZAS
+    select c.mb_color letra,
+           sum(v.consumo_uni_mes * coalesce(c.kg_x_uni,0)) * (1 + v_pct/100) * v_meses * v_mb_pct / 100 kg
+      from v_consumo_componente v join componente c on c.id = v.componente_id
+     where c.material_id is not null and c.mb_color is not null group by 1
+  ), mb as (
+    select cd.id componente_id, m.codigo,
            greatest(v_kg_bolsa,
-             ceil( v_mb_total * (case when v_prop > 0 then i.maximo / v_prop
-                                      else 1.0 / nullif((select count(*) from componente m2 where m2.sector_id=14 and m2.codigo_virgilio is null),0) end)
-                   / v_kg_bolsa ) * v_kg_bolsa) nuevo
-      from inventario i join componente m on m.id = i.componente_id
-     where m.sector_id = 14 and i.ubicacion_id = v_ubic and m.codigo_virgilio is null
+             ceil( ( coalesce(pc.kg, 0)                                    -- lo suyo, por color
+                     + (v_mb_total * case when v_plastico > 0 then v_kg_sin_color / nullif(v_kg_con_color + v_kg_sin_color, 0) else 1 end)
+                       * (case when v_prop > 0 then cd.prop / v_prop
+                               else 1.0 / nullif((select count(*) from color_de), 0) end)   -- el pozo sin color
+                   ) / v_kg_bolsa ) * v_kg_bolsa) nuevo
+      from color_de cd join componente m on m.id = cd.id
+      left join por_color pc on pc.letra = cd.letra
   ), updmb as (
-    update inventario i set maximo = mb.nuevo, maximo_origen = 'mb_2pct_del_plastico'
+    update inventario i set maximo = mb.nuevo, maximo_origen = 'mb_' || v_mb_pct::int::text || 'pct_por_color'
       from mb where i.componente_id = mb.componente_id and i.ubicacion_id = v_ubic
-        and (i.maximo is distinct from mb.nuevo or i.maximo_origen is distinct from 'mb_2pct_del_plastico')
+        and (i.maximo is distinct from mb.nuevo or i.maximo_origen is distinct from 'mb_' || v_mb_pct::int::text || 'pct_por_color')
     returning mb.codigo, i.maximo
   )
   select coalesce(jsonb_agg(jsonb_build_object('codigo', codigo, 'maximo_kg', maximo, 'bolsas', maximo / v_kg_bolsa)), '[]'::jsonb)
@@ -4869,9 +4905,12 @@ begin
   select coalesce(sum(i.maximo), 0) / v_kg_bolsa into v_tot
     from inventario i join componente m on m.id = i.componente_id where m.sector_id = 14 and i.ubicacion_id = v_ubic;
   return jsonb_build_object('ok', true, 'meses', v_meses, 'kg_x_bolsa', v_kg_bolsa, 'cambios', v_cambios,
-                            'plastico_kg', v_plastico, 'mb_2pct_kg', round(v_mb_total,1), 'cambios_mb', v_cambios_mb,
+                            'plastico_kg', v_plastico, 'mb_pct', v_mb_pct, 'mb_kg', round(v_mb_total,1),
+                            'mb_kg_con_color', round(v_kg_con_color,1), 'mb_kg_sin_color', round(v_kg_sin_color,1),
+                            'cambios_mb', v_cambios_mb,
                             'total_bolsas', v_tot, 'pallets', ceil(v_tot / 15), 'capacidad_bolsas', 300);
 end $function$
+
 ;
 
 -- ---------- recalcular_maximos_cajones ----------

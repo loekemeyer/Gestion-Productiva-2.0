@@ -7970,3 +7970,49 @@ siguen sin cargarse.
 la MISMA descripción "Cepillo Limpia Bombilla" — son el 555 Loeke y el 764 Chef, y habría que
 distinguirlos como se hizo con GRJ13/GRJ14; (b) `GRJ21` "Bowls 330ml" está discontinuo y es resto
 de la numeración vieja.
+
+### 4ca. El Master Bach: 4 %, APARTE, y por color de cada parte (2026-09-12)
+
+`[usuario 2026-09-12, textual]` *"al inyector le tenemos que dar x kg de bolsas plasticas y
+tambien el 4% de masterback para que le ponga color. cada parte plastica inyectada tiene su
+masterback"*. Eso contesta las dos preguntas que tenían bloqueada la idea 7303 desde el 11-09:
+
+| Duda | Respuesta |
+|---|---|
+| ¿2 % o 4 %? | **4 %** (lo dijo dos veces) |
+| ¿adentro de los kg de resina o arriba? | **APARTE** — "x kg de bolsas **y también** el 4 %" |
+| ¿un total repartido o por pieza? | **por pieza**: cada parte inyectada tiene su color |
+
+**Contradicción que NO se resuelve y hay que tener presente:** los cuatro componentes se llaman
+literalmente **«Master Bach 2 % Blanco / Negro / Rojo / Azul»** (nombre de la lista del
+proveedor) y el Excel del usuario calcula `KG x MB = kg × 0,02` clavado en sus 174 filas con
+color. En un masterbatch el "2 %" suele ser la **dosificación recomendada**, así que el nombre
+del producto y el 4 % del usuario dicen cosas distintas. Se aplicó el 4 % porque lo decidió él;
+**no se les tocó el nombre**, que viene del proveedor. Si algún día el número se revisa, el
+lugar es `parametro.master_bach_pct`, no la función.
+
+**Lo aplicado** (`recalcular_maximo_material`): el máster ya iba aparte —son filas propias de
+inventario al lado de las resinas, no parte de ellas— así que lo que cambió es el porcentaje y
+la forma de repartir. La función suma el 4 % **por color** a partir de `componente.mb_color`, y
+lo que todavía no declara color cae a un pozo que se prorratea. Es un máximo: errar para arriba
+es lo correcto, y a medida que se carguen los colores el pozo se encoge solo y la cuenta se
+vuelve exacta **sin tocar código**.
+
+Efecto medido el 2026-09-12, con plástico en 3.900 kg:
+
+| Máster | Antes (2 %) | Ahora (4 %) |
+|---|---:|---:|
+| 0235 Blanco | 50 kg | **75 kg** |
+| 0265 Rojo | 50 kg | **75 kg** |
+| 0255 Negro | 25 kg | **50 kg** |
+| 2595 Azul | 25 kg | **50 kg** |
+| **total** | **150 kg · 6 bolsas** | **250 kg · 10 bolsas** |
+
+`[dato]` **Lo único que falta es el archivo.** `componente.mb_color` está en **0 de 48** piezas
+con material porque el Excel de plásticos —`Conteo_y_Pedido_Sector_Plastico_VACIO.xls`, hoja
+«Consumo x Cod Articulo», columna `MB`— **no está en el repo**: lo leyó una sesión anterior
+(anotó que 40 de 47 partes traen la letra, y que las 7 sin color son las de Nylon recuperado,
+que viene pigmentado, más `B2` y `EP9`) pero el archivo no quedó guardado. Con el archivo, la
+carga de los 40 colores es una sola corrida. **Ojo con la trampa de la 4v**: lo mismo pasó con
+la planilla de costos, que el usuario subió "muchísimas veces" porque las sesiones no sabían
+que estaba — si este archivo llega, **guardarlo en el repo**.
