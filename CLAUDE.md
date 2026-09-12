@@ -1,3 +1,27 @@
+# 📕 REGLA 0 (primera hoja del libro) — TODO LO DE SUPABASE SALE DEL SCHEMA `GP2`. NUNCA DE `public`.
+
+**Regla del usuario (2026-09-12, textual): "quiero que esa máxima figure en la primera hoja del
+libro… siempre que en cualquier sesión se hable de este repositorio, considerarlo para cuando
+haya que trabajar con Supabase".** Se lee ANTES de escribir la primera consulta.
+
+- **Cliente:** toda pantalla GP2 usa `GP2_SB()` (schema `GP2`, definido en `supabase-config.js`).
+  Un `supabase.createClient(...)` suelto cae en `public` — eso está prohibido en GP2.
+- **Tablas, vistas y RPCs:** lo que necesita una pantalla GP2 **tiene que existir en `GP2`**. Si no
+  existe, se crea en `GP2` (mirando la lógica del vecino si hace falta), no se apunta a `public`.
+- **Adentro de la base igual:** ninguna función ni vista de `GP2` lee tablas de negocio de `public`.
+- **`public` = la casa del vecino** (programa viejo "Gestión Productiva Entero"): **solo lectura, y
+  solo para entender cómo resolvió algo**. Ni un dato de negocio de GP2 sale de ahí.
+
+**Estado auditado 2026-09-12:** GP2 está limpio — las 42 pantallas `*_GP2.html` (más `login.html`,
+que llama `sb.schema('GP2')`) usan el cliente GP2, y de las 142 funciones/vistas de `GP2` ninguna
+toca una tabla de `public` (única referencia: `public.http_get`, la extensión http). Los ~55
+archivos del repo que sí pegan contra `public` son **todos** pantallas del programa viejo que
+todavía conviven acá (`Produccion/`, `StockFlejes/`, `Prov Serv/`, `Prov Art Terminado/`,
+`Talleristas/` sin sufijo `_GP2`, `Despiece*`, `Facturas/`, `Verificacion/`, `Alertas/`,
+`Preavisos/`, `ControlRemitos/`, `Stock*` viejos, `Compras/cajas.html`, `calcular-cajones.html`).
+Al tocar una de esas: no migrarla de prepo — preguntar si se reescribe en GP2 o se deja. Lo que NO
+se hace nunca es traer una tabla de `public` a una pantalla GP2.
+
 # ⚠️ ANTES DE CUALQUIER EDIT/WRITE: LEER LOCKS.txt Y REGISTRAR LockX. SIN EXCEPCIONES. ⚠️
 
 # 🚨 TODO VA A `main`. SIEMPRE. SIN RAMAS. 🚨
