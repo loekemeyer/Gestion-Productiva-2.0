@@ -7905,3 +7905,68 @@ la misma del gemelo — **NO** los `8,4` que la hoja "Talleristas" trae para el 
 centavos son la única diferencia real entre los dos: el cartón nuevo cuesta 67 y el viejo 66,75.
 **La posición de estantería del cartón sigue sin aparecer** (`"3 no la tengo"`), así que `CART186`
 sigue siendo el código provisorio.
+
+### 4bx. El garage ya no tiene códigos inventados: `PALO234` pasó a ser `GRJ17` (2026-09-12)
+
+`[usuario]` **"1 unifica"**. El **Palo de Amasar Francés 40 cm** (artículo **234**) era el único
+componente del Sector Garage con un código inventado — `PALO234` — en vez de la serie GRJ. Su
+número en la planilla del usuario es **GRJ17**, y estaba libre. Migración
+`palo_de_amasar_frances_unificado_como_grj17`. Después del cambio: **0 componentes de garage sin
+código GRJ**, invariantes en 0, ninguna ruta ni receta tocada.
+
+Renombrar un componente es seguro: `codigo` **no es FK**, las rutas y las recetas apuntan por `id`.
+
+**CORRECCIÓN de un dato que di mal el 11-09** `[dato]`: dije que el palo francés ya estaba "con
+otro código, GRJ23". Era falso y hay que no repetirlo — **son dos artículos distintos**:
+
+| artículo | descripción | componente de garage |
+|---|---|---|
+| 232 | Palo de Amasar 40cm | `GRJ23` |
+| 234 | Palo de Amasar Francés 40 cm | `GRJ17` (antes `PALO234`) |
+
+### 4by. Los huecos de la numeración GRJ NO son suciedad: son el pendiente (2026-09-12)
+
+Al revisar la serie GRJ quedan huecos en 1, 2, 3, 8, 9, 11, 15, 16 y 20. **No hay que cerrarlos
+renumerando**: cada hueco es exactamente una pieza de la planilla del usuario que todavía no se
+cargó, y renumerar rompería la correspondencia con esa planilla.
+
+| hueco | qué es en la planilla |
+|---|---|
+| GRJ1 | Abrelatas Uña Pie 500 |
+| GRJ9 | Abrelata Uña Ac. Inox |
+| GRJ15 | Pintura Azul Mate (Ortiz Yanina) |
+| GRJ16 | Despolvillador de Yerba |
+| GRJ20 | Set Tapers |
+
+La regla de "códigos GRJ continuos" (2026-09-11) vale para **dar de alta uno nuevo**, no para
+renumerar hacia atrás lo que ya está.
+
+### 4bz. Chequeo del informe de faltantes del 08-09 contra GP2 (2026-09-12)
+
+`[dato]` Se cruzó `GP2_FALTANTES_20260908.xlsx` fila por fila contra la base. Cuánto se cerró:
+
+| hoja | ya está | falta | total |
+|---|---:|---:|---:|
+| Insumos-Partes | 31 | 26 | 57 |
+| Talleristas | 3 | 22 | 25 |
+| Insumos-Proveedores | 1 | 5 | 6 |
+| Prov Servicio | 0 | 11 | 11 |
+
+**TRAMPA del archivo:** el amarillo que ya traía la hoja Insumos-Partes **no significa "está en
+GP2"** — hay filas amarillas que no existen (PA15, PA16, PB1) y filas sin marcar que sí existen
+(PEST1). Por eso el chequeo nuevo va en dos columnas al final de cada hoja, no sólo en el color.
+
+Tres casos que no cierran en un sí/no:
+1. **GRJ13/14** ya son los cepillos de Gilardi Esther (ella entró como **proveedor de insumo**, no
+   como tallerista). Falta sólo la Pintura Azul Mate.
+2. **BOM14 sigue pisado**: en GP2 es el "Precinto p/Bombilla" de Cimarrón, no el Caño Inox.
+3. **591 Despolvillador y 070 Set Tapers** existen como artículo, pero entran por Prov. Art.
+   Terminado: no tienen componente de garage.
+
+**Lo más atrasado es Prov Servicio, en 0 de 11**: New Metal, Chormium, Gaston Almafuerte y Valeria
+siguen sin cargarse.
+
+**PENDIENTE del usuario** (dijo "2 limpia" y quedó sin definir qué): (a) `GRJ28` y `GRJ29` tienen
+la MISMA descripción "Cepillo Limpia Bombilla" — son el 555 Loeke y el 764 Chef, y habría que
+distinguirlos como se hizo con GRJ13/GRJ14; (b) `GRJ21` "Bowls 330ml" está discontinuo y es resto
+de la numeración vieja.
