@@ -7867,7 +7867,9 @@ o sea la clave del cronograma era el **rótulo**, no la entidad. Se agregó
 `(sector_id, fecha) where sector_id is not null` (0 violaciones) y se dejó el viejo, que es el
 que cubre `Bolsa Plást`.
 
-### 4bp. El 186 es el gemelo Loke del 099 — y el 097 NO es un pelador (2026-09-12)
+<!-- renumerada el 2026-09-12: la sesion paralela la escribio como 4bp, numero que ya tenia
+     la seccion de la caja/uni x caja del 2026-09-11. -->
+### 4cb. El 186 es el gemelo Loke del 099 — y el 097 NO es un pelador (2026-09-12)
 
 `[usuario 2026-09-11: "agregá el artículo 186, que es igual al 099 pero de la marca Loke, todo
 igual"]` + `[usuario 2026-09-12: "186 es exactamente igual salvo cartón al 097 o 099, siempre me
@@ -7971,6 +7973,67 @@ la MISMA descripción "Cepillo Limpia Bombilla" — son el 555 Loeke y el 764 Ch
 distinguirlos como se hizo con GRJ13/GRJ14; (b) `GRJ21` "Bowls 330ml" está discontinuo y es resto
 de la numeración vieja.
 
+### 4cc. El mango de Maspoli viene CON LA VIROLA PUESTA (2026-09-12)
+
+`[usuario 2026-09-12, textual]`: *"Todo lo que use mango de madera de maspoli no lleva D13, ya
+viene con el mango"* (antes lo había dicho para el caso puntual del `PC12`: *"3 puesta"*).
+
+**La cadena real**: `ID8` → `D13B` (virola cruda) → **Guazzaroni** niquela → `D13` (Virola
+Sacafuente Niq) → **Maspoli SRL** → el **mango con la virola adentro**. Maspoli devuelve una
+pieza distinta según el artículo: `PC12` "Mgo Sacafuente Articulado" (508, 708), `PEP7` "Mgo
+sacafuente pizzero" (518) y `PEP8` "Mango Madera Pizza Ø9" (564, 863).
+
+**Entonces la `D13` NUNCA va suelta en la receta de un artículo al que Maspoli le manda el
+mango.** Estaba en tres: 508, 518 y 708 — migración
+`la_virola_d13_no_va_suelta_si_maspoli_manda_el_mango`. El 564 y el 863 ya estaban bien.
+
+**Lo que se creía que arreglaba y NO era**: la receta duplicada **no inflaba el costo**. Los
+totales del 508, 518 y 708 quedaron **idénticos** al peso después del DELETE, porque
+`v_costo_componente` costea recorriendo las **aristas de ruta**, no la receta, y la `D13` se
+sigue costeando por la rama de Maspoli. Lo que estaba mal era el **descuento de stock**: al
+entregar en Virgilio se descontaba la virola dos veces, una adentro del mango y otra suelta.
+Vale como regla general: **receta y ruta no se usan para lo mismo** — la ruta manda en el costo
+y en el movimiento de las piezas, la receta manda en lo que se consume al cerrar el artículo.
+
+**Queda abierto**: el `564` Corta Pizza 8cm tiene en la receta **dos** mangos, `PEP8` (el suyo) y
+`PC12` (el del sacafuente articulado, que ninguna rama le lleva). Su hermano `863`, mismo
+producto en Chef, lleva sólo `PEP8`: el `PC12` del 564 sobra. Espera confirmación.
+
+### 4cd. La Matriz 78 REMACHA: es una convergencia, no dos pasos paralelos (2026-09-12)
+
+`[usuario 2026-09-12: "en el vecino que dice"]` — y el vecino lo contesta entero. **Uso de
+manual de la casa del vecino: mirar su LÓGICA para llenar un hueco nuestro.**
+
+`public."Causa-Efecto"`, Matriz **78 "Remachado Rompenuez"**:
+
+| Descuenta | Aumenta | Variante |
+|---|---|---|
+| `B1` Rompenuez Cerrado Ch Pint. | `Mat 78` | Pintado |
+| `B2` Rompenuez Abierto Ch Pint. | `Mat 78` | Pintado |
+| `D5` Rompenuez Abierto LK Crom. | `Mat 78` | Cromado |
+| `D6` Rompenuez Cerrado LK Crom. | `Mat 78` | Cromado |
+| **`V4` (el remache)** | `Mat 78` | ambas |
+
+O sea: **la M78 junta las DOS mitades más el remache y devuelve UNA cosa**, el rompenueces
+remachado. Y las variantes cierran solas con GP2: `B1`/`B2` son la **Pintada** (Chef, las pinta
+Jade → art. **707**) y `D5`/`D6` la **Cromada** (LK, las croma Pedernera → art. **507**).
+
+**Cómo lo tiene GP2 hoy, y por qué está mal**: dos rutas paralelas, cada una con su propia M78,
+que producen `B1-M78` y `B2-M78` — dos "mitades remachadas" que **no existen en la realidad**;
+no se puede remachar media pieza. Además el remache (`V4`) entra por una rama aparte
+(`CV4` → Guazzaroni → `V4` → Fábrica) en vez de ser consumido por la matriz, como dice el
+vecino. Por eso la receta pide `B1`/`B2` y las ramas entregan `B1-M78`/`B2-M78`: el desajuste
+del **patrón B** de la idea 7324.
+
+**Lo mismo con la Pala de Canelones** (570, 858), y ahí el vecino corrige otro dato: la `E6`
+**no sale de la M165**. La cadena es `Mat 355` → **M165 "Calado Pala Canelon"** → `Mat 165` →
+**M166 "Sacar Rebarba Pala Canelon"** → `E6`. GP2 tiene la `E6` saliendo de la 165 y después una
+`E6-M194` ("Remachado Pala Canelones") colgada.
+
+**El arreglo es reestructurar rutas, no borrar una fila**: la M78 tiene que ser un paso de
+**convergencia** (`B1` + `B2` + `V4` → M78 → rompenueces armado → Fábrica), igual que la M135
+del batidor. Espera decisión.
+
 ### 4ca. El Master Bach: 4 %, APARTE, y por color de cada parte (2026-09-12)
 
 `[usuario 2026-09-12, textual]` *"al inyector le tenemos que dar x kg de bolsas plasticas y
@@ -8016,3 +8079,4 @@ que viene pigmentado, más `B2` y `EP9`) pero el archivo no quedó guardado. Con
 carga de los 40 colores es una sola corrida. **Ojo con la trampa de la 4v**: lo mismo pasó con
 la planilla de costos, que el usuario subió "muchísimas veces" porque las sesiones no sabían
 que estaba — si este archivo llega, **guardarlo en el repo**.
+
