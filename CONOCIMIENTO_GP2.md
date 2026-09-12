@@ -7866,3 +7866,37 @@ próxima sesión no intente "normalizarlos".
 o sea la clave del cronograma era el **rótulo**, no la entidad. Se agregó
 `(sector_id, fecha) where sector_id is not null` (0 violaciones) y se dejó el viejo, que es el
 que cubre `Bolsa Plást`.
+
+### 4bp. El 186 es el gemelo Loke del 099 — y el 097 NO es un pelador (2026-09-12)
+
+`[usuario 2026-09-11: "agregá el artículo 186, que es igual al 099 pero de la marca Loke, todo
+igual"]` + `[usuario 2026-09-12: "186 es exactamente igual salvo cartón al 097 o 099, siempre me
+confundo cuál es el pelador"]`.
+
+**Es el 099.** El **097 es `Afila Cuchillos`**, familia Afiladores: ni siquiera es un pelador. El
+099 es `Pelapapas Mgo Plástico Ergonómico` (CHEF) y el 186 es el mismo pelador en LOKE. Anotado
+acá para que la duda no vuelva.
+
+**Lo único que un gemelo NO puede compartir es el cartón.** `Ñ4A` se llama literalmente
+"Cartón 099" y es marca CHEF. Cada hermano Loke tiene el suyo (108 → `H2C`, 123 → `I42`, los dos
+formato LOKE, marca LOEKE, Talleres Gráficos Pol) y la planilla le da **fila propia al 186**
+(hoja `" Cartones"`, fila 248: "Pelador Ergonomico Loke"). Lo que la planilla **no** trae es la
+**posición de estantería**, que es de donde salen los códigos `Ñ4A` / `H2C` / `I42`: por eso el
+cartón quedó como **`CART186`, provisorio**, igual que `CART058` / `CART059` / `CART715`.
+Renombrarlo cuando aparezca la posición es seguro — `codigo` no es FK y las rutas apuntan por id.
+
+**Migración `alta_186_gemelo_loke_del_099`**: componente terminado `186`, cartón `CART186`,
+inventario en 0 (cartón en Sector Cartón y en Lucho; terminado en Virgilio), artículo con la caja
+del 099 (`A1`, N°1, 12 x caja), receta de 5 partes y **5 rutas calcadas** — todas armadas por
+**Lucho**, la quinta con Guazzaroni niquelando el clavo (`PCP3` → `D9`). Invariantes en 0 antes y
+después; la prueba de conservación entrega **120 de 120 a Virgilio sin nada colgado**. GP2 queda
+con **190 artículos**.
+
+**LO QUE UN GEMELO NO HEREDA Y HAY QUE MIRAR SIEMPRE: los precios atados al componente
+terminado.** El 186 quedó costando $442,92 contra $544,17 del 099, y la diferencia se explica
+entera: $66,75 del cartón sin precio **y $34,50 de mano de obra** — `precio_tallerista` tiene
+"Pelador Ergonómico AyE" $34,50 colgada del **componente terminado del 099**, y el gemelo tiene
+componente terminado propio. `442,92 + 67 + 34,50 = 544,42` contra `544,17`: cierra con 25
+centavos (los 66,75 del cartón viejo contra los 67 del nuevo). Los dos precios **esperan al
+usuario** (idea 7326): la planilla le pone **67** al cartón del 186, y para la mano de obra la
+hoja "Talleristas" trae `Separado Cuchilla 8,4`, que no es lo mismo que los 34,50 del gemelo.
