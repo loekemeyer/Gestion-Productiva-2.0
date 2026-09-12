@@ -51,7 +51,8 @@ de varias etapas, comprados terminados, fabricados completos y mixtos externo/in
 **Prueba de conservación** (`__sim_articulo`: todas las ramas + UNA entrega): los **189** dejan
 exactamente las 120 unidades simuladas en Virgilio. 122 cierran perfecto (cada contraparte queda en
 cero). El resto deja material colgado, casi todo por intermedios que el arnés simula rama por rama;
-los descuadres **reales** de receta contra ruta son 7 artículos, en la idea **7324**.
+los descuadres **reales** de receta contra ruta son 7 artículos, en la idea **7324**
+(re-contados el 2026-09-12: son **10** — ver la idea, que es la fuente al día).
 
 ---
 
@@ -301,9 +302,12 @@ Y dos **informativas** (no son invariantes: dan > 0 por datos que faltan):
 Todo lo actionable sin el usuario quedó hecho. Lo que sigue abierto espera **un dato de
 negocio**, y está en `IDEAS-GP2.md` con su código:
 
-- **7324** (6 artículos): qué parte de la receta le lleva la caja a Martín y a IJUPA, y qué
-  pasa con la virola `D13` que Maspoli devuelve adentro del `PC12`.
-- **7314 / 7330 / 7326**: los 9 códigos con dos «unidades por caja» contradictorias, el 508
+- **7324**: **re-diagnosticada el 2026-09-12 por la sesión paralela y ahí manda ella**: no son
+  6 artículos ni un solo problema, son **12 filas en 10 artículos y cuatro problemas
+  distintos**. Lo que decía este informe (7, y después 6 al arreglar el 547) se le escapaba un
+  patrón. El detalle vivo está en `IDEAS-GP2.md`; lo que sigue valiendo de acá es que el 547
+  era real y se arregló.
+- **7314 / 7330 / 7335**: los 9 códigos con dos «unidades por caja» contradictorias, el 508
   (6 o 12) y el 553, que nombra dos bombillas distintas.
 - **7331**: FAAT dice `Templado, Cementado` en una sola celda y Guazzaroni dice `Niquelado`
   cuando además hace pulido y zincado; y antes de normalizar hay que darles su fila a Rec
