@@ -7996,3 +7996,38 @@ y en el movimiento de las piezas, la receta manda en lo que se consume al cerrar
 **Queda abierto**: el `564` Corta Pizza 8cm tiene en la receta **dos** mangos, `PEP8` (el suyo) y
 `PC12` (el del sacafuente articulado, que ninguna rama le lleva). Su hermano `863`, mismo
 producto en Chef, lleva sólo `PEP8`: el `PC12` del 564 sobra. Espera confirmación.
+
+### 4br. La Matriz 78 REMACHA: es una convergencia, no dos pasos paralelos (2026-09-12)
+
+`[usuario 2026-09-12: "en el vecino que dice"]` — y el vecino lo contesta entero. **Uso de
+manual de la casa del vecino: mirar su LÓGICA para llenar un hueco nuestro.**
+
+`public."Causa-Efecto"`, Matriz **78 "Remachado Rompenuez"**:
+
+| Descuenta | Aumenta | Variante |
+|---|---|---|
+| `B1` Rompenuez Cerrado Ch Pint. | `Mat 78` | Pintado |
+| `B2` Rompenuez Abierto Ch Pint. | `Mat 78` | Pintado |
+| `D5` Rompenuez Abierto LK Crom. | `Mat 78` | Cromado |
+| `D6` Rompenuez Cerrado LK Crom. | `Mat 78` | Cromado |
+| **`V4` (el remache)** | `Mat 78` | ambas |
+
+O sea: **la M78 junta las DOS mitades más el remache y devuelve UNA cosa**, el rompenueces
+remachado. Y las variantes cierran solas con GP2: `B1`/`B2` son la **Pintada** (Chef, las pinta
+Jade → art. **707**) y `D5`/`D6` la **Cromada** (LK, las croma Pedernera → art. **507**).
+
+**Cómo lo tiene GP2 hoy, y por qué está mal**: dos rutas paralelas, cada una con su propia M78,
+que producen `B1-M78` y `B2-M78` — dos "mitades remachadas" que **no existen en la realidad**;
+no se puede remachar media pieza. Además el remache (`V4`) entra por una rama aparte
+(`CV4` → Guazzaroni → `V4` → Fábrica) en vez de ser consumido por la matriz, como dice el
+vecino. Por eso la receta pide `B1`/`B2` y las ramas entregan `B1-M78`/`B2-M78`: el desajuste
+del **patrón B** de la idea 7324.
+
+**Lo mismo con la Pala de Canelones** (570, 858), y ahí el vecino corrige otro dato: la `E6`
+**no sale de la M165**. La cadena es `Mat 355` → **M165 "Calado Pala Canelon"** → `Mat 165` →
+**M166 "Sacar Rebarba Pala Canelon"** → `E6`. GP2 tiene la `E6` saliendo de la 165 y después una
+`E6-M194` ("Remachado Pala Canelones") colgada.
+
+**El arreglo es reestructurar rutas, no borrar una fila**: la M78 tiene que ser un paso de
+**convergencia** (`B1` + `B2` + `V4` → M78 → rompenueces armado → Fábrica), igual que la M135
+del batidor. Espera decisión.
