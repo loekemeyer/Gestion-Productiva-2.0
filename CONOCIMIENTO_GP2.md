@@ -7970,3 +7970,29 @@ siguen sin cargarse.
 la MISMA descripción "Cepillo Limpia Bombilla" — son el 555 Loeke y el 764 Chef, y habría que
 distinguirlos como se hizo con GRJ13/GRJ14; (b) `GRJ21` "Bowls 330ml" está discontinuo y es resto
 de la numeración vieja.
+
+### 4bq. El mango de Maspoli viene CON LA VIROLA PUESTA (2026-09-12)
+
+`[usuario 2026-09-12, textual]`: *"Todo lo que use mango de madera de maspoli no lleva D13, ya
+viene con el mango"* (antes lo había dicho para el caso puntual del `PC12`: *"3 puesta"*).
+
+**La cadena real**: `ID8` → `D13B` (virola cruda) → **Guazzaroni** niquela → `D13` (Virola
+Sacafuente Niq) → **Maspoli SRL** → el **mango con la virola adentro**. Maspoli devuelve una
+pieza distinta según el artículo: `PC12` "Mgo Sacafuente Articulado" (508, 708), `PEP7` "Mgo
+sacafuente pizzero" (518) y `PEP8` "Mango Madera Pizza Ø9" (564, 863).
+
+**Entonces la `D13` NUNCA va suelta en la receta de un artículo al que Maspoli le manda el
+mango.** Estaba en tres: 508, 518 y 708 — migración
+`la_virola_d13_no_va_suelta_si_maspoli_manda_el_mango`. El 564 y el 863 ya estaban bien.
+
+**Lo que se creía que arreglaba y NO era**: la receta duplicada **no inflaba el costo**. Los
+totales del 508, 518 y 708 quedaron **idénticos** al peso después del DELETE, porque
+`v_costo_componente` costea recorriendo las **aristas de ruta**, no la receta, y la `D13` se
+sigue costeando por la rama de Maspoli. Lo que estaba mal era el **descuento de stock**: al
+entregar en Virgilio se descontaba la virola dos veces, una adentro del mango y otra suelta.
+Vale como regla general: **receta y ruta no se usan para lo mismo** — la ruta manda en el costo
+y en el movimiento de las piezas, la receta manda en lo que se consume al cerrar el artículo.
+
+**Queda abierto**: el `564` Corta Pizza 8cm tiene en la receta **dos** mangos, `PEP8` (el suyo) y
+`PC12` (el del sacafuente articulado, que ninguna rama le lleva). Su hermano `863`, mismo
+producto en Chef, lleva sólo `PEP8`: el `PC12` del 564 sobra. Espera confirmación.
