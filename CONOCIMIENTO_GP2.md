@@ -8148,6 +8148,14 @@ proveedores AT). Quién entrega cada artículo **no necesita tabla**: sale del �
 contraparte antes del paso `virgilio` de la ruta (779 pasos de tallerista + 76 de proveedor AT,
 sin ninguno huérfano).
 
-**Queda pendiente una decisión del usuario:** qué hacer con las ~54 pantallas viejas que siguen en
-la carpeta (borrarlas — viven en `GestionProductivaEntero` — o dejarlas como referencia). Ya
-ninguna cuelga del menú GP2.
+**Cerrado el mismo día** `[usuario: "Primero las 50 muertas"]`: se borraron **109 archivos** — las
+50 pantallas viejas que ya tenían reemplazo GP2, con su HTML/JS/CSS. Siguen en el historial de git
+y en `GestionProductivaEntero`. **Lo que el borrado destapó y hay que recordar:** dos cosas vivas
+apuntaban a las viejas y se relinkearon antes de borrar — `envios-only.html` (los 4 botones del rol
+`envios`) y, lo delicado, **la whitelist del rol `envios` en `auth-guard.js`**, que nombraba
+`enviostall.html`, `recepcion cervantes.html`, `stockflejes/recepcion.html`, `produccion/monitor.html`
+y `maestro.html`: sin actualizarla, ese rol se quedaba sin acceso a NADA. Quedan mirando `public`
+seis archivos, todos fuera del menú GP2: Facturas (2), Control Carga Remitos, Preavisos,
+`calcular-cajones.html` (este **está vivo**: se llega desde `calculadora.html` y está en la
+whitelist) e `InformesVirgilio`, que es de Gestión Virgilio y tiene su propio repo. El mapa vive en
+`MIGRACION_PUBLIC_GP2.md`.

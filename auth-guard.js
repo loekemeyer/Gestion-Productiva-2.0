@@ -44,19 +44,20 @@ window.GP2_AUTH_ON = GP2_AUTH_ON;
     var permitidos = [
       'envios-only.html',
       // Tall
-      'talleristas/envios/enviostall.html',
-      'talleristas/recepcion/recepcion cervantes.html',
-      'talleristas/recepcion/devolucion cervantes.html',
+      'talleristas/envios/enviostalleristas_gp2.html',
+      'talleristas/recepcion/entregastalleristas_gp2.html',
+      'talleristas/recepcion/recepcionvirgilio_gp2.html',
+      'talleristas/recepcion/devolucioncervantes_gp2.html',
       // Prov Serv
-      'prov serv/envios/enviosps.html',
-      'prov serv/entregas/entregaps.html',
-      // Recepción Insumos
-      'stockflejes/recepcion.html',
+      'prov serv/envios/enviosps_gp2.html',
+      'prov serv/entregas/entregaps_gp2.html',
+      // Recepción Insumos (GP2; la vieja StockFlejes/recepcion.html se borro el 2026-09-12)
+      'stockflejes/recepcioninsumos_gp2.html',
       // Relevamiento (insumos - logística): el GP2 nativo, el viejo se borro el 2026-09-04
       'relevamiento/relevamiento_gp2.html',
       // Avanzado (solo pantalla grande, gated por CSS en envios-only.html)
-      'produccion/monitor.html',
-      'produccion/maestro.html',
+      'produccion/monitor_gp2.html',
+      'produccion/maestro_gp2.html',
       // Calculadoras
       'calculadora.html',
       'calculadora-basica.html',

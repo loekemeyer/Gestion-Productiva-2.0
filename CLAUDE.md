@@ -26,19 +26,15 @@ normalizadas… En medio se hicieron como cincuenta tablas que mira desde public
 yo no quería eso"*. Mirar `public` traiciona el motivo por el que GP2 existe. Detalle y auditoría
 completa en `CONOCIMIENTO_GP2.md` §4cf.
 
-**Estado auditado 2026-09-12 (después de cerrar la última fuga):** el menú `GP2_MODULOS.html` abre
-**solo pantallas GP2**. La única que quedaba mirando `public` era *Entrega Virgilio*, reescrita como
-`Talleristas/Recepcion/RecepcionVirgilio_GP2.html` sobre `GP2.movimientos_bundle()` +
-`GP2.recepcion_virgilio(jsonb)`. Las 43 pantallas `*_GP2.html` (más `login.html`, que usa
-`sb.schema('GP2')`) usan el cliente GP2, y ninguna función ni vista de `GP2` toca una tabla de
-`public` (única referencia: `public.http_get`, la extensión http). Los ~54 archivos que sí pegan
-contra `public` son **todos** pantallas del programa viejo que todavía conviven en la carpeta
-(`Produccion/`, `StockFlejes/`, `Prov Serv/`, `Prov Art Terminado/`, `Talleristas/` sin sufijo
-`_GP2`, `Despiece*`, `Facturas/`, `Verificacion/`, `Alertas/`, `Preavisos/`, `ControlRemitos/`,
-`Stock*` viejos, `Compras/cajas.html`, `calcular-cajones.html`): **ya no cuelgan del menú** y
-esperan la decisión del usuario (borrarlas —viven en `GestionProductivaEntero`— o dejarlas). Al
-tocar una de ellas: no migrarla de prepo, preguntar. Lo que NO se hace nunca es traer una tabla de
-`public` a una pantalla GP2.
+**Estado al 2026-09-12 (auditado y limpiado):** el menú `GP2_MODULOS.html` abre **solo pantallas
+GP2**; las 43 `*_GP2.html` (más `login.html`, que usa `sb.schema('GP2')`) usan el cliente GP2, y
+ninguna función ni vista de `GP2` toca una tabla de `public` (única referencia: `public.http_get`,
+la extensión http). Las **50 pantallas viejas que ya tenían reemplazo GP2 se borraron** (109
+archivos; siguen en el historial de git y en `GestionProductivaEntero`). Quedan **6 archivos**
+mirando `public`, ninguno colgado del menú: Facturas (2), Control Carga Remitos, Preavisos,
+`calcular-cajones.html` —este **está vivo**, se llega desde `calculadora.html`— e
+`InformesVirgilio`, que es de Gestión Virgilio y tiene su propio repo. El mapa completo, con lo
+que se borró y lo que se relinkeó antes de borrar, está en `MIGRACION_PUBLIC_GP2.md`.
 
 # ⚠️ ANTES DE CUALQUIER EDIT/WRITE: LEER LOCKS.txt Y REGISTRAR LockX. SIN EXCEPCIONES. ⚠️
 
