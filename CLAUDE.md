@@ -12,15 +12,25 @@ haya que trabajar con Supabase".** Se lee ANTES de escribir la primera consulta.
 - **`public` = la casa del vecino** (programa viejo "Gestión Productiva Entero"): **solo lectura, y
   solo para entender cómo resolvió algo**. Ni un dato de negocio de GP2 sale de ahí.
 
-**Estado auditado 2026-09-12:** GP2 está limpio — las 42 pantallas `*_GP2.html` (más `login.html`,
-que llama `sb.schema('GP2')`) usan el cliente GP2, y de las 142 funciones/vistas de `GP2` ninguna
-toca una tabla de `public` (única referencia: `public.http_get`, la extensión http). Los ~55
-archivos del repo que sí pegan contra `public` son **todos** pantallas del programa viejo que
-todavía conviven acá (`Produccion/`, `StockFlejes/`, `Prov Serv/`, `Prov Art Terminado/`,
-`Talleristas/` sin sufijo `_GP2`, `Despiece*`, `Facturas/`, `Verificacion/`, `Alertas/`,
-`Preavisos/`, `ControlRemitos/`, `Stock*` viejos, `Compras/cajas.html`, `calcular-cajones.html`).
-Al tocar una de esas: no migrarla de prepo — preguntar si se reescribe en GP2 o se deja. Lo que NO
-se hace nunca es traer una tabla de `public` a una pantalla GP2.
+**Por qué existe la regla (dicho por el dueño, 2026-09-12):** *"La creación de este repositorio
+surgió porque en gestión productiva entero era todo quilombo, y yo empecé subiendo las tablas
+normalizadas… En medio se hicieron como cincuenta tablas que mira desde public, y es un desastre,
+yo no quería eso"*. Mirar `public` traiciona el motivo por el que GP2 existe. Detalle y auditoría
+completa en `CONOCIMIENTO_GP2.md` §4cf.
+
+**Estado auditado 2026-09-12 (después de cerrar la última fuga):** el menú `GP2_MODULOS.html` abre
+**solo pantallas GP2**. La única que quedaba mirando `public` era *Entrega Virgilio*, reescrita como
+`Talleristas/Recepcion/RecepcionVirgilio_GP2.html` sobre `GP2.movimientos_bundle()` +
+`GP2.recepcion_virgilio(jsonb)`. Las 43 pantallas `*_GP2.html` (más `login.html`, que usa
+`sb.schema('GP2')`) usan el cliente GP2, y ninguna función ni vista de `GP2` toca una tabla de
+`public` (única referencia: `public.http_get`, la extensión http). Los ~54 archivos que sí pegan
+contra `public` son **todos** pantallas del programa viejo que todavía conviven en la carpeta
+(`Produccion/`, `StockFlejes/`, `Prov Serv/`, `Prov Art Terminado/`, `Talleristas/` sin sufijo
+`_GP2`, `Despiece*`, `Facturas/`, `Verificacion/`, `Alertas/`, `Preavisos/`, `ControlRemitos/`,
+`Stock*` viejos, `Compras/cajas.html`, `calcular-cajones.html`): **ya no cuelgan del menú** y
+esperan la decisión del usuario (borrarlas —viven en `GestionProductivaEntero`— o dejarlas). Al
+tocar una de ellas: no migrarla de prepo, preguntar. Lo que NO se hace nunca es traer una tabla de
+`public` a una pantalla GP2.
 
 # ⚠️ ANTES DE CUALQUIER EDIT/WRITE: LEER LOCKS.txt Y REGISTRAR LockX. SIN EXCEPCIONES. ⚠️
 

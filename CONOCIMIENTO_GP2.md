@@ -8112,3 +8112,42 @@ para detectar el patrón.
 | 181, 306 | no existen en GP2 | — |
 
 **Conclusión: el rompenueces es el único caso.** No hay una familia de errores atrás.
+
+### 4cf. Por qué existe GP2 y por qué NADA suyo mira `public` (2026-09-12)
+
+**[usuario, textual]:** *"La creación de este repositorio surgió porque en gestión productiva
+entero era todo quilombo, y yo empecé subiendo las tablas normalizadas de toda la info que creía
+que requería un nuevo repo ordenadito. En medio se hicieron como cincuenta tablas que mira desde
+public, y es un desastre, yo no quería eso."* Y el pedido que sale de ahí: *"Las tablas de public
+que pasen a mirarse internamente."*
+
+Es el **origen** del proyecto dicho por el dueño, no una preferencia de estilo: GP2 nació de las
+tablas normalizadas que él cargó, y cualquier lectura a `public` traiciona el motivo por el que
+existe. Por eso la Regla 0 quedó en la primera hoja de `CLAUDE.md`.
+
+**Lo que la auditoría del 2026-09-12 encontró (y hay que decirlo porque desarma el susto):**
+
+- El schema `GP2` **nunca** leyó `public`: de sus 142 funciones y 18 vistas, la única referencia
+  es `public.http_get` en `actualizar_dolar_oficial` — la extensión http, no una tabla de negocio.
+- Las ~50 pantallas que sí pegan contra `public` son **las del programa viejo que quedaron
+  conviviendo en esta carpeta** (`Produccion/`, `StockFlejes/`, `Prov Serv/`, `Talleristas/` sin
+  sufijo `_GP2`, `Despiece*`, `Facturas/`, `Verificacion/`, …). No son tablas nuevas mal hechas:
+  es código heredado sin borrar. Nunca fueron parte de GP2.
+- **La única fuga real** era el menú: `GP2_MODULOS.html` tenía una fila marcada `"vieja"`,
+  *Entrega Virgilio*, que abría `Talleristas/Recepcion/Recepcion Virgilio.html` — y esa sí leía
+  `public` (`Articulos Virgilio X Tallerista`, `Despiece x Articulo`) y escribía en
+  `Entregas Tallerista Virgilio`.
+
+**Cómo se cerró:** la pantalla se reescribió como `Talleristas/Recepcion/RecepcionVirgilio_GP2.html`
+sobre lo que GP2 ya tenía: el bundle `GP2.movimientos_bundle()` y el RPC
+`GP2.recepcion_virgilio(jsonb)` (que ya existía y ya se usaba — los 64 movimientos
+`recepcion_virgilio` del 31-08 al 11-09 son reales; hasta ahora se cargaban a mano por SQL porque
+**no había pantalla**). Al bundle se le agregó `prov_at` y el `pat` del paso, que faltaban: Virgilio
+recibe terminados de talleristas **y** de proveedores de artículo terminado (39 artículos de 11
+proveedores AT). Quién entrega cada artículo **no necesita tabla**: sale del último paso con
+contraparte antes del paso `virgilio` de la ruta (779 pasos de tallerista + 76 de proveedor AT,
+sin ninguno huérfano).
+
+**Queda pendiente una decisión del usuario:** qué hacer con las ~54 pantallas viejas que siguen en
+la carpeta (borrarlas — viven en `GestionProductivaEntero` — o dejarlas como referencia). Ya
+ninguna cuelga del menú GP2.

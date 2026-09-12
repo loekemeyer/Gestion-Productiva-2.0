@@ -3989,9 +3989,14 @@ AS $function$
     'sect', (select coalesce(jsonb_object_agg(id::text, jsonb_build_object('tipo',tipo,'nom',nombre)),'{}'::jsonb) from sector),
     'ubic', (select coalesce(jsonb_object_agg(id::text, jsonb_build_object('tipo',tipo,'ref',ref_id,'nom',nombre,'meses',meses_minimo)),'{}'::jsonb) from ubicacion),
     'art', (select coalesce(jsonb_object_agg(a.id::text, jsonb_build_object('id',a.id,'cod',a.codigo,'fam',a.familia,'cja',a.componente_caja_id,'por',a.articulos_por_caja,
+            'desc',a.descripcion,'disc',a.discontinuado,
             'est',(select em.proy_uni_mes from est_madre em where regexp_replace(em.cod,'^0+','') = regexp_replace(a.codigo,'^0+','') limit 1))),'{}'::jsonb) from articulo a),
     'comp', (select coalesce(jsonb_object_agg(id::text, jsonb_build_object('cod',codigo,'d',descripcion,'s',sector_id,'um',unidad_medida,'kg_x_uni',kg_x_uni,'uxc',uni_x_cajon)),'{}'::jsonb) from componente),
     'prov_serv', (select coalesce(jsonb_object_agg(id::text, jsonb_build_object('nom',nombre,'proceso',proceso)),'{}'::jsonb) from proveedor_servicio),
+    -- prov_at (2026-09-12): lo necesita Recepcion Virgilio, que recibe terminados tanto de
+    -- talleristas como de proveedores de articulo terminado. Antes el paso proveedor_at de
+    -- ruta_paso no llegaba al bundle y la pantalla vieja lo sacaba de public.
+    'prov_at', (select coalesce(jsonb_object_agg(id::text, jsonb_build_object('nom',nombre,'cod',cod_prov,'act',activo)),'{}'::jsonb) from proveedor_at),
     'tall', (select coalesce(jsonb_object_agg(id::text, jsonb_build_object('nom',nombre,'ubi_stock',ubicacion_stock_id)),'{}'::jsonb) from tallerista),
     'mat', (select coalesce(jsonb_object_agg(id::text, jsonb_build_object('n',n_matriz,'d',descripcion,'tipo',tipo,'ppk',partes_por_kilo_de_fleje,'primera',(case when partes_por_kilo_de_fleje is not null then true end),'uxg',uni_x_golpe,'maq',maquina,'act',activa)),'{}'::jsonb) from matriz),
     -- vocabulario de movimiento (2026-09-11): unica fuente de los mapas TIPOS del JS
@@ -4005,7 +4010,8 @@ AS $function$
     'rp', (select coalesce(jsonb_object_agg(ruta_id::text, arr),'{}'::jsonb) from (
         select rp.ruta_id, jsonb_agg(jsonb_build_object('o',rp.orden,'tipo',rp.tipo_paso,
             'flje', case when rp.tipo_paso = 'ingreso' and rp.orden = 1 and ce.sector_id = 5 then rp.comp_entrada_id end,
-            'mat',rp.matriz_id,'prov',rp.proveedor_id,'tall',rp.tallerista_id,'ce',rp.comp_entrada_id,'cs',rp.comp_salida_id,
+            'mat',rp.matriz_id,'prov',rp.proveedor_id,'tall',rp.tallerista_id,'pat',rp.proveedor_at_id,
+            'ce',rp.comp_entrada_id,'cs',rp.comp_salida_id,
             'art', case when rp.tipo_paso = 'virgilio' then r.articulo_id end) order by rp.orden) arr
         from ruta_paso rp
         left join componente ce on ce.id = rp.comp_entrada_id
