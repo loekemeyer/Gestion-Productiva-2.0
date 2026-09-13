@@ -8358,3 +8358,39 @@ cartones y cajas queda corta para esos 10. Los otros 12 artículos de receta de 
    claves está escrita a mano en el chequeo, así que un parámetro nuevo lo hace dar > 0 aunque el
    código lo lea perfectamente — antes de creerle que un parámetro está muerto, hay que grepear el
    `db/` (y, si el chequeo dice lo contrario, la que se corrige es la lista).
+
+
+### 4cm. Los que GP2 NO tiene: 46 son trabajo, 174 son reventa (2026-09-13)
+
+`[usuario 2026-09-13]` *"Veamos los que no tenés"*, por los 220 códigos de la Est Madre que no
+cruzan con un artículo de GP2 (44.097 uni/mes, el 17,5 % de la demanda). **El listado completo, con
+nombre, volumen y tallerista, está en `ARTICULOS_FUERA_DE_GP2.md`.** Lo que hay que saber:
+
+**El corte NO es el volumen, es si alguien los fabrica** `[dato: public."Despiece x Articulo" +
+public."Articulos Virgilio X Tallerista"]`:
+
+- **46 códigos (10.504 uni/mes, 4,2 % de la demanda) FALTAN DE VERDAD**: un tallerista los entrega
+  o el vecino los despieza. **Los 5 primeros son el 70 % del grupo y los cinco son de García**:
+  438E Colador N°20 (2.788), 437E Colador N°16 (2.388), 590E Pincel Silicona (1.188), 566E Aceitera
+  100 (624) y 584E Aceitera 400 (551).
+- **174 códigos (33.593 uni/mes, 13,3 %) son reventa e importado**: ni despiece ni tallerista, se
+  compran terminados (sacacorchos, ralladores, peladores, cortadores, pinzas, utensilios de
+  nylon/silicona con mango de madera o bambú). **No hay nada que modelar en GP2**, por más que
+  vendan: 529E solo son 3.708 uni/mes.
+
+**Tres cosas que aparecieron al mirarlos y evitan trabajo de más:**
+
+1. **Los coladores Loke 110/111/112/113 y los 438E/437E son la misma familia con dos
+   numeraciones** — antes de dar de alta seis artículos hay que ver si no son variantes del mismo
+   despiece.
+2. **El bloque de cubiertos inox de «Carlos» (332-337, 630-637, 613, 710) son 16 códigos y sólo
+   426 uni/mes, pero es el más barato de migrar**: casi todos tienen el despiece cargado en el
+   vecino (3 a 7 partes) y **GP2 ya tiene los 941E-948E, que son cubiertos inox del mismo estilo**,
+   así que hay componentes reusables. Los `CH` (630-637, 801, 809) son los mismos artículos con el
+   código de venta de Chef.
+3. **`55215` (Palo de Amasar 40 cm, Tierra Nativa) es el mismo producto que el `232` que GP2 ya
+   tiene**: no es un alta, es decidir si es un alias.
+
+**Los 75 códigos terminados en `L` suman 435 uni/mes ENTRE TODOS** — son códigos de venta por Chef
+de esa misma mercadería, no artículos distintos; no justifican trabajo propio. Y **`838E` y `877E`
+no tienen ni descripción en el vecino**: hay que preguntar qué son antes de tocarlos.
