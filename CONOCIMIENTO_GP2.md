@@ -8308,8 +8308,95 @@ El único caso que no puede deducir es una pieza con varias entradas posibles y 
 — ahí la pantalla frena y pide cargar el BOM, en vez de adivinar.
 
 Lo que se le paga al tallerista vive aparte, en `precio_tallerista` (por kg).
+### 4cl. TODOS LOS ARTÍCULOS YA ESTÁN DESPIEZADOS — qué se destraba y qué queda (2026-09-13)
 
-### 4cl. El 515/615 se dejó de fabricar: qué partes murieron con él y cuál se salvó (2026-09-13)
+`[usuario 2026-09-13, textual]` *"Todos los articulos ya estan despiezados"*. **Verificado contra la
+base y es así**: **190 artículos, 190 con receta** (780 líneas de `articulo_componente` + 44 de
+`componente_bom`), **0 artículos sin ruta**, **0 componentes de receta sin fila de inventario**.
+Para dimensionar el salto: la foto original del Excel eran 84 artículos.
+
+**La base está sana.** `db/verificar.sql` entero da 0 en todos los invariantes menos dos, y los dos
+se miraron hoy (abajo). 868 rutas, 3.315 pasos, 802 componentes, 1.308 filas de inventario.
+
+**Lo que se destraba (el número que importa):** con el despiece completo, la Est Madre explota a
+componentes para el **82,5 % de la demanda proyectada** (185 códigos, 208.073 uni/mes de 252.170).
+`[dato: GP2.est_madre x GP2.articulo]` El 17,5 % que no cruza **no es un hueco de GP2**: son **182
+códigos (42.107 uni/mes) que GP2 no modela y que el vecino tampoco despieza** — reventa e importado,
+casi todos con sufijo `E` (529E, 102E, 582E, 438E…, ninguno con nombre en `public."Despiece x
+Articulo"`). Sólo **38 códigos (1.990 uni/mes, 0,8 %)** son variantes con sufijo de un artículo que
+GP2 sí tiene: ésos sí convendría sumarlos al código base cuando se toque el cruce. **Esto corrige
+la lectura vieja de §4ax** ("34 artículos del Excel sin despiece plástico deja corto el consumo"):
+ese agujero ya no existe.
+
+**Lo único que queda pendiente del despiece — 10 artículos SIN CAJA NI CARTÓN en la receta**
+`[dato 2026-09-13]`: los tres palos de amasar (**231, 232, 233**) y los siete de acero inox
+(**941E, 942E, 943E, 944E, 945E, 946E, 948E**, cuya única línea es `PEST1` Insertos Mango de
+Madera). **No es un error de carga de GP2: el vecino está igual** — los siete `E` figuran en
+`public."Despiece x Articulo"` con `PEST1` y **sin `N_Caja`**, y los palos de amasar ni figuran
+(son de GP2). Tampoco tienen fila en `uni_x_articulo_x_caja`. **Pregunta al usuario: ¿van sin caja
+(a granel / en la caja de otro artículo) o falta cargarla?** Mientras no se responda, la OC de
+cartones y cajas queda corta para esos 10. Los otros 12 artículos de receta de una sola línea
+**están bien**: son compra terminada a un `proveedor_at` y lo único que se les agrega es la caja
+(070, 246, 326, 591, 618, 619, 761, 823, 900, 922) o el cartón (222, 910).
+
+**Los dos invariantes que daban > 0:**
+
+1. **`N_funciones_con_public_en_search_path` = 1 → arreglado hoy, y deja regla.** Era
+   `factura_match` (nacida ayer con la lectura de facturas, §4ci) con `search_path = GP2, public,
+   extensions`. **La causa vale como conocimiento: en este proyecto `pg_trgm` está instalada en
+   `public`, NO en `extensions`** (`unaccent` sí está en `extensions`), así que cualquier función
+   GP2 que use `similarity()` se ve tentada de meter `public` en el search_path — y ahí adentro
+   cualquier nombre sin calificar puede caer en una tabla del vecino. **Lo correcto es calificar
+   `public.similarity(...)` y dejar `search_path = GP2, extensions`**, que es lo mismo que ya hacía
+   `actualizar_dolar_oficial` con `public.http`. Hecho y probado llamando la función (proveedor
+   "TALLERES GRAFICOS POL S.A." → Talleres Gráficos Pol 0,85; un renglón por código y otro
+   `sin_match`); `db/funciones_GP2.sql` sincronizado y verificado por md5 contra la base.
+2. **`Z2_parametro_que_nadie_lee` = 2 → era la LISTA la que estaba vieja, no los parámetros.**
+   `master_bach_pct` (4) lo lee `recalcular_maximo_material()` y `facturas_lecturas_x_dia` (50) lo
+   lee `factura_lectura_permitida()` (idea 7339, de hoy). Los dos se agregaron a las dos listas de
+   `db/verificar.sql` y Z/Z2 vuelven a 0. **La trampa de este invariante es esa**: la lista de
+   claves está escrita a mano en el chequeo, así que un parámetro nuevo lo hace dar > 0 aunque el
+   código lo lea perfectamente — antes de creerle que un parámetro está muerto, hay que grepear el
+   `db/` (y, si el chequeo dice lo contrario, la que se corrige es la lista).
+
+
+### 4cm. Los que GP2 NO tiene: 46 son trabajo, 174 son reventa (2026-09-13)
+
+`[usuario 2026-09-13]` *"Veamos los que no tenés"*, por los 220 códigos de la Est Madre que no
+cruzan con un artículo de GP2 (44.097 uni/mes, el 17,5 % de la demanda). **El listado completo, con
+nombre, volumen y tallerista, está en `ARTICULOS_FUERA_DE_GP2.md`.** Lo que hay que saber:
+
+**El corte NO es el volumen, es si alguien los fabrica** `[dato: public."Despiece x Articulo" +
+public."Articulos Virgilio X Tallerista"]`:
+
+- **46 códigos (10.504 uni/mes, 4,2 % de la demanda) FALTAN DE VERDAD**: un tallerista los entrega
+  o el vecino los despieza. **Los 5 primeros son el 70 % del grupo y los cinco son de García**:
+  438E Colador N°20 (2.788), 437E Colador N°16 (2.388), 590E Pincel Silicona (1.188), 566E Aceitera
+  100 (624) y 584E Aceitera 400 (551).
+- **174 códigos (33.593 uni/mes, 13,3 %) son reventa e importado**: ni despiece ni tallerista, se
+  compran terminados (sacacorchos, ralladores, peladores, cortadores, pinzas, utensilios de
+  nylon/silicona con mango de madera o bambú). **No hay nada que modelar en GP2**, por más que
+  vendan: 529E solo son 3.708 uni/mes.
+
+**Tres cosas que aparecieron al mirarlos y evitan trabajo de más:**
+
+1. **Los coladores Loke 110/111/112/113 y los 438E/437E son la misma familia con dos
+   numeraciones** — antes de dar de alta seis artículos hay que ver si no son variantes del mismo
+   despiece.
+2. **El bloque de cubiertos inox de «Carlos» (332-337, 630-637, 613, 710) son 16 códigos y sólo
+   426 uni/mes, pero es el más barato de migrar**: casi todos tienen el despiece cargado en el
+   vecino (3 a 7 partes) y **GP2 ya tiene los 941E-948E, que son cubiertos inox del mismo estilo**,
+   así que hay componentes reusables. Los `CH` (630-637, 801, 809) son los mismos artículos con el
+   código de venta de Chef.
+3. **`55215` (Palo de Amasar 40 cm, Tierra Nativa) es el mismo producto que el `232` que GP2 ya
+   tiene**: no es un alta, es decidir si es un alias.
+
+**Los 75 códigos terminados en `L` suman 435 uni/mes ENTRE TODOS** — son códigos de venta por Chef
+de esa misma mercadería, no artículos distintos; no justifican trabajo propio. Y **`838E` y `877E`
+no tienen ni descripción en el vecino**: hay que preguntar qué son antes de tocarlos.
+
+
+### 4cn. El 515/615 se dejó de fabricar: qué partes murieron con él y cuál se salvó (2026-09-13)
 
 `[usuario, textual]:` *"Discontinua todas las partes que usen 515 y 615, no se fabrica mas. Salvo
 fleje si lo usa otro articulo"*. Salió de mirar **C12**, que el usuario marcó como mal.

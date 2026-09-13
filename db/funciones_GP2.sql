@@ -3059,7 +3059,7 @@ CREATE OR REPLACE FUNCTION "GP2".factura_match(p jsonb)
  RETURNS jsonb
  LANGUAGE plpgsql
  STABLE SECURITY DEFINER
- SET search_path TO 'GP2', 'public', 'extensions'
+ SET search_path TO 'GP2', 'extensions'
 AS $function$
 declare
   v_prov_txt text := nullif(p->>'proveedor','');
@@ -3074,11 +3074,11 @@ begin
   --    nunca viene igual: "TALLERES GRAFICOS POL S.A." vs "Talleres Graficos Pol")
   if v_prov_txt is not null then
     select pi.id, pi.nombre, pi.cod_prov,
-           round(similarity("GP2".texto_norm(pi.nombre), "GP2".texto_norm(v_prov_txt))::numeric, 2)
+           round(public.similarity("GP2".texto_norm(pi.nombre), "GP2".texto_norm(v_prov_txt))::numeric, 2)
       into v_prov_id, v_prov_nom, v_prov_cod, v_prov_sim
       from proveedor_insumo pi
-     where similarity("GP2".texto_norm(pi.nombre), "GP2".texto_norm(v_prov_txt)) > 0.25
-     order by similarity("GP2".texto_norm(pi.nombre), "GP2".texto_norm(v_prov_txt)) desc
+     where public.similarity("GP2".texto_norm(pi.nombre), "GP2".texto_norm(v_prov_txt)) > 0.25
+     order by public.similarity("GP2".texto_norm(pi.nombre), "GP2".texto_norm(v_prov_txt)) desc
      limit 1;
   end if;
 
@@ -3123,8 +3123,8 @@ begin
       with cand as (
         select distinct on (c.id)
                c.id, c.codigo, c.descripcion, c.sector_id, pp.producto,
-               greatest(similarity("GP2".texto_norm(pp.producto), v_desc),
-                        similarity(coalesce("GP2".texto_norm(c.descripcion),''), v_desc)) as sim
+               greatest(public.similarity("GP2".texto_norm(pp.producto), v_desc),
+                        public.similarity(coalesce("GP2".texto_norm(c.descripcion),''), v_desc)) as sim
           from precio_proveedor pp join componente c on c.id = pp.componente_id
          where "GP2".cod_norm(pp.cod_prov) = "GP2".cod_norm(v_prov_cod)
          order by c.id, sim desc
