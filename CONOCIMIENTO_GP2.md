@@ -8810,3 +8810,102 @@ tampoco), así que lo único que hoy suma al costo es la caja ($28,69 por unidad
 precios sólo están "Palo de Amasar Frances 40cm" $600 y "Torneado Palo de Amasar 40cm" $1.245, los
 dos de Tierra Nativa: **no hay precio para el 30, el 40 ni el 50 lisos**. `[dato: v_planilla_precio]`
 
+
+**Corrección al punto 3, medida el 2026-09-13 a la tarde (segunda vuelta):** eran **cuatro** filas,
+no tres — el **234 (id 93)** tiene el mismo agujero, misma ruta `insumo → Fábrica → virgilio` y
+mismo proveedor. Y el `activo=false` **no cierra la puerta del todo**: ver §4cy. `[dato]`
+
+## 4cy. `articulo_prov_at` no garantiza nada, y `activo` sólo lo ve la pantalla (2026-09-13)
+
+Salió de traer al dueño la pregunta del punto 3 de §4cx. Lo que apareció es más grande que los palos.
+
+**1. La forma correcta de "entra terminado" es un paso `proveedor_at` en la ruta, no una fila en
+`articulo_prov_at`.** El testigo bien modelado es el **591**: ruta 956 = `A4 (insumo) → proveedor_at
+13 → virgilio`. `[dato]`
+
+**2. De las 91 filas de `articulo_prov_at`, 34 son artículos de GP2 cuya ruta NO tiene ese paso**
+(Cabral 26, Tierra Nativa 4 = los cuatro palos, Maspoli 3, Pettofrezza 1) y otras 12 ni siquiera
+son artículos de GP2. Las 45 restantes están bien. **Los palos no son la excepción, son 4 de 34.**
+`[dato]`
+
+**3. Qué pasa si se registra una entrega de una de esas 34:** `crear_entrega_prov_at` delega en
+`recepcion_virgilio`, que consume **toda la receta** desde `ubic_de('proveedor_at', N)`. La
+ubicación 54 (Tierra Nativa) **no tiene ni una fila de inventario**, así que todo queda en negativo.
+Con las 26 de Cabral es peor: el 501 arrastra 14 rutas. Hoy no pasó nunca (0 entregas en esas 34).
+`[dato]`
+
+**4. La trampa fina: `activo=false` saca el artículo de la PANTALLA, no de la RPC.**
+`entregas_prov_at_bundle` filtra `coalesce(a.activo,true)` y `EntregasAT_GP2.html` es la única
+pantalla que llama a `crear_entrega_prov_at` — así que para un operario la puerta queda cerrada.
+Pero la RPC misma chequea **existencia de la fila, sin mirar `activo`** (el `if not exists` se
+aflojó a propósito en su momento, por 5 filas con `descripcion` vacía — aquello era por
+`descripcion`, no por `activo`, así que agregarle `and coalesce(a.activo,true)` no revive ese bug).
+**Regla: antes de decir "con desactivarlo alcanza", leer la función con `pg_get_functiondef`, no
+`db/`.** `[dato]`
+
+## 4cz. El cruce de la lista de precios se hace por `cod_isis`, no por el nombre del producto (2026-09-13)
+
+Se buscó el proveedor de **`PEST1`** (Insertos Mango de Madera, 768, el único insumo comprable sin
+proveedor) y por texto no aparecía: en el bloque de Pat Bet Plast la línea se llama **"Insertos
+Importados"**. Cruzando por `cod_isis` aparece que **es el mismo artículo**: `4776` lo cotizan
+**Pat Bet Plast a $90,26** (última compra 28-11-2025) y **Kollplast a $219,97** con el nombre
+literal **"Inserto Mgo Madera"**. `[dato: v_planilla_precio]`
+
+- El hermano `PEST2` (Insertos Pisa Papas, 735) ya está en **Pat Bet Plast**, mismo sector y **mismo
+  `material_id` 742** (PP 2630). Kollplast cotiza los dos códigos (4776 y 3096): es la alternativa
+  de Pat Bet Plast en toda la línea, no un proveedor suelto.
+- **La plata:** PEST1 consume 684 uni/mes → la diferencia entre los dos precios es **$1,06 M por
+  año**. Elegir "el que suena parecido" acá cuesta plata de verdad.
+
+**Regla que deja: para encontrar un insumo en la lista de precios, cruzar por `cod_isis` y recién
+después por texto. Dos proveedores con el mismo `cod_isis` son dos alternativas del mismo artículo**
+(igual que los dos Prov AT de §4bk), no un duplicado a limpiar. `[deducido]`
+
+## 4da. La caja puede estar en el FK y no estar en la receta: $821.628 al año sin costear (2026-09-13)
+
+`GP2.articulo.componente_caja_id` dice **qué** caja usa el artículo; lo que hace que la caja **cueste**
+es su línea en `articulo_componente` (y su ruta). **175 de los 189 artículos con caja la tienen en la
+receta. 14 no**, y en esos 14 la caja vale $0 en `v_costo_componente`: `[dato]`
+
+| Art | Caja | uni x caja | $/mes sin costear |
+|---|---|--:|--:|
+| **222** | A2 | 12 | **32.580** |
+| 312 | A2 | 12 | 9.420 |
+| 395 | A8 | 12 | 8.509 |
+| 943E · 942E · 948E · 945E · 944E | A2 | 12 | 16.200 (los cinco) |
+| 311 | A2 | 12 | 1.020 |
+| 910 | A2 | 12 | 720 |
+| 715 | A1 | 24 | 20 |
+| 818 · 058 · 059 | A4 / A9 | 12 | 0 (sin Est Madre) |
+
+**Total $68.469/mes = $821.628/año.** El más caro no es ninguno de los que se estaban mirando (los
+94xE): es el **222**, que solo explica casi la mitad.
+
+**Regla: `componente_caja_id` sin línea de receta es un costo que no existe. Al tocar la caja de un
+artículo, verificar las dos cosas** (es la misma regla de "completar tablas manteniendo la
+normalización", aplicada a la caja). `[deducido]`
+
+## 4db. Los cubiertos inox 332-337 se reemplazaron por los 94xE, y el sitio quedó viejo (2026-09-13)
+
+`[usuario 2026-09-13, textual]` *"332/7 y 630/7 son discontinuos. Se reemplazaron por 941/8E"*.
+**332, 335 y 337 no están "discontinuados en GP2": no existen en `GP2.articulo`.** Aparecen en
+`est_madre` (136 / 64 / 48 uni/mes) porque la Est Madre arrastra discontinuados — la misma trampa
+del 515 (§4cw). Que loekemeyer.com los muestre activos es trabajo del repo del sitio, no de GP2.
+`[dato]`
+
+**Y lo de "573, 556 y 517 no tienen despiece en ningún lado" era falso para dos de los tres:**
+`[dato: GP2.planilla_fila]`
+
+- **573 Bombilla Color Metalizado** — despiece completo en la hoja **Bombillas** (fila 2, *"ART:
+  755/L573"*): caño 135 mm + resorte + niquelado + tapón aluminio + anodizado + corte cañito =
+  $578,98, con tiempos. Gemelo Chef **755**.
+- **517 Pinza Gastronómica** — despiece completo entre **Materiales Loeke** (filas 166-167: pala
+  121,3 × 0,8 y manija 167,3 × 0,8, las dos `517D`, tallerista **GUILLE**) y **Remaches** (fila 54:
+  **SR1 + SR2 + SR3**). Lo que está roto es su fila en Materiales (`#REF!`) y que no figura en Costos.
+- **556 Sacayerba** — el único sin despiece de verdad: Costos fila 225 dice `Fab` pero con
+  `E='xx'`, o sea **lo costea sólo como envase** (cartón 89 + caja 10,91 + 5,90 = $105,81). Ni la
+  planilla sabe de qué está hecho.
+
+**Regla: antes de decir "no tiene despiece", buscarlo en la hoja del RUBRO** (Bombillas, Materiales
+Loeke, Remaches, Flejes, Plásticos), no sólo en Costos y Cartones. Un artículo puede estar
+despiezado en tres hojas y en ninguna de las dos que uno mira primero. `[deducido]`
