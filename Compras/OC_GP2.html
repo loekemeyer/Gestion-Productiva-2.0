@@ -541,6 +541,12 @@ function tagOrigen(o){
   if(o==='est_madre') return 'EM';
   if(o==='cinco_cajones') return '5 caj';
   if(o==='fisico') return 'físico';
+  /* Master Bach: recalcular_maximo_material arma la etiqueta con el porcentaje adentro
+     ('mb_' || v_mb_pct || 'pct_por_color'), asi que el literal cambia si cambia el
+     parametro master_bach_pct -- por eso se lee con expresion regular y no con un ==.
+     Sin esto la celda mostraba el codigo crudo "mb_4pct_por_color". (idea 7242) */
+  var mb=/^mb_(\d+)pct/.exec(o);
+  if(mb) return 'MB '+mb[1]+'%';
   return o;
 }
 // La cuenta que explica el sugerido, debajo del numero: que nadie tenga que adivinarlo.

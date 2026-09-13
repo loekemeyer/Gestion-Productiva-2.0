@@ -11,14 +11,23 @@ const BUNDLE = {
   // 20 a proposito: si la pantalla siguiera con el 10 escrito, la cuenta de paquetes cambia.
   charcas_kg_x_paquete: 20,
   insumos: [
+    /* EL CONTRATO DE HOY (idea 7242). Desde el 2026-09-03 oc_bundle manda maximo / stock /
+       maximo_origen y el sugerido es MAXIMO − STOCK; el consumo viaja igual pero sólo se usa
+       cuando no hay máximo. Hasta el 2026-09-13 este fixture no tenía ni un `maximo`: la suite
+       pasaba en verde probando la fórmula vieja (consumo × meses), que en la base ya no existe.
+       Las claves y los valores de acá salen de una corrida real de `oc_bundle`. */
     { comp_id: 1, codigo: 'A1', descripcion: 'Fleje N 13', sector: 'Sector Fleje', sector_id: 5,
       proveedor: 'Basconia', um: 'kg', unidad: 'kg', kg_x_uni: null,
-      consumo: 424.9, meses: 6, online: 100, pendiente_oc: 0, sugerido: 2449,
+      maximo: 2549, maximo_inventario: 2549, maximo_origen: 'fisico', stock: 100,
+      consumo: 424.9, consumo_uni_mes: 424.9, meses: 6, online: 100, pendiente_oc: 0,
+      sugerido: 2449, sugerido_consumo: 2449, es_pliego: false,
       precio: 1, moneda: 'USD',
       carton_formato: null, pliegos_multiplo: null, codigo_multiplo: null, min_codigo_x_multiplo: null },
     { comp_id: 2, codigo: 'B1', descripcion: 'Fleje N 2', sector: 'Sector Fleje', sector_id: 5,
       proveedor: 'Hermac', um: 'kg', unidad: 'kg', kg_x_uni: null,
-      consumo: 50, meses: 6, online: 0, pendiente_oc: 0, sugerido: 300,
+      maximo: 300, maximo_inventario: 300, maximo_origen: 'est_madre', stock: 0,
+      consumo: 50, consumo_uni_mes: 50, meses: 6, online: 0, pendiente_oc: 0,
+      sugerido: 300, sugerido_consumo: 300, es_pliego: false,
       precio: 1, moneda: 'USD',
       carton_formato: null, pliegos_multiplo: null, codigo_multiplo: null, min_codigo_x_multiplo: null },
     { comp_id: 3, codigo: 'CART506', descripcion: 'Carton 506', sector: 'Sector Carton', sector_id: 10,
@@ -100,8 +109,43 @@ const BUNDLE = {
     // 2 paquetes, la pantalla manda unidad 'paq' y crear_oc lo guarda en kg.
     { comp_id: 13, codigo: 'EP10', descripcion: 'Bombilla EP10', sector: 'Sector Plastico', sector_id: 6,
       proveedor: 'Resortes Charcas', um: 'unidad', unidad: 'uni', kg_x_uni: 0.01,
-      consumo: 400, meses: 6, online: 0, pendiente_oc: 0, sugerido: 2500,
+      maximo: 2500, maximo_inventario: 2500, maximo_origen: 'est_madre', stock: 0,
+      consumo: 400, consumo_uni_mes: 400, meses: 6, online: 0, pendiente_oc: 0,
+      sugerido: 2500, sugerido_consumo: 2500, es_pliego: false,
       precio: 1, moneda: 'USD',
+      carton_formato: null, pliegos_multiplo: null, codigo_multiplo: null, min_codigo_x_multiplo: null },
+
+    /* ── LOS TRES CASOS QUE LA FORMULA VIEJA NO PODIA PROBAR (idea 7242) ──────────────
+       Copiados de filas REALES de oc_bundle (A5, W8 y A1 de Corrugadora del Plata), con el
+       codigo cambiado. Los tres estan en Sector Plastico a proposito: agregar un sector
+       nuevo movia los chips y no es lo que se quiere probar aca. */
+    // 1. TECHO FISICO MUY POR ENCIMA DEL CONSUMO (el A5 real: entran 9.400 en el lugar y se
+    //    consumen 9 por mes). Con la formula vieja pediria 54; con la de hoy, 9.400.
+    { comp_id: 14, codigo: 'MAXFIS', descripcion: 'Techo fisico arriba del consumo', sector: 'Sector Plastico', sector_id: 6,
+      proveedor: 'Inyectores SA', um: 'unidad', unidad: 'uni', kg_x_uni: null,
+      maximo: 9400, maximo_inventario: 9400, maximo_origen: 'fisico', stock: 0,
+      consumo: 9, consumo_uni_mes: 9, meses: 6, online: 0, pendiente_oc: 0,
+      sugerido: 9400, sugerido_consumo: 54, minimo: 28, es_pliego: false,
+      precio: 499.74, moneda: 'ARS',
+      carton_formato: null, pliegos_multiplo: null, codigo_multiplo: null, min_codigo_x_multiplo: null },
+    // 2. TECHO MUY POR DEBAJO DEL CONSUMO (el W8 real: entran 726 y el consumo de 6 meses son
+    //    5.228). El maximo MANDA: se pide lo que entra, no lo que se consume.
+    { comp_id: 15, codigo: 'MAXBAJO', descripcion: 'Techo fisico abajo del consumo', sector: 'Sector Plastico', sector_id: 6,
+      proveedor: 'Inyectores SA', um: 'unidad', unidad: 'uni', kg_x_uni: null,
+      maximo: 726, maximo_inventario: 726, maximo_origen: 'fisico', stock: 0,
+      consumo: 871.3, consumo_uni_mes: 871.3, meses: 6, online: 0, pendiente_oc: 0,
+      sugerido: 726, sugerido_consumo: 5228, minimo: 100, es_pliego: false,
+      precio: 10, moneda: 'ARS',
+      carton_formato: null, pliegos_multiplo: null, codigo_multiplo: null, min_codigo_x_multiplo: null },
+    // 3. EL GATILLO: stock ARRIBA del minimo -> no se carga solo aunque falte para el maximo
+    //    (v1.21.0: el minimo dispara, el maximo dimensiona). Y su maximo viene del Master Bach,
+    //    que arma la etiqueta con el porcentaje adentro.
+    { comp_id: 16, codigo: 'ENVIAJE', descripcion: 'Todavia no hace falta', sector: 'Sector Plastico', sector_id: 6,
+      proveedor: 'Inyectores SA', um: 'unidad', unidad: 'uni', kg_x_uni: null,
+      maximo: 11625, maximo_inventario: 11625, maximo_origen: 'mb_4pct_por_color', stock: 9000,
+      consumo: 1543, consumo_uni_mes: 1543, meses: 6, online: 9000, pendiente_oc: 0,
+      sugerido: 2625, sugerido_consumo: 8270, minimo: 8684, es_pliego: false,
+      precio: 10, moneda: 'ARS',
       carton_formato: null, pliegos_multiplo: null, codigo_multiplo: null, min_codigo_x_multiplo: null },
   ],
   ocs: [
@@ -179,8 +223,11 @@ window.supabase = { createClient: function(){ return {
      'columnas: ' + heads.join(' · '));
   // La plata no se muestra por fila: se mira en la barra y en la OC ya creada.
   ok(!(await page.textContent('#tbody')).includes('US$'), 'no hay precios ni subtotales en la tabla');
-  // El "mín N" debajo del stock tambien se saco [usuario: "eso no lo quiero ver"].
-  ok(!(await page.textContent('#tbody')).includes('mín'), 'no aparece el minimo debajo del stock');
+  // El "mín N" debajo del stock tambien se saco [usuario: "eso no lo quiero ver"]. Se mira
+  // LA CELDA DE STOCK, no toda la tabla: el cartelito del gatillo (v1.21.0) vive en la celda
+  // de Pedir y ahi el minimo SI se nombra, que es otra cosa y el usuario no la pidio sacar.
+  const stockCells = await page.$$eval('#tbody tr td:nth-child(3)', xs => xs.map(x => x.textContent).join(' | '));
+  ok(!stockCells.includes('mín'), 'no aparece el minimo debajo del stock: ' + stockCells.slice(0, 60));
 
   // filtro Fleje -> 2 filas + chips proveedor
   await page.click('#rubros .chip:has-text("Fleje")');
@@ -198,8 +245,13 @@ window.supabase = { createClient: function(){ return {
   // asi que la cuenta cae al consumo.)
   ok(await page.$eval('tr[data-id="1"] .sug-lb', x => x.textContent.trim()) === 'sugerido 2.449',
      'el cartel aclara que es el sugerido y cuanto es');
-  ok(/(?:máx|cons)/.test(filaA1) && filaA1.includes('stock'), 'y de donde sale: ' +
-     filaA1.replace(/\s+/g, ' ').slice(0, 120));
+  // Y de donde sale, con la cuenta de HOY (idea 7242): maximo − stock. Antes esta linea
+  // aceptaba "máx" O "cons" y el fixture no tenia maximo, asi que lo unico que se probaba
+  // era el camino viejo.
+  const calcA1 = (await page.textContent('tr[data-id="1"] .sug-calc')).replace(/\s+/g, ' ').trim();
+  ok(calcA1 === 'sugerido 2.449 · máx 2.549 − stock 100', 'la cuenta es maximo − stock: ' + calcA1);
+  ok(filaA1.includes('físico'), 'la fila dice de donde sale el maximo (físico)');
+  ok((await page.textContent('tr[data-id="2"]')).includes('EM'), 'y el de est_madre se muestra como EM');
   const tot1 = (await page.textContent('#tot')).trim();
   ok(tot1.startsWith('2 ítems'), 'barra: los 2 flejes del rubro ya cuentan (' + tot1 + ')');
   // (2449 + 300) kg x US$ 1 = US$ 2.749; con el dolar del cron (1535) ~ $ 4.219.715
@@ -274,6 +326,30 @@ window.supabase = { createClient: function(){ return {
   await page.click('#tabGen');
   if (await page.evaluate(() => provSel !== null)) await page.click('#provs .chip:has-text("Resortes Charcas")');
   ok(await page.evaluate(() => provSel === null), 'proveedor Charcas soltado');
+
+  // ── LA FORMULA DE HOY, EN LOS DOS EXTREMOS + EL GATILLO (idea 7242) ───────────────────
+  // Tres filas reales de oc_bundle. Si alguien volviera a la formula vieja (consumo x meses),
+  // las tres cambian de numero y esto se prende.
+  await page.click('#provs .chip:has-text("Inyectores SA")');
+  ok(await page.$$eval('#tbody tr', x => x.length) === 3, 'Inyectores SA: 3 filas');
+  // 1. El techo fisico manda aunque el consumo sea ridiculo al lado: 9.400, no 54.
+  ok(await page.$eval('.pedir-in[data-in="14"]', x => x.value) === '9400',
+     'el maximo fisico manda sobre el consumo (9.400 y no los 54 de consumo x meses)');
+  const calcMax = (await page.textContent('tr[data-id="14"] .sug-calc')).replace(/\s+/g, ' ').trim();
+  ok(calcMax === 'sugerido 9.400 · máx 9.400 − stock 0', 'y lo explica con la cuenta nueva: ' + calcMax);
+  // 2. Y tambien cuando el techo queda CORTO contra el consumo: se pide lo que entra.
+  ok(await page.$eval('.pedir-in[data-in="15"]', x => x.value) === '726',
+     'con el techo por debajo del consumo se pide el techo (726 y no 5.228)');
+  // 3. El gatillo: stock arriba del minimo no se carga solo, aunque falte para el maximo.
+  ok(await page.$eval('.pedir-in[data-in="16"]', x => x.value) === '',
+     'lo que esta arriba del minimo no se carga solo (el minimo dispara, el maximo dimensiona)');
+  const repViaje = (await page.textContent('tr[data-id="16"] .rep-tag')).replace(/\s+/g, ' ').trim();
+  ok(repViaje === 'no hace falta · mín 8.684', 'y la fila dice por que no se cargo: ' + repViaje);
+  // El origen Master Bach trae el porcentaje adentro del literal y se muestra legible.
+  ok((await page.textContent('tr[data-id="16"]')).includes('MB 4%'),
+     'el maximo de Master Bach se muestra como MB 4% y no como mb_4pct_por_color');
+  await page.click('#provs .chip:has-text("Inyectores SA")');   // se suelta
+  ok(await page.evaluate(() => provSel === null), 'proveedor Inyectores soltado');
 
   // volver a Generar y validar reglas de carton
   await page.click('#tabGen');
