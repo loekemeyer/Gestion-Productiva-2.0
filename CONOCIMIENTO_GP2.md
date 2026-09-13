@@ -8474,3 +8474,79 @@ receta y con ruta), 794 componentes, 854 rutas y 3.260 pasos.
 > quiere es que deje de aparecer — un discontinuado sigue en las listas, en las auditorías y en las
 > ideas, y cada sesión nueva lo vuelve a levantar. Si el dueño dice que no se fabrica más y no va a
 > volver, **se borra con backup**, y se cierra la sección del conocimiento en vez de dejarla abierta.
+
+### 4cr. El tipo de caja queda CERRADO; los precios esperan la lista del lunes (2026-09-13)
+
+`[usuario, textual]` **"Corregí el tipo de caja. Los precios, me parece raro pero el lunes subo
+los precios vigentes."** Dos cosas distintas que se venían mezclando:
+
+**1. QUÉ CAJA usa cada artículo: cerrado.** Los 52 que se pisaron el 11-09 con la hoja "Cajas" de
+`A_Costos_VIGENTES` **quedan como están, no se revierte nada**. La prueba que lo cerró no fue la
+hoja Cajas sino la hoja **Costos**, que es la que calcula el costo del artículo: su columna **M**
+(costo de caja por unidad) sale **por fórmula** apuntando a la hoja Cajas.
+
+| artículo | fila en Costos | fórmula de M | valor | caja |
+|---|---:|---|---:|---|
+| 546 Corta Queso mgo Lk | 67 | `='Cajas '!G167` | 12,2017 | **N°22** |
+| 315 Pisa Papas A. Inox | 112 | `='Cajas '!G97` | 30,00 | **N°12** |
+
+Y los gemelos heredan de esas mismas celdas (546L y 118 Loke toman `M67`; el 121 Loke toma
+`M112`; el 609 Chef y el 28 Chef también están en N°12). **Método a repetir:** cuando dos fuentes
+discutan qué caja va, no mirar la hoja Cajas — mirar de qué celda la toma la hoja **Costos**.
+
+**Impacto medido del cambio de los 52** `[dato]`: bajó el costo de caja **$47.636 por mes**
+(bruto movido $131.076). Dos artículos explican $43.270 de ese bruto: el 546 (7.700 uni/mes) y el
+315 (4.022 uni/mes); los otros 45 juntos mueven menos que el 546 solo.
+
+**2. LOS PRECIOS de las cajas: NO TOCAR hasta la lista del lunes.** Se cruzaron los 12 precios de
+caja de GP2 contra la planilla: **11 coinciden al centavo** (misma fecha de lista, 20-07-2026). El
+único que no:
+
+| | planilla | GP2 |
+|---|---:|---:|
+| Caja N°22 | 146,42 | **208,00** |
+
+Si la planilla tuviera razón serían ~$39.500/mes de más sólo en el 546. **El usuario lo vio y
+decidió esperar** — sube los precios vigentes el lunes. **Ninguna sesión debe "corregir" la N°22
+antes de esa lista**: la diferencia probablemente sea un aumento que la planilla todavía no tiene,
+no un error de carga.
+
+**Lo único que sigue abierto del tema caja:** 9 artículos (789, 800, 823, 825, 840, 844, 845, 858,
+862) piden **Caja N°8** o **Caja N°28**, que no existen como componente. Falta su **posición de
+estantería** para crearlas — no se inventa. Y el batidor pera (544 y 802) queda en N°12 por
+decisión del usuario, contra la N°6 que dice la planilla.
+
+### 4cs. La Caja N°8 está DISCONTINUADA: el gemelo LK cierra los 9 que faltaban (2026-09-13)
+
+`[usuario]` **"Fijate su equivalente en LK"**. Los 9 artículos que pedían una caja inexistente
+quedaron resueltos **sin crear ninguna caja**, y la razón estaba escrita en el propio informe de
+faltantes del 08-09: *"12 de 13; **la N°8 no va porque es discontinua**"*. La planilla la sigue
+pidiendo, pero ya no se compra — y lo que GP2 tiene hoy es el reemplazo que usa el gemelo Loeke.
+
+El mapeo Chef↔Loeke sale de la hoja **`Conversion cod Loeke Chef`** de `A_Costos_VIGENTES`
+(columna **J** = Cod Loeke, **K/L/M** = Cod Chef 1/2/3). Vale la pena recordarla: es la fuente
+oficial del gemelo y evita adivinarlo por descripción.
+
+**6 de 9 ya estaban donde dice el gemelo — no se tocó nada:**
+
+| Chef | pedía | gemelo LK | caja del LK y de GP2 |
+|---|---|---|---|
+| 789 Pisa Papas Nylon Con Mgo | N°8 | 355 | N°7 |
+| 800 Pinza Corta Alambre 21 Cm | N°8 | 560 | N°2 |
+| 825 Colador Ø 10 Cm | N°8 | 027 | N°2 |
+| 844 Cuchara Fideos Nylon | N°8 | 391 | N°7 |
+| 845 Cucharón Nylon | N°8 | 392 | N°7 |
+| 840 Rallador Cilíndrico 21 Cm | N°28 | 321 | N°10 |
+
+**Uno se corrigió:** el **862 Corta Pizza Familiar** estaba en Caja N°2 y su gemelo **562** va en
+**N°22**, con la misma uni x caja (12). Migración `el_862_va_en_la_caja_22_como_su_gemelo_lk_562`
+(artículo + receta + los dos pasos de ruta). El costo de caja baja de $21,82 a $17,33 por unidad.
+
+**Dos quedan como están, a propósito:**
+- **858 Pala De Canelones Ac. Inox.** — el gemelo 570 va en N°7, pero **la uni x caja no coincide**
+  (858 de a 12, el 570 de a 24): no es el mismo empaque, así que el gemelo NO manda acá. Queda en
+  N°12. **Regla: el gemelo sólo decide la caja si además coincide la uni x caja.**
+- **823 Exprimidor De Cítricos** — es Loeke, no tiene gemelo. Queda en N°10.
+
+**Con esto el tema caja queda cerrado del todo**, salvo los precios, que esperan la lista del
+lunes (§4cr). Ya no hay ningún artículo pidiendo una caja que no exista.

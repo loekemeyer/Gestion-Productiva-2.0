@@ -1190,7 +1190,7 @@ function pintarItems(list){
     // "quiero que aparezca el formato debajo de cada carton"). Los pliegos
     // se rotulan como "Pliego · <formato>" para no confundirlos con cartones.
     var fmt = '';
-    if (i.sector_id===10 && i.carton_formato){
+    if (GP2UI.esCarton(i) && i.carton_formato){
       var lbl = i.carton_formato==='8' ? 'Ocho' : i.carton_formato;
       // No repetir "Pliego · Pliego" para los ex-bombilla (formato Pliego, es_pliego=true)
       var pref = (i.es_pliego && i.carton_formato!=='Pliego') ? 'Pliego · ' : '';
@@ -1205,7 +1205,7 @@ function pintarItems(list){
     // Pliego=1 = 1 paquete = 100 pliegos). +1 = 1 paquete (o 100 pliegos para es_pliego).
     // No aparece +N para formato Bolsa (sin bolsa definida) — solo +1.
     var quick = '';
-    if (i.sector_id===10){
+    if (GP2UI.esCarton(i)){
       var pxb = Number(i.paq_x_bolsa)||0;
       var qb = '';
       // Para pliegos formato "Pliego" (ex-Bombilla) el +N es +1 igual (1 paq=100 pliegos) — no tiene sentido duplicar.
@@ -1223,7 +1223,7 @@ function pintarItems(list){
     var _pnd = PEND[String(i.comp_id)];
     if (_pnd){
       var _txt = '';
-      if (i.sector_id===10){
+      if (GP2UI.esCarton(i)){
         var _pq = Number(_pnd.paq) || Number(_pnd.cantRaw) || 0;  // +N/+1 usa paq, el popup cantRaw
         if (_pq>0) _txt = _pq+' paq';
       }
@@ -1232,7 +1232,7 @@ function pintarItems(list){
         quick += '<div class="qrow qrow-pend" style="justify-content:center">'+
                  '<span class="rb-pend-item">'+esc(_txt)+
                  ' <button class="qbtn" data-pend-edit="1" type="button" title="Modificar a mano">✏️</button>'+
-                 (i.sector_id===10 ? '' :
+                 (GP2UI.esCarton(i) ? '' :
                    ' <button class="qbtn qbtn-del" data-pend-del="'+esc(String(i.comp_id))+'" type="button" title="Eliminar del remito">🗑</button>')+
                  '</span></div>';
       }
@@ -1596,7 +1596,7 @@ function abrirPopup(i){
   // (pliegos individuales); el control despues es en paquetes de 100 pliegos
   // (regla usuario 2026-09-01: "los pliegos ... el remito va a ser tambien en unidades.
   // el control va a ser en paquetes. cada paquete viene de cien pliegos").
-  if(i.sector_id===10){
+  if(GP2UI.esCarton(i)){
     $('unitRow').classList.add('hidden');
     if (esPliegoIt(i)){
       setUnit('uni');
