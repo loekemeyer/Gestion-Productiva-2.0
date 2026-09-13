@@ -227,6 +227,16 @@ create table "GP2".factura_alias (
 comment on table "GP2".factura_alias is 'Codigo de articulo del proveedor -> componente GP2, aprendido a mano cuando la lectura de factura no pudo resolverlo sola. Crece de a uno y no se inventa (idea 7338, 2026-09-13).';
 comment on column "GP2".factura_alias.cod_prov is 'El codigo TAL CUAL viene en la factura; el match normaliza (mayusculas, sin espacios ni ceros a la izquierda).';
 
+-- ---------- factura_lectura ----------
+create table "GP2".factura_lectura (
+  dia date not null,
+  n integer not null default 0,
+  ultima_en timestamptz,
+  constraint factura_lectura_pkey PRIMARY KEY (dia),
+  constraint factura_lectura_n_chk CHECK ((n >= 0))
+);
+comment on table "GP2".factura_lectura is 'Cuantas lecturas de factura se pidieron cada dia. Sirve de tope (parametro.facturas_lecturas_x_dia) y para ver el gasto (idea 7339, 2026-09-13).';
+
 -- ---------- faltante_marcado ----------
 create table "GP2".faltante_marcado (
   id bigint generated always as identity not null,
@@ -1086,6 +1096,7 @@ alter table "GP2".sector enable row level security;
 alter table "GP2".tallerista enable row level security;
 alter table "GP2".tarifa_servicio enable row level security;
 alter table "GP2".tipo_cambio enable row level security;
+alter table "GP2".factura_lectura enable row level security;
 alter table "GP2".factura_alias enable row level security;
 alter table "GP2".cajon enable row level security;
 alter table "GP2".tipo_movimiento enable row level security;
@@ -1143,6 +1154,7 @@ create policy p_gp2_select on "GP2".sector for select to anon, authenticated usi
 create policy p_gp2_select on "GP2".tallerista for select to anon, authenticated using (true);
 create policy p_gp2_select on "GP2".tarifa_servicio for select to anon, authenticated using (true);
 create policy sel_anon on "GP2".tipo_cambio for select to anon, authenticated using (true);
+create policy factura_lectura_sel on "GP2".factura_lectura for select to public using (true);
 create policy factura_alias_sel on "GP2".factura_alias for select to public using (true);
 create policy cajon_sel on "GP2".cajon for select to public using (true);
 create policy tipo_movimiento_sel on "GP2".tipo_movimiento for select to public using (true);

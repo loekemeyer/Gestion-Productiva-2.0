@@ -2994,6 +2994,29 @@ begin
 end $function$
 ;
 
+-- ---------- factura_lectura_permitida ----------
+CREATE OR REPLACE FUNCTION "GP2".factura_lectura_permitida()
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'GP2'
+AS $function$
+declare
+  v_hoy date := (now() at time zone 'America/Argentina/Buenos_Aires')::date;
+  v_tope integer := coalesce((select valor::integer from parametro where clave = 'facturas_lecturas_x_dia'), 50);
+  v_n integer;
+begin
+  insert into factura_lectura (dia, n, ultima_en) values (v_hoy, 1, now())
+  on conflict (dia) do update set n = factura_lectura.n + 1, ultima_en = now()
+  returning n into v_n;
+
+  if v_n > v_tope then
+    return jsonb_build_object('ok', false, 'usadas', v_n, 'tope', v_tope);
+  end if;
+  return jsonb_build_object('ok', true, 'usadas', v_n, 'tope', v_tope);
+end $function$
+;
+
 -- ---------- factura_match ----------
 CREATE OR REPLACE FUNCTION "GP2".factura_match(p jsonb)
  RETURNS jsonb
