@@ -6,17 +6,22 @@ GP2 —el schema y sus 43 pantallas— **no lee `public`** (Regla 0 en `CLAUDE.m
 auditoría en `CONOCIMIENTO_GP2.md` §4cf). Lo que queda abajo es el resto del programa viejo
 ("Gestión Productiva Entero") que convivía en esta carpeta.
 
-## Lo que queda mirando `public` (5 archivos)
+## Lo que queda mirando `public` (2 archivos)
 
 | Archivo | Qué es | Por qué sigue |
 |---|---|---|
 | `Facturas/index.html` | "Lectura de Facturas": cruza facturas de proveedores contra `Entregas PS`, `Partes x PS`, `Precios_Proveedores` | **hueco**: el menú lo tiene con destino `null` |
-| `Facturas/EntregaProveedoresCervantes.html` | "Entrega Proveedores Cervantes" | **hueco**: `null` en el menú |
-| `ControlRemitos/controlRemitos.js` (+ su `index.html`) | "Control Carga Remitos": lee `Control_Carga_Remitos`, que llena una página externa (`loekemeyer.github.io/Control-Carga-Remitos-FC`) | **hueco**: `null` en el menú |
 | `Preavisos/index.html` | "Preaviso de Entrega": el tallerista/proveedor avisa qué va a traer | **hueco**: ni figura en el menú |
 | `Produccion/InformesVirgilio/renderer.js` | Informes de **Gestión Virgilio** (`Registros_Produccion_Virgilio`, `PPP_*`) | **no es GP2**: pertenece a otro sistema, que tiene su propio repo (`loekemeyer/Gestion-Virgilio`) |
 
-Los cuatro primeros son los únicos candidatos a "construir en GP2" que deja el programa viejo, y
+**Al 2026-09-13 quedan sólo dos, y ninguno es GP2:** `Facturas/index.html` (reemplazada por
+`Compras/LecturaFacturas_GP2.html`, se borra cuando el usuario confirme que no la abre más) e
+`InformesVirgilio`, que es de Gestión Virgilio. **Preavisos se hizo** (`Preavisos_GP2.html`), y
+**Entrega Prov. Cervantes y Control Carga Remitos se descartaron y se borraron** el 2026-09-13:
+el primero era un mostrador único que GP2 ya cubre con dos pantallas, el segundo sólo miraba una
+tabla que llena una página externa.
+
+Los cuatro primeros eran los candidatos a "construir en GP2" que deja el programa viejo, y
 el usuario ya dijo que **hoy no son útiles** para el estado actual de GP2 (2026-09-13).
 
 **Ya migrado: Calcular Cajones** (2026-09-13) → `CalcularCajones_GP2.html`, sobre

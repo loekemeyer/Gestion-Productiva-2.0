@@ -193,7 +193,7 @@ span.op.lock .lk{font-size:14px;margin-left:auto;opacity:.7}
     (GP2_AUTH_ON=false) no hay sesion que cerrar: el link se oculta solo -->
     <span id="kpiResumen"></span><span id="sesion" hidden>&nbsp;·&nbsp; <a href="login.html?logout=1" onclick="try{sessionStorage.clear();}catch(e){}"
     style="color:#b42318;text-decoration:none;font-weight:700">⎋ Cerrar sesión</a></span></div>
-  <script src="version.js?v=20260913c"></script>
+  <script src="version.js?v=20260913d"></script>
   <script>if (window.GP2_AUTH_ON !== false) document.getElementById('sesion').hidden = false;</script>
 </div>
 
@@ -256,11 +256,9 @@ const MENU = [
    ["Despiece x Artículo", "Despiece%20x%20Articulo/Despiece_GP2.html"],
    ["¿Qué necesito para producir?", "Programa/Programa.html", "secundario"],
  ]],
- ["✓","Control Carga Remitos", [ ["Ver Cargas", null] ]],
  ["🧾","Facturas", [
    ["Recepciones · Checklist Pagos", "Compras/Recepciones_GP2.html"],
    ["Lectura de Facturas Entrantes", "Compras/LecturaFacturas_GP2.html"],
-   ["Entrega Proveedores Cervantes", null],
  ]],
  ["▦","Insumos", [
    // El orden y las marcas los pidio el usuario: primero lo que se usa todos

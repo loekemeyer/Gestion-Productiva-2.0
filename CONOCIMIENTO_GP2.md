@@ -8275,3 +8275,36 @@ y cuándo*, antes de traerlo. Sin esto no se sabe qué entra mañana y el faltan
   lo da por cumplido es la persona, no la vista.
 
 Idea 7340. Pantalla: `Preavisos/Preavisos_GP2.html`, en el menú dentro de Tallerista.
+
+### 4ck. La entrega del tallerista EN CERVANTES: qué es y cómo está parametrizada (2026-09-13)
+
+Pregunta del usuario. Hay **dos entregas de tallerista distintas** y conviene no mezclarlas:
+
+| Entrega | Dónde cae | Pantalla | Movimientos |
+|---|---|---|---|
+| **En Virgilio** | el artículo **terminado** al centro logístico | `RecepcionVirgilio_GP2` | `recepcion_virgilio` + `consumo_virgilio` (la receta) |
+| **En Cervantes** | una **pieza a un sector** (semi-elaborado) | `EntregasTalleristas_GP2` | `entrega_tallerista` + `consumo_tall` |
+
+**Cómo está parametrizada la de Cervantes:** no hay tabla de configuración — **sale de la ruta**.
+Es todo paso `ruta_paso` de tipo `tallerista` cuyo `comp_salida` cae en un sector que **no** es
+Terminado (12). Hoy son **11 piezas y 4 talleristas** (el resto sólo entrega terminados):
+
+- **Martin Cornejo**: `GRJ5`, `GRJ6`, `GRJ7` (Garage) y `X4` Cuchilla Pelapapa Cerrada (Crudo)
+- **Alex Escalante**: `GRJ7`, `GRJ10`, `GRJ10A` (Garage) y `C12` Paleta Batidor Resorte (Bombilla)
+- **IJUPA**: `M6` y `M8`, los mangos de pelapapa para cromar (Crudo)
+- **Lucho**: `J1` Tochos Zinc para rectificar (Crudo)
+
+**Qué se le descuenta al entregar, que es la parte que importa:**
+1. Si la pieza tiene **`componente_bom`** (los GRJ y el C12), se descuenta **todo el BOM** —
+   p. ej. `GRJ7 = A10 + C10 + V9`, `GRJ10 = LL7B + LLF8 + IE4 ×3 + IE5`. Por eso `ruta_paso` lista
+   varias entradas para el mismo paso: **no son alternativas, son todas las partes del armado**.
+2. Si **no tiene BOM** (`M6`, `M8`, `J1`, `X4`), es una **transformación 1:1** de su entrada:
+   `M10→M6`, `M9→M8`, `F7→J1`, `X1→X4`.
+3. Si no tiene entrada, es un **paso in-place**: devuelve lo mismo que recibió.
+
+El motor lo resuelve solo (`GP2M.recepcionTall` → `crear_entrega_tallerista`, con
+`p_descontar_bom` y `p_comp_entrada_id`): **la pantalla no le pregunta al operario qué consumió**.
+El único caso que no puede deducir es una pieza con varias entradas posibles y **sin BOM cargado**
+— ahí la pantalla frena y pide cargar el BOM, en vez de adivinar.
+
+Lo que se le paga al tallerista vive aparte, en `precio_tallerista` (por kg).

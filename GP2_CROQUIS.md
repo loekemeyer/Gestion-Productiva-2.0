@@ -112,12 +112,12 @@ flowchart LR
 |---|---|---|---|---|
 | ① | **Preaviso de Entrega** | **antes** de `entrega_ps` / `entrega_tallerista` | **HECHO el 2026-09-13**: `GP2.preaviso` + `v_preaviso_estado` + `Preavisos/Preavisos_GP2.html`. Guarda sólo la promesa (no mueve stock) y cruza contra el libro para mostrar vencidos y lo ya entregado. Qué entrega cada contraparte sale de la ruta, sin tabla nueva | — |
 | ② | **Lectura de Facturas** | en la puerta **y** después, del lado de la plata | **La IA lee, GP2 decide** (idea 7338, decidido por el usuario): foto/PDF → API de Claude con JSON Schema → los renglones se atan a componentes por `precio_proveedor.cod_prov` (301 códigos cargados) → **propone** la recepción y la persona confirma. Falta la Edge Function y la pantalla | se sigue tipeando la recepción renglón por renglón, y se paga contra el papel sin cruzar con lo entregado ni con el precio pactado |
-| ③ | **Entrega Prov. Cervantes** | en la puerta, al recibir | **casi nada**: `crear_entrega_ps` y `crear_recepcion_insumo` ya existen y hacen exactamente eso. Lo único distinto de la vieja era ser **un mostrador único** para las dos cosas | nada grave: hoy se hace en dos pantallas (`EntregaPS_GP2` y `RecepcionInsumos_GP2`) |
-| ④ | **Control Carga Remitos** | al costado, no toca stock | leer el feed de la app externa que ya existe | se sigue mirando en la página externa, como hoy |
+| ③ | ~~Entrega Prov. Cervantes~~ | **DESCARTADO el 2026-09-13** | Era un mostrador único que insertaba en `Entregas PS` **y** `Recepcion_Insumos`; GP2 ya hace las dos cosas en dos pantallas. `[usuario: "no sé para qué sirven esos 2"]` → si no se sabe para qué sirve, no sirve. Archivo borrado | — |
+| ④ | ~~Control Carga Remitos~~ | **DESCARTADO el 2026-09-13** | No cargaba nada: sólo miraba una tabla que llena una **página externa** (`loekemeyer.github.io/Control-Carga-Remitos-FC`). No tocaba stock ni GP2. Archivo borrado; la página externa sigue existiendo por su cuenta | — |
 
-**Orden que tiene sentido si algún día se hacen:** ② primero — el usuario ya definió el cómo y es
-el que ahorra trabajo todos los días (idea 7338) —, después ① (avisa antes, evita el faltante),
-③ (comodidad, no capacidad) y ④ (es un tablero ajeno).
+**Estado al 2026-09-13: no queda ningún hueco.** ② (Lectura de Facturas) y ① (Preaviso) están
+hechos; ③ y ④ se descartaron — `[usuario: "no sé para qué sirven esos 2"]`, y al mirarlos no
+servían: uno era comodidad ya cubierta y el otro un visor de otra app.
 
 ---
 
