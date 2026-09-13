@@ -189,7 +189,15 @@ select a.codigo, count(distinct r.id) rutas, count(p.id) pasos, bool_and(coalesc
 
 Hoy, antes del cambio: AA=0, AB=0, I=0, "receta sin inventario"=0 (medido).
 
-**Efecto sobre costos:** `v_costo_componente` hoy da 231/232/233 = $0,00 con `faltan_precios=1` (GRJ22/23/24 sin precio; el 234 sí tiene $600 + caja = $944,26). Después del alta van a seguir con `faltan_precios` ≥ 2 (GRJ sin precio + BANDITA sin precio) y el total sólo va a reflejar la caja ($28,69/uni). El precio de los palos 30/40/50 no está en la LP (sólo "Palo de Amasar Frances 40cm" $600 f888 y "Torneado Palo de Amasar 40cm" $1.245 f901, ambos Tierra Nativa).
+**Efecto sobre costos** (⚠ CORREGIDO el 2026-09-13; la primera versión de esta línea decía
+que el 234 costaba **$944,26** y eso estaba MAL): `v_costo_componente` daba 231/232/233 = $0,00
+con `faltan_precios=1` (GRJ22/23/24 sin precio), y el 234 da **$628,69** = $600 del palo +
+**$28,69** de su parte de caja. El 944,26 salía de sumarle la caja **entera** ($344,26) en vez de
+la doceava parte — o sea el error estaba en mi cuenta, no en la vista. La vista divide bien, y los
+**189** artículos con caja tienen su línea de receta con `cantidad = 1/uni_x_caja`: ninguno cobra
+la caja entera (medido el 13/09). Después del alta, 231/232/233 quedan con `faltan_precios = 2`
+(GRJ sin precio + BANDITA sin precio) y su total refleja sólo la caja: **$28,69** cada uno,
+verificado en la base. El precio de los palos 30/40/50 no está en la LP (sólo "Palo de Amasar Frances 40cm" $600 f888 y "Torneado Palo de Amasar 40cm" $1.245 f901, ambos Tierra Nativa).
 
 ---
 
