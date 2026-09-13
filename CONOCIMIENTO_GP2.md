@@ -9273,3 +9273,37 @@ el **574 Corta Queso Alambre**: 88 segun la proyeccion, 319 vendidas a 41 client
 **Regla: `est_madre` decide el MAXIMO de stock (es lo que consume el motor); `sales_lines` decide
 QUE VALE LA PENA MODELAR. No mezclar los dos usos.** Es la version general de lo que ya habia
 mordido con el 515 (§4cw) y con el 573 (§4de). `[deducido]`
+
+
+## 4dm. El $28,69 es SOLO de los tres palos nuevos, y el 234 no: corrijo lo que dije (2026-09-13)
+
+`[usuario 2026-09-13, textual: *"Igual el palo de amasar no lo vende tierra a $28.69. Te falta el
+costo de lo que vende tn tambien"*]`. **Tiene razon y la frase estaba mal dicha en §4dh y en el
+chat.** Lo medido, componente por componente:
+
+| Componente | Artículo | ¿Tiene precio? | Costo del artículo hoy |
+|---|---|---|--:|
+| `GRJ17` Palo de Amasar Frances 40 cm | **234** | **sí, $600** (LP f888, ISIS 103, lista 03-11-2025) | **$628,69** = 600 + 28,69 de caja |
+| `GRJ22` Palo de Amasar 30cm | 231 | **no** | $28,69 (solo la caja) |
+| `GRJ23` Palo de Amasar 40cm | 232 | **no** | $28,69 |
+| `GRJ24` Palo de Amasar 50cm | 233 | **no** | $28,69 |
+
+O sea **el $28,69 nunca fue "lo que cuesta un palo": es lo que GP2 puede calcular de los tres que no
+tienen precio de Tierra Nativa.** El 234, que sí lo tiene, da $628,69.
+
+**Y el bloque entero de Tierra Nativa en la lista de precios (72 filas, cod_prov 3917) tiene SOLO
+DOS lineas de palo de amasar:** `[dato: v_planilla_precio]`
+
+| Fila | cod ISIS | Producto | Precio | Fecha lista | Última compra | Asignado en GP2 |
+|--:|---|---|--:|---|---|---|
+| 888 | 103 | Palo de Amasar **Frances** 40cm | $600 | 03-11-2025 | 18-12-2024 | ✔ `GRJ17` (art 234) |
+| 901 | 234L | **Torneado** Palo de Amasar 40cm | **$1.245** | **07-08-2026** | — | **sin asignar** |
+
+**No hay linea para el de 30 ni para el de 50.** La unica libre es el Torneado de 40, que por medida
+seria el **232**, pero el nombre no lo dice y el `cod_isis` de esa fila (`234L`) apunta al 234, no al
+232 — **asignarla a ojo es inventar**. Falta que el dueño diga: (a) si el Torneado 40 es el 232, y
+(b) que precio tienen el de 30 y el de 50, que en la lista no estan. `[dato]`
+
+**Regla que deja: antes de decir "este articulo cuesta X", mirar `faltan_precios` Y decir de que
+componentes falta el precio.** Un total bajo casi nunca es un articulo barato: es un componente sin
+precio (misma trampa del BOM10 en §4cn y del pincel en §4ct).

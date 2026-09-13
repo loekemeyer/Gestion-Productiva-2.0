@@ -250,3 +250,19 @@ lista por venta real y figuraba décimo.
 **Regla: para priorizar qué modelar, ordenar por `sales_lines`, no por `est_madre`.** La proyección
 sirve para el máximo de stock (es lo que consume el motor); para decidir qué vale la pena, manda lo
 facturado.
+
+
+### 574 Corta Queso Alambre: sale de la lista (2026-09-13)
+
+`[usuario 2026-09-13, textual: *"574 ya no se fabrica mas, es importado"*]`. Era el **tercero por
+venta real** (319 cajas a 41 clientes, factura del 17-08-2026) y el que este archivo acababa de
+ascender — **pero esas ventas son de un producto importado, no de uno que fabriquemos.** No hay nada
+que modelar: **sale del grupo A.**
+
+Con el 574 fuera, mas el **561** y el **396** (discontinuados el mismo dia), el grupo A queda en
+**20 códigos ≈ 2.425 uni/mes** y el mas grande vuelve a ser el **565 Pinza De Hielo** (431 cajas,
+121 clientes).
+
+**Leccion, que es la misma de §4dl al reves:** `sales_lines` dice que algo **se vende**, no que
+**lo fabriquemos**. Un importado vende igual. Para decidir si hay trabajo hacen falta las dos cosas:
+que se venda **y** que salga de casa.
