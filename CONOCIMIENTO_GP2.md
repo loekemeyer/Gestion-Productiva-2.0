@@ -6202,32 +6202,11 @@ envasado de Fábrica**. Mientras falte el precio, el 720/722 muestran `faltan_pr
 doble conteo conocido (idea 7275: la vista cuenta el componente en la receta Y en la ruta), no un
 error de carga; se va a 0 solo al cargar el precio.
 
-### 4an. Batidores 515 y 615: están EN VENTA, y el Resorte Bicónico tampoco es discontinuo (2026-09-10)
+### 4an + 4an-ter. El 515/615 — BORRADO (ver §4cq)
 
-[usuario 2026-09-10, textual: *"no sé si en algún momento te dije que está discontinuado, pero es un
-artículo continuo, está en venta"* / *"el resorte bicónico... no es discontinuo, está activo"*].
-
-Corregido: **`articulo` 615 → `discontinuado = false`** (el 515 ya estaba activo) y **`BOM10`
-"Resorte Bicónico" → `estado_compra = null`** (se compra; su proveedor **Resortes Charcas** estaba
-intacto). El BOM10 nunca se había sacado de la receta: sigue en `componente_bom` de `C12` (cant 1)
-y tiene sus rutas 563/564 hacia el 515 y el 615.
-
-**Lo que sí lo hacía desaparecer de la pantalla era un bug nuestro, no el dato** — ver más abajo.
-
-**Sigue marcado `discontinuo` y contradice que el artículo esté activo** (pendiente del usuario):
-- **`C12` "Paleta Batidor Resorte"** — es la paleta del batidor, la fabrica Alex Escalante a
-  partir de `IE1`/`W1B`. Si se fabrica, el estado que corresponde es **`fabricacion`**, no
-  `discontinuo` (para el motor de costos da lo mismo: los dos la sacan de "comprado"; cambia lo
-  que muestran OC, Recepción y Faltantes).
-- **`A1C1` "Cartón 515"** — se compra, y **quedó sin proveedor**. `marcar_estado_compra` borra el
-  proveedor cuando se marca `fabricacion`/`discontinuo`
-  (`proveedor = case when v_e is null then proveedor else null end`), así que el dato se perdió al
-  marcarlo. Los otros cartones de la familia son de **Talleres Gráficos Pol**, pero **no se asume**:
-  lo tiene que confirmar el usuario. Mientras esté `discontinuo`, el cartón **no suma costo** al 515.
-
-**Trampa a recordar**: marcar un componente `fabricacion` o `discontinuo` **le borra el proveedor**.
-Al revertir el estado hay que volver a cargarlo — no aparece solo.
-
+Acá vivían dos secciones del 2026-09-10 sobre los batidores 515/615, sus partes y sus pendientes.
+**El artículo y todas sus partes exclusivas se borraron de la base el 2026-09-13** y el tema está
+cerrado: la historia está en el backup y en git. **No analizarlo ni volver a proponerlo.** §4cq.
 ### 4an-bis. Regresión propia: la Rama de un insumo quedaba vacía ("? produce BOM10")
 
 La v1.114.0 dejó que las ramas de un convergente usaran rutas de **insumo** (para mostrar el
@@ -6240,29 +6219,6 @@ Arreglado en la **v1.116.0**: el origen de la rama también se toma del paso `in
 —como `ingreso`— no cuenta como paso productivo. Lo cubre `tests/ui/test_programa_insumo_conv.js`
 con la convergencia C12 real. **Lección**: al ampliar qué rutas entran a un render, revisar el caso
 de la ruta de **un solo paso**.
-
-### 4an-ter. Cierre del 515/615: C12 lo fabrica Alex, el Cartón 515 es de Gráficos Pol (2026-09-10)
-
-[usuario 2026-09-10, textual: *"C12 lo fabrica Alex Escalante. No está discontinuo"* / *"el cartón es
-de talleres gráficos pol"*]. Cierra lo que había quedado colgado en §4an:
-
-| Componente | Antes | Ahora |
-|---|---|---|
-| `C12` Paleta Batidor Resorte | `discontinuo`, sin proveedor | **`fabricacion`** (la hace Alex Escalante desde IE1/W1B) |
-| `A1C1` Cartón 515 | `discontinuo`, **sin proveedor** (se lo había borrado el marcado) | **se compra** (estado null), proveedor **Talleres Gráficos Pol** |
-
-Efecto: el cartón volvió a costar en el 515 → **$1.261,14 → $1.303,86** (los $42,72 del cartón, que
-sí tenía precio cargado). El 615 no se movió ($1.559,63). Quedan 10 componentes en `discontinuo`,
-ninguno de esta familia.
-
-**Lo que falta y es plata real: `BOM10` "Resorte Bicónico" no tiene precio** — se compra a
-**Resortes Charcas** (`kg_x_uni` 0,00963; Charcas cobra por kg y se pide por paquete, ver
-`parametro.charcas_kg_x_paquete`). Mientras no esté, el resorte entra gratis al costo del 515 y del
-615. Demanda actual: 515 = 486 uni/mes, 615 = 24 uni/mes.
-
-**[deducido, SIN confirmar]**: `A1C1` "Cartón 515" tiene `marca = CHEF`, pero el 515 es el artículo
-de **Loekemeyer** (el gemelo Chef es el 615, y su cartón `O2A` también figura CHEF). Si la marca del
-A1C1 está mal, la Recepción de cartones lo va a listar bajo la marca equivocada. Preguntar.
 
 ### 4ao. `articulo` ya tiene DESCRIPCIÓN y MARCA (2026-09-10)
 
@@ -8403,53 +8359,6 @@ de esa misma mercadería, no artículos distintos; no justifican trabajo propio.
 no tienen ni descripción en el vecino**: hay que preguntar qué son antes de tocarlos.
 
 
-### 4cn. El 515/615 se dejó de fabricar: qué partes murieron con él y cuál se salvó (2026-09-13)
-
-`[usuario, textual]:` *"Discontinua todas las partes que usen 515 y 615, no se fabrica mas. Salvo
-fleje si lo usa otro articulo"*. Salió de mirar **C12**, que el usuario marcó como mal.
-
-**Lo que estaba mal en C12** (problema registrado en la auditoría): la Paleta Batidor Resorte se
-fabricaba por **dos caminos contradictorios** — rutas 61/62 `IF11 → matriz Corte Grampa → W1B →
-Guazzaroni → Alex → C12`, y rutas 120/551 `IE1 (Fleje 33) → Alex → C12`, sin matriz ni PS — y su
-`componente_bom` tenía **las dos entradas juntas** (`W1B ×1` + `IE1 ×1`). Como el motor descuenta el
-BOM completo al recibir la pieza del tallerista, **cada entrega descontaba grampa Y fleje**, cuando
-cada camino consume una sola: doble descuento. Encima el nombre dice "Resorte" y el resorte
-(`BOM10`) ya se había sacado del BOM el 12-09.
-
-**La decisión del usuario evitó tener que elegir camino:** no se fabrica más, se discontinúa todo.
-
-| Se discontinuó (exclusivo de 515/615) | Se salvó (lo usa otro artículo) |
-|---|---|
-| `C12` Paleta Batidor · `W1B` Grampa Batidor · `IE1` **Fleje N°33** · `BOM10` Resorte Bicónico · `A1C1` Cartón 515 · `O2A` Cartón 615 · los terminados `515` y `615` | `IF11` **Fleje N°19** (505, 513, 713) · `A5` Caja N°6 · `A8` Caja N°2 (40 artículos) · `PA13`/`PA13B` Capuchón Batidor · `PA19` Mangos Chef · `PB6` · `PC10` Mango LK Espátula |
-
-**Ojo con la excepción del fleje: había DOS flejes en juego y la regla los separa sola.** `IF11`
-lo usan 505, 513 y 713 → vive. `IE1` no lo usa ningún otro artículo → se discontinúa. La regla del
-usuario ("salvo fleje si lo usa otro artículo") se aplicó componente por componente, no por rubro.
-
-**Cómo se marca:** se agregó **`componente.discontinuado`**, espejo de `articulo.discontinuado`.
-**No se borra nada**: la pieza conserva historial, receta y rutas, pero **sale del pedido** —
-`v_reposicion` ahora filtra `not discontinuado`. Eso importa: esas 8 piezas venían sumando
-**381.004 unidades de "sugerido"** en el pedido, de un producto que ya no se fabrica.
-
-**El stock se dio de baja** `[usuario 2026-09-13, textual: "Dalo de baja"]`. Eran **400 de C12** y
-**100 de BOM10** en Sector Bombilla, lo único que quedaba con cantidad ≠ 0 de las 8 piezas (las
-otras 13 filas de inventario ya estaban en 0). **La baja se hizo por el motor, no a mano**: dos
-movimientos `tipo_mov = 'ajuste'` con `ubic_origen_id` nulo, `ubic_destino_id` = Sector Bombilla y
-cantidad **negativa** (−400 y −100) — la misma forma que usa `relevamiento_aplicar` cuando el conteo
-da menos que el sistema. **Nunca un `update` a `inventario`**: el inventario es el resultado de los
-triggers, y tocarlo a mano rompe el invariante B (inventario = ledger), que se verificó en 0 después.
-
-Lo que costó la baja: C12 vale **$280,47** por unidad → **$112.188** que salen del stock valorizado.
-`BOM10` figura en **$0** y eso **no es que no valga**: `v_costo_componente` lo marca
-`faltan_precios = 1`, o sea que el resorte nunca tuvo precio cargado. Cuando algo se da de baja
-conviene mirar `faltan_precios` antes de creerle al total.
-
-**Queda un cabo suelto a propósito:** las filas de inventario de las 8 piezas conservan su `minimo`
-(C12 2040, BOM10 2040, `IE1` 2006, `A1C1` 1944…). Hoy es inerte porque `v_reposicion` filtra
-`not discontinuado`, pero si alguien saca ese filtro esos mínimos vuelven a pedir. El mínimo de un
-componente discontinuado no significa nada: si se toca el filtro, hay que ponerlos en 0.
-
-
 ### 4co. Qué se importa listo y qué se envasa acá: el corte de García (2026-09-13)
 
 Respuesta del dueño a "¿voy por los 5 de García?" (§4cm). **Cuatro de los cinco ya no son trabajo
@@ -8530,3 +8439,34 @@ decía §4cm de que era un alias del 232.
 que **arrastra artículos discontinuados, códigos duplicados de la otra empresa y entregas de una
 sola vez**. Un código que aparece ahí y no está en GP2 no es, por sí solo, trabajo pendiente: hay
 que preguntar antes de modelar. De 46 candidatos, 20 se cayeron con cuatro frases del dueño.
+
+
+### 4cq. El 515/615 SE BORRÓ DE LA BASE — no volver a mencionarlo (2026-09-13)
+
+`[usuario 2026-09-13, textual]` *"Borra lo del 515/615 ya por favor. En otra sesion me lo sigue
+mencionando"*. **El tema está cerrado: no existe más en GP2 y no hay nada que analizar, proponer ni
+preguntar sobre él.** Si una sesión lo encuentra nombrado en un archivo viejo, es historia.
+
+**Qué se borró** (el 12-09 se habían discontinuado; hoy se eliminaron): los artículos **515 y 615**
+(Batidor Resorte) y sus 8 componentes exclusivos — `C12` Paleta, `W1B` Grampa, `IE1` Fleje N°33,
+`BOM10` Resorte Bicónico, `A1C1` Cartón 515, `O2A` Cartón 615 y los dos terminados (407, 433) — con
+todo lo que colgaba: 14 rutas, 55 pasos, 10 líneas de receta, 2 de BOM, 16 de inventario, 9
+movimientos, 1 recepción, 7 precios, 2 ítems de relevamiento y 1 fila de `fleje_detalle`.
+
+**Por qué se pudo borrar sin romper nada, y cómo se comprobó ANTES de tocar**: las tres consultas
+que hay que hacer siempre antes de un borrado así dieron vacío — ningún `ruta_paso` de otro
+artículo, ninguna receta de otro artículo y ningún `componente_bom` con un componente de afuera
+tocaban esas piezas; **todas tenían stock 0** y los 9 movimientos eran entre ellas mismas
+(`comp_transformado_id` siempre adentro del grupo), así que borrarlos no le movió el stock a nadie
+vivo. Con eso el borrado es una amputación limpia y no una mutilación.
+
+**Respaldo**: `zz_backups."GP2_Backup_515_615_20260913"` — 127 filas, cada una con su tabla de
+origen y la fila entera en `jsonb`. Con RLS y sin escritura para `anon`.
+
+**Después del borrado**: `db/verificar.sql` entero en 0, GP2 quedó en **188 artículos** (los 188 con
+receta y con ruta), 794 componentes, 854 rutas y 3.260 pasos.
+
+> **Regla que deja para el próximo borrado de un artículo**: discontinuar no alcanza si lo que se
+> quiere es que deje de aparecer — un discontinuado sigue en las listas, en las auditorías y en las
+> ideas, y cada sesión nueva lo vuelve a levantar. Si el dueño dice que no se fabrica más y no va a
+> volver, **se borra con backup**, y se cierra la sección del conocimiento en vez de dejarla abierta.
