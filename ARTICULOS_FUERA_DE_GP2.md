@@ -179,3 +179,20 @@ select f.cod, round(f.proy_uni_mes) uni_mes,
          where av."Cod_Art" = f.cod) talleristas
   from faltan f order by f.proy_uni_mes desc;
 ```
+
+
+---
+
+## Los tres del cruce contra loekemeyer.com — cerrados el 2026-09-13
+
+`[usuario 2026-09-13]`: **573 y 517 son discontinuos**, no se dan de alta. Con eso los tres quedan
+resueltos y ninguno entra a GP2:
+
+| Cód | Artículo | Despiece | Por qué no entra |
+|---|---|---|---|
+| 573 | Bombilla Color Metalizado | **completo** (hoja Bombillas: caño 135 + resorte + niquelado + tapón + anodizado + corte = $578,98, con tiempos) | discontinuo. Sigue en `est_madre` con 52 uni/mes |
+| 517 | Pinza Gastronómica | **completo** (Materiales Loeke: 2 flejes `517D` + tallerista GUILLE; Remaches: SR1+SR2+SR3) | discontinuo |
+| 556 | Sacayerba | **no tiene** — la planilla lo costea sólo como envase (`Fab` con `E='xx'`) | sin despiece en ningún lado |
+
+**Que un artículo tenga despiece en la planilla no lo hace vivo.** La planilla guarda el despiece de
+cosas que ya no se venden, igual que la Est Madre arrastra discontinuados (§4cw). Ver CONOCIMIENTO §4de.

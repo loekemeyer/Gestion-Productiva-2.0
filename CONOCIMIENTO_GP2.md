@@ -9026,3 +9026,53 @@ diferencia real, no error de carga. `[deducido]`
 **Regla que deja: la planilla no gana automáticamente.** El 11-09 la hoja Costos fue la que cerró la
 discusión de qué caja usa cada artículo (§4cr); acá el dueño la contradice en la uni x caja y manda
 él. La hoja Costos es la mejor fuente cuando **nadie** sabe, no cuando el dueño ya decidió.
+
+
+## 4de. 573 y 517 son discontinuos: no se dan de alta aunque tengan despiece (2026-09-13)
+
+`[usuario 2026-09-13, textual: *"2 discontinuos"*]`, contestando si se daban de alta el **573**
+Bombilla Color Metalizado y el **517** Pinza Gastronómica, que §4db había encontrado **con despiece
+completo en la planilla**. **No se modelan.** Tener el despiece no los hace vivos: la planilla
+guarda el despiece de cosas que ya no se venden, igual que la Est Madre arrastra discontinuados
+(§4cw, el caso del 515).
+
+Con esto los tres del cruce contra loekemeyer.com quedan cerrados y **ninguno entra a GP2**:
+
+| Cód | Qué es | Por qué no entra |
+|---|---|---|
+| 573 | Bombilla Color Metalizado | discontinuo `[usuario]`. Ojo: **sigue en `est_madre` con 52 uni/mes** — misma basura que el 515 |
+| 517 | Pinza Gastronómica | discontinuo `[usuario]`. No está en est_madre ni en la hoja Costos |
+| 556 | Sacayerba | el único sin despiece de verdad; la planilla lo costea sólo como envase (§4db) |
+
+**Queda por decidir:** si se borra la fila `573` de `est_madre` (52 uni/mes), como se hizo con el
+515. No se tocó. **Y loekemeyer.com los sigue mostrando activos**, igual que a los 332/335/337 —
+eso es trabajo del repo del sitio, no de GP2. `[dato]`
+
+## 4df. El precio de la bandita: la planilla lo tiene y NO lo cobra (2026-09-13)
+
+El dueño pidió *"el mismo precio que la que se usaba para 323, no tenés esa?"*. **No, y hay dos
+motivos, los dos medidos:** `[dato]`
+
+1. **El 323 no está en GP2** (Rallador Cilíndrico Chico, grupo A de `ARTICULOS_FUERA_DE_GP2`,
+   124 uni/mes, tallerista Garcia). Ningún componente de GP2 tiene esa bandita.
+2. **La planilla tampoco la cobra.** El 323 en la hoja Costos (fila 154) da
+   `E 918,1033 + K 16,606 + L 33 + M 25,2292 + N 3,0862 = O 996,0247`, **exacto al centavo y sin
+   lugar para una bandita**. La columna K no es la bandita: el encabezado (fila 6) dice
+   **"Envas. Terc."** (envasado por terceros); L es Cartón, M Cajas y N "Cod y Precint".
+
+Lo que sí existe es la **línea en la lista de precios**: `Bandita Ralladores` (Gráfica Pol, cod ISIS
+**0317**) a **$8.250**, y `Banditas 35 × 194 mm` (mismo proveedor, ISIS 0357) **al mismo precio
+exacto, $8.250**. Así que "el mismo precio que la del 323" da $8.250 por cualquiera de los dos
+caminos — el problema es **de qué** son esos $8.250.
+
+**⚠ NO se cargó, y el motivo es un pozo en el que la casa YA se cayó:** el comment de
+`precio_proveedor` del `Pliego 506` dice textual *"POR PLIEGO (el paquete de 100 sale $77.700).
+Corregido 2026-09-03: estaba cargado el precio del PAQUETE y la OC pide en pliegos, así que valuaba
+100x"*. **Los precios de Pol en la lista vienen por paquete**, y la lista no tiene columna de
+cantidad. Cargar $8.250 como precio unitario le sumaría $8.250 a CADA palo de amasar — y desde
+§4dc la caja ya se cobra bien, así que el error se vería entero en el costo.
+
+**Falta el único dato que no está en ningún lado: cuántas banditas trae el paquete de $8.250.**
+
+**Regla que deja: un precio de Gráfica Pol es del PAQUETE hasta que se demuestre lo contrario.
+Antes de cargarlo, buscar la cantidad por paquete; si no aparece, preguntar.** `[deducido]`
