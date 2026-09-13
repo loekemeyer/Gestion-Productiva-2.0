@@ -9076,3 +9076,41 @@ cantidad. Cargar $8.250 como precio unitario le sumaría $8.250 a CADA palo de a
 
 **Regla que deja: un precio de Gráfica Pol es del PAQUETE hasta que se demuestre lo contrario.
 Antes de cargarlo, buscar la cantidad por paquete; si no aparece, preguntar.** `[deducido]`
+
+
+## 4dg. Se borro el 573 de est_madre — y son 235 filas, no una (2026-09-13)
+
+`[usuario 2026-09-13, textual: *"2 si"*]`. Borrada la fila `573` de `GP2.est_madre`
+(52 uni/mes, uxb 24), como se hizo con el 515 el mismo dia (§4cw). Backup en
+`zz_backups."GP2_Backup_est_madre_573_20260913"`. `est_madre` queda en **404 filas**.
+
+**Medido antes y despues: el md5 de TODOS los maximos de `inventario` es IDENTICO**
+(`3ff3dad8…`). No podia ser de otra forma y conviene entender por que: `recalcular_maximos_insumos()`
+llega al maximo por la RECETA del articulo, y el 573 **no existe como articulo en GP2**, asi que su
+fila nunca alimento un solo calculo. **Borrarla no arregla ningun numero: saca un dato que confunde
+al que lo lee.** `[dato]`
+
+**Y no es una fila, son 235.** De las 405 filas que tenia `est_madre`, **235 no cruzan con ningun
+articulo de GP2** (234 despues de este borrado). El 515 y el 573 son dos de esas 235, borradas de a
+una porque el dueño las nombro. **La Est Madre es una foto del sistema viejo: trae discontinuados,
+reventa e importados que GP2 no modela.** `[dato]`
+
+**Regla que deja: una fila de `est_madre` sin articulo de GP2 no mueve ningun maximo — es ruido de
+lectura, no un bug de calculo. Y `proy_uni_mes` NO es evidencia de que algo se venda**
+(§4cw, textual del dueño sobre el 515: *"No hay chance que se venda 486 uni de 515"*). Antes de
+borrar de a una, vale preguntarse si conviene limpiar las 234 de un saque o dejarlas y no leerlas.
+
+## 4dh. La bandita queda SIN precio: el dueño tampoco sabe cuantas trae el paquete (2026-09-13)
+
+`[usuario 2026-09-13, textual: *"1 nose"*]`, contestando cuantas banditas vienen en el paquete de
+$8.250 de Grafica Pol. **`BANDITA` (componente 916) queda con proveedor Pol y SIN precio**, y esa es
+la decision correcta: cargar $8.250 como unitario le sumaria $8.250 a cada palo de amasar (§4df, la
+trampa del `Pliego 506` que ya costo una correccion el 03-09).
+
+**Lo que hay que preguntarle a Pol cuando se pueda:** cuantas unidades trae el paquete de $8.250 del
+ISIS **0317** (Bandita Ralladores) o del **0357** (Banditas 35 × 194 mm) — los dos al mismo precio.
+Con ese numero el precio unitario sale solo y se carga en `precio_proveedor`.
+
+**Mientras tanto los tres palos siguen con `faltan_precios` ≥ 2** (los `GRJ22/23/24` tampoco tienen
+precio: la LP solo lista el Palo Frances $600 y el Torneado 40cm $1.245). O sea que hoy el costo de
+un palo es **solo su caja, $28,69**. No es un bug: es que faltan dos precios. `[dato]`
