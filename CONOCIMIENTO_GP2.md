@@ -8773,3 +8773,40 @@ reales recientes o preguntarle al dueño. Los otros tres inox (332/335/337) y lo
 
 **Lo que NO cambia:** los 45 propios inactivos de la página no se miran (no se venden); los 87 E
 no van a GP2.
+
+## 4cx. Los palos de amasar 231/232/233: caja, bandita y quién los termina (2026-09-13)
+
+**Decisión del dueño, textual:** *"231 y 232 van en misma caja que 234"* · *"1 ponele la 15"* ·
+*"2 ponele 12 a los 4 items"* · *"3 si"*. O sea: **los cuatro palos** (231 de 30 cm, 232 de 40 cm,
+233 de 50 cm y el 234 Palo Francés de 40 cm) van en la **Caja N°15** (`A9B`, componente 604, Sector
+Caja) y **12 unidades por caja**. Antes los tres primeros tenían la caja vacía y decían 24. `[usuario]`
+
+**Cómo es el circuito** `[usuario, reconstruido con la base]`: Tierra Nativa vende el palo hecho, se
+guarda en el garage como `GRJ22/23/24`, y **Fábrica le pone la bandita y lo entrega en Virgilio**.
+Por eso la ruta de cada palo es la misma forma de siempre: `insumo → Fábrica → virgilio`, tres pasos.
+
+**La bandita no existía en la base y se creó**: componente `BANDITA` id **916**, Sector Cartón,
+marca LOEKE, unidad `unidad`, inventario en Sector Cartón arrancando en 0. Va **×1 en los tres
+palos**, y **el 234 NO la lleva** — ésa es la única diferencia de receta entre el francés y los otros
+tres. `[dato: articulo_componente 917–922, rutas 972–977, pasos 3726–3743]`
+
+**Tres cosas que quedaron sin resolver y conviene no re-descubrir:**
+
+1. **Quién provee la bandita: no se sabe.** El componente quedó con `proveedor = NULL` a propósito.
+   En la planilla hay tres candidatos y **ninguno dice "palo de amasar"**: Gráfica Pol "Bandita
+   Ralladores" $8.250 y "Banditas 35 × 194 mm" $8.250 (las dos con col C = "Falta Prov"), y López
+   José Daniel "Super Bands Bolsa N°15 (Bandita Negra)" $1,08 la unidad. Elegir a ojo es inventar.
+2. **El máximo de la bandita queda NULL** porque **231/232/233 no están en `est_madre`** (el 234 sí,
+   396 uni/mes). Sin demanda cargada, `recalcular_maximos_insumos()` no tiene de dónde sacar el
+   máximo. No es un bug: es que falta el dato de cuánto se vende de cada palo.
+3. **`articulo_prov_at` todavía dice que Tierra Nativa entrega los tres TERMINADOS** (ids 92/94/95,
+   activos). **Eso contradice lo que explicó el dueño** (Tierra Nativa vende el palo, la bandita la
+   pone Fábrica). Mientras siga activo, una entrega de Prov AT de un 231 descontaría GRJ22 + A9B +
+   BANDITA desde la ubicación 54 (Prov. Art. Term. Tierra Nativa), que está vacía, y la dejaría en
+   negativo. **Desactivarlo es una línea, pero es una pregunta, no una deducción.** `[deducido]`
+
+**Costo:** los tres siguen con `faltan_precios` ≥ 2 (los `GRJ22/23/24` no tienen precio y la bandita
+tampoco), así que lo único que hoy suma al costo es la caja ($28,69 por unidad). En la lista de
+precios sólo están "Palo de Amasar Frances 40cm" $600 y "Torneado Palo de Amasar 40cm" $1.245, los
+dos de Tierra Nativa: **no hay precio para el 30, el 40 ni el 50 lisos**. `[dato: v_planilla_precio]`
+
