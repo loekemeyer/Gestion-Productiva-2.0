@@ -8643,3 +8643,52 @@ Lo que se aplicó (backup `zz_backups."GP2_Backup_carton_huevo_20260913"`, 2 fil
 no les aplicaba los múltiplos. Proveedor Pol confirmado por el dueño (es el de los hermanos Huevo).
 Invariantes en 0. **El cabo suelto 2 (posición de estantería) sigue abierto; el 1 (los tres precios)
 también.**
+
+### 4cu. La M78 es una convergencia (como la M135): qué entró, qué NO dio lo esperado y por qué (2026-09-13)
+
+**Aplicado con "dale" del dueño**, en dos migraciones: `la_matriz_78_pasa_a_ser_una_convergencia`
+(rutas) y `la_receta_del_rompenueces_pide_la_pieza_remachada` (receta + BOM). Respaldo:
+`zz_backups."GP2_Backup_M78_20260913"` (58 filas: 38 `ruta_paso`, 4 `componente`, 4 `inventario`,
+10 `articulo_componente`, 2 `precio_servicio_pieza`).
+
+**El patrón de la casa para "una matriz que UNE varias piezas"** `[dato: 521/M135 y ahora 507-707/M78]`:
+1. **Una ruta por rama de entrada**, todas con el **mismo paso de matriz** y la **misma pieza de
+   salida** (521: K5, K8 y V3 → M135 → G4; 507: D6, D5 y V4 → M78 → `D5-M78`; 707: B1, B2 y V4 →
+   M78 → `B1-M78`).
+2. **`componente_bom` con la pieza de salida como padre** y las entradas como hijos (G4 ← K5+K8+V3;
+   `D5-M78` ← D5+D6+V4; `B1-M78` ← B1+B2+V4).
+3. **La receta del artículo pide lo que llega al tallerista**, no las partes (el 521 pide C16, que
+   está aguas abajo de G4; el 507 pide `D5-M78`, el 707 `B1-M78`).
+Las "mitades remachadas" que no existían (484 `D6-M78`, 487 `B2-M78`) se borraron; el remache V4
+ahora pasa por la M78 en vez de llegar suelto al tallerista.
+
+**Dos cosas que el pedido daba por ciertas y la base desmintió:**
+
+- **"La M78 se cobra dos veces, el 507 y el 707 bajan ~$28,80."** [Seguro] Falso. `v_costo_componente`
+  agrupa la mano de obra **por matriz** (`group by comp_id, matriz_id`), así que la M78 ya contaba
+  una sola vez aunque hubiera dos pasos. Los costos del 507 (887,53) y del 521 (1.428,69) **no se
+  movieron un centavo** con la migración; el 707 bajó por otra causa (el precio de Jade, abajo). El
+  problema 113 diagnosticó bien la forma (dos pasos paralelos) y mal el síntoma (la plata).
+- **"La simulación tiene que dar `colgado = []`."** [Seguro] Inalcanzable para *cualquier*
+  convergencia: `__sim_articulo` corre cada ruta entera, así que tres ramas producen tres veces la
+  pieza de salida y el tallerista consume una. **El testigo 521 deja exactamente lo mismo**
+  (`C16 +240`). El criterio correcto es "se comporta como el 521": `a_virgilio = 120` y lo colgado es
+  sólo la pieza de salida en positivo. Las piezas sueltas en negativo (D5, D6, V4 a −120) sí eran el
+  bug, y desaparecieron con la receta.
+
+**Precio de Jade: por el rompenuez entero, no por mitad** `[usuario 2026-09-13: "Me da que 305 cuesta
+pintar entero"]`. Lo confirman dos cosas: la planilla dice *"Rompenueces Pintado"* $305 en una sola
+línea (fila 654) y para el cromado dice explícito *"Abierto o Cerrado"* por kg (fila 740); y las
+otras 12 piezas que pinta Jade valen $127 o $150 — las mitades a $305 cada una eran el doble del
+máximo. Corregido a **$152,50 por mitad** (ids 71 y 72): el 707 pasa de 1.264,56 a **959,56**. La
+diferencia real 507/707 son ~$72: cartón (−22) y pintar vs cromar (+94). Auditoría: problema 114.
+
+**Hallazgo de paso, NO corregido (para el auditor de costos):** [Probable] el motor deduplica
+aristas del grafo (`wd` = distinct sobre entrada/salida/paso). Las dos mitades del rompenuez salen
+del **mismo fleje IE10 vía M73**, así que el fleje y la M73 se cuentan **una** vez para las dos. El
+507/707 está **sub**-costeado en una mitad de fleje + una pasada de M73. Es anterior a esta
+migración (las rutas 45/46 ya compartían esa arista) y afecta a cualquier artículo cuyas ramas
+convergentes arranquen del mismo insumo.
+
+**Se borró `db/pendiente/2026-09-12_mb_color_y_matriz78.sql`**: la parte (a) (colores de Master
+Bach) ya estaba aplicada y la (b) es esto. `db/` no cambia: fueron migraciones de datos, no de schema.
