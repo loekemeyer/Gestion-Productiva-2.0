@@ -8255,3 +8255,23 @@ aunque el secret no esté puesto, así que nadie se entera. Quedó en la auditor
 abierto. **En GP2 la clave va sólo como secret de Supabase, sin fallback en el código.**
 
 Idea 7338.
+
+### 4cj. El preaviso: la promesa vive aparte del movimiento (2026-09-13)
+
+Construido el hueco ① del croquis. **Qué es:** el tallerista o el proveedor avisa *qué va a traer
+y cuándo*, antes de traerlo. Sin esto no se sabe qué entra mañana y el faltante se descubre tarde.
+
+**Cómo quedó, y por qué así:**
+- `GP2.preaviso` guarda **sólo la promesa** (contraparte, pieza, cantidad, fecha prometida). **No
+  mueve stock**: el movimiento lo sigue haciendo la pantalla de entrega que corresponda. Mezclar
+  las dos cosas era el error fácil — una promesa no es un ingreso.
+- **Qué puede entregar cada contraparte NO se cargó en ninguna tabla nueva**: sale de `ruta_paso`,
+  igual que en Recepción Virgilio (la salida de sus pasos; para el proveedor AT, la entrada del
+  paso `virgilio` que le sigue). Son **32 contrapartes y 329 pares contraparte–pieza**, todos
+  deducidos. La pantalla vieja mezclaba `Articulos Virgilio X Tallerista` con `Partes x PS` para
+  lo mismo.
+- `v_preaviso_estado` **cruza la promesa contra el libro sin escribir**: dice los días que faltan
+  (negativo = vencido) y cuánto de esa pieza entregó esa contraparte desde que lo prometió. Quién
+  lo da por cumplido es la persona, no la vista.
+
+Idea 7340. Pantalla: `Preavisos/Preavisos_GP2.html`, en el menú dentro de Tallerista.

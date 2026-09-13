@@ -720,6 +720,32 @@ create or replace view "GP2".v_planilla_precio as
   WHERE hoja = 'Lista de Precios '::text AND (datos ->> 'B'::text) ~ '^[0-9]+$'::text AND datos ? 'K'::text;
 comment on view "GP2".v_planilla_precio is 'Lista de precios de la planilla madre, con el proveedor tomado del encabezado de su bloque.';
 
+-- ---------- v_preaviso_estado ----------
+create or replace view "GP2".v_preaviso_estado as
+ SELECT p.id,
+    p.tipo_contraparte,
+    p.contraparte_id,
+    COALESCE(t.nombre, ps.nombre, pa.nombre) AS contraparte,
+    p.comp_id,
+    c.codigo AS comp_cod,
+    c.descripcion AS comp_desc,
+    p.cantidad,
+    p.unidad,
+    p.fecha_promesa,
+    p.estado,
+    p.nota,
+    p.creado_en,
+    p.fecha_promesa - (now() AT TIME ZONE 'America/Argentina/Buenos_Aires'::text)::date AS dias,
+    COALESCE(( SELECT sum(m.cantidad) AS sum
+           FROM "GP2".movimiento m
+          WHERE m.comp_id = p.comp_id AND m.ubic_origen_id = "GP2".ubic_de(p.tipo_contraparte, p.contraparte_id) AND m.fecha >= p.creado_en), 0::numeric) AS entregado_desde
+   FROM "GP2".preaviso p
+     JOIN "GP2".componente c ON c.id = p.comp_id
+     LEFT JOIN "GP2".tallerista t ON p.tipo_contraparte = 'tallerista'::text AND t.id = p.contraparte_id
+     LEFT JOIN "GP2".proveedor_servicio ps ON p.tipo_contraparte = 'proveedor_servicio'::text AND ps.id = p.contraparte_id
+     LEFT JOIN "GP2".proveedor_at pa ON p.tipo_contraparte = 'proveedor_at'::text AND pa.id = p.contraparte_id;
+comment on view "GP2".v_preaviso_estado is 'Los preavisos con su contraparte, los dias que faltan (negativo = vencido) y cuanto de esa pieza entrego esa contraparte desde que lo prometio. Solo lectura.';
+
 -- ---------- v_recepcion_control ----------
 create or replace view "GP2".v_recepcion_control as
  WITH a AS (

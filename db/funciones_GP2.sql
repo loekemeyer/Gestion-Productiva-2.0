@@ -2415,6 +2415,43 @@ begin
 end $function$
 ;
 
+-- ---------- crear_preaviso ----------
+CREATE OR REPLACE FUNCTION "GP2".crear_preaviso(p jsonb)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'GP2'
+AS $function$
+declare
+  v_tipo text := lower(coalesce(p->>'tipo_contraparte',''));
+  v_ref  bigint := nullif(p->>'contraparte_id','')::bigint;
+  v_fecha date := coalesce(nullif(p->>'fecha_promesa','')::date,
+                           (now() at time zone 'America/Argentina/Buenos_Aires')::date);
+  it jsonb; v_n integer := 0; v_ids bigint[] := '{}'; v_id bigint;
+begin
+  if v_tipo not in ('tallerista','proveedor_servicio','proveedor_at') then
+    raise exception 'tipo_contraparte invalido: %', v_tipo;
+  end if;
+  if "GP2".ubic_de(v_tipo, v_ref) is null then
+    raise exception 'La contraparte % % no existe o no tiene ubicacion', v_tipo, v_ref;
+  end if;
+
+  for it in select * from jsonb_array_elements(coalesce(p->'items','[]'::jsonb)) loop
+    if coalesce((it->>'cantidad')::numeric, 0) <= 0 then continue; end if;
+    insert into preaviso (tipo_contraparte, contraparte_id, comp_id, cantidad, unidad,
+                          fecha_promesa, nota, creado_por)
+    values (v_tipo, v_ref, (it->>'comp_id')::bigint, (it->>'cantidad')::numeric,
+            coalesce(nullif(it->>'unidad',''), 'uni'), v_fecha,
+            nullif(p->>'nota',''), nullif(p->>'usuario',''))
+    returning id into v_id;
+    v_ids := v_ids || v_id; v_n := v_n + 1;
+  end loop;
+
+  if v_n = 0 then raise exception 'No vino ningun item con cantidad'; end if;
+  return jsonb_build_object('ok', true, 'n', v_n, 'ids', to_jsonb(v_ids));
+end $function$
+;
+
 -- ---------- crear_recepcion_insumo ----------
 CREATE OR REPLACE FUNCTION "GP2".crear_recepcion_insumo(p_comp_id bigint, p_proveedor text, p_cantidad numeric, p_unidad text, p_remito text DEFAULT NULL::text, p_fecha timestamp with time zone DEFAULT now())
  RETURNS jsonb
@@ -4719,6 +4756,78 @@ begin
        values (p_archivo, p_nota, p_subido_por) returning id into v_id;
   return v_id;
 end $function$
+;
+
+-- ---------- preaviso_marcar ----------
+CREATE OR REPLACE FUNCTION "GP2".preaviso_marcar(p_id bigint, p_estado text)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'GP2'
+AS $function$
+begin
+  if p_estado not in ('cumplido','anulado','pendiente') then
+    raise exception 'estado invalido: %', p_estado;
+  end if;
+  update preaviso
+     set estado = p_estado,
+         cerrado_en = case when p_estado = 'pendiente' then null else now() end
+   where id = p_id;
+  if not found then raise exception 'No existe el preaviso %', p_id; end if;
+  return jsonb_build_object('ok', true, 'id', p_id, 'estado', p_estado);
+end $function$
+;
+
+-- ---------- preavisos_bundle ----------
+CREATE OR REPLACE FUNCTION "GP2".preavisos_bundle()
+ RETURNS jsonb
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'GP2'
+AS $function$
+  select jsonb_build_object(
+    -- quien entrega: el que aparece como contraparte en algun paso de ruta
+    'contrapartes', (
+      select coalesce(jsonb_agg(x order by x->>'nombre'), '[]'::jsonb) from (
+        select distinct jsonb_build_object('tipo','tallerista','id',t.id,'nombre',t.nombre) x
+          from ruta_paso rp join tallerista t on t.id = rp.tallerista_id
+         where rp.tipo_paso = 'tallerista' and t.activo
+        union
+        select distinct jsonb_build_object('tipo','proveedor_servicio','id',ps.id,'nombre',ps.nombre)
+          from ruta_paso rp join proveedor_servicio ps on ps.id = rp.proveedor_id
+         where rp.tipo_paso = 'proveedor_servicio'
+        union
+        select distinct jsonb_build_object('tipo','proveedor_at','id',pa.id,'nombre',pa.nombre)
+          from ruta_paso rp join proveedor_at pa on pa.id = rp.proveedor_at_id
+         where rp.tipo_paso = 'proveedor_at' and pa.activo
+      ) y),
+    -- que devuelve cada una: la salida de sus pasos (o la entrada del paso virgilio que le sigue)
+    'entrega', (
+      select coalesce(jsonb_agg(jsonb_build_object('tipo',tipo,'ref',ref,'comp_id',comp_id,
+                                                   'cod',cod,'desc',descr) order by tipo, ref, cod), '[]'::jsonb)
+        from (
+          select distinct on (tipo, ref, c.id) tipo, ref, c.id comp_id, c.codigo cod, c.descripcion descr
+            from (
+              select 'tallerista'::text tipo, rp.tallerista_id ref, rp.comp_salida_id comp
+                from ruta_paso rp where rp.tipo_paso='tallerista' and rp.comp_salida_id is not null
+              union all
+              select 'proveedor_servicio', rp.proveedor_id, rp.comp_salida_id
+                from ruta_paso rp where rp.tipo_paso='proveedor_servicio' and rp.comp_salida_id is not null
+              union all
+              -- el prov AT entrega el terminado: es la entrada del paso virgilio de esa ruta
+              select 'proveedor_at', rp.proveedor_at_id,
+                     (select v.comp_entrada_id from ruta_paso v
+                       where v.ruta_id = rp.ruta_id and v.tipo_paso='virgilio' and v.orden > rp.orden
+                       order by v.orden limit 1)
+                from ruta_paso rp where rp.tipo_paso='proveedor_at'
+            ) z join componente c on c.id = z.comp
+           where ref is not null
+        ) w),
+    'abiertos', (
+      select coalesce(jsonb_agg(to_jsonb(v) order by v.fecha_promesa), '[]'::jsonb)
+        from v_preaviso_estado v where v.estado = 'pendiente')
+  );
+$function$
 ;
 
 -- ---------- problemas_matrices_bundle ----------
