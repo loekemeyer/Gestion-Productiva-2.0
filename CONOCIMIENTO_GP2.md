@@ -8424,5 +8424,20 @@ usuario ("salvo fleje si lo usa otro artículo") se aplicó componente por compo
 `v_reposicion` ahora filtra `not discontinuado`. Eso importa: esas 8 piezas venían sumando
 **381.004 unidades de "sugerido"** en el pedido, de un producto que ya no se fabrica.
 
-Queda stock real que no se toca: **400 de C12** y **100 de BOM10** en Sector Bombilla. Discontinuar
-no mueve stock; si hay que darlo de baja es un ajuste aparte, y lo decide el usuario.
+**El stock se dio de baja** `[usuario 2026-09-13, textual: "Dalo de baja"]`. Eran **400 de C12** y
+**100 de BOM10** en Sector Bombilla, lo único que quedaba con cantidad ≠ 0 de las 8 piezas (las
+otras 13 filas de inventario ya estaban en 0). **La baja se hizo por el motor, no a mano**: dos
+movimientos `tipo_mov = 'ajuste'` con `ubic_origen_id` nulo, `ubic_destino_id` = Sector Bombilla y
+cantidad **negativa** (−400 y −100) — la misma forma que usa `relevamiento_aplicar` cuando el conteo
+da menos que el sistema. **Nunca un `update` a `inventario`**: el inventario es el resultado de los
+triggers, y tocarlo a mano rompe el invariante B (inventario = ledger), que se verificó en 0 después.
+
+Lo que costó la baja: C12 vale **$280,47** por unidad → **$112.188** que salen del stock valorizado.
+`BOM10` figura en **$0** y eso **no es que no valga**: `v_costo_componente` lo marca
+`faltan_precios = 1`, o sea que el resorte nunca tuvo precio cargado. Cuando algo se da de baja
+conviene mirar `faltan_precios` antes de creerle al total.
+
+**Queda un cabo suelto a propósito:** las filas de inventario de las 8 piezas conservan su `minimo`
+(C12 2040, BOM10 2040, `IE1` 2006, `A1C1` 1944…). Hoy es inerte porque `v_reposicion` filtra
+`not discontinuado`, pero si alguien saca ese filtro esos mínimos vuelven a pedir. El mínimo de un
+componente discontinuado no significa nada: si se toca el filtro, hay que ponerlos en 0.
