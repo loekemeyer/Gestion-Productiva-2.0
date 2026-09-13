@@ -54,9 +54,16 @@ De los 40.619 uni/mes del grupo 1, ninguno se fabrica acá.
 | 505L | Pelador Mgo Plast Imp | 1 | **variante `L`** del 505, que ya está |
 | 525 | Sac Cabo Madera | 0 | 0 uni/mes |
 
-**Los 5 códigos con sufijo `L` (43 uni/mes juntos) son el mismo artículo que su código sin la L**,
-que GP2 ya tiene. Hay que decidir si son una variante real (otro empaque, otra marca) o basura de la
-Est Madre. **Es la única pregunta abierta de la lista, junto con el 561 y el 396.**
+**RESUELTO el 2026-09-13** (`[usuario]`: *"Ya lo explique lo 1 en GV, busca"*). Los códigos con
+sufijo `L` son **el mismo artículo vendido por Chef** (un cliente de LK que pide por la página de
+Chef, o una entrega en Tierra del Fuego): `505 → 505L`. **No se dan de alta.** La regla completa está
+en `loekemeyer/Gestion-Virgilio` (`CLAUDE.md` §396) y en CONOCIMIENTO §4dj. Y no son 5: en
+`est_madre` hay **75 códigos con L**, de los cuales **32 cruzan con un artículo de GP2** y suman
+**301 uni/mes que GP2 hoy no cuenta**, porque el motor pela el cero de adelante pero no la L.
+
+**561 y 396: discontinuos** `[usuario 2026-09-13: "2 discontinuos, no se fabrican mas"]`. Ojo: se
+siguen facturando del stock (561 = 246 cajas a 75 clientes en 12 meses, última 13-08-2026;
+396 = 40 cajas a 20 clientes, última 17-08-2026). Ver CONOCIMIENTO §4dk.
 
 ## Por qué borrarlas no arregla ningún número
 

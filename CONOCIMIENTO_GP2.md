@@ -9151,3 +9151,76 @@ de Cimarron (§4cy).
 Nativa solo lista *"Palo de Amasar Frances 40cm"* $600 (que es el `GRJ17`, el del 234) y
 *"Torneado Palo de Amasar 40cm"* $1.245. **Para los palos lisos de 30, 40 y 50 no hay precio en
 ningun lado.** Por eso hoy un palo cuesta $28,69, que es solo su caja. `[dato]`
+
+
+## 4dj. La `L` final: es Chef vendiendo Loeke, y GP2 pierde 301 uni/mes por no pelarla (2026-09-13)
+
+`[usuario 2026-09-13: *"Ya lo explique lo 1 en GV, busca"*]`. Encontrado en
+`loekemeyer/Gestion-Virgilio`, `CLAUDE.md` linea 396 y `GUIA-PROYECTO.md` §4737. **La regla, textual
+de ese repo:**
+
+> *"Un cliente de LK que pide por la página de Chef: el pedido es de Chef de punta a punta, se
+> factura por Chef, y cada artículo de Loekemeyer va con **'L' al final** (505 → 505L; 438E →
+> 438EL). … la L manda el stock a la góndola LK"*. Y el caso mas comun, `[dueño 07-09 en GV]`:
+> un pedido con entrega en **Tierra del Fuego** (Factura E) se arma como Loeke con L y el Excel ISIS
+> va al de Chef.
+
+**O sea `546L` NO es un artículo: es el 546, vendido por Chef.** No hay que darlos de alta en GP2.
+
+**PERO hay una consecuencia que no estaba vista: GP2 pierde esa demanda.** En `est_madre` hay **75
+códigos con `L`**; **32 cruzan con un artículo de GP2 al pelarla**, y suman **301 uni/mes** que hoy
+**no llegan a ninguna receta** porque `v_consumo_demanda` normaliza el cero de adelante pero **no la
+L**. Los mas grandes: `31L` 55 (Filtro de Café), `123L` 52, `504L` 30, `315L` 29, `544L` 21,
+`513L` 18. `[dato]`
+
+**Gestión Virgilio ya resolvió exactamente esto, y al reves:** su `vista_generador_oc`
+*"strippea la 'L' final y aglomera en el código base sumando UNIDADES / uni×caja del base → el 505L
+cae dentro del 505 (se pide 505, nunca 505L)"*; antes eran *"63 códigos ≈ 1.265 cajas fantasma que
+inflaban la lista"*. A GV le inflaba la OC; a GP2 se la **desinfla**, porque directamente ignora esas
+filas. **El arreglo es el mismo y es una linea**: agregarle `regexp_replace(…, 'L$', '')` al join de
+`v_consumo_demanda`, igual que ya tiene el `'^0+'`. **No se aplico: es un cambio al motor de la
+demanda y lo decide el dueño.** `[deducido]`
+
+**Regla que deja: un codigo que termina en `L` es el mismo articulo sin la L.** Vale para `est_madre`,
+para los listados y para cualquier cruce. El `590EL` es el `590E`; el `438EL` es el `438E`.
+
+## 4dk. Las ventas REALES existen y estan en `sales_lines` — hay que mirarlas antes de dar algo por muerto (2026-09-13)
+
+Buscando quien compra el 515 aparecio que **la evidencia de venta que faltaba en todas estas
+discusiones ya existe**: `public.sales_lines` del proyecto **`kwkclwhmoygunqmlegrg`**
+("loekemeyer's web"), con `item_code`, `boxes`, `invoice_date`, `customer_code` y `empresa`
+(`lk` / `chef`), desde 2020. **Es la fuente que zanja "¿esto se vende?", que `est_madre` NO puede
+contestar** (§4cw). `[dato]`
+
+Medido el 13-09, ultimos 12 meses (desde 2025-09-13):
+
+| Cód | Artículo | Cajas 12m | Clientes 12m | Última venta | Lo que se dijo |
+|---|---|--:|--:|---|---|
+| 515 | Batidor Resorte | **396** | **75** | **2026-08-25** | *"No hay chance que se venda 486 uni de 515"* |
+| 561 | Pinza Grande | **246** | **75** | **2026-08-13** | *"discontinuos, no se fabrican más"* |
+| 333 | Espumadera Ac. Inox. | 109 | 45 | 2026-04-15 | discontinuo (bloque 332-337) |
+| 336 | Cucharón Ac. Inox. | 76 | 49 | 2026-07-06 | ídem |
+| 332 | Espátula A. Inox. | 64 | 37 | 2026-08-27 | ídem |
+| 334 | Cuchara Salsera | 48 | 35 | 2026-05-14 | ídem |
+| 573 | Bombilla Color Metaliz | 46 | 19 | 2026-07-06 | discontinuo |
+| 396 | Enrulador De Manteca | 40 | 20 | 2026-08-17 | *"no se fabrican más"* |
+| 335 | Cuchara Calada | 21 | 18 | 2026-08-27 | discontinuo |
+| 337 | Pinche Ac. Inox. | 20 | 15 | 2026-06-10 | discontinuo |
+| 548 | Pincel Pastelero | 6 | 2 | 2026-05-08 | ya entro como 590E/890E |
+| 525 | Sac Cabo Madera | 1 | 1 | 2026-03-09 | 0 uni/mes en est_madre |
+| **556** | Sacayerba | **0** | **0** | 2025-05-05 | sin despiece |
+| **517** | Pinza Gastronómica | **0** | **0** | **2021-11-26** | discontinuo |
+
+**Lectura, sin decidir nada:** *"discontinuo"* en boca del dueño significa **"no se fabrica mas"**,
+no *"no se vende"* — lo dijo asi de los 561/396, y los numeros lo confirman: se sigue facturando del
+stock. **Los unicos dos muertos de verdad son el 517 (ultima venta hace casi 5 años) y el 556
+(16 meses).** Y **el 515 se vende**: 75 clientes distintos en 12 meses y factura del 25-08-2026,
+o sea que la frase del §4cw *"No hay chance que se venda 486 uni de 515"* **no se sostiene contra la
+facturacion** (396 cajas / 12 meses = 33 cajas/mes; est_madre pide 486 uni/mes = 40,5 cajas). No se
+toco nada: el dueño decide.
+
+**El `515L` tambien existe**: 22 cajas, **1 solo cliente**, ultima venta 2026-08-31 — ese es el caso
+de §4dj, Chef vendiendole Loeke a Tierra del Fuego.
+
+**Regla que deja: antes de dar un articulo por muerto, mirar `sales_lines` del proyecto
+`kwkclwhmoygunqmlegrg`. `est_madre` dice lo que se proyecta; `sales_lines` dice lo que se facturo.**
