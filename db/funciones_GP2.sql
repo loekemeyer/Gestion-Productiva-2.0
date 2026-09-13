@@ -1036,6 +1036,30 @@ begin
 end $function$
 ;
 
+-- ---------- calculadora_cajones_bundle ----------
+CREATE OR REPLACE FUNCTION "GP2".calculadora_cajones_bundle()
+ RETURNS jsonb
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'GP2'
+AS $function$
+  select jsonb_build_object(
+    'cajones', (select coalesce(jsonb_agg(jsonb_build_object('n', numero, 'tara', tara_kg) order by numero), '[]'::jsonb)
+                  from cajon),
+    'sectores', (select coalesce(jsonb_agg(jsonb_build_object('id', s.id, 'nom', s.nombre, 'n', s.n) order by s.nombre), '[]'::jsonb)
+                   from (select se.id, se.nombre, count(c.id) n
+                           from sector se join componente c on c.sector_id = se.id
+                          where c.kg_x_uni is not null and c.kg_x_uni > 0
+                          group by se.id, se.nombre) s),
+    'comps', (select coalesce(jsonb_agg(jsonb_build_object('id', c.id, 'cod', c.codigo, 'd', c.descripcion,
+                                                           's', c.sector_id, 'kg', c.kg_x_uni,
+                                                           'uxc', c.uni_x_cajon) order by c.codigo), '[]'::jsonb)
+                from componente c
+               where c.kg_x_uni is not null and c.kg_x_uni > 0)
+  );
+$function$
+;
+
 -- ---------- cargar_compra_mp ----------
 CREATE OR REPLACE FUNCTION "GP2".cargar_compra_mp(p_proveedor text, p_kg numeric, p_remito text DEFAULT NULL::text, p_fecha timestamp with time zone DEFAULT now(), p_pct_corto numeric DEFAULT NULL::numeric)
  RETURNS jsonb

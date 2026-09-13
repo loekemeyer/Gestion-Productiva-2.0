@@ -6,7 +6,7 @@ GP2 —el schema y sus 43 pantallas— **no lee `public`** (Regla 0 en `CLAUDE.m
 auditoría en `CONOCIMIENTO_GP2.md` §4cf). Lo que queda abajo es el resto del programa viejo
 ("Gestión Productiva Entero") que convivía en esta carpeta.
 
-## Lo que queda mirando `public` (6 archivos)
+## Lo que queda mirando `public` (5 archivos)
 
 | Archivo | Qué es | Por qué sigue |
 |---|---|---|
@@ -14,10 +14,15 @@ auditoría en `CONOCIMIENTO_GP2.md` §4cf). Lo que queda abajo es el resto del p
 | `Facturas/EntregaProveedoresCervantes.html` | "Entrega Proveedores Cervantes" | **hueco**: `null` en el menú |
 | `ControlRemitos/controlRemitos.js` (+ su `index.html`) | "Control Carga Remitos": lee `Control_Carga_Remitos`, que llena una página externa (`loekemeyer.github.io/Control-Carga-Remitos-FC`) | **hueco**: `null` en el menú |
 | `Preavisos/index.html` | "Preaviso de Entrega": el tallerista/proveedor avisa qué va a traer | **hueco**: ni figura en el menú |
-| `calcular-cajones.html` | "Calcular Cajones": lee `Remaches SC/SP` y `peso_cajones` | **hueco Y ESTÁ VIVO**: se llega desde `calculadora.html`, que linkea `envios-only.html`, y está en la whitelist del rol `envios` de `auth-guard.js` |
 | `Produccion/InformesVirgilio/renderer.js` | Informes de **Gestión Virgilio** (`Registros_Produccion_Virgilio`, `PPP_*`) | **no es GP2**: pertenece a otro sistema, que tiene su propio repo (`loekemeyer/Gestion-Virgilio`) |
 
-Los cinco primeros son los únicos candidatos a "construir en GP2" que deja el programa viejo.
+Los cuatro primeros son los únicos candidatos a "construir en GP2" que deja el programa viejo, y
+el usuario ya dijo que **hoy no son útiles** para el estado actual de GP2 (2026-09-13).
+
+**Ya migrado: Calcular Cajones** (2026-09-13) → `CalcularCajones_GP2.html`, sobre
+`GP2.calculadora_cajones_bundle()`. Era el único de la lista que estaba **vivo** (se llega desde
+`calculadora.html` y está en la whitelist del rol `envios`). Para eso se creó **`GP2.cajon`**, el
+catálogo de cajones de movimiento con su tara, migrando los 10 números de `public.peso_cajones`.
 
 ## Lo que se borró (2026-09-12)
 

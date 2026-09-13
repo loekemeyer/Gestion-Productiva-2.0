@@ -59,6 +59,17 @@ create table "GP2".articulo_prov_at (
 );
 comment on table "GP2".articulo_prov_at is 'Catalogo de articulos que fabrica cada proveedor de articulo terminado (cod_art, caja, marca).';
 comment on column "GP2".articulo_prov_at.descripcion is 'Como llama el PROVEEDOR a este articulo, que es lo que va impreso en su remito. NO tiene por que coincidir con articulo.descripcion y hoy difiere en 52 de las filas que cruzan por codigo. La descripcion canonica de GP2 es articulo.descripcion; esta es el rotulo del proveedor. crear_entrega_prov_at cae a articulo.descripcion y despues al cod_art cuando esta vacia.';
+-- ---------- cajon ----------
+create table "GP2".cajon (
+  numero integer not null,
+  tara_kg numeric not null,
+  descripcion text,
+  constraint cajon_pkey PRIMARY KEY (numero),
+  constraint cajon_tara_kg_check CHECK ((tara_kg > (0)::numeric))
+);
+comment on table "GP2".cajon is 'Cajones de movimiento (N°1..N°10) con la tara del cajon vacio, para descontarla del peso bruto en la balanza. Migrado de public.peso_cajones el 2026-09-12 (el dato lo midio el usuario). NO confundir con Sector Caja, que son las cajas de carton del terminado.';
+comment on column "GP2".cajon.tara_kg is 'Kg del cajon VACIO. peso neto = bruto - tara_kg * cantidad de cajones.';
+
 -- ---------- carton_categoria ----------
 create table "GP2".carton_categoria (
   nombre text not null,
@@ -1059,6 +1070,7 @@ alter table "GP2".sector enable row level security;
 alter table "GP2".tallerista enable row level security;
 alter table "GP2".tarifa_servicio enable row level security;
 alter table "GP2".tipo_cambio enable row level security;
+alter table "GP2".cajon enable row level security;
 alter table "GP2".tipo_movimiento enable row level security;
 alter table "GP2".ubicacion enable row level security;
 alter table "GP2".uni_x_articulo_x_caja enable row level security;
@@ -1114,6 +1126,7 @@ create policy p_gp2_select on "GP2".sector for select to anon, authenticated usi
 create policy p_gp2_select on "GP2".tallerista for select to anon, authenticated using (true);
 create policy p_gp2_select on "GP2".tarifa_servicio for select to anon, authenticated using (true);
 create policy sel_anon on "GP2".tipo_cambio for select to anon, authenticated using (true);
+create policy cajon_sel on "GP2".cajon for select to public using (true);
 create policy tipo_movimiento_sel on "GP2".tipo_movimiento for select to public using (true);
 create policy p_gp2_select on "GP2".ubicacion for select to anon, authenticated using (true);
 create policy p_gp2_select on "GP2".uni_x_articulo_x_caja for select to anon, authenticated using (true);

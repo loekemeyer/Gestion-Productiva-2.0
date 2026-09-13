@@ -8155,7 +8155,33 @@ apuntaban a las viejas y se relinkearon antes de borrar — `envios-only.html` (
 `envios`) y, lo delicado, **la whitelist del rol `envios` en `auth-guard.js`**, que nombraba
 `enviostall.html`, `recepcion cervantes.html`, `stockflejes/recepcion.html`, `produccion/monitor.html`
 y `maestro.html`: sin actualizarla, ese rol se quedaba sin acceso a NADA. Quedan mirando `public`
-seis archivos, todos fuera del menú GP2: Facturas (2), Control Carga Remitos, Preavisos,
-`calcular-cajones.html` (este **está vivo**: se llega desde `calculadora.html` y está en la
-whitelist) e `InformesVirgilio`, que es de Gestión Virgilio y tiene su propio repo. El mapa vive en
+**cinco** archivos, todos fuera del menú GP2 y ninguno en uso: Facturas (2), Control Carga Remitos,
+Preavisos e `InformesVirgilio`, que es de Gestión Virgilio y tiene su propio repo. El sexto,
+`calcular-cajones.html`, era el único **vivo** y se migró el 2026-09-13 (ver §4cg). El mapa vive en
 `MIGRACION_PUBLIC_GP2.md`.
+
+### 4cg. El CAJÓN no es la CAJA: dos cosas distintas con la misma palabra y numeración propia (2026-09-13)
+
+Salió al migrar la calculadora de la planta (`calcular-cajones.html` → `CalcularCajones_GP2.html`).
+
+- **Cajón** = la caja de movimiento **retornable** que se llena de piezas y se pone en la balanza.
+  Van del **N°1 al N°10** y lo que importa de cada uno es su **tara** (1,30 a 5,20 kg): el
+  operario pesa bruto y hay que descontarla. GP2 pensaba en cajones en todos lados
+  (`componente.uni_x_cajon`, `parametro.max_cajones_x_ubicacion`, `faltante_cajones_umbral`)
+  pero **no tenía el peso del cajón vacío**: vivía en `public.peso_cajones`, del programa viejo.
+  Ahora es **`GP2.cajon` (numero, tara_kg)**, 10 filas migradas con el dato que midió el usuario.
+- **Caja** = la caja de **cartón del artículo terminado**, la que se despacha. Es `Sector Caja`
+  (id 11): `A1` "Caja N°1", `A8` "Caja N°2", `A9` "Caja N°22", `A11` "Caja N°29"… **Tiene su
+  propia numeración**, que se pisa con la de los cajones: la "Caja N°1" (A1) **no** es el "Cajón
+  N°1" de tara 1,70 kg. Lo que importa de ella es `articulo.articulos_por_caja`, no su peso — de
+  hecho ninguna de las 12 tiene `kg_x_uni` cargado.
+
+**Trampa concreta:** si alguien "ve" que GP2 ya tenía cajas numeradas y decide que ahí va la tara,
+mete el peso del cajón retornable en la caja de cartón del terminado y rompe las dos cosas. Son
+tablas distintas a propósito.
+
+**De paso, la calculadora nueva cubre más que la vieja:** la vieja tenía cuatro categorías fijas
+(SP, SC, Plásticos, Remaches) y el Garage deshabilitado "porque no tiene peso x unidad". Como GP2
+saca los kg de `componente.kg_x_uni`, hoy salen **331 piezas en 10 sectores** — Garage incluido (6),
+más Bombilla (14), Fleje (51) y Alambre. Y como `componente.uni_x_cajon` existe, además de las
+unidades muestra **a cuántos cajones llenos equivale**, que la vieja no podía calcular.

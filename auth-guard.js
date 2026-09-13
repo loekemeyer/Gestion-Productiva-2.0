@@ -61,7 +61,7 @@ window.GP2_AUTH_ON = GP2_AUTH_ON;
       // Calculadoras
       'calculadora.html',
       'calculadora-basica.html',
-      'calcular-cajones.html',
+      'calcularcajones_gp2.html',
       'login.html'
     ];
     var ok = permitidos.some(function(p){ return path.indexOf(p) !== -1; });
