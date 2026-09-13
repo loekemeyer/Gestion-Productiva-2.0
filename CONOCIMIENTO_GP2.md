@@ -8989,12 +8989,40 @@ da **ARS 38.538.090 por mes**. Es de lejos el número más grande que apareció 
 del 546 (§4cr, *"~$39.500/mes de más"*) es `7.700 × (208 − 146,42) / 12`: **dividida por 12**. O sea
 el negocio siempre pensó en la parte; la vista es la que cobra la caja entera. `[dato]`
 
-**NO se tocó la vista.** Arreglarla mueve el costo de los 189 artículos de una y es una decisión del
-dueño, no un fix al pasar. Las dos formas de arreglarlo:
-1. Excluir de `mat` los edges cuya entrada ya viene con cantidad del paso `insumo` (que `insumox`
-   la cobre entera, sin el `− 1`).
-2. Que `mat` multiplique por la cantidad del paso, como ya hace con los flejes vía `kg_ref`.
+**ARREGLADO el 2026-09-13** (dueño: *"1 arregla"*), migración `la_caja_se_cobra_por_su_parte_no_entera`.
+Se tomó la opción 2, en su forma mínima: `mat` pasa de cobrar `cb.precio` pelado a cobrar
+`cb.precio × least(coalesce(cantidad_del_paso_insumo, 1), 1)`. La cuenta queda exacta para todo `q`:
+
+    antes:  mat = 1 × precio          + insumox = greatest(q−1,0) × precio  =  max(q,1) × precio
+    ahora:  mat = least(q,1) × precio + insumox = greatest(q−1,0) × precio  =  q × precio
+
+**Lo que NO se tocó, a propósito:** el `greatest(q−1,0)` de `insumox` (existe para que una pieza que
+entra 1 y sale 1 no se cuente dos veces) y los flejes (sector 5, que ya escalan por `kg_ref`).
+`insumo_por_art` se movió arriba de `mat` para poder leerse desde ahí, sin cambiarle una coma.
+
+**Verificado en seis testigos, todos exactos al centavo:** 234 `944,26 → 628,69` (= 600 del palo +
+28,69 de caja) · 942E `360,00 → 30,00` · 311 `515,48 → 185,48` · 312 `1.671,08 → 1.341,08` ·
+395 `559,80 → 319,80` · 546 `1.659,70 → 1.469,03` (= 208 − 17,33 menos). Ningún costo quedó nulo ni
+negativo, y ninguno subió (matemáticamente no puede: `least(q,1) ≤ 1`). El costo mensual valorizado
+de los 191 artículos queda en **ARS 141.866.763**. `db/vistas_GP2.sql` regenerado y **verificado por
+md5 contra la vista viva**. `[usuario + dato]`
 
 **Regla que deja: en GP2 un insumo que además es la ENTRADA del paso que lo consume se cobra
 entero, no por su cantidad. Antes de creerle a `total_pesos`, comparar contra la columna M de la
 hoja Costos.** `[deducido]`
+
+
+## 4dd. 942E y 945E quedan en 12 por caja, contra lo que dice la planilla (2026-09-13)
+
+`[usuario 2026-09-13, textual: *"2 12."*]`. La planilla los da de a **24** en sus dos hojas
+(Cajas F=24 y Costos M=15=360/24) y GP2 los tenía en **12**; el dueño confirmó **12**. **Se retira
+el hallazgo de §7.4(b) de `PENDIENTES_CAJAS_PALOS`**: no hay nada que corregir en la base, la que
+está desactualizada es la planilla.
+
+Consecuencia concreta, ahora que la caja se cobra bien (§4dc): 942E y 945E aportan **$30,00** de
+caja por unidad, no $15. Sobre 214 uni/mes son **$3.210 más por mes** que lo que dice la planilla —
+diferencia real, no error de carga. `[deducido]`
+
+**Regla que deja: la planilla no gana automáticamente.** El 11-09 la hoja Costos fue la que cerró la
+discusión de qué caja usa cada artículo (§4cr); acá el dueño la contradice en la uni x caja y manda
+él. La hoja Costos es la mejor fuente cuando **nadie** sabe, no cuando el dueño ya decidió.

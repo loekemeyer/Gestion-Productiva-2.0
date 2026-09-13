@@ -266,6 +266,21 @@ create or replace view "GP2".v_costo_componente as
             max(w.kg_ref) AS kg_ref
            FROM w
           GROUP BY w.comp_id, w.ent, w.sal, w.tipo_paso, w.matriz_id, w.proveedor_id
+        ), insumo_por_art AS (
+         SELECT x.art_id,
+            x.insumo_id,
+            max(x.cantidad) AS cantidad
+           FROM ( SELECT rp_ins.comp_entrada_id AS insumo_id,
+                    rp_ins.cantidad,
+                    ( SELECT rp2.comp_salida_id
+                           FROM "GP2".ruta_paso rp2
+                          WHERE rp2.ruta_id = rp_ins.ruta_id AND rp2.comp_salida_id IS NOT NULL AND rp2.tipo_paso <> 'virgilio'::text
+                          ORDER BY rp2.orden DESC
+                         LIMIT 1) AS art_id
+                   FROM "GP2".ruta_paso rp_ins
+                  WHERE rp_ins.tipo_paso = 'insumo'::text AND rp_ins.comp_entrada_id IS NOT NULL) x
+          WHERE x.art_id IS NOT NULL
+          GROUP BY x.art_id, x.insumo_id
         ), mat AS (
          SELECT x.comp_id,
             COALESCE(sum(x.val) FILTER (WHERE x.moneda = 'USD'::text), 0::numeric) AS usd,
@@ -277,11 +292,12 @@ create or replace view "GP2".v_costo_componente as
                     cb_1.moneda,
                         CASE
                             WHEN cb_1.sector_id = 5 THEN cb_1.precio * COALESCE(wd.kg_ref, 1::numeric / NULLIF(m.partes_por_kilo_de_fleje, 0::numeric))
-                            ELSE cb_1.precio
+                            ELSE cb_1.precio * LEAST(COALESCE(ipa.cantidad, 1::numeric), 1::numeric)
                         END AS val
                    FROM wd
                      JOIN comprado cb_1 ON cb_1.id = wd.ent
-                     LEFT JOIN "GP2".matriz m ON m.id = wd.matriz_id) x
+                     LEFT JOIN "GP2".matriz m ON m.id = wd.matriz_id
+                     LEFT JOIN insumo_por_art ipa ON ipa.art_id = wd.comp_id AND ipa.insumo_id = wd.ent) x
           GROUP BY x.comp_id
         ), lab AS (
          SELECT y.comp_id,
@@ -346,21 +362,6 @@ create or replace view "GP2".v_costo_componente as
                    FROM edges e
                   WHERE e.ent = b.componente_hijo_id AND e.sal = b.componente_padre_id))
           GROUP BY b.componente_padre_id
-        ), insumo_por_art AS (
-         SELECT x.art_id,
-            x.insumo_id,
-            max(x.cantidad) AS cantidad
-           FROM ( SELECT rp_ins.comp_entrada_id AS insumo_id,
-                    rp_ins.cantidad,
-                    ( SELECT rp2.comp_salida_id
-                           FROM "GP2".ruta_paso rp2
-                          WHERE rp2.ruta_id = rp_ins.ruta_id AND rp2.comp_salida_id IS NOT NULL AND rp2.tipo_paso <> 'virgilio'::text
-                          ORDER BY rp2.orden DESC
-                         LIMIT 1) AS art_id
-                   FROM "GP2".ruta_paso rp_ins
-                  WHERE rp_ins.tipo_paso = 'insumo'::text AND rp_ins.comp_entrada_id IS NOT NULL) x
-          WHERE x.art_id IS NOT NULL
-          GROUP BY x.art_id, x.insumo_id
         ), insumox AS (
          SELECT y.art_id AS comp_id,
             COALESCE(sum(

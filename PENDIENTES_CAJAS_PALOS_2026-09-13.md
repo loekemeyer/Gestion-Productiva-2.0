@@ -669,7 +669,7 @@ por no estar guardada).
 | 2 | `articulo_prov_at`: **opción A** — *"es la misma lógica que lo de cimarron"* | ✅ aplicado (ids 92/93/94/95 en `activo=false`; el 591 sigue activo) |
 | 3 | BANDITA → **Talleres Gráficos Pol** | ✅ aplicado (componente 916) |
 | 4 | Las 14 cajas a la receta | ✅ aplicado (recetas 923–936, rutas 978–993, pasos 3744–3791) |
-| 5 | 942E / 945E: ¿24 o 12 por caja? | ⏳ **sigue sin decidir** — hoy quedaron en 12 |
+| 5 | 942E / 945E: **12 por caja** (contra la planilla, que dice 24) | ✅ decidido — no había que cambiar nada; ver CONOCIMIENTO §4dd |
 
 Invariantes 35/35 en 0 antes y después. Snapshot de costos previo:
 `zz_backups."GP2_Snap_costos_cajas_20260913"`.
@@ -677,4 +677,4 @@ Invariantes 35/35 en 0 antes y después. Snapshot de costos previo:
 **Lo que apareció al medir el punto 4 y es más grande que todo lo anterior:
 `v_costo_componente` cobra la CAJA ENTERA por unidad — ARS 38.538.090 por mes sobre 189
 artículos, pre-existente.** El mecanismo, la prueba y las dos formas de arreglarlo están en
-CONOCIMIENTO §4dc. **No se tocó la vista: mueve el costo de los 189 de una y es decisión del dueño.**
+CONOCIMIENTO §4dc. **ARREGLADO** en la misma sesión (*"1 arregla"*), migración `la_caja_se_cobra_por_su_parte_no_entera`, verificado en 6 testigos al centavo y `db/` regenerado con md5 contra la vista viva. Queda registrado en la auditoría de Supabase.
