@@ -1,7 +1,7 @@
 -- =====================================================================
--- FUNCIONES del schema GP2 — export automatico 2026-09-11 (pg_get_functiondef, exacto)
+-- FUNCIONES del schema GP2 — export automatico 2026-09-13 (pg_get_functiondef, exacto)
 -- Fuente de verdad: Supabase (hrxfctzncixxqmpfhskv). Este archivo es respaldo/referencia.
--- 138 funciones. Los GRANT/REVOKE no estan aca: EXECUTE para anon solo en las RPC de pantalla (ver db/README.md).
+-- 154 funciones. Los GRANT/REVOKE no estan aca: EXECUTE para anon solo en las RPC de pantalla (ver db/README.md).
 -- =====================================================================
 
 -- ---------- __sim_articulo ----------
@@ -423,6 +423,7 @@ AS $function$
        and (coalesce(c.es_pliego,false) or coalesce(cf.pliegos_multiplo,0) > 0)
        and coalesce((it->>'cantidad')::numeric, 0) > 0
   ),
+  -- a que familia FIJA de su misma base le falta mas para llegar al multiplo
   destino as (
     select distinct on (fam_base) fam_base, fam_key
       from (select fam_base, fam_key,
@@ -437,6 +438,7 @@ AS $function$
       from base b
       left join destino d on d.fam_base = b.fam_base and b.comodin
   ),
+  -- la regla y la etiqueta salen del renglon NO comodin que abrio la familia
   cabecera as (
     select distinct on (k) k, fam_label, pm, cm, mc, pmin from asignado
      order by k, comodin, comp_id
@@ -730,6 +732,31 @@ begin
 end $function$
 ;
 
+-- ---------- alerta_recepcion_marcar ----------
+CREATE OR REPLACE FUNCTION "GP2".alerta_recepcion_marcar(p_id bigint, p_estado text DEFAULT 'resuelta'::text, p_nota text DEFAULT NULL::text, p_usuario text DEFAULT NULL::text)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'GP2'
+AS $function$
+declare v jsonb;
+begin
+  -- Los tres estados los fija el check de la tabla: abierta | vista | resuelta.
+  if p_estado not in ('abierta','vista','resuelta') then
+    raise exception 'Estado invalido: "%". Solo abierta, vista o resuelta.', p_estado;
+  end if;
+  update alerta_recepcion
+     set estado      = p_estado,
+         nota        = coalesce(nullif(btrim(p_nota),''), nota),
+         cerrado_en  = case when p_estado = 'abierta' then null else now() end,
+         cerrado_por = case when p_estado = 'abierta' then null else p_usuario end
+   where id = p_id
+  returning to_jsonb(alerta_recepcion.*) into v;
+  if v is null then raise exception 'No existe la alerta %', p_id; end if;
+  return jsonb_build_object('ok', true, 'alerta', v);
+end $function$
+;
+
 -- ---------- alertas_bundle ----------
 CREATE OR REPLACE FUNCTION "GP2".alertas_bundle()
  RETURNS jsonb
@@ -780,6 +807,18 @@ select jsonb_build_object(
     'items', coalesce((
       select jsonb_agg(jsonb_build_object('Fecha',fstr,'Hora',hstr,'Legajo',legajo,'Empleado',nombre_empleado,'Matriz',matriz_raw,'Nombre_Matriz',nombre_matriz) order by fecha desc)
       from eventos where nombre_matriz ilike 'PM %'), '[]'::jsonb)
+  ),
+  'recepcion_de_mas', jsonb_build_object(
+    'total', (select count(*) from "GP2".alerta_recepcion where estado = 'abierta'),
+    'items', coalesce((
+      select jsonb_agg(jsonb_build_object(
+               'id', a.id, 'fecha', to_char(a.fecha at time zone 'America/Argentina/Buenos_Aires','YYYY-MM-DD HH24:MI'),
+               'quien', a.origen_nombre, 'tipo', a.origen_tipo, 'cod', a.cod,
+               'descripcion', a.descripcion, 'esperado', a.esperado, 'recibido', a.recibido,
+               'exceso', a.exceso, 'unidad', a.unidad, 'esperado_origen', a.esperado_origen)
+             order by a.fecha desc)
+      from (select * from "GP2".alerta_recepcion where estado = 'abierta' order by fecha desc limit 100) a),
+      '[]'::jsonb)
   ),
   'pendientes', jsonb_build_array(
     jsonb_build_object(
@@ -3291,7 +3330,7 @@ CREATE OR REPLACE FUNCTION "GP2".faltantes_bundle()
  SET search_path TO 'GP2'
 AS $function$
   -- MATERIALIZED a proposito: sin eso la CTE se inlinea y movimientos_bundle() corre 4 veces
-  -- (una por cada uso de j). Medido: 478 ms -> 183 ms, con el resultado identico. No sacar.
+  -- (una por cada uso de j). No sacar.
   with m as materialized (select "GP2".movimientos_bundle() j)
   select m.j
       || jsonb_build_object('art', (select coalesce(jsonb_agg(v order by (v->>'id')::bigint), '[]'::jsonb)
@@ -4031,6 +4070,7 @@ select jsonb_build_object(
   ),
   'alertas', jsonb_build_object(
     'disruptivas_mes', (select c from disruptivas),
+    'recepcion_de_mas', (select count(*) from "GP2".alerta_recepcion where estado = 'abierta'),
     'matrices_sin_tiempo', (select c from sin_tiempo),
     'espejo_pend', (select count(*) from "GP2".virgilio_espejo_pend),
     'espejo_pend_detalle', (select coalesce(jsonb_agg(jsonb_build_object(
@@ -5235,7 +5275,6 @@ begin
                             'cambios_mb', v_cambios_mb,
                             'total_bolsas', v_tot, 'pallets', ceil(v_tot / 15), 'capacidad_bolsas', 300);
 end $function$
-
 ;
 
 -- ---------- recalcular_maximos_cajones ----------
@@ -6646,6 +6685,310 @@ select jsonb_build_object(
   'filas', (select coalesce(jsonb_agg(to_jsonb(f) order by f.codigo),'[]'::jsonb) from fila f),
   'generado_en', now());
 $function$
+;
+
+-- ---------- tablet_bundle ----------
+CREATE OR REPLACE FUNCTION "GP2".tablet_bundle()
+ RETURNS jsonb
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'GP2'
+AS $function$
+with
+env as (
+  select v.tipo, v.ref_id::text as ref, v.comp_id
+    from v_contraparte_parte v
+   where v.lado = 'entrada'
+     and ( (v.tipo = 'tallerista'
+            and exists (select 1 from tallerista t where t.id = v.ref_id and t.activo and t.id <> 3))
+        or (v.tipo = 'proveedor_servicio'
+            and exists (select 1 from proveedor_servicio ps where ps.id = v.ref_id)) )
+  union all
+  select 'proveedor_at', '*', c.id
+    from componente c
+   where c.sector_id in (10,11) and not coalesce(c.discontinuado,false)
+),
+rec as (
+  -- tallerista: lo que devuelve a un sector (los TERMINADOS van por Recepcion Virgilio).
+  -- comp_entrada_id = lo que consumio para hacerlo, deducido igual que en el motor JS:
+  -- con BOM lo manejan las partes del armado; sin BOM y con UNA sola entrada, esa.
+  select 'tallerista'::text as tipo, v.ref_id::text as ref, v.comp_id,
+         case when exists (select 1 from componente_bom b where b.componente_padre_id = v.comp_id)
+              then null::bigint
+              else (select case when count(distinct rp.comp_entrada_id) = 1
+                                then min(rp.comp_entrada_id) end
+                      from ruta_paso rp
+                     where rp.tipo_paso = 'tallerista' and rp.tallerista_id = v.ref_id
+                       and rp.comp_salida_id = v.comp_id and rp.comp_entrada_id is not null
+                       and rp.comp_entrada_id <> v.comp_id) end as comp_entrada_id,
+         (select count(distinct rp.comp_entrada_id) from ruta_paso rp
+           where rp.tipo_paso = 'tallerista' and rp.tallerista_id = v.ref_id
+             and rp.comp_salida_id = v.comp_id and rp.comp_entrada_id is not null
+             and rp.comp_entrada_id <> v.comp_id)::int as n_entradas,
+         exists (select 1 from componente_bom b where b.componente_padre_id = v.comp_id) as tiene_bom,
+         null::text as cod_art,
+         coalesce((select i.cantidad from inventario i
+                    where i.componente_id = v.comp_id
+                      and i.ubicacion_id = "GP2".ubic_de('tallerista', v.ref_id) limit 1), 0) as esperado,
+         'online_tall'::text as esperado_origen
+    from v_contraparte_parte v
+    join componente c on c.id = v.comp_id
+   where v.tipo = 'tallerista' and v.lado = 'salida'
+     and c.sector_id <> 12 and not coalesce(c.discontinuado,false)
+     and exists (select 1 from tallerista t where t.id = v.ref_id and t.activo and t.id <> 3)
+  union all
+  select 'proveedor_servicio', rp.proveedor_id::text, rp.comp_salida_id, rp.comp_entrada_id,
+         1, false, null::text,
+         coalesce((select i.cantidad from inventario i
+                    where i.componente_id = rp.comp_entrada_id
+                      and i.ubicacion_id = "GP2".ubic_de('proveedor_servicio', rp.proveedor_id) limit 1), 0),
+         'online_ps'
+    from (select distinct proveedor_id, comp_entrada_id, comp_salida_id
+            from ruta_paso
+           where tipo_paso = 'proveedor_servicio' and proveedor_id is not null
+             and comp_entrada_id is not null and comp_salida_id is not null) rp
+    join componente cs on cs.id = rp.comp_salida_id and not coalesce(cs.discontinuado,false)
+  union all
+  select 'proveedor_at', a.proveedor_at_id::text, null::bigint, null::bigint, 0, false, a.cod_art,
+         (select sum(oi.cantidad - coalesce(oi.recibido,0)) from orden_compra o
+            join orden_compra_item oi on oi.oc_id = o.id
+            join componente ci on ci.id = oi.componente_id
+           where o.estado in ('borrador','enviada')
+             and o.proveedor = (select nombre from proveedor_at where id = a.proveedor_at_id)
+             and ci.codigo = a.cod_art),
+         'oc'
+    from articulo_prov_at a
+   where coalesce(a.activo,true)
+     and exists (select 1 from proveedor_at p where p.id = a.proveedor_at_id and coalesce(p.activo,true))
+  union all
+  select 'proveedor_insumo', o.proveedor, oi.componente_id, null::bigint, 0, false, null::text,
+         sum(oi.cantidad - coalesce(oi.recibido,0)),
+         'oc'
+    from orden_compra o
+    join orden_compra_item oi on oi.oc_id = o.id
+   where o.estado in ('borrador','enviada')
+   group by o.proveedor, oi.componente_id
+  having sum(oi.cantidad - coalesce(oi.recibido,0)) > 0
+  union all
+  select 'virgilio', 'virgilio', i.componente_id, null::bigint, 0, false, null::text,
+         sum(i.cantidad), 'online_virgilio'
+    from inventario i
+    join ubicacion u on u.id = i.ubicacion_id and u.tipo in ('virgilio','virgilio_sector')
+    join componente c on c.id = i.componente_id
+   where c.sector_id <> 12 and not coalesce(c.discontinuado,false)
+   group by i.componente_id
+  having sum(i.cantidad) <> 0
+),
+env_x as (
+  select distinct on (e.tipo, e.ref, e.comp_id) e.tipo, e.ref, e.comp_id,
+         c.codigo cod, c.descripcion descr, s.nombre sector, c.unidad_medida um,
+         c.uni_x_cajon uxc, c.kg_x_uni kgu,
+         coalesce((select i.cantidad from inventario i
+                    where i.componente_id = c.id
+                      and i.ubicacion_id = "GP2".ubic_de('sector', c.sector_id) limit 1), 0) online_sector
+    from env e
+    join componente c on c.id = e.comp_id and not coalesce(c.discontinuado,false)
+    left join sector s on s.id = c.sector_id
+   order by e.tipo, e.ref, e.comp_id
+),
+rec_x as (
+  select r.tipo, r.ref, r.comp_id, r.comp_entrada_id, r.n_entradas, r.tiene_bom, r.cod_art,
+         max(r.esperado) esperado, min(r.esperado_origen) esperado_origen,
+         coalesce(c.codigo, r.cod_art) cod,
+         coalesce(c.descripcion, (select max(descripcion) from articulo_prov_at ap
+                                   where ap.cod_art = r.cod_art)) descr,
+         s.nombre sector, c.unidad_medida um, c.uni_x_cajon uxc, c.kg_x_uni kgu,
+         ce.codigo ent_cod, ce.descripcion ent_desc,
+         (select a.articulos_por_caja from articulo a where a.codigo = r.cod_art) por_caja
+    from rec r
+    left join componente c on c.id = r.comp_id
+    left join componente ce on ce.id = r.comp_entrada_id
+    left join sector s on s.id = c.sector_id
+   where (r.comp_id is null or not coalesce(c.discontinuado,false))
+   group by r.tipo, r.ref, r.comp_id, r.comp_entrada_id, r.n_entradas, r.tiene_bom, r.cod_art,
+            c.codigo, c.descripcion, s.nombre, c.unidad_medida, c.uni_x_cajon, c.kg_x_uni,
+            ce.codigo, ce.descripcion
+),
+cp as (
+  select 'tallerista'::text tipo, t.id::text ref, t.nombre
+    from tallerista t
+   where t.activo and t.id <> 3
+     and exists (select 1 from v_contraparte_parte v where v.tipo='tallerista' and v.ref_id = t.id)
+  union all
+  select 'proveedor_servicio', ps.id::text, ps.nombre
+    from proveedor_servicio ps
+   where exists (select 1 from v_contraparte_parte v where v.tipo='proveedor_servicio' and v.ref_id = ps.id)
+  union all
+  select 'proveedor_at', p.id::text, p.nombre
+    from proveedor_at p where coalesce(p.activo,true)
+  union all
+  select distinct 'proveedor_insumo', o.proveedor, o.proveedor
+    from orden_compra o where o.estado in ('borrador','enviada')
+  union all
+  select 'virgilio', 'virgilio', 'Virgilio'
+)
+select jsonb_build_object(
+  'generado_en', now(),
+  'contrapartes', (
+    select coalesce(jsonb_agg(jsonb_build_object(
+             'tipo', cp.tipo, 'ref', cp.ref, 'nombre', cp.nombre,
+             'n_env', case when cp.tipo = 'proveedor_at'
+                           then (select count(*) from env_x e where e.tipo = 'proveedor_at')
+                           else (select count(*) from env_x e where e.tipo = cp.tipo and e.ref = cp.ref) end,
+             'n_rec', (select count(*) from rec_x r where r.tipo = cp.tipo and r.ref = cp.ref)
+           ) order by cp.nombre), '[]'::jsonb)
+      from cp where cp.nombre is not null),
+  'enviar', (
+    select coalesce(jsonb_agg(jsonb_build_object(
+             'tipo', tipo, 'ref', ref, 'comp_id', comp_id, 'cod', cod, 'desc', descr,
+             'sector', sector, 'um', um, 'uxc', uxc, 'kg_x_uni', kgu,
+             'online_sector', online_sector
+           ) order by cod), '[]'::jsonb) from env_x),
+  'recibir', (
+    select coalesce(jsonb_agg(jsonb_build_object(
+             'tipo', tipo, 'ref', ref, 'comp_id', comp_id, 'comp_entrada_id', comp_entrada_id,
+             'n_entradas', n_entradas, 'tiene_bom', tiene_bom,
+             'cod_art', cod_art, 'cod', cod, 'desc', descr, 'sector', sector, 'um', um,
+             'uxc', uxc, 'kg_x_uni', kgu, 'por_caja', por_caja,
+             'ent_cod', ent_cod, 'ent_desc', ent_desc,
+             'esperado', esperado, 'esperado_origen', esperado_origen
+           ) order by cod), '[]'::jsonb) from rec_x),
+  'alertas_abiertas', (select count(*) from alerta_recepcion where estado = 'abierta')
+);
+$function$
+;
+
+-- ---------- tablet_registrar ----------
+CREATE OR REPLACE FUNCTION "GP2".tablet_registrar(p jsonb)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'GP2'
+AS $function$
+declare
+  v_modo   text := lower(coalesce(p->>'modo',''));
+  v_tipo   text := lower(coalesce(p->>'tipo',''));
+  v_ref    text := nullif(btrim(coalesce(p->>'ref','')),'');
+  v_nom    text;
+  v_fecha  timestamptz := coalesce((p->>'fecha')::timestamptz, now());
+  v_remito text := nullif(btrim(coalesce(p->>'remito','')),'');
+  it       jsonb;
+  v_comp   bigint; v_ent bigint; v_cant numeric; v_uni text; v_esp numeric;
+  v_cod    text; v_desc text; v_cod_art text; v_por_caja numeric;
+  v_r      jsonb; v_res jsonb := '[]'::jsonb; v_alertas jsonb := '[]'::jsonb;
+  v_comparable numeric; v_alerta_id bigint; v_n int := 0;
+  v_ubic_o bigint; v_ubic_d bigint; v_sec bigint; v_um text; v_mov bigint;
+begin
+  if v_modo not in ('enviar','recibir') then
+    raise exception 'Modo invalido: "%". Tiene que ser enviar o recibir.', coalesce(v_modo,'null');
+  end if;
+  if v_ref is null then raise exception 'Falta decir a quien (ref).'; end if;
+  if jsonb_typeof(p->'items') <> 'array' or jsonb_array_length(p->'items') = 0 then
+    raise exception 'No hay nada cargado para registrar.';
+  end if;
+
+  v_nom := case v_tipo
+    when 'tallerista'         then (select nombre from tallerista where id = v_ref::bigint)
+    when 'proveedor_servicio' then (select nombre from proveedor_servicio where id = v_ref::bigint)
+    when 'proveedor_at'       then (select nombre from proveedor_at where id = v_ref::bigint)
+    when 'proveedor_insumo'   then v_ref
+    when 'virgilio'           then 'Virgilio'
+  end;
+  if v_nom is null then
+    raise exception 'Contraparte inexistente (tipo=%, ref=%).', coalesce(v_tipo,'null'), v_ref;
+  end if;
+  if v_modo = 'enviar' and v_tipo not in ('tallerista','proveedor_servicio','proveedor_at') then
+    raise exception 'A "%" no se le envia desde la tablet: solo talleristas, prov. de servicio y prov. art. terminado.', v_nom;
+  end if;
+
+  for it in select value from jsonb_array_elements(p->'items') loop
+    v_comp     := nullif(it->>'comp_id','')::bigint;
+    v_ent      := nullif(it->>'comp_entrada_id','')::bigint;
+    v_cod_art  := nullif(btrim(coalesce(it->>'cod_art','')),'');
+    v_cant     := nullif(it->>'cantidad','')::numeric;
+    v_uni      := lower(coalesce(nullif(it->>'unidad',''), 'uni'));
+    v_esp      := nullif(it->>'esperado','')::numeric;
+    v_por_caja := nullif(it->>'por_caja','')::numeric;
+    if v_uni not in ('uni','kg') then raise exception 'Unidad invalida: "%"', v_uni; end if;
+    if v_cant is null or v_cant <= 0 then
+      raise exception '% : la cantidad tiene que ser mayor a 0.', coalesce(v_cod_art, v_comp::text, '?');
+    end if;
+    select codigo, descripcion into v_cod, v_desc from componente where id = v_comp;
+    v_cod := coalesce(v_cod, v_cod_art);
+
+    if v_modo = 'enviar' then
+      if v_tipo = 'tallerista' then
+        v_r := "GP2".crear_envio_tallerista(v_ref::bigint, v_comp, v_cant, v_uni, v_fecha);
+      elsif v_tipo = 'proveedor_servicio' then
+        v_r := "GP2".crear_envio_ps(v_ref::bigint, v_comp, v_cant, v_uni, v_fecha);
+      else
+        v_r := "GP2".crear_envio_prov_at(v_ref::bigint, v_comp, v_cant, v_uni, v_fecha);
+      end if;
+      v_comparable := null;
+    else
+      if v_tipo = 'tallerista' then
+        v_r := "GP2".crear_entrega_tallerista(v_ref::bigint, v_comp, v_cant, v_uni, v_fecha, true, v_ent);
+      elsif v_tipo = 'proveedor_servicio' then
+        if v_ent is null then
+          raise exception '% : falta saber que SC consume ese SP (comp_entrada_id).', coalesce(v_cod,'?');
+        end if;
+        v_r := "GP2".crear_entrega_ps(v_ref::bigint, v_ent, v_comp, v_cant, v_fecha, null, false, v_uni);
+      elsif v_tipo = 'proveedor_at' then
+        if v_cod_art is null then raise exception 'Falta el codigo de articulo del prov. art. terminado.'; end if;
+        v_r := "GP2".crear_entrega_prov_at(v_ref::bigint, v_cod_art, v_cant::int, v_remito, v_fecha::date);
+      elsif v_tipo = 'proveedor_insumo' then
+        v_r := "GP2".crear_recepcion_insumo(v_comp, v_ref, v_cant, v_uni, v_remito, v_fecha);
+      else
+        -- Virgilio manda partes/insumos de vuelta a Cervantes. El origen es donde esta
+        -- el stock (el deposito del sector en Virgilio si existe, si no el general).
+        select sector_id, unidad_medida into v_sec, v_um from componente where id = v_comp;
+        if v_sec is null then raise exception 'El componente % no existe', v_comp; end if;
+        v_ubic_d := "GP2".ubic_de('sector', v_sec);
+        v_ubic_o := coalesce(
+          (select i.ubicacion_id from inventario i
+             join ubicacion u on u.id = i.ubicacion_id
+            where i.componente_id = v_comp and u.tipo in ('virgilio_sector','virgilio') and i.cantidad > 0
+            order by case when u.tipo = 'virgilio_sector' then 0 else 1 end limit 1),
+          "GP2".ubic_de('virgilio_sector', v_sec),
+          (select id from ubicacion where tipo = 'virgilio' limit 1));
+        if v_ubic_o is null or v_ubic_d is null then
+          raise exception '% : falta la ubicacion de Virgilio o la del sector destino.', coalesce(v_cod,'?');
+        end if;
+        insert into movimiento(fecha, tipo_mov, comp_id, ubic_origen_id, ubic_destino_id,
+                               cantidad, unidad_origen, unidad_destino, nota)
+        values (v_fecha, 'traslado', v_comp, v_ubic_o, v_ubic_d, v_cant, v_uni, v_uni,
+                'Recibido de Virgilio (tablet)')
+        returning id into v_mov;
+        v_r := jsonb_build_object('ok', true, 'movimiento_id', v_mov);
+      end if;
+    end if;
+
+    v_n := v_n + 1;
+    v_res := v_res || jsonb_build_object('cod', v_cod, 'cantidad', v_cant, 'unidad', v_uni, 'res', v_r);
+
+    -- ALERTA: se recibio mas de lo que decia tener / de lo que pedia la OC.
+    -- No frena nada: ya quedo registrado arriba.
+    if v_modo = 'recibir' and v_esp is not null then
+      v_comparable := case when v_tipo = 'proveedor_at'
+                           then v_cant * coalesce(nullif(v_por_caja,0), 1) else v_cant end;
+      if v_comparable > v_esp then
+        insert into alerta_recepcion(fecha, origen_tipo, origen_ref, origen_nombre, comp_id, cod,
+                                     descripcion, esperado, recibido, exceso, unidad, esperado_origen,
+                                     movimiento_id)
+        values (v_fecha, v_tipo, v_ref, v_nom, v_comp, v_cod, coalesce(v_desc, v_cod_art),
+                v_esp, v_comparable, v_comparable - v_esp, v_uni,
+                nullif(it->>'esperado_origen',''),
+                coalesce((v_r->>'movimiento_id')::bigint, (v_r->>'id')::bigint))
+        returning id into v_alerta_id;
+        v_alertas := v_alertas || jsonb_build_object('id', v_alerta_id, 'cod', v_cod,
+                       'esperado', v_esp, 'recibido', v_comparable, 'exceso', v_comparable - v_esp);
+      end if;
+    end if;
+  end loop;
+
+  return jsonb_build_object('ok', true, 'n', v_n, 'contraparte', v_nom, 'modo', v_modo,
+                            'items', v_res, 'alertas', v_alertas);
+end $function$
 ;
 
 -- ---------- talleristas_bundle ----------

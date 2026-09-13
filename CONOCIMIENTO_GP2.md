@@ -8692,3 +8692,46 @@ convergentes arranquen del mismo insumo.
 
 **Se borró `db/pendiente/2026-09-12_mb_color_y_matriz78.sql`**: la parte (a) (colores de Master
 Bach) ya estaba aplicada y la (b) es esto. `db/` no cambia: fueron migraciones de datos, no de schema.
+
+
+### 4cv. La Versión Tablet: el contrato lo manda la base, y dos trampas de unidad (2026-09-13)
+
+**Qué pasó.** Una sesión construyó la "Versión Tablet" (una pantalla con Enviar / Recibir / Conteo
+para la tablet del galpón) y **su código se perdió**: la rama nunca llegó a `origin`. Pero el backend
+**sí quedó vivo en la base**: `GP2.alerta_recepcion`, `tablet_bundle()`, `tablet_registrar(p)`,
+`alerta_recepcion_marcar(...)` y `alertas_bundle()` con la clave `recepcion_de_mas`. Es exactamente el
+desfasaje que el CLAUDE.md marca como el peligro real (la base adelantada, `main` sin el código). El
+frente se **rehízo leyendo el cuerpo real de las funciones** (`pg_get_functiondef`), no la memoria de
+lo que "debería" devolver. `[dato: base, 2026-09-13]`
+
+**Lo que fija el contrato** (el detalle en `GP2_MAPA.md`, sección "Versión Tablet"):
+- `um` en el bundle es `componente.unidad_medida`: **`'kg'` o `'unidad'`**; `tablet_registrar` acepta
+  **`'uni'` o `'kg'`**. La pantalla traduce. Un `'unidad'` mandado crudo revienta con "Unidad invalida".
+- `ref` es **texto** siempre (el id como string, el nombre del proveedor de insumo, o `'virgilio'`), y
+  **el prov. AT viene con `ref = '*'` en `enviar`**: cualquier cartón/caja va a cualquier prov. AT.
+- El **esperado** sale de la OC si trae un proveedor (`oc`; **null si no hay OC**, y sin esperado no
+  hay alerta), y del stock online si trae un tallerista / PS (`online_tall` / `online_ps`) o Virgilio.
+- Desde la tablet **no se le envía** a Virgilio ni al proveedor de insumo; el PS exige
+  `comp_entrada_id` (el SC que consume); `tablet_registrar` no acepta `modo = 'conteo'`.
+
+**Las dos trampas de unidad** `[usuario, vía la sesión perdida; verificado contra las RPC]`:
+1. **El proveedor de artículo terminado entrega CAJAS.** `crear_entrega_prov_at` pide `p_cajas`. La
+   pantalla carga cajas, muestra "= N uni x caja", y manda `cantidad` = cajas con `unidad 'uni'` y
+   `por_caja`; la base compara `cajas × por_caja` contra la OC, que está en unidades.
+2. **Una pieza en kg se manda y se recibe en kg** (fleje cortado, chapa, el 1686 de Eclipse): teclado
+   decimal con coma, y `unidad 'kg'` en el payload. Mezclar kg con uni en esas piezas es lo que hacía
+   imposible recibir CV18D / V18D / V20 (§ kg ↔ uni en `gp2-numero.js`).
+
+**La alerta de "recibí de más" avisa pero no frena** `[usuario, vía la sesión perdida]`: la base
+registra el movimiento **primero** y la alerta **después**; la pantalla marca la fila, dice "podés
+registrar igual" y deja el botón habilitado. Quien revisa lo hace en Alertas (bloque "Se recibió de
+más", botón Revisada → estado `vista`) y el menú muestra cuántas quedan sobre el botón Alertas.
+
+**El Conteo no escribe.** Compara lo contado contra el online del sector y baja un CSV. El ajuste de
+stock sigue el circuito de siempre — Relevamientos (el operario cuenta) → Validación de Stock (el
+operador del sistema decide) — y `tablet_registrar` no tiene un modo para eso.
+
+**Deuda que quedó en el backend, NO en la pantalla** (idea 7345): para recibir de un **tallerista**
+`tablet_registrar` llama a `crear_entrega_tallerista`, y el propio `comment` de esa función dice que
+**no es el motor** (el motor es `gp2-motor.js` + `registrar_movimientos`, idea 7316). Se documenta y
+se deja abierto: esta sesión no podía tocar la base.
