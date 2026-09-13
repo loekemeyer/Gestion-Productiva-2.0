@@ -9090,10 +9090,29 @@ llega al maximo por la RECETA del articulo, y el 573 **no existe como articulo e
 fila nunca alimento un solo calculo. **Borrarla no arregla ningun numero: saca un dato que confunde
 al que lo lee.** `[dato]`
 
-**Y no es una fila, son 235.** De las 405 filas que tenia `est_madre`, **235 no cruzan con ningun
-articulo de GP2** (234 despues de este borrado). El 515 y el 573 son dos de esas 235, borradas de a
-una porque el dueño las nombro. **La Est Madre es una foto del sistema viejo: trae discontinuados,
-reventa e importados que GP2 no modela.** `[dato]`
+**Y no es una fila, son 218.** `[CORREGIDO el mismo dia: primero escribi 235, con un `join` por
+codigo exacto. Esta mal — ver abajo.]` De las 404 filas que le quedan a `est_madre`, **218 no cruzan
+con ningun articulo de GP2**. La Est Madre es una foto del sistema viejo: trae discontinuados,
+reventa e importados que GP2 no modela. El desglose completo, grupo por grupo, esta en
+`EST_MADRE_HUERFANAS_2026-09-13.md`. `[dato]`
+
+**⚠ LA TRAMPA DEL CERO ADELANTE, que casi me hace reportar un bug que no existe.** `est_madre`
+escribe `31`, `26`, `27`, `34`, `66`, `57`, `58`, `59`, `99`, `97`, `70`, `55`, `43`, `53`, `54` y
+`52`, y GP2 los tiene como `031`, `026`, … Un `join` por codigo exacto los marca como huerfanos —
+son **16 codigos y 28.812 uni/mes**, entre ellos el **031 Filtro de Cafe con 15.144 uni/mes, el
+articulo de mayor demanda de la casa**. Llegue a concluir que sus insumos estaban sub-dimensionados
+en la OC. **Es falso:** `v_consumo_demanda` cruza con
+`regexp_replace(em.cod,'^0+','') = regexp_replace(a.codigo,'^0+','')`, o sea **ya normaliza**, y el
+consumo del carton `A1B` da exactamente 15.144. **Regla: para cruzar `est_madre` con `articulo`,
+sacar los ceros de adelante de los dos lados — es lo que hace el motor.** `[dato]`
+
+**De las 218, las unicas que pueden ser trabajo son 16** (las que la hoja Costos marca `Fab`), y
+**13 ya estan resueltas**: 332-337 son los cubiertos inox discontinuos (§4db), el 548 es el pincel
+que ya entro como 590E/890E/590ES (§4ct), y 513L/546L/520L/505L/586L son **variantes con sufijo `L`
+de articulos que GP2 ya tiene** (513, 546, 520, 505, 586). **Quedan tres preguntas: el 561 Pinza
+Grande Alambre (324 uni/mes), el 396 Enrulador de Manteca (80) y si los cinco codigos `L` son una
+variante real o basura.** Y un detalle: **el 515 sigue en `est_madre` con 486 uni/mes** — si alguna
+vez se quiso borrar, no se borro. `[dato]`
 
 **Regla que deja: una fila de `est_madre` sin articulo de GP2 no mueve ningun maximo — es ruido de
 lectura, no un bug de calculo. Y `proy_uni_mes` NO es evidencia de que algo se venda**
@@ -9114,3 +9133,21 @@ Con ese numero el precio unitario sale solo y se carga en `precio_proveedor`.
 **Mientras tanto los tres palos siguen con `faltan_precios` ≥ 2** (los `GRJ22/23/24` tampoco tienen
 precio: la LP solo lista el Palo Frances $600 y el Torneado 40cm $1.245). O sea que hoy el costo de
 un palo es **solo su caja, $28,69**. No es un bug: es que faltan dos precios. `[dato]`
+
+
+## 4di. Que es un `GRJ` (el dueño pregunto, y conviene que quede escrito) (2026-09-13)
+
+`[usuario 2026-09-13, textual: *"nose que es eso"*]`, preguntando por el precio de los
+`GRJ22/23/24`. **Un `GRJ` es una pieza del Sector Garage: algo que se COMPRA hecho, entra por el
+garage y despues alguien lo termina.** No es un articulo que se venda: es el insumo principal del
+articulo.
+
+En el caso de los palos: **`GRJ22` es el palo de amasar de 30 cm en si** — la madera torneada que
+vende Tierra Nativa. `GRJ23` el de 40 y `GRJ24` el de 50. Fabrica les pone la bandita y los entrega
+en Virgilio, y eso los convierte en los articulos 231 / 232 / 233. Es el mismo patron que el `GRJ4`
+de Cimarron (§4cy).
+
+**Ninguno de los tres tiene precio cargado, y la lista tampoco lo tiene:** el bloque de Tierra
+Nativa solo lista *"Palo de Amasar Frances 40cm"* $600 (que es el `GRJ17`, el del 234) y
+*"Torneado Palo de Amasar 40cm"* $1.245. **Para los palos lisos de 30, 40 y 50 no hay precio en
+ningun lado.** Por eso hoy un palo cuesta $28,69, que es solo su caja. `[dato]`
