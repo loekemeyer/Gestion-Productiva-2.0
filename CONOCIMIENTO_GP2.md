@@ -8815,6 +8815,21 @@ dos de Tierra Nativa: **no hay precio para el 30, el 40 ni el 50 lisos**. `[dato
 no tres — el **234 (id 93)** tiene el mismo agujero, misma ruta `insumo → Fábrica → virgilio` y
 mismo proveedor. Y el `activo=false` **no cierra la puerta del todo**: ver §4cy. `[dato]`
 
+**Y la respuesta del dueño al punto 3, textual (2026-09-13): *"es la misma lógica que lo de cimarron
+con las bombillas que entrega en cervantes"*.** Con eso la pregunta se cierra: **los palos son una
+COMPRA DE INSUMO, no una entrega de Prov AT.** La base ya lo dice — `GRJ22/23/24` y `GRJ17` son
+Sector Garage, proveedor de insumo Tierra Nativa, stock en Sector Garage, `estado_compra` NULL,
+**exactamente la misma forma que `GRJ4` (Bomb AutoLimp Inox, proveedor Cimarrón)**: Cimarrón entrega
+la bombilla en Cervantes, se guarda en el garage como GRJ y recién después alguien la termina y la
+manda a Virgilio. El palo es eso mismo con Tierra Nativa y con Fábrica poniendo la bandita.
+
+**Consecuencia:** las 4 filas de `articulo_prov_at` de los palos (ids 92/93/94/95, los tres + el
+**234**) no describen nada real y hay que desactivarlas. De Tierra Nativa como Prov AT queda sólo el
+**591** (Despolvillador), que sí entra terminado y tiene su paso `proveedor_at` en la ruta 956.
+**Regla que deja: un proveedor puede ser las dos cosas a la vez** — insumo para unos artículos y
+Prov AT para otros —, así que la pregunta correcta nunca es "¿qué es este proveedor?" sino "¿qué
+llega de él para ESTE artículo: una pieza al garage, o el artículo terminado a Virgilio?". `[usuario]`
+
 ## 4cy. `articulo_prov_at` no garantiza nada, y `activo` sólo lo ve la pantalla (2026-09-13)
 
 Salió de traer al dueño la pregunta del punto 3 de §4cx. Lo que apareció es más grande que los palos.
