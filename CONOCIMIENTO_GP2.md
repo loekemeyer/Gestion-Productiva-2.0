@@ -8916,6 +8916,18 @@ receta. 14 no**, y en esos 14 la caja vale $0 en `v_costo_componente`: `[dato]`
 **Total $68.469/mes = $821.628/año.** El más caro no es ninguno de los que se estaban mirando (los
 94xE): es el **222**, que solo explica casi la mitad.
 
+**APLICADO el 2026-09-13 (dueño: *"cajas, dale"*).** Las 14 cajas entraron a la receta a
+`1/articulos_por_caja` y cada artículo recibió su ruta de caja `insumo → <su actor> → virgilio`,
+calcada del 223 (el actor NO se inventó: se copió del paso que ya cerraba cada artículo). **222 y
+910 llevan DOS rutas de caja cada uno** porque tienen dos alternativas de Prov AT (Maspoli y
+Pintos) y la regla §4bk dice que cada alternativa lleva su caja; los dos declaran `n_caja` NULL,
+así que las dos rutas van con A2. Total: **14 recetas (923–936), 16 rutas (978–993), 48 pasos
+(3744–3791)**. Snapshot previo en `zz_backups."GP2_Snap_costos_cajas_20260913"`. Invariantes
+35/35 en 0. **Ya no queda ningún artículo con caja en el FK y sin línea de receta.** `[usuario + dato]`
+
+**⚠ PERO EL COSTO NO SUBIÓ $30 POR UNIDAD: SUBIÓ $360. Ver §4dc — el bug es de la vista, no de la
+receta.**
+
 **Regla: `componente_caja_id` sin línea de receta es un costo que no existe. Al tocar la caja de un
 artículo, verificar las dos cosas** (es la misma regla de "completar tablas manteniendo la
 normalización", aplicada a la caja). `[deducido]`
@@ -8944,3 +8956,45 @@ del 515 (§4cw). Que loekemeyer.com los muestre activos es trabajo del repo del 
 **Regla: antes de decir "no tiene despiece", buscarlo en la hoja del RUBRO** (Bombillas, Materiales
 Loeke, Remaches, Flejes, Plásticos), no sólo en Costos y Cartones. Un artículo puede estar
 despiezado en tres hojas y en ninguna de las dos que uno mira primero. `[deducido]`
+
+
+## 4dc. `v_costo_componente` cobra la CAJA ENTERA por unidad: ARS 38,5 M por mes de sobrecosto (2026-09-13)
+
+**Salió de medir el efecto de cargar las 14 cajas de §4da.** Se esperaba que el 942E subiera $30
+(la caja de $360 dividida por 12). **Subió $360.** El mismo error estaba de antes en los otros 175
+artículos: el **234** da $944,26 = $600 del palo **+ los $344,26 de la caja entera**, cuando la
+caja de a 12 tendría que aportar $28,69. `[dato]`
+
+**Dónde está, leído de `pg_get_viewdef`:** la vista arma el costo por dos caminos y la caja entra
+por el equivocado.
+
+| CTE | De dónde saca | ¿Usa la cantidad? |
+|---|---|---|
+| `insumox` | los pasos `tipo_paso='insumo'` | **sí**, `cantidad * precio` |
+| `mat` | `edges` = los pasos `matriz` / `proveedor_servicio` / `tallerista` | **no**, `cb.precio` pelado (salvo sector 5, los flejes, que multiplica por kg) |
+
+La caja aparece en los **dos**: como entrada del paso `insumo` (0,0833) y como entrada del paso
+`tallerista` (el que la convierte en el terminado). Y `insumox` tiene este `case`:
+`when exists (edges e where e.ent = insumo_id) then greatest(cantidad - 1, 0) * precio`. Como la
+caja **sí** es entrada de un edge, `greatest(0,0833 − 1, 0) = 0` → **`insumox` aporta 0 y `mat`
+aporta el precio entero.** El `− 1` está pensado para una pieza que se transforma (entra 1, sale 1)
+y le pega de lleno a todo insumo con cantidad < 1: cajas, cartones, pliegos. `[dato]`
+
+**La plata:** sumando `precio_caja × (1 − 1/uni_x_caja) × uni_mes` sobre los 189 artículos con caja
+da **ARS 38.538.090 por mes**. Es de lejos el número más grande que apareció en esta auditoría, y
+**es anterior a cualquier cambio de hoy** — lo de §4da sólo sumó 14 artículos más a la misma cuenta.
+
+**Prueba de que el modelo querido es el otro:** la planilla, hoja Costos, columna M del 942E dice
+**15** = 360 ÷ 24, la parte por unidad. Y la cuenta que el dueño validó el 11-09 para la Caja N22
+del 546 (§4cr, *"~$39.500/mes de más"*) es `7.700 × (208 − 146,42) / 12`: **dividida por 12**. O sea
+el negocio siempre pensó en la parte; la vista es la que cobra la caja entera. `[dato]`
+
+**NO se tocó la vista.** Arreglarla mueve el costo de los 189 artículos de una y es una decisión del
+dueño, no un fix al pasar. Las dos formas de arreglarlo:
+1. Excluir de `mat` los edges cuya entrada ya viene con cantidad del paso `insumo` (que `insumox`
+   la cobre entera, sin el `− 1`).
+2. Que `mat` multiplique por la cantidad del paso, como ya hace con los flejes vía `kg_ref`.
+
+**Regla que deja: en GP2 un insumo que además es la ENTRADA del paso que lo consume se cobra
+entero, no por su cantidad. Antes de creerle a `total_pesos`, comparar contra la columna M de la
+hoja Costos.** `[deducido]`

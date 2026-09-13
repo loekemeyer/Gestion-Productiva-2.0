@@ -657,3 +657,24 @@ por no estar guardada).
 | 3 | 942E / 945E: 24 o 12 por caja | $38.520 / año | espera tu sí |
 | 4 | `articulo_prov_at`: opción A (4 filas), B (3) o C (la RPC) | latente: stock en negativo en la ubic. 54 | espera tu sí |
 | 5 | Proveedor de BANDITA: Pol o López José Daniel | precio todavía sin unidad | espera tu sí |
+
+
+---
+
+# §8. Cierre del 2026-09-13 (tarde): las 5 decisiones, y el hallazgo que dejaron
+
+| # | Decisión del dueño | Estado |
+|--:|---|---|
+| 1 | PEST1 → **Kollplast**, y anotado que deja de inyectarse ~noviembre 2026 | ✅ aplicado (componente 768) |
+| 2 | `articulo_prov_at`: **opción A** — *"es la misma lógica que lo de cimarron"* | ✅ aplicado (ids 92/93/94/95 en `activo=false`; el 591 sigue activo) |
+| 3 | BANDITA → **Talleres Gráficos Pol** | ✅ aplicado (componente 916) |
+| 4 | Las 14 cajas a la receta | ✅ aplicado (recetas 923–936, rutas 978–993, pasos 3744–3791) |
+| 5 | 942E / 945E: ¿24 o 12 por caja? | ⏳ **sigue sin decidir** — hoy quedaron en 12 |
+
+Invariantes 35/35 en 0 antes y después. Snapshot de costos previo:
+`zz_backups."GP2_Snap_costos_cajas_20260913"`.
+
+**Lo que apareció al medir el punto 4 y es más grande que todo lo anterior:
+`v_costo_componente` cobra la CAJA ENTERA por unidad — ARS 38.538.090 por mes sobre 189
+artículos, pre-existente.** El mecanismo, la prueba y las dos formas de arreglarlo están en
+CONOCIMIENTO §4dc. **No se tocó la vista: mueve el costo de los 189 de una y es decisión del dueño.**
