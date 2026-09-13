@@ -74,9 +74,10 @@ Tallerista"`; recordar que **«Carlos» del vecino es Alex Escalante en GP2** (C
   Escalante, Fábrica, Cavallero, Lucho, Martín Cornejo, Maspoli, Gentile, Carlos Aguirre, IJUPA,
   Pettofrezza, Tierra Nativa y Blist-Pack), así que darlos de alta obliga a crear el tallerista
   para algo que se va a discontinuar solo.
-- **`439E` Colador Pasta probablemente no sea un alta**: GP2 ya tiene el artículo **`441` Colador
-  de Pasta Plástico**, armado con el componente `GRJ25`. Confirmar si el 439E es el mismo con otro
-  código de venta.
+- **`439E` Colador Pasta NO tiene nada que ver con el `441`** `[usuario 2026-09-13, textual: "439E
+  no tiene nada que cer con 441"]`. **Queda sin efecto** la suposición anterior de que era el `441`
+  Colador de Pasta Plástico (`GRJ25`) con otro código de venta: son dos artículos distintos. El
+  439E sigue en el grupo A y le vale la recomendación de los coladores — no modelarlo, se va.
 - **El bloque de Carlos (332-337, 630-637, 613, 710)** son los cubiertos de acero inox: 16 códigos
   que suman 426 uni/mes, casi todos con despiece cargado en el vecino (3 a 7 partes). Es el grupo
   más barato de migrar porque la receta ya existe del otro lado — **y ojo: GP2 ya tiene los
@@ -85,7 +86,8 @@ Tallerista"`; recordar que **«Carlos» del vecino es Alex Escalante en GP2** (C
   distinto código de venta.
 - **55215 (Palo de Amasar 40 cm, Tierra Nativa)** es el mismo producto que el **232** que GP2 ya
   tiene: acá el trabajo no es dar de alta un artículo, es decidir si es un alias.
-- **838E y 877E no tienen ni descripción** en el vecino: hay que preguntar qué son antes de nada.
+- **838E y 877E no tienen ni descripción** en el vecino, pero el dueño ya los identificó: son otros
+  códigos de artículos que se compran (ver grupo C). Ninguno de los dos es trabajo.
 
 ## El circuito del pincel 590E — el más grande del grupo A
 
@@ -137,12 +139,12 @@ ese consumo de cajas no se puede registrar en GP2 sin dar de alta ese formato.
   (línea LK) y `630`, `631`, `632`, `633`, `634`, `635`, `636`, `637` (línea Chef), 425 uni/mes.
   **Los reemplazan los `941E`-`948E`, que GP2 YA TIENE** con su receta y su ruta. Era el bloque que
   este mismo archivo proponía migrar por barato: **ya está hecho, por otro camino.**
-  > Ojo al pasar: GP2 tiene 941E, 942E, 943E, 944E, 945E, 946E y **948E** — **no hay 947E**.
-  > Si ese código existe, falta.
-- **`838E` es el Rallador Mini de Chef, el mismo que el `323E`** `[usuario]`, y **`877E` es el
-  corta pizza, el mismo que el `809E` de Loeke** `[usuario]`. Los dos van al grupo B: ya se compran.
-  **No confundir `838E` (rallador mini, importado) con `323` Rallador Cilíndrico Chico**, que sigue
-  en el grupo A y es otra cosa.
+  > Ojo al pasar: GP2 tiene 941E, 942E, 943E, 944E, 945E, 946E y **948E**, y **el `947E` no existe**
+  > `[usuario 2026-09-13, textual: "947E no"]`. El juego está completo: **no falta ninguno**.
+- **`838E` es el `323E` con otro cartón** `[usuario 2026-09-13, textual: "838E=323E con otro carton,
+  no 323 (sin E)"]` — el Rallador Mini de Chef; lo único que los separa es el cartón. Y **`877E` es
+  el corta pizza, el mismo que el `809E` de Loeke** `[usuario]`. Los dos van al grupo B: ya se
+  compran. **El `323` (sin E) Rallador Cilíndrico Chico es OTRA COSA**, sigue en el grupo A.
 - **`55215`** (Palo de Amasar 40 cm, Tierra Nativa): *"se entrego solo una vez… y no se va a volver
   a vender"* `[usuario]`. Fuera. **Deja sin efecto la nota anterior** de que era un alias del 232.
 

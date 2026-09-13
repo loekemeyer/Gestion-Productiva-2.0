@@ -8396,9 +8396,9 @@ cartones** (LK y Chef), que tampoco existen y **se codifican por posición de es
 Cartón 229, `G6B` = Cartón 299), no con un número inventado. También si el 890E lleva cartón propio
 de Chef o el mismo que LK. Detalle y orden de la cirugía en `ARTICULOS_FUERA_DE_GP2.md`.
 
-**Y quedó una pregunta abierta**: `439E` (Colador Pasta) y `440E` (Colador Extensible) siguen
-figurando como de García y son de la misma familia de coladores que se acaba de pasar a importada;
-no se movieron porque el dueño nombró sólo cuatro códigos.
+**Quedó una pregunta abierta y ya está contestada en §4cp**: `439E` (Colador Pasta) y `440E`
+(Colador Extensible) son de la misma familia de coladores, y el dueño dijo que **todos los coladores
+pasan a importados** — no se modelan. No volver a abrirla.
 
 
 ### 4cp. Coladores de salida, cubiertos inox discontinuados, y dos códigos que eran otra cosa (2026-09-13)
@@ -8417,19 +8417,23 @@ uno (salvo 16 y 20cm de Chef y Loeke)"*. Tres cosas que salen de ahí:
   son Danica García, Alex Escalante, Fábrica, Cavallero, Lucho, Martín Cornejo, Maspoli, Gentile,
   Carlos Aguirre, IJUPA, Pettofrezza, Tierra Nativa y Blist-Pack]`, así que darlos de alta obliga a
   crear un tallerista para algo que se discontinúa solo.
-- `[deducido]` **`439E` Colador Pasta probablemente no sea un alta**: GP2 ya tiene el artículo
-  **`441` Colador de Pasta Plástico** con el componente `GRJ25`. Falta confirmar si es el mismo.
+- `[usuario 2026-09-13, textual: "439E no tiene nada que cer con 441"]` **El `439E` NO es el `441`.**
+  **Queda sin efecto** la suposición `[deducido]` que había acá de que el 439E fuera el `441`
+  Colador de Pasta Plástico (`GRJ25`) con otro código de venta: son artículos distintos. No cambia
+  la recomendación — el 439E es colador, y los coladores no se modelan porque se van a importar.
 
 **2) Los cubiertos de acero inox ya están resueltos, por otro camino** `[usuario 2026-09-13,
 textual]`: *"332/7 y 630/7 son discontinuos. Se reemplazaron por 941/8E"*. Son 14 códigos (332-337
 de LK y 630-637 de Chef, 425 uni/mes) y **los reemplazos `941E`-`948E` YA ESTÁN en GP2**, con
 receta y ruta. Justo el bloque que §4cm proponía migrar "porque era el más barato": no hay nada que
-migrar. `[dato]` GP2 tiene 941E-946E y 948E; **no hay 947E** — si ese código existe, falta.
+migrar. `[dato]` GP2 tiene 941E-946E y 948E; **el `947E` no existe** `[usuario 2026-09-13, textual:
+"947E no"]`, así que **el juego está completo y no falta ninguno**. Pregunta cerrada.
 
-**3) Dos códigos que eran otro artículo ya conocido** `[usuario]`: **`838E` es el Rallador Mini de
-Chef, el mismo que el `323E`**, y **`877E` es el corta pizza, el mismo que el `809E` de Loeke**. Los
-dos se compran: van al grupo de reventa. **Cuidado con no confundir `838E` (rallador mini,
-importado) con `323` Rallador Cilíndrico Chico**, que es otra cosa y sigue en la lista.
+**3) Dos códigos que eran otro artículo ya conocido** `[usuario]`: **`838E` es el `323E` con otro
+cartón** `[usuario 2026-09-13, textual: "838E=323E con otro carton, no 323 (sin E)"]` — el Rallador
+Mini de Chef, y lo único que los separa es el cartón —, y **`877E` es el corta pizza, el mismo que
+el `809E` de Loeke**. Los dos se compran: van al grupo de reventa. **El `323` (sin E) Rallador
+Cilíndrico Chico es OTRA COSA**, no confundirlo con el 838E: sigue en la lista de los que faltan.
 
 **4) `55215`** (Palo de Amasar 40 cm, Tierra Nativa) `[usuario, textual]`: *"se entrego solo una
 vez. No lo analicemos. Y no se va a volver a vender"*. Fuera de la lista. **Deja sin efecto** lo que
