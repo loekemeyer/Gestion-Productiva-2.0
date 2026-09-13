@@ -30,9 +30,10 @@ completa en `CONOCIMIENTO_GP2.md` §4cf.
 GP2**; las 43 `*_GP2.html` (más `login.html`, que usa `sb.schema('GP2')`) usan el cliente GP2, y
 ninguna función ni vista de `GP2` toca una tabla de `public` (única referencia: `public.http_get`,
 la extensión http). Las **50 pantallas viejas que ya tenían reemplazo GP2 se borraron** (109
-archivos; siguen en el historial de git y en `GestionProductivaEntero`). Quedan **5 archivos**
-mirando `public`, ninguno colgado del menú y ninguno en uso: Facturas (2), Control Carga Remitos,
-Preavisos e `InformesVirgilio`, que es de Gestión Virgilio y tiene su propio repo. El último que
+archivos; siguen en el historial de git y en `GestionProductivaEntero`). Quedan **3 archivos**
+mirando `public`, ninguno colgado del menú y ninguno en uso: Control Carga Remitos, Preavisos e
+`InformesVirgilio` (la carpeta `Facturas/` se borró entera el 2026-09-13: su único archivo llamaba a
+la Edge Function `leer-factura` con la clave de OpenAI filtrada — ver LOCKS), que es de Gestión Virgilio y tiene su propio repo. El último que
 estaba **vivo**, Calcular Cajones, se migró el 2026-09-13 (`CalcularCajones_GP2.html` +
 `GP2.cajon`). El mapa completo, con lo
 que se borró y lo que se relinkeó antes de borrar, está en `MIGRACION_PUBLIC_GP2.md`.
