@@ -8550,3 +8550,73 @@ oficial del gemelo y evita adivinarlo por descripción.
 
 **Con esto el tema caja queda cerrado del todo**, salvo los precios, que esperan la lista del
 lunes (§4cr). Ya no hay ningún artículo pidiendo una caja que no exista.
+
+### 4ct. El circuito del pincel YA ESTÁ EN LA BASE — y el número del cartón es el código del artículo (2026-09-13)
+
+**Estado: dado de alta y verificado contra la base.** La §4co y la entrada de `[HISTORIAL]` del
+13-09 decían *"NO SE DIO DE ALTA NADA todavía porque faltan tres datos que sólo tiene el dueño"*.
+**Eso quedó viejo**: los tres artículos, los tres componentes y las ocho rutas están cargados. Esta
+sección es la foto real, para que ninguna sesión vuelva a preguntar por lo que ya existe.
+
+**Un solo insumo a granel que sale como TRES artículos** `[usuario 2026-09-13, textual: "590E se
+stockea en Virgilio en cajas x600uni, que se le mandan a garcia para que las envase"]`. Lo que
+separa a los tres **no es la pieza, es el envase**:
+
+| Artículo | id | Empresa | Cartón | Caja | uni/caja | Familia |
+|---|---:|---|---|---|---:|---|
+| `590E` Pincel Silicona 11 Gms | 229 | LK | `CART590` | `A11` (Caja N°29) | 12 | Repostería |
+| `890E` Pincel Silicona 11 Gms | 230 | Chef | `CART890` | `A11` (Caja N°29) | 12 | Repostería |
+| `590ES` Pincel Silicona 11 gms s/Cartón | 231 | LK | **ninguno** | `A11` (Caja N°29) | 50 | Repostería |
+
+**Los componentes** `[dato: GP2.componente]`: `PINCEL590` (id 910) *Pincel Silicona 11 gms
+(granel)*, **Sector Plástico**, proveedor `Importado`, inventario en **Virgilio (Distribución)** —
+que es donde se stockea; `CART590` (id 911) y `CART890` (id 912), **Sector Cartón**, inventario en
+Sector Cartón. La **Caja N°29 = `A11`**, Sector Caja, proveedor Corrugadora del Plata.
+
+**Las recetas** (`articulo_componente`) y **las 8 rutas**, una por insumo, todas con el tallerista
+**Danica García (id 1)** y el patrón `insumo → tallerista → virgilio`, calcado 1:1 de los artículos
+550/760:
+
+| Artículo | Receta | Rutas |
+|---|---|---|
+| `590E` | PINCEL590 ×1 · CART590 ×1 · A11 ×1/12 (0,0833) | 964, 965, 966 |
+| `890E` | PINCEL590 ×1 · CART890 ×1 · A11 ×1/12 (0,0833) | 967, 968, 969 |
+| `590ES` | PINCEL590 ×1 · A11 ×1/50 (0,02) | 970, 971 |
+
+**Base después del alta** `[dato]`: **191 artículos, 800 componentes, 862 rutas, 3.284 pasos**;
+0 sin receta, 0 sin ruta, 0 componentes de receta sin inventario, y los 35 invariantes de
+`db/verificar.sql` en 0.
+
+#### La regla del número de cartón: 147 de 152, y las 5 excepciones dicen algo
+
+**El número que lleva el cartón en su descripción es el código del artículo que envuelve.** Medido
+sobre los 152 cartones de GP2 que tienen un número en la descripción: **147 de esos números son un
+código de artículo de GP2**. Por eso `Cartón 590` y `Cartón 890`, y no un número inventado.
+
+**Las 5 que no cierran no son ruido, son dos cosas distintas** `[dato 2026-09-13]`:
+
+| Cartón | Código | Por qué no cierra |
+|---|---|---|
+| `Cartón 590` | `CART590` | El artículo es `590E`, con la E. El cartón es del pincel igual. |
+| `Cartón 890` | `CART890` | Ídem con `890E`. |
+| `Cartón 574` | `C1B` | **`574` no existe como artículo en GP2** — y está en el grupo A de los que faltan. |
+| `Cartón 119` | `I3B` | **`119` no existe como artículo en GP2.** |
+| `Cartón 809` | `O6A` | **`809` no existe como artículo en GP2** — también está en el grupo A. |
+
+**Lo que deja como método:** un cartón cargado cuyo número no cruza con ningún artículo es **un
+artículo que falta, no un cartón mal codificado**. Para el `574 Corta Queso Alambre` y el `809
+Corta Queso Alambre Chef` el cartón **ya está**; lo que falta es el artículo. Eso baja el trabajo
+de esos dos a la mitad y conviene mirarlo antes de darlos de alta desde cero.
+
+#### Dos cabos sueltos del pincel, a propósito
+
+1. **Faltan TRES precios, no uno.** `v_costo_componente` marca `faltan_precios` en `PINCEL590`,
+   **`CART590` y `CART890`** (la §4co y el pedido original sólo nombraban el pincel). Consecuencia
+   medida: los tres artículos dan **$166,86** de costo, que es **exactamente el costo de la caja
+   `A11`** — o sea que hoy el pincel "cuesta su caja". No es que el pincel sea gratis: no tiene
+   precio cargado. **Al mirar el costo de estos tres, leer `faltan_precios` antes de creerle al
+   total** (la misma trampa que dejó §4cn con `BOM10`).
+2. **`CART590` y `CART890` no tienen posición de estantería.** El código `CART###` es **provisorio**
+   (precedentes `CART058`, `CART059`, `CART186`, `CART715`). La convención de la casa codifica el
+   cartón **por posición** (`G2B` = Cartón 229, `G6B` = Cartón 299), así que el código definitivo
+   sale de dónde se guardan, y eso lo tiene que decir el dueño. No se inventa.

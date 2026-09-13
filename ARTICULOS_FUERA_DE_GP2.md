@@ -9,24 +9,24 @@ Se parten en dos, y sólo el primer grupo es trabajo:
 
 | Grupo | Códigos | uni/mes | % de la demanda total | Qué es |
 |---|---:|---:|---:|---|
-| **A. Los que faltan de verdad** | **26** | **3.655** | **1,4 %** | Un tallerista los entrega. Se producen o se envasan acá. |
+| **A. Los que faltan de verdad** | **23** | **2.460** | **1,0 %** | Un tallerista los entrega. Se producen o se envasan acá. |
 | B. Reventa e importado | 179 | 39.982 | 15,8 % | Se compran terminados y listos para vender. |
 | C. Discontinuados / no se venden más | 15 | 460 | 0,2 % | Reemplazados por otro artículo, o vendidos una sola vez. |
 
-> **Corregido dos veces el 2026-09-13 con lo que dijo el dueño.** Arrancó en **46 códigos /
-> 10.504 uni/mes** y quedó en **26 / 3.655**. Se fueron: 438E, 437E, 566E y 584E (importados
-> listos, −6.351), los cubiertos inox 332-337 y 630-637 (discontinuados, −425), 838E y 877E
-> (son otros códigos de artículos que ya se compran, −45) y 55215 (no se vende más, −35).
-> Entró 890E. **El más grande ahora es el 590E**, y **1.038 uni/mes de lo que queda son
-> coladores que también se van a importar en poco tiempo**: el trabajo estable son ~2.600
-> uni/mes.
+> **Corregido tres veces el 2026-09-13.** Arrancó en **46 códigos / 10.504 uni/mes** y quedó en
+> **23 / 2.460**. Se fueron: 438E, 437E, 566E y 584E (importados listos, −6.351), los cubiertos
+> inox 332-337 y 630-637 (discontinuados, −425), 838E y 877E (son otros códigos de artículos que
+> ya se compran, −45), 55215 (no se vende más, −35) y **los tres del pincel — 590E, 890E y 590ES
+> (−1.195) —, que ya NO faltan: se dieron de alta en la base** (CONOCIMIENTO §4ct).
+> **De los 2.460 que quedan, 1.038 son coladores que también se van a importar en poco tiempo**:
+> el trabajo estable son ~1.400 uni/mes, y el más grande es el 565 Pinza De Hielo (534).
 
 **El criterio de corte no es el volumen, es si alguien los fabrica**: un código sin despiece y sin
 tallerista no tiene nada que modelar en GP2 aunque venda mucho.
 
 ---
 
-## A. Los 26 que faltan de verdad
+## A. Los 23 que faltan de verdad
 
 `partes` = cuántas líneas tiene su despiece en `public."Despiece x Articulo"` (0 = el vecino sabe
 quién lo entrega pero tampoco lo despieza). `tallerista` sale de `public."Articulos Virgilio X
@@ -34,8 +34,6 @@ Tallerista"`; recordar que **«Carlos» del vecino es Alex Escalante en GP2** (C
 
 | Cód | Artículo | uni/mes | Tallerista | partes |
 |---|---|---:|---|---:|
-| 590E | Pincel Silicona 11 Gms — **LK, con cartón, caja 29 x12** | 1.188 | Danica García | 2 |
-| 890E | Pincel Silicona 11 Gms — **Chef, con cartón, caja 29 x12** | 7 | Danica García | 0 |
 | 565 | Pinza De Hielo | 534 | Manfer | 1 |
 | 110 | Colador N°8 Loke — *José López, sólo le damos el cartón* | 384 | Lopez Jose | 1 |
 | 561 | Pinza Grande LK | 324 | Pedernera | 2 |
@@ -59,12 +57,12 @@ Tallerista"`; recordar que **«Carlos» del vecino es Alex Escalante en GP2** (C
 | 717 | Cuchillo De Untar Acrílico x4 | 0 | Log/Fabr | 0 |
 | 613 | Cuchara Calada 1 Pieza Ac. Inox | 0 | Carlos | 0 |
 | 747 | Bombilla Coco Hexagonal | 0 | Log/Fabr | 0 |
-| 590ES | Pincel Silicona 11 gms — **LK, SIN cartón, caja 29 x50** | 0 | Danica García | 0 |
 
 **Cómo se lee esta tabla para decidir:**
 
-- **El primero es el 590E** (1.188 uni/mes, el 29 % del grupo) y arrastra a otros dos: es un solo
-  circuito que produce tres artículos. Está explicado abajo.
+- **El primero es el 565 Pinza De Hielo** (534 uni/mes, el 22 % del grupo). El que era primero,
+  el 590E, **ya no está en esta lista: se dio de alta** junto con el 890E y el 590ES
+  (CONOCIMIENTO §4ct).
 - **Los coladores están de salida** `[usuario 2026-09-13, textual]`: *"Coladores, ahora pasan a ser
   importados dentro de muy poco, pero por ahora las hace Jose Lopez y entrega. Solo le damos el
   carton de cada uno (salvo 16 y 20cm de Chef y Loeke)"*. O sea: **de los coladores lo único que
@@ -89,37 +87,29 @@ Tallerista"`; recordar que **«Carlos» del vecino es Alex Escalante en GP2** (C
 - **838E y 877E no tienen ni descripción** en el vecino, pero el dueño ya los identificó: son otros
   códigos de artículos que se compran (ver grupo C). Ninguno de los dos es trabajo.
 
-## El circuito del pincel 590E — el más grande del grupo A
+## El circuito del pincel — HECHO, ya no es trabajo pendiente
 
 `[usuario 2026-09-13, textual]` *"590E se stockea en Virgilio en cajas x600uni, que se le mandan a
-garcia para que las envase"*. **Es un solo insumo a granel que sale como TRES artículos**, y por eso
-es un caso de manual para GP2: la diferencia entre los tres no es la pieza, es el envase.
+garcia para que las envase"*. Un solo insumo a granel que sale como **tres artículos**, y lo que
+los separa no es la pieza sino el envase.
 
-| Artículo | Empresa | Cartón | Caja | uni/caja | uni/mes |
-|---|---|---|---|---:|---:|
-| 590E | LK | **sí** | 29 (`A11`) | 12 | 1.188 |
-| 890E | Chef | **sí** | 29 (`A11`) | 12 | 7 |
-| 590ES | LK | **no** | 29 (`A11`) | 50 | 0 |
+**Se dio de alta el 2026-09-13 y está verificado contra la base.** Los tres artículos (`590E` id
+229, `890E` id 230, `590ES` id 231), los tres componentes (`PINCEL590` id 910 en Sector Plástico
+con inventario en Virgilio, `CART590` id 911 y `CART890` id 912 en Sector Cartón), las recetas y
+las **8 rutas** con el tallerista **Danica García (id 1)**. **El detalle completo está en
+CONOCIMIENTO §4ct** — no repetirlo acá.
 
-Lo que ya está confirmado contra la base: **Caja N°29 = `A11`** (Sector Caja), **García = `Danica
-García`, tallerista id 1, activo**, y los tres códigos existen en la Est Madre con el `uxb` que
-corresponde (12, 12 y 50). El vecino modela el 590E con dos partes, `590E-CC` (caja chica, 1/12) y
-`590E-MC` (mastercaja, 1/600) — o sea que **la caja x600 es cómo llega importado**, no una parte del
-artículo terminado.
+**Quedan dos cabos sueltos**, los dos esperando al dueño: **tres precios sin cargar**
+(`PINCEL590`, `CART590` y `CART890`, no sólo el pincel — por eso los tres artículos dan $166,86,
+que es el costo de la caja sola), y la **posición de estantería** de los dos cartones, que es de
+donde sale su código definitivo (`CART###` es provisorio).
 
-**Falta para poder darlos de alta** (no se inventa nada, tiene que decirlo el dueño):
+## El cartón ya cargado del 574 y del 809
 
-1. **El componente del pincel a granel** — no existe todavía en GP2. Hay que decidir su código y su
-   sector (¿Plástico?), y que su ubicación sea Virgilio, que es donde se stockea.
-2. **Los dos cartones** (el de LK y el de Chef) tampoco existen. Los cartones de GP2 se codifican
-   **por posición de estantería** (`G2B` = Cartón 229, `G6B` = Cartón 299), así que el código sale
-   de dónde se guardan, no de un número inventado.
-3. Confirmar si el 890E lleva **un cartón propio de Chef** o es el mismo que el de LK.
-
-Con eso, la cirugía es la de siempre y en este orden: `componente` (pincel granel + 2 cartones) →
-`inventario` (fila en Virgilio) → `articulo` × 3 con `articulos_por_caja` 12/12/50 →
-`articulo_componente` (pincel 1 + cartón 1 + `A11` 1/12, y para el 590ES pincel 1 + `A11` 1/50) →
-`ruta` / `ruta_paso` (insumo → tallerista Danica García → virgilio).
+De los 152 cartones de GP2 con número en la descripción, **147 números son un código de artículo**.
+Tres de las cinco excepciones son cartones de artículos que **GP2 no tiene**: `C1B` = Cartón 574,
+`O6A` = Cartón 809 e `I3B` = Cartón 119. **El 574 y el 809 están en la tabla de arriba**: para esos
+dos el cartón ya existe, lo que falta es el artículo. Mirarlo antes de darlos de alta desde cero.
 
 ## Lo que se importa y ya viene listo para vender
 
