@@ -189,7 +189,22 @@ select a.codigo, count(distinct r.id) rutas, count(p.id) pasos, bool_and(coalesc
 
 Hoy, antes del cambio: AA=0, AB=0, I=0, "receta sin inventario"=0 (medido).
 
-**Efecto sobre costos:** `v_costo_componente` hoy da 231/232/233 = $0,00 con `faltan_precios=1` (GRJ22/23/24 sin precio; el 234 sí tiene $600 + caja = $944,26). Después del alta van a seguir con `faltan_precios` ≥ 2 (GRJ sin precio + BANDITA sin precio) y el total sólo va a reflejar la caja ($28,69/uni). El precio de los palos 30/40/50 no está en la LP (sólo "Palo de Amasar Frances 40cm" $600 f888 y "Torneado Palo de Amasar 40cm" $1.245 f901, ambos Tierra Nativa).
+**Efecto sobre costos** (⚠ ACTUALIZADO el 2026-09-13 a la noche): esta línea decía que el 234
+costaba **$944,26** con caja. **Ese número era CORRECTO cuando se escribió** — la vista
+`v_costo_componente` cobraba la caja **entera** por unidad en vez de su parte, y el 234 era
+justamente el testigo que lo probaba. **Otra sesión lo arregló el mismo día** (migración
+`la_caja_se_cobra_por_su_parte_no_entera`: `mat` pasa a cobrar `least(cantidad,1) * precio`),
+así que **hoy el 234 da $628,69** = $600 del palo + **$28,69** de su parte de caja.
+
+⚠ Y ojo con la trampa, que ya mordió: al medir DESPUÉS del arreglo, el 944,26 parece un error
+de suma y da ganas de "corregirlo" diciendo que uno se equivocó. No fue un error de cuenta: era
+el bug. Si se reescribe como error propio se borra la evidencia del problema. Lo que corresponde
+es fechar el número, no negarlo.
+
+Estado de hoy, verificado en la base: 231/232/233 quedan con `faltan_precios = 2` (GRJ sin
+precio + BANDITA sin precio) y su total refleja sólo la caja, **$28,69** cada uno — que es
+exactamente lo que este archivo predecía. Los 189 artículos con caja tienen su línea de receta
+con `cantidad = 1/uni_x_caja`: ninguno cobra la caja entera. El precio de los palos 30/40/50 no está en la LP (sólo "Palo de Amasar Frances 40cm" $600 f888 y "Torneado Palo de Amasar 40cm" $1.245 f901, ambos Tierra Nativa).
 
 ---
 
