@@ -133,6 +133,7 @@ confirmar acá que la clave existe; si un bundle cambia, actualizar esta tabla e
 |---|---|---|
 | `abm_articulos_bundle()` | ABM Artículos | `art, partes, sect` |
 | `alertas_bundle()` | Alertas | `generado_en, matriz_sin_tiempo, pendientes, pm, ref_fecha, rm, ventana_dias` |
+| `calculadora_cajones_bundle()` | Calcular Cajones | `cajones, sectores, comps` |
 | `control_recepcion_bundle(p_sector_id)` | control-cajas.js (11) y control-remaches.js (5, 8, …) | `recepciones, sector, sector_id, uni_x_paq_default` (reemplaza a `control_cajas_bundle` + `control_kg_bundle`, 2026-09-05) |
 | `control_envios_bundle(p_desde, p_hasta)` | Control Envíos y Entregas | (por vista/tipo, ver la pantalla) |
 | `control_ps_bundle()` | Control PS | `generado_en, proveedores` (cada proveedor trae `nombre_corto`) |
@@ -391,6 +392,21 @@ respuesta sea una sola. Ninguna funcion busca mas una ubicacion por nombre
 
 Cron: un solo job de GP2 entre los 49 del proyecto, `gp2-dolar-oficial` (`10 9 * * *` UTC →
 `"GP2".actualizar_dolar_oficial()`). Los otros 48 son de `public`/`planify` (la casa del vecino).
+
+## Lectura de facturas (2026-09-13) — la IA lee, GP2 decide, la persona confirma
+
+No es un bundle: son tres piezas encadenadas, y **ninguna escribe stock sola**.
+
+| Pieza | Qué es | Contrato |
+|---|---|---|
+| `gp2_leer_factura` | **Edge Function**, no RPC. `POST {archivo_b64, mime}` con la clave publicable en `apikey`. Llama a la API de Claude con el PDF como bloque `document` o la foto como `image`, y `output_config.format` con JSON Schema. | Devuelve `{ok, factura:{razon_social_emisor, cuit_emisor, fecha_emision, tipo_comprobante, punto_venta, numero_comprobante, remito, items:[{codigo, descripcion, cantidad, unidad_medida, precio_unitario, subtotal}], importe_total}, uso}` |
+| `factura_match(p jsonb)` | RPC **solo lectura**: ata cada renglón a un componente. Orden de confianza: `factura_alias` (aprendido) → `fleje_detalle.cod_isis` → `componente.codigo` → parecido de descripción dentro de la lista de productos de ese proveedor. | `p = {proveedor, items:[{codigo, descripcion, cantidad, unidad, precio_unitario}]}` → `{ok, proveedor_texto, proveedor:{id,nombre,cod_prov,sim}, items:[{…, comp_id, comp_cod, via, confianza, sim, candidatos}], resueltos, sugeridos, sin_match, total}` |
+| `factura_alias_guardar(p_proveedor, p_cod_prov, p_comp_id, p_descripcion, p_usuario)` | Ata a mano el código de un proveedor a una pieza. **Es el único "entrenamiento" que hace falta.** | Devuelve el `id` de `GP2.factura_alias` |
+
+**Ojo con `precio_proveedor.cod_prov`: es el código DEL PROVEEDOR, no del artículo** (2147 =
+Talleres Gráficos Pol). GP2 no tiene los códigos de artículo de sus proveedores; los únicos códigos
+de tercero cargados son los 51 `fleje_detalle.cod_isis`. Por eso `factura_alias` arranca vacía y es
+la tabla que hay que llenar con el uso.
 
 ## Puntos de contacto con `public` (la casa del vecino) — son estos y nada mas
 

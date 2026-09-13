@@ -1,14 +1,14 @@
 # db/ — Respaldo del schema GP2
 
-Export automático **2026-09-05** (cierre de la auditoría de arquitectura del 2026-09-04, ver
-`REFACTOR_GP2.md`) desde Supabase (`hrxfctzncixxqmpfhskv`). El schema vive SOLO en la base
+Export del **2026-09-05** (cierre de la auditoría de arquitectura del 2026-09-04, ver
+`REFACTOR_GP2.md`), **con los conteos y los objetos nuevos al 2026-09-13**, desde Supabase (`hrxfctzncixxqmpfhskv`). El schema vive SOLO en la base
 (las migraciones se aplican por MCP y no quedan en el repo): este directorio es la foto.
 
 | Archivo | Contenido | Exactitud |
 |---|---|---|
-| `tablas_GP2.sql` | **47 tablas** (columnas, identity, defaults, **comentario en las 47 tablas** y en 44 columnas) + 153 constraints (PK, UNIQUE, FK, CHECK — 17 vocabularios cerrados) + 49 índices sueltos + 9 triggers + RLS en las 47 + 47 policies (todas SELECT) | DDL reconstruido de `pg_catalog`; constraints/índices/triggers exactos vía `pg_get_*def` |
-| `funciones_GP2.sql` | Las **119 funciones/RPC** del schema (96 RPC de pantalla + 23 internas) | Exacto (`pg_get_functiondef`), **verificado md5 contra la base** (119/119 el 2026-09-05 ~10:30 UTC, tras los ciclos 8–9: `fn_movimiento_calc`, `crear_oc`, `oc_bundle`, `crear_entrega_prov_at`) |
-| `vistas_GP2.sql` | Las **13 vistas** (con sus `comment on view`) | Exacto (`pg_get_viewdef`) |
+| `tablas_GP2.sql` | **53 tablas** (columnas, identity, defaults, **comentario en las 53**) + 186 constraints (PK, UNIQUE, FK, CHECK) + índices sueltos + 14 triggers + RLS en las 53 + 53 policies (todas SELECT) | DDL reconstruido de `pg_catalog`; constraints/índices/triggers exactos vía `pg_get_*def` |
+| `funciones_GP2.sql` | Las **147 funciones/RPC** del schema (108 ejecutables por `anon`, el resto internas) | Exacto (`pg_get_functiondef`); lo agregado el 12 y 13-09 (`movimientos_bundle`, `calculadora_cajones_bundle`, `factura_match`, `cod_norm`, `texto_norm`, `factura_alias_guardar`) se verificó por md5 contra la base al escribirlo |
+| `vistas_GP2.sql` | Las **18 vistas** (con sus `comment on view`) | Exacto (`pg_get_viewdef`) |
 | `verificar.sql` | **29 invariantes** de la base en una consulta (contrapartes con ubicación, inventario = ledger, grants, RLS, `search_path`, PS híbridos y su materia prima, códigos, rutas y recetas, recepción ↔ ledger, espejo de Virgilio, claves de `parametro` que lee el código): cada fila debe dar `n = 0` | Sólo lectura; correrla antes de tocar la base y al cerrar; el agente diario la corre al empezar |
 | `relevamiento_GP2.sql` | Registro de las 3 migraciones del Relevamiento nativo (2026-09-04) con su porqué | Documental; el estado vigente está en los tres archivos de arriba |
 | `PENDIENTE_v_costo_componente_servicio_exacto.sql` | Cirugías de costos aplicadas el 2026-08-31 + el pendiente de servicios exactos por pieza | Documental / idempotente |
