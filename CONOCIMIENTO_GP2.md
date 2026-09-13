@@ -8735,3 +8735,41 @@ operador del sistema decide) — y `tablet_registrar` no tiene un modo para eso.
 `tablet_registrar` llama a `crear_entrega_tallerista`, y el propio `comment` de esa función dice que
 **no es el motor** (el motor es `gp2-motor.js` + `registrar_movimientos`, idea 7316). Se documenta y
 se deja abierto: esta sesión no podía tocar la base.
+
+### 4cw. Cruce contra loekemeyer.com: 11 artículos activos sin despiece — y la Est Madre miente con el 515 (2026-09-13)
+
+**Pedido del dueño:** *"Revisá loekemeyer.com. Revisá si te falta el despiece de algún artículo."*
+La página no se puede leer desde la sesión (el proxy la bloquea), así que se cruzó **la fuente de
+la página**: `public.products` del proyecto LK (`kwkclwhmoygunqmlegrg`), que es lo que el sitio
+muestra `[dato 2026-09-13]`.
+
+**Universo:** 264 productos, **199 activos** = 87 importados (terminan en E, reventa: fuera de GP2
+por diseño, §4cm) + **112 propios**. De los 112, **101 tienen despiece en GP2** (0 sin receta, 0 sin
+ruta) y **11 no**:
+
+| Cód | Artículo | uni/mes Est Madre | Estado en GP2 |
+|---|---|---:|---|
+| 515 | Batidor Resorte | 486 | **borrado el 13-09** por orden del dueño (§4cq) — **ver abajo** |
+| 332 | Espátula Calada Ac. Inox | 136 | "discontinuo → 941E-948E" (dueño, §4cp) |
+| 509 | Pala Batidora | 104 | grupo A, Carlos; el vecino tampoco lo despieza |
+| 396 | Enrulador de Manteca | 80 | grupo A, sin tallerista |
+| 335 | Cuchara Calada Ac. Inox | 64 | "discontinuo → 941E-948E" |
+| 573 | Bombilla Colores Metalizados | 52 | **nuevo**: no figuraba en ningún listado, sin despiece en el vecino |
+| 337 | Pinche Ac. Inox | 48 | "discontinuo → 941E-948E" |
+| 537 | Pela y Pica Ajo | 0 | pendiente a propósito (dueño) |
+| 567 | Corta Palta | 0 | ídem |
+| 556 | Sacayerba | 0 | **nuevo** |
+| 517 | Pinza Acero Inox 25 cm | 0 | **nuevo** |
+
+**Contradicción que se le mostró al dueño:** 515, 332, 335 y 337 están **activos en la página** y
+GP2 los tiene como borrado / discontinuos. Su respuesta sobre el 515 `[usuario 2026-09-13, textual:
+"No hay chance que se venda 486 uni de 515"]` → **la proyección de la Est Madre para el 515 es
+falsa** y el borrado queda como está. **Regla que deja:** `GP2.est_madre.proy_uni_mes` no es
+evidencia de que un artículo se vende — proyecta sobre lo vendido histórico y arrastra
+discontinuados (§4cp ya lo decía para los 46 candidatos; el 515 es el caso más grande: 486 uni/mes
+de un artículo que ya no se fabrica). Antes de usar ese número para decidir un alta, mirar ventas
+reales recientes o preguntarle al dueño. Los otros tres inox (332/335/337) y los tres códigos nuevos
+(573, 556, 517) siguen sin decisión del dueño; 509 y 396 siguen en el grupo A.
+
+**Lo que NO cambia:** los 45 propios inactivos de la página no se miran (no se venden); los 87 E
+no van a GP2.
