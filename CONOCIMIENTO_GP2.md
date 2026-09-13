@@ -8308,3 +8308,53 @@ El único caso que no puede deducir es una pieza con varias entradas posibles y 
 — ahí la pantalla frena y pide cargar el BOM, en vez de adivinar.
 
 Lo que se le paga al tallerista vive aparte, en `precio_tallerista` (por kg).
+### 4cl. TODOS LOS ARTÍCULOS YA ESTÁN DESPIEZADOS — qué se destraba y qué queda (2026-09-13)
+
+`[usuario 2026-09-13, textual]` *"Todos los articulos ya estan despiezados"*. **Verificado contra la
+base y es así**: **190 artículos, 190 con receta** (780 líneas de `articulo_componente` + 44 de
+`componente_bom`), **0 artículos sin ruta**, **0 componentes de receta sin fila de inventario**.
+Para dimensionar el salto: la foto original del Excel eran 84 artículos.
+
+**La base está sana.** `db/verificar.sql` entero da 0 en todos los invariantes menos dos, y los dos
+se miraron hoy (abajo). 868 rutas, 3.315 pasos, 802 componentes, 1.308 filas de inventario.
+
+**Lo que se destraba (el número que importa):** con el despiece completo, la Est Madre explota a
+componentes para el **82,5 % de la demanda proyectada** (185 códigos, 208.073 uni/mes de 252.170).
+`[dato: GP2.est_madre x GP2.articulo]` El 17,5 % que no cruza **no es un hueco de GP2**: son **182
+códigos (42.107 uni/mes) que GP2 no modela y que el vecino tampoco despieza** — reventa e importado,
+casi todos con sufijo `E` (529E, 102E, 582E, 438E…, ninguno con nombre en `public."Despiece x
+Articulo"`). Sólo **38 códigos (1.990 uni/mes, 0,8 %)** son variantes con sufijo de un artículo que
+GP2 sí tiene: ésos sí convendría sumarlos al código base cuando se toque el cruce. **Esto corrige
+la lectura vieja de §4ax** ("34 artículos del Excel sin despiece plástico deja corto el consumo"):
+ese agujero ya no existe.
+
+**Lo único que queda pendiente del despiece — 10 artículos SIN CAJA NI CARTÓN en la receta**
+`[dato 2026-09-13]`: los tres palos de amasar (**231, 232, 233**) y los siete de acero inox
+(**941E, 942E, 943E, 944E, 945E, 946E, 948E**, cuya única línea es `PEST1` Insertos Mango de
+Madera). **No es un error de carga de GP2: el vecino está igual** — los siete `E` figuran en
+`public."Despiece x Articulo"` con `PEST1` y **sin `N_Caja`**, y los palos de amasar ni figuran
+(son de GP2). Tampoco tienen fila en `uni_x_articulo_x_caja`. **Pregunta al usuario: ¿van sin caja
+(a granel / en la caja de otro artículo) o falta cargarla?** Mientras no se responda, la OC de
+cartones y cajas queda corta para esos 10. Los otros 12 artículos de receta de una sola línea
+**están bien**: son compra terminada a un `proveedor_at` y lo único que se les agrega es la caja
+(070, 246, 326, 591, 618, 619, 761, 823, 900, 922) o el cartón (222, 910).
+
+**Los dos invariantes que daban > 0:**
+
+1. **`N_funciones_con_public_en_search_path` = 1 → arreglado hoy, y deja regla.** Era
+   `factura_match` (nacida ayer con la lectura de facturas, §4ci) con `search_path = GP2, public,
+   extensions`. **La causa vale como conocimiento: en este proyecto `pg_trgm` está instalada en
+   `public`, NO en `extensions`** (`unaccent` sí está en `extensions`), así que cualquier función
+   GP2 que use `similarity()` se ve tentada de meter `public` en el search_path — y ahí adentro
+   cualquier nombre sin calificar puede caer en una tabla del vecino. **Lo correcto es calificar
+   `public.similarity(...)` y dejar `search_path = GP2, extensions`**, que es lo mismo que ya hacía
+   `actualizar_dolar_oficial` con `public.http`. Hecho y probado llamando la función (proveedor
+   "TALLERES GRAFICOS POL S.A." → Talleres Gráficos Pol 0,85; un renglón por código y otro
+   `sin_match`); `db/funciones_GP2.sql` sincronizado y verificado por md5 contra la base.
+2. **`Z2_parametro_que_nadie_lee` = 2 → era la LISTA la que estaba vieja, no los parámetros.**
+   `master_bach_pct` (4) lo lee `recalcular_maximo_material()` y `facturas_lecturas_x_dia` (50) lo
+   lee `factura_lectura_permitida()` (idea 7339, de hoy). Los dos se agregaron a las dos listas de
+   `db/verificar.sql` y Z/Z2 vuelven a 0. **La trampa de este invariante es esa**: la lista de
+   claves está escrita a mano en el chequeo, así que un parámetro nuevo lo hace dar > 0 aunque el
+   código lo lea perfectamente — antes de creerle que un parámetro está muerto, hay que grepear el
+   `db/` (y, si el chequeo dice lo contrario, la que se corrige es la lista).
