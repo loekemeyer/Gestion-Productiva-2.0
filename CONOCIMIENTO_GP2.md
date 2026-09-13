@@ -8441,3 +8441,45 @@ conviene mirar `faltan_precios` antes de creerle al total.
 (C12 2040, BOM10 2040, `IE1` 2006, `A1C1` 1944…). Hoy es inerte porque `v_reposicion` filtra
 `not discontinuado`, pero si alguien saca ese filtro esos mínimos vuelven a pedir. El mínimo de un
 componente discontinuado no significa nada: si se toca el filtro, hay que ponerlos en 0.
+
+
+### 4co. Qué se importa listo y qué se envasa acá: el corte de García (2026-09-13)
+
+Respuesta del dueño a "¿voy por los 5 de García?" (§4cm). **Cuatro de los cinco ya no son trabajo
+de GP2 y el quinto es el caso más interesante que apareció en toda la revisión.**
+
+**1) Lo que ahora se importa LISTO PARA LA REVENTA** `[usuario 2026-09-13, textual]`: *"438E es
+importado a partir de ahora y esta listo para la reventa. Lo mismo 437E, 566E y 584E"*. Los cuatro
+salen del grupo de "faltan": no se fabrican ni se envasan acá. Son **6.351 uni/mes, el 60 % de ese
+grupo**, que pasa de 46 códigos y 10.504 uni/mes a **43 y 4.160**.
+
+> **Excepción transitoria del 584E** `[usuario]`: quedan **1.200 unidades en Virgilio** que se le
+> mandan a García **para reenvasar de cajas de 60 a cajas x6**, y esas **cajas x6 no son cajas del
+> sistema**. Es stock viejo, no el circuito nuevo; mientras dure, ese consumo de cajas no se puede
+> registrar en GP2 sin dar de alta ese formato. **No inventarlo**: si hay que registrarlo, lo dice
+> el dueño.
+
+**2) El pincel 590E: UN insumo a granel, TRES artículos** `[usuario 2026-09-13, textual]`: *"590E se
+stockea en Virgilio en cajas x600uni, que se le mandan a garcia para que las envase"*. Lo que los
+diferencia **no es la pieza, es el envase**:
+
+| Artículo | Empresa | Cartón | Caja | uni/caja | uni/mes |
+|---|---|---|---|---:|---:|
+| 590E | LK | sí | 29 (`A11`) | 12 | 1.188 |
+| 890E | Chef | sí | 29 (`A11`) | 12 | 7 |
+| 590ES | LK | **no** | 29 (`A11`) | 50 | 0 |
+
+`[dato 2026-09-13]` Confirmado contra la base: **Caja N°29 = `A11`** (Sector Caja), **García =
+`Danica García`, tallerista id 1, activo**, y los tres códigos están en la Est Madre con el `uxb`
+que corresponde (12, 12, 50). El vecino modela el 590E con `590E-CC` (caja chica 1/12) y `590E-MC`
+(mastercaja 1/600): **la caja x600 es cómo llega importado**, no una parte del terminado.
+
+**Lo que falta para darlos de alta, y que sólo puede decir el dueño**: el código y el sector del
+**componente del pincel a granel** (no existe; su ubicación va a ser Virgilio), y los **dos
+cartones** (LK y Chef), que tampoco existen y **se codifican por posición de estantería** (`G2B` =
+Cartón 229, `G6B` = Cartón 299), no con un número inventado. También si el 890E lleva cartón propio
+de Chef o el mismo que LK. Detalle y orden de la cirugía en `ARTICULOS_FUERA_DE_GP2.md`.
+
+**Y quedó una pregunta abierta**: `439E` (Colador Pasta) y `440E` (Colador Extensible) siguen
+figurando como de García y son de la misma familia de coladores que se acaba de pasar a importada;
+no se movieron porque el dueño nombró sólo cuatro códigos.
