@@ -8,7 +8,29 @@ código+sector**).
 
 ---
 
-## 1. Palos de amasar 231 / 232 / 233 — SQL listo para "dale"
+## 1. Palos de amasar 231 / 232 / 233 — ✅✅ EJECUTADO el 2026-09-13 ("dale" de Thomas)
+
+> **Aplicado y verificado.** El bloque `DO` de §1.3 corrió entero, sin excepción, y dio
+> **exactamente** los ids que predecía: `BANDITA` = **916**, recetas **917–922**, rutas
+> **972–977**, pasos **3726–3743**.
+>
+> Backup previo: `zz_backups."GV_Backup_GP2_articulo_palos_20260913"` (3 filas de
+> `GP2.articulo`, por la PK `id`; guardaba `componente_caja_id=NULL`, `articulos_por_caja=24`).
+>
+> Verificación de §1.4, toda en verde:
+> - 231/232/233/234 → los **cuatro** con caja `604` (A9B, Caja N°15) y **12** uni x caja.
+> - `BANDITA` 916, sector 10, ubicación 10, cantidad 0, **máximo NULL** (los tres palos no
+>   están en `est_madre`, así que el máximo queda vacío hasta que se cargue la demanda).
+> - Recetas: 3 líneas por palo (GRJ2x ×1 · A9B ×0,08333 · BANDITA ×1). El 234 sigue con 2.
+> - Rutas: 3 por palo, 9 pasos cada uno, **todas Fábrica**.
+> - Invariantes de `db/verificar.sql`: **35 reglas, las 35 en 0**, igual que antes del cambio.
+>
+> ⛔ **Lo OPCIONAL del final de §1.3 NO se aplicó**: desactivar 231/232/233 en
+> `articulo_prov_at` (ids 92/94/95) sigue siendo una **pregunta al dueño**, no entraba en el
+> "dale". Mientras siga activo, una entrega de Prov AT de un 231 descontaría desde la
+> ubicación 54 (vacía) y quedaría en negativo.
+
+### 1.0 El SQL que se ejecutó (queda como registro)
 
 ### 1.1 Estado verificado hoy
 
