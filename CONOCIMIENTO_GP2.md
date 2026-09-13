@@ -8620,3 +8620,26 @@ de esos dos a la mitad y conviene mirarlo antes de darlos de alta desde cero.
    (precedentes `CART058`, `CART059`, `CART186`, `CART715`). La convención de la casa codifica el
    cartón **por posición** (`G2B` = Cartón 229, `G6B` = Cartón 299), así que el código definitivo
    sale de dónde se guardan, y eso lo tiene que decir el dueño. No se inventa.
+
+#### Los dos cartones del pincel son FORMATO HUEVO — y eran los únicos de la casa sin formato (2026-09-13, misma noche)
+
+`[usuario 2026-09-13, textual: "590/890 usan carton huevo" y "Chef tambien tiene formato huevo"]`.
+Al leerlo, la primera lectura fue "un cartón compartido llamado huevo" — **estaba mal, y se retira**:
+`Huevo` es un **`carton_formato`** de GP2 (el troquel: 25 posiciones por pliego, pedido múltiplo de
+25.000, mínimo 2.000 por código, bolsa de 2.000) y ya lo usaban **36 cartones** (21 LOEKE, 15 CHEF;
+ej. `C1B` Cartón 574 y `D5B` Cartón 867). Cada artículo sigue teniendo **su** cartón; lo que se
+comparte es el formato. `[dato: GP2.carton_formato + planilla, hoja " Cartones" fila 429: 590E →
+tipo 15 "Loekemeyer Huevo"; el 548 Pincel Pastelero usa el mismo tipo 15]`.
+
+Lo que se aplicó (backup `zz_backups."GP2_Backup_carton_huevo_20260913"`, 2 filas, con RLS):
+
+| Componente | id | `carton_formato` | `marca` | `proveedor` |
+|---|---:|---|---|---|
+| `CART590` Cartón 590 (590E, LK) | 911 | `Huevo` | `LOEKE` | Talleres Gráficos Pol |
+| `CART890` Cartón 890 (890E, Chef) | 912 | `Huevo` | `CHEF` | Talleres Gráficos Pol |
+
+**Eran los únicos dos cartones de todo GP2 con `carton_formato` y `marca` en NULL** (chequeo después:
+0). Sin formato no entraban a la familia Huevo de `oc_bundle` / `_oc_validar_carton`, así que la OC
+no les aplicaba los múltiplos. Proveedor Pol confirmado por el dueño (es el de los hermanos Huevo).
+Invariantes en 0. **El cabo suelto 2 (posición de estantería) sigue abierto; el 1 (los tres precios)
+también.**

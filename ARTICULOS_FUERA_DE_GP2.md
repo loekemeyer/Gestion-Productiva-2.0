@@ -102,7 +102,9 @@ CONOCIMIENTO §4ct** — no repetirlo acá.
 **Quedan dos cabos sueltos**, los dos esperando al dueño: **tres precios sin cargar**
 (`PINCEL590`, `CART590` y `CART890`, no sólo el pincel — por eso los tres artículos dan $166,86,
 que es el costo de la caja sola), y la **posición de estantería** de los dos cartones, que es de
-donde sale su código definitivo (`CART###` es provisorio).
+donde sale su código definitivo (`CART###` es provisorio). Los dos cartones ya tienen **formato
+Huevo**, marca (LOEKE / CHEF) y proveedor Pol `[usuario 2026-09-13]` — eran los únicos de la casa
+sin formato, y sin eso la OC no les aplicaba los múltiplos.
 
 ## El cartón ya cargado del 574 y del 809
 
