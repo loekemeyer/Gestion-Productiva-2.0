@@ -7,7 +7,7 @@
 <title>Envío Cartón/Cajas · Prov AT · GP2</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="../../supabase-config.js?v=20260905k"></script>
-<script src="../../gp2-ui.js?v=20260912a"></script>
+<script src="../../gp2-ui.js?v=20260913e"></script>
 <script src="../../gp2-numero.js?v=20260911o"></script>
 <link rel="stylesheet" href="../../gp2-modulo.css?v=20260912c"/>
 <link rel="icon" type="image/png" href="../../GP2_favicon.png">
@@ -120,7 +120,7 @@ function pintarItems(){
     return !q || ((i.codigo||'')+' '+(i.descripcion||'')).toLowerCase().includes(q);
   }).forEach(function(i){
     var b=document.createElement('button'); b.type='button'; b.className='item-btn';
-    var esCarton = i.sector_id===10;
+    var esCarton = GP2UI.esCarton(i);   /* el 10 vive en gp2-ui.js (idea 7334) */
     b.innerHTML='<span class="code">'+esc(i.codigo||'—')+'</span>'+
       '<span class="desc">'+esc(i.descripcion||'')+'</span>'+
       '<span class="stk">Stock: '+fmt(i.online)+' uni'+(esCarton?(' ('+fmt((i.online||0)/PAQ,2)+' paq)'):'')+'</span>'+
@@ -132,7 +132,7 @@ function pintarItems(){
 
 function abrirPopup(i){
   itemSel=i;
-  var esCarton=i.sector_id===10;
+  var esCarton=GP2UI.esCarton(i);
   $('popTitle').textContent=(i.codigo||'')+' — '+(i.descripcion||'');
   $('popInfo').innerHTML='Para <b>'+esc(provSel.nombre)+'</b> · stock en '+esc(i.sector)+': <b>'+fmt(i.online)+' uni</b>'+
     (esCarton?(' · los cartones van en <b>paquetes de '+PAQ+'</b>'):'');
@@ -144,7 +144,7 @@ function abrirPopup(i){
 
 $('popQty').addEventListener('input', function(){
   var v=GP2N.entero($('popQty').value);
-  var esCarton=itemSel&&itemSel.sector_id===10;
+  var esCarton=GP2UI.esCarton(itemSel);
   $('popConv').textContent = (esCarton&&v>0) ? ('= '+fmt(v*PAQ)+' unidades') : '';
 });
 $('popCancel').addEventListener('click', function(){ $('popup').classList.remove('open'); });
@@ -154,7 +154,7 @@ $('popOk').addEventListener('click', async function(){
   var m=$('popMsg');
   var v=GP2N.entero($('popQty').value);
   if(v<=0){ m.className='status bad'; m.textContent='Ingresá una cantidad (> 0).'; return; }
-  var esCarton=itemSel.sector_id===10;
+  var esCarton=GP2UI.esCarton(itemSel);
   var uni = esCarton ? v*PAQ : v;
   $('popOk').disabled=true;
   try{

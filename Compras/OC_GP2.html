@@ -313,7 +313,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="../gp2-numero.js?v=20260911o"></script>
 <script src="../supabase-config.js?v=20260905k"></script>
-<script src="../gp2-ui.js?v=20260912a"></script>
+<script src="../gp2-ui.js?v=20260913e"></script>
 <link rel="stylesheet" href="../gp2-modulo.css?v=20260912c"/>
 <link rel="icon" type="image/png" href="../GP2_favicon.png">
 <link rel="apple-touch-icon" href="../GP2_favicon.png">
@@ -848,7 +848,7 @@ function render(){
   var fs=filtradas();
   $('tbody').innerHTML=fs.map(function(i){
     var ped=PEDIDO[i.comp_id]||'';
-    var esCarton=i.sector_id===10;
+    var esCarton=GP2UI.esCarton(i);   /* el 10 vive en gp2-ui.js (idea 7334) */
     var esChar=esCharcasIt(i);
     var uxpChar=esChar ? uniPorPaqCharcas(i) : 0;
     var st=vStock(i), mx=vMaximo(i), pe=vPend(i);
