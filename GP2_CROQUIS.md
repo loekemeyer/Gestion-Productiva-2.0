@@ -111,12 +111,13 @@ flowchart LR
 | # | Módulo viejo | Dónde se engancha | Qué le falta a GP2 | Si no se hace |
 |---|---|---|---|---|
 | ① | **Preaviso de Entrega** | **antes** de `entrega_ps` / `entrega_tallerista` | una tabla `preaviso` (contraparte, componente, cantidad, fecha prometida) que después se concilie contra el movimiento real | no se sabe qué va a entrar mañana; el faltante se descubre cuando ya es tarde |
-| ② | **Lectura de Facturas** | **después** de `entrega_ps`, del lado de la plata | una `factura` + sus ítems, cruzada contra los movimientos de entrega y contra `precio_proveedor` / `tarifa_servicio` | se paga contra el papel del proveedor, sin cruzar con lo que realmente entregó ni con el precio pactado |
+| ② | **Lectura de Facturas** | en la puerta **y** después, del lado de la plata | **La IA lee, GP2 decide** (idea 7338, decidido por el usuario): foto/PDF → API de Claude con JSON Schema → los renglones se atan a componentes por `precio_proveedor.cod_prov` (301 códigos cargados) → **propone** la recepción y la persona confirma. Falta la Edge Function y la pantalla | se sigue tipeando la recepción renglón por renglón, y se paga contra el papel sin cruzar con lo entregado ni con el precio pactado |
 | ③ | **Entrega Prov. Cervantes** | en la puerta, al recibir | **casi nada**: `crear_entrega_ps` y `crear_recepcion_insumo` ya existen y hacen exactamente eso. Lo único distinto de la vieja era ser **un mostrador único** para las dos cosas | nada grave: hoy se hace en dos pantallas (`EntregaPS_GP2` y `RecepcionInsumos_GP2`) |
 | ④ | **Control Carga Remitos** | al costado, no toca stock | leer el feed de la app externa que ya existe | se sigue mirando en la página externa, como hoy |
 
-**Orden que tiene sentido si algún día se hacen:** ① (avisa antes, evita el faltante),
-② (es plata), ③ (comodidad, no capacidad), ④ (es un tablero ajeno).
+**Orden que tiene sentido si algún día se hacen:** ② primero — el usuario ya definió el cómo y es
+el que ahorra trabajo todos los días (idea 7338) —, después ① (avisa antes, evita el faltante),
+③ (comodidad, no capacidad) y ④ (es un tablero ajeno).
 
 ---
 

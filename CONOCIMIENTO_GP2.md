@@ -8211,3 +8211,38 @@ Tres cosas que la cadena esconde y hay que tener a mano:
   Virgilio. El proveedor de artículo terminado se saltea la fábrica entera.
 
 El croquis vive en `GP2_CROQUIS.md`.
+
+### 4ci. Cómo debe funcionar la lectura de facturas: la IA extrae, GP2 decide (2026-09-13)
+
+**[usuario, textual]:** *"Lectura facturas deberia a traves de API de Claude o local (con previo
+entrenamiento) leer las facturas para simplificar la recepcion"*. O sea: el objetivo **no es
+archivar la factura, es que la recepción sea más rápida** — que el que recibe no tipee 20 renglones.
+
+**El reparto de trabajo, que es lo que hay que no confundir:**
+
+| Paso | Quién | Con qué |
+|---|---|---|
+| Leer el papel (código, descripción, cantidad, precio) | **la IA** | API de Claude, el PDF como bloque `document` o la foto como `image`, y `output_config.format` con JSON Schema para que la forma del JSON esté **garantizada** en vez de pedida |
+| Decidir **qué componente GP2 es cada renglón** | **GP2, no la IA** | `precio_proveedor.cod_prov → componente_id` (315 filas, 301 con código de proveedor, 271 ya atadas) y `fleje_detalle.cod_isis` |
+| Escribir el stock | **la persona** | confirma y recién ahí corren `crear_recepcion_insumo` / `crear_entrega_ps`, que ya cruzan contra las OC abiertas |
+
+**"Previo entrenamiento" NO es fine-tuning.** Son dos cosas mucho más baratas: ejemplos reales de
+cada proveedor en el prompt, y sobre todo **la tabla de códigos que GP2 ya tiene**. Lo que no
+matchea no se inventa: queda marcado para que alguien lo ate **una vez**, y ese match queda
+guardado. Ahí crece la precisión, no en el modelo.
+
+**Lo que ya existe y sirve de referencia:** el programa viejo tiene cuatro Edge Functions vivas que
+hacen esto con **gpt-4o** — `leer-factura`, `leer-remito-tallerista`, `leer-oc` y
+`leer-produccion-foto` — más `factura_combine` y `gp_file_b64`. El prompt de `leer-factura` ya tiene
+peleadas las trampas de la factura argentina (ARCA/AFIP): el punto de miles (`1.000` = mil), la coma
+decimal, el CUIT con guiones, razón social legal vs. nombre de fantasía, y el **código de artículo**
+como campo crítico. Eso se reusa; lo que cambia es el proveedor de IA y que el resultado entra por
+las RPC de GP2 en vez de escribir tablas de `public`.
+
+**Trampa encontrada al mirarlas (2026-09-13):** `leer-factura` tiene la **clave de OpenAI
+hardcodeada como fallback** (`Deno.env.get("OPENAI_API_KEY") || "sk-proj-…"`). No está en git —se
+verificó en los dos repos— pero está en el código de la función, y además hace que la función ande
+aunque el secret no esté puesto, así que nadie se entera. Quedó en la auditoría como problema
+abierto. **En GP2 la clave va sólo como secret de Supabase, sin fallback en el código.**
+
+Idea 7338.
