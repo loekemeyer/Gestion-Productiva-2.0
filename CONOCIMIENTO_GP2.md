@@ -9307,3 +9307,43 @@ seria el **232**, pero el nombre no lo dice y el `cod_isis` de esa fila (`234L`)
 **Regla que deja: antes de decir "este articulo cuesta X", mirar `faltan_precios` Y decir de que
 componentes falta el precio.** Un total bajo casi nunca es un articulo barato: es un componente sin
 precio (misma trampa del BOM10 en §4cn y del pincel en §4ct).
+
+
+## 4dn. Lo que realmente falta no son los palos: son 106 precios, y 67 son de Pol (2026-09-13)
+
+`[usuario 2026-09-13: *"Nose"*]` sobre el precio de los palos de 30 y 50 — **nadie en la casa lo
+sabe, hay que preguntarle a Tierra Nativa.** Eso disparo medir el agujero completo en vez de seguir
+de a un componente, y el resultado cambia la prioridad: `[dato, medido el 13-09]`
+
+| | |
+|---|--:|
+| Artículos de GP2 | 191 |
+| **Artículos con al menos un precio faltante** | **96 (50 %)** |
+| **Componentes comprables vivos SIN precio** | **106** |
+| De esos 106, cuántos no tienen ni proveedor | **0** |
+
+**Los 106 tienen proveedor asignado: lo unico que falta es el numero.** Y estan muy concentrados:
+
+| Proveedor | Componentes | Consumo uni/mes |
+|---|--:|--:|
+| **Talleres Gráficos Pol** | **67** | **41.318** |
+| Pat Bet Plast | 11 | 11.584 |
+| Papelera Nueve de Julio | 2 | 4.050 |
+| Cimarron | 5 | 2.540 |
+| Gilardi Esther | 2 | 1.816 |
+| Rueda · Imel · Importado | 3 | 4.185 |
+| Tierra Nativa SA (los 3 palos) | 3 | 0 |
+| los otros 9 proveedores | 13 | ~2.700 |
+
+**Una sola lista de precios — la de cartones de Pol — cierra 67 de los 106 y el 63 % del consumo
+afectado.** Los mas grandes son `C2A` Carton 026 (7.092 uni/mes), `F5A` Carton 321 (4.406),
+`C2B` Carton 027 (3.320), `L2C` Carton 325 (1.600), `F1A` Carton 280 (1.570). Los tres palos, en
+cambio, son **3 de 106 y con consumo 0** (los 231/232/233 no estan en `est_madre`).
+
+**Regla que deja: cuando aparezca "a este articulo le falta un precio", no perseguir el componente
+suelto — contar cuantos faltan y agruparlos por proveedor.** Casi siempre es UNA lista que nadie
+cargo, no N datos sueltos. `[deducido]`
+
+**Las dos preguntas de los palos quedan ABIERTAS, para Tierra Nativa:** (a) si el *"Torneado Palo de
+Amasar 40cm"* $1.245 (ISIS 234L, lista 07-08-2026) es el **232**, y (b) que precio tienen el de
+**30 (231)** y el de **50 (233)**, que no figuran en las 72 filas de TN.
