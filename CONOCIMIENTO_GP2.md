@@ -8857,6 +8857,26 @@ literal **"Inserto Mgo Madera"**. `[dato: v_planilla_precio]`
 - **La plata:** PEST1 consume 684 uni/mes → la diferencia entre los dos precios es **$1,06 M por
   año**. Elegir "el que suena parecido" acá cuesta plata de verdad.
 
+**DECISIÓN DEL DUEÑO (2026-09-13, textual): *"PEST 1, KollPlast. pero deja registrado que a partir
+de noviembre aprox no se debería inyectar más"*.** Aplicado: `GP2.componente` 768 `proveedor =
+'Kollplast'` (antes NULL). Verificado con SELECT; invariante `A2` sigue en 0 (Kollplast ya tenía
+ubicación de inyector, la 60) y el costo no se movió porque **PEST1 no tiene fila en
+`precio_proveedor`** (sigue `faltan_precios = 1`). Después del cambio, el único insumo comprable sin
+proveedor es `BANDITA`. `[usuario + dato]`
+
+**⏳ PEST1 se deja de inyectar alrededor de NOVIEMBRE 2026.** Es un insumo con fecha de vencimiento:
+va en los 7 artículos `941E`–`948E` (684 uni/mes) y cuadra con que esos siete son **importados** —
+la LP los tiene comprados hechos a Tierra Nativa a USD 1,36. Qué hacer llegado noviembre, y qué NO
+hacer antes: `[usuario]`
+- **No cargarle precio nuevo ni stock mínimo pensando en el largo plazo**, y mirar con desconfianza
+  cualquier OC de PEST1 con horizonte mayor a esa fecha (el sugerido es `máximo − stock`, y su
+  máximo hoy son 2.736 uni de `est_madre`: eso es más de lo que va a consumir).
+- Cuando se confirme, **`estado_compra` pasa a `discontinuo`** y hay que revisar las 7 recetas y las
+  7 rutas antes de tocar el componente (no se borra: tiene recetas y rutas colgando, misma regla que
+  `GRJ21`).
+- El inventario de PEST1 hoy está en **−372 uni** (stock inicial nunca cargado). Si se discontinúa
+  sin cerrar ese negativo queda arrastrando para siempre.
+
 **Regla que deja: para encontrar un insumo en la lista de precios, cruzar por `cod_isis` y recién
 después por texto. Dos proveedores con el mismo `cod_isis` son dos alternativas del mismo artículo**
 (igual que los dos Prov AT de §4bk), no un duplicado a limpiar. `[deducido]`

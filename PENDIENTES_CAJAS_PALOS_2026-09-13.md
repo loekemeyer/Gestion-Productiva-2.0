@@ -537,6 +537,13 @@ update "GP2".componente set proveedor = 'Kollplast'
 select id, codigo, descripcion, proveedor from "GP2".componente where id = 768;
 ```
 
+> ✅ **DECIDIDO Y APLICADO el 2026-09-13** — *"PEST 1, KollPlast. pero deja registrado que a partir
+> de noviembre aprox no se debería inyectar más"*. `componente` 768 → `proveedor = 'Kollplast'`.
+> Invariante `A2` en 0 (Kollplast ya tenía la ubicación de inyector 60) y el costo no se movió
+> (PEST1 no tiene fila en `precio_proveedor`). **Queda anotado que PEST1 se deja de inyectar
+> ~noviembre 2026** — ver CONOCIMIENTO §4cz, con lo que hay que hacer y lo que NO hay que cargarle
+> mientras tanto.
+
 Con cualquiera de los dos, PEST1 deja de ser el único insumo comprable sin proveedor (los otros 18
 son 17 de `fabricacion` + 1 `discontinuo`).
 
