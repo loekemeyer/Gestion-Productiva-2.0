@@ -1414,6 +1414,16 @@ AS $function$
 $function$
 ;
 
+-- ---------- cod_norm ----------
+CREATE OR REPLACE FUNCTION "GP2".cod_norm(p text)
+ RETURNS text
+ LANGUAGE sql
+ IMMUTABLE
+AS $function$
+  select nullif(regexp_replace(upper(regexp_replace(coalesce(p,''), '[^A-Za-z0-9]', '', 'g')), '^0+', ''), '');
+$function$
+;
+
 -- ---------- comp_terminado_de ----------
 CREATE OR REPLACE FUNCTION "GP2".comp_terminado_de(p_art bigint)
  RETURNS bigint
@@ -2954,6 +2964,159 @@ select jsonb_build_object(
         from fila group by proveedor_id) z)
 );
 $function$
+;
+
+-- ---------- factura_alias_guardar ----------
+CREATE OR REPLACE FUNCTION "GP2".factura_alias_guardar(p_proveedor text, p_cod_prov text, p_comp_id bigint, p_descripcion text DEFAULT NULL::text, p_usuario text DEFAULT NULL::text)
+ RETURNS bigint
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'GP2'
+AS $function$
+declare v_id bigint;
+begin
+  if coalesce(trim(p_proveedor),'') = '' then raise exception 'Falta el proveedor'; end if;
+  if "GP2".cod_norm(p_cod_prov) is null then raise exception 'Falta el codigo del proveedor'; end if;
+  if not exists (select 1 from componente where id = p_comp_id) then
+    raise exception 'El componente % no existe', p_comp_id;
+  end if;
+
+  insert into factura_alias (proveedor, cod_prov, componente_id, descripcion, creado_por)
+  values (trim(p_proveedor), trim(p_cod_prov), p_comp_id, nullif(trim(coalesce(p_descripcion,'')),''), p_usuario)
+  on conflict (proveedor, cod_prov)
+  do update set componente_id = excluded.componente_id,
+                descripcion   = coalesce(excluded.descripcion, factura_alias.descripcion),
+                creado_por    = coalesce(excluded.creado_por, factura_alias.creado_por),
+                creado_en     = now()
+  returning id into v_id;
+
+  return v_id;
+end $function$
+;
+
+-- ---------- factura_match ----------
+CREATE OR REPLACE FUNCTION "GP2".factura_match(p jsonb)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'GP2', 'public', 'extensions'
+AS $function$
+declare
+  v_prov_txt text := nullif(p->>'proveedor','');
+  v_prov_id  bigint; v_prov_nom text; v_prov_cod text; v_prov_sim numeric;
+  it jsonb; v_cod text; v_desc text; v_res jsonb := '[]'::jsonb;
+  -- variables sueltas y NO un record: un record toma su forma del ultimo SELECT INTO y
+  -- revienta con "record has no field" cuando ninguna rama matchea (mordio el 13-09).
+  v_id bigint; v_ccod text; v_cdesc text; v_sec integer; v_via text; v_conf text;
+  v_cand jsonb; v_sim numeric; v_sim2 numeric;
+begin
+  -- 1) quien es el proveedor: por nombre contra proveedor_insumo (el nombre de la factura
+  --    nunca viene igual: "TALLERES GRAFICOS POL S.A." vs "Talleres Graficos Pol")
+  if v_prov_txt is not null then
+    select pi.id, pi.nombre, pi.cod_prov,
+           round(similarity("GP2".texto_norm(pi.nombre), "GP2".texto_norm(v_prov_txt))::numeric, 2)
+      into v_prov_id, v_prov_nom, v_prov_cod, v_prov_sim
+      from proveedor_insumo pi
+     where similarity("GP2".texto_norm(pi.nombre), "GP2".texto_norm(v_prov_txt)) > 0.25
+     order by similarity("GP2".texto_norm(pi.nombre), "GP2".texto_norm(v_prov_txt)) desc
+     limit 1;
+  end if;
+
+  for it in select * from jsonb_array_elements(coalesce(p->'items','[]'::jsonb)) loop
+    v_cod := "GP2".cod_norm(it->>'codigo');
+    v_desc := "GP2".texto_norm(it->>'descripcion');
+    v_id := null; v_ccod := null; v_cdesc := null; v_sec := null;
+    v_via := null; v_conf := null; v_cand := null; v_sim := null; v_sim2 := null;
+
+    -- a) lo que ya se ato a mano para este proveedor: lo aprendido gana siempre
+    if v_cod is not null and v_prov_txt is not null then
+      select c.id, c.codigo, c.descripcion, c.sector_id, 'alias', 'alto'
+        into v_id, v_ccod, v_cdesc, v_sec, v_via, v_conf
+        from factura_alias fa join componente c on c.id = fa.componente_id
+       where "GP2".cod_norm(fa.cod_prov) = v_cod
+         and lower(fa.proveedor) in (lower(coalesce(v_prov_nom, v_prov_txt)), lower(v_prov_txt))
+       limit 1;
+    end if;
+
+    -- b) codigo ISIS del fleje (el unico codigo de tercero que GP2 ya tiene cargado)
+    if v_id is null and v_cod is not null then
+      select c.id, c.codigo, c.descripcion, c.sector_id, 'cod_isis', 'alto'
+        into v_id, v_ccod, v_cdesc, v_sec, v_via, v_conf
+        from fleje_detalle fd join componente c on c.id = fd.componente_id
+       where "GP2".cod_norm(fd.cod_isis) = v_cod
+       limit 1;
+    end if;
+
+    -- c) el proveedor factura con NUESTRO codigo
+    if v_id is null and v_cod is not null then
+      select c.id, c.codigo, c.descripcion, c.sector_id, 'codigo_gp2', 'medio'
+        into v_id, v_ccod, v_cdesc, v_sec, v_via, v_conf
+        from componente c
+       where "GP2".cod_norm(c.codigo) = v_cod
+       limit 1;
+    end if;
+
+    -- d) por DESCRIPCION, SOLO dentro de la lista de productos de ese proveedor. Se
+    --    auto-asigna unicamente si el parecido es fuerte Y el segundo quedo claramente
+    --    atras; si no, vuelven los candidatos y decide la persona.
+    if v_id is null and v_desc is not null and v_prov_cod is not null then
+      with cand as (
+        select distinct on (c.id)
+               c.id, c.codigo, c.descripcion, c.sector_id, pp.producto,
+               greatest(similarity("GP2".texto_norm(pp.producto), v_desc),
+                        similarity(coalesce("GP2".texto_norm(c.descripcion),''), v_desc)) as sim
+          from precio_proveedor pp join componente c on c.id = pp.componente_id
+         where "GP2".cod_norm(pp.cod_prov) = "GP2".cod_norm(v_prov_cod)
+         order by c.id, sim desc
+      ), top as (
+        select * from cand where sim > 0.18 order by sim desc limit 4
+      )
+      select (select round(max(sim)::numeric,2) from top),
+             (select round(sim::numeric,2) from top order by sim desc offset 1 limit 1),
+             (select jsonb_agg(jsonb_build_object('comp_id',id,'comp_cod',codigo,'comp_desc',descripcion,
+                                                  'producto',producto,'sim',round(sim::numeric,2)) order by sim desc)
+                from top)
+        into v_sim, v_sim2, v_cand;
+
+      if v_sim is not null and v_sim >= 0.55 and (v_sim2 is null or v_sim - v_sim2 >= 0.15) then
+        select (x->>'comp_id')::bigint, x->>'comp_cod', x->>'comp_desc'
+          into v_id, v_ccod, v_cdesc
+          from jsonb_array_elements(v_cand) x limit 1;
+        select sector_id into v_sec from componente where id = v_id;
+        v_via := 'descripcion'; v_conf := 'medio'; v_cand := null;
+      elsif v_cand is not null then
+        v_via := 'sugerido'; v_conf := 'bajo';
+      end if;
+    end if;
+
+    v_res := v_res || jsonb_build_object(
+      'codigo',      it->>'codigo',
+      'descripcion', it->>'descripcion',
+      'cantidad',    nullif(it->>'cantidad','')::numeric,
+      'unidad',      it->>'unidad',
+      'precio_uni',  nullif(it->>'precio_unitario','')::numeric,
+      'comp_id',     v_id,
+      'comp_cod',    v_ccod,
+      'comp_desc',   v_cdesc,
+      'sector_id',   v_sec,
+      'via',         coalesce(v_via, 'sin_match'),
+      'confianza',   coalesce(v_conf, 'nulo'),
+      'sim',         v_sim,
+      'candidatos',  v_cand
+    );
+  end loop;
+
+  return jsonb_build_object(
+    'ok', true,
+    'proveedor_texto', v_prov_txt,
+    'proveedor', jsonb_build_object('id', v_prov_id, 'nombre', v_prov_nom, 'cod_prov', v_prov_cod, 'sim', v_prov_sim),
+    'items', v_res,
+    'resueltos', (select count(*) from jsonb_array_elements(v_res) x where x->>'comp_id' is not null),
+    'sugeridos', (select count(*) from jsonb_array_elements(v_res) x where x->>'via' = 'sugerido'),
+    'sin_match', (select count(*) from jsonb_array_elements(v_res) x where x->>'via' = 'sin_match'),
+    'total', jsonb_array_length(v_res)
+  );
+end $function$
 ;
 
 -- ---------- faltante_partes_tallerista_bundle ----------
@@ -6426,6 +6589,16 @@ select jsonb_build_object(
                  from fila) z2
         group by tallerista_id) y)
 );
+$function$
+;
+
+-- ---------- texto_norm ----------
+CREATE OR REPLACE FUNCTION "GP2".texto_norm(p text)
+ RETURNS text
+ LANGUAGE sql
+ IMMUTABLE
+AS $function$
+  select nullif(lower(extensions.unaccent(regexp_replace(coalesce(p,''), '\s+', ' ', 'g'))), '');
 $function$
 ;
 

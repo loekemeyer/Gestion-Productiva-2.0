@@ -211,6 +211,22 @@ create table "GP2".est_madre (
 );
 comment on table "GP2".est_madre is 'Espejo de la Estadistica Madre (public.proyeccion_madre, trigger fn_est_madre_sync): unidades por mes de cada articulo; alimenta minimos y maximos.';
 
+-- ---------- factura_alias ----------
+create table "GP2".factura_alias (
+  id bigint generated always as identity,
+  proveedor text not null,
+  cod_prov text not null,
+  componente_id bigint not null,
+  descripcion text,
+  creado_en timestamptz not null default now(),
+  creado_por text,
+  constraint factura_alias_pkey PRIMARY KEY (id),
+  constraint factura_alias_uq UNIQUE (proveedor, cod_prov),
+  constraint factura_alias_comp_fk FOREIGN KEY (componente_id) REFERENCES "GP2".componente(id)
+);
+comment on table "GP2".factura_alias is 'Codigo de articulo del proveedor -> componente GP2, aprendido a mano cuando la lectura de factura no pudo resolverlo sola. Crece de a uno y no se inventa (idea 7338, 2026-09-13).';
+comment on column "GP2".factura_alias.cod_prov is 'El codigo TAL CUAL viene en la factura; el match normaliza (mayusculas, sin espacios ni ceros a la izquierda).';
+
 -- ---------- faltante_marcado ----------
 create table "GP2".faltante_marcado (
   id bigint generated always as identity not null,
@@ -1070,6 +1086,7 @@ alter table "GP2".sector enable row level security;
 alter table "GP2".tallerista enable row level security;
 alter table "GP2".tarifa_servicio enable row level security;
 alter table "GP2".tipo_cambio enable row level security;
+alter table "GP2".factura_alias enable row level security;
 alter table "GP2".cajon enable row level security;
 alter table "GP2".tipo_movimiento enable row level security;
 alter table "GP2".ubicacion enable row level security;
@@ -1126,6 +1143,7 @@ create policy p_gp2_select on "GP2".sector for select to anon, authenticated usi
 create policy p_gp2_select on "GP2".tallerista for select to anon, authenticated using (true);
 create policy p_gp2_select on "GP2".tarifa_servicio for select to anon, authenticated using (true);
 create policy sel_anon on "GP2".tipo_cambio for select to anon, authenticated using (true);
+create policy factura_alias_sel on "GP2".factura_alias for select to public using (true);
 create policy cajon_sel on "GP2".cajon for select to public using (true);
 create policy tipo_movimiento_sel on "GP2".tipo_movimiento for select to public using (true);
 create policy p_gp2_select on "GP2".ubicacion for select to anon, authenticated using (true);

@@ -8223,13 +8223,22 @@ archivar la factura, es que la recepción sea más rápida** — que el que reci
 | Paso | Quién | Con qué |
 |---|---|---|
 | Leer el papel (código, descripción, cantidad, precio) | **la IA** | API de Claude, el PDF como bloque `document` o la foto como `image`, y `output_config.format` con JSON Schema para que la forma del JSON esté **garantizada** en vez de pedida |
-| Decidir **qué componente GP2 es cada renglón** | **GP2, no la IA** | `precio_proveedor.cod_prov → componente_id` (315 filas, 301 con código de proveedor, 271 ya atadas) y `fleje_detalle.cod_isis` |
+| Decidir **qué componente GP2 es cada renglón** | **GP2, no la IA** | `factura_alias` (lo aprendido) → `fleje_detalle.cod_isis` → `componente.codigo` → parecido de descripción dentro de la lista de productos de ese proveedor |
 | Escribir el stock | **la persona** | confirma y recién ahí corren `crear_recepcion_insumo` / `crear_entrega_ps`, que ya cruzan contra las OC abiertas |
 
-**"Previo entrenamiento" NO es fine-tuning.** Son dos cosas mucho más baratas: ejemplos reales de
-cada proveedor en el prompt, y sobre todo **la tabla de códigos que GP2 ya tiene**. Lo que no
-matchea no se inventa: queda marcado para que alguien lo ate **una vez**, y ese match queda
-guardado. Ahí crece la precisión, no en el modelo.
+**CORRECCIÓN del 2026-09-13 (importante, lo había dicho mal):** `precio_proveedor.cod_prov` **NO
+es el código del artículo, es el código del PROVEEDOR** — 2147 es Talleres Gráficos Pol, 890 es
+Bella Vista. Por eso un renglón del 2147 devolvía 93 "candidatos". **GP2 no tiene hoy los códigos
+de artículo de sus proveedores**: los únicos códigos de tercero cargados son los 51
+`fleje_detalle.cod_isis`.
+
+**"Previo entrenamiento" NO es fine-tuning**, y ahora se sabe exactamente qué es: **llenar
+`factura_alias`**, que arranca vacía. La primera factura de cada proveedor se ata a mano renglón
+por renglón; de ahí en más sale sola. Lo que sí aporta `precio_proveedor` es **la lista de
+productos de cada proveedor**, y con eso el match propone por parecido de descripción *dentro de
+ese proveedor* (pg_trgm): auto-asigna sólo si el parecido es ≥ 0,55 y el segundo candidato quedó
+0,15 atrás; si no, devuelve candidatos y elige la persona. El proveedor se reconoce por nombre
+("TALLERES GRAFICOS POL S.A." matchea "Talleres Gráficos Pol" con 0,85).
 
 **Lo que ya existe y sirve de referencia:** el programa viejo tiene cuatro Edge Functions vivas que
 hacen esto con **gpt-4o** — `leer-factura`, `leer-remito-tallerista`, `leer-oc` y
