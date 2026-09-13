@@ -9,47 +9,55 @@ stock; inserta filas en `GP2.movimiento` y los triggers (`fn_movimiento_calc` +
 
 ---
 
-## 1 · El circuito físico: de la chapa al cliente
+## 1 · El circuito físico — la columna vertebral
+
+**La cadena, dicha por el dueño (2026-09-13):**
+
+```
+OC → Recepción → Insumos → Producción (Alimentador/Balancines) → SC
+   → Envío PS → Entrega PS → SP → Envío Tall → Entrega Tall → Virgilio
+```
+
+Eso es el espinazo: **una línea**, no una nube de sectores. Todo lo demás son ramas que se le
+cuelgan.
 
 ```mermaid
 flowchart LR
-  subgraph COMPRA[" "]
-    OC["Orden de Compra<br/>OC_GP2"]
-    REC["Recepción Insumos<br/>RecepcionInsumos_GP2"]
-  end
-
-  subgraph CASA["Cervantes (la fábrica)"]
-    SEC["Sectores<br/>Crudo · Procesado · Fleje<br/>Plástico · Remache · Cartón · Caja"]
-    MAT["Matrices<br/>Registro_GP2 / Operarios_GP2"]
-  end
-
-  subgraph TERCEROS["Los de afuera"]
-    PS["Prov. de Servicio<br/>pintan, niquelan, afilan"]
-    TALL["Talleristas<br/>arman"]
-    PAT["Prov. Art. Terminado<br/>traen el producto hecho"]
-    INY["Inyectores<br/>hacen las plásticas"]
-  end
-
-  VIR["VIRGILIO<br/>centro logístico"]
-  GV["Gestión Virgilio<br/>(otro sistema, otro repo)"]
-
-  OC -->|compra| REC --> SEC
-  SEC -->|consumo_prod| MAT -->|fabricacion| SEC
-  SEC -->|envio_ps| PS -->|entrega_ps| SEC
-  SEC -->|envio_tallerista| TALL -->|entrega_tallerista| SEC
-  TALL -->|devolucion_tallerista| SEC
-  SEC -->|envio_inyector| INY -->|entrega| SEC
-  SEC -->|envio_prov_at| PAT
-  TALL -->|recepcion_virgilio| VIR
-  PAT -->|recepcion_virgilio| VIR
-  SEC -->|consumo_virgilio<br/>se descuenta la receta| VIR
-  VIR -.->|espejo: virgilio_espejo_pend| GV
+  OC["OC"] --> REC["Recepción"] --> INS["INSUMOS<br/>Fleje · Remache · Cartón<br/>Caja · Plástico · MP plástica"]
+  INS -->|el fleje| PROD["PRODUCCIÓN<br/>Alimentador · Balancines<br/>(Mat N = pasos intermedios)"]
+  PROD --> SC["SC<br/>Sector Crudo"]
+  SC -->|envio_ps| PS["Prov. de Servicio"]
+  PS -->|entrega_ps| SP["SP<br/>Sector Procesado"]
+  SP -->|envio_tallerista| TALL["Tallerista"]
+  TALL -->|"entrega_tallerista<br/>+ consumo de la receta"| TER["TERMINADO"]
+  TER -->|recepcion_virgilio| VIR["VIRGILIO"]
+  INS -.->|cartón · caja · plástico · bombilla · remache| TALL
+  INS -.->|MP plástica| INY["Inyector"]
+  INY -.-> TALL
+  PAT["Prov. Art. Terminado"] -.->|lo trae ya hecho| TER
+  VIR -.->|espejo| GV["Gestión Virgilio<br/>otro sistema"]
 ```
 
-**Quién entrega qué no se declara en ninguna tabla suelta: lo dice la RUTA.** Cada artículo tiene
-sus `ruta` / `ruta_paso` (tipos: `insumo`, `ingreso`, `matriz`, `proveedor_servicio`, `tallerista`,
-`proveedor_at`, `virgilio`), y de ahí sale todo — a quién se le manda, qué devuelve, y quién lo
-entrega en Virgilio (el último paso con contraparte antes del paso `virgilio`).
+**La base dice lo mismo** (pasos de `ruta_paso`, contados el 2026-09-13):
+
+| Tramo | Pasos | Qué confirma |
+|---|---|---|
+| Fleje → Crudo (matriz) | 120 (+91 vía `Mat N`) | la producción sale del fleje y termina en **SC** |
+| Crudo → Procesado (prov. servicio) | 122 | el PS es el que convierte **SC → SP** |
+| Procesado → Terminado (tallerista) | 173 | el tallerista arma desde **SP** |
+| Terminado → Virgilio | 855 | todo cierra en Virgilio |
+| Máquinas de producción | 70 balancín · 43 alimentador | **Alimentador / Balancines**, como se dice en la planta |
+
+Dos precisiones que la cadena esconde y conviene tener:
+- **`Mat N` (Sector Movimiento) es parte de Producción**, no un sector aparte: son las piezas
+  a medio hacer entre matriz y matriz (91 pasos entran o salen de ahí).
+- **No todo pasa por PS.** Hay 41 pasos de servicio que devuelven al mismo SC (procesos que no
+  cambian de sector) y 14 rutas donde el tallerista toma directo de SC. La línea es el camino
+  normal, no una obligación.
+
+Quién hace qué **no se declara en ninguna tabla suelta: lo dice la ruta**. Cada artículo tiene sus
+`ruta_paso` (`insumo`, `ingreso`, `matriz`, `proveedor_servicio`, `tallerista`, `proveedor_at`,
+`virgilio`), y de ahí sale a quién se le manda, qué devuelve y quién lo entrega en Virgilio.
 
 ## 2 · El motor: una pantalla nunca toca el stock
 

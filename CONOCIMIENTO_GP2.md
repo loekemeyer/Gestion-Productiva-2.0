@@ -8185,3 +8185,29 @@ tablas distintas a propósito.
 saca los kg de `componente.kg_x_uni`, hoy salen **331 piezas en 10 sectores** — Garage incluido (6),
 más Bombilla (14), Fleje (51) y Alambre. Y como `componente.uni_x_cajon` existe, además de las
 unidades muestra **a cuántos cajones llenos equivale**, que la vieja no podía calcular.
+
+### 4ch. La columna vertebral de GP2, dictada por el dueño (2026-09-13)
+
+**[usuario, textual]:** *"La ruta general es: OC → Recepcion → Insumos → Produccion
+Alimentador/Balancines → SC → Envio Ps → Entrega Ps → SP → Envio Tall → Entrega Tall → virgilio"*.
+
+Lo dijo corrigiendo un croquis que había dibujado los sectores como **una nube** con flechas de ida
+y vuelta. Está mal dibujado así: GP2 tiene **una línea**, y lo demás son ramas colgadas de ella.
+
+**La base lo confirma** (pasos de `ruta_paso`, 2026-09-13): Fleje → Crudo por matriz **120** pasos
+(+91 que pasan por `Mat N`), Crudo → Procesado por proveedor de servicio **122**, Procesado →
+Terminado por tallerista **173**, y **855** pasos `virgilio` desde Terminado. Las máquinas de
+producción son **balancín (70 matrices)** y **alimentador (43)** — `matriz.maquina`, el vocabulario
+de la planta.
+
+Tres cosas que la cadena esconde y hay que tener a mano:
+- **`Mat N` (Sector Movimiento) es parte de Producción**, no un sector aparte: son las piezas a
+  medio hacer entre matriz y matriz.
+- **No todo pasa por PS**: 41 pasos de servicio devuelven al mismo SC (procesos que no cambian de
+  sector) y 14 rutas tienen al tallerista tomando directo de SC. La línea es el camino **normal**,
+  no una obligación.
+- **Los insumos que no son fleje** (cartón, caja, plástico, bombilla, remache, garage) no entran
+  por producción: se le mandan **al tallerista**, y se descuentan por la receta al entregar en
+  Virgilio. El proveedor de artículo terminado se saltea la fábrica entera.
+
+El croquis vive en `GP2_CROQUIS.md`.
