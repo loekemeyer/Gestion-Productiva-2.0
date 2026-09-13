@@ -8810,3 +8810,219 @@ tampoco), así que lo único que hoy suma al costo es la caja ($28,69 por unidad
 precios sólo están "Palo de Amasar Frances 40cm" $600 y "Torneado Palo de Amasar 40cm" $1.245, los
 dos de Tierra Nativa: **no hay precio para el 30, el 40 ni el 50 lisos**. `[dato: v_planilla_precio]`
 
+
+**Corrección al punto 3, medida el 2026-09-13 a la tarde (segunda vuelta):** eran **cuatro** filas,
+no tres — el **234 (id 93)** tiene el mismo agujero, misma ruta `insumo → Fábrica → virgilio` y
+mismo proveedor. Y el `activo=false` **no cierra la puerta del todo**: ver §4cy. `[dato]`
+
+**Y la respuesta del dueño al punto 3, textual (2026-09-13): *"es la misma lógica que lo de cimarron
+con las bombillas que entrega en cervantes"*.** Con eso la pregunta se cierra: **los palos son una
+COMPRA DE INSUMO, no una entrega de Prov AT.** La base ya lo dice — `GRJ22/23/24` y `GRJ17` son
+Sector Garage, proveedor de insumo Tierra Nativa, stock en Sector Garage, `estado_compra` NULL,
+**exactamente la misma forma que `GRJ4` (Bomb AutoLimp Inox, proveedor Cimarrón)**: Cimarrón entrega
+la bombilla en Cervantes, se guarda en el garage como GRJ y recién después alguien la termina y la
+manda a Virgilio. El palo es eso mismo con Tierra Nativa y con Fábrica poniendo la bandita.
+
+**Consecuencia:** las 4 filas de `articulo_prov_at` de los palos (ids 92/93/94/95, los tres + el
+**234**) no describen nada real y hay que desactivarlas. De Tierra Nativa como Prov AT queda sólo el
+**591** (Despolvillador), que sí entra terminado y tiene su paso `proveedor_at` en la ruta 956.
+**Regla que deja: un proveedor puede ser las dos cosas a la vez** — insumo para unos artículos y
+Prov AT para otros —, así que la pregunta correcta nunca es "¿qué es este proveedor?" sino "¿qué
+llega de él para ESTE artículo: una pieza al garage, o el artículo terminado a Virgilio?". `[usuario]`
+
+## 4cy. `articulo_prov_at` no garantiza nada, y `activo` sólo lo ve la pantalla (2026-09-13)
+
+Salió de traer al dueño la pregunta del punto 3 de §4cx. Lo que apareció es más grande que los palos.
+
+**1. La forma correcta de "entra terminado" es un paso `proveedor_at` en la ruta, no una fila en
+`articulo_prov_at`.** El testigo bien modelado es el **591**: ruta 956 = `A4 (insumo) → proveedor_at
+13 → virgilio`. `[dato]`
+
+**2. De las 91 filas de `articulo_prov_at`, 34 son artículos de GP2 cuya ruta NO tiene ese paso**
+(Cabral 26, Tierra Nativa 4 = los cuatro palos, Maspoli 3, Pettofrezza 1) y otras 12 ni siquiera
+son artículos de GP2. Las 45 restantes están bien. **Los palos no son la excepción, son 4 de 34.**
+`[dato]`
+
+**3. Qué pasa si se registra una entrega de una de esas 34:** `crear_entrega_prov_at` delega en
+`recepcion_virgilio`, que consume **toda la receta** desde `ubic_de('proveedor_at', N)`. La
+ubicación 54 (Tierra Nativa) **no tiene ni una fila de inventario**, así que todo queda en negativo.
+Con las 26 de Cabral es peor: el 501 arrastra 14 rutas. Hoy no pasó nunca (0 entregas en esas 34).
+`[dato]`
+
+**4. La trampa fina: `activo=false` saca el artículo de la PANTALLA, no de la RPC.**
+`entregas_prov_at_bundle` filtra `coalesce(a.activo,true)` y `EntregasAT_GP2.html` es la única
+pantalla que llama a `crear_entrega_prov_at` — así que para un operario la puerta queda cerrada.
+Pero la RPC misma chequea **existencia de la fila, sin mirar `activo`** (el `if not exists` se
+aflojó a propósito en su momento, por 5 filas con `descripcion` vacía — aquello era por
+`descripcion`, no por `activo`, así que agregarle `and coalesce(a.activo,true)` no revive ese bug).
+**Regla: antes de decir "con desactivarlo alcanza", leer la función con `pg_get_functiondef`, no
+`db/`.** `[dato]`
+
+## 4cz. El cruce de la lista de precios se hace por `cod_isis`, no por el nombre del producto (2026-09-13)
+
+Se buscó el proveedor de **`PEST1`** (Insertos Mango de Madera, 768, el único insumo comprable sin
+proveedor) y por texto no aparecía: en el bloque de Pat Bet Plast la línea se llama **"Insertos
+Importados"**. Cruzando por `cod_isis` aparece que **es el mismo artículo**: `4776` lo cotizan
+**Pat Bet Plast a $90,26** (última compra 28-11-2025) y **Kollplast a $219,97** con el nombre
+literal **"Inserto Mgo Madera"**. `[dato: v_planilla_precio]`
+
+- El hermano `PEST2` (Insertos Pisa Papas, 735) ya está en **Pat Bet Plast**, mismo sector y **mismo
+  `material_id` 742** (PP 2630). Kollplast cotiza los dos códigos (4776 y 3096): es la alternativa
+  de Pat Bet Plast en toda la línea, no un proveedor suelto.
+- **La plata:** PEST1 consume 684 uni/mes → la diferencia entre los dos precios es **$1,06 M por
+  año**. Elegir "el que suena parecido" acá cuesta plata de verdad.
+
+**DECISIÓN DEL DUEÑO (2026-09-13, textual): *"PEST 1, KollPlast. pero deja registrado que a partir
+de noviembre aprox no se debería inyectar más"*.** Aplicado: `GP2.componente` 768 `proveedor =
+'Kollplast'` (antes NULL). Verificado con SELECT; invariante `A2` sigue en 0 (Kollplast ya tenía
+ubicación de inyector, la 60) y el costo no se movió porque **PEST1 no tiene fila en
+`precio_proveedor`** (sigue `faltan_precios = 1`). Después del cambio, el único insumo comprable sin
+proveedor es `BANDITA`. `[usuario + dato]`
+
+**⏳ PEST1 se deja de inyectar alrededor de NOVIEMBRE 2026.** Es un insumo con fecha de vencimiento:
+va en los 7 artículos `941E`–`948E` (684 uni/mes) y cuadra con que esos siete son **importados** —
+la LP los tiene comprados hechos a Tierra Nativa a USD 1,36. Qué hacer llegado noviembre, y qué NO
+hacer antes: `[usuario]`
+- **No cargarle precio nuevo ni stock mínimo pensando en el largo plazo**, y mirar con desconfianza
+  cualquier OC de PEST1 con horizonte mayor a esa fecha (el sugerido es `máximo − stock`, y su
+  máximo hoy son 2.736 uni de `est_madre`: eso es más de lo que va a consumir).
+- Cuando se confirme, **`estado_compra` pasa a `discontinuo`** y hay que revisar las 7 recetas y las
+  7 rutas antes de tocar el componente (no se borra: tiene recetas y rutas colgando, misma regla que
+  `GRJ21`).
+- El inventario de PEST1 hoy está en **−372 uni** (stock inicial nunca cargado). Si se discontinúa
+  sin cerrar ese negativo queda arrastrando para siempre.
+
+**Regla que deja: para encontrar un insumo en la lista de precios, cruzar por `cod_isis` y recién
+después por texto. Dos proveedores con el mismo `cod_isis` son dos alternativas del mismo artículo**
+(igual que los dos Prov AT de §4bk), no un duplicado a limpiar. `[deducido]`
+
+## 4da. La caja puede estar en el FK y no estar en la receta: $821.628 al año sin costear (2026-09-13)
+
+`GP2.articulo.componente_caja_id` dice **qué** caja usa el artículo; lo que hace que la caja **cueste**
+es su línea en `articulo_componente` (y su ruta). **175 de los 189 artículos con caja la tienen en la
+receta. 14 no**, y en esos 14 la caja vale $0 en `v_costo_componente`: `[dato]`
+
+| Art | Caja | uni x caja | $/mes sin costear |
+|---|---|--:|--:|
+| **222** | A2 | 12 | **32.580** |
+| 312 | A2 | 12 | 9.420 |
+| 395 | A8 | 12 | 8.509 |
+| 943E · 942E · 948E · 945E · 944E | A2 | 12 | 16.200 (los cinco) |
+| 311 | A2 | 12 | 1.020 |
+| 910 | A2 | 12 | 720 |
+| 715 | A1 | 24 | 20 |
+| 818 · 058 · 059 | A4 / A9 | 12 | 0 (sin Est Madre) |
+
+**Total $68.469/mes = $821.628/año.** El más caro no es ninguno de los que se estaban mirando (los
+94xE): es el **222**, que solo explica casi la mitad.
+
+**APLICADO el 2026-09-13 (dueño: *"cajas, dale"*).** Las 14 cajas entraron a la receta a
+`1/articulos_por_caja` y cada artículo recibió su ruta de caja `insumo → <su actor> → virgilio`,
+calcada del 223 (el actor NO se inventó: se copió del paso que ya cerraba cada artículo). **222 y
+910 llevan DOS rutas de caja cada uno** porque tienen dos alternativas de Prov AT (Maspoli y
+Pintos) y la regla §4bk dice que cada alternativa lleva su caja; los dos declaran `n_caja` NULL,
+así que las dos rutas van con A2. Total: **14 recetas (923–936), 16 rutas (978–993), 48 pasos
+(3744–3791)**. Snapshot previo en `zz_backups."GP2_Snap_costos_cajas_20260913"`. Invariantes
+35/35 en 0. **Ya no queda ningún artículo con caja en el FK y sin línea de receta.** `[usuario + dato]`
+
+**⚠ PERO EL COSTO NO SUBIÓ $30 POR UNIDAD: SUBIÓ $360. Ver §4dc — el bug es de la vista, no de la
+receta.**
+
+**Regla: `componente_caja_id` sin línea de receta es un costo que no existe. Al tocar la caja de un
+artículo, verificar las dos cosas** (es la misma regla de "completar tablas manteniendo la
+normalización", aplicada a la caja). `[deducido]`
+
+## 4db. Los cubiertos inox 332-337 se reemplazaron por los 94xE, y el sitio quedó viejo (2026-09-13)
+
+`[usuario 2026-09-13, textual]` *"332/7 y 630/7 son discontinuos. Se reemplazaron por 941/8E"*.
+**332, 335 y 337 no están "discontinuados en GP2": no existen en `GP2.articulo`.** Aparecen en
+`est_madre` (136 / 64 / 48 uni/mes) porque la Est Madre arrastra discontinuados — la misma trampa
+del 515 (§4cw). Que loekemeyer.com los muestre activos es trabajo del repo del sitio, no de GP2.
+`[dato]`
+
+**Y lo de "573, 556 y 517 no tienen despiece en ningún lado" era falso para dos de los tres:**
+`[dato: GP2.planilla_fila]`
+
+- **573 Bombilla Color Metalizado** — despiece completo en la hoja **Bombillas** (fila 2, *"ART:
+  755/L573"*): caño 135 mm + resorte + niquelado + tapón aluminio + anodizado + corte cañito =
+  $578,98, con tiempos. Gemelo Chef **755**.
+- **517 Pinza Gastronómica** — despiece completo entre **Materiales Loeke** (filas 166-167: pala
+  121,3 × 0,8 y manija 167,3 × 0,8, las dos `517D`, tallerista **GUILLE**) y **Remaches** (fila 54:
+  **SR1 + SR2 + SR3**). Lo que está roto es su fila en Materiales (`#REF!`) y que no figura en Costos.
+- **556 Sacayerba** — el único sin despiece de verdad: Costos fila 225 dice `Fab` pero con
+  `E='xx'`, o sea **lo costea sólo como envase** (cartón 89 + caja 10,91 + 5,90 = $105,81). Ni la
+  planilla sabe de qué está hecho.
+
+**Regla: antes de decir "no tiene despiece", buscarlo en la hoja del RUBRO** (Bombillas, Materiales
+Loeke, Remaches, Flejes, Plásticos), no sólo en Costos y Cartones. Un artículo puede estar
+despiezado en tres hojas y en ninguna de las dos que uno mira primero. `[deducido]`
+
+
+## 4dc. `v_costo_componente` cobra la CAJA ENTERA por unidad: ARS 38,5 M por mes de sobrecosto (2026-09-13)
+
+**Salió de medir el efecto de cargar las 14 cajas de §4da.** Se esperaba que el 942E subiera $30
+(la caja de $360 dividida por 12). **Subió $360.** El mismo error estaba de antes en los otros 175
+artículos: el **234** da $944,26 = $600 del palo **+ los $344,26 de la caja entera**, cuando la
+caja de a 12 tendría que aportar $28,69. `[dato]`
+
+**Dónde está, leído de `pg_get_viewdef`:** la vista arma el costo por dos caminos y la caja entra
+por el equivocado.
+
+| CTE | De dónde saca | ¿Usa la cantidad? |
+|---|---|---|
+| `insumox` | los pasos `tipo_paso='insumo'` | **sí**, `cantidad * precio` |
+| `mat` | `edges` = los pasos `matriz` / `proveedor_servicio` / `tallerista` | **no**, `cb.precio` pelado (salvo sector 5, los flejes, que multiplica por kg) |
+
+La caja aparece en los **dos**: como entrada del paso `insumo` (0,0833) y como entrada del paso
+`tallerista` (el que la convierte en el terminado). Y `insumox` tiene este `case`:
+`when exists (edges e where e.ent = insumo_id) then greatest(cantidad - 1, 0) * precio`. Como la
+caja **sí** es entrada de un edge, `greatest(0,0833 − 1, 0) = 0` → **`insumox` aporta 0 y `mat`
+aporta el precio entero.** El `− 1` está pensado para una pieza que se transforma (entra 1, sale 1)
+y le pega de lleno a todo insumo con cantidad < 1: cajas, cartones, pliegos. `[dato]`
+
+**La plata:** sumando `precio_caja × (1 − 1/uni_x_caja) × uni_mes` sobre los 189 artículos con caja
+da **ARS 38.538.090 por mes**. Es de lejos el número más grande que apareció en esta auditoría, y
+**es anterior a cualquier cambio de hoy** — lo de §4da sólo sumó 14 artículos más a la misma cuenta.
+
+**Prueba de que el modelo querido es el otro:** la planilla, hoja Costos, columna M del 942E dice
+**15** = 360 ÷ 24, la parte por unidad. Y la cuenta que el dueño validó el 11-09 para la Caja N22
+del 546 (§4cr, *"~$39.500/mes de más"*) es `7.700 × (208 − 146,42) / 12`: **dividida por 12**. O sea
+el negocio siempre pensó en la parte; la vista es la que cobra la caja entera. `[dato]`
+
+**ARREGLADO el 2026-09-13** (dueño: *"1 arregla"*), migración `la_caja_se_cobra_por_su_parte_no_entera`.
+Se tomó la opción 2, en su forma mínima: `mat` pasa de cobrar `cb.precio` pelado a cobrar
+`cb.precio × least(coalesce(cantidad_del_paso_insumo, 1), 1)`. La cuenta queda exacta para todo `q`:
+
+    antes:  mat = 1 × precio          + insumox = greatest(q−1,0) × precio  =  max(q,1) × precio
+    ahora:  mat = least(q,1) × precio + insumox = greatest(q−1,0) × precio  =  q × precio
+
+**Lo que NO se tocó, a propósito:** el `greatest(q−1,0)` de `insumox` (existe para que una pieza que
+entra 1 y sale 1 no se cuente dos veces) y los flejes (sector 5, que ya escalan por `kg_ref`).
+`insumo_por_art` se movió arriba de `mat` para poder leerse desde ahí, sin cambiarle una coma.
+
+**Verificado en seis testigos, todos exactos al centavo:** 234 `944,26 → 628,69` (= 600 del palo +
+28,69 de caja) · 942E `360,00 → 30,00` · 311 `515,48 → 185,48` · 312 `1.671,08 → 1.341,08` ·
+395 `559,80 → 319,80` · 546 `1.659,70 → 1.469,03` (= 208 − 17,33 menos). Ningún costo quedó nulo ni
+negativo, y ninguno subió (matemáticamente no puede: `least(q,1) ≤ 1`). El costo mensual valorizado
+de los 191 artículos queda en **ARS 141.866.763**. `db/vistas_GP2.sql` regenerado y **verificado por
+md5 contra la vista viva**. `[usuario + dato]`
+
+**Regla que deja: en GP2 un insumo que además es la ENTRADA del paso que lo consume se cobra
+entero, no por su cantidad. Antes de creerle a `total_pesos`, comparar contra la columna M de la
+hoja Costos.** `[deducido]`
+
+
+## 4dd. 942E y 945E quedan en 12 por caja, contra lo que dice la planilla (2026-09-13)
+
+`[usuario 2026-09-13, textual: *"2 12."*]`. La planilla los da de a **24** en sus dos hojas
+(Cajas F=24 y Costos M=15=360/24) y GP2 los tenía en **12**; el dueño confirmó **12**. **Se retira
+el hallazgo de §7.4(b) de `PENDIENTES_CAJAS_PALOS`**: no hay nada que corregir en la base, la que
+está desactualizada es la planilla.
+
+Consecuencia concreta, ahora que la caja se cobra bien (§4dc): 942E y 945E aportan **$30,00** de
+caja por unidad, no $15. Sobre 214 uni/mes son **$3.210 más por mes** que lo que dice la planilla —
+diferencia real, no error de carga. `[deducido]`
+
+**Regla que deja: la planilla no gana automáticamente.** El 11-09 la hoja Costos fue la que cerró la
+discusión de qué caja usa cada artículo (§4cr); acá el dueño la contradice en la uni x caja y manda
+él. La hoja Costos es la mejor fuente cuando **nadie** sabe, no cuando el dueño ya decidió.

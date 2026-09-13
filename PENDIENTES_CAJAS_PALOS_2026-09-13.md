@@ -189,15 +189,22 @@ select a.codigo, count(distinct r.id) rutas, count(p.id) pasos, bool_and(coalesc
 
 Hoy, antes del cambio: AA=0, AB=0, I=0, "receta sin inventario"=0 (medido).
 
-**Efecto sobre costos** (⚠ CORREGIDO el 2026-09-13; la primera versión de esta línea decía
-que el 234 costaba **$944,26** y eso estaba MAL): `v_costo_componente` daba 231/232/233 = $0,00
-con `faltan_precios=1` (GRJ22/23/24 sin precio), y el 234 da **$628,69** = $600 del palo +
-**$28,69** de su parte de caja. El 944,26 salía de sumarle la caja **entera** ($344,26) en vez de
-la doceava parte — o sea el error estaba en mi cuenta, no en la vista. La vista divide bien, y los
-**189** artículos con caja tienen su línea de receta con `cantidad = 1/uni_x_caja`: ninguno cobra
-la caja entera (medido el 13/09). Después del alta, 231/232/233 quedan con `faltan_precios = 2`
-(GRJ sin precio + BANDITA sin precio) y su total refleja sólo la caja: **$28,69** cada uno,
-verificado en la base. El precio de los palos 30/40/50 no está en la LP (sólo "Palo de Amasar Frances 40cm" $600 f888 y "Torneado Palo de Amasar 40cm" $1.245 f901, ambos Tierra Nativa).
+**Efecto sobre costos** (⚠ ACTUALIZADO el 2026-09-13 a la noche): esta línea decía que el 234
+costaba **$944,26** con caja. **Ese número era CORRECTO cuando se escribió** — la vista
+`v_costo_componente` cobraba la caja **entera** por unidad en vez de su parte, y el 234 era
+justamente el testigo que lo probaba. **Otra sesión lo arregló el mismo día** (migración
+`la_caja_se_cobra_por_su_parte_no_entera`: `mat` pasa a cobrar `least(cantidad,1) * precio`),
+así que **hoy el 234 da $628,69** = $600 del palo + **$28,69** de su parte de caja.
+
+⚠ Y ojo con la trampa, que ya mordió: al medir DESPUÉS del arreglo, el 944,26 parece un error
+de suma y da ganas de "corregirlo" diciendo que uno se equivocó. No fue un error de cuenta: era
+el bug. Si se reescribe como error propio se borra la evidencia del problema. Lo que corresponde
+es fechar el número, no negarlo.
+
+Estado de hoy, verificado en la base: 231/232/233 quedan con `faltan_precios = 2` (GRJ sin
+precio + BANDITA sin precio) y su total refleja sólo la caja, **$28,69** cada uno — que es
+exactamente lo que este archivo predecía. Los 189 artículos con caja tienen su línea de receta
+con `cantidad = 1/uni_x_caja`: ninguno cobra la caja entera. El precio de los palos 30/40/50 no está en la LP (sólo "Palo de Amasar Frances 40cm" $600 f888 y "Torneado Palo de Amasar 40cm" $1.245 f901, ambos Tierra Nativa).
 
 ---
 
@@ -364,3 +371,325 @@ No puedo re-derivar el "199" porque los xlsx de los listados no están en el rep
 7. "2 limpia": GRJ28/29 mismo nombre → ¿LK/CH?; GRJ21 discontinuo pero es la receta del 071 Bowl → ¿el 071 se vende?
 8. Cartones LOKE: los 10 están en marca LOEKE (marca LOKE ya no la admite la base); 7 van a la familia LOKE·LOEKE (11 códigos), I2A/I3C son Huevo, A1B1 es Bolsa. ¿Queda así?
 9. 717/537/567: siguen sin modelar, a propósito; 567 no aparece en ningún dato de la base.
+
+---
+
+# §7. Segunda vuelta (2026-09-13, tarde) — lo que el dueño pidió traer para decidir
+
+Todo re-consultado contra `hrxfctzncixxqmpfhskv` schema `GP2`. **Nada escrito en la base.**
+`db/verificar.sql` entero **antes**: 35 reglas, las 35 en **0**.
+
+> **Tres cosas de §1–§5 se RETIRAN por medición.** Están marcadas ⛔ abajo. Si alguna sesión
+> futura lee §1.3 o §2 sin leer esto, va a repetir un error ya descartado.
+
+---
+
+## 7.1 `articulo_prov_at` 92/94/95 — el `activo=false` arregla menos de lo que parece
+
+**Lo incómodo primero: el 234 (fila id 93) tiene EXACTAMENTE el mismo problema y no estaba en la
+lista.** Y no son 4 filas: son **34**.
+
+### Lo medido
+
+| Qué | Valor |
+|---|--:|
+| Filas de `articulo_prov_at` | 91 |
+| Con paso `proveedor_at` en la ruta (bien modeladas) | 45 |
+| **Artículo de GP2 SIN paso `proveedor_at` en su ruta** | **34** |
+| Filas cuyo `cod_art` no es un artículo de GP2 | 12 |
+| Entregas registradas de 231/232/233/**234** | **0** |
+| Filas de inventario en la ubicación 54 (Tierra Nativa) | **0** |
+
+Las 34 por proveedor: **Cabral 26**, Tierra Nativa **4** (231, 232, 233 **y 234**), Maspoli 3,
+Pettofrezza 1. O sea los palos no son la excepción: son 4 de 34, y el caso hermano del 234 —
+misma ruta `insumo → Fábrica → virgilio`, mismo proveedor, misma caja — **está activo igual**.
+
+El que sí está bien modelado es el **591**: su ruta 956 tiene el paso `proveedor_at` (Tierra
+Nativa) en el orden 2. Ésa es la forma de un artículo que entra terminado. Ninguno de los cuatro
+palos la tiene.
+
+### ⛔ Se retira: "`activo=false` cierra la puerta"
+
+`crear_entrega_prov_at` (leído hoy de `pg_get_functiondef`, no de `db/`) chequea la asignación así:
+
+```sql
+if not exists (select 1 from articulo_prov_at a
+                where a.proveedor_at_id = p_prov_at_id and a.cod_art = p_cod_art) then
+```
+
+**No mira `activo`.** Lo que sí lo mira es `entregas_prov_at_bundle` (`where coalesce(a.activo,true)`),
+que es de donde `Prov Art Terminado/Entregas/EntregasAT_GP2.html` saca la lista — y ésa es la
+**única** pantalla que llama a la RPC. Conclusión exacta: **`activo=false` saca el artículo de la
+pantalla (que es por donde entra un operario), pero la RPC lo sigue aceptando si alguien la llama
+derecho.**
+
+### Qué pasa si se registra una entrega (confirmado leyendo `recepcion_virgilio`)
+
+Consume **toda la receta** desde `ubic_de('proveedor_at', 13)` = ubicación **54**, que tiene **0
+filas de inventario**. Un 231 dejaría `GRJ22 −1`, `A9B −1/12` y `BANDITA −1` en la 54. Lo mismo
+haría el 234 (GRJ17 + A9B), y lo mismo cualquiera de las 26 de Cabral (el 501 arrastraría 14 rutas).
+
+### Las tres opciones (elegir una)
+
+**A — Consistente con lo que explicaste (recomendada): los CUATRO palos fuera del catálogo AT.**
+
+```sql
+-- ANTES (para pegar el resultado en el HISTORIAL)
+select id, cod_art, descripcion, activo from "GP2".articulo_prov_at where id in (92,93,94,95) order by id;
+
+update "GP2".articulo_prov_at set activo = false
+ where id in (92,93,94,95) and cod_art in ('231','232','233','234') and proveedor_at_id = 13;
+-- esperado: UPDATE 4
+
+-- DESPUES
+select id, cod_art, activo from "GP2".articulo_prov_at where proveedor_at_id = 13 order by id;
+-- esperado: 92/93/94/95 en false, 96 (591) en true
+```
+
+*Riesgo:* si Tierra Nativa **sí** entrega el 234 terminado (es el único de los cuatro que no lleva
+bandita), lo sacás de la pantalla de Entregas y hay que modelarle la ruta con paso `proveedor_at`
+como el 591. Por eso es pregunta y no deducción.
+
+**B — Sólo los tres, como venía.** `where id in (92,94,95)`. Deja al 234 con el mismo agujero y la
+base queda diciendo dos cosas distintas de cuatro artículos gemelos.
+
+**C — El arreglo de raíz, y las 34 de una.** Que la RPC exija lo que el modelo ya dice: que el
+artículo tenga un paso `proveedor_at` en su ruta. Es una migración de función, no de datos, y no
+depende de `activo`:
+
+```sql
+-- dentro de crear_entrega_prov_at, reemplazando el if de la asignación
+if not exists (select 1 from articulo_prov_at a
+                where a.proveedor_at_id = p_prov_at_id and a.cod_art = p_cod_art
+                  and coalesce(a.activo, true)) then
+  raise exception 'El articulo % no esta asignado (o esta inactivo) para ese proveedor', p_cod_art;
+end if;
+```
+*(Ojo: el comment de la función dice que el chequeo se aflojó a propósito porque 5 filas tenían la
+descripción vacía — 193, 231, 232, 233, 591. Agregar `activo` NO revive ese bug: aquél era por
+`descripcion`, no por `activo`.)*
+
+**A y C no se pisan.** Lo prolijo es hacer las dos.
+
+---
+
+## 7.2 Proveedor de `BANDITA` (componente 916) — los candidatos, con el dato que los separa
+
+`v_planilla_precio`, todo lo que dice "band" o nombra el palo de amasar:
+
+| # | Proveedor | Producto | Precio | Fecha lista | Última compra | ¿Existe en `proveedor_insumo`? |
+|--:|---|---|--:|---|---|---|
+| 1 | 2147 Gráfica Pol | **Banditas 35 × 194 mm** (f390) | $8.250,00 | 15-04-2026 | — | **sí**, "Talleres Gráficos Pol" (13, rubro Sector Cartón) |
+| 2 | 2147 Gráfica Pol | Bandita Ralladores (f389) | $8.250,00 | 15-04-2026 | — | ídem |
+| 3 | 4399 López José Daniel | Super Bands Bolsa N°15 (Bandita Negra) (f514) | $1,08 | 05-12-2025 | 09-12-2025 | **NO** — habría que darlo de alta primero |
+| 4 | 2147 Gráfica Pol | *Etiqueta* Palo de Amasar 40cm (f408) | $9.500,00 | 15-04-2026 | — | ídem |
+
+**Lo que inclina, sin decidirlo:** `BANDITA` está en **Sector Cartón**, y el único proveedor de esa
+lista con rubro Sector Cartón es Pol. El #3 es el único con precio por unidad ($1,08) y compra
+real, pero es una gomita elástica ("Super Bands", "Bandita Negra"), no una faja impresa, y **López
+José Daniel no existe como `proveedor_insumo`** (la FK `componente_proveedor_fkey` exige el nombre
+exacto, así que elegirlo son dos escrituras, no una).
+
+El #1 es el único cuya medida (35 × 194 mm) es la de una faja que rodea un palo.
+
+```sql
+-- OPCIÓN Pol (#1, #2 o #4 — el nombre del proveedor es el mismo)
+update "GP2".componente set proveedor = 'Talleres Gráficos Pol' where id = 916 and codigo = 'BANDITA';
+
+-- OPCIÓN López José Daniel (#3) — hay que crearlo antes
+insert into "GP2".proveedor_insumo (nombre, cod_prov, rubro) values ('Lopez Jose Daniel', '4399', 'Sector Cartón');
+update "GP2".componente set proveedor = 'Lopez Jose Daniel' where id = 916 and codigo = 'BANDITA';
+
+-- verificación (cualquiera de las dos)
+select id, codigo, proveedor from "GP2".componente where id = 916;
+```
+
+El **precio** es una segunda pregunta: $8.250 no es por unidad (es el millar o el paquete) y ninguna
+de las tres filas dice a cuántas unidades corresponde.
+
+---
+
+## 7.3 `PEST1` (768) — con qué se cruzó, y por qué la respuesta es "sí, pero hay dos"
+
+⛔ **Se corrige §2.** Ahí decía que en el bloque de Pat Bet Plast hay "Insertos Importados $90,26" y
+que "ninguno dice mango de madera". **Sí lo dice, en otro proveedor, y con el mismo código ISIS.**
+
+El cruce es **`cod_isis`**, no el texto:
+
+| cod ISIS | Proveedor | Producto en la LP | Precio | Fecha lista | Última compra |
+|---|---|---|--:|---|---|
+| **4776** | 797 Pitzus Manuel (**Pat Bet Plast**) | Insertos Importados (f345) | **$90,26** | 01-08-2026 | **28-11-2025** |
+| **4776** | 4465 **Kollplast** | **Inserto Mgo Madera** (f1076) | **$219,97** | 07-08-2026 | — |
+| 3096 | 4465 Kollplast | Inserto Pisapapas (f1077) | $219,97 | 07-08-2026 | — |
+| 0116 | 797 Pat Bet Plast | Inserto CH Cortos+ojal (cuch/espat/bati/cane) (f325) | $190,99 | 01-08-2026 | 30-04-2026 |
+
+Los tres apoyos de "Pat Bet Plast", y el que lo discute:
+
+1. **El hermano.** El único otro `PEST` de GP2 es `PEST2` "Insertos Pisa Papas" (735), y **ya tiene
+   proveedor Pat Bet Plast**. Mismo prefijo, mismo sector, **mismo `material_id` 742** (PP 2630).
+2. **El material.** De los 21 componentes con material 742: 12 Pat Bet Plast, 6 Pettofrezza,
+   2 JL Matricería, 1 sin proveedor (que es PEST1). Mayoría, no prueba.
+3. **La compra real.** El 4776 de Pat Bet Plast tiene última compra 28-11-2025; el de Kollplast
+   nunca se compró.
+4. **En contra:** el que se llama **literalmente** "Inserto **Mgo Madera**" — la descripción exacta
+   de PEST1 — es el de **Kollplast**, y Kollplast **también existe** en `proveedor_insumo` (id 12).
+   Kollplast cotiza los dos (4776 y 3096), o sea es la alternativa de Pat Bet Plast en toda la línea.
+
+**La plata:** PEST1 consume **684 uni/mes** (`v_consumo_componente`, 7 artículos). La diferencia
+entre los dos precios es $129,71 por unidad → **$88.722 por mes / $1.064.664 por año**. No es una
+elección cosmética.
+
+```sql
+-- OPCIÓN Pat Bet Plast (el que ya tiene el hermano PEST2, y el único comprado)
+update "GP2".componente set proveedor = 'Pat Bet Plast'
+ where id = 768 and codigo = 'PEST1' and sector_id = 6 and proveedor is null;
+
+-- OPCIÓN Kollplast (el que la lista llama "Inserto Mgo Madera")
+update "GP2".componente set proveedor = 'Kollplast'
+ where id = 768 and codigo = 'PEST1' and sector_id = 6 and proveedor is null;
+
+-- verificación
+select id, codigo, descripcion, proveedor from "GP2".componente where id = 768;
+```
+
+> ✅ **DECIDIDO Y APLICADO el 2026-09-13** — *"PEST 1, KollPlast. pero deja registrado que a partir
+> de noviembre aprox no se debería inyectar más"*. `componente` 768 → `proveedor = 'Kollplast'`.
+> Invariante `A2` en 0 (Kollplast ya tenía la ubicación de inyector 60) y el costo no se movió
+> (PEST1 no tiene fila en `precio_proveedor`). **Queda anotado que PEST1 se deja de inyectar
+> ~noviembre 2026** — ver CONOCIMIENTO §4cz, con lo que hay que hacer y lo que NO hay que cargarle
+> mientras tanto.
+
+Con cualquiera de los dos, PEST1 deja de ser el único insumo comprable sin proveedor (los otros 18
+son 17 de `fabricacion` + 1 `discontinuo`).
+
+---
+
+## 7.4 `941E`–`948E` — el cuadro, ordenado por plata
+
+⛔ **Se corrige §3**, que leía la hoja Cajas y decía "los listados mandan, falta el dato". **La hoja
+COSTOS — la que calcula el costo, el criterio que vos mismo fijaste el 11-09 — confirma la hoja
+Cajas al centavo**: su columna M es $360 ÷ (uni x caja).
+
+| Art | Descripción | GP2 caja | GP2 uxc | Planilla *Cajas* F (uxc) | Planilla *Costos* M ($/uni) | Est Madre uxb | uni/mes | Caja que GP2 NO costea |
+|---|---|---|--:|--:|--:|--:|--:|--:|
+| 943E | Cucharón Inox | A2 (N°12) | 12 | 12 | 30,00 | 12 | 144 | **$4.320** |
+| 942E | Cuchara Inox | A2 (N°12) | 12 | **24** | **15,00** | 12 | 132 | **$3.960** |
+| 948E | Espumadera Inox | A2 (N°12) | 12 | 12 | 30,00 | 12 | 108 | **$3.240** |
+| 945E | Espátula Calada Inox | A2 (N°12) | 12 | **24** | **15,00** | 12 | 82 | **$2.460** |
+| 944E | Cuchara Fideos Inox | A2 (N°12) | 12 | 12 | 30,00 | 12 | 74 | **$2.220** |
+| 941E | Espátula Lisa Inox | — | 12 | sin fila | sin M | 12 | 86 | — |
+| 946E | Cuchara Calada Inox | — | 12 | sin fila | sin M | 12 | 58 | — |
+| 947E | — | no existe | — | no existe | no existe | no está | — | — |
+
+Tres cosas separadas, de mayor a menor:
+
+**(a) La caja está en el FK y NO está en la receta — $16.200/mes sólo en los 94xE.** Los 5 que
+tienen caja la tienen únicamente en `articulo.componente_caja_id`: su receta es **1 línea (PEST1)**
+y tienen **1 sola ruta**. No hay línea de caja ni paso de caja. **No es privativo de los 94xE: son
+14 artículos**, y el más caro no es un E:
+
+| Art | Caja | uxc | $/mes sin costear |
+|---|---|--:|--:|
+| 222 | A2 | 12 | **32.580** |
+| 312 | A2 | 12 | 9.420 |
+| 395 | A8 | 12 | 8.509 |
+| 943E | A2 | 12 | 4.320 |
+| 942E | A2 | 12 | 3.960 |
+| 948E | A2 | 12 | 3.240 |
+| 945E | A2 | 12 | 2.460 |
+| 944E | A2 | 12 | 2.220 |
+| 311 | A2 | 12 | 1.020 |
+| 910 | A2 | 12 | 720 |
+| 715 | A1 | 24 | 20 |
+| 818, 058, 059 | A4 / A9 | 12 | 0 (sin Est Madre) |
+
+**Total: $68.469 por mes / $821.628 por año de caja que hoy no entra al costo.** Los otros 175
+artículos con caja sí la llevan en la receta.
+
+**(b) ¿24 o 12 por caja en 942E y 945E?** La planilla lo dice **dos veces** (Cajas F=24 y Costos
+M=15). GP2 y `est_madre` dicen 12 — pero el `uxb` de est_madre da exactamente `proy_uni_mes / 12`
+en los **siete**, así que no es un testimonio independiente: es el mismo 12 repetido.
+`uni_x_articulo_x_caja` (los listados mayoristas, que según tu regla mandan) **no tiene ningún
+94xE**. O sea: la planilla es la única fuente con dato propio, y dice 24.
+
+```sql
+-- si va 24 (lo que dice la planilla en sus dos hojas)
+update "GP2".articulo set articulos_por_caja = 24 where codigo in ('942E','945E');
+-- verificación
+select codigo, articulos_por_caja from "GP2".articulo where codigo ~ '^94[0-9]E$' order by 1;
+```
+
+**(c) 941E / 946E sin caja: GP2 y la planilla coinciden** (Costos filas 124 y 129 sólo tienen la
+columna E = Importados, sin L de cartón ni M de caja; Importados f104/f113 los da a USD 0,66).
+**No hay nada que cambiar.** Y **947E no existe en ningún lado** — ni GP2, ni Cajas, ni Cartones,
+ni Costos, ni Importados, ni la LP, ni est_madre.
+
+---
+
+## 7.5 332 / 335 / 337 y 573 / 556 / 517
+
+### Los tres inox: no hay nada que decidir en GP2, el que está viejo es el sitio
+
+`[usuario 2026-09-13, textual]` *"332/7 y 630/7 son discontinuos. Se reemplazaron por 941/8E"*.
+
+- **332, 335 y 337 no existen en `GP2.articulo`** (verificado). No están "discontinuados en GP2":
+  no están. Están en `est_madre` (136 / 64 / 48 uni/mes) porque la Est Madre arrastra
+  discontinuados — la misma trampa del 515 (§4cw).
+- **Su reemplazo son los 94xE de §7.4.** Es el mismo cajón: los cubiertos de acero inox.
+- Lo que queda por hacer **no es en este repo**: darlos de baja en loekemeyer.com, que los sigue
+  mostrando activos.
+
+### ⛔ Se retira: "573, 556 y 517 no tienen despiece en ningún lado". **Dos de los tres sí lo tienen, en la planilla.**
+
+| Cód | Qué es | Dónde está el despiece | Estado real |
+|---|---|---|---|
+| **573** Bombilla Color Metalizado | hoja **Bombillas** fila 2: *"bombilla ALUMINIO COLOR ANODIZADO ART: 755/L573"* | caño 135 mm $186,32 · resorte $66,10 · niquelado resorte $26,06 · tapón aluminio $40,50 · anodizado $175 · corte cañito $85 = **$578,98**, con tiempos (gallolado 5,50 s · doblado 5,97 s · estampado 5,00 s) | **despiece COMPLETO.** Gemelo Chef 755. Caja N°2, 24 x caja, cartón E=21. Est Madre 52 uni/mes |
+| **517** Pinza Gastronómica | hoja **Materiales Loeke** filas 166-167 + hoja **Remaches** fila 54 | `517D` pala de acero (fleje 121,3 × 0,8) + `517D` manija de acero (fleje 167,3 × 0,8), tallerista **GUILLE**; 3 remaches **SR1 + SR2 + SR3** | **despiece COMPLETO**, pero la hoja Materiales fila 276 tiene `#REF!` y **no está en la hoja Costos**. Sin gemelo Chef. Caja N°7, 12 x caja |
+| **556** Sacayerba | — | hoja Costos fila 225: `C='Fab'`, **`E='xx'`** (sin material), L=89 cartón, M=10,91 caja N°2, N=5,90 → $105,81 | **el único sin despiece de verdad.** La planilla lo costea **sólo como envase**: dice "Fab" y no tiene ni material ni mano de obra. Materiales Loeke fila 27 tiene "sacayerba" con `#REF!`. Gemelo Chef 765 |
+
+Ninguno de los tres existe en `GP2.articulo`. **573 y 517 se pueden dar de alta con lo que ya hay**
+(573 es casi un calco de las otras bombillas; 517 son 2 flejes + 3 remaches + Guille); **556 no**,
+porque ni la planilla sabe de qué está hecho.
+
+---
+
+## 7.6 `GP2_FALTANTES_20260908.xlsx`
+
+**Sí, subilo de nuevo.** Sigue sin estar en el repo (`find` en todo `/home/user`, 13-09). Sin él,
+§4 es la reconstrucción de las menciones sueltas de CONOCIMIENTO, no el archivo fila por fila —
+faltan ~6 filas de Prov Servicio y el resto de las 26 de Insumos-Partes que nadie nombró nunca.
+Cuando lo subas se guarda en el repo (trampa §4v: la planilla de costos se pidió "muchísimas veces"
+por no estar guardada).
+
+---
+
+## 7.7 Resumen de las 5 decisiones (ordenadas por plata)
+
+| # | Decisión | Plata en juego | Estado |
+|--:|---|--:|---|
+| 1 | La caja en el FK pero no en la receta (14 artículos) | **$821.628 / año** | no preguntado antes; sale de §7.4 |
+| 2 | PEST1: Pat Bet Plast ($90,26) o Kollplast ($219,97) | **$1.064.664 / año** de diferencia | espera tu sí |
+| 3 | 942E / 945E: 24 o 12 por caja | $38.520 / año | espera tu sí |
+| 4 | `articulo_prov_at`: opción A (4 filas), B (3) o C (la RPC) | latente: stock en negativo en la ubic. 54 | espera tu sí |
+| 5 | Proveedor de BANDITA: Pol o López José Daniel | precio todavía sin unidad | espera tu sí |
+
+
+---
+
+# §8. Cierre del 2026-09-13 (tarde): las 5 decisiones, y el hallazgo que dejaron
+
+| # | Decisión del dueño | Estado |
+|--:|---|---|
+| 1 | PEST1 → **Kollplast**, y anotado que deja de inyectarse ~noviembre 2026 | ✅ aplicado (componente 768) |
+| 2 | `articulo_prov_at`: **opción A** — *"es la misma lógica que lo de cimarron"* | ✅ aplicado (ids 92/93/94/95 en `activo=false`; el 591 sigue activo) |
+| 3 | BANDITA → **Talleres Gráficos Pol** | ✅ aplicado (componente 916) |
+| 4 | Las 14 cajas a la receta | ✅ aplicado (recetas 923–936, rutas 978–993, pasos 3744–3791) |
+| 5 | 942E / 945E: **12 por caja** (contra la planilla, que dice 24) | ✅ decidido — no había que cambiar nada; ver CONOCIMIENTO §4dd |
+
+Invariantes 35/35 en 0 antes y después. Snapshot de costos previo:
+`zz_backups."GP2_Snap_costos_cajas_20260913"`.
+
+**Lo que apareció al medir el punto 4 y es más grande que todo lo anterior:
+`v_costo_componente` cobra la CAJA ENTERA por unidad — ARS 38.538.090 por mes sobre 189
+artículos, pre-existente.** El mecanismo, la prueba y las dos formas de arreglarlo están en
+CONOCIMIENTO §4dc. **ARREGLADO** en la misma sesión (*"1 arregla"*), migración `la_caja_se_cobra_por_su_parte_no_entera`, verificado en 6 testigos al centavo y `db/` regenerado con md5 contra la vista viva. Queda registrado en la auditoría de Supabase.
