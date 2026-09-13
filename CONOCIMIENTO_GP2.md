@@ -9244,3 +9244,32 @@ de §4dj, Chef vendiendole Loeke a Tierra del Fuego.
 
 **Regla que deja: antes de dar un articulo por muerto, mirar `sales_lines` del proyecto
 `kwkclwhmoygunqmlegrg`. `est_madre` dice lo que se proyecta; `sales_lines` dice lo que se facturo.**
+
+
+## 4dl. La Est Madre SUBESTIMA la cola: hasta 14x menos de lo que se factura (2026-09-13)
+
+Recalculando el grupo A de `ARTICULOS_FUERA_DE_GP2.md` con `sales_lines` en vez de `est_madre`
+aparecio un sesgo con forma: **cuanto mas chico es el numero de la Est Madre, mas se equivoca.**
+`[dato: sales_lines, 12 meses al 2026-09-13, uni/mes = cajas/12 × uxb]`
+
+| Cód | Est Madre | Vendidas | Cuánto más |
+|---|--:|--:|---|
+| 456 Espátula Lisa Nylon | 1 | 14 | **14×** |
+| 710 Enrulador Manteca | 1 | 13 | **13×** |
+| 839 Rallador Chocolate | 10 | 114 | **11×** |
+| 852 Pinza De Hielo 14 cm | 7 | 80 | **11×** |
+| 801 Pinza Grande CH | 2 | 16 | 8× |
+| 809 Corta Queso Chef | 1 | 8 | 8× |
+| 977 Platos Pizza x6 | 2 | 11 | 5× |
+| 574 Corta Queso Alambre | 88 | **319** | 3,6× |
+| 747 · 717 · 613 | **0** | 6 · 2 · 1 | tienen facturas de 2026 |
+
+Los grandes, en cambio, cierran bien: el `111`, el `112` y el `113` dan **exacto**, y el `565` y el
+`439E` quedan cerca. **O sea la Est Madre esta bien donde hay volumen y se rompe en la cola larga**
+— justo donde se venia usando para descartar (*"tiene 1 uni/mes, no importa"*). El caso mas caro es
+el **574 Corta Queso Alambre**: 88 segun la proyeccion, 319 vendidas a 41 clientes, factura del
+17-08-2026; era el decimo de la lista y es el tercero.
+
+**Regla: `est_madre` decide el MAXIMO de stock (es lo que consume el motor); `sales_lines` decide
+QUE VALE LA PENA MODELAR. No mezclar los dos usos.** Es la version general de lo que ya habia
+mordido con el 515 (§4cw) y con el 573 (§4de). `[deducido]`

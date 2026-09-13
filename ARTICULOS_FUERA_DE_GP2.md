@@ -196,3 +196,57 @@ resueltos y ninguno entra a GP2:
 
 **Que un artículo tenga despiece en la planilla no lo hace vivo.** La planilla guarda el despiece de
 cosas que ya no se venden, igual que la Est Madre arrastra discontinuados (§4cw). Ver CONOCIMIENTO §4de.
+
+
+---
+
+## Grupo A recalculado con las VENTAS REALES (2026-09-13)
+
+Hasta ahora el grupo A se ordenaba por `est_madre.proy_uni_mes`, que es una **proyección**. Con
+`public.sales_lines` (proyecto `kwkclwhmoygunqmlegrg`, facturas desde 2020) se puede ordenar por lo
+que **realmente se facturó**. `uni/mes vendidas` = `cajas de 12 meses ÷ 12 × uxb`.
+
+**Los 23 tienen ventas en los últimos 12 meses. Ninguno está muerto.**
+
+| Cód | Artículo | Est Madre | **Vendidas** | Clientes | Última venta | Est Madre vs real |
+|---|---|--:|--:|--:|---|---|
+| 110 | Colador N°8 Loke | 384 | **705** | 2 | 2026-08-25 | 1,8× más |
+| 565 | Pinza De Hielo | 534 | 431 | **121** | 2026-08-31 | ok |
+| 574 | Corta Queso Alambre | 88 | **319** | 41 | 2026-08-17 | **3,6× más** |
+| 111 | Colador N°10 Loke | 296 | 296 | 1 | 2025-10-17 | exacto |
+| 561 | Pinza Grande LK | 324 | 246 | 75 | 2026-08-13 | *discontinuado* |
+| 323 | Rallador Cilíndrico Chico | 124 | **217** | 71 | 2026-06-18 | 1,8× más |
+| 112 | Ø 16 Env. Loke | 160 | 160 | 1 | 2025-10-17 | exacto |
+| 113 | Colador N°20 Loke | 160 | 160 | 1 | 2025-10-17 | exacto |
+| 839 | Rallador Chocolate/Limón | 10 | **114** | 20 | 2026-08-20 | **11× más** |
+| 439E | Colador Pasta | 122 | 95 | 59 | 2026-08-27 | ok |
+| 852 | Pinza De Hielo 14 cm | 7 | **80** | 22 | 2026-08-20 | **11× más** |
+| 509 | Paleta Batidora | 104 | 53 | 19 | 2026-08-25 | la mitad |
+| 396 | Enrulador De Manteca | 80 | 40 | 20 | 2026-08-17 | *discontinuado* |
+| 440E | Colador Extensible | 36 | 32 | 53 | 2026-08-24 | ok |
+| 801 | Pinza Grande CH | 2 | **16** | 11 | 2026-07-03 | **8× más** |
+| 456 | Espátula Lisa Nylon | 1 | **14** | 8 | 2026-07-03 | **14× más** |
+| 710 | Enrulador Manteca | 1 | **13** | 6 | 2026-07-06 | **13× más** |
+| 548 | Pincel Pastelero | 24 | 12 | 2 | 2026-05-08 | ya entró como 590E/890E |
+| 977 | Platos Individuales Pizza | 2 | **11** | 2 | 2026-06-03 | 5× más |
+| 809 | Corta Queso Alambre Chef | 1 | **8** | 1 | 2026-08-06 | 8× más |
+| 747 | Bombilla Coco Hexagonal | 0 | 6 | 2 | 2026-01-28 | la Est Madre decía 0 |
+| 717 | Cuchillo De Untar x4 | 0 | 2 | 1 | 2026-01-27 | ídem |
+| 613 | Cuchara Calada 1 Pieza | 0 | 1 | 1 | 2026-01-28 | ídem |
+
+**Total real: ~3.030 uni/mes**, contra los 2.460 que daba la Est Madre. Sacando el **561** y el
+**396**, que el dueño dio por discontinuados el 13-09 (*"no se fabrican más"*, aunque se siguen
+facturando del stock): **~2.744 uni/mes en 21 códigos**.
+
+### ⚠ Lo que esto cambia: la Est Madre SUBESTIMA la cola
+
+Los que la Est Madre pone en **0, 1 o 2 uni/mes** son los que más se equivoca: `456` (14×), `710`
+(13×), `839` y `852` (11×), `801` y `809` (8×), `977` (5×), y `747`/`717`/`613` que marca en **0**
+aunque tienen facturas de 2026. **Justamente los que se venían descartando por chicos.**
+El caso mas caro es el **574 Corta Queso Alambre**: la Est Madre le da 88 uni/mes y vendió el
+equivalente a **319**, a **41 clientes**, con factura del 17-08-2026 — es el **tercero** de la
+lista por venta real y figuraba décimo.
+
+**Regla: para priorizar qué modelar, ordenar por `sales_lines`, no por `est_madre`.** La proyección
+sirve para el máximo de stock (es lo que consume el motor); para decidir qué vale la pena, manda lo
+facturado.

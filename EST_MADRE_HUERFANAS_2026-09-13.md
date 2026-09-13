@@ -20,7 +20,14 @@ artículo de mayor demanda de la casa) y **el motor los cruza bien**. Medido: el
 **Un `join` ingenuo por código los cuenta como huérfanos y da 234 en vez de 218.** Si alguna sesión
 futura ve "234", es que usó el join equivocado.
 
-## El número real: 218 filas
+## El número real: **186** filas (eran 218 antes del pelado de la L)
+
+> **Actualizado el 2026-09-13 a la tarde.** Despues de la migracion
+> `la_venta_con_L_de_chef_suma_al_articulo_de_loeke`, los 32 codigos con `L` que cruzan con un
+> articulo de GP2 **ya no son huerfanos**: su demanda suma al codigo base. De 218 quedaron **186**.
+> El desglose de abajo es el de las 218 originales.
+
+## El desglose (sobre las 218 de antes del pelado de la L)
 
 | # | Grupo | Códigos | uni/mes | Qué hacer |
 |--:|---|--:|--:|---|
