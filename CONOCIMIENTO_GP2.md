@@ -3334,13 +3334,20 @@ si dice "buscalo vos", se busca — no se inventa ni se asume.
 ## 3. Reglas del negocio ya incorporadas
 
 - **Algunos talleristas pueden entregar partes EN CERVANTES** (además de Virgilio):
-  **Martín Cornejo, ALEX ESCALANTE e IJUPA.** `[usuario 2026-08-31, corregido]` El dato
+  **Martín Cornejo, ALEX ESCALANTE, IJUPA y LUCHO.** `[usuario 2026-08-31, corregido]` El dato
   original decía Carlos Aguirre, pero el usuario lo corrigió: *"Carlos es el papá de
   Alex, por eso le erré"* — son familia y por eso el cruce de nombres. Normalizado en
   `GP2.tallerista.entrega_cervantes` (true para ids 6, 2 y 10 — migraciones
   `talleristas_que_entregan_en_cervantes` + `entrega_cervantes_correccion_alex_no_carlos`).
   `[2026-09-04]` Esa columna se **borró** (ningún código la leía); el dato queda acá: los que
-  entregan en Cervantes son Martin Cornejo (6), Alex Escalante (2) e IJUPA (10).
+  entregan en Cervantes son Martin Cornejo (6), Alex Escalante (2), IJUPA (10) **y Lucho (5)**.
+  `[usuario 2026-09-13, correctivo: "3 lucho tambien"]` Lucho faltaba en esta lista pero SÍ
+  estaba en las rutas (J1 Tochos Zinc p/Rectificar → Sector Crudo, 3 rutas): la lista escrita
+  a mano era la que estaba vieja, no la parametrización. **No hay tabla de configuración de
+  quién entrega en Cervantes: sale de `ruta_paso`** — todo paso `tallerista` cuyo
+  `comp_salida` NO cae en Terminado (sector 12) es una entrega en Cervantes; si cae en
+  Terminado va por Recepción Virgilio. Antes de decir que alguien "no debería estar", mirar
+  la ruta: la ruta manda.
   Cierra con las rutas: Alex arma los GRJ (ej. Batidor Pera del 544) y los entrega en el
   Sector Garage de Cervantes. OJO: `Recepcion Cervantes.html` del programa VIEJO tiene
   hardcodeado ARTICULOS_EMPRESA con CARLOS y MARTIN — puede venir de la misma confusión
