@@ -838,6 +838,7 @@ create or replace view "GP2".v_reposicion as
    FROM "GP2".componente c
      JOIN "GP2".inventario i ON i.componente_id = c.id
      JOIN "GP2".ubicacion iu ON iu.id = i.ubicacion_id
+  WHERE NOT c.discontinuado
   ORDER BY c.id, (
         CASE
             WHEN iu.id = "GP2".ubic_de('sector'::text, c.sector_id) OR c.sector_id = 12 AND iu.id = "GP2".ubic_de('virgilio'::text) THEN 0
@@ -845,7 +846,7 @@ create or replace view "GP2".v_reposicion as
             WHEN iu.tipo = 'proveedor_servicio'::text THEN 2
             ELSE 3
         END), i.cantidad DESC NULLS LAST, i.ubicacion_id;
-comment on view "GP2".v_reposicion is 'Donde se repone cada componente: la fila de inventario de su sector (o Virgilio para los terminados), con su stock, minimo, maximo y el sugerido = maximo - stock. Unica definicion: la leen oc_bundle y valorizacion_bundle (2026-09-11).';
+comment on view "GP2".v_reposicion is 'Que hay que reponer: sugerido = maximo - stock, por componente y su ubicacion principal. Excluye los componentes discontinuados (2026-09-13).';
 
 -- ---------- v_rollo_evolucion ----------
 create or replace view "GP2".v_rollo_evolucion as

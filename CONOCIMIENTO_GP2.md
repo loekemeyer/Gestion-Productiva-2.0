@@ -8308,3 +8308,34 @@ El único caso que no puede deducir es una pieza con varias entradas posibles y 
 — ahí la pantalla frena y pide cargar el BOM, en vez de adivinar.
 
 Lo que se le paga al tallerista vive aparte, en `precio_tallerista` (por kg).
+
+### 4cl. El 515/615 se dejó de fabricar: qué partes murieron con él y cuál se salvó (2026-09-13)
+
+`[usuario, textual]:` *"Discontinua todas las partes que usen 515 y 615, no se fabrica mas. Salvo
+fleje si lo usa otro articulo"*. Salió de mirar **C12**, que el usuario marcó como mal.
+
+**Lo que estaba mal en C12** (problema registrado en la auditoría): la Paleta Batidor Resorte se
+fabricaba por **dos caminos contradictorios** — rutas 61/62 `IF11 → matriz Corte Grampa → W1B →
+Guazzaroni → Alex → C12`, y rutas 120/551 `IE1 (Fleje 33) → Alex → C12`, sin matriz ni PS — y su
+`componente_bom` tenía **las dos entradas juntas** (`W1B ×1` + `IE1 ×1`). Como el motor descuenta el
+BOM completo al recibir la pieza del tallerista, **cada entrega descontaba grampa Y fleje**, cuando
+cada camino consume una sola: doble descuento. Encima el nombre dice "Resorte" y el resorte
+(`BOM10`) ya se había sacado del BOM el 12-09.
+
+**La decisión del usuario evitó tener que elegir camino:** no se fabrica más, se discontinúa todo.
+
+| Se discontinuó (exclusivo de 515/615) | Se salvó (lo usa otro artículo) |
+|---|---|
+| `C12` Paleta Batidor · `W1B` Grampa Batidor · `IE1` **Fleje N°33** · `BOM10` Resorte Bicónico · `A1C1` Cartón 515 · `O2A` Cartón 615 · los terminados `515` y `615` | `IF11` **Fleje N°19** (505, 513, 713) · `A5` Caja N°6 · `A8` Caja N°2 (40 artículos) · `PA13`/`PA13B` Capuchón Batidor · `PA19` Mangos Chef · `PB6` · `PC10` Mango LK Espátula |
+
+**Ojo con la excepción del fleje: había DOS flejes en juego y la regla los separa sola.** `IF11`
+lo usan 505, 513 y 713 → vive. `IE1` no lo usa ningún otro artículo → se discontinúa. La regla del
+usuario ("salvo fleje si lo usa otro artículo") se aplicó componente por componente, no por rubro.
+
+**Cómo se marca:** se agregó **`componente.discontinuado`**, espejo de `articulo.discontinuado`.
+**No se borra nada**: la pieza conserva historial, receta y rutas, pero **sale del pedido** —
+`v_reposicion` ahora filtra `not discontinuado`. Eso importa: esas 8 piezas venían sumando
+**381.004 unidades de "sugerido"** en el pedido, de un producto que ya no se fabrica.
+
+Queda stock real que no se toca: **400 de C12** y **100 de BOM10** en Sector Bombilla. Discontinuar
+no mueve stock; si hay que darlo de baja es un ajuste aparte, y lo decide el usuario.

@@ -118,6 +118,7 @@ create table "GP2".componente (
   codigo_virgilio text,
   pedido_minimo_uni numeric,
   mb_color text,
+  discontinuado boolean not null default false,
   constraint componente_pkey PRIMARY KEY (id),
   constraint componente_carton_categoria_fkey FOREIGN KEY (carton_categoria) REFERENCES "GP2".carton_categoria(nombre),
   constraint componente_carton_formato_fkey FOREIGN KEY (carton_formato) REFERENCES "GP2".carton_formato(nombre),
@@ -130,6 +131,7 @@ create table "GP2".componente (
   constraint componente_unidad_medida_chk CHECK ((unidad_medida = ANY (ARRAY['kg'::text, 'unidad'::text])))
 );
 comment on table "GP2".componente is 'Maestro de piezas e insumos: codigo, sector, unidad, kg/uni, uni x cajon, proveedor, estado de compra. Un codigo puede repetirse en OTRO sector (A1 pieza / A1 caja): la clave es id.';
+comment on column "GP2".componente.discontinuado is 'La pieza ya no se fabrica ni se compra. No se borra: conserva historial, receta y rutas, pero sale del pedido (v_reposicion) y de las pantallas de compra. Espejo de articulo.discontinuado.';
 comment on column "GP2".componente.estado_compra is 'null = se compra; fabricacion = se hace adentro; discontinuo = ya no se usa. Los que tienen estado quedan fuera de la OC y no cuentan como "sin proveedor".';
 comment on column "GP2".componente.recibe_en_cajas is 'El proveedor lo entrega en cajas que se PESAN: la recepcion va siempre en kg (sin toggle) y el control se carga como cajas x kg por caja. No cambia la unidad_medida canonica del componente.';
 comment on column "GP2".componente.relev_solo_sueltas is 'true = en el relevamiento se cuenta SOLO por unidades sueltas, sin envase (no aplica cajon/bolsa/paquete).';
