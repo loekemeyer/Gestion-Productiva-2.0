@@ -8515,3 +8515,38 @@ no un error de carga.
 862) piden **Caja N°8** o **Caja N°28**, que no existen como componente. Falta su **posición de
 estantería** para crearlas — no se inventa. Y el batidor pera (544 y 802) queda en N°12 por
 decisión del usuario, contra la N°6 que dice la planilla.
+
+### 4cs. La Caja N°8 está DISCONTINUADA: el gemelo LK cierra los 9 que faltaban (2026-09-13)
+
+`[usuario]` **"Fijate su equivalente en LK"**. Los 9 artículos que pedían una caja inexistente
+quedaron resueltos **sin crear ninguna caja**, y la razón estaba escrita en el propio informe de
+faltantes del 08-09: *"12 de 13; **la N°8 no va porque es discontinua**"*. La planilla la sigue
+pidiendo, pero ya no se compra — y lo que GP2 tiene hoy es el reemplazo que usa el gemelo Loeke.
+
+El mapeo Chef↔Loeke sale de la hoja **`Conversion cod Loeke Chef`** de `A_Costos_VIGENTES`
+(columna **J** = Cod Loeke, **K/L/M** = Cod Chef 1/2/3). Vale la pena recordarla: es la fuente
+oficial del gemelo y evita adivinarlo por descripción.
+
+**6 de 9 ya estaban donde dice el gemelo — no se tocó nada:**
+
+| Chef | pedía | gemelo LK | caja del LK y de GP2 |
+|---|---|---|---|
+| 789 Pisa Papas Nylon Con Mgo | N°8 | 355 | N°7 |
+| 800 Pinza Corta Alambre 21 Cm | N°8 | 560 | N°2 |
+| 825 Colador Ø 10 Cm | N°8 | 027 | N°2 |
+| 844 Cuchara Fideos Nylon | N°8 | 391 | N°7 |
+| 845 Cucharón Nylon | N°8 | 392 | N°7 |
+| 840 Rallador Cilíndrico 21 Cm | N°28 | 321 | N°10 |
+
+**Uno se corrigió:** el **862 Corta Pizza Familiar** estaba en Caja N°2 y su gemelo **562** va en
+**N°22**, con la misma uni x caja (12). Migración `el_862_va_en_la_caja_22_como_su_gemelo_lk_562`
+(artículo + receta + los dos pasos de ruta). El costo de caja baja de $21,82 a $17,33 por unidad.
+
+**Dos quedan como están, a propósito:**
+- **858 Pala De Canelones Ac. Inox.** — el gemelo 570 va en N°7, pero **la uni x caja no coincide**
+  (858 de a 12, el 570 de a 24): no es el mismo empaque, así que el gemelo NO manda acá. Queda en
+  N°12. **Regla: el gemelo sólo decide la caja si además coincide la uni x caja.**
+- **823 Exprimidor De Cítricos** — es Loeke, no tiene gemelo. Queda en N°10.
+
+**Con esto el tema caja queda cerrado del todo**, salvo los precios, que esperan la lista del
+lunes (§4cr). Ya no hay ningún artículo pidiendo una caja que no exista.
