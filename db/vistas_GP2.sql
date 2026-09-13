@@ -25,7 +25,7 @@ create or replace view "GP2".v_consumo_demanda as
          SELECT a.id AS art_id,
             em.proy_uni_mes AS uni
            FROM "GP2".articulo a
-             JOIN "GP2".est_madre em ON regexp_replace(em.cod, '^0+'::text, ''::text) = regexp_replace(a.codigo, '^0+'::text, ''::text)
+             JOIN "GP2".est_madre em ON regexp_replace(regexp_replace(em.cod, 'L$'::text, ''::text), '^0+'::text, ''::text) = regexp_replace(a.codigo, '^0+'::text, ''::text)
           WHERE em.proy_uni_mes IS NOT NULL AND NOT a.discontinuado
         ), receta AS (
          SELECT ac.articulo_id AS art_id,

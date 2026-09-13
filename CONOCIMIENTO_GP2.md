@@ -9177,9 +9177,25 @@ L**. Los mas grandes: `31L` 55 (Filtro de Café), `123L` 52, `504L` 30, `315L` 2
 *"strippea la 'L' final y aglomera en el código base sumando UNIDADES / uni×caja del base → el 505L
 cae dentro del 505 (se pide 505, nunca 505L)"*; antes eran *"63 códigos ≈ 1.265 cajas fantasma que
 inflaban la lista"*. A GV le inflaba la OC; a GP2 se la **desinfla**, porque directamente ignora esas
-filas. **El arreglo es el mismo y es una linea**: agregarle `regexp_replace(…, 'L$', '')` al join de
-`v_consumo_demanda`, igual que ya tiene el `'^0+'`. **No se aplico: es un cambio al motor de la
-demanda y lo decide el dueño.** `[deducido]`
+filas. **APLICADO el 2026-09-13**, migracion `la_venta_con_L_de_chef_suma_al_articulo_de_loeke`
+`[dueño, textual: *"Los de L: es venta que facturo chef de articulos de Loeke, el consumo realmente
+es de loeke, se debe considerar ahi. Ejemplo 513L, es venta de loeke"*]`. El join de
+`v_consumo_demanda` pasa a pelar tambien la L, igual que ya pelaba el cero de adelante. Como `seed`
+agrupa y **suma** por (articulo, componente), las dos filas de `est_madre` (el `513` y el `513L`)
+se suman solas en el articulo 513 — no hizo falta tocar nada mas. `[usuario]`
+
+**Verificado antes de aplicar:** **ningun articulo de GP2 termina en `L`**, asi que el pelado no
+puede producir un falso positivo. Y 74 de los 75 codigos `L` ya tenian su base en `est_madre`.
+
+**Efecto medido:** `recalcular_maximos_insumos()` actualizo **81 maximos**, todos **para arriba**
+(ninguno bajo: solo se suma demanda), **+4.587 unidades** en total. El testigo que pidio el dueño
+cierra exacto: el **carton del 513 (`B1A`) subio 108 = 18 uni/mes del `513L` × 6 meses de stock**.
+Los que mas se movieron: `A1B` Carton 031 +330, `I42` Carton 123 +312, `PCP3`/`D9` Clavo 505 +288,
+`CV5` +240. Snapshot previo en `zz_backups."GP2_Snap_maximos_antes_L_20260913"` (las 1.295 filas de
+`inventario`). Invariantes 35/35 en 0, `db/vistas_GP2.sql` regenerado y verificado por md5.
+
+**Lo que esto significa en la practica: la OC venia pidiendo de menos.** Cada `L` es una venta real
+que Chef factura de un articulo de Loeke, y su consumo no llegaba al insumo. `[dato]`
 
 **Regla que deja: un codigo que termina en `L` es el mismo articulo sin la L.** Vale para `est_madre`,
 para los listados y para cualquier cruce. El `590EL` es el `590E`; el `438EL` es el `438E`.
@@ -9210,6 +9226,10 @@ Medido el 13-09, ultimos 12 meses (desde 2025-09-13):
 | 525 | Sac Cabo Madera | 1 | 1 | 2026-03-09 | 0 uni/mes en est_madre |
 | **556** | Sacayerba | **0** | **0** | 2025-05-05 | sin despiece |
 | **517** | Pinza Gastronómica | **0** | **0** | **2021-11-26** | discontinuo |
+
+**DECISION DEL DUEÑO (2026-09-13, textual): *"515 dejalo activo"*.** La fila del 515 en `est_madre`
+**NO se borra** — se retira la idea de sacarlo, que venia de §4cw. Los 75 clientes y la factura del
+25-08 lo respaldan. `[usuario]`
 
 **Lectura, sin decidir nada:** *"discontinuo"* en boca del dueño significa **"no se fabrica mas"**,
 no *"no se vende"* — lo dijo asi de los 561/396, y los numeros lo confirman: se sigue facturando del
