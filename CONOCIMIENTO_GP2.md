@@ -8490,3 +8490,43 @@ de Chef o el mismo que LK. Detalle y orden de la cirugía en `ARTICULOS_FUERA_DE
 **Y quedó una pregunta abierta**: `439E` (Colador Pasta) y `440E` (Colador Extensible) siguen
 figurando como de García y son de la misma familia de coladores que se acaba de pasar a importada;
 no se movieron porque el dueño nombró sólo cuatro códigos.
+
+
+### 4cp. Coladores de salida, cubiertos inox discontinuados, y dos códigos que eran otra cosa (2026-09-13)
+
+Segunda vuelta del dueño sobre la lista de §4cm/§4co. **El grupo de "faltan de verdad" arrancó en
+46 códigos / 10.504 uni/mes y quedó en 26 / 3.655** — y de eso, 1.038 uni/mes son coladores que
+también se van. Detalle en `ARTICULOS_FUERA_DE_GP2.md`.
+
+**1) Los coladores** `[usuario 2026-09-13, textual]`: *"Coladores, ahora pasan a ser importados
+dentro de muy poco, pero por ahora las hace Jose Lopez y entrega. Solo le damos el carton de cada
+uno (salvo 16 y 20cm de Chef y Loeke)"*. Tres cosas que salen de ahí:
+- **De un colador, lo único que pone GP2 es el cartón** — la pieza la hace y la entrega José López.
+- **Los de 16 y 20 cm (de las dos empresas) ni siquiera llevan nuestro cartón.**
+- Es un estado **transitorio**: pasan a importados. **Recomendación: no modelarlos** (110, 111, 112,
+  113, 439E, 440E). Además **José López no existe como tallerista en GP2** `[dato: los 13 cargados
+  son Danica García, Alex Escalante, Fábrica, Cavallero, Lucho, Martín Cornejo, Maspoli, Gentile,
+  Carlos Aguirre, IJUPA, Pettofrezza, Tierra Nativa y Blist-Pack]`, así que darlos de alta obliga a
+  crear un tallerista para algo que se discontinúa solo.
+- `[deducido]` **`439E` Colador Pasta probablemente no sea un alta**: GP2 ya tiene el artículo
+  **`441` Colador de Pasta Plástico** con el componente `GRJ25`. Falta confirmar si es el mismo.
+
+**2) Los cubiertos de acero inox ya están resueltos, por otro camino** `[usuario 2026-09-13,
+textual]`: *"332/7 y 630/7 son discontinuos. Se reemplazaron por 941/8E"*. Son 14 códigos (332-337
+de LK y 630-637 de Chef, 425 uni/mes) y **los reemplazos `941E`-`948E` YA ESTÁN en GP2**, con
+receta y ruta. Justo el bloque que §4cm proponía migrar "porque era el más barato": no hay nada que
+migrar. `[dato]` GP2 tiene 941E-946E y 948E; **no hay 947E** — si ese código existe, falta.
+
+**3) Dos códigos que eran otro artículo ya conocido** `[usuario]`: **`838E` es el Rallador Mini de
+Chef, el mismo que el `323E`**, y **`877E` es el corta pizza, el mismo que el `809E` de Loeke**. Los
+dos se compran: van al grupo de reventa. **Cuidado con no confundir `838E` (rallador mini,
+importado) con `323` Rallador Cilíndrico Chico**, que es otra cosa y sigue en la lista.
+
+**4) `55215`** (Palo de Amasar 40 cm, Tierra Nativa) `[usuario, textual]`: *"se entrego solo una
+vez. No lo analicemos. Y no se va a volver a vender"*. Fuera de la lista. **Deja sin efecto** lo que
+decía §4cm de que era un alias del 232.
+
+**La moraleja que deja esta vuelta** `[deducido]`: la Est Madre proyecta sobre lo que se vendió, así
+que **arrastra artículos discontinuados, códigos duplicados de la otra empresa y entregas de una
+sola vez**. Un código que aparece ahí y no está en GP2 no es, por sí solo, trabajo pendiente: hay
+que preguntar antes de modelar. De 46 candidatos, 20 se cayeron con cuatro frases del dueño.

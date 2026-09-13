@@ -9,20 +9,24 @@ Se parten en dos, y sólo el primer grupo es trabajo:
 
 | Grupo | Códigos | uni/mes | % de la demanda total | Qué es |
 |---|---:|---:|---:|---|
-| **A. Los que faltan de verdad** | **43** | **4.160** | **1,6 %** | Un tallerista los entrega. Se producen o se envasan acá. |
-| B. Reventa e importado | 177 | 39.937 | 15,8 % | Se compran terminados y listos para vender. |
+| **A. Los que faltan de verdad** | **26** | **3.655** | **1,4 %** | Un tallerista los entrega. Se producen o se envasan acá. |
+| B. Reventa e importado | 179 | 39.982 | 15,8 % | Se compran terminados y listos para vender. |
+| C. Discontinuados / no se venden más | 15 | 460 | 0,2 % | Reemplazados por otro artículo, o vendidos una sola vez. |
 
-> **Corregido el 2026-09-13 con lo que dijo el dueño** (ver abajo): **438E, 437E, 566E y 584E
-> pasaron a importados listos para reventa** (−6.351 uni/mes del grupo A, que era el 60 % de ese
-> grupo) y **890E entró al grupo A** (lo envasa García). El grupo A pasó de 46 a 43 códigos y de
-> 10.504 a 4.160 uni/mes, y su artículo más grande ahora es el **590E**.
+> **Corregido dos veces el 2026-09-13 con lo que dijo el dueño.** Arrancó en **46 códigos /
+> 10.504 uni/mes** y quedó en **26 / 3.655**. Se fueron: 438E, 437E, 566E y 584E (importados
+> listos, −6.351), los cubiertos inox 332-337 y 630-637 (discontinuados, −425), 838E y 877E
+> (son otros códigos de artículos que ya se compran, −45) y 55215 (no se vende más, −35).
+> Entró 890E. **El más grande ahora es el 590E**, y **1.038 uni/mes de lo que queda son
+> coladores que también se van a importar en poco tiempo**: el trabajo estable son ~2.600
+> uni/mes.
 
 **El criterio de corte no es el volumen, es si alguien los fabrica**: un código sin despiece y sin
 tallerista no tiene nada que modelar en GP2 aunque venda mucho.
 
 ---
 
-## A. Los 43 que faltan de verdad
+## A. Los 26 que faltan de verdad
 
 `partes` = cuántas líneas tiene su despiece en `public."Despiece x Articulo"` (0 = el vecino sabe
 quién lo entrega pero tampoco lo despieza). `tallerista` sale de `public."Articulos Virgilio X
@@ -33,42 +37,25 @@ Tallerista"`; recordar que **«Carlos» del vecino es Alex Escalante en GP2** (C
 | 590E | Pincel Silicona 11 Gms — **LK, con cartón, caja 29 x12** | 1.188 | Danica García | 2 |
 | 890E | Pincel Silicona 11 Gms — **Chef, con cartón, caja 29 x12** | 7 | Danica García | 0 |
 | 565 | Pinza De Hielo | 534 | Manfer | 1 |
-| 110 | Colador N°8 Loke | 384 | Lopez Jose | 1 |
+| 110 | Colador N°8 Loke — *José López, sólo le damos el cartón* | 384 | Lopez Jose | 1 |
 | 561 | Pinza Grande LK | 324 | Pedernera | 2 |
-| 111 | Colador N°10 Loke | 296 | Lopez Jose | 1 |
-| 112 | Ø 16 Env. Loke | 160 | Lopez Jose | 0 |
-| 113 | Colador N°20 Loke | 160 | Garcia | 0 |
-| 332 | Espátula Acero Inox. | 136 | Carlos | 4 |
+| 111 | Colador N°10 Loke — *José López, sólo le damos el cartón* | 296 | Lopez Jose | 1 |
+| 112 | Ø 16 Env. Loke — *el 16 no lleva nuestro cartón* | 160 | Lopez Jose | 0 |
+| 113 | Colador N°20 Loke — *el 20 no lleva nuestro cartón* | 160 | Garcia | 0 |
 | 323 | Rallador Cilíndrico Chico | 124 | Garcia | 2 |
 | 439E | Colador Pasta | 122 | Garcia | 2 |
 | 509 | Paleta Batidora | 104 | Carlos | 0 |
 | 574 | Corta Queso Alambre | 88 | Lucho | 4 |
-| 336 | Cucharón Ac. Inox. | 84 | Carlos | 3 |
 | 396 | Enrulador De Manteca | 80 | — | 2 |
-| 335 | Cuchara Calada Ac. Inox. | 64 | Carlos | 4 |
-| 334 | Cuchara Salsera Inox | 52 | Carlos | 3 |
-| 337 | Tenedor Ac. Inox | 48 | Carlos | 3 |
 | 440E | Colador Extensible | 36 | Garcia | 2 |
-| 55215 | Palo de Amasar 40 cm | 35 | Tierra Nativa | 0 |
-| 838E | (sin descripción en el vecino) | 34 | Log/Fabr | 0 |
-| 333 | Espumadera Ac. Inox. | 28 | Carlos | 3 |
 | 548 | Pincel Pastelero | 24 | Log/Fabr | 2 |
-| 877E | (sin descripción en el vecino) | 11 | Log/Fabr | 0 |
 | 839 | Rallador Chocolate/Limón 14 cm | 10 | Garcia | 0 |
 | 852 | Pinza De Hielo 14 cm | 7 | Manfer | 1 |
-| 635 | Cuchara Lisa CH | 3 | Carlos | 5 |
-| 636 | Espátula Calada Ac. Inox CH | 3 | Carlos | 7 |
-| 634 | Cuchara Calada Ac. Inox. CH | 2 | Carlos | 7 |
-| 633 | Cuchara Ac. Inox. CH | 2 | Carlos | 6 |
 | 977 | Platos Individuales Pizza x 6 | 2 | Log/Fabr | 0 |
 | 801 | Pinza Grande CH | 2 | Pedernera | 2 |
 | 809 | Corta Queso Alambre Chef | 1 | — | 5 |
-| 630 | Cucharón Ac. Inox. CH | 1 | Carlos | 4 |
-| 637 | Cuchara Spaghetti Ac. Inox | 1 | Carlos | 0 |
-| 632 | Tenedor Ac. Inox CH | 1 | Carlos | 6 |
 | 710 | Enrulador Manteca | 1 | Carlos | 2 |
 | 456 | Espátula Lisa Nylon c/Mango | 1 | Log/Fabr | 0 |
-| 631 | Espumadera Ac. Inox. CH | 0 | Carlos | 5 |
 | 717 | Cuchillo De Untar Acrílico x4 | 0 | Log/Fabr | 0 |
 | 613 | Cuchara Calada 1 Pieza Ac. Inox | 0 | Carlos | 0 |
 | 747 | Bombilla Coco Hexagonal | 0 | Log/Fabr | 0 |
@@ -78,11 +65,18 @@ Tallerista"`; recordar que **«Carlos» del vecino es Alex Escalante en GP2** (C
 
 - **El primero es el 590E** (1.188 uni/mes, el 29 % del grupo) y arrastra a otros dos: es un solo
   circuito que produce tres artículos. Está explicado abajo.
-- **Los coladores Loke 110/111/112/113** son la misma familia que los 438E/437E que ahora se
-  importan: antes de darlos de alta conviene confirmar si siguen fabricándose.
-- **`439E` Colador Pasta y `440E` Colador Extensible siguen figurando como de García** y son de la
-  misma familia de coladores que se pasó a importada. **Pendiente de confirmar** si también se
-  importan (no se movieron porque el dueño nombró sólo cuatro códigos).
+- **Los coladores están de salida** `[usuario 2026-09-13, textual]`: *"Coladores, ahora pasan a ser
+  importados dentro de muy poco, pero por ahora las hace Jose Lopez y entrega. Solo le damos el
+  carton de cada uno (salvo 16 y 20cm de Chef y Loeke)"*. O sea: **de los coladores lo único que
+  pone GP2 es el cartón**, y ni eso en los de 16 y 20 cm. Son 1.038 uni/mes (110, 111, 112, 113,
+  439E, 440E) que **en poco tiempo pasan al grupo B**. **Recomendación: no modelarlos.** Además
+  **José López no existe como tallerista en GP2** (los 13 cargados son Danica García, Alex
+  Escalante, Fábrica, Cavallero, Lucho, Martín Cornejo, Maspoli, Gentile, Carlos Aguirre, IJUPA,
+  Pettofrezza, Tierra Nativa y Blist-Pack), así que darlos de alta obliga a crear el tallerista
+  para algo que se va a discontinuar solo.
+- **`439E` Colador Pasta probablemente no sea un alta**: GP2 ya tiene el artículo **`441` Colador
+  de Pasta Plástico**, armado con el componente `GRJ25`. Confirmar si el 439E es el mismo con otro
+  código de venta.
 - **El bloque de Carlos (332-337, 630-637, 613, 710)** son los cubiertos de acero inox: 16 códigos
   que suman 426 uni/mes, casi todos con despiece cargado en el vecino (3 a 7 partes). Es el grupo
   más barato de migrar porque la receta ya existe del otro lado — **y ojo: GP2 ya tiene los
@@ -135,13 +129,30 @@ mandan a García **para que las reenvase de cajas de 60 a cajas x6**, y esas caj
 del sistema**. Es un trabajo puntual sobre stock viejo, no el circuito nuevo — pero mientras dure,
 ese consumo de cajas no se puede registrar en GP2 sin dar de alta ese formato.
 
-## B. Los 177 de reventa e importado (39.937 uni/mes)
+## C. Discontinuados y códigos que son otra cosa (2026-09-13)
+
+`[usuario 2026-09-13, textual]` *"332/7 y 630/7 son discontinuos. Se reemplazaron por 941/8E"*.
+
+- **Los 14 cubiertos de acero inox salen de la lista**: `332`, `333`, `334`, `335`, `336`, `337`
+  (línea LK) y `630`, `631`, `632`, `633`, `634`, `635`, `636`, `637` (línea Chef), 425 uni/mes.
+  **Los reemplazan los `941E`-`948E`, que GP2 YA TIENE** con su receta y su ruta. Era el bloque que
+  este mismo archivo proponía migrar por barato: **ya está hecho, por otro camino.**
+  > Ojo al pasar: GP2 tiene 941E, 942E, 943E, 944E, 945E, 946E y **948E** — **no hay 947E**.
+  > Si ese código existe, falta.
+- **`838E` es el Rallador Mini de Chef, el mismo que el `323E`** `[usuario]`, y **`877E` es el
+  corta pizza, el mismo que el `809E` de Loeke** `[usuario]`. Los dos van al grupo B: ya se compran.
+  **No confundir `838E` (rallador mini, importado) con `323` Rallador Cilíndrico Chico**, que sigue
+  en el grupo A y es otra cosa.
+- **`55215`** (Palo de Amasar 40 cm, Tierra Nativa): *"se entrego solo una vez… y no se va a volver
+  a vender"* `[usuario]`. Fuera. **Deja sin efecto la nota anterior** de que era un alias del 232.
+
+## B. Los 179 de reventa e importado (39.982 uni/mes)
 
 No hay nada que despiezar: se compran terminados. Se reparten así:
 
 | | Códigos | uni/mes |
 |---|---:|---:|
-| Terminados en **E** — la línea importada (incluye 438E, 437E, 566E y 584E desde hoy; sin el 890E, que se fue al grupo A) | 81 | 38.947 |
+| Terminados en **E** — la línea importada (incluye 438E, 437E, 566E, 584E, 838E y 877E desde hoy; sin el 890E, que se fue al grupo A) | 83 | 38.992 |
 | Terminados en **L** — los mismos, vendidos por Chef | 75 | 435 |
 | Otros | 21 | 555 |
 
