@@ -108,7 +108,7 @@ var SECTORES = {
   11: { titulo:"Cajas",            sector_nom:"Sector Caja",
         links:[LINK_RECEPCION, ["Control Cajas", "../StockFlejes/control-cajas.html", "destacado"]],
         columnas:COLS_INSUMO },
-  14: { titulo:"Materia Prima Plástica", sector_nom:"Sector Materia Prima Plástica (Virgilio)",
+  14: { titulo:"Bolsas Plásticas", sector_nom:"Sector Bolsas Plásticas (Virgilio)",
         links:[LINK_RECEPCION, ["Inyectores · Material", "../Compras/Inyectores_GP2.html", "destacado"]],
         columnas:COLS_MP }
 };

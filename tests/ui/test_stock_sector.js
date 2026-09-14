@@ -75,14 +75,14 @@ const ESPERADO = {
   11: { titulo: 'Cajas', h1: 'Cajas · Sector Caja', botones: [CSV, REC, 'Control Cajas', ATRAS],
         destacado: 'Control Cajas', cols: COLS_INSUMO, a10: ['500', '430', '290'] },
   // materia prima plastica (2026-09-10): bolsas en Virgilio; entra por compra, sale en bolsas al inyector
-  14: { titulo: 'Materia Prima Plástica', h1: 'Materia Prima Plástica · Sector Materia Prima Plástica (Virgilio)',
+  14: { titulo: 'Bolsas Plásticas', h1: 'Bolsas Plásticas · Sector Bolsas Plásticas (Virgilio)',
         botones: [CSV, REC, 'Inyectores · Material', ATRAS], destacado: 'Inyectores · Material',
         cols: ['Compras', 'Envíos a inyector'], a10: ['500', '—'] },              // compra 500 | sin envio_inyector en el stub
 };
 // rotulo del menu -> sector (mismos rotulos y mismo orden que tenia el menu con los 9 links, + Materia Prima)
 const MENU_ESPERADO = [['Stock SP', 2], ['Stock SC', 1], ['Stock en Movimiento', 3],
   ['Cajas', 11], ['Cartones', 10], ['Partes Plásticas', 6], ['Remaches', 8], ['Bombillas', 7], ['Garage', 9],
-  ['Materia Prima Plástica', 14]];
+  ['Bolsas Plásticas', 14]];
 const VIEJOS = ['StockFlejes/Bombillas_GP2.html', 'StockFlejes/Cajas_GP2.html', 'StockFlejes/Cartones_GP2.html',
   'StockFlejes/Garage_GP2.html', 'StockFlejes/Plasticos_GP2.html', 'StockFlejes/Remaches_GP2.html',
   'StockSC/StockSC_GP2.html', 'StockSP/StockSP_GP2.html', 'StockMovimiento/StockMovimiento_GP2.html'];
