@@ -8076,7 +8076,6 @@ para detectar el patrón.
 
 **Conclusión: el rompenueces es el único caso.** No hay una familia de errores atrás.
 
-<<<<<<< HEAD
 ### 4cf. El 515 y el 615 fueron BORRADOS y se reconstruyeron a mano (2026-09-14)
 
 `[usuario 2026-09-14, textual: "El 515 y 615 quiero que aparezcan de nuevo" · "los stock que
@@ -8139,7 +8138,7 @@ resincroniza `componente`, `articulo`, `ruta`, `ruta_paso`, `articulo_componente
 de `A1C1` "Cartón 515" podía estar mal por figurar `CHEF`. **Es `LOEKE`** — lo fijó la migración
 `20260911150532` con la regla "la marca del cartón es la del artículo que nombra". Por esa misma
 regla `O2A` "Cartón 615" se recreó como `CHEF`.
-=======
+
 ### 4cf. Por qué existe GP2 y por qué NADA suyo mira `public` (2026-09-12)
 
 **[usuario, textual]:** *"La creación de este repositorio surgió porque en gestión productiva
@@ -9411,7 +9410,6 @@ cargo, no N datos sueltos. `[deducido]`
 **Las dos preguntas de los palos quedan ABIERTAS, para Tierra Nativa:** (a) si el *"Torneado Palo de
 Amasar 40cm"* $1.245 (ISIS 234L, lista 07-08-2026) es el **232**, y (b) que precio tienen el de
 **30 (231)** y el de **50 (233)**, que no figuran en las 72 filas de TN.
->>>>>>> origin/main
 
 ### 4cg. El 515/615 probado de punta a punta con los RPC reales (2026-09-14)
 
@@ -9456,6 +9454,69 @@ El `BOM10` NO va ahí: `[usuario 2026-09-12: "1 lo agrega alex"]`.
 
 **Lección de método**: la simulación de rutas (`__sim_articulo`) daba bien las dos veces, con y sin
 el error de unidad. Lo único que lo destapó fue correr **los RPC reales** contra el inventario.
+
+
+
+
+## 4do. Los 7 inox 941E-948E van en Caja N°15, no en la N°12 — y la "E" no es la regla (2026-09-14)
+
+`[usuario 2026-09-14, textual: *"Todos los articulos que terminan con E: 941E 942E 943E 944E 945E
+946E 948E. Llevan caja N°15, no 12"*, y ante la repregunta: *"Si, caja 15 solo para los que te
+liste"*]`.
+
+**Lo primero, porque es la trampa: el sufijo "E" NO define la caja.** `[dato]` En GP2 hay **9**
+artículos que terminan en E, no 7: los otros dos son `590E` y `890E` (Pincel Silicona 11 Gms), que
+van en **Caja N°29** (`A11`) y **quedan como están** por decisión explícita del dueño. Los siete de
+la lista son la línea de **acero inoxidable**, y eso es lo que tienen en común, no la letra. Si en
+otra sesión aparece "los artículos con E", preguntar cuáles: leerlo como regla de sufijo mete a
+590E/890E en la caja equivocada.
+
+**Estado antes del cambio** `[dato, medido el 14-09]`: los siete estaban de dos formas distintas.
+
+| Art | Descripción | Caja antes | uni/mes | Δ costo $/mes |
+|:---:|:---:|:---:|---:|---:|
+| 941E | Espátula Lisa Inox | **ninguna** | 86 | **+2.467,20** |
+| 946E | Cuchara Calada Inox | **ninguna** | 58 | **+1.663,92** |
+| 943E | Cucharón Inox | N°12 (`A2`) | 144 | −188,88 |
+| 942E | Cuchara Inox | N°12 (`A2`) | 132 | −173,14 |
+| 948E | Espumadera Inox | N°12 (`A2`) | 108 | −141,66 |
+| 945E | Espátula Calada Inox | N°12 (`A2`) | 82 | −107,56 |
+| 944E | Cuchara Fideos Inox | N°12 (`A2`) | 74 | −97,06 |
+
+**`941E` y `946E` no tenían caja en ningún lado** — ni el FK `articulo.componente_caja_id`, ni línea
+de receta, ni ruta de caja — porque la planilla los trata como importados terminados (§3 de
+`PENDIENTES_CAJAS_PALOS_2026-09-13.md`, que **se retira**: la planilla estaba equivocada). Para esos
+dos no fue "15 en vez de 12": fue caja donde no había, y ahí está casi toda la plata del cambio.
+
+**Lo que se escribió** (una transacción, `2026-09-14`): los 7 al FK `A9B`; los 5 que ya tenían `A2`
+cambiaron de caja en receta y en su ruta de caja; `941E` y `946E` recibieron su línea de receta
+(`A9B × 1/12`) y **una ruta de caja nueva cada uno**, calcada de las otras cinco
+(`insumo A9B 1/12 → tallerista Fábrica → virgilio`). **Las cuatro tablas de la cadena se tocaron
+juntas**, que es lo que pide la regla de normalización: tocar sólo el FK habría dejado la caja fuera
+del costo y fuera de la OC, que es exactamente el agujero que tenían 941E y 946E.
+
+**Los 12 uni x caja NO se tocaron** — sigue en pie la decisión del 13-09 (§4dd) contra la planilla,
+que dice 24 para 942E y 945E.
+
+**Efecto medido** `[dato]`:
+
+| | Antes | Después |
+|---|--:|--:|
+| Consumo `A2` Caja N°12 | 1.196 uni/mes (29 art) | **1.151** (24 art) |
+| Consumo `A9B` Caja N°15 | 205 uni/mes (7 art) | **262** (14 art) |
+| Máximo de `A9B` en Sector Caja | 1.230 | **1.572** |
+| Costo unitario de los 7 | $30,00 los cinco · $0 los dos | **$28,69 los siete** |
+
+Neto **+$3.422,82/mes** de costo que antes no se cobraba. Los dos son del mismo proveedor
+(Corrugadora del Plata) y sin `carton_formato`, así que **la familia de OC es la misma y no se
+partió ningún pedido mínimo**. El máximo de `A2` **no se movió** y está bien: es `maximo_origen =
+'fisico'` (4.275 fijado a mano por el lugar que hay, contra 6.906 que daría el cálculo), y
+`recalcular_maximos_insumos` no pisa los físicos. **El de `A9B` sí subió porque es `est_madre`
+(262 × 6 meses) y NO tiene tope físico cargado** — si el lugar de la N°15 no da para 1.572 cajas, hay
+que cargarle el máximo físico, o la OC va a pedir de más. `[deducido, sin confirmar]`
+
+**`faltan_precios` sigue en 1 para los siete**, y es `PEST1` (Kollplast, §7.3): el costo de $28,69 es
+**sólo la caja**. Misma trampa de §4dm — un total bajo no es un artículo barato.
 
 ### 4ch. La paleta C12 se arma con TRES partes, y eso deja el resorte contado dos veces (2026-09-14)
 
