@@ -8076,6 +8076,69 @@ para detectar el patrón.
 
 **Conclusión: el rompenueces es el único caso.** No hay una familia de errores atrás.
 
+### 4cf. El 515 y el 615 fueron BORRADOS y se reconstruyeron a mano (2026-09-14)
+
+`[usuario 2026-09-14, textual: "El 515 y 615 quiero que aparezcan de nuevo" · "los stock que
+habia no me importan"]`
+
+**Lo que pasó, en orden** (reconstruido del transcript y de `supabase_migrations`):
+
+| Cuándo | Qué | Quién |
+|---|---|---|
+| 12-09 11:19 AR | Migración `el_resorte_sale_del_bom_de_la_paleta_y_el_515_615_quedan_discontinuados`: borra la fila `componente_bom(C12 ← BOM10)` y marca `articulo.discontinuado = true`. **No borra nada más.** | esta sesión |
+| 12-09 20:36 AR | Migración `discontinuar_partes_exclusivas_del_515_y_615`: agrega `componente.discontinuado` y marca las 8 piezas. **Tampoco borra.** Cita `[usuario 2026-09-13: "Discontinua todas las partes que usen 515 y 615"]` | otro chat |
+| después | **DELETE físico, con `execute_sql` suelto y sin migración**: desaparecen los 2 artículos, los 8 componentes (`C12`, `W1B`, `IE1`, `BOM10`, `A1C1`, `O2A` y los dos terminados) y sus rutas | sin rastro |
+
+**Regla que sale de esto: `discontinuado` existe para no borrar.** Un artículo que "no se
+fabrica más" se marca; borrarlo tira receta, rutas, precios e historial, y no hay vuelta atrás
+sin un backup. Lo mismo vale para el componente desde el 12-09.
+
+**Lo que salvó la reconstrucción fue una CAPTURA DE PANTALLA.** El usuario mandó
+`Programa.html` abierto en una pestaña vieja, cargada ANTES del borrado: de ahí salió la forma
+exacta de las rutas, que **no estaba en ninguna otra parte** — el vecino `public."Causa-Efecto"`
+no tiene ninguna fila de estas piezas, y las migraciones no las habían creado (vinieron de la
+carga masiva original). El vecino sí aportó los pesos (`W1B` 0,0015 kg, `BOM10` 0,00963 kg) y la
+migración `20260901091333` el `kg_x_uni` 0,0241 de los dos terminados.
+
+**La ruta del batidor, como quedó** (idéntica para 515 y 615, cambia la cola):
+
+```
+Rama 1: IF11 Fleje N°19 → M138 "Corte Grampa Batidor" → W1B → Guazzaroni (niquela) → W1B ─┐
+Rama 2: IE1 Fleje N°33 ────────────────────────────────────────────────────────────────  ┼→ Alex arma C12
+                                                                                          │   (Paleta Batidor Resorte)
+                                                                                          ↓
+                          Pedernera Ilario (croma) → C12 → Alex arma el artículo → Virgilio
+Aparte, derecho al tallerista: 515 → PC10, PA13, A1C1, BOM10, A8(1/12)
+                               615 → PA19, PB6,  O2A,  BOM10, A8(1/12)
+```
+
+**`C12` es una convergencia de tipo `tallerista`, no de matriz** — dos ramas con distinta
+entrada y la MISMA salida, el patrón de la M135. No es una rareza: `GRJ10` (12 ramas), `GRJ7`
+(8), `GRJ5`, `GRJ6` y `GRJ10A` son iguales. **`__sim_articulo` da `ok:false` en todas**: la
+conservación a Virgilio cierra (120 de 120) pero deja "colgados" los componentes de la
+convergencia. El 515 y el 615 quedan con 3 colgados; sus pares de la familia tienen entre 3 y 7.
+Es un punto ciego del arnés con las convergencias de tallerista, no un defecto del dato.
+
+**Se reconstruyó SIN la "Rama 3" que muestra la captura** (el `BOM10` metido dentro del `C12`,
+además del `BOM10` que entra suelto al tallerista): es el doble conteo de la idea 7298, que el
+usuario ya había contestado `["1 lo agrega alex"]` — el resorte no viene dentro de la paleta.
+
+**Lo que NO se pudo recuperar y quedó en `null` a propósito** (no se inventa): `kg_x_uni` de
+`C12` y de `IE1`, el `carton_formato` de `O2A`, los ids viejos, el stock (el usuario lo dio por
+perdido) y **los precios**. Por eso el 515 costea **$306,31** contra los $1.303,86 documentados y
+el 615 **$428,67** contra $1.559,63: son 5 `faltan_precios` en cada uno.
+
+**Hallazgo de paso que era una bomba de tiempo en TODA la base**: las secuencias de id de GP2
+nunca se habían avanzado (las cargas masivas usaron ids explícitos), así que el primer `insert`
+que dependiera de la secuencia reventaba con `duplicate key value violates unique constraint`.
+Pasó acá con `componente_pkey` id 916. Migración `las_secuencias_de_id_estaban_atrasadas`:
+resincroniza `componente`, `articulo`, `ruta`, `ruta_paso`, `articulo_componente` e `inventario`.
+
+**Dato que se retira**: en §4an-ter quedó anotado como `[deducido, SIN confirmar]` que la marca
+de `A1C1` "Cartón 515" podía estar mal por figurar `CHEF`. **Es `LOEKE`** — lo fijó la migración
+`20260911150532` con la regla "la marca del cartón es la del artículo que nombra". Por esa misma
+regla `O2A` "Cartón 615" se recreó como `CHEF`.
+
 ### 4cf. Por qué existe GP2 y por qué NADA suyo mira `public` (2026-09-12)
 
 **[usuario, textual]:** *"La creación de este repositorio surgió porque en gestión productiva
@@ -9347,6 +9410,52 @@ cargo, no N datos sueltos. `[deducido]`
 **Las dos preguntas de los palos quedan ABIERTAS, para Tierra Nativa:** (a) si el *"Torneado Palo de
 Amasar 40cm"* $1.245 (ISIS 234L, lista 07-08-2026) es el **232**, y (b) que precio tienen el de
 **30 (231)** y el de **50 (233)**, que no figuran en las 72 filas de TN.
+
+### 4cg. El 515/615 probado de punta a punta con los RPC reales (2026-09-14)
+
+`[usuario 2026-09-14: "No agregaste la convergencia (componente bomb) ademas quiero saber si se
+puede recepcionar, fabricar, enviar segun corresponda en gp2"]` — las dos cosas eran ciertas.
+
+**1) Faltaba `componente_bom`.** La reconstrucción dejó los PASOS de ruta que convergen en `C12`
+pero no declaró los hijos. **Eso es lo que la pantalla usa para dibujar la convergencia**:
+`Programa.html` agrupa por `D.children[cs]`, así que sin la fila el batidor se veía como "2 rutas
+simples" en vez de "Convergencia · C12". Cargado `C12 ← W1B (1) + IE1 (1)`, con la convención de
+las otras 26 convergencias (`D5-M78 ← D5+D6+V4`, `G4 ← K5+K8+V3`, `GRJ7 ← A10+C10+V9`…).
+El `BOM10` NO va ahí: `[usuario 2026-09-12: "1 lo agrega alex"]`.
+
+**2) El ciclo completo corre.** Probado con los RPC de verdad y rollback, 120 unidades del 515:
+
+| # | Paso | RPC | Resultado |
+|---|---|---|---|
+| 1 | Recepción de 4 insumos | `crear_recepcion_insumo` | OK |
+| 2 | Fabricación en matriz 138 | `registrar_produccion` | 120 W1B |
+| 3 | Guazzaroni niquela | `crear_envio_ps` / `crear_entrega_ps` | OK |
+| 4 | Envío a Alex | `crear_envio_tallerista` | W1B 120 · IE1 120 |
+| 5 | **Convergencia** | `crear_entrega_tallerista` | C12 120, y el BOM deja W1B y IE1 en **0** |
+| 6 | Pedernera croma | `crear_envio_ps` / `crear_entrega_ps` | OK |
+| 7 | Envío del resto a Alex | `crear_envio_tallerista` | OK |
+| 8 | Entrega en Virgilio | `recepcion_virgilio` | **120 del 515, cero sobras** |
+
+**Dos errores míos que sólo aparecieron al correr el ciclo** — ninguna consulta los mostraba:
+
+- **`IE1` sin `kg_x_uni`**: `to_canonical` cortaba con *"componente 917 sin kg_x_uni válido para
+  uni→kg"*. No se podía **ni recibir ni enviar**. Cargado **0,0241** — el mismo número que el
+  vecino da para `FE1` "Varilla Batidor" y que la migración `20260901091333` ya usaba para los dos
+  terminados.
+- **`IE1` en `kg` cuando va por pieza**: al enviarle 120 uni a Alex el stock quedaba en **2,892**
+  (= 120 × 0,0241, convertido a kg) y el BOM le restaba **120 unidades**, dejando −117,108.
+  **Contraejemplo que lo probó**: `IE4` y `IE5`, que alimentan la convergencia `GRJ10` igual que
+  `IE1` alimenta `C12`, son `unidad` y conservan su `kg_x_uni`. `IE1` era el **único** fleje en kg
+  usado como hijo de un BOM en toda la base — una anomalía de una sola fila es firma de dato mal
+  cargado. `IF11` queda en kg: ese va a la matriz y se consume por kilo.
+
+**Regla que sale de esto: un fleje que va DERECHO al tallerista se cuenta por pieza
+(`unidad_medida='unidad'`, con su `kg_x_uni` cargado igual); el que entra a una matriz va en kg.**
+
+**Lección de método**: la simulación de rutas (`__sim_articulo`) daba bien las dos veces, con y sin
+el error de unidad. Lo único que lo destapó fue correr **los RPC reales** contra el inventario.
+
+
 
 
 ## 4do. Los 7 inox 941E-948E van en Caja N°15, no en la N°12 — y la "E" no es la regla (2026-09-14)
