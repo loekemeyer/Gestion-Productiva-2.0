@@ -4313,6 +4313,79 @@ AS $function$
 $function$
 ;
 
+-- ---------- oc_maximo_desglose ----------
+CREATE OR REPLACE FUNCTION "GP2".oc_maximo_desglose(p_componente_id bigint)
+ RETURNS jsonb
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'GP2'
+AS $function$
+with c as (
+  select comp.id, comp.codigo, comp.descripcion, comp.sector_id, comp.unidad_medida, comp.kg_x_uni,
+         (comp.sector_id = 14) es_resina,
+         (comp.sector_id = 5)  es_fleje,
+         "GP2".ubic_de('sector', comp.sector_id) ubic
+  from componente comp where comp.id = p_componente_id
+), cab as (
+  select c.*,
+         (select meses_stock from ubicacion where id = c.ubic) meses,
+         (select i.maximo from inventario i where i.componente_id = c.id and i.ubicacion_id = c.ubic) maximo,
+         (select i.maximo_origen from inventario i where i.componente_id = c.id and i.ubicacion_id = c.ubic) maximo_origen,
+         (select round(consumo_kg_mes,2) from v_consumo_fleje_kg f where f.componente_id = c.id) consumo_kg_fleje,
+         (select round(consumo_uni_mes) from v_consumo_componente v where v.componente_id = c.id) consumo_uni,
+         (select coalesce(valor,4) from parametro where clave='inyeccion_desperdicio_pct') desp_pct
+  from c
+), filas_art as (
+  select a.codigo cod, a.descripcion desc_,
+         (select em.proy_uni_mes from est_madre em
+           where regexp_replace(regexp_replace(em.cod,'L$',''),'^0+','') = regexp_replace(a.codigo,'^0+','') limit 1) venta_uni_mes,
+         d.uni_mes aporte_uni_mes
+  from v_consumo_demanda d
+  join cab on cab.id = d.componente_id and not cab.es_resina
+  join articulo a on a.id = d.articulo_id
+), filas_pieza as (
+  select p.codigo cod, p.descripcion desc_,
+         coalesce(v.consumo_uni_mes,0) aporte_uni_mes,
+         p.kg_x_uni pieza_kg,
+         coalesce(v.consumo_uni_mes,0) * coalesce(p.kg_x_uni,0) * (1 + (select desp_pct from cab)/100.0) aporte_kg
+  from componente p
+  join cab on cab.es_resina and p.material_id = cab.id
+  left join v_consumo_componente v on v.componente_id = p.id
+), resina_tot as (
+  select round(sum(aporte_kg),2) kg_mes from filas_pieza
+)
+select jsonb_build_object(
+  'comp', (select jsonb_build_object('id',id,'codigo',codigo,'descripcion',descripcion,
+              'sector_id',sector_id,'unidad',unidad_medida,'kg_x_uni',kg_x_uni,
+              'es_resina',es_resina,'es_fleje',es_fleje) from cab),
+  'meses', (select meses from cab),
+  'maximo', (select maximo from cab),
+  'maximo_origen', (select maximo_origen from cab),
+  'consumo_uni_mes', (select case when es_resina then null else consumo_uni end from cab),
+  'consumo_kg_mes',  (select case when es_fleje then consumo_kg_fleje
+                                  when es_resina then (select kg_mes from resina_tot) end from cab),
+  'desperdicio_pct', (select case when es_resina then desp_pct end from cab),
+  'consumo_x_meses', (select round(
+       coalesce(case when es_fleje then consumo_kg_fleje
+                     when es_resina then (select kg_mes from resina_tot)
+                     else consumo_uni end, 0) * coalesce(meses,0)) from cab),
+  'base', (select case when es_resina then 'piezas' else 'articulos' end from cab),
+  'filas', case when (select es_resina from cab) then
+      coalesce((select jsonb_agg(jsonb_build_object(
+        'cod',cod,'desc',desc_,'aporte_uni_mes',round(aporte_uni_mes),
+        'aporte_kg', round(aporte_kg,2)) order by aporte_kg desc) from filas_pieza), '[]'::jsonb)
+    else
+      coalesce((select jsonb_agg(jsonb_build_object(
+        'cod',cod,'desc',desc_,'venta_uni_mes',round(venta_uni_mes),
+        'aporte_uni_mes',round(aporte_uni_mes,2),
+        'aporte_kg', case when (select kg_x_uni from cab) is not null
+                          then round(aporte_uni_mes * (select kg_x_uni from cab), 2) end)
+        order by aporte_uni_mes desc) from filas_art), '[]'::jsonb)
+    end,
+  'generado_en', now());
+$function$
+;
+
 -- ---------- oc_bundle ----------
 CREATE OR REPLACE FUNCTION "GP2".oc_bundle()
  RETURNS jsonb

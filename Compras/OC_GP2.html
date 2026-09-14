@@ -1,7 +1,15 @@
 <!doctype html>
 <html lang="es">
 <head>
-<!-- v1.27.0 (2026-09-14) — SE SACA EL RECUADRO AMARILLO "Pedido mínimo de la pieza" [usuario:
+<!-- v1.28.0 (2026-09-14) — TOCAR EL MÁXIMO ABRE SU DESGLOSE [usuario: "al tocar en maximo, pueda
+     ver de que se compone... cuantos meses es el maximo definido y que articulos y que venta responde
+     a ese maximo... Primero en unidades para despues pasarse a kilos"]. La celda Máximo (cuando no es
+     "—") es clickable y abre un modal con: máximo + origen, meses de stock, consumo/mes y consumo×meses,
+     y la tabla que lo arma. Insumo por receta -> por ARTÍCULO (venta de est_madre + lo que consume del
+     insumo); resina (sector 14) -> por PIEZA (material_id). Siempre uni y, si hay kg_x_uni, tambien kg.
+     Sale de la RPC nueva oc_maximo_desglose(p_componente_id) (lectura pura). Cuando el máximo es
+     físico/migrado/master se aclara que no viene de la demanda y se muestra el consumo como referencia.
+     v1.27.0 (2026-09-14) — SE SACA EL RECUADRO AMARILLO "Pedido mínimo de la pieza" [usuario:
      "eliminá este recuadro" / "el amarillo"]. Avisaba cuando el sugerido quedaba por debajo de la
      tirada minima del inyector (pedido_minimo_uni) con un boton "Subir al mínimo". Se fueron el div
      #avisoMinUni, el bloque en barra() y las funciones lineasBajoMinimoUni/subirAlMinimoUni; tambien
@@ -393,6 +401,28 @@
   .prov-info{background:#f6f8fa;border:2px solid #e6ebf0;border-radius:10px;padding:9px 12px;font-size:15px;color:#333;margin:8px 0}
   .leyenda{font-size:14px;color:#555;margin:8px 0 4px}
   .sub-nota{display:block;font-size:12px;color:#777;font-weight:400}
+  /* celda Maximo clickable: abre el desglose (de donde sale el maximo) */
+  td.max-cell{cursor:pointer;text-decoration:underline dotted #b9c6d8}
+  td.max-cell:hover{background:#eef4fb}
+  /* modal del desglose */
+  .modal-bg{position:fixed;inset:0;background:rgba(15,23,42,.45);display:flex;align-items:flex-start;justify-content:center;padding:24px 12px;overflow:auto;z-index:50}
+  .modal-bg[hidden]{display:none}
+  .modal{background:#fff;border-radius:14px;max-width:760px;width:100%;box-shadow:0 10px 40px rgba(0,0,0,.25)}
+  .modal-h{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:16px 20px;border-bottom:1px solid #e2e8f0}
+  .modal-h h2{font-size:18px;color:#0f172a}
+  .modal-h .x{border:none;background:#f1f5f9;border-radius:8px;font-size:20px;width:40px;height:40px;cursor:pointer;color:#334155}
+  .modal-b{padding:16px 20px}
+  .dsg-kpis{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:14px}
+  .dsg-kpi{background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:8px 12px;min-width:110px}
+  .dsg-kpi .k{font-size:12px;color:#64748b}
+  .dsg-kpi .v{font-size:16px;font-weight:700;color:#0f172a}
+  .dsg-nota{font-size:14px;color:#7a5b00;background:#fff8e1;border:1px solid #f0c36d;border-radius:8px;padding:8px 12px;margin-bottom:12px}
+  table.dsg{border-collapse:collapse;width:100%;font-size:14px}
+  table.dsg th,table.dsg td{border-bottom:1px solid #eef2f7;padding:7px 8px;text-align:center;vertical-align:middle}
+  table.dsg th{font-size:13px;color:#475569;background:#f8fafc}
+  table.dsg td.l,table.dsg th.l{text-align:left}
+  table.dsg td.num{text-align:right;font-variant-numeric:tabular-nums}
+  table.dsg tfoot td{font-weight:700;border-top:2px solid #cbd5e1}
   .sug-calc{display:block;font-size:12px;color:#8a6d3b;font-weight:600;white-space:nowrap}
   /* Debajo del campo: la palabra "sugerido" con el número, para que se entienda de
      dónde salió lo que ya viene cargado (y siga estando si se pisa a mano). */
@@ -431,6 +461,14 @@
 </style>
 </head>
 <body>
+
+<!-- Desglose del Máximo: de qué se compone (meses × consumo, y qué artículos/piezas lo arman). -->
+<div class="modal-bg" id="dsgBg" hidden>
+  <div class="modal" role="dialog" aria-modal="true">
+    <div class="modal-h"><h2 id="dsgTit"></h2><button type="button" class="x" id="dsgX" aria-label="Cerrar">×</button></div>
+    <div class="modal-b" id="dsgBody"></div>
+  </div>
+</div>
 
 <div class="card">
   <div class="header">
@@ -889,7 +927,7 @@ function render(){
       // El "mín N" debajo del stock se saco [usuario 2026-09-04: "eso no lo quiero ver"].
       // El stock se pinta en rojo cuando esta abajo del MAXIMO (el minimo se borro el 14-09).
       '<td class="num'+(bajoMin?' bajo-min':'')+'">'+(st==null?'—':(fmt(st)+' '+esc(i.unidad)))+'</td>'+
-      '<td class="num">'+(mx==null?'—':fmt(mx))+
+      '<td class="num'+(mx!=null?' max-cell" data-max="'+i.comp_id+'" title="Ver de qué se compone':'')+'">'+(mx==null?'—':fmt(mx))+
         (mx!=null&&i.maximo_origen?('<span class="sub-nota">'+esc(tagOrigen(i.maximo_origen))+'</span>'):'')+'</td>'+
       '<td class="num"><input class="pedir-in" data-in="'+i.comp_id+'" inputmode="decimal" value="'+(ped?String(ped).replace('.',','):'')+'" placeholder="'+i.unidad+'">'+paqEq+
         notaSugerido(i)+notaRepo(i)+'</td>'+
@@ -916,8 +954,60 @@ function render(){
       render(); barra();
     });
   });
+  // Tocar el Máximo abre el desglose: de dónde sale ese número.
+  document.querySelectorAll('td.max-cell').forEach(function(td){
+    td.addEventListener('click', function(){ abrirDesglose(Number(td.dataset.max)); });
+  });
   barra();
 }
+
+/* ═══ Desglose del Máximo (RPC oc_maximo_desglose) ═══
+   Al tocar el Máximo se ve de qué se compone: cuántos meses, el consumo/mes y qué lo arma
+   — por ARTÍCULO (con su venta de est_madre y lo que consume del insumo) o, en la resina,
+   por PIEZA. Siempre en unidades y, si hay kg_x_uni, también en kg. [usuario 2026-09-14] */
+async function abrirDesglose(compId){
+  var bg=$('dsgBg'), body=$('dsgBody'), tit=$('dsgTit');
+  tit.textContent='Cargando…'; body.innerHTML=''; bg.hidden=false;
+  var r=await SB.rpc('oc_maximo_desglose',{p_componente_id:compId});
+  if(r.error){ tit.textContent='Error'; body.textContent=r.error.message; return; }
+  var d=r.data||{}, c=d.comp||{}, esRes=c.es_resina, esFleje=c.es_fleje, hayKg=esRes||esFleje||c.kg_x_uni!=null;
+  tit.textContent=(c.codigo||'')+' · '+(c.descripcion||'');
+  var unidad=esRes?'kg':(esFleje?'kg':(c.unidad||'uni'));
+  var consumo = esRes||esFleje ? d.consumo_kg_mes : d.consumo_uni_mes;
+  var kpis='<div class="dsg-kpis">'+
+    kpi('Máximo', d.maximo==null?'—':fmt(d.maximo)+(esRes||esFleje?' kg':''), tagOrigen(d.maximo_origen))+
+    kpi('Meses de stock', d.meses==null?'—':fmt(d.meses,1))+
+    kpi('Consumo / mes', consumo==null?'—':fmt(consumo)+' '+(esRes||esFleje?'kg':'uni'))+
+    kpi('Consumo × meses', d.consumo_x_meses==null?'—':fmt(d.consumo_x_meses)+(esRes||esFleje?' kg':''))+
+  '</div>';
+  // Cuando el máximo no sale de la demanda (físico / migrado / master), se aclara.
+  var nota='';
+  var org=d.maximo_origen||'';
+  if(org==='fisico'||org==='cinco_cajones') nota='Este máximo lo pusiste a mano por el lugar que hay, no por la demanda. Abajo va el consumo real como referencia.';
+  else if(org==='migrado_de_minimo') nota='Este máximo viene del mínimo viejo que se migró el 14-09; no se recalculó por demanda todavía.';
+  else if(esRes) nota='El máximo de resina se redondea a bolsas de 25 kg (con '+fmt(d.desperdicio_pct||0)+'% de desperdicio). El desglose es por pieza inyectada.';
+  if(nota) kpis+='<div class="dsg-nota">'+esc(nota)+'</div>';
+  var filas=d.filas||[];
+  var head, rows, totUni=0, totKg=0;
+  if(d.base==='piezas'){
+    head='<tr><th class="l">Pieza</th><th>Consume<br>(uni/mes)</th>'+(hayKg?'<th>kg/mes</th>':'')+'</tr>';
+    rows=filas.map(function(f){ totUni+=Number(f.aporte_uni_mes)||0; totKg+=Number(f.aporte_kg)||0;
+      return '<tr><td class="l"><b>'+esc(f.cod)+'</b> '+esc(f.desc||'')+'</td>'+
+        '<td class="num">'+fmt(f.aporte_uni_mes)+'</td>'+(hayKg?'<td class="num">'+fmt(f.aporte_kg,2)+'</td>':'')+'</tr>'; }).join('');
+  } else {
+    head='<tr><th class="l">Artículo</th><th>Venta<br>(uni/mes)</th><th>Consume<br>(uni/mes)</th>'+(hayKg?'<th>kg/mes</th>':'')+'</tr>';
+    rows=filas.map(function(f){ totUni+=Number(f.aporte_uni_mes)||0; totKg+=Number(f.aporte_kg)||0;
+      return '<tr><td class="l"><b>'+esc(f.cod)+'</b> '+esc(f.desc||'')+'</td>'+
+        '<td class="num">'+(f.venta_uni_mes==null?'—':fmt(f.venta_uni_mes))+'</td>'+
+        '<td class="num">'+fmt(f.aporte_uni_mes)+'</td>'+(hayKg?'<td class="num">'+fmt(f.aporte_kg,2)+'</td>':'')+'</tr>'; }).join('');
+  }
+  var nc=(d.base==='piezas'?2:3)+(hayKg?1:0);
+  var foot=filas.length?('<tfoot><tr><td class="l">Total ('+filas.length+')</td>'+
+    (d.base==='piezas'?'':'<td></td>')+'<td class="num">'+fmt(totUni)+'</td>'+(hayKg?'<td class="num">'+fmt(totKg,2)+'</td>':'')+'</tr></tfoot>'):'';
+  body.innerHTML=kpis+(filas.length?('<table class="dsg"><thead>'+head+'</thead><tbody>'+rows+'</tbody>'+foot+'</table>')
+    :'<p style="color:#64748b">Sin demanda registrada para este insumo (no está en est_madre / ninguna receta).</p>');
+}
+function kpi(k,v,sub){ return '<div class="dsg-kpi"><div class="k">'+esc(k)+'</div><div class="v">'+esc(v)+(sub?(' <span style="font-size:12px;color:#94a3b8">'+esc(sub)+'</span>'):'')+'</div></div>'; }
 
 /* Solo los pedidos del rubro/proveedor seleccionado: lo cargado en otros chips
    queda guardado para su propia OC, no se mezcla en la OC de este rubro. */
@@ -1463,6 +1553,11 @@ $('tabGen').addEventListener('click',function(){ mostrarTab('gen'); });
 $('tabOcs').addEventListener('click',function(){ mostrarTab('ocs'); });
 
 $('q').addEventListener('input', render);
+// Cerrar el desglose: la X, tocar el fondo, o Escape.
+function cerrarDesglose(){ $('dsgBg').hidden=true; }
+$('dsgX').addEventListener('click', cerrarDesglose);
+$('dsgBg').addEventListener('click', function(e){ if(e.target===this) cerrarDesglose(); });
+document.addEventListener('keydown', function(e){ if(e.key==='Escape' && !$('dsgBg').hidden) cerrarDesglose(); });
 boot();
 </script>
 </body>

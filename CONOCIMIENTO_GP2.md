@@ -9756,3 +9756,33 @@ cae**: muestra el resto del árbol sin esos dos grupos.
 
 **Y un tercer nombre cruzado, de la misma familia que los de §4dp:** en Stock General la columna
 decía **"Máximo"** y leía el **mínimo** del bundle. Ya lee el máximo.
+
+
+## 4dr. Generar OC: tocar el Máximo muestra de qué se compone (2026-09-14)
+
+`[usuario 2026-09-14, textual: *"el módulo de generar órdenes de compra? quiero que, al tocar en
+máximo, pueda ver de qué se compone. Por ejemplo, quiero ver cuántos meses es el máximo definido y
+qué artículos y qué venta responde a ese máximo... Primero en unidades para después pasarse a
+kilos"*]`.
+
+La celda **Máximo** de Generar OC ahora es clickable (cuando no es "—") y abre un modal con el
+desglose. Sale de la RPC nueva **`oc_maximo_desglose(p_componente_id)`** (lectura pura, 154→155
+funciones). Muestra: máximo + origen, **meses** (`ubicacion.meses_stock` del sector), consumo/mes y
+**consumo × meses**, y la tabla que lo arma.
+
+**Hay DOS caminos, porque la demanda de un insumo se arma distinto según qué sea** `[Seguro]`:
+
+1. **Insumo por receta** (cartones, cajas, plásticos-pieza, bombillas, remaches, garage, flejes): el
+   consumo sale de `v_consumo_demanda` (est_madre → receta `articulo_componente` → `componente_bom`
+   → rutas). El desglose es **por ARTÍCULO**: su venta (`est_madre.proy_uni_mes`) y lo que ese
+   artículo consume del insumo (uni/mes). En flejes el aporte se muestra también en kg (× `kg_x_uni`).
+2. **Resina** (sector 14, Bolsas Plásticas): NO entra en ninguna receta — se relaciona por
+   `componente.material_id`. El desglose es **por PIEZA inyectada** (los mangos), con su consumo y
+   sus kg (× `kg_x_uni` × (1+desperdicio)). El máximo de resina se redondea a bolsas de 25 kg, así
+   que `consumo × meses` (p.ej. PP 770,5 kg × 2,5 = 1.926) no da exacto el máximo guardado (2.025,
+   que además es `fisico`, una foto vieja): el modal lo aclara.
+
+**Regla que deja para leer un máximo:** el desglose EXPLICA el número sólo cuando el origen es
+`est_madre` / `consumo_x_meses` (ahí máximo = consumo × meses, exacto). Cuando es `fisico`,
+`migrado_de_minimo`, `cinco_cajones` o master, el máximo se puso a mano o por otra regla, y el modal
+muestra el consumo real **como referencia**, avisando que no viene de la demanda.
