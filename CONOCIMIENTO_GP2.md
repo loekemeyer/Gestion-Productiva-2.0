@@ -128,12 +128,15 @@ plástica (sector 6)**, más el 4 % de master bach para el color. Es un **servic
   y **qué resina usa cada pieza en `planilla_fila` hoja 'Plasticos', columna "Tipo Plast"**
   (PP/ABS/Nylon/…), matcheada por Empresa+Descripción. Es cirugía sobre 49 piezas → va con
   `gp2-cirujano` y con el SQL a la vista antes de ejecutar.
-- **Lo que YA se puede hacer sin ese modelo** (hecho 2026-09-14): mandar las bolsas (kg) al
-  inyector. Existe `enviar_material_inyector(proveedor, comp_id, kg)` + la pantalla
-  `Compras/Inyectores_GP2.html`, y ahora la **Versión Tablet** tiene un botón **"Inyectores"** en
-  Enviar que abre esa pantalla (`?volver=tablet`). NO toca el costeo. Los inyectores **no son
-  `proveedor_servicio`** en el modelo (son `proveedor_insumo`), por eso el botón es un *link* y no
-  una contraparte de `tablet_bundle`.
+- **El atajo del botón se probó y se descartó** (2026-09-14): por un rato la Versión Tablet tuvo
+  un botón **"Inyectores"** en Enviar que abría `Compras/Inyectores_GP2.html` (que ya manda las
+  bolsas en kg con `enviar_material_inyector`). El usuario lo rechazó — *"saca el boton de
+  inyectores y arranca la cirugia"* — porque quiere a los 3 inyectores **DENTRO de "Prov. de
+  servicio"**, no en un botón aparte. La lista de PS del Tablet se arma desde la base, así que la
+  única forma es la cirugía: convertir los inyectores en `proveedor_servicio` de verdad, con su
+  **ruta de inyección** (entra la resina/bolsa → sale la pieza). Eso los hace aparecer solos en la
+  lista y cambia el costeo de la pieza de *comprada* a *inyectada*. `enviar_material_inyector` y la
+  pantalla de Inyectores siguen existiendo para el material; no se borran.
 
 ### `D1` (Espiral Sacacorcho): lo importado con su margen a la vista `[usuario 2026-09-02]`
 
