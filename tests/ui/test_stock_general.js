@@ -33,7 +33,13 @@ const BUNDLE = {
   c2a: { '20': 7 },
   bom_art: { '7': [{ c: 10, q: 2 }, { c: 30, q: 1 }] },
   bom_comp: {},
-  inv: { '10:1': { cant: 100, min: 0 }, '30:1': { cant: 50, min: 0 }, '20:5': { cant: 0, min: 0 } },
+  inv: { '10:1': { cant: 100, max: 0 }, '30:1': { cant: 50, max: 0 }, '20:5': { cant: 0, max: 0 } },
+};
+/* v1.2.0 (2026-09-14): Prov AT y transito salen de su propia RPC. Prov AT muestra las CAJAS
+   y CARTONES de los articulos que ese proveedor entrega, con el stock real en su ubicacion. */
+const EXTRA = {
+  prov_at: [{ id: 1, nom: 'Cabral', ubic: 34, filas: [{ cid: 10, cant: 0, max: null }] }],
+  transito: [{ cid: 30, ps1: 'Laboratorio FAAT', ps2: 'Guazzaroni Patricio', cant: 7 }],
 };
 const MOVS = [{
   id: 1, fecha: '2026-08-30T12:00:00', tipo_mov: 'ajuste', comp_id: 10,
@@ -47,6 +53,7 @@ window.supabase = { createClient: function(){ return {
   rpc: async function(name, args){
     window.__rpc.push({ n: name, a: args || null });
     if (name === 'movimientos_bundle') return { data: JSON.parse(JSON.stringify(${JSON.stringify(BUNDLE)})), error: null };
+    if (name === 'stock_general_extra_bundle') return { data: JSON.parse(JSON.stringify(${JSON.stringify(EXTRA)})), error: null };
     if (name === 'registrar_movimientos') return { data: { ok: true, n: (args.p_rows || []).length }, error: null };
     return { data: null, error: { message: 'rpc desconocida ' + name } };
   },
@@ -81,6 +88,15 @@ window.supabase = { createClient: function(){ return {
   ok(!base.horizontal, 'celular 390px: sin scroll horizontal');
   ok(base.hAj >= 44, 'botones Ajuste/Armado tocables (' + Math.round(base.hAj) + 'px, minimo 44)');
   ok(/posiciones/.test(base.status), 'el status muestra las posiciones cargadas');
+
+  /* v1.2.0: los dos grupos nuevos y el que se fue [usuario 2026-09-14]. */
+  const arbol = await page.textContent('#tree');
+  ok(/Prov\. Artículo Terminado/.test(arbol), 'aparece el grupo de Prov. Articulo Terminado');
+  ok(/Cabral/.test(arbol), 'y adentro el proveedor con sus cajas/cartones');
+  ok(/En tránsito entre PS/.test(arbol), 'aparece el grupo de transito entre PS');
+  ok(/Laboratorio FAAT → Guazzaroni Patricio/.test(arbol), 'y el par PS origen -> PS siguiente');
+  ok(/Ya está contado en su sector/.test(arbol), 'el transito avisa que NO suma al total');
+  ok(!/Virgilio \(Distribución\)/.test(arbol), 'NO aparece el grupo Virgilio (Distribucion)');
 
   // ── ultimos movimientos (vista heredada de Registrar_Movimiento) ──
   await page.click('#grpMovs .gh');

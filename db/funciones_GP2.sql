@@ -6533,6 +6533,63 @@ end;
 $function$
 ;
 
+-- ---------- stock_general_extra_bundle ----------
+CREATE OR REPLACE FUNCTION "GP2".stock_general_extra_bundle()
+ RETURNS jsonb
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'GP2'
+AS $function$
+with pa as (
+  select p.id, p.nombre, "GP2".ubic_de('proveedor_at', p.id) ubic_id
+    from proveedor_at p
+   where coalesce(p.activo, true)
+), pa_comp as (
+  select distinct pa.id pa_id, pa.nombre, pa.ubic_id, c.id comp_id, c.sector_id
+    from pa
+    join articulo_prov_at apa on apa.proveedor_at_id = pa.id and coalesce(apa.activo, true)
+    join articulo a on a.codigo = apa.cod_art
+    join articulo_componente ac on ac.articulo_id = a.id
+    join componente c on c.id = ac.componente_id
+   where c.sector_id in (10, 11)          -- Sector Carton y Sector Caja
+), pares as (
+  select distinct p1.comp_salida_id comp_id, p1.proveedor_id ps1_id, p2.proveedor_id ps2_id
+    from ruta_paso p1
+    join ruta_paso p2 on p2.ruta_id = p1.ruta_id and p2.orden = p1.orden + 1
+   where p1.tipo_paso = 'proveedor_servicio' and p2.tipo_paso = 'proveedor_servicio'
+     and p1.comp_salida_id is not null and p2.comp_entrada_id = p1.comp_salida_id
+), tr as (
+  select pr.comp_id, ps1.nombre ps1_nombre, ps2.nombre ps2_nombre,
+         coalesce((select sum(m._delta_dest) from movimiento m
+                    where m.tipo_mov = 'entrega_ps'
+                      and coalesce(m.comp_transformado_id, m.comp_id) = pr.comp_id
+                      and m.ubic_origen_id = "GP2".ubic_de('proveedor_servicio', ps1.id)), 0)
+       - coalesce((select sum(m._delta_orig) from movimiento m
+                    where m.tipo_mov = 'envio_ps' and m.comp_id = pr.comp_id
+                      and m.ubic_destino_id = "GP2".ubic_de('proveedor_servicio', ps2.id)), 0) cant
+    from pares pr
+    join proveedor_servicio ps1 on ps1.id = pr.ps1_id
+    join proveedor_servicio ps2 on ps2.id = pr.ps2_id
+)
+select jsonb_build_object(
+  'prov_at', coalesce((select jsonb_agg(x order by x->>'nom') from (
+      select jsonb_build_object(
+               'id', pa_id, 'nom', nombre, 'ubic', ubic_id,
+               'filas', jsonb_agg(jsonb_build_object(
+                          'cid', comp_id,
+                          'cant', coalesce((select i.cantidad from inventario i
+                                             where i.componente_id = comp_id and i.ubicacion_id = ubic_id), 0),
+                          'max',  (select i.maximo from inventario i
+                                    where i.componente_id = comp_id and i.ubicacion_id = ubic_id))
+                        order by comp_id)) x
+        from pa_comp group by pa_id, nombre, ubic_id) y), '[]'::jsonb),
+  'transito', coalesce((select jsonb_agg(jsonb_build_object(
+      'cid', comp_id, 'ps1', ps1_nombre, 'ps2', ps2_nombre, 'cant', cant)
+      order by ps1_nombre, ps2_nombre, comp_id) from tr), '[]'::jsonb),
+  'generado_en', now());
+$function$
+;
+
 -- ---------- stock_sector_bundle ----------
 CREATE OR REPLACE FUNCTION "GP2".stock_sector_bundle(p_sector_id bigint)
  RETURNS jsonb

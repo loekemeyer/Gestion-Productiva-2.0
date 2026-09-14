@@ -3,7 +3,25 @@
 <script src="../gp2-ui.js?v=20260913e"></script>
 <script src="../gp2-numero.js?v=20260911o"></script>
 <title>Stock por ubicación · GP2</title>
-<!-- v1.1.3 (2026-09-10) - rotulos para los dos tipos nuevos del ledger: envio_inyector (bolsas de materia prima
+<!-- v1.2.0 (2026-09-14) - ENTRAN PROV AT Y TRANSITO, SE VA VIRGILIO, Y SE ARREGLA UN NOMBRE CRUZADO.
+     (a) [usuario: "agrega provedor de at con sus repectivas cajas y cartones"] El arbol armaba grupos con
+         4 tipos de ubicacion y descartaba EN SILENCIO los otros 4 (proveedor_at 12, inyector 4,
+         virgilio_sector 2, analisis 1): si entraba stock ahi, era invisible. Ahora hay grupo de Prov AT,
+         y no con su inventario (hoy son 0 filas) sino con LAS CAJAS Y CARTONES que la receta de sus
+         articulos consume, con el stock real en la ubicacion del proveedor. 9 proveedores activos,
+         de 1 a 39 piezas cada uno (Pettofrezza esta activo=false y por eso no aparece).
+     (b) [usuario: "agrega sector transito porque tengo que saber cuanto tengo de stock transito: cuando
+         vuelve del ps correspondiente subiria el stock y si va al siguiente ps sale del stock de transito"]
+         Grupo "En transito entre PS" = entregas del PS de origen menos envios al PS siguiente, que es
+         literalmente lo que pidio. OJO: NO es una ubicacion. Esas piezas viven en el sector del
+         componente y YA estan contadas mas arriba, asi que el grupo lo aclara y no suma a ningun total.
+     (c) [usuario: "no quiero que aparezca este modulo de virgilio dentro de stock general"] Se saca el
+         grupo Virgilio (Distribucion). Su stock se mira en su propia pantalla.
+     (d) NOMBRE CRUZADO: la columna decia "Máximo" y leia el MINIMO del bundle. El minimo se borro de la
+         base el 14-09, asi que ahora lee el maximo de verdad.
+     Los dos grupos nuevos salen de stock_general_extra_bundle(), una RPC aparte para no inflar
+     movimientos_bundle, que lo comparten todas las pantallas; si esa RPC falla, la pantalla no se cae.
+     v1.1.3 (2026-09-10) - rotulos para los dos tipos nuevos del ledger: envio_inyector (bolsas de materia prima
      plastica de Virgilio al inyector) y consumo_inyector (material descontado al recepcionar la pieza inyectada).
      v1.1.2 (2026-09-04) - la tabla de rotulos de los ultimos movimientos pasa al vocabulario REAL del ledger
      (envio_ps/entrega_ps/envio_tallerista/entrega_tallerista/fabricacion...): tenia los nombres del programa viejo y
@@ -154,11 +172,14 @@ var esc = GP2UI.esc;   /* helper de la casa, gp2-ui.js (2026-09-05) */
 function unidad(c){return (c&&c.um==='kg')?'kg':'uni';}
 function fmt(n){ return GP2N.fmt(n, 2); }   /* la regla de numero de la casa (gp2-numero.js) */
 
-// arma: por cada ubic id -> [{cid, cant, min}]
+// arma: por cada ubic id -> [{cid, cant, max}]
+/* OJO, nombre cruzado que se arreglo el 2026-09-14: la columna decia "Máximo" y leia el
+   MINIMO del bundle. El minimo se borro de la base ese dia [usuario: "todo lo que usaba el
+   minimo ahora que use el maximo. es la misma logica"], asi que ahora lee el maximo. */
 function invPorUbic(){
  var m={};
  for(var k in D.inv){var p=k.split(':');var cid=+p[0],uid=+p[1];var v=D.inv[k];
-  (m[uid]=m[uid]||[]).push({cid:cid,cant:Number(v.cant)||0,min:Number(v.min)||0});}
+  (m[uid]=m[uid]||[]).push({cid:cid,cant:Number(v.cant)||0,max:Number(v.max)||0});}
  return m;
 }
 function filtRows(rows){
@@ -177,7 +198,7 @@ function tablaRows(rows){
   var cls=r.cant>0?'stock':(r.cant<0?'neg':'zero');
   h+='<tr class="'+cls+'"><td class="cod">'+esc(c.cod||'')+'</td><td>'+esc(c.d||'')+'</td>'+
      '<td class="num">'+fmt(r.cant)+' <span class="mini">'+unidad(c)+'</span></td>'+
-     '<td class="num mini">'+(r.min?fmt(r.min):'')+'</td></tr>';
+     '<td class="num mini">'+(r.max?fmt(r.max):'')+'</td></tr>';
  });
  return h+'</tbody></table>';
 }
@@ -201,12 +222,11 @@ function render(){
  if(!D){return;}
  var byU=invPorUbic();
  // agrupa ubicaciones por tipo
- var sectores={}, provs=[], talls=[], virg=null;
+ var sectores={}, provs=[], talls=[];
  for(var uid in D.ubic){var u=D.ubic[uid];var id=+uid;
   if(u.tipo==='sector')sectores[u.ref]=id;
   else if(u.tipo==='proveedor_servicio')provs.push({uid:id,ref:u.ref,nom:u.nom});
   else if(u.tipo==='tallerista')talls.push({uid:id,ref:u.ref,nom:u.nom});
-  else if(u.tipo==='virgilio')virg=id;
  }
  var H='';
  // 1) sectores en orden pedido
@@ -221,9 +241,61 @@ function render(){
  var totTall=talls.reduce((n,t)=>n+filtRows(byU[t.uid]||[]).filter(r=>r.cant>0||r.cant<0).length,0);
  var subsT=talls.map(t=>subgroup((D.tall[String(t.ref)]||{nom:t.nom}).nom||t.nom, byU[t.uid]||[])).join('');
  H+='<div class="grp"><div class="gh" onclick="tog(this)"><span class="arr">▶</span><span class="nm">🔧 Talleristas</span><span class="badge'+(totTall?' hot':'')+'">'+(totTall||talls.length+' tall')+(totTall?' con stock':'')+'</span></div><div class="gb">'+subsT+'</div></div>';
- // 4) virgilio
- if(virg)H+=group(false,'🚛 Virgilio (Distribución)',byU[virg]||[]);
+ // 4) proveedores de ARTICULO TERMINADO, con sus cajas y cartones [usuario 2026-09-14:
+ //    "agrega provedor de at con sus repectivas cajas y cartones"]. El arbol descartaba estas
+ //    12 ubicaciones en silencio. Y listar su inventario no alcanzaba: hoy son 0 filas. Lo que
+ //    se muestra son las cajas y cartones que la RECETA de sus articulos consume, con el stock
+ //    REAL en la ubicacion del proveedor -- si esta en 0, ese es justamente el dato.
+ H+=grupoProvAT();
+ // 5) transito entre PS [usuario 2026-09-14: "tengo que saber cuanto tengo de stock transito:
+ //    cuando vuelve del ps correspondiente subiria el stock y si va al siguiente ps sale del
+ //    stock de transito"]. Es exactamente eso: entregas del PS de origen menos envios al PS
+ //    siguiente. NO es una ubicacion -- esas piezas viven en el sector del componente y ya
+ //    estan contadas mas arriba, por eso el grupo lo dice y no suma a ningun total.
+ H+=grupoTransito();
+ // Virgilio (Distribucion) NO va en este arbol [usuario 2026-09-14: "no quiero que aparezca
+ // este modulo de virgilio dentro de stock general"]. Su stock se mira en su propia pantalla.
  $('tree').innerHTML=H;
+}
+
+/* ═══ Prov AT y Transito: vienen de stock_general_extra_bundle (una RPC aparte, para no
+      inflar movimientos_bundle, que lo comparten todas las pantallas) ═══ */
+var EXTRA={prov_at:[],transito:[]};
+
+function grupoProvAT(){
+ var lista=EXTRA.prov_at||[];
+ if(!lista.length) return '';
+ var tot=0, subs=lista.map(function(p){
+   var f=filtRows(p.filas||[]);
+   tot+=f.filter(r=>r.cant>0||r.cant<0).length;
+   return subgroup(p.nom, p.filas||[]);
+ }).join('');
+ return '<div class="grp"><div class="gh" onclick="tog(this)"><span class="arr">▶</span>'+
+   '<span class="nm">📦 Prov. Artículo Terminado · cajas y cartones</span>'+
+   '<span class="badge'+(tot?' hot':'')+'">'+(tot||lista.length+' prov')+(tot?' con stock':'')+'</span>'+
+   '</div><div class="gb">'+subs+'</div></div>';
+}
+
+function grupoTransito(){
+ var lista=EXTRA.transito||[];
+ if(!lista.length) return '';
+ // subgrupo por par "PS origen → PS siguiente"
+ var pares={};
+ lista.forEach(function(t){
+   var k=(t.ps1||'?')+' → '+(t.ps2||'?');
+   (pares[k]=pares[k]||[]).push({cid:t.cid, cant:Number(t.cant)||0, max:0});
+ });
+ var claves=Object.keys(pares).sort();
+ var tot=0, subs=claves.map(function(k){
+   tot+=filtRows(pares[k]).filter(r=>r.cant>0||r.cant<0).length;
+   return subgroup(k, pares[k]);
+ }).join('');
+ return '<div class="grp"><div class="gh" onclick="tog(this)"><span class="arr">▶</span>'+
+   '<span class="nm">🔄 En tránsito entre PS</span>'+
+   '<span class="badge'+(tot?' hot':'')+'">'+(tot||claves.length+' pares')+(tot?' con stock':'')+'</span>'+
+   '</div><div class="gb"><p class="empty" style="text-align:left">Lo que un PS ya devolvió y '+
+   'espera para irse al PS siguiente. <b>Ya está contado en su sector</b>: este corte no suma '+
+   'al total, sólo dice cuánto de ese stock está a mitad de camino.</p>'+subs+'</div></div>';
 }
 
 async function reload(){
@@ -232,6 +304,11 @@ async function reload(){
   // mismo movimientos_bundle de siempre, pero via el motor compartido:
   // asi los flujos de Ajuste/Armado usan LA MISMA data y lookups.
   D=await GP2M.cargar(SB);
+  // Prov AT y transito entre PS van en su propia RPC (stock_general_extra_bundle): si falla,
+  // la pantalla NO se cae -- se muestra el resto del arbol y esos dos grupos no aparecen.
+  try{ var rx=await SB.rpc('stock_general_extra_bundle');
+       EXTRA=(rx&&!rx.error&&rx.data)||{prov_at:[],transito:[]}; }
+  catch(_){ EXTRA={prov_at:[],transito:[]}; }
  }catch(e){
   var msg=(e&&e.message)||e;
   $('status').textContent='Error: '+msg;
