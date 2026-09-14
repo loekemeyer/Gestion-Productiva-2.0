@@ -9844,3 +9844,37 @@ contador, reparte mal. La cuenta del porcentaje se hace **por paso**, no por art
 en el front sobre `articulos_compartidos` del bundle: una parte que declaran 2+ talleristas del
 mismo artículo = mismo paso). `proporciones_bundle()` no cambió; su rama `talleristas` (la vista
 vieja, que listaba también los exclusivos) quedó sin usar.
+
+## 4dt. Los porcentajes que dictó el dueño: 2 son reparto y 3 son rutas mal cargadas (2026-09-14)
+
+Al ver la pantalla con los 6 pasos compartidos, el dueño dictó [usuario, textual]:
+*"505 Danica Garcia 40/ Lucho 60 — 506 Alex Escalante 70/ Martin Cornejo 30 — 500 solo martin —
+510 solo carlos — 315 y 609 solo pettofrezza"*.
+
+**Sólo 2 de los 5 renglones son porcentajes.** Los otros dicen "solo fulano", o sea que el segundo
+tallerista **no debería estar en la ruta**: no es un reparto mal medido, es un dato mal cargado.
+
+| Artículo | Qué dijo | Qué hay hoy en `ruta_paso` | Qué es |
+|---|---|---|---|
+| 505 | Danica 40 / Lucho 60 | Danica + Lucho en el paso `505` | **reparto** |
+| 506 | Alex 70 / Martin 30 | Alex + Martin en `GRJ7` | **reparto** |
+| 500 | solo Martin | Alex (5 rutas) + Martin (5 rutas) | **borrar las de Alex** |
+| 315 | solo Pettofrezza | Cavallero (5) + Pettofrezza (5) | **borrar las de Cavallero** |
+| 609 | solo Pettofrezza | Cavallero (5) + Pettofrezza (5) | **borrar las de Cavallero** |
+| 510 | solo Carlos | **Alex (5) + Martin (5); Carlos NO está** | **no cierra, preguntado** |
+
+**El 510 no cierra** [dato: `ruta_paso` del art 510, 2026-09-14]: Carlos Aguirre (tallerista 9) no
+aparece en ninguna ruta del 510 — ahí están Alex Escalante y Martin Cornejo — y en GP2 hace
+Repostería (115, 544, 580, 802), no Abrelatas. El 510 es "Abrelata Uña Cromado". No se tocó nada
+hasta que el dueño aclare si (a) quiso decir otro tallerista, o (b) Carlos hace el 510 y las dos
+rutas que hay son las equivocadas. **No se adivina.**
+
+**Dónde van a vivir los porcentajes:** hoy **en ningún lado**. GP2 no tiene tabla de proporciones
+(la vieja `Proporcion_Articulo_Tallerista` de `public` estaba vacía y por eso nació el PENDIENTE).
+Hace falta crearla en GP2 — clave (artículo, paso/`comp_salida`, tallerista) + `pct`, con la suma
+del grupo en 100 — antes de poder guardar el 40/60 y el 70/30.
+
+**Dato que descarta un miedo razonable** [dato: `db/vistas_GP2.sql`]: la ruta duplicada por
+tallerista **no** duplica el consumo ni el costo. Las vistas de demanda arman los `edges` con
+`SELECT DISTINCT comp_entrada_id, comp_salida_id`, así que dos rutas iguales colapsan en una
+arista. Borrar las rutas de más corrige el "quién lo hace", no cambia ningún número de plata.
