@@ -6,6 +6,9 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
+<!-- v1.1.1 (2026-09-14) — el operario no ve la palabra "contraparte" [usuario 2026-09-14: "no
+     quiero que diga contraparte"]. El buscador dice "Buscar por nombre…", la baldosa del tipo
+     muestra sólo el número (el título ya dice qué son) y el pie dice "N para elegir". -->
 <!-- v1.1.0 (2026-09-14) — PRIMERO EL TIPO, Y LO QUE YA ESTÁ MODELADO NO SE COPIA
      [usuario 2026-09-14]. Tres cambios, uno por modo:
        · ENVIAR: antes tiraba las 33 contrapartes juntas. Ahora pregunta primero el TIPO
@@ -114,7 +117,7 @@
       </div>
       <div class="tipos" id="tipoGrid"></div>
       <div id="cpBox" class="hidden">
-        <div class="search-box"><input type="text" id="q0" placeholder="Buscar contraparte…"></div>
+        <div class="search-box"><input type="text" id="q0" placeholder="Buscar por nombre…"></div>
         <div class="provs-grid" id="cpGrid"></div>
       </div>
       <div id="status" class="status">Cargando…</div>
@@ -286,8 +289,9 @@ function pintarTipos(){
     if (t.link) b.href = t.link; else b.type = "button";
     b.className = "tipo-btn";
     b.dataset.tipo = t.tipo;
+    // el número sin la palabra "contraparte": el título del tipo ya dice qué son
     b.innerHTML = '<span class="ti">' + t.icono + " " + esc(t.titulo) + "</span><small>" + esc(t.sub) +
-      (lista ? " · " + lista.length + (lista.length === 1 ? " contraparte" : " contrapartes") : "") +
+      (lista ? " · " + lista.length : "") +
       (pend ? " · <b>" + pend + " sin registrar</b>" : "") + "</small>";
     if (!t.link) b.addEventListener("click", function(){ elegirTipo(t); });
     g.appendChild(b);
@@ -311,7 +315,7 @@ function elegirTipo(t){
 function pintarCPS(){
   var lista = E.filtrar(cpsDelTipo(selTipo), $("q0").value, function(c){ return c.nombre; });
   E.gridContrapartes("cpGrid", lista.map(cpItem), {
-    vacio: "No hay contrapartes para este modo.",
+    vacio: "No hay a quién en este modo.",
     meta: function(c){
       // el tipo no se repite en cada chip: ya lo dice el título de arriba
       var cargado = E.cargadasDe(BUF.all[c.id], function(it){ return num(it.q) > 0; }).length;
@@ -321,7 +325,7 @@ function pintarCPS(){
     onPick: elegir
   });
   var av = avisoAlertas();
-  $("status").textContent = lista.length + " contraparte" + (lista.length === 1 ? "" : "s") + (av ? " · " + av : "");
+  $("status").textContent = lista.length + " para elegir" + (av ? " · " + av : "");
 }
 
 /* ---------- piezas de la contraparte elegida ---------- */

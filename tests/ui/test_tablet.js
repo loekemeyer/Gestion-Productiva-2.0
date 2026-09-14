@@ -90,7 +90,8 @@ window.supabase = { createClient: function(){ return {
   ok(await page.$eval('#modos .modo-btn.active', b => b.dataset.modo) === 'enviar', 'arranca en Enviar');
   let ts = await tipos();
   ok(ts.length === 3 && !ts.join('|').includes('Virgilio'), 'Enviar: 3 tipos, Virgilio afuera — ' + ts.join(' | '));
-  ok(ts[0].includes('Talleristas') && ts[0].includes('2 contrapartes'), 'el tipo dice cuántas contrapartes tiene — ' + ts[0]);
+  ok(ts[0].includes('Talleristas') && ts[0].includes('· 2') && !ts.join('|').includes('contraparte'),
+     'el tipo dice cuántas hay sin la palabra "contraparte" — ' + ts[0]);
   ok(await page.$eval('#cpBox', e => e.classList.contains('hidden')), 'todavía no se listan las contrapartes');
 
   await page.click('#tipoGrid .tipo-btn[data-tipo="tallerista"]');
