@@ -89,9 +89,13 @@ window.supabase = { createClient: function(){ return {
   // ── 1) modo ENVIAR: primero el TIPO ──────────────────────────────────────
   ok(await page.$eval('#modos .modo-btn.active', b => b.dataset.modo) === 'enviar', 'arranca en Enviar');
   let ts = await tipos();
-  ok(ts.length === 3 && !ts.join('|').includes('Virgilio'), 'Enviar: 3 tipos, Virgilio afuera — ' + ts.join(' | '));
+  ok(ts.length === 4 && !ts.join('|').includes('Virgilio'), 'Enviar: 4 tipos (con Inyectores), Virgilio afuera — ' + ts.join(' | '));
   ok(ts[0].includes('Talleristas') && ts[0].includes('· 2') && !ts.join('|').includes('contraparte'),
      'el tipo dice cuántas hay sin la palabra "contraparte" — ' + ts[0]);
+  // Inyectores es un tipo-LINK: abre la pantalla de Inyectores que ya manda las bolsas (kg) al
+  // inyector, en vez de listar contrapartes (los inyectores no son proveedor_servicio).
+  const hrefIny = await page.$eval('#tipoGrid .tipo-btn[data-tipo="inyector"]', a => a.getAttribute('href'));
+  ok(/Inyectores_GP2\.html\?volver=tablet/.test(hrefIny || ''), 'Inyectores es un link a la pantalla de Inyectores — ' + hrefIny);
   ok(await page.$eval('#cpBox', e => e.classList.contains('hidden')), 'todavía no se listan las contrapartes');
 
   await page.click('#tipoGrid .tipo-btn[data-tipo="tallerista"]');
@@ -102,7 +106,7 @@ window.supabase = { createClient: function(){ return {
 
   // el "← Cambiar tipo" vuelve a los tipos sin recargar
   await page.click('#btnVolverTipo');
-  ok((await tipos()).length === 3 && await page.$eval('#cpBox', e => e.classList.contains('hidden')), 'Cambiar tipo vuelve a los tipos');
+  ok((await tipos()).length === 4 && await page.$eval('#cpBox', e => e.classList.contains('hidden')), 'Cambiar tipo vuelve a los tipos');
   await page.click('#tipoGrid .tipo-btn[data-tipo="tallerista"]');
   await page.click('#cpGrid .prov-btn:has-text("Martin")');
 
