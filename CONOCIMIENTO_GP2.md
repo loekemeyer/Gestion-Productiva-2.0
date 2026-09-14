@@ -9456,3 +9456,36 @@ El `BOM10` NO va ahí: `[usuario 2026-09-12: "1 lo agrega alex"]`.
 
 **Lección de método**: la simulación de rutas (`__sim_articulo`) daba bien las dos veces, con y sin
 el error de unidad. Lo único que lo destapó fue correr **los RPC reales** contra el inventario.
+
+### 4ch. La paleta C12 se arma con TRES partes, y eso deja el resorte contado dos veces (2026-09-14)
+
+`[usuario 2026-09-14, textual: "pone la rama 3 tal cual la foto. dentro de la tabla de componente
+bomb se tiene que netender esto que c12 se arma con esas 3 partes"]`
+
+**Corrige lo que yo había entendido del `"1 lo agrega alex"` del 2026-09-12.** Lo tomé como "el
+resorte no va dentro de la paleta" y borré la fila `componente_bom(C12 ← BOM10)`. La foto del
+Programa anterior al borrado mostraba la Rama 3, y el usuario la confirma:
+
+> `C12` Paleta Batidor Resorte = `W1B` grampa + `IE1` varilla + `BOM10` resorte.
+
+Cargado el BOM con las tres y agregada la Rama 3 en las dos rutas
+(`Insumo BOM10 -> C12 -> Art 515` y `... Art 615`), con la misma forma que la rama del Fleje 33.
+
+**Medido con el ciclo real en rollback, y el resultado es el que había que ver:**
+
+| Momento | W1B | IE1 | BOM10 | C12 |
+|---|---|---|---|---|
+| Después de mandarle las 3 entradas a Alex | 120 | 120 | 120 | 0 |
+| Alex entrega 120 paletas (el BOM descuenta) | **0** | **0** | **0** | 120 |
+| Entrega de 120 del 515 en Virgilio | 0 | 0 | **−120** | 0 |
+
+La convergencia de tres partes anda. **Lo que queda mal es que `BOM10` sigue ADEMÁS en la receta
+del artículo (`articulo_componente`) y con su ruta suelta al tallerista** (el bloque 4 de la
+pantalla), así que `recepcion_virgilio` lo vuelve a descontar: **el resorte se consume dos veces**.
+
+**Hoy no se ve en la plata porque `BOM10` no tiene precio** ($306,31 y $428,67 antes y después,
+idénticos). En cuanto Resortes Charcas entre a `precio_proveedor`, el 515 y el 615 empiezan a
+cobrar dos resortes. El stock, en cambio, ya se rompe hoy.
+
+**Espera decisión del usuario** (idea 7339): sacar `BOM10` de la receta del 515 y del 615 y borrar
+las dos rutas sueltas `Insumo BOM10 -> Art 515/615`, dejándolo sólo dentro de la paleta.
