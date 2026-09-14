@@ -1,6 +1,24 @@
 <!doctype html>
 <html lang="es">
 <head>
+<!-- v1.26.0 (2026-09-14) — EL GATILLO VUELVE A SER EL MAXIMO, Y EL MINIMO SE BORRO DE LA BASE
+     [usuario 2026-09-14, textual: "lo de minimo borralo. la orden de compra tiene que disparar
+     segun el maximo. es algo que habiamos hecho mal" / "todo lo que usaba el minimo ahora que
+     use el maximo. es la misma logica"]. Se retira entera la v1.21.0 de abajo.
+     (a) estadoRepo(i) queda con dos estados: 'pedir' (stock < maximo) y 'lleno' (llego al
+         techo). 'sin-gatillo' (sin maximo o sin stock) se sigue cargando solo, mismo fail-safe.
+     (b) SE FUE "Aprovechar el viaje": era la valvula de escape del gatillo viejo. Con el maximo
+         como unico gatillo no queda nada afuera — lo que esta abajo del techo entra solo y lo
+         que llego tiene sugerido 0.
+     (c) El stock se pinta en ROJO cuando esta abajo del MAXIMO (antes, del minimo).
+     EN LA BASE: se borraron inventario.minimo, inventario.minimo_origen y ubicacion.meses_minimo,
+     y se fue la funcion recalcular_minimos(). Antes de borrar, las 299 filas que tenian minimo y
+     NO tenian maximo se migraron al maximo (maximo_origen='migrado_de_minimo'); las 456 que
+     tenian los dos quedaron con SU maximo, intactas. Idem ubicacion: 13 filas sin meses_stock
+     tomaron el meses_minimo; las 7 que tenian los dos distintos se quedaron con meses_stock.
+     LO QUE ESTO CUESTA, MEDIDO EL 14-09: el gatillo viejo frenaba 12 lineas por ARS 320.036
+     sobre una corrida de ~ARS 197 M. Es poco HOY porque casi todo el stock esta en 0; el numero
+     crece cuando el stock este cargado de verdad (STOCK_A_CONTAR_2026-09-08.md). -->
 <!-- v1.25.0 (2026-09-11) — EL PEDIDO MINIMO POR PIEZA (uni). Segunda mitad del motor de pedido que
      estaba en el Excel del usuario (hoja "Pedido 31-08", columna "Pedi Min Uni"): el inyector no hace
      una tirada de menos de N piezas. 47 componentes lo tienen cargado en componente.pedido_minimo_uni
@@ -33,7 +51,7 @@
      blanco para anotar las entregas. Se EMITE SOLA al generar la OC (se abre la hoja para imprimir/mandar).
      La OC va a UN solo proveedor, el mas barato del material (componente.proveedor lo elige la base), nunca
      repartida entre los tres [usuario 2026-09-11]. Las demas OC siguen con la hoja de siempre. -->
-<!-- v1.21.0 (2026-09-08) — EL GATILLO DE REPOSICION: EL MINIMO DISPARA, EL MAXIMO DIMENSIONA
+<!-- v1.21.0 (2026-09-08) — ⛔ RETIRADA POR LA v1.26.0. EL GATILLO DE REPOSICION: EL MINIMO DISPARA, EL MAXIMO DIMENSIONA
      (idea 7273). Hasta aca la pantalla proponia llenar el techo de TODO lo que estuviera un peso
      abajo del maximo: una corrida completa de sugeridos daban ~ARS 367,6 M en 201 lineas, con
      techos de 6 meses en carton y fleje que se reciben todas las semanas. El punto de pedido YA
@@ -82,9 +100,9 @@
          armar la OC (buscador, leyenda, tabla, barras y Crear OC) queda oculta detras de
          #zonaLista; en su lugar se ve #elegiSector. Efecto de fondo importante: la pantalla
          ya NO arranca con los ~600 insumos de la fabrica con cantidad puesta -- el sugerido
-         se carga recien cuando elegis donde estas comprando.
+         se carga recien cuando elegis donde estas comprando. -->
 
-     <!-- v1.18.0 (2026-09-04) — TAMBIEN SE VAN PRECIO Y SUBTOTAL, EL "MIN" DEBAJO DEL STOCK, Y LA
+<!-- v1.18.0 (2026-09-04) — TAMBIEN SE VAN PRECIO Y SUBTOTAL, EL "MIN" DEBAJO DEL STOCK, Y LA
      OC ANULADA DESAPARECE DE LA LISTA [usuario 2026-09-04: "precio se va y subtotal tambien"
      + "lo que dice abajo de stock actual... mínimo. Eso no lo quiero ver" + "si anula una
      orden de compra, no quiero que me siga apareciendo en ordenes"].
@@ -95,8 +113,8 @@
          de la barra, viaja a crear_oc y es el que sale impreso. Lo unico que se pierde es
          PISARLO desde esta pantalla (v1.8.0). Se fueron con la columna: celdaPrecio(), los
          handlers de .precio-in / .mon-btn y fmtPrecio/precioPisado/simboloMon.
-     (b) Se saco el "mín N" debajo del Stock actual. El minimo sigue en la base y sigue
-         pintando el stock en ROJO cuando esta abajo: lo que se fue es el numero.
+     (b) Se saco el "mín N" debajo del Stock actual. (Desde la v1.26.0 el que pinta el stock en
+         ROJO es el MAXIMO: el minimo ya no existe en la base.)
      (c) pintarOcs() filtra estado='anulada'. Se esconde de la PANTALLA nada mas: la fila
          sigue en GP2.orden_compra (historial, y explica una numeracion con huecos).
      (d) 390px: la columna Proveedor se esconde y el proveedor pasa a leerse debajo del
@@ -447,7 +465,6 @@
 
       <div class="barra">
         <button type="button" class="btn-sug" id="btnSug">Usar sugeridos</button>
-        <button type="button" class="btn-sug hidden" id="btnViaje">Aprovechar el viaje</button>
         <button type="button" class="btn-limpiar" id="btnLimpiar">Limpiar</button>
         <span class="tot" id="tot">0 ítems</span>
       </div>
@@ -510,25 +527,20 @@ function vStock(i){ return i.stock!=null ? Number(i.stock) : (i.online!=null?Num
 function vConsumo(i){ return i.consumo_uni_mes!=null ? Number(i.consumo_uni_mes) : (i.consumo!=null?Number(i.consumo):null); }
 function vMaximo(i){ return i.maximo!=null ? Number(i.maximo) : null; }
 function vPend(i){ return Number(i.pendiente_oc)||0; }
-function vMinimo(i){ return i.minimo!=null ? Number(i.minimo) : null; }
-/* EL GATILLO DE REPOSICION: el MINIMO dispara, el MAXIMO dimensiona.
-   Hasta v1.20.1 la pantalla proponia llenar el techo de TODO lo que estuviera un peso
-   abajo del maximo: una corrida completa daban ~ARS 367 M en 201 lineas, con techos de
-   6 meses en carton y fleje que se reciben todas las semanas. El punto de pedido ya
-   existe en la base (inventario.minimo, cargado en 1.079 de 1.085 filas) y viaja en el
-   bundle; lo unico que faltaba era mirarlo. No se crea ningun campo nuevo.
-     'pedir'       stock <= minimo  -> hay que pedirlo, y se pide hasta el maximo.
-     'viaje'       stock  > minimo  -> todavia no hace falta. No se carga solo; se puede
-                                       sumar a mano o con "Aprovechar el viaje" (el carton
-                                       lo necesita para llegar al multiplo de la familia).
-     'sin-gatillo' no hay con que decidir (sin minimo, sin stock, o minimo >= maximo, que
-                   es config rota) -> se comporta como antes y se carga solo. Es a
-                   proposito: ante la duda, que NO se esconda algo que hace falta. */
+/* EL GATILLO DE REPOSICION ES EL MAXIMO [usuario 2026-09-14, textual: "lo de minimo
+   borralo. la orden de compra tiene que disparar segun el maximo. es algo que habiamos
+   hecho mal" / "todo lo que usaba el minimo ahora que use el maximo. es la misma logica"].
+   La v1.21.0 habia metido un punto de pedido aparte (inventario.minimo): el minimo
+   disparaba y el maximo dimensionaba. Esa columna se borro de la base el 14-09 y con ella
+   el estado intermedio. Ahora hay una sola pregunta y un solo numero:
+     'pedir'       stock < maximo  -> falta para llegar al techo, se carga solo.
+     'sin-gatillo' no hay maximo o no hay stock -> se carga solo igual. Es a proposito:
+                   ante la duda, que NO se esconda algo que hace falta.
+   Ya no existe el estado 'viaje': lo que esta abajo del maximo se pide. */
 function estadoRepo(i){
-  var st=vStock(i), mn=vMinimo(i), mx=vMaximo(i);
-  if(st==null || mn==null) return 'sin-gatillo';
-  if(mx!=null && mn>=mx) return 'sin-gatillo';
-  return st<=mn ? 'pedir' : 'viaje';
+  var st=vStock(i), mx=vMaximo(i);
+  if(st==null || mx==null) return 'sin-gatillo';
+  return st<mx ? 'pedir' : 'lleno';
 }
 // La OC guarda la fecha en orden_compra.fecha_entrega_estimada y asi la emite oc_bundle;
 // el payload que se MANDA a crear_oc la llama fecha_entrega. Se leen las dos: la fecha ya se
@@ -813,8 +825,8 @@ function cargarSugeridos(){
   var toco=false;
   filtradas().forEach(function(i){
     if(PEDIDO[i.comp_id]!=null || SIN_PEDIDO[i.comp_id]) return;
-    // El gatillo (v1.21.0): lo que todavia esta arriba del minimo NO se carga solo.
-    if(estadoRepo(i)==='viaje') return;
+    // El gatillo (v1.26.0): lo que ya llego al maximo NO se carga solo.
+    if(estadoRepo(i)==='lleno') return;
     // Y lo que YA se pidio y viene en camino tampoco: se avisa en la fila y decide el
     // usuario. Es AVISO, no resta -- la resta se saco en v1.19.x porque rompia la cuenta
     // a la vista [usuario 2026-09-04: "por ahora borralo"].
@@ -841,9 +853,9 @@ function notaSugerido(i){
 /* El cartelito de POR QUE esa fila esta (o no esta) cargada: el estado del gatillo y,
    si corresponde, el aviso de lo que ya viene en camino. */
 function notaRepo(i){
-  var out='', e=estadoRepo(i), mn=vMinimo(i);
-  if(e==='pedir') out+='<span class="rep-tag rep-pedir">hay que pedir · stock ≤ mín '+fmt(mn)+'</span>';
-  else if(e==='viaje') out+='<span class="rep-tag rep-viaje">no hace falta · mín '+fmt(mn)+'</span>';
+  var out='', e=estadoRepo(i), mx=vMaximo(i);
+  if(e==='pedir') out+='<span class="rep-tag rep-pedir">hay que pedir · stock &lt; máx '+fmt(mx)+'</span>';
+  else if(e==='lleno') out+='<span class="rep-tag rep-viaje">no hace falta · máx '+fmt(mx)+' completo</span>';
   var pe=vPend(i);
   if(pe>0) out+='<span class="rep-tag rep-pend">ya pediste '+fmt(pe)+' '+esc(i.unidad||'')+' (en camino)</span>';
   return out;
@@ -858,7 +870,7 @@ function render(){
     var esChar=esCharcasIt(i);
     var uxpChar=esChar ? uniPorPaqCharcas(i) : 0;
     var st=vStock(i), mx=vMaximo(i), pe=vPend(i);
-    var bajoMin=(i.minimo!=null && st!=null && st<Number(i.minimo));
+    var bajoMin=(mx!=null && st!=null && st<Number(mx));
     // Charcas: input en PAQUETES; el sugerido se convierte a paq (round up).
     // La equivalencia "= N uni" se muestra al lado del input.
     var paqEq=(esCarton && ped>0)?('<span class="paq-eq">= '+fmt(ped/PAQ,1)+' paq de '+PAQ+'</span>')
@@ -871,7 +883,7 @@ function render(){
         '<span class="prov-mini"> · '+esc(i.proveedor||'—')+'</span></small></td>'+
       '<td>'+esc(i.proveedor||'—')+'</td>'+
       // El "mín N" debajo del stock se saco [usuario 2026-09-04: "eso no lo quiero ver"].
-      // El minimo sigue vivo en la base y sigue pintando el stock en rojo cuando esta abajo.
+      // El stock se pinta en rojo cuando esta abajo del MAXIMO (el minimo se borro el 14-09).
       '<td class="num'+(bajoMin?' bajo-min':'')+'">'+(st==null?'—':(fmt(st)+' '+esc(i.unidad)))+'</td>'+
       '<td class="num">'+(mx==null?'—':fmt(mx))+
         (mx!=null&&i.maximo_origen?('<span class="sub-nota">'+esc(tagOrigen(i.maximo_origen))+'</span>'):'')+'</td>'+
@@ -884,13 +896,10 @@ function render(){
   $('zonaLista').classList.toggle('hidden', !haySeleccion());
   $('elegiSector').classList.toggle('hidden', haySeleccion());
   $('tblEmpty').classList.toggle('hidden', fs.length>0);
-  // "Aprovechar el viaje": los que todavia no hacen falta, para sumarlos a esta OC de
-  // una (el carton lo necesita para completar el multiplo de la familia). Aparece solo
-  // si hay alguno sin cargar.
-  var nViaje=fs.filter(function(i){ return estadoRepo(i)==='viaje' && PEDIDO[i.comp_id]==null && valorSugerido(i)>0; }).length;
-  var bv=$('btnViaje');
-  bv.classList.toggle('hidden', nViaje===0);
-  bv.textContent='Aprovechar el viaje ('+nViaje+')';
+  // "Aprovechar el viaje" se saco el 2026-09-14 junto con el minimo: era la valvula de
+  // escape del gatillo viejo (sumar a mano lo que estaba arriba del minimo). Con el
+  // maximo como unico gatillo no queda nada afuera que aprovechar — todo lo que esta
+  // abajo del techo ya entra solo, y lo que llego al techo tiene sugerido 0.
 
   document.querySelectorAll('.pedir-in').forEach(function(inp){
     inp.addEventListener('change',function(){
@@ -1196,17 +1205,6 @@ function barra(){
   $('btnCrear').disabled = items.length===0 || errs.length>0;
 }
 
-/* Suma los que el gatillo dejo afuera por no hacer falta todavia. Es la valvula de
-   escape del gatillo: si igual va el camion, se aprovecha. */
-$('btnViaje').addEventListener('click',function(){
-  filtradas().forEach(function(i){
-    if(estadoRepo(i)!=='viaje') return;
-    delete SIN_PEDIDO[i.comp_id];
-    var v=valorSugerido(i); if(v>0) PEDIDO[i.comp_id]=v;
-  });
-  ajustarPedidoCarton();
-  render();
-});
 // Vuelve a poner los sugeridos: borra las marcas de "este no lo pido" de lo que se ve.
 // Es la ORDEN EXPLICITA del usuario, asi que pisa el gatillo y el aviso de "en camino":
 // carga TODO lo visible que tenga sugerido.
