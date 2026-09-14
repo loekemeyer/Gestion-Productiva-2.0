@@ -9412,3 +9412,47 @@ cargo, no N datos sueltos. `[deducido]`
 Amasar 40cm"* $1.245 (ISIS 234L, lista 07-08-2026) es el **232**, y (b) que precio tienen el de
 **30 (231)** y el de **50 (233)**, que no figuran en las 72 filas de TN.
 >>>>>>> origin/main
+
+### 4cg. El 515/615 probado de punta a punta con los RPC reales (2026-09-14)
+
+`[usuario 2026-09-14: "No agregaste la convergencia (componente bomb) ademas quiero saber si se
+puede recepcionar, fabricar, enviar segun corresponda en gp2"]` — las dos cosas eran ciertas.
+
+**1) Faltaba `componente_bom`.** La reconstrucción dejó los PASOS de ruta que convergen en `C12`
+pero no declaró los hijos. **Eso es lo que la pantalla usa para dibujar la convergencia**:
+`Programa.html` agrupa por `D.children[cs]`, así que sin la fila el batidor se veía como "2 rutas
+simples" en vez de "Convergencia · C12". Cargado `C12 ← W1B (1) + IE1 (1)`, con la convención de
+las otras 26 convergencias (`D5-M78 ← D5+D6+V4`, `G4 ← K5+K8+V3`, `GRJ7 ← A10+C10+V9`…).
+El `BOM10` NO va ahí: `[usuario 2026-09-12: "1 lo agrega alex"]`.
+
+**2) El ciclo completo corre.** Probado con los RPC de verdad y rollback, 120 unidades del 515:
+
+| # | Paso | RPC | Resultado |
+|---|---|---|---|
+| 1 | Recepción de 4 insumos | `crear_recepcion_insumo` | OK |
+| 2 | Fabricación en matriz 138 | `registrar_produccion` | 120 W1B |
+| 3 | Guazzaroni niquela | `crear_envio_ps` / `crear_entrega_ps` | OK |
+| 4 | Envío a Alex | `crear_envio_tallerista` | W1B 120 · IE1 120 |
+| 5 | **Convergencia** | `crear_entrega_tallerista` | C12 120, y el BOM deja W1B y IE1 en **0** |
+| 6 | Pedernera croma | `crear_envio_ps` / `crear_entrega_ps` | OK |
+| 7 | Envío del resto a Alex | `crear_envio_tallerista` | OK |
+| 8 | Entrega en Virgilio | `recepcion_virgilio` | **120 del 515, cero sobras** |
+
+**Dos errores míos que sólo aparecieron al correr el ciclo** — ninguna consulta los mostraba:
+
+- **`IE1` sin `kg_x_uni`**: `to_canonical` cortaba con *"componente 917 sin kg_x_uni válido para
+  uni→kg"*. No se podía **ni recibir ni enviar**. Cargado **0,0241** — el mismo número que el
+  vecino da para `FE1` "Varilla Batidor" y que la migración `20260901091333` ya usaba para los dos
+  terminados.
+- **`IE1` en `kg` cuando va por pieza**: al enviarle 120 uni a Alex el stock quedaba en **2,892**
+  (= 120 × 0,0241, convertido a kg) y el BOM le restaba **120 unidades**, dejando −117,108.
+  **Contraejemplo que lo probó**: `IE4` y `IE5`, que alimentan la convergencia `GRJ10` igual que
+  `IE1` alimenta `C12`, son `unidad` y conservan su `kg_x_uni`. `IE1` era el **único** fleje en kg
+  usado como hijo de un BOM en toda la base — una anomalía de una sola fila es firma de dato mal
+  cargado. `IF11` queda en kg: ese va a la matriz y se consume por kilo.
+
+**Regla que sale de esto: un fleje que va DERECHO al tallerista se cuenta por pieza
+(`unidad_medida='unidad'`, con su `kg_x_uni` cargado igual); el que entra a una matriz va en kg.**
+
+**Lección de método**: la simulación de rutas (`__sim_articulo`) daba bien las dos veces, con y sin
+el error de unidad. Lo único que lo destapó fue correr **los RPC reales** contra el inventario.
