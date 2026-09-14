@@ -9567,3 +9567,51 @@ Ciclo real re-corrido de punta a punta: **120 unidades del 515 en Virgilio y cer
 además como línea suelta de la receta del artículo.** Si está en los dos lados se descuenta dos
 veces: una la entrega del tallerista que arma el sub-conjunto, otra `recepcion_virgilio` por la
 receta. Vale para revisar las otras 26 convergencias.
+
+### 4ci. Barrido de las 26 convergencias y los dos precios que se pudieron reponer (2026-09-14)
+
+`[usuario 2026-09-14: "si"]` a las dos preguntas: cargar los precios y revisar las otras
+convergencias buscando el mismo doble descuento del batidor.
+
+**A) El doble descuento era ÚNICO.** Dos barridos, los dos en cero:
+
+| Barrido | Resultado |
+|---|---|
+| Pieza que es hijo de un sub-conjunto **y** línea suelta de la receta de un artículo que usa ese sub-conjunto | **0** |
+| Variante amplia: la pieza en la receta y alguna ruta del artículo **produce** el sub-conjunto | **0** |
+
+**B) Pero el barrido destapó otras dos cosas, comparando ramas contra `componente_bom`:**
+
+- **`G7` "sin BOM" es un FALSO POSITIVO**, y vale como recordatorio del método. Las rutas 45/47
+  hacen `IE10 → M73 → M74 → G7` y las 46/48 hacen `IE10 → M73 → G7` salteando la M74: son **dos
+  variantes del mismo camino**, no dos piezas que se juntan. Es la misma trampa de la Matriz 80
+  (§4ce): compartir salida no prueba convergencia. `G7` **no necesita** `componente_bom`.
+- **`H15` sí converge y tiene el BOM mal.** Dos flejes distintos llegan a la misma pieza para el
+  artículo 066: `IE11 → H7 → H7-M173 → H7-M10 → H15` (ruta 107) e `IC7 → I12 → I12-M8 → I14 →
+  PS → I16 → H15` (ruta 552). El BOM declara **`H7` + `I16`**, pero la rama entrega **`H7-M10`**,
+  dos matrices después. **Impacto hoy: nulo en stock y en plata** — `H15` la produce una *matriz*,
+  no un tallerista, así que `crear_entrega_tallerista` no descuenta ese BOM, y el costo lo saca de
+  las aristas de ruta (`H7-M10` $142,91 + `I16` $109,01 + MO = $268,93, que es lo que da). Queda
+  como inconsistencia de dato: el día que alguien entregue `H15` por tallerista, descontaría `H7`,
+  que nadie tiene. Arreglo de una línea, **espera OK** (idea 7340).
+
+**C) Precios repuestos, sólo los dos con fuente escrita:**
+
+| Qué | Valor | Fuente |
+|---|---|---|
+| `precio_tallerista` de `C12`, Alex Escalante | **$62,7375** | migración `20260911004542`, Excel hoja `Lista de Precios `, bloque 4175, fila f619 "Batidor Resorte Armado" — el usuario ya lo había confirmado con "ok" |
+| `precio_proveedor` de `A1C1` Cartón 515, Gráficos Pol | **$42,72** | el valor que estaba en la base antes del borrado (§4an-ter) |
+
+Efecto: `C12` $25,76 → **$88,49**; 515 $306,31 → **$411,76**; 615 $428,67 → **$491,40**.
+
+**Sin cargar, porque no hay dato**: `BOM10` (Resortes Charcas — ya faltaba ANTES del borrado,
+§4an-ter), `IE1` Fleje N° 33, `O2A` Cartón 615 y el **envasado** del terminado (en el bloque de
+Alex los batidores van de a pares armado + envasado, f619/f620; tenemos la f619, no la f620).
+
+**Discrepancia sin resolver del Cartón 515**: la hoja ` Cartones` fila 376 le pone **$48,00**
+(formato Huevo) y la base tenía **$42,72**. Se repuso lo que había — reponer no es decidir un
+precio. Cambiarlo a 48 es un update de una línea.
+
+**No comparar contra los $1.303,86 / $1.559,63 de §4an-ter**: son de antes del 13-09, y la
+migración `la_caja_se_cobra_por_su_parte_no_entera` de esa fecha cambió cómo se costea la caja
+(la `A8` vale $261,82 y el artículo usa 1/12). Los números viejos y los nuevos no son comparables.
