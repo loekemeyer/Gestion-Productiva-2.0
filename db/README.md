@@ -7,12 +7,12 @@ Export del **2026-09-05** (cierre de la auditoría de arquitectura del 2026-09-0
 | Archivo | Contenido | Exactitud |
 |---|---|---|
 | `tablas_GP2.sql` | **56 tablas** (columnas, identity, defaults, comentarios) + 199 constraints (PK, UNIQUE, FK, CHECK) + 63 índices sueltos + 14 triggers + RLS en las 56 + 56 policies (todas SELECT). Lo último que entró: `alerta_recepcion` (Versión Tablet, 2026-09-13) | DDL reconstruido de `pg_catalog`; constraints/índices/triggers exactos vía `pg_get_*def` |
-| `funciones_GP2.sql` | Las **154 funciones/RPC** del schema (las de pantalla ejecutables por `anon`, el resto internas) | Exacto (`pg_get_functiondef`); el 2026-09-13 se verificó **entera** por md5 contra la base, función por función, al agregar `tablet_bundle`, `tablet_registrar` y `alerta_recepcion_marcar` (Versión Tablet) y refrescar `alertas_bundle` / `inicio_bundle` (clave `recepcion_de_mas`) |
+| `funciones_GP2.sql` | Las **153 funciones/RPC** del schema (las de pantalla ejecutables por `anon`, el resto internas) | Exacto (`pg_get_functiondef`); el 2026-09-13 se verificó **entera** por md5 contra la base, función por función, al agregar `tablet_bundle`, `tablet_registrar` y `alerta_recepcion_marcar` (Versión Tablet) y refrescar `alertas_bundle` / `inicio_bundle` (clave `recepcion_de_mas`) |
 | `vistas_GP2.sql` | Las **18 vistas** (con sus `comment on view`) | Exacto (`pg_get_viewdef`) |
 | `verificar.sql` | **29 invariantes** de la base en una consulta (contrapartes con ubicación, inventario = ledger, grants, RLS, `search_path`, PS híbridos y su materia prima, códigos, rutas y recetas, recepción ↔ ledger, espejo de Virgilio, claves de `parametro` que lee el código): cada fila debe dar `n = 0` | Sólo lectura; correrla antes de tocar la base y al cerrar; el agente diario la corre al empezar |
 | `relevamiento_GP2.sql` | Registro de las 3 migraciones del Relevamiento nativo (2026-09-04) con su porqué | Documental; el estado vigente está en los tres archivos de arriba |
 | `PENDIENTE_v_costo_componente_servicio_exacto.sql` | Cirugías de costos aplicadas el 2026-08-31 + el pendiente de servicios exactos por pieza | Documental / idempotente |
-| `respaldo_inventario_minimo_20260902.csv` | Las 378 filas de `inventario` cuyo mínimo cambió el 2026-09-02 (mínimo anterior y recalculado) | Reemplaza a la tabla `inventario_minimo_backup_20260902`, borrada el 2026-09-04 |
+| `respaldo_inventario_minimo_20260902.csv` | Las 378 filas de `inventario` cuyo mínimo cambió el 2026-09-02 (mínimo anterior y recalculado) | **HISTÓRICO**: la columna `inventario.minimo` se borró el 2026-09-14 (ver abajo). Se conserva como registro de lo que hubo |
 
 Comparado con el export anterior (2026-08-31: 51 tablas / 102 funciones / 15 vistas — y la base
 llegó a tener 67 / 135 / 16 el 2026-09-04 por las fotos `snap_*` y funciones huérfanas):
@@ -61,3 +61,26 @@ y se verifica con `md5(pg_get_functiondef)` contra el archivo. Truco con el MCP 
 resultado es chico viene "inline" y no se puede guardar tal cual; concatenar `|| repeat(' ', 300000)`
 al final fuerza que quede en un archivo de tool-result, y después se recorta (así se regeneró
 `vistas_GP2.sql` el 2026-09-05).
+
+
+## 2026-09-14 — se borró el mínimo: la reposición la dispara el máximo
+
+`[usuario 2026-09-14, textual: "lo de minimo borralo. la orden de compra tiene que disparar segun
+el maximo. es algo que habiamos hecho mal" / "todo lo que usaba el minimo ahora que use el maximo.
+es la misma logica"]`.
+
+Se fueron de la base `inventario.minimo`, `inventario.minimo_origen`, `ubicacion.meses_minimo` y la
+función `recalcular_minimos()` (154 → **153 funciones**). Antes del `drop`, y sólo donde no había
+máximo, el mínimo se copió al máximo: **299 filas** de `inventario` (196 de tallerista, 80 de
+Virgilio, 12 de sector, 11 de PS) con `maximo_origen='migrado_de_minimo'` — valor nuevo del CHECK
+`inventario_maximo_origen_chk` — y **13 filas** de `ubicacion` que no tenían `meses_stock`. Las 456
+filas que ya tenían máximo **no se tocaron**, y las 7 ubicaciones con los dos valores distintos se
+quedaron con `meses_stock`.
+
+Objetos tocados, todos verificados por md5 contra la base: vistas `v_nivel_stock` (se le fueron
+`meses_minimo`, `min_calc`, `minimo`, `minimo_origen`) y `v_reposicion`; funciones `oc_bundle`,
+`stock_sector_bundle`, `composicion_stock`, `movimientos_bundle`, `flejes_bundle`,
+`alta_proveedor_servicio` y `fn_ubicacion_de_contraparte`.
+
+Backups: `zz_backups.GP2_Backup_inventario_minimo_20260914` (las 1.313 filas con mínimo y máximo
+previos) y `zz_backups.GP2_Backup_ubicacion_meses_minimo_20260914` (las 59 ubicaciones).

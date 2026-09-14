@@ -9550,3 +9550,66 @@ cobrar dos resortes. El stock, en cambio, ya se rompe hoy.
 
 **Espera decisión del usuario** (idea 7339): sacar `BOM10` de la receta del 515 y del 615 y borrar
 las dos rutas sueltas `Insumo BOM10 -> Art 515/615`, dejándolo sólo dentro de la paleta.
+
+
+## 4dp. Se borró el mínimo: la reposición la dispara el MÁXIMO (2026-09-14)
+
+`[usuario 2026-09-14, textual: *"lo de minimo borralo. la orden de compra tiene que disparar segun
+el maximo. es algo que habiamos hecho mal"*, y antes: *"La columna de mínimo en la tabla de
+inventario hay que borrarla. Ya está la columna de máximo que reemplaza a esta (por más que
+parezcan cosas distintas lo que se quiere en ambos es que sale el faltante)"*, y después:
+*"todo lo que usaba el minimo ahora que use el maximo. es la misma lógica"*]`.
+
+**Se retira la idea 7273 y la v1.21.0 de la OC entera.** El 08-09 se había metido un punto de
+pedido separado del techo (el mínimo dispara, el máximo dimensiona). El dueño lo dio por error de
+diseño: hay UNA sola pregunta — *¿le falta para llegar al máximo?* — y un solo número.
+
+**Lo que se le dijo antes de hacerlo, y que él resolvió igual** (queda escrito para que ninguna
+sesión futura lo "redescubra" y proponga volver atrás): mínimo y máximo NO eran lo mismo en la
+base — `ubicacion` tenía `meses_minimo` y `meses_stock` cargados **distintos en 7 de los 11
+sectores** (Cartón, Caja y Fleje 4 vs 6; Garage 1 vs 2; Crudo y Procesado 2 vs 1; Bombilla 4 vs 3),
+o sea alguien los había configurado aparte a propósito. **Y el costo medido de sacarlo es chico:
+el gatillo viejo frenaba 12 líneas por ARS 320.036 sobre una corrida de ~ARS 197 M**, porque hoy
+casi todo el stock está en 0 y ya cae abajo del mínimo. Ese número crece cuando el stock esté
+cargado de verdad. `[dato, medido el 14-09]`
+
+**Qué se escribió, en orden.** Primero la migración de datos, **sólo donde no había máximo**
+`[usuario: *"pero no migres todos. migra solo los que no tienen maximo"*]`:
+
+| Dónde | Filas migradas | Qué quedó |
+|:---:|---:|:---:|
+| `inventario` · tallerista | 196 | `maximo = minimo`, origen `migrado_de_minimo` |
+| `inventario` · Virgilio | 80 | ídem |
+| `inventario` · sector | 12 | ídem |
+| `inventario` · prov. servicio | 11 | ídem |
+| `ubicacion` sin `meses_stock` | 13 | `meses_stock = meses_minimo` |
+
+Verificado contra el backup: **0 máximos preexistentes pisados**, y las **456** filas que tenían
+los dos números se quedaron con SU máximo. Las 7 ubicaciones con los dos valores distintos se
+quedaron con `meses_stock`.
+
+Después el borrado: `inventario.minimo`, `inventario.minimo_origen`, `ubicacion.meses_minimo` y la
+función `recalcular_minimos()`. Backups en `zz_backups.GP2_Backup_inventario_minimo_20260914` y
+`GP2_Backup_ubicacion_meses_minimo_20260914`.
+
+**Lo que NO era obvio y hay que saber antes de tocar estas pantallas:**
+
+1. **En Stock por Sector los nombres estaban cruzados.** La columna que decía **"Máximo"** mostraba
+   `inventario.minimo`, y la que decía **"Capacidad"** mostraba `inventario.maximo`. Ahora hay una
+   sola columna, "Máximo", con `inventario.maximo`; de dónde sale cada valor lo dice
+   `maximo_origen`. `[dato, leído de gp2-stock-sector.js]`
+2. **`movimientos_bundle` emitía `'meses'` desde `ubicacion.meses_minimo`, y con ese número
+   `Despiece_GP2.html` calcula el "máximo por sector"** — o sea el máximo del Despiece se estaba
+   calculando con los meses del *punto de pedido*. Ahora `'meses'` sale de `meses_stock`. Ése es
+   probablemente el "algo que habíamos hecho mal" del que habla el dueño. `[deducido]`
+3. **En Flejes, la columna "a pedir" era `minimo − stock`**; ahora es `maximo − stock`.
+4. **Se fue el botón "Aprovechar el viaje" de la OC**: era la válvula de escape del gatillo viejo
+   (sumar a mano lo que estaba arriba del mínimo). Sin estado intermedio no queda nada que
+   aprovechar — lo que está abajo del techo entra solo y lo que llegó tiene sugerido 0.
+
+**La regla nueva de la OC, en una línea:** `estadoRepo` = `'pedir'` si `stock < maximo`, `'lleno'`
+si llegó, `'sin-gatillo'` (se carga igual, fail-safe) si falta el máximo o el stock.
+
+**Queda pendiente**: la alerta `stock_bajo_minimo` de `alertas_bundle` sigue desactivada con el
+motivo *"falta decidir con qué regla avisa (mínimo por ubicación vs máximo, y a quién)"* — la
+primera mitad de esa pregunta ya está contestada (el máximo); falta **a quién** se le avisa.

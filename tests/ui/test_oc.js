@@ -137,14 +137,15 @@ const BUNDLE = {
       sugerido: 726, sugerido_consumo: 5228, minimo: 100, es_pliego: false,
       precio: 10, moneda: 'ARS',
       carton_formato: null, pliegos_multiplo: null, codigo_multiplo: null, min_codigo_x_multiplo: null },
-    // 3. EL GATILLO: stock ARRIBA del minimo -> no se carga solo aunque falte para el maximo
-    //    (v1.21.0: el minimo dispara, el maximo dimensiona). Y su maximo viene del Master Bach,
-    //    que arma la etiqueta con el porcentaje adentro.
-    { comp_id: 16, codigo: 'ENVIAJE', descripcion: 'Todavia no hace falta', sector: 'Sector Plastico', sector_id: 6,
+    // 3. EL GATILLO (v1.26.0): lo unico que decide es el MAXIMO. Esta fila tiene stock 9.000
+    //    contra un techo de 11.625, asi que SE CARGA SOLA con los 2.625 que faltan. Con la regla
+    //    vieja (minimo 8.684) quedaba afuera: ese estado intermedio ya no existe.
+    //    Su maximo viene del Master Bach, que arma la etiqueta con el porcentaje adentro.
+    { comp_id: 16, codigo: 'ENVIAJE', descripcion: 'Falta para llegar al techo', sector: 'Sector Plastico', sector_id: 6,
       proveedor: 'Inyectores SA', um: 'unidad', unidad: 'uni', kg_x_uni: null,
       maximo: 11625, maximo_inventario: 11625, maximo_origen: 'mb_4pct_por_color', stock: 9000,
       consumo: 1543, consumo_uni_mes: 1543, meses: 6, online: 9000, pendiente_oc: 0,
-      sugerido: 2625, sugerido_consumo: 8270, minimo: 8684, es_pliego: false,
+      sugerido: 2625, sugerido_consumo: 8270, es_pliego: false,
       precio: 10, moneda: 'ARS',
       carton_formato: null, pliegos_multiplo: null, codigo_multiplo: null, min_codigo_x_multiplo: null },
   ],
@@ -340,11 +341,11 @@ window.supabase = { createClient: function(){ return {
   // 2. Y tambien cuando el techo queda CORTO contra el consumo: se pide lo que entra.
   ok(await page.$eval('.pedir-in[data-in="15"]', x => x.value) === '726',
      'con el techo por debajo del consumo se pide el techo (726 y no 5.228)');
-  // 3. El gatillo: stock arriba del minimo no se carga solo, aunque falte para el maximo.
-  ok(await page.$eval('.pedir-in[data-in="16"]', x => x.value) === '',
-     'lo que esta arriba del minimo no se carga solo (el minimo dispara, el maximo dimensiona)');
-  const repViaje = (await page.textContent('tr[data-id="16"] .rep-tag')).replace(/\s+/g, ' ').trim();
-  ok(repViaje === 'no hace falta · mín 8.684', 'y la fila dice por que no se cargo: ' + repViaje);
+  // 3. El gatillo (v1.26.0): lo que esta abajo del maximo se carga solo, sin punto de pedido.
+  ok(await page.$eval('.pedir-in[data-in="16"]', x => x.value) === '2625',
+     'abajo del maximo se carga solo lo que falta para el techo (2.625)');
+  const repPedir = (await page.textContent('tr[data-id="16"] .rep-tag')).replace(/\s+/g, ' ').trim();
+  ok(repPedir === 'hay que pedir · stock < máx 11.625', 'y la fila dice por que: ' + repPedir);
   // El origen Master Bach trae el porcentaje adentro del literal y se muestra legible.
   ok((await page.textContent('tr[data-id="16"]')).includes('MB 4%'),
      'el maximo de Master Bach se muestra como MB 4% y no como mb_4pct_por_color');

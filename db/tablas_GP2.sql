@@ -316,25 +316,21 @@ create table "GP2".inventario (
   componente_id bigint not null,
   ubicacion_id bigint not null,
   cantidad numeric default 0,
-  minimo numeric default 0,
   actualizado_en timestamp with time zone,
   maximo numeric,
   maximo_origen text,
   cajones_x_ubicacion numeric,
   ubicaciones integer,
-  minimo_origen text,
   constraint inventario_pkey PRIMARY KEY (id),
   constraint inventario_componente_id_fkey FOREIGN KEY (componente_id) REFERENCES "GP2".componente(id),
   constraint inventario_ubicacion_id_fkey FOREIGN KEY (ubicacion_id) REFERENCES "GP2".ubicacion(id),
-  constraint inventario_maximo_origen_chk CHECK ((maximo_origen = ANY (ARRAY['cinco_cajones'::text, 'est_madre'::text, 'fisico'::text, 'faat_reserva_lote'::text, 'mb_4pct_por_color'::text]))),
-  constraint inventario_minimo_origen_chk CHECK ((minimo_origen = ANY (ARRAY['consumo'::text, 'excel_uni_convertido_kg'::text])))
+  constraint inventario_maximo_origen_chk CHECK ((maximo_origen = ANY (ARRAY['cinco_cajones'::text, 'est_madre'::text, 'fisico'::text, 'faat_reserva_lote'::text, 'mb_4pct_por_color'::text, 'migrado_de_minimo'::text])))
 );
-comment on table "GP2".inventario is 'Stock por componente y ubicacion (cantidad canonica, minimo, maximo y su origen). La cantidad la escriben SOLO los triggers de movimiento; minimo/maximo, las RPC de recalculo.';
+comment on table "GP2".inventario is 'Stock por componente y ubicacion (cantidad canonica, maximo y su origen). La cantidad la escriben SOLO los triggers de movimiento; el maximo, las RPC de recalculo. Las columnas minimo y minimo_origen se BORRARON el 2026-09-14 [usuario: "lo de minimo borralo. la orden de compra tiene que disparar segun el maximo"]: antes del drop, las 299 filas con minimo y sin maximo se migraron al maximo con origen migrado_de_minimo.';
 comment on column "GP2".inventario.maximo is 'Maximo de este componente en esta ubicacion. Crudo/Procesado: lo pone fn_recalc_maximos_cajones = max_cajones_x_ubicacion (parametro, hoy 5) x componente.uni_x_cajon. Insumos: fn_recalc_maximos_insumos, por Est Madre explotada x meses_stock. OJO: las columnas componente.cajones_x_ubicacion y componente.ubicaciones NO entran en la cuenta (la migracion del 2026-08-30 que las usaba quedo revertida: pregunta 5 de PREGUNTAS_ARQUITECTURA_GP2.md, sin responder).';
-comment on column "GP2".inventario.maximo_origen is 'De donde salio el maximo de esta fila. Vocabulario CERRADO por inventario_maximo_origen_chk: est_madre, cinco_cajones, fisico, faat_reserva_lote, mb_4pct_por_color (mas null = sin maximo cargado). Lo escriben los triggers de recalculo; oc_bundle lo muestra para explicar el sugerido. El valor mb_2pct_del_plastico existio hasta el 2026-09-12, cuando el usuario fijo el master en 4 % y por color.';
+comment on column "GP2".inventario.maximo_origen is 'De donde salio el maximo de esta fila. Vocabulario CERRADO por inventario_maximo_origen_chk: est_madre, cinco_cajones, fisico, faat_reserva_lote, mb_4pct_por_color, migrado_de_minimo (mas null = sin maximo cargado). Lo escriben los triggers de recalculo; oc_bundle lo muestra para explicar el sugerido. El valor mb_2pct_del_plastico existio hasta el 2026-09-12, cuando el usuario fijo el master en 4 % y por color.';
 comment on column "GP2".inventario.cajones_x_ubicacion is 'Cajones que entran en UNA ubicacion fisica. Origen: SC Kg."Max Caj Cerv" / SP Kg."Max Cajon SP Cerv". NO LA LEE NADIE (0 funciones, 0 vistas, 0 pantallas): quedo de la migracion de maximos del 2026-08-30, que el trigger fn_recalc_maximos_cajones revirtio. Ver el comment de inventario.maximo y la pregunta 5 de PREGUNTAS_ARQUITECTURA_GP2.md, sin responder.';
 comment on column "GP2".inventario.ubicaciones is 'Ubicaciones fisicas consecutivas que ocupa el sector. Solo se nombra la primera, asi que se deduce como (numero del proximo codigo de la misma letra) - (numero propio). Minimo 1. NO LA LEE NADIE, igual que cajones_x_ubicacion: ver el comment de esa columna.';
-comment on column "GP2".inventario.minimo_origen is 'null = carga original del usuario (Excel); consumo = lo calculo recalcular_minimos (que SI pisa las filas con origen null cuando el consumo es > 0; solo respeta consumo 0/desconocido); excel_uni_convertido_kg = conversion de la carga original.';
 
 -- ---------- matriz ----------
 create table "GP2".matriz (
@@ -970,7 +966,6 @@ create table "GP2".ubicacion (
   tipo text not null,
   ref_id bigint,
   nombre text,
-  meses_minimo numeric,
   meses_stock numeric,
   constraint ubicacion_pkey PRIMARY KEY (id),
   constraint ubicacion_tipo_chk CHECK ((tipo = ANY (ARRAY['sector'::text, 'tallerista'::text, 'proveedor_servicio'::text, 'proveedor_at'::text, 'virgilio'::text, 'analisis'::text, 'inyector'::text, 'virgilio_sector'::text])))
