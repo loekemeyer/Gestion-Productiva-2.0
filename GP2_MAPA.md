@@ -132,7 +132,8 @@ confirmar acá que la clave existe; si un bundle cambia, actualizar esta tabla e
 | Bundle | Pantalla que lo pide | Claves de primer nivel |
 |---|---|---|
 | `abm_articulos_bundle()` | ABM Artículos | `art, partes, sect` |
-| `alertas_bundle()` | Alertas | `generado_en, matriz_sin_tiempo, pendientes, pm, ref_fecha, rm, ventana_dias` |
+| `alertas_bundle()` | Alertas | `generado_en, matriz_sin_tiempo, pendientes, pm, recepcion_de_mas, ref_fecha, rm, ventana_dias` (`recepcion_de_mas` = `{total, items}` de `alerta_recepcion` en estado `abierta`, 2026-09-13) |
+| `calculadora_cajones_bundle()` | Calcular Cajones | `cajones, sectores, comps` |
 | `control_recepcion_bundle(p_sector_id)` | control-cajas.js (11) y control-remaches.js (5, 8, …) | `recepciones, sector, sector_id, uni_x_paq_default` (reemplaza a `control_cajas_bundle` + `control_kg_bundle`, 2026-09-05) |
 | `control_envios_bundle(p_desde, p_hasta)` | Control Envíos y Entregas | (por vista/tipo, ver la pantalla) |
 | `control_ps_bundle()` | Control PS | `generado_en, proveedores` (cada proveedor trae `nombre_corto`) |
@@ -148,7 +149,7 @@ confirmar acá que la clave existe; si un bundle cambia, actualizar esta tabla e
 | `flejes_bundle()` | Flejes | **LISTA** de 55 flejes: `cod_isis, codigo, comp_id, cons, descripcion, kg_uni_desp, kg_x_cajon, maximo, medida, minimo, n_fleje, parte, proveedor, stock` |
 | `informes_bundle(p_desde, p_hasta)` | Informe por persona | `desde, hasta, personas` |
 | `informes_matriz_bundle(p_desde, p_hasta, p_incluir_piedra)` | Informe por matriz | `desde, hasta, empleados, hsTotalByEmp, matrices` |
-| `inicio_bundle()` | GP2_MODULOS (menú) | `alertas, dia, generado_en, hoy, mes` |
+| `inicio_bundle()` | GP2_MODULOS (menú) | `alertas, dia, generado_en, hoy, mes` (`alertas.recepcion_de_mas` = cuántas alertas de recepción siguen abiertas, 2026-09-13) |
 | `inyectores_bundle()` | Inyectores | `generado_en, partes, proveedores, sector, sectores` |
 | `movimientos_bundle()` | gp2-motor.js (Stocks General, Entregas Talleristas), Registro operarios | `art, bom_art, bom_comp, c2a, comp, inv, mat, prov_serv, rp, sect, tall, tipos_mov, ubic` |
 | `oc_bundle()` | OC | `charcas_kg_x_paquete, generado_en, insumos, ocs, paq, pliego_uni_x_paquete, proveedores, tc` |
@@ -163,6 +164,7 @@ confirmar acá que la clave existe; si un bundle cambia, actualizar esta tabla e
 | `registro_operarios_bundle()` | App de operarios | `empleados, matrices, matriz_fleje, matriz_fleje_pieza, matriz_salidas, registro_en_golpes, rollos_abiertos, rollos_saldo` |
 | `relevamiento_bundle()` | Relevamiento | `cronograma, hoy` |
 | `rollos_bundle()` | Flejes (rollos) | `eventos, flejes, saldos, usos` |
+| `tablet_bundle()` | Versión Tablet (`Tablet/Tablet_GP2.html`) | `alertas_abiertas, contrapartes, enviar, generado_en, recibir` (ver sección propia, 2026-09-13) |
 | `stock_sector_bundle(p_sector_id)` | gp2-stock-sector.js (los 10 sectores) | `filas (+en_virgilio), generado_en, sector, ubicacion_id, ubicacion_virgilio_id` |
 | `stock_transito_ps_bundle()` | Stock Tránsito PS | `filas, generado_en` |
 | `talleristas_bundle()` | Envíos Talleristas y Control Talleristas | `generado_en, partes, tall` (`partes` = dict por tallerista `{entrada:[...], salida:[...]}`) |
@@ -391,6 +393,59 @@ respuesta sea una sola. Ninguna funcion busca mas una ubicacion por nombre
 
 Cron: un solo job de GP2 entre los 49 del proyecto, `gp2-dolar-oficial` (`10 9 * * *` UTC →
 `"GP2".actualizar_dolar_oficial()`). Los otros 48 son de `public`/`planify` (la casa del vecino).
+
+## Versión Tablet (2026-09-13) — `tablet_bundle()` / `tablet_registrar(p)` — Tablet/Tablet_GP2.html
+
+Una pantalla, tres modos (Enviar / Recibir / Conteo). **El contrato lo manda la base**: la pantalla se
+rehízo el 13-09 leyendo `pg_get_functiondef` de las dos funciones, porque la sesión que las creó perdió
+el frente. `tablet_registrar` **no inventa movimientos**: despacha a las RPC de siempre por tipo de
+contraparte (`crear_envio_tallerista` / `crear_envio_ps` / `crear_envio_prov_at`;
+`crear_entrega_tallerista` / `crear_entrega_ps` / `crear_entrega_prov_at` / `crear_recepcion_insumo`;
+para Virgilio inserta un `traslado` Virgilio → sector). El Conteo **no llama a nada que escriba**.
+
+### `tablet_bundle()` → jsonb
+
+| Clave | Forma |
+|---|---|
+| `contrapartes` | LISTA `{ tipo, ref, nombre, n_env, n_rec }`. `tipo` ∈ tallerista \| proveedor_servicio \| proveedor_at \| proveedor_insumo \| virgilio; `ref` es **texto** (el id, o el nombre del proveedor de insumo, o `'virgilio'`). `n_env`/`n_rec` = cuántas piezas puede enviar / recibir. Talleristas activos menos Fábrica (id 3). |
+| `enviar` | LISTA `{ tipo, ref, comp_id, cod, desc, sector, um, uxc, kg_x_uni, online_sector }`. `um` es `componente.unidad_medida`: **`'kg'` o `'unidad'`** (no `'uni'`). `online_sector` = stock en la ubicación del sector de la pieza (Cervantes). **El prov. AT viene con `ref = '*'`**: cualquier cartón/caja (sectores 10 y 11) se le puede enviar a cualquiera. |
+| `recibir` | LISTA `{ tipo, ref, comp_id, comp_entrada_id, n_entradas, tiene_bom, cod_art, cod, desc, sector, um, uxc, kg_x_uni, por_caja, ent_cod, ent_desc, esperado, esperado_origen }`. `esperado` = lo que se espera recibir: OC abierta (`esperado_origen = 'oc'`, prov. AT e insumo; **null si no hay OC**), stock en poder del tallerista / PS (`online_tall` / `online_ps`) u online de Virgilio (`online_virgilio`). Prov. AT: `comp_id` **null**, la pieza es `cod_art` y `por_caja` = `articulo.articulos_por_caja`. PS: `comp_entrada_id` = el SC que consume (obligatorio para `crear_entrega_ps`). |
+| `alertas_abiertas` | cuántas `alerta_recepcion` siguen `abierta` |
+
+### `tablet_registrar(p jsonb)` → `{ ok, n, contraparte, modo, items:[{cod, cantidad, unidad, res}], alertas:[{id, cod, esperado, recibido, exceso}] }`
+
+`p = { modo: 'enviar'|'recibir', tipo, ref (texto), fecha (timestamptz; la pantalla manda 'YYYY-MM-DDT12:00:00'),
+remito (sólo recibir, opcional), items: [ { comp_id, comp_entrada_id, cod_art, cantidad, unidad: 'uni'|'kg',
+esperado, esperado_origen, por_caja } ] }`. Reglas que fija la base: `unidad` sólo `uni` o `kg`;
+cantidad > 0; a Virgilio y al prov. de insumo **no se les envía** desde la tablet; el PS exige
+`comp_entrada_id`; el prov. AT exige `cod_art` y su cantidad son **CAJAS** (`crear_entrega_prov_at`
+pide cajas) — para la alerta la base compara `cantidad × por_caja` contra el `esperado` en unidades.
+
+**La alerta de "recibí de más" avisa y no frena**: si `modo = 'recibir'`, viene `esperado` y lo
+comparable supera al esperado, la base inserta en `GP2.alerta_recepcion` **después** de haber
+registrado el movimiento, y lo devuelve en `alertas`. La revisan en Alertas (bloque "Se recibió de
+más", `alerta_recepcion_marcar(p_id, p_estado 'vista'|'resuelta'|'abierta', p_nota, p_usuario)`).
+
+⚠ **Deuda que dejó el backend, no la pantalla** (idea 7345): para `recibir` de un **tallerista**,
+`tablet_registrar` llama a `crear_entrega_tallerista`, y el `comment` de esa función dice que **NO es el
+motor** de la entrega de tallerista (el motor vivo es `gp2-motor.js` + `registrar_movimientos`, idea 7316;
+difiere en el origen de los armados, en `comp_transformado_id` y en el descuento por BOM). Hasta que se
+unifique, una recepción de tallerista por la tablet queda registrada con el modelo viejo.
+
+## Lectura de facturas (2026-09-13) — la IA lee, GP2 decide, la persona confirma
+
+No es un bundle: son tres piezas encadenadas, y **ninguna escribe stock sola**.
+
+| Pieza | Qué es | Contrato |
+|---|---|---|
+| `gp2_leer_factura` | **Edge Function**, no RPC. `POST {archivo_b64, mime}` con la clave publicable en `apikey`. Llama a la API de Claude con el PDF como bloque `document` o la foto como `image`, y `output_config.format` con JSON Schema. | Devuelve `{ok, factura:{razon_social_emisor, cuit_emisor, fecha_emision, tipo_comprobante, punto_venta, numero_comprobante, remito, items:[{codigo, descripcion, cantidad, unidad_medida, precio_unitario, subtotal}], importe_total}, uso}` |
+| `factura_match(p jsonb)` | RPC **solo lectura**: ata cada renglón a un componente. Orden de confianza: `factura_alias` (aprendido) → `fleje_detalle.cod_isis` → `componente.codigo` → parecido de descripción dentro de la lista de productos de ese proveedor. | `p = {proveedor, items:[{codigo, descripcion, cantidad, unidad, precio_unitario}]}` → `{ok, proveedor_texto, proveedor:{id,nombre,cod_prov,sim}, items:[{…, comp_id, comp_cod, via, confianza, sim, candidatos}], resueltos, sugeridos, sin_match, total}` |
+| `factura_alias_guardar(p_proveedor, p_cod_prov, p_comp_id, p_descripcion, p_usuario)` | Ata a mano el código de un proveedor a una pieza. **Es el único "entrenamiento" que hace falta.** | Devuelve el `id` de `GP2.factura_alias` |
+
+**Ojo con `precio_proveedor.cod_prov`: es el código DEL PROVEEDOR, no del artículo** (2147 =
+Talleres Gráficos Pol). GP2 no tiene los códigos de artículo de sus proveedores; los únicos códigos
+de tercero cargados son los 51 `fleje_detalle.cod_isis`. Por eso `factura_alias` arranca vacía y es
+la tabla que hay que llenar con el uso.
 
 ## Puntos de contacto con `public` (la casa del vecino) — son estos y nada mas
 

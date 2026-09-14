@@ -25,7 +25,7 @@ create or replace view "GP2".v_consumo_demanda as
          SELECT a.id AS art_id,
             em.proy_uni_mes AS uni
            FROM "GP2".articulo a
-             JOIN "GP2".est_madre em ON regexp_replace(em.cod, '^0+'::text, ''::text) = regexp_replace(a.codigo, '^0+'::text, ''::text)
+             JOIN "GP2".est_madre em ON regexp_replace(regexp_replace(em.cod, 'L$'::text, ''::text), '^0+'::text, ''::text) = regexp_replace(a.codigo, '^0+'::text, ''::text)
           WHERE em.proy_uni_mes IS NOT NULL AND NOT a.discontinuado
         ), receta AS (
          SELECT ac.articulo_id AS art_id,
@@ -266,6 +266,21 @@ create or replace view "GP2".v_costo_componente as
             max(w.kg_ref) AS kg_ref
            FROM w
           GROUP BY w.comp_id, w.ent, w.sal, w.tipo_paso, w.matriz_id, w.proveedor_id
+        ), insumo_por_art AS (
+         SELECT x.art_id,
+            x.insumo_id,
+            max(x.cantidad) AS cantidad
+           FROM ( SELECT rp_ins.comp_entrada_id AS insumo_id,
+                    rp_ins.cantidad,
+                    ( SELECT rp2.comp_salida_id
+                           FROM "GP2".ruta_paso rp2
+                          WHERE rp2.ruta_id = rp_ins.ruta_id AND rp2.comp_salida_id IS NOT NULL AND rp2.tipo_paso <> 'virgilio'::text
+                          ORDER BY rp2.orden DESC
+                         LIMIT 1) AS art_id
+                   FROM "GP2".ruta_paso rp_ins
+                  WHERE rp_ins.tipo_paso = 'insumo'::text AND rp_ins.comp_entrada_id IS NOT NULL) x
+          WHERE x.art_id IS NOT NULL
+          GROUP BY x.art_id, x.insumo_id
         ), mat AS (
          SELECT x.comp_id,
             COALESCE(sum(x.val) FILTER (WHERE x.moneda = 'USD'::text), 0::numeric) AS usd,
@@ -277,11 +292,12 @@ create or replace view "GP2".v_costo_componente as
                     cb_1.moneda,
                         CASE
                             WHEN cb_1.sector_id = 5 THEN cb_1.precio * COALESCE(wd.kg_ref, 1::numeric / NULLIF(m.partes_por_kilo_de_fleje, 0::numeric))
-                            ELSE cb_1.precio
+                            ELSE cb_1.precio * LEAST(COALESCE(ipa.cantidad, 1::numeric), 1::numeric)
                         END AS val
                    FROM wd
                      JOIN comprado cb_1 ON cb_1.id = wd.ent
-                     LEFT JOIN "GP2".matriz m ON m.id = wd.matriz_id) x
+                     LEFT JOIN "GP2".matriz m ON m.id = wd.matriz_id
+                     LEFT JOIN insumo_por_art ipa ON ipa.art_id = wd.comp_id AND ipa.insumo_id = wd.ent) x
           GROUP BY x.comp_id
         ), lab AS (
          SELECT y.comp_id,
@@ -346,21 +362,6 @@ create or replace view "GP2".v_costo_componente as
                    FROM edges e
                   WHERE e.ent = b.componente_hijo_id AND e.sal = b.componente_padre_id))
           GROUP BY b.componente_padre_id
-        ), insumo_por_art AS (
-         SELECT x.art_id,
-            x.insumo_id,
-            max(x.cantidad) AS cantidad
-           FROM ( SELECT rp_ins.comp_entrada_id AS insumo_id,
-                    rp_ins.cantidad,
-                    ( SELECT rp2.comp_salida_id
-                           FROM "GP2".ruta_paso rp2
-                          WHERE rp2.ruta_id = rp_ins.ruta_id AND rp2.comp_salida_id IS NOT NULL AND rp2.tipo_paso <> 'virgilio'::text
-                          ORDER BY rp2.orden DESC
-                         LIMIT 1) AS art_id
-                   FROM "GP2".ruta_paso rp_ins
-                  WHERE rp_ins.tipo_paso = 'insumo'::text AND rp_ins.comp_entrada_id IS NOT NULL) x
-          WHERE x.art_id IS NOT NULL
-          GROUP BY x.art_id, x.insumo_id
         ), insumox AS (
          SELECT y.art_id AS comp_id,
             COALESCE(sum(
@@ -720,6 +721,32 @@ create or replace view "GP2".v_planilla_precio as
   WHERE hoja = 'Lista de Precios '::text AND (datos ->> 'B'::text) ~ '^[0-9]+$'::text AND datos ? 'K'::text;
 comment on view "GP2".v_planilla_precio is 'Lista de precios de la planilla madre, con el proveedor tomado del encabezado de su bloque.';
 
+-- ---------- v_preaviso_estado ----------
+create or replace view "GP2".v_preaviso_estado as
+ SELECT p.id,
+    p.tipo_contraparte,
+    p.contraparte_id,
+    COALESCE(t.nombre, ps.nombre, pa.nombre) AS contraparte,
+    p.comp_id,
+    c.codigo AS comp_cod,
+    c.descripcion AS comp_desc,
+    p.cantidad,
+    p.unidad,
+    p.fecha_promesa,
+    p.estado,
+    p.nota,
+    p.creado_en,
+    p.fecha_promesa - (now() AT TIME ZONE 'America/Argentina/Buenos_Aires'::text)::date AS dias,
+    COALESCE(( SELECT sum(m.cantidad) AS sum
+           FROM "GP2".movimiento m
+          WHERE m.comp_id = p.comp_id AND m.ubic_origen_id = "GP2".ubic_de(p.tipo_contraparte, p.contraparte_id) AND m.fecha >= p.creado_en), 0::numeric) AS entregado_desde
+   FROM "GP2".preaviso p
+     JOIN "GP2".componente c ON c.id = p.comp_id
+     LEFT JOIN "GP2".tallerista t ON p.tipo_contraparte = 'tallerista'::text AND t.id = p.contraparte_id
+     LEFT JOIN "GP2".proveedor_servicio ps ON p.tipo_contraparte = 'proveedor_servicio'::text AND ps.id = p.contraparte_id
+     LEFT JOIN "GP2".proveedor_at pa ON p.tipo_contraparte = 'proveedor_at'::text AND pa.id = p.contraparte_id;
+comment on view "GP2".v_preaviso_estado is 'Los preavisos con su contraparte, los dias que faltan (negativo = vencido) y cuanto de esa pieza entrego esa contraparte desde que lo prometio. Solo lectura.';
+
 -- ---------- v_recepcion_control ----------
 create or replace view "GP2".v_recepcion_control as
  WITH a AS (
@@ -812,6 +839,7 @@ create or replace view "GP2".v_reposicion as
    FROM "GP2".componente c
      JOIN "GP2".inventario i ON i.componente_id = c.id
      JOIN "GP2".ubicacion iu ON iu.id = i.ubicacion_id
+  WHERE NOT c.discontinuado
   ORDER BY c.id, (
         CASE
             WHEN iu.id = "GP2".ubic_de('sector'::text, c.sector_id) OR c.sector_id = 12 AND iu.id = "GP2".ubic_de('virgilio'::text) THEN 0
@@ -819,7 +847,7 @@ create or replace view "GP2".v_reposicion as
             WHEN iu.tipo = 'proveedor_servicio'::text THEN 2
             ELSE 3
         END), i.cantidad DESC NULLS LAST, i.ubicacion_id;
-comment on view "GP2".v_reposicion is 'Donde se repone cada componente: la fila de inventario de su sector (o Virgilio para los terminados), con su stock, minimo, maximo y el sugerido = maximo - stock. Unica definicion: la leen oc_bundle y valorizacion_bundle (2026-09-11).';
+comment on view "GP2".v_reposicion is 'Que hay que reponer: sugerido = maximo - stock, por componente y su ubicacion principal. Excluye los componentes discontinuados (2026-09-13).';
 
 -- ---------- v_rollo_evolucion ----------
 create or replace view "GP2".v_rollo_evolucion as

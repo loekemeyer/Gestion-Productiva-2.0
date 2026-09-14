@@ -1,7 +1,7 @@
 -- =====================================================================
--- TABLAS del schema GP2 (DDL reconstruido de pg_catalog: columnas, identity, defaults, constraints, comentarios) — export automatico 2026-09-11 desde Supabase (hrxfctzncixxqmpfhskv)
+-- TABLAS del schema GP2 (DDL reconstruido de pg_catalog: columnas, identity, defaults, constraints, comentarios) — export automatico 2026-09-13 desde Supabase (hrxfctzncixxqmpfhskv)
 -- Respaldo/referencia. La fuente de verdad es la base; regenerar al cambiar el schema.
--- 51 tablas, 181 constraints, 61 indices sueltos, 14 triggers, RLS en 51 tablas, 51 policies.
+-- 56 tablas, 199 constraints, 63 indices sueltos, 14 triggers, RLS en 56 tablas, 56 policies.
 -- =====================================================================
 
 -- ---------- __sim_base ----------
@@ -11,6 +11,35 @@ create table "GP2".__sim_base (
   cantidad numeric
 );
 comment on table "GP2".__sim_base is 'TEMPORAL (auditoria de rutas 2026-09-11): linea de base del inventario para el arnes __sim_ruta. Se llena y se revierte dentro de la misma transaccion; fuera de una corrida esta vacia. Borrar al cerrar la auditoria.';
+
+-- ---------- alerta_recepcion ----------
+create table "GP2".alerta_recepcion (
+  id bigint generated always as identity not null,
+  fecha timestamp with time zone not null default now(),
+  origen_tipo text not null,
+  origen_ref text,
+  origen_nombre text not null,
+  comp_id bigint,
+  cod text,
+  descripcion text,
+  esperado numeric,
+  recibido numeric not null,
+  exceso numeric not null,
+  unidad text not null default 'uni'::text,
+  esperado_origen text,
+  movimiento_id bigint,
+  estado text not null default 'abierta'::text,
+  nota text,
+  cerrado_en timestamp with time zone,
+  cerrado_por text,
+  constraint alerta_recepcion_pkey PRIMARY KEY (id),
+  constraint alerta_recepcion_comp_id_fkey FOREIGN KEY (comp_id) REFERENCES "GP2".componente(id),
+  constraint alerta_recepcion_estado_chk CHECK ((estado = ANY (ARRAY['abierta'::text, 'vista'::text, 'resuelta'::text]))),
+  constraint alerta_recepcion_exceso_chk CHECK ((exceso > (0)::numeric)),
+  constraint alerta_recepcion_tipo_chk CHECK ((origen_tipo = ANY (ARRAY['tallerista'::text, 'proveedor_servicio'::text, 'proveedor_at'::text, 'proveedor_insumo'::text, 'virgilio'::text])))
+);
+comment on table "GP2".alerta_recepcion is 'Se recibio MAS de lo que la contraparte decia tener (stock online) o de lo que pedia la OC. La recepcion NO se frena: se registra igual y queda esta alerta, que sale en el programa completo (Alertas y badge del menu). Nace con la version Tablet del operario (2026-09-13).';
+comment on column "GP2".alerta_recepcion.esperado_origen is 'De donde salio el esperado: oc | online_tall | online_ps | online_virgilio | sin_referencia.';
 
 -- ---------- articulo ----------
 create table "GP2".articulo (
@@ -59,6 +88,18 @@ create table "GP2".articulo_prov_at (
 );
 comment on table "GP2".articulo_prov_at is 'Catalogo de articulos que fabrica cada proveedor de articulo terminado (cod_art, caja, marca).';
 comment on column "GP2".articulo_prov_at.descripcion is 'Como llama el PROVEEDOR a este articulo, que es lo que va impreso en su remito. NO tiene por que coincidir con articulo.descripcion y hoy difiere en 52 de las filas que cruzan por codigo. La descripcion canonica de GP2 es articulo.descripcion; esta es el rotulo del proveedor. crear_entrega_prov_at cae a articulo.descripcion y despues al cod_art cuando esta vacia.';
+
+-- ---------- cajon ----------
+create table "GP2".cajon (
+  numero integer not null,
+  tara_kg numeric not null,
+  descripcion text,
+  constraint cajon_pkey PRIMARY KEY (numero),
+  constraint cajon_tara_kg_check CHECK ((tara_kg > (0)::numeric))
+);
+comment on table "GP2".cajon is 'Cajones de movimiento (N°1..N°10) con la tara del cajon vacio, para descontarla del peso bruto en la balanza. Migrado de public.peso_cajones el 2026-09-12 (el dato lo midio el usuario). NO confundir con Sector Caja, que son las cajas de carton del terminado.';
+comment on column "GP2".cajon.tara_kg is 'Kg del cajon VACIO. peso neto = bruto - tara_kg * cantidad de cajones.';
+
 -- ---------- carton_categoria ----------
 create table "GP2".carton_categoria (
   nombre text not null,
@@ -107,6 +148,7 @@ create table "GP2".componente (
   codigo_virgilio text,
   pedido_minimo_uni numeric,
   mb_color text,
+  discontinuado boolean not null default false,
   constraint componente_pkey PRIMARY KEY (id),
   constraint componente_carton_categoria_fkey FOREIGN KEY (carton_categoria) REFERENCES "GP2".carton_categoria(nombre),
   constraint componente_carton_formato_fkey FOREIGN KEY (carton_formato) REFERENCES "GP2".carton_formato(nombre),
@@ -114,11 +156,12 @@ create table "GP2".componente (
   constraint componente_proveedor_fkey FOREIGN KEY (proveedor) REFERENCES "GP2".proveedor_insumo(nombre) ON UPDATE CASCADE ON DELETE SET NULL,
   constraint componente_sector_id_fkey FOREIGN KEY (sector_id) REFERENCES "GP2".sector(id),
   constraint componente_estado_compra_chk CHECK (((estado_compra IS NULL) OR (estado_compra = ANY (ARRAY['fabricacion'::text, 'discontinuo'::text, 'importado'::text, 'compra'::text])))),
-  constraint componente_mb_color_chk CHECK (((mb_color IS NULL) OR (mb_color = ANY (ARRAY['R'::text, 'B'::text, 'A'::text, 'N'::text])))),
   constraint componente_marca_chk CHECK (((marca IS NULL) OR (marca = ANY (ARRAY['LOEKE'::text, 'CHEF'::text])))),
+  constraint componente_mb_color_chk CHECK (((mb_color IS NULL) OR (mb_color = ANY (ARRAY['R'::text, 'B'::text, 'A'::text, 'N'::text])))),
   constraint componente_unidad_medida_chk CHECK ((unidad_medida = ANY (ARRAY['kg'::text, 'unidad'::text])))
 );
 comment on table "GP2".componente is 'Maestro de piezas e insumos: codigo, sector, unidad, kg/uni, uni x cajon, proveedor, estado de compra. Un codigo puede repetirse en OTRO sector (A1 pieza / A1 caja): la clave es id.';
+comment on column "GP2".componente.unidad_medida is 'Unidad canonica de la pieza: ''kg'' o ''unidad'' (CHECK). OJO: movimiento.unidad_origen/destino, orden_compra_item.unidad y recepcion_insumo.unidad usan ''uni'', NO ''unidad''; fn_movimiento_calc traduce. El que compare esta columna contra ''uni'' no matchea nunca y cae al camino de kg. No unificar sin tocar las dos puntas.';
 comment on column "GP2".componente.estado_compra is 'null = se compra; fabricacion = se hace adentro; discontinuo = ya no se usa. Los que tienen estado quedan fuera de la OC y no cuentan como "sin proveedor".';
 comment on column "GP2".componente.recibe_en_cajas is 'El proveedor lo entrega en cajas que se PESAN: la recepcion va siempre en kg (sin toggle) y el control se carga como cajas x kg por caja. No cambia la unidad_medida canonica del componente.';
 comment on column "GP2".componente.relev_solo_sueltas is 'true = en el relevamiento se cuenta SOLO por unidades sueltas, sin envase (no aplica cajon/bolsa/paquete).';
@@ -126,9 +169,9 @@ comment on column "GP2".componente.material_id is 'Materia prima (componente del
 comment on column "GP2".componente.codigo_isis_ch is 'Cod ISIS con el que CHEF SRL identifica el mismo material (la OC de materia prima lleva un renglon LK con codigo y otro CH con este). null = Chef no lo tiene codificado. Hoy solo materia prima plastica (2026-09-11).';
 comment on column "GP2".componente.codigo_virgilio is 'Codigo del mismo insumo en el catalogo Insumos de Gestion Virgilio (bolsas: PP, ABS, AI, NV, NR, N25, PE, PS). 2026-09-11.';
 comment on column "GP2".componente.pedido_minimo_uni is 'Pedido minimo del proveedor para ESA pieza, en unidades. Sale de la columna "Pedi Min Uni" de la hoja "Pedido 31-08" del Excel de plasticos del usuario (cargado 2026-09-11). Se aplica DESPUES del maximo: la OC nunca pide menos que esto (o pide 0).';
-
-comment on column "GP2".componente.unidad_medida is 'Unidad canonica de la pieza: ''kg'' o ''unidad'' (CHECK). OJO: movimiento.unidad_origen/destino, orden_compra_item.unidad y recepcion_insumo.unidad usan ''uni'', NO ''unidad''; fn_movimiento_calc traduce. El que compare esta columna contra ''uni'' no matchea nunca y cae al camino de kg. No unificar sin tocar las dos puntas.';
 comment on column "GP2".componente.mb_color is 'Color de Master Bach que lleva esta pieza plastica: R rojo, B blanco, A azul, N negro. Origen: columna MB de la hoja "Consumo x Cod Articulo" del Excel de plasticos del usuario (40 de 47 partes con consumo la traen; las 7 sin color son las de Nylon recuperado, que viene pigmentado, mas B2 y EP9). null = todavia no se cargo -- no se inventa. recalcular_maximo_material() suma el 4% por color cuando esta cargado y cae al prorrateo cuando no.';
+comment on column "GP2".componente.discontinuado is 'La pieza ya no se fabrica ni se compra. No se borra: conserva historial, receta y rutas, pero sale del pedido (v_reposicion) y de las pantallas de compra. Espejo de articulo.discontinuado.';
+
 -- ---------- componente_bom ----------
 create table "GP2".componente_bom (
   id bigint generated by default as identity not null,
@@ -186,8 +229,8 @@ create table "GP2".entrega_prov_at (
   constraint entrega_prov_at_tipo_entrega_chk CHECK ((tipo_entrega = ANY (ARRAY['factura'::text, 'remito_factura'::text])))
 );
 comment on table "GP2".entrega_prov_at is 'Entregas de articulo terminado de los Prov AT (cajas por cod_art, remito, factura). Es un segundo ledger fuera de movimiento (pregunta 22).';
-
 comment on column "GP2".entrega_prov_at.descripcion is 'SNAPSHOT de la descripcion del remito al momento de la entrega. Hoy coincide en las 0 divergencias con articulo_prov_at, pero es a proposito una copia: el remito ya emitido no cambia si despues se corrige el catalogo.';
+
 -- ---------- est_madre ----------
 create table "GP2".est_madre (
   cod text not null,
@@ -199,6 +242,32 @@ create table "GP2".est_madre (
   constraint proyeccion_venta_pkey PRIMARY KEY (cod)
 );
 comment on table "GP2".est_madre is 'Espejo de la Estadistica Madre (public.proyeccion_madre, trigger fn_est_madre_sync): unidades por mes de cada articulo; alimenta minimos y maximos.';
+
+-- ---------- factura_alias ----------
+create table "GP2".factura_alias (
+  id bigint generated always as identity not null,
+  proveedor text not null,
+  cod_prov text not null,
+  componente_id bigint not null,
+  descripcion text,
+  creado_en timestamp with time zone not null default now(),
+  creado_por text,
+  constraint factura_alias_pkey PRIMARY KEY (id),
+  constraint factura_alias_uq UNIQUE (proveedor, cod_prov),
+  constraint factura_alias_comp_fk FOREIGN KEY (componente_id) REFERENCES "GP2".componente(id)
+);
+comment on table "GP2".factura_alias is 'Codigo de articulo del proveedor -> componente GP2, aprendido a mano cuando la lectura de factura no pudo resolverlo sola. Crece de a uno y no se inventa (idea 7338, 2026-09-13).';
+comment on column "GP2".factura_alias.cod_prov is 'El codigo TAL CUAL viene en la factura; el match normaliza (mayusculas, sin espacios ni ceros a la izquierda).';
+
+-- ---------- factura_lectura ----------
+create table "GP2".factura_lectura (
+  dia date not null,
+  n integer not null default 0,
+  ultima_en timestamp with time zone,
+  constraint factura_lectura_pkey PRIMARY KEY (dia),
+  constraint factura_lectura_n_chk CHECK ((n >= 0))
+);
+comment on table "GP2".factura_lectura is 'Cuantas lecturas de factura se pidieron cada dia. Sirve de tope (parametro.facturas_lecturas_x_dia) y para ver el gasto (idea 7339, 2026-09-13).';
 
 -- ---------- faltante_marcado ----------
 create table "GP2".faltante_marcado (
@@ -240,6 +309,7 @@ create table "GP2".fleje_detalle (
 );
 comment on table "GP2".fleje_detalle is 'Datos propios de cada fleje (n° de fleje, medida, codigo ISIS, kg por unidad despiece, consumo mensual, kg x cajon); una fila por componente de Sector Fleje.';
 comment on column "GP2".fleje_detalle.descripcion_parte is 'NO es una copia de componente.descripcion: es la PARTE que sale de ese fleje, otro dato. Difiere en las 52 filas y esta bien.';
+
 -- ---------- inventario ----------
 create table "GP2".inventario (
   id bigint not null default nextval('"GP2".inventario_id_seq'::regclass),
@@ -261,11 +331,11 @@ create table "GP2".inventario (
 );
 comment on table "GP2".inventario is 'Stock por componente y ubicacion (cantidad canonica, minimo, maximo y su origen). La cantidad la escriben SOLO los triggers de movimiento; minimo/maximo, las RPC de recalculo.';
 comment on column "GP2".inventario.maximo is 'Maximo de este componente en esta ubicacion. Crudo/Procesado: lo pone fn_recalc_maximos_cajones = max_cajones_x_ubicacion (parametro, hoy 5) x componente.uni_x_cajon. Insumos: fn_recalc_maximos_insumos, por Est Madre explotada x meses_stock. OJO: las columnas componente.cajones_x_ubicacion y componente.ubicaciones NO entran en la cuenta (la migracion del 2026-08-30 que las usaba quedo revertida: pregunta 5 de PREGUNTAS_ARQUITECTURA_GP2.md, sin responder).';
+comment on column "GP2".inventario.maximo_origen is 'De donde salio el maximo de esta fila. Vocabulario CERRADO por inventario_maximo_origen_chk: est_madre, cinco_cajones, fisico, faat_reserva_lote, mb_4pct_por_color (mas null = sin maximo cargado). Lo escriben los triggers de recalculo; oc_bundle lo muestra para explicar el sugerido. El valor mb_2pct_del_plastico existio hasta el 2026-09-12, cuando el usuario fijo el master en 4 % y por color.';
 comment on column "GP2".inventario.cajones_x_ubicacion is 'Cajones que entran en UNA ubicacion fisica. Origen: SC Kg."Max Caj Cerv" / SP Kg."Max Cajon SP Cerv". NO LA LEE NADIE (0 funciones, 0 vistas, 0 pantallas): quedo de la migracion de maximos del 2026-08-30, que el trigger fn_recalc_maximos_cajones revirtio. Ver el comment de inventario.maximo y la pregunta 5 de PREGUNTAS_ARQUITECTURA_GP2.md, sin responder.';
 comment on column "GP2".inventario.ubicaciones is 'Ubicaciones fisicas consecutivas que ocupa el sector. Solo se nombra la primera, asi que se deduce como (numero del proximo codigo de la misma letra) - (numero propio). Minimo 1. NO LA LEE NADIE, igual que cajones_x_ubicacion: ver el comment de esa columna.';
 comment on column "GP2".inventario.minimo_origen is 'null = carga original del usuario (Excel); consumo = lo calculo recalcular_minimos (que SI pisa las filas con origen null cuando el consumo es > 0; solo respeta consumo 0/desconocido); excel_uni_convertido_kg = conversion de la carga original.';
 
-comment on column "GP2".inventario.maximo_origen is 'De donde salio el maximo de esta fila. Vocabulario CERRADO por inventario_maximo_origen_chk: est_madre, cinco_cajones, fisico, faat_reserva_lote, mb_4pct_por_color (mas null = sin maximo cargado). Lo escriben los triggers de recalculo; oc_bundle lo muestra para explicar el sugerido. El valor mb_2pct_del_plastico existio hasta el 2026-09-12, cuando el usuario fijo el master en 4 % y por color.';
 -- ---------- matriz ----------
 create table "GP2".matriz (
   id bigint generated by default as identity not null,
@@ -344,9 +414,9 @@ create table "GP2".orden_compra (
   constraint orden_compra_estado_check CHECK ((estado = ANY (ARRAY['borrador'::text, 'enviada'::text, 'recibida'::text, 'anulada'::text])))
 );
 comment on table "GP2".orden_compra is 'Ordenes de compra de insumos por proveedor y rubro (borrador -> enviada -> recibida / anulada). Las crea crear_oc; la recepcion las cruza (recibido).';
+comment on column "GP2".orden_compra.rubro is 'ETIQUETA de la pantalla, no sector.nombre: OC_GP2.html le saca el prefijo "Sector " a proposito (nombreRubro). Por eso NO tiene FK contra sector. El rubro real sale del sector del componente.';
 comment on column "GP2".orden_compra.fecha_entrega_estimada is 'Fecha de entrega estimada de esta OC, la que se imprime en la hoja que va al proveedor. Se propone desde proveedor_insumo.dias_entrega pero es editable y se guarda por OC (el proveedor puede confirmar otra). NULL = sin fecha acordada.';
 
-comment on column "GP2".orden_compra.rubro is 'ETIQUETA de la pantalla, no sector.nombre: OC_GP2.html le saca el prefijo "Sector " a proposito (nombreRubro). Por eso NO tiene FK contra sector. El rubro real sale del sector del componente.';
 -- ---------- orden_compra_item ----------
 create table "GP2".orden_compra_item (
   id bigint generated by default as identity not null,
@@ -375,8 +445,8 @@ create table "GP2".parametro (
   constraint parametro_pkey PRIMARY KEY (clave)
 );
 comment on table "GP2".parametro is 'Parametros con nombre (clave/valor), p.ej. max_cajones_x_ubicacion = 5 y caja_uni_x_paquete.';
-
 comment on column "GP2".parametro.clave is 'Clave del parametro. master_bach_pct = cuanto master lleva la pieza sobre sus kg de resina, APARTE (usuario 2026-09-12: "x kg de bolsas plasticas y tambien el 4% de masterback").';
+
 -- ---------- parte_proveedor_servicio ----------
 create table "GP2".parte_proveedor_servicio (
   componente_id bigint not null,
@@ -416,6 +486,30 @@ create table "GP2".planilla_snapshot (
 );
 comment on table "GP2".planilla_snapshot is 'Cada subida de la planilla madre de costos (A_Costos_VIGENTES.xlsx). vigente=true es la ultima.';
 
+-- ---------- preaviso ----------
+create table "GP2".preaviso (
+  id bigint generated always as identity not null,
+  tipo_contraparte text not null,
+  contraparte_id bigint not null,
+  comp_id bigint not null,
+  cantidad numeric not null,
+  unidad text not null default 'uni'::text,
+  fecha_promesa date not null,
+  nota text,
+  estado text not null default 'pendiente'::text,
+  creado_en timestamp with time zone not null default now(),
+  creado_por text,
+  cerrado_en timestamp with time zone,
+  constraint preaviso_pkey PRIMARY KEY (id),
+  constraint preaviso_comp_fk FOREIGN KEY (comp_id) REFERENCES "GP2".componente(id),
+  constraint preaviso_cantidad_chk CHECK ((cantidad > (0)::numeric)),
+  constraint preaviso_estado_chk CHECK ((estado = ANY (ARRAY['pendiente'::text, 'cumplido'::text, 'anulado'::text]))),
+  constraint preaviso_tipo_chk CHECK ((tipo_contraparte = ANY (ARRAY['tallerista'::text, 'proveedor_servicio'::text, 'proveedor_at'::text]))),
+  constraint preaviso_unidad_chk CHECK ((unidad = ANY (ARRAY['uni'::text, 'kg'::text])))
+);
+comment on table "GP2".preaviso is 'Lo que una contraparte AVISA que va a entregar, antes de entregarlo. No mueve stock: es la promesa. Se cierra sola cuando aparece el movimiento de entrega (v_preaviso_estado lo cruza) o a mano (idea 7340, 2026-09-13).';
+comment on column "GP2".preaviso.fecha_promesa is 'Cuando dijo que lo trae. Lo que ya paso de fecha y sigue pendiente es lo que hay que ir a reclamar.';
+
 -- ---------- precio_proveedor ----------
 create table "GP2".precio_proveedor (
   id bigint generated by default as identity not null,
@@ -433,9 +527,9 @@ create table "GP2".precio_proveedor (
   constraint precio_proveedor_moneda_chk CHECK ((moneda = ANY (ARRAY['ARS'::text, 'USD'::text])))
 );
 comment on table "GP2".precio_proveedor is 'Precios de compra de insumos por proveedor y componente (lista, moneda, fecha, precio por kg).';
+comment on column "GP2".precio_proveedor.rubro is 'Rubro TAL COMO VIENE de la planilla del usuario (17 grafias distintas). NO es sector.nombre y no lo lee ninguna funcion ni vista: es referencia de la carga. El rubro real del componente sale de sector / sector.oc_rubro_id.';
 comment on column "GP2".precio_proveedor.precio_por_kg is 'true = el precio es por KG: la vista de costos lo multiplica por componente.kg_x_uni en vivo (regla del usuario: el peso vive en el componente, la tarifa en el proveedor)';
 
-comment on column "GP2".precio_proveedor.rubro is 'Rubro TAL COMO VIENE de la planilla del usuario (17 grafias distintas). NO es sector.nombre y no lo lee ninguna funcion ni vista: es referencia de la carga. El rubro real del componente sale de sector / sector.oc_rubro_id.';
 -- ---------- precio_servicio_pieza ----------
 create table "GP2".precio_servicio_pieza (
   id bigint generated always as identity not null,
@@ -575,11 +669,11 @@ create table "GP2".proveedor_servicio (
   constraint proveedor_servicio_mp_componente_id_fkey FOREIGN KEY (mp_componente_id) REFERENCES "GP2".componente(id)
 );
 comment on table "GP2".proveedor_servicio is 'Proveedores de servicio (PS): proceso, nombre corto para pantallas, hibrido (tambien compra materia prima: mp_componente_id). Cada uno tiene su ubicacion (la crea alta_proveedor_servicio).';
+comment on column "GP2".proveedor_servicio.proceso is 'ROTULO libre en Title Case, SIN FK contra el catalogo proceso (14 de 15 filas quedan fuera). En 7 de los 8 lectores es solo texto de pantalla, pero pintores_bundle lo usa como LOGICA: desde el 2026-09-11 compara lower(btrim(proceso)) = ''pintado'', asi que da igual como este escrito. La relacion real PS<->proceso, que es 1:N (FAAT hace temple y cementado, Guazzaroni niquelado, pulido y zincado), vive normalizada en tarifa_servicio y precio_servicio_pieza. No "limpiar" esta columna sin mirar pintores_bundle.';
 comment on column "GP2".proveedor_servicio.nombre_corto is 'Como lo llaman en la planta (Jade, Ximpa, Scor, FAAT). Antes: proveedor_servicio_alias.nombre_viejo (tabla borrada 2026-09-05).';
 comment on column "GP2".proveedor_servicio.mp_componente_id is 'PS hibrido: la materia prima BRUTA que recibe y consume (Charcas -> FLEJE90_BRUTO, Eclipse -> CHAPA430). Quien la vende es componente.proveedor. Lo usa cargar_compra_mp (2026-09-05).';
 comment on column "GP2".proveedor_servicio.desperdicio_pct is 'PS hibrido: % de desperdicio al procesar nuestra materia prima (mp_componente_id). crear_oc lo usa para la OC gemela al proveedor de la MP (kg de producto x (1 + pct/100)) y cargar_recepcion_eclipse para descontar la chapa. Eclipse 28 (calibrado con remito, usuario 2026-09-02). Charcas 0 (usuario 2026-09-04: sin dato, asumir 0; la recepcion descuenta 1:1). Antes: parametro charcas_/eclipse_desperdicio_pct.';
 
-comment on column "GP2".proveedor_servicio.proceso is 'ROTULO libre en Title Case, SIN FK contra el catalogo proceso (14 de 15 filas quedan fuera). En 7 de los 8 lectores es solo texto de pantalla, pero pintores_bundle lo usa como LOGICA: desde el 2026-09-11 compara lower(btrim(proceso)) = ''pintado'', asi que da igual como este escrito. La relacion real PS<->proceso, que es 1:N (FAAT hace temple y cementado, Guazzaroni niquelado, pulido y zincado), vive normalizada en tarifa_servicio y precio_servicio_pieza. No "limpiar" esta columna sin mirar pintores_bundle.';
 -- ---------- recepcion_control ----------
 create table "GP2".recepcion_control (
   id bigint generated always as identity not null,
@@ -676,9 +770,9 @@ create table "GP2".relevamiento_cronograma (
   constraint relevamiento_cronograma_sector_id_fkey FOREIGN KEY (sector_id) REFERENCES "GP2".sector(id)
 );
 comment on table "GP2".relevamiento_cronograma is 'Fechas programadas de conteo por tipo. Origen: Excel "conteo" del usuario (2026-09-04).';
+comment on column "GP2".relevamiento_cronograma.tipo is 'ROTULO del Excel "conteo" del usuario (Bombillas, Cartones, Garage, ...). Es 1:1 con sector_id salvo "Bolsa Plást", que todavia no tiene sector. El sector real es sector_id: no cruzar por este texto. Es el tercer juego de nombres para los mismos sectores (sector.nombre, proveedor_insumo.rubro, este).';
 comment on column "GP2".relevamiento_cronograma.sector_id is 'Sector GP2 que se cuenta. NULL cuando el tipo del Excel todavia no tiene sector (caso "Bolsa Plast").';
 
-comment on column "GP2".relevamiento_cronograma.tipo is 'ROTULO del Excel "conteo" del usuario (Bombillas, Cartones, Garage, ...). Es 1:1 con sector_id salvo "Bolsa Plást", que todavia no tiene sector. El sector real es sector_id: no cruzar por este texto. Es el tercer juego de nombres para los mismos sectores (sector.nombre, proveedor_insumo.rubro, este).';
 -- ---------- relevamiento_item ----------
 create table "GP2".relevamiento_item (
   id bigint not null default nextval('"GP2".relevamiento_item_id_seq'::regclass),
@@ -775,9 +869,9 @@ create table "GP2".ruta_paso (
   constraint ruta_paso_tipo_paso_chk CHECK ((tipo_paso = ANY (ARRAY['ingreso'::text, 'insumo'::text, 'matriz'::text, 'proveedor_servicio'::text, 'tallerista'::text, 'virgilio'::text, 'proveedor_at'::text])))
 );
 comment on table "GP2".ruta_paso is 'Pasos de la ruta en orden: tipo (matriz / proveedor_servicio / tallerista), quien, componente que entra y componente que sale, cantidad. Fuente de v_contraparte_parte.';
+comment on column "GP2".ruta_paso.cantidad is 'NO LA LEE NADIE: ni una funcion, ni una vista, ni un bundle la exponen. Duplica articulo_componente.cantidad y los dos ya divergieron una vez (58 pasos, alineados el 2026-09-11; el invariante AA de db/verificar.sql lo impide desde entonces). Candidata a borrarse, pero antes hay que decidir que significa en los pasos que NO son de insumo (matriz, proveedor_servicio, tallerista), donde hoy tampoco la lee nadie. Idea 7321.';
 comment on column "GP2".ruta_paso.proveedor_at_id is 'Prov. Art. Terminado del paso, cuando tipo_paso = ''proveedor_at''. El articulo llega terminado de el; lo que se le manda es el carton y la caja.';
 
-comment on column "GP2".ruta_paso.cantidad is 'NO LA LEE NADIE: ni una funcion, ni una vista, ni un bundle la exponen. Duplica articulo_componente.cantidad y los dos ya divergieron una vez (58 pasos, alineados el 2026-09-11; el invariante AA de db/verificar.sql lo impide desde entonces). Candidata a borrarse, pero antes hay que decidir que significa en los pasos que NO son de insumo (matriz, proveedor_servicio, tallerista), donde hoy tampoco la lee nadie. Idea 7321.';
 -- ---------- ruta_revision ----------
 create table "GP2".ruta_revision (
   id bigint generated by default as identity not null,
@@ -846,6 +940,7 @@ create table "GP2".tarifa_servicio (
   constraint tarifa_servicio_precio_chk CHECK (((precio_kg IS NOT NULL) OR (precio_uni IS NOT NULL)))
 );
 comment on table "GP2".tarifa_servicio is 'Precio del servicio de un PS POR PROCESO (6 filas). OJO: hoy solo funciona como RELLENO -- v_costo_componente la engancha por pz.proceso, que sale de precio_servicio_pieza, asi que sin fila por pieza la tarifa NUNCA aplica. No la nombra ninguna funcion, solo esa vista. Idea 7332.';
+
 -- ---------- tipo_cambio ----------
 create table "GP2".tipo_cambio (
   fecha date not null,
@@ -898,6 +993,7 @@ create table "GP2".uni_x_articulo_x_caja (
 comment on table "GP2".uni_x_articulo_x_caja is 'Unidades de cada articulo que entran por caja, por empresa (CH / LK). Lo lee Control AT.';
 comment on column "GP2".uni_x_articulo_x_caja.descripcion is 'Como llama al articulo el catalogo del que salio la fila (LK o CH). Difiere de articulo.descripcion en 149 filas, y 243 de las 434 filas son CH, del catalogo del vecino, que ni siquiera tienen articulo en GP2. No pisarla con articulo.descripcion.';
 comment on column "GP2".uni_x_articulo_x_caja.n_caja is 'Numero de caja como TEXTO, mientras articulo_prov_at.n_caja es integer. Hay 4 filas con ''P'', asi que el tipo no se puede unificar sin decidir que significa esa P (o si son 4 filas para corregir). Ojo ademas: el codigo de caja NO es el numero -- el codigo A8 es la Caja N2, los codigos son posicion de estanteria.';
+
 -- ---------- virgilio_espejo_pend ----------
 create table "GP2".virgilio_espejo_pend (
   id bigint generated always as identity not null,
@@ -919,6 +1015,7 @@ comment on column "GP2".virgilio_espejo_pend.resultado is 'Lo que devolvio recep
 -- ============ INDICES (no asociados a constraints) ============
 
 CREATE INDEX __sim_base_idx ON "GP2".__sim_base USING btree (comp, ubic);
+CREATE INDEX alerta_recepcion_abierta_idx ON "GP2".alerta_recepcion USING btree (estado, fecha DESC);
 CREATE UNIQUE INDEX articulo_componente_uq ON "GP2".articulo_componente USING btree (articulo_id, componente_id);
 CREATE UNIQUE INDEX articulo_prov_at_prov_cod_uq ON "GP2".articulo_prov_at USING btree (proveedor_at_id, cod_art);
 CREATE UNIQUE INDEX componente_bom_uq ON "GP2".componente_bom USING btree (componente_padre_id, componente_hijo_id);
@@ -957,7 +1054,6 @@ CREATE INDEX idx_ruta_paso_tallerista_id ON "GP2".ruta_paso USING btree (talleri
 CREATE INDEX idx_uxc_cod_art ON "GP2".uni_x_articulo_x_caja USING btree (cod_art);
 CREATE UNIQUE INDEX inventario_comp_ubic_uk ON "GP2".inventario USING btree (componente_id, ubicacion_id);
 CREATE INDEX ix_crono_fecha ON "GP2".relevamiento_cronograma USING btree (fecha);
-CREATE UNIQUE INDEX relevamiento_cronograma_sector_fecha_uq ON "GP2".relevamiento_cronograma USING btree (sector_id, fecha) WHERE (sector_id IS NOT NULL);
 CREATE INDEX ix_planilla_fila_datos ON "GP2".planilla_fila USING gin (datos);
 CREATE INDEX ix_planilla_fila_hoja ON "GP2".planilla_fila USING btree (snapshot_id, hoja);
 CREATE INDEX ix_pps_proveedor ON "GP2".parte_proveedor_servicio USING btree (proveedor_servicio_id);
@@ -967,10 +1063,12 @@ CREATE INDEX movimiento_fecha_idx ON "GP2".movimiento USING btree (fecha DESC, i
 CREATE INDEX movimiento_tipo_comp_idx ON "GP2".movimiento USING btree (tipo_mov, comp_id);
 CREATE UNIQUE INDEX orden_compra_item_oc_comp_uq ON "GP2".orden_compra_item USING btree (oc_id, componente_id);
 CREATE UNIQUE INDEX planilla_snapshot_vigente_uq ON "GP2".planilla_snapshot USING btree (vigente) WHERE vigente;
+CREATE INDEX preaviso_abierto_idx ON "GP2".preaviso USING btree (estado, fecha_promesa);
 CREATE INDEX produccion_legajo_fecha_idx ON "GP2".produccion USING btree (legajo, fecha);
 CREATE UNIQUE INDEX proveedor_insumo_cod_prov_uq ON "GP2".proveedor_insumo USING btree (cod_prov) WHERE (cod_prov IS NOT NULL);
 CREATE UNIQUE INDEX proveedor_servicio_nombre_uq ON "GP2".proveedor_servicio USING btree (lower(btrim(nombre)));
 CREATE INDEX recepcion_control_rollo_control_idx ON "GP2".recepcion_control_rollo USING btree (control_id);
+CREATE UNIQUE INDEX relevamiento_cronograma_sector_fecha_uq ON "GP2".relevamiento_cronograma USING btree (sector_id, fecha) WHERE (sector_id IS NOT NULL);
 CREATE INDEX rollo_evento_comp_idx ON "GP2".rollo_evento USING btree (componente_id, kg_por_rollo, fecha);
 CREATE INDEX rollo_uso_abierto_idx ON "GP2".rollo_uso USING btree (legajo) WHERE (ts_fin IS NULL);
 CREATE INDEX ruta_revision_estado_idx ON "GP2".ruta_revision USING btree (estado);
@@ -1013,9 +1111,11 @@ CREATE TRIGGER trg_ubicacion_tallerista AFTER INSERT ON "GP2".tallerista FOR EAC
 -- ============ ROW LEVEL SECURITY ============
 
 alter table "GP2".__sim_base enable row level security;
+alter table "GP2".alerta_recepcion enable row level security;
 alter table "GP2".articulo enable row level security;
 alter table "GP2".articulo_componente enable row level security;
 alter table "GP2".articulo_prov_at enable row level security;
+alter table "GP2".cajon enable row level security;
 alter table "GP2".carton_categoria enable row level security;
 alter table "GP2".carton_formato enable row level security;
 alter table "GP2".componente enable row level security;
@@ -1024,6 +1124,8 @@ alter table "GP2".contraparte_alias enable row level security;
 alter table "GP2".empleado enable row level security;
 alter table "GP2".entrega_prov_at enable row level security;
 alter table "GP2".est_madre enable row level security;
+alter table "GP2".factura_alias enable row level security;
+alter table "GP2".factura_lectura enable row level security;
 alter table "GP2".faltante_marcado enable row level security;
 alter table "GP2".familia enable row level security;
 alter table "GP2".fleje_detalle enable row level security;
@@ -1036,6 +1138,7 @@ alter table "GP2".parametro enable row level security;
 alter table "GP2".parte_proveedor_servicio enable row level security;
 alter table "GP2".planilla_fila enable row level security;
 alter table "GP2".planilla_snapshot enable row level security;
+alter table "GP2".preaviso enable row level security;
 alter table "GP2".precio_proveedor enable row level security;
 alter table "GP2".precio_servicio_pieza enable row level security;
 alter table "GP2".precio_tallerista enable row level security;
@@ -1068,9 +1171,11 @@ alter table "GP2".virgilio_espejo_pend enable row level security;
 -- Todas son de SELECT: ninguna tabla GP2 acepta escritura anonima directa (la escritura va por RPC SECURITY DEFINER).
 
 create policy __sim_base_sel on "GP2".__sim_base for select to public using (false);
+create policy alerta_recepcion_sel on "GP2".alerta_recepcion for select to public using (true);
 create policy p_gp2_select on "GP2".articulo for select to anon, authenticated using (true);
 create policy p_gp2_select on "GP2".articulo_componente for select to anon, authenticated using (true);
 create policy p_gp2_select on "GP2".articulo_prov_at for select to anon, authenticated using (true);
+create policy cajon_sel on "GP2".cajon for select to public using (true);
 create policy p_gp2_select on "GP2".carton_categoria for select to anon, authenticated using (true);
 create policy p_gp2_select on "GP2".carton_formato for select to anon, authenticated using (true);
 create policy p_gp2_select on "GP2".componente for select to anon, authenticated using (true);
@@ -1079,6 +1184,8 @@ create policy p_gp2_select on "GP2".contraparte_alias for select to anon, authen
 create policy p_gp2_select on "GP2".empleado for select to anon, authenticated using (true);
 create policy p_gp2_select on "GP2".entrega_prov_at for select to anon, authenticated using (true);
 create policy p_gp2_select on "GP2".est_madre for select to anon, authenticated using (true);
+create policy factura_alias_sel on "GP2".factura_alias for select to public using (true);
+create policy factura_lectura_sel on "GP2".factura_lectura for select to public using (true);
 create policy p_gp2_select on "GP2".faltante_marcado for select to anon, authenticated using (true);
 create policy p_gp2_select on "GP2".familia for select to anon, authenticated using (true);
 create policy p_gp2_select on "GP2".fleje_detalle for select to anon, authenticated using (true);
@@ -1091,6 +1198,7 @@ create policy p_gp2_select on "GP2".parametro for select to anon, authenticated 
 create policy p_gp2_select on "GP2".parte_proveedor_servicio for select to anon, authenticated using (true);
 create policy p_gp2_select on "GP2".planilla_fila for select to anon, authenticated using (true);
 create policy p_gp2_select on "GP2".planilla_snapshot for select to anon, authenticated using (true);
+create policy preaviso_sel on "GP2".preaviso for select to public using (true);
 create policy p_gp2_select on "GP2".precio_proveedor for select to anon, authenticated using (true);
 create policy p_gp2_select on "GP2".precio_servicio_pieza for select to anon, authenticated using (true);
 create policy p_gp2_select on "GP2".precio_tallerista for select to anon, authenticated using (true);

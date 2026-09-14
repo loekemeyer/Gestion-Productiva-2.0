@@ -241,7 +241,7 @@
 </div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="../supabase-config.js?v=20260905k"></script>
-<script src="../gp2-ui.js?v=20260912a"></script>
+<script src="../gp2-ui.js?v=20260913e"></script>
 <script src="../gp2-numero.js?v=20260911o"></script>
 <script>var D={};
 
@@ -253,6 +253,9 @@ var SECT2CLS={"crudo":"crudo","procesado":"proc","movimiento":"tr","afilado":"af
 function sCls(sid){return SECT2CLS[sName(sid)]||"crudo"}
 function cById(cid){return D.comp[String(cid)]||{cod:"?",d:"",s:null}}
 function fmt(n){if(n==null||isNaN(n))return "?";n=Number(n);return GP2N.fmt(n, n>=100?0:n>=10?1:n>=1?2:3, null, true);}   /* la regla de numero de la casa; decimales segun magnitud */
+/* el rendimiento de la matriz se imprimia crudo ("27.95 uni/kg", punto de JS): dos decimales
+   con la regla de la casa y sin ceros de relleno, o sea "27,95" y "28". (idea 7291) */
+function unikg(r){return GP2N.fmt(r, 2)+" uni/kg";}
 
 // Defensive: ordenar rp por 'orden' aunque en Excel esté fuera de orden físico
 for(var _rid in D.rp)D.rp[_rid].sort(function(a,b){return a.o-b.o;});
@@ -406,7 +409,7 @@ function destDePaso(p,pNext){
 function pasoNode(p,need,uni,pNext){
  var tp="",cls="",nm="",ex="",extra="";
  var ce=cById(p.ce), cs=cById(p.cs);
- if(p.tp==="matriz"){var mx=D.mat[String(p.m)]||{};tp="MATRIZ N°"+mx.n;cls="matriz";nm=cs.cod||"?";ex=(cs.d||mx.d||"");if(mx.r)extra="⚙️ "+mx.r+" uni/kg";}
+ if(p.tp==="matriz"){var mx=D.mat[String(p.m)]||{};tp="MATRIZ N°"+mx.n;cls="matriz";nm=cs.cod||"?";ex=(cs.d||mx.d||"");if(mx.r)extra="⚙️ "+unikg(mx.r);}
  else if(p.tp==="proveedor_servicio"){var px=D.prov[String(p.pr)]||{};tp="PROV "+(px.n||"?");cls="prov";nm=cs.cod||ce.cod||"?";ex=(px.p||"")+(cs.cod?(" · "+cs.cod):"");}
  else if(p.tp==="tallerista"){var tx=D.tall[String(p.ta)]||"(sin asignar)";tp="TALLERISTA";cls="tall";nm=tx.trim();ex=(ce.cod||"")+" → "+(cs.cod||"?");}
  else if(p.tp==="afilado"){tp="AFILADO";cls="afil";nm="Afilar";ex=(ce.cod||"")+" → "+(cs.cod||"?");}
@@ -439,7 +442,7 @@ function renderStandaloneLane(r,pasos,fl,need,uni,flejesTotal){
  var H='<div class="lane"><div class="head"><b>'+esc((flComp.cod||"?")+' · '+(flComp.d||"")+cs_desc)+'</b>'+
     (kg?'<span class="fkg">'+fmt(kg)+' kg fleje</span>':(qty?'<span style="color:#7d92a5">sin rendimiento</span>':""))+
     '</div><div class="flow">';
- H+=node("INSUMO","fleje",flComp.cod||"?",flComp.d||"",rend?rend+" uni/kg":"",null,kg||null,"");
+ H+=node("INSUMO","fleje",flComp.cod||"?",flComp.d||"",rend?unikg(rend):"",null,kg||null,"");
  pasos.forEach(function(p,i,arr){
   if((p.tp==="fleje"||p.tp==="ingreso"))return;
   H+='<span class="arr">→</span>'+pasoNode(p,need,uni,arr[i+1]);
@@ -519,7 +522,7 @@ function renderConvergenceLane(padre_id,ruta_list,need,uni,flejesTotal,aid,insum
    } else {
     H+='<div class="branch-lbl"><span class="r">Rama '+brN+'</span> — '+esc((flComp2.cod||"?")+' produce '+hc.cod)+(kg?' · '+fmt(kg)+' kg fleje':'')+'</div>';
     H+='<div class="flow branch">';
-    H+=node("INSUMO",matchRuta.f?"fleje":sCls(flComp2.s),flComp2.cod||"?",flComp2.d||"",rend?rend+" uni/kg":"",matchRuta.f?null:qty_hijo,kg||null,"");
+    H+=node("INSUMO",matchRuta.f?"fleje":sCls(flComp2.s),flComp2.cod||"?",flComp2.d||"",rend?unikg(rend):"",matchRuta.f?null:qty_hijo,kg||null,"");
     pasosNoFleje.forEach(function(p,i,arr){
      H+='<span class="arr">→</span>'+pasoNode(p,mergedNeed,uni,arr[i+1]);
     });
@@ -546,7 +549,7 @@ function renderConvergenceLane(padre_id,ruta_list,need,uni,flejesTotal,aid,insum
  H+='<div class="flow">';
  // convergencia node muestra padre como resultado
  var mx=D.mat[String(convPaso.m)]||{};
- var extra=mx.r?"⚙️ "+mx.r+" uni/kg":"";
+ var extra=mx.r?"⚙️ "+unikg(mx.r):"";
  var convTp,convCls,convNm,convEx;
  if(convPaso.tp==="matriz"){convTp="MATRIZ N°"+mx.n;convCls="matriz";convNm=pc.cod;convEx=pc.d||"";}
  else if(convPaso.tp==="tallerista"){var _tn=D.tall[String(convPaso.ta)]||"(sin asignar)";convTp="TALLERISTA";convCls="tall";convNm=(typeof _tn==='string'?_tn.trim():_tn.n||"?");convEx=pc.cod+" · "+(pc.d||"");}

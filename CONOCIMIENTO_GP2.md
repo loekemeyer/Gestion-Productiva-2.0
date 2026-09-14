@@ -3334,13 +3334,20 @@ si dice "buscalo vos", se busca — no se inventa ni se asume.
 ## 3. Reglas del negocio ya incorporadas
 
 - **Algunos talleristas pueden entregar partes EN CERVANTES** (además de Virgilio):
-  **Martín Cornejo, ALEX ESCALANTE e IJUPA.** `[usuario 2026-08-31, corregido]` El dato
+  **Martín Cornejo, ALEX ESCALANTE, IJUPA y LUCHO.** `[usuario 2026-08-31, corregido]` El dato
   original decía Carlos Aguirre, pero el usuario lo corrigió: *"Carlos es el papá de
   Alex, por eso le erré"* — son familia y por eso el cruce de nombres. Normalizado en
   `GP2.tallerista.entrega_cervantes` (true para ids 6, 2 y 10 — migraciones
   `talleristas_que_entregan_en_cervantes` + `entrega_cervantes_correccion_alex_no_carlos`).
   `[2026-09-04]` Esa columna se **borró** (ningún código la leía); el dato queda acá: los que
-  entregan en Cervantes son Martin Cornejo (6), Alex Escalante (2) e IJUPA (10).
+  entregan en Cervantes son Martin Cornejo (6), Alex Escalante (2), IJUPA (10) **y Lucho (5)**.
+  `[usuario 2026-09-13, correctivo: "3 lucho tambien"]` Lucho faltaba en esta lista pero SÍ
+  estaba en las rutas (J1 Tochos Zinc p/Rectificar → Sector Crudo, 3 rutas): la lista escrita
+  a mano era la que estaba vieja, no la parametrización. **No hay tabla de configuración de
+  quién entrega en Cervantes: sale de `ruta_paso`** — todo paso `tallerista` cuyo
+  `comp_salida` NO cae en Terminado (sector 12) es una entrega en Cervantes; si cae en
+  Terminado va por Recepción Virgilio. Antes de decir que alguien "no debería estar", mirar
+  la ruta: la ruta manda.
   Cierra con las rutas: Alex arma los GRJ (ej. Batidor Pera del 544) y los entrega en el
   Sector Garage de Cervantes. OJO: `Recepcion Cervantes.html` del programa VIEJO tiene
   hardcodeado ARTICULOS_EMPRESA con CARLOS y MARTIN — puede venir de la misma confusión
@@ -6195,32 +6202,11 @@ envasado de Fábrica**. Mientras falte el precio, el 720/722 muestran `faltan_pr
 doble conteo conocido (idea 7275: la vista cuenta el componente en la receta Y en la ruta), no un
 error de carga; se va a 0 solo al cargar el precio.
 
-### 4an. Batidores 515 y 615: están EN VENTA, y el Resorte Bicónico tampoco es discontinuo (2026-09-10)
+### 4an + 4an-ter. El 515/615 — BORRADO (ver §4cq)
 
-[usuario 2026-09-10, textual: *"no sé si en algún momento te dije que está discontinuado, pero es un
-artículo continuo, está en venta"* / *"el resorte bicónico... no es discontinuo, está activo"*].
-
-Corregido: **`articulo` 615 → `discontinuado = false`** (el 515 ya estaba activo) y **`BOM10`
-"Resorte Bicónico" → `estado_compra = null`** (se compra; su proveedor **Resortes Charcas** estaba
-intacto). El BOM10 nunca se había sacado de la receta: sigue en `componente_bom` de `C12` (cant 1)
-y tiene sus rutas 563/564 hacia el 515 y el 615.
-
-**Lo que sí lo hacía desaparecer de la pantalla era un bug nuestro, no el dato** — ver más abajo.
-
-**Sigue marcado `discontinuo` y contradice que el artículo esté activo** (pendiente del usuario):
-- **`C12` "Paleta Batidor Resorte"** — es la paleta del batidor, la fabrica Alex Escalante a
-  partir de `IE1`/`W1B`. Si se fabrica, el estado que corresponde es **`fabricacion`**, no
-  `discontinuo` (para el motor de costos da lo mismo: los dos la sacan de "comprado"; cambia lo
-  que muestran OC, Recepción y Faltantes).
-- **`A1C1` "Cartón 515"** — se compra, y **quedó sin proveedor**. `marcar_estado_compra` borra el
-  proveedor cuando se marca `fabricacion`/`discontinuo`
-  (`proveedor = case when v_e is null then proveedor else null end`), así que el dato se perdió al
-  marcarlo. Los otros cartones de la familia son de **Talleres Gráficos Pol**, pero **no se asume**:
-  lo tiene que confirmar el usuario. Mientras esté `discontinuo`, el cartón **no suma costo** al 515.
-
-**Trampa a recordar**: marcar un componente `fabricacion` o `discontinuo` **le borra el proveedor**.
-Al revertir el estado hay que volver a cargarlo — no aparece solo.
-
+Acá vivían dos secciones del 2026-09-10 sobre los batidores 515/615, sus partes y sus pendientes.
+**El artículo y todas sus partes exclusivas se borraron de la base el 2026-09-13** y el tema está
+cerrado: la historia está en el backup y en git. **No analizarlo ni volver a proponerlo.** §4cq.
 ### 4an-bis. Regresión propia: la Rama de un insumo quedaba vacía ("? produce BOM10")
 
 La v1.114.0 dejó que las ramas de un convergente usaran rutas de **insumo** (para mostrar el
@@ -6233,29 +6219,6 @@ Arreglado en la **v1.116.0**: el origen de la rama también se toma del paso `in
 —como `ingreso`— no cuenta como paso productivo. Lo cubre `tests/ui/test_programa_insumo_conv.js`
 con la convergencia C12 real. **Lección**: al ampliar qué rutas entran a un render, revisar el caso
 de la ruta de **un solo paso**.
-
-### 4an-ter. Cierre del 515/615: C12 lo fabrica Alex, el Cartón 515 es de Gráficos Pol (2026-09-10)
-
-[usuario 2026-09-10, textual: *"C12 lo fabrica Alex Escalante. No está discontinuo"* / *"el cartón es
-de talleres gráficos pol"*]. Cierra lo que había quedado colgado en §4an:
-
-| Componente | Antes | Ahora |
-|---|---|---|
-| `C12` Paleta Batidor Resorte | `discontinuo`, sin proveedor | **`fabricacion`** (la hace Alex Escalante desde IE1/W1B) |
-| `A1C1` Cartón 515 | `discontinuo`, **sin proveedor** (se lo había borrado el marcado) | **se compra** (estado null), proveedor **Talleres Gráficos Pol** |
-
-Efecto: el cartón volvió a costar en el 515 → **$1.261,14 → $1.303,86** (los $42,72 del cartón, que
-sí tenía precio cargado). El 615 no se movió ($1.559,63). Quedan 10 componentes en `discontinuo`,
-ninguno de esta familia.
-
-**Lo que falta y es plata real: `BOM10` "Resorte Bicónico" no tiene precio** — se compra a
-**Resortes Charcas** (`kg_x_uni` 0,00963; Charcas cobra por kg y se pide por paquete, ver
-`parametro.charcas_kg_x_paquete`). Mientras no esté, el resorte entra gratis al costo del 515 y del
-615. Demanda actual: 515 = 486 uni/mes, 615 = 24 uni/mes.
-
-**[deducido, SIN confirmar]**: `A1C1` "Cartón 515" tiene `marca = CHEF`, pero el 515 es el artículo
-de **Loekemeyer** (el gemelo Chef es el 615, y su cartón `O2A` también figura CHEF). Si la marca del
-A1C1 está mal, la Recepción de cartones lo va a listar bajo la marca equivocada. Preguntar.
 
 ### 4ao. `articulo` ya tiene DESCRIPCIÓN y MARCA (2026-09-10)
 
@@ -8113,6 +8076,7 @@ para detectar el patrón.
 
 **Conclusión: el rompenueces es el único caso.** No hay una familia de errores atrás.
 
+<<<<<<< HEAD
 ### 4cf. El 515 y el 615 fueron BORRADOS y se reconstruyeron a mano (2026-09-14)
 
 `[usuario 2026-09-14, textual: "El 515 y 615 quiero que aparezcan de nuevo" · "los stock que
@@ -8175,3 +8139,1276 @@ resincroniza `componente`, `articulo`, `ruta`, `ruta_paso`, `articulo_componente
 de `A1C1` "Cartón 515" podía estar mal por figurar `CHEF`. **Es `LOEKE`** — lo fijó la migración
 `20260911150532` con la regla "la marca del cartón es la del artículo que nombra". Por esa misma
 regla `O2A` "Cartón 615" se recreó como `CHEF`.
+=======
+### 4cf. Por qué existe GP2 y por qué NADA suyo mira `public` (2026-09-12)
+
+**[usuario, textual]:** *"La creación de este repositorio surgió porque en gestión productiva
+entero era todo quilombo, y yo empecé subiendo las tablas normalizadas de toda la info que creía
+que requería un nuevo repo ordenadito. En medio se hicieron como cincuenta tablas que mira desde
+public, y es un desastre, yo no quería eso."* Y el pedido que sale de ahí: *"Las tablas de public
+que pasen a mirarse internamente."*
+
+Es el **origen** del proyecto dicho por el dueño, no una preferencia de estilo: GP2 nació de las
+tablas normalizadas que él cargó, y cualquier lectura a `public` traiciona el motivo por el que
+existe. Por eso la Regla 0 quedó en la primera hoja de `CLAUDE.md`.
+
+**Lo que la auditoría del 2026-09-12 encontró (y hay que decirlo porque desarma el susto):**
+
+- El schema `GP2` **nunca** leyó `public`: de sus 142 funciones y 18 vistas, la única referencia
+  es `public.http_get` en `actualizar_dolar_oficial` — la extensión http, no una tabla de negocio.
+- Las ~50 pantallas que sí pegan contra `public` son **las del programa viejo que quedaron
+  conviviendo en esta carpeta** (`Produccion/`, `StockFlejes/`, `Prov Serv/`, `Talleristas/` sin
+  sufijo `_GP2`, `Despiece*`, `Facturas/`, `Verificacion/`, …). No son tablas nuevas mal hechas:
+  es código heredado sin borrar. Nunca fueron parte de GP2.
+- **La única fuga real** era el menú: `GP2_MODULOS.html` tenía una fila marcada `"vieja"`,
+  *Entrega Virgilio*, que abría `Talleristas/Recepcion/Recepcion Virgilio.html` — y esa sí leía
+  `public` (`Articulos Virgilio X Tallerista`, `Despiece x Articulo`) y escribía en
+  `Entregas Tallerista Virgilio`.
+
+**Cómo se cerró:** la pantalla se reescribió como `Talleristas/Recepcion/RecepcionVirgilio_GP2.html`
+sobre lo que GP2 ya tenía: el bundle `GP2.movimientos_bundle()` y el RPC
+`GP2.recepcion_virgilio(jsonb)` (que ya existía y ya se usaba — los 64 movimientos
+`recepcion_virgilio` del 31-08 al 11-09 son reales; hasta ahora se cargaban a mano por SQL porque
+**no había pantalla**). Al bundle se le agregó `prov_at` y el `pat` del paso, que faltaban: Virgilio
+recibe terminados de talleristas **y** de proveedores de artículo terminado (39 artículos de 11
+proveedores AT). Quién entrega cada artículo **no necesita tabla**: sale del último paso con
+contraparte antes del paso `virgilio` de la ruta (779 pasos de tallerista + 76 de proveedor AT,
+sin ninguno huérfano).
+
+**Cerrado el mismo día** `[usuario: "Primero las 50 muertas"]`: se borraron **109 archivos** — las
+50 pantallas viejas que ya tenían reemplazo GP2, con su HTML/JS/CSS. Siguen en el historial de git
+y en `GestionProductivaEntero`. **Lo que el borrado destapó y hay que recordar:** dos cosas vivas
+apuntaban a las viejas y se relinkearon antes de borrar — `envios-only.html` (los 4 botones del rol
+`envios`) y, lo delicado, **la whitelist del rol `envios` en `auth-guard.js`**, que nombraba
+`enviostall.html`, `recepcion cervantes.html`, `stockflejes/recepcion.html`, `produccion/monitor.html`
+y `maestro.html`: sin actualizarla, ese rol se quedaba sin acceso a NADA. Quedan mirando `public`
+**cinco** archivos, todos fuera del menú GP2 y ninguno en uso: Facturas (2), Control Carga Remitos,
+Preavisos e `InformesVirgilio`, que es de Gestión Virgilio y tiene su propio repo. El sexto,
+`calcular-cajones.html`, era el único **vivo** y se migró el 2026-09-13 (ver §4cg). El mapa vive en
+`MIGRACION_PUBLIC_GP2.md`.
+
+### 4cg. El CAJÓN no es la CAJA: dos cosas distintas con la misma palabra y numeración propia (2026-09-13)
+
+Salió al migrar la calculadora de la planta (`calcular-cajones.html` → `CalcularCajones_GP2.html`).
+
+- **Cajón** = la caja de movimiento **retornable** que se llena de piezas y se pone en la balanza.
+  Van del **N°1 al N°10** y lo que importa de cada uno es su **tara** (1,30 a 5,20 kg): el
+  operario pesa bruto y hay que descontarla. GP2 pensaba en cajones en todos lados
+  (`componente.uni_x_cajon`, `parametro.max_cajones_x_ubicacion`, `faltante_cajones_umbral`)
+  pero **no tenía el peso del cajón vacío**: vivía en `public.peso_cajones`, del programa viejo.
+  Ahora es **`GP2.cajon` (numero, tara_kg)**, 10 filas migradas con el dato que midió el usuario.
+- **Caja** = la caja de **cartón del artículo terminado**, la que se despacha. Es `Sector Caja`
+  (id 11): `A1` "Caja N°1", `A8` "Caja N°2", `A9` "Caja N°22", `A11` "Caja N°29"… **Tiene su
+  propia numeración**, que se pisa con la de los cajones: la "Caja N°1" (A1) **no** es el "Cajón
+  N°1" de tara 1,70 kg. Lo que importa de ella es `articulo.articulos_por_caja`, no su peso — de
+  hecho ninguna de las 12 tiene `kg_x_uni` cargado.
+
+**Trampa concreta:** si alguien "ve" que GP2 ya tenía cajas numeradas y decide que ahí va la tara,
+mete el peso del cajón retornable en la caja de cartón del terminado y rompe las dos cosas. Son
+tablas distintas a propósito.
+
+**De paso, la calculadora nueva cubre más que la vieja:** la vieja tenía cuatro categorías fijas
+(SP, SC, Plásticos, Remaches) y el Garage deshabilitado "porque no tiene peso x unidad". Como GP2
+saca los kg de `componente.kg_x_uni`, hoy salen **331 piezas en 10 sectores** — Garage incluido (6),
+más Bombilla (14), Fleje (51) y Alambre. Y como `componente.uni_x_cajon` existe, además de las
+unidades muestra **a cuántos cajones llenos equivale**, que la vieja no podía calcular.
+
+### 4ch. La columna vertebral de GP2, dictada por el dueño (2026-09-13)
+
+**[usuario, textual]:** *"La ruta general es: OC → Recepcion → Insumos → Produccion
+Alimentador/Balancines → SC → Envio Ps → Entrega Ps → SP → Envio Tall → Entrega Tall → virgilio"*.
+
+Lo dijo corrigiendo un croquis que había dibujado los sectores como **una nube** con flechas de ida
+y vuelta. Está mal dibujado así: GP2 tiene **una línea**, y lo demás son ramas colgadas de ella.
+
+**La base lo confirma** (pasos de `ruta_paso`, 2026-09-13): Fleje → Crudo por matriz **120** pasos
+(+91 que pasan por `Mat N`), Crudo → Procesado por proveedor de servicio **122**, Procesado →
+Terminado por tallerista **173**, y **855** pasos `virgilio` desde Terminado. Las máquinas de
+producción son **balancín (70 matrices)** y **alimentador (43)** — `matriz.maquina`, el vocabulario
+de la planta.
+
+Tres cosas que la cadena esconde y hay que tener a mano:
+- **`Mat N` (Sector Movimiento) es parte de Producción**, no un sector aparte: son las piezas a
+  medio hacer entre matriz y matriz.
+- **No todo pasa por PS**: 41 pasos de servicio devuelven al mismo SC (procesos que no cambian de
+  sector) y 14 rutas tienen al tallerista tomando directo de SC. La línea es el camino **normal**,
+  no una obligación.
+- **Los insumos que no son fleje** (cartón, caja, plástico, bombilla, remache, garage) no entran
+  por producción: se le mandan **al tallerista**, y se descuentan por la receta al entregar en
+  Virgilio. El proveedor de artículo terminado se saltea la fábrica entera.
+
+El croquis vive en `GP2_CROQUIS.md`.
+
+### 4ci. Cómo debe funcionar la lectura de facturas: la IA extrae, GP2 decide (2026-09-13)
+
+**[usuario, textual]:** *"Lectura facturas deberia a traves de API de Claude o local (con previo
+entrenamiento) leer las facturas para simplificar la recepcion"*. O sea: el objetivo **no es
+archivar la factura, es que la recepción sea más rápida** — que el que recibe no tipee 20 renglones.
+
+**El reparto de trabajo, que es lo que hay que no confundir:**
+
+| Paso | Quién | Con qué |
+|---|---|---|
+| Leer el papel (código, descripción, cantidad, precio) | **la IA** | API de Claude, el PDF como bloque `document` o la foto como `image`, y `output_config.format` con JSON Schema para que la forma del JSON esté **garantizada** en vez de pedida |
+| Decidir **qué componente GP2 es cada renglón** | **GP2, no la IA** | `factura_alias` (lo aprendido) → `fleje_detalle.cod_isis` → `componente.codigo` → parecido de descripción dentro de la lista de productos de ese proveedor |
+| Escribir el stock | **la persona** | confirma y recién ahí corren `crear_recepcion_insumo` / `crear_entrega_ps`, que ya cruzan contra las OC abiertas |
+
+**CORRECCIÓN del 2026-09-13 (importante, lo había dicho mal):** `precio_proveedor.cod_prov` **NO
+es el código del artículo, es el código del PROVEEDOR** — 2147 es Talleres Gráficos Pol, 890 es
+Bella Vista. Por eso un renglón del 2147 devolvía 93 "candidatos". **GP2 no tiene hoy los códigos
+de artículo de sus proveedores**: los únicos códigos de tercero cargados son los 51
+`fleje_detalle.cod_isis`.
+
+**"Previo entrenamiento" NO es fine-tuning**, y ahora se sabe exactamente qué es: **llenar
+`factura_alias`**, que arranca vacía. La primera factura de cada proveedor se ata a mano renglón
+por renglón; de ahí en más sale sola. Lo que sí aporta `precio_proveedor` es **la lista de
+productos de cada proveedor**, y con eso el match propone por parecido de descripción *dentro de
+ese proveedor* (pg_trgm): auto-asigna sólo si el parecido es ≥ 0,55 y el segundo candidato quedó
+0,15 atrás; si no, devuelve candidatos y elige la persona. El proveedor se reconoce por nombre
+("TALLERES GRAFICOS POL S.A." matchea "Talleres Gráficos Pol" con 0,85).
+
+**Lo que ya existe y sirve de referencia:** el programa viejo tiene cuatro Edge Functions vivas que
+hacen esto con **gpt-4o** — `leer-factura`, `leer-remito-tallerista`, `leer-oc` y
+`leer-produccion-foto` — más `factura_combine` y `gp_file_b64`. El prompt de `leer-factura` ya tiene
+peleadas las trampas de la factura argentina (ARCA/AFIP): el punto de miles (`1.000` = mil), la coma
+decimal, el CUIT con guiones, razón social legal vs. nombre de fantasía, y el **código de artículo**
+como campo crítico. Eso se reusa; lo que cambia es el proveedor de IA y que el resultado entra por
+las RPC de GP2 en vez de escribir tablas de `public`.
+
+**Trampa encontrada al mirarlas (2026-09-13):** `leer-factura` tiene la **clave de OpenAI
+hardcodeada como fallback** (`Deno.env.get("OPENAI_API_KEY") || "sk-proj-…"`). No está en git —se
+verificó en los dos repos— pero está en el código de la función, y además hace que la función ande
+aunque el secret no esté puesto, así que nadie se entera. Quedó en la auditoría como problema
+abierto. **En GP2 la clave va sólo como secret de Supabase, sin fallback en el código.**
+
+Idea 7338.
+
+### 4cj. El preaviso: la promesa vive aparte del movimiento (2026-09-13)
+
+Construido el hueco ① del croquis. **Qué es:** el tallerista o el proveedor avisa *qué va a traer
+y cuándo*, antes de traerlo. Sin esto no se sabe qué entra mañana y el faltante se descubre tarde.
+
+**Cómo quedó, y por qué así:**
+- `GP2.preaviso` guarda **sólo la promesa** (contraparte, pieza, cantidad, fecha prometida). **No
+  mueve stock**: el movimiento lo sigue haciendo la pantalla de entrega que corresponda. Mezclar
+  las dos cosas era el error fácil — una promesa no es un ingreso.
+- **Qué puede entregar cada contraparte NO se cargó en ninguna tabla nueva**: sale de `ruta_paso`,
+  igual que en Recepción Virgilio (la salida de sus pasos; para el proveedor AT, la entrada del
+  paso `virgilio` que le sigue). Son **32 contrapartes y 329 pares contraparte–pieza**, todos
+  deducidos. La pantalla vieja mezclaba `Articulos Virgilio X Tallerista` con `Partes x PS` para
+  lo mismo.
+- `v_preaviso_estado` **cruza la promesa contra el libro sin escribir**: dice los días que faltan
+  (negativo = vencido) y cuánto de esa pieza entregó esa contraparte desde que lo prometió. Quién
+  lo da por cumplido es la persona, no la vista.
+
+Idea 7340. Pantalla: `Preavisos/Preavisos_GP2.html`, en el menú dentro de Tallerista.
+
+### 4ck. La entrega del tallerista EN CERVANTES: qué es y cómo está parametrizada (2026-09-13)
+
+Pregunta del usuario. Hay **dos entregas de tallerista distintas** y conviene no mezclarlas:
+
+| Entrega | Dónde cae | Pantalla | Movimientos |
+|---|---|---|---|
+| **En Virgilio** | el artículo **terminado** al centro logístico | `RecepcionVirgilio_GP2` | `recepcion_virgilio` + `consumo_virgilio` (la receta) |
+| **En Cervantes** | una **pieza a un sector** (semi-elaborado) | `EntregasTalleristas_GP2` | `entrega_tallerista` + `consumo_tall` |
+
+**Cómo está parametrizada la de Cervantes:** no hay tabla de configuración — **sale de la ruta**.
+Es todo paso `ruta_paso` de tipo `tallerista` cuyo `comp_salida` cae en un sector que **no** es
+Terminado (12). Hoy son **11 piezas y 4 talleristas** (el resto sólo entrega terminados):
+
+- **Martin Cornejo**: `GRJ5`, `GRJ6`, `GRJ7` (Garage) y `X4` Cuchilla Pelapapa Cerrada (Crudo)
+- **Alex Escalante**: `GRJ7`, `GRJ10`, `GRJ10A` (Garage) y `C12` Paleta Batidor Resorte (Bombilla)
+- **IJUPA**: `M6` y `M8`, los mangos de pelapapa para cromar (Crudo)
+- **Lucho**: `J1` Tochos Zinc para rectificar (Crudo)
+
+**Qué se le descuenta al entregar, que es la parte que importa:**
+1. Si la pieza tiene **`componente_bom`** (los GRJ y el C12), se descuenta **todo el BOM** —
+   p. ej. `GRJ7 = A10 + C10 + V9`, `GRJ10 = LL7B + LLF8 + IE4 ×3 + IE5`. Por eso `ruta_paso` lista
+   varias entradas para el mismo paso: **no son alternativas, son todas las partes del armado**.
+2. Si **no tiene BOM** (`M6`, `M8`, `J1`, `X4`), es una **transformación 1:1** de su entrada:
+   `M10→M6`, `M9→M8`, `F7→J1`, `X1→X4`.
+3. Si no tiene entrada, es un **paso in-place**: devuelve lo mismo que recibió.
+
+El motor lo resuelve solo (`GP2M.recepcionTall` → `crear_entrega_tallerista`, con
+`p_descontar_bom` y `p_comp_entrada_id`): **la pantalla no le pregunta al operario qué consumió**.
+El único caso que no puede deducir es una pieza con varias entradas posibles y **sin BOM cargado**
+— ahí la pantalla frena y pide cargar el BOM, en vez de adivinar.
+
+Lo que se le paga al tallerista vive aparte, en `precio_tallerista` (por kg).
+### 4cl. TODOS LOS ARTÍCULOS YA ESTÁN DESPIEZADOS — qué se destraba y qué queda (2026-09-13)
+
+`[usuario 2026-09-13, textual]` *"Todos los articulos ya estan despiezados"*. **Verificado contra la
+base y es así**: **190 artículos, 190 con receta** (780 líneas de `articulo_componente` + 44 de
+`componente_bom`), **0 artículos sin ruta**, **0 componentes de receta sin fila de inventario**.
+Para dimensionar el salto: la foto original del Excel eran 84 artículos.
+
+**La base está sana.** `db/verificar.sql` entero da 0 en todos los invariantes menos dos, y los dos
+se miraron hoy (abajo). 868 rutas, 3.315 pasos, 802 componentes, 1.308 filas de inventario.
+
+**Lo que se destraba (el número que importa):** con el despiece completo, la Est Madre explota a
+componentes para el **82,5 % de la demanda proyectada** (185 códigos, 208.073 uni/mes de 252.170).
+`[dato: GP2.est_madre x GP2.articulo]` El 17,5 % que no cruza **no es un hueco de GP2**: son **182
+códigos (42.107 uni/mes) que GP2 no modela y que el vecino tampoco despieza** — reventa e importado,
+casi todos con sufijo `E` (529E, 102E, 582E, 438E…, ninguno con nombre en `public."Despiece x
+Articulo"`). Sólo **38 códigos (1.990 uni/mes, 0,8 %)** son variantes con sufijo de un artículo que
+GP2 sí tiene: ésos sí convendría sumarlos al código base cuando se toque el cruce. **Esto corrige
+la lectura vieja de §4ax** ("34 artículos del Excel sin despiece plástico deja corto el consumo"):
+ese agujero ya no existe.
+
+**Lo único que queda pendiente del despiece — 10 artículos SIN CAJA NI CARTÓN en la receta**
+`[dato 2026-09-13]`: los tres palos de amasar (**231, 232, 233**) y los siete de acero inox
+(**941E, 942E, 943E, 944E, 945E, 946E, 948E**, cuya única línea es `PEST1` Insertos Mango de
+Madera). **No es un error de carga de GP2: el vecino está igual** — los siete `E` figuran en
+`public."Despiece x Articulo"` con `PEST1` y **sin `N_Caja`**, y los palos de amasar ni figuran
+(son de GP2). Tampoco tienen fila en `uni_x_articulo_x_caja`. **Pregunta al usuario: ¿van sin caja
+(a granel / en la caja de otro artículo) o falta cargarla?** Mientras no se responda, la OC de
+cartones y cajas queda corta para esos 10. Los otros 12 artículos de receta de una sola línea
+**están bien**: son compra terminada a un `proveedor_at` y lo único que se les agrega es la caja
+(070, 246, 326, 591, 618, 619, 761, 823, 900, 922) o el cartón (222, 910).
+
+**Los dos invariantes que daban > 0:**
+
+1. **`N_funciones_con_public_en_search_path` = 1 → arreglado hoy, y deja regla.** Era
+   `factura_match` (nacida ayer con la lectura de facturas, §4ci) con `search_path = GP2, public,
+   extensions`. **La causa vale como conocimiento: en este proyecto `pg_trgm` está instalada en
+   `public`, NO en `extensions`** (`unaccent` sí está en `extensions`), así que cualquier función
+   GP2 que use `similarity()` se ve tentada de meter `public` en el search_path — y ahí adentro
+   cualquier nombre sin calificar puede caer en una tabla del vecino. **Lo correcto es calificar
+   `public.similarity(...)` y dejar `search_path = GP2, extensions`**, que es lo mismo que ya hacía
+   `actualizar_dolar_oficial` con `public.http`. Hecho y probado llamando la función (proveedor
+   "TALLERES GRAFICOS POL S.A." → Talleres Gráficos Pol 0,85; un renglón por código y otro
+   `sin_match`); `db/funciones_GP2.sql` sincronizado y verificado por md5 contra la base.
+2. **`Z2_parametro_que_nadie_lee` = 2 → era la LISTA la que estaba vieja, no los parámetros.**
+   `master_bach_pct` (4) lo lee `recalcular_maximo_material()` y `facturas_lecturas_x_dia` (50) lo
+   lee `factura_lectura_permitida()` (idea 7339, de hoy). Los dos se agregaron a las dos listas de
+   `db/verificar.sql` y Z/Z2 vuelven a 0. **La trampa de este invariante es esa**: la lista de
+   claves está escrita a mano en el chequeo, así que un parámetro nuevo lo hace dar > 0 aunque el
+   código lo lea perfectamente — antes de creerle que un parámetro está muerto, hay que grepear el
+   `db/` (y, si el chequeo dice lo contrario, la que se corrige es la lista).
+
+
+### 4cm. Los que GP2 NO tiene: 46 son trabajo, 174 son reventa (2026-09-13)
+
+`[usuario 2026-09-13]` *"Veamos los que no tenés"*, por los 220 códigos de la Est Madre que no
+cruzan con un artículo de GP2 (44.097 uni/mes, el 17,5 % de la demanda). **El listado completo, con
+nombre, volumen y tallerista, está en `ARTICULOS_FUERA_DE_GP2.md`.** Lo que hay que saber:
+
+**El corte NO es el volumen, es si alguien los fabrica** `[dato: public."Despiece x Articulo" +
+public."Articulos Virgilio X Tallerista"]`:
+
+- **46 códigos (10.504 uni/mes, 4,2 % de la demanda) FALTAN DE VERDAD**: un tallerista los entrega
+  o el vecino los despieza. **Los 5 primeros son el 70 % del grupo y los cinco son de García**:
+  438E Colador N°20 (2.788), 437E Colador N°16 (2.388), 590E Pincel Silicona (1.188), 566E Aceitera
+  100 (624) y 584E Aceitera 400 (551).
+- **174 códigos (33.593 uni/mes, 13,3 %) son reventa e importado**: ni despiece ni tallerista, se
+  compran terminados (sacacorchos, ralladores, peladores, cortadores, pinzas, utensilios de
+  nylon/silicona con mango de madera o bambú). **No hay nada que modelar en GP2**, por más que
+  vendan: 529E solo son 3.708 uni/mes.
+
+**Tres cosas que aparecieron al mirarlos y evitan trabajo de más:**
+
+1. **Los coladores Loke 110/111/112/113 y los 438E/437E son la misma familia con dos
+   numeraciones** — antes de dar de alta seis artículos hay que ver si no son variantes del mismo
+   despiece.
+2. **El bloque de cubiertos inox de «Carlos» (332-337, 630-637, 613, 710) son 16 códigos y sólo
+   426 uni/mes, pero es el más barato de migrar**: casi todos tienen el despiece cargado en el
+   vecino (3 a 7 partes) y **GP2 ya tiene los 941E-948E, que son cubiertos inox del mismo estilo**,
+   así que hay componentes reusables. Los `CH` (630-637, 801, 809) son los mismos artículos con el
+   código de venta de Chef.
+3. **`55215` (Palo de Amasar 40 cm, Tierra Nativa) es el mismo producto que el `232` que GP2 ya
+   tiene**: no es un alta, es decidir si es un alias.
+
+**Los 75 códigos terminados en `L` suman 435 uni/mes ENTRE TODOS** — son códigos de venta por Chef
+de esa misma mercadería, no artículos distintos; no justifican trabajo propio. Y **`838E` y `877E`
+no tienen ni descripción en el vecino**: hay que preguntar qué son antes de tocarlos.
+
+
+### 4co. Qué se importa listo y qué se envasa acá: el corte de García (2026-09-13)
+
+Respuesta del dueño a "¿voy por los 5 de García?" (§4cm). **Cuatro de los cinco ya no son trabajo
+de GP2 y el quinto es el caso más interesante que apareció en toda la revisión.**
+
+**1) Lo que ahora se importa LISTO PARA LA REVENTA** `[usuario 2026-09-13, textual]`: *"438E es
+importado a partir de ahora y esta listo para la reventa. Lo mismo 437E, 566E y 584E"*. Los cuatro
+salen del grupo de "faltan": no se fabrican ni se envasan acá. Son **6.351 uni/mes, el 60 % de ese
+grupo**, que pasa de 46 códigos y 10.504 uni/mes a **43 y 4.160**.
+
+> **Excepción transitoria del 584E** `[usuario]`: quedan **1.200 unidades en Virgilio** que se le
+> mandan a García **para reenvasar de cajas de 60 a cajas x6**, y esas **cajas x6 no son cajas del
+> sistema**. Es stock viejo, no el circuito nuevo; mientras dure, ese consumo de cajas no se puede
+> registrar en GP2 sin dar de alta ese formato. **No inventarlo**: si hay que registrarlo, lo dice
+> el dueño.
+
+**2) El pincel 590E: UN insumo a granel, TRES artículos** `[usuario 2026-09-13, textual]`: *"590E se
+stockea en Virgilio en cajas x600uni, que se le mandan a garcia para que las envase"*. Lo que los
+diferencia **no es la pieza, es el envase**:
+
+| Artículo | Empresa | Cartón | Caja | uni/caja | uni/mes |
+|---|---|---|---|---:|---:|
+| 590E | LK | sí | 29 (`A11`) | 12 | 1.188 |
+| 890E | Chef | sí | 29 (`A11`) | 12 | 7 |
+| 590ES | LK | **no** | 29 (`A11`) | 50 | 0 |
+
+`[dato 2026-09-13]` Confirmado contra la base: **Caja N°29 = `A11`** (Sector Caja), **García =
+`Danica García`, tallerista id 1, activo**, y los tres códigos están en la Est Madre con el `uxb`
+que corresponde (12, 12, 50). El vecino modela el 590E con `590E-CC` (caja chica 1/12) y `590E-MC`
+(mastercaja 1/600): **la caja x600 es cómo llega importado**, no una parte del terminado.
+
+**Lo que falta para darlos de alta, y que sólo puede decir el dueño**: el código y el sector del
+**componente del pincel a granel** (no existe; su ubicación va a ser Virgilio), y los **dos
+cartones** (LK y Chef), que tampoco existen y **se codifican por posición de estantería** (`G2B` =
+Cartón 229, `G6B` = Cartón 299), no con un número inventado. También si el 890E lleva cartón propio
+de Chef o el mismo que LK. Detalle y orden de la cirugía en `ARTICULOS_FUERA_DE_GP2.md`.
+
+**Quedó una pregunta abierta y ya está contestada en §4cp**: `439E` (Colador Pasta) y `440E`
+(Colador Extensible) son de la misma familia de coladores, y el dueño dijo que **todos los coladores
+pasan a importados** — no se modelan. No volver a abrirla.
+
+
+### 4cp. Coladores de salida, cubiertos inox discontinuados, y dos códigos que eran otra cosa (2026-09-13)
+
+Segunda vuelta del dueño sobre la lista de §4cm/§4co. **El grupo de "faltan de verdad" arrancó en
+46 códigos / 10.504 uni/mes y quedó en 26 / 3.655** — y de eso, 1.038 uni/mes son coladores que
+también se van. Detalle en `ARTICULOS_FUERA_DE_GP2.md`.
+
+**1) Los coladores** `[usuario 2026-09-13, textual]`: *"Coladores, ahora pasan a ser importados
+dentro de muy poco, pero por ahora las hace Jose Lopez y entrega. Solo le damos el carton de cada
+uno (salvo 16 y 20cm de Chef y Loeke)"*. Tres cosas que salen de ahí:
+- **De un colador, lo único que pone GP2 es el cartón** — la pieza la hace y la entrega José López.
+- **Los de 16 y 20 cm (de las dos empresas) ni siquiera llevan nuestro cartón.**
+- Es un estado **transitorio**: pasan a importados. **Recomendación: no modelarlos** (110, 111, 112,
+  113, 439E, 440E). Además **José López no existe como tallerista en GP2** `[dato: los 13 cargados
+  son Danica García, Alex Escalante, Fábrica, Cavallero, Lucho, Martín Cornejo, Maspoli, Gentile,
+  Carlos Aguirre, IJUPA, Pettofrezza, Tierra Nativa y Blist-Pack]`, así que darlos de alta obliga a
+  crear un tallerista para algo que se discontinúa solo.
+- `[usuario 2026-09-13, textual: "439E no tiene nada que cer con 441"]` **El `439E` NO es el `441`.**
+  **Queda sin efecto** la suposición `[deducido]` que había acá de que el 439E fuera el `441`
+  Colador de Pasta Plástico (`GRJ25`) con otro código de venta: son artículos distintos. No cambia
+  la recomendación — el 439E es colador, y los coladores no se modelan porque se van a importar.
+
+**2) Los cubiertos de acero inox ya están resueltos, por otro camino** `[usuario 2026-09-13,
+textual]`: *"332/7 y 630/7 son discontinuos. Se reemplazaron por 941/8E"*. Son 14 códigos (332-337
+de LK y 630-637 de Chef, 425 uni/mes) y **los reemplazos `941E`-`948E` YA ESTÁN en GP2**, con
+receta y ruta. Justo el bloque que §4cm proponía migrar "porque era el más barato": no hay nada que
+migrar. `[dato]` GP2 tiene 941E-946E y 948E; **el `947E` no existe** `[usuario 2026-09-13, textual:
+"947E no"]`, así que **el juego está completo y no falta ninguno**. Pregunta cerrada.
+
+**3) Dos códigos que eran otro artículo ya conocido** `[usuario]`: **`838E` es el `323E` con otro
+cartón** `[usuario 2026-09-13, textual: "838E=323E con otro carton, no 323 (sin E)"]` — el Rallador
+Mini de Chef, y lo único que los separa es el cartón —, y **`877E` es el corta pizza, el mismo que
+el `809E` de Loeke**. Los dos se compran: van al grupo de reventa. **El `323` (sin E) Rallador
+Cilíndrico Chico es OTRA COSA**, no confundirlo con el 838E: sigue en la lista de los que faltan.
+
+**4) `55215`** (Palo de Amasar 40 cm, Tierra Nativa) `[usuario, textual]`: *"se entrego solo una
+vez. No lo analicemos. Y no se va a volver a vender"*. Fuera de la lista. **Deja sin efecto** lo que
+decía §4cm de que era un alias del 232.
+
+**La moraleja que deja esta vuelta** `[deducido]`: la Est Madre proyecta sobre lo que se vendió, así
+que **arrastra artículos discontinuados, códigos duplicados de la otra empresa y entregas de una
+sola vez**. Un código que aparece ahí y no está en GP2 no es, por sí solo, trabajo pendiente: hay
+que preguntar antes de modelar. De 46 candidatos, 20 se cayeron con cuatro frases del dueño.
+
+
+### 4cq. El 515/615 SE BORRÓ DE LA BASE — no volver a mencionarlo (2026-09-13)
+
+`[usuario 2026-09-13, textual]` *"Borra lo del 515/615 ya por favor. En otra sesion me lo sigue
+mencionando"*. **El tema está cerrado: no existe más en GP2 y no hay nada que analizar, proponer ni
+preguntar sobre él.** Si una sesión lo encuentra nombrado en un archivo viejo, es historia.
+
+**Qué se borró** (el 12-09 se habían discontinuado; hoy se eliminaron): los artículos **515 y 615**
+(Batidor Resorte) y sus 8 componentes exclusivos — `C12` Paleta, `W1B` Grampa, `IE1` Fleje N°33,
+`BOM10` Resorte Bicónico, `A1C1` Cartón 515, `O2A` Cartón 615 y los dos terminados (407, 433) — con
+todo lo que colgaba: 14 rutas, 55 pasos, 10 líneas de receta, 2 de BOM, 16 de inventario, 9
+movimientos, 1 recepción, 7 precios, 2 ítems de relevamiento y 1 fila de `fleje_detalle`.
+
+**Por qué se pudo borrar sin romper nada, y cómo se comprobó ANTES de tocar**: las tres consultas
+que hay que hacer siempre antes de un borrado así dieron vacío — ningún `ruta_paso` de otro
+artículo, ninguna receta de otro artículo y ningún `componente_bom` con un componente de afuera
+tocaban esas piezas; **todas tenían stock 0** y los 9 movimientos eran entre ellas mismas
+(`comp_transformado_id` siempre adentro del grupo), así que borrarlos no le movió el stock a nadie
+vivo. Con eso el borrado es una amputación limpia y no una mutilación.
+
+**Respaldo**: `zz_backups."GP2_Backup_515_615_20260913"` — 127 filas, cada una con su tabla de
+origen y la fila entera en `jsonb`. Con RLS y sin escritura para `anon`.
+
+**Después del borrado**: `db/verificar.sql` entero en 0, GP2 quedó en **188 artículos** (los 188 con
+receta y con ruta), 794 componentes, 854 rutas y 3.260 pasos.
+
+> **Regla que deja para el próximo borrado de un artículo**: discontinuar no alcanza si lo que se
+> quiere es que deje de aparecer — un discontinuado sigue en las listas, en las auditorías y en las
+> ideas, y cada sesión nueva lo vuelve a levantar. Si el dueño dice que no se fabrica más y no va a
+> volver, **se borra con backup**, y se cierra la sección del conocimiento en vez de dejarla abierta.
+
+### 4cr. El tipo de caja queda CERRADO; los precios esperan la lista del lunes (2026-09-13)
+
+`[usuario, textual]` **"Corregí el tipo de caja. Los precios, me parece raro pero el lunes subo
+los precios vigentes."** Dos cosas distintas que se venían mezclando:
+
+**1. QUÉ CAJA usa cada artículo: cerrado.** Los 52 que se pisaron el 11-09 con la hoja "Cajas" de
+`A_Costos_VIGENTES` **quedan como están, no se revierte nada**. La prueba que lo cerró no fue la
+hoja Cajas sino la hoja **Costos**, que es la que calcula el costo del artículo: su columna **M**
+(costo de caja por unidad) sale **por fórmula** apuntando a la hoja Cajas.
+
+| artículo | fila en Costos | fórmula de M | valor | caja |
+|---|---:|---|---:|---|
+| 546 Corta Queso mgo Lk | 67 | `='Cajas '!G167` | 12,2017 | **N°22** |
+| 315 Pisa Papas A. Inox | 112 | `='Cajas '!G97` | 30,00 | **N°12** |
+
+Y los gemelos heredan de esas mismas celdas (546L y 118 Loke toman `M67`; el 121 Loke toma
+`M112`; el 609 Chef y el 28 Chef también están en N°12). **Método a repetir:** cuando dos fuentes
+discutan qué caja va, no mirar la hoja Cajas — mirar de qué celda la toma la hoja **Costos**.
+
+**Impacto medido del cambio de los 52** `[dato]`: bajó el costo de caja **$47.636 por mes**
+(bruto movido $131.076). Dos artículos explican $43.270 de ese bruto: el 546 (7.700 uni/mes) y el
+315 (4.022 uni/mes); los otros 45 juntos mueven menos que el 546 solo.
+
+**2. LOS PRECIOS de las cajas: NO TOCAR hasta la lista del lunes.** Se cruzaron los 12 precios de
+caja de GP2 contra la planilla: **11 coinciden al centavo** (misma fecha de lista, 20-07-2026). El
+único que no:
+
+| | planilla | GP2 |
+|---|---:|---:|
+| Caja N°22 | 146,42 | **208,00** |
+
+Si la planilla tuviera razón serían ~$39.500/mes de más sólo en el 546. **El usuario lo vio y
+decidió esperar** — sube los precios vigentes el lunes. **Ninguna sesión debe "corregir" la N°22
+antes de esa lista**: la diferencia probablemente sea un aumento que la planilla todavía no tiene,
+no un error de carga.
+
+**Lo único que sigue abierto del tema caja:** 9 artículos (789, 800, 823, 825, 840, 844, 845, 858,
+862) piden **Caja N°8** o **Caja N°28**, que no existen como componente. Falta su **posición de
+estantería** para crearlas — no se inventa. Y el batidor pera (544 y 802) queda en N°12 por
+decisión del usuario, contra la N°6 que dice la planilla.
+
+### 4cs. La Caja N°8 está DISCONTINUADA: el gemelo LK cierra los 9 que faltaban (2026-09-13)
+
+`[usuario]` **"Fijate su equivalente en LK"**. Los 9 artículos que pedían una caja inexistente
+quedaron resueltos **sin crear ninguna caja**, y la razón estaba escrita en el propio informe de
+faltantes del 08-09: *"12 de 13; **la N°8 no va porque es discontinua**"*. La planilla la sigue
+pidiendo, pero ya no se compra — y lo que GP2 tiene hoy es el reemplazo que usa el gemelo Loeke.
+
+El mapeo Chef↔Loeke sale de la hoja **`Conversion cod Loeke Chef`** de `A_Costos_VIGENTES`
+(columna **J** = Cod Loeke, **K/L/M** = Cod Chef 1/2/3). Vale la pena recordarla: es la fuente
+oficial del gemelo y evita adivinarlo por descripción.
+
+**6 de 9 ya estaban donde dice el gemelo — no se tocó nada:**
+
+| Chef | pedía | gemelo LK | caja del LK y de GP2 |
+|---|---|---|---|
+| 789 Pisa Papas Nylon Con Mgo | N°8 | 355 | N°7 |
+| 800 Pinza Corta Alambre 21 Cm | N°8 | 560 | N°2 |
+| 825 Colador Ø 10 Cm | N°8 | 027 | N°2 |
+| 844 Cuchara Fideos Nylon | N°8 | 391 | N°7 |
+| 845 Cucharón Nylon | N°8 | 392 | N°7 |
+| 840 Rallador Cilíndrico 21 Cm | N°28 | 321 | N°10 |
+
+**Uno se corrigió:** el **862 Corta Pizza Familiar** estaba en Caja N°2 y su gemelo **562** va en
+**N°22**, con la misma uni x caja (12). Migración `el_862_va_en_la_caja_22_como_su_gemelo_lk_562`
+(artículo + receta + los dos pasos de ruta). El costo de caja baja de $21,82 a $17,33 por unidad.
+
+**Dos quedan como están, a propósito:**
+- **858 Pala De Canelones Ac. Inox.** — el gemelo 570 va en N°7, pero **la uni x caja no coincide**
+  (858 de a 12, el 570 de a 24): no es el mismo empaque, así que el gemelo NO manda acá. Queda en
+  N°12. **Regla: el gemelo sólo decide la caja si además coincide la uni x caja.**
+- **823 Exprimidor De Cítricos** — es Loeke, no tiene gemelo. Queda en N°10.
+
+**Con esto el tema caja queda cerrado del todo**, salvo los precios, que esperan la lista del
+lunes (§4cr). Ya no hay ningún artículo pidiendo una caja que no exista.
+
+### 4ct. El circuito del pincel YA ESTÁ EN LA BASE — y el número del cartón es el código del artículo (2026-09-13)
+
+**Estado: dado de alta y verificado contra la base.** La §4co y la entrada de `[HISTORIAL]` del
+13-09 decían *"NO SE DIO DE ALTA NADA todavía porque faltan tres datos que sólo tiene el dueño"*.
+**Eso quedó viejo**: los tres artículos, los tres componentes y las ocho rutas están cargados. Esta
+sección es la foto real, para que ninguna sesión vuelva a preguntar por lo que ya existe.
+
+**Un solo insumo a granel que sale como TRES artículos** `[usuario 2026-09-13, textual: "590E se
+stockea en Virgilio en cajas x600uni, que se le mandan a garcia para que las envase"]`. Lo que
+separa a los tres **no es la pieza, es el envase**:
+
+| Artículo | id | Empresa | Cartón | Caja | uni/caja | Familia |
+|---|---:|---|---|---|---:|---|
+| `590E` Pincel Silicona 11 Gms | 229 | LK | `CART590` | `A11` (Caja N°29) | 12 | Repostería |
+| `890E` Pincel Silicona 11 Gms | 230 | Chef | `CART890` | `A11` (Caja N°29) | 12 | Repostería |
+| `590ES` Pincel Silicona 11 gms s/Cartón | 231 | LK | **ninguno** | `A11` (Caja N°29) | 50 | Repostería |
+
+**Los componentes** `[dato: GP2.componente]`: `PINCEL590` (id 910) *Pincel Silicona 11 gms
+(granel)*, **Sector Plástico**, proveedor `Importado`, inventario en **Virgilio (Distribución)** —
+que es donde se stockea; `CART590` (id 911) y `CART890` (id 912), **Sector Cartón**, inventario en
+Sector Cartón. La **Caja N°29 = `A11`**, Sector Caja, proveedor Corrugadora del Plata.
+
+**Las recetas** (`articulo_componente`) y **las 8 rutas**, una por insumo, todas con el tallerista
+**Danica García (id 1)** y el patrón `insumo → tallerista → virgilio`, calcado 1:1 de los artículos
+550/760:
+
+| Artículo | Receta | Rutas |
+|---|---|---|
+| `590E` | PINCEL590 ×1 · CART590 ×1 · A11 ×1/12 (0,0833) | 964, 965, 966 |
+| `890E` | PINCEL590 ×1 · CART890 ×1 · A11 ×1/12 (0,0833) | 967, 968, 969 |
+| `590ES` | PINCEL590 ×1 · A11 ×1/50 (0,02) | 970, 971 |
+
+**Base después del alta** `[dato]`: **191 artículos, 800 componentes, 862 rutas, 3.284 pasos**;
+0 sin receta, 0 sin ruta, 0 componentes de receta sin inventario, y los 35 invariantes de
+`db/verificar.sql` en 0.
+
+#### La regla del número de cartón: 147 de 152, y las 5 excepciones dicen algo
+
+**El número que lleva el cartón en su descripción es el código del artículo que envuelve.** Medido
+sobre los 152 cartones de GP2 que tienen un número en la descripción: **147 de esos números son un
+código de artículo de GP2**. Por eso `Cartón 590` y `Cartón 890`, y no un número inventado.
+
+**Las 5 que no cierran no son ruido, son dos cosas distintas** `[dato 2026-09-13]`:
+
+| Cartón | Código | Por qué no cierra |
+|---|---|---|
+| `Cartón 590` | `CART590` | El artículo es `590E`, con la E. El cartón es del pincel igual. |
+| `Cartón 890` | `CART890` | Ídem con `890E`. |
+| `Cartón 574` | `C1B` | **`574` no existe como artículo en GP2** — y está en el grupo A de los que faltan. |
+| `Cartón 119` | `I3B` | **`119` no existe como artículo en GP2.** |
+| `Cartón 809` | `O6A` | **`809` no existe como artículo en GP2** — también está en el grupo A. |
+
+**Lo que deja como método:** un cartón cargado cuyo número no cruza con ningún artículo es **un
+artículo que falta, no un cartón mal codificado**. Para el `574 Corta Queso Alambre` y el `809
+Corta Queso Alambre Chef` el cartón **ya está**; lo que falta es el artículo. Eso baja el trabajo
+de esos dos a la mitad y conviene mirarlo antes de darlos de alta desde cero.
+
+#### Dos cabos sueltos del pincel, a propósito
+
+1. **Faltan TRES precios, no uno.** `v_costo_componente` marca `faltan_precios` en `PINCEL590`,
+   **`CART590` y `CART890`** (la §4co y el pedido original sólo nombraban el pincel). Consecuencia
+   medida: los tres artículos dan **$166,86** de costo, que es **exactamente el costo de la caja
+   `A11`** — o sea que hoy el pincel "cuesta su caja". No es que el pincel sea gratis: no tiene
+   precio cargado. **Al mirar el costo de estos tres, leer `faltan_precios` antes de creerle al
+   total** (la misma trampa que dejó §4cn con `BOM10`).
+2. **`CART590` y `CART890` no tienen posición de estantería.** El código `CART###` es **provisorio**
+   (precedentes `CART058`, `CART059`, `CART186`, `CART715`). La convención de la casa codifica el
+   cartón **por posición** (`G2B` = Cartón 229, `G6B` = Cartón 299), así que el código definitivo
+   sale de dónde se guardan, y eso lo tiene que decir el dueño. No se inventa.
+
+#### Los dos cartones del pincel son FORMATO HUEVO — y eran los únicos de la casa sin formato (2026-09-13, misma noche)
+
+`[usuario 2026-09-13, textual: "590/890 usan carton huevo" y "Chef tambien tiene formato huevo"]`.
+Al leerlo, la primera lectura fue "un cartón compartido llamado huevo" — **estaba mal, y se retira**:
+`Huevo` es un **`carton_formato`** de GP2 (el troquel: 25 posiciones por pliego, pedido múltiplo de
+25.000, mínimo 2.000 por código, bolsa de 2.000) y ya lo usaban **36 cartones** (21 LOEKE, 15 CHEF;
+ej. `C1B` Cartón 574 y `D5B` Cartón 867). Cada artículo sigue teniendo **su** cartón; lo que se
+comparte es el formato. `[dato: GP2.carton_formato + planilla, hoja " Cartones" fila 429: 590E →
+tipo 15 "Loekemeyer Huevo"; el 548 Pincel Pastelero usa el mismo tipo 15]`.
+
+Lo que se aplicó (backup `zz_backups."GP2_Backup_carton_huevo_20260913"`, 2 filas, con RLS):
+
+| Componente | id | `carton_formato` | `marca` | `proveedor` |
+|---|---:|---|---|---|
+| `CART590` Cartón 590 (590E, LK) | 911 | `Huevo` | `LOEKE` | Talleres Gráficos Pol |
+| `CART890` Cartón 890 (890E, Chef) | 912 | `Huevo` | `CHEF` | Talleres Gráficos Pol |
+
+**Eran los únicos dos cartones de todo GP2 con `carton_formato` y `marca` en NULL** (chequeo después:
+0). Sin formato no entraban a la familia Huevo de `oc_bundle` / `_oc_validar_carton`, así que la OC
+no les aplicaba los múltiplos. Proveedor Pol confirmado por el dueño (es el de los hermanos Huevo).
+Invariantes en 0. **El cabo suelto 2 (posición de estantería) sigue abierto; el 1 (los tres precios)
+también.**
+
+### 4cu. La M78 es una convergencia (como la M135): qué entró, qué NO dio lo esperado y por qué (2026-09-13)
+
+**Aplicado con "dale" del dueño**, en dos migraciones: `la_matriz_78_pasa_a_ser_una_convergencia`
+(rutas) y `la_receta_del_rompenueces_pide_la_pieza_remachada` (receta + BOM). Respaldo:
+`zz_backups."GP2_Backup_M78_20260913"` (58 filas: 38 `ruta_paso`, 4 `componente`, 4 `inventario`,
+10 `articulo_componente`, 2 `precio_servicio_pieza`).
+
+**El patrón de la casa para "una matriz que UNE varias piezas"** `[dato: 521/M135 y ahora 507-707/M78]`:
+1. **Una ruta por rama de entrada**, todas con el **mismo paso de matriz** y la **misma pieza de
+   salida** (521: K5, K8 y V3 → M135 → G4; 507: D6, D5 y V4 → M78 → `D5-M78`; 707: B1, B2 y V4 →
+   M78 → `B1-M78`).
+2. **`componente_bom` con la pieza de salida como padre** y las entradas como hijos (G4 ← K5+K8+V3;
+   `D5-M78` ← D5+D6+V4; `B1-M78` ← B1+B2+V4).
+3. **La receta del artículo pide lo que llega al tallerista**, no las partes (el 521 pide C16, que
+   está aguas abajo de G4; el 507 pide `D5-M78`, el 707 `B1-M78`).
+Las "mitades remachadas" que no existían (484 `D6-M78`, 487 `B2-M78`) se borraron; el remache V4
+ahora pasa por la M78 en vez de llegar suelto al tallerista.
+
+**Dos cosas que el pedido daba por ciertas y la base desmintió:**
+
+- **"La M78 se cobra dos veces, el 507 y el 707 bajan ~$28,80."** [Seguro] Falso. `v_costo_componente`
+  agrupa la mano de obra **por matriz** (`group by comp_id, matriz_id`), así que la M78 ya contaba
+  una sola vez aunque hubiera dos pasos. Los costos del 507 (887,53) y del 521 (1.428,69) **no se
+  movieron un centavo** con la migración; el 707 bajó por otra causa (el precio de Jade, abajo). El
+  problema 113 diagnosticó bien la forma (dos pasos paralelos) y mal el síntoma (la plata).
+- **"La simulación tiene que dar `colgado = []`."** [Seguro] Inalcanzable para *cualquier*
+  convergencia: `__sim_articulo` corre cada ruta entera, así que tres ramas producen tres veces la
+  pieza de salida y el tallerista consume una. **El testigo 521 deja exactamente lo mismo**
+  (`C16 +240`). El criterio correcto es "se comporta como el 521": `a_virgilio = 120` y lo colgado es
+  sólo la pieza de salida en positivo. Las piezas sueltas en negativo (D5, D6, V4 a −120) sí eran el
+  bug, y desaparecieron con la receta.
+
+**Precio de Jade: por el rompenuez entero, no por mitad** `[usuario 2026-09-13: "Me da que 305 cuesta
+pintar entero"]`. Lo confirman dos cosas: la planilla dice *"Rompenueces Pintado"* $305 en una sola
+línea (fila 654) y para el cromado dice explícito *"Abierto o Cerrado"* por kg (fila 740); y las
+otras 12 piezas que pinta Jade valen $127 o $150 — las mitades a $305 cada una eran el doble del
+máximo. Corregido a **$152,50 por mitad** (ids 71 y 72): el 707 pasa de 1.264,56 a **959,56**. La
+diferencia real 507/707 son ~$72: cartón (−22) y pintar vs cromar (+94). Auditoría: problema 114.
+
+**Hallazgo de paso, NO corregido (para el auditor de costos):** [Probable] el motor deduplica
+aristas del grafo (`wd` = distinct sobre entrada/salida/paso). Las dos mitades del rompenuez salen
+del **mismo fleje IE10 vía M73**, así que el fleje y la M73 se cuentan **una** vez para las dos. El
+507/707 está **sub**-costeado en una mitad de fleje + una pasada de M73. Es anterior a esta
+migración (las rutas 45/46 ya compartían esa arista) y afecta a cualquier artículo cuyas ramas
+convergentes arranquen del mismo insumo.
+
+**Se borró `db/pendiente/2026-09-12_mb_color_y_matriz78.sql`**: la parte (a) (colores de Master
+Bach) ya estaba aplicada y la (b) es esto. `db/` no cambia: fueron migraciones de datos, no de schema.
+
+
+### 4cv. La Versión Tablet: el contrato lo manda la base, y dos trampas de unidad (2026-09-13)
+
+**Qué pasó.** Una sesión construyó la "Versión Tablet" (una pantalla con Enviar / Recibir / Conteo
+para la tablet del galpón) y **su código se perdió**: la rama nunca llegó a `origin`. Pero el backend
+**sí quedó vivo en la base**: `GP2.alerta_recepcion`, `tablet_bundle()`, `tablet_registrar(p)`,
+`alerta_recepcion_marcar(...)` y `alertas_bundle()` con la clave `recepcion_de_mas`. Es exactamente el
+desfasaje que el CLAUDE.md marca como el peligro real (la base adelantada, `main` sin el código). El
+frente se **rehízo leyendo el cuerpo real de las funciones** (`pg_get_functiondef`), no la memoria de
+lo que "debería" devolver. `[dato: base, 2026-09-13]`
+
+**Lo que fija el contrato** (el detalle en `GP2_MAPA.md`, sección "Versión Tablet"):
+- `um` en el bundle es `componente.unidad_medida`: **`'kg'` o `'unidad'`**; `tablet_registrar` acepta
+  **`'uni'` o `'kg'`**. La pantalla traduce. Un `'unidad'` mandado crudo revienta con "Unidad invalida".
+- `ref` es **texto** siempre (el id como string, el nombre del proveedor de insumo, o `'virgilio'`), y
+  **el prov. AT viene con `ref = '*'` en `enviar`**: cualquier cartón/caja va a cualquier prov. AT.
+- El **esperado** sale de la OC si trae un proveedor (`oc`; **null si no hay OC**, y sin esperado no
+  hay alerta), y del stock online si trae un tallerista / PS (`online_tall` / `online_ps`) o Virgilio.
+- Desde la tablet **no se le envía** a Virgilio ni al proveedor de insumo; el PS exige
+  `comp_entrada_id` (el SC que consume); `tablet_registrar` no acepta `modo = 'conteo'`.
+
+**Las dos trampas de unidad** `[usuario, vía la sesión perdida; verificado contra las RPC]`:
+1. **El proveedor de artículo terminado entrega CAJAS.** `crear_entrega_prov_at` pide `p_cajas`. La
+   pantalla carga cajas, muestra "= N uni x caja", y manda `cantidad` = cajas con `unidad 'uni'` y
+   `por_caja`; la base compara `cajas × por_caja` contra la OC, que está en unidades.
+2. **Una pieza en kg se manda y se recibe en kg** (fleje cortado, chapa, el 1686 de Eclipse): teclado
+   decimal con coma, y `unidad 'kg'` en el payload. Mezclar kg con uni en esas piezas es lo que hacía
+   imposible recibir CV18D / V18D / V20 (§ kg ↔ uni en `gp2-numero.js`).
+
+**La alerta de "recibí de más" avisa pero no frena** `[usuario, vía la sesión perdida]`: la base
+registra el movimiento **primero** y la alerta **después**; la pantalla marca la fila, dice "podés
+registrar igual" y deja el botón habilitado. Quien revisa lo hace en Alertas (bloque "Se recibió de
+más", botón Revisada → estado `vista`) y el menú muestra cuántas quedan sobre el botón Alertas.
+
+**El Conteo no escribe.** Compara lo contado contra el online del sector y baja un CSV. El ajuste de
+stock sigue el circuito de siempre — Relevamientos (el operario cuenta) → Validación de Stock (el
+operador del sistema decide) — y `tablet_registrar` no tiene un modo para eso.
+
+**Deuda que quedó en el backend, NO en la pantalla** (idea 7345): para recibir de un **tallerista**
+`tablet_registrar` llama a `crear_entrega_tallerista`, y el propio `comment` de esa función dice que
+**no es el motor** (el motor es `gp2-motor.js` + `registrar_movimientos`, idea 7316). Se documenta y
+se deja abierto: esta sesión no podía tocar la base.
+
+### 4cw. Cruce contra loekemeyer.com: 11 artículos activos sin despiece — y la Est Madre miente con el 515 (2026-09-13)
+
+**Pedido del dueño:** *"Revisá loekemeyer.com. Revisá si te falta el despiece de algún artículo."*
+La página no se puede leer desde la sesión (el proxy la bloquea), así que se cruzó **la fuente de
+la página**: `public.products` del proyecto LK (`kwkclwhmoygunqmlegrg`), que es lo que el sitio
+muestra `[dato 2026-09-13]`.
+
+**Universo:** 264 productos, **199 activos** = 87 importados (terminan en E, reventa: fuera de GP2
+por diseño, §4cm) + **112 propios**. De los 112, **101 tienen despiece en GP2** (0 sin receta, 0 sin
+ruta) y **11 no**:
+
+| Cód | Artículo | uni/mes Est Madre | Estado en GP2 |
+|---|---|---:|---|
+| 515 | Batidor Resorte | 486 | **borrado el 13-09** por orden del dueño (§4cq) — **ver abajo** |
+| 332 | Espátula Calada Ac. Inox | 136 | "discontinuo → 941E-948E" (dueño, §4cp) |
+| 509 | Pala Batidora | 104 | grupo A, Carlos; el vecino tampoco lo despieza |
+| 396 | Enrulador de Manteca | 80 | grupo A, sin tallerista |
+| 335 | Cuchara Calada Ac. Inox | 64 | "discontinuo → 941E-948E" |
+| 573 | Bombilla Colores Metalizados | 52 | **nuevo**: no figuraba en ningún listado, sin despiece en el vecino |
+| 337 | Pinche Ac. Inox | 48 | "discontinuo → 941E-948E" |
+| 537 | Pela y Pica Ajo | 0 | pendiente a propósito (dueño) |
+| 567 | Corta Palta | 0 | ídem |
+| 556 | Sacayerba | 0 | **nuevo** |
+| 517 | Pinza Acero Inox 25 cm | 0 | **nuevo** |
+
+**Contradicción que se le mostró al dueño:** 515, 332, 335 y 337 están **activos en la página** y
+GP2 los tiene como borrado / discontinuos. Su respuesta sobre el 515 `[usuario 2026-09-13, textual:
+"No hay chance que se venda 486 uni de 515"]` → **la proyección de la Est Madre para el 515 es
+falsa** y el borrado queda como está. **Regla que deja:** `GP2.est_madre.proy_uni_mes` no es
+evidencia de que un artículo se vende — proyecta sobre lo vendido histórico y arrastra
+discontinuados (§4cp ya lo decía para los 46 candidatos; el 515 es el caso más grande: 486 uni/mes
+de un artículo que ya no se fabrica). Antes de usar ese número para decidir un alta, mirar ventas
+reales recientes o preguntarle al dueño. Los otros tres inox (332/335/337) y los tres códigos nuevos
+(573, 556, 517) siguen sin decisión del dueño; 509 y 396 siguen en el grupo A.
+
+**Lo que NO cambia:** los 45 propios inactivos de la página no se miran (no se venden); los 87 E
+no van a GP2.
+
+## 4cx. Los palos de amasar 231/232/233: caja, bandita y quién los termina (2026-09-13)
+
+**Decisión del dueño, textual:** *"231 y 232 van en misma caja que 234"* · *"1 ponele la 15"* ·
+*"2 ponele 12 a los 4 items"* · *"3 si"*. O sea: **los cuatro palos** (231 de 30 cm, 232 de 40 cm,
+233 de 50 cm y el 234 Palo Francés de 40 cm) van en la **Caja N°15** (`A9B`, componente 604, Sector
+Caja) y **12 unidades por caja**. Antes los tres primeros tenían la caja vacía y decían 24. `[usuario]`
+
+**Cómo es el circuito** `[usuario, reconstruido con la base]`: Tierra Nativa vende el palo hecho, se
+guarda en el garage como `GRJ22/23/24`, y **Fábrica le pone la bandita y lo entrega en Virgilio**.
+Por eso la ruta de cada palo es la misma forma de siempre: `insumo → Fábrica → virgilio`, tres pasos.
+
+**La bandita no existía en la base y se creó**: componente `BANDITA` id **916**, Sector Cartón,
+marca LOEKE, unidad `unidad`, inventario en Sector Cartón arrancando en 0. Va **×1 en los tres
+palos**, y **el 234 NO la lleva** — ésa es la única diferencia de receta entre el francés y los otros
+tres. `[dato: articulo_componente 917–922, rutas 972–977, pasos 3726–3743]`
+
+**Tres cosas que quedaron sin resolver y conviene no re-descubrir:**
+
+1. **Quién provee la bandita: no se sabe.** El componente quedó con `proveedor = NULL` a propósito.
+   En la planilla hay tres candidatos y **ninguno dice "palo de amasar"**: Gráfica Pol "Bandita
+   Ralladores" $8.250 y "Banditas 35 × 194 mm" $8.250 (las dos con col C = "Falta Prov"), y López
+   José Daniel "Super Bands Bolsa N°15 (Bandita Negra)" $1,08 la unidad. Elegir a ojo es inventar.
+2. **El máximo de la bandita queda NULL** porque **231/232/233 no están en `est_madre`** (el 234 sí,
+   396 uni/mes). Sin demanda cargada, `recalcular_maximos_insumos()` no tiene de dónde sacar el
+   máximo. No es un bug: es que falta el dato de cuánto se vende de cada palo.
+3. **`articulo_prov_at` todavía dice que Tierra Nativa entrega los tres TERMINADOS** (ids 92/94/95,
+   activos). **Eso contradice lo que explicó el dueño** (Tierra Nativa vende el palo, la bandita la
+   pone Fábrica). Mientras siga activo, una entrega de Prov AT de un 231 descontaría GRJ22 + A9B +
+   BANDITA desde la ubicación 54 (Prov. Art. Term. Tierra Nativa), que está vacía, y la dejaría en
+   negativo. **Desactivarlo es una línea, pero es una pregunta, no una deducción.** `[deducido]`
+
+**Costo:** los tres siguen con `faltan_precios` ≥ 2 (los `GRJ22/23/24` no tienen precio y la bandita
+tampoco), así que lo único que hoy suma al costo es la caja ($28,69 por unidad). En la lista de
+precios sólo están "Palo de Amasar Frances 40cm" $600 y "Torneado Palo de Amasar 40cm" $1.245, los
+dos de Tierra Nativa: **no hay precio para el 30, el 40 ni el 50 lisos**. `[dato: v_planilla_precio]`
+
+
+**Corrección al punto 3, medida el 2026-09-13 a la tarde (segunda vuelta):** eran **cuatro** filas,
+no tres — el **234 (id 93)** tiene el mismo agujero, misma ruta `insumo → Fábrica → virgilio` y
+mismo proveedor. Y el `activo=false` **no cierra la puerta del todo**: ver §4cy. `[dato]`
+
+**Y la respuesta del dueño al punto 3, textual (2026-09-13): *"es la misma lógica que lo de cimarron
+con las bombillas que entrega en cervantes"*.** Con eso la pregunta se cierra: **los palos son una
+COMPRA DE INSUMO, no una entrega de Prov AT.** La base ya lo dice — `GRJ22/23/24` y `GRJ17` son
+Sector Garage, proveedor de insumo Tierra Nativa, stock en Sector Garage, `estado_compra` NULL,
+**exactamente la misma forma que `GRJ4` (Bomb AutoLimp Inox, proveedor Cimarrón)**: Cimarrón entrega
+la bombilla en Cervantes, se guarda en el garage como GRJ y recién después alguien la termina y la
+manda a Virgilio. El palo es eso mismo con Tierra Nativa y con Fábrica poniendo la bandita.
+
+**Consecuencia:** las 4 filas de `articulo_prov_at` de los palos (ids 92/93/94/95, los tres + el
+**234**) no describen nada real y hay que desactivarlas. De Tierra Nativa como Prov AT queda sólo el
+**591** (Despolvillador), que sí entra terminado y tiene su paso `proveedor_at` en la ruta 956.
+**Regla que deja: un proveedor puede ser las dos cosas a la vez** — insumo para unos artículos y
+Prov AT para otros —, así que la pregunta correcta nunca es "¿qué es este proveedor?" sino "¿qué
+llega de él para ESTE artículo: una pieza al garage, o el artículo terminado a Virgilio?". `[usuario]`
+
+## 4cy. `articulo_prov_at` no garantiza nada, y `activo` sólo lo ve la pantalla (2026-09-13)
+
+Salió de traer al dueño la pregunta del punto 3 de §4cx. Lo que apareció es más grande que los palos.
+
+**1. La forma correcta de "entra terminado" es un paso `proveedor_at` en la ruta, no una fila en
+`articulo_prov_at`.** El testigo bien modelado es el **591**: ruta 956 = `A4 (insumo) → proveedor_at
+13 → virgilio`. `[dato]`
+
+**2. De las 91 filas de `articulo_prov_at`, 34 son artículos de GP2 cuya ruta NO tiene ese paso**
+(Cabral 26, Tierra Nativa 4 = los cuatro palos, Maspoli 3, Pettofrezza 1) y otras 12 ni siquiera
+son artículos de GP2. Las 45 restantes están bien. **Los palos no son la excepción, son 4 de 34.**
+`[dato]`
+
+**3. Qué pasa si se registra una entrega de una de esas 34:** `crear_entrega_prov_at` delega en
+`recepcion_virgilio`, que consume **toda la receta** desde `ubic_de('proveedor_at', N)`. La
+ubicación 54 (Tierra Nativa) **no tiene ni una fila de inventario**, así que todo queda en negativo.
+Con las 26 de Cabral es peor: el 501 arrastra 14 rutas. Hoy no pasó nunca (0 entregas en esas 34).
+`[dato]`
+
+**4. La trampa fina: `activo=false` saca el artículo de la PANTALLA, no de la RPC.**
+`entregas_prov_at_bundle` filtra `coalesce(a.activo,true)` y `EntregasAT_GP2.html` es la única
+pantalla que llama a `crear_entrega_prov_at` — así que para un operario la puerta queda cerrada.
+Pero la RPC misma chequea **existencia de la fila, sin mirar `activo`** (el `if not exists` se
+aflojó a propósito en su momento, por 5 filas con `descripcion` vacía — aquello era por
+`descripcion`, no por `activo`, así que agregarle `and coalesce(a.activo,true)` no revive ese bug).
+**Regla: antes de decir "con desactivarlo alcanza", leer la función con `pg_get_functiondef`, no
+`db/`.** `[dato]`
+
+## 4cz. El cruce de la lista de precios se hace por `cod_isis`, no por el nombre del producto (2026-09-13)
+
+Se buscó el proveedor de **`PEST1`** (Insertos Mango de Madera, 768, el único insumo comprable sin
+proveedor) y por texto no aparecía: en el bloque de Pat Bet Plast la línea se llama **"Insertos
+Importados"**. Cruzando por `cod_isis` aparece que **es el mismo artículo**: `4776` lo cotizan
+**Pat Bet Plast a $90,26** (última compra 28-11-2025) y **Kollplast a $219,97** con el nombre
+literal **"Inserto Mgo Madera"**. `[dato: v_planilla_precio]`
+
+- El hermano `PEST2` (Insertos Pisa Papas, 735) ya está en **Pat Bet Plast**, mismo sector y **mismo
+  `material_id` 742** (PP 2630). Kollplast cotiza los dos códigos (4776 y 3096): es la alternativa
+  de Pat Bet Plast en toda la línea, no un proveedor suelto.
+- **La plata:** PEST1 consume 684 uni/mes → la diferencia entre los dos precios es **$1,06 M por
+  año**. Elegir "el que suena parecido" acá cuesta plata de verdad.
+
+**DECISIÓN DEL DUEÑO (2026-09-13, textual): *"PEST 1, KollPlast. pero deja registrado que a partir
+de noviembre aprox no se debería inyectar más"*.** Aplicado: `GP2.componente` 768 `proveedor =
+'Kollplast'` (antes NULL). Verificado con SELECT; invariante `A2` sigue en 0 (Kollplast ya tenía
+ubicación de inyector, la 60) y el costo no se movió porque **PEST1 no tiene fila en
+`precio_proveedor`** (sigue `faltan_precios = 1`). Después del cambio, el único insumo comprable sin
+proveedor es `BANDITA`. `[usuario + dato]`
+
+**⏳ PEST1 se deja de inyectar alrededor de NOVIEMBRE 2026.** Es un insumo con fecha de vencimiento:
+va en los 7 artículos `941E`–`948E` (684 uni/mes) y cuadra con que esos siete son **importados** —
+la LP los tiene comprados hechos a Tierra Nativa a USD 1,36. Qué hacer llegado noviembre, y qué NO
+hacer antes: `[usuario]`
+- **No cargarle precio nuevo ni stock mínimo pensando en el largo plazo**, y mirar con desconfianza
+  cualquier OC de PEST1 con horizonte mayor a esa fecha (el sugerido es `máximo − stock`, y su
+  máximo hoy son 2.736 uni de `est_madre`: eso es más de lo que va a consumir).
+- Cuando se confirme, **`estado_compra` pasa a `discontinuo`** y hay que revisar las 7 recetas y las
+  7 rutas antes de tocar el componente (no se borra: tiene recetas y rutas colgando, misma regla que
+  `GRJ21`).
+- El inventario de PEST1 hoy está en **−372 uni** (stock inicial nunca cargado). Si se discontinúa
+  sin cerrar ese negativo queda arrastrando para siempre.
+
+**Regla que deja: para encontrar un insumo en la lista de precios, cruzar por `cod_isis` y recién
+después por texto. Dos proveedores con el mismo `cod_isis` son dos alternativas del mismo artículo**
+(igual que los dos Prov AT de §4bk), no un duplicado a limpiar. `[deducido]`
+
+## 4da. La caja puede estar en el FK y no estar en la receta: $821.628 al año sin costear (2026-09-13)
+
+`GP2.articulo.componente_caja_id` dice **qué** caja usa el artículo; lo que hace que la caja **cueste**
+es su línea en `articulo_componente` (y su ruta). **175 de los 189 artículos con caja la tienen en la
+receta. 14 no**, y en esos 14 la caja vale $0 en `v_costo_componente`: `[dato]`
+
+| Art | Caja | uni x caja | $/mes sin costear |
+|---|---|--:|--:|
+| **222** | A2 | 12 | **32.580** |
+| 312 | A2 | 12 | 9.420 |
+| 395 | A8 | 12 | 8.509 |
+| 943E · 942E · 948E · 945E · 944E | A2 | 12 | 16.200 (los cinco) |
+| 311 | A2 | 12 | 1.020 |
+| 910 | A2 | 12 | 720 |
+| 715 | A1 | 24 | 20 |
+| 818 · 058 · 059 | A4 / A9 | 12 | 0 (sin Est Madre) |
+
+**Total $68.469/mes = $821.628/año.** El más caro no es ninguno de los que se estaban mirando (los
+94xE): es el **222**, que solo explica casi la mitad.
+
+**APLICADO el 2026-09-13 (dueño: *"cajas, dale"*).** Las 14 cajas entraron a la receta a
+`1/articulos_por_caja` y cada artículo recibió su ruta de caja `insumo → <su actor> → virgilio`,
+calcada del 223 (el actor NO se inventó: se copió del paso que ya cerraba cada artículo). **222 y
+910 llevan DOS rutas de caja cada uno** porque tienen dos alternativas de Prov AT (Maspoli y
+Pintos) y la regla §4bk dice que cada alternativa lleva su caja; los dos declaran `n_caja` NULL,
+así que las dos rutas van con A2. Total: **14 recetas (923–936), 16 rutas (978–993), 48 pasos
+(3744–3791)**. Snapshot previo en `zz_backups."GP2_Snap_costos_cajas_20260913"`. Invariantes
+35/35 en 0. **Ya no queda ningún artículo con caja en el FK y sin línea de receta.** `[usuario + dato]`
+
+**⚠ PERO EL COSTO NO SUBIÓ $30 POR UNIDAD: SUBIÓ $360. Ver §4dc — el bug es de la vista, no de la
+receta.**
+
+**Regla: `componente_caja_id` sin línea de receta es un costo que no existe. Al tocar la caja de un
+artículo, verificar las dos cosas** (es la misma regla de "completar tablas manteniendo la
+normalización", aplicada a la caja). `[deducido]`
+
+## 4db. Los cubiertos inox 332-337 se reemplazaron por los 94xE, y el sitio quedó viejo (2026-09-13)
+
+`[usuario 2026-09-13, textual]` *"332/7 y 630/7 son discontinuos. Se reemplazaron por 941/8E"*.
+**332, 335 y 337 no están "discontinuados en GP2": no existen en `GP2.articulo`.** Aparecen en
+`est_madre` (136 / 64 / 48 uni/mes) porque la Est Madre arrastra discontinuados — la misma trampa
+del 515 (§4cw). Que loekemeyer.com los muestre activos es trabajo del repo del sitio, no de GP2.
+`[dato]`
+
+**Y lo de "573, 556 y 517 no tienen despiece en ningún lado" era falso para dos de los tres:**
+`[dato: GP2.planilla_fila]`
+
+- **573 Bombilla Color Metalizado** — despiece completo en la hoja **Bombillas** (fila 2, *"ART:
+  755/L573"*): caño 135 mm + resorte + niquelado + tapón aluminio + anodizado + corte cañito =
+  $578,98, con tiempos. Gemelo Chef **755**.
+- **517 Pinza Gastronómica** — despiece completo entre **Materiales Loeke** (filas 166-167: pala
+  121,3 × 0,8 y manija 167,3 × 0,8, las dos `517D`, tallerista **GUILLE**) y **Remaches** (fila 54:
+  **SR1 + SR2 + SR3**). Lo que está roto es su fila en Materiales (`#REF!`) y que no figura en Costos.
+- **556 Sacayerba** — el único sin despiece de verdad: Costos fila 225 dice `Fab` pero con
+  `E='xx'`, o sea **lo costea sólo como envase** (cartón 89 + caja 10,91 + 5,90 = $105,81). Ni la
+  planilla sabe de qué está hecho.
+
+**Regla: antes de decir "no tiene despiece", buscarlo en la hoja del RUBRO** (Bombillas, Materiales
+Loeke, Remaches, Flejes, Plásticos), no sólo en Costos y Cartones. Un artículo puede estar
+despiezado en tres hojas y en ninguna de las dos que uno mira primero. `[deducido]`
+
+
+## 4dc. `v_costo_componente` cobra la CAJA ENTERA por unidad: ARS 38,5 M por mes de sobrecosto (2026-09-13)
+
+**Salió de medir el efecto de cargar las 14 cajas de §4da.** Se esperaba que el 942E subiera $30
+(la caja de $360 dividida por 12). **Subió $360.** El mismo error estaba de antes en los otros 175
+artículos: el **234** da $944,26 = $600 del palo **+ los $344,26 de la caja entera**, cuando la
+caja de a 12 tendría que aportar $28,69. `[dato]`
+
+**Dónde está, leído de `pg_get_viewdef`:** la vista arma el costo por dos caminos y la caja entra
+por el equivocado.
+
+| CTE | De dónde saca | ¿Usa la cantidad? |
+|---|---|---|
+| `insumox` | los pasos `tipo_paso='insumo'` | **sí**, `cantidad * precio` |
+| `mat` | `edges` = los pasos `matriz` / `proveedor_servicio` / `tallerista` | **no**, `cb.precio` pelado (salvo sector 5, los flejes, que multiplica por kg) |
+
+La caja aparece en los **dos**: como entrada del paso `insumo` (0,0833) y como entrada del paso
+`tallerista` (el que la convierte en el terminado). Y `insumox` tiene este `case`:
+`when exists (edges e where e.ent = insumo_id) then greatest(cantidad - 1, 0) * precio`. Como la
+caja **sí** es entrada de un edge, `greatest(0,0833 − 1, 0) = 0` → **`insumox` aporta 0 y `mat`
+aporta el precio entero.** El `− 1` está pensado para una pieza que se transforma (entra 1, sale 1)
+y le pega de lleno a todo insumo con cantidad < 1: cajas, cartones, pliegos. `[dato]`
+
+**La plata:** sumando `precio_caja × (1 − 1/uni_x_caja) × uni_mes` sobre los 189 artículos con caja
+da **ARS 38.538.090 por mes**. Es de lejos el número más grande que apareció en esta auditoría, y
+**es anterior a cualquier cambio de hoy** — lo de §4da sólo sumó 14 artículos más a la misma cuenta.
+
+**Prueba de que el modelo querido es el otro:** la planilla, hoja Costos, columna M del 942E dice
+**15** = 360 ÷ 24, la parte por unidad. Y la cuenta que el dueño validó el 11-09 para la Caja N22
+del 546 (§4cr, *"~$39.500/mes de más"*) es `7.700 × (208 − 146,42) / 12`: **dividida por 12**. O sea
+el negocio siempre pensó en la parte; la vista es la que cobra la caja entera. `[dato]`
+
+**ARREGLADO el 2026-09-13** (dueño: *"1 arregla"*), migración `la_caja_se_cobra_por_su_parte_no_entera`.
+Se tomó la opción 2, en su forma mínima: `mat` pasa de cobrar `cb.precio` pelado a cobrar
+`cb.precio × least(coalesce(cantidad_del_paso_insumo, 1), 1)`. La cuenta queda exacta para todo `q`:
+
+    antes:  mat = 1 × precio          + insumox = greatest(q−1,0) × precio  =  max(q,1) × precio
+    ahora:  mat = least(q,1) × precio + insumox = greatest(q−1,0) × precio  =  q × precio
+
+**Lo que NO se tocó, a propósito:** el `greatest(q−1,0)` de `insumox` (existe para que una pieza que
+entra 1 y sale 1 no se cuente dos veces) y los flejes (sector 5, que ya escalan por `kg_ref`).
+`insumo_por_art` se movió arriba de `mat` para poder leerse desde ahí, sin cambiarle una coma.
+
+**Verificado en seis testigos, todos exactos al centavo:** 234 `944,26 → 628,69` (= 600 del palo +
+28,69 de caja) · 942E `360,00 → 30,00` · 311 `515,48 → 185,48` · 312 `1.671,08 → 1.341,08` ·
+395 `559,80 → 319,80` · 546 `1.659,70 → 1.469,03` (= 208 − 17,33 menos). Ningún costo quedó nulo ni
+negativo, y ninguno subió (matemáticamente no puede: `least(q,1) ≤ 1`). El costo mensual valorizado
+de los 191 artículos queda en **ARS 141.866.763**. `db/vistas_GP2.sql` regenerado y **verificado por
+md5 contra la vista viva**. `[usuario + dato]`
+
+**Regla que deja: en GP2 un insumo que además es la ENTRADA del paso que lo consume se cobra
+entero, no por su cantidad. Antes de creerle a `total_pesos`, comparar contra la columna M de la
+hoja Costos.** `[deducido]`
+
+
+## 4dd. 942E y 945E quedan en 12 por caja, contra lo que dice la planilla (2026-09-13)
+
+`[usuario 2026-09-13, textual: *"2 12."*]`. La planilla los da de a **24** en sus dos hojas
+(Cajas F=24 y Costos M=15=360/24) y GP2 los tenía en **12**; el dueño confirmó **12**. **Se retira
+el hallazgo de §7.4(b) de `PENDIENTES_CAJAS_PALOS`**: no hay nada que corregir en la base, la que
+está desactualizada es la planilla.
+
+Consecuencia concreta, ahora que la caja se cobra bien (§4dc): 942E y 945E aportan **$30,00** de
+caja por unidad, no $15. Sobre 214 uni/mes son **$3.210 más por mes** que lo que dice la planilla —
+diferencia real, no error de carga. `[deducido]`
+
+**Regla que deja: la planilla no gana automáticamente.** El 11-09 la hoja Costos fue la que cerró la
+discusión de qué caja usa cada artículo (§4cr); acá el dueño la contradice en la uni x caja y manda
+él. La hoja Costos es la mejor fuente cuando **nadie** sabe, no cuando el dueño ya decidió.
+
+
+## 4de. 573 y 517 son discontinuos: no se dan de alta aunque tengan despiece (2026-09-13)
+
+`[usuario 2026-09-13, textual: *"2 discontinuos"*]`, contestando si se daban de alta el **573**
+Bombilla Color Metalizado y el **517** Pinza Gastronómica, que §4db había encontrado **con despiece
+completo en la planilla**. **No se modelan.** Tener el despiece no los hace vivos: la planilla
+guarda el despiece de cosas que ya no se venden, igual que la Est Madre arrastra discontinuados
+(§4cw, el caso del 515).
+
+Con esto los tres del cruce contra loekemeyer.com quedan cerrados y **ninguno entra a GP2**:
+
+| Cód | Qué es | Por qué no entra |
+|---|---|---|
+| 573 | Bombilla Color Metalizado | discontinuo `[usuario]`. Ojo: **sigue en `est_madre` con 52 uni/mes** — misma basura que el 515 |
+| 517 | Pinza Gastronómica | discontinuo `[usuario]`. No está en est_madre ni en la hoja Costos |
+| 556 | Sacayerba | el único sin despiece de verdad; la planilla lo costea sólo como envase (§4db) |
+
+**Queda por decidir:** si se borra la fila `573` de `est_madre` (52 uni/mes), como se hizo con el
+515. No se tocó. **Y loekemeyer.com los sigue mostrando activos**, igual que a los 332/335/337 —
+eso es trabajo del repo del sitio, no de GP2. `[dato]`
+
+## 4df. El precio de la bandita: la planilla lo tiene y NO lo cobra (2026-09-13)
+
+El dueño pidió *"el mismo precio que la que se usaba para 323, no tenés esa?"*. **No, y hay dos
+motivos, los dos medidos:** `[dato]`
+
+1. **El 323 no está en GP2** (Rallador Cilíndrico Chico, grupo A de `ARTICULOS_FUERA_DE_GP2`,
+   124 uni/mes, tallerista Garcia). Ningún componente de GP2 tiene esa bandita.
+2. **La planilla tampoco la cobra.** El 323 en la hoja Costos (fila 154) da
+   `E 918,1033 + K 16,606 + L 33 + M 25,2292 + N 3,0862 = O 996,0247`, **exacto al centavo y sin
+   lugar para una bandita**. La columna K no es la bandita: el encabezado (fila 6) dice
+   **"Envas. Terc."** (envasado por terceros); L es Cartón, M Cajas y N "Cod y Precint".
+
+Lo que sí existe es la **línea en la lista de precios**: `Bandita Ralladores` (Gráfica Pol, cod ISIS
+**0317**) a **$8.250**, y `Banditas 35 × 194 mm` (mismo proveedor, ISIS 0357) **al mismo precio
+exacto, $8.250**. Así que "el mismo precio que la del 323" da $8.250 por cualquiera de los dos
+caminos — el problema es **de qué** son esos $8.250.
+
+**⚠ NO se cargó, y el motivo es un pozo en el que la casa YA se cayó:** el comment de
+`precio_proveedor` del `Pliego 506` dice textual *"POR PLIEGO (el paquete de 100 sale $77.700).
+Corregido 2026-09-03: estaba cargado el precio del PAQUETE y la OC pide en pliegos, así que valuaba
+100x"*. **Los precios de Pol en la lista vienen por paquete**, y la lista no tiene columna de
+cantidad. Cargar $8.250 como precio unitario le sumaría $8.250 a CADA palo de amasar — y desde
+§4dc la caja ya se cobra bien, así que el error se vería entero en el costo.
+
+**Falta el único dato que no está en ningún lado: cuántas banditas trae el paquete de $8.250.**
+
+**Regla que deja: un precio de Gráfica Pol es del PAQUETE hasta que se demuestre lo contrario.
+Antes de cargarlo, buscar la cantidad por paquete; si no aparece, preguntar.** `[deducido]`
+
+
+## 4dg. Se borro el 573 de est_madre — y son 235 filas, no una (2026-09-13)
+
+`[usuario 2026-09-13, textual: *"2 si"*]`. Borrada la fila `573` de `GP2.est_madre`
+(52 uni/mes, uxb 24), como se hizo con el 515 el mismo dia (§4cw). Backup en
+`zz_backups."GP2_Backup_est_madre_573_20260913"`. `est_madre` queda en **404 filas**.
+
+**Medido antes y despues: el md5 de TODOS los maximos de `inventario` es IDENTICO**
+(`3ff3dad8…`). No podia ser de otra forma y conviene entender por que: `recalcular_maximos_insumos()`
+llega al maximo por la RECETA del articulo, y el 573 **no existe como articulo en GP2**, asi que su
+fila nunca alimento un solo calculo. **Borrarla no arregla ningun numero: saca un dato que confunde
+al que lo lee.** `[dato]`
+
+**Y no es una fila, son 218.** `[CORREGIDO el mismo dia: primero escribi 235, con un `join` por
+codigo exacto. Esta mal — ver abajo.]` De las 404 filas que le quedan a `est_madre`, **218 no cruzan
+con ningun articulo de GP2**. La Est Madre es una foto del sistema viejo: trae discontinuados,
+reventa e importados que GP2 no modela. El desglose completo, grupo por grupo, esta en
+`EST_MADRE_HUERFANAS_2026-09-13.md`. `[dato]`
+
+**⚠ LA TRAMPA DEL CERO ADELANTE, que casi me hace reportar un bug que no existe.** `est_madre`
+escribe `31`, `26`, `27`, `34`, `66`, `57`, `58`, `59`, `99`, `97`, `70`, `55`, `43`, `53`, `54` y
+`52`, y GP2 los tiene como `031`, `026`, … Un `join` por codigo exacto los marca como huerfanos —
+son **16 codigos y 28.812 uni/mes**, entre ellos el **031 Filtro de Cafe con 15.144 uni/mes, el
+articulo de mayor demanda de la casa**. Llegue a concluir que sus insumos estaban sub-dimensionados
+en la OC. **Es falso:** `v_consumo_demanda` cruza con
+`regexp_replace(em.cod,'^0+','') = regexp_replace(a.codigo,'^0+','')`, o sea **ya normaliza**, y el
+consumo del carton `A1B` da exactamente 15.144. **Regla: para cruzar `est_madre` con `articulo`,
+sacar los ceros de adelante de los dos lados — es lo que hace el motor.** `[dato]`
+
+**De las 218, las unicas que pueden ser trabajo son 16** (las que la hoja Costos marca `Fab`), y
+**13 ya estan resueltas**: 332-337 son los cubiertos inox discontinuos (§4db), el 548 es el pincel
+que ya entro como 590E/890E/590ES (§4ct), y 513L/546L/520L/505L/586L son **variantes con sufijo `L`
+de articulos que GP2 ya tiene** (513, 546, 520, 505, 586). **Quedan tres preguntas: el 561 Pinza
+Grande Alambre (324 uni/mes), el 396 Enrulador de Manteca (80) y si los cinco codigos `L` son una
+variante real o basura.** Y un detalle: **el 515 sigue en `est_madre` con 486 uni/mes** — si alguna
+vez se quiso borrar, no se borro. `[dato]`
+
+**Regla que deja: una fila de `est_madre` sin articulo de GP2 no mueve ningun maximo — es ruido de
+lectura, no un bug de calculo. Y `proy_uni_mes` NO es evidencia de que algo se venda**
+(§4cw, textual del dueño sobre el 515: *"No hay chance que se venda 486 uni de 515"*). Antes de
+borrar de a una, vale preguntarse si conviene limpiar las 234 de un saque o dejarlas y no leerlas.
+
+## 4dh. La bandita queda SIN precio: el dueño tampoco sabe cuantas trae el paquete (2026-09-13)
+
+`[usuario 2026-09-13, textual: *"1 nose"*]`, contestando cuantas banditas vienen en el paquete de
+$8.250 de Grafica Pol. **`BANDITA` (componente 916) queda con proveedor Pol y SIN precio**, y esa es
+la decision correcta: cargar $8.250 como unitario le sumaria $8.250 a cada palo de amasar (§4df, la
+trampa del `Pliego 506` que ya costo una correccion el 03-09).
+
+**Lo que hay que preguntarle a Pol cuando se pueda:** cuantas unidades trae el paquete de $8.250 del
+ISIS **0317** (Bandita Ralladores) o del **0357** (Banditas 35 × 194 mm) — los dos al mismo precio.
+Con ese numero el precio unitario sale solo y se carga en `precio_proveedor`.
+
+**Mientras tanto los tres palos siguen con `faltan_precios` ≥ 2** (los `GRJ22/23/24` tampoco tienen
+precio: la LP solo lista el Palo Frances $600 y el Torneado 40cm $1.245). O sea que hoy el costo de
+un palo es **solo su caja, $28,69**. No es un bug: es que faltan dos precios. `[dato]`
+
+
+## 4di. Que es un `GRJ` (el dueño pregunto, y conviene que quede escrito) (2026-09-13)
+
+`[usuario 2026-09-13, textual: *"nose que es eso"*]`, preguntando por el precio de los
+`GRJ22/23/24`. **Un `GRJ` es una pieza del Sector Garage: algo que se COMPRA hecho, entra por el
+garage y despues alguien lo termina.** No es un articulo que se venda: es el insumo principal del
+articulo.
+
+En el caso de los palos: **`GRJ22` es el palo de amasar de 30 cm en si** — la madera torneada que
+vende Tierra Nativa. `GRJ23` el de 40 y `GRJ24` el de 50. Fabrica les pone la bandita y los entrega
+en Virgilio, y eso los convierte en los articulos 231 / 232 / 233. Es el mismo patron que el `GRJ4`
+de Cimarron (§4cy).
+
+**Ninguno de los tres tiene precio cargado, y la lista tampoco lo tiene:** el bloque de Tierra
+Nativa solo lista *"Palo de Amasar Frances 40cm"* $600 (que es el `GRJ17`, el del 234) y
+*"Torneado Palo de Amasar 40cm"* $1.245. **Para los palos lisos de 30, 40 y 50 no hay precio en
+ningun lado.** Por eso hoy un palo cuesta $28,69, que es solo su caja. `[dato]`
+
+
+## 4dj. La `L` final: es Chef vendiendo Loeke, y GP2 pierde 301 uni/mes por no pelarla (2026-09-13)
+
+`[usuario 2026-09-13: *"Ya lo explique lo 1 en GV, busca"*]`. Encontrado en
+`loekemeyer/Gestion-Virgilio`, `CLAUDE.md` linea 396 y `GUIA-PROYECTO.md` §4737. **La regla, textual
+de ese repo:**
+
+> *"Un cliente de LK que pide por la página de Chef: el pedido es de Chef de punta a punta, se
+> factura por Chef, y cada artículo de Loekemeyer va con **'L' al final** (505 → 505L; 438E →
+> 438EL). … la L manda el stock a la góndola LK"*. Y el caso mas comun, `[dueño 07-09 en GV]`:
+> un pedido con entrega en **Tierra del Fuego** (Factura E) se arma como Loeke con L y el Excel ISIS
+> va al de Chef.
+
+**O sea `546L` NO es un artículo: es el 546, vendido por Chef.** No hay que darlos de alta en GP2.
+
+**PERO hay una consecuencia que no estaba vista: GP2 pierde esa demanda.** En `est_madre` hay **75
+códigos con `L`**; **32 cruzan con un artículo de GP2 al pelarla**, y suman **301 uni/mes** que hoy
+**no llegan a ninguna receta** porque `v_consumo_demanda` normaliza el cero de adelante pero **no la
+L**. Los mas grandes: `31L` 55 (Filtro de Café), `123L` 52, `504L` 30, `315L` 29, `544L` 21,
+`513L` 18. `[dato]`
+
+**Gestión Virgilio ya resolvió exactamente esto, y al reves:** su `vista_generador_oc`
+*"strippea la 'L' final y aglomera en el código base sumando UNIDADES / uni×caja del base → el 505L
+cae dentro del 505 (se pide 505, nunca 505L)"*; antes eran *"63 códigos ≈ 1.265 cajas fantasma que
+inflaban la lista"*. A GV le inflaba la OC; a GP2 se la **desinfla**, porque directamente ignora esas
+filas. **APLICADO el 2026-09-13**, migracion `la_venta_con_L_de_chef_suma_al_articulo_de_loeke`
+`[dueño, textual: *"Los de L: es venta que facturo chef de articulos de Loeke, el consumo realmente
+es de loeke, se debe considerar ahi. Ejemplo 513L, es venta de loeke"*]`. El join de
+`v_consumo_demanda` pasa a pelar tambien la L, igual que ya pelaba el cero de adelante. Como `seed`
+agrupa y **suma** por (articulo, componente), las dos filas de `est_madre` (el `513` y el `513L`)
+se suman solas en el articulo 513 — no hizo falta tocar nada mas. `[usuario]`
+
+**Verificado antes de aplicar:** **ningun articulo de GP2 termina en `L`**, asi que el pelado no
+puede producir un falso positivo. Y 74 de los 75 codigos `L` ya tenian su base en `est_madre`.
+
+**Efecto medido:** `recalcular_maximos_insumos()` actualizo **81 maximos**, todos **para arriba**
+(ninguno bajo: solo se suma demanda), **+4.587 unidades** en total. El testigo que pidio el dueño
+cierra exacto: el **carton del 513 (`B1A`) subio 108 = 18 uni/mes del `513L` × 6 meses de stock**.
+Los que mas se movieron: `A1B` Carton 031 +330, `I42` Carton 123 +312, `PCP3`/`D9` Clavo 505 +288,
+`CV5` +240. Snapshot previo en `zz_backups."GP2_Snap_maximos_antes_L_20260913"` (las 1.295 filas de
+`inventario`). Invariantes 35/35 en 0, `db/vistas_GP2.sql` regenerado y verificado por md5.
+
+**Lo que esto significa en la practica: la OC venia pidiendo de menos.** Cada `L` es una venta real
+que Chef factura de un articulo de Loeke, y su consumo no llegaba al insumo. `[dato]`
+
+**Regla que deja: un codigo que termina en `L` es el mismo articulo sin la L.** Vale para `est_madre`,
+para los listados y para cualquier cruce. El `590EL` es el `590E`; el `438EL` es el `438E`.
+
+## 4dk. Las ventas REALES existen y estan en `sales_lines` — hay que mirarlas antes de dar algo por muerto (2026-09-13)
+
+Buscando quien compra el 515 aparecio que **la evidencia de venta que faltaba en todas estas
+discusiones ya existe**: `public.sales_lines` del proyecto **`kwkclwhmoygunqmlegrg`**
+("loekemeyer's web"), con `item_code`, `boxes`, `invoice_date`, `customer_code` y `empresa`
+(`lk` / `chef`), desde 2020. **Es la fuente que zanja "¿esto se vende?", que `est_madre` NO puede
+contestar** (§4cw). `[dato]`
+
+Medido el 13-09, ultimos 12 meses (desde 2025-09-13):
+
+| Cód | Artículo | Cajas 12m | Clientes 12m | Última venta | Lo que se dijo |
+|---|---|--:|--:|---|---|
+| 515 | Batidor Resorte | **396** | **75** | **2026-08-25** | *"No hay chance que se venda 486 uni de 515"* |
+| 561 | Pinza Grande | **246** | **75** | **2026-08-13** | *"discontinuos, no se fabrican más"* |
+| 333 | Espumadera Ac. Inox. | 109 | 45 | 2026-04-15 | discontinuo (bloque 332-337) |
+| 336 | Cucharón Ac. Inox. | 76 | 49 | 2026-07-06 | ídem |
+| 332 | Espátula A. Inox. | 64 | 37 | 2026-08-27 | ídem |
+| 334 | Cuchara Salsera | 48 | 35 | 2026-05-14 | ídem |
+| 573 | Bombilla Color Metaliz | 46 | 19 | 2026-07-06 | discontinuo |
+| 396 | Enrulador De Manteca | 40 | 20 | 2026-08-17 | *"no se fabrican más"* |
+| 335 | Cuchara Calada | 21 | 18 | 2026-08-27 | discontinuo |
+| 337 | Pinche Ac. Inox. | 20 | 15 | 2026-06-10 | discontinuo |
+| 548 | Pincel Pastelero | 6 | 2 | 2026-05-08 | ya entro como 590E/890E |
+| 525 | Sac Cabo Madera | 1 | 1 | 2026-03-09 | 0 uni/mes en est_madre |
+| **556** | Sacayerba | **0** | **0** | 2025-05-05 | sin despiece |
+| **517** | Pinza Gastronómica | **0** | **0** | **2021-11-26** | discontinuo |
+
+**DECISION DEL DUEÑO (2026-09-13, textual): *"515 dejalo activo"*.** La fila del 515 en `est_madre`
+**NO se borra** — se retira la idea de sacarlo, que venia de §4cw. Los 75 clientes y la factura del
+25-08 lo respaldan. `[usuario]`
+
+**Lectura, sin decidir nada:** *"discontinuo"* en boca del dueño significa **"no se fabrica mas"**,
+no *"no se vende"* — lo dijo asi de los 561/396, y los numeros lo confirman: se sigue facturando del
+stock. **Los unicos dos muertos de verdad son el 517 (ultima venta hace casi 5 años) y el 556
+(16 meses).** Y **el 515 se vende**: 75 clientes distintos en 12 meses y factura del 25-08-2026,
+o sea que la frase del §4cw *"No hay chance que se venda 486 uni de 515"* **no se sostiene contra la
+facturacion** (396 cajas / 12 meses = 33 cajas/mes; est_madre pide 486 uni/mes = 40,5 cajas). No se
+toco nada: el dueño decide.
+
+**El `515L` tambien existe**: 22 cajas, **1 solo cliente**, ultima venta 2026-08-31 — ese es el caso
+de §4dj, Chef vendiendole Loeke a Tierra del Fuego.
+
+**Regla que deja: antes de dar un articulo por muerto, mirar `sales_lines` del proyecto
+`kwkclwhmoygunqmlegrg`. `est_madre` dice lo que se proyecta; `sales_lines` dice lo que se facturo.**
+
+
+## 4dl. La Est Madre SUBESTIMA la cola: hasta 14x menos de lo que se factura (2026-09-13)
+
+Recalculando el grupo A de `ARTICULOS_FUERA_DE_GP2.md` con `sales_lines` en vez de `est_madre`
+aparecio un sesgo con forma: **cuanto mas chico es el numero de la Est Madre, mas se equivoca.**
+`[dato: sales_lines, 12 meses al 2026-09-13, uni/mes = cajas/12 × uxb]`
+
+| Cód | Est Madre | Vendidas | Cuánto más |
+|---|--:|--:|---|
+| 456 Espátula Lisa Nylon | 1 | 14 | **14×** |
+| 710 Enrulador Manteca | 1 | 13 | **13×** |
+| 839 Rallador Chocolate | 10 | 114 | **11×** |
+| 852 Pinza De Hielo 14 cm | 7 | 80 | **11×** |
+| 801 Pinza Grande CH | 2 | 16 | 8× |
+| 809 Corta Queso Chef | 1 | 8 | 8× |
+| 977 Platos Pizza x6 | 2 | 11 | 5× |
+| 574 Corta Queso Alambre | 88 | **319** | 3,6× |
+| 747 · 717 · 613 | **0** | 6 · 2 · 1 | tienen facturas de 2026 |
+
+Los grandes, en cambio, cierran bien: el `111`, el `112` y el `113` dan **exacto**, y el `565` y el
+`439E` quedan cerca. **O sea la Est Madre esta bien donde hay volumen y se rompe en la cola larga**
+— justo donde se venia usando para descartar (*"tiene 1 uni/mes, no importa"*). El caso mas caro es
+el **574 Corta Queso Alambre**: 88 segun la proyeccion, 319 vendidas a 41 clientes, factura del
+17-08-2026; era el decimo de la lista y es el tercero.
+
+**Regla: `est_madre` decide el MAXIMO de stock (es lo que consume el motor); `sales_lines` decide
+QUE VALE LA PENA MODELAR. No mezclar los dos usos.** Es la version general de lo que ya habia
+mordido con el 515 (§4cw) y con el 573 (§4de). `[deducido]`
+
+
+## 4dm. El $28,69 es SOLO de los tres palos nuevos, y el 234 no: corrijo lo que dije (2026-09-13)
+
+`[usuario 2026-09-13, textual: *"Igual el palo de amasar no lo vende tierra a $28.69. Te falta el
+costo de lo que vende tn tambien"*]`. **Tiene razon y la frase estaba mal dicha en §4dh y en el
+chat.** Lo medido, componente por componente:
+
+| Componente | Artículo | ¿Tiene precio? | Costo del artículo hoy |
+|---|---|---|--:|
+| `GRJ17` Palo de Amasar Frances 40 cm | **234** | **sí, $600** (LP f888, ISIS 103, lista 03-11-2025) | **$628,69** = 600 + 28,69 de caja |
+| `GRJ22` Palo de Amasar 30cm | 231 | **no** | $28,69 (solo la caja) |
+| `GRJ23` Palo de Amasar 40cm | 232 | **no** | $28,69 |
+| `GRJ24` Palo de Amasar 50cm | 233 | **no** | $28,69 |
+
+O sea **el $28,69 nunca fue "lo que cuesta un palo": es lo que GP2 puede calcular de los tres que no
+tienen precio de Tierra Nativa.** El 234, que sí lo tiene, da $628,69.
+
+**Y el bloque entero de Tierra Nativa en la lista de precios (72 filas, cod_prov 3917) tiene SOLO
+DOS lineas de palo de amasar:** `[dato: v_planilla_precio]`
+
+| Fila | cod ISIS | Producto | Precio | Fecha lista | Última compra | Asignado en GP2 |
+|--:|---|---|--:|---|---|---|
+| 888 | 103 | Palo de Amasar **Frances** 40cm | $600 | 03-11-2025 | 18-12-2024 | ✔ `GRJ17` (art 234) |
+| 901 | 234L | **Torneado** Palo de Amasar 40cm | **$1.245** | **07-08-2026** | — | **sin asignar** |
+
+**No hay linea para el de 30 ni para el de 50.** La unica libre es el Torneado de 40, que por medida
+seria el **232**, pero el nombre no lo dice y el `cod_isis` de esa fila (`234L`) apunta al 234, no al
+232 — **asignarla a ojo es inventar**. Falta que el dueño diga: (a) si el Torneado 40 es el 232, y
+(b) que precio tienen el de 30 y el de 50, que en la lista no estan. `[dato]`
+
+**Regla que deja: antes de decir "este articulo cuesta X", mirar `faltan_precios` Y decir de que
+componentes falta el precio.** Un total bajo casi nunca es un articulo barato: es un componente sin
+precio (misma trampa del BOM10 en §4cn y del pincel en §4ct).
+
+
+## 4dn. Lo que realmente falta no son los palos: son 106 precios, y 67 son de Pol (2026-09-13)
+
+`[usuario 2026-09-13: *"Nose"*]` sobre el precio de los palos de 30 y 50 — **nadie en la casa lo
+sabe, hay que preguntarle a Tierra Nativa.** Eso disparo medir el agujero completo en vez de seguir
+de a un componente, y el resultado cambia la prioridad: `[dato, medido el 13-09]`
+
+| | |
+|---|--:|
+| Artículos de GP2 | 191 |
+| **Artículos con al menos un precio faltante** | **96 (50 %)** |
+| **Componentes comprables vivos SIN precio** | **106** |
+| De esos 106, cuántos no tienen ni proveedor | **0** |
+
+**Los 106 tienen proveedor asignado: lo unico que falta es el numero.** Y estan muy concentrados:
+
+| Proveedor | Componentes | Consumo uni/mes |
+|---|--:|--:|
+| **Talleres Gráficos Pol** | **67** | **41.318** |
+| Pat Bet Plast | 11 | 11.584 |
+| Papelera Nueve de Julio | 2 | 4.050 |
+| Cimarron | 5 | 2.540 |
+| Gilardi Esther | 2 | 1.816 |
+| Rueda · Imel · Importado | 3 | 4.185 |
+| Tierra Nativa SA (los 3 palos) | 3 | 0 |
+| los otros 9 proveedores | 13 | ~2.700 |
+
+**Una sola lista de precios — la de cartones de Pol — cierra 67 de los 106 y el 63 % del consumo
+afectado.** Los mas grandes son `C2A` Carton 026 (7.092 uni/mes), `F5A` Carton 321 (4.406),
+`C2B` Carton 027 (3.320), `L2C` Carton 325 (1.600), `F1A` Carton 280 (1.570). Los tres palos, en
+cambio, son **3 de 106 y con consumo 0** (los 231/232/233 no estan en `est_madre`).
+
+**Regla que deja: cuando aparezca "a este articulo le falta un precio", no perseguir el componente
+suelto — contar cuantos faltan y agruparlos por proveedor.** Casi siempre es UNA lista que nadie
+cargo, no N datos sueltos. `[deducido]`
+
+**Las dos preguntas de los palos quedan ABIERTAS, para Tierra Nativa:** (a) si el *"Torneado Palo de
+Amasar 40cm"* $1.245 (ISIS 234L, lista 07-08-2026) es el **232**, y (b) que precio tienen el de
+**30 (231)** y el de **50 (233)**, que no figuran en las 72 filas de TN.
+>>>>>>> origin/main

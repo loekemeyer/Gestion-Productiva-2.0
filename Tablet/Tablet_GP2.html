@@ -1,0 +1,460 @@
+<!doctype html>
+<html lang="es">
+<head>
+<!-- v1.0.0 (2026-09-13) — Versión Tablet del operario (ideas 7342/7343). UNA pantalla con tres
+     modos — Enviar / Recibir / Conteo — para la tablet del galpón, en vez de abrir la pantalla
+     de cada contraparte. El backend ya vive en la base: "GP2".tablet_bundle() (qué puede enviar
+     y qué puede recibir cada contraparte, con el ESPERADO: la OC si trae un proveedor, el stock
+     online si trae un tallerista / PS / Virgilio) y "GP2".tablet_registrar(p) (reusa las RPC de
+     siempre — crear_envio_*, crear_entrega_*, crear_recepcion_insumo — y NO inventa movimientos).
+     La alerta de "recibí de más" AVISA pero NO FRENA: el operario registra igual y la alerta queda
+     en GP2.alerta_recepcion para que la revisen en Alertas.
+     Dos trampas de unidad (las anotó la sesión que armó el backend):
+       · el proveedor de artículo terminado entrega CAJAS: se carga en cajas y el esperado de la
+         OC está en unidades (por_caja las cruza);
+       · una pieza cuya unidad es kg se manda y se recibe en kg (teclado con coma).
+     El Conteo no escribe nada: es la ayuda para contar contra el online; el ajuste de stock va
+     por Relevamientos → Validación de Stock (el operario cuenta, el operador del sistema decide). -->
+<script src="../auth-guard.js?v=20260912d"></script>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Versión Tablet · GP2</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="../supabase-config.js?v=20260905k"></script>
+<link rel="stylesheet" href="../gp2-modulo.css?v=20260912c"/>
+<link rel="icon" type="image/png" href="../GP2_favicon.png">
+<link rel="apple-touch-icon" href="../GP2_favicon.png">
+<style>
+  /* los tres modos: baldosas grandes, el activo en negro (mismo lenguaje que .seg-btn) */
+  .modos{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin:10px 0}
+  .modo-btn{min-height:60px;border-radius:12px;border:2px solid #d0d7de;background:#fff;
+    font-weight:900;font-size:20px;cursor:pointer;color:#111}
+  .modo-btn.active{background:#111;color:#fff;border-color:#111}
+  .modo-btn small{display:block;font-size:13px;font-weight:700;color:#777;margin-top:2px}
+  .modo-btn.active small{color:#cfcfcf}
+  .cp-tipo{font-size:14px;color:#777;font-weight:700}
+  /* fila con exceso: se ve, no frena */
+  table.t tr.demas td{background:#fff4e5}
+  .demas-tag{display:inline-block;margin-top:4px;background:#c2410c;color:#fff;border-radius:999px;
+    padding:3px 10px;font-size:14px;font-weight:800;white-space:nowrap}
+  .esp{font-size:17px;font-variant-numeric:tabular-nums;white-space:nowrap}
+  .esp small{display:block;color:#777;font-size:13px;font-weight:700}
+  .uni-tag{display:inline-block;background:#eef2f6;border-radius:6px;padding:2px 7px;font-size:13px;
+    font-weight:800;color:#333;margin-left:4px;white-space:nowrap}
+  .uni-tag.kg{background:#e6f0ff;color:#0b4aa2}
+  .uni-tag.cajas{background:#fdf2e9;color:#8a3b00}
+  .cell-in.big{font-size:20px;width:110px}
+  .alerta-box{margin:10px 0;border:2px solid #f4c08c;background:#fff4e5;border-radius:12px;padding:12px 14px;
+    font-size:17px;color:#5c2d00;line-height:1.4}
+  .alerta-box b{color:#8a3b00}
+  .dif.pos{color:#0a7a2f}.dif.neg{color:#b91c1c}
+  .conteo-acc{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0}
+  input#fRemito{height:44px;border:2px solid #d0d7de;border-radius:8px;padding:0 10px;font-size:19px;width:150px}
+  @media (max-width:640px){
+    .modo-btn{font-size:17px;min-height:56px}
+    .modo-btn small{display:none}
+  }
+</style>
+</head>
+<body>
+
+<div class="card">
+  <div class="header">
+    <h1>📱 Tablet</h1>
+    <div class="hbtns">
+      <button class="hlink hidden" id="btnVolver" type="button">← Cambiar</button>
+      <a href="../GP2_MODULOS.html">Atrás</a>
+    </div>
+  </div>
+
+  <div class="steps">
+
+    <div class="modos" id="modos">
+      <button type="button" class="modo-btn" data-modo="enviar">📤 Enviar<small>a tallerista / PS / prov. AT</small></button>
+      <button type="button" class="modo-btn" data-modo="recibir">📥 Recibir<small>lo que traen</small></button>
+      <button type="button" class="modo-btn" data-modo="conteo">🔢 Conteo<small>contar contra el online</small></button>
+    </div>
+
+    <!-- FASE 0 — elegir a quién (enviar / recibir) -->
+    <div id="fase0">
+      <div class="row"><label class="lbl" id="fase0Title">¿A quién?</label></div>
+      <div class="search-box"><input type="text" id="q0" placeholder="Buscar contraparte…"></div>
+      <div class="provs-grid" id="cpGrid"></div>
+      <div id="status" class="status">Cargando…</div>
+    </div>
+
+    <!-- FASE 1 — cargar cantidades -->
+    <div id="fase1" class="hidden">
+      <div class="row" style="justify-content:space-between">
+        <div class="row" style="margin:0"><label class="lbl" id="fase1Title">—</label></div>
+        <div class="row" style="margin:0">
+          <label class="lbl" style="font-size:16px" for="fFecha">Fecha</label>
+          <input type="date" id="fFecha">
+          <label class="lbl hidden" style="font-size:16px" for="fRemito" id="lblRemito">Remito</label>
+          <input type="text" id="fRemito" class="hidden" placeholder="remito (opcional)">
+          <button class="btn btn-primary" id="btnEnviar" type="button" disabled>Registrar</button>
+        </div>
+      </div>
+
+      <div class="search-box"><input type="text" id="q" placeholder="Buscar por código o descripción…"></div>
+
+      <div id="alertaBox" class="alerta-box hidden"></div>
+
+      <div class="table-wrap">
+        <table class="t">
+          <thead><tr id="thead"></tr></thead>
+          <tbody id="tbody"></tbody>
+        </table>
+      </div>
+      <div id="tblEmpty" class="empty hidden"></div>
+      <div id="msg1" class="status"></div>
+    </div>
+
+    <!-- FASE 3 — listo -->
+    <div id="fase3" class="hidden">
+      <div class="successBox">
+        <div class="title" id="successTitle">✓ Registrado</div>
+        <div>Tu código:</div>
+        <div class="code" id="successCode">—</div>
+        <div id="successDetail" style="font-size:17px;color:#444"></div>
+      </div>
+      <div id="successAlertas"></div>
+      <div class="row" style="justify-content:center">
+        <button class="btn btn-primary" id="btnOtro" type="button">← Cargar otra</button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script src="../gp2-ui.js?v=20260913e"></script>
+<script src="../gp2-numero.js?v=20260911o"></script>
+<script src="../gp2-envios-common.js?v=20260905c"></script>
+<script>
+"use strict";
+
+var E = GP2EE;
+var $ = GP2UI.$, esc = GP2UI.esc, num = GP2N.num, fmt = GP2N.fmt, hoyISO = E.hoyISO;
+var SB = GP2_SB();
+
+var D = { contrapartes: [], enviar: [], recibir: [], alertas_abiertas: 0 };
+var MODO = null;        // enviar | recibir | conteo
+var selCP = null;       // { tipo, ref, nombre, id }
+var BUF = E.buffer("gp2_tablet_buffer", function(){ return { q: "" }; });
+
+var TIPO_LABEL = { tallerista: "tallerista", proveedor_servicio: "prov. servicio",
+                   proveedor_at: "prov. art. terminado", proveedor_insumo: "prov. insumo", virgilio: "Virgilio" };
+
+/* La unidad con la que se CARGA cada fila. El contrato de tablet_registrar acepta 'uni' o 'kg';
+   componente.unidad_medida dice 'kg' o 'unidad'. El prov. AT entrega CAJAS (crear_entrega_prov_at
+   pide cajas): se carga en cajas y viaja como 'uni' con por_caja para que la base cruce contra
+   la OC, que está en unidades. */
+function unidadDe(x){
+  if (MODO === "recibir" && x.tipo === "proveedor_at") return "cajas";
+  return String(x.um || "").toLowerCase() === "kg" ? "kg" : "uni";
+}
+function inputmodeDe(u){ return u === "kg" ? "decimal" : "numeric"; }
+function uniTag(u){ return '<span class="uni-tag ' + u + '">' + u + "</span>"; }
+
+/* clave de fila: en recibir una pieza puede aparecer dos veces (dos entradas distintas del PS) */
+function claveDe(x){
+  return String(x.comp_id || "") + ":" + String(x.comp_entrada_id || "") + ":" + String(x.cod_art || "");
+}
+function claveCP(c){ return MODO + ":" + c.tipo + ":" + c.ref; }
+
+/* ---------- carga ---------- */
+async function cargar(){
+  try {
+    var r = await SB.rpc("tablet_bundle");
+    if (r.error) throw r.error;
+    D = r.data || D;
+    BUF.load();
+    var m = new URLSearchParams(location.search).get("modo");
+    var guardado = null;
+    try { guardado = localStorage.getItem("gp2_tablet_modo"); } catch(e){}
+    setModo(m || guardado || "enviar");
+  } catch(e){
+    $("status").innerHTML = '<span style="color:#b91c1c">Error: ' + esc(e.message || e) + "</span>";
+  }
+}
+
+function setModo(m){
+  if (m !== "enviar" && m !== "recibir" && m !== "conteo") m = "enviar";
+  MODO = m;
+  try { localStorage.setItem("gp2_tablet_modo", m); } catch(e){}
+  var bs = document.querySelectorAll("#modos .modo-btn");
+  for (var i = 0; i < bs.length; i++) bs[i].classList.toggle("active", bs[i].dataset.modo === m);
+  selCP = null;
+  if (m === "conteo") { elegir({ tipo: "conteo", ref: "*", nombre: "Conteo contra el online", id: "conteo" }); return; }
+  E.mostrarFase(0);
+  $("fase0Title").textContent = m === "enviar" ? "¿A quién le enviás?" : "¿Quién trae?";
+  $("q0").value = "";
+  pintarCPS();
+}
+
+/* contrapartes que aplican al modo: en enviar sólo a quien se le manda desde Cervantes */
+function cpsDelModo(){
+  return (D.contrapartes || []).filter(function(c){
+    if (MODO === "enviar") return c.tipo !== "virgilio" && c.tipo !== "proveedor_insumo" && Number(c.n_env) > 0;
+    return Number(c.n_rec) > 0;
+  });
+}
+
+function pintarCPS(){
+  var lista = E.filtrar(cpsDelModo(), $("q0").value, function(c){ return c.nombre + " " + (TIPO_LABEL[c.tipo] || c.tipo); });
+  E.gridContrapartes("cpGrid", lista.map(function(c){
+    return { id: MODO + ":" + c.tipo + ":" + c.ref, tipo: c.tipo, ref: c.ref, nombre: c.nombre, n: MODO === "enviar" ? c.n_env : c.n_rec };
+  }), {
+    vacio: "No hay contrapartes para este modo.",
+    meta: function(c){
+      var cargado = E.cargadasDe(BUF.all[c.id], function(it){ return num(it.q) > 0; }).length;
+      return esc(TIPO_LABEL[c.tipo] || c.tipo) + " · " + c.n + " pieza" + (c.n === 1 ? "" : "s") +
+        (cargado ? (" · <b>" + cargado + " cargadas</b>") : "");
+    },
+    onPick: elegir
+  });
+  $("status").textContent = lista.length + " contraparte" + (lista.length === 1 ? "" : "s") +
+    (Number(D.alertas_abiertas) > 0 ? " · ⚠ " + D.alertas_abiertas + " alerta" + (D.alertas_abiertas === 1 ? "" : "s") + " de recepción sin revisar" : "");
+}
+
+/* ---------- piezas de la contraparte elegida ---------- */
+function piezasDe(c){
+  var arr;
+  if (MODO === "conteo") {
+    // una fila por pieza que está en un sector de Cervantes (lo que se le puede enviar a alguien)
+    var vistos = {};
+    arr = (D.enviar || []).filter(function(x){
+      if (vistos[x.comp_id]) return false;
+      vistos[x.comp_id] = true; return true;
+    });
+    return arr.sort(function(a,b){
+      return String(a.sector || "").localeCompare(String(b.sector || "")) || String(a.cod).localeCompare(String(b.cod));
+    });
+  }
+  if (MODO === "enviar") {
+    // el prov. AT recibe cualquier cartón/caja: el bundle lo marca con ref '*'
+    arr = (D.enviar || []).filter(function(x){
+      return x.tipo === c.tipo && (x.tipo === "proveedor_at" || String(x.ref) === String(c.ref));
+    });
+  } else {
+    arr = (D.recibir || []).filter(function(x){ return x.tipo === c.tipo && String(x.ref) === String(c.ref); });
+  }
+  return arr.sort(function(a,b){ return String(a.cod).localeCompare(String(b.cod)); });
+}
+
+function elegir(c){
+  selCP = c;
+  $("fase1Title").textContent = c.nombre;
+  E.mostrarFase(1);
+  var bv = $("btnVolver"); if (bv) bv.classList.toggle("hidden", MODO === "conteo");
+  var esRec = MODO === "recibir";
+  $("lblRemito").classList.toggle("hidden", !esRec);
+  $("fRemito").classList.toggle("hidden", !esRec);
+  $("fFecha").classList.toggle("hidden", MODO === "conteo");
+  $("fFecha").previousElementSibling.classList.toggle("hidden", MODO === "conteo");
+  if (!$("fFecha").value) $("fFecha").value = hoyISO();
+  $("q").value = "";
+  $("thead").innerHTML = MODO === "enviar"
+      ? "<th>Pieza</th><th class=\"num\">Online sector</th><th class=\"num sep\">Cantidad</th>"
+    : MODO === "recibir"
+      ? "<th>Pieza</th><th class=\"num\">Esperado</th><th class=\"num sep\">Recibido</th>"
+      : "<th>Pieza</th><th class=\"num\">Online</th><th class=\"num sep\">Contado</th><th class=\"num\">Dif.</th>";
+  render();
+}
+function volver(){ selCP = null; E.mostrarFase(0); pintarCPS(); }
+
+/* esperado en la unidad con la que se carga (cajas para el prov. AT) */
+function esperadoTxt(x){
+  if (x.esperado == null) return '<span class="esp">—<small>sin referencia</small></span>';
+  var u = unidadDe(x);
+  var e = Number(x.esperado);
+  var origen = { oc: "según OC", online_tall: "stock que tiene", online_ps: "stock que tiene",
+                 online_virgilio: "online Virgilio" }[x.esperado_origen] || x.esperado_origen || "";
+  if (u === "cajas" && Number(x.por_caja) > 0)
+    return '<span class="esp">' + fmt(e / Number(x.por_caja), 1) + " cajas<small>" + fmt(e, 0) + " uni · " + esc(origen) + "</small></span>";
+  return '<span class="esp">' + fmt(e, u === "kg" ? 2 : 0) + " " + u + "<small>" + esc(origen) + "</small></span>";
+}
+
+/* lo cargado, comparable con el esperado (cajas × por_caja = uni) */
+function comparable(x, q){
+  if (unidadDe(x) === "cajas" && Number(x.por_caja) > 0) return q * Number(x.por_caja);
+  return q;
+}
+function exceso(x, q){
+  if (MODO !== "recibir" || x.esperado == null || !(q > 0)) return 0;
+  var d = comparable(x, q) - Number(x.esperado);
+  return d > 0 ? d : 0;
+}
+
+function render(){
+  var arr = E.filtrar(piezasDe(selCP), $("q").value, function(x){
+    return String(x.cod || "") + " " + String(x.desc || "") + " " + String(x.ent_cod || "") + " " + String(x.sector || "");
+  });
+  var tb = $("tbody");
+  tb.innerHTML = "";
+  $("tblEmpty").classList.toggle("hidden", arr.length > 0);
+  if (!arr.length) $("tblEmpty").textContent = "Sin resultados para ese filtro.";
+
+  arr.forEach(function(x){
+    var k = claveDe(x);
+    var it = BUF.item(selCP.id, k);
+    var u = unidadDe(x);
+    var q = num(it.q);
+    var tr = document.createElement("tr");
+    tr.dataset.k = k;
+    var sub = esc(x.desc || "");
+    if (MODO === "recibir" && x.ent_cod) sub += ' · <span class="proc">consume ' + esc(x.ent_cod) + "</span>";
+    if (MODO === "conteo" && x.sector) sub += ' · <span class="proc">' + esc(x.sector) + "</span>";
+    if (u === "cajas" && Number(x.por_caja) > 0) sub += ' · <span class="proc">' + fmt(x.por_caja, 0) + " uni x caja</span>";
+    var ex = exceso(x, q);
+    var pieza = '<td><span class="cod">' + esc(x.cod) + "</span>" + uniTag(u) +
+      '<br><small class="sub">' + sub + "</small>" +
+      (ex > 0 ? '<br><span class="demas-tag">⚠ ' + fmt(ex, u === "kg" ? 2 : 0) + " de más</span>" : "") + "</td>";
+    var mitad;
+    if (MODO === "enviar") mitad = '<td class="num esp">' + fmt(x.online_sector, u === "kg" ? 2 : 0) + " " + u + "</td>";
+    else if (MODO === "recibir") mitad = '<td class="num">' + esperadoTxt(x) + "</td>";
+    else mitad = '<td class="num esp">' + fmt(x.online_sector, u === "kg" ? 2 : 0) + " " + u + "</td>";
+    tr.innerHTML = pieza + mitad + E.tdInput("q", it.q, false, "sep", inputmodeDe(u)).replace('class="cell-in', 'class="cell-in big');
+    if (MODO === "conteo") {
+      var d = it.q === "" ? null : q - Number(x.online_sector || 0);
+      tr.innerHTML += '<td class="num dif ' + (d == null ? "" : GP2UI.cls(d)) + '">' + (d == null ? "" : ((d > 0 ? "+" : "") + fmt(d, u === "kg" ? 2 : 0))) + "</td>";
+    }
+    if (ex > 0) tr.classList.add("demas");
+    tb.appendChild(tr);
+  });
+  actualizar();
+}
+
+function cargadas(){ return E.cargadasDe(BUF.de(selCP.id), function(it){ return num(it.q) > 0; }); }
+
+function actualizar(){
+  var n = cargadas().length;
+  if (MODO === "conteo") {
+    var btn = $("btnEnviar");
+    btn.disabled = (n === 0);
+    btn.textContent = n ? ("Bajar CSV (" + n + ")") : "Bajar CSV";
+    $("alertaBox").classList.add("hidden");
+    return;
+  }
+  E.actualizarEnviar(n, MODO === "enviar" ? "Enviar" : "Recibir");
+  // el aviso de exceso: informa, no frena (el botón sigue habilitado)
+  var meta = {}; piezasDe(selCP).forEach(function(x){ meta[claveDe(x)] = x; });
+  var conExceso = cargadas().filter(function(o){ return meta[o.k] && exceso(meta[o.k], num(o.it.q)) > 0; });
+  var box = $("alertaBox");
+  box.classList.toggle("hidden", conExceso.length === 0);
+  if (conExceso.length) {
+    box.innerHTML = "⚠ <b>Estás recibiendo más de lo esperado</b> en " + conExceso.length + " pieza" +
+      (conExceso.length === 1 ? "" : "s") + " (" + conExceso.map(function(o){ return esc(meta[o.k].cod); }).join(", ") +
+      "). <b>Podés registrar igual</b>: queda una alerta para que la revisen en Alertas.";
+  }
+}
+
+/* ---------- eventos ---------- */
+$("tbody").addEventListener("input", function(e){
+  var inp = e.target.closest("input.cell-in");
+  if (!inp) return;
+  var tr = inp.closest("tr");
+  BUF.item(selCP.id, tr.dataset.k)[inp.dataset.f] = inp.value;
+  BUF.save();
+  // repintar sólo lo que cambia de esa fila (el exceso y la diferencia), sin perder el foco
+  var meta = {}; piezasDe(selCP).forEach(function(x){ meta[claveDe(x)] = x; });
+  var x = meta[tr.dataset.k];
+  if (x) {
+    var q = num(inp.value), u = unidadDe(x), ex = exceso(x, q);
+    tr.classList.toggle("demas", ex > 0);
+    var old = tr.querySelector(".demas-tag"); if (old) { old.previousSibling && old.previousSibling.nodeName === "BR" && old.previousSibling.remove(); old.remove(); }
+    if (ex > 0) tr.firstElementChild.insertAdjacentHTML("beforeend", '<br><span class="demas-tag">⚠ ' + fmt(ex, u === "kg" ? 2 : 0) + " de más</span>");
+    var dif = tr.querySelector("td.dif");
+    if (dif) {
+      var d = inp.value === "" ? null : q - Number(x.online_sector || 0);
+      dif.className = "num dif " + (d == null ? "" : GP2UI.cls(d));
+      dif.textContent = d == null ? "" : ((d > 0 ? "+" : "") + fmt(d, u === "kg" ? 2 : 0));
+    }
+  }
+  actualizar();
+});
+
+$("q").addEventListener("input", render);
+$("q0").addEventListener("input", pintarCPS);
+$("btnVolver").addEventListener("click", volver);
+$("btnOtro").addEventListener("click", function(){ location.reload(); });
+$("modos").addEventListener("click", function(e){
+  var b = e.target.closest(".modo-btn");
+  if (b) setModo(b.dataset.modo);
+});
+
+$("btnEnviar").addEventListener("click", async function(){
+  if (!selCP) return;
+  var items = cargadas();
+  if (!items.length) return;
+  var meta = {}; piezasDe(selCP).forEach(function(x){ meta[claveDe(x)] = x; });
+
+  if (MODO === "conteo") {
+    var filas = [["Código", "Descripción", "Sector", "Unidad", "Online", "Contado", "Diferencia"]];
+    items.forEach(function(o){
+      var x = meta[o.k]; if (!x) return;
+      var q = num(o.it.q);
+      filas.push([x.cod, x.desc || "", x.sector || "", unidadDe(x), Number(x.online_sector || 0), q, q - Number(x.online_sector || 0)]);
+    });
+    GP2UI.exportarCSV("conteo_" + hoyISO(), filas);
+    return;
+  }
+
+  var fecha = $("fFecha").value || hoyISO();
+  var payload = {
+    modo: MODO, tipo: selCP.tipo, ref: String(selCP.ref),
+    fecha: fecha + "T12:00:00",
+    remito: MODO === "recibir" ? ($("fRemito").value.trim() || null) : null,
+    items: items.map(function(o){
+      var x = meta[o.k] || {};
+      var u = unidadDe(x);
+      return {
+        comp_id: x.comp_id != null ? Number(x.comp_id) : null,
+        comp_entrada_id: x.comp_entrada_id != null ? Number(x.comp_entrada_id) : null,
+        cod_art: x.cod_art || null,
+        cantidad: num(o.it.q),
+        unidad: u === "kg" ? "kg" : "uni",
+        esperado: MODO === "recibir" && x.esperado != null ? Number(x.esperado) : null,
+        esperado_origen: x.esperado_origen || null,
+        por_caja: u === "cajas" ? (Number(x.por_caja) || null) : null
+      };
+    })
+  };
+  var nEx = items.filter(function(o){ return meta[o.k] && exceso(meta[o.k], num(o.it.q)) > 0; }).length;
+  var resumen = items.map(function(o){
+    var x = meta[o.k] || {};
+    return (x.cod || o.k) + ": " + fmt(num(o.it.q), unidadDe(x) === "kg" ? 2 : 0) + " " + unidadDe(x);
+  });
+  var verbo = MODO === "enviar" ? "Enviar a " : "Recibir de ";
+  if (!confirm(verbo + selCP.nombre + " (" + fecha + "):\n\n" + resumen.join("\n") +
+      (nEx ? "\n\n⚠ " + nEx + " pieza" + (nEx === 1 ? "" : "s") + " con más de lo esperado: se registra igual y queda la alerta." : ""))) return;
+
+  var btn = $("btnEnviar");
+  btn.disabled = true; btn.textContent = "Registrando…";
+  $("msg1").textContent = "";
+  try {
+    var r = await SB.rpc("tablet_registrar", { p: payload });
+    if (r.error) throw r.error;
+    BUF.borrar(selCP.id);
+    var res = r.data || {};
+    var al = res.alertas || [];
+    $("successTitle").textContent = MODO === "enviar" ? "✓ Enviado" : "✓ Recibido";
+    $("successAlertas").innerHTML = al.length
+      ? '<div class="alerta-box">⚠ <b>Quedó anotado para revisar</b>: ' + al.map(function(a){
+          return esc(a.cod) + " (" + fmt(a.recibido, 0) + " contra " + fmt(a.esperado, 0) + " esperados)";
+        }).join(", ") + ". La recepción se registró igual.</div>"
+      : "";
+    E.mostrarExito((res.n || items.length) + " pieza" + ((res.n || items.length) === 1 ? "" : "s") + " · " +
+      (MODO === "enviar" ? "enviadas a " : "recibidas de ") + (res.contraparte || selCP.nombre) + " · " + fecha);
+    try { var r2 = await SB.rpc("tablet_bundle"); if (!r2.error && r2.data) D = r2.data; } catch(e2){}
+  } catch(err){
+    $("msg1").innerHTML = '<span style="color:#b91c1c">Error: ' + esc(err.message || err) + "</span>";
+    btn.disabled = false; actualizar();
+  }
+});
+
+$("fFecha").value = hoyISO();
+cargar();
+</script>
+</body>
+</html>
