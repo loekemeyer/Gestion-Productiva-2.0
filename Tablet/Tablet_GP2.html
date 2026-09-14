@@ -6,13 +6,12 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<!-- v1.2.0 (2026-09-14) — BOTON "INYECTORES" EN ENVIAR [usuario: "el envio de bolsas plasticas
-     como proveedor de servicio" + "DALE"]. Es un tipo-link mas (como "Prov. de insumos" en
-     Recibir): abre Compras/Inyectores_GP2.html?volver=tablet, que YA manda las bolsas (kg) al
-     inyector con enviar_material_inyector. NO se duplica logica ni se toca el costeo. Los
-     inyectores NO son proveedor_servicio en el modelo (son proveedor_insumo/inyector), por eso
-     va como link y no como contraparte de tablet_bundle. El modelo PS completo (envio resina ->
-     recepcion pieza + costeo inyectado) queda pendiente aparte. -->
+<!-- v1.2.1 (2026-09-14) — SE SACA EL BOTON "INYECTORES" que v1.2.0 habia agregado en Enviar
+     [usuario: "saca el boton de inyectores y arranca la cirugia"]. Era un tipo-link a
+     Compras/Inyectores_GP2.html como atajo sin cirugia, pero el usuario quiere a los 3 inyectores
+     DENTRO de "Prov. de servicio", no en un boton aparte. Eso se logra convirtiendolos en
+     proveedor_servicio de verdad con su ruta de inyeccion (cirugia en la base), y ahi salen solos
+     en la lista de PS del Tablet (que se arma desde la base). Enviar vuelve a 3 tipos. -->
 <!-- v1.1.1 (2026-09-14) — el operario no ve la palabra "contraparte" [usuario 2026-09-14: "no
      quiero que diga contraparte"]. El buscador dice "Buscar por nombre…", la baldosa del tipo
      muestra sólo el número (el título ya dice qué son) y el pie dice "N para elegir". -->
@@ -197,9 +196,7 @@ var TIPOS = {
   enviar: [
     { tipo: "tallerista",         icono: "👷", titulo: "Talleristas",            sub: "lo que arman afuera" },
     { tipo: "proveedor_servicio", icono: "🏭", titulo: "Prov. de servicio",      sub: "pintan, niquelan, cortan" },
-    { tipo: "proveedor_at",       icono: "📦", titulo: "Prov. de art. terminado", sub: "cartones y cajas" },
-    { tipo: "inyector",           icono: "🧪", titulo: "Inyectores",             sub: "bolsas de plástico a inyectar",
-      link: "../Compras/Inyectores_GP2.html?volver=tablet" }
+    { tipo: "proveedor_at",       icono: "📦", titulo: "Prov. de art. terminado", sub: "cartones y cajas" }
   ],
   recibir: [
     { tipo: "tallerista",         icono: "👷", titulo: "Talleristas",       sub: "lo que traen armado" },
