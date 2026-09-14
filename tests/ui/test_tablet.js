@@ -1,16 +1,19 @@
-/* Caracterizacion de Tablet/Tablet_GP2.html (2026-09-13, ideas 7342/7343): la Version Tablet del
-   operario, con Supabase STUBEADO (tablet_bundle devuelve un fixture chico con la forma REAL del
-   bundle de la base; tablet_registrar anota lo que recibe y contesta como la base).
+/* Caracterizacion de Tablet/Tablet_GP2.html (2026-09-13, ideas 7342/7343; reescrito 2026-09-14
+   con el flujo por TIPO), con Supabase STUBEADO (tablet_bundle devuelve un fixture chico con la
+   forma REAL del bundle de la base; tablet_registrar anota lo que recibe y contesta como la base).
    Fija:
-     1. los tres modos (Enviar / Recibir / Conteo) y que en Enviar solo aparecen las contrapartes
-        a las que se les manda desde Cervantes (Virgilio no);
-     2. el buscador filtra la tabla;
-     3. las dos trampas de unidad: una pieza en kg se carga en kg (teclado decimal) y viaja 'kg';
-        el prov. AT se carga en CAJAS y viaja 'uni' + por_caja, con el esperado de la OC en uni;
-     4. la alerta de "recibi de mas" AVISA pero NO BLOQUEA: la fila se marca, el boton sigue
+     1. primero el TIPO y despues la contraparte de ese tipo — en Enviar los tres tipos a los que
+        se les manda desde Cervantes (Virgilio no), y adentro de un tipo solo sus contrapartes;
+     2. en Recibir NO esta el prov. de art. terminado (entrega en Virgilio, no en Cervantes),
+        SI esta "Prov. de insumos" y es un link a Recepcion Insumos, y un tipo con una sola
+        contraparte (Virgilio) entra derecho a la carga;
+     3. el Conteo no es un modo: es un link al modulo de Relevamientos;
+     4. el buscador filtra la tabla;
+     5. la trampa de unidad que queda: una pieza en kg se carga en kg (teclado decimal) y viaja
+        'kg' (la carga en CAJAS se fue con el prov. AT);
+     6. la alerta de "recibi de mas" AVISA pero NO BLOQUEA: la fila se marca, el boton sigue
         habilitado, el confirm lo dice, y el exito muestra lo que la base devolvio en alertas;
-     5. el Conteo no llama a ninguna RPC que escriba;
-     6. a 390px no hay scroll horizontal y los campos son tocables (>= 44px). */
+     7. a 390px no hay scroll horizontal y los campos son tocables (>= 44px). */
 const { chromium } = require('playwright');
 const path = require('path');
 const fs = require('fs');
@@ -23,13 +26,16 @@ const BUNDLE = {
   alertas_abiertas: 0,
   contrapartes: [
     { tipo: 'tallerista', ref: '6', nombre: 'Martin Cornejo', n_env: 2, n_rec: 1 },
+    { tipo: 'tallerista', ref: '9', nombre: 'Lucho', n_env: 1, n_rec: 0 },
     { tipo: 'proveedor_at', ref: '1', nombre: 'Cabral', n_env: 1, n_rec: 1 },
     { tipo: 'proveedor_servicio', ref: '5', nombre: 'Jade', n_env: 1, n_rec: 1 },
+    { tipo: 'proveedor_insumo', ref: 'Corrugadora del Plata', nombre: 'Corrugadora del Plata', n_env: 0, n_rec: 3 },
     { tipo: 'virgilio', ref: 'virgilio', nombre: 'Virgilio', n_env: 0, n_rec: 1 },
   ],
   enviar: [
     { tipo: 'tallerista', ref: '6', comp_id: 70, cod: 'A10', desc: 'Cpo Una', sector: 'Sector Crudo', um: 'unidad', uxc: 1000, kg_x_uni: 0.01, online_sector: 120 },
     { tipo: 'tallerista', ref: '6', comp_id: 75, cod: 'F7', desc: 'Fleje doblado', sector: 'Sector Fleje', um: 'kg', uxc: null, kg_x_uni: 0.0134, online_sector: 30.5 },
+    { tipo: 'tallerista', ref: '9', comp_id: 70, cod: 'A10', desc: 'Cpo Una', sector: 'Sector Crudo', um: 'unidad', uxc: 1000, kg_x_uni: 0.01, online_sector: 120 },
     { tipo: 'proveedor_servicio', ref: '5', comp_id: 90, cod: 'D5', desc: 'Mitad rompenuez', sector: 'Sector Crudo', um: 'unidad', uxc: 500, kg_x_uni: 0.05, online_sector: 40 },
     { tipo: 'proveedor_at', ref: '*', comp_id: 456, cod: 'A1', desc: 'Caja N°1', sector: 'Sector Caja', um: 'unidad', uxc: null, kg_x_uni: null, online_sector: 988 },
   ],
@@ -48,13 +54,11 @@ window.supabase = { createClient: function(){ return {
     window.__calls.push({name:name, args:args});
     if(name==='tablet_bundle') return { data: JSON.parse(JSON.stringify(${JSON.stringify(BUNDLE)})), error: null };
     if(name==='tablet_registrar'){
-      // igual que la base: alerta por item recibido con esperado y comparable > esperado
+      // igual que la base: alerta por item recibido con esperado y recibido > esperado
       var p = args.p, al = [];
       (p.items||[]).forEach(function(it){
-        if(p.modo==='recibir' && it.esperado != null){
-          var comp = it.cantidad * (p.tipo==='proveedor_at' ? (it.por_caja||1) : 1);
-          if(comp > it.esperado) al.push({ id: 900+al.length, cod: it.cod_art || ('comp'+it.comp_id), esperado: it.esperado, recibido: comp, exceso: comp-it.esperado });
-        }
+        if(p.modo==='recibir' && it.esperado != null && it.cantidad > it.esperado)
+          al.push({ id: 900+al.length, cod: it.cod_art || ('comp'+it.comp_id), esperado: it.esperado, recibido: it.cantidad, exceso: it.cantidad-it.esperado });
       });
       return { data: { ok:true, n:(p.items||[]).length, contraparte:'X', modo:p.modo, items:[], alertas: al }, error: null };
     }
@@ -75,23 +79,37 @@ window.supabase = { createClient: function(){ return {
 
   const ok = (c, msg) => { console.log((c ? 'OK  ' : 'FAIL') + ' ' + msg); if (!c) process.exitCode = 1; };
   const calls = async (n) => page.evaluate(n => (window.__calls || []).filter(c => c.name === n), n);
+  const tipos = () => page.$$eval('#tipoGrid .tipo-btn', xs => xs.map(x => x.textContent.replace(/\s+/g, ' ').trim()));
 
   await page.goto(ROOT + '/Tablet/Tablet_GP2.html');
   await page.evaluate(() => localStorage.clear());
   await page.reload();
-  await page.waitForFunction(() => document.querySelectorAll('#cpGrid .prov-btn').length > 0);
+  await page.waitForFunction(() => document.querySelectorAll('#tipoGrid .tipo-btn').length > 0);
 
-  // ── 1) modo ENVIAR: solo a quien se le manda desde Cervantes ──────────────
+  // ── 1) modo ENVIAR: primero el TIPO ──────────────────────────────────────
   ok(await page.$eval('#modos .modo-btn.active', b => b.dataset.modo) === 'enviar', 'arranca en Enviar');
-  let btns = await page.$$eval('#cpGrid .prov-btn', xs => xs.map(x => x.textContent));
-  ok(btns.length === 3 && !btns.join('|').includes('Virgilio'), 'Enviar: 3 contrapartes, Virgilio afuera — ' + btns.map(b => b.split(/tallerista|prov\./)[0].trim()).join('|'));
-  ok(btns.find(b => b.startsWith('Martin')).includes('2 piezas'), 'Martin: 2 piezas para enviar');
+  let ts = await tipos();
+  ok(ts.length === 3 && !ts.join('|').includes('Virgilio'), 'Enviar: 3 tipos, Virgilio afuera — ' + ts.join(' | '));
+  ok(ts[0].includes('Talleristas') && ts[0].includes('· 2') && !ts.join('|').includes('contraparte'),
+     'el tipo dice cuántas hay sin la palabra "contraparte" — ' + ts[0]);
+  ok(await page.$eval('#cpBox', e => e.classList.contains('hidden')), 'todavía no se listan las contrapartes');
 
+  await page.click('#tipoGrid .tipo-btn[data-tipo="tallerista"]');
+  let btns = await page.$$eval('#cpGrid .prov-btn', xs => xs.map(x => x.textContent.replace(/\s+/g, ' ')));
+  ok(btns.length === 2 && btns[0].startsWith('Martin Cornejo') && btns[1].startsWith('Lucho') && !btns.join('|').includes('tallerista'),
+     'adentro de Talleristas solo talleristas (2) y sin repetir el tipo en cada chip — ' + btns.join(' | '));
+  ok((await page.$eval('#fase0Title', e => e.textContent)) === 'Talleristas', 'el título dice el tipo elegido');
+
+  // el "← Cambiar tipo" vuelve a los tipos sin recargar
+  await page.click('#btnVolverTipo');
+  ok((await tipos()).length === 3 && await page.$eval('#cpBox', e => e.classList.contains('hidden')), 'Cambiar tipo vuelve a los tipos');
+  await page.click('#tipoGrid .tipo-btn[data-tipo="tallerista"]');
   await page.click('#cpGrid .prov-btn:has-text("Martin")');
+
   let rows = await page.$$eval('#tbody tr', xs => xs.map(x => x.textContent.replace(/\s+/g, ' ')));
   ok(rows.length === 2 && rows[0].includes('A10') && rows[0].includes('120'), 'fila A10 con online 120 — ' + rows[0]);
   ok(rows[1].includes('F7') && rows[1].includes('kg') && rows[1].includes('30,5'), 'fila F7 en kg con online 30,5 — ' + rows[1]);
-  // trampa 2: la pieza en kg se carga con teclado decimal; la de unidades con numerico
+  // la pieza en kg se carga con teclado decimal; la de unidades con numerico
   const modos = await page.$$eval('#tbody input.cell-in', xs => xs.map(x => x.getAttribute('inputmode')));
   ok(modos[0] === 'numeric' && modos[1] === 'decimal', 'teclado: A10 numeric, F7 (kg) decimal — ' + modos.join(','));
 
@@ -120,23 +138,43 @@ window.supabase = { createClient: function(){ return {
   const buf = await page.evaluate(() => JSON.parse(localStorage.getItem('gp2_tablet_buffer') || '{}'));
   ok(!buf['enviar:tallerista:6'], 'buffer limpio tras enviar');
 
-  // ── 3) modo RECIBIR: prov. AT en CAJAS, alerta que avisa y no frena ─────────
+  // ── 3) modo RECIBIR: sin prov. AT, con Insumos que es un link ─────────────
   await page.click('#btnOtro');
-  await page.waitForFunction(() => document.querySelectorAll('#cpGrid .prov-btn').length > 0);
+  await page.waitForFunction(() => document.querySelectorAll('#tipoGrid .tipo-btn').length > 0);
   await page.click('#modos .modo-btn[data-modo="recibir"]');
-  btns = await page.$$eval('#cpGrid .prov-btn', xs => xs.map(x => x.textContent));
-  ok(btns.length === 4 && btns.some(b => b.startsWith('Virgilio')), 'Recibir: 4 contrapartes, Virgilio adentro');
-  await page.click('#cpGrid .prov-btn:has-text("Cabral")');
+  ts = await tipos();
+  ok(ts.length === 4 && !ts.join('|').includes('art. terminado'),
+     'Recibir: 4 tipos y el prov. de art. terminado NO esta (entrega en Virgilio) — ' + ts.join(' | '));
+  ok(ts.some(t => t.includes('Prov. de insumos')) && ts.some(t => t.includes('Virgilio')), 'Recibir: estan Insumos y Virgilio');
+  const hrefInsumos = await page.$eval('#tipoGrid .tipo-btn[data-tipo="proveedor_insumo"]', a => a.getAttribute('href'));
+  ok(hrefInsumos === '../StockFlejes/RecepcionInsumos_GP2.html?volver=tablet',
+     'Insumos abre Recepcion Insumos (una sola copia del flujo) — ' + hrefInsumos);
+
+  // Virgilio es una sola contraparte: se entra derecho a la carga
+  await page.click('#tipoGrid .tipo-btn[data-tipo="virgilio"]');
+  await page.waitForFunction(() => !document.getElementById('fase1').classList.contains('hidden'));
+  ok((await page.$eval('#fase1Title', e => e.textContent)) === 'Virgilio', 'un tipo con una sola contraparte entra derecho');
+  rows = await page.$$eval('#tbody tr', xs => xs.map(x => x.textContent.replace(/\s+/g, ' ')));
+  ok(rows.length === 1 && rows[0].includes('IC3V') && rows[0].includes('20 kg') && rows[0].includes('online Virgilio'),
+     'Virgilio: IC3V con esperado 20 kg del online — ' + rows[0]);
+  await page.click('#btnVolver');
+  await page.waitForFunction(() => document.querySelectorAll('#tipoGrid .tipo-btn').length > 0);
+  ok(true, 'volver desde un tipo de una sola contraparte cae en los tipos');
+
+  // tallerista: en Recibir solo entrega Martin (Lucho tiene n_rec 0), asi que se entra derecho
+  await page.click('#tipoGrid .tipo-btn[data-tipo="tallerista"]');
+  await page.waitForFunction(() => !document.getElementById('fase1').classList.contains('hidden'));
+  ok((await page.$eval('#fase1Title', e => e.textContent)) === 'Martin Cornejo',
+     'en Recibir solo el tallerista que entrega algo (Lucho no), y se entra derecho');
   ok(!(await page.$eval('#fRemito', e => e.classList.contains('hidden'))), 'en Recibir se pide el remito');
   rows = await page.$$eval('#tbody tr', xs => xs.map(x => x.textContent.replace(/\s+/g, ' ')));
-  ok(rows.length === 1 && rows[0].includes('026') && rows[0].includes('cajas') && rows[0].includes('36 uni x caja') && rows[0].includes('2 cajas') && rows[0].includes('72 uni'),
-     'prov AT: se carga en CAJAS, esperado de la OC = 2 cajas (72 uni) — ' + rows[0]);
-  ok((await page.$eval('#tbody input.cell-in', e => e.getAttribute('inputmode'))) === 'numeric', 'cajas: teclado numerico');
+  ok(rows.length === 1 && rows[0].includes('A11') && rows[0].includes('consume A10') && rows[0].includes('100 uni'),
+     'tallerista: A11 consume A10, esperado 100 — ' + rows[0]);
 
   await page.fill('#fRemito', 'R-0001');
-  await page.fill('#tbody input.cell-in', '3');   // 3 cajas = 108 uni > 72 esperadas
+  await page.fill('#tbody input.cell-in', '130');
   await page.waitForFunction(() => document.querySelector('#tbody tr').classList.contains('demas'));
-  ok(await page.$eval('#tbody tr', tr => tr.textContent.includes('36 de más')), 'la fila avisa "36 de más" (108 contra 72)');
+  ok(await page.$eval('#tbody tr', tr => tr.textContent.includes('30 de más')), 'la fila avisa "30 de más" (130 contra 100)');
   ok(!(await page.$eval('#alertaBox', e => e.classList.contains('hidden'))) && (await page.$eval('#alertaBox', e => e.textContent)).includes('registrar igual'),
      'el cartel dice que se puede registrar igual');
   ok((await page.$eval('#btnEnviar', e => !e.disabled && e.textContent === 'Recibir (1)')), 'el boton Recibir sigue habilitado: la alerta NO bloquea');
@@ -144,52 +182,38 @@ window.supabase = { createClient: function(){ return {
   dialogs.length = 0;
   await page.click('#btnEnviar');
   await page.waitForFunction(() => !document.getElementById('fase3').classList.contains('hidden'));
-  ok(dialogs.some(d => d.type === 'confirm' && d.msg.includes('Recibir de Cabral') && d.msg.includes('3 cajas') && d.msg.includes('se registra igual')),
+  ok(dialogs.some(d => d.type === 'confirm' && d.msg.includes('Recibir de Martin Cornejo') && d.msg.includes('se registra igual')),
      'confirm de recepcion avisa el exceso y sigue');
-  reg = await calls('tablet_registrar');   // la pagina se recargo: el registro de llamadas arranca de cero
+  reg = await calls('tablet_registrar');
   p = reg[reg.length - 1].args.p;
-  ok(p.modo === 'recibir' && p.tipo === 'proveedor_at' && p.ref === '1' && p.remito === 'R-0001', 'payload recibir prov AT con remito');
+  ok(p.modo === 'recibir' && p.tipo === 'tallerista' && p.ref === '6' && p.remito === 'R-0001', 'payload recibir con remito');
   const it = p.items[0];
-  ok(it.cod_art === '026' && it.comp_id === null && it.cantidad === 3 && it.unidad === 'uni' && it.por_caja === 36 && it.esperado === 72 && it.esperado_origen === 'oc',
-     'item prov AT: 3 (cajas) como uni + por_caja 36 + esperado 72 de la OC — ' + JSON.stringify(it));
-  ok((await page.$eval('#successAlertas', e => e.textContent)).includes('Quedó anotado para revisar') && (await page.$eval('#successAlertas', e => e.textContent)).includes('026'),
+  ok(it.comp_id === 71 && it.comp_entrada_id === 70 && it.cantidad === 130 && it.unidad === 'uni' && it.esperado === 100 && it.esperado_origen === 'online_tall',
+     'item tallerista: comp 71 consume 70, esperado 100 online_tall — ' + JSON.stringify(it));
+  ok((await page.$eval('#successAlertas', e => e.textContent)).includes('Quedó anotado para revisar'),
      'el exito muestra la alerta que devolvio la base');
 
-  // recibir de tallerista: la pieza viaja con comp_entrada_id y esperado del online
+  // ── 4) el CONTEO es el modulo de Relevamientos ───────────────────────────
   await page.click('#btnOtro');
-  await page.waitForFunction(() => document.querySelectorAll('#cpGrid .prov-btn').length > 0);
+  await page.waitForFunction(() => document.querySelectorAll('#tipoGrid .tipo-btn').length > 0);
   ok(await page.$eval('#modos .modo-btn.active', b => b.dataset.modo) === 'recibir', 'el modo se recuerda al recargar');
-  await page.click('#cpGrid .prov-btn:has-text("Martin")');
-  rows = await page.$$eval('#tbody tr', xs => xs.map(x => x.textContent.replace(/\s+/g, ' ')));
-  ok(rows.length === 1 && rows[0].includes('A11') && rows[0].includes('consume A10') && rows[0].includes('100 uni'), 'tallerista: A11 consume A10, esperado 100 — ' + rows[0]);
-  await page.fill('#tbody input.cell-in', '80');
-  ok(!(await page.$eval('#tbody tr', tr => tr.classList.contains('demas'))), '80 contra 100: sin alerta');
-  await page.click('#btnEnviar');
-  await page.waitForFunction(() => !document.getElementById('fase3').classList.contains('hidden'));
-  reg = await calls('tablet_registrar');
-  const it2 = reg[reg.length - 1].args.p.items[0];
-  ok(it2.comp_id === 71 && it2.comp_entrada_id === 70 && it2.cantidad === 80 && it2.unidad === 'uni' && it2.esperado === 100 && it2.esperado_origen === 'online_tall' && it2.por_caja === null,
-     'item tallerista: comp 71 consume 70, esperado 100 online_tall — ' + JSON.stringify(it2));
-  ok((await page.$eval('#successAlertas', e => e.textContent.trim())) === '', 'sin alertas en el exito cuando no hay exceso');
+  const hrefConteo = await page.$eval('#modoConteo', a => a.getAttribute('href'));
+  ok(hrefConteo === '../Relevamiento/Relevamiento_GP2.html?volver=tablet', 'Conteo abre Relevamientos — ' + hrefConteo);
+  ok((await page.$$('#modos .modo-btn')).length === 3, 'siguen los tres modos arriba');
 
-  // ── 4) modo CONTEO: no escribe ───────────────────────────────────────────
-  await page.click('#btnOtro');
-  await page.waitForFunction(() => document.querySelectorAll('#cpGrid .prov-btn').length > 0);
-  await page.click('#modos .modo-btn[data-modo="conteo"]');
-  await page.waitForFunction(() => document.querySelectorAll('#tbody tr').length > 0);
-  rows = await page.$$eval('#tbody tr', xs => xs.map(x => x.textContent.replace(/\s+/g, ' ')));
-  ok(rows.length === 4, 'conteo: una fila por pieza en Cervantes (4) — ' + rows.map(r => r.split(' ')[0]).join(','));
-  ok(await page.$eval('#fase0', e => e.classList.contains('hidden')), 'conteo no pide contraparte');
-  const filaA10 = await page.$('#tbody tr:has-text("A10")');
-  await filaA10.$eval('input.cell-in', (e) => { e.value = '115'; e.dispatchEvent(new Event('input', { bubbles: true })); });
-  ok(await filaA10.$eval('td.dif', e => e.textContent === '-5' && e.classList.contains('neg')), 'conteo: 115 contra 120 online = -5 en rojo');
-  ok((await page.$eval('#btnEnviar', e => e.textContent)) === 'Bajar CSV (1)', 'en conteo el boton baja el CSV');
-  const nRegAntes = (await calls('tablet_registrar')).length;
-  await page.click('#btnEnviar');
-  await page.waitForTimeout(200);
-  ok((await calls('tablet_registrar')).length === nRegAntes, 'el conteo no llama a tablet_registrar');
+  // las dos pantallas que se abren desde acá devuelven el "Atrás" a la tablet
+  for (const [url, vuelve] of [['/StockFlejes/RecepcionInsumos_GP2.html?volver=tablet', '../Tablet/Tablet_GP2.html?modo=recibir'],
+                               ['/Relevamiento/Relevamiento_GP2.html?volver=tablet', '../Tablet/Tablet_GP2.html']]) {
+    await page.goto(ROOT + url);
+    await page.waitForSelector('#btnAtrasHeader');
+    ok((await page.$eval('#btnAtrasHeader', a => a.getAttribute('href'))) === vuelve, 'con ?volver=tablet el Atrás vuelve a la tablet — ' + url.split('/')[1]);
+  }
 
   // ── 5) render a 390px ────────────────────────────────────────────────────
+  await page.goto(ROOT + '/Tablet/Tablet_GP2.html?modo=enviar');
+  await page.waitForFunction(() => document.querySelectorAll('#tipoGrid .tipo-btn').length > 0);
+  await page.click('#tipoGrid .tipo-btn[data-tipo="tallerista"]');
+  await page.click('#cpGrid .prov-btn:has-text("Martin")');
   const m = await page.evaluate(() => {
     const ins = [...document.querySelectorAll('#tbody input.cell-in, #modos .modo-btn, #btnEnviar')];
     return {
@@ -201,6 +225,13 @@ window.supabase = { createClient: function(){ return {
   ok(!m.horizontal, '390px: la pagina no scrollea horizontal');
   ok(m.altoMin >= 44, '390px: campos y botones tocables (' + Math.round(m.altoMin) + 'px, minimo 44)');
   ok(m.fuenteMin >= 19, '390px: letra grande en los campos de carga (' + m.fuenteMin + 'px)');
+
+  // y los botones de TIPO tambien se tocan con el dedo
+  await page.click('#btnVolver');       // vuelve a las contrapartes del tipo
+  await page.click('#btnVolverTipo');   // y de ahi a los tipos
+  await page.waitForFunction(() => !document.getElementById('tipoGrid').classList.contains('hidden'));
+  const tMin = await page.$$eval('#tipoGrid .tipo-btn', xs => Math.min(...xs.map(x => x.getBoundingClientRect().height)));
+  ok(tMin >= 44, '390px: los botones de tipo son tocables (' + Math.round(tMin) + 'px)');
 
   await browser.close();
   console.log(process.exitCode ? 'HAY FALLOS' : 'TODO OK');

@@ -6,6 +6,21 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
+<!-- v3.57.0 (2026-09-14) — RUBRO "IMPORTADOS" -> "PROCESADO" (usuario: "Ponelo dentro de sector
+     procesado" + "Y borra importados"). La recepcion es POR SECTOR: el boton ahora se llama
+     Procesado y apunta al Sector Procesado (id 2), donde viven C13 / D1 / Z23A / Z23B (los 4
+     estado_compra='importado'). insumosDelRubro() ya no tiene rama especial por estado_compra:
+     cada rubro muestra TODO lo comprable de su sector. Lo unico que se saca es el corte de PS
+     hibrido — se generalizo esCorteDePS()/PS_CORTE para excluir tambien el 1686 de Eclipse
+     (sector 2, proveedor Eclipse), que se recibe en su pantalla dedicada CharcasEclipse. Los
+     importados siguen contandose y no pesandose (cargaEnUni sigue leyendo estado_compra del item,
+     no del rubro). BANDITA (Palo de Amasar, LOEKE) recibio carton_formato='Bandita' en la base
+     para que deje de caer en "Sin formato" en Cartones. Sin cambio de RPC. -->
+<!-- v3.56.0 (2026-09-14) — ESTA PANTALLA ES LA RECEPCIÓN DE INSUMOS DE LA TABLET [usuario
+     2026-09-14: "recibir, toca insumo y me aparece todo lo que está en recepción de insumos,
+     como ya lo modelamos"]. La Versión Tablet NO recarga este flujo: entra acá con
+     ?volver=tablet y lo único que cambia es que el "Atrás" devuelve a la tablet en vez de al
+     menú. Cero lógica duplicada. -->
 <!-- v3.55.0 (2026-09-11) — LOS FACTORES kg/uni SALEN DEL BUNDLE, NO DE UNA CONSULTA APARTE.
      La pantalla armaba KGXUNI y ENCAJAS con un from('componente') suelto, filtrando los sectores
      a mano (2,5,6,7,8,9,10,11,12) y con un reintento por si el schema-cache de la API todavia no
@@ -433,6 +448,17 @@ input[type="text"]{width:200px}
     <h1>Recepción Insumos</h1>
     <div class="hbtns"><a id="btnAtrasHeader" href="../GP2_MODULOS.html">Atrás</a></div>
   </div>
+  <!-- Si se entró desde la Versión Tablet (Recibir -> Prov. de insumos), el "Atrás" devuelve
+       a la tablet en vez de al menú: para el operario del galpón la tablet es la casa. -->
+  <script>
+  (function(){
+    try {
+      if (new URLSearchParams(location.search).get("volver") !== "tablet") return;
+      var a = document.getElementById("btnAtrasHeader");
+      if (a) a.href = "../Tablet/Tablet_GP2.html?modo=recibir";
+    } catch(e){}
+  })();
+  </script>
 
   <div class="steps">
     <!-- Paso 1 -->
@@ -451,12 +477,14 @@ input[type="text"]{width:200px}
         <button class="prov-btn" data-rubro="Bombillas" data-sid="7">Bombillas</button>
         <button class="prov-btn" data-rubro="Garage"    data-sid="9">Garage</button>
         <button class="prov-btn" data-rubro="MatPlastica" data-sid="14">Bolsas Plásticas</button>
-        <!-- Importados (2026-09-11): piezas que se COMPRAN hechas y viven en Sector Procesado
-             (C13 Corta Queso, D1 Espiral Sacacorcho, Z23A Cuch China, Z23B Cuchilla Laser).
-             Hasta hoy no se podian recepcionar por ningun lado — ni aparecian en la pantalla ni
-             las aceptaba la RPC — y 17 rutas de 16 articulos no podian ni arrancar. Se filtran
-             por estado_compra='importado', no por sector (el 1686 de Eclipse comparte sector). -->
-        <button class="prov-btn" data-rubro="Importados" data-sid="2">Importados</button>
+        <!-- Procesado (2026-09-14, usuario): la recepcion es POR SECTOR, un boton = un sector.
+             Sector Procesado (id 2) es donde viven las piezas que se COMPRAN hechas: C13 Corta
+             Queso, D1 Espiral Sacacorcho, Z23A Cuch China, Z23B Cuchilla Laser (todas
+             estado_compra='importado'). Antes esto era el rubro "Importados", que agrupaba por
+             estado_compra y no por sector; el usuario lo borro y pidio meterlos dentro de su
+             sector. El 1686 de Eclipse tambien es sector 2 pero se recibe en su pantalla dedicada
+             (Prov Serv/CharcasEclipse) - lo saca esCorteDePS(), no cae aca. -->
+        <button class="prov-btn" data-rubro="Procesado" data-sid="2">Procesado</button>
         <!-- Los rubros Filtros (Charcas) y Cortados (Eclipse) se sacaron en Fase B
              del rework 2026-09-02 (usuario): ahora los PS hibridos viven en su
              pantalla dedicada Prov Serv/CharcasEclipse/CharcasEclipse_GP2.html
@@ -666,7 +694,7 @@ const CONTROL_URL = {
   7:  'control-remaches.html?sector=7'   // Bombillas: idem [usuario 2026-09-03]
 };
 // Unidad default por rubro (kg / uni). Los flejes y remaches se compran en kg.
-const RUBRO_UM={Flejes:"kg",Remaches:"kg",Cajas:"uni",Plasticos:"uni",Cartones:"uni",Bombillas:"uni",Garage:"uni",MatPlastica:"kg"};
+const RUBRO_UM={Flejes:"kg",Remaches:"kg",Cajas:"uni",Plasticos:"uni",Cartones:"uni",Bombillas:"uni",Garage:"uni",MatPlastica:"kg",Procesado:"uni"};
 
 let INS=[], UMBY={}, KGXUNI={}, PROVFLAGS={}, RECS=[], PALL=[], ROLL=[], TARA={tara_pallet_min:4,tara_pallet_max:8};
 /* Insumos que el proveedor entrega en CAJAS y se pesan (componente.recibe_en_cajas).
@@ -858,15 +886,21 @@ $('btnContinuar').addEventListener('click',irStep2);
 // dedicada (CharcasEclipse) cuando el PS entrega el corte. Charcas es prov_servicio,
 // no proveedor de flejes -- por eso se colaba en el rubro Flejes con (2). Ojo: NO se
 // esconde a Charcas global (tiene bombillas reales en sector 7: BOM10/EP10/LLF8).
-var PS_CORTE_FLEJE = ['resortes charcas'];
+// Cortes de PS hibrido que NO se reciben aca: tienen pantalla dedicada
+// (Prov Serv/CharcasEclipse). Charcas entrega el fleje cortado (IC3/IC3V,
+// sector 5) y Eclipse el descorazonador cortado (1686, sector 2, proveedor
+// Eclipse). Los dos comparten sector con insumos reales, por eso se sacan
+// por proveedor y no por sector. [usuario 2026-09-02 / 2026-09-14]
+var PS_CORTE = { 5:['resortes charcas'], 2:['eclipse'] };
 function esCorteDePS(i){
-  return Number(i.sector_id)===5 && PS_CORTE_FLEJE.indexOf(String(i.proveedor||'').trim().toLowerCase())>=0;
+  var provs = PS_CORTE[Number(i.sector_id)];
+  return !!provs && provs.indexOf(String(i.proveedor||'').trim().toLowerCase())>=0;
 }
 function insumosDelRubro(){
-  // Importados: no se agrupan por sector (viven en Procesado, junto a piezas que se fabrican)
-  // sino por estado_compra. El resto de los rubros sigue siendo su sector.
-  if (rubroSel==='Importados') return INS.filter(i=>i.estado_compra==='importado' && !ocultarProv(i.proveedor));
-  return INS.filter(i=>i.sector_id===sidSel && i.estado_compra!=='importado' && !ocultarProv(i.proveedor) && !esCorteDePS(i));
+  // La recepcion es POR SECTOR: cada rubro muestra TODO lo comprable de su
+  // sector (incluidos los importados, que viven en Sector Procesado). Lo unico
+  // que se saca es el corte de PS hibrido, que tiene su pantalla aparte.
+  return INS.filter(i=>i.sector_id===sidSel && !ocultarProv(i.proveedor) && !esCorteDePS(i));
 }
 // Fase B rework 2026-09-02: los helpers esFiltroCharcas / esCortadoEclipse se
 // sacaron. Los PS hibridos Charcas/Eclipse viven ahora en su pantalla dedicada

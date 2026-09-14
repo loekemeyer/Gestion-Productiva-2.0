@@ -1,7 +1,13 @@
 <!doctype html>
 <html lang="es">
 <head>
-<!-- v1.26.0 (2026-09-14) — EL GATILLO VUELVE A SER EL MAXIMO, Y EL MINIMO SE BORRO DE LA BASE
+<!-- v1.27.0 (2026-09-14) — SE SACA EL RECUADRO AMARILLO "Pedido mínimo de la pieza" [usuario:
+     "eliminá este recuadro" / "el amarillo"]. Avisaba cuando el sugerido quedaba por debajo de la
+     tirada minima del inyector (pedido_minimo_uni) con un boton "Subir al mínimo". Se fueron el div
+     #avisoMinUni, el bloque en barra() y las funciones lineasBajoMinimoUni/subirAlMinimoUni; tambien
+     el test dedicado test_oc_minimo_uni.js. El dato pedido_minimo_uni sigue en oc_bundle por si se
+     lo vuelve a usar. El pie de la OC impresa pasa a "Bolsas plásticas" (rename del sector 14).
+     v1.26.0 (2026-09-14) — EL GATILLO VUELVE A SER EL MAXIMO, Y EL MINIMO SE BORRO DE LA BASE
      [usuario 2026-09-14, textual: "lo de minimo borralo. la orden de compra tiene que disparar
      segun el maximo. es algo que habiamos hecho mal" / "todo lo que usaba el minimo ahora que
      use el maximo. es la misma logica"]. Se retira entera la v1.21.0 de abajo.
@@ -443,8 +449,6 @@
       <div class="filtro hidden" id="filtroProv"><span class="filtro-lb">Proveedor</span><div class="chips" id="provs"></div></div>
       <div class="prov-info hidden" id="provInfo"></div>
       <div class="regla-carton hidden" id="reglaCarton"></div>
-      <!-- Aviso (no bloquea): lineas por debajo del pedido minimo de la pieza. -->
-      <div class="regla-carton hidden" id="avisoMinUni"></div>
       <!-- Sin sector ni proveedor elegido no se muestra NADA de la lista [usuario
            2026-09-04: "si no pongo el sector y no pongo el proveedor, que no me aparezca
            la lista"]: la pantalla arranca en los botones de sector y nada mas. -->
@@ -1143,41 +1147,14 @@ function validarMinimoProveedor(items){
   return errs;
 }
 
-/* PEDIDO MINIMO POR PIEZA (componente.pedido_minimo_uni, del Excel del usuario hoja "Pedido 31-08",
-   columna `Pedi Min Uni`): el inyector no hace una tirada de menos de N piezas. NO bloquea la OC:
-   hoy 24 de los 47 sugeridos quedan por debajo del piso (el pirolo blanco sugiere 2.248 contra un
-   minimo de 36.000 = 64 meses de consumo), y bloquear volveria la OC imposible de crear. Es un aviso:
-   o se sube al piso (boton) o se saca la linea y se espera a juntar consumo. La decision de comprar
-   16 veces el consumo es del comprador. */
-function lineasBajoMinimoUni(items){
-  return items.filter(function(x){
-    var m=Number(x.it.pedido_minimo_uni)||0;
-    return m>0 && Number(x.cantidad)>0 && Number(x.cantidad)<m;
-  });
-}
-function subirAlMinimoUni(){
-  lineasBajoMinimoUni(itemsPedidos()).forEach(function(x){
-    PEDIDO[x.it.comp_id]=Number(x.it.pedido_minimo_uni);
-  });
-}
+/* El recuadro amarillo "Pedido mínimo de la pieza" se saco el 2026-09-14 [usuario: "eliminá
+   este recuadro" / "el amarillo"]. Avisaba cuando el sugerido quedaba por debajo de la tirada
+   minima del inyector (componente.pedido_minimo_uni) y ofrecia un boton "Subir al mínimo". El
+   dato pedido_minimo_uni sigue viajando en oc_bundle por si se lo vuelve a usar; lo que se fue
+   es el aviso y su boton. */
 
 function barra(){
   var items=itemsPedidos();
-  var bajos=lineasBajoMinimoUni(items);
-  var am=$('avisoMinUni');
-  if(bajos.length){
-    am.classList.remove('hidden');
-    am.innerHTML='<b>Pedido mínimo de la pieza</b> — '+bajos.length+
-      (bajos.length===1?' línea queda':' líneas quedan')+' por debajo de lo que el proveedor fabrica de una:<br>'+
-      bajos.map(function(x){
-        return esc(x.it.codigo+' '+x.it.descripcion)+': pedís '+fmt(x.cantidad)+
-               ' y el mínimo es '+fmt(Number(x.it.pedido_minimo_uni))+'.';
-      }).join('<br>')+
-      '<br><button type="button" id="btnSubirMinUni" class="btn-sug" style="margin-top:8px">Subir al mínimo</button>';
-    var bm=$('btnSubirMinUni');
-    if(bm) bm.addEventListener('click',function(){ subirAlMinimoUni(); render(); });
-  }
-  else am.classList.add('hidden');
   var errsCart=validarCarton(items);
   var errs=errsCart.concat(validarMinimoProveedor(items));
   var rc=$('reglaCarton');
