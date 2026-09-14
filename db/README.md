@@ -7,7 +7,7 @@ Export del **2026-09-05** (cierre de la auditoría de arquitectura del 2026-09-0
 | Archivo | Contenido | Exactitud |
 |---|---|---|
 | `tablas_GP2.sql` | **56 tablas** (columnas, identity, defaults, comentarios) + 199 constraints (PK, UNIQUE, FK, CHECK) + 63 índices sueltos + 14 triggers + RLS en las 56 + 56 policies (todas SELECT). Lo último que entró: `alerta_recepcion` (Versión Tablet, 2026-09-13) | DDL reconstruido de `pg_catalog`; constraints/índices/triggers exactos vía `pg_get_*def` |
-| `funciones_GP2.sql` | Las **153 funciones/RPC** del schema (las de pantalla ejecutables por `anon`, el resto internas) | Exacto (`pg_get_functiondef`); el 2026-09-13 se verificó **entera** por md5 contra la base, función por función, al agregar `tablet_bundle`, `tablet_registrar` y `alerta_recepcion_marcar` (Versión Tablet) y refrescar `alertas_bundle` / `inicio_bundle` (clave `recepcion_de_mas`) |
+| `funciones_GP2.sql` | Las **154 funciones/RPC** del schema (las de pantalla ejecutables por `anon`, el resto internas) | Exacto (`pg_get_functiondef`); el 2026-09-13 se verificó **entera** por md5 contra la base, función por función, al agregar `tablet_bundle`, `tablet_registrar` y `alerta_recepcion_marcar` (Versión Tablet) y refrescar `alertas_bundle` / `inicio_bundle` (clave `recepcion_de_mas`) |
 | `vistas_GP2.sql` | Las **18 vistas** (con sus `comment on view`) | Exacto (`pg_get_viewdef`) |
 | `verificar.sql` | **29 invariantes** de la base en una consulta (contrapartes con ubicación, inventario = ledger, grants, RLS, `search_path`, PS híbridos y su materia prima, códigos, rutas y recetas, recepción ↔ ledger, espejo de Virgilio, claves de `parametro` que lee el código): cada fila debe dar `n = 0` | Sólo lectura; correrla antes de tocar la base y al cerrar; el agente diario la corre al empezar |
 | `relevamiento_GP2.sql` | Registro de las 3 migraciones del Relevamiento nativo (2026-09-04) con su porqué | Documental; el estado vigente está en los tres archivos de arriba |
@@ -84,3 +84,12 @@ Objetos tocados, todos verificados por md5 contra la base: vistas `v_nivel_stock
 
 Backups: `zz_backups.GP2_Backup_inventario_minimo_20260914` (las 1.313 filas con mínimo y máximo
 previos) y `zz_backups.GP2_Backup_ubicacion_meses_minimo_20260914` (las 59 ubicaciones).
+
+
+## 2026-09-14 — Stock General: entran Prov AT y tránsito, se va Virgilio
+
+Función nueva `stock_general_extra_bundle()` (153 → **154**): (a) por cada Proveedor de Artículo
+Terminado activo, las **cajas y cartones** que la receta de sus artículos consume, con el stock real
+en la ubicación del proveedor; (b) el **stock en tránsito entre dos PS encadenados** = entregas del
+PS de origen − envíos al PS siguiente. El tránsito **no es una ubicación**: esas piezas viven en el
+sector del componente y ya están contadas ahí, por eso la pantalla lo marca y no lo suma.

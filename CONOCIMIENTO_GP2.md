@@ -9709,3 +9709,50 @@ ajuste lo sigue decidiendo el operador del sistema en Validación de Stock.
 prov. de art. terminado) y recién adentro la contraparte. Antes caían las 33 juntas en una grilla:
 en la tablet del galpón eso no se lee. Si un tipo tiene una sola contraparte (Virgilio), se entra
 derecho.
+
+### 4dq. Stock General: entran Prov AT y tránsito, se va Virgilio (2026-09-14)
+
+Tres pedidos del dueño en una sola pantalla `[usuario 2026-09-14, textual: *"Acá en stock general
+falta el stock transito PS"*, *"agrega provedor de at con sus repectivas cajas y cartones"*,
+*"agrega sector transito porque tengo que saber cuanto tengo de stock transito: cuando vuelve del
+ps correspondiente subiria el stock y si va al siguiente ps sale del stock de transito"*, *"no
+quiero que aparezca este modulo de virgilio dentro de stock general"*]`.
+
+**El hallazgo de fondo: el árbol armaba grupos con 4 tipos de ubicación y descartaba EN SILENCIO
+los otros 4.** `[dato]` `proveedor_at` (12 ubicaciones), `inyector` (4), `virgilio_sector` (2) y
+`analisis` (1) no tenían grupo: si entraba stock ahí, era **invisible**. Hoy las 19 están en 0, por
+eso nadie lo había notado.
+
+**Tránsito PS NO es una ubicación, es un corte.** `[Seguro, leído de stock_transito_ps_bundle]` La
+pieza que un PS ya devolvió y espera para irse al PS siguiente **vive físicamente en el sector del
+componente** (Crudo, Procesado, Bombilla) y ya está contada ahí. Por eso el grupo nuevo lo dice
+explícito y **no suma a ningún total**: si se sumara, esas unidades se contarían dos veces. El
+número es exactamente el que describió el dueño: **entregas del PS de origen − envíos al PS
+siguiente**. Hoy son 15 pares y los 15 están en 0 (todavía no hay movimientos de ese tipo).
+
+**Prov AT: mostrar su inventario no alcanzaba.** `[dato]` Las 12 ubicaciones de Proveedor de
+Artículo Terminado tienen **0 filas de inventario**, así que el grupo habría salido vacío. Lo que se
+muestra son las **cajas y cartones que la receta de sus artículos consume**, con el stock real en la
+ubicación del proveedor — que está en 0, y ese es justamente el dato: hay que cargarlo. Son
+**9 proveedores activos**, de 1 a 39 piezas cada uno:
+
+| Prov AT | Cajas + cartones |
+|:---:|---:|
+| Cabral | 39 |
+| Pintos | 16 |
+| Maspoli | 9 |
+| Lopez Jose | 6 |
+| The Plast | 4 |
+| Carriero | 3 |
+| Melinox · Paternal Goma · Tierra Nativa SA | 1 c/u |
+
+**Ojo con Pettofrezza**: tiene **10 artículos asignados** en `articulo_prov_at` pero está
+`proveedor_at.activo = false`, así que no aparece. O queda inactivo y esas 10 asignaciones sobran, o
+hay que reactivarlo. `[dato — falta que lo diga el dueño]`
+
+**Dónde vive:** RPC nueva `stock_general_extra_bundle()`, aparte de `movimientos_bundle` a propósito
+(ese lo comparten todas las pantallas y no hay que inflarlo). Si la RPC falla, Stock General **no se
+cae**: muestra el resto del árbol sin esos dos grupos.
+
+**Y un tercer nombre cruzado, de la misma familia que los de §4dp:** en Stock General la columna
+decía **"Máximo"** y leía el **mínimo** del bundle. Ya lee el máximo.
