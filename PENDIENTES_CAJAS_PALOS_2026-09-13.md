@@ -238,7 +238,15 @@ Dato al lado para la pregunta: en la LP, bloque **797 Pat Bet Plast**, hay **"In
 
 ---
 
-## 3. 941E–948E: qué dice la planilla sobre la caja (dato, sin decidir)
+## 3. 941E–948E: qué dice la planilla sobre la caja (dato, sin decidir) — ⛔ RETIRADA el 2026-09-14
+
+> **Se retira entera: la planilla estaba equivocada.** `[usuario 2026-09-14: "Todos los articulos
+> que terminan con E: 941E … 948E. Llevan caja N°15, no 12" / "Si, caja 15 solo para los que te
+> liste"]`. Los **siete** van en `A9B` **Caja N°15**, incluidos `941E` y `946E`, que esta sección
+> daba por "importados sin caja" siguiendo a la planilla. Aplicado y verificado el 14-09: FK, receta
+> y ruta de los siete, con ruta de caja nueva para 941E y 946E. Ver CONOCIMIENTO §4do.
+> Lo único de esta sección que **sigue en pie**: los 12 uni x caja (contra los 24 de la hoja Cajas
+> para 942E/945E) y que **947E no existe en ningún lado**. `590E` y `890E` quedan en Caja N°29.
 
 | Art | GP2 caja (FK) | GP2 uni x caja | GP2 receta | Cajas hoja: fila / D (caja) / F (uni x caja) | Costos hoja: fabricante / cartón L / caja M | est_madre uni/mes (uxb) |
 |---|---|--:|---|---|---|--:|
@@ -564,7 +572,16 @@ son 17 de `fabricacion` + 1 `discontinuo`).
 
 ---
 
-## 7.4 `941E`–`948E` — el cuadro, ordenado por plata
+## 7.4 `941E`–`948E` — el cuadro, ordenado por plata — ⛔ EL CUADRO DE CAJAS QUEDÓ VIEJO (2026-09-14)
+
+> **La columna "GP2 caja" de abajo ya no vale: los siete están en `A9B` Caja N°15** desde el 14-09
+> (CONOCIMIENTO §4do), y las dos líneas que decían "—" para 941E/946E también quedaron obsoletas:
+> los dos tienen caja, receta y ruta.
+>
+> **Y el punto (a) — "la caja está en el FK y NO está en la receta, 14 artículos" — está CERRADO.**
+> Medido el 14-09: de los **193** artículos con `componente_caja_id`, **0** no tienen su línea de
+> receta y **0** tienen la línea sin paso de ruta. Los 14 se resolvieron entre el 13 y el 14-09; los
+> $16.200/mes que calculaba esta sección **ya se están cobrando**. No queda nada que hacer acá.
 
 ⛔ **Se corrige §3**, que leía la hoja Cajas y decía "los listados mandan, falta el dato". **La hoja
 COSTOS — la que calcula el costo, el criterio que vos mismo fijaste el 11-09 — confirma la hoja
