@@ -9808,3 +9808,36 @@ funciones). Muestra: máximo + origen, **meses** (`ubicacion.meses_stock` del se
 `est_madre` / `consumo_x_meses` (ahí máximo = consumo × meses, exacto). Cuando es `fisico`,
 `migrado_de_minimo`, `cinco_cajones` o master, el máximo se puso a mano o por otra regla, y el modal
 muestra el consumo real **como referencia**, avisando que no viene de la demanda.
+
+## 4ds. Proporciones: "artículo compartido" NO es lo mismo que "reparto de volumen" (2026-09-14)
+
+**Pedido del dueño, textual:** *"En el módulo de proporciones dentro de tallerista. Quiero que
+aparezcan, quiero que borres lo que hay y que aparezcan solo los artículos compartidos. Es decir,
+los artículos que según las rutas se lo llevan más de un tallerista."* Y a continuación:
+*"Después te digo las proporciones."* Así que la pantalla queda mostrando **sólo** los compartidos
+y la columna Proporción sigue en PENDIENTE, esperando que él dicte los porcentajes.
+
+**El hallazgo que importa** [dato: `ruta_paso` × `ruta` × `tallerista`, 2026-09-14]: que dos
+talleristas toquen el mismo artículo **no significa que se repartan el volumen**. Hay dos casos
+distintos y sólo uno admite un porcentaje:
+
+| Caso | Qué pasa en la ruta | ¿Lleva %? | Hoy |
+|---|---|---|---|
+| **Mismo paso** | dos talleristas producen **el mismo `comp_salida`** (la ruta está duplicada por tallerista) | **SÍ**: ahí se parte el volumen | **6 artículos** |
+| **Paso propio** | cada uno hace **un paso distinto** de la misma ruta (uno el mango, el otro el armado) | NO: van en cadena, cada uno hace el 100 % de lo suyo | 13 artículos |
+
+Total: **19 artículos** con ≥2 talleristas, de los cuales **sólo 6** esperan un porcentaje.
+
+Los 6 con paso duplicado: **315** y **609** (Cavallero German / Pettofrezza Rafael), **500** y
+**510** (Alex Escalante / Martin Cornejo), **505** (Danica Garcia / Lucho — el tercero, Martin
+Cornejo, hace X4, otro paso) y **506** (Alex Escalante / Martin Cornejo en GRJ7 — el tercero,
+Gentile Norberto, hace el 506 terminado).
+
+**Trampa a no repetir:** el artículo 505 aparece con `num_talleristas = 3` y el 506 también, pero
+en los dos el tercero hace otra cosa. Si alguien reparte 100 % entre los 3 por mirar sólo el
+contador, reparte mal. La cuenta del porcentaje se hace **por paso**, no por artículo.
+
+**Dónde está escrito:** `Talleristas/Proporciones/Proporciones_GP2.html` (la distinción se calcula
+en el front sobre `articulos_compartidos` del bundle: una parte que declaran 2+ talleristas del
+mismo artículo = mismo paso). `proporciones_bundle()` no cambió; su rama `talleristas` (la vista
+vieja, que listaba también los exclusivos) quedó sin usar.

@@ -159,7 +159,7 @@ confirmar acá que la clave existe; si un bundle cambia, actualizar esta tabla e
 | `produccion_bundle(p_matriz, p_anio)` | rendimiento_GP2.js | `matrices, empleados, rows` (ver sección propia) |
 | `produccion_maestro_bundle(p_desde, p_hasta)` | Maestro de producción | `desde, empleados, hasta, matrices, rows` |
 | `programa_bundle()` | Programa | `art, bom, children, comp, fl, mat, prov, rp, rutas, rutas_by_art, sect, tall, tall_art` (nombres CORTOS, ver sección propia; idea 7252) |
-| `proporciones_bundle()` | Proporciones | `articulos_compartidos, generado_en, nota, proporcion_disponible, talleristas` |
+| `proporciones_bundle()` | Proporciones | `articulos_compartidos, generado_en, nota, proporcion_disponible, talleristas` (desde el 2026-09-14 la pantalla dibuja **solo `articulos_compartidos`**; `talleristas` sigue viajando pero NO se usa — no leer el bundle y suponer que la pantalla lo muestra entero) |
 | `recepcion_bundle()` | Recepción Insumos | `insumos, pallets, proveedores, recepciones, rollos, sectores, tara` |
 | `registro_operarios_bundle()` | App de operarios | `empleados, matrices, matriz_fleje, matriz_fleje_pieza, matriz_salidas, registro_en_golpes, rollos_abiertos, rollos_saldo` |
 | `relevamiento_bundle()` | Relevamiento | `cronograma, hoy` |
