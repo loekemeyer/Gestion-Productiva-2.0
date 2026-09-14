@@ -403,6 +403,19 @@ contraparte (`crear_envio_tallerista` / `crear_envio_ps` / `crear_envio_prov_at`
 `crear_entrega_tallerista` / `crear_entrega_ps` / `crear_entrega_prov_at` / `crear_recepcion_insumo`;
 para Virgilio inserta un `traslado` Virgilio → sector). El Conteo **no llama a nada que escriba**.
 
+⚠ **La pantalla usa MENOS de lo que el bundle trae (2026-09-14, pedido del dueño).** La base no
+cambió; lo que cambió es qué agarra la tablet, que está en **Cervantes**:
+- **Recibir ya no ofrece el prov. de art. terminado** (entrega en Virgilio): las filas
+  `recibir[tipo='proveedor_at']` que el bundle sigue devolviendo **no se dibujan**, y con ellas se
+  fue la única carga en CAJAS — la pantalla **ya no manda `por_caja`** (el backend lo sigue
+  aceptando; lo usa la pantalla de Prov Art Terminado → Entregas).
+- **Recibir → Prov. de insumos NO carga acá**: abre `StockFlejes/RecepcionInsumos_GP2.html?volver=tablet`
+  (rubros, pesaje de pallets, cruce contra OC). Las filas `recibir[tipo='proveedor_insumo']` del
+  bundle tampoco se dibujan.
+- **El Conteo dejó de ser un modo**: es un link a `Relevamiento/Relevamiento_GP2.html?volver=tablet`.
+  `tablet_registrar` nunca aceptó `modo='conteo'`, así que no hay contrato que romper.
+- Enviar y Recibir preguntan primero el **tipo** de contraparte y recién después cuál.
+
 ### `tablet_bundle()` → jsonb
 
 | Clave | Forma |

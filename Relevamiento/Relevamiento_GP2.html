@@ -1,6 +1,10 @@
 <!doctype html>
 <html lang="es">
 <head>
+<!-- v1.4.0 (2026-09-14) — ESTE ES EL "CONTEO" DE LA TABLET [usuario 2026-09-14: "dentro del
+     módulo conteo tendría que aparecer lo del módulo de relevamientos. Es esa lógica"]. La
+     Versión Tablet dejó de tener su propia tabla de conteo con CSV y abre esta pantalla con
+     ?volver=tablet; lo único que cambia acá es que el "Atrás" devuelve a la tablet. -->
 <!-- v1.3.0 (2026-09-04) — ELIMINAR VUELVE AFUERA, Y SIN FACTOR SE CUENTA SUELTO
      [usuario 2026-09-04]. (a) "que no me aparezca el eliminar cuando estoy haciendo el conteo
      adentro de la pagina ... porque no tiene sentido poder ir para atras, sino que me
@@ -139,8 +143,19 @@
 <div class="card">
   <div class="header">
     <h1>📋 Relevamiento</h1>
-    <div class="hbtns"><a href="../GP2_MODULOS.html">Atrás</a></div>
+    <div class="hbtns"><a id="btnAtrasHeader" href="../GP2_MODULOS.html">Atrás</a></div>
   </div>
+  <!-- Si se entró desde la Versión Tablet (modo Conteo), el "Atrás" devuelve a la tablet
+       en vez de al menú: para el operario del galpón la tablet es la casa. -->
+  <script>
+  (function(){
+    try {
+      if (new URLSearchParams(location.search).get("volver") !== "tablet") return;
+      var a = document.getElementById("btnAtrasHeader");
+      if (a) a.href = "../Tablet/Tablet_GP2.html";
+    } catch(e){}
+  })();
+  </script>
 
   <div class="steps">
 

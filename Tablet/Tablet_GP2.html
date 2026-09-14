@@ -1,6 +1,27 @@
 <!doctype html>
 <html lang="es">
 <head>
+<!-- Anti-cache: la lógica de esta pantalla es JS INLINE, así que si el navegador de la tablet
+     se queda con el HTML viejo se queda con la app vieja (no hay ?v= que la salve). -->
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+<!-- v1.1.0 (2026-09-14) — PRIMERO EL TIPO, Y LO QUE YA ESTÁ MODELADO NO SE COPIA
+     [usuario 2026-09-14]. Tres cambios, uno por modo:
+       · ENVIAR: antes tiraba las 33 contrapartes juntas. Ahora pregunta primero el TIPO
+         (tallerista / prov. de servicio / prov. de art. terminado) y recién adentro muestra
+         todas las de ese tipo. Si un tipo tiene una sola contraparte se entra derecho.
+       · RECIBIR: sale el PROV. DE ART. TERMINADO — entrega en Virgilio, y esta tablet es de
+         Cervantes. Entra PROV. DE INSUMOS, que NO se recarga acá: abre Recepción de Insumos
+         (rubros, pesaje de pallets, cruce contra OC), que ya hace ese trabajo. Una sola copia.
+         Con el prov. AT se fue la única carga en CAJAS: acá ya no se recibe nada por caja
+         (el `por_caja` del payload y el esperado en cajas quedan en el historial de git).
+       · CONTEO: deja de ser una tabla propia con CSV y abre el módulo de Relevamientos
+         (cronograma por sector, envases + sueltas, y el ajuste lo decide el operador del
+         sistema en Validación de Stock). No se guarda como modo: al volver, la tablet abre
+         en Enviar/Recibir y no rebota.
+     Los dos saltos son <a href> con ?volver=tablet, y esas dos pantallas devuelven el "Atrás"
+     acá en vez de al menú. El backend NO cambió: tablet_bundle sigue trayendo lo mismo. -->
 <!-- v1.0.0 (2026-09-13) — Versión Tablet del operario (ideas 7342/7343). UNA pantalla con tres
      modos — Enviar / Recibir / Conteo — para la tablet del galpón, en vez de abrir la pantalla
      de cada contraparte. El backend ya vive en la base: "GP2".tablet_bundle() (qué puede enviar
@@ -25,13 +46,26 @@
 <link rel="icon" type="image/png" href="../GP2_favicon.png">
 <link rel="apple-touch-icon" href="../GP2_favicon.png">
 <style>
-  /* los tres modos: baldosas grandes, el activo en negro (mismo lenguaje que .seg-btn) */
+  /* los tres modos: baldosas grandes, el activo en negro (mismo lenguaje que .seg-btn).
+     Conteo es un <a>: se va al módulo de Relevamientos, así que nunca queda "activo". */
   .modos{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin:10px 0}
   .modo-btn{min-height:60px;border-radius:12px;border:2px solid #d0d7de;background:#fff;
-    font-weight:900;font-size:20px;cursor:pointer;color:#111}
+    font-weight:900;font-size:20px;cursor:pointer;color:#111;text-decoration:none;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center}
   .modo-btn.active{background:#111;color:#fff;border-color:#111}
   .modo-btn small{display:block;font-size:13px;font-weight:700;color:#777;margin-top:2px}
   .modo-btn.active small{color:#cfcfcf}
+  /* Primero el TIPO y recién después la contraparte: 33 botones juntos no se leen en la
+     tablet. No se estiran a todo el ancho (máximo 320px cada uno) para no dejar baldosas
+     enormes con dos palabras adentro. */
+  .tipos{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,320px));gap:10px;
+    margin:8px 0;justify-content:start}
+  .tipo-btn{min-height:78px;border-radius:12px;border:2px solid #d0d7de;background:#fff;color:#111;
+    padding:12px 16px;text-align:left;cursor:pointer;text-decoration:none;display:block}
+  .tipo-btn:hover{border-color:#111}
+  .tipo-btn .ti{display:block;font-size:21px;font-weight:900}
+  .tipo-btn small{display:block;font-size:14px;font-weight:700;color:#777;margin-top:4px;line-height:1.3}
+  .tipo-btn small b{color:#c2410c}
   .cp-tipo{font-size:14px;color:#777;font-weight:700}
   /* fila con exceso: se ve, no frena */
   table.t tr.demas td{background:#fff4e5}
@@ -42,13 +76,10 @@
   .uni-tag{display:inline-block;background:#eef2f6;border-radius:6px;padding:2px 7px;font-size:13px;
     font-weight:800;color:#333;margin-left:4px;white-space:nowrap}
   .uni-tag.kg{background:#e6f0ff;color:#0b4aa2}
-  .uni-tag.cajas{background:#fdf2e9;color:#8a3b00}
   .cell-in.big{font-size:20px;width:110px}
   .alerta-box{margin:10px 0;border:2px solid #f4c08c;background:#fff4e5;border-radius:12px;padding:12px 14px;
     font-size:17px;color:#5c2d00;line-height:1.4}
   .alerta-box b{color:#8a3b00}
-  .dif.pos{color:#0a7a2f}.dif.neg{color:#b91c1c}
-  .conteo-acc{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0}
   input#fRemito{height:44px;border:2px solid #d0d7de;border-radius:8px;padding:0 10px;font-size:19px;width:150px}
   @media (max-width:640px){
     .modo-btn{font-size:17px;min-height:56px}
@@ -72,14 +103,20 @@
     <div class="modos" id="modos">
       <button type="button" class="modo-btn" data-modo="enviar">📤 Enviar<small>a tallerista / PS / prov. AT</small></button>
       <button type="button" class="modo-btn" data-modo="recibir">📥 Recibir<small>lo que traen</small></button>
-      <button type="button" class="modo-btn" data-modo="conteo">🔢 Conteo<small>contar contra el online</small></button>
+      <a class="modo-btn" id="modoConteo" href="../Relevamiento/Relevamiento_GP2.html?volver=tablet">🔢 Conteo<small>contar por sector (Relevamientos)</small></a>
     </div>
 
-    <!-- FASE 0 — elegir a quién (enviar / recibir) -->
+    <!-- FASE 0 — primero el TIPO de contraparte, después la contraparte de ese tipo -->
     <div id="fase0">
-      <div class="row"><label class="lbl" id="fase0Title">¿A quién?</label></div>
-      <div class="search-box"><input type="text" id="q0" placeholder="Buscar contraparte…"></div>
-      <div class="provs-grid" id="cpGrid"></div>
+      <div class="row" style="justify-content:space-between">
+        <label class="lbl" id="fase0Title">¿A quién?</label>
+        <button class="btn btn-secondary hidden" id="btnVolverTipo" type="button">← Cambiar tipo</button>
+      </div>
+      <div class="tipos" id="tipoGrid"></div>
+      <div id="cpBox" class="hidden">
+        <div class="search-box"><input type="text" id="q0" placeholder="Buscar contraparte…"></div>
+        <div class="provs-grid" id="cpGrid"></div>
+      </div>
       <div id="status" class="status">Cargando…</div>
     </div>
 
@@ -138,19 +175,33 @@ var $ = GP2UI.$, esc = GP2UI.esc, num = GP2N.num, fmt = GP2N.fmt, hoyISO = E.hoy
 var SB = GP2_SB();
 
 var D = { contrapartes: [], enviar: [], recibir: [], alertas_abiertas: 0 };
-var MODO = null;        // enviar | recibir | conteo
+var MODO = null;        // enviar | recibir  (Conteo no es un modo: es el salto a Relevamientos)
+var selTipo = null;     // tallerista | proveedor_servicio | proveedor_at | virgilio
 var selCP = null;       // { tipo, ref, nombre, id }
 var BUF = E.buffer("gp2_tablet_buffer", function(){ return { q: "" }; });
 
-var TIPO_LABEL = { tallerista: "tallerista", proveedor_servicio: "prov. servicio",
-                   proveedor_at: "prov. art. terminado", proveedor_insumo: "prov. insumo", virgilio: "Virgilio" };
+/* Los TIPOS de contraparte de cada modo, en el orden en que el operario los busca. El que trae
+   `link` no se carga acá: abre la pantalla que ya hace ese trabajo, para no tener dos copias de
+   la misma lógica. */
+var TIPOS = {
+  enviar: [
+    { tipo: "tallerista",         icono: "👷", titulo: "Talleristas",            sub: "lo que arman afuera" },
+    { tipo: "proveedor_servicio", icono: "🏭", titulo: "Prov. de servicio",      sub: "pintan, niquelan, cortan" },
+    { tipo: "proveedor_at",       icono: "📦", titulo: "Prov. de art. terminado", sub: "cartones y cajas" }
+  ],
+  recibir: [
+    { tipo: "tallerista",         icono: "👷", titulo: "Talleristas",       sub: "lo que traen armado" },
+    { tipo: "proveedor_servicio", icono: "🏭", titulo: "Prov. de servicio", sub: "lo que devuelven procesado" },
+    { tipo: "proveedor_insumo",   icono: "🧰", titulo: "Prov. de insumos",  sub: "flejes, cartones, plásticos, garage",
+      link: "../StockFlejes/RecepcionInsumos_GP2.html?volver=tablet" },
+    { tipo: "virgilio",           icono: "🚚", titulo: "Virgilio",          sub: "lo que vuelve a Cervantes" }
+  ]
+};
 
 /* La unidad con la que se CARGA cada fila. El contrato de tablet_registrar acepta 'uni' o 'kg';
-   componente.unidad_medida dice 'kg' o 'unidad'. El prov. AT entrega CAJAS (crear_entrega_prov_at
-   pide cajas): se carga en cajas y viaja como 'uni' con por_caja para que la base cruce contra
-   la OC, que está en unidades. */
+   componente.unidad_medida dice 'kg' o 'unidad'. Desde que el prov. de art. terminado salió de
+   Recibir (entrega en Virgilio, no acá) no queda nada que se cargue en CAJAS. */
 function unidadDe(x){
-  if (MODO === "recibir" && x.tipo === "proveedor_at") return "cajas";
   return String(x.um || "").toLowerCase() === "kg" ? "kg" : "uni";
 }
 function inputmodeDe(u){ return u === "kg" ? "decimal" : "numeric"; }
@@ -179,58 +230,103 @@ async function cargar(){
 }
 
 function setModo(m){
-  if (m !== "enviar" && m !== "recibir" && m !== "conteo") m = "enviar";
+  if (m !== "enviar" && m !== "recibir") m = "enviar";
   MODO = m;
   try { localStorage.setItem("gp2_tablet_modo", m); } catch(e){}
   var bs = document.querySelectorAll("#modos .modo-btn");
   for (var i = 0; i < bs.length; i++) bs[i].classList.toggle("active", bs[i].dataset.modo === m);
-  selCP = null;
-  if (m === "conteo") { elegir({ tipo: "conteo", ref: "*", nombre: "Conteo contra el online", id: "conteo" }); return; }
+  mostrarTipos();
+}
+
+/* contrapartes que aplican al modo. En enviar, sólo a quien se le manda desde Cervantes.
+   En recibir queda afuera el prov. de art. terminado (entrega en Virgilio) y el prov. de
+   insumos, que tiene su propia pantalla con rubros, pesaje y cruce contra OC. */
+function cpsDelModo(){
+  return (D.contrapartes || []).filter(function(c){
+    if (MODO === "enviar") return c.tipo !== "virgilio" && c.tipo !== "proveedor_insumo" && Number(c.n_env) > 0;
+    return c.tipo !== "proveedor_at" && c.tipo !== "proveedor_insumo" && Number(c.n_rec) > 0;
+  });
+}
+function cpsDelTipo(tipo){
+  return cpsDelModo().filter(function(c){ return c.tipo === tipo; });
+}
+/* la contraparte como la espera el resto de la pantalla (id = clave del buffer) */
+function cpItem(c){
+  return { id: claveCP(c), tipo: c.tipo, ref: c.ref, nombre: c.nombre,
+           n: MODO === "enviar" ? c.n_env : c.n_rec };
+}
+function cargadasDeCP(c){
+  return E.cargadasDe(BUF.all[claveCP(c)], function(it){ return num(it.q) > 0; }).length;
+}
+function avisoAlertas(){
+  return Number(D.alertas_abiertas) > 0
+    ? "⚠ " + D.alertas_abiertas + " alerta" + (D.alertas_abiertas === 1 ? "" : "s") + " de recepción sin revisar"
+    : "";
+}
+
+/* ---------- paso 1: el tipo ---------- */
+function mostrarTipos(){
+  selTipo = null; selCP = null;
   E.mostrarFase(0);
-  $("fase0Title").textContent = m === "enviar" ? "¿A quién le enviás?" : "¿Quién trae?";
+  $("tipoGrid").classList.remove("hidden");
+  $("cpBox").classList.add("hidden");
+  $("btnVolverTipo").classList.add("hidden");
+  $("fase0Title").textContent = MODO === "enviar" ? "¿A quién le enviás?" : "¿Quién trae?";
+  pintarTipos();
+}
+
+function pintarTipos(){
+  var g = $("tipoGrid");
+  g.innerHTML = "";
+  (TIPOS[MODO] || []).forEach(function(t){
+    var lista = t.link ? null : cpsDelTipo(t.tipo);
+    if (lista && !lista.length) return;   // un tipo sin contrapartes no se dibuja: no lleva a nada
+    var pend = lista ? lista.filter(function(c){ return cargadasDeCP(c) > 0; }).length : 0;
+    var b = document.createElement(t.link ? "a" : "button");
+    if (t.link) b.href = t.link; else b.type = "button";
+    b.className = "tipo-btn";
+    b.dataset.tipo = t.tipo;
+    b.innerHTML = '<span class="ti">' + t.icono + " " + esc(t.titulo) + "</span><small>" + esc(t.sub) +
+      (lista ? " · " + lista.length + (lista.length === 1 ? " contraparte" : " contrapartes") : "") +
+      (pend ? " · <b>" + pend + " sin registrar</b>" : "") + "</small>";
+    if (!t.link) b.addEventListener("click", function(){ elegirTipo(t); });
+    g.appendChild(b);
+  });
+  $("status").textContent = avisoAlertas();
+}
+
+/* ---------- paso 2: la contraparte de ese tipo ---------- */
+function elegirTipo(t){
+  selTipo = t.tipo;
+  var lista = cpsDelTipo(t.tipo);
+  if (lista.length === 1) { elegir(cpItem(lista[0])); return; }  // un solo destino: no se elige entre uno
+  $("tipoGrid").classList.add("hidden");
+  $("cpBox").classList.remove("hidden");
+  $("btnVolverTipo").classList.remove("hidden");
+  $("fase0Title").textContent = t.titulo;
   $("q0").value = "";
   pintarCPS();
 }
 
-/* contrapartes que aplican al modo: en enviar sólo a quien se le manda desde Cervantes */
-function cpsDelModo(){
-  return (D.contrapartes || []).filter(function(c){
-    if (MODO === "enviar") return c.tipo !== "virgilio" && c.tipo !== "proveedor_insumo" && Number(c.n_env) > 0;
-    return Number(c.n_rec) > 0;
-  });
-}
-
 function pintarCPS(){
-  var lista = E.filtrar(cpsDelModo(), $("q0").value, function(c){ return c.nombre + " " + (TIPO_LABEL[c.tipo] || c.tipo); });
-  E.gridContrapartes("cpGrid", lista.map(function(c){
-    return { id: MODO + ":" + c.tipo + ":" + c.ref, tipo: c.tipo, ref: c.ref, nombre: c.nombre, n: MODO === "enviar" ? c.n_env : c.n_rec };
-  }), {
+  var lista = E.filtrar(cpsDelTipo(selTipo), $("q0").value, function(c){ return c.nombre; });
+  E.gridContrapartes("cpGrid", lista.map(cpItem), {
     vacio: "No hay contrapartes para este modo.",
     meta: function(c){
+      // el tipo no se repite en cada chip: ya lo dice el título de arriba
       var cargado = E.cargadasDe(BUF.all[c.id], function(it){ return num(it.q) > 0; }).length;
-      return esc(TIPO_LABEL[c.tipo] || c.tipo) + " · " + c.n + " pieza" + (c.n === 1 ? "" : "s") +
+      return c.n + " pieza" + (c.n === 1 ? "" : "s") +
         (cargado ? (" · <b>" + cargado + " cargadas</b>") : "");
     },
     onPick: elegir
   });
-  $("status").textContent = lista.length + " contraparte" + (lista.length === 1 ? "" : "s") +
-    (Number(D.alertas_abiertas) > 0 ? " · ⚠ " + D.alertas_abiertas + " alerta" + (D.alertas_abiertas === 1 ? "" : "s") + " de recepción sin revisar" : "");
+  var av = avisoAlertas();
+  $("status").textContent = lista.length + " contraparte" + (lista.length === 1 ? "" : "s") + (av ? " · " + av : "");
 }
 
 /* ---------- piezas de la contraparte elegida ---------- */
 function piezasDe(c){
   var arr;
-  if (MODO === "conteo") {
-    // una fila por pieza que está en un sector de Cervantes (lo que se le puede enviar a alguien)
-    var vistos = {};
-    arr = (D.enviar || []).filter(function(x){
-      if (vistos[x.comp_id]) return false;
-      vistos[x.comp_id] = true; return true;
-    });
-    return arr.sort(function(a,b){
-      return String(a.sector || "").localeCompare(String(b.sector || "")) || String(a.cod).localeCompare(String(b.cod));
-    });
-  }
   if (MODO === "enviar") {
     // el prov. AT recibe cualquier cartón/caja: el bundle lo marca con ref '*'
     arr = (D.enviar || []).filter(function(x){
@@ -246,43 +342,42 @@ function elegir(c){
   selCP = c;
   $("fase1Title").textContent = c.nombre;
   E.mostrarFase(1);
-  var bv = $("btnVolver"); if (bv) bv.classList.toggle("hidden", MODO === "conteo");
   var esRec = MODO === "recibir";
   $("lblRemito").classList.toggle("hidden", !esRec);
   $("fRemito").classList.toggle("hidden", !esRec);
-  $("fFecha").classList.toggle("hidden", MODO === "conteo");
-  $("fFecha").previousElementSibling.classList.toggle("hidden", MODO === "conteo");
   if (!$("fFecha").value) $("fFecha").value = hoyISO();
   $("q").value = "";
   $("thead").innerHTML = MODO === "enviar"
-      ? "<th>Pieza</th><th class=\"num\">Online sector</th><th class=\"num sep\">Cantidad</th>"
-    : MODO === "recibir"
-      ? "<th>Pieza</th><th class=\"num\">Esperado</th><th class=\"num sep\">Recibido</th>"
-      : "<th>Pieza</th><th class=\"num\">Online</th><th class=\"num sep\">Contado</th><th class=\"num\">Dif.</th>";
+    ? "<th>Pieza</th><th class=\"num\">Online sector</th><th class=\"num sep\">Cantidad</th>"
+    : "<th>Pieza</th><th class=\"num\">Esperado</th><th class=\"num sep\">Recibido</th>";
   render();
 }
-function volver(){ selCP = null; E.mostrarFase(0); pintarCPS(); }
 
-/* esperado en la unidad con la que se carga (cajas para el prov. AT) */
+/* El "← Cambiar" vuelve un paso, no al principio: a la lista de contrapartes del tipo, y
+   si ese tipo tenía una sola (Virgilio) directamente a los tipos. */
+function volver(){
+  selCP = null;
+  if (!selTipo || cpsDelTipo(selTipo).length <= 1) { mostrarTipos(); return; }
+  E.mostrarFase(0);
+  $("tipoGrid").classList.add("hidden");
+  $("cpBox").classList.remove("hidden");
+  $("btnVolverTipo").classList.remove("hidden");
+  pintarCPS();
+}
+
+/* esperado en la unidad con la que se carga */
 function esperadoTxt(x){
   if (x.esperado == null) return '<span class="esp">—<small>sin referencia</small></span>';
   var u = unidadDe(x);
   var e = Number(x.esperado);
   var origen = { oc: "según OC", online_tall: "stock que tiene", online_ps: "stock que tiene",
                  online_virgilio: "online Virgilio" }[x.esperado_origen] || x.esperado_origen || "";
-  if (u === "cajas" && Number(x.por_caja) > 0)
-    return '<span class="esp">' + fmt(e / Number(x.por_caja), 1) + " cajas<small>" + fmt(e, 0) + " uni · " + esc(origen) + "</small></span>";
   return '<span class="esp">' + fmt(e, u === "kg" ? 2 : 0) + " " + u + "<small>" + esc(origen) + "</small></span>";
 }
 
-/* lo cargado, comparable con el esperado (cajas × por_caja = uni) */
-function comparable(x, q){
-  if (unidadDe(x) === "cajas" && Number(x.por_caja) > 0) return q * Number(x.por_caja);
-  return q;
-}
 function exceso(x, q){
   if (MODO !== "recibir" || x.esperado == null || !(q > 0)) return 0;
-  var d = comparable(x, q) - Number(x.esperado);
+  var d = q - Number(x.esperado);
   return d > 0 ? d : 0;
 }
 
@@ -304,21 +399,14 @@ function render(){
     tr.dataset.k = k;
     var sub = esc(x.desc || "");
     if (MODO === "recibir" && x.ent_cod) sub += ' · <span class="proc">consume ' + esc(x.ent_cod) + "</span>";
-    if (MODO === "conteo" && x.sector) sub += ' · <span class="proc">' + esc(x.sector) + "</span>";
-    if (u === "cajas" && Number(x.por_caja) > 0) sub += ' · <span class="proc">' + fmt(x.por_caja, 0) + " uni x caja</span>";
     var ex = exceso(x, q);
     var pieza = '<td><span class="cod">' + esc(x.cod) + "</span>" + uniTag(u) +
       '<br><small class="sub">' + sub + "</small>" +
       (ex > 0 ? '<br><span class="demas-tag">⚠ ' + fmt(ex, u === "kg" ? 2 : 0) + " de más</span>" : "") + "</td>";
-    var mitad;
-    if (MODO === "enviar") mitad = '<td class="num esp">' + fmt(x.online_sector, u === "kg" ? 2 : 0) + " " + u + "</td>";
-    else if (MODO === "recibir") mitad = '<td class="num">' + esperadoTxt(x) + "</td>";
-    else mitad = '<td class="num esp">' + fmt(x.online_sector, u === "kg" ? 2 : 0) + " " + u + "</td>";
+    var mitad = MODO === "enviar"
+      ? '<td class="num esp">' + fmt(x.online_sector, u === "kg" ? 2 : 0) + " " + u + "</td>"
+      : '<td class="num">' + esperadoTxt(x) + "</td>";
     tr.innerHTML = pieza + mitad + E.tdInput("q", it.q, false, "sep", inputmodeDe(u)).replace('class="cell-in', 'class="cell-in big');
-    if (MODO === "conteo") {
-      var d = it.q === "" ? null : q - Number(x.online_sector || 0);
-      tr.innerHTML += '<td class="num dif ' + (d == null ? "" : GP2UI.cls(d)) + '">' + (d == null ? "" : ((d > 0 ? "+" : "") + fmt(d, u === "kg" ? 2 : 0))) + "</td>";
-    }
     if (ex > 0) tr.classList.add("demas");
     tb.appendChild(tr);
   });
@@ -329,13 +417,6 @@ function cargadas(){ return E.cargadasDe(BUF.de(selCP.id), function(it){ return 
 
 function actualizar(){
   var n = cargadas().length;
-  if (MODO === "conteo") {
-    var btn = $("btnEnviar");
-    btn.disabled = (n === 0);
-    btn.textContent = n ? ("Bajar CSV (" + n + ")") : "Bajar CSV";
-    $("alertaBox").classList.add("hidden");
-    return;
-  }
   E.actualizarEnviar(n, MODO === "enviar" ? "Enviar" : "Recibir");
   // el aviso de exceso: informa, no frena (el botón sigue habilitado)
   var meta = {}; piezasDe(selCP).forEach(function(x){ meta[claveDe(x)] = x; });
@@ -356,7 +437,7 @@ $("tbody").addEventListener("input", function(e){
   var tr = inp.closest("tr");
   BUF.item(selCP.id, tr.dataset.k)[inp.dataset.f] = inp.value;
   BUF.save();
-  // repintar sólo lo que cambia de esa fila (el exceso y la diferencia), sin perder el foco
+  // repintar sólo lo que cambia de esa fila (el aviso de exceso), sin perder el foco
   var meta = {}; piezasDe(selCP).forEach(function(x){ meta[claveDe(x)] = x; });
   var x = meta[tr.dataset.k];
   if (x) {
@@ -364,12 +445,6 @@ $("tbody").addEventListener("input", function(e){
     tr.classList.toggle("demas", ex > 0);
     var old = tr.querySelector(".demas-tag"); if (old) { old.previousSibling && old.previousSibling.nodeName === "BR" && old.previousSibling.remove(); old.remove(); }
     if (ex > 0) tr.firstElementChild.insertAdjacentHTML("beforeend", '<br><span class="demas-tag">⚠ ' + fmt(ex, u === "kg" ? 2 : 0) + " de más</span>");
-    var dif = tr.querySelector("td.dif");
-    if (dif) {
-      var d = inp.value === "" ? null : q - Number(x.online_sector || 0);
-      dif.className = "num dif " + (d == null ? "" : GP2UI.cls(d));
-      dif.textContent = d == null ? "" : ((d > 0 ? "+" : "") + fmt(d, u === "kg" ? 2 : 0));
-    }
   }
   actualizar();
 });
@@ -378,8 +453,9 @@ $("q").addEventListener("input", render);
 $("q0").addEventListener("input", pintarCPS);
 $("btnVolver").addEventListener("click", volver);
 $("btnOtro").addEventListener("click", function(){ location.reload(); });
+$("btnVolverTipo").addEventListener("click", mostrarTipos);
 $("modos").addEventListener("click", function(e){
-  var b = e.target.closest(".modo-btn");
+  var b = e.target.closest("button.modo-btn");   // Conteo es un <a>: se va solo a Relevamientos
   if (b) setModo(b.dataset.modo);
 });
 
@@ -388,17 +464,6 @@ $("btnEnviar").addEventListener("click", async function(){
   var items = cargadas();
   if (!items.length) return;
   var meta = {}; piezasDe(selCP).forEach(function(x){ meta[claveDe(x)] = x; });
-
-  if (MODO === "conteo") {
-    var filas = [["Código", "Descripción", "Sector", "Unidad", "Online", "Contado", "Diferencia"]];
-    items.forEach(function(o){
-      var x = meta[o.k]; if (!x) return;
-      var q = num(o.it.q);
-      filas.push([x.cod, x.desc || "", x.sector || "", unidadDe(x), Number(x.online_sector || 0), q, q - Number(x.online_sector || 0)]);
-    });
-    GP2UI.exportarCSV("conteo_" + hoyISO(), filas);
-    return;
-  }
 
   var fecha = $("fFecha").value || hoyISO();
   var payload = {
@@ -415,8 +480,7 @@ $("btnEnviar").addEventListener("click", async function(){
         cantidad: num(o.it.q),
         unidad: u === "kg" ? "kg" : "uni",
         esperado: MODO === "recibir" && x.esperado != null ? Number(x.esperado) : null,
-        esperado_origen: x.esperado_origen || null,
-        por_caja: u === "cajas" ? (Number(x.por_caja) || null) : null
+        esperado_origen: x.esperado_origen || null
       };
     })
   };

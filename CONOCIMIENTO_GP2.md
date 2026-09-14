@@ -9615,3 +9615,31 @@ precio. Cambiarlo a 48 es un update de una línea.
 **No comparar contra los $1.303,86 / $1.559,63 de §4an-ter**: son de antes del 13-09, y la
 migración `la_caja_se_cobra_por_su_parte_no_entera` de esa fecha cambió cómo se costea la caja
 (la `A8` vale $261,82 y el artículo usa 1/12). Los números viejos y los nuevos no son comparables.
+
+### 4cx. La tablet del galpón es de CERVANTES: qué se recibe ahí y qué no (2026-09-14)
+
+**Lo que el dueño corrigió** `[usuario 2026-09-14, textual]`: *"Proveedor de artículo terminado no va
+dentro de recibir, sacalo. Porque entregan en Virgilio, y este módulo de tablet es para Cervantes"*.
+Es conocimiento de negocio, no una preferencia de pantalla: **el proveedor de artículo terminado
+entrega EN VIRGILIO**, así que en una tablet que está en Cervantes ese botón sólo podía generar una
+carga en el lugar equivocado. Se le sigue **enviando** desde Cervantes (cartones y cajas): el que se
+fue es el lado de **recibir**. Con él se fue la única carga en **CAJAS** de la tablet (§4cv, trampa 1):
+hoy en la tablet no se recibe nada por caja. La RPC `crear_entrega_prov_at` sigue viva y el circuito
+sigue siendo Prov Art Terminado → Entregas.
+
+**Quién trae a Cervantes, entonces**: talleristas, proveedores de servicio, proveedores de **insumos**
+y Virgilio (lo que vuelve del depósito). Nada más.
+
+**Y lo que NO se vuelve a modelar** `[usuario 2026-09-14, textual]`: *"recibir, toca insumo y me
+aparece todo lo que está en recepción de insumos, como ya lo modelamos"* y, para el conteo, *"dentro
+del módulo conteo tendría que aparecer lo del módulo de relevamientos. Es esa lógica"*. Las dos cosas
+ya existen (Recepción de Insumos con sus rubros, el pesaje de pallets y el cruce contra OC;
+Relevamientos con el cronograma por sector y el conteo por envase + sueltas), así que la tablet **las
+abre** con `?volver=tablet` en vez de tener una segunda copia. **El conteo propio de la tablet — la
+tabla contra el online con CSV, §4cv — se borró**: el conteo del operario es el Relevamiento, y el
+ajuste lo sigue decidiendo el operador del sistema en Validación de Stock.
+
+**Cómo se elige a quién** `[usuario 2026-09-14]`: primero el **tipo** (tallerista / prov. de servicio /
+prov. de art. terminado) y recién adentro la contraparte. Antes caían las 33 juntas en una grilla:
+en la tablet del galpón eso no se lee. Si un tipo tiene una sola contraparte (Virgilio), se entra
+derecho.
