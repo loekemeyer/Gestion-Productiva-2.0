@@ -9487,5 +9487,22 @@ pantalla), así que `recepcion_virgilio` lo vuelve a descontar: **el resorte se 
 idénticos). En cuanto Resortes Charcas entre a `precio_proveedor`, el 515 y el 615 empiezan a
 cobrar dos resortes. El stock, en cambio, ya se rompe hoy.
 
-**Espera decisión del usuario** (idea 7339): sacar `BOM10` de la receta del 515 y del 615 y borrar
-las dos rutas sueltas `Insumo BOM10 -> Art 515/615`, dejándolo sólo dentro de la paleta.
+**Resuelto el mismo día** `[usuario: "SI"]`, migración `el_resorte_va_solo_dentro_de_la_paleta_no_suelto`
+(idea 7339): se borraron las dos líneas de receta (`articulo_componente` 941 y 947) y las dos rutas
+sueltas (`ruta` 999 y 1006 con sus 3 pasos cada una). **El resorte entra sólo por la paleta.**
+No se tocó `componente_bom(C12 ← BOM10)`, ni las Ramas 3, ni el componente, ni su historial.
+
+Cómo quedan los dos artículos, y coincide con el encabezado de la foto ("5 partes BOM"):
+
+| Artículo | Receta (5) | Rutas (7) |
+|---|---|---|
+| 515 | `C12`, `PC10`, `PA13`, `A1C1`, `A8` | 3 ramas de la paleta + 4 insumos al tallerista |
+| 615 | `C12`, `PA19`, `PB6`, `O2A`, `A8` | 3 ramas de la paleta + 4 insumos al tallerista |
+
+Ciclo real re-corrido de punta a punta: **120 unidades del 515 en Virgilio y cero sobras**, el
+`BOM10` ya no queda en −120. Invariante ledger-vs-inventario en 0, suite 52/52.
+
+**Regla que sale de esto: una pieza que es hijo de un sub-conjunto en `componente_bom` NO va
+además como línea suelta de la receta del artículo.** Si está en los dos lados se descuenta dos
+veces: una la entrega del tallerista que arma el sub-conjunto, otra `recepcion_virgilio` por la
+receta. Vale para revisar las otras 26 convergencias.
