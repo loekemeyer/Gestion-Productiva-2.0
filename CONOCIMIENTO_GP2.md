@@ -113,6 +113,28 @@ Reglas comunes que ya viven adentro:
   - **Kollplast se quedó sin piezas asignadas**: figura como inyector pero no tiene ninguna.
     Pendiente menor: confirmar si le corresponde alguna o si por ahora no le compramos.
 
+#### El circuito real del inyector `[usuario 2026-09-14]`
+*"Nosotros le mandamos las bolsas plásticas y nos las devuelven como partes plásticas."* O sea:
+**mandamos la resina (bolsas de sector 14) al inyector → él la inyecta → nos devuelve la pieza
+plástica (sector 6)**, más el 4 % de master bach para el color. Es un **servicio**, no una compra.
+
+- **Hoy la pieza está modelada como COMPRADA**, no como inyectada: `componente.proveedor` = el
+  inyector (Pat Bet Plast 34, Pettofrezza 13, Kollplast 1, Eduardo Pintos 1 = 49 piezas) y se
+  recibe en Recepción de Insumos (rubro Plásticos) como cualquier insumo comprado.
+- **Modelo PS completo (pendiente, decidido pero no ejecutado):** el usuario quiere modelarlo como
+  el servicio que es — envío de resina como proveedor de servicio, recepción de la pieza en
+  Recepción de Insumos — lo que cambia el costeo de *comprada* a *inyectada* (resina × precio +
+  master bach + inyección). Los dos datos que faltaban ya están: **kg por pieza en `componente`**
+  y **qué resina usa cada pieza en `planilla_fila` hoja 'Plasticos', columna "Tipo Plast"**
+  (PP/ABS/Nylon/…), matcheada por Empresa+Descripción. Es cirugía sobre 49 piezas → va con
+  `gp2-cirujano` y con el SQL a la vista antes de ejecutar.
+- **Lo que YA se puede hacer sin ese modelo** (hecho 2026-09-14): mandar las bolsas (kg) al
+  inyector. Existe `enviar_material_inyector(proveedor, comp_id, kg)` + la pantalla
+  `Compras/Inyectores_GP2.html`, y ahora la **Versión Tablet** tiene un botón **"Inyectores"** en
+  Enviar que abre esa pantalla (`?volver=tablet`). NO toca el costeo. Los inyectores **no son
+  `proveedor_servicio`** en el modelo (son `proveedor_insumo`), por eso el botón es un *link* y no
+  una contraparte de `tablet_bundle`.
+
 ### `D1` (Espiral Sacacorcho): lo importado con su margen a la vista `[usuario 2026-09-02]`
 
 Dicho textual: *"D1: costo TN 0.067usd. Vende a LK a 0.24usd"*.

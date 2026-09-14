@@ -1,6 +1,9 @@
 <!doctype html>
 <html lang="es">
 <head>
+<!-- v1.3.1 (2026-09-14) — con ?volver=tablet el "Atras" vuelve a la Version Tablet (modo Enviar)
+     en vez de al menu: se entra aca desde el nuevo boton "Inyectores" del Tablet. Solo cambia el
+     destino del boton Atras; el resto de la pantalla es igual. -->
 <!-- v1.3.0 (2026-09-10) — MATERIAL PLASTICO POR INYECTOR: panel "Material" con lo que cada inyector
      necesita para sus OC abiertas (kg de las piezas pendientes x 1,04 de desperdicio), lo que ya tiene
      en su poder y las BOLSAS a enviarle; boton Enviar -> enviar_material_inyector (Virgilio -> inyector).
@@ -128,9 +131,20 @@
     <h1>Inyectores · Quién hace cada parte</h1>
     <div class="hbtns">
       <button class="hlink" id="btnNuevo" type="button">+ Proveedor</button>
-      <a href="../GP2_MODULOS.html">Atrás</a>
+      <a id="btnAtrasHeader" href="../GP2_MODULOS.html">Atrás</a>
     </div>
   </div>
+  <!-- Si se entró desde la Versión Tablet (Enviar -> Inyector), el "Atrás" vuelve a la tablet
+       en vez de al menú: para el operario del galpón la tablet es la casa. -->
+  <script>
+  (function(){
+    try {
+      if (new URLSearchParams(location.search).get("volver") !== "tablet") return;
+      var a = document.getElementById("btnAtrasHeader");
+      if (a) a.href = "../Tablet/Tablet_GP2.html?modo=enviar";
+    } catch(e){}
+  })();
+  </script>
 
   <div class="steps">
     <details class="nota">
