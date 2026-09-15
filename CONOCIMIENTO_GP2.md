@@ -9878,3 +9878,51 @@ del grupo en 100 — antes de poder guardar el 40/60 y el 70/30.
 tallerista **no** duplica el consumo ni el costo. Las vistas de demanda arman los `edges` con
 `SELECT DISTINCT comp_entrada_id, comp_salida_id`, así que dos rutas iguales colapsan en una
 arista. Borrar las rutas de más corrige el "quién lo hace", no cambia ningún número de plata.
+
+## 4du. El reparto ya manda sobre el máximo de cada tallerista (2026-09-15)
+
+El dueño autorizó los tres borrados de ruta y la tabla de proporciones, y agregó [usuario,
+textual]: *"fijate que los maximos tienen que tener en cuenta esta proporcion"*. Eso destapó que
+**el máximo de un tallerista nunca se calculaba**.
+
+**Lo que estaba mal** [dato: `inventario` × `ubicacion`, 2026-09-15]: de los 288 máximos en
+ubicaciones de tallerista, 196 eran `migrado_de_minimo` (el mínimo viejo del 14-09) y 92 estaban
+en null. **Ninguno** salía de la demanda, porque `v_nivel_stock` —la vista que alimenta
+`recalcular_maximos_insumos`— filtra `u.tipo = 'sector'` y nunca miró una fila de tallerista.
+Con la ruta duplicada, el efecto era el doble conteo: Danica y Lucho tenían **15.000 de Cartón 505
+cada uno** para una demanda de 28.108 uni/mes del 505, y lo mismo en Clavo, Mango y Cuchilla.
+
+**Lo que se construyó** (schema GP2, detalle en `GP2_MAPA.md`):
+
+| Objeto | Para qué |
+|---|---|
+| `reparto_tallerista` | la tabla del % por paso (artículo + `comp_salida` + tallerista) |
+| `v_reparto_efectivo` | el % efectivo: el dictado, o 100 si el paso lo hace uno solo |
+| `v_consumo_tallerista` | demanda del artículo × ese % = lo que consume cada tallerista |
+| `v_nivel_stock_tallerista` | `max_calc = consumo × meses_stock` (los 12 talleristas tienen 1 mes) |
+| `recalcular_maximos_talleristas()` | escribe el máximo con origen `est_madre_x_reparto` |
+| `reparto_guardar()` | la puerta de la pantalla: valida, guarda y recalcula de una |
+
+**Resultado en los 16 máximos que se tocaron** (sólo la cadena del 505 y el 506):
+
+| Componente | Tallerista | Antes | Ahora |
+|---|---|---|---|
+| Cuchilla Pela Afilada Caja (Z23) | Danica Garcia | 30.000 | 11.243 |
+| Cuchilla Pela Afilada Caja (Z23) | Lucho | 30.000 | 16.865 |
+| Cartón 505 (B3A) | Danica Garcia | 15.000 | 11.243 |
+| Cartón 505 (B3A) | Lucho | 15.000 | 16.865 |
+| Uñas Zinc. (C10) | Martin Cornejo | 33.172 | 12.844 |
+| Uñas Zinc. (C10) | Alex Escalante | 28.280 | 15.020 |
+
+11.243 + 16.865 = 28.108, que es exactamente la demanda del 505: antes sumaban 30.000 y 60.000.
+
+**Dos decisiones que quedan escritas:**
+1. **No se limpia el máximo de la fila que quedó sin consumo** (24 filas hoy). Un consumo 0 puede
+   ser un dato que falta (un artículo sin proyección en `est_madre`), no una verdad. Se informan.
+2. **Un paso compartido sin reparto dictado parte en partes iguales**, marcado `es_supuesto`. Es
+   un default para no contar el 100 % dos veces; el número real lo dice el dueño. Hoy el único
+   así es el **510** (Alex / Martin), que espera su respuesta.
+
+**Lo que NO se tocó y sigue esperando decisión:** los otros **284 máximos de tallerista**, que
+siguen siendo el mínimo viejo migrado. `recalcular_maximos_talleristas(false)` los recalcula
+todos de una (294 filas cambiarían, la suma baja 18 %: de 1.241.303 a 1.019.605 unidades).
