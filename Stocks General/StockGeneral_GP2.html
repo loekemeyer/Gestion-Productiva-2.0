@@ -6,7 +6,13 @@
 <script src="../gp2-ui.js?v=20260913e"></script>
 <script src="../gp2-numero.js?v=20260911o"></script>
 <title>Stock general · GP2</title>
-<!-- v2.0.0 (2026-09-15) - REDISEÑO [usuario: "el diseño de los stocks como la primer foto... cuando
+<!-- v2.0.1 (2026-09-15) - CORRECCIONES del dueño sobre el rubro Prov. Servicio: (a) SIN columna
+     Máximo (a un PS se le manda segun el maximo que necesita el SECTOR PROCESADO, el PS no tiene
+     maximo propio); (b) NO listar cajas/cartones ni otros insumos de empaque/consumo en un PS
+     ("a un PS no se le envian cajas") -- eran filas SEED en 0 sin movimiento (auditoria: 38 filas
+     de insumo en PS, 15 caja/carton todas en Pedernera, 0 con stock). Se filtran por sector
+     es_insumo cuando la cantidad es 0. NO se borra dato (el seed las re-sembraria).
+     v2.0.0 (2026-09-15) - REDISEÑO [usuario: "el diseño de los stocks como la primer foto... cuando
      entro que aparezca como la segunda foto... en fleje no vas a poner cajones o uni x cajon...
      que cada sector quede eficiente a los movimientos/info/stock que corresponde"].
      Se reemplaza el árbol plano (Cód/Descripción/Cantidad/Máximo, con la cantidad SIN separar por
@@ -183,6 +189,11 @@ var COLS_MOV3 = [
   { k:"fabricado", label:"Fabricado", tipos:["fabricacion"], lado:"ent" },
   { k:"consumido", label:"Consumido", tipos:["fabricacion","consumo_prod"], lado:"sal" }
 ];
+/* Sectores de empaque/consumo (es_insumo): NUNCA se le mandan a un proveedor de servicio
+   [usuario 2026-09-15: "a un PS no se le envian cajas"]. Al PS se le manda la pieza a
+   cromar/niquelar/procesar (crudo/procesado/bombilla/garage), no el envase ni el insumo.
+   Auditoria 2026-09-15: las filas de caja/carton/etc en un PS eran SEED en 0 sin movimiento. */
+var SECT_CONSUMIBLE = { 5:1, 6:1, 8:1, 10:1, 11:1, 14:1 }; // fleje, plastico, remache, carton, caja, bolsas
 
 /* ═══ rubros ═══
    Los de sector (mode:'sector') abren stock_sector_bundle(sid) con su config de columnas.
@@ -199,7 +210,7 @@ var RUBROS = [
   { key:"car", grupo:"Sectores", nom:"Cartones",         mode:"sector", sid:10, cols:COLS_INSUMO },
   { key:"caj", grupo:"Sectores", nom:"Cajas",            mode:"sector", sid:11, cols:COLS_INSUMO },
   { key:"bol", grupo:"Sectores", nom:"Bolsas Plásticas", mode:"sector", sid:14, cols:COLS_MP },
-  { key:"ps",  grupo:"Otros",    nom:"Prov. Servicio",   mode:"otros",  fuente:"ps",       mostrar_ubic:"Prov. Servicio" },
+  { key:"ps",  grupo:"Otros",    nom:"Prov. Servicio",   mode:"otros",  fuente:"ps",       mostrar_ubic:"Prov. Servicio", sin_max:true },
   { key:"tal", grupo:"Otros",    nom:"Talleristas",      mode:"otros",  fuente:"tall",     mostrar_ubic:"Tallerista" },
   { key:"pat", grupo:"Otros",    nom:"Prov. Art. Term.", mode:"otros",  fuente:"provat",   mostrar_ubic:"Proveedor" },
   { key:"tra", grupo:"Otros",    nom:"Tránsito PS",      mode:"otros",  fuente:"transito", mostrar_ubic:"En tránsito", sin_max:true }
@@ -269,7 +280,10 @@ function filasDe(r){
     for (var k in (D.inv||{})){
       var p=k.split(":"), cid=+p[0], uid=+p[1], u=D.ubic[String(uid)];
       if (!u || u.tipo!==tipo) continue;
-      var v=D.inv[k], ci=compInfo(cid);
+      var v=D.inv[k];
+      // PS: ocultar el ruido de empaque/consumo sembrado en 0 (una fila !=0 seria anomalia a ver).
+      if (r.fuente==="ps" && SECT_CONSUMIBLE[(D.comp[String(cid)]||{}).s] && Number(v.cant)===0) continue;
+      var ci=compInfo(cid);
       var nom = (tabla[String(u.ref)]||{}).nom || u.nom || "?";
       out.push({ cid:cid, cod:ci.cod, desc:ci.desc, um:ci.um, kg_x_uni:ci.kg_x_uni,
                  uni_x_cajon:ci.uni_x_cajon, online:Number(v.cant)||0, maximo:v.max,

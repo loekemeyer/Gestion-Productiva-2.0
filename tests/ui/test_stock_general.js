@@ -21,20 +21,26 @@ const BUNDLE = {
     '3': { tipo: 'tallerista', ref: 6, nom: 'Tall Martin' },
     '4': { tipo: 'virgilio', nom: 'Virgilio' },
     '5': { tipo: 'sector', ref: 12, nom: 'Terminado' },
+    '6': { tipo: 'proveedor_servicio', ref: 9, nom: 'Pedernera Ilario' },
   },
   tall: { '3': { nom: 'Fabrica' }, '6': { nom: 'Martin' } },
-  prov_serv: {},
+  prov_serv: { '9': { nom: 'Pedernera Ilario', proceso: 'Cromado' } },
   comp: {
     '10': { cod: 'A10', d: 'Cpo Una', s: 2, um: 'uni', kg_x_uni: 0.05, uxc: 100 },
     '20': { cod: 'T1', d: 'Terminado uno', s: 12, um: 'uni' },
     '30': { cod: 'B5', d: 'Parte be', s: 2, um: 'uni' },
+    '50': { cod: 'CAJ1', d: 'Caja 510', s: 11, um: 'uni' }, // sector Caja = insumo de empaque
   },
   rp: {},
   c2a: {},
   bom_art: {},
   bom_comp: {},
   // el ajuste opera sobre A10 (comp 10) en el sector D1 (ubic 1): una sola ubicacion.
-  inv: { '10:1': { cant: 100, max: 200 }, '30:1': { cant: 50, max: 0 }, '20:5': { cant: 0, max: 0 } },
+  // Pedernera (ubic 6, PS): A10 procesado en 0 (se muestra) y CAJ1 caja en 0 (SEED, se oculta).
+  inv: {
+    '10:1': { cant: 100, max: 200 }, '30:1': { cant: 50, max: 0 }, '20:5': { cant: 0, max: 0 },
+    '10:6': { cant: 0, max: null }, '50:6': { cant: 0, max: null },
+  },
 };
 /* Prov AT y transito salen de su propia RPC. */
 const EXTRA = {
@@ -137,6 +143,17 @@ window.supabase = { createClient: function(){ return {
   await page.click('.rubro-btn:has-text("Tránsito PS")');
   await page.waitForFunction(() => /Laboratorio FAAT → Guazzaroni Patricio/.test(document.getElementById('tbody').innerText));
   ok(true, 'Tránsito PS: aparece el par PS origen → PS siguiente');
+
+  // ── Prov. Servicio: SIN Máximo, y SIN cajas (insumo de empaque sembrado en 0) ──
+  await page.click('.rubro-btn:has-text("Prov. Servicio")');
+  await page.waitForFunction(() => /Pedernera Ilario/.test(document.getElementById('tbody').innerText));
+  const ps = await page.evaluate(() => ({
+    thead: document.getElementById('thead').innerText,
+    body: document.getElementById('tbody').innerText,
+  }));
+  ok(!/MÁXIMO/i.test(ps.thead), 'PS: la tabla NO tiene columna Máximo (el maximo vive en el sector procesado)');
+  ok(/A10/.test(ps.body), 'PS: se ve la pieza procesada que el PS cromaria (A10)');
+  ok(!/CAJ1/.test(ps.body), 'PS: NO aparece la caja (insumo de empaque sembrado en 0 en el PS)');
 
   // ── ultimos movimientos (vista heredada de Registrar_Movimiento) ──
   await page.click('#grpMovs > summary');
