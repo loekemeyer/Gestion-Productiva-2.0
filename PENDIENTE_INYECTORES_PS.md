@@ -1,92 +1,46 @@
 # PENDIENTE — Cirugía: inyectores como Proveedor de Servicio
 
 **Objetivo (usuario 2026-09-14):** que Kollplast, Pat Bet Plast y Pettofrezza aparezcan **dentro
-de "Prov. de servicio"** (Tablet y modelo GP2). Modelo: mandamos la **resina (bolsa, sector 14)** →
-el inyector inyecta → vuelve la **pieza plástica (sector 6)**. Eso convierte a cada pieza de
-*comprada* a *inyectada* y **cambia el costeo**.
+de "Prov. de servicio"**. Modelo: mandamos **resina (bolsa, sector 14)** → el inyector inyecta →
+vuelve la **pieza (sector 6)**. Convierte la pieza de *comprada* a *inyectada* y **cambia el costeo**.
 
-**Este archivo es el GATE 1: el mapeo pieza → resina. NADA se escribe en la base hasta que el
-usuario confirme esta tabla.** La regla de la casa es no inventar el dato.
+## GATE 1 — mapeo pieza → resina: RESUELTO con la planilla del usuario
+Fuente: `db/Conteo_y_Pedido_Sector_Plastico_VACIO.xls`, hojas *Consumo x Parte* (col Material) y
+*Consumo x Cod Articulo* (Material + MB color). **kg por pieza sale de `componente.kg_x_uni`** (ya
+está); **material sale de esta planilla** — como pidió el usuario. Match por descripción.
 
-## De dónde sale cada dato
-- **kg por pieza:** `componente.kg_x_uni` (ya está).
-- **resina (Tipo Plast) por pieza:** `planilla_fila` hoja *Plasticos*, pero **por descripción
-  genérica, no por código** → el match es interpretativo. Cruzado por descripción + peso.
-- **precio de la resina:** `v_material_precio_proveedor` (las 8 resinas base + master bach).
+**Correcciones a lo que yo había adivinado antes (rule 16 — retiradas):**
+- **PV8/PV8B "Corta Torta" → Ny Recuperado** (yo había puesto Alto Impacto; la planilla dice Ny Rec).
+- **PC6 "Ojales" → PP** (había puesto ABS).
+- **PA9 "Capuchón Mariposa" → PE** (la planilla lo confirma).
+- **PEST1/PEST2/PB6/PB8B/PC7 "Insertos" → PP** (estaban en [?], la planilla los cierra en PP).
+- **PA8A/PA8B "Bujes" → PA6N (Nylon 6 natural = Nylon Virgen)**; **PA4B/PA5B → PP**; **PV1 → Ny Rec**;
+  **PV14 → PP**; **PA18B → ABS**. Todos salían [?], la planilla los cierra.
 
-## Confianza
-- **[Seguro]** descripción y peso coinciden con una fila única de la planilla.
-- **[Probable]** calza por descripción o peso, con algún vecino cercano.
-- **[?]** ambiguo o sin fuente clara → **lo tenés que decir vos**.
+### Material por pieza (48; PEP5 madera afuera)
+| Material (resina GP2) | Piezas |
+|---|---|
+| PP 2630 | PEST1, PA17, PA19, PB6, PB8B, PC6, PC7, PEP1, PEP2, PEST2, PC10, PC11, PV14, PA4B, PA5B, PC2, PC3B, PC8 |
+| ABS GP 22 | PA10B, PA13B, PA18B, PC15AB, PC15B, PV17 |
+| PE Baja 7147 | PA1, PA2, PA9, PA12, PA7A, PA7B |
+| PS HF 555 | PB5, PC13, PC14 |
+| Nylon Virgen (PA6N) | PA8A, PA8B |
+| Nylon Recuperado | PV1, PV2, PV3, PV5, PV6, PV7, PV8, PV8B |
+| Nylon c/Carga 25% | PB2 |
+| Alto Impacto AI 4600 | PEP4 |
+| Santoprene *(no existe como resina GP2, hay que crearla)* | PA3 (kg 0,008 — la planilla también da el kg) |
 
-## Resinas base disponibles (sector 14)
-PP 2630 · ABS GP 22 · PS HF 555 · PE Baja 7147 · Alto Impacto AI 4600 · Nylon Virgen ·
-Nylon Recuperado · Nylon c/Carga 25% (+ Master Bach B/N/R/A por color).
-**No existen como resina en GP2:** Santoprene y Goma Eva (aparecen en la planilla pero no hay
-componente sector 14) → hay que crearlos o decidir con qué resina van.
+### Quedan 2 (lo único abierto)
+| Código | Pieza | Problema | Necesito |
+|---|---|---|---|
+| PB8A | Mgo Sacac Plast | la planilla dice **ABS** (22 g) pero el kg de GP2 es 16,4 g y por peso da **PP** — conflicto | ¿PP o ABS? |
+| PC16 | Inserto Chef | sin kg en `componente` y sin fila clara en la planilla | ¿resina y kg?, o lo dejo afuera |
 
-## Mapeo propuesto (48 piezas; PEP5 "Mango Madera" queda AFUERA: es madera, no plástico)
+### Resina a crear
+- **Santoprene** (para PA3): no existe como componente sector 14. ¿La creo? Necesito **precio $/kg**.
+- **Goma Eva / EVA:** NO hace falta — ninguna de las 48 la usa.
 
-| Código | Descripción | Inyector | g | Resina propuesta | Conf. |
-|---|---|---|--:|---|---|
-| PA19 | Mangos Chef | Pat Bet | 13,70 | PP | [Seguro] |
-| PB8A | Mgo Sacac Plast | Pat Bet | 16,43 | PP | [Seguro] |
-| PC2 | Mgo Pelapapa 505 | Pettofrezza | 5,40 | PP | [Seguro] |
-| PC3B | Mgo Pelapapa 123 | Pettofrezza | 5,40 | PP | [Seguro] |
-| PA9 | Capuchon Mariposa 512 | Pat Bet | 3,50 | PE | [Seguro] |
-| PA12 | Pirolo Rojo | Pat Bet | 0,56 | PE | [Seguro] |
-| PA7A | Pirolo Blanco | Pat Bet | 0,56 | PE | [Seguro] |
-| PA7B | Pirolo Negro | Pat Bet | 0,58 | PE | [Seguro] |
-| PC15AB | Cpo doble aleta LK | Pettofrezza | 21,60 | ABS | [Seguro] |
-| PC15B | Cuerpo Sac Aleta Ch | Pettofrezza | 22,00 | ABS | [Seguro] |
-| PV17 | Pela Naranjas | Pat Bet | 7,08 | ABS | [Seguro] |
-| PC13 | Manguito Abrelat. Blanc | Pettofrezza | 9,00 | PS | [Seguro] |
-| PC14 | Manguito Abrelat. Rojo | Pettofrezza | 9,00 | PS | [Seguro] |
-| PV8 | Corta Torta | Pat Bet | 63,15 | Alto Impacto | [Seguro] (por desc; el peso miente) |
-| PC10 | Mango LK Espatula | Pat Bet | 15,00 | PP | [Probable] |
-| PC11 | Mangos ф 8 | Pat Bet | 15,00 | PP | [Probable] |
-| PA17 | Mangos Cuch y P Torta | Pat Bet | 16,63 | PP | [Probable] |
-| PEP1 | Mangos Pelador Negro | Pettofrezza | 16,50 | PP | [Probable] |
-| PEP2 | Mango Pelador 586 | Pat Bet | 16,50 | PP | [Probable] |
-| PA10B | Capuchon ф 8 | Pat Bet | 1,97 | ABS | [Probable] |
-| PA13B | Capuchon Batidor LK | Pat Bet | 2,06 | ABS | [Probable] |
-| PA1 | Plaquita 3 en 1 LK | Pat Bet | 2,00 | PE | [Probable] |
-| PA2 | Plaquita 3-1 Blanca | Pat Bet | 2,00 | PE | [Probable] |
-| PEST1 | Insertos Mango Madera | Kollplast | 6,60 | PP | [Probable] |
-| PB5 | Manguito Abrelat. Negro | Pettofrezza | 3,77 | PS | [Probable] |
-| PC8 | Cachas Azules | Pettofrezza | 23,00 | PP | [Probable] |
-| PV8B | Corta Torta Chef | Pat Bet | 63,15 | Alto Impacto | [Probable] |
-| PB2 | Cuchara Ny | Pettofrezza | 55,00 | Nylon c/Carga | [Probable] |
-| PV2 | Cucharon Nylon | Pat Bet | 52,85 | Nylon Recuperado | [Probable] |
-| PV3 | Espatula Lisa Nylon | Pat Bet | 48,50 | Nylon Recuperado | [Probable] |
-| PV5 | Cuchara Fideos Nylon | Pat Bet | 50,45 | Nylon Recuperado | [Probable] |
-| PV6 | Cuchara Calada Nylon | Pat Bet | 42,70 | Nylon Recuperado | [Probable] |
-| PV7 | Espatula Calada Nylon | Pat Bet | 42,25 | Nylon Recuperado | [Probable] |
-| PEP4 | Afila Caladas | Pettofrezza | 49,00 | Alto Impacto | [Probable] |
-| PA18B | Capuchon Espatula LK | Pat Bet | 1,75 | ABS | [?] ¿ABS o PP? |
-| PA8A | Buje Blanco | Pat Bet | 0,63 | Nylon Virgen | [?] planilla dice "Nylon natural" (no existe) |
-| PA8B | Buje Negro | Pat Bet | 0,60 | Nylon Virgen | [?] idem |
-| PC6 | Ojales Neg/Blanco | Pat Bet | 1,18 | ABS | [?] |
-| PB6 | Inser. Neg. Espatula | Pat Bet | 5,00 | ? | [?] insertos sin fila clara |
-| PB8B | Inser. Neg. Batidor Calado | Pat Bet | 3,72 | ? | [?] |
-| PC7 | Inserto Neg. Canelones | Pat Bet | 5,00 | ? | [?] |
-| PEST2 | Insertos Pisa Papas | Pat Bet | 3,82 | ? | [?] |
-| PV14 | Picos Reposteros | Pat Bet | 1,10 | PP | [?] peso raro (planilla "4 picos" 4,25 g) |
-| PV1 | Pisa Papa Nylon | Pat Bet | 17,15 | Nylon | [?] ¿recuperado o virgen? |
-| PA4B | Mang Cuch Untar Rojo | Pettofrezza | 10,00 | ? | [?] "cuchillo untar", sin resina en planilla |
-| PA5B | Mang Cuch Untar Chef | Pettofrezza | 10,00 | ? | [?] idem |
-| PA3 | Muñeco Antiderrame | Pat Bet | s/kg | Santoprene | [?] resina no existe + sin kg |
-| PC16 | Inserto Chef | Pat Bet | s/kg | ? | [?] sin resina y sin kg |
-
-## Lo que necesito de vos (por impacto)
-1. **Confirmar / corregir las 14 filas [?]** — sin la resina, la pieza no se puede costear como
-   inyectada. Las peores: PA3 y PC16 (sin kg además), y los 4 insertos (PB6/PB8B/PC7/PEST2).
-2. **Santoprene y Goma Eva:** ¿los creo como resina nueva (con qué precio) o van con otra?
-3. **PA8A/PA8B ("Nylon natural"):** ¿Nylon Virgen sirve o es otra?
-
-## Después del OK (gates 2 y 3, ya sin decisiones tuyas salvo el snapshot)
-- **Gate 2 — diseño:** por cada pieza, ruta de inyección (entra resina+4% master bach → sale la
-  pieza), inyector como `proveedor_servicio` (proceso "Inyección"), inventario de la resina en la
-  ubicación del inyector. Te muestro el SQL exacto y el impacto de costeo (snapshot antes/después)
-  antes de ejecutar.
-- **Gate 3 — ejecución:** con backup y diff de costos, en bloque.
+## Después del OK (gate 2 — diseño, te muestro el SQL antes de tocar la base)
+Por cada pieza: inyector como `proveedor_servicio` (proceso "Inyección"), ruta de inyección
+(entra resina + 4 % master bach del color `mb_color` → sale la pieza), inventario de la resina en
+la ubicación del inyector. Snapshot de costos antes/después. Ejecución en bloque con backup (gate 3).
