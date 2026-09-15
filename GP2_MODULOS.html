@@ -8,7 +8,7 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <script src="auth-guard.js?v=20260912d"></script>
-<!-- v1.154.0 (2026-09-15) - la Version Tablet se desdobla en DOS botones centrados en el header: "Versión Tablet Logística" (la de siempre, Recibir/Enviar/Contar del galpón) y "Versión Tablet Operarios", que abre el Registro Producción (Operarios_GP2.html) para el que corta en matrices. En el celular las dos pastillas van fijas abajo a la derecha, apiladas para no pisarse. v1.148.0 (2026-09-14) - el boton del sector 14 pasa de "Materia Prima Plástica" a "Bolsas Plásticas" (pedido del usuario; mismo cambio en Recepcion Insumos, Stock por Sector, pie de la OC impresa y el nombre del sector en la base). v1.147.0 (2026-09-14) - la Version Tablet pregunta primero el TIPO de contraparte (tallerista / prov. de servicio / prov. de art. terminado) y recien despues cual; en Recibir sale el prov. de art. terminado (entrega en Virgilio, no en Cervantes) y entra "Prov. de insumos", que abre Recepcion Insumos; el Conteo abre Relevamientos. Las dos pantallas vuelven a la tablet con ?volver=tablet. v1.146.0 (2026-09-13) - entra el boton "Version Tablet"
+<!-- v1.155.0 (2026-09-15) - se saca el grupo "Ventas" del menu (pedido del usuario, "por ahora"): tenia un solo boton bloqueado (Chat Bot Ventas, sin pantalla). v1.154.0 (2026-09-15) - la Version Tablet se desdobla en DOS botones centrados en el header: "Versión Tablet Logística" (la de siempre, Recibir/Enviar/Contar del galpón) y "Versión Tablet Operarios", que abre el Registro Producción (Operarios_GP2.html) para el que corta en matrices. En el celular las dos pastillas van fijas abajo a la derecha, apiladas para no pisarse. v1.148.0 (2026-09-14) - el boton del sector 14 pasa de "Materia Prima Plástica" a "Bolsas Plásticas" (pedido del usuario; mismo cambio en Recepcion Insumos, Stock por Sector, pie de la OC impresa y el nombre del sector en la base). v1.147.0 (2026-09-14) - la Version Tablet pregunta primero el TIPO de contraparte (tallerista / prov. de servicio / prov. de art. terminado) y recien despues cual; en Recibir sale el prov. de art. terminado (entrega en Virgilio, no en Cervantes) y entra "Prov. de insumos", que abre Recepcion Insumos; el Conteo abre Relevamientos. Las dos pantallas vuelven a la tablet con ?volver=tablet. v1.146.0 (2026-09-13) - entra el boton "Version Tablet"
      para los prov servicio "hibridos" que NO reciben Envio desde Cervantes (la MP
      les llega directo del proveedor externo: Altrak->Charcas, Aperam->Eclipse) y
      por eso no encajan en el flujo Envio/Entrega normal. Muestra stock MP del PS
@@ -213,7 +213,7 @@ body.focus .tablet-links{display:none}
     (GP2_AUTH_ON=false) no hay sesion que cerrar: el link se oculta solo -->
     <span id="kpiResumen"></span><span id="sesion" hidden>&nbsp;·&nbsp; <a href="login.html?logout=1" onclick="try{sessionStorage.clear();}catch(e){}"
     style="color:#b42318;text-decoration:none;font-weight:700">⎋ Cerrar sesión</a></span></div>
-  <script src="version.js?v=20260915b"></script>
+  <script src="version.js?v=20260915c"></script>
   <script>if (window.GP2_AUTH_ON !== false) document.getElementById('sesion').hidden = false;</script>
   <div class="tablet-links">
     <a class="tablet-link" href="Tablet/Tablet_GP2.html">📱 Versión Tablet Logística</a>
@@ -310,7 +310,6 @@ const MENU = [
     "Validacion de Stock". El operario nunca decide sobre el stock. */
  ["🗒","Relevamiento", [ ["Relevamientos", "Relevamiento/Relevamiento_GP2.html"],
                         ["Validación de Stock", "Relevamiento/Validacion_Stock.html"] ]],
- ["🔗","Ventas", [ ["Chat Bot Ventas", null] ]],
 ];
 
 const grid = document.getElementById("grid");
