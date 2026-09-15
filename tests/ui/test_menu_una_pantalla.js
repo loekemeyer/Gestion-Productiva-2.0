@@ -38,7 +38,8 @@ const PANTALLAS = [
         fuente_min: Math.min(...titles.map(t => parseFloat(getComputedStyle(t).fontSize))),
         horizontal: document.documentElement.scrollWidth > window.innerWidth,
         version: (document.getElementById('appVersion') || {}).textContent || '',
-        foot: getComputedStyle(document.querySelector('.foot')).display,
+        // el pie "schema propio" se saco (2026-09-15): si no existe, no ocupa lugar
+        foot: (document.querySelector('.foot') ? getComputedStyle(document.querySelector('.foot')).display : 'none'),
         sub: (document.querySelector('.header-sub') || {}).textContent || '',
       };
     });
