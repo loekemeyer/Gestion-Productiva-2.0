@@ -5176,10 +5176,10 @@ with pasos as (
          rp.comp_salida_id, cs.codigo paso_cod, cs.descripcion paso_desc,
          rp.tallerista_id, t.nombre tallerista
     from ruta_paso rp
-    join ruta r       on r.id = rp.ruta_id
-    join articulo a   on a.id = r.articulo_id
+    join ruta r        on r.id = rp.ruta_id
+    join articulo a    on a.id = r.articulo_id
     join componente cs on cs.id = rp.comp_salida_id
-    join tallerista t on t.id = rp.tallerista_id
+    join tallerista t  on t.id = rp.tallerista_id
    where rp.tallerista_id is not null
 ), compartidos as (
   select articulo_id, comp_salida_id
@@ -5190,6 +5190,27 @@ with pasos as (
     join compartidos c on c.articulo_id = p.articulo_id and c.comp_salida_id = p.comp_salida_id
     left join v_reparto_efectivo re on re.articulo_id = p.articulo_id
      and re.comp_salida_id = p.comp_salida_id and re.tallerista_id = p.tallerista_id
+), entradas as (
+  -- que parte recibe cada tallerista para ese articulo, y cuanto puede tener en su casa
+  select distinct r.articulo_id, rp.tallerista_id, rp.comp_entrada_id,
+         ce.codigo parte_cod, ce.descripcion parte_desc,
+         i.maximo, i.cantidad, i.maximo_origen
+    from ruta_paso rp
+    join ruta r        on r.id = rp.ruta_id
+    join componente ce on ce.id = rp.comp_entrada_id
+    left join ubicacion u on u.tipo = 'tallerista' and u.ref_id = rp.tallerista_id
+    left join inventario i on i.componente_id = rp.comp_entrada_id and i.ubicacion_id = u.id
+   where rp.tallerista_id is not null and rp.comp_entrada_id is not null and r.articulo_id is not null
+), partes_por_paso as (
+  select f.articulo_id, f.comp_salida_id, e.comp_entrada_id, e.parte_cod, e.parte_desc,
+         jsonb_agg(jsonb_build_object('tall_id', e.tallerista_id, 'maximo', e.maximo,
+                                      'stock', e.cantidad, 'origen', e.maximo_origen)
+                   order by e.tallerista_id) por_tall
+    from (select distinct articulo_id, comp_salida_id from filas) f
+    join entradas e on e.articulo_id = f.articulo_id
+    join filas ff on ff.articulo_id = f.articulo_id and ff.comp_salida_id = f.comp_salida_id
+                 and ff.tallerista_id = e.tallerista_id
+   group by f.articulo_id, f.comp_salida_id, e.comp_entrada_id, e.parte_cod, e.parte_desc
 )
 select jsonb_build_object(
   'generado_en', now(),
@@ -5202,7 +5223,12 @@ select jsonb_build_object(
          'suma_pct', round(sum(f.pct), 2),
          'talleristas', jsonb_agg(jsonb_build_object(
             'tall_id', f.tallerista_id, 'tallerista', f.tallerista,
-            'pct', f.pct, 'es_supuesto', coalesce(f.es_supuesto, false)) order by f.tallerista)
+            'pct', f.pct, 'es_supuesto', coalesce(f.es_supuesto, false)) order by f.tallerista),
+         'partes', coalesce((
+            select jsonb_agg(jsonb_build_object('cod', pp.parte_cod, 'desc', pp.parte_desc,
+                                                'por_tall', pp.por_tall) order by pp.parte_cod)
+              from partes_por_paso pp
+             where pp.articulo_id = f.articulo_id and pp.comp_salida_id = f.comp_salida_id), '[]'::jsonb)
        ) x
        from filas f
        group by f.articulo_id, f.art_codigo, f.familia, f.comp_salida_id, f.paso_cod, f.paso_desc
@@ -5397,7 +5423,7 @@ end $function$
 ;
 
 -- ---------- recalcular_maximos_talleristas ----------
-CREATE OR REPLACE FUNCTION "GP2".recalcular_maximos_talleristas(p_solo_repartidos boolean DEFAULT false)
+CREATE OR REPLACE FUNCTION "GP2".recalcular_maximos_talleristas(p_solo_repartidos boolean DEFAULT false, p_componentes bigint[] DEFAULT NULL::bigint[])
  RETURNS jsonb
  LANGUAGE plpgsql
  SECURITY DEFINER
@@ -5421,6 +5447,7 @@ begin
        and (not p_solo_repartidos
             or exists (select 1 from repartidos x
                         where x.tallerista_id = v.tallerista_id and x.comp_entrada_id = v.componente_id))
+       and (p_componentes is null or v.componente_id = any (p_componentes))
   ), upd as (
     update inventario i
        set maximo = o.max_calc, maximo_origen = 'est_madre_x_reparto'

@@ -864,23 +864,34 @@ create or replace view "GP2".v_reparto_efectivo as
            FROM "GP2".ruta_paso rp
              JOIN "GP2".ruta r ON r.id = rp.ruta_id
           WHERE rp.tallerista_id IS NOT NULL AND rp.comp_salida_id IS NOT NULL AND r.articulo_id IS NOT NULL
+        ), con_pct AS (
+         SELECT p.articulo_id,
+            p.comp_salida_id,
+            p.tallerista_id,
+            rt.pct
+           FROM pasos p
+             LEFT JOIN "GP2".reparto_tallerista rt ON rt.articulo_id = p.articulo_id AND rt.comp_salida_id = p.comp_salida_id AND rt.tallerista_id = p.tallerista_id
         ), n AS (
-         SELECT pasos.articulo_id,
-            pasos.comp_salida_id,
-            count(*) AS n_tall
-           FROM pasos
-          GROUP BY pasos.articulo_id, pasos.comp_salida_id
+         SELECT con_pct.articulo_id,
+            con_pct.comp_salida_id,
+            count(*) AS n_tall,
+            count(con_pct.pct) AS n_con_fila,
+            COALESCE(sum(con_pct.pct), 0::numeric) AS suma_pct
+           FROM con_pct
+          GROUP BY con_pct.articulo_id, con_pct.comp_salida_id
         )
- SELECT p.articulo_id,
-    p.comp_salida_id,
-    p.tallerista_id,
-    COALESCE(rt.pct, round(100.0 / n.n_tall::numeric, 4)) AS pct,
-    rt.pct IS NULL AND n.n_tall > 1 AS es_supuesto,
+ SELECT c.articulo_id,
+    c.comp_salida_id,
+    c.tallerista_id,
+        CASE
+            WHEN n.n_con_fila = n.n_tall AND n.suma_pct > 0::numeric THEN round(c.pct * 100::numeric / n.suma_pct, 4)
+            ELSE round(100.0 / n.n_tall::numeric, 4)
+        END AS pct,
+    n.n_con_fila <> n.n_tall AND n.n_tall > 1 AS es_supuesto,
     n.n_tall
-   FROM pasos p
-     JOIN n ON n.articulo_id = p.articulo_id AND n.comp_salida_id = p.comp_salida_id
-     LEFT JOIN "GP2".reparto_tallerista rt ON rt.articulo_id = p.articulo_id AND rt.comp_salida_id = p.comp_salida_id AND rt.tallerista_id = p.tallerista_id;
-comment on view "GP2".v_reparto_efectivo is 'Porcentaje del volumen de cada paso (articulo + comp_salida) que hace cada tallerista. Sale de reparto_tallerista; si el paso lo hace uno solo es 100. es_supuesto = el paso lo hacen dos o mas y nadie dicto el reparto (parte en partes iguales, es un default).';
+   FROM con_pct c
+     JOIN n ON n.articulo_id = c.articulo_id AND n.comp_salida_id = c.comp_salida_id;
+comment on view "GP2".v_reparto_efectivo is 'Porcentaje del volumen de cada paso (articulo + comp_salida) que hace cada tallerista. Sale de reparto_tallerista, NORMALIZADO sobre los talleristas que siguen haciendo el paso (borrar una ruta no puede dejar al otro con la mitad). Si ninguno tiene fila, o solo algunos, va en partes iguales y lo marca es_supuesto: eso lo tiene que dictar el dueno.';
 
 -- ---------- v_reposicion ----------
 create or replace view "GP2".v_reposicion as

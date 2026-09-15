@@ -9946,3 +9946,36 @@ cada uno** para una demanda de 28.108 uni/mes del 505, y lo mismo en Clavo, Mang
 **Lo que NO se tocó y sigue esperando decisión:** los otros **284 máximos de tallerista**, que
 siguen siendo el mínimo viejo migrado. `recalcular_maximos_talleristas(false)` los recalcula
 todos de una (294 filas cambiarían, la suma baja 18 %: de 1.241.303 a 1.019.605 unidades).
+
+## 4dv. El 510 lo hace solo Alex, la pantalla queda de sólo lectura, y por qué (2026-09-15)
+
+**Tres cosas del mismo tirón** [usuario, textual]: *"510 solo alex lo hace"*, *"Que no se pueda
+modificar la proporción en el programa"* y *"quiero que me pongas los máximos de cada parte del
+artículo que se está proporcionando"*.
+
+**1. El 510.** Se borraron las 5 rutas de Martin Cornejo (601, 602, 604, 605, 607). Alex Escalante
+pasa al 100 %: A15 y Cartón 510 van de 3.170 a **6.340**, Uñas Zinc. y Remache de 15.020 a
+**18.190**. Con eso ya no queda ningún paso compartido sin porcentaje dictado: los dos que quedan
+son el 505 (Danica 40 / Lucho 60) y el 506 (Alex 70 / Martin 30).
+
+**2. Por qué la pantalla ya no se edita — el incidente.** Mientras se cargaban los porcentajes,
+alguien abrió la pantalla y apretó **Guardar** en los tres pasos (15:00:24, :26 y :27). La pantalla
+mostraba el **50/50 que era un DEFAULT** para el 510, y ese clic lo grabó en
+`reparto_tallerista` como si fuera un dato dictado. Resultado: cuando después se sacó a Martin,
+Alex se quedó con el 50 % guardado, o sea **la mitad del máximo que necesita**.
+
+Dos arreglos, no uno:
+- **La pantalla no escribe más.** `reparto_guardar` perdió el `EXECUTE` para `anon`; el % se carga
+  por SQL. Un default que se puede guardar con un clic deja de ser un default.
+- **`v_reparto_efectivo` normaliza.** El % guardado se lleva a base 100 **sobre los talleristas que
+  siguen haciendo el paso**: borrar la ruta de uno ya no puede dejar al otro con su mitad. Si
+  ninguno tiene % —o sólo algunos— va mitad y mitad marcado `es_supuesto`, que es "falta que lo
+  diga el dueño", no un dato.
+
+**3. Los máximos en la pantalla.** Cada paso compartido muestra sus partes con el máximo de cada
+tallerista, una columna por cabeza con su %. Ahí se ve que las dos columnas **suman** el consumo
+del artículo en vez de duplicarlo: Cartón 505 = 11.243 (Danica) + 16.865 (Lucho) = 28.108.
+
+**Lo que quedó suelto y hay que mirar:** Martin Cornejo conserva máximos de partes que ya no usa
+(A15 y Cartón 510 en 3.170), porque la regla es **no limpiar la fila que quedó sin consumo** — un
+consumo 0 puede ser un dato que falta. Hoy son 27 filas así en todos los talleristas.
