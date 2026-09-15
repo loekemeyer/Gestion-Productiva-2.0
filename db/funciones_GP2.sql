@@ -5423,13 +5423,13 @@ end $function$
 ;
 
 -- ---------- recalcular_maximos_talleristas ----------
-CREATE OR REPLACE FUNCTION "GP2".recalcular_maximos_talleristas(p_solo_repartidos boolean DEFAULT false, p_componentes bigint[] DEFAULT NULL::bigint[])
+CREATE OR REPLACE FUNCTION "GP2".recalcular_maximos_talleristas(p_solo_repartidos boolean DEFAULT false, p_componentes bigint[] DEFAULT NULL::bigint[], p_limpiar_sin_ruta boolean DEFAULT false)
  RETURNS jsonb
  LANGUAGE plpgsql
  SECURITY DEFINER
  SET search_path TO 'GP2'
 AS $function$
-declare v_set int := 0; v_cambios jsonb; v_sin_consumo int;
+declare v_set int := 0; v_cambios jsonb; v_limpiados int := 0; v_con_ruta jsonb;
 begin
   with repartidos as (
     select distinct rp.tallerista_id, rp.comp_entrada_id
@@ -5462,12 +5462,31 @@ begin
            'antes', u.maximo_viejo, 'ahora', u.max_calc) order by u.tallerista_id), '[]'::jsonb)
     into v_set, v_cambios from upd u;
 
-  select count(*) into v_sin_consumo
-    from v_nivel_stock_tallerista v
-   where v.max_calc = 0 and v.maximo is not null and coalesce(v.maximo_origen, '') <> 'fisico';
+  if p_limpiar_sin_ruta then
+    with sin_ruta as (
+      select v.inv_id from v_nivel_stock_tallerista v
+       where v.max_calc = 0 and v.maximo is not null and coalesce(v.maximo_origen, '') <> 'fisico'
+         and not exists (select 1 from ruta_paso rp
+                          where rp.tallerista_id = v.tallerista_id and rp.comp_entrada_id = v.componente_id)
+    ), lim as (
+      update inventario i set maximo = null, maximo_origen = null
+        from sin_ruta s where i.id = s.inv_id returning 1
+    )
+    select count(*) into v_limpiados from lim;
+  end if;
 
-  return jsonb_build_object('ok', true, 'actualizados', v_set,
-    'sin_consumo_no_tocados', v_sin_consumo, 'cambios', v_cambios);
+  select coalesce(jsonb_agg(jsonb_build_object(
+           'tallerista', (select nombre from tallerista t where t.id = v.tallerista_id),
+           'componente', (select codigo from componente c where c.id = v.componente_id),
+           'maximo', v.maximo) order by v.tallerista_id), '[]'::jsonb)
+    into v_con_ruta
+    from v_nivel_stock_tallerista v
+   where v.max_calc = 0 and v.maximo is not null and coalesce(v.maximo_origen, '') <> 'fisico'
+     and exists (select 1 from ruta_paso rp
+                  where rp.tallerista_id = v.tallerista_id and rp.comp_entrada_id = v.componente_id);
+
+  return jsonb_build_object('ok', true, 'actualizados', v_set, 'limpiados', v_limpiados,
+    'sin_consumo_con_ruta', v_con_ruta, 'cambios', v_cambios);
 end $function$
 ;
 

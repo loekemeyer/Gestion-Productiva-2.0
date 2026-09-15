@@ -241,7 +241,7 @@ articulo van en cadena y cada uno hace el 100 % de lo suyo: eso NO es un reparto
 | `GP2.v_reparto_efectivo` | El % efectivo de cada paso, **normalizado sobre los talleristas que siguen haciendo el paso** (si se borra la ruta de uno, el otro pasa a 100, no se queda con su mitad). `es_supuesto` = ninguno o solo algunos tienen % dictado -> parte en partes iguales (default, no dato) |
 | `GP2.v_consumo_tallerista` | uni/mes por `(tallerista, componente que recibe)` = demanda del articulo (`v_consumo_demanda`) x su % |
 | `GP2.v_nivel_stock_tallerista` | `max_calc = consumo repartido x ubicacion.meses_stock` (los 12 talleristas tienen `meses_stock = 1`) |
-| `GP2.recalcular_maximos_talleristas(p_solo_repartidos, p_componentes)` | Escribe `inventario.maximo` con `maximo_origen = 'est_madre_x_reparto'`. Los dos filtros se combinan con Y (null/false = sin filtro). Nunca pisa un `fisico` y NO limpia la fila que quedo sin consumo |
+| `GP2.recalcular_maximos_talleristas(p_solo_repartidos, p_componentes, p_limpiar_sin_ruta)` | Escribe `inventario.maximo` con `maximo_origen = 'est_madre_x_reparto'`. Los dos primeros filtros se combinan con Y (null/false = sin filtro) y nunca pisa un `fisico`. `p_limpiar_sin_ruta` borra el maximo de la fila **sin consumo Y sin ruta** (el tallerista ya no recibe esa parte); la que tiene ruta pero no demanda NO se toca y vuelve en `sin_consumo_con_ruta` |
 | `GP2.reparto_guardar(...)` | La puerta de la pantalla: valida, guarda y recalcula en una sola llamada |
 
 **El maximo de un tallerista NO sale de `v_nivel_stock`**: esa vista cubre solo ubicaciones de

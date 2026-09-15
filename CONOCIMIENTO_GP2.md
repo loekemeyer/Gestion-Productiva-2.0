@@ -10033,3 +10033,29 @@ del artículo en vez de duplicarlo: Cartón 505 = 11.243 (Danica) + 16.865 (Luch
 **Lo que quedó suelto y hay que mirar:** Martin Cornejo conserva máximos de partes que ya no usa
 (A15 y Cartón 510 en 3.170), porque la regla es **no limpiar la fila que quedó sin consumo** — un
 consumo 0 puede ser un dato que falta. Hoy son 27 filas así en todos los talleristas.
+
+## 4dx. Los 284 máximos migrados y las 27 filas sin consumo: cerrado (2026-09-15)
+
+El dueño dio el "dale" a las dos pendientes de 4du/4dw.
+
+**1. Se recalcularon TODOS los máximos de tallerista** (`recalcular_maximos_talleristas(false)`):
+**270 filas** cambiaron. El mínimo viejo migrado ya no manda en ninguna: hoy **291 de 292** filas
+con máximo dicen `est_madre_x_reparto`, o sea demanda × su % × meses. La suma baja de **1.241.303
+a 1.024.041 unidades (−17,5 %)**, y no es un ajuste parejo: Danica sube (51.819 → 71.467, porque
+el mínimo viejo le quedaba corto) y Martin, IJUPA y Gentile bajan fuerte.
+
+**2. La regla para la fila que queda sin consumo** — la duda de 4du quedó resuelta partiéndola en
+dos, que es la distinción que importa:
+
+| Caso | Qué significa | Qué se hace |
+|---|---|---|
+| Sin consumo **y sin ruta** | ese tallerista ya no recibe esa parte (quedó de una ruta borrada o de la migración) | **se limpia** (25 filas) |
+| Sin consumo **pero con ruta** | sí la recibe; lo que falta es la demanda (artículo sin proyección en `est_madre`) | **no se toca**, se informa |
+
+Las 25 que se limpiaron son justamente la resaca de la limpieza de rutas: los 5 cartones y
+capuchones de Cavallero German (315 y 609), el A15 de Martin Cornejo (510), el "Pliego Ad 500" de
+Gentile Norberto y 7 piezas de rompenueces de Fábrica, entre otras.
+
+**Las 2 que quedan abiertas, y son un dato que falta, no un error:** `PB6` (Inser. Neg. Espat) en
+Alex Escalante con 60, y `E6-M194` (Pala Canelón tras M194) en Fábrica con 696. Las dos tienen
+ruta pero su artículo no proyecta venta en `est_madre`.
