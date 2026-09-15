@@ -9808,3 +9808,64 @@ funciones). Muestra: máximo + origen, **meses** (`ubicacion.meses_stock` del se
 `est_madre` / `consumo_x_meses` (ahí máximo = consumo × meses, exacto). Cuando es `fisico`,
 `migrado_de_minimo`, `cinco_cajones` o master, el máximo se puso a mano o por otra regla, y el modal
 muestra el consumo real **como referencia**, avisando que no viene de la demanda.
+
+## 4ds. C12B: la paleta sin cromar es un código propio, y eso es la convención de la casa (2026-09-15)
+
+**Lo que pidió el dueño** [usuario 2026-09-14, textual]: *"En el articulo 515 y 615, cuando vuelve de
+alex escalante quiero que sea C12B y despues de cromarse C12"*.
+
+**Cómo quedaron las 6 rutas** (994/995/1010 del 515 y 1001/1002/1011 del 615):
+
+```
+… → Alex Escalante (armado) → C12B → Pedernera Ilario (cromado) → C12 → Alex Escalante → 515/615
+```
+
+Antes, Alex entregaba C12 y Pedernera hacía un paso `entrada = salida` sobre C12: el cromado no
+tenía dónde apoyarse, porque la pieza entraba y salía con el mismo código.
+
+**ESTO NO ES UNA EXCEPCIÓN, ES LA REGLA QUE YA SEGUÍA EL RESTO DE GP2.** Medido el 2026-09-15:
+**260 pasos de proveedor de servicio en 240 rutas ya tienen entrada ≠ salida**, contra 71 pasos en
+65 rutas con entrada = salida. Y el sufijo `B` para "antes del servicio" ya estaba en uso:
+`PA4B→PA4`, `PA5B→PA5`, `PA10B→PA10`, `PA13B→PA13`, `PA18B→PA18`, `PC15AB→PC15A`, `PC3B→PC1B`,
+`D13B→D13`, `Z2B→Z2A`, `Z3B→Z3A`. 515/615 eran la excepción; ahora no lo son.
+
+**El costo NO se movió, y eso se verificó dentro de la misma transacción** (la migración tenía un
+`raise` que revertía todo si algo cambiaba un centavo):
+
+| Código | Antes | Después |
+|---|---|---|
+| 515 | 411,76 | 411,76 |
+| 615 | 491,40 | 491,40 |
+| C12 | 88,49 | 88,49 |
+
+**LA TRAMPA QUE CASI CUESTA $ 62,74 POR UNIDAD:** `v_costo_componente` pega el precio del tallerista
+por **(tallerista, `comp_salida_id` del paso)** — o sea, sobre la pieza que el tallerista ENTREGA.
+El precio de Alex ("Batidor Resorte Armado", ARS 62,7375) estaba cargado sobre C12. Al pasar el
+armado a entregar C12B, **si el precio se quedaba en C12 ningún paso entregaba C12 y el armado
+desaparecía del costo** de 515, 615 y C12. Por eso la migración lo mueve a C12B. Vale para cualquier
+corte futuro de este tipo: **el precio del tallerista viaja con la pieza que entrega, no con el nombre.**
+
+**Por qué el servicio de Pedernera siguió valiendo lo mismo:** el paso dejó de ser `selfsrv`
+(entrada = salida) y pasó a ser una arista de `edges`, pero las dos ramas de la CTE `srv` terminan
+dando el mismo par `(componente, Pedernera)`. El valor y el conteo de `faltan_precios` no se movieron.
+
+**Efecto lateral BUENO:** el cromado ahora tiene dónde apoyarse. Hoy `C12B` y `C12` cuestan los dos
+88,49 porque **Pedernera / Cromado no tiene precio cargado**; el día que se cargue, la diferencia
+entre los dos ES el cromado. Antes no había forma de separarlo.
+
+**El máximo lo puso la base sola, no la migración.** `trg_maximos_rutas` (en `ruta_paso`, FOR EACH
+STATEMENT → `fn_recalc_maximos_insumos`) se disparó con el UPDATE y le calculó a C12B **máximo 1656,
+origen `est_madre`** — el mismo que C12. Es exactamente lo que ya pasa con los pares existentes
+(`PA4B` y `PA4` tienen los dos 7.680 `est_madre`). **Consecuencia a tener presente:** Sector Bombilla
+ahora muestra DOS líneas de 1.656 para lo que físicamente es la misma pieza en dos etapas, así que el
+"falta" del sector la cuenta dos veces. Es el comportamiento que ya tenían los otros 10 pares, no un
+bug nuevo — pero si molesta, se corrige poniendo el máximo sólo en el código que se consume (C12).
+
+**Detalle de ubicación que queda a criterio del dueño:** C12B se creó en el **mismo sector que C12**
+(7, Bombilla), como `PA4B`/`PA4`. Otros pares se modelan al revés: `D13B` y `Z2B` viven en Sector
+Crudo y sus pares cromados en Sector Procesado. Si la paleta sin cromar en realidad se guarda en otro
+lado, se mueve la fila de `inventario`, no el componente.
+
+**Lo que NO se tocó, a propósito:** la receta del artículo (`articulo_componente`) sigue diciendo
+515 → C12 y 615 → C12, porque el artículo se arma con la pieza YA cromada. Y los 6 pasos
+`tallerista` que van de C12 a 515/615 quedaron igual.
