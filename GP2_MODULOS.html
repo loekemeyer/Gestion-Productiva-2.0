@@ -192,8 +192,10 @@ a.tablet-link:hover{background:#1d4ed8}
   .tablet-links{position:fixed;right:10px;bottom:10px;z-index:20;margin:0;
     flex-direction:column;align-items:flex-end;gap:8px}
   a.tablet-link{font-size:15px;padding:0 14px}
+  /* la vista foco (grupo fullscreen) es SOLO de celular: ahi si se ocultan para no tapar
+     las baldosas. En escritorio no hay vista foco, asi que los botones quedan siempre visibles. */
+  body.focus .tablet-links{display:none}
 }
-body.focus .tablet-links{display:none}
 
 /* ── datos vivos que venian del dashboard viejo (Inicio/index_GP2.html) ── */
 #kpiResumen{display:block;margin-top:4px;font-size:12px;color:#475569}
@@ -213,7 +215,7 @@ body.focus .tablet-links{display:none}
     (GP2_AUTH_ON=false) no hay sesion que cerrar: el link se oculta solo -->
     <span id="kpiResumen"></span><span id="sesion" hidden>&nbsp;·&nbsp; <a href="login.html?logout=1" onclick="try{sessionStorage.clear();}catch(e){}"
     style="color:#b42318;text-decoration:none;font-weight:700">⎋ Cerrar sesión</a></span></div>
-  <script src="version.js?v=20260915d"></script>
+  <script src="version.js?v=20260915e"></script>
   <script>if (window.GP2_AUTH_ON !== false) document.getElementById('sesion').hidden = false;</script>
   <div class="tablet-links">
     <a class="tablet-link" href="Tablet/Tablet_GP2.html">📱 Versión Tablet Logística</a>
