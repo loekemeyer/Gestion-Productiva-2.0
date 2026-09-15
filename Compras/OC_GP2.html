@@ -593,6 +593,10 @@ function vFechaEnt(o){ return o.fecha_entrega_estimada || o.fecha_entrega || '';
 function tagOrigen(o){
   o=String(o||'');
   if(o==='est_madre') return 'EM';
+  /* el maximo de un tallerista: la demanda repartida por el % que hace de su paso
+     (reparto_tallerista, 2026-09-15). Hoy la OC lista sectores, pero si algun dia
+     muestra una fila de tallerista que no diga el codigo crudo. */
+  if(o==='est_madre_x_reparto') return 'EM × %';
   if(o==='cinco_cajones') return '5 caj';
   if(o==='fisico') return 'físico';
   /* Master Bach: recalcular_maximo_material arma la etiqueta con el porcentaje adentro

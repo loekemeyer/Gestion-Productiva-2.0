@@ -159,7 +159,8 @@ confirmar acá que la clave existe; si un bundle cambia, actualizar esta tabla e
 | `produccion_bundle(p_matriz, p_anio)` | rendimiento_GP2.js | `matrices, empleados, rows` (ver sección propia) |
 | `produccion_maestro_bundle(p_desde, p_hasta)` | Maestro de producción | `desde, empleados, hasta, matrices, rows` |
 | `programa_bundle()` | Programa | `art, bom, children, comp, fl, mat, prov, rp, rutas, rutas_by_art, sect, tall, tall_art` (nombres CORTOS, ver sección propia; idea 7252) |
-| `proporciones_bundle()` | Proporciones | `articulos_compartidos, generado_en, nota, proporcion_disponible, talleristas` |
+| `proporciones_bundle()` | Proporciones | `generado_en, pasos` — reescrita el 2026-09-15. `pasos` = los PASOS (`articulo_id` + `comp_salida_id`) que hacen **2 o más talleristas**, con `art_codigo, familia, paso_cod, paso_desc, n_talleristas, suma_pct` y `talleristas[{tall_id, tallerista, pct, es_supuesto}]`. Ya no devuelve `articulos_compartidos` ni el árbol `talleristas`: la lógica de "mismo paso" vive en la función, no en el front |
+| `reparto_guardar(p_articulo_id, p_comp_salida_id, p_filas)` | Proporciones | `p_filas` = `[{tallerista_id, pct}]`; exige que sumen 100 y que cada tallerista haga ESE paso según las rutas. Escribe `GP2.reparto_tallerista` y **recalcula los máximos** de esos talleristas (`recalcular_maximos_talleristas(true)`); devuelve `{ok, filas, maximos}` |
 | `recepcion_bundle()` | Recepción Insumos | `insumos, pallets, proveedores, recepciones, rollos, sectores, tara` |
 | `registro_operarios_bundle()` | App de operarios | `empleados, matrices, matriz_fleje, matriz_fleje_pieza, matriz_salidas, registro_en_golpes, rollos_abiertos, rollos_saldo` |
 | `relevamiento_bundle()` | Relevamiento | `cronograma, hoy` |
@@ -227,6 +228,26 @@ select count(*) filter (where (r->>'ok')::boolean) cierran_perfecto,
 Al 2026-09-11: **189 de 189 dejan las 120 unidades en Virgilio**; 122 cierran perfecto y el resto
 tiene colgado, casi todo por intermedios (GRJ, sub-conjuntos) que el arnes simula rama por rama.
 Los descuadres REALES de receta contra ruta son 7 articulos y estan en la idea **7324**.
+
+## Reparto entre talleristas y el maximo de cada uno (2026-09-15)
+
+Cuando **dos talleristas hacen EL MISMO paso** (mismo `articulo` + mismo `comp_salida`, o sea la
+ruta duplicada por tallerista), el volumen se reparte. Cuando hacen pasos DISTINTOS del mismo
+articulo van en cadena y cada uno hace el 100 % de lo suyo: eso NO es un reparto.
+
+| Objeto | Que es |
+|---|---|
+| `GP2.reparto_tallerista` | La tabla: `(articulo_id, comp_salida_id, tallerista_id, pct)`, unica por esa terna. Sin fila = 100 % |
+| `GP2.v_reparto_efectivo` | El % efectivo de cada paso: el de la tabla, o 100 si el paso lo hace uno solo. `es_supuesto` = lo hacen 2+ y nadie lo dicto -> parte en partes iguales (default, no dato) |
+| `GP2.v_consumo_tallerista` | uni/mes por `(tallerista, componente que recibe)` = demanda del articulo (`v_consumo_demanda`) x su % |
+| `GP2.v_nivel_stock_tallerista` | `max_calc = consumo repartido x ubicacion.meses_stock` (los 12 talleristas tienen `meses_stock = 1`) |
+| `GP2.recalcular_maximos_talleristas(p_solo_repartidos)` | Escribe `inventario.maximo` con `maximo_origen = 'est_madre_x_reparto'`. Nunca pisa un `fisico` y NO limpia la fila que quedo sin consumo |
+| `GP2.reparto_guardar(...)` | La puerta de la pantalla: valida, guarda y recalcula en una sola llamada |
+
+**El maximo de un tallerista NO sale de `v_nivel_stock`**: esa vista cubre solo ubicaciones de
+tipo `sector` (`u.tipo = 'sector'`), y por eso `recalcular_maximos_insumos` nunca toco una fila
+de tallerista. De ahi que los 288 maximos de talleristas fueran todos `migrado_de_minimo` o nulos
+hasta el 2026-09-15.
 
 ## Convenciones implicitas (fragiles — hoy viven hardcodeadas en el JS)
 

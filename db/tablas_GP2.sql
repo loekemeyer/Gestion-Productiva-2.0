@@ -324,7 +324,7 @@ create table "GP2".inventario (
   constraint inventario_pkey PRIMARY KEY (id),
   constraint inventario_componente_id_fkey FOREIGN KEY (componente_id) REFERENCES "GP2".componente(id),
   constraint inventario_ubicacion_id_fkey FOREIGN KEY (ubicacion_id) REFERENCES "GP2".ubicacion(id),
-  constraint inventario_maximo_origen_chk CHECK ((maximo_origen = ANY (ARRAY['cinco_cajones'::text, 'est_madre'::text, 'fisico'::text, 'faat_reserva_lote'::text, 'mb_4pct_por_color'::text, 'migrado_de_minimo'::text])))
+  constraint inventario_maximo_origen_chk CHECK ((maximo_origen = ANY (ARRAY['cinco_cajones'::text, 'est_madre'::text, 'est_madre_x_reparto'::text, 'fisico'::text, 'faat_reserva_lote'::text, 'mb_4pct_por_color'::text, 'migrado_de_minimo'::text])))
 );
 comment on table "GP2".inventario is 'Stock por componente y ubicacion (cantidad canonica, maximo y su origen). La cantidad la escriben SOLO los triggers de movimiento; el maximo, las RPC de recalculo. Las columnas minimo y minimo_origen se BORRARON el 2026-09-14 [usuario: "lo de minimo borralo. la orden de compra tiene que disparar segun el maximo"]: antes del drop, las 299 filas con minimo y sin maximo se migraron al maximo con origen migrado_de_minimo.';
 comment on column "GP2".inventario.maximo is 'Maximo de este componente en esta ubicacion. Crudo/Procesado: lo pone fn_recalc_maximos_cajones = max_cajones_x_ubicacion (parametro, hoy 5) x componente.uni_x_cajon. Insumos: fn_recalc_maximos_insumos, por Est Madre explotada x meses_stock. OJO: las columnas componente.cajones_x_ubicacion y componente.ubicaciones NO entran en la cuenta (la migracion del 2026-08-30 que las usaba quedo revertida: pregunta 5 de PREGUNTAS_ARQUITECTURA_GP2.md, sin responder).';
@@ -789,6 +789,23 @@ create table "GP2".relevamiento_item (
 );
 comment on table "GP2".relevamiento_item is 'Renglones del conteo: envases, sueltas, kg, total en unidades, stock del programa al momento y la decision (conteo / programa).';
 
+-- ---------- reparto_tallerista ----------
+create table "GP2".reparto_tallerista (
+  id bigint generated always as identity,
+  articulo_id bigint not null,
+  comp_salida_id bigint not null,
+  tallerista_id bigint not null,
+  pct numeric not null,
+  actualizado_en timestamp with time zone not null default now(),
+  constraint reparto_tallerista_pkey PRIMARY KEY (id),
+  constraint reparto_tallerista_articulo_id_comp_salida_id_tallerista_id_key UNIQUE (articulo_id, comp_salida_id, tallerista_id),
+  constraint reparto_tallerista_articulo_id_fkey FOREIGN KEY (articulo_id) REFERENCES "GP2".articulo(id),
+  constraint reparto_tallerista_comp_salida_id_fkey FOREIGN KEY (comp_salida_id) REFERENCES "GP2".componente(id),
+  constraint reparto_tallerista_tallerista_id_fkey FOREIGN KEY (tallerista_id) REFERENCES "GP2".tallerista(id),
+  constraint reparto_tallerista_pct_check CHECK (((pct > (0)::numeric) AND (pct <= (100)::numeric)))
+);
+comment on table "GP2".reparto_tallerista is 'Que porcentaje del volumen de un PASO (articulo + comp_salida) hace cada tallerista, cuando ese paso lo hacen dos o mas. Lo dicta el dueno; la pantalla Proporciones lo edita por reparto_guardar. Sin fila = el tallerista hace el 100 % de su paso.';
+
 -- ---------- rollo_evento ----------
 create table "GP2".rollo_evento (
   id bigint generated always as identity not null,
@@ -1148,6 +1165,7 @@ alter table "GP2".recepcion_insumo enable row level security;
 alter table "GP2".relevamiento enable row level security;
 alter table "GP2".relevamiento_cronograma enable row level security;
 alter table "GP2".relevamiento_item enable row level security;
+alter table "GP2".reparto_tallerista enable row level security;
 alter table "GP2".rollo_evento enable row level security;
 alter table "GP2".rollo_uso enable row level security;
 alter table "GP2".ruta enable row level security;
@@ -1208,6 +1226,7 @@ create policy p_gp2_select on "GP2".recepcion_insumo for select to anon, authent
 create policy p_gp2_select on "GP2".relevamiento for select to anon, authenticated using (true);
 create policy p_gp2_select on "GP2".relevamiento_cronograma for select to anon, authenticated using (true);
 create policy p_gp2_select on "GP2".relevamiento_item for select to anon, authenticated using (true);
+create policy p_gp2_select on "GP2".reparto_tallerista for select to anon, authenticated using (true);
 create policy p_gp2_select on "GP2".rollo_evento for select to anon, authenticated using (true);
 create policy p_gp2_select on "GP2".rollo_uso for select to anon, authenticated using (true);
 create policy p_gp2_select on "GP2".ruta for select to anon, authenticated using (true);

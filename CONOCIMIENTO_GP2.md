@@ -124,16 +124,39 @@ plástica (sector 6)**, más el 4 % de master bach para el color. Es un **servic
 - **Modelo PS completo (pendiente, decidido pero no ejecutado):** el usuario quiere modelarlo como
   el servicio que es — envío de resina como proveedor de servicio, recepción de la pieza en
   Recepción de Insumos — lo que cambia el costeo de *comprada* a *inyectada* (resina × precio +
-  master bach + inyección). Los dos datos que faltaban ya están: **kg por pieza en `componente`**
-  y **qué resina usa cada pieza en `planilla_fila` hoja 'Plasticos', columna "Tipo Plast"**
-  (PP/ABS/Nylon/…), matcheada por Empresa+Descripción. Es cirugía sobre 49 piezas → va con
-  `gp2-cirujano` y con el SQL a la vista antes de ejecutar.
-- **Lo que YA se puede hacer sin ese modelo** (hecho 2026-09-14): mandar las bolsas (kg) al
-  inyector. Existe `enviar_material_inyector(proveedor, comp_id, kg)` + la pantalla
-  `Compras/Inyectores_GP2.html`, y ahora la **Versión Tablet** tiene un botón **"Inyectores"** en
-  Enviar que abre esa pantalla (`?volver=tablet`). NO toca el costeo. Los inyectores **no son
-  `proveedor_servicio`** en el modelo (son `proveedor_insumo`), por eso el botón es un *link* y no
-  una contraparte de `tablet_bundle`.
+  master bach + inyección). Es cirugía sobre 48 piezas → va con `gp2-cirujano` y con el SQL a la
+  vista antes de ejecutar. El plan y el estado viven en `PENDIENTE_INYECTORES_PS.md`.
+- **MATERIAL POR PIEZA — YA RESUELTO `[usuario 2026-09-15, planilla]`.** El dato definitivo NO estaba
+  en `A_Costos` (ahí la resina va por descripción genérica); está en la planilla del sector plástico
+  que el usuario subió y **ahora vive en `db/Conteo_y_Pedido_Sector_Plastico_VACIO.xls`** (hojas
+  *Consumo x Parte* y *Consumo x Cod Articulo*, columnas Material + MB color). **kg por pieza sale de
+  `componente.kg_x_uni`; el material, de esa planilla.** Mapeo (48 piezas, PEP5 madera afuera):
+  - **PP 2630:** PEST1, PA17, PA19, PB6, PB8B, PC6, PC7, PEP1, PEP2, PEST2, PC10, PC11, PV14, PA4B, PA5B, PC2, PC3B, PC8
+  - **ABS GP 22:** PA10B, PA13B, PA18B, PC15AB, PC15B, PV17
+  - **PE Baja 7147:** PA1, PA2, PA9, PA12, PA7A, PA7B
+  - **PS HF 555:** PB5, PC13, PC14
+  - **Nylon Virgen (PA6N):** PA8A, PA8B
+  - **Nylon Recuperado:** PV1, PV2, PV3, PV5, PV6, PV7, PV8, PV8B
+  - **Nylon c/Carga 25 %:** PB2
+  - **Alto Impacto AI 4600:** PEP4
+  - **Santoprene:** PA3 (kg 0,008; **la resina Santoprene no existe aún como componente sector 14** —
+    hay que crearla con su precio). Goma Eva NO hace falta: ninguna de las 48 la usa.
+  - **Abiertas (2):** `PB8A` (planilla dice ABS 22 g pero el kg de GP2 es 16,4 g → por peso PP; conflicto)
+    y `PC16` "Inserto Chef" (sin kg y sin fila clara). Esperan al usuario.
+  - **Trampa que mordió:** el cruce por peso contra `A_Costos` daba **PV8 "Corta Torta" = Alto Impacto**;
+    la planilla del sector dice **Ny Recuperado**. La planilla del sector manda, `A_Costos` no.
+- **Este mapeo TODAVÍA NO está escrito en las tablas de la base** (componente_bom / costeo). Escribirlo
+  es la cirugía (cambia el costeo de las 48) y espera el OK del usuario sobre las 2 abiertas + el
+  precio del Santoprene + el SQL. Hasta entonces la fuente de verdad es este bloque + el .xls + el .md.
+- **El atajo del botón se probó y se descartó** (2026-09-14): por un rato la Versión Tablet tuvo
+  un botón **"Inyectores"** en Enviar que abría `Compras/Inyectores_GP2.html` (que ya manda las
+  bolsas en kg con `enviar_material_inyector`). El usuario lo rechazó — *"saca el boton de
+  inyectores y arranca la cirugia"* — porque quiere a los 3 inyectores **DENTRO de "Prov. de
+  servicio"**, no en un botón aparte. La lista de PS del Tablet se arma desde la base, así que la
+  única forma es la cirugía: convertir los inyectores en `proveedor_servicio` de verdad, con su
+  **ruta de inyección** (entra la resina/bolsa → sale la pieza). Eso los hace aparecer solos en la
+  lista y cambia el costeo de la pieza de *comprada* a *inyectada*. `enviar_material_inyector` y la
+  pantalla de Inyectores siguen existiendo para el material; no se borran.
 
 ### `D1` (Espiral Sacacorcho): lo importado con su margen a la vista `[usuario 2026-09-02]`
 
@@ -9809,7 +9832,122 @@ funciones). Muestra: máximo + origen, **meses** (`ubicacion.meses_stock` del se
 `migrado_de_minimo`, `cinco_cajones` o master, el máximo se puso a mano o por otra regla, y el modal
 muestra el consumo real **como referencia**, avisando que no viene de la demanda.
 
-## 4ds. C12B: la paleta sin cromar es un código propio, y eso es la convención de la casa (2026-09-15)
+## 4ds. Proporciones: "artículo compartido" NO es lo mismo que "reparto de volumen" (2026-09-14)
+
+**Pedido del dueño, textual:** *"En el módulo de proporciones dentro de tallerista. Quiero que
+aparezcan, quiero que borres lo que hay y que aparezcan solo los artículos compartidos. Es decir,
+los artículos que según las rutas se lo llevan más de un tallerista."* Y a continuación:
+*"Después te digo las proporciones."* Así que la pantalla queda mostrando **sólo** los compartidos
+y la columna Proporción sigue en PENDIENTE, esperando que él dicte los porcentajes.
+
+**El hallazgo que importa** [dato: `ruta_paso` × `ruta` × `tallerista`, 2026-09-14]: que dos
+talleristas toquen el mismo artículo **no significa que se repartan el volumen**. Hay dos casos
+distintos y sólo uno admite un porcentaje:
+
+| Caso | Qué pasa en la ruta | ¿Lleva %? | Hoy |
+|---|---|---|---|
+| **Mismo paso** | dos talleristas producen **el mismo `comp_salida`** (la ruta está duplicada por tallerista) | **SÍ**: ahí se parte el volumen | **6 artículos** |
+| **Paso propio** | cada uno hace **un paso distinto** de la misma ruta (uno el mango, el otro el armado) | NO: van en cadena, cada uno hace el 100 % de lo suyo | 13 artículos |
+
+Total: **19 artículos** con ≥2 talleristas, de los cuales **sólo 6** esperan un porcentaje.
+
+Los 6 con paso duplicado: **315** y **609** (Cavallero German / Pettofrezza Rafael), **500** y
+**510** (Alex Escalante / Martin Cornejo), **505** (Danica Garcia / Lucho — el tercero, Martin
+Cornejo, hace X4, otro paso) y **506** (Alex Escalante / Martin Cornejo en GRJ7 — el tercero,
+Gentile Norberto, hace el 506 terminado).
+
+**Trampa a no repetir:** el artículo 505 aparece con `num_talleristas = 3` y el 506 también, pero
+en los dos el tercero hace otra cosa. Si alguien reparte 100 % entre los 3 por mirar sólo el
+contador, reparte mal. La cuenta del porcentaje se hace **por paso**, no por artículo.
+
+**Dónde está escrito:** `Talleristas/Proporciones/Proporciones_GP2.html` (la distinción se calcula
+en el front sobre `articulos_compartidos` del bundle: una parte que declaran 2+ talleristas del
+mismo artículo = mismo paso). `proporciones_bundle()` no cambió; su rama `talleristas` (la vista
+vieja, que listaba también los exclusivos) quedó sin usar.
+
+## 4dt. Los porcentajes que dictó el dueño: 2 son reparto y 3 son rutas mal cargadas (2026-09-14)
+
+Al ver la pantalla con los 6 pasos compartidos, el dueño dictó [usuario, textual]:
+*"505 Danica Garcia 40/ Lucho 60 — 506 Alex Escalante 70/ Martin Cornejo 30 — 500 solo martin —
+510 solo carlos — 315 y 609 solo pettofrezza"*.
+
+**Sólo 2 de los 5 renglones son porcentajes.** Los otros dicen "solo fulano", o sea que el segundo
+tallerista **no debería estar en la ruta**: no es un reparto mal medido, es un dato mal cargado.
+
+| Artículo | Qué dijo | Qué hay hoy en `ruta_paso` | Qué es |
+|---|---|---|---|
+| 505 | Danica 40 / Lucho 60 | Danica + Lucho en el paso `505` | **reparto** |
+| 506 | Alex 70 / Martin 30 | Alex + Martin en `GRJ7` | **reparto** |
+| 500 | solo Martin | Alex (5 rutas) + Martin (5 rutas) | **borrar las de Alex** |
+| 315 | solo Pettofrezza | Cavallero (5) + Pettofrezza (5) | **borrar las de Cavallero** |
+| 609 | solo Pettofrezza | Cavallero (5) + Pettofrezza (5) | **borrar las de Cavallero** |
+| 510 | solo Carlos | **Alex (5) + Martin (5); Carlos NO está** | **no cierra, preguntado** |
+
+**El 510 no cierra** [dato: `ruta_paso` del art 510, 2026-09-14]: Carlos Aguirre (tallerista 9) no
+aparece en ninguna ruta del 510 — ahí están Alex Escalante y Martin Cornejo — y en GP2 hace
+Repostería (115, 544, 580, 802), no Abrelatas. El 510 es "Abrelata Uña Cromado". No se tocó nada
+hasta que el dueño aclare si (a) quiso decir otro tallerista, o (b) Carlos hace el 510 y las dos
+rutas que hay son las equivocadas. **No se adivina.**
+
+**Dónde van a vivir los porcentajes:** hoy **en ningún lado**. GP2 no tiene tabla de proporciones
+(la vieja `Proporcion_Articulo_Tallerista` de `public` estaba vacía y por eso nació el PENDIENTE).
+Hace falta crearla en GP2 — clave (artículo, paso/`comp_salida`, tallerista) + `pct`, con la suma
+del grupo en 100 — antes de poder guardar el 40/60 y el 70/30.
+
+**Dato que descarta un miedo razonable** [dato: `db/vistas_GP2.sql`]: la ruta duplicada por
+tallerista **no** duplica el consumo ni el costo. Las vistas de demanda arman los `edges` con
+`SELECT DISTINCT comp_entrada_id, comp_salida_id`, así que dos rutas iguales colapsan en una
+arista. Borrar las rutas de más corrige el "quién lo hace", no cambia ningún número de plata.
+
+## 4du. El reparto ya manda sobre el máximo de cada tallerista (2026-09-15)
+
+El dueño autorizó los tres borrados de ruta y la tabla de proporciones, y agregó [usuario,
+textual]: *"fijate que los maximos tienen que tener en cuenta esta proporcion"*. Eso destapó que
+**el máximo de un tallerista nunca se calculaba**.
+
+**Lo que estaba mal** [dato: `inventario` × `ubicacion`, 2026-09-15]: de los 288 máximos en
+ubicaciones de tallerista, 196 eran `migrado_de_minimo` (el mínimo viejo del 14-09) y 92 estaban
+en null. **Ninguno** salía de la demanda, porque `v_nivel_stock` —la vista que alimenta
+`recalcular_maximos_insumos`— filtra `u.tipo = 'sector'` y nunca miró una fila de tallerista.
+Con la ruta duplicada, el efecto era el doble conteo: Danica y Lucho tenían **15.000 de Cartón 505
+cada uno** para una demanda de 28.108 uni/mes del 505, y lo mismo en Clavo, Mango y Cuchilla.
+
+**Lo que se construyó** (schema GP2, detalle en `GP2_MAPA.md`):
+
+| Objeto | Para qué |
+|---|---|
+| `reparto_tallerista` | la tabla del % por paso (artículo + `comp_salida` + tallerista) |
+| `v_reparto_efectivo` | el % efectivo: el dictado, o 100 si el paso lo hace uno solo |
+| `v_consumo_tallerista` | demanda del artículo × ese % = lo que consume cada tallerista |
+| `v_nivel_stock_tallerista` | `max_calc = consumo × meses_stock` (los 12 talleristas tienen 1 mes) |
+| `recalcular_maximos_talleristas()` | escribe el máximo con origen `est_madre_x_reparto` |
+| `reparto_guardar()` | la puerta de la pantalla: valida, guarda y recalcula de una |
+
+**Resultado en los 16 máximos que se tocaron** (sólo la cadena del 505 y el 506):
+
+| Componente | Tallerista | Antes | Ahora |
+|---|---|---|---|
+| Cuchilla Pela Afilada Caja (Z23) | Danica Garcia | 30.000 | 11.243 |
+| Cuchilla Pela Afilada Caja (Z23) | Lucho | 30.000 | 16.865 |
+| Cartón 505 (B3A) | Danica Garcia | 15.000 | 11.243 |
+| Cartón 505 (B3A) | Lucho | 15.000 | 16.865 |
+| Uñas Zinc. (C10) | Martin Cornejo | 33.172 | 12.844 |
+| Uñas Zinc. (C10) | Alex Escalante | 28.280 | 15.020 |
+
+11.243 + 16.865 = 28.108, que es exactamente la demanda del 505: antes sumaban 30.000 y 60.000.
+
+**Dos decisiones que quedan escritas:**
+1. **No se limpia el máximo de la fila que quedó sin consumo** (24 filas hoy). Un consumo 0 puede
+   ser un dato que falta (un artículo sin proyección en `est_madre`), no una verdad. Se informan.
+2. **Un paso compartido sin reparto dictado parte en partes iguales**, marcado `es_supuesto`. Es
+   un default para no contar el 100 % dos veces; el número real lo dice el dueño. Hoy el único
+   así es el **510** (Alex / Martin), que espera su respuesta.
+
+**Lo que NO se tocó y sigue esperando decisión:** los otros **284 máximos de tallerista**, que
+siguen siendo el mínimo viejo migrado. `recalcular_maximos_talleristas(false)` los recalcula
+todos de una (294 filas cambiarían, la suma baja 18 %: de 1.241.303 a 1.019.605 unidades).
+
+## 4dv. C12B: la paleta sin cromar es un código propio, y eso es la convención de la casa (2026-09-15)
 
 **Lo que pidió el dueño** [usuario 2026-09-14, textual]: *"En el articulo 515 y 615, cuando vuelve de
 alex escalante quiero que sea C12B y despues de cromarse C12"*.
@@ -9869,3 +10007,4 @@ lado, se mueve la fila de `inventario`, no el componente.
 **Lo que NO se tocó, a propósito:** la receta del artículo (`articulo_componente`) sigue diciendo
 515 → C12 y 615 → C12, porque el artículo se arma con la pieza YA cromada. Y los 6 pasos
 `tallerista` que van de C12 a 515/615 quedaron igual.
+
