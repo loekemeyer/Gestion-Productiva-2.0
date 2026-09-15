@@ -10059,3 +10059,50 @@ Gentile Norberto y 7 piezas de rompenueces de Fábrica, entre otras.
 **Las 2 que quedan abiertas, y son un dato que falta, no un error:** `PB6` (Inser. Neg. Espat) en
 Alex Escalante con 60, y `E6-M194` (Pala Canelón tras M194) en Fábrica con 696. Las dos tienen
 ruta pero su artículo no proyecta venta en `est_madre`.
+
+## 4dy. El máximo de Crudo/Procesado ahora es demanda×meses, no "5 cajones"; y el PS no tiene máximo (2026-09-15)
+
+`[usuario]` textual, mirando el módulo **Faltantes** (columna "MÁXIMO (5 CAJ)"): *"El maximo
+recalculalo. Tiene que salir de la demanda por la cantidad de meses. Esto estaría mal"*. O sea:
+el máximo físico de **5 cajones** (capacidad del lugar) estaba mal como criterio; el máximo tiene
+que ser **consumo × meses_stock del sector** (lo que ya calcula `GP2.v_nivel_stock.max_calc`).
+
+**Por qué no se recalculaban solos:** `recalcular_maximos_insumos()` tiene un `where es_insumo`
+que **saltea Sector Crudo (1) y Procesado (2)**. Por eso esas piezas conservaban el `cinco_cajones`
+sembrado, y las que no lo tenían (Descorazonador 1686, Grampa Batidor W1B) quedaban en NULL aunque
+la vista ya tenía el número. `v_nivel_stock` filtra `u.tipo='sector'` pero **no** filtra `es_insumo`:
+la maquinaria estaba, faltaba que la RPC la usara.
+
+**Lo que se ejecutó (con OK del dueño, meses=1, incluyendo la reserva FAAT):**
+```sql
+update "GP2".inventario i set maximo = v.max_calc, maximo_origen = 'est_madre'
+from "GP2".v_nivel_stock v
+where i.id = v.inv_id and v.sector_id in (1,2) and v.max_calc > 0
+  and i.maximo is distinct from v.max_calc;   -- 159 filas
+```
+- **159 filas** pasaron de físico/NULL a `est_madre`. Suma vieja Crudo+Procesado ~1,77 M → nueva ~0,83 M,
+  pero **NO es parejo**: las de alta demanda SUBEN (A10 Cpo Uña 8.475 → 16.928, porque 1 mes de venta
+  es más que 5 cajones) y los físicos sobredimensionados BAJAN fuerte (LL7B 94.340 → 6.644; ABPM
+  75.000 → 114). Descorazonador → 402, Grampa Batidor → 552.
+- **2 quedan con `cinco_cajones`** porque su artículo no proyecta demanda en `est_madre`: **RULETA**
+  (27.175) y **A9 Cpo Mango Alambre Corta Queso** (3.845). No se inventan; dato pendiente.
+- **Deuda:** el `where es_insumo` sigue en la RPC, así que el próximo recálculo de insumos NO mantiene
+  Crudo/Procesado, y una corrida de "5 cajones" podría volver a pisarlos. Para que la demanda quede
+  como regla permanente hay que sacar ese guard (cambio de función, pendiente de OK).
+
+**El PS no tiene máximo propio** `[usuario]`: *"en proveedor de servicio no tiene que haber un
+maximo... a los PS se les manda segun el maximo que necesita el sector procesado"*. Se pusieron en
+**0 las 108 filas de inventario de PS** (los 22 que tenían valor —reserva FAAT y mínimos migrados— más
+los 86 en NULL). En la pantalla Stock General el rubro Prov. Servicio ya no muestra la columna Máximo.
+Inyector (4 ubic) y Prov AT (12 ubic) no tienen filas de inventario, así que ya estaban en 0.
+
+**Dos ubicaciones singleton que se preguntaron:**
+- **`analisis` ("Para Analizar", id 46)** — NO es basura: es el **buzón de las piezas sin sector**.
+  Un flujo manda ahí el componente que no tiene `sector_id` (`ubic_de('analisis')`, y **revienta** si
+  la ubicación no existe), y hay una vista que muestra "stock apartado en Para Analizar". Tiene función,
+  **no se borra**.
+- **`virgilio` ("Virgilio (Distribución)", id 33)** — el dueño pidió "eliminar por ahora", pero **no se
+  borró**: la usan recepción Virgilio, los traslados (mueve stock entre `virgilio_sector` y `virgilio`)
+  y es el **fallback** de una pieza sin sector (`coalesce(ubic_de('sector'), ubic_de('virgilio'))`), y
+  tiene **268 filas de inventario** colgadas. De la pantalla Stock General ya está fuera (4dq). Borrarla
+  de verdad rompe esos flujos: espera definición del objetivo real.
