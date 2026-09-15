@@ -10106,3 +10106,21 @@ Inyector (4 ubic) y Prov AT (12 ubic) no tienen filas de inventario, así que ya
   y es el **fallback** de una pieza sin sector (`coalesce(ubic_de('sector'), ubic_de('virgilio'))`), y
   tiene **268 filas de inventario** colgadas. De la pantalla Stock General ya está fuera (4dq). Borrarla
   de verdad rompe esos flujos: espera definición del objetivo real.
+
+## 4dz — Auditoría de simplificación de tablas (2026-09-15, dueño: "emprolijá sin pedir permiso, sin romper, menos tablas y con nombres claros")
+
+Recorrida tabla por tabla del schema GP2 buscando qué sacar. Regla del dueño: fewer/clearer tables, pero "sin romper el programa". Resultado:
+
+**Borrado (seguro, verificado):**
+- **Simulador muerto `__sim`**: tabla `__sim_base` (3 col, 0 filas, "pizarrón" de un arnés de prueba de rutas) + funciones `__sim_articulo` / `__sim_exec` / `__sim_ruta`. Cero llamadores (ninguna función/vista/pantalla), sin FKs. `db/verificar.sql` lo nombra solo en un COMENTARIO (de dónde salió el invariante RECETA vs RUTA), no lo ejecuta. −1 tabla.
+- **`articulo_prov_at.creado_en`**: timestamp de auditoría con 0 lecturas. (Ojo: las otras dos que el dueño quería sacar de esa tabla, `marca` y `n_caja`, SÍ están en uso — las devuelve `entregas_prov_at_bundle` a EntregasAT.)
+
+**NO se tocó (la premisa "no sirve" era falsa):**
+- **`carton_formato` (10) + `carton_categoria` (5)**: NO son dos listas repetidas, son DOS NIVELES. formato = reglas numéricas (múltiplos/mínimos/pliegos); categoría = subdivisión del formato "C" (Abrelatas/Pelapapas/Pisapapas/Resto/Sacacorchos) + el comodín `mezcla_libre` (Sacacorchos). `_oc_validar_carton` usa las dos (formato para los números, categoría para agrupar pliegos del tipo C y el comodín). Fusionarlas = tabla auto-referenciada que complica el validador. Pocas filas = son parámetros, no datos. **Se dejan separadas.**
+- **`alerta_recepcion`**: 0 filas hoy pero VIVA — la escribe `tablet_registrar` cuando recibido > esperado; la leen `inicio_bundle`/`alertas_bundle`; la cierra `alerta_recepcion_marcar`. 0 filas = todavía no hubo exceso, no muerta.
+- **`articulo_prov_at` (91 filas)**: la usan 7 funciones + 3 pantallas (Control/Entregas/Envíos AT). Fusionarla con `articulo` + modelar cartones/cajas por `ruta_paso` es MIGRACIÓN real (su clave es `(proveedor_at_id, cod_art)`, el mismo cod_art se repite entre proveedores; `articulo` es único por código), no un borrado. Queda como proyecto propio, con OK del dueño.
+
+**Pendiente de decisión del dueño (refactors, no tidy-ups):**
+- **`articulo.discontinuado` → borrar el artículo al discontinuar**: hoy 1 fila en true (art 311 "Cuchillo De Torta"). Las FKs entrantes son RESTRICT, así que un DELETE pelado FALLA: hay que arrastrar `articulo_componente` (6) + `ruta`/`ruta_paso` (6) + revisar `est_madre` (join por cod). `articulo` y `componente` tienen CADA UNO su `discontinuado` (distintas: `v_reposicion` filtra por la del componente, `v_consumo_demanda` por la del artículo). Recomendación: conservar la columna salvo que se construya una baja-en-cascada probada; con 1 caso la columna cuesta casi nada y el borrado pierde histórico/reactivación.
+
+**Housekeeping**: `db/` (backup del schema) queda a regenerar por los borrados de `__sim`/`creado_en`; no rompe nada estar desfasado (el test chequea que lo que las pantallas usan exista en db/, no la ausencia de extras).
