@@ -1,9 +1,17 @@
 <!doctype html>
 <html lang="es">
 <head>
-<!-- v1.0.1 — Envio de carton y cajas a los Prov de Articulo Terminado (cartones en paquetes de 250) -->
+<!-- v1.0.2 (2026-09-15) — cada Prov AT ve SOLO los cartones/cajas que la receta de sus articulos
+     usa (via prov_insumos del bundle), no el catalogo entero de sector 10/11 [bug: mostraba 191 a
+     todos]. + anti-cache meta. v1.0.1 — Envio de carton y cajas a los Prov de Articulo Terminado
+     (cartones en paquetes de 250) -->
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
+<!-- Anti-cache: la pantalla se navega directa (sin ?v= propio); sin esto el navegador
+     podia servir la copia vieja del HTML tras un fix. -->
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
 <title>Envío Cartón/Cajas · Prov AT · GP2</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="../../supabase-config.js?v=20260905k"></script>
@@ -116,9 +124,24 @@ function onlineDe(provId, compId){
 function pintarItems(){
   var q=($('q').value||'').trim().toLowerCase();
   var g=$('items'); g.innerHTML='';
-  (D.insumos||[]).filter(function(i){
+  // A un Prov AT solo se le muestran los cartones/cajas que la receta de SUS articulos usa
+  // (D.prov_insumos, mapa proveedor->comp_id). Antes se listaba el catalogo entero de sector
+  // 10/11 (191 items) para todos [bug 2026-09-15]. Si el bundle es viejo (sin prov_insumos),
+  // no filtra: cae al comportamiento anterior en vez de mostrar vacio.
+  var permitidos = (D.prov_insumos && provSel) ? (D.prov_insumos[provSel.id] || []) : null;
+  var setP = null;
+  if (permitidos){ setP = {}; permitidos.forEach(function(c){ setP[c]=1; }); }
+  var lista = (D.insumos||[]).filter(function(i){
+    if (setP && !setP[i.comp_id]) return false;
     return !q || ((i.codigo||'')+' '+(i.descripcion||'')).toLowerCase().includes(q);
-  }).forEach(function(i){
+  });
+  if (!lista.length){
+    g.innerHTML = '<div class="empty">'+(setP && !q
+      ? esc(provSel.nombre)+' no tiene cartones ni cajas en la receta de sus artículos.'
+      : 'Sin resultados.')+'</div>';
+    return;
+  }
+  lista.forEach(function(i){
     var b=document.createElement('button'); b.type='button'; b.className='item-btn';
     var esCarton = GP2UI.esCarton(i);   /* el 10 vive en gp2-ui.js (idea 7334) */
     b.innerHTML='<span class="code">'+esc(i.codigo||'—')+'</span>'+

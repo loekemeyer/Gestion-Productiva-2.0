@@ -2969,6 +2969,17 @@ select jsonb_build_object(
                  where i.componente_id=c.id and i.ubicacion_id="GP2".ubic_de('sector', c.sector_id) limit 1)
     ) order by c.sector_id, c.codigo),'[]'::jsonb)
     from componente c join sector s on s.id=c.sector_id where c.sector_id in (10,11)),
+  -- prov_insumos (2026-09-15): mapa proveedor_at -> cartones/cajas que la receta de SUS articulos
+  -- consume. La pantalla filtra los insumos por este set: a un prov solo se le muestra lo que
+  -- realmente usa, no el catalogo completo de sector 10/11. Mismo cruce que stock_general_extra_bundle.
+  'prov_insumos', (select coalesce(jsonb_object_agg(prov_at_id::text, arr),'{}'::jsonb) from (
+      select apa.proveedor_at_id as prov_at_id, jsonb_agg(distinct ac.componente_id) arr
+        from articulo_prov_at apa
+        join articulo a on a.codigo = apa.cod_art
+        join articulo_componente ac on ac.articulo_id = a.id
+        join componente c on c.id = ac.componente_id and c.sector_id in (10,11)
+       where coalesce(apa.activo,true)
+       group by apa.proveedor_at_id) x),
   'online_prov', (select coalesce(jsonb_agg(jsonb_build_object(
       'prov_id',u.ref_id,'comp_id',i.componente_id,'cantidad',i.cantidad)),'[]'::jsonb)
     from inventario i join ubicacion u on u.id=i.ubicacion_id
