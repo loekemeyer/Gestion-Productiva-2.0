@@ -4,6 +4,12 @@
 <!-- v1.0.0 — Faltantes automaticos por stock online (5 cajones por ubicacion) + marcas manuales persistidas -->
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
+<!-- Anti-cache: el JS/CSS de esta pantalla vive embebido y se navega directo desde el menu
+     (sin ?v= propio). Sin estos meta una copia cacheada del HTML deja la version vieja. Mismo
+     agujero que se tapo en GP2_MODULOS.html, envios-only.html y Programa/Programa.html. -->
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
 <title>Faltantes · GP2</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="../supabase-config.js?v=20260905k"></script>
@@ -82,7 +88,7 @@ table.t tr.r-marca td{background:#fffbeb}
           <th class="num">Stock</th>
           <th class="num">Consumo<br>/mes</th>
           <th class="num">Alcanza</th>
-          <th class="num sep">Máximo<br>(<span id="thMaxCaj">5</span> caj)</th>
+          <th class="num sep">Máximo</th>
           <th class="num">Llena<br>alcanza</th>
           <th>Marcas</th>
         </tr></thead>
@@ -126,7 +132,6 @@ async function cargar(){
   var r = await SB.rpc("faltantes_estado_bundle");
   if (r.error){ $("status").textContent = "Error: " + r.error.message; return; }
   D = r.data || D;
-  $("thMaxCaj").textContent = fmt(D.max_cajones, 0);
   render();
 }
 
@@ -219,7 +224,7 @@ function render(){
   if (pend.length){
     $("avisoUxc").innerHTML = "<b>Sin uni×cajón (máximo pendiente):</b> " +
       pend.map(function(p){ return "<code>" + esc(p.cod) + "</code> " + esc(p["desc"] || ""); }).join(" · ") +
-      " — cargar el dato para que entren al cálculo de 5 cajones.";
+      " — cargar el dato para que entren al cálculo de faltantes.";
   }
 }
 
