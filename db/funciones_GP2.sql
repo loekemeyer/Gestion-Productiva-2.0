@@ -6867,11 +6867,15 @@ env as (
   select 'proveedor_at', '*', c.id
     from componente c
    where c.sector_id in (10,11) and not coalesce(c.discontinuado,false)
+  union all
+  -- INYECTORES: se les envia la RESINA (bolsa) que consume cada pieza que inyectan.
+  select 'inyector', c.proveedor, c.material_id
+    from componente c
+   where c.material_id is not null and c.estado_compra is null and c.proveedor is not null
+     and exists (select 1 from proveedor_insumo pi where pi.nombre = c.proveedor)
+   group by c.proveedor, c.material_id
 ),
 rec as (
-  -- tallerista: lo que devuelve a un sector (los TERMINADOS van por Recepcion Virgilio).
-  -- comp_entrada_id = lo que consumio para hacerlo, deducido igual que en el motor JS:
-  -- con BOM lo manejan las partes del armado; sin BOM y con UNA sola entrada, esa.
   select 'tallerista'::text as tipo, v.ref_id::text as ref, v.comp_id,
          case when exists (select 1 from componente_bom b where b.componente_padre_id = v.comp_id)
               then null::bigint
@@ -6986,6 +6990,12 @@ cp as (
     from orden_compra o where o.estado in ('borrador','enviada')
   union all
   select 'virgilio', 'virgilio', 'Virgilio'
+  union all
+  -- INYECTORES como contraparte (el front los agrupa bajo "Prov. de servicio").
+  select distinct 'inyector', c.proveedor, c.proveedor
+    from componente c
+   where c.material_id is not null and c.estado_compra is null and c.proveedor is not null
+     and exists (select 1 from proveedor_insumo pi where pi.nombre = c.proveedor)
 )
 select jsonb_build_object(
   'generado_en', now(),
@@ -7052,13 +7062,14 @@ begin
     when 'proveedor_servicio' then (select nombre from proveedor_servicio where id = v_ref::bigint)
     when 'proveedor_at'       then (select nombre from proveedor_at where id = v_ref::bigint)
     when 'proveedor_insumo'   then v_ref
+    when 'inyector'           then (select nombre from proveedor_insumo where nombre = v_ref)
     when 'virgilio'           then 'Virgilio'
   end;
   if v_nom is null then
     raise exception 'Contraparte inexistente (tipo=%, ref=%).', coalesce(v_tipo,'null'), v_ref;
   end if;
-  if v_modo = 'enviar' and v_tipo not in ('tallerista','proveedor_servicio','proveedor_at') then
-    raise exception 'A "%" no se le envia desde la tablet: solo talleristas, prov. de servicio y prov. art. terminado.', v_nom;
+  if v_modo = 'enviar' and v_tipo not in ('tallerista','proveedor_servicio','proveedor_at','inyector') then
+    raise exception 'A "%" no se le envia desde la tablet: solo talleristas, prov. de servicio, prov. art. terminado e inyectores.', v_nom;
   end if;
 
   for it in select value from jsonb_array_elements(p->'items') loop
@@ -7081,6 +7092,9 @@ begin
         v_r := "GP2".crear_envio_tallerista(v_ref::bigint, v_comp, v_cant, v_uni, v_fecha);
       elsif v_tipo = 'proveedor_servicio' then
         v_r := "GP2".crear_envio_ps(v_ref::bigint, v_comp, v_cant, v_uni, v_fecha);
+      elsif v_tipo = 'inyector' then
+        -- bolsas de resina a un inyector: v_comp es el componente-resina (sector 14), v_cant en kg.
+        v_r := "GP2".enviar_material_inyector(v_ref, v_comp, v_cant, v_fecha);
       else
         v_r := "GP2".crear_envio_prov_at(v_ref::bigint, v_comp, v_cant, v_uni, v_fecha);
       end if;
@@ -7099,8 +7113,6 @@ begin
       elsif v_tipo = 'proveedor_insumo' then
         v_r := "GP2".crear_recepcion_insumo(v_comp, v_ref, v_cant, v_uni, v_remito, v_fecha);
       else
-        -- Virgilio manda partes/insumos de vuelta a Cervantes. El origen es donde esta
-        -- el stock (el deposito del sector en Virgilio si existe, si no el general).
         select sector_id, unidad_medida into v_sec, v_um from componente where id = v_comp;
         if v_sec is null then raise exception 'El componente % no existe', v_comp; end if;
         v_ubic_d := "GP2".ubic_de('sector', v_sec);
@@ -7126,8 +7138,6 @@ begin
     v_n := v_n + 1;
     v_res := v_res || jsonb_build_object('cod', v_cod, 'cantidad', v_cant, 'unidad', v_uni, 'res', v_r);
 
-    -- ALERTA: se recibio mas de lo que decia tener / de lo que pedia la OC.
-    -- No frena nada: ya quedo registrado arriba.
     if v_modo = 'recibir' and v_esp is not null then
       v_comparable := case when v_tipo = 'proveedor_at'
                            then v_cant * coalesce(nullif(v_por_caja,0), 1) else v_cant end;
