@@ -124,10 +124,30 @@ plástica (sector 6)**, más el 4 % de master bach para el color. Es un **servic
 - **Modelo PS completo (pendiente, decidido pero no ejecutado):** el usuario quiere modelarlo como
   el servicio que es — envío de resina como proveedor de servicio, recepción de la pieza en
   Recepción de Insumos — lo que cambia el costeo de *comprada* a *inyectada* (resina × precio +
-  master bach + inyección). Los dos datos que faltaban ya están: **kg por pieza en `componente`**
-  y **qué resina usa cada pieza en `planilla_fila` hoja 'Plasticos', columna "Tipo Plast"**
-  (PP/ABS/Nylon/…), matcheada por Empresa+Descripción. Es cirugía sobre 49 piezas → va con
-  `gp2-cirujano` y con el SQL a la vista antes de ejecutar.
+  master bach + inyección). Es cirugía sobre 48 piezas → va con `gp2-cirujano` y con el SQL a la
+  vista antes de ejecutar. El plan y el estado viven en `PENDIENTE_INYECTORES_PS.md`.
+- **MATERIAL POR PIEZA — YA RESUELTO `[usuario 2026-09-15, planilla]`.** El dato definitivo NO estaba
+  en `A_Costos` (ahí la resina va por descripción genérica); está en la planilla del sector plástico
+  que el usuario subió y **ahora vive en `db/Conteo_y_Pedido_Sector_Plastico_VACIO.xls`** (hojas
+  *Consumo x Parte* y *Consumo x Cod Articulo*, columnas Material + MB color). **kg por pieza sale de
+  `componente.kg_x_uni`; el material, de esa planilla.** Mapeo (48 piezas, PEP5 madera afuera):
+  - **PP 2630:** PEST1, PA17, PA19, PB6, PB8B, PC6, PC7, PEP1, PEP2, PEST2, PC10, PC11, PV14, PA4B, PA5B, PC2, PC3B, PC8
+  - **ABS GP 22:** PA10B, PA13B, PA18B, PC15AB, PC15B, PV17
+  - **PE Baja 7147:** PA1, PA2, PA9, PA12, PA7A, PA7B
+  - **PS HF 555:** PB5, PC13, PC14
+  - **Nylon Virgen (PA6N):** PA8A, PA8B
+  - **Nylon Recuperado:** PV1, PV2, PV3, PV5, PV6, PV7, PV8, PV8B
+  - **Nylon c/Carga 25 %:** PB2
+  - **Alto Impacto AI 4600:** PEP4
+  - **Santoprene:** PA3 (kg 0,008; **la resina Santoprene no existe aún como componente sector 14** —
+    hay que crearla con su precio). Goma Eva NO hace falta: ninguna de las 48 la usa.
+  - **Abiertas (2):** `PB8A` (planilla dice ABS 22 g pero el kg de GP2 es 16,4 g → por peso PP; conflicto)
+    y `PC16` "Inserto Chef" (sin kg y sin fila clara). Esperan al usuario.
+  - **Trampa que mordió:** el cruce por peso contra `A_Costos` daba **PV8 "Corta Torta" = Alto Impacto**;
+    la planilla del sector dice **Ny Recuperado**. La planilla del sector manda, `A_Costos` no.
+- **Este mapeo TODAVÍA NO está escrito en las tablas de la base** (componente_bom / costeo). Escribirlo
+  es la cirugía (cambia el costeo de las 48) y espera el OK del usuario sobre las 2 abiertas + el
+  precio del Santoprene + el SQL. Hasta entonces la fuente de verdad es este bloque + el .xls + el .md.
 - **El atajo del botón se probó y se descartó** (2026-09-14): por un rato la Versión Tablet tuvo
   un botón **"Inyectores"** en Enviar que abría `Compras/Inyectores_GP2.html` (que ya manda las
   bolsas en kg con `enviar_material_inyector`). El usuario lo rechazó — *"saca el boton de
