@@ -121,13 +121,26 @@ plástica (sector 6)**, más el 4 % de master bach para el color. Es un **servic
 - **Hoy la pieza está modelada como COMPRADA**, no como inyectada: `componente.proveedor` = el
   inyector (Pat Bet Plast 34, Pettofrezza 13, Kollplast 1, Eduardo Pintos 1 = 49 piezas) y se
   recibe en Recepción de Insumos (rubro Plásticos) como cualquier insumo comprado.
-- **Modelo PS completo (pendiente, decidido pero no ejecutado):** el usuario quiere modelarlo como
-  el servicio que es — envío de resina como proveedor de servicio, recepción de la pieza en
-  Recepción de Insumos — lo que cambia el costeo de *comprada* a *inyectada* (resina × precio +
-  master bach + inyección). Los dos datos que faltaban ya están: **kg por pieza en `componente`**
-  y **qué resina usa cada pieza en `planilla_fila` hoja 'Plasticos', columna "Tipo Plast"**
-  (PP/ABS/Nylon/…), matcheada por Empresa+Descripción. Es cirugía sobre 49 piezas → va con
-  `gp2-cirujano` y con el SQL a la vista antes de ejecutar.
+- **EL MODELO YA ESTABA EN LA BASE — no hubo cirugía `[2026-09-15]`.** La resina de cada pieza vive en
+  **`componente.material_id`** (apunta al componente-resina del sector 14). 45 de las 48 ya lo tenían
+  cargado y COINCIDÍA con la planilla del usuario. NO se costean por el material: `v_costo_componente`
+  las da por su **precio de compra** (`origen='precio'`, lo que se le paga al inyector por la pieza
+  hecha); `material_id` maneja la **demanda de resina** (cuánta bolsa mandar) y el descuento de resina
+  al recibir la pieza (`crear_recepcion_insumo`, sólo si `material_id` está y el inyector tiene ubicación
+  — invariante A2). Por eso poner/cambiar `material_id` NO mueve el costo.
+- **Fuente del material por pieza:** la planilla del sector plástico, **ahora en
+  `db/Conteo_y_Pedido_Sector_Plastico_VACIO.xls`** (hojas *Consumo x Parte* / *Consumo x Cod Articulo*,
+  col Material + MB color). kg por pieza en `componente.kg_x_uni`.
+- **Lo que se completó/corrigió (usuario dictó los 3):**
+  - **PA3** Muñeco → **Santoprene** (`SANTO` id 930, creada sin precio) + kg 0,008 (planilla).
+  - **PC16** Inserto Chef → **PP 2630** + kg 0,0038.
+  - **PB8A** Mgo Sacac → estaba en PP; el usuario dijo "seguí la planilla" → **ABS**.
+  - PEP5 "Mango Madera" queda sin material a propósito (es madera, no inyectado).
+- **Corrección:** el cruce por peso contra `A_Costos` daba **PV8 "Corta Torta" = Alto Impacto**; tanto
+  la planilla del sector como el `material_id` ya cargado dicen **Ny Recuperado**. La planilla del
+  sector manda, `A_Costos` no.
+- **Santoprene sin precio:** hasta que tenga precio, la demanda/costeo por material de PA3 no computa
+  (PA3 igual costea por su precio de compra).
 - **El atajo del botón se probó y se descartó** (2026-09-14): por un rato la Versión Tablet tuvo
   un botón **"Inyectores"** en Enviar que abría `Compras/Inyectores_GP2.html` (que ya manda las
   bolsas en kg con `enviar_material_inyector`). El usuario lo rechazó — *"saca el boton de
@@ -9878,3 +9891,171 @@ del grupo en 100 — antes de poder guardar el 40/60 y el 70/30.
 tallerista **no** duplica el consumo ni el costo. Las vistas de demanda arman los `edges` con
 `SELECT DISTINCT comp_entrada_id, comp_salida_id`, así que dos rutas iguales colapsan en una
 arista. Borrar las rutas de más corrige el "quién lo hace", no cambia ningún número de plata.
+
+## 4du. El reparto ya manda sobre el máximo de cada tallerista (2026-09-15)
+
+El dueño autorizó los tres borrados de ruta y la tabla de proporciones, y agregó [usuario,
+textual]: *"fijate que los maximos tienen que tener en cuenta esta proporcion"*. Eso destapó que
+**el máximo de un tallerista nunca se calculaba**.
+
+**Lo que estaba mal** [dato: `inventario` × `ubicacion`, 2026-09-15]: de los 288 máximos en
+ubicaciones de tallerista, 196 eran `migrado_de_minimo` (el mínimo viejo del 14-09) y 92 estaban
+en null. **Ninguno** salía de la demanda, porque `v_nivel_stock` —la vista que alimenta
+`recalcular_maximos_insumos`— filtra `u.tipo = 'sector'` y nunca miró una fila de tallerista.
+Con la ruta duplicada, el efecto era el doble conteo: Danica y Lucho tenían **15.000 de Cartón 505
+cada uno** para una demanda de 28.108 uni/mes del 505, y lo mismo en Clavo, Mango y Cuchilla.
+
+**Lo que se construyó** (schema GP2, detalle en `GP2_MAPA.md`):
+
+| Objeto | Para qué |
+|---|---|
+| `reparto_tallerista` | la tabla del % por paso (artículo + `comp_salida` + tallerista) |
+| `v_reparto_efectivo` | el % efectivo: el dictado, o 100 si el paso lo hace uno solo |
+| `v_consumo_tallerista` | demanda del artículo × ese % = lo que consume cada tallerista |
+| `v_nivel_stock_tallerista` | `max_calc = consumo × meses_stock` (los 12 talleristas tienen 1 mes) |
+| `recalcular_maximos_talleristas()` | escribe el máximo con origen `est_madre_x_reparto` |
+| `reparto_guardar()` | la puerta de la pantalla: valida, guarda y recalcula de una |
+
+**Resultado en los 16 máximos que se tocaron** (sólo la cadena del 505 y el 506):
+
+| Componente | Tallerista | Antes | Ahora |
+|---|---|---|---|
+| Cuchilla Pela Afilada Caja (Z23) | Danica Garcia | 30.000 | 11.243 |
+| Cuchilla Pela Afilada Caja (Z23) | Lucho | 30.000 | 16.865 |
+| Cartón 505 (B3A) | Danica Garcia | 15.000 | 11.243 |
+| Cartón 505 (B3A) | Lucho | 15.000 | 16.865 |
+| Uñas Zinc. (C10) | Martin Cornejo | 33.172 | 12.844 |
+| Uñas Zinc. (C10) | Alex Escalante | 28.280 | 15.020 |
+
+11.243 + 16.865 = 28.108, que es exactamente la demanda del 505: antes sumaban 30.000 y 60.000.
+
+**Dos decisiones que quedan escritas:**
+1. **No se limpia el máximo de la fila que quedó sin consumo** (24 filas hoy). Un consumo 0 puede
+   ser un dato que falta (un artículo sin proyección en `est_madre`), no una verdad. Se informan.
+2. **Un paso compartido sin reparto dictado parte en partes iguales**, marcado `es_supuesto`. Es
+   un default para no contar el 100 % dos veces; el número real lo dice el dueño. Hoy el único
+   así es el **510** (Alex / Martin), que espera su respuesta.
+
+**Lo que NO se tocó y sigue esperando decisión:** los otros **284 máximos de tallerista**, que
+siguen siendo el mínimo viejo migrado. `recalcular_maximos_talleristas(false)` los recalcula
+todos de una (294 filas cambiarían, la suma baja 18 %: de 1.241.303 a 1.019.605 unidades).
+
+## 4dv. C12B: la paleta sin cromar es un código propio, y eso es la convención de la casa (2026-09-15)
+
+**Lo que pidió el dueño** [usuario 2026-09-14, textual]: *"En el articulo 515 y 615, cuando vuelve de
+alex escalante quiero que sea C12B y despues de cromarse C12"*.
+
+**Cómo quedaron las 6 rutas** (994/995/1010 del 515 y 1001/1002/1011 del 615):
+
+```
+… → Alex Escalante (armado) → C12B → Pedernera Ilario (cromado) → C12 → Alex Escalante → 515/615
+```
+
+Antes, Alex entregaba C12 y Pedernera hacía un paso `entrada = salida` sobre C12: el cromado no
+tenía dónde apoyarse, porque la pieza entraba y salía con el mismo código.
+
+**ESTO NO ES UNA EXCEPCIÓN, ES LA REGLA QUE YA SEGUÍA EL RESTO DE GP2.** Medido el 2026-09-15:
+**260 pasos de proveedor de servicio en 240 rutas ya tienen entrada ≠ salida**, contra 71 pasos en
+65 rutas con entrada = salida. Y el sufijo `B` para "antes del servicio" ya estaba en uso:
+`PA4B→PA4`, `PA5B→PA5`, `PA10B→PA10`, `PA13B→PA13`, `PA18B→PA18`, `PC15AB→PC15A`, `PC3B→PC1B`,
+`D13B→D13`, `Z2B→Z2A`, `Z3B→Z3A`. 515/615 eran la excepción; ahora no lo son.
+
+**El costo NO se movió, y eso se verificó dentro de la misma transacción** (la migración tenía un
+`raise` que revertía todo si algo cambiaba un centavo):
+
+| Código | Antes | Después |
+|---|---|---|
+| 515 | 411,76 | 411,76 |
+| 615 | 491,40 | 491,40 |
+| C12 | 88,49 | 88,49 |
+
+**LA TRAMPA QUE CASI CUESTA $ 62,74 POR UNIDAD:** `v_costo_componente` pega el precio del tallerista
+por **(tallerista, `comp_salida_id` del paso)** — o sea, sobre la pieza que el tallerista ENTREGA.
+El precio de Alex ("Batidor Resorte Armado", ARS 62,7375) estaba cargado sobre C12. Al pasar el
+armado a entregar C12B, **si el precio se quedaba en C12 ningún paso entregaba C12 y el armado
+desaparecía del costo** de 515, 615 y C12. Por eso la migración lo mueve a C12B. Vale para cualquier
+corte futuro de este tipo: **el precio del tallerista viaja con la pieza que entrega, no con el nombre.**
+
+**Por qué el servicio de Pedernera siguió valiendo lo mismo:** el paso dejó de ser `selfsrv`
+(entrada = salida) y pasó a ser una arista de `edges`, pero las dos ramas de la CTE `srv` terminan
+dando el mismo par `(componente, Pedernera)`. El valor y el conteo de `faltan_precios` no se movieron.
+
+**Efecto lateral BUENO:** el cromado ahora tiene dónde apoyarse. Hoy `C12B` y `C12` cuestan los dos
+88,49 porque **Pedernera / Cromado no tiene precio cargado**; el día que se cargue, la diferencia
+entre los dos ES el cromado. Antes no había forma de separarlo.
+
+**El máximo lo puso la base sola, no la migración.** `trg_maximos_rutas` (en `ruta_paso`, FOR EACH
+STATEMENT → `fn_recalc_maximos_insumos`) se disparó con el UPDATE y le calculó a C12B **máximo 1656,
+origen `est_madre`** — el mismo que C12. Es exactamente lo que ya pasa con los pares existentes
+(`PA4B` y `PA4` tienen los dos 7.680 `est_madre`). **Consecuencia a tener presente:** Sector Bombilla
+ahora muestra DOS líneas de 1.656 para lo que físicamente es la misma pieza en dos etapas, así que el
+"falta" del sector la cuenta dos veces. Es el comportamiento que ya tenían los otros 10 pares, no un
+bug nuevo — pero si molesta, se corrige poniendo el máximo sólo en el código que se consume (C12).
+
+**Detalle de ubicación que queda a criterio del dueño:** C12B se creó en el **mismo sector que C12**
+(7, Bombilla), como `PA4B`/`PA4`. Otros pares se modelan al revés: `D13B` y `Z2B` viven en Sector
+Crudo y sus pares cromados en Sector Procesado. Si la paleta sin cromar en realidad se guarda en otro
+lado, se mueve la fila de `inventario`, no el componente.
+
+**Lo que NO se tocó, a propósito:** la receta del artículo (`articulo_componente`) sigue diciendo
+515 → C12 y 615 → C12, porque el artículo se arma con la pieza YA cromada. Y los 6 pasos
+`tallerista` que van de C12 a 515/615 quedaron igual.
+
+## 4dw. El 510 lo hace solo Alex, la pantalla queda de sólo lectura, y por qué (2026-09-15)
+
+**Tres cosas del mismo tirón** [usuario, textual]: *"510 solo alex lo hace"*, *"Que no se pueda
+modificar la proporción en el programa"* y *"quiero que me pongas los máximos de cada parte del
+artículo que se está proporcionando"*.
+
+**1. El 510.** Se borraron las 5 rutas de Martin Cornejo (601, 602, 604, 605, 607). Alex Escalante
+pasa al 100 %: A15 y Cartón 510 van de 3.170 a **6.340**, Uñas Zinc. y Remache de 15.020 a
+**18.190**. Con eso ya no queda ningún paso compartido sin porcentaje dictado: los dos que quedan
+son el 505 (Danica 40 / Lucho 60) y el 506 (Alex 70 / Martin 30).
+
+**2. Por qué la pantalla ya no se edita — el incidente.** Mientras se cargaban los porcentajes,
+alguien abrió la pantalla y apretó **Guardar** en los tres pasos (15:00:24, :26 y :27). La pantalla
+mostraba el **50/50 que era un DEFAULT** para el 510, y ese clic lo grabó en
+`reparto_tallerista` como si fuera un dato dictado. Resultado: cuando después se sacó a Martin,
+Alex se quedó con el 50 % guardado, o sea **la mitad del máximo que necesita**.
+
+Dos arreglos, no uno:
+- **La pantalla no escribe más.** `reparto_guardar` perdió el `EXECUTE` para `anon`; el % se carga
+  por SQL. Un default que se puede guardar con un clic deja de ser un default.
+- **`v_reparto_efectivo` normaliza.** El % guardado se lleva a base 100 **sobre los talleristas que
+  siguen haciendo el paso**: borrar la ruta de uno ya no puede dejar al otro con su mitad. Si
+  ninguno tiene % —o sólo algunos— va mitad y mitad marcado `es_supuesto`, que es "falta que lo
+  diga el dueño", no un dato.
+
+**3. Los máximos en la pantalla.** Cada paso compartido muestra sus partes con el máximo de cada
+tallerista, una columna por cabeza con su %. Ahí se ve que las dos columnas **suman** el consumo
+del artículo en vez de duplicarlo: Cartón 505 = 11.243 (Danica) + 16.865 (Lucho) = 28.108.
+
+**Lo que quedó suelto y hay que mirar:** Martin Cornejo conserva máximos de partes que ya no usa
+(A15 y Cartón 510 en 3.170), porque la regla es **no limpiar la fila que quedó sin consumo** — un
+consumo 0 puede ser un dato que falta. Hoy son 27 filas así en todos los talleristas.
+
+## 4dx. Los 284 máximos migrados y las 27 filas sin consumo: cerrado (2026-09-15)
+
+El dueño dio el "dale" a las dos pendientes de 4du/4dw.
+
+**1. Se recalcularon TODOS los máximos de tallerista** (`recalcular_maximos_talleristas(false)`):
+**270 filas** cambiaron. El mínimo viejo migrado ya no manda en ninguna: hoy **291 de 292** filas
+con máximo dicen `est_madre_x_reparto`, o sea demanda × su % × meses. La suma baja de **1.241.303
+a 1.024.041 unidades (−17,5 %)**, y no es un ajuste parejo: Danica sube (51.819 → 71.467, porque
+el mínimo viejo le quedaba corto) y Martin, IJUPA y Gentile bajan fuerte.
+
+**2. La regla para la fila que queda sin consumo** — la duda de 4du quedó resuelta partiéndola en
+dos, que es la distinción que importa:
+
+| Caso | Qué significa | Qué se hace |
+|---|---|---|
+| Sin consumo **y sin ruta** | ese tallerista ya no recibe esa parte (quedó de una ruta borrada o de la migración) | **se limpia** (25 filas) |
+| Sin consumo **pero con ruta** | sí la recibe; lo que falta es la demanda (artículo sin proyección en `est_madre`) | **no se toca**, se informa |
+
+Las 25 que se limpiaron son justamente la resaca de la limpieza de rutas: los 5 cartones y
+capuchones de Cavallero German (315 y 609), el A15 de Martin Cornejo (510), el "Pliego Ad 500" de
+Gentile Norberto y 7 piezas de rompenueces de Fábrica, entre otras.
+
+**Las 2 que quedan abiertas, y son un dato que falta, no un error:** `PB6` (Inser. Neg. Espat) en
+Alex Escalante con 60, y `E6-M194` (Pala Canelón tras M194) en Fábrica con 696. Las dos tienen
+ruta pero su artículo no proyecta venta en `est_madre`.

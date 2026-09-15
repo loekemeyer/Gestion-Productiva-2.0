@@ -99,6 +99,27 @@ create or replace view "GP2".v_consumo_fleje_kg as
   GROUP BY f.id, f.codigo, f.descripcion;
 comment on view "GP2".v_consumo_fleje_kg is 'Kg/mes de fleje. Igual que v_consumo_fleje_kg pero tomando la demanda atribuida por articulo (v_consumo_demanda) en vez del consumo entero del primer nodo aguas abajo.';
 
+-- ---------- v_consumo_tallerista ----------
+create or replace view "GP2".v_consumo_tallerista as
+ WITH pasos AS (
+         SELECT DISTINCT r.articulo_id,
+            rp.comp_entrada_id,
+            rp.comp_salida_id,
+            rp.tallerista_id
+           FROM "GP2".ruta_paso rp
+             JOIN "GP2".ruta r ON r.id = rp.ruta_id
+          WHERE rp.tallerista_id IS NOT NULL AND rp.comp_entrada_id IS NOT NULL AND r.articulo_id IS NOT NULL
+        )
+ SELECT p.tallerista_id,
+    p.comp_entrada_id AS componente_id,
+    sum(d.uni_mes * re.pct / 100::numeric) AS uni_mes,
+    bool_or(re.es_supuesto) AS tiene_supuesto
+   FROM pasos p
+     JOIN "GP2".v_consumo_demanda d ON d.articulo_id = p.articulo_id AND d.componente_id = p.comp_entrada_id
+     JOIN "GP2".v_reparto_efectivo re ON re.articulo_id = p.articulo_id AND re.comp_salida_id = p.comp_salida_id AND re.tallerista_id = p.tallerista_id
+  GROUP BY p.tallerista_id, p.comp_entrada_id;
+comment on view "GP2".v_consumo_tallerista is 'Consumo uni/mes por (tallerista, componente que recibe), con la demanda del articulo repartida por v_reparto_efectivo. El equivalente de v_consumo_componente pero del lado del tallerista.';
+
 -- ---------- v_contraparte_parte ----------
 create or replace view "GP2".v_contraparte_parte as
  SELECT 'proveedor_servicio'::text AS tipo,
@@ -666,6 +687,23 @@ create or replace view "GP2".v_nivel_stock as
      LEFT JOIN "GP2".v_consumo_componente cp ON cp.componente_id = c.id AND c.sector_id <> 5;
 comment on view "GP2".v_nivel_stock is 'Consumo mensual (Est Madre explotada) por fila de inventario de SECTOR y el nivel que sale de el: max_calc = consumo x meses_stock. Unica definicion (2026-09-05); la usa recalcular_maximos_insumos. El 2026-09-14 se le sacaron meses_minimo, min_calc, minimo y minimo_origen: el minimo se borro de la base y recalcular_minimos con el.';
 
+-- ---------- v_nivel_stock_tallerista ----------
+create or replace view "GP2".v_nivel_stock_tallerista as
+ SELECT i.id AS inv_id,
+    i.componente_id,
+    i.ubicacion_id,
+    u.ref_id AS tallerista_id,
+    COALESCE(ct.uni_mes, 0::numeric) AS consumo_mes,
+    u.meses_stock,
+    round(COALESCE(ct.uni_mes, 0::numeric) * u.meses_stock) AS max_calc,
+    COALESCE(ct.tiene_supuesto, false) AS tiene_supuesto,
+    i.maximo,
+    i.maximo_origen
+   FROM "GP2".inventario i
+     JOIN "GP2".ubicacion u ON u.id = i.ubicacion_id AND u.tipo = 'tallerista'::text
+     LEFT JOIN "GP2".v_consumo_tallerista ct ON ct.tallerista_id = u.ref_id AND ct.componente_id = i.componente_id;
+comment on view "GP2".v_nivel_stock_tallerista is 'max_calc = consumo repartido x meses_stock de la ubicacion del tallerista. La usa recalcular_maximos_talleristas.';
+
 -- ---------- v_planilla_costo ----------
 create or replace view "GP2".v_planilla_costo as
  SELECT snapshot_id,
@@ -816,6 +854,44 @@ UNION ALL
     ea.numero_factura IS NOT NULL AS controlado
    FROM "GP2".entrega_prov_at ea
      LEFT JOIN "GP2".proveedor_at pa ON pa.id = ea.proveedor_at_id;
+
+-- ---------- v_reparto_efectivo ----------
+create or replace view "GP2".v_reparto_efectivo as
+ WITH pasos AS (
+         SELECT DISTINCT r.articulo_id,
+            rp.comp_salida_id,
+            rp.tallerista_id
+           FROM "GP2".ruta_paso rp
+             JOIN "GP2".ruta r ON r.id = rp.ruta_id
+          WHERE rp.tallerista_id IS NOT NULL AND rp.comp_salida_id IS NOT NULL AND r.articulo_id IS NOT NULL
+        ), con_pct AS (
+         SELECT p.articulo_id,
+            p.comp_salida_id,
+            p.tallerista_id,
+            rt.pct
+           FROM pasos p
+             LEFT JOIN "GP2".reparto_tallerista rt ON rt.articulo_id = p.articulo_id AND rt.comp_salida_id = p.comp_salida_id AND rt.tallerista_id = p.tallerista_id
+        ), n AS (
+         SELECT con_pct.articulo_id,
+            con_pct.comp_salida_id,
+            count(*) AS n_tall,
+            count(con_pct.pct) AS n_con_fila,
+            COALESCE(sum(con_pct.pct), 0::numeric) AS suma_pct
+           FROM con_pct
+          GROUP BY con_pct.articulo_id, con_pct.comp_salida_id
+        )
+ SELECT c.articulo_id,
+    c.comp_salida_id,
+    c.tallerista_id,
+        CASE
+            WHEN n.n_con_fila = n.n_tall AND n.suma_pct > 0::numeric THEN round(c.pct * 100::numeric / n.suma_pct, 4)
+            ELSE round(100.0 / n.n_tall::numeric, 4)
+        END AS pct,
+    n.n_con_fila <> n.n_tall AND n.n_tall > 1 AS es_supuesto,
+    n.n_tall
+   FROM con_pct c
+     JOIN n ON n.articulo_id = c.articulo_id AND n.comp_salida_id = c.comp_salida_id;
+comment on view "GP2".v_reparto_efectivo is 'Porcentaje del volumen de cada paso (articulo + comp_salida) que hace cada tallerista. Sale de reparto_tallerista, NORMALIZADO sobre los talleristas que siguen haciendo el paso (borrar una ruta no puede dejar al otro con la mitad). Si ninguno tiene fila, o solo algunos, va en partes iguales y lo marca es_supuesto: eso lo tiene que dictar el dueno.';
 
 -- ---------- v_reposicion ----------
 create or replace view "GP2".v_reposicion as

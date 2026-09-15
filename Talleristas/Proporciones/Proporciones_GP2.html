@@ -10,34 +10,34 @@
  .top h1{margin:0;font-size:16px}
  .top .sel{display:flex;gap:8px;align-items:center;font-size:14px;flex-wrap:wrap}
  select,input,button{background:#eaeff6;color:#385475;border:1px solid #cddaea;border-radius:6px;padding:6px 10px;font-size:18px;font-family:inherit}
- input{width:230px}
  button{cursor:pointer}
  button:hover{background:#e8eef7}
- /* El contenido manda el ancho: no se estira la tabla para llenar la pantalla. */
+ /* El contenido manda el ancho: no se estira nada para llenar la pantalla. */
  .canvas{padding:14px;max-width:1080px;margin:0 auto}
  .note{background:#f5eeea;border:1px solid #eadbcd;color:#8e4c20;border-radius:8px;padding:8px 12px;margin-bottom:12px;font-size:14px}
  .kpis{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
  .kpi{border:1px solid #d1dae6;border-radius:8px;padding:6px 12px;font-size:14px;color:#475569}
  .kpi b{color:#166398;font-size:16px;margin-right:4px}
- /* inline-block: el recuadro se ajusta a la tabla y no deja aire muerto a la derecha */
- .tbl-wrap{display:inline-block;max-width:100%;overflow-x:auto;border:1px solid #d1dae6;border-radius:10px;vertical-align:top}
- table{border-collapse:collapse;font-size:14px}
- th,td{padding:7px 12px;text-align:center;vertical-align:middle;border-bottom:1px solid #d0dae7;white-space:nowrap}
- th{color:#475569;font-size:14px;font-weight:700}
- tr.ini td,tr.ini th{border-top:2px solid #b9c8dc}
- td.cod{font-family:ui-monospace,SF Mono,monospace;color:#165d98;font-weight:700}
- td.fam{color:#475569}
- td.partes{color:#385775;white-space:normal;max-width:360px}
- .tag{display:inline-block;border:1px solid #cddcea;border-radius:5px;padding:1px 7px;margin:1px 3px;font-size:14px}
+ .paso{border:1px solid #d1dae6;border-radius:10px;margin-bottom:14px;padding:10px 12px;display:inline-block;max-width:100%;vertical-align:top}
+ .paso-head{display:flex;gap:10px;align-items:baseline;flex-wrap:wrap;margin-bottom:8px}
+ .paso-head .cod{font-family:ui-monospace,SF Mono,monospace;color:#165d98;font-weight:700;font-size:16px}
+ .paso-head .fam{color:#475569}
+ .tag{display:inline-block;border:1px solid #cddcea;border-radius:5px;padding:1px 7px;font-size:14px}
  .tag .pc{color:#165d98;font-family:ui-monospace,monospace}
- .prop{color:#8e4c20;font-weight:700;font-size:14px}
+ .sup{color:#8e4c20;font-weight:700}
+ .tbl-wrap{overflow-x:auto;max-width:100%}
+ table{border-collapse:collapse;font-size:14px}
+ th,td{padding:6px 12px;text-align:center;vertical-align:middle;border-bottom:1px solid #d0dae7;white-space:nowrap}
+ th{color:#475569;font-size:14px;font-weight:700}
+ th .pct{display:block;color:#8e4c20;font-weight:700}
+ td.parte{text-align:left}
+ td.parte .pc{color:#165d98;font-family:ui-monospace,monospace;font-weight:700;margin-right:6px}
+ td.max{font-weight:700}
+ td.sinmax{color:#8494a8;font-weight:400}
  .empty{padding:30px;text-align:center;color:#475569;font-size:14px}
- /* En el celular la tabla entra entera: menos aire y los nombres largos cortan en dos lineas.
-    La letra NO baja de 14 (regla de la casa: que se lea). */
  @media (max-width:520px){
-  th,td{padding:6px 3px;white-space:normal}
-  td.fam{font-size:14px}
-  .tag{margin:0;padding:1px 4px}
+  th,td{padding:6px 5px}
+  .paso{padding:8px}
  }
 </style><link rel="icon" type="image/png" href="../../GP2_favicon.png">
 <link rel="apple-touch-icon" href="../../GP2_favicon.png">
@@ -49,8 +49,6 @@
 <div class="top">
  <h1>📊 Proporciones <span style="font-size:14px;color:#2a5783;font-weight:400">· pasos que hacen dos o más talleristas</span></h1>
  <div class="sel">
-  Tallerista <select id="fTall"><option value="">Todos</option></select>
-  <input id="fBuscar" type="text" placeholder="Buscar código, familia, parte, tallerista…">
   <button id="btnCsv">⬇ Exportar CSV</button>
  </div>
 </div>
@@ -58,144 +56,104 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="../../supabase-config.js?v=20260905k"></script>
 <script src="../../gp2-ui.js?v=20260913e"></script>
+<script src="../../gp2-numero.js?v=20260911o"></script>
 <script>var D={};
 var SB=GP2_SB();
 
-var esc = GP2UI.esc;   /* helper de la casa, gp2-ui.js (2026-09-05) */
-function norm(s){return String(s||"").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"");}
+var esc = GP2UI.esc;   /* helpers de la casa (gp2-ui.js / gp2-numero.js) */
 
-/* La pantalla muestra UNA cosa: los PASOS que hacen dos o mas talleristas.
-   [usuario 2026-09-14: "borres lo que hay y que aparezcan solo los articulos compartidos" y,
-   despues de ver que compartido no era lo mismo que repartido, "que me aparezcan nada mas los
-   que hacen el mismo paso"]. Se borraron la vista "por tallerista" (listaba tambien los
-   exclusivos) y las filas de paso propio.
+/* La pantalla muestra UNA cosa y NO se toca: los PASOS que hacen dos o mas talleristas, el % de
+   cada uno y el MAXIMO de cada parte que recibe.
+   [usuario 2026-09-14/15: "que aparezcan solo los articulos compartidos" -> "que me aparezcan
+   nada mas los que hacen el mismo paso" -> "elimina la columna de situacion" -> "que no se pueda
+   modificar la proporcion en el programa" + "quiero que me pongas los maximos de cada parte del
+   articulo que se esta proporcionando".]
+
+   POR QUE ES SOLO LECTURA: el 15-09, mientras se cargaban los porcentajes, alguien abrio la
+   pantalla y apreto Guardar en los tres pasos. Eso dejo grabado como dato dictado el 50/50 que la
+   pantalla mostraba de DEFAULT para el 510, y el maximo de Alex Escalante quedo en la mitad de lo
+   que necesita. El % se carga por SQL; reparto_guardar ya no es ejecutable por anon.
 
    POR QUE EL CORTE ES EL PASO Y NO EL ARTICULO: que dos talleristas toquen el mismo articulo NO
    es un reparto de volumen. Si cada uno hace un PASO DISTINTO de la ruta (uno el mango, el otro
    el armado) van en cadena y cada uno hace el 100 % de lo suyo. El reparto existe solo cuando
-   dos talleristas producen EL MISMO comp_salida, o sea la ruta duplicada por tallerista. Al
-   2026-09-14 son 6 articulos y 12 filas, sobre 19 articulos con 2+ talleristas.
+   dos talleristas producen EL MISMO comp_salida, o sea la ruta duplicada por tallerista.
 
-   OJO: esto deja AFUERA a talleristas que si tocan el articulo (Martin Cornejo en el 505,
-   Gentile Norberto en el 506, los dos en otro paso). Es a proposito: la pantalla es para
-   repartir porcentajes, no para contestar "quien toca el 505". */
-function grupos(){
- /* una fila por (articulo, paso) que tenga 2 o mas talleristas */
- var out=[];
- (D.articulos_compartidos||[]).forEach(function(a){
-  var porPaso={};
-  (a.talleristas||[]).forEach(function(t){
-   (t.partes||[]).forEach(function(p){
-    if(!p||!p.cod)return;
-    if(!porPaso[p.cod])porPaso[p.cod]={cod:p.cod,desc:p.desc||"",talleristas:[]};
-    porPaso[p.cod].talleristas.push({tall_id:t.tall_id,tallerista:t.tallerista});
-   });
-  });
-  Object.keys(porPaso).forEach(function(cod){
-   var g=porPaso[cod];
-   if(g.talleristas.length<2)return;
-   g.talleristas.sort(function(x,y){return String(x.tallerista).localeCompare(String(y.tallerista));});
-   out.push({art_codigo:a.art_codigo,familia:a.familia||"",paso_cod:g.cod,paso_desc:g.desc,
-             talleristas:g.talleristas});
-  });
- });
- return out;
-}
+   EL % MANDA SOBRE EL MAXIMO: la columna de cada tallerista sale de v_consumo_tallerista
+   (demanda del articulo x su %) x los meses de su ubicacion. Por eso las dos columnas suman el
+   consumo del articulo y no lo duplican, que es lo que pasaba antes. */
 
-function gMatch(g,q){
- if(!q)return true;
- if(norm(g.art_codigo).indexOf(q)>=0||norm(g.familia).indexOf(q)>=0)return true;
- if(norm(g.paso_cod+" "+g.paso_desc).indexOf(q)>=0)return true;
- return g.talleristas.some(function(t){return norm(t.tallerista).indexOf(q)>=0;});
-}
-
-function filtrar(tallSel,q){
- var gs=grupos();
- if(tallSel)gs=gs.filter(function(g){return g.talleristas.some(function(t){return String(t.tall_id)===tallSel;});});
- gs=gs.filter(function(g){return gMatch(g,q);});
- /* primero los pasos que se reparten entre mas gente (regla: por gravedad) */
- gs.sort(function(x,y){
-  if(y.talleristas.length!==x.talleristas.length)return y.talleristas.length-x.talleristas.length;
-  return String(x.art_codigo).localeCompare(String(y.art_codigo));
- });
- return gs;
-}
+function pctTxt(p){ return GP2N.fmt(Number(p), 2, "") + " %"; }
+function maxTxt(m){ return (m == null) ? "—" : GP2N.fmt(Number(m), 0, "—"); }
 
 function render(){
  var canvas=document.getElementById("canvas");
- var tallSel=document.getElementById("fTall").value;
- var q=norm(document.getElementById("fBuscar").value.trim());
- var gs=filtrar(tallSel,q);
- var nFilas=gs.reduce(function(s,g){return s+g.talleristas.length;},0);
+ var pasos=(D.pasos||[]);
+ var nSup=pasos.filter(function(p){return (p.talleristas||[]).some(function(t){return t.es_supuesto;});}).length;
 
+ var note='<div class="note">Los pasos que <b>hacen dos o más talleristas</b> (la misma pieza, la ruta '+
+   'duplicada): ahí y sólo ahí se reparte el volumen. El % <b>manda sobre el máximo</b> de cada parte '+
+   'que recibe cada uno, y por eso las columnas suman el consumo del artículo en vez de duplicarlo. '+
+   'El porcentaje <b>no se edita acá</b>. Los talleristas que hacen <b>otro</b> paso del mismo '+
+   'artículo no aparecen: van en cadena, cada uno hace el 100 % de lo suyo.</div>';
  var kpi='<div class="kpis">'+
-   '<div class="kpi"><b>'+gs.length+'</b>pasos que hacen 2 o más talleristas</div>'+
-   '<div class="kpi"><b>'+nFilas+'</b>porcentajes a definir</div>'+
+   '<div class="kpi"><b>'+pasos.length+'</b>pasos compartidos</div>'+
+   (nSup?'<div class="kpi"><b>'+nSup+'</b>sin definir (va mitad y mitad)</div>':'')+
  '</div>';
- var note='<div class="note">Sólo los pasos que <b>hacen dos o más talleristas</b> (la misma pieza, '+
-   'la ruta duplicada): ahí y sólo ahí se reparte el volumen. El <b>% de cada uno todavía no está '+
-   'cargado en GP2</b>, por eso dice PENDIENTE. Los talleristas que tocan el artículo en <b>otro</b> '+
-   'paso no aparecen: van en cadena, cada uno hace el 100 % de lo suyo.</div>';
 
- if(!gs.length){canvas.innerHTML=note+kpi+'<div class="empty">Sin resultados para el filtro.</div>';return;}
+ if(!pasos.length){canvas.innerHTML=note+kpi+'<div class="empty">Hoy ningún paso lo hacen dos talleristas.</div>';return;}
 
- var filas="";
- gs.forEach(function(g){
-  g.talleristas.forEach(function(t,i){
-   filas+='<tr'+(i===0?' class="ini"':'')+'>'+
-    (i===0?'<td class="cod" rowspan="'+g.talleristas.length+'">'+esc(g.art_codigo)+'</td>'+
-           '<td class="fam" rowspan="'+g.talleristas.length+'">'+esc(g.familia)+'</td>'+
-           '<td class="partes" rowspan="'+g.talleristas.length+'">'+
-             '<span class="tag"><span class="pc">'+esc(g.paso_cod)+'</span> '+esc(g.paso_desc)+'</span></td>':'')+
-    '<td><b>'+esc(t.tallerista)+'</b></td>'+
-    '<td class="prop">PENDIENTE</td>'+
-   '</tr>';
-  });
+ var H="";
+ pasos.forEach(function(p){
+  var talls=(p.talleristas||[]);
+  var cab=talls.map(function(t){
+   return '<th>'+esc(t.tallerista)+'<span class="pct">'+pctTxt(t.pct)+
+     (t.es_supuesto?' <span class="sup">(sin definir)</span>':'')+'</span></th>';
+  }).join("");
+  var filas=(p.partes||[]).map(function(pa){
+   var celdas=talls.map(function(t){
+    var x=(pa.por_tall||[]).filter(function(y){return y.tall_id===t.tall_id;})[0];
+    var m=x?x.maximo:null;
+    return '<td class="'+(m==null?"sinmax":"max")+'">'+maxTxt(m)+'</td>';
+   }).join("");
+   return '<tr><td class="parte"><span class="pc">'+esc(pa.cod)+'</span>'+esc(pa.desc||"")+'</td>'+celdas+'</tr>';
+  }).join("");
+  H+='<div class="paso"><div class="paso-head">'+
+      '<span class="cod">'+esc(p.art_codigo)+'</span>'+
+      '<span class="fam">'+esc(p.familia||"")+'</span>'+
+      '<span class="tag"><span class="pc">'+esc(p.paso_cod)+'</span> '+esc(p.paso_desc||"")+'</span>'+
+     '</div><div class="tbl-wrap"><table><thead><tr><th>Parte que recibe</th>'+cab+'</tr></thead>'+
+     '<tbody>'+(filas||'<tr><td class="parte" colspan="'+(talls.length+1)+'">(sin partes registradas)</td></tr>')+
+     '</tbody></table></div></div>';
  });
 
- canvas.innerHTML=note+kpi+'<div class="tbl-wrap"><table><thead><tr>'+
-   '<th>Código</th><th>Familia</th><th>Paso compartido</th><th>Tallerista</th><th>Proporción %</th>'+
-   '</tr></thead><tbody>'+filas+'</tbody></table></div>';
+ canvas.innerHTML=note+kpi+H;
 }
 
 function __run(){
- var fTall=document.getElementById("fTall");
- var fBuscar=document.getElementById("fBuscar");
-
- /* el filtro ofrece SOLO los talleristas que comparten algun paso */
- var vistos={};
- grupos().forEach(function(g){
-  g.talleristas.forEach(function(t){vistos[String(t.tall_id)]=t.tallerista;});
- });
- Object.keys(vistos).sort(function(x,y){return String(vistos[x]).localeCompare(String(vistos[y]));})
-  .forEach(function(id){
-   var o=document.createElement("option");o.value=id;o.textContent=vistos[id];fTall.appendChild(o);
-  });
-
- fTall.addEventListener("change",render);
- fBuscar.addEventListener("input",render);
-
  document.getElementById("btnCsv").addEventListener("click",function(){
-  var gs=filtrar(fTall.value,norm(fBuscar.value.trim()));
-  var out=[["Art_Codigo","Familia","Paso_cod","Paso_desc","Tallerista","Proporcion_pct"]];
-  gs.forEach(function(g){
-   g.talleristas.forEach(function(t){
-    out.push([g.art_codigo,g.familia,g.paso_cod,g.paso_desc,t.tallerista,"PENDIENTE"]);
+  var out=[["Art_Codigo","Familia","Paso_cod","Paso_desc","Tallerista","Proporcion_pct","Parte_cod","Parte_desc","Maximo"]];
+  (D.pasos||[]).forEach(function(p){
+   (p.talleristas||[]).forEach(function(t){
+    (p.partes||[]).forEach(function(pa){
+     var x=(pa.por_tall||[]).filter(function(y){return y.tall_id===t.tall_id;})[0];
+     out.push([p.art_codigo,p.familia||"",p.paso_cod,p.paso_desc||"",t.tallerista,t.pct,
+               pa.cod,pa.desc||"",x&&x.maximo!=null?x.maximo:""]);
+    });
    });
   });
-  GP2UI.exportarCSV("proporciones_paso_compartido_"+GP2UI.hoyAR(),out);
+  GP2UI.exportarCSV("proporciones_"+GP2UI.hoyAR(),out);
  });
-
- render();
 }
 
 async function __boot(){
  try{
   document.body.style.cursor="progress";
+  __run();
   var r=await SB.rpc("proporciones_bundle");
   if(r.error)throw r.error;
-  Object.assign(D,r.data);
-  __run();
+  D=r.data||{};
+  render();
  }catch(e){
   document.getElementById("canvas").innerHTML='<div class="empty" style="color:#982e16">Error cargando datos de Supabase: '+esc(e.message||e)+'</div>';
   console.error(e);

@@ -5171,71 +5171,68 @@ CREATE OR REPLACE FUNCTION "GP2".proporciones_bundle()
  STABLE SECURITY DEFINER
  SET search_path TO 'GP2'
 AS $function$
-WITH pares AS (
-  SELECT DISTINCT
-    t.id AS tall_id, t.nombre AS tall_nombre, t.cod_prov,
-    a.id AS art_id, a.codigo AS art_codigo, a.familia,
-    cs.codigo AS parte_cod, cs.descripcion AS parte_desc
-  FROM ruta_paso rp
-  JOIN ruta r      ON r.id = rp.ruta_id
-  JOIN tallerista t ON t.id = rp.tallerista_id
-  JOIN articulo a  ON a.id = r.articulo_id
-  LEFT JOIN componente cs ON cs.id = rp.comp_salida_id
-  WHERE rp.tallerista_id IS NOT NULL AND r.articulo_id IS NOT NULL
-),
-art_tall AS (
-  SELECT art_id, count(DISTINCT tall_id) AS num_tall
-  FROM pares GROUP BY art_id
-),
-tap AS (
-  SELECT tall_id, tall_nombre, cod_prov, art_id, art_codigo, familia,
-         jsonb_agg(DISTINCT jsonb_build_object('cod', parte_cod, 'desc', parte_desc))
-           FILTER (WHERE parte_cod IS NOT NULL) AS partes
-  FROM pares
-  GROUP BY tall_id, tall_nombre, cod_prov, art_id, art_codigo, familia
-),
-por_tallerista AS (
-  SELECT tap.tall_id, tap.tall_nombre, tap.cod_prov,
-    jsonb_agg(
-      jsonb_build_object(
-        'art_id', tap.art_id, 'art_codigo', tap.art_codigo, 'familia', tap.familia,
-        'partes', COALESCE(tap.partes, '[]'::jsonb),
-        'num_talleristas', at.num_tall,
-        'compartido', (at.num_tall >= 2),
-        'proporcion_pct', NULL
-      ) ORDER BY tap.art_codigo
-    ) AS articulos,
-    count(*) FILTER (WHERE at.num_tall >= 2) AS n_compartidos
-  FROM tap JOIN art_tall at USING (art_id)
-  GROUP BY tap.tall_id, tap.tall_nombre, tap.cod_prov
-),
-compartidos AS (
-  SELECT tap.art_id, tap.art_codigo, tap.familia, at.num_tall,
-    jsonb_agg(
-      jsonb_build_object(
-        'tall_id', tap.tall_id, 'tallerista', tap.tall_nombre,
-        'partes', COALESCE(tap.partes, '[]'::jsonb),
-        'proporcion_pct', NULL
-      ) ORDER BY tap.tall_nombre
-    ) AS talleristas
-  FROM tap JOIN art_tall at USING (art_id)
-  WHERE at.num_tall >= 2
-  GROUP BY tap.art_id, tap.art_codigo, tap.familia, at.num_tall
+with pasos as (
+  select distinct r.articulo_id, a.codigo art_codigo, a.familia,
+         rp.comp_salida_id, cs.codigo paso_cod, cs.descripcion paso_desc,
+         rp.tallerista_id, t.nombre tallerista
+    from ruta_paso rp
+    join ruta r        on r.id = rp.ruta_id
+    join articulo a    on a.id = r.articulo_id
+    join componente cs on cs.id = rp.comp_salida_id
+    join tallerista t  on t.id = rp.tallerista_id
+   where rp.tallerista_id is not null
+), compartidos as (
+  select articulo_id, comp_salida_id
+    from pasos group by 1, 2 having count(distinct tallerista_id) >= 2
+), filas as (
+  select p.*, re.pct, re.es_supuesto
+    from pasos p
+    join compartidos c on c.articulo_id = p.articulo_id and c.comp_salida_id = p.comp_salida_id
+    left join v_reparto_efectivo re on re.articulo_id = p.articulo_id
+     and re.comp_salida_id = p.comp_salida_id and re.tallerista_id = p.tallerista_id
+), entradas as (
+  -- que parte recibe cada tallerista para ese articulo, y cuanto puede tener en su casa
+  select distinct r.articulo_id, rp.tallerista_id, rp.comp_entrada_id,
+         ce.codigo parte_cod, ce.descripcion parte_desc,
+         i.maximo, i.cantidad, i.maximo_origen
+    from ruta_paso rp
+    join ruta r        on r.id = rp.ruta_id
+    join componente ce on ce.id = rp.comp_entrada_id
+    left join ubicacion u on u.tipo = 'tallerista' and u.ref_id = rp.tallerista_id
+    left join inventario i on i.componente_id = rp.comp_entrada_id and i.ubicacion_id = u.id
+   where rp.tallerista_id is not null and rp.comp_entrada_id is not null and r.articulo_id is not null
+), partes_por_paso as (
+  select f.articulo_id, f.comp_salida_id, e.comp_entrada_id, e.parte_cod, e.parte_desc,
+         jsonb_agg(jsonb_build_object('tall_id', e.tallerista_id, 'maximo', e.maximo,
+                                      'stock', e.cantidad, 'origen', e.maximo_origen)
+                   order by e.tallerista_id) por_tall
+    from (select distinct articulo_id, comp_salida_id from filas) f
+    join entradas e on e.articulo_id = f.articulo_id
+    join filas ff on ff.articulo_id = f.articulo_id and ff.comp_salida_id = f.comp_salida_id
+                 and ff.tallerista_id = e.tallerista_id
+   group by f.articulo_id, f.comp_salida_id, e.comp_entrada_id, e.parte_cod, e.parte_desc
 )
-SELECT jsonb_build_object(
+select jsonb_build_object(
   'generado_en', now(),
-  'proporcion_disponible', false,
-  'nota', 'La proporcion exacta (% de volumen por tallerista) no existe en GP2: la tabla vieja Proporcion_Articulo_Tallerista estaba vacia y ruta_paso no registra reparto de volumen. Se muestra la relacion tallerista -> articulos/partes derivada de ruta_paso; la proporcion queda PENDIENTE.',
-  'talleristas', COALESCE((
-     SELECT jsonb_agg(jsonb_build_object(
-        'id', tall_id, 'nombre', tall_nombre, 'cod_prov', cod_prov,
-        'n_compartidos', n_compartidos, 'articulos', articulos
-     ) ORDER BY tall_nombre) FROM por_tallerista), '[]'::jsonb),
-  'articulos_compartidos', COALESCE((
-     SELECT jsonb_agg(jsonb_build_object(
-        'art_id', art_id, 'art_codigo', art_codigo, 'familia', familia,
-        'num_talleristas', num_tall, 'talleristas', talleristas
-     ) ORDER BY art_codigo) FROM compartidos), '[]'::jsonb)
+  'pasos', coalesce((
+     select jsonb_agg(x order by x->>'art_codigo', x->>'paso_cod') from (
+       select jsonb_build_object(
+         'articulo_id', f.articulo_id, 'art_codigo', f.art_codigo, 'familia', f.familia,
+         'comp_salida_id', f.comp_salida_id, 'paso_cod', f.paso_cod, 'paso_desc', f.paso_desc,
+         'n_talleristas', count(*),
+         'suma_pct', round(sum(f.pct), 2),
+         'talleristas', jsonb_agg(jsonb_build_object(
+            'tall_id', f.tallerista_id, 'tallerista', f.tallerista,
+            'pct', f.pct, 'es_supuesto', coalesce(f.es_supuesto, false)) order by f.tallerista),
+         'partes', coalesce((
+            select jsonb_agg(jsonb_build_object('cod', pp.parte_cod, 'desc', pp.parte_desc,
+                                                'por_tall', pp.por_tall) order by pp.parte_cod)
+              from partes_por_paso pp
+             where pp.articulo_id = f.articulo_id and pp.comp_salida_id = f.comp_salida_id), '[]'::jsonb)
+       ) x
+       from filas f
+       group by f.articulo_id, f.art_codigo, f.familia, f.comp_salida_id, f.paso_cod, f.paso_desc
+     ) s), '[]'::jsonb)
 );
 $function$
 ;
@@ -5422,6 +5419,74 @@ begin
   )
   select (select count(*) from upd), (select count(*) from clr) into v_set, v_clr;
   return jsonb_build_object('ok', true, 'actualizados', v_set, 'limpiados', v_clr);
+end $function$
+;
+
+-- ---------- recalcular_maximos_talleristas ----------
+CREATE OR REPLACE FUNCTION "GP2".recalcular_maximos_talleristas(p_solo_repartidos boolean DEFAULT false, p_componentes bigint[] DEFAULT NULL::bigint[], p_limpiar_sin_ruta boolean DEFAULT false)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'GP2'
+AS $function$
+declare v_set int := 0; v_cambios jsonb; v_limpiados int := 0; v_con_ruta jsonb;
+begin
+  with repartidos as (
+    select distinct rp.tallerista_id, rp.comp_entrada_id
+      from ruta_paso rp
+      join ruta r on r.id = rp.ruta_id
+      join reparto_tallerista rt
+        on rt.articulo_id = r.articulo_id and rt.comp_salida_id = rp.comp_salida_id
+       and rt.tallerista_id = rp.tallerista_id
+     where rp.comp_entrada_id is not null
+  ), objetivo as (
+    select v.inv_id, v.componente_id, v.tallerista_id, v.max_calc, v.maximo maximo_viejo
+      from v_nivel_stock_tallerista v
+     where coalesce(v.maximo_origen, '') <> 'fisico'
+       and v.max_calc > 0
+       and (not p_solo_repartidos
+            or exists (select 1 from repartidos x
+                        where x.tallerista_id = v.tallerista_id and x.comp_entrada_id = v.componente_id))
+       and (p_componentes is null or v.componente_id = any (p_componentes))
+  ), upd as (
+    update inventario i
+       set maximo = o.max_calc, maximo_origen = 'est_madre_x_reparto'
+      from objetivo o
+     where i.id = o.inv_id
+       and (i.maximo is distinct from o.max_calc or i.maximo_origen is distinct from 'est_madre_x_reparto')
+    returning o.tallerista_id, o.componente_id, o.maximo_viejo, o.max_calc
+  )
+  select count(*), coalesce(jsonb_agg(jsonb_build_object(
+           'tallerista', (select nombre from tallerista t where t.id = u.tallerista_id),
+           'componente', (select codigo from componente c where c.id = u.componente_id),
+           'antes', u.maximo_viejo, 'ahora', u.max_calc) order by u.tallerista_id), '[]'::jsonb)
+    into v_set, v_cambios from upd u;
+
+  if p_limpiar_sin_ruta then
+    with sin_ruta as (
+      select v.inv_id from v_nivel_stock_tallerista v
+       where v.max_calc = 0 and v.maximo is not null and coalesce(v.maximo_origen, '') <> 'fisico'
+         and not exists (select 1 from ruta_paso rp
+                          where rp.tallerista_id = v.tallerista_id and rp.comp_entrada_id = v.componente_id)
+    ), lim as (
+      update inventario i set maximo = null, maximo_origen = null
+        from sin_ruta s where i.id = s.inv_id returning 1
+    )
+    select count(*) into v_limpiados from lim;
+  end if;
+
+  select coalesce(jsonb_agg(jsonb_build_object(
+           'tallerista', (select nombre from tallerista t where t.id = v.tallerista_id),
+           'componente', (select codigo from componente c where c.id = v.componente_id),
+           'maximo', v.maximo) order by v.tallerista_id), '[]'::jsonb)
+    into v_con_ruta
+    from v_nivel_stock_tallerista v
+   where v.max_calc = 0 and v.maximo is not null and coalesce(v.maximo_origen, '') <> 'fisico'
+     and exists (select 1 from ruta_paso rp
+                  where rp.tallerista_id = v.tallerista_id and rp.comp_entrada_id = v.componente_id);
+
+  return jsonb_build_object('ok', true, 'actualizados', v_set, 'limpiados', v_limpiados,
+    'sin_consumo_con_ruta', v_con_ruta, 'cambios', v_cambios);
 end $function$
 ;
 
@@ -6406,6 +6471,53 @@ AS $function$
 $function$
 ;
 
+-- ---------- reparto_guardar ----------
+CREATE OR REPLACE FUNCTION "GP2".reparto_guardar(p_articulo_id bigint, p_comp_salida_id bigint, p_filas jsonb)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'GP2'
+AS $function$
+declare v_suma numeric; v_n int; v_intruso text; v_max jsonb;
+begin
+  if p_articulo_id is null or p_comp_salida_id is null then
+    raise exception 'Falta el articulo o el paso';
+  end if;
+
+  select count(*), coalesce(sum((f->>'pct')::numeric), 0)
+    into v_n, v_suma from jsonb_array_elements(coalesce(p_filas, '[]'::jsonb)) f;
+
+  if v_n > 0 then
+    if abs(v_suma - 100) > 0.01 then
+      raise exception 'Los porcentajes de un paso tienen que sumar 100 (suman %)', v_suma;
+    end if;
+    select string_agg(t.nombre, ', ') into v_intruso
+      from jsonb_array_elements(p_filas) f
+      join tallerista t on t.id = (f->>'tallerista_id')::bigint
+     where not exists (
+       select 1 from ruta_paso rp join ruta r on r.id = rp.ruta_id
+        where r.articulo_id = p_articulo_id and rp.comp_salida_id = p_comp_salida_id
+          and rp.tallerista_id = (f->>'tallerista_id')::bigint);
+    if v_intruso is not null then
+      raise exception 'Segun las rutas, % no hace ese paso', v_intruso;
+    end if;
+  end if;
+
+  delete from reparto_tallerista
+   where articulo_id = p_articulo_id and comp_salida_id = p_comp_salida_id;
+
+  if v_n > 0 then
+    insert into reparto_tallerista (articulo_id, comp_salida_id, tallerista_id, pct)
+    select p_articulo_id, p_comp_salida_id, (f->>'tallerista_id')::bigint, (f->>'pct')::numeric
+      from jsonb_array_elements(p_filas) f;
+  end if;
+
+  -- el maximo de cada tallerista sale de lo que le toca hacer: si cambia el reparto, cambia
+  v_max := recalcular_maximos_talleristas(true);
+  return jsonb_build_object('ok', true, 'filas', v_n, 'maximos', v_max);
+end $function$
+;
+
 -- ---------- reprocesar_espejo_virgilio ----------
 CREATE OR REPLACE FUNCTION "GP2".reprocesar_espejo_virgilio(p_ids bigint[] DEFAULT NULL::bigint[], p_dry_run boolean DEFAULT true)
  RETURNS jsonb
@@ -6801,11 +6913,15 @@ env as (
   select 'proveedor_at', '*', c.id
     from componente c
    where c.sector_id in (10,11) and not coalesce(c.discontinuado,false)
+  union all
+  -- INYECTORES: se les envia la RESINA (bolsa) que consume cada pieza que inyectan.
+  select 'inyector', c.proveedor, c.material_id
+    from componente c
+   where c.material_id is not null and c.estado_compra is null and c.proveedor is not null
+     and exists (select 1 from proveedor_insumo pi where pi.nombre = c.proveedor)
+   group by c.proveedor, c.material_id
 ),
 rec as (
-  -- tallerista: lo que devuelve a un sector (los TERMINADOS van por Recepcion Virgilio).
-  -- comp_entrada_id = lo que consumio para hacerlo, deducido igual que en el motor JS:
-  -- con BOM lo manejan las partes del armado; sin BOM y con UNA sola entrada, esa.
   select 'tallerista'::text as tipo, v.ref_id::text as ref, v.comp_id,
          case when exists (select 1 from componente_bom b where b.componente_padre_id = v.comp_id)
               then null::bigint
@@ -6920,6 +7036,12 @@ cp as (
     from orden_compra o where o.estado in ('borrador','enviada')
   union all
   select 'virgilio', 'virgilio', 'Virgilio'
+  union all
+  -- INYECTORES como contraparte (el front los agrupa bajo "Prov. de servicio").
+  select distinct 'inyector', c.proveedor, c.proveedor
+    from componente c
+   where c.material_id is not null and c.estado_compra is null and c.proveedor is not null
+     and exists (select 1 from proveedor_insumo pi where pi.nombre = c.proveedor)
 )
 select jsonb_build_object(
   'generado_en', now(),
@@ -6986,13 +7108,14 @@ begin
     when 'proveedor_servicio' then (select nombre from proveedor_servicio where id = v_ref::bigint)
     when 'proveedor_at'       then (select nombre from proveedor_at where id = v_ref::bigint)
     when 'proveedor_insumo'   then v_ref
+    when 'inyector'           then (select nombre from proveedor_insumo where nombre = v_ref)
     when 'virgilio'           then 'Virgilio'
   end;
   if v_nom is null then
     raise exception 'Contraparte inexistente (tipo=%, ref=%).', coalesce(v_tipo,'null'), v_ref;
   end if;
-  if v_modo = 'enviar' and v_tipo not in ('tallerista','proveedor_servicio','proveedor_at') then
-    raise exception 'A "%" no se le envia desde la tablet: solo talleristas, prov. de servicio y prov. art. terminado.', v_nom;
+  if v_modo = 'enviar' and v_tipo not in ('tallerista','proveedor_servicio','proveedor_at','inyector') then
+    raise exception 'A "%" no se le envia desde la tablet: solo talleristas, prov. de servicio, prov. art. terminado e inyectores.', v_nom;
   end if;
 
   for it in select value from jsonb_array_elements(p->'items') loop
@@ -7015,6 +7138,9 @@ begin
         v_r := "GP2".crear_envio_tallerista(v_ref::bigint, v_comp, v_cant, v_uni, v_fecha);
       elsif v_tipo = 'proveedor_servicio' then
         v_r := "GP2".crear_envio_ps(v_ref::bigint, v_comp, v_cant, v_uni, v_fecha);
+      elsif v_tipo = 'inyector' then
+        -- bolsas de resina a un inyector: v_comp es el componente-resina (sector 14), v_cant en kg.
+        v_r := "GP2".enviar_material_inyector(v_ref, v_comp, v_cant, v_fecha);
       else
         v_r := "GP2".crear_envio_prov_at(v_ref::bigint, v_comp, v_cant, v_uni, v_fecha);
       end if;
@@ -7033,8 +7159,6 @@ begin
       elsif v_tipo = 'proveedor_insumo' then
         v_r := "GP2".crear_recepcion_insumo(v_comp, v_ref, v_cant, v_uni, v_remito, v_fecha);
       else
-        -- Virgilio manda partes/insumos de vuelta a Cervantes. El origen es donde esta
-        -- el stock (el deposito del sector en Virgilio si existe, si no el general).
         select sector_id, unidad_medida into v_sec, v_um from componente where id = v_comp;
         if v_sec is null then raise exception 'El componente % no existe', v_comp; end if;
         v_ubic_d := "GP2".ubic_de('sector', v_sec);
@@ -7060,8 +7184,6 @@ begin
     v_n := v_n + 1;
     v_res := v_res || jsonb_build_object('cod', v_cod, 'cantidad', v_cant, 'unidad', v_uni, 'res', v_r);
 
-    -- ALERTA: se recibio mas de lo que decia tener / de lo que pedia la OC.
-    -- No frena nada: ya quedo registrado arriba.
     if v_modo = 'recibir' and v_esp is not null then
       v_comparable := case when v_tipo = 'proveedor_at'
                            then v_cant * coalesce(nullif(v_por_caja,0), 1) else v_cant end;

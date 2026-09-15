@@ -38,6 +38,10 @@ const PERMITIDAS = {
   // Las llama algo que no es una pantalla.
   actualizar_dolar_oficial:  'la llama el cron del dólar',
   factura_lectura_permitida: 'la llama la Edge Function gp2_leer_factura (tope diario, idea 7339)',
+  // 2026-09-15: la pantalla Proporciones paso a SOLO LECTURA por pedido del dueño ("que no se
+  // pueda modificar la proporcion en el programa"): el % se carga por SQL con esta función, que
+  // valida (suman 100, el tallerista hace ese paso) y recalcula los máximos. Sin EXECUTE a anon.
+  reparto_guardar:           'mantenimiento: carga el reparto por SQL; la pantalla es solo lectura',
 };
 
 /* Internas: helpers de otras funciones, cuerpos de trigger y simuladores. No son RPC de
