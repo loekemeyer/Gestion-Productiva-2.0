@@ -6,6 +6,11 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
+<!-- v1.3.1 (2026-09-15) — FIX: en Enviar → Prov. de art. terminado, cada proveedor ve SOLO los
+     cartones/cajas que la receta de sus articulos usa (Cabral 39, Paternal Goma 1…), no los 191
+     de todo el sector 10/11. tablet_bundle: el prov AT deja de ir con ref '*' (recibe todo) y pasa
+     por el cruce articulo_prov_at→articulo→articulo_componente; n_env por proveedor; piezasDe filtra
+     por ref para todos. Kuffo/Manfer quedan en 0 (sin cartones en receta) y no aparecen en Enviar. -->
 <!-- v1.3.0 (2026-09-15) — LOS INYECTORES APARECEN DENTRO DE "PROV. DE SERVICIO" PARA ENVIARLES
      BOLSAS (usuario: "Tendria que aparecer en prov. de servicio para enviar las bolsas plasticas").
      No son proveedor_servicio en la base (son proveedor_insumo/inyector con material_id), asi que
@@ -351,9 +356,10 @@ function pintarCPS(){
 function piezasDe(c){
   var arr;
   if (MODO === "enviar") {
-    // el prov. AT recibe cualquier cartón/caja: el bundle lo marca con ref '*'
+    // Cada contraparte ve SOLO sus piezas (para prov. AT, los cartones/cajas que la receta de
+    // sus articulos usa; antes iba con ref '*' y mostraba los 191 a todos, bug 2026-09-15).
     arr = (D.enviar || []).filter(function(x){
-      return x.tipo === c.tipo && (x.tipo === "proveedor_at" || String(x.ref) === String(c.ref));
+      return x.tipo === c.tipo && String(x.ref) === String(c.ref);
     });
   } else {
     arr = (D.recibir || []).filter(function(x){ return x.tipo === c.tipo && String(x.ref) === String(c.ref); });

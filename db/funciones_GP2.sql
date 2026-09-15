@@ -6921,9 +6921,16 @@ env as (
         or (v.tipo = 'proveedor_servicio'
             and exists (select 1 from proveedor_servicio ps where ps.id = v.ref_id)) )
   union all
-  select 'proveedor_at', '*', c.id
-    from componente c
-   where c.sector_id in (10,11) and not coalesce(c.discontinuado,false)
+  -- PROV AT: solo los cartones/cajas que la receta de SUS articulos usa (no el catalogo
+  -- entero de sector 10/11). Antes iba con ref '*' y la pantalla mostraba 191 a todos
+  -- [bug 2026-09-15]. Mismo cruce que envios_prov_at_bundle / stock_general_extra_bundle.
+  select 'proveedor_at', apa.proveedor_at_id::text, ac.componente_id
+    from articulo_prov_at apa
+    join articulo a on a.codigo = apa.cod_art
+    join articulo_componente ac on ac.articulo_id = a.id
+    join componente c on c.id = ac.componente_id
+   where coalesce(apa.activo,true)
+     and c.sector_id in (10,11) and not coalesce(c.discontinuado,false)
   union all
   -- INYECTORES: se les envia la RESINA (bolsa) que consume cada pieza que inyectan.
   select 'inyector', c.proveedor, c.material_id
@@ -7059,9 +7066,7 @@ select jsonb_build_object(
   'contrapartes', (
     select coalesce(jsonb_agg(jsonb_build_object(
              'tipo', cp.tipo, 'ref', cp.ref, 'nombre', cp.nombre,
-             'n_env', case when cp.tipo = 'proveedor_at'
-                           then (select count(*) from env_x e where e.tipo = 'proveedor_at')
-                           else (select count(*) from env_x e where e.tipo = cp.tipo and e.ref = cp.ref) end,
+             'n_env', (select count(*) from env_x e where e.tipo = cp.tipo and e.ref = cp.ref),
              'n_rec', (select count(*) from rec_x r where r.tipo = cp.tipo and r.ref = cp.ref)
            ) order by cp.nombre), '[]'::jsonb)
       from cp where cp.nombre is not null),
