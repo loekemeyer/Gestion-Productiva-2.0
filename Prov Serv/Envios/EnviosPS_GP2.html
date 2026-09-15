@@ -1,7 +1,13 @@
 <!doctype html>
 <html lang="es">
 <head>
-<!-- v1.2.0 — la marca F se persiste en GP2.faltante_marcado (marcar/resolver_faltante, best-effort) -->
+<!-- v1.3.0 (2026-09-15) — LOS INYECTORES APARECEN JUNTO A LOS PS PARA ENVIARLES BOLSAS (usuario:
+     "agregalo como lo agregaste en la tablet pero en el modulo que te digo"). Igual que en la
+     Version Tablet: los inyectores (Pat Bet Plast, Pettofrezza, Kollplast) NO son proveedor_servicio
+     -> se traen de tablet_bundle (tipo 'inyector') y se listan en la grilla de PS con proceso
+     "Inyeccion". Al elegir uno, la tabla muestra sus RESINAS (bolsas) con un solo campo kg; el envio
+     se rutea a enviar_material_inyector (no a crear_envio_ps). Front-only, sin tocar envios_ps_bundle.
+     v1.2.0 — la marca F se persiste en GP2.faltante_marcado (marcar/resolver_faltante, best-effort) -->
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>Envío a Proveedores de Servicios · GP2</title>
@@ -122,9 +128,33 @@ async function cargar(){
   var r = await SB.rpc("envios_ps_bundle");
   if (r.error){ $("status").textContent = "Error: "+r.error.message; return; }
   D = r.data || { ps:[], partes:{} };
+  await cargarInyectores();   // los inyectores van JUNTO a los PS (best-effort)
   BUF.load();
   renderPS();
   $("status").textContent = (D.ps||[]).length + " proveedores con partes configuradas.";
+}
+
+/* Los INYECTORES aparecen junto a los PS para mandarles RESINA (bolsa) en kg [usuario 2026-09-15,
+   igual que en la Version Tablet]. No son proveedor_servicio: se traen de tablet_bundle (que ya los
+   devuelve como tipo 'inyector' con sus resinas) y el envio se rutea a enviar_material_inyector, no
+   a crear_envio_ps. Best-effort: si tablet_bundle falla, la pantalla sigue con los PS solos. */
+async function cargarInyectores(){
+  try {
+    var tb = await SB.rpc("tablet_bundle");
+    var d = tb && tb.data; if (!d) return;
+    (d.contrapartes||[]).filter(function(c){ return c.tipo==='inyector'; }).forEach(function(c){
+      var key = 'iny:'+c.nombre;
+      D.ps.push({ id:key, nombre:c.nombre, cod_prov:null, proceso:'Inyección', inyector:true });
+      D.partes[key] = (d.enviar||[])
+        .filter(function(x){ return x.tipo==='inyector' && String(x.ref)===String(c.ref); })
+        .map(function(x){
+          return { sc_id:x.comp_id, sc_cod:x.cod, sc_desc:x['desc'], sc_sector:x.sector,
+                   sc_um:'kg', sc_kgxuni:null, sc_unixcaj:null,
+                   online_sc:x.online_sector, online_ps:x.online_sector, online_sp:0,
+                   maximo:null, maximo_sp:null, sp_id:null };
+        });
+    });
+  } catch(e){ /* best-effort: sin inyectores si falla */ }
 }
 
 function renderPS(){
@@ -139,7 +169,7 @@ function renderPS(){
       // tabla; esto era lo que faltaba.
       var n = agruparPorSC((D.partes||{})[p.id]||[]).length;
       var cargado = E.cargadasDe(BUF.all[p.id], tieneAlgo).length;
-      return esc(p.proceso||"—") + " · " + n + " partes" + (cargado? " · "+cargado+" cargadas":"");
+      return esc(p.proceso||"—") + " · " + n + (p.inyector? " bolsas":" partes") + (cargado? " · "+cargado+" cargadas":"");
     },
     onPick: elegirPS
   });
@@ -189,7 +219,32 @@ function agruparPorSC(arr){
   return orden.map(function(k){ return porSC[k]; });
 }
 
+/* Tabla simple para un INYECTOR: cada RESINA (bolsa) con su kg a enviar. Las columnas del flujo
+   SC->PS->SP (Online SP, Max, Sugerido, Cajón) no aplican y van en "—". El envío es en kg. */
+function renderTablaInyector(){
+  var arr = partesFiltradas();
+  var tb = $("tbody"); tb.innerHTML = "";
+  $("tblEmpty").classList.toggle("hidden", arr.length>0);
+  arr.forEach(function(x){
+    var it = BUF.item(selPS.id, keyDe(x));
+    var tr = document.createElement("tr");
+    tr.dataset.k = keyDe(x);
+    tr.innerHTML =
+      '<td><span class="cod">'+esc(x.sc_cod)+'</span><br><small style="color:#777">'+esc(x.sc_desc||"")+'</small></td>'+
+      '<td class="num" style="color:#bbb">—</td>'+
+      E.tdInput("kg", it.kg, false, null, "decimal")+
+      '<td class="ctr">—</td>'+
+      '<td class="ctr">—</td>'+
+      '<td class="sep">bolsa · kg</td>'+
+      '<td class="num">'+(x.online_ps==null?"—":fmt(x.online_ps))+'</td>'+
+      '<td class="num">—</td><td class="num">—</td><td class="num">—</td>';
+    tb.appendChild(tr);
+  });
+  actualizarEnviar();
+}
+
 function renderTabla(){
+  if (selPS && selPS.inyector) return renderTablaInyector();
   var arr = partesFiltradas();
   var tb = $("tbody");
   tb.innerHTML = "";
@@ -313,19 +368,23 @@ $("btnEnviar").addEventListener("click", async function(){
   var metaPorK = {};
   arr.forEach(function(x){ metaPorK[keyDe(x)] = x; });
 
-  // el kg neto es obligatorio cuando se declararon cajones
-  var faltanKg = items.filter(function(o){ return num(o.it.caj)>0 && !(num(o.it.kg)>0); })
-                      .map(function(o){ return (metaPorK[o.k]||{}).sc_cod || o.k; });
-  if (faltanKg.length){
-    alert("Falta cargar Kg neto para: " + faltanKg.join(", "));
-    return;
+  // el kg neto es obligatorio cuando se declararon cajones (los inyectores van solo en kg)
+  if (!selPS.inyector){
+    var faltanKg = items.filter(function(o){ return num(o.it.caj)>0 && !(num(o.it.kg)>0); })
+                        .map(function(o){ return (metaPorK[o.k]||{}).sc_cod || o.k; });
+    if (faltanKg.length){
+      alert("Falta cargar Kg neto para: " + faltanKg.join(", "));
+      return;
+    }
   }
 
   var resumen = items.map(function(o){
     var m = metaPorK[o.k] || {};
-    return (m.sc_cod||o.k)+": "+fmt(num(o.it.caj),1)+" caj / "+fmt(num(o.it.kg),0)+" kg";
+    return selPS.inyector
+      ? (m.sc_cod||o.k)+": "+fmt(num(o.it.kg),2)+" kg"
+      : (m.sc_cod||o.k)+": "+fmt(num(o.it.caj),1)+" caj / "+fmt(num(o.it.kg),0)+" kg";
   }).join("\n");
-  if (!confirm("Enviar a "+selPS.nombre+":\n\n"+resumen)) return;
+  if (!confirm((selPS.inyector?"Enviar bolsas a ":"Enviar a ")+selPS.nombre+":\n\n"+resumen)) return;
 
   var fecha = $("fFecha").value || hoyISO();
   var btn = $("btnEnviar");
@@ -335,6 +394,16 @@ $("btnEnviar").addEventListener("click", async function(){
   var res = await E.guardarItems(items, {
     rpc: function(o){
       var m = metaPorK[o.k] || {};
+      if (selPS.inyector){
+        // bolsas de resina a un inyector: se manda la resina (m.sc_id) en kg. Mismo RPC que
+        // Compras/Inyectores_GP2.html y que la Version Tablet.
+        return SB.rpc("enviar_material_inyector", {
+          p_proveedor: selPS.nombre,
+          p_comp_id: Number(m.sc_id),
+          p_kg: num(o.it.kg),
+          p_fecha: fecha
+        });
+      }
       return SB.rpc("crear_envio_ps", {
         p_ps_id: selPS.id,
         p_comp_sc_id: Number(m.sc_id != null ? m.sc_id : String(o.k).split(":")[0]),
@@ -371,7 +440,7 @@ $("btnEnviar").addEventListener("click", async function(){
   if (!faltSolo) delete BUF.all[selPS.id];
   BUF.save();
 
-  E.mostrarExito(res.ok + " partes enviadas a " + selPS.nombre + " · " + fecha +
+  E.mostrarExito(res.ok + (selPS.inyector? " bolsas enviadas a ":" partes enviadas a ") + selPS.nombre + " · " + fecha +
     (faltSolo ? " · OJO: "+faltSolo+" marca(s) F sin cantidad NO se registran (siguen cargadas)" : ""));
 });
 
