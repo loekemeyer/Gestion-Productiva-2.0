@@ -121,33 +121,26 @@ plástica (sector 6)**, más el 4 % de master bach para el color. Es un **servic
 - **Hoy la pieza está modelada como COMPRADA**, no como inyectada: `componente.proveedor` = el
   inyector (Pat Bet Plast 34, Pettofrezza 13, Kollplast 1, Eduardo Pintos 1 = 49 piezas) y se
   recibe en Recepción de Insumos (rubro Plásticos) como cualquier insumo comprado.
-- **Modelo PS completo (pendiente, decidido pero no ejecutado):** el usuario quiere modelarlo como
-  el servicio que es — envío de resina como proveedor de servicio, recepción de la pieza en
-  Recepción de Insumos — lo que cambia el costeo de *comprada* a *inyectada* (resina × precio +
-  master bach + inyección). Es cirugía sobre 48 piezas → va con `gp2-cirujano` y con el SQL a la
-  vista antes de ejecutar. El plan y el estado viven en `PENDIENTE_INYECTORES_PS.md`.
-- **MATERIAL POR PIEZA — YA RESUELTO `[usuario 2026-09-15, planilla]`.** El dato definitivo NO estaba
-  en `A_Costos` (ahí la resina va por descripción genérica); está en la planilla del sector plástico
-  que el usuario subió y **ahora vive en `db/Conteo_y_Pedido_Sector_Plastico_VACIO.xls`** (hojas
-  *Consumo x Parte* y *Consumo x Cod Articulo*, columnas Material + MB color). **kg por pieza sale de
-  `componente.kg_x_uni`; el material, de esa planilla.** Mapeo (48 piezas, PEP5 madera afuera):
-  - **PP 2630:** PEST1, PA17, PA19, PB6, PB8B, PC6, PC7, PEP1, PEP2, PEST2, PC10, PC11, PV14, PA4B, PA5B, PC2, PC3B, PC8
-  - **ABS GP 22:** PA10B, PA13B, PA18B, PC15AB, PC15B, PV17
-  - **PE Baja 7147:** PA1, PA2, PA9, PA12, PA7A, PA7B
-  - **PS HF 555:** PB5, PC13, PC14
-  - **Nylon Virgen (PA6N):** PA8A, PA8B
-  - **Nylon Recuperado:** PV1, PV2, PV3, PV5, PV6, PV7, PV8, PV8B
-  - **Nylon c/Carga 25 %:** PB2
-  - **Alto Impacto AI 4600:** PEP4
-  - **Santoprene:** PA3 (kg 0,008; **la resina Santoprene no existe aún como componente sector 14** —
-    hay que crearla con su precio). Goma Eva NO hace falta: ninguna de las 48 la usa.
-  - **Abiertas (2):** `PB8A` (planilla dice ABS 22 g pero el kg de GP2 es 16,4 g → por peso PP; conflicto)
-    y `PC16` "Inserto Chef" (sin kg y sin fila clara). Esperan al usuario.
-  - **Trampa que mordió:** el cruce por peso contra `A_Costos` daba **PV8 "Corta Torta" = Alto Impacto**;
-    la planilla del sector dice **Ny Recuperado**. La planilla del sector manda, `A_Costos` no.
-- **Este mapeo TODAVÍA NO está escrito en las tablas de la base** (componente_bom / costeo). Escribirlo
-  es la cirugía (cambia el costeo de las 48) y espera el OK del usuario sobre las 2 abiertas + el
-  precio del Santoprene + el SQL. Hasta entonces la fuente de verdad es este bloque + el .xls + el .md.
+- **EL MODELO YA ESTABA EN LA BASE — no hubo cirugía `[2026-09-15]`.** La resina de cada pieza vive en
+  **`componente.material_id`** (apunta al componente-resina del sector 14). 45 de las 48 ya lo tenían
+  cargado y COINCIDÍA con la planilla del usuario. NO se costean por el material: `v_costo_componente`
+  las da por su **precio de compra** (`origen='precio'`, lo que se le paga al inyector por la pieza
+  hecha); `material_id` maneja la **demanda de resina** (cuánta bolsa mandar) y el descuento de resina
+  al recibir la pieza (`crear_recepcion_insumo`, sólo si `material_id` está y el inyector tiene ubicación
+  — invariante A2). Por eso poner/cambiar `material_id` NO mueve el costo.
+- **Fuente del material por pieza:** la planilla del sector plástico, **ahora en
+  `db/Conteo_y_Pedido_Sector_Plastico_VACIO.xls`** (hojas *Consumo x Parte* / *Consumo x Cod Articulo*,
+  col Material + MB color). kg por pieza en `componente.kg_x_uni`.
+- **Lo que se completó/corrigió (usuario dictó los 3):**
+  - **PA3** Muñeco → **Santoprene** (`SANTO` id 930, creada sin precio) + kg 0,008 (planilla).
+  - **PC16** Inserto Chef → **PP 2630** + kg 0,0038.
+  - **PB8A** Mgo Sacac → estaba en PP; el usuario dijo "seguí la planilla" → **ABS**.
+  - PEP5 "Mango Madera" queda sin material a propósito (es madera, no inyectado).
+- **Corrección:** el cruce por peso contra `A_Costos` daba **PV8 "Corta Torta" = Alto Impacto**; tanto
+  la planilla del sector como el `material_id` ya cargado dicen **Ny Recuperado**. La planilla del
+  sector manda, `A_Costos` no.
+- **Santoprene sin precio:** hasta que tenga precio, la demanda/costeo por material de PA3 no computa
+  (PA3 igual costea por su precio de compra).
 - **El atajo del botón se probó y se descartó** (2026-09-14): por un rato la Versión Tablet tuvo
   un botón **"Inyectores"** en Enviar que abría `Compras/Inyectores_GP2.html` (que ya manda las
   bolsas en kg con `enviar_material_inyector`). El usuario lo rechazó — *"saca el boton de
@@ -9947,7 +9940,68 @@ cada uno** para una demanda de 28.108 uni/mes del 505, y lo mismo en Clavo, Mang
 siguen siendo el mínimo viejo migrado. `recalcular_maximos_talleristas(false)` los recalcula
 todos de una (294 filas cambiarían, la suma baja 18 %: de 1.241.303 a 1.019.605 unidades).
 
-## 4dv. El 510 lo hace solo Alex, la pantalla queda de sólo lectura, y por qué (2026-09-15)
+## 4dv. C12B: la paleta sin cromar es un código propio, y eso es la convención de la casa (2026-09-15)
+
+**Lo que pidió el dueño** [usuario 2026-09-14, textual]: *"En el articulo 515 y 615, cuando vuelve de
+alex escalante quiero que sea C12B y despues de cromarse C12"*.
+
+**Cómo quedaron las 6 rutas** (994/995/1010 del 515 y 1001/1002/1011 del 615):
+
+```
+… → Alex Escalante (armado) → C12B → Pedernera Ilario (cromado) → C12 → Alex Escalante → 515/615
+```
+
+Antes, Alex entregaba C12 y Pedernera hacía un paso `entrada = salida` sobre C12: el cromado no
+tenía dónde apoyarse, porque la pieza entraba y salía con el mismo código.
+
+**ESTO NO ES UNA EXCEPCIÓN, ES LA REGLA QUE YA SEGUÍA EL RESTO DE GP2.** Medido el 2026-09-15:
+**260 pasos de proveedor de servicio en 240 rutas ya tienen entrada ≠ salida**, contra 71 pasos en
+65 rutas con entrada = salida. Y el sufijo `B` para "antes del servicio" ya estaba en uso:
+`PA4B→PA4`, `PA5B→PA5`, `PA10B→PA10`, `PA13B→PA13`, `PA18B→PA18`, `PC15AB→PC15A`, `PC3B→PC1B`,
+`D13B→D13`, `Z2B→Z2A`, `Z3B→Z3A`. 515/615 eran la excepción; ahora no lo son.
+
+**El costo NO se movió, y eso se verificó dentro de la misma transacción** (la migración tenía un
+`raise` que revertía todo si algo cambiaba un centavo):
+
+| Código | Antes | Después |
+|---|---|---|
+| 515 | 411,76 | 411,76 |
+| 615 | 491,40 | 491,40 |
+| C12 | 88,49 | 88,49 |
+
+**LA TRAMPA QUE CASI CUESTA $ 62,74 POR UNIDAD:** `v_costo_componente` pega el precio del tallerista
+por **(tallerista, `comp_salida_id` del paso)** — o sea, sobre la pieza que el tallerista ENTREGA.
+El precio de Alex ("Batidor Resorte Armado", ARS 62,7375) estaba cargado sobre C12. Al pasar el
+armado a entregar C12B, **si el precio se quedaba en C12 ningún paso entregaba C12 y el armado
+desaparecía del costo** de 515, 615 y C12. Por eso la migración lo mueve a C12B. Vale para cualquier
+corte futuro de este tipo: **el precio del tallerista viaja con la pieza que entrega, no con el nombre.**
+
+**Por qué el servicio de Pedernera siguió valiendo lo mismo:** el paso dejó de ser `selfsrv`
+(entrada = salida) y pasó a ser una arista de `edges`, pero las dos ramas de la CTE `srv` terminan
+dando el mismo par `(componente, Pedernera)`. El valor y el conteo de `faltan_precios` no se movieron.
+
+**Efecto lateral BUENO:** el cromado ahora tiene dónde apoyarse. Hoy `C12B` y `C12` cuestan los dos
+88,49 porque **Pedernera / Cromado no tiene precio cargado**; el día que se cargue, la diferencia
+entre los dos ES el cromado. Antes no había forma de separarlo.
+
+**El máximo lo puso la base sola, no la migración.** `trg_maximos_rutas` (en `ruta_paso`, FOR EACH
+STATEMENT → `fn_recalc_maximos_insumos`) se disparó con el UPDATE y le calculó a C12B **máximo 1656,
+origen `est_madre`** — el mismo que C12. Es exactamente lo que ya pasa con los pares existentes
+(`PA4B` y `PA4` tienen los dos 7.680 `est_madre`). **Consecuencia a tener presente:** Sector Bombilla
+ahora muestra DOS líneas de 1.656 para lo que físicamente es la misma pieza en dos etapas, así que el
+"falta" del sector la cuenta dos veces. Es el comportamiento que ya tenían los otros 10 pares, no un
+bug nuevo — pero si molesta, se corrige poniendo el máximo sólo en el código que se consume (C12).
+
+**Detalle de ubicación que queda a criterio del dueño:** C12B se creó en el **mismo sector que C12**
+(7, Bombilla), como `PA4B`/`PA4`. Otros pares se modelan al revés: `D13B` y `Z2B` viven en Sector
+Crudo y sus pares cromados en Sector Procesado. Si la paleta sin cromar en realidad se guarda en otro
+lado, se mueve la fila de `inventario`, no el componente.
+
+**Lo que NO se tocó, a propósito:** la receta del artículo (`articulo_componente`) sigue diciendo
+515 → C12 y 615 → C12, porque el artículo se arma con la pieza YA cromada. Y los 6 pasos
+`tallerista` que van de C12 a 515/615 quedaron igual.
+
+## 4dw. El 510 lo hace solo Alex, la pantalla queda de sólo lectura, y por qué (2026-09-15)
 
 **Tres cosas del mismo tirón** [usuario, textual]: *"510 solo alex lo hace"*, *"Que no se pueda
 modificar la proporción en el programa"* y *"quiero que me pongas los máximos de cada parte del

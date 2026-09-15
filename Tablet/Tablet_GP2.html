@@ -6,6 +6,14 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
+<!-- v1.3.0 (2026-09-15) — LOS INYECTORES APARECEN DENTRO DE "PROV. DE SERVICIO" PARA ENVIARLES
+     BOLSAS (usuario: "Tendria que aparecer en prov. de servicio para enviar las bolsas plasticas").
+     No son proveedor_servicio en la base (son proveedor_insumo/inyector con material_id), asi que
+     NO se creo un modelo PS falso: tablet_bundle ahora devuelve los inyectores como contraparte
+     tipo 'inyector' con sus RESINAS (sector 14) como envio, y cpsDelTipo los agrupa bajo el tipo
+     "Prov. de servicio". El envio de bolsas lo rutea tablet_registrar a enviar_material_inyector
+     (un solo RPC, sin duplicar la logica de Compras/Inyectores_GP2.html). El operario elige el
+     inyector, tipea kg de cada resina y listo. Migracion tablet_enviar_bolsas_a_inyector. -->
 <!-- v1.2.1 (2026-09-14) — SE SACA EL BOTON "INYECTORES" que v1.2.0 habia agregado en Enviar
      [usuario: "saca el boton de inyectores y arranca la cirugia"]. Era un tipo-link a
      Compras/Inyectores_GP2.html como atajo sin cirugia, pero el usuario quiere a los 3 inyectores
@@ -195,7 +203,7 @@ var BUF = E.buffer("gp2_tablet_buffer", function(){ return { q: "" }; });
 var TIPOS = {
   enviar: [
     { tipo: "tallerista",         icono: "👷", titulo: "Talleristas",            sub: "lo que arman afuera" },
-    { tipo: "proveedor_servicio", icono: "🏭", titulo: "Prov. de servicio",      sub: "pintan, niquelan, cortan" },
+    { tipo: "proveedor_servicio", icono: "🏭", titulo: "Prov. de servicio",      sub: "pintan, niquelan, cortan, inyectan" },
     { tipo: "proveedor_at",       icono: "📦", titulo: "Prov. de art. terminado", sub: "cartones y cajas" }
   ],
   recibir: [
@@ -257,7 +265,12 @@ function cpsDelModo(){
   });
 }
 function cpsDelTipo(tipo){
-  return cpsDelModo().filter(function(c){ return c.tipo === tipo; });
+  // Los INYECTORES (tipo 'inyector') se muestran DENTRO de "Prov. de servicio": el usuario los
+  // manda al mismo lugar mental. En la base son proveedor_insumo/inyector, no proveedor_servicio;
+  // el envio de bolsas lo rutea tablet_registrar a enviar_material_inyector. [usuario 2026-09-15]
+  return cpsDelModo().filter(function(c){
+    return c.tipo === tipo || (tipo === "proveedor_servicio" && c.tipo === "inyector");
+  });
 }
 /* la contraparte como la espera el resto de la pantalla (id = clave del buffer) */
 function cpItem(c){
