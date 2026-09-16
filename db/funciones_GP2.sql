@@ -4424,7 +4424,7 @@ with pend as (
            pp.fecha_lista desc nulls last, pp.id desc
 ), ins as (
   select c.id comp_id, c.codigo, c.descripcion, c.sector_id, s.nombre sector,
-         c.unidad_medida um, c.kg_x_uni,
+         c.unidad_medida um, c.kg_x_uni, c.uni_x_cajon,
          nullif(trim(c.proveedor),'') proveedor,
          coalesce(u.meses_stock, inv.meses_stock) meses_stock,
          case when c.sector_id = 5 then fk.consumo_kg_mes else cp.consumo_uni_mes end consumo,
@@ -4489,7 +4489,7 @@ with pend as (
 select jsonb_build_object(
   'insumos', (select coalesce(jsonb_agg(jsonb_build_object(
       'comp_id',comp_id,'codigo',codigo,'descripcion',descripcion,'sector',sector,'sector_id',sector_id,
-      'proveedor',proveedor,'um',um,'unidad',unidad,'kg_x_uni',kg_x_uni,
+      'proveedor',proveedor,'um',um,'unidad',unidad,'kg_x_uni',kg_x_uni,'uni_x_cajon',uni_x_cajon,
       'consumo',consumo,'consumo_uni_mes',consumo,'meses',meses_stock,
       'online',coalesce(online,0),'stock',coalesce(online,0),
       'maximo',maximo_ef,'maximo_origen',maximo_origen_ef,'maximo_inventario',maximo_inv,
