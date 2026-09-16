@@ -123,6 +123,9 @@ window.supabase = { createClient: function(){ return {
   // el inyector ahora trae el sugerido de bolsas (kg) precargado: Σ deficit de partes × kg_x_uni
   const ivals = await page.$$eval('#tbody input.cell-in', xs => xs.map(x => x.value));
   ok(ivals[0] === '200' && ivals[1] === '30', 'inyector: sugerido de bolsas (kg) precargado — ' + ivals.join(' , '));
+  // inyector: la columna del medio se llama "O.C." (el pedido surge de la O.C. de partes)
+  const thIny = await page.$$eval('#thead th', xs => xs.map(x => x.textContent.trim()));
+  ok(thIny[2] === 'O.C.', 'inyector: columna del medio rotulada O.C. — ' + thIny.join(' | '));
   await page.click('#btnVolver');        // vuelve a las contrapartes del tipo
   await page.click('#btnVolverTipo');    // y a los tipos, para seguir el flujo
 

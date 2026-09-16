@@ -6,6 +6,10 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
+<!-- v1.4.3 (2026-09-16) — INYECTOR: LA COLUMNA DEL MEDIO SE LLAMA "O.C." (usuario: "si el pedido surge
+     de o.c quiero que en vez de max me aparezca o.c"). Para inyectores el pedido surge de la O.C. de
+     partes plásticas, así que el encabezado pasa de "Máximo" a "O.C." (mismo valor). PS/talleristas
+     siguen con "Máximo". Solo el rótulo del thead cuando selCP.tipo==='inyector'. -->
 <!-- v1.4.2 (2026-09-16) — SUGERIDO DE BOLSAS PARA INYECTORES EN ENVIAR (usuario: "según el máximo
      de partes plásticas − stock de partes plásticas = O.C., mandarle la cantidad de bolsas según esa
      OC"). Al elegir un inyector (Pat Bet Plast, Pettofrezza, Kollplast, JL Matriceria), cada resina
@@ -403,9 +407,12 @@ function elegir(c){
   $("fRemito").classList.toggle("hidden", !esRec);
   if (!$("fFecha").value) $("fFecha").value = hoyISO();
   $("q").value = "";
+  // Inyector: el pedido surge de la O.C. de partes plásticas, así que la columna del medio se
+  // rotula "O.C." en vez de "Máximo" [usuario 2026-09-16]. PS/talleristas siguen con "Máximo".
+  var _midLbl = (selCP.tipo === "inyector") ? "O.C." : "Máximo";
   $("thead").innerHTML = MODO === "enviar"
     ? (envConSugerido()
-        ? "<th>Pieza</th><th class=\"num\">Stock</th><th class=\"num\">Máximo</th><th class=\"num\">Sugerido</th><th class=\"num sep\">Cantidad</th>"
+        ? "<th>Pieza</th><th class=\"num\">Stock</th><th class=\"num\">" + _midLbl + "</th><th class=\"num\">Sugerido</th><th class=\"num sep\">Cantidad</th>"
         : "<th>Pieza</th><th class=\"num\">Online sector</th><th class=\"num sep\">Cantidad</th>")
     : "<th>Pieza</th><th class=\"num\">Esperado</th><th class=\"num sep\">Recibido</th>";
   // precarga UNA vez: el sugerido entra como cantidad por defecto (editable). Sólo toca campos sin
