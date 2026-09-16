@@ -162,8 +162,12 @@ plásticas según esa orden de compra. Porque básicamente le mandamos bolsas pl
 nos manden las partes plásticas."* O sea, el máximo/OC **vive en la PARTE plástica (sector 6), no en
 la bolsa**:
 1. `OC_parte (uni) = max(0, maximo_parte − stock_parte)` (la parte, en el Sector Plástico).
-2. `bolsas a mandar (kg de resina) = Σ_partes( OC_parte × componente.kg_x_uni )`, **agrupado por
-   `material_id`** (la resina/bolsa, sector 14). `kg_x_uni` = kg de resina por pieza, ya cargado.
+2. `bolsas a mandar (kg de resina) = Σ_partes( OC_parte × componente.kg_x_uni ) − resina ya en poder
+   del inyector`, **agrupado por `material_id`** (la resina/bolsa, sector 14). `kg_x_uni` = kg de
+   resina por pieza, ya cargado. `[corrección 2026-09-16]` la fórmula original era de 2 términos;
+   se le agregó el 3er término (resina en tránsito) a pedido del usuario, para no re-mandar bolsas
+   ya enviadas: la resina en poder del inyector vive en `inventario` @ `ubic_de('inyector', prov_insumo_id)`
+   (ahí la deja `enviar_material_inyector`, que la mueve del sector 14).
 - **El factor y los máximos ya existen:** las partes de los 4 inyectores ya tienen máximo est_madre
   (JL Matriceria 2/2, Kollplast 1/1, Pat Bet Plast 32/33 —falta 1 sin consumo—, Pettofrezza 13/13).
   Lo que **falta es que la tablet lo muestre como sugerido de bolsas** para el inyector (hoy en
