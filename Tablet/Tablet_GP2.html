@@ -6,6 +6,11 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
+<!-- v1.4.1 (2026-09-16) — SE SACA "N sin registrar" DE LAS BALDOSAS DE TIPO EN ENVIAR (usuario:
+     "me aparece 3 sin registrar/1 sin registrar"). Desde la precarga de v1.4.0, abrir una
+     contraparte PS/tallerista ya llena el buffer con el sugerido, así que el cartelito contaba
+     como "sin registrar" destinos que el operario ni tocó. Se elimina el badge de pintarTipos
+     (queda sólo el número de contrapartes). El chip por contraparte sigue mostrando "N cargadas". -->
 <!-- v1.4.0 (2026-09-16) — ENVIAR MUESTRA CUÁNTO MANDAR (usuario: "máximo de pliegos adhesivados −
      stock de pliegos adhesivados = lo que debería mandarle", "precarga en el campo cantidad").
      En Enviar a PROV. DE SERVICIO y TALLERISTA cada fila trae ahora Stock | Máximo | Sugerido de la
@@ -323,15 +328,15 @@ function pintarTipos(){
   (TIPOS[MODO] || []).forEach(function(t){
     var lista = t.link ? null : cpsDelTipo(t.tipo);
     if (lista && !lista.length) return;   // un tipo sin contrapartes no se dibuja: no lleva a nada
-    var pend = lista ? lista.filter(function(c){ return cargadasDeCP(c) > 0; }).length : 0;
     var b = document.createElement(t.link ? "a" : "button");
     if (t.link) b.href = t.link; else b.type = "button";
     b.className = "tipo-btn";
     b.dataset.tipo = t.tipo;
-    // el número sin la palabra "contraparte": el título del tipo ya dice qué son
+    // el número sin la palabra "contraparte": el título del tipo ya dice qué son. NO se muestra
+    // "N sin registrar" [usuario 2026-09-16]: desde que Enviar precarga el sugerido, abrir una
+    // contraparte ya llenaba el buffer y el cartelito contaba destinos sin trabajo real.
     b.innerHTML = '<span class="ti">' + t.icono + " " + esc(t.titulo) + "</span><small>" + esc(t.sub) +
-      (lista ? " · " + lista.length : "") +
-      (pend ? " · <b>" + pend + " sin registrar</b>" : "") + "</small>";
+      (lista ? " · " + lista.length : "") + "</small>";
     if (!t.link) b.addEventListener("click", function(){ elegirTipo(t); });
     g.appendChild(b);
   });
