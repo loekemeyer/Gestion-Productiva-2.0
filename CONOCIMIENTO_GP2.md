@@ -164,10 +164,16 @@ la bolsa**:
 1. `OC_parte (uni) = max(0, maximo_parte − stock_parte)` (la parte, en el Sector Plástico).
 2. `bolsas a mandar (kg de resina) = Σ_partes( OC_parte × componente.kg_x_uni ) − resina ya en poder
    del inyector`, **agrupado por `material_id`** (la resina/bolsa, sector 14). `kg_x_uni` = kg de
-   resina por pieza, ya cargado. `[corrección 2026-09-16]` la fórmula original era de 2 términos;
-   se le agregó el 3er término (resina en tránsito) a pedido del usuario, para no re-mandar bolsas
-   ya enviadas: la resina en poder del inyector vive en `inventario` @ `ubic_de('inyector', prov_insumo_id)`
-   (ahí la deja `enviar_material_inyector`, que la mueve del sector 14).
+   resina por pieza, ya cargado. La resina en poder del inyector vive en `inventario` @
+   `ubic_de('inyector', prov_insumo_id)` (ahí la deja `enviar_material_inyector`, que la mueve del sector 14).
+   - **`OC_parte` = O.C. REAL, no el déficit automático `[usuario 2026-09-16, textual]`:** *"si no se
+     hizo la o.c. aparezca 0, por lo tanto sugerido 0. Recién cuando se manda la o.c. tienen que
+     cambiar estos valores."* Así que en el tablet el inyector muestra O.C.=0 y sugerido=0 hasta que
+     exista una **orden_compra de las partes plásticas en estado `enviada`** con `proveedor` = el
+     inyector (se crea en `Compras/OC_GP2`, que ya cubre las partes de sector 6). `OC_parte` =
+     `Σ (orden_compra_item.cantidad − recibido)` de esas OC enviadas. (rep_iny en `tablet_bundle`.)
+   - **Distinto de PS/talleristas:** ahí el sugerido SÍ sale del déficit vivo (máximo − stock de la
+     salida); el gatillo por O.C. es sólo del inyector.
 - **El factor y los máximos ya existen:** las partes de los 4 inyectores ya tienen máximo est_madre
   (JL Matriceria 2/2, Kollplast 1/1, Pat Bet Plast 32/33 —falta 1 sin consumo—, Pettofrezza 13/13).
   Lo que **falta es que la tablet lo muestre como sugerido de bolsas** para el inyector (hoy en

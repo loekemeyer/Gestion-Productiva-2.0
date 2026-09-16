@@ -4424,7 +4424,7 @@ with pend as (
            pp.fecha_lista desc nulls last, pp.id desc
 ), ins as (
   select c.id comp_id, c.codigo, c.descripcion, c.sector_id, s.nombre sector,
-         c.unidad_medida um, c.kg_x_uni,
+         c.unidad_medida um, c.kg_x_uni, c.uni_x_cajon,
          nullif(trim(c.proveedor),'') proveedor,
          coalesce(u.meses_stock, inv.meses_stock) meses_stock,
          case when c.sector_id = 5 then fk.consumo_kg_mes else cp.consumo_uni_mes end consumo,
@@ -4489,7 +4489,7 @@ with pend as (
 select jsonb_build_object(
   'insumos', (select coalesce(jsonb_agg(jsonb_build_object(
       'comp_id',comp_id,'codigo',codigo,'descripcion',descripcion,'sector',sector,'sector_id',sector_id,
-      'proveedor',proveedor,'um',um,'unidad',unidad,'kg_x_uni',kg_x_uni,
+      'proveedor',proveedor,'um',um,'unidad',unidad,'kg_x_uni',kg_x_uni,'uni_x_cajon',uni_x_cajon,
       'consumo',consumo,'consumo_uni_mes',consumo,'meses',meses_stock,
       'online',coalesce(online,0),'stock',coalesce(online,0),
       'maximo',maximo_ef,'maximo_origen',maximo_origen_ef,'maximo_inventario',maximo_inv,
@@ -6973,16 +6973,15 @@ rep as (
     ) x
    group by e.tipo, e.ref, e.comp_id
 ),
--- INYECTOR: el sugerido de la bolsa (resina) sale del deficit de las PARTES plasticas que la usan.
--- Todo en kg de resina: (maximo_parte - stock_parte) * kg_x_uni, agrupado por (inyector, resina).
+-- INYECTOR: el pedido de bolsas surge de la O.C. de partes plasticas ENVIADA (no del deficit
+-- automatico). Sin OC enviada -> maximo(O.C.)=0 y sugerido=0; recien cuando se manda la OC de partes
+-- (Compras/OC_GP2, proveedor = el inyector) aparecen los kg de bolsa. [usuario 2026-09-16]
 rep_iny as (
   select 'inyector'::text as tipo, c.proveedor as ref, c.material_id as comp_id,
-         sum(coalesce(im.maximo,0)   * coalesce(c.kg_x_uni,0)) as maximo_dest,
-         sum(coalesce(im.cantidad,0) * coalesce(c.kg_x_uni,0)) as stock_dest,
+         sum(coalesce(ocp.pend,0) * coalesce(c.kg_x_uni,0)) as maximo_dest,  -- O.C. de partes -> kg de resina
+         0::numeric as stock_dest,                                           -- el Stock lo pone online_sector en el front
          greatest(0, round(
-            sum(greatest(0, coalesce(im.maximo,0) - coalesce(im.cantidad,0)) * coalesce(c.kg_x_uni,0))
-            -- 3er termino: la resina que YA le mandamos y todavia no volvio como pieza (kg en poder
-            -- del inyector, ubic tipo 'inyector'). Evita re-mandar bolsas en transito.
+            sum(coalesce(ocp.pend,0) * coalesce(c.kg_x_uni,0))
             - coalesce((select ir.cantidad from inventario ir
                          where ir.componente_id = c.material_id
                            and ir.ubicacion_id = ubic_de('inyector',
@@ -6990,8 +6989,14 @@ rep_iny as (
                          limit 1), 0)
          , 2)) as sugerido
     from componente c
-    left join inventario im on im.componente_id = c.id
-                          and im.ubicacion_id = ubic_de('sector', c.sector_id)
+    left join lateral (
+       -- el vinculo es la PIEZA (c.proveedor ya es el inyector), no o.proveedor: la OC de rubro
+       -- Plastico abarca partes de varios inyectores y puede venir con proveedor NULL.
+       select sum(oi.cantidad - coalesce(oi.recibido,0)) as pend
+         from orden_compra o
+         join orden_compra_item oi on oi.oc_id = o.id
+        where o.estado = 'enviada' and oi.componente_id = c.id
+    ) ocp on true
    where c.material_id is not null and c.estado_compra is null and c.proveedor is not null
      and exists (select 1 from proveedor_insumo pi where pi.nombre = c.proveedor)
    group by c.proveedor, c.material_id
@@ -7071,6 +7076,15 @@ env_x as (
          coalesce((select i.cantidad from inventario i
                     where i.componente_id = c.id
                       and i.ubicacion_id = ubic_de('sector', c.sector_id) limit 1), 0) online_sector,
+         -- saldo en poder del tercero = lo que le enviamos − lo que nos entregó = inventario de lo
+         -- que se le manda (la pieza/resina) en la ubicacion del destino. [usuario 2026-09-16]
+         coalesce((select i.cantidad from inventario i
+                    where i.componente_id = c.id
+                      and i.ubicacion_id = (case
+                            when e.tipo in ('proveedor_servicio','tallerista','proveedor_at') then ubic_de(e.tipo, e.ref::bigint)
+                            when e.tipo = 'inyector' then ubic_de('inyector',
+                                  (select pi3.id from proveedor_insumo pi3 where pi3.nombre = e.ref limit 1))
+                          end) limit 1), 0) saldo_dest,
          coalesce(rep.maximo_dest, ri.maximo_dest) maximo_dest,
          coalesce(rep.stock_dest,  ri.stock_dest)  stock_dest,
          coalesce(rep.sugerido,    ri.sugerido)    sugerido
@@ -7135,7 +7149,7 @@ select jsonb_build_object(
     select coalesce(jsonb_agg(jsonb_build_object(
              'tipo', tipo, 'ref', ref, 'comp_id', comp_id, 'cod', cod, 'desc', descr,
              'sector', sector, 'um', um, 'uxc', uxc, 'kg_x_uni', kgu,
-             'online_sector', online_sector,
+             'online_sector', online_sector, 'saldo_dest', saldo_dest,
              'maximo', maximo_dest, 'stock_dest', stock_dest, 'sugerido', sugerido
            ) order by cod), '[]'::jsonb) from env_x),
   'recibir', (

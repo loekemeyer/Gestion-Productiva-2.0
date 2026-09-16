@@ -37,13 +37,13 @@ const BUNDLE = {
   // salida): la tablet muestra esas 3 columnas y precarga el sugerido en Cantidad. Prov. AT e
   // inyector NO traen sugerido (van con esas claves nulas) y siguen mostrando "Online sector".
   enviar: [
-    { tipo: 'tallerista', ref: '6', comp_id: 70, cod: 'A10', desc: 'Cpo Una', sector: 'Sector Crudo', um: 'unidad', uxc: 1000, kg_x_uni: 0.01, online_sector: 120, maximo: 200, stock_dest: 50, sugerido: 150 },
-    { tipo: 'tallerista', ref: '6', comp_id: 75, cod: 'F7', desc: 'Fleje doblado', sector: 'Sector Fleje', um: 'kg', uxc: null, kg_x_uni: 0.0134, online_sector: 30.5, maximo: 40, stock_dest: 10, sugerido: 12.5 },
-    { tipo: 'tallerista', ref: '9', comp_id: 70, cod: 'A10', desc: 'Cpo Una', sector: 'Sector Crudo', um: 'unidad', uxc: 1000, kg_x_uni: 0.01, online_sector: 120, maximo: 200, stock_dest: 0, sugerido: 200 },
-    { tipo: 'proveedor_servicio', ref: '5', comp_id: 90, cod: 'D5', desc: 'Mitad rompenuez', sector: 'Sector Crudo', um: 'unidad', uxc: 500, kg_x_uni: 0.05, online_sector: 40, maximo: 100, stock_dest: 20, sugerido: 80 },
-    { tipo: 'proveedor_at', ref: '1', comp_id: 456, cod: 'A1', desc: 'Caja N°1', sector: 'Sector Caja', um: 'unidad', uxc: null, kg_x_uni: null, online_sector: 988, maximo: null, stock_dest: null, sugerido: null },
-    { tipo: 'inyector', ref: 'Pat Bet Plast', comp_id: 742, cod: '2405', desc: 'PP 2630', sector: 'Sector Bolsas Plásticas', um: 'kg', uxc: null, kg_x_uni: null, online_sector: 100, maximo: 300, stock_dest: 100, sugerido: 200 },
-    { tipo: 'inyector', ref: 'Pat Bet Plast', comp_id: 743, cod: '2455', desc: 'ABS GP 22', sector: 'Sector Bolsas Plásticas', um: 'kg', uxc: null, kg_x_uni: null, online_sector: 50, maximo: 50, stock_dest: 20, sugerido: 30 },
+    { tipo: 'tallerista', ref: '6', comp_id: 70, cod: 'A10', desc: 'Cpo Una', sector: 'Sector Crudo', um: 'unidad', uxc: 1000, kg_x_uni: 0.01, online_sector: 120, saldo_dest: 42, maximo: 200, stock_dest: 50, sugerido: 150 },
+    { tipo: 'tallerista', ref: '6', comp_id: 75, cod: 'F7', desc: 'Fleje doblado', sector: 'Sector Fleje', um: 'kg', uxc: null, kg_x_uni: 0.0134, online_sector: 30.5, saldo_dest: 7.5, maximo: 40, stock_dest: 10, sugerido: 12.5 },
+    { tipo: 'tallerista', ref: '9', comp_id: 70, cod: 'A10', desc: 'Cpo Una', sector: 'Sector Crudo', um: 'unidad', uxc: 1000, kg_x_uni: 0.01, online_sector: 120, saldo_dest: 0, maximo: 200, stock_dest: 0, sugerido: 200 },
+    { tipo: 'proveedor_servicio', ref: '5', comp_id: 90, cod: 'D5', desc: 'Mitad rompenuez', sector: 'Sector Crudo', um: 'unidad', uxc: 500, kg_x_uni: 0.05, online_sector: 40, saldo_dest: 0, maximo: 100, stock_dest: 20, sugerido: 80 },
+    { tipo: 'proveedor_at', ref: '1', comp_id: 456, cod: 'A1', desc: 'Caja N°1', sector: 'Sector Caja', um: 'unidad', uxc: null, kg_x_uni: null, online_sector: 988, saldo_dest: null, maximo: null, stock_dest: null, sugerido: null },
+    { tipo: 'inyector', ref: 'Pat Bet Plast', comp_id: 742, cod: '2405', desc: 'PP 2630', sector: 'Sector Bolsas Plásticas', um: 'kg', uxc: null, kg_x_uni: null, online_sector: 100, saldo_dest: 40, maximo: 300, stock_dest: 100, sugerido: 200 },
+    { tipo: 'inyector', ref: 'Pat Bet Plast', comp_id: 743, cod: '2455', desc: 'ABS GP 22', sector: 'Sector Bolsas Plásticas', um: 'kg', uxc: null, kg_x_uni: null, online_sector: 50, saldo_dest: 8, maximo: 50, stock_dest: 20, sugerido: 30 },
   ],
   recibir: [
     { tipo: 'tallerista', ref: '6', comp_id: 71, comp_entrada_id: 70, n_entradas: 1, tiene_bom: false, cod_art: null, cod: 'A11', desc: 'Una Armada', sector: 'Sector Procesado', um: 'unidad', uxc: 500, kg_x_uni: 0.01, por_caja: null, ent_cod: 'A10', ent_desc: 'Cpo Una', esperado: 100, esperado_origen: 'online_tall' },
@@ -125,7 +125,7 @@ window.supabase = { createClient: function(){ return {
   ok(ivals[0] === '200' && ivals[1] === '30', 'inyector: sugerido de bolsas (kg) precargado — ' + ivals.join(' , '));
   // inyector: la columna del medio se llama "O.C." (el pedido surge de la O.C. de partes)
   const thIny = await page.$$eval('#thead th', xs => xs.map(x => x.textContent.trim()));
-  ok(thIny[2] === 'O.C.', 'inyector: columna del medio rotulada O.C. — ' + thIny.join(' | '));
+  ok(thIny[1] === 'Stock PS' && thIny[2] === 'O.C.', 'inyector: Stock PS + O.C. — ' + thIny.join(' | '));
   await page.click('#btnVolver');        // vuelve a las contrapartes del tipo
   await page.click('#btnVolverTipo');    // y a los tipos, para seguir el flujo
 
@@ -134,12 +134,13 @@ window.supabase = { createClient: function(){ return {
 
   // Enviar a PS/tallerista: columnas Stock | Máximo | Sugerido, y el sugerido PRECARGADO en Cantidad
   const thEnv = await page.$$eval('#thead th', xs => xs.map(x => x.textContent.trim()));
-  ok(thEnv.join('|') === 'Pieza|Stock|Máximo|Sugerido|Cantidad', 'Enviar a tallerista: columnas Stock/Máximo/Sugerido — ' + thEnv.join(' | '));
+  ok(thEnv.join('|') === 'Pieza|Stock Tall.|Máximo|Sugerido|Cantidad', 'Enviar a tallerista: Stock Tall./Máximo/Sugerido — ' + thEnv.join(' | '));
   let rows = await page.$$eval('#tbody tr', xs => xs.map(x => x.textContent.replace(/\s+/g, ' ')));
-  ok(rows.length === 2 && rows[0].includes('A10') && rows[0].includes('50') && rows[0].includes('200') && rows[0].includes('150'),
-     'A10: stock 50, máximo 200, sugerido 150 — ' + rows[0]);
-  ok(rows[1].includes('F7') && rows[1].includes('kg') && rows[1].includes('40') && rows[1].includes('12,5'),
-     'F7 (kg): máximo 40, sugerido 12,5 — ' + rows[1]);
+  // Stock ahora muestra el SALDO en poder del tercero (saldo_dest): A10 42, F7 7,5
+  ok(rows.length === 2 && rows[0].includes('A10') && rows[0].includes('42') && rows[0].includes('200') && rows[0].includes('150'),
+     'A10: saldo en PS 42, máximo 200, sugerido 150 — ' + rows[0]);
+  ok(rows[1].includes('F7') && rows[1].includes('kg') && rows[1].includes('7,5') && rows[1].includes('40') && rows[1].includes('12,5'),
+     'F7 (kg): saldo en PS 7,5, máximo 40, sugerido 12,5 — ' + rows[1]);
   // el sugerido queda precargado en el campo Cantidad (editable), con formato de la casa
   let vals = await page.$$eval('#tbody input.cell-in', xs => xs.map(x => x.value));
   ok(vals[0] === '150' && vals[1] === '12,5', 'la cantidad viene precargada con el sugerido — ' + vals.join(' , '));

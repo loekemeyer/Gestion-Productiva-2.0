@@ -6,6 +6,22 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
+<!-- v1.4.6 (2026-09-16) — EL ENCABEZADO STOCK ACLARA QUE ES DEL TERCERO (usuario: "aclara que ese stock
+     es stock P.S."). En Enviar con sugerido, la columna Stock pasa a "Stock PS" (PS/inyector) o
+     "Stock Tall." (tallerista): es el saldo en poder del tercero (enviado − entregado), no el nuestro.
+     La recepción de partes plásticas ya descuenta la resina del inyector (crear_recepcion_insumo:
+     consumo_inyector = cantidad × kg_x_uni × (1 + inyeccion_desperdicio_pct/100), hoy 4%). -->
+<!-- v1.4.5 (2026-09-16) — LA COLUMNA "STOCK" MUESTRA EL SALDO EN PODER DEL TERCERO (usuario: "en stock
+     me gustaría saber lo que le enviamos nosotros − lo entregado por ellos, que sería el saldo en ps").
+     Stock pasa de online_sector a saldo_dest = inventario de lo que le mandamos (pieza/resina) en la
+     ubicación del destino = enviado − entregado. Vale para PS, tallerista e inyector. tablet_bundle
+     devuelve 'saldo_dest'. -->
+<!-- v1.4.4 (2026-09-16) — LA COLUMNA "STOCK" MUESTRA LO NUESTRO PARA MANDAR (usuario: "que la columna
+     stock muestre lo que tenemos nosotros de lo que le vamos a mandar: bolsas... pero aplica para todo").
+     En Enviar con sugerido, Stock deja de mostrar el stock de la pieza que devuelven (stock_dest) y
+     pasa a mostrar online_sector = lo que tenemos de la pieza que ENVIAMOS (resina/bolsa para el
+     inyector, chapa/pliego crudo para PS/tallerista). Vale para los 3 tipos. (Backend: inyector ahora
+     saca O.C./sugerido de la O.C. de partes ENVIADA — 0 si no hay OC.) -->
 <!-- v1.4.3 (2026-09-16) — INYECTOR: LA COLUMNA DEL MEDIO SE LLAMA "O.C." (usuario: "si el pedido surge
      de o.c quiero que en vez de max me aparezca o.c"). Para inyectores el pedido surge de la O.C. de
      partes plásticas, así que el encabezado pasa de "Máximo" a "O.C." (mismo valor). PS/talleristas
@@ -410,9 +426,11 @@ function elegir(c){
   // Inyector: el pedido surge de la O.C. de partes plásticas, así que la columna del medio se
   // rotula "O.C." en vez de "Máximo" [usuario 2026-09-16]. PS/talleristas siguen con "Máximo".
   var _midLbl = (selCP.tipo === "inyector") ? "O.C." : "Máximo";
+  // el Stock que se muestra es el SALDO en poder del tercero, no el nuestro: se aclara en el encabezado
+  var _stkLbl = (selCP.tipo === "tallerista") ? "Stock Tall." : "Stock PS";
   $("thead").innerHTML = MODO === "enviar"
     ? (envConSugerido()
-        ? "<th>Pieza</th><th class=\"num\">Stock</th><th class=\"num\">" + _midLbl + "</th><th class=\"num\">Sugerido</th><th class=\"num sep\">Cantidad</th>"
+        ? "<th>Pieza</th><th class=\"num\">" + _stkLbl + "</th><th class=\"num\">" + _midLbl + "</th><th class=\"num\">Sugerido</th><th class=\"num sep\">Cantidad</th>"
         : "<th>Pieza</th><th class=\"num\">Online sector</th><th class=\"num sep\">Cantidad</th>")
     : "<th>Pieza</th><th class=\"num\">Esperado</th><th class=\"num sep\">Recibido</th>";
   // precarga UNA vez: el sugerido entra como cantidad por defecto (editable). Sólo toca campos sin
@@ -483,7 +501,9 @@ function render(){
     var mitad;
     if (MODO === "enviar") {
       mitad = envConSugerido()
-        ? ('<td class="num esp">' + fmt(x.stock_dest, u === "kg" ? 2 : 0, "—") + "</td>" +
+        // Stock = SALDO en poder del tercero (lo que le enviamos − lo que nos entregó); es el
+        // inventario de lo que le mandamos en la ubicación del destino [usuario 2026-09-16]
+        ? ('<td class="num esp">' + fmt(x.saldo_dest, u === "kg" ? 2 : 0, "—") + "</td>" +
            '<td class="num esp">' + fmt(x.maximo, u === "kg" ? 2 : 0, "—") + "</td>" +
            '<td class="num esp"><b>' + fmt(x.sugerido, u === "kg" ? 2 : 0, "—") + "</b></td>")
         : ('<td class="num esp">' + fmt(x.online_sector, u === "kg" ? 2 : 0) + " " + u + "</td>");

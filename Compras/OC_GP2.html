@@ -1,14 +1,34 @@
 <!doctype html>
 <html lang="es">
 <head>
-<!-- v1.29.0 (2026-09-16) — WHATSAPP EN LUGAR DE "Marcar enviada"/"Marcar recibida" [usuario: "en vez de
+<!-- v1.32.0 (2026-09-16) — WHATSAPP EN LUGAR DE "Marcar enviada"/"Marcar recibida" [usuario: "en vez de
      marca enviada y marcar recibido, un box WhatsApp... que me mande al WhatsApp para mandar la O.C. al
      proveedor"]. Cada OC borrador/enviada muestra 🖨 Imprimir · 🟢 WhatsApp · Anular. WhatsApp abre wa.me
      (sin número por ahora — el operario elige el contacto; más adelante va el teléfono del proveedor) con
      el texto formal de la OC (textoWhatsappOC) y, si estaba en borrador, la marca 'enviada' en el mismo
      toque. Se quitó "Marcar recibida": la OC pasa a 'recibida' sola al cargar la recepción
      (crear_recepcion_insumo, cruce FIFO). Anti-cache no-store, sin ?v= ni bump global. -->
-<!-- v1.28.0 (2026-09-14) — TOCAR EL MÁXIMO ABRE SU DESGLOSE [usuario: "al tocar en maximo, pueda
+<!-- v1.31.0 (2026-09-16) — LAS ACCIONES VAN ARRIBA DE LA LISTA [usuario: "todo lo que aparece en la
+     foto que te mando (usa sugeridos, limpiar, crear oc, etc) aparezca arriba, no abajo"]. Las dos
+     .barra (Usar sugeridos / Limpiar / total, y Entrega estimada / Nota / Crear OC) pasan a la
+     CABECERA de #zonaLista, antes del buscador y la tabla; la tabla de insumos queda debajo. Con
+     esto se DESHACE la v1.29.0 (recap de chips): se fueron #recapPedido, su CSS, pintarRecap/irAFila
+     y la llamada en barra() — el usuario aclaro que no queria una lista nueva sino subir la barra
+     que ya existia. Front-only, sin tocar base. La leyenda ahora dice "el total... esta acá arriba".
+     v1.30.0 (2026-09-16) — LA PARTE PLASTICA SE PIDE POR BOLSA ENTERA [usuario: "cuando voy a hacer
+     la o.c. de partes plasticas quiero que me redondees en el sugerido (preestablecido en pedir)
+     segun la cantidad de uni que entran por bolsa, es decir si entran 250 por bolsa y segun maximo
+     tengo que pedir 960 -> sugerido -> 1000"]. El inyector entrega la pieza en bolsas de N uni, asi
+     que el sugerido (max - stock) se redondea PARA ARRIBA al multiplo de la bolsa. La bolsa es
+     componente.uni_x_cajon, que ahora viaja en oc_bundle (cambio aditivo en la RPC, no toca datos);
+     uniPorBolsa(i) SOLO la aplica al Sector Plástico (id 6) — en otros sectores uni_x_cajon es el
+     cajon de despacho, no la unidad de compra. valorSugerido() hace techo(sugerido, bolsa); al lado
+     del campo se muestra "= N bolsas de 250". Los 14 codigos de sector 6 sin uni_x_cajon cargado no
+     redondean (no se inventa la bolsa). Front + BASE (oc_bundle); db/funciones_GP2.sql sincronizado.
+     v1.29.0 (2026-09-16) — ⛔ REVERTIDA POR LA v1.31.0. RECAP ARRIBA DE LO QUE SE VA A PEDIR: chips
+     con los items pedidos arriba de la tabla. El usuario aclaro que no queria una lista nueva sino
+     SUBIR la barra de acciones que ya existia (ver v1.31.0), asi que se saco entera.
+     v1.28.0 (2026-09-14) — TOCAR EL MÁXIMO ABRE SU DESGLOSE [usuario: "al tocar en maximo, pueda
      ver de que se compone... cuantos meses es el maximo definido y que articulos y que venta responde
      a ese maximo... Primero en unidades para despues pasarse a kilos"]. La celda Máximo (cuando no es
      "—") es clickable y abre un modal con: máximo + origen, meses de stock, consumo/mes y consumo×meses,
@@ -500,20 +520,9 @@
            2026-09-04: "si no pongo el sector y no pongo el proveedor, que no me aparezca
            la lista"]: la pantalla arranca en los botones de sector y nada mas. -->
       <div id="zonaLista" class="hidden">
-      <div class="search-box"><input type="text" id="q" placeholder="Buscar insumo…"></div>
-      <div class="leyenda"><b>“Pedir” ya viene cargado con el sugerido</b> (<b>Máximo</b> − <b>Stock</b>): debajo de cada campo dice cuánto es el sugerido y de dónde sale. Cambiá la cantidad o <b>dejá el campo vacío</b> para no pedir ese insumo. Lo que quede en pantalla es lo que sale en la OC; <b>el total en plata está acá abajo</b>.</div>
-      <div class="table-wrap">
-        <table class="t t-insumos">
-          <thead><tr>
-            <th>Insumo</th><th>Proveedor</th>
-            <th class="num">Stock<br>actual</th><th class="num">Máximo</th>
-            <th class="num">Pedir</th>
-          </tr></thead>
-          <tbody id="tbody"></tbody>
-        </table>
-      </div>
-      <div id="tblEmpty" class="empty hidden">Sin insumos en este sector.</div>
-
+      <!-- Las acciones (Usar sugeridos, Limpiar, total, Entrega, Nota, Crear OC) van
+           ARRIBA de la lista [usuario 2026-09-16: "todo lo que aparece en la foto...
+           aparezca arriba, no abajo"]. La tabla de insumos queda debajo. -->
       <div class="barra">
         <button type="button" class="btn-sug" id="btnSug">Usar sugeridos</button>
         <button type="button" class="btn-limpiar" id="btnLimpiar">Limpiar</button>
@@ -532,6 +541,20 @@
         </div>
         <button type="button" class="btn-crear" id="btnCrear" disabled>Crear OC</button>
       </div>
+
+      <div class="search-box"><input type="text" id="q" placeholder="Buscar insumo…"></div>
+      <div class="leyenda"><b>“Pedir” ya viene cargado con el sugerido</b> (<b>Máximo</b> − <b>Stock</b>): debajo de cada campo dice cuánto es el sugerido y de dónde sale. Cambiá la cantidad o <b>dejá el campo vacío</b> para no pedir ese insumo. Lo que quede en la tabla es lo que sale en la OC; <b>el total en plata y el botón Crear OC están acá arriba</b>.</div>
+      <div class="table-wrap">
+        <table class="t t-insumos">
+          <thead><tr>
+            <th>Insumo</th><th>Proveedor</th>
+            <th class="num">Stock<br>actual</th><th class="num">Máximo</th>
+            <th class="num">Pedir</th>
+          </tr></thead>
+          <tbody id="tbody"></tbody>
+        </table>
+      </div>
+      <div id="tblEmpty" class="empty hidden">Sin insumos en este sector.</div>
       </div>
       <div id="elegiSector" class="empty">Elegí un <b>sector</b> arriba para ver los insumos y armar la orden.</div>
     </div>
@@ -860,14 +883,30 @@ function uniPorPaqCharcas(i){
   return u === null ? 0 : Math.round(u);
 }
 
+// Uni por bolsa de la parte plastica: el inyector entrega en bolsas de N uni y se pide
+// por bolsa entera [usuario 2026-09-16: "segun la cantidad de uni que entran por bolsa...
+// si entran 250 por bolsa y segun maximo tengo que pedir 960 -> sugerido -> 1000"]. El
+// dato es componente.uni_x_cajon (viaja en el bundle) y SOLO aplica a las partes
+// plasticas (Sector Plástico = 6): en otros sectores uni_x_cajon es otra cosa (el cajon
+// de despacho), no la unidad de compra, asi que ahi no se redondea. Los 14 codigos de
+// sector 6 sin uni_x_cajon cargado quedan sin redondear (no se inventa la bolsa).
+var SECTOR_PARTE_PLASTICA = 6;
+function uniPorBolsa(i){
+  if(!i || Number(i.sector_id)!==SECTOR_PARTE_PLASTICA) return 0;
+  var b=Number(i.uni_x_cajon)||0;
+  return b>0 ? b : 0;
+}
 // Cuanto se carga en "Pedir" cuando se toma el sugerido. Charcas viene en uni y se
 // pide en paquetes de 10 kg: se convierte y se redondea PARA ARRIBA (no quedar corto).
+// La parte plastica se redondea PARA ARRIBA al multiplo de la bolsa (uni_x_cajon).
 function valorSugerido(i){
   if(!(i && i.sugerido>0)) return 0;
   if(esCharcasIt(i)){
     var uxp=uniPorPaqCharcas(i);
     if(uxp>0) return Math.max(1, Math.ceil(i.sugerido/uxp));
   }
+  var b=uniPorBolsa(i);
+  if(b>0) return techo(i.sugerido, b);   // 960 con bolsa 250 -> 1000
   return i.sugerido;
 }
 
@@ -924,12 +963,15 @@ function render(){
     var esCarton=GP2UI.esCarton(i);   /* el 10 vive en gp2-ui.js (idea 7334) */
     var esChar=esCharcasIt(i);
     var uxpChar=esChar ? uniPorPaqCharcas(i) : 0;
+    var bolsa=uniPorBolsa(i);
     var st=vStock(i), mx=vMaximo(i), pe=vPend(i);
     var bajoMin=(mx!=null && st!=null && st<Number(mx));
     // Charcas: input en PAQUETES; el sugerido se convierte a paq (round up).
-    // La equivalencia "= N uni" se muestra al lado del input.
+    // Parte plastica: se muestra en cuantas BOLSAS enteras cae lo pedido.
+    // La equivalencia se muestra al lado del input.
     var paqEq=(esCarton && ped>0)?('<span class="paq-eq">= '+fmt(ped/PAQ,1)+' paq de '+PAQ+'</span>')
-             :(esChar && ped>0 && uxpChar>0)?('<span class="paq-eq">= '+fmt(ped*uxpChar)+' uni</span>'):'';
+             :(esChar && ped>0 && uxpChar>0)?('<span class="paq-eq">= '+fmt(ped*uxpChar)+' uni</span>')
+             :(bolsa>0 && ped>0)?('<span class="paq-eq">= '+fmt(ped/bolsa,ped%bolsa===0?0:1)+' bolsa'+(ped/bolsa===1?'':'s')+' de '+fmt(bolsa)+'</span>'):'';
     return '<tr data-id="'+i.comp_id+'"'+(ped>0?' class="con-pedido"':'')+'>'+
       '<td><b>'+esc(i.codigo||'—')+'</b><br><small style="color:#777">'+esc(i.descripcion||'')+
         (i.carton_formato?(' · Formato '+esc(i.carton_formato)):'')+
