@@ -1,6 +1,13 @@
 <!doctype html>
 <html lang="es">
 <head>
+<!-- v1.29.0 (2026-09-16) — WHATSAPP EN LUGAR DE "Marcar enviada"/"Marcar recibida" [usuario: "en vez de
+     marca enviada y marcar recibido, un box WhatsApp... que me mande al WhatsApp para mandar la O.C. al
+     proveedor"]. Cada OC borrador/enviada muestra 🖨 Imprimir · 🟢 WhatsApp · Anular. WhatsApp abre wa.me
+     (sin número por ahora — el operario elige el contacto; más adelante va el teléfono del proveedor) con
+     el texto formal de la OC (textoWhatsappOC) y, si estaba en borrador, la marca 'enviada' en el mismo
+     toque. Se quitó "Marcar recibida": la OC pasa a 'recibida' sola al cargar la recepción
+     (crear_recepcion_insumo, cruce FIFO). Anti-cache no-store, sin ?v= ni bump global. -->
 <!-- v1.28.0 (2026-09-14) — TOCAR EL MÁXIMO ABRE SU DESGLOSE [usuario: "al tocar en maximo, pueda
      ver de que se compone... cuantos meses es el maximo definido y que articulos y que venta responde
      a ese maximo... Primero en unidades para despues pasarse a kilos"]. La celda Máximo (cuando no es
@@ -393,8 +400,7 @@
   .badge.anulada{background:#ffebee;color:#b71c1c}
   .oc-acts{margin-left:auto;display:flex;gap:8px}
   .oc-acts button{padding:8px 12px;font-size:14px;font-weight:700;border-radius:8px;border:2px solid #d0d7de;background:#fff;cursor:pointer}
-  .oc-acts button.env{border-color:#cddaea;color:#0b3b73}
-  .oc-acts button.rec{border-color:#cdead6;color:#0a7a2f}
+  .oc-acts button.wpp{border-color:#25d366;color:#0a7a2f;background:#eafff1}
   .oc-acts button.anu{border-color:#eacdcd;color:#c62828}
   /* Filtros: el proveedor es la eleccion principal (la OC sale con SUS insumos),
      el rubro es un filtro de arriba. Etiqueta visible al lado de cada botonera. */
@@ -1356,9 +1362,7 @@ function pintarOcs(){
   $('ocsEmpty').classList.toggle('hidden', ocs.length>0);
   $('ocsList').innerHTML=ocs.map(function(o){
     var acts='<button type="button" class="imp" data-imp="'+o.id+'">🖨 Imprimir</button>';
-    if(o.estado==='borrador') acts+='<button type="button" class="env" data-oc="'+o.id+'" data-est="enviada">Marcar enviada</button>'+
-      '<button type="button" class="anu" data-oc="'+o.id+'" data-est="anulada">Anular</button>';
-    else if(o.estado==='enviada') acts+='<button type="button" class="rec" data-oc="'+o.id+'" data-est="recibida">Marcar recibida</button>'+
+    if(o.estado==='borrador'||o.estado==='enviada') acts+='<button type="button" class="wpp" data-oc="'+o.id+'">🟢 WhatsApp</button>'+
       '<button type="button" class="anu" data-oc="'+o.id+'" data-est="anulada">Anular</button>';
     return '<div class="oc-card">'+
       '<div class="oc-head"><span class="num-oc">OC N° '+o.numero+'</span>'+
@@ -1385,7 +1389,7 @@ function pintarOcs(){
   document.querySelectorAll('.oc-acts button.imp').forEach(function(b){
     b.addEventListener('click', function(){ imprimirOC(Number(b.dataset.imp)); });
   });
-  document.querySelectorAll('.oc-acts button:not(.imp)').forEach(function(b){
+  document.querySelectorAll('.oc-acts button.anu').forEach(function(b){
     b.addEventListener('click', async function(){
       var est=b.dataset.est;
       if(est==='anulada' && !confirm('¿Anular la OC?')) return;
@@ -1397,6 +1401,49 @@ function pintarOcs(){
       }catch(e){ $('status').className='status bad'; $('status').textContent='Error: '+(e.message||e); b.disabled=false; }
     });
   });
+  // WhatsApp: abre wa.me con el texto formal de la OC y, si estaba en borrador, la marca enviada.
+  document.querySelectorAll('.oc-acts button.wpp').forEach(function(b){
+    b.addEventListener('click', async function(){
+      var oc=(D.ocs||[]).find(function(x){ return String(x.id)===String(b.dataset.oc); });
+      if(!oc) return;
+      // el window.open va PRIMERO y sincronico: si esperamos el await, el navegador bloquea el popup.
+      window.open('https://wa.me/?text='+encodeURIComponent(textoWhatsappOC(oc)), '_blank');
+      if(oc.estado==='borrador'){
+        b.disabled=true;
+        try{
+          var r=await SB.rpc('oc_marcar',{ p_oc_id:Number(b.dataset.oc), p_estado:'enviada' });
+          if(r.error) throw r.error;
+          await boot(); mostrarTab('ocs');
+        }catch(e){ $('status').className='status bad'; $('status').textContent='Error: '+(e.message||e); b.disabled=false; }
+      }
+    });
+  });
+}
+
+// Texto formal de la OC para mandar por WhatsApp (wa.me). Sin número por ahora: el operario elige el
+// contacto; cuando cargue el teléfono del proveedor se le antepone y va directo.
+function textoWhatsappOC(o){
+  var L=[];
+  L.push('Estimados'+(o.proveedor?(' '+o.proveedor):'')+',');
+  L.push('');
+  L.push('Les enviamos la Orden de Compra N° '+o.numero+'.');
+  L.push('Fecha de emisión: '+new Date(o.creado_en).toLocaleDateString('es-AR'));
+  var fe=vFechaEnt(o); if(fe) L.push('Fecha de entrega solicitada: '+fmtFecha(fe));
+  L.push('');
+  L.push('Detalle del pedido:');
+  (o.items||[]).forEach(function(it){
+    var linea='• '+it.codigo+(it.descripcion?(' - '+it.descripcion):'')+': '+fmt(it.cantidad)+' '+(it.unidad||'');
+    if(it.precio_uni!=null) linea+=' — '+(it.moneda==='ARS'?'$ ':'US$ ')+fmt(it.precio_uni,2)+'/u';
+    L.push(linea);
+  });
+  if(Number(o.total_usd)>0||Number(o.total_ars)>0){
+    L.push('');
+    L.push('Total: '+fmtTotalMon(Number(o.total_usd)||0, Number(o.total_ars)||0));
+  }
+  L.push('');
+  L.push('Agradecemos confirmar la recepción y la fecha de entrega. Muchas gracias.');
+  L.push('Loekemeyer Hnos. S.R.L.');
+  return L.join('\n');
 }
 
 /* ── OC de MATERIA PRIMA PLASTICA: el formato del usuario (hojas "O.C." del workbook) ──

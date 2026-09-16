@@ -466,12 +466,18 @@ window.supabase = { createClient: function(){ return {
   ok((await page.$$('.sug')).length === 0 && (await page.$$('.cd-tocable')).length === 0,
      'no quedan celdas de Sugerido ni de Consumo/mes en la tabla');
 
-  // acciones de OC: marcar enviada
+  // acciones de OC: el boton WhatsApp abre wa.me con el texto de la OC y la marca enviada
   await page.click('#tabOcs');
-  await page.click('.oc-acts button.env');
+  await page.evaluate(() => { window.__wa = null; window.open = (u) => { window.__wa = u; return null; }; });
+  ok(await page.$('.oc-acts button.wpp') !== null, 'boton WhatsApp presente');
+  ok((await page.$$('.oc-acts button.rec')).length === 0, 'ya no existe "Marcar recibida"');
+  await page.click('.oc-acts button.wpp');
   await page.waitForFunction(() => (window.__calls || []).some(c => c.name === 'oc_marcar'));
   const mc = await page.evaluate(() => window.__calls.filter(c => c.name === 'oc_marcar')[0].args);
-  ok(mc.p_oc_id === 9 && mc.p_estado === 'enviada', 'oc_marcar enviada OK');
+  ok(mc.p_oc_id === 9 && mc.p_estado === 'enviada', 'WhatsApp marca la OC enviada');
+  const wa = await page.evaluate(() => window.__wa || '');
+  ok(/wa\.me\/\?text=/.test(wa), 'abre wa.me con texto');
+  ok(/Orden%20de%20Compra/.test(wa), 'el texto de WhatsApp lleva la OC');
 
   await browser.close();
   console.log(process.exitCode ? 'HAY FALLOS' : 'TODO OK');
