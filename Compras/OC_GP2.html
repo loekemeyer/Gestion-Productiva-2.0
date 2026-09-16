@@ -1,7 +1,17 @@
 <!doctype html>
 <html lang="es">
 <head>
-<!-- v1.28.0 (2026-09-14) — TOCAR EL MÁXIMO ABRE SU DESGLOSE [usuario: "al tocar en maximo, pueda
+<!-- v1.29.0 (2026-09-16) — RECAP ARRIBA DE LO QUE SE VA A PEDIR [usuario: "en las O.C. quiero que
+     aparezcan todos los items que estan en el pie, en el encabezado"]. El pie ya contaba los items
+     ("13 ítems · $…") pero no decia CUALES: para verlos habia que scrollear toda la tabla. Ahora,
+     arriba de la tabla (dentro de #zonaLista, antes de la leyenda), un recap #recapPedido lista los
+     items que SI se piden (PEDIDO[comp_id] > 0 del sector/proveedor elegido) como chips con codigo +
+     cantidad + unidad; el titulo repite el conteo del pie. Cada chip es tocable y hace scroll a su
+     fila + resaltado breve (para encontrarla sin buscar). Se pinta desde barra() —que ya arma
+     itemsPedidos()— asi el recap y el pie salen del MISMO calculo y nunca se desfasan; se esconde
+     cuando no hay ningun item cargado. Front-only, sin tocar base ni RPC. La pantalla ya tiene el
+     meta anti-cache no-store y el JS es inline (no hay ?v= que bustear), por eso no se bumpea global.
+     v1.28.0 (2026-09-14) — TOCAR EL MÁXIMO ABRE SU DESGLOSE [usuario: "al tocar en maximo, pueda
      ver de que se compone... cuantos meses es el maximo definido y que articulos y que venta responde
      a ese maximo... Primero en unidades para despues pasarse a kilos"]. La celda Máximo (cuando no es
      "—") es clickable y abre un modal con: máximo + origen, meses de stock, consumo/mes y consumo×meses,
@@ -374,6 +384,18 @@
   .paq-eq{font-size:12px;color:#0b3b73;display:block}
   /* El proveedor dentro de la celda del insumo: solo se ve en pantalla chica. */
   .prov-mini{display:none}
+  /* Recap arriba: los items que SI se van a pedir (los que cuenta el pie), como chips
+     tocables. Solo se muestra cuando hay al menos uno cargado; no ocupa ancho de mas. */
+  .recap{border:2px solid #cddaea;background:#f2f7fc;border-radius:10px;padding:10px 12px;margin:8px 0}
+  .recap .recap-tit{font-size:15px;font-weight:800;color:#0b3b73;margin-bottom:8px}
+  .recap .recap-chips{display:flex;flex-wrap:wrap;gap:6px}
+  .recap-chip{display:inline-flex;align-items:center;gap:6px;padding:6px 11px;border-radius:8px;
+    border:2px solid #cddaea;background:#fff;font-size:15px;cursor:pointer;color:#111;min-height:36px}
+  .recap-chip b{font-weight:800}
+  .recap-chip .q{font-variant-numeric:tabular-nums;color:#0b3b73;font-weight:700}
+  .recap-chip:hover{background:#eef4fb}
+  tr.recap-flash td{animation:recapFlash 1.2s ease-out}
+  @keyframes recapFlash{0%{background:#fff3c4}100%{background:transparent}}
   .barra{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:12px 0;padding:12px;background:#f6f8fa;border-radius:10px}
   .barra .tot{font-size:17px;font-weight:800}
   .barra input[type=text]{padding:10px;min-height:44px;font-size:18px;border:2px solid #d0d7de;border-radius:8px;flex:1;min-width:160px}
@@ -494,6 +516,9 @@
            2026-09-04: "si no pongo el sector y no pongo el proveedor, que no me aparezca
            la lista"]: la pantalla arranca en los botones de sector y nada mas. -->
       <div id="zonaLista" class="hidden">
+      <!-- Recap: los ítems que SÍ se piden, arriba, para no scrollear la tabla buscándolos
+           [usuario 2026-09-16]. Lo pinta barra() con el mismo itemsPedidos() del pie. -->
+      <div id="recapPedido" class="recap hidden"></div>
       <div class="search-box"><input type="text" id="q" placeholder="Buscar insumo…"></div>
       <div class="leyenda"><b>“Pedir” ya viene cargado con el sugerido</b> (<b>Máximo</b> − <b>Stock</b>): debajo de cada campo dice cuánto es el sugerido y de dónde sale. Cambiá la cantidad o <b>dejá el campo vacío</b> para no pedir ese insumo. Lo que quede en pantalla es lo que sale en la OC; <b>el total en plata está acá abajo</b>.</div>
       <div class="table-wrap">
@@ -1278,7 +1303,36 @@ function barra(){
     if(D.tc && tUsd>0) tot+=' (≈ $ '+fmt(tUsd*Number(D.tc)+tArs,0)+')';
   }
   $('tot').textContent=tot;
+  pintarRecap(items);
   $('btnCrear').disabled = items.length===0 || errs.length>0;
+}
+
+/* El recap de arriba: MISMOS items que el pie (itemsPedidos()), como chips tocables con
+   codigo + cantidad + unidad. Tocar un chip lleva a su fila y la resalta, para encontrarla
+   sin scrollear [usuario 2026-09-16]. Se esconde cuando no hay nada cargado. */
+function pintarRecap(items){
+  var box=$('recapPedido');
+  if(!items || !items.length){ box.classList.add('hidden'); box.innerHTML=''; return; }
+  var chips=items.map(function(x){
+    return '<button type="button" class="recap-chip" data-recap="'+x.comp_id+'">'+
+      '<b>'+esc((x.it&&x.it.codigo)||'—')+'</b>'+
+      '<span class="q">'+fmt(x.cantidad)+' '+esc(x.unidad||'')+'</span></button>';
+  }).join('');
+  box.innerHTML='<div class="recap-tit">Se van a pedir '+items.length+' ítem'+(items.length===1?'':'s')+'</div>'+
+    '<div class="recap-chips">'+chips+'</div>';
+  box.classList.remove('hidden');
+  box.querySelectorAll('.recap-chip').forEach(function(b){
+    b.addEventListener('click',function(){ irAFila(Number(b.dataset.recap)); });
+  });
+}
+function irAFila(compId){
+  var fila=document.querySelector('tr[data-id="'+compId+'"]');
+  // El buscador puede tener oculta la fila: lo limpio y repinto para poder llegar.
+  if(!fila && $('q').value){ $('q').value=''; render(); fila=document.querySelector('tr[data-id="'+compId+'"]'); }
+  if(!fila) return;
+  fila.scrollIntoView({behavior:'smooth', block:'center'});
+  fila.classList.remove('recap-flash'); void fila.offsetWidth; fila.classList.add('recap-flash');
+  var inp=fila.querySelector('.pedir-in'); if(inp){ try{ inp.focus({preventScroll:true}); }catch(e){ inp.focus(); } }
 }
 
 // Vuelve a poner los sugeridos: borra las marcas de "este no lo pido" de lo que se ve.
