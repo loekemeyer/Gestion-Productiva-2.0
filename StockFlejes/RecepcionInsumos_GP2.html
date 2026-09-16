@@ -6,6 +6,16 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
+<!-- v3.59.0 (2026-09-16) — IMPORTADOS: UN SOLO PROVEEDOR, SIN PASO "PROVEEDOR" [usuario:
+     "Unifícame todo a Importado (elimina Tierra Nativa) y que no diga el subtitulo de Proveedor"].
+     (1) BASE: el unico importado que colgaba de otro proveedor era D1 Espiral Sacacorcho
+     (componente id 163, proveedor 'Tierra Nativa SA') -> se reasigno a 'Importado' con un UPDATE
+     scopeado a estado_compra='importado'. Tierra Nativa SA NO se borro: sigue siendo el proveedor
+     real de 4 palos de amasar del Garage (GRJ17/22/23/24). 0 recepciones historicas con ese
+     proveedor, asi que sin impacto en cadena. (2) FRONT: como Importados queda con un solo
+     proveedor, se saltea el paso Proveedor (saltaProv): se auto-selecciona 'Importado', se oculta
+     provSection (subtitulo + chip) y va directo a Remito/articulos. Solo aplica a Importados con
+     provsRubro.length===1; el resto de los rubros no cambia. -->
 <!-- v3.58.0 (2026-09-14) — REVERTIDO: el rubro vuelve a ser "IMPORTADOS" (usuario: "me confundi,
      dejalo como importado"). En v3.57.0 se habia renombrado a "Procesado" con recepcion por sector
      (insumosDelRubro sin rama por estado_compra y esCorteDePS/PS_CORTE generalizado para excluir el
@@ -849,11 +859,17 @@ document.querySelectorAll('#rubroGrid .prov-btn').forEach(btn=>{
     // Altrak entrega el fleje bruto (FLEJE90_BRUTO, sector 13, va a Charcas): no cae por
     // sector en el rubro Flejes (sector 5), asi que se inyecta a mano y abre irAltrak().
     if(rubroSel==='Flejes' && provsRubro.indexOf('Altrak')<0) provsRubro.push('Altrak');
-    if(provsRubro.length){ pintarProvs(); $('provSection').classList.remove('hidden'); }
+    // Importados tiene un solo proveedor ('Importado'): no se elige, se auto-selecciona
+    // y se saltea el paso Proveedor (sin subtitulo ni chip). Usuario 2026-09-16.
+    var saltaProv = (rubroSel==='Importados' && provsRubro.length===1);
+    if(saltaProv){
+      provSel=provsRubro[0];
+      $('provGrid').innerHTML=''; $('provSection').classList.add('hidden');
+    } else if(provsRubro.length){ pintarProvs(); $('provSection').classList.remove('hidden'); }
     else { $('provGrid').innerHTML=''; $('provSection').classList.add('hidden'); }
     $('remitoSection').classList.remove('hidden');
     $('btnContinuarRow').style.display='flex';
-    $('btnContinuar').textContent = provsRubro.length ? 'Cargar artículos' : 'Ver artículos';
+    $('btnContinuar').textContent = (provsRubro.length && !saltaProv) ? 'Cargar artículos' : 'Ver artículos';
     refreshContinuar();
   });
 });
