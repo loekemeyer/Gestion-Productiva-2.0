@@ -6973,16 +6973,15 @@ rep as (
     ) x
    group by e.tipo, e.ref, e.comp_id
 ),
--- INYECTOR: el sugerido de la bolsa (resina) sale del deficit de las PARTES plasticas que la usan.
--- Todo en kg de resina: (maximo_parte - stock_parte) * kg_x_uni, agrupado por (inyector, resina).
+-- INYECTOR: el pedido de bolsas surge de la O.C. de partes plasticas ENVIADA (no del deficit
+-- automatico). Sin OC enviada -> maximo(O.C.)=0 y sugerido=0; recien cuando se manda la OC de partes
+-- (Compras/OC_GP2, proveedor = el inyector) aparecen los kg de bolsa. [usuario 2026-09-16]
 rep_iny as (
   select 'inyector'::text as tipo, c.proveedor as ref, c.material_id as comp_id,
-         sum(coalesce(im.maximo,0)   * coalesce(c.kg_x_uni,0)) as maximo_dest,
-         sum(coalesce(im.cantidad,0) * coalesce(c.kg_x_uni,0)) as stock_dest,
+         sum(coalesce(ocp.pend,0) * coalesce(c.kg_x_uni,0)) as maximo_dest,  -- O.C. de partes -> kg de resina
+         0::numeric as stock_dest,                                           -- el Stock lo pone online_sector en el front
          greatest(0, round(
-            sum(greatest(0, coalesce(im.maximo,0) - coalesce(im.cantidad,0)) * coalesce(c.kg_x_uni,0))
-            -- 3er termino: la resina que YA le mandamos y todavia no volvio como pieza (kg en poder
-            -- del inyector, ubic tipo 'inyector'). Evita re-mandar bolsas en transito.
+            sum(coalesce(ocp.pend,0) * coalesce(c.kg_x_uni,0))
             - coalesce((select ir.cantidad from inventario ir
                          where ir.componente_id = c.material_id
                            and ir.ubicacion_id = ubic_de('inyector',
@@ -6990,8 +6989,12 @@ rep_iny as (
                          limit 1), 0)
          , 2)) as sugerido
     from componente c
-    left join inventario im on im.componente_id = c.id
-                          and im.ubicacion_id = ubic_de('sector', c.sector_id)
+    left join lateral (
+       select sum(oi.cantidad - coalesce(oi.recibido,0)) as pend
+         from orden_compra o
+         join orden_compra_item oi on oi.oc_id = o.id
+        where o.estado = 'enviada' and o.proveedor = c.proveedor and oi.componente_id = c.id
+    ) ocp on true
    where c.material_id is not null and c.estado_compra is null and c.proveedor is not null
      and exists (select 1 from proveedor_insumo pi where pi.nombre = c.proveedor)
    group by c.proveedor, c.material_id

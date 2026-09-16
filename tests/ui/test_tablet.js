@@ -136,10 +136,11 @@ window.supabase = { createClient: function(){ return {
   const thEnv = await page.$$eval('#thead th', xs => xs.map(x => x.textContent.trim()));
   ok(thEnv.join('|') === 'Pieza|Stock|Máximo|Sugerido|Cantidad', 'Enviar a tallerista: columnas Stock/Máximo/Sugerido — ' + thEnv.join(' | '));
   let rows = await page.$$eval('#tbody tr', xs => xs.map(x => x.textContent.replace(/\s+/g, ' ')));
-  ok(rows.length === 2 && rows[0].includes('A10') && rows[0].includes('50') && rows[0].includes('200') && rows[0].includes('150'),
-     'A10: stock 50, máximo 200, sugerido 150 — ' + rows[0]);
-  ok(rows[1].includes('F7') && rows[1].includes('kg') && rows[1].includes('40') && rows[1].includes('12,5'),
-     'F7 (kg): máximo 40, sugerido 12,5 — ' + rows[1]);
+  // Stock ahora muestra lo NUESTRO para mandar (online_sector): A10 120, F7 30,5
+  ok(rows.length === 2 && rows[0].includes('A10') && rows[0].includes('120') && rows[0].includes('200') && rows[0].includes('150'),
+     'A10: stock(nuestro) 120, máximo 200, sugerido 150 — ' + rows[0]);
+  ok(rows[1].includes('F7') && rows[1].includes('kg') && rows[1].includes('30,5') && rows[1].includes('40') && rows[1].includes('12,5'),
+     'F7 (kg): stock(nuestro) 30,5, máximo 40, sugerido 12,5 — ' + rows[1]);
   // el sugerido queda precargado en el campo Cantidad (editable), con formato de la casa
   let vals = await page.$$eval('#tbody input.cell-in', xs => xs.map(x => x.value));
   ok(vals[0] === '150' && vals[1] === '12,5', 'la cantidad viene precargada con el sugerido — ' + vals.join(' , '));
