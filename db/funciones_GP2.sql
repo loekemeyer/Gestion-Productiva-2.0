@@ -7567,3 +7567,46 @@ select jsonb_build_object(
 );
 $function$
 ;
+
+-- 2026-09-16: marcador "unidades sin accidente" por matriz (pantalla
+-- Produccion/UnidadesSinAccidente + monitor de matriceria de la TV del taller).
+CREATE OR REPLACE FUNCTION "GP2".matriz_racha_bundle(p_solo_con_produccion boolean DEFAULT true)
+ RETURNS jsonb
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'GP2'
+AS $function$
+  select jsonb_build_object(
+    'matrices', (
+      select coalesce(jsonb_agg(jsonb_build_object(
+        'matriz', r.matriz,
+        'descripcion', r.descripcion,
+        'unidades', r.unidades,
+        'golpes', r.golpes,
+        'uni_x_golpe', r.uni_x_golpe,
+        'accidentes', r.accidentes,
+        'record', r.record,
+        'es_record', r.es_record,
+        'ultimo_accidente', r.ultimo_accidente,
+        'ultimo_tipo', r.ultimo_tipo,
+        'ultimo_detalle', r.ultimo_detalle,
+        'ultima_produccion', r.ultima_produccion,
+        'dias_sin_accidente', case when r.ultimo_accidente is not null
+          then ((now() at time zone 'America/Argentina/Buenos_Aires')::date
+                - (r.ultimo_accidente at time zone 'America/Argentina/Buenos_Aires')::date) end
+      ) order by r.unidades desc, r.matriz), '[]'::jsonb)
+      from matriz_racha r
+      where not p_solo_con_produccion or r.unidades > 0 or r.accidentes > 0
+    ),
+    'totales', (
+      select jsonb_build_object(
+        'matrices', count(*),
+        'unidades', coalesce(sum(unidades),0),
+        'accidentes', coalesce(sum(accidentes),0),
+        'en_record', count(*) filter (where es_record))
+      from matriz_racha
+    ),
+    'actualizado_en', (select max(actualizado_en) from matriz_racha)
+  );
+$function$
+;

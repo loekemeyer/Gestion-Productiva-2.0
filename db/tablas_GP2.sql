@@ -357,6 +357,34 @@ comment on column "GP2".matriz.tiempo_unidad is 'En que se mide tiempo_historico
 comment on column "GP2".matriz.maquina is 'Donde se produce: alimentador (un golpe por segundo) o balancin (6 a 10 s minimo). Mapeo del usuario 2026-08-31: A=alimentador, B y D=balancin, P=piedra (501, se mide por kg). Sirve para leer bien un tiempo: no se compara un tiempo de alimentador con uno de balancin.';
 comment on column "GP2".matriz.activa is 'false = la matriz existe pero hoy no se usa. Las apps no la ofrecen para elegir; se sigue leyendo para la historia.';
 
+
+-- ---------- matriz_racha ----------
+-- (2026-09-16) La escribe public.gp2_matriz_racha_sync(), que vive en public a proposito:
+-- los datos crudos de produccion estan alla, y asi ninguna funcion ni vista de GP2 lee
+-- tablas de public (REGLA 0). Aca solo se lee.
+create table "GP2".matriz_racha (
+  matriz text not null,
+  descripcion text,
+  unidades numeric not null default 0,
+  golpes numeric,
+  uni_x_golpe numeric,
+  ultimo_accidente timestamp with time zone,
+  ultimo_tipo text,
+  ultimo_detalle text,
+  accidentes integer not null default 0,
+  record numeric not null default 0,
+  es_record boolean not null default false,
+  ultima_produccion timestamp with time zone,
+  actualizado_en timestamp with time zone not null default now(),
+  constraint matriz_racha_pkey PRIMARY KEY (matriz)
+);
+create index matriz_racha_unidades_idx on "GP2".matriz_racha (unidades desc);
+alter table "GP2".matriz_racha enable row level security;
+create policy matriz_racha_sel on "GP2".matriz_racha for select using (true);
+comment on table "GP2".matriz_racha is 'Unidades fabricadas por cada matriz desde su ultimo accidente (RM/PM del registro de produccion, o un ingreso a matriceria cargado en Planify). La calcula public.gp2_matriz_racha_sync(); aca solo se lee.';
+comment on column "GP2".matriz_racha.ultimo_tipo is 'RM (rotura) | PM (pare matriz) | INGRESO (entro a matriceria desde Planify)';
+comment on column "GP2".matriz_racha.record is 'Mejor racha historica de unidades entre dos accidentes (incluye la racha en curso).';
+comment on column "GP2".matriz_racha.es_record is 'true si la racha EN CURSO es la mejor de la historia de esa matriz (solo para matrices que ya tuvieron un accidente).';
 -- ---------- movimiento ----------
 create table "GP2".movimiento (
   id bigint not null default nextval('"GP2".movimiento_id_seq'::regclass),
