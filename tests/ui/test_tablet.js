@@ -125,7 +125,7 @@ window.supabase = { createClient: function(){ return {
   ok(ivals[0] === '200' && ivals[1] === '30', 'inyector: sugerido de bolsas (kg) precargado — ' + ivals.join(' , '));
   // inyector: la columna del medio se llama "O.C." (el pedido surge de la O.C. de partes)
   const thIny = await page.$$eval('#thead th', xs => xs.map(x => x.textContent.trim()));
-  ok(thIny[2] === 'O.C.', 'inyector: columna del medio rotulada O.C. — ' + thIny.join(' | '));
+  ok(thIny[1] === 'Stock PS' && thIny[2] === 'O.C.', 'inyector: Stock PS + O.C. — ' + thIny.join(' | '));
   await page.click('#btnVolver');        // vuelve a las contrapartes del tipo
   await page.click('#btnVolverTipo');    // y a los tipos, para seguir el flujo
 
@@ -134,7 +134,7 @@ window.supabase = { createClient: function(){ return {
 
   // Enviar a PS/tallerista: columnas Stock | Máximo | Sugerido, y el sugerido PRECARGADO en Cantidad
   const thEnv = await page.$$eval('#thead th', xs => xs.map(x => x.textContent.trim()));
-  ok(thEnv.join('|') === 'Pieza|Stock|Máximo|Sugerido|Cantidad', 'Enviar a tallerista: columnas Stock/Máximo/Sugerido — ' + thEnv.join(' | '));
+  ok(thEnv.join('|') === 'Pieza|Stock Tall.|Máximo|Sugerido|Cantidad', 'Enviar a tallerista: Stock Tall./Máximo/Sugerido — ' + thEnv.join(' | '));
   let rows = await page.$$eval('#tbody tr', xs => xs.map(x => x.textContent.replace(/\s+/g, ' ')));
   // Stock ahora muestra el SALDO en poder del tercero (saldo_dest): A10 42, F7 7,5
   ok(rows.length === 2 && rows[0].includes('A10') && rows[0].includes('42') && rows[0].includes('200') && rows[0].includes('150'),

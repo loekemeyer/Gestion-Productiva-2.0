@@ -6,6 +6,11 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
+<!-- v1.4.6 (2026-09-16) — EL ENCABEZADO STOCK ACLARA QUE ES DEL TERCERO (usuario: "aclara que ese stock
+     es stock P.S."). En Enviar con sugerido, la columna Stock pasa a "Stock PS" (PS/inyector) o
+     "Stock Tall." (tallerista): es el saldo en poder del tercero (enviado − entregado), no el nuestro.
+     La recepción de partes plásticas ya descuenta la resina del inyector (crear_recepcion_insumo:
+     consumo_inyector = cantidad × kg_x_uni × (1 + inyeccion_desperdicio_pct/100), hoy 4%). -->
 <!-- v1.4.5 (2026-09-16) — LA COLUMNA "STOCK" MUESTRA EL SALDO EN PODER DEL TERCERO (usuario: "en stock
      me gustaría saber lo que le enviamos nosotros − lo entregado por ellos, que sería el saldo en ps").
      Stock pasa de online_sector a saldo_dest = inventario de lo que le mandamos (pieza/resina) en la
@@ -421,9 +426,11 @@ function elegir(c){
   // Inyector: el pedido surge de la O.C. de partes plásticas, así que la columna del medio se
   // rotula "O.C." en vez de "Máximo" [usuario 2026-09-16]. PS/talleristas siguen con "Máximo".
   var _midLbl = (selCP.tipo === "inyector") ? "O.C." : "Máximo";
+  // el Stock que se muestra es el SALDO en poder del tercero, no el nuestro: se aclara en el encabezado
+  var _stkLbl = (selCP.tipo === "tallerista") ? "Stock Tall." : "Stock PS";
   $("thead").innerHTML = MODO === "enviar"
     ? (envConSugerido()
-        ? "<th>Pieza</th><th class=\"num\">Stock</th><th class=\"num\">" + _midLbl + "</th><th class=\"num\">Sugerido</th><th class=\"num sep\">Cantidad</th>"
+        ? "<th>Pieza</th><th class=\"num\">" + _stkLbl + "</th><th class=\"num\">" + _midLbl + "</th><th class=\"num\">Sugerido</th><th class=\"num sep\">Cantidad</th>"
         : "<th>Pieza</th><th class=\"num\">Online sector</th><th class=\"num sep\">Cantidad</th>")
     : "<th>Pieza</th><th class=\"num\">Esperado</th><th class=\"num sep\">Recibido</th>";
   // precarga UNA vez: el sugerido entra como cantidad por defecto (editable). Sólo toca campos sin
