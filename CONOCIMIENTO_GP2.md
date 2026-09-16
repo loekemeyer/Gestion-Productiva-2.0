@@ -151,6 +151,27 @@ plástica (sector 6)**, más el 4 % de master bach para el color. Es un **servic
   lista y cambia el costeo de la pieza de *comprada* a *inyectada*. `enviar_material_inyector` y la
   pantalla de Inyectores siguen existiendo para el material; no se borran.
 
+#### Cuánta bolsa mandarle al inyector — el máximo sale de la PARTE, no de la bolsa `[usuario 2026-09-16]`
+**Regla general de máximos (textual):** *"Los máximos surgen de estadística madre × cant de meses
+por ubic."* → `maximo = est_madre (demanda) × ubicacion.meses_stock`. Es lo que ya hace
+`recalcular_maximos_*`; el origen queda `est_madre`.
+
+**Inyectores (caso específico) `[usuario 2026-09-16, textual]`:** *"según el máximo de partes
+plásticas − stock de partes plásticas = O.C. de partes plásticas, mandarle la cantidad de bolsas
+plásticas según esa orden de compra. Porque básicamente le mandamos bolsas plásticas para que luego
+nos manden las partes plásticas."* O sea, el máximo/OC **vive en la PARTE plástica (sector 6), no en
+la bolsa**:
+1. `OC_parte (uni) = max(0, maximo_parte − stock_parte)` (la parte, en el Sector Plástico).
+2. `bolsas a mandar (kg de resina) = Σ_partes( OC_parte × componente.kg_x_uni )`, **agrupado por
+   `material_id`** (la resina/bolsa, sector 14). `kg_x_uni` = kg de resina por pieza, ya cargado.
+- **El factor y los máximos ya existen:** las partes de los 4 inyectores ya tienen máximo est_madre
+  (JL Matriceria 2/2, Kollplast 1/1, Pat Bet Plast 32/33 —falta 1 sin consumo—, Pettofrezza 13/13).
+  Lo que **falta es que la tablet lo muestre como sugerido de bolsas** para el inyector (hoy en
+  Enviar el inyector lista sus resinas con "online sector" y sin sugerido — quedó afuera del
+  `envConSugerido` de v1.4.0, que sólo cubre PS y talleristas).
+- **Ejemplo medido (Pat Bet Plast, partes en stock 0 → piden el máximo entero):** PP 2630 1.985,28 kg
+  · Nylon Recuperado 399,70 · ABS GP 22 248,76 · PE Baja 63,43 · Nylon Virgen 22,64 · Santoprene 5,44.
+
 ### `D1` (Espiral Sacacorcho): lo importado con su margen a la vista `[usuario 2026-09-02]`
 
 Dicho textual: *"D1: costo TN 0.067usd. Vende a LK a 0.24usd"*.
