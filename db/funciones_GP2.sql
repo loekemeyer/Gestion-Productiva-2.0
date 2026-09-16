@@ -6973,8 +6973,16 @@ rep_iny as (
   select 'inyector'::text as tipo, c.proveedor as ref, c.material_id as comp_id,
          sum(coalesce(im.maximo,0)   * coalesce(c.kg_x_uni,0)) as maximo_dest,
          sum(coalesce(im.cantidad,0) * coalesce(c.kg_x_uni,0)) as stock_dest,
-         round(sum(greatest(0, coalesce(im.maximo,0) - coalesce(im.cantidad,0))
-                   * coalesce(c.kg_x_uni,0)), 2) as sugerido
+         greatest(0, round(
+            sum(greatest(0, coalesce(im.maximo,0) - coalesce(im.cantidad,0)) * coalesce(c.kg_x_uni,0))
+            -- 3er termino: la resina que YA le mandamos y todavia no volvio como pieza (kg en poder
+            -- del inyector, ubic tipo 'inyector'). Evita re-mandar bolsas en transito.
+            - coalesce((select ir.cantidad from inventario ir
+                         where ir.componente_id = c.material_id
+                           and ir.ubicacion_id = ubic_de('inyector',
+                                 (select pi2.id from proveedor_insumo pi2 where pi2.nombre = c.proveedor limit 1))
+                         limit 1), 0)
+         , 2)) as sugerido
     from componente c
     left join inventario im on im.componente_id = c.id
                           and im.ubicacion_id = ubic_de('sector', c.sector_id)
