@@ -176,6 +176,18 @@ la bolsa**:
 - **Ejemplo medido (Pat Bet Plast, partes en stock 0 → piden el máximo entero):** PP 2630 1.985,28 kg
   · Nylon Recuperado 399,70 · ABS GP 22 248,76 · PE Baja 63,43 · Nylon Virgen 22,64 · Santoprene 5,44.
 
+#### Conversión de unidad en el sugerido kg→uni, y el descorazonador mal marcado `[usuario 2026-09-16]`
+Cuando lo que se ENVÍA es un fleje/chapa (kg) y la SALIDA es una pieza contada (uni), el sugerido
+del tablet ahora convierte el déficit de la salida a kg por su `kg_x_uni` (CTE `rep`, factor `fu`).
+Antes daba el número de piezas tratado como kg (ej. CHAPA430 → Eclipse: "402 kg" cuando eran 402
+descorazonadores). `fu` NO contempla la merma del corte (para eso iría `ruta_paso.cantidad` = kg de
+chapa por pieza).
+- **Trampa de datos:** el fu se dispara mirando `componente.unidad_medida` de la salida. El
+  **Descorazonador (1686, id 596) está marcado `unidad_medida='kg'`** siendo el único de los 86 de
+  Sector Procesado así (los otros 85 son 'unidad'); por eso su chapa seguía dando 402. Es un dato
+  mal cargado (consumo 402 uni/mes, kg_x_uni 0,014508 = peso de UNA pieza; 0 movimientos, stock 0).
+  Corregirlo a 'unidad' hace que la chapa dé 402 × 0,014508 ≈ 5,83 kg.
+
 ### `D1` (Espiral Sacacorcho): lo importado con su margen a la vista `[usuario 2026-09-02]`
 
 Dicho textual: *"D1: costo TN 0.067usd. Vende a LK a 0.24usd"*.

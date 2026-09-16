@@ -6937,21 +6937,27 @@ env as (
 ),
 rep as (
   select e.tipo, e.ref, e.comp_id,
-         sum(x.maximo_sal * x.ratio) as maximo_dest,
-         sum(x.stock_sal  * x.ratio) as stock_dest,
+         sum(x.maximo_sal * x.ratio * x.fu) as maximo_dest,
+         sum(x.stock_sal  * x.ratio * x.fu) as stock_dest,
          greatest(0, round(
-            sum(greatest(0, x.maximo_sal - x.stock_sal - x.enDest_sal) * x.ratio)
+            sum(greatest(0, x.maximo_sal - x.stock_sal - x.enDest_sal) * x.ratio * x.fu)
             - coalesce((select i.cantidad from inventario i
                          where i.componente_id = e.comp_id
                            and i.ubicacion_id = ubic_de(e.tipo, e.ref::bigint) limit 1),0)
-         )) as sugerido
+         , 2)) as sugerido
     from (select distinct tipo, ref, comp_id from env
            where tipo in ('proveedor_servicio','tallerista')) e
+    join componente ent on ent.id = e.comp_id
     cross join lateral (
        select sc.id as salida, coalesce(min(rp.cantidad),1) as ratio,
               coalesce(max(i1.maximo),0)   as maximo_sal,
               coalesce(max(i1.cantidad),0) as stock_sal,
-              coalesce(max(i2.cantidad),0) as enDest_sal
+              coalesce(max(i2.cantidad),0) as enDest_sal,
+              -- factor de unidad: si lo que se ENVIA es kg y la SALIDA es en uni, el deficit (uni)
+              -- se convierte a kg por el kg_x_uni de la salida (ej. chapa->descorazonador). Si no
+              -- cambia de unidad, fu=1. NO contempla la merma del corte (eso seria ruta_paso.cantidad).
+              case when ent.unidad_medida = 'kg' and coalesce(sc.unidad_medida,'uni') <> 'kg'
+                   then coalesce(sc.kg_x_uni,0) else 1 end as fu
          from ruta_paso rp
          join componente sc on sc.id = rp.comp_salida_id
          left join inventario i1 on i1.componente_id = sc.id
@@ -6963,7 +6969,7 @@ rep as (
              or (e.tipo='tallerista'         and rp.tallerista_id = e.ref::bigint) )
           and rp.comp_entrada_id = e.comp_id
           and rp.comp_salida_id is not null
-        group by sc.id
+        group by sc.id, sc.unidad_medida, sc.kg_x_uni
     ) x
    group by e.tipo, e.ref, e.comp_id
 ),
