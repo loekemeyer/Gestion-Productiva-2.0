@@ -6921,9 +6921,6 @@ env as (
         or (v.tipo = 'proveedor_servicio'
             and exists (select 1 from proveedor_servicio ps where ps.id = v.ref_id)) )
   union all
-  -- PROV AT: solo los cartones/cajas que la receta de SUS articulos usa (no el catalogo
-  -- entero de sector 10/11). Antes iba con ref '*' y la pantalla mostraba 191 a todos
-  -- [bug 2026-09-15]. Mismo cruce que envios_prov_at_bundle / stock_general_extra_bundle.
   select 'proveedor_at', apa.proveedor_at_id::text, ac.componente_id
     from articulo_prov_at apa
     join articulo a on a.codigo = apa.cod_art
@@ -6932,12 +6929,46 @@ env as (
    where coalesce(apa.activo,true)
      and c.sector_id in (10,11) and not coalesce(c.discontinuado,false)
   union all
-  -- INYECTORES: se les envia la RESINA (bolsa) que consume cada pieza que inyectan.
   select 'inyector', c.proveedor, c.material_id
     from componente c
    where c.material_id is not null and c.estado_compra is null and c.proveedor is not null
      and exists (select 1 from proveedor_insumo pi where pi.nombre = c.proveedor)
    group by c.proveedor, c.material_id
+),
+-- SUGERIDO A ENVIAR por (destino, pieza que se manda). Solo PS y talleristas.
+-- Mapea la ENTRADA que se manda a la/s SALIDA/s que produce (ruta_paso), y calcula el
+-- deficit de cada salida contra su maximo, descontando lo que ya esta en poder del destino.
+rep as (
+  select e.tipo, e.ref, e.comp_id,
+         sum(x.maximo_sal * x.ratio) as maximo_dest,
+         sum(x.stock_sal  * x.ratio) as stock_dest,
+         greatest(0, round(
+            sum(greatest(0, x.maximo_sal - x.stock_sal - x.enDest_sal) * x.ratio)
+            - coalesce((select i.cantidad from inventario i
+                         where i.componente_id = e.comp_id
+                           and i.ubicacion_id = ubic_de(e.tipo, e.ref::bigint) limit 1),0)
+         )) as sugerido
+    from (select distinct tipo, ref, comp_id from env
+           where tipo in ('proveedor_servicio','tallerista')) e
+    cross join lateral (
+       select sc.id as salida, coalesce(min(rp.cantidad),1) as ratio,
+              coalesce(max(i1.maximo),0)   as maximo_sal,
+              coalesce(max(i1.cantidad),0) as stock_sal,
+              coalesce(max(i2.cantidad),0) as enDest_sal
+         from ruta_paso rp
+         join componente sc on sc.id = rp.comp_salida_id
+         left join inventario i1 on i1.componente_id = sc.id
+                                and i1.ubicacion_id = ubic_de('sector', sc.sector_id)
+         left join inventario i2 on i2.componente_id = sc.id
+                                and i2.ubicacion_id = ubic_de(e.tipo, e.ref::bigint)
+        where rp.tipo_paso = e.tipo
+          and ( (e.tipo='proveedor_servicio' and rp.proveedor_id  = e.ref::bigint)
+             or (e.tipo='tallerista'         and rp.tallerista_id = e.ref::bigint) )
+          and rp.comp_entrada_id = e.comp_id
+          and rp.comp_salida_id is not null
+        group by sc.id
+    ) x
+   group by e.tipo, e.ref, e.comp_id
 ),
 rec as (
   select 'tallerista'::text as tipo, v.ref_id::text as ref, v.comp_id,
@@ -6957,7 +6988,7 @@ rec as (
          null::text as cod_art,
          coalesce((select i.cantidad from inventario i
                     where i.componente_id = v.comp_id
-                      and i.ubicacion_id = "GP2".ubic_de('tallerista', v.ref_id) limit 1), 0) as esperado,
+                      and i.ubicacion_id = ubic_de('tallerista', v.ref_id) limit 1), 0) as esperado,
          'online_tall'::text as esperado_origen
     from v_contraparte_parte v
     join componente c on c.id = v.comp_id
@@ -6969,7 +7000,7 @@ rec as (
          1, false, null::text,
          coalesce((select i.cantidad from inventario i
                     where i.componente_id = rp.comp_entrada_id
-                      and i.ubicacion_id = "GP2".ubic_de('proveedor_servicio', rp.proveedor_id) limit 1), 0),
+                      and i.ubicacion_id = ubic_de('proveedor_servicio', rp.proveedor_id) limit 1), 0),
          'online_ps'
     from (select distinct proveedor_id, comp_entrada_id, comp_salida_id
             from ruta_paso
@@ -7013,10 +7044,12 @@ env_x as (
          c.uni_x_cajon uxc, c.kg_x_uni kgu,
          coalesce((select i.cantidad from inventario i
                     where i.componente_id = c.id
-                      and i.ubicacion_id = "GP2".ubic_de('sector', c.sector_id) limit 1), 0) online_sector
+                      and i.ubicacion_id = ubic_de('sector', c.sector_id) limit 1), 0) online_sector,
+         rep.maximo_dest, rep.stock_dest, rep.sugerido
     from env e
     join componente c on c.id = e.comp_id and not coalesce(c.discontinuado,false)
     left join sector s on s.id = c.sector_id
+    left join rep on rep.tipo = e.tipo and rep.ref = e.ref and rep.comp_id = e.comp_id
    order by e.tipo, e.ref, e.comp_id
 ),
 rec_x as (
@@ -7055,7 +7088,6 @@ cp as (
   union all
   select 'virgilio', 'virgilio', 'Virgilio'
   union all
-  -- INYECTORES como contraparte (el front los agrupa bajo "Prov. de servicio").
   select distinct 'inyector', c.proveedor, c.proveedor
     from componente c
    where c.material_id is not null and c.estado_compra is null and c.proveedor is not null
@@ -7074,7 +7106,8 @@ select jsonb_build_object(
     select coalesce(jsonb_agg(jsonb_build_object(
              'tipo', tipo, 'ref', ref, 'comp_id', comp_id, 'cod', cod, 'desc', descr,
              'sector', sector, 'um', um, 'uxc', uxc, 'kg_x_uni', kgu,
-             'online_sector', online_sector
+             'online_sector', online_sector,
+             'maximo', maximo_dest, 'stock_dest', stock_dest, 'sugerido', sugerido
            ) order by cod), '[]'::jsonb) from env_x),
   'recibir', (
     select coalesce(jsonb_agg(jsonb_build_object(
@@ -7089,6 +7122,7 @@ select jsonb_build_object(
 );
 $function$
 ;
+
 
 -- ---------- tablet_registrar ----------
 CREATE OR REPLACE FUNCTION "GP2".tablet_registrar(p jsonb)

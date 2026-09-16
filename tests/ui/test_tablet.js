@@ -33,14 +33,17 @@ const BUNDLE = {
     { tipo: 'proveedor_insumo', ref: 'Corrugadora del Plata', nombre: 'Corrugadora del Plata', n_env: 0, n_rec: 3 },
     { tipo: 'virgilio', ref: 'virgilio', nombre: 'Virgilio', n_env: 0, n_rec: 1 },
   ],
+  // PS y tallerista traen ademas maximo/stock_dest/sugerido de la pieza PROCESADA/ARMADA (la
+  // salida): la tablet muestra esas 3 columnas y precarga el sugerido en Cantidad. Prov. AT e
+  // inyector NO traen sugerido (van con esas claves nulas) y siguen mostrando "Online sector".
   enviar: [
-    { tipo: 'tallerista', ref: '6', comp_id: 70, cod: 'A10', desc: 'Cpo Una', sector: 'Sector Crudo', um: 'unidad', uxc: 1000, kg_x_uni: 0.01, online_sector: 120 },
-    { tipo: 'tallerista', ref: '6', comp_id: 75, cod: 'F7', desc: 'Fleje doblado', sector: 'Sector Fleje', um: 'kg', uxc: null, kg_x_uni: 0.0134, online_sector: 30.5 },
-    { tipo: 'tallerista', ref: '9', comp_id: 70, cod: 'A10', desc: 'Cpo Una', sector: 'Sector Crudo', um: 'unidad', uxc: 1000, kg_x_uni: 0.01, online_sector: 120 },
-    { tipo: 'proveedor_servicio', ref: '5', comp_id: 90, cod: 'D5', desc: 'Mitad rompenuez', sector: 'Sector Crudo', um: 'unidad', uxc: 500, kg_x_uni: 0.05, online_sector: 40 },
-    { tipo: 'proveedor_at', ref: '1', comp_id: 456, cod: 'A1', desc: 'Caja N°1', sector: 'Sector Caja', um: 'unidad', uxc: null, kg_x_uni: null, online_sector: 988 },
-    { tipo: 'inyector', ref: 'Pat Bet Plast', comp_id: 742, cod: '2405', desc: 'PP 2630', sector: 'Sector Bolsas Plásticas', um: 'kg', uxc: null, kg_x_uni: null, online_sector: 100 },
-    { tipo: 'inyector', ref: 'Pat Bet Plast', comp_id: 743, cod: '2455', desc: 'ABS GP 22', sector: 'Sector Bolsas Plásticas', um: 'kg', uxc: null, kg_x_uni: null, online_sector: 50 },
+    { tipo: 'tallerista', ref: '6', comp_id: 70, cod: 'A10', desc: 'Cpo Una', sector: 'Sector Crudo', um: 'unidad', uxc: 1000, kg_x_uni: 0.01, online_sector: 120, maximo: 200, stock_dest: 50, sugerido: 150 },
+    { tipo: 'tallerista', ref: '6', comp_id: 75, cod: 'F7', desc: 'Fleje doblado', sector: 'Sector Fleje', um: 'kg', uxc: null, kg_x_uni: 0.0134, online_sector: 30.5, maximo: 40, stock_dest: 10, sugerido: 12.5 },
+    { tipo: 'tallerista', ref: '9', comp_id: 70, cod: 'A10', desc: 'Cpo Una', sector: 'Sector Crudo', um: 'unidad', uxc: 1000, kg_x_uni: 0.01, online_sector: 120, maximo: 200, stock_dest: 0, sugerido: 200 },
+    { tipo: 'proveedor_servicio', ref: '5', comp_id: 90, cod: 'D5', desc: 'Mitad rompenuez', sector: 'Sector Crudo', um: 'unidad', uxc: 500, kg_x_uni: 0.05, online_sector: 40, maximo: 100, stock_dest: 20, sugerido: 80 },
+    { tipo: 'proveedor_at', ref: '1', comp_id: 456, cod: 'A1', desc: 'Caja N°1', sector: 'Sector Caja', um: 'unidad', uxc: null, kg_x_uni: null, online_sector: 988, maximo: null, stock_dest: null, sugerido: null },
+    { tipo: 'inyector', ref: 'Pat Bet Plast', comp_id: 742, cod: '2405', desc: 'PP 2630', sector: 'Sector Bolsas Plásticas', um: 'kg', uxc: null, kg_x_uni: null, online_sector: 100, maximo: null, stock_dest: null, sugerido: null },
+    { tipo: 'inyector', ref: 'Pat Bet Plast', comp_id: 743, cod: '2455', desc: 'ABS GP 22', sector: 'Sector Bolsas Plásticas', um: 'kg', uxc: null, kg_x_uni: null, online_sector: 50, maximo: null, stock_dest: null, sugerido: null },
   ],
   recibir: [
     { tipo: 'tallerista', ref: '6', comp_id: 71, comp_entrada_id: 70, n_entradas: 1, tiene_bom: false, cod_art: null, cod: 'A11', desc: 'Una Armada', sector: 'Sector Procesado', um: 'unidad', uxc: 500, kg_x_uni: 0.01, por_caja: null, ent_cod: 'A10', ent_desc: 'Cpo Una', esperado: 100, esperado_origen: 'online_tall' },
@@ -123,9 +126,18 @@ window.supabase = { createClient: function(){ return {
   await page.click('#tipoGrid .tipo-btn[data-tipo="tallerista"]');
   await page.click('#cpGrid .prov-btn:has-text("Martin")');
 
+  // Enviar a PS/tallerista: columnas Stock | Máximo | Sugerido, y el sugerido PRECARGADO en Cantidad
+  const thEnv = await page.$$eval('#thead th', xs => xs.map(x => x.textContent.trim()));
+  ok(thEnv.join('|') === 'Pieza|Stock|Máximo|Sugerido|Cantidad', 'Enviar a tallerista: columnas Stock/Máximo/Sugerido — ' + thEnv.join(' | '));
   let rows = await page.$$eval('#tbody tr', xs => xs.map(x => x.textContent.replace(/\s+/g, ' ')));
-  ok(rows.length === 2 && rows[0].includes('A10') && rows[0].includes('120'), 'fila A10 con online 120 — ' + rows[0]);
-  ok(rows[1].includes('F7') && rows[1].includes('kg') && rows[1].includes('30,5'), 'fila F7 en kg con online 30,5 — ' + rows[1]);
+  ok(rows.length === 2 && rows[0].includes('A10') && rows[0].includes('50') && rows[0].includes('200') && rows[0].includes('150'),
+     'A10: stock 50, máximo 200, sugerido 150 — ' + rows[0]);
+  ok(rows[1].includes('F7') && rows[1].includes('kg') && rows[1].includes('40') && rows[1].includes('12,5'),
+     'F7 (kg): máximo 40, sugerido 12,5 — ' + rows[1]);
+  // el sugerido queda precargado en el campo Cantidad (editable), con formato de la casa
+  let vals = await page.$$eval('#tbody input.cell-in', xs => xs.map(x => x.value));
+  ok(vals[0] === '150' && vals[1] === '12,5', 'la cantidad viene precargada con el sugerido — ' + vals.join(' , '));
+  ok((await page.$eval('#btnEnviar', e => e.textContent)) === 'Enviar (2)', 'las 2 piezas con sugerido>0 quedan listas — botón Enviar (2)');
   // la pieza en kg se carga con teclado decimal; la de unidades con numerico
   const modos = await page.$$eval('#tbody input.cell-in', xs => xs.map(x => x.getAttribute('inputmode')));
   ok(modos[0] === 'numeric' && modos[1] === 'decimal', 'teclado: A10 numeric, F7 (kg) decimal — ' + modos.join(','));
@@ -137,9 +149,7 @@ window.supabase = { createClient: function(){ return {
   await page.fill('#q', '');
   await page.waitForFunction(() => document.querySelectorAll('#tbody tr').length === 2);
 
-  // cargar 12,5 kg de F7 y enviar
-  await page.fill('#tbody tr:nth-child(2) input.cell-in', '12,5');
-  ok((await page.$eval('#btnEnviar', e => e.textContent)) === 'Enviar (1)', 'boton Enviar (1)');
+  // el sugerido ya viene precargado: se envían las dos piezas tal cual (el operario podría editar)
   const fecha = await page.$eval('#fFecha', e => e.value);
   await page.click('#btnEnviar');
   await page.waitForFunction(() => !document.getElementById('fase3').classList.contains('hidden'));
@@ -148,8 +158,10 @@ window.supabase = { createClient: function(){ return {
   let p = reg[0].args.p;
   ok(p.modo === 'enviar' && p.tipo === 'tallerista' && p.ref === '6' && p.fecha === fecha + 'T12:00:00' && p.remito === null,
      'payload enviar: modo/tipo/ref/fecha — ' + JSON.stringify({ modo: p.modo, tipo: p.tipo, ref: p.ref, fecha: p.fecha }));
-  ok(p.items.length === 1 && p.items[0].comp_id === 75 && p.items[0].cantidad === 12.5 && p.items[0].unidad === 'kg' && p.items[0].esperado === null,
-     'item F7: 12,5 kg viaja como kg — ' + JSON.stringify(p.items[0]));
+  ok(p.items.length === 2, 'se envían las 2 piezas precargadas');
+  const itF7 = p.items.find(i => i.comp_id === 75), itA10 = p.items.find(i => i.comp_id === 70);
+  ok(itF7 && itF7.cantidad === 12.5 && itF7.unidad === 'kg' && itF7.esperado === null, 'item F7: 12,5 kg viaja como kg — ' + JSON.stringify(itF7));
+  ok(itA10 && itA10.cantidad === 150 && itA10.unidad === 'uni', 'item A10: 150 uni (sugerido precargado) — ' + JSON.stringify(itA10));
   ok(dialogs.some(d => d.type === 'confirm' && d.msg.includes('Enviar a Martin Cornejo') && d.msg.includes('12,5 kg')), 'confirm de envio con resumen');
   ok((await page.$eval('#successTitle', e => e.textContent)).includes('Enviado'), 'exito de envio');
   const buf = await page.evaluate(() => JSON.parse(localStorage.getItem('gp2_tablet_buffer') || '{}'));

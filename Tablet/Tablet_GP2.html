@@ -6,6 +6,14 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
+<!-- v1.4.0 (2026-09-16) — ENVIAR MUESTRA CUÁNTO MANDAR (usuario: "máximo de pliegos adhesivados −
+     stock de pliegos adhesivados = lo que debería mandarle", "precarga en el campo cantidad").
+     En Enviar a PROV. DE SERVICIO y TALLERISTA cada fila trae ahora Stock | Máximo | Sugerido de la
+     pieza PROCESADA/ARMADA (la salida), y el Sugerido se PRECARGA en el campo Cantidad (editable).
+     sugerido = Σ salidas max(0, máximo_salida − stock_salida − lo que ya está en el destino)·ratio
+     − lo que ya se le mandó de esa entrada y no volvió. Sale de tablet_bundle (CTE rep, ruta_paso
+     entrada→salida). Prov. AT / inyector siguen mostrando "Online sector" (sin sugerido). El
+     precargado se hace UNA vez al elegir la contraparte: si borrás un campo, no se vuelve a llenar. -->
 <!-- v1.3.1 (2026-09-15) — FIX: en Enviar → Prov. de art. terminado, cada proveedor ve SOLO los
      cartones/cajas que la receta de sus articulos usa (Cabral 39, Paternal Goma 1…), no los 191
      de todo el sector 10/11. tablet_bundle: el prov AT deja de ir con ref '*' (recibe todo) y pasa
@@ -235,6 +243,13 @@ function claveDe(x){
 }
 function claveCP(c){ return MODO + ":" + c.tipo + ":" + c.ref; }
 
+/* En Enviar, sólo PS y talleristas tienen sugerido (máximo − stock − lo que ya está en el destino);
+   prov. AT / inyector no, y ahí la tablet sigue mostrando "Online sector". */
+function envConSugerido(){
+  return MODO === "enviar" && !!selCP &&
+    (selCP.tipo === "proveedor_servicio" || selCP.tipo === "tallerista");
+}
+
 /* ---------- carga ---------- */
 async function cargar(){
   try {
@@ -377,8 +392,22 @@ function elegir(c){
   if (!$("fFecha").value) $("fFecha").value = hoyISO();
   $("q").value = "";
   $("thead").innerHTML = MODO === "enviar"
-    ? "<th>Pieza</th><th class=\"num\">Online sector</th><th class=\"num sep\">Cantidad</th>"
+    ? (envConSugerido()
+        ? "<th>Pieza</th><th class=\"num\">Stock</th><th class=\"num\">Máximo</th><th class=\"num\">Sugerido</th><th class=\"num sep\">Cantidad</th>"
+        : "<th>Pieza</th><th class=\"num\">Online sector</th><th class=\"num sep\">Cantidad</th>")
     : "<th>Pieza</th><th class=\"num\">Esperado</th><th class=\"num sep\">Recibido</th>";
+  // precarga UNA vez: el sugerido entra como cantidad por defecto (editable). Sólo toca campos sin
+  // cargar, así que si el operario vació uno a mano no se lo vuelve a llenar en cada render.
+  if (envConSugerido()) {
+    piezasDe(c).forEach(function(x){
+      var it = BUF.item(c.id, claveDe(x));
+      // se precarga con el formato de la casa (coma decimal / punto de miles), que es el que
+      // GP2N.num sabe leer; String(sugerido) con punto se leería como miles.
+      if ((it.q === undefined || it.q === null || it.q === "") && Number(x.sugerido) > 0)
+        it.q = fmt(Number(x.sugerido), unidadDe(x) === "kg" ? 2 : 0);
+    });
+    BUF.save();
+  }
   render();
 }
 
@@ -432,9 +461,16 @@ function render(){
     var pieza = '<td><span class="cod">' + esc(x.cod) + "</span>" + uniTag(u) +
       '<br><small class="sub">' + sub + "</small>" +
       (ex > 0 ? '<br><span class="demas-tag">⚠ ' + fmt(ex, u === "kg" ? 2 : 0) + " de más</span>" : "") + "</td>";
-    var mitad = MODO === "enviar"
-      ? '<td class="num esp">' + fmt(x.online_sector, u === "kg" ? 2 : 0) + " " + u + "</td>"
-      : '<td class="num">' + esperadoTxt(x) + "</td>";
+    var mitad;
+    if (MODO === "enviar") {
+      mitad = envConSugerido()
+        ? ('<td class="num esp">' + fmt(x.stock_dest, u === "kg" ? 2 : 0, "—") + "</td>" +
+           '<td class="num esp">' + fmt(x.maximo, u === "kg" ? 2 : 0, "—") + "</td>" +
+           '<td class="num esp"><b>' + fmt(x.sugerido, u === "kg" ? 2 : 0, "—") + "</b></td>")
+        : ('<td class="num esp">' + fmt(x.online_sector, u === "kg" ? 2 : 0) + " " + u + "</td>");
+    } else {
+      mitad = '<td class="num">' + esperadoTxt(x) + "</td>";
+    }
     tr.innerHTML = pieza + mitad + E.tdInput("q", it.q, false, "sep", inputmodeDe(u)).replace('class="cell-in', 'class="cell-in big');
     if (ex > 0) tr.classList.add("demas");
     tb.appendChild(tr);
