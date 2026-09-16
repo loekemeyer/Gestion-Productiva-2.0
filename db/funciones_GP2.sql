@@ -6990,10 +6990,12 @@ rep_iny as (
          , 2)) as sugerido
     from componente c
     left join lateral (
+       -- el vinculo es la PIEZA (c.proveedor ya es el inyector), no o.proveedor: la OC de rubro
+       -- Plastico abarca partes de varios inyectores y puede venir con proveedor NULL.
        select sum(oi.cantidad - coalesce(oi.recibido,0)) as pend
          from orden_compra o
          join orden_compra_item oi on oi.oc_id = o.id
-        where o.estado = 'enviada' and o.proveedor = c.proveedor and oi.componente_id = c.id
+        where o.estado = 'enviada' and oi.componente_id = c.id
     ) ocp on true
    where c.material_id is not null and c.estado_compra is null and c.proveedor is not null
      and exists (select 1 from proveedor_insumo pi where pi.nombre = c.proveedor)
