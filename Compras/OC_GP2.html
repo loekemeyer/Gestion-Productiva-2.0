@@ -341,6 +341,9 @@
      v1.1.1 — fix: "Pedir" acepta decimales es-AR (12,5 ya no se convertía en 125) y la OC solo lleva los items del rubro/proveedor seleccionado. v1.1.0 — Ordenes de Compra de insumos: sugerido = consumo Est Madre x meses - stock - pendiente OC; imprimir OC -->
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
 <title>Órdenes de Compra · GP2</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="../gp2-numero.js?v=20260911o"></script>
@@ -931,8 +934,10 @@ function render(){
       // El "mín N" debajo del stock se saco [usuario 2026-09-04: "eso no lo quiero ver"].
       // El stock se pinta en rojo cuando esta abajo del MAXIMO (el minimo se borro el 14-09).
       '<td class="num'+(bajoMin?' bajo-min':'')+'">'+(st==null?'—':(fmt(st)+' '+esc(i.unidad)))+'</td>'+
-      '<td class="num'+(mx!=null?' max-cell" data-max="'+i.comp_id+'" title="Ver de qué se compone':'')+'">'+(mx==null?'—':fmt(mx))+
-        (mx!=null&&i.maximo_origen?('<span class="sub-nota">'+esc(tagOrigen(i.maximo_origen))+'</span>'):'')+'</td>'+
+      // El origen del maximo (fisico / EM / migrado) NO se muestra en la fila
+      // [usuario 2026-09-16: "no quiero que me especifique de donde sale el maximo"].
+      // Sigue disponible en el desglose que se abre al tocar el Maximo.
+      '<td class="num'+(mx!=null?' max-cell" data-max="'+i.comp_id+'" title="Ver de qué se compone':'')+'">'+(mx==null?'—':fmt(mx))+'</td>'+
       '<td class="num"><input class="pedir-in" data-in="'+i.comp_id+'" inputmode="decimal" value="'+(ped?String(ped).replace('.',','):'')+'" placeholder="'+i.unidad+'">'+paqEq+
         notaSugerido(i)+notaRepo(i)+'</td>'+
     '</tr>';

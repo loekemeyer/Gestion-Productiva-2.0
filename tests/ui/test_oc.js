@@ -251,8 +251,10 @@ window.supabase = { createClient: function(){ return {
   // era el camino viejo.
   const calcA1 = (await page.textContent('tr[data-id="1"] .sug-calc')).replace(/\s+/g, ' ').trim();
   ok(calcA1 === 'sugerido 2.449 · máx 2.549 − stock 100', 'la cuenta es maximo − stock: ' + calcA1);
-  ok(filaA1.includes('físico'), 'la fila dice de donde sale el maximo (físico)');
-  ok((await page.textContent('tr[data-id="2"]')).includes('EM'), 'y el de est_madre se muestra como EM');
+  // [usuario 2026-09-16: "no quiero que me especifique de donde sale el maximo"].
+  // La fila ya no muestra el origen (ni "físico" ni "EM"): sigue en el desglose al tocar el Máximo.
+  ok(!filaA1.includes('físico'), 'la fila ya no muestra el origen del maximo (físico)');
+  ok((await page.$$('tr[data-id="1"] .sub-nota')).length === 0, 'no queda la palabrita gris del origen en la fila');
   const tot1 = (await page.textContent('#tot')).trim();
   ok(tot1.startsWith('2 ítems'), 'barra: los 2 flejes del rubro ya cuentan (' + tot1 + ')');
   // (2449 + 300) kg x US$ 1 = US$ 2.749; con el dolar del cron (1535) ~ $ 4.219.715
@@ -346,9 +348,10 @@ window.supabase = { createClient: function(){ return {
      'abajo del maximo se carga solo lo que falta para el techo (2.625)');
   const repPedir = (await page.textContent('tr[data-id="16"] .rep-tag')).replace(/\s+/g, ' ').trim();
   ok(repPedir === 'hay que pedir · stock < máx 11.625', 'y la fila dice por que: ' + repPedir);
-  // El origen Master Bach trae el porcentaje adentro del literal y se muestra legible.
-  ok((await page.textContent('tr[data-id="16"]')).includes('MB 4%'),
-     'el maximo de Master Bach se muestra como MB 4% y no como mb_4pct_por_color');
+  // El origen del maximo (incluido Master Bach "MB 4%") ya NO se muestra en la fila
+  // [usuario 2026-09-16]; sigue disponible en el desglose al tocar el Máximo.
+  ok(!(await page.textContent('tr[data-id="16"]')).includes('MB 4%'),
+     'la fila ya no muestra el origen del maximo (MB 4%)');
   await page.click('#provs .chip:has-text("Inyectores SA")');   // se suelta
   ok(await page.evaluate(() => provSel === null), 'proveedor Inyectores soltado');
 
