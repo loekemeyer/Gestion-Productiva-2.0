@@ -6,6 +6,11 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
+<!-- v1.4.5 (2026-09-16) — LA COLUMNA "STOCK" MUESTRA EL SALDO EN PODER DEL TERCERO (usuario: "en stock
+     me gustaría saber lo que le enviamos nosotros − lo entregado por ellos, que sería el saldo en ps").
+     Stock pasa de online_sector a saldo_dest = inventario de lo que le mandamos (pieza/resina) en la
+     ubicación del destino = enviado − entregado. Vale para PS, tallerista e inyector. tablet_bundle
+     devuelve 'saldo_dest'. -->
 <!-- v1.4.4 (2026-09-16) — LA COLUMNA "STOCK" MUESTRA LO NUESTRO PARA MANDAR (usuario: "que la columna
      stock muestre lo que tenemos nosotros de lo que le vamos a mandar: bolsas... pero aplica para todo").
      En Enviar con sugerido, Stock deja de mostrar el stock de la pieza que devuelven (stock_dest) y
@@ -489,9 +494,9 @@ function render(){
     var mitad;
     if (MODO === "enviar") {
       mitad = envConSugerido()
-        // Stock = lo que TENEMOS de lo que le vamos a mandar (online del sector de la pieza que se
-        // envía: bolsa/resina para el inyector, chapa/pliego crudo para PS/tallerista) [usuario 2026-09-16]
-        ? ('<td class="num esp">' + fmt(x.online_sector, u === "kg" ? 2 : 0, "—") + "</td>" +
+        // Stock = SALDO en poder del tercero (lo que le enviamos − lo que nos entregó); es el
+        // inventario de lo que le mandamos en la ubicación del destino [usuario 2026-09-16]
+        ? ('<td class="num esp">' + fmt(x.saldo_dest, u === "kg" ? 2 : 0, "—") + "</td>" +
            '<td class="num esp">' + fmt(x.maximo, u === "kg" ? 2 : 0, "—") + "</td>" +
            '<td class="num esp"><b>' + fmt(x.sugerido, u === "kg" ? 2 : 0, "—") + "</b></td>")
         : ('<td class="num esp">' + fmt(x.online_sector, u === "kg" ? 2 : 0) + " " + u + "</td>");

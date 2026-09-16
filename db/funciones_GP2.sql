@@ -7074,6 +7074,15 @@ env_x as (
          coalesce((select i.cantidad from inventario i
                     where i.componente_id = c.id
                       and i.ubicacion_id = ubic_de('sector', c.sector_id) limit 1), 0) online_sector,
+         -- saldo en poder del tercero = lo que le enviamos − lo que nos entregó = inventario de lo
+         -- que se le manda (la pieza/resina) en la ubicacion del destino. [usuario 2026-09-16]
+         coalesce((select i.cantidad from inventario i
+                    where i.componente_id = c.id
+                      and i.ubicacion_id = (case
+                            when e.tipo in ('proveedor_servicio','tallerista','proveedor_at') then ubic_de(e.tipo, e.ref::bigint)
+                            when e.tipo = 'inyector' then ubic_de('inyector',
+                                  (select pi3.id from proveedor_insumo pi3 where pi3.nombre = e.ref limit 1))
+                          end) limit 1), 0) saldo_dest,
          coalesce(rep.maximo_dest, ri.maximo_dest) maximo_dest,
          coalesce(rep.stock_dest,  ri.stock_dest)  stock_dest,
          coalesce(rep.sugerido,    ri.sugerido)    sugerido
@@ -7138,7 +7147,7 @@ select jsonb_build_object(
     select coalesce(jsonb_agg(jsonb_build_object(
              'tipo', tipo, 'ref', ref, 'comp_id', comp_id, 'cod', cod, 'desc', descr,
              'sector', sector, 'um', um, 'uxc', uxc, 'kg_x_uni', kgu,
-             'online_sector', online_sector,
+             'online_sector', online_sector, 'saldo_dest', saldo_dest,
              'maximo', maximo_dest, 'stock_dest', stock_dest, 'sugerido', sugerido
            ) order by cod), '[]'::jsonb) from env_x),
   'recibir', (
