@@ -6935,9 +6935,6 @@ env as (
      and exists (select 1 from proveedor_insumo pi where pi.nombre = c.proveedor)
    group by c.proveedor, c.material_id
 ),
--- SUGERIDO A ENVIAR por (destino, pieza que se manda). Solo PS y talleristas.
--- Mapea la ENTRADA que se manda a la/s SALIDA/s que produce (ruta_paso), y calcula el
--- deficit de cada salida contra su maximo, descontando lo que ya esta en poder del destino.
 rep as (
   select e.tipo, e.ref, e.comp_id,
          sum(x.maximo_sal * x.ratio) as maximo_dest,
@@ -6969,6 +6966,21 @@ rep as (
         group by sc.id
     ) x
    group by e.tipo, e.ref, e.comp_id
+),
+-- INYECTOR: el sugerido de la bolsa (resina) sale del deficit de las PARTES plasticas que la usan.
+-- Todo en kg de resina: (maximo_parte - stock_parte) * kg_x_uni, agrupado por (inyector, resina).
+rep_iny as (
+  select 'inyector'::text as tipo, c.proveedor as ref, c.material_id as comp_id,
+         sum(coalesce(im.maximo,0)   * coalesce(c.kg_x_uni,0)) as maximo_dest,
+         sum(coalesce(im.cantidad,0) * coalesce(c.kg_x_uni,0)) as stock_dest,
+         round(sum(greatest(0, coalesce(im.maximo,0) - coalesce(im.cantidad,0))
+                   * coalesce(c.kg_x_uni,0)), 2) as sugerido
+    from componente c
+    left join inventario im on im.componente_id = c.id
+                          and im.ubicacion_id = ubic_de('sector', c.sector_id)
+   where c.material_id is not null and c.estado_compra is null and c.proveedor is not null
+     and exists (select 1 from proveedor_insumo pi where pi.nombre = c.proveedor)
+   group by c.proveedor, c.material_id
 ),
 rec as (
   select 'tallerista'::text as tipo, v.ref_id::text as ref, v.comp_id,
@@ -7045,11 +7057,14 @@ env_x as (
          coalesce((select i.cantidad from inventario i
                     where i.componente_id = c.id
                       and i.ubicacion_id = ubic_de('sector', c.sector_id) limit 1), 0) online_sector,
-         rep.maximo_dest, rep.stock_dest, rep.sugerido
+         coalesce(rep.maximo_dest, ri.maximo_dest) maximo_dest,
+         coalesce(rep.stock_dest,  ri.stock_dest)  stock_dest,
+         coalesce(rep.sugerido,    ri.sugerido)    sugerido
     from env e
     join componente c on c.id = e.comp_id and not coalesce(c.discontinuado,false)
     left join sector s on s.id = c.sector_id
-    left join rep on rep.tipo = e.tipo and rep.ref = e.ref and rep.comp_id = e.comp_id
+    left join rep     on rep.tipo = e.tipo and rep.ref = e.ref and rep.comp_id = e.comp_id
+    left join rep_iny ri on ri.tipo = e.tipo and ri.ref = e.ref and ri.comp_id = e.comp_id
    order by e.tipo, e.ref, e.comp_id
 ),
 rec_x as (
