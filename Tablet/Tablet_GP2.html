@@ -6,6 +6,17 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
+<!-- v1.8.0 (2026-09-17) — COLUMNAS SIN BLANCO MUERTO (usuario, sobre el screenshot de AJ Adhesivos:
+     "optimizame todos los espacios en blanco que hay entre las columnas en todas las pantallas de
+     envío a ps en la versión tablet"). table.t hereda width:100% de gp2-modulo.css: con 3 o 4
+     columnas el navegador repartía todo el ancho sobrante de la tablet entre ellas y dejaba media
+     pantalla de blanco entre la pieza y su número. Ahora el bloque de carga (buscador + cartel +
+     tabla) encoge con la tabla: cada columna mide lo que necesita su contenido, el buscador mide
+     exactamente lo que miden las columnas, y el aire que queda va ADENTRO de cada celda (padding
+     8→12px) en vez de entre columnas. Vale para las 4 vistas de la tabla (PS con paquetes, PS por
+     peso, PS/tallerista/inyector común y Recibir), que son un solo render. En el celular (≤640px)
+     no hay blanco que recortar: la tabla vuelve a ocupar todo el ancho, como antes. Solo CSS +
+     un div contenedor: ningún cálculo, payload ni encabezado cambió. -->
 <!-- v1.7.0 (2026-09-17) — ENVIO A HERNANDEZ JULIO: SE MANDA POR PESO, CON EL BULTO AL LADO
      (usuario: "para lo que son partes plásticas, que empieza con la letra P, el envío sugerido tiene
      que estar nominado en bolsas… cuántos kilos le están mandando y cuántas bolsas eso significa.
@@ -180,9 +191,30 @@
     font-size:17px;color:#5c2d00;line-height:1.4}
   .alerta-box b{color:#8a3b00}
   input#fRemito{height:44px;border:2px solid #d0d7de;border-radius:8px;padding:0 10px;font-size:19px;width:150px}
+  /* COLUMNAS SIN BLANCO MUERTO EN LA TABLET [usuario 2026-09-17: "optimizame todos los espacios en
+     blanco que hay entre las columnas en todas las pantallas de envio a ps en la version tablet"].
+     table.t viene a width:100% de gp2-modulo.css: con 3 o 4 columnas el navegador repartia el ancho
+     sobrante y dejaba un desierto entre la pieza y su numero (el ojo tenia que cruzar media pantalla
+     para leer una fila). Aca #tblBox (buscador + cartel + tabla) es inline-block: encoge hasta el
+     ancho de la tabla, y la tabla al de su propio contenido. El .table-wrap sigue con su scroll
+     propio para cuando no entra (celular, o muchas columnas). */
+  #tblBox{display:inline-block;max-width:100%;vertical-align:top}
+  .table-wrap{display:block;max-width:100%}
+  table.t{width:100%}   /* 100% de #tblBox, que ya mide lo que mide el contenido */
+  /* un poco mas de aire ADENTRO de cada columna, que es el unico blanco que suma: separa los
+     numeros del borde sin volver a abrir el hueco entre columnas. */
+  table.t th,table.t td{padding-left:12px;padding-right:12px}
+  table.t td.num,table.t th.num{white-space:nowrap}
+  /* la de Pieza es la unica que puede crecer: con techo, para que una descripcion larga no reabra
+     el hueco; abajo del techo la descripcion envuelve en dos lineas. */
+  table.t th:first-child,table.t td:first-child{max-width:340px}
+  table.t td:first-child .sub{white-space:normal}
   @media (max-width:640px){
     .modo-btn{font-size:17px;min-height:56px}
     .modo-btn small{display:none}
+    /* en el celular no hay blanco que recortar: el bloque ocupa todo el ancho */
+    #tblBox{display:block;width:100%}
+    table.t th,table.t td{padding-left:8px;padding-right:8px}
   }
 </style>
 </head>
@@ -232,15 +264,20 @@
         </div>
       </div>
 
-      <div class="search-box"><input type="text" id="q" placeholder="Buscar por código o descripción…"></div>
+      <!-- el buscador, el cartel y la tabla van en un bloque que ENCOGE con la tabla, así el
+           buscador mide exactamente lo que miden las columnas y no queda una caja ancha arriba
+           de una tabla angosta [usuario 2026-09-17: optimizar los blancos entre columnas]. -->
+      <div id="tblBox">
+        <div class="search-box"><input type="text" id="q" placeholder="Buscar por código o descripción…"></div>
 
-      <div id="alertaBox" class="alerta-box hidden"></div>
+        <div id="alertaBox" class="alerta-box hidden"></div>
 
-      <div class="table-wrap">
-        <table class="t">
-          <thead><tr id="thead"></tr></thead>
-          <tbody id="tbody"></tbody>
-        </table>
+        <div class="table-wrap">
+          <table class="t">
+            <thead><tr id="thead"></tr></thead>
+            <tbody id="tbody"></tbody>
+          </table>
+        </div>
       </div>
       <div id="tblEmpty" class="empty hidden"></div>
       <div id="msg1" class="status"></div>

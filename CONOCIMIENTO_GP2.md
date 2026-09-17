@@ -10339,3 +10339,26 @@ sí: $140 contra $777 de cartón— cada unidad de los 12 artículos tiene ~$120
 Arreglarlo es cirugía del motor de costos (toca a todos los artículos), **no entraba en el pedido
 y se dejó anotado como idea, no hecho**. `[deducido, a confirmar con el dueño si AJ cobra por
 pliego o por blíster]`.
+
+## 4ec. La tabla de la tablet ENCOGE: el blanco va adentro de la celda, no entre columnas (2026-09-17)
+
+`[usuario 2026-09-17, textual: "optimizame todos los espacios en blanco que hay entre las columnas
+en todas las pantallas de envío a ps en la versión tablet"]` (sobre el screenshot de AJ Adhesivos:
+3 columnas repartidas en 1.180px, con ~300px de blanco entre "Pliego 506" y su sugerido).
+
+**Por qué pasaba:** `table.t` de `gp2-modulo.css` es `width:100%`. Eso está bien con 8 columnas,
+pero desde que Enviar quedó en `Pieza | Sugerido | Cantidad` (§ v1.5.0) el navegador reparte todo
+el ancho sobrante de la tablet entre 3 o 4 columnas, y el ojo tiene que cruzar media pantalla para
+leer una fila. **Menos columnas hacen MÁS blanco, no menos.**
+
+**La regla que queda** (Tablet, vale para las 4 vistas de esa tabla — PS por paquetes, PS por peso,
+PS/tallerista/inyector común y Recibir, que son un solo render): el bloque de carga (buscador +
+cartel de alerta + tabla) **encoge con la tabla**, cada columna mide lo que necesita su contenido
+(el encabezado suele ser el que manda: "SUGERIDO (PAQUETES)" es más ancho que el "3"), y el aire
+que hace falta va **adentro** de cada celda (padding 12px) en vez de entre columnas. El buscador
+mide exactamente lo que miden las columnas, así que no queda una caja ancha arriba de una tabla
+angosta. En el celular (≤640px) no hay blanco que recortar: la tabla vuelve a ocupar todo el ancho.
+
+Lo cuida `tests/ui/test_tablet.js` midiendo a 1.280px (la tablet, no los 390px del celular): la
+tabla tiene que medir lo mismo que su contenido (`max-content`) y el buscador lo mismo que la tabla.
+Si alguna pantalla futura vuelve a quedar con pocas columnas, éste es el patrón a copiar.
