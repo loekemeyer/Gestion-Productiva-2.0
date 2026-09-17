@@ -3035,8 +3035,14 @@ fila as (
   left join componente sp on sp.id=p.sp_id
 )
 select jsonb_build_object(
+  -- envio_unidad / envio_uni_x / envio_carga_unidad: la unidad de ENVIO del proveedor (bolsas de
+  -- Ester, paquetes de AJ). Solo display: la pantalla muestra el sugerido en esa unidad (techo) y,
+  -- si envio_carga_unidad='kg', la cantidad se escribe en kg con las bolsas al lado. Lo que se
+  -- registra sigue yendo en kg a crear_envio_ps. [usuario 2026-09-17]
   'ps', (select coalesce(jsonb_agg(jsonb_build_object(
-            'id',ps.id,'nombre',ps.nombre,'cod_prov',ps.cod_prov,'proceso',ps.proceso
+            'id',ps.id,'nombre',ps.nombre,'cod_prov',ps.cod_prov,'proceso',ps.proceso,
+            'envio_unidad',ps.envio_unidad,'envio_uni_x',ps.envio_uni_x,
+            'envio_carga_unidad',ps.envio_carga_unidad
           ) order by ps.nombre),'[]'::jsonb)
         from proveedor_servicio ps
         where exists (select 1 from pares p where p.proveedor_id=ps.id)),
@@ -7155,29 +7161,33 @@ rec_x as (
             c.codigo, c.descripcion, s.nombre, c.unidad_medida, c.uni_x_cajon, c.kg_x_uni,
             ce.codigo, ce.descripcion
 ),
--- envio_unidad / envio_uni_x: unidad de ENVIO por proveedor (display), p.ej. AJ Adhesivos manda de a
--- paquetes de 100 pliegos. Es solo presentacion: el front muestra/precarga el sugerido dividido por
--- envio_uni_x y rotula la columna con envio_unidad, pero al registrar multiplica de nuevo y guarda en
--- la unidad canonica (uni/kg). Hoy solo lo tiene proveedor_servicio; el resto va null. [usuario 2026-09-17]
+-- envio_unidad / envio_uni_x / envio_carga_unidad: unidad de ENVIO por proveedor (display), p.ej. AJ
+-- Adhesivos manda de a paquetes de 100 pliegos y Ester de a bolsas de 1800 mangos. Es solo
+-- presentacion: el front muestra/precarga el sugerido dividido por envio_uni_x (techo) y rotula la
+-- columna con envio_unidad. envio_carga_unidad dice en QUE unidad se escribe la CANTIDAD: null = en
+-- la unidad de envio (AJ escribe paquetes y el front multiplica de nuevo), 'kg' = se escribe en kg y
+-- al lado se muestran las bolsas (Ester). En los dos casos lo que llega a la base esta en unidad
+-- canonica (uni/kg): el inventario nunca ve bolsas ni paquetes. Hoy solo lo tiene
+-- proveedor_servicio; el resto va null. [usuario 2026-09-17]
 cp as (
-  select 'tallerista'::text tipo, t.id::text ref, t.nombre, null::text envio_unidad, null::numeric envio_uni_x
+  select 'tallerista'::text tipo, t.id::text ref, t.nombre, null::text envio_unidad, null::numeric envio_uni_x, null::text envio_carga_unidad
     from tallerista t
    where t.activo and t.id <> 3
      and exists (select 1 from v_contraparte_parte v where v.tipo='tallerista' and v.ref_id = t.id)
   union all
-  select 'proveedor_servicio', ps.id::text, ps.nombre, ps.envio_unidad, ps.envio_uni_x
+  select 'proveedor_servicio', ps.id::text, ps.nombre, ps.envio_unidad, ps.envio_uni_x, ps.envio_carga_unidad
     from proveedor_servicio ps
    where exists (select 1 from v_contraparte_parte v where v.tipo='proveedor_servicio' and v.ref_id = ps.id)
   union all
-  select 'proveedor_at', p.id::text, p.nombre, null::text, null::numeric
+  select 'proveedor_at', p.id::text, p.nombre, null::text, null::numeric, null::text
     from proveedor_at p where coalesce(p.activo,true)
   union all
-  select distinct 'proveedor_insumo', o.proveedor, o.proveedor, null::text, null::numeric
+  select distinct 'proveedor_insumo', o.proveedor, o.proveedor, null::text, null::numeric, null::text
     from orden_compra o where o.estado in ('borrador','enviada')
   union all
-  select 'virgilio', 'virgilio', 'Virgilio', null::text, null::numeric
+  select 'virgilio', 'virgilio', 'Virgilio', null::text, null::numeric, null::text
   union all
-  select distinct 'inyector', c.proveedor, c.proveedor, null::text, null::numeric
+  select distinct 'inyector', c.proveedor, c.proveedor, null::text, null::numeric, null::text
     from componente c
    where c.material_id is not null and c.estado_compra is null and c.proveedor is not null
      and exists (select 1 from proveedor_insumo pi where pi.nombre = c.proveedor)
@@ -7188,6 +7198,7 @@ select jsonb_build_object(
     select coalesce(jsonb_agg(jsonb_build_object(
              'tipo', cp.tipo, 'ref', cp.ref, 'nombre', cp.nombre,
              'envio_unidad', cp.envio_unidad, 'envio_uni_x', cp.envio_uni_x,
+             'envio_carga_unidad', cp.envio_carga_unidad,
              'n_env', (select count(*) from env_x e where e.tipo = cp.tipo and e.ref = cp.ref),
              'n_rec', (select count(*) from rec_x r where r.tipo = cp.tipo and r.ref = cp.ref)
            ) order by cp.nombre), '[]'::jsonb)
@@ -7230,7 +7241,7 @@ declare
   v_remito text := nullif(btrim(coalesce(p->>'remito','')),'');
   it       jsonb;
   v_comp   bigint; v_ent bigint; v_cant numeric; v_uni text; v_esp numeric;
-  v_cod    text; v_desc text; v_cod_art text; v_por_caja numeric;
+  v_cod    text; v_desc text; v_cod_art text; v_por_caja numeric; v_cajones numeric;
   v_r      jsonb; v_res jsonb := '[]'::jsonb; v_alertas jsonb := '[]'::jsonb;
   v_comparable numeric; v_alerta_id bigint; v_n int := 0;
   v_ubic_o bigint; v_ubic_d bigint; v_sec bigint; v_um text; v_mov bigint;
@@ -7266,6 +7277,9 @@ begin
     v_uni      := lower(coalesce(nullif(it->>'unidad',''), 'uni'));
     v_esp      := nullif(it->>'esperado','')::numeric;
     v_por_caja := nullif(it->>'por_caja','')::numeric;
+    -- bultos del envio a un PS que recibe por peso (Hernandez Julio): cajones en las metalicas,
+    -- bolsas en las plasticas. Es informativo (va a movimiento.cajones); el stock lo mueve v_cant.
+    v_cajones  := nullif(it->>'cajones','')::numeric;
     if v_uni not in ('uni','kg') then raise exception 'Unidad invalida: "%"', v_uni; end if;
     if v_cant is null or v_cant <= 0 then
       raise exception '% : la cantidad tiene que ser mayor a 0.', coalesce(v_cod_art, v_comp::text, '?');
@@ -7277,7 +7291,7 @@ begin
       if v_tipo = 'tallerista' then
         v_r := "GP2".crear_envio_tallerista(v_ref::bigint, v_comp, v_cant, v_uni, v_fecha);
       elsif v_tipo = 'proveedor_servicio' then
-        v_r := "GP2".crear_envio_ps(v_ref::bigint, v_comp, v_cant, v_uni, v_fecha);
+        v_r := "GP2".crear_envio_ps(v_ref::bigint, v_comp, v_cant, v_uni, v_fecha, v_cajones);
       elsif v_tipo = 'inyector' then
         -- bolsas de resina a un inyector: v_comp es el componente-resina (sector 14), v_cant en kg.
         v_r := "GP2".enviar_material_inyector(v_ref, v_comp, v_cant, v_fecha);

@@ -17,7 +17,11 @@ const ROOT = 'file://' + path.resolve(__dirname, '..', '..').replace(/\\/g, '/')
 const EXE = process.env.CHROMIUM_PATH || (fs.existsSync('/opt/pw-browsers/chromium') ? '/opt/pw-browsers/chromium' : undefined);
 
 const BUNDLE = {
-  ps: [{ id: 5, nombre: 'Becker', cod_prov: '77', proceso: 'Pintado' }],
+  // Ester tiene unidad de envio propia: bolsas de 1800 mangos, y la cantidad se carga en KG
+  // (GP2.proveedor_servicio.envio_unidad / envio_uni_x / envio_carga_unidad, usuario 2026-09-17)
+  ps: [{ id: 5, nombre: 'Becker', cod_prov: '77', proceso: 'Pintado' },
+       { id: 14, nombre: 'Ester', cod_prov: null, proceso: 'Calado',
+         envio_unidad: 'bolsas', envio_uni_x: 1800, envio_carga_unidad: 'kg' }],
   partes: { '5': [
     // una sola pieza enviada, dos salidas distintas
     { sc_id: 1, sp_id: 2, sc_cod: 'J2C', sc_desc: 'Cuchilla cruda', sp_cod: 'J2', sp_desc: 'Cuchilla pintada',
@@ -30,6 +34,12 @@ const BUNDLE = {
     { sc_id: 4, sp_id: 6, sc_cod: 'K1C', sc_desc: 'Manija cruda', sp_cod: 'K1', sp_desc: 'Manija pintada',
       proceso: 'Pintado', online_ps: 0, online_sp: 0, maximo: null, maximo_sp: null,
       sc_unixcaj: 500, sc_kgxuni: 0.02, sp_unixcaj: 100 },
+  ], '14': [
+    // datos reales: PC2 (mango 505 sin calar) -> PC1A calado; 1852 uni/cajon, 0,0054 kg/uni
+    { sc_id: 622, sp_id: 623, sc_cod: 'PC2', sc_desc: 'Mgo Pelapapa 505 Sin Calar',
+      sp_cod: 'PC1A', sp_desc: 'Mgo Pelapapa 505 Calado', proceso: 'Calado',
+      online_ps: 0, online_sp: 0, maximo: null, maximo_sp: 112432,
+      sc_unixcaj: 1852, sc_kgxuni: 0.0054, sp_unixcaj: 1852 },
   ] },
 };
 
@@ -71,7 +81,7 @@ window.supabase = { createClient: function(){ return {
   // son 2 piezas (la cuchilla cruda sale de dos maneras). Decia 3.
   ok(provTxt.includes('Becker') && provTxt.includes('Pintado') && /\b2 partes\b/.test(provTxt),
      'fase0: el boton cuenta piezas a enviar, no pares — ' + provTxt.trim());
-  ok((await page.$eval('#status', e => e.textContent)).includes('1 proveedores'), 'status: 1 proveedores');
+  ok((await page.$eval('#status', e => e.textContent)).includes('2 proveedores'), 'status: 2 proveedores');
 
   // elegir proveedor
   await page.click('#psGrid .prov-btn');
@@ -159,6 +169,29 @@ window.supabase = { createClient: function(){ return {
   // volver a fase 0
   await page.click('#btnVolverPS');
   ok(await page.$eval('#fase0', e => !e.classList.contains('hidden')), 'volver a fase0');
+
+  // ── Ester: sugerido en BOLSAS de 1800, un solo campo en KG con las bolsas debajo ──────────
+  await page.click('#psGrid .prov-btn:has-text("Ester")');
+  const thEs = await page.$$eval('#thead th', xs => xs.map(x => x.textContent.replace(/\s+/g, '').trim()));
+  ok(thEs.join('|') === 'SC|CantidadKG Neto|T|F|Parte|Sugeridobolsas'.replace(/\s+/g, ''),
+     'Ester: se va la columna del cajon y el sugerido se rotula en bolsas — ' + thEs.join(' | '));
+  ok((await page.$$eval('#tbody tr:first-child td', xs => xs.length)) === 6,
+     'Ester: 6 columnas (sin Cajon envio)');
+  const sugEs = await page.$eval('#tbody tr:first-child td:last-child', e => e.textContent.trim());
+  ok(sugEs === '63 bolsas', 'Ester: 112.432 mangos / 1800 -> 63 bolsas (techo) — ' + sugEs);
+  await page.fill('#tbody input.cell-in[data-f="kg"]', '612,36');
+  ok((await page.$eval('#tbody .env-eq', e => e.textContent.trim())) === '= 63 bolsas',
+     'Ester: debajo del kg se ven las bolsas y se recalculan al tipear — ' +
+     (await page.$eval('#tbody .env-eq', e => e.textContent.trim())));
+  await page.click('#btnEnviar');
+  await page.waitForFunction(() => !document.getElementById('fase3').classList.contains('hidden'));
+  const callEs = await page.evaluate(() => (window.__calls || []).filter(c => c.name === 'crear_envio_ps'));
+  const aEs = callEs[callEs.length - 1].args;
+  ok(aEs.p_ps_id === 14 && aEs.p_comp_sc_id === 622 && aEs.p_cantidad === 612.36 &&
+     aEs.p_unidad === 'kg' && aEs.p_cajones === 63,
+     'Ester: viaja el kg (la base lo pasa a mangos con kg_x_uni) y quedan anotadas las 63 bolsas — ' + JSON.stringify(aEs));
+  ok(dialogs.some(d => d.type === 'confirm' && d.msg.includes('612,36 kg (63 bolsas)')),
+     'Ester: el confirm dice los kg y las bolsas');
 
   await browser.close();
   console.log(process.exitCode ? 'HAY FALLOS' : 'TODO OK');
