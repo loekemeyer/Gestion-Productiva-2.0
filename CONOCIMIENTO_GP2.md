@@ -269,6 +269,14 @@ una **decisión ya tomada**. Por eso `componente.estado_compra`:
   (ni para PC1A ni para PC1B), y sin tarifa de Esther el costo de ese calado sigue en 0.
   **Traba concreta**: hoy NO existe un componente "crudo" (sin calar) separado de PC1A/PC1B,
   y sin ese par crudo→calado no se puede trazar el paso sin inventar un componente nuevo.
+  - **Los mangos crudos SÍ existen como componente** `[dato: GP2.componente]`: **PC2** (id 622,
+    "Mgo Pelapapa 505 Sin Calar") → Esther lo cala → **PC1A**; **PC3B** (id 621, "Mgo Pelapapa
+    123 Sin Calar") → Esther lo cala → **PC1B**. Esa aclaración de proceso (quién cala y hacia
+    qué código sale) **vive acá, no en la descripción del componente** `[usuario 2026-09-17:
+    "no quiero que los componentes tengan descripciones así de largas… las aclaraciones
+    guardalas en el conocimiento"]`: la descripción quedó en el nombre corto y el paso
+    crudo→calado se documenta en este archivo. Falta todavía cargar la ruta PC2→PC1A / PC3B→PC1B
+    y la tarifa de Esther.
 - **`PCP3` (Clavo 505): se compra a Trefilados Industriales.** `[usuario 2026-09-02]` Compra
   directa (sin proceso). **Ya aplicado** `[dato: GP2, verificado 2026-09-02]`: Trefilados
   Industriales está en el maestro `proveedor_insumo` (rubro *Sector Plástico*) y PCP3
@@ -500,6 +508,11 @@ Insumo. **Aplica a los 88 flejes de la base**, distribuidos en 2 sectores:
   `A10-M365 → IA10-M365, B3-M32 → IB3-M32, F3-M37 → IF3-M37`, etc. Se filtró
   por `descripcion ILIKE '%fleje%'` para no tocar los 10 no-flejes del sector 3
   (Rompenuez, Cuchilla, Varilla, Destapa) que comparten el patrón `código-Mn`.
+  - **`B1-M78` (id 486, "Rompenuez Ch Pint. Remachado") y `D5-M78` (id 485, "Rompenuez LK
+    Crom. Remachado")**: el `-M78` es porque son la variante **remachada tras pasar por la
+    matriz M78** `[dato: GP2.componente]`. Ese "tras M78" se saca de la descripción y se anota
+    acá `[usuario 2026-09-17: "las aclaraciones guardalas en el conocimiento, no en las
+    descripciones"]`; la descripción quedó como nombre corto ("…Remachado").
 
 La regla **aplica solo a flejes por ahora** (otros insumos —cartones, cajas,
 plásticos, remaches, bombillas— mantienen su convención sin prefijo). Motivo:
