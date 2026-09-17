@@ -6,7 +6,16 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<!-- v1.5.0 (2026-09-17) — ENVIAR CON SUGERIDO: SOLO PIEZA · SUGERIDO · CANTIDAD (usuario: "quiero ver
+<!-- v1.6.0 (2026-09-17) — UNIDAD DE ENVIO POR PROVEEDOR: AJ ADHESIVOS EN PAQUETES DE 100 (usuario:
+     "arrancamos con AJ Adhesivos... el sugerido en paquetes de 100... en ambos casos (sugerido y
+     cantidad) me aclares la unidad de medida... paquetes"). El proveedor_servicio puede definir una
+     unidad de envio propia (GP2.proveedor_servicio.envio_unidad / envio_uni_x, hoy AJ = 'paquetes'/100,
+     lo trae tablet_bundle en cada contraparte). Cuando existe: los encabezados dicen "Sugerido
+     (paquetes)" y "Cantidad (paquetes)", el sugerido se muestra y precarga en paquetes (techo:
+     250 pliegos -> 3), y al registrar se multiplica x100 para guardar en pliegos (uni) — el
+     inventario NUNCA ve paquetes. Sin unidad propia, todo sigue igual (uni/kg). Front helper
+     packEnvio(); base: tablet_bundle + 2 columnas nuevas en proveedor_servicio.
+     v1.5.0 (2026-09-17) — ENVIAR CON SUGERIDO: SOLO PIEZA · SUGERIDO · CANTIDAD (usuario: "quiero ver
      solo la columna de pieza, sugerido y cantidad. Primero empeza haciendo esto en todos los envios
      de ps y despues seguimos"). Se sacaron del render las columnas Stock PS/Stock Tall. (saldo_dest)
      y Máximo/O.C. (maximo) en la vista Enviar con sugerido (PS, tallerista e inyector). El sugerido
@@ -288,6 +297,16 @@ function envConSugerido(){
     (selCP.tipo === "proveedor_servicio" || selCP.tipo === "tallerista" || selCP.tipo === "inyector");
 }
 
+/* Unidad de ENVIO del proveedor (display), p.ej. AJ Adhesivos manda de a PAQUETES de 100 pliegos
+   [usuario 2026-09-17]. Solo presentacion: sugerido y cantidad se MUESTRAN/CARGAN divididos por
+   factor y rotulados con label, pero al registrar se multiplica de nuevo y se guarda en la unidad
+   canonica (uni/kg). Devuelve {factor,label} si el proveedor lo definio (envio_uni_x>1), o null. */
+function packEnvio(){
+  if (!selCP || MODO !== "enviar") return null;
+  var f = Number(selCP.envio_uni_x || 0);
+  return (f > 1 && selCP.envio_unidad) ? { factor: f, label: String(selCP.envio_unidad) } : null;
+}
+
 /* ---------- carga ---------- */
 async function cargar(){
   try {
@@ -333,6 +352,7 @@ function cpsDelTipo(tipo){
 /* la contraparte como la espera el resto de la pantalla (id = clave del buffer) */
 function cpItem(c){
   return { id: claveCP(c), tipo: c.tipo, ref: c.ref, nombre: c.nombre,
+           envio_unidad: c.envio_unidad, envio_uni_x: c.envio_uni_x,
            n: MODO === "enviar" ? c.n_env : c.n_rec };
 }
 function cargadasDeCP(c){
@@ -432,20 +452,28 @@ function elegir(c){
   // Enviar con sugerido: la tabla muestra SOLO Pieza · Sugerido · Cantidad [usuario 2026-09-17:
   // "quiero ver solo la columna de pieza, sugerido y cantidad"]. Se sacaron Stock PS/Stock Tall.
   // (saldo_dest) y Máximo/O.C. (maximo); el cálculo del sugerido no cambia, solo el render.
+  // Si el proveedor tiene unidad de envío propia (paquetes, etc.) se aclara en ambos encabezados.
+  var _pk = packEnvio();
+  var _u = _pk ? " (" + esc(_pk.label) + ")" : "";
   $("thead").innerHTML = MODO === "enviar"
     ? (envConSugerido()
-        ? "<th>Pieza</th><th class=\"num\">Sugerido</th><th class=\"num sep\">Cantidad</th>"
+        ? "<th>Pieza</th><th class=\"num\">Sugerido" + _u + "</th><th class=\"num sep\">Cantidad" + _u + "</th>"
         : "<th>Pieza</th><th class=\"num\">Online sector</th><th class=\"num sep\">Cantidad</th>")
     : "<th>Pieza</th><th class=\"num\">Esperado</th><th class=\"num sep\">Recibido</th>";
   // precarga UNA vez: el sugerido entra como cantidad por defecto (editable). Sólo toca campos sin
   // cargar, así que si el operario vació uno a mano no se lo vuelve a llenar en cada render.
   if (envConSugerido()) {
+    var _pk = packEnvio();
     piezasDe(c).forEach(function(x){
       var it = BUF.item(c.id, claveDe(x));
+      // el sugerido se precarga en la unidad de envío del proveedor: si manda por paquetes, se
+      // divide por el factor y se redondea PARA ARRIBA (no se pide menos de lo que falta).
+      var sug = Number(x.sugerido);
+      if (_pk) sug = Math.ceil(sug / _pk.factor);
       // se precarga con el formato de la casa (coma decimal / punto de miles), que es el que
       // GP2N.num sabe leer; String(sugerido) con punto se leería como miles.
-      if ((it.q === undefined || it.q === null || it.q === "") && Number(x.sugerido) > 0)
-        it.q = fmt(Number(x.sugerido), unidadDe(x) === "kg" ? 2 : 0);
+      if ((it.q === undefined || it.q === null || it.q === "") && sug > 0)
+        it.q = fmt(sug, (!_pk && unidadDe(x) === "kg") ? 2 : 0);
     });
     BUF.save();
   }
@@ -504,10 +532,14 @@ function render(){
       (ex > 0 ? '<br><span class="demas-tag">⚠ ' + fmt(ex, u === "kg" ? 2 : 0) + " de más</span>" : "") + "</td>";
     var mitad;
     if (MODO === "enviar") {
+      // Solo el Sugerido (se sacaron Stock y Máximo) [usuario 2026-09-17]. Si el proveedor manda por
+      // paquetes, el sugerido se muestra en paquetes (techo); si no, en su unidad. Sigue precargado
+      // en Cantidad; el cálculo del sugerido no cambió, solo el render.
+      var _pk = packEnvio();
+      var sugM = x.sugerido;
+      if (_pk && x.sugerido != null) sugM = Math.ceil(Number(x.sugerido) / _pk.factor);
       mitad = envConSugerido()
-        // Solo el Sugerido (se sacaron Stock y Máximo) [usuario 2026-09-17]. El sugerido sigue
-        // precargándose en Cantidad; el cálculo no cambió, solo dejó de mostrarse el resto.
-        ? ('<td class="num esp"><b>' + fmt(x.sugerido, u === "kg" ? 2 : 0, "—") + "</b></td>")
+        ? ('<td class="num esp"><b>' + fmt(sugM, (!_pk && u === "kg") ? 2 : 0, "—") + "</b></td>")
         : ('<td class="num esp">' + fmt(x.online_sector, u === "kg" ? 2 : 0) + " " + u + "</td>");
     } else {
       mitad = '<td class="num">' + esperadoTxt(x) + "</td>";
@@ -572,6 +604,9 @@ $("btnEnviar").addEventListener("click", async function(){
   var meta = {}; piezasDe(selCP).forEach(function(x){ meta[claveDe(x)] = x; });
 
   var fecha = $("fFecha").value || hoyISO();
+  // si el proveedor manda por paquetes, la cantidad se carga EN paquetes: se multiplica por el factor
+  // para guardar en la unidad canonica (pliegos/uni). El inventario nunca ve "paquetes".
+  var _pk = packEnvio();
   var payload = {
     modo: MODO, tipo: selCP.tipo, ref: String(selCP.ref),
     fecha: fecha + "T12:00:00",
@@ -583,7 +618,7 @@ $("btnEnviar").addEventListener("click", async function(){
         comp_id: x.comp_id != null ? Number(x.comp_id) : null,
         comp_entrada_id: x.comp_entrada_id != null ? Number(x.comp_entrada_id) : null,
         cod_art: x.cod_art || null,
-        cantidad: num(o.it.q),
+        cantidad: _pk ? num(o.it.q) * _pk.factor : num(o.it.q),
         unidad: u === "kg" ? "kg" : "uni",
         esperado: MODO === "recibir" && x.esperado != null ? Number(x.esperado) : null,
         esperado_origen: x.esperado_origen || null
@@ -593,7 +628,9 @@ $("btnEnviar").addEventListener("click", async function(){
   var nEx = items.filter(function(o){ return meta[o.k] && exceso(meta[o.k], num(o.it.q)) > 0; }).length;
   var resumen = items.map(function(o){
     var x = meta[o.k] || {};
-    return (x.cod || o.k) + ": " + fmt(num(o.it.q), unidadDe(x) === "kg" ? 2 : 0) + " " + unidadDe(x);
+    return _pk
+      ? (x.cod || o.k) + ": " + fmt(num(o.it.q), 0) + " " + _pk.label
+      : (x.cod || o.k) + ": " + fmt(num(o.it.q), unidadDe(x) === "kg" ? 2 : 0) + " " + unidadDe(x);
   });
   var verbo = MODO === "enviar" ? "Enviar a " : "Recibir de ";
   if (!confirm(verbo + selCP.nombre + " (" + fecha + "):\n\n" + resumen.join("\n") +
