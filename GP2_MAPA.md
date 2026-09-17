@@ -152,7 +152,7 @@ confirmar acá que la clave existe; si un bundle cambia, actualizar esta tabla e
 | `inicio_bundle()` | GP2_MODULOS (menú) | `alertas, dia, generado_en, hoy, mes` (`alertas.recepcion_de_mas` = cuántas alertas de recepción siguen abiertas, 2026-09-13) |
 | `inyectores_bundle()` | Inyectores | `generado_en, partes, proveedores, sector, sectores` |
 | `movimientos_bundle()` | gp2-motor.js (Stocks General, Entregas Talleristas), Registro operarios | `art, bom_art, bom_comp, c2a, comp, inv, mat, prov_serv, rp, sect, tall, tipos_mov, ubic` |
-| `oc_bundle()` | OC | `charcas_kg_x_paquete, generado_en, insumos, ocs, paq, pliego_uni_x_paquete, proveedores, tc` |
+| `oc_bundle()` | OC | `charcas_kg_x_paquete, generado_en, insumos, ocs, paq, pliego_uni_x_paquete, proveedores, tc`. Cada `insumos[]` trae ademas **`proveedores_alt[]`** (los de `componente_proveedor_alt`, que entregan la misma pieza) y **`precios_prov`** = {proveedor: {precio, moneda}} (CTE `pvx`), para que la O.C. salga con el precio del proveedor elegido; `precio` sigue siendo el VIGENTE, el del proveedor asignado. 2026-09-17 |
 | `orden_produccion_bundle()` | Orden de Producción | `componentes, destinos, generado_en, matrices, pasos` |
 | `pintores_bundle()` | Pintores | `partes, pintores` |
 | `problemas_matrices_bundle(p_desde, p_hasta)` | Problemas con Matrices | (eventos RM/PM) |

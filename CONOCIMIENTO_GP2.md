@@ -2160,8 +2160,16 @@ exactos por pieza; la vista de costos usa el exacto y cae al plano si no hay).
   mismas 11 cajas de GP2** (no hay cajas propias de Recicor) y el control de remito es el
   mismo: `modo_control='ninguno'`, sin pesaje ni rollos. `cod_prov` ISIS **4370** (salió de su
   propia lista de precios, `precio_proveedor.cod_prov='4370'`).
-  **El precio NO cambió**: los 9 de Recicor siguen como referencia sin vincular y el vigente
-  sigue siendo el del Plata; esto es sólo QUIÉN puede entregar, no a cuánto se compra.
+  **A Recicor también se le emite O.C.** `[usuario 2026-09-17: "en las órdenes de compra
+  tendrías que agregar a recicor también"]`, y la O.C. sale con **SU** precio: sus 8 precios que
+  matchean una caja de GP2 se vincularon al componente y `oc_bundle` manda ahora el precio de
+  cada proveedor (`precios_prov`). **El precio VIGENTE no cambió** —el que usa el costo sigue
+  siendo el del Plata— porque el desempate es por `cod_prov` contra el proveedor asignado al
+  componente, no por fecha. Verificado antes y después: los 11 precios y los 11 costos, iguales.
+  **FALTA EL DATO**: Recicor **no cotiza las cajas N°15, N°16 y N°22** (su lista trae la N°27,
+  que en GP2 no existe). En una O.C. a Recicor esas tres van **sin precio** —no se les pone el de
+  Corrugadora, sería inventar plata— y la barra avisa "⚠ N ítems sin precio". Si Recicor las
+  entrega, hay que pedirle el precio y cargarlo.
 - **Plásticos: la lista de Pat Bet Plast es INYECCIÓN SOLA, SIN material** `[dato:
   hoja Plasticos]`. El precio real de la pieza = pellet × gramos (+4% desperdicio) +
   inyección — está calculado en la hoja "Plasticos" col "Total Mat e Inyeccion", y ESO
@@ -2318,10 +2326,14 @@ en ese archivo):
 - `[dato]` **El precio del cartón sigue cocinado en 73 filas**: `carton_formato` no tiene
   columna de precio, así que "sube el pliego y se recalculan las 4 tarifas" todavía no es
   verdad. Falta `precio_pliego` + `posiciones_x_pliego`.
-- `[dato]` **`precio_proveedor` no tiene FK al proveedor** (solo `cod_prov` text sin
-  destino). Trampa activa: los 9 precios de Recicor son referencia con fecha MÁS NUEVA que
-  los vigentes del Plata; si alguien los vincula a un componente, las 9 cajas cambian de
-  proveedor solas. Hoy el único discriminador es una mayúscula en `rubro`.
+- `[dato, corregido 2026-09-17]` **`precio_proveedor` no tiene FK al proveedor** (solo
+  `cod_prov` text sin destino). **La trampa que decía esta línea ya no existe**: decía que
+  vincular los precios de Recicor a un componente haría que las 9 cajas cambiaran de proveedor
+  solas, porque el único desempate era `fecha_lista DESC`. Eso dejó de ser cierto el 2026-09-10,
+  cuando `pv` (en `oc_bundle`, `crear_oc` y `v_costo_componente`) pasó a desempatar **primero
+  por `cod_prov` contra el proveedor asignado al componente**. Los 8 precios de Recicor que
+  matchean una caja SE VINCULARON el 2026-09-17 y ni un precio ni un costo se movió (medido).
+  Lo que sigue faltando es la FK: el proveedor se sigue deduciendo por `cod_prov`.
 - `[dato 2026-09-17]` **Un componente puede tener MÁS DE UN proveedor: `componente_proveedor_alt`.**
   `componente.proveedor` es un texto y es el proveedor **principal** — el que manda en la O.C.
   y en el costo. Los que **también** entregan esa misma pieza van a la tabla puente
@@ -2330,10 +2342,15 @@ en ese archivo):
   **Por qué puente y no duplicar el componente**: una caja duplicada serían dos filas de
   inventario para la misma caja física, o sea dos stocks y dos máximos de la misma cosa.
   Primer caso: Recicor + las 11 cajas de Corrugadora (arriba).
-  **TRAMPA CONOCIDA, dicha al usuario**: el cruce contra O.C. (`_aplicar_recepcion_a_oc`)
-  matchea por **componente**, no por proveedor, así que un remito cargado como Recicor
-  descuenta igual una O.C. que se le había hecho a Corrugadora. Si cada proveedor tiene que
-  tener sus propias O.C., eso es otro cambio (hoy la O.C. la sigue armando el principal).
+  **La O.C. también se le puede emitir a cualquiera de ellos** (2026-09-17, mismo día): la
+  botonera de `OC_GP2` sale de principal + alternativos y el **precio sigue al proveedor
+  elegido** (`oc_bundle.insumos[].precios_prov`). Si el elegido no cotizó esa pieza, la fila va
+  sin precio: no se rellena con la del otro.
+  **El cruce contra O.C. ya mira quién entregó**: `_aplicar_recepcion_a_oc` toma un
+  `p_proveedor` y aplica **primero** la O.C. de ese proveedor; si no alcanza, sigue con las
+  demás (una entrega tapa la necesidad igual, así nada queda colgado). Antes cruzaba la más
+  vieja sin mirar quién trajo la mercadería, y con dos proveedores de la misma caja eso le
+  descontaba a la O.C. equivocada.
 - `[dato]` **Dos agujeros de escritura anónima**: `GP2.empleado` (policies INSERT/UPDATE
   `TO anon` — no se puede cerrar sin migrar antes `Produccion/abm_GP2.html`, que escribe
   directo) y `GP2.inv_delta` (RPC anon que escribe inventario salteando `movimiento`, sin
