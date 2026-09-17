@@ -10246,12 +10246,16 @@ entre ellas es de dónde sale el bulto:
   `componente.uni_x_cajon` en los dos casos (en los plásticos esa columna **es** el tamaño de la
   bolsa, mismo criterio que la OC de partes plásticas).
 
-Cómo queda la pantalla de Julio (Tablet, Enviar): `Pieza | Sugerido (kg y "= N bolsas/cajones") |
-Kg a enviar | Bolsas/cajones`. Los **kg son lo que se tipea y lo que se registra** (la balanza
-manda; viaja `unidad='kg'` y la base lo pasa a unidades con `kg_x_uni`). Las **bolsas de los
-plásticos son calculadas** (se repintan al tipear); los **cajones de las metálicas se anotan a
-mano** (se autocompletan desde los kg mientras nadie los toque) y viajan a `movimiento.cajones`
-vía `crear_envio_ps(..., p_cajones)`. Sin `kg_x_uni` la fila NO se convierte: se carga en unidades
+Cómo queda la pantalla de Julio (Tablet, Enviar): `Pieza | Sugerido | Cantidad (kg) | Cantidad
+(bolsas / cajones)`. `[usuario 2026-09-17]` El **sugerido se mira en bultos ENTEROS** (no en kilos),
+la Cantidad (kg) se precarga con el peso de esos bultos completos (2 cajones de 750 a 0,04 kg = 60
+kg), y **las dos cantidades son el mismo tipo de campo**: la de bolsas no se muestra distinto que la
+de cajones. **Un bulto nunca va partido**: bolsas y cajones se redondean **para arriba** en el
+sugerido, en el autocompletado desde los kg y en lo que se registra (`"no puedes poner 4,83, sino
+que pones 5"`). Los **kg son lo que se tipea y lo que se registra** (la balanza
+manda; viaja `unidad='kg'` y la base lo pasa a unidades con `kg_x_uni`). Los **bultos se
+autocompletan** desde los kg mientras el operario no los toque (si los corrige a mano no se le
+pisan) y viajan a `movimiento.cajones` vía `crear_envio_ps(..., p_cajones)`. Sin `kg_x_uni` la fila NO se convierte: se carga en unidades
 como siempre — no se inventa el factor. `[dato 2026-09-17]` las 11 piezas de Julio (A1, B12, B4B,
 C2 metálicas; PA10B, PA13B, PA18B, PA4B, PA5B, PC15AB, PEP2 plásticas) tienen las dos columnas
 cargadas, así que las 11 convierten.
@@ -10447,7 +10451,7 @@ lugar del envío real — y un envío mal cargado desbalancea el stock del P.S. 
 
 - **Alcance**: P.S. **e inyectores** (en la tablet se eligen dentro de "Prov. de servicio", así que
   para el que la usa son lo mismo). A los **talleristas se les sigue precargando**: no se pidió
-  para ellos. Vive en `precargaCantidad()` de `Tablet/Tablet_GP2.html` (v1.10.0).
+  para ellos. Vive en `precargaCantidad()` de `Tablet/Tablet_GP2.html` (v1.11.0).
 - **Efecto de rebote bueno**: el botón `Enviar (N)` vuelve a contar lo que la persona cargó de
   verdad. Con la precarga, abrir una contraparte ya dejaba todas las filas "cargadas" (por eso en
   2026-09-16 se sacó el cartelito "N sin registrar" de los botones de tipo, ver el historial de LOCKS del 2026-09-16).

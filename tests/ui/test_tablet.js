@@ -217,46 +217,49 @@ window.supabase = { createClient: function(){ return {
      'AJ: 3 paquetes se guardan como 300 pliegos (uni), no como paquetes — ' + JSON.stringify(itAj));
   ok(dialogs.some(d => d.type === 'confirm' && d.msg.includes('3 paquetes')), 'AJ: el confirm resume en paquetes');
 
-  // ── Hernandez Julio recibe PESADO: kg + el bulto al lado (bolsas calculadas / cajones a mano) ──
+  // ── Hernandez Julio recibe PESADO: sugerido en bultos enteros + Cantidad (kg) y (bolsas/cajones) ──
   await page.click('#btnOtro');
   await page.waitForFunction(() => document.querySelectorAll('#tipoGrid .tipo-btn').length > 0);
   await page.click('#tipoGrid .tipo-btn[data-tipo="proveedor_servicio"]');
   await page.click('#cpGrid .prov-btn:has-text("Hernandez Julio")');
   const thJu = await page.$$eval('#thead th', xs => xs.map(x => x.textContent.trim()));
-  ok(thJu.join('|') === 'Pieza|Sugerido|Kg a enviar|Bolsas / cajones',
-     'Julio: 4 columnas, la carga en kg y el bulto al lado — ' + thJu.join(' | '));
+  ok(thJu.join('|') === 'Pieza|Sugerido|Cantidad (kg)|Cantidad (bolsas / cajones)',
+     'Julio: las dos cantidades aclaran la unidad entre parentesis — ' + thJu.join(' | '));
   const juRows = await page.$$eval('#tbody tr', xs => xs.map(x => x.textContent.replace(/\s+/g, ' ')));
-  ok(juRows.length === 2 && juRows[0].includes('A1') && juRows[0].includes('40 kg') && juRows[0].includes('= 1,33 cajones'),
-     'Julio metalica: sugerido 1000 uni -> 40 kg = 1,33 cajones — ' + juRows[0]);
-  ok(juRows[1].includes('PA10B') && juRows[1].includes('10 kg') && juRows[1].includes('= 5 bolsas'),
-     'Julio plastica: sugerido 5000 uni -> 10 kg = 5 bolsas — ' + juRows[1]);
+  // el sugerido se mira en BULTOS enteros (techo), no en kilos: 1000 uni / 750 por cajon -> 2
+  const sugJu = await page.$$eval('#tbody tr', xs => xs.map(t => t.children[1].textContent.replace(/\s+/g, ' ').trim()));
+  ok(juRows.length === 2 && juRows[0].includes('A1') && sugJu[0] === '2cajones',
+     'Julio metalica: sugerido 1000 uni -> 2 cajones (techo), sin kilos en la celda — ' + sugJu[0]);
+  ok(juRows[1].includes('PA10B') && juRows[1].includes('5bolsas'),
+     'Julio plastica: sugerido 5000 uni -> 5 bolsas — ' + juRows[1]);
   const juIns = await page.$$eval('#tbody tr', xs => xs.map(t => Array.from(t.querySelectorAll('input.cell-in')).map(i => i.value)));
+  // los dos campos arrancan VACIOS: es un P.S. y ahi la cantidad no se precarga (usuario
+  // 2026-09-17). El sugerido en bultos enteros se sigue viendo en su columna (2 cajones / 5 bolsas).
   ok(juIns[0].length === 2 && juIns[0][0] === '' && juIns[0][1] === '',
-     'Julio metalica: kg y cajones vacios (P.S.: no se precarga), los dos editables — ' + JSON.stringify(juIns[0]));
-  ok(juIns[1].length === 1 && juIns[1][0] === '',
-     'Julio plastica: solo se tipean los kg (vacios), las bolsas son calculadas — ' + JSON.stringify(juIns[1]));
-  // al cambiar los kg, el bulto acompaña: la bolsa de la plastica se repinta y el cajon de la
-  // metalica se autocompleta (mientras el operario no lo haya tocado a mano)
-  await page.fill('#tbody tr:nth-child(2) input.cell-in', '20');
-  ok((await page.$eval('#tbody tr:nth-child(2) td.bultos', e => e.textContent.trim())) === '10 bolsas',
-     'Julio plastica: 20 kg -> 10 bolsas (se repinta al tipear)');
+     'Julio metalica: kg y cajones vacios (P.S.: no se precarga) — ' + JSON.stringify(juIns[0]));
+  ok(juIns[1].length === 2 && juIns[1][0] === '' && juIns[1][1] === '',
+     'Julio plastica: las bolsas son un campo igual al de los cajones, tambien vacio — ' + JSON.stringify(juIns[1]));
+  // al cambiar los kg el bulto se autocompleta, siempre entero y para arriba
+  await page.fill('#tbody tr:nth-child(2) input.cell-in[data-f="q"]', '21');
+  ok((await page.$eval('#tbody tr:nth-child(2) input.cell-in[data-f="c"]', e => e.value)) === '11',
+     'Julio plastica: 21 kg -> 11 bolsas (10,5 redondeado para arriba)');
   await page.fill('#tbody tr:nth-child(1) input.cell-in[data-f="q"]', '80');
-  ok((await page.$eval('#tbody tr:nth-child(1) input.cell-in[data-f="c"]', e => e.value)) === '2,67',
-     'Julio metalica: 80 kg -> 2,67 cajones (se autocompleta)');
-  // y si el operario corrige los cajones a mano, un cambio de kg ya no se los pisa
-  await page.fill('#tbody tr:nth-child(1) input.cell-in[data-f="c"]', '3');
-  await page.fill('#tbody tr:nth-child(1) input.cell-in[data-f="q"]', '82');
   ok((await page.$eval('#tbody tr:nth-child(1) input.cell-in[data-f="c"]', e => e.value)) === '3',
+     'Julio metalica: 80 kg -> 3 cajones (2,67 redondeado para arriba, nunca 2,67)');
+  // y si el operario corrige el bulto a mano, un cambio de kg ya no se lo pisa
+  await page.fill('#tbody tr:nth-child(1) input.cell-in[data-f="c"]', '4');
+  await page.fill('#tbody tr:nth-child(1) input.cell-in[data-f="q"]', '82');
+  ok((await page.$eval('#tbody tr:nth-child(1) input.cell-in[data-f="c"]', e => e.value)) === '4',
      'Julio metalica: los cajones anotados a mano no se pisan');
   await page.click('#btnEnviar');
   await page.waitForFunction(() => !document.getElementById('fase3').classList.contains('hidden'));
   const regJu = await calls('tablet_registrar');
   const itsJu = regJu[regJu.length - 1].args.p.items;
-  ok(itsJu[0].comp_id === 80 && itsJu[0].cantidad === 82 && itsJu[0].unidad === 'kg' && itsJu[0].cajones === 3,
+  ok(itsJu[0].comp_id === 80 && itsJu[0].cantidad === 82 && itsJu[0].unidad === 'kg' && itsJu[0].cajones === 4,
      'Julio metalica: viajan los KG y los cajones anotados — ' + JSON.stringify(itsJu[0]));
-  ok(itsJu[1].comp_id === 231 && itsJu[1].cantidad === 20 && itsJu[1].unidad === 'kg' && itsJu[1].cajones === 10,
-     'Julio plastica: 20 kg con sus 10 bolsas calculadas — ' + JSON.stringify(itsJu[1]));
-  ok(dialogs.some(d => d.type === 'confirm' && d.msg.includes('82 kg (3 cajones)')),
+  ok(itsJu[1].comp_id === 231 && itsJu[1].cantidad === 21 && itsJu[1].unidad === 'kg' && itsJu[1].cajones === 11,
+     'Julio plastica: 21 kg con sus 11 bolsas enteras — ' + JSON.stringify(itsJu[1]));
+  ok(dialogs.some(d => d.type === 'confirm' && d.msg.includes('82 kg (4 cajones)')),
      'Julio: el confirm resume en kg con el bulto');
   // ── Ester: el sugerido en BOLSAS de 1800 pero la cantidad EN KG, con las bolsas al lado ──
   await page.click('#btnOtro');
