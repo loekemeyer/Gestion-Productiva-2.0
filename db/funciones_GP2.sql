@@ -6935,12 +6935,25 @@ env as (
      and exists (select 1 from proveedor_insumo pi where pi.nombre = c.proveedor)
    group by c.proveedor, c.material_id
 ),
+-- rep (Enviar a PS / tallerista): el Maximo y el Sugerido salen del CONSUMO DE LA PIEZA QUE SE
+-- ENVIA (la entrada), no de la salida. [usuario 2026-09-17: "sale del consumo de estadistica
+-- madre x max de meses por ubicacion"]. Antes se calculaba sobre la SALIDA (inventario.maximo de
+-- la pieza procesada/armada): las salidas de tallerista son nodos "X Terminado" del sector 12 que
+-- no tienen demanda ni maximo cargado, asi que el 90% de las filas salia en 0 (Martin 6 de 94).
+-- Ahora maximo = consumo(entrada) x meses_stock de la ubicacion del sector de la entrada:
+--   · tallerista -> v_consumo_tallerista (la demanda YA repartida entre los que hacen el paso,
+--     via v_reparto_efectivo; asi no se le pide un mes entero a cada uno de dos que arman lo mismo),
+--   · PS         -> v_consumo_componente (demanda total de la pieza),
+--   · fleje (sector 5, en kg) -> v_consumo_fleje_kg (kg/mes) para cualquiera de los dos tipos.
+-- Sugerido = maximo − lo que el tercero ya tiene (inventario en su ubicacion). meses_stock cae a 1
+-- si la ubicacion no lo tiene (mismo default que OC). El consumo ya viene en la unidad de la
+-- entrada (kg para fleje, uni para el resto), asi que no hay factor de conversion.
 rep as (
   select e.tipo, e.ref, e.comp_id,
-         sum(x.maximo_sal * x.ratio * x.fu) as maximo_dest,
-         sum(x.stock_sal  * x.ratio * x.fu) as stock_dest,
+         round(cons.consumo * cons.meses) as maximo_dest,
+         null::numeric as stock_dest,   -- el front muestra saldo_dest como "Stock", no este
          greatest(0, round(
-            sum(greatest(0, x.maximo_sal - x.stock_sal - x.enDest_sal) * x.ratio * x.fu)
+            cons.consumo * cons.meses
             - coalesce((select i.cantidad from inventario i
                          where i.componente_id = e.comp_id
                            and i.ubicacion_id = ubic_de(e.tipo, e.ref::bigint) limit 1),0)
@@ -6949,29 +6962,20 @@ rep as (
            where tipo in ('proveedor_servicio','tallerista')) e
     join componente ent on ent.id = e.comp_id
     cross join lateral (
-       select sc.id as salida, coalesce(min(rp.cantidad),1) as ratio,
-              coalesce(max(i1.maximo),0)   as maximo_sal,
-              coalesce(max(i1.cantidad),0) as stock_sal,
-              coalesce(max(i2.cantidad),0) as enDest_sal,
-              -- factor de unidad: si lo que se ENVIA es kg y la SALIDA es en uni, el deficit (uni)
-              -- se convierte a kg por el kg_x_uni de la salida (ej. chapa->descorazonador). Si no
-              -- cambia de unidad, fu=1. NO contempla la merma del corte (eso seria ruta_paso.cantidad).
-              case when ent.unidad_medida = 'kg' and coalesce(sc.unidad_medida,'uni') <> 'kg'
-                   then coalesce(sc.kg_x_uni,0) else 1 end as fu
-         from ruta_paso rp
-         join componente sc on sc.id = rp.comp_salida_id
-         left join inventario i1 on i1.componente_id = sc.id
-                                and i1.ubicacion_id = ubic_de('sector', sc.sector_id)
-         left join inventario i2 on i2.componente_id = sc.id
-                                and i2.ubicacion_id = ubic_de(e.tipo, e.ref::bigint)
-        where rp.tipo_paso = e.tipo
-          and ( (e.tipo='proveedor_servicio' and rp.proveedor_id  = e.ref::bigint)
-             or (e.tipo='tallerista'         and rp.tallerista_id = e.ref::bigint) )
-          and rp.comp_entrada_id = e.comp_id
-          and rp.comp_salida_id is not null
-        group by sc.id, sc.unidad_medida, sc.kg_x_uni
-    ) x
-   group by e.tipo, e.ref, e.comp_id
+       select
+         coalesce((select u.meses_stock from ubicacion u
+                    where u.id = ubic_de('sector', ent.sector_id) limit 1), 1) as meses,
+         case
+           when ent.sector_id = 5
+             then coalesce((select fk.consumo_kg_mes from v_consumo_fleje_kg fk
+                             where fk.componente_id = e.comp_id), 0)
+           when e.tipo = 'tallerista'
+             then coalesce((select ct.uni_mes from v_consumo_tallerista ct
+                             where ct.tallerista_id = e.ref::bigint and ct.componente_id = e.comp_id), 0)
+           else coalesce((select vc.consumo_uni_mes from v_consumo_componente vc
+                           where vc.componente_id = e.comp_id), 0)
+         end as consumo
+    ) cons
 ),
 -- INYECTOR: el pedido de bolsas surge de la O.C. de partes plasticas ENVIADA (no del deficit
 -- automatico). Sin OC enviada -> maximo(O.C.)=0 y sugerido=0; recien cuando se manda la OC de partes
