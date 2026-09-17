@@ -6,7 +6,13 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<!-- v1.4.6 (2026-09-16) — EL ENCABEZADO STOCK ACLARA QUE ES DEL TERCERO (usuario: "aclara que ese stock
+<!-- v1.5.0 (2026-09-17) — ENVIAR CON SUGERIDO: SOLO PIEZA · SUGERIDO · CANTIDAD (usuario: "quiero ver
+     solo la columna de pieza, sugerido y cantidad. Primero empeza haciendo esto en todos los envios
+     de ps y despues seguimos"). Se sacaron del render las columnas Stock PS/Stock Tall. (saldo_dest)
+     y Máximo/O.C. (maximo) en la vista Enviar con sugerido (PS, tallerista e inyector). El sugerido
+     se sigue precargando en Cantidad y su cálculo no cambia, solo el render. PENDIENTE (usuario):
+     las unidades de sugerido y cantidad se van a definir caso por caso por proveedor.
+     v1.4.6 (2026-09-16) — EL ENCABEZADO STOCK ACLARA QUE ES DEL TERCERO (usuario: "aclara que ese stock
      es stock P.S."). En Enviar con sugerido, la columna Stock pasa a "Stock PS" (PS/inyector) o
      "Stock Tall." (tallerista): es el saldo en poder del tercero (enviado − entregado), no el nuestro.
      La recepción de partes plásticas ya descuenta la resina del inyector (crear_recepcion_insumo:
@@ -423,14 +429,12 @@ function elegir(c){
   $("fRemito").classList.toggle("hidden", !esRec);
   if (!$("fFecha").value) $("fFecha").value = hoyISO();
   $("q").value = "";
-  // Inyector: el pedido surge de la O.C. de partes plásticas, así que la columna del medio se
-  // rotula "O.C." en vez de "Máximo" [usuario 2026-09-16]. PS/talleristas siguen con "Máximo".
-  var _midLbl = (selCP.tipo === "inyector") ? "O.C." : "Máximo";
-  // el Stock que se muestra es el SALDO en poder del tercero, no el nuestro: se aclara en el encabezado
-  var _stkLbl = (selCP.tipo === "tallerista") ? "Stock Tall." : "Stock PS";
+  // Enviar con sugerido: la tabla muestra SOLO Pieza · Sugerido · Cantidad [usuario 2026-09-17:
+  // "quiero ver solo la columna de pieza, sugerido y cantidad"]. Se sacaron Stock PS/Stock Tall.
+  // (saldo_dest) y Máximo/O.C. (maximo); el cálculo del sugerido no cambia, solo el render.
   $("thead").innerHTML = MODO === "enviar"
     ? (envConSugerido()
-        ? "<th>Pieza</th><th class=\"num\">" + _stkLbl + "</th><th class=\"num\">" + _midLbl + "</th><th class=\"num\">Sugerido</th><th class=\"num sep\">Cantidad</th>"
+        ? "<th>Pieza</th><th class=\"num\">Sugerido</th><th class=\"num sep\">Cantidad</th>"
         : "<th>Pieza</th><th class=\"num\">Online sector</th><th class=\"num sep\">Cantidad</th>")
     : "<th>Pieza</th><th class=\"num\">Esperado</th><th class=\"num sep\">Recibido</th>";
   // precarga UNA vez: el sugerido entra como cantidad por defecto (editable). Sólo toca campos sin
@@ -501,11 +505,9 @@ function render(){
     var mitad;
     if (MODO === "enviar") {
       mitad = envConSugerido()
-        // Stock = SALDO en poder del tercero (lo que le enviamos − lo que nos entregó); es el
-        // inventario de lo que le mandamos en la ubicación del destino [usuario 2026-09-16]
-        ? ('<td class="num esp">' + fmt(x.saldo_dest, u === "kg" ? 2 : 0, "—") + "</td>" +
-           '<td class="num esp">' + fmt(x.maximo, u === "kg" ? 2 : 0, "—") + "</td>" +
-           '<td class="num esp"><b>' + fmt(x.sugerido, u === "kg" ? 2 : 0, "—") + "</b></td>")
+        // Solo el Sugerido (se sacaron Stock y Máximo) [usuario 2026-09-17]. El sugerido sigue
+        // precargándose en Cantidad; el cálculo no cambió, solo dejó de mostrarse el resto.
+        ? ('<td class="num esp"><b>' + fmt(x.sugerido, u === "kg" ? 2 : 0, "—") + "</b></td>")
         : ('<td class="num esp">' + fmt(x.online_sector, u === "kg" ? 2 : 0) + " " + u + "</td>");
     } else {
       mitad = '<td class="num">' + esperadoTxt(x) + "</td>";

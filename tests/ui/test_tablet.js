@@ -123,24 +123,27 @@ window.supabase = { createClient: function(){ return {
   // el inyector ahora trae el sugerido de bolsas (kg) precargado: Σ deficit de partes × kg_x_uni
   const ivals = await page.$$eval('#tbody input.cell-in', xs => xs.map(x => x.value));
   ok(ivals[0] === '200' && ivals[1] === '30', 'inyector: sugerido de bolsas (kg) precargado — ' + ivals.join(' , '));
-  // inyector: la columna del medio se llama "O.C." (el pedido surge de la O.C. de partes)
+  // enviar con sugerido: la tabla muestra SOLO Pieza · Sugerido · Cantidad (se sacaron Stock/Máximo)
   const thIny = await page.$$eval('#thead th', xs => xs.map(x => x.textContent.trim()));
-  ok(thIny[1] === 'Stock PS' && thIny[2] === 'O.C.', 'inyector: Stock PS + O.C. — ' + thIny.join(' | '));
+  ok(thIny.join('|') === 'Pieza|Sugerido|Cantidad', 'inyector: solo Pieza/Sugerido/Cantidad — ' + thIny.join(' | '));
   await page.click('#btnVolver');        // vuelve a las contrapartes del tipo
   await page.click('#btnVolverTipo');    // y a los tipos, para seguir el flujo
 
   await page.click('#tipoGrid .tipo-btn[data-tipo="tallerista"]');
   await page.click('#cpGrid .prov-btn:has-text("Martin")');
 
-  // Enviar a PS/tallerista: columnas Stock | Máximo | Sugerido, y el sugerido PRECARGADO en Cantidad
+  // Enviar a PS/tallerista: SOLO Pieza | Sugerido | Cantidad, y el sugerido PRECARGADO en Cantidad
   const thEnv = await page.$$eval('#thead th', xs => xs.map(x => x.textContent.trim()));
-  ok(thEnv.join('|') === 'Pieza|Stock Tall.|Máximo|Sugerido|Cantidad', 'Enviar a tallerista: Stock Tall./Máximo/Sugerido — ' + thEnv.join(' | '));
+  ok(thEnv.join('|') === 'Pieza|Sugerido|Cantidad', 'Enviar a tallerista: solo Pieza/Sugerido/Cantidad — ' + thEnv.join(' | '));
   let rows = await page.$$eval('#tbody tr', xs => xs.map(x => x.textContent.replace(/\s+/g, ' ')));
-  // Stock ahora muestra el SALDO en poder del tercero (saldo_dest): A10 42, F7 7,5
-  ok(rows.length === 2 && rows[0].includes('A10') && rows[0].includes('42') && rows[0].includes('200') && rows[0].includes('150'),
-     'A10: saldo en PS 42, máximo 200, sugerido 150 — ' + rows[0]);
-  ok(rows[1].includes('F7') && rows[1].includes('kg') && rows[1].includes('7,5') && rows[1].includes('40') && rows[1].includes('12,5'),
-     'F7 (kg): saldo en PS 7,5, máximo 40, sugerido 12,5 — ' + rows[1]);
+  // ya no se muestran saldo (42/7,5) ni máximo (200/40): solo el sugerido, que ademas queda en Cantidad
+  ok(rows.length === 2 && rows[0].includes('A10') && rows[0].includes('150') &&
+     !rows[0].includes('42') && !rows[0].includes('200'),
+     'A10: solo sugerido 150, sin saldo ni máximo — ' + rows[0]);
+  ok(rows[1].includes('F7') && rows[1].includes('12,5') && !rows[1].includes('7,5') && !rows[1].includes('40'),
+     'F7 (kg): solo sugerido 12,5, sin saldo ni máximo — ' + rows[1]);
+  const cellsEnv = await page.$$eval('#tbody tr:first-child td', xs => xs.length);
+  ok(cellsEnv === 3, 'la fila tiene 3 columnas (Pieza/Sugerido/Cantidad): ' + cellsEnv);
   // el sugerido queda precargado en el campo Cantidad (editable), con formato de la casa
   let vals = await page.$$eval('#tbody input.cell-in', xs => xs.map(x => x.value));
   ok(vals[0] === '150' && vals[1] === '12,5', 'la cantidad viene precargada con el sugerido — ' + vals.join(' , '));
