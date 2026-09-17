@@ -10241,6 +10241,7 @@ cargadas, así que las 11 convierten.
 
 **Qué falta:** el resto de los proveedores sigue en unidades; la unidad de envío se define caso por
 caso con el dueño (ése fue el acuerdo al arrancar con AJ). **Ahora son tres formas, no dos: ver 4ec.**
+**Y el sugerido ya no se precarga en el campo Cantidad de los P.S.: solo se muestra (ver 4ed).**
 
 ## 4eb. El 506 pasa al molde del 500/510 (sin GRJ7) y el adhesivado de pliego es un PASO, no un subcomponente (2026-09-17)
 
@@ -10384,6 +10385,36 @@ lo tienen, así que no pasa.
 donde además se fue la columna "Cajón envío" para ese proveedor: el cajón no es la unidad con la
 que se le manda y era ruido). Lo sirven `tablet_bundle` (en cada contraparte) y `envios_ps_bundle`
 (en cada PS). **Pendiente: seguir caso por caso con los demás proveedores** — van definidos AJ,
-Hernandez Julio y Ester de 15 PS.
+Hernandez Julio y Ester de 15 PS. **El sugerido de los tres se sigue MOSTRANDO en su unidad, pero
+desde el 2026-09-17 ya no se precarga en el campo Cantidad (ver 4ed).**
 
 
+
+## 4ed. El SUGERIDO es referencia, no orden: a los P.S. no se les precarga la cantidad (2026-09-17)
+
+`[usuario 2026-09-17, textual: "en el caso de envío a proveedores de servicio en la versión tablet,
+no me preescribas lo que voy a enviar la cantidad que voy a enviar sino que lo voy a escribir yo
+porque puede generar confusiones"]`
+
+Desde v1.4.0 la tablet metía el sugerido DENTRO del campo Cantidad, en la unidad de cada proveedor
+(3 paquetes de AJ, 40 kg de Julio, 612,36 kg de Ester). **Eso se terminó para los proveedores de
+servicio**: el campo arranca **vacío** y lo escribe quien envía. La columna **Sugerido se sigue
+mostrando** con toda su maquinaria (techo, unidad del proveedor, equivalencia en bultos): la
+cuenta no cambió, lo que cambió es que ya no se escribe sola en el campo.
+
+**Por qué importa la distinción**: el sugerido sale de `máximo − stock − lo que ya está en el
+destino`, o sea es lo que la base **cree** que falta. Lo que sale por la puerta es lo que hay en la
+mano en ese momento. Cuando el número venía puesto, confirmar sin mirar registraba el cálculo en
+lugar del envío real — y un envío mal cargado desbalancea el stock del P.S. en las dos puntas.
+
+- **Alcance**: P.S. **e inyectores** (en la tablet se eligen dentro de "Prov. de servicio", así que
+  para el que la usa son lo mismo). A los **talleristas se les sigue precargando**: no se pidió
+  para ellos. Vive en `precargaCantidad()` de `Tablet/Tablet_GP2.html` (v1.9.0).
+- **Efecto de rebote bueno**: el botón `Enviar (N)` vuelve a contar lo que la persona cargó de
+  verdad. Con la precarga, abrir una contraparte ya dejaba todas las filas "cargadas" (por eso en
+  2026-09-16 se sacó el cartelito "N sin registrar" de los botones de tipo, ver el historial de LOCKS del 2026-09-16).
+- **El buffer viejo se limpia**: la tablet guarda lo tipeado en `localStorage`, así que las
+  tabletas ya tenían el número precargado guardado. Al abrir la contraparte se borra **solo si el
+  valor guardado es exactamente lo que precargaba alguna versión**; cualquier otro valor es del
+  operario y no se toca.
+- **`EnviosPS_GP2` (pantalla de escritorio) no se tocó**: el pedido fue "en la versión tablet".

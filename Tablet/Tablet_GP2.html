@@ -6,6 +6,17 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
+<!-- v1.9.0 (2026-09-17) — A LOS PROVEEDORES DE SERVICIO NO SE LES PRECARGA LA CANTIDAD (usuario:
+     "en el caso de envío a proveedores de servicio en la versión tablet, no me preescribas lo que
+     voy a enviar la cantidad que voy a enviar sino que lo voy a escribir yo porque puede generar
+     confusiones"). El campo Cantidad arranca VACÍO en P.S. e inyector (que en la tablet se eligen
+     dentro de "Prov. de servicio"); el Sugerido se sigue mostrando en su columna, con la unidad de
+     cada proveedor (paquetes de AJ, kg de Julio, bolsas de Ester), porque es la referencia — lo que
+     se fue es el número metido en el campo. A los TALLERISTAS se les sigue precargando (no se pidió
+     para ellos). Dos consecuencias buscadas: el botón "Enviar (N)" vuelve a contar lo que la persona
+     realmente cargó, y al abrir una contraparte se LIMPIA del buffer de la tablet el valor que dejó
+     la precarga de versiones anteriores (solo si es exactamente ese, una edición a mano no se toca).
+     Ver precargaCantidad(). -->
 <!-- v1.8.0 (2026-09-17) — ESTER: EL SUGERIDO EN BOLSAS DE 1800 Y LA CANTIDAD EN KG (usuario:
      "en el caso de Ester, el sugerido que aparezca en bolsas (1800 uni por bolsa) redondeas por
      arriba y la cantidad pones kg y te aparece al lado bolsas"). TERCERA forma de enviar, y no es
@@ -341,6 +352,17 @@ function envConSugerido(){
     (selCP.tipo === "proveedor_servicio" || selCP.tipo === "tallerista" || selCP.tipo === "inyector");
 }
 
+/* ¿Se PRECARGA la cantidad con el sugerido? A los PROVEEDORES DE SERVICIO (y a los inyectores,
+   que en la tablet viven dentro de "Prov. de servicio") NO: el campo arranca vacío y lo escribe
+   quien envía [usuario 2026-09-17: "en el caso de envío a proveedores de servicio en la versión
+   tablet, no me preescribas lo que voy a enviar la cantidad que voy a enviar sino que lo voy a
+   escribir yo porque puede generar confusiones"]. El Sugerido se sigue MOSTRANDO en su columna (es
+   la referencia); lo que se fue es el número metido en el campo. A los TALLERISTAS se les sigue
+   precargando: el usuario no lo pidió para ellos. */
+function precargaCantidad(){
+  return envConSugerido() && selCP.tipo === "tallerista";
+}
+
 /* Unidad de ENVIO del proveedor (display), p.ej. AJ Adhesivos manda de a PAQUETES de 100 pliegos
    [usuario 2026-09-17]. Solo presentacion: sugerido y cantidad se MUESTRAN/CARGAN divididos por
    factor y rotulados con label, pero al registrar se multiplica de nuevo y se guarda en la unidad
@@ -563,10 +585,13 @@ function elegir(c){
         ? "<th>Pieza</th><th class=\"num\">Sugerido" + _u + "</th><th class=\"num sep\">Cantidad" + _uq + "</th>"
         : "<th>Pieza</th><th class=\"num\">Online sector</th><th class=\"num sep\">Cantidad</th>")
     : "<th>Pieza</th><th class=\"num\">Esperado</th><th class=\"num sep\">Recibido</th>";
-  // precarga UNA vez: el sugerido entra como cantidad por defecto (editable). Sólo toca campos sin
-  // cargar, así que si el operario vació uno a mano no se lo vuelve a llenar en cada render.
+  // precarga UNA vez (solo donde corresponde, ver precargaCantidad): el sugerido entra como
+  // cantidad por defecto (editable). Sólo toca campos sin cargar, así que si el operario vació uno
+  // a mano no se lo vuelve a llenar en cada render. Donde NO se precarga (P.S. e inyector) el mismo
+  // recorrido LIMPIA lo que dejó la precarga de versiones anteriores en el buffer de la tablet: si
+  // no, el operario seguiría viendo el número prescripto aunque el código ya no lo ponga.
   if (envConSugerido()) {
-    var _pk = packEnvio(), _peso = pesoEnvio();
+    var _pk = packEnvio(), _peso = pesoEnvio(), _pre = precargaCantidad();
     piezasDe(c).forEach(function(x){
       var it = BUF.item(c.id, claveDe(x));
       var rawSug = Number(x.sugerido);
@@ -586,6 +611,16 @@ function elegir(c){
       // precarga vieja: una edición del operario no se toca.
       var precargaVieja = (_pk || b) && !vacio &&
         (it.q === fmt(rawSug, unidadDe(x) === "kg" ? 2 : 0) || (_ckg && it.q === fmt(sugEnv, 0)));
+      if (!_pre) {
+        // sin precarga: se borra solo si lo guardado es EXACTAMENTE lo que precargaba alguna
+        // versión (esta o las anteriores). Cualquier otro valor es lo que anotó el operario y no
+        // se toca.
+        if (!vacio && (it.q === fmt(sug, dec) || precargaVieja)) {
+          it.q = "";
+          if (b && b.editable && it.c === it.cAuto) { it.c = ""; it.cAuto = ""; }
+        }
+        return;
+      }
       // se precarga con el formato de la casa (coma decimal / punto de miles), que es el que
       // GP2N.num sabe leer; String(sugerido) con punto se leería como miles.
       if ((vacio || precargaVieja) && sug > 0) {
@@ -663,8 +698,8 @@ function render(){
     if (MODO === "enviar") {
       // Solo el Sugerido (se sacaron Stock y Máximo) [usuario 2026-09-17]. Si el proveedor recibe
       // por peso, el sugerido va en kg con la equivalencia en bultos abajo; si manda por paquetes,
-      // en paquetes (techo); si no, en su unidad. Sigue precargado en la carga; el cálculo del
-      // sugerido no cambió, solo el render.
+      // en paquetes (techo); si no, en su unidad. Se MUESTRA siempre; en P.S. e inyector ya no se
+      // precarga en la carga (v1.9.0). El cálculo del sugerido no cambió, solo el render.
       var _pk = packEnvio();
       var sugM = x.sugerido;
       if (_pk && x.sugerido != null) sugM = Math.ceil(Number(x.sugerido) / _pk.factor);

@@ -37,8 +37,9 @@ const BUNDLE = {
     { tipo: 'virgilio', ref: 'virgilio', nombre: 'Virgilio', n_env: 0, n_rec: 1 },
   ],
   // PS y tallerista traen ademas maximo/stock_dest/sugerido de la pieza PROCESADA/ARMADA (la
-  // salida): la tablet muestra esas 3 columnas y precarga el sugerido en Cantidad. Prov. AT e
-  // inyector NO traen sugerido (van con esas claves nulas) y siguen mostrando "Online sector".
+  // salida): la tablet MUESTRA el sugerido y lo precarga en Cantidad SOLO para talleristas (a los
+  // P.S. y a los inyectores no: el campo arranca vacio, usuario 2026-09-17). Prov. AT no trae
+  // sugerido (va con esas claves nulas) y sigue mostrando "Online sector".
   enviar: [
     { tipo: 'tallerista', ref: '6', comp_id: 70, cod: 'A10', desc: 'Cpo Una', sector: 'Sector Crudo', um: 'unidad', uxc: 1000, kg_x_uni: 0.01, online_sector: 120, saldo_dest: 42, maximo: 200, stock_dest: 50, sugerido: 150 },
     { tipo: 'tallerista', ref: '6', comp_id: 75, cod: 'F7', desc: 'Fleje doblado', sector: 'Sector Fleje', um: 'kg', uxc: null, kg_x_uni: 0.0134, online_sector: 30.5, saldo_dest: 7.5, maximo: 40, stock_dest: 10, sugerido: 12.5 },
@@ -132,9 +133,14 @@ window.supabase = { createClient: function(){ return {
   const resinas = await page.$$eval('#tbody tr', xs => xs.map(x => x.textContent.replace(/\s+/g, ' ')));
   ok(resinas.length === 2 && resinas.some(r => r.includes('2405')) && resinas.every(r => r.includes('kg')),
      'el inyector manda sus resinas (bolsas) en kg — ' + resinas.join(' | '));
-  // el inyector ahora trae el sugerido de bolsas (kg) precargado: Σ deficit de partes × kg_x_uni
+  // el inyector trae el sugerido de bolsas (kg) — se MUESTRA, pero NO se precarga en Cantidad:
+  // el inyector se elige dentro de "Prov. de servicio" y ahi el campo lo escribe la persona
+  // [usuario 2026-09-17: "no me preescribas ... la cantidad que voy a enviar"]
   const ivals = await page.$$eval('#tbody input.cell-in', xs => xs.map(x => x.value));
-  ok(ivals[0] === '200' && ivals[1] === '30', 'inyector: sugerido de bolsas (kg) precargado — ' + ivals.join(' , '));
+  ok(ivals[0] === '' && ivals[1] === '', 'inyector: la cantidad arranca vacia — ' + JSON.stringify(ivals));
+  const isug = await page.$$eval('#tbody tr td:nth-child(2)', xs => xs.map(x => x.textContent.trim()));
+  ok(isug[0] === '200' && isug[1] === '30', 'inyector: el sugerido igual se ve en su columna — ' + isug.join(' , '));
+  ok((await page.$eval('#btnEnviar', e => e.disabled)) === true, 'inyector: sin nada cargado el boton Enviar no habilita');
   // enviar con sugerido: la tabla muestra SOLO Pieza · Sugerido · Cantidad (se sacaron Stock/Máximo)
   const thIny = await page.$$eval('#thead th', xs => xs.map(x => x.textContent.trim()));
   ok(thIny.join('|') === 'Pieza|Sugerido|Cantidad', 'inyector: solo Pieza/Sugerido/Cantidad — ' + thIny.join(' | '));
@@ -200,8 +206,9 @@ window.supabase = { createClient: function(){ return {
   const ajRow = await page.$eval('#tbody tr', x => x.textContent.replace(/\s+/g, ' '));
   ok(ajRow.includes('Pliego 506') && ajRow.includes('3'),
      'AJ: sugerido 250 uni -> 3 paquetes (techo) — ' + ajRow);
-  ok((await page.$eval('#tbody input.cell-in', e => e.value)) === '3',
-     'AJ: cantidad precargada en paquetes (3)');
+  ok((await page.$eval('#tbody input.cell-in', e => e.value)) === '',
+     'AJ (P.S.): la cantidad NO viene precargada, la escribe la persona');
+  await page.fill('#tbody input.cell-in', '3');
   await page.click('#btnEnviar');
   await page.waitForFunction(() => !document.getElementById('fase3').classList.contains('hidden'));
   const regAj = await calls('tablet_registrar');
@@ -224,10 +231,10 @@ window.supabase = { createClient: function(){ return {
   ok(juRows[1].includes('PA10B') && juRows[1].includes('10 kg') && juRows[1].includes('= 5 bolsas'),
      'Julio plastica: sugerido 5000 uni -> 10 kg = 5 bolsas — ' + juRows[1]);
   const juIns = await page.$$eval('#tbody tr', xs => xs.map(t => Array.from(t.querySelectorAll('input.cell-in')).map(i => i.value)));
-  ok(juIns[0].length === 2 && juIns[0][0] === '40' && juIns[0][1] === '1,33',
-     'Julio metalica: kg y cajones precargados, los dos editables — ' + JSON.stringify(juIns[0]));
-  ok(juIns[1].length === 1 && juIns[1][0] === '10',
-     'Julio plastica: solo se tipean los kg, las bolsas son calculadas — ' + JSON.stringify(juIns[1]));
+  ok(juIns[0].length === 2 && juIns[0][0] === '' && juIns[0][1] === '',
+     'Julio metalica: kg y cajones vacios (P.S.: no se precarga), los dos editables — ' + JSON.stringify(juIns[0]));
+  ok(juIns[1].length === 1 && juIns[1][0] === '',
+     'Julio plastica: solo se tipean los kg (vacios), las bolsas son calculadas — ' + JSON.stringify(juIns[1]));
   // al cambiar los kg, el bulto acompaña: la bolsa de la plastica se repinta y el cajon de la
   // metalica se autocompleta (mientras el operario no lo haya tocado a mano)
   await page.fill('#tbody tr:nth-child(2) input.cell-in', '20');
@@ -261,10 +268,11 @@ window.supabase = { createClient: function(){ return {
      'Ester: el sugerido se mira en bolsas y la cantidad se escribe en kg — ' + thEs.join(' | '));
   const esSug = await page.$eval('#tbody tr td:nth-child(2)', e => e.textContent.trim());
   ok(esSug === '63', 'Ester: 112.432 mangos / 1800 -> 63 bolsas (techo) — ' + esSug);
-  ok((await page.$eval('#tbody input.cell-in', e => e.value)) === '612,36',
-     'Ester: la cantidad se precarga con el peso de esas 63 bolsas (612,36 kg)');
+  ok((await page.$eval('#tbody input.cell-in', e => e.value)) === '',
+     'Ester (P.S.): los kg NO vienen precargados con esas 63 bolsas, los escribe la persona');
+  await page.fill('#tbody input.cell-in', '612,36');
   ok((await page.$eval('#tbody .env-eq', e => e.textContent.trim())) === '= 63 bolsas',
-     'Ester: debajo del campo dice a cuántas bolsas equivale');
+     'Ester: debajo del campo dice a cuántas bolsas equivale lo tipeado');
   await page.fill('#tbody input.cell-in', '100');
   ok((await page.$eval('#tbody .env-eq', e => e.textContent.trim())) === '= 10,29 bolsas',
      'Ester: las bolsas se recalculan al tipear (100 kg / 9,72) — ' +
@@ -350,7 +358,8 @@ window.supabase = { createClient: function(){ return {
     ok((await page.$eval('#btnAtrasHeader', a => a.getAttribute('href'))) === vuelve, 'con ?volver=tablet el Atrás vuelve a la tablet — ' + url.split('/')[1]);
   }
 
-  // ── migración de buffer viejo: un sugerido guardado en UNIDADES (versión anterior) se pasa a paquetes ──
+  // ── buffer viejo de un P.S.: lo que dejo la precarga de versiones anteriores se LIMPIA, y lo
+  //    que anoto la persona a mano NO se toca (usuario 2026-09-17) ──
   await page.goto(ROOT + '/Tablet/Tablet_GP2.html?modo=enviar');
   await page.evaluate(() => localStorage.setItem('gp2_tablet_buffer',
     JSON.stringify({ 'enviar:proveedor_servicio:12': { '564::': { q: '250' } } })));
@@ -358,8 +367,24 @@ window.supabase = { createClient: function(){ return {
   await page.waitForFunction(() => document.querySelectorAll('#tipoGrid .tipo-btn').length > 0);
   await page.click('#tipoGrid .tipo-btn[data-tipo="proveedor_servicio"]');
   await page.click('#cpGrid .prov-btn:has-text("AJ Adhesivos")');
-  ok((await page.$eval('#tbody input.cell-in', e => e.value)) === '3',
-     'AJ: el sugerido viejo guardado en unidades (250) se migra a paquetes (3) en Cantidad');
+  ok((await page.$eval('#tbody input.cell-in', e => e.value)) === '',
+     'AJ: el sugerido viejo guardado por la precarga (250 uni) se limpia del buffer');
+  await page.goto(ROOT + '/Tablet/Tablet_GP2.html?modo=enviar');
+  await page.evaluate(() => localStorage.setItem('gp2_tablet_buffer',
+    JSON.stringify({ 'enviar:proveedor_servicio:12': { '564::': { q: '2' } } })));
+  await page.reload();
+  await page.waitForFunction(() => document.querySelectorAll('#tipoGrid .tipo-btn').length > 0);
+  await page.click('#tipoGrid .tipo-btn[data-tipo="proveedor_servicio"]');
+  await page.click('#cpGrid .prov-btn:has-text("AJ Adhesivos")');
+  ok((await page.$eval('#tbody input.cell-in', e => e.value)) === '2',
+     'AJ: lo que anoto la persona (2 paquetes) sigue ahi');
+  // y al tallerista se le SIGUE precargando (no se pidio sacarselo)
+  await page.click('#btnVolver');        // vuelve a las contrapartes del tipo
+  await page.click('#btnVolverTipo');    // y de ahi a los tipos
+  await page.click('#tipoGrid .tipo-btn[data-tipo="tallerista"]');
+  await page.click('#cpGrid .prov-btn:has-text("Martin")');
+  const tvals = await page.$$eval('#tbody input.cell-in', xs => xs.map(x => x.value));
+  ok(tvals[0] === '150' && tvals[1] === '12,5', 'tallerista: la precarga del sugerido sigue — ' + tvals.join(' , '));
 
   // ── 5) render a 390px ────────────────────────────────────────────────────
   await page.goto(ROOT + '/Tablet/Tablet_GP2.html?modo=enviar');
