@@ -10200,3 +10200,34 @@ Recorrida tabla por tabla del schema GP2 buscando qué sacar. Regla del dueño: 
 - **`articulo.discontinuado` → borrar el artículo al discontinuar**: hoy 1 fila en true (art 311 "Cuchillo De Torta"). Las FKs entrantes son RESTRICT, así que un DELETE pelado FALLA: hay que arrastrar `articulo_componente` (6) + `ruta`/`ruta_paso` (6) + revisar `est_madre` (join por cod). `articulo` y `componente` tienen CADA UNO su `discontinuado` (distintas: `v_reposicion` filtra por la del componente, `v_consumo_demanda` por la del artículo). Recomendación: conservar la columna salvo que se construya una baja-en-cascada probada; con 1 caso la columna cuesta casi nada y el borrado pierde histórico/reactivación.
 
 **Housekeeping**: `db/` (backup del schema) queda a regenerar por los borrados de `__sim`/`creado_en`; no rompe nada estar desfasado (el test chequea que lo que las pantallas usan exista en db/, no la ausencia de extras).
+
+## 4ea — Cómo se le ENVÍA a cada proveedor: la unidad la pone el proveedor, el bulto lo pone la pieza (2026-09-17)
+
+`[usuario]` La tablet ya no manda "unidades" a todos. Cada proveedor dice en qué se le envía, y eso
+vive en `GP2.proveedor_servicio.envio_unidad` / `envio_uni_x`. Hay dos formas, y la diferencia
+entre ellas es de dónde sale el bulto:
+
+- **Una unidad para TODO el proveedor** — `AJ Adhesivos` (id 12): `envio_unidad='paquetes'`,
+  `envio_uni_x=100`. El sugerido y la cantidad se muestran y se cargan en paquetes (techo), y al
+  registrar se multiplica por 100: el inventario nunca ve paquetes.
+- **Por PESO, con el bulto al lado** — `Hernandez Julio` / Ximpa (id 8): `envio_unidad='kg'`, sin
+  `envio_uni_x`. `[usuario 2026-09-17, textual: "para lo que son partes plásticas, que empieza con la
+  letra P, el envío sugerido tiene que estar nominado en bolsas… cuántos kilos le están mandando y
+  cuántas bolsas eso significa. Después, para A1, B12, B4B y C2, el sugerido en kilos y en cajones a
+  enviar"]`. Acá el bulto **no es uno solo para el proveedor: cambia por pieza**, y lo decide el
+  sector — **Sector Plástico → bolsas, el resto → cajones**. El tamaño del bulto es
+  `componente.uni_x_cajon` en los dos casos (en los plásticos esa columna **es** el tamaño de la
+  bolsa, mismo criterio que la OC de partes plásticas).
+
+Cómo queda la pantalla de Julio (Tablet, Enviar): `Pieza | Sugerido (kg y "= N bolsas/cajones") |
+Kg a enviar | Bolsas/cajones`. Los **kg son lo que se tipea y lo que se registra** (la balanza
+manda; viaja `unidad='kg'` y la base lo pasa a unidades con `kg_x_uni`). Las **bolsas de los
+plásticos son calculadas** (se repintan al tipear); los **cajones de las metálicas se anotan a
+mano** (se autocompletan desde los kg mientras nadie los toque) y viajan a `movimiento.cajones`
+vía `crear_envio_ps(..., p_cajones)`. Sin `kg_x_uni` la fila NO se convierte: se carga en unidades
+como siempre — no se inventa el factor. `[dato 2026-09-17]` las 11 piezas de Julio (A1, B12, B4B,
+C2 metálicas; PA10B, PA13B, PA18B, PA4B, PA5B, PC15AB, PEP2 plásticas) tienen las dos columnas
+cargadas, así que las 11 convierten.
+
+**Qué falta:** el resto de los proveedores sigue en unidades; la unidad de envío se define caso por
+caso con el dueño (ése fue el acuerdo al arrancar con AJ).

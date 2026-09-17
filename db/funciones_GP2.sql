@@ -7201,7 +7201,7 @@ declare
   v_remito text := nullif(btrim(coalesce(p->>'remito','')),'');
   it       jsonb;
   v_comp   bigint; v_ent bigint; v_cant numeric; v_uni text; v_esp numeric;
-  v_cod    text; v_desc text; v_cod_art text; v_por_caja numeric;
+  v_cod    text; v_desc text; v_cod_art text; v_por_caja numeric; v_cajones numeric;
   v_r      jsonb; v_res jsonb := '[]'::jsonb; v_alertas jsonb := '[]'::jsonb;
   v_comparable numeric; v_alerta_id bigint; v_n int := 0;
   v_ubic_o bigint; v_ubic_d bigint; v_sec bigint; v_um text; v_mov bigint;
@@ -7237,6 +7237,9 @@ begin
     v_uni      := lower(coalesce(nullif(it->>'unidad',''), 'uni'));
     v_esp      := nullif(it->>'esperado','')::numeric;
     v_por_caja := nullif(it->>'por_caja','')::numeric;
+    -- bultos del envio a un PS que recibe por peso (Hernandez Julio): cajones en las metalicas,
+    -- bolsas en las plasticas. Es informativo (va a movimiento.cajones); el stock lo mueve v_cant.
+    v_cajones  := nullif(it->>'cajones','')::numeric;
     if v_uni not in ('uni','kg') then raise exception 'Unidad invalida: "%"', v_uni; end if;
     if v_cant is null or v_cant <= 0 then
       raise exception '% : la cantidad tiene que ser mayor a 0.', coalesce(v_cod_art, v_comp::text, '?');
@@ -7248,7 +7251,7 @@ begin
       if v_tipo = 'tallerista' then
         v_r := "GP2".crear_envio_tallerista(v_ref::bigint, v_comp, v_cant, v_uni, v_fecha);
       elsif v_tipo = 'proveedor_servicio' then
-        v_r := "GP2".crear_envio_ps(v_ref::bigint, v_comp, v_cant, v_uni, v_fecha);
+        v_r := "GP2".crear_envio_ps(v_ref::bigint, v_comp, v_cant, v_uni, v_fecha, v_cajones);
       elsif v_tipo = 'inyector' then
         -- bolsas de resina a un inyector: v_comp es el componente-resina (sector 14), v_cant en kg.
         v_r := "GP2".enviar_material_inyector(v_ref, v_comp, v_cant, v_fecha);
