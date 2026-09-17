@@ -30,6 +30,7 @@ const BUNDLE = {
     { tipo: 'proveedor_at', ref: '1', nombre: 'Cabral', n_env: 1, n_rec: 1 },
     { tipo: 'proveedor_servicio', ref: '5', nombre: 'Jade', n_env: 1, n_rec: 1 },
     { tipo: 'proveedor_servicio', ref: '12', nombre: 'AJ Adhesivos', envio_unidad: 'paquetes', envio_uni_x: 100, n_env: 1, n_rec: 0 },
+    { tipo: 'proveedor_servicio', ref: '14', nombre: 'Ester', envio_unidad: 'bolsas', envio_uni_x: 1800, envio_carga_unidad: 'kg', n_env: 1, n_rec: 0 },
     { tipo: 'inyector', ref: 'Pat Bet Plast', nombre: 'Pat Bet Plast', n_env: 2, n_rec: 0 },
     { tipo: 'proveedor_insumo', ref: 'Corrugadora del Plata', nombre: 'Corrugadora del Plata', n_env: 0, n_rec: 3 },
     { tipo: 'virgilio', ref: 'virgilio', nombre: 'Virgilio', n_env: 0, n_rec: 1 },
@@ -44,6 +45,9 @@ const BUNDLE = {
     { tipo: 'proveedor_servicio', ref: '5', comp_id: 90, cod: 'D5', desc: 'Mitad rompenuez', sector: 'Sector Crudo', um: 'unidad', uxc: 500, kg_x_uni: 0.05, online_sector: 40, saldo_dest: 0, maximo: 100, stock_dest: 20, sugerido: 80 },
     // AJ Adhesivos manda por PAQUETES de 100: sugerido 250 uni -> 3 paquetes (techo)
     { tipo: 'proveedor_servicio', ref: '12', comp_id: 564, cod: 'Pliego 506', desc: 'Sin adhesivar', sector: 'Sector Procesado', um: 'unidad', uxc: null, kg_x_uni: null, online_sector: 0, saldo_dest: 0, maximo: 500, stock_dest: 0, sugerido: 250 },
+    // Ester manda de a BOLSAS de 1800 mangos pero PESA lo que carga: el sugerido va en bolsas
+    // (112.432 mangos -> 63 bolsas, techo) y la cantidad en kg (63 x 1800 x 0,0054 = 612,36 kg)
+    { tipo: 'proveedor_servicio', ref: '14', comp_id: 622, cod: 'PC2', desc: 'Mgo Pelapapa 505 Sin Calar', sector: 'Sector Plástico', um: 'unidad', uxc: 1852, kg_x_uni: 0.0054, online_sector: 0, saldo_dest: 0, maximo: 112432, stock_dest: 0, sugerido: 112432 },
     { tipo: 'proveedor_at', ref: '1', comp_id: 456, cod: 'A1', desc: 'Caja N°1', sector: 'Sector Caja', um: 'unidad', uxc: null, kg_x_uni: null, online_sector: 988, saldo_dest: null, maximo: null, stock_dest: null, sugerido: null },
     { tipo: 'inyector', ref: 'Pat Bet Plast', comp_id: 742, cod: '2405', desc: 'PP 2630', sector: 'Sector Bolsas Plásticas', um: 'kg', uxc: null, kg_x_uni: null, online_sector: 100, saldo_dest: 40, maximo: 300, stock_dest: 100, sugerido: 200 },
     { tipo: 'inyector', ref: 'Pat Bet Plast', comp_id: 743, cod: '2455', desc: 'ABS GP 22', sector: 'Sector Bolsas Plásticas', um: 'kg', uxc: null, kg_x_uni: null, online_sector: 50, saldo_dest: 8, maximo: 50, stock_dest: 20, sugerido: 30 },
@@ -200,6 +204,34 @@ window.supabase = { createClient: function(){ return {
   ok(itAj.comp_id === 564 && itAj.cantidad === 300 && itAj.unidad === 'uni',
      'AJ: 3 paquetes se guardan como 300 pliegos (uni), no como paquetes — ' + JSON.stringify(itAj));
   ok(dialogs.some(d => d.type === 'confirm' && d.msg.includes('3 paquetes')), 'AJ: el confirm resume en paquetes');
+
+  // ── Ester: el sugerido en BOLSAS de 1800 pero la cantidad EN KG, con las bolsas al lado ──
+  await page.click('#btnOtro');
+  await page.waitForFunction(() => document.querySelectorAll('#tipoGrid .tipo-btn').length > 0);
+  await page.click('#tipoGrid .tipo-btn[data-tipo="proveedor_servicio"]');
+  await page.click('#cpGrid .prov-btn:has-text("Ester")');
+  const thEs = await page.$$eval('#thead th', xs => xs.map(x => x.textContent.trim()));
+  ok(thEs.join('|') === 'Pieza|Sugerido (bolsas)|Cantidad (kg)',
+     'Ester: el sugerido se mira en bolsas y la cantidad se escribe en kg — ' + thEs.join(' | '));
+  const esSug = await page.$eval('#tbody tr td:nth-child(2)', e => e.textContent.trim());
+  ok(esSug === '63', 'Ester: 112.432 mangos / 1800 -> 63 bolsas (techo) — ' + esSug);
+  ok((await page.$eval('#tbody input.cell-in', e => e.value)) === '612,36',
+     'Ester: la cantidad se precarga con el peso de esas 63 bolsas (612,36 kg)');
+  ok((await page.$eval('#tbody .env-eq', e => e.textContent.trim())) === '= 63 bolsas',
+     'Ester: debajo del campo dice a cuántas bolsas equivale');
+  await page.fill('#tbody input.cell-in', '100');
+  ok((await page.$eval('#tbody .env-eq', e => e.textContent.trim())) === '= 10,29 bolsas',
+     'Ester: las bolsas se recalculan al tipear (100 kg / 9,72) — ' +
+     (await page.$eval('#tbody .env-eq', e => e.textContent.trim())));
+  await page.fill('#tbody input.cell-in', '612,36');
+  await page.click('#btnEnviar');
+  await page.waitForFunction(() => !document.getElementById('fase3').classList.contains('hidden'));
+  const regEs = await calls('tablet_registrar');
+  const itEs = regEs[regEs.length - 1].args.p.items[0];
+  ok(itEs.comp_id === 622 && itEs.cantidad === 612.36 && itEs.unidad === 'kg',
+     'Ester: viaja el KG tal cual (la base lo pasa a mangos con kg_x_uni), no bolsas — ' + JSON.stringify(itEs));
+  ok(dialogs.some(d => d.type === 'confirm' && d.msg.includes('612,36 kg (63 bolsas)')),
+     'Ester: el confirm dice los kg y las bolsas');
 
   // ── 3) modo RECIBIR: sin prov. AT, con Insumos que es un link ─────────────
   await page.click('#btnOtro');

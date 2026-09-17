@@ -691,6 +691,7 @@ create table "GP2".proveedor_servicio (
   desperdicio_pct numeric not null default 0,
   envio_unidad text,
   envio_uni_x numeric,
+  envio_carga_unidad text,
   constraint proveedor_servicio_pkey PRIMARY KEY (id),
   constraint proveedor_servicio_mp_componente_id_fkey FOREIGN KEY (mp_componente_id) REFERENCES "GP2".componente(id)
 );
@@ -701,6 +702,7 @@ comment on column "GP2".proveedor_servicio.mp_componente_id is 'PS hibrido: la m
 comment on column "GP2".proveedor_servicio.desperdicio_pct is 'PS hibrido: % de desperdicio al procesar nuestra materia prima (mp_componente_id). crear_oc lo usa para la OC gemela al proveedor de la MP (kg de producto x (1 + pct/100)) y cargar_recepcion_eclipse para descontar la chapa. Eclipse 28 (calibrado con remito, usuario 2026-09-02). Charcas 0 (usuario 2026-09-04: sin dato, asumir 0; la recepcion descuenta 1:1). Antes: parametro charcas_/eclipse_desperdicio_pct.';
 comment on column "GP2".proveedor_servicio.envio_unidad is 'Unidad de ENVIO por proveedor (solo display): rotulo con el que la Tablet muestra el sugerido y la cantidad al enviarle. AJ Adhesivos = ''paquetes''. NULL = se usa la unidad canonica de la pieza (uni/kg). [usuario 2026-09-17]';
 comment on column "GP2".proveedor_servicio.envio_uni_x is 'Cuantas unidades canonicas entran en una unidad de envio (envio_unidad). AJ Adhesivos = 100 (paquete de 100 pliegos). La Tablet muestra/precarga el sugerido dividido por este factor (redondeo para arriba) y al registrar multiplica de nuevo: el inventario siempre queda en la unidad canonica. NULL/1 = sin conversion. [usuario 2026-09-17]';
+comment on column "GP2".proveedor_servicio.envio_carga_unidad is 'En QUE unidad se CARGA la cantidad al enviarle, cuando el proveedor tiene unidad de envio propia. NULL = se carga en la unidad de envio misma (AJ Adhesivos: el sugerido dice 3 paquetes y se escriben 3). ''kg'' = el sugerido se muestra en la unidad de envio (bolsas) pero la cantidad se escribe en KG y al lado la pantalla muestra a cuantas bolsas equivale (Ester: bolsas de 1800 mangos; 1 bolsa = 1800 x kg_x_uni = 9,72 kg) [usuario 2026-09-17: "el sugerido que aparezca en bolsas (1800 uni por bolsa) redondeas por arriba y la cantidad pones kg y te aparece al lado bolsas"]. El kg viaja tal cual a la base y to_canonical lo pasa a unidades con kg_x_uni: el inventario nunca ve bolsas.';
 
 -- ---------- recepcion_control ----------
 create table "GP2".recepcion_control (

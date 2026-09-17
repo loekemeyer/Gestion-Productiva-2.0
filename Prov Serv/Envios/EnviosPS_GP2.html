@@ -1,7 +1,25 @@
 <!doctype html>
 <html lang="es">
 <head>
-<!-- v1.4.0 (2026-09-17) — LA TABLA SOLO MUESTRA SUGERIDO + CANTIDAD A ENVIAR (usuario:
+<!-- Anti-cache: la lógica de esta pantalla es JS INLINE, así que sin esto el navegador se puede
+     quedar con el HTML viejo y con la pantalla vieja (no hay ?v= que la salve). -->
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+<!-- v1.5.0 (2026-09-17) — UNIDAD DE ENVIO POR PROVEEDOR: ESTER EN BOLSAS DE 1800, CANTIDAD EN KG
+     (usuario: "dentro del version tablet, y envio a ps... en el caso de Ester, el sugerido que
+     aparezca en bolsas (1800 uni por bolsa) redondeas por arriba y la cantidad pones kg y te
+     aparece al lado bolsas"). La unidad de envio la dice la base, no el codigo:
+     proveedor_servicio.envio_unidad / envio_uni_x / envio_carga_unidad (Ester = bolsas/1800/kg),
+     que envios_ps_bundle ahora devuelve en cada PS. Cuando el proveedor tiene esa unidad y se
+     carga en kg: (1) el Sugerido pasa de "caj / kg" a BOLSAS con techo (el sugerido se calcula
+     igual, en cajones, y se convierte: caj x uni_x_cajon / 1800 -> techo); (2) se va la columna
+     "Cajon envio" (para Ester el cajon no es la unidad con la que se manda y era ruido) y queda
+     un solo campo "Cantidad (kg)" con "= N bolsas" debajo, que se recalcula al tipear; (3) las
+     tandas de esa fila son solo de kg. Lo que se registra no cambia: crear_envio_ps ya recibia
+     el kg (p_unidad 'kg') y to_canonical lo pasa a mangos con kg_x_uni. Los demas PS y los
+     inyectores quedan exactamente igual.
+     v1.4.0 (2026-09-17) — LA TABLA SOLO MUESTRA SUGERIDO + CANTIDAD A ENVIAR (usuario:
      "borres de todos los p.s. la columna de maximo y stock ps. Solo quiero ver el sugerido...
      tanto en kg como en cajones"). Se sacaron las columnas Online PS, Online SP y Maximo; queda
      el Sugerido en cajones Y en kg (kg = sug_caj x uni_x_cajon x kg_x_uni del SC; sin factor no
@@ -22,6 +40,10 @@
 <link rel="stylesheet" href="../../tandas-popup.css?v=20260903b"/>
 <link rel="icon" type="image/png" href="../../GP2_favicon.png">
 <link rel="apple-touch-icon" href="../../GP2_favicon.png">
+<style>
+  /* equivalencia en la unidad de envio del proveedor (Ester: se carga kg, debajo las bolsas) */
+  .env-eq{display:block;margin-top:4px;color:#0b4aa2;font-size:14px;font-weight:800;white-space:nowrap}
+</style>
 </head>
 <body>
 
@@ -62,7 +84,9 @@
 
       <div class="table-wrap">
         <table class="t">
-          <thead><tr>
+          <!-- el encabezado lo arma theadHTML(): un proveedor con unidad de envio propia
+               (Ester: bolsas) no tiene columna de cajón y su sugerido va en bolsas -->
+          <thead id="thead"><tr>
             <th>SC</th>
             <th class="num">Cajón<br>envío</th>
             <th class="num">Cajón envío<br>KG Neto</th>
@@ -121,6 +145,50 @@ var BUF = E.buffer("gp2_enviosPS_buffer2", function(){ return { caj:"", kg:"", f
    En Entregas es al reves y ahi sigue por par: al recibir hay que decir cual de
    los tres mangos devolvio (crear_entrega_ps si recibe p_comp_sp_id). */
 function keyDe(x){ return String(x.sc_id); }
+
+/* ---------- unidad de envío del proveedor (display) ----------
+   Un PS puede mandarse de a ENVASES en vez de por cajón: Ester va de a bolsas de 1800 mangos
+   [usuario 2026-09-17]. Lo dice la base (proveedor_servicio.envio_unidad / envio_uni_x /
+   envio_carga_unidad), no el código. Con envio_carga_unidad='kg' el sugerido se ve en bolsas
+   pero la cantidad se escribe en kg (es lo que pesan al cargar la bolsa) y debajo del campo se
+   muestra a cuántas bolsas equivale. Lo que viaja a crear_envio_ps sigue siendo el kg. */
+function pkPS(){
+  if (!selPS || selPS.inyector) return null;
+  var f = Number(selPS.envio_uni_x || 0);
+  if (!(f > 1) || !selPS.envio_unidad) return null;
+  return { factor: f, label: String(selPS.envio_unidad),
+           cargaKg: String(selPS.envio_carga_unidad || "").toLowerCase() === "kg" };
+}
+/* KG que entran en UNA unidad de envío de esta pieza (Ester: 1800 × 0,0054 = 9,72 kg).
+   0 = no se puede saber (al SC le falta kg_x_uni) y entonces no se cambia nada de la fila. */
+function kgPorEnvase(x, pk){
+  if (!pk) return 0;
+  var k = Number(x.sc_kgxuni || 0);
+  return k > 0 ? pk.factor * k : 0;
+}
+function cargaEnKg(x, pk){ return !!(pk && pk.cargaKg && kgPorEnvase(x, pk) > 0); }
+/* El "= N bolsas" que va debajo del campo de kg. */
+function equivEnvase(kg, kgEnv, label){
+  var n = (kgEnv > 0) ? (Number(kg || 0) / kgEnv) : 0;
+  var ent = Math.abs(n - Math.round(n)) < 0.005;
+  return "= " + fmt(ent ? Math.round(n) : n, ent ? 0 : 2) + " " + label;
+}
+/* El encabezado depende del proveedor: con unidad de envío propia cargada en kg se va la columna
+   del cajón y el sugerido se rotula en esa unidad. */
+function theadHTML(){
+  var pk = pkPS();
+  if (!(pk && pk.cargaKg))
+    return '<tr><th>SC</th><th class="num">Cajón<br>envío</th>'+
+           '<th class="num">Cajón envío<br>KG Neto</th>'+
+           '<th class="ctr" title="Cargar por tandas">T</th>'+
+           '<th class="ctr" title="Marcar faltante">F</th><th class="sep">Parte</th>'+
+           '<th class="num" title="Máximo físico del Sector Procesado − online SP − online PS. En kg y en cajones.">Sugerido<br>caj / kg</th></tr>';
+  return '<tr><th>SC</th><th class="num">Cantidad<br>KG Neto</th>'+
+         '<th class="ctr" title="Cargar por tandas">T</th>'+
+         '<th class="ctr" title="Marcar faltante">F</th><th class="sep">Parte</th>'+
+         '<th class="num" title="Máximo físico del Sector Procesado − online SP − online PS, pasado a '+
+         esc(pk.label)+' de '+fmt(pk.factor,0)+' (redondeo para arriba).">Sugerido<br>'+esc(pk.label)+'</th></tr>';
+}
 
 function esCargada(it){ return num(it.caj)>0 || num(it.kg)>0; }
 function tieneAlgo(it){ return esCargada(it) || it.falt; }
@@ -183,6 +251,7 @@ function elegirPS(p){
   E.mostrarFase(1);
   if (!$("fFecha").value) $("fFecha").value = hoyISO();
   $("q").value = "";
+  $("thead").innerHTML = theadHTML();
   renderTabla();
 }
 
@@ -251,9 +320,12 @@ function renderTabla(){
   tb.innerHTML = "";
   $("tblEmpty").classList.toggle("hidden", arr.length>0);
 
+  var pk = pkPS();
   arr.forEach(function(x){
     var it = BUF.item(selPS.id, keyDe(x));
-    var t = E.tandaTotales(it, ["caj","kg"]);
+    // con unidad de envío propia cargada en kg (Ester) no hay cajón: las tandas son solo de kg
+    var ckg = cargaEnKg(x, pk);
+    var t = E.tandaTotales(it, ckg ? ["kg"] : ["caj","kg"]);
     var vCaj = t.hayT ? (t.tot.caj||"") : it.caj;
     var vKg  = t.hayT ? (t.tot.kg ||"") : it.kg;
 
@@ -284,14 +356,25 @@ function renderTabla(){
     var sugKg = (sug==null || !(fCaj>0) || !(fKg>0)) ? null : sug * fCaj * fKg;
     var sugTxt = (sug==null) ? "—"
         : (fmt(sug)+" caj" + (sugKg==null ? "" : "<br>"+fmt(sugKg,2)+" kg"));
+    // Ester mira el sugerido en BOLSAS: el cálculo sigue siendo en cajones y se convierte
+    // (caj × uni_x_cajon / 1800) con redondeo PARA ARRIBA. Sin uni_x_cajon no se inventa.
+    if (ckg) {
+      var sugEnv = (sug==null || !(fCaj>0)) ? null : Math.ceil(sug * fCaj / pk.factor);
+      sugTxt = (sugEnv==null) ? "—" : (fmt(sugEnv,0)+" "+esc(pk.label));
+      sug = sugEnv;
+    }
 
     var tr = document.createElement("tr");
     tr.dataset.k = keyDe(x);
     if (it.falt) tr.className = "falt";
+    var tdKg = E.tdInput("kg", vKg, t.hayT, null, "decimal");
+    if (ckg)
+      tdKg = tdKg.replace("</td>", '<small class="env-eq">'+
+               esc(equivEnvase(num(vKg), kgPorEnvase(x, pk), pk.label))+'</small></td>');
     tr.innerHTML =
       '<td><span class="cod">'+esc(x.sc_cod)+'</span><br><small style="color:#777">'+esc(x.sc_desc||"")+'</small></td>'+
-      E.tdInput("caj", vCaj, t.hayT)+
-      E.tdInput("kg",  vKg,  t.hayT, null, "decimal")+
+      (ckg ? "" : E.tdInput("caj", vCaj, t.hayT))+
+      tdKg+
       E.tdTanda(it)+
       E.tdFalt(it)+
       '<td class="sep">'+((x.salidas||[]).length
@@ -323,6 +406,12 @@ $("tbody").addEventListener("input", function(e){
   var d = itemDeFila(inp.closest("tr"));
   d.buf[inp.dataset.f] = inp.value;
   BUF.save();
+  // Ester: debajo del kg se ve a cuántas bolsas equivale lo tipeado
+  var eq = inp.closest("tr").querySelector(".env-eq");
+  if (eq && d.meta) {
+    var pk2 = pkPS();
+    eq.textContent = equivEnvase(num(inp.value), kgPorEnvase(d.meta, pk2), pk2 ? pk2.label : "");
+  }
   actualizarEnviar();
 });
 
@@ -346,7 +435,7 @@ $("tbody").addEventListener("click", function(e){
     E.abrirTandas({
       titulo: "Tandas — " + (d.meta ? d.meta.sc_cod : ""),
       buf: d.buf,
-      campos: ["caj","kg"],
+      campos: cargaEnKg(d.meta || {}, pkPS()) ? ["kg"] : ["caj","kg"],
       onDone: function(){ BUF.save(); renderTabla(); }
     });
   }
@@ -386,6 +475,10 @@ $("btnEnviar").addEventListener("click", async function(){
 
   var resumen = items.map(function(o){
     var m = metaPorK[o.k] || {};
+    var pk3 = pkPS();
+    if (cargaEnKg(m, pk3))
+      return (m.sc_cod||o.k)+": "+fmt(num(o.it.kg),2)+" kg ("+
+             equivEnvase(num(o.it.kg), kgPorEnvase(m, pk3), pk3.label).replace("= ","")+")";
     return selPS.inyector
       ? (m.sc_cod||o.k)+": "+fmt(num(o.it.kg),2)+" kg"
       : (m.sc_cod||o.k)+": "+fmt(num(o.it.caj),1)+" caj / "+fmt(num(o.it.kg),0)+" kg";

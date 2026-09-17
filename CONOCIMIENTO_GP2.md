@@ -10180,3 +10180,42 @@ Recorrida tabla por tabla del schema GP2 buscando qué sacar. Regla del dueño: 
 - **`articulo.discontinuado` → borrar el artículo al discontinuar**: hoy 1 fila en true (art 311 "Cuchillo De Torta"). Las FKs entrantes son RESTRICT, así que un DELETE pelado FALLA: hay que arrastrar `articulo_componente` (6) + `ruta`/`ruta_paso` (6) + revisar `est_madre` (join por cod). `articulo` y `componente` tienen CADA UNO su `discontinuado` (distintas: `v_reposicion` filtra por la del componente, `v_consumo_demanda` por la del artículo). Recomendación: conservar la columna salvo que se construya una baja-en-cascada probada; con 1 caso la columna cuesta casi nada y el borrado pierde histórico/reactivación.
 
 **Housekeeping**: `db/` (backup del schema) queda a regenerar por los borrados de `__sim`/`creado_en`; no rompe nada estar desfasado (el test chequea que lo que las pantallas usan exista en db/, no la ausencia de extras).
+
+## 4ea. La unidad de envío es del PROVEEDOR, y hay dos formas: AJ escribe paquetes, Ester escribe kg (2026-09-17)
+
+Cada proveedor de servicio pide/recibe en su propio envase, y eso **no es un detalle de pantalla:
+es dato de la base**. Vive en `GP2.proveedor_servicio` con tres columnas:
+
+| columna | qué dice | AJ Adhesivos (12) | Ester (14) |
+|---|---|---|---|
+| `envio_unidad` | el rótulo del envase | `paquetes` | `bolsas` |
+| `envio_uni_x` | cuántas unidades canónicas entran en uno | 100 (pliegos) | 1800 (mangos) |
+| `envio_carga_unidad` | en qué unidad se ESCRIBE la cantidad | `null` = en paquetes | `kg` |
+
+**La vuelta nueva del 17/09 es `envio_carga_unidad`** `[usuario: "en el caso de Ester, el sugerido
+que aparezca en bolsas (1800 uni por bolsa) redondeas por arriba y la cantidad pones kg y te
+aparece al lado bolsas"]`. Hasta ese día sugerido y cantidad iban en la MISMA unidad (AJ mira 3
+paquetes y escribe 3). **Ester mira bolsas pero PESA lo que carga**, así que el sugerido se ve en
+bolsas y el campo se escribe en kg, con "= N bolsas" debajo. Los dos casos son la misma máquina
+con distinta unidad de carga; no hay un "modo Ester" hardcodeado.
+
+**Ojo con esto: bolsa ≠ cajón.** `componente.uni_x_cajon` de PC2 es **1852** y de PC3B **1800**,
+pero la bolsa que pidió el dueño es **1800 para las dos**. Por eso el factor va en
+`proveedor_servicio` (uno por proveedor) y no se saca del componente. 1 bolsa = 1800 × `kg_x_uni`
+(0,0054) = **9,72 kg**.
+
+**El inventario nunca ve bolsas ni paquetes.** Cuando se carga en kg, el kg viaja tal cual con
+`unidad='kg'` y `to_canonical` lo pasa a mangos con `kg_x_uni` (`crear_envio_ps` ya recibía kg);
+cuando se carga en paquetes, el front multiplica por el factor antes de mandar. El redondeo del
+sugerido es **siempre para arriba** (no se pide menos de lo que falta): 112.432 mangos ÷ 1800 =
+62,46 → **63 bolsas** → 612,36 kg.
+
+**Si a la pieza le falta `kg_x_uni` no hay forma de pasar de bolsas a kg**, y ahí la fila cae al
+modo de AJ (se carga en el envase) en vez de mostrar un kg inventado. Hoy las dos piezas de Ester
+lo tienen, así que no pasa.
+
+**Dónde se ve**: `Tablet/Tablet_GP2.html` (v1.7.0) y `Prov Serv/Envios/EnviosPS_GP2.html` (v1.5.0,
+donde además se fue la columna "Cajón envío" para ese proveedor: el cajón no es la unidad con la
+que se le manda y era ruido). Lo sirven `tablet_bundle` (en cada contraparte) y `envios_ps_bundle`
+(en cada PS). **Pendiente: seguir caso por caso con los demás proveedores** — son las dos primeras
+unidades definidas (AJ, Ester) de 15 PS.

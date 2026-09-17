@@ -6,7 +6,20 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<!-- v1.6.1 (2026-09-17) — LA CANTIDAD TAMBIEN SE PRECARGA EN PAQUETES + MIGRACION DE BUFFER VIEJO
+<!-- v1.7.0 (2026-09-17) — ESTER: EL SUGERIDO EN BOLSAS DE 1800 Y LA CANTIDAD EN KG (usuario:
+     "en el caso de Ester, el sugerido que aparezca en bolsas (1800 uni por bolsa) redondeas por
+     arriba y la cantidad pones kg y te aparece al lado bolsas"). Es la MISMA maquinaria de AJ
+     (unidad de envio por proveedor) con una vuelta mas: hasta ahora el sugerido y la cantidad iban
+     en la MISMA unidad de envio (AJ: los dos en paquetes). Ester mira el sugerido en bolsas pero
+     PESA lo que manda, asi que la cantidad se escribe en kg. Lo dice la base:
+     proveedor_servicio.envio_carga_unidad = 'kg' (Ester = bolsas/1800/kg; AJ sigue con null y no
+     cambia en nada). Con eso: encabezados "Sugerido (bolsas)" y "Cantidad (kg)", el sugerido en
+     bolsas con TECHO (112.432 mangos -> 63 bolsas), la cantidad precargada en los kg de esas
+     bolsas (63 x 1800 x 0,0054 = 612,36 kg) y debajo del campo "= 63 bolsas", que se recalcula
+     mientras se tipea. Al registrar viaja el KG tal cual y to_canonical lo pasa a mangos con
+     kg_x_uni: el inventario nunca ve bolsas. Si a la pieza le falta kg_x_uni no hay forma de pasar
+     de bolsas a kg, asi que esa fila cae al modo de AJ (se carga en bolsas) en vez de inventar.
+     v1.6.1 (2026-09-17) — LA CANTIDAD TAMBIEN SE PRECARGA EN PAQUETES + MIGRACION DE BUFFER VIEJO
      (usuario: "quiero que la cantidad me la preestablezcas en paquetes tambien"). La cantidad ya se
      precargaba en paquetes cuando el campo estaba vacio; lo que faltaba: si en el buffer de la tablet
      quedo guardado el sugerido VIEJO en unidades (de una version anterior), la precarga no lo pisaba
@@ -160,6 +173,8 @@
     font-weight:800;color:#333;margin-left:4px;white-space:nowrap}
   .uni-tag.kg{background:#e6f0ff;color:#0b4aa2}
   .cell-in.big{font-size:20px;width:110px}
+  /* equivalencia en la unidad de envio del proveedor (Ester: se carga kg, al lado las bolsas) */
+  .env-eq{display:block;margin-top:4px;color:#0b4aa2;font-size:14px;font-weight:800;white-space:nowrap}
   .alerta-box{margin:10px 0;border:2px solid #f4c08c;background:#fff4e5;border-radius:12px;padding:12px 14px;
     font-size:17px;color:#5c2d00;line-height:1.4}
   .alerta-box b{color:#8a3b00}
@@ -311,7 +326,33 @@ function envConSugerido(){
 function packEnvio(){
   if (!selCP || MODO !== "enviar") return null;
   var f = Number(selCP.envio_uni_x || 0);
-  return (f > 1 && selCP.envio_unidad) ? { factor: f, label: String(selCP.envio_unidad) } : null;
+  if (!(f > 1) || !selCP.envio_unidad) return null;
+  // cargaKg: el sugerido se MIRA en bolsas pero la cantidad se ESCRIBE en kg (Ester). Sin esto
+  // (AJ Adhesivos) el campo va en la misma unidad de envio que el sugerido.
+  return { factor: f, label: String(selCP.envio_unidad),
+           cargaKg: String(selCP.envio_carga_unidad || "").toLowerCase() === "kg" };
+}
+
+/* Cuantos KG entran en UNA unidad de envio de esta pieza. Si la pieza se cuenta en unidades, la
+   bolsa son factor x kg_x_uni (Ester: 1800 x 0,0054 = 9,72 kg); si la pieza ya se mide en kg, el
+   factor YA esta en kg. 0 = no se puede saber (a la pieza le falta kg_x_uni). */
+function kgPorEnvase(x, pk){
+  if (!pk) return 0;
+  if (unidadDe(x) === "kg") return pk.factor;
+  var k = Number(x.kg_x_uni || 0);
+  return k > 0 ? pk.factor * k : 0;
+}
+/* true si la CANTIDAD de esta fila se carga en kg. Pide las dos cosas: que el proveedor lo diga
+   (envio_carga_unidad='kg') y que la pieza permita pasar de bolsas a kg. Si no, la fila cae al
+   modo de AJ (se carga en la unidad de envio) en vez de mostrar un kg inventado. */
+function cargaEnKg(x, pk){
+  return !!(pk && pk.cargaKg && kgPorEnvase(x, pk) > 0);
+}
+/* El "= N bolsas" que va debajo del campo cuando la cantidad se carga en kg. */
+function equivEnvase(kg, kgEnv, label){
+  var n = (kgEnv > 0) ? (Number(kg || 0) / kgEnv) : 0;
+  var ent = Math.abs(n - Math.round(n)) < 0.005;
+  return "= " + fmt(ent ? Math.round(n) : n, ent ? 0 : 2) + " " + label;
 }
 
 /* ---------- carga ---------- */
@@ -360,6 +401,7 @@ function cpsDelTipo(tipo){
 function cpItem(c){
   return { id: claveCP(c), tipo: c.tipo, ref: c.ref, nombre: c.nombre,
            envio_unidad: c.envio_unidad, envio_uni_x: c.envio_uni_x,
+           envio_carga_unidad: c.envio_carga_unidad,
            n: MODO === "enviar" ? c.n_env : c.n_rec };
 }
 function cargadasDeCP(c){
@@ -462,9 +504,11 @@ function elegir(c){
   // Si el proveedor tiene unidad de envío propia (paquetes, etc.) se aclara en ambos encabezados.
   var _pk = packEnvio();
   var _u = _pk ? " (" + esc(_pk.label) + ")" : "";
+  // Ester mira el sugerido en bolsas pero PESA lo que manda: ahi la Cantidad va en kg.
+  var _uq = (_pk && _pk.cargaKg) ? " (kg)" : _u;
   $("thead").innerHTML = MODO === "enviar"
     ? (envConSugerido()
-        ? "<th>Pieza</th><th class=\"num\">Sugerido" + _u + "</th><th class=\"num sep\">Cantidad" + _u + "</th>"
+        ? "<th>Pieza</th><th class=\"num\">Sugerido" + _u + "</th><th class=\"num sep\">Cantidad" + _uq + "</th>"
         : "<th>Pieza</th><th class=\"num\">Online sector</th><th class=\"num sep\">Cantidad</th>")
     : "<th>Pieza</th><th class=\"num\">Esperado</th><th class=\"num sep\">Recibido</th>";
   // precarga UNA vez: el sugerido entra como cantidad por defecto (editable). Sólo toca campos sin
@@ -474,15 +518,21 @@ function elegir(c){
     piezasDe(c).forEach(function(x){
       var it = BUF.item(c.id, claveDe(x));
       var rawSug = Number(x.sugerido);
-      // el sugerido se precarga en la unidad de envío del proveedor: si manda por paquetes, se
-      // divide por el factor y se redondea PARA ARRIBA (no se pide menos de lo que falta).
-      var sug = _pk ? Math.ceil(rawSug / _pk.factor) : rawSug;
-      var dec = (!_pk && unidadDe(x) === "kg") ? 2 : 0;
+      // el sugerido se precarga en la unidad de envío del proveedor: si manda por paquetes/bolsas,
+      // se divide por el factor y se redondea PARA ARRIBA (no se pide menos de lo que falta).
+      var sugEnv = _pk ? Math.ceil(rawSug / _pk.factor) : rawSug;
+      // si la cantidad se carga en kg (Ester), se precarga el PESO de esas bolsas enteras:
+      // 63 bolsas x 1800 mangos x 0,0054 = 612,36 kg.
+      var _kgEnv = kgPorEnvase(x, _pk), _ckg = cargaEnKg(x, _pk);
+      var sug = _ckg ? sugEnv * _kgEnv : sugEnv;
+      var dec = _ckg ? 2 : ((!_pk && unidadDe(x) === "kg") ? 2 : 0);
       var vacio = (it.q === undefined || it.q === null || it.q === "");
-      // migración: si el proveedor ahora manda por paquetes pero en el buffer quedó guardado el
-      // sugerido VIEJO en unidades (de una versión anterior), se reemplaza por el valor en paquetes.
-      // Solo si el valor guardado es EXACTAMENTE esa precarga vieja: una edición del operario no se toca.
-      var precargaVieja = _pk && !vacio && it.q === fmt(rawSug, unidadDe(x) === "kg" ? 2 : 0);
+      // migración: si el proveedor ahora manda por paquetes/bolsas pero en el buffer quedó guardado
+      // el sugerido VIEJO (en unidades de una versión anterior, o en bolsas antes de pasar a kg), se
+      // reemplaza por el valor nuevo. Solo si el valor guardado es EXACTAMENTE esa precarga vieja:
+      // una edición del operario no se toca.
+      var precargaVieja = _pk && !vacio &&
+        (it.q === fmt(rawSug, unidadDe(x) === "kg" ? 2 : 0) || (_ckg && it.q === fmt(sugEnv, 0)));
       // se precarga con el formato de la casa (coma decimal / punto de miles), que es el que
       // GP2N.num sabe leer; String(sugerido) con punto se leería como miles.
       if ((vacio || precargaVieja) && sug > 0)
@@ -540,6 +590,7 @@ function render(){
     var sub = esc(x.desc || "");
     if (MODO === "recibir" && x.ent_cod) sub += ' · <span class="proc">consume ' + esc(x.ent_cod) + "</span>";
     var ex = exceso(x, q);
+    var cargaKgFila = false, kgEnvFila = 0, labelEnvFila = "";
     var pieza = '<td><span class="cod">' + esc(x.cod) + "</span>" + uniTag(u) +
       '<br><small class="sub">' + sub + "</small>" +
       (ex > 0 ? '<br><span class="demas-tag">⚠ ' + fmt(ex, u === "kg" ? 2 : 0) + " de más</span>" : "") + "</td>";
@@ -554,10 +605,20 @@ function render(){
       mitad = envConSugerido()
         ? ('<td class="num esp"><b>' + fmt(sugM, (!_pk && u === "kg") ? 2 : 0, "—") + "</b></td>")
         : ('<td class="num esp">' + fmt(x.online_sector, u === "kg" ? 2 : 0) + " " + u + "</td>");
+      // el sugerido queda en bolsas, pero la cantidad de Ester se escribe en kg: debajo del campo
+      // va a cuántas bolsas equivale lo tipeado (se recalcula en el evento input).
+      cargaKgFila = cargaEnKg(x, _pk);
+      kgEnvFila = kgPorEnvase(x, _pk);
+      labelEnvFila = _pk ? _pk.label : "";
     } else {
       mitad = '<td class="num">' + esperadoTxt(x) + "</td>";
     }
-    tr.innerHTML = pieza + mitad + E.tdInput("q", it.q, false, "sep", inputmodeDe(u)).replace('class="cell-in', 'class="cell-in big');
+    var tdQ = E.tdInput("q", it.q, false, "sep", cargaKgFila ? "decimal" : inputmodeDe(u))
+                .replace('class="cell-in', 'class="cell-in big');
+    if (cargaKgFila)
+      tdQ = tdQ.replace("</td>", '<small class="env-eq">' +
+              esc(equivEnvase(q, kgEnvFila, labelEnvFila)) + "</small></td>");
+    tr.innerHTML = pieza + mitad + tdQ;
     if (ex > 0) tr.classList.add("demas");
     tb.appendChild(tr);
   });
@@ -593,6 +654,12 @@ $("tbody").addEventListener("input", function(e){
   var x = meta[tr.dataset.k];
   if (x) {
     var q = num(inp.value), u = unidadDe(x), ex = exceso(x, q);
+    // Ester: la cantidad se escribe en kg y debajo se ve a cuántas bolsas equivale
+    var eq = tr.querySelector(".env-eq");
+    if (eq) {
+      var _pk2 = packEnvio();
+      eq.textContent = equivEnvase(q, kgPorEnvase(x, _pk2), _pk2 ? _pk2.label : "");
+    }
     tr.classList.toggle("demas", ex > 0);
     var old = tr.querySelector(".demas-tag"); if (old) { old.previousSibling && old.previousSibling.nodeName === "BR" && old.previousSibling.remove(); old.remove(); }
     if (ex > 0) tr.firstElementChild.insertAdjacentHTML("beforeend", '<br><span class="demas-tag">⚠ ' + fmt(ex, u === "kg" ? 2 : 0) + " de más</span>");
@@ -619,6 +686,8 @@ $("btnEnviar").addEventListener("click", async function(){
   var fecha = $("fFecha").value || hoyISO();
   // si el proveedor manda por paquetes, la cantidad se carga EN paquetes: se multiplica por el factor
   // para guardar en la unidad canonica (pliegos/uni). El inventario nunca ve "paquetes".
+  // Si en cambio la cantidad se carga en KG (Ester), el kg viaja tal cual con unidad 'kg' y
+  // to_canonical lo pasa a mangos con kg_x_uni: tampoco ve "bolsas".
   var _pk = packEnvio();
   var payload = {
     modo: MODO, tipo: selCP.tipo, ref: String(selCP.ref),
@@ -627,12 +696,13 @@ $("btnEnviar").addEventListener("click", async function(){
     items: items.map(function(o){
       var x = meta[o.k] || {};
       var u = unidadDe(x);
+      var ckg = cargaEnKg(x, _pk);
       return {
         comp_id: x.comp_id != null ? Number(x.comp_id) : null,
         comp_entrada_id: x.comp_entrada_id != null ? Number(x.comp_entrada_id) : null,
         cod_art: x.cod_art || null,
-        cantidad: _pk ? num(o.it.q) * _pk.factor : num(o.it.q),
-        unidad: u === "kg" ? "kg" : "uni",
+        cantidad: ckg ? num(o.it.q) : (_pk ? num(o.it.q) * _pk.factor : num(o.it.q)),
+        unidad: (ckg || u === "kg") ? "kg" : "uni",
         esperado: MODO === "recibir" && x.esperado != null ? Number(x.esperado) : null,
         esperado_origen: x.esperado_origen || null
       };
@@ -641,6 +711,9 @@ $("btnEnviar").addEventListener("click", async function(){
   var nEx = items.filter(function(o){ return meta[o.k] && exceso(meta[o.k], num(o.it.q)) > 0; }).length;
   var resumen = items.map(function(o){
     var x = meta[o.k] || {};
+    if (cargaEnKg(x, _pk))
+      return (x.cod || o.k) + ": " + fmt(num(o.it.q), 2) + " kg (" +
+             equivEnvase(num(o.it.q), kgPorEnvase(x, _pk), _pk.label).replace("= ", "") + ")";
     return _pk
       ? (x.cod || o.k) + ": " + fmt(num(o.it.q), 0) + " " + _pk.label
       : (x.cod || o.k) + ": " + fmt(num(o.it.q), unidadDe(x) === "kg" ? 2 : 0) + " " + unidadDe(x);
