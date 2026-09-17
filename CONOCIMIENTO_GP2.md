@@ -10240,7 +10240,8 @@ C2 metálicas; PA10B, PA13B, PA18B, PA4B, PA5B, PC15AB, PEP2 plásticas) tienen 
 cargadas, así que las 11 convierten.
 
 **Qué falta:** el resto de los proveedores sigue en unidades; la unidad de envío se define caso por
-caso con el dueño (ése fue el acuerdo al arrancar con AJ). **Ahora son tres formas, no dos: ver 4ec.**
+caso con el dueño (ése fue el acuerdo al arrancar con AJ). **Ahora son CUATRO formas, no dos: ver
+4ec (Ester) y 4ed (Guazzaroni), con la tabla de las cuatro en 4ed.**
 
 ## 4eb. El 506 pasa al molde del 500/510 (sin GRJ7) y el adhesivado de pliego es un PASO, no un subcomponente (2026-09-17)
 
@@ -10384,6 +10385,66 @@ lo tienen, así que no pasa.
 donde además se fue la columna "Cajón envío" para ese proveedor: el cajón no es la unidad con la
 que se le manda y era ruido). Lo sirven `tablet_bundle` (en cada contraparte) y `envios_ps_bundle`
 (en cada PS). **Pendiente: seguir caso por caso con los demás proveedores** — van definidos AJ,
-Hernandez Julio y Ester de 15 PS.
+Hernandez Julio y Ester de 15 PS. **Ya son cuatro formas: ver 4ed.**
+
+## 4ed. La cuarta forma de enviar: Guazzaroni mira CAJONES (el de cada pieza) y escribe KG (2026-09-17)
+
+`[usuario, textual: "dentro del version tablet, y envio a ps. Siguiendo la lógica del módulo
+Ester ---> en el módulo de guazzaroni patricio, el sugerido tendría que aparecer en cajones y en
+cantidad pones kg y que te diga cuantos cajones son (redondeando)"]`
+
+Es lo de Ester (4ec) con **una** diferencia, y es la que importa: **el envase no es uno solo para
+el proveedor, lo pone cada pieza**. Guazzaroni niquela/templa/zinca 25 piezas distintas y cada una
+viene en su propio cajón, así que el factor sale de `componente.uni_x_cajon` fila por fila — igual
+que el bulto de Hernandez Julio (4ea), pero acá el cajón **es** la unidad del sugerido, no una
+columna al costado.
+
+**La regla nueva no es una columna, es un significado**: en `GP2.proveedor_servicio`,
+**`envio_uni_x` NULL ya no quiere decir "sin unidad de envío"**, quiere decir *"el factor no es del
+proveedor, sale de la pieza"*. Con eso las cuatro formas entran en las mismas tres columnas:
+
+| proveedor | `envio_unidad` | `envio_uni_x` | `envio_carga_unidad` | qué se ve |
+|---|---|---|---|---|
+| AJ Adhesivos (12) | `paquetes` | 100 | `null` | sugerido y cantidad en paquetes |
+| Ester (14) | `bolsas` | 1800 | `kg` | sugerido en bolsas, cantidad en kg |
+| **Guazzaroni Patricio (4)** | `cajones` | **null** | `kg` | **sugerido en cajones de ESA pieza, cantidad en kg** |
+| Hernandez Julio (8) | `kg` | null | `null` | sugerido y cantidad en kg, el bulto al lado |
+
+Ejemplo real: CV1 (remache espiral) tiene 57.143 uni por cajón y 0,00035 kg por unidad → **1 cajón
+= 20,00 kg**. Sugerido 34.992 remaches → **1 cajón** (techo, como siempre: no se pide menos de lo
+que falta) y la cantidad se precarga en 20,00 kg.
+
+**El "(redondeando)" del pedido es la equivalencia de abajo del campo**: se tipean los kg y la
+pantalla dice a cuántos cajones equivalen, **sin decimales**. Cuando no da entero se muestra con
+`≈` (70 kg → 3,5 → **"≈ 3 cajones"**), para que se lea que es redondeado y no parezca exacto.
+
+**Lo que NO se convierte**: `[dato 2026-09-17]` 5 de las 25 piezas de Guazzaroni no tienen
+`uni_x_cajon` cargado (CV12, CV18D, CV6, CV9, W1B) y CV18D tampoco tiene `kg_x_uni`. Esas filas
+**se cargan en unidades** y la celda lo dice ("sin cajón cargado"): no se inventa un cajón. Si el
+dueño carga el `uni_x_cajon` de esas 5, pasan solas al modo cajones/kg — no hay que tocar código.
+
+**El inventario sigue sin ver cajones**: viaja el kg (`unidad='kg'`) y `to_canonical` lo pasa a
+unidades con `kg_x_uni`; los cajones quedan anotados en `movimiento.cajones`, informativos.
+
+**Dónde se ve**: `Tablet/Tablet_GP2.html` (v1.9.0) y `Prov Serv/Envios/EnviosPS_GP2.html` (v1.6.0).
+En Envío a PS el sugerido **ya se calculaba en cajones**, así que ahí sólo cambió el rótulo y el
+layout (se va la columna "Cajón envío", queda un solo campo en kg). **Pendiente: siguen sin definir
+11 de los 15 PS.**
+
+### El bug que salió de paso: la Cantidad precargada quedaba VIEJA
+
+`[usuario 2026-09-17: "fijate que hoy aparece el sugerido y la cantidad preescrita distinta en
+guazzaroni, chequea"]`. La Tablet precarga el Sugerido en la Cantidad, pero **sólo si el campo está
+vacío** — para no pisarle al operario lo que cargó a mano. El buffer vive en `localStorage`
+(`gp2_tablet_buffer`) y **sobrevive días**, así que cuando el sugerido del bundle cambiaba (se movió
+el máximo o el stock) la pantalla mostraba el **Sugerido de hoy con la Cantidad de otro día**. La
+migración que existía sólo corría para proveedores con unidad de envío propia, así que todos los
+demás quedaban desfasados y nadie lo veía.
+
+**Cómo se arregló**: la precarga queda firmada en `it.qAuto`. Mientras `it.q === it.qAuto` (el
+operario no la tocó) se refresca con el sugerido del día; cualquier otro valor es una edición real
+y **no se pisa nunca**. Vale para todos los proveedores. La lección general: *un valor derivado
+guardado en `localStorage` necesita saber si sigue siendo derivado o ya lo editó una persona* —
+guardar el valor no alcanza, hay que guardar también que lo puso la máquina.
 
 

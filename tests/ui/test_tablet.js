@@ -32,6 +32,8 @@ const BUNDLE = {
     { tipo: 'proveedor_servicio', ref: '12', nombre: 'AJ Adhesivos', envio_unidad: 'paquetes', envio_uni_x: 100, n_env: 1, n_rec: 0 },
     { tipo: 'proveedor_servicio', ref: '8', nombre: 'Hernandez Julio', envio_unidad: 'kg', envio_uni_x: null, n_env: 2, n_rec: 0 },
     { tipo: 'proveedor_servicio', ref: '14', nombre: 'Ester', envio_unidad: 'bolsas', envio_uni_x: 1800, envio_carga_unidad: 'kg', n_env: 1, n_rec: 0 },
+    // Guazzaroni: el envase es el CAJON de cada pieza (envio_uni_x null), no uno del proveedor
+    { tipo: 'proveedor_servicio', ref: '4', nombre: 'Guazzaroni Patricio', envio_unidad: 'cajones', envio_uni_x: null, envio_carga_unidad: 'kg', n_env: 2, n_rec: 0 },
     { tipo: 'inyector', ref: 'Pat Bet Plast', nombre: 'Pat Bet Plast', n_env: 2, n_rec: 0 },
     { tipo: 'proveedor_insumo', ref: 'Corrugadora del Plata', nombre: 'Corrugadora del Plata', n_env: 0, n_rec: 3 },
     { tipo: 'virgilio', ref: 'virgilio', nombre: 'Virgilio', n_env: 0, n_rec: 1 },
@@ -53,6 +55,11 @@ const BUNDLE = {
     // Ester manda de a BOLSAS de 1800 mangos pero PESA lo que carga: el sugerido va en bolsas
     // (112.432 mangos -> 63 bolsas, techo) y la cantidad en kg (63 x 1800 x 0,0054 = 612,36 kg)
     { tipo: 'proveedor_servicio', ref: '14', comp_id: 622, cod: 'PC2', desc: 'Mgo Pelapapa 505 Sin Calar', sector: 'Sector Plástico', um: 'unidad', uxc: 1852, kg_x_uni: 0.0054, online_sector: 0, saldo_dest: 0, maximo: 112432, stock_dest: 0, sugerido: 112432 },
+    // Guazzaroni Patricio: sugerido en CAJONES (el uni_x_cajon de cada pieza) y cantidad en kg.
+    // CV1 tiene cajon (57.143) -> 34.992 remaches = 1 cajon = 20,00 kg. CV9 NO tiene cajon
+    // cargado: esa fila NO se convierte, queda en unidades.
+    { tipo: 'proveedor_servicio', ref: '4', comp_id: 601, cod: 'CV1', desc: 'Remache Espiral p/Niquelar', sector: 'Sector Remache', um: 'unidad', uxc: 57143, kg_x_uni: 0.00035, online_sector: 0, saldo_dest: 0, maximo: 34992, stock_dest: 0, sugerido: 34992 },
+    { tipo: 'proveedor_servicio', ref: '4', comp_id: 609, cod: 'CV9', desc: 'Remache uña niq. p/Niquelar', sector: 'Sector Remache', um: 'unidad', uxc: null, kg_x_uni: 0.000567, online_sector: 0, saldo_dest: 0, maximo: 113304, stock_dest: 0, sugerido: 113304 },
     { tipo: 'proveedor_at', ref: '1', comp_id: 456, cod: 'A1', desc: 'Caja N°1', sector: 'Sector Caja', um: 'unidad', uxc: null, kg_x_uni: null, online_sector: 988, saldo_dest: null, maximo: null, stock_dest: null, sugerido: null },
     { tipo: 'inyector', ref: 'Pat Bet Plast', comp_id: 742, cod: '2405', desc: 'PP 2630', sector: 'Sector Bolsas Plásticas', um: 'kg', uxc: null, kg_x_uni: null, online_sector: 100, saldo_dest: 40, maximo: 300, stock_dest: 100, sugerido: 200 },
     { tipo: 'inyector', ref: 'Pat Bet Plast', comp_id: 743, cod: '2455', desc: 'ABS GP 22', sector: 'Sector Bolsas Plásticas', um: 'kg', uxc: null, kg_x_uni: null, online_sector: 50, saldo_dest: 8, maximo: 50, stock_dest: 20, sugerido: 30 },
@@ -279,6 +286,37 @@ window.supabase = { createClient: function(){ return {
   ok(dialogs.some(d => d.type === 'confirm' && d.msg.includes('612,36 kg (63 bolsas)')),
      'Ester: el confirm dice los kg y las bolsas');
 
+  // ── Guazzaroni: el sugerido en CAJONES (el de cada pieza) y la cantidad en kg ──────
+  await page.click('#btnOtro');
+  await page.waitForFunction(() => document.querySelectorAll('#tipoGrid .tipo-btn').length > 0);
+  await page.click('#tipoGrid .tipo-btn[data-tipo="proveedor_servicio"]');
+  await page.click('#cpGrid .prov-btn:has-text("Guazzaroni")');
+  const thGz = await page.$$eval('#thead th', xs => xs.map(x => x.textContent.trim()));
+  ok(thGz.join('|') === 'Pieza|Sugerido (cajones)|Cantidad (kg)',
+     'Guazzaroni: sugerido en cajones y cantidad en kg — ' + thGz.join(' | '));
+  const sugGz = await page.$$eval('#tbody tr td:nth-child(2)', xs => xs.map(x => x.textContent.trim()));
+  ok(sugGz[0] === '1', 'Guazzaroni: 34.992 remaches / 57.143 por cajón -> 1 cajón (techo) — ' + sugGz[0]);
+  ok(sugGz[1].includes('113.304') && sugGz[1].includes('sin cajón cargado'),
+     'Guazzaroni: la pieza sin uni_x_cajon NO se convierte, queda en unidades y lo dice — ' + sugGz[1]);
+  const valsGz = await page.$$eval('#tbody input.cell-in', xs => xs.map(x => x.value));
+  ok(valsGz[0] === '20' && valsGz[1] === '113.304',
+     'Guazzaroni: CV1 precargado con el peso de ese cajón (57.143 × 0,00035) y CV9 en unidades — ' + valsGz.join(' , '));
+  const eqsGz = await page.$$eval('#tbody .env-eq', xs => xs.map(x => x.textContent.trim()));
+  ok(eqsGz.length === 1 && eqsGz[0] === '= 1 cajones',
+     'Guazzaroni: la equivalencia va solo en la fila que se puede convertir — ' + eqsGz.join(' | '));
+  await page.fill('#tbody tr:first-child input.cell-in', '70');
+  ok((await page.$eval('#tbody .env-eq', e => e.textContent.trim())) === '≈ 3 cajones',
+     'Guazzaroni: los cajones se muestran REDONDEADOS (70 kg / 20 = 3,5 -> ≈ 3) — ' +
+     (await page.$eval('#tbody .env-eq', e => e.textContent.trim())));
+  await page.click('#btnEnviar');
+  await page.waitForFunction(() => !document.getElementById('fase3').classList.contains('hidden'));
+  const regGz = await calls('tablet_registrar');
+  const itsGz = regGz[regGz.length - 1].args.p.items;
+  ok(itsGz[0].comp_id === 601 && itsGz[0].cantidad === 70 && itsGz[0].unidad === 'kg' && itsGz[0].cajones === 3.5,
+     'Guazzaroni: viaja el KG y los cajones quedan anotados — ' + JSON.stringify(itsGz[0]));
+  ok(itsGz[1].comp_id === 609 && itsGz[1].cantidad === 113304 && itsGz[1].unidad === 'uni' && itsGz[1].cajones === null,
+     'Guazzaroni: la pieza sin cajón viaja en unidades, sin inventar factor — ' + JSON.stringify(itsGz[1]));
+
   // ── 3) modo RECIBIR: sin prov. AT, con Insumos que es un link ─────────────
   await page.click('#btnOtro');
   await page.waitForFunction(() => document.querySelectorAll('#tipoGrid .tipo-btn').length > 0);
@@ -384,6 +422,33 @@ window.supabase = { createClient: function(){ return {
   await page.waitForFunction(() => !document.getElementById('tipoGrid').classList.contains('hidden'));
   const tMin = await page.$$eval('#tipoGrid .tipo-btn', xs => Math.min(...xs.map(x => x.getBoundingClientRect().height)));
   ok(tMin >= 44, '390px: los botones de tipo son tocables (' + Math.round(tMin) + 'px)');
+
+  // ── la Cantidad precargada se REFRESCA con el sugerido del día, salvo que la hayan tocado ──
+  // (bug: el buffer vive en localStorage y sobrevive días; se veía el Sugerido nuevo con la
+  //  Cantidad vieja. Vale para cualquier proveedor, tenga o no unidad de envío propia.)
+  await page.evaluate(() => {
+    localStorage.setItem('gp2_tablet_buffer', JSON.stringify({
+      'enviar:proveedor_servicio:5': { '90::': { q: '99', qAuto: '99' } }   // precarga de otro día
+    }));
+  });
+  await page.reload();
+  await page.waitForFunction(() => document.querySelectorAll('#tipoGrid .tipo-btn').length > 0);
+  await page.click('#tipoGrid .tipo-btn[data-tipo="proveedor_servicio"]');
+  await page.click('#cpGrid .prov-btn:has-text("Jade")');
+  ok((await page.$eval('#tbody input.cell-in', e => e.value)) === '80',
+     'la precarga intacta se actualiza al sugerido de hoy (99 -> 80)');
+  await page.evaluate(() => {
+    localStorage.setItem('gp2_tablet_buffer', JSON.stringify({
+      'enviar:proveedor_servicio:5': { '90::': { q: '77', qAuto: '99' } }   // el operario la editó
+    }));
+  });
+  await page.reload();
+  await page.waitForFunction(() => document.querySelectorAll('#tipoGrid .tipo-btn').length > 0);
+  await page.click('#tipoGrid .tipo-btn[data-tipo="proveedor_servicio"]');
+  await page.click('#cpGrid .prov-btn:has-text("Jade")');
+  ok((await page.$eval('#tbody input.cell-in', e => e.value)) === '77',
+     'lo que el operario cargó a mano NO se pisa');
+
 
   await browser.close();
   console.log(process.exitCode ? 'HAY FALLOS' : 'TODO OK');

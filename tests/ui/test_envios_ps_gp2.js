@@ -21,7 +21,10 @@ const BUNDLE = {
   // (GP2.proveedor_servicio.envio_unidad / envio_uni_x / envio_carga_unidad, usuario 2026-09-17)
   ps: [{ id: 5, nombre: 'Becker', cod_prov: '77', proceso: 'Pintado' },
        { id: 14, nombre: 'Ester', cod_prov: null, proceso: 'Calado',
-         envio_unidad: 'bolsas', envio_uni_x: 1800, envio_carga_unidad: 'kg' }],
+         envio_unidad: 'bolsas', envio_uni_x: 1800, envio_carga_unidad: 'kg' },
+       // Guazzaroni: el envase NO es uno del proveedor (envio_uni_x null), es el cajon de cada SC
+       { id: 4, nombre: 'Guazzaroni Patricio', cod_prov: null, proceso: 'Niquelado',
+         envio_unidad: 'cajones', envio_uni_x: null, envio_carga_unidad: 'kg' }],
   partes: { '5': [
     // una sola pieza enviada, dos salidas distintas
     { sc_id: 1, sp_id: 2, sc_cod: 'J2C', sc_desc: 'Cuchilla cruda', sp_cod: 'J2', sp_desc: 'Cuchilla pintada',
@@ -40,6 +43,17 @@ const BUNDLE = {
       sp_cod: 'PC1A', sp_desc: 'Mgo Pelapapa 505 Calado', proceso: 'Calado',
       online_ps: 0, online_sp: 0, maximo: null, maximo_sp: 112432,
       sc_unixcaj: 1852, sc_kgxuni: 0.0054, sp_unixcaj: 1852 },
+  ], '4': [
+    // datos reales: CV1 (remache espiral crudo) -> niquelado; 57.143 uni/cajon, 0,00035 kg/uni
+    { sc_id: 601, sp_id: 602, sc_cod: 'CV1', sc_desc: 'Remache Espiral p/Niquelar',
+      sp_cod: 'CV1N', sp_desc: 'Remache Espiral Niq', proceso: 'Niquelado',
+      online_ps: 0, online_sp: 0, maximo: null, maximo_sp: 114286,
+      sc_unixcaj: 57143, sc_kgxuni: 0.00035, sp_unixcaj: 57143 },
+    // CV9 no tiene cajon cargado: no hay con que pasar a cajones, pero la tabla NO se deforma
+    { sc_id: 609, sp_id: 610, sc_cod: 'CV9', sc_desc: 'Remache uña niq. p/Niquelar',
+      sp_cod: 'CV9N', sp_desc: 'Remache uña Niq', proceso: 'Niquelado',
+      online_ps: 0, online_sp: 0, maximo: null, maximo_sp: 50000,
+      sc_unixcaj: null, sc_kgxuni: 0.000567, sp_unixcaj: null },
   ] },
 };
 
@@ -81,7 +95,7 @@ window.supabase = { createClient: function(){ return {
   // son 2 piezas (la cuchilla cruda sale de dos maneras). Decia 3.
   ok(provTxt.includes('Becker') && provTxt.includes('Pintado') && /\b2 partes\b/.test(provTxt),
      'fase0: el boton cuenta piezas a enviar, no pares — ' + provTxt.trim());
-  ok((await page.$eval('#status', e => e.textContent)).includes('2 proveedores'), 'status: 2 proveedores');
+  ok((await page.$eval('#status', e => e.textContent)).includes('3 proveedores'), 'status: 3 proveedores');
 
   // elegir proveedor
   await page.click('#psGrid .prov-btn');
@@ -192,6 +206,37 @@ window.supabase = { createClient: function(){ return {
      'Ester: viaja el kg (la base lo pasa a mangos con kg_x_uni) y quedan anotadas las 63 bolsas — ' + JSON.stringify(aEs));
   ok(dialogs.some(d => d.type === 'confirm' && d.msg.includes('612,36 kg (63 bolsas)')),
      'Ester: el confirm dice los kg y las bolsas');
+
+  // ── Guazzaroni: sugerido en CAJONES (el de cada pieza) y un solo campo en KG ──────────────
+  await page.click('#btnVolverPS');
+  await page.click('#psGrid .prov-btn:has-text("Guazzaroni")');
+  const thGz = await page.$$eval('#thead th', xs => xs.map(x => x.textContent.replace(/\s+/g, '').trim()));
+  ok(thGz.join('|') === 'SC|CantidadKGNeto|T|F|Parte|Sugeridocajones',
+     'Guazzaroni: sin columna de cajon y el sugerido rotulado en cajones — ' + thGz.join(' | '));
+  const celdasGz = await page.$$eval('#tbody tr', xs => xs.map(x => x.querySelectorAll('td').length));
+  ok(celdasGz.length === 2 && celdasGz.every(n => n === 6),
+     'Guazzaroni: las 2 filas con 6 columnas, aunque una no se pueda pasar a cajones — ' + celdasGz.join(','));
+  const sugsGz = await page.$$eval('#tbody tr td:last-child', xs => xs.map(x => x.textContent.trim()));
+  ok(sugsGz[0] === '2 cajones', 'Guazzaroni: 114.286 uni de maximo / 57.143 -> 2 cajones — ' + sugsGz[0]);
+  ok(sugsGz[1] === '—', 'Guazzaroni: sin uni_x_cajon el sugerido no se inventa — ' + sugsGz[1]);
+  await page.fill('#tbody tr:first-child input.cell-in[data-f="kg"]', '40');
+  ok((await page.$eval('#tbody .env-eq', e => e.textContent.trim())) === '= 2 cajones',
+     'Guazzaroni: 40 kg = 2 cajones exactos');
+  await page.fill('#tbody tr:first-child input.cell-in[data-f="kg"]', '70');
+  const eqsGz = await page.$$eval('#tbody .env-eq', xs => xs.map(x => x.textContent.trim()));
+  ok(eqsGz.length === 1 && eqsGz[0] === '≈ 3 cajones',
+     'Guazzaroni: los cajones van REDONDEADOS y solo en la fila convertible — ' + eqsGz.join(' | '));
+  await page.click('#btnEnviar');
+  await page.waitForFunction(() => !document.getElementById('fase3').classList.contains('hidden'));
+  const callGz = await page.evaluate(() => (window.__calls || []).filter(c => c.name === 'crear_envio_ps'));
+  const aGz = callGz[callGz.length - 1].args;
+  ok(aGz.p_ps_id === 4 && aGz.p_comp_sc_id === 601 && aGz.p_cantidad === 70 && aGz.p_unidad === 'kg' &&
+     Math.abs(aGz.p_cajones - 3.5) < 0.01,
+     'Guazzaroni: viaja el kg y quedan anotados los cajones — ' + JSON.stringify(aGz));
+  const cfGz = dialogs.filter(d => d.type === 'confirm').pop();
+  ok(cfGz && cfGz.msg.includes('CV1: 70 kg (~3 cajones)') && !cfGz.msg.includes('caj /'),
+     'Guazzaroni: el confirm dice los kg con los cajones redondeados y no nombra la columna de cajón — ' +
+     (cfGz ? cfGz.msg.replace(/\n/g, ' / ') : 'sin confirm'));
 
   await browser.close();
   console.log(process.exitCode ? 'HAY FALLOS' : 'TODO OK');

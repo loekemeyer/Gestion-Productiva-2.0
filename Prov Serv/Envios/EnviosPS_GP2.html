@@ -6,7 +6,21 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<!-- v1.5.0 (2026-09-17) — UNIDAD DE ENVIO POR PROVEEDOR: ESTER EN BOLSAS DE 1800, CANTIDAD EN KG
+<!-- v1.6.0 (2026-09-17) — GUAZZARONI PATRICIO: EL SUGERIDO EN CAJONES Y LA CANTIDAD EN KG
+     (usuario: "dentro del version tablet, y envio a ps. Siguiendo la logica del modulo Ester -->
+     en el modulo de guazzaroni patricio, el sugerido tendria que aparecer en cajones y en cantidad
+     pones kg y que te diga cuantos cajones son (redondeando)"). Es lo de Ester con el envase POR
+     PIEZA: envio_uni_x NULL ahora significa "el factor sale del uni_x_cajon de cada SC" en vez de
+     "sin unidad de envio" (proveedor_servicio 4 = cajones / NULL / kg). Aca el sugerido YA se
+     calculaba en cajones, asi que solo cambia el rotulo (techo sobre el cajon de esa pieza) y el
+     layout: se va la columna "Cajon envio", queda "Cantidad (KG Neto)" con "= N cajones" debajo,
+     REDONDEADO ("≈ N" si no da entero). Las tandas de la tabla pasan a ser solo de kg. Lo que se
+     registra no cambia: crear_envio_ps recibe el kg (p_unidad 'kg') y en p_cajones quedan anotados
+     los cajones que dan esos kg (informativo).
+     OJO: el layout de columnas ahora lo decide el PROVEEDOR (modoKgPS), no cada fila. Antes lo
+     decidia cargaEnKg por pieza y una pieza sin kg_x_uni dejaba esa fila con una celda de mas que
+     el resto; la conversion sigue siendo por pieza y si falta, esa fila no muestra equivalencia.
+     v1.5.0 (2026-09-17) — UNIDAD DE ENVIO POR PROVEEDOR: ESTER EN BOLSAS DE 1800, CANTIDAD EN KG
      (usuario: "dentro del version tablet, y envio a ps... en el caso de Ester, el sugerido que
      aparezca en bolsas (1800 uni por bolsa) redondeas por arriba y la cantidad pones kg y te
      aparece al lado bolsas"). La unidad de envio la dice la base, no el codigo:
@@ -155,25 +169,44 @@ function keyDe(x){ return String(x.sc_id); }
    muestra a cuántas bolsas equivale. Lo que viaja a crear_envio_ps sigue siendo el kg. */
 function pkPS(){
   if (!selPS || selPS.inyector) return null;
+  var lab = String(selPS.envio_unidad || "");
+  // envio_unidad='kg' es el envío por peso de la Tablet (el bulto va aparte): acá no cambia nada
+  if (!lab || lab.toLowerCase() === "kg") return null;
   var f = Number(selPS.envio_uni_x || 0);
-  if (!(f > 1) || !selPS.envio_unidad) return null;
-  return { factor: f, label: String(selPS.envio_unidad),
-           cargaKg: String(selPS.envio_carga_unidad || "").toLowerCase() === "kg" };
+  var ckg = String(selPS.envio_carga_unidad || "").toLowerCase() === "kg";
+  // SIN factor del proveedor el envase es el CAJÓN de CADA pieza (Guazzaroni Patricio:
+  // sc_unixcaj), no uno solo para todo el proveedor como Ester.
+  if (!(f > 1)) return ckg ? { factor: 0, label: lab, cargaKg: true, porPieza: true } : null;
+  return { factor: f, label: lab, cargaKg: ckg, porPieza: false };
+}
+/* Unidades canónicas que entran en UN envase de ESTA pieza (Ester 1800 para todas; Guazzaroni el
+   uni_x_cajon del SC). 0 = no hay con qué convertir y la fila no se toca. */
+function factorEnvio(x, pk){
+  if (!pk) return 0;
+  return pk.porPieza ? Number((x && x.sc_unixcaj) || 0) : pk.factor;
 }
 /* KG que entran en UNA unidad de envío de esta pieza (Ester: 1800 × 0,0054 = 9,72 kg).
    0 = no se puede saber (al SC le falta kg_x_uni) y entonces no se cambia nada de la fila. */
 function kgPorEnvase(x, pk){
-  if (!pk) return 0;
+  var f = factorEnvio(x, pk);
+  if (!(f > 0)) return 0;
   var k = Number(x.sc_kgxuni || 0);
-  return k > 0 ? pk.factor * k : 0;
+  return k > 0 ? f * k : 0;
 }
 function cargaEnKg(x, pk){ return !!(pk && pk.cargaKg && kgPorEnvase(x, pk) > 0); }
-/* El "= N bolsas" que va debajo del campo de kg. */
-function equivEnvase(kg, kgEnv, label){
+/* El "= N bolsas" que va debajo del campo de kg. Con `redondear` (Guazzaroni: "que te diga
+   cuantos cajones son (redondeando)") va el entero más cercano, con "≈" para que se lea que es
+   redondeado; si redondeando diera 0 se vuelve a los 2 decimales. */
+function equivEnvase(kg, kgEnv, label, redondear){
   var n = (kgEnv > 0) ? (Number(kg || 0) / kgEnv) : 0;
   var ent = Math.abs(n - Math.round(n)) < 0.005;
+  if (redondear && !ent && Math.round(n) >= 1) return "≈ " + fmt(Math.round(n), 0) + " " + label;
   return "= " + fmt(ent ? Math.round(n) : n, ent ? 0 : 2) + " " + label;
 }
+/* La TABLA entera pasa al modo "un solo campo en kg" cuando el proveedor se carga así; que una
+   pieza suelta no se pueda convertir no le saca la columna al resto (si no, la tabla quedaba con
+   filas de 6 y de 7 celdas). */
+function modoKgPS(){ var pk = pkPS(); return !!(pk && pk.cargaKg); }
 /* El encabezado depende del proveedor: con unidad de envío propia cargada en kg se va la columna
    del cajón y el sugerido se rotula en esa unidad. */
 function theadHTML(){
@@ -188,7 +221,8 @@ function theadHTML(){
          '<th class="ctr" title="Cargar por tandas">T</th>'+
          '<th class="ctr" title="Marcar faltante">F</th><th class="sep">Parte</th>'+
          '<th class="num" title="Máximo físico del Sector Procesado − online SP − online PS, pasado a '+
-         esc(pk.label)+' de '+fmt(pk.factor,0)+' (redondeo para arriba).">Sugerido<br>'+esc(pk.label)+'</th></tr>';
+         esc(pk.label)+(pk.porPieza ? ' (el cajón de cada pieza)' : ' de '+fmt(pk.factor,0))+
+         ' (redondeo para arriba).">Sugerido<br>'+esc(pk.label)+'</th></tr>';
 }
 
 function esCargada(it){ return num(it.caj)>0 || num(it.kg)>0; }
@@ -324,9 +358,12 @@ function renderTabla(){
   var pk = pkPS();
   arr.forEach(function(x){
     var it = BUF.item(selPS.id, keyDe(x));
-    // con unidad de envío propia cargada en kg (Ester) no hay cajón: las tandas son solo de kg
+    // con unidad de envío propia cargada en kg (Ester, Guazzaroni) no hay cajón: un solo campo
+    // en kg y las tandas también. Es decisión del PROVEEDOR (columnas parejas para toda la tabla);
+    // la CONVERSIÓN a envases sí es por pieza y puede faltar (ckg).
+    var ckgT = modoKgPS();
     var ckg = cargaEnKg(x, pk);
-    var t = E.tandaTotales(it, ckg ? ["kg"] : ["caj","kg"]);
+    var t = E.tandaTotales(it, ckgT ? ["kg"] : ["caj","kg"]);
     var vCaj = t.hayT ? (t.tot.caj||"") : it.caj;
     var vKg  = t.hayT ? (t.tot.kg ||"") : it.kg;
 
@@ -359,8 +396,9 @@ function renderTabla(){
         : (fmt(sug)+" caj" + (sugKg==null ? "" : "<br>"+fmt(sugKg,2)+" kg"));
     // Ester mira el sugerido en BOLSAS: el cálculo sigue siendo en cajones y se convierte
     // (caj × uni_x_cajon / 1800) con redondeo PARA ARRIBA. Sin uni_x_cajon no se inventa.
-    if (ckg) {
-      var sugEnv = (sug==null || !(fCaj>0)) ? null : Math.ceil(sug * fCaj / pk.factor);
+    if (ckgT) {
+      var fEnv = factorEnvio(x, pk);
+      var sugEnv = (sug==null || !(fCaj>0) || !(fEnv>0)) ? null : Math.ceil(sug * fCaj / fEnv);
       sugTxt = (sugEnv==null) ? "—" : (fmt(sugEnv,0)+" "+esc(pk.label));
       sug = sugEnv;
     }
@@ -371,10 +409,10 @@ function renderTabla(){
     var tdKg = E.tdInput("kg", vKg, t.hayT, null, "decimal");
     if (ckg)
       tdKg = tdKg.replace("</td>", '<small class="env-eq">'+
-               esc(equivEnvase(num(vKg), kgPorEnvase(x, pk), pk.label))+'</small></td>');
+               esc(equivEnvase(num(vKg), kgPorEnvase(x, pk), pk.label, !!pk.porPieza))+'</small></td>');
     tr.innerHTML =
       '<td><span class="cod">'+esc(x.sc_cod)+'</span><br><small style="color:#777">'+esc(x.sc_desc||"")+'</small></td>'+
-      (ckg ? "" : E.tdInput("caj", vCaj, t.hayT))+
+      (ckgT ? "" : E.tdInput("caj", vCaj, t.hayT))+
       tdKg+
       E.tdTanda(it)+
       E.tdFalt(it)+
@@ -411,7 +449,8 @@ $("tbody").addEventListener("input", function(e){
   var eq = inp.closest("tr").querySelector(".env-eq");
   if (eq && d.meta) {
     var pk2 = pkPS();
-    eq.textContent = equivEnvase(num(inp.value), kgPorEnvase(d.meta, pk2), pk2 ? pk2.label : "");
+    eq.textContent = equivEnvase(num(inp.value), kgPorEnvase(d.meta, pk2), pk2 ? pk2.label : "",
+                                 !!(pk2 && pk2.porPieza));
   }
   actualizarEnviar();
 });
@@ -436,7 +475,7 @@ $("tbody").addEventListener("click", function(e){
     E.abrirTandas({
       titulo: "Tandas — " + (d.meta ? d.meta.sc_cod : ""),
       buf: d.buf,
-      campos: cargaEnKg(d.meta || {}, pkPS()) ? ["kg"] : ["caj","kg"],
+      campos: modoKgPS() ? ["kg"] : ["caj","kg"],
       onDone: function(){ BUF.save(); renderTabla(); }
     });
   }
@@ -479,8 +518,11 @@ $("btnEnviar").addEventListener("click", async function(){
     var pk3 = pkPS();
     if (cargaEnKg(m, pk3))
       return (m.sc_cod||o.k)+": "+fmt(num(o.it.kg),2)+" kg ("+
-             equivEnvase(num(o.it.kg), kgPorEnvase(m, pk3), pk3.label).replace("= ","")+")";
-    return selPS.inyector
+             equivEnvase(num(o.it.kg), kgPorEnvase(m, pk3), pk3.label, !!pk3.porPieza)
+               .replace("= ","").replace("≈ ","~")+")";
+    // sin columna de cajon (el proveedor se carga en kg) el resumen tampoco la nombra, aunque
+    // esta pieza puntual no se pueda convertir a envases
+    return (selPS.inyector || modoKgPS())
       ? (m.sc_cod||o.k)+": "+fmt(num(o.it.kg),2)+" kg"
       : (m.sc_cod||o.k)+": "+fmt(num(o.it.caj),1)+" caj / "+fmt(num(o.it.kg),0)+" kg";
   }).join("\n");
