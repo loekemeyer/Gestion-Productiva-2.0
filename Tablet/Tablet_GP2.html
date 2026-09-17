@@ -6,7 +6,14 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<!-- v1.6.0 (2026-09-17) — UNIDAD DE ENVIO POR PROVEEDOR: AJ ADHESIVOS EN PAQUETES DE 100 (usuario:
+<!-- v1.6.1 (2026-09-17) — LA CANTIDAD TAMBIEN SE PRECARGA EN PAQUETES + MIGRACION DE BUFFER VIEJO
+     (usuario: "quiero que la cantidad me la preestablezcas en paquetes tambien"). La cantidad ya se
+     precargaba en paquetes cuando el campo estaba vacio; lo que faltaba: si en el buffer de la tablet
+     quedo guardado el sugerido VIEJO en unidades (de una version anterior), la precarga no lo pisaba
+     (solo tocaba campos vacios) y se veia la cantidad en unidades. Ahora, si el valor guardado es
+     EXACTAMENTE esa precarga vieja, se reemplaza por el valor en paquetes; una edicion real del
+     operario (cualquier otro valor) NO se toca. Solo aplica a proveedores con unidad de envio propia.
+     v1.6.0 (2026-09-17) — UNIDAD DE ENVIO POR PROVEEDOR: AJ ADHESIVOS EN PAQUETES DE 100 (usuario:
      "arrancamos con AJ Adhesivos... el sugerido en paquetes de 100... en ambos casos (sugerido y
      cantidad) me aclares la unidad de medida... paquetes"). El proveedor_servicio puede definir una
      unidad de envio propia (GP2.proveedor_servicio.envio_unidad / envio_uni_x, hoy AJ = 'paquetes'/100,
@@ -466,14 +473,20 @@ function elegir(c){
     var _pk = packEnvio();
     piezasDe(c).forEach(function(x){
       var it = BUF.item(c.id, claveDe(x));
+      var rawSug = Number(x.sugerido);
       // el sugerido se precarga en la unidad de envío del proveedor: si manda por paquetes, se
       // divide por el factor y se redondea PARA ARRIBA (no se pide menos de lo que falta).
-      var sug = Number(x.sugerido);
-      if (_pk) sug = Math.ceil(sug / _pk.factor);
+      var sug = _pk ? Math.ceil(rawSug / _pk.factor) : rawSug;
+      var dec = (!_pk && unidadDe(x) === "kg") ? 2 : 0;
+      var vacio = (it.q === undefined || it.q === null || it.q === "");
+      // migración: si el proveedor ahora manda por paquetes pero en el buffer quedó guardado el
+      // sugerido VIEJO en unidades (de una versión anterior), se reemplaza por el valor en paquetes.
+      // Solo si el valor guardado es EXACTAMENTE esa precarga vieja: una edición del operario no se toca.
+      var precargaVieja = _pk && !vacio && it.q === fmt(rawSug, unidadDe(x) === "kg" ? 2 : 0);
       // se precarga con el formato de la casa (coma decimal / punto de miles), que es el que
       // GP2N.num sabe leer; String(sugerido) con punto se leería como miles.
-      if ((it.q === undefined || it.q === null || it.q === "") && sug > 0)
-        it.q = fmt(sug, (!_pk && unidadDe(x) === "kg") ? 2 : 0);
+      if ((vacio || precargaVieja) && sug > 0)
+        it.q = fmt(sug, dec);
     });
     BUF.save();
   }

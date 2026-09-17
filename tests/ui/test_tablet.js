@@ -272,6 +272,17 @@ window.supabase = { createClient: function(){ return {
     ok((await page.$eval('#btnAtrasHeader', a => a.getAttribute('href'))) === vuelve, 'con ?volver=tablet el Atrás vuelve a la tablet — ' + url.split('/')[1]);
   }
 
+  // ── migración de buffer viejo: un sugerido guardado en UNIDADES (versión anterior) se pasa a paquetes ──
+  await page.goto(ROOT + '/Tablet/Tablet_GP2.html?modo=enviar');
+  await page.evaluate(() => localStorage.setItem('gp2_tablet_buffer',
+    JSON.stringify({ 'enviar:proveedor_servicio:12': { '564::': { q: '250' } } })));
+  await page.reload();
+  await page.waitForFunction(() => document.querySelectorAll('#tipoGrid .tipo-btn').length > 0);
+  await page.click('#tipoGrid .tipo-btn[data-tipo="proveedor_servicio"]');
+  await page.click('#cpGrid .prov-btn:has-text("AJ Adhesivos")');
+  ok((await page.$eval('#tbody input.cell-in', e => e.value)) === '3',
+     'AJ: el sugerido viejo guardado en unidades (250) se migra a paquetes (3) en Cantidad');
+
   // ── 5) render a 390px ────────────────────────────────────────────────────
   await page.goto(ROOT + '/Tablet/Tablet_GP2.html?modo=enviar');
   await page.waitForFunction(() => document.querySelectorAll('#tipoGrid .tipo-btn').length > 0);
