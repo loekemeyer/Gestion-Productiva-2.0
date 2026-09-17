@@ -2228,46 +2228,6 @@ begin
 end $function$
 ;
 
--- ---------- enviar_material_ps_especial ----------
--- Envio de materia prima BRUTA a un PS hibrido (Charcas -> FLEJE90_BRUTO, Eclipse -> CHAPA430).
--- Es el UNICO camino para mandarles material: la tablet de logistica y Envio a PS los excluyen
--- (envios_ps_bundle filtra "not hibrido"; tablet_bundle no los lista). Registra un movimiento
--- 'envio_ps' en kg contra la ubicacion del PS (origen null, como la compra: el material no sale
--- de un sector con stock propio). El componente es proveedor_servicio.mp_componente_id: no se pasa
--- por parametro para que nadie mande "otra cosa". Valida que el PS sea hibrido. NO toca cargar_compra_mp.
-CREATE OR REPLACE FUNCTION "GP2".enviar_material_ps_especial(p_ps_id bigint, p_kg numeric, p_fecha timestamp with time zone DEFAULT now(), p_remito text DEFAULT NULL::text)
- RETURNS jsonb
- LANGUAGE plpgsql
- SECURITY DEFINER
- SET search_path TO 'GP2'
-AS $function$
-declare v_hib boolean; v_nombre text; v_comp bigint; v_cod text; v_dest bigint; v_id bigint; v_stock numeric;
-begin
-  if p_kg is null or p_kg <= 0 then
-    raise exception 'Los kg deben ser mayores a 0 (recibido: %)', coalesce(p_kg::text,'null');
-  end if;
-  select ps.hibrido, ps.nombre, ps.mp_componente_id, c.codigo
-    into v_hib, v_nombre, v_comp, v_cod
-    from proveedor_servicio ps
-    left join componente c on c.id = ps.mp_componente_id
-   where ps.id = p_ps_id;
-  if v_nombre is null then raise exception 'Proveedor de servicio inexistente (id=%)', p_ps_id; end if;
-  if not coalesce(v_hib,false) then
-    raise exception 'El PS "%" no es un caso especial (hibrido): solo se envia material a PS hibridos (Charcas, Eclipse)', v_nombre;
-  end if;
-  if v_comp is null then raise exception 'El PS "%" no tiene materia prima configurada (mp_componente_id)', v_nombre; end if;
-  v_dest := "GP2".ubic_de('proveedor_servicio', p_ps_id);
-  if v_dest is null then raise exception 'El PS "%" no tiene ubicacion', v_nombre; end if;
-  insert into movimiento(fecha, tipo_mov, comp_id, ubic_origen_id, ubic_destino_id, cantidad, unidad_origen, unidad_destino, nota)
-  values (coalesce(p_fecha,now()), 'envio_ps', v_comp, null, v_dest, p_kg, 'kg', 'kg',
-          nullif(btrim(coalesce(p_remito,'')),''))
-  returning id into v_id;
-  select cantidad into v_stock from inventario where componente_id = v_comp and ubicacion_id = v_dest;
-  return jsonb_build_object('ok', true, 'id', v_id, 'ps_id', p_ps_id, 'ps', v_nombre,
-    'componente', v_cod, 'kg', p_kg, 'destino', v_dest, 'stock_kg', coalesce(v_stock,0));
-end $function$
-;
-
 -- ---------- crear_envio_tallerista ----------
 CREATE OR REPLACE FUNCTION "GP2".crear_envio_tallerista(p_tallerista_id bigint, p_comp_id bigint, p_cantidad numeric, p_unidad text, p_fecha timestamp with time zone DEFAULT now())
  RETURNS jsonb
@@ -6959,7 +6919,9 @@ env as (
      and ( (v.tipo = 'tallerista'
             and exists (select 1 from tallerista t where t.id = v.ref_id and t.activo and t.id <> 3))
         or (v.tipo = 'proveedor_servicio'
-            and exists (select 1 from proveedor_servicio ps where ps.id = v.ref_id)) )
+            -- los PS hibridos (Charcas/Eclipse) NO se envian desde la tablet: la entrega de su
+            -- materia prima se registra solo en el modulo Casos especiales [usuario 2026-09-17].
+            and exists (select 1 from proveedor_servicio ps where ps.id = v.ref_id and not ps.hibrido)) )
   union all
   select 'proveedor_at', apa.proveedor_at_id::text, ac.componente_id
     from articulo_prov_at apa
