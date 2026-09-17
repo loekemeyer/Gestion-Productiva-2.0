@@ -2161,8 +2161,16 @@ exactos por pieza; la vista de costos usa el exacto y cae al plano si no hay).
   mismas 11 cajas de GP2** (no hay cajas propias de Recicor) y el control de remito es el
   mismo: `modo_control='ninguno'`, sin pesaje ni rollos. `cod_prov` ISIS **4370** (salió de su
   propia lista de precios, `precio_proveedor.cod_prov='4370'`).
-  **El precio NO cambió**: los 9 de Recicor siguen como referencia sin vincular y el vigente
-  sigue siendo el del Plata; esto es sólo QUIÉN puede entregar, no a cuánto se compra.
+  **A Recicor también se le emite O.C.** `[usuario 2026-09-17: "en las órdenes de compra
+  tendrías que agregar a recicor también"]`, y la O.C. sale con **SU** precio: sus 8 precios que
+  matchean una caja de GP2 se vincularon al componente y `oc_bundle` manda ahora el precio de
+  cada proveedor (`precios_prov`). **El precio VIGENTE no cambió** —el que usa el costo sigue
+  siendo el del Plata— porque el desempate es por `cod_prov` contra el proveedor asignado al
+  componente, no por fecha. Verificado antes y después: los 11 precios y los 11 costos, iguales.
+  **FALTA EL DATO**: Recicor **no cotiza las cajas N°15, N°16 y N°22** (su lista trae la N°27,
+  que en GP2 no existe). En una O.C. a Recicor esas tres van **sin precio** —no se les pone el de
+  Corrugadora, sería inventar plata— y la barra avisa "⚠ N ítems sin precio". Si Recicor las
+  entrega, hay que pedirle el precio y cargarlo.
 - **Plásticos: la lista de Pat Bet Plast es INYECCIÓN SOLA, SIN material** `[dato:
   hoja Plasticos]`. El precio real de la pieza = pellet × gramos (+4% desperdicio) +
   inyección — está calculado en la hoja "Plasticos" col "Total Mat e Inyeccion", y ESO
@@ -2319,10 +2327,14 @@ en ese archivo):
 - `[dato]` **El precio del cartón sigue cocinado en 73 filas**: `carton_formato` no tiene
   columna de precio, así que "sube el pliego y se recalculan las 4 tarifas" todavía no es
   verdad. Falta `precio_pliego` + `posiciones_x_pliego`.
-- `[dato]` **`precio_proveedor` no tiene FK al proveedor** (solo `cod_prov` text sin
-  destino). Trampa activa: los 9 precios de Recicor son referencia con fecha MÁS NUEVA que
-  los vigentes del Plata; si alguien los vincula a un componente, las 9 cajas cambian de
-  proveedor solas. Hoy el único discriminador es una mayúscula en `rubro`.
+- `[dato, corregido 2026-09-17]` **`precio_proveedor` no tiene FK al proveedor** (solo
+  `cod_prov` text sin destino). **La trampa que decía esta línea ya no existe**: decía que
+  vincular los precios de Recicor a un componente haría que las 9 cajas cambiaran de proveedor
+  solas, porque el único desempate era `fecha_lista DESC`. Eso dejó de ser cierto el 2026-09-10,
+  cuando `pv` (en `oc_bundle`, `crear_oc` y `v_costo_componente`) pasó a desempatar **primero
+  por `cod_prov` contra el proveedor asignado al componente**. Los 8 precios de Recicor que
+  matchean una caja SE VINCULARON el 2026-09-17 y ni un precio ni un costo se movió (medido).
+  Lo que sigue faltando es la FK: el proveedor se sigue deduciendo por `cod_prov`.
 - `[dato 2026-09-17]` **Un componente puede tener MÁS DE UN proveedor: `componente_proveedor_alt`.**
   `componente.proveedor` es un texto y es el proveedor **principal** — el que manda en la O.C.
   y en el costo. Los que **también** entregan esa misma pieza van a la tabla puente
@@ -2331,10 +2343,15 @@ en ese archivo):
   **Por qué puente y no duplicar el componente**: una caja duplicada serían dos filas de
   inventario para la misma caja física, o sea dos stocks y dos máximos de la misma cosa.
   Primer caso: Recicor + las 11 cajas de Corrugadora (arriba).
-  **TRAMPA CONOCIDA, dicha al usuario**: el cruce contra O.C. (`_aplicar_recepcion_a_oc`)
-  matchea por **componente**, no por proveedor, así que un remito cargado como Recicor
-  descuenta igual una O.C. que se le había hecho a Corrugadora. Si cada proveedor tiene que
-  tener sus propias O.C., eso es otro cambio (hoy la O.C. la sigue armando el principal).
+  **La O.C. también se le puede emitir a cualquiera de ellos** (2026-09-17, mismo día): la
+  botonera de `OC_GP2` sale de principal + alternativos y el **precio sigue al proveedor
+  elegido** (`oc_bundle.insumos[].precios_prov`). Si el elegido no cotizó esa pieza, la fila va
+  sin precio: no se rellena con la del otro.
+  **El cruce contra O.C. ya mira quién entregó**: `_aplicar_recepcion_a_oc` toma un
+  `p_proveedor` y aplica **primero** la O.C. de ese proveedor; si no alcanza, sigue con las
+  demás (una entrega tapa la necesidad igual, así nada queda colgado). Antes cruzaba la más
+  vieja sin mirar quién trajo la mercadería, y con dos proveedores de la misma caja eso le
+  descontaba a la O.C. equivocada.
 - `[dato]` **Dos agujeros de escritura anónima**: `GP2.empleado` (policies INSERT/UPDATE
   `TO anon` — no se puede cerrar sin migrar antes `Produccion/abm_GP2.html`, que escribe
   directo) y `GP2.inv_delta` (RPC anon que escribe inventario salteando `movimiento`, sin
@@ -10229,19 +10246,23 @@ entre ellas es de dónde sale el bulto:
   `componente.uni_x_cajon` en los dos casos (en los plásticos esa columna **es** el tamaño de la
   bolsa, mismo criterio que la OC de partes plásticas).
 
-Cómo queda la pantalla de Julio (Tablet, Enviar): `Pieza | Sugerido (kg y "= N bolsas/cajones") |
-Kg a enviar | Bolsas/cajones`. Los **kg son lo que se tipea y lo que se registra** (la balanza
-manda; viaja `unidad='kg'` y la base lo pasa a unidades con `kg_x_uni`). Las **bolsas de los
-plásticos son calculadas** (se repintan al tipear); los **cajones de las metálicas se anotan a
-mano** (se autocompletan desde los kg mientras nadie los toque) y viajan a `movimiento.cajones`
-vía `crear_envio_ps(..., p_cajones)`. Sin `kg_x_uni` la fila NO se convierte: se carga en unidades
+Cómo queda la pantalla de Julio (Tablet, Enviar): `Pieza | Sugerido | Cantidad (kg) | Cantidad
+(bolsas / cajones)`. `[usuario 2026-09-17]` El **sugerido se mira en bultos ENTEROS** (no en kilos),
+la Cantidad (kg) se precarga con el peso de esos bultos completos (2 cajones de 750 a 0,04 kg = 60
+kg), y **las dos cantidades son el mismo tipo de campo**: la de bolsas no se muestra distinto que la
+de cajones. **Un bulto nunca va partido**: bolsas y cajones se redondean **para arriba** en el
+sugerido, en el autocompletado desde los kg y en lo que se registra (`"no puedes poner 4,83, sino
+que pones 5"`). Los **kg son lo que se tipea y lo que se registra** (la balanza
+manda; viaja `unidad='kg'` y la base lo pasa a unidades con `kg_x_uni`). Los **bultos se
+autocompletan** desde los kg mientras el operario no los toque (si los corrige a mano no se le
+pisan) y viajan a `movimiento.cajones` vía `crear_envio_ps(..., p_cajones)`. Sin `kg_x_uni` la fila NO se convierte: se carga en unidades
 como siempre — no se inventa el factor. `[dato 2026-09-17]` las 11 piezas de Julio (A1, B12, B4B,
 C2 metálicas; PA10B, PA13B, PA18B, PA4B, PA5B, PC15AB, PEP2 plásticas) tienen las dos columnas
 cargadas, así que las 11 convierten.
 
 **Qué falta:** el resto de los proveedores sigue en unidades; la unidad de envío se define caso por
 caso con el dueño (ése fue el acuerdo al arrancar con AJ). **Ahora son CUATRO formas, no dos: ver
-4ec (Ester) y 4ed (Guazzaroni), con la tabla de las cuatro en 4ed.**
+4ec (Ester) y 4ee (Guazzaroni), con la tabla de las cuatro en 4ee.**
 
 ## 4eb. El 506 pasa al molde del 500/510 (sin GRJ7) y el adhesivado de pliego es un PASO, no un subcomponente (2026-09-17)
 
@@ -10385,9 +10406,31 @@ lo tienen, así que no pasa.
 donde además se fue la columna "Cajón envío" para ese proveedor: el cajón no es la unidad con la
 que se le manda y era ruido). Lo sirven `tablet_bundle` (en cada contraparte) y `envios_ps_bundle`
 (en cada PS). **Pendiente: seguir caso por caso con los demás proveedores** — van definidos AJ,
-Hernandez Julio y Ester de 15 PS. **Ya son cuatro formas: ver 4ed.**
+Hernandez Julio y Ester de 15 PS. **Ya son cuatro formas: ver 4ee.**
 
-## 4ed. La cuarta forma de enviar: Guazzaroni mira CAJONES (el de cada pieza) y escribe KG (2026-09-17)
+## 4ed. La tabla de la tablet ENCOGE: el blanco va adentro de la celda, no entre columnas (2026-09-17)
+
+`[usuario 2026-09-17, textual: "optimizame todos los espacios en blanco que hay entre las columnas
+en todas las pantallas de envío a ps en la versión tablet"]` (sobre el screenshot de AJ Adhesivos:
+3 columnas repartidas en 1.180px, con ~300px de blanco entre "Pliego 506" y su sugerido).
+
+**Por qué pasaba:** `table.t` de `gp2-modulo.css` es `width:100%`. Eso está bien con 8 columnas,
+pero desde que Enviar quedó en `Pieza | Sugerido | Cantidad` (§ v1.5.0) el navegador reparte todo
+el ancho sobrante de la tablet entre 3 o 4 columnas, y el ojo tiene que cruzar media pantalla para
+leer una fila. **Menos columnas hacen MÁS blanco, no menos.**
+
+**La regla que queda** (Tablet, vale para todas las vistas de esa tabla — PS por paquetes, PS por
+bolsas+kg, PS por peso, PS/tallerista/inyector común y Recibir, que son un solo render): el bloque de carga (buscador +
+cartel de alerta + tabla) **encoge con la tabla**, cada columna mide lo que necesita su contenido
+(el encabezado suele ser el que manda: "SUGERIDO (PAQUETES)" es más ancho que el "3"), y el aire
+que hace falta va **adentro** de cada celda (padding 12px) en vez de entre columnas. El buscador
+mide exactamente lo que miden las columnas, así que no queda una caja ancha arriba de una tabla
+angosta. En el celular (≤640px) no hay blanco que recortar: la tabla vuelve a ocupar todo el ancho.
+
+Lo cuida `tests/ui/test_tablet.js` midiendo a 1.280px (la tablet, no los 390px del celular): la
+tabla tiene que medir lo mismo que su contenido (`max-content`) y el buscador lo mismo que la tabla.
+Si alguna pantalla futura vuelve a quedar con pocas columnas, éste es el patrón a copiar.
+## 4ee. La cuarta forma de enviar: Guazzaroni mira CAJONES (el de cada pieza) y escribe KG (2026-09-17)
 
 `[usuario, textual: "dentro del version tablet, y envio a ps. Siguiendo la lógica del módulo
 Ester ---> en el módulo de guazzaroni patricio, el sugerido tendría que aparecer en cajones y en
@@ -10426,7 +10469,7 @@ dueño carga el `uni_x_cajon` de esas 5, pasan solas al modo cajones/kg — no h
 **El inventario sigue sin ver cajones**: viaja el kg (`unidad='kg'`) y `to_canonical` lo pasa a
 unidades con `kg_x_uni`; los cajones quedan anotados en `movimiento.cajones`, informativos.
 
-**Dónde se ve**: `Tablet/Tablet_GP2.html` (v1.9.0) y `Prov Serv/Envios/EnviosPS_GP2.html` (v1.6.0).
+**Dónde se ve**: `Tablet/Tablet_GP2.html` (v1.11.0 — v1.9.0 y v1.10.0 las tomaron el mismo día otras dos sesiones: el encogido de columnas y el sugerido en bultos de Julio) y `Prov Serv/Envios/EnviosPS_GP2.html` (v1.6.0).
 En Envío a PS el sugerido **ya se calculaba en cajones**, así que ahí sólo cambió el rótulo y el
 layout (se va la columna "Cajón envío", queda un solo campo en kg). **Pendiente: siguen sin definir
 11 de los 15 PS.**
@@ -10446,5 +10489,4 @@ operario no la tocó) se refresca con el sugerido del día; cualquier otro valor
 y **no se pisa nunca**. Vale para todos los proveedores. La lección general: *un valor derivado
 guardado en `localStorage` necesita saber si sigue siendo derivado o ya lo editó una persona* —
 guardar el valor no alcanza, hay que guardar también que lo puso la máquina.
-
 
