@@ -1,4 +1,10 @@
 [LOCKS]
+LockX | Prov Serv/CasosEspeciales/CasosEspeciales_GP2.html | nazareno-claude | 2026-09-17 | crear pantalla Casos especiales (envio kg a Charcas/Eclipse)
+LockX | GP2_MODULOS.html | nazareno-claude | 2026-09-17 | agregar boton Casos especiales al menu PS
+LockX | version.js | nazareno-claude | 2026-09-17 | bump version por feature Casos especiales
+LockX | db/funciones_GP2.sql | nazareno-claude | 2026-09-17 | agregar RPC enviar_material_ps_especial
+LockX | envios-only.html | nazareno-claude | 2026-09-17 | bump token version.js
+LockX | login.html | nazareno-claude | 2026-09-17 | bump token version.js
 
 [WAIT QUEUE]
 (vacío)
