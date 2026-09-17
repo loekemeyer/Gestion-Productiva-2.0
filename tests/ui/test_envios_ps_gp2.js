@@ -188,8 +188,8 @@ window.supabase = { createClient: function(){ return {
   const callEs = await page.evaluate(() => (window.__calls || []).filter(c => c.name === 'crear_envio_ps'));
   const aEs = callEs[callEs.length - 1].args;
   ok(aEs.p_ps_id === 14 && aEs.p_comp_sc_id === 622 && aEs.p_cantidad === 612.36 &&
-     aEs.p_unidad === 'kg' && aEs.p_cajones === null,
-     'Ester: viaja el kg (sin cajones); la base lo pasa a mangos con kg_x_uni — ' + JSON.stringify(aEs));
+     aEs.p_unidad === 'kg' && aEs.p_cajones === 63,
+     'Ester: viaja el kg (la base lo pasa a mangos con kg_x_uni) y quedan anotadas las 63 bolsas — ' + JSON.stringify(aEs));
   ok(dialogs.some(d => d.type === 'confirm' && d.msg.includes('612,36 kg (63 bolsas)')),
      'Ester: el confirm dice los kg y las bolsas');
 

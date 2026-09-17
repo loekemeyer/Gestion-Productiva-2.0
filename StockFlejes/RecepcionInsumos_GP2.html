@@ -6,6 +6,28 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
+<!-- v3.60.0 (2026-09-17) — UN INSUMO PUEDE TENER MAS DE UN PROVEEDOR: RECICOR ENTREGA LAS
+     MISMAS CAJAS QUE CORRUGADORA [usuario: "dentro de cajas, ademas de corrugadora del plata,
+     tenes que agregar al proveedor Recicor. Entrega las mismas cajas que corrugadora. El control
+     de remito es igual al de corrugadora"].
+     El problema de fondo: componente.proveedor es UN texto, y esta pantalla armaba los chips y
+     filtraba los items con i.proveedor===provSel. Con eso, para que Recicor entregara las mismas
+     11 cajas habia que duplicar los componentes -> dos stocks para la misma caja. No se hizo eso.
+     (1) BASE: proveedor_insumo gana 'Recicor' (rubro Sector Caja, modo_control 'ninguno' = el
+         mismo control de remito que Corrugadora, cod_prov ISIS 4370, el de su lista de precios);
+         es obligatorio porque recepcion_insumo.proveedor tiene FK a proveedor_insumo(nombre).
+         Tabla puente nueva GP2.componente_proveedor_alt (componente_id, proveedor) con RLS
+         prendida y sin politicas (solo la lee recepcion_bundle, que es SECURITY DEFINER), cargada
+         con las 11 cajas de sector 11 -> Recicor. componente.proveedor NO se toca: el principal
+         sigue siendo Corrugadora, asi que la OC y el costo quedan exactamente igual.
+         recepcion_bundle manda ahora 'proveedores_alt' por insumo.
+     (2) FRONT: provsDeInsumo(i) = principal + alternativos y esDelProv(i,p) reemplazan a las
+         cuatro comparaciones i.proveedor===provSel (chips de proveedor y su conteo, grilla de
+         items, chips de marca y de formato). Una caja aparece bajo los dos chips, una sola vez
+         en cada uno, con un solo stock.
+     OJO (dicho al usuario): el cruce contra O.C. (_aplicar_recepcion_a_oc) matchea por
+     COMPONENTE, no por proveedor, asi que un remito de Recicor descuenta igual una OC de
+     Corrugadora. Si Recicor tiene que tener sus propias OC, eso es otro cambio. -->
 <!-- v3.59.0 (2026-09-16) — IMPORTADOS: UN SOLO PROVEEDOR, SIN PASO "PROVEEDOR" [usuario:
      "Unifícame todo a Importado (elimina Tierra Nativa) y que no diga el subtitulo de Proveedor"].
      (1) BASE: el unico importado que colgaba de otro proveedor era D1 Espiral Sacacorcho
@@ -855,7 +877,9 @@ document.querySelectorAll('#rubroGrid .prov-btn').forEach(btn=>{
     document.querySelectorAll('#rubroGrid .prov-btn').forEach(b=>b.classList.remove('active'));
     btn.classList.add('active');
     // Proveedores REALES de GP2 para este rubro (los que figuran en las tablas)
-    provsRubro=[...new Set(insumosDelRubro().map(i=>i.proveedor).filter(Boolean))].sort();
+    // Principal + alternativos: una caja que entregan Corrugadora y Recicor tiene que
+    // dar los DOS chips (provsDeInsumo), no solo el proveedor de la ficha.
+    provsRubro=[...new Set([].concat(...insumosDelRubro().map(provsDeInsumo)).filter(Boolean))].sort();
     // Altrak entrega el fleje bruto (FLEJE90_BRUTO, sector 13, va a Charcas): no cae por
     // sector en el rubro Flejes (sector 5), asi que se inyecta a mano y abre irAltrak().
     if(rubroSel==='Flejes' && provsRubro.indexOf('Altrak')<0) provsRubro.push('Altrak');
@@ -878,7 +902,7 @@ function pintarProvs(){
   // Solo proveedores con al menos 1 insumo (usuario 2026-09-01: "todo lo que sea
   // 0 no me aparezca como opcion").
   provsRubro.forEach(p=>{
-    var n=(p==='Altrak')?1:insumosDelRubro().filter(i=>i.proveedor===p).length;
+    var n=(p==='Altrak')?1:insumosDelRubro().filter(i=>esDelProv(i,p)).length;
     if (n===0) return;
     var b=document.createElement('button'); b.className='prov-btn'; b.innerHTML=esc(p)+' <span style="opacity:.6;font-weight:600">('+n+')</span>';
     b.addEventListener('click',()=>{
@@ -904,6 +928,24 @@ var PS_CORTE_FLEJE = ['resortes charcas'];
 function esCorteDePS(i){
   return Number(i.sector_id)===5 && PS_CORTE_FLEJE.indexOf(String(i.proveedor||'').trim().toLowerCase())>=0;
 }
+/* UN INSUMO PUEDE TENER MAS DE UN PROVEEDOR (2026-09-17, usuario: "dentro de cajas,
+   ademas de corrugadora del plata, tenes que agregar al proveedor Recicor. Entrega las
+   mismas cajas que corrugadora. El control de remito es igual al de corrugadora").
+   El componente sigue teniendo UN proveedor principal (componente.proveedor, el que manda
+   en la OC y en el costo); los que TAMBIEN lo entregan viven en GP2.componente_proveedor_alt
+   y llegan aca como i.proveedores_alt. Asi las 11 cajas no se duplican: aparecen bajo los dos
+   chips y el stock sigue siendo uno solo.
+   Todo filtro por proveedor de esta pantalla pasa por esDelProv(); comparar i.proveedor===provSel
+   a mano deja al proveedor alternativo sin items. */
+function provsDeInsumo(i){
+  if (!i) return [];
+  var l = i.proveedor ? [i.proveedor] : [];
+  (Array.isArray(i.proveedores_alt) ? i.proveedores_alt : []).forEach(function(p){
+    if (p && l.indexOf(p)<0) l.push(p);
+  });
+  return l;
+}
+function esDelProv(i, p){ return !p || provsDeInsumo(i).indexOf(p)>=0; }
 function insumosDelRubro(){
   // Importados: no se agrupan por sector (viven en Procesado, junto a piezas que se fabrican)
   // sino por estado_compra. El resto de los rubros sigue siendo su sector.
@@ -918,7 +960,7 @@ function insumosDelRubro(){
 // dos stubs `return false` que habian quedado sin ningun llamador.
 function insumosVista(){
   var l=insumosDelRubro();
-  if(provSel) l=l.filter(i=>i.proveedor===provSel);
+  if(provSel) l=l.filter(i=>esDelProv(i,provSel));
   if (rubroSel==='Cartones') {
     if (marcaSel==='_sin') l=l.filter(i=>!i.marca);
     else if (marcaSel) l=l.filter(i=>i.marca===marcaSel);
@@ -1115,7 +1157,7 @@ function marcasDe(base){
 }
 function pintarMarcaChips(){
   var mg=$('marcaChips'); mg.innerHTML='';
-  var base=insumosDelRubro().filter(i=>!provSel||i.proveedor===provSel);
+  var base=insumosDelRubro().filter(i=>esDelProv(i,provSel));
   var sin  =base.filter(i=>!i.marca).length;
   function chip(val,label,n){
     var b=document.createElement('button'); b.className='prov-btn'; b.type='button';
@@ -1152,7 +1194,7 @@ var ORDEN_FORMATO = { LOEKE:['C','8','Huevo','LOKE','Pliego','Bolsa','Manga'], C
 function pintarFormatoChips(){
   var fw=$('formatoWrap'), fg=$('formatoChips');
   if (!marcaSel){ fw.classList.add('hidden'); fg.innerHTML=''; return; }
-  var base = insumosDelRubro().filter(function(i){ return !provSel || i.proveedor===provSel; })
+  var base = insumosDelRubro().filter(function(i){ return esDelProv(i,provSel); })
                               .filter(function(i){ return marcaSel==='_sin' ? !i.marca : i.marca===marcaSel; });
   // Los formatos que la marca REALMENTE tiene, ordenados: primero los conocidos en su orden
   // historico, despues cualquier formato nuevo que aparezca en los datos.

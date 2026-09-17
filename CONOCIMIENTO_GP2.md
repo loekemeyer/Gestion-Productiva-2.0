@@ -2154,6 +2154,14 @@ exactos por pieza; la vista de costos usa el exacto y cae al plano si no hay).
   Plata" y "del Sur" son EL MISMO proveedor** (siempre se confundieron los nombres).
   **Recicor cotiza las mismas 9 cajas ~19% más barato** (ago-26) — cargadas como
   referencia sin vincular, la vigente es del Plata por decisión del usuario.
+- **RECICOR TAMBIÉN ENTREGA LAS CAJAS, desde el 2026-09-17** `[usuario, textual: "dentro de
+  cajas, además de corrugadora del plata, tenés que agregar al proveedor Recicor. Entrega las
+  mismas cajas que corrugadora. El control de remito es igual al de corrugadora"]`. Son **las
+  mismas 11 cajas de GP2** (no hay cajas propias de Recicor) y el control de remito es el
+  mismo: `modo_control='ninguno'`, sin pesaje ni rollos. `cod_prov` ISIS **4370** (salió de su
+  propia lista de precios, `precio_proveedor.cod_prov='4370'`).
+  **El precio NO cambió**: los 9 de Recicor siguen como referencia sin vincular y el vigente
+  sigue siendo el del Plata; esto es sólo QUIÉN puede entregar, no a cuánto se compra.
 - **Plásticos: la lista de Pat Bet Plast es INYECCIÓN SOLA, SIN material** `[dato:
   hoja Plasticos]`. El precio real de la pieza = pellet × gramos (+4% desperdicio) +
   inyección — está calculado en la hoja "Plasticos" col "Total Mat e Inyeccion", y ESO
@@ -2314,6 +2322,18 @@ en ese archivo):
   destino). Trampa activa: los 9 precios de Recicor son referencia con fecha MÁS NUEVA que
   los vigentes del Plata; si alguien los vincula a un componente, las 9 cajas cambian de
   proveedor solas. Hoy el único discriminador es una mayúscula en `rubro`.
+- `[dato 2026-09-17]` **Un componente puede tener MÁS DE UN proveedor: `componente_proveedor_alt`.**
+  `componente.proveedor` es un texto y es el proveedor **principal** — el que manda en la O.C.
+  y en el costo. Los que **también** entregan esa misma pieza van a la tabla puente
+  `GP2.componente_proveedor_alt (componente_id, proveedor)`, y `recepcion_bundle` los manda
+  como `proveedores_alt` para que Recepción de Insumos muestre la pieza bajo los dos chips.
+  **Por qué puente y no duplicar el componente**: una caja duplicada serían dos filas de
+  inventario para la misma caja física, o sea dos stocks y dos máximos de la misma cosa.
+  Primer caso: Recicor + las 11 cajas de Corrugadora (arriba).
+  **TRAMPA CONOCIDA, dicha al usuario**: el cruce contra O.C. (`_aplicar_recepcion_a_oc`)
+  matchea por **componente**, no por proveedor, así que un remito cargado como Recicor
+  descuenta igual una O.C. que se le había hecho a Corrugadora. Si cada proveedor tiene que
+  tener sus propias O.C., eso es otro cambio (hoy la O.C. la sigue armando el principal).
 - `[dato]` **Dos agujeros de escritura anónima**: `GP2.empleado` (policies INSERT/UPDATE
   `TO anon` — no se puede cerrar sin migrar antes `Produccion/abm_GP2.html`, que escribe
   directo) y `GP2.inv_delta` (RPC anon que escribe inventario salteando `movimiento`, sin
@@ -10181,7 +10201,42 @@ Recorrida tabla por tabla del schema GP2 buscando qué sacar. Regla del dueño: 
 
 **Housekeeping**: `db/` (backup del schema) queda a regenerar por los borrados de `__sim`/`creado_en`; no rompe nada estar desfasado (el test chequea que lo que las pantallas usan exista en db/, no la ausencia de extras).
 
-## 4ea. La unidad de envío es del PROVEEDOR, y hay dos formas: AJ escribe paquetes, Ester escribe kg (2026-09-17)
+## 4ea — Cómo se le ENVÍA a cada proveedor: la unidad la pone el proveedor, el bulto lo pone la pieza (2026-09-17)
+
+`[usuario]` La tablet ya no manda "unidades" a todos. Cada proveedor dice en qué se le envía, y eso
+vive en `GP2.proveedor_servicio.envio_unidad` / `envio_uni_x`. Hay dos formas, y la diferencia
+entre ellas es de dónde sale el bulto:
+
+- **Una unidad para TODO el proveedor** — `AJ Adhesivos` (id 12): `envio_unidad='paquetes'`,
+  `envio_uni_x=100`. El sugerido y la cantidad se muestran y se cargan en paquetes (techo), y al
+  registrar se multiplica por 100: el inventario nunca ve paquetes.
+- **Por PESO, con el bulto al lado** — `Hernandez Julio` / Ximpa (id 8): `envio_unidad='kg'`, sin
+  `envio_uni_x`. `[usuario 2026-09-17, textual: "para lo que son partes plásticas, que empieza con la
+  letra P, el envío sugerido tiene que estar nominado en bolsas… cuántos kilos le están mandando y
+  cuántas bolsas eso significa. Después, para A1, B12, B4B y C2, el sugerido en kilos y en cajones a
+  enviar"]`. Acá el bulto **no es uno solo para el proveedor: cambia por pieza**, y lo decide el
+  sector — **Sector Plástico → bolsas, el resto → cajones**. El tamaño del bulto es
+  `componente.uni_x_cajon` en los dos casos (en los plásticos esa columna **es** el tamaño de la
+  bolsa, mismo criterio que la OC de partes plásticas).
+
+Cómo queda la pantalla de Julio (Tablet, Enviar): `Pieza | Sugerido (kg y "= N bolsas/cajones") |
+Kg a enviar | Bolsas/cajones`. Los **kg son lo que se tipea y lo que se registra** (la balanza
+manda; viaja `unidad='kg'` y la base lo pasa a unidades con `kg_x_uni`). Las **bolsas de los
+plásticos son calculadas** (se repintan al tipear); los **cajones de las metálicas se anotan a
+mano** (se autocompletan desde los kg mientras nadie los toque) y viajan a `movimiento.cajones`
+vía `crear_envio_ps(..., p_cajones)`. Sin `kg_x_uni` la fila NO se convierte: se carga en unidades
+como siempre — no se inventa el factor. `[dato 2026-09-17]` las 11 piezas de Julio (A1, B12, B4B,
+C2 metálicas; PA10B, PA13B, PA18B, PA4B, PA5B, PC15AB, PEP2 plásticas) tienen las dos columnas
+cargadas, así que las 11 convierten.
+
+**Qué falta:** el resto de los proveedores sigue en unidades; la unidad de envío se define caso por
+caso con el dueño (ése fue el acuerdo al arrancar con AJ). **Ahora son tres formas, no dos: ver 4eb.**
+
+## 4eb. La tercera forma de enviar: Ester mira BOLSAS y escribe KG (2026-09-17)
+
+Complementa 4ea, que quedó escrita el mismo día por otra sesión: ahí están las dos formas que
+existían (AJ escribe el envase; Hernandez Julio escribe kg y el bulto sale del sector de cada
+pieza). Ester es una tercera, y por eso hizo falta una columna más.
 
 Cada proveedor de servicio pide/recibe en su propio envase, y eso **no es un detalle de pantalla:
 es dato de la base**. Vive en `GP2.proveedor_servicio` con tres columnas:
@@ -10192,7 +10247,7 @@ es dato de la base**. Vive en `GP2.proveedor_servicio` con tres columnas:
 | `envio_uni_x` | cuántas unidades canónicas entran en uno | 100 (pliegos) | 1800 (mangos) |
 | `envio_carga_unidad` | en qué unidad se ESCRIBE la cantidad | `null` = en paquetes | `kg` |
 
-**La vuelta nueva del 17/09 es `envio_carga_unidad`** `[usuario: "en el caso de Ester, el sugerido
+**La columna nueva es `envio_carga_unidad`** `[usuario: "en el caso de Ester, el sugerido
 que aparezca en bolsas (1800 uni por bolsa) redondeas por arriba y la cantidad pones kg y te
 aparece al lado bolsas"]`. Hasta ese día sugerido y cantidad iban en la MISMA unidad (AJ mira 3
 paquetes y escribe 3). **Ester mira bolsas pero PESA lo que carga**, así que el sugerido se ve en
@@ -10206,7 +10261,9 @@ pero la bolsa que pidió el dueño es **1800 para las dos**. Por eso el factor v
 
 **El inventario nunca ve bolsas ni paquetes.** Cuando se carga en kg, el kg viaja tal cual con
 `unidad='kg'` y `to_canonical` lo pasa a mangos con `kg_x_uni` (`crear_envio_ps` ya recibía kg);
-cuando se carga en paquetes, el front multiplica por el factor antes de mandar. El redondeo del
+cuando se carga en paquetes, el front multiplica por el factor antes de mandar. Las bolsas quedan
+anotadas en `movimiento.cajones` (mismo criterio que las bolsas calculadas de Julio en 4ea):
+informativo, el stock lo mueve la cantidad. El redondeo del
 sugerido es **siempre para arriba** (no se pide menos de lo que falta): 112.432 mangos ÷ 1800 =
 62,46 → **63 bolsas** → 612,36 kg.
 
@@ -10214,8 +10271,9 @@ sugerido es **siempre para arriba** (no se pide menos de lo que falta): 112.432 
 modo de AJ (se carga en el envase) en vez de mostrar un kg inventado. Hoy las dos piezas de Ester
 lo tienen, así que no pasa.
 
-**Dónde se ve**: `Tablet/Tablet_GP2.html` (v1.7.0) y `Prov Serv/Envios/EnviosPS_GP2.html` (v1.5.0,
+**Dónde se ve**: `Tablet/Tablet_GP2.html` (v1.8.0) y `Prov Serv/Envios/EnviosPS_GP2.html` (v1.5.0,
 donde además se fue la columna "Cajón envío" para ese proveedor: el cajón no es la unidad con la
 que se le manda y era ruido). Lo sirven `tablet_bundle` (en cada contraparte) y `envios_ps_bundle`
-(en cada PS). **Pendiente: seguir caso por caso con los demás proveedores** — son las dos primeras
-unidades definidas (AJ, Ester) de 15 PS.
+(en cada PS). **Pendiente: seguir caso por caso con los demás proveedores** — van definidos AJ,
+Hernandez Julio y Ester de 15 PS.
+

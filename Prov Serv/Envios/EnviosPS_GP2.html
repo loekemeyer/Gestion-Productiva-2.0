@@ -17,8 +17,9 @@
      "Cajon envio" (para Ester el cajon no es la unidad con la que se manda y era ruido) y queda
      un solo campo "Cantidad (kg)" con "= N bolsas" debajo, que se recalcula al tipear; (3) las
      tandas de esa fila son solo de kg. Lo que se registra no cambia: crear_envio_ps ya recibia
-     el kg (p_unidad 'kg') y to_canonical lo pasa a mangos con kg_x_uni. Los demas PS y los
-     inyectores quedan exactamente igual.
+     el kg (p_unidad 'kg') y to_canonical lo pasa a mangos con kg_x_uni; en p_cajones quedan
+     anotadas las bolsas que dan esos kg (informativo). Los demas PS y los inyectores quedan
+     exactamente igual.
      v1.4.0 (2026-09-17) — LA TABLA SOLO MUESTRA SUGERIDO + CANTIDAD A ENVIAR (usuario:
      "borres de todos los p.s. la columna de maximo y stock ps. Solo quiero ver el sugerido...
      tanto en kg como en cajones"). Se sacaron las columnas Online PS, Online SP y Maximo; queda
@@ -509,7 +510,9 @@ $("btnEnviar").addEventListener("click", async function(){
         p_cantidad: num(o.it.kg),
         p_unidad: "kg",
         p_fecha: fecha,
-        p_cajones: num(o.it.caj) || null,
+        // el bulto queda anotado: los cajones que se declararon, o —si se carga en kg (Ester)—
+        // las bolsas que dan esos kg. Es informativo; el stock lo mueve p_cantidad.
+        p_cajones: num(o.it.caj) || (cargaEnKg(m, pkPS()) ? (num(o.it.kg) / kgPorEnvase(m, pkPS())) || null : null),
         p_faltante: !!o.it.falt
       });
     },

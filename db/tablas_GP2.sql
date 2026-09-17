@@ -1,7 +1,7 @@
 -- =====================================================================
 -- TABLAS del schema GP2 (DDL reconstruido de pg_catalog: columnas, identity, defaults, constraints, comentarios) — export automatico 2026-09-13 desde Supabase (hrxfctzncixxqmpfhskv)
 -- Respaldo/referencia. La fuente de verdad es la base; regenerar al cambiar el schema.
--- 56 tablas, 199 constraints, 63 indices sueltos, 14 triggers, RLS en 56 tablas, 56 policies.
+-- 57 tablas, 199 constraints, 63 indices sueltos, 14 triggers, RLS en 57 tablas, 56 policies.
 -- =====================================================================
 
 -- ---------- __sim_base ----------
@@ -183,6 +183,16 @@ create table "GP2".componente_bom (
   constraint componente_bom_componente_padre_id_fkey FOREIGN KEY (componente_padre_id) REFERENCES "GP2".componente(id)
 );
 comment on table "GP2".componente_bom is 'Receta de un componente armado (intermedio): que componentes consume y cuantos.';
+
+-- ---------- componente_proveedor_alt ----------
+create table "GP2".componente_proveedor_alt (
+  componente_id bigint not null,
+  proveedor text not null,
+  constraint componente_proveedor_alt_pkey PRIMARY KEY (componente_id, proveedor),
+  constraint componente_proveedor_alt_componente_id_fkey FOREIGN KEY (componente_id) REFERENCES "GP2".componente(id) ON DELETE CASCADE,
+  constraint componente_proveedor_alt_proveedor_fkey FOREIGN KEY (proveedor) REFERENCES "GP2".proveedor_insumo(nombre) ON UPDATE CASCADE
+);
+comment on table "GP2".componente_proveedor_alt is 'Proveedores ALTERNATIVOS que entregan la misma pieza. El principal sigue siendo componente.proveedor (el que manda en OC y costo); aca van los que tambien la entregan, para que Recepcion de Insumos los muestre sin duplicar el componente ni el stock.';
 
 -- ---------- contraparte_alias ----------
 create table "GP2".contraparte_alias (
@@ -700,8 +710,8 @@ comment on column "GP2".proveedor_servicio.proceso is 'ROTULO libre en Title Cas
 comment on column "GP2".proveedor_servicio.nombre_corto is 'Como lo llaman en la planta (Jade, Ximpa, Scor, FAAT). Antes: proveedor_servicio_alias.nombre_viejo (tabla borrada 2026-09-05).';
 comment on column "GP2".proveedor_servicio.mp_componente_id is 'PS hibrido: la materia prima BRUTA que recibe y consume (Charcas -> FLEJE90_BRUTO, Eclipse -> CHAPA430). Quien la vende es componente.proveedor. Lo usa cargar_compra_mp (2026-09-05).';
 comment on column "GP2".proveedor_servicio.desperdicio_pct is 'PS hibrido: % de desperdicio al procesar nuestra materia prima (mp_componente_id). crear_oc lo usa para la OC gemela al proveedor de la MP (kg de producto x (1 + pct/100)) y cargar_recepcion_eclipse para descontar la chapa. Eclipse 28 (calibrado con remito, usuario 2026-09-02). Charcas 0 (usuario 2026-09-04: sin dato, asumir 0; la recepcion descuenta 1:1). Antes: parametro charcas_/eclipse_desperdicio_pct.';
-comment on column "GP2".proveedor_servicio.envio_unidad is 'Unidad de ENVIO por proveedor (solo display): rotulo con el que la Tablet muestra el sugerido y la cantidad al enviarle. AJ Adhesivos = ''paquetes''. NULL = se usa la unidad canonica de la pieza (uni/kg). [usuario 2026-09-17]';
-comment on column "GP2".proveedor_servicio.envio_uni_x is 'Cuantas unidades canonicas entran en una unidad de envio (envio_unidad). AJ Adhesivos = 100 (paquete de 100 pliegos). La Tablet muestra/precarga el sugerido dividido por este factor (redondeo para arriba) y al registrar multiplica de nuevo: el inventario siempre queda en la unidad canonica. NULL/1 = sin conversion. [usuario 2026-09-17]';
+comment on column "GP2".proveedor_servicio.envio_unidad is 'Unidad de ENVIO por proveedor (solo display): rotulo con el que la Tablet muestra el sugerido y la cantidad al enviarle. AJ Adhesivos = ''paquetes'' (con envio_uni_x=100). ''kg'' SIN envio_uni_x = el proveedor recibe PESADO (Hernandez Julio): la Tablet carga los kg y muestra al lado el bulto, que cambia por pieza segun el sector (Sector Plastico -> bolsas, el resto -> cajones, tamano = componente.uni_x_cajon). Con envio_uni_x + envio_carga_unidad=''kg'' el sugerido va en el envase pero la cantidad en kg (Ester = ''bolsas'' de 1800; ver envio_carga_unidad). NULL = se usa la unidad canonica de la pieza (uni/kg). [usuario 2026-09-17]';
+comment on column "GP2".proveedor_servicio.envio_uni_x is 'Cuantas unidades canonicas entran en una unidad de envio (envio_unidad). AJ Adhesivos = 100 (paquete de 100 pliegos), Ester = 1800 (bolsa de 1800 mangos). La Tablet muestra/precarga el sugerido dividido por este factor (redondeo para arriba) y al registrar multiplica de nuevo: el inventario siempre queda en la unidad canonica. NULL/1 = sin conversion (Hernandez Julio: envio_unidad=''kg'' sin factor, el bulto sale del sector de cada pieza). [usuario 2026-09-17]';
 comment on column "GP2".proveedor_servicio.envio_carga_unidad is 'En QUE unidad se CARGA la cantidad al enviarle, cuando el proveedor tiene unidad de envio propia. NULL = se carga en la unidad de envio misma (AJ Adhesivos: el sugerido dice 3 paquetes y se escriben 3). ''kg'' = el sugerido se muestra en la unidad de envio (bolsas) pero la cantidad se escribe en KG y al lado la pantalla muestra a cuantas bolsas equivale (Ester: bolsas de 1800 mangos; 1 bolsa = 1800 x kg_x_uni = 9,72 kg) [usuario 2026-09-17: "el sugerido que aparezca en bolsas (1800 uni por bolsa) redondeas por arriba y la cantidad pones kg y te aparece al lado bolsas"]. El kg viaja tal cual a la base y to_canonical lo pasa a unidades con kg_x_uni: el inventario nunca ve bolsas.';
 
 -- ---------- recepcion_control ----------
@@ -1166,6 +1176,7 @@ alter table "GP2".carton_categoria enable row level security;
 alter table "GP2".carton_formato enable row level security;
 alter table "GP2".componente enable row level security;
 alter table "GP2".componente_bom enable row level security;
+alter table "GP2".componente_proveedor_alt enable row level security;  -- sin policies: solo la lee recepcion_bundle (SECURITY DEFINER)
 alter table "GP2".contraparte_alias enable row level security;
 alter table "GP2".empleado enable row level security;
 alter table "GP2".entrega_prov_at enable row level security;
