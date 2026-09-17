@@ -410,6 +410,43 @@ window.supabase = { createClient: function(){ return {
   const tMin = await page.$$eval('#tipoGrid .tipo-btn', xs => Math.min(...xs.map(x => x.getBoundingClientRect().height)));
   ok(tMin >= 44, '390px: los botones de tipo son tocables (' + Math.round(tMin) + 'px)');
 
+  // ── 6) a lo ancho de una TABLET la tabla no se estira: columnas pegadas, sin blanco muerto ──
+  // [usuario 2026-09-17: "optimizame todos los espacios en blanco que hay entre las columnas en
+  // todas las pantallas de envio a ps en la version tablet"]. table.t viene a width:100%, asi que
+  // sin el encogido el navegador repartia el sobrante y dejaba media pantalla de blanco entre la
+  // pieza y su numero. Se mide en la tablet real (1280px), no a 390.
+  const ctxT = await browser.newContext({ viewport: { width: 1280, height: 900 } });
+  const pT = await ctxT.newPage();
+  pT.on('pageerror', e => { console.log('PAGEERROR:', e.message); process.exitCode = 1; });
+  await pT.route('**/@supabase/supabase-js@2**', r => r.fulfill({ contentType: 'application/javascript', body: STUB }));
+  await pT.route('**/GP2_favicon.png', r => r.fulfill({ contentType: 'image/png', body: Buffer.from('') }));
+  for (const [cp, etiq] of [['AJ Adhesivos', 'AJ (paquetes)'], ['Hernandez Julio', 'Julio (kg + bulto)'],
+                            ['Ester', 'Ester (bolsas + kg)'], ['Jade', 'PS comun']]) {
+    await pT.goto(ROOT + '/Tablet/Tablet_GP2.html?modo=enviar');
+    await pT.evaluate(() => localStorage.clear());
+    await pT.reload();
+    await pT.waitForFunction(() => document.querySelectorAll('#tipoGrid .tipo-btn').length > 0);
+    await pT.click('#tipoGrid .tipo-btn[data-tipo="proveedor_servicio"]');
+    await pT.click('#cpGrid .prov-btn:has-text("' + cp + '")');
+    await pT.waitForFunction(() => document.querySelectorAll('#tbody tr').length > 0);
+    const g = await pT.evaluate(() => {
+      const t = document.querySelector('table.t').getBoundingClientRect();
+      const paso = document.querySelector('.steps').getBoundingClientRect();
+      const bus = document.querySelector('#q').closest('.search-box').getBoundingClientRect();
+      // el blanco muerto ENTRE columnas = lo que la tabla mide de mas que su propio contenido
+      // (max-content es el ancho al que las columnas quedan pegadas a lo que tienen adentro)
+      const tab = document.querySelector('table.t');
+      const prev = tab.style.width;
+      tab.style.width = 'max-content';
+      const ideal = Math.round(tab.getBoundingClientRect().width);
+      tab.style.width = prev;
+      return { tabla: Math.round(t.width), ideal: ideal, disponible: Math.round(paso.width), buscador: Math.round(bus.width) };
+    });
+    ok(g.tabla < g.disponible * 0.75, etiq + ': la tabla ocupa lo que necesita, no todo el ancho (' + g.tabla + ' de ' + g.disponible + 'px)');
+    ok(g.tabla - g.ideal <= 4, etiq + ': las columnas quedan pegadas a su contenido, sin blanco repartido (' + g.tabla + ' vs ' + g.ideal + 'px de contenido)');
+    ok(Math.abs(g.buscador - g.tabla) <= 4, etiq + ': el buscador mide lo mismo que la tabla (' + g.buscador + ' vs ' + g.tabla + 'px)');
+  }
+
   await browser.close();
   console.log(process.exitCode ? 'HAY FALLOS' : 'TODO OK');
 })();

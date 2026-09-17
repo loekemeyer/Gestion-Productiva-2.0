@@ -291,7 +291,7 @@ end $function$
 ;
 
 -- ---------- _aplicar_recepcion_a_oc ----------
-CREATE OR REPLACE FUNCTION "GP2"._aplicar_recepcion_a_oc(p_comp_id bigint, p_cantidad numeric, p_unidad text)
+CREATE OR REPLACE FUNCTION "GP2"._aplicar_recepcion_a_oc(p_comp_id bigint, p_cantidad numeric, p_unidad text, p_proveedor text DEFAULT NULL::text)
  RETURNS jsonb
  LANGUAGE plpgsql
  SECURITY DEFINER
@@ -300,6 +300,7 @@ AS $function$
 declare
   it record; v_resto numeric := p_cantidad; v_aplicar numeric; v_pend numeric;
   v_kgu numeric; v_cant_item numeric; v_ocs jsonb := '[]'::jsonb;
+  v_prov text := nullif(btrim(coalesce(p_proveedor,'')),'');
 begin
   select kg_x_uni into v_kgu from componente where id = p_comp_id;
   for it in
@@ -309,7 +310,8 @@ begin
     where oi.componente_id = p_comp_id
       and o.estado in ('enviada','borrador')
       and oi.recibido < oi.cantidad
-    order by case o.estado when 'enviada' then 0 else 1 end, o.numero, oi.id
+    order by case when v_prov is not null and o.proveedor = v_prov then 0 else 1 end,
+             case o.estado when 'enviada' then 0 else 1 end, o.numero, oi.id
   loop
     exit when v_resto <= 0;
     -- convertir lo recibido a la unidad del item de OC si difieren
@@ -2519,7 +2521,7 @@ begin
   insert into "GP2".recepcion_insumo(fecha,componente_id,proveedor,remito,cantidad,unidad,movimiento_id)
   values(v_f,p_comp_id,nullif(btrim(coalesce(p_proveedor,'')),''),nullif(btrim(coalesce(p_remito,'')),''),p_cantidad,v_u,v_movid)
   returning id into v_recid;
-  v_oc := "GP2"._aplicar_recepcion_a_oc(p_comp_id, p_cantidad, v_u);
+  v_oc := "GP2"._aplicar_recepcion_a_oc(p_comp_id, p_cantidad, v_u, p_proveedor);
 
   v_prov := coalesce(nullif(btrim(coalesce(p_proveedor,'')),''), v_prov);
   if v_mat is not null and v_prov is not null then
@@ -4428,6 +4430,19 @@ with pend as (
   order by pp.componente_id,
            (pi.cod_prov is not null and pp.cod_prov = pi.cod_prov) desc,
            pp.fecha_lista desc nulls last, pp.id desc
+), pvx as (
+  -- precio de CADA proveedor que cotiza el componente (cod_prov -> proveedor_insumo), el mas
+  -- nuevo de cada uno. Hace falta desde que un componente puede comprarse a mas de un proveedor
+  -- (componente_proveedor_alt, 2026-09-17): la OC a Recicor tiene que salir con el precio de
+  -- Recicor y no con el de Corrugadora. NO cambia el precio vigente: ese sigue siendo pv.
+  select distinct on (pp.componente_id, pi2.nombre) pp.componente_id, pi2.nombre proveedor,
+         case when pp.precio_por_kg then pp.precio * cc.kg_x_uni else pp.precio end precio,
+         case when upper(coalesce(pp.moneda,'USD')) like '%US%' then 'USD' else 'ARS' end moneda
+  from precio_proveedor pp
+  join componente cc on cc.id = pp.componente_id
+  join proveedor_insumo pi2 on pi2.cod_prov = pp.cod_prov
+  where pp.componente_id is not null and pp.precio is not null
+  order by pp.componente_id, pi2.nombre, pp.fecha_lista desc nulls last, pp.id desc
 ), ins as (
   select c.id comp_id, c.codigo, c.descripcion, c.sector_id, s.nombre sector,
          c.unidad_medida um, c.kg_x_uni, c.uni_x_cajon,
@@ -4495,7 +4510,18 @@ with pend as (
 select jsonb_build_object(
   'insumos', (select coalesce(jsonb_agg(jsonb_build_object(
       'comp_id',comp_id,'codigo',codigo,'descripcion',descripcion,'sector',sector,'sector_id',sector_id,
-      'proveedor',proveedor,'um',um,'unidad',unidad,'kg_x_uni',kg_x_uni,'uni_x_cajon',uni_x_cajon,
+      'proveedor',proveedor,
+      -- proveedores ALTERNATIVOS que entregan la misma pieza (componente_proveedor_alt): la OC
+      -- se le puede emitir a cualquiera de ellos, sin duplicar el componente.
+      'proveedores_alt',(select coalesce(jsonb_agg(a.proveedor order by a.proveedor),'[]'::jsonb)
+                           from componente_proveedor_alt a
+                           join proveedor_insumo pa on pa.nombre = a.proveedor and pa.activo
+                          where a.componente_id = calc.comp_id),
+      -- precio POR proveedor, para que la hoja que se le manda a cada uno salga con SU lista.
+      'precios_prov',(select coalesce(jsonb_object_agg(x.proveedor,
+                         jsonb_build_object('precio',x.precio,'moneda',x.moneda)),'{}'::jsonb)
+                        from pvx x where x.componente_id = calc.comp_id),
+      'um',um,'unidad',unidad,'kg_x_uni',kg_x_uni,'uni_x_cajon',uni_x_cajon,
       'consumo',consumo,'consumo_uni_mes',consumo,'meses',meses_stock,
       'online',coalesce(online,0),'stock',coalesce(online,0),
       'maximo',maximo_ef,'maximo_origen',maximo_origen_ef,'maximo_inventario',maximo_inv,
@@ -4518,7 +4544,10 @@ select jsonb_build_object(
       'nombre',pi.nombre,'rubro',pi.rubro,'modo_control',pi.modo_control,
       'cod_prov',pi.cod_prov,'activo',pi.activo,'dias_entrega',pi.dias_entrega,'entrega_en',pi.entrega_en,'pedido_minimo_kg',pi.pedido_minimo_kg,
       'insumos',(select count(*) from componente c3
-                  where c3.proveedor = pi.nombre and c3.estado_compra is null)
+                  where c3.estado_compra is null
+                    and (c3.proveedor = pi.nombre
+                         or exists (select 1 from componente_proveedor_alt a3
+                                     where a3.componente_id = c3.id and a3.proveedor = pi.nombre)))
     ) order by pi.nombre),'[]'::jsonb) from proveedor_insumo pi),
   'ocs', (select coalesce(jsonb_agg(jsonb_build_object(
       'id',o.id,'numero',o.numero,'proveedor',o.proveedor,'rubro',o.rubro,'estado',o.estado,

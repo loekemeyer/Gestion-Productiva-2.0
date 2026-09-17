@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<!-- v1.9.0 (2026-09-17) — A LOS PROVEEDORES DE SERVICIO NO SE LES PRECARGA LA CANTIDAD (usuario:
+<!-- v1.10.0 (2026-09-17) — A LOS PROVEEDORES DE SERVICIO NO SE LES PRECARGA LA CANTIDAD (usuario:
      "en el caso de envío a proveedores de servicio en la versión tablet, no me preescribas lo que
      voy a enviar la cantidad que voy a enviar sino que lo voy a escribir yo porque puede generar
      confusiones"). El campo Cantidad arranca VACÍO en P.S. e inyector (que en la tablet se eligen
@@ -17,6 +17,17 @@
      realmente cargó, y al abrir una contraparte se LIMPIA del buffer de la tablet el valor que dejó
      la precarga de versiones anteriores (solo si es exactamente ese, una edición a mano no se toca).
      Ver precargaCantidad(). -->
+<!-- v1.9.0 (2026-09-17) — COLUMNAS SIN BLANCO MUERTO (usuario, sobre el screenshot de AJ Adhesivos:
+     "optimizame todos los espacios en blanco que hay entre las columnas en todas las pantallas de
+     envío a ps en la versión tablet"). table.t hereda width:100% de gp2-modulo.css: con 3 o 4
+     columnas el navegador repartía todo el ancho sobrante de la tablet entre ellas y dejaba media
+     pantalla de blanco entre la pieza y su número. Ahora el bloque de carga (buscador + cartel +
+     tabla) encoge con la tabla: cada columna mide lo que necesita su contenido, el buscador mide
+     exactamente lo que miden las columnas, y el aire que queda va ADENTRO de cada celda (padding
+     8→12px) en vez de entre columnas. Vale para todas las vistas de la tabla (PS con paquetes, PS
+     con bolsas+kg, PS por peso, PS/tallerista/inyector común y Recibir), que son un solo render. En el celular (≤640px)
+     no hay blanco que recortar: la tabla vuelve a ocupar todo el ancho, como antes. Solo CSS +
+     un div contenedor: ningún cálculo, payload ni encabezado cambió. -->
 <!-- v1.8.0 (2026-09-17) — ESTER: EL SUGERIDO EN BOLSAS DE 1800 Y LA CANTIDAD EN KG (usuario:
      "en el caso de Ester, el sugerido que aparezca en bolsas (1800 uni por bolsa) redondeas por
      arriba y la cantidad pones kg y te aparece al lado bolsas"). TERCERA forma de enviar, y no es
@@ -212,9 +223,30 @@
     font-size:17px;color:#5c2d00;line-height:1.4}
   .alerta-box b{color:#8a3b00}
   input#fRemito{height:44px;border:2px solid #d0d7de;border-radius:8px;padding:0 10px;font-size:19px;width:150px}
+  /* COLUMNAS SIN BLANCO MUERTO EN LA TABLET [usuario 2026-09-17: "optimizame todos los espacios en
+     blanco que hay entre las columnas en todas las pantallas de envio a ps en la version tablet"].
+     table.t viene a width:100% de gp2-modulo.css: con 3 o 4 columnas el navegador repartia el ancho
+     sobrante y dejaba un desierto entre la pieza y su numero (el ojo tenia que cruzar media pantalla
+     para leer una fila). Aca #tblBox (buscador + cartel + tabla) es inline-block: encoge hasta el
+     ancho de la tabla, y la tabla al de su propio contenido. El .table-wrap sigue con su scroll
+     propio para cuando no entra (celular, o muchas columnas). */
+  #tblBox{display:inline-block;max-width:100%;vertical-align:top}
+  .table-wrap{display:block;max-width:100%}
+  table.t{width:100%}   /* 100% de #tblBox, que ya mide lo que mide el contenido */
+  /* un poco mas de aire ADENTRO de cada columna, que es el unico blanco que suma: separa los
+     numeros del borde sin volver a abrir el hueco entre columnas. */
+  table.t th,table.t td{padding-left:12px;padding-right:12px}
+  table.t td.num,table.t th.num{white-space:nowrap}
+  /* la de Pieza es la unica que puede crecer: con techo, para que una descripcion larga no reabra
+     el hueco; abajo del techo la descripcion envuelve en dos lineas. */
+  table.t th:first-child,table.t td:first-child{max-width:340px}
+  table.t td:first-child .sub{white-space:normal}
   @media (max-width:640px){
     .modo-btn{font-size:17px;min-height:56px}
     .modo-btn small{display:none}
+    /* en el celular no hay blanco que recortar: el bloque ocupa todo el ancho */
+    #tblBox{display:block;width:100%}
+    table.t th,table.t td{padding-left:8px;padding-right:8px}
   }
 </style>
 </head>
@@ -264,15 +296,20 @@
         </div>
       </div>
 
-      <div class="search-box"><input type="text" id="q" placeholder="Buscar por código o descripción…"></div>
+      <!-- el buscador, el cartel y la tabla van en un bloque que ENCOGE con la tabla, así el
+           buscador mide exactamente lo que miden las columnas y no queda una caja ancha arriba
+           de una tabla angosta [usuario 2026-09-17: optimizar los blancos entre columnas]. -->
+      <div id="tblBox">
+        <div class="search-box"><input type="text" id="q" placeholder="Buscar por código o descripción…"></div>
 
-      <div id="alertaBox" class="alerta-box hidden"></div>
+        <div id="alertaBox" class="alerta-box hidden"></div>
 
-      <div class="table-wrap">
-        <table class="t">
-          <thead><tr id="thead"></tr></thead>
-          <tbody id="tbody"></tbody>
-        </table>
+        <div class="table-wrap">
+          <table class="t">
+            <thead><tr id="thead"></tr></thead>
+            <tbody id="tbody"></tbody>
+          </table>
+        </div>
       </div>
       <div id="tblEmpty" class="empty hidden"></div>
       <div id="msg1" class="status"></div>
@@ -699,7 +736,7 @@ function render(){
       // Solo el Sugerido (se sacaron Stock y Máximo) [usuario 2026-09-17]. Si el proveedor recibe
       // por peso, el sugerido va en kg con la equivalencia en bultos abajo; si manda por paquetes,
       // en paquetes (techo); si no, en su unidad. Se MUESTRA siempre; en P.S. e inyector ya no se
-      // precarga en la carga (v1.9.0). El cálculo del sugerido no cambió, solo el render.
+      // precarga en la carga (v1.10.0). El cálculo del sugerido no cambió, solo el render.
       var _pk = packEnvio();
       var sugM = x.sugerido;
       if (_pk && x.sugerido != null) sugM = Math.ceil(Number(x.sugerido) / _pk.factor);
