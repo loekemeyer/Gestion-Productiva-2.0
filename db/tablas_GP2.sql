@@ -1,7 +1,7 @@
 -- =====================================================================
 -- TABLAS del schema GP2 (DDL reconstruido de pg_catalog: columnas, identity, defaults, constraints, comentarios) — export automatico 2026-09-13 desde Supabase (hrxfctzncixxqmpfhskv)
 -- Respaldo/referencia. La fuente de verdad es la base; regenerar al cambiar el schema.
--- 56 tablas, 199 constraints, 63 indices sueltos, 14 triggers, RLS en 56 tablas, 56 policies.
+-- 57 tablas, 199 constraints, 63 indices sueltos, 14 triggers, RLS en 57 tablas, 56 policies.
 -- =====================================================================
 
 -- ---------- __sim_base ----------
@@ -183,6 +183,16 @@ create table "GP2".componente_bom (
   constraint componente_bom_componente_padre_id_fkey FOREIGN KEY (componente_padre_id) REFERENCES "GP2".componente(id)
 );
 comment on table "GP2".componente_bom is 'Receta de un componente armado (intermedio): que componentes consume y cuantos.';
+
+-- ---------- componente_proveedor_alt ----------
+create table "GP2".componente_proveedor_alt (
+  componente_id bigint not null,
+  proveedor text not null,
+  constraint componente_proveedor_alt_pkey PRIMARY KEY (componente_id, proveedor),
+  constraint componente_proveedor_alt_componente_id_fkey FOREIGN KEY (componente_id) REFERENCES "GP2".componente(id) ON DELETE CASCADE,
+  constraint componente_proveedor_alt_proveedor_fkey FOREIGN KEY (proveedor) REFERENCES "GP2".proveedor_insumo(nombre) ON UPDATE CASCADE
+);
+comment on table "GP2".componente_proveedor_alt is 'Proveedores ALTERNATIVOS que entregan la misma pieza. El principal sigue siendo componente.proveedor (el que manda en OC y costo); aca van los que tambien la entregan, para que Recepcion de Insumos los muestre sin duplicar el componente ni el stock.';
 
 -- ---------- contraparte_alias ----------
 create table "GP2".contraparte_alias (
@@ -1164,6 +1174,7 @@ alter table "GP2".carton_categoria enable row level security;
 alter table "GP2".carton_formato enable row level security;
 alter table "GP2".componente enable row level security;
 alter table "GP2".componente_bom enable row level security;
+alter table "GP2".componente_proveedor_alt enable row level security;  -- sin policies: solo la lee recepcion_bundle (SECURITY DEFINER)
 alter table "GP2".contraparte_alias enable row level security;
 alter table "GP2".empleado enable row level security;
 alter table "GP2".entrega_prov_at enable row level security;

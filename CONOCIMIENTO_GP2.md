@@ -2154,6 +2154,14 @@ exactos por pieza; la vista de costos usa el exacto y cae al plano si no hay).
   Plata" y "del Sur" son EL MISMO proveedor** (siempre se confundieron los nombres).
   **Recicor cotiza las mismas 9 cajas ~19% más barato** (ago-26) — cargadas como
   referencia sin vincular, la vigente es del Plata por decisión del usuario.
+- **RECICOR TAMBIÉN ENTREGA LAS CAJAS, desde el 2026-09-17** `[usuario, textual: "dentro de
+  cajas, además de corrugadora del plata, tenés que agregar al proveedor Recicor. Entrega las
+  mismas cajas que corrugadora. El control de remito es igual al de corrugadora"]`. Son **las
+  mismas 11 cajas de GP2** (no hay cajas propias de Recicor) y el control de remito es el
+  mismo: `modo_control='ninguno'`, sin pesaje ni rollos. `cod_prov` ISIS **4370** (salió de su
+  propia lista de precios, `precio_proveedor.cod_prov='4370'`).
+  **El precio NO cambió**: los 9 de Recicor siguen como referencia sin vincular y el vigente
+  sigue siendo el del Plata; esto es sólo QUIÉN puede entregar, no a cuánto se compra.
 - **Plásticos: la lista de Pat Bet Plast es INYECCIÓN SOLA, SIN material** `[dato:
   hoja Plasticos]`. El precio real de la pieza = pellet × gramos (+4% desperdicio) +
   inyección — está calculado en la hoja "Plasticos" col "Total Mat e Inyeccion", y ESO
@@ -2314,6 +2322,18 @@ en ese archivo):
   destino). Trampa activa: los 9 precios de Recicor son referencia con fecha MÁS NUEVA que
   los vigentes del Plata; si alguien los vincula a un componente, las 9 cajas cambian de
   proveedor solas. Hoy el único discriminador es una mayúscula en `rubro`.
+- `[dato 2026-09-17]` **Un componente puede tener MÁS DE UN proveedor: `componente_proveedor_alt`.**
+  `componente.proveedor` es un texto y es el proveedor **principal** — el que manda en la O.C.
+  y en el costo. Los que **también** entregan esa misma pieza van a la tabla puente
+  `GP2.componente_proveedor_alt (componente_id, proveedor)`, y `recepcion_bundle` los manda
+  como `proveedores_alt` para que Recepción de Insumos muestre la pieza bajo los dos chips.
+  **Por qué puente y no duplicar el componente**: una caja duplicada serían dos filas de
+  inventario para la misma caja física, o sea dos stocks y dos máximos de la misma cosa.
+  Primer caso: Recicor + las 11 cajas de Corrugadora (arriba).
+  **TRAMPA CONOCIDA, dicha al usuario**: el cruce contra O.C. (`_aplicar_recepcion_a_oc`)
+  matchea por **componente**, no por proveedor, así que un remito cargado como Recicor
+  descuenta igual una O.C. que se le había hecho a Corrugadora. Si cada proveedor tiene que
+  tener sus propias O.C., eso es otro cambio (hoy la O.C. la sigue armando el principal).
 - `[dato]` **Dos agujeros de escritura anónima**: `GP2.empleado` (policies INSERT/UPDATE
   `TO anon` — no se puede cerrar sin migrar antes `Produccion/abm_GP2.html`, que escribe
   directo) y `GP2.inv_delta` (RPC anon que escribe inventario salteando `movimiento`, sin

@@ -6437,6 +6437,13 @@ AS $function$
         'comp_id',c.id,'codigo',c.codigo,'descripcion',c.descripcion,'sector',s.nombre,
         'sector_id',c.sector_id,'um',c.unidad_medida,'uni_x_cajon',c.uni_x_cajon,
         'proveedor',nullif(trim(c.proveedor),''),
+        -- proveedores ALTERNATIVOS que entregan la misma pieza (componente_proveedor_alt).
+        -- El principal sigue siendo c.proveedor: esto no cambia OC ni costo, solo hace que
+        -- la pieza aparezca tambien bajo el otro proveedor en Recepcion de Insumos.
+        'proveedores_alt', coalesce((select jsonb_agg(a.proveedor order by a.proveedor)
+             from "GP2".componente_proveedor_alt a
+             join "GP2".proveedor_insumo pa on pa.nombre = a.proveedor and pa.activo
+            where a.componente_id = c.id), '[]'::jsonb),
         'estado_compra',c.estado_compra,
         'marca',c.marca, 'carton_formato',c.carton_formato, 'es_pliego',c.es_pliego,
         'paq_x_bolsa',cf.paq_x_bolsa, 'uni_x_bolsa_cat',cf.uni_x_bolsa, 'kg_x_uni',c.kg_x_uni,'recibe_en_cajas',coalesce(c.recibe_en_cajas,false),
