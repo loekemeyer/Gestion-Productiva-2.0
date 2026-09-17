@@ -1727,8 +1727,9 @@ propio**, porque su costo es el crudo más el baño.
 
 **Un GRJ armado reemplaza a sus componentes en la receta, no se suma (2026-09-03)** `[usuario:
 "GRJ1 se usa para el quinientos"]`: la receta del **500** tenía `C1 + C10 + V9` sueltos, que son
-**exactamente el BOM del `GRJ1`**. Se reemplazaron por el GRJ1, igual que el **506** lleva
-`GRJ7` en vez de `A10 + C10 + V9`. **Si se dejan los dos, el armado se cuenta dos veces.** El
+**exactamente el BOM del `GRJ1`**. Se reemplazaron por el GRJ1, igual que el **506** llevaba
+`GRJ7` en vez de `A10 + C10 + V9` (**⚠ corregido el 2026-09-17: el GRJ7 se borró y el 506 volvió a
+las tres partes sueltas, ver §4eb; el 500 y su GRJ1 NO se tocaron**). **Si se dejan los dos, el armado se cuenta dos veces.** El
 costo del 500 no se movió ni un peso, que es la prueba de que el reemplazo era exacto. La
 receta quedó `A11 + GRJ1 + Pliego Ad 500`, calcada del 506.
 
@@ -2643,7 +2644,12 @@ no los del maestro**: m60 corte **2,30** s/uni (maestro dice 3) · m61 estampado
 (maestro 8) · m75 estampado izq **10,49** (maestro 8). Los tres estampados de balancín dan
 ~10-11 s, que sí cierra con "el balancín tarda 6 a 10 segundos" (§2c-ter).
 
-## 2c-septies. El 506 va con SKIN: Gentile y el garage (2026-08-31)
+## 2c-septies. El 506 va con SKIN: Gentile y el garage (2026-08-31) — ⚠ DADO DE BAJA el 2026-09-17
+
+> **Esta sección ya no describe la realidad.** El 2026-09-17 el dueño dio marcha atrás: Gentile
+> no ensambla ni envasa más el 506, el `GRJ7` se borró y arman Martin Cornejo o Alex Escalante,
+> que entregan directo a Virgilio (el molde del 500/510). **Lo vigente está en §4eb.** Se deja
+> el texto porque explica de dónde salían el skin y el paso por el garage.
 
 `[usuario 2026-08-31]` Dicho textual: *"El 506 va con skin (o sea con Gentile y con
 Martin/Carlos entregando en Cervantes garage)"*. Es el **mismo patrón de las bombillas
@@ -5027,6 +5033,10 @@ y se anota el cambio de realidad.
 
 **El molde ya existe y está probado**: el 510 es exactamente el patrón destino, incluso con la
 misma caja y los mismos dos talleristas. No hay que inventar nada, hay que copiarlo.
+
+**⚠ 2026-09-17 — esta tabla es la foto de ANTES.** El cambio se hizo, pero sólo en la mitad que
+pidió el dueño: el 506 pasó al molde del 510 en armado y entrega (Martin/Alex, sin GRJ7, sin
+Gentile), y **se quedó con el pliego adhesivado**, no con el cartón suelto. Ver §4eb.
 
 **Plata**: se van $76,42 (pliego) + $70 (Gentile) = **$146,42/uni** y entra el cartón suelto a
 **$89** → **ahorro ~$57/uni** `[deducido, a confirmar el precio del cartón 506 troquelado
@@ -10231,3 +10241,101 @@ cargadas, así que las 11 convierten.
 
 **Qué falta:** el resto de los proveedores sigue en unidades; la unidad de envío se define caso por
 caso con el dueño (ése fue el acuerdo al arrancar con AJ).
+## 4eb. El 506 pasa al molde del 500/510 (sin GRJ7) y el adhesivado de pliego es un PASO, no un subcomponente (2026-09-17)
+
+`[usuario 2026-09-17, textual]` *"Te hago un cambio para el 506: Ahora va a ser la misma lógica
+que el 500 y 510. Gentile Norberto no ensambla más. Ahora ensambla Martin Cornejo o Alex
+Escalante. Y desaparece el GRJ7. Ahora C10, CV9 Y A10 se le manda a el tallerista final. No hay
+conversion a GRJ7."* Y, aparte: *"La ruta para todos los pliegos es: pliego sin adhesivar --> AJ
+adhesivados --> pliego adhesivado --> tallerista final. Esa sería la ruta paso, esta mal que lo
+tomes como un subcomponente. Borralo si es que esta en componente bomb y agrega la ruta como te
+digo."* Sobre el precio del tallerista nuevo: *"Fijate en el gemelo 500 o 510 para el costo."*
+
+### Lo que quedó en la base
+
+**506** (artículo 29, componente terminado 400). Receta: `A10 ×1 + C10 ×1 + V9 ×1 + A11 ×1/12 +
+Pliego Ad 506 ×1/12` — calcada del 500. **10 rutas** (5 cadenas × 2 talleristas, la convención de
+la casa cuando dos hacen el mismo paso), todas con el nombre del tallerista en el título para que
+no se vuelvan a leer como duplicadas:
+
+```
+Fleje 13   -> M23 -> Jade        -> A10          -> Martin | Alex -> 506 -> Virgilio
+Fleje 57   -> M24 -> FAAT -> Guazzaroni -> C10    -> Martin | Alex -> 506 -> Virgilio
+CV9        -> Guazzaroni -> V9                    -> Martin | Alex -> 506 -> Virgilio
+Pliego 506 -> AJ Adhesivos -> Pliego Ad 506       -> Martin | Alex -> 506 -> Virgilio
+A11 (1/12)                                        -> Martin | Alex -> 506 -> Virgilio
+```
+
+**Las duplicadas que vio el usuario eran dos cosas distintas**, y sólo una era un error: (a) las
+rutas de `A10` como insumo suelto (594/595) **sobraban** — el A10 lo produce la propia ruta del
+Fleje 13, igual que el 500 no tiene ruta de insumo para su `C1`/`C10`; se borraron. (b) `CV9`
+aparecía dos veces porque el paso del GRJ7 lo hacían dos talleristas: eso **no es un error**, es
+el duplicado por tallerista, y ahora se distingue por el nombre de la ruta.
+
+**GRJ7 borrado de todos lados** (componente 284, Sector Garage): receta del 506, su BOM
+(`A10`/`C10`/`V9`), las 16 apariciones en `ruta_paso`, las 2 filas de `inventario` (Sector Garage
+y Tallerista Gentile, las dos en stock 0, sólo tenían máximo), y el componente. **Cero
+movimientos**, así que no se perdió historia. Las **Proporciones** (`reparto_tallerista`
+Alex 70 / Martin 30) se mudaron del GRJ7 al `506` terminado: el reparto sigue siendo el mismo, lo
+que cambió es sobre qué salida se aplica. `sector 9` (Garage) **sigue existiendo**: viven ahí los
+otros 21 GRJ.
+
+**Precios de tallerista**: las filas del GRJ7 se repuntaron al `506` (Martin $8,99 · Alex $8,988,
+concepto "Abrelata Uña 506 Armado") — es exactamente el molde del 500, donde Martin cobra $9,00
+por armar Y envasar. **Se borró el "Envasado 506" de Gentile ($70/uni, cargado el 2026-09-01)**:
+Gentile ya no toca el 506 y el gemelo no tiene una línea aparte de envasado. Si algún día vuelve,
+el número era 70 ARS.
+
+### Los pliegos: el adhesivado estaba modelado DOS veces
+
+Había tres cosas diciendo lo mismo para cada uno de los **12 pliegos** (500, 506, 557, 558, 654,
+658, 659, 758, 759, 762, 763, 769): un `componente_bom` `Pliego Ad X = 1 × Pliego X`, una ruta
+huérfana `Insumo PLIEGOX -> PLIEGO ADX (AJ Adhesivado)` sin artículo, y la ruta del artículo que
+arrancaba directo en el `Pliego Ad`. Quedó **una sola** ruta por artículo:
+
+```
+Pliego X (insumo, 1/12 ó 1/16) -> AJ Adhesivos -> Pliego Ad X -> tallerista final -> Virgilio
+```
+
+Se borraron los 12 BOM y las 12 rutas huérfanas. La **receta sigue con `Pliego Ad X`** y eso es
+deliberado: `v_consumo_demanda` siembra en la receta (lo que el tallerista recibe) y camina hacia
+atrás por las aristas de la ruta hasta el pliego sin adhesivar. Si se pusiera el sin adhesivar en
+la receta, el `Pliego Ad` se quedaría sin demanda y la tablet/OC de AJ se rompería. **Verificado:
+el consumo de los 12 sin adhesivar no se movió ni una unidad.**
+
+**La fracción NO es la de la caja**: 1/12 en 500 y 506 (caja de 12) pero **1/16** en las
+bombillas, que van en caja de 24. Es cuántos blísters salen de un pliego, un dato propio.
+
+### La plata: el pliego dejó de cobrarse ENTERO por unidad
+
+Esto no se pidió, pero sale solo del cambio, y es grande. `v_costo_componente` multiplica el
+precio del nodo comprado por `LEAST(cantidad_del_paso_insumo, 1)` — y buscaba esa cantidad por el
+componente **comprado**. Con el `Pliego Ad` (fabricado) como insumo del artículo y el pliego
+comprado un salto más arriba, **la fracción se perdía y cada unidad se comía un pliego entero**.
+Ahora el paso `insumo` está sobre el pliego comprado y la fracción se aplica:
+
+| | antes | después | delta |
+|---|---|---|---|
+| 506 | 1.276,75 | **494,50** | −782,25 (−712,25 pliego, −70 Gentile) |
+| 500 | 1.285,83 | **573,58** | −712,25 |
+| 557 · 558 | 1.259,95 | **523,07** | −736,88 |
+| 762 · 763 | 1.259,27 | **522,40** | −736,87 |
+| 658 · 758 | 2.029,91 | **1.293,03** | −736,88 |
+| 654 | 2.572,91 | **1.836,03** | −736,88 |
+| 769 | 2.572,23 | **1.835,36** | −736,87 |
+| 659 · 759 | 2.999,91 | **2.263,03** | −736,88 |
+
+Ningún otro costo del sistema se movió, `faltan_precios` quedó en 0 en los 13, y el consumo sólo
+perdió la línea del GRJ7. **Esto cierra el "$1.084 que no salen de la receta" de §2c-septies**
+(*"Hay que medirlo antes y después del cambio"*): eran el pliego entero. El 506 a mano daba ~$436
+y ahora la vista da $494,50; lo que falta para cerrar es el punto de abajo.
+
+### ⚠ Lo que QUEDA mal y no se tocó: el servicio de AJ tampoco se fracciona
+
+El material del pliego ya se divide por 12/16, pero el **servicio de adhesivado sí se sigue
+cobrando entero por unidad** ($140 en 500/506, $129 en el resto) porque el CTE `srv` de
+`v_costo_componente` no mira ninguna cantidad. Si AJ cobra por pliego —y por precio parece que
+sí: $140 contra $777 de cartón— cada unidad de los 12 artículos tiene ~$120-128 de sobrecosto.
+Arreglarlo es cirugía del motor de costos (toca a todos los artículos), **no entraba en el pedido
+y se dejó anotado como idea, no hecho**. `[deducido, a confirmar con el dueño si AJ cobra por
+pliego o por blíster]`.
