@@ -1,7 +1,12 @@
 <!doctype html>
 <html lang="es">
 <head>
-<!-- v1.3.0 (2026-09-15) — LOS INYECTORES APARECEN JUNTO A LOS PS PARA ENVIARLES BOLSAS (usuario:
+<!-- v1.4.0 (2026-09-17) — LA TABLA SOLO MUESTRA SUGERIDO + CANTIDAD A ENVIAR (usuario:
+     "borres de todos los p.s. la columna de maximo y stock ps. Solo quiero ver el sugerido...
+     tanto en kg como en cajones"). Se sacaron las columnas Online PS, Online SP y Maximo; queda
+     el Sugerido en cajones Y en kg (kg = sug_caj x uni_x_cajon x kg_x_uni del SC; sin factor no
+     se muestra kg). El calculo del sugerido no cambia, solo el render.
+     v1.3.0 (2026-09-15) — LOS INYECTORES APARECEN JUNTO A LOS PS PARA ENVIARLES BOLSAS (usuario:
      "agregalo como lo agregaste en la tablet pero en el modulo que te digo"). Igual que en la
      Version Tablet: los inyectores (Pat Bet Plast, Pettofrezza, Kollplast) NO son proveedor_servicio
      -> se traen de tablet_bundle (tipo 'inyector') y se listan en la grilla de PS con proceso
@@ -64,10 +69,7 @@
             <th class="ctr" title="Cargar por tandas">T</th>
             <th class="ctr" title="Marcar faltante">F</th>
             <th class="sep">Parte</th>
-            <th class="num">Online PS<br>Cajón</th>
-            <th class="num">Online SP<br>Cajón</th>
-            <th class="num">Max<br>Cajón</th>
-            <th class="num" title="Máximo físico del Sector Procesado − online SP − online PS">Sugerido<br>Cajón</th>
+            <th class="num" title="Máximo físico del Sector Procesado − online SP − online PS. En kg y en cajones.">Sugerido<br>caj / kg</th>
           </tr></thead>
           <tbody id="tbody"></tbody>
         </table>
@@ -236,8 +238,7 @@ function renderTablaInyector(){
       '<td class="ctr">—</td>'+
       '<td class="ctr">—</td>'+
       '<td class="sep">bolsa · kg</td>'+
-      '<td class="num">'+(x.online_ps==null?"—":fmt(x.online_ps))+'</td>'+
-      '<td class="num">—</td><td class="num">—</td><td class="num">—</td>';
+      '<td class="num">—</td>';
     tb.appendChild(tr);
   });
   actualizarEnviar();
@@ -258,7 +259,6 @@ function renderTabla(){
 
     var onPS  = aCajones(x.online_ps, x.sc_unixcaj);
     // maximo/maximo_sp llegan sin coalesce: null = dato faltante, no 0
-    var maxCaj= (x.maximo==null)    ? null : aCajones(x.maximo, x.sc_unixcaj);
 
     // Sugerido a enviar = maximo FISICO del Sector Procesado - online SP - online PS
     // (todo en cajones; regla usuario 2026-08-29). Sin maximo fisico cargado -> "—".
@@ -276,6 +276,15 @@ function renderTabla(){
     });
     if (faltaDato) { onSP = null; sug = null; }
 
+    // El sugerido va en kg Y en cajones [usuario 2026-09-17: "el sugerido quiero
+    // que me aparezca tanto en kg como en cajones"]. Se envia el SC, asi que
+    // kg = sugerido(caj) x uni_x_cajon x kg_x_uni del SC. Sin esos factores no se
+    // muestra kg (no se inventa), queda solo en cajones.
+    var fCaj = Number(x.sc_unixcaj||0), fKg = Number(x.sc_kgxuni||0);
+    var sugKg = (sug==null || !(fCaj>0) || !(fKg>0)) ? null : sug * fCaj * fKg;
+    var sugTxt = (sug==null) ? "—"
+        : (fmt(sug)+" caj" + (sugKg==null ? "" : "<br>"+fmt(sugKg,2)+" kg"));
+
     var tr = document.createElement("tr");
     tr.dataset.k = keyDe(x);
     if (it.falt) tr.className = "falt";
@@ -290,10 +299,7 @@ function renderTabla(){
               return esc(sp.sp_cod)+'<br><small style="color:#777">'+esc(sp.sp_desc||"")+'</small>';
             }).join('<br>')
           : "—")+'</td>'+
-      '<td class="num">'+(onPS==null?"—":fmt(onPS))+'</td>'+
-      '<td class="num">'+(onSP==null?"—":fmt(onSP))+'</td>'+
-      '<td class="num">'+(maxCaj==null?"—":fmt(maxCaj))+'</td>'+
-      '<td class="num">'+(sug==null?"—":(sug>0?'<b style="color:#b42318">'+fmt(sug)+'</b>':fmt(sug)))+'</td>';
+      '<td class="num">'+(sug!=null&&sug>0?'<b style="color:#b42318">'+sugTxt+'</b>':sugTxt)+'</td>';
     tb.appendChild(tr);
   });
 

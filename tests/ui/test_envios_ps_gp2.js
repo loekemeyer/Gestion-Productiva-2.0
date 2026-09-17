@@ -22,14 +22,14 @@ const BUNDLE = {
     // una sola pieza enviada, dos salidas distintas
     { sc_id: 1, sp_id: 2, sc_cod: 'J2C', sc_desc: 'Cuchilla cruda', sp_cod: 'J2', sp_desc: 'Cuchilla pintada',
       proceso: 'Pintado', online_ps: 1500, online_sp: 50, maximo: 4000, maximo_sp: 500,
-      sc_unixcaj: 1000, sp_unixcaj: 100 },
+      sc_unixcaj: 1000, sc_kgxuni: 0.01, sp_unixcaj: 100 },
     { sc_id: 1, sp_id: 3, sc_cod: 'J2C', sc_desc: 'Cuchilla cruda', sp_cod: 'J2B', sp_desc: 'Cuchilla azul',
       proceso: 'Pintado', online_ps: 1500, online_sp: 0, maximo: 4000, maximo_sp: 300,
-      sc_unixcaj: 1000, sp_unixcaj: 100 },
+      sc_unixcaj: 1000, sc_kgxuni: 0.01, sp_unixcaj: 100 },
     // otra pieza, con una sola salida y sin maximo fisico cargado
     { sc_id: 4, sp_id: 6, sc_cod: 'K1C', sc_desc: 'Manija cruda', sp_cod: 'K1', sp_desc: 'Manija pintada',
       proceso: 'Pintado', online_ps: 0, online_sp: 0, maximo: null, maximo_sp: null,
-      sc_unixcaj: 500, sp_unixcaj: 100 },
+      sc_unixcaj: 500, sc_kgxuni: 0.02, sp_unixcaj: 100 },
   ] },
 };
 
@@ -89,12 +89,21 @@ window.supabase = { createClient: function(){ return {
   ok(rows[0].includes('J2') && rows[0].includes('J2B'),
      'la fila lista sus dos salidas: ' + rows[0].slice(0, 70));
 
-  // onPS 1,5 caj · onSP 0,5 caj · max 4 caj
-  // sugerido = (5 - 0,5 - 1,5) + (3 - 0 - 1,5) = 3 + 1,5 = 4,5  (suma las salidas)
-  ok(rows[0].includes('1,5') && rows[0].includes('0,5') && rows[0].includes('4,5'),
-     'sugerido suma las dos salidas (4,5): ' + rows[0].slice(-45));
+  // la tabla ya NO muestra Online PS / Online SP / Maximo: solo cantidad a enviar + Sugerido
+  const heads = await page.$$eval('#tbody', () =>
+    Array.from(document.querySelectorAll('thead th')).map(t => t.textContent));
+  ok(!heads.some(h => /Online|Max/.test(h)), 'sin encabezados Online PS/SP ni Max: ' + heads.join(' | '));
+  ok(heads.some(h => /Sugerido/.test(h)), 'queda el encabezado Sugerido');
+  const cells0 = await page.$$eval('#tbody tr:first-child td', xs => xs.length);
+  ok(cells0 === 7, 'la fila tiene 7 columnas (se sacaron Online PS/SP y Maximo): ' + cells0);
+
+  // sugerido = (5 - 0,5 - 1,5) + (3 - 0 - 1,5) = 3 + 1,5 = 4,5 caj (suma las salidas)
+  // y en kg = 4,5 x 1000 x 0,01 = 45,00 kg (se envia el SC: uni_x_cajon x kg_x_uni)
+  ok(rows[0].includes('4,5 caj') && rows[0].includes('45 kg'),
+     'sugerido en cajones y kg: ' + rows[0].slice(-55));
   const sugHtml = await page.$eval('#tbody tr:first-child td:last-child', e => e.innerHTML);
-  ok(sugHtml.includes('<b') && sugHtml.includes('4,5'), 'sugerido > 0 en negrita roja');
+  ok(sugHtml.includes('<b') && sugHtml.includes('4,5 caj') && sugHtml.includes('45 kg'),
+     'sugerido > 0 en negrita roja, en caj + kg');
   ok(rows[1].includes('—'), 'sin maximo fisico cargado el sugerido dice — en vez de inventar');
 
   // boton enviar arranca deshabilitado
