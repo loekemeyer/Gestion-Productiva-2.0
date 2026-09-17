@@ -291,7 +291,7 @@ end $function$
 ;
 
 -- ---------- _aplicar_recepcion_a_oc ----------
-CREATE OR REPLACE FUNCTION "GP2"._aplicar_recepcion_a_oc(p_comp_id bigint, p_cantidad numeric, p_unidad text)
+CREATE OR REPLACE FUNCTION "GP2"._aplicar_recepcion_a_oc(p_comp_id bigint, p_cantidad numeric, p_unidad text, p_proveedor text DEFAULT NULL::text)
  RETURNS jsonb
  LANGUAGE plpgsql
  SECURITY DEFINER
@@ -300,6 +300,7 @@ AS $function$
 declare
   it record; v_resto numeric := p_cantidad; v_aplicar numeric; v_pend numeric;
   v_kgu numeric; v_cant_item numeric; v_ocs jsonb := '[]'::jsonb;
+  v_prov text := nullif(btrim(coalesce(p_proveedor,'')),'');
 begin
   select kg_x_uni into v_kgu from componente where id = p_comp_id;
   for it in
@@ -309,7 +310,8 @@ begin
     where oi.componente_id = p_comp_id
       and o.estado in ('enviada','borrador')
       and oi.recibido < oi.cantidad
-    order by case o.estado when 'enviada' then 0 else 1 end, o.numero, oi.id
+    order by case when v_prov is not null and o.proveedor = v_prov then 0 else 1 end,
+             case o.estado when 'enviada' then 0 else 1 end, o.numero, oi.id
   loop
     exit when v_resto <= 0;
     -- convertir lo recibido a la unidad del item de OC si difieren
@@ -2519,7 +2521,7 @@ begin
   insert into "GP2".recepcion_insumo(fecha,componente_id,proveedor,remito,cantidad,unidad,movimiento_id)
   values(v_f,p_comp_id,nullif(btrim(coalesce(p_proveedor,'')),''),nullif(btrim(coalesce(p_remito,'')),''),p_cantidad,v_u,v_movid)
   returning id into v_recid;
-  v_oc := "GP2"._aplicar_recepcion_a_oc(p_comp_id, p_cantidad, v_u);
+  v_oc := "GP2"._aplicar_recepcion_a_oc(p_comp_id, p_cantidad, v_u, p_proveedor);
 
   v_prov := coalesce(nullif(btrim(coalesce(p_proveedor,'')),''), v_prov);
   if v_mat is not null and v_prov is not null then
@@ -3033,8 +3035,14 @@ fila as (
   left join componente sp on sp.id=p.sp_id
 )
 select jsonb_build_object(
+  -- envio_unidad / envio_uni_x / envio_carga_unidad: la unidad de ENVIO del proveedor (bolsas de
+  -- Ester, paquetes de AJ). Solo display: la pantalla muestra el sugerido en esa unidad (techo) y,
+  -- si envio_carga_unidad='kg', la cantidad se escribe en kg con las bolsas al lado. Lo que se
+  -- registra sigue yendo en kg a crear_envio_ps. [usuario 2026-09-17]
   'ps', (select coalesce(jsonb_agg(jsonb_build_object(
-            'id',ps.id,'nombre',ps.nombre,'cod_prov',ps.cod_prov,'proceso',ps.proceso
+            'id',ps.id,'nombre',ps.nombre,'cod_prov',ps.cod_prov,'proceso',ps.proceso,
+            'envio_unidad',ps.envio_unidad,'envio_uni_x',ps.envio_uni_x,
+            'envio_carga_unidad',ps.envio_carga_unidad
           ) order by ps.nombre),'[]'::jsonb)
         from proveedor_servicio ps
         where exists (select 1 from pares p where p.proveedor_id=ps.id)),
@@ -4422,6 +4430,19 @@ with pend as (
   order by pp.componente_id,
            (pi.cod_prov is not null and pp.cod_prov = pi.cod_prov) desc,
            pp.fecha_lista desc nulls last, pp.id desc
+), pvx as (
+  -- precio de CADA proveedor que cotiza el componente (cod_prov -> proveedor_insumo), el mas
+  -- nuevo de cada uno. Hace falta desde que un componente puede comprarse a mas de un proveedor
+  -- (componente_proveedor_alt, 2026-09-17): la OC a Recicor tiene que salir con el precio de
+  -- Recicor y no con el de Corrugadora. NO cambia el precio vigente: ese sigue siendo pv.
+  select distinct on (pp.componente_id, pi2.nombre) pp.componente_id, pi2.nombre proveedor,
+         case when pp.precio_por_kg then pp.precio * cc.kg_x_uni else pp.precio end precio,
+         case when upper(coalesce(pp.moneda,'USD')) like '%US%' then 'USD' else 'ARS' end moneda
+  from precio_proveedor pp
+  join componente cc on cc.id = pp.componente_id
+  join proveedor_insumo pi2 on pi2.cod_prov = pp.cod_prov
+  where pp.componente_id is not null and pp.precio is not null
+  order by pp.componente_id, pi2.nombre, pp.fecha_lista desc nulls last, pp.id desc
 ), ins as (
   select c.id comp_id, c.codigo, c.descripcion, c.sector_id, s.nombre sector,
          c.unidad_medida um, c.kg_x_uni, c.uni_x_cajon,
@@ -4489,7 +4510,18 @@ with pend as (
 select jsonb_build_object(
   'insumos', (select coalesce(jsonb_agg(jsonb_build_object(
       'comp_id',comp_id,'codigo',codigo,'descripcion',descripcion,'sector',sector,'sector_id',sector_id,
-      'proveedor',proveedor,'um',um,'unidad',unidad,'kg_x_uni',kg_x_uni,'uni_x_cajon',uni_x_cajon,
+      'proveedor',proveedor,
+      -- proveedores ALTERNATIVOS que entregan la misma pieza (componente_proveedor_alt): la OC
+      -- se le puede emitir a cualquiera de ellos, sin duplicar el componente.
+      'proveedores_alt',(select coalesce(jsonb_agg(a.proveedor order by a.proveedor),'[]'::jsonb)
+                           from componente_proveedor_alt a
+                           join proveedor_insumo pa on pa.nombre = a.proveedor and pa.activo
+                          where a.componente_id = calc.comp_id),
+      -- precio POR proveedor, para que la hoja que se le manda a cada uno salga con SU lista.
+      'precios_prov',(select coalesce(jsonb_object_agg(x.proveedor,
+                         jsonb_build_object('precio',x.precio,'moneda',x.moneda)),'{}'::jsonb)
+                        from pvx x where x.componente_id = calc.comp_id),
+      'um',um,'unidad',unidad,'kg_x_uni',kg_x_uni,'uni_x_cajon',uni_x_cajon,
       'consumo',consumo,'consumo_uni_mes',consumo,'meses',meses_stock,
       'online',coalesce(online,0),'stock',coalesce(online,0),
       'maximo',maximo_ef,'maximo_origen',maximo_origen_ef,'maximo_inventario',maximo_inv,
@@ -4512,7 +4544,10 @@ select jsonb_build_object(
       'nombre',pi.nombre,'rubro',pi.rubro,'modo_control',pi.modo_control,
       'cod_prov',pi.cod_prov,'activo',pi.activo,'dias_entrega',pi.dias_entrega,'entrega_en',pi.entrega_en,'pedido_minimo_kg',pi.pedido_minimo_kg,
       'insumos',(select count(*) from componente c3
-                  where c3.proveedor = pi.nombre and c3.estado_compra is null)
+                  where c3.estado_compra is null
+                    and (c3.proveedor = pi.nombre
+                         or exists (select 1 from componente_proveedor_alt a3
+                                     where a3.componente_id = c3.id and a3.proveedor = pi.nombre)))
     ) order by pi.nombre),'[]'::jsonb) from proveedor_insumo pi),
   'ocs', (select coalesce(jsonb_agg(jsonb_build_object(
       'id',o.id,'numero',o.numero,'proveedor',o.proveedor,'rubro',o.rubro,'estado',o.estado,
@@ -7126,29 +7161,33 @@ rec_x as (
             c.codigo, c.descripcion, s.nombre, c.unidad_medida, c.uni_x_cajon, c.kg_x_uni,
             ce.codigo, ce.descripcion
 ),
--- envio_unidad / envio_uni_x: unidad de ENVIO por proveedor (display), p.ej. AJ Adhesivos manda de a
--- paquetes de 100 pliegos. Es solo presentacion: el front muestra/precarga el sugerido dividido por
--- envio_uni_x y rotula la columna con envio_unidad, pero al registrar multiplica de nuevo y guarda en
--- la unidad canonica (uni/kg). Hoy solo lo tiene proveedor_servicio; el resto va null. [usuario 2026-09-17]
+-- envio_unidad / envio_uni_x / envio_carga_unidad: unidad de ENVIO por proveedor (display), p.ej. AJ
+-- Adhesivos manda de a paquetes de 100 pliegos y Ester de a bolsas de 1800 mangos. Es solo
+-- presentacion: el front muestra/precarga el sugerido dividido por envio_uni_x (techo) y rotula la
+-- columna con envio_unidad. envio_carga_unidad dice en QUE unidad se escribe la CANTIDAD: null = en
+-- la unidad de envio (AJ escribe paquetes y el front multiplica de nuevo), 'kg' = se escribe en kg y
+-- al lado se muestran las bolsas (Ester). En los dos casos lo que llega a la base esta en unidad
+-- canonica (uni/kg): el inventario nunca ve bolsas ni paquetes. Hoy solo lo tiene
+-- proveedor_servicio; el resto va null. [usuario 2026-09-17]
 cp as (
-  select 'tallerista'::text tipo, t.id::text ref, t.nombre, null::text envio_unidad, null::numeric envio_uni_x
+  select 'tallerista'::text tipo, t.id::text ref, t.nombre, null::text envio_unidad, null::numeric envio_uni_x, null::text envio_carga_unidad
     from tallerista t
    where t.activo and t.id <> 3
      and exists (select 1 from v_contraparte_parte v where v.tipo='tallerista' and v.ref_id = t.id)
   union all
-  select 'proveedor_servicio', ps.id::text, ps.nombre, ps.envio_unidad, ps.envio_uni_x
+  select 'proveedor_servicio', ps.id::text, ps.nombre, ps.envio_unidad, ps.envio_uni_x, ps.envio_carga_unidad
     from proveedor_servicio ps
    where exists (select 1 from v_contraparte_parte v where v.tipo='proveedor_servicio' and v.ref_id = ps.id)
   union all
-  select 'proveedor_at', p.id::text, p.nombre, null::text, null::numeric
+  select 'proveedor_at', p.id::text, p.nombre, null::text, null::numeric, null::text
     from proveedor_at p where coalesce(p.activo,true)
   union all
-  select distinct 'proveedor_insumo', o.proveedor, o.proveedor, null::text, null::numeric
+  select distinct 'proveedor_insumo', o.proveedor, o.proveedor, null::text, null::numeric, null::text
     from orden_compra o where o.estado in ('borrador','enviada')
   union all
-  select 'virgilio', 'virgilio', 'Virgilio', null::text, null::numeric
+  select 'virgilio', 'virgilio', 'Virgilio', null::text, null::numeric, null::text
   union all
-  select distinct 'inyector', c.proveedor, c.proveedor, null::text, null::numeric
+  select distinct 'inyector', c.proveedor, c.proveedor, null::text, null::numeric, null::text
     from componente c
    where c.material_id is not null and c.estado_compra is null and c.proveedor is not null
      and exists (select 1 from proveedor_insumo pi where pi.nombre = c.proveedor)
@@ -7159,6 +7198,7 @@ select jsonb_build_object(
     select coalesce(jsonb_agg(jsonb_build_object(
              'tipo', cp.tipo, 'ref', cp.ref, 'nombre', cp.nombre,
              'envio_unidad', cp.envio_unidad, 'envio_uni_x', cp.envio_uni_x,
+             'envio_carga_unidad', cp.envio_carga_unidad,
              'n_env', (select count(*) from env_x e where e.tipo = cp.tipo and e.ref = cp.ref),
              'n_rec', (select count(*) from rec_x r where r.tipo = cp.tipo and r.ref = cp.ref)
            ) order by cp.nombre), '[]'::jsonb)

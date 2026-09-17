@@ -1,6 +1,32 @@
 <!doctype html>
 <html lang="es">
 <head>
+<!-- v1.33.0 (2026-09-17) — UNA PIEZA SE LE PUEDE COMPRAR A MAS DE UN PROVEEDOR: RECICOR TAMBIEN
+     RECIBE O.C. DE CAJAS [usuario: "en las ordenes de compra tendrias que agregar a recicor tambien",
+     despues de sumarlo a Recepcion de Insumos el mismo dia].
+     componente.proveedor sigue siendo el PRINCIPAL (el que manda en el costo); los otros que entregan
+     lo mismo viven en GP2.componente_proveedor_alt y llegan en oc_bundle como i.proveedores_alt.
+     (1) provsDeInsumo(i)/esDelProv(i,p) reemplazan las comparaciones i.proveedor===provSel de la
+         botonera de proveedores, su conteo, filtradas(), itemsPedidos(), pintarProvInfo() y el
+         buscador. Recicor aparece en Sector Caja con las 11 cajas y se le puede armar la O.C.
+     (2) EL PRECIO SIGUE AL PROVEEDOR ELEGIDO. Recicor cotiza las mismas cajas ~19% mas barato: si la
+         O.C. saliera con el precio de Corrugadora, la hoja que se le manda diria un numero que no es
+         el suyo. oc_bundle trae ahora i.precios_prov = {proveedor: {precio, moneda}} (CTE pvx) y
+         precioDe()/monedaDe() usan el del proveedor elegido. i.precio (el VIGENTE, el que usa el
+         costo) NO cambia: pv desempata por cod_prov contra el proveedor asignado, asi que sigue
+         ganando Corrugadora. Verificado antes y despues: los 11 precios y los 11 costos, iguales.
+     (3) Si el proveedor elegido NO cotizo esa pieza, la fila queda SIN precio — no se le pone el del
+         otro, que seria inventar plata. Pasa hoy con las cajas N°15, N°16 y N°22, que Recicor no
+         cotiza. Para que el total no mienta por lo bajo en silencio, la barra avisa "⚠ N items sin
+         precio de <proveedor>".
+     (4) La columna Proveedor de la fila muestra a quien se le esta comprando (provDeFila), no el
+         principal de la ficha.
+     EN LA BASE (fuera de esta pantalla): los 8 precios de Recicor que matchean una caja de GP2 se
+     vincularon a su componente (estaban sueltos, con componente_id null), y
+     _aplicar_recepcion_a_oc pasa a mirar el proveedor del remito: la O.C. del que entrego se cruza
+     PRIMERO, y recien despues las demas. Antes cruzaba la mas vieja sin mirar quien trajo la
+     mercaderia, asi que un remito de Recicor le descontaba a la O.C. de Corrugadora.
+     Anti-cache no-store, sin ?v= ni bump global. -->
 <!-- v1.32.0 (2026-09-16) — WHATSAPP EN LUGAR DE "Marcar enviada"/"Marcar recibida" [usuario: "en vez de
      marca enviada y marcar recibido, un box WhatsApp... que me mande al WhatsApp para mandar la O.C. al
      proveedor"]. Cada OC borrador/enviada muestra 🖨 Imprimir · 🟢 WhatsApp · Anular. WhatsApp abre wa.me
@@ -666,8 +692,52 @@ var SIN_PEDIDO={}; // comp_id -> true
    pisarlo, se repone la celda y funciona. */
 var PRECIO={};   // comp_id -> precio pisado
 var MONEDA={};   // comp_id -> 'USD' | 'ARS' pisada
-function precioDe(i){ return PRECIO[i.comp_id]!=null ? PRECIO[i.comp_id] : (i.precio!=null?Number(i.precio):null); }
-function monedaDe(i){ return MONEDA[i.comp_id] || i.moneda || 'ARS'; }
+/* UN INSUMO PUEDE COMPRARSE A MAS DE UN PROVEEDOR (2026-09-17, usuario: "en las ordenes de
+   compra tendrias que agregar a recicor tambien"). componente.proveedor sigue siendo el
+   PRINCIPAL; los demas que entregan lo mismo viven en GP2.componente_proveedor_alt y llegan
+   en i.proveedores_alt. Todo filtro por proveedor de esta pantalla pasa por esDelProv():
+   comparar i.proveedor===provSel a mano deja al proveedor alternativo con la lista vacia. */
+function provsDeInsumo(i){
+  if(!i) return [];
+  var l = i.proveedor ? [i.proveedor] : [];
+  (Array.isArray(i.proveedores_alt) ? i.proveedores_alt : []).forEach(function(p){
+    if(p && l.indexOf(p)<0) l.push(p);
+  });
+  if(!l.length) l.push('(sin proveedor)');
+  return l;
+}
+function esDelProv(i, p){ return p==null || provsDeInsumo(i).indexOf(p)>=0; }
+/* El proveedor con el que se esta armando la OC (para mostrarlo en la fila): si hay uno
+   elegido y este insumo es suyo, ese; si no, el principal de la ficha. */
+function provDeFila(i){
+  if(provSel!=null && provSel!=='(sin proveedor)' && esDelProv(i, provSel)) return provSel;
+  return i.proveedor || '—';
+}
+/* PRECIO POR PROVEEDOR: la hoja que se le manda a cada uno tiene que salir con SU lista
+   (Recicor cotiza las cajas ~19% mas barato que Corrugadora). i.precios_prov trae el precio
+   de cada proveedor que cotiza el componente; i.precio sigue siendo el VIGENTE (el del
+   proveedor asignado), que es el que usa el costo. */
+function precioProvSel(i){
+  var m = i && i.precios_prov;
+  if(provSel!=null && m && m[provSel] && m[provSel].precio!=null) return m[provSel];
+  return null;
+}
+function precioDe(i){
+  if(PRECIO[i.comp_id]!=null) return PRECIO[i.comp_id];
+  var pp=precioProvSel(i);
+  if(pp) return Number(pp.precio);
+  // Se esta comprando a un proveedor que NO es el de la ficha y que no tiene lista propia
+  // para esta pieza: se deja sin precio. Ponerle el del otro seria inventar plata en la
+  // hoja que se le manda al proveedor.
+  if(provSel!=null && i.proveedor && provSel!==i.proveedor) return null;
+  return i.precio!=null?Number(i.precio):null;
+}
+function monedaDe(i){
+  if(MONEDA[i.comp_id]) return MONEDA[i.comp_id];
+  var pp=precioProvSel(i);
+  if(pp && pp.moneda) return pp.moneda;
+  return i.moneda || 'ARS';
+}
 // Fecha de entrega: se propone sola (hoy + dias_entrega del proveedor). Si el usuario la
 // pisa a mano, se respeta mientras siga en el mismo proveedor.
 var fechaTocada=false, fechaTocadaProv=null;
@@ -760,8 +830,8 @@ function provsDistintos(){
   (D.insumos||[]).forEach(function(i){
     if(ocultoRubro(i)) return;
     if(rubroSel!=null && rubroDe(i)!==rubroSel) return;
-    var p=i.proveedor||'(sin proveedor)';
-    if(!seen[p]){ seen[p]=true; out.push(p); }
+    // Principal + alternativos: una caja que entregan Corrugadora y Recicor da los DOS chips.
+    provsDeInsumo(i).forEach(function(p){ if(!seen[p]){ seen[p]=true; out.push(p); } });
   });
   out.sort(function(a,b){ return String(a).localeCompare(String(b),'es'); });
   return out;
@@ -817,7 +887,7 @@ function pintarProvInfo(){
     return;
   }
   var xs=(D.insumos||[]).filter(function(i){
-    return (i.proveedor||'(sin proveedor)')===provSel && (rubroSel==null || i.sector_id===rubroSel);
+    return esDelProv(i, provSel) && (rubroSel==null || i.sector_id===rubroSel);
   });
   var conSug=xs.filter(function(i){ return i.sugerido>0; }).length;
   var d=diasEntregaProv(provSel);
@@ -858,8 +928,8 @@ function filtradas(){
   return (D.insumos||[]).filter(function(i){
     if(ocultoRubro(i)) return false;
     if(rubroSel!=null && rubroDe(i)!==rubroSel) return false;
-    if(provSel!=null && (i.proveedor||'(sin proveedor)')!==provSel) return false;
-    if(q && !(((i.codigo||'')+' '+(i.descripcion||'')+' '+(i.proveedor||'')).toLowerCase().includes(q))) return false;
+    if(!esDelProv(i, provSel)) return false;
+    if(q && !(((i.codigo||'')+' '+(i.descripcion||'')+' '+provsDeInsumo(i).join(' ')).toLowerCase().includes(q))) return false;
     return true;
   });
 }
@@ -977,8 +1047,8 @@ function render(){
         (i.carton_formato?(' · Formato '+esc(i.carton_formato)):'')+
         // En el celular la columna Proveedor se esconde (no entraba y dejaba "Pedir"
         // fuera de pantalla) y el proveedor se lee acá mismo. Nada se pierde.
-        '<span class="prov-mini"> · '+esc(i.proveedor||'—')+'</span></small></td>'+
-      '<td>'+esc(i.proveedor||'—')+'</td>'+
+        '<span class="prov-mini"> · '+esc(provDeFila(i))+'</span></small></td>'+
+      '<td>'+esc(provDeFila(i))+'</td>'+
       // El "mín N" debajo del stock se saco [usuario 2026-09-04: "eso no lo quiero ver"].
       // El stock se pinta en rojo cuando esta abajo del MAXIMO (el minimo se borro el 14-09).
       '<td class="num'+(bajoMin?' bajo-min':'')+'">'+(st==null?'—':(fmt(st)+' '+esc(i.unidad)))+'</td>'+
@@ -1073,7 +1143,7 @@ function itemsPedidos(){
     if(!(PEDIDO[i.comp_id]>0)) return false;
     if(ocultoRubro(i)) return false;
     if(rubroSel!=null && rubroDe(i)!==rubroSel) return false;
-    if(provSel!=null && (i.proveedor||'(sin proveedor)')!==provSel) return false;
+    if(!esDelProv(i, provSel)) return false;
     return true;
   }).map(function(i){
     // Charcas: el PEDIDO viene ya en paquetes; unidad='paq' para la RPC
@@ -1281,7 +1351,7 @@ function validarMinimoProveedor(items){
   if(!mats.length) return [];
   var porProv={};
   mats.forEach(function(x){
-    var p=x.it.proveedor||'(sin proveedor)';
+    var p=provDeFila(x.it);
     porProv[p]=(porProv[p]||0)+(Number(x.cantidad)||0);
   });
   var errs=[];
@@ -1315,9 +1385,9 @@ function barra(){
     if(ba) ba.addEventListener('click',function(){ ajustarPedidoCarton(); render(); });
   }
   else rc.classList.add('hidden');
-  var tUsd=0, tArs=0;
+  var tUsd=0, tArs=0, sinPrecio=0;
   items.forEach(function(x){
-    if(x.precio==null) return;
+    if(x.precio==null){ sinPrecio++; return; }
     if(x.moneda==='ARS') tArs+=x.cantidad*x.precio; else tUsd+=x.cantidad*x.precio;
   });
   var tot=items.length+' ítems';
@@ -1325,6 +1395,11 @@ function barra(){
     tot+=' · '+fmtTotalMon(tUsd,tArs);
     if(D.tc && tUsd>0) tot+=' (≈ $ '+fmt(tUsd*Number(D.tc)+tArs,0)+')';
   }
+  // Sin este aviso el total miente por lo bajo y nadie se entera: pasa cuando se le compra a
+  // un proveedor alternativo que no cotizo esa pieza (Recicor no cotiza las cajas N°15, 16 y
+  // 22). No se rellena con el precio del otro proveedor: eso seria inventar plata.
+  if(sinPrecio>0) tot+=' · ⚠ '+sinPrecio+(sinPrecio===1?' ítem sin precio':' ítems sin precio')+
+                        (provSel!=null?(' de '+provSel):'');
   $('tot').textContent=tot;
   $('btnCrear').disabled = items.length===0 || errs.length>0;
 }
