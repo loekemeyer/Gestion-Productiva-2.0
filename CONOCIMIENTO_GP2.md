@@ -11070,3 +11070,29 @@ Está en `gp2-numero.js`, que es donde vive la regla de número de la casa. **Se
 punto que tipeó la persona del que puso el separador automático de miles, y "1.000" más una tecla se
 convertiría en 1,0005. En los campos de **enteros** (cajones, bolsas) el punto sigue sin entrar, que
 es lo que ya pasaba. La regla de fondo no cambió: **el punto sigue siendo miles** para `num()`.
+## 4en. El bulto del remache: 20 kg el crudo, 2 kg el niquelado (2026-09-18)
+
+`[usuario, sobre CV12 que mostraba "sin cajón cargado" en la Tablet: "agregale la uni x bolsa. Del
+crudo que sería 25kg dividido el peso por uni" → corregido dos mensajes después: "es 20 kg"]`.
+
+**El envase de un remache se carga en kg, no en unidades**: `componente.uni_x_cajon` = kg del bulto
+÷ `kg_x_uni`. Los valores de la tabla lo confirman: los 13 remaches **CV** (crudo, "p/Niquelar")
+dan **20,000 kg** exactos y los **V** (niquelado) dan **2 kg** (algunos 10). No es casualidad: se
+cargaron así.
+
+Aplicado el 18/09: `CV12` (id 469) tenía el bulto vacío y se le cargó **20.683 uni** = 20,000 kg
+con su `kg_x_uni` de 0,000967. Nada más se tocó.
+
+⚠ **El 0,00085 kg/uni que se pasó ese día para CV12/V12 quedó DESCARTADO por el propio usuario**
+(`"tiralo"`): el peso sigue siendo **0,000967** en los dos. Queda anotado para que una sesión futura
+no lo "recupere" de este historial creyendo que se perdió.
+
+**Por qué no rompió nada** (medido antes de escribir): `recalcular_maximos_cajones` sólo toca
+`sector_id in (1,2)` y Remache es el **8**, así que el máximo de CV12 (13.272, `est_madre`) no se
+movió; el precio de CV12 es **por unidad** (`precio_proveedor.precio_por_kg = false`), así que el
+costo tampoco; y el stock estaba en 0.
+
+**Lo que sigue sin resolver**: para un sector que no es plástico la pantalla rotula el bulto
+**"cajones"**, así que el remache va a decir "cajones" aunque venga en bolsa. Preguntado al usuario,
+sin respuesta.
+
