@@ -6,6 +6,10 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
+<!-- v1.23.1 (2026-09-18) — LOS DOS CAMPOS, UNO AL LADO DEL OTRO (usuario: "que sea una al lado de
+     la otra. No una abajo de la otra (queda muy ancho)"). Solo layout: .det-dos son dos columnas
+     que se achican en vez de envolver — a 390px siguen entrando — y el cruce de los dos numeros
+     pasa a ir debajo, cruzando las dos. La vista de la parte queda 100px mas corta. -->
 <!-- v1.23.0 (2026-09-18) — LO QUE SE MANDA PESADO SE ANOTA EN LAS DOS UNIDADES: PRIMERO EL ENVASE,
      DESPUES LOS KG (usuario, textual: "en cantidad a enviar tengo que poder poner cajones primero y
      despues los kg. Lo mismo con lo que se envia en bolsas. Si despues de cargar cajones/bolsas y kg
@@ -550,6 +554,13 @@
     border:2px solid #111;border-radius:12px;padding:0 14px;font-family:inherit;margin-top:4px}
   .det-uni{font-size:20px;font-weight:800;color:#333;margin-left:8px}
   .det-eq{display:block;margin-top:6px;font-size:16px;font-weight:800;color:#0b4aa2}
+  /* las dos unidades, en dos columnas: apiladas la vista queda larguisima y el campo, ancho al
+     pedo [usuario 2026-09-18]. No envuelven: se achican, que a 390px sigue entrando. */
+  .det-dos{display:flex;gap:12px;align-items:flex-end}
+  .det-col{flex:1 1 0;min-width:0}
+  .det-campo{display:flex;align-items:center;gap:6px}
+  .det-dos .det-in{width:100%;max-width:none;min-width:0;font-size:26px;padding:0 10px}
+  .det-dos .det-uni{margin-left:0;white-space:nowrap}
   /* lo anotado no coincide con lo que dicen los kg: avisa, no frena */
   .det-eq.mal{color:#c2410c}
   .det-falta{align-self:center;font-size:16px;font-weight:800;color:#c2410c}
@@ -1463,13 +1474,17 @@ function pintarDetalle(){
     // con envase Y kg se anotan las DOS, y primero el envase: es lo que el operario cuenta
     // mientras carga el camion [usuario 2026-09-18].
     (ed
-      ? '<div class="det-lbl">Cantidad (' + esc(ed.label) + ")</div>" +
-        '<div><input class="det-in" data-f="c" inputmode="numeric" value="' + esc(it.c || "") + '">' +
-          '<span class="det-uni">' + esc(ed.label) + "</span></div>" +
-        '<div class="det-lbl">Cantidad (kg)</div>' +
-        '<div><input class="det-in" data-f="q" inputmode="decimal" value="' + esc(it.q || "") + '">' +
-          '<span class="det-uni">kg</span>' +
-          '<small class="det-eq' + (chk.mal ? " mal" : "") + '">' + esc(chk.txt) + "</small></div>"
+      // las dos, UNA AL LADO DE LA OTRA [usuario 2026-09-18: "que sea una al lado de la otra, no
+      // una abajo de la otra (queda muy ancho)"]. El cruce va debajo, cruzando las dos columnas.
+      ? '<div class="det-dos">' +
+          '<div class="det-col"><div class="det-lbl">Cantidad (' + esc(ed.label) + ")</div>" +
+            '<div class="det-campo"><input class="det-in" data-f="c" inputmode="numeric" value="' +
+              esc(it.c || "") + '"><span class="det-uni">' + esc(ed.label) + "</span></div></div>" +
+          '<div class="det-col"><div class="det-lbl">Cantidad (kg)</div>' +
+            '<div class="det-campo"><input class="det-in" data-f="q" inputmode="decimal" value="' +
+              esc(it.q || "") + '"><span class="det-uni">kg</span></div></div>' +
+        "</div>" +
+        '<small class="det-eq' + (chk.mal ? " mal" : "") + '">' + esc(chk.txt) + "</small>"
       : '<div class="det-lbl">' + (MODO === "recibir" ? "Cantidad" : "Cantidad a enviar") + "</div>" +
         '<div><input class="det-in" data-f="q" inputmode="' +
           ((b || ckg) ? "decimal" : inputmodeDe(unidadDe(x))) + '" value="' + esc(it.q || "") + '">' +

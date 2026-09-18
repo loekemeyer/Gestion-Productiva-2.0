@@ -11042,7 +11042,10 @@ que no se parece a lo que subió al camión. Anotando los dos, la pantalla puede
 - **Alcance**: toda fila de **Enviar** con envase + kg (Julio por peso, Ester, los del cajón por
   pieza, los talleristas). Las que se escriben **solo en el envase** (AJ, cartón, cajas) y **todo
   Recibir** siguen con un campo. `[deducido — el usuario habló de "cantidad a enviar"]`
-- **Orden**: primero el envase, después los kg. Así se carga en la realidad.
+- **Orden**: primero el envase, después los kg. Así se carga en la realidad. Y van **uno al lado
+  del otro** `[usuario 2026-09-18: "que sea una al lado de la otra… queda muy ancho"]`: apilados, la
+  vista se hacía larga y el campo quedaba ancho al pedo. Las dos columnas **se achican**, no
+  envuelven, así que a 390px siguen entrando.
 - **Lo que FRENA**: falta una de las dos → "Listo" deshabilitado, la vista dice cuál falta y la
   tarjeta se pinta naranja. Una fila a medias **no entra** en el conteo del botón Registrar ni viaja
   en el payload: no se registra media carga.

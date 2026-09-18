@@ -288,6 +288,15 @@ window.supabase = { createClient: function(){ return {
      'A10: 4 cajones contra 2,5 SI avisa — ' + (await page.$eval('#detCard .det-eq', e => e.textContent.trim())));
   ok((await page.$eval('#detCard button[data-a="listo"]', b => b.disabled)) === false,
      'A10: la alerta avisa pero NO frena: Listo sigue habilitado');
+  // los dos campos van UNO AL LADO DEL OTRO, no apilados [usuario 2026-09-18]
+  const dos = await page.evaluate(() => {
+    const c = document.querySelector('#detCard input[data-f="c"]').getBoundingClientRect();
+    const q = document.querySelector('#detCard input[data-f="q"]').getBoundingClientRect();
+    return { mismaFila: Math.abs(c.top - q.top) < 4, envaseIzq: c.left < q.left,
+             ancho: Math.round(document.querySelector('#detCard').getBoundingClientRect().width) };
+  });
+  ok(dos.mismaFila && dos.envaseIzq,
+     'los dos campos van al lado, con el envase a la izquierda \u2014 ' + JSON.stringify(dos));
   await page.fill(DC, '3');
   await page.click('#btnVolverPartes');
   ok((await cards()).find(c => c.startsWith('A10')).includes('env\u00eda 25 kg') &&
