@@ -27,7 +27,7 @@ const BUNDLE = {
   contrapartes: [
     { tipo: 'tallerista', ref: '6', nombre: 'Martin Cornejo', n_env: 5, n_rec: 1 },
     { tipo: 'tallerista', ref: '9', nombre: 'Lucho', n_env: 1, n_rec: 0 },
-    { tipo: 'proveedor_at', ref: '1', nombre: 'Cabral', n_env: 1, n_rec: 1 },
+    { tipo: 'proveedor_at', ref: '1', nombre: 'Cabral', n_env: 2, n_rec: 1 },
     // el PS "comun", sin unidad de envio propia. Al 2026-09-18 ya NINGUN P.S. con piezas quedo
     // asi (los 7 que las tienen van por el cajon de cada pieza, AJ por paquetes y Julio por peso):
     // Blist-Pack es de los que siguen sin unidad definida, y aca se le dan piezas para cubrir el
@@ -74,7 +74,10 @@ const BUNDLE = {
     // cargado: esa fila NO se convierte, queda en unidades.
     { tipo: 'proveedor_servicio', ref: '4', comp_id: 601, cod: 'CV1', desc: 'Remache Espiral p/Niquelar', sector: 'Sector Remache', um: 'unidad', uxc: 57143, kg_x_uni: 0.00035, online_sector: 0, saldo_dest: 0, maximo: 34992, stock_dest: 0, sugerido: 34992 },
     { tipo: 'proveedor_servicio', ref: '4', comp_id: 609, cod: 'CV9', desc: 'Remache uña niq. p/Niquelar', sector: 'Sector Remache', um: 'unidad', uxc: null, kg_x_uni: 0.000567, online_sector: 0, saldo_dest: 0, maximo: 113304, stock_dest: 0, sugerido: 113304 },
-    { tipo: 'proveedor_at', ref: '1', comp_id: 456, cod: 'A1', desc: 'Caja N°1', sector: 'Sector Caja', um: 'unidad', uxc: null, kg_x_uni: null, online_sector: 988, saldo_dest: null, maximo: null, stock_dest: null, sugerido: null },
+    // el prov. de art. terminado recibe cartones y cajas: los dos van en PAQUETES (mismo envase
+    // por pieza que el tallerista). No tiene sugerido, asi que su referencia es el online sector.
+    { tipo: 'proveedor_at', ref: '1', comp_id: 456, cod: 'A1', desc: 'Caja N°1', sector: 'Sector Caja', um: 'unidad', uxc: null, kg_x_uni: null, online_sector: 988, saldo_dest: null, maximo: null, stock_dest: null, sugerido: null, env_unidad: 'paquetes', env_factor: 25, env_carga: 'envase' },
+    { tipo: 'proveedor_at', ref: '1', comp_id: 457, cod: 'C20', desc: 'Carton Colador N°8', sector: 'Sector Cartón', um: 'unidad', uxc: null, kg_x_uni: null, online_sector: 4200, saldo_dest: null, maximo: null, stock_dest: null, sugerido: null, env_unidad: 'paquetes', env_factor: 1000, env_carga: 'envase' },
     { tipo: 'inyector', ref: 'Pat Bet Plast', comp_id: 742, cod: '2405', desc: 'PP 2630', sector: 'Sector Bolsas Plásticas', um: 'kg', uxc: null, kg_x_uni: null, online_sector: 100, saldo_dest: 40, maximo: 300, stock_dest: 100, sugerido: 200 },
     { tipo: 'inyector', ref: 'Pat Bet Plast', comp_id: 743, cod: '2455', desc: 'ABS GP 22', sector: 'Sector Bolsas Plásticas', um: 'kg', uxc: null, kg_x_uni: null, online_sector: 50, saldo_dest: 8, maximo: 50, stock_dest: 20, sugerido: 30 },
   ],
@@ -285,6 +288,41 @@ window.supabase = { createClient: function(){ return {
   ok((await page.$eval('#successTitle', e => e.textContent)).includes('Enviado'), 'exito de envio');
   const buf = await page.evaluate(() => JSON.parse(localStorage.getItem('gp2_tablet_buffer') || '{}'));
   ok(!buf['enviar:tallerista:6'], 'buffer limpio tras enviar');
+
+  // ── PROV. DE ART. TERMINADO: tarjetas tambien, en PAQUETES, y sin sugerido ──────────────
+  // Recibe cartones y cajas, o sea las dos cosas que van en paquetes. No tiene sugerido: su
+  // numero de referencia es el ONLINE DEL SECTOR (lo que hay en Cervantes para mandarle).
+  await page.click('#btnOtro');
+  await page.waitForFunction(() => document.querySelectorAll('#tipoGrid .tipo-btn').length > 0);
+  await page.click('#tipoGrid .tipo-btn[data-tipo="proveedor_at"]');   // una sola contraparte: entra derecho
+  await page.waitForFunction(() => document.querySelectorAll('#cardsGrid .parte-card').length > 0);
+  ok((await page.$eval('#fase1Title', e => e.textContent)) === 'Cabral', 'prov. AT: entra derecho a Cabral');
+  ok(await page.$eval('#tblWrap', e => e.classList.contains('hidden')),
+     'prov. AT: en Enviar ya no queda tabla, van en tarjetas');
+  const atCards = await cards();
+  ok(atCards.length === 2, 'prov. AT: una tarjeta por pieza (2) — ' + atCards.length);
+  ok(atCards[0].includes('Caja N°1') && atCards[0].includes('Online sector 988'),
+     'prov. AT: sin sugerido, la referencia es el online del sector — ' + atCards[0]);
+  ok(atCards.every(c => c.includes('paquetes')), 'prov. AT: cartones y cajas se mandan en paquetes — ' + atCards.join(' | '));
+  await abrir('A1');
+  const detAt = await det();
+  ok(detAt.includes('Online en el sector') && detAt.includes('988') && detAt.includes('Cantidad a enviar'),
+     'prov. AT: la vista de la parte dice el online y pide la cantidad — ' + detAt);
+  ok((await page.$eval('#detCard .det-uni', e => e.textContent.trim())) === 'paquetes',
+     'prov. AT: la cantidad se escribe en paquetes (de 25 la caja)');
+  ok((await page.$eval(DQ, e => e.value)) === '', 'prov. AT: el campo arranca vacio');
+  await page.fill(DQ, '2');
+  await page.click('#btnVolverPartes');
+  await cargarParte('C20', '3');
+  await page.click('#btnEnviar');
+  await page.waitForFunction(() => !document.getElementById('fase3').classList.contains('hidden'));
+  const regAt = await calls('tablet_registrar');
+  const itsAt = regAt[regAt.length - 1].args.p.items;
+  const itCaja = itsAt.find(i => i.comp_id === 456), itCart = itsAt.find(i => i.comp_id === 457);
+  ok(itCaja && itCaja.cantidad === 50 && itCaja.unidad === 'uni',
+     'prov. AT: 2 paquetes de caja se guardan como 50 cajas (uni) — ' + JSON.stringify(itCaja));
+  ok(itCart && itCart.cantidad === 3000 && itCart.unidad === 'uni',
+     'prov. AT: 3 paquetones de carton se guardan como 3.000 cartones (uni) — ' + JSON.stringify(itCart));
 
   // ── AJ Adhesivos manda por PAQUETES de 100: sugerido y cantidad EN paquetes, se guarda en pliegos ──
   await page.click('#btnOtro');
@@ -567,7 +605,11 @@ window.supabase = { createClient: function(){ return {
   // ── 5) render a 390px ────────────────────────────────────────────────────
   await page.goto(ROOT + '/Tablet/Tablet_GP2.html?modo=enviar');
   await page.waitForFunction(() => document.querySelectorAll('#tipoGrid .tipo-btn').length > 0);
-  await page.click('#tipoGrid .tipo-btn[data-tipo="proveedor_at"]');   // la tabla que quedo en Enviar
+  // en Enviar ya no queda ninguna tabla (los cuatro destinos van en tarjetas): la tabla que se
+  // mide es la de Recibir.
+  await page.click('#modos .modo-btn[data-modo="recibir"]');
+  await page.click('#tipoGrid .tipo-btn[data-tipo="virgilio"]');
+  await page.waitForFunction(() => document.querySelectorAll('#tbody tr').length > 0);
   const m = await page.evaluate(() => {
     const ins = [...document.querySelectorAll('#tbody input.cell-in, #modos .modo-btn, #btnEnviar')];
     return {
@@ -582,8 +624,9 @@ window.supabase = { createClient: function(){ return {
 
   // las TARJETAS de un P.S. a 390px: una columna, sin desborde, y la vista de la parte con la
   // letra grande que pide la casa (el campo de carga nunca baja de 19px)
-  await page.click('#btnVolver');   // prov. AT tiene una sola contraparte: vuelve a los tipos
+  await page.click('#btnVolver');   // Virgilio es una sola contraparte: vuelve a los tipos
   await page.waitForFunction(() => !document.getElementById('tipoGrid').classList.contains('hidden'));
+  await page.click('#modos .modo-btn[data-modo="enviar"]');
   await page.click('#tipoGrid .tipo-btn[data-tipo="proveedor_servicio"]');
   await page.click('#cpGrid .prov-btn:has-text("Ester")');
   await page.waitForFunction(() => document.querySelectorAll('#cardsGrid .parte-card').length > 0);
@@ -626,11 +669,11 @@ window.supabase = { createClient: function(){ return {
   pT.on('pageerror', e => { console.log('PAGEERROR:', e.message); process.exitCode = 1; });
   await pT.route('**/@supabase/supabase-js@2**', r => r.fulfill({ contentType: 'application/javascript', body: STUB }));
   await pT.route('**/GP2_favicon.png', r => r.fulfill({ contentType: 'image/png', body: Buffer.from('') }));
-  // Desde 2026-09-18 los P.S., los inyectores y los TALLERISTAS van en TARJETAS: la tabla que se
-  // mide aca es la que quedo viva — el prov. de art. terminado en Enviar y todo Recibir. Los dos
-  // tipos que se usan tienen una sola contraparte, asi que se entra derecho.
-  for (const [modo, tipo, etiq] of [['enviar', 'proveedor_at', 'prov. AT (Enviar)'],
-                                    ['recibir', 'tallerista', 'tallerista (Recibir)']]) {
+  // Desde 2026-09-18 los CUATRO destinos de Enviar van en TARJETAS: la tabla que queda viva es la
+  // de Recibir, y es la que se mide aca. Los dos tipos que se usan tienen una sola contraparte en
+  // Recibir, asi que se entra derecho.
+  for (const [modo, tipo, etiq] of [['recibir', 'tallerista', 'tallerista (Recibir)'],
+                                    ['recibir', 'virgilio', 'Virgilio (Recibir)']]) {
     await pT.goto(ROOT + '/Tablet/Tablet_GP2.html?modo=' + modo);
     await pT.evaluate(() => localStorage.clear());
     await pT.reload();

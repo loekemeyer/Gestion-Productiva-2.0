@@ -10831,3 +10831,24 @@ sección. La **tabla** queda viva solo para el **prov. de art. terminado** y par
 el parche**. Se detectó porque el bundle devolvía `env_unidad` en null y se re-aplicó sobre la
 definición viva (que ya traía la feature de la otra sesión, el fasonero Maspoli). Moraleja: cuando
 se parchea una función compartida, **verificar el resultado del bundle al final, no al aplicar**.
+
+### Y el PROV. DE ART. TERMINADO hereda lo mismo (2026-09-18)
+
+`[usuario 2026-09-18: "seguís de la misma manera con prov de art terminado"]`. Era el último destino
+de Enviar con tabla. Le tocó gratis la unidad: **recibe solo cartones y cajas** (sectores 10 y 11),
+que son justo las dos cosas que van en **paquetes**, así que el mismo `case` del bundle lo cubre —
+cambió una línea (`tipo in ('tallerista','proveedor_at')`).
+
+**Su referencia no es el sugerido, porque no tiene**: la tarjeta y la vista muestran el **online del
+sector** (lo que hay en Cervantes para mandarle), con ese rótulo. Lo resuelve `refInfo()`, que
+devuelve la misma forma para los dos casos. El online se muestra **en la unidad de la pieza** (988
+uni) y no en paquetes: es un stock, no algo que se manda. `[decidido 2026-09-18, avisado al usuario]`
+
+Al 2026-09-18 son **68 piezas**: las **10 cajas** andan completas y de los **58 cartones**, **42**
+tienen el paquetón de su formato y **16 no** (A1B, C2A, C2B, F5A, M1, M2A, M2C, M3A, M3B, P2A, Q5D1,
+Q5E, Q6B, Q6C, Q7C1, Q7D): esos quedan en unidades y la tarjeta lo dice. Es el **mismo hueco** que
+el de 4ek — formatos sin `uni_x_bolsa` cargado — y se tapa cargando el dato, sin tocar código.
+
+**Con esto, en Enviar no queda tabla ni memoria en ningún destino**: `envSinMemoria()` son los
+cuatro. La tabla sigue viva solo en **Recibir**.
+

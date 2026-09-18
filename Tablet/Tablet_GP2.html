@@ -6,6 +6,21 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
+<!-- v1.18.0 (2026-09-18) — Y EL PROV. DE ART. TERMINADO, IGUAL (usuario: "seguís de la misma manera
+     con prov de art terminado"). Era el ultimo destino de Enviar que quedaba con tabla: ahora va en
+     tarjetas y con la vista por parte, como los otros tres.
+     UNIDAD: el prov. AT recibe SOLO cartones y cajas (sector 10 y 11), o sea justo las dos cosas que
+     van en PAQUETES, asi que hereda tal cual el envase por pieza del tallerista — el paqueton del
+     formato para el carton y los 25 de parametro.caja_uni_x_paquete para la caja. En tablet_bundle
+     es un cambio de una linea: el case de env_unidad/env_factor/env_carga pasa de "tipo =
+     'tallerista'" a "tipo in ('tallerista','proveedor_at')".
+     LA REFERENCIA NO ES EL SUGERIDO: el prov. AT no tiene (envConSugerido() es false), asi que la
+     tarjeta y la vista muestran el ONLINE DEL SECTOR — lo que hay en Cervantes para mandarle — con
+     ese rotulo. Sale de refInfo(), que devuelve lo mismo para los dos casos para que la tarjeta no
+     tenga que saber cual es cual. El online se muestra en la unidad de la PIEZA (988 uni), no en
+     paquetes: es un stock, no algo que se manda.
+     CON ESTO EN ENVIAR YA NO QUEDA TABLA NI MEMORIA EN NINGUN DESTINO: envSinMemoria() son los
+     cuatro. La tabla sigue viva solo en Recibir, que no se toco. -->
 <!-- v1.17.0 (2026-09-18) — LOS TALLERISTAS TAMBIEN EN TARJETAS, Y CON UNIDAD DE ENVIO POR PIEZA
      (usuario, textual: "quiero que copies la misma logica para los talleristas. Lo que si no esta
      modelado la unidad de medida ni de sugerido ni de cantidad… Carton segun el formato se le manda
@@ -622,8 +637,11 @@ function envConSugerido(){
    para los TALLERISTAS `[usuario, elegido entre tres opciones: "igual que P.S.: vacio y sin
    memoria"]`: con eso ya no queda nadie con la cantidad precargada. */
 function envSinMemoria(c){
+  // los cuatro destinos de Enviar: P.S., inyector, tallerista y prov. de art. terminado. O sea que
+  // en Enviar ya no queda tabla ni memoria en ningun lado [usuario 2026-09-18].
   return MODO === "enviar" && !!c &&
-    (c.tipo === "proveedor_servicio" || c.tipo === "inyector" || c.tipo === "tallerista");
+    (c.tipo === "proveedor_servicio" || c.tipo === "inyector" ||
+     c.tipo === "tallerista" || c.tipo === "proveedor_at");
 }
 function olvidarCargado(c){
   if (envSinMemoria(c)) BUF.borrar(c.id);
@@ -655,14 +673,16 @@ function packEnvio(){
    unidades, no se inventa un envase). Junta las dos formas que conviven:
      · P.S.: lo dice el PROVEEDOR (packEnvio). Con envase por pieza (Guazzaroni, Jade y los otros
        que van por el cajón de cada pieza) el factor sale de componente.uni_x_cajon fila por fila.
-     · TALLERISTA: lo dice la PIEZA, y lo manda la base en cada fila del bundle [usuario 2026-09-18]:
-       cartón y caja en PAQUETES (el paquetón del formato / los 25 de la caja) y el resto con el
-       sugerido en CAJONES y la cantidad en KG. Ver env_unidad / env_factor / env_carga en
-       tablet_bundle.
+     · TALLERISTA y PROV. DE ART. TERMINADO: lo dice la PIEZA, y lo manda la base en cada fila del
+       bundle [usuario 2026-09-18]: cartón y caja en PAQUETES (el paquetón del formato / los 25 de
+       la caja) y el resto con el sugerido en CAJONES y la cantidad en KG. Ver env_unidad /
+       env_factor / env_carga en tablet_bundle.
    El redondeo del renglon de equivalencia NO vive aca: es uno solo para todos (textoEnvases). */
 function envaseDe(x){
   if (MODO !== "enviar" || !selCP || !x) return null;
-  if (selCP.tipo === "tallerista") {
+  // tallerista y prov. de art. terminado: la unidad la trae la PIEZA en el bundle. El prov. AT
+  // recibe solo cartones y cajas, asi que para el siempre son PAQUETES.
+  if (selCP.tipo === "tallerista" || selCP.tipo === "proveedor_at") {
     var ft = Number(x.env_factor || 0);
     if (!x.env_unidad || !(ft > 0)) return null;   // pieza sin paquete / sin cajón cargado
     return { factor: ft, label: String(x.env_unidad),
@@ -804,6 +824,21 @@ function faltaEnvase(x){
       : "";
   var pk = packEnvio();
   return (pk && pk.porPieza) ? "sin cajón cargado" : "";
+}
+
+/* EL NUMERO DE REFERENCIA de la tarjeta y de la vista de la parte: el SUGERIDO donde lo hay
+   (P.S., tallerista, inyector) y el ONLINE DEL SECTOR en el prov. de art. terminado, que no tiene
+   sugerido — ahí la referencia es lo que hay en Cervantes para mandarle. Devuelve el mismo
+   {rotulo, txt, num, uni, nota} para los dos, así la tarjeta no sabe de la diferencia. */
+function refInfo(x){
+  if (envConSugerido()) {
+    var si = sugeridoInfo(x);
+    si.rotulo = "Sugerido";
+    return si;
+  }
+  var u = unidadDe(x);
+  return { rotulo: "Online sector", txt: fmt(x.online_sector, u === "kg" ? 2 : 0, "—"),
+           num: Number(x.online_sector), uni: u, nota: faltaEnvase(x), small: "" };
 }
 
 /* La unidad con la que se ESCRIBE la cantidad de esa pieza (la del campo, no la de la pieza). */
@@ -1074,7 +1109,7 @@ function renderCards(){
   if (!arr.length) $("tblEmpty").textContent = "Sin resultados para ese filtro.";
   arr.forEach(function(x){
     var k = claveDe(x), it = BUF.item(selCP.id, k), q = num(it.q);
-    var si = sugeridoInfo(x), uc = uniCarga(x);
+    var si = refInfo(x), uc = uniCarga(x);
     var b = document.createElement("button");
     b.type = "button";
     b.className = "parte-card" + (q > 0 ? " cargada" : "");
@@ -1082,7 +1117,8 @@ function renderCards(){
     b.innerHTML =
       '<span class="pc-cod">' + esc(x.cod) + uniTag(uc) + "</span>" +
       '<span class="pc-desc">' + esc(x.desc || "") + "</span>" +
-      '<span class="pc-sug">Sugerido ' + si.txt + (si.uni ? " " + esc(unidadTxt(si.num, si.uni)) : "") +
+      '<span class="pc-sug">' + si.rotulo + " " + si.txt +
+        (si.uni ? " " + esc(unidadTxt(si.num, si.uni)) : "") +
         (si.nota ? '<span class="pc-nota"> · ' + esc(si.nota) + "</span>" : "") + "</span>" +
       '<span class="pc-estado">' + (q > 0
         ? "✓ envía <b>" + fmt(q, decDe(x)) + " " + esc(unidadTxt(q, uc)) + "</b>"
@@ -1186,14 +1222,14 @@ function pintarDetalle(){
   var x = piezaDe(detK);
   if (!x) { volverAPartes(); return; }
   var it = BUF.item(selCP.id, detK), q = num(it.q);
-  var si = sugeridoInfo(x), uc = uniCarga(x);
+  var si = refInfo(x), uc = uniCarga(x);
   var ckg = cargaEnKg(x);
   var b = (MODO === "enviar" && pesoEnvio()) ? bultoDe(x) : null;
   var h =
     '<div class="det-cod">' + esc(x.cod) + uniTag(uc) + "</div>" +
     '<div class="det-desc">' + esc(x.desc || "") + "</div>" +
     (x.sector ? '<div class="det-sector">' + esc(x.sector) + "</div>" : "") +
-    '<div class="det-lbl">Sugerido a enviar</div>' +
+    '<div class="det-lbl">' + (si.rotulo === "Sugerido" ? "Sugerido a enviar" : "Online en el sector") + "</div>" +
     '<div class="det-sug">' + si.txt + (si.uni ? " " + esc(unidadTxt(si.num, si.uni)) : "") +
       (si.nota ? "<small>" + esc(si.nota) + "</small>" : "") + "</div>" +
     '<div class="det-lbl">Cantidad a enviar</div>' +
