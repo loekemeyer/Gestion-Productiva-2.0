@@ -6,6 +6,13 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
+<!-- v1.15.4 (2026-09-18) — EL SUGERIDO DE LA TARJETA, MÁS GRANDE Y EN NARANJA (usuario, textual:
+     "Quiero que en todos los box me aparezca el sugerido más grande y de otro color más llamativo").
+     Sólo CSS de .pc-sug (15px gris #777 → 21px negrita naranja #c2410c) y la aclaración de al lado
+     ("· sin cajón cargado") envuelta en .pc-nota para que quede chica y gris: si crecía con el
+     número, la línea se comía la tarjeta a 230px. El naranja se eligió para no pisar el verde de
+     "✓ envía N" ni el negro del código. La tabla (talleristas, recibir) y la vista de la parte no
+     se tocaron: sólo las tarjetas de Enviar → Prov. de servicio / Inyectores. -->
 <!-- v1.15.3 (2026-09-18) — EL SUBTÍTULO DEL BOTÓN "Inyectores" DICE "bolsas plásticas"
      (usuario, textual: "En versión tablet, en vez de bolsas de resina, bolsas plásticas poné").
      Cambio de TEXTO de una sola línea en TIPOS.enviar: no se tocó nada de la lógica del inyector
@@ -373,7 +380,12 @@
   .parte-card.cargada{border-color:#15803d;background:#f4fbf6}
   .pc-cod{font-size:23px;font-weight:900;line-height:1.1}
   .pc-desc{font-size:16px;font-weight:700;color:#444;line-height:1.25}
-  .pc-sug{font-size:15px;font-weight:700;color:#777;line-height:1.25}
+  /* el sugerido es EL dato de la tarjeta: grande y en naranja fuerte [usuario 2026-09-18:
+     "quiero que en todos los box me aparezca el sugerido mas grande y de otro color mas
+     llamativo"]. La aclaracion de al lado ("sin cajon cargado") queda chica y gris para que
+     el numero no compita con ella; el naranja no choca con el verde del estado "envia N". */
+  .pc-sug{font-size:21px;font-weight:900;color:#c2410c;line-height:1.2}
+  .pc-sug .pc-nota{font-size:14px;font-weight:700;color:#777}
   .pc-estado{margin-top:auto;padding-top:6px;font-size:17px;font-weight:800;color:#15803d}
   .parte-card:not(.cargada) .pc-estado{color:#9aa1a8}
   /* la vista de UNA parte: el sugerido bien grande y un solo campo para la cantidad que se manda */
@@ -1037,7 +1049,7 @@ function renderCards(){
       '<span class="pc-cod">' + esc(x.cod) + uniTag(uc) + "</span>" +
       '<span class="pc-desc">' + esc(x.desc || "") + "</span>" +
       '<span class="pc-sug">Sugerido ' + si.txt + (si.uni ? " " + esc(si.uni) : "") +
-        (si.nota ? " · " + esc(si.nota) : "") + "</span>" +
+        (si.nota ? '<span class="pc-nota"> · ' + esc(si.nota) + "</span>" : "") + "</span>" +
       '<span class="pc-estado">' + (q > 0
         ? "✓ envía <b>" + fmt(q, decDe(x)) + " " + esc(uc) + "</b>"
         : "sin cargar") + "</span>";
