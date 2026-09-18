@@ -15,6 +15,13 @@
      Cambiar tipo) y al cerrar o recargar la pantalla (pagehide). El buffer se sigue usando mientras
      la contraparte esta abierta: es de donde sale lo que se registra. Al tallerista no se le toca
      (ahi la precarga del sugerido sigue viva). Ver envSinMemoria() / olvidarCargado(). -->
+<!-- v1.12.2 (2026-09-18) — FIX DEL FIX: el changelog de v1.11.0 se cortaba solo porque adentro
+     del texto del pedido del usuario iba un cierre de comentario (guion guion mayor), que para el
+     navegador CIERRA el comentario: desde ahi y hasta el siguiente cierre el HTML se pintaba como
+     texto arriba de los modulos de la tablet. v1.12.1 lo reemplazo por una flecha simple (->) en el
+     changelog viejo, pero lo escribio LITERAL tres veces en su propio texto para explicarlo, asi
+     que el mismo cartel volvio a aparecer. Regla, entonces: en estos comentarios el cierre NUNCA se
+     escribe, se nombra. Nada de logica: solo el delimitador. Mismo fix en EnviosPS_GP2.html. -->
 <!-- v1.12.0 (2026-09-17) — A LOS PROVEEDORES DE SERVICIO NO SE LES PRECARGA LA CANTIDAD (usuario:
      "en el caso de envío a proveedores de servicio en la versión tablet, no me preescribas lo que
      voy a enviar la cantidad que voy a enviar sino que lo voy a escribir yo porque puede generar
@@ -27,7 +34,7 @@
      la precarga de versiones anteriores (solo si es exactamente ese, una edición a mano no se toca).
      Ver precargaCantidad(). -->
 <!-- v1.11.0 (2026-09-17) — GUAZZARONI PATRICIO: EL SUGERIDO EN CAJONES Y LA CANTIDAD EN KG
-     (usuario: "dentro del version tablet, y envio a ps. Siguiendo la logica del modulo Ester -->
+     (usuario: "dentro del version tablet, y envio a ps. Siguiendo la logica del modulo Ester ->
      en el modulo de guazzaroni patricio, el sugerido tendria que aparecer en cajones y en cantidad
      pones kg y que te diga cuantos cajones son (redondeando)"). Es la forma de Ester con UNA
      diferencia: el envase NO es uno solo para todo el proveedor. El cajon lo pone CADA PIEZA

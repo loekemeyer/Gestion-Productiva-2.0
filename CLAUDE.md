@@ -829,3 +829,79 @@ select n.nspname, c.relname
    and has_table_privilege('anon', c.oid, 'SELECT')
    and n.nspname not in ('pg_catalog','information_schema','pg_toast');
 ```
+
+## ⚠ REGLA: por qué Claude pide permiso para TODO — y dónde se apaga de verdad
+
+**Vale para TODOS los repos** (copiar este bloque al `CLAUDE.md` del repo nuevo, junto con el
+bloque `permissions` de `.claude/settings.json`). Thomas, 2026-09-18: *"otras sesiones están
+pidiendo muchísimos permisos para editar todo y antes no pasaba"*. Son tres cosas, en este orden.
+
+### 1. Lo que MÁS pesa es el MODO de la sesión, y no se configura por archivo
+
+En **Manual** (config value `default`) **sólo las lecturas corren solas**: todo lo demás pregunta,
+haya o no regla de `allow`. En **Auto** corre todo con chequeo en segundo plano. El modo se elige
+en el **selector de la sesión** (en la web, arriba del cuadro de mensaje) y se puede cambiar con
+la sesión andando.
+
+⚠ `permissions.defaultMode` con `"auto"` o `"bypassPermissions"` **se ignora** desde el
+`.claude/settings.json` de un repo; sólo vale desde el settings de **usuario**, que en cloud no se
+lee (punto 2). O sea: **en cloud, el modo se elige a mano y punto.** Una sesión en Manual va a
+pedir permiso para todo por más lista que haya.
+
+Cómo se reconoce: si te pide autorización hasta para un `select`, mirá el modo antes que el JSON.
+
+### 2. La lista de permisos sale del `.claude/settings.json` DEL REPO — el único que llega
+
+La doc de Claude Code lo dice sin vueltas:
+
+> *"**User and project local settings** (`~/.claude/settings.json` and `.claude/settings.local.json`):
+> **not read**. Both stay on your machine, and the local file isn't in the clone."*
+
+Escribirlo desde el setup script del entorno **no sirve** para una sesión cloud. El 18/09 se perdió
+medio día por creer lo contrario.
+
+⚠ **Y hay una condición que tumba hasta eso:** el repo manda **sólo si la sesión tiene UN
+repositorio**. Con varios adjuntos la sesión arranca **arriba** de los clones y de cada
+`.claude/settings.json` toma únicamente los plugins y marketplaces — **ni permisos, ni hooks, ni
+`env`**. Una sesión con 3 repos adjuntos pide permiso para todo y no hay archivo que lo arregle:
+ahí el modo es lo único que queda.
+
+### 3. Un `hooks` mal formado tira el archivo ENTERO, sin avisar
+
+El formato viejo —`{"matcher":"", "command":"..."}`— ya no vale. Hoy va con el array `hooks`
+adentro:
+
+```jsonc
+"hooks": { "PreToolUse": [ { "matcher": "",
+  "hooks": [ { "type": "command", "command": "echo hola" } ] } ] }
+```
+
+Con el formato viejo Claude Code **descarta el `.claude/settings.json` completo**, así que la
+`permissions.allow` deja de existir. No tira ningún error: simplemente no pasa nada. Así estuvo
+este repo desde el commit `542ab7e` (16/09), y de yapa el hook de caveman nunca corrió ni una vez.
+
+### ⚠ Cómo NO probarlo: `claude --print` adentro del contenedor
+
+Ese `claude` es un CLI local: **sí** lee `~/.claude/settings.json` y **sí** exige el trust del
+workspace (`~/.claude.json` → `hasTrustDialogAccepted`). La sesión cloud no hace ninguna de las
+dos cosas. El 18/09 esa prueba dio verde tres veces seguidas mientras el usuario seguía
+autorizando de a uno. **Se prueba en una sesión nueva de verdad**; el cartel dice el nombre de la
+herramienta, y ése es el string que se agrega a `allow`.
+
+### Lo que hay hoy en `.claude/settings.json`
+
+`allow`: lectura/edición, subagentes, `WebFetch`/`WebSearch`, **`Bash` entero** y el SQL de
+Supabase (`execute_sql`) más las herramientas de lectura de Supabase y GitHub.
+`ask`: `git push`, `curl`, `wget`, `apply_migration`, `deploy_edge_function`.
+`deny`: `rm -rf`, `sudo rm`, force-push, `git reset --hard`, `psql`, `supabase db`, leer `.env`.
+
+⚠ Un `ask` matchea por **prefijo del comando**: `Bash(git push:*)` **no** agarra
+`git -C /ruta push …`, que empieza con `git -C`. Medido el 18/09: por eso un push con `-C` salió
+sin preguntar. Si un comando tiene que frenar sí o sí, va en `deny`, no en `ask`.
+
+⚠ Que `execute_sql` no pregunte **no cambia la regla del 26/08**: los datos no se tocan sin
+permiso explícito. Eso lo sostiene este archivo, no el diálogo de permisos.
+
+`scripts/claude-permisos.sh` y `scripts/setup-entorno-claude.sh` quedan para las sesiones
+**locales**, donde sí manda el settings de usuario y hace falta el trust. En cloud no hacen nada.
+
