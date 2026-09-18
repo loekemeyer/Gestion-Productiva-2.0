@@ -10255,6 +10255,11 @@ entre ellas es de dónde sale el bulto:
   `componente.uni_x_cajon` en los dos casos (en los plásticos esa columna **es** el tamaño de la
   bolsa, mismo criterio que la OC de partes plásticas).
 
+> **2026-09-18 — la pantalla de Julio dejó de tener columna de bulto** (v1.14.0): sus
+> bolsas/cajones pasaron al renglón chico de debajo del campo de kg, como en todas las demás
+> formas, y se calculan de los kg (ya no se corrigen a mano). Lo de abajo describe el modelo —qué
+> es el bulto y de dónde sale—, que no cambió; el layout sí. Ver 4ee.
+
 Cómo queda la pantalla de Julio (Tablet, Enviar): `Pieza | Sugerido | Cantidad (kg) | Cantidad
 (bolsas / cajones)`. `[usuario 2026-09-17]` El **sugerido se mira en bultos ENTEROS** (no en kilos),
 la Cantidad (kg) se precarga con el peso de esos bultos completos (2 cajones de 750 a 0,04 kg = 60
@@ -10271,8 +10276,9 @@ cargadas, así que las 11 convierten.
 
 **Qué falta:** el resto de los proveedores sigue en unidades; la unidad de envío se define caso por
 caso con el dueño (ése fue el acuerdo al arrancar con AJ). **Ahora son CUATRO formas, no dos: ver
-4ec (Ester) y 4ef (Guazzaroni), con la tabla de las cuatro en 4ef.** **Y el sugerido ya no se
-precarga en el campo Cantidad de los P.S.: sólo se muestra (ver 4ee).**
+4ec (Ester) y 4ef (Guazzaroni, Jade y otros cinco), con la tabla de las cuatro en 4ef.**
+**Y el sugerido ya no se precarga en el campo Cantidad de los P.S.: sólo se muestra (ver 4ee), que
+además se eligen y se cargan por TARJETAS (4eg).**
 
 ## 4eb. El 506 pasa al molde del 500/510 (sin GRJ7) y el adhesivado de pliego es un PASO, no un subcomponente (2026-09-17)
 
@@ -10416,9 +10422,9 @@ lo tienen, así que no pasa.
 donde además se fue la columna "Cajón envío" para ese proveedor: el cajón no es la unidad con la
 que se le manda y era ruido). Lo sirven `tablet_bundle` (en cada contraparte) y `envios_ps_bundle`
 (en cada PS). **Pendiente: seguir caso por caso con los demás proveedores** — van definidos AJ,
-Hernandez Julio y Ester de 15 PS. **Ya son cuatro formas: ver 4ef.** **El sugerido de los tres se
-sigue MOSTRANDO en su unidad, pero desde el 2026-09-17 ya no se precarga en el campo Cantidad
-(ver 4ee).**
+Hernandez Julio, Ester y los 7 del cajón por pieza. **Ya son cuatro formas: ver 4ef.** El sugerido
+se sigue MOSTRANDO en su unidad, pero desde el 2026-09-17 ya no se precarga en el campo Cantidad
+(ver 4ee).
 
 ## 4ed. La tabla de la tablet ENCOGE: el blanco va adentro de la celda, no entre columnas (2026-09-17)
 
@@ -10442,8 +10448,7 @@ angosta. En el celular (≤640px) no hay blanco que recortar: la tabla vuelve a 
 Lo cuida `tests/ui/test_tablet.js` midiendo a 1.280px (la tablet, no los 390px del celular): la
 tabla tiene que medir lo mismo que su contenido (`max-content`) y el buscador lo mismo que la tabla.
 Si alguna pantalla futura vuelve a quedar con pocas columnas, éste es el patrón a copiar.
-
-## 4ee. El SUGERIDO es referencia, no orden: a los P.S. no se les precarga la cantidad (2026-09-17)
+## 4ee. El SUGERIDO es referencia, no orden: a los P.S. no se les precarga la cantidad (2026-09-17/18)
 
 `[usuario 2026-09-17, textual: "en el caso de envío a proveedores de servicio en la versión tablet,
 no me preescribas lo que voy a enviar la cantidad que voy a enviar sino que lo voy a escribir yo
@@ -10482,7 +10487,7 @@ lugar del envío real — y un envío mal cargado desbalancea el stock del P.S. 
   tipeado. Debajo de un campo en blanco era ruido.
 - **`EnviosPS_GP2` (pantalla de escritorio) no se tocó**: el pedido fue "en la versión tablet".
 
-## 4ef. La cuarta forma de enviar: Guazzaroni mira CAJONES (el de cada pieza) y escribe KG (2026-09-17)
+## 4ef. La cuarta forma de enviar: el CAJÓN DE CADA PIEZA se mira, y se escribe KG — Guazzaroni (2026-09-17), Jade y otros cinco (2026-09-18)
 
 `[usuario, textual: "dentro del version tablet, y envio a ps. Siguiendo la lógica del módulo
 Ester ---> en el módulo de guazzaroni patricio, el sugerido tendría que aparecer en cajones y en
@@ -10503,7 +10508,9 @@ proveedor, sale de la pieza"*. Con eso las cuatro formas entran en las mismas tr
 | AJ Adhesivos (12) | `paquetes` | 100 | `null` | sugerido y cantidad en paquetes |
 | Ester (14) | `bolsas` | 1800 | `kg` | sugerido en bolsas, cantidad en kg |
 | **Guazzaroni Patricio (4)** | `cajones` | **null** | `kg` | **sugerido en cajones de ESA pieza, cantidad en kg** |
-| Hernandez Julio (8) | `kg` | null | `null` | sugerido y cantidad en kg, el bulto al lado |
+| **Jade (5)** | `cajones` | **null** | `kg` | idem Guazzaroni (2026-09-18) |
+| **FAAT (2), Mabra (3), Pedernera (6), Scorrano (7), Maspoli (15)** | `cajones` | **null** | `kg` | idem (2026-09-18) |
+| Hernandez Julio (8) | `kg` | null | `null` | sugerido en bultos, cantidad en kg; el bulto lo pone el SECTOR |
 
 Ejemplo real: CV1 (remache espiral) tiene 57.143 uni por cajón y 0,00035 kg por unidad → **1 cajón
 = 20,00 kg**. Sugerido 34.992 remaches → **1 cajón** (techo, como siempre: no se pide menos de lo
@@ -10513,6 +10520,62 @@ que falta) y la cantidad se precarga en 20,00 kg.
 pantalla dice a cuántos cajones equivalen, **sin decimales**. Cuando no da entero se muestra con
 `≈` (70 kg → 3,5 → **"≈ 3 cajones"**), para que se lea que es redondeado y no parezca exacto.
 
+### UN ENVASE NO SE PARTE: la regla vale para TODAS las formas (2026-09-18)
+
+`[usuario, sobre un "= 6,17 bolsas" de Ester: "acordate que todo lo que sea envío de cajones y
+bolsas redondear. En este caso, el pasaje serían 6 bolsas"]`. Hasta ese día convivían **dos**
+criterios: el envase del proveedor (Ester) mostraba 2 decimales cuando no daba entero, y el cajón
+por pieza ya se redondeaba. Ahora es **uno solo**, en la Tablet y en Envío a PS:
+
+| lo que se mira | cómo se redondea | por qué |
+|---|---|---|
+| **el equivalente en bultos de lo que se manda** | al entero **más cercano** (6,17 → 6; 4,83 → 5) | es una descripción de lo que va en el camión, no un pedido |
+| **el sugerido** | **para arriba** (techo) | es *lo que falta*, y pedir menos no llena el lugar `[usuario 2026-09-17, Ester: "redondeás por arriba"]` |
+
+Son dos cosas distintas y por eso redondean distinto — la trampa es creer que es la misma regla.
+
+El texto lo arma `textoEnvases()`: **"="** cuando da justo, **"≈"** cuando se redondeó, y
+**"menos de 1 bolsa"** (en palabras) cuando no llega a un envase, porque un *"≈ 0 bolsas"* no le
+dice nada al operario. `equivEnvase()` perdió el parámetro `redondear`: ya no hay dos modos.
+
+**También cambió lo que se REGISTRA**: `movimiento.cajones` guardaba el número crudo con 2
+decimales (3,5 cajones) y ahora guarda el mismo entero que se ve. Si redondeando da cero, no se
+anota ningún bulto (queda `null`): es informativo y un 0 mentiría igual que un 3,5.
+
+**Ese renglón chico es AHORA EL ÚNICO FORMATO, en las cuatro formas** `[usuario 2026-09-18,
+textual: "está bien que me lo ponga chiquito abajo, pero modificá Hernandez Julio así quedan todos
+así"]`. Julio era el que quedaba distinto: tenía el bulto en una **columna aparte**, con su propio
+campo. Desde la v1.14.0 su tabla también es `Pieza | Sugerido | Cantidad (kg)` y sus bolsas/cajones
+salen abajo del campo. **Lo que se perdió a propósito**: el bulto ya no se corrige a mano — se
+calcula de los kg con techo y es lo que se anota en `movimiento.cajones` (informativo; el stock lo
+mueve la cantidad en kg). En el código hay **un solo** `eqFila(x, q)` que decide el renglón para
+las dos maneras de convertir (envase del proveedor / bulto por sector).
+
+**Jade (id 5), 2026-09-18** `[usuario, textual: "Seguimos con Jade. El sugerido tiene que aparecer
+en cajones y la cantidad… Pones los kilos y te tira cuántos cajones es el equivalente. Es parecido
+a lo que hicimos en Guazzaroni"]`. Exactamente la misma forma: **no hizo falta tocar una línea de
+código**, sólo las tres columnas de `proveedor_servicio`. `[dato]` las **12 piezas** que Jade pinta
+/ croma / zinca (G13, G2, G7, H11, H15, I1, I6, J13, J2, J5, K2, K5) tienen `uni_x_cajon` **y**
+`kg_x_uni` cargados, así que **las 12 convierten** y ninguna cae a unidades. Los cajones de Jade
+son grandes (606 a 1.685 piezas) y sus sugeridos a veces chicos: **con el techo, un sugerido de 54
+unidades pide 1 cajón entero de 1.145** (G2). Es la regla de la casa —no se pide menos de lo que
+falta— y el operario igual escribe los kg reales; queda anotado por si el dueño prefiere otra cosa
+para los sugeridos chicos.
+
+**Los otros cinco, 2026-09-18** `[usuario, textual: "Lo mismo con Laboratorio FAAT, Mabra
+Metalurgica, Maspoli SRL… Y Pedernera Ilario y Scorrano Mario, la misma lógica"; "es decir, Jade,
+FAAT, Mabra, Maspoli, Pedernera y Scorrano modelalo igual el sugerido y cantidad"]`. Otra vez
+**sólo datos**: `update proveedor_servicio set envio_unidad='cajones', envio_uni_x=null,
+envio_carga_unidad='kg' where id in (2,3,6,7,15)`. `[dato]` FAAT 10 piezas, Mabra 1, Pedernera 33,
+Scorrano 1, Maspoli 1; sólo **Pedernera** tiene una pieza sin `uni_x_cajon` y una sin `kg_x_uni`
+(esas quedan en unidades y la celda lo dice).
+
+**Con esto ya no queda ningún P.S. con piezas sin unidad de envío definida**: los 7 del cajón por
+pieza, AJ por paquetes, Ester por bolsas y Julio por peso cubren todos los que reciben algo. Los
+que siguen en `null` (Rec Color, Daniel, Blist-Pack) **no tienen piezas en ruta**, y los dos
+híbridos (Charcas, Eclipse) ni siquiera aparecen en Enviar. En los tests, el "P.S. común" —el
+render de siempre, cajón + kg— lo representa **Blist-Pack**.
+
 **Lo que NO se convierte**: `[dato 2026-09-17]` 5 de las 25 piezas de Guazzaroni no tienen
 `uni_x_cajon` cargado (CV12, CV18D, CV6, CV9, W1B) y CV18D tampoco tiene `kg_x_uni`. Esas filas
 **se cargan en unidades** y la celda lo dice ("sin cajón cargado"): no se inventa un cajón. Si el
@@ -10521,12 +10584,18 @@ dueño carga el `uni_x_cajon` de esas 5, pasan solas al modo cajones/kg — no h
 **El inventario sigue sin ver cajones**: viaja el kg (`unidad='kg'`) y `to_canonical` lo pasa a
 unidades con `kg_x_uni`; los cajones quedan anotados en `movimiento.cajones`, informativos.
 
-**Dónde se ve**: `Tablet/Tablet_GP2.html` (v1.11.0 — v1.9.0 y v1.10.0 las tomaron el mismo día otras dos sesiones: el encogido de columnas y el sugerido en bultos de Julio) y `Prov Serv/Envios/EnviosPS_GP2.html` (v1.6.0).
+**Dónde se ve**: `Tablet/Tablet_GP2.html` (v1.11.0 — v1.9.0 y v1.10.0 las tomaron el mismo día otras dos sesiones: el encogido de columnas y el sugerido en bultos de Julio) y `Prov Serv/Envios/EnviosPS_GP2.html` (v1.6.0). **Sumar un proveedor más a esta forma es un UPDATE, no un deploy**: el alta de Jade (2026-09-18) no tocó ningún archivo de pantalla ni bumpeó versión.
 En Envío a PS el sugerido **ya se calculaba en cajones**, así que ahí sólo cambió el rótulo y el
-layout (se va la columna "Cajón envío", queda un solo campo en kg). **Pendiente: siguen sin definir
-11 de los 15 PS.**
+layout (se va la columna "Cajón envío", queda un solo campo en kg). **Ya no queda pendiente ningún
+P.S. que reciba piezas**: van definidos 10 de los 15 (AJ, Ester, Julio y los 7 del cajón por pieza)
+y los 5 que faltan son los que no tienen piezas en ruta o son híbridos.
 
 ### El bug que salió de paso: la Cantidad precargada quedaba VIEJA
+
+> **Al día siguiente esto se volvió historia para los P.S.**: el dueño pidió que en Enviar a
+> proveedor de servicio la Cantidad no se precargue **ni se guarde** (4ee), así que ahí el buffer
+> se borra al entrar y al salir. Lo que sigue vale para el **tallerista**, que es donde la
+> precarga quedó viva.
 
 `[usuario 2026-09-17: "fijate que hoy aparece el sugerido y la cantidad preescrita distinta en
 guazzaroni, chequea"]`. La Tablet precarga el Sugerido en la Cantidad, pero **sólo si el campo está
@@ -10542,7 +10611,71 @@ y **no se pisa nunca**. Vale para todos los proveedores. La lección general: *u
 guardado en `localStorage` necesita saber si sigue siendo derivado o ya lo editó una persona* —
 guardar el valor no alcanza, hay que guardar también que lo puso la máquina.
 
-## 4eg. El FASONERO: a Maspoli se le emite O.C., y el envío de virolas sale de esa O.C. (2026-09-18)
+
+
+## 4eg. Enviar a un P.S. se elige por TARJETAS, y la carga es una pantalla por parte (2026-09-18)
+
+`[usuario 2026-09-18, textual: "En la versión tablet, dentro del módulo “Envío a proveedores de
+servicio”, quiero modificar la forma en que se seleccionan las partes. Actualmente se muestran en
+formato de listado. Quiero reemplazar ese listado por boxes o tarjetas individuales. Cada box debe
+mostrar, como mínimo: código o nombre de la parte, descripción de la parte. Al seleccionar una
+parte, debe abrirse una vista donde se muestre: la cantidad sugerida a enviar, un campo para
+indicar la cantidad efectiva que se va a enviar"]`
+
+El listado de un P.S. dejó de ser una tabla: es una **grilla de tarjetas**, una por parte, y al
+tocar una se abre **la vista de esa parte** con el sugerido arriba y el campo de la cantidad abajo.
+
+- **Alcance: Enviar → Prov. de servicio, inyectores incluidos** (se eligen dentro de ese mismo
+  botón, así que para el que usa la tablet son lo mismo). Es **el mismo conjunto** que ya no se
+  acuerda de lo tipeado (4ee): en el código la vista de tarjetas y `envSinMemoria()` son la misma
+  cuenta, a propósito. **Talleristas, prov. de art. terminado y TODO Recibir siguen con la tabla**:
+  ahí hay esperado, exceso y remito, que se leen de corrido y no de a una parte.
+- **La tarjeta** muestra código (con su unidad), descripción, el **sugerido** de referencia y, abajo,
+  lo que hoy se va a mandar: *"sin cargar"* en gris, o *"✓ envía N"* en verde con el borde verde.
+  Ese renglón de estado es lo que reemplaza al vistazo que daba la tabla: de un golpe se ve qué
+  falta cargar, sin abrir nada.
+- **La vista de la parte** mantiene **todas** las formas de enviar de 4ea/4ec/4ef sin excepción:
+  paquetes (AJ), kg con "= N bolsas" (Ester), kg con "≈ N cajones" redondeados (los 7 del cajón por
+  pieza) y por peso (Julio), que **desde el mismo 2026-09-18 también tiene un solo campo**: sus
+  bolsas/cajones son el renglón chico de debajo de los kg, como en todas las demás (ver 4ef). El
+  segundo campo del bulto existió menos de un día.
+- **Y no hay atajo para copiar el sugerido al campo** `[usuario 2026-09-18, textual: "no quiero que
+  aparezca la opción de enviar sugerido"]`. La primera versión de esta pantalla tenía un botón
+  "Usar el sugerido"; se sacó el mismo día. Es la misma línea de 4ee llevada hasta el final: si el
+  sugerido es **referencia**, tampoco puede haber un botón que lo convierta en la cantidad de un
+  toque — eso es la precarga otra vez, con un click en el medio. El único botón de la vista es
+  "Listo", que cierra la parte.
+- **No cambió nada de datos**: mismo buffer, mismo payload, mismas RPC. La cuenta del sugerido quedó
+  en **una sola función** (`sugeridoInfo()` para mostrarlo, `sugeridoEnCarga()` para escribirlo) que
+  ahora usan la tabla, la tarjeta, la vista de la parte y la precarga del tallerista: antes eran
+  cuatro copias de la misma aritmética y se podían separar.
+- **`EnviosPS_GP2` (escritorio) no se tocó**: el pedido fue "en la versión tablet". Sigue con la
+  tabla, igual que antes.
+
+## 4eh. En la tablet el botón de los inyectores dice "bolsas plásticas", y la tarjeta no corta texto (2026-09-18)
+
+`[usuario 2026-09-18, textual: "En versión tablet, en vez de bolsas de resina, bolsas plásticas
+poné"]` — el subtítulo del botón **Inyectores** de Enviar. Cambio de **palabra en pantalla**, nada
+más: adentro sigue viajando **resina en kg** por `enviar_material_inyector`, con el sugerido que
+sale de la O.C. de partes (4ea). Los comentarios del código y esta memoria siguen diciendo
+"resina" porque eso es lo que se mueve; "bolsas plásticas" es cómo lo nombra el que carga.
+
+`[usuario 2026-09-18, textual: "ojo que por ejemplo, en guazzaroni, aparece así" + captura de la
+tarjeta de CV12 con "Sugerido 13.272 uni · sin cajón cargad" comido por el borde]` — **el texto de
+la tarjeta se cortaba**. La causa era `white-space:nowrap` en `.pc-sug`: en la tablet real la
+grilla arma columnas de 230px y esa línea, la más larga que produce la pantalla (sugerido +
+unidad + la nota "sin cajón cargado" de 4ef), no entra en un renglón. Ahora baja de renglón, y la
+tarjeta entera lleva `overflow-wrap:anywhere` para que un código o una descripción larga tampoco
+se puedan ir afuera.
+
+**Lo que hay que recordar de esto:** el recorte **no se ve a 390px**, donde la tarjeta ocupa el
+ancho completo y la línea entra — se ve a **1.280px**, que es la tablet de verdad. Los dos anchos
+se miden en `test_tablet.js`, y el chequeo del recorte va en el bloque de 1.280. Y se mide
+comparando el ancho real del texto (`Range.getBoundingClientRect()`) contra el de su caja:
+`scrollWidth` **no** sirve, porque con `nowrap` la caja mide bien y el texto se va afuera igual
+(medido: el guardián con `scrollWidth` daba OK con el bug puesto; con `Range` dio 48px de desborde).
+
+## 4ei. El FASONERO: a Maspoli se le emite O.C., y el envío de virolas sale de esa O.C. (2026-09-18)
 
 `[usuario 2026-09-18, textual]`: *"que el envío a Maspoli de virolas no surja hasta que se hace una
 orden de compra. Cuando se hace la orden de compra, imaginate que se hizo una orden de compra por 10

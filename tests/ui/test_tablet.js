@@ -28,7 +28,11 @@ const BUNDLE = {
     { tipo: 'tallerista', ref: '6', nombre: 'Martin Cornejo', n_env: 2, n_rec: 1 },
     { tipo: 'tallerista', ref: '9', nombre: 'Lucho', n_env: 1, n_rec: 0 },
     { tipo: 'proveedor_at', ref: '1', nombre: 'Cabral', n_env: 1, n_rec: 1 },
-    { tipo: 'proveedor_servicio', ref: '5', nombre: 'Jade', n_env: 1, n_rec: 1 },
+    // el PS "comun", sin unidad de envio propia. Al 2026-09-18 ya NINGUN P.S. con piezas quedo
+    // asi (los 7 que las tienen van por el cajon de cada pieza, AJ por paquetes y Julio por peso):
+    // Blist-Pack es de los que siguen sin unidad definida, y aca se le dan piezas para cubrir el
+    // render comun, que es el que ven los talleristas y el que quedaria si se suma un P.S. nuevo.
+    { tipo: 'proveedor_servicio', ref: '20', nombre: 'Blist-Pack', n_env: 1, n_rec: 1 },
     { tipo: 'proveedor_servicio', ref: '12', nombre: 'AJ Adhesivos', envio_unidad: 'paquetes', envio_uni_x: 100, n_env: 1, n_rec: 0 },
     { tipo: 'proveedor_servicio', ref: '8', nombre: 'Hernandez Julio', envio_unidad: 'kg', envio_uni_x: null, n_env: 2, n_rec: 0 },
     { tipo: 'proveedor_servicio', ref: '14', nombre: 'Ester', envio_unidad: 'bolsas', envio_uni_x: 1800, envio_carga_unidad: 'kg', n_env: 1, n_rec: 0 },
@@ -46,7 +50,7 @@ const BUNDLE = {
     { tipo: 'tallerista', ref: '6', comp_id: 70, cod: 'A10', desc: 'Cpo Una', sector: 'Sector Crudo', um: 'unidad', uxc: 1000, kg_x_uni: 0.01, online_sector: 120, saldo_dest: 42, maximo: 200, stock_dest: 50, sugerido: 150 },
     { tipo: 'tallerista', ref: '6', comp_id: 75, cod: 'F7', desc: 'Fleje doblado', sector: 'Sector Fleje', um: 'kg', uxc: null, kg_x_uni: 0.0134, online_sector: 30.5, saldo_dest: 7.5, maximo: 40, stock_dest: 10, sugerido: 12.5 },
     { tipo: 'tallerista', ref: '9', comp_id: 70, cod: 'A10', desc: 'Cpo Una', sector: 'Sector Crudo', um: 'unidad', uxc: 1000, kg_x_uni: 0.01, online_sector: 120, saldo_dest: 0, maximo: 200, stock_dest: 0, sugerido: 200 },
-    { tipo: 'proveedor_servicio', ref: '5', comp_id: 90, cod: 'D5', desc: 'Mitad rompenuez', sector: 'Sector Crudo', um: 'unidad', uxc: 500, kg_x_uni: 0.05, online_sector: 40, saldo_dest: 0, maximo: 100, stock_dest: 20, sugerido: 80 },
+    { tipo: 'proveedor_servicio', ref: '20', comp_id: 90, cod: 'D5', desc: 'Mitad rompenuez', sector: 'Sector Crudo', um: 'unidad', uxc: 500, kg_x_uni: 0.05, online_sector: 40, saldo_dest: 0, maximo: 100, stock_dest: 20, sugerido: 80 },
     // AJ Adhesivos manda por PAQUETES de 100: sugerido 250 uni -> 3 paquetes (techo)
     { tipo: 'proveedor_servicio', ref: '12', comp_id: 564, cod: 'Pliego 506', desc: 'Sin adhesivar', sector: 'Sector Procesado', um: 'unidad', uxc: null, kg_x_uni: null, online_sector: 0, saldo_dest: 0, maximo: 500, stock_dest: 0, sugerido: 250 },
     // Hernandez Julio recibe PESADO (envio_unidad 'kg'): las metalicas van en cajones y las
@@ -68,7 +72,7 @@ const BUNDLE = {
   recibir: [
     { tipo: 'tallerista', ref: '6', comp_id: 71, comp_entrada_id: 70, n_entradas: 1, tiene_bom: false, cod_art: null, cod: 'A11', desc: 'Una Armada', sector: 'Sector Procesado', um: 'unidad', uxc: 500, kg_x_uni: 0.01, por_caja: null, ent_cod: 'A10', ent_desc: 'Cpo Una', esperado: 100, esperado_origen: 'online_tall' },
     { tipo: 'proveedor_at', ref: '1', comp_id: null, comp_entrada_id: null, n_entradas: 0, tiene_bom: false, cod_art: '026', cod: '026', desc: 'Colador N°8', sector: null, um: null, uxc: null, kg_x_uni: null, por_caja: 36, ent_cod: null, ent_desc: null, esperado: 72, esperado_origen: 'oc' },
-    { tipo: 'proveedor_servicio', ref: '5', comp_id: 91, comp_entrada_id: 90, n_entradas: 1, tiene_bom: false, cod_art: null, cod: 'D5-P', desc: 'Mitad pintada', sector: 'Sector Procesado', um: 'unidad', uxc: 500, kg_x_uni: 0.05, por_caja: null, ent_cod: 'D5', ent_desc: 'Mitad rompenuez', esperado: 40, esperado_origen: 'online_ps' },
+    { tipo: 'proveedor_servicio', ref: '20', comp_id: 91, comp_entrada_id: 90, n_entradas: 1, tiene_bom: false, cod_art: null, cod: 'D5-P', desc: 'Mitad pintada', sector: 'Sector Procesado', um: 'unidad', uxc: 500, kg_x_uni: 0.05, por_caja: null, ent_cod: 'D5', ent_desc: 'Mitad rompenuez', esperado: 40, esperado_origen: 'online_ps' },
     { tipo: 'virgilio', ref: 'virgilio', comp_id: 373, comp_entrada_id: null, n_entradas: 0, tiene_bom: false, cod_art: null, cod: 'IC3V', desc: 'Fleje N° 90 LARGO', sector: 'Sector Fleje', um: 'kg', uxc: 24, kg_x_uni: 0.0134, por_caja: null, ent_cod: null, ent_desc: null, esperado: 20, esperado_origen: 'online_virgilio' },
   ],
 };
@@ -106,6 +110,17 @@ window.supabase = { createClient: function(){ return {
   const ok = (c, msg) => { console.log((c ? 'OK  ' : 'FAIL') + ' ' + msg); if (!c) process.exitCode = 1; };
   const calls = async (n) => page.evaluate(n => (window.__calls || []).filter(c => c.name === n), n);
   const tipos = () => page.$$eval('#tipoGrid .tipo-btn', xs => xs.map(x => x.textContent.replace(/\s+/g, ' ').trim()));
+  // Enviar -> Prov. de servicio (y los inyectores, que se eligen ahi adentro) muestra las partes
+  // como TARJETAS y la carga en una vista aparte [usuario 2026-09-18]. Estos helpers son ese flujo.
+  const cards = () => page.$$eval('#cardsGrid .parte-card', xs => xs.map(x => x.textContent.replace(/\s+/g, ' ').trim()));
+  const abrir = async (cod) => {
+    await page.click('#cardsGrid .parte-card:has-text("' + cod + '")');
+    await page.waitForSelector('#detCard input[data-f="q"]');
+  };
+  const det = () => page.$eval('#detCard', e => e.textContent.replace(/\s+/g, ' ').trim());
+  const DQ = '#detCard input[data-f="q"]', DC = '#detCard input[data-f="c"]';
+  const DEQ = '#detCard .det-eq';   // el renglon chico con el equivalente en bultos
+  const cargarParte = async (cod, valor) => { await abrir(cod); await page.fill(DQ, valor); await page.click('#btnVolverPartes'); };
 
   await page.goto(ROOT + '/Tablet/Tablet_GP2.html');
   await page.evaluate(() => localStorage.clear());
@@ -135,27 +150,39 @@ window.supabase = { createClient: function(){ return {
   // 2026-09-18]. Su envio son las RESINAS (bolsas) en kg.
   await page.click('#tipoGrid .tipo-btn[data-tipo="proveedor_servicio"]');
   const soloPS = await page.$$eval('#cpGrid .prov-btn', xs => xs.map(x => x.textContent.replace(/\s+/g, ' ')));
-  ok(soloPS.some(b => b.startsWith('Jade')) && !soloPS.some(b => b.startsWith('Pat Bet Plast')),
+  ok(soloPS.some(b => b.startsWith('Blist-Pack')) && !soloPS.some(b => b.startsWith('Pat Bet Plast')),
      'bajo "Prov. de servicio" ya no sale el inyector — ' + soloPS.join(' | '));
   await page.click('#btnVolverTipo');
-  // un solo inyector en el fixture: el tipo entra directo a su tabla (no se elige entre uno)
+  // un solo inyector en el fixture: el tipo entra directo a su carga (no se elige entre uno)
   await page.click('#tipoGrid .tipo-btn[data-tipo="inyector"]');
   ok((await page.$eval('#fase1Title', e => e.textContent)) === 'Pat Bet Plast',
      'Inyectores abre el inyector (Pat Bet Plast)');
-  const resinas = await page.$$eval('#tbody tr', xs => xs.map(x => x.textContent.replace(/\s+/g, ' ')));
+  // el inyector se carga igual que un P.S., asi que tambien va en TARJETAS (aunque desde v1.14.0
+  // se lo elija en su propio boton): la vista cuelga de envSinMemoria, que incluye a los dos
+  ok(await page.$eval('#tblWrap', e => e.classList.contains('hidden')) &&
+     !(await page.$eval('#cardsGrid', e => e.classList.contains('hidden'))),
+     'inyector: la tabla no se usa, las partes van en tarjetas');
+  const resinas = await cards();
   ok(resinas.length === 2 && resinas.some(r => r.includes('2405')) && resinas.every(r => r.includes('kg')),
      'el inyector manda sus resinas (bolsas) en kg — ' + resinas.join(' | '));
-  // el inyector trae el sugerido de bolsas (kg) — se MUESTRA, pero NO se precarga en Cantidad:
-  // igual que en P.S., el campo lo escribe la persona
-  // [usuario 2026-09-17: "no me preescribas ... la cantidad que voy a enviar"]
-  const ivals = await page.$$eval('#tbody input.cell-in', xs => xs.map(x => x.value));
-  ok(ivals[0] === '' && ivals[1] === '', 'inyector: la cantidad arranca vacia — ' + JSON.stringify(ivals));
-  const isug = await page.$$eval('#tbody tr td:nth-child(2)', xs => xs.map(x => x.textContent.trim()));
-  ok(isug[0] === '200' && isug[1] === '30', 'inyector: el sugerido igual se ve en su columna — ' + isug.join(' , '));
+  // el sugerido de bolsas (kg) se VE en la tarjeta, pero la cantidad arranca sin cargar: el campo
+  // lo escribe la persona [usuario 2026-09-17: "no me preescribas ... la cantidad que voy a enviar"]
+  ok(resinas[0].includes('Sugerido 200 kg') && resinas[1].includes('Sugerido 30 kg'),
+     'inyector: cada tarjeta muestra su sugerido — ' + resinas.join(' | '));
+  ok(resinas.every(r => r.includes('sin cargar')), 'inyector: las tarjetas arrancan sin cargar — ' + resinas.join(' | '));
+  ok((await page.$$eval('#cardsGrid .parte-card.cargada', xs => xs.length)) === 0,
+     'inyector: ninguna tarjeta se pinta como cargada');
   ok((await page.$eval('#btnEnviar', e => e.disabled)) === true, 'inyector: sin nada cargado el boton Enviar no habilita');
-  // enviar con sugerido: la tabla muestra SOLO Pieza · Sugerido · Cantidad (se sacaron Stock/Máximo)
-  const thIny = await page.$$eval('#thead th', xs => xs.map(x => x.textContent.trim()));
-  ok(thIny.join('|') === 'Pieza|Sugerido|Cantidad', 'inyector: solo Pieza/Sugerido/Cantidad — ' + thIny.join(' | '));
+  // la vista de UNA parte: codigo, descripcion, el sugerido y el campo de la cantidad efectiva
+  await abrir('2405');
+  const detIny = await det();
+  ok(detIny.includes('2405') && detIny.includes('PP 2630') && detIny.includes('Sugerido a enviar') &&
+     detIny.includes('200 kg') && detIny.includes('Cantidad a enviar'),
+     'inyector: la vista de la parte trae codigo, descripcion, sugerido y el campo — ' + detIny);
+  ok((await page.$eval(DQ, e => e.value)) === '', 'inyector: el campo de la vista arranca vacio');
+  ok((await page.$eval(DQ, e => e.getAttribute('inputmode'))) === 'decimal', 'inyector: teclado decimal (resina en kg)');
+  await page.click('#btnVolverPartes');
+  ok((await page.$$eval('#cardsGrid .parte-card', xs => xs.length)) === 2, 'inyector: "← Partes" vuelve a la grilla');
   await page.click('#btnVolver');        // un solo inyector: vuelve directo a los tipos
   await page.waitForFunction(() => document.querySelectorAll('#tipoGrid .tipo-btn').length > 0);
 
@@ -212,15 +239,28 @@ window.supabase = { createClient: function(){ return {
   await page.waitForFunction(() => document.querySelectorAll('#tipoGrid .tipo-btn').length > 0);
   await page.click('#tipoGrid .tipo-btn[data-tipo="proveedor_servicio"]');
   await page.click('#cpGrid .prov-btn:has-text("AJ Adhesivos")');
-  const thAj = await page.$$eval('#thead th', xs => xs.map(x => x.textContent.trim()));
-  ok(thAj.join('|') === 'Pieza|Sugerido (paquetes)|Cantidad (paquetes)',
-     'AJ: los dos encabezados aclaran la unidad (paquetes) — ' + thAj.join(' | '));
-  const ajRow = await page.$eval('#tbody tr', x => x.textContent.replace(/\s+/g, ' '));
-  ok(ajRow.includes('Pliego 506') && ajRow.includes('3'),
-     'AJ: sugerido 250 uni -> 3 paquetes (techo) — ' + ajRow);
-  ok((await page.$eval('#tbody input.cell-in', e => e.value)) === '',
+  const ajCards = await cards();
+  ok(ajCards.length === 1 && ajCards[0].includes('Pliego 506') && ajCards[0].includes('Sin adhesivar'),
+     'AJ: la parte es una tarjeta con su codigo y su descripcion — ' + ajCards[0]);
+  ok(ajCards[0].includes('Sugerido 3 paquetes'),
+     'AJ: sugerido 250 uni -> 3 paquetes (techo), en la unidad del proveedor — ' + ajCards[0]);
+  await abrir('Pliego 506');
+  const detAj = await det();
+  ok(detAj.includes('Sugerido a enviar') && detAj.includes('3 paquetes') && detAj.includes('Cantidad a enviar'),
+     'AJ: la vista de la parte muestra el sugerido en paquetes y el campo — ' + detAj);
+  ok((await page.$eval(DQ, e => e.value)) === '',
      'AJ (P.S.): la cantidad NO viene precargada, la escribe la persona');
-  await page.fill('#tbody input.cell-in', '3');
+  ok((await page.$eval('#detCard .det-uni', e => e.textContent.trim())) === 'paquetes',
+     'AJ: el campo dice que se escribe en paquetes');
+  // NO hay atajo para copiar el sugerido al campo [usuario 2026-09-18: "no quiero que aparezca la
+  // opcion de enviar sugerido"]: el unico boton de la vista es "Listo"
+  const btnsDet = await page.$$eval('#detCard button', xs => xs.map(b => b.textContent.trim()));
+  ok(btnsDet.join('|') === 'Listo', 'la vista de la parte no ofrece copiar el sugerido — ' + btnsDet.join(' | '));
+  await page.fill(DQ, '3');
+  await page.click('#btnVolverPartes');
+  const ajCard2 = (await cards())[0];
+  ok(ajCard2.includes('envía 3 paquetes') && (await page.$$eval('#cardsGrid .parte-card.cargada', xs => xs.length)) === 1,
+     'AJ: al volver, la tarjeta muestra lo que se va a mandar y queda marcada — ' + ajCard2);
   await page.click('#btnEnviar');
   await page.waitForFunction(() => !document.getElementById('fase3').classList.contains('hidden'));
   const regAj = await calls('tablet_registrar');
@@ -229,70 +269,88 @@ window.supabase = { createClient: function(){ return {
      'AJ: 3 paquetes se guardan como 300 pliegos (uni), no como paquetes — ' + JSON.stringify(itAj));
   ok(dialogs.some(d => d.type === 'confirm' && d.msg.includes('3 paquetes')), 'AJ: el confirm resume en paquetes');
 
-  // ── Hernandez Julio recibe PESADO: sugerido en bultos enteros + Cantidad (kg) y (bolsas/cajones) ──
+  // ── Hernandez Julio recibe PESADO: sugerido en bultos enteros + Cantidad (kg) con el bulto abajo ──
+  // Desde el 2026-09-18 Julio NO tiene columna de bulto: sus bolsas/cajones salen como el renglon
+  // chico de debajo del campo de kg, igual que en Ester y en los que van por el cajon de la pieza
+  // [usuario: "esta bien que me lo ponga chiquito abajo, pero modifica hernandez julio asi quedan
+  // todos asi"]. El bulto se calcula de los kg y ya no se corrige a mano.
   await page.click('#btnOtro');
   await page.waitForFunction(() => document.querySelectorAll('#tipoGrid .tipo-btn').length > 0);
   await page.click('#tipoGrid .tipo-btn[data-tipo="proveedor_servicio"]');
   await page.click('#cpGrid .prov-btn:has-text("Hernandez Julio")');
-  const thJu = await page.$$eval('#thead th', xs => xs.map(x => x.textContent.trim()));
-  ok(thJu.join('|') === 'Pieza|Sugerido|Cantidad (kg)|Cantidad (bolsas / cajones)',
-     'Julio: las dos cantidades aclaran la unidad entre parentesis — ' + thJu.join(' | '));
-  const juRows = await page.$$eval('#tbody tr', xs => xs.map(x => x.textContent.replace(/\s+/g, ' ')));
+  const juCards = await cards();
   // el sugerido se mira en BULTOS enteros (techo), no en kilos: 1000 uni / 750 por cajon -> 2
-  const sugJu = await page.$$eval('#tbody tr', xs => xs.map(t => t.children[1].textContent.replace(/\s+/g, ' ').trim()));
-  ok(juRows.length === 2 && juRows[0].includes('A1') && sugJu[0] === '2cajones',
-     'Julio metalica: sugerido 1000 uni -> 2 cajones (techo), sin kilos en la celda — ' + sugJu[0]);
-  ok(juRows[1].includes('PA10B') && juRows[1].includes('5bolsas'),
-     'Julio plastica: sugerido 5000 uni -> 5 bolsas — ' + juRows[1]);
-  const juIns = await page.$$eval('#tbody tr', xs => xs.map(t => Array.from(t.querySelectorAll('input.cell-in')).map(i => i.value)));
-  // los dos campos arrancan VACIOS: es un P.S. y ahi la cantidad no se precarga (usuario
-  // 2026-09-17). El sugerido en bultos enteros se sigue viendo en su columna (2 cajones / 5 bolsas).
-  ok(juIns[0].length === 2 && juIns[0][0] === '' && juIns[0][1] === '',
-     'Julio metalica: kg y cajones vacios (P.S.: no se precarga) — ' + JSON.stringify(juIns[0]));
-  ok(juIns[1].length === 2 && juIns[1][0] === '' && juIns[1][1] === '',
-     'Julio plastica: las bolsas son un campo igual al de los cajones, tambien vacio — ' + JSON.stringify(juIns[1]));
-  // al cambiar los kg el bulto se autocompleta, siempre entero y para arriba
-  await page.fill('#tbody tr:nth-child(2) input.cell-in[data-f="q"]', '21');
-  ok((await page.$eval('#tbody tr:nth-child(2) input.cell-in[data-f="c"]', e => e.value)) === '11',
-     'Julio plastica: 21 kg -> 11 bolsas (10,5 redondeado para arriba)');
-  await page.fill('#tbody tr:nth-child(1) input.cell-in[data-f="q"]', '80');
-  ok((await page.$eval('#tbody tr:nth-child(1) input.cell-in[data-f="c"]', e => e.value)) === '3',
-     'Julio metalica: 80 kg -> 3 cajones (2,67 redondeado para arriba, nunca 2,67)');
-  // y si el operario corrige el bulto a mano, un cambio de kg ya no se lo pisa
-  await page.fill('#tbody tr:nth-child(1) input.cell-in[data-f="c"]', '4');
-  await page.fill('#tbody tr:nth-child(1) input.cell-in[data-f="q"]', '82');
-  ok((await page.$eval('#tbody tr:nth-child(1) input.cell-in[data-f="c"]', e => e.value)) === '4',
-     'Julio metalica: los cajones anotados a mano no se pisan');
+  ok(juCards.length === 2 && juCards[0].includes('A1') && juCards[0].includes('Sugerido 2 cajones'),
+     'Julio metalica: sugerido 1000 uni -> 2 cajones (techo), sin kilos en la tarjeta — ' + juCards[0]);
+  ok(juCards[1].includes('PA10B') && juCards[1].includes('Sugerido 5 bolsas'),
+     'Julio plastica: sugerido 5000 uni -> 5 bolsas — ' + juCards[1]);
+  ok(juCards.every(c => c.includes('sin cargar')), 'Julio: las dos tarjetas arrancan sin cargar (P.S.)');
+  // desde el 2026-09-18 Julio NO tiene segundo campo: el bulto es el renglon chico de debajo de los
+  // kg, igual que en las otras formas [usuario: "modifica hernandez julio asi quedan todos asi"]
+  await abrir('PA10B');
+  const detJu = await det();
+  ok(detJu.includes('Sugerido a enviar') && detJu.includes('5 bolsas') &&
+     detJu.includes('Cantidad a enviar') && !detJu.includes('Cantidad (bolsas)'),
+     'Julio: la vista pide solo los kg, el bulto ya no es un campo — ' + detJu);
+  ok((await page.$$eval(DC, xs => xs.length)) === 0, 'Julio: no quedo ningun campo de bulto');
+  ok((await page.$eval(DQ, e => e.value)) === '', 'Julio plastica: el campo arranca vacio (P.S.: no se precarga)');
+  ok((await page.$eval(DEQ, e => e.textContent.trim())) === '',
+     'Julio: con el campo vacio el renglon del bulto no dice "= 0"');
+  // al cambiar los kg el renglon se recalcula, siempre entero y para arriba
+  await page.fill(DQ, '21');
+  ok((await page.$eval(DEQ, e => e.textContent.trim())) === '≈ 11 bolsas',
+     'Julio plastica: 21 kg -> 10,5 bolsas -> "≈ 11" (un envase no se parte) — ' + (await page.$eval(DEQ, e => e.textContent.trim())));
+  await page.click('#btnVolverPartes');
+  await abrir('A1');
+  await page.fill(DQ, '82');
+  ok((await page.$eval(DEQ, e => e.textContent.trim())) === '≈ 3 cajones',
+     'Julio metalica: 82 kg -> 2,73 cajones -> "≈ 3", nunca 2,73 — ' + (await page.$eval(DEQ, e => e.textContent.trim())));
+  await page.click('#btnVolverPartes');
+  const juCards2 = await cards();
+  ok(juCards2[0].includes('envía 82 kg') && juCards2[1].includes('envía 21 kg'),
+     'Julio: las tarjetas muestran los kg cargados — ' + juCards2.join(' | '));
   await page.click('#btnEnviar');
   await page.waitForFunction(() => !document.getElementById('fase3').classList.contains('hidden'));
   const regJu = await calls('tablet_registrar');
   const itsJu = regJu[regJu.length - 1].args.p.items;
-  ok(itsJu[0].comp_id === 80 && itsJu[0].cantidad === 82 && itsJu[0].unidad === 'kg' && itsJu[0].cajones === 4,
-     'Julio metalica: viajan los KG y los cajones anotados — ' + JSON.stringify(itsJu[0]));
+  ok(itsJu[0].comp_id === 80 && itsJu[0].cantidad === 82 && itsJu[0].unidad === 'kg' && itsJu[0].cajones === 3,
+     'Julio metalica: viajan los KG y los cajones CALCULADOS — ' + JSON.stringify(itsJu[0]));
   ok(itsJu[1].comp_id === 231 && itsJu[1].cantidad === 21 && itsJu[1].unidad === 'kg' && itsJu[1].cajones === 11,
      'Julio plastica: 21 kg con sus 11 bolsas enteras — ' + JSON.stringify(itsJu[1]));
-  ok(dialogs.some(d => d.type === 'confirm' && d.msg.includes('82 kg (4 cajones)')),
+  ok(dialogs.some(d => d.type === 'confirm' && d.msg.includes('82 kg (3 cajones)')),
      'Julio: el confirm resume en kg con el bulto');
   // ── Ester: el sugerido en BOLSAS de 1800 pero la cantidad EN KG, con las bolsas al lado ──
   await page.click('#btnOtro');
   await page.waitForFunction(() => document.querySelectorAll('#tipoGrid .tipo-btn').length > 0);
   await page.click('#tipoGrid .tipo-btn[data-tipo="proveedor_servicio"]');
   await page.click('#cpGrid .prov-btn:has-text("Ester")');
-  const thEs = await page.$$eval('#thead th', xs => xs.map(x => x.textContent.trim()));
-  ok(thEs.join('|') === 'Pieza|Sugerido (bolsas)|Cantidad (kg)',
-     'Ester: el sugerido se mira en bolsas y la cantidad se escribe en kg — ' + thEs.join(' | '));
-  const esSug = await page.$eval('#tbody tr td:nth-child(2)', e => e.textContent.trim());
-  ok(esSug === '63', 'Ester: 112.432 mangos / 1800 -> 63 bolsas (techo) — ' + esSug);
-  ok((await page.$eval('#tbody input.cell-in', e => e.value)) === '',
+  const esCard = (await cards())[0];
+  ok(esCard.includes('PC2') && esCard.includes('Sugerido 63 bolsas'),
+     'Ester: 112.432 mangos / 1800 -> 63 bolsas (techo) en la tarjeta — ' + esCard);
+  await abrir('PC2');
+  const detEs = await det();
+  ok(detEs.includes('63 bolsas') && detEs.includes('Cantidad a enviar'),
+     'Ester: el sugerido se mira en bolsas y la cantidad se escribe en kg — ' + detEs);
+  ok((await page.$eval('#detCard .det-uni', e => e.textContent.trim())) === 'kg',
+     'Ester: el campo de la vista va en kg');
+  ok((await page.$eval(DQ, e => e.value)) === '',
      'Ester (P.S.): los kg NO vienen precargados con esas 63 bolsas, los escribe la persona');
-  await page.fill('#tbody input.cell-in', '612,36');
-  ok((await page.$eval('#tbody .env-eq', e => e.textContent.trim())) === '= 63 bolsas',
+  await page.fill(DQ, '612,36');
+  ok((await page.$eval('#detCard .det-eq', e => e.textContent.trim())) === '= 63 bolsas',
      'Ester: debajo del campo dice a cuántas bolsas equivale lo tipeado');
-  await page.fill('#tbody input.cell-in', '100');
-  ok((await page.$eval('#tbody .env-eq', e => e.textContent.trim())) === '= 10,29 bolsas',
-     'Ester: las bolsas se recalculan al tipear (100 kg / 9,72) — ' +
-     (await page.$eval('#tbody .env-eq', e => e.textContent.trim())));
-  await page.fill('#tbody input.cell-in', '612,36');
+  await page.fill(DQ, '100');
+  ok((await page.$eval('#detCard .det-eq', e => e.textContent.trim())) === '≈ 10 bolsas',
+     'Ester: 100 kg / 9,72 = 10,29 bolsas -> se muestra "≈ 10", sin decimales — ' +
+     (await page.$eval('#detCard .det-eq', e => e.textContent.trim())));
+  // y si no llega a un envase entero no se dice "≈ 0": se dice con palabras
+  await page.fill(DQ, '3');
+  ok((await page.$eval('#detCard .det-eq', e => e.textContent.trim())) === 'menos de 1 bolsa',
+     'Ester: 3 kg no llegan a una bolsa y lo dice con palabras — ' +
+     (await page.$eval('#detCard .det-eq', e => e.textContent.trim())));
+  await page.fill(DQ, '612,36');
+  await page.click('#btnVolverPartes');
+  ok((await cards())[0].includes('envía 612,36 kg'),
+     'Ester: la tarjeta muestra los kg cargados — ' + (await cards())[0]);
   await page.click('#btnEnviar');
   await page.waitForFunction(() => !document.getElementById('fase3').classList.contains('hidden'));
   const regEs = await calls('tablet_registrar');
@@ -307,30 +365,35 @@ window.supabase = { createClient: function(){ return {
   await page.waitForFunction(() => document.querySelectorAll('#tipoGrid .tipo-btn').length > 0);
   await page.click('#tipoGrid .tipo-btn[data-tipo="proveedor_servicio"]');
   await page.click('#cpGrid .prov-btn:has-text("Guazzaroni")');
-  const thGz = await page.$$eval('#thead th', xs => xs.map(x => x.textContent.trim()));
-  ok(thGz.join('|') === 'Pieza|Sugerido (cajones)|Cantidad (kg)',
-     'Guazzaroni: sugerido en cajones y cantidad en kg — ' + thGz.join(' | '));
-  const sugGz = await page.$$eval('#tbody tr td:nth-child(2)', xs => xs.map(x => x.textContent.trim()));
-  ok(sugGz[0] === '1', 'Guazzaroni: 34.992 remaches / 57.143 por cajón -> 1 cajón (techo) — ' + sugGz[0]);
-  ok(sugGz[1].includes('113.304') && sugGz[1].includes('sin cajón cargado'),
-     'Guazzaroni: la pieza sin uni_x_cajon NO se convierte, queda en unidades y lo dice — ' + sugGz[1]);
-  const valsGz = await page.$$eval('#tbody input.cell-in', xs => xs.map(x => x.value));
-  ok(valsGz[0] === '' && valsGz[1] === '',
-     'Guazzaroni (P.S.): los campos arrancan vacios, el sugerido en cajones queda en su columna — ' + JSON.stringify(valsGz));
-  const eqsGz = await page.$$eval('#tbody .env-eq', xs => xs.map(x => x.textContent.trim()));
-  ok(eqsGz.length === 1 && eqsGz[0] === '',
-     'Guazzaroni: la equivalencia va solo en la fila que se puede convertir, y con el campo vacio no dice nada — ' + JSON.stringify(eqsGz));
-  await page.fill('#tbody tr:first-child input.cell-in', '70');
-  ok((await page.$eval('#tbody .env-eq', e => e.textContent.trim())) === '≈ 3 cajones',
+  const gzCards = await cards();
+  ok(gzCards[0].includes('Sugerido 1 cajones'),
+     'Guazzaroni: 34.992 remaches / 57.143 por cajón -> 1 cajón (techo) — ' + gzCards[0]);
+  ok(gzCards[1].includes('113.304') && gzCards[1].includes('sin cajón cargado'),
+     'Guazzaroni: la pieza sin uni_x_cajon NO se convierte, queda en unidades y lo dice — ' + gzCards[1]);
+  ok(gzCards.every(c => c.includes('sin cargar')), 'Guazzaroni (P.S.): las tarjetas arrancan sin cargar');
+  await page.click('#cardsGrid .parte-card:first-child');
+  await page.waitForSelector(DQ);
+  ok((await page.$eval('#detCard .det-eq', e => e.textContent.trim())) === '',
+     'Guazzaroni: con el campo vacio la equivalencia no dice nada');
+  await page.fill(DQ, '70');
+  ok((await page.$eval('#detCard .det-eq', e => e.textContent.trim())) === '≈ 3 cajones',
      'Guazzaroni: los cajones se muestran REDONDEADOS (70 kg / 20 = 3,5 -> ≈ 3) — ' +
-     (await page.$eval('#tbody .env-eq', e => e.textContent.trim())));
+     (await page.$eval('#detCard .det-eq', e => e.textContent.trim())));
+  await page.click('#btnVolverPartes');
   // la pieza sin cajon se carga en unidades, a mano como el resto
-  await page.fill('#tbody tr:nth-child(2) input.cell-in', '113.304');
+  await page.click('#cardsGrid .parte-card:nth-child(2)');
+  await page.waitForSelector(DQ);
+  ok((await page.$eval('#detCard .det-uni', e => e.textContent.trim())) === 'uni',
+     'Guazzaroni: la pieza sin cajón se escribe en unidades, no en kg');
+  ok((await page.$$eval('#detCard .det-eq', xs => xs.map(x => x.textContent.trim()))).join('') === '',
+     'Guazzaroni: y no muestra equivalencia a cajones');
+  await page.fill(DQ, '113.304');
+  await page.click('#btnVolverPartes');
   await page.click('#btnEnviar');
   await page.waitForFunction(() => !document.getElementById('fase3').classList.contains('hidden'));
   const regGz = await calls('tablet_registrar');
   const itsGz = regGz[regGz.length - 1].args.p.items;
-  ok(itsGz[0].comp_id === 601 && itsGz[0].cantidad === 70 && itsGz[0].unidad === 'kg' && itsGz[0].cajones === 3.5,
+  ok(itsGz[0].comp_id === 601 && itsGz[0].cantidad === 70 && itsGz[0].unidad === 'kg' && itsGz[0].cajones === 3,
      'Guazzaroni: viaja el KG y los cajones quedan anotados — ' + JSON.stringify(itsGz[0]));
   ok(itsGz[1].comp_id === 609 && itsGz[1].cantidad === 113304 && itsGz[1].unidad === 'uni' && itsGz[1].cajones === null,
      'Guazzaroni: la pieza sin cajón viaja en unidades, sin inventar factor — ' + JSON.stringify(itsGz[1]));
@@ -417,14 +480,17 @@ window.supabase = { createClient: function(){ return {
     await page.waitForFunction(() => document.querySelectorAll('#tipoGrid .tipo-btn').length > 0);
     await page.click('#tipoGrid .tipo-btn[data-tipo="proveedor_servicio"]');
     await page.click('#cpGrid .prov-btn:has-text("AJ Adhesivos")');
-    ok((await page.$eval('#tbody input.cell-in', e => e.value)) === '',
-       'AJ: ' + etiq + ' (' + guardado + ') no aparece, la tabla arranca vacia');
+    ok((await cards())[0].includes('sin cargar'),
+       'AJ: ' + etiq + ' (' + guardado + ') no aparece, la tarjeta arranca sin cargar');
+    await abrir('Pliego 506');
+    ok((await page.$eval(DQ, e => e.value)) === '', 'AJ: y el campo de la vista tambien arranca vacio');
+    await page.click('#btnVolverPartes');
     const bufAj = await page.evaluate(() => JSON.parse(localStorage.getItem('gp2_tablet_buffer') || '{}'));
     ok(!bufAj['enviar:proveedor_servicio:12'],
        'AJ: y tampoco queda en el buffer de la tablet — ' + JSON.stringify(bufAj));
   }
   // y lo que se tipea AHORA se olvida al salir de la contraparte (sin registrar)
-  await page.fill('#tbody input.cell-in', '4');
+  await cargarParte('Pliego 506', '4');
   ok((await page.$eval('#btnEnviar', e => e.textContent)) === 'Enviar (1)',
      'AJ: mientras la contraparte esta abierta, lo tipeado se usa (Enviar (1))');
   await page.click('#btnVolver');
@@ -432,8 +498,8 @@ window.supabase = { createClient: function(){ return {
   ok(!bufSalida['enviar:proveedor_servicio:12'],
      'AJ: al salir con "← Cambiar" lo tipeado se borra — ' + JSON.stringify(bufSalida));
   await page.click('#cpGrid .prov-btn:has-text("AJ Adhesivos")');
-  ok((await page.$eval('#tbody input.cell-in', e => e.value)) === '',
-     'AJ: al volver a entrar el campo esta vacio, no con los 4 paquetes de antes');
+  ok((await cards())[0].includes('sin cargar'),
+     'AJ: al volver a entrar la tarjeta esta sin cargar, no con los 4 paquetes de antes');
   // y al tallerista se le SIGUE precargando (no se pidio sacarselo)
   await page.click('#btnVolver');        // vuelve a las contrapartes del tipo
   await page.click('#btnVolverTipo');    // y de ahi a los tipos
@@ -459,9 +525,38 @@ window.supabase = { createClient: function(){ return {
   ok(m.altoMin >= 44, '390px: campos y botones tocables (' + Math.round(m.altoMin) + 'px, minimo 44)');
   ok(m.fuenteMin >= 19, '390px: letra grande en los campos de carga (' + m.fuenteMin + 'px)');
 
+  // las TARJETAS de un P.S. a 390px: una columna, sin desborde, y la vista de la parte con la
+  // letra grande que pide la casa (el campo de carga nunca baja de 19px)
+  await page.click('#btnVolver');
+  await page.click('#btnVolverTipo');
+  await page.click('#tipoGrid .tipo-btn[data-tipo="proveedor_servicio"]');
+  await page.click('#cpGrid .prov-btn:has-text("Ester")');
+  await page.waitForFunction(() => document.querySelectorAll('#cardsGrid .parte-card').length > 0);
+  const mc = await page.evaluate(() => {
+    const cs = [...document.querySelectorAll('#cardsGrid .parte-card')];
+    return { horizontal: document.documentElement.scrollWidth > window.innerWidth,
+             alto: Math.min(...cs.map(c => c.getBoundingClientRect().height)),
+             cod: parseFloat(getComputedStyle(cs[0].querySelector('.pc-cod')).fontSize) };
+  });
+  ok(!mc.horizontal, '390px (tarjetas): la pagina no scrollea horizontal');
+  ok(mc.alto >= 44, '390px: las tarjetas son tocables (' + Math.round(mc.alto) + 'px)');
+  ok(mc.cod >= 19, '390px: el codigo de la tarjeta se lee de lejos (' + mc.cod + 'px)');
+  await abrir('PC2');
+  const md = await page.evaluate(() => {
+    const i = document.querySelector('#detCard input[data-f="q"]');
+    const r = i.getBoundingClientRect();
+    return { horizontal: document.documentElement.scrollWidth > window.innerWidth,
+             alto: r.height, fuente: parseFloat(getComputedStyle(i).fontSize),
+             im: i.getAttribute('inputmode') };
+  });
+  ok(!md.horizontal, '390px (vista de la parte): no scrollea horizontal');
+  ok(md.alto >= 44 && md.fuente >= 19,
+     '390px: el campo de la cantidad es grande y tocable (' + Math.round(md.alto) + 'px, ' + md.fuente + 'px de letra)');
+  ok(md.im === 'decimal', '390px: y con teclado numerico (Ester carga en kg)');
+  await page.click('#btnVolver');
+  await page.click('#btnVolverTipo');
+
   // y los botones de TIPO tambien se tocan con el dedo
-  await page.click('#btnVolver');       // vuelve a las contrapartes del tipo
-  await page.click('#btnVolverTipo');   // y de ahi a los tipos
   await page.waitForFunction(() => !document.getElementById('tipoGrid').classList.contains('hidden'));
   const tMin = await page.$$eval('#tipoGrid .tipo-btn', xs => Math.min(...xs.map(x => x.getBoundingClientRect().height)));
   ok(tMin >= 44, '390px: los botones de tipo son tocables (' + Math.round(tMin) + 'px)');
@@ -476,14 +571,14 @@ window.supabase = { createClient: function(){ return {
   pT.on('pageerror', e => { console.log('PAGEERROR:', e.message); process.exitCode = 1; });
   await pT.route('**/@supabase/supabase-js@2**', r => r.fulfill({ contentType: 'application/javascript', body: STUB }));
   await pT.route('**/GP2_favicon.png', r => r.fulfill({ contentType: 'image/png', body: Buffer.from('') }));
-  for (const [cp, etiq] of [['AJ Adhesivos', 'AJ (paquetes)'], ['Hernandez Julio', 'Julio (kg + bulto)'],
-                            ['Ester', 'Ester (bolsas + kg)'],
-                            ['Guazzaroni Patricio', 'Guazzaroni (cajones + kg)'], ['Jade', 'PS comun']]) {
+  // Desde 2026-09-18 los P.S. van en TARJETAS: la tabla que se mide aca es la que quedo viva
+  // (tallerista en Enviar, y todo Recibir).
+  for (const [tipo, cp, etiq] of [['tallerista', 'Martin Cornejo', 'tallerista (Enviar)']]) {
     await pT.goto(ROOT + '/Tablet/Tablet_GP2.html?modo=enviar');
     await pT.evaluate(() => localStorage.clear());
     await pT.reload();
     await pT.waitForFunction(() => document.querySelectorAll('#tipoGrid .tipo-btn').length > 0);
-    await pT.click('#tipoGrid .tipo-btn[data-tipo="proveedor_servicio"]');
+    await pT.click('#tipoGrid .tipo-btn[data-tipo="' + tipo + '"]');
     await pT.click('#cpGrid .prov-btn:has-text("' + cp + '")');
     await pT.waitForFunction(() => document.querySelectorAll('#tbody tr').length > 0);
     const g = await pT.evaluate(() => {
@@ -503,6 +598,41 @@ window.supabase = { createClient: function(){ return {
     ok(g.tabla - g.ideal <= 4, etiq + ': las columnas quedan pegadas a su contenido, sin blanco repartido (' + g.tabla + ' vs ' + g.ideal + 'px de contenido)');
     ok(Math.abs(g.buscador - g.tabla) <= 4, etiq + ': el buscador mide lo mismo que la tabla (' + g.buscador + ' vs ' + g.tabla + 'px)');
   }
+  // ── las TARJETAS de un P.S. en la tablet real: grilla de varias columnas, nada desbordado y
+  //    tarjetas bien tocables. Se mide en Julio, que tiene dos partes. ──
+  await pT.goto(ROOT + '/Tablet/Tablet_GP2.html?modo=enviar');
+  await pT.evaluate(() => localStorage.clear());
+  await pT.reload();
+  await pT.waitForFunction(() => document.querySelectorAll('#tipoGrid .tipo-btn').length > 0);
+  await pT.click('#tipoGrid .tipo-btn[data-tipo="proveedor_servicio"]');
+  await pT.click('#cpGrid .prov-btn:has-text("Hernandez Julio")');
+  await pT.waitForFunction(() => document.querySelectorAll('#cardsGrid .parte-card').length > 0);
+  const gT = await pT.evaluate(() => {
+    const cs = [...document.querySelectorAll('#cardsGrid .parte-card')].map(c => c.getBoundingClientRect());
+    const paso = document.querySelector('.steps').getBoundingClientRect();
+    return { horizontal: document.documentElement.scrollWidth > window.innerWidth,
+             filas: new Set(cs.map(c => Math.round(c.top))).size, alto: Math.min(...cs.map(c => c.height)),
+             ancho: Math.round(document.querySelector('#cardsGrid').getBoundingClientRect().width),
+             disponible: Math.round(paso.width) };
+  });
+  ok(!gT.horizontal, '1280px (tarjetas): la pagina no scrollea horizontal');
+  ok(gT.filas === 1, '1280px: las tarjetas se acomodan en columnas, no una abajo de la otra');
+  ok(gT.alto >= 44, '1280px: las tarjetas son tocables (' + Math.round(gT.alto) + 'px)');
+  ok(gT.ancho > gT.disponible * 0.9,
+     '1280px: la grilla usa el ancho entero, no el de la tabla (' + gT.ancho + ' de ' + gT.disponible + 'px)');
+  // EL TEXTO DE LA TARJETA NO SE PUEDE CORTAR CONTRA EL BORDE. Se mide a 1.280px, que es donde
+  // la tarjeta es angosta (grilla de 230px), con la linea mas larga que produce la pantalla:
+  // "Sugerido 113.304 uni · sin cajón cargado" de Guazzaroni. Se compara el ancho REAL del
+  // texto (Range) contra el de su caja: con white-space:nowrap la caja mide bien y el texto se va
+  // afuera igual, asi que scrollWidth no alcanza para verlo.
+  await pT.click('#btnVolver');
+  await pT.click('#cpGrid .prov-btn:has-text("Guazzaroni")');
+  await pT.waitForFunction(() => document.querySelectorAll('#cardsGrid .parte-card').length > 0);
+  const gzCorte = await pT.evaluate(() => Math.max(...[...document.querySelectorAll('#cardsGrid .parte-card span')]
+    .map(x => { const r = document.createRange(); r.selectNodeContents(x);
+                return r.getBoundingClientRect().width - x.getBoundingClientRect().width; })));
+  ok(gzCorte <= 1,
+     '1280px: el texto de la tarjeta baja de renglon, no queda cortado (desborde ' + Math.round(gzCorte) + 'px)');
   // ── la Cantidad precargada se REFRESCA con el sugerido del día, salvo que la hayan tocado ──
   // (bug: el buffer vive en localStorage y sobrevive días; se veía el Sugerido nuevo con la
   //  Cantidad vieja.) Se verifica en el TALLERISTA, que es donde la precarga sigue viva; en los
@@ -532,25 +662,25 @@ window.supabase = { createClient: function(){ return {
   // el mismo caso en un P.S.: la precarga firmada de otro día se BORRA y lo editado sobrevive
   await page.evaluate(() => {
     localStorage.setItem('gp2_tablet_buffer', JSON.stringify({
-      'enviar:proveedor_servicio:5': { '90::': { q: '99', qAuto: '99' } }
+      'enviar:proveedor_servicio:20': { '90::': { q: '99', qAuto: '99' } }
     }));
   });
   await page.reload();
   await page.waitForFunction(() => document.querySelectorAll('#tipoGrid .tipo-btn').length > 0);
   await page.click('#tipoGrid .tipo-btn[data-tipo="proveedor_servicio"]');
-  await page.click('#cpGrid .prov-btn:has-text("Jade")');
-  ok((await page.$eval('#tbody input.cell-in', e => e.value)) === '',
+  await page.click('#cpGrid .prov-btn:has-text("Blist-Pack")');
+  ok((await cards())[0].includes('sin cargar'),
      'P.S.: la precarga firmada de otro día se limpia, no se refresca');
   await page.evaluate(() => {
     localStorage.setItem('gp2_tablet_buffer', JSON.stringify({
-      'enviar:proveedor_servicio:5': { '90::': { q: '77', qAuto: '99' } }
+      'enviar:proveedor_servicio:20': { '90::': { q: '77', qAuto: '99' } }
     }));
   });
   await page.reload();
   await page.waitForFunction(() => document.querySelectorAll('#tipoGrid .tipo-btn').length > 0);
   await page.click('#tipoGrid .tipo-btn[data-tipo="proveedor_servicio"]');
-  await page.click('#cpGrid .prov-btn:has-text("Jade")');
-  ok((await page.$eval('#tbody input.cell-in', e => e.value)) === '',
+  await page.click('#cpGrid .prov-btn:has-text("Blist-Pack")');
+  ok((await cards())[0].includes('sin cargar'),
      'P.S.: lo editado a mano tampoco sobrevive a la salida (usuario 2026-09-18)');
 
 

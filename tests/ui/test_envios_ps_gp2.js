@@ -19,7 +19,10 @@ const EXE = process.env.CHROMIUM_PATH || (fs.existsSync('/opt/pw-browsers/chromi
 const BUNDLE = {
   // Ester tiene unidad de envio propia: bolsas de 1800 mangos, y la cantidad se carga en KG
   // (GP2.proveedor_servicio.envio_unidad / envio_uni_x / envio_carga_unidad, usuario 2026-09-17)
-  ps: [{ id: 5, nombre: 'Becker', cod_prov: '77', proceso: 'Pintado' },
+  // el PS "comun", sin unidad de envio propia. Al 2026-09-18 ninguno de los que tienen piezas
+  // quedo asi (7 van por el cajon de cada pieza, AJ por paquetes, Julio por peso): Blist-Pack es
+  // de los que siguen sin definir, y aca representa el render de siempre (cajon + kg).
+  ps: [{ id: 20, nombre: 'Blist-Pack', cod_prov: '77', proceso: 'Pintado' },
        { id: 14, nombre: 'Ester', cod_prov: null, proceso: 'Calado',
          envio_unidad: 'bolsas', envio_uni_x: 1800, envio_carga_unidad: 'kg' },
        // Guazzaroni: el envase NO es uno del proveedor (envio_uni_x null), es el cajon de cada SC
@@ -32,7 +35,7 @@ const BUNDLE = {
        // mismo caso pero SIN O.C. abierta: no tiene que aparecer en la pantalla de envio
        { id: 16, nombre: 'Fasonero Sin OC', cod_prov: null, proceso: 'Armado',
          envio_unidad: 'cajones', envio_uni_x: null, envio_carga_unidad: 'kg', pedido_por_oc: true }],
-  partes: { '5': [
+  partes: { '20': [
     // una sola pieza enviada, dos salidas distintas
     { sc_id: 1, sp_id: 2, sc_cod: 'J2C', sc_desc: 'Cuchilla cruda', sp_cod: 'J2', sp_desc: 'Cuchilla pintada',
       proceso: 'Pintado', online_ps: 1500, online_sp: 50, maximo: 4000, maximo_sp: 500,
@@ -119,7 +122,7 @@ window.supabase = { createClient: function(){ return {
   const provTxt = await page.$eval('#psGrid .prov-btn', b => b.textContent);
   // El contador dice PIEZAS A ENVIAR, no pares: el fixture tiene 3 pares pero
   // son 2 piezas (la cuchilla cruda sale de dos maneras). Decia 3.
-  ok(provTxt.includes('Becker') && provTxt.includes('Pintado') && /\b2 partes\b/.test(provTxt),
+  ok(provTxt.includes('Blist-Pack') && provTxt.includes('Pintado') && /\b2 partes\b/.test(provTxt),
      'fase0: el boton cuenta piezas a enviar, no pares — ' + provTxt.trim());
   ok((await page.$eval('#status', e => e.textContent)).includes('5 proveedores'), 'status: 5 proveedores');
   // FASONERO SIN O.C.: no hay nada que mandarle, asi que no tiene boton (el status igual lo cuenta)
@@ -132,7 +135,7 @@ window.supabase = { createClient: function(){ return {
   // elegir proveedor
   await page.click('#psGrid .prov-btn');
   ok(await page.$eval('#fase1', e => !e.classList.contains('hidden')), 'fase1 visible al elegir');
-  ok((await page.$eval('#fase1Title', e => e.textContent)) === 'Becker · Pintado', 'titulo Becker · Pintado');
+  ok((await page.$eval('#fase1Title', e => e.textContent)) === 'Blist-Pack · Pintado', 'titulo Blist-Pack · Pintado');
   ok(await page.$eval('#btnVolver', e => !e.classList.contains('hidden')), 'btnVolver visible');
   ok((await page.$eval('#fFecha', e => e.value)) !== '', 'fecha con valor por defecto');
 
@@ -180,14 +183,14 @@ window.supabase = { createClient: function(){ return {
   await page.waitForFunction(() => (window.__calls || []).some(c => c.name === 'marcar_faltante'));
   const mf = await page.evaluate(() => (window.__calls || []).filter(c => c.name === 'marcar_faltante'));
   ok(mf.length === 1 && mf[0].args.p_comp_id === 4 && mf[0].args.p_origen === 'envios_ps' &&
-     mf[0].args.p_nota === 'Envio a Becker',
+     mf[0].args.p_nota === 'Envio a Blist-Pack',
      'F activada persiste: marcar_faltante(sc 4, envios_ps): ' + JSON.stringify(mf[0].args));
   await page.fill('#tbody tr:first-child input[data-f="kg"]', '12,5');
 
   // buffer persistido por PIEZA enviada (antes era por par sc:sp)
   const buf = await page.evaluate(() => JSON.parse(localStorage.getItem('gp2_enviosPS_buffer2') || '{}'));
-  ok(buf['5'] && buf['5']['1'] && buf['5']['1'].caj === '2' && buf['5']['1'].kg === '12,5' &&
-     buf['5']['4'] && buf['5']['4'].falt === true, 'buffer localStorage por pieza enviada');
+  ok(buf['20'] && buf['20']['1'] && buf['20']['1'].caj === '2' && buf['20']['1'].kg === '12,5' &&
+     buf['20']['4'] && buf['20']['4'].falt === true, 'buffer localStorage por pieza enviada');
 
   const fecha = await page.$eval('#fFecha', e => e.value);
   await page.click('#btnEnviar');
@@ -197,7 +200,7 @@ window.supabase = { createClient: function(){ return {
   const call = await page.evaluate(() => (window.__calls || []).filter(c => c.name === 'crear_envio_ps'));
   ok(call.length === 1, 'una sola llamada crear_envio_ps aunque la pieza tenga dos salidas');
   const a = call[0].args;
-  ok(a.p_ps_id === 5 && a.p_comp_sc_id === 1 && a.p_cantidad === 12.5 && a.p_unidad === 'kg' &&
+  ok(a.p_ps_id === 20 && a.p_comp_sc_id === 1 && a.p_cantidad === 12.5 && a.p_unidad === 'kg' &&
      a.p_fecha === fecha && a.p_cajones === 2 && a.p_faltante === false,
      'payload crear_envio_ps: ' + JSON.stringify(a));
 
@@ -205,11 +208,11 @@ window.supabase = { createClient: function(){ return {
   const code = await page.$eval('#successCode', e => e.textContent);
   ok(/^\d{4}$/.test(code), 'codigo de 4 digitos: ' + code);
   const det = await page.$eval('#successDetail', e => e.textContent);
-  ok(det.includes('1 partes enviadas a Becker') && det.includes('1 marca(s) F'), 'detalle exito: ' + det);
+  ok(det.includes('1 partes enviadas a Blist-Pack') && det.includes('1 marca(s) F'), 'detalle exito: ' + det);
 
   // la marca F sin cantidad sigue en el buffer; lo enviado salio
   const buf2 = await page.evaluate(() => JSON.parse(localStorage.getItem('gp2_enviosPS_buffer2') || '{}'));
-  ok(buf2['5'] && !buf2['5']['1'] && buf2['5']['4'] && buf2['5']['4'].falt === true,
+  ok(buf2['20'] && !buf2['20']['1'] && buf2['20']['4'] && buf2['20']['4'].falt === true,
      'buffer: enviado afuera, marca F conservada');
 
   // volver a fase 0
@@ -263,7 +266,7 @@ window.supabase = { createClient: function(){ return {
   const callGz = await page.evaluate(() => (window.__calls || []).filter(c => c.name === 'crear_envio_ps'));
   const aGz = callGz[callGz.length - 1].args;
   ok(aGz.p_ps_id === 4 && aGz.p_comp_sc_id === 601 && aGz.p_cantidad === 70 && aGz.p_unidad === 'kg' &&
-     Math.abs(aGz.p_cajones - 3.5) < 0.01,
+     aGz.p_cajones === 3,
      'Guazzaroni: viaja el kg y quedan anotados los cajones — ' + JSON.stringify(aGz));
   const cfGz = dialogs.filter(d => d.type === 'confirm').pop();
   ok(cfGz && cfGz.msg.includes('CV1: 70 kg (~3 cajones)') && !cfGz.msg.includes('caj /'),
