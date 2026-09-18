@@ -11022,3 +11022,45 @@ envío se escribe en kg (Ester, los del cajón por pieza, Julio), la entrega tam
 renglón "≈ N cajones" debajo. Donde el envío se escribe en el envase (AJ, paquetes), la entrega
 también. Por eso `packEnvio()` y `pesoEnvio()` dejaron de exigir `MODO === 'enviar'`: son del
 **proveedor**, no del modo.
+
+## 4em. Lo que se manda PESADO se anota en las DOS unidades, y la pantalla las cruza (2026-09-18)
+
+`[usuario 2026-09-18, textual: "en cantidad a enviar tengo que poder poner cajones primero y después
+los kg. Lo mismo con lo que se envía en bolsas. Si después de cargar cajones/bolsas y kg y no
+coinciden por mucho (es decir, por ejemplo, si tengo 10k que equivalen a 2 bolsas y puse 3) que me
+salte alerta pero que me deje poner listo igual. Si no coincide por poco (por ejemplo: 10kg eran 2
+bolsas y media y puse 2) que no salte ninguna alerta. Que no pueda poner listo hasta que haya
+cargado en las dos unidades de medida"]`
+
+**Da vuelta la decisión de la mañana** (v1.15.2 había sacado el segundo campo de Hernandez Julio
+para que el bulto fuera un renglón calculado). El motivo del cambio es bueno y conviene tenerlo
+escrito: **los dos números existen en la realidad y los mide gente distinta** — el envase es lo que
+el operario **cuenta** mientras carga el camión, el kg es lo que marca la **balanza**. Si uno se
+calcula a partir del otro, un error de carga es **invisible**: sale un número perfecto y coherente
+que no se parece a lo que subió al camión. Anotando los dos, la pantalla puede **cruzarlos**.
+
+- **Alcance**: toda fila de **Enviar** con envase + kg (Julio por peso, Ester, los del cajón por
+  pieza, los talleristas). Las que se escriben **solo en el envase** (AJ, cartón, cajas) y **todo
+  Recibir** siguen con un campo. `[deducido — el usuario habló de "cantidad a enviar"]`
+- **Orden**: primero el envase, después los kg. Así se carga en la realidad.
+- **Lo que FRENA**: falta una de las dos → "Listo" deshabilitado, la vista dice cuál falta y la
+  tarjeta se pinta naranja. Una fila a medias **no entra** en el conteo del botón Registrar ni viaja
+  en el payload: no se registra media carga.
+- **Lo que AVISA pero no frena**: el desvío entre lo anotado y lo que dicen los kg.
+
+**La tolerancia es el envase entero de arriba y el de abajo**, no "media unidad". Si los kg dan
+**2,5** bolsas, anotar **2 o 3** está bien; si dan **2 justas**, anotar 3 ya avisa — que son los dos
+ejemplos del usuario. Se probó primero con media unidad pelada y se descartó: **el kg por envase
+casi nunca da redondo** (un cajón de A1 son 57.143 × 0,00035 = 20,00005 kg), así que 4 cajones
+contra 3,49999 saltaban por una millonésima. `[dato 2026-09-18, medido en el test]`
+
+**Al registrar viaja el envase ANOTADO**, no el calculado, en `movimiento.cajones`.
+
+### Y el punto tipeado vale como coma
+
+`[usuario 2026-09-18: "cuando voy a cargar quiero que me deje poner . o , para poner decimales"]`.
+Está en `gp2-numero.js`, que es donde vive la regla de número de la casa. **Se hace en
+`beforeinput`, sobre la tecla recién apretada, y NO en `conMiles()`**: ahí no se puede distinguir el
+punto que tipeó la persona del que puso el separador automático de miles, y "1.000" más una tecla se
+convertiría en 1,0005. En los campos de **enteros** (cajones, bolsas) el punto sigue sin entrar, que
+es lo que ya pasaba. La regla de fondo no cambió: **el punto sigue siendo miles** para `num()`.

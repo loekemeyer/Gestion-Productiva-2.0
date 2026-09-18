@@ -6,6 +6,32 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
+<!-- v1.23.0 (2026-09-18) — LO QUE SE MANDA PESADO SE ANOTA EN LAS DOS UNIDADES: PRIMERO EL ENVASE,
+     DESPUES LOS KG (usuario, textual: "en cantidad a enviar tengo que poder poner cajones primero y
+     despues los kg. Lo mismo con lo que se envia en bolsas. Si despues de cargar cajones/bolsas y kg
+     y no coinciden por mucho… que me salte alerta pero que me deje poner listo igual. Si no coincide
+     por poco… que no salte ninguna alerta. Que no pueda poner listo hasta que haya cargado en las
+     dos unidades de medida").
+     DA VUELTA v1.15.2, que habia sacado el segundo campo de Hernandez Julio para que el bulto fuera
+     un renglon calculado. Ahora los dos numeros se DECLARAN: el envase es el que el operario cuenta
+     mientras carga y el kg es el que marca la balanza; si uno se calculaba, el error de carga
+     quedaba invisible. Vale para toda fila de ENVIAR con envase + kg: Julio (bulto por sector),
+     Ester, los del cajon por pieza y los talleristas. Las filas que se escriben SOLO en el envase
+     (AJ, carton, cajas) y TODO Recibir no cambian.
+     EL CRUCE: el renglon chico de abajo pasa a ser el chequeo. Tolerancia = el envase entero de
+     arriba y el de abajo (si los kg dan 2,5 bolsas, 2 o 3 estan bien; si dan 2 justas, 3 ya no).
+     Se eligio asi y no "media unidad" pelada porque el kg por envase casi nunca da redondo: con
+     media unidad, 4 cajones contra 3,49999 avisaba por una millonesima. Cuando hay desvio el
+     renglon se pone naranja y lo dice, pero NO frena: Listo sigue habilitado.
+     LO QUE SI FRENA es que falte una de las dos: "Listo" queda deshabilitado, la vista dice cual
+     falta y la tarjeta se pinta naranja con "falta anotar…". Una fila a medias tampoco entra en el
+     conteo del boton Registrar ni viaja en el payload.
+     AL REGISTRAR viaja el envase ANOTADO (antes iba el calculado desde los kg) en movimiento.cajones.
+     Y ADEMAS, en gp2-numero.js: EL PUNTO TIPEADO VALE COMO COMA [usuario: "cuando voy a cargar
+     quiero que me deje poner . o , para poner decimales"]. Se hace en beforeinput, sobre la tecla
+     recien apretada, y NO en conMiles(): ahi no se distingue el punto que tipeo la persona del que
+     puso el separador automatico, y "1.000" + una tecla se volveria 1,0005. En los campos de
+     enteros (cajones, bolsas) el punto sigue sin entrar. -->
 <!-- v1.22.0 (2026-09-18) — LOS ENVASES SE VEN CON DECIMALES (se va el redondeo de la mañana)
      (usuario, textual: "Que pueda anotar decimales a la hora de poner la cantidad de kg. Además,
      no quiero que redondees las bolsas, cajones -> lo quiero ver con decimales también").
@@ -524,6 +550,10 @@
     border:2px solid #111;border-radius:12px;padding:0 14px;font-family:inherit;margin-top:4px}
   .det-uni{font-size:20px;font-weight:800;color:#333;margin-left:8px}
   .det-eq{display:block;margin-top:6px;font-size:16px;font-weight:800;color:#0b4aa2}
+  /* lo anotado no coincide con lo que dicen los kg: avisa, no frena */
+  .det-eq.mal{color:#c2410c}
+  .det-falta{align-self:center;font-size:16px;font-weight:800;color:#c2410c}
+  .parte-card.incompleta{border-color:#c2410c;background:#fff9f3}
   .det-acc{display:flex;gap:10px;margin-top:20px;flex-wrap:wrap}
   .det-acc .btn{min-height:52px;font-size:19px}
   @media (max-width:640px){
@@ -965,6 +995,60 @@ function unidadTxt(n, label){
   return (Number(n) === 1 && SINGULAR[label]) ? SINGULAR[label] : label;
 }
 
+/* ---------- LAS DOS UNIDADES DE UNA FILA QUE SE MANDA PESADA ----------
+   [usuario 2026-09-18, textual: "en cantidad a enviar tengo que poder poner cajones primero y
+   despues los kg. Lo mismo con lo que se envía en bolsas… que no pueda poner listo hasta que haya
+   cargado en las dos unidades de medida"]. Vale para toda fila de ENVIAR que tenga envase Y se
+   escriba en kg: el bulto por sector (Hernandez Julio) y el envase del proveedor o de la pieza
+   (Ester, los del cajón por pieza, los talleristas). Devuelve {label, kgEnv} — cuántos kg entra
+   UN envase — o null si la fila no lleva las dos.
+   Por qué se anotan las dos y no se calcula una: el envase que sale por la puerta es el que el
+   operario cuenta, y el peso es el que pesa la balanza. Si se calculaba uno de los dos, el error
+   de carga quedaba invisible; ahora los dos se declaran y la pantalla los cruza. */
+function envaseDoble(x){
+  if (MODO !== "enviar" || !x) return null;
+  var b = pesoEnvio() ? bultoDe(x) : null;
+  if (b) return (b.uxc > 0 && b.kgu > 0) ? { label: b.label, kgEnv: b.uxc * b.kgu } : null;
+  if (!cargaEnKg(x)) return null;
+  var k = kgPorEnvase(x), ev = envaseDe(x);
+  return (k > 0 && ev) ? { label: ev.label, kgEnv: k } : null;
+}
+
+/* ¿Lo anotado en envases se pelea con lo que dicen los kg? LA TOLERANCIA ES EL ENVASE ENTERO de
+   arriba y el de abajo: si los kg dan 2,5 bolsas, anotar 2 o 3 esta bien; si dan 2 justas, anotar 3
+   ya no. Cierra con los dos ejemplos del usuario [2026-09-18: "si tengo 10k que equivalen a 2
+   bolsas y puse 3 que me salte alerta… si 10kg eran 2 bolsas y media y puse 2, que no salte"] y no
+   se rompe en el borde: con "media unidad" pelada, 3,49999 contra 4 (un caso real, porque el kg por
+   envase casi nunca da redondo) avisaba por una millonesima. null = no hay desvío. */
+function desvioEnvase(x, it){
+  var ed = envaseDoble(x);
+  if (!ed) return null;
+  var c = num(it.c), q = num(it.q);
+  if (!(c > 0) || !(q > 0)) return null;
+  var calc = q / ed.kgEnv;
+  var min = Math.floor(calc + 1e-9), max = Math.ceil(calc - 1e-9);
+  return (c < min || c > max) ? { label: ed.label, anotado: c, calc: calc } : null;
+}
+
+/* Una fila esta LISTA cuando tiene cantidad y, si lleva las dos unidades, las dos. */
+function filaCompleta(x, it){
+  if (!x || !it || !(num(it.q) > 0)) return false;
+  return !envaseDoble(x) || num(it.c) > 0;
+}
+
+/* El renglon chico de abajo del campo de kg cuando se anotan las dos unidades. */
+function chequeoDoble(x, it){
+  var ed = envaseDoble(x);
+  if (!ed) return { txt: "", mal: false };
+  var q = num(it.q);
+  if (!(q > 0)) return { txt: "", mal: false };
+  var eqtxt = textoEnvases(q / ed.kgEnv, ed.label);
+  var d = desvioEnvase(x, it);
+  if (!d) return { txt: eqtxt, mal: false };
+  return { mal: true, txt: "\u26a0 " + fmt(q, 2) + " kg son " + eqtxt.replace("= ", "") +
+           " y anotaste " + fmt(d.anotado, 0) + " " + unidadTxt(d.anotado, ed.label) };
+}
+
 /* la pieza abierta en la vista de una parte */
 function piezaDe(k){
   var arr = piezasDe(selCP);
@@ -1234,9 +1318,13 @@ function renderCards(){
   arr.forEach(function(x){
     var k = claveDe(x), it = BUF.item(selCP.id, k), q = num(it.q);
     var si = refInfo(x), uc = uniCarga(x), ex = exceso(x, q);
+    var ed = envaseDoble(x), c = num(it.c), completa = filaCompleta(x, it);
+    var aMedias = !!ed && !completa && (q > 0 || c > 0);
+    var desv = desvioEnvase(x, it);
     var b = document.createElement("button");
     b.type = "button";
-    b.className = "parte-card" + (q > 0 ? " cargada" : "") + (ex > 0 ? " demas" : "");
+    b.className = "parte-card" + (completa ? " cargada" : "") + (ex > 0 ? " demas" : "") +
+                  (aMedias ? " incompleta" : "");
     b.dataset.k = k;
     b.innerHTML =
       '<span class="pc-cod">' + esc(x.cod) + uniTag(uc) + "</span>" +
@@ -1247,9 +1335,13 @@ function renderCards(){
       '<span class="pc-sug">' + si.rotulo + " " + si.txt +
         (si.uni ? " " + esc(unidadTxt(si.num, si.uni)) : "") +
         (si.nota ? '<span class="pc-nota"> · ' + esc(si.nota) + "</span>" : "") + "</span>" +
-      '<span class="pc-estado">' + (q > 0
+      '<span class="pc-estado">' + (aMedias
+        ? '<span class="pc-demas">⚠ falta anotar ' + esc(q > 0 ? ed.label : "los kg") + "</span>"
+        : completa
         ? (MODO === "recibir" ? "✓ recibe <b>" : "✓ envía <b>") +
           fmt(q, decDe(x)) + " " + esc(unidadTxt(q, uc)) + "</b>" +
+          (ed ? " (" + fmt(c, 0) + " " + esc(unidadTxt(c, ed.label)) + ")" : "") +
+          (desv ? '<span class="pc-demas">⚠ no coincide con los kg</span>' : "") +
           (ex > 0 ? '<span class="pc-demas">⚠ ' + fmt(ex, unidadDe(x) === "kg" ? 2 : 0) + " de más</span>" : "")
         : "sin cargar") + "</span>";
     g.appendChild(b);
@@ -1359,6 +1451,7 @@ function pintarDetalle(){
   var si = refInfo(x), uc = uniCarga(x);
   var ckg = cargaEnKg(x);
   var b = (MODO === "enviar" && pesoEnvio()) ? bultoDe(x) : null;
+  var ed = envaseDoble(x), chk = chequeoDoble(x, it);
   var h =
     '<div class="det-cod">' + esc(x.cod) + uniTag(uc) + "</div>" +
     '<div class="det-desc">' + esc(x.desc || "") + "</div>" +
@@ -1367,19 +1460,42 @@ function pintarDetalle(){
                               : si.rotulo === "Esperado" ? "Esperado" : "Online en el sector") + "</div>" +
     '<div class="det-sug">' + si.txt + (si.uni ? " " + esc(unidadTxt(si.num, si.uni)) : "") +
       (si.nota ? "<small>" + esc(si.nota) + "</small>" : "") + "</div>" +
-    '<div class="det-lbl">' + (MODO === "recibir" ? "Cantidad" : "Cantidad a enviar") + "</div>" +
-    '<div><input class="det-in" data-f="q" inputmode="' +
-      ((b || ckg) ? "decimal" : inputmodeDe(unidadDe(x))) + '" value="' + esc(it.q || "") + '">' +
-      '<span class="det-uni">' + esc(uc) + "</span>" +
-      '<small class="det-eq">' + esc(eqFila(x, q) || "") + "</small></div>";
+    // con envase Y kg se anotan las DOS, y primero el envase: es lo que el operario cuenta
+    // mientras carga el camion [usuario 2026-09-18].
+    (ed
+      ? '<div class="det-lbl">Cantidad (' + esc(ed.label) + ")</div>" +
+        '<div><input class="det-in" data-f="c" inputmode="numeric" value="' + esc(it.c || "") + '">' +
+          '<span class="det-uni">' + esc(ed.label) + "</span></div>" +
+        '<div class="det-lbl">Cantidad (kg)</div>' +
+        '<div><input class="det-in" data-f="q" inputmode="decimal" value="' + esc(it.q || "") + '">' +
+          '<span class="det-uni">kg</span>' +
+          '<small class="det-eq' + (chk.mal ? " mal" : "") + '">' + esc(chk.txt) + "</small></div>"
+      : '<div class="det-lbl">' + (MODO === "recibir" ? "Cantidad" : "Cantidad a enviar") + "</div>" +
+        '<div><input class="det-in" data-f="q" inputmode="' +
+          ((b || ckg) ? "decimal" : inputmodeDe(unidadDe(x))) + '" value="' + esc(it.q || "") + '">' +
+          '<span class="det-uni">' + esc(uc) + "</span>" +
+          '<small class="det-eq">' + esc(eqFila(x, q) || "") + "</small></div>");
   // NO hay atajo para copiar el sugerido al campo [usuario 2026-09-18: "no quiero que aparezca la
   // opcion de enviar sugerido"]: la cantidad la escribe la persona, siempre. El sugerido de arriba
   // es referencia y nada mas (misma linea que 4ee).
-  h += '<div class="det-acc"><button class="btn btn-primary" type="button" data-a="listo">Listo</button></div>';
+  // "Listo" no se habilita hasta que esten las DOS unidades [usuario 2026-09-18]. El desvio, en
+  // cambio, avisa pero NO frena: "que me salte alerta pero que me deje poner listo igual".
+  h += '<div class="det-acc"><button class="btn btn-primary" type="button" data-a="listo"' +
+       (filaCompleta(x, it) ? "" : " disabled") + ">Listo</button>" +
+       (ed ? '<span class="det-falta">' +
+               (filaCompleta(x, it) ? ""
+                 : (num(it.q) > 0 ? "Falta anotar " + esc(ed.label) : "Falta anotar los kg")) +
+             "</span>" : "") + "</div>";
   $("detCard").innerHTML = h;
 }
 
-function cargadas(){ return E.cargadasDe(BUF.de(selCP.id), function(it){ return num(it.q) > 0; }); }
+/* Lo que se va a registrar: las filas con cantidad y, si llevan las dos unidades, con las dos.
+   Una fila a medias no viaja — la tarjeta lo dice y el botón Listo no deja cerrarla. */
+function cargadas(){
+  var meta = {}; piezasDe(selCP).forEach(function(x){ meta[claveDe(x)] = x; });
+  return E.cargadasDe(BUF.de(selCP.id), function(it){ return num(it.q) > 0; })
+          .filter(function(o){ return filaCompleta(meta[o.k], o.it); });
+}
 
 function actualizar(){
   var n = cargadas().length;
@@ -1442,9 +1558,23 @@ $("detBox").addEventListener("input", function(e){
   it[inp.dataset.f] = inp.value;
   BUF.save();
   var q = num($("detCard").querySelector('input[data-f="q"]').value);
-  // el equivalente en bultos de lo tipeado: el mismo renglón chico en las cuatro formas de enviar
   var eq = $("detCard").querySelector(".det-eq");
-  if (eq) eq.textContent = eqFila(x, q) || "";
+  var ed = envaseDoble(x);
+  if (ed) {
+    // las dos unidades: el renglón de abajo cruza lo anotado contra lo que dicen los kg, y el
+    // botón espera a que estén las dos. Se repinta a mano para no perder el foco del campo.
+    var chk = chequeoDoble(x, it);
+    if (eq) { eq.textContent = chk.txt; eq.classList.toggle("mal", chk.mal); }
+    var btn = $("detCard").querySelector('button[data-a="listo"]');
+    var completa = filaCompleta(x, it);
+    if (btn) btn.disabled = !completa;
+    var falta = $("detCard").querySelector(".det-falta");
+    if (falta) falta.textContent = completa ? ""
+      : (num(it.q) > 0 ? "Falta anotar " + ed.label : "Falta anotar los kg");
+  } else if (eq) {
+    // el equivalente en bultos de lo tipeado: el mismo renglón chico del resto de las formas
+    eq.textContent = eqFila(x, q) || "";
+  }
   actualizar();
 });
 
@@ -1484,9 +1614,9 @@ $("btnEnviar").addEventListener("click", async function(){
       // calculadas desde los kg.
       var b = _peso ? bultoDe(x) : null;
       var q = num(o.it.q);
-      var caj = b ? bultosDeKg(b, q) : null;
-      // Ester: el bulto tambien queda anotado (las bolsas que dan esos kg), mismo criterio que las
-      // bolsas calculadas de Julio: es informativo, el stock lo mueve la cantidad.
+      // con las dos unidades viaja el envase que ANOTO el operario, no el que sale de los kg: es
+      // el que conto al cargar [usuario 2026-09-18]. Sin las dos, se sigue calculando.
+      var caj = envaseDoble(x) ? num(o.it.c) : (b ? bultosDeKg(b, q) : null);
       if (caj == null && ckg && kgPorEnvase(x) > 0) caj = redEnvase(q / kgPorEnvase(x));
       return {
         comp_id: x.comp_id != null ? Number(x.comp_id) : null,
@@ -1511,6 +1641,11 @@ $("btnEnviar").addEventListener("click", async function(){
   var resumen = items.map(function(o){
     var x = meta[o.k] || {};
     var ev = envaseDe(x);
+    var ed = envaseDoble(x);
+    if (ed)
+      return (x.cod || o.k) + ": " + fmt(num(o.it.q), 2) + " kg (" +
+             fmt(num(o.it.c), 0) + " " + unidadTxt(num(o.it.c), ed.label) + ")" +
+             (desvioEnvase(x, o.it) ? " ⚠ no coincide" : "");
     if (cargaEnKg(x))
       return (x.cod || o.k) + ": " + fmt(num(o.it.q), 2) + " kg (" +
              equivEnvase(num(o.it.q), kgPorEnvase(x), ev.label)
