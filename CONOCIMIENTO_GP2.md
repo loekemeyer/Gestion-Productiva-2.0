@@ -141,15 +141,24 @@ plástica (sector 6)**, más el 4 % de master bach para el color. Es un **servic
   sector manda, `A_Costos` no.
 - **Santoprene sin precio:** hasta que tenga precio, la demanda/costeo por material de PA3 no computa
   (PA3 igual costea por su precio de compra).
-- **El atajo del botón se probó y se descartó** (2026-09-14): por un rato la Versión Tablet tuvo
-  un botón **"Inyectores"** en Enviar que abría `Compras/Inyectores_GP2.html` (que ya manda las
-  bolsas en kg con `enviar_material_inyector`). El usuario lo rechazó — *"saca el boton de
-  inyectores y arranca la cirugia"* — porque quiere a los 3 inyectores **DENTRO de "Prov. de
-  servicio"**, no en un botón aparte. La lista de PS del Tablet se arma desde la base, así que la
-  única forma es la cirugía: convertir los inyectores en `proveedor_servicio` de verdad, con su
-  **ruta de inyección** (entra la resina/bolsa → sale la pieza). Eso los hace aparecer solos en la
-  lista y cambia el costeo de la pieza de *comprada* a *inyectada*. `enviar_material_inyector` y la
-  pantalla de Inyectores siguen existiendo para el material; no se borran.
+- **Dónde se eligen los inyectores en la Tablet — tres vueltas, y la última es la que vale:**
+  1. *2026-09-14, descartado:* un botón **"Inyectores"** en Enviar que era un link a
+     `Compras/Inyectores_GP2.html`. El usuario lo rechazó (*"saca el boton de inyectores y arranca
+     la cirugia"*): no quería un atajo a otra pantalla, quería mandarles las bolsas desde la Tablet.
+  2. *2026-09-15, v1.3.0:* los inyectores pasaron a mostrarse **dentro de "Prov. de servicio"**, sin
+     cirugía: `tablet_bundle` los devuelve como contraparte tipo `'inyector'` con sus **resinas**
+     (sector 14) y `tablet_registrar` rutea el envío a `enviar_material_inyector`. NO se los convirtió
+     en `proveedor_servicio` de la base: eso habría sido un segundo modelo redundante y habría
+     cambiado el costeo de la pieza de *comprada* a *inyectada*.
+  3. **HOY — 2026-09-18, v1.14.0:** el usuario los quiere **aparte**, textual: *"quiero que a JL
+     Matricera, Kollplast, Pat Bet Plas y Pettofrezza Rafael los pongas aparte como inyectores, no
+     adentro de proveedores de servicio"*. Enviar tiene ahora un **cuarto tipo, "Inyectores"** (💉),
+     y "Prov. de servicio" volvió a ser sólo PS. Cambió **únicamente dónde se los elige**: adentro es
+     la misma pantalla de siempre (sugerido en kg desde la O.C., columna **O.C.** en vez de Máximo,
+     cantidad vacía y sin memoria) y el registro sigue yendo a `enviar_material_inyector`.
+  **Lo que NO cambió en ninguna de las tres:** en la base los inyectores son `proveedor_insumo` +
+  `componente.material_id`, nunca `proveedor_servicio`, y las piezas se costean por su precio de
+  compra. Los 4 salen de `componente.proveedor` cruzado contra `proveedor_insumo.nombre`.
 
 #### Cuánta bolsa mandarle al inyector — el máximo sale de la PARTE, no de la bolsa `[usuario 2026-09-16]`
 **Regla general de máximos (textual):** *"Los máximos surgen de estadística madre × cant de meses
@@ -10267,8 +10276,9 @@ cargadas, así que las 11 convierten.
 
 **Qué falta:** el resto de los proveedores sigue en unidades; la unidad de envío se define caso por
 caso con el dueño (ése fue el acuerdo al arrancar con AJ). **Ahora son CUATRO formas, no dos: ver
-4ec (Ester) y 4ee (Guazzaroni y Jade), con la tabla de las cuatro en 4ee.** **Y el sugerido ya no se
-precarga en el campo Cantidad de los P.S.: sólo se muestra (ver 4ef).**
+4ec (Ester) y 4ef (Guazzaroni, Jade y otros cinco), con la tabla de las cuatro en 4ef.**
+**Y el sugerido ya no se precarga en el campo Cantidad de los P.S.: sólo se muestra (ver 4ee), que
+además se eligen y se cargan por TARJETAS (4eg).**
 
 ## 4eb. El 506 pasa al molde del 500/510 (sin GRJ7) y el adhesivado de pliego es un PASO, no un subcomponente (2026-09-17)
 
@@ -10412,9 +10422,9 @@ lo tienen, así que no pasa.
 donde además se fue la columna "Cajón envío" para ese proveedor: el cajón no es la unidad con la
 que se le manda y era ruido). Lo sirven `tablet_bundle` (en cada contraparte) y `envios_ps_bundle`
 (en cada PS). **Pendiente: seguir caso por caso con los demás proveedores** — van definidos AJ,
-Hernandez Julio y Ester de 15 PS. **Ya son cuatro formas: ver 4ee.** **El sugerido se sigue
-MOSTRANDO en su unidad, pero desde el 2026-09-17 ya no se precarga en el campo Cantidad de los
-P.S. (ver 4ef).**
+Hernandez Julio, Ester y los 7 del cajón por pieza. **Ya son cuatro formas: ver 4ef.** El sugerido
+se sigue MOSTRANDO en su unidad, pero desde el 2026-09-17 ya no se precarga en el campo Cantidad
+(ver 4ee).
 
 ## 4ed. La tabla de la tablet ENCOGE: el blanco va adentro de la celda, no entre columnas (2026-09-17)
 
@@ -10438,7 +10448,46 @@ angosta. En el celular (≤640px) no hay blanco que recortar: la tabla vuelve a 
 Lo cuida `tests/ui/test_tablet.js` midiendo a 1.280px (la tablet, no los 390px del celular): la
 tabla tiene que medir lo mismo que su contenido (`max-content`) y el buscador lo mismo que la tabla.
 Si alguna pantalla futura vuelve a quedar con pocas columnas, éste es el patrón a copiar.
-## 4ee. La cuarta forma de enviar: el CAJÓN DE CADA PIEZA se mira, y se escribe KG — Guazzaroni (2026-09-17) y Jade (2026-09-18)
+## 4ee. El SUGERIDO es referencia, no orden: a los P.S. no se les precarga la cantidad (2026-09-17/18)
+
+`[usuario 2026-09-17, textual: "en el caso de envío a proveedores de servicio en la versión tablet,
+no me preescribas lo que voy a enviar la cantidad que voy a enviar sino que lo voy a escribir yo
+porque puede generar confusiones"]`
+
+Desde v1.4.0 la tablet metía el sugerido DENTRO del campo Cantidad, en la unidad de cada proveedor
+(3 paquetes de AJ, 40 kg de Julio, 612,36 kg de Ester). **Eso se terminó para los proveedores de
+servicio**: el campo arranca **vacío** y lo escribe quien envía. La columna **Sugerido se sigue
+mostrando** con toda su maquinaria (techo, unidad del proveedor, equivalencia en bultos): la
+cuenta no cambió, lo que cambió es que ya no se escribe sola en el campo.
+
+**Por qué importa la distinción**: el sugerido sale de `máximo − stock − lo que ya está en el
+destino`, o sea es lo que la base **cree** que falta. Lo que sale por la puerta es lo que hay en la
+mano en ese momento. Cuando el número venía puesto, confirmar sin mirar registraba el cálculo en
+lugar del envío real — y un envío mal cargado desbalancea el stock del P.S. en las dos puntas.
+
+- **Alcance**: P.S. **e inyectores** (en la tablet se eligen dentro de "Prov. de servicio", así que
+  para el que la usa son lo mismo). A los **talleristas se les sigue precargando**: no se pidió
+  para ellos. Vive en `precargaCantidad()` de `Tablet/Tablet_GP2.html` (v1.12.0; la falta de memoria, en v1.13.0).
+- **Efecto de rebote bueno**: el botón `Enviar (N)` vuelve a contar lo que la persona cargó de
+  verdad. Con la precarga, abrir una contraparte ya dejaba todas las filas "cargadas" (por eso en
+  2026-09-16 se sacó el cartelito "N sin registrar" de los botones de tipo, ver el historial de LOCKS del 2026-09-16).
+- **Y en los P.S. la tablet NO se acuerda de lo tipeado** `[usuario 2026-09-18, textual: "hay
+  algunos que siguen anotados. Si cargue algo yo, cuando salgo quiero que desaparezca, no que se
+  guarde, por lo tanto todas las cantidades deben estar vacias"]`. Sacar la precarga no alcanzó: el
+  buffer de `localStorage` guardaba igual lo que había tipeado una persona, así que al volver a
+  entrar aparecían cantidades de otro día — **el mismo problema con otro origen**. Ahora el buffer de
+  esa contraparte se borra al **entrar**, al **salir** ("← Cambiar", "Cambiar tipo", cambio de modo)
+  y al **cerrar o recargar** la pantalla (`pagehide`). Se sigue usando mientras la contraparte está
+  abierta: es de donde sale lo que se registra y lo que aguanta un toque de más. `envSinMemoria()` /
+  `olvidarCargado()`, Tablet v1.13.0.
+- **Al tallerista no se le tocó nada**: ahi la precarga sigue viva y el buffer tiene sentido (lo
+  que se le manda se arma en varias vueltas). Su precarga queda firmada en `it.qAuto`, y mientras
+  `it.q === it.qAuto` nadie la tocó, así que se refresca con el sugerido del día.
+- **Y el campo vacío no dice "= 0 cajones"**: la equivalencia en bultos aparece cuando hay un número
+  tipeado. Debajo de un campo en blanco era ruido.
+- **`EnviosPS_GP2` (pantalla de escritorio) no se tocó**: el pedido fue "en la versión tablet".
+
+## 4ef. La cuarta forma de enviar: el CAJÓN DE CADA PIEZA se mira, y se escribe KG — Guazzaroni (2026-09-17), Jade y otros cinco (2026-09-18)
 
 `[usuario, textual: "dentro del version tablet, y envio a ps. Siguiendo la lógica del módulo
 Ester ---> en el módulo de guazzaroni patricio, el sugerido tendría que aparecer en cajones y en
@@ -10522,7 +10571,7 @@ y los 5 que faltan son los que no tienen piezas en ruta o son híbridos.
 ### El bug que salió de paso: la Cantidad precargada quedaba VIEJA
 
 > **Al día siguiente esto se volvió historia para los P.S.**: el dueño pidió que en Enviar a
-> proveedor de servicio la Cantidad no se precargue **ni se guarde** (4ef), así que ahí el buffer
+> proveedor de servicio la Cantidad no se precargue **ni se guarde** (4ee), así que ahí el buffer
 > se borra al entrar y al salir. Lo que sigue vale para el **tallerista**, que es donde la
 > precarga quedó viva.
 
@@ -10541,42 +10590,39 @@ guardado en `localStorage` necesita saber si sigue siendo derivado o ya lo edit�
 guardar el valor no alcanza, hay que guardar también que lo puso la máquina.
 
 
-## 4ef. El SUGERIDO es referencia, no orden: a los P.S. no se les precarga la cantidad (2026-09-17/18)
 
-`[usuario 2026-09-17, textual: "en el caso de envío a proveedores de servicio en la versión tablet,
-no me preescribas lo que voy a enviar la cantidad que voy a enviar sino que lo voy a escribir yo
-porque puede generar confusiones"]`
+## 4eg. Enviar a un P.S. se elige por TARJETAS, y la carga es una pantalla por parte (2026-09-18)
 
-Desde v1.4.0 la tablet metía el sugerido DENTRO del campo Cantidad, en la unidad de cada proveedor
-(3 paquetes de AJ, 40 kg de Julio, 612,36 kg de Ester). **Eso se terminó para los proveedores de
-servicio**: el campo arranca **vacío** y lo escribe quien envía. La columna **Sugerido se sigue
-mostrando** con toda su maquinaria (techo, unidad del proveedor, equivalencia en bultos): la
-cuenta no cambió, lo que cambió es que ya no se escribe sola en el campo.
+`[usuario 2026-09-18, textual: "En la versión tablet, dentro del módulo “Envío a proveedores de
+servicio”, quiero modificar la forma en que se seleccionan las partes. Actualmente se muestran en
+formato de listado. Quiero reemplazar ese listado por boxes o tarjetas individuales. Cada box debe
+mostrar, como mínimo: código o nombre de la parte, descripción de la parte. Al seleccionar una
+parte, debe abrirse una vista donde se muestre: la cantidad sugerida a enviar, un campo para
+indicar la cantidad efectiva que se va a enviar"]`
 
-**Por qué importa la distinción**: el sugerido sale de `máximo − stock − lo que ya está en el
-destino`, o sea es lo que la base **cree** que falta. Lo que sale por la puerta es lo que hay en la
-mano en ese momento. Cuando el número venía puesto, confirmar sin mirar registraba el cálculo en
-lugar del envío real — y un envío mal cargado desbalancea el stock del P.S. en las dos puntas.
+El listado de un P.S. dejó de ser una tabla: es una **grilla de tarjetas**, una por parte, y al
+tocar una se abre **la vista de esa parte** con el sugerido arriba y el campo de la cantidad abajo.
 
-- **Alcance**: P.S. **e inyectores** (en la tablet se eligen dentro de "Prov. de servicio", así que
-  para el que la usa son lo mismo). A los **talleristas se les sigue precargando**: no se pidió
-  para ellos. Vive en `precargaCantidad()` de `Tablet/Tablet_GP2.html` (v1.12.0; la falta de memoria, en v1.13.0).
-- **Efecto de rebote bueno**: el botón `Enviar (N)` vuelve a contar lo que la persona cargó de
-  verdad. Con la precarga, abrir una contraparte ya dejaba todas las filas "cargadas" (por eso en
-  2026-09-16 se sacó el cartelito "N sin registrar" de los botones de tipo, ver el historial de LOCKS del 2026-09-16).
-- **Y en los P.S. la tablet NO se acuerda de lo tipeado** `[usuario 2026-09-18, textual: "hay
-  algunos que siguen anotados. Si cargue algo yo, cuando salgo quiero que desaparezca, no que se
-  guarde, por lo tanto todas las cantidades deben estar vacias"]`. Sacar la precarga no alcanzó: el
-  buffer de `localStorage` guardaba igual lo que había tipeado una persona, así que al volver a
-  entrar aparecían cantidades de otro día — **el mismo problema con otro origen**. Ahora el buffer de
-  esa contraparte se borra al **entrar**, al **salir** ("← Cambiar", "Cambiar tipo", cambio de modo)
-  y al **cerrar o recargar** la pantalla (`pagehide`). Se sigue usando mientras la contraparte está
-  abierta: es de donde sale lo que se registra y lo que aguanta un toque de más. `envSinMemoria()` /
-  `olvidarCargado()`, Tablet v1.13.0.
-- **Al tallerista no se le tocó nada**: ahi la precarga sigue viva y el buffer tiene sentido (lo
-  que se le manda se arma en varias vueltas). Su precarga queda firmada en `it.qAuto`, y mientras
-  `it.q === it.qAuto` nadie la tocó, así que se refresca con el sugerido del día.
-- **Y el campo vacío no dice "= 0 cajones"**: la equivalencia en bultos aparece cuando hay un número
-  tipeado. Debajo de un campo en blanco era ruido.
-- **`EnviosPS_GP2` (pantalla de escritorio) no se tocó**: el pedido fue "en la versión tablet".
-
+- **Alcance: Enviar → Prov. de servicio, inyectores incluidos** (se eligen dentro de ese mismo
+  botón, así que para el que usa la tablet son lo mismo). Es **el mismo conjunto** que ya no se
+  acuerda de lo tipeado (4ee): en el código la vista de tarjetas y `envSinMemoria()` son la misma
+  cuenta, a propósito. **Talleristas, prov. de art. terminado y TODO Recibir siguen con la tabla**:
+  ahí hay esperado, exceso y remito, que se leen de corrido y no de a una parte.
+- **La tarjeta** muestra código (con su unidad), descripción, el **sugerido** de referencia y, abajo,
+  lo que hoy se va a mandar: *"sin cargar"* en gris, o *"✓ envía N"* en verde con el borde verde.
+  Ese renglón de estado es lo que reemplaza al vistazo que daba la tabla: de un golpe se ve qué
+  falta cargar, sin abrir nada.
+- **La vista de la parte** mantiene **todas** las formas de enviar de 4ea/4ec/4ef sin excepción:
+  paquetes (AJ), kg con "= N bolsas" (Ester), kg con "≈ N cajones" redondeados (los 7 del cajón por
+  pieza) y por peso (Julio), que **desde el mismo 2026-09-18 también tiene un solo campo**: sus
+  bolsas/cajones son el renglón chico de debajo de los kg, como en todas las demás (ver 4ef). El
+  segundo campo del bulto existió menos de un día.
+- **Botón "Usar el sugerido"**: escribe el sugerido en el campo. **No es precarga** — la cantidad
+  sigue arrancando vacía (4ee) — es un atajo que aprieta la persona, con el mismo número que la
+  tablet le precargaría a un tallerista.
+- **No cambió nada de datos**: mismo buffer, mismo payload, mismas RPC. La cuenta del sugerido quedó
+  en **una sola función** (`sugeridoInfo()` para mostrarlo, `sugeridoEnCarga()` para escribirlo) que
+  ahora usan la tabla, la tarjeta, la vista de la parte y la precarga del tallerista: antes eran
+  cuatro copias de la misma aritmética y se podían separar.
+- **`EnviosPS_GP2` (escritorio) no se tocó**: el pedido fue "en la versión tablet". Sigue con la
+  tabla, igual que antes.
