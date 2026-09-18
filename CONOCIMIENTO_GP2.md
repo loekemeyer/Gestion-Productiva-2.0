@@ -10726,7 +10726,63 @@ cod_prov 2339 es el del `PEP5` ($108, "Mango Madera Cuchillo Untar"), y encima `
 de *Eduardo Pintos*. Sin ese precio la O.C. a Maspoli sale **sin importe**. Dos cosas para el dueño:
 cargar la lista de Maspoli, y decidir si el `PEP5` es de Pintos o de Maspoli.
 
-## 4ej. Al TALLERISTA la unidad de envío la pone la PIEZA (2026-09-18)
+## 4ej. Virgilio se APAGA como fuente de movimientos: ledger en cero y la canilla cerrada (2026-09-18)
+
+`[usuario 2026-09-18, textual: "Quiero que en gestión productiva 2 por ahora no me agregues todo
+lo que es Virgilio, no me lo generes como movimiento. Así que todos los movimientos borralos, que
+quede todo en cero y el stock que se modificó por estos movimientos también deja todo en cero"]`
+
+**Lo que había** `[dato, medido antes de tocar]`: `GP2.movimiento` tenía **51 filas y NINGUNA otra
+cosa** — 38 `consumo_virgilio` + 13 `recepcion_virgilio`, todas del 17 y 18/09. O sea: el único
+libro de movimientos que GP2 llegó a tener era el espejo de Virgilio. Y las **60 filas de
+`inventario` con cantidad ≠ 0 eran exactamente** los 60 pares (componente, ubicación) que tocaban
+esos 51 movimientos: ni una fila de stock venía de otro lado. Por eso "borrar todo" y "dejar todo
+en cero" terminaron siendo **la misma operación**.
+
+**No hizo falta tocar `inventario` a mano.** `trg_movimiento_aplicar` es `AFTER INSERT OR DELETE OR
+UPDATE`, y en el `DELETE` revierte los dos deltas (`-old._delta_dest` al destino, `+old._delta_orig`
+al origen). Un `delete from "GP2".movimiento` desarma el stock solo. Verificado fila por fila
+**antes** de ejecutar: las 60 quedaban en 0,00 exacto y no había ninguna no-cero ajena al espejo.
+Escribir el `update … set cantidad = 0` hubiera sido pisar el motor, no usarlo.
+
+**Lo que se ejecutó** (con el sí del usuario, 2026-09-18):
+
+```sql
+delete from "GP2".movimiento;                 -- 51 filas
+delete from "GP2".virgilio_espejo_pend;       -- 26 filas en cola (4bs)
+alter table public."Entregas Tallerista Virgilio"
+  disable trigger trg_virgilio_espejo_gp2;    -- la canilla
+```
+
+Después: `movimiento` 0, `virgilio_espejo_pend` 0, `inventario` 1.311 filas todas en 0,00 (suma
+total 0), invariante ledger-vs-inventario en 0.
+
+**La parte que importa para la próxima sesión: borrar los movimientos NO alcanzaba.** Los generaba
+solo `trg_virgilio_espejo_gp2`, un trigger que vive sobre `public."Entregas Tallerista Virgilio"`
+(casa del vecino) y llama a `GP2.fn_entregas_virgilio_espejo`. Si no se apagaba, la primera entrega
+cargada en Virgilio volvía a escribir en `GP2.movimiento` y el "todo en cero" duraba horas. Ese
+trigger **no está en `db/`** (el README lo dice: los dos triggers espejo sobre `public` quedan
+afuera del respaldo), así que su estado sólo se ve en la base:
+
+```sql
+select tgname, tgenabled from pg_trigger t join pg_class c on c.oid = t.tgrelid
+ where c.relname = 'Entregas Tallerista Virgilio';   -- 'D' = apagado, 'O' = vivo
+```
+
+**Lo que se pierde mientras esté apagado** `[avisado al usuario antes del sí]`: las entregas que se
+carguen en Virgilio en el ínterin **no quedan ni en la cola** de `virgilio_espejo_pend` — el trigger
+es el que encola, así que con el trigger apagado no hay rastro que reprocesar. Volver a prenderlo
+(`enable trigger`) **no recupera el hueco**: hay que cargar esas entregas a mano o reconstruirlas
+desde `public."Entregas Tallerista Virgilio"`, que sí las tiene. Se ofreció la variante "el trigger
+sigue encolando pero no crea movimiento" (conserva el historial); el usuario eligió el apagado seco.
+
+**Es "por ahora", no una decisión de arquitectura.** La integración entera sigue en pie:
+`INTEGRACION_GESTION_VIRGILIO.md`, las RPC `recepcion_virgilio` / `reprocesar_espejo_virgilio` /
+`enviar_material_virgilio`, la pantalla `Talleristas/Recepcion/RecepcionVirgilio_GP2.html` y los
+tipos `recepcion_virgilio` / `consumo_virgilio` del vocabulario **no se tocaron**. Para volver:
+`alter table public."Entregas Tallerista Virgilio" enable trigger trg_virgilio_espejo_gp2;`.
+
+## 4ek. Al TALLERISTA la unidad de envío la pone la PIEZA (2026-09-18)
 
 `[usuario 2026-09-18, textual: "Cartón según el formato se le manda según cómo viene el paquetón…
 según el formato de cartón vienen o mil unidades o dos mil. Y las cajas en paquetes de 25. Entonces
