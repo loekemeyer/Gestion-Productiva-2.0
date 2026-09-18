@@ -10988,13 +10988,18 @@ entrega_unidad` / `entrega_uni_x` — y hoy son dos:
 |---|---|---|---|
 | **AJ Adhesivos** | paquetes de **100** | paquetes de **200** | lo dijo el dueño; se escribe en paquetes |
 | **Maspoli SRL** | cajón de cada pieza, en kg | **bolsas de 250 mangos**, se escribe en bolsas | `[usuario 2026-09-18: "Maspoli entrega en bolsas de 250 mangos"]` — y 250 es justo el `uni_x_cajon` de sus tres mangos |
-| **Resortes Charcas** | — (es híbrido, no está en Enviar) | **paquetes**, el envase de cada pieza, se escribe en kg | no tenía unidad de la cual copiar `[usuario 2026-09-18: "Charcas en paquetes"]` |
+| **Resortes Charcas** | — (es híbrido, no está en Enviar) | **paquetes de 10 kg** | no tenía unidad de la cual copiar `[usuario 2026-09-18: "Charcas en paquetes"]` |
 
-⚠ **Pendiente de un dato en Charcas** `[dato 2026-09-18]`: sus dos piezas son flejes que se miden
-**en kg** (`IC3`, `IC3V`), y como no tiene `entrega_uni_x` el factor que se usa es el `uni_x_cajon`
-de la pieza — **1.205** y **24**. Para una pieza en kg ese número se lee como *kg por paquete*, y un
-paquete de fleje de 1.205 kg no existe. Hoy no molesta porque el esperado de las dos está en 0, pero
-**hay que preguntar cuántos kg tiene un paquete de Charcas** y cargarlo en `entrega_uni_x`.
+**El paquete de Charcas son 10 kg** `[usuario 2026-09-18, respondiendo la pregunta]`. Importa
+porque sus dos piezas son flejes que se miden **en kg** (`IC3`, `IC3V`): sin ese dato el factor
+caía al `uni_x_cajon` de la pieza (**1.205** y **24**), que para algo medido en kg se lee como *kg
+por paquete* — un paquete de fleje de 1.205 kg no existe. Con `entrega_uni_x = 10` el esperado sale
+en paquetes de verdad y la cantidad se escribe en paquetes (10 kg cada uno).
+
+⚠ **Ese 10 está escrito en dos lugares**: `proveedor_servicio.entrega_uni_x` (la entrega, esta
+pantalla) y `parametro.charcas_kg_x_paquete` (la **compra**: la O.C. a Charcas se pide en paquetes y
+se guarda en kg, ver la sección de OC). Es el mismo paquete físico, así que **si cambia, hay que
+cambiar los dos**; queda dicho también en el comment de la columna.
 
 El resto sale solo: Guazzaroni, Jade, FAAT, Mabra, Maspoli, Pedernera y Scorrano entregan en **el
 cajón de cada pieza** (su envase de envío), Ester en **bolsas de 1800** y Hernandez Julio en el
