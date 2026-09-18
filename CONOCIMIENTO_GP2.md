@@ -10972,3 +10972,31 @@ y el cajón es ayuda visual. `[deducido 2026-09-18]`
 **Alcance al 2026-09-18**: las 9 filas de Recibir de talleristas — 7 en cajones (una, `C12B`, sin
 `uni_x_cajon`, así que queda en unidades y la tarjeta lo dice) y las 2 bombillas en bolsas. El
 **P.S. sigue con la tabla**: es lo que sigue.
+
+### Y la ENTREGA de un P.S. copia la unidad del envío (2026-09-18)
+
+`[usuario 2026-09-18, textual: "AJ adhesivos entrega en paquetes de 200. El resto copia la lógica
+del envío: si enviamos en bolsas recepcionamos en bolsas, si lo hacemos en cajones, en cajones.
+Charcas cajones"]`
+
+La regla se escribió **una sola vez**: por defecto la entrega de un P.S. usa el **mismo envase con
+el que se le envía** (`packEnvio` / `pesoEnvio`, que ya existían), así que **no hubo que cargar un
+dato por proveedor**. Solo los que difieren tienen columnas propias — `proveedor_servicio.
+entrega_unidad` / `entrega_uni_x` — y hoy son dos:
+
+| proveedor | envía | entrega | por qué |
+|---|---|---|---|
+| **AJ Adhesivos** | paquetes de **100** | paquetes de **200** | lo dijo el dueño; se escribe en paquetes |
+| **Resortes Charcas** | — (es híbrido, no está en Enviar) | **cajones** de cada pieza, se escribe en kg | no tenía unidad de la cual copiar |
+
+El resto sale solo: Guazzaroni, Jade, FAAT, Mabra, Maspoli, Pedernera y Scorrano entregan en **el
+cajón de cada pieza** (su envase de envío), Ester en **bolsas de 1800** y Hernandez Julio en el
+**bulto de su sector** (bolsas los plásticos, cajones el resto). Un P.S. **sin unidad definida**
+(Blist-Pack, Rec Color, Daniel, Blist…) sigue como estaba: esperado y cantidad en la unidad de la
+pieza. `[dato 2026-09-18]`
+
+**El detalle que importa del "copia la lógica"**: copia el **envase Y la forma de cargar**. Donde el
+envío se escribe en kg (Ester, los del cajón por pieza, Julio), la entrega también — con el mismo
+renglón "≈ N cajones" debajo. Donde el envío se escribe en el envase (AJ, paquetes), la entrega
+también. Por eso `packEnvio()` y `pesoEnvio()` dejaron de exigir `MODO === 'enviar'`: son del
+**proveedor**, no del modo.

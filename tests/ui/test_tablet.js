@@ -33,11 +33,12 @@ const BUNDLE = {
     // Blist-Pack es de los que siguen sin unidad definida, y aca se le dan piezas para cubrir el
     // render comun, que es el que ven los talleristas y el que quedaria si se suma un P.S. nuevo.
     { tipo: 'proveedor_servicio', ref: '20', nombre: 'Blist-Pack', n_env: 1, n_rec: 1 },
-    { tipo: 'proveedor_servicio', ref: '12', nombre: 'AJ Adhesivos', envio_unidad: 'paquetes', envio_uni_x: 100, n_env: 1, n_rec: 0 },
+    // AJ es la EXCEPCION de la entrega: envia en paquetes de 100 y ENTREGA en paquetes de 200
+    { tipo: 'proveedor_servicio', ref: '12', nombre: 'AJ Adhesivos', envio_unidad: 'paquetes', envio_uni_x: 100, entrega_unidad: 'paquetes', entrega_uni_x: 200, n_env: 1, n_rec: 1 },
     { tipo: 'proveedor_servicio', ref: '8', nombre: 'Hernandez Julio', envio_unidad: 'kg', envio_uni_x: null, n_env: 2, n_rec: 0 },
     { tipo: 'proveedor_servicio', ref: '14', nombre: 'Ester', envio_unidad: 'bolsas', envio_uni_x: 1800, envio_carga_unidad: 'kg', n_env: 1, n_rec: 0 },
     // Guazzaroni: el envase es el CAJON de cada pieza (envio_uni_x null), no uno del proveedor
-    { tipo: 'proveedor_servicio', ref: '4', nombre: 'Guazzaroni Patricio', envio_unidad: 'cajones', envio_uni_x: null, envio_carga_unidad: 'kg', n_env: 2, n_rec: 0 },
+    { tipo: 'proveedor_servicio', ref: '4', nombre: 'Guazzaroni Patricio', envio_unidad: 'cajones', envio_uni_x: null, envio_carga_unidad: 'kg', n_env: 2, n_rec: 1 },
     { tipo: 'inyector', ref: 'Pat Bet Plast', nombre: 'Pat Bet Plast', n_env: 2, n_rec: 0 },
     { tipo: 'proveedor_insumo', ref: 'Corrugadora del Plata', nombre: 'Corrugadora del Plata', n_env: 0, n_rec: 3 },
     { tipo: 'virgilio', ref: 'virgilio', nombre: 'Virgilio', n_env: 0, n_rec: 1 },
@@ -89,6 +90,11 @@ const BUNDLE = {
     { tipo: 'tallerista', ref: '6', comp_id: 541, comp_entrada_id: null, n_entradas: 0, tiene_bom: false, cod_art: null, cod: 'GRJ5', desc: 'Bombilla Resorte Trad 558', sector: 'Sector Garage', um: 'unidad', uxc: 960, kg_x_uni: 0.0147, por_caja: null, ent_cod: null, ent_desc: null, esperado: 360, esperado_origen: 'online_tall', env_unidad: 'bolsas', env_factor: 120, env_carga: 'kg' },
     { tipo: 'proveedor_at', ref: '1', comp_id: null, comp_entrada_id: null, n_entradas: 0, tiene_bom: false, cod_art: '026', cod: '026', desc: 'Colador N°8', sector: null, um: null, uxc: null, kg_x_uni: null, por_caja: 36, ent_cod: null, ent_desc: null, esperado: 72, esperado_origen: 'oc' },
     { tipo: 'proveedor_servicio', ref: '20', comp_id: 91, comp_entrada_id: 90, n_entradas: 1, tiene_bom: false, cod_art: null, cod: 'D5-P', desc: 'Mitad pintada', sector: 'Sector Procesado', um: 'unidad', uxc: 500, kg_x_uni: 0.05, por_caja: null, ent_cod: 'D5', ent_desc: 'Mitad rompenuez', esperado: 40, esperado_origen: 'online_ps' },
+    // Guazzaroni envia por el CAJON de cada pieza y kg: la entrega copia esa misma logica
+    // (1.000 uni / 500 por cajon = 2 cajones; esos 1.000 pesan 50 kg)
+    { tipo: 'proveedor_servicio', ref: '4', comp_id: 601, comp_entrada_id: 600, n_entradas: 1, tiene_bom: false, cod_art: null, cod: 'CV1N', desc: 'Remache Espiral Niquelado', sector: 'Sector Remache', um: 'unidad', uxc: 500, kg_x_uni: 0.05, por_caja: null, ent_cod: 'CV1', ent_desc: 'Remache Espiral p/Niquelar', esperado: 1000, esperado_origen: 'online_ps' },
+    // AJ: 600 pliegos esperados / 200 por paquete de ENTREGA = 3 paquetes (no 6, que serian de envio)
+    { tipo: 'proveedor_servicio', ref: '12', comp_id: 565, comp_entrada_id: 564, n_entradas: 1, tiene_bom: false, cod_art: null, cod: 'Pliego Ad 506', desc: 'Adhesivado', sector: 'Sector Procesado', um: 'unidad', uxc: null, kg_x_uni: null, por_caja: null, ent_cod: 'Pliego 506', ent_desc: 'Sin adhesivar', esperado: 600, esperado_origen: 'online_ps' },
     { tipo: 'virgilio', ref: 'virgilio', comp_id: 373, comp_entrada_id: null, n_entradas: 0, tiene_bom: false, cod_art: null, cod: 'IC3V', desc: 'Fleje N° 90 LARGO', sector: 'Sector Fleje', um: 'kg', uxc: 24, kg_x_uni: 0.0134, por_caja: null, ent_cod: null, ent_desc: null, esperado: 20, esperado_origen: 'online_virgilio' },
   ],
 };
@@ -569,8 +575,75 @@ window.supabase = { createClient: function(){ return {
   ok((await page.$eval('#successAlertas', e => e.textContent)).includes('Quedó anotado para revisar'),
      'el exito muestra la alerta que devolvio la base');
 
-  // ── 4) el CONTEO es el modulo de Relevamientos ───────────────────────────
+  // ── RECIBIR DE UN P.S.: tarjetas, y la ENTREGA copia la unidad del ENVIO ──────────────
+  // [usuario 2026-09-18: "AJ adhesivos entrega en paquetes de 200. El resto copia la logica del
+  // envio: si enviamos en bolsas recepcionamos en bolsas, si lo hacemos en cajones, en cajones"].
   await page.click('#btnOtro');
+  await page.waitForFunction(() => document.querySelectorAll('#tipoGrid .tipo-btn').length > 0);
+  await page.click('#tipoGrid .tipo-btn[data-tipo="proveedor_servicio"]');
+  await page.click('#cpGrid .prov-btn:has-text("Guazzaroni")');
+  await page.waitForFunction(() => document.querySelectorAll('#cardsGrid .parte-card').length > 0);
+  ok(await page.$eval('#tblWrap', e => e.classList.contains('hidden')),
+     'Recibir de P.S.: tarjetas, no tabla');
+  const gzRec = (await cards())[0];
+  ok(gzRec.includes('CV1N') && gzRec.includes('consume CV1'),
+     'P.S.: la tarjeta dice la pieza y que SC consume — ' + gzRec);
+  ok(gzRec.includes('Esperado 2 cajones'),
+     'Guazzaroni: el esperado se mira en los mismos cajones con los que se le envia — ' + gzRec);
+  await abrir('CV1N');
+  const detPs = await det();
+  ok(detPs.includes('Esperado') && detPs.includes('2 cajones') && detPs.includes('Cantidad') &&
+     !detPs.includes('Recibido'),
+     'P.S.: la vista dice Esperado y Cantidad — ' + detPs);
+  ok((await page.$eval('#detCard .det-uni', e => e.textContent.trim())) === 'kg',
+     'Guazzaroni: la cantidad se escribe en kg, igual que en el envio');
+  await page.fill(DQ, '50');   // 50 kg / 0,05 = 1.000 uni = exactamente lo esperado
+  ok((await page.$eval('#detCard .det-eq', e => e.textContent.trim())) === '= 2 cajones',
+     'Guazzaroni: el renglon chico dice a cuantos cajones equivale — ' +
+     (await page.$eval('#detCard .det-eq', e => e.textContent.trim())));
+  await page.click('#btnVolverPartes');
+  ok((await cards())[0].includes('recibe'), 'P.S.: la tarjeta muestra lo que se va a recibir');
+  await page.click('#btnEnviar');
+  await page.waitForFunction(() => !document.getElementById('fase3').classList.contains('hidden'));
+  const regPs = await calls('tablet_registrar');
+  const itPs = regPs[regPs.length - 1].args.p.items[0];
+  // viaja el kg, y el esperado tambien en kg (1.000 x 0,05) para que la base compare igual contra igual
+  ok(itPs.comp_id === 601 && itPs.comp_entrada_id === 600 && itPs.cantidad === 50 && itPs.unidad === 'kg' &&
+     itPs.esperado === 50,
+     'Guazzaroni: 50 kg contra 50 kg esperados — ' + JSON.stringify(itPs));
+
+  // AJ es la EXCEPCION: envia en paquetes de 100 y ENTREGA en paquetes de 200
+  await page.click('#btnOtro');
+  await page.waitForFunction(() => document.querySelectorAll('#tipoGrid .tipo-btn').length > 0);
+  await page.click('#tipoGrid .tipo-btn[data-tipo="proveedor_servicio"]');
+  await page.click('#cpGrid .prov-btn:has-text("AJ Adhesivos")');
+  await page.waitForFunction(() => document.querySelectorAll('#cardsGrid .parte-card').length > 0);
+  const ajRec = (await cards())[0];
+  ok(ajRec.includes('Pliego Ad 506') && ajRec.includes('Esperado 3 paquetes'),
+     'AJ: 600 uni / 200 por paquete de entrega = 3 paquetes (no 6, que serian los de envio) — ' + ajRec);
+  await abrir('Pliego Ad 506');
+  ok((await page.$eval('#detCard .det-uni', e => e.textContent.trim())) === 'paquetes',
+     'AJ: la cantidad se escribe en paquetes, como en el envio');
+  await page.fill(DQ, '3');
+  await page.click('#btnVolverPartes');
+  await page.click('#btnEnviar');
+  await page.waitForFunction(() => !document.getElementById('fase3').classList.contains('hidden'));
+  const regAjR = await calls('tablet_registrar');
+  const itAjR = regAjR[regAjR.length - 1].args.p.items[0];
+  ok(itAjR.comp_id === 565 && itAjR.cantidad === 600 && itAjR.unidad === 'uni',
+     'AJ: 3 paquetes de 200 se registran como 600 pliegos — ' + JSON.stringify(itAjR));
+
+  // y un P.S. SIN unidad definida sigue como estaba: esperado y cantidad en la unidad de la pieza
+  await page.click('#btnOtro');
+  await page.waitForFunction(() => document.querySelectorAll('#tipoGrid .tipo-btn').length > 0);
+  await page.click('#tipoGrid .tipo-btn[data-tipo="proveedor_servicio"]');
+  await page.click('#cpGrid .prov-btn:has-text("Blist-Pack")');
+  await page.waitForFunction(() => document.querySelectorAll('#cardsGrid .parte-card').length > 0);
+  ok((await cards())[0].includes('Esperado 40 uni'),
+     'P.S. sin unidad definida: el esperado queda en la unidad de la pieza — ' + (await cards())[0]);
+
+  // ── 4) el CONTEO es el modulo de Relevamientos ──────────────────────────────
+  await page.reload();
   await page.waitForFunction(() => document.querySelectorAll('#tipoGrid .tipo-btn').length > 0);
   ok(await page.$eval('#modos .modo-btn.active', b => b.dataset.modo) === 'recibir', 'el modo se recuerda al recargar');
   const hrefConteo = await page.$eval('#modoConteo', a => a.getAttribute('href'));

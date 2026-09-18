@@ -7263,24 +7263,24 @@ rec_x as (
 -- canonica (uni/kg): el inventario nunca ve bolsas ni paquetes. Hoy solo lo tiene
 -- proveedor_servicio; el resto va null. [usuario 2026-09-17]
 cp as (
-  select 'tallerista'::text tipo, t.id::text ref, t.nombre, null::text envio_unidad, null::numeric envio_uni_x, null::text envio_carga_unidad
+  select 'tallerista'::text tipo, t.id::text ref, t.nombre, null::text envio_unidad, null::numeric envio_uni_x, null::text envio_carga_unidad, null::text entrega_unidad, null::numeric entrega_uni_x
     from tallerista t
    where t.activo and t.id <> 3
      and exists (select 1 from v_contraparte_parte v where v.tipo='tallerista' and v.ref_id = t.id)
   union all
-  select 'proveedor_servicio', ps.id::text, ps.nombre, ps.envio_unidad, ps.envio_uni_x, ps.envio_carga_unidad
+  select 'proveedor_servicio', ps.id::text, ps.nombre, ps.envio_unidad, ps.envio_uni_x, ps.envio_carga_unidad, ps.entrega_unidad, ps.entrega_uni_x
     from proveedor_servicio ps
    where exists (select 1 from v_contraparte_parte v where v.tipo='proveedor_servicio' and v.ref_id = ps.id)
   union all
-  select 'proveedor_at', p.id::text, p.nombre, null::text, null::numeric, null::text
+  select 'proveedor_at', p.id::text, p.nombre, null::text, null::numeric, null::text, null::text, null::numeric
     from proveedor_at p where coalesce(p.activo,true)
   union all
-  select distinct 'proveedor_insumo', o.proveedor, o.proveedor, null::text, null::numeric, null::text
+  select distinct 'proveedor_insumo', o.proveedor, o.proveedor, null::text, null::numeric, null::text, null::text, null::numeric
     from orden_compra o where o.estado in ('borrador','enviada')
   union all
-  select 'virgilio', 'virgilio', 'Virgilio', null::text, null::numeric, null::text
+  select 'virgilio', 'virgilio', 'Virgilio', null::text, null::numeric, null::text, null::text, null::numeric
   union all
-  select distinct 'inyector', c.proveedor, c.proveedor, null::text, null::numeric, null::text
+  select distinct 'inyector', c.proveedor, c.proveedor, null::text, null::numeric, null::text, null::text, null::numeric
     from componente c
    where c.material_id is not null and c.estado_compra is null and c.proveedor is not null
      and exists (select 1 from proveedor_insumo pi where pi.nombre = c.proveedor)
@@ -7291,6 +7291,7 @@ select jsonb_build_object(
     select coalesce(jsonb_agg(jsonb_build_object(
              'tipo', cp.tipo, 'ref', cp.ref, 'nombre', cp.nombre,
              'envio_unidad', cp.envio_unidad, 'envio_uni_x', cp.envio_uni_x,
+             'entrega_unidad', cp.entrega_unidad, 'entrega_uni_x', cp.entrega_uni_x,
              'envio_carga_unidad', cp.envio_carga_unidad,
              'n_env', (select count(*) from env_x e where e.tipo = cp.tipo and e.ref = cp.ref),
              'n_rec', (select count(*) from rec_x r where r.tipo = cp.tipo and r.ref = cp.ref)

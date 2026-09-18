@@ -6,6 +6,22 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
+<!-- v1.20.0 (2026-09-18) — RECIBIR DE UN P.S.: TARJETAS, Y LA ENTREGA COPIA LA UNIDAD DEL ENVIO
+     (usuario, textual: "AJ adhesivos entrega en paquetes de 200. El resto copia la logica del
+     envio: si enviamos en bolsas recepcionamos en bolsas, si lo hacemos en cajones, en cajones.
+     Charcas cajones").
+     LA REGLA SE ESCRIBE UNA VEZ: por defecto la ENTREGA de un P.S. usa la MISMA unidad con la que
+     se le envia (packEnvio / pesoEnvio, que ya estaban), asi que no hizo falta cargar un dato por
+     proveedor. Para los que difieren hay dos columnas nuevas en GP2.proveedor_servicio:
+     entrega_unidad / entrega_uni_x. Hoy son dos:
+       · AJ Adhesivos: envia en paquetes de 100 y ENTREGA en paquetes de 200 (se escribe en paquetes);
+       · Resortes Charcas: 'cajones' SIN factor = el cajon de CADA PIEZA, y se escribe en kg
+         (Charcas no esta en Enviar por hibrido, asi que no tenia unidad de la cual copiar).
+     Las dos columnas viajan con la contraparte en tablet_bundle, al lado de las de envio.
+     Lo demas ya estaba hecho para el tallerista: esperado en el envase, campo en kg con el renglon
+     "≈ N cajones", el exceso comparado en unidad canonica y el esperado viajando en la misma unidad
+     que la cantidad. Un P.S. sin unidad definida (Blist-Pack, Rec Color, Daniel…) sigue como
+     estaba: esperado y cantidad en la unidad de la pieza. -->
 <!-- v1.19.0 (2026-09-18) — RECIBIR DE TALLERISTAS: TARJETAS, ESPERADO EN CAJONES Y CANTIDAD EN KG
      (usuario, textual: "de talleristas, todos se entregan en cajones… tanto en esperado como en
      recibido, tenés que poner la unidad de medida. En esperado va a ser en cajones… y en recibido
@@ -679,7 +695,7 @@ function olvidarCargado(c){
    factor y rotulados con label, pero al registrar se multiplica de nuevo y se guarda en la unidad
    canonica (uni/kg). Devuelve {factor,label} si el proveedor lo definio (envio_uni_x>1), o null. */
 function packEnvio(){
-  if (!selCP || MODO !== "enviar") return null;
+  if (!selCP) return null;   // es del PROVEEDOR: en Recibir la entrega copia esta misma unidad
   var lab = String(selCP.envio_unidad || "");
   // envio_unidad='kg' es el envío POR PESO (Hernandez Julio), que tiene su propio camino
   // (pesoEnvio/bultoDe): ahí el bulto va en una columna aparte, no es la unidad del sugerido.
@@ -711,11 +727,32 @@ function envaseDe(x){
     // ENTREGA de un tallerista: el esperado se mira en CAJONES (o en las bolsas de 120 de GRJ5 y
     // GRJ6) y la cantidad se escribe en KG. Lo dice la pieza: componente.entrega_unidad /
     // entrega_uni_x, con default cajones + uni_x_cajon. [usuario 2026-09-18]
-    if (selCP.tipo !== "tallerista" || !x.env_unidad) return null;
-    var fr = Number(x.env_factor || 0);
-    if (!(fr > 0)) return null;                    // pieza sin cajon cargado: queda en unidades
-    return { factor: fr, label: String(x.env_unidad),
-             cargaKg: String(x.env_carga || "") === "kg" };
+    if (selCP.tipo === "tallerista") {
+      var fr = Number(x.env_factor || 0);
+      if (!x.env_unidad || !(fr > 0)) return null;   // pieza sin cajon cargado: queda en unidades
+      return { factor: fr, label: String(x.env_unidad),
+               cargaKg: String(x.env_carga || "") === "kg" };
+    }
+    if (selCP.tipo !== "proveedor_servicio") return null;
+    // ENTREGA de un P.S. [usuario 2026-09-18: "AJ adhesivos entrega en paquetes de 200. El resto
+    // copia la logica del envio: si enviamos en bolsas recepcionamos en bolsas, si lo hacemos en
+    // cajones, en cajones. Charcas cajones"]. Primero el override del proveedor
+    // (proveedor_servicio.entrega_*), y si no lo tiene, la MISMA unidad con la que se le envia.
+    var lab = selCP.entrega_unidad ? String(selCP.entrega_unidad) : "";
+    if (lab) {
+      var fx = Number(selCP.entrega_uni_x || 0);
+      if (fx > 0) return { factor: fx, label: lab, cargaKg: false };   // AJ: entrega 200 por paquete
+      var fp = Number(x.uxc || 0);                                     // Charcas: el cajon de la pieza
+      return fp > 0 ? { factor: fp, label: lab, cargaKg: true } : null;
+    }
+    if (pesoEnvio()) {                             // Julio: el bulto lo pone el sector de la pieza
+      var bb = bultoDe(x);
+      return (bb && bb.uxc > 0) ? { factor: bb.uxc, label: bb.label, cargaKg: true } : null;
+    }
+    var pkr = packEnvio();
+    if (!pkr) return null;
+    var fr2 = pkr.porPieza ? Number(x.uxc || 0) : pkr.factor;
+    return (fr2 > 0) ? { factor: fr2, label: pkr.label, cargaKg: pkr.cargaKg } : null;
   }
   if (MODO !== "enviar") return null;
   // tallerista y prov. de art. terminado: la unidad la trae la PIEZA en el bundle. El prov. AT
@@ -785,7 +822,7 @@ function singularEnvase(label){
    proveedor_servicio.envio_unidad='kg' SIN envio_uni_x, porque acá el bulto no es uno solo para
    todo el proveedor como en AJ: cambia por pieza (ver bultoDe). */
 function pesoEnvio(){
-  if (!selCP || MODO !== "enviar") return false;
+  if (!selCP) return false;
   return String(selCP.envio_unidad || "").toLowerCase() === "kg" && !(Number(selCP.envio_uni_x) > 1);
 }
 
@@ -825,12 +862,13 @@ function bultosSugeridos(b, sugUni){
    lo tipeado: la misma cuenta de envSinMemoria. Talleristas, prov. de art. terminado y TODO
    Recibir siguen con la tabla — ahí hay esperado, exceso y remito, y se leen de corrido. */
 function vistaTarjetas(){
-  // en Enviar, los cuatro destinos; en Recibir, por ahora el tallerista [usuario 2026-09-18:
+  // en Enviar, los cuatro destinos; en Recibir, el tallerista y el P.S. [usuario 2026-09-18:
   // "quiero que tambien aparezcan las partes en box... en vez de sugerido y cantidad, va a ser
   // esperado y cantidad"]. Ojo: en Recibir la tablet SI se acuerda de lo tipeado (envSinMemoria
   // es solo de Enviar): lo que cambia aca es como se ve, no la memoria.
   return envSinMemoria(selCP) ||
-    (MODO === "recibir" && !!selCP && selCP.tipo === "tallerista");
+    (MODO === "recibir" && !!selCP &&
+     (selCP.tipo === "tallerista" || selCP.tipo === "proveedor_servicio"));
 }
 
 /* El SUGERIDO de una pieza tal como se muestra, en la unidad de envío del proveedor. Lo usan la
@@ -988,6 +1026,7 @@ function cpItem(c){
   return { id: claveCP(c), tipo: c.tipo, ref: c.ref, nombre: c.nombre,
            envio_unidad: c.envio_unidad, envio_uni_x: c.envio_uni_x,
            envio_carga_unidad: c.envio_carga_unidad,
+           entrega_unidad: c.entrega_unidad, entrega_uni_x: c.entrega_uni_x,
            n: MODO === "enviar" ? c.n_env : c.n_rec };
 }
 function cargadasDeCP(c){
@@ -1188,7 +1227,10 @@ function renderCards(){
     b.dataset.k = k;
     b.innerHTML =
       '<span class="pc-cod">' + esc(x.cod) + uniTag(uc) + "</span>" +
-      '<span class="pc-desc">' + esc(x.desc || "") + "</span>" +
+      '<span class="pc-desc">' + esc(x.desc || "") +
+        // en Recibir importa QUE pieza consume lo que traen (la fila de la tabla ya lo decia)
+        (MODO === "recibir" && x.ent_cod ? ' <span class="pc-nota">· consume ' + esc(x.ent_cod) + "</span>" : "") +
+        "</span>" +
       '<span class="pc-sug">' + si.rotulo + " " + si.txt +
         (si.uni ? " " + esc(unidadTxt(si.num, si.uni)) : "") +
         (si.nota ? '<span class="pc-nota"> · ' + esc(si.nota) + "</span>" : "") + "</span>" +
