@@ -10430,7 +10430,7 @@ angosta. En el celular (≤640px) no hay blanco que recortar: la tabla vuelve a 
 Lo cuida `tests/ui/test_tablet.js` midiendo a 1.280px (la tablet, no los 390px del celular): la
 tabla tiene que medir lo mismo que su contenido (`max-content`) y el buscador lo mismo que la tabla.
 Si alguna pantalla futura vuelve a quedar con pocas columnas, éste es el patrón a copiar.
-## 4ee. La cuarta forma de enviar: Guazzaroni mira CAJONES (el de cada pieza) y escribe KG (2026-09-17)
+## 4ee. La cuarta forma de enviar: el CAJÓN DE CADA PIEZA se mira, y se escribe KG — Guazzaroni (2026-09-17) y Jade (2026-09-18)
 
 `[usuario, textual: "dentro del version tablet, y envio a ps. Siguiendo la lógica del módulo
 Ester ---> en el módulo de guazzaroni patricio, el sugerido tendría que aparecer en cajones y en
@@ -10451,6 +10451,7 @@ proveedor, sale de la pieza"*. Con eso las cuatro formas entran en las mismas tr
 | AJ Adhesivos (12) | `paquetes` | 100 | `null` | sugerido y cantidad en paquetes |
 | Ester (14) | `bolsas` | 1800 | `kg` | sugerido en bolsas, cantidad en kg |
 | **Guazzaroni Patricio (4)** | `cajones` | **null** | `kg` | **sugerido en cajones de ESA pieza, cantidad en kg** |
+| **Jade (5)** | `cajones` | **null** | `kg` | idem Guazzaroni (2026-09-18) |
 | Hernandez Julio (8) | `kg` | null | `null` | sugerido y cantidad en kg, el bulto al lado |
 
 Ejemplo real: CV1 (remache espiral) tiene 57.143 uni por cajón y 0,00035 kg por unidad → **1 cajón
@@ -10461,6 +10462,17 @@ que falta) y la cantidad se precarga en 20,00 kg.
 pantalla dice a cuántos cajones equivalen, **sin decimales**. Cuando no da entero se muestra con
 `≈` (70 kg → 3,5 → **"≈ 3 cajones"**), para que se lea que es redondeado y no parezca exacto.
 
+**Jade (id 5), 2026-09-18** `[usuario, textual: "Seguimos con Jade. El sugerido tiene que aparecer
+en cajones y la cantidad… Pones los kilos y te tira cuántos cajones es el equivalente. Es parecido
+a lo que hicimos en Guazzaroni"]`. Exactamente la misma forma: **no hizo falta tocar una línea de
+código**, sólo las tres columnas de `proveedor_servicio`. `[dato]` las **12 piezas** que Jade pinta
+/ croma / zinca (G13, G2, G7, H11, H15, I1, I6, J13, J2, J5, K2, K5) tienen `uni_x_cajon` **y**
+`kg_x_uni` cargados, así que **las 12 convierten** y ninguna cae a unidades. Los cajones de Jade
+son grandes (606 a 1.685 piezas) y sus sugeridos a veces chicos: **con el techo, un sugerido de 54
+unidades pide 1 cajón entero de 1.145** (G2). Es la regla de la casa —no se pide menos de lo que
+falta— y el operario igual escribe los kg reales; queda anotado por si el dueño prefiere otra cosa
+para los sugeridos chicos.
+
 **Lo que NO se convierte**: `[dato 2026-09-17]` 5 de las 25 piezas de Guazzaroni no tienen
 `uni_x_cajon` cargado (CV12, CV18D, CV6, CV9, W1B) y CV18D tampoco tiene `kg_x_uni`. Esas filas
 **se cargan en unidades** y la celda lo dice ("sin cajón cargado"): no se inventa un cajón. Si el
@@ -10469,10 +10481,10 @@ dueño carga el `uni_x_cajon` de esas 5, pasan solas al modo cajones/kg — no h
 **El inventario sigue sin ver cajones**: viaja el kg (`unidad='kg'`) y `to_canonical` lo pasa a
 unidades con `kg_x_uni`; los cajones quedan anotados en `movimiento.cajones`, informativos.
 
-**Dónde se ve**: `Tablet/Tablet_GP2.html` (v1.11.0 — v1.9.0 y v1.10.0 las tomaron el mismo día otras dos sesiones: el encogido de columnas y el sugerido en bultos de Julio) y `Prov Serv/Envios/EnviosPS_GP2.html` (v1.6.0).
+**Dónde se ve**: `Tablet/Tablet_GP2.html` (v1.11.0 — v1.9.0 y v1.10.0 las tomaron el mismo día otras dos sesiones: el encogido de columnas y el sugerido en bultos de Julio) y `Prov Serv/Envios/EnviosPS_GP2.html` (v1.6.0). **Sumar un proveedor más a esta forma es un UPDATE, no un deploy**: el alta de Jade (2026-09-18) no tocó ningún archivo de pantalla ni bumpeó versión.
 En Envío a PS el sugerido **ya se calculaba en cajones**, así que ahí sólo cambió el rótulo y el
 layout (se va la columna "Cajón envío", queda un solo campo en kg). **Pendiente: siguen sin definir
-11 de los 15 PS.**
+10 de los 15 PS** (van AJ, Ester, Guazzaroni, Jade y Hernandez Julio).
 
 ### El bug que salió de paso: la Cantidad precargada quedaba VIEJA
 

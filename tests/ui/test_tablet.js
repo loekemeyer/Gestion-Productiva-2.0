@@ -28,7 +28,9 @@ const BUNDLE = {
     { tipo: 'tallerista', ref: '6', nombre: 'Martin Cornejo', n_env: 2, n_rec: 1 },
     { tipo: 'tallerista', ref: '9', nombre: 'Lucho', n_env: 1, n_rec: 0 },
     { tipo: 'proveedor_at', ref: '1', nombre: 'Cabral', n_env: 1, n_rec: 1 },
-    { tipo: 'proveedor_servicio', ref: '5', nombre: 'Jade', n_env: 1, n_rec: 1 },
+    // el PS "comun" (sin unidad de envio propia): Jade dejo de serlo el 2026-09-18 — se le manda
+    // en cajones/kg como a Guazzaroni, asi que el caso comun lo representa Mabra Metalurgica
+    { tipo: 'proveedor_servicio', ref: '3', nombre: 'Mabra Metalurgica', n_env: 1, n_rec: 1 },
     { tipo: 'proveedor_servicio', ref: '12', nombre: 'AJ Adhesivos', envio_unidad: 'paquetes', envio_uni_x: 100, n_env: 1, n_rec: 0 },
     { tipo: 'proveedor_servicio', ref: '8', nombre: 'Hernandez Julio', envio_unidad: 'kg', envio_uni_x: null, n_env: 2, n_rec: 0 },
     { tipo: 'proveedor_servicio', ref: '14', nombre: 'Ester', envio_unidad: 'bolsas', envio_uni_x: 1800, envio_carga_unidad: 'kg', n_env: 1, n_rec: 0 },
@@ -45,7 +47,7 @@ const BUNDLE = {
     { tipo: 'tallerista', ref: '6', comp_id: 70, cod: 'A10', desc: 'Cpo Una', sector: 'Sector Crudo', um: 'unidad', uxc: 1000, kg_x_uni: 0.01, online_sector: 120, saldo_dest: 42, maximo: 200, stock_dest: 50, sugerido: 150 },
     { tipo: 'tallerista', ref: '6', comp_id: 75, cod: 'F7', desc: 'Fleje doblado', sector: 'Sector Fleje', um: 'kg', uxc: null, kg_x_uni: 0.0134, online_sector: 30.5, saldo_dest: 7.5, maximo: 40, stock_dest: 10, sugerido: 12.5 },
     { tipo: 'tallerista', ref: '9', comp_id: 70, cod: 'A10', desc: 'Cpo Una', sector: 'Sector Crudo', um: 'unidad', uxc: 1000, kg_x_uni: 0.01, online_sector: 120, saldo_dest: 0, maximo: 200, stock_dest: 0, sugerido: 200 },
-    { tipo: 'proveedor_servicio', ref: '5', comp_id: 90, cod: 'D5', desc: 'Mitad rompenuez', sector: 'Sector Crudo', um: 'unidad', uxc: 500, kg_x_uni: 0.05, online_sector: 40, saldo_dest: 0, maximo: 100, stock_dest: 20, sugerido: 80 },
+    { tipo: 'proveedor_servicio', ref: '3', comp_id: 90, cod: 'D5', desc: 'Mitad rompenuez', sector: 'Sector Crudo', um: 'unidad', uxc: 500, kg_x_uni: 0.05, online_sector: 40, saldo_dest: 0, maximo: 100, stock_dest: 20, sugerido: 80 },
     // AJ Adhesivos manda por PAQUETES de 100: sugerido 250 uni -> 3 paquetes (techo)
     { tipo: 'proveedor_servicio', ref: '12', comp_id: 564, cod: 'Pliego 506', desc: 'Sin adhesivar', sector: 'Sector Procesado', um: 'unidad', uxc: null, kg_x_uni: null, online_sector: 0, saldo_dest: 0, maximo: 500, stock_dest: 0, sugerido: 250 },
     // Hernandez Julio recibe PESADO (envio_unidad 'kg'): las metalicas van en cajones y las
@@ -67,7 +69,7 @@ const BUNDLE = {
   recibir: [
     { tipo: 'tallerista', ref: '6', comp_id: 71, comp_entrada_id: 70, n_entradas: 1, tiene_bom: false, cod_art: null, cod: 'A11', desc: 'Una Armada', sector: 'Sector Procesado', um: 'unidad', uxc: 500, kg_x_uni: 0.01, por_caja: null, ent_cod: 'A10', ent_desc: 'Cpo Una', esperado: 100, esperado_origen: 'online_tall' },
     { tipo: 'proveedor_at', ref: '1', comp_id: null, comp_entrada_id: null, n_entradas: 0, tiene_bom: false, cod_art: '026', cod: '026', desc: 'Colador N°8', sector: null, um: null, uxc: null, kg_x_uni: null, por_caja: 36, ent_cod: null, ent_desc: null, esperado: 72, esperado_origen: 'oc' },
-    { tipo: 'proveedor_servicio', ref: '5', comp_id: 91, comp_entrada_id: 90, n_entradas: 1, tiene_bom: false, cod_art: null, cod: 'D5-P', desc: 'Mitad pintada', sector: 'Sector Procesado', um: 'unidad', uxc: 500, kg_x_uni: 0.05, por_caja: null, ent_cod: 'D5', ent_desc: 'Mitad rompenuez', esperado: 40, esperado_origen: 'online_ps' },
+    { tipo: 'proveedor_servicio', ref: '3', comp_id: 91, comp_entrada_id: 90, n_entradas: 1, tiene_bom: false, cod_art: null, cod: 'D5-P', desc: 'Mitad pintada', sector: 'Sector Procesado', um: 'unidad', uxc: 500, kg_x_uni: 0.05, por_caja: null, ent_cod: 'D5', ent_desc: 'Mitad rompenuez', esperado: 40, esperado_origen: 'online_ps' },
     { tipo: 'virgilio', ref: 'virgilio', comp_id: 373, comp_entrada_id: null, n_entradas: 0, tiene_bom: false, cod_art: null, cod: 'IC3V', desc: 'Fleje N° 90 LARGO', sector: 'Sector Fleje', um: 'kg', uxc: 24, kg_x_uni: 0.0134, por_caja: null, ent_cod: null, ent_desc: null, esperado: 20, esperado_origen: 'online_virgilio' },
   ],
 };
@@ -133,8 +135,8 @@ window.supabase = { createClient: function(){ return {
   // los manda al mismo lugar. Su envio son las RESINAS (bolsas) en kg. [usuario 2026-09-15]
   await page.click('#tipoGrid .tipo-btn[data-tipo="proveedor_servicio"]');
   const psYiny = await page.$$eval('#cpGrid .prov-btn', xs => xs.map(x => x.textContent.replace(/\s+/g, ' ')));
-  ok(psYiny.some(b => b.startsWith('Jade')) && psYiny.some(b => b.startsWith('Pat Bet Plast')),
-     'bajo "Prov. de servicio" salen el PS (Jade) y el inyector (Pat Bet Plast) — ' + psYiny.join(' | '));
+  ok(psYiny.some(b => b.startsWith('Mabra')) && psYiny.some(b => b.startsWith('Pat Bet Plast')),
+     'bajo "Prov. de servicio" salen el PS (Mabra) y el inyector (Pat Bet Plast) — ' + psYiny.join(' | '));
   await page.click('#cpGrid .prov-btn:has-text("Pat Bet Plast")');
   const resinas = await page.$$eval('#tbody tr', xs => xs.map(x => x.textContent.replace(/\s+/g, ' ')));
   ok(resinas.length === 2 && resinas.some(r => r.includes('2405')) && resinas.every(r => r.includes('kg')),
@@ -437,7 +439,7 @@ window.supabase = { createClient: function(){ return {
   await pT.route('**/GP2_favicon.png', r => r.fulfill({ contentType: 'image/png', body: Buffer.from('') }));
   for (const [cp, etiq] of [['AJ Adhesivos', 'AJ (paquetes)'], ['Hernandez Julio', 'Julio (kg + bulto)'],
                             ['Ester', 'Ester (bolsas + kg)'],
-                            ['Guazzaroni Patricio', 'Guazzaroni (cajones + kg)'], ['Jade', 'PS comun']]) {
+                            ['Guazzaroni Patricio', 'Guazzaroni (cajones + kg)'], ['Mabra Metalurgica', 'PS comun']]) {
     await pT.goto(ROOT + '/Tablet/Tablet_GP2.html?modo=enviar');
     await pT.evaluate(() => localStorage.clear());
     await pT.reload();
@@ -467,24 +469,24 @@ window.supabase = { createClient: function(){ return {
   //  Cantidad vieja. Vale para cualquier proveedor, tenga o no unidad de envío propia.)
   await page.evaluate(() => {
     localStorage.setItem('gp2_tablet_buffer', JSON.stringify({
-      'enviar:proveedor_servicio:5': { '90::': { q: '99', qAuto: '99' } }   // precarga de otro día
+      'enviar:proveedor_servicio:3': { '90::': { q: '99', qAuto: '99' } }   // precarga de otro día
     }));
   });
   await page.reload();
   await page.waitForFunction(() => document.querySelectorAll('#tipoGrid .tipo-btn').length > 0);
   await page.click('#tipoGrid .tipo-btn[data-tipo="proveedor_servicio"]');
-  await page.click('#cpGrid .prov-btn:has-text("Jade")');
+  await page.click('#cpGrid .prov-btn:has-text("Mabra")');
   ok((await page.$eval('#tbody input.cell-in', e => e.value)) === '80',
      'la precarga intacta se actualiza al sugerido de hoy (99 -> 80)');
   await page.evaluate(() => {
     localStorage.setItem('gp2_tablet_buffer', JSON.stringify({
-      'enviar:proveedor_servicio:5': { '90::': { q: '77', qAuto: '99' } }   // el operario la editó
+      'enviar:proveedor_servicio:3': { '90::': { q: '77', qAuto: '99' } }   // el operario la editó
     }));
   });
   await page.reload();
   await page.waitForFunction(() => document.querySelectorAll('#tipoGrid .tipo-btn').length > 0);
   await page.click('#tipoGrid .tipo-btn[data-tipo="proveedor_servicio"]');
-  await page.click('#cpGrid .prov-btn:has-text("Jade")');
+  await page.click('#cpGrid .prov-btn:has-text("Mabra")');
   ok((await page.$eval('#tbody input.cell-in', e => e.value)) === '77',
      'lo que el operario cargó a mano NO se pisa');
 
