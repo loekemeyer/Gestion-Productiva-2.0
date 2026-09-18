@@ -10520,6 +10520,28 @@ que falta) y la cantidad se precarga en 20,00 kg.
 pantalla dice a cuántos cajones equivalen, **sin decimales**. Cuando no da entero se muestra con
 `≈` (70 kg → 3,5 → **"≈ 3 cajones"**), para que se lea que es redondeado y no parezca exacto.
 
+### UN ENVASE NO SE PARTE: la regla vale para TODAS las formas (2026-09-18)
+
+`[usuario, sobre un "= 6,17 bolsas" de Ester: "acordate que todo lo que sea envío de cajones y
+bolsas redondear. En este caso, el pasaje serían 6 bolsas"]`. Hasta ese día convivían **dos**
+criterios: el envase del proveedor (Ester) mostraba 2 decimales cuando no daba entero, y el cajón
+por pieza ya se redondeaba. Ahora es **uno solo**, en la Tablet y en Envío a PS:
+
+| lo que se mira | cómo se redondea | por qué |
+|---|---|---|
+| **el equivalente en bultos de lo que se manda** | al entero **más cercano** (6,17 → 6; 4,83 → 5) | es una descripción de lo que va en el camión, no un pedido |
+| **el sugerido** | **para arriba** (techo) | es *lo que falta*, y pedir menos no llena el lugar `[usuario 2026-09-17, Ester: "redondeás por arriba"]` |
+
+Son dos cosas distintas y por eso redondean distinto — la trampa es creer que es la misma regla.
+
+El texto lo arma `textoEnvases()`: **"="** cuando da justo, **"≈"** cuando se redondeó, y
+**"menos de 1 bolsa"** (en palabras) cuando no llega a un envase, porque un *"≈ 0 bolsas"* no le
+dice nada al operario. `equivEnvase()` perdió el parámetro `redondear`: ya no hay dos modos.
+
+**También cambió lo que se REGISTRA**: `movimiento.cajones` guardaba el número crudo con 2
+decimales (3,5 cajones) y ahora guarda el mismo entero que se ve. Si redondeando da cero, no se
+anota ningún bulto (queda `null`): es informativo y un 0 mentiría igual que un 3,5.
+
 **Ese renglón chico es AHORA EL ÚNICO FORMATO, en las cuatro formas** `[usuario 2026-09-18,
 textual: "está bien que me lo ponga chiquito abajo, pero modificá Hernandez Julio así quedan todos
 así"]`. Julio era el que quedaba distinto: tenía el bulto en una **columna aparte**, con su propio

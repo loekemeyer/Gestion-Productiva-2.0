@@ -234,7 +234,7 @@ window.supabase = { createClient: function(){ return {
   const callGz = await page.evaluate(() => (window.__calls || []).filter(c => c.name === 'crear_envio_ps'));
   const aGz = callGz[callGz.length - 1].args;
   ok(aGz.p_ps_id === 4 && aGz.p_comp_sc_id === 601 && aGz.p_cantidad === 70 && aGz.p_unidad === 'kg' &&
-     Math.abs(aGz.p_cajones - 3.5) < 0.01,
+     aGz.p_cajones === 3,
      'Guazzaroni: viaja el kg y quedan anotados los cajones — ' + JSON.stringify(aGz));
   const cfGz = dialogs.filter(d => d.type === 'confirm').pop();
   ok(cfGz && cfGz.msg.includes('CV1: 70 kg (~3 cajones)') && !cfGz.msg.includes('caj /'),
