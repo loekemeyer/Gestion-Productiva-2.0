@@ -10579,3 +10579,26 @@ tocar una se abre **la vista de esa parte** con el sugerido arriba y el campo de
   cuatro copias de la misma aritmética y se podían separar.
 - **`EnviosPS_GP2` (escritorio) no se tocó**: el pedido fue "en la versión tablet". Sigue con la
   tabla, igual que antes.
+
+## 4eh. En la tablet el botón de los inyectores dice "bolsas plásticas", y la tarjeta no corta texto (2026-09-18)
+
+`[usuario 2026-09-18, textual: "En versión tablet, en vez de bolsas de resina, bolsas plásticas
+poné"]` — el subtítulo del botón **Inyectores** de Enviar. Cambio de **palabra en pantalla**, nada
+más: adentro sigue viajando **resina en kg** por `enviar_material_inyector`, con el sugerido que
+sale de la O.C. de partes (4ea). Los comentarios del código y esta memoria siguen diciendo
+"resina" porque eso es lo que se mueve; "bolsas plásticas" es cómo lo nombra el que carga.
+
+`[usuario 2026-09-18, textual: "ojo que por ejemplo, en guazzaroni, aparece así" + captura de la
+tarjeta de CV12 con "Sugerido 13.272 uni · sin cajón cargad" comido por el borde]` — **el texto de
+la tarjeta se cortaba**. La causa era `white-space:nowrap` en `.pc-sug`: en la tablet real la
+grilla arma columnas de 230px y esa línea, la más larga que produce la pantalla (sugerido +
+unidad + la nota "sin cajón cargado" de 4ef), no entra en un renglón. Ahora baja de renglón, y la
+tarjeta entera lleva `overflow-wrap:anywhere` para que un código o una descripción larga tampoco
+se puedan ir afuera.
+
+**Lo que hay que recordar de esto:** el recorte **no se ve a 390px**, donde la tarjeta ocupa el
+ancho completo y la línea entra — se ve a **1.280px**, que es la tablet de verdad. Los dos anchos
+se miden en `test_tablet.js`, y el chequeo del recorte va en el bloque de 1.280. Y se mide
+comparando el ancho real del texto (`Range.getBoundingClientRect()`) contra el de su caja:
+`scrollWidth` **no** sirve, porque con `nowrap` la caja mide bien y el texto se va afuera igual
+(medido: el guardián con `scrollWidth` daba OK con el bug puesto; con `Range` dio 48px de desborde).

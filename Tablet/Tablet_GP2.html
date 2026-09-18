@@ -6,6 +6,19 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
+<!-- v1.15.2 (2026-09-18) — EL SUBTÍTULO DEL BOTÓN "Inyectores" DICE "bolsas plásticas"
+     (usuario, textual: "En versión tablet, en vez de bolsas de resina, bolsas plásticas poné").
+     Cambio de TEXTO de una sola línea en TIPOS.enviar: no se tocó nada de la lógica del inyector
+     (sigue mandando kg de resina por enviar_material_inyector, con su sugerido desde la O.C.).
+     Los comentarios que explican el módulo siguen hablando de resina porque eso es lo que viaja;
+     lo que cambia es cómo lo nombra el operario en la pantalla.
+     Y DE PASO, del mismo screenshot: EN LA TARJETA DE LA PARTE EL TEXTO QUEDABA CORTADO contra
+     el borde (usuario: "ojo que por ejemplo, en guazzaroni, aparece así" — se veía "Sugerido
+     13.272 uni · sin cajón cargad"). Lo comía el white-space:nowrap de .pc-sug: en la tablet
+     real la grilla arma columnas de 230px y esa línea no entra en una sola. Ahora .pc-sug baja
+     de renglón y la tarjeta entera lleva overflow-wrap:anywhere (un código o una descripción
+     larga tampoco se puede ir afuera). Se ve a 1.280px, no a 390 — ahí la tarjeta es de ancho
+     completo y entraba; por eso el test nuevo mide a 1.280. -->
 <!-- v1.15.1 (2026-09-18) — SE VA EL BOTON "USAR EL SUGERIDO" DE LA VISTA DE LA PARTE (usuario,
      textual: "no quiero que aparezca la opcion de enviar sugerido"). v1.15.0 lo habia puesto como
      atajo; la linea de la casa es mas simple y ya estaba escrita en 4ee: el sugerido es REFERENCIA,
@@ -336,12 +349,15 @@
   #tblBox.cards{display:block;width:100%}          /* la grilla usa el ancho entero, no el de la tabla */
   .cards-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:10px;margin-top:10px}
   .parte-card{display:flex;flex-direction:column;gap:3px;min-height:132px;text-align:left;cursor:pointer;
-    border:2px solid #d0d7de;border-radius:14px;background:#fff;color:#111;padding:14px 16px;font-family:inherit}
+    border:2px solid #d0d7de;border-radius:14px;background:#fff;color:#111;padding:14px 16px;font-family:inherit;
+    /* nada de la tarjeta se puede cortar: el texto largo baja de renglon en vez de irse afuera
+       (pasaba con "Sugerido 13.272 uni · sin cajón cargado", que quedaba comido por el borde) */
+    overflow-wrap:anywhere}
   .parte-card:hover{border-color:#111}
   .parte-card.cargada{border-color:#15803d;background:#f4fbf6}
   .pc-cod{font-size:23px;font-weight:900;line-height:1.1}
   .pc-desc{font-size:16px;font-weight:700;color:#444;line-height:1.25}
-  .pc-sug{font-size:15px;font-weight:700;color:#777;white-space:nowrap}
+  .pc-sug{font-size:15px;font-weight:700;color:#777;line-height:1.25}
   .pc-estado{margin-top:auto;padding-top:6px;font-size:17px;font-weight:800;color:#15803d}
   .parte-card:not(.cargada) .pc-estado{color:#9aa1a8}
   /* la vista de UNA parte: el sugerido bien grande y un solo campo para la cantidad que se manda */
@@ -489,7 +505,7 @@ var TIPOS = {
   enviar: [
     { tipo: "tallerista",         icono: "👷", titulo: "Talleristas",            sub: "lo que arman afuera" },
     { tipo: "proveedor_servicio", icono: "🏭", titulo: "Prov. de servicio",      sub: "pintan, niquelan, cortan" },
-    { tipo: "inyector",           icono: "💉", titulo: "Inyectores",             sub: "bolsas de resina" },
+    { tipo: "inyector",           icono: "💉", titulo: "Inyectores",             sub: "bolsas plásticas" },
     { tipo: "proveedor_at",       icono: "📦", titulo: "Prov. de art. terminado", sub: "cartones y cajas" }
   ],
   recibir: [

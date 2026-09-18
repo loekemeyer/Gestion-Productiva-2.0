@@ -606,6 +606,19 @@ window.supabase = { createClient: function(){ return {
   ok(gT.alto >= 44, '1280px: las tarjetas son tocables (' + Math.round(gT.alto) + 'px)');
   ok(gT.ancho > gT.disponible * 0.9,
      '1280px: la grilla usa el ancho entero, no el de la tabla (' + gT.ancho + ' de ' + gT.disponible + 'px)');
+  // EL TEXTO DE LA TARJETA NO SE PUEDE CORTAR CONTRA EL BORDE. Se mide a 1.280px, que es donde
+  // la tarjeta es angosta (grilla de 230px), con la linea mas larga que produce la pantalla:
+  // "Sugerido 113.304 uni · sin cajón cargado" de Guazzaroni. Se compara el ancho REAL del
+  // texto (Range) contra el de su caja: con white-space:nowrap la caja mide bien y el texto se va
+  // afuera igual, asi que scrollWidth no alcanza para verlo.
+  await pT.click('#btnVolver');
+  await pT.click('#cpGrid .prov-btn:has-text("Guazzaroni")');
+  await pT.waitForFunction(() => document.querySelectorAll('#cardsGrid .parte-card').length > 0);
+  const gzCorte = await pT.evaluate(() => Math.max(...[...document.querySelectorAll('#cardsGrid .parte-card span')]
+    .map(x => { const r = document.createRange(); r.selectNodeContents(x);
+                return r.getBoundingClientRect().width - x.getBoundingClientRect().width; })));
+  ok(gzCorte <= 1,
+     '1280px: el texto de la tarjeta baja de renglon, no queda cortado (desborde ' + Math.round(gzCorte) + 'px)');
   // ── la Cantidad precargada se REFRESCA con el sugerido del día, salvo que la hayan tocado ──
   // (bug: el buffer vive en localStorage y sobrevive días; se veía el Sugerido nuevo con la
   //  Cantidad vieja.) Se verifica en el TALLERISTA, que es donde la precarga sigue viva; en los
