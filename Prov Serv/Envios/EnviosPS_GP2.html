@@ -6,6 +6,29 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
+<!-- v1.7.0 (2026-09-18) — AL FASONERO NO SE LE MANDA NADA HASTA QUE HAY ORDEN DE COMPRA
+     [usuario 2026-09-18, textual: "que el envio a Maspoli de virolas no surja hasta que se hace
+     una orden de compra... imaginate que se hizo una orden de compra por 10 mangos. Por esos 10
+     mangos hay que mandarle 10 virolas. Entonces en la cantidad sugerida tendria que aparecer el
+     equivalente a 10 unidades de virola"].
+     QUE ES UN FASONERO: un P.S. que ademas de laburo pone material propio y nos VENDE la pieza que
+     devuelve, asi que se le emite O.C. Maspoli recibe la virola D13 y devuelve el mango de madera
+     (PC12 / PEP7 / PEP8) con la virola adentro. La base lo marca con proveedor_servicio.pedido_por_oc
+     (no se deduce del nombre: "Maspoli SRL" y "Maspoli SRL" con tilde son la misma persona escrita
+     de dos formas). Mismo patron que ya tenia el inyector, que pide sus bolsas desde la O.C.
+     (1) envios_ps_bundle manda ps[].pedido_por_oc y, por cada salida, oc_pend = unidades que faltan
+         entregar de una O.C. ENVIADA (el borrador todavia no salio, no dispara envio).
+     (2) Con pedido_por_oc el SUGERIDO deja de ser (maximo del SP - online) y pasa a ser
+         suma(oc_pend de las salidas) - lo que ya tiene en su poder, EN UNIDADES de la pieza que se
+         le manda (1 a 1: una virola por mango), con los kg al lado porque a Maspoli la cantidad se
+         le carga en kg. 10 mangos pendientes = 10 virolas.
+     (3) Sin O.C. no hay nada que mandarle: la fila no se muestra y el proveedor no aparece en la
+         lista de ENVIO. En ENTREGA sigue apareciendo siempre (comparten bundle, pero el filtro es
+         de esta pantalla): si no, no habria donde registrar lo que todavia debe.
+     EN LA BASE (sincronizado en db/): columna proveedor_servicio.pedido_por_oc, oc_bundle deja las
+     3 piezas de Maspoli en la O.C. sin tocarles el estado_compra, y crear_entrega_ps descuenta la
+     O.C. al recibir el mango (si no, la orden quedaba abierta para siempre y el sugerido no bajaba).
+     Anti-cache no-store, sin ?v= ni bump global. -->
 <!-- v1.6.2 (2026-09-18) — FIX DEL FIX: mismo comentario roto que la Tablet. El cierre de
      comentario (guion guion mayor) que venia adentro del texto del pedido cerraba el comentario y
      el resto del changelog se veia en pantalla; v1.6.1 lo arreglo ahi pero lo escribio literal en
@@ -215,6 +238,15 @@ function modoKgPS(){ var pk = pkPS(); return !!(pk && pk.cargaKg); }
 /* El encabezado depende del proveedor: con unidad de envío propia cargada en kg se va la columna
    del cajón y el sugerido se rotula en esa unidad. */
 function theadHTML(){
+  var h = theadBase();
+  // FASONERO: la columna deja de rotularse por el maximo — el pedido surge de la O.C.
+  if (selPS && selPS.pedido_por_oc)
+    h = h.replace(/<th class="num"[^>]*>Sugerido<br>[^<]*<\/th>/,
+      '<th class="num" title="Lo que falta entregar de la O.C. enviada de las piezas que devuelve, '+
+      'menos lo que ya tiene en su poder. Sin O.C. la fila no aparece.">Sugerido<br>seg\u00fan O.C.</th>');
+  return h;
+}
+function theadBase(){
   var pk = pkPS();
   if (!(pk && pk.cargaKg))
     return '<tr><th>SC</th><th class="num">Cajón<br>envío</th>'+
@@ -268,7 +300,12 @@ async function cargarInyectores(){
 }
 
 function renderPS(){
-  E.gridContrapartes("psGrid", D.ps, {
+  // el fasonero SIN O.C. no tiene una sola pieza para mandar: no se muestra el boton
+  var lista = (D.ps||[]).filter(function(p){
+    if (!p.pedido_por_oc) return true;
+    return conOC(agruparPorSC((D.partes||{})[p.id]||[]), p).length > 0;
+  });
+  E.gridContrapartes("psGrid", lista, {
     vacio: "Sin proveedores configurados.",
     meta: function(p){
       // Cuenta PIEZAS A ENVIAR, no pares (pieza que entra, pieza que sale). A
@@ -277,7 +314,7 @@ function renderPS(){
       // [usuario 2026-09-03: "en envio a Maspoli deberia aparecer 1 parte, lo
       // que hace es entregar 3 partes"]. Misma correccion que ya se hizo en la
       // tabla; esto era lo que faltaba.
-      var n = agruparPorSC((D.partes||{})[p.id]||[]).length;
+      var n = conOC(agruparPorSC((D.partes||{})[p.id]||[]), p).length;
       var cargado = E.cargadasDe(BUF.all[p.id], tieneAlgo).length;
       return esc(p.proceso||"—") + " · " + n + (p.inyector? " bolsas":" partes") + (cargado? " · "+cargado+" cargadas":"");
     },
@@ -307,7 +344,21 @@ function partesFiltradas(){
     return String(x.sc_cod||"")+" "+String(x.sc_desc||"")+" "+
            String(x.sp_cod||"")+" "+String(x.sp_desc||"");
   });
-  return agruparPorSC(arr);
+  return conOC(agruparPorSC(arr), selPS);
+}
+
+/* FASONERO (pedido_por_oc): lo que se le manda sale de la O.C. de lo que el devuelve, asi que sin
+   O.C. enviada no hay nada que mandarle y la fila NO se muestra [usuario 2026-09-18]. El filtro vive
+   en esta pantalla y no en el bundle a proposito: envios_ps_bundle lo comparte con Entrega PS, donde
+   el proveedor tiene que seguir apareciendo para registrar lo que todavia debe. */
+function pendOC(x){
+  var n = 0;
+  (x.salidas||[]).forEach(function(sp){ n += Number(sp.oc_pend||0); });
+  return n;
+}
+function conOC(arr, ps){
+  if (!ps || !ps.pedido_por_oc) return arr;
+  return arr.filter(function(x){ return pendOC(x) > 0; });
 }
 
 /* Junta en UNA fila las salidas de la misma pieza enviada. Lo que se manda es
@@ -324,7 +375,8 @@ function agruparPorSC(arr){
     }
     if (x.sp_id != null) porSC[k].salidas.push({
       sp_id: x.sp_id, sp_cod: x.sp_cod, sp_desc: x.sp_desc,
-      sp_unixcaj: x.sp_unixcaj, online_sp: x.online_sp, maximo_sp: x.maximo_sp
+      sp_unixcaj: x.sp_unixcaj, online_sp: x.online_sp, maximo_sp: x.maximo_sp,
+      oc_pend: x.oc_pend
     });
   });
   return orden.map(function(k){ return porSC[k]; });
@@ -406,6 +458,19 @@ function renderTabla(){
       var sugEnv = (sug==null || !(fCaj>0) || !(fEnv>0)) ? null : Math.ceil(sug * fCaj / fEnv);
       sugTxt = (sugEnv==null) ? "—" : (fmt(sugEnv,0)+" "+esc(pk.label));
       sug = sugEnv;
+    }
+
+    // FASONERO (pedido_por_oc): el sugerido NO sale del maximo sino de la O.C. de lo que el
+    // devuelve — 10 mangos pendientes = 10 virolas — menos lo que ya tiene en su poder. Va en
+    // UNIDADES de la pieza que se le manda, no en el envase del proveedor [usuario 2026-09-18:
+    // "en la cantidad sugerida tendria que aparecer el equivalente a 10 unidades de virola"], con
+    // los kg al lado porque a Maspoli la cantidad se le carga en kg. La relacion es 1 a 1: el paso
+    // de ruta transforma la pieza (una virola entra, un mango sale), que es el mismo supuesto con
+    // el que crear_entrega_ps descuenta el stock.
+    if (selPS.pedido_por_oc) {
+      var sugU = Math.max(0, pendOC(x) - Number(x.online_ps||0));
+      sug = sugU;
+      sugTxt = fmt(sugU,0)+" uni" + (fKg>0 ? "<br>"+fmt(sugU*fKg,3)+" kg" : "");
     }
 
     var tr = document.createElement("tr");

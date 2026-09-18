@@ -24,7 +24,14 @@ const BUNDLE = {
          envio_unidad: 'bolsas', envio_uni_x: 1800, envio_carga_unidad: 'kg' },
        // Guazzaroni: el envase NO es uno del proveedor (envio_uni_x null), es el cajon de cada SC
        { id: 4, nombre: 'Guazzaroni Patricio', cod_prov: null, proceso: 'Niquelado',
-         envio_unidad: 'cajones', envio_uni_x: null, envio_carga_unidad: 'kg' }],
+         envio_unidad: 'cajones', envio_uni_x: null, envio_carga_unidad: 'kg' },
+       // FASONERO (pedido_por_oc): Maspoli pone la madera y nos VENDE el mango, asi que se le
+       // emite O.C. y lo que se le manda (la virola) sale de esa O.C., no del maximo.
+       { id: 15, nombre: 'Maspoli SRL', cod_prov: '2339', proceso: 'Armado Mango',
+         envio_unidad: 'cajones', envio_uni_x: null, envio_carga_unidad: 'kg', pedido_por_oc: true },
+       // mismo caso pero SIN O.C. abierta: no tiene que aparecer en la pantalla de envio
+       { id: 16, nombre: 'Fasonero Sin OC', cod_prov: null, proceso: 'Armado',
+         envio_unidad: 'cajones', envio_uni_x: null, envio_carga_unidad: 'kg', pedido_por_oc: true }],
   partes: { '5': [
     // una sola pieza enviada, dos salidas distintas
     { sc_id: 1, sp_id: 2, sc_cod: 'J2C', sc_desc: 'Cuchilla cruda', sp_cod: 'J2', sp_desc: 'Cuchilla pintada',
@@ -54,6 +61,25 @@ const BUNDLE = {
       sp_cod: 'CV9N', sp_desc: 'Remache uña Niq', proceso: 'Niquelado',
       online_ps: 0, online_sp: 0, maximo: null, maximo_sp: 50000,
       sc_unixcaj: null, sc_kgxuni: 0.000567, sp_unixcaj: null },
+  ], '15': [
+    // una sola virola D13 que vuelve como TRES mangos distintos; solo el PC12 tiene O.C. abierta
+    { sc_id: 111, sp_id: 221, sc_cod: 'D13', sc_desc: 'Virola Sacafuente Niq', sp_cod: 'PC12',
+      sp_desc: 'Mgo Sacafuente Articulado', proceso: 'Armado Mango',
+      online_ps: 0, online_sp: 0, maximo: null, maximo_sp: 2448,
+      sc_unixcaj: 3125, sc_kgxuni: 0.0032, sp_unixcaj: 250, oc_pend: 10 },
+    { sc_id: 111, sp_id: 222, sc_cod: 'D13', sc_desc: 'Virola Sacafuente Niq', sp_cod: 'PEP7',
+      sp_desc: 'Mgo sacafuente pizzero', proceso: 'Armado Mango',
+      online_ps: 0, online_sp: 0, maximo: null, maximo_sp: 2864,
+      sc_unixcaj: 3125, sc_kgxuni: 0.0032, sp_unixcaj: 250, oc_pend: 0 },
+    { sc_id: 111, sp_id: 223, sc_cod: 'D13', sc_desc: 'Virola Sacafuente Niq', sp_cod: 'PEP8',
+      sp_desc: 'Mango Madera Pizza', proceso: 'Armado Mango',
+      online_ps: 0, online_sp: 0, maximo: null, maximo_sp: 2552,
+      sc_unixcaj: 3125, sc_kgxuni: 0.0032, sp_unixcaj: 250, oc_pend: 0 },
+  ], '16': [
+    { sc_id: 700, sp_id: 701, sc_cod: 'XX1', sc_desc: 'Pieza cruda', sp_cod: 'XX2',
+      sp_desc: 'Pieza armada', proceso: 'Armado',
+      online_ps: 0, online_sp: 0, maximo: null, maximo_sp: 5000,
+      sc_unixcaj: 100, sc_kgxuni: 0.01, sp_unixcaj: 100, oc_pend: 0 },
   ] },
 };
 
@@ -95,7 +121,13 @@ window.supabase = { createClient: function(){ return {
   // son 2 piezas (la cuchilla cruda sale de dos maneras). Decia 3.
   ok(provTxt.includes('Becker') && provTxt.includes('Pintado') && /\b2 partes\b/.test(provTxt),
      'fase0: el boton cuenta piezas a enviar, no pares — ' + provTxt.trim());
-  ok((await page.$eval('#status', e => e.textContent)).includes('3 proveedores'), 'status: 3 proveedores');
+  ok((await page.$eval('#status', e => e.textContent)).includes('5 proveedores'), 'status: 5 proveedores');
+  // FASONERO SIN O.C.: no hay nada que mandarle, asi que no tiene boton (el status igual lo cuenta)
+  const nombresPS = await page.$$eval('#psGrid .prov-btn', xs => xs.map(x => x.textContent));
+  ok(nombresPS.length === 4 && !nombresPS.some(t => t.includes('Fasonero Sin OC')),
+     'el fasonero sin O.C. no aparece en Envio — ' + nombresPS.length + ' botones');
+  ok(nombresPS.some(t => t.includes('Maspoli SRL') && /\b1 partes\b/.test(t)),
+     'el fasonero CON O.C. si aparece, con su unica pieza');
 
   // elegir proveedor
   await page.click('#psGrid .prov-btn');
@@ -237,6 +269,22 @@ window.supabase = { createClient: function(){ return {
   ok(cfGz && cfGz.msg.includes('CV1: 70 kg (~3 cajones)') && !cfGz.msg.includes('caj /'),
      'Guazzaroni: el confirm dice los kg con los cajones redondeados y no nombra la columna de cajón — ' +
      (cfGz ? cfGz.msg.replace(/\n/g, ' / ') : 'sin confirm'));
+
+  // ── FASONERO: el sugerido sale de la O.C., en UNIDADES de la pieza que se le manda ─────────
+  // [usuario 2026-09-18: "por 10 mangos hay que mandarle 10 virolas... el equivalente a 10
+  // unidades de virola"]. Las otras dos salidas (PEP7/PEP8) no tienen O.C. y no suman.
+  await page.click('#btnVolverPS');
+  await page.click('#psGrid .prov-btn:has-text("Maspoli")');
+  const thMa = await page.$$eval('#thead th', xs => xs.map(x => x.textContent.replace(/\s+/g, '').trim()));
+  ok(thMa.join('|') === 'SC|CantidadKGNeto|T|F|Parte|Sugeridoseg\u00fanO.C.',
+     'Maspoli: la columna se rotula por la O.C., no por el maximo — ' + thMa.join(' | '));
+  const filasMa = await page.$$eval('#tbody tr', xs => xs.map(x => x.textContent.replace(/\s+/g, ' ')));
+  ok(filasMa.length === 1, 'Maspoli: una sola fila (la virola), aunque devuelva 3 mangos — ' + filasMa.length);
+  ok(filasMa[0].includes('PC12') && filasMa[0].includes('PEP7') && filasMa[0].includes('PEP8'),
+     'Maspoli: la fila lista sus tres salidas');
+  const sugMa = await page.$eval('#tbody tr:first-child td:last-child', e => e.textContent.trim());
+  ok(sugMa.includes('10 uni'), 'Maspoli: O.C. de 10 mangos -> sugerido 10 virolas — ' + sugMa);
+  ok(sugMa.includes('0,032 kg'), 'Maspoli: los kg al lado, que es como se le carga la cantidad — ' + sugMa);
 
   await browser.close();
   console.log(process.exitCode ? 'HAY FALLOS' : 'TODO OK');

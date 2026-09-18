@@ -10270,13 +10270,9 @@ C2 metálicas; PA10B, PA13B, PA18B, PA4B, PA5B, PC15AB, PEP2 plásticas) tienen 
 cargadas, así que las 11 convierten.
 
 **Qué falta:** el resto de los proveedores sigue en unidades; la unidad de envío se define caso por
-<<<<<<< HEAD
-caso con el dueño (ése fue el acuerdo al arrancar con AJ). **Ahora son tres formas, no dos: ver 4ec.**
-**Y el sugerido ya no se precarga en el campo Cantidad de los P.S.: solo se muestra (ver 4ee).**
-=======
 caso con el dueño (ése fue el acuerdo al arrancar con AJ). **Ahora son CUATRO formas, no dos: ver
-4ec (Ester) y 4ee (Guazzaroni), con la tabla de las cuatro en 4ee.**
->>>>>>> origin/main
+4ec (Ester) y 4ef (Guazzaroni), con la tabla de las cuatro en 4ef.** **Y el sugerido ya no se
+precarga en el campo Cantidad de los P.S.: sólo se muestra (ver 4ee).**
 
 ## 4eb. El 506 pasa al molde del 500/510 (sin GRJ7) y el adhesivado de pliego es un PASO, no un subcomponente (2026-09-17)
 
@@ -10420,12 +10416,9 @@ lo tienen, así que no pasa.
 donde además se fue la columna "Cajón envío" para ese proveedor: el cajón no es la unidad con la
 que se le manda y era ruido). Lo sirven `tablet_bundle` (en cada contraparte) y `envios_ps_bundle`
 (en cada PS). **Pendiente: seguir caso por caso con los demás proveedores** — van definidos AJ,
-<<<<<<< HEAD
-Hernandez Julio y Ester de 15 PS. **El sugerido de los tres se sigue MOSTRANDO en su unidad, pero
-desde el 2026-09-17 ya no se precarga en el campo Cantidad (ver 4ee).**
-=======
-Hernandez Julio y Ester de 15 PS. **Ya son cuatro formas: ver 4ee.**
->>>>>>> origin/main
+Hernandez Julio y Ester de 15 PS. **Ya son cuatro formas: ver 4ef.** **El sugerido de los tres se
+sigue MOSTRANDO en su unidad, pero desde el 2026-09-17 ya no se precarga en el campo Cantidad
+(ver 4ee).**
 
 ## 4ed. La tabla de la tablet ENCOGE: el blanco va adentro de la celda, no entre columnas (2026-09-17)
 
@@ -10449,7 +10442,6 @@ angosta. En el celular (≤640px) no hay blanco que recortar: la tabla vuelve a 
 Lo cuida `tests/ui/test_tablet.js` midiendo a 1.280px (la tablet, no los 390px del celular): la
 tabla tiene que medir lo mismo que su contenido (`max-content`) y el buscador lo mismo que la tabla.
 Si alguna pantalla futura vuelve a quedar con pocas columnas, éste es el patrón a copiar.
-<<<<<<< HEAD
 
 ## 4ee. El SUGERIDO es referencia, no orden: a los P.S. no se les precarga la cantidad (2026-09-17)
 
@@ -10489,8 +10481,8 @@ lugar del envío real — y un envío mal cargado desbalancea el stock del P.S. 
 - **Y el campo vacío no dice "= 0 cajones"**: la equivalencia en bultos aparece cuando hay un número
   tipeado. Debajo de un campo en blanco era ruido.
 - **`EnviosPS_GP2` (pantalla de escritorio) no se tocó**: el pedido fue "en la versión tablet".
-=======
-## 4ee. La cuarta forma de enviar: Guazzaroni mira CAJONES (el de cada pieza) y escribe KG (2026-09-17)
+
+## 4ef. La cuarta forma de enviar: Guazzaroni mira CAJONES (el de cada pieza) y escribe KG (2026-09-17)
 
 `[usuario, textual: "dentro del version tablet, y envio a ps. Siguiendo la lógica del módulo
 Ester ---> en el módulo de guazzaroni patricio, el sugerido tendría que aparecer en cajones y en
@@ -10550,4 +10542,53 @@ y **no se pisa nunca**. Vale para todos los proveedores. La lección general: *u
 guardado en `localStorage` necesita saber si sigue siendo derivado o ya lo editó una persona* —
 guardar el valor no alcanza, hay que guardar también que lo puso la máquina.
 
->>>>>>> origin/main
+## 4eg. El FASONERO: a Maspoli se le emite O.C., y el envío de virolas sale de esa O.C. (2026-09-18)
+
+`[usuario 2026-09-18, textual]`: *"que el envío a Maspoli de virolas no surja hasta que se hace una
+orden de compra. Cuando se hace la orden de compra, imaginate que se hizo una orden de compra por 10
+mangos. Por esos 10 mangos hay que mandarle 10 virolas. Entonces, en la cantidad sugerida tendría
+que aparecer el equivalente a 10 unidades de virola."*
+
+**Qué es un fasonero, y por qué no es un PS común ni un híbrido.** Tres figuras distintas, que hasta
+hoy GP2 trataba como dos:
+
+| Figura | Qué pone él | Qué le compramos | Cómo se le pide |
+|---|---|---|---|
+| PS común (Guazzaroni niquela, Pedernera croma) | sólo mano de obra | nada, se le paga el servicio | el envío sale del **máximo** de la pieza |
+| PS **híbrido** (Charcas, Eclipse) | procesa materia prima que le compramos **a un tercero** | la pieza, y de paso la O.C. gemela al dueño de la MP | `proveedor_servicio.hibrido` |
+| **Fasonero** (Maspoli) | **su propio material** (la madera del mango) | la pieza que devuelve | `proveedor_servicio.pedido_por_oc` ← **nuevo** |
+
+Maspoli recibe la virola `D13` (nuestra, niquelada por Guazzaroni) y devuelve el mango de madera con
+la virola adentro: `PC12` (508/708), `PEP7` (518) y `PEP8` (564/863). Ver 4b y 4cc.
+
+**La trampa que costó media hora y hay que no repetir: NO se le toca el `estado_compra`.** Las tres
+piezas están en `estado_compra='fabricacion'`, que es lo que las sacaba de la O.C. El reflejo es
+ponerlo en `null` — y eso las mete en el CTE `comprado` de `v_costo_componente`, que corta el
+recorrido de la ruta. **Medido antes de aplicar nada** (en una transacción con `rollback`): los cinco
+artículos perdían **$710,89 cada uno** — el 508 pasaba de 1.553,91 a 843,02 — porque el mango dejaba
+de costearse por la ruta (virola + servicio de armado) y pasaba a costear por su `precio_proveedor`,
+que **no existe**. Por eso el flag va en el proveedor y no en la pieza: `oc_bundle` deja entrar las
+salidas de un PS `pedido_por_oc` **con su `estado_compra` intacto**.
+
+**Cómo quedó el circuito (es el mismo que ya tenía el inyector con sus bolsas, 4ea):**
+
+1. **O.C.** — `Compras/OC_GP2.html` muestra a Máspoli SRL con sus 3 mangos (sugerido = máximo −
+   stock: PC12 2.448, PEP7 2.864, PEP8 2.552). `proveedor_insumo` "Máspoli SRL" pasó a `activo`.
+2. **Envío** — mientras no haya O.C. **enviada**, Maspoli no aparece en Envío a P.S. ni en la Tablet:
+   no hay nada que mandarle. Con O.C. de 10 mangos el sugerido dice **10 virolas** (1 a 1) menos las
+   que ya tiene en su poder. El borrador NO dispara: recién cuando la orden sale.
+3. **Entrega** — sigue por Entrega P.S. (ahí aparece **siempre**, con O.C. o sin ella: si no, no
+   habría dónde registrar lo que todavía debe), y desde hoy `crear_entrega_ps` **descuenta la O.C.**
+   con el mismo cruce FIFO de la recepción de insumos. Sin eso la orden quedaba abierta para siempre
+   y el sugerido de virolas nunca bajaba — el bug que se hubiera comido el cambio entero.
+
+**El nombre no sirve para identificarlo.** "Maspoli SRL" (`proveedor_servicio`) y "Máspoli SRL"
+(`proveedor_insumo`) son la misma persona escrita distinto; la exclusión "lo que produce un PS no se
+compra" no lo agarraba **por la tilde**, no por diseño. Ahora esa exclusión matchea por nombre **o
+por `cod_prov`** (los dos son 2339) y el fasonero queda afuera de ella a propósito, por el flag.
+
+**Lo que falta (no bloquea):** el **precio del mango de Maspoli**. Los $683,72 que esta memoria citaba
+en 4b (`precio_proveedor` 16/17/18, cod_prov 2339) **ya no están en la base**: hoy el único precio con
+cod_prov 2339 es el del `PEP5` ($108, "Mango Madera Cuchillo Untar"), y encima `PEP5` figura a nombre
+de *Eduardo Pintos*. Sin ese precio la O.C. a Maspoli sale **sin importe**. Dos cosas para el dueño:
+cargar la lista de Maspoli, y decidir si el `PEP5` es de Pintos o de Maspoli.
