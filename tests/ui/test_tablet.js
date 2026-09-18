@@ -298,13 +298,13 @@ window.supabase = { createClient: function(){ return {
      'Julio: con el campo vacio el renglon del bulto no dice "= 0"');
   // al cambiar los kg el renglon se recalcula, siempre entero y para arriba
   await page.fill(DQ, '21');
-  ok((await page.$eval(DEQ, e => e.textContent.trim())) === '= 11 bolsas',
-     'Julio plastica: 21 kg -> 11 bolsas (10,5 redondeado para arriba) — ' + (await page.$eval(DEQ, e => e.textContent.trim())));
+  ok((await page.$eval(DEQ, e => e.textContent.trim())) === '≈ 11 bolsas',
+     'Julio plastica: 21 kg -> 10,5 bolsas -> "≈ 11" (un envase no se parte) — ' + (await page.$eval(DEQ, e => e.textContent.trim())));
   await page.click('#btnVolverPartes');
   await abrir('A1');
   await page.fill(DQ, '82');
-  ok((await page.$eval(DEQ, e => e.textContent.trim())) === '= 3 cajones',
-     'Julio metalica: 82 kg -> 3 cajones (2,73 redondeado para arriba, nunca 2,73)');
+  ok((await page.$eval(DEQ, e => e.textContent.trim())) === '≈ 3 cajones',
+     'Julio metalica: 82 kg -> 2,73 cajones -> "≈ 3", nunca 2,73 — ' + (await page.$eval(DEQ, e => e.textContent.trim())));
   await page.click('#btnVolverPartes');
   const juCards2 = await cards();
   ok(juCards2[0].includes('envía 82 kg') && juCards2[1].includes('envía 21 kg'),
@@ -339,8 +339,13 @@ window.supabase = { createClient: function(){ return {
   ok((await page.$eval('#detCard .det-eq', e => e.textContent.trim())) === '= 63 bolsas',
      'Ester: debajo del campo dice a cuántas bolsas equivale lo tipeado');
   await page.fill(DQ, '100');
-  ok((await page.$eval('#detCard .det-eq', e => e.textContent.trim())) === '= 10,29 bolsas',
-     'Ester: las bolsas se recalculan al tipear (100 kg / 9,72) — ' +
+  ok((await page.$eval('#detCard .det-eq', e => e.textContent.trim())) === '≈ 10 bolsas',
+     'Ester: 100 kg / 9,72 = 10,29 bolsas -> se muestra "≈ 10", sin decimales — ' +
+     (await page.$eval('#detCard .det-eq', e => e.textContent.trim())));
+  // y si no llega a un envase entero no se dice "≈ 0": se dice con palabras
+  await page.fill(DQ, '3');
+  ok((await page.$eval('#detCard .det-eq', e => e.textContent.trim())) === 'menos de 1 bolsa',
+     'Ester: 3 kg no llegan a una bolsa y lo dice con palabras — ' +
      (await page.$eval('#detCard .det-eq', e => e.textContent.trim())));
   await page.fill(DQ, '612,36');
   await page.click('#btnVolverPartes');
@@ -388,7 +393,7 @@ window.supabase = { createClient: function(){ return {
   await page.waitForFunction(() => !document.getElementById('fase3').classList.contains('hidden'));
   const regGz = await calls('tablet_registrar');
   const itsGz = regGz[regGz.length - 1].args.p.items;
-  ok(itsGz[0].comp_id === 601 && itsGz[0].cantidad === 70 && itsGz[0].unidad === 'kg' && itsGz[0].cajones === 3.5,
+  ok(itsGz[0].comp_id === 601 && itsGz[0].cantidad === 70 && itsGz[0].unidad === 'kg' && itsGz[0].cajones === 3,
      'Guazzaroni: viaja el KG y los cajones quedan anotados — ' + JSON.stringify(itsGz[0]));
   ok(itsGz[1].comp_id === 609 && itsGz[1].cantidad === 113304 && itsGz[1].unidad === 'uni' && itsGz[1].cajones === null,
      'Guazzaroni: la pieza sin cajón viaja en unidades, sin inventar factor — ' + JSON.stringify(itsGz[1]));

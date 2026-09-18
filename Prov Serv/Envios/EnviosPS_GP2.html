@@ -6,6 +6,13 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
+<!-- v1.7.0 (2026-09-18) — UN ENVASE NO SE PARTE: EL EQUIVALENTE EN BULTOS VA SIEMPRE EN ENTERO
+     (usuario, sobre un "= 6,17 bolsas": "todo lo que sea envio de cajones y bolsas redondear. En
+     este caso, el pasaje serian 6 bolsas"). Antes mostraba 2 decimales cuando no daba entero.
+     Ahora: entero mas cercano (6,17 -> 6; 4,83 -> 5), "=" si da justo, "≈" si se redondeo, y
+     "menos de 1 bolsa" cuando no llega a uno. equivEnvase perdio el parametro `redondear`: es una
+     sola regla, la misma que la Tablet. Lo que se anota en p_cajones tambien pasa a ser ese entero.
+     El SUGERIDO no cambia: sigue con TECHO (es lo que falta, no lo que se manda). -->
 <!-- v1.6.2 (2026-09-18) — FIX DEL FIX: mismo comentario roto que la Tablet. El cierre de
      comentario (guion guion mayor) que venia adentro del texto del pedido cerraba el comentario y
      el resto del changelog se veia en pantalla; v1.6.1 lo arreglo ahi pero lo escribio literal en
@@ -199,14 +206,19 @@ function kgPorEnvase(x, pk){
   return k > 0 ? f * k : 0;
 }
 function cargaEnKg(x, pk){ return !!(pk && pk.cargaKg && kgPorEnvase(x, pk) > 0); }
-/* El "= N bolsas" que va debajo del campo de kg. Con `redondear` (Guazzaroni: "que te diga
-   cuantos cajones son (redondeando)") va el entero más cercano, con "≈" para que se lea que es
-   redondeado; si redondeando diera 0 se vuelve a los 2 decimales. */
-function equivEnvase(kg, kgEnv, label, redondear){
+/* El "= N bolsas" que va debajo del campo de kg. UN ENVASE NO SE PARTE: bolsas y cajones se dicen
+   SIEMPRE en entero [usuario 2026-09-18, sobre un "= 6,17 bolsas": "todo lo que sea envio de
+   cajones y bolsas redondear. En este caso, el pasaje serian 6 bolsas"], al MÁS CERCANO (6,17 -> 6;
+   4,83 -> 5). "=" cuando da justo, "≈" cuando se redondeó, y en palabras si no llega a uno. Misma
+   regla que la Tablet (textoEnvases). El SUGERIDO no entra acá: ése va para arriba. */
+function equivEnvase(kg, kgEnv, label){
+  if (!(Number(kg || 0) > 0)) return "";
   var n = (kgEnv > 0) ? (Number(kg || 0) / kgEnv) : 0;
-  var ent = Math.abs(n - Math.round(n)) < 0.005;
-  if (redondear && !ent && Math.round(n) >= 1) return "≈ " + fmt(Math.round(n), 0) + " " + label;
-  return "= " + fmt(ent ? Math.round(n) : n, ent ? 0 : 2) + " " + label;
+  if (!(n > 0)) return "";
+  var r = Math.round(n);
+  if (Math.abs(n - r) < 0.005) return "= " + fmt(r, 0) + " " + label;
+  if (r < 1) return "menos de 1 " + (label === "bolsas" ? "bolsa" : (label === "cajones" ? "cajón" : label));
+  return "≈ " + fmt(r, 0) + " " + label;
 }
 /* La TABLA entera pasa al modo "un solo campo en kg" cuando el proveedor se carga así; que una
    pieza suelta no se pueda convertir no le saca la columna al resto (si no, la tabla quedaba con
@@ -414,7 +426,7 @@ function renderTabla(){
     var tdKg = E.tdInput("kg", vKg, t.hayT, null, "decimal");
     if (ckg)
       tdKg = tdKg.replace("</td>", '<small class="env-eq">'+
-               esc(equivEnvase(num(vKg), kgPorEnvase(x, pk), pk.label, !!pk.porPieza))+'</small></td>');
+               esc(equivEnvase(num(vKg), kgPorEnvase(x, pk), pk.label))+'</small></td>');
     tr.innerHTML =
       '<td><span class="cod">'+esc(x.sc_cod)+'</span><br><small style="color:#777">'+esc(x.sc_desc||"")+'</small></td>'+
       (ckgT ? "" : E.tdInput("caj", vCaj, t.hayT))+
@@ -454,8 +466,7 @@ $("tbody").addEventListener("input", function(e){
   var eq = inp.closest("tr").querySelector(".env-eq");
   if (eq && d.meta) {
     var pk2 = pkPS();
-    eq.textContent = equivEnvase(num(inp.value), kgPorEnvase(d.meta, pk2), pk2 ? pk2.label : "",
-                                 !!(pk2 && pk2.porPieza));
+    eq.textContent = equivEnvase(num(inp.value), kgPorEnvase(d.meta, pk2), pk2 ? pk2.label : "");
   }
   actualizarEnviar();
 });
@@ -523,7 +534,7 @@ $("btnEnviar").addEventListener("click", async function(){
     var pk3 = pkPS();
     if (cargaEnKg(m, pk3))
       return (m.sc_cod||o.k)+": "+fmt(num(o.it.kg),2)+" kg ("+
-             equivEnvase(num(o.it.kg), kgPorEnvase(m, pk3), pk3.label, !!pk3.porPieza)
+             equivEnvase(num(o.it.kg), kgPorEnvase(m, pk3), pk3.label)
                .replace("= ","").replace("≈ ","~")+")";
     // sin columna de cajon (el proveedor se carga en kg) el resumen tampoco la nombra, aunque
     // esta pieza puntual no se pueda convertir a envases
@@ -559,7 +570,9 @@ $("btnEnviar").addEventListener("click", async function(){
         p_fecha: fecha,
         // el bulto queda anotado: los cajones que se declararon, o —si se carga en kg (Ester)—
         // las bolsas que dan esos kg. Es informativo; el stock lo mueve p_cantidad.
-        p_cajones: num(o.it.caj) || (cargaEnKg(m, pkPS()) ? (num(o.it.kg) / kgPorEnvase(m, pkPS())) || null : null),
+        // entero, misma regla que el renglon de abajo del campo: un envase no se parte
+        p_cajones: num(o.it.caj) || (cargaEnKg(m, pkPS())
+          ? Math.round(num(o.it.kg) / kgPorEnvase(m, pkPS())) || null : null),
         p_faltante: !!o.it.falt
       });
     },
