@@ -10806,6 +10806,12 @@ sigue encolando pero no crea movimiento" (conserva el historial); el usuario eli
 tipos `recepcion_virgilio` / `consumo_virgilio` del vocabulario **no se tocaron**. Para volver:
 `alter table public."Entregas Tallerista Virgilio" enable trigger trg_virgilio_espejo_gp2;`.
 
+**La pantalla queda con candado, no borrada** `[usuario 2026-09-18: "Dale"]`. En
+`GP2_MODULOS.html` (menú v1.17.0) la entrada **Entrega Virgilio** pasa de href a `null`, que es la
+forma que ya tenía la casa para un módulo apagado: se ve el botón con 🔒 y no se puede abrir. El
+archivo `Talleristas/Recepcion/RecepcionVirgilio_GP2.html` **no se borró** y su RPC tampoco, así que
+volver es reponer el href — un renglón. Se eligió el candado y no borrar la línea justamente porque
+esto es "por ahora": una entrada que desaparece del menú se olvida; una con candado se ve.
 ## 4ek. Al TALLERISTA la unidad de envío la pone la PIEZA (2026-09-18)
 
 `[usuario 2026-09-18, textual: "Cartón según el formato se le manda según cómo viene el paquetón…
