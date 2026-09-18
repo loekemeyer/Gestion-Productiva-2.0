@@ -10806,6 +10806,12 @@ sigue encolando pero no crea movimiento" (conserva el historial); el usuario eli
 tipos `recepcion_virgilio` / `consumo_virgilio` del vocabulario **no se tocaron**. Para volver:
 `alter table public."Entregas Tallerista Virgilio" enable trigger trg_virgilio_espejo_gp2;`.
 
+**La pantalla queda con candado, no borrada** `[usuario 2026-09-18: "Dale"]`. En
+`GP2_MODULOS.html` (menú v1.17.0) la entrada **Entrega Virgilio** pasa de href a `null`, que es la
+forma que ya tenía la casa para un módulo apagado: se ve el botón con 🔒 y no se puede abrir. El
+archivo `Talleristas/Recepcion/RecepcionVirgilio_GP2.html` **no se borró** y su RPC tampoco, así que
+volver es reponer el href — un renglón. Se eligió el candado y no borrar la línea justamente porque
+esto es "por ahora": una entrada que desaparece del menú se olvida; una con candado se ve.
 ## 4ek. Al TALLERISTA la unidad de envío la pone la PIEZA (2026-09-18)
 
 `[usuario 2026-09-18, textual: "Cartón según el formato se le manda según cómo viene el paquetón…
@@ -11022,7 +11028,78 @@ envío se escribe en kg (Ester, los del cajón por pieza, Julio), la entrega tam
 renglón "≈ N cajones" debajo. Donde el envío se escribe en el envase (AJ, paquetes), la entrega
 también. Por eso `packEnvio()` y `pesoEnvio()` dejaron de exigir `MODO === 'enviar'`: son del
 **proveedor**, no del modo.
-## 4em. Los remaches vuelven de Guazzaroni EN LOS MISMOS CAJONES — y el `uni_x_cajon` del niquelado es la BOLSA del fraccionado (2026-09-18)
+## 4em. Lo que se manda PESADO se anota en las DOS unidades, y la pantalla las cruza (2026-09-18)
+
+`[usuario 2026-09-18, textual: "en cantidad a enviar tengo que poder poner cajones primero y después
+los kg. Lo mismo con lo que se envía en bolsas. Si después de cargar cajones/bolsas y kg y no
+coinciden por mucho (es decir, por ejemplo, si tengo 10k que equivalen a 2 bolsas y puse 3) que me
+salte alerta pero que me deje poner listo igual. Si no coincide por poco (por ejemplo: 10kg eran 2
+bolsas y media y puse 2) que no salte ninguna alerta. Que no pueda poner listo hasta que haya
+cargado en las dos unidades de medida"]`
+
+**Da vuelta la decisión de la mañana** (v1.15.2 había sacado el segundo campo de Hernandez Julio
+para que el bulto fuera un renglón calculado). El motivo del cambio es bueno y conviene tenerlo
+escrito: **los dos números existen en la realidad y los mide gente distinta** — el envase es lo que
+el operario **cuenta** mientras carga el camión, el kg es lo que marca la **balanza**. Si uno se
+calcula a partir del otro, un error de carga es **invisible**: sale un número perfecto y coherente
+que no se parece a lo que subió al camión. Anotando los dos, la pantalla puede **cruzarlos**.
+
+- **Alcance**: toda fila de **Enviar** con envase + kg (Julio por peso, Ester, los del cajón por
+  pieza, los talleristas). Las que se escriben **solo en el envase** (AJ, cartón, cajas) y **todo
+  Recibir** siguen con un campo. `[deducido — el usuario habló de "cantidad a enviar"]`
+- **Orden**: primero el envase, después los kg. Así se carga en la realidad. Y van **uno al lado
+  del otro** `[usuario 2026-09-18: "que sea una al lado de la otra… queda muy ancho"]`: apilados, la
+  vista se hacía larga y el campo quedaba ancho al pedo. Las dos columnas **se achican**, no
+  envuelven, así que a 390px siguen entrando.
+- **Lo que FRENA**: falta una de las dos → "Listo" deshabilitado, la vista dice cuál falta y la
+  tarjeta se pinta naranja. Una fila a medias **no entra** en el conteo del botón Registrar ni viaja
+  en el payload: no se registra media carga.
+- **Lo que AVISA pero no frena**: el desvío entre lo anotado y lo que dicen los kg.
+
+**La tolerancia es el envase entero de arriba y el de abajo**, no "media unidad". Si los kg dan
+**2,5** bolsas, anotar **2 o 3** está bien; si dan **2 justas**, anotar 3 ya avisa — que son los dos
+ejemplos del usuario. Se probó primero con media unidad pelada y se descartó: **el kg por envase
+casi nunca da redondo** (un cajón de A1 son 57.143 × 0,00035 = 20,00005 kg), así que 4 cajones
+contra 3,49999 saltaban por una millonésima. `[dato 2026-09-18, medido en el test]`
+
+**Al registrar viaja el envase ANOTADO**, no el calculado, en `movimiento.cajones`.
+
+### Y el punto tipeado vale como coma
+
+`[usuario 2026-09-18: "cuando voy a cargar quiero que me deje poner . o , para poner decimales"]`.
+Está en `gp2-numero.js`, que es donde vive la regla de número de la casa. **Se hace en
+`beforeinput`, sobre la tecla recién apretada, y NO en `conMiles()`**: ahí no se puede distinguir el
+punto que tipeó la persona del que puso el separador automático de miles, y "1.000" más una tecla se
+convertiría en 1,0005. En los campos de **enteros** (cajones, bolsas) el punto sigue sin entrar, que
+es lo que ya pasaba. La regla de fondo no cambió: **el punto sigue siendo miles** para `num()`.
+## 4en. El bulto del remache: 20 kg el crudo, 2 kg el niquelado (2026-09-18)
+
+`[usuario, sobre CV12 que mostraba "sin cajón cargado" en la Tablet: "agregale la uni x bolsa. Del
+crudo que sería 25kg dividido el peso por uni" → corregido dos mensajes después: "es 20 kg"]`.
+
+**El envase de un remache se carga en kg, no en unidades**: `componente.uni_x_cajon` = kg del bulto
+÷ `kg_x_uni`. Los valores de la tabla lo confirman: los 13 remaches **CV** (crudo, "p/Niquelar")
+dan **20,000 kg** exactos y los **V** (niquelado) dan **2 kg** (algunos 10). No es casualidad: se
+cargaron así.
+
+Aplicado el 18/09: `CV12` (id 469) tenía el bulto vacío y se le cargó **20.683 uni** = 20,000 kg
+con su `kg_x_uni` de 0,000967. Nada más se tocó.
+
+⚠ **El 0,00085 kg/uni que se pasó ese día para CV12/V12 quedó DESCARTADO por el propio usuario**
+(`"tiralo"`): el peso sigue siendo **0,000967** en los dos. Queda anotado para que una sesión futura
+no lo "recupere" de este historial creyendo que se perdió.
+
+**Por qué no rompió nada** (medido antes de escribir): `recalcular_maximos_cajones` sólo toca
+`sector_id in (1,2)` y Remache es el **8**, así que el máximo de CV12 (13.272, `est_madre`) no se
+movió; el precio de CV12 es **por unidad** (`precio_proveedor.precio_por_kg = false`), así que el
+costo tampoco; y el stock estaba en 0.
+
+**Lo que sigue sin resolver**: para un sector que no es plástico la pantalla rotula el bulto
+**"cajones"**, así que el remache va a decir "cajones" aunque venga en bolsa. Preguntado al usuario,
+sin respuesta.
+
+
+## 4eo. Los remaches vuelven de Guazzaroni EN LOS MISMOS CAJONES — y el `uni_x_cajon` del niquelado es la BOLSA del fraccionado (2026-09-18)
 
 Salió de una pregunta del dueño: `[usuario 2026-09-18, textual: "Mandé 5 cajones de cv11 y el
 esperado de recepcion de v11 es 50 cajones. Por qué?"]`.
@@ -11037,7 +11114,7 @@ diferencia entre dos números que se llaman igual y no son lo mismo.
 
 | número | qué es de verdad |
 |---|---|
-| `CV11.uni_x_cajon` = 27.285 (**20 kg**) | el **cajón** con el que se le manda el remache crudo a niquelar, y con el que vuelve |
+| `CV11.uni_x_cajon` = 27.285 (**20 kg**) | el **bulto** con el que se le manda el remache crudo a niquelar, y con el que vuelve. Ojo: la pantalla lo rotula *cajones* porque `bultoDe()` decide el rótulo con un regex sobre el nombre del sector (plástico → bolsas, el resto → cajones) — el remache crudo en realidad viene en **bolsa**, y eso quedó anotado como **idea 7353** |
 | `V11.uni_x_cajon` = 2.729 (**2 kg**) | la **bolsa** en la que se fracciona DESPUÉS de recibirlo, con la **matriz de embolsado**. No es un cajón |
 
 `[usuario, textual: "Guazzaroni nos entrega los remaches niquelados en los mismos cajones que se lo
@@ -11052,6 +11129,11 @@ obedece**: `tablet_bundle` manda `ent_uxc` / `ent_kgu` (el cajón y el peso de l
 las filas de `recibir` **sólo del sector Remache**, y la tablet los prefiere cuando vienen. Los
 otros **105** pares de P.S. quedan exactamente como estaban (el cajón de la pieza devuelta).
 Cuando aparezca otro proveedor que devuelva en el mismo envase, se amplía esa condición — un lugar.
+
+**Se cruza con 4en**, que salió en paralelo esa misma tarde y cargó el bulto de 20 kg de CV12:
+esa sección dice **qué** es cada número; ésta, **con cuál se mira el esperado**. Y contesta a medias
+lo que 4en dejó abierto ("la pantalla rotula 'cajones' aunque venga en bolsa"): el **rótulo** sigue
+mal — es la idea **7353** — pero el **factor** ya es el correcto.
 
 ⚠ **Y el envase del PROVEEDOR DE INSUMO es otro más**: `[usuario 2026-09-18, textual: "Cuando vienen
 del prov de insumo vienen en bolsas de 25kg, no 20"]`. O sea, para el mismo remache conviven **tres**
