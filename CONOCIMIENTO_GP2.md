@@ -1768,7 +1768,10 @@ chequear que un pliego está bien cargado:
 En la receta va **`1/posiciones`**. **Los 12 artículos que llevan pliego quedaron uniformes el
 2026-09-03** `[usuario: "los pliegos de bombilla todos, el 557 al 769 vienen de dieciséis. Y el
 pliego del 506 y el 500 vienen de doce"]`: **500 y 506 a 1/12** ($917 el pliego → $76,42 por
-artículo) y los **diez de bombilla a 1/16** ($915 → $57,19). El `Pliego Ad 500` estaba con
+artículo) y los **diez de bombilla a 1/16** ($915 → $57,19).
+⚠ **Corregido el 2026-09-18 (ver §4eh): el 500 y el 506 YA NO LLEVAN PLIEGO** — pasaron a cartón
+(`CART500` / `CART506`, ×1, $89). **Hoy los artículos con pliego son 10**, los de bombilla, y son
+los únicos a los que se les aplica esta regla. El `Pliego Ad 500` estaba con
 precio $89 y cantidad 1, o sea con el precio POR POSICIÓN: pasó al pliego entero, como todos.
 Eso cierra la idea 6116.
 
@@ -10276,6 +10279,11 @@ caso con el dueño (ése fue el acuerdo al arrancar con AJ). **Ahora son CUATRO 
 
 ## 4eb. El 506 pasa al molde del 500/510 (sin GRJ7) y el adhesivado de pliego es un PASO, no un subcomponente (2026-09-17)
 
+> ⚠ **La parte de PLIEGO de esta sección caducó el 2026-09-18 (§4eh)**: el 500 y el 506 dejaron de
+> llevar pliego y llevan cartón (`CART500` / `CART506`), así que su cadena `pliego → AJ → pliego
+> adhesivado` ya no existe. Todo lo demás de acá (el 506 sin GRJ7, los dos talleristas, el resto de
+> las rutas) sigue vigente, y la regla del adhesivado como PASO sigue valiendo para los otros 10 pliegos.
+
 `[usuario 2026-09-17, textual]` *"Te hago un cambio para el 506: Ahora va a ser la misma lógica
 que el 500 y 510. Gentile Norberto no ensambla más. Ahora ensambla Martin Cornejo o Alex
 Escalante. Y desaparece el GRJ7. Ahora C10, CV9 Y A10 se le manda a el tallerista final. No hay
@@ -10579,3 +10587,69 @@ tocar una se abre **la vista de esa parte** con el sugerido arriba y el campo de
   cuatro copias de la misma aritmética y se podían separar.
 - **`EnviosPS_GP2` (escritorio) no se tocó**: el pedido fue "en la versión tablet". Sigue con la
   tabla, igual que antes.
+
+## 4eh. El 500 y el 506 dejan el pliego: ahora llevan CARTÓN, como el resto (2026-09-18)
+
+`[usuario 2026-09-18, textual]` *"El pliego 500 y el pliego 506 ya no se compran más. Borra las
+rutas de todos lados. Ahora lo reemplaza los cartones 500 y 506. Agregalos. […] eliminar todas
+las rutas de pliegos, tanto sin adhesivar como adhesivado, del 500 y el 506, y agregar las rutas
+tanto de compra como de recepción en gráficos Pol. De cartón 500 y 506. El precio es igual al
+resto de los cartones. Y la ruta se le manda a los mismos talleristas que ensamblan."*
+
+Da vuelta la parte de pliego de **§4eb** (17/09, *"la ruta para todos los pliegos es: pliego sin
+adhesivar → AJ adhesivados → pliego adhesivado → tallerista final"*). **Esa regla sigue viva para
+los otros 10 pliegos** (557, 558, 654, 658, 659, 758, 759, 762, 763, 769); el 500 y el 506 salen
+de ella: ya no hay pliego ni adhesivado, hay un cartón comprado hecho.
+
+### Lo que quedó en la base
+
+| | Antes | Ahora |
+|---|---|---|
+| Pieza | `Pliego 500` (594) → AJ → `Pliego Ad 500` (306) | **`CART500`** "Cartón 500" (931) |
+| Pieza | `Pliego 506` (564) → AJ → `Pliego Ad 506` (311) | **`CART506`** "Cartón 506" (932) |
+| Receta | pliego adhesivado **×1/12** | cartón **×1** |
+| Ruta | 3 pasos (insumo 1/12 → AJ Adhesivos → tallerista) | 2 pasos (insumo ×1 → tallerista) |
+
+- Los dos cartones son **formato `C`, categoría `Abrelatas`, `Talleres Gráficos Pol`, marca
+  `LOEKE`, $89** — calcados del gemelo exacto, `A2B` "Cartón 510", que es el mismo formato y la
+  misma categoría. Los 6 cartones C/Abrelatas valen $89 sin excepción, así que *"el precio es
+  igual al resto de los cartones"* no tuvo que adivinarse. **Ojo**: dentro del formato `C` conviven
+  $89 y $79 (Pelapapas); el precio lo fija la **categoría**, no el formato.
+- **Compra y recepción no se configuran en ningún lado.** Una pieza con sector de insumo +
+  `proveedor` que existe en `proveedor_insumo` + `estado_compra` null aparece sola en `oc_bundle`
+  y en `recepcion_bundle`. Verificado: los dos salen bajo Talleres Gráficos Pol con su $89 y su
+  máximo (CART500 6.696 · CART506 101.568).
+- **Talleristas: los mismos que ensamblan.** 500 → Martin Cornejo (ruta 603). 506 → Martin Cornejo
+  (1045) y Alex Escalante (1050), que es el reparto 30/70 de §4eb. Inventario en 0 creado en Sector
+  Cartón y en el taller de cada uno.
+- Los 4 pliegos pasaron a `estado_compra='discontinuo'` + `discontinuado=true`: **no se borran**
+  (conservan historial), pero desaparecen de la OC y de Recepción de Insumos. No tenían ni un
+  movimiento, ni una OC, ni una recepción — stock 0 — así que no se perdió nada.
+- Se borró la tarifa de adhesivado de AJ para esas dos piezas (`precio_servicio_pieza` 110 y 89).
+  AJ sigue adhesivando los otros 10 pliegos.
+
+### Lo que apareció de paso: el adhesivado se estaba cobrando DOS VECES
+
+El costo del 500 **bajó** $115,75 y el del 506 también, cuando la cuenta del cartón decía que
+tenían que **subir** $12,58 (de $76,42 el pliego a $89 el cartón). La diferencia son **$140 por
+artículo** que se iban en un doble conteo que ya estaba pusheado:
+
+- el precio del `Pliego Ad 506` es **$917 = $777 (Pol) + $140 (AJ)** — el adhesivado ya está
+  adentro, y la receta lo pagaba a 1/12, o sea $11,67 de adhesivado por artículo, que es lo correcto;
+- y **además** el paso `proveedor_servicio` de la ruta cobraba la tarifa de AJ **$140 × 1 por
+  artículo**, no por pliego.
+
+O sea: el adhesivado se pagaba dos veces y la segunda a 12× la escala. Al borrar el paso de la
+ruta el doble conteo se fue solo. **La regla que deja**: cuando el precio de una pieza YA incluye
+un servicio (acá el skin del pliego), ese servicio no puede estar también como paso de ruta — y si
+está, mirar la ESCALA, porque el paso se cobra por artículo y el precio de la pieza se prorratea.
+Los otros 10 pliegos tienen la misma forma (`precio_servicio_pieza` de AJ + paso PS en la ruta):
+**hay que revisarlos uno por uno**, no se tocaron en este cambio.
+
+| Artículo | Antes | Ahora | |
+|---|---|---|---|
+| **500** | $573,58 | $457,83 | −$115,75 |
+| **506** | $494,50 | $378,75 | −$115,75 |
+
+El material sí subió como estaba previsto: el 506 quedó con **$107,35 de material en pesos, el
+mismo peso al peso que el 510**, que es el gemelo — buena señal de que la receta quedó pareja.
