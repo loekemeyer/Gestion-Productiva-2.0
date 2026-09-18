@@ -10675,7 +10675,58 @@ comparando el ancho real del texto (`Range.getBoundingClientRect()`) contra el d
 `scrollWidth` **no** sirve, porque con `nowrap` la caja mide bien y el texto se va afuera igual
 (medido: el guardián con `scrollWidth` daba OK con el bug puesto; con `Range` dio 48px de desborde).
 
-## 4ei. Al TALLERISTA la unidad de envío la pone la PIEZA (2026-09-18)
+## 4ei. El FASONERO: a Maspoli se le emite O.C., y el envío de virolas sale de esa O.C. (2026-09-18)
+
+`[usuario 2026-09-18, textual]`: *"que el envío a Maspoli de virolas no surja hasta que se hace una
+orden de compra. Cuando se hace la orden de compra, imaginate que se hizo una orden de compra por 10
+mangos. Por esos 10 mangos hay que mandarle 10 virolas. Entonces, en la cantidad sugerida tendría
+que aparecer el equivalente a 10 unidades de virola."*
+
+**Qué es un fasonero, y por qué no es un PS común ni un híbrido.** Tres figuras distintas, que hasta
+hoy GP2 trataba como dos:
+
+| Figura | Qué pone él | Qué le compramos | Cómo se le pide |
+|---|---|---|---|
+| PS común (Guazzaroni niquela, Pedernera croma) | sólo mano de obra | nada, se le paga el servicio | el envío sale del **máximo** de la pieza |
+| PS **híbrido** (Charcas, Eclipse) | procesa materia prima que le compramos **a un tercero** | la pieza, y de paso la O.C. gemela al dueño de la MP | `proveedor_servicio.hibrido` |
+| **Fasonero** (Maspoli) | **su propio material** (la madera del mango) | la pieza que devuelve | `proveedor_servicio.pedido_por_oc` ← **nuevo** |
+
+Maspoli recibe la virola `D13` (nuestra, niquelada por Guazzaroni) y devuelve el mango de madera con
+la virola adentro: `PC12` (508/708), `PEP7` (518) y `PEP8` (564/863). Ver 4b y 4cc.
+
+**La trampa que costó media hora y hay que no repetir: NO se le toca el `estado_compra`.** Las tres
+piezas están en `estado_compra='fabricacion'`, que es lo que las sacaba de la O.C. El reflejo es
+ponerlo en `null` — y eso las mete en el CTE `comprado` de `v_costo_componente`, que corta el
+recorrido de la ruta. **Medido antes de aplicar nada** (en una transacción con `rollback`): los cinco
+artículos perdían **$710,89 cada uno** — el 508 pasaba de 1.553,91 a 843,02 — porque el mango dejaba
+de costearse por la ruta (virola + servicio de armado) y pasaba a costear por su `precio_proveedor`,
+que **no existe**. Por eso el flag va en el proveedor y no en la pieza: `oc_bundle` deja entrar las
+salidas de un PS `pedido_por_oc` **con su `estado_compra` intacto**.
+
+**Cómo quedó el circuito (es el mismo que ya tenía el inyector con sus bolsas, 4ea):**
+
+1. **O.C.** — `Compras/OC_GP2.html` muestra a Máspoli SRL con sus 3 mangos (sugerido = máximo −
+   stock: PC12 2.448, PEP7 2.864, PEP8 2.552). `proveedor_insumo` "Máspoli SRL" pasó a `activo`.
+2. **Envío** — mientras no haya O.C. **enviada**, Maspoli no aparece en Envío a P.S. ni en la Tablet:
+   no hay nada que mandarle. Con O.C. de 10 mangos el sugerido dice **10 virolas** (1 a 1) menos las
+   que ya tiene en su poder. El borrador NO dispara: recién cuando la orden sale.
+3. **Entrega** — sigue por Entrega P.S. (ahí aparece **siempre**, con O.C. o sin ella: si no, no
+   habría dónde registrar lo que todavía debe), y desde hoy `crear_entrega_ps` **descuenta la O.C.**
+   con el mismo cruce FIFO de la recepción de insumos. Sin eso la orden quedaba abierta para siempre
+   y el sugerido de virolas nunca bajaba — el bug que se hubiera comido el cambio entero.
+
+**El nombre no sirve para identificarlo.** "Maspoli SRL" (`proveedor_servicio`) y "Máspoli SRL"
+(`proveedor_insumo`) son la misma persona escrita distinto; la exclusión "lo que produce un PS no se
+compra" no lo agarraba **por la tilde**, no por diseño. Ahora esa exclusión matchea por nombre **o
+por `cod_prov`** (los dos son 2339) y el fasonero queda afuera de ella a propósito, por el flag.
+
+**Lo que falta (no bloquea):** el **precio del mango de Maspoli**. Los $683,72 que esta memoria citaba
+en 4b (`precio_proveedor` 16/17/18, cod_prov 2339) **ya no están en la base**: hoy el único precio con
+cod_prov 2339 es el del `PEP5` ($108, "Mango Madera Cuchillo Untar"), y encima `PEP5` figura a nombre
+de *Eduardo Pintos*. Sin ese precio la O.C. a Maspoli sale **sin importe**. Dos cosas para el dueño:
+cargar la lista de Maspoli, y decidir si el `PEP5` es de Pintos o de Maspoli.
+
+## 4ej. Al TALLERISTA la unidad de envío la pone la PIEZA (2026-09-18)
 
 `[usuario 2026-09-18, textual: "Cartón según el formato se le manda según cómo viene el paquetón…
 según el formato de cartón vienen o mil unidades o dos mil. Y las cajas en paquetes de 25. Entonces
