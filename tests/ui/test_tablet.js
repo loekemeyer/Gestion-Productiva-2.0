@@ -252,9 +252,10 @@ window.supabase = { createClient: function(){ return {
      'AJ (P.S.): la cantidad NO viene precargada, la escribe la persona');
   ok((await page.$eval('#detCard .det-uni', e => e.textContent.trim())) === 'paquetes',
      'AJ: el campo dice que se escribe en paquetes');
-  // el boton "Usar el sugerido" ESCRIBE el sugerido (no es precarga: lo aprieta el operario)
-  await page.click('#detCard button[data-a="sug"]');
-  ok((await page.$eval(DQ, e => e.value)) === '3', 'AJ: "Usar el sugerido" escribe los 3 paquetes en el campo');
+  // NO hay atajo para copiar el sugerido al campo [usuario 2026-09-18: "no quiero que aparezca la
+  // opcion de enviar sugerido"]: el unico boton de la vista es "Listo"
+  const btnsDet = await page.$$eval('#detCard button', xs => xs.map(b => b.textContent.trim()));
+  ok(btnsDet.join('|') === 'Listo', 'la vista de la parte no ofrece copiar el sugerido — ' + btnsDet.join(' | '));
   await page.fill(DQ, '3');
   await page.click('#btnVolverPartes');
   const ajCard2 = (await cards())[0];
