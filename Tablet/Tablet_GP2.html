@@ -6,6 +6,22 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
+<!-- v1.14.0 (2026-09-18) — TODOS IGUALES: EL BULTO ES UN RENGLON CHICO DEBAJO DE LOS KG, TAMBIEN
+     EN HERNANDEZ JULIO (usuario: "esta bien que me lo ponga chiquito abajo, pero modifica hernandez
+     julio asi quedan todos asi"). Julio era el unico con el bulto en una COLUMNA aparte, con su
+     propio campo editable; ahora sus bolsas/cajones salen abajo del campo de kg, igual que las de
+     Ester y que los cajones de los 7 P.S. que van por el cajon de cada pieza. La tabla de Julio
+     pasa de 4 columnas a 3 (Pieza | Sugerido | Cantidad (kg)).
+     Lo que se pierde a proposito: el bulto ya no se puede corregir a mano. Se calcula desde los kg
+     tipeados, con TECHO (un bulto no se parte), y es lo que viaja a movimiento.cajones; el stock lo
+     sigue moviendo la cantidad en kg, asi que el bulto es informativo. El campo "c" del buffer y su
+     autocompletado se fueron enteros.
+     Un solo helper para las dos formas: eqFila(x, q) decide si la fila lleva renglon y con que
+     texto (bulto por SECTOR en el envio por peso; envase del proveedor en el resto). Sin factor no
+     hay renglon: no se inventa.
+     BASE (sin codigo): entran a la forma "cajon de cada pieza" Laboratorio FAAT (2), Mabra
+     Metalurgica (3), Pedernera Ilario (6), Scorrano Mario (7) y Maspoli SRL (15). Con Guazzaroni y
+     Jade son 7, y ya no queda ningun P.S. con piezas sin unidad de envio definida. -->
 <!-- v1.13.0 (2026-09-18) — Y TAMPOCO SE GUARDA LO QUE SE TIPEA: EN P.S. LA TABLA ARRANCA SIEMPRE
      VACIA (usuario: "hay algunos que siguen anotados. Si cargue algo yo, cuando salgo quiero que
      desaparezca, no que se guarde, por lo tanto todas las cantidades deben estar vacias"). v1.12.0
@@ -556,6 +572,25 @@ function bultosSugeridos(b, sugUni){
   return (b && b.uxc > 0 && sugUni > 0) ? Math.ceil(sugUni / b.uxc) : null;
 }
 
+/* EL RENGLÓN CHICO DE DEBAJO DEL CAMPO DE KG: a cuántos envases equivale lo tipeado. Es UNO SOLO
+   para las dos formas que se cargan en kg, así el operario ve siempre lo mismo [usuario 2026-09-18,
+   textual: "esta bien que me lo ponga chiquito abajo, pero modifica hernandez julio asi quedan
+   todos asi"]:
+     · envase del PROVEEDOR — Ester (bolsas de 1800) y los que van por el cajón de cada pieza
+       (Guazzaroni, Jade, FAAT, Mabra, Maspoli, Pedernera, Scorrano);
+     · envío POR PESO — Hernandez Julio, donde el bulto lo pone el SECTOR de la pieza (plásticos
+       bolsas, el resto cajones) y va con TECHO: un bulto no se parte.
+   null = esta fila no lleva renglón (no hay con qué convertir y no se inventa el factor). */
+function eqFila(x, q){
+  var b = (MODO === "enviar" && pesoEnvio()) ? bultoDe(x) : null;
+  if (b) {
+    var n = bultosDeKg(b, q);
+    return n != null ? "= " + fmt(n, 0) + " " + b.label : "";
+  }
+  var pk = (MODO === "enviar") ? packEnvio() : null;
+  return cargaEnKg(x, pk) ? equivEnvase(q, kgPorEnvase(x, pk), pk.label, !!pk.porPieza) : null;
+}
+
 /* ---------- carga ---------- */
 async function cargar(){
   try {
@@ -714,7 +749,7 @@ function elegir(c){
   // Envío por peso (Julio): 4 columnas — el sugerido EN BULTOS (enteros) y las dos cantidades, con
   // la unidad entre paréntesis como en el resto de las pantallas [usuario 2026-09-17].
   $("thead").innerHTML = pesoEnvio()
-    ? "<th>Pieza</th><th class=\"num\">Sugerido</th><th class=\"num sep\">Cantidad (kg)</th><th class=\"num\">Cantidad (bolsas / cajones)</th>"
+    ? "<th>Pieza</th><th class=\"num\">Sugerido</th><th class=\"num sep\">Cantidad (kg)</th>"
     : MODO === "enviar"
     ? (envConSugerido()
         ? "<th>Pieza</th><th class=\"num\">Sugerido" + _u + "</th><th class=\"num sep\">Cantidad" + _uq + "</th>"
@@ -763,12 +798,6 @@ function elegir(c){
       if ((vacio || intacto || precargaVieja) && sug > 0) {
         it.q = fmt(sug, dec);
         it.qAuto = it.q;
-        // los bultos arrancan en los que dan esos kg (enteros); el operario los corrige.
-        if (b) {
-          var nb = bultosDeKg(b, sug);
-          it.c = nb != null ? fmt(nb, 0) : "";
-          it.cAuto = it.c;
-        }
       }
     });
     BUF.save();
@@ -829,8 +858,6 @@ function render(){
     // recalcula en el evento input).
     var _pkFila = (MODO === "enviar") ? packEnvio() : null;
     var cargaKgFila = cargaEnKg(x, _pkFila);
-    var kgEnvFila = kgPorEnvase(x, _pkFila), labelEnvFila = _pkFila ? _pkFila.label : "";
-    var redondEq = !!(_pkFila && _pkFila.porPieza);
     // el cartelito de unidad dice con qué se carga la fila: por peso siempre kg, aunque la pieza
     // sea de unidades (a Julio se le manda pesado; a Ester y Guazzaroni también).
     var uCarga = (MODO === "enviar" && ((pesoEnvio() && bultoDe(x)) || cargaKgFila)) ? "kg" : u;
@@ -871,15 +898,11 @@ function render(){
     }
     var carga = E.tdInput("q", it.q, false, "sep", (b || cargaKgFila) ? "decimal" : inputmodeDe(u))
                  .replace('class="cell-in', 'class="cell-in big');
-    if (cargaKgFila)
-      carga = carga.replace("</td>", '<small class="env-eq">' +
-                esc(equivEnvase(q, kgEnvFila, labelEnvFila, redondEq)) + "</small></td>");
-    // por peso se agrega la columna del bulto, con el MISMO formato que la de kg: un campo igual al
-    // resto [usuario 2026-09-17: "no quiero que el formato de las bolsas sea distinto al de los
-    // cajones, que las dos sean como el resto de los box"]. Se autocompleta desde los kg mientras
-    // el operario no lo toque, y va en enteros (teclado numérico, un bulto no se parte).
-    if (b) carga += E.tdInput("c", it.c, false, "", "numeric")
-                     .replace('class="cell-in', 'class="cell-in big');
+    // el bulto (bolsas/cajones) va SIEMPRE como renglón chico debajo del campo de kg, en las dos
+    // formas: dejó de ser una columna aparte para Julio el 2026-09-18, a pedido del usuario.
+    var eqTxt = eqFila(x, q);
+    if (eqTxt != null)
+      carga = carga.replace("</td>", '<small class="env-eq">' + esc(eqTxt) + "</small></td>");
     tr.innerHTML = pieza + mitad + carga;
     if (ex > 0) tr.classList.add("demas");
     tb.appendChild(tr);
@@ -916,29 +939,9 @@ $("tbody").addEventListener("input", function(e){
   var x = meta[tr.dataset.k];
   if (x) {
     var q = num(inp.value), u = unidadDe(x), ex = exceso(x, q);
-    // Ester: la cantidad se escribe en kg y debajo se ve a cuántas bolsas equivale
+    // la cantidad se escribe en kg y debajo se ve a cuántos bultos equivale (los dos modos)
     var eq = tr.querySelector(".env-eq");
-    if (eq) {
-      var _pk2 = packEnvio();
-      eq.textContent = equivEnvase(q, kgPorEnvase(x, _pk2), _pk2 ? _pk2.label : "",
-                                   !!(_pk2 && _pk2.porPieza));
-    }
-    // envío por peso: el bulto acompaña a los kg. En los plásticos es calculado (se repinta la
-    // celda); en las metálicas se autocompleta mientras el operario no lo haya tocado — si lo
-    // corrigió a mano, no se le pisa.
-    var bb = (MODO === "enviar" && pesoEnvio()) ? bultoDe(x) : null;
-    if (bb && inp.dataset.f === "q") {
-      var it2 = BUF.item(selCP.id, tr.dataset.k);
-      var vacioC = (it2.c === undefined || it2.c === null || it2.c === "");
-      if (vacioC || it2.c === it2.cAuto) {
-        var nb = bultosDeKg(bb, q);
-        it2.c = nb != null ? fmt(nb, 0) : "";
-        it2.cAuto = it2.c;
-        var inC = tr.querySelector('input[data-f="c"]');
-        if (inC) inC.value = it2.c;
-        BUF.save();
-      }
-    }
+    if (eq) eq.textContent = eqFila(x, q) || "";
     tr.classList.toggle("demas", ex > 0);
     var old = tr.querySelector(".demas-tag"); if (old) { old.previousSibling && old.previousSibling.nodeName === "BR" && old.previousSibling.remove(); old.remove(); }
     if (ex > 0) tr.firstElementChild.insertAdjacentHTML("beforeend", '<br><span class="demas-tag">⚠ ' + fmt(ex, u === "kg" ? 2 : 0) + " de más</span>");
@@ -985,7 +988,7 @@ $("btnEnviar").addEventListener("click", async function(){
       // calculadas desde los kg.
       var b = _peso ? bultoDe(x) : null;
       var q = num(o.it.q);
-      var caj = b ? (num(o.it.c) || bultosDeKg(b, q)) : null;
+      var caj = b ? bultosDeKg(b, q) : null;
       // Ester: el bulto tambien queda anotado (las bolsas que dan esos kg), mismo criterio que las
       // bolsas calculadas de Julio: es informativo, el stock lo mueve la cantidad.
       if (caj == null && ckg && kgPorEnvase(x, _pk) > 0) caj = q / kgPorEnvase(x, _pk);
@@ -1014,7 +1017,7 @@ $("btnEnviar").addEventListener("click", async function(){
     var b = _peso ? bultoDe(x) : null;
     if (b) {
       var q2 = num(o.it.q);
-      var cb = num(o.it.c) || bultosDeKg(b, q2);
+      var cb = bultosDeKg(b, q2);
       return (x.cod || o.k) + ": " + fmt(q2, 2) + " kg" + (cb ? " (" + fmt(cb, 2) + " " + b.label + ")" : "");
     }
     return (_pk && factorEnvio(x, _pk) > 0)

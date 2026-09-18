@@ -28,9 +28,11 @@ const BUNDLE = {
     { tipo: 'tallerista', ref: '6', nombre: 'Martin Cornejo', n_env: 2, n_rec: 1 },
     { tipo: 'tallerista', ref: '9', nombre: 'Lucho', n_env: 1, n_rec: 0 },
     { tipo: 'proveedor_at', ref: '1', nombre: 'Cabral', n_env: 1, n_rec: 1 },
-    // el PS "comun" (sin unidad de envio propia): Jade dejo de serlo el 2026-09-18 — se le manda
-    // en cajones/kg como a Guazzaroni, asi que el caso comun lo representa Mabra Metalurgica
-    { tipo: 'proveedor_servicio', ref: '3', nombre: 'Mabra Metalurgica', n_env: 1, n_rec: 1 },
+    // el PS "comun", sin unidad de envio propia. Al 2026-09-18 ya NINGUN P.S. con piezas quedo
+    // asi (los 7 que las tienen van por el cajon de cada pieza, AJ por paquetes y Julio por peso):
+    // Blist-Pack es de los que siguen sin unidad definida, y aca se le dan piezas para cubrir el
+    // render comun, que es el que ven los talleristas y el que quedaria si se suma un P.S. nuevo.
+    { tipo: 'proveedor_servicio', ref: '20', nombre: 'Blist-Pack', n_env: 1, n_rec: 1 },
     { tipo: 'proveedor_servicio', ref: '12', nombre: 'AJ Adhesivos', envio_unidad: 'paquetes', envio_uni_x: 100, n_env: 1, n_rec: 0 },
     { tipo: 'proveedor_servicio', ref: '8', nombre: 'Hernandez Julio', envio_unidad: 'kg', envio_uni_x: null, n_env: 2, n_rec: 0 },
     { tipo: 'proveedor_servicio', ref: '14', nombre: 'Ester', envio_unidad: 'bolsas', envio_uni_x: 1800, envio_carga_unidad: 'kg', n_env: 1, n_rec: 0 },
@@ -48,7 +50,7 @@ const BUNDLE = {
     { tipo: 'tallerista', ref: '6', comp_id: 70, cod: 'A10', desc: 'Cpo Una', sector: 'Sector Crudo', um: 'unidad', uxc: 1000, kg_x_uni: 0.01, online_sector: 120, saldo_dest: 42, maximo: 200, stock_dest: 50, sugerido: 150 },
     { tipo: 'tallerista', ref: '6', comp_id: 75, cod: 'F7', desc: 'Fleje doblado', sector: 'Sector Fleje', um: 'kg', uxc: null, kg_x_uni: 0.0134, online_sector: 30.5, saldo_dest: 7.5, maximo: 40, stock_dest: 10, sugerido: 12.5 },
     { tipo: 'tallerista', ref: '9', comp_id: 70, cod: 'A10', desc: 'Cpo Una', sector: 'Sector Crudo', um: 'unidad', uxc: 1000, kg_x_uni: 0.01, online_sector: 120, saldo_dest: 0, maximo: 200, stock_dest: 0, sugerido: 200 },
-    { tipo: 'proveedor_servicio', ref: '3', comp_id: 90, cod: 'D5', desc: 'Mitad rompenuez', sector: 'Sector Crudo', um: 'unidad', uxc: 500, kg_x_uni: 0.05, online_sector: 40, saldo_dest: 0, maximo: 100, stock_dest: 20, sugerido: 80 },
+    { tipo: 'proveedor_servicio', ref: '20', comp_id: 90, cod: 'D5', desc: 'Mitad rompenuez', sector: 'Sector Crudo', um: 'unidad', uxc: 500, kg_x_uni: 0.05, online_sector: 40, saldo_dest: 0, maximo: 100, stock_dest: 20, sugerido: 80 },
     // AJ Adhesivos manda por PAQUETES de 100: sugerido 250 uni -> 3 paquetes (techo)
     { tipo: 'proveedor_servicio', ref: '12', comp_id: 564, cod: 'Pliego 506', desc: 'Sin adhesivar', sector: 'Sector Procesado', um: 'unidad', uxc: null, kg_x_uni: null, online_sector: 0, saldo_dest: 0, maximo: 500, stock_dest: 0, sugerido: 250 },
     // Hernandez Julio recibe PESADO (envio_unidad 'kg'): las metalicas van en cajones y las
@@ -70,7 +72,7 @@ const BUNDLE = {
   recibir: [
     { tipo: 'tallerista', ref: '6', comp_id: 71, comp_entrada_id: 70, n_entradas: 1, tiene_bom: false, cod_art: null, cod: 'A11', desc: 'Una Armada', sector: 'Sector Procesado', um: 'unidad', uxc: 500, kg_x_uni: 0.01, por_caja: null, ent_cod: 'A10', ent_desc: 'Cpo Una', esperado: 100, esperado_origen: 'online_tall' },
     { tipo: 'proveedor_at', ref: '1', comp_id: null, comp_entrada_id: null, n_entradas: 0, tiene_bom: false, cod_art: '026', cod: '026', desc: 'Colador N°8', sector: null, um: null, uxc: null, kg_x_uni: null, por_caja: 36, ent_cod: null, ent_desc: null, esperado: 72, esperado_origen: 'oc' },
-    { tipo: 'proveedor_servicio', ref: '3', comp_id: 91, comp_entrada_id: 90, n_entradas: 1, tiene_bom: false, cod_art: null, cod: 'D5-P', desc: 'Mitad pintada', sector: 'Sector Procesado', um: 'unidad', uxc: 500, kg_x_uni: 0.05, por_caja: null, ent_cod: 'D5', ent_desc: 'Mitad rompenuez', esperado: 40, esperado_origen: 'online_ps' },
+    { tipo: 'proveedor_servicio', ref: '20', comp_id: 91, comp_entrada_id: 90, n_entradas: 1, tiene_bom: false, cod_art: null, cod: 'D5-P', desc: 'Mitad pintada', sector: 'Sector Procesado', um: 'unidad', uxc: 500, kg_x_uni: 0.05, por_caja: null, ent_cod: 'D5', ent_desc: 'Mitad rompenuez', esperado: 40, esperado_origen: 'online_ps' },
     { tipo: 'virgilio', ref: 'virgilio', comp_id: 373, comp_entrada_id: null, n_entradas: 0, tiene_bom: false, cod_art: null, cod: 'IC3V', desc: 'Fleje N° 90 LARGO', sector: 'Sector Fleje', um: 'kg', uxc: 24, kg_x_uni: 0.0134, por_caja: null, ent_cod: null, ent_desc: null, esperado: 20, esperado_origen: 'online_virgilio' },
   ],
 };
@@ -136,8 +138,8 @@ window.supabase = { createClient: function(){ return {
   // los manda al mismo lugar. Su envio son las RESINAS (bolsas) en kg. [usuario 2026-09-15]
   await page.click('#tipoGrid .tipo-btn[data-tipo="proveedor_servicio"]');
   const psYiny = await page.$$eval('#cpGrid .prov-btn', xs => xs.map(x => x.textContent.replace(/\s+/g, ' ')));
-  ok(psYiny.some(b => b.startsWith('Mabra')) && psYiny.some(b => b.startsWith('Pat Bet Plast')),
-     'bajo "Prov. de servicio" salen el PS (Mabra) y el inyector (Pat Bet Plast) — ' + psYiny.join(' | '));
+  ok(psYiny.some(b => b.startsWith('Blist-Pack')) && psYiny.some(b => b.startsWith('Pat Bet Plast')),
+     'bajo "Prov. de servicio" salen el PS (Blist-Pack) y el inyector (Pat Bet Plast) — ' + psYiny.join(' | '));
   await page.click('#cpGrid .prov-btn:has-text("Pat Bet Plast")');
   const resinas = await page.$$eval('#tbody tr', xs => xs.map(x => x.textContent.replace(/\s+/g, ' ')));
   ok(resinas.length === 2 && resinas.some(r => r.includes('2405')) && resinas.every(r => r.includes('kg')),
@@ -226,14 +228,18 @@ window.supabase = { createClient: function(){ return {
      'AJ: 3 paquetes se guardan como 300 pliegos (uni), no como paquetes — ' + JSON.stringify(itAj));
   ok(dialogs.some(d => d.type === 'confirm' && d.msg.includes('3 paquetes')), 'AJ: el confirm resume en paquetes');
 
-  // ── Hernandez Julio recibe PESADO: sugerido en bultos enteros + Cantidad (kg) y (bolsas/cajones) ──
+  // ── Hernandez Julio recibe PESADO: sugerido en bultos enteros + Cantidad (kg) con el bulto abajo ──
+  // Desde el 2026-09-18 Julio NO tiene columna de bulto: sus bolsas/cajones salen como el renglon
+  // chico de debajo del campo de kg, igual que en Ester y en los que van por el cajon de la pieza
+  // [usuario: "esta bien que me lo ponga chiquito abajo, pero modifica hernandez julio asi quedan
+  // todos asi"]. El bulto se calcula de los kg y ya no se corrige a mano.
   await page.click('#btnOtro');
   await page.waitForFunction(() => document.querySelectorAll('#tipoGrid .tipo-btn').length > 0);
   await page.click('#tipoGrid .tipo-btn[data-tipo="proveedor_servicio"]');
   await page.click('#cpGrid .prov-btn:has-text("Hernandez Julio")');
   const thJu = await page.$$eval('#thead th', xs => xs.map(x => x.textContent.trim()));
-  ok(thJu.join('|') === 'Pieza|Sugerido|Cantidad (kg)|Cantidad (bolsas / cajones)',
-     'Julio: las dos cantidades aclaran la unidad entre parentesis — ' + thJu.join(' | '));
+  ok(thJu.join('|') === 'Pieza|Sugerido|Cantidad (kg)',
+     'Julio: 3 columnas como el resto, el bulto ya no es columna — ' + thJu.join(' | '));
   const juRows = await page.$$eval('#tbody tr', xs => xs.map(x => x.textContent.replace(/\s+/g, ' ')));
   // el sugerido se mira en BULTOS enteros (techo), no en kilos: 1000 uni / 750 por cajon -> 2
   const sugJu = await page.$$eval('#tbody tr', xs => xs.map(t => t.children[1].textContent.replace(/\s+/g, ' ').trim()));
@@ -242,33 +248,28 @@ window.supabase = { createClient: function(){ return {
   ok(juRows[1].includes('PA10B') && juRows[1].includes('5bolsas'),
      'Julio plastica: sugerido 5000 uni -> 5 bolsas — ' + juRows[1]);
   const juIns = await page.$$eval('#tbody tr', xs => xs.map(t => Array.from(t.querySelectorAll('input.cell-in')).map(i => i.value)));
-  // los dos campos arrancan VACIOS: es un P.S. y ahi la cantidad no se precarga (usuario
-  // 2026-09-17). El sugerido en bultos enteros se sigue viendo en su columna (2 cajones / 5 bolsas).
-  ok(juIns[0].length === 2 && juIns[0][0] === '' && juIns[0][1] === '',
-     'Julio metalica: kg y cajones vacios (P.S.: no se precarga) — ' + JSON.stringify(juIns[0]));
-  ok(juIns[1].length === 2 && juIns[1][0] === '' && juIns[1][1] === '',
-     'Julio plastica: las bolsas son un campo igual al de los cajones, tambien vacio — ' + JSON.stringify(juIns[1]));
-  // al cambiar los kg el bulto se autocompleta, siempre entero y para arriba
+  // un solo campo por fila (los kg) y arranca VACIO: es un P.S. y ahi la cantidad no se precarga
+  ok(juIns[0].length === 1 && juIns[0][0] === '' && juIns[1].length === 1 && juIns[1][0] === '',
+     'Julio: un solo campo por fila (kg) y vacio — ' + JSON.stringify(juIns));
+  ok((await page.$$eval('#tbody .env-eq', xs => xs.map(e => e.textContent.trim()))).join('|') === '|',
+     'Julio: con el campo vacio el renglon del bulto no dice "= 0"');
+  // al cambiar los kg el bulto de abajo se recalcula, siempre entero y para arriba
   await page.fill('#tbody tr:nth-child(2) input.cell-in[data-f="q"]', '21');
-  ok((await page.$eval('#tbody tr:nth-child(2) input.cell-in[data-f="c"]', e => e.value)) === '11',
-     'Julio plastica: 21 kg -> 11 bolsas (10,5 redondeado para arriba)');
-  await page.fill('#tbody tr:nth-child(1) input.cell-in[data-f="q"]', '80');
-  ok((await page.$eval('#tbody tr:nth-child(1) input.cell-in[data-f="c"]', e => e.value)) === '3',
-     'Julio metalica: 80 kg -> 3 cajones (2,67 redondeado para arriba, nunca 2,67)');
-  // y si el operario corrige el bulto a mano, un cambio de kg ya no se lo pisa
-  await page.fill('#tbody tr:nth-child(1) input.cell-in[data-f="c"]', '4');
+  ok((await page.$eval('#tbody tr:nth-child(2) .env-eq', e => e.textContent.trim())) === '= 11 bolsas',
+     'Julio plastica: 21 kg -> 11 bolsas (10,5 redondeado para arriba) — ' +
+     (await page.$eval('#tbody tr:nth-child(2) .env-eq', e => e.textContent.trim())));
   await page.fill('#tbody tr:nth-child(1) input.cell-in[data-f="q"]', '82');
-  ok((await page.$eval('#tbody tr:nth-child(1) input.cell-in[data-f="c"]', e => e.value)) === '4',
-     'Julio metalica: los cajones anotados a mano no se pisan');
+  ok((await page.$eval('#tbody tr:nth-child(1) .env-eq', e => e.textContent.trim())) === '= 3 cajones',
+     'Julio metalica: 82 kg -> 3 cajones (2,73 redondeado para arriba, nunca 2,73)');
   await page.click('#btnEnviar');
   await page.waitForFunction(() => !document.getElementById('fase3').classList.contains('hidden'));
   const regJu = await calls('tablet_registrar');
   const itsJu = regJu[regJu.length - 1].args.p.items;
-  ok(itsJu[0].comp_id === 80 && itsJu[0].cantidad === 82 && itsJu[0].unidad === 'kg' && itsJu[0].cajones === 4,
-     'Julio metalica: viajan los KG y los cajones anotados — ' + JSON.stringify(itsJu[0]));
+  ok(itsJu[0].comp_id === 80 && itsJu[0].cantidad === 82 && itsJu[0].unidad === 'kg' && itsJu[0].cajones === 3,
+     'Julio metalica: viajan los KG y los cajones CALCULADOS — ' + JSON.stringify(itsJu[0]));
   ok(itsJu[1].comp_id === 231 && itsJu[1].cantidad === 21 && itsJu[1].unidad === 'kg' && itsJu[1].cajones === 11,
      'Julio plastica: 21 kg con sus 11 bolsas enteras — ' + JSON.stringify(itsJu[1]));
-  ok(dialogs.some(d => d.type === 'confirm' && d.msg.includes('82 kg (4 cajones)')),
+  ok(dialogs.some(d => d.type === 'confirm' && d.msg.includes('82 kg (3 cajones)')),
      'Julio: el confirm resume en kg con el bulto');
   // ── Ester: el sugerido en BOLSAS de 1800 pero la cantidad EN KG, con las bolsas al lado ──
   await page.click('#btnOtro');
@@ -475,7 +476,7 @@ window.supabase = { createClient: function(){ return {
   await pT.route('**/GP2_favicon.png', r => r.fulfill({ contentType: 'image/png', body: Buffer.from('') }));
   for (const [cp, etiq] of [['AJ Adhesivos', 'AJ (paquetes)'], ['Hernandez Julio', 'Julio (kg + bulto)'],
                             ['Ester', 'Ester (bolsas + kg)'],
-                            ['Guazzaroni Patricio', 'Guazzaroni (cajones + kg)'], ['Mabra Metalurgica', 'PS comun']]) {
+                            ['Guazzaroni Patricio', 'Guazzaroni (cajones + kg)'], ['Blist-Pack', 'PS comun']]) {
     await pT.goto(ROOT + '/Tablet/Tablet_GP2.html?modo=enviar');
     await pT.evaluate(() => localStorage.clear());
     await pT.reload();
@@ -529,24 +530,24 @@ window.supabase = { createClient: function(){ return {
   // el mismo caso en un P.S.: la precarga firmada de otro día se BORRA y lo editado sobrevive
   await page.evaluate(() => {
     localStorage.setItem('gp2_tablet_buffer', JSON.stringify({
-      'enviar:proveedor_servicio:3': { '90::': { q: '99', qAuto: '99' } }
+      'enviar:proveedor_servicio:20': { '90::': { q: '99', qAuto: '99' } }
     }));
   });
   await page.reload();
   await page.waitForFunction(() => document.querySelectorAll('#tipoGrid .tipo-btn').length > 0);
   await page.click('#tipoGrid .tipo-btn[data-tipo="proveedor_servicio"]');
-  await page.click('#cpGrid .prov-btn:has-text("Mabra")');
+  await page.click('#cpGrid .prov-btn:has-text("Blist-Pack")');
   ok((await page.$eval('#tbody input.cell-in', e => e.value)) === '',
      'P.S.: la precarga firmada de otro día se limpia, no se refresca');
   await page.evaluate(() => {
     localStorage.setItem('gp2_tablet_buffer', JSON.stringify({
-      'enviar:proveedor_servicio:3': { '90::': { q: '77', qAuto: '99' } }
+      'enviar:proveedor_servicio:20': { '90::': { q: '77', qAuto: '99' } }
     }));
   });
   await page.reload();
   await page.waitForFunction(() => document.querySelectorAll('#tipoGrid .tipo-btn').length > 0);
   await page.click('#tipoGrid .tipo-btn[data-tipo="proveedor_servicio"]');
-  await page.click('#cpGrid .prov-btn:has-text("Mabra")');
+  await page.click('#cpGrid .prov-btn:has-text("Blist-Pack")');
   ok((await page.$eval('#tbody input.cell-in', e => e.value)) === '',
      'P.S.: lo editado a mano tampoco sobrevive a la salida (usuario 2026-09-18)');
 

@@ -10246,6 +10246,11 @@ entre ellas es de dónde sale el bulto:
   `componente.uni_x_cajon` en los dos casos (en los plásticos esa columna **es** el tamaño de la
   bolsa, mismo criterio que la OC de partes plásticas).
 
+> **2026-09-18 — la pantalla de Julio dejó de tener columna de bulto** (v1.14.0): sus
+> bolsas/cajones pasaron al renglón chico de debajo del campo de kg, como en todas las demás
+> formas, y se calculan de los kg (ya no se corrigen a mano). Lo de abajo describe el modelo —qué
+> es el bulto y de dónde sale—, que no cambió; el layout sí. Ver 4ee.
+
 Cómo queda la pantalla de Julio (Tablet, Enviar): `Pieza | Sugerido | Cantidad (kg) | Cantidad
 (bolsas / cajones)`. `[usuario 2026-09-17]` El **sugerido se mira en bultos ENTEROS** (no en kilos),
 la Cantidad (kg) se precarga con el peso de esos bultos completos (2 cajones de 750 a 0,04 kg = 60
@@ -10455,7 +10460,8 @@ proveedor, sale de la pieza"*. Con eso las cuatro formas entran en las mismas tr
 | Ester (14) | `bolsas` | 1800 | `kg` | sugerido en bolsas, cantidad en kg |
 | **Guazzaroni Patricio (4)** | `cajones` | **null** | `kg` | **sugerido en cajones de ESA pieza, cantidad en kg** |
 | **Jade (5)** | `cajones` | **null** | `kg` | idem Guazzaroni (2026-09-18) |
-| Hernandez Julio (8) | `kg` | null | `null` | sugerido y cantidad en kg, el bulto al lado |
+| **FAAT (2), Mabra (3), Pedernera (6), Scorrano (7), Maspoli (15)** | `cajones` | **null** | `kg` | idem (2026-09-18) |
+| Hernandez Julio (8) | `kg` | null | `null` | sugerido en bultos, cantidad en kg; el bulto lo pone el SECTOR |
 
 Ejemplo real: CV1 (remache espiral) tiene 57.143 uni por cajón y 0,00035 kg por unidad → **1 cajón
 = 20,00 kg**. Sugerido 34.992 remaches → **1 cajón** (techo, como siempre: no se pide menos de lo
@@ -10464,6 +10470,15 @@ que falta) y la cantidad se precarga en 20,00 kg.
 **El "(redondeando)" del pedido es la equivalencia de abajo del campo**: se tipean los kg y la
 pantalla dice a cuántos cajones equivalen, **sin decimales**. Cuando no da entero se muestra con
 `≈` (70 kg → 3,5 → **"≈ 3 cajones"**), para que se lea que es redondeado y no parezca exacto.
+
+**Ese renglón chico es AHORA EL ÚNICO FORMATO, en las cuatro formas** `[usuario 2026-09-18,
+textual: "está bien que me lo ponga chiquito abajo, pero modificá Hernandez Julio así quedan todos
+así"]`. Julio era el que quedaba distinto: tenía el bulto en una **columna aparte**, con su propio
+campo. Desde la v1.14.0 su tabla también es `Pieza | Sugerido | Cantidad (kg)` y sus bolsas/cajones
+salen abajo del campo. **Lo que se perdió a propósito**: el bulto ya no se corrige a mano — se
+calcula de los kg con techo y es lo que se anota en `movimiento.cajones` (informativo; el stock lo
+mueve la cantidad en kg). En el código hay **un solo** `eqFila(x, q)` que decide el renglón para
+las dos maneras de convertir (envase del proveedor / bulto por sector).
 
 **Jade (id 5), 2026-09-18** `[usuario, textual: "Seguimos con Jade. El sugerido tiene que aparecer
 en cajones y la cantidad… Pones los kilos y te tira cuántos cajones es el equivalente. Es parecido
@@ -10476,6 +10491,20 @@ unidades pide 1 cajón entero de 1.145** (G2). Es la regla de la casa —no se p
 falta— y el operario igual escribe los kg reales; queda anotado por si el dueño prefiere otra cosa
 para los sugeridos chicos.
 
+**Los otros cinco, 2026-09-18** `[usuario, textual: "Lo mismo con Laboratorio FAAT, Mabra
+Metalurgica, Maspoli SRL… Y Pedernera Ilario y Scorrano Mario, la misma lógica"; "es decir, Jade,
+FAAT, Mabra, Maspoli, Pedernera y Scorrano modelalo igual el sugerido y cantidad"]`. Otra vez
+**sólo datos**: `update proveedor_servicio set envio_unidad='cajones', envio_uni_x=null,
+envio_carga_unidad='kg' where id in (2,3,6,7,15)`. `[dato]` FAAT 10 piezas, Mabra 1, Pedernera 33,
+Scorrano 1, Maspoli 1; sólo **Pedernera** tiene una pieza sin `uni_x_cajon` y una sin `kg_x_uni`
+(esas quedan en unidades y la celda lo dice).
+
+**Con esto ya no queda ningún P.S. con piezas sin unidad de envío definida**: los 7 del cajón por
+pieza, AJ por paquetes, Ester por bolsas y Julio por peso cubren todos los que reciben algo. Los
+que siguen en `null` (Rec Color, Daniel, Blist-Pack) **no tienen piezas en ruta**, y los dos
+híbridos (Charcas, Eclipse) ni siquiera aparecen en Enviar. En los tests, el "P.S. común" —el
+render de siempre, cajón + kg— lo representa **Blist-Pack**.
+
 **Lo que NO se convierte**: `[dato 2026-09-17]` 5 de las 25 piezas de Guazzaroni no tienen
 `uni_x_cajon` cargado (CV12, CV18D, CV6, CV9, W1B) y CV18D tampoco tiene `kg_x_uni`. Esas filas
 **se cargan en unidades** y la celda lo dice ("sin cajón cargado"): no se inventa un cajón. Si el
@@ -10486,8 +10515,9 @@ unidades con `kg_x_uni`; los cajones quedan anotados en `movimiento.cajones`, in
 
 **Dónde se ve**: `Tablet/Tablet_GP2.html` (v1.11.0 — v1.9.0 y v1.10.0 las tomaron el mismo día otras dos sesiones: el encogido de columnas y el sugerido en bultos de Julio) y `Prov Serv/Envios/EnviosPS_GP2.html` (v1.6.0). **Sumar un proveedor más a esta forma es un UPDATE, no un deploy**: el alta de Jade (2026-09-18) no tocó ningún archivo de pantalla ni bumpeó versión.
 En Envío a PS el sugerido **ya se calculaba en cajones**, así que ahí sólo cambió el rótulo y el
-layout (se va la columna "Cajón envío", queda un solo campo en kg). **Pendiente: siguen sin definir
-10 de los 15 PS** (van AJ, Ester, Guazzaroni, Jade y Hernandez Julio).
+layout (se va la columna "Cajón envío", queda un solo campo en kg). **Ya no queda pendiente ningún
+P.S. que reciba piezas**: van definidos 10 de los 15 (AJ, Ester, Julio y los 7 del cajón por pieza)
+y los 5 que faltan son los que no tienen piezas en ruta o son híbridos.
 
 ### El bug que salió de paso: la Cantidad precargada quedaba VIEJA
 
