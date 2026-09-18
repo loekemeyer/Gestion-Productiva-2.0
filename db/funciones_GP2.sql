@@ -7038,15 +7038,12 @@ env as (
         or (v.tipo = 'proveedor_servicio'
             -- los PS hibridos (Charcas/Eclipse) NO se envian desde la tablet: la entrega de su
             -- materia prima se registra solo en el modulo Casos especiales [usuario 2026-09-17].
-            and exists (select 1 from proveedor_servicio ps where ps.id = v.ref_id and not ps.hibrido)
-            -- al FASONERO no se le manda nada hasta que haya O.C. de lo que el devuelve
-            -- [usuario 2026-09-18: "que el envio a Maspoli de virolas no surja hasta que se hace
-            -- una orden de compra"]. Solo afecta a ENVIAR: recibir va por la CTE rec.
-            and ( not exists (select 1 from proveedor_servicio ps2
-                               where ps2.id = v.ref_id and ps2.pedido_por_oc)
-               or exists (select 1 from oc_ps oc
-                           where oc.proveedor_id = v.ref_id and oc.comp_id = v.comp_id
-                             and oc.pend > 0) )) )
+            -- el FASONERO aparece SIEMPRE, igual que el inyector: sin O.C. su sugerido es 0 y sube
+            -- cuando la orden sale [usuario 2026-09-18: "los inyectores por mas que no este
+            -- cargada la orden de compra aparecen igual con cero sugerido, tendria que aparecer
+            -- Maspoli con cero sugerido y cuando sale la orden de compra ahi sube el sugerido de
+            -- entrega de virolas"]. El techo lo pone oc_ps en la CTE rep, que sin O.C. da 0.
+            and exists (select 1 from proveedor_servicio ps where ps.id = v.ref_id and not ps.hibrido)) )
   union all
   select 'proveedor_at', apa.proveedor_at_id::text, ac.componente_id
     from articulo_prov_at apa
@@ -7244,6 +7241,7 @@ rec_x as (
          coalesce(c.descripcion, (select max(descripcion) from articulo_prov_at ap
                                    where ap.cod_art = r.cod_art)) descr,
          s.nombre sector, c.unidad_medida um, c.uni_x_cajon uxc, c.kg_x_uni kgu,
+         c.entrega_unidad ent_uni, c.entrega_uni_x ent_ux,
          ce.codigo ent_cod, ce.descripcion ent_desc,
          (select a.articulos_por_caja from articulo a where a.codigo = r.cod_art) por_caja
     from rec r
@@ -7253,6 +7251,7 @@ rec_x as (
    where (r.comp_id is null or not coalesce(c.discontinuado,false))
    group by r.tipo, r.ref, r.comp_id, r.comp_entrada_id, r.n_entradas, r.tiene_bom, r.cod_art,
             c.codigo, c.descripcion, s.nombre, c.unidad_medida, c.uni_x_cajon, c.kg_x_uni,
+            c.entrega_unidad, c.entrega_uni_x,
             ce.codigo, ce.descripcion
 ),
 -- envio_unidad / envio_uni_x / envio_carga_unidad: unidad de ENVIO por proveedor (display), p.ej. AJ
@@ -7264,24 +7263,24 @@ rec_x as (
 -- canonica (uni/kg): el inventario nunca ve bolsas ni paquetes. Hoy solo lo tiene
 -- proveedor_servicio; el resto va null. [usuario 2026-09-17]
 cp as (
-  select 'tallerista'::text tipo, t.id::text ref, t.nombre, null::text envio_unidad, null::numeric envio_uni_x, null::text envio_carga_unidad
+  select 'tallerista'::text tipo, t.id::text ref, t.nombre, null::text envio_unidad, null::numeric envio_uni_x, null::text envio_carga_unidad, null::text entrega_unidad, null::numeric entrega_uni_x
     from tallerista t
    where t.activo and t.id <> 3
      and exists (select 1 from v_contraparte_parte v where v.tipo='tallerista' and v.ref_id = t.id)
   union all
-  select 'proveedor_servicio', ps.id::text, ps.nombre, ps.envio_unidad, ps.envio_uni_x, ps.envio_carga_unidad
+  select 'proveedor_servicio', ps.id::text, ps.nombre, ps.envio_unidad, ps.envio_uni_x, ps.envio_carga_unidad, ps.entrega_unidad, ps.entrega_uni_x
     from proveedor_servicio ps
    where exists (select 1 from v_contraparte_parte v where v.tipo='proveedor_servicio' and v.ref_id = ps.id)
   union all
-  select 'proveedor_at', p.id::text, p.nombre, null::text, null::numeric, null::text
+  select 'proveedor_at', p.id::text, p.nombre, null::text, null::numeric, null::text, null::text, null::numeric
     from proveedor_at p where coalesce(p.activo,true)
   union all
-  select distinct 'proveedor_insumo', o.proveedor, o.proveedor, null::text, null::numeric, null::text
+  select distinct 'proveedor_insumo', o.proveedor, o.proveedor, null::text, null::numeric, null::text, null::text, null::numeric
     from orden_compra o where o.estado in ('borrador','enviada')
   union all
-  select 'virgilio', 'virgilio', 'Virgilio', null::text, null::numeric, null::text
+  select 'virgilio', 'virgilio', 'Virgilio', null::text, null::numeric, null::text, null::text, null::numeric
   union all
-  select distinct 'inyector', c.proveedor, c.proveedor, null::text, null::numeric, null::text
+  select distinct 'inyector', c.proveedor, c.proveedor, null::text, null::numeric, null::text, null::text, null::numeric
     from componente c
    where c.material_id is not null and c.estado_compra is null and c.proveedor is not null
      and exists (select 1 from proveedor_insumo pi where pi.nombre = c.proveedor)
@@ -7292,6 +7291,7 @@ select jsonb_build_object(
     select coalesce(jsonb_agg(jsonb_build_object(
              'tipo', cp.tipo, 'ref', cp.ref, 'nombre', cp.nombre,
              'envio_unidad', cp.envio_unidad, 'envio_uni_x', cp.envio_uni_x,
+             'entrega_unidad', cp.entrega_unidad, 'entrega_uni_x', cp.entrega_uni_x,
              'envio_carga_unidad', cp.envio_carga_unidad,
              'n_env', (select count(*) from env_x e where e.tipo = cp.tipo and e.ref = cp.ref),
              'n_rec', (select count(*) from rec_x r where r.tipo = cp.tipo and r.ref = cp.ref)
@@ -7301,14 +7301,14 @@ select jsonb_build_object(
     select coalesce(jsonb_agg(jsonb_build_object(
              'tipo', tipo, 'ref', ref, 'comp_id', comp_id, 'cod', cod, 'desc', descr,
              'sector', sector, 'um', um, 'uxc', uxc, 'kg_x_uni', kgu,
-             'env_unidad', case when tipo = 'tallerista'
+             'env_unidad', case when tipo in ('tallerista','proveedor_at')
                                   then case when sec_id in (10,11) then 'paquetes' else 'cajones' end end,
-             'env_factor', case when tipo = 'tallerista' then case
+             'env_factor', case when tipo in ('tallerista','proveedor_at') then case
                                   when sec_id = 10 then (select f.uni_x_bolsa from carton_formato f where f.nombre = cfmt)
                                   when sec_id = 11 then (select pa.valor::numeric from parametro pa
                                                           where pa.clave = 'caja_uni_x_paquete')
                                   else uxc end end,
-             'env_carga',  case when tipo = 'tallerista'
+             'env_carga',  case when tipo in ('tallerista','proveedor_at')
                                   then case when sec_id in (10,11) then 'envase' else 'kg' end end,
              'online_sector', online_sector, 'saldo_dest', saldo_dest,
              'maximo', maximo_dest, 'stock_dest', stock_dest, 'sugerido', sugerido
@@ -7319,6 +7319,11 @@ select jsonb_build_object(
              'n_entradas', n_entradas, 'tiene_bom', tiene_bom,
              'cod_art', cod_art, 'cod', cod, 'desc', descr, 'sector', sector, 'um', um,
              'uxc', uxc, 'kg_x_uni', kgu, 'por_caja', por_caja,
+             -- envase de ENTREGA (hoy solo el tallerista): el esperado se mira en cajones (o en las
+             -- bolsas de 120 de GRJ5/GRJ6) y la cantidad se escribe en kg.
+             'env_unidad', case when tipo = 'tallerista' then coalesce(ent_uni, 'cajones') end,
+             'env_factor', case when tipo = 'tallerista' then coalesce(ent_ux, uxc) end,
+             'env_carga',  case when tipo = 'tallerista' then 'kg' end,
              'ent_cod', ent_cod, 'ent_desc', ent_desc,
              'esperado', esperado, 'esperado_origen', esperado_origen
            ) order by cod), '[]'::jsonb) from rec_x),

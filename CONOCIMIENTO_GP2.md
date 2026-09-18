@@ -1768,7 +1768,10 @@ chequear que un pliego está bien cargado:
 En la receta va **`1/posiciones`**. **Los 12 artículos que llevan pliego quedaron uniformes el
 2026-09-03** `[usuario: "los pliegos de bombilla todos, el 557 al 769 vienen de dieciséis. Y el
 pliego del 506 y el 500 vienen de doce"]`: **500 y 506 a 1/12** ($917 el pliego → $76,42 por
-artículo) y los **diez de bombilla a 1/16** ($915 → $57,19). El `Pliego Ad 500` estaba con
+artículo) y los **diez de bombilla a 1/16** ($915 → $57,19).
+⚠ **Corregido el 2026-09-18 (ver §4el): el 500 y el 506 YA NO LLEVAN PLIEGO** — pasaron a cartón
+(`CART500` / `CART506`, ×1, $89). **Hoy los artículos con pliego son 10**, los de bombilla, y son
+los únicos a los que se les aplica esta regla. El `Pliego Ad 500` estaba con
 precio $89 y cantidad 1, o sea con el precio POR POSICIÓN: pasó al pliego entero, como todos.
 Eso cierra la idea 6116.
 
@@ -10282,6 +10285,11 @@ además se eligen y se cargan por TARJETAS (4eg).**
 
 ## 4eb. El 506 pasa al molde del 500/510 (sin GRJ7) y el adhesivado de pliego es un PASO, no un subcomponente (2026-09-17)
 
+> ⚠ **La parte de PLIEGO de esta sección caducó el 2026-09-18 (§4el)**: el 500 y el 506 dejaron de
+> llevar pliego y llevan cartón (`CART500` / `CART506`), así que su cadena `pliego → AJ → pliego
+> adhesivado` ya no existe. Todo lo demás de acá (el 506 sin GRJ7, los dos talleristas, el resto de
+> las rutas) sigue vigente, y la regla del adhesivado como PASO sigue valiendo para los otros 10 pliegos.
+
 `[usuario 2026-09-17, textual]` *"Te hago un cambio para el 506: Ahora va a ser la misma lógica
 que el 500 y 510. Gentile Norberto no ensambla más. Ahora ensambla Martin Cornejo o Alex
 Escalante. Y desaparece el GRJ7. Ahora C10, CV9 Y A10 se le manda a el tallerista final. No hay
@@ -10517,30 +10525,40 @@ Ejemplo real: CV1 (remache espiral) tiene 57.143 uni por cajón y 0,00035 kg por
 que falta) y la cantidad se precarga en 20,00 kg.
 
 **El "(redondeando)" del pedido es la equivalencia de abajo del campo**: se tipean los kg y la
-pantalla dice a cuántos cajones equivalen, **sin decimales**. Cuando no da entero se muestra con
-`≈` (70 kg → 3,5 → **"≈ 3 cajones"**), para que se lea que es redondeado y no parezca exacto.
+pantalla dice a cuántos cajones equivalen. ⚠ CADUCADO la tarde del 2026-09-18: ese redondeo se dio
+vuelta y hoy va **con decimales** (70 kg → **"= 3,5 cajones"**). Ver la sección de abajo.
 
-### UN ENVASE NO SE PARTE: la regla vale para TODAS las formas (2026-09-18)
+### ⚠ EL ENVASE SÍ SE PARTE: el equivalente va CON DECIMALES (2026-09-18, TARDE)
 
-`[usuario, sobre un "= 6,17 bolsas" de Ester: "acordate que todo lo que sea envío de cajones y
-bolsas redondear. En este caso, el pasaje serían 6 bolsas"]`. Hasta ese día convivían **dos**
-criterios: el envase del proveedor (Ester) mostraba 2 decimales cuando no daba entero, y el cajón
-por pieza ya se redondeaba. Ahora es **uno solo**, en la Tablet y en Envío a PS:
+**Esta regla se dio vuelta el mismo día que se escribió.** A la mañana el usuario pidió redondear
+(`"acordate que todo lo que sea envío de cajones y bolsas redondear. En este caso, el pasaje serían
+6 bolsas"`, sobre un "= 6,17 bolsas" de Ester) y a la tarde pidió lo contrario, viendo un "menos de
+1 bolsa" debajo de 1 kg: `[usuario, textual: "Que pueda anotar decimales a la hora de poner la
+cantidad de kg. Además, no quiero que redondees las bolsas, cajones → lo quiero ver con decimales
+también"]`. **Vale la segunda.** Lo que queda:
 
-| lo que se mira | cómo se redondea | por qué |
+| lo que se mira | cómo se muestra | por qué |
 |---|---|---|
-| **el equivalente en bultos de lo que se manda** | al entero **más cercano** (6,17 → 6; 4,83 → 5) | es una descripción de lo que va en el camión, no un pedido |
-| **el sugerido** | **para arriba** (techo) | es *lo que falta*, y pedir menos no llena el lugar `[usuario 2026-09-17, Ester: "redondeás por arriba"]` |
+| **el equivalente en bultos de lo que se manda** | el número **exacto, 2 decimales** (6,17 bolsas; 3,5 cajones) | es una descripción de lo que va en el camión: media bolsa existe |
+| **el sugerido** | **para arriba** (techo), sin cambios | es *lo que falta*, y pedir menos no llena el lugar `[usuario 2026-09-17, Ester: "redondeás por arriba"]` |
 
-Son dos cosas distintas y por eso redondean distinto — la trampa es creer que es la misma regla.
+Siguen siendo dos reglas distintas — la trampa es creer que es la misma. Lo que se dio vuelta es
+sólo la primera.
 
-El texto lo arma `textoEnvases()`: **"="** cuando da justo, **"≈"** cuando se redondeó, y
-**"menos de 1 bolsa"** (en palabras) cuando no llega a un envase, porque un *"≈ 0 bolsas"* no le
-dice nada al operario. `equivEnvase()` perdió el parámetro `redondear`: ya no hay dos modos.
+El texto lo arma `textoEnvases()`: siempre **"="** y el número con coma; se fueron el **"≈"** y el
+**"menos de 1 bolsa"** en palabras (ahora dice **"= 0,69 bolsas"**, que informa más). Misma función
+en la Tablet y su gemela `equivEnvase()` en Envío a PS.
 
-**También cambió lo que se REGISTRA**: `movimiento.cajones` guardaba el número crudo con 2
-decimales (3,5 cajones) y ahora guarda el mismo entero que se ve. Si redondeando da cero, no se
-anota ningún bulto (queda `null`): es informativo y un 0 mentiría igual que un 3,5.
+**Lo que se REGISTRA acompaña a lo que se ve**: `movimiento.cajones` (y el `p_cajones` de
+`crear_envio_ps`) vuelve a guardar el número con 2 decimales, como antes de la mañana. La columna
+es `numeric`, así que la base nunca fue el límite. Con el entero se perdía información: 0,4 bolsas
+se anotaban como nada y 1,4 como 1.
+
+**La cantidad en kg YA aceptaba decimales** (`inputmode="decimal"` + `GP2N`): "12,5" entra bien,
+medido el 18/09 en Ester. Lo que **no** entra es el **punto**, que para la regla de la casa es el
+separador de miles ("1.5" se lee 15). Si el teclado de la tablet escribe punto en vez de coma, eso
+hay que decidirlo aparte: la regla de número es **una sola** para todas las pantallas
+(`gp2-numero.js`) y cambiarla ahí se siente en todos lados.
 
 **Ese renglón chico es AHORA EL ÚNICO FORMATO, en las cuatro formas** `[usuario 2026-09-18,
 textual: "está bien que me lo ponga chiquito abajo, pero modificá Hernandez Julio así quedan todos
@@ -10707,11 +10725,17 @@ salidas de un PS `pedido_por_oc` **con su `estado_compra` intacto**.
 
 1. **O.C.** — `Compras/OC_GP2.html` muestra a Máspoli SRL con sus 3 mangos (sugerido = máximo −
    stock: PC12 2.448, PEP7 2.864, PEP8 2.552). `proveedor_insumo` "Máspoli SRL" pasó a `activo`.
-2. **Envío** — mientras no haya O.C. **enviada**, Maspoli no aparece en Envío a P.S. ni en la Tablet:
-   no hay nada que mandarle. Con O.C. de 10 mangos el sugerido dice **10 virolas** (1 a 1) menos las
-   que ya tiene en su poder. El borrador NO dispara: recién cuando la orden sale.
-3. **Entrega** — sigue por Entrega P.S. (ahí aparece **siempre**, con O.C. o sin ella: si no, no
-   habría dónde registrar lo que todavía debe), y desde hoy `crear_entrega_ps` **descuenta la O.C.**
+2. **Envío** — Maspoli aparece **siempre**, con O.C. o sin ella, y lo que cambia es el número:
+   sin orden el sugerido es **0**, y con una O.C. **enviada** de 10 mangos dice **10 virolas** (1 a
+   1) menos las que ya tiene en su poder. El borrador NO dispara: recién cuando la orden sale.
+   `[usuario 2026-09-18, segunda vuelta: "los inyectores por más que no esté cargada la orden de
+   compra aparecen igual con cero sugerido; tendría que aparecer Maspoli con cero sugerido y cuando
+   sale la orden de compra ahí sube el sugerido de entrega de virolas"]`. **La primera versión lo
+   escondía** mientras no hubiera O.C. y el dueño lo corrigió a las dos horas: un proveedor que
+   desaparece de la pantalla no se distingue de una pantalla rota, y además el operario pierde la
+   referencia de que ese proveedor existe. **Regla general que sale de acá: una fila con 0 informa;
+   una fila que no está, no.**
+3. **Entrega** — sigue por Entrega P.S., y desde hoy `crear_entrega_ps` **descuenta la O.C.**
    con el mismo cruce FIFO de la recepción de insumos. Sin eso la orden quedaba abierta para siempre
    y el sugerido de virolas nunca bajaba — el bug que se hubiera comido el cambio entero.
 
@@ -10788,3 +10812,261 @@ forma que ya tenía la casa para un módulo apagado: se ve el botón con 🔒 y 
 archivo `Talleristas/Recepcion/RecepcionVirgilio_GP2.html` **no se borró** y su RPC tampoco, así que
 volver es reponer el href — un renglón. Se eligió el candado y no borrar la línea justamente porque
 esto es "por ahora": una entrada que desaparece del menú se olvida; una con candado se ve.
+## 4ek. Al TALLERISTA la unidad de envío la pone la PIEZA (2026-09-18)
+
+`[usuario 2026-09-18, textual: "Cartón según el formato se le manda según cómo viene el paquetón…
+según el formato de cartón vienen o mil unidades o dos mil. Y las cajas en paquetes de 25. Entonces
+el sugerido y la cantidad va para ambos en paquetes, cartones y cajas. En cambio para el resto el
+sugerido va en cajones y la cantidad va en kilos… y abajo chiquito te pone a cuántos cajones
+equivale"]`
+
+Las cuatro formas de 4ea/4ec/4ef son **del proveedor**: AJ manda todo en paquetes de 100, Ester todo
+en bolsas de 1800. Con un tallerista eso no se puede: **recibe de todo** — cartones, cajas, mangos,
+flejes, plásticos — y cada cosa viaja en su propio envase. Así que acá la unidad **no es del
+destino, es de la pieza**, y la dice la base (`tablet_bundle` → `env_unidad` / `env_factor` /
+`env_carga` en cada fila de tallerista):
+
+| pieza | sugerido | cantidad | de dónde sale el factor |
+|---|---|---|---|
+| Sector Cartón (10) | paquetes | **paquetes** | `carton_formato.uni_x_bolsa` del formato de esa pieza |
+| Sector Caja (11) | paquetes | **paquetes** | `parametro.caja_uni_x_paquete` = **25** |
+| todo lo demás | **cajones** | **kg**, con "≈ N cajones" abajo | `componente.uni_x_cajon` de esa pieza |
+
+**El "paquetón" del cartón es la BOLSA del formato, no el paquete de 250.** En GP2 conviven los dos
+números: `parametro.carton_uni_x_paquete` = 250 (el paquete chico, el de la O.C.) y
+`carton_formato.uni_x_bolsa`, que es **1.000** (formatos C, LOKE, Manga), **2.000** (Huevo), **3.000**
+(formato 8) y **100** (Pliego). El usuario dijo "o mil unidades o dos mil", que es exactamente esa
+columna — por eso el envío usa `uni_x_bolsa` aunque en la pantalla se rotule "paquetes", que es la
+palabra que usó él. `[dato 2026-09-18]`
+
+**Lo que NO tiene el dato no se convierte** (misma regla que Guazzaroni en 4ef): la pieza queda en
+unidades y la tarjeta lo dice. Al 2026-09-18, de las **285** piezas que se les mandan a talleristas:
+- **6 cartones sin paquetón** porque su formato no lo tiene cargado (A1B, A1B1, BOLSA550, BOLSA760,
+  G8C, O2A — formatos Bandita, Bolsa, Corbata, Rallador);
+- **23 sin `uni_x_cajon`**, que quedan en unidades (1686, BOM10, BOM13, BOM14, C12, C13, D9, GRJ13,
+  GRJ14, GRJ28, GRJ29, IE1, PA17, PC6, PEST2, PINCEL590, PV17, PV8, PV8B, V18D, W1B, Z12, Z21);
+- **2 con cajón pero sin `kg_x_uni`** (GRJ18, GRJ19): tienen sugerido en cajones y **se cargan en
+  cajones**, porque sin el peso no hay cómo pasar a kg;
+- **254 andan completas**. Cargar el dato que falta las pasa solas al modo bueno: **no hay que tocar
+  código**.
+
+**Y con esto ya no queda nadie con la cantidad precargada**: el tallerista era el último
+`[usuario 2026-09-18, eligiendo entre tres opciones: "igual que P.S.: vacío y sin memoria"]`. Se
+fueron `precargaCantidad()`, `sugeridoEnCarga()` y la firma `qAuto` de 4ee — ya no hay ningún valor
+derivado guardado en `localStorage` que pueda quedar viejo, que era el bug de fondo de aquella
+sección. La **tabla** queda viva solo para el **prov. de art. terminado** y para **todo Recibir**.
+
+**Trampa que se repitió acá** `[dato 2026-09-18]`: entre que se aplicó el cambio en
+`tablet_bundle` y que se terminó el front, **otra sesión volvió a crear la función y se llevó puesto
+el parche**. Se detectó porque el bundle devolvía `env_unidad` en null y se re-aplicó sobre la
+definición viva (que ya traía la feature de la otra sesión, el fasonero Maspoli). Moraleja: cuando
+se parchea una función compartida, **verificar el resultado del bundle al final, no al aplicar**.
+
+### Y el PROV. DE ART. TERMINADO hereda lo mismo (2026-09-18)
+
+`[usuario 2026-09-18: "seguís de la misma manera con prov de art terminado"]`. Era el último destino
+de Enviar con tabla. Le tocó gratis la unidad: **recibe solo cartones y cajas** (sectores 10 y 11),
+que son justo las dos cosas que van en **paquetes**, así que el mismo `case` del bundle lo cubre —
+cambió una línea (`tipo in ('tallerista','proveedor_at')`).
+
+**Su referencia no es el sugerido, porque no tiene**: la tarjeta y la vista muestran el **online del
+sector** (lo que hay en Cervantes para mandarle), con ese rótulo. Lo resuelve `refInfo()`, que
+devuelve la misma forma para los dos casos. El online se muestra **en la unidad de la pieza** (988
+uni) y no en paquetes: es un stock, no algo que se manda. `[decidido 2026-09-18, avisado al usuario]`
+
+Al 2026-09-18 son **68 piezas**: las **10 cajas** andan completas y de los **58 cartones**, **42**
+tienen el paquetón de su formato y **16 no** (A1B, C2A, C2B, F5A, M1, M2A, M2C, M3A, M3B, P2A, Q5D1,
+Q5E, Q6B, Q6C, Q7C1, Q7D): esos quedan en unidades y la tarjeta lo dice. Es el **mismo hueco** que
+el de 4ek — formatos sin `uni_x_bolsa` cargado — y se tapa cargando el dato, sin tocar código.
+
+**Con esto, en Enviar no queda tabla ni memoria en ningún destino**: `envSinMemoria()` son los
+cuatro. La tabla sigue viva solo en **Recibir**.
+
+## 4el. El 500 y el 506 dejan el pliego: ahora llevan CARTÓN, como el resto (2026-09-18)
+
+`[usuario 2026-09-18, textual]` *"El pliego 500 y el pliego 506 ya no se compran más. Borra las
+rutas de todos lados. Ahora lo reemplaza los cartones 500 y 506. Agregalos. […] eliminar todas
+las rutas de pliegos, tanto sin adhesivar como adhesivado, del 500 y el 506, y agregar las rutas
+tanto de compra como de recepción en gráficos Pol. De cartón 500 y 506. El precio es igual al
+resto de los cartones. Y la ruta se le manda a los mismos talleristas que ensamblan."*
+
+Da vuelta la parte de pliego de **§4eb** (17/09, *"la ruta para todos los pliegos es: pliego sin
+adhesivar → AJ adhesivados → pliego adhesivado → tallerista final"*). **Esa regla sigue viva para
+los otros 10 pliegos** (557, 558, 654, 658, 659, 758, 759, 762, 763, 769); el 500 y el 506 salen
+de ella: ya no hay pliego ni adhesivado, hay un cartón comprado hecho.
+
+### Lo que quedó en la base
+
+| | Antes | Ahora |
+|---|---|---|
+| Pieza | `Pliego 500` (594) → AJ → `Pliego Ad 500` (306) | **`CART500`** "Cartón 500" (931) |
+| Pieza | `Pliego 506` (564) → AJ → `Pliego Ad 506` (311) | **`CART506`** "Cartón 506" (932) |
+| Receta | pliego adhesivado **×1/12** | cartón **×1** |
+| Ruta | 3 pasos (insumo 1/12 → AJ Adhesivos → tallerista) | 2 pasos (insumo ×1 → tallerista) |
+
+- Los dos cartones son **formato `C`, categoría `Abrelatas`, `Talleres Gráficos Pol`, marca
+  `LOEKE`, $89** — calcados del gemelo exacto, `A2B` "Cartón 510", que es el mismo formato y la
+  misma categoría. Los 6 cartones C/Abrelatas valen $89 sin excepción, así que *"el precio es
+  igual al resto de los cartones"* no tuvo que adivinarse. **Ojo**: dentro del formato `C` conviven
+  $89 y $79 (Pelapapas); el precio lo fija la **categoría**, no el formato.
+- **Compra y recepción no se configuran en ningún lado.** Una pieza con sector de insumo +
+  `proveedor` que existe en `proveedor_insumo` + `estado_compra` null aparece sola en `oc_bundle`
+  y en `recepcion_bundle`. Verificado: los dos salen bajo Talleres Gráficos Pol con su $89 y su
+  máximo (CART500 6.696 · CART506 101.568).
+- **Talleristas: los mismos que ensamblan.** 500 → Martin Cornejo (ruta 603). 506 → Martin Cornejo
+  (1045) y Alex Escalante (1050), que es el reparto 30/70 de §4eb. Inventario en 0 creado en Sector
+  Cartón y en el taller de cada uno.
+- Los 4 pliegos pasaron a `estado_compra='discontinuo'` + `discontinuado=true`: **no se borran**
+  (conservan historial), pero desaparecen de la OC y de Recepción de Insumos. No tenían ni un
+  movimiento, ni una OC, ni una recepción — stock 0 — así que no se perdió nada.
+- Se borró la tarifa de adhesivado de AJ para esas dos piezas (`precio_servicio_pieza` 110 y 89).
+  AJ sigue adhesivando los otros 10 pliegos.
+
+### Lo que apareció de paso: el adhesivado se estaba cobrando DOS VECES
+
+El costo del 500 **bajó** $115,75 y el del 506 también, cuando la cuenta del cartón decía que
+tenían que **subir** $12,58 (de $76,42 el pliego a $89 el cartón). La diferencia son **$140 por
+artículo** que se iban en un doble conteo que ya estaba pusheado:
+
+- el precio del `Pliego Ad 506` es **$917 = $777 (Pol) + $140 (AJ)** — el adhesivado ya está
+  adentro, y la receta lo pagaba a 1/12, o sea $11,67 de adhesivado por artículo, que es lo correcto;
+- y **además** el paso `proveedor_servicio` de la ruta cobraba la tarifa de AJ **$140 × 1 por
+  artículo**, no por pliego.
+
+O sea: el adhesivado se pagaba dos veces y la segunda a 12× la escala. Al borrar el paso de la
+ruta el doble conteo se fue solo. **La regla que deja**: cuando el precio de una pieza YA incluye
+un servicio (acá el skin del pliego), ese servicio no puede estar también como paso de ruta — y si
+está, mirar la ESCALA, porque el paso se cobra por artículo y el precio de la pieza se prorratea.
+Los otros 10 pliegos tienen la misma forma (`precio_servicio_pieza` de AJ + paso PS en la ruta):
+**hay que revisarlos uno por uno**, no se tocaron en este cambio.
+
+| Artículo | Antes | Ahora | |
+|---|---|---|---|
+| **500** | $573,58 | $457,83 | −$115,75 |
+| **506** | $494,50 | $378,75 | −$115,75 |
+
+El material sí subió como estaba previsto: el 506 quedó con **$107,35 de material en pesos, el
+mismo peso al peso que el 510**, que es el gemelo — buena señal de que la receta quedó pareja.
+
+## 4el. RECIBIR de un tallerista: el esperado se mira en CAJONES y la cantidad se escribe en KG (2026-09-18)
+
+`[usuario 2026-09-18, textual: "de talleristas, todos se entregan en cajones… tanto en esperado como
+en recibido, tenés que poner la unidad de medida. En esperado va a ser en cajones… y en recibido va
+a ser en kilos. Y pones en chiquito cuántos cajones equivalen. La única excepción que no es en
+cajones sino en bolsas son las bombillas GRJ5 y GRJ6. Entregan bolsas de 120 unidades"]`
+
+Es la misma idea que el envío (4ek) del otro lado del mostrador: **la unidad la pone la pieza**.
+Lo que cambia es de dónde sale y cómo se llama lo de arriba:
+
+| | Enviar | Recibir |
+|---|---|---|
+| referencia | **Sugerido** (lo que falta) | **Esperado** (lo que el tallerista tiene, `online_tall`) |
+| campo | Cantidad a enviar | **Cantidad** — el usuario pidió que no se llame más "Recibido" |
+| unidad del campo | según la pieza | **kg**, siempre, con "≈ N cajones" debajo |
+
+**Cómo se guarda la excepción**: no con un `if` por código. Dos columnas nuevas en
+`GP2.componente` — `entrega_unidad` y `entrega_uni_x` — que **sobreescriben el default**
+(`cajones` + `uni_x_cajon`). Hoy las tienen cargadas **solo GRJ5 y GRJ6** (`bolsas` / **120**). Si
+mañana otra pieza entrega distinto, se carga el dato y listo. `tablet_bundle` las manda en cada
+fila de `recibir` con las **mismas claves** que ya usaba Enviar (`env_unidad` / `env_factor` /
+`env_carga`), así que el front no aprendió un modelo nuevo: `envaseDe()` ahora también mira Recibir.
+
+**La trampa que apareció acá — y que vale para cualquier pantalla que cambie de unidad:** el
+**esperado viene en unidades** (es un stock) y ahora se escriben **kg**. Dos lugares donde eso se
+comparaba crudo:
+1. el aviso de "recibí de más" de la pantalla → se arregló con `canonDe()`, que lleva lo tipeado a
+   la unidad canónica antes de restar;
+2. `tablet_registrar`, que compara `cantidad > esperado` **tal cual vienen** para escribir
+   `alerta_recepcion`. Ahí no se tocó la base: **el front manda el esperado en la misma unidad que
+   la cantidad** (1.000 uni × 0,01 = 10 kg). Si alguna vez se cambia una unidad en otra pantalla,
+   este es el segundo lugar que hay que mirar.
+
+**Lo que NO se registra**: los cajones equivalentes. `crear_entrega_tallerista` no tiene dónde
+anotarlos (a diferencia de `crear_envio_ps`, que tiene `p_cajones`); el kg es lo que mueve el stock
+y el cajón es ayuda visual. `[deducido 2026-09-18]`
+
+**Alcance al 2026-09-18**: las 9 filas de Recibir de talleristas — 7 en cajones (una, `C12B`, sin
+`uni_x_cajon`, así que queda en unidades y la tarjeta lo dice) y las 2 bombillas en bolsas. El
+**P.S. sigue con la tabla**: es lo que sigue.
+
+### Y la ENTREGA de un P.S. copia la unidad del envío (2026-09-18)
+
+`[usuario 2026-09-18, textual: "AJ adhesivos entrega en paquetes de 200. El resto copia la lógica
+del envío: si enviamos en bolsas recepcionamos en bolsas, si lo hacemos en cajones, en cajones.
+Charcas cajones"]`
+
+La regla se escribió **una sola vez**: por defecto la entrega de un P.S. usa el **mismo envase con
+el que se le envía** (`packEnvio` / `pesoEnvio`, que ya existían), así que **no hubo que cargar un
+dato por proveedor**. Solo los que difieren tienen columnas propias — `proveedor_servicio.
+entrega_unidad` / `entrega_uni_x` — y hoy son dos:
+
+| proveedor | envía | entrega | por qué |
+|---|---|---|---|
+| **AJ Adhesivos** | paquetes de **100** | paquetes de **200** | lo dijo el dueño; se escribe en paquetes |
+| **Maspoli SRL** | cajón de cada pieza, en kg | **bolsas de 250 mangos**, se escribe en bolsas | `[usuario 2026-09-18: "Maspoli entrega en bolsas de 250 mangos"]` — y 250 es justo el `uni_x_cajon` de sus tres mangos |
+| **Resortes Charcas** | — (es híbrido, no está en Enviar) | **paquetes de 10 kg** | no tenía unidad de la cual copiar `[usuario 2026-09-18: "Charcas en paquetes"]` |
+
+**El paquete de Charcas son 10 kg** `[usuario 2026-09-18, respondiendo la pregunta]`. Importa
+porque sus dos piezas son flejes que se miden **en kg** (`IC3`, `IC3V`): sin ese dato el factor
+caía al `uni_x_cajon` de la pieza (**1.205** y **24**), que para algo medido en kg se lee como *kg
+por paquete* — un paquete de fleje de 1.205 kg no existe. Con `entrega_uni_x = 10` el esperado sale
+en paquetes de verdad y la cantidad se escribe en paquetes (10 kg cada uno).
+
+⚠ **Ese 10 está escrito en dos lugares**: `proveedor_servicio.entrega_uni_x` (la entrega, esta
+pantalla) y `parametro.charcas_kg_x_paquete` (la **compra**: la O.C. a Charcas se pide en paquetes y
+se guarda en kg, ver la sección de OC). Es el mismo paquete físico, así que **si cambia, hay que
+cambiar los dos**; queda dicho también en el comment de la columna.
+
+El resto sale solo: Guazzaroni, Jade, FAAT, Mabra, Maspoli, Pedernera y Scorrano entregan en **el
+cajón de cada pieza** (su envase de envío), Ester en **bolsas de 1800** y Hernandez Julio en el
+**bulto de su sector** (bolsas los plásticos, cajones el resto). Un P.S. **sin unidad definida**
+(Blist-Pack, Rec Color, Daniel, Blist…) sigue como estaba: esperado y cantidad en la unidad de la
+pieza. `[dato 2026-09-18]`
+
+**El detalle que importa del "copia la lógica"**: copia el **envase Y la forma de cargar**. Donde el
+envío se escribe en kg (Ester, los del cajón por pieza, Julio), la entrega también — con el mismo
+renglón "≈ N cajones" debajo. Donde el envío se escribe en el envase (AJ, paquetes), la entrega
+también. Por eso `packEnvio()` y `pesoEnvio()` dejaron de exigir `MODO === 'enviar'`: son del
+**proveedor**, no del modo.
+
+## 4em. Lo que se manda PESADO se anota en las DOS unidades, y la pantalla las cruza (2026-09-18)
+
+`[usuario 2026-09-18, textual: "en cantidad a enviar tengo que poder poner cajones primero y después
+los kg. Lo mismo con lo que se envía en bolsas. Si después de cargar cajones/bolsas y kg y no
+coinciden por mucho (es decir, por ejemplo, si tengo 10k que equivalen a 2 bolsas y puse 3) que me
+salte alerta pero que me deje poner listo igual. Si no coincide por poco (por ejemplo: 10kg eran 2
+bolsas y media y puse 2) que no salte ninguna alerta. Que no pueda poner listo hasta que haya
+cargado en las dos unidades de medida"]`
+
+**Da vuelta la decisión de la mañana** (v1.15.2 había sacado el segundo campo de Hernandez Julio
+para que el bulto fuera un renglón calculado). El motivo del cambio es bueno y conviene tenerlo
+escrito: **los dos números existen en la realidad y los mide gente distinta** — el envase es lo que
+el operario **cuenta** mientras carga el camión, el kg es lo que marca la **balanza**. Si uno se
+calcula a partir del otro, un error de carga es **invisible**: sale un número perfecto y coherente
+que no se parece a lo que subió al camión. Anotando los dos, la pantalla puede **cruzarlos**.
+
+- **Alcance**: toda fila de **Enviar** con envase + kg (Julio por peso, Ester, los del cajón por
+  pieza, los talleristas). Las que se escriben **solo en el envase** (AJ, cartón, cajas) y **todo
+  Recibir** siguen con un campo. `[deducido — el usuario habló de "cantidad a enviar"]`
+- **Orden**: primero el envase, después los kg. Así se carga en la realidad.
+- **Lo que FRENA**: falta una de las dos → "Listo" deshabilitado, la vista dice cuál falta y la
+  tarjeta se pinta naranja. Una fila a medias **no entra** en el conteo del botón Registrar ni viaja
+  en el payload: no se registra media carga.
+- **Lo que AVISA pero no frena**: el desvío entre lo anotado y lo que dicen los kg.
+
+**La tolerancia es el envase entero de arriba y el de abajo**, no "media unidad". Si los kg dan
+**2,5** bolsas, anotar **2 o 3** está bien; si dan **2 justas**, anotar 3 ya avisa — que son los dos
+ejemplos del usuario. Se probó primero con media unidad pelada y se descartó: **el kg por envase
+casi nunca da redondo** (un cajón de A1 son 57.143 × 0,00035 = 20,00005 kg), así que 4 cajones
+contra 3,49999 saltaban por una millonésima. `[dato 2026-09-18, medido en el test]`
+
+**Al registrar viaja el envase ANOTADO**, no el calculado, en `movimiento.cajones`.
+
+### Y el punto tipeado vale como coma
+
+`[usuario 2026-09-18: "cuando voy a cargar quiero que me deje poner . o , para poner decimales"]`.
+Está en `gp2-numero.js`, que es donde vive la regla de número de la casa. **Se hace en
+`beforeinput`, sobre la tecla recién apretada, y NO en `conMiles()`**: ahí no se puede distinguir el
+punto que tipeó la persona del que puso el separador automático de miles, y "1.000" más una tecla se
+convertiría en 1,0005. En los campos de **enteros** (cajones, bolsas) el punto sigue sin entrar, que
+es lo que ya pasaba. La regla de fondo no cambió: **el punto sigue siendo miles** para `num()`.

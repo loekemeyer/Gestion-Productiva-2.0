@@ -42,15 +42,9 @@
     <div id="fase1" class="hidden">
       <div class="row"><label class="lbl" id="fase1Title">Tallerista</label></div>
 
-      <div class="aviso">
-        ⚠ El ledger GP2 es <b>parcial</b>: falta cargar producción / stock inicial, por eso
-        algunos saldos pueden dar negativos (figura entregado más de lo enviado). Es lo esperado
-        en esta etapa — los datos se muestran tal cual, sin corregir. El envío se normaliza a
-        unidades con <code>kg_x_uni</code> (los envíos originales suelen venir en kg); las
-        entregas siempre están en unidades.
-      </div>
-
-      <div class="kpis" id="kpis"></div>
+      <!-- Sin aviso de ledger parcial y sin la fila de KPIs (Partes / Enviado / Entregado /
+           Saldo) [usuario 2026-09-18: "en control de partes de ps y talleristas, que todo esto NO
+           EXISTA"]. Los mismos totales siguen abajo, en la fila de totales de la tabla. -->
 
       <div class="search-box no-print">
         <input type="text" id="q" placeholder="Buscar por sector, descripción o código…">
@@ -241,11 +235,6 @@ function render(){
     '<td class="num">'+fmt(totDev,0)+'</td>'+
     '<td class="num '+clsSaldo(totSal)+'">'+fmt(totSal,0)+'</td></tr>') : "";
 
-  $("kpis").innerHTML =
-    '<div class="kpi"><div class="k">Partes</div><div class="v">'+arr.length+'</div></div>'+
-    '<div class="kpi"><div class="k">Enviado</div><div class="v">'+fmt(totEnv,0)+'</div></div>'+
-    '<div class="kpi"><div class="k">Entregado</div><div class="v">'+fmt(totEnt,0)+'</div></div>'+
-    '<div class="kpi"><div class="k">Saldo</div><div class="v '+clsSaldo(totSal)+'">'+fmt(totSal,0)+'</div></div>';
 }
 
 /* CSV para Excel es-AR: el armado (separador ;, BOM, coma decimal) es el de la

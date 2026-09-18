@@ -149,6 +149,9 @@ create table "GP2".componente (
   pedido_minimo_uni numeric,
   mb_color text,
   discontinuado boolean not null default false,
+  uni_x_paquete numeric,
+  entrega_unidad text,
+  entrega_uni_x numeric,
   constraint componente_pkey PRIMARY KEY (id),
   constraint componente_carton_categoria_fkey FOREIGN KEY (carton_categoria) REFERENCES "GP2".carton_categoria(nombre),
   constraint componente_carton_formato_fkey FOREIGN KEY (carton_formato) REFERENCES "GP2".carton_formato(nombre),
@@ -170,6 +173,8 @@ comment on column "GP2".componente.codigo_isis_ch is 'Cod ISIS con el que CHEF S
 comment on column "GP2".componente.codigo_virgilio is 'Codigo del mismo insumo en el catalogo Insumos de Gestion Virgilio (bolsas: PP, ABS, AI, NV, NR, N25, PE, PS). 2026-09-11.';
 comment on column "GP2".componente.pedido_minimo_uni is 'Pedido minimo del proveedor para ESA pieza, en unidades. Sale de la columna "Pedi Min Uni" de la hoja "Pedido 31-08" del Excel de plasticos del usuario (cargado 2026-09-11). Se aplica DESPUES del maximo: la OC nunca pide menos que esto (o pide 0).';
 comment on column "GP2".componente.mb_color is 'Color de Master Bach que lleva esta pieza plastica: R rojo, B blanco, A azul, N negro. Origen: columna MB de la hoja "Consumo x Cod Articulo" del Excel de plasticos del usuario (40 de 47 partes con consumo la traen; las 7 sin color son las de Nylon recuperado, que viene pigmentado, mas B2 y EP9). null = todavia no se cargo -- no se inventa. recalcular_maximo_material() suma el 4% por color cuando esta cargado y cae al prorrateo cuando no.';
+comment on column "GP2".componente.entrega_unidad is 'Envase con el que el tallerista ENTREGA esta pieza (bolsas, cajones...). NULL = cajones, el default. Solo display: lo que se registra sigue siendo kg/uni.';
+comment on column "GP2".componente.entrega_uni_x is 'Unidades por envase de entrega. NULL = se usa uni_x_cajon. Ej: GRJ5/GRJ6 entregan bolsas de 120 [usuario 2026-09-18].';
 comment on column "GP2".componente.discontinuado is 'La pieza ya no se fabrica ni se compra. No se borra: conserva historial, receta y rutas, pero sale del pedido (v_reposicion) y de las pantallas de compra. Espejo de articulo.discontinuado.';
 
 -- ---------- componente_bom ----------
@@ -703,6 +708,8 @@ create table "GP2".proveedor_servicio (
   envio_uni_x numeric,
   envio_carga_unidad text,
   pedido_por_oc boolean not null default false,
+  entrega_unidad text,
+  entrega_uni_x numeric,
   constraint proveedor_servicio_pkey PRIMARY KEY (id),
   constraint proveedor_servicio_mp_componente_id_fkey FOREIGN KEY (mp_componente_id) REFERENCES "GP2".componente(id)
 );
@@ -711,6 +718,8 @@ comment on column "GP2".proveedor_servicio.proceso is 'ROTULO libre en Title Cas
 comment on column "GP2".proveedor_servicio.nombre_corto is 'Como lo llaman en la planta (Jade, Ximpa, Scor, FAAT). Antes: proveedor_servicio_alias.nombre_viejo (tabla borrada 2026-09-05).';
 comment on column "GP2".proveedor_servicio.mp_componente_id is 'PS hibrido: la materia prima BRUTA que recibe y consume (Charcas -> FLEJE90_BRUTO, Eclipse -> CHAPA430). Quien la vende es componente.proveedor. Lo usa cargar_compra_mp (2026-09-05).';
 comment on column "GP2".proveedor_servicio.desperdicio_pct is 'PS hibrido: % de desperdicio al procesar nuestra materia prima (mp_componente_id). crear_oc lo usa para la OC gemela al proveedor de la MP (kg de producto x (1 + pct/100)) y cargar_recepcion_eclipse para descontar la chapa. Eclipse 28 (calibrado con remito, usuario 2026-09-02). Charcas 0 (usuario 2026-09-04: sin dato, asumir 0; la recepcion descuenta 1:1). Antes: parametro charcas_/eclipse_desperdicio_pct.';
+comment on column "GP2".proveedor_servicio.entrega_unidad is 'Envase con el que este P.S. ENTREGA lo procesado, cuando NO es el mismo del envio. NULL = se usa el del envio (envio_unidad/envio_uni_x). Ej: AJ envia en paquetes de 100 y entrega en paquetes de 200 [usuario 2026-09-18].';
+comment on column "GP2".proveedor_servicio.entrega_uni_x is 'Unidades por envase de ENTREGA. NULL con entrega_unidad cargada = el envase es el CAJON DE CADA PIEZA (componente.uni_x_cajon) y la cantidad se escribe en kg, como Charcas.';
 comment on column "GP2".proveedor_servicio.envio_unidad is 'Unidad de ENVIO por proveedor (solo display): rotulo con el que la Tablet muestra el sugerido y la cantidad al enviarle. AJ Adhesivos = ''paquetes'' (con envio_uni_x=100). ''kg'' SIN envio_uni_x = el proveedor recibe PESADO (Hernandez Julio): la Tablet carga los kg y muestra abajo el bulto, que cambia por pieza segun el sector (Sector Plastico -> bolsas, el resto -> cajones, tamano = componente.uni_x_cajon). Con envio_uni_x + envio_carga_unidad=''kg'' el sugerido va en el envase pero la cantidad en kg (Ester = ''bolsas'' de 1800); SIN envio_uni_x y con envio_carga_unidad=''kg'' el envase es el CAJON de cada pieza (''cajones'': FAAT, Mabra, Guazzaroni, Jade, Pedernera, Scorrano, Maspoli). NULL = se usa la unidad canonica de la pieza (uni/kg). [usuario 2026-09-17/18]';
 comment on column "GP2".proveedor_servicio.envio_uni_x is 'Cuantas unidades canonicas entran en una unidad de envio (envio_unidad). AJ Adhesivos = 100 (paquete de 100 pliegos), Ester = 1800 (bolsa de 1800 mangos). La Tablet muestra/precarga el sugerido dividido por este factor (redondeo para arriba) y al registrar multiplica de nuevo: el inventario siempre queda en la unidad canonica. NULL = el factor NO es uno solo para todo el proveedor, sale de cada pieza (componente.uni_x_cajon): con envio_unidad=''kg'' es Hernandez Julio (se pesa y el bulto lo pone el SECTOR de cada pieza), y con envio_unidad=''cajones'' + envio_carga_unidad=''kg'' son los 7 que van por el cajon de la pieza (Laboratorio FAAT, Mabra Metalurgica, Guazzaroni Patricio, Jade, Pedernera Ilario, Scorrano Mario, Maspoli SRL): el sugerido se mira en cajones de esa pieza y la cantidad se escribe en kg. [usuario 2026-09-17/18]';
 comment on column "GP2".proveedor_servicio.envio_carga_unidad is 'En QUE unidad se CARGA la cantidad al enviarle, cuando el proveedor tiene unidad de envio propia. NULL = se carga en la unidad de envio misma (AJ Adhesivos: el sugerido dice 3 paquetes y se escriben 3). ''kg'' = el sugerido se muestra en la unidad de envio y la cantidad se escribe en KG, con el equivalente en un renglon chico DEBAJO del campo (ese renglon es el mismo para todas las formas desde 2026-09-18, Hernandez Julio incluido). Dos sabores segun envio_uni_x: con factor unico es Ester (bolsas de 1800 mangos; 1 bolsa = 1800 x kg_x_uni = 9,72 kg) [usuario 2026-09-17]; SIN factor el envase es el CAJON de cada pieza (componente.uni_x_cajon) y son FAAT, Mabra, Guazzaroni, Jade, Pedernera, Scorrano y Maspoli [usuario 2026-09-17: "el sugerido tendria que aparecer en cajones y en cantidad pones kg y que te diga cuantos cajones son (redondeando)"; 2026-09-18: "Jade, FAAT, Mabra, Maspoli, Pedernera y Scorrano modelalo igual el sugerido y cantidad"]. El kg viaja tal cual a la base y to_canonical lo pasa a unidades con kg_x_uni: el inventario nunca ve bolsas ni cajones.';
