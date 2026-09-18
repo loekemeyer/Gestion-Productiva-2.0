@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<!-- v1.16.0 (2026-09-18) — LOS TALLERISTAS TAMBIEN EN TARJETAS, Y CON UNIDAD DE ENVIO POR PIEZA
+<!-- v1.17.0 (2026-09-18) — LOS TALLERISTAS TAMBIEN EN TARJETAS, Y CON UNIDAD DE ENVIO POR PIEZA
      (usuario, textual: "quiero que copies la misma logica para los talleristas. Lo que si no esta
      modelado la unidad de medida ni de sugerido ni de cantidad… Carton segun el formato se le manda
      segun como viene el paqueton… o mil unidades o dos mil. Y las cajas en paquetes de 25. Entonces
@@ -31,9 +31,26 @@
      precargaCantidad(), sugeridoEnCarga() y la firma qAuto: ya no hay valor derivado guardado en
      localStorage que pueda quedar viejo. La tabla sigue viva solo para el prov. de art. terminado
      y para TODO Recibir.
-     (4) De paso, "1 cajones" pasa a "1 cajon" (unidadTxt): con uno va el singular.
+     (4) De paso, "1 cajones" pasa a "1 cajon" (unidadTxt): con uno va el singular. Es el mismo criterio
+     que singularEnvase() de v1.16.0, pero para el SUGERIDO: aquella dice el envase de un renglon de
+     equivalencia, esta la unidad del sugerido y de lo cargado en la tarjeta.
      SIN cambios de datos: mismo payload (el inventario sigue viendo uni o kg, nunca paquetes ni
      cajones) y misma RPC de registro. -->
+<!-- v1.16.0 (2026-09-18) — UN ENVASE NO SE PARTE: BOLSAS Y CAJONES, SIEMPRE EN ENTERO (usuario,
+     sobre un "= 6,17 bolsas" de Ester: "acordate que todo lo que sea envio de cajones y bolsas
+     redondear. En este caso, el pasaje serian 6 bolsas"). Hasta ahora habia DOS criterios: los
+     envases del proveedor (Ester) mostraban 2 decimales cuando no daba entero, y los de la forma
+     del cajon por pieza se redondeaban. Ahora es UNO SOLO para todos, en la Tablet y en Envio a PS:
+     el equivalente en bultos va siempre al entero MAS CERCANO (6,17 -> 6; 4,83 -> 5, que son los
+     dos ejemplos que dio el usuario), con "=" cuando da justo y "≈" cuando se redondeo. Si no llega
+     a un envase se dice con palabras ("menos de 1 bolsa"), porque un "≈ 0 bolsas" no sirve.
+     Vive en textoEnvases()/singularEnvase(); equivEnvase perdio el parametro `redondear`.
+     TAMBIEN LO QUE SE REGISTRA: movimiento.cajones era el numero crudo con 2 decimales (3,5
+     cajones) y ahora es el mismo entero que se ve (3). Si redondeando da cero no se anota bulto.
+     LO QUE NO CAMBIA: el SUGERIDO sigue yendo PARA ARRIBA (techo). Es "lo que falta", y pedir
+     menos de lo que falta no llena el lugar [usuario 2026-09-17, sobre Ester: "redondeas por
+     arriba"]. Son dos cosas distintas: lo que falta se pide entero para arriba, lo que se manda se
+     describe con el envase mas cercano. -->
 <!-- v1.15.4 (2026-09-18) — EL SUGERIDO DE LA TARJETA, MÁS GRANDE Y EN NARANJA (usuario, textual:
      "Quiero que en todos los box me aparezca el sugerido más grande y de otro color más llamativo").
      Sólo CSS de .pc-sug (15px gris #777 → 21px negrita naranja #c2410c) y la aclaración de al lado
@@ -642,20 +659,20 @@ function packEnvio(){
        cartón y caja en PAQUETES (el paquetón del formato / los 25 de la caja) y el resto con el
        sugerido en CAJONES y la cantidad en KG. Ver env_unidad / env_factor / env_carga en
        tablet_bundle.
-   `redondea` = la equivalencia de abajo del campo va sin decimales, con "≈". */
+   El redondeo del renglon de equivalencia NO vive aca: es uno solo para todos (textoEnvases). */
 function envaseDe(x){
   if (MODO !== "enviar" || !selCP || !x) return null;
   if (selCP.tipo === "tallerista") {
     var ft = Number(x.env_factor || 0);
     if (!x.env_unidad || !(ft > 0)) return null;   // pieza sin paquete / sin cajón cargado
     return { factor: ft, label: String(x.env_unidad),
-             cargaKg: String(x.env_carga || "") === "kg", redondea: true };
+             cargaKg: String(x.env_carga || "") === "kg" };
   }
   var pk = packEnvio();
   if (!pk) return null;
   var f = pk.porPieza ? Number(x.uxc || 0) : pk.factor;
   if (!(f > 0)) return null;
-  return { factor: f, label: pk.label, cargaKg: pk.cargaKg, redondea: !!pk.porPieza };
+  return { factor: f, label: pk.label, cargaKg: pk.cargaKg };
 }
 
 /* Cuantos KG entran en UN envase de esta pieza. Si la pieza se cuenta en unidades, el envase son
@@ -679,14 +696,30 @@ function cargaEnKg(x){
    (Guazzaroni: "que te diga cuantos cajones son (redondeando)") no se muestran decimales: va el
    entero más cercano con "≈" para que se lea que es redondeado. Si redondeando diera CERO se
    vuelve a los 2 decimales: "≈ 0 cajones" no le dice nada al operario. */
-function equivEnvase(kg, kgEnv, label, redondear){
+function equivEnvase(kg, kgEnv, label){
   // campo vacío = nada que equivaler: un "= 0 cajones" debajo de un campo en blanco es ruido
   // (desde que la cantidad no se precarga, el campo arranca vacío en todos los P.S.).
   if (!(Number(kg || 0) > 0)) return "";
-  var n = (kgEnv > 0) ? (Number(kg || 0) / kgEnv) : 0;
-  var ent = Math.abs(n - Math.round(n)) < 0.005;
-  if (redondear && !ent && Math.round(n) >= 1) return "≈ " + fmt(Math.round(n), 0) + " " + label;
-  return "= " + fmt(ent ? Math.round(n) : n, ent ? 0 : 2) + " " + label;
+  return textoEnvases((kgEnv > 0) ? (Number(kg || 0) / kgEnv) : 0, label);
+}
+
+/* UN ENVASE NO SE PARTE: bolsas y cajones se dicen SIEMPRE en entero, nunca con decimales
+   [usuario 2026-09-18, sobre un "= 6,17 bolsas": "acordate que todo lo que sea envio de cajones y
+   bolsas redondear. En este caso, el pasaje serian 6 bolsas"]. Se redondea al MÁS CERCANO, que es
+   lo que cierra con los dos ejemplos que dio: 6,17 -> 6 y 4,83 -> 5.
+   El signo avisa de dónde sale el número: "=" cuando da justo, "≈" cuando se redondeó. Y si
+   redondeando diera cero se dice con palabras, porque "≈ 0 bolsas" no le sirve a nadie.
+   OJO: esto es para lo que SE ENVÍA. El SUGERIDO sigue yendo para arriba (techo) — es "lo que
+   falta", y pedir menos de lo que falta no llena el lugar [usuario 2026-09-17, Ester]. */
+function textoEnvases(n, label){
+  if (!(n > 0)) return "";
+  var r = Math.round(n);
+  if (Math.abs(n - r) < 0.005) return "= " + fmt(r, 0) + " " + label;
+  if (r < 1) return "menos de 1 " + singularEnvase(label);
+  return "≈ " + fmt(r, 0) + " " + label;
+}
+function singularEnvase(label){
+  return label === "bolsas" ? "bolsa" : (label === "cajones" ? "cajón" : label);
 }
 
 /* Envio POR PESO: el proveedor recibe pesado (hoy Hernandez Julio). Se marca con
@@ -712,7 +745,13 @@ function bultoDe(x){
    poner 4,83, sino que pones 5"]. Mismo criterio que el sugerido en paquetes de AJ y en bolsas de
    Ester. */
 function bultosDeKg(b, kg){
-  return (b && b.uxc > 0 && kg > 0) ? Math.ceil(kg / b.kgu / b.uxc) : null;
+  // entero redondeado al más cercano, misma regla que el renglón (ver textoEnvases). Puede dar 0
+  // si lo tipeado no llega a un envase: ahí no se anota un bulto que no existe.
+  return (b && b.uxc > 0 && kg > 0) ? Math.round(kg / b.kgu / b.uxc) : null;
+}
+/* los envases crudos (con decimales) de esos kg, para el texto del renglón */
+function envasesDeKg(b, kg){
+  return (b && b.uxc > 0 && kg > 0) ? (kg / b.kgu / b.uxc) : null;
 }
 /* el sugerido de la pieza (que viene en unidades) llevado a bultos enteros */
 function bultosSugeridos(b, sugUni){
@@ -801,11 +840,11 @@ function piezaDe(k){
 function eqFila(x, q){
   var b = (MODO === "enviar" && pesoEnvio()) ? bultoDe(x) : null;
   if (b) {
-    var n = bultosDeKg(b, q);
-    return n != null ? "= " + fmt(n, 0) + " " + b.label : "";
+    var n = envasesDeKg(b, q);
+    return n != null ? textoEnvases(n, b.label) : "";
   }
   var ev = envaseDe(x);
-  return cargaEnKg(x) ? equivEnvase(q, kgPorEnvase(x), ev.label, ev.redondea) : null;
+  return cargaEnKg(x) ? equivEnvase(q, kgPorEnvase(x), ev.label) : null;
 }
 
 /* ---------- carga ---------- */
@@ -1277,7 +1316,7 @@ $("btnEnviar").addEventListener("click", async function(){
       var caj = b ? bultosDeKg(b, q) : null;
       // Ester: el bulto tambien queda anotado (las bolsas que dan esos kg), mismo criterio que las
       // bolsas calculadas de Julio: es informativo, el stock lo mueve la cantidad.
-      if (caj == null && ckg && kgPorEnvase(x) > 0) caj = q / kgPorEnvase(x);
+      if (caj == null && ckg && kgPorEnvase(x) > 0) caj = Math.round(q / kgPorEnvase(x));
       return {
         comp_id: x.comp_id != null ? Number(x.comp_id) : null,
         comp_entrada_id: x.comp_entrada_id != null ? Number(x.comp_entrada_id) : null,
@@ -1287,7 +1326,7 @@ $("btnEnviar").addEventListener("click", async function(){
         // fila se cargó en unidades y viaja tal cual.
         cantidad: (ckg || b) ? q : (ev ? q * ev.factor : q),
         unidad: (ckg || b || u === "kg") ? "kg" : "uni",
-        cajones: caj != null ? Math.round(caj * 100) / 100 : null,
+        cajones: (caj != null && caj > 0) ? caj : null,
         esperado: MODO === "recibir" && x.esperado != null ? Number(x.esperado) : null,
         esperado_origen: x.esperado_origen || null
       };
@@ -1299,13 +1338,13 @@ $("btnEnviar").addEventListener("click", async function(){
     var ev = envaseDe(x);
     if (cargaEnKg(x))
       return (x.cod || o.k) + ": " + fmt(num(o.it.q), 2) + " kg (" +
-             equivEnvase(num(o.it.q), kgPorEnvase(x), ev.label, ev.redondea)
+             equivEnvase(num(o.it.q), kgPorEnvase(x), ev.label)
                .replace("= ", "").replace("≈ ", "~") + ")";
     var b = _peso ? bultoDe(x) : null;
     if (b) {
       var q2 = num(o.it.q);
       var cb = bultosDeKg(b, q2);
-      return (x.cod || o.k) + ": " + fmt(q2, 2) + " kg" + (cb ? " (" + fmt(cb, 2) + " " + b.label + ")" : "");
+      return (x.cod || o.k) + ": " + fmt(q2, 2) + " kg" + (cb ? " (" + fmt(cb, 0) + " " + b.label + ")" : "");
     }
     return ev
       ? (x.cod || o.k) + ": " + fmt(num(o.it.q), 0) + " " + ev.label
