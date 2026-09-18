@@ -141,15 +141,24 @@ plástica (sector 6)**, más el 4 % de master bach para el color. Es un **servic
   sector manda, `A_Costos` no.
 - **Santoprene sin precio:** hasta que tenga precio, la demanda/costeo por material de PA3 no computa
   (PA3 igual costea por su precio de compra).
-- **El atajo del botón se probó y se descartó** (2026-09-14): por un rato la Versión Tablet tuvo
-  un botón **"Inyectores"** en Enviar que abría `Compras/Inyectores_GP2.html` (que ya manda las
-  bolsas en kg con `enviar_material_inyector`). El usuario lo rechazó — *"saca el boton de
-  inyectores y arranca la cirugia"* — porque quiere a los 3 inyectores **DENTRO de "Prov. de
-  servicio"**, no en un botón aparte. La lista de PS del Tablet se arma desde la base, así que la
-  única forma es la cirugía: convertir los inyectores en `proveedor_servicio` de verdad, con su
-  **ruta de inyección** (entra la resina/bolsa → sale la pieza). Eso los hace aparecer solos en la
-  lista y cambia el costeo de la pieza de *comprada* a *inyectada*. `enviar_material_inyector` y la
-  pantalla de Inyectores siguen existiendo para el material; no se borran.
+- **Dónde se eligen los inyectores en la Tablet — tres vueltas, y la última es la que vale:**
+  1. *2026-09-14, descartado:* un botón **"Inyectores"** en Enviar que era un link a
+     `Compras/Inyectores_GP2.html`. El usuario lo rechazó (*"saca el boton de inyectores y arranca
+     la cirugia"*): no quería un atajo a otra pantalla, quería mandarles las bolsas desde la Tablet.
+  2. *2026-09-15, v1.3.0:* los inyectores pasaron a mostrarse **dentro de "Prov. de servicio"**, sin
+     cirugía: `tablet_bundle` los devuelve como contraparte tipo `'inyector'` con sus **resinas**
+     (sector 14) y `tablet_registrar` rutea el envío a `enviar_material_inyector`. NO se los convirtió
+     en `proveedor_servicio` de la base: eso habría sido un segundo modelo redundante y habría
+     cambiado el costeo de la pieza de *comprada* a *inyectada*.
+  3. **HOY — 2026-09-18, v1.14.0:** el usuario los quiere **aparte**, textual: *"quiero que a JL
+     Matricera, Kollplast, Pat Bet Plas y Pettofrezza Rafael los pongas aparte como inyectores, no
+     adentro de proveedores de servicio"*. Enviar tiene ahora un **cuarto tipo, "Inyectores"** (💉),
+     y "Prov. de servicio" volvió a ser sólo PS. Cambió **únicamente dónde se los elige**: adentro es
+     la misma pantalla de siempre (sugerido en kg desde la O.C., columna **O.C.** en vez de Máximo,
+     cantidad vacía y sin memoria) y el registro sigue yendo a `enviar_material_inyector`.
+  **Lo que NO cambió en ninguna de las tres:** en la base los inyectores son `proveedor_insumo` +
+  `componente.material_id`, nunca `proveedor_servicio`, y las piezas se costean por su precio de
+  compra. Los 4 salen de `componente.proveedor` cruzado contra `proveedor_insumo.nombre`.
 
 #### Cuánta bolsa mandarle al inyector — el máximo sale de la PARTE, no de la bolsa `[usuario 2026-09-16]`
 **Regla general de máximos (textual):** *"Los máximos surgen de estadística madre × cant de meses

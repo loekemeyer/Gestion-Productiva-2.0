@@ -125,7 +125,8 @@ window.supabase = { createClient: function(){ return {
   // ── 1) modo ENVIAR: primero el TIPO ──────────────────────────────────────
   ok(await page.$eval('#modos .modo-btn.active', b => b.dataset.modo) === 'enviar', 'arranca en Enviar');
   let ts = await tipos();
-  ok(ts.length === 3 && !ts.join('|').includes('Virgilio'), 'Enviar: 3 tipos, Virgilio afuera — ' + ts.join(' | '));
+  ok(ts.length === 4 && !ts.join('|').includes('Virgilio'), 'Enviar: 4 tipos, Virgilio afuera — ' + ts.join(' | '));
+  ok(ts.some(t => t.includes('Inyectores')), 'Enviar: los Inyectores tienen su propio tipo — ' + ts.join(' | '));
   ok(ts[0].includes('Talleristas') && ts[0].includes('· 2') && !ts.join('|').includes('contraparte'),
      'el tipo dice cuántas hay sin la palabra "contraparte" — ' + ts[0]);
   ok(await page.$eval('#cpBox', e => e.classList.contains('hidden')), 'todavía no se listan las contrapartes');
@@ -138,16 +139,21 @@ window.supabase = { createClient: function(){ return {
 
   // el "← Cambiar tipo" vuelve a los tipos sin recargar
   await page.click('#btnVolverTipo');
-  ok((await tipos()).length === 3 && await page.$eval('#cpBox', e => e.classList.contains('hidden')), 'Cambiar tipo vuelve a los tipos');
+  ok((await tipos()).length === 4 && await page.$eval('#cpBox', e => e.classList.contains('hidden')), 'Cambiar tipo vuelve a los tipos');
 
-  // Los INYECTORES aparecen DENTRO de "Prov. de servicio" (no en un tipo aparte): el usuario
-  // los manda al mismo lugar. Su envio son las RESINAS (bolsas) en kg. [usuario 2026-09-15]
+  // Los INYECTORES tienen su PROPIO tipo y NO aparecen bajo "Prov. de servicio" [usuario
+  // 2026-09-18]. Su envio son las RESINAS (bolsas) en kg.
   await page.click('#tipoGrid .tipo-btn[data-tipo="proveedor_servicio"]');
-  const psYiny = await page.$$eval('#cpGrid .prov-btn', xs => xs.map(x => x.textContent.replace(/\s+/g, ' ')));
-  ok(psYiny.some(b => b.startsWith('Jade')) && psYiny.some(b => b.startsWith('Pat Bet Plast')),
-     'bajo "Prov. de servicio" salen el PS (Jade) y el inyector (Pat Bet Plast) — ' + psYiny.join(' | '));
-  await page.click('#cpGrid .prov-btn:has-text("Pat Bet Plast")');
-  // el inyector se elige dentro de "Prov. de servicio", asi que tambien va en TARJETAS
+  const soloPS = await page.$$eval('#cpGrid .prov-btn', xs => xs.map(x => x.textContent.replace(/\s+/g, ' ')));
+  ok(soloPS.some(b => b.startsWith('Jade')) && !soloPS.some(b => b.startsWith('Pat Bet Plast')),
+     'bajo "Prov. de servicio" ya no sale el inyector — ' + soloPS.join(' | '));
+  await page.click('#btnVolverTipo');
+  // un solo inyector en el fixture: el tipo entra directo a su carga (no se elige entre uno)
+  await page.click('#tipoGrid .tipo-btn[data-tipo="inyector"]');
+  ok((await page.$eval('#fase1Title', e => e.textContent)) === 'Pat Bet Plast',
+     'Inyectores abre el inyector (Pat Bet Plast)');
+  // el inyector se carga igual que un P.S., asi que tambien va en TARJETAS (aunque desde v1.14.0
+  // se lo elija en su propio boton): la vista cuelga de envSinMemoria, que incluye a los dos
   ok(await page.$eval('#tblWrap', e => e.classList.contains('hidden')) &&
      !(await page.$eval('#cardsGrid', e => e.classList.contains('hidden'))),
      'inyector: la tabla no se usa, las partes van en tarjetas');
@@ -172,8 +178,8 @@ window.supabase = { createClient: function(){ return {
   ok((await page.$eval(DQ, e => e.getAttribute('inputmode'))) === 'decimal', 'inyector: teclado decimal (resina en kg)');
   await page.click('#btnVolverPartes');
   ok((await page.$$eval('#cardsGrid .parte-card', xs => xs.length)) === 2, 'inyector: "← Partes" vuelve a la grilla');
-  await page.click('#btnVolver');        // vuelve a las contrapartes del tipo
-  await page.click('#btnVolverTipo');    // y a los tipos, para seguir el flujo
+  await page.click('#btnVolver');        // un solo inyector: vuelve directo a los tipos
+  await page.waitForFunction(() => document.querySelectorAll('#tipoGrid .tipo-btn').length > 0);
 
   await page.click('#tipoGrid .tipo-btn[data-tipo="tallerista"]');
   await page.click('#cpGrid .prov-btn:has-text("Martin")');

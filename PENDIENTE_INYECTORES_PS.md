@@ -21,8 +21,14 @@ A2 (inyector con material sin ubicación) = 0. Sin stock negativo. Único invari
 **preexistente** (artículos 537/567 sin receta/ruta, no es de este trabajo).
 
 ## Lo que NO se hizo, a propósito
-- **No aparecen en "Prov. de servicio" del Tablet.** En GP2 los inyectores son **inyectores**
+- **No se los convirtió en `proveedor_servicio`.** En GP2 los inyectores son **inyectores**
   (`proveedor_insumo` + `material_id`), NO `proveedor_servicio`. Modelarlos como PS con rutas sería
-  un segundo modelo redundante que choca con el que ya existe. El envío de bolsas al inyector vive
-  en `Compras/Inyectores_GP2.html` (`enviar_material_inyector`). Si el usuario quiere un acceso
-  directo desde el Tablet, es re-linkear esa pantalla (lo que se había hecho y se sacó), no crear PS.
+  un segundo modelo redundante que choca con el que ya existe.
+
+## Cómo quedó en el Tablet (actualizado 2026-09-18)
+Sí se les puede mandar la bolsa desde el Tablet, sin cirugía: `tablet_bundle` devuelve los 4
+(JL Matriceria, Kollplast, Pat Bet Plast, Pettofrezza Rafael) como contraparte tipo `'inyector'`
+con sus resinas, y `tablet_registrar` rutea el envío a `enviar_material_inyector` (el mismo RPC de
+`Compras/Inyectores_GP2.html`, sin duplicar lógica). Desde **Tablet v1.14.0** tienen su **propio
+botón "Inyectores"** en Enviar; entre el 15/09 y el 18/09 se los mostró adentro de "Prov. de
+servicio" y el usuario pidió sacarlos de ahí.
