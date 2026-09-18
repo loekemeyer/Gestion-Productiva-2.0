@@ -10987,7 +10987,14 @@ entrega_unidad` / `entrega_uni_x` — y hoy son dos:
 | proveedor | envía | entrega | por qué |
 |---|---|---|---|
 | **AJ Adhesivos** | paquetes de **100** | paquetes de **200** | lo dijo el dueño; se escribe en paquetes |
-| **Resortes Charcas** | — (es híbrido, no está en Enviar) | **cajones** de cada pieza, se escribe en kg | no tenía unidad de la cual copiar |
+| **Maspoli SRL** | cajón de cada pieza, en kg | **bolsas de 250 mangos**, se escribe en bolsas | `[usuario 2026-09-18: "Maspoli entrega en bolsas de 250 mangos"]` — y 250 es justo el `uni_x_cajon` de sus tres mangos |
+| **Resortes Charcas** | — (es híbrido, no está en Enviar) | **paquetes**, el envase de cada pieza, se escribe en kg | no tenía unidad de la cual copiar `[usuario 2026-09-18: "Charcas en paquetes"]` |
+
+⚠ **Pendiente de un dato en Charcas** `[dato 2026-09-18]`: sus dos piezas son flejes que se miden
+**en kg** (`IC3`, `IC3V`), y como no tiene `entrega_uni_x` el factor que se usa es el `uni_x_cajon`
+de la pieza — **1.205** y **24**. Para una pieza en kg ese número se lee como *kg por paquete*, y un
+paquete de fleje de 1.205 kg no existe. Hoy no molesta porque el esperado de las dos está en 0, pero
+**hay que preguntar cuántos kg tiene un paquete de Charcas** y cargarlo en `entrega_uni_x`.
 
 El resto sale solo: Guazzaroni, Jade, FAAT, Mabra, Maspoli, Pedernera y Scorrano entregan en **el
 cajón de cada pieza** (su envase de envío), Ester en **bolsas de 1800** y Hernandez Julio en el
