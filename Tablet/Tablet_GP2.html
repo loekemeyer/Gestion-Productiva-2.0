@@ -6,6 +6,12 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
+<!-- v1.21.0 (2026-09-18) — ADENTRO DE UNA PARTE NO HAY FECHA NI BOTON DE REGISTRAR
+     (usuario, textual: "en version tablet, envios y recepciones. Cuando estas dentro de una parte,
+     en este caso pliego. Que no aparezca ni el boton de fecha ni de enviar").
+     La vista de UNA parte es para cargar esa parte, no para cerrar la carga: la fila de acciones
+     (Fecha, Remito y "Registrar / Enviar (N)") se esconde con la grilla y vuelve al tocar
+     "← Partes". Vale para Enviar y para Recibir, que comparten la misma vista. -->
 <!-- v1.20.0 (2026-09-18) — RECIBIR DE UN P.S.: TARJETAS, Y LA ENTREGA COPIA LA UNIDAD DEL ENVIO
      (usuario, textual: "AJ adhesivos entrega en paquetes de 200. El resto copia la logica del
      envio: si enviamos en bolsas recepcionamos en bolsas, si lo hacemos en cajones, en cajones.
@@ -554,7 +560,7 @@
     <div id="fase1" class="hidden">
       <div class="row" style="justify-content:space-between">
         <div class="row" style="margin:0"><label class="lbl" id="fase1Title">—</label></div>
-        <div class="row" style="margin:0">
+        <div class="row" id="accBox" style="margin:0">
           <label class="lbl" style="font-size:16px" for="fFecha">Fecha</label>
           <input type="date" id="fFecha">
           <label class="lbl hidden" style="font-size:16px" for="fRemito" id="lblRemito">Remito</label>
@@ -1317,6 +1323,10 @@ function abrirParte(k){
   $("tblBox").classList.add("hidden");
   $("detBox").classList.remove("hidden");
   $("tblEmpty").classList.add("hidden");
+  // adentro de una parte no se cierra la carga: la Fecha y el boton Registrar se van con la grilla
+  // [usuario 2026-09-18: "cuando estas dentro de una parte... que no aparezca ni el boton de fecha
+  // ni de enviar"]. Vuelven al tocar "← Partes".
+  $("accBox").classList.add("hidden");
   pintarDetalle();
   var inp = $("detCard").querySelector('input[data-f="q"]');
   if (inp) inp.focus();
@@ -1326,6 +1336,7 @@ function cerrarDetalle(){
   detK = null;
   $("detBox").classList.add("hidden");
   $("tblBox").classList.remove("hidden");
+  $("accBox").classList.remove("hidden");
 }
 
 /* volver a la grilla: la tarjeta se repinta con lo que quedó cargado */

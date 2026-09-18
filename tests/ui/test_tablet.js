@@ -203,7 +203,12 @@ window.supabase = { createClient: function(){ return {
      'inyector: la vista de la parte trae codigo, descripcion, sugerido y el campo — ' + detIny);
   ok((await page.$eval(DQ, e => e.value)) === '', 'inyector: el campo de la vista arranca vacio');
   ok((await page.$eval(DQ, e => e.getAttribute('inputmode'))) === 'decimal', 'inyector: teclado decimal (resina en kg)');
+  // adentro de una parte no se cierra la carga: ni Fecha ni el boton de registrar [usuario 2026-09-18]
+  ok(await page.$eval('#accBox', e => e.classList.contains('hidden')),
+     'Enviar: adentro de la parte no se ve ni la Fecha ni el boton de enviar');
   await page.click('#btnVolverPartes');
+  ok(!(await page.$eval('#accBox', e => e.classList.contains('hidden'))),
+     'Enviar: "← Partes" devuelve la Fecha y el boton de enviar');
   ok((await page.$$eval('#cardsGrid .parte-card', xs => xs.length)) === 2, 'inyector: "← Partes" vuelve a la grilla');
   await page.click('#btnVolver');        // un solo inyector: vuelve directo a los tipos
   await page.waitForFunction(() => document.querySelectorAll('#tipoGrid .tipo-btn').length > 0);
@@ -597,6 +602,8 @@ window.supabase = { createClient: function(){ return {
      'P.S.: la vista dice Esperado y Cantidad — ' + detPs);
   ok((await page.$eval('#detCard .det-uni', e => e.textContent.trim())) === 'kg',
      'Guazzaroni: la cantidad se escribe en kg, igual que en el envio');
+  ok(await page.$eval('#accBox', e => e.classList.contains('hidden')),
+     'Recibir: adentro de la parte tampoco se ve la Fecha, el Remito ni el boton de registrar');
   await page.fill(DQ, '50');   // 50 kg / 0,05 = 1.000 uni = exactamente lo esperado
   ok((await page.$eval('#detCard .det-eq', e => e.textContent.trim())) === '= 2 cajones',
      'Guazzaroni: el renglon chico dice a cuantos cajones equivale — ' +
