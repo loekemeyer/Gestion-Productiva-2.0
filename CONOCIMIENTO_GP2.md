@@ -11022,3 +11022,46 @@ envío se escribe en kg (Ester, los del cajón por pieza, Julio), la entrega tam
 renglón "≈ N cajones" debajo. Donde el envío se escribe en el envase (AJ, paquetes), la entrega
 también. Por eso `packEnvio()` y `pesoEnvio()` dejaron de exigir `MODO === 'enviar'`: son del
 **proveedor**, no del modo.
+## 4em. Los remaches vuelven de Guazzaroni EN LOS MISMOS CAJONES — y el `uni_x_cajon` del niquelado es la BOLSA del fraccionado (2026-09-18)
+
+Salió de una pregunta del dueño: `[usuario 2026-09-18, textual: "Mandé 5 cajones de cv11 y el
+esperado de recepcion de v11 es 50 cajones. Por qué?"]`.
+
+**El esperado estaba bien; el envase con el que se mostraba, no.** El esperado de un P.S. es lo que
+tiene en su poder, o sea la pieza que le **mandamos** (CV11), contada en unidades de esa pieza:
+5 cajones × 20 kg = 100 kg = **136.425 remaches**, correcto. La tablet lo dividía por el
+`uni_x_cajon` de la pieza que **devuelve** (V11 = 2.729 uni = **2 kg**) → 50. El ×10 era la
+diferencia entre dos números que se llaman igual y no son lo mismo.
+
+**Qué es cada número** `[usuario 2026-09-18]`:
+
+| número | qué es de verdad |
+|---|---|
+| `CV11.uni_x_cajon` = 27.285 (**20 kg**) | el **cajón** con el que se le manda el remache crudo a niquelar, y con el que vuelve |
+| `V11.uni_x_cajon` = 2.729 (**2 kg**) | la **bolsa** en la que se fracciona DESPUÉS de recibirlo, con la **matriz de embolsado**. No es un cajón |
+
+`[usuario, textual: "Guazzaroni nos entrega los remaches niquelados en los mismos cajones que se lo
+enviamos. Pero vos tenes que los cajones del ya niquelado es de menos peso porque luego de que
+llegan, con una matriz de embolsado fraccionan en bolsas de 2kg"]` y `[usuario: "si envío 2 cajones
+lo esperado es recibir 2 cajones aprox (el peso niquelado es un poquito mas - muy infima la
+diferencia)"]`. **El dato de la base está bien**: lo que estaba mal era leer la bolsa como cajón.
+
+⚠ **LA REGLA NO ES UNIVERSAL** `[usuario 2026-09-18, textual: "No aplica para todos los casos. Esto
+te lo estoy diciendo en el caso de los remaches"]`. Por eso **la base decide dónde aplica y el front
+obedece**: `tablet_bundle` manda `ent_uxc` / `ent_kgu` (el cajón y el peso de la pieza enviada) en
+las filas de `recibir` **sólo del sector Remache**, y la tablet los prefiere cuando vienen. Los
+otros **105** pares de P.S. quedan exactamente como estaban (el cajón de la pieza devuelta).
+Cuando aparezca otro proveedor que devuelva en el mismo envase, se amplía esa condición — un lugar.
+
+⚠ **Y el envase del PROVEEDOR DE INSUMO es otro más**: `[usuario 2026-09-18, textual: "Cuando vienen
+del prov de insumo vienen en bolsas de 25kg, no 20"]`. O sea, para el mismo remache conviven **tres**
+envases: bolsa de **25 kg** del proveedor (Bella Vista / Mandelli / Suipacha) → cajón de **20 kg**
+para ir y volver del niquelado → bolsa de **2 kg** (algunos 10) del fraccionado interno. La O.C. de
+remaches se pide **en kg** (ver REGLAS_OC_INSUMOS) y hoy **no** redondea a bolsa de 25 kg: queda
+PENDIENTE decidir si se pide en bolsas enteras, como los plásticos.
+
+**Dato al pasar, para cuando haga falta**: los 9 crudos con cajón cargado dan **20,00 kg** clavados
+los 9, y los niquelados dan 2 kg (V1, V2, V4, V9, V10, V11, V12, V13) o 10 kg (V3, V5, V7, V8) —
+o sea que la bolsa del fraccionado no es una sola. **Tres crudos no tienen cajón cargado** (CV6,
+CV9, CV18D): esas filas caen al envase de la pieza devuelta, que es lo único que hay. `[dato
+2026-09-18, GP2.componente]`

@@ -7243,6 +7243,20 @@ rec_x as (
          s.nombre sector, c.unidad_medida um, c.uni_x_cajon uxc, c.kg_x_uni kgu,
          c.entrega_unidad ent_uni, c.entrega_uni_x ent_ux,
          ce.codigo ent_cod, ce.descripcion ent_desc,
+         -- el CAJON DE LA PIEZA ENVIADA, SOLO donde la pieza vuelve en el MISMO cajon en el que se
+         -- mando: hoy los REMACHES que niquela Guazzaroni (sector 8). El esperado de un P.S. se
+         -- cuenta en unidades de la ENTRADA (es lo que el proveedor tiene en su poder), asi que ahi
+         -- el envase con el que se mira tiene que ser el de ESA pieza y no el de la que devuelve
+         -- [usuario 2026-09-18: "Guazzaroni nos entrega los remaches niquelados en los mismos
+         -- cajones que se lo enviamos... si envio 2 cajones lo esperado es recibir 2 cajones aprox
+         -- (el peso niquelado es un poquito mas - muy infima la diferencia)", y enseguida el limite:
+         -- "no aplica para todos los casos... te lo estoy diciendo en el caso de los remaches"].
+         -- El uni_x_cajon del remache niquelado (V11 = 2.729 uni = 2 kg) NO es un cajon: es la bolsa
+         -- en la que se fracciona DESPUES de recibirlo, con la matriz de embolsado. Mirar el
+         -- esperado con ese numero multiplicaba por 10 lo que se le habia mandado.
+         -- NULL en el resto de los P.S.: ahi el front sigue con el cajon de la pieza devuelta.
+         case when ce.sector_id = 8 then ce.uni_x_cajon end ent_uxc,
+         case when ce.sector_id = 8 then ce.kg_x_uni    end ent_kgu,
          (select a.articulos_por_caja from articulo a where a.codigo = r.cod_art) por_caja
     from rec r
     left join componente c on c.id = r.comp_id
@@ -7252,7 +7266,7 @@ rec_x as (
    group by r.tipo, r.ref, r.comp_id, r.comp_entrada_id, r.n_entradas, r.tiene_bom, r.cod_art,
             c.codigo, c.descripcion, s.nombre, c.unidad_medida, c.uni_x_cajon, c.kg_x_uni,
             c.entrega_unidad, c.entrega_uni_x,
-            ce.codigo, ce.descripcion
+            ce.codigo, ce.descripcion, ce.uni_x_cajon, ce.kg_x_uni, ce.sector_id
 ),
 -- envio_unidad / envio_uni_x / envio_carga_unidad: unidad de ENVIO por proveedor (display), p.ej. AJ
 -- Adhesivos manda de a paquetes de 100 pliegos y Ester de a bolsas de 1800 mangos. Es solo
@@ -7325,6 +7339,7 @@ select jsonb_build_object(
              'env_factor', case when tipo = 'tallerista' then coalesce(ent_ux, uxc) end,
              'env_carga',  case when tipo = 'tallerista' then 'kg' end,
              'ent_cod', ent_cod, 'ent_desc', ent_desc,
+             'ent_uxc', ent_uxc, 'ent_kgu', ent_kgu,
              'esperado', esperado, 'esperado_origen', esperado_origen
            ) order by cod), '[]'::jsonb) from rec_x),
   'alertas_abiertas', (select count(*) from alerta_recepcion where estado = 'abierta')

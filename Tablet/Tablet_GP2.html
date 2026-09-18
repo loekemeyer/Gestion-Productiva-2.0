@@ -6,6 +6,21 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
+<!-- v1.23.0 (2026-09-18) — RECIBIR REMACHES: EL ESPERADO VA EN EL CAJÓN CON EL QUE SE MANDÓ
+     (usuario: "Mandé 5 cajones de cv11 y el esperado de recepcion de v11 es 50 cajones. ¿Por qué?" →
+     "Guazzaroni nos entrega los remaches niquelados en los mismos cajones que se lo enviamos… si
+     envío 2 cajones lo esperado es recibir 2 cajones aprox (el peso niquelado es un poquito más —
+     muy ínfima la diferencia)"). El esperado de un P.S. se cuenta en unidades de la pieza que le
+     MANDAMOS (CV11), pero se mostraba dividido por el cajón de la que DEVUELVE (V11 = 2.729 uni =
+     2 kg, que no es un cajón: es la bolsa en la que se fracciona después con la matriz de
+     embolsado) → 100 kg / 2 kg = 50 cajones donde habían salido 5. Ahora, cuando la fila trae
+     ent_uxc / ent_kgu desde tablet_bundle, el envase es el de la pieza enviada. LA BASE ES LA QUE
+     DECIDE DÓNDE APLICA, no el front: hoy manda esas dos claves SOLO para el sector Remache
+     (usuario: "no aplica para todos los casos… te lo estoy diciendo en el caso de los remaches"),
+     así que los otros 105 pares de P.S. quedan igual que antes. Toca los tres lugares que mira el
+     envase de una fila de Recibir (packEnvio por pieza, bultoDe del envío por peso y el override
+     del proveedor), el equivalente "= N cajones" de abajo del campo, la comparación del "recibí de
+     más" y el esperado que viaja en el payload. -->
 <!-- v1.22.0 (2026-09-18) — LOS ENVASES SE VEN CON DECIMALES (se va el redondeo de la mañana)
      (usuario, textual: "Que pueda anotar decimales a la hora de poner la cantidad de kg. Además,
      no quiero que redondees las bolsas, cajones -> lo quiero ver con decimales también").
@@ -675,6 +690,23 @@ function unidadDe(x){
   return String(x.um || "").toLowerCase() === "kg" ? "kg" : "uni";
 }
 function inputmodeDe(u){ return u === "kg" ? "decimal" : "numeric"; }
+
+/* ---------- EL CAJÓN DE REFERENCIA DE UNA FILA DE RECIBIR ----------
+   En Recibir de un P.S. el "Esperado" NO es la pieza de la fila: es lo que el proveedor tiene en su
+   poder, o sea la pieza que le MANDAMOS, contada en unidades de ESA pieza. Donde vuelve en el mismo
+   cajón en el que salió, el envase con el que se mira tiene que ser el de la pieza enviada
+   [usuario 2026-09-18, remaches de Guazzaroni: "si envío 2 cajones lo esperado es recibir 2 cajones
+   aprox"]. QUIÉN ENTRA EN ESA REGLA LO DECIDE LA BASE: tablet_bundle manda ent_uxc / ent_kgu solo
+   en esas filas (hoy el sector Remache) y acá alcanza con preferirlas cuando vienen. Sin ellas
+   (todo el resto) queda el cajón de la pieza devuelta, que es como estaba. */
+function uxcRef(x){
+  var e = Number((x && x.ent_uxc) || 0);
+  return (MODO === "recibir" && e > 0) ? e : Number((x && x.uxc) || 0);
+}
+function kguRef(x){
+  var e = Number((x && x.ent_kgu) || 0);
+  return (MODO === "recibir" && e > 0) ? e : Number((x && x.kg_x_uni) || 0);
+}
 function uniTag(u){ return '<span class="uni-tag ' + u + '">' + u + "</span>"; }
 
 /* clave de fila: en recibir una pieza puede aparecer dos veces (dos entradas distintas del PS) */
@@ -762,7 +794,7 @@ function envaseDe(x){
     if (lab) {
       var fx = Number(selCP.entrega_uni_x || 0);
       if (fx > 0) return { factor: fx, label: lab, cargaKg: false };   // AJ: entrega 200 por paquete
-      var fp = Number(x.uxc || 0);                                     // Charcas: el cajon de la pieza
+      var fp = uxcRef(x);                                              // Charcas: el cajon de la pieza
       return fp > 0 ? { factor: fp, label: lab, cargaKg: true } : null;
     }
     if (pesoEnvio()) {                             // Julio: el bulto lo pone el sector de la pieza
@@ -771,7 +803,7 @@ function envaseDe(x){
     }
     var pkr = packEnvio();
     if (!pkr) return null;
-    var fr2 = pkr.porPieza ? Number(x.uxc || 0) : pkr.factor;
+    var fr2 = pkr.porPieza ? uxcRef(x) : pkr.factor;
     return (fr2 > 0) ? { factor: fr2, label: pkr.label, cargaKg: pkr.cargaKg } : null;
   }
   if (MODO !== "enviar") return null;
@@ -797,7 +829,7 @@ function kgPorEnvase(x){
   var ev = envaseDe(x);
   if (!ev) return 0;
   if (unidadDe(x) === "kg") return ev.factor;
-  var k = Number(x.kg_x_uni || 0);
+  var k = kguRef(x);
   return k > 0 ? ev.factor * k : 0;
 }
 /* true si la CANTIDAD de esta pieza se escribe en kg. Pide las dos cosas: que el envase lo diga y
@@ -845,7 +877,7 @@ function pesoEnvio(){
    columna ES el tamaño de la bolsa). Sin kg_x_uni no hay conversión: devuelve null y la fila se
    carga como siempre, en unidades. */
 function bultoDe(x){
-  var kgu = Number((x && x.kg_x_uni) || 0), uxc = Number((x && x.uxc) || 0);
+  var kgu = kguRef(x), uxc = uxcRef(x);
   if (!(kgu > 0)) return null;
   var plast = /pl[aá]stico/i.test(String((x && x.sector) || ""));
   return { kgu: kgu, uxc: uxc > 0 ? uxc : 0, label: plast ? "bolsas" : "cajones" };
@@ -1194,7 +1226,7 @@ function esperadoTxt(x){
 function canonDe(x, q){
   if (!(q > 0)) return 0;
   if (cargaEnKg(x) && unidadDe(x) !== "kg") {
-    var k = Number(x.kg_x_uni || 0);
+    var k = kguRef(x);
     return k > 0 ? q / k : q;
   }
   var ev = envaseDe(x);
@@ -1501,7 +1533,7 @@ $("btnEnviar").addEventListener("click", async function(){
         // el esperado viaja en la MISMA unidad que la cantidad: la base los compara crudos para
         // levantar la alerta de "recibi de mas", y un esperado en unidades contra kg no compara.
         esperado: (MODO === "recibir" && x.esperado != null)
-          ? ((ckg && u !== "kg") ? Number(x.esperado) * Number(x.kg_x_uni || 0) : Number(x.esperado))
+          ? ((ckg && u !== "kg") ? Number(x.esperado) * kguRef(x) : Number(x.esperado))
           : null,
         esperado_origen: x.esperado_origen || null
       };

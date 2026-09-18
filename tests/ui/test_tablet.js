@@ -90,9 +90,13 @@ const BUNDLE = {
     { tipo: 'tallerista', ref: '6', comp_id: 541, comp_entrada_id: null, n_entradas: 0, tiene_bom: false, cod_art: null, cod: 'GRJ5', desc: 'Bombilla Resorte Trad 558', sector: 'Sector Garage', um: 'unidad', uxc: 960, kg_x_uni: 0.0147, por_caja: null, ent_cod: null, ent_desc: null, esperado: 360, esperado_origen: 'online_tall', env_unidad: 'bolsas', env_factor: 120, env_carga: 'kg' },
     { tipo: 'proveedor_at', ref: '1', comp_id: null, comp_entrada_id: null, n_entradas: 0, tiene_bom: false, cod_art: '026', cod: '026', desc: 'Colador N°8', sector: null, um: null, uxc: null, kg_x_uni: null, por_caja: 36, ent_cod: null, ent_desc: null, esperado: 72, esperado_origen: 'oc' },
     { tipo: 'proveedor_servicio', ref: '20', comp_id: 91, comp_entrada_id: 90, n_entradas: 1, tiene_bom: false, cod_art: null, cod: 'D5-P', desc: 'Mitad pintada', sector: 'Sector Procesado', um: 'unidad', uxc: 500, kg_x_uni: 0.05, por_caja: null, ent_cod: 'D5', ent_desc: 'Mitad rompenuez', esperado: 40, esperado_origen: 'online_ps' },
-    // Guazzaroni envia por el CAJON de cada pieza y kg: la entrega copia esa misma logica
-    // (1.000 uni / 500 por cajon = 2 cajones; esos 1.000 pesan 50 kg)
-    { tipo: 'proveedor_servicio', ref: '4', comp_id: 601, comp_entrada_id: 600, n_entradas: 1, tiene_bom: false, cod_art: null, cod: 'CV1N', desc: 'Remache Espiral Niquelado', sector: 'Sector Remache', um: 'unidad', uxc: 500, kg_x_uni: 0.05, por_caja: null, ent_cod: 'CV1', ent_desc: 'Remache Espiral p/Niquelar', esperado: 1000, esperado_origen: 'online_ps' },
+    // Guazzaroni envia por el CAJON de cada pieza y kg: la entrega copia esa misma logica, pero EL
+    // CAJON ES EL DE LA PIEZA QUE SE LE MANDO (ent_uxc / ent_kgu, que la base manda solo para los
+    // remaches): 1.000 uni / 500 por cajon de CV1 = 2 cajones, y esos 1.000 pesan 50 kg. El uxc de
+    // la pieza NIQUELADA (50) es la bolsa en la que se fracciona despues, no un cajon: con ese
+    // numero el esperado daba 20 cajones donde habian salido 2 (el caso real fue CV11 -> V11, 5
+    // cajones mostrados como 50). [usuario 2026-09-18]
+    { tipo: 'proveedor_servicio', ref: '4', comp_id: 601, comp_entrada_id: 600, n_entradas: 1, tiene_bom: false, cod_art: null, cod: 'CV1N', desc: 'Remache Espiral Niquelado', sector: 'Sector Remache', um: 'unidad', uxc: 50, kg_x_uni: 0.05, por_caja: null, ent_cod: 'CV1', ent_desc: 'Remache Espiral p/Niquelar', ent_uxc: 500, ent_kgu: 0.05, esperado: 1000, esperado_origen: 'online_ps' },
     // AJ: 600 pliegos esperados / 200 por paquete de ENTREGA = 3 paquetes (no 6, que serian de envio)
     { tipo: 'proveedor_servicio', ref: '12', comp_id: 565, comp_entrada_id: 564, n_entradas: 1, tiene_bom: false, cod_art: null, cod: 'Pliego Ad 506', desc: 'Adhesivado', sector: 'Sector Procesado', um: 'unidad', uxc: null, kg_x_uni: null, por_caja: null, ent_cod: 'Pliego 506', ent_desc: 'Sin adhesivar', esperado: 600, esperado_origen: 'online_ps' },
     { tipo: 'virgilio', ref: 'virgilio', comp_id: 373, comp_entrada_id: null, n_entradas: 0, tiene_bom: false, cod_art: null, cod: 'IC3V', desc: 'Fleje N° 90 LARGO', sector: 'Sector Fleje', um: 'kg', uxc: 24, kg_x_uni: 0.0134, por_caja: null, ent_cod: null, ent_desc: null, esperado: 20, esperado_origen: 'online_virgilio' },
@@ -595,6 +599,10 @@ window.supabase = { createClient: function(){ return {
      'P.S.: la tarjeta dice la pieza y que SC consume — ' + gzRec);
   ok(gzRec.includes('Esperado 2 cajones'),
      'Guazzaroni: el esperado se mira en los mismos cajones con los que se le envia — ' + gzRec);
+  // el mismo numero contado con la bolsa del fraccionado (uxc 50 de la pieza niquelada) daria 20:
+  // ese era el bug del 18/09 (5 cajones de CV11 mostrados como 50 de V11).
+  ok(!gzRec.includes('20 cajones'),
+     'Guazzaroni: NO se usa el uni_x_cajon de la pieza devuelta (la bolsa del fraccionado) — ' + gzRec);
   await abrir('CV1N');
   const detPs = await det();
   ok(detPs.includes('Esperado') && detPs.includes('2 cajones') && detPs.includes('Cantidad') &&
@@ -604,7 +612,7 @@ window.supabase = { createClient: function(){ return {
      'Guazzaroni: la cantidad se escribe en kg, igual que en el envio');
   ok(await page.$eval('#accBox', e => e.classList.contains('hidden')),
      'Recibir: adentro de la parte tampoco se ve la Fecha, el Remito ni el boton de registrar');
-  await page.fill(DQ, '50');   // 50 kg / 0,05 = 1.000 uni = exactamente lo esperado
+  await page.fill(DQ, '50');   // 50 kg / 0,05 = 1.000 uni = exactamente lo esperado (2 cajones de 25 kg)
   ok((await page.$eval('#detCard .det-eq', e => e.textContent.trim())) === '= 2 cajones',
      'Guazzaroni: el renglon chico dice a cuantos cajones equivale — ' +
      (await page.$eval('#detCard .det-eq', e => e.textContent.trim())));
