@@ -6,6 +6,16 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
+<!-- v1.9.0 (2026-09-18) — EL FASONERO APARECE SIEMPRE, CON SUGERIDO 0 [usuario 2026-09-18, textual:
+     "los inyectores por mas que no esta cargada la orden de compra aparecen igual con cero sugerido,
+     tendria que aparecer Maspoli con cero sugerido y cuando sale la orden de compra ahi sube el
+     sugerido de entrega de virolas"]. Corrige la v1.8.0, que lo ESCONDIA mientras no hubiera O.C.:
+     el operario abria Envio a P.S. y Maspoli no estaba, que es peor que verlo en 0 (no se distingue
+     "no hay que mandarle nada" de "se rompio algo"). Se fue conOC() y el filtro del boton del
+     proveedor; queda pendOC(), que es lo unico que hacia falta: el sugerido sale de la O.C. y sin
+     O.C. da 0. EN LA BASE: tablet_bundle deja de filtrar el fasonero en la CTE env por el mismo
+     motivo (el techo ya lo pone oc_ps en rep, que sin O.C. da 0). Mismo comportamiento que el
+     inyector desde siempre. -->
 <!-- v1.8.0 (2026-09-18) — AL FASONERO NO SE LE MANDA NADA HASTA QUE HAY ORDEN DE COMPRA
      [usuario 2026-09-18, textual: "que el envio a Maspoli de virolas no surja hasta que se hace
      una orden de compra... imaginate que se hizo una orden de compra por 10 mangos. Por esos 10
@@ -312,12 +322,7 @@ async function cargarInyectores(){
 }
 
 function renderPS(){
-  // el fasonero SIN O.C. no tiene una sola pieza para mandar: no se muestra el boton
-  var lista = (D.ps||[]).filter(function(p){
-    if (!p.pedido_por_oc) return true;
-    return conOC(agruparPorSC((D.partes||{})[p.id]||[]), p).length > 0;
-  });
-  E.gridContrapartes("psGrid", lista, {
+  E.gridContrapartes("psGrid", D.ps, {
     vacio: "Sin proveedores configurados.",
     meta: function(p){
       // Cuenta PIEZAS A ENVIAR, no pares (pieza que entra, pieza que sale). A
@@ -326,7 +331,7 @@ function renderPS(){
       // [usuario 2026-09-03: "en envio a Maspoli deberia aparecer 1 parte, lo
       // que hace es entregar 3 partes"]. Misma correccion que ya se hizo en la
       // tabla; esto era lo que faltaba.
-      var n = conOC(agruparPorSC((D.partes||{})[p.id]||[]), p).length;
+      var n = agruparPorSC((D.partes||{})[p.id]||[]).length;
       var cargado = E.cargadasDe(BUF.all[p.id], tieneAlgo).length;
       return esc(p.proceso||"—") + " · " + n + (p.inyector? " bolsas":" partes") + (cargado? " · "+cargado+" cargadas":"");
     },
@@ -356,21 +361,17 @@ function partesFiltradas(){
     return String(x.sc_cod||"")+" "+String(x.sc_desc||"")+" "+
            String(x.sp_cod||"")+" "+String(x.sp_desc||"");
   });
-  return conOC(agruparPorSC(arr), selPS);
+  return agruparPorSC(arr);
 }
 
-/* FASONERO (pedido_por_oc): lo que se le manda sale de la O.C. de lo que el devuelve, asi que sin
-   O.C. enviada no hay nada que mandarle y la fila NO se muestra [usuario 2026-09-18]. El filtro vive
-   en esta pantalla y no en el bundle a proposito: envios_ps_bundle lo comparte con Entrega PS, donde
-   el proveedor tiene que seguir apareciendo para registrar lo que todavia debe. */
+/* FASONERO (pedido_por_oc): unidades que le faltan entregar de una O.C. ENVIADA, sumadas sobre las
+   salidas de esa pieza. Es lo que manda el sugerido. El proveedor y su fila se muestran SIEMPRE,
+   con o sin O.C. — sin orden el sugerido es 0 y sube cuando la orden sale, igual que el inyector
+   [usuario 2026-09-18]. */
 function pendOC(x){
   var n = 0;
   (x.salidas||[]).forEach(function(sp){ n += Number(sp.oc_pend||0); });
   return n;
-}
-function conOC(arr, ps){
-  if (!ps || !ps.pedido_por_oc) return arr;
-  return arr.filter(function(x){ return pendOC(x) > 0; });
 }
 
 /* Junta en UNA fila las salidas de la misma pieza enviada. Lo que se manda es
