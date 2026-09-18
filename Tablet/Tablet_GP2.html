@@ -6,6 +6,12 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
+<!-- v1.15.1 (2026-09-18) — SE VA EL BOTON "USAR EL SUGERIDO" DE LA VISTA DE LA PARTE (usuario,
+     textual: "no quiero que aparezca la opcion de enviar sugerido"). v1.15.0 lo habia puesto como
+     atajo; la linea de la casa es mas simple y ya estaba escrita en 4ee: el sugerido es REFERENCIA,
+     la cantidad la escribe la persona. Sin atajo no hay forma de mandar el calculo sin mirar. Queda
+     el boton "Listo", que solo cierra la parte. sugeridoEnCarga() sigue viva: la usa la precarga del
+     tallerista, que NO se toco. -->
 <!-- v1.15.0 (2026-09-18) — ENVIAR A PROV. DE SERVICIO: LAS PARTES EN TARJETAS, Y LA CARGA EN UNA
      VISTA APARTE (usuario, textual: "quiero modificar la forma en que se seleccionan las partes.
      Actualmente se muestran en formato de listado. Quiero reemplazar ese listado por boxes o
@@ -20,9 +26,6 @@
      VISTA DE LA PARTE muestra el sugerido grande y el campo de la cantidad efectiva, con las MISMAS
      unidades y equivalencias que tenia la fila: paquetes (AJ), kg con "= N bolsas" (Ester), kg con
      el redondeo a cajones (Guazzaroni), y por peso (Julio) los dos campos, kg y bultos enteros, con
-     el bulto autocompletandose desde los kg. Boton "Usar el sugerido" que ESCRIBE el sugerido en el
-     campo: no es precarga (la cantidad sigue arrancando vacia, v1.12.0/v1.13.0), la aprieta el
-     operario.
      SIN CAMBIOS DE DATOS: mismo buffer, mismo payload, mismas RPC. La cuenta del sugerido se
      unifico en sugeridoInfo() / sugeridoEnCarga(), que ahora usan la tabla, la tarjeta, la vista de
      la parte y la precarga del tallerista: una sola cuenta, no cuatro copias. -->
@@ -680,8 +683,8 @@ function uniCarga(x){
 }
 function decDe(x){ return uniCarga(x) === "kg" ? 2 : 0; }
 
-/* El sugerido llevado a la unidad con la que se ESCRIBE: lo que precarga el tallerista y lo que
-   escribe el botón "Usar el sugerido" de la vista de una parte. null = no hay sugerido. */
+/* El sugerido llevado a la unidad con la que se ESCRIBE: es lo que precarga el TALLERISTA (a los
+   P.S. no se les precarga nada ni hay atajo para copiarlo). null = no hay sugerido. */
 function sugeridoEnCarga(x){
   var pk = (MODO === "enviar") ? packEnvio() : null;
   var b = (MODO === "enviar" && pesoEnvio()) ? bultoDe(x) : null;
@@ -1119,30 +1122,11 @@ function pintarDetalle(){
   // autocompleta desde los kg mientras el operario no lo toque y va en enteros.
   if (b) h += '<div class="det-lbl">Cantidad (' + esc(b.label) + ")</div>" +
               '<div><input class="det-in" data-f="c" inputmode="numeric" value="' + esc(it.c || "") + '"></div>';
-  h += '<div class="det-acc">' +
-       (sugeridoEnCarga(x) != null ? '<button class="btn btn-secondary" type="button" data-a="sug">Usar el sugerido</button>' : "") +
-       '<button class="btn btn-primary" type="button" data-a="listo">Listo</button></div>';
+  // NO hay atajo para copiar el sugerido al campo [usuario 2026-09-18: "no quiero que aparezca la
+  // opcion de enviar sugerido"]: la cantidad la escribe la persona, siempre. El sugerido de arriba
+  // es referencia y nada mas (misma linea que 4ee).
+  h += '<div class="det-acc"><button class="btn btn-primary" type="button" data-a="listo">Listo</button></div>';
   $("detCard").innerHTML = h;
-}
-
-/* el botón escribe el sugerido en el campo (NO se precarga solo: en P.S. la cantidad arranca
-   siempre vacía [usuario 2026-09-18]; esto es un atajo que el operario aprieta a propósito). */
-function usarSugerido(){
-  var x = piezaDe(detK);
-  if (!x) return;
-  var v = sugeridoEnCarga(x);
-  if (v == null) return;
-  var it = BUF.item(selCP.id, detK);
-  it.q = fmt(v, decDe(x));
-  var b = (MODO === "enviar" && pesoEnvio()) ? bultoDe(x) : null;
-  if (b) {
-    var nb = bultosDeKg(b, v);
-    it.c = nb != null ? fmt(nb, 0) : "";
-    it.cAuto = it.c;
-  }
-  BUF.save();
-  pintarDetalle();
-  actualizar();
 }
 
 function cargadas(){ return E.cargadasDe(BUF.de(selCP.id), function(it){ return num(it.q) > 0; }); }
@@ -1218,7 +1202,6 @@ $("detBox").addEventListener("click", function(e){
   var b = e.target.closest("button[data-a]");
   if (!b) return;
   if (b.dataset.a === "listo") volverAPartes();
-  if (b.dataset.a === "sug") usarSugerido();
 });
 $("detBox").addEventListener("input", function(e){
   var inp = e.target.closest("input.det-in");

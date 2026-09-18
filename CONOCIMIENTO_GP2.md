@@ -10567,9 +10567,12 @@ tocar una se abre **la vista de esa parte** con el sugerido arriba y el campo de
   paquetes (AJ), kg con "= N bolsas" (Ester), kg con "≈ N cajones" redondeados (Guazzaroni), y por
   peso (Julio) los **dos** campos — kg y bultos enteros, con el bulto autocompletandose desde los kg
   y sin pisar lo que el operario corrigió a mano.
-- **Botón "Usar el sugerido"**: escribe el sugerido en el campo. **No es precarga** — la cantidad
-  sigue arrancando vacía (4ee) — es un atajo que aprieta la persona, con el mismo número que la
-  tablet le precargaría a un tallerista.
+- **Y no hay atajo para copiar el sugerido al campo** `[usuario 2026-09-18, textual: "no quiero que
+  aparezca la opción de enviar sugerido"]`. La primera versión de esta pantalla tenía un botón
+  "Usar el sugerido"; se sacó el mismo día. Es la misma línea de 4ee llevada hasta el final: si el
+  sugerido es **referencia**, tampoco puede haber un botón que lo convierta en la cantidad de un
+  toque — eso es la precarga otra vez, con un click en el medio. El único botón de la vista es
+  "Listo", que cierra la parte.
 - **No cambió nada de datos**: mismo buffer, mismo payload, mismas RPC. La cuenta del sugerido quedó
   en **una sola función** (`sugeridoInfo()` para mostrarlo, `sugeridoEnCarga()` para escribirlo) que
   ahora usan la tabla, la tarjeta, la vista de la parte y la precarga del tallerista: antes eran
