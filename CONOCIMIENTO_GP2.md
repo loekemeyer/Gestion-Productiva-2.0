@@ -10787,3 +10787,53 @@ sigue encolando pero no crea movimiento" (conserva el historial); el usuario eli
 `enviar_material_virgilio`, la pantalla `Talleristas/Recepcion/RecepcionVirgilio_GP2.html` y los
 tipos `recepcion_virgilio` / `consumo_virgilio` del vocabulario **no se tocaron**. Para volver:
 `alter table public."Entregas Tallerista Virgilio" enable trigger trg_virgilio_espejo_gp2;`.
+
+## 4ek. Al TALLERISTA la unidad de envío la pone la PIEZA (2026-09-18)
+
+`[usuario 2026-09-18, textual: "Cartón según el formato se le manda según cómo viene el paquetón…
+según el formato de cartón vienen o mil unidades o dos mil. Y las cajas en paquetes de 25. Entonces
+el sugerido y la cantidad va para ambos en paquetes, cartones y cajas. En cambio para el resto el
+sugerido va en cajones y la cantidad va en kilos… y abajo chiquito te pone a cuántos cajones
+equivale"]`
+
+Las cuatro formas de 4ea/4ec/4ef son **del proveedor**: AJ manda todo en paquetes de 100, Ester todo
+en bolsas de 1800. Con un tallerista eso no se puede: **recibe de todo** — cartones, cajas, mangos,
+flejes, plásticos — y cada cosa viaja en su propio envase. Así que acá la unidad **no es del
+destino, es de la pieza**, y la dice la base (`tablet_bundle` → `env_unidad` / `env_factor` /
+`env_carga` en cada fila de tallerista):
+
+| pieza | sugerido | cantidad | de dónde sale el factor |
+|---|---|---|---|
+| Sector Cartón (10) | paquetes | **paquetes** | `carton_formato.uni_x_bolsa` del formato de esa pieza |
+| Sector Caja (11) | paquetes | **paquetes** | `parametro.caja_uni_x_paquete` = **25** |
+| todo lo demás | **cajones** | **kg**, con "≈ N cajones" abajo | `componente.uni_x_cajon` de esa pieza |
+
+**El "paquetón" del cartón es la BOLSA del formato, no el paquete de 250.** En GP2 conviven los dos
+números: `parametro.carton_uni_x_paquete` = 250 (el paquete chico, el de la O.C.) y
+`carton_formato.uni_x_bolsa`, que es **1.000** (formatos C, LOKE, Manga), **2.000** (Huevo), **3.000**
+(formato 8) y **100** (Pliego). El usuario dijo "o mil unidades o dos mil", que es exactamente esa
+columna — por eso el envío usa `uni_x_bolsa` aunque en la pantalla se rotule "paquetes", que es la
+palabra que usó él. `[dato 2026-09-18]`
+
+**Lo que NO tiene el dato no se convierte** (misma regla que Guazzaroni en 4ef): la pieza queda en
+unidades y la tarjeta lo dice. Al 2026-09-18, de las **285** piezas que se les mandan a talleristas:
+- **6 cartones sin paquetón** porque su formato no lo tiene cargado (A1B, A1B1, BOLSA550, BOLSA760,
+  G8C, O2A — formatos Bandita, Bolsa, Corbata, Rallador);
+- **23 sin `uni_x_cajon`**, que quedan en unidades (1686, BOM10, BOM13, BOM14, C12, C13, D9, GRJ13,
+  GRJ14, GRJ28, GRJ29, IE1, PA17, PC6, PEST2, PINCEL590, PV17, PV8, PV8B, V18D, W1B, Z12, Z21);
+- **2 con cajón pero sin `kg_x_uni`** (GRJ18, GRJ19): tienen sugerido en cajones y **se cargan en
+  cajones**, porque sin el peso no hay cómo pasar a kg;
+- **254 andan completas**. Cargar el dato que falta las pasa solas al modo bueno: **no hay que tocar
+  código**.
+
+**Y con esto ya no queda nadie con la cantidad precargada**: el tallerista era el último
+`[usuario 2026-09-18, eligiendo entre tres opciones: "igual que P.S.: vacío y sin memoria"]`. Se
+fueron `precargaCantidad()`, `sugeridoEnCarga()` y la firma `qAuto` de 4ee — ya no hay ningún valor
+derivado guardado en `localStorage` que pueda quedar viejo, que era el bug de fondo de aquella
+sección. La **tabla** queda viva solo para el **prov. de art. terminado** y para **todo Recibir**.
+
+**Trampa que se repitió acá** `[dato 2026-09-18]`: entre que se aplicó el cambio en
+`tablet_bundle` y que se terminó el front, **otra sesión volvió a crear la función y se llevó puesto
+el parche**. Se detectó porque el bundle devolvía `env_unidad` en null y se re-aplicó sobre la
+definición viva (que ya traía la feature de la otra sesión, el fasonero Maspoli). Moraleja: cuando
+se parchea una función compartida, **verificar el resultado del bundle al final, no al aplicar**.
