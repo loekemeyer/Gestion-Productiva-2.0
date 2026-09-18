@@ -7121,6 +7121,7 @@ env_x as (
   select distinct on (e.tipo, e.ref, e.comp_id) e.tipo, e.ref, e.comp_id,
          c.codigo cod, c.descripcion descr, s.nombre sector, c.unidad_medida um,
          c.uni_x_cajon uxc, c.kg_x_uni kgu,
+         c.sector_id sec_id, c.carton_formato cfmt,
          coalesce((select i.cantidad from inventario i
                     where i.componente_id = c.id
                       and i.ubicacion_id = ubic_de('sector', c.sector_id) limit 1), 0) online_sector,
@@ -7207,6 +7208,15 @@ select jsonb_build_object(
     select coalesce(jsonb_agg(jsonb_build_object(
              'tipo', tipo, 'ref', ref, 'comp_id', comp_id, 'cod', cod, 'desc', descr,
              'sector', sector, 'um', um, 'uxc', uxc, 'kg_x_uni', kgu,
+             'env_unidad', case when tipo = 'tallerista'
+                                  then case when sec_id in (10,11) then 'paquetes' else 'cajones' end end,
+             'env_factor', case when tipo = 'tallerista' then case
+                                  when sec_id = 10 then (select f.uni_x_bolsa from carton_formato f where f.nombre = cfmt)
+                                  when sec_id = 11 then (select pa.valor::numeric from parametro pa
+                                                          where pa.clave = 'caja_uni_x_paquete')
+                                  else uxc end end,
+             'env_carga',  case when tipo = 'tallerista'
+                                  then case when sec_id in (10,11) then 'envase' else 'kg' end end,
              'online_sector', online_sector, 'saldo_dest', saldo_dest,
              'maximo', maximo_dest, 'stock_dest', stock_dest, 'sugerido', sugerido
            ) order by cod), '[]'::jsonb) from env_x),

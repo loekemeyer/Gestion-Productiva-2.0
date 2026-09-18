@@ -25,7 +25,7 @@ const BUNDLE = {
   generado_en: '2026-09-13T12:00:00Z',
   alertas_abiertas: 0,
   contrapartes: [
-    { tipo: 'tallerista', ref: '6', nombre: 'Martin Cornejo', n_env: 2, n_rec: 1 },
+    { tipo: 'tallerista', ref: '6', nombre: 'Martin Cornejo', n_env: 5, n_rec: 1 },
     { tipo: 'tallerista', ref: '9', nombre: 'Lucho', n_env: 1, n_rec: 0 },
     { tipo: 'proveedor_at', ref: '1', nombre: 'Cabral', n_env: 1, n_rec: 1 },
     { tipo: 'proveedor_servicio', ref: '5', nombre: 'Jade', n_env: 1, n_rec: 1 },
@@ -43,9 +43,18 @@ const BUNDLE = {
   // P.S. y a los inyectores no: el campo arranca vacio, usuario 2026-09-17). Prov. AT no trae
   // sugerido (va con esas claves nulas) y sigue mostrando "Online sector".
   enviar: [
-    { tipo: 'tallerista', ref: '6', comp_id: 70, cod: 'A10', desc: 'Cpo Una', sector: 'Sector Crudo', um: 'unidad', uxc: 1000, kg_x_uni: 0.01, online_sector: 120, saldo_dest: 42, maximo: 200, stock_dest: 50, sugerido: 150 },
-    { tipo: 'tallerista', ref: '6', comp_id: 75, cod: 'F7', desc: 'Fleje doblado', sector: 'Sector Fleje', um: 'kg', uxc: null, kg_x_uni: 0.0134, online_sector: 30.5, saldo_dest: 7.5, maximo: 40, stock_dest: 10, sugerido: 12.5 },
-    { tipo: 'tallerista', ref: '9', comp_id: 70, cod: 'A10', desc: 'Cpo Una', sector: 'Sector Crudo', um: 'unidad', uxc: 1000, kg_x_uni: 0.01, online_sector: 120, saldo_dest: 0, maximo: 200, stock_dest: 0, sugerido: 200 },
+    // AL TALLERISTA la unidad de envio la pone la PIEZA, y la manda la base en cada fila
+    // [usuario 2026-09-18]: carton y caja en PAQUETES (el paqueton del formato / los 25 de la
+    // caja) y el resto con el sugerido en CAJONES y la cantidad en KG.
+    { tipo: 'tallerista', ref: '6', comp_id: 70, cod: 'A10', desc: 'Cpo Una', sector: 'Sector Crudo', um: 'unidad', uxc: 1000, kg_x_uni: 0.01, online_sector: 120, saldo_dest: 42, maximo: 200, stock_dest: 50, sugerido: 150, env_unidad: 'cajones', env_factor: 1000, env_carga: 'kg' },
+    { tipo: 'tallerista', ref: '6', comp_id: 75, cod: 'F7', desc: 'Fleje doblado', sector: 'Sector Fleje', um: 'kg', uxc: null, kg_x_uni: 0.0134, online_sector: 30.5, saldo_dest: 7.5, maximo: 40, stock_dest: 10, sugerido: 12.5, env_unidad: 'cajones', env_factor: null, env_carga: 'kg' },
+    // carton: 2.500 uni / paqueton de 1.000 (carton_formato.uni_x_bolsa del formato C) -> 3 paquetes
+    { tipo: 'tallerista', ref: '6', comp_id: 300, cod: 'C10', desc: 'Carton Pelapapa 505', sector: 'Sector Cartón', um: 'unidad', uxc: null, kg_x_uni: null, online_sector: 0, saldo_dest: 0, maximo: 3000, stock_dest: 0, sugerido: 2500, env_unidad: 'paquetes', env_factor: 1000, env_carga: 'envase' },
+    // caja: paquetes de 25 (parametro caja_uni_x_paquete) -> 60 uni = 3 paquetes (techo)
+    { tipo: 'tallerista', ref: '6', comp_id: 310, cod: 'CJ7', desc: 'Caja N°7', sector: 'Sector Caja', um: 'unidad', uxc: null, kg_x_uni: null, online_sector: 0, saldo_dest: 0, maximo: 100, stock_dest: 0, sugerido: 60, env_unidad: 'paquetes', env_factor: 25, env_carga: 'envase' },
+    // carton cuyo formato NO tiene paqueton cargado: se carga en unidades y la tarjeta lo dice
+    { tipo: 'tallerista', ref: '6', comp_id: 320, cod: 'BANDITA', desc: 'Bandita Palo de Amasar', sector: 'Sector Cartón', um: 'unidad', uxc: null, kg_x_uni: null, online_sector: 0, saldo_dest: 0, maximo: 900, stock_dest: 0, sugerido: 900, env_unidad: 'paquetes', env_factor: null, env_carga: 'envase' },
+    { tipo: 'tallerista', ref: '9', comp_id: 70, cod: 'A10', desc: 'Cpo Una', sector: 'Sector Crudo', um: 'unidad', uxc: 1000, kg_x_uni: 0.01, online_sector: 120, saldo_dest: 0, maximo: 200, stock_dest: 0, sugerido: 200, env_unidad: 'cajones', env_factor: 1000, env_carga: 'kg' },
     { tipo: 'proveedor_servicio', ref: '5', comp_id: 90, cod: 'D5', desc: 'Mitad rompenuez', sector: 'Sector Crudo', um: 'unidad', uxc: 500, kg_x_uni: 0.05, online_sector: 40, saldo_dest: 0, maximo: 100, stock_dest: 20, sugerido: 80 },
     // AJ Adhesivos manda por PAQUETES de 100: sugerido 250 uni -> 3 paquetes (techo)
     { tipo: 'proveedor_servicio', ref: '12', comp_id: 564, cod: 'Pliego 506', desc: 'Sin adhesivar', sector: 'Sector Procesado', um: 'unidad', uxc: null, kg_x_uni: null, online_sector: 0, saldo_dest: 0, maximo: 500, stock_dest: 0, sugerido: 250 },
@@ -184,35 +193,69 @@ window.supabase = { createClient: function(){ return {
   await page.click('#tipoGrid .tipo-btn[data-tipo="tallerista"]');
   await page.click('#cpGrid .prov-btn:has-text("Martin")');
 
-  // Enviar a PS/tallerista: SOLO Pieza | Sugerido | Cantidad, y el sugerido PRECARGADO en Cantidad
-  const thEnv = await page.$$eval('#thead th', xs => xs.map(x => x.textContent.trim()));
-  ok(thEnv.join('|') === 'Pieza|Sugerido|Cantidad', 'Enviar a tallerista: solo Pieza/Sugerido/Cantidad — ' + thEnv.join(' | '));
-  let rows = await page.$$eval('#tbody tr', xs => xs.map(x => x.textContent.replace(/\s+/g, ' ')));
-  // ya no se muestran saldo (42/7,5) ni máximo (200/40): solo el sugerido, que ademas queda en Cantidad
-  ok(rows.length === 2 && rows[0].includes('A10') && rows[0].includes('150') &&
-     !rows[0].includes('42') && !rows[0].includes('200'),
-     'A10: solo sugerido 150, sin saldo ni máximo — ' + rows[0]);
-  ok(rows[1].includes('F7') && rows[1].includes('12,5') && !rows[1].includes('7,5') && !rows[1].includes('40'),
-     'F7 (kg): solo sugerido 12,5, sin saldo ni máximo — ' + rows[1]);
-  const cellsEnv = await page.$$eval('#tbody tr:first-child td', xs => xs.length);
-  ok(cellsEnv === 3, 'la fila tiene 3 columnas (Pieza/Sugerido/Cantidad): ' + cellsEnv);
-  // el sugerido queda precargado en el campo Cantidad (editable), con formato de la casa
-  let vals = await page.$$eval('#tbody input.cell-in', xs => xs.map(x => x.value));
-  ok(vals[0] === '150' && vals[1] === '12,5', 'la cantidad viene precargada con el sugerido — ' + vals.join(' , '));
-  ok((await page.$eval('#btnEnviar', e => e.textContent)) === 'Enviar (2)', 'las 2 piezas con sugerido>0 quedan listas — botón Enviar (2)');
-  // la pieza en kg se carga con teclado decimal; la de unidades con numerico
-  const modos = await page.$$eval('#tbody input.cell-in', xs => xs.map(x => x.getAttribute('inputmode')));
-  ok(modos[0] === 'numeric' && modos[1] === 'decimal', 'teclado: A10 numeric, F7 (kg) decimal — ' + modos.join(','));
+  // ── el TALLERISTA tambien va en tarjetas, y cada pieza trae su unidad de envio ──────────
+  ok(await page.$eval('#tblWrap', e => e.classList.contains('hidden')) &&
+     !(await page.$eval('#cardsGrid', e => e.classList.contains('hidden'))),
+     'tallerista: las partes van en tarjetas, no en la tabla');
+  let tcards = await cards();
+  ok(tcards.length === 5, 'tallerista: una tarjeta por pieza (5) — ' + tcards.length);
+  const cardDe = (cod) => tcards.find(c => c.startsWith(cod));
+  // el resto de las piezas: el sugerido se mira en CAJONES y la cantidad se escribe en KG
+  ok(cardDe('A10').includes('Cpo Una') && cardDe('A10').includes('Sugerido 1 caj\u00f3n') &&
+     cardDe('A10').includes('kg'),
+     'A10: sugerido 150 uni -> 1 cajon (techo, en singular) y se carga en kg — ' + cardDe('A10'));
+  // carton: el paqueton lo pone el FORMATO (1.000) -> 2.500 uni = 3 paquetes
+  ok(cardDe('C10').includes('Sugerido 3 paquetes'),
+     'C10 (carton): 2.500 uni / paqueton de 1.000 -> 3 paquetes — ' + cardDe('C10'));
+  // caja: paquetes de 25
+  ok(cardDe('CJ7').includes('Sugerido 3 paquetes'),
+     'CJ7 (caja): 60 uni / 25 por paquete -> 3 paquetes — ' + cardDe('CJ7'));
+  // lo que no tiene el dato NO se convierte: queda en unidades y lo dice
+  ok(cardDe('BANDITA').includes('900') && cardDe('BANDITA').includes('sin paquete cargado'),
+     'BANDITA: sin paqueton cargado queda en unidades y avisa — ' + cardDe('BANDITA'));
+  ok(cardDe('F7').includes('12,5') && cardDe('F7').includes('sin caj\u00f3n cargado'),
+     'F7: sin uni_x_cajon queda en kg y avisa — ' + cardDe('F7'));
+  // NADA viene precargado: desde el 2026-09-18 tampoco al tallerista [usuario: "igual que P.S."]
+  ok(tcards.every(c => c.includes('sin cargar')), 'tallerista: las tarjetas arrancan sin cargar');
+  ok((await page.$eval('#btnEnviar', e => e.disabled)) === true, 'tallerista: sin nada cargado no se puede enviar');
 
-  // ── 2) el buscador filtra ────────────────────────────────────────────────
+  // la vista de la parte: el sugerido en cajones arriba, los kg abajo, y la equivalencia
+  await abrir('A10');
+  const detA10 = await det();
+  ok(detA10.includes('Sugerido a enviar') && detA10.includes('1 caj\u00f3n') && detA10.includes('Cantidad a enviar'),
+     'A10: la vista muestra el sugerido en cajones — ' + detA10);
+  ok((await page.$eval('#detCard .det-uni', e => e.textContent.trim())) === 'kg',
+     'A10: la cantidad se escribe en kg');
+  ok((await page.$eval(DQ, e => e.value)) === '', 'A10: el campo arranca vacio');
+  await page.fill(DQ, '25');
+  ok((await page.$eval('#detCard .det-eq', e => e.textContent.trim())) === '\u2248 3 cajones',
+     'A10: 25 kg / (1.000 x 0,01) = 2,5 -> "~ 3 cajones" redondeado — ' +
+     (await page.$eval('#detCard .det-eq', e => e.textContent.trim())));
+  await page.click('#btnVolverPartes');
+  ok((await cards()).find(c => c.startsWith('A10')).includes('env\u00eda 25 kg'),
+     'A10: la tarjeta queda marcada con los kg cargados');
+
+  // el carton se escribe EN PAQUETES (no en kg): no hay equivalencia abajo
+  await abrir('C10');
+  ok((await page.$eval('#detCard .det-uni', e => e.textContent.trim())) === 'paquetes',
+     'C10: la cantidad se escribe en paquetes');
+  ok((await page.$eval('#detCard .det-eq', e => e.textContent.trim())) === '',
+     'C10: sin equivalencia: el campo YA esta en paquetes');
+  ok((await page.$eval(DQ, e => e.getAttribute('inputmode'))) === 'numeric', 'C10: teclado numerico (paquetes enteros)');
+  await page.fill(DQ, '3');
+  await page.click('#btnVolverPartes');
+  await cargarParte('CJ7', '2');
+
+  // ── 2) el buscador filtra las tarjetas ───────────────────────────────────
   await page.fill('#q', 'fleje');
-  rows = await page.$$eval('#tbody tr', xs => xs.map(x => x.textContent));
-  ok(rows.length === 1 && rows[0].includes('F7'), 'buscador "fleje" deja solo F7');
+  tcards = await cards();
+  ok(tcards.length === 1 && tcards[0].includes('F7'), 'buscador "fleje" deja solo F7');
   await page.fill('#q', '');
-  await page.waitForFunction(() => document.querySelectorAll('#tbody tr').length === 2);
+  await page.waitForFunction(() => document.querySelectorAll('#cardsGrid .parte-card').length === 5);
 
-  // el sugerido ya viene precargado: se envían las dos piezas tal cual (el operario podría editar)
+  // se registra lo que se cargo a mano: A10 25 kg, C10 3 paquetes, CJ7 2 paquetes
   const fecha = await page.$eval('#fFecha', e => e.value);
+  ok((await page.$eval('#btnEnviar', e => e.textContent)) === 'Enviar (3)', 'tallerista: las 3 piezas cargadas');
   await page.click('#btnEnviar');
   await page.waitForFunction(() => !document.getElementById('fase3').classList.contains('hidden'));
   let reg = await calls('tablet_registrar');
@@ -220,11 +263,19 @@ window.supabase = { createClient: function(){ return {
   let p = reg[0].args.p;
   ok(p.modo === 'enviar' && p.tipo === 'tallerista' && p.ref === '6' && p.fecha === fecha + 'T12:00:00' && p.remito === null,
      'payload enviar: modo/tipo/ref/fecha — ' + JSON.stringify({ modo: p.modo, tipo: p.tipo, ref: p.ref, fecha: p.fecha }));
-  ok(p.items.length === 2, 'se envían las 2 piezas precargadas');
-  const itF7 = p.items.find(i => i.comp_id === 75), itA10 = p.items.find(i => i.comp_id === 70);
-  ok(itF7 && itF7.cantidad === 12.5 && itF7.unidad === 'kg' && itF7.esperado === null, 'item F7: 12,5 kg viaja como kg — ' + JSON.stringify(itF7));
-  ok(itA10 && itA10.cantidad === 150 && itA10.unidad === 'uni', 'item A10: 150 uni (sugerido precargado) — ' + JSON.stringify(itA10));
-  ok(dialogs.some(d => d.type === 'confirm' && d.msg.includes('Enviar a Martin Cornejo') && d.msg.includes('12,5 kg')), 'confirm de envio con resumen');
+  ok(p.items.length === 3, 'se envian las 3 piezas cargadas');
+  const itA10 = p.items.find(i => i.comp_id === 70), itC10 = p.items.find(i => i.comp_id === 300),
+        itCJ = p.items.find(i => i.comp_id === 310);
+  // el inventario nunca ve paquetes ni cajones: lo que viaja es kg o unidades
+  ok(itA10 && itA10.cantidad === 25 && itA10.unidad === 'kg' && itA10.cajones === 2.5,
+     'A10: viajan los 25 kg y los cajones quedan anotados — ' + JSON.stringify(itA10));
+  ok(itC10 && itC10.cantidad === 3000 && itC10.unidad === 'uni',
+     'C10: 3 paquetes se guardan como 3.000 cartones (uni) — ' + JSON.stringify(itC10));
+  ok(itCJ && itCJ.cantidad === 50 && itCJ.unidad === 'uni',
+     'CJ7: 2 paquetes se guardan como 50 cajas (uni) — ' + JSON.stringify(itCJ));
+  ok(dialogs.some(d => d.type === 'confirm' && d.msg.includes('Enviar a Martin Cornejo') &&
+                       d.msg.includes('3 paquetes') && d.msg.includes('25 kg')),
+     'confirm de envio con resumen en la unidad de cada pieza');
   ok((await page.$eval('#successTitle', e => e.textContent)).includes('Enviado'), 'exito de envio');
   const buf = await page.evaluate(() => JSON.parse(localStorage.getItem('gp2_tablet_buffer') || '{}'));
   ok(!buf['enviar:tallerista:6'], 'buffer limpio tras enviar');
@@ -352,7 +403,7 @@ window.supabase = { createClient: function(){ return {
   await page.click('#tipoGrid .tipo-btn[data-tipo="proveedor_servicio"]');
   await page.click('#cpGrid .prov-btn:has-text("Guazzaroni")');
   const gzCards = await cards();
-  ok(gzCards[0].includes('Sugerido 1 cajones'),
+  ok(gzCards[0].includes('Sugerido 1 caj\u00f3n'),
      'Guazzaroni: 34.992 remaches / 57.143 por cajón -> 1 cajón (techo) — ' + gzCards[0]);
   ok(gzCards[1].includes('113.304') && gzCards[1].includes('sin cajón cargado'),
      'Guazzaroni: la pieza sin uni_x_cajon NO se convierte, queda en unidades y lo dice — ' + gzCards[1]);
@@ -486,19 +537,22 @@ window.supabase = { createClient: function(){ return {
   await page.click('#cpGrid .prov-btn:has-text("AJ Adhesivos")');
   ok((await cards())[0].includes('sin cargar'),
      'AJ: al volver a entrar la tarjeta esta sin cargar, no con los 4 paquetes de antes');
-  // y al tallerista se le SIGUE precargando (no se pidio sacarselo)
+  // y al TALLERISTA tampoco se le precarga ni se le guarda nada [usuario 2026-09-18: "igual que P.S."]
   await page.click('#btnVolver');        // vuelve a las contrapartes del tipo
   await page.click('#btnVolverTipo');    // y de ahi a los tipos
   await page.click('#tipoGrid .tipo-btn[data-tipo="tallerista"]');
   await page.click('#cpGrid .prov-btn:has-text("Martin")');
-  const tvals = await page.$$eval('#tbody input.cell-in', xs => xs.map(x => x.value));
-  ok(tvals[0] === '150' && tvals[1] === '12,5', 'tallerista: la precarga del sugerido sigue — ' + tvals.join(' , '));
+  ok((await cards()).every(c => c.includes('sin cargar')),
+     'tallerista: las tarjetas arrancan sin cargar, ya no se precarga el sugerido');
+  await cargarParte('A10', '30');
+  await page.click('#btnVolver');
+  const bufT = await page.evaluate(() => JSON.parse(localStorage.getItem('gp2_tablet_buffer') || '{}'));
+  ok(!bufT['enviar:tallerista:6'], 'tallerista: al salir sin registrar no queda nada — ' + JSON.stringify(bufT));
 
   // ── 5) render a 390px ────────────────────────────────────────────────────
   await page.goto(ROOT + '/Tablet/Tablet_GP2.html?modo=enviar');
   await page.waitForFunction(() => document.querySelectorAll('#tipoGrid .tipo-btn').length > 0);
-  await page.click('#tipoGrid .tipo-btn[data-tipo="tallerista"]');
-  await page.click('#cpGrid .prov-btn:has-text("Martin")');
+  await page.click('#tipoGrid .tipo-btn[data-tipo="proveedor_at"]');   // la tabla que quedo en Enviar
   const m = await page.evaluate(() => {
     const ins = [...document.querySelectorAll('#tbody input.cell-in, #modos .modo-btn, #btnEnviar')];
     return {
@@ -513,8 +567,8 @@ window.supabase = { createClient: function(){ return {
 
   // las TARJETAS de un P.S. a 390px: una columna, sin desborde, y la vista de la parte con la
   // letra grande que pide la casa (el campo de carga nunca baja de 19px)
-  await page.click('#btnVolver');
-  await page.click('#btnVolverTipo');
+  await page.click('#btnVolver');   // prov. AT tiene una sola contraparte: vuelve a los tipos
+  await page.waitForFunction(() => !document.getElementById('tipoGrid').classList.contains('hidden'));
   await page.click('#tipoGrid .tipo-btn[data-tipo="proveedor_servicio"]');
   await page.click('#cpGrid .prov-btn:has-text("Ester")');
   await page.waitForFunction(() => document.querySelectorAll('#cardsGrid .parte-card').length > 0);
@@ -557,15 +611,16 @@ window.supabase = { createClient: function(){ return {
   pT.on('pageerror', e => { console.log('PAGEERROR:', e.message); process.exitCode = 1; });
   await pT.route('**/@supabase/supabase-js@2**', r => r.fulfill({ contentType: 'application/javascript', body: STUB }));
   await pT.route('**/GP2_favicon.png', r => r.fulfill({ contentType: 'image/png', body: Buffer.from('') }));
-  // Desde 2026-09-18 los P.S. van en TARJETAS: la tabla que se mide aca es la que quedo viva
-  // (tallerista en Enviar, y todo Recibir).
-  for (const [tipo, cp, etiq] of [['tallerista', 'Martin Cornejo', 'tallerista (Enviar)']]) {
-    await pT.goto(ROOT + '/Tablet/Tablet_GP2.html?modo=enviar');
+  // Desde 2026-09-18 los P.S., los inyectores y los TALLERISTAS van en TARJETAS: la tabla que se
+  // mide aca es la que quedo viva — el prov. de art. terminado en Enviar y todo Recibir. Los dos
+  // tipos que se usan tienen una sola contraparte, asi que se entra derecho.
+  for (const [modo, tipo, etiq] of [['enviar', 'proveedor_at', 'prov. AT (Enviar)'],
+                                    ['recibir', 'tallerista', 'tallerista (Recibir)']]) {
+    await pT.goto(ROOT + '/Tablet/Tablet_GP2.html?modo=' + modo);
     await pT.evaluate(() => localStorage.clear());
     await pT.reload();
     await pT.waitForFunction(() => document.querySelectorAll('#tipoGrid .tipo-btn').length > 0);
     await pT.click('#tipoGrid .tipo-btn[data-tipo="' + tipo + '"]');
-    await pT.click('#cpGrid .prov-btn:has-text("' + cp + '")');
     await pT.waitForFunction(() => document.querySelectorAll('#tbody tr').length > 0);
     const g = await pT.evaluate(() => {
       const t = document.querySelector('table.t').getBoundingClientRect();
@@ -606,32 +661,22 @@ window.supabase = { createClient: function(){ return {
   ok(gT.alto >= 44, '1280px: las tarjetas son tocables (' + Math.round(gT.alto) + 'px)');
   ok(gT.ancho > gT.disponible * 0.9,
      '1280px: la grilla usa el ancho entero, no el de la tabla (' + gT.ancho + ' de ' + gT.disponible + 'px)');
-  // ── la Cantidad precargada se REFRESCA con el sugerido del día, salvo que la hayan tocado ──
-  // (bug: el buffer vive en localStorage y sobrevive días; se veía el Sugerido nuevo con la
-  //  Cantidad vieja.) Se verifica en el TALLERISTA, que es donde la precarga sigue viva; en los
-  //  P.S. ya no se precarga y esa misma firma qAuto sirve para LIMPIAR el valor viejo.
-  await page.evaluate(() => {
-    localStorage.setItem('gp2_tablet_buffer', JSON.stringify({
-      'enviar:tallerista:6': { '70::': { q: '99', qAuto: '99' } }   // precarga de otro día
-    }));
-  });
-  await page.reload();
-  await page.waitForFunction(() => document.querySelectorAll('#tipoGrid .tipo-btn').length > 0);
-  await page.click('#tipoGrid .tipo-btn[data-tipo="tallerista"]');
-  await page.click('#cpGrid .prov-btn:has-text("Martin")');
-  ok((await page.$eval('#tbody input.cell-in', e => e.value)) === '150',
-     'tallerista: la precarga intacta se actualiza al sugerido de hoy (99 -> 150)');
-  await page.evaluate(() => {
-    localStorage.setItem('gp2_tablet_buffer', JSON.stringify({
-      'enviar:tallerista:6': { '70::': { q: '77', qAuto: '99' } }   // el operario la editó
-    }));
-  });
-  await page.reload();
-  await page.waitForFunction(() => document.querySelectorAll('#tipoGrid .tipo-btn').length > 0);
-  await page.click('#tipoGrid .tipo-btn[data-tipo="tallerista"]');
-  await page.click('#cpGrid .prov-btn:has-text("Martin")');
-  ok((await page.$eval('#tbody input.cell-in', e => e.value)) === '77',
-     'tallerista: lo que el operario cargó a mano NO se pisa');
+  // ── lo que quedo GUARDADO de otro dia no aparece en ningun destino de Enviar ──────────────
+  // Antes el tallerista precargaba el sugerido y esa precarga se refrescaba sola (firma qAuto).
+  // Desde el 2026-09-18 no se precarga en ningun lado y el buffer se borra al entrar, asi que
+  // tanto la precarga vieja como lo anotado a mano tienen que desaparecer igual.
+  for (const [guardado, etiq] of [[{ q: '99', qAuto: '99' }, 'la precarga vieja'],
+                                  [{ q: '77', qAuto: '99' }, 'lo anotado a mano']]) {
+    await page.evaluate(g => {
+      localStorage.setItem('gp2_tablet_buffer', JSON.stringify({ 'enviar:tallerista:6': { '70::': g } }));
+    }, guardado);
+    await page.reload();
+    await page.waitForFunction(() => document.querySelectorAll('#tipoGrid .tipo-btn').length > 0);
+    await page.click('#tipoGrid .tipo-btn[data-tipo="tallerista"]');
+    await page.click('#cpGrid .prov-btn:has-text("Martin")');
+    ok((await cards()).find(c => c.startsWith('A10')).includes('sin cargar'),
+       'tallerista: ' + etiq + ' de otro dia no aparece, la tarjeta arranca sin cargar');
+  }
   // el mismo caso en un P.S.: la precarga firmada de otro día se BORRA y lo editado sobrevive
   await page.evaluate(() => {
     localStorage.setItem('gp2_tablet_buffer', JSON.stringify({

@@ -6,6 +6,32 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
+<!-- v1.16.0 (2026-09-18) — LOS TALLERISTAS TAMBIEN EN TARJETAS, Y CON UNIDAD DE ENVIO POR PIEZA
+     (usuario, textual: "quiero que copies la misma logica para los talleristas. Lo que si no esta
+     modelado la unidad de medida ni de sugerido ni de cantidad… Carton segun el formato se le manda
+     segun como viene el paqueton… o mil unidades o dos mil. Y las cajas en paquetes de 25. Entonces
+     el sugerido y la cantidad va para ambos en paquetes, cartones y cajas. En cambio para el resto
+     el sugerido va en cajones y la cantidad va en kilos… y abajo chiquito te pone a cuantos cajones
+     equivale. Ademas, tendria que aparecer en formato box").
+     (1) LA UNIDAD LA PONE LA PIEZA, NO EL DESTINO. Hasta hoy la unidad de envio era del PROVEEDOR
+     (proveedor_servicio.envio_*). Un tallerista recibe de todo, asi que la unidad no puede ser una
+     sola: la dice cada pieza y la manda la base. tablet_bundle agrega env_unidad / env_factor /
+     env_carga a cada fila de tallerista: Sector Carton (10) -> paquetes, y el paqueton es el del
+     FORMATO (carton_formato.uni_x_bolsa: 1.000 el C y el LOKE, 2.000 el Huevo, 3.000 el 8, 100 el
+     Pliego); Sector Caja (11) -> paquetes de parametro.caja_uni_x_paquete (25); el resto -> sugerido
+     en CAJONES (componente.uni_x_cajon) y cantidad en KG, con la equivalencia redondeada abajo del
+     campo. Sin el dato NO se inventa el envase: esa pieza queda en unidades y la tarjeta lo dice
+     ("sin paquete cargado" / "sin cajon cargado").
+     (2) EN EL FRONT eso es envaseDe(x), que unifica las dos formas que conviven: el envase del
+     PROVEEDOR (packEnvio, con el caso por pieza de Guazzaroni) y el de la PIEZA (tallerista). Todo
+     lo demas — sugerido, campo, equivalencia, payload, resumen del confirm — ya colgaba de ahi.
+     (3) Y NO SE PRECARGA MAS NADA: el tallerista era el ultimo que arrancaba con la cantidad escrita
+     y con memoria; el usuario eligio "igual que P.S.: vacio y sin memoria". Con eso se fueron
+     precargaCantidad(), sugeridoEnCarga() y la firma qAuto: ya no hay valor derivado guardado en
+     localStorage que pueda quedar viejo. La tabla sigue viva solo para el prov. de art. terminado
+     y para TODO Recibir.
+     SIN cambios de datos: mismo payload (el inventario sigue viendo uni o kg, nunca paquetes ni
+     cajones) y misma RPC de registro. -->
 <!-- v1.15.1 (2026-09-18) — SE VA EL BOTON "USAR EL SUGERIDO" DE LA VISTA DE LA PARTE (usuario,
      textual: "no quiero que aparezca la opcion de enviar sugerido"). v1.15.0 lo habia puesto como
      atajo; la linea de la casa es mas simple y ya estaba escrita en 4ee: el sugerido es REFERENCIA,
@@ -341,7 +367,7 @@
   .parte-card.cargada{border-color:#15803d;background:#f4fbf6}
   .pc-cod{font-size:23px;font-weight:900;line-height:1.1}
   .pc-desc{font-size:16px;font-weight:700;color:#444;line-height:1.25}
-  .pc-sug{font-size:15px;font-weight:700;color:#777;white-space:nowrap}
+  .pc-sug{font-size:15px;font-weight:700;color:#777;line-height:1.25}
   .pc-estado{margin-top:auto;padding-top:6px;font-size:17px;font-weight:800;color:#15803d}
   .parte-card:not(.cargada) .pc-estado{color:#9aa1a8}
   /* la vista de UNA parte: el sugerido bien grande y un solo campo para la cantidad que se manda */
@@ -524,26 +550,17 @@ function envConSugerido(){
     (selCP.tipo === "proveedor_servicio" || selCP.tipo === "tallerista" || selCP.tipo === "inyector");
 }
 
-/* ¿Se PRECARGA la cantidad con el sugerido? A los PROVEEDORES DE SERVICIO (y a los inyectores,
-   que desde v1.14.0 son un tipo aparte) NO: el campo arranca vacío y lo escribe
-   quien envía [usuario 2026-09-17: "en el caso de envío a proveedores de servicio en la versión
-   tablet, no me preescribas lo que voy a enviar la cantidad que voy a enviar sino que lo voy a
-   escribir yo porque puede generar confusiones"]. El Sugerido se sigue MOSTRANDO en su columna (es
-   la referencia); lo que se fue es el número metido en el campo. A los TALLERISTAS se les sigue
-   precargando: el usuario no lo pidió para ellos. */
-function precargaCantidad(){
-  return envConSugerido() && !envSinMemoria(selCP);
-}
-
 /* La tablet NO se acuerda de lo tipeado en Enviar a P.S. / inyector: si se sale sin registrar, la
    cantidad desaparece [usuario 2026-09-18, textual: "si cargue algo yo, cuando salgo quiero que
    desaparezca, no que se guarde, por lo tanto todas las cantidades deben estar vacias"]. El buffer
    de localStorage se sigue usando mientras la contraparte esta abierta (es de donde sale lo que se
    registra y lo que sobrevive a un toque de mas), pero se borra al ENTRAR y al SALIR: nunca queda
-   un numero de ayer esperando que alguien lo registre sin mirar. A los talleristas no se les toca:
-   ahi la precarga del sugerido sigue viva y el buffer tiene sentido. */
+   un numero de ayer esperando que alguien lo registre sin mirar. Desde el 2026-09-18 vale TAMBIEN
+   para los TALLERISTAS `[usuario, elegido entre las tres opciones: "igual que P.S.: vacio y sin
+   memoria"]`: con eso ya no queda nadie con la cantidad precargada. */
 function envSinMemoria(c){
-  return MODO === "enviar" && !!c && (c.tipo === "proveedor_servicio" || c.tipo === "inyector");
+  return MODO === "enviar" && !!c &&
+    (c.tipo === "proveedor_servicio" || c.tipo === "inyector" || c.tipo === "tallerista");
 }
 function olvidarCargado(c){
   if (envSinMemoria(c)) BUF.borrar(c.id);
@@ -570,29 +587,47 @@ function packEnvio(){
   return { factor: f, label: lab, cargaKg: ckg, porPieza: false };
 }
 
-/* Cuántas unidades canónicas entran en UN envase de ESTA pieza. Con factor del proveedor es el
-   mismo para todas (AJ 100, Ester 1800); con envase por pieza es su componente.uni_x_cajon
-   (Guazzaroni). 0 = la pieza no tiene cajón cargado y no se inventa uno. */
-function factorEnvio(x, pk){
-  if (!pk) return 0;
-  return pk.porPieza ? Number((x && x.uxc) || 0) : pk.factor;
+/* ---------- EL ENVASE DE UNA PIEZA ----------
+   Con qué se manda ESA pieza a ESTE destino: {factor, label, cargaKg, redondea} o null (= va en
+   unidades, no se inventa un envase). Junta las dos formas que conviven:
+     · P.S.: lo dice el PROVEEDOR (packEnvio). Con envase por pieza (Guazzaroni) el factor sale de
+       componente.uni_x_cajon fila por fila.
+     · TALLERISTA: lo dice la PIEZA, y lo manda la base en cada fila del bundle [usuario 2026-09-18]:
+       cartón y caja en PAQUETES (el paquetón del formato / los 25 de la caja) y el resto con el
+       sugerido en CAJONES y la cantidad en KG. Ver env_unidad / env_factor / env_carga en
+       tablet_bundle.
+   `redondea` = la equivalencia de abajo del campo va sin decimales, con "≈". */
+function envaseDe(x){
+  if (MODO !== "enviar" || !selCP || !x) return null;
+  if (selCP.tipo === "tallerista") {
+    var ft = Number(x.env_factor || 0);
+    if (!x.env_unidad || !(ft > 0)) return null;   // pieza sin paquete / sin cajón cargado
+    return { factor: ft, label: String(x.env_unidad),
+             cargaKg: String(x.env_carga || "") === "kg", redondea: true };
+  }
+  var pk = packEnvio();
+  if (!pk) return null;
+  var f = pk.porPieza ? Number(x.uxc || 0) : pk.factor;
+  if (!(f > 0)) return null;
+  return { factor: f, label: pk.label, cargaKg: pk.cargaKg, redondea: !!pk.porPieza };
 }
 
-/* Cuantos KG entran en UNA unidad de envio de esta pieza. Si la pieza se cuenta en unidades, la
-   bolsa son factor x kg_x_uni (Ester: 1800 x 0,0054 = 9,72 kg); si la pieza ya se mide en kg, el
-   factor YA esta en kg. 0 = no se puede saber (a la pieza le falta kg_x_uni). */
-function kgPorEnvase(x, pk){
-  var f = factorEnvio(x, pk);
-  if (!(f > 0)) return 0;
-  if (unidadDe(x) === "kg") return f;
+/* Cuantos KG entran en UN envase de esta pieza. Si la pieza se cuenta en unidades, el envase son
+   factor x kg_x_uni (Ester: 1800 x 0,0054 = 9,72 kg); si la pieza ya se mide en kg, el factor YA
+   esta en kg. 0 = no se puede saber (a la pieza le falta kg_x_uni). */
+function kgPorEnvase(x){
+  var ev = envaseDe(x);
+  if (!ev) return 0;
+  if (unidadDe(x) === "kg") return ev.factor;
   var k = Number(x.kg_x_uni || 0);
-  return k > 0 ? f * k : 0;
+  return k > 0 ? ev.factor * k : 0;
 }
-/* true si la CANTIDAD de esta fila se carga en kg. Pide las dos cosas: que el proveedor lo diga
-   (envio_carga_unidad='kg') y que la pieza permita pasar de bolsas a kg. Si no, la fila cae al
-   modo de AJ (se carga en la unidad de envio) en vez de mostrar un kg inventado. */
-function cargaEnKg(x, pk){
-  return !!(pk && pk.cargaKg && kgPorEnvase(x, pk) > 0);
+/* true si la CANTIDAD de esta pieza se escribe en kg. Pide las dos cosas: que el envase lo diga y
+   que la pieza permita pasar del envase a kg. Si no, cae al modo de AJ (se carga en el envase) o a
+   unidades, en vez de mostrar un kg inventado. */
+function cargaEnKg(x){
+  var ev = envaseDe(x);
+  return !!(ev && ev.cargaKg && kgPorEnvase(x) > 0);
 }
 /* El "= N bolsas" que va debajo del campo cuando la cantidad se carga en kg. Con `redondear`
    (Guazzaroni: "que te diga cuantos cajones son (redondeando)") no se muestran decimales: va el
@@ -652,52 +687,52 @@ function vistaTarjetas(){ return envSinMemoria(selCP); }
      txt   el número ya formateado          uni   su unidad (paquetes, bolsas, cajones, kg, uni)
      nota  la aclaración cuando no se puede  small lo que la TABLA pinta en su <small> */
 function sugeridoInfo(x){
-  var pk = (MODO === "enviar") ? packEnvio() : null;
   var b = (MODO === "enviar" && pesoEnvio()) ? bultoDe(x) : null;
   var u = unidadDe(x);
   if (b) {
     // por peso el sugerido se mira EN BULTOS enteros, no en kilos [usuario 2026-09-17]
     var sugB = bultosSugeridos(b, Number(x.sugerido));
     var faltaB = "sin " + (b.label === "bolsas" ? "bolsa" : "cajón") + " cargado";
-    return { txt: fmt(sugB, 0, "—"), uni: sugB != null ? b.label : "",
+    return { txt: fmt(sugB, 0, "—"), num: sugB, uni: sugB != null ? b.label : "",
              nota: sugB != null ? "" : faltaB, small: sugB != null ? b.label : faltaB };
   }
-  var f = factorEnvio(x, pk);
+  var ev = envaseDe(x);
   var sug = x.sugerido;
-  if (f > 0 && x.sugerido != null) sug = Math.ceil(Number(x.sugerido) / f);
-  // envase por pieza y la pieza sin cajón cargado: no se inventa el factor, esa fila queda en
-  // unidades (sugerido y campo) y se avisa para que no se lea como cajones.
-  var sinEnvase = !!(pk && pk.porPieza) && !(f > 0);
-  return { txt: fmt(sug, (!pk && u === "kg") ? 2 : 0, "—"),
-           uni: sinEnvase ? u : (pk && f > 0 ? pk.label : u),
-           nota: sinEnvase ? "sin cajón cargado" : "",
-           small: sinEnvase ? (u + " · sin cajón cargado") : "" };
+  if (ev && x.sugerido != null) sug = Math.ceil(Number(x.sugerido) / ev.factor);
+  // el destino manda por envase pero ESTA pieza no lo tiene cargado: no se inventa el factor, la
+  // fila queda en unidades (sugerido y campo) y se avisa para que no se lea como cajones.
+  var falta = faltaEnvase(x);
+  return { txt: fmt(sug, (!ev && u === "kg") ? 2 : 0, "—"),
+           num: sug,
+           uni: ev ? ev.label : u,
+           nota: falta,
+           small: falta ? (u + " · " + falta) : "" };
+}
+
+/* El aviso cuando el destino manda por envase y a la pieza le falta el dato para convertir:
+   sin uni_x_cajon no hay cajón, sin el paquetón del formato no hay paquete. Vacío = no aplica. */
+function faltaEnvase(x){
+  if (MODO !== "enviar" || !selCP || !x || envaseDe(x)) return "";
+  if (selCP.tipo === "tallerista")
+    return x.env_unidad
+      ? ("sin " + (String(x.env_unidad) === "paquetes" ? "paquete" : "cajón") + " cargado")
+      : "";
+  var pk = packEnvio();
+  return (pk && pk.porPieza) ? "sin cajón cargado" : "";
 }
 
 /* La unidad con la que se ESCRIBE la cantidad de esa pieza (la del campo, no la de la pieza). */
 function uniCarga(x){
-  var pk = (MODO === "enviar") ? packEnvio() : null;
-  if (MODO === "enviar" && ((pesoEnvio() && bultoDe(x)) || cargaEnKg(x, pk))) return "kg";
-  var f = factorEnvio(x, pk);
-  return (pk && f > 0) ? pk.label : unidadDe(x);
+  if (MODO === "enviar" && ((pesoEnvio() && bultoDe(x)) || cargaEnKg(x))) return "kg";
+  var ev = envaseDe(x);
+  return ev ? ev.label : unidadDe(x);
 }
 function decDe(x){ return uniCarga(x) === "kg" ? 2 : 0; }
 
-/* El sugerido llevado a la unidad con la que se ESCRIBE: es lo que precarga el TALLERISTA (a los
-   P.S. no se les precarga nada ni hay atajo para copiarlo). null = no hay sugerido. */
-function sugeridoEnCarga(x){
-  var pk = (MODO === "enviar") ? packEnvio() : null;
-  var b = (MODO === "enviar" && pesoEnvio()) ? bultoDe(x) : null;
-  var raw = Number(x.sugerido);
-  if (!(raw > 0)) return null;
-  // por peso se mandan BULTOS ENTEROS: los kg son los de esos bultos (2 cajones de 750 a 0,04 = 60)
-  if (b) {
-    var nb = bultosSugeridos(b, raw);
-    return nb != null ? nb * b.uxc * b.kgu : raw * b.kgu;
-  }
-  var f = factorEnvio(x, pk);
-  var sugEnv = (f > 0) ? Math.ceil(raw / f) : raw;
-  return cargaEnKg(x, pk) ? sugEnv * kgPorEnvase(x, pk) : sugEnv;
+/* "1 cajones" no se lee: con uno va el singular. Solo toca las etiquetas que usamos. */
+var SINGULAR = { cajones: "cajón", paquetes: "paquete", bolsas: "bolsa" };
+function unidadTxt(n, label){
+  return (Number(n) === 1 && SINGULAR[label]) ? SINGULAR[label] : label;
 }
 
 /* la pieza abierta en la vista de una parte */
@@ -873,57 +908,9 @@ function elegir(c){
         ? "<th>Pieza</th><th class=\"num\">Sugerido" + _u + "</th><th class=\"num sep\">Cantidad" + _uq + "</th>"
         : "<th>Pieza</th><th class=\"num\">Online sector</th><th class=\"num sep\">Cantidad</th>")
     : "<th>Pieza</th><th class=\"num\">Esperado</th><th class=\"num sep\">Recibido</th>";
-  // precarga UNA vez y SOLO donde la tablet se acuerda de lo tipeado (hoy el tallerista, ver
-  // precargaCantidad / envSinMemoria): el sugerido entra como cantidad por defecto (editable).
-  // Sólo toca campos sin cargar, así que si el operario vació uno a mano no se lo vuelve a llenar
-  // en cada render. En P.S. e inyector no hay nada que precargar ni que migrar: el buffer de esa
-  // contraparte se borró al entrar.
-  if (precargaCantidad()) {
-    var _pk = packEnvio(), _peso = pesoEnvio();
-    piezasDe(c).forEach(function(x){
-      var it = BUF.item(c.id, claveDe(x));
-      var rawSug = Number(x.sugerido);
-      var b = _peso ? bultoDe(x) : null;
-      // el sugerido se precarga en la unidad de envío del proveedor: por peso va EN KG (sugerido ×
-      // kg_x_uni, Julio); por paquetes/bolsas se divide por el factor con redondeo PARA ARRIBA (no
-      // se pide menos de lo que falta), y si ADEMÁS se carga en kg (Ester) se precarga el peso de
-      // esas bolsas enteras (63 × 1800 × 0,0054 = 612,36 kg); sin unidad propia, tal cual viene.
-      var _fEnv = factorEnvio(x, _pk);
-      var sugEnv = (_fEnv > 0) ? Math.ceil(rawSug / _fEnv) : rawSug;
-      var _kgEnv = kgPorEnvase(x, _pk), _ckg = cargaEnKg(x, _pk);
-      // por peso (Julio) se precargan los kg de los BULTOS ENTEROS sugeridos (2 cajones de 750 a
-      // 0,04 kg = 60 kg), no los kg pelados del sugerido: lo que se manda son cajones completos.
-      var sug = sugeridoEnCarga(x);
-      var dec = decDe(x);
-      var vacio = (it.q === undefined || it.q === null || it.q === "");
-      // migración: si el proveedor ahora manda por paquetes/bolsas (o por peso) pero en el buffer
-      // quedó guardado el sugerido VIEJO (en unidades de una versión anterior, o en bolsas antes de
-      // pasar a kg), se reemplaza por el valor nuevo. Solo si el valor guardado es EXACTAMENTE esa
-      // precarga vieja: una edición del operario no se toca.
-      var precargaVieja = (_pk || b) && !vacio &&
-        (it.q === fmt(rawSug, unidadDe(x) === "kg" ? 2 : 0) || (_ckg && it.q === fmt(sugEnv, 0)) ||
-         (b && it.q === fmt(rawSug * b.kgu, 2)));
-      // la precarga queda firmada en qAuto: mientras el operario NO la haya tocado (it.q sigue
-      // siendo exactamente lo que precargamos) se refresca con el sugerido de hoy. Sin esto, el
-      // buffer vive en localStorage y sobrevive días: cambiaba el sugerido y la pantalla mostraba
-      // el Sugerido nuevo con la Cantidad precargada VIEJA [usuario 2026-09-17, visto en
-      // Guazzaroni]. Una edición real (cualquier otro valor) NO se pisa nunca.
-      var intacto = !vacio && it.qAuto !== undefined && it.qAuto !== "" && it.q === it.qAuto;
-      // se precarga con el formato de la casa (coma decimal / punto de miles), que es el que
-      // GP2N.num sabe leer; String(sugerido) con punto se leería como miles.
-      if ((vacio || intacto || precargaVieja) && sug > 0) {
-        it.q = fmt(sug, dec);
-        it.qAuto = it.q;
-        // los bultos arrancan en los que dan esos kg (enteros); el operario los corrige.
-        if (b) {
-          var nb = bultosDeKg(b, sug);
-          it.c = nb != null ? fmt(nb, 0) : "";
-          it.cAuto = it.c;
-        }
-      }
-    });
-    BUF.save();
-  }
+  // NO se precarga NADA: desde el 2026-09-18 ningún destino de Enviar arranca con la cantidad
+  // escrita (P.S. e inyector desde el 17, el tallerista desde el 18, elegido por el usuario). El
+  // Sugerido se sigue mostrando: es la referencia, no la orden. Ver envSinMemoria().
   render();
 }
 
@@ -991,10 +978,11 @@ function renderCards(){
     b.innerHTML =
       '<span class="pc-cod">' + esc(x.cod) + uniTag(uc) + "</span>" +
       '<span class="pc-desc">' + esc(x.desc || "") + "</span>" +
-      '<span class="pc-sug">Sugerido ' + si.txt + (si.uni ? " " + esc(si.uni) : "") +
+      '<span class="pc-sug">Sugerido ' + si.txt +
+        (si.uni ? " " + esc(unidadTxt(si.num, si.uni)) : "") +
         (si.nota ? " · " + esc(si.nota) : "") + "</span>" +
       '<span class="pc-estado">' + (q > 0
-        ? "✓ envía <b>" + fmt(q, decDe(x)) + " " + esc(uc) + "</b>"
+        ? "✓ envía <b>" + fmt(q, decDe(x)) + " " + esc(unidadTxt(q, uc)) + "</b>"
         : "sin cargar") + "</span>";
     g.appendChild(b);
   });
@@ -1021,10 +1009,10 @@ function renderTabla(){
     // Ester / Guazzaroni: el sugerido queda en el envase (bolsas, cajones) pero la cantidad se
     // escribe en kg, así que debajo del campo va a cuántos envases equivale lo tipeado (se
     // recalcula en el evento input).
-    var _pkFila = (MODO === "enviar") ? packEnvio() : null;
-    var cargaKgFila = cargaEnKg(x, _pkFila);
-    var kgEnvFila = kgPorEnvase(x, _pkFila), labelEnvFila = _pkFila ? _pkFila.label : "";
-    var redondEq = !!(_pkFila && _pkFila.porPieza);
+    var evFila = envaseDe(x);
+    var cargaKgFila = cargaEnKg(x);
+    var kgEnvFila = kgPorEnvase(x), labelEnvFila = evFila ? evFila.label : "";
+    var redondEq = !!(evFila && evFila.redondea);
     // el cartelito de unidad dice con qué se carga la fila: por peso siempre kg, aunque la pieza
     // sea de unidades (a Julio se le manda pesado; a Ester y Guazzaroni también).
     var uCarga = (MODO === "enviar" && ((pesoEnvio() && bultoDe(x)) || cargaKgFila)) ? "kg" : u;
@@ -1103,20 +1091,20 @@ function pintarDetalle(){
   if (!x) { volverAPartes(); return; }
   var it = BUF.item(selCP.id, detK), q = num(it.q);
   var si = sugeridoInfo(x), uc = uniCarga(x);
-  var pk = packEnvio(), ckg = cargaEnKg(x, pk);
+  var ev = envaseDe(x), ckg = cargaEnKg(x);
   var b = (MODO === "enviar" && pesoEnvio()) ? bultoDe(x) : null;
   var h =
     '<div class="det-cod">' + esc(x.cod) + uniTag(uc) + "</div>" +
     '<div class="det-desc">' + esc(x.desc || "") + "</div>" +
     (x.sector ? '<div class="det-sector">' + esc(x.sector) + "</div>" : "") +
     '<div class="det-lbl">Sugerido a enviar</div>' +
-    '<div class="det-sug">' + si.txt + (si.uni ? " " + esc(si.uni) : "") +
+    '<div class="det-sug">' + si.txt + (si.uni ? " " + esc(unidadTxt(si.num, si.uni)) : "") +
       (si.nota ? "<small>" + esc(si.nota) + "</small>" : "") + "</div>" +
     '<div class="det-lbl">Cantidad a enviar</div>' +
     '<div><input class="det-in" data-f="q" inputmode="' +
       ((b || ckg) ? "decimal" : inputmodeDe(unidadDe(x))) + '" value="' + esc(it.q || "") + '">' +
       '<span class="det-uni">' + esc(uc) + "</span>" +
-      '<small class="det-eq">' + (ckg ? esc(equivEnvase(q, kgPorEnvase(x, pk), pk.label, !!pk.porPieza)) : "") +
+      '<small class="det-eq">' + (ckg ? esc(equivEnvase(q, kgPorEnvase(x), ev.label, ev.redondea)) : "") +
       "</small></div>";
   // por peso (Julio) el bulto es el segundo campo, igual que la columna de la tabla: se
   // autocompleta desde los kg mientras el operario no lo toque y va en enteros.
@@ -1161,9 +1149,9 @@ $("tbody").addEventListener("input", function(e){
     // Ester: la cantidad se escribe en kg y debajo se ve a cuántas bolsas equivale
     var eq = tr.querySelector(".env-eq");
     if (eq) {
-      var _pk2 = packEnvio();
-      eq.textContent = equivEnvase(q, kgPorEnvase(x, _pk2), _pk2 ? _pk2.label : "",
-                                   !!(_pk2 && _pk2.porPieza));
+      var ev2 = envaseDe(x);
+      eq.textContent = equivEnvase(q, kgPorEnvase(x), ev2 ? ev2.label : "",
+                                   !!(ev2 && ev2.redondea));
     }
     // envío por peso: el bulto acompaña a los kg. En los plásticos es calculado (se repinta la
     // celda); en las metálicas se autocompleta mientras el operario no lo haya tocado — si lo
@@ -1214,9 +1202,9 @@ $("detBox").addEventListener("input", function(e){
   var q = num($("detCard").querySelector('input[data-f="q"]').value);
   // la equivalencia en envases de lo tipeado (Ester, Guazzaroni), igual que debajo del campo de la tabla
   var eq = $("detCard").querySelector(".det-eq");
-  var pk = packEnvio();
-  if (eq && cargaEnKg(x, pk))
-    eq.textContent = equivEnvase(q, kgPorEnvase(x, pk), pk.label, !!pk.porPieza);
+  var ev = envaseDe(x);
+  if (eq && cargaEnKg(x))
+    eq.textContent = equivEnvase(q, kgPorEnvase(x), ev.label, ev.redondea);
   // por peso: el bulto acompaña a los kg mientras el operario no lo haya corregido a mano
   var b = (MODO === "enviar" && pesoEnvio()) ? bultoDe(x) : null;
   if (b && inp.dataset.f === "q") {
@@ -1254,7 +1242,7 @@ $("btnEnviar").addEventListener("click", async function(){
   // para guardar en la unidad canonica (pliegos/uni). El inventario nunca ve "paquetes".
   // Si en cambio la cantidad se carga en KG (Ester) o el proveedor recibe pesado (Julio), el kg
   // viaja tal cual con unidad 'kg' y to_canonical lo pasa a mangos con kg_x_uni: tampoco ve bolsas.
-  var _pk = packEnvio(), _peso = pesoEnvio();
+  var _peso = pesoEnvio();
   var payload = {
     modo: MODO, tipo: selCP.tipo, ref: String(selCP.ref),
     fecha: fecha + "T12:00:00",
@@ -1262,7 +1250,8 @@ $("btnEnviar").addEventListener("click", async function(){
     items: items.map(function(o){
       var x = meta[o.k] || {};
       var u = unidadDe(x);
-      var ckg = cargaEnKg(x, _pk);
+      var ckg = cargaEnKg(x);
+      var ev = envaseDe(x);
       // por peso: lo que viaja son los KG (la base los pasa a unidades con kg_x_uni) y el bulto va
       // aparte, en movimiento.cajones — los cajones tal como los anotó el operario, las bolsas
       // calculadas desde los kg.
@@ -1271,15 +1260,15 @@ $("btnEnviar").addEventListener("click", async function(){
       var caj = b ? (num(o.it.c) || bultosDeKg(b, q)) : null;
       // Ester: el bulto tambien queda anotado (las bolsas que dan esos kg), mismo criterio que las
       // bolsas calculadas de Julio: es informativo, el stock lo mueve la cantidad.
-      if (caj == null && ckg && kgPorEnvase(x, _pk) > 0) caj = q / kgPorEnvase(x, _pk);
+      if (caj == null && ckg && kgPorEnvase(x) > 0) caj = q / kgPorEnvase(x);
       return {
         comp_id: x.comp_id != null ? Number(x.comp_id) : null,
         comp_entrada_id: x.comp_entrada_id != null ? Number(x.comp_entrada_id) : null,
         cod_art: x.cod_art || null,
-        // sin cargar en kg, lo tipeado está en envases: se multiplica por el factor de ESA pieza
-        // para guardar en la unidad canónica. Factor 0 (envase por pieza sin cajón cargado) = la
-        // fila se cargó en unidades y viaja tal cual.
-        cantidad: (ckg || b) ? q : (factorEnvio(x, _pk) > 0 ? q * factorEnvio(x, _pk) : q),
+        // sin cargar en kg, lo tipeado está en envases (paquetes de cartón, de caja, de AJ…): se
+        // multiplica por el factor de ESA pieza para guardar en la unidad canónica. Sin envase
+        // (la pieza no lo tiene cargado) la fila se cargó en unidades y viaja tal cual.
+        cantidad: (ckg || b) ? q : (ev ? q * ev.factor : q),
         unidad: (ckg || b || u === "kg") ? "kg" : "uni",
         cajones: caj != null ? Math.round(caj * 100) / 100 : null,
         esperado: MODO === "recibir" && x.esperado != null ? Number(x.esperado) : null,
@@ -1290,9 +1279,10 @@ $("btnEnviar").addEventListener("click", async function(){
   var nEx = items.filter(function(o){ return meta[o.k] && exceso(meta[o.k], num(o.it.q)) > 0; }).length;
   var resumen = items.map(function(o){
     var x = meta[o.k] || {};
-    if (cargaEnKg(x, _pk))
+    var ev = envaseDe(x);
+    if (cargaEnKg(x))
       return (x.cod || o.k) + ": " + fmt(num(o.it.q), 2) + " kg (" +
-             equivEnvase(num(o.it.q), kgPorEnvase(x, _pk), _pk.label, !!_pk.porPieza)
+             equivEnvase(num(o.it.q), kgPorEnvase(x), ev.label, ev.redondea)
                .replace("= ", "").replace("≈ ", "~") + ")";
     var b = _peso ? bultoDe(x) : null;
     if (b) {
@@ -1300,8 +1290,8 @@ $("btnEnviar").addEventListener("click", async function(){
       var cb = num(o.it.c) || bultosDeKg(b, q2);
       return (x.cod || o.k) + ": " + fmt(q2, 2) + " kg" + (cb ? " (" + fmt(cb, 2) + " " + b.label + ")" : "");
     }
-    return (_pk && factorEnvio(x, _pk) > 0)
-      ? (x.cod || o.k) + ": " + fmt(num(o.it.q), 0) + " " + _pk.label
+    return ev
+      ? (x.cod || o.k) + ": " + fmt(num(o.it.q), 0) + " " + ev.label
       : (x.cod || o.k) + ": " + fmt(num(o.it.q), unidadDe(x) === "kg" ? 2 : 0) + " " + unidadDe(x);
   });
   var verbo = MODO === "enviar" ? "Enviar a " : "Recibir de ";
