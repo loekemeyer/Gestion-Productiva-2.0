@@ -6,6 +6,18 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
+<!-- v1.14.0 (2026-09-18) — LOS INYECTORES SALEN DE "PROV. DE SERVICIO" Y TIENEN SU PROPIO BOTON
+     (usuario: "en la version tablet, en envio a proveedores de servicio, quiero que a JL Matricera,
+     Kollplast, Pat Bet Plas y Pettofrezza Rafael los pongas aparte como inyectores, no adentro de
+     proveedores de servicio"). Da vuelta la decision de v1.3.0 (que los habia metido adentro de
+     "Prov. de servicio" porque el operario los mandaba al mismo lugar mental): ahora Enviar tiene un
+     cuarto tipo, "Inyectores" (icono 💉), con los 4 que hoy devuelve tablet_bundle como tipo
+     'inyector' (JL Matriceria, Kollplast, Pat Bet Plast, Pettofrezza Rafael) y sus bolsas de resina.
+     SOLO CAMBIA DONDE SE ELIGEN: adentro la pantalla es la misma (sugerido de kg desde la O.C.,
+     columna "O.C." en vez de "Maximo", cantidad vacia y sin memoria, registro por
+     enviar_material_inyector). Front-only: un item mas en TIPOS.enviar y cpsDelTipo deja de mezclar.
+     Ninguno de los 4 es proveedor_servicio en la base (verificado), asi que ninguno queda duplicado
+     ni desaparece de la otra lista. -->
 <!-- v1.13.0 (2026-09-18) — Y TAMPOCO SE GUARDA LO QUE SE TIPEA: EN P.S. LA TABLA ARRANCA SIEMPRE
      VACIA (usuario: "hay algunos que siguen anotados. Si cargue algo yo, cuando salgo quiero que
      desaparezca, no que se guarde, por lo tanto todas las cantidades deben estar vacias"). v1.12.0
@@ -397,7 +409,7 @@ var SB = GP2_SB();
 
 var D = { contrapartes: [], enviar: [], recibir: [], alertas_abiertas: 0 };
 var MODO = null;        // enviar | recibir  (Conteo no es un modo: es el salto a Relevamientos)
-var selTipo = null;     // tallerista | proveedor_servicio | proveedor_at | virgilio
+var selTipo = null;     // tallerista | proveedor_servicio | inyector | proveedor_at | virgilio
 var selCP = null;       // { tipo, ref, nombre, id }
 var BUF = E.buffer("gp2_tablet_buffer", function(){ return { q: "" }; });
 
@@ -407,7 +419,8 @@ var BUF = E.buffer("gp2_tablet_buffer", function(){ return { q: "" }; });
 var TIPOS = {
   enviar: [
     { tipo: "tallerista",         icono: "👷", titulo: "Talleristas",            sub: "lo que arman afuera" },
-    { tipo: "proveedor_servicio", icono: "🏭", titulo: "Prov. de servicio",      sub: "pintan, niquelan, cortan, inyectan" },
+    { tipo: "proveedor_servicio", icono: "🏭", titulo: "Prov. de servicio",      sub: "pintan, niquelan, cortan" },
+    { tipo: "inyector",           icono: "💉", titulo: "Inyectores",             sub: "bolsas de resina" },
     { tipo: "proveedor_at",       icono: "📦", titulo: "Prov. de art. terminado", sub: "cartones y cajas" }
   ],
   recibir: [
@@ -443,7 +456,7 @@ function envConSugerido(){
 }
 
 /* ¿Se PRECARGA la cantidad con el sugerido? A los PROVEEDORES DE SERVICIO (y a los inyectores,
-   que en la tablet viven dentro de "Prov. de servicio") NO: el campo arranca vacío y lo escribe
+   que desde v1.14.0 son un tipo aparte) NO: el campo arranca vacío y lo escribe
    quien envía [usuario 2026-09-17: "en el caso de envío a proveedores de servicio en la versión
    tablet, no me preescribas lo que voy a enviar la cantidad que voy a enviar sino que lo voy a
    escribir yo porque puede generar confusiones"]. El Sugerido se sigue MOSTRANDO en su columna (es
@@ -592,12 +605,11 @@ function cpsDelModo(){
   });
 }
 function cpsDelTipo(tipo){
-  // Los INYECTORES (tipo 'inyector') se muestran DENTRO de "Prov. de servicio": el usuario los
-  // manda al mismo lugar mental. En la base son proveedor_insumo/inyector, no proveedor_servicio;
-  // el envio de bolsas lo rutea tablet_registrar a enviar_material_inyector. [usuario 2026-09-15]
-  return cpsDelModo().filter(function(c){
-    return c.tipo === tipo || (tipo === "proveedor_servicio" && c.tipo === "inyector");
-  });
+  // Los INYECTORES tienen su propio boton, NO van adentro de "Prov. de servicio" [usuario
+  // 2026-09-18]. En la base son proveedor_insumo/inyector (no proveedor_servicio) y el envio de
+  // bolsas lo sigue ruteando tablet_registrar a enviar_material_inyector: lo unico que cambio es
+  // donde se los elige.
+  return cpsDelModo().filter(function(c){ return c.tipo === tipo; });
 }
 /* la contraparte como la espera el resto de la pantalla (id = clave del buffer) */
 function cpItem(c){
