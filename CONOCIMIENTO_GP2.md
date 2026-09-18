@@ -10461,15 +10461,22 @@ lugar del envío real — y un envío mal cargado desbalancea el stock del P.S. 
 
 - **Alcance**: P.S. **e inyectores** (en la tablet se eligen dentro de "Prov. de servicio", así que
   para el que la usa son lo mismo). A los **talleristas se les sigue precargando**: no se pidió
-  para ellos. Vive en `precargaCantidad()` de `Tablet/Tablet_GP2.html` (v1.12.0).
+  para ellos. Vive en `precargaCantidad()` de `Tablet/Tablet_GP2.html` (v1.12.0; la falta de memoria, en v1.13.0).
 - **Efecto de rebote bueno**: el botón `Enviar (N)` vuelve a contar lo que la persona cargó de
   verdad. Con la precarga, abrir una contraparte ya dejaba todas las filas "cargadas" (por eso en
   2026-09-16 se sacó el cartelito "N sin registrar" de los botones de tipo, ver el historial de LOCKS del 2026-09-16).
-- **El buffer viejo se limpia**: la tablet guarda lo tipeado en `localStorage`, así que las
-  tabletas ya tenían el número precargado guardado. Al abrir la contraparte se borra **solo si el
-  valor guardado es exactamente lo que precargaba alguna versión**; cualquier otro valor es del
-  operario y no se toca. Lo más confiable para saberlo es la firma `it.qAuto` que dejó la precarga
-  (la misma que en el tallerista sirve para refrescarla): si `it.q === it.qAuto`, nadie la tocó.
+- **Y en los P.S. la tablet NO se acuerda de lo tipeado** `[usuario 2026-09-18, textual: "hay
+  algunos que siguen anotados. Si cargue algo yo, cuando salgo quiero que desaparezca, no que se
+  guarde, por lo tanto todas las cantidades deben estar vacias"]`. Sacar la precarga no alcanzó: el
+  buffer de `localStorage` guardaba igual lo que había tipeado una persona, así que al volver a
+  entrar aparecían cantidades de otro día — **el mismo problema con otro origen**. Ahora el buffer de
+  esa contraparte se borra al **entrar**, al **salir** ("← Cambiar", "Cambiar tipo", cambio de modo)
+  y al **cerrar o recargar** la pantalla (`pagehide`). Se sigue usando mientras la contraparte está
+  abierta: es de donde sale lo que se registra y lo que aguanta un toque de más. `envSinMemoria()` /
+  `olvidarCargado()`, Tablet v1.13.0.
+- **Al tallerista no se le tocó nada**: ahi la precarga sigue viva y el buffer tiene sentido (lo
+  que se le manda se arma en varias vueltas). Su precarga queda firmada en `it.qAuto`, y mientras
+  `it.q === it.qAuto` nadie la tocó, así que se refresca con el sugerido del día.
 - **Y el campo vacío no dice "= 0 cajones"**: la equivalencia en bultos aparece cuando hay un número
   tipeado. Debajo de un campo en blanco era ruido.
 - **`EnviosPS_GP2` (pantalla de escritorio) no se tocó**: el pedido fue "en la versión tablet".

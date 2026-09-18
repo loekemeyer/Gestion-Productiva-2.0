@@ -401,26 +401,34 @@ window.supabase = { createClient: function(){ return {
     ok((await page.$eval('#btnAtrasHeader', a => a.getAttribute('href'))) === vuelve, 'con ?volver=tablet el Atrás vuelve a la tablet — ' + url.split('/')[1]);
   }
 
-  // ── buffer viejo de un P.S.: lo que dejo la precarga de versiones anteriores se LIMPIA, y lo
-  //    que anoto la persona a mano NO se toca (usuario 2026-09-17) ──
-  await page.goto(ROOT + '/Tablet/Tablet_GP2.html?modo=enviar');
-  await page.evaluate(() => localStorage.setItem('gp2_tablet_buffer',
-    JSON.stringify({ 'enviar:proveedor_servicio:12': { '564::': { q: '250' } } })));
-  await page.reload();
-  await page.waitForFunction(() => document.querySelectorAll('#tipoGrid .tipo-btn').length > 0);
-  await page.click('#tipoGrid .tipo-btn[data-tipo="proveedor_servicio"]');
+  // ── en un P.S. NADA sobrevive: ni lo que dejo la precarga vieja ni lo que anoto la persona
+  //    [usuario 2026-09-18: "si cargue algo yo, cuando salgo quiero que desaparezca"] ──
+  for (const [guardado, etiq] of [['250', 'el sugerido viejo que dejo la precarga'],
+                                  ['2',   'lo que anoto la persona a mano']]) {
+    await page.goto(ROOT + '/Tablet/Tablet_GP2.html?modo=enviar');
+    await page.evaluate(q => localStorage.setItem('gp2_tablet_buffer',
+      JSON.stringify({ 'enviar:proveedor_servicio:12': { '564::': { q: q } } })), guardado);
+    await page.reload();
+    await page.waitForFunction(() => document.querySelectorAll('#tipoGrid .tipo-btn').length > 0);
+    await page.click('#tipoGrid .tipo-btn[data-tipo="proveedor_servicio"]');
+    await page.click('#cpGrid .prov-btn:has-text("AJ Adhesivos")');
+    ok((await page.$eval('#tbody input.cell-in', e => e.value)) === '',
+       'AJ: ' + etiq + ' (' + guardado + ') no aparece, la tabla arranca vacia');
+    const bufAj = await page.evaluate(() => JSON.parse(localStorage.getItem('gp2_tablet_buffer') || '{}'));
+    ok(!bufAj['enviar:proveedor_servicio:12'],
+       'AJ: y tampoco queda en el buffer de la tablet — ' + JSON.stringify(bufAj));
+  }
+  // y lo que se tipea AHORA se olvida al salir de la contraparte (sin registrar)
+  await page.fill('#tbody input.cell-in', '4');
+  ok((await page.$eval('#btnEnviar', e => e.textContent)) === 'Enviar (1)',
+     'AJ: mientras la contraparte esta abierta, lo tipeado se usa (Enviar (1))');
+  await page.click('#btnVolver');
+  const bufSalida = await page.evaluate(() => JSON.parse(localStorage.getItem('gp2_tablet_buffer') || '{}'));
+  ok(!bufSalida['enviar:proveedor_servicio:12'],
+     'AJ: al salir con "← Cambiar" lo tipeado se borra — ' + JSON.stringify(bufSalida));
   await page.click('#cpGrid .prov-btn:has-text("AJ Adhesivos")');
   ok((await page.$eval('#tbody input.cell-in', e => e.value)) === '',
-     'AJ: el sugerido viejo guardado por la precarga (250 uni) se limpia del buffer');
-  await page.goto(ROOT + '/Tablet/Tablet_GP2.html?modo=enviar');
-  await page.evaluate(() => localStorage.setItem('gp2_tablet_buffer',
-    JSON.stringify({ 'enviar:proveedor_servicio:12': { '564::': { q: '2' } } })));
-  await page.reload();
-  await page.waitForFunction(() => document.querySelectorAll('#tipoGrid .tipo-btn').length > 0);
-  await page.click('#tipoGrid .tipo-btn[data-tipo="proveedor_servicio"]');
-  await page.click('#cpGrid .prov-btn:has-text("AJ Adhesivos")');
-  ok((await page.$eval('#tbody input.cell-in', e => e.value)) === '2',
-     'AJ: lo que anoto la persona (2 paquetes) sigue ahi');
+     'AJ: al volver a entrar el campo esta vacio, no con los 4 paquetes de antes');
   // y al tallerista se le SIGUE precargando (no se pidio sacarselo)
   await page.click('#btnVolver');        // vuelve a las contrapartes del tipo
   await page.click('#btnVolverTipo');    // y de ahi a los tipos
@@ -537,8 +545,8 @@ window.supabase = { createClient: function(){ return {
   await page.waitForFunction(() => document.querySelectorAll('#tipoGrid .tipo-btn').length > 0);
   await page.click('#tipoGrid .tipo-btn[data-tipo="proveedor_servicio"]');
   await page.click('#cpGrid .prov-btn:has-text("Jade")');
-  ok((await page.$eval('#tbody input.cell-in', e => e.value)) === '77',
-     'P.S.: lo que el operario cargó a mano NO se borra');
+  ok((await page.$eval('#tbody input.cell-in', e => e.value)) === '',
+     'P.S.: lo editado a mano tampoco sobrevive a la salida (usuario 2026-09-18)');
 
 
   await browser.close();

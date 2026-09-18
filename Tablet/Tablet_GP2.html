@@ -6,6 +6,15 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
+<!-- v1.13.0 (2026-09-18) — Y TAMPOCO SE GUARDA LO QUE SE TIPEA: EN P.S. LA TABLA ARRANCA SIEMPRE
+     VACIA (usuario: "hay algunos que siguen anotados. Si cargue algo yo, cuando salgo quiero que
+     desaparezca, no que se guarde, por lo tanto todas las cantidades deben estar vacias"). v1.12.0
+     dejo de PRESCRIBIR el numero pero el buffer de la tablet seguía guardando lo tipeado a mano, así
+     que al volver a entrar aparecían cantidades viejas — el mismo problema con otro origen. Ahora,
+     en Enviar a P.S. e inyector, el buffer de esa contraparte se borra al ENTRAR, al SALIR (← Cambiar,
+     Cambiar tipo) y al cerrar o recargar la pantalla (pagehide). El buffer se sigue usando mientras
+     la contraparte esta abierta: es de donde sale lo que se registra. Al tallerista no se le toca
+     (ahi la precarga del sugerido sigue viva). Ver envSinMemoria() / olvidarCargado(). -->
 <!-- v1.12.0 (2026-09-17) — A LOS PROVEEDORES DE SERVICIO NO SE LES PRECARGA LA CANTIDAD (usuario:
      "en el caso de envío a proveedores de servicio en la versión tablet, no me preescribas lo que
      voy a enviar la cantidad que voy a enviar sino que lo voy a escribir yo porque puede generar
@@ -434,7 +443,21 @@ function envConSugerido(){
    la referencia); lo que se fue es el número metido en el campo. A los TALLERISTAS se les sigue
    precargando: el usuario no lo pidió para ellos. */
 function precargaCantidad(){
-  return envConSugerido() && selCP.tipo === "tallerista";
+  return envConSugerido() && !envSinMemoria(selCP);
+}
+
+/* La tablet NO se acuerda de lo tipeado en Enviar a P.S. / inyector: si se sale sin registrar, la
+   cantidad desaparece [usuario 2026-09-18, textual: "si cargue algo yo, cuando salgo quiero que
+   desaparezca, no que se guarde, por lo tanto todas las cantidades deben estar vacias"]. El buffer
+   de localStorage se sigue usando mientras la contraparte esta abierta (es de donde sale lo que se
+   registra y lo que sobrevive a un toque de mas), pero se borra al ENTRAR y al SALIR: nunca queda
+   un numero de ayer esperando que alguien lo registre sin mirar. A los talleristas no se les toca:
+   ahi la precarga del sugerido sigue viva y el buffer tiene sentido. */
+function envSinMemoria(c){
+  return MODO === "enviar" && !!c && (c.tipo === "proveedor_servicio" || c.tipo === "inyector");
+}
+function olvidarCargado(c){
+  if (envSinMemoria(c)) BUF.borrar(c.id);
 }
 
 /* Unidad de ENVIO del proveedor (display), p.ej. AJ Adhesivos manda de a PAQUETES de 100 pliegos
@@ -544,6 +567,7 @@ async function cargar(){
 
 function setModo(m){
   if (m !== "enviar" && m !== "recibir") m = "enviar";
+  olvidarCargado(selCP);   // antes de cambiar MODO: despues envSinMemoria ya mira el modo nuevo
   MODO = m;
   try { localStorage.setItem("gp2_tablet_modo", m); } catch(e){}
   var bs = document.querySelectorAll("#modos .modo-btn");
@@ -586,6 +610,7 @@ function avisoAlertas(){
 
 /* ---------- paso 1: el tipo ---------- */
 function mostrarTipos(){
+  olvidarCargado(selCP);
   selTipo = null; selCP = null;
   E.mostrarFase(0);
   $("tipoGrid").classList.remove("hidden");
@@ -661,6 +686,8 @@ function piezasDe(c){
 }
 
 function elegir(c){
+  // lo que se hubiera tipeado antes en este P.S. no sobrevive: la tabla arranca vacia
+  olvidarCargado(c);
   selCP = c;
   $("fase1Title").textContent = c.nombre;
   E.mostrarFase(1);
@@ -686,13 +713,13 @@ function elegir(c){
         ? "<th>Pieza</th><th class=\"num\">Sugerido" + _u + "</th><th class=\"num sep\">Cantidad" + _uq + "</th>"
         : "<th>Pieza</th><th class=\"num\">Online sector</th><th class=\"num sep\">Cantidad</th>")
     : "<th>Pieza</th><th class=\"num\">Esperado</th><th class=\"num sep\">Recibido</th>";
-  // precarga UNA vez (solo donde corresponde, ver precargaCantidad): el sugerido entra como
-  // cantidad por defecto (editable). Sólo toca campos sin cargar, así que si el operario vació uno
-  // a mano no se lo vuelve a llenar en cada render. Donde NO se precarga (P.S. e inyector) el mismo
-  // recorrido LIMPIA lo que dejó la precarga de versiones anteriores en el buffer de la tablet: si
-  // no, el operario seguiría viendo el número prescripto aunque el código ya no lo ponga.
-  if (envConSugerido()) {
-    var _pk = packEnvio(), _peso = pesoEnvio(), _pre = precargaCantidad();
+  // precarga UNA vez y SOLO donde la tablet se acuerda de lo tipeado (hoy el tallerista, ver
+  // precargaCantidad / envSinMemoria): el sugerido entra como cantidad por defecto (editable).
+  // Sólo toca campos sin cargar, así que si el operario vació uno a mano no se lo vuelve a llenar
+  // en cada render. En P.S. e inyector no hay nada que precargar ni que migrar: el buffer de esa
+  // contraparte se borró al entrar.
+  if (precargaCantidad()) {
+    var _pk = packEnvio(), _peso = pesoEnvio();
     piezasDe(c).forEach(function(x){
       var it = BUF.item(c.id, claveDe(x));
       var rawSug = Number(x.sugerido);
@@ -724,17 +751,6 @@ function elegir(c){
       // el Sugerido nuevo con la Cantidad precargada VIEJA [usuario 2026-09-17, visto en
       // Guazzaroni]. Una edición real (cualquier otro valor) NO se pisa nunca.
       var intacto = !vacio && it.qAuto !== undefined && it.qAuto !== "" && it.q === it.qAuto;
-      if (!_pre) {
-        // sin precarga (P.S. e inyector): se borra lo que dejo una precarga — la firmada en
-        // qAuto, la de esta misma version o la de las anteriores. Cualquier otro valor es lo que
-        // anoto el operario y no se toca. El bulto se va con los kg mientras siga siendo el
-        // autocompletado.
-        if (!vacio && (intacto || it.q === fmt(sug, dec) || precargaVieja)) {
-          it.q = ""; it.qAuto = "";
-          if (b && it.c === it.cAuto) { it.c = ""; it.cAuto = ""; }
-        }
-        return;
-      }
       // se precarga con el formato de la casa (coma decimal / punto de miles), que es el que
       // GP2N.num sabe leer; String(sugerido) con punto se leería como miles.
       if ((vacio || intacto || precargaVieja) && sug > 0) {
@@ -756,6 +772,7 @@ function elegir(c){
 /* El "← Cambiar" vuelve un paso, no al principio: a la lista de contrapartes del tipo, y
    si ese tipo tenía una sola (Virgilio) directamente a los tipos. */
 function volver(){
+  olvidarCargado(selCP);
   selCP = null;
   if (!selTipo || cpsDelTipo(selTipo).length <= 1) { mostrarTipos(); return; }
   E.mostrarFase(0);
@@ -820,7 +837,8 @@ function render(){
       // Solo el Sugerido (se sacaron Stock y Máximo) [usuario 2026-09-17]. Si el proveedor recibe
       // por peso, el sugerido va en kg con la equivalencia en bultos abajo; si manda por paquetes,
       // en paquetes (techo); si no, en su unidad. Se MUESTRA siempre; en P.S. e inyector ya no se
-      // precarga en la carga (v1.12.0). El cálculo del sugerido no cambió, solo el render.
+      // precarga en la carga (v1.12.0), y lo tipeado ahí no se guarda al salir (v1.13.0). El
+      // cálculo del sugerido no cambió, solo el render.
       var _pk = _pkFila;
       var _fEnv = factorEnvio(x, _pk);
       var sugM = x.sugerido;
@@ -920,6 +938,10 @@ $("tbody").addEventListener("input", function(e){
   }
   actualizar();
 });
+
+// cerrar la pestana, recargar o irse a otra pantalla cuenta como salir: lo tipeado en un P.S. no
+// queda guardado para la proxima [usuario 2026-09-18].
+window.addEventListener("pagehide", function(){ olvidarCargado(selCP); });
 
 $("q").addEventListener("input", render);
 $("q0").addEventListener("input", pintarCPS);
