@@ -43,14 +43,9 @@
     <div id="fase1" class="hidden">
       <div class="row"><label class="lbl" id="fase1Title">Proveedor</label></div>
 
-      <div class="aviso">
-        ⚠ <b>Datos parciales (schema GP2):</b> solo los proveedores con mapeo confirmado.
-        Los saldos están en unidades canónicas y el ledger histórico está incompleto
-        (faltan remaches y proveedores por mapear), así que algunos saldos pueden dar
-        negativos. Se muestran tal cual, sin corregir.
-      </div>
-
-      <div class="kpis" id="kpis"></div>
+      <!-- Sin aviso de "datos parciales" y sin la fila de KPIs (Partes / Enviado / Entregado /
+           Saldo) [usuario 2026-09-18: "en control de partes de ps y talleristas, que todo esto NO
+           EXISTA"]. Los mismos totales siguen abajo, en la fila de totales de la tabla. -->
 
       <div class="search-box no-print">
         <input type="text" id="q" placeholder="Buscar por sector, descripción o código…">
@@ -203,11 +198,6 @@ function render(){
     '<td class="num">'+fmt(totEnt,0)+'</td>'+
     '<td class="num '+clsSaldo(totSal)+'">'+fmt(totSal,0)+'</td></tr>') : "";
 
-  $("kpis").innerHTML =
-    '<div class="kpi"><div class="k">Partes</div><div class="v">'+arr.length+'</div></div>'+
-    '<div class="kpi"><div class="k">Enviado</div><div class="v">'+fmt(totEnv,0)+'</div></div>'+
-    '<div class="kpi"><div class="k">Entregado</div><div class="v">'+fmt(totEnt,0)+'</div></div>'+
-    '<div class="kpi"><div class="k">Saldo en PS</div><div class="v '+clsSaldo(totSal)+'">'+fmt(totSal,0)+'</div></div>';
 }
 
 /* CSV para Excel es-AR: el armado (separador ;, BOM, coma decimal) es el de la
