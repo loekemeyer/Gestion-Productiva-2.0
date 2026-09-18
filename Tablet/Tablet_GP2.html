@@ -6,6 +6,29 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
+<!-- v1.19.0 (2026-09-18) — RECIBIR DE TALLERISTAS: TARJETAS, ESPERADO EN CAJONES Y CANTIDAD EN KG
+     (usuario, textual: "de talleristas, todos se entregan en cajones… tanto en esperado como en
+     recibido, tenés que poner la unidad de medida. En esperado va a ser en cajones… y en recibido
+     va a ser en kilos. Y pones en chiquito cuántos cajones equivalen. La única excepción que no es
+     en cajones sino en bolsas son las bombillas GRJ5 y GRJ6. Entregan bolsas de 120 unidades…
+     quiero que también aparezcan las partes en box… en vez de sugerido y cantidad, va a ser
+     esperado y cantidad").
+     (1) COMO ENTREGA cada pieza es un dato de la PIEZA, igual que el envase de envio: columnas
+     nuevas GP2.componente.entrega_unidad / entrega_uni_x, con default cajones + uni_x_cajon. Solo
+     GRJ5 y GRJ6 las tienen cargadas (bolsas / 120). tablet_bundle las manda en cada fila de
+     'recibir' de un tallerista como env_unidad / env_factor / env_carga, que son las mismas claves
+     que ya usaba Enviar: el front no aprendio un modelo nuevo.
+     (2) LA TARJETA dice ESPERADO (en cajones o bolsas) y, abajo, lo que se va a recibir. La vista
+     de la parte dice "Esperado" y "Cantidad" (el usuario pidio que no se llame mas "Recibido"), con
+     el campo en KG y el renglon chico "≈ N cajones" debajo, el mismo de siempre.
+     (3) EL EXCESO SE COMPARA EN LA UNIDAD CANONICA (canonDe): el esperado viene en unidades y ahora
+     se escriben kg, asi que sin convertir se comparaba peras con manzanas. Y al registrar, el
+     esperado VIAJA EN LA MISMA UNIDAD que la cantidad (1.000 uni x 0,01 = 10 kg), porque
+     tablet_registrar los compara crudos para levantar la alerta de "recibi de mas".
+     (4) La tarjeta con exceso se pinta naranja y lo dice, como la fila de la tabla.
+     OJO: en Recibir la tablet SI se acuerda de lo tipeado (envSinMemoria es solo de Enviar). Lo que
+     cambio aca es como se ve, no la memoria. Los cajones NO se registran: crear_entrega_tallerista
+     no tiene donde anotarlos (a diferencia de crear_envio_ps); el kg es lo que mueve el stock. -->
 <!-- v1.18.0 (2026-09-18) — Y EL PROV. DE ART. TERMINADO, IGUAL (usuario: "seguís de la misma manera
      con prov de art terminado"). Era el ultimo destino de Enviar que quedaba con tabla: ahora va en
      tarjetas y con la vista por parte, como los otros tres.
@@ -438,6 +461,10 @@
     overflow-wrap:anywhere}
   .parte-card:hover{border-color:#111}
   .parte-card.cargada{border-color:#15803d;background:#f4fbf6}
+  /* recibi de mas: avisa, no frena (mismo criterio que la fila de la tabla) */
+  .parte-card.demas{border-color:#c2410c;background:#fff4e5}
+  .parte-card.demas .pc-estado{color:#c2410c}
+  .pc-demas{display:block;font-size:15px;font-weight:800;color:#c2410c}
   .pc-cod{font-size:23px;font-weight:900;line-height:1.1}
   .pc-desc{font-size:16px;font-weight:700;color:#444;line-height:1.25}
   /* el sugerido es EL dato de la tarjeta: grande y en naranja fuerte [usuario 2026-09-18:
@@ -679,7 +706,18 @@ function packEnvio(){
        env_factor / env_carga en tablet_bundle.
    El redondeo del renglon de equivalencia NO vive aca: es uno solo para todos (textoEnvases). */
 function envaseDe(x){
-  if (MODO !== "enviar" || !selCP || !x) return null;
+  if (!selCP || !x) return null;
+  if (MODO === "recibir") {
+    // ENTREGA de un tallerista: el esperado se mira en CAJONES (o en las bolsas de 120 de GRJ5 y
+    // GRJ6) y la cantidad se escribe en KG. Lo dice la pieza: componente.entrega_unidad /
+    // entrega_uni_x, con default cajones + uni_x_cajon. [usuario 2026-09-18]
+    if (selCP.tipo !== "tallerista" || !x.env_unidad) return null;
+    var fr = Number(x.env_factor || 0);
+    if (!(fr > 0)) return null;                    // pieza sin cajon cargado: queda en unidades
+    return { factor: fr, label: String(x.env_unidad),
+             cargaKg: String(x.env_carga || "") === "kg" };
+  }
+  if (MODO !== "enviar") return null;
   // tallerista y prov. de art. terminado: la unidad la trae la PIEZA en el bundle. El prov. AT
   // recibe solo cartones y cajas, asi que para el siempre son PAQUETES.
   if (selCP.tipo === "tallerista" || selCP.tipo === "proveedor_at") {
@@ -734,9 +772,10 @@ function equivEnvase(kg, kgEnv, label){
 function textoEnvases(n, label){
   if (!(n > 0)) return "";
   var r = Math.round(n);
-  if (Math.abs(n - r) < 0.005) return "= " + fmt(r, 0) + " " + label;
+  var et = (r === 1) ? singularEnvase(label) : label;   // "= 1 cajon", no "= 1 cajones"
+  if (Math.abs(n - r) < 0.005) return "= " + fmt(r, 0) + " " + et;
   if (r < 1) return "menos de 1 " + singularEnvase(label);
-  return "≈ " + fmt(r, 0) + " " + label;
+  return "≈ " + fmt(r, 0) + " " + et;
 }
 function singularEnvase(label){
   return label === "bolsas" ? "bolsa" : (label === "cajones" ? "cajón" : label);
@@ -785,7 +824,14 @@ function bultosSugeridos(b, sugUni){
    adentro del mismo botón "Prov. de servicio"), que es justo el conjunto que ya no se acuerda de
    lo tipeado: la misma cuenta de envSinMemoria. Talleristas, prov. de art. terminado y TODO
    Recibir siguen con la tabla — ahí hay esperado, exceso y remito, y se leen de corrido. */
-function vistaTarjetas(){ return envSinMemoria(selCP); }
+function vistaTarjetas(){
+  // en Enviar, los cuatro destinos; en Recibir, por ahora el tallerista [usuario 2026-09-18:
+  // "quiero que tambien aparezcan las partes en box... en vez de sugerido y cantidad, va a ser
+  // esperado y cantidad"]. Ojo: en Recibir la tablet SI se acuerda de lo tipeado (envSinMemoria
+  // es solo de Enviar): lo que cambia aca es como se ve, no la memoria.
+  return envSinMemoria(selCP) ||
+    (MODO === "recibir" && !!selCP && selCP.tipo === "tallerista");
+}
 
 /* El SUGERIDO de una pieza tal como se muestra, en la unidad de envío del proveedor. Lo usan la
    tabla y la tarjeta, así no hay dos cuentas que se puedan separar:
@@ -831,6 +877,19 @@ function faltaEnvase(x){
    sugerido — ahí la referencia es lo que hay en Cervantes para mandarle. Devuelve el mismo
    {rotulo, txt, num, uni, nota} para los dos, así la tarjeta no sabe de la diferencia. */
 function refInfo(x){
+  if (MODO === "recibir") {
+    // ESPERADO: lo que la base cree que el tallerista tiene para entregar, mirado en CAJONES (o en
+    // las bolsas de 120 de GRJ5/GRJ6). Se dice con el mismo criterio que el resto de los envases:
+    // entero mas cercano, con "≈" cuando se redondeo. [usuario 2026-09-18]
+    var ev = envaseDe(x), u = unidadDe(x);
+    if (x.esperado == null)
+      return { rotulo: "Esperado", txt: "—", num: null, uni: "", nota: "sin referencia", small: "" };
+    var e = Number(x.esperado);
+    if (ev) return { rotulo: "Esperado", txt: textoEnvases(e / ev.factor, ev.label).replace("= ", ""),
+                     num: null, uni: "", nota: "", small: "" };
+    return { rotulo: "Esperado", txt: fmt(e, u === "kg" ? 2 : 0), num: e, uni: u,
+             nota: faltaEnvase(x), small: "" };
+  }
   if (envConSugerido()) {
     var si = sugeridoInfo(x);
     si.rotulo = "Sugerido";
@@ -843,7 +902,7 @@ function refInfo(x){
 
 /* La unidad con la que se ESCRIBE la cantidad de esa pieza (la del campo, no la de la pieza). */
 function uniCarga(x){
-  if (MODO === "enviar" && ((pesoEnvio() && bultoDe(x)) || cargaEnKg(x))) return "kg";
+  if ((pesoEnvio() && bultoDe(x)) || cargaEnKg(x)) return "kg";   // pesoEnvio ya exige Enviar
   var ev = envaseDe(x);
   return ev ? ev.label : unidadDe(x);
 }
@@ -1077,9 +1136,22 @@ function esperadoTxt(x){
   return '<span class="esp">' + fmt(e, u === "kg" ? 2 : 0) + " " + u + "<small>" + esc(origen) + "</small></span>";
 }
 
+/* Lo tipeado llevado a la unidad CANONICA de la pieza (uni, o kg si la pieza se mide en kg), que
+   es la del esperado y la del stock. Sin esto, escribir kg contra un esperado en unidades
+   comparaba peras con manzanas. */
+function canonDe(x, q){
+  if (!(q > 0)) return 0;
+  if (cargaEnKg(x) && unidadDe(x) !== "kg") {
+    var k = Number(x.kg_x_uni || 0);
+    return k > 0 ? q / k : q;
+  }
+  var ev = envaseDe(x);
+  return (ev && !ev.cargaKg) ? q * ev.factor : q;
+}
+
 function exceso(x, q){
   if (MODO !== "recibir" || x.esperado == null || !(q > 0)) return 0;
-  var d = q - Number(x.esperado);
+  var d = canonDe(x, q) - Number(x.esperado);
   return d > 0 ? d : 0;
 }
 
@@ -1109,10 +1181,10 @@ function renderCards(){
   if (!arr.length) $("tblEmpty").textContent = "Sin resultados para ese filtro.";
   arr.forEach(function(x){
     var k = claveDe(x), it = BUF.item(selCP.id, k), q = num(it.q);
-    var si = refInfo(x), uc = uniCarga(x);
+    var si = refInfo(x), uc = uniCarga(x), ex = exceso(x, q);
     var b = document.createElement("button");
     b.type = "button";
-    b.className = "parte-card" + (q > 0 ? " cargada" : "");
+    b.className = "parte-card" + (q > 0 ? " cargada" : "") + (ex > 0 ? " demas" : "");
     b.dataset.k = k;
     b.innerHTML =
       '<span class="pc-cod">' + esc(x.cod) + uniTag(uc) + "</span>" +
@@ -1121,7 +1193,9 @@ function renderCards(){
         (si.uni ? " " + esc(unidadTxt(si.num, si.uni)) : "") +
         (si.nota ? '<span class="pc-nota"> · ' + esc(si.nota) + "</span>" : "") + "</span>" +
       '<span class="pc-estado">' + (q > 0
-        ? "✓ envía <b>" + fmt(q, decDe(x)) + " " + esc(unidadTxt(q, uc)) + "</b>"
+        ? (MODO === "recibir" ? "✓ recibe <b>" : "✓ envía <b>") +
+          fmt(q, decDe(x)) + " " + esc(unidadTxt(q, uc)) + "</b>" +
+          (ex > 0 ? '<span class="pc-demas">⚠ ' + fmt(ex, unidadDe(x) === "kg" ? 2 : 0) + " de más</span>" : "")
         : "sin cargar") + "</span>";
     g.appendChild(b);
   });
@@ -1229,10 +1303,11 @@ function pintarDetalle(){
     '<div class="det-cod">' + esc(x.cod) + uniTag(uc) + "</div>" +
     '<div class="det-desc">' + esc(x.desc || "") + "</div>" +
     (x.sector ? '<div class="det-sector">' + esc(x.sector) + "</div>" : "") +
-    '<div class="det-lbl">' + (si.rotulo === "Sugerido" ? "Sugerido a enviar" : "Online en el sector") + "</div>" +
+    '<div class="det-lbl">' + (si.rotulo === "Sugerido" ? "Sugerido a enviar"
+                              : si.rotulo === "Esperado" ? "Esperado" : "Online en el sector") + "</div>" +
     '<div class="det-sug">' + si.txt + (si.uni ? " " + esc(unidadTxt(si.num, si.uni)) : "") +
       (si.nota ? "<small>" + esc(si.nota) + "</small>" : "") + "</div>" +
-    '<div class="det-lbl">Cantidad a enviar</div>' +
+    '<div class="det-lbl">' + (MODO === "recibir" ? "Cantidad" : "Cantidad a enviar") + "</div>" +
     '<div><input class="det-in" data-f="q" inputmode="' +
       ((b || ckg) ? "decimal" : inputmodeDe(unidadDe(x))) + '" value="' + esc(it.q || "") + '">' +
       '<span class="det-uni">' + esc(uc) + "</span>" +
@@ -1363,7 +1438,11 @@ $("btnEnviar").addEventListener("click", async function(){
         cantidad: (ckg || b) ? q : (ev ? q * ev.factor : q),
         unidad: (ckg || b || u === "kg") ? "kg" : "uni",
         cajones: (caj != null && caj > 0) ? caj : null,
-        esperado: MODO === "recibir" && x.esperado != null ? Number(x.esperado) : null,
+        // el esperado viaja en la MISMA unidad que la cantidad: la base los compara crudos para
+        // levantar la alerta de "recibi de mas", y un esperado en unidades contra kg no compara.
+        esperado: (MODO === "recibir" && x.esperado != null)
+          ? ((ckg && u !== "kg") ? Number(x.esperado) * Number(x.kg_x_uni || 0) : Number(x.esperado))
+          : null,
         esperado_origen: x.esperado_origen || null
       };
     })

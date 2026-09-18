@@ -149,6 +149,9 @@ create table "GP2".componente (
   pedido_minimo_uni numeric,
   mb_color text,
   discontinuado boolean not null default false,
+  uni_x_paquete numeric,
+  entrega_unidad text,
+  entrega_uni_x numeric,
   constraint componente_pkey PRIMARY KEY (id),
   constraint componente_carton_categoria_fkey FOREIGN KEY (carton_categoria) REFERENCES "GP2".carton_categoria(nombre),
   constraint componente_carton_formato_fkey FOREIGN KEY (carton_formato) REFERENCES "GP2".carton_formato(nombre),
@@ -170,6 +173,8 @@ comment on column "GP2".componente.codigo_isis_ch is 'Cod ISIS con el que CHEF S
 comment on column "GP2".componente.codigo_virgilio is 'Codigo del mismo insumo en el catalogo Insumos de Gestion Virgilio (bolsas: PP, ABS, AI, NV, NR, N25, PE, PS). 2026-09-11.';
 comment on column "GP2".componente.pedido_minimo_uni is 'Pedido minimo del proveedor para ESA pieza, en unidades. Sale de la columna "Pedi Min Uni" de la hoja "Pedido 31-08" del Excel de plasticos del usuario (cargado 2026-09-11). Se aplica DESPUES del maximo: la OC nunca pide menos que esto (o pide 0).';
 comment on column "GP2".componente.mb_color is 'Color de Master Bach que lleva esta pieza plastica: R rojo, B blanco, A azul, N negro. Origen: columna MB de la hoja "Consumo x Cod Articulo" del Excel de plasticos del usuario (40 de 47 partes con consumo la traen; las 7 sin color son las de Nylon recuperado, que viene pigmentado, mas B2 y EP9). null = todavia no se cargo -- no se inventa. recalcular_maximo_material() suma el 4% por color cuando esta cargado y cae al prorrateo cuando no.';
+comment on column "GP2".componente.entrega_unidad is 'Envase con el que el tallerista ENTREGA esta pieza (bolsas, cajones...). NULL = cajones, el default. Solo display: lo que se registra sigue siendo kg/uni.';
+comment on column "GP2".componente.entrega_uni_x is 'Unidades por envase de entrega. NULL = se usa uni_x_cajon. Ej: GRJ5/GRJ6 entregan bolsas de 120 [usuario 2026-09-18].';
 comment on column "GP2".componente.discontinuado is 'La pieza ya no se fabrica ni se compra. No se borra: conserva historial, receta y rutas, pero sale del pedido (v_reposicion) y de las pantallas de compra. Espejo de articulo.discontinuado.';
 
 -- ---------- componente_bom ----------

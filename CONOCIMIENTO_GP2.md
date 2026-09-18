@@ -10931,3 +10931,44 @@ Los otros 10 pliegos tienen la misma forma (`precio_servicio_pieza` de AJ + paso
 
 El material sí subió como estaba previsto: el 506 quedó con **$107,35 de material en pesos, el
 mismo peso al peso que el 510**, que es el gemelo — buena señal de que la receta quedó pareja.
+
+## 4el. RECIBIR de un tallerista: el esperado se mira en CAJONES y la cantidad se escribe en KG (2026-09-18)
+
+`[usuario 2026-09-18, textual: "de talleristas, todos se entregan en cajones… tanto en esperado como
+en recibido, tenés que poner la unidad de medida. En esperado va a ser en cajones… y en recibido va
+a ser en kilos. Y pones en chiquito cuántos cajones equivalen. La única excepción que no es en
+cajones sino en bolsas son las bombillas GRJ5 y GRJ6. Entregan bolsas de 120 unidades"]`
+
+Es la misma idea que el envío (4ek) del otro lado del mostrador: **la unidad la pone la pieza**.
+Lo que cambia es de dónde sale y cómo se llama lo de arriba:
+
+| | Enviar | Recibir |
+|---|---|---|
+| referencia | **Sugerido** (lo que falta) | **Esperado** (lo que el tallerista tiene, `online_tall`) |
+| campo | Cantidad a enviar | **Cantidad** — el usuario pidió que no se llame más "Recibido" |
+| unidad del campo | según la pieza | **kg**, siempre, con "≈ N cajones" debajo |
+
+**Cómo se guarda la excepción**: no con un `if` por código. Dos columnas nuevas en
+`GP2.componente` — `entrega_unidad` y `entrega_uni_x` — que **sobreescriben el default**
+(`cajones` + `uni_x_cajon`). Hoy las tienen cargadas **solo GRJ5 y GRJ6** (`bolsas` / **120**). Si
+mañana otra pieza entrega distinto, se carga el dato y listo. `tablet_bundle` las manda en cada
+fila de `recibir` con las **mismas claves** que ya usaba Enviar (`env_unidad` / `env_factor` /
+`env_carga`), así que el front no aprendió un modelo nuevo: `envaseDe()` ahora también mira Recibir.
+
+**La trampa que apareció acá — y que vale para cualquier pantalla que cambie de unidad:** el
+**esperado viene en unidades** (es un stock) y ahora se escriben **kg**. Dos lugares donde eso se
+comparaba crudo:
+1. el aviso de "recibí de más" de la pantalla → se arregló con `canonDe()`, que lleva lo tipeado a
+   la unidad canónica antes de restar;
+2. `tablet_registrar`, que compara `cantidad > esperado` **tal cual vienen** para escribir
+   `alerta_recepcion`. Ahí no se tocó la base: **el front manda el esperado en la misma unidad que
+   la cantidad** (1.000 uni × 0,01 = 10 kg). Si alguna vez se cambia una unidad en otra pantalla,
+   este es el segundo lugar que hay que mirar.
+
+**Lo que NO se registra**: los cajones equivalentes. `crear_entrega_tallerista` no tiene dónde
+anotarlos (a diferencia de `crear_envio_ps`, que tiene `p_cajones`); el kg es lo que mueve el stock
+y el cajón es ayuda visual. `[deducido 2026-09-18]`
+
+**Alcance al 2026-09-18**: las 9 filas de Recibir de talleristas — 7 en cajones (una, `C12B`, sin
+`uni_x_cajon`, así que queda en unidades y la tarjeta lo dice) y las 2 bombillas en bolsas. El
+**P.S. sigue con la tabla**: es lo que sigue.

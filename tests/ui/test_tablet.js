@@ -25,7 +25,7 @@ const BUNDLE = {
   generado_en: '2026-09-13T12:00:00Z',
   alertas_abiertas: 0,
   contrapartes: [
-    { tipo: 'tallerista', ref: '6', nombre: 'Martin Cornejo', n_env: 5, n_rec: 1 },
+    { tipo: 'tallerista', ref: '6', nombre: 'Martin Cornejo', n_env: 5, n_rec: 2 },
     { tipo: 'tallerista', ref: '9', nombre: 'Lucho', n_env: 1, n_rec: 0 },
     { tipo: 'proveedor_at', ref: '1', nombre: 'Cabral', n_env: 2, n_rec: 1 },
     // el PS "comun", sin unidad de envio propia. Al 2026-09-18 ya NINGUN P.S. con piezas quedo
@@ -82,7 +82,11 @@ const BUNDLE = {
     { tipo: 'inyector', ref: 'Pat Bet Plast', comp_id: 743, cod: '2455', desc: 'ABS GP 22', sector: 'Sector Bolsas Plásticas', um: 'kg', uxc: null, kg_x_uni: null, online_sector: 50, saldo_dest: 8, maximo: 50, stock_dest: 20, sugerido: 30 },
   ],
   recibir: [
-    { tipo: 'tallerista', ref: '6', comp_id: 71, comp_entrada_id: 70, n_entradas: 1, tiene_bom: false, cod_art: null, cod: 'A11', desc: 'Una Armada', sector: 'Sector Procesado', um: 'unidad', uxc: 500, kg_x_uni: 0.01, por_caja: null, ent_cod: 'A10', ent_desc: 'Cpo Una', esperado: 100, esperado_origen: 'online_tall' },
+    // ENTREGA de tallerista: el esperado se mira en CAJONES y la cantidad se escribe en KG
+    // [usuario 2026-09-18]. 1.000 uni / 500 por cajon = 2 cajones; esos 1.000 pesan 10 kg.
+    { tipo: 'tallerista', ref: '6', comp_id: 71, comp_entrada_id: 70, n_entradas: 1, tiene_bom: false, cod_art: null, cod: 'A11', desc: 'Una Armada', sector: 'Sector Procesado', um: 'unidad', uxc: 500, kg_x_uni: 0.01, por_caja: null, ent_cod: 'A10', ent_desc: 'Cpo Una', esperado: 1000, esperado_origen: 'online_tall', env_unidad: 'cajones', env_factor: 500, env_carga: 'kg' },
+    // la UNICA excepcion: las bombillas GRJ5/GRJ6 entregan BOLSAS de 120 (componente.entrega_*)
+    { tipo: 'tallerista', ref: '6', comp_id: 541, comp_entrada_id: null, n_entradas: 0, tiene_bom: false, cod_art: null, cod: 'GRJ5', desc: 'Bombilla Resorte Trad 558', sector: 'Sector Garage', um: 'unidad', uxc: 960, kg_x_uni: 0.0147, por_caja: null, ent_cod: null, ent_desc: null, esperado: 360, esperado_origen: 'online_tall', env_unidad: 'bolsas', env_factor: 120, env_carga: 'kg' },
     { tipo: 'proveedor_at', ref: '1', comp_id: null, comp_entrada_id: null, n_entradas: 0, tiene_bom: false, cod_art: '026', cod: '026', desc: 'Colador N°8', sector: null, um: null, uxc: null, kg_x_uni: null, por_caja: 36, ent_cod: null, ent_desc: null, esperado: 72, esperado_origen: 'oc' },
     { tipo: 'proveedor_servicio', ref: '20', comp_id: 91, comp_entrada_id: 90, n_entradas: 1, tiene_bom: false, cod_art: null, cod: 'D5-P', desc: 'Mitad pintada', sector: 'Sector Procesado', um: 'unidad', uxc: 500, kg_x_uni: 0.05, por_caja: null, ent_cod: 'D5', ent_desc: 'Mitad rompenuez', esperado: 40, esperado_origen: 'online_ps' },
     { tipo: 'virgilio', ref: 'virgilio', comp_id: 373, comp_entrada_id: null, n_entradas: 0, tiene_bom: false, cod_art: null, cod: 'IC3V', desc: 'Fleje N° 90 LARGO', sector: 'Sector Fleje', um: 'kg', uxc: 24, kg_x_uni: 0.0134, por_caja: null, ent_cod: null, ent_desc: null, esperado: 20, esperado_origen: 'online_virgilio' },
@@ -517,14 +521,34 @@ window.supabase = { createClient: function(){ return {
   ok((await page.$eval('#fase1Title', e => e.textContent)) === 'Martin Cornejo',
      'en Recibir solo el tallerista que entrega algo (Lucho no), y se entra derecho');
   ok(!(await page.$eval('#fRemito', e => e.classList.contains('hidden'))), 'en Recibir se pide el remito');
-  rows = await page.$$eval('#tbody tr', xs => xs.map(x => x.textContent.replace(/\s+/g, ' ')));
-  ok(rows.length === 1 && rows[0].includes('A11') && rows[0].includes('consume A10') && rows[0].includes('100 uni'),
-     'tallerista: A11 consume A10, esperado 100 — ' + rows[0]);
-
+  // las partes tambien en TARJETAS, con ESPERADO y CANTIDAD en vez de sugerido y cantidad
+  ok(await page.$eval('#tblWrap', e => e.classList.contains('hidden')),
+     'Recibir de tallerista: tarjetas, no tabla');
+  let rcards = await cards();
+  ok(rcards.length === 2, 'Recibir: una tarjeta por pieza (2) — ' + rcards.length);
+  const rDe = (cod) => rcards.find(c => c.startsWith(cod));
+  ok(rDe('A11').includes('Una Armada') && rDe('A11').includes('Esperado 2 cajones'),
+     'A11: el esperado se mira en CAJONES (1.000 uni / 500) — ' + rDe('A11'));
+  ok(rDe('A11').includes('kg'), 'A11: la cantidad se escribe en kg — ' + rDe('A11'));
+  ok(rDe('GRJ5').includes('Esperado 3 bolsas'),
+     'GRJ5: la excepcion son BOLSAS de 120 (360 uni = 3 bolsas) — ' + rDe('GRJ5'));
   await page.fill('#fRemito', 'R-0001');
-  await page.fill('#tbody input.cell-in', '130');
-  await page.waitForFunction(() => document.querySelector('#tbody tr').classList.contains('demas'));
-  ok(await page.$eval('#tbody tr', tr => tr.textContent.includes('30 de más')), 'la fila avisa "30 de más" (130 contra 100)');
+  await abrir('A11');
+  const detA11 = await det();
+  ok(detA11.includes('Esperado') && detA11.includes('2 cajones') && detA11.includes('Cantidad') &&
+     !detA11.includes('Sugerido') && !detA11.includes('Recibido'),
+     'A11: la vista dice Esperado y Cantidad (no sugerido ni recibido) — ' + detA11);
+  ok((await page.$eval('#detCard .det-uni', e => e.textContent.trim())) === 'kg',
+     'A11: la cantidad se escribe en kg');
+  // 13 kg = 1.300 unidades contra 1.000 esperadas: avisa 300 de mas, y NO frena
+  await page.fill(DQ, '13');
+  ok((await page.$eval('#detCard .det-eq', e => e.textContent.trim())) === '\u2248 3 cajones',
+     'A11: debajo del campo, a cuantos cajones equivalen los kg — ' +
+     (await page.$eval('#detCard .det-eq', e => e.textContent.trim())));
+  await page.click('#btnVolverPartes');
+  rcards = await cards();
+  ok(rDe('A11') !== undefined && (await cards()).find(c => c.startsWith('A11')).includes('300 de m\u00e1s'),
+     'la tarjeta avisa "300 de mas" (13 kg = 1.300 uni contra 1.000) — ' + (await cards())[0]);
   ok(!(await page.$eval('#alertaBox', e => e.classList.contains('hidden'))) && (await page.$eval('#alertaBox', e => e.textContent)).includes('registrar igual'),
      'el cartel dice que se puede registrar igual');
   ok((await page.$eval('#btnEnviar', e => !e.disabled && e.textContent === 'Recibir (1)')), 'el boton Recibir sigue habilitado: la alerta NO bloquea');
@@ -538,8 +562,10 @@ window.supabase = { createClient: function(){ return {
   p = reg[reg.length - 1].args.p;
   ok(p.modo === 'recibir' && p.tipo === 'tallerista' && p.ref === '6' && p.remito === 'R-0001', 'payload recibir con remito');
   const it = p.items[0];
-  ok(it.comp_id === 71 && it.comp_entrada_id === 70 && it.cantidad === 130 && it.unidad === 'uni' && it.esperado === 100 && it.esperado_origen === 'online_tall',
-     'item tallerista: comp 71 consume 70, esperado 100 online_tall — ' + JSON.stringify(it));
+  // viaja el KG, y el esperado viaja EN KG tambien (1.000 uni x 0,01): la base los compara crudos
+  ok(it.comp_id === 71 && it.comp_entrada_id === 70 && it.cantidad === 13 && it.unidad === 'kg' &&
+     it.esperado === 10 && it.esperado_origen === 'online_tall',
+     'item tallerista: 13 kg contra 10 kg esperados, mismo idioma — ' + JSON.stringify(it));
   ok((await page.$eval('#successAlertas', e => e.textContent)).includes('Quedó anotado para revisar'),
      'el exito muestra la alerta que devolvio la base');
 
@@ -669,11 +695,10 @@ window.supabase = { createClient: function(){ return {
   pT.on('pageerror', e => { console.log('PAGEERROR:', e.message); process.exitCode = 1; });
   await pT.route('**/@supabase/supabase-js@2**', r => r.fulfill({ contentType: 'application/javascript', body: STUB }));
   await pT.route('**/GP2_favicon.png', r => r.fulfill({ contentType: 'image/png', body: Buffer.from('') }));
-  // Desde 2026-09-18 los CUATRO destinos de Enviar van en TARJETAS: la tabla que queda viva es la
-  // de Recibir, y es la que se mide aca. Los dos tipos que se usan tienen una sola contraparte en
-  // Recibir, asi que se entra derecho.
-  for (const [modo, tipo, etiq] of [['recibir', 'tallerista', 'tallerista (Recibir)'],
-                                    ['recibir', 'virgilio', 'Virgilio (Recibir)']]) {
+  // Desde 2026-09-18 van en TARJETAS los cuatro destinos de Enviar y el tallerista en Recibir: la
+  // tabla que queda viva es la del resto de Recibir, y es la que se mide aca (Virgilio, que ademas
+  // tiene una sola contraparte y se entra derecho).
+  for (const [modo, tipo, etiq] of [['recibir', 'virgilio', 'Virgilio (Recibir)']]) {
     await pT.goto(ROOT + '/Tablet/Tablet_GP2.html?modo=' + modo);
     await pT.evaluate(() => localStorage.clear());
     await pT.reload();

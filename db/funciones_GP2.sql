@@ -7241,6 +7241,7 @@ rec_x as (
          coalesce(c.descripcion, (select max(descripcion) from articulo_prov_at ap
                                    where ap.cod_art = r.cod_art)) descr,
          s.nombre sector, c.unidad_medida um, c.uni_x_cajon uxc, c.kg_x_uni kgu,
+         c.entrega_unidad ent_uni, c.entrega_uni_x ent_ux,
          ce.codigo ent_cod, ce.descripcion ent_desc,
          (select a.articulos_por_caja from articulo a where a.codigo = r.cod_art) por_caja
     from rec r
@@ -7250,6 +7251,7 @@ rec_x as (
    where (r.comp_id is null or not coalesce(c.discontinuado,false))
    group by r.tipo, r.ref, r.comp_id, r.comp_entrada_id, r.n_entradas, r.tiene_bom, r.cod_art,
             c.codigo, c.descripcion, s.nombre, c.unidad_medida, c.uni_x_cajon, c.kg_x_uni,
+            c.entrega_unidad, c.entrega_uni_x,
             ce.codigo, ce.descripcion
 ),
 -- envio_unidad / envio_uni_x / envio_carga_unidad: unidad de ENVIO por proveedor (display), p.ej. AJ
@@ -7316,6 +7318,11 @@ select jsonb_build_object(
              'n_entradas', n_entradas, 'tiene_bom', tiene_bom,
              'cod_art', cod_art, 'cod', cod, 'desc', descr, 'sector', sector, 'um', um,
              'uxc', uxc, 'kg_x_uni', kgu, 'por_caja', por_caja,
+             -- envase de ENTREGA (hoy solo el tallerista): el esperado se mira en cajones (o en las
+             -- bolsas de 120 de GRJ5/GRJ6) y la cantidad se escribe en kg.
+             'env_unidad', case when tipo = 'tallerista' then coalesce(ent_uni, 'cajones') end,
+             'env_factor', case when tipo = 'tallerista' then coalesce(ent_ux, uxc) end,
+             'env_carga',  case when tipo = 'tallerista' then 'kg' end,
              'ent_cod', ent_cod, 'ent_desc', ent_desc,
              'esperado', esperado, 'esperado_origen', esperado_origen
            ) order by cod), '[]'::jsonb) from rec_x),
