@@ -251,8 +251,8 @@ window.supabase = { createClient: function(){ return {
      'A10: la cantidad se escribe en kg');
   ok((await page.$eval(DQ, e => e.value)) === '', 'A10: el campo arranca vacio');
   await page.fill(DQ, '25');
-  ok((await page.$eval('#detCard .det-eq', e => e.textContent.trim())) === '\u2248 3 cajones',
-     'A10: 25 kg / (1.000 x 0,01) = 2,5 -> "~ 3 cajones" redondeado — ' +
+  ok((await page.$eval('#detCard .det-eq', e => e.textContent.trim())) === '= 2,5 cajones',
+     'A10: 25 kg / (1.000 x 0,01) = 2,5 cajones, CON decimales (usuario 2026-09-18) — ' +
      (await page.$eval('#detCard .det-eq', e => e.textContent.trim())));
   await page.click('#btnVolverPartes');
   ok((await cards()).find(c => c.startsWith('A10')).includes('env\u00eda 25 kg'),
@@ -290,9 +290,9 @@ window.supabase = { createClient: function(){ return {
   const itA10 = p.items.find(i => i.comp_id === 70), itC10 = p.items.find(i => i.comp_id === 300),
         itCJ = p.items.find(i => i.comp_id === 310);
   // el inventario nunca ve paquetes ni cajones: lo que viaja es kg o unidades
-  // el bulto que se anota es el ENTERO que se ve en pantalla (2,5 -> 3): un envase no se parte
-  ok(itA10 && itA10.cantidad === 25 && itA10.unidad === 'kg' && itA10.cajones === 3,
-     'A10: viajan los 25 kg y los 3 cajones enteros quedan anotados — ' + JSON.stringify(itA10));
+  // el bulto que se anota es el MISMO numero que se ve en pantalla, con decimales
+  ok(itA10 && itA10.cantidad === 25 && itA10.unidad === 'kg' && itA10.cajones === 2.5,
+     'A10: viajan los 25 kg y los 2,5 cajones quedan anotados tal cual — ' + JSON.stringify(itA10));
   ok(itC10 && itC10.cantidad === 3000 && itC10.unidad === 'uni',
      'C10: 3 paquetes se guardan como 3.000 cartones (uni) — ' + JSON.stringify(itC10));
   ok(itCJ && itCJ.cantidad === 50 && itCJ.unidad === 'uni',
@@ -401,15 +401,15 @@ window.supabase = { createClient: function(){ return {
   ok((await page.$eval(DQ, e => e.value)) === '', 'Julio plastica: el campo arranca vacio (P.S.: no se precarga)');
   ok((await page.$eval(DEQ, e => e.textContent.trim())) === '',
      'Julio: con el campo vacio el renglon del bulto no dice "= 0"');
-  // al cambiar los kg el renglon se recalcula, siempre entero y para arriba
+  // al cambiar los kg el renglon se recalcula, con el numero exacto
   await page.fill(DQ, '21');
-  ok((await page.$eval(DEQ, e => e.textContent.trim())) === '≈ 11 bolsas',
-     'Julio plastica: 21 kg -> 10,5 bolsas -> "≈ 11" (un envase no se parte) — ' + (await page.$eval(DEQ, e => e.textContent.trim())));
+  ok((await page.$eval(DEQ, e => e.textContent.trim())) === '= 10,5 bolsas',
+     'Julio plastica: 21 kg -> 10,5 bolsas, sin redondear — ' + (await page.$eval(DEQ, e => e.textContent.trim())));
   await page.click('#btnVolverPartes');
   await abrir('A1');
   await page.fill(DQ, '82');
-  ok((await page.$eval(DEQ, e => e.textContent.trim())) === '≈ 3 cajones',
-     'Julio metalica: 82 kg -> 2,73 cajones -> "≈ 3", nunca 2,73 — ' + (await page.$eval(DEQ, e => e.textContent.trim())));
+  ok((await page.$eval(DEQ, e => e.textContent.trim())) === '= 2,73 cajones',
+     'Julio metalica: 82 kg -> 2,73 cajones, con decimales — ' + (await page.$eval(DEQ, e => e.textContent.trim())));
   await page.click('#btnVolverPartes');
   const juCards2 = await cards();
   ok(juCards2[0].includes('envía 82 kg') && juCards2[1].includes('envía 21 kg'),
@@ -418,12 +418,12 @@ window.supabase = { createClient: function(){ return {
   await page.waitForFunction(() => !document.getElementById('fase3').classList.contains('hidden'));
   const regJu = await calls('tablet_registrar');
   const itsJu = regJu[regJu.length - 1].args.p.items;
-  ok(itsJu[0].comp_id === 80 && itsJu[0].cantidad === 82 && itsJu[0].unidad === 'kg' && itsJu[0].cajones === 3,
-     'Julio metalica: viajan los KG y los cajones CALCULADOS — ' + JSON.stringify(itsJu[0]));
-  ok(itsJu[1].comp_id === 231 && itsJu[1].cantidad === 21 && itsJu[1].unidad === 'kg' && itsJu[1].cajones === 11,
-     'Julio plastica: 21 kg con sus 11 bolsas enteras — ' + JSON.stringify(itsJu[1]));
-  ok(dialogs.some(d => d.type === 'confirm' && d.msg.includes('82 kg (3 cajones)')),
-     'Julio: el confirm resume en kg con el bulto');
+  ok(itsJu[0].comp_id === 80 && itsJu[0].cantidad === 82 && itsJu[0].unidad === 'kg' && itsJu[0].cajones === 2.73,
+     'Julio metalica: viajan los KG y los cajones CALCULADOS con decimales — ' + JSON.stringify(itsJu[0]));
+  ok(itsJu[1].comp_id === 231 && itsJu[1].cantidad === 21 && itsJu[1].unidad === 'kg' && itsJu[1].cajones === 10.5,
+     'Julio plastica: 21 kg con sus 10,5 bolsas — ' + JSON.stringify(itsJu[1]));
+  ok(dialogs.some(d => d.type === 'confirm' && d.msg.includes('82 kg (2,73 cajones)')),
+     'Julio: el confirm resume en kg con el bulto, con decimales');
   // ── Ester: el sugerido en BOLSAS de 1800 pero la cantidad EN KG, con las bolsas al lado ──
   await page.click('#btnOtro');
   await page.waitForFunction(() => document.querySelectorAll('#tipoGrid .tipo-btn').length > 0);
@@ -444,13 +444,13 @@ window.supabase = { createClient: function(){ return {
   ok((await page.$eval('#detCard .det-eq', e => e.textContent.trim())) === '= 63 bolsas',
      'Ester: debajo del campo dice a cuántas bolsas equivale lo tipeado');
   await page.fill(DQ, '100');
-  ok((await page.$eval('#detCard .det-eq', e => e.textContent.trim())) === '≈ 10 bolsas',
-     'Ester: 100 kg / 9,72 = 10,29 bolsas -> se muestra "≈ 10", sin decimales — ' +
+  ok((await page.$eval('#detCard .det-eq', e => e.textContent.trim())) === '= 10,29 bolsas',
+     'Ester: 100 kg / 9,72 = 10,29 bolsas, tal cual (usuario 2026-09-18) — ' +
      (await page.$eval('#detCard .det-eq', e => e.textContent.trim())));
-  // y si no llega a un envase entero no se dice "≈ 0": se dice con palabras
+  // y si no llega a un envase se dice el decimal, no una frase
   await page.fill(DQ, '3');
-  ok((await page.$eval('#detCard .det-eq', e => e.textContent.trim())) === 'menos de 1 bolsa',
-     'Ester: 3 kg no llegan a una bolsa y lo dice con palabras — ' +
+  ok((await page.$eval('#detCard .det-eq', e => e.textContent.trim())) === '= 0,31 bolsas',
+     'Ester: 3 kg = 0,31 bolsas, en numero y no en palabras — ' +
      (await page.$eval('#detCard .det-eq', e => e.textContent.trim())));
   await page.fill(DQ, '612,36');
   await page.click('#btnVolverPartes');
@@ -481,8 +481,8 @@ window.supabase = { createClient: function(){ return {
   ok((await page.$eval('#detCard .det-eq', e => e.textContent.trim())) === '',
      'Guazzaroni: con el campo vacio la equivalencia no dice nada');
   await page.fill(DQ, '70');
-  ok((await page.$eval('#detCard .det-eq', e => e.textContent.trim())) === '≈ 3 cajones',
-     'Guazzaroni: los cajones se muestran REDONDEADOS (70 kg / 20 = 3,5 -> ≈ 3) — ' +
+  ok((await page.$eval('#detCard .det-eq', e => e.textContent.trim())) === '= 3,5 cajones',
+     'Guazzaroni: los cajones van con decimales (70 kg / 20 = 3,5) — ' +
      (await page.$eval('#detCard .det-eq', e => e.textContent.trim())));
   await page.click('#btnVolverPartes');
   // la pieza sin cajon se carga en unidades, a mano como el resto
@@ -498,8 +498,8 @@ window.supabase = { createClient: function(){ return {
   await page.waitForFunction(() => !document.getElementById('fase3').classList.contains('hidden'));
   const regGz = await calls('tablet_registrar');
   const itsGz = regGz[regGz.length - 1].args.p.items;
-  ok(itsGz[0].comp_id === 601 && itsGz[0].cantidad === 70 && itsGz[0].unidad === 'kg' && itsGz[0].cajones === 3,
-     'Guazzaroni: viaja el KG y los cajones quedan anotados — ' + JSON.stringify(itsGz[0]));
+  ok(itsGz[0].comp_id === 601 && itsGz[0].cantidad === 70 && itsGz[0].unidad === 'kg' && itsGz[0].cajones === 3.5,
+     'Guazzaroni: viaja el KG y los 3,5 cajones quedan anotados — ' + JSON.stringify(itsGz[0]));
   ok(itsGz[1].comp_id === 609 && itsGz[1].cantidad === 113304 && itsGz[1].unidad === 'uni' && itsGz[1].cajones === null,
      'Guazzaroni: la pieza sin cajón viaja en unidades, sin inventar factor — ' + JSON.stringify(itsGz[1]));
 
@@ -553,8 +553,8 @@ window.supabase = { createClient: function(){ return {
      'A11: la cantidad se escribe en kg');
   // 13 kg = 1.300 unidades contra 1.000 esperadas: avisa 300 de mas, y NO frena
   await page.fill(DQ, '13');
-  ok((await page.$eval('#detCard .det-eq', e => e.textContent.trim())) === '\u2248 3 cajones',
-     'A11: debajo del campo, a cuantos cajones equivalen los kg — ' +
+  ok((await page.$eval('#detCard .det-eq', e => e.textContent.trim())) === '= 2,6 cajones',
+     'A11: debajo del campo, a cuantos cajones equivalen los kg (con decimales) — ' +
      (await page.$eval('#detCard .det-eq', e => e.textContent.trim())));
   await page.click('#btnVolverPartes');
   rcards = await cards();

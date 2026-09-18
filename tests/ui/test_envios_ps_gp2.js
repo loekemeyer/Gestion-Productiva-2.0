@@ -261,18 +261,18 @@ window.supabase = { createClient: function(){ return {
      'Guazzaroni: 40 kg = 2 cajones exactos');
   await page.fill('#tbody tr:first-child input.cell-in[data-f="kg"]', '70');
   const eqsGz = await page.$$eval('#tbody .env-eq', xs => xs.map(x => x.textContent.trim()));
-  ok(eqsGz.length === 1 && eqsGz[0] === '≈ 3 cajones',
-     'Guazzaroni: los cajones van REDONDEADOS y solo en la fila convertible — ' + eqsGz.join(' | '));
+  ok(eqsGz.length === 1 && eqsGz[0] === '= 3,5 cajones',
+     'Guazzaroni: los cajones van CON DECIMALES y solo en la fila convertible — ' + eqsGz.join(' | '));
   await page.click('#btnEnviar');
   await page.waitForFunction(() => !document.getElementById('fase3').classList.contains('hidden'));
   const callGz = await page.evaluate(() => (window.__calls || []).filter(c => c.name === 'crear_envio_ps'));
   const aGz = callGz[callGz.length - 1].args;
   ok(aGz.p_ps_id === 4 && aGz.p_comp_sc_id === 601 && aGz.p_cantidad === 70 && aGz.p_unidad === 'kg' &&
-     aGz.p_cajones === 3,
-     'Guazzaroni: viaja el kg y quedan anotados los cajones — ' + JSON.stringify(aGz));
+     aGz.p_cajones === 3.5,
+     'Guazzaroni: viaja el kg y quedan anotados los 3,5 cajones — ' + JSON.stringify(aGz));
   const cfGz = dialogs.filter(d => d.type === 'confirm').pop();
-  ok(cfGz && cfGz.msg.includes('CV1: 70 kg (~3 cajones)') && !cfGz.msg.includes('caj /'),
-     'Guazzaroni: el confirm dice los kg con los cajones redondeados y no nombra la columna de cajón — ' +
+  ok(cfGz && cfGz.msg.includes('CV1: 70 kg (3,5 cajones)') && !cfGz.msg.includes('caj /'),
+     'Guazzaroni: el confirm dice los kg con los cajones con decimales y no nombra la columna de cajón — ' +
      (cfGz ? cfGz.msg.replace(/\n/g, ' / ') : 'sin confirm'));
 
   // ── FASONERO: el sugerido sale de la O.C., en UNIDADES de la pieza que se le manda ─────────

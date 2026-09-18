@@ -6,6 +6,13 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
+<!-- v1.10.0 (2026-09-18) — LOS ENVASES SE VEN CON DECIMALES (se va el redondeo de la mañana)
+     [usuario 2026-09-18, textual: "no quiero que redondees las bolsas, cajones -> lo quiero ver con
+     decimales también"]. Da vuelta la regla de la v1.7.0 de HOY: el renglón de abajo del campo de
+     kg y el resumen del confirm muestran el número exacto con 2 decimales, sin "≈" y sin el "menos
+     de 1 bolsa" en palabras. Lo REGISTRADO acompaña: p_cajones vuelve a guardar el número con
+     decimales, para que lo anotado sea lo que se vio. El SUGERIDO no cambia: sigue con techo.
+     Misma regla que la Tablet (v1.22.0); las dos pantallas se tocan juntas. -->
 <!-- v1.9.0 (2026-09-18) — EL FASONERO APARECE SIEMPRE, CON SUGERIDO 0 [usuario 2026-09-18, textual:
      "los inyectores por mas que no esta cargada la orden de compra aparecen igual con cero sugerido,
      tendria que aparecer Maspoli con cero sugerido y cuando sale la orden de compra ahi sube el
@@ -239,20 +246,20 @@ function kgPorEnvase(x, pk){
   return k > 0 ? f * k : 0;
 }
 function cargaEnKg(x, pk){ return !!(pk && pk.cargaKg && kgPorEnvase(x, pk) > 0); }
-/* El "= N bolsas" que va debajo del campo de kg. UN ENVASE NO SE PARTE: bolsas y cajones se dicen
-   SIEMPRE en entero [usuario 2026-09-18, sobre un "= 6,17 bolsas": "todo lo que sea envio de
-   cajones y bolsas redondear. En este caso, el pasaje serian 6 bolsas"], al MÁS CERCANO (6,17 -> 6;
-   4,83 -> 5). "=" cuando da justo, "≈" cuando se redondeó, y en palabras si no llega a uno. Misma
-   regla que la Tablet (textoEnvases). El SUGERIDO no entra acá: ése va para arriba. */
+/* El "= N bolsas" que va debajo del campo de kg. VA CON DECIMALES [usuario 2026-09-18, textual:
+   "no quiero que redondees las bolsas, cajones -> lo quiero ver con decimales también"], lo que da
+   vuelta la regla de redondeo de la mañana del mismo día: se muestra el número exacto con 2
+   decimales, sin "≈" y sin el "menos de 1 bolsa" en palabras. Misma regla que la Tablet
+   (textoEnvases). El SUGERIDO no entra acá: ése va para arriba. */
 function equivEnvase(kg, kgEnv, label){
   if (!(Number(kg || 0) > 0)) return "";
   var n = (kgEnv > 0) ? (Number(kg || 0) / kgEnv) : 0;
   if (!(n > 0)) return "";
-  var r = Math.round(n);
-  if (Math.abs(n - r) < 0.005) return "= " + fmt(r, 0) + " " + label;
-  if (r < 1) return "menos de 1 " + (label === "bolsas" ? "bolsa" : (label === "cajones" ? "cajón" : label));
-  return "≈ " + fmt(r, 0) + " " + label;
+  return "= " + fmt(n, 2) + " " + (Math.abs(n - 1) < 0.005
+    ? (label === "bolsas" ? "bolsa" : (label === "cajones" ? "cajón" : label)) : label);
 }
+/* lo que se ANOTA como bulto es el mismo número que se ve: 2 decimales, sin redondear a entero */
+function redEnvase(n){ return Math.round(Number(n || 0) * 100) / 100; }
 /* La TABLA entera pasa al modo "un solo campo en kg" cuando el proveedor se carga así; que una
    pieza suelta no se pueda convertir no le saca la columna al resto (si no, la tabla quedaba con
    filas de 6 y de 7 celdas). */
@@ -601,7 +608,7 @@ $("btnEnviar").addEventListener("click", async function(){
     if (cargaEnKg(m, pk3))
       return (m.sc_cod||o.k)+": "+fmt(num(o.it.kg),2)+" kg ("+
              equivEnvase(num(o.it.kg), kgPorEnvase(m, pk3), pk3.label)
-               .replace("= ","").replace("≈ ","~")+")";
+               .replace("= ","")+")";
     // sin columna de cajon (el proveedor se carga en kg) el resumen tampoco la nombra, aunque
     // esta pieza puntual no se pueda convertir a envases
     return (selPS.inyector || modoKgPS())
@@ -636,9 +643,9 @@ $("btnEnviar").addEventListener("click", async function(){
         p_fecha: fecha,
         // el bulto queda anotado: los cajones que se declararon, o —si se carga en kg (Ester)—
         // las bolsas que dan esos kg. Es informativo; el stock lo mueve p_cantidad.
-        // entero, misma regla que el renglon de abajo del campo: un envase no se parte
+        // con decimales, misma regla que el renglon de abajo del campo (usuario 2026-09-18)
         p_cajones: num(o.it.caj) || (cargaEnKg(m, pkPS())
-          ? Math.round(num(o.it.kg) / kgPorEnvase(m, pkPS())) || null : null),
+          ? redEnvase(num(o.it.kg) / kgPorEnvase(m, pkPS())) || null : null),
         p_faltante: !!o.it.falt
       });
     },

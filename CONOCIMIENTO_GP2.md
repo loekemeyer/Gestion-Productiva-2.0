@@ -10525,30 +10525,40 @@ Ejemplo real: CV1 (remache espiral) tiene 57.143 uni por cajón y 0,00035 kg por
 que falta) y la cantidad se precarga en 20,00 kg.
 
 **El "(redondeando)" del pedido es la equivalencia de abajo del campo**: se tipean los kg y la
-pantalla dice a cuántos cajones equivalen, **sin decimales**. Cuando no da entero se muestra con
-`≈` (70 kg → 3,5 → **"≈ 3 cajones"**), para que se lea que es redondeado y no parezca exacto.
+pantalla dice a cuántos cajones equivalen. ⚠ CADUCADO la tarde del 2026-09-18: ese redondeo se dio
+vuelta y hoy va **con decimales** (70 kg → **"= 3,5 cajones"**). Ver la sección de abajo.
 
-### UN ENVASE NO SE PARTE: la regla vale para TODAS las formas (2026-09-18)
+### ⚠ EL ENVASE SÍ SE PARTE: el equivalente va CON DECIMALES (2026-09-18, TARDE)
 
-`[usuario, sobre un "= 6,17 bolsas" de Ester: "acordate que todo lo que sea envío de cajones y
-bolsas redondear. En este caso, el pasaje serían 6 bolsas"]`. Hasta ese día convivían **dos**
-criterios: el envase del proveedor (Ester) mostraba 2 decimales cuando no daba entero, y el cajón
-por pieza ya se redondeaba. Ahora es **uno solo**, en la Tablet y en Envío a PS:
+**Esta regla se dio vuelta el mismo día que se escribió.** A la mañana el usuario pidió redondear
+(`"acordate que todo lo que sea envío de cajones y bolsas redondear. En este caso, el pasaje serían
+6 bolsas"`, sobre un "= 6,17 bolsas" de Ester) y a la tarde pidió lo contrario, viendo un "menos de
+1 bolsa" debajo de 1 kg: `[usuario, textual: "Que pueda anotar decimales a la hora de poner la
+cantidad de kg. Además, no quiero que redondees las bolsas, cajones → lo quiero ver con decimales
+también"]`. **Vale la segunda.** Lo que queda:
 
-| lo que se mira | cómo se redondea | por qué |
+| lo que se mira | cómo se muestra | por qué |
 |---|---|---|
-| **el equivalente en bultos de lo que se manda** | al entero **más cercano** (6,17 → 6; 4,83 → 5) | es una descripción de lo que va en el camión, no un pedido |
-| **el sugerido** | **para arriba** (techo) | es *lo que falta*, y pedir menos no llena el lugar `[usuario 2026-09-17, Ester: "redondeás por arriba"]` |
+| **el equivalente en bultos de lo que se manda** | el número **exacto, 2 decimales** (6,17 bolsas; 3,5 cajones) | es una descripción de lo que va en el camión: media bolsa existe |
+| **el sugerido** | **para arriba** (techo), sin cambios | es *lo que falta*, y pedir menos no llena el lugar `[usuario 2026-09-17, Ester: "redondeás por arriba"]` |
 
-Son dos cosas distintas y por eso redondean distinto — la trampa es creer que es la misma regla.
+Siguen siendo dos reglas distintas — la trampa es creer que es la misma. Lo que se dio vuelta es
+sólo la primera.
 
-El texto lo arma `textoEnvases()`: **"="** cuando da justo, **"≈"** cuando se redondeó, y
-**"menos de 1 bolsa"** (en palabras) cuando no llega a un envase, porque un *"≈ 0 bolsas"* no le
-dice nada al operario. `equivEnvase()` perdió el parámetro `redondear`: ya no hay dos modos.
+El texto lo arma `textoEnvases()`: siempre **"="** y el número con coma; se fueron el **"≈"** y el
+**"menos de 1 bolsa"** en palabras (ahora dice **"= 0,69 bolsas"**, que informa más). Misma función
+en la Tablet y su gemela `equivEnvase()` en Envío a PS.
 
-**También cambió lo que se REGISTRA**: `movimiento.cajones` guardaba el número crudo con 2
-decimales (3,5 cajones) y ahora guarda el mismo entero que se ve. Si redondeando da cero, no se
-anota ningún bulto (queda `null`): es informativo y un 0 mentiría igual que un 3,5.
+**Lo que se REGISTRA acompaña a lo que se ve**: `movimiento.cajones` (y el `p_cajones` de
+`crear_envio_ps`) vuelve a guardar el número con 2 decimales, como antes de la mañana. La columna
+es `numeric`, así que la base nunca fue el límite. Con el entero se perdía información: 0,4 bolsas
+se anotaban como nada y 1,4 como 1.
+
+**La cantidad en kg YA aceptaba decimales** (`inputmode="decimal"` + `GP2N`): "12,5" entra bien,
+medido el 18/09 en Ester. Lo que **no** entra es el **punto**, que para la regla de la casa es el
+separador de miles ("1.5" se lee 15). Si el teclado de la tablet escribe punto en vez de coma, eso
+hay que decidirlo aparte: la regla de número es **una sola** para todas las pantallas
+(`gp2-numero.js`) y cambiarla ahí se siente en todos lados.
 
 **Ese renglón chico es AHORA EL ÚNICO FORMATO, en las cuatro formas** `[usuario 2026-09-18,
 textual: "está bien que me lo ponga chiquito abajo, pero modificá Hernandez Julio así quedan todos
