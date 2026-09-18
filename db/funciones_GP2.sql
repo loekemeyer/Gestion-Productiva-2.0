@@ -1989,10 +1989,12 @@ CREATE OR REPLACE FUNCTION "GP2".crear_entrega_ps(p_ps_id bigint, p_comp_sc_id b
 AS $function$
 declare v_ps bigint; v_dest bigint; v_sec_id bigint; v_secsp text; v_umsp text;
         v_codsp text; v_codsc text; v_cons numeric; v_id bigint; v_u text;
+        v_por_oc boolean; v_prov_sp text; v_oc jsonb := '[]'::jsonb;
 begin
   if p_kg is null or p_kg <= 0 then raise exception 'La cantidad debe ser mayor a 0'; end if;
   v_u := case when lower(btrim(coalesce(p_unidad,'kg'))) = 'kg' then 'kg' else 'uni' end;
-  select c.sector_id, s.nombre, c.codigo, c.unidad_medida into v_sec_id, v_secsp, v_codsp, v_umsp
+  select c.sector_id, s.nombre, c.codigo, c.unidad_medida, nullif(btrim(coalesce(c.proveedor,'')),'')
+    into v_sec_id, v_secsp, v_codsp, v_umsp, v_prov_sp
     from componente c join sector s on s.id=c.sector_id where c.id=p_comp_sp_id;
   select codigo into v_codsc from componente where id=p_comp_sc_id;
   if v_secsp is null then raise exception 'Componente SP % inexistente o sin sector', p_comp_sp_id; end if;
@@ -2010,9 +2012,20 @@ begin
           case when lower(coalesce(v_umsp,'unidad'))='kg' then 'kg' else 'uni' end,
           p_comp_sp_id,p_kg,v_u,p_cajones,coalesce(p_faltante,false))
   returning id into v_id;
+
+  -- FASONERO (proveedor_servicio.pedido_por_oc, hoy Maspoli): a este PS se le emite O.C. por la
+  -- pieza que entrega, asi que la entrega TIENE que descontar esa O.C. -- si no, la orden queda
+  -- abierta para siempre y el sugerido de materia prima a enviarle (que sale del pendiente de la
+  -- O.C.) nunca baja. Mismo cruce FIFO que usa la recepcion de insumos, priorizando la O.C. del
+  -- proveedor de la pieza. Los PS normales no tienen O.C. y no pasan por aca.
+  select ps.pedido_por_oc into v_por_oc from proveedor_servicio ps where ps.id = p_ps_id;
+  if coalesce(v_por_oc, false) then
+    v_oc := "GP2"._aplicar_recepcion_a_oc(p_comp_sp_id, p_kg, v_u, v_prov_sp);
+  end if;
+
   return jsonb_build_object('ok',true,'id',v_id,'sc',v_codsc,'sp',v_codsp,'cantidad',p_kg,'unidad',v_u,
     'kg',case when v_u='kg' then p_kg end,
-    'consumo_canon',v_cons,'cajones',p_cajones,'faltante',coalesce(p_faltante,false));
+    'consumo_canon',v_cons,'cajones',p_cajones,'faltante',coalesce(p_faltante,false),'oc',v_oc);
 end $function$
 ;
 
@@ -3011,6 +3024,16 @@ with pares as (
     and rp.comp_entrada_id is not null
     and not ps0.hibrido
 ),
+ocp as (
+  -- PENDIENTE DE O.C. por pieza: lo que el proveedor todavia nos debe entregar de una O.C. ya
+  -- ENVIADA. Se mira 'enviada' y no 'borrador' por la misma razon que en el inyector
+  -- (tablet_bundle.rep_iny): el borrador es un pedido que todavia no salio, y hasta que no sale
+  -- no hay nada que mandarle. Baja sola al entregar: crear_entrega_ps descuenta el recibido.
+  select oi.componente_id, sum(oi.cantidad - coalesce(oi.recibido,0)) pend
+  from orden_compra_item oi join orden_compra o on o.id = oi.oc_id
+  where o.estado = 'enviada' and oi.cantidad > coalesce(oi.recibido,0)
+  group by oi.componente_id
+),
 fila as (
   select p.proveedor_id, ps.proceso,
          sc.id sc_id, sc.codigo sc_cod, sc.descripcion sc_desc,
@@ -3027,7 +3050,16 @@ fila as (
          (select i.cantidad from inventario i
            where i.componente_id=sp.id and i.ubicacion_id="GP2".ubic_de('sector', sp.sector_id) limit 1) online_sp,
          (select i.maximo from inventario i
-           where i.componente_id=sp.id and i.ubicacion_id="GP2".ubic_de('sector', sp.sector_id) limit 1) maximo_sp
+           where i.componente_id=sp.id and i.ubicacion_id="GP2".ubic_de('sector', sp.sector_id) limit 1) maximo_sp,
+         -- FASONERO (proveedor_servicio.pedido_por_oc, hoy Maspoli): unidades de ESTA salida que
+         -- estan pendientes de O.C. enviada. null cuando el PS no es fasonero (el sugerido de ese
+         -- sigue saliendo del maximo). OJO: este bundle lo comparten Envio a PS y Entrega PS, asi
+         -- que el filtro "sin O.C. no se le manda nada" NO se hace aca -- lo hace la pantalla de
+         -- ENVIO. Si se filtrara aca, un fasonero sin O.C. abierta desapareceria tambien de la
+         -- ENTREGA y no habria como registrar lo que todavia debe.
+         case when ps.pedido_por_oc
+              then coalesce((select o3.pend from ocp o3 where o3.componente_id = p.sp_id), 0)
+         end oc_pend
   from pares p
   join proveedor_servicio ps on ps.id=p.proveedor_id
   join componente sc on sc.id=p.sc_id
@@ -3039,10 +3071,14 @@ select jsonb_build_object(
   -- Ester, paquetes de AJ). Solo display: la pantalla muestra el sugerido en esa unidad (techo) y,
   -- si envio_carga_unidad='kg', la cantidad se escribe en kg con las bolsas al lado. Lo que se
   -- registra sigue yendo en kg a crear_envio_ps. [usuario 2026-09-17]
+  -- pedido_por_oc: fasonero. En Envio a PS el sugerido deja de ser (maximo SP - online) y pasa a
+  -- ser la suma de oc_pend de sus salidas menos lo que ya tiene en su poder, y sin O.C. no se le
+  -- muestra nada para enviar.
   'ps', (select coalesce(jsonb_agg(jsonb_build_object(
             'id',ps.id,'nombre',ps.nombre,'cod_prov',ps.cod_prov,'proceso',ps.proceso,
             'envio_unidad',ps.envio_unidad,'envio_uni_x',ps.envio_uni_x,
-            'envio_carga_unidad',ps.envio_carga_unidad
+            'envio_carga_unidad',ps.envio_carga_unidad,
+            'pedido_por_oc',ps.pedido_por_oc
           ) order by ps.nombre),'[]'::jsonb)
         from proveedor_servicio ps
         where exists (select 1 from pares p where p.proveedor_id=ps.id)),
@@ -3054,7 +3090,8 @@ select jsonb_build_object(
           'sp_um',sp_um,'sp_kgxuni',sp_kgxuni,
           'proceso',proceso,
           'online_sc',coalesce(online_sc,0),'online_ps',coalesce(online_ps,0),
-          'online_sp',coalesce(online_sp,0),'maximo',maximo,'maximo_sp',maximo_sp
+          'online_sp',coalesce(online_sp,0),'maximo',maximo,'maximo_sp',maximo_sp,
+          'oc_pend',oc_pend
         ) order by sc_cod) arr
         from fila group by proveedor_id) z)
 );
@@ -4443,6 +4480,16 @@ with pend as (
   join proveedor_insumo pi2 on pi2.cod_prov = pp.cod_prov
   where pp.componente_id is not null and pp.precio is not null
   order by pp.componente_id, pi2.nombre, pp.fecha_lista desc nulls last, pp.id desc
+), fas as (
+  -- PIEZAS DE FASONERO (proveedor_servicio.pedido_por_oc): el PS nos entrega la pieza poniendo
+  -- material propio y nos la cobra, asi que SE LE EMITE O.C. aunque la pieza siga marcada
+  -- estado_compra='fabricacion'. El estado_compra NO se toca a proposito: ponerlo en null la
+  -- convierte en insumo comprado y le vuela el costo de ruta (medido 2026-09-18: los 5 articulos
+  -- de Maspoli perdian $710,89 cada uno). Hoy: Maspoli SRL -> PC12 / PEP7 / PEP8.
+  select distinct rp.comp_salida_id comp_id
+  from ruta_paso rp
+  join proveedor_servicio ps on ps.id = rp.proveedor_id
+  where rp.tipo_paso = 'proveedor_servicio' and ps.pedido_por_oc and rp.comp_salida_id is not null
 ), ins as (
   select c.id comp_id, c.codigo, c.descripcion, c.sector_id, s.nombre sector,
          c.unidad_medida um, c.kg_x_uni, c.uni_x_cajon,
@@ -4473,13 +4520,15 @@ with pend as (
   left join carton_formato cf on cf.nombre = c.carton_formato
   left join carton_categoria cc2 on cc2.nombre = c.carton_categoria and cc2.formato = c.carton_formato
   left join pv on pv.componente_id = c.id
+  left join fas on fas.comp_id = c.id
   where (
           "GP2"._es_sector_insumo(c.sector_id)
           or trim(coalesce(c.proveedor,'')) in ('Resortes Charcas','Eclipse')
           or (c.proveedor is not null
               and exists (select 1 from proveedor_insumo pi where pi.nombre = c.proveedor))
         )
-    and c.estado_compra is null
+    -- lo que la pieza de un fasonero (fas) SI se compra, con su estado_compra intacto
+    and (c.estado_compra is null or fas.comp_id is not null)
     -- LO QUE PRODUCE UN PS NO SE COMPRA (usuario 2026-09-08: "esas dos partes de charcas se
     -- tratan como proveedor de servicio"). Si el proveedor que figura en el componente es el
     -- MISMO PS que lo produce en una ruta (ruta_paso tipo proveedor_servicio, comp_salida = el
@@ -4488,12 +4537,19 @@ with pend as (
     -- Alambre). Se mira el proveedor DEL COMPONENTE, no el paso suelto: un insumo que compramos
     -- y mandamos a pintar (paso PS con entrada=salida) sigue en la OC, y las bombillas que
     -- Charcas nos VENDE (BOM10/EP10/LLF8) tambien.
+    -- El match va por NOMBRE o por COD_PROV: "Maspoli SRL" (proveedor_servicio) y "Maspoli SRL"
+    -- con tilde (proveedor_insumo) son el mismo proveedor escrito distinto, y no puede ser una
+    -- tilde la que decida si una pieza entra en la O.C. El fasonero (pedido_por_oc) queda AFUERA
+    -- de esta exclusion: a el si se le compra lo que produce.
     and not exists (
       select 1 from ruta_paso rp
       join proveedor_servicio ps2 on ps2.id = rp.proveedor_id
       where rp.tipo_paso = 'proveedor_servicio'
         and rp.comp_salida_id = c.id
-        and ps2.nombre = c.proveedor
+        and not ps2.pedido_por_oc
+        and ( ps2.nombre = c.proveedor
+           or ps2.cod_prov = (select pi3.cod_prov from proveedor_insumo pi3
+                               where pi3.nombre = c.proveedor) )
     )
 ), calc as (
   select ins.*,
@@ -4544,7 +4600,8 @@ select jsonb_build_object(
       'nombre',pi.nombre,'rubro',pi.rubro,'modo_control',pi.modo_control,
       'cod_prov',pi.cod_prov,'activo',pi.activo,'dias_entrega',pi.dias_entrega,'entrega_en',pi.entrega_en,'pedido_minimo_kg',pi.pedido_minimo_kg,
       'insumos',(select count(*) from componente c3
-                  where c3.estado_compra is null
+                  where (c3.estado_compra is null
+                         or exists (select 1 from fas f3 where f3.comp_id = c3.id))
                     and (c3.proveedor = pi.nombre
                          or exists (select 1 from componente_proveedor_alt a3
                                      where a3.componente_id = c3.id and a3.proveedor = pi.nombre)))
@@ -6954,6 +7011,24 @@ CREATE OR REPLACE FUNCTION "GP2".tablet_bundle()
  SET search_path TO 'GP2'
 AS $function$
 with
+-- FASONERO (proveedor_servicio.pedido_por_oc, hoy Maspoli): lo que falta entregar de su O.C.
+-- ENVIADA, sumado por (proveedor, pieza que se le manda). Es el techo de lo que hay que mandarle:
+-- si nos debe 10 mangos, hay que tener 10 virolas en su poder [usuario 2026-09-18]. Mismo criterio
+-- que el inyector (rep_iny): el borrador es un pedido que todavia no salio y no dispara envio.
+oc_ps as (
+  select p.proveedor_id, p.comp_entrada_id as comp_id, sum(coalesce(x.pend,0)) as pend
+    from (select distinct rp.proveedor_id, rp.comp_entrada_id, rp.comp_salida_id
+            from ruta_paso rp
+            join proveedor_servicio ps on ps.id = rp.proveedor_id and ps.pedido_por_oc
+           where rp.tipo_paso = 'proveedor_servicio' and rp.comp_entrada_id is not null) p
+    left join lateral (
+       select sum(oi.cantidad - coalesce(oi.recibido,0)) as pend
+         from orden_compra_item oi join orden_compra o on o.id = oi.oc_id
+        where oi.componente_id = p.comp_salida_id and o.estado = 'enviada'
+          and oi.cantidad > coalesce(oi.recibido,0)
+    ) x on true
+   group by p.proveedor_id, p.comp_entrada_id
+),
 env as (
   select v.tipo, v.ref_id::text as ref, v.comp_id
     from v_contraparte_parte v
@@ -6963,6 +7038,11 @@ env as (
         or (v.tipo = 'proveedor_servicio'
             -- los PS hibridos (Charcas/Eclipse) NO se envian desde la tablet: la entrega de su
             -- materia prima se registra solo en el modulo Casos especiales [usuario 2026-09-17].
+            -- el FASONERO aparece SIEMPRE, igual que el inyector: sin O.C. su sugerido es 0 y sube
+            -- cuando la orden sale [usuario 2026-09-18: "los inyectores por mas que no este
+            -- cargada la orden de compra aparecen igual con cero sugerido, tendria que aparecer
+            -- Maspoli con cero sugerido y cuando sale la orden de compra ahi sube el sugerido de
+            -- entrega de virolas"]. El techo lo pone oc_ps en la CTE rep, que sin O.C. da 0.
             and exists (select 1 from proveedor_servicio ps where ps.id = v.ref_id and not ps.hibrido)) )
   union all
   select 'proveedor_at', apa.proveedor_at_id::text, ac.componente_id
@@ -6994,10 +7074,10 @@ env as (
 -- entrada (kg para fleje, uni para el resto), asi que no hay factor de conversion.
 rep as (
   select e.tipo, e.ref, e.comp_id,
-         round(cons.consumo * cons.meses) as maximo_dest,
+         round(t.techo) as maximo_dest,
          null::numeric as stock_dest,   -- el front muestra saldo_dest como "Stock", no este
          greatest(0, round(
-            cons.consumo * cons.meses
+            t.techo
             - coalesce((select i.cantidad from inventario i
                          where i.componente_id = e.comp_id
                            and i.ubicacion_id = ubic_de(e.tipo, e.ref::bigint) limit 1),0)
@@ -7020,6 +7100,16 @@ rep as (
                            where vc.componente_id = e.comp_id), 0)
          end as consumo
     ) cons
+    cross join lateral (
+       -- FASONERO: el techo es lo que falta entregar de su O.C., no el consumo x meses. Para el
+       -- resto (PS normal y tallerista) no cambia nada.
+       select case when e.tipo = 'proveedor_servicio'
+                    and exists (select 1 from proveedor_servicio ps3
+                                 where ps3.id = e.ref::bigint and ps3.pedido_por_oc)
+                   then coalesce((select oc.pend from oc_ps oc
+                                   where oc.proveedor_id = e.ref::bigint and oc.comp_id = e.comp_id), 0)
+                   else cons.consumo * cons.meses end as techo
+    ) t
 ),
 -- INYECTOR: el pedido de bolsas surge de la O.C. de partes plasticas ENVIADA (no del deficit
 -- automatico). Sin OC enviada -> maximo(O.C.)=0 y sugerido=0; recien cuando se manda la OC de partes
@@ -7121,6 +7211,7 @@ env_x as (
   select distinct on (e.tipo, e.ref, e.comp_id) e.tipo, e.ref, e.comp_id,
          c.codigo cod, c.descripcion descr, s.nombre sector, c.unidad_medida um,
          c.uni_x_cajon uxc, c.kg_x_uni kgu,
+         c.sector_id sec_id, c.carton_formato cfmt,
          coalesce((select i.cantidad from inventario i
                     where i.componente_id = c.id
                       and i.ubicacion_id = ubic_de('sector', c.sector_id) limit 1), 0) online_sector,
@@ -7207,6 +7298,15 @@ select jsonb_build_object(
     select coalesce(jsonb_agg(jsonb_build_object(
              'tipo', tipo, 'ref', ref, 'comp_id', comp_id, 'cod', cod, 'desc', descr,
              'sector', sector, 'um', um, 'uxc', uxc, 'kg_x_uni', kgu,
+             'env_unidad', case when tipo in ('tallerista','proveedor_at')
+                                  then case when sec_id in (10,11) then 'paquetes' else 'cajones' end end,
+             'env_factor', case when tipo in ('tallerista','proveedor_at') then case
+                                  when sec_id = 10 then (select f.uni_x_bolsa from carton_formato f where f.nombre = cfmt)
+                                  when sec_id = 11 then (select pa.valor::numeric from parametro pa
+                                                          where pa.clave = 'caja_uni_x_paquete')
+                                  else uxc end end,
+             'env_carga',  case when tipo in ('tallerista','proveedor_at')
+                                  then case when sec_id in (10,11) then 'envase' else 'kg' end end,
              'online_sector', online_sector, 'saldo_dest', saldo_dest,
              'maximo', maximo_dest, 'stock_dest', stock_dest, 'sugerido', sugerido
            ) order by cod), '[]'::jsonb) from env_x),
