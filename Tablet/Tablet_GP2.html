@@ -6,6 +6,26 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
+<!-- v1.14.0 (2026-09-18) — ENVIAR A PROV. DE SERVICIO: LAS PARTES EN TARJETAS, Y LA CARGA EN UNA
+     VISTA APARTE (usuario, textual: "quiero modificar la forma en que se seleccionan las partes.
+     Actualmente se muestran en formato de listado. Quiero reemplazar ese listado por boxes o
+     tarjetas individuales… Al seleccionar una parte, debe abrirse una vista donde se muestre la
+     cantidad sugerida y un campo para indicar la cantidad efectiva que se va a enviar").
+     ALCANCE: solo Enviar a Prov. de servicio, que incluye a los inyectores porque se eligen adentro
+     de ese mismo boton (es el mismo conjunto de envSinMemoria). Talleristas, prov. de art.
+     terminado y TODO Recibir siguen con la tabla: ahi hay esperado, exceso y remito, y el operario
+     los lee de corrido.
+     LA TARJETA muestra codigo (con su unidad), descripcion, el sugerido de referencia y, abajo, lo
+     que hoy se va a mandar ("sin cargar" en gris / "envia N" en verde, con el borde verde). LA
+     VISTA DE LA PARTE muestra el sugerido grande y el campo de la cantidad efectiva, con las MISMAS
+     unidades y equivalencias que tenia la fila: paquetes (AJ), kg con "= N bolsas" (Ester), kg con
+     el redondeo a cajones (Guazzaroni), y por peso (Julio) los dos campos, kg y bultos enteros, con
+     el bulto autocompletandose desde los kg. Boton "Usar el sugerido" que ESCRIBE el sugerido en el
+     campo: no es precarga (la cantidad sigue arrancando vacia, v1.12.0/v1.13.0), la aprieta el
+     operario.
+     SIN CAMBIOS DE DATOS: mismo buffer, mismo payload, mismas RPC. La cuenta del sugerido se
+     unifico en sugeridoInfo() / sugeridoEnCarga(), que ahora usan la tabla, la tarjeta, la vista de
+     la parte y la precarga del tallerista: una sola cuenta, no cuatro copias. -->
 <!-- v1.13.0 (2026-09-18) — Y TAMPOCO SE GUARDA LO QUE SE TIPEA: EN P.S. LA TABLA ARRANCA SIEMPRE
      VACIA (usuario: "hay algunos que siguen anotados. Si cargue algo yo, cuando salgo quiero que
      desaparezca, no que se guarde, por lo tanto todas las cantidades deben estar vacias"). v1.12.0
@@ -294,12 +314,44 @@
      el hueco; abajo del techo la descripcion envuelve en dos lineas. */
   table.t th:first-child,table.t td:first-child{max-width:340px}
   table.t td:first-child .sub{white-space:normal}
+  /* ---- TARJETAS DE PARTE — Enviar → Prov. de servicio [usuario 2026-09-18: "quiero reemplazar
+     ese listado por boxes o tarjetas individuales… al seleccionar una parte, debe abrirse una vista
+     donde se muestre la cantidad sugerida y un campo para la cantidad efectiva"]. Solo esa vista:
+     talleristas, prov. de art. terminado y TODO Recibir siguen con la tabla de siempre. ---- */
+  #tblBox.cards{display:block;width:100%}          /* la grilla usa el ancho entero, no el de la tabla */
+  .cards-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:10px;margin-top:10px}
+  .parte-card{display:flex;flex-direction:column;gap:3px;min-height:132px;text-align:left;cursor:pointer;
+    border:2px solid #d0d7de;border-radius:14px;background:#fff;color:#111;padding:14px 16px;font-family:inherit}
+  .parte-card:hover{border-color:#111}
+  .parte-card.cargada{border-color:#15803d;background:#f4fbf6}
+  .pc-cod{font-size:23px;font-weight:900;line-height:1.1}
+  .pc-desc{font-size:16px;font-weight:700;color:#444;line-height:1.25}
+  .pc-sug{font-size:15px;font-weight:700;color:#777;white-space:nowrap}
+  .pc-estado{margin-top:auto;padding-top:6px;font-size:17px;font-weight:800;color:#15803d}
+  .parte-card:not(.cargada) .pc-estado{color:#9aa1a8}
+  /* la vista de UNA parte: el sugerido bien grande y un solo campo para la cantidad que se manda */
+  #detBox{max-width:560px}
+  .det-card{border:2px solid #d0d7de;border-radius:16px;background:#fff;padding:18px 20px;margin-top:10px}
+  .det-cod{font-size:30px;font-weight:900;line-height:1.1}
+  .det-desc{font-size:19px;font-weight:700;color:#444;margin-top:4px;line-height:1.3}
+  .det-sector{font-size:15px;font-weight:700;color:#777;margin-top:2px}
+  .det-lbl{font-size:15px;font-weight:800;color:#777;letter-spacing:.6px;text-transform:uppercase;margin-top:18px}
+  .det-sug{font-size:34px;font-weight:900;color:#0b4aa2;line-height:1.1;margin-top:2px}
+  .det-sug small{display:block;font-size:16px;font-weight:800;color:#0b4aa2;margin-top:2px}
+  .det-in{font-size:30px;font-weight:900;height:64px;width:100%;max-width:300px;text-align:right;
+    border:2px solid #111;border-radius:12px;padding:0 14px;font-family:inherit;margin-top:4px}
+  .det-uni{font-size:20px;font-weight:800;color:#333;margin-left:8px}
+  .det-eq{display:block;margin-top:6px;font-size:16px;font-weight:800;color:#0b4aa2}
+  .det-acc{display:flex;gap:10px;margin-top:20px;flex-wrap:wrap}
+  .det-acc .btn{min-height:52px;font-size:19px}
   @media (max-width:640px){
     .modo-btn{font-size:17px;min-height:56px}
     .modo-btn small{display:none}
     /* en el celular no hay blanco que recortar: el bloque ocupa todo el ancho */
     #tblBox{display:block;width:100%}
     table.t th,table.t td{padding-left:8px;padding-right:8px}
+    .cards-grid{grid-template-columns:1fr}
+    .det-in{max-width:100%}
   }
 </style>
 </head>
@@ -357,13 +409,26 @@
 
         <div id="alertaBox" class="alerta-box hidden"></div>
 
-        <div class="table-wrap">
+        <div class="table-wrap" id="tblWrap">
           <table class="t">
             <thead><tr id="thead"></tr></thead>
             <tbody id="tbody"></tbody>
           </table>
         </div>
+
+        <!-- Enviar → Prov. de servicio: las partes en tarjetas en vez del listado. Comparte el
+             buscador y el buffer con la tabla; lo que cambia es cómo se elige y dónde se carga. -->
+        <div class="cards-grid hidden" id="cardsGrid"></div>
       </div>
+
+      <!-- la parte elegida: sugerido arriba, cantidad efectiva abajo -->
+      <div id="detBox" class="hidden">
+        <div class="row" style="margin:0">
+          <button class="btn btn-secondary" id="btnVolverPartes" type="button">← Partes</button>
+        </div>
+        <div class="det-card" id="detCard"></div>
+      </div>
+
       <div id="tblEmpty" class="empty hidden"></div>
       <div id="msg1" class="status"></div>
     </div>
@@ -399,6 +464,7 @@ var D = { contrapartes: [], enviar: [], recibir: [], alertas_abiertas: 0 };
 var MODO = null;        // enviar | recibir  (Conteo no es un modo: es el salto a Relevamientos)
 var selTipo = null;     // tallerista | proveedor_servicio | proveedor_at | virgilio
 var selCP = null;       // { tipo, ref, nombre, id }
+var detK = null;        // la parte abierta en la vista de carga (solo vista de tarjetas)
 var BUF = E.buffer("gp2_tablet_buffer", function(){ return { q: "" }; });
 
 /* Los TIPOS de contraparte de cada modo, en el orden en que el operario los busca. El que trae
@@ -556,6 +622,76 @@ function bultosSugeridos(b, sugUni){
   return (b && b.uxc > 0 && sugUni > 0) ? Math.ceil(sugUni / b.uxc) : null;
 }
 
+/* ---------- la vista de TARJETAS (Enviar → Prov. de servicio) ----------
+   [usuario 2026-09-18: "quiero reemplazar ese listado por boxes o tarjetas individuales… al
+   seleccionar una parte, debe abrirse una vista donde se muestre la cantidad sugerida y un campo
+   para indicar la cantidad efectiva que se va a enviar"]. Vale para P.S. e inyector (que se elige
+   adentro del mismo botón "Prov. de servicio"), que es justo el conjunto que ya no se acuerda de
+   lo tipeado: la misma cuenta de envSinMemoria. Talleristas, prov. de art. terminado y TODO
+   Recibir siguen con la tabla — ahí hay esperado, exceso y remito, y se leen de corrido. */
+function vistaTarjetas(){ return envSinMemoria(selCP); }
+
+/* El SUGERIDO de una pieza tal como se muestra, en la unidad de envío del proveedor. Lo usan la
+   tabla y la tarjeta, así no hay dos cuentas que se puedan separar:
+     txt   el número ya formateado          uni   su unidad (paquetes, bolsas, cajones, kg, uni)
+     nota  la aclaración cuando no se puede  small lo que la TABLA pinta en su <small> */
+function sugeridoInfo(x){
+  var pk = (MODO === "enviar") ? packEnvio() : null;
+  var b = (MODO === "enviar" && pesoEnvio()) ? bultoDe(x) : null;
+  var u = unidadDe(x);
+  if (b) {
+    // por peso el sugerido se mira EN BULTOS enteros, no en kilos [usuario 2026-09-17]
+    var sugB = bultosSugeridos(b, Number(x.sugerido));
+    var faltaB = "sin " + (b.label === "bolsas" ? "bolsa" : "cajón") + " cargado";
+    return { txt: fmt(sugB, 0, "—"), uni: sugB != null ? b.label : "",
+             nota: sugB != null ? "" : faltaB, small: sugB != null ? b.label : faltaB };
+  }
+  var f = factorEnvio(x, pk);
+  var sug = x.sugerido;
+  if (f > 0 && x.sugerido != null) sug = Math.ceil(Number(x.sugerido) / f);
+  // envase por pieza y la pieza sin cajón cargado: no se inventa el factor, esa fila queda en
+  // unidades (sugerido y campo) y se avisa para que no se lea como cajones.
+  var sinEnvase = !!(pk && pk.porPieza) && !(f > 0);
+  return { txt: fmt(sug, (!pk && u === "kg") ? 2 : 0, "—"),
+           uni: sinEnvase ? u : (pk && f > 0 ? pk.label : u),
+           nota: sinEnvase ? "sin cajón cargado" : "",
+           small: sinEnvase ? (u + " · sin cajón cargado") : "" };
+}
+
+/* La unidad con la que se ESCRIBE la cantidad de esa pieza (la del campo, no la de la pieza). */
+function uniCarga(x){
+  var pk = (MODO === "enviar") ? packEnvio() : null;
+  if (MODO === "enviar" && ((pesoEnvio() && bultoDe(x)) || cargaEnKg(x, pk))) return "kg";
+  var f = factorEnvio(x, pk);
+  return (pk && f > 0) ? pk.label : unidadDe(x);
+}
+function decDe(x){ return uniCarga(x) === "kg" ? 2 : 0; }
+
+/* El sugerido llevado a la unidad con la que se ESCRIBE: lo que precarga el tallerista y lo que
+   escribe el botón "Usar el sugerido" de la vista de una parte. null = no hay sugerido. */
+function sugeridoEnCarga(x){
+  var pk = (MODO === "enviar") ? packEnvio() : null;
+  var b = (MODO === "enviar" && pesoEnvio()) ? bultoDe(x) : null;
+  var raw = Number(x.sugerido);
+  if (!(raw > 0)) return null;
+  // por peso se mandan BULTOS ENTEROS: los kg son los de esos bultos (2 cajones de 750 a 0,04 = 60)
+  if (b) {
+    var nb = bultosSugeridos(b, raw);
+    return nb != null ? nb * b.uxc * b.kgu : raw * b.kgu;
+  }
+  var f = factorEnvio(x, pk);
+  var sugEnv = (f > 0) ? Math.ceil(raw / f) : raw;
+  return cargaEnKg(x, pk) ? sugEnv * kgPorEnvase(x, pk) : sugEnv;
+}
+
+/* la pieza abierta en la vista de una parte */
+function piezaDe(k){
+  var arr = piezasDe(selCP);
+  for (var i = 0; i < arr.length; i++) if (claveDe(arr[i]) === k) return arr[i];
+  return null;
+}
+
+
 /* ---------- carga ---------- */
 async function cargar(){
   try {
@@ -618,6 +754,7 @@ function avisoAlertas(){
 /* ---------- paso 1: el tipo ---------- */
 function mostrarTipos(){
   olvidarCargado(selCP);
+  cerrarDetalle();
   selTipo = null; selCP = null;
   E.mostrarFase(0);
   $("tipoGrid").classList.remove("hidden");
@@ -696,6 +833,7 @@ function elegir(c){
   // lo que se hubiera tipeado antes en este P.S. no sobrevive: la tabla arranca vacia
   olvidarCargado(c);
   selCP = c;
+  cerrarDetalle();                 // se entra por la grilla, nunca con una parte abierta
   $("fase1Title").textContent = c.nombre;
   E.mostrarFase(1);
   var esRec = MODO === "recibir";
@@ -740,10 +878,8 @@ function elegir(c){
       var _kgEnv = kgPorEnvase(x, _pk), _ckg = cargaEnKg(x, _pk);
       // por peso (Julio) se precargan los kg de los BULTOS ENTEROS sugeridos (2 cajones de 750 a
       // 0,04 kg = 60 kg), no los kg pelados del sugerido: lo que se manda son cajones completos.
-      var sugBul = b ? bultosSugeridos(b, rawSug) : null;
-      var sug = b ? (sugBul != null ? sugBul * b.uxc * b.kgu : rawSug * b.kgu)
-                  : (_ckg ? sugEnv * _kgEnv : sugEnv);
-      var dec = (b || _ckg) ? 2 : ((!_pk && unidadDe(x) === "kg") ? 2 : 0);
+      var sug = sugeridoEnCarga(x);
+      var dec = decDe(x);
       var vacio = (it.q === undefined || it.q === null || it.q === "");
       // migración: si el proveedor ahora manda por paquetes/bolsas (o por peso) pero en el buffer
       // quedó guardado el sugerido VIEJO (en unidades de una versión anterior, o en bolsas antes de
@@ -780,6 +916,7 @@ function elegir(c){
    si ese tipo tenía una sola (Virgilio) directamente a los tipos. */
 function volver(){
   olvidarCargado(selCP);
+  cerrarDetalle();
   selCP = null;
   if (!selTipo || cpsDelTipo(selTipo).length <= 1) { mostrarTipos(); return; }
   E.mostrarFase(0);
@@ -805,10 +942,52 @@ function exceso(x, q){
   return d > 0 ? d : 0;
 }
 
-function render(){
-  var arr = E.filtrar(piezasDe(selCP), $("q").value, function(x){
+function filtradas(){
+  return E.filtrar(piezasDe(selCP), $("q").value, function(x){
     return String(x.cod || "") + " " + String(x.desc || "") + " " + String(x.ent_cod || "") + " " + String(x.sector || "");
   });
+}
+
+/* Un solo punto de entrada: según la contraparte, tarjetas (P.S. / inyector) o tabla. */
+function render(){
+  var tarj = vistaTarjetas();
+  $("tblBox").classList.toggle("cards", tarj);
+  $("tblWrap").classList.toggle("hidden", tarj);
+  $("cardsGrid").classList.toggle("hidden", !tarj);
+  if (tarj) renderCards(); else renderTabla();
+}
+
+/* ---------- las partes como TARJETAS ----------
+   Código y descripción (lo mínimo que pidió el usuario), el sugerido de referencia y, abajo, lo
+   que hoy se va a mandar: así se ve de un vistazo qué quedó cargado y qué no. */
+function renderCards(){
+  var arr = filtradas();
+  var g = $("cardsGrid");
+  g.innerHTML = "";
+  $("tblEmpty").classList.toggle("hidden", arr.length > 0);
+  if (!arr.length) $("tblEmpty").textContent = "Sin resultados para ese filtro.";
+  arr.forEach(function(x){
+    var k = claveDe(x), it = BUF.item(selCP.id, k), q = num(it.q);
+    var si = sugeridoInfo(x), uc = uniCarga(x);
+    var b = document.createElement("button");
+    b.type = "button";
+    b.className = "parte-card" + (q > 0 ? " cargada" : "");
+    b.dataset.k = k;
+    b.innerHTML =
+      '<span class="pc-cod">' + esc(x.cod) + uniTag(uc) + "</span>" +
+      '<span class="pc-desc">' + esc(x.desc || "") + "</span>" +
+      '<span class="pc-sug">Sugerido ' + si.txt + (si.uni ? " " + esc(si.uni) : "") +
+        (si.nota ? " · " + esc(si.nota) : "") + "</span>" +
+      '<span class="pc-estado">' + (q > 0
+        ? "✓ envía <b>" + fmt(q, decDe(x)) + " " + esc(uc) + "</b>"
+        : "sin cargar") + "</span>";
+    g.appendChild(b);
+  });
+  actualizar();
+}
+
+function renderTabla(){
+  var arr = filtradas();
   var tb = $("tbody");
   tb.innerHTML = "";
   $("tblEmpty").classList.toggle("hidden", arr.length > 0);
@@ -846,24 +1025,14 @@ function render(){
       // en paquetes (techo); si no, en su unidad. Se MUESTRA siempre; en P.S. e inyector ya no se
       // precarga en la carga (v1.12.0), y lo tipeado ahí no se guarda al salir (v1.13.0). El
       // cálculo del sugerido no cambió, solo el render.
-      var _pk = _pkFila;
-      var _fEnv = factorEnvio(x, _pk);
-      var sugM = x.sugerido;
-      if (_fEnv > 0 && x.sugerido != null) sugM = Math.ceil(Number(x.sugerido) / _fEnv);
-      // envase por pieza y la pieza sin cajón cargado: no se inventa el factor, esa fila queda en
-      // unidades (sugerido y campo) y se avisa en la celda para que no se lea como cajones.
-      var sinEnvase = !!(_pk && _pk.porPieza) && !(_fEnv > 0);
+      // el sugerido sale de sugeridoInfo(), la misma cuenta que usa la tarjeta
+      var si = sugeridoInfo(x);
       if (b) {
-        // el sugerido se mira EN BULTOS enteros, no en kilos [usuario 2026-09-17: "no quiero ver
-        // los kilos, sino los cajones"]. Los kg equivalentes ya salen precargados en Cantidad (kg).
-        var sugB = bultosSugeridos(b, Number(x.sugerido));
-        mitad = '<td class="num esp"><b>' + fmt(sugB, 0, "—") + "</b><small>" +
-          (sugB != null ? b.label : "sin " + (b.label === "bolsas" ? "bolsa" : "cajón") + " cargado") +
-          "</small></td>";
+        mitad = '<td class="num esp"><b>' + si.txt + "</b><small>" + esc(si.small) + "</small></td>";
       } else {
         mitad = envConSugerido()
-          ? ('<td class="num esp"><b>' + fmt(sugM, (!_pk && u === "kg") ? 2 : 0, "—") + "</b>" +
-             (sinEnvase ? "<small>" + esc(u) + " · sin cajón cargado</small>" : "") + "</td>")
+          ? ('<td class="num esp"><b>' + si.txt + "</b>" +
+             (si.small ? "<small>" + esc(si.small) + "</small>" : "") + "</td>")
           : ('<td class="num esp">' + fmt(x.online_sector, u === "kg" ? 2 : 0) + " " + u + "</td>");
       }
     } else {
@@ -884,6 +1053,83 @@ function render(){
     if (ex > 0) tr.classList.add("demas");
     tb.appendChild(tr);
   });
+  actualizar();
+}
+
+/* ---------- la vista de UNA parte ----------
+   Se abre al tocar la tarjeta: arriba el sugerido (grande, de referencia) y abajo el campo con la
+   cantidad efectiva que se va a enviar. Es la MISMA carga de siempre — escribe en el mismo buffer,
+   con las mismas unidades y las mismas equivalencias que la tabla —, solo que de a una pieza. */
+function abrirParte(k){
+  if (!piezaDe(k)) return;
+  detK = k;
+  $("tblBox").classList.add("hidden");
+  $("detBox").classList.remove("hidden");
+  $("tblEmpty").classList.add("hidden");
+  pintarDetalle();
+  var inp = $("detCard").querySelector('input[data-f="q"]');
+  if (inp) inp.focus();
+}
+
+function cerrarDetalle(){
+  detK = null;
+  $("detBox").classList.add("hidden");
+  $("tblBox").classList.remove("hidden");
+}
+
+/* volver a la grilla: la tarjeta se repinta con lo que quedó cargado */
+function volverAPartes(){
+  cerrarDetalle();
+  render();
+}
+
+function pintarDetalle(){
+  var x = piezaDe(detK);
+  if (!x) { volverAPartes(); return; }
+  var it = BUF.item(selCP.id, detK), q = num(it.q);
+  var si = sugeridoInfo(x), uc = uniCarga(x);
+  var pk = packEnvio(), ckg = cargaEnKg(x, pk);
+  var b = (MODO === "enviar" && pesoEnvio()) ? bultoDe(x) : null;
+  var h =
+    '<div class="det-cod">' + esc(x.cod) + uniTag(uc) + "</div>" +
+    '<div class="det-desc">' + esc(x.desc || "") + "</div>" +
+    (x.sector ? '<div class="det-sector">' + esc(x.sector) + "</div>" : "") +
+    '<div class="det-lbl">Sugerido a enviar</div>' +
+    '<div class="det-sug">' + si.txt + (si.uni ? " " + esc(si.uni) : "") +
+      (si.nota ? "<small>" + esc(si.nota) + "</small>" : "") + "</div>" +
+    '<div class="det-lbl">Cantidad a enviar</div>' +
+    '<div><input class="det-in" data-f="q" inputmode="' +
+      ((b || ckg) ? "decimal" : inputmodeDe(unidadDe(x))) + '" value="' + esc(it.q || "") + '">' +
+      '<span class="det-uni">' + esc(uc) + "</span>" +
+      '<small class="det-eq">' + (ckg ? esc(equivEnvase(q, kgPorEnvase(x, pk), pk.label, !!pk.porPieza)) : "") +
+      "</small></div>";
+  // por peso (Julio) el bulto es el segundo campo, igual que la columna de la tabla: se
+  // autocompleta desde los kg mientras el operario no lo toque y va en enteros.
+  if (b) h += '<div class="det-lbl">Cantidad (' + esc(b.label) + ")</div>" +
+              '<div><input class="det-in" data-f="c" inputmode="numeric" value="' + esc(it.c || "") + '"></div>';
+  h += '<div class="det-acc">' +
+       (sugeridoEnCarga(x) != null ? '<button class="btn btn-secondary" type="button" data-a="sug">Usar el sugerido</button>' : "") +
+       '<button class="btn btn-primary" type="button" data-a="listo">Listo</button></div>';
+  $("detCard").innerHTML = h;
+}
+
+/* el botón escribe el sugerido en el campo (NO se precarga solo: en P.S. la cantidad arranca
+   siempre vacía [usuario 2026-09-18]; esto es un atajo que el operario aprieta a propósito). */
+function usarSugerido(){
+  var x = piezaDe(detK);
+  if (!x) return;
+  var v = sugeridoEnCarga(x);
+  if (v == null) return;
+  var it = BUF.item(selCP.id, detK);
+  it.q = fmt(v, decDe(x));
+  var b = (MODO === "enviar" && pesoEnvio()) ? bultoDe(x) : null;
+  if (b) {
+    var nb = bultosDeKg(b, v);
+    it.c = nb != null ? fmt(nb, 0) : "";
+    it.cAuto = it.c;
+  }
+  BUF.save();
+  pintarDetalle();
   actualizar();
 }
 
@@ -949,6 +1195,48 @@ $("tbody").addEventListener("input", function(e){
 // cerrar la pestana, recargar o irse a otra pantalla cuenta como salir: lo tipeado en un P.S. no
 // queda guardado para la proxima [usuario 2026-09-18].
 window.addEventListener("pagehide", function(){ olvidarCargado(selCP); });
+
+/* ---- eventos de la vista de tarjetas ---- */
+$("cardsGrid").addEventListener("click", function(e){
+  var c = e.target.closest(".parte-card");
+  if (c) abrirParte(c.dataset.k);
+});
+$("btnVolverPartes").addEventListener("click", volverAPartes);
+$("detBox").addEventListener("click", function(e){
+  var b = e.target.closest("button[data-a]");
+  if (!b) return;
+  if (b.dataset.a === "listo") volverAPartes();
+  if (b.dataset.a === "sug") usarSugerido();
+});
+$("detBox").addEventListener("input", function(e){
+  var inp = e.target.closest("input.det-in");
+  if (!inp || !detK) return;
+  var x = piezaDe(detK);
+  if (!x) return;
+  var it = BUF.item(selCP.id, detK);
+  it[inp.dataset.f] = inp.value;
+  BUF.save();
+  var q = num($("detCard").querySelector('input[data-f="q"]').value);
+  // la equivalencia en envases de lo tipeado (Ester, Guazzaroni), igual que debajo del campo de la tabla
+  var eq = $("detCard").querySelector(".det-eq");
+  var pk = packEnvio();
+  if (eq && cargaEnKg(x, pk))
+    eq.textContent = equivEnvase(q, kgPorEnvase(x, pk), pk.label, !!pk.porPieza);
+  // por peso: el bulto acompaña a los kg mientras el operario no lo haya corregido a mano
+  var b = (MODO === "enviar" && pesoEnvio()) ? bultoDe(x) : null;
+  if (b && inp.dataset.f === "q") {
+    var vacioC = (it.c === undefined || it.c === null || it.c === "");
+    if (vacioC || it.c === it.cAuto) {
+      var nb = bultosDeKg(b, q);
+      it.c = nb != null ? fmt(nb, 0) : "";
+      it.cAuto = it.c;
+      var inC = $("detCard").querySelector('input[data-f="c"]');
+      if (inC) inC.value = it.c;
+      BUF.save();
+    }
+  }
+  actualizar();
+});
 
 $("q").addEventListener("input", render);
 $("q0").addEventListener("input", pintarCPS);

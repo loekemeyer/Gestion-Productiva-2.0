@@ -10261,13 +10261,9 @@ C2 metálicas; PA10B, PA13B, PA18B, PA4B, PA5B, PC15AB, PEP2 plásticas) tienen 
 cargadas, así que las 11 convierten.
 
 **Qué falta:** el resto de los proveedores sigue en unidades; la unidad de envío se define caso por
-<<<<<<< HEAD
-caso con el dueño (ése fue el acuerdo al arrancar con AJ). **Ahora son tres formas, no dos: ver 4ec.**
-**Y el sugerido ya no se precarga en el campo Cantidad de los P.S.: solo se muestra (ver 4ee).**
-=======
 caso con el dueño (ése fue el acuerdo al arrancar con AJ). **Ahora son CUATRO formas, no dos: ver
-4ec (Ester) y 4ee (Guazzaroni), con la tabla de las cuatro en 4ee.**
->>>>>>> origin/main
+4ec (Ester) y 4ef (Guazzaroni), con la tabla de las cuatro en 4ef.**
+**Y el sugerido ya no se precarga en el campo Cantidad de los P.S.: solo se muestra (ver 4ee).**
 
 ## 4eb. El 506 pasa al molde del 500/510 (sin GRJ7) y el adhesivado de pliego es un PASO, no un subcomponente (2026-09-17)
 
@@ -10411,12 +10407,9 @@ lo tienen, así que no pasa.
 donde además se fue la columna "Cajón envío" para ese proveedor: el cajón no es la unidad con la
 que se le manda y era ruido). Lo sirven `tablet_bundle` (en cada contraparte) y `envios_ps_bundle`
 (en cada PS). **Pendiente: seguir caso por caso con los demás proveedores** — van definidos AJ,
-<<<<<<< HEAD
-Hernandez Julio y Ester de 15 PS. **El sugerido de los tres se sigue MOSTRANDO en su unidad, pero
-desde el 2026-09-17 ya no se precarga en el campo Cantidad (ver 4ee).**
-=======
-Hernandez Julio y Ester de 15 PS. **Ya son cuatro formas: ver 4ee.**
->>>>>>> origin/main
+Hernandez Julio, Ester y Guazzaroni de 15 PS. **Ya son cuatro formas: ver 4ef.** El sugerido de
+los cuatro se sigue MOSTRANDO en su unidad, pero desde el 2026-09-17 ya no se precarga en el campo
+Cantidad (ver 4ee).
 
 ## 4ed. La tabla de la tablet ENCOGE: el blanco va adentro de la celda, no entre columnas (2026-09-17)
 
@@ -10440,7 +10433,6 @@ angosta. En el celular (≤640px) no hay blanco que recortar: la tabla vuelve a 
 Lo cuida `tests/ui/test_tablet.js` midiendo a 1.280px (la tablet, no los 390px del celular): la
 tabla tiene que medir lo mismo que su contenido (`max-content`) y el buscador lo mismo que la tabla.
 Si alguna pantalla futura vuelve a quedar con pocas columnas, éste es el patrón a copiar.
-<<<<<<< HEAD
 
 ## 4ee. El SUGERIDO es referencia, no orden: a los P.S. no se les precarga la cantidad (2026-09-17)
 
@@ -10480,8 +10472,8 @@ lugar del envío real — y un envío mal cargado desbalancea el stock del P.S. 
 - **Y el campo vacío no dice "= 0 cajones"**: la equivalencia en bultos aparece cuando hay un número
   tipeado. Debajo de un campo en blanco era ruido.
 - **`EnviosPS_GP2` (pantalla de escritorio) no se tocó**: el pedido fue "en la versión tablet".
-=======
-## 4ee. La cuarta forma de enviar: Guazzaroni mira CAJONES (el de cada pieza) y escribe KG (2026-09-17)
+
+## 4ef. La cuarta forma de enviar: Guazzaroni mira CAJONES (el de cada pieza) y escribe KG (2026-09-17)
 
 `[usuario, textual: "dentro del version tablet, y envio a ps. Siguiendo la lógica del módulo
 Ester ---> en el módulo de guazzaroni patricio, el sugerido tendría que aparecer en cajones y en
@@ -10541,4 +10533,37 @@ y **no se pisa nunca**. Vale para todos los proveedores. La lección general: *u
 guardado en `localStorage` necesita saber si sigue siendo derivado o ya lo editó una persona* —
 guardar el valor no alcanza, hay que guardar también que lo puso la máquina.
 
->>>>>>> origin/main
+## 4eg. Enviar a un P.S. se elige por TARJETAS, y la carga es una pantalla por parte (2026-09-18)
+
+`[usuario 2026-09-18, textual: "En la versión tablet, dentro del módulo “Envío a proveedores de
+servicio”, quiero modificar la forma en que se seleccionan las partes. Actualmente se muestran en
+formato de listado. Quiero reemplazar ese listado por boxes o tarjetas individuales. Cada box debe
+mostrar, como mínimo: código o nombre de la parte, descripción de la parte. Al seleccionar una
+parte, debe abrirse una vista donde se muestre: la cantidad sugerida a enviar, un campo para
+indicar la cantidad efectiva que se va a enviar"]`
+
+El listado de un P.S. dejó de ser una tabla: es una **grilla de tarjetas**, una por parte, y al
+tocar una se abre **la vista de esa parte** con el sugerido arriba y el campo de la cantidad abajo.
+
+- **Alcance: Enviar → Prov. de servicio, inyectores incluidos** (se eligen dentro de ese mismo
+  botón, así que para el que usa la tablet son lo mismo). Es **el mismo conjunto** que ya no se
+  acuerda de lo tipeado (4ee): en el código la vista de tarjetas y `envSinMemoria()` son la misma
+  cuenta, a propósito. **Talleristas, prov. de art. terminado y TODO Recibir siguen con la tabla**:
+  ahí hay esperado, exceso y remito, que se leen de corrido y no de a una parte.
+- **La tarjeta** muestra código (con su unidad), descripción, el **sugerido** de referencia y, abajo,
+  lo que hoy se va a mandar: *"sin cargar"* en gris, o *"✓ envía N"* en verde con el borde verde.
+  Ese renglón de estado es lo que reemplaza al vistazo que daba la tabla: de un golpe se ve qué
+  falta cargar, sin abrir nada.
+- **La vista de la parte** mantiene **todas** las formas de enviar de 4ea/4ec/4ef sin excepción:
+  paquetes (AJ), kg con "= N bolsas" (Ester), kg con "≈ N cajones" redondeados (Guazzaroni), y por
+  peso (Julio) los **dos** campos — kg y bultos enteros, con el bulto autocompletandose desde los kg
+  y sin pisar lo que el operario corrigió a mano.
+- **Botón "Usar el sugerido"**: escribe el sugerido en el campo. **No es precarga** — la cantidad
+  sigue arrancando vacía (4ee) — es un atajo que aprieta la persona, con el mismo número que la
+  tablet le precargaría a un tallerista.
+- **No cambió nada de datos**: mismo buffer, mismo payload, mismas RPC. La cuenta del sugerido quedó
+  en **una sola función** (`sugeridoInfo()` para mostrarlo, `sugeridoEnCarga()` para escribirlo) que
+  ahora usan la tabla, la tarjeta, la vista de la parte y la precarga del tallerista: antes eran
+  cuatro copias de la misma aritmética y se podían separar.
+- **`EnviosPS_GP2` (escritorio) no se tocó**: el pedido fue "en la versión tablet". Sigue con la
+  tabla, igual que antes.
