@@ -7038,15 +7038,12 @@ env as (
         or (v.tipo = 'proveedor_servicio'
             -- los PS hibridos (Charcas/Eclipse) NO se envian desde la tablet: la entrega de su
             -- materia prima se registra solo en el modulo Casos especiales [usuario 2026-09-17].
-            and exists (select 1 from proveedor_servicio ps where ps.id = v.ref_id and not ps.hibrido)
-            -- al FASONERO no se le manda nada hasta que haya O.C. de lo que el devuelve
-            -- [usuario 2026-09-18: "que el envio a Maspoli de virolas no surja hasta que se hace
-            -- una orden de compra"]. Solo afecta a ENVIAR: recibir va por la CTE rec.
-            and ( not exists (select 1 from proveedor_servicio ps2
-                               where ps2.id = v.ref_id and ps2.pedido_por_oc)
-               or exists (select 1 from oc_ps oc
-                           where oc.proveedor_id = v.ref_id and oc.comp_id = v.comp_id
-                             and oc.pend > 0) )) )
+            -- el FASONERO aparece SIEMPRE, igual que el inyector: sin O.C. su sugerido es 0 y sube
+            -- cuando la orden sale [usuario 2026-09-18: "los inyectores por mas que no este
+            -- cargada la orden de compra aparecen igual con cero sugerido, tendria que aparecer
+            -- Maspoli con cero sugerido y cuando sale la orden de compra ahi sube el sugerido de
+            -- entrega de virolas"]. El techo lo pone oc_ps en la CTE rep, que sin O.C. da 0.
+            and exists (select 1 from proveedor_servicio ps where ps.id = v.ref_id and not ps.hibrido)) )
   union all
   select 'proveedor_at', apa.proveedor_at_id::text, ac.componente_id
     from articulo_prov_at apa

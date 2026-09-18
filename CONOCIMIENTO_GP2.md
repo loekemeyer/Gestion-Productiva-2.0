@@ -10707,11 +10707,17 @@ salidas de un PS `pedido_por_oc` **con su `estado_compra` intacto**.
 
 1. **O.C.** — `Compras/OC_GP2.html` muestra a Máspoli SRL con sus 3 mangos (sugerido = máximo −
    stock: PC12 2.448, PEP7 2.864, PEP8 2.552). `proveedor_insumo` "Máspoli SRL" pasó a `activo`.
-2. **Envío** — mientras no haya O.C. **enviada**, Maspoli no aparece en Envío a P.S. ni en la Tablet:
-   no hay nada que mandarle. Con O.C. de 10 mangos el sugerido dice **10 virolas** (1 a 1) menos las
-   que ya tiene en su poder. El borrador NO dispara: recién cuando la orden sale.
-3. **Entrega** — sigue por Entrega P.S. (ahí aparece **siempre**, con O.C. o sin ella: si no, no
-   habría dónde registrar lo que todavía debe), y desde hoy `crear_entrega_ps` **descuenta la O.C.**
+2. **Envío** — Maspoli aparece **siempre**, con O.C. o sin ella, y lo que cambia es el número:
+   sin orden el sugerido es **0**, y con una O.C. **enviada** de 10 mangos dice **10 virolas** (1 a
+   1) menos las que ya tiene en su poder. El borrador NO dispara: recién cuando la orden sale.
+   `[usuario 2026-09-18, segunda vuelta: "los inyectores por más que no esté cargada la orden de
+   compra aparecen igual con cero sugerido; tendría que aparecer Maspoli con cero sugerido y cuando
+   sale la orden de compra ahí sube el sugerido de entrega de virolas"]`. **La primera versión lo
+   escondía** mientras no hubiera O.C. y el dueño lo corrigió a las dos horas: un proveedor que
+   desaparece de la pantalla no se distingue de una pantalla rota, y además el operario pierde la
+   referencia de que ese proveedor existe. **Regla general que sale de acá: una fila con 0 informa;
+   una fila que no está, no.**
+3. **Entrega** — sigue por Entrega P.S., y desde hoy `crear_entrega_ps` **descuenta la O.C.**
    con el mismo cruce FIFO de la recepción de insumos. Sin eso la orden quedaba abierta para siempre
    y el sugerido de virolas nunca bajaba — el bug que se hubiera comido el cambio entero.
 

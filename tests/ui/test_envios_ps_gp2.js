@@ -125,12 +125,14 @@ window.supabase = { createClient: function(){ return {
   ok(provTxt.includes('Blist-Pack') && provTxt.includes('Pintado') && /\b2 partes\b/.test(provTxt),
      'fase0: el boton cuenta piezas a enviar, no pares — ' + provTxt.trim());
   ok((await page.$eval('#status', e => e.textContent)).includes('5 proveedores'), 'status: 5 proveedores');
-  // FASONERO SIN O.C.: no hay nada que mandarle, asi que no tiene boton (el status igual lo cuenta)
+  // FASONERO: aparece SIEMPRE, con O.C. o sin ella (igual que el inyector, usuario 2026-09-18).
+  // Sin orden el sugerido es 0; no se esconde, porque un proveedor que desaparece no se distingue
+  // de una pantalla rota.
   const nombresPS = await page.$$eval('#psGrid .prov-btn', xs => xs.map(x => x.textContent));
-  ok(nombresPS.length === 4 && !nombresPS.some(t => t.includes('Fasonero Sin OC')),
-     'el fasonero sin O.C. no aparece en Envio — ' + nombresPS.length + ' botones');
+  ok(nombresPS.length === 5 && nombresPS.some(t => t.includes('Fasonero Sin OC')),
+     'el fasonero sin O.C. TAMBIEN aparece en Envio — ' + nombresPS.length + ' botones');
   ok(nombresPS.some(t => t.includes('Maspoli SRL') && /\b1 partes\b/.test(t)),
-     'el fasonero CON O.C. si aparece, con su unica pieza');
+     'el fasonero con O.C. aparece con su unica pieza');
 
   // elegir proveedor
   await page.click('#psGrid .prov-btn');
@@ -288,6 +290,14 @@ window.supabase = { createClient: function(){ return {
   const sugMa = await page.$eval('#tbody tr:first-child td:last-child', e => e.textContent.trim());
   ok(sugMa.includes('10 uni'), 'Maspoli: O.C. de 10 mangos -> sugerido 10 virolas — ' + sugMa);
   ok(sugMa.includes('0,032 kg'), 'Maspoli: los kg al lado, que es como se le carga la cantidad — ' + sugMa);
+
+  // el fasonero SIN O.C.: misma pantalla, misma fila, sugerido en 0
+  await page.click('#btnVolver');
+  await page.click('#psGrid .prov-btn:has-text("Fasonero Sin OC")');
+  const filasSin = await page.$$eval('#tbody tr', xs => xs.length);
+  ok(filasSin === 1, 'fasonero sin O.C.: la fila se muestra igual — ' + filasSin);
+  const sugSin = await page.$eval('#tbody tr:first-child td:last-child', e => e.textContent.trim());
+  ok(sugSin.startsWith('0 uni'), 'fasonero sin O.C.: sugerido 0, no escondido — ' + sugSin);
 
   await browser.close();
   console.log(process.exitCode ? 'HAY FALLOS' : 'TODO OK');
