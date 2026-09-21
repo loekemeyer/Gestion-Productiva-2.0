@@ -11553,3 +11553,46 @@ se suman desde `stock_general_extra_bundle`, igual que en sus rubros.
 abierta obliga al usuario a saber la respuesta antes de preguntar. Si el índice completo ya está
 en memoria (y acá lo estaba), la búsqueda transversal no cuesta nada y encima destapa lo que
 ningún botón mostraba.
+
+## 4ew. El 863 lleva mango de MADERA, aunque se llame "Mgo Chef" (2026-09-21)
+
+`[usuario 2026-09-21, textual: "El 863 no usa ni PC6 ni PB6 ni PA19"; ejecutado con su "Sí", después
+de plantearle que el nombre del artículo decía lo contrario]`
+
+**La contradicción, que vale más que el cambio:** el **863** se llama *"Corta Pizza Gastro. **Mgo
+Chef** Ø 8 Cm"* y lo que había que sacarle era justamente `PA19` **Mangos Chef**. Parecía un error
+del pedido. No lo era: **el 863 llevaba DOS mangos**, `PA19` (chef) y `PEP8` (*Mango Madera Pizza
+Ø9*), y el que queda es el de madera.
+
+**Cómo se probó antes de ejecutar** `[dato 2026-09-21]` — el hermano:
+
+| | receta |
+|---|---|
+| 863 (después) | A8, E9, LL1, **PEP8**, S1A, V12, Z35 |
+| 564 *"Corta Pizza 8cm **Mgo Madera**"* | A3, E9, F4B, LL1, **PEP8**, V12, Z35 |
+
+Idénticos salvo **caja** (A8 / A3) y **cartón** (S1A / F4B). Y los otros dos que se sacaron son los
+accesorios que acompañan al mango chef en los 5 artículos que lo usan de verdad (709, 720, 722,
+856, 857): `PB6` *Inser. Neg. Espat* y `PC6` *Ojales Neg/Blanco*. **Los tres son un kit y salen
+juntos.** El corta pizza que sí es de mango chef es el **862**, que lleva `PA19` sin `PEP8`.
+
+**Entonces lo que está mal es la DESCRIPCIÓN del 863, no la receta** `[deducido 2026-09-21, sin
+confirmar]`. Se dejó el nombre como está: el dueño no contestó si el nombre comercial se corrige.
+**Queda preguntado.**
+
+**Se borró:** `articulo_componente` ids 779 (`PA19`), 780 (`PB6`), 781 (`PC6`) y las **3 rutas**
+825 / 826 / 827 (`"Insumo PA19|PB6|PC6 -> Art 863"`) con sus 9 pasos. Queda con **7 componentes y
+7 rutas**.
+
+**Plata:** el costo del 863 baja **$381,09/uni** sobre 34 uni/mes (~$12.957/mes), y es **piso**
+porque `PC6` **no tiene precio cargado** (`faltan_precios = 1`), o sea que la baja real es mayor y
+hoy no se puede medir. Consumo: `PA19` 13 → 12 artículos (1.336 uni/mes), `PB6` 6 → 5 (90),
+`PC6` 4 → 3 (134).
+
+Invariantes de `db/verificar.sql` que pegan con lo tocado (L, S, U, W, X, AA, AB, AD): **0**. `AE`
+da **2** y es **preexistente** (artículos 567 y 537).
+
+**REGLA QUE DEJAN LAS TRES CORRECCIONES DE HOY** (`4es` el 311/312, `4eu` el 731, ésta): cuando un
+artículo tiene **dos piezas que cumplen la misma función** — dos capuchones, una cacha donde va un
+espiral, dos mangos — **una sobra**, y el que dice cuál es el **hermano**: el artículo que hace lo
+mismo y está bien cargado. El nombre del artículo **no** es evidencia; la receta del hermano sí.
