@@ -11147,3 +11147,98 @@ los 9, y los niquelados dan 2 kg (V1, V2, V4, V9, V10, V11, V12, V13) o 10 kg (V
 o sea que la bolsa del fraccionado no es una sola. **Tres crudos no tienen cajón cargado** (CV6,
 CV9, CV18D): esas filas caen al envase de la pieza devuelta, que es lo único que hay. `[dato
 2026-09-18, GP2.componente]`
+
+## 4ep. Tanda de correcciones de despiece del usuario (2026-09-21)
+
+Ocho correcciones dictadas de corrido por el dueño en una sola charla. Van juntas porque comparten
+el mismo patrón: **el despiece que estaba cargado no era el que se arma en la planta**, y en la
+mitad de los casos el dato nuevo contradijo algo que ya estaba escrito acá.
+
+### a) Los coladores 026 y 027: "Telametal" **es** José López
+
+`[usuario 2026-09-21, textual]` *"El colador 026 y 027 los arma el prov de art terminado
+Telametal"* → preguntado si era un proveedor nuevo o el mismo, contestó *"Es Lopez Jose"*.
+O sea **Telametal = el `GP2.proveedor_at` id 4 "Lopez Jose"**, que ya tenía los dos coladores
+asignados con 6 entregas históricas cada uno. **No hubo cambio de despiece: ya estaba bien.**
+Corrige de paso lo que decía §4cn (los coladores los hace José López y sólo le damos el cartón,
+`[usuario 2026-09-13]`): sigue siendo cierto, Telametal es el otro nombre del mismo.
+**PENDIENTE, preguntado 3 veces y sin respuesta:** si se guarda como **alias**
+(`contraparte_alias` 'TELAMETAL' → proveedor_at 4, las pantallas siguen diciendo "Lopez Jose") o
+se **renombra** el proveedor a Telametal (cambia el nombre en sus 10 coladores y 24 entregas).
+Hasta que conteste, la base quedó **sin tocar**.
+
+### b) La pinza lleva DOS cachas, no una — y estaba mal en las 6
+
+`[usuario 2026-09-21]` *"El 053 le faltan las cachas azules PC8, lleva 2"*, y al marcarle que los
+hermanos tenían 1: *"los otros 5 también llevan 2 cachas"*. El **053** (Pinza de Fiambre Inox) era
+el único de las seis pinzas **sin `PC8`**; se le dio el alta con cantidad **2** más su ruta espejo
+(insumo → tallerista Pettofrezza → virgilio), y **054, 055, 594, 595 y 596 pasaron de 1 a 2**, en la
+receta y en el paso `insumo` de sus rutas. Lo que dio pie a preguntar: la base ya usaba 2 donde va
+un par (la puntera de ensalada `F11` está ×2 en 054 y 596), así que el 1 de PC8 era el error.
+Plata: PC8 = **$270,49** la unidad → el 053 sube $540,98 y los otros cinco $270,49 cada uno.
+**PENDIENTE:** el **731** (Sacacorcho Combinado Color) también lleva `PC8` y quedó en **1** — no es
+pinza, el usuario dijo "los otros 5" y ahí se paró.
+
+### c) El 059 lo envasa Lucho, no la Fábrica
+
+`[usuario 2026-09-21]` *"El 059 lo envasa Lucho"*. Los **3 pasos** del 059 (Cuchillo de Untar
+Plástico x2) pasaron de tallerista **Fábrica (3)** a **Lucho (5)**: los tres son el mismo acto de
+envasado (PEP9 ×2, CART059, caja A9). Cierra con lo que ya había: Lucho hace los hermanos **519** y
+**719** (Cuchillo Untar Mgo Madera x2), a $72,282 (AyE) y $77,112 (reenvasado).
+**PENDIENTE:** el 059 **no tiene `precio_tallerista`** de nadie, así que al salir de Fábrica su
+costo quedó subvaluado hasta que se cargue lo que cobra Lucho.
+
+### d) El 070 lo arma la FÁBRICA, y le faltaban dos partes
+
+`[usuario 2026-09-21]` *"Al 070 hay que agregarle Etiqueta 070 (ETIQ070) y Set Tuppers (GRJ30)"*,
+*"Lleva 1 de c/u"*, *"Los provee cimarron"*, y después *"El 070 arma fábrica"*. El 070 (Set Tapers
+0,8/1,5/3 Lts) tenía **sólo la caja A4** y su ruta colgaba del `proveedor_at` **"Pettofrezza" (id 9,
+`activo=false`** por duplicado con el tallerista Pettofrezza Rafael id 11): al pasar a Fábrica, esa
+dependencia de una contraparte desactivada **se fue sola**. Alta de **`GRJ30` "Set Tuppers"**
+(Sector Garage, proveedor Cimarrón, ×1, con ruta propia); los 3 pasos del artículo son hoy
+`tallerista → Fábrica`, y el stock de sus insumos vive en la ubicación de Fábrica (23).
+
+### e) **Lo que se compra es el ROLLO, no la etiqueta** — y trae 8.000
+
+`[usuario 2026-09-21, textual]` *"agregá como rollo etiquetas, NO etiq070. el rollo, después
+nosotros le ponemos el código y eso se le agregará al artículo. Pero en realidad se compra el
+rollo"*, *"8000 etiquetas en un rollo"*, *"El 071 también lleva etiqueta"*. Entonces:
+- El componente es **`ROLLOETIQ` "Rollo Etiquetas"** (id 934), proveedor **Sumatik**, que hubo que
+  dar de alta en `proveedor_insumo` (id 49) porque no existía — sin eso la etiqueta no entra en
+  ninguna O.C.
+- **Va en Sector Cartón**, no en un sector propio: el primer intento creó un "Sector Etiquetas" y el
+  usuario lo bajó (*"No crees el sector etiquetas. Pone dentro de sector carton"*); el sector se
+  borró. Queda con **`carton_formato` en null a propósito**, así no le aplican los múltiplos,
+  familias y pliegos que valen para los cartones de verdad.
+- **La cantidad es una fracción, como la caja**: 1 etiqueta de un rollo de 8.000 = **0,000125** en el
+  despiece del **070** y del **071**, con una ruta cada uno (insumo → Fábrica → virgilio). Cargarlo
+  con "1" habría metido un rollo entero por artículo.
+- El código específico por artículo (el `ETIQ070` del pedido original) **no se creó**: la etiqueta
+  impresa con su código es un paso posterior que hace la casa, no algo que se compre.
+
+### f) La arandela chica inox era `K9` en Crudo; es `E3` en Procesado
+
+`[usuario 2026-09-21, textual]` *"La arandela chica afila inox dice sector K9 pero es sector
+procesado E3"*. El componente id 39 pasó a **código `E3` + Sector Procesado**, y su fila de
+inventario (máximo 87.890) se mudó de la ubicación Crudo a Procesado. Cierra con la estructura:
+sale de matriz desde el fleje `IF2` y va **derecho al tallerista** en las 3 rutas de los afiladores
+(097, 114, 504), sin pasar por zincado ni cromado. **OJO con el código repetido**: en el Excel viejo
+`E3` era la arandela **grande** (hoy `F7`); el detalle y cómo distinguirlas está en
+`Renombres_Sectores.md`. La idea **7245** quedó actualizada (nombraba `K9`).
+
+### g) El nombre de una ruta mentía sobre el insumo que lleva — 110 casos
+
+Salió de la 670: se llamaba *"Insumo GRJ13 -> Art 071"* y lleva **GRJ21** (GRJ13 es el Cepillo Limpia
+Mamadera, otra pieza). Barrido completo: de 234 rutas cuyo nombre no coincide con el código real,
+**124 son apodos** legítimos (`CART053`, `V6`, `PLIEGO557`, "Caja") y **110 nombraban otro
+componente que existe de verdad** — esas son las que engañan al leer (la 522 decía "A9" y lleva A3).
+Se corrigieron las 110 reconstruyendo el nombre desde el insumo real y respetando el sufijo de
+tallerista; los 124 apodos **no se tocaron**. Invariante nuevo de la casa, de hecho: el nombre de la
+ruta no es decorativo, se lee para saber qué se manda.
+
+### h) Lo que quedó rojo y NO es de esta tanda
+
+`AE_paso_virgilio_y_codigo_dan_distinto` da **2**: los artículos **567** (Corta Palta) y **537**
+(Pela y Pica Ajo) tienen su componente terminado en el sector 12 pero **ninguna ruta**, así que el
+paso `virgilio` no existe. Es preexistente, no lo tocó esta sesión. El resto de los invariantes que
+pegan con lo que se cambió (A, I, K, L, S, U, W, X, Y, AA, AB, AD) dan **0**.
