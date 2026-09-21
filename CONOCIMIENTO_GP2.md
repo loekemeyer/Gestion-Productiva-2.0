@@ -9091,15 +9091,30 @@ todos los pedidos)"*. `[usuario]`
   **bolsa de filtro** ($39,32 contra los $63 de Vihal) — o sea que es un proveedor real, pero del
   insumo del filtro, no del artículo terminado. `[dato]`
 
-**Lo que NO contestó y quedó preguntado:**
-1. **5 filas de Cabral sí tienen su paso `proveedor_at` en la ruta**: `223` y `224` (Cuchara 25 y
-   30, compartidas con Pintos), `246` (Prensa Matambre, con Maspoli), `338` (Espátula Lisa) y
-   `577` (Tapón Prem). Si "todo" también las incluye hay que tocar las rutas, no sólo el padrón:
-   223/224 quedan con Pintos y 246 con Maspoli, pero **el 338 se queda sin nadie** y el 577
-   también (su otro proveedor, Pettofrezza, está inactivo).
-2. **Qué es "llevar a hacer" el 031**: si Cabral nos vende el filtro terminado es un paso
-   `proveedor_at` en una ruta alternativa; si le mandamos las partes y él arma, es un tallerista o
-   un proveedor de servicio, y la fila de `articulo_prov_at` no es el lugar.
+**"Todo" es todo: las 5 con ruta real también salen.** `[usuario 2026-09-21]` Lo contestó sin
+que hiciera falta repreguntar, mirando la tablet: *"cuando voy a enviar a prov de art terminado no
+me aparece la cja y carton de 031 nomás"* — o sea, esperaba ver **sólo** la caja y el cartón del
+031 y seguía viendo las 39 piezas de los 32 artículos. **Ejecutado con su "sí"**: 31 filas a
+`activo=false`, queda el **031**. Verificado: Cabral pasa de 39 piezas a 2 en Enviar
+(`A1B` Cartón 031 + `A9` Caja N°22) y de 32 artículos a 1 en Recibir.
+
+**La pantalla de Enviar sale de `articulo_prov_at`, NO de la ruta** — por eso desactivar alcanzó
+para que la tablet haga lo que él quiere. Es el cruce `articulo_prov_at → articulo →
+articulo_componente` que puso el fix v1.3.1 de la tablet (2026-09-15). `[dato]`
+
+**Queda el desprolijo que el `activo=false` NO arregla:** las rutas de `223`, `224`, `246`, `338`
+y `577` siguen con su paso `proveedor_at` apuntando a Cabral. La tablet no las lee, pero la ruta
+sigue diciendo que el proveedor es él. **Preguntado, sin respuesta:** si se saca a Cabral de esas
+5, 223/224 quedan con Pintos y 246 con Maspoli, pero **338 y 577 se quedan sin ningún proveedor**
+(el otro del 577, Pettofrezza, está inactivo). Ninguno de los 5 está `discontinuado` en
+`GP2.articulo`, aunque el 338 figuraba como `disc` en la nota de §4be. `[dato]`
+
+**También sin respuesta: qué es "llevar a hacer" el 031.** Si Cabral nos vende el filtro terminado
+es un paso `proveedor_at` en una ruta alternativa; si le mandamos las partes y él arma, es un
+tallerista o un proveedor de servicio, y `articulo_prov_at` no es el lugar. Hoy el 031 quedó en
+`articulo_prov_at` **sin** paso `proveedor_at` en ninguna de sus 3 rutas, que siguen siendo de
+IJUPA: es justamente la forma que §4cy punto 1 llama mal modelada. Se deja así a propósito hasta
+que el dueño defina el circuito.
 
 ## 4cz. El cruce de la lista de precios se hace por `cod_isis`, no por el nombre del producto (2026-09-13)
 
