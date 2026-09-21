@@ -11501,8 +11501,55 @@ el kg**: si el proveedor devuelve la mitad dice medio cajón, y si devuelve todo
 proveedores de servicio se tiene que seguir la lógica de primero cargar lo que dice el remito y
 despues hacer el control (como en recepcion de insumos) en el remito que sea en kg y despues
 controlar en kg y cajones (o unidad de medida correspondiente según la parte)"]`: **ya está hecho,
-ver 4ex** (esta línea decía "queda pendiente" y se corrigió el mismo día, cuando se construyó).
+ver 4eu** (esta línea decía "queda pendiente" y se corrigió el mismo día, cuando se construyó).
 
+
+## 4eu. Recepcionar un P.S. son DOS pasos: primero el remito, después el control (2026-09-21)
+
+`[usuario, textual: "En recepcion de proveedores de servicio se tiene que seguir la lógica de
+primero cargar lo que dice el remito y despues hacer el control (como en recepcion de insumos) en
+el remito que sea en kg y despues controlar en kg y cajones (o unidad de medida correspondiente
+según la parte)"; y enseguida: "Despues de recepcionar tengo que ir al control"]`.
+
+**La forma ya existía en la casa y se copió tal cual**: en la recepción de insumos el remito deja
+`recepcion_insumo` con `controlado=false`, y después `controlar_recepcion_kg` guarda lo declarado,
+**pisa la cantidad y ajusta el movimiento** — o sea el stock queda con lo que se contó, no con lo
+que dijo el papel. Lo mismo, ahora, para lo que entrega un proveedor de servicio.
+
+**Cómo quedó** `[usuario 2026-09-21, elegido entre opciones: control en PANTALLA PROPIA a la que la
+tablet manda al cerrar, y los dos pasos EN LA TABLET]`:
+
+1. **El remito** se sigue cargando donde se cargaba (Tablet → Recibir → P.S.), sin cambios: viaja
+   el kg y `crear_entrega_ps` mueve el stock como siempre.
+2. Al registrar, la Tablet **se va sola** a `Tablet/ControlEntregaPS_GP2.html`, sin cartel
+   intermedio — mismo criterio que insumos `[usuario 2026-09-03: "me gusta que me mande directo"]`.
+   **Única excepción**: si quedó una alerta de "recibí de más" se muestra la fase 3 con el aviso y
+   el paso al control va con un botón; esa alerta el operario tiene que leerla.
+3. **El control** se carga por pieza: lo CONTADO (en kg o en unidades, según la pieza) y los
+   BULTOS contados (cajones, o el envase del proveedor: AJ entrega en paquetes). Los campos
+   **arrancan vacíos a propósito**: el control es un dato nuevo, no una confirmación — precargarlo
+   con el remito invita a firmar sin contar. El remito queda arriba, a la vista, para comparar.
+4. `controlar_entrega_ps` guarda la fila en `GP2.entrega_ps_control` (declarado + controlado +
+   bultos + quién) y pisa `movimiento.cantidad` / `cantidad_transformada` / `cajones`; los triggers
+   reacomodan el inventario de las dos puntas solos.
+5. **Tolerancia**: la misma del pesaje de insumos (`parametro.tol_ctrl_peso_pct`, hoy 2 %). Abajo
+   de eso se registra sin preguntar; arriba, la tarjeta se pinta y el confirmar avisa que el stock
+   va a quedar con lo contado.
+
+**Qué es "pendiente de controlar"**: un movimiento `entrega_ps` SIN fila en `entrega_ps_control`.
+No hace falta un flag: el pendiente sale del ledger, igual que el saldo de cartones sustitutos
+(4er). Los pendientes no caducan — una entrega sin controlar de hace un mes se sigue viendo — y el
+encabezado de la Tablet los cuenta (`Control (N)`), que es lo que evita que quede algo colgado.
+
+⚠ **La entrega de escritorio (`Prov Serv/Entregas/EntregaPS_GP2.html`) NO manda al control**: sólo
+la Tablet, que es donde el usuario dijo que se hace el circuito. Lo que se cargue por ahí igual
+aparece como pendiente en la pantalla de control, así que no se pierde.
+
+⚠ **Lo que el control NO reajusta todavía**: si el P.S. es FASONERO (`pedido_por_oc`, hoy Maspoli),
+`crear_entrega_ps` descontó la O.C. con lo que decía el remito y el control no corrige esa resta.
+Es la misma limitación que tiene el control de insumos (`controlar_recepcion_kg` tampoco vuelve
+sobre la O.C.), y se deja anotada en vez de inventar una regla: cuando aparezca un desvío real en
+un fasonero hay que decidir si la O.C. sigue al remito o al control.
 
 ## 4eu. El 731 no lleva cachas azules: lleva el ESPIRAL (2026-09-21)
 
@@ -11609,52 +11656,29 @@ artículo tiene **dos piezas que cumplen la misma función** — dos capuchones,
 espiral, dos mangos — **una sobra**, y el que dice cuál es el **hermano**: el artículo que hace lo
 mismo y está bien cargado. El nombre del artículo **no** es evidencia; la receta del hermano sí.
 
-## 4ex. Recepcionar un P.S. son DOS pasos: primero el remito, después el control (2026-09-21)
+## 4ex. Una botonera que ya eligió se cierra; Sector y Proveedor son dos cajas (2026-09-21)
 
-`[usuario, textual: "En recepcion de proveedores de servicio se tiene que seguir la lógica de
-primero cargar lo que dice el remito y despues hacer el control (como en recepcion de insumos) en
-el remito que sea en kg y despues controlar en kg y cajones (o unidad de medida correspondiente
-según la parte)"; y enseguida: "Despues de recepcionar tengo que ir al control"]`.
+[usuario, textual] *"quiero que cuando toco un sector me desaparezca el resto de los sectores y
+además haya un botón que diga Todos"* + *"separame bien lo que es sector y proveedor porque no se
+entiende bien la separación"*. Dicho sobre `Compras/OC_GP2.html` (v1.34.0), pero es una **regla de
+pantalla**, no un arreglo de esa pantalla: vale para cualquier botonera de filtro de GP2.
 
-**La forma ya existía en la casa y se copió tal cual**: en la recepción de insumos el remito deja
-`recepcion_insumo` con `controlado=false`, y después `controlar_recepcion_kg` guarda lo declarado,
-**pisa la cantidad y ajusta el movimiento** — o sea el stock queda con lo que se contó, no con lo
-que dijo el papel. Lo mismo, ahora, para lo que entrega un proveedor de servicio.
-
-**Cómo quedó** `[usuario 2026-09-21, elegido entre opciones: control en PANTALLA PROPIA a la que la
-tablet manda al cerrar, y los dos pasos EN LA TABLET]`:
-
-1. **El remito** se sigue cargando donde se cargaba (Tablet → Recibir → P.S.), sin cambios: viaja
-   el kg y `crear_entrega_ps` mueve el stock como siempre.
-2. Al registrar, la Tablet **se va sola** a `Tablet/ControlEntregaPS_GP2.html`, sin cartel
-   intermedio — mismo criterio que insumos `[usuario 2026-09-03: "me gusta que me mande directo"]`.
-   **Única excepción**: si quedó una alerta de "recibí de más" se muestra la fase 3 con el aviso y
-   el paso al control va con un botón; esa alerta el operario tiene que leerla.
-3. **El control** se carga por pieza: lo CONTADO (en kg o en unidades, según la pieza) y los
-   BULTOS contados (cajones, o el envase del proveedor: AJ entrega en paquetes). Los campos
-   **arrancan vacíos a propósito**: el control es un dato nuevo, no una confirmación — precargarlo
-   con el remito invita a firmar sin contar. El remito queda arriba, a la vista, para comparar.
-4. `controlar_entrega_ps` guarda la fila en `GP2.entrega_ps_control` (declarado + controlado +
-   bultos + quién) y pisa `movimiento.cantidad` / `cantidad_transformada` / `cajones`; los triggers
-   reacomodan el inventario de las dos puntas solos.
-5. **Tolerancia**: la misma del pesaje de insumos (`parametro.tol_ctrl_peso_pct`, hoy 2 %). Abajo
-   de eso se registra sin preguntar; arriba, la tarjeta se pinta y el confirmar avisa que el stock
-   va a quedar con lo contado.
-
-**Qué es "pendiente de controlar"**: un movimiento `entrega_ps` SIN fila en `entrega_ps_control`.
-No hace falta un flag: el pendiente sale del ledger, igual que el saldo de cartones sustitutos
-(4er). Los pendientes no caducan — una entrega sin controlar de hace un mes se sigue viendo — y el
-encabezado de la Tablet los cuenta (`Control (N)`), que es lo que evita que quede algo colgado.
-
-⚠ **La entrega de escritorio (`Prov Serv/Entregas/EntregaPS_GP2.html`) NO manda al control**: sólo
-la Tablet, que es donde el usuario dijo que se hace el circuito. Lo que se cargue por ahí igual
-aparece como pendiente en la pantalla de control, así que no se pierde.
-
-⚠ **Lo que el control NO reajusta todavía**: si el P.S. es FASONERO (`pedido_por_oc`, hoy Maspoli),
-`crear_entrega_ps` descontó la O.C. con lo que decía el remito y el control no corrige esa resta.
-Es la misma limitación que tiene el control de insumos (`controlar_recepcion_kg` tampoco vuelve
-sobre la O.C.), y se deja anotada en vez de inventar una regla: cuando aparezca un desvío real en
-un fasonero hay que decidir si la O.C. sigue al remito o al control.
+1. **Elegido = el resto desaparece.** Con un sector elegido se ve **ese chip y nada más**, más un
+   chip **"Todos"** que lo suelta y devuelve la botonera entera. Los 9 sectores ocupaban dos
+   renglones **después** de elegir, que es justo cuando ya no se miran.
+2. **Cada filtro, su propia caja**, con la etiqueta adentro a la izquierda. Dos botoneras pegadas
+   una debajo de la otra, sin borde, se leen como una sola lista corrida — por eso el usuario no
+   veía dónde terminaba Sector y empezaba Proveedor.
+3. **La caja abraza el contenido** (`inline-flex`): con un sector elegido queda chica, no una barra
+   vacía a lo ancho. Es la regla de la casa de no dejar huecos.
+4. **El PROVEEDOR no se colapsa, y es a propósito** [deducido, sin confirmar]: ahí se **compara**
+   entre proveedores del mismo sector (quién cotiza más barato la misma caja: Corrugadora contra
+   Recicor, que entrega las mismas 11 y ~19% más barato), y esconderlos
+   obligaría a abrir y cerrar en cada comparación. El sector, en cambio, se elige una vez. Si el
+   dueño lo pide, es la misma línea de código.
+5. **"Todos" no muestra todo:** sin sector no hay lista (regla del 2026-09-04, *"si no pongo el
+   sector y no pongo el proveedor, que no me aparezca la lista"*), así que "Todos" vuelve al cartel
+   "Elegí un sector". El chip elegido también se sigue soltando tocándolo, como siempre.
 
 ## 4ey. El sustento del consumo sale de la O.C.: módulo propio "Consumo x Componente" (2026-09-21)
 

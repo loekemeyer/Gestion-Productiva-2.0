@@ -1,6 +1,18 @@
 <!doctype html>
 <html lang="es">
 <head>
+<!-- v1.34.0 (2026-09-21) — LA BOTONERA DE SECTOR SE CIERRA AL ELEGIR, Y SECTOR Y PROVEEDOR SE VEN
+     COMO DOS BLOQUES DISTINTOS [usuario: "quiero que cuando toco un sector me desaparezca el resto
+     de los sectores y ademas haya un boton que diga Todos" + "separame bien lo que es sector y
+     proveedor porque no se entiende bien la separacion"].
+     (1) pintarRubros() filtra la lista al sector elegido y agrega el chip "Todos" (#rubroTodos),
+         que suelta el sector y devuelve la botonera entera. El chip elegido se sigue pudiendo
+         soltar tocandolo, como antes. La botonera de PROVEEDOR no cambia: ahi se compara entre
+         proveedores del mismo sector y esconderlos obligaria a abrir y cerrar en cada comparacion.
+     (2) Cada filtro es ahora su propia caja (.filtros > .filtro) con la etiqueta adentro a la
+         izquierda. La caja abraza el contenido (inline-flex): con un sector elegido queda chica
+         en vez de una barra vacia a lo ancho.
+     Sin sector no hay lista (regla del 2026-09-04): "Todos" vuelve al cartel "Elegi un sector". -->
 <!-- v1.33.0 (2026-09-17) — UNA PIEZA SE LE PUEDE COMPRAR A MAS DE UN PROVEEDOR: RECICOR TAMBIEN
      RECIBE O.C. DE CAJAS [usuario: "en las ordenes de compra tendrias que agregar a recicor tambien",
      despues de sumarlo a Recepcion de Insumos el mismo dia].
@@ -448,11 +460,24 @@
   .oc-acts button{padding:8px 12px;font-size:14px;font-weight:700;border-radius:8px;border:2px solid #d0d7de;background:#fff;cursor:pointer}
   .oc-acts button.wpp{border-color:#25d366;color:#0a7a2f;background:#eafff1}
   .oc-acts button.anu{border-color:#eacdcd;color:#c62828}
-  /* Filtros: el proveedor es la eleccion principal (la OC sale con SUS insumos),
-     el rubro es un filtro de arriba. Etiqueta visible al lado de cada botonera. */
-  .filtro{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:6px 0}
-  .filtro-lb{font-size:14px;font-weight:800;color:#555;text-transform:uppercase;letter-spacing:.5px;min-width:86px}
-  .filtro .chips{margin:0;flex:1}
+  /* Filtros: DOS bloques separados, Sector arriba y Proveedor abajo. Cada uno es su propia
+     caja, con la etiqueta pegada adentro a la izquierda; antes las dos botoneras se leian
+     como una sola corrida [usuario 2026-09-21: "separame bien lo que es sector y proveedor
+     porque no se entiende bien la separacion"]. La caja ABRAZA su contenido (inline-flex):
+     con un sector elegido queda chica, sin barra vacia a lo ancho. */
+  .filtros{display:flex;flex-direction:column;align-items:flex-start;gap:10px;margin:10px 0 12px}
+  /* align-items:flex-start: con la botonera en dos renglones, la etiqueta queda arriba,
+     a la altura del primer chip, y no flotando en el medio. */
+  .filtro{display:inline-flex;align-items:flex-start;gap:10px;flex-wrap:wrap;margin:0;max-width:100%;
+          border:2px solid #dbe3ec;border-radius:14px;background:#f6f8fa;padding:8px 14px 8px 8px}
+  .filtro-lb{font-size:14px;font-weight:800;color:#0b3b73;text-transform:uppercase;letter-spacing:.5px;
+             background:#fff;border:2px solid #dbe3ec;border-radius:10px;padding:0 14px;
+             min-height:44px;display:inline-flex;align-items:center}
+  /* flex:1 para que los chips queden AL LADO de la etiqueta y envuelvan entre ellos: sin esto,
+     una botonera larga (11 proveedores) se va entera abajo y la etiqueta se come un renglon. */
+  .filtro .chips{margin:0;flex:1;min-width:0}
+  /* "Todos" NO es un sector: se distingue del que quedo elegido para que no se confundan. */
+  .chip.todos{background:#fff;border-style:dashed;border-color:#0b3b73;color:#0b3b73}
   .prov-info{background:#f6f8fa;border:2px solid #e6ebf0;border-radius:10px;padding:9px 12px;font-size:15px;color:#333;margin:8px 0}
   .leyenda{font-size:14px;color:#555;margin:8px 0 4px}
   .sub-nota{display:block;font-size:12px;color:#777;font-weight:400}
@@ -507,8 +532,8 @@
     .pedir-in{width:84px;font-size:19px;padding:9px 5px}
     .sug-calc{white-space:normal}
     .rep-tag{white-space:normal}
-    .filtro{flex-direction:column;align-items:flex-start;gap:4px}
-    .filtro-lb{min-width:0}
+    .filtro{flex-direction:column;align-items:flex-start;gap:6px;padding:8px}
+    .filtro-lb{min-width:0;min-height:38px;padding:0 12px}
     .campo,.campo-nota{width:100%}
     .campo-nota input,.barra input[type=date]{width:100%}
     .barra .btn-crear,.barra .btn-sug,.barra .btn-limpiar{flex:1;min-width:140px}
@@ -538,8 +563,10 @@
     </div>
 
     <div id="panGen">
-      <div class="filtro"><span class="filtro-lb">Sector</span><div class="chips" id="rubros"></div></div>
-      <div class="filtro hidden" id="filtroProv"><span class="filtro-lb">Proveedor</span><div class="chips" id="provs"></div></div>
+      <div class="filtros">
+        <div class="filtro"><span class="filtro-lb">Sector</span><div class="chips" id="rubros"></div></div>
+        <div class="filtro hidden" id="filtroProv"><span class="filtro-lb">Proveedor</span><div class="chips" id="provs"></div></div>
+      </div>
       <div class="prov-info hidden" id="provInfo"></div>
       <div class="regla-carton hidden" id="reglaCarton"></div>
       <!-- Sin sector ni proveedor elegido no se muestra NADA de la lista [usuario
@@ -806,18 +833,31 @@ function rubrosDistintos(){
 
 function pintarRubros(){
   var g=$('rubros'); g.innerHTML='';
-  rubrosDistintos().forEach(function(rb){
+  function elegir(id){
+    rubroSel=id;
+    // El proveedor NO se limpia siempre: solo si ya no vende nada de este rubro. Asi se
+    // puede elegir primero el proveedor (que es como se arma la OC) y despues afinar.
+    if(provSel!=null && provsDistintos().indexOf(provSel)<0) provSel=null;
+    pintarRubros();
+    proponerFecha();
+  }
+  // CON UN SECTOR ELEGIDO SE VE SOLO ESE CHIP + "Todos" [usuario 2026-09-21: "cuando toco
+  // un sector me desaparezca el resto de los sectores y ademas haya un boton que diga
+  // Todos"]. Los 9 sectores ocupaban dos renglones incluso despues de elegir uno.
+  var lista=rubrosDistintos();
+  if(rubroSel!=null) lista=lista.filter(function(rb){ return rb.id===rubroSel; });
+  lista.forEach(function(rb){
     var b=document.createElement('button'); b.type='button'; b.className='chip'+(rubroSel===rb.id?' active':''); b.textContent=rb.nombre;
-    b.addEventListener('click',function(){
-      rubroSel=(rubroSel===rb.id?null:rb.id);
-      // El proveedor NO se limpia siempre: solo si ya no vende nada de este rubro. Asi se
-      // puede elegir primero el proveedor (que es como se arma la OC) y despues afinar.
-      if(provSel!=null && provsDistintos().indexOf(provSel)<0) provSel=null;
-      pintarRubros();
-      proponerFecha();
-    });
+    b.addEventListener('click',function(){ elegir(rubroSel===rb.id?null:rb.id); });
     g.appendChild(b);
   });
+  // "Todos" suelta el sector y devuelve la botonera entera. Sin sector no hay lista
+  // (regla del 2026-09-04), asi que vuelve a verse el cartel que pide elegir uno.
+  if(rubroSel!=null){
+    var t=document.createElement('button'); t.type='button'; t.className='chip todos'; t.id='rubroTodos'; t.textContent='Todos';
+    t.addEventListener('click',function(){ elegir(null); });
+    g.appendChild(t);
+  }
   pintarProvs();
   render();
 }
