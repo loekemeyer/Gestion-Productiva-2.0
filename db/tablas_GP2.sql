@@ -34,12 +34,14 @@ create table "GP2".alerta_recepcion (
   cerrado_por text,
   constraint alerta_recepcion_pkey PRIMARY KEY (id),
   constraint alerta_recepcion_comp_id_fkey FOREIGN KEY (comp_id) REFERENCES "GP2".componente(id),
+  constraint alerta_recepcion_movimiento_id_fkey FOREIGN KEY (movimiento_id) REFERENCES "GP2".movimiento(id) ON DELETE CASCADE,
   constraint alerta_recepcion_estado_chk CHECK ((estado = ANY (ARRAY['abierta'::text, 'vista'::text, 'resuelta'::text]))),
   constraint alerta_recepcion_exceso_chk CHECK ((exceso > (0)::numeric)),
   constraint alerta_recepcion_tipo_chk CHECK ((origen_tipo = ANY (ARRAY['tallerista'::text, 'proveedor_servicio'::text, 'proveedor_at'::text, 'proveedor_insumo'::text, 'virgilio'::text])))
 );
 comment on table "GP2".alerta_recepcion is 'Se recibio MAS de lo que la contraparte decia tener (stock online) o de lo que pedia la OC. La recepcion NO se frena: se registra igual y queda esta alerta, que sale en el programa completo (Alertas y badge del menu). Nace con la version Tablet del operario (2026-09-13).';
 comment on column "GP2".alerta_recepcion.esperado_origen is 'De donde salio el esperado: oc | online_tall | online_ps | online_virgilio | sin_referencia.';
+comment on column "GP2".alerta_recepcion.movimiento_id is 'Movimiento que genero la alerta. FK con ON DELETE CASCADE desde 2026-09-21: sin ella la alerta sobrevivia al borrado de su movimiento y el badge del menu mostraba una recepcion que ya no existia (problema 483 de github_repo_problemas).';
 
 -- ---------- articulo ----------
 create table "GP2".articulo (
