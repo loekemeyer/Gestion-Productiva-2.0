@@ -1681,6 +1681,57 @@ where c.id = p_comp_id;
 $function$
 ;
 
+-- ---------- control_entrega_ps_bundle ----------
+CREATE OR REPLACE FUNCTION "GP2".control_entrega_ps_bundle(p_dias integer DEFAULT 7)
+ RETURNS jsonb
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'GP2'
+AS $function$
+with mov as (
+  select m.id, m.fecha, m.cantidad, m.cantidad_transformada, m.unidad_destino, m.cajones,
+         m.comp_id sc_id, m.comp_transformado_id sp_id,
+         ps.id ps_id, ps.nombre ps_nombre, ps.entrega_unidad, ps.entrega_uni_x,
+         sc.codigo sc_cod, sc.descripcion sc_desc, sc.uni_x_cajon sc_unixcaj,
+         sp.codigo sp_cod, sp.descripcion sp_desc, sp.unidad_medida sp_um,
+         sp.kg_x_uni sp_kgxuni, sp.uni_x_cajon sp_unixcaj,
+         c.id ctrl_id, c.declarado, c.controlado, c.controlado_cajones, c.controlado_en, c.controlado_por
+    from movimiento m
+    join ubicacion u on u.id = m.ubic_origen_id and u.tipo = 'proveedor_servicio'
+    join proveedor_servicio ps on ps.id = u.ref_id
+    join componente sc on sc.id = m.comp_id
+    join componente sp on sp.id = m.comp_transformado_id
+    left join entrega_ps_control c on c.movimiento_id = m.id
+   where m.tipo_mov = 'entrega_ps'
+     and (c.id is null or m.fecha >= now() - make_interval(days => greatest(coalesce(p_dias,7), 1)))
+)
+select jsonb_build_object(
+  'generado_en', now(),
+  -- tolerancia del control, la MISMA que usa el pesaje de insumos (parametro tol_ctrl_peso_pct,
+  -- hoy 2 %): arriba de eso la pantalla pinta la fila y pide confirmar antes de registrar.
+  'tol_pct', coalesce((select valor::numeric from parametro where clave = 'tol_ctrl_peso_pct'), 2),
+  -- PENDIENTES: lo que se cargo del remito y todavia nadie conto. No se limitan por fecha:
+  -- una entrega sin controlar de hace un mes sigue pendiente y tiene que verse.
+  'pend', coalesce((select jsonb_agg(jsonb_build_object(
+            'mov_id', id, 'fecha', fecha, 'ps_id', ps_id, 'ps_nombre', ps_nombre,
+            'sc_cod', sc_cod, 'sc_desc', sc_desc, 'sc_unixcaj', sc_unixcaj,
+            'sp_id', sp_id, 'sp_cod', sp_cod, 'sp_desc', sp_desc,
+            'sp_um', sp_um, 'sp_kgxuni', sp_kgxuni, 'sp_unixcaj', sp_unixcaj,
+            'entrega_unidad', entrega_unidad, 'entrega_uni_x', entrega_uni_x,
+            'declarado', cantidad_transformada, 'unidad', unidad_destino, 'cajones', cajones
+          ) order by fecha desc, id desc) from mov where ctrl_id is null), '[]'::jsonb),
+  -- HECHOS: los ultimos controlados, para ver la diferencia contra el remito.
+  'hechos', coalesce((select jsonb_agg(jsonb_build_object(
+            'mov_id', id, 'fecha', fecha, 'ps_nombre', ps_nombre,
+            'sp_cod', sp_cod, 'sp_desc', sp_desc, 'unidad', unidad_destino,
+            'declarado', declarado, 'controlado', controlado, 'cajones', controlado_cajones,
+            'diff', controlado - declarado,
+            'controlado_en', controlado_en, 'controlado_por', controlado_por
+          ) order by controlado_en desc) from mov where ctrl_id is not null), '[]'::jsonb)
+);
+$function$
+;
+
 -- ---------- control_envios_bundle ----------
 CREATE OR REPLACE FUNCTION "GP2".control_envios_bundle(p_desde date, p_hasta date)
  RETURNS jsonb
@@ -1822,6 +1873,56 @@ AS $function$
     'uni_x_paq_default', coalesce((select valor::numeric from parametro where clave = 'caja_uni_x_paquete'), 25)
   );
 $function$
+;
+
+-- ---------- controlar_entrega_ps ----------
+CREATE OR REPLACE FUNCTION "GP2".controlar_entrega_ps(p_mov_id bigint, p_cantidad numeric, p_cajones numeric DEFAULT NULL::numeric, p_usuario text DEFAULT NULL::text, p_nota text DEFAULT NULL::text)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'GP2'
+AS $function$
+declare
+  m movimiento%rowtype;
+  v_u text; v_decl numeric; v_cons numeric; v_cod text; v_id bigint;
+begin
+  if p_cantidad is null or p_cantidad <= 0 then
+    raise exception 'La cantidad controlada tiene que ser mayor a 0.';
+  end if;
+  select * into m from movimiento where id = p_mov_id;
+  if not found then raise exception 'El movimiento % no existe.', p_mov_id; end if;
+  if m.tipo_mov <> 'entrega_ps' then
+    raise exception 'El movimiento % no es una entrega de proveedor de servicio (es %).', p_mov_id, m.tipo_mov;
+  end if;
+  if exists (select 1 from entrega_ps_control c where c.movimiento_id = p_mov_id) then
+    raise exception 'Esa entrega ya fue controlada.';
+  end if;
+
+  -- lo que decia el REMITO: la cantidad ENTREGADA (cantidad_transformada), no el consumo del SC
+  v_u    := case when lower(coalesce(m.unidad_destino,'uni')) = 'kg' then 'kg' else 'uni' end;
+  v_decl := coalesce(m.cantidad_transformada, m.cantidad);
+
+  insert into entrega_ps_control(movimiento_id, declarado, declarado_unidad, declarado_cajones,
+                                 controlado, controlado_cajones, controlado_por, nota)
+  values (p_mov_id, v_decl, v_u, m.cajones, p_cantidad, p_cajones, p_usuario, p_nota)
+  returning id into v_id;
+
+  -- EL STOCK QUEDA CON LO CONTROLADO (mismo criterio que controlar_recepcion_kg en insumos): se
+  -- pisa la cantidad del movimiento y los triggers reacomodan el inventario de las dos puntas.
+  -- La entrega es 1 a 1: la SC consumida es la misma cantidad que la SP recibida, expresada en la
+  -- canonica de la SP (igual que crear_entrega_ps).
+  v_cons := to_canonical(m.comp_transformado_id, p_cantidad, v_u);
+  update movimiento
+     set cantidad = v_cons,
+         cantidad_transformada = p_cantidad,
+         cajones = coalesce(p_cajones, cajones)
+   where id = p_mov_id;
+
+  select codigo into v_cod from componente where id = m.comp_transformado_id;
+  return jsonb_build_object('ok', true, 'id', v_id, 'movimiento_id', p_mov_id, 'cod', v_cod,
+    'declarado', v_decl, 'controlado', p_cantidad, 'unidad', v_u,
+    'diff', p_cantidad - v_decl, 'cajones', p_cajones, 'consumo_canon', v_cons);
+end $function$
 ;
 
 -- ---------- controlar_recepcion_cajas ----------

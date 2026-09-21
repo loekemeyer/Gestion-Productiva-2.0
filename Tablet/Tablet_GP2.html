@@ -6,6 +6,17 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
+<!-- v1.28.0 (2026-09-21) — RECEPCIONAR UN P.S. TERMINA EN EL CONTROL (usuario, textual: "Después de
+     recepcionar tengo que ir al control"; y antes: "En recepcion de proveedores de servicio se
+     tiene que seguir la lógica de primero cargar lo que dice el remito y despues hacer el control
+     (como en recepcion de insumos)"). Lo que se registra acá es EL REMITO; lo contado de verdad va
+     en ControlEntregaPS_GP2.html (pantalla nueva), que guarda lo declarado en GP2.entrega_ps_control
+     y pisa la cantidad del movimiento — el stock queda con lo controlado, igual que
+     controlar_recepcion_kg en insumos. Al registrar se va DIRECTO al control, sin cartel intermedio
+     [mismo criterio que el usuario pidió para insumos el 2026-09-03: "me gusta que me mande
+     directo"]. La ÚNICA excepción es la alerta de "recibí de más": ahí la fase 3 se muestra igual
+     —el operario tiene que leerla— y el paso al control va con un botón. Sólo aplica a Recibir de
+     un P.S.: tallerista, prov. AT, insumos y Virgilio quedan como estaban. -->
 <!-- v1.27.0 (2026-09-21) — RECIBIR: EL STOCK DE LA CONTRAPARTE SE CUENTA EN EL CAJÓN QUE ANOTÓ
      LOGÍSTICA (usuario, textual: "tiene que aparecer en su stock los cajones que escribe logística,
      no los que se calcula a partir de los kg"). Se le mandó a Guazzaroni 1 cajón de CV1 con 21 kg y
@@ -672,6 +683,9 @@
     <h1>📱 Tablet</h1>
     <div class="hbtns">
       <button class="hlink hidden" id="btnVolver" type="button">← Cambiar</button>
+      <!-- lo que se recepcionó y todavía nadie contó: se entra solo al registrar un remito de P.S.,
+           pero también desde acá, para retomar lo que quedó pendiente (2026-09-21) -->
+      <a href="ControlEntregaPS_GP2.html" id="lnkControl">Control</a>
       <a href="../GP2_MODULOS.html">Atrás</a>
     </div>
   </div>
@@ -2007,6 +2021,19 @@ $("btnEnviar").addEventListener("click", async function(){
       : "";
     E.mostrarExito((res.n || items.length) + " pieza" + ((res.n || items.length) === 1 ? "" : "s") + " · " +
       (MODO === "enviar" ? "enviadas a " : "recibidas de ") + (res.contraparte || selCP.nombre) + " · " + fecha);
+    // DESPUÉS DEL REMITO VIENE EL CONTROL [usuario 2026-09-21: "Después de recepcionar tengo que ir
+    // al control"]. Lo que se acaba de registrar es lo que dice el remito; lo que se contó de verdad
+    // se carga en ControlEntregaPS_GP2.html, que es la que pisa la cantidad. Se va DIRECTO, sin
+    // cartel intermedio, igual que la recepción de insumos [usuario 2026-09-03: "me gusta que me
+    // mande directo como en el caso de flejes"]. ÚNICA excepción: si quedó una alerta de "recibí de
+    // más" no se salta la pantalla — ahí el operario tiene que leerla, y va con un botón.
+    if (MODO === "recibir" && selCP.tipo === "proveedor_servicio") {
+      if (!al.length) { window.location.href = "ControlEntregaPS_GP2.html"; return; }
+      $("successAlertas").innerHTML +=
+        '<div class="row" style="justify-content:center;margin-top:10px">' +
+        '<a class="btn btn-primary" href="ControlEntregaPS_GP2.html"' +
+        ' style="display:inline-flex;align-items:center;text-decoration:none">Ir al control →</a></div>';
+    }
     try { var r2 = await SB.rpc("tablet_bundle"); if (!r2.error && r2.data) D = r2.data; } catch(e2){}
   } catch(err){
     $("msg1").innerHTML = '<span style="color:#b91c1c">Error: ' + esc(err.message || err) + "</span>";
@@ -2016,6 +2043,19 @@ $("btnEnviar").addEventListener("click", async function(){
 
 $("fFecha").value = hoyISO();
 cargar();
+
+/* CUÁNTAS ENTREGAS DE P.S. QUEDARON SIN CONTROLAR (2026-09-21). El circuito nuevo es remito →
+   control, y lo que hace que no quede nada colgado es verlo en la puerta: si hay pendientes, el
+   link del encabezado los cuenta. Es BEST EFFORT y nunca bloquea la pantalla: si la RPC falla, el
+   link queda diciendo "Control" y la tablet funciona igual. */
+(async function () {
+  try {
+    var r = await SB.rpc("control_entrega_ps_bundle");
+    var n = ((r && r.data && r.data.pend) || []).length;
+    var a = $("lnkControl");
+    if (a && n) a.textContent = "Control (" + n + ")";
+  } catch (e) {}
+})();
 </script>
 </body>
 </html>
