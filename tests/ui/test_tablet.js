@@ -88,6 +88,9 @@ const BUNDLE = {
     { tipo: 'tallerista', ref: '6', comp_id: 71, comp_entrada_id: 70, n_entradas: 1, tiene_bom: false, cod_art: null, cod: 'A11', desc: 'Una Armada', sector: 'Sector Procesado', um: 'unidad', uxc: 500, kg_x_uni: 0.01, por_caja: null, ent_cod: 'A10', ent_desc: 'Cpo Una', esperado: 1000, esperado_origen: 'online_tall', env_unidad: 'cajones', env_factor: 500, env_carga: 'kg' },
     // la UNICA excepcion: las bombillas GRJ5/GRJ6 entregan BOLSAS de 120 (componente.entrega_*)
     { tipo: 'tallerista', ref: '6', comp_id: 541, comp_entrada_id: null, n_entradas: 0, tiene_bom: false, cod_art: null, cod: 'GRJ5', desc: 'Bombilla Resorte Trad 558', sector: 'Sector Garage', um: 'unidad', uxc: 960, kg_x_uni: 0.0147, por_caja: null, ent_cod: null, ent_desc: null, esperado: 360, esperado_origen: 'online_tall', env_unidad: 'bolsas', env_factor: 120, env_carga: 'kg' },
+    // el tallerista NO tiene nada nuestro de esta pieza: la base manda esperado 0 (coalesce), y la
+    // pantalla tiene que DECIR 0, no dejar el lugar en blanco [usuario 2026-09-21]
+    { tipo: 'tallerista', ref: '6', comp_id: 72, comp_entrada_id: null, n_entradas: 0, tiene_bom: false, cod_art: null, cod: 'A12', desc: 'Una Armada Chica', sector: 'Sector Procesado', um: 'unidad', uxc: 500, kg_x_uni: 0.01, por_caja: null, ent_cod: null, ent_desc: null, esperado: 0, esperado_origen: 'online_tall', env_unidad: 'cajones', env_factor: 500, env_carga: 'kg' },
     { tipo: 'proveedor_at', ref: '1', comp_id: null, comp_entrada_id: null, n_entradas: 0, tiene_bom: false, cod_art: '026', cod: '026', desc: 'Colador N°8', sector: null, um: null, uxc: null, kg_x_uni: null, por_caja: 36, ent_cod: null, ent_desc: null, esperado: 72, esperado_origen: 'oc' },
     { tipo: 'proveedor_servicio', ref: '20', comp_id: 91, comp_entrada_id: 90, n_entradas: 1, tiene_bom: false, cod_art: null, cod: 'D5-P', desc: 'Mitad pintada', sector: 'Sector Procesado', um: 'unidad', uxc: 500, kg_x_uni: 0.05, por_caja: null, ent_cod: 'D5', ent_desc: 'Mitad rompenuez', esperado: 40, esperado_origen: 'online_ps' },
     // Guazzaroni envia por el CAJON de cada pieza y kg: la entrega copia esa misma logica, pero EL
@@ -602,6 +605,10 @@ window.supabase = { createClient: function(){ return {
   rows = await page.$$eval('#tbody tr', xs => xs.map(x => x.textContent.replace(/\s+/g, ' ')));
   ok(rows.length === 1 && rows[0].includes('IC3V') && rows[0].includes('20 kg') && rows[0].includes('online Virgilio'),
      'Virgilio: IC3V con esperado 20 kg del online — ' + rows[0]);
+  // Virgilio NO es tallerista ni P.S.: su columna sigue diciendo "Esperado" (el rotulo nuevo es
+  // solo para los dos que el usuario nombro el 2026-09-21)
+  ok((await page.$eval('#thead', e => e.textContent)).includes('Esperado'),
+     'Virgilio: la columna sigue siendo Esperado — ' + (await page.$eval('#thead', e => e.textContent)));
   await page.click('#btnVolver');
   await page.waitForFunction(() => document.querySelectorAll('#tipoGrid .tipo-btn').length > 0);
   ok(true, 'volver desde un tipo de una sola contraparte cae en los tipos');
@@ -616,19 +623,32 @@ window.supabase = { createClient: function(){ return {
   ok(await page.$eval('#tblWrap', e => e.classList.contains('hidden')),
      'Recibir de tallerista: tarjetas, no tabla');
   let rcards = await cards();
-  ok(rcards.length === 2, 'Recibir: una tarjeta por pieza (2) — ' + rcards.length);
+  ok(rcards.length === 3, 'Recibir: una tarjeta por pieza (3) — ' + rcards.length);
   const rDe = (cod) => rcards.find(c => c.startsWith(cod));
-  ok(rDe('A11').includes('Una Armada') && rDe('A11').includes('Esperado 2 cajones'),
-     'A11: el esperado se mira en CAJONES (1.000 uni / 500) — ' + rDe('A11'));
+  // el rotulo del numero de referencia dice DE QUIEN es el stock [usuario 2026-09-21: "en vez de
+  // esperado quiero que diga Stock tallerista o stock proveedor de servicio segun corresponda"]
+  ok(rDe('A11').includes('Una Armada') && rDe('A11').includes('Stock tallerista 2 cajones'),
+     'A11: el stock del tallerista se mira en CAJONES (1.000 uni / 500) — ' + rDe('A11'));
+  ok(!rDe('A11').includes('Esperado'), 'A11: ya no dice "Esperado" — ' + rDe('A11'));
   ok(rDe('A11').includes('kg'), 'A11: la cantidad se escribe en kg — ' + rDe('A11'));
-  ok(rDe('GRJ5').includes('Esperado 3 bolsas'),
+  // sin stock la tarjeta dice 0, no queda en blanco [usuario 2026-09-21: "pero que me diga 0 si
+  // no tiene stock"]. Antes textoEnvases() devolvia "" con el cero y se leia "Stock tallerista" solo.
+  ok(rDe('A12').includes('Stock tallerista 0 cajones'),
+     'A12: sin stock el numero es 0, no se deja en blanco — ' + rDe('A12'));
+  ok(rDe('GRJ5').includes('Stock tallerista 3 bolsas'),
      'GRJ5: la excepcion son BOLSAS de 120 (360 uni = 3 bolsas) — ' + rDe('GRJ5'));
   await page.fill('#fRemito', 'R-0001');
+  // y el 0 tambien se ve adentro de la parte, que es donde el numero va grande
+  await abrir('A12');
+  const detA12 = await det();
+  ok(detA12.includes('Stock tallerista') && detA12.includes('0 cajones'),
+     'A12: la vista de la parte tambien dice 0 cajones — ' + detA12);
+  await page.click('#btnVolverPartes');
   await abrir('A11');
   const detA11 = await det();
-  ok(detA11.includes('Esperado') && detA11.includes('2 cajones') && detA11.includes('Cantidad') &&
-     !detA11.includes('Sugerido') && !detA11.includes('Recibido'),
-     'A11: la vista dice Esperado y Cantidad (no sugerido ni recibido) — ' + detA11);
+  ok(detA11.includes('Stock tallerista') && detA11.includes('2 cajones') && detA11.includes('Cantidad') &&
+     !detA11.includes('Esperado') && !detA11.includes('Sugerido') && !detA11.includes('Recibido'),
+     'A11: la vista dice Stock tallerista y Cantidad (no esperado, sugerido ni recibido) — ' + detA11);
   ok((await page.$eval('#detCard .det-uni', e => e.textContent.trim())) === 'kg',
      'A11: la cantidad se escribe en kg');
   // 13 kg = 1.300 unidades contra 1.000 esperadas: avisa 300 de mas, y NO frena
@@ -673,17 +693,18 @@ window.supabase = { createClient: function(){ return {
   const gzRec = (await cards())[0];
   ok(gzRec.includes('CV1N') && gzRec.includes('consume CV1'),
      'P.S.: la tarjeta dice la pieza y que SC consume — ' + gzRec);
-  ok(gzRec.includes('Esperado 2 cajones'),
-     'Guazzaroni: el esperado se mira en los mismos cajones con los que se le envia — ' + gzRec);
+  ok(gzRec.includes('Stock prov. de servicio 2 cajones'),
+     'Guazzaroni: el stock del P.S. se mira en los mismos cajones con los que se le envia — ' + gzRec);
+  ok(!gzRec.includes('Esperado'), 'Guazzaroni: ya no dice "Esperado" — ' + gzRec);
   // el mismo numero contado con la bolsa del fraccionado (uxc 50 de la pieza niquelada) daria 20:
   // ese era el bug del 18/09 (5 cajones de CV11 mostrados como 50 de V11).
   ok(!gzRec.includes('20 cajones'),
      'Guazzaroni: NO se usa el uni_x_cajon de la pieza devuelta (la bolsa del fraccionado) — ' + gzRec);
   await abrir('CV1N');
   const detPs = await det();
-  ok(detPs.includes('Esperado') && detPs.includes('2 cajones') && detPs.includes('Cantidad') &&
-     !detPs.includes('Recibido'),
-     'P.S.: la vista dice Esperado y Cantidad — ' + detPs);
+  ok(detPs.includes('Stock prov. de servicio') && detPs.includes('2 cajones') && detPs.includes('Cantidad') &&
+     !detPs.includes('Esperado') && !detPs.includes('Recibido'),
+     'P.S.: la vista dice Stock prov. de servicio y Cantidad — ' + detPs);
   ok((await page.$eval('#detCard .det-uni', e => e.textContent.trim())) === 'kg',
      'Guazzaroni: la cantidad se escribe en kg, igual que en el envio');
   ok(await page.$eval('#accBox', e => e.classList.contains('hidden')),
@@ -710,7 +731,7 @@ window.supabase = { createClient: function(){ return {
   await page.click('#cpGrid .prov-btn:has-text("AJ Adhesivos")');
   await page.waitForFunction(() => document.querySelectorAll('#cardsGrid .parte-card').length > 0);
   const ajRec = (await cards())[0];
-  ok(ajRec.includes('Pliego Ad 506') && ajRec.includes('Esperado 3 paquetes'),
+  ok(ajRec.includes('Pliego Ad 506') && ajRec.includes('Stock prov. de servicio 3 paquetes'),
      'AJ: 600 uni / 200 por paquete de entrega = 3 paquetes (no 6, que serian los de envio) — ' + ajRec);
   await abrir('Pliego Ad 506');
   ok((await page.$eval('#detCard .det-uni', e => e.textContent.trim())) === 'paquetes',
@@ -730,8 +751,8 @@ window.supabase = { createClient: function(){ return {
   await page.click('#tipoGrid .tipo-btn[data-tipo="proveedor_servicio"]');
   await page.click('#cpGrid .prov-btn:has-text("Blist-Pack")');
   await page.waitForFunction(() => document.querySelectorAll('#cardsGrid .parte-card').length > 0);
-  ok((await cards())[0].includes('Esperado 40 uni'),
-     'P.S. sin unidad definida: el esperado queda en la unidad de la pieza — ' + (await cards())[0]);
+  ok((await cards())[0].includes('Stock prov. de servicio 40 uni'),
+     'P.S. sin unidad definida: el stock del P.S. queda en la unidad de la pieza — ' + (await cards())[0]);
 
   // ── 4) el CONTEO es el modulo de Relevamientos ──────────────────────────────
   await page.reload();
@@ -921,6 +942,28 @@ window.supabase = { createClient: function(){ return {
                 return r.getBoundingClientRect().width - x.getBoundingClientRect().width; })));
   ok(gzCorte <= 1,
      '1280px: el texto de la tarjeta baja de renglon, no queda cortado (desborde ' + Math.round(gzCorte) + 'px)');
+  // el MISMO corte en RECIBIR, que desde el 2026-09-21 tiene el rotulo mas largo de la pantalla
+  // ("Stock prov. de servicio"): va en su propio renglon chico, asi que tampoco se corta.
+  await pT.click('#modos .modo-btn[data-modo="recibir"]');
+  await pT.waitForFunction(() => document.querySelectorAll('#tipoGrid .tipo-btn').length > 0);
+  await pT.click('#tipoGrid .tipo-btn[data-tipo="proveedor_servicio"]');
+  await pT.click('#cpGrid .prov-btn:has-text("Guazzaroni")');
+  await pT.waitForFunction(() => document.querySelectorAll('#cardsGrid .parte-card').length > 0);
+  const rec1280 = await pT.evaluate(() => {
+    const corte = Math.max(...[...document.querySelectorAll('#cardsGrid .parte-card span')]
+      .map(x => { const r = document.createRange(); r.selectNodeContents(x);
+                  return r.getBoundingClientRect().width - x.getBoundingClientRect().width; }));
+    const rot = document.querySelector('#cardsGrid .pc-sug .pc-rot');
+    return { corte: corte, txt: rot && rot.textContent,
+             bloque: rot && getComputedStyle(rot).display === 'block',
+             chico: rot && parseFloat(getComputedStyle(rot).fontSize) <
+                    parseFloat(getComputedStyle(rot.parentNode).fontSize) };
+  });
+  ok(rec1280.corte <= 1,
+     '1280px (Recibir): "Stock prov. de servicio" tampoco corta la tarjeta (desborde ' +
+     Math.round(rec1280.corte) + 'px)');
+  ok(rec1280.txt === 'Stock prov. de servicio' && rec1280.bloque && rec1280.chico,
+     'el rotulo va en su renglon y mas chico que el numero — ' + JSON.stringify(rec1280));
   // ── lo que quedo GUARDADO de otro dia no aparece en ningun destino de Enviar ────────────
   // Antes el tallerista precargaba el sugerido y esa precarga se refrescaba sola (firma qAuto).
   // Desde el 2026-09-18 no se precarga en ningun lado y el buffer se borra al entrar, asi que
