@@ -6,6 +6,17 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
+<!-- v1.28.1 (2026-09-21) — "LISTO" SE HABILITA TAMBIÉN CUANDO LA PARTE LLEVA UNA SOLA UNIDAD
+     (usuario, con 40 kg ya escritos en la tarjeta de V12 de Guazzaroni: "No me deja cargar la
+     recepción"). REGRESIÓN DE v1.23.0: ahí se agregó que "Listo" espere a que estén las DOS
+     unidades, y el repintado del botón quedó adentro del if (ed) del handler de input. ed sale de
+     envaseDoble(), que devuelve null si el modo no es enviar → en TODO Recibir la tarjeta se
+     dibujaba con el botón gris (campo vacío) y no se volvía a habilitar nunca, por más cantidad que
+     se escribiera. El equivalente en cajones sí se actualizaba, y por eso parecía que la pantalla
+     estaba viva. Ahora el botón se repinta siempre, con una unidad o con dos; lo único que sigue
+     colgado de ed es el renglón "Falta anotar…", que sólo existe con las dos. El número NO se
+     perdía: el botón de abajo ya contaba la fila (decía "Recibir (1)"), pero adentro de una parte
+     ese botón está oculto a propósito desde v1.21.0, así que no había salida visible. -->
 <!-- v1.28.0 (2026-09-21) — RECEPCIONAR UN P.S. TERMINA EN EL CONTROL (usuario, textual: "Después de
      recepcionar tengo que ir al control"; y antes: "En recepcion de proveedores de servicio se
      tiene que seguir la lógica de primero cargar lo que dice el remito y despues hacer el control
@@ -1892,20 +1903,24 @@ $("detBox").addEventListener("input", function(e){
   var eq = $("detCard").querySelector(".det-eq");
   var ed = envaseDoble(x);
   if (ed) {
-    // las dos unidades: el renglón de abajo cruza lo anotado contra lo que dicen los kg, y el
-    // botón espera a que estén las dos. Se repinta a mano para no perder el foco del campo.
+    // las dos unidades: el renglón de abajo cruza lo anotado contra lo que dicen los kg.
     var chk = chequeoDoble(x, it);
     if (eq) { eq.textContent = chk.txt; eq.classList.toggle("mal", chk.mal); }
-    var btn = $("detCard").querySelector('button[data-a="listo"]');
-    var completa = filaCompleta(x, it);
-    if (btn) btn.disabled = !completa;
-    var falta = $("detCard").querySelector(".det-falta");
-    if (falta) falta.textContent = completa ? ""
-      : (num(it.q) > 0 ? "Falta anotar " + ed.label : "Falta anotar los kg");
   } else if (eq) {
     // el equivalente en bultos de lo tipeado: el mismo renglón chico del resto de las formas
     eq.textContent = eqFila(x, q) || "";
   }
+  // EL BOTON SE REPINTA SIEMPRE, lleve la parte una unidad o dos. La tarjeta se dibuja con el
+  // campo vacío (o sea con "Listo" deshabilitado) y acá es el único lugar donde se vuelve a
+  // habilitar: mientras esto vivió adentro del if (ed), en TODO Recibir —envaseDoble() devuelve
+  // null si el modo no es enviar— el botón quedaba gris con la cantidad escrita. Se repinta a
+  // mano, sin redibujar la tarjeta, para no perder el foco del campo.
+  var btn = $("detCard").querySelector('button[data-a="listo"]');
+  var completa = filaCompleta(x, it);
+  if (btn) btn.disabled = !completa;
+  var falta = $("detCard").querySelector(".det-falta");   // solo existe con las dos unidades
+  if (falta) falta.textContent = completa ? ""
+    : (num(it.q) > 0 ? "Falta anotar " + ed.label : "Falta anotar los kg");
   actualizar();
 });
 
