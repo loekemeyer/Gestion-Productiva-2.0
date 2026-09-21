@@ -109,6 +109,26 @@ window.supabase = { createClient: function(){ return {
     window.__calls = window.__calls || [];
     window.__calls.push({name:name, args:args});
     if(name==='tablet_bundle') return { data: JSON.parse(JSON.stringify(${JSON.stringify(BUNDLE)})), error: null };
+    // ➕ Otro cartón (2026-09-21): las dos listas del reemplazo. "oficiales" son los cartones/cajas
+    // que ESE destino usa (a los que se puede reemplazar) y "otros" el resto del catálogo.
+    if(name==='cartones_para_reemplazo'){
+      var CAT = {
+        'tallerista:6': { oficiales: [
+            { comp_id: 300, cod: 'C10', desc: 'Carton Pelapapa 505', sec_id: 10 },
+            { comp_id: 320, cod: 'BANDITA', desc: 'Bandita Palo de Amasar', sec_id: 10 },
+            { comp_id: 310, cod: 'CJ7', desc: 'Caja N°7', sec_id: 11 } ] },
+        'proveedor_at:1': { oficiales: [
+            { comp_id: 457, cod: 'C20', desc: 'Carton Colador N°8', sec_id: 10 },
+            { comp_id: 456, cod: 'A1', desc: 'Caja N°1', sec_id: 11 } ] }
+      };
+      var OTROS = [
+        { comp_id: 800, cod: 'C55', desc: 'Carton Sacacorchos 540', sec_id: 10, sector: 'Sector Cartón', factor: 1000, online_sector: 7000 },
+        { comp_id: 801, cod: 'C77', desc: 'Carton Abrelatas 512', sec_id: 10, sector: 'Sector Cartón', factor: 2000, online_sector: 0 },
+        { comp_id: 810, cod: 'CJ9', desc: 'Caja N°9', sec_id: 11, sector: 'Sector Caja', factor: 25, online_sector: 300 }
+      ];
+      var c = CAT[args.p_tipo + ':' + args.p_ref] || { oficiales: [] };
+      return { data: { oficiales: c.oficiales, otros: OTROS }, error: null };
+    }
     if(name==='tablet_registrar'){
       // igual que la base: alerta por item recibido con esperado y recibido > esperado
       var p = args.p, al = [];
@@ -138,7 +158,14 @@ window.supabase = { createClient: function(){ return {
   const tipos = () => page.$$eval('#tipoGrid .tipo-btn', xs => xs.map(x => x.textContent.replace(/\s+/g, ' ').trim()));
   // Enviar -> Prov. de servicio (y los inyectores, que se eligen ahi adentro) muestra las partes
   // como TARJETAS y la carga en una vista aparte [usuario 2026-09-18]. Estos helpers son ese flujo.
-  const cards = () => page.$$eval('#cardsGrid .parte-card', xs => xs.map(x => x.textContent.replace(/\s+/g, ' ').trim()));
+  // las PIEZAS de la contraparte. La tarjeta "➕ Otro cartón" (2026-09-21) no es una pieza: es la
+  // puerta para agregar una, así que queda afuera de este helper y tiene el suyo.
+  const cards = () => page.$$eval('#cardsGrid .parte-card:not(.otro)', xs => xs.map(x => x.textContent.replace(/\s+/g, ' ').trim()));
+  const cardOtro = () => page.$$eval('#cardsGrid .parte-card.otro', xs => xs.map(x => x.textContent.replace(/\s+/g, ' ').trim()));
+  const ultimaCard = () => page.$eval('#cardsGrid', g => {
+    const u = g.lastElementChild;
+    return u ? { otro: u.classList.contains('otro'), txt: u.textContent.replace(/\s+/g, ' ').trim() } : null;
+  });
   const abrir = async (cod) => {
     await page.click('#cardsGrid .parte-card:has-text("' + cod + '")');
     await page.waitForSelector('#detCard input[data-f="q"]');
@@ -323,7 +350,7 @@ window.supabase = { createClient: function(){ return {
   tcards = await cards();
   ok(tcards.length === 1 && tcards[0].includes('F7'), 'buscador "fleje" deja solo F7');
   await page.fill('#q', '');
-  await page.waitForFunction(() => document.querySelectorAll('#cardsGrid .parte-card').length === 5);
+  await page.waitForFunction(() => document.querySelectorAll('#cardsGrid .parte-card:not(.otro)').length === 5);
 
   // se registra lo que se cargo a mano: A10 25 kg, C10 3 paquetes, CJ7 2 paquetes
   const fecha = await page.$eval('#fFecha', e => e.value);
@@ -934,6 +961,94 @@ window.supabase = { createClient: function(){ return {
   ok((await cards())[0].includes('sin cargar'),
      'P.S.: lo editado a mano tampoco sobrevive a la salida (usuario 2026-09-18)');
 
+  // ── ➕ OTRO CARTÓN: mandar el de otro artículo cuando no hay stock del que va ────────────
+  // [usuario 2026-09-21: "puede pasar de que no haya stock del cartón que quiero mandar y le mande
+  // el cartón de otro artículo y se le pegue la etiqueta del artículo correspondiente. Entonces lo
+  // tengo que modelar para que baje el stock del cartón que le mando realmente"]. Lo que se
+  // registra es el cartón que SALE, con el oficial al que reemplaza al lado.
+  const sustItems = () => page.$$eval('#detCard .sust-item', xs => xs.map(x => x.textContent.replace(/\s+/g, ' ').trim()));
+  ok((await cardOtro()).length === 0,
+     'P.S.: no hay "Otro cartón" (al prov. de servicio no se le manda cartón)');
+
+  await page.click('#btnVolver');
+  await page.click('#btnVolverTipo');
+  await page.click('#tipoGrid .tipo-btn[data-tipo="tallerista"]');
+  await page.click('#cpGrid .prov-btn:has-text("Martin")');
+  let ult = await ultimaCard();
+  ok(ult && ult.otro && ult.txt.includes('Otro cartón'),
+     'tallerista: "➕ Otro cartón" va al final de sus partes — ' + (ult ? ult.txt : '—'));
+
+  await page.click('#cardsGrid .parte-card.otro');
+  await page.waitForSelector('#detCard .sust-item');
+  let its = await sustItems();
+  ok(its.length === 3 && its[0].includes('C55') && its[0].includes('7.000'),
+     'el catálogo lista los cartones que NO usa, con el stock del sector — ' + its.join(' | '));
+  ok(!its.join('|').includes('C10'), 'los suyos no están en el catálogo (esos ya tienen tarjeta)');
+  await page.fill('#sustQ', 'sacacorchos');
+  its = await sustItems();
+  ok(its.length === 1 && its[0].includes('C55'), 'el buscador filtra el catálogo — ' + its.join(' | '));
+
+  await page.click('#detCard .sust-item:has-text("C55")');
+  await page.waitForSelector('#detCard .sust-item');
+  its = await sustItems();
+  ok(its.length === 2 && its.join('|').includes('C10') && its.join('|').includes('BANDITA') &&
+     !its.join('|').includes('CJ7'),
+     'el paso 2 pregunta a cuál reemplaza, y sólo con cartones (la caja no) — ' + its.join(' | '));
+
+  await page.click('#detCard .sust-item:has-text("C10")');
+  await page.waitForSelector(DQ);
+  let d = await det();
+  ok(d.includes('C55') && d.includes('en lugar de') && d.includes('C10'),
+     'la vista de la parte dice qué cartón sale y a cuál reemplaza — ' + d);
+  ok(d.includes('Online en el sector') && d.includes('7.000'),
+     'el cartón de otro artículo no tiene sugerido: la referencia es el online del sector — ' + d);
+  await page.fill(DQ, '2');
+  await page.click('#btnVolverPartes');
+  const tSust = (await cards()).find(c => c.includes('C55'));
+  ok(tSust && tSust.includes('en lugar de C10') && tSust.includes('✓ envía 2 paquetes'),
+     'la tarjeta queda cargada y marcada con el reemplazo — ' + tSust);
+
+  await page.click('#btnEnviar');
+  await page.waitForFunction(() => document.querySelector('#fase3') && !document.querySelector('#fase3').classList.contains('hidden'));
+  let regS = (await calls('tablet_registrar')).slice(-1)[0].args.p;
+  let itSust = regS.items.filter(i => i.comp_id === 800)[0];
+  ok(itSust && itSust.cantidad === 2000 && itSust.unidad === 'uni',
+     'viaja el cartón que SALE, en la unidad canónica (2 paquetes de 1.000) — ' + JSON.stringify(itSust));
+  ok(itSust && itSust.sustituye_comp_id === 300,
+     'y con el cartón OFICIAL al que reemplaza (C10 = 300) — sustituye_comp_id ' +
+     (itSust ? itSust.sustituye_comp_id : '—'));
+  ok(dialogs.slice(-1)[0].msg.includes('EN LUGAR DE C10'),
+     'el confirm dice el reemplazo antes de registrar — ' + dialogs.slice(-1)[0].msg.replace(/\n/g, ' / '));
+
+  // registrado, la fila agregada a mano no queda dando vueltas en la grilla
+  await page.click('#btnOtro');
+  await page.waitForFunction(() => document.querySelectorAll('#tipoGrid .tipo-btn').length > 0);
+  await page.click('#tipoGrid .tipo-btn[data-tipo="tallerista"]');
+  await page.click('#cpGrid .prov-btn:has-text("Martin")');
+  ok(!(await cards()).some(c => c.includes('C55')),
+     'después de registrar, el cartón agregado a mano ya no está en la grilla');
+
+  // PROV. DE ART. TERMINADO: mismo botón, y con un solo oficial del mismo tipo no pregunta nada
+  await page.click('#btnVolver');
+  await page.click('#btnVolverTipo');
+  await page.click('#tipoGrid .tipo-btn[data-tipo="proveedor_at"]');
+  ult = await ultimaCard();
+  ok(ult && ult.otro, 'prov. AT: también tiene "➕ Otro cartón"');
+  await page.click('#cardsGrid .parte-card.otro');
+  await page.waitForSelector('#detCard .sust-item');
+  await page.click('#detCard .sust-item:has-text("CJ9")');
+  await page.waitForSelector(DQ);
+  d = await det();
+  ok(d.includes('CJ9') && d.includes('en lugar de') && d.includes('A1'),
+     'con un solo oficial del mismo sector entra derecho, sin preguntar — ' + d);
+  await page.fill(DQ, '3');
+  await page.click('#btnVolverPartes');
+  await page.click('#btnEnviar');
+  await page.waitForFunction(() => document.querySelector('#fase3') && !document.querySelector('#fase3').classList.contains('hidden'));
+  regS = (await calls('tablet_registrar')).slice(-1)[0].args.p;
+  itSust = regS.items.filter(i => i.comp_id === 810)[0];
+  ok(itSust && itSust.cantidad === 75 && itSust.sustituye_comp_id === 456,
+     'prov. AT: 3 paquetes de 25 cajas en lugar de A1 — ' + JSON.stringify(itSust));
 
   await browser.close();
   console.log(process.exitCode ? 'HAY FALLOS' : 'TODO OK');

@@ -1387,6 +1387,50 @@ begin
 end $function$
 ;
 
+-- ---------- cartones_para_reemplazo ----------
+CREATE OR REPLACE FUNCTION "GP2".cartones_para_reemplazo(p_tipo text, p_ref bigint)
+ RETURNS jsonb
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'GP2'
+AS $function$
+with propios as (
+  select distinct ac.componente_id as comp_id
+    from articulo_prov_at apa
+    join articulo a on a.codigo = apa.cod_art
+    join articulo_componente ac on ac.articulo_id = a.id
+    join componente c on c.id = ac.componente_id and c.sector_id in (10,11)
+   where p_tipo = 'proveedor_at' and apa.proveedor_at_id = p_ref and coalesce(apa.activo,true)
+  union
+  select distinct v.comp_id
+    from v_contraparte_parte v
+    join componente c on c.id = v.comp_id and c.sector_id in (10,11)
+   where p_tipo = 'tallerista' and v.tipo = 'tallerista' and v.lado = 'entrada' and v.ref_id = p_ref
+),
+todos as (
+  select c.id comp_id, c.codigo cod, c.descripcion descr, c.sector_id sec_id, s.nombre sector,
+         case when c.sector_id = 10
+                then (select f.uni_x_bolsa from carton_formato f where f.nombre = c.carton_formato)
+              else (select pa.valor::numeric from parametro pa where pa.clave = 'caja_uni_x_paquete')
+         end factor,
+         coalesce((select i.cantidad from inventario i
+                    where i.componente_id = c.id
+                      and i.ubicacion_id = ubic_de('sector', c.sector_id) limit 1), 0) online_sector,
+         exists (select 1 from propios p where p.comp_id = c.id) propio
+    from componente c join sector s on s.id = c.sector_id
+   where c.sector_id in (10,11) and not coalesce(c.discontinuado,false)
+)
+select jsonb_build_object(
+  'oficiales', (select coalesce(jsonb_agg(jsonb_build_object(
+                  'comp_id',comp_id,'cod',cod,'desc',descr,'sec_id',sec_id) order by cod),'[]'::jsonb)
+                 from todos where propio),
+  'otros',     (select coalesce(jsonb_agg(jsonb_build_object(
+                  'comp_id',comp_id,'cod',cod,'desc',descr,'sec_id',sec_id,'sector',sector,
+                  'factor',factor,'online_sector',online_sector) order by cod),'[]'::jsonb)
+                 from todos where not propio));
+$function$
+;
+
 -- ---------- cerrar_rollo ----------
 CREATE OR REPLACE FUNCTION "GP2".cerrar_rollo(p_legajo text, p_quedo_resto boolean, p_uni_producidas numeric DEFAULT NULL::numeric, p_fecha timestamp with time zone DEFAULT now())
  RETURNS jsonb
@@ -1453,6 +1497,50 @@ AS $function$
     'largo_pendiente', round((obj.largo_obj - ent.largo_ent)::numeric, 2)
   ) from obj, ent;
 $function$
+;
+
+-- ---------- chequear_sustituto ----------
+CREATE OR REPLACE FUNCTION "GP2".chequear_sustituto(p_destino_tipo text, p_destino_id bigint, p_comp_id bigint, p_sustituye_comp_id bigint)
+ RETURNS void
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'GP2'
+AS $function$
+declare v_sec_s int; v_sec_o int; v_cod_s text; v_cod_o text; v_ok boolean;
+begin
+  if p_sustituye_comp_id is null then return; end if;
+  if p_sustituye_comp_id = p_comp_id then
+    raise exception 'Un carton no puede reemplazarse a si mismo';
+  end if;
+  select sector_id, codigo into v_sec_s, v_cod_s from componente where id = p_comp_id;
+  select sector_id, codigo into v_sec_o, v_cod_o from componente where id = p_sustituye_comp_id;
+  if v_sec_o is null then
+    raise exception 'El carton reemplazado (%) no existe', p_sustituye_comp_id;
+  end if;
+  if v_sec_s is distinct from v_sec_o then
+    raise exception 'No se puede mandar % (sector %) en reemplazo de % (sector %): tiene que ser del mismo sector',
+      v_cod_s, v_sec_s, v_cod_o, v_sec_o;
+  end if;
+  if v_sec_o not in (10, 11) then
+    raise exception 'Solo se reemplazan cartones (sector 10) y cajas (sector 11)';
+  end if;
+  if p_destino_tipo = 'proveedor_at' then
+    select exists (
+      select 1 from articulo_prov_at apa
+       join articulo a on a.codigo = apa.cod_art
+       join articulo_componente ac on ac.articulo_id = a.id
+      where apa.proveedor_at_id = p_destino_id and coalesce(apa.activo,true)
+        and ac.componente_id = p_sustituye_comp_id) into v_ok;
+  else
+    select exists (
+      select 1 from v_contraparte_parte v
+       where v.tipo = 'tallerista' and v.lado = 'entrada'
+         and v.ref_id = p_destino_id and v.comp_id = p_sustituye_comp_id) into v_ok;
+  end if;
+  if not v_ok then
+    raise exception '% no es un carton de ese destino: no hay articulo suyo que lo consuma', v_cod_o;
+  end if;
+end $function$
 ;
 
 -- ---------- cod_norm ----------
@@ -2181,7 +2269,7 @@ $function$
 ;
 
 -- ---------- crear_envio_prov_at ----------
-CREATE OR REPLACE FUNCTION "GP2".crear_envio_prov_at(p_prov_at_id bigint, p_comp_id bigint, p_cantidad numeric, p_unidad text, p_fecha timestamp with time zone DEFAULT NULL::timestamp with time zone)
+CREATE OR REPLACE FUNCTION "GP2".crear_envio_prov_at(p_prov_at_id bigint, p_comp_id bigint, p_cantidad numeric, p_unidad text, p_fecha timestamp with time zone DEFAULT NULL::timestamp with time zone, p_sustituye_comp_id bigint DEFAULT NULL::bigint)
  RETURNS jsonb
  LANGUAGE plpgsql
  SECURITY DEFINER
@@ -2199,16 +2287,19 @@ begin
   if v_sector not in (10, 11) then
     raise exception 'Solo se envia carton (sector 10) o cajas (sector 11) a los Prov AT';
   end if;
+  perform "GP2".chequear_sustituto('proveedor_at', p_prov_at_id, p_comp_id, p_sustituye_comp_id);
   v_ubic_o := "GP2".ubic_de('sector', v_sector);
   v_ubic_d := "GP2".ubic_de('proveedor_at', p_prov_at_id);
   if v_ubic_o is null then raise exception 'No hay ubicacion para el sector % del componente %', v_sector, p_comp_id; end if;
   if v_ubic_d is null then raise exception 'El Prov AT % no tiene ubicacion', p_prov_at_id; end if;
 
-  insert into movimiento (fecha, tipo_mov, comp_id, ubic_origen_id, ubic_destino_id, cantidad, unidad_origen, unidad_destino)
+  insert into movimiento (fecha, tipo_mov, comp_id, ubic_origen_id, ubic_destino_id, cantidad,
+                          unidad_origen, unidad_destino, sustituye_comp_id)
   values (coalesce(p_fecha, now()), 'envio_prov_at', p_comp_id, v_ubic_o, v_ubic_d, p_cantidad,
-          v_unidad, v_unidad)
+          v_unidad, v_unidad, p_sustituye_comp_id)
   returning id into v_mov;
-  return jsonb_build_object('ok', true, 'movimiento_id', v_mov);
+  return jsonb_build_object('ok', true, 'movimiento_id', v_mov,
+                            'sustituye_comp_id', p_sustituye_comp_id);
 end $function$
 ;
 
@@ -2244,7 +2335,7 @@ end $function$
 ;
 
 -- ---------- crear_envio_tallerista ----------
-CREATE OR REPLACE FUNCTION "GP2".crear_envio_tallerista(p_tallerista_id bigint, p_comp_id bigint, p_cantidad numeric, p_unidad text, p_fecha timestamp with time zone DEFAULT now())
+CREATE OR REPLACE FUNCTION "GP2".crear_envio_tallerista(p_tallerista_id bigint, p_comp_id bigint, p_cantidad numeric, p_unidad text, p_fecha timestamp with time zone DEFAULT now(), p_sustituye_comp_id bigint DEFAULT NULL::bigint)
  RETURNS jsonb
  LANGUAGE plpgsql
  SECURITY DEFINER
@@ -2287,24 +2378,27 @@ begin
     raise exception 'El componente "%" (id=%) no tiene sector asignado; no se puede resolver el origen.', coalesce(v_cod,'?'), p_comp_id;
   end if;
 
+  perform "GP2".chequear_sustituto('tallerista', p_tallerista_id, p_comp_id, p_sustituye_comp_id);
+
   v_ubic_origen := "GP2".ubic_de('sector', v_sector_id);
   if v_ubic_origen is null then
     raise exception 'No existe ubicacion de sector para "%" (componente % / id=%).', coalesce(v_sector_nombre, v_sector_id::text), coalesce(v_cod,'?'), p_comp_id;
   end if;
 
   insert into movimiento(
-    fecha, tipo_mov, comp_id, ubic_origen_id, ubic_destino_id, cantidad, unidad_origen, unidad_destino
+    fecha, tipo_mov, comp_id, ubic_origen_id, ubic_destino_id, cantidad, unidad_origen,
+    unidad_destino, sustituye_comp_id
   ) values (
-    coalesce(p_fecha, now()), 'envio_tallerista', p_comp_id, v_ubic_origen, v_ubic_destino, p_cantidad, v_unidad, v_unidad
+    coalesce(p_fecha, now()), 'envio_tallerista', p_comp_id, v_ubic_origen, v_ubic_destino,
+    p_cantidad, v_unidad, v_unidad, p_sustituye_comp_id
   ) returning id into v_new_id;
 
   return jsonb_build_object(
     'ok', true, 'id', v_new_id, 'tallerista', v_tall_nombre, 'codigo', v_cod,
     'sector', v_sector_nombre, 'ubic_origen_id', v_ubic_origen, 'ubic_destino_id', v_ubic_destino,
-    'cantidad', p_cantidad, 'unidad', v_unidad
+    'cantidad', p_cantidad, 'unidad', v_unidad, 'sustituye_comp_id', p_sustituye_comp_id
   );
-end;
-$function$
+end $function$
 ;
 
 -- ---------- crear_oc ----------
@@ -5629,6 +5723,12 @@ declare
   v_uvirg   bigint; v_uorig bigint;
   it jsonb; v_art record; v_compfin bigint; v_qty numeric; v_prin record; r record;
   v_movs jsonb := '[]'::jsonb; v_n int := 0;
+  -- CARTON SUSTITUTO (2026-09-21): cuando al tercero se le mando el carton de otro articulo (sin
+  -- stock del suyo, con la etiqueta pegada encima), lo que se consume al recibir el terminado
+  -- tiene que ser ESE y no el de la receta, que en su poder no esta. El reparto lo hace
+  -- repartir_sustituto y vale para las dos ramas: la linea PRINCIPAL (en 51 de 193 articulos el
+  -- principal ES el carton o la caja) y las demas lineas de la receta.
+  v_ucons bigint; v_usado jsonb := '{}'::jsonb; v_rep jsonb; t jsonb; v_i int;
 begin
   v_uvirg := "GP2".ubic_de('virgilio');
   if v_uvirg is null then raise exception 'No existe la ubicacion de Virgilio'; end if;
@@ -5646,8 +5746,6 @@ begin
     select a.id, a.codigo into v_art from articulo a
      where a.id = nullif(it->>'articulo_id','')::bigint or a.codigo = nullif(it->>'codigo','') limit 1;
     if v_art.id is null then raise exception 'Articulo no encontrado: %', coalesce(it->>'codigo', it->>'articulo_id'); end if;
-    -- una sola puerta (comp_terminado_de): antes buscaba por CODIGO en el sector 12 con
-    -- limit 1, mientras movimientos_bundle lo sacaba del paso virgilio de la ruta. Idea 7322.
     v_compfin := "GP2".comp_terminado_de(v_art.id);
     if v_compfin is null then raise exception 'El articulo % no tiene componente terminado', v_art.codigo; end if;
     select ac.componente_id, ac.cantidad, c.sector_id into v_prin
@@ -5656,35 +5754,63 @@ begin
      order by (c.sector_id=2) desc, ac.cantidad desc, ac.componente_id limit 1;
     if v_prin.componente_id is null then raise exception 'El articulo % no tiene receta', v_art.codigo; end if;
 
+    -- ---- las lineas que NO son la principal: consumo puro ----
     for r in select ac.componente_id, ac.cantidad, c.sector_id
                from articulo_componente ac join componente c on c.id=ac.componente_id
               where ac.articulo_id=v_art.id and ac.componente_id<>v_prin.componente_id loop
-      v_movs := v_movs || jsonb_build_object(
-        'tipo_mov','consumo_virgilio','comp_id',r.componente_id,
-        'ubic_origen_id', case when v_tipo='interno'
-          then "GP2".ubic_de('sector', r.sector_id)
-          else v_uorig end,
-        'ubic_destino_id',null,'cantidad',v_qty*r.cantidad);
+      v_ucons := case when v_tipo='interno' then "GP2".ubic_de('sector', r.sector_id) else v_uorig end;
+      v_rep := "GP2".repartir_sustituto(
+                 case when r.sector_id in (10,11) and v_tipo <> 'interno' then v_ucons end,
+                 r.componente_id, v_qty * r.cantidad, v_usado);
+      v_usado := v_rep->'usado';
+      for t in select value from jsonb_array_elements(v_rep->'tramos') loop
+        v_movs := v_movs || jsonb_build_object(
+          'tipo_mov','consumo_virgilio','comp_id',(t->>'comp_id')::bigint,
+          'ubic_origen_id', v_ucons, 'ubic_destino_id', null,
+          'cantidad', (t->>'cantidad')::numeric,
+          'sustituye_comp_id', t->>'sustituye_comp_id');
+      end loop;
     end loop;
 
-    v_movs := v_movs || jsonb_build_object(
-      'tipo_mov','recepcion_virgilio','comp_id',v_prin.componente_id,
-      'ubic_origen_id', case when v_tipo='interno'
-        then "GP2".ubic_de('sector', v_prin.sector_id)
-        else v_uorig end,
-      'ubic_destino_id',v_uvirg,'cantidad',v_qty*v_prin.cantidad,
-      'comp_transformado_id',v_compfin,'cantidad_transformada',v_qty);
+    -- ---- la linea PRINCIPAL: es la que trae el terminado a Virgilio ----
+    -- El movimiento de recepcion es UNO SOLO por articulo (si no, el terminado entraria dos veces):
+    -- el primer tramo se lo lleva, y si el saldo del sustituto no alcanza, el resto sale como
+    -- consumo aparte del carton oficial.
+    v_ucons := case when v_tipo='interno' then "GP2".ubic_de('sector', v_prin.sector_id) else v_uorig end;
+    v_rep := "GP2".repartir_sustituto(
+               case when v_prin.sector_id in (10,11) and v_tipo <> 'interno' then v_ucons end,
+               v_prin.componente_id, v_qty * v_prin.cantidad, v_usado);
+    v_usado := v_rep->'usado';
+    v_i := 0;
+    for t in select value from jsonb_array_elements(v_rep->'tramos') loop
+      v_i := v_i + 1;
+      if v_i = 1 then
+        v_movs := v_movs || jsonb_build_object(
+          'tipo_mov','recepcion_virgilio','comp_id',(t->>'comp_id')::bigint,
+          'ubic_origen_id', v_ucons, 'ubic_destino_id', v_uvirg,
+          'cantidad', (t->>'cantidad')::numeric,
+          'sustituye_comp_id', t->>'sustituye_comp_id',
+          'comp_transformado_id', v_compfin, 'cantidad_transformada', v_qty);
+      else
+        v_movs := v_movs || jsonb_build_object(
+          'tipo_mov','consumo_virgilio','comp_id',(t->>'comp_id')::bigint,
+          'ubic_origen_id', v_ucons, 'ubic_destino_id', null,
+          'cantidad', (t->>'cantidad')::numeric,
+          'sustituye_comp_id', t->>'sustituye_comp_id');
+      end if;
+    end loop;
     v_n := v_n+1;
   end loop;
 
   if v_dry then return jsonb_build_object('ok',true,'dry_run',true,'articulos',v_n,'movimientos',v_movs); end if;
 
   insert into movimiento(fecha,tipo_mov,comp_id,ubic_origen_id,ubic_destino_id,cantidad,unidad_origen,
-                         comp_transformado_id,cantidad_transformada,unidad_destino)
+                         comp_transformado_id,cantidad_transformada,unidad_destino,sustituye_comp_id)
   select v_fecha, m->>'tipo_mov', (m->>'comp_id')::bigint,
          nullif(m->>'ubic_origen_id','')::bigint, nullif(m->>'ubic_destino_id','')::bigint,
          (m->>'cantidad')::numeric,'uni',
-         nullif(m->>'comp_transformado_id','')::bigint, nullif(m->>'cantidad_transformada','')::numeric,'uni'
+         nullif(m->>'comp_transformado_id','')::bigint, nullif(m->>'cantidad_transformada','')::numeric,'uni',
+         nullif(m->>'sustituye_comp_id','')::bigint
   from jsonb_array_elements(v_movs) m;
 
   return jsonb_build_object('ok',true,'articulos',v_n,'movimientos',jsonb_array_length(v_movs));
@@ -6581,6 +6707,39 @@ AS $function$
 $function$
 ;
 
+-- ---------- repartir_sustituto ----------
+CREATE OR REPLACE FUNCTION "GP2".repartir_sustituto(p_ubic bigint, p_oficial bigint, p_necesidad numeric, p_usado jsonb)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'GP2'
+AS $function$
+declare v_tramos jsonb := '[]'::jsonb; v_falta numeric := coalesce(p_necesidad,0);
+        v_usado jsonb := coalesce(p_usado,'{}'::jsonb);
+        s record; v_k text; v_disp numeric; v_usa numeric;
+begin
+  if p_ubic is not null and v_falta > 0 then
+    for s in select * from "GP2".v_carton_sustituto_saldo
+              where ubicacion_id = p_ubic and oficial_id = p_oficial
+              order by desde, sustituto_id loop
+      exit when v_falta <= 0;
+      v_k    := p_oficial::text || ':' || s.sustituto_id::text;
+      v_disp := s.saldo - coalesce((v_usado->>v_k)::numeric, 0);
+      if v_disp <= 0 then continue; end if;
+      v_usa  := least(v_falta, v_disp);
+      v_usado := v_usado || jsonb_build_object(v_k, coalesce((v_usado->>v_k)::numeric,0) + v_usa);
+      v_tramos := v_tramos || jsonb_build_object('comp_id', s.sustituto_id, 'cantidad', v_usa,
+                                                 'sustituye_comp_id', p_oficial);
+      v_falta := v_falta - v_usa;
+    end loop;
+  end if;
+  if v_falta > 0 or jsonb_array_length(v_tramos) = 0 then
+    v_tramos := v_tramos || jsonb_build_object('comp_id', p_oficial, 'cantidad', greatest(v_falta,0));
+  end if;
+  return jsonb_build_object('tramos', v_tramos, 'usado', v_usado);
+end $function$
+;
+
 -- ---------- reparto_guardar ----------
 CREATE OR REPLACE FUNCTION "GP2".reparto_guardar(p_articulo_id bigint, p_comp_salida_id bigint, p_filas jsonb)
  RETURNS jsonb
@@ -7365,6 +7524,7 @@ declare
   it       jsonb;
   v_comp   bigint; v_ent bigint; v_cant numeric; v_uni text; v_esp numeric;
   v_cod    text; v_desc text; v_cod_art text; v_por_caja numeric; v_cajones numeric;
+  v_sust   bigint;
   v_r      jsonb; v_res jsonb := '[]'::jsonb; v_alertas jsonb := '[]'::jsonb;
   v_comparable numeric; v_alerta_id bigint; v_n int := 0;
   v_ubic_o bigint; v_ubic_d bigint; v_sec bigint; v_um text; v_mov bigint;
@@ -7400,26 +7560,29 @@ begin
     v_uni      := lower(coalesce(nullif(it->>'unidad',''), 'uni'));
     v_esp      := nullif(it->>'esperado','')::numeric;
     v_por_caja := nullif(it->>'por_caja','')::numeric;
-    -- bultos del envio a un PS que recibe por peso (Hernandez Julio): cajones en las metalicas,
-    -- bolsas en las plasticas. Es informativo (va a movimiento.cajones); el stock lo mueve v_cant.
+    -- carton de OTRO articulo mandado en lugar del que corresponde (2026-09-21): viaja el carton
+    -- OFICIAL al que reemplaza. Lo valida crear_envio_* (mismo sector, y que sea pieza del destino).
+    v_sust     := nullif(it->>'sustituye_comp_id','')::bigint;
     v_cajones  := nullif(it->>'cajones','')::numeric;
     if v_uni not in ('uni','kg') then raise exception 'Unidad invalida: "%"', v_uni; end if;
     if v_cant is null or v_cant <= 0 then
       raise exception '% : la cantidad tiene que ser mayor a 0.', coalesce(v_cod_art, v_comp::text, '?');
+    end if;
+    if v_sust is not null and (v_modo <> 'enviar' or v_tipo not in ('tallerista','proveedor_at')) then
+      raise exception 'El reemplazo de carton solo existe al ENVIAR a un tallerista o a un prov. de art. terminado.';
     end if;
     select codigo, descripcion into v_cod, v_desc from componente where id = v_comp;
     v_cod := coalesce(v_cod, v_cod_art);
 
     if v_modo = 'enviar' then
       if v_tipo = 'tallerista' then
-        v_r := "GP2".crear_envio_tallerista(v_ref::bigint, v_comp, v_cant, v_uni, v_fecha);
+        v_r := "GP2".crear_envio_tallerista(v_ref::bigint, v_comp, v_cant, v_uni, v_fecha, v_sust);
       elsif v_tipo = 'proveedor_servicio' then
         v_r := "GP2".crear_envio_ps(v_ref::bigint, v_comp, v_cant, v_uni, v_fecha, v_cajones);
       elsif v_tipo = 'inyector' then
-        -- bolsas de resina a un inyector: v_comp es el componente-resina (sector 14), v_cant en kg.
         v_r := "GP2".enviar_material_inyector(v_ref, v_comp, v_cant, v_fecha);
       else
-        v_r := "GP2".crear_envio_prov_at(v_ref::bigint, v_comp, v_cant, v_uni, v_fecha);
+        v_r := "GP2".crear_envio_prov_at(v_ref::bigint, v_comp, v_cant, v_uni, v_fecha, v_sust);
       end if;
       v_comparable := null;
     else

@@ -4,6 +4,30 @@
 -- 18 vistas. Orden de creacion: las que dependen de otra van despues.
 -- =====================================================================
 
+-- ---------- v_carton_sustituto_saldo ----------
+create or replace view "GP2".v_carton_sustituto_saldo as
+ WITH mov AS (
+         SELECT COALESCE(m.ubic_destino_id, m.ubic_origen_id) AS ubicacion_id,
+            m.sustituye_comp_id AS oficial_id,
+            m.comp_id AS sustituto_id,
+                CASE
+                    WHEN m.tipo_mov = ANY (ARRAY['envio_prov_at'::text, 'envio_tallerista'::text]) THEN m.cantidad
+                    ELSE - m.cantidad
+                END AS q,
+            m.fecha
+           FROM "GP2".movimiento m
+          WHERE m.sustituye_comp_id IS NOT NULL
+        )
+ SELECT ubicacion_id,
+    oficial_id,
+    sustituto_id,
+    sum(q) AS saldo,
+    min(fecha) AS desde
+   FROM mov
+  GROUP BY ubicacion_id, oficial_id, sustituto_id
+ HAVING sum(q) > 0::numeric;
+comment on view "GP2".v_carton_sustituto_saldo is 'Cartones sustitutos con saldo sin consumir, por ubicacion de destino. Lo usa recepcion_virgilio: al recibir el articulo terminado gasta primero el sustituto y el resto el carton oficial. Sale del ledger (movimiento.sustituye_comp_id), no de una tabla aparte.';
+
 -- ---------- v_consumo_componente ----------
 create or replace view "GP2".v_consumo_componente as
  SELECT c.id AS componente_id,

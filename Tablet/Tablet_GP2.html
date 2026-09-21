@@ -6,6 +6,19 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
+<!-- v1.25.0 (2026-09-21) — OTRO CARTÓN: MANDAR EL CARTÓN DE OTRO ARTÍCULO EN LUGAR DEL QUE
+     CORRESPONDE (usuario: "puede pasar de que no haya stock del cartón que quiero mandar y le mande
+     el cartón de otro artículo y se le pegue la etiqueta del artículo correspondiente. Entonces lo
+     tengo que modelar para que baje el stock del cartón que le mando realmente"). En Enviar a un
+     TALLERISTA o a un PROV. DE ART. TERMINADO, al final de las tarjetas aparece "➕ Otro cartón":
+     abre el catálogo entero (los que ese destino NO usa) y, elegido uno, pregunta EN REEMPLAZO DE
+     CUÁL de los suyos va. La fila entra como una tarjeta más, marcada "en lugar de XXX", y se carga
+     igual que el resto (paquetes del paquetón de SU formato).
+     LO QUE SE MODELA NO ES EL ENVÍO —ese ya bajaba el cartón real— SINO EL CONSUMO: al entregar el
+     artículo terminado, recepcion_virgilio consumía el cartón DE LA RECETA, que en el proveedor no
+     está, y lo dejaba negativo mientras el sustituto quedaba clavado para siempre. Ahora el envío
+     anota a quién reemplaza (movimiento.sustituye_comp_id, sin tabla nueva: el saldo sale del
+     ledger) y el consumo gasta PRIMERO el sustituto hasta agotarlo y el resto el oficial. -->
 <!-- v1.24.0 (2026-09-18) — RECIBIR REMACHES: EL ESPERADO VA EN EL CAJÓN CON EL QUE SE MANDÓ
      (usuario: "Mandé 5 cajones de cv11 y el esperado de recepcion de v11 es 50 cajones. ¿Por qué?" →
      "Guazzaroni nos entrega los remaches niquelados en los mismos cajones que se lo enviamos… si
@@ -580,6 +593,25 @@
   .det-eq.mal{color:#c2410c}
   .det-falta{align-self:center;font-size:16px;font-weight:800;color:#c2410c}
   .parte-card.incompleta{border-color:#c2410c;background:#fff9f3}
+  /* "➕ Otro cartón" y las filas que entran por ahí: se distinguen de las piezas propias del
+     destino, que son las que salen de su receta/ruta [2026-09-21]. */
+  .parte-card.otro{border-style:dashed;justify-content:center;align-items:center;text-align:center;color:#0b4aa2}
+  .parte-card.otro .pc-cod{font-size:21px}
+  .parte-card.otro .pc-desc{font-size:15px;color:#555}
+  .parte-card.sust{border-color:#0b4aa2;background:#f5f9ff}
+  .pc-sust,.det-sust{font-size:15px;font-weight:800;color:#0b4aa2}
+  .det-sust{margin-top:6px;font-size:17px}
+  /* el catálogo del reemplazo, adentro de la vista de la parte */
+  .sust-lista{max-height:52vh;overflow:auto;margin-top:8px;-webkit-overflow-scrolling:touch}
+  .sust-item{display:block;width:100%;text-align:left;border:2px solid #d0d7de;border-radius:12px;
+    background:#fff;padding:10px 12px;margin-bottom:8px;cursor:pointer;font-family:inherit}
+  .sust-item:hover{border-color:#111}
+  .sust-item .si-cod{font-size:21px;font-weight:900;display:block}
+  .sust-item .si-desc{font-size:15px;font-weight:700;color:#444;display:block;line-height:1.25}
+  .sust-item .si-stk{font-size:15px;font-weight:800;color:#15803d;display:block;margin-top:2px}
+  .sust-item .si-stk.cero{color:#c2410c}
+  #sustQ{font-size:19px;width:100%;padding:12px;border:2px solid #d0d7de;border-radius:10px;
+    font-family:inherit;margin-top:6px}
   .det-acc{display:flex;gap:10px;margin-top:20px;flex-wrap:wrap}
   .det-acc .btn{min-height:52px;font-size:19px}
   @media (max-width:640px){
@@ -705,6 +737,16 @@ var selCP = null;       // { tipo, ref, nombre, id }
 var detK = null;        // la parte abierta en la vista de carga (solo vista de tarjetas)
 var BUF = E.buffer("gp2_tablet_buffer", function(){ return { q: "" }; });
 
+/* ---------- CARTÓN SUSTITUTO (2026-09-21) ----------
+   Cuando no hay stock del cartón que le toca a un artículo se le manda el de OTRO y se le pega
+   encima la etiqueta del que corresponde. La fila del cartón mandado NO sale del bundle (no es una
+   pieza de ese destino): se agrega acá, en memoria, y viaja con `sust_de` = el cartón oficial al
+   que reemplaza. No se guarda en localStorage a propósito: igual que la cantidad, si el operario
+   se va sin registrar, el reemplazo desaparece [misma regla que envSinMemoria]. */
+var SUST = {};          // contraparte (c.id) -> filas agregadas a mano en esta sesión
+var CATS = {};          // contraparte (c.id) -> { oficiales:[], otros:[] } de cartones_para_reemplazo
+var sustSel = null;     // mientras se elige: null | { paso:1|2, x:<fila elegida> }
+
 /* Los TIPOS de contraparte de cada modo, en el orden en que el operario los busca. El que trae
    `link` no se carga acá: abre la pantalla que ya hace ese trabajo, para no tener dos copias de
    la misma lógica. */
@@ -750,9 +792,11 @@ function kguRef(x){
 }
 function uniTag(u){ return '<span class="uni-tag ' + u + '">' + u + "</span>"; }
 
-/* clave de fila: en recibir una pieza puede aparecer dos veces (dos entradas distintas del PS) */
+/* clave de fila: en recibir una pieza puede aparecer dos veces (dos entradas distintas del PS), y
+   en enviar un mismo cartón puede ir como reemplazo de dos oficiales distintos (sust_de). */
 function claveDe(x){
-  return String(x.comp_id || "") + ":" + String(x.comp_entrada_id || "") + ":" + String(x.cod_art || "");
+  return String(x.comp_id || "") + ":" + String(x.comp_entrada_id || "") + ":" + String(x.cod_art || "") +
+         (x.sust_de ? ":s" + x.sust_de : "");
 }
 function claveCP(c){ return MODO + ":" + c.tipo + ":" + c.ref; }
 
@@ -780,7 +824,7 @@ function envSinMemoria(c){
      c.tipo === "tallerista" || c.tipo === "proveedor_at");
 }
 function olvidarCargado(c){
-  if (envSinMemoria(c)) BUF.borrar(c.id);
+  if (envSinMemoria(c)) { BUF.borrar(c.id); delete SUST[c.id]; }
 }
 
 /* Unidad de ENVIO del proveedor (display), p.ej. AJ Adhesivos manda de a PAQUETES de 100 pliegos
@@ -1014,7 +1058,9 @@ function refInfo(x){
     return { rotulo: "Esperado", txt: fmt(e, u === "kg" ? 2 : 0), num: e, uni: u,
              nota: faltaEnvase(x), small: "" };
   }
-  if (envConSugerido()) {
+  // el cartón de OTRO artículo no tiene sugerido (no es una pieza de este destino, no hay consumo
+  // suyo que lo pida): la referencia útil es lo que hay en Cervantes para mandarle.
+  if (envConSugerido() && !x.sust_de) {
     var si = sugeridoInfo(x);
     si.rotulo = "Sugerido";
     return si;
@@ -1250,6 +1296,8 @@ function piezasDe(c){
     arr = (D.enviar || []).filter(function(x){
       return x.tipo === c.tipo && String(x.ref) === String(c.ref);
     });
+    // los cartones de otro artículo agregados a mano en esta sesión (➕ Otro cartón)
+    arr = arr.concat(SUST[c.id] || []);
   } else {
     arr = (D.recibir || []).filter(function(x){ return x.tipo === c.tipo && String(x.ref) === String(c.ref); });
   }
@@ -1367,7 +1415,7 @@ function renderCards(){
     var b = document.createElement("button");
     b.type = "button";
     b.className = "parte-card" + (completa ? " cargada" : "") + (ex > 0 ? " demas" : "") +
-                  (aMedias ? " incompleta" : "");
+                  (aMedias ? " incompleta" : "") + (x.sust_de ? " sust" : "");
     b.dataset.k = k;
     b.innerHTML =
       '<span class="pc-cod">' + esc(x.cod) + uniTag(uc) + "</span>" +
@@ -1375,6 +1423,8 @@ function renderCards(){
         // en Recibir importa QUE pieza consume lo que traen (la fila de la tabla ya lo decia)
         (MODO === "recibir" && x.ent_cod ? ' <span class="pc-nota">· consume ' + esc(x.ent_cod) + "</span>" : "") +
         "</span>" +
+      // el cartón de otro artículo: lo primero que hay que ver es a cuál reemplaza
+      (x.sust_de ? '<span class="pc-sust">↔ en lugar de ' + esc(x.sust_cod) + "</span>" : "") +
       '<span class="pc-sug">' + si.rotulo + " " + si.txt +
         (si.uni ? " " + esc(unidadTxt(si.num, si.uni)) : "") +
         (si.nota ? '<span class="pc-nota"> · ' + esc(si.nota) + "</span>" : "") + "</span>" +
@@ -1389,6 +1439,16 @@ function renderCards(){
         : "sin cargar") + "</span>";
     g.appendChild(b);
   });
+  // ➕ Otro cartón: al final de las suyas, porque es la excepción y no la regla [usuario 2026-09-21]
+  if (puedeSustituir()) {
+    var bo = document.createElement("button");
+    bo.type = "button";
+    bo.className = "parte-card otro";
+    bo.dataset.otro = "1";
+    bo.innerHTML = '<span class="pc-cod">➕ Otro cartón</span>' +
+      '<span class="pc-desc">sin stock del que va: mandá el de otro artículo y pegale la etiqueta</span>';
+    g.appendChild(bo);
+  }
   actualizar();
 }
 
@@ -1455,6 +1515,103 @@ function renderTabla(){
   actualizar();
 }
 
+/* ---------- ➕ OTRO CARTÓN ----------
+   Sólo al ENVIAR a un tallerista o a un prov. de art. terminado: son los dos que reciben cartón
+   [usuario 2026-09-21]. El catálogo lo trae la base al tocar el botón y no en el bundle: son ~190
+   filas que el 99% de los envíos no mira. Se cachea por contraparte mientras dure la pantalla. */
+function puedeSustituir(){
+  return MODO === "enviar" && !!selCP &&
+    (selCP.tipo === "tallerista" || selCP.tipo === "proveedor_at");
+}
+
+async function abrirOtroCarton(){
+  if (!puedeSustituir()) return;
+  sustSel = { paso: 1, x: null, q: "" };
+  detK = null;
+  $("tblBox").classList.add("hidden");
+  $("detBox").classList.remove("hidden");
+  $("tblEmpty").classList.add("hidden");
+  $("accBox").classList.add("hidden");
+  if (!CATS[selCP.id]) {
+    $("detCard").innerHTML = '<div class="det-lbl">Otro cartón</div>' +
+      '<div class="det-desc">Buscando el catálogo…</div>';
+    try {
+      var r = await SB.rpc("cartones_para_reemplazo", { p_tipo: selCP.tipo, p_ref: Number(selCP.ref) });
+      if (r.error) throw r.error;
+      CATS[selCP.id] = r.data || { oficiales: [], otros: [] };
+    } catch (err) {
+      $("detCard").innerHTML = '<div class="det-lbl">Otro cartón</div>' +
+        '<div class="det-desc" style="color:#b91c1c">No se pudo traer el catálogo: ' +
+        esc(err.message || err) + "</div>" +
+        '<div class="det-acc"><button class="btn btn-secondary" type="button" data-a="sust-cancel">← Partes</button></div>';
+      return;
+    }
+  }
+  pintarSust();
+}
+
+/* la lista del paso: los cartones que NO usa (paso 1) o los suyos (paso 2). Se repinta sola al
+   filtrar, sin tocar el resto de la tarjeta, así el buscador no pierde el foco. */
+function sustItemsHTML(){
+  var cat = CATS[selCP.id] || { oficiales: [], otros: [] };
+  var paso2 = !!(sustSel && sustSel.paso === 2);
+  var q = String((sustSel && sustSel.q) || "").trim().toLowerCase();
+  // en el paso 2 la lista ya viene acotada al sector del cartón elegido (sustSel.oficiales)
+  var base = paso2 ? ((sustSel && sustSel.oficiales) || cat.oficiales || []) : (cat.otros || []);
+  var lista = base.filter(function(o){
+    return !q || ((o.cod || "") + " " + (o["desc"] || "")).toLowerCase().indexOf(q) >= 0;
+  });
+  if (!lista.length)
+    return '<div class="empty">' + (base.length ? "Sin resultados para ese filtro."
+      : paso2 ? "Este destino no tiene ningún cartón propio: no hay a cuál reemplazar."
+              : "No queda ningún otro cartón en el catálogo.") + "</div>";
+  return lista.map(function(o){
+    var stk = Number(o.online_sector || 0);
+    return '<button type="button" class="sust-item" data-a="' + (paso2 ? "sust-of" : "sust-pick") +
+      '" data-c="' + esc(String(o.comp_id)) + '">' +
+      '<span class="si-cod">' + esc(o.cod || "") + "</span>" +
+      '<span class="si-desc">' + esc(o["desc"] || "") + "</span>" +
+      (paso2 ? "" : '<span class="si-stk' + (stk > 0 ? "" : " cero") + '">Stock en el sector: ' +
+        fmt(stk, 0) + " uni</span>") + "</button>";
+  }).join("");
+}
+
+function pintarSust(){
+  var paso2 = !!(sustSel && sustSel.paso === 2);
+  $("detCard").innerHTML =
+    '<div class="det-cod">' + (paso2 ? "¿En lugar de cuál?" : "➕ Otro cartón") + "</div>" +
+    '<div class="det-desc">' + (paso2
+      ? "El cartón del artículo que le corresponde: ese es el que se va a dejar de consumir cuando entregue el terminado."
+      : "Los que " + esc(selCP.nombre) + " no usa. El stock que baja es el de este cartón, el que sale de verdad del galpón.") +
+    "</div>" +
+    (paso2 ? '<div class="det-sust">Le mandás <b>' + esc(sustSel.x.cod) + "</b></div>" : "") +
+    '<input id="sustQ" inputmode="search" placeholder="Buscar por código o descripción…" value="' +
+      esc((sustSel && sustSel.q) || "") + '">' +
+    '<div class="sust-lista">' + sustItemsHTML() + "</div>" +
+    '<div class="det-acc"><button class="btn btn-secondary" type="button" data-a="sust-cancel">← Partes</button></div>';
+}
+
+/* elegido el cartón que sale y el que reemplaza, entra como una fila más de la contraparte */
+function agregarSustituto(of){
+  var x = sustSel.x;
+  var fila = {
+    tipo: selCP.tipo, ref: String(selCP.ref), comp_id: Number(x.comp_id),
+    cod: x.cod, "desc": x["desc"], sector: x.sector, um: "unidad",
+    uxc: null, kg_x_uni: null,
+    // mismo contrato que una fila del bundle: el cartón va en PAQUETES, con el paquetón de SU
+    // formato (sin formato cargado queda en unidades y la tarjeta avisa, como cualquier otra).
+    env_unidad: "paquetes", env_factor: x.factor, env_carga: "envase",
+    online_sector: x.online_sector, saldo_dest: 0,
+    maximo: null, stock_dest: null, sugerido: null,
+    sust_de: Number(of.comp_id), sust_cod: of.cod
+  };
+  var arr = SUST[selCP.id] || (SUST[selCP.id] = []);
+  var k = claveDe(fila);
+  if (!arr.some(function(f){ return claveDe(f) === k; })) arr.push(fila);
+  sustSel = null;
+  abrirParte(k);
+}
+
 /* ---------- la vista de UNA parte ----------
    Se abre al tocar la tarjeta: arriba el sugerido (grande, de referencia) y abajo el campo con la
    cantidad efectiva que se va a enviar. Es la MISMA carga de siempre — escribe en el mismo buffer,
@@ -1476,6 +1633,7 @@ function abrirParte(k){
 
 function cerrarDetalle(){
   detK = null;
+  sustSel = null;            // si estaba eligiendo "otro cartón", se cancela
   $("detBox").classList.add("hidden");
   $("tblBox").classList.remove("hidden");
   $("accBox").classList.remove("hidden");
@@ -1499,6 +1657,9 @@ function pintarDetalle(){
     '<div class="det-cod">' + esc(x.cod) + uniTag(uc) + "</div>" +
     '<div class="det-desc">' + esc(x.desc || "") + "</div>" +
     (x.sector ? '<div class="det-sector">' + esc(x.sector) + "</div>" : "") +
+    // cartón de otro artículo: a cuál reemplaza es lo que hay que leer antes de cargar la cantidad
+    (x.sust_de ? '<div class="det-sust">↔ en lugar de <b>' + esc(x.sust_cod) +
+                 "</b> · pegale la etiqueta del artículo que corresponde</div>" : "") +
     '<div class="det-lbl">' + (si.rotulo === "Sugerido" ? "Sugerido a enviar"
                               : si.rotulo === "Esperado" ? "Esperado" : "Online en el sector") + "</div>" +
     '<div class="det-sug">' + si.txt + (si.uni ? " " + esc(unidadTxt(si.num, si.uni)) : "") +
@@ -1587,6 +1748,7 @@ window.addEventListener("pagehide", function(){ olvidarCargado(selCP); });
 
 /* ---- eventos de la vista de tarjetas ---- */
 $("cardsGrid").addEventListener("click", function(e){
+  if (e.target.closest(".parte-card.otro")) { abrirOtroCarton(); return; }
   var c = e.target.closest(".parte-card");
   if (c) abrirParte(c.dataset.k);
 });
@@ -1594,9 +1756,46 @@ $("btnVolverPartes").addEventListener("click", volverAPartes);
 $("detBox").addEventListener("click", function(e){
   var b = e.target.closest("button[data-a]");
   if (!b) return;
-  if (b.dataset.a === "listo") volverAPartes();
+  if (b.dataset.a === "listo") { volverAPartes(); return; }
+  if (b.dataset.a === "sust-cancel") { sustSel = null; volverAPartes(); return; }
+  if (!sustSel) return;
+  var cat = CATS[selCP.id] || { oficiales: [], otros: [] };
+  var cid = Number(b.dataset.c);
+  if (b.dataset.a === "sust-pick") {
+    var elegido = (cat.otros || []).filter(function(o){ return Number(o.comp_id) === cid; })[0];
+    if (!elegido) return;
+    sustSel.x = elegido;
+    // los suyos del MISMO sector: un cartón reemplaza un cartón, una caja una caja (la base lo
+    // valida igual, pero mostrar lo que va a ser rechazado no sirve de nada)
+    var posibles = (cat.oficiales || []).filter(function(o){
+      return Number(o.sec_id) === Number(elegido.sec_id);
+    });
+    if (!posibles.length) {
+      alert("No hay ningún cartón de " + selCP.nombre + " del mismo tipo para reemplazar.");
+      return;
+    }
+    if (posibles.length === 1) { agregarSustituto(posibles[0]); return; }   // uno solo: no se elige
+    // el filtrado por sector vive en la elección, NO en el caché: pisarlo dejaría la lista corta
+    // para el próximo cartón que se elija.
+    sustSel.paso = 2; sustSel.q = ""; sustSel.oficiales = posibles;
+    pintarSust();
+    return;
+  }
+  if (b.dataset.a === "sust-of") {
+    var of = (sustSel.oficiales || cat.oficiales || []).filter(function(o){ return Number(o.comp_id) === cid; })[0];
+    if (of) agregarSustituto(of);
+  }
 });
 $("detBox").addEventListener("input", function(e){
+  // el buscador del catálogo de "otro cartón": se repinta SOLO la lista, si no se pierde el foco
+  if (e.target.id === "sustQ") {
+    if (sustSel) {
+      sustSel.q = e.target.value;
+      var lb = $("detCard").querySelector(".sust-lista");
+      if (lb) lb.innerHTML = sustItemsHTML();
+    }
+    return;
+  }
   var inp = e.target.closest("input.det-in");
   if (!inp || !detK) return;
   var x = piezaDe(detK);
@@ -1680,12 +1879,15 @@ $("btnEnviar").addEventListener("click", async function(){
         esperado: (MODO === "recibir" && x.esperado != null)
           ? ((ckg && u !== "kg") ? Number(x.esperado) * kguRef(x) : Number(x.esperado))
           : null,
-        esperado_origen: x.esperado_origen || null
+        esperado_origen: x.esperado_origen || null,
+        // el cartón OFICIAL al que reemplaza lo que sale de verdad: la base lo guarda en el mismo
+        // movimiento y el consumo del terminado lo gasta primero a él [usuario 2026-09-21]
+        sustituye_comp_id: x.sust_de || null
       };
     })
   };
   var nEx = items.filter(function(o){ return meta[o.k] && exceso(meta[o.k], num(o.it.q)) > 0; }).length;
-  var resumen = items.map(function(o){
+  function lineaResumen(o){
     var x = meta[o.k] || {};
     var ev = envaseDe(x);
     var ed = envaseDoble(x);
@@ -1706,6 +1908,11 @@ $("btnEnviar").addEventListener("click", async function(){
     return ev
       ? (x.cod || o.k) + ": " + fmt(num(o.it.q), 0) + " " + ev.label
       : (x.cod || o.k) + ": " + fmt(num(o.it.q), unidadDe(x) === "kg" ? 2 : 0) + " " + unidadDe(x);
+  }
+  // el reemplazo se dice en el confirm: es lo único que el operario no puede deshacer después
+  var resumen = items.map(function(o){
+    var xs = meta[o.k] || {};
+    return lineaResumen(o) + (xs.sust_de ? "  ↔ EN LUGAR DE " + xs.sust_cod : "");
   });
   var verbo = MODO === "enviar" ? "Enviar a " : "Recibir de ";
   if (!confirm(verbo + selCP.nombre + " (" + fecha + "):\n\n" + resumen.join("\n") +
@@ -1718,6 +1925,7 @@ $("btnEnviar").addEventListener("click", async function(){
     var r = await SB.rpc("tablet_registrar", { p: payload });
     if (r.error) throw r.error;
     BUF.borrar(selCP.id);
+    delete SUST[selCP.id];          // los "otro cartón" ya registrados no siguen en la grilla
     var res = r.data || {};
     var al = res.alertas || [];
     $("successTitle").textContent = MODO === "enviar" ? "✓ Enviado" : "✓ Recibido";

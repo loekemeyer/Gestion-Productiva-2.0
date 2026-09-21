@@ -418,9 +418,11 @@ create table "GP2".movimiento (
   cajones numeric,
   faltante boolean not null default false,
   nota text,
+  sustituye_comp_id bigint,
   constraint movimiento_pkey PRIMARY KEY (id),
   constraint movimiento_comp_id_fkey FOREIGN KEY (comp_id) REFERENCES "GP2".componente(id),
   constraint movimiento_comp_transformado_id_fkey FOREIGN KEY (comp_transformado_id) REFERENCES "GP2".componente(id),
+  constraint movimiento_sustituye_comp_id_fkey FOREIGN KEY (sustituye_comp_id) REFERENCES "GP2".componente(id),
   constraint movimiento_tipo_mov_fk FOREIGN KEY (tipo_mov) REFERENCES "GP2".tipo_movimiento(clave) ON UPDATE CASCADE,
   constraint movimiento_ubic_destino_id_fkey FOREIGN KEY (ubic_destino_id) REFERENCES "GP2".ubicacion(id),
   constraint movimiento_ubic_origen_id_fkey FOREIGN KEY (ubic_origen_id) REFERENCES "GP2".ubicacion(id),
@@ -436,6 +438,7 @@ comment on column "GP2".movimiento._delta_dest is 'delta canonico sumado al DEST
 comment on column "GP2".movimiento.cajones is 'Conteo fisico de cajones del movimiento. Independiente de cantidad (peso/unidades). kg/cajones = carga real del cajon.';
 comment on column "GP2".movimiento.faltante is 'Columna F: el operario marco que la parte no se pudo completar en este envio.';
 comment on column "GP2".movimiento.nota is 'Texto libre del operario (motivo de una devolucion, aclaracion de un ajuste). Antes vivia en devolucion_tallerista.motivo (tabla borrada 2026-09-05).';
+comment on column "GP2".movimiento.sustituye_comp_id is 'Carton OFICIAL al que reemplaza el carton de comp_id. En un envio (envio_prov_at / envio_tallerista) dice "este carton va en lugar de aquel"; en un consumo_virgilio dice "este carton se gasto a cuenta de aquel". Saldo pendiente = envios - consumos, por ubicacion (v_carton_sustituto_saldo). NULL = envio/consumo normal. 2026-09-21.';
 
 -- ---------- orden_compra ----------
 create table "GP2".orden_compra (
@@ -1127,6 +1130,7 @@ CREATE INDEX ix_pps_proveedor ON "GP2".parte_proveedor_servicio USING btree (pro
 CREATE INDEX ix_relev_item_relev ON "GP2".relevamiento_item USING btree (relevamiento_id);
 CREATE INDEX ix_relev_sector_fecha ON "GP2".relevamiento USING btree (sector_id, fecha DESC);
 CREATE INDEX movimiento_fecha_idx ON "GP2".movimiento USING btree (fecha DESC, id DESC);
+CREATE INDEX movimiento_sustituye_idx ON "GP2".movimiento USING btree (sustituye_comp_id, comp_id) WHERE (sustituye_comp_id IS NOT NULL);
 CREATE INDEX movimiento_tipo_comp_idx ON "GP2".movimiento USING btree (tipo_mov, comp_id);
 CREATE UNIQUE INDEX orden_compra_item_oc_comp_uq ON "GP2".orden_compra_item USING btree (oc_id, componente_id);
 CREATE UNIQUE INDEX planilla_snapshot_vigente_uq ON "GP2".planilla_snapshot USING btree (vigente) WHERE vigente;

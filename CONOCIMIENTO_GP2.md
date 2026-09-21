@@ -11147,3 +11147,51 @@ los 9, y los niquelados dan 2 kg (V1, V2, V4, V9, V10, V11, V12, V13) o 10 kg (V
 o sea que la bolsa del fraccionado no es una sola. **Tres crudos no tienen cajón cargado** (CV6,
 CV9, CV18D): esas filas caen al envase de la pieza devuelta, que es lo único que hay. `[dato
 2026-09-18, GP2.componente]`
+
+## 4ep. OTRO CARTÓN: cuando no hay stock del que va, se manda el de otro artículo y se le pega la etiqueta (2026-09-21)
+
+`[usuario 2026-09-21, textual: "puede pasar de que no haya stock del cartón que quiero mandar y le
+mande el cartón de otro artículo y se le pegue la etiqueta del artículo correspondiente. Entonces lo
+tengo que modelar para que baje el stock del cartón que le mando realmente"]`. Vale para los **dos**
+que reciben cartón: **tallerista** y **prov. de art. terminado**.
+
+**El envío nunca fue el problema.** El movimiento descuenta el `comp_id` que se elige, así que el
+stock que baja siempre fue el del cartón que sale de verdad. **El agujero estaba en el CONSUMO**: al
+entregar el artículo terminado, `recepcion_virgilio` consume la **receta** (`articulo_componente`),
+o sea el cartón **oficial** — que en poder del proveedor no está. Resultado sin esto: el oficial
+quedaba **negativo** en la ubicación del tercero y el sustituto **clavado ahí para siempre**.
+
+**El modelo: una columna, sin tabla nueva.** `GP2.movimiento.sustituye_comp_id` = el cartón OFICIAL
+al que reemplaza el de `comp_id`. Lo llevan las **dos puntas**: el envío ("este va en lugar de
+aquel") y el consumo ("este se gastó a cuenta de aquel"). El **saldo sale del ledger**
+(`v_carton_sustituto_saldo` = envíos − consumos por ubicación), así que no hay derivada que se
+desincronice y **borrar un movimiento se auto-corrige** — mismo criterio que el resto de GP2.
+
+**Cómo se consume**: al recibir el terminado, cada línea de receta de sector 10/11 gasta **primero
+el sustituto con saldo** (FIFO por fecha del envío) y **el resto el oficial**. Si nunca hubo
+sustitución, sale igual que antes. `recepcion_virgilio` acumula lo asignado **dentro de la misma
+llamada** (`v_usado`): la vista todavía no ve los movimientos que se están armando, y sin eso dos
+artículos del mismo remito gastarían dos veces el mismo saldo.
+
+**Dónde se declara**: en la **Tablet**, modo Enviar, adentro del tallerista o del prov. AT
+`[usuario 2026-09-21: "dentro de envío a tallerista y prov at en la versión tablet"]`. Al final de
+sus tarjetas aparece **➕ Otro cartón** → catálogo de los que ese destino **no** usa (RPC
+`cartones_para_reemplazo`, no viaja en el bundle: son ~190 filas que casi ningún envío mira) →
+**en reemplazo de cuál** de los suyos. Con un solo oficial del mismo sector no pregunta. La fila
+entra como una tarjeta más, marcada *"↔ en lugar de XXX"*, y se carga en paquetes como cualquier
+cartón. **Cartón por cartón y caja por caja**: la base rechaza reemplazar un cartón con una caja, y
+que el reemplazado no sea pieza de ese destino (si no, la sustitución no se consumiría nunca).
+
+⚠ **Lo que NO cambia**: la receta y el **costo**. El artículo sigue costeando con **su** cartón; la
+sustitución es física, no contable. Si el sustituto vale distinto, esa diferencia hoy no se ve.
+
+**Dos cosas que aparecieron al medir la cadena, y conviene tener a mano** `[dato 2026-09-21]`:
+1. **Mandar cartón a un tallerista por `EnviosTalleristas_GP2.html` (escritorio) REVIENTA**: esa
+   pantalla lista los cartones (141 `ruta_paso` de tipo tallerista los tienen como entrada) pero
+   pide **Kg**, y los **180 cartones no tienen `kg_x_uni`** → `to_canonical` levanta excepción. No
+   hay dato sucio porque **nunca se usó** (0 movimientos `envio_tallerista`). El camino bueno es la
+   **tablet**, que los manda en paquetes.
+2. **El cartón no está en NINGÚN `componente_bom`** (0 de 37): al tallerista que entrega una
+   *parte*, el cartón **no se le descuenta nunca**. Sólo se consume cuando lo que entrega es el
+   **artículo terminado** (`recepcion_virgilio`), que es justo el caso que el dueño confirmó
+   `[usuario 2026-09-21, elegido entre tres: "el artículo terminado"]`.
