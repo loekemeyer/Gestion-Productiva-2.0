@@ -11491,3 +11491,39 @@ controlar en kg y cajones (o unidad de medida correspondiente según la parte)"]
 un P.S. es **un solo paso** (se escriben los kg y se registra). Lo pedido es el modelo de
 `recepcion_insumo` (`declarado` del remito primero, `controlado` después, con `recepcion_control`
 por bulto), llevado a la entrega de P.S. y con el control en **kg + cajones**. Queda pendiente.
+
+## 4eu. El 731 no lleva cachas azules: lleva el ESPIRAL (2026-09-21)
+
+`[usuario 2026-09-21, textual: "Saca las cachas azules del 731 y agregá el espiral d1"; ejecutado
+con su "Sí"]`
+
+**El síntoma que lo delata, y que estaba a la vista:** el **731** (Sacacorcho Combinado Color)
+llevaba `V1` *Remache Espiral* **sin el espiral** — el remache de una pieza que no figuraba en la
+receta. Lo que sí tenía era `PC8` *Cachas Azules*, que en un sacacorchos no va.
+
+**Se borró:** la fila `articulo_componente` id 395 (`PC8` x1) y la ruta **425 `"Insumo PC8 -> Art
+731"`** con sus 3 pasos.
+**Se dio de alta:** `D1` *Espiral Sacacorcho* x1 y la ruta **1056 `"Insumo D1 -> Art 731"`**
+(`insumo D1 → tallerista 6 → 731 → virgilio`), calcada de la **576 del 531**.
+
+**EL 731 Y EL 531 SON EL MISMO PRODUCTO** `[dato 2026-09-21]`: los dos se llaman *Sacacorcho
+Combinado Color* y comparten `C8`, `D4`, `D14`, `V1`, `V2`, `V3`. Lo único que los separa es el
+**cuerpo** (`B7` serigrafiado en el 731, `B4` pintado azul en el 531), la **caja** (A8 / A11) y el
+**cartón** (T3B / E3B). El 531 ya llevaba `D1` y nunca llevó `PC8`: **el hermano era la prueba**.
+Cuando dos códigos son el mismo producto, la receta del que está bien es el patrón, no hay que
+adivinar.
+
+**PC8 era del rubro equivocado** `[dato 2026-09-21]`: lo usan las **6 pinzas** (053, 054, 055, 594,
+595, 596), todas **x2**, y el 731 era el único que no es pinza, y con x1. Esto **cierra el
+pendiente** que había dejado la tanda de correcciones del mismo día (`4eq`: *"el 731 también lleva
+PC8 y quedó en 1"*): no había que ponerle 2 — había que **sacarlo**. Ahora `PC8` queda en 6
+artículos y 1.604 uni/mes.
+
+**Lo que mueve la plata, y va para arriba:** el costo del 731 **sube $97,91/uni** (−$270,49 la
+cacha, +$368,40 el espiral) sobre **404 uni/mes**, o sea el artículo estaba **subestimado ~$39.556
+al mes**. El consumo de `D1` sube a 10.102 uni/mes: más O.C. de espirales. Una corrección de
+receta que *sube* el costo es la que más urge, porque mientras tanto se estuvo cotizando barato.
+
+Queda con **10 componentes y 10 rutas**, una por insumo. Invariantes de `db/verificar.sql` que
+pegan con lo tocado (L, S, U, W, X, AA, AB, AD): **0**. `AE` da **2** y es **preexistente**
+(artículos 567 y 537).
