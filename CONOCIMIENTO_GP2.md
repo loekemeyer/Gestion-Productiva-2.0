@@ -11148,7 +11148,26 @@ o sea que la bolsa del fraccionado no es una sola. **Tres crudos no tienen cajó
 CV9, CV18D): esas filas caen al envase de la pieza devuelta, que es lo único que hay. `[dato
 2026-09-18, GP2.componente]`
 
-## 4ep. Tanda de correcciones de despiece del usuario (2026-09-21)
+## 4ep. En Recibir el número de referencia se llama por lo que es: el STOCK de la contraparte (2026-09-21)
+
+`[usuario 2026-09-21, textual: "En la versión tablet, cuando voy a recibir, en vez de esperado
+quiero que diga Stock tallerista o stock proveedor de servicio según corresponda"]`.
+
+**No es un cambio de número, es un cambio de nombre — y el nombre viejo mentía.** Ese dato nunca
+fue "lo que calculamos que va a traer": es **lo que la contraparte tiene en su poder** según la
+base (`esperado_origen = online_tall` / `online_ps`), o sea lo que le mandamos y todavía no
+devolvió. "Esperado" se leía como una expectativa de esta entrega, y de ahí salieron las dos
+confusiones del 18/09 (4eo: "mandé 5 cajones y el esperado dice 50"). Con el rótulo correcto, el
+operario que ve un número raro sabe qué mirar: el stock del tallerista, no la entrega de hoy.
+
+- **Tallerista** → "Stock tallerista". **P.S.** → "Stock prov. de servicio".
+- **Virgilio sigue diciendo "Esperado"**: ahí el número es su online y el usuario nombró sólo los
+  dos. `[deducido]` — si alguna vez molesta, es un renglón en `rotuloRef()` de la tablet.
+- **El número, su unidad (cajones/bolsas/paquetes) y la alerta de "recibí de más" no se tocaron.**
+- De paso, en la tarjeta el rótulo bajó a su propio renglón chico y gris: "Stock prov. de servicio"
+  en los 21px de negrita naranja se comía tres renglones y tapaba el número, que es lo que se lee
+  de lejos. Vale también para "Sugerido" y "Online sector".
+## 4eq. Tanda de correcciones de despiece del usuario (2026-09-21)
 
 Ocho correcciones dictadas de corrido por el dueño en una sola charla. Van juntas porque comparten
 el mismo patrón: **el despiece que estaba cargado no era el que se arma en la planta**, y en la
