@@ -9116,6 +9116,36 @@ tallerista o un proveedor de servicio, y `articulo_prov_at` no es el lugar. Hoy 
 IJUPA: es justamente la forma que §4cy punto 1 llama mal modelada. Se deja así a propósito hasta
 que el dueño defina el circuito.
 
+### Cuáles artículos de Prov AT están modelados en GP2 y cuáles no (2026-09-21)
+
+El dueño preguntó *"de todos los artículos que me mandaste que arman los proveedores de artículos
+terminados decime cuáles tenemos modelados… porque por ejemplo en paternal goma está la espátula
+goma, como no lo tenemos en GP2 no me interesa verlo"*.
+
+**Su ejemplo estaba equivocado y conviene dejarlo escrito para no repetirlo: el 618 y el 619 de
+Paternal Goma SÍ están modelados** — existen en `GP2.articulo`, tienen ruta con paso
+`proveedor_at` y figuran en `est_madre`. Lo que tienen es **demanda mínima (2 y 20 uni/mes)**, que
+no es lo mismo que no existir. Antes de dar de baja algo "porque no lo tenemos", mirar
+`est_madre`: un artículo de 2 uni/mes se lee como inexistente y no lo es. `[dato]`
+
+**De los 56 códigos activos de `articulo_prov_at`, 45 son artículos de GP2 y 11 no.** Los 11, por
+demanda mensual (`est_madre.proy_uni_mes`): `565` Pinza de Hielo (Manfer, 528), `110` Colador N°8
+(López José, 384), `111` Colador N°10 (López José, 296), `193` sin descripción (Kuffo, 176), `112`
+Ø16 Env. (López José, 160), `852` Pinza de Hielo 14 (Manfer, 7), `830` Colador Ø20 (López José,
+3), `828` Colador Ø16 (López José, 2), y sin demanda `029` Colador N°16 (López José), `122`
+Rallador Cilíndrico (Carriero) y `554` Cucharita Matera (Melinox). **Los 8 primeros se venden y no
+existen como artículo en GP2**; los 3 últimos no están ni en la Est Madre. `[dato]`
+
+**Por proveedor, el peor es López José: 6 de sus 10 sin modelar.** Manfer 2 de 2, Kuffo 1 de 1,
+Carriero 1 de 3, Melinox 1 de 2. Completos: Pintos (13), Pettofrezza (10), Maspoli (7), The Plast
+(4), Paternal Goma (2), Tierra Nativa (1) y Cabral (1, el 031). `[dato]`
+
+**Sospecha a confirmar con el dueño: `026`/`027` y `110`/`111` parecen el MISMO colador con dos
+códigos.** 026 (Ø8) y 027 (Ø10) existen en `GP2.articulo` pero **sin** fila en `est_madre`; 110
+(N°8) y 111 (N°10) tienen la demanda pero **no** existen en `GP2.articulo`. Si son el mismo
+producto no faltan dos artículos: falta unificar el código. Mismo patrón posible en 029/828 (Ø16)
+y en 112. `[deducido, sin confirmar]`
+
 ## 4cz. El cruce de la lista de precios se hace por `cod_isis`, no por el nombre del producto (2026-09-13)
 
 Se buscó el proveedor de **`PEST1`** (Insertos Mango de Madera, 768, el único insumo comprable sin
