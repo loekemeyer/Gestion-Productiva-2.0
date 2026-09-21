@@ -11500,7 +11500,6 @@ el kg**: si el proveedor devuelve la mitad dice medio cajón, y si devuelve todo
 **Lo que el usuario pidió además, en la misma charla** `[usuario, textual: "En recepcion de
 proveedores de servicio se tiene que seguir la lógica de primero cargar lo que dice el remito y
 despues hacer el control (como en recepcion de insumos) en el remito que sea en kg y despues
-<<<<<<< HEAD
 controlar en kg y cajones (o unidad de medida correspondiente según la parte)"]`: **ya está hecho,
 ver 4eu** (esta línea decía "queda pendiente" y se corrigió el mismo día, cuando se construyó).
 
@@ -11551,11 +11550,6 @@ aparece como pendiente en la pantalla de control, así que no se pierde.
 Es la misma limitación que tiene el control de insumos (`controlar_recepcion_kg` tampoco vuelve
 sobre la O.C.), y se deja anotada en vez de inventar una regla: cuando aparezca un desvío real en
 un fasonero hay que decidir si la O.C. sigue al remito o al control.
-=======
-controlar en kg y cajones (o unidad de medida correspondiente según la parte)"]`: hoy la entrega de
-un P.S. es **un solo paso** (se escriben los kg y se registra). Lo pedido es el modelo de
-`recepcion_insumo` (`declarado` del remito primero, `controlado` después, con `recepcion_control`
-por bulto), llevado a la entrega de P.S. y con el control en **kg + cajones**. Queda pendiente.
 
 ## 4eu. El 731 no lleva cachas azules: lleva el ESPIRAL (2026-09-21)
 
@@ -11661,4 +11655,27 @@ da **2** y es **preexistente** (artículos 567 y 537).
 artículo tiene **dos piezas que cumplen la misma función** — dos capuchones, una cacha donde va un
 espiral, dos mangos — **una sobra**, y el que dice cuál es el **hermano**: el artículo que hace lo
 mismo y está bien cargado. El nombre del artículo **no** es evidencia; la receta del hermano sí.
->>>>>>> origin/main
+
+## 4ex. Una botonera que ya eligió se cierra; Sector y Proveedor son dos cajas (2026-09-21)
+
+[usuario, textual] *"quiero que cuando toco un sector me desaparezca el resto de los sectores y
+además haya un botón que diga Todos"* + *"separame bien lo que es sector y proveedor porque no se
+entiende bien la separación"*. Dicho sobre `Compras/OC_GP2.html` (v1.34.0), pero es una **regla de
+pantalla**, no un arreglo de esa pantalla: vale para cualquier botonera de filtro de GP2.
+
+1. **Elegido = el resto desaparece.** Con un sector elegido se ve **ese chip y nada más**, más un
+   chip **"Todos"** que lo suelta y devuelve la botonera entera. Los 9 sectores ocupaban dos
+   renglones **después** de elegir, que es justo cuando ya no se miran.
+2. **Cada filtro, su propia caja**, con la etiqueta adentro a la izquierda. Dos botoneras pegadas
+   una debajo de la otra, sin borde, se leen como una sola lista corrida — por eso el usuario no
+   veía dónde terminaba Sector y empezaba Proveedor.
+3. **La caja abraza el contenido** (`inline-flex`): con un sector elegido queda chica, no una barra
+   vacía a lo ancho. Es la regla de la casa de no dejar huecos.
+4. **El PROVEEDOR no se colapsa, y es a propósito** [deducido, sin confirmar]: ahí se **compara**
+   entre proveedores del mismo sector (quién cotiza más barato la misma caja: Corrugadora contra
+   Recicor, que entrega las mismas 11 y ~19% más barato), y esconderlos
+   obligaría a abrir y cerrar en cada comparación. El sector, en cambio, se elige una vez. Si el
+   dueño lo pide, es la misma línea de código.
+5. **"Todos" no muestra todo:** sin sector no hay lista (regla del 2026-09-04, *"si no pongo el
+   sector y no pongo el proveedor, que no me aparezca la lista"*), así que "Todos" vuelve al cartel
+   "Elegí un sector". El chip elegido también se sigue soltando tocándolo, como siempre.
