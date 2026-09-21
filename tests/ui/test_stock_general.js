@@ -37,9 +37,12 @@ const BUNDLE = {
   bom_comp: {},
   // el ajuste opera sobre A10 (comp 10) en el sector D1 (ubic 1): una sola ubicacion.
   // Pedernera (ubic 6, PS): A10 procesado en 0 (se muestra) y CAJ1 caja en 0 (SEED, se oculta).
+  // B5 (comp 30) esta en DOS lados -el sector y el taller de Martin-: es el caso del usuario,
+  // "no se a que sector pertenece el componente". T1 (comp 20) vive en el sector Terminado,
+  // que NO tiene boton propio: sin el rubro global no se ve en ningun lado.
   inv: {
     '10:1': { cant: 100, max: 200 }, '30:1': { cant: 50, max: 0 }, '20:5': { cant: 0, max: 0 },
-    '10:6': { cant: 0, max: null }, '50:6': { cant: 0, max: null },
+    '10:6': { cant: 0, max: null }, '50:6': { cant: 0, max: null }, '30:3': { cant: 20, max: null },
   },
 };
 /* Prov AT y transito salen de su propia RPC. */
@@ -154,6 +157,48 @@ window.supabase = { createClient: function(){ return {
   ok(!/MÁXIMO/i.test(ps.thead), 'PS: la tabla NO tiene columna Máximo (el maximo vive en el sector procesado)');
   ok(/A10/.test(ps.body), 'PS: se ve la pieza procesada que el PS cromaria (A10)');
   ok(!/CAJ1/.test(ps.body), 'PS: NO aparece la caja (insumo de empaque sembrado en 0 en el PS)');
+
+  // ── BUSCAR SIN SABER EL RUBRO (v2.1.0) ──
+  // 1) el rubro "Todos": una tabla con todo el inventario, con Rubro + Dónde y sin movimientos
+  await page.click('.rubro-btn:has-text("Todos los rubros")');
+  await page.waitForFunction(() => /Martin/.test(document.getElementById('tbody').innerText));
+  const glo = await page.evaluate(() => ({
+    thead: document.getElementById('thead').innerText,
+    body: document.getElementById('tbody').innerText,
+    horizontal: document.documentElement.scrollWidth > window.innerWidth,
+  }));
+  ok(/RUBRO/i.test(glo.thead) && /DÓNDE/i.test(glo.thead), 'Todos: la tabla dice en qué rubro y en qué lugar está cada fila');
+  ok(!/FABRICACIÓN/i.test(glo.thead), 'Todos: sin columnas de movimiento (cada rubro tiene las suyas)');
+  ok(!glo.horizontal, 'Todos: celular 390px sin scroll horizontal');
+  ok(/T1/.test(glo.body) && /Terminado/.test(glo.body),
+     'Todos: aparece lo que NO tiene botón propio (T1 en el sector Terminado), antes invisible');
+
+  // 2) el mismo código en dos lugares distintos, de un saque
+  await page.fill('#q', 'B5');
+  await page.waitForFunction(() => document.querySelectorAll('#tbody tr').length === 3);
+  const b5 = await page.locator('#tbody').innerText();
+  ok(/Martin/.test(b5) && /D1/.test(b5) && /Laboratorio FAAT/.test(b5),
+     'Todos: B5 se ve de un saque en sus tres lugares (sector, tallerista y tránsito) — ' + b5.replace(/\s+/g, ' '));
+
+  // 3) desde adentro de un rubro, el renglón "También en: …" y el salto en un click
+  await page.click('.rubro-btn:has-text("Stock SC")');
+  await page.waitForFunction(() => !document.getElementById('hintOtros').classList.contains('hidden'));
+  const hint = await page.locator('#hintOtros').innerText();
+  ok(/También en otros rubros/i.test(hint) && /Talleristas/.test(hint),
+     'dentro de SC, buscar B5 avisa en qué otros rubros está — ' + hint.replace(/\s+/g, ' '));
+  ok(await page.locator('#tblEmpty').isVisible(), 'SC no tiene B5: antes la pantalla solo decía "Sin resultados"');
+  await page.click('#hintOtros a:has-text("Talleristas")');
+  await page.waitForFunction(() => /Martin/.test(document.getElementById('tbody').innerText));
+  const salto = await page.evaluate(() => ({ q: document.getElementById('q').value, body: document.getElementById('tbody').innerText }));
+  ok(salto.q === 'B5' && /B5/.test(salto.body), 'el salto conserva lo buscado y muestra la fila en el otro rubro');
+
+  // 4) en "Todos", la celda del rubro también lleva a esa pantalla
+  await page.click('.rubro-btn:has-text("Todos los rubros")');
+  await page.waitForFunction(() => document.querySelectorAll('#tbody td.rub-cell').length > 0);
+  await page.click('#tbody td.rub-cell:has-text("Talleristas")');
+  await page.waitForFunction(() => document.title.indexOf('Talleristas') >= 0);
+  ok(true, 'Todos: click en el rubro de la fila abre ese rubro');
+  await page.fill('#q', '');
 
   // ── ultimos movimientos (vista heredada de Registrar_Movimiento) ──
   await page.click('#grpMovs > summary');

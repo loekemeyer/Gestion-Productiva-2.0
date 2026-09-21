@@ -9102,12 +9102,31 @@ me aparece la cja y carton de 031 nomás"* — o sea, esperaba ver **sólo** la 
 para que la tablet haga lo que él quiere. Es el cruce `articulo_prov_at → articulo →
 articulo_componente` que puso el fix v1.3.1 de la tablet (2026-09-15). `[dato]`
 
-**Queda el desprolijo que el `activo=false` NO arregla:** las rutas de `223`, `224`, `246`, `338`
-y `577` siguen con su paso `proveedor_at` apuntando a Cabral. La tablet no las lee, pero la ruta
-sigue diciendo que el proveedor es él. **Preguntado, sin respuesta:** si se saca a Cabral de esas
-5, 223/224 quedan con Pintos y 246 con Maspoli, pero **338 y 577 se quedan sin ningún proveedor**
-(el otro del 577, Pettofrezza, está inactivo). Ninguno de los 5 está `discontinuado` en
-`GP2.articulo`, aunque el 338 figuraba como `disc` en la nota de §4be. `[dato]`
+**El `activo=false` NO toca las rutas, y de ahí salió el reclamo del día siguiente.** El dueño
+abrió el despiece del 246 en `Programa.html` y vio "Maspoli **o** Cabral": *"te dije que solo
+entrega el 031… ¿por qué sigue apareciendo acá en el 246?"*. **El despiece lee `ruta_paso`, no
+`articulo_prov_at`** — medido con `pg_get_functiondef`: `programa_bundle` ni nombra al padrón. Son
+dos libros distintos y hay que tocar los dos. `[dato]`
+
+**Resuelto el 2026-09-21 con el sí del dueño** (*"Si"* + *"Ni siquiera lo tenés que poner. En el
+031"*): se borraron las **7 rutas** de Cabral de 223 (915, 924), 224 (917, 926), 246 (929) y 577
+(921, 935) —21 pasos— y la fila del **031** pasó a `activo=false`. **Cabral queda en 0 filas
+activas y 0 rutas** en esos cuatro. Verificado: 223 y 224 siguen con Pintos (2 rutas cada uno),
+246 con Maspoli y 577 con Pettofrezza; **0 rutas huérfanas**. La `ubicacion` 34 (Prov. Art. Term.
+Cabral) se deja: guarda el historial y no se ve en ninguna pantalla. `[dato]`
+
+**El 338 fue el único que frenó, y el dueño lo contestó: lo entrega Alex Escalante** (tallerista
+2, activo) — primero dijo "Carlos" y se corrigió en el mensaje siguiente. Sus 2 rutas (920 por la
+caja `A2`, 934 por el cartón `K5B`) son las **únicas** que le quedan a Cabral, y se dejaron vivas
+a propósito: borrarlas antes de reasignarlas dejaba al 338 sin ninguna ruta. **Pasa de Prov AT a
+tallerista**, el mismo movimiento que la otra sesión le hizo hoy al `070` (de `proveedor_at`
+Pettofrezza a tallerista Fábrica, §4eq). `[usuario 2026-09-21]`
+
+⚠ **Lo que ese cambio deja al descubierto: la receta del 338 es SÓLO envase** (caja `A2` + cartón
+`K5B`), sin ninguna pieza de producto. Eso es normal en un artículo que se compra terminado, pero
+con un tallerista significa que Alex "produce" la espátula de la nada y **lo que entra nunca llega
+al costo** — exactamente la trampa de §"El paso de tallerista tiene que declarar QUÉ ENTRA".
+Preguntado: de dónde sale la espátula lisa que Alex envasa. `[deducido, sin confirmar]`
 
 **También sin respuesta: qué es "llevar a hacer" el 031.** Si Cabral nos vende el filtro terminado
 es un paso `proveedor_at` en una ruta alternativa; si le mandamos las partes y él arma, es un
@@ -11468,6 +11487,7 @@ el kg**: si el proveedor devuelve la mitad dice medio cajón, y si devuelve todo
 **Lo que el usuario pidió además, en la misma charla** `[usuario, textual: "En recepcion de
 proveedores de servicio se tiene que seguir la lógica de primero cargar lo que dice el remito y
 despues hacer el control (como en recepcion de insumos) en el remito que sea en kg y despues
+<<<<<<< HEAD
 controlar en kg y cajones (o unidad de medida correspondiente según la parte)"]`: **ya está hecho,
 ver 4eu** (esta línea decía "queda pendiente" y se corrigió el mismo día, cuando se construyó).
 
@@ -11518,3 +11538,114 @@ aparece como pendiente en la pantalla de control, así que no se pierde.
 Es la misma limitación que tiene el control de insumos (`controlar_recepcion_kg` tampoco vuelve
 sobre la O.C.), y se deja anotada en vez de inventar una regla: cuando aparezca un desvío real en
 un fasonero hay que decidir si la O.C. sigue al remito o al control.
+=======
+controlar en kg y cajones (o unidad de medida correspondiente según la parte)"]`: hoy la entrega de
+un P.S. es **un solo paso** (se escriben los kg y se registra). Lo pedido es el modelo de
+`recepcion_insumo` (`declarado` del remito primero, `controlado` después, con `recepcion_control`
+por bulto), llevado a la entrega de P.S. y con el control en **kg + cajones**. Queda pendiente.
+
+## 4eu. El 731 no lleva cachas azules: lleva el ESPIRAL (2026-09-21)
+
+`[usuario 2026-09-21, textual: "Saca las cachas azules del 731 y agregá el espiral d1"; ejecutado
+con su "Sí"]`
+
+**El síntoma que lo delata, y que estaba a la vista:** el **731** (Sacacorcho Combinado Color)
+llevaba `V1` *Remache Espiral* **sin el espiral** — el remache de una pieza que no figuraba en la
+receta. Lo que sí tenía era `PC8` *Cachas Azules*, que en un sacacorchos no va.
+
+**Se borró:** la fila `articulo_componente` id 395 (`PC8` x1) y la ruta **425 `"Insumo PC8 -> Art
+731"`** con sus 3 pasos.
+**Se dio de alta:** `D1` *Espiral Sacacorcho* x1 y la ruta **1056 `"Insumo D1 -> Art 731"`**
+(`insumo D1 → tallerista 6 → 731 → virgilio`), calcada de la **576 del 531**.
+
+**EL 731 Y EL 531 SON EL MISMO PRODUCTO** `[dato 2026-09-21]`: los dos se llaman *Sacacorcho
+Combinado Color* y comparten `C8`, `D4`, `D14`, `V1`, `V2`, `V3`. Lo único que los separa es el
+**cuerpo** (`B7` serigrafiado en el 731, `B4` pintado azul en el 531), la **caja** (A8 / A11) y el
+**cartón** (T3B / E3B). El 531 ya llevaba `D1` y nunca llevó `PC8`: **el hermano era la prueba**.
+Cuando dos códigos son el mismo producto, la receta del que está bien es el patrón, no hay que
+adivinar.
+
+**PC8 era del rubro equivocado** `[dato 2026-09-21]`: lo usan las **6 pinzas** (053, 054, 055, 594,
+595, 596), todas **x2**, y el 731 era el único que no es pinza, y con x1. Esto **cierra el
+pendiente** que había dejado la tanda de correcciones del mismo día (`4eq`: *"el 731 también lleva
+PC8 y quedó en 1"*): no había que ponerle 2 — había que **sacarlo**. Ahora `PC8` queda en 6
+artículos y 1.604 uni/mes.
+
+**Lo que mueve la plata, y va para arriba:** el costo del 731 **sube $97,91/uni** (−$270,49 la
+cacha, +$368,40 el espiral) sobre **404 uni/mes**, o sea el artículo estaba **subestimado ~$39.556
+al mes**. El consumo de `D1` sube a 10.102 uni/mes: más O.C. de espirales. Una corrección de
+receta que *sube* el costo es la que más urge, porque mientras tanto se estuvo cotizando barato.
+
+Queda con **10 componentes y 10 rutas**, una por insumo. Invariantes de `db/verificar.sql` que
+pegan con lo tocado (L, S, U, W, X, AA, AB, AD): **0**. `AE` da **2** y es **preexistente**
+(artículos 567 y 537).
+
+## 4ev. Buscar un componente sin saber en qué rubro está (2026-09-21)
+
+**Lo que dijo el usuario, textual:** *"Que me deje buscar por fuera de algún sector y por dentro.
+Porque hoy en día si no se a que sector pertenece el componente tengo que entrar uno por uno"*.
+Es sobre `Stocks General/StockGeneral_GP2.html`, cuyo buscador filtraba **solo el rubro abierto**.
+
+**Por qué dolía más de lo que parece:** no era solo cuestión de clicks. De las **1.324 filas de
+`GP2.inventario`, 275 no tenían ningún botón que las mostrara** — 269 de Virgilio, 5 de inyectores
+y 1 de un sector sin rubro en el selector (`Y1` *Cuchilla para Afilar*, Sector Afilado, con máximo
+43.946). Entrando "uno por uno" por los 15 rubros esas filas **no aparecían nunca**.
+
+**Cómo quedó (v2.1.0):** rubro `🔎 Todos los rubros` (una tabla con todo el inventario, columnas
+`Rubro` + `Dónde`, sin columnas de movimiento porque cada rubro tiene las suyas) y, estando adentro
+de un rubro, el renglón **"También en otros rubros: …"** con la cuenta por rubro y el salto en un
+click conservando lo tipeado. Las filas sin rubro propio se muestran igual, etiquetadas por lo que
+son (Virgilio, Inyector, o el nombre del sector).
+
+**El dato sale de `movimientos_bundle`, que la pantalla YA carga** (`D.inv` es el inventario
+entero): **cero RPC nuevas**. Los únicos dos lugares que no viven ahí —prov. AT y tránsito PS—
+se suman desde `stock_general_extra_bundle`, igual que en sus rubros.
+
+**Regla que deja, para cualquier pantalla con selector:** un filtro que solo mira la pestaña
+abierta obliga al usuario a saber la respuesta antes de preguntar. Si el índice completo ya está
+en memoria (y acá lo estaba), la búsqueda transversal no cuesta nada y encima destapa lo que
+ningún botón mostraba.
+
+## 4ew. El 863 lleva mango de MADERA, aunque se llame "Mgo Chef" (2026-09-21)
+
+`[usuario 2026-09-21, textual: "El 863 no usa ni PC6 ni PB6 ni PA19"; ejecutado con su "Sí", después
+de plantearle que el nombre del artículo decía lo contrario]`
+
+**La contradicción, que vale más que el cambio:** el **863** se llama *"Corta Pizza Gastro. **Mgo
+Chef** Ø 8 Cm"* y lo que había que sacarle era justamente `PA19` **Mangos Chef**. Parecía un error
+del pedido. No lo era: **el 863 llevaba DOS mangos**, `PA19` (chef) y `PEP8` (*Mango Madera Pizza
+Ø9*), y el que queda es el de madera.
+
+**Cómo se probó antes de ejecutar** `[dato 2026-09-21]` — el hermano:
+
+| | receta |
+|---|---|
+| 863 (después) | A8, E9, LL1, **PEP8**, S1A, V12, Z35 |
+| 564 *"Corta Pizza 8cm **Mgo Madera**"* | A3, E9, F4B, LL1, **PEP8**, V12, Z35 |
+
+Idénticos salvo **caja** (A8 / A3) y **cartón** (S1A / F4B). Y los otros dos que se sacaron son los
+accesorios que acompañan al mango chef en los 5 artículos que lo usan de verdad (709, 720, 722,
+856, 857): `PB6` *Inser. Neg. Espat* y `PC6` *Ojales Neg/Blanco*. **Los tres son un kit y salen
+juntos.** El corta pizza que sí es de mango chef es el **862**, que lleva `PA19` sin `PEP8`.
+
+**Entonces lo que está mal es la DESCRIPCIÓN del 863, no la receta** `[deducido 2026-09-21, sin
+confirmar]`. Se dejó el nombre como está: el dueño no contestó si el nombre comercial se corrige.
+**Queda preguntado.**
+
+**Se borró:** `articulo_componente` ids 779 (`PA19`), 780 (`PB6`), 781 (`PC6`) y las **3 rutas**
+825 / 826 / 827 (`"Insumo PA19|PB6|PC6 -> Art 863"`) con sus 9 pasos. Queda con **7 componentes y
+7 rutas**.
+
+**Plata:** el costo del 863 baja **$381,09/uni** sobre 34 uni/mes (~$12.957/mes), y es **piso**
+porque `PC6` **no tiene precio cargado** (`faltan_precios = 1`), o sea que la baja real es mayor y
+hoy no se puede medir. Consumo: `PA19` 13 → 12 artículos (1.336 uni/mes), `PB6` 6 → 5 (90),
+`PC6` 4 → 3 (134).
+
+Invariantes de `db/verificar.sql` que pegan con lo tocado (L, S, U, W, X, AA, AB, AD): **0**. `AE`
+da **2** y es **preexistente** (artículos 567 y 537).
+
+**REGLA QUE DEJAN LAS TRES CORRECCIONES DE HOY** (`4es` el 311/312, `4eu` el 731, ésta): cuando un
+artículo tiene **dos piezas que cumplen la misma función** — dos capuchones, una cacha donde va un
+espiral, dos mangos — **una sobra**, y el que dice cuál es el **hermano**: el artículo que hace lo
+mismo y está bien cargado. El nombre del artículo **no** es evidencia; la receta del hermano sí.
+>>>>>>> origin/main

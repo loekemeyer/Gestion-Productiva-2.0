@@ -6,7 +6,20 @@
 <script src="../gp2-ui.js?v=20260913e"></script>
 <script src="../gp2-numero.js?v=20260911o"></script>
 <title>Stock general · GP2</title>
-<!-- v2.0.1 (2026-09-15) - CORRECCIONES del dueño sobre el rubro Prov. Servicio: (a) SIN columna
+<!-- v2.1.0 (2026-09-21) - BUSCAR SIN SABER EL RUBRO [usuario: "Que me deje buscar por fuera de
+     algún sector y por dentro. Porque hoy en día si no se a que sector pertenece el componente
+     tengo que entrar uno por uno"]. Dos cosas, y la segunda es la que ahorra los clicks:
+     (a) rubro "🔎 Todos los rubros" (mode:'global'): una sola tabla con TODO el inventario,
+         con columnas Rubro + Dónde, y la celda del rubro te lleva a esa pantalla con el texto
+         de búsqueda puesto. Sin columnas de movimiento (cada rubro tiene las suyas).
+     (b) estando DENTRO de un rubro, al tipear aparece el renglón "También en: …" con la cuenta
+         por rubro y el salto en un click. Antes, si el componente no estaba en el rubro abierto,
+         la tabla decía "Sin resultados" y no había forma de saber dónde estaba.
+     FUENTE: D.inv de movimientos_bundle (ya cargado), o sea CERO RPC nuevas; prov AT y tránsito
+     salen de extra_bundle como en sus rubros. Muestra también lo que NO tiene rubro propio en el
+     selector (Virgilio, inyectores, y sectores sin botón: hoy Y1 "Cuchilla para Afilar", Sector
+     Afilado, era invisible en esta pantalla). Tope de 400 filas dibujadas cuando no hay búsqueda.
+     v2.0.1 (2026-09-15) - CORRECCIONES del dueño sobre el rubro Prov. Servicio: (a) SIN columna
      Máximo (a un PS se le manda segun el maximo que necesita el SECTOR PROCESADO, el PS no tiene
      maximo propio); (b) NO listar cajas/cartones ni otros insumos de empaque/consumo en un PS
      ("a un PS no se le envian cajas") -- eran filas SEED en 0 sin movimiento (auditoria: 38 filas
@@ -46,6 +59,15 @@
  .chk{display:flex;align-items:center;gap:6px;font-size:16px;color:#333;cursor:pointer;user-select:none}
  .chk input{width:20px;height:20px}
  .flje-link{margin-left:auto;font-size:15px;font-weight:700;color:#0066cc;text-decoration:none}
+ /* "También en: …" — el componente aparece en otros rubros que el abierto */
+ .hint-otros{font-size:16px;color:#333;margin:-4px 0 10px;line-height:1.7}
+ .hint-otros b{color:#111}
+ .hint-otros a{color:#0066cc;font-weight:800;text-decoration:none;cursor:pointer;white-space:nowrap}
+ .hint-otros a:hover{text-decoration:underline}
+ .hint-otros .sin-link{font-weight:800;color:#555;white-space:nowrap}
+ .nota-tabla{font-size:15px;color:#666;margin:8px 0 0;font-style:italic}
+ table.t td.rub-cell{cursor:pointer;color:#0066cc;font-weight:800;text-decoration:underline dotted}
+ table.t td.rub-cell:hover{background:#eef4fb}
  table.t td.mov-cell,table.t td.stk-cell{cursor:pointer;text-decoration:underline dotted}
  table.t td.mov-cell:hover,table.t td.stk-cell:hover{background:#eef4fb}
  table.t td.pos{color:#15803d;font-weight:800}
@@ -105,6 +127,8 @@
       <a id="fljeLink" class="flje-link" style="display:none" href="../StockFlejes/Flejes_GP2.html">Detalle de flejes / rollos →</a>
     </div>
 
+    <div class="hint-otros hidden" id="hintOtros"></div>
+
     <div class="table-wrap">
       <table class="t">
         <thead id="thead"></thead>
@@ -112,6 +136,7 @@
       </table>
     </div>
     <div id="tblEmpty" class="empty hidden">Sin resultados.</div>
+    <div id="notaTabla" class="nota-tabla hidden"></div>
     <div id="status" class="status">Cargando…</div>
 
     <details class="movs" id="grpMovs">
@@ -199,6 +224,8 @@ var SECT_CONSUMIBLE = { 5:1, 6:1, 8:1, 10:1, 11:1, 14:1 }; // fleje, plastico, r
    Los de sector (mode:'sector') abren stock_sector_bundle(sid) con su config de columnas.
    Los de 'otros' salen de movimientos_bundle / extra_bundle y NO llevan columnas de movimiento. */
 var RUBROS = [
+  // el buscador transversal: una sola tabla con TODO, para cuando no se sabe el rubro
+  { key:"all", grupo:"Buscar", nom:"🔎 Todos los rubros", mode:"global", mostrar_ubic:"Dónde", mostrar_rubro:true },
   { key:"sc",  grupo:"Sectores", nom:"Stock SC",         mode:"sector", sid:1,  cols:COLS_SC },
   { key:"sp",  grupo:"Sectores", nom:"Stock SP",         mode:"sector", sid:2,  cols:COLS_SP },
   { key:"mov", grupo:"Sectores", nom:"En Movimiento",    mode:"sector", sid:3,  cols:COLS_MOV3, sin_max:true },
@@ -219,6 +246,8 @@ var RUBROS = [
 var D = null;                 // movimientos_bundle (para Ajuste y rubros 'otros')
 var EXTRA = { prov_at:[], transito:[] };
 var CACHE = {};               // sid -> stock_sector_bundle
+var GLOBAL = null;            // indice transversal (todas las ubicaciones), se arma una vez
+var TOPE_GLOBAL = 400;        // filas dibujadas sin busqueda (el inventario entero son ~1.330)
 var RUBRO = null;             // rubro activo
 var CUR = { filas:[], ubic_id:null };
 
@@ -263,6 +292,7 @@ function compInfo(cid){
   return { cod:c.cod||"?", desc:c.d||"", um:c.um, kg_x_uni:c.kg_x_uni, uni_x_cajon:c.uxc };
 }
 function filasDe(r){
+  if (r.mode==="global"){ CUR.ubic_id = null; return { filas: filasGlobales() }; }
   if (r.mode==="sector"){
     var b = CACHE[r.sid] || { filas:[], ubicacion_id:null };
     CUR.ubic_id = b.ubicacion_id;
@@ -310,16 +340,112 @@ function filasDe(r){
   return { filas: out };
 }
 
+/* ═══ índice transversal (rubro "Todos" + renglón "También en: …") ═══
+   Sale de D.inv —el inventario entero, que movimientos_bundle YA trae— más los extras
+   de prov AT y tránsito: no cuesta ninguna RPC nueva. Incluye A PROPÓSITO las ubicaciones
+   que no tienen botón propio (Virgilio, inyectores, sectores sin rubro), porque justamente
+   ahí es donde un componente se volvía imposible de encontrar. */
+function rubroPorKey(k){ return RUBROS.filter(function(r){ return r.key===k; })[0] || null; }
+function rubroDeUbic(u){
+  if (!u) return null;
+  if (u.tipo==="sector") return RUBROS.filter(function(r){ return r.mode==="sector" && Number(r.sid)===Number(u.ref); })[0] || null;
+  if (u.tipo==="tallerista") return rubroPorKey("tal");
+  if (u.tipo==="proveedor_servicio") return rubroPorKey("ps");
+  return null;
+}
+var TIPO_UBIC = { virgilio:"Virgilio", virgilio_sector:"Virgilio", inyector:"Inyector", analisis:"Análisis" };
+function etiqSuelta(u){
+  if (u.tipo==="sector") return ((D.sect||{})[String(u.ref)]||{}).nom || u.nom || "Sector";
+  return TIPO_UBIC[u.tipo] || u.nom || u.tipo || "?";
+}
+function nomUbic(u){
+  var t = u.tipo==="tallerista" ? (D.tall||{}) : (u.tipo==="proveedor_servicio" ? (D.prov_serv||{}) : null);
+  return (t && (t[String(u.ref)]||{}).nom) || u.nom || "?";
+}
+function filasGlobales(){
+  if (GLOBAL) return GLOBAL;
+  var out = [];
+  for (var k in (D.inv||{})){
+    var p=k.split(":"), cid=+p[0], uid=+p[1], u=D.ubic[String(uid)];
+    if (!u) continue;
+    var v=D.inv[k], r=rubroDeUbic(u);
+    // mismo criterio que el rubro Prov. Servicio: no listar el empaque sembrado en 0
+    if (r && r.key==="ps" && SECT_CONSUMIBLE[(D.comp[String(cid)]||{}).s] && Number(v.cant)===0) continue;
+    var ci=compInfo(cid);
+    // el máximo se muestra SOLO donde el rubro lo muestra: a un P.S. (y al tránsito) no le
+    // corresponde uno propio [usuario 2026-09-15: "a un PS se le manda segun el maximo del
+    // SECTOR PROCESADO"], así que acá tampoco, ni cuenta en "bajo el máximo".
+    out.push({ cid:cid, cod:ci.cod, desc:ci.desc, um:ci.um, kg_x_uni:ci.kg_x_uni,
+               uni_x_cajon:ci.uni_x_cajon, online:Number(v.cant)||0,
+               maximo:(r && r.sin_max) ? null : v.max,
+               rubro_key:r?r.key:null, rubro_nom:r?r.nom:etiqSuelta(u),
+               ubic_nom:nomUbic(u), ubic_id:uid });
+  }
+  // prov AT y tránsito no viven en el inventario por ubicación del bundle
+  (EXTRA.prov_at||[]).forEach(function(pa){
+    (pa.filas||[]).forEach(function(f){
+      var ci=compInfo(f.cid);
+      out.push({ cid:f.cid, cod:ci.cod, desc:ci.desc, um:ci.um, kg_x_uni:ci.kg_x_uni,
+                 uni_x_cajon:ci.uni_x_cajon, online:Number(f.cant)||0, maximo:f.max,
+                 rubro_key:"pat", rubro_nom:(rubroPorKey("pat")||{}).nom, ubic_nom:pa.nom, ubic_id:pa.ubic });
+    });
+  });
+  (EXTRA.transito||[]).forEach(function(t){
+    var ci=compInfo(t.cid);
+    out.push({ cid:t.cid, cod:ci.cod, desc:ci.desc, um:ci.um, kg_x_uni:ci.kg_x_uni,
+               uni_x_cajon:ci.uni_x_cajon, online:Number(t.cant)||0, maximo:null,
+               rubro_key:"tra", rubro_nom:(rubroPorKey("tra")||{}).nom,
+               ubic_nom:(t.ps1||"?")+" → "+(t.ps2||"?"), ubic_id:null });
+  });
+  GLOBAL = out;
+  return out;
+}
+
 /* ---------- filtros ---------- */
+/* el texto buscable se calcula UNA vez por fila: el índice global son ~1.300 filas
+   y esto corre en cada tecla, tanto para la tabla como para el renglón "También en". */
+function texto(x){
+  return x._t || (x._t = ((x.cod||"")+" "+(x.desc||"")+" "+(x.ubic_nom||"")+" "+(x.rubro_nom||"")).toLowerCase());
+}
 function filtradas(){
   var arr = (CUR.filas||[]).slice();
   var q = String($("q").value||"").trim().toLowerCase();
-  if (q) arr = arr.filter(function(x){ return ((x.cod||"")+" "+(x.desc||"")+" "+(x.ubic_nom||"")).toLowerCase().indexOf(q)>=0; });
+  if (q) arr = arr.filter(function(x){ return texto(x).indexOf(q)>=0; });
   if ($("soloStock").checked) arr = arr.filter(function(x){ return Number(x.online||0)!==0; });
+  // en "Todos" manda el código, para que el mismo componente quede junto en un solo bloque
+  if (RUBRO && RUBRO.mode==="global") return arr.sort(function(a,b){
+    var c=String(a.cod||"").localeCompare(String(b.cod||"")); if(c) return c;
+    return (a.rubro_nom||"").localeCompare(b.rubro_nom||"");
+  });
   return arr.sort(function(a,b){
     var u=(a.ubic_nom||"").localeCompare(b.ubic_nom||""); if(u) return u;
     return String(a.cod||"").localeCompare(String(b.cod||""));
   });
+}
+/* los OTROS rubros donde cae lo que se está buscando (renglón "También en: …") */
+function otrosRubros(q){
+  if (!q || !D) return [];
+  var sin = $("soloStock").checked, act = RUBRO ? RUBRO.key : null, acum = {}, orden = [];
+  filasGlobales().forEach(function(x){
+    if (act && x.rubro_key===act) return;                 // el rubro abierto ya se ve en la tabla
+    if (sin && Number(x.online||0)===0) return;
+    if (texto(x).indexOf(q)<0) return;
+    var k = x.rubro_key || ("_"+x.rubro_nom);
+    if (!acum[k]){ acum[k] = { key:x.rubro_key, nom:x.rubro_nom, n:0 }; orden.push(k); }
+    acum[k].n++;
+  });
+  return orden.map(function(k){ return acum[k]; }).sort(function(a,b){ return b.n-a.n; });
+}
+function pintarHint(){
+  var el = $("hintOtros"), q = String($("q").value||"").trim().toLowerCase();
+  var otros = (RUBRO && RUBRO.mode==="global") ? [] : otrosRubros(q);
+  if (!otros.length){ el.className = "hint-otros hidden"; el.innerHTML = ""; return; }
+  var tot = otros.reduce(function(s,o){ return s+o.n; }, 0);
+  el.className = "hint-otros";
+  el.innerHTML = '<b>También en otros rubros ('+tot+'):</b> ' + otros.map(function(o){
+    return o.key ? '<a data-k="'+esc(o.key)+'">'+esc(o.nom)+' ('+o.n+')</a>'
+                 : '<span class="sin-link">'+esc(o.nom)+' ('+o.n+')</span>';
+  }).join(" · ") + ' · <a data-k="all">ver todo junto →</a>';
 }
 
 /* ---------- thead ---------- */
@@ -327,7 +453,7 @@ function renderHead(){
   var r = RUBRO, cols = (r.mode==="sector" ? r.cols : []) || [];
   var nOnline = r.sin_caj ? 2 : 3;                       // Kg (Caj) Uni
   var nInfo = 1 + (r.sin_caj?0:1) + (r.sin_max?0:1) + (r.mostrar_fleje?1:0); // Kg×Uni (Uni×Cajón) (Máximo) (N°Fleje)
-  var baseCols = r.mostrar_ubic ? 3 : 2;
+  var baseCols = 2 + (r.mostrar_rubro?1:0) + (r.mostrar_ubic?1:0);
   var g = '<tr>'+
     '<th colspan="'+baseCols+'">Base</th>'+
     '<th colspan="'+nOnline+'" class="num sep">Online</th>'+
@@ -335,6 +461,7 @@ function renderHead(){
     '<th colspan="'+nInfo+'" class="num sep">Info</th>'+
   '</tr>';
   var h = '<tr>'+
+    (r.mostrar_rubro ? '<th>Rubro</th>' : '')+
     (r.mostrar_ubic ? '<th>'+esc(r.mostrar_ubic)+'</th>' : '')+
     '<th>Código</th><th>Descripción</th>'+
     '<th class="num sep">Kg</th>'+(r.sin_caj?'':'<th class="num">Caj</th>')+'<th class="num">Uni</th>'+
@@ -351,16 +478,29 @@ function renderHead(){
 function render(){
   if (!RUBRO) return;
   var r = RUBRO, cols = (r.mode==="sector" ? r.cols : []) || [];
-  var arr = filtradas(), tb = $("tbody");
+  var todas = filtradas(), tb = $("tbody");
   tb.innerHTML = "";
-  $("tblEmpty").classList.toggle("hidden", arr.length>0);
+  $("tblEmpty").classList.toggle("hidden", todas.length>0);
+  pintarHint();
 
+  // "Todos" sin búsqueda son ~1.330 filas: se dibujan las primeras y se avisa.
+  var arr = todas, cortado = 0;
+  if (r.mode==="global" && todas.length>TOPE_GLOBAL){ arr = todas.slice(0,TOPE_GLOBAL); cortado = todas.length; }
+  var nota = $("notaTabla");
+  nota.classList.toggle("hidden", !cortado);
+  if (cortado) nota.textContent = "Mostrando las primeras "+fmt(TOPE_GLOBAL)+" de "+fmt(cortado)+" filas — escribí en el buscador para afinar.";
+
+  // los KPI cuentan TODO lo filtrado, aunque la tabla dibuje menos filas
   var tKg=0, tUni=0, tBajo=0;
+  todas.forEach(function(x){
+    var uni=Number(x.online||0);
+    tKg += (kgDe(x)||0); tUni += uni;
+    if (!r.sin_max && x.maximo!=null && uni < Number(x.maximo)) tBajo++;
+  });
+
   arr.forEach(function(x){
     var kg=kgDe(x), caj=cajDe(x), uni=Number(x.online||0);
-    tKg += (kg||0); tUni += uni;
     var bajo = !r.sin_max && x.maximo!=null && uni < Number(x.maximo);
-    if (bajo) tBajo++;
 
     var celdasMov = cols.map(function(col,i){
       var sep = i===0 ? " sep" : "";
@@ -378,6 +518,9 @@ function render(){
     if (bajo) tr.className = "falt";
     else if (uni>0) tr.className = "stk";
     tr.innerHTML =
+      (r.mostrar_rubro ? (x.rubro_key
+          ? '<td class="rub-cell" data-rub="'+esc(x.rubro_key)+'">'+esc(x.rubro_nom||"")+'</td>'
+          : '<td>'+esc(x.rubro_nom||"")+'</td>') : '')+
       (r.mostrar_ubic ? '<td>'+esc(x.ubic_nom||"")+'</td>' : '')+
       '<td><span class="cod">'+esc(x.cod)+'</span></td>'+
       '<td>'+esc(x.desc||"")+'</td>'+
@@ -393,7 +536,7 @@ function render(){
   });
 
   $("kpis").innerHTML =
-    '<div class="kpi"><div class="k">Componentes</div><div class="v">'+arr.length+'</div></div>'+
+    '<div class="kpi"><div class="k">'+(r.mode==="global"?"Filas":"Componentes")+'</div><div class="v">'+fmt(todas.length)+'</div></div>'+
     '<div class="kpi"><div class="k">Total uni</div><div class="v">'+fmt(tUni)+'</div></div>'+
     '<div class="kpi"><div class="k">Total kg</div><div class="v">'+fmt(tKg)+'</div></div>'+
     (r.sin_max?'':'<div class="kpi"><div class="k">Bajo el máximo</div><div class="v '+(tBajo?"neg":"cero")+'">'+tBajo+'</div></div>');
@@ -418,7 +561,9 @@ async function seleccionar(key){
   renderHead();
   render();
   var con = CUR.filas.filter(function(x){ return Number(x.online||0)!==0; }).length;
-  $("status").textContent = r.nom + " · " + CUR.filas.length + " componentes · " + con + " con stock.";
+  $("status").textContent = r.mode==="global"
+    ? "Todos los rubros · " + fmt(CUR.filas.length) + " filas de inventario (sectores, talleristas, P.S., prov. AT, tránsito y Virgilio) · " + fmt(con) + " con stock."
+    : r.nom + " · " + CUR.filas.length + " componentes · " + con + " con stock.";
 }
 
 /* ---------- popup detalle de un movimiento (rubros de sector) ---------- */
@@ -461,7 +606,7 @@ async function reload(){
     return;
   }
   aplicarVocabulario();
-  CACHE = {};
+  CACHE = {}; GLOBAL = null;
   await seleccionar(RUBRO ? RUBRO.key : "sc");
   renderMovs();
 }
@@ -555,7 +700,12 @@ async function renderMovs(){
 /* ---------- eventos ---------- */
 $("q").addEventListener("input", render);
 $("soloStock").addEventListener("change", render);
+$("hintOtros").addEventListener("click", function(e){
+  var a=e.target.closest("a[data-k]"); if(a) seleccionar(a.dataset.k);   // la búsqueda del input se conserva
+});
 $("tbody").addEventListener("click", function(e){
+  var rub=e.target.closest("td.rub-cell");
+  if(rub){ seleccionar(rub.dataset.rub); return; }
   var mov=e.target.closest("td.mov-cell");
   if(mov){ abrirDetalle(mov.dataset.cid, mov.dataset.col); return; }
   var stk=e.target.closest("td.stk-cell");
