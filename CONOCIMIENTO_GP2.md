@@ -11167,6 +11167,20 @@ operario que ve un número raro sabe qué mirar: el stock del tallerista, no la 
 - De paso, en la tarjeta el rótulo bajó a su propio renglón chico y gris: "Stock prov. de servicio"
   en los 21px de negrita naranja se comía tres renglones y tapaba el número, que es lo que se lee
   de lejos. Vale también para "Sugerido" y "Online sector".
+
+**Ampliación del mismo día — SIN STOCK SE DICE 0** `[usuario 2026-09-21, textual: "pero que me
+diga 0 si no tiene stock"]`. Mostrar el rótulo correcto dejó a la vista un agujero viejo: cuando la
+contraparte no tiene nada nuestro, la tarjeta decía "Stock tallerista" y **ningún número**. No era
+que faltara el dato — `tablet_bundle` manda el esperado del tallerista y del P.S. con
+`coalesce(..., 0)`, o sea que **para esos dos nunca es null** —, era que `textoEnvases()` devuelve
+`""` cuando el número no es > 0. Eso está bien donde nació (el renglón "= N cajones" de abajo del
+campo, que con el campo vacío no escribe nada) y estaba mal acá. Ahora el cero se escribe.
+
+- **`0` y `—` no son lo mismo y siguen separados**: `0` = la base sabe y la contraparte no tiene
+  nada; `—  sin referencia` = el esperado vino **null**, que hoy sólo pasa fuera de tallerista/P.S.
+- **Consecuencia que conviene saber**: con stock 0, cualquier cantidad que se reciba dispara la
+  alerta de "recibí de más" (`exceso = recibido − 0`). Eso **ya era así** antes de este cambio —el
+  número siempre fue 0—, sólo que el operario no lo veía venir. `[dato, GP2.alerta_recepcion]`
 ## 4eq. Tanda de correcciones de despiece del usuario (2026-09-21)
 
 Ocho correcciones dictadas de corrido por el dueño en una sola charla. Van juntas porque comparten

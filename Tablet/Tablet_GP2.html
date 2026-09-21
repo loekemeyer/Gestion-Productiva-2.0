@@ -6,6 +6,14 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
+<!-- v1.25.1 (2026-09-21) — SIN STOCK SE DICE "0 cajones", NO SE DEJA EN BLANCO (usuario: "pero que
+     me diga 0 si no tiene stock"). Era el agujero que dejaba el rótulo nuevo a la vista: cuando la
+     contraparte no tiene nada nuestro, la base manda 0 (coalesce en tablet_bundle: para el
+     tallerista y el P.S. el esperado NUNCA es null) pero textoEnvases() devuelve "" con el cero
+     —correcto para el renglón de equivalencia de abajo del campo, que no tiene que escribir nada
+     con el campo vacío— y la tarjeta quedaba diciendo "Stock tallerista" y ningún número, que se
+     lee como "no sé". Ahora el cero se escribe. Sigue distinguido del "—  sin referencia", que es
+     el esperado NULL de verdad (otro dato: ahí la base no sabe). -->
 <!-- v1.25.0 (2026-09-21) — EN RECIBIR EL NÚMERO DE REFERENCIA SE LLAMA POR LO QUE ES: EL STOCK DE
      LA CONTRAPARTE (usuario, textual: "en versión tablet, cuando voy a recibir, en vez de esperado
      quiero que diga Stock tallerista o stock proveedor de servicio según corresponda"). Solo el
@@ -1037,8 +1045,19 @@ function refInfo(x){
     if (x.esperado == null)
       return { rotulo: rot, txt: "—", num: null, uni: "", nota: "sin referencia", small: "" };
     var e = Number(x.esperado);
-    if (ev) return { rotulo: rot, txt: textoEnvases(e / ev.factor, ev.label).replace("= ", ""),
-                     num: null, uni: "", nota: "", small: "" };
+    if (ev) {
+      // SIN STOCK SE DICE "0", no se deja en blanco [usuario 2026-09-21: "pero que me diga 0 si no
+      // tiene stock"]. textoEnvases() devuelve "" cuando el numero no es > 0 — y eso esta BIEN
+      // donde se usa para el renglon de equivalencia de abajo del campo (con el campo vacio no se
+      // escribe nada), pero aca dejaba la tarjeta diciendo "Stock tallerista" y ningun numero, que
+      // se lee como "no se". Para el tallerista y el P.S. el cero es un dato de verdad: la base lo
+      // manda con coalesce(...,0), o sea que 0 significa "no tiene nada nuestro en su poder".
+      var env = e / ev.factor;
+      return { rotulo: rot,
+               txt: env > 0 ? textoEnvases(env, ev.label).replace("= ", "")
+                            : ("0 " + ev.label),
+               num: null, uni: "", nota: "", small: "" };
+    }
     return { rotulo: rot, txt: fmt(e, u === "kg" ? 2 : 0), num: e, uni: u,
              nota: faltaEnvase(x), small: "" };
   }
