@@ -9074,6 +9074,33 @@ aflojó a propósito en su momento, por 5 filas con `descripcion` vacía — aqu
 **Regla: antes de decir "con desactivarlo alcanza", leer la función con `pg_get_functiondef`, no
 `db/`.** `[dato]`
 
+### La respuesta del dueño sobre Cabral: NO es Prov AT, y el 031 es un respaldo (2026-09-21)
+
+Cerró el punto 2 de arriba (las 26 filas de Cabral sin paso `proveedor_at`). Textual:
+*"Cabral saca todo, solo el 031 se puede llevar a hacer (en caso de que no llegue ijupa con
+todos los pedidos)"*. `[usuario]`
+
+- **Cabral sale del padrón de Prov AT.** Las filas de `articulo_prov_at` contra Cabral no
+  describen de dónde viene el artículo: de los 32 activos, **27 se fabrican adentro** y su ruta lo
+  dice (matriz + proveedor de servicio + tallerista → virgilio, sin ningún paso `proveedor_at`);
+  el **574** ni siquiera existe en `GP2.articulo`. `[dato]`
+- **El 031 (Filtro de Café 10cm) lo hace IJUPA**, tallerista 10, en sus 3 rutas. A Cabral se le
+  *lleva a hacer* sólo cuando IJUPA no llega con los pedidos: es contingencia, no el circuito
+  normal. Por eso el 031 es el único que queda. `[usuario]`
+- **Encaja con lo ya sabido**: Cabral aparece en el archivo de cartones como proveedor de la
+  **bolsa de filtro** ($39,32 contra los $63 de Vihal) — o sea que es un proveedor real, pero del
+  insumo del filtro, no del artículo terminado. `[dato]`
+
+**Lo que NO contestó y quedó preguntado:**
+1. **5 filas de Cabral sí tienen su paso `proveedor_at` en la ruta**: `223` y `224` (Cuchara 25 y
+   30, compartidas con Pintos), `246` (Prensa Matambre, con Maspoli), `338` (Espátula Lisa) y
+   `577` (Tapón Prem). Si "todo" también las incluye hay que tocar las rutas, no sólo el padrón:
+   223/224 quedan con Pintos y 246 con Maspoli, pero **el 338 se queda sin nadie** y el 577
+   también (su otro proveedor, Pettofrezza, está inactivo).
+2. **Qué es "llevar a hacer" el 031**: si Cabral nos vende el filtro terminado es un paso
+   `proveedor_at` en una ruta alternativa; si le mandamos las partes y él arma, es un tallerista o
+   un proveedor de servicio, y la fila de `articulo_prov_at` no es el lugar.
+
 ## 4cz. El cruce de la lista de precios se hace por `cod_isis`, no por el nombre del producto (2026-09-13)
 
 Se buscó el proveedor de **`PEST1`** (Insertos Mango de Madera, 768, el único insumo comprable sin
