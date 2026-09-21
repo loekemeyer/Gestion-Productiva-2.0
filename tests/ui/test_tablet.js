@@ -732,10 +732,22 @@ window.supabase = { createClient: function(){ return {
      'Guazzaroni: la cantidad se escribe en kg, igual que en el envio');
   ok(await page.$eval('#accBox', e => e.classList.contains('hidden')),
      'Recibir: adentro de la parte tampoco se ve la Fecha, el Remito ni el boton de registrar');
+  ok((await page.$eval('#detCard button[data-a="listo"]', b => b.disabled)) === true,
+     'P.S.: con el campo vacio no se puede cerrar la parte');
   await page.fill(DQ, '50');   // 50 kg / 0,05 = 1.000 uni = exactamente lo esperado (2 cajones de 25 kg)
   ok((await page.$eval('#detCard .det-eq', e => e.textContent.trim())) === '= 2 cajones',
      'Guazzaroni: el renglon chico dice a cuantos cajones equivale — ' +
      (await page.$eval('#detCard .det-eq', e => e.textContent.trim())));
+  // Y EL BOTON SE HABILITA CON LA CANTIDAD ESCRITA, aunque la parte lleve UNA sola unidad. Hasta el
+  // 2026-09-21 el repintado del boton vivia adentro del if de las dos unidades, que en Recibir nunca
+  // se cumple: la tarjeta se dibujaba con "Listo" gris y ahi se quedaba [usuario, con 40 kg ya
+  // tipeados: "No me deja cargar la recepción"].
+  ok((await page.$eval('#detCard button[data-a="listo"]', b => b.disabled)) === false,
+     'Guazzaroni: con la cantidad escrita, Listo se habilita');
+  await page.fill(DQ, '');
+  ok((await page.$eval('#detCard button[data-a="listo"]', b => b.disabled)) === true,
+     'Guazzaroni: y si se borra la cantidad se vuelve a deshabilitar');
+  await page.fill(DQ, '50');
   await page.click('#btnVolverPartes');
   ok((await cards())[0].includes('recibe'), 'P.S.: la tarjeta muestra lo que se va a recibir');
   await page.click('#btnEnviar');
