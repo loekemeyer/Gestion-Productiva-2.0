@@ -9102,12 +9102,31 @@ me aparece la cja y carton de 031 nomás"* — o sea, esperaba ver **sólo** la 
 para que la tablet haga lo que él quiere. Es el cruce `articulo_prov_at → articulo →
 articulo_componente` que puso el fix v1.3.1 de la tablet (2026-09-15). `[dato]`
 
-**Queda el desprolijo que el `activo=false` NO arregla:** las rutas de `223`, `224`, `246`, `338`
-y `577` siguen con su paso `proveedor_at` apuntando a Cabral. La tablet no las lee, pero la ruta
-sigue diciendo que el proveedor es él. **Preguntado, sin respuesta:** si se saca a Cabral de esas
-5, 223/224 quedan con Pintos y 246 con Maspoli, pero **338 y 577 se quedan sin ningún proveedor**
-(el otro del 577, Pettofrezza, está inactivo). Ninguno de los 5 está `discontinuado` en
-`GP2.articulo`, aunque el 338 figuraba como `disc` en la nota de §4be. `[dato]`
+**El `activo=false` NO toca las rutas, y de ahí salió el reclamo del día siguiente.** El dueño
+abrió el despiece del 246 en `Programa.html` y vio "Maspoli **o** Cabral": *"te dije que solo
+entrega el 031… ¿por qué sigue apareciendo acá en el 246?"*. **El despiece lee `ruta_paso`, no
+`articulo_prov_at`** — medido con `pg_get_functiondef`: `programa_bundle` ni nombra al padrón. Son
+dos libros distintos y hay que tocar los dos. `[dato]`
+
+**Resuelto el 2026-09-21 con el sí del dueño** (*"Si"* + *"Ni siquiera lo tenés que poner. En el
+031"*): se borraron las **7 rutas** de Cabral de 223 (915, 924), 224 (917, 926), 246 (929) y 577
+(921, 935) —21 pasos— y la fila del **031** pasó a `activo=false`. **Cabral queda en 0 filas
+activas y 0 rutas** en esos cuatro. Verificado: 223 y 224 siguen con Pintos (2 rutas cada uno),
+246 con Maspoli y 577 con Pettofrezza; **0 rutas huérfanas**. La `ubicacion` 34 (Prov. Art. Term.
+Cabral) se deja: guarda el historial y no se ve en ninguna pantalla. `[dato]`
+
+**El 338 fue el único que frenó, y el dueño lo contestó: lo entrega Alex Escalante** (tallerista
+2, activo) — primero dijo "Carlos" y se corrigió en el mensaje siguiente. Sus 2 rutas (920 por la
+caja `A2`, 934 por el cartón `K5B`) son las **únicas** que le quedan a Cabral, y se dejaron vivas
+a propósito: borrarlas antes de reasignarlas dejaba al 338 sin ninguna ruta. **Pasa de Prov AT a
+tallerista**, el mismo movimiento que la otra sesión le hizo hoy al `070` (de `proveedor_at`
+Pettofrezza a tallerista Fábrica, §4eq). `[usuario 2026-09-21]`
+
+⚠ **Lo que ese cambio deja al descubierto: la receta del 338 es SÓLO envase** (caja `A2` + cartón
+`K5B`), sin ninguna pieza de producto. Eso es normal en un artículo que se compra terminado, pero
+con un tallerista significa que Alex "produce" la espátula de la nada y **lo que entra nunca llega
+al costo** — exactamente la trampa de §"El paso de tallerista tiene que declarar QUÉ ENTRA".
+Preguntado: de dónde sale la espátula lisa que Alex envasa. `[deducido, sin confirmar]`
 
 **También sin respuesta: qué es "llevar a hacer" el 031.** Si Cabral nos vende el filtro terminado
 es un paso `proveedor_at` en una ruta alternativa; si le mandamos las partes y él arma, es un
