@@ -11527,3 +11527,29 @@ receta que *sube* el costo es la que más urge, porque mientras tanto se estuvo 
 Queda con **10 componentes y 10 rutas**, una por insumo. Invariantes de `db/verificar.sql` que
 pegan con lo tocado (L, S, U, W, X, AA, AB, AD): **0**. `AE` da **2** y es **preexistente**
 (artículos 567 y 537).
+
+## 4ev. Buscar un componente sin saber en qué rubro está (2026-09-21)
+
+**Lo que dijo el usuario, textual:** *"Que me deje buscar por fuera de algún sector y por dentro.
+Porque hoy en día si no se a que sector pertenece el componente tengo que entrar uno por uno"*.
+Es sobre `Stocks General/StockGeneral_GP2.html`, cuyo buscador filtraba **solo el rubro abierto**.
+
+**Por qué dolía más de lo que parece:** no era solo cuestión de clicks. De las **1.324 filas de
+`GP2.inventario`, 275 no tenían ningún botón que las mostrara** — 269 de Virgilio, 5 de inyectores
+y 1 de un sector sin rubro en el selector (`Y1` *Cuchilla para Afilar*, Sector Afilado, con máximo
+43.946). Entrando "uno por uno" por los 15 rubros esas filas **no aparecían nunca**.
+
+**Cómo quedó (v2.1.0):** rubro `🔎 Todos los rubros` (una tabla con todo el inventario, columnas
+`Rubro` + `Dónde`, sin columnas de movimiento porque cada rubro tiene las suyas) y, estando adentro
+de un rubro, el renglón **"También en otros rubros: …"** con la cuenta por rubro y el salto en un
+click conservando lo tipeado. Las filas sin rubro propio se muestran igual, etiquetadas por lo que
+son (Virgilio, Inyector, o el nombre del sector).
+
+**El dato sale de `movimientos_bundle`, que la pantalla YA carga** (`D.inv` es el inventario
+entero): **cero RPC nuevas**. Los únicos dos lugares que no viven ahí —prov. AT y tránsito PS—
+se suman desde `stock_general_extra_bundle`, igual que en sus rubros.
+
+**Regla que deja, para cualquier pantalla con selector:** un filtro que solo mira la pestaña
+abierta obliga al usuario a saber la respuesta antes de preguntar. Si el índice completo ya está
+en memoria (y acá lo estaba), la búsqueda transversal no cuesta nada y encima destapa lo que
+ningún botón mostraba.
