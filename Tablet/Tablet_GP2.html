@@ -6,6 +6,8 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
+<!-- v1.26.1 (2026-09-21) — el cartón sale de CERVANTES, no "del galpón" (usuario, sobre el texto de
+     "➕ Otro cartón": "En vez de galpón, Cervantes"). Un renglón de texto, cero lógica. -->
 <!-- v1.26.0 (2026-09-21) — OTRO CARTÓN: MANDAR EL CARTÓN DE OTRO ARTÍCULO EN LUGAR DEL QUE
      CORRESPONDE (usuario: "puede pasar de que no haya stock del cartón que quiero mandar y le mande
      el cartón de otro artículo y se le pegue la etiqueta del artículo correspondiente. Entonces lo
@@ -1629,7 +1631,7 @@ function pintarSust(){
     '<div class="det-cod">' + (paso2 ? "¿En lugar de cuál?" : "➕ Otro cartón") + "</div>" +
     '<div class="det-desc">' + (paso2
       ? "El cartón del artículo que le corresponde: ese es el que se va a dejar de consumir cuando entregue el terminado."
-      : "Los que " + esc(selCP.nombre) + " no usa. El stock que baja es el de este cartón, el que sale de verdad del galpón.") +
+      : "Los que " + esc(selCP.nombre) + " no usa. El stock que baja es el de este cartón, el que sale de verdad de Cervantes.") +
     "</div>" +
     (paso2 ? '<div class="det-sust">Le mandás <b>' + esc(sustSel.x.cod) + "</b></div>" : "") +
     '<input id="sustQ" inputmode="search" placeholder="Buscar por código o descripción…" value="' +
