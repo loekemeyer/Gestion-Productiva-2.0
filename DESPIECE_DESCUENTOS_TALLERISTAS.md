@@ -25,8 +25,8 @@ Excluye artículos discontinuados. **156 pares (tallerista, artículo) sobre 154
 
 ### Fábrica (44) — Cervantes armando directo, no es un tallerista externo
 - 058 Cierra Bolsa x2 — PC4 ×2* | CART058 ×1 | A9 ×0,083333
-- 070 Set Tapers 0.8 Lts / 1.5 Lts / 3 Lts — GRJ30 ×1* | A4 ×0,25 | ROLLOETIQ ×0,000125
-- 071 Bowl Multi Uso 330ml — GRJ21 ×1* | A4 ×0,25 | ROLLOETIQ ×0,000125
+- 070 Set Tapers 0.8 Lts / 1.5 Lts / 3 Lts — GRJ30 ×1* | A4 ×0,25
+- 071 Bowl Multi Uso 330ml — GRJ21 ×1* | A4 ×0,25
 - 207 Ñoquera Madera Mgo Redondo — G1C ×1* | GRJ12B ×1 | A1 ×0,083333
 - 229 Ñoquera Madera — G2B ×1* | GRJ12 ×1 | A9 ×0,083333
 - 231 Palo de Amasar 30cm — GRJ22 ×1* | BANDITA ×1 | A9B ×0,083333
@@ -225,4 +225,4 @@ Los GRJ que consumen los artículos de la sección 2 (GRJ4, GRJ12, GRJ13, GRJ14,
 3. **La pantalla de Virgilio está apagada** (candado en `GP2_MODULOS.html` desde el 18/09), así que hoy la puerta de la sección 2 no se usa desde el menú.
 4. **Bug latente ya comentado en `gp2-motor.js:313-318`**: en la cascada del BOM, la línea principal sólo multiplica por su cantidad si `q > 0` — con un BOM de `q` fraccionario (una entrada que rinde dos salidas, q = 0,5) el consumo de esa entrada saldría al doble. Hoy no muerde porque el único caso ≠ 1 es GRJ10/GRJ10A → IE4 ×3.
 5. **`GP2.componente` tiene códigos repetidos**: `A4`, `A8`, `Z22` y `M1` son DOS componentes distintos cada uno (A8 es la Caja N°2 y también el Cuerpo Uña CH Serigr.; M1 es el Disco Inox y también el Cartón 220). Acá cada línea es la que realmente usa esa receta, pero un despiece leído por código, fuera de este archivo, puede confundir una caja con una pieza.
-6. **La base se mueve mientras se lee.** Entre las 17:44 y las 18:20 del 21/09 el componente del Afila Cuchillos pasó de `K9` a `E3` y cambió de sector, y con eso cambió cuál es el principal de los artículos 097, 114 y 504 (de `E4 ×0,07` a `E3 ×8`). No fue un misterio: es la tanda de correcciones de la entrada (4) del `[HISTORIAL]` de `LOCKS.txt` de ese mismo día, hecha en otra sesión en paralelo — la misma que pasó el 070 a Fábrica y creó `ROLLOETIQ`. **La foto de este archivo es de las 18:20**; un despiece se re-verifica contra la base antes de entregarlo, no se copia de una consulta de hace media hora.
+6. **La base se mueve mientras se lee.** Entre las 17:44 y las 18:20 del 21/09 el componente del Afila Cuchillos pasó de `K9` a `E3` y cambió de sector, y con eso cambió cuál es el principal de los artículos 097, 114 y 504 (de `E4 ×0,07` a `E3 ×8`). No fue un misterio: es la tanda de correcciones de la entrada (4) del `[HISTORIAL]` de `LOCKS.txt` de ese mismo día, hecha en otra sesión en paralelo — la misma que pasó el 070 a Fábrica y creó `ROLLOETIQ`. **La foto de este archivo es de las 18:20**; un despiece se re-verifica contra la base antes de entregarlo, no se copia de una consulta de hace media hora. Mismo día, más tarde, el dueño **dio de baja `ROLLOETIQ`** (y su proveedor Sumatik) porque las etiquetas no se evalúan por ahora: el 070 y el 071 ya salen **sin** esa línea, y este archivo quedó corregido — ver `CONOCIMIENTO_GP2.md` §4eq (e).

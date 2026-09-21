@@ -11318,27 +11318,40 @@ costo quedó subvaluado hasta que se cargue lo que cobra Lucho.
 *"Lleva 1 de c/u"*, *"Los provee cimarron"*, y después *"El 070 arma fábrica"*. El 070 (Set Tapers
 0,8/1,5/3 Lts) tenía **sólo la caja A4** y su ruta colgaba del `proveedor_at` **"Pettofrezza" (id 9,
 `activo=false`** por duplicado con el tallerista Pettofrezza Rafael id 11): al pasar a Fábrica, esa
-dependencia de una contraparte desactivada **se fue sola**. Alta de **`GRJ30` "Set Tuppers"**
+dependencia de una contraparte desactivada **se fue sola**. Alta de **`GRJ30` "Set Tapers"**
 (Sector Garage, proveedor Cimarrón, ×1, con ruta propia); los 3 pasos del artículo son hoy
 `tallerista → Fábrica`, y el stock de sus insumos vive en la ubicación de Fábrica (23).
+**El nombre de la pieza NO es el que dictó el pedido**: se dio de alta como *"Set Tuppers"* (la
+palabra que usó el usuario) y unas horas después él mismo la corrigió `[usuario 2026-09-21: "y grj30
+que la descripcion sea Set Tapers"]` — **`GRJ30` = "Set Tapers"**, igual que el artículo 070 que
+arma. *Tupper* es la marca; *taper* es como se llama acá y es lo que dice el resto de la base.
 
-### e) **Lo que se compra es el ROLLO, no la etiqueta** — y trae 8.000
+### e) ~~Lo que se compra es el ROLLO, no la etiqueta~~ — **DADO DE BAJA EL MISMO DÍA**
 
-`[usuario 2026-09-21, textual]` *"agregá como rollo etiquetas, NO etiq070. el rollo, después
-nosotros le ponemos el código y eso se le agregará al artículo. Pero en realidad se compra el
-rollo"*, *"8000 etiquetas en un rollo"*, *"El 071 también lleva etiqueta"*. Entonces:
-- El componente es **`ROLLOETIQ` "Rollo Etiquetas"** (id 934), proveedor **Sumatik**, que hubo que
-  dar de alta en `proveedor_insumo` (id 49) porque no existía — sin eso la etiqueta no entra en
-  ninguna O.C.
-- **Va en Sector Cartón**, no en un sector propio: el primer intento creó un "Sector Etiquetas" y el
-  usuario lo bajó (*"No crees el sector etiquetas. Pone dentro de sector carton"*); el sector se
-  borró. Queda con **`carton_formato` en null a propósito**, así no le aplican los múltiplos,
-  familias y pliegos que valen para los cartones de verdad.
-- **La cantidad es una fracción, como la caja**: 1 etiqueta de un rollo de 8.000 = **0,000125** en el
-  despiece del **070** y del **071**, con una ruta cada uno (insumo → Fábrica → virgilio). Cargarlo
-  con "1" habría metido un rollo entero por artículo.
-- El código específico por artículo (el `ETIQ070` del pedido original) **no se creó**: la etiqueta
-  impresa con su código es un paso posterior que hace la casa, no algo que se compre.
+**LA ETIQUETA NO SE EVALÚA POR AHORA** `[usuario 2026-09-21, textual: "En el articulo 070 aparece
+el rollo etiquetas. Eliminá, no queremos evaluar por ahora las etiquetas. Eliminá de todos los art
+que agregaste"]`, ejecutado con el "Sí" sobre el SQL exacto. Se borró **todo** lo que había entrado
+por este punto, unas horas después de cargarlo: `ROLLOETIQ` (comp 934), sus 2 filas de
+`articulo_componente` (070 y 071), sus 2 rutas (1054 y 1055) con los 6 pasos, sus 2 filas de
+`inventario` (las dos en 0) y el proveedor **Sumatik** (`proveedor_insumo` 49), que **sólo existía
+por la etiqueta** — sin O.C., sin recepciones y sin precios. **El 070 queda `GRJ30 ×1 + A4 ×0,25`
+y el 071 `GRJ21 ×1 + A4 ×0,25`.** El costo no se movió: el rollo nunca tuvo precio cargado.
+
+**Ojo con el nombre del proveedor**: el pedido de baja decía *"Y saca melinox por lo tanto"*, y
+**Melinox no tiene nada que ver con la etiqueta** — es el `proveedor_at` 7 que entrega el **761**
+Cucharita Matera y el proveedor de `Z21` y `Z22`, con precio cargado; borrarlo dejaba al 761 sin
+quién lo entrega y rompía `test_programa_prov_at.js`. El que entró **por** el rollo era **Sumatik**.
+Se avisó antes de ejecutar y Melinox quedó intacto. **Regla que deja: un "sacá X por lo tanto" se
+verifica contra quién entró en esa misma tanda, no contra el nombre que uno recuerda.**
+
+**Lo que igual vale la pena no perder, para cuando se retome:** lo que se compra es el **rollo**
+(8.000 etiquetas), no la etiqueta suelta — *"agregá como rollo etiquetas, NO etiq070… en realidad
+se compra el rollo"*, *"8000 etiquetas en un rollo"*, *"El 071 también lleva etiqueta"*. Va en
+**Sector Cartón**, no en un sector propio (*"No crees el sector etiquetas. Pone dentro de sector
+carton"*), con `carton_formato` en **null** para que no le apliquen múltiplos, familias ni pliegos;
+la cantidad es una **fracción como la caja** (1 de 8.000 = **0,000125**, cargarla con "1" mete un
+rollo entero por artículo); y el código por artículo (`ETIQ070`) **no se crea**: imprimirle el
+código es un paso posterior de la casa, no algo que se compre.
 
 ### f) La arandela chica inox era `K9` en Crudo; es `E3` en Procesado
 
