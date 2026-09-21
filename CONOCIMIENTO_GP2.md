@@ -11553,3 +11553,48 @@ se suman desde `stock_general_extra_bundle`, igual que en sus rubros.
 abierta obliga al usuario a saber la respuesta antes de preguntar. Si el índice completo ya está
 en memoria (y acá lo estaba), la búsqueda transversal no cuesta nada y encima destapa lo que
 ningún botón mostraba.
+
+## 4ew. El sustento del consumo sale de la O.C.: módulo propio "Consumo x Componente" (2026-09-21)
+
+**Lo que dijo el usuario, textual:** *"Quiero que me hagas un módulo que pueda ver por componente,
+por sector, el consumo... por ejemplo, ya las órdenes de compra, hay algo parecido, de que yo en
+PB6 cuando toco el máximo me dice en qué artículo se usa. Bueno, lo quiero eso, pero afuera. Otro
+módulo aparte"*.
+
+**Lo que había:** el desglose del Máximo de la O.C. (`oc_maximo_desglose`, pantalla
+`Compras/OC_GP2.html`) y el popup compartido `consumo-detalle.js`, que ya contestaba "qué artículos
+usan esta parte". El problema no era la información: era **el lugar**. La O.C. lista sólo lo
+**comprable** y agrupado por rubro de compra, así que para mirar el sustento había que entrar a
+comprar, y los componentes que no se compran no se podían mirar en ningún lado.
+
+**El número: 567 componentes tienen consumo atribuido, y la O.C. muestra una fracción.** Los
+**193 de los sectores que NO son insumo** (`sector.es_insumo = false`: Procesado 84, Crudo 75,
+Movimiento 33, Afilado 1 — se fabrican, no se compran) no aparecían en ninguna pantalla con su
+consumo mensual.
+
+**Cómo quedó:** `Consumo/Consumo_GP2.html` (grupo Despiece del menú, al lado de *Despiece x
+Artículo* — son las dos puntas del mismo mapa: del artículo a sus partes, y de la parte a los
+artículos que la piden). Selector por sector con la cuenta de componentes, búsqueda, orden por
+consumo de mayor a menor, CSV, y al tocar la fila el mismo popup de siempre. Una sola RPC nueva,
+`consumo_bundle()` (~170 KB, 567 filas).
+
+**No hay cuenta nueva: es el mismo motor que decide las compras.** `uni/mes` sale de
+`v_consumo_componente`, el kg/mes de fleje de `v_consumo_fleje_kg`, y el kg/mes de resina del mismo
+rollup por pieza que ya usaba `oc_maximo_desglose` (peso × consumo × `inyeccion_desperdicio_pct`).
+
+**Lo que destapó, y es el hallazgo:** una **resina no está en ninguna receta**, así que
+`v_consumo_demanda` no la toca y el popup le contestaba *"ningún artículo de la Est Madre llega a
+esta parte"* — justo donde hay más kg en juego (9 resinas, **1.602,65 kg/mes**, el PP 2630 solo
+807). El sustento de una resina son las **PIEZAS** que se inyectan con ella, no los artículos. Se
+le agregó esa rama a `consumo_detalle` (clave `base`: `articulos` | `piezas`) y al popup, así que
+también la ganan Pintores y Orden de Producción.
+
+**Dos cosas que quedaron AFUERA a propósito:**
+1. **El sector Terminado (198 componentes).** Un terminado no se consume, se vende: su número es la
+   proyección de la Est Madre del artículo. Mezclarlo haría leer como consumo lo que es demanda.
+2. **Stock y máximo.** Eso es la O.C.; esta pantalla contesta *cuánto se gasta y quién lo gasta*.
+
+**Trampa a recordar al leer cualquier consumo de esta pantalla** (ya estaba en 4es): el consumo
+sale de la Est Madre, así que un artículo `discontinuado` aporta **cero** aunque tenga proyección
+viva, y un código con hermano `L` (p. ej. `312L`) suma al mismo artículo. Una diferencia entre "lo
+que suman las recetas" y lo que muestra la pantalla casi siempre es una de esas dos.

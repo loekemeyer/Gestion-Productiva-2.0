@@ -1,7 +1,7 @@
 -- =====================================================================
--- FUNCIONES del schema GP2 — export automatico 2026-09-13 (pg_get_functiondef, exacto)
+-- FUNCIONES del schema GP2 — export automatico 2026-09-21 (pg_get_functiondef, exacto)
 -- Fuente de verdad: Supabase (hrxfctzncixxqmpfhskv). Este archivo es respaldo/referencia.
--- 154 funciones. Los GRANT/REVOKE no estan aca: EXECUTE para anon solo en las RPC de pantalla (ver db/README.md).
+-- 161 funciones. Los GRANT/REVOKE no estan aca: EXECUTE para anon solo en las RPC de pantalla (ver db/README.md).
 -- =====================================================================
 
 -- ---------- __sim_articulo ----------
@@ -1628,6 +1628,66 @@ AS $function$
 $function$
 ;
 
+-- ---------- consumo_bundle ----------
+CREATE OR REPLACE FUNCTION "GP2".consumo_bundle()
+ RETURNS jsonb
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'GP2'
+AS $function$
+with desp as (
+  select coalesce(valor,4) pct from parametro where clave='inyeccion_desperdicio_pct'
+), resina as (
+  -- una resina no se consume por receta: la gastan las piezas que se inyectan con ella
+  select r.id comp_id,
+         round(sum(coalesce(v.consumo_uni_mes,0)*coalesce(p.kg_x_uni,0))
+               * (1 + (select pct from desp)/100.0), 2) kg_mes,
+         count(p.id) piezas
+    from componente r
+    join componente p on p.material_id = r.id
+    left join v_consumo_componente v on v.componente_id = p.id
+   where r.sector_id = 14
+   group by r.id
+), filas as (
+  select c.id comp_id, c.codigo cod, c.descripcion desc_, c.sector_id, s.nombre sector,
+         c.unidad_medida um, c.kg_x_uni, c.uni_x_cajon,
+         (c.sector_id = 5) es_fleje, (c.sector_id = 14) es_resina,
+         v.consumo_uni_mes uni_mes,
+         coalesce(fk.consumo_kg_mes, rs.kg_mes) kg_mes,
+         coalesce(v.en_articulos, rs.piezas) en_articulos,
+         case when coalesce(c.uni_x_cajon,0) > 0 and v.consumo_uni_mes is not null
+              then round(v.consumo_uni_mes / c.uni_x_cajon, 2) end cajones_mes
+    from componente c
+    join sector s on s.id = c.sector_id
+    left join v_consumo_componente v on v.componente_id = c.id
+    left join v_consumo_fleje_kg fk on fk.componente_id = c.id and c.sector_id = 5
+    left join resina rs on rs.comp_id = c.id
+   where v.consumo_uni_mes is not null or rs.kg_mes is not null
+)
+select jsonb_build_object(
+  'filas', coalesce((select jsonb_agg(jsonb_build_object(
+      'comp_id', comp_id, 'cod', cod, 'desc', desc_,
+      'sector_id', sector_id, 'sector', sector,
+      'um', um, 'kg_x_uni', kg_x_uni, 'uni_x_cajon', uni_x_cajon,
+      'es_fleje', es_fleje, 'es_resina', es_resina,
+      'base', case when es_resina then 'piezas' else 'articulos' end,
+      'uni_mes', uni_mes, 'kg_mes', kg_mes,
+      'cajones_mes', cajones_mes, 'en_articulos', en_articulos)
+      order by coalesce(uni_mes, kg_mes) desc nulls last, cod) from filas), '[]'::jsonb),
+  'sectores', coalesce((select jsonb_agg(jsonb_build_object(
+      'id', sector_id, 'nombre', sector, 'n', n,
+      'unidad', unidad, 'uni_mes', t_uni, 'kg_mes', t_kg, 'cajones_mes', t_caj)
+      order by n desc)
+    from (select sector_id, sector, count(*) n,
+                 round(sum(uni_mes)) t_uni,
+                 round(sum(kg_mes), 2) t_kg,
+                 round(sum(cajones_mes), 1) t_caj,
+                 case when bool_or(es_fleje) or bool_or(es_resina) then 'kg' else 'uni' end unidad
+            from filas group by sector_id, sector) x), '[]'::jsonb),
+  'generado_en', now());
+$function$
+;
+
 -- ---------- consumo_detalle ----------
 CREATE OR REPLACE FUNCTION "GP2".consumo_detalle(p_comp_id bigint)
  RETURNS jsonb
@@ -1635,15 +1695,42 @@ CREATE OR REPLACE FUNCTION "GP2".consumo_detalle(p_comp_id bigint)
  STABLE SECURITY DEFINER
  SET search_path TO 'GP2'
 AS $function$
+with cab as (
+  select c.id, c.codigo, c.descripcion, c.sector_id, c.uni_x_cajon, s.nombre sector,
+         (c.sector_id = 5) es_fleje, (c.sector_id = 14) es_resina,
+         (select coalesce(valor,4) from parametro where clave='inyeccion_desperdicio_pct') desp_pct
+    from componente c left join sector s on s.id = c.sector_id
+   where c.id = p_comp_id
+), piezas as (
+  select p.codigo, p.descripcion, p.kg_x_uni,
+         coalesce(v.consumo_uni_mes,0) uni_mes,
+         coalesce(v.consumo_uni_mes,0) * coalesce(p.kg_x_uni,0)
+           * (1 + (select desp_pct from cab)/100.0) kg_mes
+    from componente p
+    join cab on cab.es_resina and p.material_id = cab.id
+    left join v_consumo_componente v on v.componente_id = p.id
+)
 select jsonb_build_object(
   'comp_id', c.id,
   'codigo', c.codigo,
   'descripcion', c.descripcion,
-  'sector', s.nombre,
-  'es_fleje', (c.sector_id = 5),
+  'sector', c.sector,
+  'es_fleje', c.es_fleje,
+  'es_resina', c.es_resina,
+  'base', case when c.es_resina then 'piezas' else 'articulos' end,
+  'desperdicio_pct', case when c.es_resina then c.desp_pct end,
   'uni_x_cajon', c.uni_x_cajon,
   'total_uni_mes', (select round(sum(d.uni_mes)) from v_consumo_demanda d where d.componente_id = c.id),
-  'total_kg_mes', (select fk.consumo_kg_mes from v_consumo_fleje_kg fk where fk.componente_id = c.id),
+  'total_kg_mes', coalesce(
+      (select fk.consumo_kg_mes from v_consumo_fleje_kg fk where fk.componente_id = c.id),
+      (select round(sum(kg_mes),2) from piezas)),
+  'piezas', coalesce((
+    select jsonb_agg(jsonb_build_object(
+             'codigo', codigo, 'descripcion', descripcion,
+             'kg_x_uni', kg_x_uni,
+             'uni_mes', round(uni_mes),
+             'kg_mes', round(kg_mes, 2)
+           ) order by kg_mes desc) from piezas), '[]'::jsonb),
   'articulos', coalesce((
     select jsonb_agg(jsonb_build_object(
              'articulo', a.codigo,
@@ -1667,7 +1754,7 @@ select jsonb_build_object(
               from ruta_paso rp
               join ruta r on r.id = rp.ruta_id
               join matriz m on m.id = rp.matriz_id
-             where rp.comp_entrada_id = c.id and c.sector_id = 5
+             where rp.comp_entrada_id = c.id and c.es_fleje
                and coalesce(m.partes_por_kilo_de_fleje,0) > 0) p
       join v_consumo_demanda d2 on d2.articulo_id = p.art_id and d2.componente_id = p.sal
       where p.art_id = a.id
@@ -1675,9 +1762,7 @@ select jsonb_build_object(
     where d.componente_id = c.id
   ), '[]'::jsonb)
 )
-from componente c
-left join sector s on s.id = c.sector_id
-where c.id = p_comp_id;
+from cab c;
 $function$
 ;
 
