@@ -9081,7 +9081,7 @@ Cerró el punto 2 de arriba (las 26 filas de Cabral sin paso `proveedor_at`). Te
 todos los pedidos)"*. `[usuario]`
 
 - **Cabral sale del padrón de Prov AT.** Las filas de `articulo_prov_at` contra Cabral no
-  describen de dónde viene el artículo: de los 32 activos, **27 se fabrican adentro** y su ruta lo
+  describen de dónde viene el artículo: de los 32 activos, **26 se fabrican adentro** (el 031 entre ellos) y su ruta lo
   dice (matriz + proveedor de servicio + tallerista → virgilio, sin ningún paso `proveedor_at`);
   el **574** ni siquiera existe en `GP2.articulo`. `[dato]`
 - **El 031 (Filtro de Café 10cm) lo hace IJUPA**, tallerista 10, en sus 3 rutas. A Cabral se le
