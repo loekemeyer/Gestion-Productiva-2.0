@@ -11484,13 +11484,12 @@ al RECIBIR nadie anota cajones — `tablet_registrar` llama a `crear_entrega_ps`
 null` —, así que ese saldo nunca bajaría. Con el factor anotado el número **se concilia solo contra
 el kg**: si el proveedor devuelve la mitad dice medio cajón, y si devuelve todo dice cero.
 
-⚠ **Lo que el usuario pidió además y NO está hecho** `[usuario, textual: "En recepcion de
+**Lo que el usuario pidió además, en la misma charla** `[usuario, textual: "En recepcion de
 proveedores de servicio se tiene que seguir la lógica de primero cargar lo que dice el remito y
 despues hacer el control (como en recepcion de insumos) en el remito que sea en kg y despues
-controlar en kg y cajones (o unidad de medida correspondiente según la parte)"]`: hoy la entrega de
-un P.S. es **un solo paso** (se escriben los kg y se registra). Lo pedido es el modelo de
-`recepcion_insumo` (`declarado` del remito primero, `controlado` después, con `recepcion_control`
-por bulto), llevado a la entrega de P.S. y con el control en **kg + cajones**. Queda pendiente.
+controlar en kg y cajones (o unidad de medida correspondiente según la parte)"]`: **ya está hecho,
+ver 4ex** (esta línea decía "queda pendiente" y se corrigió el mismo día, cuando se construyó).
+
 
 ## 4eu. El 731 no lleva cachas azules: lleva el ESPIRAL (2026-09-21)
 
@@ -11554,7 +11553,97 @@ abierta obliga al usuario a saber la respuesta antes de preguntar. Si el índice
 en memoria (y acá lo estaba), la búsqueda transversal no cuesta nada y encima destapa lo que
 ningún botón mostraba.
 
-## 4ew. El sustento del consumo sale de la O.C.: módulo propio "Consumo x Componente" (2026-09-21)
+## 4ew. El 863 lleva mango de MADERA, aunque se llame "Mgo Chef" (2026-09-21)
+
+`[usuario 2026-09-21, textual: "El 863 no usa ni PC6 ni PB6 ni PA19"; ejecutado con su "Sí", después
+de plantearle que el nombre del artículo decía lo contrario]`
+
+**La contradicción, que vale más que el cambio:** el **863** se llama *"Corta Pizza Gastro. **Mgo
+Chef** Ø 8 Cm"* y lo que había que sacarle era justamente `PA19` **Mangos Chef**. Parecía un error
+del pedido. No lo era: **el 863 llevaba DOS mangos**, `PA19` (chef) y `PEP8` (*Mango Madera Pizza
+Ø9*), y el que queda es el de madera.
+
+**Cómo se probó antes de ejecutar** `[dato 2026-09-21]` — el hermano:
+
+| | receta |
+|---|---|
+| 863 (después) | A8, E9, LL1, **PEP8**, S1A, V12, Z35 |
+| 564 *"Corta Pizza 8cm **Mgo Madera**"* | A3, E9, F4B, LL1, **PEP8**, V12, Z35 |
+
+Idénticos salvo **caja** (A8 / A3) y **cartón** (S1A / F4B). Y los otros dos que se sacaron son los
+accesorios que acompañan al mango chef en los 5 artículos que lo usan de verdad (709, 720, 722,
+856, 857): `PB6` *Inser. Neg. Espat* y `PC6` *Ojales Neg/Blanco*. **Los tres son un kit y salen
+juntos.** El corta pizza que sí es de mango chef es el **862**, que lleva `PA19` sin `PEP8`.
+
+**Entonces lo que está mal es la DESCRIPCIÓN del 863, no la receta** `[deducido 2026-09-21, sin
+confirmar]`. Se dejó el nombre como está: el dueño no contestó si el nombre comercial se corrige.
+**Queda preguntado.**
+
+**Se borró:** `articulo_componente` ids 779 (`PA19`), 780 (`PB6`), 781 (`PC6`) y las **3 rutas**
+825 / 826 / 827 (`"Insumo PA19|PB6|PC6 -> Art 863"`) con sus 9 pasos. Queda con **7 componentes y
+7 rutas**.
+
+**Plata:** el costo del 863 baja **$381,09/uni** sobre 34 uni/mes (~$12.957/mes), y es **piso**
+porque `PC6` **no tiene precio cargado** (`faltan_precios = 1`), o sea que la baja real es mayor y
+hoy no se puede medir. Consumo: `PA19` 13 → 12 artículos (1.336 uni/mes), `PB6` 6 → 5 (90),
+`PC6` 4 → 3 (134).
+
+Invariantes de `db/verificar.sql` que pegan con lo tocado (L, S, U, W, X, AA, AB, AD): **0**. `AE`
+da **2** y es **preexistente** (artículos 567 y 537).
+
+**REGLA QUE DEJAN LAS TRES CORRECCIONES DE HOY** (`4es` el 311/312, `4eu` el 731, ésta): cuando un
+artículo tiene **dos piezas que cumplen la misma función** — dos capuchones, una cacha donde va un
+espiral, dos mangos — **una sobra**, y el que dice cuál es el **hermano**: el artículo que hace lo
+mismo y está bien cargado. El nombre del artículo **no** es evidencia; la receta del hermano sí.
+
+## 4ex. Recepcionar un P.S. son DOS pasos: primero el remito, después el control (2026-09-21)
+
+`[usuario, textual: "En recepcion de proveedores de servicio se tiene que seguir la lógica de
+primero cargar lo que dice el remito y despues hacer el control (como en recepcion de insumos) en
+el remito que sea en kg y despues controlar en kg y cajones (o unidad de medida correspondiente
+según la parte)"; y enseguida: "Despues de recepcionar tengo que ir al control"]`.
+
+**La forma ya existía en la casa y se copió tal cual**: en la recepción de insumos el remito deja
+`recepcion_insumo` con `controlado=false`, y después `controlar_recepcion_kg` guarda lo declarado,
+**pisa la cantidad y ajusta el movimiento** — o sea el stock queda con lo que se contó, no con lo
+que dijo el papel. Lo mismo, ahora, para lo que entrega un proveedor de servicio.
+
+**Cómo quedó** `[usuario 2026-09-21, elegido entre opciones: control en PANTALLA PROPIA a la que la
+tablet manda al cerrar, y los dos pasos EN LA TABLET]`:
+
+1. **El remito** se sigue cargando donde se cargaba (Tablet → Recibir → P.S.), sin cambios: viaja
+   el kg y `crear_entrega_ps` mueve el stock como siempre.
+2. Al registrar, la Tablet **se va sola** a `Tablet/ControlEntregaPS_GP2.html`, sin cartel
+   intermedio — mismo criterio que insumos `[usuario 2026-09-03: "me gusta que me mande directo"]`.
+   **Única excepción**: si quedó una alerta de "recibí de más" se muestra la fase 3 con el aviso y
+   el paso al control va con un botón; esa alerta el operario tiene que leerla.
+3. **El control** se carga por pieza: lo CONTADO (en kg o en unidades, según la pieza) y los
+   BULTOS contados (cajones, o el envase del proveedor: AJ entrega en paquetes). Los campos
+   **arrancan vacíos a propósito**: el control es un dato nuevo, no una confirmación — precargarlo
+   con el remito invita a firmar sin contar. El remito queda arriba, a la vista, para comparar.
+4. `controlar_entrega_ps` guarda la fila en `GP2.entrega_ps_control` (declarado + controlado +
+   bultos + quién) y pisa `movimiento.cantidad` / `cantidad_transformada` / `cajones`; los triggers
+   reacomodan el inventario de las dos puntas solos.
+5. **Tolerancia**: la misma del pesaje de insumos (`parametro.tol_ctrl_peso_pct`, hoy 2 %). Abajo
+   de eso se registra sin preguntar; arriba, la tarjeta se pinta y el confirmar avisa que el stock
+   va a quedar con lo contado.
+
+**Qué es "pendiente de controlar"**: un movimiento `entrega_ps` SIN fila en `entrega_ps_control`.
+No hace falta un flag: el pendiente sale del ledger, igual que el saldo de cartones sustitutos
+(4er). Los pendientes no caducan — una entrega sin controlar de hace un mes se sigue viendo — y el
+encabezado de la Tablet los cuenta (`Control (N)`), que es lo que evita que quede algo colgado.
+
+⚠ **La entrega de escritorio (`Prov Serv/Entregas/EntregaPS_GP2.html`) NO manda al control**: sólo
+la Tablet, que es donde el usuario dijo que se hace el circuito. Lo que se cargue por ahí igual
+aparece como pendiente en la pantalla de control, así que no se pierde.
+
+⚠ **Lo que el control NO reajusta todavía**: si el P.S. es FASONERO (`pedido_por_oc`, hoy Maspoli),
+`crear_entrega_ps` descontó la O.C. con lo que decía el remito y el control no corrige esa resta.
+Es la misma limitación que tiene el control de insumos (`controlar_recepcion_kg` tampoco vuelve
+sobre la O.C.), y se deja anotada en vez de inventar una regla: cuando aparezca un desvío real en
+un fasonero hay que decidir si la O.C. sigue al remito o al control.
+
+## 4ey. El sustento del consumo sale de la O.C.: módulo propio "Consumo x Componente" (2026-09-21)
 
 **Lo que dijo el usuario, textual:** *"Quiero que me hagas un módulo que pueda ver por componente,
 por sector, el consumo... por ejemplo, ya las órdenes de compra, hay algo parecido, de que yo en

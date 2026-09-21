@@ -1,7 +1,7 @@
 -- =====================================================================
 -- TABLAS del schema GP2 (DDL reconstruido de pg_catalog: columnas, identity, defaults, constraints, comentarios) — export automatico 2026-09-13 desde Supabase (hrxfctzncixxqmpfhskv)
 -- Respaldo/referencia. La fuente de verdad es la base; regenerar al cambiar el schema.
--- 57 tablas, 199 constraints, 63 indices sueltos, 14 triggers, RLS en 57 tablas, 56 policies.
+-- 59 tablas, 217 constraints, 63 indices sueltos, 14 triggers, RLS en 59 tablas, 59 policies.
 -- =====================================================================
 
 -- ---------- __sim_base ----------
@@ -247,6 +247,30 @@ create table "GP2".entrega_prov_at (
 );
 comment on table "GP2".entrega_prov_at is 'Entregas de articulo terminado de los Prov AT (cajas por cod_art, remito, factura). Es un segundo ledger fuera de movimiento (pregunta 22).';
 comment on column "GP2".entrega_prov_at.descripcion is 'SNAPSHOT de la descripcion del remito al momento de la entrega. Hoy coincide en las 0 divergencias con articulo_prov_at, pero es a proposito una copia: el remito ya emitido no cambia si despues se corrige el catalogo.';
+
+-- ---------- entrega_ps_control ----------
+create table "GP2".entrega_ps_control (
+  id bigint generated always as identity not null,
+  movimiento_id bigint not null,
+  declarado numeric not null,
+  declarado_unidad text not null,
+  declarado_cajones numeric,
+  controlado numeric not null,
+  controlado_cajones numeric,
+  controlado_en timestamp with time zone not null default now(),
+  controlado_por text,
+  nota text,
+  constraint entrega_ps_control_pkey PRIMARY KEY (id),
+  constraint entrega_ps_control_mov_uk UNIQUE (movimiento_id),
+  constraint entrega_ps_control_mov_fkey FOREIGN KEY (movimiento_id) REFERENCES "GP2".movimiento(id) ON DELETE CASCADE,
+  constraint entrega_ps_control_declarado_check CHECK ((declarado > (0)::numeric)),
+  constraint entrega_ps_control_controlado_check CHECK ((controlado > (0)::numeric)),
+  constraint entrega_ps_control_unidad_check CHECK ((declarado_unidad = ANY (ARRAY['kg'::text, 'uni'::text])))
+);
+comment on table "GP2".entrega_ps_control is 'CONTROL FISICO de lo que entrego un proveedor de servicio, con el mismo circuito que la recepcion de insumos [usuario 2026-09-21: "En recepcion de proveedores de servicio se tiene que seguir la logica de primero cargar lo que dice el remito y despues hacer el control (como en recepcion de insumos)... en el remito que sea en kg y despues controlar en kg y cajones"]. Una fila por movimiento de entrega_ps controlado; el movimiento SIN fila aca es lo que todavia esta pendiente de control. Guarda lo que decia el REMITO (declarado) antes de que el control pise la cantidad del movimiento: el stock queda con lo CONTROLADO, igual que controlar_recepcion_kg en insumos.';
+comment on column "GP2".entrega_ps_control.declarado is 'Lo que decia el remito, en declarado_unidad y en la MISMA magnitud que movimiento.cantidad_transformada (lo que el P.S. entrego), no el consumo del SC.';
+comment on column "GP2".entrega_ps_control.declarado_cajones is 'Cajones (o bolsas/paquetes) anotados al cargar el remito. Hoy la Tablet no los pide al recepcionar, asi que suele ser null: el numero real lo pone el control.';
+comment on column "GP2".entrega_ps_control.controlado_cajones is 'Cajones (o el envase de la pieza) CONTADOS en el control. Es el dato que despues manda en el stock del proveedor (ver v_caj_contraparte y CONOCIMIENTO 4et).';
 
 -- ---------- est_madre ----------
 create table "GP2".est_madre (
@@ -1197,6 +1221,7 @@ alter table "GP2".componente_proveedor_alt enable row level security;  -- sin po
 alter table "GP2".contraparte_alias enable row level security;
 alter table "GP2".empleado enable row level security;
 alter table "GP2".entrega_prov_at enable row level security;
+alter table "GP2".entrega_ps_control enable row level security;
 alter table "GP2".est_madre enable row level security;
 alter table "GP2".factura_alias enable row level security;
 alter table "GP2".factura_lectura enable row level security;
@@ -1258,6 +1283,7 @@ create policy p_gp2_select on "GP2".componente_bom for select to anon, authentic
 create policy p_gp2_select on "GP2".contraparte_alias for select to anon, authenticated using (true);
 create policy p_gp2_select on "GP2".empleado for select to anon, authenticated using (true);
 create policy p_gp2_select on "GP2".entrega_prov_at for select to anon, authenticated using (true);
+create policy p_gp2_select on "GP2".entrega_ps_control for select to anon, authenticated using (true);
 create policy p_gp2_select on "GP2".est_madre for select to anon, authenticated using (true);
 create policy factura_alias_sel on "GP2".factura_alias for select to public using (true);
 create policy factura_lectura_sel on "GP2".factura_lectura for select to public using (true);

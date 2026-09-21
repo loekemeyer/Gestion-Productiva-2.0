@@ -115,6 +115,11 @@ window.supabase = { createClient: function(){ return {
   rpc: async function(name, args){
     window.__calls = window.__calls || [];
     window.__calls.push({name:name, args:args});
+    // ademas en sessionStorage: desde que Recibir de un P.S. salta solo a la pantalla de control
+    // (2026-09-21), window.__calls se pierde en la navegacion y el payload hay que leerlo despues.
+    try { var ss = JSON.parse(sessionStorage.getItem('__calls') || '[]');
+          ss.push({name:name, args:args});
+          sessionStorage.setItem('__calls', JSON.stringify(ss)); } catch(e){}
     if(name==='tablet_bundle') return { data: JSON.parse(JSON.stringify(${JSON.stringify(BUNDLE)})), error: null };
     // ➕ Otro cartón (2026-09-21): las dos listas del reemplazo. "oficiales" son los cartones/cajas
     // que ESE destino usa (a los que se puede reemplazar) y "otros" el resto del catálogo.
@@ -162,6 +167,11 @@ window.supabase = { createClient: function(){ return {
 
   const ok = (c, msg) => { console.log((c ? 'OK  ' : 'FAIL') + ' ' + msg); if (!c) process.exitCode = 1; };
   const calls = async (n) => page.evaluate(n => (window.__calls || []).filter(c => c.name === n), n);
+  // el mismo registro pero en sessionStorage: sobrevive a la navegacion (ver el STUB).
+  const callsSS = async (n) => page.evaluate(n => {
+    try { return JSON.parse(sessionStorage.getItem('__calls') || '[]').filter(c => c.name === n); }
+    catch (e) { return []; }
+  }, n);
   const tipos = () => page.$$eval('#tipoGrid .tipo-btn', xs => xs.map(x => x.textContent.replace(/\s+/g, ' ').trim()));
   // Enviar -> Prov. de servicio (y los inyectores, que se eligen ahi adentro) muestra las partes
   // como TARJETAS y la carga en una vista aparte [usuario 2026-09-18]. Estos helpers son ese flujo.
@@ -729,8 +739,14 @@ window.supabase = { createClient: function(){ return {
   await page.click('#btnVolverPartes');
   ok((await cards())[0].includes('recibe'), 'P.S.: la tarjeta muestra lo que se va a recibir');
   await page.click('#btnEnviar');
-  await page.waitForFunction(() => !document.getElementById('fase3').classList.contains('hidden'));
-  const regPs = await calls('tablet_registrar');
+  // RECIBIR DE UN P.S. TERMINA EN EL CONTROL [usuario 2026-09-21: "Despues de recepcionar tengo que
+  // ir al control"]: lo que se acaba de registrar es el REMITO, y la tablet se va SOLA a la pantalla
+  // de control (mismo criterio que la recepcion de insumos, que salta al control sin cartel). Por
+  // eso aca ya no se espera la fase 3: se espera la navegacion.
+  await page.waitForFunction(() => location.pathname.endsWith('ControlEntregaPS_GP2.html'));
+  ok(true, 'Guazzaroni: al registrar el remito la tablet manda al control');
+  // el payload se lee de sessionStorage porque window.__calls se lo llevo la navegacion
+  const regPs = await callsSS('tablet_registrar');
   const itPs = regPs[regPs.length - 1].args.p.items[0];
   // viaja el kg, y el esperado tambien en kg (1.000 x 0,05) para que la base compare igual contra igual
   ok(itPs.comp_id === 601 && itPs.comp_entrada_id === 600 && itPs.cantidad === 50 && itPs.unidad === 'kg' &&
@@ -738,7 +754,7 @@ window.supabase = { createClient: function(){ return {
      'Guazzaroni: 50 kg contra 50 kg esperados — ' + JSON.stringify(itPs));
 
   // AJ es la EXCEPCION: envia en paquetes de 100 y ENTREGA en paquetes de 200
-  await page.click('#btnOtro');
+  await page.goto(ROOT + '/Tablet/Tablet_GP2.html');   // volver del control (antes: "Cargar otra")
   await page.waitForFunction(() => document.querySelectorAll('#tipoGrid .tipo-btn').length > 0);
   await page.click('#tipoGrid .tipo-btn[data-tipo="proveedor_servicio"]');
   await page.click('#cpGrid .prov-btn:has-text("AJ Adhesivos")');
@@ -752,14 +768,15 @@ window.supabase = { createClient: function(){ return {
   await page.fill(DQ, '3');
   await page.click('#btnVolverPartes');
   await page.click('#btnEnviar');
-  await page.waitForFunction(() => !document.getElementById('fase3').classList.contains('hidden'));
-  const regAjR = await calls('tablet_registrar');
+  // AJ tambien es un P.S.: al registrar el remito se va al control, igual que Guazzaroni
+  await page.waitForFunction(() => location.pathname.endsWith('ControlEntregaPS_GP2.html'));
+  const regAjR = await callsSS('tablet_registrar');
   const itAjR = regAjR[regAjR.length - 1].args.p.items[0];
   ok(itAjR.comp_id === 565 && itAjR.cantidad === 600 && itAjR.unidad === 'uni',
      'AJ: 3 paquetes de 200 se registran como 600 pliegos — ' + JSON.stringify(itAjR));
 
   // y un P.S. SIN unidad definida sigue como estaba: esperado y cantidad en la unidad de la pieza
-  await page.click('#btnOtro');
+  await page.goto(ROOT + '/Tablet/Tablet_GP2.html');
   await page.waitForFunction(() => document.querySelectorAll('#tipoGrid .tipo-btn').length > 0);
   await page.click('#tipoGrid .tipo-btn[data-tipo="proveedor_servicio"]');
   await page.click('#cpGrid .prov-btn:has-text("Blist-Pack")');
