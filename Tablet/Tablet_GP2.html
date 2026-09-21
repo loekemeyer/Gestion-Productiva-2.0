@@ -6,6 +6,20 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
+<!-- v1.27.0 (2026-09-21) — RECIBIR: EL STOCK DE LA CONTRAPARTE SE CUENTA EN EL CAJÓN QUE ANOTÓ
+     LOGÍSTICA (usuario, textual: "tiene que aparecer en su stock los cajones que escribe logística,
+     no los que se calcula a partir de los kg"). Se le mandó a Guazzaroni 1 cajón de CV1 con 21 kg y
+     la tarjeta de Recibir decía "Stock prov. de servicio: 1,05 cajones", porque dividía los 60.000
+     remaches por el cajón TEÓRICO de la pieza (componente.uni_x_cajon 57.143 = 20 kg justos). El
+     cajón del maestro es un promedio; el que salió del galpón pesó 21. Ahora el factor sale de lo
+     anotado: GP2.v_caj_contraparte = unidades enviadas / movimiento.cajones por (contraparte,
+     pieza), que tablet_bundle manda como ent_uxc_anot y uxcRef() prefiere sobre ent_uxc. Va SOLO
+     donde ya iba ent_uxc (P.S. + sector Remache, la regla del 18/09 de los remaches que vuelven en
+     el mismo cajón) y sólo si hay cajones anotados: sin eso queda todo como estaba —los talleristas
+     no anotan cajones (crear_envio_tallerista no tiene p_cajones) y no cambian.
+     Se concilia solo contra el kg: si el proveedor devuelve la mitad, el stock dice medio cajón, y
+     si devuelve todo, cero. NO es un segundo libro de cajones que pueda quedar desfasado.
+     Mismo criterio en Envío PS (v1.11.0) y Entrega PS (v1.7.0). -->
 <!-- v1.26.1 (2026-09-21) — el cartón sale de CERVANTES, no "del galpón" (usuario, sobre el texto de
      "➕ Otro cartón": "En vez de galpón, Cervantes"). Un renglón de texto, cero lógica. -->
 <!-- v1.26.0 (2026-09-21) — OTRO CARTÓN: MANDAR EL CARTÓN DE OTRO ARTÍCULO EN LUGAR DEL QUE
@@ -748,7 +762,7 @@
 
 <script src="../gp2-ui.js?v=20260913e"></script>
 <script src="../gp2-numero.js?v=20260911o"></script>
-<script src="../gp2-envios-common.js?v=20260905c"></script>
+<script src="../gp2-envios-common.js?v=20260921a"></script>
 <script>
 "use strict";
 
@@ -807,8 +821,14 @@ function inputmodeDe(u){ return u === "kg" ? "decimal" : "numeric"; }
    [usuario 2026-09-18, remaches de Guazzaroni: "si envío 2 cajones lo esperado es recibir 2 cajones
    aprox"]. QUIÉN ENTRA EN ESA REGLA LO DECIDE LA BASE: tablet_bundle manda ent_uxc / ent_kgu solo
    en esas filas (hoy el sector Remache) y acá alcanza con preferirlas cuando vienen. Sin ellas
-   (todo el resto) queda el cajón de la pieza devuelta, que es como estaba. */
+   (todo el resto) queda el cajón de la pieza devuelta, que es como estaba.
+   Y EL CAJÓN QUE MANDA ES EL QUE ANOTÓ LOGÍSTICA (ent_uxc_anot, 2026-09-21): el cajón teórico del
+   maestro es un promedio, el que salió del galpón pesó lo que pesó. CV1 salió como 1 cajón de 21 kg
+   contra un uni_x_cajon de 20 kg y la tarjeta decía 1,05 cajones [usuario: "tiene que aparecer en
+   su stock los cajones que escribe logística, no los que se calcula a partir de los kg"]. */
 function uxcRef(x){
+  var a = Number((x && x.ent_uxc_anot) || 0);
+  if (MODO === "recibir" && a > 0) return a;
   var e = Number((x && x.ent_uxc) || 0);
   return (MODO === "recibir" && e > 0) ? e : Number((x && x.uxc) || 0);
 }

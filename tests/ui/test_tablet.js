@@ -38,7 +38,7 @@ const BUNDLE = {
     { tipo: 'proveedor_servicio', ref: '8', nombre: 'Hernandez Julio', envio_unidad: 'kg', envio_uni_x: null, n_env: 2, n_rec: 0 },
     { tipo: 'proveedor_servicio', ref: '14', nombre: 'Ester', envio_unidad: 'bolsas', envio_uni_x: 1800, envio_carga_unidad: 'kg', n_env: 1, n_rec: 0 },
     // Guazzaroni: el envase es el CAJON de cada pieza (envio_uni_x null), no uno del proveedor
-    { tipo: 'proveedor_servicio', ref: '4', nombre: 'Guazzaroni Patricio', envio_unidad: 'cajones', envio_uni_x: null, envio_carga_unidad: 'kg', n_env: 2, n_rec: 1 },
+    { tipo: 'proveedor_servicio', ref: '4', nombre: 'Guazzaroni Patricio', envio_unidad: 'cajones', envio_uni_x: null, envio_carga_unidad: 'kg', n_env: 2, n_rec: 2 },
     { tipo: 'inyector', ref: 'Pat Bet Plast', nombre: 'Pat Bet Plast', n_env: 2, n_rec: 0 },
     { tipo: 'proveedor_insumo', ref: 'Corrugadora del Plata', nombre: 'Corrugadora del Plata', n_env: 0, n_rec: 3 },
     { tipo: 'virgilio', ref: 'virgilio', nombre: 'Virgilio', n_env: 0, n_rec: 1 },
@@ -100,6 +100,10 @@ const BUNDLE = {
     // numero el esperado daba 20 cajones donde habian salido 2 (el caso real fue CV11 -> V11, 5
     // cajones mostrados como 50). [usuario 2026-09-18]
     { tipo: 'proveedor_servicio', ref: '4', comp_id: 601, comp_entrada_id: 600, n_entradas: 1, tiene_bom: false, cod_art: null, cod: 'CV1N', desc: 'Remache Espiral Niquelado', sector: 'Sector Remache', um: 'unidad', uxc: 50, kg_x_uni: 0.05, por_caja: null, ent_cod: 'CV1', ent_desc: 'Remache Espiral p/Niquelar', ent_uxc: 500, ent_kgu: 0.05, esperado: 1000, esperado_origen: 'online_ps' },
+    // ...Y EL CAJON QUE VALE ES EL QUE ANOTO LOGISTICA (ent_uxc_anot, 2026-09-21). El caso real:
+    // se le mandaron 60.000 remaches ANOTADOS COMO 1 CAJON (pesaron 21 kg), pero el cajon teorico
+    // de la pieza son 57.143 (20 kg justos) -> la tarjeta decia 1,05 cajones. Con el anotado da 1.
+    { tipo: 'proveedor_servicio', ref: '4', comp_id: 611, comp_entrada_id: 610, n_entradas: 1, tiene_bom: false, cod_art: null, cod: 'CV2N', desc: 'Remache Pizza Niquelado', sector: 'Sector Remache', um: 'unidad', uxc: 50, kg_x_uni: 0.00035, por_caja: null, ent_cod: 'CV2', ent_desc: 'Remache Pizza p/Niquelar', ent_uxc: 57143, ent_kgu: 0.00035, ent_uxc_anot: 60000, esperado: 60000, esperado_origen: 'online_ps' },
     // AJ: 600 pliegos esperados / 200 por paquete de ENTREGA = 3 paquetes (no 6, que serian de envio)
     { tipo: 'proveedor_servicio', ref: '12', comp_id: 565, comp_entrada_id: 564, n_entradas: 1, tiene_bom: false, cod_art: null, cod: 'Pliego Ad 506', desc: 'Adhesivado', sector: 'Sector Procesado', um: 'unidad', uxc: null, kg_x_uni: null, por_caja: null, ent_cod: 'Pliego 506', ent_desc: 'Sin adhesivar', esperado: 600, esperado_origen: 'online_ps' },
     { tipo: 'virgilio', ref: 'virgilio', comp_id: 373, comp_entrada_id: null, n_entradas: 0, tiene_bom: false, cod_art: null, cod: 'IC3V', desc: 'Fleje N° 90 LARGO', sector: 'Sector Fleje', um: 'kg', uxc: 24, kg_x_uni: 0.0134, por_caja: null, ent_cod: null, ent_desc: null, esperado: 20, esperado_origen: 'online_virgilio' },
@@ -700,6 +704,15 @@ window.supabase = { createClient: function(){ return {
   // ese era el bug del 18/09 (5 cajones de CV11 mostrados como 50 de V11).
   ok(!gzRec.includes('20 cajones'),
      'Guazzaroni: NO se usa el uni_x_cajon de la pieza devuelta (la bolsa del fraccionado) — ' + gzRec);
+  // EL CAJON QUE ANOTO LOGISTICA gana sobre el teorico [usuario 2026-09-21: "tiene que aparecer en
+  // su stock los cajones que escribe logistica, no los que se calcula a partir de los kg"]: 60.000
+  // remaches que salieron como 1 cajon (de 21 kg) son 1 cajon, no los 1,05 que da el uni_x_cajon
+  // de 57.143 (20 kg) del maestro.
+  const gzAnot = (await cards()).find(c => c.includes('CV2N')) || '';
+  ok(gzAnot.includes('Stock prov. de servicio 1 cajón'),
+     'Guazzaroni: el stock se cuenta con el cajón ANOTADO al enviar, no con el teórico — ' + gzAnot);
+  ok(!gzAnot.includes('1,05'),
+     'Guazzaroni: el cajón teórico (57.143 uni) ya no decide el número — ' + gzAnot);
   await abrir('CV1N');
   const detPs = await det();
   ok(detPs.includes('Stock prov. de servicio') && detPs.includes('2 cajones') && detPs.includes('Cantidad') &&

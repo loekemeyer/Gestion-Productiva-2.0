@@ -6,6 +6,15 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
+<!-- v1.11.0 (2026-09-21) — EL STOCK EN PODER DEL P.S. SE MIDE CON EL CAJÓN QUE ANOTÓ LOGÍSTICA
+     (usuario, textual: "tiene que aparecer en su stock los cajones que escribe logística, no los
+     que se calcula a partir de los kg"). El cajón de componente.uni_x_cajon es un promedio (CV1 =
+     57.143 uni = 20 kg justos) y el que sale del galpón pesa lo que pesa: se mandó 1 cajón de 21 kg
+     y la pantalla decía 1,05 cajones. Ahora el factor sale de GP2.v_caj_contraparte (unidades
+     enviadas / movimiento.cajones de los envíos a ESE proveedor de ESA pieza), que envios_ps_bundle
+     manda como sc_unixcaj_anot y lee GP2EE.uxcEnPoder(). Sin cajones anotados queda el del maestro,
+     o sea que nada cambia donde nadie los anota. Toca "En PS" y, con él, el SUGERIDO (el online del
+     P.S. se resta en cajones). Mismo criterio en Entrega PS y en la Tablet. -->
 <!-- v1.10.0 (2026-09-18) — LOS ENVASES SE VEN CON DECIMALES (se va el redondeo de la mañana)
      [usuario 2026-09-18, textual: "no quiero que redondees las bolsas, cajones -> lo quiero ver con
      decimales también"]. Da vuelta la regla de la v1.7.0 de HOY: el renglón de abajo del campo de
@@ -188,7 +197,7 @@
 <script src="../../tandas-popup.js?v=20260905i"></script>
 <script src="../../gp2-ui.js?v=20260913e"></script>
 <script src="../../gp2-numero.js?v=20260911o"></script>
-<script src="../../gp2-envios-common.js?v=20260905c"></script>
+<script src="../../gp2-envios-common.js?v=20260921a"></script>
 <script>
 "use strict";
 
@@ -444,7 +453,7 @@ function renderTabla(){
     var vCaj = t.hayT ? (t.tot.caj||"") : it.caj;
     var vKg  = t.hayT ? (t.tot.kg ||"") : it.kg;
 
-    var onPS  = aCajones(x.online_ps, x.sc_unixcaj);
+    var onPS  = aCajones(x.online_ps, E.uxcEnPoder(x));  // el cajón que anotó logística (2026-09-21)
     // maximo/maximo_sp llegan sin coalesce: null = dato faltante, no 0
 
     // Sugerido a enviar = maximo FISICO del Sector Procesado - online SP - online PS

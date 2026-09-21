@@ -3141,6 +3141,14 @@ fila as (
             and i.ubicacion_id="GP2".ubic_de('proveedor_servicio', p.proveedor_id) limit 1) online_ps,
          (select i.maximo from inventario i where i.componente_id=sc.id
             and i.ubicacion_id="GP2".ubic_de('proveedor_servicio', p.proveedor_id) limit 1) maximo,
+         -- EL CAJON QUE ANOTO LOGISTICA (2026-09-21). Cuantas unidades entraron por cajon segun
+         -- movimiento.cajones de los envios a ESTE proveedor de ESTA pieza. Con eso el stock en su
+         -- poder se dice en los cajones que se le mandaron y no en el cajon teorico del maestro
+         -- [usuario: "tiene que aparecer en su stock los cajones que escribe logistica, no los que
+         -- se calcula a partir de los kg"]. null = nadie anoto cajones -> se usa sc.uni_x_cajon.
+         (select v.uni_x_cajon_anotado from v_caj_contraparte v
+           where v.componente_id = sc.id
+             and v.ubicacion_id = "GP2".ubic_de('proveedor_servicio', p.proveedor_id)) sc_unixcaj_anot,
          (select i.cantidad from inventario i
            where i.componente_id=sp.id and i.ubicacion_id="GP2".ubic_de('sector', sp.sector_id) limit 1) online_sp,
          (select i.maximo from inventario i
@@ -3179,7 +3187,7 @@ select jsonb_build_object(
   'partes', (select coalesce(jsonb_object_agg(proveedor_id::text, arr),'{}'::jsonb) from (
         select proveedor_id, jsonb_agg(jsonb_build_object(
           'sc_id',sc_id,'sc_cod',sc_cod,'sc_desc',sc_desc,'sc_sector',sc_sector,
-          'sc_um',sc_um,'sc_kgxuni',sc_kgxuni,'sc_unixcaj',sc_unixcaj,
+          'sc_um',sc_um,'sc_kgxuni',sc_kgxuni,'sc_unixcaj',sc_unixcaj,'sc_unixcaj_anot',sc_unixcaj_anot,
           'sp_id',sp_id,'sp_cod',sp_cod,'sp_desc',sp_desc,'sp_unixcaj',sp_unixcaj,
           'sp_um',sp_um,'sp_kgxuni',sp_kgxuni,
           'proceso',proceso,
@@ -7416,6 +7424,17 @@ rec_x as (
          -- NULL en el resto de los P.S.: ahi el front sigue con el cajon de la pieza devuelta.
          case when ce.sector_id = 8 then ce.uni_x_cajon end ent_uxc,
          case when ce.sector_id = 8 then ce.kg_x_uni    end ent_kgu,
+         -- ...Y CUANTO MIDE ESE CAJON DE VERDAD (2026-09-21): el que anoto logistica al enviar
+         -- (movimiento.cajones), no el uni_x_cajon del maestro. CV1 salio como 1 cajon de 21 kg
+         -- contra un cajon teorico de 20 kg y la tarjeta de Recibir decia 1,05 cajones [usuario:
+         -- "tiene que aparecer en su stock los cajones que escribe logistica, no los que se
+         -- calcula a partir de los kg"]. Va SOLO donde ya va ent_uxc (P.S. y sector Remache), que
+         -- es donde el front mira el envase de la pieza ENVIADA; null = nadie anoto cajones y
+         -- queda el de siempre.
+         max(case when ce.sector_id = 8 and r.tipo = 'proveedor_servicio'
+                  then (select v.uni_x_cajon_anotado from v_caj_contraparte v
+                         where v.componente_id = r.comp_entrada_id
+                           and v.ubicacion_id = ubic_de(r.tipo, r.ref::bigint)) end) ent_uxc_anot,
          (select a.articulos_por_caja from articulo a where a.codigo = r.cod_art) por_caja
     from rec r
     left join componente c on c.id = r.comp_id
@@ -7497,7 +7516,7 @@ select jsonb_build_object(
              'env_unidad', case when tipo = 'tallerista' then coalesce(ent_uni, 'cajones') end,
              'env_factor', case when tipo = 'tallerista' then coalesce(ent_ux, uxc) end,
              'env_carga',  case when tipo = 'tallerista' then 'kg' end,
-             'ent_cod', ent_cod, 'ent_desc', ent_desc,
+             'ent_cod', ent_cod, 'ent_desc', ent_desc, 'ent_uxc_anot', ent_uxc_anot,
              'ent_uxc', ent_uxc, 'ent_kgu', ent_kgu,
              'esperado', esperado, 'esperado_origen', esperado_origen
            ) order by cod), '[]'::jsonb) from rec_x),

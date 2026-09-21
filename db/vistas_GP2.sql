@@ -1,8 +1,35 @@
 -- =====================================================================
 -- VISTAS del schema GP2 (pg_get_viewdef, exacto) — export automatico 2026-09-11 desde Supabase (hrxfctzncixxqmpfhskv)
 -- Respaldo/referencia. La fuente de verdad es la base; regenerar al cambiar el schema.
--- 18 vistas. Orden de creacion: las que dependen de otra van despues.
+-- 24 vistas. Orden de creacion: las que dependen de otra van despues.
 -- =====================================================================
+
+-- ---------- v_caj_contraparte ----------
+create or replace view "GP2".v_caj_contraparte as
+ WITH ing AS (
+         SELECT m.ubic_destino_id AS ubicacion_id,
+            m.comp_id AS componente_id,
+            sum(COALESCE(m._delta_dest, 0::numeric)) AS uni,
+            sum(m.cajones) AS cajones,
+            count(*) AS n_envios,
+            max(m.fecha) AS ultimo
+           FROM "GP2".movimiento m
+             JOIN "GP2".ubicacion u ON u.id = m.ubic_destino_id
+          WHERE (u.tipo = ANY (ARRAY['proveedor_servicio'::text, 'tallerista'::text]))
+            AND m.comp_transformado_id IS NULL
+            AND COALESCE(m.cajones, 0::numeric) > 0::numeric
+            AND COALESCE(m._delta_dest, 0::numeric) > 0::numeric
+          GROUP BY m.ubic_destino_id, m.comp_id
+        )
+ SELECT ubicacion_id,
+    componente_id,
+    uni,
+    cajones,
+    n_envios,
+    ultimo,
+    uni / cajones AS uni_x_cajon_anotado
+   FROM ing;
+comment on view "GP2".v_caj_contraparte is 'CUANTO MIDE EL CAJON QUE ANOTO LOGISTICA, por (ubicacion de la contraparte, componente). uni_x_cajon_anotado = unidades enviadas / cajones anotados en movimiento.cajones, sobre los envios a esa contraparte de esa pieza. Sirve para decir el stock en poder del tercero EN LOS CAJONES QUE SE MANDARON y no en el cajon teorico de componente.uni_x_cajon [usuario 2026-09-21: "tiene que aparecer en su stock los cajones que escribe logistica, no los que se calcula a partir de los kg"]. Caso que lo motivo: CV1 a Guazzaroni, 1 cajon de 21 kg anotado contra un uni_x_cajon de 20 kg -> la recepcion decia 1,05 cajones. Solo mira movimientos con cajones anotados (> 0): donde nadie los anota (hoy los talleristas, que no tienen p_cajones) no hay fila y el que consulta cae al cajon del maestro.';
 
 -- ---------- v_carton_sustituto_saldo ----------
 create or replace view "GP2".v_carton_sustituto_saldo as

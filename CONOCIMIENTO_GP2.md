@@ -11396,3 +11396,44 @@ sustitución es física, no contable. Si el sustituto vale distinto, esa diferen
    **artículo terminado** (`recepcion_virgilio`), que es justo el caso que el dueño confirmó
    `[usuario 2026-09-21, elegido entre tres: "el artículo terminado"]`.
 
+
+
+## 4es. El stock en poder de un tercero se cuenta con el CAJÓN QUE ANOTÓ LOGÍSTICA, no con el teórico (2026-09-21)
+
+`[usuario, textual: "Cuando mando un cajón de 21kg a guazzaroni de cv1, después en recepción me
+aparece para recibir 1.05 cajones" → "tiene que aparecer en su stock los cajones que escribe
+logística, no los que se calcula a partir de los kg"]`.
+
+**El número era correcto y aun así estaba mal.** El movimiento real (id 85501, 21/09): CV1, Sector
+Remache → Guazzaroni, `cantidad = 21 kg`, `cajones = 1`, delta 60.000 unidades. La Tablet mostraba
+ese stock dividiendo por el cajón del maestro — `componente.uni_x_cajon` de CV1 = 57.143 uni, que
+son **20,000 kg exactos** (ver 4en: los remaches se cargaron así a propósito) — y daba
+60.000 / 57.143 = **1,05 cajones**. Salió UN cajón del galpón y la pantalla decía 1,05.
+
+**La distinción que hay que guardar**: `uni_x_cajon` es **cuánto entra en un cajón en promedio**
+(sirve para el sugerido, los máximos y las O.C.), no **cuánto pesó el cajón que salió**. Para el
+stock en poder de un tercero manda el segundo, y ese dato ya se venía guardando: `movimiento.cajones`
+es lo que el operario **anota** al enviar (desde la v1.22 de la Tablet viaja el número tipeado, no
+el calculado de los kg).
+
+**Cómo quedó** (sin tabla nueva, todo sale del ledger):
+1. `GP2.v_caj_contraparte` — por (ubicación de la contraparte, componente): `uni_x_cajon_anotado` =
+   unidades enviadas ÷ cajones anotados, sólo sobre movimientos **con cajones > 0**.
+2. `envios_ps_bundle` manda `sc_unixcaj_anot` y `tablet_bundle` manda `ent_uxc_anot` (este último
+   sólo donde ya mandaba `ent_uxc`: P.S. + sector Remache, la regla de 4eo).
+3. El front lo prefiere sobre el maestro: `GP2EE.uxcEnPoder()` en Envío PS y Entrega PS,
+   `uxcRef()` en la Tablet. **Sin cajones anotados no cambia nada** — los talleristas no los anotan
+   (`crear_envio_tallerista` no tiene `p_cajones`) y siguen con el cajón del maestro.
+
+**Por qué NO se llevó un segundo libro de cajones** (enviados − devueltos, que era la otra forma):
+al RECIBIR nadie anota cajones — `tablet_registrar` llama a `crear_entrega_ps` con `p_cajones =>
+null` —, así que ese saldo nunca bajaría. Con el factor anotado el número **se concilia solo contra
+el kg**: si el proveedor devuelve la mitad dice medio cajón, y si devuelve todo dice cero.
+
+⚠ **Lo que el usuario pidió además y NO está hecho** `[usuario, textual: "En recepcion de
+proveedores de servicio se tiene que seguir la lógica de primero cargar lo que dice el remito y
+despues hacer el control (como en recepcion de insumos) en el remito que sea en kg y despues
+controlar en kg y cajones (o unidad de medida correspondiente según la parte)"]`: hoy la entrega de
+un P.S. es **un solo paso** (se escriben los kg y se registra). Lo pedido es el modelo de
+`recepcion_insumo` (`declarado` del remito primero, `controlado` después, con `recepcion_control`
+por bulto), llevado a la entrega de P.S. y con el control en **kg + cajones**. Queda pendiente.

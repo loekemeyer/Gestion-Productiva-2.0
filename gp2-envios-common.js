@@ -63,6 +63,18 @@
     return Number(cantidad || 0) / u;
   }
 
+  /* EL CAJON CON EL QUE SE MIRA LO QUE LA CONTRAPARTE TIENE EN SU PODER (2026-09-21).
+     Primero el que ANOTO LOGISTICA al enviar (sc_unixcaj_anot, que sale de GP2.v_caj_contraparte
+     = unidades enviadas / movimiento.cajones) y, si nadie anoto cajones, el uni_x_cajon del
+     maestro, que es como estaba. El teorico es un promedio y el que salio del galpon pesa lo que
+     pesa: CV1 salio como 1 cajon de 21 kg contra un cajon de 20 kg y la recepcion decia 1,05
+     cajones [usuario: "tiene que aparecer en su stock los cajones que escribe logistica, no los
+     que se calcula a partir de los kg"]. */
+  function uxcEnPoder(x) {
+    var a = Number((x && x.sc_unixcaj_anot) || 0);
+    return a > 0 ? a : Number((x && x.sc_unixcaj) || 0);
+  }
+
   /* Fecha de hoy YYYY-MM-DD en Argentina (gp2-ui.js). Se sigue llamando hoyISO
      porque asi la llaman las pantallas; antes era la fecha del dispositivo. */
   function hoyISO() { return UI.hoyAR(); }
@@ -260,7 +272,7 @@
      (genCode) ya no se exporta: se toma de GP2UI / GP2N (2026-09-04). */
   global.GP2EE = {
     sb: sb, num: num, fmt: fmt, fmt0: fmt0,
-    aCajones: aCajones, hoyISO: hoyISO, mesAR: mesAR,
+    aCajones: aCajones, uxcEnPoder: uxcEnPoder, hoyISO: hoyISO, mesAR: mesAR,
     buffer: buffer, cargadasDe: cargadasDe,
     mostrarFase: mostrarFase, gridContrapartes: gridContrapartes,
     filtrar: filtrar, buscarMeta: buscarMeta, actualizarEnviar: actualizarEnviar,
