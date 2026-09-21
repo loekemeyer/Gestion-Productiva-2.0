@@ -6,6 +6,18 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
+<!-- v1.25.0 (2026-09-21) — EN RECIBIR EL NÚMERO DE REFERENCIA SE LLAMA POR LO QUE ES: EL STOCK DE
+     LA CONTRAPARTE (usuario, textual: "en versión tablet, cuando voy a recibir, en vez de esperado
+     quiero que diga Stock tallerista o stock proveedor de servicio según corresponda"). Solo el
+     rótulo, cero lógica: el número, su unidad y la alerta de "recibí de más" son los mismos. Un
+     único rotuloRef() decide el texto por el tipo de contraparte y lo usan los tres lugares donde
+     se leía "Esperado" (la tarjeta, la vista de la parte y el encabezado de la tabla), así no
+     quedan tres textos que se puedan separar. Virgilio sigue diciendo "Esperado": ahí el número es
+     su online y no estaba en el pedido.
+     Y DE PASO, porque el rótulo nuevo es largo: en la tarjeta pasa a su propio renglón, chico y
+     gris (.pc-rot), con el número solo en los 21px naranja. Con "Stock prov. de servicio" en
+     negrita grande la tarjeta se comía tres renglones y el número —lo que el operario lee de
+     lejos— quedaba mezclado con la etiqueta. Vale también para "Sugerido" y "Online sector". -->
 <!-- v1.24.0 (2026-09-18) — RECIBIR REMACHES: EL ESPERADO VA EN EL CAJÓN CON EL QUE SE MANDÓ
      (usuario: "Mandé 5 cajones de cv11 y el esperado de recepcion de v11 es 50 cajones. ¿Por qué?" →
      "Guazzaroni nos entrega los remaches niquelados en los mismos cajones que se lo enviamos… si
@@ -553,6 +565,10 @@
      llamativo"]. La aclaracion de al lado ("sin cajon cargado") queda chica y gris para que
      el numero no compita con ella; el naranja no choca con el verde del estado "envia N". */
   .pc-sug{font-size:21px;font-weight:900;color:#c2410c;line-height:1.2}
+  /* EL ROTULO va en su propio renglon, chico y gris (2026-09-21): en Recibir pasó a ser "Stock
+     prov. de servicio", y en 21px negrita se comia tres renglones de la tarjeta y le robaba la
+     jerarquia al numero, que es lo que el operario tiene que leer de lejos. */
+  .pc-sug .pc-rot{display:block;font-size:14px;font-weight:800;color:#777;letter-spacing:.4px}
   .pc-sug .pc-nota{font-size:14px;font-weight:700;color:#777}
   .pc-estado{margin-top:auto;padding-top:6px;font-size:17px;font-weight:800;color:#15803d}
   .parte-card:not(.cargada) .pc-estado{color:#9aa1a8}
@@ -996,6 +1012,18 @@ function faltaEnvase(x){
   return (pk && pk.porPieza) ? "sin cajón cargado" : "";
 }
 
+/* COMO SE LLAMA EL NUMERO DE REFERENCIA DE RECIBIR. No es "lo que calculamos que va a traer":
+   es EL STOCK QUE LA CONTRAPARTE TIENE EN SU PODER, y asi se lee mejor en la tablet
+   [usuario 2026-09-21, textual: "en vez de esperado quiero que diga Stock tallerista o stock
+   proveedor de servicio segun corresponda"]. El que no es ninguno de los dos (Virgilio) sigue
+   diciendo "Esperado": ahi el numero es el online de Virgilio y nadie pidio cambiarlo. */
+function rotuloRef(){
+  if (!selCP) return "Esperado";
+  if (selCP.tipo === "tallerista") return "Stock tallerista";
+  if (selCP.tipo === "proveedor_servicio") return "Stock prov. de servicio";
+  return "Esperado";
+}
+
 /* EL NUMERO DE REFERENCIA de la tarjeta y de la vista de la parte: el SUGERIDO donde lo hay
    (P.S., tallerista, inyector) y el ONLINE DEL SECTOR en el prov. de art. terminado, que no tiene
    sugerido — ahí la referencia es lo que hay en Cervantes para mandarle. Devuelve el mismo
@@ -1005,13 +1033,13 @@ function refInfo(x){
     // ESPERADO: lo que la base cree que el tallerista tiene para entregar, mirado en CAJONES (o en
     // las bolsas de 120 de GRJ5/GRJ6). Se dice con el mismo criterio que el resto de los envases:
     // el numero exacto, con decimales. [usuario 2026-09-18]
-    var ev = envaseDe(x), u = unidadDe(x);
+    var ev = envaseDe(x), u = unidadDe(x), rot = rotuloRef();
     if (x.esperado == null)
-      return { rotulo: "Esperado", txt: "—", num: null, uni: "", nota: "sin referencia", small: "" };
+      return { rotulo: rot, txt: "—", num: null, uni: "", nota: "sin referencia", small: "" };
     var e = Number(x.esperado);
-    if (ev) return { rotulo: "Esperado", txt: textoEnvases(e / ev.factor, ev.label).replace("= ", ""),
+    if (ev) return { rotulo: rot, txt: textoEnvases(e / ev.factor, ev.label).replace("= ", ""),
                      num: null, uni: "", nota: "", small: "" };
-    return { rotulo: "Esperado", txt: fmt(e, u === "kg" ? 2 : 0), num: e, uni: u,
+    return { rotulo: rot, txt: fmt(e, u === "kg" ? 2 : 0), num: e, uni: u,
              nota: faltaEnvase(x), small: "" };
   }
   if (envConSugerido()) {
@@ -1284,7 +1312,7 @@ function elegir(c){
     ? (envConSugerido()
         ? "<th>Pieza</th><th class=\"num\">Sugerido" + _u + "</th><th class=\"num sep\">Cantidad" + _uq + "</th>"
         : "<th>Pieza</th><th class=\"num\">Online sector</th><th class=\"num sep\">Cantidad</th>")
-    : "<th>Pieza</th><th class=\"num\">Esperado</th><th class=\"num sep\">Recibido</th>";
+    : "<th>Pieza</th><th class=\"num\">" + esc(rotuloRef()) + "</th><th class=\"num sep\">Recibido</th>";
   // NO se precarga NADA: desde el 2026-09-18 ningún destino de Enviar arranca con la cantidad
   // escrita (P.S. e inyector desde el 17, el tallerista desde el 18, elegido por el usuario). El
   // Sugerido se sigue mostrando: es la referencia, no la orden. Ver envSinMemoria().
@@ -1375,7 +1403,7 @@ function renderCards(){
         // en Recibir importa QUE pieza consume lo que traen (la fila de la tabla ya lo decia)
         (MODO === "recibir" && x.ent_cod ? ' <span class="pc-nota">· consume ' + esc(x.ent_cod) + "</span>" : "") +
         "</span>" +
-      '<span class="pc-sug">' + si.rotulo + " " + si.txt +
+      '<span class="pc-sug"><span class="pc-rot">' + esc(si.rotulo) + "</span> " + si.txt +
         (si.uni ? " " + esc(unidadTxt(si.num, si.uni)) : "") +
         (si.nota ? '<span class="pc-nota"> · ' + esc(si.nota) + "</span>" : "") + "</span>" +
       '<span class="pc-estado">' + (aMedias
@@ -1499,8 +1527,10 @@ function pintarDetalle(){
     '<div class="det-cod">' + esc(x.cod) + uniTag(uc) + "</div>" +
     '<div class="det-desc">' + esc(x.desc || "") + "</div>" +
     (x.sector ? '<div class="det-sector">' + esc(x.sector) + "</div>" : "") +
+    // en Recibir el rotulo lo decide rotuloRef() (stock del tallerista / del P.S.), asi que se
+    // usa el que ya vino en refInfo en vez de escribirlo otra vez aca.
     '<div class="det-lbl">' + (si.rotulo === "Sugerido" ? "Sugerido a enviar"
-                              : si.rotulo === "Esperado" ? "Esperado" : "Online en el sector") + "</div>" +
+                              : MODO === "recibir" ? si.rotulo : "Online en el sector") + "</div>" +
     '<div class="det-sug">' + si.txt + (si.uni ? " " + esc(unidadTxt(si.num, si.uni)) : "") +
       (si.nota ? "<small>" + esc(si.nota) + "</small>" : "") + "</div>" +
     // con envase Y kg se anotan las DOS, y primero el envase: es lo que el operario cuenta
