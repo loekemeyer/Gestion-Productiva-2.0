@@ -211,6 +211,22 @@ window.supabase = { createClient: function(){ return {
   // Al elegir el sector aparece todo
   await page.click('#rubros .chip:has-text("Carton")');
   ok(!(await page.$eval('#zonaLista', x => x.classList.contains('hidden'))), 'al elegir sector aparece la lista');
+
+  // CON UN SECTOR ELEGIDO SE VE SOLO ESE, MAS "Todos" [usuario 2026-09-21: "cuando toco un
+  // sector me desaparezca el resto de los sectores y ademas haya un boton que diga Todos"].
+  const chipsSel = await page.$$eval('#rubros .chip', xs => xs.map(x => x.textContent.trim()));
+  ok(chipsSel.join(',') === 'Carton,Todos',
+     'con el sector elegido queda ese chip y el boton Todos: ' + chipsSel.join(','));
+  // "Todos" suelta el sector: vuelve la botonera entera y, sin sector, la lista se esconde.
+  await page.click('#rubroTodos');
+  ok(await page.evaluate(() => rubroSel === null), '"Todos" suelta el sector elegido');
+  const chipsVuelta = await page.$$eval('#rubros .chip', xs => xs.map(x => x.textContent.trim()));
+  ok(chipsVuelta.join(',') === 'Fleje,Carton,Plastico',
+     'y vuelven todos los sectores, sin el boton Todos: ' + chipsVuelta.join(','));
+  ok(await page.$eval('#zonaLista', x => x.classList.contains('hidden')), 'sin sector no hay lista (regla del 2026-09-04)');
+
+  // El chip elegido se sigue soltando tocandolo, como antes del colapso.
+  await page.click('#rubros .chip:has-text("Carton")');
   await page.click('#rubros .chip:has-text("Carton")');   // se suelta: vuelve a esconderse
   ok(await page.$eval('#zonaLista', x => x.classList.contains('hidden')), 'al soltar el sector se esconde de nuevo');
   await page.click('#rubros .chip:has-text("Plastico")');
@@ -230,7 +246,9 @@ window.supabase = { createClient: function(){ return {
   const stockCells = await page.$$eval('#tbody tr td:nth-child(3)', xs => xs.map(x => x.textContent).join(' | '));
   ok(!stockCells.includes('mín'), 'no aparece el minimo debajo del stock: ' + stockCells.slice(0, 60));
 
-  // filtro Fleje -> 2 filas + chips proveedor
+  // filtro Fleje -> 2 filas + chips proveedor (con Plastico elegido hay que soltar primero:
+  // la botonera muestra solo el sector activo desde v1.34.0)
+  await page.click('#rubroTodos');
   await page.click('#rubros .chip:has-text("Fleje")');
   ok(await page.$$eval('#tbody tr', x => x.length) === 2, 'filtro rubro Fleje: 2 filas');
   const provChips = await page.$$eval('#provs .chip', xs => xs.map(x => x.textContent));
@@ -307,6 +325,7 @@ window.supabase = { createClient: function(){ return {
   // ── CHARCAS: paquetes de charcas_kg_x_paquete kg (del bundle), unidad 'paq' a crear_oc y la
   // OC gemela generica en el mensaje (2026-09-05, ciclos 9-10 de la auditoria) ──
   await page.click('#tabGen');
+  await page.click('#rubroTodos');
   await page.click('#rubros .chip:has-text("Plastico")');
   await page.click('#provs .chip:has-text("Resortes Charcas")');
   ok(await page.$$eval('#tbody tr', x => x.length) === 1, 'Charcas: 1 fila (EP10)');
@@ -357,6 +376,7 @@ window.supabase = { createClient: function(){ return {
 
   // volver a Generar y validar reglas de carton
   await page.click('#tabGen');
+  await page.click('#rubroTodos');
   await page.click('#rubros .chip:has-text("Carton")');
   // Los cartones tambien llegan con el sugerido puesto y YA redondeado a su familia:
   // asi era antes con "Usar sugeridos" y asi tiene que estar sin tocar nada.
