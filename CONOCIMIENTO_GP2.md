@@ -11396,3 +11396,40 @@ sustitución es física, no contable. Si el sustituto vale distinto, esa diferen
    **artículo terminado** (`recepcion_virgilio`), que es justo el caso que el dueño confirmó
    `[usuario 2026-09-21, elegido entre tres: "el artículo terminado"]`.
 
+## 4es. El 311 y el 312 llevan UN capuchón, el PA13 — el PA18 no va (2026-09-21)
+
+`[usuario 2026-09-21, textual: "El 312 y 311 usan solo PA13, no usan PA18"; ejecutado con su
+"Eliminá PA18 para esos dos art"]`
+
+**Qué estaba mal:** el **311** (Cuchillo de Torta) y el **312** (Pala de Torta) tenían en la receta
+los **dos** capuchones — `PA13` *Capuchón Batidor LK* **y** `PA18` *Capuchón Espátula LK* — más el
+mango `PA17`. Un artículo lleva **un** capuchón; el segundo era grasa que venía de la carga
+original.
+
+**Qué se borró** (sólo datos, cero DDL): las 2 filas de `articulo_componente` del PA18 (ids 768 y
+773) y las **2 rutas enteras** que lo traían, con sus 8 pasos — `814 "Insumo PA18B -> Art 311"` y
+`819 "Insumo PA18B -> Art 312"` (el circuito era `PA18B` → P.S. 8 → `PA18` → tallerista 6 → art →
+Virgilio). Los dos quedan con **5 componentes y 5 rutas**, una por insumo, que es como tiene que
+cerrar.
+
+**Lo que cambió el número** `[dato 2026-09-21]`: el consumo de `PA18` baja de **14.232 a 13.922
+uni/mes** y de 10 a 9 artículos, o sea baja el sugerido de O.C. de `PA18B`. A `PA13` no le cambia
+nada (ya estaba en los dos). El costo del 312 baja **$77,74/uni**, que es lo que vale el capuchón.
+
+**LA TRAMPA DEL NÚMERO, que vale para cualquier cuenta de consumo:** la baja es **310**, no las 336
+que salen de sumar las dos demandas de `est_madre` (311 → 34, 312 → 302). Son dos cosas:
+1. **El 311 está `discontinuado = true` y NO cuenta**: `v_consumo_demanda` filtra `not
+   a.discontinuado`. Sus 34 uni/mes están en `est_madre` pero no llegan a ninguna compra. Igual se
+   le corrigió la receta, porque el día que se reactive arrastraba el error.
+2. **Existe `312L` con 8 uni/mes**, y la vista lo mapea al **mismo** artículo 312
+   (`regexp_replace(em.cod,'L$','')`). O sea el 312 real consume por **310**, no por 302. Antes de
+   explicar una diferencia en un consumo, mirar si el código tiene hermano con `L`.
+
+**Lo que sigue roto y NO se tocó** (queda preguntado): `PA17` *Mangos Cuch y P Torta* **no tiene
+precio** (`faltan_precios = 1`), así que el costo del 312 sigue incompleto aunque el capuchón de
+más ya no esté; y el **311 discontinuado con demanda viva en `est_madre`** es un dato que se
+contradice solo.
+
+Invariantes de `db/verificar.sql` que pegan con lo tocado (L, U, W, X, AA, AB, AD): **0**. `AE` da
+**2** y es **preexistente** (artículos 567 y 537, ya anotado el 2026-09-21).
+
