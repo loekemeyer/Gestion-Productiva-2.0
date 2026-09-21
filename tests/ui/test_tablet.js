@@ -88,6 +88,9 @@ const BUNDLE = {
     { tipo: 'tallerista', ref: '6', comp_id: 71, comp_entrada_id: 70, n_entradas: 1, tiene_bom: false, cod_art: null, cod: 'A11', desc: 'Una Armada', sector: 'Sector Procesado', um: 'unidad', uxc: 500, kg_x_uni: 0.01, por_caja: null, ent_cod: 'A10', ent_desc: 'Cpo Una', esperado: 1000, esperado_origen: 'online_tall', env_unidad: 'cajones', env_factor: 500, env_carga: 'kg' },
     // la UNICA excepcion: las bombillas GRJ5/GRJ6 entregan BOLSAS de 120 (componente.entrega_*)
     { tipo: 'tallerista', ref: '6', comp_id: 541, comp_entrada_id: null, n_entradas: 0, tiene_bom: false, cod_art: null, cod: 'GRJ5', desc: 'Bombilla Resorte Trad 558', sector: 'Sector Garage', um: 'unidad', uxc: 960, kg_x_uni: 0.0147, por_caja: null, ent_cod: null, ent_desc: null, esperado: 360, esperado_origen: 'online_tall', env_unidad: 'bolsas', env_factor: 120, env_carga: 'kg' },
+    // el tallerista NO tiene nada nuestro de esta pieza: la base manda esperado 0 (coalesce), y la
+    // pantalla tiene que DECIR 0, no dejar el lugar en blanco [usuario 2026-09-21]
+    { tipo: 'tallerista', ref: '6', comp_id: 72, comp_entrada_id: null, n_entradas: 0, tiene_bom: false, cod_art: null, cod: 'A12', desc: 'Una Armada Chica', sector: 'Sector Procesado', um: 'unidad', uxc: 500, kg_x_uni: 0.01, por_caja: null, ent_cod: null, ent_desc: null, esperado: 0, esperado_origen: 'online_tall', env_unidad: 'cajones', env_factor: 500, env_carga: 'kg' },
     { tipo: 'proveedor_at', ref: '1', comp_id: null, comp_entrada_id: null, n_entradas: 0, tiene_bom: false, cod_art: '026', cod: '026', desc: 'Colador N°8', sector: null, um: null, uxc: null, kg_x_uni: null, por_caja: 36, ent_cod: null, ent_desc: null, esperado: 72, esperado_origen: 'oc' },
     { tipo: 'proveedor_servicio', ref: '20', comp_id: 91, comp_entrada_id: 90, n_entradas: 1, tiene_bom: false, cod_art: null, cod: 'D5-P', desc: 'Mitad pintada', sector: 'Sector Procesado', um: 'unidad', uxc: 500, kg_x_uni: 0.05, por_caja: null, ent_cod: 'D5', ent_desc: 'Mitad rompenuez', esperado: 40, esperado_origen: 'online_ps' },
     // Guazzaroni envia por el CAJON de cada pieza y kg: la entrega copia esa misma logica, pero EL
@@ -593,7 +596,7 @@ window.supabase = { createClient: function(){ return {
   ok(await page.$eval('#tblWrap', e => e.classList.contains('hidden')),
      'Recibir de tallerista: tarjetas, no tabla');
   let rcards = await cards();
-  ok(rcards.length === 2, 'Recibir: una tarjeta por pieza (2) — ' + rcards.length);
+  ok(rcards.length === 3, 'Recibir: una tarjeta por pieza (3) — ' + rcards.length);
   const rDe = (cod) => rcards.find(c => c.startsWith(cod));
   // el rotulo del numero de referencia dice DE QUIEN es el stock [usuario 2026-09-21: "en vez de
   // esperado quiero que diga Stock tallerista o stock proveedor de servicio segun corresponda"]
@@ -601,9 +604,19 @@ window.supabase = { createClient: function(){ return {
      'A11: el stock del tallerista se mira en CAJONES (1.000 uni / 500) — ' + rDe('A11'));
   ok(!rDe('A11').includes('Esperado'), 'A11: ya no dice "Esperado" — ' + rDe('A11'));
   ok(rDe('A11').includes('kg'), 'A11: la cantidad se escribe en kg — ' + rDe('A11'));
+  // sin stock la tarjeta dice 0, no queda en blanco [usuario 2026-09-21: "pero que me diga 0 si
+  // no tiene stock"]. Antes textoEnvases() devolvia "" con el cero y se leia "Stock tallerista" solo.
+  ok(rDe('A12').includes('Stock tallerista 0 cajones'),
+     'A12: sin stock el numero es 0, no se deja en blanco — ' + rDe('A12'));
   ok(rDe('GRJ5').includes('Stock tallerista 3 bolsas'),
      'GRJ5: la excepcion son BOLSAS de 120 (360 uni = 3 bolsas) — ' + rDe('GRJ5'));
   await page.fill('#fRemito', 'R-0001');
+  // y el 0 tambien se ve adentro de la parte, que es donde el numero va grande
+  await abrir('A12');
+  const detA12 = await det();
+  ok(detA12.includes('Stock tallerista') && detA12.includes('0 cajones'),
+     'A12: la vista de la parte tambien dice 0 cajones — ' + detA12);
+  await page.click('#btnVolverPartes');
   await abrir('A11');
   const detA11 = await det();
   ok(detA11.includes('Stock tallerista') && detA11.includes('2 cajones') && detA11.includes('Cantidad') &&
