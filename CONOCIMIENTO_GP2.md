@@ -9165,6 +9165,57 @@ códigos.** 026 (Ø8) y 027 (Ø10) existen en `GP2.articulo` pero **sin** fila e
 producto no faltan dos artículos: falta unificar el código. Mismo patrón posible en 029/828 (Ø16)
 y en 112. `[deducido, sin confirmar]`
 
+### Tanda de bajas del padrón de Prov AT (2026-09-21). El padrón queda en 48
+
+El dueño repasó la lista limpia de 45 artículos y corrigió cuatro cosas de corrido. Todo
+ejecutado con su *"Sí, corré"*.
+
+**1. Maspoli NO entrega terminado el 508, 518 ni 564: sólo el mango, y lo entrega en Cervantes.**
+*`[usuario]`: "508, 518, 564 no los arma Maspoli. Solo el mango entrega en Cervantes (por ejemplo
+PC12)"*. **La ruta ya lo decía bien y la fila del padrón mentía**: las tres rutas tienen a
+**Maspoli SRL como `proveedor_servicio`** (508: `D13 → PC12`, 518: `D13 → PEP7`, 564: `D13 →
+PEP8`) y después van al tallerista; ninguna tiene paso `proveedor_at`. Se desactivaron las 3
+filas. **Maspoli queda como Prov AT sólo de 246, 900, 222 y 910.** `[dato]`
+
+**2. Discontinuados: 618, 619 (Paternal Goma), 761 (Melinox) y 591 (Tierra Nativa).** Se marcó
+`discontinuado=true` en `articulo` **y** en `componente` (el terminado), se desactivaron sus filas
+del padrón y los tres proveedores quedaron `activo=false` como Prov AT. **No se borró nada**: el
+dueño dijo "eliminá", pero `discontinuado` es el mecanismo de la casa —conserva componente, receta
+y ruta, y sale de la OC y de las pantallas de compra— y se revierte con un update. Los cuatro
+tenían 0 entregas registradas. ⚠ **El 591 proyecta 398 uni/mes en la Est Madre** (los otros tres:
+618 = 2, 619 = 20, 761 = 32): se avisó antes de ejecutar y el dueño lo reafirmó. Si más adelante
+alguien se pregunta por qué un artículo con esa demanda está discontinuado, la respuesta es que
+fue deliberado. `[usuario 2026-09-21]`
+
+**3. El reclamo del 222 ya estaba resuelto cuando llegó.** *"El 222 no aparece la ruta en el
+despiece para mandarle caja y carton y si le mandamos"*. Medido: el 222 tiene **4 rutas** —cartón
+`M2B` y caja `A2`, una por Pintos y otra por Maspoli—; las dos de la caja (980, 981) tienen id
+alto, o sea que se crearon después del resto, casi seguro en la tanda de la sesión paralela del
+mismo día. **Y no hay más casos**: ni un componente de receta sin su ruta de insumo en ningún
+artículo con paso `proveedor_at`. `[dato]`
+
+⚠ **El hueco que SÍ queda es el otro: 9 artículos de Prov AT cuya receta no tiene cartón** (sólo
+caja). Con las bajas de hoy quedan **5**: `246` y `900` (Maspoli), `823` (Pettofrezza), `922`
+(Pintos) y `326` (The Plast). El 326 y el 922 tienen evidencia fuerte de que les falta —su gemelo
+de la otra marca sí lo tiene (848 y 223)—; los otros tres hay que confirmarlos uno por uno, porque
+puede que alguno vaya sin cartón de verdad. `[dato]`
+
+**4. El circuito real de los tapones de Pettofrezza** `[usuario 2026-09-21]`: *"575, 579, 817,
+816: le damos v15 y él entrega cada art que requiere una unidad por item de v15"*, y el **577**
+*"le damos v15 y LEV serig: es un componente que inyecta Pettofrezza Rafael (lev sin serigrafear)
+y lo mandamos a Ximpa (Julio Hernandez) a serigrafiar"*.
+
+- **`V15` = remache de hierro, Sector Remache (8), proveedor Bella Vista.** Rompe el patrón de los
+  otros remaches, que son `CVx` crudo → Guazzaroni → `Vx` niquelado: **el V15 se compra ya hecho**,
+  sin paso de niquelado.
+- **`LEV` = levas, Sector Plástico (6), las inyecta Pettofrezza Rafael**; el serigrafiado lo hace
+  **Hernández Julio** (`proveedor_servicio` 8), que es el "Ximpa" del dueño.
+- **Ninguno de los dos existe todavía en GP2** — hay que darlos de alta con la cadena completa
+  (componente → inventario → receta → ruta).
+- **Y esto reclasifica a Pettofrezza:** si le mandamos el V15 y él devuelve el artículo armado,
+  es un **tallerista** (Pettofrezza Rafael, id 11, activo), no un Prov AT — el Prov AT es el que
+  nos vende el producto hecho. Mismo movimiento que el `070` (§4eq) y que el 338 con Alex.
+
 ## 4cz. El cruce de la lista de precios se hace por `cod_isis`, no por el nombre del producto (2026-09-13)
 
 Se buscó el proveedor de **`PEST1`** (Insertos Mango de Madera, 768, el único insumo comprable sin
