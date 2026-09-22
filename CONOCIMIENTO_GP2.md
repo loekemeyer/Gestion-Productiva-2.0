@@ -11775,3 +11775,23 @@ también la ganan Pintores y Orden de Producción.
 sale de la Est Madre, así que un artículo `discontinuado` aporta **cero** aunque tenga proyección
 viva, y un código con hermano `L` (p. ej. `312L`) suma al mismo artículo. Una diferencia entre "lo
 que suman las recetas" y lo que muestra la pantalla casi siempre es una de esas dos.
+
+## 4ez. Los Pisa Papas (121, 315, 609): el disco con vástago y el armado son de Pettofrezza (2026-09-22)
+
+`[usuario 2026-09-22, textual: "El 121 arma el disco con vástago Rafael Pettofrezza y también lo envasa
+el. Modifica las rutas… y que se le pueda mandar todo en envio talleristas"` y, para los otros dos:
+`"Para el 315 y 609 también hace el vástago"`]
+
+- **Antes** `[dato]`: el `M1` (*Disco Inox C/Vástago Alu* = `M2` + `V18C`) lo hacía la **Matriz 113**
+  en los tres, y el 121 lo armaba y envasaba **Cavallero German**. El `V18C` **no estaba en ninguna
+  ruta**, así que no se le podía mandar a nadie.
+- **Ahora**: el paso `M2 → M1` es tallerista **Pettofrezza Rafael** (id 11) en las rutas 136, 553 y
+  558; el armado del 121 (rutas 136, 266, 267, 268, 477) pasó de Cavallero a Pettofrezza; y hay una
+  ruta nueva por artículo `insumo V18C → Pettofrezza (V18C→M1) → Pettofrezza (M1→art) → virgilio`.
+- **Envío Talleristas no necesitó código**: `talleristas_bundle` lee `v_contraparte_parte`, que sale
+  de `ruta_paso`. Verificado: la entrada de Pettofrezza ya lista `M2`, `V18C`, `PA10B`, `PC11`, `I3C`, `A3`.
+- **Cavallero German quedó sin rutas** (tenía sólo el 121; 0 stock y 0 movimientos: no quedó nada colgado).
+- ⚠ **Costo**: la Matriz 113 salió de los tres. Pettofrezza **no tiene precio para el 121** (el de
+  Cavallero, $85, ya no aplica); el 315 y el 609 tienen $140 "AyE". Pendiente que el usuario diga
+  el precio del 121 y si el disco con vástago va aparte o está dentro del AyE.
+- ⚠ Hay **dos componentes con código `M1`**: 146 (el disco) y 823 (*Cartón 220*). Buscar por id.
