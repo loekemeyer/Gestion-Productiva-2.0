@@ -666,6 +666,12 @@ operario suma con "+ pallet" si el remito trajo más. Ver `fieldsFleje(prov)` en
   El tornillo se importa **ya niquelado**: el código **CV20** ("p/Niquelar") **no se compra
   más** y el paso de niquelado en Guazzaroni se sacó de las rutas 382/577/589, que ahora
   entran el V20 comprado y van derecho al tallerista. `[usuario 2026-08-29]`
+- **La Cremallera (IE13) se recibe en el rubro Importados, no en Flejes** `[usuario 2026-09-22:
+  "La cremallera mandala al módulo importado. Borra el módulo importado dentro de flejes"]`.
+  Se hizo con `estado_compra='importado'` (id 219): la Recepción arma Importados por esa marca y
+  Flejes la excluye, así que el chip "Importado" de Flejes desapareció solo. Se recibe en unidades
+  (kg_x_uni 0,0602) y se guarda en kg. **Sigue en Sector Fleje** (ubicación 5, máximo 667,50 kg):
+  pasarla a Procesado y el máximo a unidades quedó para después `[usuario: "lo pendiente por ahora no"]`.
 - **Garage (GRJ*)**: no llevan proveedor, los arman los talleristas. Además el sector se
   está vaciando: hoy quedan 3 códigos (`[usuario + dato]`). **Un GRJ se jubila cuando el
   tallerista arma las partes sueltas en vez de un sub-armado previo** `[usuario 2026-09-08]`:
