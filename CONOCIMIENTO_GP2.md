@@ -672,6 +672,10 @@ operario suma con "+ pallet" si el remito trajo más. Ver `fieldsFleje(prov)` en
   Flejes la excluye, así que el chip "Importado" de Flejes desapareció solo. Se recibe en unidades
   (kg_x_uni 0,0602) y se guarda en kg. **Sigue en Sector Fleje** (ubicación 5, máximo 667,50 kg):
   pasarla a Procesado y el máximo a unidades quedó para después `[usuario: "lo pendiente por ahora no"]`.
+- **BOM8B Tela Manga Repostera: se cuenta por ROLLO, 950 uni por rollo.** Ese dato vivía en el
+  nombre del componente (id 619); el usuario pidió sacar el paréntesis el 2026-09-22 y quedó
+  `descripcion='Tela Manga Repostera'`. `uni_x_paquete` sigue NULL: el 950 vive solo acá hasta que
+  se decida cargarlo (ojo, en OC puede redondear a rollo entero).
 - **Garage (GRJ*)**: no llevan proveedor, los arman los talleristas. Además el sector se
   está vaciando: hoy quedan 3 códigos (`[usuario + dato]`). **Un GRJ se jubila cuando el
   tallerista arma las partes sueltas en vez de un sub-armado previo** `[usuario 2026-09-08]`:
