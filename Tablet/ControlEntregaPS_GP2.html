@@ -23,6 +23,12 @@
      LOS CAJONES SON EL DATO FÍSICO: acá se cuentan, no se derivan de los kg (misma regla que el
      stock del proveedor, ver CONOCIMIENTO 4et). Si la pieza no tiene envase cargado, el campo no
      se pide. -->
+<!-- v1.0.1 (2026-09-22) — EL ENVASE COPIA LA UNIDAD DEL ENVÍO (usuario, sobre la tarjeta de PC1A de
+     Ester que pedía "Cajones": "La devolución de Ester es en bolsas como el envío. Fijate que
+     pusiste como genérico cajones"). La v1.0.0 miraba sólo proveedor_servicio.entrega_unidad y si
+     estaba vacía ponía "cajones" — Ester no tiene entrega_unidad porque la regla de la Tablet es
+     que la entrega COPIA el envío. Ahora envaseDe() sigue el mismo orden que la Tablet y
+     control_entrega_ps_bundle manda envio_unidad / envio_uni_x / sp_sector. -->
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>Control de entregas · Prov. de Servicio · GP2</title>
@@ -108,13 +114,25 @@ function usuario() {
   try { return localStorage.getItem("gp2_usuario") || null; } catch (e) { return null; }
 }
 
-/* Rótulo del envase de la pieza. El proveedor puede tener el suyo (AJ entrega en paquetes); si no,
-   son cajones. Se pide SÓLO si la pieza tiene con qué contarlos (uni_x_cajon del SC o del SP): sin
-   envase cargado no se inventa un campo que nadie puede llenar. */
+/* Rótulo del envase de la pieza: LA MISMA REGLA que envaseDe() de la Tablet en Recibir
+   [usuario 2026-09-18: "si enviamos en bolsas recepcionamos en bolsas, si lo hacemos en cajones,
+   en cajones"; 2026-09-22: "La devolución de Ester es en bolsas como el envío"]:
+     1) el override del proveedor (proveedor_servicio.entrega_unidad: AJ paquetes, Maspoli bolsas);
+     2) si no, la unidad con la que SE LE ENVÍA (envio_unidad: Ester bolsas, Guazzaroni cajones);
+     3) envío por peso (Julio, envio_unidad 'kg'): el bulto lo pone el sector — plástico en
+        bolsas, el resto en cajones;
+     4) P.S. sin unidad definida: cajones, como hasta ahora.
+   Se pide SÓLO si la pieza tiene con qué contarlos (factor del proveedor o uni_x_cajon del SC o
+   del SP): sin envase cargado no se inventa un campo que nadie puede llenar. */
 function envaseDe(x) {
-  var lab = x.entrega_unidad ? String(x.entrega_unidad) : "cajones";
-  var hay = Number(x.sc_unixcaj || 0) > 0 || Number(x.sp_unixcaj || 0) > 0 || Number(x.entrega_uni_x || 0) > 0;
-  return hay ? lab : null;
+  var hayPieza = Number(x.sc_unixcaj || 0) > 0 || Number(x.sp_unixcaj || 0) > 0;
+  if (x.entrega_unidad)
+    return (Number(x.entrega_uni_x || 0) > 0 || hayPieza) ? String(x.entrega_unidad) : null;
+  var ev = String(x.envio_unidad || "");
+  if (ev.toLowerCase() === "kg")
+    return hayPieza ? (/pl[aá]stico/i.test(String(x.sp_sector || "")) ? "bolsas" : "cajones") : null;
+  if (ev) return (Number(x.envio_uni_x || 0) > 0 || hayPieza) ? ev : null;
+  return hayPieza ? "cajones" : null;
 }
 
 /* La diferencia contra el remito, con su % — es para lo que existe el control. */

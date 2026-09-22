@@ -1780,15 +1780,17 @@ with mov as (
   select m.id, m.fecha, m.cantidad, m.cantidad_transformada, m.unidad_destino, m.cajones,
          m.comp_id sc_id, m.comp_transformado_id sp_id,
          ps.id ps_id, ps.nombre ps_nombre, ps.entrega_unidad, ps.entrega_uni_x,
+         ps.envio_unidad, ps.envio_uni_x,
          sc.codigo sc_cod, sc.descripcion sc_desc, sc.uni_x_cajon sc_unixcaj,
          sp.codigo sp_cod, sp.descripcion sp_desc, sp.unidad_medida sp_um,
-         sp.kg_x_uni sp_kgxuni, sp.uni_x_cajon sp_unixcaj,
+         sp.kg_x_uni sp_kgxuni, sp.uni_x_cajon sp_unixcaj, ssp.nombre sp_sector,
          c.id ctrl_id, c.declarado, c.controlado, c.controlado_cajones, c.controlado_en, c.controlado_por
     from movimiento m
     join ubicacion u on u.id = m.ubic_origen_id and u.tipo = 'proveedor_servicio'
     join proveedor_servicio ps on ps.id = u.ref_id
     join componente sc on sc.id = m.comp_id
     join componente sp on sp.id = m.comp_transformado_id
+    left join sector ssp on ssp.id = sp.sector_id
     left join entrega_ps_control c on c.movimiento_id = m.id
    where m.tipo_mov = 'entrega_ps'
      and (c.id is null or m.fecha >= now() - make_interval(days => greatest(coalesce(p_dias,7), 1)))
@@ -1804,8 +1806,11 @@ select jsonb_build_object(
             'mov_id', id, 'fecha', fecha, 'ps_id', ps_id, 'ps_nombre', ps_nombre,
             'sc_cod', sc_cod, 'sc_desc', sc_desc, 'sc_unixcaj', sc_unixcaj,
             'sp_id', sp_id, 'sp_cod', sp_cod, 'sp_desc', sp_desc,
-            'sp_um', sp_um, 'sp_kgxuni', sp_kgxuni, 'sp_unixcaj', sp_unixcaj,
+            'sp_um', sp_um, 'sp_kgxuni', sp_kgxuni, 'sp_unixcaj', sp_unixcaj, 'sp_sector', sp_sector,
             'entrega_unidad', entrega_unidad, 'entrega_uni_x', entrega_uni_x,
+            -- la ENTREGA copia la unidad del ENVIO si el P.S. no tiene la suya (Ester: bolsas de 1800),
+            -- la misma regla que envaseDe() de la Tablet [usuario 2026-09-18 y 2026-09-22]
+            'envio_unidad', envio_unidad, 'envio_uni_x', envio_uni_x,
             'declarado', cantidad_transformada, 'unidad', unidad_destino, 'cajones', cajones
           ) order by fecha desc, id desc) from mov where ctrl_id is null), '[]'::jsonb),
   -- HECHOS: los ultimos controlados, para ver la diferencia contra el remito.

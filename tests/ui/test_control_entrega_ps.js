@@ -25,6 +25,7 @@ const BUNDLE = {
       sc_cod: 'CV1', sc_desc: 'Remache Espiral p/Niquelar', sc_unixcaj: 57143,
       sp_id: 276, sp_cod: 'V1', sp_desc: 'Remache Espiral', sp_um: 'unidad',
       sp_kgxuni: 0.00035, sp_unixcaj: 5714, entrega_unidad: null, entrega_uni_x: null,
+      envio_unidad: 'cajones', envio_uni_x: null,
       declarado: 21, unidad: 'kg', cajones: null },
     // AJ entrega en PAQUETES y la pieza se cuenta: el campo tiene que decir "Paquetes" y la
     // cantidad va en uni
@@ -38,7 +39,22 @@ const BUNDLE = {
       sc_cod: 'D5', sc_desc: 'Mitad rompenuez', sc_unixcaj: null,
       sp_id: 91, sp_cod: 'D5-P', sp_desc: 'Mitad pintada', sp_um: 'unidad',
       sp_kgxuni: null, sp_unixcaj: null, entrega_unidad: null, entrega_uni_x: null,
-      declarado: 40, unidad: 'uni', cajones: null }
+      declarado: 40, unidad: 'uni', cajones: null },
+    // ESTER: sin entrega_unidad propia, la entrega COPIA el envio -> BOLSAS, no el "cajones"
+    // generico [usuario 2026-09-22: "La devolucion de Ester es en bolsas como el envio"]
+    { mov_id: 85512, fecha: '2026-09-22T12:00:00-03:00', ps_id: 14, ps_nombre: 'Ester',
+      sc_cod: 'PC2', sc_desc: 'Mgo Pelapapa', sc_unixcaj: 1800,
+      sp_id: 700, sp_cod: 'PC1A', sp_desc: 'Mgo Pelapapa 505 Calado', sp_um: 'unidad',
+      sp_kgxuni: 0.27, sp_unixcaj: 1800, sp_sector: 'Sector Plastico',
+      entrega_unidad: null, entrega_uni_x: null, envio_unidad: 'bolsas', envio_uni_x: 1800,
+      declarado: 485, unidad: 'kg', cajones: null },
+    // JULIO manda por PESO: el bulto lo pone el sector, plastico -> bolsas (como en la Tablet)
+    { mov_id: 85513, fecha: '2026-09-22T12:00:00-03:00', ps_id: 8, ps_nombre: 'Hernandez Julio',
+      sc_cod: 'PB6', sc_desc: 'Inser. Neg.', sc_unixcaj: 2000,
+      sp_id: 701, sp_cod: 'PB6S', sp_desc: 'Inser. serigrafiado', sp_um: 'unidad',
+      sp_kgxuni: 0.002, sp_unixcaj: 2000, sp_sector: 'Sector Plastico',
+      entrega_unidad: null, entrega_uni_x: null, envio_unidad: 'kg', envio_uni_x: null,
+      declarado: 10, unidad: 'kg', cajones: null }
   ],
   hechos: [
     { mov_id: 85400, fecha: '2026-09-20T12:00:00-03:00', ps_nombre: 'Guazzaroni Patricio',
@@ -80,8 +96,8 @@ window.supabase = { createClient: function(){ return {
 
   // ── 1) lo pendiente, con el remito a la vista y los campos vacios ────────────────
   const cs = await cards();
-  ok(cs.length === 3 && (await page.$eval('#nPend', e => e.textContent)) === '3',
-     'las 3 entregas sin controlar se listan — ' + cs.length);
+  ok(cs.length === 5 && (await page.$eval('#nPend', e => e.textContent)) === '5',
+     'las 5 entregas sin controlar se listan — ' + cs.length);
   ok(cs[0].includes('V1') && cs[0].includes('consume CV1') && cs[0].includes('Guazzaroni Patricio'),
      'la tarjeta dice la pieza, de que SC sale y quien la entrego — ' + cs[0]);
   ok(cs[0].includes('Remito 21 kg'), 'el remito queda a la vista para comparar — ' + cs[0]);
@@ -97,6 +113,10 @@ window.supabase = { createClient: function(){ return {
      'AJ: la unidad es la de la pieza (uni) y el envase el del proveedor (paquetes) — ' + labels[1]);
   ok(labels[2] === 'Contado (uni)',
      'pieza sin envase cargado: no se pide un bulto que nadie puede contar — ' + labels[2]);
+  ok(labels[3] === 'Contado (kg) | Bolsas',
+     'Ester: la entrega copia la unidad del envio (bolsas), no "cajones" generico — ' + labels[3]);
+  ok(labels[4] === 'Contado (kg) | Bolsas',
+     'Julio (envio por peso): pieza plastica en bolsas, como en la Tablet — ' + labels[4]);
   const im = await page.$$eval('#pend .card:first-child input', xs => xs.map(x => x.getAttribute('inputmode')));
   ok(im[0] === 'decimal' && im[1] === 'numeric',
      'teclado numerico: decimal para los kg, entero para los cajones — ' + im.join(','));
