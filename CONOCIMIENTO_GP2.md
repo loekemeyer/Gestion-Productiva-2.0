@@ -11829,3 +11829,28 @@ cargados en Gestión Productiva 2.0 es diferente... deja el de Gestion Productiv
 - `[dato]` Después de la carga: 0 tiempos distintos entre los dos programas, 150 matrices sin tiempo.
 - La pantalla Tiempos Matrices ya lista el maestro entero (commit 288d6a0 del mismo día).
 
+
+## 4fb. Correcciones de recetas que salieron del despiece (2026-09-22)
+
+`[usuario 2026-09-22]` Thomas revisó el Excel `Despiece_x_Articulo_GP2.xlsx` y pidió corregirlo **en GP2**
+(*"no en el Excel, porque ya lo estoy modificando yo"*). Todo ejecutado con su "sí" y verificado:
+
+| Art. | Cambio | Dicho |
+|---|---|---|
+| 223, 224, 225, 922, 911, 901 (cucharas madera 25/30/35) | Caja N°16 (A7B) → **Caja N°12 (A2)** | "usan caja N°12, NO 16" |
+| 248 (Cuchara Nylon Reforzada 33) | Caja N°16 → **N°12**; armado Fábrica → **Alex Escalante** | |
+| 307 (Cepillo Limpia Vaso) | Caja N°15 → **Caja N°6 (A5)**, sigue 24 x caja | |
+| 234 (Palo Amasar Francés) | + **BANDITA** x1, igual que 231/232/233 | "lleva bandita… una" |
+| 246, 900 (Prensa Matambre) | + **`BANDITAM` Bandita Prensa Matambre** x1 (alta nueva: Sector Cartón, unidad, Talleres Gráficos Pol, ruta insumo → Maspoli → Virgilio) | "se lo compramos al mismo proveedor que la bandita palo de amasar" |
+| 280 (Manga Repostera) | Tela `BOM8B` **1/900** (el rollo trae 900): la tela se cuenta en **ROLLOS**, máximo 4.812 → 5,35, nombre "(rollo x 900)"; armado Fábrica → **Blist-Pack SA** | |
+| 338 (Espátula Lisa) | **discontinuado** | |
+| 031, 120, 836 (IC3) y 034, 867 (IC3V) | Fleje N° 90 **1 por unidad**: IC3/IC3V pasaron de `kg` a `unidad` | "lleva un alambre" |
+
+**Fleje 90 en unidad, sin tocar código** `[dato]`: el ledger convierte con `to_canonical` según
+`componente.unidad_medida` y `kg_x_uni`. `cargar_recepcion_charcas` sigue grabando el movimiento en **kg de
+balanza** y el stock de IC3/IC3V entra en **unidades** (0,83 kg de IC3 = 100 uni). `charcas_pendiente` y el
+objetivo de Altrak siguen en kg (leen `recepcion_insumo`, que queda en kg). Es el mismo modelo del IE4/IE5.
+Se pudo hacer sin migrar porque IC3/IC3V tenían 0 stock, 0 movimientos, 0 recepciones y 0 OC; los máximos
+se convirtieron (÷ kg_x_uni).
+
+**Quedan sin precio de tallerista** (el costo no suma ese paso): 121 Pettofrezza, 248 Alex, 280 Blist-Pack.
