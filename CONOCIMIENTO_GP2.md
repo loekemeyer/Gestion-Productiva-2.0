@@ -11807,3 +11807,25 @@ el. Modifica las rutas… y que se le pueda mandar todo en envio talleristas"` y
   Cavallero, $85, ya no aplica); el 315 y el 609 tienen $140 "AyE". Pendiente que el usuario diga
   el precio del 121 y si el disco con vástago va aparte o está dentro del AyE.
 - ⚠ Hay **dos componentes con código `M1`**: 146 (el disco) y 823 (*Cartón 220*). Buscar por id.
+
+## 4fa. El maestro de matrices se completó con el del vecino: 406 matrices (2026-09-22)
+
+`[usuario]` textual: *"En caso que falten matrices listadas en Gestión Productiva 2.0, quiero que les
+sumes los N° y Descripción de las matrices faltantes que si aparezcan en Gestión Productiva Entero"* +
+*"Carga las 290 que mencionas y también la de pruebas; las que dicen discontinuas no las cargues...
+quiero que les cargues en Tiempo cargado el valor cargado en T Hist... si alguno de los tiempos
+cargados en Gestión Productiva 2.0 es diferente... deja el de Gestion Productiva Entero"*.
+
+- **EXCEPCIÓN A LA REGLA 0, pedida por el dueño y de una sola vez:** `GP2.matriz` pasó de 115 a
+  **406** filas copiando N°, descripción y `Tiempo_Historico` de `public."Matrices"` (413 filas).
+  No quedó nada leyendo `public`: fue un INSERT puntual, no una vista ni una función.
+- Afuera: las 8 con `Disc=true` (43, 115, 158, 159, 160, 168, 337, 351, descripción "(discontinuada)").
+  Adentro, a pedido: la **0 "Pruebas"** (T Hist 1).
+- Las nuevas entran **activas** y con `uni_x_golpe` en 1 (el default: el vecino lo tiene casi todo vacío),
+  así que el operario las ve para elegir. De las 291, solo 126 tuvieron alguna producción en el vecino.
+- **Tiempos: manda el vecino.** Solo 2 difirieron: **360** vacío → 1,3 y **365** 2,41 → **1,7**. OJO:
+  el 2,41 de la 365 era la MEDIANA MEDIDA de 5 producciones reales (tabla de §2c-vicies); el
+  dueño eligió igual el 1,7 del vecino. No "corregirlo" de vuelta sin preguntarle.
+- `[dato]` Después de la carga: 0 tiempos distintos entre los dos programas, 150 matrices sin tiempo.
+- La pantalla Tiempos Matrices ya lista el maestro entero (commit 288d6a0 del mismo día).
+
