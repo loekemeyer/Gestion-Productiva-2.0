@@ -11828,6 +11828,7 @@ cargados en Gestión Productiva 2.0 es diferente... deja el de Gestion Productiv
   dueño eligió igual el 1,7 del vecino. No "corregirlo" de vuelta sin preguntarle.
 - `[dato]` Después de la carga: 0 tiempos distintos entre los dos programas, 150 matrices sin tiempo.
 - La pantalla Tiempos Matrices ya lista el maestro entero (commit 288d6a0 del mismo día).
+- **360 y 360B se llaman igual ("Corte Ahueca")** — posible duplicado del vecino. `[usuario 2026-09-22]`: *"por ahora dejalas ambas asi como están, más adelante te digo como las cambiamos"*. No tocar hasta que lo diga.
 
 
 ## 4fb. Correcciones de recetas que salieron del despiece (2026-09-22)
