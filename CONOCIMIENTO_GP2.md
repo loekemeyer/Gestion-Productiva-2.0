@@ -7733,20 +7733,32 @@ N°24 y N°4 que ni existen como componente. **No volver a usarlo para asignar u
 856, 857, 858. Se corrigió `articulo.articulos_por_caja` **y** la cantidad de la receta, que es
 exactamente `1 / articulos_por_caja`.
 
-### 4bq. El artículo se elige en DOS PASOS: marca y después artículo (2026-09-11)
+### 4bq. El artículo se elige en UN PASO: el buscador con todo, y la marca como filtro (2026-09-11, corregido el 2026-09-23)
 
-`[usuario, textual]` **"cuando toco articulo. que me aparezca para seleccionar marca: (loeke,
-chef o loke) y ahi se desplieguen los articulos"**.
+⚠ **CORREGIDO el 2026-09-23 — el paso de marca se sacó.** `[usuario, textual]` **"No me hagas
+elegir por marca, que el buscador aparezca en todas directamente"**. El panel abre **directo en el
+buscador con todos los artículos vivos**; las cuatro marcas quedaron como **chips de filtro
+opcional** arriba del buscador, arrancando en *Todas* en cada apertura (no se guarda el filtro de
+la vez anterior) y sin borrar lo tipeado al tocarlos. Se fue el botón "←": ya no hay paso previo.
+El foco automático en el buscador **sólo en pantalla ancha** (>560px): en el celular el teclado
+taparía la lista recién abierta.
 
-En `Programa/Programa.html` el combo plano se reemplazó por un botón que abre un panel:
-**paso 1** las cuatro marcas (Loeke / Loke / Chef / Todas), **paso 2** el buscador y la lista
-agrupada por familia. El `<select id="art">` **sigue existiendo, oculto**: es el modelo que lee el
-resto de la pantalla, así que `render()` y todo lo que cuelga de `sel.value` quedó intacto.
+Lo que sigue valiendo del pedido original (2026-09-11, `[usuario, textual]` *"cuando toco
+articulo. que me aparezca para seleccionar marca: (loeke, chef o loke) y ahi se desplieguen los
+articulos"*): en `Programa/Programa.html` el combo plano es un **botón que abre un panel** con la
+lista agrupada por familia, y el `<select id="art">` **sigue existiendo, oculto**: es el modelo que
+lee el resto de la pantalla, así que `render()` y todo lo que cuelga de `sel.value` quedó intacto.
 
-**Regla nueva del panel:** filtrar (cambiar de marca o escribir en el buscador) **NO cambia el
-artículo elegido**; eso pasa sólo al tocar una fila. Antes el filtro movía la selección solo.
+**Regla del panel, intacta:** filtrar (chip de marca o escribir en el buscador) **NO cambia el
+artículo elegido**; eso pasa sólo al tocar una fila.
 
-Lo cubre `tests/ui/test_programa_marca.js` (20 checks, reescrito para el panel).
+**La lección:** el filtro por marca separa poco (3 marcas para ~190 artículos) y el que entra ya
+sabe el código que busca; ponerlo como paso obligatorio agregaba un toque a cada consulta sin
+achicar la lista de verdad. Como filtro al costado no estorba.
+
+Lo cubre `tests/ui/test_programa_marca.js` (35 checks, dado vuelta el 2026-09-23: fija que el
+buscador está a la vista al abrir, que no existe `#pickBack`, que los chips viven adentro del panel
+y que al reabrir vuelve a *Todas*).
 
 ### 4br. Se recorrieron las 861 rutas de punta a punta: qué se cortaba y por qué (2026-09-11)
 
@@ -12389,3 +12401,67 @@ las cuatro tenía recepciones cargadas, así que no hubo historia que migrar.
 unidad**, no porque alguien lo haya decidido. El día que se le cargue un `kg_x_uni`, el control va
 a pedir kg solo. Es la misma trampa anotada para los pliegos de AJ en §4fe: si una pieza tiene que
 quedar contada para siempre, eso hay que decirlo con un dato, no dejando un campo vacío.
+## 4fp. Quién entrega cada artículo, y que lo discontinuado NO se vea (2026-09-23)
+
+Salió de cruzar los **talleristas finales por artículo de GP2** contra los de la O.C. de Gestión
+Virgilio (`public."OC_Maximos"`). De los 195 códigos que existen en los dos sistemas, coincidían
+160; el usuario resolvió las 35 diferencias de una y dictó estos cambios.
+
+### Los dos nombres que estaban cruzados
+
+| Virgilio | es, en GP2 |
+|---|---|
+| **"Carlos E" / "Carlos"** | **Alex Escalante** (tallerista 2) |
+| **"Pedernera"** | **Carlos Aguirre** (tallerista 9) |
+
+Medido: los 12 códigos de "Carlos" en `Articulos Virgilio X Tallerista` son los de Alex Escalante
+(52 entregas, 1.827 cajas), y "Pedernera" entrega 115/544/560/802 — que entregaba
+**`AGUIRRE CARLOS RODOLFO`** hasta el 04/06, justo antes de que Pedernera arranque el 10/06.
+
+⚠ **Por eso el alias `CARLOS` → tallerista 9 de `GP2.contraparte_alias` está MAL**: manda las
+entregas de "Carlos" al tallerista equivocado. **No se tocó** — corregirlo es escribir datos y lo
+autoriza el dueño.
+
+### Lo que se cambió (dictado por el usuario)
+
+| artículo | queda |
+|---|---|
+| 338, 618, 070, 591, 761, 818 | **discontinuados** (los 6 con stock 0) |
+| 709, 908 | Alex Escalante |
+| 280 | Fábrica |
+| 557, 558, 654, 658, 659, 758, 759, 762, 763, 769 | Blist-Pack SA (555 y 764 ya estaban) |
+| 222, 910 | sólo Pintos (se borraron las 4 rutas de Maspoli) |
+| 123 | Garcia + Lucho, 50/50 |
+| 355, 789 | Pettofrezza + German, 50/50 |
+
+⚠ **Gentile Norberto (Oscar) quedó con CERO artículos**: sus 11 son exactamente los que se
+reasignaron. No se lo dio de baja — eso lo decide el dueño.
+
+⚠ El 50/50 se carga con **`reparto_guardar`**, que **valida contra las rutas**: el segundo
+tallerista tiene que hacer el paso, así que primero se duplica la ruta (una por tallerista, la
+convención de la casa) y recién después se guarda el reparto. Y la RPC **recalcula los máximos de
+todos los talleristas**, no sólo de los tocados.
+
+### ⚠ `articulo.discontinuado = true` NO alcanza para ocultarlo
+
+[usuario 2026-09-23: *"lo discontinuado no quiero seguir viéndolo en el programa"*]. **De los 27
+objetos de GP2 que leen rutas o el catálogo de prov AT, sólo 6 miraban el flag.** Lo que hacía
+falta, medido llamando a los bundles de verdad (no leyéndolos):
+
+| dónde | qué se hizo |
+|---|---|
+| `articulo_prov_at.activo = false` | con eso solo ya salieron de Recepción, Envíos, OC, Orden de producción, Proporciones y Stock general |
+| `despiece_verif_bundle` | filtro en el bloque `art` y en `rutas_full` (se ocultan sus rutas) |
+| `preavisos_bundle` | filtro en las 3 ramas del CTE `z` |
+| `Programa/Programa.html` | `llenarArticulos()` no los ofrece, y se fue el rótulo `(discontinuado)` de las 2 listas |
+| `RecepcionVirgilio_GP2.html` | ya los filtraba (`.filter(x => !x.disc)`), no se tocó |
+
+⚠ **`movimientos_bundle` y `programa_bundle` los siguen mandando TODOS con el flag `disc`, a
+propósito**: el que decide qué se ve es la pantalla. No se les puso filtro.
+
+⚠ **En el ABM de Artículos sí tienen que verse** — es donde se los des-discontinúa. No tocar.
+
+⚠ **Un `"338"` dentro del JSON de un bundle no siempre es el artículo 338.** Buscando el código
+como texto, `registro_operarios_bundle` daba positivo y era la **matriz 338 "Embolsar Bombilla"**,
+y en `movimientos_bundle` varios eran `ruta_id`. Antes de dar por mostrado un código, mirar el
+contexto de la clave.
