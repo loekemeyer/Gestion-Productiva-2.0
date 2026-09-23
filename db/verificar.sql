@@ -224,6 +224,15 @@ select 'AE_paso_virgilio_y_codigo_dan_distinto', count(*) from "GP2".articulo a
    is distinct from
        (select c.id from "GP2".componente c where c.sector_id = 12 and c.codigo = a.codigo
          order by c.id limit 1)
+union all
+-- AF) El % del Prov AT se carga a mano por SQL (no hay pantalla que lo escriba, misma decision que
+--     reparto_tallerista): una fila que apunta a un (articulo, prov AT) que NO entrega ese articulo
+--     no se aplica nunca y hace creer que el reparto esta dictado cuando en realidad sigue en el
+--     default de partes iguales. 2026-09-23.
+select 'AF_reparto_prov_at_que_no_entrega_el_articulo', count(*) from "GP2".reparto_prov_at rp
+ where not exists (select 1 from "GP2".v_hace_articulo h
+                    where h.tipo = 'proveedor_at' and h.articulo_id = rp.articulo_id
+                      and h.ref_id = rp.proveedor_at_id)
 ) chequeos
 order by regla;
 
