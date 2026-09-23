@@ -7733,20 +7733,32 @@ N°24 y N°4 que ni existen como componente. **No volver a usarlo para asignar u
 856, 857, 858. Se corrigió `articulo.articulos_por_caja` **y** la cantidad de la receta, que es
 exactamente `1 / articulos_por_caja`.
 
-### 4bq. El artículo se elige en DOS PASOS: marca y después artículo (2026-09-11)
+### 4bq. El artículo se elige en UN PASO: el buscador con todo, y la marca como filtro (2026-09-11, corregido el 2026-09-23)
 
-`[usuario, textual]` **"cuando toco articulo. que me aparezca para seleccionar marca: (loeke,
-chef o loke) y ahi se desplieguen los articulos"**.
+⚠ **CORREGIDO el 2026-09-23 — el paso de marca se sacó.** `[usuario, textual]` **"No me hagas
+elegir por marca, que el buscador aparezca en todas directamente"**. El panel abre **directo en el
+buscador con todos los artículos vivos**; las cuatro marcas quedaron como **chips de filtro
+opcional** arriba del buscador, arrancando en *Todas* en cada apertura (no se guarda el filtro de
+la vez anterior) y sin borrar lo tipeado al tocarlos. Se fue el botón "←": ya no hay paso previo.
+El foco automático en el buscador **sólo en pantalla ancha** (>560px): en el celular el teclado
+taparía la lista recién abierta.
 
-En `Programa/Programa.html` el combo plano se reemplazó por un botón que abre un panel:
-**paso 1** las cuatro marcas (Loeke / Loke / Chef / Todas), **paso 2** el buscador y la lista
-agrupada por familia. El `<select id="art">` **sigue existiendo, oculto**: es el modelo que lee el
-resto de la pantalla, así que `render()` y todo lo que cuelga de `sel.value` quedó intacto.
+Lo que sigue valiendo del pedido original (2026-09-11, `[usuario, textual]` *"cuando toco
+articulo. que me aparezca para seleccionar marca: (loeke, chef o loke) y ahi se desplieguen los
+articulos"*): en `Programa/Programa.html` el combo plano es un **botón que abre un panel** con la
+lista agrupada por familia, y el `<select id="art">` **sigue existiendo, oculto**: es el modelo que
+lee el resto de la pantalla, así que `render()` y todo lo que cuelga de `sel.value` quedó intacto.
 
-**Regla nueva del panel:** filtrar (cambiar de marca o escribir en el buscador) **NO cambia el
-artículo elegido**; eso pasa sólo al tocar una fila. Antes el filtro movía la selección solo.
+**Regla del panel, intacta:** filtrar (chip de marca o escribir en el buscador) **NO cambia el
+artículo elegido**; eso pasa sólo al tocar una fila.
 
-Lo cubre `tests/ui/test_programa_marca.js` (20 checks, reescrito para el panel).
+**La lección:** el filtro por marca separa poco (3 marcas para ~190 artículos) y el que entra ya
+sabe el código que busca; ponerlo como paso obligatorio agregaba un toque a cada consulta sin
+achicar la lista de verdad. Como filtro al costado no estorba.
+
+Lo cubre `tests/ui/test_programa_marca.js` (35 checks, dado vuelta el 2026-09-23: fija que el
+buscador está a la vista al abrir, que no existe `#pickBack`, que los chips viven adentro del panel
+y que al reabrir vuelve a *Todas*).
 
 ### 4br. Se recorrieron las 861 rutas de punta a punta: qué se cortaba y por qué (2026-09-11)
 
