@@ -11790,6 +11790,10 @@ que suman las recetas" y lo que muestra la pantalla casi siempre es una de esas 
 
 ## 4ez. Los Pisa Papas (121, 315, 609): el disco con vástago y el armado son de Pettofrezza (2026-09-22)
 
+> ⚠ **CORREGIDA EL 2026-09-23 POR LA §4fl**: el `M1` (disco con vástago) **desaparece** del modelo.
+> A Rafael se le manda el `M2` y el vástago **sueltos**, como cualquier otro componente. Lo que sigue
+> vale como historia de por qué el paso existió un día; el modelo vigente es el de la §4fl.
+
 `[usuario 2026-09-22, textual: "El 121 arma el disco con vástago Rafael Pettofrezza y también lo envasa
 el. Modifica las rutas… y que se le pueda mandar todo en envio talleristas"` y, para los otros dos:
 `"Para el 315 y 609 también hace el vástago"`]
@@ -12112,7 +12116,7 @@ más, así que vive donde están los cartones.** Sin bloques (prov. de art. term
 tocó: el pedido fue explícito sobre el tallerista, y el mismo orden se puede extender cuando lo
 pida. **Cero base**: el `sector` de cada pieza ya viajaba en `tablet_bundle.enviar`.
 
-## 4fj. El control ahora también es de los talleristas (2026-09-23)
+## 4fk. El control ahora también es de los talleristas (2026-09-23)
 
 Cierra lo que §4fh dejó abierto. El circuito del control —remito primero, conteo después— dejó de
 ser sólo del P.S.:
@@ -12146,6 +12150,63 @@ diferencia como merma del tallerista) quedó descartada.
 la del P.S.: ahora tiene dónde compararse de verdad. Al registrar el remito, la Tablet manda
 derecho al control, también en el tallerista.
 
+## 4fl. Los Pisa Papas (121, 315, 609): el `M1` desaparece — a Rafael se le manda el disco calado y el vástago suelto (2026-09-23)
+
+`[usuario 2026-09-23, textual]` *"Va a desaparecer el componente M1. Ahora se le manda el disco
+pizapapa calado. Y el vástago de aluminio a Rafael. Como cualquiera de los otros componentes. Como
+los insertos, como el cartón, como el mango. Y él entrega el artículo terminado en Virgilio.
+Además… El vástago aluminio V18C tendría que ser V18 porque no es crudo. Como es aluminio, ya se
+compra así y sería el procesado, digamos."*
+
+**Corrige la §4ez del 2026-09-22 (un día de vida).** Ahí el `M1` había sobrevivido como paso de
+Pettofrezza (`M2 → M1`, y después `M1 → artículo`). El dueño lo saca del modelo: **el disco con
+vástago no es una pieza, es el artículo empezando a armarse.** Rafael recibe el `M2` (Disco Pisa
+Papa Calado) y el vástago sueltos, igual que el inserto, el cartón y el mango, y devuelve el
+terminado. Un intermedio que sólo existe adentro del taller del que lo arma es un nodo de más:
+obliga a un paso de ida y vuelta consigo mismo y a una fila de stock en cada ubicación por la que
+no pasa nada.
+
+- **Antes** `[dato]`: `M1` = `M2` + `V18C` (`componente_bom` 9 y 10), receta de los tres artículos
+  con `M1` cantidad 1, y **12 filas de `ruta_paso`** — el `M2 → M1` de las rutas 136/553/558 y el
+  `V18C → M1` + `M1 → art` de las rutas 1057/1058/1059.
+- **Ahora**: la ruta del fleje termina `matriz 349 → M2 → Pettofrezza (M2 → art) → virgilio`, y la
+  del vástago es `insumo V18 → Pettofrezza (V18 → art) → virgilio` — exactamente la forma que ya
+  tenían `PA10B`, `PC11`, `I3C` y `A3`. La receta cambia `M1` por `M2` (1) + `V18` (1).
+- **`M1` se puede borrar limpio** `[dato 2026-09-23]`: id 146, **0 stock y 0 movimientos**, y no lo
+  referencia nada más que sus 4 filas de `inventario`, sus 2 de `componente_bom`, sus 3 de
+  `articulo_componente` y sus 12 de `ruta_paso` (barrido de las 28 FK a `componente`). Beneficio de
+  paso: se va el **`M1` duplicado** — quedaba el disco (146) y el *Cartón 220* (823) con el mismo
+  código, y había que buscar por id.
+- **`V18C` → `V18`, y el motivo del dueño es correcto aunque la letra no sea la del crudo**: en GP2
+  los crudos de remache llevan **prefijo `CV`** (§ de los 12 `CV*`), así que el crudo de este
+  vástago sería `CV18` y **no existe, porque no se fabrica: se compra terminado a Bella Vista**. La
+  `C` de `V18C` era una variante de familia, como la `D` de `V18D` (Tornillo Sacafuente). Sacarla
+  deja el maestro parejo (`V18` comprado, `V18D` fabricado) y no pisa nada: `V18` estaba libre.
+- **Queda en Sector Remache (8), no pasa a Procesado**: el insumo vive donde el usuario lo cuenta y
+  lo pide (mismo criterio que los aceites de Dilmax, que tampoco son remaches y viven ahí). "Sería
+  el procesado" describe **que se compra terminado**, no una mudanza de sector.
+
+**⚠ EL HALLAZGO DE PLATA: el vástago es la línea MÁS CARA de los tres artículos y GP2 la tiene en
+$0.** `[dato, medido contra la planilla del propio dueño]` `v_planilla_costo` de los códigos 121 y
+315 trae `remaches = 448,5373` tomado de `'Lista de Precios '!L171` — la fila 171 del bloque 890
+Bella Vista, *"Remache Pisapapas 8 x 97"*, cod ISIS 0885, lista 2026-07-08. **Es por unidad, no por
+kilo**: la planilla lo suma tal cual a un costo de artículo de $1.025,59, y GP2 hoy cierra el 315 en
+$561,26 justamente porque el vástago entra en cero. Dos cosas lo mantienen en cero y hay que
+arreglar las dos: `estado_compra='discontinuo'` (herencia de la decisión del 2026-08-31 *"el remache
+de aluminio no va más"*, que **la planilla vigente desmiente**) y **cero filas en
+`precio_proveedor`**. Con el precio cargado los tres artículos suben ~$448,54 cada uno.
+
+**Lo que falta, y no se inventa:**
+1. **El `M2` no tiene fila de `inventario` en la ubicación de Pettofrezza (31)** — sólo en Sector
+   Procesado. `recalcular_maximos_talleristas` **sólo actualiza filas que existen, no las crea**, así
+   que sin esa fila el Envío a Talleristas no le puede poner máximo ni sugerido al disco calado, que
+   es justo la pieza que ahora se le manda.
+2. **Pettofrezza sigue sin precio para el 121** (el $85 era de Cavallero, que quedó sin rutas). El
+   315 y el 609 tienen $140 "AyE". Con el `M1` afuera el trabajo de Rafael es **un solo paso**, así
+   que el "AyE" ya cubre poner el vástago en el disco — deja de tener sentido la pregunta del
+   2026-09-22 sobre si el disco con vástago se cobraba aparte.
+3. **Filas huérfanas de Cavallero German**: le quedan `inventario` de `M1` y de `V18C` en la
+   ubicación 24, las dos en 0, de cuando hacía el 121.
 
 ## 4fk. El 280 vuelve a Gentile Norberto (2026-09-23)
 
