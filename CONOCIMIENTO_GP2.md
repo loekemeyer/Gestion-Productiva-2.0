@@ -12247,3 +12247,53 @@ su poder.
    A2 134, BOM8B 2). Sin fila no hay máximo guardado; el sugerido de la Tablet igual sale, porque
    se calcula al vuelo. Alinear los máximos es `recalcular_maximos_talleristas()`, que es otra
    escritura y la autoriza el dueño.
+
+## 4fn. El 498 tiene su propio crudo: nace `I9` "Destapador Pie p/cromar" (2026-09-23)
+
+`[usuario, textual]`: *"Ahora, luego de la matriz 27, va a parar al sector crudo I9: 'Destapador Pie
+p/cromar', no I1"*, con su **sí** sobre el SQL exacto, en GP2 y en el vecino.
+
+**No era un renombre: `I9` no existía en ningún lado.** Lo que pasó es que **`I1` se partió en dos**.
+Hasta hoy la matriz 27 (Corte Cuerpo Uña Pie, sobre el Fleje 29 / `IA5`) sacaba un único crudo,
+`I1` "Destapador Pie p/pintar", y la bifurcación ocurría recién en el proveedor de servicio:
+`I1` → **Jade** (pintado) → `B12` para el **499**, e `I1` → **Pedernera** (cromado) → `Z45` para el
+**498**. Ahora cada rama tiene su crudo: **`I1` se queda con el 499** (sigue igual, no se tocó ni un
+paso suyo) y **`I9` se lleva el 498**.
+
+| | Antes | Después |
+|---|---|---|
+| Ruta 101 (498), paso 2 matriz 27 | sale `I1` | sale **`I9`** |
+| Ruta 101 (498), paso 3 Pedernera | entra `I1` | entra **`I9`** |
+| Ruta 100 (499) | `I1` → Jade → `B12` | **sin cambios** |
+
+**Lo que se escribió, y nada más que eso.** En GP2: `componente` **936** `I9` (Sector Crudo,
+unidad, 0,02863 kg/uni, 1048 uni/cajón), dos filas de `inventario` en 0 (Sector Crudo con máximo
+**5.240** = 5 cajones, y Pedernera / Carlos Aguirre), los `ruta_paso` **661** y **662**, y el borrado
+de la fila de inventario de `I1` en Pedernera (id 500, en 0 y ya sin ruta que la justifique). En
+`public`: alta en `SC Kg` (cod_verificacion 100130), una fila nueva en `Causa-Efecto`
+(27 · Fleje 29 · `I9`, la de `I1` **queda** porque es el 499) y `Partes x PS` id 313 pasa a `SC='I9'`.
+
+**El peso de `I9` es el de `I1`** (0,02863 kg/uni, 30 kg/cajón): es la misma estampada del mismo
+fleje con la misma matriz. `[usuario confirmó el 2026-09-23]`.
+
+**El costo no se movió, medido antes y después**: `I9` $145,51 (idéntico a `I1`), `Z45` $213,85 y
+el 498 terminado **$431,35**, sin faltantes de precio, kg ni tiempos. Era lo esperado: Pedernera
+cobra por la pieza que **devuelve** ($2.293,15/kg sobre `Z45`), no por la que recibe.
+
+**Dos cosas del vecino que conviene tener anotadas:**
+1. **`v_produccion_por_sector` le va a asignar a `I9` TODA la producción de la matriz 27**, igual
+   que ya hacía con `I1` y `J13`: esa vista reparte el total de la matriz a cada fila `Aumenta`, sin
+   prorratear. Es un defecto viejo del vecino, no de este cambio; ahora son tres filas en vez de dos.
+2. **Insertar en `SC Kg` dispara `trg_pesos_sc`**, que llama a `actualizar_partes_tallerista()`,
+   `actualizar_despiece()` y `actualizar_partes_ps()` — recálculo **global** de las tres derivadas.
+   Los pesos de la fila de Pedernera no se movieron porque `actualizar_partes_ps` resuelve por el
+   **SP** (`Z45`) y sólo cae al SC si no hay SP.
+
+**Lo que NO hizo falta tocar, y por qué:** la receta del 498 (`articulo_componente`) pide `Z45`, no
+el crudo — receta y ruta no se usan para lo mismo (§4cc); `Despiece x Articulo` y
+`Partes x Tallerista` del vecino tampoco nombran el crudo (Garcia recibe `Z45`); el precio de
+cromado cuelga del componente de salida; y `parte_proveedor_servicio` (los pintores de una pieza)
+sigue con `I1` → Daniel/Jade, que es exactamente la rama que `I1` conserva.
+
+**La entrega histórica de `I1` cromado en `Entregas PS` (1 fila) quedó como estaba**: la historia no
+se reescribe.
