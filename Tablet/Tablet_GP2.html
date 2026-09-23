@@ -1660,7 +1660,9 @@ function tolExceso(x){ return unidadDe(x) === "kg" ? 0.005 : 0.5; }
 var EXCESO_PCT = 5;
 function exceso(x, q){
   if (MODO !== "recibir" || x.esperado == null || !(q > 0)) return 0;
-  if (selCP && selCP.tipo === "proveedor_servicio") return 0;
+  // el P.S. y el TALLERISTA tienen su pantalla de control: ahí se compara lo contado contra el
+  // remito, que es lo que sí se puede contrastar [usuario 2026-09-23]. Acá no se juzga el papel.
+  if (selCP && (selCP.tipo === "proveedor_servicio" || selCP.tipo === "tallerista")) return 0;
   var esp = Number(x.esperado);
   var d = canonDe(x, q) - esp;
   return d > Math.max(tolExceso(x), esp * EXCESO_PCT / 100) ? d : 0;
@@ -2250,7 +2252,7 @@ $("btnEnviar").addEventListener("click", async function(){
     // cartel intermedio, igual que la recepción de insumos [usuario 2026-09-03: "me gusta que me
     // mande directo como en el caso de flejes"]. ÚNICA excepción: si quedó una alerta de "recibí de
     // más" no se salta la pantalla — ahí el operario tiene que leerla, y va con un botón.
-    if (MODO === "recibir" && selCP.tipo === "proveedor_servicio") {
+    if (MODO === "recibir" && (selCP.tipo === "proveedor_servicio" || selCP.tipo === "tallerista")) {
       if (!al.length) { window.location.href = "ControlEntregaPS_GP2.html"; return; }
       $("successAlertas").innerHTML +=
         '<div class="row" style="justify-content:center;margin-top:10px">' +
@@ -2273,7 +2275,7 @@ cargar();
    link queda diciendo "Control" y la tablet funciona igual. */
 (async function () {
   try {
-    var r = await SB.rpc("control_entrega_ps_bundle");
+    var r = await SB.rpc("control_entrega_bundle");
     var n = ((r && r.data && r.data.pend) || []).length;
     var a = $("lnkControl");
     if (a && n) a.textContent = "Control (" + n + ")";

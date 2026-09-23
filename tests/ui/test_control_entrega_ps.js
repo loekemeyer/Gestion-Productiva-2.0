@@ -6,7 +6,7 @@
      - la tarjeta muestra el REMITO y los campos arrancan VACIOS (el control es un dato nuevo, no
        una confirmacion: precargarlo invita a firmar sin contar);
      - la diferencia se calcula al tipear y se marca cuando supera la tolerancia (tol_pct);
-     - el payload de controlar_entrega_ps (cantidad contada + bultos contados);
+     - el payload de controlar_entrega (cantidad contada + bultos contados);
      - el envase se pide SOLO si la pieza tiene con que contarlo, y con el rotulo del proveedor
        (AJ entrega en paquetes, el resto en cajones);
      - las reglas de pantalla de la casa: 390px sin scroll horizontal, inputs grandes con
@@ -23,43 +23,59 @@ const BUNDLE = {
   tol_pct: 5,
   pend: [
     // el caso real: 21 kg de remito, remache que vuelve en cajones
-    { mov_id: 85502, fecha: '2026-09-21T12:00:00-03:00', ps_id: 4, ps_nombre: 'Guazzaroni Patricio',
+    { mov_id: 85502, fecha: '2026-09-21T12:00:00-03:00', cp_id: 4, cp_nombre: 'Guazzaroni Patricio',
       sc_cod: 'CV1', sc_desc: 'Remache Espiral p/Niquelar', sc_unixcaj: 57143,
       sp_id: 276, sp_cod: 'V1', sp_desc: 'Remache Espiral', sp_um: 'unidad',
       sp_kgxuni: 0.00035, sp_unixcaj: 5714, entrega_unidad: null, entrega_uni_x: null,
       envio_unidad: 'cajones', envio_uni_x: null,
-      declarado: 21, unidad: 'kg', cajones: null },
+      declarado: 21, unidad: 'kg', cajones: null, cp_tipo: 'proveedor_servicio', pesa: true },
     // AJ entrega en PAQUETES y la pieza se cuenta: el campo tiene que decir "Paquetes" y la
     // cantidad va en uni
-    { mov_id: 85510, fecha: '2026-09-21T12:00:00-03:00', ps_id: 12, ps_nombre: 'AJ Adhesivos',
+    { mov_id: 85510, fecha: '2026-09-21T12:00:00-03:00', cp_id: 12, cp_nombre: 'AJ Adhesivos',
       sc_cod: 'Pliego 506', sc_desc: 'Sin adhesivar', sc_unixcaj: null,
       sp_id: 565, sp_cod: 'Pliego Ad 506', sp_desc: 'Adhesivado', sp_um: 'unidad',
       sp_kgxuni: null, sp_unixcaj: null, entrega_unidad: 'paquetes', entrega_uni_x: 200,
-      declarado: 600, unidad: 'uni', cajones: null },
+      declarado: 600, unidad: 'uni', cajones: null, cp_tipo: 'proveedor_servicio', pesa: false },
     // pieza SIN envase cargado por ningun lado: no se inventa un campo que nadie puede llenar
-    { mov_id: 85511, fecha: '2026-09-21T12:00:00-03:00', ps_id: 20, ps_nombre: 'Blist-Pack',
+    { mov_id: 85511, fecha: '2026-09-21T12:00:00-03:00', cp_id: 20, cp_nombre: 'Blist-Pack',
       sc_cod: 'D5', sc_desc: 'Mitad rompenuez', sc_unixcaj: null,
       sp_id: 91, sp_cod: 'D5-P', sp_desc: 'Mitad pintada', sp_um: 'unidad',
       sp_kgxuni: null, sp_unixcaj: null, entrega_unidad: null, entrega_uni_x: null,
-      declarado: 40, unidad: 'uni', cajones: null },
+      declarado: 40, unidad: 'uni', cajones: null, cp_tipo: 'proveedor_servicio', pesa: false },
     // ESTER: sin entrega_unidad propia, la entrega COPIA el envio -> BOLSAS, no el "cajones"
     // generico [usuario 2026-09-22: "La devolucion de Ester es en bolsas como el envio"]
-    { mov_id: 85512, fecha: '2026-09-22T12:00:00-03:00', ps_id: 14, ps_nombre: 'Ester',
+    { mov_id: 85512, fecha: '2026-09-22T12:00:00-03:00', cp_id: 14, cp_nombre: 'Ester',
       sc_cod: 'PC2', sc_desc: 'Mgo Pelapapa', sc_unixcaj: 1800,
       sp_id: 700, sp_cod: 'PC1A', sp_desc: 'Mgo Pelapapa 505 Calado', sp_um: 'unidad',
       sp_kgxuni: 0.27, sp_unixcaj: 1800, sp_sector: 'Sector Plastico',
       entrega_unidad: null, entrega_uni_x: null, envio_unidad: 'bolsas', envio_uni_x: 1800,
-      declarado: 485, unidad: 'kg', cajones: null },
+      declarado: 485, unidad: 'kg', cajones: null, cp_tipo: 'proveedor_servicio', pesa: true },
     // JULIO manda por PESO: el bulto lo pone el sector, plastico -> bolsas (como en la Tablet)
-    { mov_id: 85513, fecha: '2026-09-22T12:00:00-03:00', ps_id: 8, ps_nombre: 'Hernandez Julio',
+    { mov_id: 85513, fecha: '2026-09-22T12:00:00-03:00', cp_id: 8, cp_nombre: 'Hernandez Julio',
       sc_cod: 'PB6', sc_desc: 'Inser. Neg.', sc_unixcaj: 2000,
       sp_id: 701, sp_cod: 'PB6S', sp_desc: 'Inser. serigrafiado', sp_um: 'unidad',
       sp_kgxuni: 0.002, sp_unixcaj: 2000, sp_sector: 'Sector Plastico',
       entrega_unidad: null, entrega_uni_x: null, envio_unidad: 'kg', envio_uni_x: null,
-      declarado: 10, unidad: 'kg', cajones: null }
+      declarado: 10, unidad: 'kg', cajones: null, cp_tipo: 'proveedor_servicio', pesa: true },
+    // TALLERISTA (2026-09-23): el control tambien es suyo. La BOMBILLA declara su envase propio
+    // -bolsas de 120- asi que se CUENTA y no se pesa; la CUCHILLA no declara envase, va en cajones
+    // y la manda el peso [usuario: "El remito de las bombillas en uni. Control en bolsas. El remito
+    // de la cuchilla en kg y control kg y cajones (cajones dato)"].
+    { mov_id: 85520, fecha: '2026-09-23T12:00:00-03:00', cp_id: 6, cp_nombre: 'Martin Cornejo',
+      cp_tipo: 'tallerista', sc_cod: null, sc_desc: null, sc_unixcaj: null,
+      sp_id: 541, sp_cod: 'GRJ5', sp_desc: 'Bombilla Resorte Trad 558', sp_um: 'unidad',
+      sp_kgxuni: 0.0147, sp_unixcaj: 960, sp_sector: 'Sector Garage',
+      entrega_unidad: 'bolsas', entrega_uni_x: 120, envio_unidad: null, envio_uni_x: null,
+      declarado: 360, unidad: 'uni', cajones: null, pesa: false },
+    { mov_id: 85521, fecha: '2026-09-23T12:00:00-03:00', cp_id: 6, cp_nombre: 'Martin Cornejo',
+      cp_tipo: 'tallerista', sc_cod: 'X1', sc_desc: 'Cuchilla Pelapapa Abierta', sc_unixcaj: 4004,
+      sp_id: 73, sp_cod: 'X4', sp_desc: 'Cuchilla Pelapapa Cerrada', sp_um: 'unidad',
+      sp_kgxuni: 0.00492, sp_unixcaj: 4004, sp_sector: 'Sector Crudo',
+      entrega_unidad: 'cajones', entrega_uni_x: 4004, envio_unidad: null, envio_uni_x: null,
+      declarado: 19.7, unidad: 'kg', cajones: null, pesa: true }
   ],
   hechos: [
-    { mov_id: 85400, fecha: '2026-09-20T12:00:00-03:00', ps_nombre: 'Guazzaroni Patricio',
+    { mov_id: 85400, fecha: '2026-09-20T12:00:00-03:00', cp_nombre: 'Guazzaroni Patricio',
       sp_cod: 'V11', sp_desc: 'Remache Sacacorcho', unidad: 'kg',
       declarado: 40, controlado: 39.2, cajones: 2, diff: -0.8,
       controlado_en: '2026-09-20T15:00:00-03:00', controlado_por: 'thomas' }
@@ -71,9 +87,9 @@ window.supabase = { createClient: function(){ return {
   rpc: async function(name, args){
     window.__calls = window.__calls || [];
     window.__calls.push({name:name, args:args});
-    if(name==='control_entrega_ps_bundle')
+    if(name==='control_entrega_bundle')
       return { data: JSON.parse(JSON.stringify(${JSON.stringify(BUNDLE)})), error: null };
-    if(name==='controlar_entrega_ps') return { data: { ok:true, id: 1 }, error: null };
+    if(name==='controlar_entrega') return { data: { ok:true, id: 1 }, error: null };
     return { data: null, error: { message: 'rpc desconocida '+name } };
   }
 };}};
@@ -98,8 +114,8 @@ window.supabase = { createClient: function(){ return {
 
   // ── 1) lo pendiente, con el remito a la vista y los campos vacios ────────────────
   const cs = await cards();
-  ok(cs.length === 5 && (await page.$eval('#nPend', e => e.textContent)) === '5',
-     'las 5 entregas sin controlar se listan — ' + cs.length);
+  ok(cs.length === 7 && (await page.$eval('#nPend', e => e.textContent)) === '7',
+     'las 7 entregas sin controlar se listan, P.S. y talleristas — ' + cs.length);
   ok(cs[0].includes('V1') && cs[0].includes('consume CV1') && cs[0].includes('Guazzaroni Patricio'),
      'la tarjeta dice la pieza, de que SC sale y quien la entrego — ' + cs[0]);
   ok(cs[0].includes('Remito 21 kg'), 'el remito queda a la vista para comparar — ' + cs[0]);
@@ -121,6 +137,14 @@ window.supabase = { createClient: function(){ return {
      'Ester: bolsas y kilos, que es como lo cuenta el usuario — ' + labels[3]);
   ok(labels[4] === 'Bolsas | Kilos',
      'Julio (envio por peso): pieza plastica en bolsas, y los kilos — ' + labels[4]);
+  // EL TALLERISTA, con la regla que dicto el usuario: la bombilla se cuenta en bolsas y NO se pesa;
+  // la cuchilla va en cajones + kilos y manda el peso.
+  ok(labels[5] === 'Bolsas',
+     'Martin: la bombilla se controla SOLO en bolsas — ' + labels[5]);
+  ok(labels[6] === 'Cajones | Kilos',
+     'Martin: la cuchilla va en cajones (dato) y kilos (lo que manda) — ' + labels[6]);
+  ok((await cards())[5].includes('Martin Cornejo') && !(await cards())[5].includes('consume'),
+     'tallerista: la tarjeta dice quien entrego, sin "consume" cuando no hay pieza de entrada');
   ok(!labels.slice(0, 2).concat(labels.slice(3)).some(l => /Contado \(/.test(l)),
      'ya no se pide "Contado (uni)" donde hay envase — ' + labels.join(' / '));
   ok((await cards())[1].includes('200 por paquete'),
@@ -156,15 +180,15 @@ window.supabase = { createClient: function(){ return {
   await page.click(card1 + ' button[data-a="ok"]');
   ok(dialogs.some(d => d.type === 'alert' && d.msg.includes('Falta el peso')),
      'la pieza que se pesa no se controla sin kilos — ' + JSON.stringify(dialogs[0] || {}));
-  ok(!(await calls('controlar_entrega_ps')).length, 'y no se registro nada');
+  ok(!(await calls('controlar_entrega')).length, 'y no se registro nada');
   dialogs.length = 0;   // el aviso de arriba no cuenta para el chequeo de "no pregunta nada"
 
   // ── 4) el payload del control ────────────────────────────────────────────────────
   await page.fill(card1 + ' input[data-f="kg"]', '20,8');
   await page.fill(card1 + ' input[data-f="env"]', '1');
   await page.click(card1 + ' button[data-a="ok"]');
-  await page.waitForFunction(() => (window.__calls || []).some(c => c.name === 'controlar_entrega_ps'));
-  const reg = await calls('controlar_entrega_ps');
+  await page.waitForFunction(() => (window.__calls || []).some(c => c.name === 'controlar_entrega'));
+  const reg = await calls('controlar_entrega');
   ok(reg.length === 1 && reg[0].args.p_mov_id === 85502 && reg[0].args.p_cantidad === 20.8 &&
      reg[0].args.p_cajones === 1,
      'viaja el movimiento, lo contado y los cajones contados — ' + JSON.stringify(reg[0].args));
@@ -176,8 +200,8 @@ window.supabase = { createClient: function(){ return {
   ok((await page.$eval('#pend .card:nth-child(2) .diff', e => e.textContent)).includes('= 400 uni'),
      'AJ: 2 paquetes de 200 se leen como 400 pliegos antes de confirmar');
   await page.click('#pend .card:nth-child(2) button[data-a="ok"]');
-  await page.waitForFunction(() => (window.__calls || []).filter(c => c.name === 'controlar_entrega_ps').length === 2);
-  const regAj = (await calls('controlar_entrega_ps'))[1];
+  await page.waitForFunction(() => (window.__calls || []).filter(c => c.name === 'controlar_entrega').length === 2);
+  const regAj = (await calls('controlar_entrega'))[1];
   ok(regAj.args.p_cantidad === 400 && regAj.args.p_cajones === 2,
      'AJ: se guardan 400 pliegos y los 2 paquetes contados — ' + JSON.stringify(regAj.args));
   ok(dialogs.some(d => d.type === 'confirm' && d.msg.includes('600') && d.msg.includes('400') &&

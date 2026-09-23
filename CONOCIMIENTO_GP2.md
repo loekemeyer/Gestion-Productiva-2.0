@@ -11790,6 +11790,10 @@ que suman las recetas" y lo que muestra la pantalla casi siempre es una de esas 
 
 ## 4ez. Los Pisa Papas (121, 315, 609): el disco con vástago y el armado son de Pettofrezza (2026-09-22)
 
+> ⚠ **CORREGIDA EL 2026-09-23 POR LA §4fl**: el `M1` (disco con vástago) **desaparece** del modelo.
+> A Rafael se le manda el `M2` y el vástago **sueltos**, como cualquier otro componente. Lo que sigue
+> vale como historia de por qué el paso existió un día; el modelo vigente es el de la §4fl.
+
 `[usuario 2026-09-22, textual: "El 121 arma el disco con vástago Rafael Pettofrezza y también lo envasa
 el. Modifica las rutas… y que se le pueda mandar todo en envio talleristas"` y, para los otros dos:
 `"Para el 315 y 609 también hace el vástago"`]
@@ -11843,7 +11847,7 @@ cargados en Gestión Productiva 2.0 es diferente... deja el de Gestion Productiv
 | 307 (Cepillo Limpia Vaso) | Caja N°15 → **Caja N°6 (A5)**, sigue 24 x caja | |
 | 234 (Palo Amasar Francés) | + **BANDITA** x1, igual que 231/232/233 | "lleva bandita… una" |
 | 246, 900 (Prensa Matambre) | + **`BANDITAM` Bandita Prensa Matambre** x1 (alta nueva: Sector Cartón, unidad, Talleres Gráficos Pol, ruta insumo → Maspoli → Virgilio) | "se lo compramos al mismo proveedor que la bandita palo de amasar" |
-| 280 (Manga Repostera) | Tela `BOM8B` **1/900** (el rollo trae 900): la tela se cuenta en **ROLLOS**, máximo 4.812 → 5,35, nombre "(rollo x 900)"; armado Fábrica → **Blist-Pack SA** | |
+| 280 (Manga Repostera) | Tela `BOM8B` **1/900** (el rollo trae 900): la tela se cuenta en **ROLLOS**, máximo 4.812 → 5,35, nombre "(rollo x 900)"; armado Fábrica → Blist-Pack SA → **de vuelta a Gentile Norberto el 2026-09-23** (ver 4fk) | |
 | 338 (Espátula Lisa) | **discontinuado** | |
 | 031, 120, 836 (IC3) y 034, 867 (IC3V) | Fleje N° 90 **1 por unidad**: IC3/IC3V pasaron de `kg` a `unidad` | "lleva un alambre" |
 
@@ -11854,7 +11858,7 @@ objetivo de Altrak siguen en kg (leen `recepcion_insumo`, que queda en kg). Es e
 Se pudo hacer sin migrar porque IC3/IC3V tenían 0 stock, 0 movimientos, 0 recepciones y 0 OC; los máximos
 se convirtieron (÷ kg_x_uni).
 
-**Quedan sin precio de tallerista** (el costo no suma ese paso): 121 Pettofrezza, 248 Alex, 280 Blist-Pack.
+**Quedan sin precio de tallerista** (el costo no suma ese paso): 121 Pettofrezza, 248 Alex, 280 **Gentile Norberto** (era Blist-Pack; volvió a Gentile el 2026-09-23 y sigue sin precio).
 
 ## 4fc. El Prov. de Art. Terminado ya tiene consumo, máximo y sugerido (2026-09-23)
 
@@ -12111,3 +12115,135 @@ más, así que vive donde están los cartones.** Sin bloques (prov. de art. term
 **Solo el tallerista.** P.S., prov. de art. terminado e inyector siguen alfabéticos y Recibir no se
 tocó: el pedido fue explícito sobre el tallerista, y el mismo orden se puede extender cuando lo
 pida. **Cero base**: el `sector` de cada pieza ya viajaba en `tablet_bundle.enviar`.
+
+## 4fk. El control ahora también es de los talleristas (2026-09-23)
+
+Cierra lo que §4fh dejó abierto. El circuito del control —remito primero, conteo después— dejó de
+ser sólo del P.S.:
+
+| Antes | Ahora |
+|---|---|
+| `control_entrega_ps_bundle` / `controlar_entrega_ps` | **`control_entrega_bundle`** / **`controlar_entrega`** |
+| tabla `entrega_ps_control` | tabla **`entrega_control`** (misma estructura, 0 filas al renombrar) |
+| sólo movimientos `entrega_ps` | `entrega_ps` **y** `entrega_tallerista`, en una sola lista |
+
+**El envase del tallerista lo dice la PIEZA** (`componente.entrega_unidad` / `entrega_uni_x`: bolsas
+de 120 en GRJ5 y GRJ6, cajones en el resto) y viaja en las mismas claves que el P.S., así que la
+pantalla no aprendió un modelo nuevo. **Quién se pesa lo decide la base** (clave `pesa` del bundle):
+una pieza de tallerista que declara su propio envase **se cuenta y no se pesa** —las bombillas—,
+mientras que la cuchilla va en cajones + kilos y manda el peso. Es exactamente lo que dictó el
+dueño: *"El remito de las bombillas en uni. Control en bolsas. El remito de la cuchilla en kg y
+control kg y cajones (cajones dato)"*.
+
+**LA COLUMNA QUE FALTABA: `movimiento.mov_padre_id`.** Una entrega de tallerista NO es un movimiento
+solo: `crear_entrega_tallerista` escribe el `entrega_tallerista` **y** uno o varios `consumo_tall`
+(la pieza transformada o las partes del BOM). Hasta hoy nada los vinculaba, y **no alcanzaba con la
+fecha**: la Tablet manda día + 12:00, así que todas las entregas del día comparten la misma marca.
+Ahora cada consumo cuelga de su entrega.
+
+**Qué hace el control con esos consumos** `[decisión del dueño, 2026-09-23, entre dos opciones que
+se le plantearon]`: **se escalan con el mismo factor**. Entregó 98 donde el remito decía 100 →
+consumió 98, y el 1:1 y el BOM quedan coherentes. La alternativa (dejarlos en 100 y leer la
+diferencia como merma del tallerista) quedó descartada.
+
+**Y el aviso de "recibí de más" se fue de la recepción del tallerista**, igual que se había ido de
+la del P.S.: ahora tiene dónde compararse de verdad. Al registrar el remito, la Tablet manda
+derecho al control, también en el tallerista.
+
+## 4fl. Los Pisa Papas (121, 315, 609): el `M1` desaparece — a Rafael se le manda el disco calado y el vástago suelto (2026-09-23)
+
+`[usuario 2026-09-23, textual]` *"Va a desaparecer el componente M1. Ahora se le manda el disco
+pizapapa calado. Y el vástago de aluminio a Rafael. Como cualquiera de los otros componentes. Como
+los insertos, como el cartón, como el mango. Y él entrega el artículo terminado en Virgilio.
+Además… El vástago aluminio V18C tendría que ser V18 porque no es crudo. Como es aluminio, ya se
+compra así y sería el procesado, digamos."*
+
+**Corrige la §4ez del 2026-09-22 (un día de vida).** Ahí el `M1` había sobrevivido como paso de
+Pettofrezza (`M2 → M1`, y después `M1 → artículo`). El dueño lo saca del modelo: **el disco con
+vástago no es una pieza, es el artículo empezando a armarse.** Rafael recibe el `M2` (Disco Pisa
+Papa Calado) y el vástago sueltos, igual que el inserto, el cartón y el mango, y devuelve el
+terminado. Un intermedio que sólo existe adentro del taller del que lo arma es un nodo de más:
+obliga a un paso de ida y vuelta consigo mismo y a una fila de stock en cada ubicación por la que
+no pasa nada.
+
+- **Antes** `[dato]`: `M1` = `M2` + `V18C` (`componente_bom` 9 y 10), receta de los tres artículos
+  con `M1` cantidad 1, y **12 filas de `ruta_paso`** — el `M2 → M1` de las rutas 136/553/558 y el
+  `V18C → M1` + `M1 → art` de las rutas 1057/1058/1059.
+- **Ahora**: la ruta del fleje termina `matriz 349 → M2 → Pettofrezza (M2 → art) → virgilio`, y la
+  del vástago es `insumo V18 → Pettofrezza (V18 → art) → virgilio` — exactamente la forma que ya
+  tenían `PA10B`, `PC11`, `I3C` y `A3`. La receta cambia `M1` por `M2` (1) + `V18` (1).
+- **`M1` se puede borrar limpio** `[dato 2026-09-23]`: id 146, **0 stock y 0 movimientos**, y no lo
+  referencia nada más que sus 4 filas de `inventario`, sus 2 de `componente_bom`, sus 3 de
+  `articulo_componente` y sus 12 de `ruta_paso` (barrido de las 28 FK a `componente`). Beneficio de
+  paso: se va el **`M1` duplicado** — quedaba el disco (146) y el *Cartón 220* (823) con el mismo
+  código, y había que buscar por id.
+- **`V18C` → `V18`, y el motivo del dueño es correcto aunque la letra no sea la del crudo**: en GP2
+  los crudos de remache llevan **prefijo `CV`** (§ de los 12 `CV*`), así que el crudo de este
+  vástago sería `CV18` y **no existe, porque no se fabrica: se compra terminado a Bella Vista**. La
+  `C` de `V18C` era una variante de familia, como la `D` de `V18D` (Tornillo Sacafuente). Sacarla
+  deja el maestro parejo (`V18` comprado, `V18D` fabricado) y no pisa nada: `V18` estaba libre.
+- **Queda en Sector Remache (8), no pasa a Procesado**: el insumo vive donde el usuario lo cuenta y
+  lo pide (mismo criterio que los aceites de Dilmax, que tampoco son remaches y viven ahí). "Sería
+  el procesado" describe **que se compra terminado**, no una mudanza de sector.
+
+**⚠ EL HALLAZGO DE PLATA: el vástago es la línea MÁS CARA de los tres artículos y GP2 la tiene en
+$0.** `[dato, medido contra la planilla del propio dueño]` `v_planilla_costo` de los códigos 121 y
+315 trae `remaches = 448,5373` tomado de `'Lista de Precios '!L171` — la fila 171 del bloque 890
+Bella Vista, *"Remache Pisapapas 8 x 97"*, cod ISIS 0885, lista 2026-07-08. **Es por unidad, no por
+kilo**: la planilla lo suma tal cual a un costo de artículo de $1.025,59, y GP2 hoy cierra el 315 en
+$561,26 justamente porque el vástago entra en cero. Dos cosas lo mantienen en cero y hay que
+arreglar las dos: `estado_compra='discontinuo'` (herencia de la decisión del 2026-08-31 *"el remache
+de aluminio no va más"*, que **la planilla vigente desmiente**) y **cero filas en
+`precio_proveedor`**. Con el precio cargado los tres artículos suben ~$448,54 cada uno.
+
+**Lo que falta, y no se inventa:**
+1. **El `M2` no tiene fila de `inventario` en la ubicación de Pettofrezza (31)** — sólo en Sector
+   Procesado. `recalcular_maximos_talleristas` **sólo actualiza filas que existen, no las crea**, así
+   que sin esa fila el Envío a Talleristas no le puede poner máximo ni sugerido al disco calado, que
+   es justo la pieza que ahora se le manda.
+2. **Pettofrezza sigue sin precio para el 121** (el $85 era de Cavallero, que quedó sin rutas). El
+   315 y el 609 tienen $140 "AyE". Con el `M1` afuera el trabajo de Rafael es **un solo paso**, así
+   que el "AyE" ya cubre poner el vástago en el disco — deja de tener sentido la pregunta del
+   2026-09-22 sobre si el disco con vástago se cobraba aparte.
+3. **Filas huérfanas de Cavallero German**: le quedan `inventario` de `M1` y de `V18C` en la
+   ubicación 24, las dos en 0, de cuando hacía el 121.
+
+**Y a Pettofrezza NO se le recibe más nada — eso está bien y no necesita código**
+`[usuario 2026-09-23: "Ya no recibiríamos más del tallerista Pettofrezza Rafael", con la pantalla a
+la vista: Recibir → Pettofrezza mostraba UNA tarjeta, el `M1`, en 0 y "sin cargar"]`. La rama de
+talleristas de `rec` en `GP2.tablet_bundle` lista las salidas del tallerista **salvo las del sector
+12 (Terminado)**, porque un terminado no vuelve a Cervantes: se entrega en Virgilio. Los 15
+terminados de Rafael ya estaban afuera por eso, así que el `M1` era **lo único** que quedaba — y era
+un intermedio que él se hacía a sí mismo. Al irse, su `n_rec` queda en 0 y **la propia pantalla lo
+saca del selector de Recibir** (`cpsDelModo()` filtra por `n_rec > 0`). Cero líneas de JS: el día
+que un tallerista vuelva a devolver una pieza que no es terminado, reaparece solo.
+
+## 4fm. El 280 vuelve a Gentile Norberto (2026-09-23)
+
+`[usuario, textual]`: *"Quiero que el artículo 280 lo devuelvas a gentile norberto. Sacaselo a blist
+pack"*. Revierte el movimiento del 2026-09-22 (§4fb), que lo había pasado de Fábrica a Blist-Pack.
+
+**Lo que se tocó: cuatro pasos y nada más.** El 280 tiene una ruta por pieza que entra, y en las
+cuatro el paso de tallerista pasó de Blist-Pack SA (14) a **Gentile Norberto (8)**: `ruta_paso`
+3067 (PV14), 3070 (BOM8B), 3073 (F1A) y 3076 (A2, Caja N°12).
+
+**Medido antes y después:**
+
+| | Antes | Después |
+|---|---|---|
+| Consumo de Gentile | 7.186 uni/mes | **15.341** |
+| Consumo de Blist-Pack | 10.628 uni/mes | **2.473** |
+| Piezas que recibe Gentile | 17 | **21** |
+
+A Blist-Pack le quedan el **555** y el **764** (los cepillos limpia bombilla), así que no queda
+vacío. **No tenía ni una fila de inventario ni un movimiento**, o sea que no quedó stock colgado en
+su poder.
+
+**Dos cosas que el cambio NO arregla y conviene saber:**
+1. **El 280 sigue sin precio de tallerista.** Ni Blist-Pack ni Gentile lo tienen cargado, así que
+   ese armado no se cobra en el costeo del artículo — antes tampoco. El precio del tallerista viaja
+   con la pieza que entrega (§4dv), así que el día que se cargue va sobre el componente 280.
+2. **Gentile no tiene fila de inventario para las cuatro piezas** (PV14 6.416 uni/mes, F1A 1.604,
+   A2 134, BOM8B 2). Sin fila no hay máximo guardado; el sugerido de la Tablet igual sale, porque
+   se calcula al vuelo. Alinear los máximos es `recalcular_maximos_talleristas()`, que es otra
+   escritura y la autoriza el dueño.
