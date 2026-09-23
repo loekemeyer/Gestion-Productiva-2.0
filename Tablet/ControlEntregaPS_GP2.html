@@ -23,6 +23,22 @@
      LOS CAJONES SON EL DATO FÍSICO: acá se cuentan, no se derivan de los kg (misma regla que el
      stock del proveedor, ver CONOCIMIENTO 4et). Si la pieza no tiene envase cargado, el campo no
      se pide. -->
+<!-- v1.3.0 (2026-09-23) — EL CONTROL TAMBIÉN ES DE LOS TALLERISTAS (usuario, textual: "Hicimos todas
+     las recepciones de proveedores de servicio. Ahora seguimos con las recepciones de talleristas.
+     Lucho. Remito en unidades y control en kg y cajones (acordate de hacer el control por kg —
+     cajones es solo dato)").
+     La pantalla era sólo del P.S. porque su circuito miraba movimientos `entrega_ps`. Ahora la
+     misma lista trae los dos: `control_entrega_bundle` (antes `control_entrega_ps_bundle`) une las
+     entregas de P.S. y las de tallerista, y `controlar_entrega` (antes `controlar_entrega_ps`)
+     guarda las dos en `GP2.entrega_control` (antes `entrega_ps_control`).
+     QUÉ CAMBIA PARA EL TALLERISTA: el ENVASE lo dice la PIEZA —las bolsas de 120 de GRJ5 y GRJ6,
+     cajones en el resto— y viaja en las mismas claves que el P.S., así que acá no hay lógica nueva.
+     Y quién se pesa lo decide la BASE (clave `pesa`): una pieza de tallerista que declara su propio
+     envase se cuenta y NO se pesa (las bombillas), mientras que la cuchilla va en kg + cajones.
+     LO QUE PASA AL CONFIRMAR, y es la decisión del dueño: al corregir lo entregado, los consumos
+     del tallerista se escalan con el mismo factor ("entregó 98 de 100 → consumió 98"), para que el
+     1:1 y el BOM queden coherentes. Eso lo hace la base con `movimiento.mov_padre_id`, la columna
+     nueva que cuelga cada `consumo_tall` de su entrega. -->
 <!-- v1.2.0 (2026-09-23) — LO QUE COMPARA ES EL PESO; EL ENVASE ES UN DATO, Y LA TOLERANCIA ES 5 %
      (usuario, textual: "en el control que las bolsas o los cajones sirvan nada más de dato. Vos lo
      que tenés que comparar es los kilos con los kilos o los kilos con las unidades, en el caso de
@@ -64,7 +80,7 @@
      control_entrega_ps_bundle manda envio_unidad / envio_uni_x / sp_sector. -->
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>Control de entregas · Prov. de Servicio · GP2</title>
+<title>Control de entregas · GP2</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="../supabase-config.js?v=20260905k"></script>
 <!-- el CSS de la casa primero (tipografía y botones base, igual que la Tablet) y abajo lo propio -->
@@ -116,7 +132,7 @@
 <body>
 <div class="wrap">
   <header>
-    <h1>Control de entregas · Prov. de Servicio</h1>
+    <h1>Control de entregas <span style="font-size:15px;font-weight:700;color:#475569">prov. de servicio y talleristas</span></h1>
     <div class="hbtns">
       <a class="hlink" href="Tablet_GP2.html">← Recepción</a>
       <a class="hlink" href="../GP2_MODULOS.html">Menú</a>
@@ -174,6 +190,11 @@ function envaseDe(x) {
 /* ¿Esta pieza se puede PESAR? Con kg_x_uni cargado, sí: el control se hace con la balanza y el
    peso es el que manda. Sin ese dato (los pliegos de AJ) el control es sólo contar envases. */
 function pesaDe(x) {
+  // LO DECIDE LA BASE (control_entrega_bundle manda `pesa`): con la pieza medida en kg siempre, y
+  // en un tallerista una pieza que declara su propio envase se CUENTA y no se pesa [usuario
+  // 2026-09-23: "El remito de las bombillas en uni. Control en bolsas"]. El fallback de abajo es
+  // para un bundle viejo, sin esa clave.
+  if (x.pesa != null) return !!x.pesa;
   return String(x.unidad || "").toLowerCase() === "kg" || Number(x.sp_kgxuni || 0) > 0;
 }
 
@@ -257,7 +278,7 @@ function render() {
     card.innerHTML =
       '<div class="cod">' + esc(x.sp_cod || "") + "</div>" +
       '<div class="desc">' + esc(x.sp_desc || "") + "</div>" +
-      '<div class="meta">' + esc(x.ps_nombre || "") + " · consume " + esc(x.sc_cod || "") +
+      '<div class="meta">' + esc(x.cp_nombre || "") + (x.sc_cod ? " · consume " + esc(x.sc_cod) : "") +
         " · " + esc(GP2UI.fechaAR(String(x.fecha).slice(0, 10))) + "</div>" +
       '<div class="remito">Remito ' + fmt(Number(x.declarado), 2) + " " + esc(x.unidad) +
         (env ? " · " + fmt(env.factor, 0) + " por " + esc(singular(env.label)) : "") + "</div>" +
@@ -275,7 +296,7 @@ function render() {
       '<th class="num">Contado</th><th class="num">Dif.</th><th class="num">Bultos</th><th>Quién</th></tr></thead><tbody>' +
       D.hechos.map(function (h) {
         var d = Number(h.diff || 0);
-        return "<tr><td>" + esc(h.sp_cod || "") + "</td><td>" + esc(h.ps_nombre || "") + "</td>" +
+        return "<tr><td>" + esc(h.sp_cod || "") + "</td><td>" + esc(h.cp_nombre || "") + "</td>" +
           '<td class="num">' + fmt(Number(h.declarado), 2) + " " + esc(h.unidad) + "</td>" +
           '<td class="num">' + fmt(Number(h.controlado), 2) + " " + esc(h.unidad) + "</td>" +
           '<td class="num ' + (Math.abs(d) < 0.0005 ? "ok" : "mal") + '">' +
@@ -288,7 +309,7 @@ function render() {
 
 async function cargar() {
   $("status").textContent = "Cargando…";
-  var r = await SB.rpc("control_entrega_ps_bundle");
+  var r = await SB.rpc("control_entrega_bundle");
   if (r.error) { $("status").textContent = "Error: " + r.error.message; return; }
   D.pend = (r.data && r.data.pend) || [];
   D.hechos = (r.data && r.data.hechos) || [];
@@ -327,7 +348,7 @@ async function confirmar(card) {
 
   var btn = card.querySelector('button[data-a="ok"]');
   btn.disabled = true; btn.textContent = "Registrando…";
-  var r = await SB.rpc("controlar_entrega_ps", {
+  var r = await SB.rpc("controlar_entrega", {
     p_mov_id: Number(mov), p_cantidad: q,
     p_cajones: (caj > 0 ? caj : null), p_usuario: usuario()
   });

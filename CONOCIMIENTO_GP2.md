@@ -11790,9 +11790,9 @@ que suman las recetas" y lo que muestra la pantalla casi siempre es una de esas 
 
 ## 4ez. Los Pisa Papas (121, 315, 609): el disco con vástago y el armado son de Pettofrezza (2026-09-22)
 
-> ⚠ **CORREGIDA EL 2026-09-23 POR LA §4fk**: el `M1` (disco con vástago) **desaparece** del modelo.
+> ⚠ **CORREGIDA EL 2026-09-23 POR LA §4fl**: el `M1` (disco con vástago) **desaparece** del modelo.
 > A Rafael se le manda el `M2` y el vástago **sueltos**, como cualquier otro componente. Lo que sigue
-> vale como historia de por qué el paso existió un día; el modelo vigente es el de la §4fk.
+> vale como historia de por qué el paso existió un día; el modelo vigente es el de la §4fl.
 
 `[usuario 2026-09-22, textual: "El 121 arma el disco con vástago Rafael Pettofrezza y también lo envasa
 el. Modifica las rutas… y que se le pueda mandar todo en envio talleristas"` y, para los otros dos:
@@ -12071,7 +12071,18 @@ adivina por sector.
 `[usuario, textual]` *"En el módulo de envío a talleristas dentro de la versión tablet, quiero que
 me ordenes no alfanuméricamente, sino que primero me pongas todo lo que se le manda de sector crudo,
 después todo lo de sector procesado, después todo los remaches, después todo lo de partes plásticas,
-después todo lo de cajas y después todo lo de cartones"* + *"me refiero dentro de cada tallerista"*.
+después todo lo de cajas y después todo lo de cartones"* + *"me refiero dentro de cada tallerista"*
++ *"Garage ponelo primero, fleje segundo y bombilla último"*.
+
+**El orden definitivo, el que está en `RUBRO_ORDEN` de `Tablet_GP2.html`:**
+
+| # | Rubro | | # | Rubro |
+|--:|---|---|--:|---|
+| 1 | Garage | | 6 | Plásticas |
+| 2 | Fleje | | 7 | Cajas |
+| 3 | Crudo | | 8 | Cartones |
+| 4 | Procesado | | 9 | Bombilla |
+| 5 | Remaches | | 10 | lo que no esté en la lista |
 
 **El orden de una lista de picking lo dicta el galpón, no el abecedario.** El envío se arma
 caminando: el crudo y el procesado están en un lado, los cartones y las cajas en otro. Alfabético,
@@ -12083,17 +12094,63 @@ medio. Por rubro, cada bloque es una parada.
 qué, el orden nuevo se lee como un desorden: cada bloque lleva su nombre de sector arriba
 (`.pc-rubro`, ancho entero de la grilla, así que a 390px se ve igual).
 
-**Los tres sectores que el usuario no nombró van DESPUÉS, no afuera** `[dato, medido sobre
-GP2.tablet_bundle el 2026-09-23]`: a los talleristas también se les manda **Fleje** (6 filas, 3
-talleristas), **Bombilla** (15 en 5) y **Garage** (11 en 4) — 32 de las 350 filas de Enviar a
-tallerista. Quedan detrás de los cartones, agrupados por sector, hasta que el dueño diga dónde.
-Dejarlos afuera de la lista sería esconder trabajo real.
+**Los tres sectores que el primer pedido no nombró existen, y por eso el orden se cerró en nueve**
+`[dato, medido sobre GP2.tablet_bundle el 2026-09-23]`: a los talleristas también se les manda
+**Fleje** (6 filas, 3 talleristas), **Bombilla** (15 en 5) y **Garage** (11 en 4) — 32 de las 350
+filas de Enviar a tallerista. Quedaron un rato al final por descarte; con el número a la vista el
+dueño los ubicó él (*"Garage ponelo primero, fleje segundo y bombilla último"*). **Lección de
+método: cuando un pedido enumera categorías, contar primero cuántas hay en la base.** Si ese conteo
+no se hacía, 32 filas se decidían solas.
+
+**Un sector que no esté en la lista cae al fondo, detrás de Bombilla.** Hoy no hay ninguno en Enviar
+a tallerista (Movimiento, Terminado y Bolsas Plásticas no llegan). El día que aparezca uno, el lugar
+honesto para algo que nadie clasificó es abajo y a la vista, no colado en el medio.
+
+**El "➕ Otro cartón" cierra el bloque de cartones, no la grilla** `[usuario 2026-09-23: "el módulo
+de otro cartón no lo dejes al final de todo, ponelo a lo último de los cartones"]`. Desde el
+2026-09-21 iba al final de todas las tarjetas, que con una lista alfabética era "al lado de nada";
+con bloques por rubro, "al final" pasó a ser tres bloques debajo de los cartones. **Es un cartón
+más, así que vive donde están los cartones.** Sin bloques (prov. de art. terminado) sigue al final.
 
 **Solo el tallerista.** P.S., prov. de art. terminado e inyector siguen alfabéticos y Recibir no se
 tocó: el pedido fue explícito sobre el tallerista, y el mismo orden se puede extender cuando lo
 pida. **Cero base**: el `sector` de cada pieza ya viajaba en `tablet_bundle.enviar`.
 
-## 4fk. Los Pisa Papas (121, 315, 609): el `M1` desaparece — a Rafael se le manda el disco calado y el vástago suelto (2026-09-23)
+## 4fk. El control ahora también es de los talleristas (2026-09-23)
+
+Cierra lo que §4fh dejó abierto. El circuito del control —remito primero, conteo después— dejó de
+ser sólo del P.S.:
+
+| Antes | Ahora |
+|---|---|
+| `control_entrega_ps_bundle` / `controlar_entrega_ps` | **`control_entrega_bundle`** / **`controlar_entrega`** |
+| tabla `entrega_ps_control` | tabla **`entrega_control`** (misma estructura, 0 filas al renombrar) |
+| sólo movimientos `entrega_ps` | `entrega_ps` **y** `entrega_tallerista`, en una sola lista |
+
+**El envase del tallerista lo dice la PIEZA** (`componente.entrega_unidad` / `entrega_uni_x`: bolsas
+de 120 en GRJ5 y GRJ6, cajones en el resto) y viaja en las mismas claves que el P.S., así que la
+pantalla no aprendió un modelo nuevo. **Quién se pesa lo decide la base** (clave `pesa` del bundle):
+una pieza de tallerista que declara su propio envase **se cuenta y no se pesa** —las bombillas—,
+mientras que la cuchilla va en cajones + kilos y manda el peso. Es exactamente lo que dictó el
+dueño: *"El remito de las bombillas en uni. Control en bolsas. El remito de la cuchilla en kg y
+control kg y cajones (cajones dato)"*.
+
+**LA COLUMNA QUE FALTABA: `movimiento.mov_padre_id`.** Una entrega de tallerista NO es un movimiento
+solo: `crear_entrega_tallerista` escribe el `entrega_tallerista` **y** uno o varios `consumo_tall`
+(la pieza transformada o las partes del BOM). Hasta hoy nada los vinculaba, y **no alcanzaba con la
+fecha**: la Tablet manda día + 12:00, así que todas las entregas del día comparten la misma marca.
+Ahora cada consumo cuelga de su entrega.
+
+**Qué hace el control con esos consumos** `[decisión del dueño, 2026-09-23, entre dos opciones que
+se le plantearon]`: **se escalan con el mismo factor**. Entregó 98 donde el remito decía 100 →
+consumió 98, y el 1:1 y el BOM quedan coherentes. La alternativa (dejarlos en 100 y leer la
+diferencia como merma del tallerista) quedó descartada.
+
+**Y el aviso de "recibí de más" se fue de la recepción del tallerista**, igual que se había ido de
+la del P.S.: ahora tiene dónde compararse de verdad. Al registrar el remito, la Tablet manda
+derecho al control, también en el tallerista.
+
+## 4fl. Los Pisa Papas (121, 315, 609): el `M1` desaparece — a Rafael se le manda el disco calado y el vástago suelto (2026-09-23)
 
 `[usuario 2026-09-23, textual]` *"Va a desaparecer el componente M1. Ahora se le manda el disco
 pizapapa calado. Y el vástago de aluminio a Rafael. Como cualquiera de los otros componentes. Como

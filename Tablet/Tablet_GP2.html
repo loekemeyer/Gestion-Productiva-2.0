@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<!-- v1.33.0 (2026-09-23) — ENVIAR A UN TALLERISTA: LAS PIEZAS VAN POR RUBRO, NO POR CÓDIGO (usuario,
+<!-- v1.34.0 (2026-09-23) — ENVIAR A UN TALLERISTA: LAS PIEZAS VAN POR RUBRO, NO POR CÓDIGO (usuario,
      textual: "quiero que me ordenes no alfanuméricamente, sino que primero me pongas todo lo que se
      le manda de sector crudo, después todo lo de sector procesado, después todo los remaches,
      después todo lo de partes plásticas, después todo lo de cajas y después todo lo de cartones" +
@@ -17,9 +17,16 @@
      LO QUE SE AGREGÓ ADEMÁS DEL ORDEN: un rótulo de sector arriba de cada bloque (.pc-rubro, ancho
      entero de la grilla). Sin él el orden nuevo se lee como un desorden, porque el código ya no
      viene en secuencia y nada explica por qué.
-     LOS TRES SECTORES QUE NO NOMBRÓ VAN AL FINAL, NO AFUERA: medido en la base, a los talleristas
-     también se les manda Fleje (6 filas / 3 talleristas), Bombilla (15 / 5) y Garage (11 / 4) — 32
-     de las 350 filas. Quedan después de los cartones, agrupados por sector, hasta que diga dónde.
+     LOS TRES SECTORES QUE FALTABAN TIENEN SU LUGAR: el pedido nombró seis rubros, pero medido en la
+     base al tallerista también se le manda Fleje (6 filas / 3 talleristas), Bombilla (15 / 5) y
+     Garage (11 / 4) — 32 de las 350 filas. Con eso a la vista el usuario cerró el orden completo
+     ["Garage ponelo primero, fleje segundo y bombilla último"], así que la secuencia definitiva es
+     GARAGE · FLEJE · CRUDO · PROCESADO · REMACHES · PLÁSTICAS · CAJAS · CARTONES · BOMBILLA. Un
+     sector que no esté en esa lista cae al fondo, detrás de Bombilla: hoy no hay ninguno acá, y si
+     aparece, el lugar honesto para algo sin clasificar es abajo y a la vista.
+     Y EL "➕ OTRO CARTÓN" CIERRA EL BLOQUE DE CARTONES, no la grilla [usuario: "el módulo de otro
+     cartón no lo dejes al final de todo, ponelo a lo último de los cartones"]: es un cartón más, y
+     con los bloques dejaba de estar al lado de los cartones. Sin bloques (prov. AT) sigue al final.
      SOLO EL TALLERISTA: P.S., prov. de art. terminado e inyector siguen alfabéticos, y Recibir no
      se tocó. CERO BASE: el sector ya viajaba en cada fila de tablet_bundle.enviar. -->
 <!-- v1.32.0 (2026-09-23) — EL REMITO DEL TALLERISTA TAMBIÉN VA EN UNIDADES (usuario, textual:
@@ -1510,12 +1517,17 @@ function pintarCPS(){
    cada tallerista"]. El envío se arma caminando el galpón, y el abecedario obliga a ir y volver:
    A10 (crudo), BANDITA (cartón), C10 (cartón), CJ7 (caja), F7 (fleje) son cuatro lugares distintos
    en cinco tarjetas. Por rubro, cada bloque es una parada.
-   LOS TRES SECTORES QUE EL USUARIO NO NOMBRÓ VAN DESPUÉS, no afuera: medido en la base el 2026-09-23,
-   los talleristas también reciben Fleje (6 filas, 3 talleristas), Bombilla (15 en 5) y Garage (11 en
-   4), o sea 32 de las 350 filas de Enviar a tallerista. Quedan al final, agrupados por sector, hasta
-   que el usuario diga dónde los quiere.
+   LOS TRES SECTORES QUE FALTABAN TIENEN SU LUGAR, no van "al final" por descarte: el primer pedido
+   nombró seis rubros, pero medido en la base el 2026-09-23 al tallerista también se le manda Fleje
+   (6 filas en 3 talleristas), Bombilla (15 en 5) y Garage (11 en 4) — 32 de las 350 filas. Con eso a
+   la vista el usuario cerró el orden completo [usuario 2026-09-23: "Garage ponelo primero, fleje
+   segundo y bombilla último"], que es el de RUBRO_ORDEN de acá abajo.
+   UN SECTOR QUE NO ESTÉ EN LA LISTA cae al fondo, DESPUÉS de Bombilla: hoy no hay ninguno en Enviar a
+   tallerista (Movimiento, Terminado y Bolsas Plásticas no llegan acá), y si mañana aparece uno, el
+   lugar honesto para algo que nadie clasificó es abajo, a la vista, no colado en el medio.
    Solo el TALLERISTA: el P.S., el prov. de art. terminado y el inyector siguen alfabéticos. */
-var RUBRO_ORDEN = [/crudo/i, /procesado/i, /remache/i, /pl[aá]stico/i, /caja/i, /cart[oó]n/i];
+var RUBRO_ORDEN = [/garage/i, /fleje/i, /crudo/i, /procesado/i, /remache/i, /pl[aá]stico/i,
+                   /caja/i, /cart[oó]n/i, /bombilla/i];
 function rubroDe(x){
   var s = String((x && x.sector) || "");
   // "Sector Bolsas Plásticas" es la resina del inyector, no una parte plástica: al final.
@@ -1524,6 +1536,9 @@ function rubroDe(x){
   }
   return RUBRO_ORDEN.length;
 }
+/* El índice del bloque de CARTONES, calculado y no escrito a mano: ahí termina el "➕ Otro cartón".
+   Si mañana cambia el orden de RUBRO_ORDEN, el botón sigue cayendo donde está el cartón. */
+var RUBRO_CARTON = rubroDe({ sector: "Sector Cartón" });
 /* ¿esta contraparte se muestra en bloques por rubro? Lo consultan el orden y el rótulo de la grilla,
    así no hay dos criterios que se puedan separar. */
 function agrupaPorRubro(c){ return MODO === "enviar" && !!c && c.tipo === "tallerista"; }
@@ -1645,7 +1660,9 @@ function tolExceso(x){ return unidadDe(x) === "kg" ? 0.005 : 0.5; }
 var EXCESO_PCT = 5;
 function exceso(x, q){
   if (MODO !== "recibir" || x.esperado == null || !(q > 0)) return 0;
-  if (selCP && selCP.tipo === "proveedor_servicio") return 0;
+  // el P.S. y el TALLERISTA tienen su pantalla de control: ahí se compara lo contado contra el
+  // remito, que es lo que sí se puede contrastar [usuario 2026-09-23]. Acá no se juzga el papel.
+  if (selCP && (selCP.tipo === "proveedor_servicio" || selCP.tipo === "tallerista")) return 0;
   var esp = Number(x.esperado);
   var d = canonDe(x, q) - esp;
   return d > Math.max(tolExceso(x), esp * EXCESO_PCT / 100) ? d : 0;
@@ -1677,7 +1694,7 @@ function renderCards(){
   if (!arr.length) $("tblEmpty").textContent = "Sin resultados para ese filtro.";
   // Los BLOQUES POR RUBRO del tallerista: un rótulo cada vez que cambia el sector. Sin él el orden
   // nuevo se lee como un desorden (el código ya no viene en orden y no se ve por qué).
-  var enBloques = agrupaPorRubro(selCP), ultRubro = null;
+  var enBloques = agrupaPorRubro(selCP), ultRubro = null, ultCarton = null;
   arr.forEach(function(x){
     if (enBloques) {
       var srub = String(x.sector || "Sin sector");
@@ -1720,6 +1737,7 @@ function renderCards(){
           (ex > 0 ? '<span class="pc-demas">⚠ ' + fmt(ex, unidadDe(x) === "kg" ? 2 : 0) + " de más</span>" : "")
         : "sin cargar") + "</span>";
     g.appendChild(b);
+    if (enBloques && rubroDe(x) === RUBRO_CARTON) ultCarton = b;   // dónde termina el cartón
   });
   // ➕ Otro cartón: al final de las suyas, porque es la excepción y no la regla [usuario 2026-09-21]
   if (puedeSustituir()) {
@@ -1729,7 +1747,11 @@ function renderCards(){
     bo.dataset.otro = "1";
     bo.innerHTML = '<span class="pc-cod">➕ Otro cartón</span>' +
       '<span class="pc-desc">sin stock del que va: mandá el de otro artículo y pegale la etiqueta</span>';
-    g.appendChild(bo);
+    // CIERRA EL BLOQUE DE CARTONES, no la grilla [usuario 2026-09-23: "el módulo de otro cartón no
+    // lo dejes al final de todo, ponelo a lo último de los cartones"]: es un cartón más, y el que
+    // está cargando cartones lo tiene que tener ahí mismo, no dos bloques más abajo. Sin bloques
+    // (prov. de art. terminado) o si no hay ningún cartón en la lista, sigue al final.
+    if (ultCarton) g.insertBefore(bo, ultCarton.nextSibling); else g.appendChild(bo);
   }
   actualizar();
 }
@@ -2230,7 +2252,7 @@ $("btnEnviar").addEventListener("click", async function(){
     // cartel intermedio, igual que la recepción de insumos [usuario 2026-09-03: "me gusta que me
     // mande directo como en el caso de flejes"]. ÚNICA excepción: si quedó una alerta de "recibí de
     // más" no se salta la pantalla — ahí el operario tiene que leerla, y va con un botón.
-    if (MODO === "recibir" && selCP.tipo === "proveedor_servicio") {
+    if (MODO === "recibir" && (selCP.tipo === "proveedor_servicio" || selCP.tipo === "tallerista")) {
       if (!al.length) { window.location.href = "ControlEntregaPS_GP2.html"; return; }
       $("successAlertas").innerHTML +=
         '<div class="row" style="justify-content:center;margin-top:10px">' +
@@ -2253,7 +2275,7 @@ cargar();
    link queda diciendo "Control" y la tablet funciona igual. */
 (async function () {
   try {
-    var r = await SB.rpc("control_entrega_ps_bundle");
+    var r = await SB.rpc("control_entrega_bundle");
     var n = ((r && r.data && r.data.pend) || []).length;
     var a = $("lnkControl");
     if (a && n) a.textContent = "Control (" + n + ")";
