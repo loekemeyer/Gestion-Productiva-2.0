@@ -12194,19 +12194,42 @@ kilo**: la planilla lo suma tal cual a un costo de artículo de $1.025,59, y GP2
 $561,26 justamente porque el vástago entra en cero. Dos cosas lo mantienen en cero y hay que
 arreglar las dos: `estado_compra='discontinuo'` (herencia de la decisión del 2026-08-31 *"el remache
 de aluminio no va más"*, que **la planilla vigente desmiente**) y **cero filas en
-`precio_proveedor`**. Con el precio cargado los tres artículos suben ~$448,54 cada uno.
+`precio_proveedor`**. Las dos se arreglaron el mismo día con el "sí" del dueño.
 
-**Lo que falta, y no se inventa:**
-1. **El `M2` no tiene fila de `inventario` en la ubicación de Pettofrezza (31)** — sólo en Sector
-   Procesado. `recalcular_maximos_talleristas` **sólo actualiza filas que existen, no las crea**, así
-   que sin esa fila el Envío a Talleristas no le puede poner máximo ni sugerido al disco calado, que
-   es justo la pieza que ahora se le manda.
-2. **Pettofrezza sigue sin precio para el 121** (el $85 era de Cavallero, que quedó sin rutas). El
-   315 y el 609 tienen $140 "AyE". Con el `M1` afuera el trabajo de Rafael es **un solo paso**, así
-   que el "AyE" ya cubre poner el vástago en el disco — deja de tener sentido la pregunta del
-   2026-09-22 sobre si el disco con vástago se cobraba aparte.
-3. **Filas huérfanas de Cavallero German**: le quedan `inventario` de `M1` y de `V18C` en la
-   ubicación 24, las dos en 0, de cuando hacía el 121.
+**EJECUTADO el 2026-09-23** (`db/migracion_m1_desaparece.sql`, bloques A y B), con este efecto
+medido en `v_costo_componente`:
+
+| | Antes | Después |
+|---|---|---|
+| 315 | $561,26 | **$1.009,79** |
+| 609 | $500,00 | **$948,53** |
+| 121 | $397,49 | **$846,02** |
+| `V18` | $0,00 (origen `ruta`) | **$448,54** (origen `precio`) |
+
+La planilla pone el 315 en $1.025,59, o sea que quedan **$15,80** de diferencia — y encima GP2 usa
+el tallerista de Pettofrezza ($140) donde la planilla usa el de Cavallero ($85), así que el resto
+tendría que dar $55 MENOS que la planilla. Hay ~$71 repartidos en otras líneas sin perseguir.
+`db/verificar.sql`: invariantes de modelo en 0. La única regla > 0 quedó en
+`AE_paso_virgilio_y_codigo_dan_distinto = 2`, y **es ajena a esto**: los artículos **567 "Corta
+Palta"** y **537 "Pela y Pica Ajo"** tienen componente terminado en el sector 12 pero **0 rutas y 0
+receta** — están creados y sin cargar.
+
+**Lo que se hizo además del cambio en sí, y por qué:**
+1. **Se creó la fila de `inventario` del `M2` en la ubicación de Pettofrezza (31)**, que no existía
+   (sólo estaba en Sector Procesado). `recalcular_maximos_talleristas` **sólo actualiza filas que
+   existen, no las crea**: sin esa fila el Envío a Talleristas no le podía poner máximo ni sugerido
+   al disco calado, que es justo la pieza que ahora se le manda. Después del recálculo, el `M2` y el
+   `V18` quedaron los dos en **máximo 5.078** (`est_madre_x_reparto`) en la ubicación de Rafael.
+2. **Se borraron las filas huérfanas de Cavallero German** (`M1` y `V18C` en la ubicación 24, las
+   dos en 0, de cuando hacía el 121).
+
+**Lo único que sigue faltando: Pettofrezza no tiene precio para el 121** (el $85 era de Cavallero,
+que quedó sin rutas). El 315 y el 609 tienen $140 "AyE". Con el `M1` afuera el trabajo de Rafael es
+**un solo paso**, así que el "AyE" ya cubre poner el vástago en el disco — deja de tener sentido la
+pregunta del 2026-09-22 sobre si el disco con vástago se cobraba aparte. **Ojo con el semáforo**: el
+121 quedó con `faltan_precios = 0` y `servicios_pesos = 0,00` al mismo tiempo, o sea que **un
+servicio de tallerista sin precio NO se denuncia como faltante** (el 609 sí marca 1, por otra
+pieza). No confiarse de ese contador para saber si un armado se está cobrando.
 
 **Y a Pettofrezza NO se le recibe más nada — eso está bien y no necesita código**
 `[usuario 2026-09-23: "Ya no recibiríamos más del tallerista Pettofrezza Rafael", con la pantalla a

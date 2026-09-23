@@ -2,9 +2,21 @@
 -- El M1 desaparece: a Rafael se le manda el disco calado y el vástago sueltos
 -- Artículos 121, 315 y 609 (Pisa Papas).  Pedido de Thomas, 2026-09-23.
 --
--- ⚠ NADA DE ESTO ESTÁ EJECUTADO. Espera el "sí" del dueño (regla del 26/08).
---   El bloque A es el cambio de producto. El bloque B (el precio del vástago)
---   va APARTE y necesita su propio "sí", porque mueve el costo de 3 artículos.
+-- ✅ APLICADO EL 2026-09-23, bloques A y B, con el "sí" de Thomas.
+--   El bloque A es el cambio de producto. El bloque B es el precio del vástago.
+--   Verificado: las 6 rutas sin el M1, las 3 recetas con M2 + V18, el M1 borrado,
+--   el disco calado y el vástago con máximo 5.078 en la ubicación de Pettofrezza,
+--   e invariantes de modelo de db/verificar.sql en 0 (la única fila > 0 es
+--   AE_paso_virgilio_y_codigo_dan_distinto = 2, y es AJENA: los artículos 567
+--   "Corta Palta" y 537 "Pela y Pica Ajo", que tienen componente terminado pero
+--   0 rutas y 0 receta; ya estaba antes de tocar nada).
+--
+--   Costo por artículo, medido antes y después:
+--     121  $397,49 -> $846,02      315  $561,26 -> $1.009,79
+--     609  $500,00 -> $948,53      V18  $0,00   -> $448,54 (origen 'precio')
+--   La planilla del dueño pone el 315 en $1.025,59: quedan $15,80 de diferencia,
+--   con GP2 usando el tallerista de Pettofrezza ($140) donde la planilla usa el
+--   de Cavallero ($85). Sin perseguir todavía.
 --
 -- Estado medido el 2026-09-23 antes de tocar nada:
 --   M1  = componente 146 "Disco Inox C/Vastago Alu" (Sector Procesado)
@@ -152,7 +164,7 @@ select comp_id, codigo, round(material_pesos,2) material, round(servicios_pesos,
 
 
 -- ============================================================================
--- BLOQUE B — el precio del vástago  ⚠ NECESITA UN "SÍ" APARTE
+-- BLOQUE B — el precio del vástago  ✅ APLICADO (precio_proveedor id 378)
 -- ============================================================================
 -- Hoy el vástago se costea en $0 y por eso los tres artículos salen baratos.
 -- La planilla del dueño (A_Costos_VIGENTES) lo costea en 448,5373 POR UNIDAD:
@@ -162,11 +174,15 @@ select comp_id, codigo, round(material_pesos,2) material, round(servicios_pesos,
 -- Efecto en cadena: los tres artículos suben ~$448,54 cada uno. El 315 pasa de
 -- $561,26 a ~$1.010, que es la dirección de los $1.025,59 de la planilla.
 --
--- insert into "GP2".precio_proveedor
---   (rubro, cod_prov, producto, precio, moneda, fecha_lista, componente_id, precio_por_kg)
--- values ('Materiales', '890',
---   'Remache Pisapapas 8 x 97 — planilla A Costos VIGENTES, hoja "Lista de Precios ", fila 171, cod ISIS 0885',
---   448.5373, 'ARS', '2026-07-08', 282, false);
+insert into "GP2".precio_proveedor
+  (rubro, cod_prov, producto, precio, moneda, fecha_lista, componente_id, precio_por_kg)
+values ('Materiales', '890',
+  'Remache Pisapapas 8 x 97 (Bella Vista) — planilla A Costos VIGENTES, hoja "Lista de Precios ", fila 171, cod ISIS 0885. Por UNIDAD: v_planilla_costo de los codigos 121 y 315 lo suma tal cual en la columna remaches',
+  448.5373, 'ARS', '2026-07-08', 282, false);
+-- Medido después: V18 pasa a $448,54 con origen 'precio', y los tres artículos
+-- suben ese mismo monto. Si algún día se descubre que era por kilo, se corrige
+-- con precio_por_kg = true (el costo quedaría en $6,44/uni) — pero la fórmula
+-- de la planilla ='Lista de Precios '!L171 lo suma sin multiplicar por kg_x_uni.
 
 
 -- ============================================================================
