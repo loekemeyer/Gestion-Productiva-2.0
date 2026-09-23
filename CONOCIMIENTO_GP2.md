@@ -12011,3 +12011,54 @@ envase es lo único que hay y con eso alcanza.
   vale 5. **Antes compartía `tol_ctrl_peso_pct` con el pesaje de insumos, que sigue en 2 %.**
 - el 5 % del aviso al recibir: `exceso()` de la Tablet y el `if` de `GP2.tablet_registrar`, con el
   piso de media unidad (5 gramos en kg) de §4ff para el caso de esperado 0.
+
+## 4fh. El remito del tallerista también va en unidades (2026-09-23)
+
+`[usuario, textual]`: *"Hicimos todas las recepciones de proveedores de servicio. Ahora seguimos con
+las recepciones de talleristas. Lucho. Remito en unidades y control en kg y cajones (acordate de
+hacer el control por kg — cajones es solo dato)"*.
+
+Misma regla que §4fd, del otro lado: lo que se carga en la Tablet es **el papel**, y el papel viene
+en unidades de la pieza. Da vuelta la v1.19.0 de la Tablet (*"de talleristas, todos se entregan en
+cajones… en recibido va a ser en kilos"*, 18/09), escrita cuando lo que se cargaba ahí era lo
+contado. `componente.entrega_unidad` / `entrega_uni_x` (las bolsas de 120 de GRJ5 y GRJ6) **no se
+tocan**: son el envase con el que se va a contar en el control.
+
+**Lo que todavía NO existe: el control de talleristas.** `ControlEntregaPS_GP2.html` y su circuito
+(`control_entrega_ps_bundle`, `controlar_entrega_ps`, `entrega_ps_control`) sólo miran movimientos
+`entrega_ps`. Por eso el aviso del 5 % al recibir de un tallerista **sigue vivo** en la Tablet: es
+la única red que queda hasta que el control exista. El día que exista, esa comparación se va de la
+recepción igual que se fue la del P.S.
+
+**La decisión que hay que tomar antes de construirlo** (planteada al dueño el 2026-09-23): la
+entrega de un tallerista NO es un movimiento solo. `crear_entrega_tallerista` escribe el
+`entrega_tallerista` de la pieza que entra **y** uno o varios `consumo_tall` (la pieza que
+transformó, o las partes del BOM), todos con la misma cantidad y sin columna que los vincule.
+Si el control pisa la cantidad de la entrega, hay que decidir qué pasa con esos consumos:
+
+| Opción | Qué significa |
+|---|---|
+| **Escalar** los consumos por el mismo factor | entregó 98 de 100 → consumió 98: el 1:1 y el BOM quedan coherentes |
+| **Dejarlos** con lo declarado | entregó 98 y consumió 100: los 2 que faltan son merma del tallerista |
+
+No es lo mismo para el stock del tallerista, y lo tiene que decir el dueño.
+
+## 4fi. La unidad del remito la dice la PIEZA, no el destino (2026-09-23)
+
+`[usuario, textual]`: *"Martin Cornejo. El remito de las bombillas en uni. Control en bolsas. El
+remito de la cuchilla en kg y control kg y cajones (cajones dato)"*.
+
+Esto corrige el §4fh del mismo día, que había dejado **todo** el remito del tallerista en unidades:
+**dos piezas del MISMO tallerista vienen en unidades distintas**. Las bombillas (GRJ5/GRJ6) se
+cuentan; la cuchilla (X4) se pesa. No lo decide el destino ni el sector: es una propiedad de la
+pieza.
+
+**Columna nueva `componente.remito_unidad`** (`'uni'` | `'kg'`, NULL = la unidad canónica).
+`tablet_bundle` la manda en cada fila de Recibir y la Tablet la usa para el stock que muestra, para
+el campo y para lo que viaja a la base (`uniRemito()` / `cargaEnKg()`). El envase del control
+(`entrega_unidad` / `entrega_uni_x`, las bolsas de 120 de GRJ5 y GRJ6) **no se toca**: es otra cosa.
+
+**Lo dictado hasta ahora**, para cargar el dato: X4 (Cuchilla Pelapapa Cerrada) en **kg**; bombillas
+GRJ5/GRJ6 en **uni**; J1 de Lucho en **uni**; E4 de Scorrano en **uni**. Todo lo demás queda en su
+unidad canónica (uni) hasta que el dueño diga lo contrario — el dato se carga pieza por pieza, no se
+adivina por sector.

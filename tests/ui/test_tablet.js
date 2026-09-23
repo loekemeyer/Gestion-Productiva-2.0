@@ -94,6 +94,10 @@ const BUNDLE = {
     { tipo: 'tallerista', ref: '6', comp_id: 541, comp_entrada_id: null, n_entradas: 0, tiene_bom: false, cod_art: null, cod: 'GRJ5', desc: 'Bombilla Resorte Trad 558', sector: 'Sector Garage', um: 'unidad', uxc: 960, kg_x_uni: 0.0147, por_caja: null, ent_cod: null, ent_desc: null, esperado: 360, esperado_origen: 'online_tall', env_unidad: 'bolsas', env_factor: 120, env_carga: 'kg' },
     // el tallerista NO tiene nada nuestro de esta pieza: la base manda esperado 0 (coalesce), y la
     // pantalla tiene que DECIR 0, no dejar el lugar en blanco [usuario 2026-09-21]
+    // LA CUCHILLA VIENE PESADA y las bombillas contadas, las dos del mismo tallerista
+    // [usuario 2026-09-23: "El remito de las bombillas en uni... El remito de la cuchilla en kg"]:
+    // lo dice la pieza, en componente.remito_unidad, que el bundle manda en la fila.
+    { tipo: 'tallerista', ref: '6', comp_id: 73, comp_entrada_id: 74, n_entradas: 1, tiene_bom: false, cod_art: null, cod: 'X4', desc: 'Cuchilla Pelapapa Cerrada', sector: 'Sector Crudo', um: 'unidad', uxc: 4004, kg_x_uni: 0.00492, por_caja: null, ent_cod: 'X1', ent_desc: 'Cuchilla Pelapapa Abierta', esperado: 4004, esperado_origen: 'online_tall', env_unidad: 'cajones', env_factor: 4004, env_carga: 'kg', remito_unidad: 'kg' },
     { tipo: 'tallerista', ref: '6', comp_id: 72, comp_entrada_id: null, n_entradas: 0, tiene_bom: false, cod_art: null, cod: 'A12', desc: 'Una Armada Chica', sector: 'Sector Procesado', um: 'unidad', uxc: 500, kg_x_uni: 0.01, por_caja: null, ent_cod: null, ent_desc: null, esperado: 0, esperado_origen: 'online_tall', env_unidad: 'cajones', env_factor: 500, env_carga: 'kg' },
     { tipo: 'proveedor_at', ref: '1', comp_id: null, comp_entrada_id: null, n_entradas: 0, tiene_bom: false, cod_art: '026', cod: '026', desc: 'Colador N°8', sector: null, um: null, uxc: null, kg_x_uni: null, por_caja: 36, ent_cod: null, ent_desc: null, esperado: 72, esperado_origen: 'oc' },
     { tipo: 'proveedor_servicio', ref: '20', comp_id: 91, comp_entrada_id: 90, n_entradas: 1, tiene_bom: false, cod_art: null, cod: 'D5-P', desc: 'Mitad pintada', sector: 'Sector Procesado', um: 'unidad', uxc: 500, kg_x_uni: 0.05, por_caja: null, ent_cod: 'D5', ent_desc: 'Mitad rompenuez', esperado: 40, esperado_origen: 'online_ps' },
@@ -647,50 +651,56 @@ window.supabase = { createClient: function(){ return {
   ok(await page.$eval('#tblWrap', e => e.classList.contains('hidden')),
      'Recibir de tallerista: tarjetas, no tabla');
   let rcards = await cards();
-  ok(rcards.length === 3, 'Recibir: una tarjeta por pieza (3) — ' + rcards.length);
+  ok(rcards.length === 4, 'Recibir: una tarjeta por pieza (4) — ' + rcards.length);
   const rDe = (cod) => rcards.find(c => c.startsWith(cod));
   // el rotulo del numero de referencia dice DE QUIEN es el stock [usuario 2026-09-21: "en vez de
   // esperado quiero que diga Stock tallerista o stock proveedor de servicio segun corresponda"]
-  ok(rDe('A11').includes('Una Armada') && rDe('A11').includes('Stock tallerista 2 cajones'),
-     'A11: el stock del tallerista se mira en CAJONES (1.000 uni / 500) — ' + rDe('A11'));
+  // EL REMITO DEL TALLERISTA TAMBIEN VA EN UNIDADES [usuario 2026-09-23: "Ahora seguimos con las
+  // recepciones de talleristas. Lucho. Remito en unidades y control en kg y cajones"]: el cajon y
+  // el kilo se cuentan en el control, no acá.
+  ok(rDe('A11').includes('Una Armada') && rDe('A11').includes('Stock tallerista 1.000 uni'),
+     'A11: el stock del tallerista se mira en UNIDADES, como el remito — ' + rDe('A11'));
   ok(!rDe('A11').includes('Esperado'), 'A11: ya no dice "Esperado" — ' + rDe('A11'));
-  ok(rDe('A11').includes('kg'), 'A11: la cantidad se escribe en kg — ' + rDe('A11'));
+  ok(!rDe('A11').includes('cajones') && !rDe('A11').includes('cajón'),
+     'A11: el cajón no aparece en el remito (es del control) — ' + rDe('A11'));
   // sin stock la tarjeta dice 0, no queda en blanco [usuario 2026-09-21: "pero que me diga 0 si
-  // no tiene stock"]. Antes textoEnvases() devolvia "" con el cero y se leia "Stock tallerista" solo.
-  ok(rDe('A12').includes('Stock tallerista 0 cajones'),
+  // no tiene stock"].
+  ok(rDe('A12').includes('Stock tallerista 0 uni'),
      'A12: sin stock el numero es 0, no se deja en blanco — ' + rDe('A12'));
-  ok(rDe('GRJ5').includes('Stock tallerista 3 bolsas'),
-     'GRJ5: la excepcion son BOLSAS de 120 (360 uni = 3 bolsas) — ' + rDe('GRJ5'));
+  ok(rDe('GRJ5').includes('Stock tallerista 360 uni'),
+     'GRJ5: las bolsas de 120 tampoco mandan en el remito (360 uni) — ' + rDe('GRJ5'));
+  // Y LA CUCHILLA, DEL MISMO TALLERISTA, VIENE PESADA: 4.004 uni x 0,00492 = 19,70 kg
+  ok(rDe('X4').includes('Stock tallerista 19,7 kg'),
+     'X4: la pieza con remito_unidad kg se mira en kilos — ' + rDe('X4'));
   await page.fill('#fRemito', 'R-0001');
   // y el 0 tambien se ve adentro de la parte, que es donde el numero va grande
   await abrir('A12');
   const detA12 = await det();
-  ok(detA12.includes('Stock tallerista') && detA12.includes('0 cajones'),
-     'A12: la vista de la parte tambien dice 0 cajones — ' + detA12);
+  ok(detA12.includes('Stock tallerista') && detA12.includes('0 uni'),
+     'A12: la vista de la parte tambien dice 0, en unidades — ' + detA12);
   await page.click('#btnVolverPartes');
   await abrir('A11');
   const detA11 = await det();
-  ok(detA11.includes('Stock tallerista') && detA11.includes('2 cajones') && detA11.includes('Cantidad') &&
+  ok(detA11.includes('Stock tallerista') && detA11.includes('1.000 uni') && detA11.includes('Cantidad') &&
      !detA11.includes('Esperado') && !detA11.includes('Sugerido') && !detA11.includes('Recibido'),
      'A11: la vista dice Stock tallerista y Cantidad (no esperado, sugerido ni recibido) — ' + detA11);
-  ok((await page.$eval('#detCard .det-uni', e => e.textContent.trim())) === 'kg',
-     'A11: la cantidad se escribe en kg');
+  ok((await page.$eval('#detCard .det-uni', e => e.textContent.trim())) === 'uni',
+     'A11: la cantidad del remito se escribe en unidades');
   // EL UMBRAL ES 5 % [usuario 2026-09-23]: 10,3 kg = 1.030 uni contra 1.000 esperadas es 3 % y no
   // dispara nada. El aviso es para una diferencia que importa, no para cualquier decimal.
-  await page.fill(DQ, '10,3');
+  await page.fill(DQ, '1030');
   await page.click('#btnVolverPartes');
   ok(!/de m[aá]s/i.test((await cards()).find(c => c.startsWith('A11')) || ''),
      'tallerista: 3 % de diferencia no dispara el aviso (el umbral es 5 %)');
   await abrir('A11');
-  // 13 kg = 1.300 unidades contra 1.000 esperadas: avisa 300 de mas, y NO frena
-  await page.fill(DQ, '13');
-  ok((await page.$eval('#detCard .det-eq', e => e.textContent.trim())) === '= 2,6 cajones',
-     'A11: debajo del campo, a cuantos cajones equivalen los kg (con decimales) — ' +
-     (await page.$eval('#detCard .det-eq', e => e.textContent.trim())));
+  // 1.300 unidades contra 1.000 esperadas: avisa 300 de mas, y NO frena
+  await page.fill(DQ, '1300');
+  ok((await page.$$eval('#detCard .det-eq', ns => ns.map(n => n.textContent.trim()).join(''))) === '',
+     'A11: en unidades no hay renglón de equivalencia (el cajón se cuenta en el control)');
   await page.click('#btnVolverPartes');
   rcards = await cards();
   ok(rDe('A11') !== undefined && (await cards()).find(c => c.startsWith('A11')).includes('300 de m\u00e1s'),
-     'la tarjeta avisa "300 de mas" (13 kg = 1.300 uni contra 1.000) — ' + (await cards())[0]);
+     'la tarjeta avisa "300 de mas" (1.300 uni contra 1.000) — ' + (await cards())[0]);
   ok(!(await page.$eval('#alertaBox', e => e.classList.contains('hidden'))) && (await page.$eval('#alertaBox', e => e.textContent)).includes('registrar igual'),
      'el cartel dice que se puede registrar igual');
   ok((await page.$eval('#btnEnviar', e => !e.disabled && e.textContent === 'Recibir (1)')), 'el boton Recibir sigue habilitado: la alerta NO bloquea');
@@ -704,10 +714,11 @@ window.supabase = { createClient: function(){ return {
   p = reg[reg.length - 1].args.p;
   ok(p.modo === 'recibir' && p.tipo === 'tallerista' && p.ref === '6' && p.remito === 'R-0001', 'payload recibir con remito');
   const it = p.items[0];
-  // viaja el KG, y el esperado viaja EN KG tambien (1.000 uni x 0,01): la base los compara crudos
-  ok(it.comp_id === 71 && it.comp_entrada_id === 70 && it.cantidad === 13 && it.unidad === 'kg' &&
-     it.esperado === 10 && it.esperado_origen === 'online_tall',
-     'item tallerista: 13 kg contra 10 kg esperados, mismo idioma — ' + JSON.stringify(it));
+  // viaja la UNIDAD de la pieza y el esperado en la misma unidad: la base los compara crudos. El
+  // kilo y el cajón se cuentan en el control, no en el remito [usuario 2026-09-23].
+  ok(it.comp_id === 71 && it.comp_entrada_id === 70 && it.cantidad === 1300 && it.unidad === 'uni' &&
+     it.esperado === 1000 && it.esperado_origen === 'online_tall',
+     'item tallerista: 1.300 uni contra 1.000 esperadas, mismo idioma — ' + JSON.stringify(it));
   ok((await page.$eval('#successAlertas', e => e.textContent)).includes('Quedó anotado para revisar'),
      'el exito muestra la alerta que devolvio la base');
 
