@@ -152,10 +152,12 @@ window.supabase = { createClient: function(){ return {
       return { data: { oficiales: c.oficiales, otros: OTROS }, error: null };
     }
     if(name==='tablet_registrar'){
-      // igual que la base: alerta por item recibido con esperado y recibido > esperado
+      // igual que la base: alerta por item recibido con esperado y recibido > esperado + 5 %, y
+      // NUNCA para un P.S. ni para un tallerista, que tienen su pantalla de control [2026-09-23]
       var p = args.p, al = [];
       (p.items||[]).forEach(function(it){
-        if(p.modo==='recibir' && it.esperado != null && it.cantidad > it.esperado)
+        if(p.modo==='recibir' && p.tipo !== 'proveedor_servicio' && p.tipo !== 'tallerista' &&
+           it.esperado != null && it.cantidad > it.esperado * 1.05)
           al.push({ id: 900+al.length, cod: it.cod_art || ('comp'+it.comp_id), esperado: it.esperado, recibido: it.cantidad, exceso: it.cantidad-it.esperado });
       });
       return { data: { ok:true, n:(p.items||[]).length, contraparte:'X', modo:p.modo, items:[], alertas: al }, error: null };
@@ -686,31 +688,27 @@ window.supabase = { createClient: function(){ return {
      'A11: la vista dice Stock tallerista y Cantidad (no esperado, sugerido ni recibido) — ' + detA11);
   ok((await page.$eval('#detCard .det-uni', e => e.textContent.trim())) === 'uni',
      'A11: la cantidad del remito se escribe en unidades');
-  // EL UMBRAL ES 5 % [usuario 2026-09-23]: 10,3 kg = 1.030 uni contra 1.000 esperadas es 3 % y no
-  // dispara nada. El aviso es para una diferencia que importa, no para cualquier decimal.
-  await page.fill(DQ, '1030');
-  await page.click('#btnVolverPartes');
-  ok(!/de m[aá]s/i.test((await cards()).find(c => c.startsWith('A11')) || ''),
-     'tallerista: 3 % de diferencia no dispara el aviso (el umbral es 5 %)');
-  await abrir('A11');
-  // 1.300 unidades contra 1.000 esperadas: avisa 300 de mas, y NO frena
+  // EL REMITO DEL TALLERISTA TAMPOCO SE JUZGA ACÁ [usuario 2026-09-23]: desde que el tallerista
+  // tiene su control, cargar más de lo que la base cree que tiene no dispara ningún cartel. La
+  // diferencia se mira en ControlEntregaPS, contra el remito.
   await page.fill(DQ, '1300');
   ok((await page.$$eval('#detCard .det-eq', ns => ns.map(n => n.textContent.trim()).join(''))) === '',
      'A11: en unidades no hay renglón de equivalencia (el cajón se cuenta en el control)');
   await page.click('#btnVolverPartes');
   rcards = await cards();
-  ok(rDe('A11') !== undefined && (await cards()).find(c => c.startsWith('A11')).includes('300 de m\u00e1s'),
-     'la tarjeta avisa "300 de mas" (1.300 uni contra 1.000) — ' + (await cards())[0]);
-  ok(!(await page.$eval('#alertaBox', e => e.classList.contains('hidden'))) && (await page.$eval('#alertaBox', e => e.textContent)).includes('registrar igual'),
-     'el cartel dice que se puede registrar igual');
-  ok((await page.$eval('#btnEnviar', e => !e.disabled && e.textContent === 'Recibir (1)')), 'el boton Recibir sigue habilitado: la alerta NO bloquea');
+  ok(!/de m[aá]s/i.test((await cards()).find(c => c.startsWith('A11')) || ''),
+     'tallerista: 1.300 contra 1.000 ya no es "de más" — el juicio va al control');
+  ok(await page.$eval('#alertaBox', e => e.classList.contains('hidden')),
+     'tallerista: tampoco aparece el cartel de "recibiendo más de lo esperado"');
+  ok((await page.$eval('#btnEnviar', e => !e.disabled && e.textContent === 'Recibir (1)')), 'el boton Recibir sigue habilitado');
 
   dialogs.length = 0;
   await page.click('#btnEnviar');
-  await page.waitForFunction(() => !document.getElementById('fase3').classList.contains('hidden'));
-  ok(dialogs.some(d => d.type === 'confirm' && d.msg.includes('Recibir de Martin Cornejo') && d.msg.includes('se registra igual')),
-     'confirm de recepcion avisa el exceso y sigue');
-  reg = await calls('tablet_registrar');
+  // DESPUÉS DEL REMITO VIENE EL CONTROL, también en el tallerista: la tablet se va sola a la
+  // pantalla de control, igual que con el P.S. [usuario 2026-09-23].
+  await page.waitForFunction(() => location.pathname.endsWith('ControlEntregaPS_GP2.html'));
+  ok(true, 'tallerista: al registrar el remito la tablet manda al control');
+  reg = await callsSS('tablet_registrar');
   p = reg[reg.length - 1].args.p;
   ok(p.modo === 'recibir' && p.tipo === 'tallerista' && p.ref === '6' && p.remito === 'R-0001', 'payload recibir con remito');
   const it = p.items[0];
@@ -719,8 +717,6 @@ window.supabase = { createClient: function(){ return {
   ok(it.comp_id === 71 && it.comp_entrada_id === 70 && it.cantidad === 1300 && it.unidad === 'uni' &&
      it.esperado === 1000 && it.esperado_origen === 'online_tall',
      'item tallerista: 1.300 uni contra 1.000 esperadas, mismo idioma — ' + JSON.stringify(it));
-  ok((await page.$eval('#successAlertas', e => e.textContent)).includes('Quedó anotado para revisar'),
-     'el exito muestra la alerta que devolvio la base');
 
   // ── RECIBIR DE UN P.S.: tarjetas, y EL REMITO EN UNIDADES ──────────────
   // [usuario 2026-09-23, sobre cinco proveedores el mismo dia: "cuando voy a recibir de AJ adhesivos
@@ -728,7 +724,11 @@ window.supabase = { createClient: function(){ return {
   // idem Ester, Hernandez Julio, Jade y Maspoli]. Lo que se carga aca es EL REMITO y va en unidades
   // de la pieza; el envase (bolsas, paquetes, cajones) y los kilos son del CONTROL, la pantalla
   // siguiente. Da vuelta la regla de v1.20.0, que es de antes de que el control existiera.
-  await page.click('#btnOtro');
+  // se vuelve del control con un goto: la recepcion del tallerista ya no termina en la fase
+  // de exito, se va derecho a controlar [2026-09-23]
+  await page.goto(ROOT + '/Tablet/Tablet_GP2.html');
+  await page.waitForFunction(() => document.querySelectorAll('#modos button').length > 0);
+  await page.click('#modos button[data-modo="recibir"]');
   await page.waitForFunction(() => document.querySelectorAll('#tipoGrid .tipo-btn').length > 0);
   await page.click('#tipoGrid .tipo-btn[data-tipo="proveedor_servicio"]');
   await page.click('#cpGrid .prov-btn:has-text("Guazzaroni")');

@@ -12062,3 +12062,37 @@ el campo y para lo que viaja a la base (`uniRemito()` / `cargaEnKg()`). El envas
 GRJ5/GRJ6 en **uni**; J1 de Lucho en **uni**; E4 de Scorrano en **uni**. Todo lo demás queda en su
 unidad canónica (uni) hasta que el dueño diga lo contrario — el dato se carga pieza por pieza, no se
 adivina por sector.
+
+## 4fj. El control ahora también es de los talleristas (2026-09-23)
+
+Cierra lo que §4fh dejó abierto. El circuito del control —remito primero, conteo después— dejó de
+ser sólo del P.S.:
+
+| Antes | Ahora |
+|---|---|
+| `control_entrega_ps_bundle` / `controlar_entrega_ps` | **`control_entrega_bundle`** / **`controlar_entrega`** |
+| tabla `entrega_ps_control` | tabla **`entrega_control`** (misma estructura, 0 filas al renombrar) |
+| sólo movimientos `entrega_ps` | `entrega_ps` **y** `entrega_tallerista`, en una sola lista |
+
+**El envase del tallerista lo dice la PIEZA** (`componente.entrega_unidad` / `entrega_uni_x`: bolsas
+de 120 en GRJ5 y GRJ6, cajones en el resto) y viaja en las mismas claves que el P.S., así que la
+pantalla no aprendió un modelo nuevo. **Quién se pesa lo decide la base** (clave `pesa` del bundle):
+una pieza de tallerista que declara su propio envase **se cuenta y no se pesa** —las bombillas—,
+mientras que la cuchilla va en cajones + kilos y manda el peso. Es exactamente lo que dictó el
+dueño: *"El remito de las bombillas en uni. Control en bolsas. El remito de la cuchilla en kg y
+control kg y cajones (cajones dato)"*.
+
+**LA COLUMNA QUE FALTABA: `movimiento.mov_padre_id`.** Una entrega de tallerista NO es un movimiento
+solo: `crear_entrega_tallerista` escribe el `entrega_tallerista` **y** uno o varios `consumo_tall`
+(la pieza transformada o las partes del BOM). Hasta hoy nada los vinculaba, y **no alcanzaba con la
+fecha**: la Tablet manda día + 12:00, así que todas las entregas del día comparten la misma marca.
+Ahora cada consumo cuelga de su entrega.
+
+**Qué hace el control con esos consumos** `[decisión del dueño, 2026-09-23, entre dos opciones que
+se le plantearon]`: **se escalan con el mismo factor**. Entregó 98 donde el remito decía 100 →
+consumió 98, y el 1:1 y el BOM quedan coherentes. La alternativa (dejarlos en 100 y leer la
+diferencia como merma del tallerista) quedó descartada.
+
+**Y el aviso de "recibí de más" se fue de la recepción del tallerista**, igual que se había ido de
+la del P.S.: ahora tiene dónde compararse de verdad. Al registrar el remito, la Tablet manda
+derecho al control, también en el tallerista.
