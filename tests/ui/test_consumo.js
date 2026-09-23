@@ -1,4 +1,4 @@
-/* Consumo x Componente v1.0.0 (2026-09-21).
+/* Consumo x Componente v1.1.0 (2026-09-23).
  *
  * El pedido del usuario, textual: "un modulo que pueda ver por componente, por sector, el
  * consumo... en PB6 cuando toco el maximo me dice en que articulo se usa. Bueno, lo quiero
@@ -12,7 +12,11 @@
  *   - y en una RESINA ese mismo popup muestra PIEZAS, no articulos: una resina no esta en
  *     ninguna receta, y antes de este cambio el popup decia "ningun articulo llega a esta
  *     parte" justo donde hay mas kg en juego;
- *   - render celular 390px: sin scroll horizontal y con los botones tocables.
+ *   - render celular 390px: sin scroll horizontal y con los botones tocables;
+ *   - y NO hay columna ni KPI de "Cajones / mes" (sacada el 23/09 por pedido del usuario:
+ *     uni_x_cajon no esta cargado en todos los componentes y hay partes que no van en cajon,
+ *     asi que la columna era una fila de guiones). El fixture SIGUE trayendo cajones_mes,
+ *     porque consumo_bundle lo sigue devolviendo: lo que se fija es que la pantalla lo ignore.
  */
 const { chromium } = require('playwright');
 const path = require('path');
@@ -115,11 +119,20 @@ window.supabase = { createClient: function(){ return {
     cods: [...document.querySelectorAll('#tbody tr td:first-child')].map(td => td.innerText.trim()),
     filas: [...document.querySelectorAll('#tbody tr')].map(tr => tr.innerText.replace(/\s+/g, ' ').trim()),
     fuente: parseFloat(getComputedStyle(document.querySelector('#tbody td')).fontSize),
+    celdas: document.querySelectorAll('#tbody tr:first-child td').length,
+    kpis: document.getElementById('kpis').innerText.replace(/\s+/g, ' '),
   }));
   ok(/SECTOR/i.test(todos.thead), 'Todos: la tabla dice de que sector es cada componente');
   ok(todos.cods.join(',') === 'T3B,E3B,IE11,2405',
      'Todos: ordenado por sector y, adentro, por consumo de mayor a menor — ' + todos.cods.join(','));
   ok(todos.fuente >= 16, 'letra de tabla >= 16px (' + todos.fuente + ')');
+
+  // ── "Cajones / mes" NO existe mas (23/09) ─────────────────────────────
+  ok(!/CAJON/i.test(todos.thead), 'no hay columna "Cajones / mes" — ' + todos.thead.replace(/\s+/g, ' '));
+  ok(todos.celdas === 5, 'Todos: 5 columnas (codigo, desc, sector, consumo, en) — ' + todos.celdas);
+  ok(!/Cajon/i.test(todos.kpis), 'Todos: ningun KPI de cajones — ' + todos.kpis);
+  ok(!/\bcajones\b/i.test(todos.filas.join(' | ')),
+     'ninguna fila muestra cajones, ni la que los tiene cargados (T3B, 2 cajones en el bundle)');
 
   // ── la unidad no se mezcla: kg donde es kg, uni donde es uni ──────────
   ok(/1\.200 uni/.test(todos.filas[0]), 'Cartón: el consumo va en unidades — ' + todos.filas[0]);
@@ -137,6 +150,8 @@ window.supabase = { createClient: function(){ return {
   }));
   ok(!/SECTOR/i.test(cart.thead), 'dentro de un sector NO se repite la columna Sector');
   ok(/1\.500 uni/.test(cart.kpis), 'el sector muestra su consumo total del mes — ' + cart.kpis);
+  ok(!/Cajon/i.test(cart.kpis), 'dentro de un sector tampoco hay KPI de cajones — ' + cart.kpis);
+  ok(!/CAJON/i.test(cart.thead), 'dentro de un sector tampoco esta la columna de cajones');
 
   // ── buscar ────────────────────────────────────────────────────────────
   await page.fill('#q', 'E3B');
