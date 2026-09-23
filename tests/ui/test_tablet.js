@@ -675,6 +675,13 @@ window.supabase = { createClient: function(){ return {
      'A11: la vista dice Stock tallerista y Cantidad (no esperado, sugerido ni recibido) — ' + detA11);
   ok((await page.$eval('#detCard .det-uni', e => e.textContent.trim())) === 'kg',
      'A11: la cantidad se escribe en kg');
+  // EL UMBRAL ES 5 % [usuario 2026-09-23]: 10,3 kg = 1.030 uni contra 1.000 esperadas es 3 % y no
+  // dispara nada. El aviso es para una diferencia que importa, no para cualquier decimal.
+  await page.fill(DQ, '10,3');
+  await page.click('#btnVolverPartes');
+  ok(!/de m[aá]s/i.test((await cards()).find(c => c.startsWith('A11')) || ''),
+     'tallerista: 3 % de diferencia no dispara el aviso (el umbral es 5 %)');
+  await abrir('A11');
   // 13 kg = 1.300 unidades contra 1.000 esperadas: avisa 300 de mas, y NO frena
   await page.fill(DQ, '13');
   ok((await page.$eval('#detCard .det-eq', e => e.textContent.trim())) === '= 2,6 cajones',
@@ -730,15 +737,16 @@ window.supabase = { createClient: function(){ return {
   const gzAnot = (await cards()).find(c => c.includes('CV2N')) || '';
   ok(gzAnot.includes('Stock prov. de servicio 60.000 uni'),
      'Guazzaroni: el otro remache también en unidades — ' + gzAnot);
-  // LA ALERTA DE "RECIBÍ DE MÁS" NO SALTA POR UN DECIMAL [usuario 2026-09-23: "¿Por qué salta la
-  // alerta? Es exactamente la misma cantidad", con 1.852 contra 1.851,8518 esperadas]. El saldo del
-  // P.S. arrastra la conversión kg<->uni; media unidad no es un exceso.
-  await cargarParte('CV2N', '60000');
+  // EN UN P.S. NO SE COMPARA CONTRA SU STOCK [usuario 2026-09-23: "esta alerta me tiene que
+  // aparecer no a la hora de recibir, sino a la hora de hacer el control... puede haber 1.800
+  // unidades de stock de proveedor de servicio y capaz recibo menos"]. Acá se carga el REMITO: una
+  // entrega parcial —o una de más— no es una anomalía, y el juicio vive en ControlEntregaPS.
+  await cargarParte('CV2N', '100000');   // 66 % más que las 59.999,85 que tiene en su poder
   const gzTol = (await cards()).find(c => c.includes('CV2N')) || '';
   ok(!/de m[aá]s/i.test(gzTol),
-     'los 0,15 de diferencia por redondeo no son "recibí de más" — ' + gzTol);
+     'P.S.: la tarjeta no juzga el remito contra el stock del proveedor — ' + gzTol);
   ok(await page.$eval('#alertaBox', e => e.classList.contains('hidden')),
-     'y el cartel de "recibiendo más de lo esperado" tampoco aparece por un decimal');
+     'P.S.: y el cartel de "recibiendo más de lo esperado" tampoco aparece');
   await cargarParte('CV2N', '');
   await abrir('CV1N');
   const detPs = await det();

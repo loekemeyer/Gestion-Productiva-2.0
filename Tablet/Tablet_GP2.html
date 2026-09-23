@@ -6,6 +6,20 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
+<!-- v1.31.0 (2026-09-23) — LA DIFERENCIA SE JUZGA EN EL CONTROL, Y RECIÉN ARRIBA DEL 5 % (usuario,
+     textual: "espero que el cartel aparezca si hay más de un cinco por ciento de diferencia, tanto
+     en kilos como en unidades. Pero este cartel, esta alerta, me tiene que aparecer no a la hora de
+     recibir, sino a la hora de hacer el control. Porque puede haber 1.800 unidades de stock de
+     proveedor de servicio… y capaz recibo menos").
+     DOS CAMBIOS, LOS DOS EN exceso():
+     (1) EN RECIBIR DE UN P.S. NO SE COMPARA NADA. Lo que se carga es el REMITO, y el stock que el
+     proveedor tiene en su poder no es lo que va a traer: una entrega parcial es lo normal. La
+     comparación vive en ControlEntregaPS, contra el remito, que es lo que sí se puede contrastar.
+     (2) EN LOS DEMÁS DESTINOS (tallerista, prov. AT, Virgilio) el aviso queda, pero recién arriba
+     del 5 %, el mismo umbral que pidió para el control. Sigue valiendo el piso de media unidad
+     (5 gramos en kg) de v1.30.1, que es el que cubre el caso de esperado 0.
+     LA BASE ACOMPAÑA: GP2.tablet_registrar deja de anotar la alerta de un P.S. y usa el mismo 5 %
+     para el resto. Sin eso el cartel se iba de la pantalla y la fila se seguía escribiendo igual. -->
 <!-- v1.30.1 (2026-09-23) — LA ALERTA DE "RECIBÍ DE MÁS" NO SALTA POR UN DECIMAL (usuario, con 1.852
      uni de PC1A contra 1.852 esperadas: "¿Por qué salta la alerta? Es exactamente la misma
      cantidad"; el cartel decía "⚠ 0 de más", que es la firma del problema).
@@ -1528,10 +1542,19 @@ function canonDe(x, q){
    0,8518 queda en el saldo), así que comparar crudo convierte cada redondeo en una alerta. La
    tolerancia es MEDIA UNIDAD, o 5 gramos si la pieza se mide en kg: nadie entrega 0,15 mangos. */
 function tolExceso(x){ return unidadDe(x) === "kg" ? 0.005 : 0.5; }
+/* Y NO SE COMPARA CONTRA EL STOCK DEL P.S. [usuario 2026-09-23: "esta alerta me tiene que aparecer
+   no a la hora de recibir, sino a la hora de hacer el control... porque puede haber 1.800 unidades
+   de stock de proveedor de servicio y capaz recibo menos"]. Lo que se carga acá es el REMITO: que
+   traiga menos —o más— de lo que el proveedor tiene en su poder es normal (entregas parciales), no
+   una anomalía. El juicio va en ControlEntregaPS, contra el remito. En los demás destinos el aviso
+   sigue, con el MISMO 5 % que pidió para el control: una diferencia chica no es un exceso. */
+var EXCESO_PCT = 5;
 function exceso(x, q){
   if (MODO !== "recibir" || x.esperado == null || !(q > 0)) return 0;
-  var d = canonDe(x, q) - Number(x.esperado);
-  return d > tolExceso(x) ? d : 0;
+  if (selCP && selCP.tipo === "proveedor_servicio") return 0;
+  var esp = Number(x.esperado);
+  var d = canonDe(x, q) - esp;
+  return d > Math.max(tolExceso(x), esp * EXCESO_PCT / 100) ? d : 0;
 }
 
 function filtradas(){

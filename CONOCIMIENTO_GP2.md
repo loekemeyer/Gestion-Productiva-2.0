@@ -11977,3 +11977,37 @@ dejado la alerta anotándose igual.
 
 **Lo que NO se tocó**: la alerta 5 sigue abierta. Cerrarla es escribir datos y lo autoriza el dueño
 (`alerta_recepcion_marcar(5, 'resuelta', …)`).
+
+## 4fg. La diferencia se juzga en el control, contra el remito, y recién arriba del 5 % (2026-09-23)
+
+`[usuario, textual]`: *"espero que el cartel aparezca si hay más de un cinco por ciento de
+diferencia, tanto en kilos como en unidades. Pero este cartel, esta alerta, me tiene que aparecer no
+a la hora de recibir, sino a la hora de hacer el control. Porque puede haber 1.800 unidades de stock
+de proveedor de servicio… y capaz recibo menos"*. Y enseguida: *"El remito en unidades y el control
+en kilos"* y *"en el control que las bolsas o los cajones sirvan nada más de dato. Vos lo que tenés
+que comparar es los kilos con los kilos o los kilos con las unidades, en el caso de que tengas que
+hacer el pasaje"*.
+
+**Son tres reglas que cierran el circuito de §4fd y §4fe:**
+
+| Momento | Qué se carga | Contra qué se compara |
+|---|---|---|
+| **Recibir** (Tablet) | el REMITO, en unidades de la pieza | **contra nada**: el stock del P.S. no es lo que va a traer |
+| **Control** (ControlEntregaPS) | los KILOS (el envase es un dato) | contra el remito, y avisa arriba del **5 %** |
+
+**Por qué al recibir no se compara:** el saldo que el proveedor tiene en su poder es una referencia,
+no una promesa. Una entrega parcial —1.800 en su poder y traer 600— es lo normal, y convertir eso en
+"recibí de más" llena `GP2.alerta_recepcion` de ruido. En los **otros destinos** (tallerista, prov.
+AT, Virgilio) el aviso quedó, pero con el mismo umbral del 5 %.
+
+**Por qué el peso manda en el control:** es lo que se mide con la balanza. El envase se sigue
+anotando (`controlar_entrega_ps.p_cajones`, el dato físico de bultos) pero no decide el número. Donde
+la pieza se pesa, el kilo es **obligatorio**; donde no hay `kg_x_uni` —los 10 pliegos de AJ— el
+envase es lo único que hay y con eso alcanza.
+
+**Dónde vive cada número** (los dos con clave propia y su default, así no hace falta cargar nada):
+
+- el 5 % del control: `control_entrega_ps_bundle` lee `parametro.tol_ctrl_ps_pct`, y sin esa fila
+  vale 5. **Antes compartía `tol_ctrl_peso_pct` con el pesaje de insumos, que sigue en 2 %.**
+- el 5 % del aviso al recibir: `exceso()` de la Tablet y el `if` de `GP2.tablet_registrar`, con el
+  piso de media unidad (5 gramos en kg) de §4ff para el caso de esperado 0.

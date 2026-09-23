@@ -18,7 +18,9 @@ const ROOT = 'file://' + path.resolve(__dirname, '..', '..').replace(/\\/g, '/')
 const EXE = process.env.CHROMIUM_PATH || (fs.existsSync('/opt/pw-browsers/chromium') ? '/opt/pw-browsers/chromium' : undefined);
 
 const BUNDLE = {
-  tol_pct: 2,
+  // 5 % desde el 2026-09-23 [usuario: "que el cartel aparezca si hay mas de un cinco por ciento
+  // de diferencia, tanto en kilos como en unidades"]; la clave propia es parametro.tol_ctrl_ps_pct
+  tol_pct: 5,
   pend: [
     // el caso real: 21 kg de remito, remache que vuelve en cajones
     { mov_id: 85502, fecha: '2026-09-21T12:00:00-03:00', ps_id: 4, ps_nombre: 'Guazzaroni Patricio',
@@ -134,14 +136,28 @@ window.supabase = { createClient: function(){ return {
   ok(d1.includes('= 20,8 kg') && d1.includes('-0,2') && d1.includes('-1'),
      'se ve lo que se guarda y la diferencia contra el remito — ' + d1);
   ok(!(await page.$eval(card1, e => e.classList.contains('desvio'))),
-     '1 % contra una tolerancia de 2 % no es desvio');
+     '1 % contra una tolerancia de 5 % no es desvio');
+  await page.fill(card1 + ' input[data-f="kg"]', '20');
+  ok(!(await page.$eval(card1, e => e.classList.contains('desvio'))),
+     'tampoco 4,8 %: el umbral es 5 % y antes era 2 %');
   await page.fill(card1 + ' input[data-f="kg"]', '19');
   ok(await page.$eval(card1, e => e.classList.contains('desvio')),
      '9,5 % SI es desvio: la tarjeta se pinta');
-  // el PESO manda sobre el envase cuando estan los dos (mismo criterio que el control de insumos)
+  // EL ENVASE ES UN DATO, NO LO QUE SE COMPARA [usuario 2026-09-23: "en el control que las bolsas o
+  // los cajones sirvan nada mas de dato. Vos lo que tenes que comparar es los kilos con los kilos o
+  // los kilos con las unidades"]. Con kg cargados, cambiar el envase no mueve lo que se guarda.
+  await page.fill(card1 + ' input[data-f="kg"]', '19');
   await page.fill(card1 + ' input[data-f="env"]', '99');
   ok((await page.$eval(card1 + ' .diff', e => e.textContent)).includes('= 19 kg'),
      'con kg cargados, el envase no cambia lo que se guarda: manda el peso');
+  // y sin el peso NO se confirma: es el numero que se compara contra el remito
+  await page.fill(card1 + ' input[data-f="kg"]', '');
+  dialogs.length = 0;
+  await page.click(card1 + ' button[data-a="ok"]');
+  ok(dialogs.some(d => d.type === 'alert' && d.msg.includes('Falta el peso')),
+     'la pieza que se pesa no se controla sin kilos — ' + JSON.stringify(dialogs[0] || {}));
+  ok(!(await calls('controlar_entrega_ps')).length, 'y no se registro nada');
+  dialogs.length = 0;   // el aviso de arriba no cuenta para el chequeo de "no pregunta nada"
 
   // ── 4) el payload del control ────────────────────────────────────────────────────
   await page.fill(card1 + ' input[data-f="kg"]', '20,8');

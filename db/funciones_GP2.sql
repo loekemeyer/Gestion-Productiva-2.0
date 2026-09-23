@@ -1797,9 +1797,12 @@ with mov as (
 )
 select jsonb_build_object(
   'generado_en', now(),
-  -- tolerancia del control, la MISMA que usa el pesaje de insumos (parametro tol_ctrl_peso_pct,
-  -- hoy 2 %): arriba de eso la pantalla pinta la fila y pide confirmar antes de registrar.
-  'tol_pct', coalesce((select valor::numeric from parametro where clave = 'tol_ctrl_peso_pct'), 2),
+  -- tolerancia del control: 5 % [usuario 2026-09-23: "que el cartel aparezca si hay mas de un
+  -- cinco por ciento de diferencia, tanto en kilos como en unidades"]. Arriba de eso la pantalla
+  -- pinta la tarjeta y pide confirmar antes de pisar el stock. Tiene CLAVE PROPIA (tol_ctrl_ps_pct)
+  -- para no arrastrar al pesaje de insumos, que sigue con su tol_ctrl_peso_pct del 2 %; sin la fila
+  -- cargada vale el 5 % que pidio el usuario.
+  'tol_pct', coalesce((select valor::numeric from parametro where clave = 'tol_ctrl_ps_pct'), 5),
   -- PENDIENTES: lo que se cargo del remito y todavia nadie conto. No se limitan por fecha:
   -- una entrega sin controlar de hace un mes sigue pendiente y tiene que verse.
   'pend', coalesce((select jsonb_agg(jsonb_build_object(
@@ -7947,7 +7950,17 @@ begin
       -- tolerancia vive en exceso() de la Tablet, que es el cartel que ve el operario.
       -- El case va ENTRE PARENTESIS a proposito: sin eso plpgsql corta la condicion del IF en el
       -- primer THEN que encuentra, que seria el del case, y la funcion no compila.
-      if v_comparable > v_esp + (case when lower(coalesce(v_uni,'')) = 'kg' then 0.005 else 0.5 end) then
+      -- Y NO SE COMPARA CONTRA EL STOCK DE UN P.S. [usuario 2026-09-23: "esta alerta me tiene
+      -- que aparecer no a la hora de recibir, sino a la hora de hacer el control... porque puede
+      -- haber 1.800 unidades de stock de proveedor de servicio y capaz recibo menos"]: lo que se
+      -- carga aca es el REMITO y una entrega parcial es lo normal. Esa comparacion vive en
+      -- ControlEntregaPS, contra el remito. En los demas destinos el aviso queda, pero recien
+      -- arriba del 5 % (el mismo umbral que pidio para el control), con el piso de media unidad
+      -- -5 gramos en kg- que cubre el caso de esperado 0.
+      if v_tipo <> 'proveedor_servicio'
+         and v_comparable > v_esp + greatest(
+               (case when lower(coalesce(v_uni,'')) = 'kg' then 0.005 else 0.5 end),
+               v_esp * 0.05) then
         insert into alerta_recepcion(fecha, origen_tipo, origen_ref, origen_nombre, comp_id, cod,
                                      descripcion, esperado, recibido, exceso, unidad, esperado_origen,
                                      movimiento_id)

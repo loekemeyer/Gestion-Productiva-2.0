@@ -23,6 +23,22 @@
      LOS CAJONES SON EL DATO FÍSICO: acá se cuentan, no se derivan de los kg (misma regla que el
      stock del proveedor, ver CONOCIMIENTO 4et). Si la pieza no tiene envase cargado, el campo no
      se pide. -->
+<!-- v1.2.0 (2026-09-23) — LO QUE COMPARA ES EL PESO; EL ENVASE ES UN DATO, Y LA TOLERANCIA ES 5 %
+     (usuario, textual: "en el control que las bolsas o los cajones sirvan nada más de dato. Vos lo
+     que tenés que comparar es los kilos con los kilos o los kilos con las unidades, en el caso de
+     que tengas que hacer el pasaje" + "espero que el cartel aparezca si hay más de un cinco por
+     ciento de diferencia, tanto en kilos como en unidades").
+     (1) DONDE LA PIEZA SE PESA, EL KILO ES OBLIGATORIO: es el número que se compara contra el
+     remito y el que pisa el stock. El envase se sigue anotando (va en controlar_entrega_ps.
+     p_cajones, que es el dato físico de bultos) pero ya no decide nada. Donde NO hay kg_x_uni —los
+     pliegos de AJ— el envase es lo único que hay y con eso alcanza [usuario 2026-09-23: "en AJ los
+     pliegos se controlan en paquetes, no en kilos"]. OJO PARA MÁS ADELANTE: quién pesa lo decide
+     `componente.kg_x_uni`, así que si alguna vez se le carga un peso al pliego, el control le va a
+     pedir los kilos. Si AJ tiene que quedar SIEMPRE en paquetes, eso hay que decirlo con un dato
+     del proveedor, no dejándole el peso vacío.
+     (2) LA TOLERANCIA PASA DE 2 % A 5 %, con clave propia: control_entrega_ps_bundle lee
+     parametro.tol_ctrl_ps_pct y, sin esa fila, vale 5. Antes compartía tol_ctrl_peso_pct con el
+     pesaje de insumos, que sigue en 2 % y no se tocó. -->
 <!-- v1.1.0 (2026-09-23) — EL CONTROL SE CUENTA EN EL ENVASE Y EN KILOS, NO EN UNIDADES (usuario,
      textual: "Cuando voy a hacer el control de AJ adhesivos me aparece para marcar uni. Y yo te
      dije solo paquetes" + "Lo mismo con Esther. El control lo hago en bolsas y kilos, no en
@@ -289,9 +305,18 @@ async function confirmar(card) {
   if (!x) return;
   var l = leerCard(card, x);
   var q = l.q, caj = l.envases;
+  // EL NUMERO QUE SE COMPARA ES EL PESO [usuario 2026-09-23: "en el control que las bolsas o los
+  // cajones sirvan nada más de dato. Vos lo que tenés que comparar es los kilos con los kilos o los
+  // kilos con las unidades, en el caso de que tengas que hacer el pasaje"]. Por eso donde la pieza
+  // se pesa el kilo es obligatorio: sin él, lo que se guardaría sale del envase, que es el dato
+  // suelto. Donde no hay kg_x_uni (los pliegos de AJ) el envase es lo único que hay y alcanza.
+  if (pesaDe(x) && !(l.kg > 0)) {
+    alert("Falta el peso: los kilos son lo que se compara contra el remito. El envase es un dato.");
+    return;
+  }
   if (!(q > 0)) {
     var env0 = envaseDe(x);
-    alert("Falta lo contado" + (env0 ? " (" + env0.label + (pesaDe(x) ? " o kilos" : "") + ")" : "") + ".");
+    alert("Falta lo contado" + (env0 ? " (" + env0.label + ")" : "") + ".");
     return;
   }
 
