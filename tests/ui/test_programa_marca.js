@@ -98,7 +98,7 @@ window.supabase = { createClient: function(){ return {
   check(JSON.stringify(cods3) === JSON.stringify(['108']), 'Loke es una marca propia, no se mezcla con Loeke — ' + cods3.join(','));
 
   const cods4 = await porMarca('');
-  // 4 y no 5: el fixture tiene 5 articulos y uno esta discontinuado (v1.180.0)
+  // 4 y no 5: el fixture tiene 5 articulos y uno esta discontinuado (v1.181.0)
   check(cods4.length === 4, 'Todas vuelve a los 4 vivos — ' + cods4.length);
 
   // filtrar NO mueve el articulo elegido: nada resaltado salvo el que se eligio de verdad
