@@ -12207,3 +12207,13 @@ de aluminio no va más"*, que **la planilla vigente desmiente**) y **cero filas 
    2026-09-22 sobre si el disco con vástago se cobraba aparte.
 3. **Filas huérfanas de Cavallero German**: le quedan `inventario` de `M1` y de `V18C` en la
    ubicación 24, las dos en 0, de cuando hacía el 121.
+
+**Y a Pettofrezza NO se le recibe más nada — eso está bien y no necesita código**
+`[usuario 2026-09-23: "Ya no recibiríamos más del tallerista Pettofrezza Rafael", con la pantalla a
+la vista: Recibir → Pettofrezza mostraba UNA tarjeta, el `M1`, en 0 y "sin cargar"]`. La rama de
+talleristas de `rec` en `GP2.tablet_bundle` lista las salidas del tallerista **salvo las del sector
+12 (Terminado)**, porque un terminado no vuelve a Cervantes: se entrega en Virgilio. Los 15
+terminados de Rafael ya estaban afuera por eso, así que el `M1` era **lo único** que quedaba — y era
+un intermedio que él se hacía a sí mismo. Al irse, su `n_rec` queda en 0 y **la propia pantalla lo
+saca del selector de Recibir** (`cpsDelModo()` filtra por `n_rec > 0`). Cero líneas de JS: el día
+que un tallerista vuelva a devolver una pieza que no es terminado, reaparece solo.
