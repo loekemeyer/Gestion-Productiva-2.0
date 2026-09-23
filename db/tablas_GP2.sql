@@ -154,6 +154,7 @@ create table "GP2".componente (
   uni_x_paquete numeric,
   entrega_unidad text,
   entrega_uni_x numeric,
+  remito_unidad text,
   constraint componente_pkey PRIMARY KEY (id),
   constraint componente_carton_categoria_fkey FOREIGN KEY (carton_categoria) REFERENCES "GP2".carton_categoria(nombre),
   constraint componente_carton_formato_fkey FOREIGN KEY (carton_formato) REFERENCES "GP2".carton_formato(nombre),
@@ -177,6 +178,7 @@ comment on column "GP2".componente.pedido_minimo_uni is 'Pedido minimo del prove
 comment on column "GP2".componente.mb_color is 'Color de Master Bach que lleva esta pieza plastica: R rojo, B blanco, A azul, N negro. Origen: columna MB de la hoja "Consumo x Cod Articulo" del Excel de plasticos del usuario (40 de 47 partes con consumo la traen; las 7 sin color son las de Nylon recuperado, que viene pigmentado, mas B2 y EP9). null = todavia no se cargo -- no se inventa. recalcular_maximo_material() suma el 4% por color cuando esta cargado y cae al prorrateo cuando no.';
 comment on column "GP2".componente.entrega_unidad is 'Envase con el que el tallerista ENTREGA esta pieza (bolsas, cajones...). NULL = cajones, el default. Solo display: lo que se registra sigue siendo kg/uni.';
 comment on column "GP2".componente.entrega_uni_x is 'Unidades por envase de entrega. NULL = se usa uni_x_cajon. Ej: GRJ5/GRJ6 entregan bolsas de 120 [usuario 2026-09-18].';
+comment on column "GP2".componente.remito_unidad is 'En que unidad viene el REMITO de esta pieza cuando la entrega un tercero: uni o kg. NULL = la unidad canonica (unidad_medida). Lo dice la PIEZA y no el destino [usuario 2026-09-23: "Martin Cornejo. El remito de las bombillas en uni. Control en bolsas. El remito de la cuchilla en kg y control kg y cajones (cajones dato)"]: dos piezas del mismo tallerista pueden venir en unidades distintas, una contada y la otra pesada. Solo se usa al RECIBIR (la Tablet la lee de tablet_bundle); el envase con el que se cuenta en el CONTROL sigue siendo entrega_unidad / entrega_uni_x.';
 comment on column "GP2".componente.discontinuado is 'La pieza ya no se fabrica ni se compra. No se borra: conserva historial, receta y rutas, pero sale del pedido (v_reposicion) y de las pantallas de compra. Espejo de articulo.discontinuado.';
 
 -- ---------- componente_bom ----------

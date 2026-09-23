@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<!-- v1.32.0 (2026-09-23) — ENVIAR A UN TALLERISTA: LAS PIEZAS VAN POR RUBRO, NO POR CÓDIGO (usuario,
+<!-- v1.33.0 (2026-09-23) — ENVIAR A UN TALLERISTA: LAS PIEZAS VAN POR RUBRO, NO POR CÓDIGO (usuario,
      textual: "quiero que me ordenes no alfanuméricamente, sino que primero me pongas todo lo que se
      le manda de sector crudo, después todo lo de sector procesado, después todo los remaches,
      después todo lo de partes plásticas, después todo lo de cajas y después todo lo de cartones" +
@@ -22,6 +22,20 @@
      de las 350 filas. Quedan después de los cartones, agrupados por sector, hasta que diga dónde.
      SOLO EL TALLERISTA: P.S., prov. de art. terminado e inyector siguen alfabéticos, y Recibir no
      se tocó. CERO BASE: el sector ya viajaba en cada fila de tablet_bundle.enviar. -->
+<!-- v1.32.0 (2026-09-23) — EL REMITO DEL TALLERISTA TAMBIÉN VA EN UNIDADES (usuario, textual:
+     "Hicimos todas las recepciones de proveedores de servicio. Ahora seguimos con las recepciones
+     de talleristas. Lucho. Remito en unidades y control en kg y cajones (acordate de hacer el
+     control por kg — cajones es solo dato)").
+     Misma regla que el P.S. (v1.30.0) y por el mismo motivo: acá se carga EL PAPEL, y el kilo y el
+     cajón se cuentan en el control. La rama de recibir de envaseDe() devuelve null también para el
+     tallerista, así que la tarjeta dice el stock en unidades de la pieza, el campo va en esa misma
+     unidad y se van el renglón "≈ N cajones" y la doble carga cajón+kg.
+     DA VUELTA la v1.19.0 ("de talleristas, todos se entregan en cajones… en recibido va a ser en
+     kilos", 18/09), escrita cuando lo que se cargaba acá era lo contado.
+     LO QUE NO SE TOCA: componente.entrega_unidad / entrega_uni_x (las bolsas de 120 de GRJ5 y
+     GRJ6) siguen vivas — son el envase con el que se cuenta en el control — y el aviso del 5 % al
+     recibir de un tallerista SIGUE, porque el control de talleristas todavía no existe como
+     pantalla: el día que exista, esa comparación se va de acá igual que la del P.S. -->
 <!-- v1.31.0 (2026-09-23) — LA DIFERENCIA SE JUZGA EN EL CONTROL, Y RECIÉN ARRIBA DEL 5 % (usuario,
      textual: "espero que el cartel aparezca si hay más de un cinco por ciento de diferencia, tanto
      en kilos como en unidades. Pero este cartel, esta alerta, me tiene que aparecer no a la hora de
@@ -920,6 +934,19 @@ var TIPOS = {
 function unidadDe(x){
   return String(x.um || "").toLowerCase() === "kg" ? "kg" : "uni";
 }
+
+/* ---------- LA UNIDAD DEL REMITO LA DICE LA PIEZA ----------
+   [usuario 2026-09-23, textual: "Martin Cornejo. El remito de las bombillas en uni. Control en
+   bolsas. El remito de la cuchilla en kg y control kg y cajones (cajones dato)"]. Dos piezas del
+   MISMO tallerista vienen en unidades distintas: las bombillas se cuentan y la cuchilla se pesa.
+   No lo dice ni el destino ni el sector: lo dice la pieza, en componente.remito_unidad ('uni' |
+   'kg'), que tablet_bundle manda en cada fila de Recibir. Sin ese dato vale la unidad canónica
+   (unidad_medida), que hoy es "unidad" en casi todo.
+   Sólo manda al RECIBIR: es la unidad del PAPEL. Al enviar no cambia nada. */
+function uniRemito(x){
+  var r = String((x && x.remito_unidad) || "").toLowerCase();
+  return (r === "kg" || r === "uni") ? r : unidadDe(x);
+}
 function inputmodeDe(u){ return u === "kg" ? "decimal" : "numeric"; }
 
 /* ---------- EL CAJÓN DE REFERENCIA DE UNA FILA DE RECIBIR ----------
@@ -1022,15 +1049,14 @@ function packEnvio(){
 function envaseDe(x){
   if (!selCP || !x) return null;
   if (MODO === "recibir") {
-    // ENTREGA de un tallerista: el esperado se mira en CAJONES (o en las bolsas de 120 de GRJ5 y
-    // GRJ6) y la cantidad se escribe en KG. Lo dice la pieza: componente.entrega_unidad /
-    // entrega_uni_x, con default cajones + uni_x_cajon. [usuario 2026-09-18]
-    if (selCP.tipo === "tallerista") {
-      var fr = Number(x.env_factor || 0);
-      if (!x.env_unidad || !(fr > 0)) return null;   // pieza sin cajon cargado: queda en unidades
-      return { factor: fr, label: String(x.env_unidad),
-               cargaKg: String(x.env_carga || "") === "kg" };
-    }
+    // ENTREGA DE UN TALLERISTA: el remito va en la unidad de la PIEZA, igual que el del P.S.
+    // [usuario 2026-09-23: "Ahora seguimos con las recepciones de talleristas. Lucho. Remito en
+    // unidades y control en kg y cajones"]. Lo que se carga acá es lo que dice el papel; el kilo y
+    // el cajón se cuentan en el control. Da vuelta la v1.19.0 (esperado en cajones, cantidad en kg)
+    // por el mismo motivo que la del P.S.: esa regla es de antes de que el control fuera un paso
+    // aparte. componente.entrega_unidad / entrega_uni_x (las bolsas de 120 de GRJ5 y GRJ6) no se
+    // borran: son el envase con el que se va a contar en el control.
+    if (selCP.tipo === "tallerista") return null;
     // ENTREGA de un P.S.: VA EN UNIDADES, SIN ENVASE. Lo que se carga acá es EL REMITO, y el remito
     // del proveedor viene contado en unidades de la pieza; el envase (bolsas, paquetes, cajones) y
     // los kilos son del CONTROL, que es la pantalla siguiente [usuario 2026-09-23, dicho sobre cinco
@@ -1075,6 +1101,10 @@ function kgPorEnvase(x){
    que la pieza permita pasar del envase a kg. Si no, cae al modo de AJ (se escribe en el envase) o
    a unidades, en vez de mostrar un kg inventado. */
 function cargaEnKg(x){
+  // al RECIBIR lo dice la pieza (remito_unidad): la cuchilla de Martín viene pesada y la bombilla
+  // contada. Sin kg_x_uni no se puede pasar de kg a unidades, así que ahí no se escribe en kg.
+  if (MODO === "recibir")
+    return uniRemito(x) === "kg" && unidadDe(x) !== "kg" && kguRef(x) > 0;
   var ev = envaseDe(x);
   return !!(ev && ev.cargaKg && kgPorEnvase(x) > 0);
 }
@@ -1236,7 +1266,10 @@ function refInfo(x){
                             : ("0 " + ev.label),
                num: null, uni: "", nota: "", small: "" };
     }
-    return { rotulo: rot, txt: fmt(e, u === "kg" ? 2 : 0), num: e, uni: u,
+    // el stock del tercero se muestra EN LA UNIDAD DEL REMITO: si esa pieza viene pesada (la
+    // cuchilla de Martín), el saldo en unidades no se puede comparar con lo que dice el papel.
+    var uR = uniRemito(x), eR = cargaEnKg(x) ? e * kguRef(x) : e;
+    return { rotulo: rot, txt: fmt(eR, uR === "kg" ? 2 : 0), num: eR, uni: uR,
              nota: faltaEnvase(x), small: "" };
   }
   // el cartón de OTRO artículo no tiene sugerido (no es una pieza de este destino, no hay consumo
@@ -1255,7 +1288,8 @@ function refInfo(x){
 function uniCarga(x){
   if ((pesoEnvio() && bultoDe(x)) || cargaEnKg(x)) return "kg";   // pesoEnvio ya exige Enviar
   var ev = envaseDe(x);
-  return ev ? ev.label : unidadDe(x);
+  if (ev) return ev.label;
+  return MODO === "recibir" ? uniRemito(x) : unidadDe(x);
 }
 function decDe(x){ return uniCarga(x) === "kg" ? 2 : 0; }
 
