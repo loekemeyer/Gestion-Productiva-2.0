@@ -7433,6 +7433,13 @@ env as (
 -- Sugerido = maximo − lo que el tercero ya tiene (inventario en su ubicacion). meses_stock cae a 1
 -- si la ubicacion no lo tiene (mismo default que OC). El consumo ya viene en la unidad de la
 -- entrada (kg para fleje, uni para el resto), asi que no hay factor de conversion.
+-- CONSUMOS, UNA sola vez (2026-09-22): antes se consultaban las tres vistas de consumo fila por
+-- fila dentro de rep (una subconsulta correlacionada por cada pieza x destino), y cada vista es
+-- un agregado de 30-40 ms. Materializadas aca se calculan una vez y rep las cruza por join:
+-- tablet_bundle bajo de ~700 ms a ~200 ms con el mismo resultado.
+cons_fk   as materialized (select componente_id, consumo_kg_mes from v_consumo_fleje_kg),
+cons_tall as materialized (select tallerista_id, componente_id, uni_mes from v_consumo_tallerista),
+cons_comp as materialized (select componente_id, consumo_uni_mes from v_consumo_componente),
 rep as (
   select e.tipo, e.ref, e.comp_id,
          round(t.techo) as maximo_dest,
@@ -7446,19 +7453,18 @@ rep as (
     from (select distinct tipo, ref, comp_id from env
            where tipo in ('proveedor_servicio','tallerista')) e
     join componente ent on ent.id = e.comp_id
+    left join cons_fk   fk on fk.componente_id = e.comp_id
+    left join cons_tall ct on ct.componente_id = e.comp_id and e.tipo = 'tallerista'
+                          and ct.tallerista_id = e.ref::bigint
+    left join cons_comp vc on vc.componente_id = e.comp_id
     cross join lateral (
        select
          coalesce((select u.meses_stock from ubicacion u
                     where u.id = ubic_de('sector', ent.sector_id) limit 1), 1) as meses,
          case
-           when ent.sector_id = 5
-             then coalesce((select fk.consumo_kg_mes from v_consumo_fleje_kg fk
-                             where fk.componente_id = e.comp_id), 0)
-           when e.tipo = 'tallerista'
-             then coalesce((select ct.uni_mes from v_consumo_tallerista ct
-                             where ct.tallerista_id = e.ref::bigint and ct.componente_id = e.comp_id), 0)
-           else coalesce((select vc.consumo_uni_mes from v_consumo_componente vc
-                           where vc.componente_id = e.comp_id), 0)
+           when ent.sector_id = 5         then coalesce(fk.consumo_kg_mes, 0)
+           when e.tipo = 'tallerista'     then coalesce(ct.uni_mes, 0)
+           else                                coalesce(vc.consumo_uni_mes, 0)
          end as consumo
     ) cons
     cross join lateral (
