@@ -27,6 +27,10 @@ const BUNDLE = {
   contrapartes: [
     { tipo: 'tallerista', ref: '6', nombre: 'Martin Cornejo', n_env: 5, n_rec: 2 },
     { tipo: 'tallerista', ref: '9', nombre: 'Lucho', n_env: 1, n_rec: 0 },
+    // TALLERISTA CON O.C. DE VIRGILIO (2026-09-23): mismo tipo 'tallerista' en la base, con el flag
+    // `oc` que manda tablet_bundle desde GP2.tallerista.pedido_por_oc_virgilio. En ENVIAR sale en
+    // su propia baldosa y su sugerido es 0; en RECIBIR sigue adentro de Talleristas.
+    { tipo: 'tallerista', ref: '14', nombre: 'Carlos Aguirre', oc: true, n_env: 1, n_rec: 1 },
     { tipo: 'proveedor_at', ref: '1', nombre: 'Cabral', n_env: 2, n_rec: 1 },
     // el PS "comun", sin unidad de envio propia. Al 2026-09-18 ya NINGUN P.S. con piezas quedo
     // asi (los 7 que las tienen van por el cajon de cada pieza, AJ por paquetes y Julio por peso):
@@ -65,6 +69,9 @@ const BUNDLE = {
     // [usuario 2026-09-23]. Sin una pieza despues del carton, las dos cosas se ven iguales.
     { tipo: 'tallerista', ref: '6', comp_id: 330, cod: 'BOM10', desc: 'Resorte Biconico', sector: 'Sector Bombilla', um: 'unidad', uxc: null, kg_x_uni: 0.00963, online_sector: 500, saldo_dest: 0, maximo: 400, stock_dest: 0, sugerido: 400, env_unidad: 'cajones', env_factor: null, env_carga: 'kg' },
     { tipo: 'tallerista', ref: '9', comp_id: 70, cod: 'A10', desc: 'Cpo Una', sector: 'Sector Crudo', um: 'unidad', uxc: 1000, kg_x_uni: 0.01, online_sector: 120, saldo_dest: 0, maximo: 200, stock_dest: 0, sugerido: 200, env_unidad: 'cajones', env_factor: 1000, env_carga: 'kg' },
+    // el TALLERISTA O.C. viene con maximo y sugerido en 0: su pedido sale de una O.C. de Gestion
+    // Virgilio que GP2 no lee, asi que el techo de tablet_bundle es 0 [usuario 2026-09-23]
+    { tipo: 'tallerista', ref: '14', comp_id: 70, cod: 'A10', desc: 'Cpo Una', sector: 'Sector Crudo', um: 'unidad', uxc: 1000, kg_x_uni: 0.01, online_sector: 120, saldo_dest: 0, maximo: 0, stock_dest: 0, sugerido: 0, env_unidad: 'cajones', env_factor: 1000, env_carga: 'kg' },
     { tipo: 'proveedor_servicio', ref: '20', comp_id: 90, cod: 'D5', desc: 'Mitad rompenuez', sector: 'Sector Crudo', um: 'unidad', uxc: 500, kg_x_uni: 0.05, online_sector: 40, saldo_dest: 0, maximo: 100, stock_dest: 20, sugerido: 80 },
     // AJ Adhesivos manda por PAQUETES de 100: sugerido 250 uni -> 3 paquetes (techo)
     { tipo: 'proveedor_servicio', ref: '12', comp_id: 564, cod: 'Pliego 506', desc: 'Sin adhesivar', sector: 'Sector Procesado', um: 'unidad', uxc: null, kg_x_uni: null, online_sector: 0, saldo_dest: 0, maximo: 500, stock_dest: 0, sugerido: 250 },
@@ -103,6 +110,8 @@ const BUNDLE = {
     // lo dice la pieza, en componente.remito_unidad, que el bundle manda en la fila.
     { tipo: 'tallerista', ref: '6', comp_id: 73, comp_entrada_id: 74, n_entradas: 1, tiene_bom: false, cod_art: null, cod: 'X4', desc: 'Cuchilla Pelapapa Cerrada', sector: 'Sector Crudo', um: 'unidad', uxc: 4004, kg_x_uni: 0.00492, por_caja: null, ent_cod: 'X1', ent_desc: 'Cuchilla Pelapapa Abierta', esperado: 4004, esperado_origen: 'online_tall', env_unidad: 'cajones', env_factor: 4004, env_carga: 'kg', remito_unidad: 'kg' },
     { tipo: 'tallerista', ref: '6', comp_id: 72, comp_entrada_id: null, n_entradas: 0, tiene_bom: false, cod_art: null, cod: 'A12', desc: 'Una Armada Chica', sector: 'Sector Procesado', um: 'unidad', uxc: 500, kg_x_uni: 0.01, por_caja: null, ent_cod: null, ent_desc: null, esperado: 0, esperado_origen: 'online_tall', env_unidad: 'cajones', env_factor: 500, env_carga: 'kg' },
+    // el tallerista O.C. entrega como cualquier otro: en RECIBIR no se lo separa [usuario 2026-09-23]
+    { tipo: 'tallerista', ref: '14', comp_id: 71, comp_entrada_id: 70, n_entradas: 1, tiene_bom: false, cod_art: null, cod: 'A11', desc: 'Una Armada', sector: 'Sector Procesado', um: 'unidad', uxc: 500, kg_x_uni: 0.01, por_caja: null, ent_cod: 'A10', ent_desc: 'Cpo Una', esperado: 500, esperado_origen: 'online_tall', env_unidad: 'cajones', env_factor: 500, env_carga: 'kg' },
     { tipo: 'proveedor_at', ref: '1', comp_id: null, comp_entrada_id: null, n_entradas: 0, tiene_bom: false, cod_art: '026', cod: '026', desc: 'Colador N°8', sector: null, um: null, uxc: null, kg_x_uni: null, por_caja: 36, ent_cod: null, ent_desc: null, esperado: 72, esperado_origen: 'oc' },
     { tipo: 'proveedor_servicio', ref: '20', comp_id: 91, comp_entrada_id: 90, n_entradas: 1, tiene_bom: false, cod_art: null, cod: 'D5-P', desc: 'Mitad pintada', sector: 'Sector Procesado', um: 'unidad', uxc: 500, kg_x_uni: 0.05, por_caja: null, ent_cod: 'D5', ent_desc: 'Mitad rompenuez', esperado: 40, esperado_origen: 'online_ps' },
     // Guazzaroni envia por el CAJON de cada pieza y kg: la entrega copia esa misma logica, pero EL
@@ -216,7 +225,11 @@ window.supabase = { createClient: function(){ return {
   // ── 1) modo ENVIAR: primero el TIPO ──────────────────────────────────────
   ok(await page.$eval('#modos .modo-btn.active', b => b.dataset.modo) === 'enviar', 'arranca en Enviar');
   let ts = await tipos();
-  ok(ts.length === 4 && !ts.join('|').includes('Virgilio'), 'Enviar: 4 tipos, Virgilio afuera — ' + ts.join(' | '));
+  // "Virgilio afuera" se mira por el data-tipo del botón, no por la palabra: desde que existe la
+  // baldosa "Talleristas O.C." el texto dice quién emite la O.C. (Gestión Virgilio) sin que eso
+  // signifique que Virgilio sea un destino de Enviar.
+  ok(ts.length === 5 && !(await page.$('#tipoGrid .tipo-btn[data-tipo="virgilio"]')),
+     'Enviar: 5 tipos, Virgilio afuera — ' + ts.join(' | '));
   ok(ts.some(t => t.includes('Inyectores')), 'Enviar: los Inyectores tienen su propio tipo — ' + ts.join(' | '));
   ok(ts[0].includes('Talleristas') && ts[0].includes('· 2') && !ts.join('|').includes('contraparte'),
      'el tipo dice cuántas hay sin la palabra "contraparte" — ' + ts[0]);
@@ -230,7 +243,28 @@ window.supabase = { createClient: function(){ return {
 
   // el "← Cambiar tipo" vuelve a los tipos sin recargar
   await page.click('#btnVolverTipo');
-  ok((await tipos()).length === 4 && await page.$eval('#cpBox', e => e.classList.contains('hidden')), 'Cambiar tipo vuelve a los tipos');
+  ok((await tipos()).length === 5 && await page.$eval('#cpBox', e => e.classList.contains('hidden')), 'Cambiar tipo vuelve a los tipos');
+
+  /* ── TALLERISTAS O.C.: BALDOSA PROPIA EN ENVIAR ────────────────────────────────
+     [usuario 2026-09-23, con la foto: "a Blist-Pack SA y Carlos Aguirre quiero que me los saques
+     afuera de talleristas y me los pongas en un modulo nuevo de talleristas o.c." + "No es o.c. de
+     insumos. Es orden de compra que se hace desde Gestion Virgilio que hoy no esta modelado aca.
+     Por ahora sugeri 0"]. En la base siguen siendo 'tallerista' (sacarlos de la tabla volteaba 32 y
+     38 pasos de ruta): lo que los parte es el flag `oc` de cada contraparte. */
+  ok(ts.some(t => t.includes('Talleristas O.C.')), 'Enviar: existe la baldosa Talleristas O.C. — ' + ts.join(' | '));
+  ok(!btns.join('|').includes('Carlos Aguirre'),
+     'el tallerista O.C. NO sale adentro de Talleristas — ' + btns.join(' | '));
+  // una sola contraparte con el flag: la baldosa entra derecho a su carga
+  await page.click('#tipoGrid .tipo-btn[data-tipo="tallerista_oc"]');
+  await page.waitForFunction(() => !document.getElementById('fase1').classList.contains('hidden'));
+  ok((await page.$eval('#fase1Title', e => e.textContent)) === 'Carlos Aguirre · O.C. Virgilio',
+     'el título dice de dónde sale el pedido, así un sugerido 0 no se lee como "no mandarle nada"');
+  // su pieza se carga igual que la de cualquier tallerista (tarjetas), pero con el sugerido en 0
+  const ocCards = await cards();
+  ok(ocCards.length === 1 && ocCards[0].includes('A10') && ocCards[0].includes('Sugerido 0'),
+     'el tallerista O.C. viene con sugerido 0 (la O.C. la hace Virgilio) — ' + ocCards.join(' | '));
+  await page.click('#btnVolver');   // una sola contraparte: vuelve directo a los tipos
+  await page.waitForFunction(() => document.querySelectorAll('#tipoGrid .tipo-btn').length > 0);
 
   // Los INYECTORES tienen su PROPIO tipo y NO aparecen bajo "Prov. de servicio" [usuario
   // 2026-09-18]. Su envio son las RESINAS (bolsas) en kg.
@@ -687,11 +721,18 @@ window.supabase = { createClient: function(){ return {
   await page.waitForFunction(() => document.querySelectorAll('#tipoGrid .tipo-btn').length > 0);
   ok(true, 'volver desde un tipo de una sola contraparte cae en los tipos');
 
-  // tallerista: en Recibir solo entrega Martin (Lucho tiene n_rec 0), asi que se entra derecho
+  // tallerista: en Recibir entregan Martin y el tallerista O.C. (Lucho tiene n_rec 0). EL O.C. NO
+  // SE SEPARA AL RECIBIR [usuario 2026-09-23: "Solo en la version tablet dentro del modulo
+  // enviar"]: no hay baldosa "Talleristas O.C." en Recibir y Carlos Aguirre sale acá adentro.
+  ok(!(await tipos()).join('|').includes('O.C.'), 'Recibir: no hay baldosa de Talleristas O.C. — ' + (await tipos()).join(' | '));
   await page.click('#tipoGrid .tipo-btn[data-tipo="tallerista"]');
+  let rTall = await page.$$eval('#cpGrid .prov-btn', xs => xs.map(x => x.textContent.replace(/\s+/g, ' ')));
+  ok(rTall.length === 2 && rTall.some(b => b.startsWith('Carlos Aguirre')) && rTall.some(b => b.startsWith('Martin')),
+     'Recibir: el tallerista O.C. entrega adentro de Talleristas, como cualquier otro — ' + rTall.join(' | '));
+  await page.click('#cpGrid .prov-btn:has-text("Martin")');
   await page.waitForFunction(() => !document.getElementById('fase1').classList.contains('hidden'));
   ok((await page.$eval('#fase1Title', e => e.textContent)) === 'Martin Cornejo',
-     'en Recibir solo el tallerista que entrega algo (Lucho no), y se entra derecho');
+     'en Recibir solo el tallerista que entrega algo (Lucho no), y el título no lleva el rótulo O.C.');
   ok(!(await page.$eval('#fRemito', e => e.classList.contains('hidden'))), 'en Recibir se pide el remito');
   // las partes tambien en TARJETAS, con ESPERADO y CANTIDAD en vez de sugerido y cantidad
   ok(await page.$eval('#tblWrap', e => e.classList.contains('hidden')),

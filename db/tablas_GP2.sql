@@ -1031,12 +1031,14 @@ create table "GP2".tallerista (
   nombre text not null,
   ubicacion_stock_id bigint,
   activo boolean not null default true,
+  pedido_por_oc_virgilio boolean not null default false,
   constraint tallerista_pkey PRIMARY KEY (id),
   constraint tallerista_nombre_key UNIQUE (nombre),
   constraint tallerista_ubicacion_stock_id_fkey FOREIGN KEY (ubicacion_stock_id) REFERENCES "GP2".ubicacion(id)
 );
 comment on table "GP2".tallerista is 'Talleristas (activo, ubicacion_stock_id cuando comparten deposito, p.ej. Carlos Aguirre en Pedernera). Cada uno tiene su ubicacion.';
 comment on column "GP2".tallerista.ubicacion_stock_id is 'Ubicación de stock efectiva. Cuando el tallerista comparte depósito con otro actor (típicamente un proveedor_servicio), apunta a la ubi de ese depósito compartido. Si es NULL, se usa la ubi nativa (tipo=tallerista, ref_id=this.id).';
+comment on column "GP2".tallerista.pedido_por_oc_virgilio is 'true = a este tallerista lo que tiene que hacer se lo pide una ORDEN DE COMPRA que emite Gestion Virgilio, no el maximo de la casa. GP2 todavia NO lee esa O.C. [usuario 2026-09-23, textual: "No es o.c. de insumos. Es orden de compra que se hace desde Gestion Virgilio que hoy no esta modelado aca. Por ahora sugeri 0"], asi que en tablet_bundle su techo es 0 y con el el sugerido -mismo criterio que el fasonero sin O.C. (proveedor_servicio.pedido_por_oc)-. Efecto en pantalla: Tablet_GP2.html los saca de la baldosa "Talleristas" y los pone en "Talleristas O.C.", SOLO en Enviar (en Recibir siguen adentro de Talleristas). Hoy: Carlos Aguirre (9) y Blist-Pack SA (14). NO cambia el modelo: los dos siguen siendo talleristas en rutas, inventario, reparto y costeo -sacarlos de la tabla habria volteado 32 y 38 pasos de ruta-.';
 comment on column "GP2".tallerista.activo is 'false = no aparece en las pantallas de Envio/Entrega de talleristas. Se usa para sacar de circulacion sin borrar la fila, que arrastra ubicacion e historial de movimientos. Maspoli (id 7) quedo inactivo el 2026-09-03 al pasar a proveedor de servicio.';
 
 -- ---------- tarifa_servicio ----------

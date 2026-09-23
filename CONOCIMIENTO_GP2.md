@@ -12444,3 +12444,48 @@ propósito**: el que decide qué se ve es la pantalla. No se les puso filtro.
 como texto, `registro_operarios_bundle` daba positivo y era la **matriz 338 "Embolsar Bombilla"**,
 y en `movimientos_bundle` varios eran `ruta_id`. Antes de dar por mostrado un código, mirar el
 contexto de la clave.
+
+## 4fq. Talleristas O.C.: a Blist-Pack y Carlos Aguirre el trabajo se lo pide Gestión Virgilio (2026-09-23)
+
+`[usuario, con la foto de la Tablet: "A blist pack sa y carlos aguirre quiero que me los saques
+afuera de talleristas y me los pongas en un módulo nuevo de talleristas o.c."]` + `[usuario, al
+preguntarle qué cambia además del lugar: "No es o.c. de insumos. Es orden de compra que se hace
+desde Gestión Virgilio que hoy no está modelado acá. Por ahora sugerí 0"]` + `[usuario, sobre
+dónde: "Solo en la versión tablet dentro del módulo enviar"]`.
+
+**El dato de negocio nuevo:** hay talleristas a los que **no se les manda contra el máximo de la
+casa**. Lo que tienen que hacer se lo pide una **orden de compra que emite Gestión Virgilio**, un
+sistema que GP2 todavía **no lee**. Hoy son dos: **Carlos Aguirre (9)** y **Blist-Pack SA (14)**.
+Mientras esa O.C. no se modele acá, GP2 **no tiene con qué calcular cuánto mandarles**, y por eso
+su sugerido es **0** — no porque no haya que mandarles nada.
+
+**NO se los sacó de `GP2.tallerista`, y ese es el punto.** Carlos Aguirre tiene **32 pasos** de
+ruta con `tipo_paso='tallerista'` y Blist-Pack **38**: cambiarles el tipo volteaba rutas,
+inventario, reparto y costeo. Lo que se separó es **la vitrina**:
+
+| Dónde | Qué cambia |
+|---|---|
+| `GP2.tallerista.pedido_por_oc_virgilio` | flag nuevo, `false` por defecto; en `true` los dos de arriba |
+| `tablet_bundle` | manda `oc` en cada contraparte, y el **techo** de esas filas es **0** (y con él el sugerido) |
+| `Tablet_GP2.html`, **solo Enviar** | baldosa aparte **"🧾 Talleristas O.C."**; el título de la carga agrega "· O.C. Virgilio" |
+| Recibir, y todo lo demás | **igual que antes**: siguen siendo talleristas comunes |
+
+**El criterio del techo 0 no es nuevo**: es el mismo del **fasonero** (`proveedor_servicio.
+pedido_por_oc`, Maspoli) cuando no hay O.C. enviada. La diferencia es de dónde viene la orden —
+la del fasonero se emite **acá** (`GP2.orden_compra`) y el sugerido sube sola cuando sale; la de
+estos dos se emite **afuera**, así que el 0 se queda hasta que alguien modele esa O.C.
+**Cuando se modele, lo único que se cambia es ese `then 0` de la CTE `t` de `tablet_bundle`.**
+
+⚠ **Por qué el título dice "· O.C. Virgilio"**: un sugerido en 0 sin explicación se lee como "no
+hay que mandarle nada", que es lo contrario de lo que pasa. El rótulo es lo que separa "no
+corresponde" de "no lo sé".
+
+⚠ **Cómo se parte una baldosa en la Tablet** (por si aparece otro corte así): `TIPOS` acepta
+`clave` (el `data-tipo` del botón, para que dos baldosas del mismo tipo no compartan selector) y
+`oc` (el lado del flag). Una baldosa **sin** `oc` no filtra nada — por eso Recibir quedó intacto.
+`selTipo` pasó a guardar **la baldosa entera**: con dos baldosas `tallerista`, el string del tipo
+ya no alcanza para volver.
+
+**Lo que NO se tocó y sigue pendiente:** nada en `Talleristas/` (Envíos, Recepción, Control,
+Proporciones) los separa — ahí los dos siguen mezclados con el resto, que es lo que el usuario
+pidió por ahora. Y GP2 sigue **sin leer** la O.C. de Gestión Virgilio: ése es el hueco real.
