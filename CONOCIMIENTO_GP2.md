@@ -12194,19 +12194,42 @@ kilo**: la planilla lo suma tal cual a un costo de artículo de $1.025,59, y GP2
 $561,26 justamente porque el vástago entra en cero. Dos cosas lo mantienen en cero y hay que
 arreglar las dos: `estado_compra='discontinuo'` (herencia de la decisión del 2026-08-31 *"el remache
 de aluminio no va más"*, que **la planilla vigente desmiente**) y **cero filas en
-`precio_proveedor`**. Con el precio cargado los tres artículos suben ~$448,54 cada uno.
+`precio_proveedor`**. Las dos se arreglaron el mismo día con el "sí" del dueño.
 
-**Lo que falta, y no se inventa:**
-1. **El `M2` no tiene fila de `inventario` en la ubicación de Pettofrezza (31)** — sólo en Sector
-   Procesado. `recalcular_maximos_talleristas` **sólo actualiza filas que existen, no las crea**, así
-   que sin esa fila el Envío a Talleristas no le puede poner máximo ni sugerido al disco calado, que
-   es justo la pieza que ahora se le manda.
-2. **Pettofrezza sigue sin precio para el 121** (el $85 era de Cavallero, que quedó sin rutas). El
-   315 y el 609 tienen $140 "AyE". Con el `M1` afuera el trabajo de Rafael es **un solo paso**, así
-   que el "AyE" ya cubre poner el vástago en el disco — deja de tener sentido la pregunta del
-   2026-09-22 sobre si el disco con vástago se cobraba aparte.
-3. **Filas huérfanas de Cavallero German**: le quedan `inventario` de `M1` y de `V18C` en la
-   ubicación 24, las dos en 0, de cuando hacía el 121.
+**EJECUTADO el 2026-09-23** (`db/migracion_m1_desaparece.sql`, bloques A y B), con este efecto
+medido en `v_costo_componente`:
+
+| | Antes | Después |
+|---|---|---|
+| 315 | $561,26 | **$1.009,79** |
+| 609 | $500,00 | **$948,53** |
+| 121 | $397,49 | **$846,02** |
+| `V18` | $0,00 (origen `ruta`) | **$448,54** (origen `precio`) |
+
+La planilla pone el 315 en $1.025,59, o sea que quedan **$15,80** de diferencia — y encima GP2 usa
+el tallerista de Pettofrezza ($140) donde la planilla usa el de Cavallero ($85), así que el resto
+tendría que dar $55 MENOS que la planilla. Hay ~$71 repartidos en otras líneas sin perseguir.
+`db/verificar.sql`: invariantes de modelo en 0. La única regla > 0 quedó en
+`AE_paso_virgilio_y_codigo_dan_distinto = 2`, y **es ajena a esto**: los artículos **567 "Corta
+Palta"** y **537 "Pela y Pica Ajo"** tienen componente terminado en el sector 12 pero **0 rutas y 0
+receta** — están creados y sin cargar.
+
+**Lo que se hizo además del cambio en sí, y por qué:**
+1. **Se creó la fila de `inventario` del `M2` en la ubicación de Pettofrezza (31)**, que no existía
+   (sólo estaba en Sector Procesado). `recalcular_maximos_talleristas` **sólo actualiza filas que
+   existen, no las crea**: sin esa fila el Envío a Talleristas no le podía poner máximo ni sugerido
+   al disco calado, que es justo la pieza que ahora se le manda. Después del recálculo, el `M2` y el
+   `V18` quedaron los dos en **máximo 5.078** (`est_madre_x_reparto`) en la ubicación de Rafael.
+2. **Se borraron las filas huérfanas de Cavallero German** (`M1` y `V18C` en la ubicación 24, las
+   dos en 0, de cuando hacía el 121).
+
+**Lo único que sigue faltando: Pettofrezza no tiene precio para el 121** (el $85 era de Cavallero,
+que quedó sin rutas). El 315 y el 609 tienen $140 "AyE". Con el `M1` afuera el trabajo de Rafael es
+**un solo paso**, así que el "AyE" ya cubre poner el vástago en el disco — deja de tener sentido la
+pregunta del 2026-09-22 sobre si el disco con vástago se cobraba aparte. **Ojo con el semáforo**: el
+121 quedó con `faltan_precios = 0` y `servicios_pesos = 0,00` al mismo tiempo, o sea que **un
+servicio de tallerista sin precio NO se denuncia como faltante** (el 609 sí marca 1, por otra
+pieza). No confiarse de ese contador para saber si un armado se está cobrando.
 
 **Y a Pettofrezza NO se le recibe más nada — eso está bien y no necesita código**
 `[usuario 2026-09-23: "Ya no recibiríamos más del tallerista Pettofrezza Rafael", con la pantalla a
@@ -12247,3 +12270,53 @@ su poder.
    A2 134, BOM8B 2). Sin fila no hay máximo guardado; el sugerido de la Tablet igual sale, porque
    se calcula al vuelo. Alinear los máximos es `recalcular_maximos_talleristas()`, que es otra
    escritura y la autoriza el dueño.
+
+## 4fn. El 498 tiene su propio crudo: nace `I9` "Destapador Pie p/cromar" (2026-09-23)
+
+`[usuario, textual]`: *"Ahora, luego de la matriz 27, va a parar al sector crudo I9: 'Destapador Pie
+p/cromar', no I1"*, con su **sí** sobre el SQL exacto, en GP2 y en el vecino.
+
+**No era un renombre: `I9` no existía en ningún lado.** Lo que pasó es que **`I1` se partió en dos**.
+Hasta hoy la matriz 27 (Corte Cuerpo Uña Pie, sobre el Fleje 29 / `IA5`) sacaba un único crudo,
+`I1` "Destapador Pie p/pintar", y la bifurcación ocurría recién en el proveedor de servicio:
+`I1` → **Jade** (pintado) → `B12` para el **499**, e `I1` → **Pedernera** (cromado) → `Z45` para el
+**498**. Ahora cada rama tiene su crudo: **`I1` se queda con el 499** (sigue igual, no se tocó ni un
+paso suyo) y **`I9` se lleva el 498**.
+
+| | Antes | Después |
+|---|---|---|
+| Ruta 101 (498), paso 2 matriz 27 | sale `I1` | sale **`I9`** |
+| Ruta 101 (498), paso 3 Pedernera | entra `I1` | entra **`I9`** |
+| Ruta 100 (499) | `I1` → Jade → `B12` | **sin cambios** |
+
+**Lo que se escribió, y nada más que eso.** En GP2: `componente` **936** `I9` (Sector Crudo,
+unidad, 0,02863 kg/uni, 1048 uni/cajón), dos filas de `inventario` en 0 (Sector Crudo con máximo
+**5.240** = 5 cajones, y Pedernera / Carlos Aguirre), los `ruta_paso` **661** y **662**, y el borrado
+de la fila de inventario de `I1` en Pedernera (id 500, en 0 y ya sin ruta que la justifique). En
+`public`: alta en `SC Kg` (cod_verificacion 100130), una fila nueva en `Causa-Efecto`
+(27 · Fleje 29 · `I9`, la de `I1` **queda** porque es el 499) y `Partes x PS` id 313 pasa a `SC='I9'`.
+
+**El peso de `I9` es el de `I1`** (0,02863 kg/uni, 30 kg/cajón): es la misma estampada del mismo
+fleje con la misma matriz. `[usuario confirmó el 2026-09-23]`.
+
+**El costo no se movió, medido antes y después**: `I9` $145,51 (idéntico a `I1`), `Z45` $213,85 y
+el 498 terminado **$431,35**, sin faltantes de precio, kg ni tiempos. Era lo esperado: Pedernera
+cobra por la pieza que **devuelve** ($2.293,15/kg sobre `Z45`), no por la que recibe.
+
+**Dos cosas del vecino que conviene tener anotadas:**
+1. **`v_produccion_por_sector` le va a asignar a `I9` TODA la producción de la matriz 27**, igual
+   que ya hacía con `I1` y `J13`: esa vista reparte el total de la matriz a cada fila `Aumenta`, sin
+   prorratear. Es un defecto viejo del vecino, no de este cambio; ahora son tres filas en vez de dos.
+2. **Insertar en `SC Kg` dispara `trg_pesos_sc`**, que llama a `actualizar_partes_tallerista()`,
+   `actualizar_despiece()` y `actualizar_partes_ps()` — recálculo **global** de las tres derivadas.
+   Los pesos de la fila de Pedernera no se movieron porque `actualizar_partes_ps` resuelve por el
+   **SP** (`Z45`) y sólo cae al SC si no hay SP.
+
+**Lo que NO hizo falta tocar, y por qué:** la receta del 498 (`articulo_componente`) pide `Z45`, no
+el crudo — receta y ruta no se usan para lo mismo (§4cc); `Despiece x Articulo` y
+`Partes x Tallerista` del vecino tampoco nombran el crudo (Garcia recibe `Z45`); el precio de
+cromado cuelga del componente de salida; y `parte_proveedor_servicio` (los pintores de una pieza)
+sigue con `I1` → Daniel/Jade, que es exactamente la rama que `I1` conserva.
+
+**La entrega histórica de `I1` cromado en `Entregas PS` (1 fila) quedó como estaba**: la historia no
+se reescribe.
