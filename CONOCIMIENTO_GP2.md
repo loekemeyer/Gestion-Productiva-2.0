@@ -11930,3 +11930,50 @@ existiendo porque las usa el Control, que es su lugar.
 **El TALLERISTA no se tocó**: ahí no hay pantalla de control y el esperado en cajones + la cantidad
 en kg los pidió el usuario el 18/09 (§v1.19.0 de la Tablet). Si también tiene que ir en unidades, es
 el mismo cambio de una línea.
+
+## 4fe. El control de un P.S. se cuenta en el envase y en kilos (2026-09-23)
+
+`[usuario, textual]`: *"Cuando voy a hacer el control de AJ adhesivos me aparece para marcar uni. Y
+yo te dije solo paquetes"* y, enseguida: *"Lo mismo con Esther. El control lo hago en bolsas y
+kilos, no en unibolsas. Me estás poniendo unidades cuando yo arriba te dije otra cosa"*.
+
+Es la otra mitad de §4fd. Si el **remito** va en unidades, el **control** va en lo que se cuenta de
+verdad: el **envase** (paquetes de AJ, bolsas de Ester y Maspoli, cajones de Julio y Jade, paquetes
+de Charcas) y, donde la pieza se pesa, los **kilos**. El campo "Contado (uni)" se fue de
+`ControlEntregaPS_GP2.html`: la unidad de la pieza dejó de ser algo que alguien tipea y pasó a ser
+el **resultado**, que la tarjeta muestra antes de confirmar ("= 400 uni · Diferencia …") porque es
+lo que se guarda y lo que pisa el stock.
+
+**Cuál manda si están los dos: el PESO.** Mismo criterio que el control de la recepción de insumos,
+donde los kg de la balanza son los que se guardan. Sin kg cargados, manda el envase.
+
+**El dato tiene que estar, y esto es lo que falta** `[usuario: "Si vos tenés el dato de uni por
+paquete o kilo por uni, podrías hacer el control. Si no lo tenés, lo tendríamos que agregar"]`.
+Medido el 2026-09-23 sobre las piezas que devuelven los P.S. no híbridos:
+
+| Falta | Piezas |
+|---|---|
+| Sin `kg_x_uni` (no se puede pesar) | los **10 pliegos de AJ Adhesivos** (control sólo en paquetes) |
+| Sin envase (ni factor del proveedor ni `uni_x_cajon`) | **V18D** y **W1B** (Guazzaroni) y **C12** (Pedernera) |
+
+Las tres últimas caen al campo suelto en unidades hasta que se les cargue el cajón. El resto —25
+piezas de Guazzaroni, 34 de Pedernera, las de Ester, Julio, Jade, Maspoli y Charcas— ya tiene todo.
+
+## 4ff. "Recibí de más" no se dispara por un decimal (2026-09-23)
+
+`[usuario, con 1.852 uni de PC1A contra 1.852 esperadas]`: *"¿Por qué salta la alerta? Es
+exactamente la misma cantidad"*. El cartel decía **"⚠ 0 de más"**, que es la firma del problema.
+
+**La causa es el saldo del tercero, que arrastra decimales.** A Esther se le mandan 10 kg de mangos
+y eso son **1.851,8518… unidades** (10 / 0,0054): ese 0,8518 queda colgando en su stock. Al recibir
+1.852 el sistema comparaba crudo (`recibido > esperado`), veía 0,1481 de exceso y anotaba una fila
+en `GP2.alerta_recepcion`. La alerta **id 5** (Ester, PC1A, esperado 1851,851851, recibido 1852,
+exceso 0,148148) es exactamente eso, y quedó abierta.
+
+**La tolerancia es media unidad, o 5 gramos si la pieza se mide en kg**, y vive en las **dos
+puntas**: `exceso()` de la Tablet (el cartel que ve el operario) y el `if v_comparable > v_esp` de
+`GP2.tablet_registrar` (el que escribe la alerta). Tocar sólo el front hubiera sacado el cartel y
+dejado la alerta anotándose igual.
+
+**Lo que NO se tocó**: la alerta 5 sigue abierta. Cerrarla es escribir datos y lo autoriza el dueño
+(`alerta_recepcion_marcar(5, 'resuelta', …)`).

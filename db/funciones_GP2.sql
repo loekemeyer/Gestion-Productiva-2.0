@@ -7939,7 +7939,15 @@ begin
     if v_modo = 'recibir' and v_esp is not null then
       v_comparable := case when v_tipo = 'proveedor_at'
                            then v_cant * coalesce(nullif(v_por_caja,0), 1) else v_cant end;
-      if v_comparable > v_esp then
+      -- LA ALERTA NO SALTA POR UN DECIMAL [usuario 2026-09-23: "por que salta la alerta? es
+      -- exactamente la misma cantidad", con 1.852 uni contra 1.852 esperadas]. El saldo que el
+      -- tercero tiene en su poder arrastra decimales de las conversiones kg <-> uni (10 kg de mango
+      -- son 1.851,8518 uni), asi que comparar crudo anota una alerta por cada redondeo. Media
+      -- unidad, o 5 gramos si la pieza se mide en kg: nadie entrega 0,15 mangos. La MISMA
+      -- tolerancia vive en exceso() de la Tablet, que es el cartel que ve el operario.
+      -- El case va ENTRE PARENTESIS a proposito: sin eso plpgsql corta la condicion del IF en el
+      -- primer THEN que encuentra, que seria el del case, y la funcion no compila.
+      if v_comparable > v_esp + (case when lower(coalesce(v_uni,'')) = 'kg' then 0.005 else 0.5 end) then
         insert into alerta_recepcion(fecha, origen_tipo, origen_ref, origen_nombre, comp_id, cod,
                                      descripcion, esperado, recibido, exceso, unidad, esperado_origen,
                                      movimiento_id)

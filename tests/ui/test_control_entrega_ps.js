@@ -104,38 +104,48 @@ window.supabase = { createClient: function(){ return {
   const vacios = await page.$$eval('#pend .card input', xs => xs.every(x => x.value === ''));
   ok(vacios, 'los campos arrancan vacios: el control se cuenta, no se confirma');
 
-  // ── 2) el envase: rotulo del proveedor, y no se pide si la pieza no tiene con que ──
+  // ── 2) EL CONTROL SE CUENTA EN EL ENVASE Y EN KILOS, no en la unidad de la pieza ──
+  // [usuario 2026-09-23: "Cuando voy a hacer el control de AJ adhesivos me aparece para marcar uni.
+  // Y yo te dije solo paquetes"; "El control lo hago en bolsas y kilos, no en unibolsas"].
   const labels = await page.$$eval('#pend .card', xs => xs.map(x =>
     Array.from(x.querySelectorAll('label')).map(l => l.textContent.trim()).join(' | ')));
-  ok(labels[0] === 'Contado (kg) | Cajones',
-     'remache: se cuenta en kg y en cajones — ' + labels[0]);
-  ok(labels[1] === 'Contado (uni) | Paquetes',
-     'AJ: la unidad es la de la pieza (uni) y el envase el del proveedor (paquetes) — ' + labels[1]);
+  ok(labels[0] === 'Cajones | Kilos',
+     'remache: se cuenta en cajones y se pesa — ' + labels[0]);
+  ok(labels[1] === 'Paquetes',
+     'AJ: SOLO paquetes — el pliego no tiene kg_x_uni, no hay nada que pesar — ' + labels[1]);
   ok(labels[2] === 'Contado (uni)',
-     'pieza sin envase cargado: no se pide un bulto que nadie puede contar — ' + labels[2]);
-  ok(labels[3] === 'Contado (kg) | Bolsas',
-     'Ester: la entrega copia la unidad del envio (bolsas), no "cajones" generico — ' + labels[3]);
-  ok(labels[4] === 'Contado (kg) | Bolsas',
-     'Julio (envio por peso): pieza plastica en bolsas, como en la Tablet — ' + labels[4]);
+     'pieza sin envase ni peso: queda el campo suelto, no se inventa un envase — ' + labels[2]);
+  ok(labels[3] === 'Bolsas | Kilos',
+     'Ester: bolsas y kilos, que es como lo cuenta el usuario — ' + labels[3]);
+  ok(labels[4] === 'Bolsas | Kilos',
+     'Julio (envio por peso): pieza plastica en bolsas, y los kilos — ' + labels[4]);
+  ok(!labels.slice(0, 2).concat(labels.slice(3)).some(l => /Contado \(/.test(l)),
+     'ya no se pide "Contado (uni)" donde hay envase — ' + labels.join(' / '));
+  ok((await cards())[1].includes('200 por paquete'),
+     'la tarjeta dice cuantas unidades entran en el envase — ' + (await cards())[1]);
   const im = await page.$$eval('#pend .card:first-child input', xs => xs.map(x => x.getAttribute('inputmode')));
-  ok(im[0] === 'decimal' && im[1] === 'numeric',
-     'teclado numerico: decimal para los kg, entero para los cajones — ' + im.join(','));
+  ok(im[0] === 'numeric' && im[1] === 'decimal',
+     'teclado numerico: entero para los cajones, decimal para los kg — ' + im.join(','));
 
   // ── 3) la diferencia se ve al tipear, y se marca cuando pasa la tolerancia ────────
   const card1 = '#pend .card:first-child';
-  await page.fill(card1 + ' input[data-f="cant"]', '20,8');
+  await page.fill(card1 + ' input[data-f="kg"]', '20,8');
   const d1 = await page.$eval(card1 + ' .diff', e => e.textContent.trim());
-  ok(d1.includes('-0,2') && d1.includes('-1'),
-     'diferencia contra el remito, en kg y en % — ' + d1);
+  ok(d1.includes('= 20,8 kg') && d1.includes('-0,2') && d1.includes('-1'),
+     'se ve lo que se guarda y la diferencia contra el remito — ' + d1);
   ok(!(await page.$eval(card1, e => e.classList.contains('desvio'))),
      '1 % contra una tolerancia de 2 % no es desvio');
-  await page.fill(card1 + ' input[data-f="cant"]', '19');
+  await page.fill(card1 + ' input[data-f="kg"]', '19');
   ok(await page.$eval(card1, e => e.classList.contains('desvio')),
      '9,5 % SI es desvio: la tarjeta se pinta');
+  // el PESO manda sobre el envase cuando estan los dos (mismo criterio que el control de insumos)
+  await page.fill(card1 + ' input[data-f="env"]', '99');
+  ok((await page.$eval(card1 + ' .diff', e => e.textContent)).includes('= 19 kg'),
+     'con kg cargados, el envase no cambia lo que se guarda: manda el peso');
 
   // ── 4) el payload del control ────────────────────────────────────────────────────
-  await page.fill(card1 + ' input[data-f="cant"]', '20,8');
-  await page.fill(card1 + ' input[data-f="caj"]', '1');
+  await page.fill(card1 + ' input[data-f="kg"]', '20,8');
+  await page.fill(card1 + ' input[data-f="env"]', '1');
   await page.click(card1 + ' button[data-a="ok"]');
   await page.waitForFunction(() => (window.__calls || []).some(c => c.name === 'controlar_entrega_ps'));
   const reg = await calls('controlar_entrega_ps');
@@ -144,11 +154,17 @@ window.supabase = { createClient: function(){ return {
      'viaja el movimiento, lo contado y los cajones contados — ' + JSON.stringify(reg[0].args));
   ok(!dialogs.length, 'dentro de la tolerancia no pregunta nada');
 
-  // ── 5) fuera de tolerancia pregunta antes de pisar el stock ──────────────────────
-  await page.fill('#pend .card:nth-child(2) input[data-f="cant"]', '500');
+  // ── 5) AJ: 2 paquetes de 200 = 400 pliegos contra los 600 del remito ─────────────
+  // Fuera de tolerancia pregunta antes de pisar el stock, y lo que viaja es la unidad canonica.
+  await page.fill('#pend .card:nth-child(2) input[data-f="env"]', '2');
+  ok((await page.$eval('#pend .card:nth-child(2) .diff', e => e.textContent)).includes('= 400 uni'),
+     'AJ: 2 paquetes de 200 se leen como 400 pliegos antes de confirmar');
   await page.click('#pend .card:nth-child(2) button[data-a="ok"]');
   await page.waitForFunction(() => (window.__calls || []).filter(c => c.name === 'controlar_entrega_ps').length === 2);
-  ok(dialogs.some(d => d.type === 'confirm' && d.msg.includes('600') && d.msg.includes('500') &&
+  const regAj = (await calls('controlar_entrega_ps'))[1];
+  ok(regAj.args.p_cantidad === 400 && regAj.args.p_cajones === 2,
+     'AJ: se guardan 400 pliegos y los 2 paquetes contados — ' + JSON.stringify(regAj.args));
+  ok(dialogs.some(d => d.type === 'confirm' && d.msg.includes('600') && d.msg.includes('400') &&
                        d.msg.includes('CONTADO')),
      'el desvio avisa que el stock queda con lo contado — ' + (dialogs[0] || {}).msg);
 

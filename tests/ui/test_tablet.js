@@ -107,7 +107,9 @@ const BUNDLE = {
     // ...Y EL CAJON QUE VALE ES EL QUE ANOTO LOGISTICA (ent_uxc_anot, 2026-09-21). El caso real:
     // se le mandaron 60.000 remaches ANOTADOS COMO 1 CAJON (pesaron 21 kg), pero el cajon teorico
     // de la pieza son 57.143 (20 kg justos) -> la tarjeta decia 1,05 cajones. Con el anotado da 1.
-    { tipo: 'proveedor_servicio', ref: '4', comp_id: 611, comp_entrada_id: 610, n_entradas: 1, tiene_bom: false, cod_art: null, cod: 'CV2N', desc: 'Remache Pizza Niquelado', sector: 'Sector Remache', um: 'unidad', uxc: 50, kg_x_uni: 0.00035, por_caja: null, ent_cod: 'CV2', ent_desc: 'Remache Pizza p/Niquelar', ent_uxc: 57143, ent_kgu: 0.00035, ent_uxc_anot: 60000, esperado: 60000, esperado_origen: 'online_ps' },
+    // el esperado con DECIMALES es el caso real: el saldo del P.S. arrastra la conversion
+    // kg <-> uni, y media unidad de diferencia NO es "recibi de mas" (usuario 2026-09-23)
+    { tipo: 'proveedor_servicio', ref: '4', comp_id: 611, comp_entrada_id: 610, n_entradas: 1, tiene_bom: false, cod_art: null, cod: 'CV2N', desc: 'Remache Pizza Niquelado', sector: 'Sector Remache', um: 'unidad', uxc: 50, kg_x_uni: 0.00035, por_caja: null, ent_cod: 'CV2', ent_desc: 'Remache Pizza p/Niquelar', ent_uxc: 57143, ent_kgu: 0.00035, ent_uxc_anot: 60000, esperado: 59999.851851851, esperado_origen: 'online_ps' },
     // AJ: 600 pliegos esperados / 200 por paquete de ENTREGA = 3 paquetes (no 6, que serian de envio)
     { tipo: 'proveedor_servicio', ref: '12', comp_id: 565, comp_entrada_id: 564, n_entradas: 1, tiene_bom: false, cod_art: null, cod: 'Pliego Ad 506', desc: 'Adhesivado', sector: 'Sector Procesado', um: 'unidad', uxc: null, kg_x_uni: null, por_caja: null, ent_cod: 'Pliego 506', ent_desc: 'Sin adhesivar', esperado: 600, esperado_origen: 'online_ps' },
     { tipo: 'virgilio', ref: 'virgilio', comp_id: 373, comp_entrada_id: null, n_entradas: 0, tiene_bom: false, cod_art: null, cod: 'IC3V', desc: 'Fleje N° 90 LARGO', sector: 'Sector Fleje', um: 'kg', uxc: 24, kg_x_uni: 0.0134, por_caja: null, ent_cod: null, ent_desc: null, esperado: 20, esperado_origen: 'online_virgilio' },
@@ -728,6 +730,16 @@ window.supabase = { createClient: function(){ return {
   const gzAnot = (await cards()).find(c => c.includes('CV2N')) || '';
   ok(gzAnot.includes('Stock prov. de servicio 60.000 uni'),
      'Guazzaroni: el otro remache también en unidades — ' + gzAnot);
+  // LA ALERTA DE "RECIBÍ DE MÁS" NO SALTA POR UN DECIMAL [usuario 2026-09-23: "¿Por qué salta la
+  // alerta? Es exactamente la misma cantidad", con 1.852 contra 1.851,8518 esperadas]. El saldo del
+  // P.S. arrastra la conversión kg<->uni; media unidad no es un exceso.
+  await cargarParte('CV2N', '60000');
+  const gzTol = (await cards()).find(c => c.includes('CV2N')) || '';
+  ok(!/de m[aá]s/i.test(gzTol),
+     'los 0,15 de diferencia por redondeo no son "recibí de más" — ' + gzTol);
+  ok(await page.$eval('#alertaBox', e => e.classList.contains('hidden')),
+     'y el cartel de "recibiendo más de lo esperado" tampoco aparece por un decimal');
+  await cargarParte('CV2N', '');
   await abrir('CV1N');
   const detPs = await det();
   ok(detPs.includes('Stock prov. de servicio') && detPs.includes('1.000 uni') && detPs.includes('Cantidad') &&
