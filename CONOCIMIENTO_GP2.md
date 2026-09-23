@@ -12145,3 +12145,68 @@ diferencia como merma del tallerista) quedó descartada.
 **Y el aviso de "recibí de más" se fue de la recepción del tallerista**, igual que se había ido de
 la del P.S.: ahora tiene dónde compararse de verdad. Al registrar el remito, la Tablet manda
 derecho al control, también en el tallerista.
+
+## 4fk. Quién entrega cada artículo, y que lo discontinuado NO se vea (2026-09-23)
+
+Salió de cruzar los **talleristas finales por artículo de GP2** contra los de la O.C. de Gestión
+Virgilio (`public."OC_Maximos"`). De los 195 códigos que existen en los dos sistemas, coincidían
+160; el usuario resolvió las 35 diferencias de una y dictó estos cambios.
+
+### Los dos nombres que estaban cruzados
+
+| Virgilio | es, en GP2 |
+|---|---|
+| **"Carlos E" / "Carlos"** | **Alex Escalante** (tallerista 2) |
+| **"Pedernera"** | **Carlos Aguirre** (tallerista 9) |
+
+Medido: los 12 códigos de "Carlos" en `Articulos Virgilio X Tallerista` son los de Alex Escalante
+(52 entregas, 1.827 cajas), y "Pedernera" entrega 115/544/560/802 — que entregaba
+**`AGUIRRE CARLOS RODOLFO`** hasta el 04/06, justo antes de que Pedernera arranque el 10/06.
+
+⚠ **Por eso el alias `CARLOS` → tallerista 9 de `GP2.contraparte_alias` está MAL**: manda las
+entregas de "Carlos" al tallerista equivocado. **No se tocó** — corregirlo es escribir datos y lo
+autoriza el dueño.
+
+### Lo que se cambió (dictado por el usuario)
+
+| artículo | queda |
+|---|---|
+| 338, 618, 070, 591, 761, 818 | **discontinuados** (los 6 con stock 0) |
+| 709, 908 | Alex Escalante |
+| 280 | Fábrica |
+| 557, 558, 654, 658, 659, 758, 759, 762, 763, 769 | Blist-Pack SA (555 y 764 ya estaban) |
+| 222, 910 | sólo Pintos (se borraron las 4 rutas de Maspoli) |
+| 123 | Garcia + Lucho, 50/50 |
+| 355, 789 | Pettofrezza + German, 50/50 |
+
+⚠ **Gentile Norberto (Oscar) quedó con CERO artículos**: sus 11 son exactamente los que se
+reasignaron. No se lo dio de baja — eso lo decide el dueño.
+
+⚠ El 50/50 se carga con **`reparto_guardar`**, que **valida contra las rutas**: el segundo
+tallerista tiene que hacer el paso, así que primero se duplica la ruta (una por tallerista, la
+convención de la casa) y recién después se guarda el reparto. Y la RPC **recalcula los máximos de
+todos los talleristas**, no sólo de los tocados.
+
+### ⚠ `articulo.discontinuado = true` NO alcanza para ocultarlo
+
+[usuario 2026-09-23: *"lo discontinuado no quiero seguir viéndolo en el programa"*]. **De los 27
+objetos de GP2 que leen rutas o el catálogo de prov AT, sólo 6 miraban el flag.** Lo que hacía
+falta, medido llamando a los bundles de verdad (no leyéndolos):
+
+| dónde | qué se hizo |
+|---|---|
+| `articulo_prov_at.activo = false` | con eso solo ya salieron de Recepción, Envíos, OC, Orden de producción, Proporciones y Stock general |
+| `despiece_verif_bundle` | filtro en el bloque `art` y en `rutas_full` (se ocultan sus rutas) |
+| `preavisos_bundle` | filtro en las 3 ramas del CTE `z` |
+| `Programa/Programa.html` | `llenarArticulos()` no los ofrece, y se fue el rótulo `(discontinuado)` de las 2 listas |
+| `RecepcionVirgilio_GP2.html` | ya los filtraba (`.filter(x => !x.disc)`), no se tocó |
+
+⚠ **`movimientos_bundle` y `programa_bundle` los siguen mandando TODOS con el flag `disc`, a
+propósito**: el que decide qué se ve es la pantalla. No se les puso filtro.
+
+⚠ **En el ABM de Artículos sí tienen que verse** — es donde se los des-discontinúa. No tocar.
+
+⚠ **Un `"338"` dentro del JSON de un bundle no siempre es el artículo 338.** Buscando el código
+como texto, `registro_operarios_bundle` daba positivo y era la **matriz 338 "Embolsar Bombilla"**,
+y en `movimientos_bundle` varios eran `ruta_id`. Antes de dar por mostrado un código, mirar el
+contexto de la clave.

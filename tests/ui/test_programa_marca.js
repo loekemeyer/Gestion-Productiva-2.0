@@ -63,16 +63,24 @@ window.supabase = { createClient: function(){ return {
   };
 
   await porMarca('');
+  // 2026-09-23 [usuario: "lo discontinuado no quiero seguir viendolo en el programa"]:
+  // el 809 del fixture es discontinuado, asi que su familia (Cortadores) tampoco aparece.
+  // Hasta hoy la regla era la contraria -- se mostraba con el rotulo "(discontinuado)".
   const grupos = await page.$$eval('#pickList .fam', gs => gs.map(g => g.textContent));
-  check(JSON.stringify(grupos) === JSON.stringify(['Abrelatas', 'Cortadores', 'Peladores', 'Sacacorchos']),
+  check(JSON.stringify(grupos) === JSON.stringify(['Abrelatas', 'Peladores', 'Sacacorchos']),
     'paso 2: la lista se agrupa por familia — ' + grupos.join(' / '));
 
   const txt501 = await page.$eval('#pickList button[data-id="25"]', o => o.textContent);
   check(/Abrelatas A Manija/.test(txt501) && !/—\s*Abrelatas\s*$/.test(txt501),
     'la fila muestra la descripcion, no la familia — ' + txt501.trim());
 
-  const txt809 = await page.$eval('#pickList button[data-id="77"]', o => o.textContent);
-  check(/discontinuado/.test(txt809), 'el discontinuado se avisa en la fila — ' + txt809.trim());
+  // el discontinuado no se ofrece: ni en la lista del paso 2 ni en el <select> oculto
+  const hay809 = await page.$('#pickList button[data-id="77"]');
+  check(hay809 === null, 'el discontinuado NO aparece en la lista');
+  const opts = await page.$$eval('#art option', os => os.map(o => o.value));
+  check(!opts.includes('77'), 'el discontinuado tampoco esta en el select — ' + opts.join(','));
+  const rot = await page.$eval('#pickList', e => e.textContent);
+  check(!/discontinuado/i.test(rot), 'no queda el rotulo "(discontinuado)" en ninguna fila');
 
   // el boton lleva la flechita de desplegar
   const caret = await page.$eval('#artBtn .caret', e => e.textContent.trim());
@@ -90,7 +98,8 @@ window.supabase = { createClient: function(){ return {
   check(JSON.stringify(cods3) === JSON.stringify(['108']), 'Loke es una marca propia, no se mezcla con Loeke — ' + cods3.join(','));
 
   const cods4 = await porMarca('');
-  check(cods4.length === 5, 'Todas vuelve a los 5 — ' + cods4.length);
+  // 4 y no 5: el fixture tiene 5 articulos y uno esta discontinuado (v1.180.0)
+  check(cods4.length === 4, 'Todas vuelve a los 4 vivos — ' + cods4.length);
 
   // filtrar NO mueve el articulo elegido: nada resaltado salvo el que se eligio de verdad
   const onTodas = await page.$$eval('#pickList button.on', bs => bs.map(b => b.textContent.trim().split(' ')[0]));

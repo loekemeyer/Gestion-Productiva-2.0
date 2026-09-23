@@ -2995,6 +2995,8 @@ rutas_full as (
   left join "GP2".articulo a on a.id = r.articulo_id
   left join ruta_fleje rf on rf.ruta_id = r.id
   left join "GP2".componente cf on cf.id = rf.fl
+  -- 2026-09-23: se ocultan las rutas de articulos discontinuados
+  where not coalesce(a.discontinuado, false)
 )
 select jsonb_build_object(
   'sect', (select jsonb_object_agg(id::text, jsonb_build_object('tipo',tipo,'nom',nombre)) from "GP2".sector),
@@ -3030,6 +3032,8 @@ select jsonb_build_object(
       ) order by a.codigo
     ), '[]'::jsonb)
     from "GP2".articulo a
+    -- 2026-09-23: lo discontinuado no se muestra en el programa
+    where not coalesce(a.discontinuado, false)
   ),
   'rutas', (select coalesce(jsonb_agg(jsonb_build_object(
        'id',id,'nom',nom,'art',art,'fam',fam,'fleje',fleje,'fleje_desc',fleje_desc,'pasos',pasos)
@@ -5363,9 +5367,13 @@ AS $function$
             from (
               select 'tallerista'::text tipo, rp.tallerista_id ref, rp.comp_salida_id comp
                 from ruta_paso rp where rp.tipo_paso='tallerista' and rp.comp_salida_id is not null
+                 and not exists (select 1 from ruta r_ join articulo a_ on a_.id=r_.articulo_id
+                                  where r_.id=rp.ruta_id and coalesce(a_.discontinuado,false))
               union all
               select 'proveedor_servicio', rp.proveedor_id, rp.comp_salida_id
                 from ruta_paso rp where rp.tipo_paso='proveedor_servicio' and rp.comp_salida_id is not null
+                 and not exists (select 1 from ruta r_ join articulo a_ on a_.id=r_.articulo_id
+                                  where r_.id=rp.ruta_id and coalesce(a_.discontinuado,false))
               union all
               -- el prov AT entrega el terminado: es la entrada del paso virgilio de esa ruta
               select 'proveedor_at', rp.proveedor_at_id,
@@ -5373,6 +5381,8 @@ AS $function$
                        where v.ruta_id = rp.ruta_id and v.tipo_paso='virgilio' and v.orden > rp.orden
                        order by v.orden limit 1)
                 from ruta_paso rp where rp.tipo_paso='proveedor_at'
+                 and not exists (select 1 from ruta r_ join articulo a_ on a_.id=r_.articulo_id
+                                  where r_.id=rp.ruta_id and coalesce(a_.discontinuado,false))
             ) z join componente c on c.id = z.comp
            where ref is not null
         ) w),

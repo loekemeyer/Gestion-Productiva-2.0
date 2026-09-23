@@ -277,6 +277,10 @@ function norm(t){return (t||"").toString().toLowerCase().normalize("NFD").replac
 function llenarArticulos(){
  var mk=selMarca.value, prev=sel.value, q=norm(inpBuscar.value).trim();
  var arts=D.art.filter(function(a){
+     /* 2026-09-23 [usuario: "lo discontinuado no quiero seguir viendolo en el programa"]:
+        un articulo discontinuado no se ofrece. programa_bundle sigue mandandolos TODOS con
+        el flag disc -- el bundle no cambia, el que decide que se ve es esta pantalla. */
+     if(a.disc)return false;
      if(mk&&a.mk!==mk)return false;
      if(!q)return true;
      return norm(a.cod).indexOf(q)>=0||norm(a.d).indexOf(q)>=0||norm(a.fam).indexOf(q)>=0;
@@ -292,7 +296,7 @@ function llenarArticulos(){
   if(a.fam!==famAct){famAct=a.fam;grupo=document.createElement("optgroup");grupo.label=famAct||"Sin familia";sel.appendChild(grupo);}
   var o=document.createElement("option");
   o.value=a.id;
-  o.textContent=a.cod+"  —  "+(a.d||a.fam||"")+(a.disc?"  (discontinuado)":"");
+  o.textContent=a.cod+"  —  "+(a.d||a.fam||"");
   grupo.appendChild(o);
  });
  if(!arts.length)sel.innerHTML='<option value="">(ningún artículo con ese filtro)</option>';
@@ -317,7 +321,7 @@ function pintarLista(arts){
  arts.forEach(function(a){
   if(a.fam!==famAct){famAct=a.fam;var h=document.createElement("div");h.className="fam";h.textContent=famAct||"Sin familia";pickList.appendChild(h);}
   var b=document.createElement("button");b.type="button";b.setAttribute("data-id",a.id);
-  b.textContent=a.cod+"  —  "+(a.d||a.fam||"")+(a.disc?"  (discontinuado)":"");
+  b.textContent=a.cod+"  —  "+(a.d||a.fam||"");
   if(elegido!=null&&String(a.id)===String(elegido))b.className="on";
   pickList.appendChild(b);
  });
