@@ -11847,7 +11847,7 @@ cargados en Gestión Productiva 2.0 es diferente... deja el de Gestion Productiv
 | 307 (Cepillo Limpia Vaso) | Caja N°15 → **Caja N°6 (A5)**, sigue 24 x caja | |
 | 234 (Palo Amasar Francés) | + **BANDITA** x1, igual que 231/232/233 | "lleva bandita… una" |
 | 246, 900 (Prensa Matambre) | + **`BANDITAM` Bandita Prensa Matambre** x1 (alta nueva: Sector Cartón, unidad, Talleres Gráficos Pol, ruta insumo → Maspoli → Virgilio) | "se lo compramos al mismo proveedor que la bandita palo de amasar" |
-| 280 (Manga Repostera) | Tela `BOM8B` **1/900** (el rollo trae 900): la tela se cuenta en **ROLLOS**, máximo 4.812 → 5,35, nombre "(rollo x 900)"; armado Fábrica → **Blist-Pack SA** | |
+| 280 (Manga Repostera) | Tela `BOM8B` **1/900** (el rollo trae 900): la tela se cuenta en **ROLLOS**, máximo 4.812 → 5,35, nombre "(rollo x 900)"; armado Fábrica → Blist-Pack SA → **de vuelta a Gentile Norberto el 2026-09-23** (ver 4fk) | |
 | 338 (Espátula Lisa) | **discontinuado** | |
 | 031, 120, 836 (IC3) y 034, 867 (IC3V) | Fleje N° 90 **1 por unidad**: IC3/IC3V pasaron de `kg` a `unidad` | "lleva un alambre" |
 
@@ -11858,7 +11858,7 @@ objetivo de Altrak siguen en kg (leen `recepcion_insumo`, que queda en kg). Es e
 Se pudo hacer sin migrar porque IC3/IC3V tenían 0 stock, 0 movimientos, 0 recepciones y 0 OC; los máximos
 se convirtieron (÷ kg_x_uni).
 
-**Quedan sin precio de tallerista** (el costo no suma ese paso): 121 Pettofrezza, 248 Alex, 280 Blist-Pack.
+**Quedan sin precio de tallerista** (el costo no suma ese paso): 121 Pettofrezza, 248 Alex, 280 **Gentile Norberto** (era Blist-Pack; volvió a Gentile el 2026-09-23 y sigue sin precio).
 
 ## 4fc. El Prov. de Art. Terminado ya tiene consumo, máximo y sugerido (2026-09-23)
 
@@ -12217,3 +12217,33 @@ terminados de Rafael ya estaban afuera por eso, así que el `M1` era **lo único
 un intermedio que él se hacía a sí mismo. Al irse, su `n_rec` queda en 0 y **la propia pantalla lo
 saca del selector de Recibir** (`cpsDelModo()` filtra por `n_rec > 0`). Cero líneas de JS: el día
 que un tallerista vuelva a devolver una pieza que no es terminado, reaparece solo.
+
+## 4fm. El 280 vuelve a Gentile Norberto (2026-09-23)
+
+`[usuario, textual]`: *"Quiero que el artículo 280 lo devuelvas a gentile norberto. Sacaselo a blist
+pack"*. Revierte el movimiento del 2026-09-22 (§4fb), que lo había pasado de Fábrica a Blist-Pack.
+
+**Lo que se tocó: cuatro pasos y nada más.** El 280 tiene una ruta por pieza que entra, y en las
+cuatro el paso de tallerista pasó de Blist-Pack SA (14) a **Gentile Norberto (8)**: `ruta_paso`
+3067 (PV14), 3070 (BOM8B), 3073 (F1A) y 3076 (A2, Caja N°12).
+
+**Medido antes y después:**
+
+| | Antes | Después |
+|---|---|---|
+| Consumo de Gentile | 7.186 uni/mes | **15.341** |
+| Consumo de Blist-Pack | 10.628 uni/mes | **2.473** |
+| Piezas que recibe Gentile | 17 | **21** |
+
+A Blist-Pack le quedan el **555** y el **764** (los cepillos limpia bombilla), así que no queda
+vacío. **No tenía ni una fila de inventario ni un movimiento**, o sea que no quedó stock colgado en
+su poder.
+
+**Dos cosas que el cambio NO arregla y conviene saber:**
+1. **El 280 sigue sin precio de tallerista.** Ni Blist-Pack ni Gentile lo tienen cargado, así que
+   ese armado no se cobra en el costeo del artículo — antes tampoco. El precio del tallerista viaja
+   con la pieza que entrega (§4dv), así que el día que se cargue va sobre el componente 280.
+2. **Gentile no tiene fila de inventario para las cuatro piezas** (PV14 6.416 uni/mes, F1A 1.604,
+   A2 134, BOM8B 2). Sin fila no hay máximo guardado; el sugerido de la Tablet igual sale, porque
+   se calcula al vuelo. Alinear los máximos es `recalcular_maximos_talleristas()`, que es otra
+   escritura y la autoriza el dueño.
