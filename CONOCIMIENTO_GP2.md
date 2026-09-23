@@ -12062,3 +12062,53 @@ el campo y para lo que viaja a la base (`uniRemito()` / `cargaEnKg()`). El envas
 GRJ5/GRJ6 en **uni**; J1 de Lucho en **uni**; E4 de Scorrano en **uni**. Todo lo demás queda en su
 unidad canónica (uni) hasta que el dueño diga lo contrario — el dato se carga pieza por pieza, no se
 adivina por sector.
+
+## 4fj. El despiece de la Pinza Corta Alambre (560 / 800) — y las matrices sin ruta (2026-09-23)
+
+**De dónde salió:** el dueño preguntó *"en qué despiece usás la matriz 131, 130, 129"*. Respuesta
+medida: **en ninguno**. Las tres existían en `GP2.matriz`, activas y con producción real cargada
+hasta abril/mayo 2026 (129: 14.504 uni · 130: 16.546 · 131: 17.614), pero **no figuraban en ningún
+`ruta_paso`**.
+
+**No es un agujero de esas tres:** al 2026-09-23, **299 de 405 matrices activas** no aparecen en
+ninguna ruta GP2. La migración de rutas quedó a medias. [dato: `ruta_paso` vs `matriz`]
+
+**La cadena real, dictada por el dueño** (y coincide con la del vecino en `public."Causa-Efecto"`):
+
+```
+IE6 (Fleje N° 79) → 131 Estampado Punta Pinzas → 130 Doblado Agarre Pinzas
+                  → 129 Estampa Pinza chica   → 132 Estampado y Agujero Pinzas
+                  → 133 Doblado Punta Pinza chica → 134 Remachado pinza Chica/Gde
+                  → N7 → Guazzaroni Patricio → Carlos Aguirre → Virgilio
+```
+
+**Tres cosas que fija este caso y valen para cualquier ruta de matrices:**
+
+1. **La pieza intermedia entre dos matrices vive en el Sector Movimiento** (`sector_id` 3,
+   `ubicacion_id` 3), con código `<fleje>-M<matriz>` y descripción `"<fleje> tras M<matriz>"`
+   (`IE6-M131`, `IE6-M130`, …), unidad `unidad`, sin `kg_x_uni`, y nace con stock 0. Es la
+   convención que ya usaban `IA4-M64` e `IE6-M133`.
+2. **Un paso que junta dos piezas se modela en `componente_bom`, no en la ruta.** `ruta_paso` tiene
+   UNA entrada; el remachado toma dos. Entonces: `N7 = 2 × IE6-M133 + 1 × CV14`
+   [usuario 2026-09-23: *"N7 sería dos componentes que salen de la matriz 133 … y un remache Cv14"*].
+   Mismo patrón que `B1-M78` / `D5-M78` (rompenuez = las dos mitades + el remache `V4`).
+3. **Un insumo que se consume en una matriz NO va también en la receta del artículo.**
+   `v_consumo_demanda` explota `articulo_componente` **y después** `componente_bom` en cascada: si
+   `CV14` queda en los dos lados, el remache consume 2 por pinza. Por eso salió de
+   `articulo_componente` de 560 y 800, y se borraron las rutas 457/458 que se lo mandaban a Carlos
+   Aguirre [usuario: *"se lo estás mandando a Carlos Aguirre y está mal. Lo consumís en esta matriz"*].
+
+**Dos límites del motor de costos que este caso dejó a la vista** (medidos, NO arreglados):
+
+- **`v_costo_componente` no multiplica por la cantidad.** Suma cada matriz una sola vez, así que el
+  `×2` no se cobra: la mano de obra real de una pinza es 2 × 36,25 s (las cinco matrices por mitad)
+  + 32 s del remachado = **104,50 s**, y la vista calcula **74,25 s**. Son **60,50 $/uni** que 560 y
+  800 no están cobrando.
+- **El BOM no se propaga hacia arriba.** `bomx` se aplica sólo en la fila del componente padre: el
+  remache aparece en el costo de `N7` (material 0 → 4,45) pero **no** llega al artículo terminado,
+  que bajó 4,45 (560: 674,36 → 669,91 · 800: 652,11 → 647,66). Antes tampoco estaba bien (entraba
+  por `insumox` en 800 y no entraba en 560, que lo tenía como paso `ingreso`): el cambio hizo
+  visible una inconsistencia que ya existía, no la creó.
+
+**Sin resolver:** el vecino arranca esta cadena en **Fleje 82** y GP2 la arranca en **Fleje N° 79
+(IE6)**. Uno de los dos está mal; `Fleje N° 82` ni siquiera existe como componente en GP2.

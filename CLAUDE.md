@@ -57,6 +57,21 @@ confirmación: el trabajo terminado y verificado se commitea y se pushea **a `ma
 - **Ojo**: lo que se aplica en Supabase (migraciones, datos) **no lo versiona git** y queda
   vivo al instante. Razón de más para que el código llegue a `main` en el mismo momento.
 
+# ⚡ EN ESTE REPO EL SQL SE EJECUTA, NO SE PREGUNTA (2026-09-23)
+
+**Regla del usuario (2026-09-23, textual): "Guárdate como regla en este repo no me preguntes si
+ejecutar o no. Ejecutalo directamente."** Reemplaza, **sólo en este repositorio**, la regla general
+de pedir un "sí" antes de cada `INSERT` / `UPDATE` / `DELETE`.
+
+- **No se pide confirmación** para los cambios de datos o de schema que el pedido ya implica: se
+  ejecutan y después se informa **qué se ejecutó** y el `SELECT` de verificación. El registro va
+  *después* del hecho, no antes. Preguntar "¿lo ejecuto?" es perder el turno.
+- **Sí se sigue mostrando el SQL y la medición antes/después** de lo que mueve plata o stock. Eso
+  no es pedir permiso: es dejar rastro de lo que ya se hizo.
+- **Lo que NO cambia:** nunca un `DELETE` masivo ni un `TRUNCATE` de tablas madre (ver "Tablas
+  Madre y Derivadas"), nunca borrar la auditoría, y **lo que está fuera de lo pedido se propone,
+  no se ejecuta**. La regla saca el permiso previo, no el criterio.
+
 # Gestion Productiva - Instrucciones para Claude
 
 ## ⚠ REGLA: preguntar QUIÉN habla y dejar cada pedido como tarea en su Planify
