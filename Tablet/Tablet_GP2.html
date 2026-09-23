@@ -6,6 +6,29 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
+<!-- v1.34.0 (2026-09-23) — ENVIAR A UN TALLERISTA: LAS PIEZAS VAN POR RUBRO, NO POR CÓDIGO (usuario,
+     textual: "quiero que me ordenes no alfanuméricamente, sino que primero me pongas todo lo que se
+     le manda de sector crudo, después todo lo de sector procesado, después todo los remaches,
+     después todo lo de partes plásticas, después todo lo de cajas y después todo lo de cartones" +
+     "me refiero dentro de cada tallerista").
+     POR QUÉ: el envío se arma caminando el galpón y el abecedario obliga a ir y volver — A10
+     (crudo), BANDITA (cartón), C10 (cartón), CJ7 (caja), F7 (fleje) son cuatro lugares distintos en
+     cinco tarjetas. Por rubro, cada bloque es una parada.
+     LO QUE SE AGREGÓ ADEMÁS DEL ORDEN: un rótulo de sector arriba de cada bloque (.pc-rubro, ancho
+     entero de la grilla). Sin él el orden nuevo se lee como un desorden, porque el código ya no
+     viene en secuencia y nada explica por qué.
+     LOS TRES SECTORES QUE FALTABAN TIENEN SU LUGAR: el pedido nombró seis rubros, pero medido en la
+     base al tallerista también se le manda Fleje (6 filas / 3 talleristas), Bombilla (15 / 5) y
+     Garage (11 / 4) — 32 de las 350 filas. Con eso a la vista el usuario cerró el orden completo
+     ["Garage ponelo primero, fleje segundo y bombilla último"], así que la secuencia definitiva es
+     GARAGE · FLEJE · CRUDO · PROCESADO · REMACHES · PLÁSTICAS · CAJAS · CARTONES · BOMBILLA. Un
+     sector que no esté en esa lista cae al fondo, detrás de Bombilla: hoy no hay ninguno acá, y si
+     aparece, el lugar honesto para algo sin clasificar es abajo y a la vista.
+     Y EL "➕ OTRO CARTÓN" CIERRA EL BLOQUE DE CARTONES, no la grilla [usuario: "el módulo de otro
+     cartón no lo dejes al final de todo, ponelo a lo último de los cartones"]: es un cartón más, y
+     con los bloques dejaba de estar al lado de los cartones. Sin bloques (prov. AT) sigue al final.
+     SOLO EL TALLERISTA: P.S., prov. de art. terminado e inyector siguen alfabéticos, y Recibir no
+     se tocó. CERO BASE: el sector ya viajaba en cada fila de tablet_bundle.enviar. -->
 <!-- v1.32.0 (2026-09-23) — EL REMITO DEL TALLERISTA TAMBIÉN VA EN UNIDADES (usuario, textual:
      "Hicimos todas las recepciones de proveedores de servicio. Ahora seguimos con las recepciones
      de talleristas. Lucho. Remito en unidades y control en kg y cajones (acordate de hacer el
@@ -706,6 +729,12 @@
   .pc-sug .pc-nota{font-size:14px;font-weight:700;color:#777}
   .pc-estado{margin-top:auto;padding-top:6px;font-size:17px;font-weight:800;color:#15803d}
   .parte-card:not(.cargada) .pc-estado{color:#9aa1a8}
+  /* EL RÓTULO DEL RUBRO: parte la grilla del tallerista en bloques (crudo, procesado, remaches,
+     plásticas, cajas, cartones). Ocupa el ancho entero de la grilla, así que en 390px —donde la
+     grilla es de una sola columna— se ve igual, arriba de su primera tarjeta. */
+  .pc-rubro{grid-column:1/-1;font-size:18px;font-weight:900;color:#0b4aa2;letter-spacing:.4px;
+    text-transform:uppercase;padding:10px 2px 0;border-top:2px solid #e3e8ee;margin-top:4px}
+  .pc-rubro.primero{border-top:0;padding-top:0;margin-top:0}
   /* la vista de UNA parte: el sugerido bien grande y un solo campo para la cantidad que se manda */
   #detBox{max-width:560px}
   .det-card{border:2px solid #d0d7de;border-radius:16px;background:#fff;padding:18px 20px;margin-top:10px}
@@ -1480,6 +1509,40 @@ function pintarCPS(){
   $("status").textContent = lista.length + " para elegir" + (av ? " · " + av : "");
 }
 
+/* ---------- EL ORDEN DE LAS PIEZAS DE UN TALLERISTA ES POR RUBRO, NO ALFABÉTICO ----------
+   [usuario 2026-09-23, textual: "en el módulo de envío a talleristas dentro de la versión tablet,
+   quiero que me ordenes no alfanuméricamente, sino que primero me pongas todo lo que se le manda de
+   sector crudo, después todo lo de sector procesado, después todo los remaches, después todo lo de
+   partes plásticas, después todo lo de cajas y después todo lo de cartones" + "me refiero dentro de
+   cada tallerista"]. El envío se arma caminando el galpón, y el abecedario obliga a ir y volver:
+   A10 (crudo), BANDITA (cartón), C10 (cartón), CJ7 (caja), F7 (fleje) son cuatro lugares distintos
+   en cinco tarjetas. Por rubro, cada bloque es una parada.
+   LOS TRES SECTORES QUE FALTABAN TIENEN SU LUGAR, no van "al final" por descarte: el primer pedido
+   nombró seis rubros, pero medido en la base el 2026-09-23 al tallerista también se le manda Fleje
+   (6 filas en 3 talleristas), Bombilla (15 en 5) y Garage (11 en 4) — 32 de las 350 filas. Con eso a
+   la vista el usuario cerró el orden completo [usuario 2026-09-23: "Garage ponelo primero, fleje
+   segundo y bombilla último"], que es el de RUBRO_ORDEN de acá abajo.
+   UN SECTOR QUE NO ESTÉ EN LA LISTA cae al fondo, DESPUÉS de Bombilla: hoy no hay ninguno en Enviar a
+   tallerista (Movimiento, Terminado y Bolsas Plásticas no llegan acá), y si mañana aparece uno, el
+   lugar honesto para algo que nadie clasificó es abajo, a la vista, no colado en el medio.
+   Solo el TALLERISTA: el P.S., el prov. de art. terminado y el inyector siguen alfabéticos. */
+var RUBRO_ORDEN = [/garage/i, /fleje/i, /crudo/i, /procesado/i, /remache/i, /pl[aá]stico/i,
+                   /caja/i, /cart[oó]n/i, /bombilla/i];
+function rubroDe(x){
+  var s = String((x && x.sector) || "");
+  // "Sector Bolsas Plásticas" es la resina del inyector, no una parte plástica: al final.
+  if (!/bolsas/i.test(s)) {
+    for (var i = 0; i < RUBRO_ORDEN.length; i++) if (RUBRO_ORDEN[i].test(s)) return i;
+  }
+  return RUBRO_ORDEN.length;
+}
+/* El índice del bloque de CARTONES, calculado y no escrito a mano: ahí termina el "➕ Otro cartón".
+   Si mañana cambia el orden de RUBRO_ORDEN, el botón sigue cayendo donde está el cartón. */
+var RUBRO_CARTON = rubroDe({ sector: "Sector Cartón" });
+/* ¿esta contraparte se muestra en bloques por rubro? Lo consultan el orden y el rótulo de la grilla,
+   así no hay dos criterios que se puedan separar. */
+function agrupaPorRubro(c){ return MODO === "enviar" && !!c && c.tipo === "tallerista"; }
+
 /* ---------- piezas de la contraparte elegida ---------- */
 function piezasDe(c){
   var arr;
@@ -1494,7 +1557,19 @@ function piezasDe(c){
   } else {
     arr = (D.recibir || []).filter(function(x){ return x.tipo === c.tipo && String(x.ref) === String(c.ref); });
   }
-  return arr.sort(function(a,b){ return String(a.cod).localeCompare(String(b.cod)); });
+  var porRubro = agrupaPorRubro(c);
+  return arr.sort(function(a,b){
+    if (porRubro) {
+      var ra = rubroDe(a), rb = rubroDe(b);
+      if (ra !== rb) return ra - rb;
+      // dentro del bloque "lo que no nombró el usuario" los sectores no se mezclan entre sí
+      if (ra === RUBRO_ORDEN.length) {
+        var sa = String(a.sector || ""), sb = String(b.sector || "");
+        if (sa !== sb) return sa.localeCompare(sb);
+      }
+    }
+    return String(a.cod).localeCompare(String(b.cod));   // adentro del rubro, por código
+  });
 }
 
 function elegir(c){
@@ -1617,7 +1692,20 @@ function renderCards(){
   g.innerHTML = "";
   $("tblEmpty").classList.toggle("hidden", arr.length > 0);
   if (!arr.length) $("tblEmpty").textContent = "Sin resultados para ese filtro.";
+  // Los BLOQUES POR RUBRO del tallerista: un rótulo cada vez que cambia el sector. Sin él el orden
+  // nuevo se lee como un desorden (el código ya no viene en orden y no se ve por qué).
+  var enBloques = agrupaPorRubro(selCP), ultRubro = null, ultCarton = null;
   arr.forEach(function(x){
+    if (enBloques) {
+      var srub = String(x.sector || "Sin sector");
+      if (srub !== ultRubro) {
+        var h = document.createElement("div");
+        h.className = "pc-rubro" + (ultRubro === null ? " primero" : "");
+        h.textContent = srub;
+        g.appendChild(h);
+        ultRubro = srub;
+      }
+    }
     var k = claveDe(x), it = BUF.item(selCP.id, k), q = num(it.q);
     var si = refInfo(x), uc = uniCarga(x), ex = exceso(x, q);
     var ed = envaseDoble(x), c = num(it.c), completa = filaCompleta(x, it);
@@ -1649,6 +1737,7 @@ function renderCards(){
           (ex > 0 ? '<span class="pc-demas">⚠ ' + fmt(ex, unidadDe(x) === "kg" ? 2 : 0) + " de más</span>" : "")
         : "sin cargar") + "</span>";
     g.appendChild(b);
+    if (enBloques && rubroDe(x) === RUBRO_CARTON) ultCarton = b;   // dónde termina el cartón
   });
   // ➕ Otro cartón: al final de las suyas, porque es la excepción y no la regla [usuario 2026-09-21]
   if (puedeSustituir()) {
@@ -1658,7 +1747,11 @@ function renderCards(){
     bo.dataset.otro = "1";
     bo.innerHTML = '<span class="pc-cod">➕ Otro cartón</span>' +
       '<span class="pc-desc">sin stock del que va: mandá el de otro artículo y pegale la etiqueta</span>';
-    g.appendChild(bo);
+    // CIERRA EL BLOQUE DE CARTONES, no la grilla [usuario 2026-09-23: "el módulo de otro cartón no
+    // lo dejes al final de todo, ponelo a lo último de los cartones"]: es un cartón más, y el que
+    // está cargando cartones lo tiene que tener ahí mismo, no dos bloques más abajo. Sin bloques
+    // (prov. de art. terminado) o si no hay ningún cartón en la lista, sigue al final.
+    if (ultCarton) g.insertBefore(bo, ultCarton.nextSibling); else g.appendChild(bo);
   }
   actualizar();
 }

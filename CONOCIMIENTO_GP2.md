@@ -12062,6 +12062,55 @@ el campo y para lo que viaja a la base (`uniRemito()` / `cargaEnKg()`). El envas
 GRJ5/GRJ6 en **uni**; J1 de Lucho en **uni**; E4 de Scorrano en **uni**. Todo lo demás queda en su
 unidad canónica (uni) hasta que el dueño diga lo contrario — el dato se carga pieza por pieza, no se
 adivina por sector.
+## 4fj. Enviar a un tallerista se ordena por RUBRO, no por código (2026-09-23)
+
+`[usuario, textual]` *"En el módulo de envío a talleristas dentro de la versión tablet, quiero que
+me ordenes no alfanuméricamente, sino que primero me pongas todo lo que se le manda de sector crudo,
+después todo lo de sector procesado, después todo los remaches, después todo lo de partes plásticas,
+después todo lo de cajas y después todo lo de cartones"* + *"me refiero dentro de cada tallerista"*
++ *"Garage ponelo primero, fleje segundo y bombilla último"*.
+
+**El orden definitivo, el que está en `RUBRO_ORDEN` de `Tablet_GP2.html`:**
+
+| # | Rubro | | # | Rubro |
+|--:|---|---|--:|---|
+| 1 | Garage | | 6 | Plásticas |
+| 2 | Fleje | | 7 | Cajas |
+| 3 | Crudo | | 8 | Cartones |
+| 4 | Procesado | | 9 | Bombilla |
+| 5 | Remaches | | 10 | lo que no esté en la lista |
+
+**El orden de una lista de picking lo dicta el galpón, no el abecedario.** El envío se arma
+caminando: el crudo y el procesado están en un lado, los cartones y las cajas en otro. Alfabético,
+las cinco piezas del fixture de Martin (A10 crudo, BANDITA cartón, C10 cartón, CJ7 caja, F7 fleje)
+obligan a cuatro paradas en cinco tarjetas, y el cartón queda partido en dos con la caja en el
+medio. Por rubro, cada bloque es una parada.
+
+**El rótulo del rubro no es decoración.** Con el código fuera de secuencia y nada que explique por
+qué, el orden nuevo se lee como un desorden: cada bloque lleva su nombre de sector arriba
+(`.pc-rubro`, ancho entero de la grilla, así que a 390px se ve igual).
+
+**Los tres sectores que el primer pedido no nombró existen, y por eso el orden se cerró en nueve**
+`[dato, medido sobre GP2.tablet_bundle el 2026-09-23]`: a los talleristas también se les manda
+**Fleje** (6 filas, 3 talleristas), **Bombilla** (15 en 5) y **Garage** (11 en 4) — 32 de las 350
+filas de Enviar a tallerista. Quedaron un rato al final por descarte; con el número a la vista el
+dueño los ubicó él (*"Garage ponelo primero, fleje segundo y bombilla último"*). **Lección de
+método: cuando un pedido enumera categorías, contar primero cuántas hay en la base.** Si ese conteo
+no se hacía, 32 filas se decidían solas.
+
+**Un sector que no esté en la lista cae al fondo, detrás de Bombilla.** Hoy no hay ninguno en Enviar
+a tallerista (Movimiento, Terminado y Bolsas Plásticas no llegan). El día que aparezca uno, el lugar
+honesto para algo que nadie clasificó es abajo y a la vista, no colado en el medio.
+
+**El "➕ Otro cartón" cierra el bloque de cartones, no la grilla** `[usuario 2026-09-23: "el módulo
+de otro cartón no lo dejes al final de todo, ponelo a lo último de los cartones"]`. Desde el
+2026-09-21 iba al final de todas las tarjetas, que con una lista alfabética era "al lado de nada";
+con bloques por rubro, "al final" pasó a ser tres bloques debajo de los cartones. **Es un cartón
+más, así que vive donde están los cartones.** Sin bloques (prov. de art. terminado) sigue al final.
+
+**Solo el tallerista.** P.S., prov. de art. terminado e inyector siguen alfabéticos y Recibir no se
+tocó: el pedido fue explícito sobre el tallerista, y el mismo orden se puede extender cuando lo
+pida. **Cero base**: el `sector` de cada pieza ya viajaba en `tablet_bundle.enviar`.
 
 ## 4fj. El control ahora también es de los talleristas (2026-09-23)
 
