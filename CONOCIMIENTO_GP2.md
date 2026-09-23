@@ -12237,3 +12237,51 @@ su poder.
    A2 134, BOM8B 2). Sin fila no hay máximo guardado; el sugerido de la Tablet igual sale, porque
    se calcula al vuelo. Alinear los máximos es `recalcular_maximos_talleristas()`, que es otra
    escritura y la autoriza el dueño.
+
+## 4fm. La plancha de níquel se compra y se controla en kg — y la tolerancia del control es UNA sola, 5 % (2026-09-23)
+
+**Lo que pidió el dueño, textual:** *"Ya vimos todo lo que es recepcion de ps y talleristas.
+Insumos esta bastante modelado ya pero vamos a modificar a algunos proveedores. CC galvanoquimica.
+plancha niquel en el remito viene en kg y se controla en kg"* y, enseguida, *"acordate de la regla
+de que todo control no puede exceder el 5% de diferencia"*.
+
+### El toggle no era el problema: la pieza no podía recibirse en kg
+
+`PCP2` (Plancha de Níquel, CC Galvanoquímica, Sector Plástico) estaba declarada en **unidades** y
+**sin `kg_x_uni`**. Con eso, elegir "Kg" en el popup de Recepción reventaba en el RPC
+(`to_canonical: componente 612 sin kg_x_uni valido para kg->uni`): **en kg no se podía recibir**.
+Nadie lo había notado porque la pieza tiene stock 0 y ni un movimiento.
+
+Como el remito y el control son los dos en kg —nadie cuenta planchas—, la unidad canónica tiene
+que ser el kg. **`PCP2` pasa a `unidad_medida='kg'`**, que es como ya viven 61 componentes (47
+flejes, 13 bolsas plásticas, 1 alambre), más `remito_unidad='kg'`. Al no tener receta, ni
+movimientos, ni recepciones, no hubo nada que convertir.
+
+### `componente.remito_unidad` ahora también manda en la Recepción de Insumos
+
+Es la misma columna que la Tablet usa para las entregas de talleristas (§4fi). Si la pieza dice
+`'kg'` o `'uni'`, la Recepción fuerza esa unidad y **esconde el toggle Kg/Unidades**: no hay nada
+que elegir. La rama va **primera** en el if-chain de `abrirPopup()`, antes que la regla del rubro
+(cartones, cajas, flejes) y que la del proveedor (`PLAST_UNI`), porque es el dato más específico
+que hay. `recepcion_bundle` manda la columna con cada insumo.
+
+**Ojo con la conversión silenciosa:** cuando la pieza tiene `kg_x_uni` y no está en `PLAST_UNI`, la
+pantalla venía multiplicando lo tipeado en unidades por el peso y **guardando kg**. Decir "este
+remito viene contado" y guardarlo en kg es lo mismo que no decirlo, así que `remito_unidad='uni'`
+también apaga esa conversión.
+
+### Una sola tolerancia de control: `parametro.tol_ctrl_pct` = 5
+
+Hasta hoy la misma diferencia pasaba o no **según por qué puerta entrara la mercadería**:
+
+| Control | Antes | Dónde estaba el número |
+|---|---|---|
+| Insumos por peso y cajas | 10 % | escrito a mano en `control-remaches.js` / `control-cajas.js` |
+| Pesaje de pallets de fleje | 2 % | `parametro.tol_ctrl_peso_pct` |
+| Entrega de P.S. / tallerista | 5 % | `tol_ctrl_ps_pct`, clave que **no existía** (caía al default) |
+
+`tol_ctrl_peso_pct` se renombró **`tol_ctrl_pct`** y vale **5**. La leen `v_control_pallet`,
+`recepcion_tara`, `control_entrega_bundle` y —nueva— `control_recepcion_bundle`, que la manda en
+`tol_pct`. Los dos controles de insumos la muestran en el cartel ("tolerancia 5 %").
+**El piso de 0,5 kg de `tolKg()` queda**: el 5 % de un remito chico son gramos y ninguna balanza
+afina tanto.

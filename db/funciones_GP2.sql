@@ -1825,9 +1825,10 @@ with base as (
 )
 select jsonb_build_object(
   'generado_en', now(),
-  -- tolerancia del control: 5 % [usuario 2026-09-23], con clave propia para no arrastrar al pesaje
-  -- de insumos (tol_ctrl_peso_pct, 2 %).
-  'tol_pct', coalesce((select valor::numeric from parametro where clave = 'tol_ctrl_ps_pct'), 5),
+  -- tolerancia del control: 5 % [usuario 2026-09-23, "todo control no puede exceder el 5% de
+  -- diferencia"]. UNA SOLA CLAVE para todos los controles de la casa: la que era tol_ctrl_ps_pct
+  -- aca y tol_ctrl_peso_pct en el pesaje de insumos es hoy tol_ctrl_pct, y vale 5.
+  'tol_pct', coalesce((select valor::numeric from parametro where clave = 'tol_ctrl_pct'), 5),
   'pend', coalesce((select jsonb_agg(jsonb_build_object(
             'mov_id', id, 'fecha', fecha, 'cp_tipo', cp_tipo, 'cp_id', cp_id, 'cp_nombre', cp_nombre,
             'sc_cod', sc_cod, 'sc_desc', sc_desc, 'sc_unixcaj', sc_unixcaj,
@@ -1984,6 +1985,11 @@ AS $function$
     limit 500
   )
   select jsonb_build_object(
+    -- UNA SOLA TOLERANCIA DE CONTROL EN TODA LA CASA: 5 % [usuario 2026-09-23, textual:
+    -- "todo control no puede exceder el 5% de diferencia"]. Antes este control usaba un 10 %
+    -- escrito en control-remaches.js y el pesaje de flejes un 2 % (tol_ctrl_peso_pct), que se
+    -- renombro a esta clave.
+    'tol_pct', coalesce((select valor from parametro where clave = 'tol_ctrl_pct'), 5),
     'sector', (select nombre from sector where id = p_sector_id),
     'sector_id', p_sector_id,
     'recepciones', coalesce((select jsonb_agg(row_to_json(rec)) from rec), '[]'::jsonb),
@@ -6022,7 +6028,7 @@ CREATE OR REPLACE FUNCTION "GP2".recepcion_tara()
  SET search_path TO 'GP2'
 AS $function$
   select (select coalesce(jsonb_object_agg(clave, valor), '{}'::jsonb) from parametro
-           where clave like 'tara_pallet%' or clave in ('tol_ctrl_peso_pct','carton_uni_x_paquete'))
+           where clave like 'tara_pallet%' or clave in ('tol_ctrl_pct','carton_uni_x_paquete'))
       || coalesce((select jsonb_build_object('tara_estimada', round(avg(tara),1), 'tara_n', count(*))
                      from v_tara_pallet_real where tara between 1 and 15
                    having count(*) >= 5), '{}'::jsonb)
@@ -6981,6 +6987,10 @@ AS $function$
     'insumos', (select coalesce(jsonb_agg(jsonb_build_object(
         'comp_id',c.id,'codigo',c.codigo,'descripcion',c.descripcion,'sector',s.nombre,
         'sector_id',c.sector_id,'um',c.unidad_medida,'uni_x_cajon',c.uni_x_cajon,
+        -- en que unidad viene el REMITO de esta pieza ('kg' | 'uni' | null = la canonica).
+        -- Misma columna que usa la Tablet: la plancha de niquel de CC Galvanoquimica viene
+        -- pesada aunque el resto del Sector Plastico se cuente [usuario 2026-09-23].
+        'remito_unidad',c.remito_unidad,
         'proveedor',nullif(trim(c.proveedor),''),
         -- proveedores ALTERNATIVOS que entregan la misma pieza (componente_proveedor_alt).
         -- El principal sigue siendo c.proveedor: esto no cambia OC ni costo, solo hace que
