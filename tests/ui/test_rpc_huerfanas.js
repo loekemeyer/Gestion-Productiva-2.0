@@ -42,6 +42,11 @@ const PERMITIDAS = {
   // pueda modificar la proporcion en el programa"): el % se carga por SQL con esta función, que
   // valida (suman 100, el tallerista hace ese paso) y recalcula los máximos. Sin EXECUTE a anon.
   reparto_guardar:           'mantenimiento: carga el reparto por SQL; la pantalla es solo lectura',
+  // 2026-09-23: el máximo del Prov AT sale del mismo motor que el del tallerista y se recalcula a
+  // mano, igual que recalcular_maximos_talleristas. Además CREA filas de inventario cuando se la
+  // llama con p_crear_faltantes => true (las 12 ubicaciones de prov AT tienen cero), y eso es
+  // escribir datos: lo autoriza el dueño, no una pantalla. Sin EXECUTE a anon.
+  recalcular_maximos_prov_at:'mantenimiento: recalcula el máximo del Prov AT por SQL, sin grant a anon',
 };
 
 /* Internas: helpers de otras funciones, cuerpos de trigger y simuladores. No son RPC de

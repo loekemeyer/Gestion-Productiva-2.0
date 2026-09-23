@@ -873,6 +873,21 @@ create table "GP2".relevamiento_item (
 );
 comment on table "GP2".relevamiento_item is 'Renglones del conteo: envases, sueltas, kg, total en unidades, stock del programa al momento y la decision (conteo / programa).';
 
+-- ---------- reparto_prov_at ----------
+create table "GP2".reparto_prov_at (
+  id bigint generated always as identity,
+  articulo_id bigint not null,
+  proveedor_at_id bigint not null,
+  pct numeric not null,
+  actualizado_en timestamp with time zone not null default now(),
+  constraint reparto_prov_at_pkey PRIMARY KEY (id),
+  constraint reparto_prov_at_articulo_id_proveedor_at_id_key UNIQUE (articulo_id, proveedor_at_id),
+  constraint reparto_prov_at_articulo_id_fkey FOREIGN KEY (articulo_id) REFERENCES "GP2".articulo(id),
+  constraint reparto_prov_at_proveedor_at_id_fkey FOREIGN KEY (proveedor_at_id) REFERENCES "GP2".proveedor_at(id),
+  constraint reparto_prov_at_pct_check CHECK (((pct > (0)::numeric) AND (pct <= (100)::numeric)))
+);
+comment on table "GP2".reparto_prov_at is 'Que porcentaje del volumen de un ARTICULO entrega cada proveedor de articulo terminado, cuando lo hacen dos o mas (o cuando lo comparte con un tallerista). Lo dicta el dueno y se carga por SQL, igual que reparto_tallerista: NO hay pantalla que lo escriba (el 2026-09-15 un Guardar con el default 50/50 a la vista quedo grabado como dato dictado, ver CONOCIMIENTO 4dw). Sin fila = parte igual entre los que hacen el articulo.';
+
 -- ---------- reparto_tallerista ----------
 create table "GP2".reparto_tallerista (
   id bigint generated always as identity,
@@ -1252,6 +1267,7 @@ alter table "GP2".recepcion_insumo enable row level security;
 alter table "GP2".relevamiento enable row level security;
 alter table "GP2".relevamiento_cronograma enable row level security;
 alter table "GP2".relevamiento_item enable row level security;
+alter table "GP2".reparto_prov_at enable row level security;
 alter table "GP2".reparto_tallerista enable row level security;
 alter table "GP2".rollo_evento enable row level security;
 alter table "GP2".rollo_uso enable row level security;
@@ -1314,6 +1330,7 @@ create policy p_gp2_select on "GP2".recepcion_insumo for select to anon, authent
 create policy p_gp2_select on "GP2".relevamiento for select to anon, authenticated using (true);
 create policy p_gp2_select on "GP2".relevamiento_cronograma for select to anon, authenticated using (true);
 create policy p_gp2_select on "GP2".relevamiento_item for select to anon, authenticated using (true);
+create policy p_gp2_select on "GP2".reparto_prov_at for select to anon, authenticated using (true);
 create policy p_gp2_select on "GP2".reparto_tallerista for select to anon, authenticated using (true);
 create policy p_gp2_select on "GP2".rollo_evento for select to anon, authenticated using (true);
 create policy p_gp2_select on "GP2".rollo_uso for select to anon, authenticated using (true);

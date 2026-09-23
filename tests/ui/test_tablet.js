@@ -45,8 +45,9 @@ const BUNDLE = {
   ],
   // PS y tallerista traen ademas maximo/stock_dest/sugerido de la pieza PROCESADA/ARMADA (la
   // salida): la tablet MUESTRA el sugerido y lo precarga en Cantidad SOLO para talleristas (a los
-  // P.S. y a los inyectores no: el campo arranca vacio, usuario 2026-09-17). Prov. AT no trae
-  // sugerido (va con esas claves nulas) y sigue mostrando "Online sector".
+  // P.S. y a los inyectores no: el campo arranca vacio, usuario 2026-09-17). El Prov. AT TAMBIEN
+  // tiene sugerido desde el 2026-09-23 (consumo de su carton/caja x 1 mes); la fila que viene con
+  // sugerido null —base sin la migracion, o un carton que no es consumo suyo— cae a "Online sector".
   enviar: [
     // AL TALLERISTA la unidad de envio la pone la PIEZA, y la manda la base en cada fila
     // [usuario 2026-09-18]: carton y caja en PAQUETES (el paqueton del formato / los 25 de la
@@ -78,7 +79,10 @@ const BUNDLE = {
     // el prov. de art. terminado recibe cartones y cajas: los dos van en PAQUETES (mismo envase
     // por pieza que el tallerista). No tiene sugerido, asi que su referencia es el online sector.
     { tipo: 'proveedor_at', ref: '1', comp_id: 456, cod: 'A1', desc: 'Caja N°1', sector: 'Sector Caja', um: 'unidad', uxc: null, kg_x_uni: null, online_sector: 988, saldo_dest: null, maximo: null, stock_dest: null, sugerido: null, env_unidad: 'paquetes', env_factor: 25, env_carga: 'envase' },
-    { tipo: 'proveedor_at', ref: '1', comp_id: 457, cod: 'C20', desc: 'Carton Colador N°8', sector: 'Sector Cartón', um: 'unidad', uxc: null, kg_x_uni: null, online_sector: 4200, saldo_dest: null, maximo: null, stock_dest: null, sugerido: null, env_unidad: 'paquetes', env_factor: 1000, env_carga: 'envase' },
+    // el carton SI trae sugerido desde el 2026-09-23 (consumo del prov AT x 1 mes − lo que ya
+    // tiene): 2.600 uni = 3 paqueteones de 1.000, con techo. La caja de arriba queda con sugerido
+    // null a proposito, para fijar el fallback a "Online sector".
+    { tipo: 'proveedor_at', ref: '1', comp_id: 457, cod: 'C20', desc: 'Carton Colador N°8', sector: 'Sector Cartón', um: 'unidad', uxc: null, kg_x_uni: null, online_sector: 4200, saldo_dest: 0, maximo: 2600, stock_dest: null, sugerido: 2600, env_unidad: 'paquetes', env_factor: 1000, env_carga: 'envase' },
     { tipo: 'inyector', ref: 'Pat Bet Plast', comp_id: 742, cod: '2405', desc: 'PP 2630', sector: 'Sector Bolsas Plásticas', um: 'kg', uxc: null, kg_x_uni: null, online_sector: 100, saldo_dest: 40, maximo: 300, stock_dest: 100, sugerido: 200 },
     { tipo: 'inyector', ref: 'Pat Bet Plast', comp_id: 743, cod: '2455', desc: 'ABS GP 22', sector: 'Sector Bolsas Plásticas', um: 'kg', uxc: null, kg_x_uni: null, online_sector: 50, saldo_dest: 8, maximo: 50, stock_dest: 20, sugerido: 30 },
   ],
@@ -397,9 +401,11 @@ window.supabase = { createClient: function(){ return {
   const buf = await page.evaluate(() => JSON.parse(localStorage.getItem('gp2_tablet_buffer') || '{}'));
   ok(!buf['enviar:tallerista:6'], 'buffer limpio tras enviar');
 
-  // ── PROV. DE ART. TERMINADO: tarjetas tambien, en PAQUETES, y sin sugerido ──────────────
-  // Recibe cartones y cajas, o sea las dos cosas que van en paquetes. No tiene sugerido: su
-  // numero de referencia es el ONLINE DEL SECTOR (lo que hay en Cervantes para mandarle).
+  // ── PROV. DE ART. TERMINADO: tarjetas tambien, en PAQUETES, y CON sugerido ──────────────
+  // Recibe cartones y cajas, o sea las dos cosas que van en paquetes. Desde el 2026-09-23 tiene
+  // sugerido, igual que el tallerista (consumo de la pieza x el mes de su ubicacion, repartido si
+  // el articulo lo entrega mas de uno). La pieza que viene SIN sugerido sigue mostrando el ONLINE
+  // DEL SECTOR: un 0 que no es un dato se leeria como "no hay que mandarle nada".
   await page.click('#btnOtro');
   await page.waitForFunction(() => document.querySelectorAll('#tipoGrid .tipo-btn').length > 0);
   await page.click('#tipoGrid .tipo-btn[data-tipo="proveedor_at"]');   // una sola contraparte: entra derecho
@@ -410,7 +416,9 @@ window.supabase = { createClient: function(){ return {
   const atCards = await cards();
   ok(atCards.length === 2, 'prov. AT: una tarjeta por pieza (2) — ' + atCards.length);
   ok(atCards[0].includes('Caja N°1') && atCards[0].includes('Online sector 988'),
-     'prov. AT: sin sugerido, la referencia es el online del sector — ' + atCards[0]);
+     'prov. AT: la pieza sin sugerido cae al online del sector — ' + atCards[0]);
+  ok(atCards[1].includes('Carton Colador') && atCards[1].includes('Sugerido 3 paquetes'),
+     'prov. AT: 2.600 uni de cartón se sugieren como 3 paquetones de 1.000 — ' + atCards[1]);
   ok(atCards.every(c => c.includes('paquetes')), 'prov. AT: cartones y cajas se mandan en paquetes — ' + atCards.join(' | '));
   await abrir('A1');
   const detAt = await det();
@@ -694,9 +702,12 @@ window.supabase = { createClient: function(){ return {
   ok((await page.$eval('#successAlertas', e => e.textContent)).includes('Quedó anotado para revisar'),
      'el exito muestra la alerta que devolvio la base');
 
-  // ── RECIBIR DE UN P.S.: tarjetas, y la ENTREGA copia la unidad del ENVIO ──────────────
-  // [usuario 2026-09-18: "AJ adhesivos entrega en paquetes de 200. El resto copia la logica del
-  // envio: si enviamos en bolsas recepcionamos en bolsas, si lo hacemos en cajones, en cajones"].
+  // ── RECIBIR DE UN P.S.: tarjetas, y EL REMITO EN UNIDADES ──────────────
+  // [usuario 2026-09-23, sobre cinco proveedores el mismo dia: "cuando voy a recibir de AJ adhesivos
+  // el remito marca en unidades de pliego y despues cuando voy a controlar si, marco paquetes";
+  // idem Ester, Hernandez Julio, Jade y Maspoli]. Lo que se carga aca es EL REMITO y va en unidades
+  // de la pieza; el envase (bolsas, paquetes, cajones) y los kilos son del CONTROL, la pantalla
+  // siguiente. Da vuelta la regla de v1.20.0, que es de antes de que el control existiera.
   await page.click('#btnOtro');
   await page.waitForFunction(() => document.querySelectorAll('#tipoGrid .tipo-btn').length > 0);
   await page.click('#tipoGrid .tipo-btn[data-tipo="proveedor_servicio"]');
@@ -707,37 +718,30 @@ window.supabase = { createClient: function(){ return {
   const gzRec = (await cards())[0];
   ok(gzRec.includes('CV1N') && gzRec.includes('consume CV1'),
      'P.S.: la tarjeta dice la pieza y que SC consume — ' + gzRec);
-  ok(gzRec.includes('Stock prov. de servicio 2 cajones'),
-     'Guazzaroni: el stock del P.S. se mira en los mismos cajones con los que se le envia — ' + gzRec);
+  ok(gzRec.includes('Stock prov. de servicio 1.000 uni'),
+     'Guazzaroni: el stock del P.S. se mira en UNIDADES, como el remito — ' + gzRec);
   ok(!gzRec.includes('Esperado'), 'Guazzaroni: ya no dice "Esperado" — ' + gzRec);
-  // el mismo numero contado con la bolsa del fraccionado (uxc 50 de la pieza niquelada) daria 20:
-  // ese era el bug del 18/09 (5 cajones de CV11 mostrados como 50 de V11).
-  ok(!gzRec.includes('20 cajones'),
-     'Guazzaroni: NO se usa el uni_x_cajon de la pieza devuelta (la bolsa del fraccionado) — ' + gzRec);
-  // EL CAJON QUE ANOTO LOGISTICA gana sobre el teorico [usuario 2026-09-21: "tiene que aparecer en
-  // su stock los cajones que escribe logistica, no los que se calcula a partir de los kg"]: 60.000
-  // remaches que salieron como 1 cajon (de 21 kg) son 1 cajon, no los 1,05 que da el uni_x_cajon
-  // de 57.143 (20 kg) del maestro.
+  ok(!gzRec.includes('cajones') && !gzRec.includes('cajón'),
+     'Guazzaroni: en el remito no aparece el cajón (es del control) — ' + gzRec);
+  // El cajón anotado por logística (ent_uxc_anot, 2026-09-21) sigue viajando en el bundle, pero ya
+  // no decide nada acá: el remito va en unidades y el envase se mira en ControlEntregaPS.
   const gzAnot = (await cards()).find(c => c.includes('CV2N')) || '';
-  ok(gzAnot.includes('Stock prov. de servicio 1 cajón'),
-     'Guazzaroni: el stock se cuenta con el cajón ANOTADO al enviar, no con el teórico — ' + gzAnot);
-  ok(!gzAnot.includes('1,05'),
-     'Guazzaroni: el cajón teórico (57.143 uni) ya no decide el número — ' + gzAnot);
+  ok(gzAnot.includes('Stock prov. de servicio 60.000 uni'),
+     'Guazzaroni: el otro remache también en unidades — ' + gzAnot);
   await abrir('CV1N');
   const detPs = await det();
-  ok(detPs.includes('Stock prov. de servicio') && detPs.includes('2 cajones') && detPs.includes('Cantidad') &&
+  ok(detPs.includes('Stock prov. de servicio') && detPs.includes('1.000 uni') && detPs.includes('Cantidad') &&
      !detPs.includes('Esperado') && !detPs.includes('Recibido'),
      'P.S.: la vista dice Stock prov. de servicio y Cantidad — ' + detPs);
-  ok((await page.$eval('#detCard .det-uni', e => e.textContent.trim())) === 'kg',
-     'Guazzaroni: la cantidad se escribe en kg, igual que en el envio');
+  ok((await page.$eval('#detCard .det-uni', e => e.textContent.trim())) === 'uni',
+     'Guazzaroni: la cantidad del remito se escribe en unidades');
   ok(await page.$eval('#accBox', e => e.classList.contains('hidden')),
      'Recibir: adentro de la parte tampoco se ve la Fecha, el Remito ni el boton de registrar');
   ok((await page.$eval('#detCard button[data-a="listo"]', b => b.disabled)) === true,
      'P.S.: con el campo vacio no se puede cerrar la parte');
-  await page.fill(DQ, '50');   // 50 kg / 0,05 = 1.000 uni = exactamente lo esperado (2 cajones de 25 kg)
-  ok((await page.$eval('#detCard .det-eq', e => e.textContent.trim())) === '= 2 cajones',
-     'Guazzaroni: el renglon chico dice a cuantos cajones equivale — ' +
-     (await page.$eval('#detCard .det-eq', e => e.textContent.trim())));
+  await page.fill(DQ, '1000');   // 1.000 uni = exactamente lo que el proveedor tiene en su poder
+  ok((await page.$$eval('#detCard .det-eq', ns => ns.map(n => n.textContent.trim()).join(''))) === '',
+     'Guazzaroni: en unidades no hay renglón de equivalencia (el envase se mira en el control)');
   // Y EL BOTON SE HABILITA CON LA CANTIDAD ESCRITA, aunque la parte lleve UNA sola unidad. Hasta el
   // 2026-09-21 el repintado del boton vivia adentro del if de las dos unidades, que en Recibir nunca
   // se cumple: la tarjeta se dibujaba con "Listo" gris y ahi se quedaba [usuario, con 40 kg ya
@@ -747,7 +751,7 @@ window.supabase = { createClient: function(){ return {
   await page.fill(DQ, '');
   ok((await page.$eval('#detCard button[data-a="listo"]', b => b.disabled)) === true,
      'Guazzaroni: y si se borra la cantidad se vuelve a deshabilitar');
-  await page.fill(DQ, '50');
+  await page.fill(DQ, '1000');
   await page.click('#btnVolverPartes');
   ok((await cards())[0].includes('recibe'), 'P.S.: la tarjeta muestra lo que se va a recibir');
   await page.click('#btnEnviar');
@@ -760,24 +764,26 @@ window.supabase = { createClient: function(){ return {
   // el payload se lee de sessionStorage porque window.__calls se lo llevo la navegacion
   const regPs = await callsSS('tablet_registrar');
   const itPs = regPs[regPs.length - 1].args.p.items[0];
-  // viaja el kg, y el esperado tambien en kg (1.000 x 0,05) para que la base compare igual contra igual
-  ok(itPs.comp_id === 601 && itPs.comp_entrada_id === 600 && itPs.cantidad === 50 && itPs.unidad === 'kg' &&
-     itPs.esperado === 50,
-     'Guazzaroni: 50 kg contra 50 kg esperados — ' + JSON.stringify(itPs));
+  // viaja la UNIDAD de la pieza, y el esperado en la misma unidad, para que la base compare igual
+  // contra igual. Los kilos son del control, que despues pisa la cantidad del movimiento.
+  ok(itPs.comp_id === 601 && itPs.comp_entrada_id === 600 && itPs.cantidad === 1000 && itPs.unidad === 'uni' &&
+     itPs.esperado === 1000,
+     'Guazzaroni: 1.000 uni contra 1.000 uni esperadas — ' + JSON.stringify(itPs));
 
-  // AJ es la EXCEPCION: envia en paquetes de 100 y ENTREGA en paquetes de 200
+  // AJ tampoco es excepcion desde el 2026-09-23: su remito viene en pliegos (unidades), y los
+  // paquetes de 200 con los que entrega se cuentan en el control.
   await page.goto(ROOT + '/Tablet/Tablet_GP2.html');   // volver del control (antes: "Cargar otra")
   await page.waitForFunction(() => document.querySelectorAll('#tipoGrid .tipo-btn').length > 0);
   await page.click('#tipoGrid .tipo-btn[data-tipo="proveedor_servicio"]');
   await page.click('#cpGrid .prov-btn:has-text("AJ Adhesivos")');
   await page.waitForFunction(() => document.querySelectorAll('#cardsGrid .parte-card').length > 0);
   const ajRec = (await cards())[0];
-  ok(ajRec.includes('Pliego Ad 506') && ajRec.includes('Stock prov. de servicio 3 paquetes'),
-     'AJ: 600 uni / 200 por paquete de entrega = 3 paquetes (no 6, que serian los de envio) — ' + ajRec);
+  ok(ajRec.includes('Pliego Ad 506') && ajRec.includes('Stock prov. de servicio 600 uni'),
+     'AJ: el remito va en pliegos (unidades), no en los paquetes de 200 de la entrega — ' + ajRec);
   await abrir('Pliego Ad 506');
-  ok((await page.$eval('#detCard .det-uni', e => e.textContent.trim())) === 'paquetes',
-     'AJ: la cantidad se escribe en paquetes, como en el envio');
-  await page.fill(DQ, '3');
+  ok((await page.$eval('#detCard .det-uni', e => e.textContent.trim())) === 'uni',
+     'AJ: la cantidad del remito se escribe en unidades');
+  await page.fill(DQ, '600');
   await page.click('#btnVolverPartes');
   await page.click('#btnEnviar');
   // AJ tambien es un P.S.: al registrar el remito se va al control, igual que Guazzaroni
@@ -785,7 +791,7 @@ window.supabase = { createClient: function(){ return {
   const regAjR = await callsSS('tablet_registrar');
   const itAjR = regAjR[regAjR.length - 1].args.p.items[0];
   ok(itAjR.comp_id === 565 && itAjR.cantidad === 600 && itAjR.unidad === 'uni',
-     'AJ: 3 paquetes de 200 se registran como 600 pliegos — ' + JSON.stringify(itAjR));
+     'AJ: los 600 pliegos del remito viajan tal cual — ' + JSON.stringify(itAjR));
 
   // y un P.S. SIN unidad definida sigue como estaba: esperado y cantidad en la unidad de la pieza
   await page.goto(ROOT + '/Tablet/Tablet_GP2.html');

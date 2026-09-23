@@ -6,6 +6,43 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
+<!-- v1.30.0 (2026-09-23) — RECIBIR DE UN P.S. SE CARGA EN UNIDADES: EL ENVASE ES DEL CONTROL
+     (usuario, sobre cinco proveedores distintos y el mismo día: "cuando voy a recibir de AJ
+     adhesivos el remito marca en unidades de pliego y después cuando voy a controlar sí, marco
+     paquetes"; "cuando voy a recibir en la versión tablet del proveedor de servicio Ester, en el
+     remito aparece en unidades y después el control si lo hago en bolsas y kilos"; ídem Hernández
+     Julio —"me aparece en unidades y el control sí en cajones y kilos"—, Jade y Maspoli).
+     LO QUE SE CARGA ACÁ ES EL REMITO, y el remito del proveedor viene en unidades de la pieza. El
+     envase (bolsas de Ester, paquetes de 200 de AJ, cajones de Jade y Julio, bolsas de Maspoli) y
+     los kilos son del CONTROL, o sea de ControlEntregaPS_GP2.html, que es la pantalla a la que la
+     tablet manda derecho después de registrar desde la v1.28.0.
+     DA VUELTA la regla de v1.20.0 ("la entrega copia la unidad del envío"), que se escribió el
+     18/09, CUANDO TODAVÍA NO EXISTÍA la pantalla de control (nació el 21/09): entonces lo que se
+     cargaba acá era lo contado y el envase tenía sentido. Ahora son dos momentos distintos y cada
+     uno tiene su unidad.
+     ES UNA LÍNEA: la rama de recibir de envaseDe() devuelve null para el P.S. Con eso la tarjeta
+     dice el stock en unidades, el campo va en unidades (teclado numérico), desaparecen el renglón
+     "≈ N bolsas" y la doble carga envase+kg, y lo que viaja a tablet_registrar queda en la unidad
+     canónica de la pieza. CERO base: proveedor_servicio.entrega_unidad / entrega_uni_x siguen
+     igual porque las usa el Control, que es su lugar.
+     EL TALLERISTA NO SE TOCA: ahí no hay pantalla de control y el esperado en cajones + la cantidad
+     en kg los pidió el usuario el 18/09 (v1.19.0). -->
+<!-- v1.29.0 (2026-09-23) — EL PROV. DE ART. TERMINADO YA TIENE SUGERIDO (usuario, textual: "En el
+     módulo prov de art terminado, cuando voy a enviar: me aparece 0 sugerido para enviar. El
+     inventario máximo de los prov de art terminado tiene que ser al igual que los talleristas de un
+     mes de consumo. Si hay más de un prov de art terminado o tallerista que haga un artículo tenés
+     que dividir según la proporción. Si no está la proporción → por default 50% cada uno").
+     DA VUELTA la nota de v1.18.0 ("el prov. AT no tiene sugerido, va el Online sector"): ahora lo
+     tiene, con la misma cuenta que el tallerista — consumo de cartón/caja × 1 mes − lo que ya tiene
+     en su poder — y el consumo sale repartido cuando el artículo lo hacen dos.
+     LO DE FONDO NO ESTABA ACÁ: el 0 salía de la base. La CTE rep de GP2.tablet_bundle sólo cubría
+     'proveedor_servicio' y 'tallerista', así que la fila del prov AT viajaba con maximo/sugerido en
+     NULL. El reparto y el consumo nuevos son DDL y viven en db/migracion_maximo_prov_at.sql.
+     ACÁ SON DOS LÍNEAS: envConSugerido() suma el prov AT, y faltaEnvase() también, para que una
+     pieza sin paquetón cargado lo diga en vez de mostrar un número en unidades como si fueran
+     paquetes. EL FALLBACK QUEDA VIVO A PROPÓSITO: si la fila viene sin sugerido (base sin la
+     migración, o un cartón de otro artículo que no es consumo de este proveedor), la tarjeta vuelve
+     a mostrar "Online sector" — un 0 que no es un dato es peor que no mostrarlo. -->
 <!-- v1.28.1 (2026-09-21) — "LISTO" SE HABILITA TAMBIÉN CUANDO LA PARTE LLEVA UNA SOLA UNIDAD
      (usuario, con 40 kg ya escritos en la tarjeta de V12 de Guazzaroni: "No me deja cargar la
      recepción"). REGRESIÓN DE v1.23.0: ahí se agregó que "Listo" espere a que estén las DOS
@@ -871,12 +908,19 @@ function claveDe(x){
 }
 function claveCP(c){ return MODO + ":" + c.tipo + ":" + c.ref; }
 
-/* En Enviar tienen sugerido: PS y talleristas (máximo − stock − lo que ya está en el destino) y
-   los INYECTORES (bolsas de resina en kg = Σ deficit de las partes plásticas × kg_x_uni). Prov. AT
-   no tiene sugerido y ahí la tablet sigue mostrando "Online sector". */
-function envConSugerido(){
-  return MODO === "enviar" && !!selCP &&
-    (selCP.tipo === "proveedor_servicio" || selCP.tipo === "tallerista" || selCP.tipo === "inyector");
+/* En Enviar tienen sugerido: PS y talleristas (máximo − stock − lo que ya está en el destino), los
+   INYECTORES (bolsas de resina en kg = Σ deficit de las partes plásticas × kg_x_uni) y, desde el
+   2026-09-23, el PROV. DE ART. TERMINADO: consumo de su cartón/caja × el mes de su ubicación,
+   repartido cuando el artículo lo entrega más de uno [usuario].
+   POR QUÉ EL PROV. AT PREGUNTA POR LA FILA y los otros no: su número lo trae la base sólo si
+   GP2.tablet_bundle ya tiene la CTE rep extendida (db/migracion_maximo_prov_at.sql). Sin eso —o en
+   un cartón que no es consumo de ese proveedor, como el de otro artículo que se manda como
+   reemplazo— la fila viene con sugerido null y la tarjeta vuelve a "Online sector", que es lo que
+   mostraba hasta hoy. Un 0 que no es un dato se lee como "no hay que mandarle nada". */
+function envConSugerido(x){
+  if (MODO !== "enviar" || !selCP) return false;
+  if (selCP.tipo === "proveedor_at") return !x || x.sugerido != null;
+  return selCP.tipo === "proveedor_servicio" || selCP.tipo === "tallerista" || selCP.tipo === "inyector";
 }
 
 /* La tablet NO se acuerda de lo tipeado en Enviar a P.S. / inyector: si se sale sin registrar, la
@@ -941,26 +985,19 @@ function envaseDe(x){
       return { factor: fr, label: String(x.env_unidad),
                cargaKg: String(x.env_carga || "") === "kg" };
     }
-    if (selCP.tipo !== "proveedor_servicio") return null;
-    // ENTREGA de un P.S. [usuario 2026-09-18: "AJ adhesivos entrega en paquetes de 200. El resto
-    // copia la logica del envio: si enviamos en bolsas recepcionamos en bolsas, si lo hacemos en
-    // cajones, en cajones. Charcas cajones"]. Primero el override del proveedor
-    // (proveedor_servicio.entrega_*), y si no lo tiene, la MISMA unidad con la que se le envia.
-    var lab = selCP.entrega_unidad ? String(selCP.entrega_unidad) : "";
-    if (lab) {
-      var fx = Number(selCP.entrega_uni_x || 0);
-      if (fx > 0) return { factor: fx, label: lab, cargaKg: false };   // AJ: entrega 200 por paquete
-      var fp = uxcRef(x);                                              // Charcas: el cajon de la pieza
-      return fp > 0 ? { factor: fp, label: lab, cargaKg: true } : null;
-    }
-    if (pesoEnvio()) {                             // Julio: el bulto lo pone el sector de la pieza
-      var bb = bultoDe(x);
-      return (bb && bb.uxc > 0) ? { factor: bb.uxc, label: bb.label, cargaKg: true } : null;
-    }
-    var pkr = packEnvio();
-    if (!pkr) return null;
-    var fr2 = pkr.porPieza ? uxcRef(x) : pkr.factor;
-    return (fr2 > 0) ? { factor: fr2, label: pkr.label, cargaKg: pkr.cargaKg } : null;
+    // ENTREGA de un P.S.: VA EN UNIDADES, SIN ENVASE. Lo que se carga acá es EL REMITO, y el remito
+    // del proveedor viene contado en unidades de la pieza; el envase (bolsas, paquetes, cajones) y
+    // los kilos son del CONTROL, que es la pantalla siguiente [usuario 2026-09-23, dicho sobre cinco
+    // proveedores distintos: "cuando voy a recibir de AJ adhesivos el remito marca en unidades de
+    // pliego y después cuando voy a controlar sí, marco paquetes"; lo mismo con Ester ("en el remito
+    // aparece en unidades y después el control si lo hago en bolsas y kilos"), Hernández Julio, Jade
+    // y Maspoli]. DA VUELTA la regla de v1.20.0, que hacía que la entrega copiara la unidad del
+    // envío: esa regla es de ANTES de que el control fuera una pantalla aparte (v1.28.0), cuando lo
+    // que se cargaba acá era lo contado. Las columnas proveedor_servicio.entrega_unidad /
+    // entrega_uni_x NO se tocaron: las sigue usando ControlEntregaPS_GP2.html, que es su lugar.
+    // El TALLERISTA queda como estaba (arriba): ahí no hay pantalla de control y el usuario pidió
+    // expresamente cajones + kg el 2026-09-18.
+    return null;
   }
   if (MODO !== "enviar") return null;
   // tallerista y prov. de art. terminado: la unidad la trae la PIEZA en el bundle. El prov. AT
@@ -1103,7 +1140,9 @@ function sugeridoInfo(x){
    sin uni_x_cajon no hay cajón, sin el paquetón del formato no hay paquete. Vacío = no aplica. */
 function faltaEnvase(x){
   if (MODO !== "enviar" || !selCP || !x || envaseDe(x)) return "";
-  if (selCP.tipo === "tallerista")
+  // el prov. AT va con el mismo aviso que el tallerista: los dos reciben la pieza con el envase que
+  // dice la PIEZA (paquetón del cartón / los 25 de la caja), no con uno del proveedor [2026-09-23].
+  if (selCP.tipo === "tallerista" || selCP.tipo === "proveedor_at")
     return x.env_unidad
       ? ("sin " + (String(x.env_unidad) === "paquetes" ? "paquete" : "cajón") + " cargado")
       : "";
@@ -1123,10 +1162,12 @@ function rotuloRef(){
   return "Esperado";
 }
 
-/* EL NUMERO DE REFERENCIA de la tarjeta y de la vista de la parte: el SUGERIDO donde lo hay
-   (P.S., tallerista, inyector) y el ONLINE DEL SECTOR en el prov. de art. terminado, que no tiene
-   sugerido — ahí la referencia es lo que hay en Cervantes para mandarle. Devuelve el mismo
-   {rotulo, txt, num, uni, nota} para los dos, así la tarjeta no sabe de la diferencia. */
+/* EL NUMERO DE REFERENCIA de la tarjeta y de la vista de la parte: el SUGERIDO donde lo hay (P.S.,
+   tallerista, inyector y —desde el 2026-09-23— el prov. de art. terminado) y el ONLINE DEL SECTOR
+   cuando la fila no trae sugerido: el cartón de otro artículo que se manda como reemplazo, o una
+   base todavía sin la migración del consumo del prov AT. Ahí la referencia es lo que hay en
+   Cervantes para mandarle. Devuelve el mismo {rotulo, txt, num, uni, nota} para los dos, así la
+   tarjeta no sabe de la diferencia. */
 function refInfo(x){
   if (MODO === "recibir") {
     // ESPERADO: lo que la base cree que el tallerista tiene para entregar, mirado en CAJONES (o en
@@ -1154,7 +1195,7 @@ function refInfo(x){
   }
   // el cartón de OTRO artículo no tiene sugerido (no es una pieza de este destino, no hay consumo
   // suyo que lo pida): la referencia útil es lo que hay en Cervantes para mandarle.
-  if (envConSugerido() && !x.sust_de) {
+  if (envConSugerido(x) && !x.sust_de) {
     var si = sugeridoInfo(x);
     si.rotulo = "Sugerido";
     return si;
@@ -1587,7 +1628,7 @@ function renderTabla(){
       if (b) {
         mitad = '<td class="num esp"><b>' + si.txt + "</b><small>" + esc(si.small) + "</small></td>";
       } else {
-        mitad = envConSugerido()
+        mitad = envConSugerido(x)
           ? ('<td class="num esp"><b>' + si.txt + "</b>" +
              (si.small ? "<small>" + esc(si.small) + "</small>" : "") + "</td>")
           : ('<td class="num esp">' + fmt(x.online_sector, u === "kg" ? 2 : 0) + " " + u + "</td>");

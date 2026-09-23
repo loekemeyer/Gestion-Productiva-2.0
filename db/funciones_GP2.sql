@@ -5821,6 +5821,86 @@ begin
 end $function$
 ;
 
+-- ---------- recalcular_maximos_prov_at ----------
+CREATE OR REPLACE FUNCTION "GP2".recalcular_maximos_prov_at(p_crear_faltantes boolean DEFAULT false, p_componentes bigint[] DEFAULT NULL::bigint[])
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'GP2'
+AS $function$
+declare
+  v_set int := 0; v_creados int := 0; v_cambios jsonb; v_faltan jsonb; v_sin_consumo jsonb;
+begin
+  with objetivo as (
+    select v.inv_id, v.componente_id, v.proveedor_at_id, v.max_calc, v.maximo as maximo_viejo
+      from v_nivel_stock_prov_at v
+     where coalesce(v.maximo_origen, '') <> 'fisico'
+       and v.max_calc > 0
+       and (p_componentes is null or v.componente_id = any (p_componentes))
+  ), upd as (
+    update inventario i
+       set maximo = o.max_calc, maximo_origen = 'est_madre_x_reparto'
+      from objetivo o
+     where i.id = o.inv_id
+       and (i.maximo is distinct from o.max_calc or i.maximo_origen is distinct from 'est_madre_x_reparto')
+    returning o.proveedor_at_id, o.componente_id, o.maximo_viejo, o.max_calc
+  )
+  select count(*), coalesce(jsonb_agg(jsonb_build_object(
+           'prov_at', (select nombre from proveedor_at p where p.id = u.proveedor_at_id),
+           'componente', (select codigo from componente c where c.id = u.componente_id),
+           'antes', u.maximo_viejo, 'ahora', u.max_calc) order by u.proveedor_at_id), '[]'::jsonb)
+    into v_set, v_cambios from upd u;
+
+  -- (prov AT, pieza) con consumo pero SIN fila de inventario en su ubicacion. Al 2026-09-23 son
+  -- TODAS: las 12 ubicaciones de prov AT tienen 0 filas de inventario, asi que sin este paso no
+  -- hay donde escribir un maximo. Se informan siempre; se crean solo si lo piden.
+  select coalesce(jsonb_agg(jsonb_build_object(
+           'prov_at', (select nombre from proveedor_at p where p.id = f.proveedor_at_id),
+           'componente', (select codigo from componente c where c.id = f.componente_id),
+           'maximo', f.max_calc) order by f.proveedor_at_id), '[]'::jsonb)
+    into v_faltan
+    from (select cp.proveedor_at_id, cp.componente_id, u.id as ubic_id,
+                 round(cp.uni_mes * coalesce(u.meses_stock, 1)) as max_calc
+            from v_consumo_prov_at cp
+            join ubicacion u on u.tipo = 'proveedor_at' and u.ref_id = cp.proveedor_at_id
+           where cp.uni_mes > 0
+             and (p_componentes is null or cp.componente_id = any (p_componentes))
+             and not exists (select 1 from inventario i
+                              where i.componente_id = cp.componente_id and i.ubicacion_id = u.id)) f;
+
+  if p_crear_faltantes then
+    with falta as (
+      select cp.proveedor_at_id, cp.componente_id, u.id as ubic_id,
+             round(cp.uni_mes * coalesce(u.meses_stock, 1)) as max_calc
+        from v_consumo_prov_at cp
+        join ubicacion u on u.tipo = 'proveedor_at' and u.ref_id = cp.proveedor_at_id
+       where cp.uni_mes > 0
+         and (p_componentes is null or cp.componente_id = any (p_componentes))
+         and not exists (select 1 from inventario i
+                          where i.componente_id = cp.componente_id and i.ubicacion_id = u.id)
+    ), ins as (
+      insert into inventario (componente_id, ubicacion_id, cantidad, maximo, maximo_origen, actualizado_en)
+      select f.componente_id, f.ubic_id, 0, f.max_calc, 'est_madre_x_reparto', now()
+        from falta f
+      returning 1
+    )
+    select count(*) into v_creados from ins;
+  end if;
+
+  -- filas con maximo cargado que hoy no tienen consumo: se informan, no se limpian
+  select coalesce(jsonb_agg(jsonb_build_object(
+           'prov_at', (select nombre from proveedor_at p where p.id = v.proveedor_at_id),
+           'componente', (select codigo from componente c where c.id = v.componente_id),
+           'maximo', v.maximo) order by v.proveedor_at_id), '[]'::jsonb)
+    into v_sin_consumo
+    from v_nivel_stock_prov_at v
+   where v.max_calc = 0 and v.maximo is not null and coalesce(v.maximo_origen, '') <> 'fisico';
+
+  return jsonb_build_object('ok', true, 'actualizados', v_set, 'creados', v_creados,
+    'faltan_fila_inventario', v_faltan, 'sin_consumo', v_sin_consumo, 'cambios', v_cambios);
+end $function$
+;
+
 -- ---------- recalcular_maximos_talleristas ----------
 CREATE OR REPLACE FUNCTION "GP2".recalcular_maximos_talleristas(p_solo_repartidos boolean DEFAULT false, p_componentes bigint[] DEFAULT NULL::bigint[], p_limpiar_sin_ruta boolean DEFAULT false)
  RETURNS jsonb
@@ -7429,9 +7509,15 @@ env as (
 --   · tallerista -> v_consumo_tallerista (la demanda YA repartida entre los que hacen el paso,
 --     via v_reparto_efectivo; asi no se le pide un mes entero a cada uno de dos que arman lo mismo),
 --   · PS         -> v_consumo_componente (demanda total de la pieza),
+--   · PROV AT    -> v_consumo_prov_at (la demanda del articulo repartida entre los prov AT que lo
+--     entregan y los talleristas que lo arman; sin reparto dictado, partes iguales) [usuario
+--     2026-09-23: "el inventario maximo de los prov de art terminado tiene que ser al igual que
+--     los talleristas de un mes de consumo... si hay mas de uno dividir segun la proporcion"],
 --   · fleje (sector 5, en kg) -> v_consumo_fleje_kg (kg/mes) para cualquiera de los dos tipos.
 -- Sugerido = maximo − lo que el tercero ya tiene (inventario en su ubicacion). meses_stock cae a 1
--- si la ubicacion no lo tiene (mismo default que OC). El consumo ya viene en la unidad de la
+-- si la ubicacion no lo tiene (mismo default que OC). OJO, la ubicacion de la que salen los MESES
+-- no es la misma para todos: el tallerista y el P.S. la toman del SECTOR de la pieza (como estaba),
+-- y el prov AT de SU PROPIA ubicacion, que es donde vive el "un mes" que pidio el usuario. El consumo ya viene en la unidad de la
 -- entrada (kg para fleje, uni para el resto), asi que no hay factor de conversion.
 -- CONSUMOS, UNA sola vez (2026-09-22): antes se consultaban las tres vistas de consumo fila por
 -- fila dentro de rep (una subconsulta correlacionada por cada pieza x destino), y cada vista es
@@ -7440,6 +7526,7 @@ env as (
 cons_fk   as materialized (select componente_id, consumo_kg_mes from v_consumo_fleje_kg),
 cons_tall as materialized (select tallerista_id, componente_id, uni_mes from v_consumo_tallerista),
 cons_comp as materialized (select componente_id, consumo_uni_mes from v_consumo_componente),
+cons_pat  as materialized (select proveedor_at_id, componente_id, uni_mes from v_consumo_prov_at),
 rep as (
   select e.tipo, e.ref, e.comp_id,
          round(t.techo) as maximo_dest,
@@ -7451,19 +7538,25 @@ rep as (
                            and i.ubicacion_id = ubic_de(e.tipo, e.ref::bigint) limit 1),0)
          , 2)) as sugerido
     from (select distinct tipo, ref, comp_id from env
-           where tipo in ('proveedor_servicio','tallerista')) e
+           where tipo in ('proveedor_servicio','tallerista','proveedor_at')) e
     join componente ent on ent.id = e.comp_id
     left join cons_fk   fk on fk.componente_id = e.comp_id
     left join cons_tall ct on ct.componente_id = e.comp_id and e.tipo = 'tallerista'
                           and ct.tallerista_id = e.ref::bigint
+    left join cons_pat cpa on cpa.componente_id = e.comp_id and e.tipo = 'proveedor_at'
+                          and cpa.proveedor_at_id = e.ref::bigint
     left join cons_comp vc on vc.componente_id = e.comp_id
     cross join lateral (
        select
          coalesce((select u.meses_stock from ubicacion u
-                    where u.id = ubic_de('sector', ent.sector_id) limit 1), 1) as meses,
+                    where u.id = case when e.tipo = 'proveedor_at'
+                                        then ubic_de('proveedor_at', e.ref::bigint)
+                                      else ubic_de('sector', ent.sector_id) end
+                    limit 1), 1) as meses,
          case
            when ent.sector_id = 5         then coalesce(fk.consumo_kg_mes, 0)
            when e.tipo = 'tallerista'     then coalesce(ct.uni_mes, 0)
+           when e.tipo = 'proveedor_at'   then coalesce(cpa.uni_mes, 0)
            else                                coalesce(vc.consumo_uni_mes, 0)
          end as consumo
     ) cons

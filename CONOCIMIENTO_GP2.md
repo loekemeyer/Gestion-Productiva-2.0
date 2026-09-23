@@ -11855,3 +11855,78 @@ Se pudo hacer sin migrar porque IC3/IC3V tenían 0 stock, 0 movimientos, 0 recep
 se convirtieron (÷ kg_x_uni).
 
 **Quedan sin precio de tallerista** (el costo no suma ese paso): 121 Pettofrezza, 248 Alex, 280 Blist-Pack.
+
+## 4fc. El Prov. de Art. Terminado ya tiene consumo, máximo y sugerido (2026-09-23)
+
+`[usuario, textual]`: *"En el módulo prov de art terminado, cuando voy a enviar: me aparece 0
+sugerido para enviar. El inventario máximo de los prov de art terminado tiene que ser al igual que
+los talleristas de un mes de consumo. Si hay más de un prov de art terminado o tallerista que haga
+un artículo tenés que dividir según la proporción. Si no está la proporción → por default 50% cada
+uno"*.
+
+**El 0 no era un máximo sin cargar: era una cuenta que no se hacía.** El sugerido de la Tablet no
+sale de `inventario.maximo` — lo calcula al vuelo la CTE `rep` de `GP2.tablet_bundle`, y esa CTE
+filtraba `where tipo in ('proveedor_servicio','tallerista')`. El Prov AT nunca entraba, así que su
+fila viajaba con `maximo` y `sugerido` en NULL y la tablet mostraba "Online sector". Cargar máximos
+a mano no lo hubiera arreglado.
+
+**Lo que se construyó** (calcado de lo que ya existía para talleristas, §4du):
+
+| Objeto | Para qué |
+|---|---|
+| `reparto_prov_at` | el % dictado por artículo + prov AT (se carga por SQL, no hay pantalla) |
+| `v_hace_articulo` | quién produce o entrega el TERMINADO: prov AT y tallerista del sector 12 |
+| `v_reparto_at_efectivo` | el % efectivo; sin dictar, partes iguales entre los que lo hacen |
+| `v_consumo_prov_at` | demanda del artículo × ese % = cartón/caja que consume cada prov AT |
+| `v_nivel_stock_prov_at` | `max_calc = consumo × meses_stock` de SU ubicación (default 1 mes) |
+| `recalcular_maximos_prov_at()` | escribe `inventario.maximo`, origen `est_madre_x_reparto` |
+| `tablet_bundle` | `rep` cubre `proveedor_at`; los meses salen de la ubicación del prov AT |
+
+Todo el SQL, con su porqué, en `db/migracion_maximo_prov_at.sql`. Las dos funciones quedaron
+**verificadas por md5** contra la base.
+
+**Lo medido al aplicarlo:** 5 prov AT reciben cartón/caja hoy (Pintos 15 piezas, Lopez Jose 6,
+Maspoli 5, The Plast 4, Carriero 3) y **las 33 filas quedaron con número**: ninguna sigue en "—".
+Los dos artículos con dos proveedores son el **222** y el **910** (Maspoli / Pintos): su cartón pasa
+a 545 + 545 y 142 + 142, el 50/50 por default. Si el dueño dicta otra proporción, va en
+`reparto_prov_at` y el número cambia solo.
+
+**Tres cosas que quedan escritas:**
+1. **Ningún artículo lo hacen hoy un prov AT y un tallerista a la vez** (medido: 0 filas). Por eso
+   `v_consumo_tallerista` NO se tocó. Si mañana aparece uno, el prov AT ya queda en 50 % y el
+   tallerista seguiría en 100 % hasta que el dueño confirme — la fila sucia de `articulo_prov_at`
+   (§4cy) es la razón de no bajarle el máximo a un tallerista solo.
+2. **Las 12 ubicaciones de prov AT tienen `meses_stock` NULL y CERO filas de `inventario`.** El
+   "1 mes" lo pone un `coalesce`, y `recalcular_maximos_prov_at()` informa lo que le falta fila en
+   vez de fallar; con `p_crear_faltantes => true` las crea en 0 con su máximo. **No se corrió:
+   crear filas es escribir datos y eso lo autoriza el dueño.**
+3. **16 de los 33 cartones no tienen formato cargado** (`carton_formato` sin `uni_x_bolsa`), así que
+   su sugerido se ve en unidades y la tarjeta avisa "sin paquete cargado". Con el formato cargado
+   pasaría a paquetones, como el resto.
+
+## 4fd. Recibir de un P.S. es EL REMITO, y el remito va en unidades (2026-09-23)
+
+`[usuario, sobre cinco proveedores distintos el mismo día]`: *"cuando voy a recibir de AJ adhesivos
+el remito marca en unidades de pliego y después cuando voy a controlar sí, marco paquetes"*; lo
+mismo con **Ester** (*"en el remito aparece en unidades y después el control si lo hago en bolsas y
+kilos"*), **Hernández Julio** (*"me aparece en unidades y el control sí en cajones y kilos"*),
+**Jade** y **Maspoli**.
+
+**Son dos momentos y cada uno tiene su unidad.** Lo que se carga en la Tablet es el **remito**, y el
+remito del proveedor viene contado en unidades de la pieza. El **envase** (bolsas de Ester, paquetes
+de 200 de AJ, cajones de Jade y Julio) y los **kilos** son del **control**
+(`ControlEntregaPS_GP2.html`), la pantalla a la que la tablet manda derecho desde la v1.28.0.
+
+**Da vuelta la regla de v1.20.0** (*"la entrega copia la unidad del envío"*, 18/09). Esa regla no
+estaba mal: se escribió **tres días antes de que el control fuera una pantalla aparte**, cuando lo
+que se cargaba en la tablet era lo contado. Cuando el flujo se partió en dos, la unidad del envase
+se quedó en el lado equivocado.
+
+**El cambio es una línea**: la rama de recibir de `envaseDe()` devuelve `null` para el P.S. Con eso
+la tarjeta dice el stock en unidades, el campo va en unidades, y se van el renglón "≈ N bolsas" y la
+doble carga envase + kg. **Cero base**: `proveedor_servicio.entrega_unidad` / `entrega_uni_x` siguen
+existiendo porque las usa el Control, que es su lugar.
+
+**El TALLERISTA no se tocó**: ahí no hay pantalla de control y el esperado en cajones + la cantidad
+en kg los pidió el usuario el 18/09 (§v1.19.0 de la Tablet). Si también tiene que ir en unidades, es
+el mismo cambio de una línea.
