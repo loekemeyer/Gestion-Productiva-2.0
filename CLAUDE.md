@@ -678,6 +678,46 @@ Cada modulo es una carpeta con su propio HTML/JS/CSS. Los modulos principales:
 - `Inicio/` - Dashboard principal
 - `Verificacion/` - Trazado de Rutas (REESCRITO 2026-04-18, ver abajo)
 
+## ⚠ REGLA: qué tipo de operario ve qué botón (app de operarios / tablet)
+
+**El operario no ve todos los botones: ve los de SU rol, y el rol vive en la BASE, no en el
+código.** Las columnas están en `public.Empleados`, una fila por legajo: `es_matriceria`,
+`es_piedra`, `es_alimentador`, `ve_cm`, `ve_trm`, `ve_tl`, `ve_rem`, `ve_mm`, `ve_ctm`, `ve_am`.
+La implementación canónica es `capsDe()` + `botonVisible()` de `app.js` en el repo
+`loekemeyer/Registro-Produccion-2.0` (v1.9.0): antes de agregar, sacar o mostrar un botón en
+cualquier app de operarios, mirar esas dos funciones.
+
+| Rol (cómo se reconoce) | Qué botones ve |
+|---|---|
+| **Balancín** = operario base, ningún flag prendido | E, C, PB, BC, LIMP, Perm, AL, PC, PM, RM, PCM + **MOV** |
+| **Alimentador** (`es_alimentador`) | lo mismo + **PR**, **RD** y **CM** (el flag ya implica CM) |
+| **Piedra** (`es_piedra`) | lo mismo pero **MOV P** en lugar de MOV; + **MM** si `ve_mm` |
+| **Matricería** (`es_matriceria`) | **sólo** TRM (`ve_trm`), TL (`ve_tl`), REM (`ve_rem`) y CM (`ve_cm`). Ningún botón normal, ni siquiera E o C |
+| Cualquiera con `ve_cm` | agrega **CM** aunque no sea alimentador (caso real: David Ayala, legajo 233, es de piedra) |
+
+El orden importa: `botonVisible()` pregunta **primero** por matricería, así que un matricero con
+otro flag prendido igual ve nada más que sus cuatro botones.
+
+Tres cosas que no se negocian:
+
+1. **Nunca ramificar por legajo.** Si un operario tiene que ver algo distinto, es un flag en
+   `Empleados`, no un `if legajo === "19"`. El día que esa persona cambia de puesto o se va,
+   el `if` queda mintiendo y nadie se entera.
+2. **Botón nuevo = flag nuevo en `Empleados` + su casilla en el ABM de operarios**, en el mismo
+   commit. Un flag sin código (o al revés) es una promesa que la app no cumple: hoy pasa con
+   `ve_ctm` (botón CTM, Control Matriz) y `ve_am` (botón AM, Ayuda Matricería), prendidos los dos
+   para Oscar Bordon (legajo 282) y **sin una línea de código en ningún repo**.
+3. **CM (Cambiar Matriz) es tiempo muerto**: el 1er toque lo abre —pide matriz nueva y en qué
+   balancín, y asigna la matriz al balancín en `public.Balancines`— y el 2do lo cierra midiendo
+   la duración. No es un evento puntual. Los que no son tiempo muerto son E, C, RM, RD y LT.
+
+**Estado al 2026-09-23 de la tablet de operarios de GP2** (`Produccion/RegistroApp/`,
+`operarios_gp2.js` + `Registro_GP2.html`): **no aplica nada de esto todavía**. Muestra la misma
+lista de botones a todo el mundo, no lee ningún flag, y ramifica por `LEGAJO_EDUARDO = "19"`
+hardcodeado (le agrega el botón CT y le cambia el comportamiento de PR) — justo lo que el punto 1
+prohíbe. Además le faltan CM, RD y REM, sacados el 2026-08-29 por uso histórico bajo. Cuando esa
+pantalla vuelva a tocar botones, se arranca por acá.
+
 ## Verificacion - Trazado de Rutas (reescrito 2026-04-18)
 
 Modulo unificado para trazar rutas productivas y validar integridad. Reemplaza el viejo
