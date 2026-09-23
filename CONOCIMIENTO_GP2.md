@@ -2238,6 +2238,9 @@ exactos por pieza; la vista de costos usa el exacto y cae al plano si no hay).
 - **Kollplast vs Pat Bet, misma pieza, otro precio**: Pirolo $51,76 vs $20,07 (×2,5),
   Buje $20,48 vs $21,06. Todo quedó cargado con Pat Bet (así está `componente.proveedor`);
   revisar al repartir los inyectores. `[dato]`
+  **CORREGIDO EN PARTE EL 2026-09-23 (§4fo)**: los dos **bujes** (`PA8A`/`PA8B`) ya son de
+  **Kollplast** a $20,48, por decisión del dueño. El **Pirolo sigue en Pat Bet** y ahí el barato
+  es Pat Bet, así que no hay nada que mover.
 - **A9 (mango alambre corta queso): la lista de Pedernera dice 21 g, GP2 tiene 39 g** —
   el precio exacto usa los gramos de la lista. `[dato, sin resolver]`
 - **La lista de un proveedor puede seguir mostrando lo que ya no se le compra**: Pat Bet
@@ -12320,3 +12323,47 @@ sigue con `I1` → Daniel/Jade, que es exactamente la rama que `I1` conserva.
 
 **La entrega histórica de `I1` cromado en `Entregas PS` (1 fila) quedó como estaba**: la historia no
 se reescribe.
+
+## 4fo. Los bujes mariposa pasan de Pat Bet a Kollplast (2026-09-23)
+
+`[usuario, textual]`: *"Los dos bujes mariposa ahora se los compramos a Kollplast. Remito en uni
+control en kg"*, con su **sí** sobre el SQL exacto.
+
+**Qué se movió** (`PA8A` Buje Blanco 237 y `PA8B` Buje Negro 226, los dos del Sector Plástico, que
+entran en los artículos **066 / 502 / 512**, los abrelatas mariposa):
+
+| | Antes | Después |
+|---|---|---|
+| `componente.proveedor` | Pat Bet Plast | **Kollplast** |
+| Precio que toma el costo | $21,06 (lista Pat Bet, 01-08-26) | **$20,48** (lista Kollplast, 19-08-26) |
+| Costo del buje | $21,06 | **$20,48** (−2,8 %) |
+| Recepción | remito en uni (Pat Bet ya estaba en `PLAST_UNI`) | **igual**, ahora por Kollplast |
+
+**La fila vieja de Pat Bet en `precio_proveedor` NO se borró, y no hace falta borrarla**: la vista
+`v_costo_componente` ordena `DISTINCT ON (componente_id)` poniendo **primero la fila cuyo `cod_prov`
+coincide con el `cod_prov` del proveedor asignado al componente** y recién después por `fecha_lista`.
+Con Kollplast (4465) cargado, la de Pat Bet (797) queda de histórico y no gana nunca. **Corolario
+para la próxima vez que cambie un proveedor: cambiar `componente.proveedor` sin cargar la fila de
+precio del proveedor nuevo deja el costo con el precio del viejo, sin ningún aviso** — `faltan_precios`
+sigue en 0 porque precio hay, sólo que es el de otro.
+
+**Esto cierra la trampa anotada en §"Kollplast vs Pat Bet, misma pieza, otro precio"** (2026-08-31):
+ahí quedó registrado que Kollplast cotizaba el buje a $20,48 contra $21,06 de Pat Bet y que "todo
+quedó cargado con Pat Bet, revisar al repartir los inyectores". El buje ya está repartido; **el
+Pirolo sigue pendiente** (`PA7A`/`PA7B`: Kollplast $51,76 vs Pat Bet $20,07, ×2,5 — ahí el barato es
+Pat Bet).
+
+**Sin ripple de stock**: los dos bujes estaban en **0** y no había ninguna OC abierta.
+
+**Remito en uni / control en kg: el cambio de código es una línea, y es deuda conocida.** Esa regla
+vive en `PLAST_UNI`, una **lista de nombres de proveedor hardcodeada en el JS** de
+`StockFlejes/RecepcionInsumos_GP2.html` (hoy Eduardo Pintos, Pat Bet, Pettofrezza y Kollplast).
+Se le agregó `'kollplast'`. Dos cosas que se deducen de eso:
+
+1. **Arrastra a `PEST1` (Insertos Mango de Madera)**, la otra pieza que ya le comprábamos a
+   Kollplast: pierde el toggle Kg/Uni y pasa a cargarse contada. Es el criterio correcto para una
+   pieza plástica, y la regla de plásticos **es por proveedor** a propósito (Trefilados también es
+   sector 6 y su Clavo 505 sí se compra por kg, vía `recibe_en_cajas`).
+2. **Debería estar parametrizado en la base** (`proveedor_insumo` ya tiene `modo_control`, con
+   `peso_total` = "factura en uni, se pesa el total"), no en una lista del frontend: cada proveedor
+   nuevo obliga a tocar código y a bumpear versión. Pendiente, no urgente.

@@ -6,6 +6,13 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
+<!-- v3.60.1 (2026-09-23) — KOLLPLAST CARGA EN UNIDADES [usuario: "Los dos bujes mariposa ahora
+     se los compramos a Kollplast. Remito en uni control en kg"]. Los bujes PA8A/PA8B pasaron de
+     Pat Bet a Kollplast en la base (componente.proveedor + precio_proveedor $20,48 lista 19-08-26),
+     y aca Kollplast entra a PLAST_UNI: remito en unidades, sin toggle Kg/Uni, y los kg que se ven
+     abajo del input son los que tiene que marcar la balanza en el control. Como la regla de
+     plasticos es POR PROVEEDOR, arrastra tambien a PEST1 (Insertos Mango de Madera), la otra pieza
+     de Kollplast. Guardian nuevo en test_recepcion_uni.js. -->
 <!-- v3.60.0 (2026-09-17) — UN INSUMO PUEDE TENER MAS DE UN PROVEEDOR: RECICOR ENTREGA LAS
      MISMAS CAJAS QUE CORRUGADORA [usuario: "dentro de cajas, ademas de corrugadora del plata,
      tenes que agregar al proveedor Recicor. Entrega las mismas cajas que corrugadora. El control
@@ -778,8 +785,13 @@ function fieldsFleje(nom){
    recibir. Cargados en uni entran derecho, con o sin peso por unidad.
    NO es el sector 6 entero: Trefilados Industriales tambien es un plastico
    (PCP3 Clavo 505) y ese SI se compra por kg — lo maneja recibe_en_cajas. Por
-   eso en plasticos la regla es por PROVEEDOR. */
-const PLAST_UNI = ['eduardo pintos','pat bet plast','pettofrezza rafael'];
+   eso en plasticos la regla es por PROVEEDOR.
+   KOLLPLAST entra el 2026-09-23 [usuario: "Los dos bujes mariposa ahora se los compramos
+   a Kollplast. Remito en uni control en kg"]: le pasaron los bujes PA8A/PA8B que eran de
+   Pat Bet. Al ser por proveedor, arrastra tambien a PEST1 (Insertos Mango de Madera), la
+   otra pieza que ya le comprabamos — mismo criterio: se cuentan, y los kg de abajo del
+   input son los que tiene que marcar la balanza en el control. */
+const PLAST_UNI = ['eduardo pintos','pat bet plast','pettofrezza rafael','kollplast'];
 function provPlastUni(nom){ return PLAST_UNI.indexOf(String(nom||'').trim().toLowerCase())>=0; }
 function cargaEnUni(it){
   if (!it) return false;

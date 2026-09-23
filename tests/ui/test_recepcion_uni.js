@@ -27,6 +27,7 @@ const BUNDLE = {
     { nombre: 'Eduardo Pintos', modo_control: 'ninguno', informa_rollos: false, factura_uni: false },
     { nombre: 'Trefilados Industriales', modo_control: 'ninguno', informa_rollos: false, factura_uni: false },
     { nombre: 'Tornillos Suipacha', modo_control: 'ninguno', informa_rollos: false, factura_uni: false },
+    { nombre: 'Kollplast', modo_control: 'ninguno', informa_rollos: false, factura_uni: false },
   ],
   recepciones: [], pallets: [], rollos: [],
   insumos: [
@@ -38,6 +39,11 @@ const BUNDLE = {
       stock: 0, ultima: null, oc_pend: null },   // el clavo: viene en cajas y se pesa
     { comp_id: 3, codigo: 'CV18D', descripcion: 'Tornillo Sacafuente p/Niquelar', sector: 'Sector Remache',
       sector_id: 8, um: 'unidad', proveedor: 'Tornillos Suipacha', kg_x_uni: null, recibe_en_cajas: false,
+      stock: 0, ultima: null, oc_pend: null },
+    // El buje mariposa: era de Pat Bet y desde el 2026-09-23 lo entrega Kollplast,
+    // con la misma regla (remito en uni, control en kg).
+    { comp_id: 4, codigo: 'PA8A', descripcion: 'Buje Blanco', sector: 'Sector Plástico', sector_id: 6,
+      um: 'unidad', proveedor: 'Kollplast', kg_x_uni: 0.00063, recibe_en_cajas: false,
       stock: 0, ultima: null, oc_pend: null },
   ],
 };
@@ -116,6 +122,26 @@ const STUB = 'window.supabase={createClient:function(){return{'
   ok(await page.locator('#unitRow').isHidden() &&
      (await page.locator('#kgValueLabel').innerText()).includes('kg'),
      'el clavo de Trefilados sigue en kg: la regla de unidades no se lo lleva puesto');
+
+  // Kollplast: los bujes mariposa pasaron de Pat Bet a Kollplast (2026-09-23,
+  // "Remito en uni control en kg"). Misma regla, otro proveedor.
+  await page.goto(ROOT + '/StockFlejes/RecepcionInsumos_GP2.html');
+  await page.click('#rubroGrid button:has-text("Plásticos")');
+  await page.click('#provGrid button:has-text("Kollplast")');
+  await page.click('#btnContinuar');
+  await page.click('.item-btn:has-text("PA8A")');
+  await page.waitForSelector('#kgPopup.open');
+  ok(await page.locator('#unitRow').isHidden() &&
+     (await page.locator('#kgValueLabel').innerText()).includes('uni'),
+     'el buje de Kollplast: remito en unidades, sin toggle Kg/Uni');
+  await page.fill('#kgValue', '5000');
+  ok(/3,15 kg/.test(await page.locator('#kgConvDisplay').innerText()),
+     'y muestra los kg del control (5.000 × 0,00063 = 3,15)');
+  await page.click('#kgConfirm');
+  await page.click('#remitoBtnSlot button, #remitoBtnSlotCart button');
+  await page.waitForTimeout(400);
+  carga = ultimo('cargar_recepcion');
+  ok(carga && carga.p_unidad === 'uni' && carga.p_cantidad === 5000, 'PA8A baja 5.000 uni');
 
   // Tornillos Suipacha: sin kg_x_uni y aun así en unidades
   await page.goto(ROOT + '/StockFlejes/RecepcionInsumos_GP2.html');
