@@ -101,3 +101,11 @@ select s.nombre sector, c.codigo, c.descripcion, c.unidad_medida, c.kg_x_uni
 
 **Nada de esto se cargó**: cargar `uni_x_cajon` es escribir datos y lo autoriza el dueño. Cuando
 pases los valores (aunque sea de los 28 de A), se cargan con el SQL a la vista primero.
+
+## Para llenarlo: `COMPONENTES_SIN_CAJON_2026-09-23.xlsx`
+
+Las mismas 433 filas en Excel (hoja **Sin cajón**, con filtro y los grupos en la columna A), más una
+hoja **Leyenda** con qué significa cada grupo. La única columna que se escribe es la **H, "Uni x
+cajón (a cargar)"**, la de fondo amarillo. Devolvé esa planilla y se carga desde ahí.
+
+**El .xlsx no va al repo**: `.gitignore` excluye `*.xlsx` salvo dos excepciones (la planilla madre de costos y `Tablas_Madre_y_Dependencias.xls`), y esto es una foto para llenar, no un maestro. Vive en la carpeta de trabajo y se manda por chat; si se pierde, se regenera con la consulta de arriba.
