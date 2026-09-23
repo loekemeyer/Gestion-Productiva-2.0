@@ -109,14 +109,14 @@ Excluye artículos discontinuados. **156 pares (tallerista, artículo) sobre 154
 - 315 Pisa Papas Acero Inox — M1 ×1* | PC11 ×1 | PA10 ×1 | F3B ×1 | A2 ×0,083333
 - 355 Pisa Papas Nylon con Mgo — PC11 ×1* | PA10 ×1 | PV1 ×1 | F3C ×1 | A6 ×0,041667
 - 501 Abrelatas A Manija — W6 ×2* | A4 ×1 | B13 ×1 | C6 ×1 | W1P ×1 | W2P ×1 | W3P ×1 | W4 ×1 | PC14 ×1 | PA12 ×1 | V7 ×1 | D2A ×1 | A9 ×0,166667
-- 523 Sacacorcho Doble Aleta — D2 ×1* | D3 ×1 | V8 ×2 | PC15A ×1 | E4A ×1 | A8 ×0,083333 | IE13 ×0,0602
+- 523 Sacacorcho Doble Aleta — D2 ×1* | D3 ×1 | V8 ×2 | PC15A ×1 | E4A ×1 | A8 ×0,083333 | E13 ×1
 - 551 Cuchillo De Untar Mgo Plast x2 — E8 ×2* | PA4 ×2 | L4A ×1 | A9 ×0,083333
 - 594 Pinza De Fideos Mgo Plástico 25cm — F13 ×1* | F14 ×1 | PC8 ×2 | C9 ×1 | G4A ×1 | A2 ×0,083333
 - 595 Pinza De Fiambre Mgo Plástico 23cm — F9 ×1* | F10 ×1 | PC8 ×2 | C9 ×1 | G4B ×1 | A2 ×0,083333
 - 596 Pinza De Ensalada Mgo Plástico 23cm — F11 ×2* | PC8 ×2 | C9 ×1 | G4C ×1 | A2 ×0,083333
 - 609 Pisa Papas Ac. Inox. — M1 ×1* | PA19 ×1 | Q5D ×1 | PEST2 ×1 | A2 ×0,083333
 - 701 Abrelatas A Manija — W6 ×2* | A7 ×1 | B13 ×1 | C6 ×1 | W1P ×1 | W2P ×1 | W3P ×1 | W4 ×1 | PC13 ×1 | PA7A ×1 | V7 ×1 | N7A ×1 | A3 ×0,166667
-- 723 Sacacorcho Doble Aleta Metálico Cuerpo en Nylon Reforzado — D2 ×1* | D3 ×1 | V8 ×2 | PC15B ×1 | Ñ1A ×1 | A3 ×0,083333 | IE13 ×0,0602
+- 723 Sacacorcho Doble Aleta Metálico Cuerpo en Nylon Reforzado — D2 ×1* | D3 ×1 | V8 ×2 | PC15B ×1 | Ñ1A ×1 | A3 ×0,083333 | E13 ×1
 - 789 Pisa Papas Nylon Con Mgo — PC11 ×1* | PV1 ×1 | R3A ×1 | PEST2 ×1 | A6 ×0,041667
 - 878 Cuchillo De Untar Mgo Plast. x2 — E8 ×2* | PA5 ×2 | P3B ×1 | A1 ×0,041667
 

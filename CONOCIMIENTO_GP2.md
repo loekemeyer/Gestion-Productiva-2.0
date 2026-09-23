@@ -669,9 +669,11 @@ operario suma con "+ pallet" si el remito trajo más. Ver `fieldsFleje(prov)` en
 - **La Cremallera (IE13) se recibe en el rubro Importados, no en Flejes** `[usuario 2026-09-22:
   "La cremallera mandala al módulo importado. Borra el módulo importado dentro de flejes"]`.
   Se hizo con `estado_compra='importado'` (id 219): la Recepción arma Importados por esa marca y
-  Flejes la excluye, así que el chip "Importado" de Flejes desapareció solo. Se recibe en unidades
-  (kg_x_uni 0,0602) y se guarda en kg. **Sigue en Sector Fleje** (ubicación 5, máximo 667,50 kg):
-  pasarla a Procesado y el máximo a unidades quedó para después `[usuario: "lo pendiente por ahora no"]`.
+  Flejes la excluye, así que el chip "Importado" de Flejes desapareció solo.
+  **CORREGIDO el 2026-09-23**: ya no se llama `IE13` ni vive en Sector Fleje — es **`E13`, Sector
+  Procesado, y se cuenta por UNIDAD** (no en kg). Lo que arriba decía "se recibe en unidades y se
+  guarda en kg" era justamente el problema: mientras estuvo en el sector de los flejes **no costeó
+  nada**. Ver §4ft.
 - **BOM8B Tela Manga Repostera: se cuenta por ROLLO, 900 uni por rollo; se compra a Rueda y Cia**
   (`proveedor_insumo` 'Rueda', cod_prov 3372) `[usuario 2026-09-22]`. **CORRECCIÓN:** el nombre
   viejo del componente (id 619) decía "950 uni por rollo" — estaba mal; son **900**. El paréntesis
@@ -12606,3 +12608,76 @@ Funcionaba, pero **habría dejado dos formas de decir lo mismo** en la misma pan
 **por proveedor** se habría llevado puesta cualquier pieza futura de Kollplast sin que nadie lo
 decida. `PLAST_UNI` es el mecanismo viejo y va último en el if-chain; **lo nuevo que se agregue va
 por `remito_unidad`**. La lista queda sólo por los tres proveedores que ya dependen de ella.
+
+---
+
+## 4ft. La cremallera no es un fleje: `IE13` → `E13`, Sector Procesado, por unidad (2026-09-23)
+
+`[usuario, textual: "La cremallera IE13. Es E13 y está dentro de sector procesado. No fleje. Lo vi
+en pettofrezza rafael"]`, con su **"Sí"** sobre el SQL exacto.
+
+**Era un renombre en apariencia y un agujero de plata en los hechos: mientras la cremallera estuvo
+en el Sector Fleje, costó $0 en los dos sacacorchos que la llevan.**
+
+### Por qué costaba cero
+
+`v_costo_componente` tiene una rama especial para el sector 5: `precio × kg_ref`, donde `kg_ref`
+es el `kg_x_uni` del componente **fabricado** — o sea, el fleje se cobra por el peso de la pieza
+que sale. Correcto para un fleje, que se compra por kilo. Pero:
+
+- La cremallera **se importa armada y se paga por unidad**: USD 1,10 c/u = **$1.688,50**
+  (planilla del dueño, fila 885, `cod_isis` 523C, Tierra Nativa SA, rubro Talleristas).
+- El "523 Terminado" **no tiene `kg_x_uni`** → `kg_ref` NULL → el producto daba NULL → la suma lo
+  ignoraba. El semáforo lo venía diciendo: los dos artículos estaban con **`faltan_kg = 1`**.
+
+⚠ **`precio_proveedor.precio_por_kg` no sirve para distinguirlo**: los **48** flejes con precio lo
+tienen en `false`, cobren por kilo o no. El que avisa es el texto de `producto` (acá decía
+"importada, **por unidad**") y, sobre todo, el rubro de la planilla.
+
+### El origen: la migración del 2026-09-03 la metió en la bolsa equivocada
+
+La idea 7221 pasó `IC3`, `IE13` e `IZ19A` de `unidad` a `kg` porque eran "los 3 únicos flejes que no
+estaban en kg". Para `IC3` (alambre galvanizado de Altrak, USD 1,715 **el kilo**) fue el arreglo
+correcto. Para la cremallera fue al revés: **no era un fleje mal cargado, era una pieza procesada
+mal clasificada**, y la migración le puso la receta en `0,0602 kg` donde decía `1 unidad`.
+Aquella sesión verificó que "no cambió el costo de ningún componente" — cierto, pero porque ya
+valía $0 antes y después.
+
+### Lo que se escribió (4 UPDATE, con snapshot previo de los 803 costos)
+
+| tabla | cambio |
+|---|---|
+| `componente` (219) | `codigo` IE13 → **E13**, `sector_id` 5 → **2**, `unidad_medida` kg → **unidad** |
+| `articulo_componente` | arts **523** y **723**: cantidad 0,0602 → **1** |
+| `ruta_paso` | rutas **339** y **416**, paso `insumo`: cantidad 0,0602 → **1** |
+| `inventario` (213) | ubicación Sector Fleje → **Sector Procesado**; máximo 667,50 kg → **11.088 uni** |
+
+El máximo vuelve exacto: los 667,50 kg salieron de multiplicar 11.088 uni × 0,0602 en la misma
+migración del 03/09 (`maximo_origen='migrado_de_minimo'`, que sigue siendo cierto).
+`kg_x_uni = 0,0602` **se queda**: es el peso real de la pieza (60,2 g — la planilla de Pedernera la
+lista con `cod_art` "60.2"), y ahora es sólo peso, no unidad de cuenta.
+
+### Costo medido, antes → después (sólo estos 2 de los 803 componentes se movieron)
+
+| art | antes | después | Δ |
+|---|---:|---:|---:|
+| 523 Sacacorcho Doble Aleta | 1.304,96 | **2.993,46** | +1.688,50 (+129 %) |
+| 723 Sacacorcho D. Aleta Nylon Reforzado | 1.262,12 | **2.950,62** | +1.688,50 (+134 %) |
+
+`faltan_kg` pasó de 1 a **0** en los dos. Stock era **0** en las dos ubicaciones, así que no se
+movió ni un peso de inventario y no hizo falta tocar `movimiento`.
+
+### Lo que NO cambia
+
+- **Sigue en Recepción → Importados.** Ese rubro se arma por `estado_compra='importado'`
+  (`_es_comprable`: "pieza importada, viva donde viva"), nunca por el sector. Cero código tocado.
+- Sale del **relevamiento de flejes** y del consumo en kg (`v_consumo_fleje_kg` sólo mira sector 5):
+  ahora consume por unidades, que es como se pide.
+- El máximo de Pettofrezza (inventario 746, 119, `est_madre_x_reparto`) **quedó como estaba** —
+  viene de cuando el componente era kg. Recalcularlo es otra escritura, pendiente del sí del dueño.
+
+### La regla que queda
+
+**Antes de meter un componente en el Sector Fleje, preguntar si se compra por kilo.** El sector 5
+no es "donde va el metal": es "lo que se paga por peso". Una pieza importada armada, aunque sea de
+acero y aunque hoy entre por el mismo remito, va a su sector real o el costo se cae en silencio.
