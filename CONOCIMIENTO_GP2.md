@@ -12368,3 +12368,24 @@ Hasta hoy la misma diferencia pasaba o no **según por qué puerta entrara la me
 `tol_pct`. Los dos controles de insumos la muestran en el cartel ("tolerancia 5 %").
 **El piso de 0,5 kg de `tolKg()` queda**: el 5 % de un remito chico son gramos y ninguna balanza
 afina tanto.
+
+### Quién declara su remito, al 2026-09-23
+
+El dueño fue dictando proveedor por proveedor. Lo cargado, con su **sí** en cada caso:
+
+| Pieza | Proveedor | Remito | Control | Por qué el control es ése |
+|---|---|---|---|---|
+| PCP2 Plancha de Níquel | CC Galvanoquímica | kg | kg | la pieza vive en kg: no hay conversión |
+| PC4, PEP9 | JL Matricería | uni | kg | tienen `kg_x_uni`: se pesa y se guardan unidades |
+| PEST1 Insertos Mango de Madera | Kollplast | uni | kg | idem |
+| PCP4A Cintas Adhesivas 48x100 | Packaging y Servicios | uni | uni | **no tiene `kg_x_uni`**: no hay con qué pesar |
+
+**Lo que el `remito_unidad='uni'` arregló en JL Matricería y Kollplast:** esas piezas tienen
+`kg_x_uni` y su proveedor no está en `PLAST_UNI`, así que la pantalla venía multiplicando lo
+tipeado y **guardando kg**. El toggle decía "Unidades" y la base se llevaba otra cosa. Ninguna de
+las cuatro tenía recepciones cargadas, así que no hubo historia que migrar.
+
+**⚠ Trampa para la próxima:** el control de `PCP4A` es en unidades **porque le falta el peso por
+unidad**, no porque alguien lo haya decidido. El día que se le cargue un `kg_x_uni`, el control va
+a pedir kg solo. Es la misma trampa anotada para los pliegos de AJ en §4fe: si una pieza tiene que
+quedar contada para siempre, eso hay que decirlo con un dato, no dejando un campo vacío.
