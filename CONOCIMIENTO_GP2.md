@@ -12011,3 +12011,30 @@ envase es lo único que hay y con eso alcanza.
   vale 5. **Antes compartía `tol_ctrl_peso_pct` con el pesaje de insumos, que sigue en 2 %.**
 - el 5 % del aviso al recibir: `exceso()` de la Tablet y el `if` de `GP2.tablet_registrar`, con el
   piso de media unidad (5 gramos en kg) de §4ff para el caso de esperado 0.
+
+## 4fh. Enviar a un tallerista se ordena por RUBRO, no por código (2026-09-23)
+
+`[usuario, textual]` *"En el módulo de envío a talleristas dentro de la versión tablet, quiero que
+me ordenes no alfanuméricamente, sino que primero me pongas todo lo que se le manda de sector crudo,
+después todo lo de sector procesado, después todo los remaches, después todo lo de partes plásticas,
+después todo lo de cajas y después todo lo de cartones"* + *"me refiero dentro de cada tallerista"*.
+
+**El orden de una lista de picking lo dicta el galpón, no el abecedario.** El envío se arma
+caminando: el crudo y el procesado están en un lado, los cartones y las cajas en otro. Alfabético,
+las cinco piezas del fixture de Martin (A10 crudo, BANDITA cartón, C10 cartón, CJ7 caja, F7 fleje)
+obligan a cuatro paradas en cinco tarjetas, y el cartón queda partido en dos con la caja en el
+medio. Por rubro, cada bloque es una parada.
+
+**El rótulo del rubro no es decoración.** Con el código fuera de secuencia y nada que explique por
+qué, el orden nuevo se lee como un desorden: cada bloque lleva su nombre de sector arriba
+(`.pc-rubro`, ancho entero de la grilla, así que a 390px se ve igual).
+
+**Los tres sectores que el usuario no nombró van DESPUÉS, no afuera** `[dato, medido sobre
+GP2.tablet_bundle el 2026-09-23]`: a los talleristas también se les manda **Fleje** (6 filas, 3
+talleristas), **Bombilla** (15 en 5) y **Garage** (11 en 4) — 32 de las 350 filas de Enviar a
+tallerista. Quedan detrás de los cartones, agrupados por sector, hasta que el dueño diga dónde.
+Dejarlos afuera de la lista sería esconder trabajo real.
+
+**Solo el tallerista.** P.S., prov. de art. terminado e inyector siguen alfabéticos y Recibir no se
+tocó: el pedido fue explícito sobre el tallerista, y el mismo orden se puede extender cuando lo
+pida. **Cero base**: el `sector` de cada pieza ya viajaba en `tablet_bundle.enviar`.

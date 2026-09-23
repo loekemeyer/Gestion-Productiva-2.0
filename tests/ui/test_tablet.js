@@ -276,6 +276,27 @@ window.supabase = { createClient: function(){ return {
      'tallerista: las partes van en tarjetas, no en la tabla');
   let tcards = await cards();
   ok(tcards.length === 5, 'tallerista: una tarjeta por pieza (5) — ' + tcards.length);
+  // ── EL ORDEN ES POR RUBRO, NO ALFANUMERICO [usuario 2026-09-23: "primero todo lo que se le manda
+  // de sector crudo, despues todo lo de sector procesado, despues todo los remaches, despues todo
+  // lo de partes plasticas, despues todo lo de cajas y despues todo lo de cartones" + "me refiero
+  // dentro de cada tallerista"]. Alfabetico daria A10, BANDITA, C10, CJ7, F7 — o sea el carton
+  // partido en dos con la caja en el medio. El Fleje, que el usuario no nombro, va al final.
+  const codsDeGrilla = () => page.$$eval('#cardsGrid .parte-card:not(.otro) .pc-cod',
+    xs => xs.map(e => (e.childNodes[0] ? e.childNodes[0].textContent : '').trim()));
+  let ordT = await codsDeGrilla();
+  ok(ordT.join(',') === 'A10,CJ7,BANDITA,C10,F7',
+     'tallerista: orden por rubro — crudo, caja, los dos cartones juntos y el fleje al final — ' + ordT.join(','));
+  // y el rotulo de cada bloque, sin el que el orden nuevo se lee como un desorden
+  const rubrosT = () => page.$$eval('#cardsGrid .pc-rubro', xs => xs.map(e => e.textContent.trim()));
+  ok((await rubrosT()).join(' | ') === 'Sector Crudo | Sector Caja | Sector Cartón | Sector Fleje',
+     'tallerista: un rotulo por rubro, en el orden pedido — ' + (await rubrosT()).join(' | '));
+  ok((await page.$eval('#cardsGrid', g => g.firstElementChild.className)).includes('pc-rubro') &&
+     (await page.$eval('#cardsGrid', g => g.firstElementChild.className)).includes('primero'),
+     'tallerista: el primer rotulo no lleva la linea de separacion arriba');
+  // el rotulo ocupa el ancho entero de la grilla: a 390px (el viewport de todo este test) eso no
+  // tiene que empujar la pagina a scrollear de costado
+  ok(!(await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth)),
+     '390px: los bloques por rubro no hacen scrollear la pagina de costado');
   const cardDe = (cod) => tcards.find(c => c.startsWith(cod));
   // el resto de las piezas: el sugerido se mira en CAJONES y la cantidad se escribe en KG
   ok(cardDe('A10').includes('Cpo Una') && cardDe('A10').includes('Sugerido 1 caj\u00f3n') &&
