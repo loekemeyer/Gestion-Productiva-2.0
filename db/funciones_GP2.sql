@@ -8168,7 +8168,7 @@ mov as (
 fila as (
   select cfg.tallerista_id, cfg.lado,
          c.id comp_id, c.codigo cod, c.descripcion desc_, s.nombre sector,
-         c.unidad_medida um, c.kg_x_uni, c.uni_x_cajon,
+         c.unidad_medida um, c.kg_x_uni, c.uni_x_cajon, c.entrega_unidad, c.entrega_uni_x,
          coalesce((select i.cantidad from inventario i
                     join ub u2 on u2.ubic_id = i.ubicacion_id and u2.tall_id = cfg.tallerista_id
                    where i.componente_id = c.id limit 1), 0) online_tall,
@@ -8199,6 +8199,7 @@ select jsonb_build_object(
                       jsonb_build_object(
                         'comp_id',comp_id,'cod',cod,'desc',desc_,'sector',sector,'um',um,
                         'kg_x_uni',kg_x_uni,'uni_x_cajon',uni_x_cajon,
+                        'entrega_unidad',entrega_unidad,'entrega_uni_x',entrega_uni_x,
                         'online_tall',online_tall,'online_sector',online_sector,
                         'enviado',enviado,'entregado',entregado,'devuelto',devuelto,
                         'saldo',(enviado-entregado-devuelto)

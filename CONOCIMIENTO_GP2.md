@@ -12953,10 +12953,21 @@ dato** (no estaban en la planilla): `PV8B` Corta Torta Chef y `PINCEL590` Pincel
 uni/cajón todavía pendientes). `BOM10` Resorte Biconico (Sector Bombilla) = **400 uni/cajón** — acá
 sí es cajón, el sugerido va en cajones.
 
-**Regla de negocio que queda abierta (2026-09-24):** en el **sugerido de los envíos** (Talleristas,
-Prov. de Servicios, y las que sigan ese patrón) el **Sector Plástico se manda en bolsas, no en
-cajones**. Hoy el único que respeta el envase por pieza (`componente.entrega_unidad` / `entrega_uni_x`)
-es la **Tablet**; el Envío Talleristas y el Envío PS de escritorio todavía rotulan con `uni_x_cajon`
-como "cajón" fijo. Implementación pendiente de definir el enfoque (rótulo por sector vs. poblar
-`entrega_unidad='bolsas'` en los plásticos y que las pantallas de escritorio lo respeten como la
-Tablet).
+**El envase del envío se define por PIEZA, no por pantalla (2026-09-24, implementado).** [Thomas:
+*"para sector plástico estás usando cajones, quiero que uses bolsas"* + enfoque elegido: *"poblar
+`entrega_unidad='bolsas'` en los plásticos + cablear el Envío Talleristas de escritorio"* + alcance:
+*"también"* PS.] La verdad única es `componente.entrega_unidad` (+`entrega_uni_x`); si están en null,
+se cae a `'cajones'` con factor `uni_x_cajon`. Se marcaron **63 plásticos con `entrega_unidad='bolsas'`**
+(sector 6 con `uni_x_cajon`, EXCLUIDOS los que no son bolsa: clavos PCP3/D9, plancha PCP2, cinta PCP4A).
+`entrega_uni_x` queda **null a propósito**: el factor cae a `uni_x_cajon`, así no se duplica el número
+y la OC de bolsas (que lee `uni_x_cajon`) no se toca.
+- **Tablet:** ya lo respetaba (`env_unidad`/`env_factor`), así que con el dato quedó sola.
+- **Envío Talleristas escritorio:** `talleristas_bundle` ahora expone `entrega_unidad`/`entrega_uni_x`,
+  y la pantalla rota la unidad por fila (helper `envase(x)`): columna "A Env.", el remito y el
+  resumen dicen "bolsas" en plástico y "cajones" en el resto. Rótulos genéricos ("A Env." / "Cant.").
+- **Envío PS escritorio:** NO se tocó porque **el plástico nunca entra a PS** (empareja crudo→procesado);
+  su unidad la sigue dando el proveedor. Si algún día se rutea un plástico a un PS, se cablea igual.
+
+**Otros `uni_x_cajon` en cajón cargados el 2026-09-24:** `BOM10` Resorte Biconico = 400 (Bombilla),
+`W1B` Grampa Batidor = 24.615 (Remache). ⚠ **A confirmar:** `PIEA`/`PIEB` "Rueda Recta" quedaron con
+`entrega_unidad='bolsas'` y `uni_x_cajon=1` — ¿esas ruedas van en bolsa o sueltas?
