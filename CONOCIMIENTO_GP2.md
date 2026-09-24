@@ -12468,7 +12468,101 @@ propósito**: el que decide qué se ve es la pantalla. No se les puso filtro.
 como texto, `registro_operarios_bundle` daba positivo y era la **matriz 338 "Embolsar Bombilla"**,
 y en `movimientos_bundle` varios eran `ruta_id`. Antes de dar por mostrado un código, mirar el
 contexto de la clave.
-## 4fq. Los bujes mariposa pasan de Pat Bet a Kollplast (2026-09-23)
+
+## 4fq. El despiece de la Pinza Corta Alambre (560 / 800) — y las matrices sin ruta (2026-09-23)
+
+**De dónde salió:** el dueño preguntó *"en qué despiece usás la matriz 131, 130, 129"*. Respuesta
+medida: **en ninguno**. Las tres existían en `GP2.matriz`, activas y con producción real cargada
+hasta abril/mayo 2026 (129: 14.504 uni · 130: 16.546 · 131: 17.614), pero **no figuraban en ningún
+`ruta_paso`**.
+
+**No es un agujero de esas tres:** al 2026-09-23, **299 de 405 matrices activas** no aparecen en
+ninguna ruta GP2. La migración de rutas quedó a medias. [dato: `ruta_paso` vs `matriz`]
+
+**La cadena real, dictada por el dueño** (y coincide con la del vecino en `public."Causa-Efecto"`):
+
+```
+IE6 (Fleje N° 79) → 131 Estampado Punta Pinzas → 130 Doblado Agarre Pinzas
+                  → 129 Estampa Pinza chica   → 132 Estampado y Agujero Pinzas
+                  → 133 Doblado Punta Pinza chica → 134 Remachado pinza Chica/Gde
+                  → N7 → Guazzaroni Patricio → Carlos Aguirre → Virgilio
+```
+
+**Tres cosas que fija este caso y valen para cualquier ruta de matrices:**
+
+1. **La pieza intermedia entre dos matrices vive en el Sector Movimiento** (`sector_id` 3,
+   `ubicacion_id` 3), con código `<fleje>-M<matriz>` y descripción `"<fleje> tras M<matriz>"`
+   (`IE6-M131`, `IE6-M130`, …), unidad `unidad`, sin `kg_x_uni`, y nace con stock 0. Es la
+   convención que ya usaban `IA4-M64` e `IE6-M133`.
+2. **Un paso que junta dos piezas se modela en `componente_bom`, no en la ruta.** `ruta_paso` tiene
+   UNA entrada; el remachado toma dos. Entonces: `N7 = 2 × IE6-M133 + 1 × CV14`
+   [usuario 2026-09-23: *"N7 sería dos componentes que salen de la matriz 133 … y un remache Cv14"*].
+   Mismo patrón que `B1-M78` / `D5-M78` (rompenuez = las dos mitades + el remache `V4`).
+3. **Un insumo que se consume en una matriz NO va también en la receta del artículo.**
+   `v_consumo_demanda` explota `articulo_componente` **y después** `componente_bom` en cascada: si
+   `CV14` queda en los dos lados, el remache consume 2 por pinza. Por eso salió de
+   `articulo_componente` de 560 y 800, y se borraron las rutas 457/458 que se lo mandaban a Carlos
+   Aguirre [usuario: *"se lo estás mandando a Carlos Aguirre y está mal. Lo consumís en esta matriz"*].
+
+**Dos límites del motor de costos que este caso dejó a la vista** (medidos, NO arreglados):
+
+- **`v_costo_componente` no multiplica por la cantidad.** Suma cada matriz una sola vez, así que el
+  `×2` no se cobra: la mano de obra real de una pinza es 2 × 36,25 s (las cinco matrices por mitad)
+  + 32 s del remachado = **104,50 s**, y la vista calcula **74,25 s**. Son **60,50 $/uni** que 560 y
+  800 no están cobrando.
+- **El BOM no se propaga hacia arriba.** `bomx` se aplica sólo en la fila del componente padre: el
+  remache aparece en el costo de `N7` (material 0 → 4,45) pero **no** llega al artículo terminado,
+  que bajó 4,45 (560: 674,36 → 669,91 · 800: 652,11 → 647,66). Antes tampoco estaba bien (entraba
+  por `insumox` en 800 y no entraba en 560, que lo tenía como paso `ingreso`): el cambio hizo
+  visible una inconsistencia que ya existía, no la creó.
+
+**Sin resolver:** el vecino arranca esta cadena en **Fleje 82** y GP2 la arranca en **Fleje N° 79
+(IE6)**. Uno de los dos está mal; `Fleje N° 82` ni siquiera existe como componente en GP2.
+## 4fr. Talleristas O.C.: a Blist-Pack y Carlos Aguirre el trabajo se lo pide Gestión Virgilio (2026-09-23)
+
+`[usuario, con la foto de la Tablet: "A blist pack sa y carlos aguirre quiero que me los saques
+afuera de talleristas y me los pongas en un módulo nuevo de talleristas o.c."]` + `[usuario, al
+preguntarle qué cambia además del lugar: "No es o.c. de insumos. Es orden de compra que se hace
+desde Gestión Virgilio que hoy no está modelado acá. Por ahora sugerí 0"]` + `[usuario, sobre
+dónde: "Solo en la versión tablet dentro del módulo enviar"]`.
+
+**El dato de negocio nuevo:** hay talleristas a los que **no se les manda contra el máximo de la
+casa**. Lo que tienen que hacer se lo pide una **orden de compra que emite Gestión Virgilio**, un
+sistema que GP2 todavía **no lee**. Hoy son dos: **Carlos Aguirre (9)** y **Blist-Pack SA (14)**.
+Mientras esa O.C. no se modele acá, GP2 **no tiene con qué calcular cuánto mandarles**, y por eso
+su sugerido es **0** — no porque no haya que mandarles nada.
+
+**NO se los sacó de `GP2.tallerista`, y ese es el punto.** Carlos Aguirre tiene **32 pasos** de
+ruta con `tipo_paso='tallerista'` y Blist-Pack **38**: cambiarles el tipo volteaba rutas,
+inventario, reparto y costeo. Lo que se separó es **la vitrina**:
+
+| Dónde | Qué cambia |
+|---|---|
+| `GP2.tallerista.pedido_por_oc_virgilio` | flag nuevo, `false` por defecto; en `true` los dos de arriba |
+| `tablet_bundle` | manda `oc` en cada contraparte, y el **techo** de esas filas es **0** (y con él el sugerido) |
+| `Tablet_GP2.html`, **solo Enviar** | baldosa aparte **"🧾 Talleristas O.C."**; el título de la carga agrega "· O.C. Virgilio" |
+| Recibir, y todo lo demás | **igual que antes**: siguen siendo talleristas comunes |
+
+**El criterio del techo 0 no es nuevo**: es el mismo del **fasonero** (`proveedor_servicio.
+pedido_por_oc`, Maspoli) cuando no hay O.C. enviada. La diferencia es de dónde viene la orden —
+la del fasonero se emite **acá** (`GP2.orden_compra`) y el sugerido sube sola cuando sale; la de
+estos dos se emite **afuera**, así que el 0 se queda hasta que alguien modele esa O.C.
+**Cuando se modele, lo único que se cambia es ese `then 0` de la CTE `t` de `tablet_bundle`.**
+
+⚠ **Por qué el título dice "· O.C. Virgilio"**: un sugerido en 0 sin explicación se lee como "no
+hay que mandarle nada", que es lo contrario de lo que pasa. El rótulo es lo que separa "no
+corresponde" de "no lo sé".
+
+⚠ **Cómo se parte una baldosa en la Tablet** (por si aparece otro corte así): `TIPOS` acepta
+`clave` (el `data-tipo` del botón, para que dos baldosas del mismo tipo no compartan selector) y
+`oc` (el lado del flag). Una baldosa **sin** `oc` no filtra nada — por eso Recibir quedó intacto.
+`selTipo` pasó a guardar **la baldosa entera**: con dos baldosas `tallerista`, el string del tipo
+ya no alcanza para volver.
+
+**Lo que NO se tocó y sigue pendiente:** nada en `Talleristas/` (Envíos, Recepción, Control,
+Proporciones) los separa — ahí los dos siguen mezclados con el resto, que es lo que el usuario
+pidió por ahora. Y GP2 sigue **sin leer** la O.C. de Gestión Virgilio: ése es el hueco real.
+## 4fs. Los bujes mariposa pasan de Pat Bet a Kollplast (2026-09-23)
 
 `[usuario, textual]`: *"Los dos bujes mariposa ahora se los compramos a Kollplast. Remito en uni
 control en kg"*, con su **sí** sobre el SQL exacto.

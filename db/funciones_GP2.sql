@@ -7633,6 +7633,16 @@ rep as (
                                  where ps3.id = e.ref::bigint and ps3.pedido_por_oc)
                    then coalesce((select oc.pend from oc_ps oc
                                    where oc.proveedor_id = e.ref::bigint and oc.comp_id = e.comp_id), 0)
+                   -- TALLERISTA CON O.C. DE VIRGILIO: mismo criterio que el fasonero sin O.C. — el
+                   -- pedido no sale del consumo x meses sino de una orden que GP2 no lee, asi que
+                   -- el techo es 0 y con el el sugerido [usuario 2026-09-23: "No es o.c. de
+                   -- insumos. Es orden de compra que se hace desde Gestion Virgilio que hoy no
+                   -- esta modelado aca. Por ahora sugeri 0"]. Cuando esa O.C. se modele, este 0
+                   -- es lo unico que se cambia.
+                   when e.tipo = 'tallerista'
+                    and exists (select 1 from tallerista t8
+                                 where t8.id = e.ref::bigint and t8.pedido_por_oc_virgilio)
+                   then 0
                    else cons.consumo * cons.meses end as techo
     ) t
 ),
@@ -7840,6 +7850,12 @@ select jsonb_build_object(
   'contrapartes', (
     select coalesce(jsonb_agg(jsonb_build_object(
              'tipo', cp.tipo, 'ref', cp.ref, 'nombre', cp.nombre,
+             -- O.C. DE GESTION VIRGILIO (2026-09-23): a este tallerista no se le manda contra el
+             -- maximo de la casa; lo que tiene que hacer sale de una O.C. que emite Gestion
+             -- Virgilio y que GP2 todavia no lee. La Tablet lo muestra en su propia baldosa
+             -- ("Talleristas O.C.", solo en Enviar) y su sugerido es 0 (ver la CTE t) [usuario].
+             'oc', (cp.tipo = 'tallerista' and exists (select 1 from tallerista t9
+                      where t9.id = cp.ref::bigint and t9.pedido_por_oc_virgilio)),
              'envio_unidad', cp.envio_unidad, 'envio_uni_x', cp.envio_uni_x,
              'entrega_unidad', cp.entrega_unidad, 'entrega_uni_x', cp.entrega_uni_x,
              'envio_carga_unidad', cp.envio_carga_unidad,

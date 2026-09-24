@@ -6,6 +6,26 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
+<!-- v1.35.0 (2026-09-23) — TALLERISTAS O.C.: BLIST-PACK Y CARLOS AGUIRRE SALEN DE "TALLERISTAS"
+     (usuario, con la foto de la Tablet: "a Blist-Pack SA y Carlos Aguirre quiero que me los saques
+     afuera de talleristas y me los pongas en un módulo nuevo de talleristas o.c."; y al preguntar
+     qué cambia además del lugar: "No es o.c. de insumos. Es orden de compra que se hace desde
+     Gestión Virgilio que hoy no está modelado acá. Por ahora sugerí 0").
+     QUÉ SE HIZO: una baldosa más en ENVIAR, "🧾 Talleristas O.C.", al lado de Talleristas. Los dos
+     siguen siendo talleristas en la base (32 pasos de ruta Aguirre, 38 Blist-Pack): lo que los
+     parte es el flag nuevo GP2.tallerista.pedido_por_oc_virgilio, que tablet_bundle manda como `oc`
+     en cada contraparte. Sacarlos de la tabla `tallerista` habría volteado rutas, inventario,
+     reparto y costeo — se separa la vitrina, no el modelo.
+     SUGERIDO 0, Y DICHO: lo que hay que mandarles sale de una O.C. de Gestión Virgilio que GP2 no
+     lee, así que el techo de esas filas es 0 en tablet_bundle (mismo criterio que el fasonero sin
+     O.C.) y el título de la carga agrega "· O.C. Virgilio", porque un 0 sin explicación se lee como
+     "no hay que mandarle nada".
+     SOLO EN ENVIAR [usuario: "Solo en la versión tablet dentro del módulo enviar"]: en RECIBIR los
+     dos siguen adentro de Talleristas, que es donde se registra lo que traen.
+     CÓMO SE PARTE UNA BALDOSA: TIPOS ahora acepta `clave` (el data-tipo del botón, para que dos
+     baldosas del mismo tipo no compartan selector) y `oc` (el lado del flag). Una baldosa sin `oc`
+     no filtra nada, así que Recibir y el resto de los tipos quedaron igual. selTipo pasó a guardar
+     la BALDOSA entera: con dos baldosas 'tallerista' el string ya no alcanza para volver. -->
 <!-- v1.34.0 (2026-09-23) — ENVIAR A UN TALLERISTA: LAS PIEZAS VAN POR RUBRO, NO POR CÓDIGO (usuario,
      textual: "quiero que me ordenes no alfanuméricamente, sino que primero me pongas todo lo que se
      le manda de sector crudo, después todo lo de sector procesado, después todo los remaches,
@@ -901,7 +921,7 @@ var SB = GP2_SB();
 
 var D = { contrapartes: [], enviar: [], recibir: [], alertas_abiertas: 0 };
 var MODO = null;        // enviar | recibir  (Conteo no es un modo: es el salto a Relevamientos)
-var selTipo = null;     // tallerista | proveedor_servicio | inyector | proveedor_at | virgilio
+var selTipo = null;     // la baldosa elegida (objeto de TIPOS), no el string del tipo
 var selCP = null;       // { tipo, ref, nombre, id }
 var detK = null;        // la parte abierta en la vista de carga (solo vista de tarjetas)
 var BUF = E.buffer("gp2_tablet_buffer", function(){ return { q: "" }; });
@@ -918,10 +938,24 @@ var sustSel = null;     // mientras se elige: null | { paso:1|2, x:<fila elegida
 
 /* Los TIPOS de contraparte de cada modo, en el orden en que el operario los busca. El que trae
    `link` no se carga acá: abre la pantalla que ya hace ese trabajo, para no tener dos copias de
-   la misma lógica. */
+   la misma lógica.
+   `clave` es el nombre del BOTÓN (data-tipo) cuando dos baldosas comparten el mismo tipo de la
+   base, y `oc` parte esas dos por GP2.tallerista.pedido_por_oc_virgilio: sin `oc` la baldosa
+   muestra a todas las contrapartes del tipo (así queda Recibir, que no se partió). */
 var TIPOS = {
   enviar: [
-    { tipo: "tallerista",         icono: "👷", titulo: "Talleristas",            sub: "lo que arman afuera" },
+    { tipo: "tallerista",         icono: "👷", titulo: "Talleristas",            sub: "lo que arman afuera", oc: false },
+    /* ---------- TALLERISTAS O.C. (2026-09-23) ----------
+       [usuario, con la foto de la Tablet: "a Blist-Pack SA y Carlos Aguirre quiero que me los
+       saques afuera de talleristas y me los pongas en un módulo nuevo de talleristas o.c." + "No
+       es o.c. de insumos. Es orden de compra que se hace desde Gestión Virgilio que hoy no está
+       modelado acá. Por ahora sugerí 0"]. A estos dos no se les manda contra el máximo de la casa:
+       lo que tienen que hacer sale de una O.C. que emite Gestión Virgilio, que GP2 todavía no lee.
+       Por eso la base les manda el sugerido en 0 (mismo criterio que el fasonero sin O.C.) y acá se
+       los separa para que nadie los confunda con un tallerista a façon. SOLO EN ENVIAR: en Recibir
+       siguen adentro de Talleristas, que es donde se les registra lo que traen. */
+    { tipo: "tallerista", clave: "tallerista_oc", oc: true,
+      icono: "🧾", titulo: "Talleristas O.C.", sub: "la O.C. la hace Virgilio" },
     { tipo: "proveedor_servicio", icono: "🏭", titulo: "Prov. de servicio",      sub: "pintan, niquelan, cortan" },
     { tipo: "inyector",           icono: "💉", titulo: "Inyectores",             sub: "bolsas plásticas" },
     { tipo: "proveedor_at",       icono: "📦", titulo: "Prov. de art. terminado", sub: "cartones y cajas" }
@@ -1422,16 +1456,22 @@ function cpsDelModo(){
     return c.tipo !== "proveedor_at" && c.tipo !== "proveedor_insumo" && Number(c.n_rec) > 0;
   });
 }
-function cpsDelTipo(tipo){
+/* Las contrapartes de UNA baldosa (el objeto de TIPOS, no el string): el tipo de la base y, cuando
+   la baldosa lo define, el lado del flag `oc` (tallerista con O.C. de Virgilio o sin ella). */
+function cpsDelTipo(t){
   // Los INYECTORES tienen su propio boton, NO van adentro de "Prov. de servicio" [usuario
   // 2026-09-18]. En la base son proveedor_insumo/inyector (no proveedor_servicio) y el envio de
   // bolsas lo sigue ruteando tablet_registrar a enviar_material_inyector: lo unico que cambio es
   // donde se los elige.
-  return cpsDelModo().filter(function(c){ return c.tipo === tipo; });
+  return cpsDelModo().filter(function(c){
+    if (c.tipo !== t.tipo) return false;
+    // una baldosa sin `oc` no parte nada: se queda con todas las del tipo (Recibir, P.S., etc.)
+    return t.oc === undefined || !!c.oc === t.oc;
+  });
 }
 /* la contraparte como la espera el resto de la pantalla (id = clave del buffer) */
 function cpItem(c){
-  return { id: claveCP(c), tipo: c.tipo, ref: c.ref, nombre: c.nombre,
+  return { id: claveCP(c), tipo: c.tipo, ref: c.ref, nombre: c.nombre, oc: !!c.oc,
            envio_unidad: c.envio_unidad, envio_uni_x: c.envio_uni_x,
            envio_carga_unidad: c.envio_carga_unidad,
            entrega_unidad: c.entrega_unidad, entrega_uni_x: c.entrega_uni_x,
@@ -1463,12 +1503,12 @@ function pintarTipos(){
   var g = $("tipoGrid");
   g.innerHTML = "";
   (TIPOS[MODO] || []).forEach(function(t){
-    var lista = t.link ? null : cpsDelTipo(t.tipo);
+    var lista = t.link ? null : cpsDelTipo(t);
     if (lista && !lista.length) return;   // un tipo sin contrapartes no se dibuja: no lleva a nada
     var b = document.createElement(t.link ? "a" : "button");
     if (t.link) b.href = t.link; else b.type = "button";
     b.className = "tipo-btn";
-    b.dataset.tipo = t.tipo;
+    b.dataset.tipo = t.clave || t.tipo;   // dos baldosas del mismo tipo (Talleristas / O.C.) no comparten el data-tipo
     // el número sin la palabra "contraparte": el título del tipo ya dice qué son. NO se muestra
     // "N sin registrar" [usuario 2026-09-16]: desde que Enviar precarga el sugerido, abrir una
     // contraparte ya llenaba el buffer y el cartelito contaba destinos sin trabajo real.
@@ -1482,8 +1522,8 @@ function pintarTipos(){
 
 /* ---------- paso 2: la contraparte de ese tipo ---------- */
 function elegirTipo(t){
-  selTipo = t.tipo;
-  var lista = cpsDelTipo(t.tipo);
+  selTipo = t;                      // la BALDOSA entera: el tipo solo ya no alcanza para volver
+  var lista = cpsDelTipo(t);
   if (lista.length === 1) { elegir(cpItem(lista[0])); return; }  // un solo destino: no se elige entre uno
   $("tipoGrid").classList.add("hidden");
   $("cpBox").classList.remove("hidden");
@@ -1577,7 +1617,9 @@ function elegir(c){
   olvidarCargado(c);
   selCP = c;
   cerrarDetalle();                 // se entra por la grilla, nunca con una parte abierta
-  $("fase1Title").textContent = c.nombre;
+  // el tallerista con O.C. de Virgilio lo dice en el título: su sugerido es 0 porque el pedido no
+  // sale del máximo de la casa, y sin ese renglón un 0 se lee como "no hay que mandarle nada".
+  $("fase1Title").textContent = c.nombre + (MODO === "enviar" && c.oc ? " · O.C. Virgilio" : "");
   E.mostrarFase(1);
   var esRec = MODO === "recibir";
   $("lblRemito").classList.toggle("hidden", !esRec);
