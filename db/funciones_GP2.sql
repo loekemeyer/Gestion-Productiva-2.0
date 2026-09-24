@@ -6209,12 +6209,10 @@ AS $function$
 declare
   v_id bigint; v_f timestamptz; v_f_ar timestamp; v_leg text; v_mat text; v_uni numeric;
   v_mid bigint; v_mname text; v_partes numeric; v_nombre text;
-  v_nsal int; v_salida bigint; v_entrada bigint;
-  v_ent_um text; v_sal_um text; v_sec_ent int; v_sec_sal int;
-  v_uent bigint; v_usal bigint; v_cant numeric; v_uo text; v_ud text;
+  v_nsal int; v_salida bigint;
   v_movid bigint; v_aviso text;
   v_th numeric; v_tt numeric; v_premio numeric; v_segs numeric;
-  v_golpes numeric; v_uxg numeric;
+  v_golpes numeric; v_uxg numeric; v_res jsonb;
 begin
   v_f   := coalesce(nullif(p->>'fecha','')::timestamptz, now());
   v_f_ar := v_f at time zone 'America/Argentina/Buenos_Aires';
@@ -6290,32 +6288,75 @@ begin
       end if;
     end if;
     if v_salida is not null then
-      select comp_entrada_id into v_entrada from ruta_paso
-       where matriz_id=v_mid and comp_salida_id=v_salida and comp_entrada_id is not null limit 1;
-      if v_entrada is not null then
-        select unidad_medida, sector_id into v_ent_um, v_sec_ent from componente where id=v_entrada;
-        select unidad_medida, sector_id into v_sal_um, v_sec_sal from componente where id=v_salida;
-        v_uent := "GP2".ubic_de('sector', v_sec_ent);
-        v_usal := "GP2".ubic_de('sector', v_sec_sal);
-        if lower(coalesce(v_ent_um,''))='kg' then
-          if v_partes is null or v_partes<=0 then
-            v_aviso := 'Sin stock: la matriz no tiene piezas/kg cargadas';
-          else v_cant := v_uni / v_partes; v_uo := 'kg'; end if;
-        else v_cant := v_uni; v_uo := 'uni'; end if;
-        v_ud := case when lower(coalesce(v_sal_um,''))='kg' then 'kg' else 'uni' end;
-        if v_cant is not null and v_uent is not null and v_usal is not null then
-          insert into movimiento(fecha,tipo_mov,comp_id,ubic_origen_id,ubic_destino_id,cantidad,unidad_origen,
-                                 comp_transformado_id,cantidad_transformada,unidad_destino)
-          values (v_f,'fabricacion', v_entrada, v_uent, v_usal, v_cant, v_uo, v_salida, v_uni, v_ud)
-          returning id into v_movid;
-        end if;
-      else v_aviso := 'Sin stock: la matriz no tiene entrada en las rutas';
-      end if;
+      v_res := "GP2".fabricar_stock(v_mid, v_salida, v_uni, v_f);
+      v_movid := nullif(v_res->>'movimiento_id','')::bigint;
+      if (v_res->>'n_entradas')::int = 0 then v_aviso := coalesce(v_aviso, v_res->>'aviso'); end if;
     end if;
   end if;
 
   return jsonb_build_object('ok',true,'id',v_id,'movimiento_id',v_movid,'aviso',v_aviso,
     'premio',v_premio,'uni',v_uni,'golpes',v_golpes,'uni_x_golpe',v_uxg);
+end $function$
+;
+
+-- ---------- fabricar_stock (convergencia: descuenta TODAS las entradas) ----------
+-- Una matriz que arma una salida a partir de varias entradas (soldadura/remachado/
+-- armado) descuenta cada entrada. La 1a entrada lleva la produccion de la salida;
+-- las demas son consumo puro (cantidad_transformada=0). Antes el motor tomaba una
+-- sola entrada con LIMIT 1 y descontaba una pieza de la convergencia.
+CREATE OR REPLACE FUNCTION "GP2".fabricar_stock(p_mid bigint, p_salida bigint, p_uni numeric, p_fecha timestamptz)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'GP2'
+AS $function$
+declare
+  v_partes numeric; v_sal_um text; v_sec_sal int; v_usal bigint; v_ud text;
+  r record; v_first boolean := true; v_movid bigint; v_first_mov bigint;
+  v_ent_um text; v_sec_ent int; v_uent bigint; v_cant numeric; v_uo text;
+  v_aviso text := null; v_n int := 0;
+begin
+  select partes_por_kilo_de_fleje into v_partes from matriz where id = p_mid;
+  select unidad_medida, sector_id into v_sal_um, v_sec_sal from componente where id = p_salida;
+  v_usal := "GP2".ubic_de('sector', v_sec_sal);
+  v_ud := case when lower(coalesce(v_sal_um,'')) = 'kg' then 'kg' else 'uni' end;
+
+  for r in
+    select rp.comp_entrada_id ent, max(coalesce(rp.cantidad,1)) qty
+      from ruta_paso rp
+     where rp.matriz_id = p_mid and rp.comp_salida_id = p_salida
+       and rp.comp_entrada_id is not null
+     group by rp.comp_entrada_id
+     order by rp.comp_entrada_id
+  loop
+    select unidad_medida, sector_id into v_ent_um, v_sec_ent from componente where id = r.ent;
+    v_uent := "GP2".ubic_de('sector', v_sec_ent);
+    if lower(coalesce(v_ent_um,'')) = 'kg' then
+      if v_partes is null or v_partes <= 0 then
+        v_aviso := 'Registrado, pero una entrada en kg no se movio: la matriz no tiene rendimiento (ppk)';
+        continue;
+      end if;
+      v_cant := (p_uni * r.qty) / v_partes; v_uo := 'kg';
+    else
+      v_cant := p_uni * r.qty; v_uo := 'uni';
+    end if;
+    if v_uent is null or v_usal is null then
+      if v_aviso is null then v_aviso := 'Registrado, pero falta ubicacion de sector para alguna pieza'; end if;
+      continue;
+    end if;
+    insert into movimiento(fecha,tipo_mov,comp_id,ubic_origen_id,ubic_destino_id,cantidad,unidad_origen,
+                           comp_transformado_id,cantidad_transformada,unidad_destino)
+    values (p_fecha,'fabricacion', r.ent, v_uent, v_usal, v_cant, v_uo, p_salida,
+            case when v_first then p_uni else 0 end, v_ud)
+    returning id into v_movid;
+    if v_first then v_first_mov := v_movid; v_first := false; end if;
+    v_n := v_n + 1;
+  end loop;
+
+  if v_n = 0 and v_aviso is null then
+    v_aviso := 'Registrado (solo produccion): la matriz no tiene entrada/salida resuelta en las rutas';
+  end if;
+  return jsonb_build_object('movimiento_id', v_first_mov, 'n_entradas', v_n, 'aviso', v_aviso);
 end $function$
 ;
 
@@ -6395,11 +6436,9 @@ CREATE OR REPLACE FUNCTION "GP2".registrar_produccion(p_legajo text, p_matriz te
 AS $function$
 declare
   v_mid bigint; v_mname text; v_partes numeric; v_id bigint; v_f timestamptz;
-  v_nsal int; v_salida bigint; v_entrada bigint;
-  v_ent_um text; v_sal_um text; v_sec_ent int; v_sec_sal int;
-  v_uent bigint; v_usal bigint; v_cant numeric; v_uo text; v_ud text;
+  v_nsal int; v_salida bigint;
   v_movid bigint; v_aviso text := null;
-  v_uxg numeric; v_uni numeric;
+  v_uxg numeric; v_uni numeric; v_res jsonb;
 begin
   if p_matriz is null or btrim(p_matriz)='' then raise exception 'La matriz es obligatoria'; end if;
   v_f := coalesce(p_fecha, now());
@@ -6428,10 +6467,6 @@ begin
   elsif v_nsal>1 then
     raise exception 'La matriz % produce varias piezas: elegi cual (p_comp_salida_id)', p_matriz;
   end if;
-  if v_salida is not null then
-    select comp_entrada_id into v_entrada from ruta_paso
-      where matriz_id=v_mid and comp_salida_id=v_salida and comp_entrada_id is not null limit 1;
-  end if;
 
   insert into produccion(fecha, legajo, nombre_empleado, matriz_raw, matriz_id, nombre_matriz, uni,
                          golpes, uni_x_golpe, dia, mes, quincena, origen_created_at)
@@ -6442,25 +6477,10 @@ begin
           case when extract(day from (v_f at time zone 'America/Argentina/Buenos_Aires'))::int <= 15 then 1 else 2 end, now())
   returning id into v_id;
 
-  if v_salida is not null and v_entrada is not null then
-    select unidad_medida, sector_id into v_ent_um, v_sec_ent from componente where id=v_entrada;
-    select unidad_medida, sector_id into v_sal_um, v_sec_sal from componente where id=v_salida;
-    v_uent := "GP2".ubic_de('sector', v_sec_ent);
-    v_usal := "GP2".ubic_de('sector', v_sec_sal);
-    if lower(coalesce(v_ent_um,''))='kg' then
-      if v_partes is null or v_partes<=0 then v_aviso := 'Registrado, pero NO se movio stock: la matriz no tiene rendimiento (ppk) para pasar uni->kg de fleje';
-      else v_cant := v_uni / v_partes; v_uo := 'kg'; end if;
-    else
-      v_cant := v_uni; v_uo := 'uni';
-    end if;
-    v_ud := case when lower(coalesce(v_sal_um,''))='kg' then 'kg' else 'uni' end;
-    if v_cant is not null and v_uent is not null and v_usal is not null then
-      insert into movimiento(fecha,tipo_mov,comp_id,ubic_origen_id,ubic_destino_id,cantidad,unidad_origen,
-                             comp_transformado_id,cantidad_transformada,unidad_destino)
-      values (v_f,'fabricacion', v_entrada, v_uent, v_usal, v_cant, v_uo, v_salida, v_uni, v_ud)
-      returning id into v_movid;
-    elsif v_aviso is null then v_aviso := 'Registrado, pero NO se movio stock: falta ubicacion de sector';
-    end if;
+  if v_salida is not null then
+    v_res := "GP2".fabricar_stock(v_mid, v_salida, v_uni, v_f);
+    v_movid := nullif(v_res->>'movimiento_id','')::bigint;
+    v_aviso := v_res->>'aviso';
   else
     v_aviso := 'Registrado (solo produccion): la matriz no tiene entrada/salida resuelta en las rutas';
   end if;

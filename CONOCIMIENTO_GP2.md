@@ -12718,3 +12718,57 @@ servicio-abierto←`G7`, servicio-cerrado←`G8`.
 Auditoría `github_repo_problemas`: problema **538** registrado (categoría `datos`, severidad
 `medio`) y cerrado con el commit de este cambio. DB-only: `db/` (respaldo de schema) no cambia,
 sin bump de versión (no se tocó HTML/JS/CSS).
+
+## 4fu. Una CONVERGENCIA descuenta TODAS sus entradas, no una sola (2026-09-24)
+
+**Bug real que llegó al usuario** [Thomas, textual: *"todo lo que es convergencia, por lo menos
+en matrices, me está descontando mal el despiece… si pongo a producir la matriz 10, varilla con
+cuchilla para cromar, que es una convergencia entre I16 y H7, me descuenta solo de I16 y no de
+H7… también con el ahueca papas: cuando voy a hacer N2 me descuenta solo de la flechita N3 y no
+de la bochita N4 en la matriz 183"*].
+
+**Convergencia** = una matriz que ARMA una salida a partir de **2+ entradas** (soldar, remachar,
+armar): varilla+cuchilla → `H11`; flechita+bochita → `N2`. El motor tiene que descontar **todas**
+las entradas y producir la salida **una** vez.
+
+**Causa raíz — el motor tomaba UNA entrada.** `GP2.registrar_produccion` y
+`GP2.registrar_evento_prod` resolvían `comp_entrada_id` con `... limit 1` e insertaban un solo
+`movimiento` de `fabricacion`. Con 2+ entradas descontaba la primera y dejaba el resto. `ruta_paso`
+tiene **una** entrada por paso (`comp_entrada_id` singular): una convergencia se modela como
+**varios pasos con la misma matriz y misma salida**, cada uno con una entrada — igual que la
+matriz 10 arma `H11` con `I16` (rutas del Fleje 2) **y** `H7` (rutas del Fleje 30). El motor
+juntaba mal esos pasos.
+
+**Fix del motor (DDL) — nuevo `GP2.fabricar_stock(mid, salida, uni, fecha)`.** Recorre TODAS las
+entradas distintas de `(matriz, salida)` en `ruta_paso` (agrupadas, `qty = max(cantidad)`): la
+**1ª** lleva la producción de la salida (`comp_transformado_id=salida`, `cantidad_transformada=uni`);
+las demás son **consumo puro** (`cantidad_transformada=0` → +0 a la salida, −cant a la entrada).
+`registrar_produccion` y `registrar_evento_prod` ahora la llaman en vez del `limit 1`. Medido en
+matriz 10 (10 uni): `H7 −10`, `I16 −10`, `H11 +10`. En 183/`N2` (5 uni): `N3 −5`, `N4 −5`, `N2 +5`.
+
+**Convergencias que arregla el motor (ambas entradas ya estaban cargadas):**
+matriz **10** (`H11` ← `H7`+`I16`), **174** (`H15` ← `H7-M10`+`I16`), **151** (`Z36` ← `Z5`+`Z6`),
+**78** (`B1-M78` ← `B1`+`B2`+`V4`; `D5-M78` ← `D5`+`D6`+`V4`), **135** (`G4` ← `K5`+`K8`+`V3`).
+
+**Fix de datos — la ahueca estaba en TRES matrices** [Thomas: "183 es el paso único → unifico"].
+El mismo soldado físico (flechita + bochita) tenía dos números de matriz porque las dos piezas
+vienen de flejes distintos: **Fleje 59** → flechita `N3` soldaba en **183**; **Fleje 61** → bochita
+`N4` (papa) / `N5` (fruta) soldaba en **363** / **362**. Se repuntó el paso de soldado del lado
+bochita (rutas 177/178/179/180) de 362/363 a **183**, y 362/363 quedaron `activa=false`. Resultado:
+**183** → `N2` ← `N3`+`N4` (ahuecapapa = flechita + bochita papa), `N1` ← `N3`+`N5` (ahuecafruta =
+flechita + bochita fruta). Componentes: `N3` Flechita Ahueca Cruda, `N4` Bochita Ahuecapapa,
+`N5` Bochita Ahuecafruta.
+
+⚠ **Regla que queda:** una convergencia se carga como varios `ruta_paso` con la MISMA matriz y
+misma `comp_salida_id`, una por entrada. Si el mismo armado aparece con números de matriz
+distintos según de qué fleje viene cada pieza, es el mismo bug de la ahueca: unificar en una sola
+matriz.
+
+**Sospechosos NO tocados (posible misma clase, matriz de unión con una sola entrada):** **194**
+Remachado Pala Canelones (`E6`→`E6-M194`) y **134** Remachado pinza (`IE6-M133`→`N7`) — a revisar
+si les falta el remache como 2ª entrada.
+
+`db/funciones_GP2.sql` actualizado (las 3 funciones). El repunteo de `ruta_paso` es dato (no va a
+`db/`). Sin bump de versión (no se tocó HTML/JS/CSS). Auditoría `github_repo_problemas`: problema
+**539** *"Convergencia de matriz: al producir se descuenta solo una entrada del despiece"*
+(categoría `bug`, severidad `alto`) registrado y cerrado con el commit de este cambio.
