@@ -22,6 +22,13 @@
    El nombre del archivo quedo historico para no romper los links que ya
    existen; el titulo de la pantalla sale del sector que devuelve el bundle.
 
+   v1.6.0 (2026-09-23) — LA TOLERANCIA ES 5 % Y SALE DE LA BASE [usuario 2026-09-23, textual:
+   "acordate de la regla de que todo control no puede exceder el 5% de diferencia"]. Esta
+   pantalla toleraba un 10 % escrito a mano mientras el control de entregas avisaba al 5 % y el
+   pesaje de flejes al 2 %: la misma diferencia pasaba o no segun por que puerta entrara la
+   mercaderia. Ahora hay UNA clave para toda la casa, parametro.tol_ctrl_pct (5), que
+   control_recepcion_bundle manda en tol_pct. El cartel dice cual es la tolerancia.
+
    v1.5.0 (2026-09-03) — LO QUE SE PESA SE GUARDA EN LA UNIDAD DE LA RECEPCION
    [usuario 2026-09-03: "en el control que pueda poner los kg y con el kg por uni
    de cada componente me lo pase a uni"]. Desde v3.44.0 de la recepcion, los
@@ -96,6 +103,12 @@ const parseKg = (v) => window.GP2N.num(v);
 
 let recepciones = [];
 let selected = null;
+/* Tolerancia del control, en %. LA REGLA ES UNA SOLA EN TODA LA CASA: 5 % [usuario 2026-09-23,
+   textual: "todo control no puede exceder el 5% de diferencia"]. Sale de la base
+   (parametro.tol_ctrl_pct, via control_recepcion_bundle) y no de un número escrito acá: hasta
+   hoy esta pantalla toleraba un 10 % propio mientras el control de entregas avisaba al 5 %, así
+   que la misma diferencia pasaba o no según por qué puerta entrara la mercadería. */
+let TOL_PCT = 5;
 /* Sector a controlar. Sin ?sector= cae en 8 (Remaches), que es como entraba
    esta pantalla antes de que sirviera para varios sectores. */
 const SECTOR_ID = Number(new URLSearchParams(location.search).get("sector")) || 8;
@@ -115,6 +128,7 @@ async function cargar() {
     const { data, error } = await SB.rpc("control_recepcion_bundle", { p_sector_id: SECTOR_ID });
     if (error) throw error;
     recepciones = (data && data.recepciones) || [];
+    TOL_PCT = Number(data && data.tol_pct) || 5;
     // El titulo sale del sector que devuelve el bundle, asi no hay que mantener
     // una lista de nombres en el JS cuando se sume otro sector al control por peso.
     const h1 = $("pageTitle");
@@ -351,9 +365,9 @@ async function confirmar() {
   if (decl > 0) {
     const dif = real - decl;
     const pct = Math.abs(dif) / decl;
-    if (pct > 0.10) {
+    if (pct * 100 > TOL_PCT) {
       const txt = dif > 0 ? `sobran ${fmt(dif)}` : `faltan ${fmt(-dif)}`;
-      if (!confirm(`Difiere ±${(pct*100).toFixed(1)}% de lo declarado.\nDeclarado: ${fmt(decl)} ${um} · Controlado: ${fmt(real)} ${um} (${txt}).\n¿Confirmar de todos modos?`)) return;
+      if (!confirm(`Difiere ±${(pct*100).toFixed(1)}% de lo declarado (tolerancia ${fmt(TOL_PCT)} %).\nDeclarado: ${fmt(decl)} ${um} · Controlado: ${fmt(real)} ${um} (${txt}).\n¿Confirmar de todos modos?`)) return;
     }
   }
 

@@ -6,13 +6,35 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<!-- v3.60.1 (2026-09-23) — KOLLPLAST CARGA EN UNIDADES [usuario: "Los dos bujes mariposa ahora
-     se los compramos a Kollplast. Remito en uni control en kg"]. Los bujes PA8A/PA8B pasaron de
-     Pat Bet a Kollplast en la base (componente.proveedor + precio_proveedor $20,48 lista 19-08-26),
-     y aca Kollplast entra a PLAST_UNI: remito en unidades, sin toggle Kg/Uni, y los kg que se ven
-     abajo del input son los que tiene que marcar la balanza en el control. Como la regla de
-     plasticos es POR PROVEEDOR, arrastra tambien a PEST1 (Insertos Mango de Madera), la otra pieza
-     de Kollplast. Guardian nuevo en test_recepcion_uni.js. -->
+<!-- v3.61.1 (2026-09-23) — EL BUJE MARIPOSA ES DE KOLLPLAST Y SU REMITO VIENE EN UNIDADES
+     [usuario: "Los dos bujes mariposa ahora se los compramos a Kollplast. Remito en uni control
+     en kg"]. PA8A/PA8B pasaron de Pat Bet a Kollplast en la base (componente.proveedor +
+     precio_proveedor $20,48, lista 19-08-26). CERO CODIGO NUEVO: la unidad del remito se dice con
+     componente.remito_unidad='uni', la rama que estrena la v3.61.0 de aca arriba. La primera
+     version de este cambio agregaba 'kollplast' a PLAST_UNI y se descarto en el merge: habria
+     dejado dos formas de decir lo mismo y, por ser por PROVEEDOR, se habria llevado puesto tambien
+     a PEST1. Lo unico que se toco es el guardian de test_recepcion_uni.js. -->
+<!-- v3.61.0 (2026-09-23) — LA UNIDAD DEL REMITO LA DICE LA PIEZA, Y LA TOLERANCIA ES 5 %
+     (usuario, textual: "CC galvanoquimica. plancha niquel en el remito viene en kg y se controla
+     en kg" + "acordate de la regla de que todo control no puede exceder el 5% de diferencia").
+     (1) LA PIEZA MANDA SOBRE EL RUBRO: si componente.remito_unidad dice 'kg' o 'uni', la rama
+     nueva de abrirPopup fuerza esa unidad y esconde el toggle Kg/Unidades. Va PRIMERO en el
+     if-chain a proposito: es el dato mas especifico que hay. Es la MISMA columna que ya usa la
+     Tablet para las entregas de talleristas, no un mecanismo nuevo — hasta hoy cada pantalla
+     tenia su lista (PLAST_UNI por proveedor, ENCAJAS, esFleje), y "este insumo viene pesado" no
+     se podia decir en un solo lugar.
+     POR QUE NO ALCANZABA CON EL TOGGLE: PCP2 (Plancha de Niquel, CC Galvanoquimica) estaba
+     declarada en UNIDADES y sin kg_x_uni, asi que elegir Kg reventaba en el RPC
+     ("to_canonical: sin kg_x_uni valido para kg->uni"): en kg no se podia recibir. Por eso el
+     cambio de verdad fue en la base — PCP2 pasa a unidad_medida='kg', como los flejes y las
+     bolsas plasticas — y esta rama es la que hace que el operario no tenga que elegir nada.
+     Nadie lo habia notado porque la pieza tiene stock 0 y ni un movimiento.
+     (2) UNA SOLA TOLERANCIA DE CONTROL EN TODA LA CASA, 5 %: el parametro tol_ctrl_peso_pct
+     (2 %, que solo miraba este pesaje) se renombro tol_ctrl_pct y vale 5. Lo leen tambien el
+     control de insumos (control-remaches.js / control-cajas.js, que tenian un 10 % escrito a
+     mano) y el control de entregas. Antes la misma diferencia pasaba o no segun por que puerta
+     entrara la mercaderia. El piso de 0,5 kg de tolKg() queda: el 5 % de un remito chico son
+     gramos y ninguna balanza afina tanto. -->
 <!-- v3.60.0 (2026-09-17) — UN INSUMO PUEDE TENER MAS DE UN PROVEEDOR: RECICOR ENTREGA LAS
      MISMAS CAJAS QUE CORRUGADORA [usuario: "dentro de cajas, ademas de corrugadora del plata,
      tenes que agregar al proveedor Recicor. Entrega las mismas cajas que corrugadora. El control
@@ -791,8 +813,16 @@ function fieldsFleje(nom){
    Pat Bet. Al ser por proveedor, arrastra tambien a PEST1 (Insertos Mango de Madera), la
    otra pieza que ya le comprabamos — mismo criterio: se cuentan, y los kg de abajo del
    input son los que tiene que marcar la balanza en el control. */
-const PLAST_UNI = ['eduardo pintos','pat bet plast','pettofrezza rafael','kollplast'];
+const PLAST_UNI = ['eduardo pintos','pat bet plast','pettofrezza rafael'];
 function provPlastUni(nom){ return PLAST_UNI.indexOf(String(nom||'').trim().toLowerCase())>=0; }
+/* En qué unidad viene el REMITO de esta pieza, cuando la pieza lo dice: 'kg' | 'uni' | "" si no
+   declara nada y decide el rubro. Es componente.remito_unidad, la misma columna que la Tablet usa
+   para las entregas de talleristas (2026-09-23) — una sola forma de decir "esta pieza se recibe
+   pesada" en toda la casa, en vez de una lista de proveedores por pantalla. */
+function remUnidad(it){
+  var r = String((it && it.remito_unidad) || '').toLowerCase();
+  return (r === 'kg' || r === 'uni') ? r : '';
+}
 function cargaEnUni(it){
   if (!it) return false;
   var sid = Number(it.sector_id);
@@ -1686,13 +1716,25 @@ function abrirPopup(i){
   // Label "Cantidad" con la unidad que corresponde al rubro (usuario 2026-09-01:
   // "donde dice cantidad, aclara cantidad paq"). Se sobrescribe en cada rama.
   $('kgValueLabel').textContent='Cantidad';
+  // LA PIEZA MANDA SOBRE EL RUBRO: si el componente declara en qué unidad viene su remito
+  // (componente.remito_unidad, la misma columna que usa la Tablet), se respeta y el toggle
+  // Kg/Unidades se esconde — no hay nada que elegir. Hoy es la Plancha de Níquel PCP2 de CC
+  // Galvanoquímica [usuario 2026-09-23: "plancha niquel en el remito viene en kg y se controla
+  // en kg"], que vive en un sector donde todo lo demás se cuenta. Va PRIMERO a propósito: es el
+  // dato más específico que hay, más que la regla del rubro o la del proveedor.
+  if(remUnidad(i)){
+    $('unitRow').classList.add('hidden');
+    var uPieza=remUnidad(i);
+    $('kgValue').placeholder = uPieza==='kg' ? 'kg del remito' : 'unidades del remito';
+    $('kgValueLabel').textContent = uPieza==='kg' ? 'Cantidad kg' : 'Cantidad uni';
+    setUnit(uPieza);
   // Cartones: el proveedor entrega PAQUETES (alturas de 250 unidades siempre).
   // Se carga en paquetes y se guarda convertido a unidades.
   // EXCEPCION pliegos (formato Pliego C / Bombilla): el remito viene en UNIDADES
   // (pliegos individuales); el control despues es en paquetes de 100 pliegos
   // (regla usuario 2026-09-01: "los pliegos ... el remito va a ser tambien en unidades.
   // el control va a ser en paquetes. cada paquete viene de cien pliegos").
-  if(GP2UI.esCarton(i)){
+  } else if(GP2UI.esCarton(i)){
     $('unitRow').classList.add('hidden');
     if (esPliegoIt(i)){
       setUnit('uni');
@@ -2063,7 +2105,11 @@ function calcItem(it){
   });
   return { tot:tot, n:n };
 }
-function tolKg(kg){ return Math.max(kg*(Number(TARA.tol_ctrl_peso_pct)||2)/100, 0.5); }
+/* UNA SOLA TOLERANCIA DE CONTROL EN TODA LA CASA: 5 % [usuario 2026-09-23: "todo control no
+   puede exceder el 5% de diferencia"]. La clave tol_ctrl_peso_pct (2 %, sólo este pesaje) pasó
+   a llamarse tol_ctrl_pct y la leen también el control de insumos y el de entregas. El piso de
+   0,5 kg queda: con 3 kg de remito, el 5 % son 150 gramos y ninguna balanza afina tanto. */
+function tolKg(kg){ return Math.max(kg*(Number(TARA.tol_ctrl_pct)||5)/100, 0.5); }
 function itemLinea(it){
   if(!it.remitoKg) return '';
   var c=calcItem(it);
@@ -2810,7 +2856,9 @@ async function guardar(){
   // Los rubros de cargaEnUni (remaches, bombillas, plasticos de piezas) NO se
   // convierten: se guardan tal como los tipeo el operario, en unidades, que es
   // la unidad canonica del inventario de esos sectores.
-  else if(unitSel==='uni'&&kx&&!cargaEnUni(itemSel)){ cant=cantRaw*kx; uReal='kg'; }
+  // Tampoco se convierte lo que la PIEZA declara en unidades (componente.remito_unidad='uni'):
+  // decir "este remito viene contado" y despues guardarlo en kg es lo mismo que no decirlo.
+  else if(unitSel==='uni'&&kx&&!cargaEnUni(itemSel)&&remUnidad(itemSel)!=='uni'){ cant=cantRaw*kx; uReal='kg'; }
 
   // La validacion "cantRaw es multiplo de la bolsa" ahora es EN VIVO (actualizarAvisoMultiplo),
   // no confirm() al submit (regla usuario 2026-09-01: "quiero que la alerta me

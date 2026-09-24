@@ -220,7 +220,7 @@ create or replace view "GP2".v_control_pallet as
  WITH p AS (
          SELECT max(parametro.valor) FILTER (WHERE parametro.clave = 'tara_pallet_min'::text) AS tmin,
             max(parametro.valor) FILTER (WHERE parametro.clave = 'tara_pallet_max'::text) AS tmax,
-            max(parametro.valor) FILTER (WHERE parametro.clave = 'tol_ctrl_peso_pct'::text) AS tolpct
+            max(parametro.valor) FILTER (WHERE parametro.clave = 'tol_ctrl_pct'::text) AS tolpct
            FROM "GP2".parametro
         ), r AS (
          SELECT recepcion_control_rollo.control_id,
@@ -245,7 +245,7 @@ create or replace view "GP2".v_control_pallet as
         CASE
             WHEN COALESCE(pi.modo_control, 'ninguno'::text) = 'peso_total'::text THEN
             CASE
-                WHEN abs(ctl.peso_balanza - ri.cantidad) <= GREATEST(ri.cantidad * COALESCE(p.tolpct, 2::numeric) / 100.0, 0.5) THEN 'ok'::text
+                WHEN abs(ctl.peso_balanza - ri.cantidad) <= GREATEST(ri.cantidad * COALESCE(p.tolpct, 5::numeric) / 100.0, 0.5) THEN 'ok'::text
                 ELSE 'peso distinto al remito'::text
             END
             WHEN COALESCE(r.rollos, 0::bigint) = 0 THEN 'sin rollos cargados'::text

@@ -159,7 +159,7 @@ union all
 select 'Z_parametro_que_lee_el_codigo_faltante', count(*) from unnest(array[
     'caja_uni_x_paquete', 'carton_uni_x_paquete', 'charcas_kg_x_paquete', 'costo_segundo_pesos',
     'faltante_cajones_umbral', 'max_cajones_x_ubicacion', 'pliego_uni_x_paquete', 'registro_en_golpes',
-    'tara_pallet_max', 'tara_pallet_min', 'tipo_cambio_usd_pesos', 'tol_ctrl_peso_pct',
+    'tara_pallet_max', 'tara_pallet_min', 'tipo_cambio_usd_pesos', 'tol_ctrl_pct',
     'inyeccion_desperdicio_pct', 'material_plastico_kg_x_bolsa', 'oc_facturar_pct_loeke',
     'master_bach_pct', 'facturas_lecturas_x_dia']) k
  where not exists (select 1 from "GP2".parametro p where p.clave = k)
@@ -168,7 +168,7 @@ select 'Z2_parametro_que_nadie_lee', count(*) from "GP2".parametro p
  where p.clave not in (
     'caja_uni_x_paquete', 'carton_uni_x_paquete', 'charcas_kg_x_paquete', 'costo_segundo_pesos',
     'faltante_cajones_umbral', 'max_cajones_x_ubicacion', 'pliego_uni_x_paquete', 'registro_en_golpes',
-    'tara_pallet_max', 'tara_pallet_min', 'tipo_cambio_usd_pesos', 'tol_ctrl_peso_pct',
+    'tara_pallet_max', 'tara_pallet_min', 'tipo_cambio_usd_pesos', 'tol_ctrl_pct',
     'inyeccion_desperdicio_pct', 'material_plastico_kg_x_bolsa', 'oc_facturar_pct_loeke',
     'master_bach_pct', 'facturas_lecturas_x_dia')
 union all
