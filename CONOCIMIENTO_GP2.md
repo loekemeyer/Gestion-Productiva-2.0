@@ -12819,3 +12819,32 @@ la receta de 518 **no** listaba V6, así que no hay doble. V6 sigue suelto en 50
 sacafuente **articulado** (Z1A), otro producto — ahí no se toca. Verificado: producir Z36 en 151
 descuenta Z5 −10, Z6 −10, V6 −10. `db/funciones_GP2.sql` con `fabricar_stock` BOM-first; los BOM de
 E6-M194, H15 y Z36 y la receta 570/858 son datos. Auditoría 539: `agregar_commit` de esta ampliación.
+
+## 4fv. Los artículos DISCONTINUADOS no aparecen en envío/recepción de talleristas (2026-09-24)
+
+[Thomas, textual: *"te pongo como regla a todos los discontinuados acá, los de las rutas. Tanto
+para enviar como para recepcionar. No tiene que aparecer más."*] Salió de un caso concreto: el
+**"Corta Torta Chef"** (`PV8B`, parte del artículo **818 "Corta Torta" marca CHEF**,
+`discontinuado=true`, consumo 0) seguía apareciendo en el envío a **Alex Escalante**.
+
+**Por qué aparecía:** la pantalla de Envíos por Tallerista (y su gemela de Entregas/Recepción) NO
+mira el consumo — arma la lista de partes desde `ruta_paso` (vía `talleristas_bundle`). Discontinuar
+un artículo **no** borra su `ruta`/`ruta_paso`, así que sus componentes quedaban colgados. Es deuda
+de datos, no un bug de pantalla.
+
+**Fix (una sola función, cubre los dos lados):** `talleristas_bundle` dejó de leer el CTE `cfg`
+desde `v_contraparte_parte` y lo reconstruye directo desde `ruta_paso` con
+`join articulo a on … and not coalesce(a.discontinuado,false)`. Como el `group by` deduplica igual
+que hacía la vista, **una parte que también vive en una ruta activa se conserva** (p.ej. la Caja
+N°10, que es de 547 activo y de 818 discontinuado, se queda por el 547); sólo cae la que no tiene
+ninguna ruta activa. `entrada` = lo que se le envía, `salida` = lo que recibe, así que un solo
+filtro tapa "enviar" y "recepcionar".
+
+Con el filtro se fueron exactamente 3 discontinuados que polucionaban: **818** (Alex Escalante),
+**070** "Set Tapers"/GRJ30 (Fábrica) y **311** (Martin Cornejo). Ninguna parte activa cayó.
+
+⚠ **Ojo de alcance:** el mismo `ruta_paso`/`v_contraparte_parte` alimenta a los **Prov. de Servicio**
+(`ps_bundle`) y a `cartones_para_reemplazo`/`partes_por_ps`, que **NO** se tocaron — ahí un
+discontinuado todavía podría asomar. Si el dueño quiere la misma regla para PS, se replica el filtro
+en `ps_bundle` (o se mete en `v_contraparte_parte`, pero eso arrastra a los otros consumidores y hay
+que auditarlos antes). Cambio pedido por el dueño → sin auditoría.

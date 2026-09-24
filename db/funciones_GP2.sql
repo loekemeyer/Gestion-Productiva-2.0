@@ -8110,10 +8110,18 @@ with ub as (
     join lateral (select "GP2".ubic_de('tallerista', t.id) ubic_id) u on u.ubic_id is not null
 ),
 cfg as (
-  -- que parte entra y sale por tallerista: v_contraparte_parte (una sola definicion)
-  select ref_id as tallerista_id, comp_id, lado
-    from v_contraparte_parte
-   where tipo = 'tallerista'
+  -- que parte entra (envio) y sale (recepcion) por tallerista, derivado de ruta_paso,
+  -- EXCLUYENDO articulos discontinuados [2026-09-24, dueno: "a todos los discontinuados,
+  -- los de las rutas, no tienen que aparecer mas, tanto para enviar como para recepcionar"].
+  -- Una parte que igual vive en una ruta ACTIVA se conserva; solo cae la que no tiene
+  -- ninguna ruta activa (el group by la deduplica como lo hacia v_contraparte_parte).
+  select rp.tallerista_id, cc.comp_id, cc.lado
+    from ruta_paso rp
+    join ruta r on r.id = rp.ruta_id
+    join articulo a on a.id = r.articulo_id and not coalesce(a.discontinuado, false)
+    cross join lateral (values (rp.comp_entrada_id,'entrada'),(rp.comp_salida_id,'salida')) cc(comp_id,lado)
+   where rp.tipo_paso = 'tallerista' and rp.tallerista_id is not null and cc.comp_id is not null
+   group by rp.tallerista_id, cc.comp_id, cc.lado
 ),
 mov as (
   select u.tall_id, m.comp_id,
