@@ -12945,8 +12945,10 @@ GP2 y 29 archivos del front, 184 usos: renombrar arrastra medio programa). En su
 
 **Datos de uni/bolsa que faltaban en plástico, cargados el 2026-09-24** (salieron de la hoja "Pedido
 VACIO" del Excel `Conteo_y_Pedido_Sector_Plastico`, columna "Uni x Bolsa"): PA17=1.000, PA3=1.000,
-PC6=500, PEST1=2.000, PEST2=2.000, PIEA=1, PIEB=1, PV8=100, PV14=1.000, PV17=2.000. **Siguen sin
-dato** (no estaban en la planilla): `PV8B` Corta Torta Chef y `PINCEL590` Pincel Silicona.
+PC6=500, PEST1=2.000, PEST2=2.000, PIEA=1, PIEB=1, PV8=100, PV14=1.000, PV17=2.000. **Cerrados
+después** [Thomas 2026-09-24]: `PINCEL590` Pincel Silicona = **600 uni/caja** (importado, `entrega_unidad='cajas'`,
+NO bolsa); `PV8B` Corta Torta Chef queda **sin dato porque está discontinuado** (art 818 CHEF, ya no
+aparece en envío por la regla de discontinuados).
 
 **Carga previa del mismo día:** `C12` Paleta Batidor Resorte pasó de Sector Bombilla (mal) a
 **Procesado** con kg_x_uni 0,03634 y uni_x_cajon 233; `C12B` (sin cromar) pasó a **Crudo** (peso y
