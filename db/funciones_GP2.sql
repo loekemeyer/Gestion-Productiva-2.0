@@ -6299,9 +6299,11 @@ begin
 end $function$
 ;
 
--- ---------- fabricar_stock (convergencia: descuenta TODAS las entradas) ----------
--- Una matriz que arma una salida a partir de varias entradas (soldadura/remachado/
--- armado) descuenta cada entrada. La 1a entrada lleva la produccion de la salida;
+-- ---------- fabricar_stock (convergencia: descuenta la RECETA del intermedio) ----------
+-- El descuento sigue la receta del intermedio (componente_bom) cuando existe -es la
+-- fuente de verdad de la convergencia: remache, vastago, cantidades, y coincide con
+-- como v_costo_componente costea- y cae a las entradas de ruta_paso solo para
+-- transformaciones simples (sin BOM). La 1a entrada lleva la produccion de la salida;
 -- las demas son consumo puro (cantidad_transformada=0). Antes el motor tomaba una
 -- sola entrada con LIMIT 1 y descontaba una pieza de la convergencia.
 CREATE OR REPLACE FUNCTION "GP2".fabricar_stock(p_mid bigint, p_salida bigint, p_uni numeric, p_fecha timestamptz)
@@ -6314,20 +6316,27 @@ declare
   v_partes numeric; v_sal_um text; v_sec_sal int; v_usal bigint; v_ud text;
   r record; v_first boolean := true; v_movid bigint; v_first_mov bigint;
   v_ent_um text; v_sec_ent int; v_uent bigint; v_cant numeric; v_uo text;
-  v_aviso text := null; v_n int := 0;
+  v_aviso text := null; v_n int := 0; v_has_bom boolean;
 begin
   select partes_por_kilo_de_fleje into v_partes from matriz where id = p_mid;
   select unidad_medida, sector_id into v_sal_um, v_sec_sal from componente where id = p_salida;
   v_usal := "GP2".ubic_de('sector', v_sec_sal);
   v_ud := case when lower(coalesce(v_sal_um,'')) = 'kg' then 'kg' else 'uni' end;
+  select exists(select 1 from componente_bom where componente_padre_id = p_salida) into v_has_bom;
 
   for r in
-    select rp.comp_entrada_id ent, max(coalesce(rp.cantidad,1)) qty
-      from ruta_paso rp
-     where rp.matriz_id = p_mid and rp.comp_salida_id = p_salida
-       and rp.comp_entrada_id is not null
-     group by rp.comp_entrada_id
-     order by rp.comp_entrada_id
+    select ent, qty from (
+      select b.componente_hijo_id ent, b.cantidad qty
+        from componente_bom b
+       where v_has_bom and b.componente_padre_id = p_salida
+      union all
+      select rp.comp_entrada_id ent, max(coalesce(rp.cantidad,1)) qty
+        from ruta_paso rp
+       where (not v_has_bom) and rp.matriz_id = p_mid and rp.comp_salida_id = p_salida
+         and rp.comp_entrada_id is not null
+       group by rp.comp_entrada_id
+    ) e
+    order by ent
   loop
     select unidad_medida, sector_id into v_ent_um, v_sec_ent from componente where id = r.ent;
     v_uent := "GP2".ubic_de('sector', v_sec_ent);

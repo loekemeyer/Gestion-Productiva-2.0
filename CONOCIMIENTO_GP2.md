@@ -12772,3 +12772,46 @@ si les falta el remache como 2ª entrada.
 `db/`). Sin bump de versión (no se tocó HTML/JS/CSS). Auditoría `github_repo_problemas`: problema
 **539** *"Convergencia de matriz: al producir se descuenta solo una entrada del despiece"*
 (categoría `bug`, severidad `alto`) registrado y cerrado con el commit de este cambio.
+
+### 4fu (bis). El motor de fabricación lee la RECETA (`componente_bom`), no `ruta_paso` (2026-09-24)
+
+Ampliación del mismo día. Revisando pinza (134) y pala (194) con Thomas apareció que **la receta
+real de cada convergencia vive en `componente_bom`, no en `ruta_paso`** — y es más completa:
+`ruta_paso` tiene UNA entrada por paso, así que el remache o el vástago que se suman en la
+soldadura/remachado quedan sólo en el BOM. (La lectura anterior de que "el BOM estaba vacío" fue un
+error de una consulta multi-statement que se comió el resultado: **todas** las convergencias tienen
+BOM.)
+
+**`GP2.fabricar_stock` pasó a BOM-first:** si la salida tiene `componente_bom`, descuenta esa
+receta (hijo × cantidad); si no, cae a las entradas de `ruta_paso` (transformación simple). Coincide
+con cómo `v_costo_componente` costea el intermedio (que también arranca del BOM/ruta). La 1ª línea
+lleva la producción de la salida, las demás son consumo puro.
+
+Casos verificados (10 uni cada uno, filas de prueba borradas):
+- **Pinza N7 (134):** el remache **CV14** estaba en el BOM (`2× IE6-M133 + 1× CV14`) pero no en
+  `ruta_paso` → ahora descuenta IE6-M133 −20 y CV14 −10. La receta de 560/800 ya referenciaba `N7`,
+  no las piezas sueltas: sin doble.
+- **Pala E6-M194 (194):** era una convergencia **no modelada como tal** [Thomas: "E6-M194 tiene los
+  tres: pala E6 + vástago F2 + 2 remaches V10; al artículo se le manda E6-M194, no las partes
+  sueltas"]. Se creó `componente_bom(E6-M194) = E6×1 + F2×1 + V10×2` y se **alineó la receta** del
+  570/858: se sacaron `E6/F2/V10` sueltos y se puso `E6-M194 ×1` (antes el route armaba E6-M194 que
+  nadie consumía y E6 se descontaba dos veces). Ahora producir E6-M194 descuenta E6 −10, F2 −10,
+  V10 −20.
+- **H15 (174):** su `componente_bom` apuntaba a `H7` (varilla recta); la varilla **curva** usa
+  `H7-M10`. Corregido el BOM. (El costo no se movió: ya salía por la ruta, que tenía `H7-M10`.)
+
+**Costo:** neutro. `v_costo_componente` costea el terminado **por la ruta** (recorre `ruta_paso`
+hasta los comprados) + insumos del BOM (`bomx`, sólo sectores `es_insumo`), **no** por
+`articulo_componente`; por eso 570/858 no se movieron (708,04 / 865,24) al cambiar la receta.
+E6-M194 subió 203→240,82 (sumó los 2 remaches vía `bomx`). ⚠ El **vástago F2** (sector 2, no
+insumo) **sigue sin propagarse** al costo del terminado: es la limitación pre-existente ya anotada
+en 4fq ("bomx no se propaga hacia arriba"), no la introdujo este cambio.
+
+**Regla:** una convergencia se carga en `componente_bom` del intermedio (con cantidades), y al
+artículo se le pone el intermedio, no las piezas sueltas. Así el descuento de producción y la
+entrega no cuentan lo mismo dos veces (`recepcion_virgilio` descuenta `articulo_componente` sin
+explotar BOM; el tallerista sí explota BOM de la parte).
+
+**Pendiente:** 151 "Remachado Sacaf Gast" (BOM `Z5+Z6`, sin remache) — ¿le falta el remache? A
+confirmar con Thomas. `db/funciones_GP2.sql` con `fabricar_stock` BOM-first; el BOM de E6-M194, la
+receta 570/858 y el BOM de H15 son datos. Auditoría 539: `agregar_commit` de esta ampliación.
