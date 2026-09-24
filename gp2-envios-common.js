@@ -267,11 +267,32 @@
     return { ok: ok, errs: errs };
   }
 
+  /* ── ORDEN DE PARTES POR SECTOR ───────────────────────────────────────────
+     El orden que se cerró para "Enviar a tallerista" [usuario 2026-09-23:
+     "Garage primero, fleje segundo... bombilla último"] vivía suelto en el JS
+     inline de Tablet_GP2.html. Se sube acá para que los Controles de partes
+     (Tallerista, Prov. de servicio, Prov. de art. terminado) muestren las
+     piezas EN EL MISMO ORDEN [usuario 2026-09-24: "que aparezca en orden, por
+     sector. Copiá el orden que establecimos en envío a talleristas"], sin
+     copiar la lista en cada pantalla. Un sector fuera de la lista cae al fondo;
+     "Sector Bolsas Plásticas" es la resina del inyector, no una parte plástica,
+     así que también va al fondo. */
+  var RUBRO_ORDEN = [/garage/i, /fleje/i, /crudo/i, /procesado/i, /remache/i,
+                     /pl[aá]stico/i, /caja/i, /cart[oó]n/i, /bombilla/i];
+  function rubroSector(sector) {
+    var s = String(sector == null ? "" : sector);
+    if (!/bolsas/i.test(s)) {
+      for (var i = 0; i < RUBRO_ORDEN.length; i++) if (RUBRO_ORDEN[i].test(s)) return i;
+    }
+    return RUBRO_ORDEN.length;
+  }
+
   /* Solo lo que alguna pantalla llama. Lo que era pass-through a GP2N/GP2UI
      ($, esc, conMiles, autoMiles, autoMilesEn, fechaAR, clsSaldo) o interno
      (genCode) ya no se exporta: se toma de GP2UI / GP2N (2026-09-04). */
   global.GP2EE = {
     sb: sb, num: num, fmt: fmt, fmt0: fmt0,
+    RUBRO_ORDEN: RUBRO_ORDEN, rubroSector: rubroSector,
     aCajones: aCajones, uxcEnPoder: uxcEnPoder, hoyISO: hoyISO, mesAR: mesAR,
     buffer: buffer, cargadasDe: cargadasDe,
     mostrarFase: mostrarFase, gridContrapartes: gridContrapartes,

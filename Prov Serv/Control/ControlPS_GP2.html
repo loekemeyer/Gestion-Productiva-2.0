@@ -10,7 +10,7 @@
 <script src="../../gp2-ui.js?v=20260913e"></script>
 <script src="../../gp2-numero.js?v=20260911o"></script>
 <script src="../../gp2-composicion.js?v=20260911p"></script>
-<script src="../../gp2-envios-common.js?v=20260921a"></script>
+<script src="../../gp2-envios-common.js?v=20260924a"></script>
 <link rel="stylesheet" href="../../gp2-modulo.css?v=20260912c"/>
 <link rel="icon" type="image/png" href="../../GP2_favicon.png">
 <link rel="apple-touch-icon" href="../../GP2_favicon.png">
@@ -154,8 +154,11 @@ function filasBase(){
       out.push(Object.assign({}, x, { _prov: p.nombre, _pid: p.ps_id }));
     });
   });
+  // Orden por SECTOR (el mismo de "Enviar a tallerista", GP2EE.rubroSector) y
+  // dentro del sector por código [usuario 2026-09-24].
   return out.sort(function(a,b){
     return (selP ? 0 : String(a._prov).localeCompare(String(b._prov))) ||
+           (GP2EE.rubroSector(a.sector) - GP2EE.rubroSector(b.sector)) ||
            String(a.codigo||"").localeCompare(String(b.codigo||""), "es", { numeric:true });
   });
 }

@@ -6,6 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
+<!-- v1.35.1 (2026-09-24) — "Talleristas O.C." pasa al FINAL del grupo Enviar [usuario: "Talleristas O.C. que aparezca al final"]. Solo reorden de la baldosa dentro de TIPOS.enviar (queda después de "Prov. de art. terminado"); nada más cambia. -->
 <!-- v1.35.0 (2026-09-23) — TALLERISTAS O.C.: BLIST-PACK Y CARLOS AGUIRRE SALEN DE "TALLERISTAS"
      (usuario, con la foto de la Tablet: "a Blist-Pack SA y Carlos Aguirre quiero que me los saques
      afuera de talleristas y me los pongas en un módulo nuevo de talleristas o.c."; y al preguntar
@@ -911,7 +912,7 @@
 
 <script src="../gp2-ui.js?v=20260913e"></script>
 <script src="../gp2-numero.js?v=20260911o"></script>
-<script src="../gp2-envios-common.js?v=20260921a"></script>
+<script src="../gp2-envios-common.js?v=20260924a"></script>
 <script>
 "use strict";
 
@@ -945,7 +946,10 @@ var sustSel = null;     // mientras se elige: null | { paso:1|2, x:<fila elegida
 var TIPOS = {
   enviar: [
     { tipo: "tallerista",         icono: "👷", titulo: "Talleristas",            sub: "lo que arman afuera", oc: false },
-    /* ---------- TALLERISTAS O.C. (2026-09-23) ----------
+    { tipo: "proveedor_servicio", icono: "🏭", titulo: "Prov. de servicio",      sub: "pintan, niquelan, cortan" },
+    { tipo: "inyector",           icono: "💉", titulo: "Inyectores",             sub: "bolsas plásticas" },
+    { tipo: "proveedor_at",       icono: "📦", titulo: "Prov. de art. terminado", sub: "cartones y cajas" },
+    /* ---------- TALLERISTAS O.C. (2026-09-23) — AL FINAL DEL GRUPO [usuario 2026-09-24: "Talleristas O.C. que aparezca al final"] ----------
        [usuario, con la foto de la Tablet: "a Blist-Pack SA y Carlos Aguirre quiero que me los
        saques afuera de talleristas y me los pongas en un módulo nuevo de talleristas o.c." + "No
        es o.c. de insumos. Es orden de compra que se hace desde Gestión Virgilio que hoy no está
@@ -955,10 +959,7 @@ var TIPOS = {
        los separa para que nadie los confunda con un tallerista a façon. SOLO EN ENVIAR: en Recibir
        siguen adentro de Talleristas, que es donde se les registra lo que traen. */
     { tipo: "tallerista", clave: "tallerista_oc", oc: true,
-      icono: "🧾", titulo: "Talleristas O.C.", sub: "la O.C. la hace Virgilio" },
-    { tipo: "proveedor_servicio", icono: "🏭", titulo: "Prov. de servicio",      sub: "pintan, niquelan, cortan" },
-    { tipo: "inyector",           icono: "💉", titulo: "Inyectores",             sub: "bolsas plásticas" },
-    { tipo: "proveedor_at",       icono: "📦", titulo: "Prov. de art. terminado", sub: "cartones y cajas" }
+      icono: "🧾", titulo: "Talleristas O.C.", sub: "la O.C. la hace Virgilio" }
   ],
   recibir: [
     { tipo: "tallerista",         icono: "👷", titulo: "Talleristas",       sub: "lo que traen armado" },
@@ -1566,16 +1567,11 @@ function pintarCPS(){
    tallerista (Movimiento, Terminado y Bolsas Plásticas no llegan acá), y si mañana aparece uno, el
    lugar honesto para algo que nadie clasificó es abajo, a la vista, no colado en el medio.
    Solo el TALLERISTA: el P.S., el prov. de art. terminado y el inyector siguen alfabéticos. */
-var RUBRO_ORDEN = [/garage/i, /fleje/i, /crudo/i, /procesado/i, /remache/i, /pl[aá]stico/i,
-                   /caja/i, /cart[oó]n/i, /bombilla/i];
-function rubroDe(x){
-  var s = String((x && x.sector) || "");
-  // "Sector Bolsas Plásticas" es la resina del inyector, no una parte plástica: al final.
-  if (!/bolsas/i.test(s)) {
-    for (var i = 0; i < RUBRO_ORDEN.length; i++) if (RUBRO_ORDEN[i].test(s)) return i;
-  }
-  return RUBRO_ORDEN.length;
-}
+/* La lista vive UNA vez en gp2-envios-common.js (GP2EE), así el Control de partes la
+   comparte sin copiarla [2026-09-24]. rubroDe delega en GP2EE.rubroSector (incluye el
+   carve-out de "Sector Bolsas Plásticas" = resina del inyector, que va al final). */
+var RUBRO_ORDEN = GP2EE.RUBRO_ORDEN;
+function rubroDe(x){ return GP2EE.rubroSector(x && x.sector); }
 /* El índice del bloque de CARTONES, calculado y no escrito a mano: ahí termina el "➕ Otro cartón".
    Si mañana cambia el orden de RUBRO_ORDEN, el botón sigue cayendo donde está el cartón. */
 var RUBRO_CARTON = rubroDe({ sector: "Sector Cartón" });
