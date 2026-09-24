@@ -12922,3 +12922,41 @@ demás son *component-driven* (la parte tiene id propio), y ahí `v_componente_m
 compartido solo. Medido después: 0 muertos en los 7 bundles, totales sanos (tablet 518 enviar / 161
 recibir, OC 343, recepción 347) y la Caja N°10 sigue apareciendo. `cartones_para_reemplazo` y
 `partes_por_ps` quedaron sin tocar (no son envío/recepción). Cambio pedido por el dueño → sin auditoría.
+
+## 4fx. `uni_x_cajon` NO es "unidades por cajón": es cantidad por ENVASE (2026-09-24)
+
+[Thomas, textual: *"que no sea uni por cajón, sino uni/kg por envase o algo genérico. Porque puede
+ser uni por bolsa, uni por cajón"*.] La columna `GP2.componente.uni_x_cajon` es histórica y su
+nombre miente: **el número es la cantidad que entra en el envase con el que se maneja esa pieza**, y
+el envase cambia según el ítem. El nombre técnico **no se tocó** (está en 23 funciones + 2 vistas de
+GP2 y 29 archivos del front, 184 usos: renombrar arrastra medio programa). En su lugar quedó un
+`COMMENT ON COLUMN` que lo aclara en el editor de Supabase.
+
+**Qué unidad es en cada caso:**
+- **Plásticos (sector 6):** uni por **bolsa** — el inyector entrega en bolsas de N uni y la OC pide
+  por bolsa entera (ya lo usaba así `uniPorBolsa()` de la OC). Es el caso general de la columna en
+  plástico.
+- **Sectores crudo/procesado/garage:** uni por **cajón** (el cajón de despacho), como el nombre.
+- **Excepciones cargadas el 2026-09-24, que NO son bolsa ni cajón** (por eso van anotadas, para que
+  nadie las lea como uni/cajón): `PCP2` Plancha de Níquel = **kg por plancha** (10); `PCP4A` Cintas
+  Adhesivas 48×100 = **uni por caja** (36); `D9` Clavo 505 Niq. = **kg por caja** (15,6). ⚠ Cruce a
+  confirmar: conviven `PCP3 "Clavo 505" = 4.594` (uni) y `D9 "Clavo 505 Niq." = 15,6` (kg/caja) —
+  distinta unidad y distinto código, a validar con el dueño.
+
+**Datos de uni/bolsa que faltaban en plástico, cargados el 2026-09-24** (salieron de la hoja "Pedido
+VACIO" del Excel `Conteo_y_Pedido_Sector_Plastico`, columna "Uni x Bolsa"): PA17=1.000, PA3=1.000,
+PC6=500, PEST1=2.000, PEST2=2.000, PIEA=1, PIEB=1, PV8=100, PV14=1.000, PV17=2.000. **Siguen sin
+dato** (no estaban en la planilla): `PV8B` Corta Torta Chef y `PINCEL590` Pincel Silicona.
+
+**Carga previa del mismo día:** `C12` Paleta Batidor Resorte pasó de Sector Bombilla (mal) a
+**Procesado** con kg_x_uni 0,03634 y uni_x_cajon 233; `C12B` (sin cromar) pasó a **Crudo** (peso y
+uni/cajón todavía pendientes). `BOM10` Resorte Biconico (Sector Bombilla) = **400 uni/cajón** — acá
+sí es cajón, el sugerido va en cajones.
+
+**Regla de negocio que queda abierta (2026-09-24):** en el **sugerido de los envíos** (Talleristas,
+Prov. de Servicios, y las que sigan ese patrón) el **Sector Plástico se manda en bolsas, no en
+cajones**. Hoy el único que respeta el envase por pieza (`componente.entrega_unidad` / `entrega_uni_x`)
+es la **Tablet**; el Envío Talleristas y el Envío PS de escritorio todavía rotulan con `uni_x_cajon`
+como "cajón" fijo. Implementación pendiente de definir el enfoque (rótulo por sector vs. poblar
+`entrega_unidad='bolsas'` en los plásticos y que las pantallas de escritorio lo respeten como la
+Tablet).
