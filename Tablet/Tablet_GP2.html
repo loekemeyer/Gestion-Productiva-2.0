@@ -6,6 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
+<!-- v1.36.1 (2026-09-24) — SINGULAR DE "cajas" EN EL SUGERIDO DEL ENVIAR (usuario, sobre el Z31/Descorazonador a Alex Escalante: "el sugerido aparece una cajas y es una caja. Sin S"). El mapa SINGULAR tenía cajones/paquetes/bolsas pero NO cajas, y el Z31 quedó con env_unidad='cajas' (v1.35.x, 2026-09-24) → unidadTxt("cajas",1) devolvía "cajas". Se agregó cajas→caja y singularEnvase() ahora lee el MISMO mapa (una sola fuente: antes solo cubría bolsas/cajones, le faltaban paquetes y cajas en el renglón "= 1 …"). Tablet no-cache, sin ?v= que bumpear. -->
 <!-- v1.36.0 (2026-09-24) — EL PROV. DE ART. TERMINADO VA IGUAL QUE "TALLERISTAS O.C.": SUGERIDO 0
      (usuario, textual: "En el envío a proveedor de artículo terminado, al igual que talleristas
      orden de compra, no tienen un máximo de inventario allá ellos, de un mes, como los talleristas,
@@ -1196,9 +1197,7 @@ function textoEnvases(n, label){
   var et = (Math.abs(n - 1) < 0.005) ? singularEnvase(label) : label;   // "= 1 cajon", no "= 1 cajones"
   return "= " + fmt(n, 2) + " " + et;
 }
-function singularEnvase(label){
-  return label === "bolsas" ? "bolsa" : (label === "cajones" ? "cajón" : label);
-}
+function singularEnvase(label){ return SINGULAR[label] || label; }
 
 /* Envio POR PESO: el proveedor recibe pesado (hoy Hernandez Julio). Se marca con
    proveedor_servicio.envio_unidad='kg' SIN envio_uni_x, porque acá el bulto no es uno solo para
@@ -1366,7 +1365,7 @@ function uniCarga(x){
 function decDe(x){ return uniCarga(x) === "kg" ? 2 : 0; }
 
 /* "1 cajones" no se lee: con uno va el singular. Solo toca las etiquetas que usamos. */
-var SINGULAR = { cajones: "cajón", paquetes: "paquete", bolsas: "bolsa" };
+var SINGULAR = { cajones: "cajón", paquetes: "paquete", bolsas: "bolsa", cajas: "caja" };
 function unidadTxt(n, label){
   return (Number(n) === 1 && SINGULAR[label]) ? SINGULAR[label] : label;
 }
