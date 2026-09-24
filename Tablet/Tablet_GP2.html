@@ -6,6 +6,29 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
+<!-- v1.36.0 (2026-09-24) — EL PROV. DE ART. TERMINADO VA IGUAL QUE "TALLERISTAS O.C.": SUGERIDO 0
+     (usuario, textual: "En el envío a proveedor de artículo terminado, al igual que talleristas
+     orden de compra, no tienen un máximo de inventario allá ellos, de un mes, como los talleristas,
+     porque proveedor de artículo terminado y talleristas OC es gente que no tenemos la misma
+     confianza que con los talleristas. Tenés que modelarlo al igual que talleristas OC, que no
+     tienen un máximo allá, por lo tanto no tiene que haber un sugerido de qué mandarle, sino que
+     tiene que aparecer en cero. ¿Cuándo va a aparecer? Cuando salga orden de compra de Virgilio,
+     que todavía no lo modelamos, porque lo hace otro sistema ahora").
+     DA VUELTA la v1.29.0 de AYER (2026-09-23), que le había puesto sugerido = consumo de su
+     cartón/caja × un mes, repartido — el mismo trato que el tallerista a façon. Hoy el dueño lo
+     reagrupa con la gente de menos confianza (talleristas O.C.): sin máximo nuestro allá, sugerido
+     0, y el número real va a salir de una O.C. de Gestión Virgilio que GP2 todavía NO lee.
+     DÓNDE ESTÁ EL 0: en la base. tablet_bundle, CTE rep, case del techo: `when e.tipo =
+     'proveedor_at' then 0` (mismo criterio que el fasonero sin O.C. y el tallerista O.C.). Medido:
+     los 47 renglones de prov AT del Enviar pasaron de 33 con sugerido (28.905 uni) a 0; talleristas
+     normales (316), talleristas O.C. (0) y P.S. (108) intactos. La máquina de ayer (reparto_prov_at,
+     v_consumo_prov_at, recalcular_maximos_prov_at) queda DORMIDA: nunca escribió un maximo
+     (inventario de prov AT = 0 filas), así que no hay nada que revertir; si el dueño vuelve a
+     querer el máximo de la casa, ese `then 0` es lo único que se cambia.
+     ACÁ SON DOS LÍNEAS: el título de la carga agrega "· O.C. Virgilio" también para el prov AT (como
+     el tallerista O.C.), porque un 0 pelado se lee como "no hay que mandarle nada". El resto ya lo
+     hacía la base: envConSugerido() muestra el renglón con 0. El "➕ Otro cartón" (sust_de) sigue
+     cayendo a "Online sector", que es correcto (no es consumo de ese proveedor). -->
 <!-- v1.35.2 (2026-09-24) — ENVIAR: EL FLEJE NO DICE "sin cajón cargado" (usuario: "cuando es sector fleje no quiero esa aclaración, no tienen uni x cajón, se manda en kilos"). faltaEnvase() ahora no avisa para la pieza medida en kg: se manda pesada y el sugerido ya sale en kg. El aviso queda para la pieza que SE CUENTA (uni) y caería a unidades sin el factor. -->
 <!-- v1.35.1 (2026-09-24) — "Talleristas O.C." pasa al FINAL del grupo Enviar [usuario: "Talleristas O.C. que aparezca al final"]. Solo reorden de la baldosa dentro de TIPOS.enviar (queda después de "Prov. de art. terminado"); nada más cambia. -->
 <!-- v1.35.0 (2026-09-23) — TALLERISTAS O.C.: BLIST-PACK Y CARLOS AGUIRRE SALEN DE "TALLERISTAS"
@@ -1024,15 +1047,16 @@ function claveDe(x){
 }
 function claveCP(c){ return MODO + ":" + c.tipo + ":" + c.ref; }
 
-/* En Enviar tienen sugerido: PS y talleristas (máximo − stock − lo que ya está en el destino), los
-   INYECTORES (bolsas de resina en kg = Σ deficit de las partes plásticas × kg_x_uni) y, desde el
-   2026-09-23, el PROV. DE ART. TERMINADO: consumo de su cartón/caja × el mes de su ubicación,
-   repartido cuando el artículo lo entrega más de uno [usuario].
-   POR QUÉ EL PROV. AT PREGUNTA POR LA FILA y los otros no: su número lo trae la base sólo si
-   GP2.tablet_bundle ya tiene la CTE rep extendida (db/migracion_maximo_prov_at.sql). Sin eso —o en
-   un cartón que no es consumo de ese proveedor, como el de otro artículo que se manda como
-   reemplazo— la fila viene con sugerido null y la tarjeta vuelve a "Online sector", que es lo que
-   mostraba hasta hoy. Un 0 que no es un dato se lee como "no hay que mandarle nada". */
+/* En Enviar tienen sugerido: PS y talleristas (máximo − stock − lo que ya está en el destino) y los
+   INYECTORES (bolsas de resina en kg = Σ deficit de las partes plásticas × kg_x_uni). El PROV. DE
+   ART. TERMINADO también muestra el renglón, pero su sugerido es SIEMPRE 0: igual que el tallerista
+   con O.C. de Virgilio, lo que hay que mandarle no sale del máximo de la casa sino de una O.C. que
+   emite Gestión Virgilio y que GP2 no lee [usuario 2026-09-24: "no tienen un máximo allá... tiene
+   que aparecer en cero... cuando salga orden de compra de Virgilio"]. DA VUELTA el 2026-09-23, que
+   le había puesto consumo × meses (esa CTE queda dormida en la base).
+   POR QUÉ EL PROV. AT PREGUNTA POR LA FILA y los otros no: el cartón de OTRO artículo que se manda
+   como reemplazo (sust_de) viene con sugerido null y ahí la tarjeta vuelve a "Online sector" — un 0
+   que no es un dato se lee como "no hay que mandarle nada". La fila normal del prov AT trae 0. */
 function envConSugerido(x){
   if (MODO !== "enviar" || !selCP) return false;
   if (selCP.tipo === "proveedor_at") return !x || x.sugerido != null;
@@ -1619,9 +1643,11 @@ function elegir(c){
   olvidarCargado(c);
   selCP = c;
   cerrarDetalle();                 // se entra por la grilla, nunca con una parte abierta
-  // el tallerista con O.C. de Virgilio lo dice en el título: su sugerido es 0 porque el pedido no
-  // sale del máximo de la casa, y sin ese renglón un 0 se lee como "no hay que mandarle nada".
-  $("fase1Title").textContent = c.nombre + (MODO === "enviar" && c.oc ? " · O.C. Virgilio" : "");
+  // el tallerista con O.C. de Virgilio Y el prov. de art. terminado lo dicen en el título: su
+  // sugerido es 0 porque el pedido no sale del máximo de la casa sino de una O.C. de Gestión
+  // Virgilio que GP2 no lee, y sin ese renglón un 0 se lee como "no hay que mandarle nada"
+  // [usuario 2026-09-24: el prov. AT va igual que talleristas O.C.].
+  $("fase1Title").textContent = c.nombre + (MODO === "enviar" && (c.oc || c.tipo === "proveedor_at") ? " · O.C. Virgilio" : "");
   E.mostrarFase(1);
   var esRec = MODO === "recibir";
   $("lblRemito").classList.toggle("hidden", !esRec);

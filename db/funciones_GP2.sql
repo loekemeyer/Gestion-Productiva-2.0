@@ -7681,6 +7681,16 @@ rep as (
                     and exists (select 1 from tallerista t8
                                  where t8.id = e.ref::bigint and t8.pedido_por_oc_virgilio)
                    then 0
+                   -- PROV. DE ART. TERMINADO: igual que el tallerista con O.C. de Virgilio. El proveedor de
+                   -- articulo terminado no tiene un maximo de inventario nuestro alla (no es gente de
+                   -- la misma confianza que el tallerista a facon): lo que hay que mandarle sale de una
+                   -- O.C. que emite Gestion Virgilio y que GP2 no lee, asi que el techo es 0 y con el el
+                   -- sugerido [usuario 2026-09-24: "no tienen un maximo alla ellos... por lo tanto no
+                   -- tiene que haber un sugerido de que mandarle, sino que tiene que aparecer en cero.
+                   -- Cuando salga orden de compra de Virgilio... lo hace otro sistema ahora"]. DA VUELTA
+                   -- la migracion del 2026-09-23 (consumo x meses con reparto), que queda dormida.
+                   when e.tipo = 'proveedor_at'
+                   then 0
                    else cons.consumo * cons.meses end as techo
     ) t
 ),

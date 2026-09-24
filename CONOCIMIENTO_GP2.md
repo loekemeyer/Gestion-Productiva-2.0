@@ -11879,6 +11879,14 @@ se convirtieron (÷ kg_x_uni).
 
 ## 4fc. El Prov. de Art. Terminado ya tiene consumo, máximo y sugerido (2026-09-23)
 
+> **CORREGIDO AL DÍA SIGUIENTE (2026-09-24, §4fw):** el dueño dio vuelta esta decisión. El prov AT
+> **ya NO va como el tallerista a façon** (máximo de la casa, consumo × mes): va **como talleristas
+> O.C.**, con **sugerido 0**, porque es gente de menos confianza y lo que hay que mandarle sale de
+> una O.C. de Gestión Virgilio que GP2 no lee. La maquinaria de abajo (`reparto_prov_at`,
+> `v_consumo_prov_at`, `recalcular_maximos_prov_at`) **queda dormida** —nunca escribió un máximo
+> (inventario de prov AT = 0 filas)—, así que no se borra: si el dueño vuelve a querer el máximo de
+> la casa, se reactiva. Lo de abajo queda como historia de lo que se construyó.
+
 `[usuario, textual]`: *"En el módulo prov de art terminado, cuando voy a enviar: me aparece 0
 sugerido para enviar. El inventario máximo de los prov de art terminado tiene que ser al igual que
 los talleristas de un mes de consumo. Si hay más de un prov de art terminado o tallerista que haga
@@ -11924,6 +11932,40 @@ a 545 + 545 y 142 + 142, el 50/50 por default. Si el dueño dicta otra proporci�
 3. **16 de los 33 cartones no tienen formato cargado** (`carton_formato` sin `uni_x_bolsa`), así que
    su sugerido se ve en unidades y la tarjeta avisa "sin paquete cargado". Con el formato cargado
    pasaría a paquetones, como el resto.
+
+## 4fw. El Prov. de Art. Terminado va como "Talleristas O.C.": sugerido 0 (2026-09-24)
+
+`[usuario, textual]`: *"En el envío a proveedor de artículo terminado, al igual que talleristas
+orden de compra, no tienen un máximo de inventario allá ellos, de un mes, como los talleristas,
+porque proveedor de artículo terminado y talleristas OC es gente que no tenemos la misma confianza
+que con los talleristas. Tenés que modelarlo al igual que talleristas OC, que no tienen un máximo
+allá, por lo tanto no tiene que haber un sugerido de qué mandarle, sino que tiene que aparecer en
+cero. ¿Cuándo va a aparecer? Cuando salga orden de compra de Virgilio, que todavía no lo modelamos,
+porque lo hace otro sistema ahora"*.
+
+**Da vuelta §4fc de AYER.** El 2026-09-23 se decidió que el prov AT tuviera máximo = consumo × un
+mes, igual que el tallerista a façon; el 2026-09-24 el dueño lo **reagrupa con la gente de menos
+confianza** (talleristas O.C., §4fr). El eje del cambio es de negocio, no técnico: al prov AT **no
+le fiamos un mes de stock** como al tallerista de confianza; lo que tiene que hacer lo dicta una
+**O.C. que emite Gestión Virgilio**, sistema que GP2 **todavía no lee**. Por eso su sugerido es 0 y
+subirá cuando esa O.C. se modele acá (hoy la hace otro sistema).
+
+**El cambio es una línea en la base.** `GP2.tablet_bundle`, CTE `rep`, case del techo:
+`when e.tipo = 'proveedor_at' then 0` — mismo criterio que el fasonero sin O.C.
+(`proveedor_servicio.pedido_por_oc`) y el tallerista con O.C. de Virgilio
+(`tallerista.pedido_por_oc_virgilio`). **No hace falta flag por proveedor: TODO el rubro va así.**
+En el front (`Tablet_GP2.html`, v1.36.0) el título de la carga agrega **"· O.C. Virgilio"** también
+para el prov AT, porque un 0 pelado se lee como "no hay que mandarle nada".
+
+**Medido antes → después:** las 47 filas de prov AT del Enviar pasaron de **33 con sugerido
+(28.905 uni)** a **0**. Talleristas normales (**316** con sugerido), talleristas O.C. (**0**) y P.S.
+(**108**) **intactos** — el cambio es quirúrgico.
+
+**La maquinaria de §4fc queda dormida, NO se borra:** `reparto_prov_at` (0 filas),
+`v_consumo_prov_at`, `v_reparto_at_efectivo`, `v_hace_articulo`, `v_nivel_stock_prov_at`,
+`recalcular_maximos_prov_at`. Nunca escribió un máximo (las 12 ubicaciones de prov AT tienen 0 filas
+de `inventario`), así que **no hay nada que revertir**. Si el dueño vuelve a querer el máximo de la
+casa, ese `then 0` es lo único que se cambia. SQL en `db/migracion_prov_at_oc_virgilio.sql`.
 
 ## 4fd. Recibir de un P.S. es EL REMITO, y el remito va en unidades (2026-09-23)
 

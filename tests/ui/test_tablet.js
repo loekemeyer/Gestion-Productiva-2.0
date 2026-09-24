@@ -49,9 +49,9 @@ const BUNDLE = {
   ],
   // PS y tallerista traen ademas maximo/stock_dest/sugerido de la pieza PROCESADA/ARMADA (la
   // salida): la tablet MUESTRA el sugerido y lo precarga en Cantidad SOLO para talleristas (a los
-  // P.S. y a los inyectores no: el campo arranca vacio, usuario 2026-09-17). El Prov. AT TAMBIEN
-  // tiene sugerido desde el 2026-09-23 (consumo de su carton/caja x 1 mes); la fila que viene con
-  // sugerido null —base sin la migracion, o un carton que no es consumo suyo— cae a "Online sector".
+  // P.S. y a los inyectores no: el campo arranca vacio, usuario 2026-09-17). El Prov. AT muestra el
+  // renglon con sugerido 0 (desde 2026-09-24, igual que talleristas O.C.: la O.C. la hace Virgilio);
+  // solo el carton de OTRO articulo (sust_de) viene con sugerido null y cae a "Online sector".
   enviar: [
     // AL TALLERISTA la unidad de envio la pone la PIEZA, y la manda la base en cada fila
     // [usuario 2026-09-18]: carton y caja en PAQUETES (el paqueton del formato / los 25 de la
@@ -87,13 +87,11 @@ const BUNDLE = {
     // cargado: esa fila NO se convierte, queda en unidades.
     { tipo: 'proveedor_servicio', ref: '4', comp_id: 601, cod: 'CV1', desc: 'Remache Espiral p/Niquelar', sector: 'Sector Remache', um: 'unidad', uxc: 57143, kg_x_uni: 0.00035, online_sector: 0, saldo_dest: 0, maximo: 34992, stock_dest: 0, sugerido: 34992 },
     { tipo: 'proveedor_servicio', ref: '4', comp_id: 609, cod: 'CV9', desc: 'Remache uña niq. p/Niquelar', sector: 'Sector Remache', um: 'unidad', uxc: null, kg_x_uni: 0.000567, online_sector: 0, saldo_dest: 0, maximo: 113304, stock_dest: 0, sugerido: 113304 },
-    // el prov. de art. terminado recibe cartones y cajas: los dos van en PAQUETES (mismo envase
-    // por pieza que el tallerista). No tiene sugerido, asi que su referencia es el online sector.
-    { tipo: 'proveedor_at', ref: '1', comp_id: 456, cod: 'A1', desc: 'Caja N°1', sector: 'Sector Caja', um: 'unidad', uxc: null, kg_x_uni: null, online_sector: 988, saldo_dest: null, maximo: null, stock_dest: null, sugerido: null, env_unidad: 'paquetes', env_factor: 25, env_carga: 'envase' },
-    // el carton SI trae sugerido desde el 2026-09-23 (consumo del prov AT x 1 mes − lo que ya
-    // tiene): 2.600 uni = 3 paqueteones de 1.000, con techo. La caja de arriba queda con sugerido
-    // null a proposito, para fijar el fallback a "Online sector".
-    { tipo: 'proveedor_at', ref: '1', comp_id: 457, cod: 'C20', desc: 'Carton Colador N°8', sector: 'Sector Cartón', um: 'unidad', uxc: null, kg_x_uni: null, online_sector: 4200, saldo_dest: 0, maximo: 2600, stock_dest: null, sugerido: 2600, env_unidad: 'paquetes', env_factor: 1000, env_carga: 'envase' },
+    // el prov. de art. terminado recibe cartones y cajas: los dos van en PAQUETES (mismo envase por
+    // pieza que el tallerista). Desde el 2026-09-24 su sugerido es SIEMPRE 0 (igual que el tallerista
+    // O.C.): el pedido sale de una O.C. de Gestion Virgilio que GP2 no lee, no del maximo de la casa.
+    { tipo: 'proveedor_at', ref: '1', comp_id: 456, cod: 'A1', desc: 'Caja N°1', sector: 'Sector Caja', um: 'unidad', uxc: null, kg_x_uni: null, online_sector: 988, saldo_dest: 0, maximo: 0, stock_dest: null, sugerido: 0, env_unidad: 'paquetes', env_factor: 25, env_carga: 'envase' },
+    { tipo: 'proveedor_at', ref: '1', comp_id: 457, cod: 'C20', desc: 'Carton Colador N°8', sector: 'Sector Cartón', um: 'unidad', uxc: null, kg_x_uni: null, online_sector: 4200, saldo_dest: 0, maximo: 0, stock_dest: null, sugerido: 0, env_unidad: 'paquetes', env_factor: 1000, env_carga: 'envase' },
     { tipo: 'inyector', ref: 'Pat Bet Plast', comp_id: 742, cod: '2405', desc: 'PP 2630', sector: 'Sector Bolsas Plásticas', um: 'kg', uxc: null, kg_x_uni: null, online_sector: 100, saldo_dest: 40, maximo: 300, stock_dest: 100, sugerido: 200 },
     { tipo: 'inyector', ref: 'Pat Bet Plast', comp_id: 743, cod: '2455', desc: 'ABS GP 22', sector: 'Sector Bolsas Plásticas', um: 'kg', uxc: null, kg_x_uni: null, online_sector: 50, saldo_dest: 8, maximo: 50, stock_dest: 20, sugerido: 30 },
   ],
@@ -487,29 +485,27 @@ window.supabase = { createClient: function(){ return {
   const buf = await page.evaluate(() => JSON.parse(localStorage.getItem('gp2_tablet_buffer') || '{}'));
   ok(!buf['enviar:tallerista:6'], 'buffer limpio tras enviar');
 
-  // ── PROV. DE ART. TERMINADO: tarjetas tambien, en PAQUETES, y CON sugerido ──────────────
-  // Recibe cartones y cajas, o sea las dos cosas que van en paquetes. Desde el 2026-09-23 tiene
-  // sugerido, igual que el tallerista (consumo de la pieza x el mes de su ubicacion, repartido si
-  // el articulo lo entrega mas de uno). La pieza que viene SIN sugerido sigue mostrando el ONLINE
-  // DEL SECTOR: un 0 que no es un dato se leeria como "no hay que mandarle nada".
+  // ── PROV. DE ART. TERMINADO: tarjetas tambien, en PAQUETES, y CON SUGERIDO 0 ──────────────
+  // Recibe cartones y cajas (las dos cosas que van en paquetes). Desde el 2026-09-24 va IGUAL QUE
+  // TALLERISTAS O.C.: su sugerido es 0 —la O.C. la hace Gestion Virgilio, que GP2 no lee— y el
+  // titulo lo dice con "· O.C. Virgilio", asi un 0 no se lee como "no hay que mandarle nada".
   await page.click('#btnOtro');
   await page.waitForFunction(() => document.querySelectorAll('#tipoGrid .tipo-btn').length > 0);
   await page.click('#tipoGrid .tipo-btn[data-tipo="proveedor_at"]');   // una sola contraparte: entra derecho
   await page.waitForFunction(() => document.querySelectorAll('#cardsGrid .parte-card').length > 0);
-  ok((await page.$eval('#fase1Title', e => e.textContent)) === 'Cabral', 'prov. AT: entra derecho a Cabral');
+  ok((await page.$eval('#fase1Title', e => e.textContent)) === 'Cabral · O.C. Virgilio',
+     'prov. AT: el titulo dice "· O.C. Virgilio" (igual que talleristas O.C.)');
   ok(await page.$eval('#tblWrap', e => e.classList.contains('hidden')),
      'prov. AT: en Enviar ya no queda tabla, van en tarjetas');
   const atCards = await cards();
   ok(atCards.length === 2, 'prov. AT: una tarjeta por pieza (2) — ' + atCards.length);
-  ok(atCards[0].includes('Caja N°1') && atCards[0].includes('Online sector 988'),
-     'prov. AT: la pieza sin sugerido cae al online del sector — ' + atCards[0]);
-  ok(atCards[1].includes('Carton Colador') && atCards[1].includes('Sugerido 3 paquetes'),
-     'prov. AT: 2.600 uni de cartón se sugieren como 3 paquetones de 1.000 — ' + atCards[1]);
+  ok(atCards.every(c => c.includes('Sugerido 0')),
+     'prov. AT: todas las piezas vienen con sugerido 0 (la O.C. la hace Virgilio) — ' + atCards.join(' | '));
   ok(atCards.every(c => c.includes('paquetes')), 'prov. AT: cartones y cajas se mandan en paquetes — ' + atCards.join(' | '));
   await abrir('A1');
   const detAt = await det();
-  ok(detAt.includes('Online en el sector') && detAt.includes('988') && detAt.includes('Cantidad a enviar'),
-     'prov. AT: la vista de la parte dice el online y pide la cantidad — ' + detAt);
+  ok(detAt.includes('Sugerido a enviar') && detAt.includes('Cantidad a enviar'),
+     'prov. AT: la vista de la parte muestra el sugerido (0) y pide la cantidad — ' + detAt);
   ok((await page.$eval('#detCard .det-uni', e => e.textContent.trim())) === 'paquetes',
      'prov. AT: la cantidad se escribe en paquetes (de 25 la caja)');
   ok((await page.$eval(DQ, e => e.value)) === '', 'prov. AT: el campo arranca vacio');
