@@ -12973,3 +12973,14 @@ y la OC de bolsas (que lee `uni_x_cajon`) no se toca.
 **Otros `uni_x_cajon` en cajón cargados el 2026-09-24:** `BOM10` Resorte Biconico = 400 (Bombilla),
 `W1B` Grampa Batidor = 24.615 (Remache). ⚠ **A confirmar:** `PIEA`/`PIEB` "Rueda Recta" quedaron con
 `entrega_unidad='bolsas'` y `uni_x_cajon=1` — ¿esas ruedas van en bolsa o sueltas?
+
+**El cartón NO usa `uni_x_cajon`/`entrega_unidad`: su paquetón sale del FORMATO (2026-09-24).** En el
+envío (Tablet/Prov AT), Sector Cartón (10) se rotula **"paquetes"** y el factor es
+`carton_formato.uni_x_bolsa` (no el componente). `oc_bundle` **no** usa `uni_x_bolsa`, así que
+cambiarlo es cost-neutral para la OC (la OC agrupa por múltiplos/categoría). Caso 2026-09-24 [Thomas]:
+el formato **'Bolsa'** (packaging Vihal) estaba en null y lo compartían 5 ítems con **paquetón
+distinto**: `BOLSA550`/`BOLSA760` van en **paquetes de 200** y los cartones `A1B`(031)/`A1B1`(120)/`G8C`(836)
+en **7.500**. Como el paquetón es por formato, se **partió**: los 3 cartones pasaron a un formato nuevo
+**'Bolsa Cartón'** (uni_x_bolsa=7.500, múltiplos y pedido mínimo copiados de 'Bolsa' tal cual) y 'Bolsa'
+quedó en **200** para las dos bolsas. ⚠ El `pedido_minimo=20.000` heredado por 'Bolsa Cartón' es el de
+la bolsa Vihal y queda **a confirmar** para cartones. (`carton_formato` es dato, no va a `db/`.)
