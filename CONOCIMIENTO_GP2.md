@@ -12984,3 +12984,16 @@ en **7.500**. Como el paquetón es por formato, se **partió**: los 3 cartones p
 **'Bolsa Cartón'** (uni_x_bolsa=7.500, múltiplos y pedido mínimo copiados de 'Bolsa' tal cual) y 'Bolsa'
 quedó en **200** para las dos bolsas. ⚠ El `pedido_minimo=20.000` heredado por 'Bolsa Cartón' es el de
 la bolsa Vihal y queda **a confirmar** para cartones. (`carton_formato` es dato, no va a `db/`.)
+
+## 4fy. Filtro y Precinto de Bombilla pasan a Sector Garage: `GRJ21A` / `GRJ21B` (2026-09-24)
+
+[Thomas: *"el filtro para bombilla y el precinto para bombilla van a pasar a sector garage. El
+filtro va a ser GRJ21A y el precinto GRJ21B"*.] Reclasificación de dos componentes que estaban en
+Sector Bombilla (7): `BOM13` "Filtro p/Bombilla" → **`GRJ21A`** y `BOM14` "Precinto p/Bombilla" →
+**`GRJ21B`**, ambos **sector 7 → 9 (Garage)**. Son partes de los artículos 90 "Filtro Para Bombillas"
+y 105 "Filtro de Bombilla" (entrada y salida de las rutas 622/623/698/699) y los entregan Danica
+García e IJUPA. **Stock 0 en todas las ubicaciones y 0 movimientos**, así que no hubo ripple: se movió
+sólo la fila "casa" de inventario de la ubicación del sector Bombilla (7) a la del Garage (9); las
+filas de los talleristas quedaron. **Cost-neutral** (GRJ21A 13,25 y GRJ21B 38,00 antes = después; son
+fabricados por ruta, el sector no cambia su costeo). El código se referencia por `id` (no por string):
+0 referencias a `BOM13`/`BOM14` en el repo, rutas y recetas intactas. DB-only, `db/` no cambia.
