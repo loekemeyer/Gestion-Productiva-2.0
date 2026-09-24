@@ -12882,11 +12882,43 @@ N°10, que es de 547 activo y de 818 discontinuado, se queda por el 547); sólo 
 ninguna ruta activa. `entrada` = lo que se le envía, `salida` = lo que recibe, así que un solo
 filtro tapa "enviar" y "recepcionar".
 
-Con el filtro se fueron exactamente 3 discontinuados que polucionaban: **818** (Alex Escalante),
-**070** "Set Tapers"/GRJ30 (Fábrica) y **311** (Martin Cornejo). Ninguna parte activa cayó.
+Con el filtro se fueron exactamente 3 discontinuados que polucionaban en tallerista: **818** (Alex
+Escalante), **070** "Set Tapers"/GRJ30 (Fábrica) y **311** (Martin Cornejo). Ninguna parte activa cayó.
 
-⚠ **Ojo de alcance:** el mismo `ruta_paso`/`v_contraparte_parte` alimenta a los **Prov. de Servicio**
-(`ps_bundle`) y a `cartones_para_reemplazo`/`partes_por_ps`, que **NO** se tocaron — ahí un
-discontinuado todavía podría asomar. Si el dueño quiere la misma regla para PS, se replica el filtro
-en `ps_bundle` (o se mete en `v_contraparte_parte`, pero eso arrastra a los otros consumidores y hay
-que auditarlos antes). Cambio pedido por el dueño → sin auditoría.
+### 4fv (bis). La regla vale para las CUATRO contrapartes y la Tablet (2026-09-24)
+
+[Thomas, textual: *"la misma regla es para todos los envíos y recepciones, ya sea insumo, proveedor
+de artículo terminado, proveedor de servicios, tallerista. Quiero que del programa no se pueda hacer
+más nada con los componentes de ese artículo. Ahora, si los componentes se usan para otro artículo
+activo, no los borres."*] El primer fix sólo tapó `talleristas_bundle`; el dueño seguía viendo `PV8B`
+en la **Tablet** (que usa `tablet_bundle`, otra función).
+
+**Concepto único — `GP2.v_componente_muerto` (vista, `db/vistas_GP2.sql`):** un componente está
+*muerto* si pertenece a algún artículo **discontinuado** (por `ruta_paso` **o** `articulo_componente`)
+y **no** pertenece a ningún artículo **activo** (ni por ruta ni por receta). Es una regla **derivada**:
+cuando el dueño marca un artículo `discontinuado`, sus componentes exclusivos entran solos; los
+compartidos con un activo **nunca** aparecen ahí (no se tocan). Hoy son **13** componentes de 8
+artículos (070, 311, 338, 591, 618, 619, 761, 818): sus "X Terminado", los cartones exclusivos
+(`O2D`/818, `F2C`/311, `K5B`/338) y `GRJ30` Set Tapers. Verificado que ninguno es hijo de un BOM vivo
+ni intermedio, así que congelar el set no rompe nada.
+
+**Dónde se aplica el filtro** (todos los bundles de envío/recepción/OC honran la vista o el flag de
+artículo):
+
+| Bundle | Pantalla | Cómo filtra |
+|---|---|---|
+| `talleristas_bundle` | Envío/Recepción tallerista (desktop) | ruta activa (fix original) |
+| `tablet_bundle` | Tablet enviar/recibir (las 4) | `v_componente_muerto` en `env_x`/`rec_x` + `not a.discontinuado` en las ramas AT |
+| `envios_ps_bundle` | Envío/Entrega PS | descarta pares con entrada/salida muerta |
+| `envios_prov_at_bundle` | Envío Prov AT | catálogo sin muertos + `prov_insumos` sin artículos discontinuados |
+| `entregas_prov_at_bundle` | Entrega Prov AT | lista y conteo sin artículos discontinuados |
+| `recepcion_bundle` | Recepción de Insumos | insumos sin muertos |
+| `oc_bundle` | Órdenes de Compra | no ofrece comprar muertos |
+
+**Por qué AT filtra por artículo y el resto por componente:** el Prov AT es *article-driven* (cartones
+de los artículos que arma), así que un cartón **compartido** (una caja) debe seguir para el artículo
+activo pero no listarse bajo el discontinuado → se filtra `articulo.discontinuado` en la rama AT. Los
+demás son *component-driven* (la parte tiene id propio), y ahí `v_componente_muerto` respeta lo
+compartido solo. Medido después: 0 muertos en los 7 bundles, totales sanos (tablet 518 enviar / 161
+recibir, OC 343, recepción 347) y la Caja N°10 sigue apareciendo. `cartones_para_reemplazo` y
+`partes_por_ps` quedaron sin tocar (no son envío/recepción). Cambio pedido por el dueño → sin auditoría.

@@ -215,6 +215,28 @@ UNION
   WHERE rp.tipo_paso = 'tallerista'::text AND rp.tallerista_id IS NOT NULL AND rp.comp_salida_id IS NOT NULL;
 comment on view "GP2".v_contraparte_parte is 'Que componente ENTRA (lado=entrada: se le manda) y SALE (lado=salida: devuelve hecho) por cada contraparte (tipo + ref_id), derivado de ruta_paso. Unica definicion (2026-09-05).';
 
+-- ---------- v_componente_muerto ----------
+create or replace view "GP2".v_componente_muerto as
+-- Un componente esta MUERTO cuando pertenece a algun articulo DISCONTINUADO (por ruta o receta)
+-- y NO pertenece a ningun articulo ACTIVO (ni por ruta ni por receta). Si se usa en un activo,
+-- no aparece aca y se conserva. [2026-09-24, dueno: la regla vale para insumo, prov AT, prov
+-- servicio y tallerista, envio y recepcion; del programa no se hace nada mas con estos componentes.]
+select c.id as comp_id
+from "GP2".componente c
+where (
+   exists (select 1 from "GP2".ruta_paso rp join "GP2".ruta r on r.id = rp.ruta_id
+           join "GP2".articulo a on a.id = r.articulo_id
+           where a.discontinuado and (rp.comp_entrada_id = c.id or rp.comp_salida_id = c.id))
+   or exists (select 1 from "GP2".articulo_componente ac join "GP2".articulo a on a.id = ac.articulo_id
+              where a.discontinuado and ac.componente_id = c.id)
+)
+and not exists (select 1 from "GP2".ruta_paso rp join "GP2".ruta r on r.id = rp.ruta_id
+                join "GP2".articulo a on a.id = r.articulo_id
+                where not coalesce(a.discontinuado,false) and (rp.comp_entrada_id = c.id or rp.comp_salida_id = c.id))
+and not exists (select 1 from "GP2".articulo_componente ac join "GP2".articulo a on a.id = ac.articulo_id
+                where not coalesce(a.discontinuado,false) and ac.componente_id = c.id);
+comment on view "GP2".v_componente_muerto is 'Componentes que solo pertenecen a articulos discontinuados (ni ruta ni receta de un activo los usa). Los bundles de envio/recepcion/OC (tallerista, PS, prov AT, insumos, tablet) los excluyen para que no se pueda operar con ellos. 2026-09-24.';
+
 -- ---------- v_control_pallet ----------
 create or replace view "GP2".v_control_pallet as
  WITH p AS (

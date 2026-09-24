@@ -1400,7 +1400,7 @@ AS $function$
 with propios as (
   select distinct ac.componente_id as comp_id
     from articulo_prov_at apa
-    join articulo a on a.codigo = apa.cod_art
+    join articulo a on a.codigo = apa.cod_art and not a.discontinuado
     join articulo_componente ac on ac.articulo_id = a.id
     join componente c on c.id = ac.componente_id and c.sector_id in (10,11)
    where p_tipo = 'proveedor_at' and apa.proveedor_at_id = p_ref and coalesce(apa.activo,true)
@@ -3238,14 +3238,16 @@ select jsonb_build_object(
   'provs', (select coalesce(jsonb_agg(jsonb_build_object(
         'id', p.id, 'nombre', p.nombre,
         'arts', (select count(*) from articulo_prov_at a
-                  where a.proveedor_at_id = p.id and coalesce(a.activo,true))
+                  where a.proveedor_at_id = p.id and coalesce(a.activo,true)
+                    and not exists (select 1 from articulo art where art.codigo = a.cod_art and art.discontinuado))
       ) order by p.nombre), '[]'::jsonb)
     from proveedor_at p where coalesce(p.activo,true)),
   'arts', (select coalesce(jsonb_agg(jsonb_build_object(
         'id', a.id, 'prov_id', a.proveedor_at_id, 'cod_art', a.cod_art,
         'descripcion', a.descripcion, 'n_caja', a.n_caja, 'marca', a.marca
       ) order by a.cod_art), '[]'::jsonb)
-    from articulo_prov_at a where coalesce(a.activo,true)),
+    from articulo_prov_at a where coalesce(a.activo,true)
+       and not exists (select 1 from articulo art where art.codigo = a.cod_art and art.discontinuado)),
   'ultimas', (select coalesce(jsonb_agg(jsonb_build_object(
         'id', e.id, 'fecha', coalesce(e.fecha_rto::text, e.dia_mes),
         'prov', p.nombre, 'cod_art', e.cod_art,
@@ -3326,14 +3328,15 @@ select jsonb_build_object(
       'online',(select i.cantidad from inventario i
                  where i.componente_id=c.id and i.ubicacion_id="GP2".ubic_de('sector', c.sector_id) limit 1)
     ) order by c.sector_id, c.codigo),'[]'::jsonb)
-    from componente c join sector s on s.id=c.sector_id where c.sector_id in (10,11)),
+    from componente c join sector s on s.id=c.sector_id
+    where c.sector_id in (10,11) and c.id not in (select comp_id from "GP2".v_componente_muerto)),
   -- prov_insumos (2026-09-15): mapa proveedor_at -> cartones/cajas que la receta de SUS articulos
   -- consume. La pantalla filtra los insumos por este set: a un prov solo se le muestra lo que
   -- realmente usa, no el catalogo completo de sector 10/11. Mismo cruce que stock_general_extra_bundle.
   'prov_insumos', (select coalesce(jsonb_object_agg(prov_at_id::text, arr),'{}'::jsonb) from (
       select apa.proveedor_at_id as prov_at_id, jsonb_agg(distinct ac.componente_id) arr
         from articulo_prov_at apa
-        join articulo a on a.codigo = apa.cod_art
+        join articulo a on a.codigo = apa.cod_art and not a.discontinuado
         join articulo_componente ac on ac.articulo_id = a.id
         join componente c on c.id = ac.componente_id and c.sector_id in (10,11)
        where coalesce(apa.activo,true)
@@ -3366,6 +3369,8 @@ with pares as (
   where rp.tipo_paso='proveedor_servicio' and rp.proveedor_id is not null
     and rp.comp_entrada_id is not null
     and not ps0.hibrido
+    and rp.comp_entrada_id not in (select comp_id from "GP2".v_componente_muerto)
+    and (rp.comp_salida_id is null or rp.comp_salida_id not in (select comp_id from "GP2".v_componente_muerto))
 ),
 ocp as (
   -- PENDIENTE DE O.C. por pieza: lo que el proveedor todavia nos debe entregar de una O.C. ya
@@ -4880,6 +4885,7 @@ with pend as (
         )
     -- lo que la pieza de un fasonero (fas) SI se compra, con su estado_compra intacto
     and (c.estado_compra is null or fas.comp_id is not null)
+    and c.id not in (select comp_id from "GP2".v_componente_muerto)
     -- LO QUE PRODUCE UN PS NO SE COMPRA (usuario 2026-09-08: "esas dos partes de charcas se
     -- tratan como proveedor de servicio"). Si el proveedor que figura en el componente es el
     -- MISMO PS que lo produce en una ruta (ruta_paso tipo proveedor_servicio, comp_salida = el
@@ -7063,7 +7069,8 @@ AS $function$
       left join "GP2".carton_formato cf on cf.nombre=c.carton_formato
       -- una sola regla de "que se compra" (_es_comprable): sector de insumo, pieza importada
       -- o pieza que entrega un PS hibrido. Antes era sector + los dos hibridos hardcodeados.
-      where "GP2"._es_comprable(c.id) and coalesce(c.estado_compra,'') <> 'discontinuo'),
+      where "GP2"._es_comprable(c.id) and coalesce(c.estado_compra,'') <> 'discontinuo'
+        and c.id not in (select comp_id from "GP2".v_componente_muerto)),
     'proveedores', (select coalesce(jsonb_agg(jsonb_build_object(
         'nombre',p.nombre,'modo_control',p.modo_control,
         'informa_rollos',(p.modo_control='rollos_remito'),
@@ -7378,7 +7385,7 @@ with pa as (
   select distinct pa.id pa_id, pa.nombre, pa.ubic_id, c.id comp_id, c.sector_id
     from pa
     join articulo_prov_at apa on apa.proveedor_at_id = pa.id and coalesce(apa.activo, true)
-    join articulo a on a.codigo = apa.cod_art
+    join articulo a on a.codigo = apa.cod_art and not a.discontinuado
     join articulo_componente ac on ac.articulo_id = a.id
     join componente c on c.id = ac.componente_id
    where c.sector_id in (10, 11)          -- Sector Carton y Sector Caja
@@ -7582,7 +7589,7 @@ env as (
   union all
   select 'proveedor_at', apa.proveedor_at_id::text, ac.componente_id
     from articulo_prov_at apa
-    join articulo a on a.codigo = apa.cod_art
+    join articulo a on a.codigo = apa.cod_art and not a.discontinuado
     join articulo_componente ac on ac.articulo_id = a.id
     join componente c on c.id = ac.componente_id
    where coalesce(apa.activo,true)
@@ -7771,6 +7778,7 @@ rec as (
     from articulo_prov_at a
    where coalesce(a.activo,true)
      and exists (select 1 from proveedor_at p where p.id = a.proveedor_at_id and coalesce(p.activo,true))
+     and not exists (select 1 from articulo art where art.codigo = a.cod_art and art.discontinuado)
   union all
   select 'proveedor_insumo', o.proveedor, oi.componente_id, null::bigint, 0, false, null::text,
          sum(oi.cantidad - coalesce(oi.recibido,0)),
@@ -7816,6 +7824,7 @@ env_x as (
          coalesce(rep.sugerido,    ri.sugerido)    sugerido
     from env e
     join componente c on c.id = e.comp_id and not coalesce(c.discontinuado,false)
+                     and c.id not in (select comp_id from "GP2".v_componente_muerto)
     left join sector s on s.id = c.sector_id
     left join rep     on rep.tipo = e.tipo and rep.ref = e.ref and rep.comp_id = e.comp_id
     left join rep_iny ri on ri.tipo = e.tipo and ri.ref = e.ref and ri.comp_id = e.comp_id
@@ -7861,6 +7870,7 @@ rec_x as (
     left join componente ce on ce.id = r.comp_entrada_id
     left join sector s on s.id = c.sector_id
    where (r.comp_id is null or not coalesce(c.discontinuado,false))
+     and (r.comp_id is null or r.comp_id not in (select comp_id from "GP2".v_componente_muerto))
    group by r.tipo, r.ref, r.comp_id, r.comp_entrada_id, r.n_entradas, r.tiene_bom, r.cod_art,
             c.codigo, c.descripcion, s.nombre, c.unidad_medida, c.uni_x_cajon, c.kg_x_uni,
             c.entrega_unidad, c.entrega_uni_x, c.remito_unidad,
