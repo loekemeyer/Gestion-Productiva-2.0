@@ -321,18 +321,20 @@ window.supabase = { createClient: function(){ return {
   // ── EL ORDEN ES POR RUBRO, NO ALFANUMERICO [usuario 2026-09-23: "primero todo lo que se le manda
   // de sector crudo, despues todo lo de sector procesado, despues todo los remaches, despues todo
   // lo de partes plasticas, despues todo lo de cajas y despues todo lo de cartones" + "me refiero
-  // dentro de cada tallerista" + "Garage ponelo primero, fleje segundo y bombilla ultimo"]. La
-  // secuencia completa es GARAGE, FLEJE, CRUDO, PROCESADO, REMACHES, PLASTICAS, CAJAS, CARTONES,
-  // BOMBILLA. Alfabetico daria A10, BANDITA, C10, CJ7, F7 — el carton partido en dos con la caja en
-  // el medio y el fleje al fondo, que es justo lo contrario de lo que se pidio.
+  // dentro de cada tallerista" + "Garage ponelo primero, fleje segundo y bombilla ultimo"].
+  // [usuario 2026-09-24: "que despues de sector procesado venga sector plastico, no sector remache"]
+  // -> PLASTICO pasa ANTES que REMACHE. La secuencia completa queda GARAGE, FLEJE, CRUDO, PROCESADO,
+  // PLASTICAS, REMACHES, CAJAS, CARTONES, BOMBILLA. Alfabetico daria A10, BANDITA, C10, CJ7, F7 — el
+  // carton partido en dos con la caja en el medio y el fleje al fondo, que es justo lo contrario de
+  // lo que se pidio.
   // La SECUENCIA ENTERA se fija contra rubroDe(), no contra el fixture: Martin no recibe piezas de
   // Garage ni de Bombilla, asi que la grilla sola no puede probar que Garage va primero y Bombilla
   // ultimo. Aca tambien queda fijado que un sector fuera de la lista cae al fondo.
   const ordenRubros = await page.evaluate(() => ['Sector Garage', 'Sector Fleje', 'Sector Crudo',
-    'Sector Procesado', 'Sector Remache', 'Sector Plástico', 'Sector Caja', 'Sector Cartón',
+    'Sector Procesado', 'Sector Plástico', 'Sector Remache', 'Sector Caja', 'Sector Cartón',
     'Sector Bombilla', 'Sector Movimiento'].map(s => rubroDe({ sector: s })));
   ok(ordenRubros.join(',') === '0,1,2,3,4,5,6,7,8,9',
-     'rubros: garage, fleje, crudo, procesado, remaches, plasticas, cajas, cartones, bombilla, y lo que no esta en la lista al fondo — ' + ordenRubros.join(','));
+     'rubros: garage, fleje, crudo, procesado, plasticas, remaches, cajas, cartones, bombilla, y lo que no esta en la lista al fondo — ' + ordenRubros.join(','));
   const codsDeGrilla = () => page.$$eval('#cardsGrid .parte-card:not(.otro) .pc-cod',
     xs => xs.map(e => (e.childNodes[0] ? e.childNodes[0].textContent : '').trim()));
   let ordT = await codsDeGrilla();

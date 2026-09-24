@@ -277,8 +277,8 @@
      copiar la lista en cada pantalla. Un sector fuera de la lista cae al fondo;
      "Sector Bolsas Plásticas" es la resina del inyector, no una parte plástica,
      así que también va al fondo. */
-  var RUBRO_ORDEN = [/garage/i, /fleje/i, /crudo/i, /procesado/i, /remache/i,
-                     /pl[aá]stico/i, /caja/i, /cart[oó]n/i, /bombilla/i];
+  var RUBRO_ORDEN = [/garage/i, /fleje/i, /crudo/i, /procesado/i, /pl[aá]stico/i,
+                     /remache/i, /caja/i, /cart[oó]n/i, /bombilla/i];
   function rubroSector(sector) {
     var s = String(sector == null ? "" : sector);
     if (!/bolsas/i.test(s)) {
