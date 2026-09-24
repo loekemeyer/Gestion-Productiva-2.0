@@ -12812,6 +12812,10 @@ artículo se le pone el intermedio, no las piezas sueltas. Así el descuento de 
 entrega no cuentan lo mismo dos veces (`recepcion_virgilio` descuenta `articulo_componente` sin
 explotar BOM; el tallerista sí explota BOM de la parte).
 
-**Pendiente:** 151 "Remachado Sacaf Gast" (BOM `Z5+Z6`, sin remache) — ¿le falta el remache? A
-confirmar con Thomas. `db/funciones_GP2.sql` con `fabricar_stock` BOM-first; el BOM de E6-M194, la
-receta 570/858 y el BOM de H15 son datos. Auditoría 539: `agregar_commit` de esta ampliación.
+**151 resuelto** [Thomas: "el remachado saca fuente se hace con el remache saca fuente V6"]: el
+`componente_bom(Z36)` pasó de `Z5+Z6` a `Z5+Z6+V6×1` ("Rem Sacafuente", sector 8). Z36 (sacafuente
+pizzero) se usa en el **art 518** (Fleje 6→Z6 y Fleje 8→Z5, convergen en M151→Z36→Pedernera→Lucho);
+la receta de 518 **no** listaba V6, así que no hay doble. V6 sigue suelto en 508/708, que son el
+sacafuente **articulado** (Z1A), otro producto — ahí no se toca. Verificado: producir Z36 en 151
+descuenta Z5 −10, Z6 −10, V6 −10. `db/funciones_GP2.sql` con `fabricar_stock` BOM-first; los BOM de
+E6-M194, H15 y Z36 y la receta 570/858 son datos. Auditoría 539: `agregar_commit` de esta ampliación.
