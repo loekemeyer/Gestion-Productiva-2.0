@@ -29,7 +29,7 @@ function caja(id, cod, desc, alt) {
 }
 
 const BUNDLE = {
-  tara: { tara_pallet: '20', tol_ctrl_peso_pct: '5', carton_uni_x_paquete: '250' },
+  tara: { tara_pallet: '20', tol_ctrl_pct: '5', carton_uni_x_paquete: '250' },
   sectores: [{ id: 11, nombre: 'Sector Caja' }],
   proveedores: [
     { nombre: 'Corrugadora del Plata', modo_control: 'ninguno', informa_rollos: false, factura_uni: false },

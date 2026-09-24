@@ -60,6 +60,10 @@ const BUNDLE = {
     { tipo: 'tallerista', ref: '6', comp_id: 310, cod: 'CJ7', desc: 'Caja N°7', sector: 'Sector Caja', um: 'unidad', uxc: null, kg_x_uni: null, online_sector: 0, saldo_dest: 0, maximo: 100, stock_dest: 0, sugerido: 60, env_unidad: 'paquetes', env_factor: 25, env_carga: 'envase' },
     // carton cuyo formato NO tiene paqueton cargado: se carga en unidades y la tarjeta lo dice
     { tipo: 'tallerista', ref: '6', comp_id: 320, cod: 'BANDITA', desc: 'Bandita Palo de Amasar', sector: 'Sector Cartón', um: 'unidad', uxc: null, kg_x_uni: null, online_sector: 0, saldo_dest: 0, maximo: 900, stock_dest: 0, sugerido: 900, env_unidad: 'paquetes', env_factor: null, env_carga: 'envase' },
+    // BOMBILLA: existe en el fixture para fijar DOS cosas del orden por rubro — que Bombilla es el
+    // ultimo bloque y que el "➕ Otro carton" NO queda al final de la grilla sino cerrando el carton
+    // [usuario 2026-09-23]. Sin una pieza despues del carton, las dos cosas se ven iguales.
+    { tipo: 'tallerista', ref: '6', comp_id: 330, cod: 'BOM10', desc: 'Resorte Biconico', sector: 'Sector Bombilla', um: 'unidad', uxc: null, kg_x_uni: 0.00963, online_sector: 500, saldo_dest: 0, maximo: 400, stock_dest: 0, sugerido: 400, env_unidad: 'cajones', env_factor: null, env_carga: 'kg' },
     { tipo: 'tallerista', ref: '9', comp_id: 70, cod: 'A10', desc: 'Cpo Una', sector: 'Sector Crudo', um: 'unidad', uxc: 1000, kg_x_uni: 0.01, online_sector: 120, saldo_dest: 0, maximo: 200, stock_dest: 0, sugerido: 200, env_unidad: 'cajones', env_factor: 1000, env_carga: 'kg' },
     { tipo: 'proveedor_servicio', ref: '20', comp_id: 90, cod: 'D5', desc: 'Mitad rompenuez', sector: 'Sector Crudo', um: 'unidad', uxc: 500, kg_x_uni: 0.05, online_sector: 40, saldo_dest: 0, maximo: 100, stock_dest: 20, sugerido: 80 },
     // AJ Adhesivos manda por PAQUETES de 100: sugerido 250 uni -> 3 paquetes (techo)
@@ -152,10 +156,12 @@ window.supabase = { createClient: function(){ return {
       return { data: { oficiales: c.oficiales, otros: OTROS }, error: null };
     }
     if(name==='tablet_registrar'){
-      // igual que la base: alerta por item recibido con esperado y recibido > esperado
+      // igual que la base: alerta por item recibido con esperado y recibido > esperado + 5 %, y
+      // NUNCA para un P.S. ni para un tallerista, que tienen su pantalla de control [2026-09-23]
       var p = args.p, al = [];
       (p.items||[]).forEach(function(it){
-        if(p.modo==='recibir' && it.esperado != null && it.cantidad > it.esperado)
+        if(p.modo==='recibir' && p.tipo !== 'proveedor_servicio' && p.tipo !== 'tallerista' &&
+           it.esperado != null && it.cantidad > it.esperado * 1.05)
           al.push({ id: 900+al.length, cod: it.cod_art || ('comp'+it.comp_id), esperado: it.esperado, recibido: it.cantidad, exceso: it.cantidad-it.esperado });
       });
       return { data: { ok:true, n:(p.items||[]).length, contraparte:'X', modo:p.modo, items:[], alertas: al }, error: null };
@@ -279,7 +285,47 @@ window.supabase = { createClient: function(){ return {
      !(await page.$eval('#cardsGrid', e => e.classList.contains('hidden'))),
      'tallerista: las partes van en tarjetas, no en la tabla');
   let tcards = await cards();
-  ok(tcards.length === 5, 'tallerista: una tarjeta por pieza (5) — ' + tcards.length);
+  ok(tcards.length === 6, 'tallerista: una tarjeta por pieza (6) — ' + tcards.length);
+  // ── EL ORDEN ES POR RUBRO, NO ALFANUMERICO [usuario 2026-09-23: "primero todo lo que se le manda
+  // de sector crudo, despues todo lo de sector procesado, despues todo los remaches, despues todo
+  // lo de partes plasticas, despues todo lo de cajas y despues todo lo de cartones" + "me refiero
+  // dentro de cada tallerista" + "Garage ponelo primero, fleje segundo y bombilla ultimo"]. La
+  // secuencia completa es GARAGE, FLEJE, CRUDO, PROCESADO, REMACHES, PLASTICAS, CAJAS, CARTONES,
+  // BOMBILLA. Alfabetico daria A10, BANDITA, C10, CJ7, F7 — el carton partido en dos con la caja en
+  // el medio y el fleje al fondo, que es justo lo contrario de lo que se pidio.
+  // La SECUENCIA ENTERA se fija contra rubroDe(), no contra el fixture: Martin no recibe piezas de
+  // Garage ni de Bombilla, asi que la grilla sola no puede probar que Garage va primero y Bombilla
+  // ultimo. Aca tambien queda fijado que un sector fuera de la lista cae al fondo.
+  const ordenRubros = await page.evaluate(() => ['Sector Garage', 'Sector Fleje', 'Sector Crudo',
+    'Sector Procesado', 'Sector Remache', 'Sector Plástico', 'Sector Caja', 'Sector Cartón',
+    'Sector Bombilla', 'Sector Movimiento'].map(s => rubroDe({ sector: s })));
+  ok(ordenRubros.join(',') === '0,1,2,3,4,5,6,7,8,9',
+     'rubros: garage, fleje, crudo, procesado, remaches, plasticas, cajas, cartones, bombilla, y lo que no esta en la lista al fondo — ' + ordenRubros.join(','));
+  const codsDeGrilla = () => page.$$eval('#cardsGrid .parte-card:not(.otro) .pc-cod',
+    xs => xs.map(e => (e.childNodes[0] ? e.childNodes[0].textContent : '').trim()));
+  let ordT = await codsDeGrilla();
+  ok(ordT.join(',') === 'F7,A10,CJ7,BANDITA,C10,BOM10',
+     'tallerista: orden por rubro — fleje arriba, los dos cartones juntos y la bombilla al final — ' + ordT.join(','));
+  // y el rotulo de cada bloque, sin el que el orden nuevo se lee como un desorden
+  const rubrosT = () => page.$$eval('#cardsGrid .pc-rubro', xs => xs.map(e => e.textContent.trim()));
+  ok((await rubrosT()).join(' | ') === 'Sector Fleje | Sector Crudo | Sector Caja | Sector Cartón | Sector Bombilla',
+     'tallerista: un rotulo por rubro, en el orden pedido — ' + (await rubrosT()).join(' | '));
+  // LA GRILLA ENTERA, rotulos y "➕ Otro carton" incluidos: es el unico chequeo que prueba que el
+  // boton cierra el CARTON y no la grilla [usuario 2026-09-23], porque despues de el hay bombilla.
+  const secuenciaT = () => page.$$eval('#cardsGrid > *', xs => xs.map(e =>
+    e.classList.contains('pc-rubro') ? '#' + e.textContent.trim()
+      : e.classList.contains('otro') ? '+OTRO'
+      : (e.querySelector('.pc-cod').childNodes[0].textContent || '').trim()));
+  ok((await secuenciaT()).join(' ') ===
+     '#Sector Fleje F7 #Sector Crudo A10 #Sector Caja CJ7 #Sector Cartón BANDITA C10 +OTRO #Sector Bombilla BOM10',
+     'tallerista: "➕ Otro carton" cierra el bloque de cartones, no la grilla — ' + (await secuenciaT()).join(' '));
+  ok((await page.$eval('#cardsGrid', g => g.firstElementChild.className)).includes('pc-rubro') &&
+     (await page.$eval('#cardsGrid', g => g.firstElementChild.className)).includes('primero'),
+     'tallerista: el primer rotulo no lleva la linea de separacion arriba');
+  // el rotulo ocupa el ancho entero de la grilla: a 390px (el viewport de todo este test) eso no
+  // tiene que empujar la pagina a scrollear de costado
+  ok(!(await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth)),
+     '390px: los bloques por rubro no hacen scrollear la pagina de costado');
   const cardDe = (cod) => tcards.find(c => c.startsWith(cod));
   // el resto de las piezas: el sugerido se mira en CAJONES y la cantidad se escribe en KG
   ok(cardDe('A10').includes('Cpo Una') && cardDe('A10').includes('Sugerido 1 caj\u00f3n') &&
@@ -377,7 +423,7 @@ window.supabase = { createClient: function(){ return {
   tcards = await cards();
   ok(tcards.length === 1 && tcards[0].includes('F7'), 'buscador "fleje" deja solo F7');
   await page.fill('#q', '');
-  await page.waitForFunction(() => document.querySelectorAll('#cardsGrid .parte-card:not(.otro)').length === 5);
+  await page.waitForFunction(() => document.querySelectorAll('#cardsGrid .parte-card:not(.otro)').length === 6);
 
   // se registra lo que se cargo a mano: A10 25 kg, C10 3 paquetes, CJ7 2 paquetes
   const fecha = await page.$eval('#fFecha', e => e.value);
@@ -686,31 +732,27 @@ window.supabase = { createClient: function(){ return {
      'A11: la vista dice Stock tallerista y Cantidad (no esperado, sugerido ni recibido) — ' + detA11);
   ok((await page.$eval('#detCard .det-uni', e => e.textContent.trim())) === 'uni',
      'A11: la cantidad del remito se escribe en unidades');
-  // EL UMBRAL ES 5 % [usuario 2026-09-23]: 10,3 kg = 1.030 uni contra 1.000 esperadas es 3 % y no
-  // dispara nada. El aviso es para una diferencia que importa, no para cualquier decimal.
-  await page.fill(DQ, '1030');
-  await page.click('#btnVolverPartes');
-  ok(!/de m[aá]s/i.test((await cards()).find(c => c.startsWith('A11')) || ''),
-     'tallerista: 3 % de diferencia no dispara el aviso (el umbral es 5 %)');
-  await abrir('A11');
-  // 1.300 unidades contra 1.000 esperadas: avisa 300 de mas, y NO frena
+  // EL REMITO DEL TALLERISTA TAMPOCO SE JUZGA ACÁ [usuario 2026-09-23]: desde que el tallerista
+  // tiene su control, cargar más de lo que la base cree que tiene no dispara ningún cartel. La
+  // diferencia se mira en ControlEntregaPS, contra el remito.
   await page.fill(DQ, '1300');
   ok((await page.$$eval('#detCard .det-eq', ns => ns.map(n => n.textContent.trim()).join(''))) === '',
      'A11: en unidades no hay renglón de equivalencia (el cajón se cuenta en el control)');
   await page.click('#btnVolverPartes');
   rcards = await cards();
-  ok(rDe('A11') !== undefined && (await cards()).find(c => c.startsWith('A11')).includes('300 de m\u00e1s'),
-     'la tarjeta avisa "300 de mas" (1.300 uni contra 1.000) — ' + (await cards())[0]);
-  ok(!(await page.$eval('#alertaBox', e => e.classList.contains('hidden'))) && (await page.$eval('#alertaBox', e => e.textContent)).includes('registrar igual'),
-     'el cartel dice que se puede registrar igual');
-  ok((await page.$eval('#btnEnviar', e => !e.disabled && e.textContent === 'Recibir (1)')), 'el boton Recibir sigue habilitado: la alerta NO bloquea');
+  ok(!/de m[aá]s/i.test((await cards()).find(c => c.startsWith('A11')) || ''),
+     'tallerista: 1.300 contra 1.000 ya no es "de más" — el juicio va al control');
+  ok(await page.$eval('#alertaBox', e => e.classList.contains('hidden')),
+     'tallerista: tampoco aparece el cartel de "recibiendo más de lo esperado"');
+  ok((await page.$eval('#btnEnviar', e => !e.disabled && e.textContent === 'Recibir (1)')), 'el boton Recibir sigue habilitado');
 
   dialogs.length = 0;
   await page.click('#btnEnviar');
-  await page.waitForFunction(() => !document.getElementById('fase3').classList.contains('hidden'));
-  ok(dialogs.some(d => d.type === 'confirm' && d.msg.includes('Recibir de Martin Cornejo') && d.msg.includes('se registra igual')),
-     'confirm de recepcion avisa el exceso y sigue');
-  reg = await calls('tablet_registrar');
+  // DESPUÉS DEL REMITO VIENE EL CONTROL, también en el tallerista: la tablet se va sola a la
+  // pantalla de control, igual que con el P.S. [usuario 2026-09-23].
+  await page.waitForFunction(() => location.pathname.endsWith('ControlEntregaPS_GP2.html'));
+  ok(true, 'tallerista: al registrar el remito la tablet manda al control');
+  reg = await callsSS('tablet_registrar');
   p = reg[reg.length - 1].args.p;
   ok(p.modo === 'recibir' && p.tipo === 'tallerista' && p.ref === '6' && p.remito === 'R-0001', 'payload recibir con remito');
   const it = p.items[0];
@@ -719,8 +761,6 @@ window.supabase = { createClient: function(){ return {
   ok(it.comp_id === 71 && it.comp_entrada_id === 70 && it.cantidad === 1300 && it.unidad === 'uni' &&
      it.esperado === 1000 && it.esperado_origen === 'online_tall',
      'item tallerista: 1.300 uni contra 1.000 esperadas, mismo idioma — ' + JSON.stringify(it));
-  ok((await page.$eval('#successAlertas', e => e.textContent)).includes('Quedó anotado para revisar'),
-     'el exito muestra la alerta que devolvio la base');
 
   // ── RECIBIR DE UN P.S.: tarjetas, y EL REMITO EN UNIDADES ──────────────
   // [usuario 2026-09-23, sobre cinco proveedores el mismo dia: "cuando voy a recibir de AJ adhesivos
@@ -728,7 +768,11 @@ window.supabase = { createClient: function(){ return {
   // idem Ester, Hernandez Julio, Jade y Maspoli]. Lo que se carga aca es EL REMITO y va en unidades
   // de la pieza; el envase (bolsas, paquetes, cajones) y los kilos son del CONTROL, la pantalla
   // siguiente. Da vuelta la regla de v1.20.0, que es de antes de que el control existiera.
-  await page.click('#btnOtro');
+  // se vuelve del control con un goto: la recepcion del tallerista ya no termina en la fase
+  // de exito, se va derecho a controlar [2026-09-23]
+  await page.goto(ROOT + '/Tablet/Tablet_GP2.html');
+  await page.waitForFunction(() => document.querySelectorAll('#modos button').length > 0);
+  await page.click('#modos button[data-modo="recibir"]');
   await page.waitForFunction(() => document.querySelectorAll('#tipoGrid .tipo-btn').length > 0);
   await page.click('#tipoGrid .tipo-btn[data-tipo="proveedor_servicio"]');
   await page.click('#cpGrid .prov-btn:has-text("Guazzaroni")');
@@ -1096,9 +1140,17 @@ window.supabase = { createClient: function(){ return {
   await page.click('#btnVolverTipo');
   await page.click('#tipoGrid .tipo-btn[data-tipo="tallerista"]');
   await page.click('#cpGrid .prov-btn:has-text("Martin")');
-  let ult = await ultimaCard();
-  ok(ult && ult.otro && ult.txt.includes('Otro cartón'),
-     'tallerista: "➕ Otro cartón" va al final de sus partes — ' + (ult ? ult.txt : '—'));
+  // VA A LO ULTIMO DE LOS CARTONES, no al final de la grilla [usuario 2026-09-23]: con los bloques
+  // por rubro, "al final" lo dejaba tres bloques abajo de los cartones. La tarjeta que le sigue ya
+  // no es una pieza sino el rotulo del bloque siguiente.
+  let sigOtro = await page.$eval('#cardsGrid .parte-card.otro', e => {
+    const p = e.previousElementSibling, s = e.nextElementSibling;
+    return { antes: p ? (p.querySelector('.pc-cod') || {}).textContent : null,
+             despues: s ? s.className + '|' + s.textContent.trim() : null };
+  });
+  ok(sigOtro.antes && sigOtro.antes.indexOf('C10') === 0 &&
+     sigOtro.despues && sigOtro.despues.indexOf('pc-rubro') === 0 && sigOtro.despues.includes('Bombilla'),
+     'tallerista: "➕ Otro cartón" va a lo último de los cartones, con la bombilla después — ' + JSON.stringify(sigOtro));
 
   await page.click('#cardsGrid .parte-card.otro');
   await page.waitForSelector('#detCard .sust-item');

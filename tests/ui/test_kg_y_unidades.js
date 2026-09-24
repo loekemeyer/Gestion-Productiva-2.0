@@ -38,7 +38,7 @@ const BUNDLE = {
    a componente y por lo tanto una segunda lista que se podia desfasar de la que
    dibuja la pantalla. COMPS queda vacio a proposito (ver test_recepcion_uni). */
 const RECEP = {
-  tara: { tara_pallet: '20', tol_ctrl_peso_pct: '5', carton_uni_x_paquete: '250' },
+  tara: { tara_pallet: '20', tol_ctrl_pct: '5', carton_uni_x_paquete: '250' },
   sectores: [{ id: 6, nombre: 'Sector Plástico' }, { id: 7, nombre: 'Sector Bombilla' }],
   proveedores: [{ nombre: 'Trefilados Industriales', modo_control: null }],
   recepciones: [], pallets: [], rollos: [],

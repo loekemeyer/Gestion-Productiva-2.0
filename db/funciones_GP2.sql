@@ -1769,61 +1769,83 @@ from cab c;
 $function$
 ;
 
--- ---------- control_entrega_ps_bundle ----------
-CREATE OR REPLACE FUNCTION "GP2".control_entrega_ps_bundle(p_dias integer DEFAULT 7)
+-- ---------- control_entrega_bundle ----------
+CREATE OR REPLACE FUNCTION "GP2".control_entrega_bundle(p_dias integer DEFAULT 7)
  RETURNS jsonb
  LANGUAGE sql
  STABLE SECURITY DEFINER
  SET search_path TO 'GP2'
 AS $function$
-with mov as (
-  select m.id, m.fecha, m.cantidad, m.cantidad_transformada, m.unidad_destino, m.cajones,
-         m.comp_id sc_id, m.comp_transformado_id sp_id,
-         ps.id ps_id, ps.nombre ps_nombre, ps.entrega_unidad, ps.entrega_uni_x,
-         ps.envio_unidad, ps.envio_uni_x,
-         sc.codigo sc_cod, sc.descripcion sc_desc, sc.uni_x_cajon sc_unixcaj,
-         sp.codigo sp_cod, sp.descripcion sp_desc, sp.unidad_medida sp_um,
-         sp.kg_x_uni sp_kgxuni, sp.uni_x_cajon sp_unixcaj, ssp.nombre sp_sector,
-         c.id ctrl_id, c.declarado, c.controlado, c.controlado_cajones, c.controlado_en, c.controlado_por
+with base as (
+  -- P.S.: entrega la pieza PROCESADA (comp_transformado_id) y consume la SC (comp_id)
+  select m.id, m.fecha, 'proveedor_servicio'::text as cp_tipo, ps.id as cp_id, ps.nombre as cp_nombre,
+         m.comp_id as sc_id, m.comp_transformado_id as sp_id,
+         coalesce(m.cantidad_transformada, m.cantidad) as declarado,
+         m.unidad_destino as unidad, m.cajones,
+         ps.entrega_unidad, ps.entrega_uni_x, ps.envio_unidad, ps.envio_uni_x
     from movimiento m
     join ubicacion u on u.id = m.ubic_origen_id and u.tipo = 'proveedor_servicio'
     join proveedor_servicio ps on ps.id = u.ref_id
-    join componente sc on sc.id = m.comp_id
-    join componente sp on sp.id = m.comp_transformado_id
-    left join sector ssp on ssp.id = sp.sector_id
-    left join entrega_ps_control c on c.movimiento_id = m.id
    where m.tipo_mov = 'entrega_ps'
-     and (c.id is null or m.fecha >= now() - make_interval(days => greatest(coalesce(p_dias,7), 1)))
+  union all
+  -- TALLERISTA: entrega comp_id, y lo que consumio son los movimientos hijos (mov_padre_id). El
+  -- ENVASE del control lo dice la PIEZA (bolsas de 120 en GRJ5/GRJ6, cajones en el resto) y viaja
+  -- en las mismas claves que usa el P.S., asi el front no aprende un modelo nuevo.
+  select m.id, m.fecha, 'tallerista', t.id, t.nombre,
+         (select h.comp_id from movimiento h
+           where h.mov_padre_id = m.id and h.tipo_mov = 'consumo_tall' order by h.id limit 1),
+         m.comp_id,
+         m.cantidad, m.unidad_destino, m.cajones,
+         coalesce(sp.entrega_unidad, 'cajones'), coalesce(sp.entrega_uni_x, sp.uni_x_cajon),
+         null::text, null::numeric
+    from movimiento m
+    join ubicacion u on u.id = m.ubic_origen_id and u.tipo = 'tallerista'
+    join tallerista t on t.id = u.ref_id
+    join componente sp on sp.id = m.comp_id
+   where m.tipo_mov = 'entrega_tallerista'
+), fila as (
+  select b.*, sc.codigo sc_cod, sc.descripcion sc_desc, sc.uni_x_cajon sc_unixcaj,
+         sp.codigo sp_cod, sp.descripcion sp_desc, sp.unidad_medida sp_um,
+         sp.kg_x_uni sp_kgxuni, sp.uni_x_cajon sp_unixcaj, ssp.nombre sp_sector,
+         c.id ctrl_id, c.declarado ctrl_decl, c.controlado, c.controlado_cajones,
+         c.controlado_en, c.controlado_por,
+         -- ¿ESTA PIEZA SE PESA EN EL CONTROL? Con la pieza medida en kg, siempre. En un tallerista,
+         -- una pieza que declara su propio envase se CUENTA y no se pesa [usuario 2026-09-23: "El
+         -- remito de las bombillas en uni. Control en bolsas. El remito de la cuchilla en kg y
+         -- control kg y cajones"]. En un P.S., alcanza con que la pieza tenga kg_x_uni.
+         case when lower(coalesce(b.unidad,'uni')) = 'kg' then true
+              when b.cp_tipo = 'tallerista' then (sp.entrega_unidad is null and coalesce(sp.kg_x_uni,0) > 0)
+              else coalesce(sp.kg_x_uni,0) > 0 end as pesa
+    from base b
+    join componente sp on sp.id = b.sp_id
+    left join componente sc on sc.id = b.sc_id
+    left join sector ssp on ssp.id = sp.sector_id
+    left join entrega_control c on c.movimiento_id = b.id
+   where (c.id is null or b.fecha >= now() - make_interval(days => greatest(coalesce(p_dias,7), 1)))
 )
 select jsonb_build_object(
   'generado_en', now(),
-  -- tolerancia del control: 5 % [usuario 2026-09-23: "que el cartel aparezca si hay mas de un
-  -- cinco por ciento de diferencia, tanto en kilos como en unidades"]. Arriba de eso la pantalla
-  -- pinta la tarjeta y pide confirmar antes de pisar el stock. Tiene CLAVE PROPIA (tol_ctrl_ps_pct)
-  -- para no arrastrar al pesaje de insumos, que sigue con su tol_ctrl_peso_pct del 2 %; sin la fila
-  -- cargada vale el 5 % que pidio el usuario.
-  'tol_pct', coalesce((select valor::numeric from parametro where clave = 'tol_ctrl_ps_pct'), 5),
-  -- PENDIENTES: lo que se cargo del remito y todavia nadie conto. No se limitan por fecha:
-  -- una entrega sin controlar de hace un mes sigue pendiente y tiene que verse.
+  -- tolerancia del control: 5 % [usuario 2026-09-23, "todo control no puede exceder el 5% de
+  -- diferencia"]. UNA SOLA CLAVE para todos los controles de la casa: la que era tol_ctrl_ps_pct
+  -- aca y tol_ctrl_peso_pct en el pesaje de insumos es hoy tol_ctrl_pct, y vale 5.
+  'tol_pct', coalesce((select valor::numeric from parametro where clave = 'tol_ctrl_pct'), 5),
   'pend', coalesce((select jsonb_agg(jsonb_build_object(
-            'mov_id', id, 'fecha', fecha, 'ps_id', ps_id, 'ps_nombre', ps_nombre,
+            'mov_id', id, 'fecha', fecha, 'cp_tipo', cp_tipo, 'cp_id', cp_id, 'cp_nombre', cp_nombre,
             'sc_cod', sc_cod, 'sc_desc', sc_desc, 'sc_unixcaj', sc_unixcaj,
             'sp_id', sp_id, 'sp_cod', sp_cod, 'sp_desc', sp_desc,
             'sp_um', sp_um, 'sp_kgxuni', sp_kgxuni, 'sp_unixcaj', sp_unixcaj, 'sp_sector', sp_sector,
             'entrega_unidad', entrega_unidad, 'entrega_uni_x', entrega_uni_x,
-            -- la ENTREGA copia la unidad del ENVIO si el P.S. no tiene la suya (Ester: bolsas de 1800),
-            -- la misma regla que envaseDe() de la Tablet [usuario 2026-09-18 y 2026-09-22]
             'envio_unidad', envio_unidad, 'envio_uni_x', envio_uni_x,
-            'declarado', cantidad_transformada, 'unidad', unidad_destino, 'cajones', cajones
-          ) order by fecha desc, id desc) from mov where ctrl_id is null), '[]'::jsonb),
-  -- HECHOS: los ultimos controlados, para ver la diferencia contra el remito.
+            'pesa', pesa,
+            'declarado', declarado, 'unidad', unidad, 'cajones', cajones
+          ) order by fecha desc, id desc) from fila where ctrl_id is null), '[]'::jsonb),
   'hechos', coalesce((select jsonb_agg(jsonb_build_object(
-            'mov_id', id, 'fecha', fecha, 'ps_nombre', ps_nombre,
-            'sp_cod', sp_cod, 'sp_desc', sp_desc, 'unidad', unidad_destino,
-            'declarado', declarado, 'controlado', controlado, 'cajones', controlado_cajones,
-            'diff', controlado - declarado,
+            'mov_id', id, 'fecha', fecha, 'cp_tipo', cp_tipo, 'cp_nombre', cp_nombre,
+            'sp_cod', sp_cod, 'sp_desc', sp_desc, 'unidad', unidad,
+            'declarado', ctrl_decl, 'controlado', controlado, 'cajones', controlado_cajones,
+            'diff', controlado - ctrl_decl,
             'controlado_en', controlado_en, 'controlado_por', controlado_por
-          ) order by controlado_en desc) from mov where ctrl_id is not null), '[]'::jsonb)
+          ) order by controlado_en desc) from fila where ctrl_id is not null), '[]'::jsonb)
 );
 $function$
 ;
@@ -1963,6 +1985,11 @@ AS $function$
     limit 500
   )
   select jsonb_build_object(
+    -- UNA SOLA TOLERANCIA DE CONTROL EN TODA LA CASA: 5 % [usuario 2026-09-23, textual:
+    -- "todo control no puede exceder el 5% de diferencia"]. Antes este control usaba un 10 %
+    -- escrito en control-remaches.js y el pesaje de flejes un 2 % (tol_ctrl_peso_pct), que se
+    -- renombro a esta clave.
+    'tol_pct', coalesce((select valor from parametro where clave = 'tol_ctrl_pct'), 5),
     'sector', (select nombre from sector where id = p_sector_id),
     'sector_id', p_sector_id,
     'recepciones', coalesce((select jsonb_agg(row_to_json(rec)) from rec), '[]'::jsonb),
@@ -1971,8 +1998,8 @@ AS $function$
 $function$
 ;
 
--- ---------- controlar_entrega_ps ----------
-CREATE OR REPLACE FUNCTION "GP2".controlar_entrega_ps(p_mov_id bigint, p_cantidad numeric, p_cajones numeric DEFAULT NULL::numeric, p_usuario text DEFAULT NULL::text, p_nota text DEFAULT NULL::text)
+-- ---------- controlar_entrega ----------
+CREATE OR REPLACE FUNCTION "GP2".controlar_entrega(p_mov_id bigint, p_cantidad numeric, p_cajones numeric DEFAULT NULL::numeric, p_usuario text DEFAULT NULL::text, p_nota text DEFAULT NULL::text)
  RETURNS jsonb
  LANGUAGE plpgsql
  SECURITY DEFINER
@@ -1981,43 +2008,64 @@ AS $function$
 declare
   m movimiento%rowtype;
   v_u text; v_decl numeric; v_cons numeric; v_cod text; v_id bigint;
+  v_factor numeric; v_hijos int := 0; v_comp bigint;
 begin
   if p_cantidad is null or p_cantidad <= 0 then
     raise exception 'La cantidad controlada tiene que ser mayor a 0.';
   end if;
   select * into m from movimiento where id = p_mov_id;
   if not found then raise exception 'El movimiento % no existe.', p_mov_id; end if;
-  if m.tipo_mov <> 'entrega_ps' then
-    raise exception 'El movimiento % no es una entrega de proveedor de servicio (es %).', p_mov_id, m.tipo_mov;
+  if m.tipo_mov not in ('entrega_ps', 'entrega_tallerista') then
+    raise exception 'El movimiento % no es una entrega de un tercero (es %).', p_mov_id, m.tipo_mov;
   end if;
-  if exists (select 1 from entrega_ps_control c where c.movimiento_id = p_mov_id) then
+  if exists (select 1 from entrega_control c where c.movimiento_id = p_mov_id) then
     raise exception 'Esa entrega ya fue controlada.';
   end if;
 
-  -- lo que decia el REMITO: la cantidad ENTREGADA (cantidad_transformada), no el consumo del SC
+  -- lo que decia el REMITO. En el P.S. es la cantidad ENTREGADA (cantidad_transformada, la pieza
+  -- procesada); en el tallerista, la cantidad del movimiento, que ya es lo que entrego.
   v_u    := case when lower(coalesce(m.unidad_destino,'uni')) = 'kg' then 'kg' else 'uni' end;
-  v_decl := coalesce(m.cantidad_transformada, m.cantidad);
+  v_decl := case when m.tipo_mov = 'entrega_ps' then coalesce(m.cantidad_transformada, m.cantidad)
+                 else m.cantidad end;
+  v_comp := coalesce(m.comp_transformado_id, m.comp_id);
 
-  insert into entrega_ps_control(movimiento_id, declarado, declarado_unidad, declarado_cajones,
-                                 controlado, controlado_cajones, controlado_por, nota)
+  insert into entrega_control(movimiento_id, declarado, declarado_unidad, declarado_cajones,
+                              controlado, controlado_cajones, controlado_por, nota)
   values (p_mov_id, v_decl, v_u, m.cajones, p_cantidad, p_cajones, p_usuario, p_nota)
   returning id into v_id;
 
-  -- EL STOCK QUEDA CON LO CONTROLADO (mismo criterio que controlar_recepcion_kg en insumos): se
-  -- pisa la cantidad del movimiento y los triggers reacomodan el inventario de las dos puntas.
-  -- La entrega es 1 a 1: la SC consumida es la misma cantidad que la SP recibida, expresada en la
-  -- canonica de la SP (igual que crear_entrega_ps).
-  v_cons := to_canonical(m.comp_transformado_id, p_cantidad, v_u);
-  update movimiento
-     set cantidad = v_cons,
-         cantidad_transformada = p_cantidad,
-         cajones = coalesce(p_cajones, cajones)
-   where id = p_mov_id;
+  -- EL STOCK QUEDA CON LO CONTROLADO (mismo criterio que controlar_recepcion_kg en insumos).
+  if m.tipo_mov = 'entrega_ps' then
+    -- la entrega del P.S. es 1 a 1: la SC consumida es la misma cantidad que la SP recibida,
+    -- expresada en la canonica de la SP (igual que crear_entrega_ps).
+    v_cons := to_canonical(m.comp_transformado_id, p_cantidad, v_u);
+    update movimiento
+       set cantidad = v_cons, cantidad_transformada = p_cantidad,
+           cajones = coalesce(p_cajones, cajones)
+     where id = p_mov_id;
+  else
+    -- TALLERISTA: se pisa lo entregado Y SE ESCALAN LOS CONSUMOS con el mismo factor [usuario
+    -- 2026-09-23, eligiendo entre las dos opciones: "entrego 98 de 100 -> consumio 98"]. Los
+    -- consumos son los movimientos hijos (mov_padre_id), que crear_entrega_tallerista dejo
+    -- colgados de esta entrega. Sin esa columna no se sabria cuales son: todas las entregas del
+    -- dia comparten la misma fecha.
+    v_factor := p_cantidad / nullif(v_decl, 0);
+    if v_factor is not null and v_factor <> 1 then
+      update movimiento set cantidad = round(cantidad * v_factor, 6)
+       where mov_padre_id = p_mov_id;
+      get diagnostics v_hijos = row_count;
+    end if;
+    v_cons := p_cantidad;
+    update movimiento
+       set cantidad = p_cantidad, cajones = coalesce(p_cajones, cajones)
+     where id = p_mov_id;
+  end if;
 
-  select codigo into v_cod from componente where id = m.comp_transformado_id;
+  select codigo into v_cod from componente where id = v_comp;
   return jsonb_build_object('ok', true, 'id', v_id, 'movimiento_id', p_mov_id, 'cod', v_cod,
-    'declarado', v_decl, 'controlado', p_cantidad, 'unidad', v_u,
-    'diff', p_cantidad - v_decl, 'cajones', p_cajones, 'consumo_canon', v_cons);
+    'tipo_mov', m.tipo_mov, 'declarado', v_decl, 'controlado', p_cantidad, 'unidad', v_u,
+    'diff', p_cantidad - v_decl, 'cajones', p_cajones, 'consumo_canon', v_cons,
+    'consumos_ajustados', v_hijos);
 end $function$
 ;
 
@@ -2406,9 +2454,9 @@ begin
       raise exception 'Componente entrada inexistente (p_comp_entrada_id=%).', p_comp_entrada_id;
     end if;
     insert into movimiento(fecha, tipo_mov, comp_id, ubic_origen_id, ubic_destino_id,
-                           cantidad, unidad_origen, unidad_destino)
+                           cantidad, unidad_origen, unidad_destino, mov_padre_id)
     values (coalesce(p_fecha, now()), 'consumo_tall', p_comp_entrada_id,
-            v_ubic_tall, null, p_cantidad, v_unidad, v_unidad)
+            v_ubic_tall, null, p_cantidad, v_unidad, v_unidad, v_mov_id)
     returning id into v_consumo_mov;
     v_hijos := jsonb_build_array(jsonb_build_object(
       'movimiento_id', v_consumo_mov,
@@ -2432,9 +2480,9 @@ begin
       v_hijo_qty := v_qty_canon * coalesce(r.por_unidad, 0);
       if v_hijo_qty > 0 then
         insert into movimiento(fecha, tipo_mov, comp_id, ubic_origen_id, ubic_destino_id,
-                               cantidad, unidad_origen, unidad_destino)
+                               cantidad, unidad_origen, unidad_destino, mov_padre_id)
         values (coalesce(p_fecha, now()), 'consumo_tall', r.hijo_id, v_ubic_tall, null,
-                v_hijo_qty, v_hijo_um, v_hijo_um)
+                v_hijo_qty, v_hijo_um, v_hijo_um, v_mov_id)
         returning id into v_hijo_mov;
         v_hijos := v_hijos || jsonb_build_object(
           'movimiento_id', v_hijo_mov,
@@ -2953,6 +3001,8 @@ rutas_full as (
   left join "GP2".articulo a on a.id = r.articulo_id
   left join ruta_fleje rf on rf.ruta_id = r.id
   left join "GP2".componente cf on cf.id = rf.fl
+  -- 2026-09-23: se ocultan las rutas de articulos discontinuados
+  where not coalesce(a.discontinuado, false)
 )
 select jsonb_build_object(
   'sect', (select jsonb_object_agg(id::text, jsonb_build_object('tipo',tipo,'nom',nombre)) from "GP2".sector),
@@ -2988,6 +3038,8 @@ select jsonb_build_object(
       ) order by a.codigo
     ), '[]'::jsonb)
     from "GP2".articulo a
+    -- 2026-09-23: lo discontinuado no se muestra en el programa
+    where not coalesce(a.discontinuado, false)
   ),
   'rutas', (select coalesce(jsonb_agg(jsonb_build_object(
        'id',id,'nom',nom,'art',art,'fam',fam,'fleje',fleje,'fleje_desc',fleje_desc,'pasos',pasos)
@@ -5321,9 +5373,13 @@ AS $function$
             from (
               select 'tallerista'::text tipo, rp.tallerista_id ref, rp.comp_salida_id comp
                 from ruta_paso rp where rp.tipo_paso='tallerista' and rp.comp_salida_id is not null
+                 and not exists (select 1 from ruta r_ join articulo a_ on a_.id=r_.articulo_id
+                                  where r_.id=rp.ruta_id and coalesce(a_.discontinuado,false))
               union all
               select 'proveedor_servicio', rp.proveedor_id, rp.comp_salida_id
                 from ruta_paso rp where rp.tipo_paso='proveedor_servicio' and rp.comp_salida_id is not null
+                 and not exists (select 1 from ruta r_ join articulo a_ on a_.id=r_.articulo_id
+                                  where r_.id=rp.ruta_id and coalesce(a_.discontinuado,false))
               union all
               -- el prov AT entrega el terminado: es la entrada del paso virgilio de esa ruta
               select 'proveedor_at', rp.proveedor_at_id,
@@ -5331,6 +5387,8 @@ AS $function$
                        where v.ruta_id = rp.ruta_id and v.tipo_paso='virgilio' and v.orden > rp.orden
                        order by v.orden limit 1)
                 from ruta_paso rp where rp.tipo_paso='proveedor_at'
+                 and not exists (select 1 from ruta r_ join articulo a_ on a_.id=r_.articulo_id
+                                  where r_.id=rp.ruta_id and coalesce(a_.discontinuado,false))
             ) z join componente c on c.id = z.comp
            where ref is not null
         ) w),
@@ -5980,7 +6038,7 @@ CREATE OR REPLACE FUNCTION "GP2".recepcion_tara()
  SET search_path TO 'GP2'
 AS $function$
   select (select coalesce(jsonb_object_agg(clave, valor), '{}'::jsonb) from parametro
-           where clave like 'tara_pallet%' or clave in ('tol_ctrl_peso_pct','carton_uni_x_paquete'))
+           where clave like 'tara_pallet%' or clave in ('tol_ctrl_pct','carton_uni_x_paquete'))
       || coalesce((select jsonb_build_object('tara_estimada', round(avg(tara),1), 'tara_n', count(*))
                      from v_tara_pallet_real where tara between 1 and 15
                    having count(*) >= 5), '{}'::jsonb)
@@ -6939,6 +6997,10 @@ AS $function$
     'insumos', (select coalesce(jsonb_agg(jsonb_build_object(
         'comp_id',c.id,'codigo',c.codigo,'descripcion',c.descripcion,'sector',s.nombre,
         'sector_id',c.sector_id,'um',c.unidad_medida,'uni_x_cajon',c.uni_x_cajon,
+        -- en que unidad viene el REMITO de esta pieza ('kg' | 'uni' | null = la canonica).
+        -- Misma columna que usa la Tablet: la plancha de niquel de CC Galvanoquimica viene
+        -- pesada aunque el resto del Sector Plastico se cuente [usuario 2026-09-23].
+        'remito_unidad',c.remito_unidad,
         'proveedor',nullif(trim(c.proveedor),''),
         -- proveedores ALTERNATIVOS que entregan la misma pieza (componente_proveedor_alt).
         -- El principal sigue siendo c.proveedor: esto no cambia OC ni costo, solo hace que

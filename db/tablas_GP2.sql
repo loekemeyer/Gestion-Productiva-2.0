@@ -250,8 +250,8 @@ create table "GP2".entrega_prov_at (
 comment on table "GP2".entrega_prov_at is 'Entregas de articulo terminado de los Prov AT (cajas por cod_art, remito, factura). Es un segundo ledger fuera de movimiento (pregunta 22).';
 comment on column "GP2".entrega_prov_at.descripcion is 'SNAPSHOT de la descripcion del remito al momento de la entrega. Hoy coincide en las 0 divergencias con articulo_prov_at, pero es a proposito una copia: el remito ya emitido no cambia si despues se corrige el catalogo.';
 
--- ---------- entrega_ps_control ----------
-create table "GP2".entrega_ps_control (
+-- ---------- entrega_control ----------
+create table "GP2".entrega_control (
   id bigint generated always as identity not null,
   movimiento_id bigint not null,
   declarado numeric not null,
@@ -262,17 +262,17 @@ create table "GP2".entrega_ps_control (
   controlado_en timestamp with time zone not null default now(),
   controlado_por text,
   nota text,
-  constraint entrega_ps_control_pkey PRIMARY KEY (id),
-  constraint entrega_ps_control_mov_uk UNIQUE (movimiento_id),
-  constraint entrega_ps_control_mov_fkey FOREIGN KEY (movimiento_id) REFERENCES "GP2".movimiento(id) ON DELETE CASCADE,
-  constraint entrega_ps_control_declarado_check CHECK ((declarado > (0)::numeric)),
-  constraint entrega_ps_control_controlado_check CHECK ((controlado > (0)::numeric)),
-  constraint entrega_ps_control_unidad_check CHECK ((declarado_unidad = ANY (ARRAY['kg'::text, 'uni'::text])))
+  constraint entrega_control_pkey PRIMARY KEY (id),
+  constraint entrega_control_mov_uk UNIQUE (movimiento_id),
+  constraint entrega_control_mov_fkey FOREIGN KEY (movimiento_id) REFERENCES "GP2".movimiento(id) ON DELETE CASCADE,
+  constraint entrega_control_declarado_check CHECK ((declarado > (0)::numeric)),
+  constraint entrega_control_controlado_check CHECK ((controlado > (0)::numeric)),
+  constraint entrega_control_unidad_check CHECK ((declarado_unidad = ANY (ARRAY['kg'::text, 'uni'::text])))
 );
-comment on table "GP2".entrega_ps_control is 'CONTROL FISICO de lo que entrego un proveedor de servicio, con el mismo circuito que la recepcion de insumos [usuario 2026-09-21: "En recepcion de proveedores de servicio se tiene que seguir la logica de primero cargar lo que dice el remito y despues hacer el control (como en recepcion de insumos)... en el remito que sea en kg y despues controlar en kg y cajones"]. Una fila por movimiento de entrega_ps controlado; el movimiento SIN fila aca es lo que todavia esta pendiente de control. Guarda lo que decia el REMITO (declarado) antes de que el control pise la cantidad del movimiento: el stock queda con lo CONTROLADO, igual que controlar_recepcion_kg en insumos.';
-comment on column "GP2".entrega_ps_control.declarado is 'Lo que decia el remito, en declarado_unidad y en la MISMA magnitud que movimiento.cantidad_transformada (lo que el P.S. entrego), no el consumo del SC.';
-comment on column "GP2".entrega_ps_control.declarado_cajones is 'Cajones (o bolsas/paquetes) anotados al cargar el remito. Hoy la Tablet no los pide al recepcionar, asi que suele ser null: el numero real lo pone el control.';
-comment on column "GP2".entrega_ps_control.controlado_cajones is 'Cajones (o el envase de la pieza) CONTADOS en el control. Es el dato que despues manda en el stock del proveedor (ver v_caj_contraparte y CONOCIMIENTO 4et).';
+comment on table "GP2".entrega_control is 'CONTROL FISICO de lo que entrego un tercero -proveedor de servicio o TALLERISTA-, con el mismo circuito que la recepcion de insumos: primero se carga lo que dice el REMITO y despues se cuenta [usuario 2026-09-21 y 2026-09-23]. Una fila por movimiento (entrega_ps o entrega_tallerista) controlado; el movimiento SIN fila aca es lo que sigue pendiente. Guarda lo que decia el remito (declarado) antes de que el control pise la cantidad del movimiento: el stock queda con lo CONTROLADO. Se llamaba entrega_ps_control hasta el 2026-09-23, cuando el control se abrio a los talleristas.';
+comment on column "GP2".entrega_control.declarado is 'Lo que decia el remito, en declarado_unidad y en la MISMA magnitud que movimiento.cantidad_transformada (lo que el P.S. entrego), no el consumo del SC.';
+comment on column "GP2".entrega_control.declarado_cajones is 'Cajones (o bolsas/paquetes) anotados al cargar el remito. Hoy la Tablet no los pide al recepcionar, asi que suele ser null: el numero real lo pone el control.';
+comment on column "GP2".entrega_control.controlado_cajones is 'Cajones (o el envase de la pieza) CONTADOS en el control. Es el dato que despues manda en el stock del proveedor (ver v_caj_contraparte y CONOCIMIENTO 4et).';
 
 -- ---------- est_madre ----------
 create table "GP2".est_madre (
@@ -447,9 +447,11 @@ create table "GP2".movimiento (
   faltante boolean not null default false,
   nota text,
   sustituye_comp_id bigint,
+  mov_padre_id bigint,
   constraint movimiento_pkey PRIMARY KEY (id),
   constraint movimiento_comp_id_fkey FOREIGN KEY (comp_id) REFERENCES "GP2".componente(id),
   constraint movimiento_comp_transformado_id_fkey FOREIGN KEY (comp_transformado_id) REFERENCES "GP2".componente(id),
+  constraint movimiento_mov_padre_id_fkey FOREIGN KEY (mov_padre_id) REFERENCES "GP2".movimiento(id) ON DELETE CASCADE,
   constraint movimiento_sustituye_comp_id_fkey FOREIGN KEY (sustituye_comp_id) REFERENCES "GP2".componente(id),
   constraint movimiento_tipo_mov_fk FOREIGN KEY (tipo_mov) REFERENCES "GP2".tipo_movimiento(clave) ON UPDATE CASCADE,
   constraint movimiento_ubic_destino_id_fkey FOREIGN KEY (ubic_destino_id) REFERENCES "GP2".ubicacion(id),
@@ -467,6 +469,7 @@ comment on column "GP2".movimiento.cajones is 'Conteo fisico de cajones del movi
 comment on column "GP2".movimiento.faltante is 'Columna F: el operario marco que la parte no se pudo completar en este envio.';
 comment on column "GP2".movimiento.nota is 'Texto libre del operario (motivo de una devolucion, aclaracion de un ajuste). Antes vivia en devolucion_tallerista.motivo (tabla borrada 2026-09-05).';
 comment on column "GP2".movimiento.sustituye_comp_id is 'Carton OFICIAL al que reemplaza el carton de comp_id. En un envio (envio_prov_at / envio_tallerista) dice "este carton va en lugar de aquel"; en un consumo_virgilio dice "este carton se gasto a cuenta de aquel". Saldo pendiente = envios - consumos, por ubicacion (v_carton_sustituto_saldo). NULL = envio/consumo normal. 2026-09-21.';
+comment on column "GP2".movimiento.mov_padre_id is 'Movimiento del que este cuelga. Hoy lo escribe crear_entrega_tallerista en los consumo_tall (la pieza transformada o las partes del BOM) para que apunten a su entrega_tallerista. Lo usa controlar_entrega: cuando el control corrige lo entregado, los consumos del tallerista se escalan con el mismo factor [usuario 2026-09-23: entrego 98 de 100 -> consumio 98]. NULL = movimiento suelto.';
 
 -- ---------- orden_compra ----------
 create table "GP2".orden_compra (
@@ -1147,6 +1150,7 @@ CREATE INDEX idx_faltante_marcado_abierto ON "GP2".faltante_marcado USING btree 
 CREATE INDEX idx_inventario_ubicacion_id ON "GP2".inventario USING btree (ubicacion_id);
 CREATE INDEX idx_movimiento_comp_id ON "GP2".movimiento USING btree (comp_id);
 CREATE INDEX idx_movimiento_comp_transformado_id ON "GP2".movimiento USING btree (comp_transformado_id);
+CREATE INDEX idx_movimiento_mov_padre ON "GP2".movimiento USING btree (mov_padre_id);
 CREATE INDEX idx_movimiento_ubic_destino_id ON "GP2".movimiento USING btree (ubic_destino_id);
 CREATE INDEX idx_movimiento_ubic_origen_id ON "GP2".movimiento USING btree (ubic_origen_id);
 CREATE INDEX idx_orden_compra_item_componente_id ON "GP2".orden_compra_item USING btree (componente_id);
@@ -1238,7 +1242,7 @@ alter table "GP2".componente_proveedor_alt enable row level security;  -- sin po
 alter table "GP2".contraparte_alias enable row level security;
 alter table "GP2".empleado enable row level security;
 alter table "GP2".entrega_prov_at enable row level security;
-alter table "GP2".entrega_ps_control enable row level security;
+alter table "GP2".entrega_control enable row level security;
 alter table "GP2".est_madre enable row level security;
 alter table "GP2".factura_alias enable row level security;
 alter table "GP2".factura_lectura enable row level security;
@@ -1301,7 +1305,7 @@ create policy p_gp2_select on "GP2".componente_bom for select to anon, authentic
 create policy p_gp2_select on "GP2".contraparte_alias for select to anon, authenticated using (true);
 create policy p_gp2_select on "GP2".empleado for select to anon, authenticated using (true);
 create policy p_gp2_select on "GP2".entrega_prov_at for select to anon, authenticated using (true);
-create policy p_gp2_select on "GP2".entrega_ps_control for select to anon, authenticated using (true);
+create policy p_gp2_select on "GP2".entrega_control for select to anon, authenticated using (true);
 create policy p_gp2_select on "GP2".est_madre for select to anon, authenticated using (true);
 create policy factura_alias_sel on "GP2".factura_alias for select to public using (true);
 create policy factura_lectura_sel on "GP2".factura_lectura for select to public using (true);
