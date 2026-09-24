@@ -12681,3 +12681,40 @@ movió ni un peso de inventario y no hizo falta tocar `movimiento`.
 **Antes de meter un componente en el Sector Fleje, preguntar si se compra por kilo.** El sector 5
 no es "donde va el metal": es "lo que se paga por peso". Una pieza importada armada, aunque sea de
 acero y aunque hoy entre por el mismo remito, va a su sector real o el costo se cae en silencio.
+
+## 4fr. La mitad CERRADA del rompenueces nace: `G8` "Pieza Cerrada Rompenuez p/cromar" (2026-09-24)
+
+`[usuario 2026-09-24, textual: "Después de la matriz 77 va al sector G8 que es Pieza Cerrada
+Rompenuez p/cromar"]`, con su **"Sí a todo"** sobre crear el componente, redirigir la salida de la
+M77 y mover el paso de cromado/pintado de la rama cerrada.
+
+**El bug (dato, no código; venía pusheado):** en las rutas de **507** y **707** la **M74
+"Estampado Rompenuez"** ya sacaba `G7` "Pieza Abierta Rompenuez p/cromar", y la **M77 "Aplastado
+Punta Rompenuez"** —que es el CIERRE de la pieza— volvía a salir a **la misma `G7`**. O sea: la
+mitad cerrada no tenía código propio antes del cromado, y el paso de servicio de la rama cerrada
+(**Pedernera → `D6`** en el 507, **Jade → `B1`** en el 707) entraba por `G7`, la pieza abierta.
+El trazado abierta/cerrada estaba pisado.
+
+**Cruza con §4ce y con la M78:** §4ce dejó dicho que el rompenueces converge de verdad porque la
+receta del 507/707 pide **las dos mitades a la vez**, y que la **M78** las junta devolviendo 4
+salidas (`B1`/`B2`/`D5`/`D6`). Lo que faltaba era que esa separación abierta/cerrada existiera ya
+**antes** del cromado: hasta ahora las dos mitades compartían `G7`. El barrido de §4ce miraba
+**convergencias**, no esta **divergencia** aguas arriba, por eso no la había cazado. Ojo para el
+futuro: un mismo `comp_salida_id` en dos matrices distintas de una misma ruta es sospechoso.
+
+**Lo que se escribió (DB-only, manteniendo la normalización):**
+- `GP2.componente` id **940**: `G8` "Pieza Cerrada Rompenuez p/cromar", clonando de `G7` (id 9)
+  `sector_id`, `unidad_medida`, `kg_x_uni` 0,046166667 y `uni_x_cajon` 606 → **costo sin cambio**.
+- `GP2.inventario`: una fila de `G8` en 0 (ubicación 1).
+- `GP2.ruta_paso`: **M77** (pasos 284 del 507, 299 del 707) `comp_salida_id` `G7` → `G8`; y el
+  paso de servicio de la rama **cerrada** (285 Pedernera→`D6` del 507, 300 Jade→`B1` del 707)
+  `comp_entrada_id` `G7` → `G8`.
+
+⚠ **Sólo se movió la rama CERRADA.** La abierta (M74 → `G7`; Pedernera→`D5` / Jade→`B2`) **queda
+en `G7`**: mover los dos pasos de servicio a `G8`, como sugería la pregunta inicial en grueso,
+habría roto la mitad abierta. Verificado con SELECT: 507 y 707 quedan M74→`G7`, M77→`G8`,
+servicio-abierto←`G7`, servicio-cerrado←`G8`.
+
+Auditoría `github_repo_problemas`: problema **538** registrado (categoría `datos`, severidad
+`medio`) y cerrado con el commit de este cambio. DB-only: `db/` (respaldo de schema) no cambia,
+sin bump de versión (no se tocó HTML/JS/CSS).
