@@ -47,6 +47,10 @@ const PERMITIDAS = {
   // llama con p_crear_faltantes => true (las 12 ubicaciones de prov AT tienen cero), y eso es
   // escribir datos: lo autoriza el dueño, no una pantalla. Sin EXECUTE a anon.
   recalcular_maximos_prov_at:'mantenimiento: recalcula el máximo del Prov AT por SQL, sin grant a anon',
+  // 2026-09-24: helper interno del motor de producción; la llaman registrar_produccion y
+  // registrar_evento_prod (por SQL, no por rpc()) para descontar TODAS las entradas de una
+  // convergencia. No es RPC de pantalla y no matchea la convención de nombres interna (_/fn_).
+  fabricar_stock:            'helper interno de convergencia, la llaman registrar_produccion/registrar_evento_prod',
 };
 
 /* Internas: helpers de otras funciones, cuerpos de trigger y simuladores. No son RPC de
