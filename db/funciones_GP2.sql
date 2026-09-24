@@ -7645,6 +7645,15 @@ rep as (
          coalesce((select u.meses_stock from ubicacion u
                     where u.id = case when e.tipo = 'proveedor_at'
                                         then ubic_de('proveedor_at', e.ref::bigint)
+                                      -- el tallerista se surte de UN mes (regla del usuario 2026-09-23:
+                                      -- "los talleristas de un mes de consumo"), que vive en SU propia
+                                      -- ubicacion (las 12 en meses_stock=1). Antes tomaba el meses_stock
+                                      -- del SECTOR de la pieza (Bombilla=3, Plastico=4, Carton/Fleje=6),
+                                      -- pensado para el stock de insumos del sector, e inflaba el
+                                      -- sugerido: LLF8 a Alex daba 29 cajones (6.644 x 3 / 698) en vez
+                                      -- de 9,5. El P.S. sigue tomando el del sector (como estaba).
+                                      when e.tipo = 'tallerista'
+                                        then ubic_de('tallerista', e.ref::bigint)
                                       else ubic_de('sector', ent.sector_id) end
                     limit 1), 1) as meses,
          case
