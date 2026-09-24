@@ -6,6 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
+<!-- v1.35.2 (2026-09-24) — ENVIAR: EL FLEJE NO DICE "sin cajón cargado" (usuario: "cuando es sector fleje no quiero esa aclaración, no tienen uni x cajón, se manda en kilos"). faltaEnvase() ahora no avisa para la pieza medida en kg: se manda pesada y el sugerido ya sale en kg. El aviso queda para la pieza que SE CUENTA (uni) y caería a unidades sin el factor. -->
 <!-- v1.35.1 (2026-09-24) — "Talleristas O.C." pasa al FINAL del grupo Enviar [usuario: "Talleristas O.C. que aparezca al final"]. Solo reorden de la baldosa dentro de TIPOS.enviar (queda después de "Prov. de art. terminado"); nada más cambia. -->
 <!-- v1.35.0 (2026-09-23) — TALLERISTAS O.C.: BLIST-PACK Y CARLOS AGUIRRE SALEN DE "TALLERISTAS"
      (usuario, con la foto de la Tablet: "a Blist-Pack SA y Carlos Aguirre quiero que me los saques
@@ -1258,6 +1259,11 @@ function sugeridoInfo(x){
    sin uni_x_cajon no hay cajón, sin el paquetón del formato no hay paquete. Vacío = no aplica. */
 function faltaEnvase(x){
   if (MODO !== "enviar" || !selCP || !x || envaseDe(x)) return "";
+  // La pieza que se mide en kg (el fleje) SE MANDA PESADA, no hay cajón que le falte: el sugerido
+  // ya sale en kg, así que "sin cajón cargado" era mentira [usuario 2026-09-24, sobre el envío en
+  // la tablet: "cuando es sector fleje no quiero esa aclaración, no tienen uni x cajón, se manda en
+  // kilos"]. El aviso queda para la pieza que SE CUENTA y caería a unidades sin el factor.
+  if (unidadDe(x) === "kg") return "";
   // el prov. AT va con el mismo aviso que el tallerista: los dos reciben la pieza con el envase que
   // dice la PIEZA (paquetón del cartón / los 25 de la caja), no con uno del proveedor [2026-09-23].
   if (selCP.tipo === "tallerista" || selCP.tipo === "proveedor_at")

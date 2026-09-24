@@ -374,8 +374,8 @@ window.supabase = { createClient: function(){ return {
   // lo que no tiene el dato NO se convierte: queda en unidades y lo dice
   ok(cardDe('BANDITA').includes('900') && cardDe('BANDITA').includes('sin paquete cargado'),
      'BANDITA: sin paqueton cargado queda en unidades y avisa — ' + cardDe('BANDITA'));
-  ok(cardDe('F7').includes('12,5') && cardDe('F7').includes('sin caj\u00f3n cargado'),
-     'F7: sin uni_x_cajon queda en kg y avisa — ' + cardDe('F7'));
+  ok(cardDe('F7').includes('12,5') && !cardDe('F7').includes('sin caj\u00f3n cargado'),
+     'F7 (fleje): va en kg y NO avisa sin cajon cargado, se manda pesado [usuario 2026-09-24] — ' + cardDe('F7'));
   // NADA viene precargado: desde el 2026-09-18 tampoco al tallerista [usuario: "igual que P.S."]
   ok(tcards.every(c => c.includes('sin cargar')), 'tallerista: las tarjetas arrancan sin cargar');
   ok((await page.$eval('#btnEnviar', e => e.disabled)) === true, 'tallerista: sin nada cargado no se puede enviar');
