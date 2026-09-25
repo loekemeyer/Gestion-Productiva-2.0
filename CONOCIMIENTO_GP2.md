@@ -13155,7 +13155,9 @@ tenés el dato"* / *"En la hoja pedido vacio"*.] La planilla muestra que el paqu
 dentro de Huevo hay 1.000 y 2.500, dentro de Corb8 1.000 y 2.500, y el 700 (LOKE) va de 2.000.
 - **Regla nueva:** `componente.entrega_uni_x` del cartón manda; si está en null cae a
   `carton_formato.uni_x_bolsa`. Cambiado en `tablet_bundle` (env_factor) y `cartones_para_reemplazo`.
-  OC, Recepción y Relevamiento siguen leyendo el formato (no se tocaron).
+  **Relevamiento también** (`relev_factor`, Thomas dijo que sí): el paquetón que se cuenta es el del cartón.
+  **O.C. no lo usa** (agrupa por múltiplos de pliego). **Recepción NO se tocó**: su "bolsa" es la que manda
+  la gráfica (Huevo 2.000 = 8 paquetes de 250), otro envase distinto del paquete de la planilla de conteo.
 - **Dato:** 137 cartones de la base cruzan con la hoja (`Cartón NNN` = col Cod). **52** difieren del
   formato y se cargaron por pieza (`entrega_uni_x` + `entrega_unidad='paquetes'`, para que el escritorio
   no los rotule "cajones"): p.ej. M2B 222 = 2.500, M1/M2A/M2C/M3A/M3B = 2.500, C2A/C2B = 2.500,

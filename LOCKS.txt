@@ -4,6 +4,7 @@
 (vacío)
 
 [HISTORIAL]
+2026-09-25 (17) - RELEVAMIENTO CUENTA EL PAQUETE DEL CARTON (Thomas). relev_factor: coalesce(entrega_uni_x, formato). OC no usa uni_x_bolsa; Recepcion no se toca (bolsa de la grafica). db/funciones sincronizado. CONOCIMIENTO 4gg. thomas (claude-remote).
 2026-09-25 (16) - RALLADOR (F5A 321 / P2A 840) PAQUETE 3500 -> 2500 (Thomas: "tomá el que dice la planilla"). DB-only. CONOCIMIENTO 4ge/4gg. thomas (claude-remote).
 2026-09-25 (15) - PAQUETE DE CARTON POR CODIGO (Thomas + Conteo_Cartones_VACIO.xlsx hoja Pedido VACIO). 52 cartones con entrega_uni_x+entrega_unidad=paquetes; tablet_bundle y cartones_para_reemplazo: coalesce(entrega_uni_x, formato). F5A/P2A quedan 3500 (hoja 2500, a confirmar). db/funciones sincronizado. Token version.js 20260925h / v1.190.0 (el g quedo en 2 commits por el merge). CONOCIMIENTO 4gg. thomas (claude-remote).
 2026-09-25 (14) - BANDITAM EN BOLSITAS DE 2000 (Thomas). DB: formato nuevo "Bandita Matambre" (uni_x_bolsa 2000, multiplos de Bandita), BANDITAM movido + entrega_unidad=bolsas; tablet_bundle: carton/caja respeta entrega_unidad (default paquetes). db/funciones_GP2.sql sincronizado. CONOCIMIENTO 4gf. thomas (claude-remote).

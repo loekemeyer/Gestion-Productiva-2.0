@@ -6600,8 +6600,8 @@ AS $function$
       when c.sector_id = 10 and coalesce(c.es_pliego,false)
         then (select valor::numeric from "GP2".parametro where clave='pliego_uni_x_paquete')
       when c.sector_id = 10
-        then (select nullif(cf.uni_x_bolsa,0)
-              from "GP2".carton_formato cf where cf.nombre = c.carton_formato)
+        then coalesce(nullif(c.entrega_uni_x,0), (select nullif(cf.uni_x_bolsa,0)
+              from "GP2".carton_formato cf where cf.nombre = c.carton_formato))
       when c.sector_id = 11
         then (select valor::numeric from "GP2".parametro where clave='caja_uni_x_paquete')
       when c.sector_id = 5 then null                      -- fleje se cuenta en kg
