@@ -13133,7 +13133,7 @@ aparezca en cajones el sugerido"*.]
   en poder del PS) ÷ cajón del SC. Ester (factor fijo 1.800) no se tocó.
 - **Cartones a prov. AT** [Thomas: *"Se les manda a Carriero. En paquetes de 3500. El formato rayador es
   en paquetes de 3500"* / *"El 824 y el 825 son tipo corbata. El 026 y 027 son tipo 8"* y enseguida *"Me corrijo. 026 y 027 son tipo huevo"*]:
-  formato `Rallador` uni_x_bolsa null → **3.500** (F5A 321, P2A 840); `C2A` 026 y `C2B` 027 pasan de
+  formato `Rallador` uni_x_bolsa null → ~~3.500~~ **2.500** (F5A 321, P2A 840; ver 4gg); `C2A` 026 y `C2B` 027 pasan de
   Corbata a formato **Huevo** (paquete 2.000). `Q6B` 824 / `Q6C` 825 siguen Corbata: paquete de **1.000** [Thomas: *"1000"*].
   El sugerido de hoy es 0 en todos porque máximo del destino = 0 y el Sector Cartón no tiene stock.
 
@@ -13160,5 +13160,5 @@ dentro de Huevo hay 1.000 y 2.500, dentro de Corb8 1.000 y 2.500, y el 700 (LOKE
   formato y se cargaron por pieza (`entrega_uni_x` + `entrega_unidad='paquetes'`, para que el escritorio
   no los rotule "cajones"): p.ej. M2B 222 = 2.500, M1/M2A/M2C/M3A/M3B = 2.500, C2A/C2B = 2.500,
   O1B 700 = 2.000, 23 Huevo en 1.000. Los otros 85 coinciden con su formato.
-- **No se tomó de la planilla** (manda lo que dijo Thomas hoy): `F5A` 321 y `P2A` 840 = 3.500 (la hoja
-  dice 2.500 → **a confirmar**); 824/825/901 dicen 998/999/1001 → se dejan en 1.000 (typo).
+- `F5A` 321 y `P2A` 840 = **2.500** `[CORRECCIÓN]`: primero se cargó 3.500 (dicho en el chat); Thomas
+  confirmó *"Tomá el que dice la planilla: 2500"* → formato `Rallador` uni_x_bolsa = 2.500. 824/825/901 dicen 998/999/1001 → se dejan en 1.000 (typo).
