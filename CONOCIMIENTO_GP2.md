@@ -13158,6 +13158,10 @@ dentro de Huevo hay 1.000 y 2.500, dentro de Corb8 1.000 y 2.500, y el 700 (LOKE
   **Relevamiento también** (`relev_factor`, Thomas dijo que sí): el paquetón que se cuenta es el del cartón.
   **O.C. no lo usa** (agrupa por múltiplos de pliego). **Recepción NO se tocó**: su "bolsa" es la que manda
   la gráfica (Huevo 2.000 = 8 paquetes de 250), otro envase distinto del paquete de la planilla de conteo.
+- **Los 13 que no estaban en la planilla** quedaron fijos por cartón con el número de su formato [Thomas:
+  *"usa esas uni x paquete"*]: 059/500/510/516/715/818/909 = 1.000 (C), 355/515/590/867/890 = 2.000 (Huevo),
+  708 = 1.000 (LOKE). Ojo: la hoja tenía "590E" (2.500) y "890E" (1.000); **manda lo dicho por Thomas** (2.000).
+  Los Bolsa Cartón (031/120/836 = 7.500) siguen por formato.
 - **Dato:** 137 cartones de la base cruzan con la hoja (`Cartón NNN` = col Cod). **52** difieren del
   formato y se cargaron por pieza (`entrega_uni_x` + `entrega_unidad='paquetes'`, para que el escritorio
   no los rotule "cajones"): p.ej. M2B 222 = 2.500, M1/M2A/M2C/M3A/M3B = 2.500, C2A/C2B = 2.500,
