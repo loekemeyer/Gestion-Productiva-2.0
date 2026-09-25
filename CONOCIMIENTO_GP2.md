@@ -13014,7 +13014,7 @@ unidades y esconde el toggle). **Falta el dato para que el resto ande solo** —
 `kg_x_uni` y `uni_x_cajon` en **null**: (1) sin `kg_x_uni` el control no puede pasar de kg a unidades y
 queda pidiendo unidades (misma trampa que `PCP4A`); (2) el Enviar a tallerista ya carga en kg para todo
 lo que no es cartón/caja (`env_carga='kg'`), pero exige un envase (`uni_x_cajon`) y `kg_x_uni`, si no
-cae a unidades. **Pendiente del dueño: peso por unidad y cuántas por cajón/bolsa de cada uno.**
+cae a unidades. **Peso cargado** [Thomas 2026-09-25]: `kg_x_uni` GRJ21A = 0,00015, GRJ21B = 0,000335 (costo intacto 13,25 / 38,00) → el control ya puede pedir kg. **Sigue pendiente el envase** (cuántas por bolsa/cajón): sin eso el Enviar a tallerista los carga en unidades.
 `[dato]` La Lista de Precios de la planilla trae a 4 Zurdos como **cod. 4444** (cod ISIS 1897 "Prescintos
 Omega" $38, 4966 "Filtro p/Bombilla s/Envasar" $13,25) — `proveedor_insumo.cod_prov` sigue sin cargar.
 
@@ -13026,6 +13026,22 @@ Omega" $38, 4966 "Filtro p/Bombilla s/Envasar" $13,25) — `proveedor_insumo.cod
 - `[dato]` Son los **únicos 2 del sector Fleje (5) con `unidad_medida='unidad'`**; el resto se pesa.
   Por eso `tablet_bundle` ya no manda todo el sector 5 al consumo en kg: sólo el que es `kg`. Antes el
   sugerido a IJUPA daba 0 (commit `2737d21`). Hoy: IC3 15,66 paq., IC3V 1,47 paq. (1 mes de consumo).
+
+### 4fz-bis. Flejes 31/32/33, Varillas B Pera Mini y Alambre Ganchito: al tallerista en PAQUETES / BOLSAS (2026-09-25)
+
+`[usuario]` *"Los flejes 33, 31, 32 y los 2 de batidor pera mini (corto y largo) se manda en paquetes también.
+fleje 33: 13.6kg por paquete. El resto 10kg por paquete"*. Son piezas en **kg**, así que el factor va en kg:
+`entrega_unidad='paquetes'` + `entrega_uni_x` = **13,6** en `IE1` (Fleje N° 33) y **10** en `IE4` (N° 31),
+`IE5` (N° 32), `IVBCM` (Varilla B Pera Corta Mini, N° 96) e `IVBLM` (Larga Mini, N° 95). Se usó
+`entrega_uni_x` y **no** `uni_x_cajon` a propósito: `uni_x_cajon` lo leen 23 funciones (máximos, OC,
+calculadora de cajones) y ese número es del envío, no del stock. Costo intacto.
+
+`[usuario]` *"el alambre aluminio ganchito se manda en bolsas de 1kg"* + *"pesa 0.000165 por uni"*: `Z12`
+(por unidad) → `kg_x_uni=0,000165`, `entrega_unidad='bolsas'`, `entrega_uni_x=6.060,61` uni (= 1 kg).
+**⚠ Movió el costo: Z12 $10,84 → $6,47.** Z12 sale por ruta del `IE8` Fleje N° 55 (matriz 56), y el costeo
+usa el peso de la pieza que sale: antes caía al `kg_x_uni` del fleje (0,0004356 kg/pieza), ahora usa el de
+Z12 (0,000165). **Los dos números no cierran entre sí (×2,6)**: o el fleje N° 55 está mal cargado, o hay
+merma que el costeo ya no ve. Pendiente del dueño.
 
 ## 4ga. El Cepillo Limpia Bombilla es UNA sola pieza: `GRJ28` para 555 y 764; se compra a Gilardi Esther (2026-09-25)
 
