@@ -6,6 +6,11 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
+<!-- v3.63.0 (2026-09-25) — LA BOLSA DE CARTÓN TRAE LO QUE DICE EL CARTÓN [Thomas: "trae las unidades
+     que dice el uni x paquete x cartón que acabas de cargar"]. componente.entrega_uni_x (la col "Uni x
+     Paq" de la planilla de conteo) manda sobre el formato: el 222 viene de 2.500 = 10 paquetes de 250,
+     no de 1.000 como el LOKE. Sin ese dato, como antes (formato). Mismo orden en
+     guardar_control_cartones. -->
 <!-- v3.62.0 (2026-09-25) — EL REMITO PUEDE VENIR CONTADO EN EL ENVASE DE LA PIEZA (usuario, sobre el
      C13 Corta Queso Bastidor c/Cilindro: "se recepciona en cajas de 144 uni y se le manda a lucho en
      esas cajas" + "Sí" a que la recepción también sea en cajas). componente.remito_unidad acepta un
@@ -1349,7 +1354,8 @@ function pintarItems(list){
     // No aparece +N para formato Bolsa (sin bolsa definida) — solo +1.
     var quick = '';
     if (GP2UI.esCarton(i)){
-      var pxb = Number(i.paq_x_bolsa)||0;
+      // con paquete propio del cartón (entrega_uni_x) el +N sale de ése: 2.500 = +10
+      var pxb = Number(cartonUxp(i) ? paqXBolsaDelItem(i) : i.paq_x_bolsa)||0;
       var qb = '';
       // Para pliegos formato "Pliego" (ex-Bombilla) el +N es +1 igual (1 paq=100 pliegos) — no tiene sentido duplicar.
       if (pxb>1) qb += '<button class="qbtn qbtn-primary" data-qn="'+pxb+'">+'+pxb+'</button>';
@@ -1664,12 +1670,24 @@ function esPliegoIt(it){ return !!(it && it.es_pliego); }
 function uniXCtlItem(it){
   // Unidades por unidad de control (bolsa o paquete de pliegos)
   if (esPliegoIt(it)) return UNI_X_PAQ_PLIEGO;
+  // La bolsa trae lo que dice el CARTÓN (componente.entrega_uni_x, la col "Uni x Paq" de la
+  // planilla de conteo) y solo sin ese dato cae al formato [Thomas 2026-09-25: "trae las
+  // unidades que dice el uni x paquete x cartón"]. Mismo orden que guardar_control_cartones.
+  var fc = cartonUxp(it);
+  if (fc) return fc;
   var f = it && it.carton_formato;
   if (!f) return null;
   return UNI_X_BOLSA[f]==null ? null : UNI_X_BOLSA[f];
 }
+function cartonUxp(it){
+  var f = Number(it && it.entrega_uni_x);
+  return (it && Number(it.sector_id)===10 && !esPliegoIt(it) && f>0) ? f : null;
+}
 function paqXBolsaDelItem(it){
   if (esPliegoIt(it)) return null;
+  // con paquete propio del cartón los paquetes de 250 salen de ESE número (2.500 = 10 paq)
+  var fc = cartonUxp(it);
+  if (fc) return Math.round(fc/PAQ());
   // Fuente de verdad: catalogo GP2.carton_formato.paq_x_bolsa (viene en el bundle).
   // Fallback: derivar de uni_x_bolsa / uni_x_paquete (valido cuando la bolsa es multiplo
   // exacto del paquete, ej C=4, Huevo=8, LOKE=4; el formato 8 va explicito en catalogo).
@@ -1707,13 +1725,13 @@ function actualizarAvisoMultiplo(){
     if (m.classList.contains('warn')){ m.className='status'; m.textContent=''; }
     return;
   }
-  var pxb = Number(itemSel.paq_x_bolsa)||0;
+  var pxb = Number(paqXBolsaDelItem(itemSel))||0;
   var v = parseNum($('kgValue').value);
   if (!(pxb>0) || !(v>0) || (v % pxb)===0){
     if (m.classList.contains('warn')){ m.className='status'; m.textContent=''; }
     return;
   }
-  var uxb = Number(itemSel.uni_x_bolsa_cat)||(pxb*PAQ());
+  var uxb = Number(uniXCtlItem(itemSel))||Number(itemSel.uni_x_bolsa_cat)||(pxb*PAQ());
   var fmtLbl = itemSel.carton_formato==='8' ? 'Ocho' : (itemSel.carton_formato||'?');
   var bolsas = Math.floor(v/pxb), sueltos = v - bolsas*pxb;
   m.className='status warn';

@@ -4,6 +4,7 @@
 (vacío)
 
 [HISTORIAL]
+2026-09-25 (19) - RECEPCION: LA BOLSA DE CARTON = PAQUETE DEL CARTON (Thomas). guardar_control_cartones: coalesce(entrega_uni_x, formato); RecepcionInsumos v3.63.0 cartonUxp (uniXCtlItem, paqXBolsa, +N, aviso multiplo). db/funciones sincronizado. version v1.191.0. CONOCIMIENTO 4gg. thomas (claude-remote).
 2026-09-25 (18) - 13 CARTONES FUERA DE LA PLANILLA CON PAQUETE FIJO (Thomas): entrega_uni_x = el de su formato (C 1000, Huevo 2000, LOKE 1000) + paquetes. DB-only. CONOCIMIENTO 4gg. thomas (claude-remote).
 2026-09-25 (19) - BOLSAS SIN FORMATO (Thomas). DB-only: A1B/A1B1/G8C "Carton"->"Bolsa"; BOLSA550->A1B2, BOLSA760->G8C1; las 5 con carton_formato NULL y paquete en entrega_uni_x (7500 Vihal / 200 Papelera). Se pierde el aviso OC min 20.000. CONOCIMIENTO 4gh. thomas (claude-remote).
 2026-09-25 (18) - TABLET SIN CARTEL DE ALERTAS (Thomas: "Que no aparezcan mas alertas"). avisoAlertas() devuelve "": se saca el "N alertas de recepcion sin revisar". Las alertas se siguen generando (Alertas/alertas_GP2.html) y el aviso "recibi de mas" al recibir sigue. Antes se cerro la alerta 6 (C12B Alex Escalante, 100 contra 0). Tablet v1.36.2 no-cache. Suite 58/58. thomas (claude-remote).

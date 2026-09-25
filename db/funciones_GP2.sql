@@ -4182,7 +4182,7 @@ BEGIN
     --   - pliegos (es_pliego=true): SIEMPRE 100 (100 pliegos por paquete, regla usuario 2026-09-01)
     --   - cartones (es_pliego=false): desde carton_formato.uni_x_bolsa
     v_uxb := NULL; v_fmt := NULL; v_es_pliego := false;
-    SELECT c.carton_formato, cf.uni_x_bolsa, c.es_pliego
+    SELECT c.carton_formato, coalesce(nullif(c.entrega_uni_x,0), cf.uni_x_bolsa), c.es_pliego
       INTO v_fmt, v_uxb, v_es_pliego
       FROM "GP2".componente c
       LEFT JOIN "GP2".carton_formato cf ON cf.nombre = c.carton_formato

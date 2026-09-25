@@ -13156,8 +13156,10 @@ dentro de Huevo hay 1.000 y 2.500, dentro de Corb8 1.000 y 2.500, y el 700 (LOKE
 - **Regla nueva:** `componente.entrega_uni_x` del cartón manda; si está en null cae a
   `carton_formato.uni_x_bolsa`. Cambiado en `tablet_bundle` (env_factor) y `cartones_para_reemplazo`.
   **Relevamiento también** (`relev_factor`, Thomas dijo que sí): el paquetón que se cuenta es el del cartón.
-  **O.C. no lo usa** (agrupa por múltiplos de pliego). **Recepción NO se tocó**: su "bolsa" es la que manda
-  la gráfica (Huevo 2.000 = 8 paquetes de 250), otro envase distinto del paquete de la planilla de conteo.
+  **O.C. no lo usa** (agrupa por múltiplos de pliego). **Recepción también** [Thomas: *"Trae las unidades que
+  dice el uni x paquete x cartón que acabas de cargar"*]: la bolsa de la gráfica = `entrega_uni_x` del cartón
+  (2.500 = 10 paquetes de 250, +10 en la tarjeta); sin dato, el formato. `guardar_control_cartones` y
+  RecepcionInsumos v3.63.0 (`cartonUxp`).
 - **Los 13 que no estaban en la planilla** quedaron fijos por cartón con el número de su formato [Thomas:
   *"usa esas uni x paquete"*]: 059/500/510/516/715/818/909 = 1.000 (C), 355/515/590/867/890 = 2.000 (Huevo),
   708 = 1.000 (LOKE). Ojo: la hoja tenía "590E" (2.500) y "890E" (1.000); **manda lo dicho por Thomas** (2.000).
