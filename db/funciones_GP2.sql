@@ -1413,7 +1413,7 @@ with propios as (
 todos as (
   select c.id comp_id, c.codigo cod, c.descripcion descr, c.sector_id sec_id, s.nombre sector,
          case when c.sector_id = 10
-                then (select f.uni_x_bolsa from carton_formato f where f.nombre = c.carton_formato)
+                then coalesce(nullif(c.entrega_uni_x,0), (select f.uni_x_bolsa from carton_formato f where f.nombre = c.carton_formato))
               else (select pa.valor::numeric from parametro pa where pa.clave = 'caja_uni_x_paquete')
          end factor,
          coalesce((select i.cantidad from inventario i
@@ -7943,7 +7943,7 @@ select jsonb_build_object(
                                   then case when sec_id in (10,11) then coalesce(nullif(btrim(ent_uni),''), 'paquetes')
                                             else coalesce(nullif(btrim(ent_uni),''), 'cajones') end end,
              'env_factor', case when tipo in ('tallerista','proveedor_at') then case
-                                  when sec_id = 10 then (select f.uni_x_bolsa from carton_formato f where f.nombre = cfmt)
+                                  when sec_id = 10 then coalesce(nullif(ent_ux,0), (select f.uni_x_bolsa from carton_formato f where f.nombre = cfmt))
                                   when sec_id = 11 then (select pa.valor::numeric from parametro pa
                                                           where pa.clave = 'caja_uni_x_paquete')
                                   else coalesce(nullif(ent_ux,0), uxc) end end,

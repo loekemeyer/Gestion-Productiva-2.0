@@ -13146,3 +13146,19 @@ no arrastrar a la otra, se hizo lo mismo que con "Bolsa Cartón" (4fx): formato 
 - **Rótulo:** `tablet_bundle` ponía "paquetes" fijo a todo cartón/caja; ahora respeta
   `componente.entrega_unidad` si está cargado (hoy solo `BANDITAM='bolsas'`, único del sector 10/11 con
   dato) → la Tablet dice **bolsas**. Sin dato sigue diciendo paquetes.
+
+## 4gg. El paquete de envío del cartón es POR CÓDIGO, no por formato (2026-09-25)
+
+[Thomas, con `Conteo_Cartones_VACIO.xlsx`: *"para poner el sugerido en paquetes busca según el código de
+artículo… si es cartón 222 busca en la columna de código 222 y después en la columna de uni por paquete
+tenés el dato"* / *"En la hoja pedido vacio"*.] La planilla muestra que el paquete **no es del formato**:
+dentro de Huevo hay 1.000 y 2.500, dentro de Corb8 1.000 y 2.500, y el 700 (LOKE) va de 2.000.
+- **Regla nueva:** `componente.entrega_uni_x` del cartón manda; si está en null cae a
+  `carton_formato.uni_x_bolsa`. Cambiado en `tablet_bundle` (env_factor) y `cartones_para_reemplazo`.
+  OC, Recepción y Relevamiento siguen leyendo el formato (no se tocaron).
+- **Dato:** 137 cartones de la base cruzan con la hoja (`Cartón NNN` = col Cod). **52** difieren del
+  formato y se cargaron por pieza (`entrega_uni_x` + `entrega_unidad='paquetes'`, para que el escritorio
+  no los rotule "cajones"): p.ej. M2B 222 = 2.500, M1/M2A/M2C/M3A/M3B = 2.500, C2A/C2B = 2.500,
+  O1B 700 = 2.000, 23 Huevo en 1.000. Los otros 85 coinciden con su formato.
+- **No se tomó de la planilla** (manda lo que dijo Thomas hoy): `F5A` 321 y `P2A` 840 = 3.500 (la hoja
+  dice 2.500 → **a confirmar**); 824/825/901 dicen 998/999/1001 → se dejan en 1.000 (typo).
