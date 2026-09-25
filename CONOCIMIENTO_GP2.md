@@ -13206,3 +13206,6 @@ Nueve de Julio; **NO** a los pliegos de AJ Adhesivos ni a los 2 C de Blist-Pack,
 vista"*.] `[CORRECCIÓN]` Estaban cruzados: `CV18D` Tornillo Sacafuente p/Niquelar decía **Tornillos
 Suipacha** → **Imel**; `W8` Vástago Sacafuente Pizzero decía **Imel** → **Bella Vista**. Costo neutro (diff
 de `v_costo_componente` vacío). Afecta en qué proveedor aparecen en OC y Recepción de Insumos.
+- **Tornillos Suipacha dado de baja** (`proveedor_insumo.activo=false`) [Thomas: *"dalo de baja porque no le
+  compramos más el tornillo corta queso"*]. Tras pasar `CV18D` a Imel no le quedaba ninguna pieza, ni proveedor
+  alternativo, ni O.C. abierta. No se borra: queda para el historial de O.C. y recepciones.
