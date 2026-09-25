@@ -13003,3 +13003,13 @@ fabricados por ruta, el sector no cambia su costeo). El código se referencia po
 bien que no tenga descomposición"*]: `componente.proveedor='Cimarron'` en los dos (el proveedor existe
 en `proveedor_insumo` sin tilde). Cada uno ya tiene su `precio_proveedor` (de ahí el costo 13,25 / 38,00),
 y `componente_bom` como padre = 0 (correcto: son comprados, no armados). No hace falta receta.
+
+### 4fz. IC3 / IC3V (Fleje N° 90 corto / largo): fleje que se CUENTA, en paquetes de 10 kg (2026-09-25)
+
+- `[usuario 2026-09-25]` *"IC3 e IC3V vienen en paquetes de 10kg cada uno."* → `entrega_unidad='paquetes'`
+  en los dos; `uni_x_cajon` = unidades por paquete: IC3 1.205 (10 / 0,0083), IC3V **746** (10 / 0,0134;
+  antes decía 24, que daba un "cajón" de 0,32 kg).
+- `[dato]` Son los **únicos 2 del sector Fleje (5) con `unidad_medida='unidad'`**; el resto se pesa.
+  Por eso `tablet_bundle` ya no manda todo el sector 5 al consumo en kg: sólo el que es `kg`. Antes el
+  sugerido a IJUPA daba 0 (commit `2737d21`). Hoy: IC3 15,66 paq., IC3V 1,47 paq. (1 mes de consumo).
+
