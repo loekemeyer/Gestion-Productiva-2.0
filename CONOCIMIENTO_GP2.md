@@ -8113,9 +8113,9 @@ Tres casos que no cierran en un sí/no:
 **Lo más atrasado es Prov Servicio, en 0 de 11**: New Metal, Chormium, Gaston Almafuerte y Valeria
 siguen sin cargarse.
 
-**PENDIENTE del usuario** (dijo "2 limpia" y quedó sin definir qué): (a) `GRJ28` y `GRJ29` tienen
+**PENDIENTE del usuario** (dijo "2 limpia" y quedó sin definir qué): (a) ~~`GRJ28` y `GRJ29` tienen
 la MISMA descripción "Cepillo Limpia Bombilla" — son el 555 Loeke y el 764 Chef, y habría que
-distinguirlos como se hizo con GRJ13/GRJ14; (b) `GRJ21` "Bowls 330ml" está discontinuo y es resto
+distinguirlos como se hizo con GRJ13/GRJ14~~ → **resuelto 2026-09-25: se unificaron en `GRJ28`** (ver 4ga); (b) `GRJ21` "Bowls 330ml" está discontinuo y es resto
 de la numeración vieja.
 
 ### 4cc. El mango de Maspoli viene CON LA VIROLA PUESTA (2026-09-12)
@@ -13015,3 +13015,15 @@ armados). No hace falta receta.
 - `[dato]` Son los **únicos 2 del sector Fleje (5) con `unidad_medida='unidad'`**; el resto se pesa.
   Por eso `tablet_bundle` ya no manda todo el sector 5 al consumo en kg: sólo el que es `kg`. Antes el
   sugerido a IJUPA daba 0 (commit `2737d21`). Hoy: IC3 15,66 paq., IC3V 1,47 paq. (1 mes de consumo).
+
+## 4ga. El Cepillo Limpia Bombilla es UNA sola pieza: `GRJ28` para 555 y 764; se compra a Gilardi Esther (2026-09-25)
+
+[usuario, Thomas] *"En sector garage hay dos cepillos limpiabombilla. GRJ29 y GRJ28. Unificalos porque el
+555 y el 764, ambos artículos usan GRJ28"* + *"Y se lo compramos a Gilardi Esther"*.
+
+- `GRJ29` (id 900) **se borró**: stock 0 en todas las ubicaciones, 0 movimientos, sin precios ni OC.
+- Receta del 764 (`articulo_componente` 894) y su ruta 949 (pasos 3666/3667, insumo → Gentile) apuntan a `GRJ28` (899).
+- Inventario: la fila de GRJ29 en Sector Garage se borró y el máximo de GRJ28 pasó a 3.816 + 984 = 4.800
+  (suma de los dos máximos Est Madre); la fila de Gentile (ubic 28, stock 0) pasó a GRJ28.
+- `GRJ28.proveedor` Cimarron → **Gilardi Esther** (id 30, rubro Sector Garage). Corrige lo anotado el 2026-09-13
+  (Cimarrón). Sin precio cargado: costo sigue en 0 para esa pieza.
