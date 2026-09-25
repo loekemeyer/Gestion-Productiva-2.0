@@ -7036,6 +7036,10 @@ AS $function$
         -- Misma columna que usa la Tablet: la plancha de niquel de CC Galvanoquimica viene
         -- pesada aunque el resto del Sector Plastico se cuente [usuario 2026-09-23].
         'remito_unidad',c.remito_unidad,
+        -- remito_unidad='envase': el remito viene contado en el envase de la pieza
+        -- (entrega_unidad x entrega_uni_x). Caso C13 Corta Queso Bastidor: cajas de 144
+        -- [usuario 2026-09-25]. La pantalla lo pasa a unidades al guardar.
+        'entrega_unidad',c.entrega_unidad,'entrega_uni_x',c.entrega_uni_x,
         'proveedor',nullif(trim(c.proveedor),''),
         -- proveedores ALTERNATIVOS que entregan la misma pieza (componente_proveedor_alt).
         -- El principal sigue siendo c.proveedor: esto no cambia OC ni costo, solo hace que

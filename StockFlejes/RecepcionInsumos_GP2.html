@@ -6,6 +6,14 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
+<!-- v3.62.0 (2026-09-25) — EL REMITO PUEDE VENIR CONTADO EN EL ENVASE DE LA PIEZA (usuario, sobre el
+     C13 Corta Queso Bastidor c/Cilindro: "se recepciona en cajas de 144 uni y se le manda a lucho en
+     esas cajas" + "Sí" a que la recepción también sea en cajas). componente.remito_unidad acepta un
+     tercer valor, 'envase': el operario carga CAJAS y la pantalla guarda cajas x entrega_uni_x en
+     unidades (3 cajas = 432 uni). El envase es el MISMO dato que usa la Tablet para mandarlo a Lucho
+     (entrega_unidad='cajas', entrega_uni_x=144), así que el 144 vive en un solo lugar;
+     recepcion_bundle lo trae. Si la pieza dice 'envase' pero le falta el factor, remUnidad() no lo
+     reconoce y la pieza cae a su regla de siempre (importado -> unidades): nunca se multiplica por 0. -->
 <!-- v3.61.1 (2026-09-23) — EL BUJE MARIPOSA ES DE KOLLPLAST Y SU REMITO VIENE EN UNIDADES
      [usuario: "Los dos bujes mariposa ahora se los compramos a Kollplast. Remito en uni control
      en kg"]. PA8A/PA8B pasaron de Pat Bet a Kollplast en la base (componente.proveedor +
@@ -821,7 +829,16 @@ function provPlastUni(nom){ return PLAST_UNI.indexOf(String(nom||'').trim().toLo
    pesada" en toda la casa, en vez de una lista de proveedores por pantalla. */
 function remUnidad(it){
   var r = String((it && it.remito_unidad) || '').toLowerCase();
+  if (r === 'envase') return envaseRemito(it) ? 'envase' : '';
   return (r === 'kg' || r === 'uni') ? r : '';
+}
+/* El envase en el que viene contado el remito cuando remito_unidad='envase': {label, factor}, con
+   factor = unidades por envase (componente.entrega_uni_x). null si falta el dato. Hoy C13, cajas
+   de 144 [usuario 2026-09-25]. */
+function envaseRemito(it){
+  var f = Number(it && it.entrega_uni_x);
+  if (!(f > 0)) return null;
+  return { label: String((it && it.entrega_unidad) || 'envases'), factor: f };
 }
 function cargaEnUni(it){
   if (!it) return false;
@@ -1665,6 +1682,9 @@ function updateConv(){
   var v=parseNum($('kgValue').value);
   if(unitSel==='paq'){
     d.textContent=v>0?('= '+fmt(v*PAQ())+' unidades'):'';
+  } else if(unitSel==='env'){
+    var evc=itemSel&&envaseRemito(itemSel);
+    d.textContent=(v>0&&evc)?('= '+fmt(v*evc.factor)+' unidades'):'';
   } else {
     var kx=itemSel&&KGXUNI[itemSel.comp_id];
     if(unitSel==='uni'&&kx){ d.textContent=v>0?('= '+fmtKgUni(v*kx)+' kg'):''; }
@@ -1725,9 +1745,17 @@ function abrirPopup(i){
   if(remUnidad(i)){
     $('unitRow').classList.add('hidden');
     var uPieza=remUnidad(i);
-    $('kgValue').placeholder = uPieza==='kg' ? 'kg del remito' : 'unidades del remito';
-    $('kgValueLabel').textContent = uPieza==='kg' ? 'Cantidad kg' : 'Cantidad uni';
-    setUnit(uPieza);
+    if(uPieza==='envase'){
+      // el remito viene contado en el envase (C13: cajas de 144); se guarda en unidades
+      var ev=envaseRemito(i);
+      $('kgValue').placeholder = ev.label+' de '+fmt(ev.factor)+' uni';
+      $('kgValueLabel').textContent = 'Cantidad '+ev.label;
+      setUnit('env');
+    } else {
+      $('kgValue').placeholder = uPieza==='kg' ? 'kg del remito' : 'unidades del remito';
+      $('kgValueLabel').textContent = uPieza==='kg' ? 'Cantidad kg' : 'Cantidad uni';
+      setUnit(uPieza);
+    }
   // Cartones: el proveedor entrega PAQUETES (alturas de 250 unidades siempre).
   // Se carga en paquetes y se guarda convertido a unidades.
   // EXCEPCION pliegos (formato Pliego C / Bombilla): el remito viene en UNIDADES
@@ -2853,6 +2881,8 @@ async function guardar(){
   var kx=KGXUNI[itemSel.comp_id];
   var cant=cantRaw, uReal=unitSel;
   if(unitSel==='paq'){ cant=cantRaw*PAQ(); uReal='uni'; }
+  // remito en el envase de la pieza (remito_unidad='envase'): cajas x uni por caja = unidades
+  else if(unitSel==='env'){ cant=cantRaw*envaseRemito(itemSel).factor; uReal='uni'; }
   // Los rubros de cargaEnUni (remaches, bombillas, plasticos de piezas) NO se
   // convierten: se guardan tal como los tipeo el operario, en unidades, que es
   // la unidad canonica del inventario de esos sectores.
@@ -2904,7 +2934,7 @@ async function guardar(){
     pushPend(itemSel, {
       modo: modoFinal,
       cant: cant, cantRaw: cantRaw,
-      unidad: uReal, unidadRaw: unitSel,
+      unidad: uReal, unidadRaw: (unitSel==='env' ? envaseRemito(itemSel).label : unitSel),
       rollos: rll, pallets: pll, paquetes: paquetesPend,
       pideControl: pideControl,
       esCarton: esCarton, esPliego: pliegoIt, esFleje: esFleje(itemSel),
@@ -2917,6 +2947,8 @@ async function guardar(){
     if (esCarton){
       var uniLbl = pliegoIt ? ('pliego'+(cantRaw===1?'':'s')) : ('paquete'+(cantRaw===1?'':'s'));
       lblCant = fmt(cantRaw)+' '+uniLbl;
+    } else if (unitSel==='env'){
+      lblCant = fmt(cantRaw)+' '+esc(envaseRemito(itemSel).label)+' (= '+fmt(cant)+' uni)';
     } else if (unitSel==='uni' && uReal==='kg'){
       // Se cargo en unidades y se guardo convertido a kg (remaches y cualquier
       // insumo con kg_x_uni): mostrar LO QUE TIPEO primero y el kg entre
@@ -3018,7 +3050,7 @@ function calcPallet(p){
 $('kgValue').addEventListener('input', function(){
   var esDec = (unitSel==='kg' || unitSel==='paq') ? true : (unitSel==='kg');
   // paq son enteros (paquetes), uni son enteros (unidades del remito), kg decimal.
-  var entero = (unitSel==='uni' || unitSel==='paq');
+  var entero = (unitSel==='uni' || unitSel==='paq' || unitSel==='env');
   sanInput($('kgValue'), entero ? sanInt : sanDec);
   updateConv();
 });

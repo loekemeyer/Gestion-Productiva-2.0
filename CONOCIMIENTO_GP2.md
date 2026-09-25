@@ -13066,6 +13066,19 @@ Modelado igual que el caso hermano `Z31` Descorazonador (mismo sector, cajas de 
 - **Tablet → Enviar → Lucho:** `tablet_bundle` ya manda `env_unidad='cajas'`, `env_factor=144`.
   Medido: sugerido 7.854 uni = **55 cajas** (techo). Como `C13` no tiene `kg_x_uni`, la cantidad
   también se escribe **en cajas** (no en kg) — correcto: se manda la caja cerrada.
-- **Recepción de insumos NO lee el envase** (`entrega_unidad` sólo lo usan Tablet, Envío
-  Talleristas escritorio y Control Entrega PS): el remito del C13 se sigue cargando en unidades.
-- Sin código ni bump: dato puro. `db/` no cambia.
+- ~~Recepción de insumos NO lee el envase: el remito del C13 se sigue cargando en unidades.~~
+  **Corregido el mismo día** (ver abajo).
+
+**Remito en cajas + peso (mismo día)** [Thomas: *"Sí"* a recibirlo en cajas; *"4.4kg por caja. Hacé la
+cuenta"*]:
+- **Peso:** `C13.kg_x_uni` = 4,4 / 144 = **0,030556 kg/uni** (antes null). Medido: `v_costo_componente`
+  idéntico antes/después (805 filas, total $526.858,63, hash igual; C13 sigue $1.047,20 porque es
+  comprado, su costo es el precio). Efecto en la Tablet: como ahora hay peso, la **cantidad** del envío a
+  Lucho se escribe en **kg** con el renglón "= N cajas" debajo (4,4 kg = 1 caja), igual
+  que el Z31 y el resto de los talleristas; el **sugerido sigue en cajas** (55).
+- **Recepción en cajas:** `componente.remito_unidad` acepta un tercer valor, **`'envase'`** (check
+  `componente_remito_unidad_chk` ampliado): el remito viene contado en el envase de la pieza
+  (`entrega_unidad` × `entrega_uni_x`). `recepcion_bundle` ahora manda `entrega_unidad`/`entrega_uni_x`, y
+  `RecepcionInsumos_GP2.html` v3.62.0 pide "Cantidad cajas" y guarda cajas × 144 en **unidades** (3 cajas
+  = 432 uni). El 144 vive en un solo lugar: el mismo dato con que la Tablet se lo manda a Lucho.
+  Sin factor, `'envase'` no se reconoce y la pieza cae a su regla de siempre (importado → unidades).
