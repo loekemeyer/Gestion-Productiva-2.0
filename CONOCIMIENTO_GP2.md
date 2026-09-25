@@ -13016,7 +13016,7 @@ queda pidiendo unidades (misma trampa que `PCP4A`); (2) el Enviar a tallerista y
 lo que no es cartón/caja (`env_carga='kg'`), pero exige un envase (`uni_x_cajon`) y `kg_x_uni`, si no
 cae a unidades. **Peso cargado** [Thomas 2026-09-25]: `kg_x_uni` GRJ21A = 0,00015, GRJ21B = 0,000335 (costo intacto 13,25 / 38,00) → el control ya puede pedir kg. **Sigue pendiente el envase** (cuántas por bolsa/cajón): sin eso el Enviar a tallerista los carga en unidades.
 `[dato]` La Lista de Precios de la planilla trae a 4 Zurdos como **cod. 4444** (cod ISIS 1897 "Prescintos
-Omega" $38, 4966 "Filtro p/Bombilla s/Envasar" $13,25) — `proveedor_insumo.cod_prov` sigue sin cargar.
+Omega" $38, 4966 "Filtro p/Bombilla s/Envasar" $13,25) — `[usuario 2026-09-25: "sí"]` cargado `proveedor_insumo.cod_prov='4444'` (costos 13,25/38,00 intactos).
 
 ### 4fz. IC3 / IC3V (Fleje N° 90 corto / largo): fleje que se CUENTA, en paquetes de 10 kg (2026-09-25)
 
@@ -13040,8 +13040,8 @@ calculadora de cajones) y ese número es del envío, no del stock. Costo intacto
 (por unidad) → `kg_x_uni=0,000165`, `entrega_unidad='bolsas'`, `entrega_uni_x=6.060,61` uni (= 1 kg).
 **⚠ Movió el costo: Z12 $10,84 → $6,47.** Z12 sale por ruta del `IE8` Fleje N° 55 (matriz 56), y el costeo
 usa el peso de la pieza que sale: antes caía al `kg_x_uni` del fleje (0,0004356 kg/pieza), ahora usa el de
-Z12 (0,000165). **Los dos números no cierran entre sí (×2,6)**: o el fleje N° 55 está mal cargado, o hay
-merma que el costeo ya no ve. Pendiente del dueño.
+Z12 (0,000165). **Los dos números no cierran entre sí (×2,6)** → `[usuario 2026-09-25]` *"tiene desperdicio"*: el 0,0004356 es `1/matriz.partes_por_kilo_de_fleje` de la matriz 56, que **incluye el scrap**.
+**Choca con la regla de costeo vigente (§ costeo, punto 3):** el material del fleje usa el `kg_x_uni` de la pieza (sin scrap) y sólo cae a `partes_por_kilo_de_fleje` si falta el peso. `[dato 2026-09-25]` De 51 piezas que salen de fleje por matriz con los dos datos, **45 tienen consumo de matriz > peso de pieza** (+5 %): el costo de todas ignora el desperdicio, no sólo el de Z12. **NO se cambió la vista** — es una decisión de costeo global (sube el costo de ~45 piezas), pendiente del dueño. Z12 queda en $6,47 hasta entonces.
 
 ## 4ga. El Cepillo Limpia Bombilla es UNA sola pieza: `GRJ28` para 555 y 764; se compra a Gilardi Esther (2026-09-25)
 
