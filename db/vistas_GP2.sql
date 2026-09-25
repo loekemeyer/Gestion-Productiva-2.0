@@ -15,10 +15,7 @@ create or replace view "GP2".v_caj_contraparte as
             max(m.fecha) AS ultimo
            FROM "GP2".movimiento m
              JOIN "GP2".ubicacion u ON u.id = m.ubic_destino_id
-          WHERE (u.tipo = ANY (ARRAY['proveedor_servicio'::text, 'tallerista'::text]))
-            AND m.comp_transformado_id IS NULL
-            AND COALESCE(m.cajones, 0::numeric) > 0::numeric
-            AND COALESCE(m._delta_dest, 0::numeric) > 0::numeric
+          WHERE (u.tipo = ANY (ARRAY['proveedor_servicio'::text, 'tallerista'::text])) AND m.comp_transformado_id IS NULL AND COALESCE(m.cajones, 0::numeric) > 0::numeric AND COALESCE(m._delta_dest, 0::numeric) > 0::numeric
           GROUP BY m.ubic_destino_id, m.comp_id
         )
  SELECT ubicacion_id,
@@ -132,17 +129,33 @@ create or replace view "GP2".v_consumo_fleje_kg as
          SELECT DISTINCT r.articulo_id AS art_id,
             rp.comp_entrada_id AS fleje_id,
             rp.comp_salida_id AS sal,
-            m.partes_por_kilo_de_fleje AS ppk
+            m.partes_por_kilo_de_fleje AS ppk,
+            NULL::numeric AS kgxuni
            FROM "GP2".ruta_paso rp
              JOIN "GP2".ruta r ON r.id = rp.ruta_id
              JOIN "GP2".componente ce ON ce.id = rp.comp_entrada_id AND ce.sector_id = 5
              JOIN "GP2".matriz m ON m.id = rp.matriz_id
           WHERE r.articulo_id IS NOT NULL AND rp.comp_salida_id IS NOT NULL AND COALESCE(m.partes_por_kilo_de_fleje, 0::numeric) > 0::numeric
+        UNION ALL
+         SELECT DISTINCT r.articulo_id,
+            rp.comp_entrada_id,
+            rp.comp_salida_id,
+            NULL::numeric AS "numeric",
+            ce.kg_x_uni
+           FROM "GP2".ruta_paso rp
+             JOIN "GP2".ruta r ON r.id = rp.ruta_id
+             JOIN "GP2".componente ce ON ce.id = rp.comp_entrada_id AND ce.sector_id = 5
+             LEFT JOIN "GP2".matriz m ON m.id = rp.matriz_id
+          WHERE r.articulo_id IS NOT NULL AND rp.comp_salida_id IS NOT NULL AND rp.comp_salida_id <> rp.comp_entrada_id AND rp.tipo_paso <> 'ingreso'::text AND COALESCE(m.partes_por_kilo_de_fleje, 0::numeric) = 0::numeric AND COALESCE(ce.kg_x_uni, 0::numeric) > 0::numeric
         )
  SELECT f.id AS componente_id,
     f.codigo,
     f.descripcion,
-    round(sum(d.uni_mes / p.ppk), 1) AS consumo_kg_mes,
+    round(sum(
+        CASE
+            WHEN p.ppk IS NOT NULL THEN d.uni_mes / p.ppk
+            ELSE d.uni_mes * p.kgxuni
+        END), 1) AS consumo_kg_mes,
     count(*) AS piezas
    FROM paso p
      JOIN "GP2".v_consumo_demanda d ON d.articulo_id = p.art_id AND d.componente_id = p.sal
@@ -216,25 +229,28 @@ UNION
 comment on view "GP2".v_contraparte_parte is 'Que componente ENTRA (lado=entrada: se le manda) y SALE (lado=salida: devuelve hecho) por cada contraparte (tipo + ref_id), derivado de ruta_paso. Unica definicion (2026-09-05).';
 
 -- ---------- v_componente_muerto ----------
-create or replace view "GP2".v_componente_muerto as
 -- Un componente esta MUERTO cuando pertenece a algun articulo DISCONTINUADO (por ruta o receta)
 -- y NO pertenece a ningun articulo ACTIVO (ni por ruta ni por receta). Si se usa en un activo,
 -- no aparece aca y se conserva. [2026-09-24, dueno: la regla vale para insumo, prov AT, prov
 -- servicio y tallerista, envio y recepcion; del programa no se hace nada mas con estos componentes.]
-select c.id as comp_id
-from "GP2".componente c
-where (
-   exists (select 1 from "GP2".ruta_paso rp join "GP2".ruta r on r.id = rp.ruta_id
-           join "GP2".articulo a on a.id = r.articulo_id
-           where a.discontinuado and (rp.comp_entrada_id = c.id or rp.comp_salida_id = c.id))
-   or exists (select 1 from "GP2".articulo_componente ac join "GP2".articulo a on a.id = ac.articulo_id
-              where a.discontinuado and ac.componente_id = c.id)
-)
-and not exists (select 1 from "GP2".ruta_paso rp join "GP2".ruta r on r.id = rp.ruta_id
-                join "GP2".articulo a on a.id = r.articulo_id
-                where not coalesce(a.discontinuado,false) and (rp.comp_entrada_id = c.id or rp.comp_salida_id = c.id))
-and not exists (select 1 from "GP2".articulo_componente ac join "GP2".articulo a on a.id = ac.articulo_id
-                where not coalesce(a.discontinuado,false) and ac.componente_id = c.id);
+create or replace view "GP2".v_componente_muerto as
+ SELECT id AS comp_id
+   FROM "GP2".componente c
+  WHERE ((EXISTS ( SELECT 1
+           FROM "GP2".ruta_paso rp
+             JOIN "GP2".ruta r ON r.id = rp.ruta_id
+             JOIN "GP2".articulo a ON a.id = r.articulo_id
+          WHERE a.discontinuado AND (rp.comp_entrada_id = c.id OR rp.comp_salida_id = c.id))) OR (EXISTS ( SELECT 1
+           FROM "GP2".articulo_componente ac
+             JOIN "GP2".articulo a ON a.id = ac.articulo_id
+          WHERE a.discontinuado AND ac.componente_id = c.id))) AND NOT (EXISTS ( SELECT 1
+           FROM "GP2".ruta_paso rp
+             JOIN "GP2".ruta r ON r.id = rp.ruta_id
+             JOIN "GP2".articulo a ON a.id = r.articulo_id
+          WHERE NOT COALESCE(a.discontinuado, false) AND (rp.comp_entrada_id = c.id OR rp.comp_salida_id = c.id))) AND NOT (EXISTS ( SELECT 1
+           FROM "GP2".articulo_componente ac
+             JOIN "GP2".articulo a ON a.id = ac.articulo_id
+          WHERE NOT COALESCE(a.discontinuado, false) AND ac.componente_id = c.id));
 comment on view "GP2".v_componente_muerto is 'Componentes que solo pertenecen a articulos discontinuados (ni ruta ni receta de un activo los usa). Los bundles de envio/recepcion/OC (tallerista, PS, prov AT, insumos, tablet) los excluyen para que no se pueda operar con ellos. 2026-09-24.';
 
 -- ---------- v_control_pallet ----------

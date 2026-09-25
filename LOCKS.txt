@@ -4,6 +4,7 @@
 (vacío)
 
 [HISTORIAL]
+2026-09-25 (25) - CRUCE DE LAS 5 PLANILLAS VACIO (cartones, plastico, remaches, bombilla, garage) CONTRA GP2 (Thomas, sesion nocturna). Solo lectura sobre datos. Codigo: relev_factor cae a entrega_uni_x si no hay uni_x_cajon (GRJ13/14, GRJ21A/B, Z21 contables por caja); verificar.sql sin falso positivo reparto_guardar; db/ resincronizado (6 funciones + 3 vistas, md5 163/163). Informe RELEVAMIENTO_VS_GP2_2026-09-25.md + _detalle.xlsx con dudas D0-D8. Suite 58/58. CONOCIMIENTO 4gj. thomas (claude-remote).
 2026-09-25 (24) - TORNILLOS SUIPACHA DE BAJA (activo=false; sin piezas/alt/OC abiertas) (Thomas). DB-only. CONOCIMIENTO 4gi. thomas (claude-remote).
 2026-09-25 (23) - CV18D -> Imel (era Tornillos Suipacha), W8 -> Bella Vista (era Imel) (Thomas). DB-only, costo neutro. CONOCIMIENTO 4gi. thomas (claude-remote).
 2026-09-25 (22) - EL FORMATO DE CARTON ES SOLO NOMBRE (Thomas: "saca la tabla fija"). entrega_uni_x a 85 cartones + pliegos(100); sin fallback al formato en tablet_bundle, cartones_para_reemplazo, relev_factor, guardar_control_cartones, recepcion_bundle; front sin UNI_X_BOLSA (v3.64.0). Falta BANDITA. version v1.191.0 token 20260925j. CONOCIMIENTO 4gg. thomas (claude-remote).

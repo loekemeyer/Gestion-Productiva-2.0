@@ -13209,3 +13209,27 @@ de `v_costo_componente` vacío). Afecta en qué proveedor aparecen en OC y Recep
 - **Tornillos Suipacha dado de baja** (`proveedor_insumo.activo=false`) [Thomas: *"dalo de baja porque no le
   compramos más el tornillo corta queso"*]. Tras pasar `CV18D` a Imel no le quedaba ninguna pieza, ni proveedor
   alternativo, ni O.C. abierta. No se borra: queda para el historial de O.C. y recepciones.
+
+## 4gj. Cruce de las 5 planillas VACIO contra el programa (2026-09-25, noche)
+
+`[dato]` Informe completo en `RELEVAMIENTO_VS_GP2_2026-09-25.md` (+ `_detalle.xlsx`). Lo que conviene
+recordar sin abrirlo:
+
+- **La Est. Madre de GP2 da ~30 % menos que la "Sugerencia" de las planillas en LOEKE y ~56 % menos en
+  CHEF** (sólo 2 de 199 artículos coinciden). Es la causa de casi toda diferencia de consumo, máximo y
+  sugerido. Manda `GP2.est_madre` (§4h) hasta que el dueño diga otra cosa `[pendiente D0]`.
+- **Meses del máximo distintos de la planilla**: cartón 6 (planilla 3), remache 4 (6), MP plástica 2,5
+  (4); plástico 4 y bombilla 3 coinciden. Garage: la planilla usa capacidad física en cajones.
+- **Bolsa de remache: tres números** — Relevamiento cuenta bolsas de 20 kg (`uni_x_cajon`), la O.C.
+  redondea a 25 kg (`remache_kg_x_bolsa`), la planilla usa 2 o 10 kg `[pendiente D4]`.
+- **`relev_factor` cae a `entrega_uni_x` cuando la pieza no tiene `uni_x_cajon`** (fuera de cartón,
+  caja y fleje), con el envase de `entrega_unidad`. Sin eso GRJ13/GRJ14 (cajas de 100), GRJ21A/B
+  (5.400) y Z21 (450) sólo se podían contar sueltas. OJO: **no** se usa `entrega_uni_x` cuando hay
+  `uni_x_cajon`, porque no siempre es el mismo envase (GRJ5/GRJ6: cajón 960 en el sector, bolsa de
+  120 al tallerista).
+- La planilla de cartones **da posiciones que GP2 tenía como provisorias**: CART186 = `I4C`,
+  CART058 = `G8C` (choca con la Bolsa 836), CCE2B = `E2B`, CCG6B = `G6A`, CCC4 = `D5A`, K5D = `H2A`.
+- `CV15` Rem Tapón Hierro (id 617, cargado el 04-09) **ya no existe** en GP2 y la planilla lo sigue
+  pidiendo; no hay rastro del borrado `[pendiente D8]`.
+- `db/` estaba desfasado (6 funciones + `v_consumo_fleje_kg` cambiadas en vivo): se resincronizó y
+  quedó verificado por md5, 163/163 funciones.
