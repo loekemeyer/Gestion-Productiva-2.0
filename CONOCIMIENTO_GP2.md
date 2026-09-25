@@ -13104,12 +13104,22 @@ Sector Bombilla, insumo que Martín Cornejo arma en el 311 y el 857): `entrega_u
 `entrega_uni_x=450`, y `kg_x_uni` = 6,5 / 450 = **0,014444** `[CORRECCIÓN]`: antes decía **0,01932**, que
 daría 8,69 kg por caja — no cierra con la caja pesada (y la caja con cartón incluido pesa MÁS que las
 piezas, no menos). Manda el dato del dueño. Costo neutro (comprado: su costo es el precio; diff por
-componente vacío). Tablet: sugerido de hoy 4 uni = 1 caja; la cantidad se escribe en kg.
-⚠ `Z21.estado_compra='discontinuo'` pero se sigue mandando a Martín: a confirmar si ya no se compra
-(consume stock) o si el estado está mal.
+componente vacío). Tablet: sugerido de hoy 4 uni = 1 caja.
+- **Sigue activo** `[Thomas 2026-09-25: "Sigue activo. Que se le mande en cajas"]` `[CORRECCIÓN]`: el
+  `estado_compra='discontinuo'` se le había puesto el 2026-09-11 al discontinuar el **311**, pero el
+  **857** lo sigue usando. Pasa a `null` (igual que su hermano `Z22` de Melinox): vuelve a OC/recepción.
+- **La cantidad se escribe en CAJAS, no en kg** (aunque tenga peso). Columna nueva
+  **`componente.envio_carga`** (`'envase'` | `'kg'` | null = regla del sector: cartón/caja en envase, el
+  resto en kg). `tablet_bundle` la usa para `env_carga`; el front ya sabía escribir en el envase (lo usan
+  cartones y cajas) y guarda cajas × 450 en unidades. Hoy sólo `Z21='envase'`. Test en `test_tablet.js`.
+- **Vuelve a la OC de Melinox** `[Thomas 2026-09-25: "Si"]`, aunque la planilla de costos del vecino lo
+  marque «NO COMPRAR +» (esa marca era del 311). Medido en `oc_bundle`: consumo 4 uni/mes (Est Madre del
+  857), máximo 12, **sugerido 12 uni** a $890. ⚠ La OC NO redondea a la caja de 450: el redondeo por
+  envase de la OC es por norma de rubro y Sector Bombilla no tiene; si Melinox sólo vende la caja
+  cerrada, falta esa regla.
 
 
-## 4ge. Crudos p/niquelar a Guazzaroni en CAJONES + cartones Rallador/8 en PAQUETES (2026-09-25)
+## 4ge. Crudos p/niquelar a Guazzaroni en CAJONES + cartones Rallador/Huevo en PAQUETES (2026-09-25)
 
 [Thomas: *"0.0022kg por uni 2kg por cajon remache sacafuente / 0.0305 kg por uni 2kg por cajon tornillo
 sacafuente / 0.0006 kg por uni 10kg por cajon remache uña p/niquelar. Para el envio a guazzaroni que
@@ -13122,8 +13132,8 @@ aparezca en cajones el sugerido"*.]
   5.714) rotulado como cajón del SC (CV1 = 57.143). Ahora se calcula en unidades (máx SP − online SP −
   en poder del PS) ÷ cajón del SC. Ester (factor fijo 1.800) no se tocó.
 - **Cartones a prov. AT** [Thomas: *"Se les manda a Carriero. En paquetes de 3500. El formato rayador es
-  en paquetes de 3500"* / *"El 824 y el 825 son tipo corbata. El 026 y 027 son tipo 8"*]:
+  en paquetes de 3500"* / *"El 824 y el 825 son tipo corbata. El 026 y 027 son tipo 8"* y enseguida *"Me corrijo. 026 y 027 son tipo huevo"*]:
   formato `Rallador` uni_x_bolsa null → **3.500** (F5A 321, P2A 840); `C2A` 026 y `C2B` 027 pasan de
-  Corbata a formato **8** (paquete 3.000). `Q6B` 824 / `Q6C` 825 siguen Corbata, que **no tiene tamaño de
+  Corbata a formato **Huevo** (paquete 2.000). `Q6B` 824 / `Q6C` 825 siguen Corbata, que **no tiene tamaño de
   paquete** → la Tablet dice "sin paquete cargado" hasta que se dé.
   El sugerido de hoy es 0 en todos porque máximo del destino = 0 y el Sector Cartón no tiene stock.
