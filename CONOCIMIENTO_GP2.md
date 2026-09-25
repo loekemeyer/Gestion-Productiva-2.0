@@ -4028,7 +4028,7 @@ tallerista) son idénticas:
 
 | Crudo | Proveedor del crudo | Niquela | Niquelado | Arma | Artículos |
 |---|---|---|---|---|---|
-| `CV18D` Tornillo Sacafuente p/Niquelar | Tornillos Suipacha | Guazzaroni Patricio | `V18D` | Martin Cornejo | 508, 708 |
+| `CV18D` Tornillo Sacafuente p/Niquelar | ~~Tornillos Suipacha~~ **Imel** (corregido 2026-09-25, 4gi) | Guazzaroni Patricio | `V18D` | Martin Cornejo | 508, 708 |
 | `CV13` Rem Plaquita 3 en 1 p/Niquelar | Electrónica Mandelli | Guazzaroni Patricio | `V13` | Martin Cornejo | 043, 511 |
 
 **Consecuencia para precios (regla):** el `precio_proveedor` va SIEMPRE colgado del `CV`
@@ -13199,3 +13199,10 @@ Nueve de Julio; **NO** a los pliegos de AJ Adhesivos ni a los 2 C de Blist-Pack,
   Da vuelta el formato aparte `Bandita Matambre` de 4gf: la bolsita de **2.000** pasó a la pieza
   (`entrega_uni_x=2000`, `entrega_unidad='bolsas'` ya estaba) y el formato `Bandita Matambre` se
   borró. Los múltiplos de OC eran los mismos de Bandita, así que la OC no cambia.
+
+## 4gi. Proveedores del sacafuente: tornillo a Imel, vástago a Bella Vista (2026-09-25)
+
+[Thomas: *"El tornillo sacafuente se lo compramos a IMEL. Y el vástago sacafuente se lo compramos a bella
+vista"*.] `[CORRECCIÓN]` Estaban cruzados: `CV18D` Tornillo Sacafuente p/Niquelar decía **Tornillos
+Suipacha** → **Imel**; `W8` Vástago Sacafuente Pizzero decía **Imel** → **Bella Vista**. Costo neutro (diff
+de `v_costo_componente` vacío). Afecta en qué proveedor aparecen en OC y Recepción de Insumos.

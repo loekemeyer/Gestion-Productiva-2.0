@@ -4,6 +4,7 @@
 (vacío)
 
 [HISTORIAL]
+2026-09-25 (23) - CV18D -> Imel (era Tornillos Suipacha), W8 -> Bella Vista (era Imel) (Thomas). DB-only, costo neutro. CONOCIMIENTO 4gi. thomas (claude-remote).
 2026-09-25 (22) - EL FORMATO DE CARTON ES SOLO NOMBRE (Thomas: "saca la tabla fija"). entrega_uni_x a 85 cartones + pliegos(100); sin fallback al formato en tablet_bundle, cartones_para_reemplazo, relev_factor, guardar_control_cartones, recepcion_bundle; front sin UNI_X_BOLSA (v3.64.0). Falta BANDITA. version v1.191.0 token 20260925j. CONOCIMIENTO 4gg. thomas (claude-remote).
 2026-09-25 (21) - RECEPCION: LA BOLSA DE CARTON = PAQUETE DEL CARTON (Thomas). guardar_control_cartones: coalesce(entrega_uni_x, formato); RecepcionInsumos v3.63.0 cartonUxp (uniXCtlItem, paqXBolsa, +N, aviso multiplo). db/funciones sincronizado. version v1.191.0. CONOCIMIENTO 4gg. thomas (claude-remote).
 2026-09-25 (20) - RECEPCION SIN FILA FORMATO PARA VIHAL/PAPELERA + BANDITAM A FORMATO BANDITA (Thomas). DB: borrados formatos Bolsa, Bolsa Carton y Bandita Matambre (BANDITAM entrega_uni_x=2000). RecepcionInsumos v3.63.0: sin formatos en la marca -> no se pinta la fila. version v1.190.1 (token 20260925i). Suite 58/58. CONOCIMIENTO 4gh. thomas (claude-remote).
