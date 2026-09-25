@@ -4,6 +4,7 @@
 (vacío)
 
 [HISTORIAL]
+2026-09-25 (12) - Z21 VUELVE A LA OC DE MELINOX (Thomas: "Si"). Sin cambios: al pasar estado_compra a null ya entra (oc_bundle: sugerido 12 uni, 4/mes). Sin redondeo a caja de 450. CONOCIMIENTO 4gd. thomas (claude-remote).
 2026-09-25 (11) - Z21 SIGUE ACTIVO Y VA EN CAJAS CERRADAS (Thomas). DB: estado_compra discontinuo->null; columna nueva componente.envio_carga (envase|kg, check) = envase para Z21; tablet_bundle env_carga = coalesce(envio_carga, regla sector). Test test_tablet. FIX de paso: el commit 49eb8a1 subio version.js sin cambiar su ?v= (test_tokens_cache rojo en main) -> token 20260925a en GP2_MODULOS/login/envios-only, version v1.188.0. Suite 58/58. CONOCIMIENTO 4gd. thomas (claude-remote).
 2026-09-25 (10) - Z21 CUCHILLO TORTA EN CAJAS DE 450 / 6,5 KG A MARTIN CORNEJO (Thomas). DB-only: entrega_unidad=cajas, entrega_uni_x=450, kg_x_uni 0,01932 -> 0,014444 (6,5/450). Costo neutro. CONOCIMIENTO 4gd. thomas (claude-remote).
 2026-09-25 (9) - V18D TORNILLO SACAFUENTE EN BOLSAS DE 2 KG A MARTIN CORNEJO (Thomas). DB-only: kg_x_uni 0,0305, entrega_unidad=bolsas, entrega_uni_x 65,57. Tablet: 612 uni = 10 bolsas. COSTO: el niquelado Guazzaroni ($2.606/kg) antes daba 0 -> V18D 68,70->148,18; 508 +79,48; 708 +79,48. CONOCIMIENTO 4gc. thomas (claude-remote).

@@ -13112,4 +13112,9 @@ componente vacío). Tablet: sugerido de hoy 4 uni = 1 caja.
   **`componente.envio_carga`** (`'envase'` | `'kg'` | null = regla del sector: cartón/caja en envase, el
   resto en kg). `tablet_bundle` la usa para `env_carga`; el front ya sabía escribir en el envase (lo usan
   cartones y cajas) y guarda cajas × 450 en unidades. Hoy sólo `Z21='envase'`. Test en `test_tablet.js`.
+- **Vuelve a la OC de Melinox** `[Thomas 2026-09-25: "Si"]`, aunque la planilla de costos del vecino lo
+  marque «NO COMPRAR +» (esa marca era del 311). Medido en `oc_bundle`: consumo 4 uni/mes (Est Madre del
+  857), máximo 12, **sugerido 12 uni** a $890. ⚠ La OC NO redondea a la caja de 450: el redondeo por
+  envase de la OC es por norma de rubro y Sector Bombilla no tiene; si Melinox sólo vende la caja
+  cerrada, falta esa regla.
 
