@@ -7940,7 +7940,7 @@ select jsonb_build_object(
              'tipo', tipo, 'ref', ref, 'comp_id', comp_id, 'cod', cod, 'desc', descr,
              'sector', sector, 'um', um, 'uxc', uxc, 'kg_x_uni', kgu,
              'env_unidad', case when tipo in ('tallerista','proveedor_at')
-                                  then case when sec_id in (10,11) then 'paquetes'
+                                  then case when sec_id in (10,11) then coalesce(nullif(btrim(ent_uni),''), 'paquetes')
                                             else coalesce(nullif(btrim(ent_uni),''), 'cajones') end end,
              'env_factor', case when tipo in ('tallerista','proveedor_at') then case
                                   when sec_id = 10 then (select f.uni_x_bolsa from carton_formato f where f.nombre = cfmt)

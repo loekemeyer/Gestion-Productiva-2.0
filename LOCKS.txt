@@ -4,6 +4,7 @@
 (vacío)
 
 [HISTORIAL]
+2026-09-25 (14) - BANDITAM EN BOLSITAS DE 2000 (Thomas). DB: formato nuevo "Bandita Matambre" (uni_x_bolsa 2000, multiplos de Bandita), BANDITAM movido + entrega_unidad=bolsas; tablet_bundle: carton/caja respeta entrega_unidad (default paquetes). db/funciones_GP2.sql sincronizado. CONOCIMIENTO 4gf. thomas (claude-remote).
 2026-09-25 (13) - CV6/CV18D/CV9 PESO+CAJON Y SUGERIDO GUAZZARONI EN CAJONES DEL SC + CARTONES EN PAQUETES (Thomas). DB: CV6 0,0022/909,09; CV18D 0,0305/65,57; CV9 0,0006/16.666,67; V18D uxc 65,57; Rallador uni_x_bolsa 3500; C2A/C2B Corbata->Huevo (paquete 2000). Costo neutro. EnviosPS v1.11.1: sugerido con envase por pieza en unidades / cajon SC (antes cajones del SP, bug auditado). version v1.189.0. Suite 58/58. Corbata uni_x_bolsa 1000 (Q6B/Q6C, dato posterior). CONOCIMIENTO 4ge. thomas (claude-remote).
 2026-09-25 (12) - Z21 VUELVE A LA OC DE MELINOX (Thomas: "Si"). Sin cambios: al pasar estado_compra a null ya entra (oc_bundle: sugerido 12 uni, 4/mes). Sin redondeo a caja de 450. CONOCIMIENTO 4gd. thomas (claude-remote).
 2026-09-25 (11) - Z21 SIGUE ACTIVO Y VA EN CAJAS CERRADAS (Thomas). DB: estado_compra discontinuo->null; columna nueva componente.envio_carga (envase|kg, check) = envase para Z21; tablet_bundle env_carga = coalesce(envio_carga, regla sector). Test test_tablet. FIX de paso: el commit 49eb8a1 subio version.js sin cambiar su ?v= (test_tokens_cache rojo en main) -> token 20260925a en GP2_MODULOS/login/envios-only, version v1.188.0. Suite 58/58. CONOCIMIENTO 4gd. thomas (claude-remote).

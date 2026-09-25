@@ -13136,3 +13136,13 @@ aparezca en cajones el sugerido"*.]
   formato `Rallador` uni_x_bolsa null → **3.500** (F5A 321, P2A 840); `C2A` 026 y `C2B` 027 pasan de
   Corbata a formato **Huevo** (paquete 2.000). `Q6B` 824 / `Q6C` 825 siguen Corbata: paquete de **1.000** [Thomas: *"1000"*].
   El sugerido de hoy es 0 en todos porque máximo del destino = 0 y el Sector Cartón no tiene stock.
+
+## 4gf. La Bandita Prensa Matambre va a Maspoli en BOLSITAS de 2.000 (2026-09-25)
+
+[Thomas: *"La bandita prensa matambre en bolsitas de 2000"*.] `BANDITAM` (id 935) compartía el formato
+`Bandita` con la del Palo de Amasar (`BANDITA`), y en cartón el paquete de envío es **por formato**. Para
+no arrastrar a la otra, se hizo lo mismo que con "Bolsa Cartón" (4fx): formato nuevo **`Bandita Matambre`**
+(múltiplos copiados de `Bandita`, OC igual) con `uni_x_bolsa=2000`. `BANDITA` queda sin paquete.
+- **Rótulo:** `tablet_bundle` ponía "paquetes" fijo a todo cartón/caja; ahora respeta
+  `componente.entrega_unidad` si está cargado (hoy solo `BANDITAM='bolsas'`, único del sector 10/11 con
+  dato) → la Tablet dice **bolsas**. Sin dato sigue diciendo paquetes.
