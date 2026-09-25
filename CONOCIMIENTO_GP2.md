@@ -13108,3 +13108,22 @@ componente vacío). Tablet: sugerido de hoy 4 uni = 1 caja; la cantidad se escri
 ⚠ `Z21.estado_compra='discontinuo'` pero se sigue mandando a Martín: a confirmar si ya no se compra
 (consume stock) o si el estado está mal.
 
+
+## 4ge. Crudos p/niquelar a Guazzaroni en CAJONES + cartones Rallador/8 en PAQUETES (2026-09-25)
+
+[Thomas: *"0.0022kg por uni 2kg por cajon remache sacafuente / 0.0305 kg por uni 2kg por cajon tornillo
+sacafuente / 0.0006 kg por uni 10kg por cajon remache uña p/niquelar. Para el envio a guazzaroni que
+aparezca en cajones el sugerido"*.]
+- **Dato:** `CV6` kg_x_uni 0,00215 → **0,0022**, uni_x_cajon **909,09** (2 kg); `CV18D` 0,0305, **65,57**
+  (2 kg); `CV9` 0,000567 → **0,0006**, **16.666,67** (10 kg). `V18D` uni_x_cajon null → 65,57 (sin eso el
+  sugerido del SP daba "—"). Costo neutro (diff de `v_costo_componente` vacío). `V6`/`V9` (niquelados)
+  quedan con su kg viejo (0,00215 / 0,000567): a confirmar si también cambian.
+- **Bug corregido (EnviosPS v1.11.1):** con envase por pieza el sugerido salía en cajones del SP (V1 =
+  5.714) rotulado como cajón del SC (CV1 = 57.143). Ahora se calcula en unidades (máx SP − online SP −
+  en poder del PS) ÷ cajón del SC. Ester (factor fijo 1.800) no se tocó.
+- **Cartones a prov. AT** [Thomas: *"Se les manda a Carriero. En paquetes de 3500. El formato rayador es
+  en paquetes de 3500"* / *"El 824 y el 825 son tipo corbata. El 026 y 027 son tipo 8"*]:
+  formato `Rallador` uni_x_bolsa null → **3.500** (F5A 321, P2A 840); `C2A` 026 y `C2B` 027 pasan de
+  Corbata a formato **8** (paquete 3.000). `Q6B` 824 / `Q6C` 825 siguen Corbata, que **no tiene tamaño de
+  paquete** → la Tablet dice "sin paquete cargado" hasta que se dé.
+  El sugerido de hoy es 0 en todos porque máximo del destino = 0 y el Sector Cartón no tiene stock.

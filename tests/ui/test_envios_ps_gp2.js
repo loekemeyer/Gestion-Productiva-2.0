@@ -58,7 +58,9 @@ const BUNDLE = {
     { sc_id: 601, sp_id: 602, sc_cod: 'CV1', sc_desc: 'Remache Espiral p/Niquelar',
       sp_cod: 'CV1N', sp_desc: 'Remache Espiral Niq', proceso: 'Niquelado',
       online_ps: 0, online_sp: 0, maximo: null, maximo_sp: 114286,
-      sc_unixcaj: 57143, sc_kgxuni: 0.00035, sp_unixcaj: 57143 },
+      // el cajon del niquelado (V1) es 10 veces mas chico: el sugerido tiene que salir en cajones
+      // del CRUDO que se manda (2), no del SP que vuelve (20) [Thomas 2026-09-25]
+      sc_unixcaj: 57143, sc_kgxuni: 0.00035, sp_unixcaj: 5714 },
     // CV9 no tiene cajon cargado: no hay con que pasar a cajones, pero la tabla NO se deforma
     { sc_id: 609, sp_id: 610, sc_cod: 'CV9', sc_desc: 'Remache uña niq. p/Niquelar',
       sp_cod: 'CV9N', sp_desc: 'Remache uña Niq', proceso: 'Niquelado',
@@ -254,7 +256,7 @@ window.supabase = { createClient: function(){ return {
   ok(celdasGz.length === 2 && celdasGz.every(n => n === 6),
      'Guazzaroni: las 2 filas con 6 columnas, aunque una no se pueda pasar a cajones — ' + celdasGz.join(','));
   const sugsGz = await page.$$eval('#tbody tr td:last-child', xs => xs.map(x => x.textContent.trim()));
-  ok(sugsGz[0] === '2 cajones', 'Guazzaroni: 114.286 uni de maximo / 57.143 -> 2 cajones — ' + sugsGz[0]);
+  ok(sugsGz[0] === '2 cajones', 'Guazzaroni: 114.286 uni de maximo / 57.143 (cajon del CRUDO, no el 5.714 del niquelado) -> 2 cajones — ' + sugsGz[0]);
   ok(sugsGz[1] === '—', 'Guazzaroni: sin uni_x_cajon el sugerido no se inventa — ' + sugsGz[1]);
   await page.fill('#tbody tr:first-child input.cell-in[data-f="kg"]', '40');
   ok((await page.$eval('#tbody .env-eq', e => e.textContent.trim())) === '= 2 cajones',

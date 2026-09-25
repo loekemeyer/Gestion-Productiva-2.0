@@ -6,7 +6,12 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<!-- v1.11.0 (2026-09-21) — EL STOCK EN PODER DEL P.S. SE MIDE CON EL CAJÓN QUE ANOTÓ LOGÍSTICA
+<!-- v1.11.1 (2026-09-25) — GUAZZARONI: EL SUGERIDO EN CAJONES DEL CRUDO QUE SE MANDA [Thomas: "para
+     el envio a guazzaroni que aparezca en cajones el sugerido"]. Se mostraba en cajones del SP
+     (V1 = 5.714 uni) rotulado como cajón del SC (CV1 = 57.143): 12 "cajones" donde van 2. Ahora
+     con envase por pieza se calcula en unidades (maximo SP - online SP - en poder del PS) y se
+     divide por el uni_x_cajon del SC. Ester (factor fijo) no cambia. -->
+<!-- v1.11.0 (2026-09-21) —EL STOCK EN PODER DEL P.S. SE MIDE CON EL CAJÓN QUE ANOTÓ LOGÍSTICA
      (usuario, textual: "tiene que aparecer en su stock los cajones que escribe logística, no los
      que se calcula a partir de los kg"). El cajón de componente.uni_x_cajon es un promedio (CV1 =
      57.143 uni = 20 kg justos) y el que sale del galpón pesa lo que pesa: se mandó 1 cajón de 21 kg
@@ -485,6 +490,16 @@ function renderTabla(){
     if (ckgT) {
       var fEnv = factorEnvio(x, pk);
       var sugEnv = (sug==null || !(fCaj>0) || !(fEnv>0)) ? null : Math.ceil(sug * fCaj / fEnv);
+      // Envase POR PIEZA (Guazzaroni): el sugerido va en cajones del SC que se MANDA, no del SP
+      // que vuelve. El de arriba está en cajones del SP (V1 = 5.714) y el del crudo es otro
+      // (CV1 = 57.143): se pasa a UNIDADES (entra 1, sale 1) y se divide por el cajón del SC.
+      if (pk.porPieza && sug != null && fEnv > 0) {
+        var sugU = 0;
+        sals.forEach(function(sp){
+          sugU += Math.max(0, Number(sp.maximo_sp||0) - Number(sp.online_sp||0) - Number(x.online_ps||0));
+        });
+        sugEnv = Math.ceil(sugU / fEnv - 1e-9);
+      }
       sugTxt = (sugEnv==null) ? "—" : (fmt(sugEnv,0)+" "+esc(pk.label));
       sug = sugEnv;
     }
