@@ -13104,7 +13104,12 @@ Sector Bombilla, insumo que Martín Cornejo arma en el 311 y el 857): `entrega_u
 `entrega_uni_x=450`, y `kg_x_uni` = 6,5 / 450 = **0,014444** `[CORRECCIÓN]`: antes decía **0,01932**, que
 daría 8,69 kg por caja — no cierra con la caja pesada (y la caja con cartón incluido pesa MÁS que las
 piezas, no menos). Manda el dato del dueño. Costo neutro (comprado: su costo es el precio; diff por
-componente vacío). Tablet: sugerido de hoy 4 uni = 1 caja; la cantidad se escribe en kg.
-⚠ `Z21.estado_compra='discontinuo'` pero se sigue mandando a Martín: a confirmar si ya no se compra
-(consume stock) o si el estado está mal.
+componente vacío). Tablet: sugerido de hoy 4 uni = 1 caja.
+- **Sigue activo** `[Thomas 2026-09-25: "Sigue activo. Que se le mande en cajas"]` `[CORRECCIÓN]`: el
+  `estado_compra='discontinuo'` se le había puesto el 2026-09-11 al discontinuar el **311**, pero el
+  **857** lo sigue usando. Pasa a `null` (igual que su hermano `Z22` de Melinox): vuelve a OC/recepción.
+- **La cantidad se escribe en CAJAS, no en kg** (aunque tenga peso). Columna nueva
+  **`componente.envio_carga`** (`'envase'` | `'kg'` | null = regla del sector: cartón/caja en envase, el
+  resto en kg). `tablet_bundle` la usa para `env_carga`; el front ya sabía escribir en el envase (lo usan
+  cartones y cajas) y guarda cajas × 450 en unidades. Hoy sólo `Z21='envase'`. Test en `test_tablet.js`.
 

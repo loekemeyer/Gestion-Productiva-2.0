@@ -452,6 +452,23 @@ window.supabase = { createClient: function(){ return {
   await page.click('#btnVolverPartes');
   await cargarParte('CJ7', '2');
 
+  // UNA PIEZA QUE NO ES CARTON NI CAJA PUEDE IR EN SU ENVASE CERRADO [usuario 2026-09-25, Z21 Cuchillo
+  // Torta a Martin Cornejo: "Que se le mande en cajas"]. La pieza lo dice con componente.envio_carga
+  // ='envase' y tablet_bundle manda env_carga='envase': aunque tenga kg_x_uni, la cantidad se escribe
+  // en CAJAS (no en kg) y se guarda en unidades (2 cajas de 450 = 900). Con env_carga='kg' la misma
+  // pieza vuelve a la regla de siempre.
+  const z21 = await page.evaluate(() => {
+    const x = { tipo: 'tallerista', ref: '6', comp_id: 757, cod: 'Z21', desc: 'Cuchillo Torta CH/LK',
+      sector: 'Sector Bombilla', um: 'unidad', uxc: null, kg_x_uni: 6.5 / 450, sugerido: 4,
+      env_unidad: 'cajas', env_factor: 450, env_carga: 'envase' };
+    const ev = envaseDe(x);
+    const enKg = Object.assign({}, x, { env_carga: 'kg' });
+    return { kg: cargaEnKg(x), label: ev && ev.label, f: ev && ev.factor, uni: canonDe(x, 2),
+             kgSiPide: cargaEnKg(enKg) };
+  });
+  ok(z21.kg === false && z21.label === 'cajas' && z21.f === 450 && z21.uni === 900 && z21.kgSiPide === true,
+     'Z21: env_carga=envase -> se escribe en cajas y 2 cajas = 900 uni; con kg vuelve a kg — ' + JSON.stringify(z21));
+
   // ── 2) el buscador filtra las tarjetas ────────────────────────────────
   await page.fill('#q', 'fleje');
   tcards = await cards();

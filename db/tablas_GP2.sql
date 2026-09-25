@@ -155,12 +155,14 @@ create table "GP2".componente (
   entrega_unidad text,
   entrega_uni_x numeric,
   remito_unidad text,
+  envio_carga text,
   constraint componente_pkey PRIMARY KEY (id),
   constraint componente_carton_categoria_fkey FOREIGN KEY (carton_categoria) REFERENCES "GP2".carton_categoria(nombre),
   constraint componente_carton_formato_fkey FOREIGN KEY (carton_formato) REFERENCES "GP2".carton_formato(nombre),
   constraint componente_material_id_fkey FOREIGN KEY (material_id) REFERENCES "GP2".componente(id),
   constraint componente_proveedor_fkey FOREIGN KEY (proveedor) REFERENCES "GP2".proveedor_insumo(nombre) ON UPDATE CASCADE ON DELETE SET NULL,
   constraint componente_sector_id_fkey FOREIGN KEY (sector_id) REFERENCES "GP2".sector(id),
+  constraint componente_envio_carga_chk CHECK (((envio_carga IS NULL) OR (envio_carga = ANY (ARRAY['envase'::text, 'kg'::text])))),
   constraint componente_remito_unidad_chk CHECK (((remito_unidad IS NULL) OR (remito_unidad = ANY (ARRAY['uni'::text, 'kg'::text, 'envase'::text])))),
   constraint componente_estado_compra_chk CHECK (((estado_compra IS NULL) OR (estado_compra = ANY (ARRAY['fabricacion'::text, 'discontinuo'::text, 'importado'::text, 'compra'::text])))),
   constraint componente_marca_chk CHECK (((marca IS NULL) OR (marca = ANY (ARRAY['LOEKE'::text, 'CHEF'::text])))),
@@ -180,6 +182,7 @@ comment on column "GP2".componente.mb_color is 'Color de Master Bach que lleva e
 comment on column "GP2".componente.entrega_unidad is 'Envase con el que el tallerista ENTREGA esta pieza (bolsas, cajones...). NULL = cajones, el default. Solo display: lo que se registra sigue siendo kg/uni.';
 comment on column "GP2".componente.entrega_uni_x is 'Unidades por envase de entrega. NULL = se usa uni_x_cajon. Ej: GRJ5/GRJ6 entregan bolsas de 120 [usuario 2026-09-18].';
 comment on column "GP2".componente.remito_unidad is 'En que unidad viene el REMITO de esta pieza cuando la entrega un tercero: uni, kg o envase. NULL = la unidad canonica (unidad_medida). envase = el remito viene contado en el envase de la pieza (entrega_unidad x entrega_uni_x): C13 Corta Queso Bastidor en cajas de 144 [usuario 2026-09-25]; Recepcion de Insumos lo pasa a unidades al guardar. Lo dice la PIEZA y no el destino [usuario 2026-09-23: "Martin Cornejo. El remito de las bombillas en uni. Control en bolsas. El remito de la cuchilla en kg y control kg y cajones (cajones dato)"]: dos piezas del mismo tallerista pueden venir en unidades distintas, una contada y la otra pesada. Solo se usa al RECIBIR; el envase con el que se cuenta en el CONTROL sigue siendo entrega_unidad/entrega_uni_x.';
+comment on column "GP2".componente.envio_carga is 'En que se escribe la CANTIDAD al ENVIAR esta pieza a un tallerista / prov AT en la Tablet: envase (se cargan cajas/bolsas cerradas, se guardan unidades) o kg. NULL = regla del sector (carton y caja en envase, el resto en kg). Z21 Cuchillo Torta: envase, cajas de 450 [usuario 2026-09-25: "Que se le mande en cajas"].';
 comment on column "GP2".componente.discontinuado is 'La pieza ya no se fabrica ni se compra. No se borra: conserva historial, receta y rutas, pero sale del pedido (v_reposicion) y de las pantallas de compra. Espejo de articulo.discontinuado.';
 
 -- ---------- componente_bom ----------

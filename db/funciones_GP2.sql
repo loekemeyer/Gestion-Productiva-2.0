@@ -7813,6 +7813,9 @@ env_x as (
          -- de 100 (GRJ13/GRJ14), una caja de 2400 (Descorazonador) o las bolsas de 120 de GRJ5/GRJ6.
          -- Si esta cargado gana sobre el "cajon" teorico (uni_x_cajon). [usuario 2026-09-24]
          c.entrega_unidad ent_uni, c.entrega_uni_x ent_ux,
+         -- en que se escribe la CANTIDAD del envio: 'envase' (cajas cerradas) o 'kg'. NULL = la
+         -- regla del sector (carton/caja en envase, el resto en kg). Z21: cajas [usuario 2026-09-25].
+         c.envio_carga env_carga_pieza,
          c.sector_id sec_id, c.carton_formato cfmt,
          coalesce((select i.cantidad from inventario i
                     where i.componente_id = c.id
@@ -7945,7 +7948,8 @@ select jsonb_build_object(
                                                           where pa.clave = 'caja_uni_x_paquete')
                                   else coalesce(nullif(ent_ux,0), uxc) end end,
              'env_carga',  case when tipo in ('tallerista','proveedor_at')
-                                  then case when sec_id in (10,11) then 'envase' else 'kg' end end,
+                                  then coalesce(env_carga_pieza,
+                                         case when sec_id in (10,11) then 'envase' else 'kg' end) end,
              'online_sector', online_sector, 'saldo_dest', saldo_dest,
              'maximo', maximo_dest, 'stock_dest', stock_dest, 'sugerido', sugerido
            ) order by cod), '[]'::jsonb) from env_x),
