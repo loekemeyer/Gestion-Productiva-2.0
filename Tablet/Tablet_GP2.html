@@ -6,6 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
+<!-- v1.36.2 (2026-09-25) — SE SACA EL CARTEL "⚠ N alerta(s) de recepción sin revisar" de la pantalla de tipos/contrapartes (Thomas: "Que no aparezcan más alertas"). Las alertas se siguen generando y viven en Alertas/alertas_GP2.html. -->
 <!-- v1.36.1 (2026-09-24) — SINGULAR DE "cajas" EN EL SUGERIDO DEL ENVIAR (usuario, sobre el Z31/Descorazonador a Alex Escalante: "el sugerido aparece una cajas y es una caja. Sin S"). El mapa SINGULAR tenía cajones/paquetes/bolsas pero NO cajas, y el Z31 quedó con env_unidad='cajas' (v1.35.x, 2026-09-24) → unidadTxt("cajas",1) devolvía "cajas". Se agregó cajas→caja y singularEnvase() ahora lee el MISMO mapa (una sola fuente: antes solo cubría bolsas/cajones, le faltaban paquetes y cajas en el renglón "= 1 …"). Tablet no-cache, sin ?v= que bumpear. -->
 <!-- v1.36.0 (2026-09-24) — EL PROV. DE ART. TERMINADO VA IGUAL QUE "TALLERISTAS O.C.": SUGERIDO 0
      (usuario, textual: "En el envío a proveedor de artículo terminado, al igual que talleristas
@@ -1510,11 +1511,10 @@ function cpItem(c){
 function cargadasDeCP(c){
   return E.cargadasDe(BUF.all[claveCP(c)], function(it){ return num(it.q) > 0; }).length;
 }
-function avisoAlertas(){
-  return Number(D.alertas_abiertas) > 0
-    ? "⚠ " + D.alertas_abiertas + " alerta" + (D.alertas_abiertas === 1 ? "" : "s") + " de recepción sin revisar"
-    : "";
-}
+/* El contador "⚠ N alertas de recepción sin revisar" se SACÓ de la Tablet [Thomas 2026-09-25:
+   "Que no aparezcan más alertas"]. Las alertas se siguen generando y se revisan en
+   Alertas/alertas_GP2.html; el aviso "recibí de más" al cargar una recepción sigue igual. */
+function avisoAlertas(){ return ""; }
 
 /* ---------- paso 1: el tipo ---------- */
 function mostrarTipos(){
