@@ -12999,7 +12999,10 @@ filas de los talleristas quedaron. **Cost-neutral** (GRJ21A 13,25 y GRJ21B 38,00
 fabricados por ruta, el sector no cambia su costeo). El código se referencia por `id` (no por string):
 0 referencias a `BOM13`/`BOM14` en el repo, rutas y recetas intactas. DB-only, `db/` no cambia.
 
-**Se compran a Cimarron, sin descomposición** [Thomas 2026-09-24: *"se lo compramos a Cimarrón, está
-bien que no tenga descomposición"*]: `componente.proveedor='Cimarron'` en los dos (el proveedor existe
-en `proveedor_insumo` sin tilde). Cada uno ya tiene su `precio_proveedor` (de ahí el costo 13,25 / 38,00),
-y `componente_bom` como padre = 0 (correcto: son comprados, no armados). No hace falta receta.
+**Se compran a "4 Zurdos", sin descomposición** [Thomas 2026-09-24: *"está bien que no tenga
+descomposición"* + corrección *"grj1a y grj1b se compran a 4 Zurdos"* (dijo primero Cimarrón y se
+corrigió)]: `componente.proveedor='4 Zurdos'` en los dos. **"4 Zurdos" NO existía en `proveedor_insumo`**,
+se dio de alta (activo, modo_control='ninguno', **`cod_prov` pendiente** — no lo dio). Ojo al insertar:
+la secuencia del `id` estaba desfasada → hubo que poner el id explícito (`max(id)+1`). Cada uno ya tiene
+su `precio_proveedor` (de ahí el costo 13,25 / 38,00) y `componente_bom` como padre = 0 (comprados, no
+armados). No hace falta receta.
