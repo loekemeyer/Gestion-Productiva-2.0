@@ -13014,7 +13014,7 @@ unidades y esconde el toggle). **Falta el dato para que el resto ande solo** —
 `kg_x_uni` y `uni_x_cajon` en **null**: (1) sin `kg_x_uni` el control no puede pasar de kg a unidades y
 queda pidiendo unidades (misma trampa que `PCP4A`); (2) el Enviar a tallerista ya carga en kg para todo
 lo que no es cartón/caja (`env_carga='kg'`), pero exige un envase (`uni_x_cajon`) y `kg_x_uni`, si no
-cae a unidades. **Peso cargado** [Thomas 2026-09-25]: `kg_x_uni` GRJ21A = 0,00015, GRJ21B = 0,000335 (costo intacto 13,25 / 38,00) → el control ya puede pedir kg. **Sigue pendiente el envase** (cuántas por bolsa/cajón): sin eso el Enviar a tallerista los carga en unidades.
+cae a unidades. **Peso cargado** [Thomas 2026-09-25]: `kg_x_uni` GRJ21A = 0,00015, GRJ21B = 0,000335 (costo intacto 13,25 / 38,00) → el control ya puede pedir kg. **Envase** `[usuario 2026-09-25: "Van 5400 uni x caja"]`: `entrega_unidad='cajas'`, `entrega_uni_x=5400` en los dos (caja de filtros = 0,81 kg; de precintos = 1,809 kg). El Enviar a tallerista los carga en kg y muestra cajas. Se usó `entrega_uni_x` y no `uni_x_cajon` (ése lo leen máximos/OC). Costo intacto.
 `[dato]` La Lista de Precios de la planilla trae a 4 Zurdos como **cod. 4444** (cod ISIS 1897 "Prescintos
 Omega" $38, 4966 "Filtro p/Bombilla s/Envasar" $13,25) — `[usuario 2026-09-25: "sí"]` cargado `proveedor_insumo.cod_prov='4444'` (costos 13,25/38,00 intactos).
 
