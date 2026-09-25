@@ -12971,8 +12971,9 @@ y la OC de bolsas (que lee `uni_x_cajon`) no se toca.
   su unidad la sigue dando el proveedor. Si algún día se rutea un plástico a un PS, se cablea igual.
 
 **Otros `uni_x_cajon` en cajón cargados el 2026-09-24:** `BOM10` Resorte Biconico = 400 (Bombilla),
-`W1B` Grampa Batidor = 24.615 (Remache). ⚠ **A confirmar:** `PIEA`/`PIEB` "Rueda Recta" quedaron con
-`entrega_unidad='bolsas'` y `uni_x_cajon=1` — ¿esas ruedas van en bolsa o sueltas?
+`W1B` Grampa Batidor = 24.615 (Remache). **`PIEA`/`PIEB` "Rueda Recta" van SUELTAS** [Thomas 2026-09-24]:
+se les sacó el `entrega_unidad='bolsas'` y el `uni_x_cajon` (ambos null) — se cuentan por unidad, sin
+envase.
 
 **El cartón NO usa `uni_x_cajon`/`entrega_unidad`: su paquetón sale del FORMATO (2026-09-24).** En el
 envío (Tablet/Prov AT), Sector Cartón (10) se rotula **"paquetes"** y el factor es
@@ -12997,3 +12998,8 @@ sólo la fila "casa" de inventario de la ubicación del sector Bombilla (7) a la
 filas de los talleristas quedaron. **Cost-neutral** (GRJ21A 13,25 y GRJ21B 38,00 antes = después; son
 fabricados por ruta, el sector no cambia su costeo). El código se referencia por `id` (no por string):
 0 referencias a `BOM13`/`BOM14` en el repo, rutas y recetas intactas. DB-only, `db/` no cambia.
+
+**Se compran a Cimarron, sin descomposición** [Thomas 2026-09-24: *"se lo compramos a Cimarrón, está
+bien que no tenga descomposición"*]: `componente.proveedor='Cimarron'` en los dos (el proveedor existe
+en `proveedor_insumo` sin tilde). Cada uno ya tiene su `precio_proveedor` (de ahí el costo 13,25 / 38,00),
+y `componente_bom` como padre = 0 (correcto: son comprados, no armados). No hace falta receta.
