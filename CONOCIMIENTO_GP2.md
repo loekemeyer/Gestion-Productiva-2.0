@@ -13054,3 +13054,18 @@ Z12 (0,000165). **Los dos números no cierran entre sí (×2,6)** → `[usuario 
   (suma de los dos máximos Est Madre); la fila de Gentile (ubic 28, stock 0) pasó a GRJ28.
 - `GRJ28.proveedor` Cimarron → **Gilardi Esther** (id 30, rubro Sector Garage). Corrige lo anotado el 2026-09-13
   (Cimarrón). Sin precio cargado: costo sigue en 0 para esa pieza.
+
+## 4gb. `C13` Corta Queso Bastidor c/Cilindro va en CAJAS DE 144 (2026-09-25)
+
+[Thomas, textual: *"El corta queso bastidor c/cilindro se recepciona en cajas de 144 uni y se le manda
+a lucho en esas cajas. modelalo para que el sugerido en la tablet aparezca así"*.] El bastidor importado
+(`C13`, id 547, Sector Procesado, art 546) no se reenvasa: la caja que llega es la que va a Lucho.
+Modelado igual que el caso hermano `Z31` Descorazonador (mismo sector, cajas de 2.400):
+`componente.entrega_unidad='cajas'`, `entrega_uni_x=144`; `uni_x_cajon` **queda null a propósito**
+(no es cajón de despacho, y así no se cuela en los cálculos de cajones del sector).
+- **Tablet → Enviar → Lucho:** `tablet_bundle` ya manda `env_unidad='cajas'`, `env_factor=144`.
+  Medido: sugerido 7.854 uni = **55 cajas** (techo). Como `C13` no tiene `kg_x_uni`, la cantidad
+  también se escribe **en cajas** (no en kg) — correcto: se manda la caja cerrada.
+- **Recepción de insumos NO lee el envase** (`entrega_unidad` sólo lo usan Tablet, Envío
+  Talleristas escritorio y Control Entrega PS): el remito del C13 se sigue cargando en unidades.
+- Sin código ni bump: dato puro. `db/` no cambia.
