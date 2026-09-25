@@ -13164,3 +13164,20 @@ dentro de Huevo hay 1.000 y 2.500, dentro de Corb8 1.000 y 2.500, y el 700 (LOKE
   O1B 700 = 2.000, 23 Huevo en 1.000. Los otros 85 coinciden con su formato.
 - `F5A` 321 y `P2A` 840 = **2.500** `[CORRECCIÓN]`: primero se cargó 3.500 (dicho en el chat); Thomas
   confirmó *"Tomá el que dice la planilla: 2500"* → formato `Rallador` uni_x_bolsa = 2.500. 824/825/901 dicen 998/999/1001 → se dejan en 1.000 (typo).
+
+## 4gh. Las BOLSAS no tienen formato: formato es sólo de los cartones de Gráficos Pol (2026-09-25)
+
+`[usuario 2026-09-25, Thomas]`: *"no tiene formato. Formato tienen solo los cartones de gráfica pol"*.
+Aplicado a las 5 bolsas del sector cartón (se eligió: las 3 de Envases Vihal + las 2 de Papelera
+Nueve de Julio; **NO** a los pliegos de AJ Adhesivos ni a los 2 C de Blist-Pack, que siguen con formato):
+
+- Descripción **"Bolsa NNN"**, no "Cartón NNN": `A1B` Bolsa 031, `A1B1` Bolsa 120, `G8C` Bolsa 836.
+- Código de posición como el resto de los cartones (lo eligió Claude a pedido, junto a sus hermanas):
+  `BOLSA550` → **`A1B2`** (Bolsa 550, LOEKE) y `BOLSA760` → **`G8C1`** (Bolsa 760, CHEF). Todo lo
+  referencia por id, así que el rename no rompió nada.
+- `carton_formato = NULL` en las 5. El paquete de envío se pasó ANTES a la pieza (`entrega_uni_x` +
+  `entrega_unidad='paquetes'`, mismo camino que 4gg): Vihal **7.500**, Papelera **200**. Tablet,
+  relevamiento y reemplazo leen `coalesce(entrega_uni_x, formato)` → sin cambio de comportamiento.
+- ⚠ Lo que SÍ se perdió: el aviso de **pedido mínimo 20.000** de la OC (vivía en el formato y estaba
+  sin confirmar). Recepción las muestra en el chip "Sin formato" y las sigue contando en paquetes.
+- Los formatos `Bolsa` y `Bolsa Cartón` de `GP2.carton_formato` quedaron sin uso (no se borraron).
