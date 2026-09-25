@@ -13158,8 +13158,13 @@ dentro de Huevo hay 1.000 y 2.500, dentro de Corb8 1.000 y 2.500, y el 700 (LOKE
   **Relevamiento también** (`relev_factor`, Thomas dijo que sí): el paquetón que se cuenta es el del cartón.
   **O.C. no lo usa** (agrupa por múltiplos de pliego). **Recepción también** [Thomas: *"Trae las unidades que
   dice el uni x paquete x cartón que acabas de cargar"*]: la bolsa de la gráfica = `entrega_uni_x` del cartón
-  (2.500 = 10 paquetes de 250, +10 en la tarjeta); sin dato, el formato. `guardar_control_cartones` y
-  RecepcionInsumos v3.63.0 (`cartonUxp`).
+  (2.500 = 10 paquetes de 250, +10 en la tarjeta). `guardar_control_cartones` y RecepcionInsumos v3.64.0.
+- **El formato es SOLO EL NOMBRE** [Thomas: *"tendría que nada más decir el formato y esa tabla fija por formato
+  de uni por paquete, sacala"*]. Se cargó `entrega_uni_x` a los 85 cartones que no lo tenían (con el número que
+  tenían por formato) y a los pliegos (100), y se sacó toda caída al formato: `tablet_bundle`,
+  `cartones_para_reemplazo`, `relev_factor`, `guardar_control_cartones`, `recepcion_bundle` (uni_x_bolsa_cat) y
+  la tabla fija `UNI_X_BOLSA` del front. `carton_formato.uni_x_bolsa` queda en la tabla pero **nadie lo lee**
+  para el paquete. Único cartón sin paquete: `BANDITA` (Palo de Amasar) → "sin paquete cargado".
 - **Los 13 que no estaban en la planilla** quedaron fijos por cartón con el número de su formato [Thomas:
   *"usa esas uni x paquete"*]: 059/500/510/516/715/818/909 = 1.000 (C), 355/515/590/867/890 = 2.000 (Huevo),
   708 = 1.000 (LOKE). Ojo: la hoja tenía "590E" (2.500) y "890E" (1.000); **manda lo dicho por Thomas** (2.000).
@@ -13187,3 +13192,10 @@ Nueve de Julio; **NO** a los pliegos de AJ Adhesivos ni a los 2 C de Blist-Pack,
 - ⚠ Lo que SÍ se perdió: el aviso de **pedido mínimo 20.000** de la OC (vivía en el formato y estaba
   sin confirmar). Recepción las muestra en el chip "Sin formato" y las sigue contando en paquetes.
 - Los formatos `Bolsa` y `Bolsa Cartón` de `GP2.carton_formato` quedaron sin uso (no se borraron).
+- **Continuación (mismo día)** `[usuario]`: se **borraron** los formatos `Bolsa` y `Bolsa Cartón`
+  (*"Sí"*), y Recepción Insumos (v3.63.0) ya no muestra la fila FORMATO cuando ningún ítem de la
+  marca tiene formato: con Vihal y Papelera aparecen las bolsas de cada marca, sin clasificación.
+- **`BANDITAM` es formato `Bandita`** `[usuario 2026-09-25: "Bandita matambre es formato bandita"]`.
+  Da vuelta el formato aparte `Bandita Matambre` de 4gf: la bolsita de **2.000** pasó a la pieza
+  (`entrega_uni_x=2000`, `entrega_unidad='bolsas'` ya estaba) y el formato `Bandita Matambre` se
+  borró. Los múltiplos de OC eran los mismos de Bandita, así que la OC no cambia.

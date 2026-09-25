@@ -1413,7 +1413,7 @@ with propios as (
 todos as (
   select c.id comp_id, c.codigo cod, c.descripcion descr, c.sector_id sec_id, s.nombre sector,
          case when c.sector_id = 10
-                then coalesce(nullif(c.entrega_uni_x,0), (select f.uni_x_bolsa from carton_formato f where f.nombre = c.carton_formato))
+                then nullif(c.entrega_uni_x,0)
               else (select pa.valor::numeric from parametro pa where pa.clave = 'caja_uni_x_paquete')
          end factor,
          coalesce((select i.cantidad from inventario i
@@ -4182,7 +4182,7 @@ BEGIN
     --   - pliegos (es_pliego=true): SIEMPRE 100 (100 pliegos por paquete, regla usuario 2026-09-01)
     --   - cartones (es_pliego=false): desde carton_formato.uni_x_bolsa
     v_uxb := NULL; v_fmt := NULL; v_es_pliego := false;
-    SELECT c.carton_formato, coalesce(nullif(c.entrega_uni_x,0), cf.uni_x_bolsa), c.es_pliego
+    SELECT c.carton_formato, nullif(c.entrega_uni_x,0), c.es_pliego
       INTO v_fmt, v_uxb, v_es_pliego
       FROM "GP2".componente c
       LEFT JOIN "GP2".carton_formato cf ON cf.nombre = c.carton_formato
@@ -6600,8 +6600,7 @@ AS $function$
       when c.sector_id = 10 and coalesce(c.es_pliego,false)
         then (select valor::numeric from "GP2".parametro where clave='pliego_uni_x_paquete')
       when c.sector_id = 10
-        then coalesce(nullif(c.entrega_uni_x,0), (select nullif(cf.uni_x_bolsa,0)
-              from "GP2".carton_formato cf where cf.nombre = c.carton_formato))
+        then nullif(c.entrega_uni_x,0)
       when c.sector_id = 11
         then (select valor::numeric from "GP2".parametro where clave='caja_uni_x_paquete')
       when c.sector_id = 5 then null                      -- fleje se cuenta en kg
@@ -7050,7 +7049,7 @@ AS $function$
             where a.componente_id = c.id), '[]'::jsonb),
         'estado_compra',c.estado_compra,
         'marca',c.marca, 'carton_formato',c.carton_formato, 'es_pliego',c.es_pliego,
-        'paq_x_bolsa',cf.paq_x_bolsa, 'uni_x_bolsa_cat',cf.uni_x_bolsa, 'kg_x_uni',c.kg_x_uni,'recibe_en_cajas',coalesce(c.recibe_en_cajas,false),
+        'paq_x_bolsa',cf.paq_x_bolsa, 'uni_x_bolsa_cat',c.entrega_uni_x, 'kg_x_uni',c.kg_x_uni,'recibe_en_cajas',coalesce(c.recibe_en_cajas,false),
         'n_fleje',fd.n_fleje,'medida',fd.medida_mm,
         'stock', coalesce((select sum(i.cantidad) from "GP2".inventario i
                     where i.componente_id = c.id and i.ubicacion_id = "GP2".ubic_de('sector', c.sector_id)),0),
@@ -7943,7 +7942,7 @@ select jsonb_build_object(
                                   then case when sec_id in (10,11) then coalesce(nullif(btrim(ent_uni),''), 'paquetes')
                                             else coalesce(nullif(btrim(ent_uni),''), 'cajones') end end,
              'env_factor', case when tipo in ('tallerista','proveedor_at') then case
-                                  when sec_id = 10 then coalesce(nullif(ent_ux,0), (select f.uni_x_bolsa from carton_formato f where f.nombre = cfmt))
+                                  when sec_id = 10 then nullif(ent_ux,0)
                                   when sec_id = 11 then (select pa.valor::numeric from parametro pa
                                                           where pa.clave = 'caja_uni_x_paquete')
                                   else coalesce(nullif(ent_ux,0), uxc) end end,

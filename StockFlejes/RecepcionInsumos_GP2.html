@@ -6,11 +6,15 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<!-- v3.63.0 (2026-09-25) — LA BOLSA DE CARTÓN TRAE LO QUE DICE EL CARTÓN [Thomas: "trae las unidades
-     que dice el uni x paquete x cartón que acabas de cargar"]. componente.entrega_uni_x (la col "Uni x
-     Paq" de la planilla de conteo) manda sobre el formato: el 222 viene de 2.500 = 10 paquetes de 250,
-     no de 1.000 como el LOKE. Sin ese dato, como antes (formato). Mismo orden en
-     guardar_control_cartones. -->
+<!-- v3.64.0 (2026-09-25) — LA BOLSA DE CARTÓN TRAE LO QUE DICE EL CARTÓN [Thomas: "trae las unidades
+     que dice el uni x paquete x cartón que acabas de cargar" + "tendría que nada más decir el formato y
+     esa tabla fija por formato de uni por paquete, sacala"]. componente.entrega_uni_x (col "Uni x Paq"
+     de la planilla de conteo) es la ÚNICA fuente: el 222 viene de 2.500 = 10 paquetes de 250. Se sacó
+     la tabla fija UNI_X_BOLSA; el formato queda solo como nombre. Igual en guardar_control_cartones. -->
+<!-- v3.63.0 (2026-09-25) — SIN FILA "FORMATO" CUANDO EL PROVEEDOR NO TIENE FORMATOS. Las bolsas de
+     Envases Vihal y Papelera Nueve de Julio quedaron sin carton_formato (formato es solo de los
+     cartones de Graficos Pol) y la pantalla mostraba un chip suelto "Sin formato (1)". Si ningun
+     item de la marca tiene formato, pintarFormatoChips() esconde la fila y lista los items directo. -->
 <!-- v3.62.0 (2026-09-25) — EL REMITO PUEDE VENIR CONTADO EN EL ENVASE DE LA PIEZA (usuario, sobre el
      C13 Corta Queso Bastidor c/Cilindro: "se recepciona en cajas de 144 uni y se le manda a lucho en
      esas cajas" + "Sí" a que la recepción también sea en cajas). componente.remito_unidad acepta un
@@ -1267,6 +1271,11 @@ function pintarFormatoChips(){
   var orden = ORDEN_FORMATO[marcaSel] || [];
   var permitidos = orden.filter(function(f){ return enDatos.indexOf(f)>=0; })
                         .concat(enDatos.filter(function(f){ return orden.indexOf(f)<0; }));
+  // v3.63.0 — Proveedor SIN formatos (bolsas de Envases Vihal y Papelera Nueve de Julio): no hay
+  // nada que clasificar, asi que no va la fila FORMATO ni el chip "Sin formato"; se ven los
+  // items de la marca y listo [usuario 2026-09-25: "simplemente aparecen los cartones de cada
+  // marca sin clasificacion de formato"]. Formato es solo de los cartones de Graficos Pol.
+  if (!permitidos.length){ formatoSel=''; fw.classList.add('hidden'); fg.innerHTML=''; return; }
   var cont = {}; permitidos.forEach(function(f){ cont[f]=0; }); var sinF=0;
   base.forEach(function(i){ if(i.carton_formato && permitidos.indexOf(i.carton_formato)>=0) cont[i.carton_formato]++; else sinF++; });
   fg.innerHTML='';
@@ -1653,35 +1662,22 @@ function setUnit(u){
   updateConv();
 }
 function PAQ(){ return Number(TARA.carton_uni_x_paquete)||250; }
-/* Uni x bolsa por carton_formato (regla del negocio 2026-09-01).
-   Espejo del uni_x_bolsa que vive en GP2.carton_formato. Pliego y Bolsa
-   NO llevan bolsa (no son carton formal): quedan como null y el control
-   se hace en paquetes como antes. */
-/* Uni por "unidad de control" segun formato (regla usuario 2026-09-01):
-   - Cartones (Huevo/8/C/LOKE): control en BOLSAS con estas unidades por bolsa.
-   - Bombilla y Bolsa: NO tienen bolsa como carton; los items ADENTRO son pliegos (Bombilla)
-     o bolsas Vihal (Bolsa) -> el packaging lo decide el flag es_pliego del componente.
-   Los pliegos (componente.es_pliego=true, sean formato C o Bombilla) se controlan en
-   PAQUETES de 100 pliegos c/u ("el remito en unidades, el control en paquetes").
-   esPliegoIt(it) = flag del componente (es_pliego), sirve tanto para C-pliego como para Bombilla-pliego. */
-var UNI_X_BOLSA = { Huevo:2000, '8':3000, C:1000, LOKE:1000, Bolsa:null, Pliego:100 };
+/* Uni por "unidad de control" (bolsa de la gráfica o paquete de pliegos).
+   - Cartones: control en BOLSAS de las unidades que dice EL CARTÓN (componente.entrega_uni_x, la
+     col "Uni x Paq" de la planilla de conteo) [Thomas 2026-09-25: "trae las unidades que dice el uni
+     x paquete x cartón" + "tendría que nada más decir el formato y esa tabla fija por formato de uni
+     por paquete, sacala"]. El formato es solo el NOMBRE; la tabla fija por formato se sacó.
+   - Pliegos (componente.es_pliego): PAQUETES de 100 ("el remito en unidades, el control en paquetes").
+   - Bolsas Vihal/Papelera (sin formato): sin bolsa, control en paquetes como antes. */
 var UNI_X_PAQ_PLIEGO = 100;
 function esPliegoIt(it){ return !!(it && it.es_pliego); }
 function uniXCtlItem(it){
-  // Unidades por unidad de control (bolsa o paquete de pliegos)
   if (esPliegoIt(it)) return UNI_X_PAQ_PLIEGO;
-  // La bolsa trae lo que dice el CARTÓN (componente.entrega_uni_x, la col "Uni x Paq" de la
-  // planilla de conteo) y solo sin ese dato cae al formato [Thomas 2026-09-25: "trae las
-  // unidades que dice el uni x paquete x cartón"]. Mismo orden que guardar_control_cartones.
-  var fc = cartonUxp(it);
-  if (fc) return fc;
-  var f = it && it.carton_formato;
-  if (!f) return null;
-  return UNI_X_BOLSA[f]==null ? null : UNI_X_BOLSA[f];
+  return cartonUxp(it);
 }
 function cartonUxp(it){
   var f = Number(it && it.entrega_uni_x);
-  return (it && Number(it.sector_id)===10 && !esPliegoIt(it) && f>0) ? f : null;
+  return (it && Number(it.sector_id)===10 && !esPliegoIt(it) && it.carton_formato && f>0) ? f : null;
 }
 function paqXBolsaDelItem(it){
   if (esPliegoIt(it)) return null;
