@@ -13185,3 +13185,10 @@ Nueve de Julio; **NO** a los pliegos de AJ Adhesivos ni a los 2 C de Blist-Pack,
 - ⚠ Lo que SÍ se perdió: el aviso de **pedido mínimo 20.000** de la OC (vivía en el formato y estaba
   sin confirmar). Recepción las muestra en el chip "Sin formato" y las sigue contando en paquetes.
 - Los formatos `Bolsa` y `Bolsa Cartón` de `GP2.carton_formato` quedaron sin uso (no se borraron).
+- **Continuación (mismo día)** `[usuario]`: se **borraron** los formatos `Bolsa` y `Bolsa Cartón`
+  (*"Sí"*), y Recepción Insumos (v3.63.0) ya no muestra la fila FORMATO cuando ningún ítem de la
+  marca tiene formato: con Vihal y Papelera aparecen las bolsas de cada marca, sin clasificación.
+- **`BANDITAM` es formato `Bandita`** `[usuario 2026-09-25: "Bandita matambre es formato bandita"]`.
+  Da vuelta el formato aparte `Bandita Matambre` de 4gf: la bolsita de **2.000** pasó a la pieza
+  (`entrega_uni_x=2000`, `entrega_unidad='bolsas'` ya estaba) y el formato `Bandita Matambre` se
+  borró. Los múltiplos de OC eran los mismos de Bandita, así que la OC no cambia.

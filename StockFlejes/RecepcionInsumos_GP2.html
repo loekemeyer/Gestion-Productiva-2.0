@@ -6,6 +6,10 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
+<!-- v3.63.0 (2026-09-25) — SIN FILA "FORMATO" CUANDO EL PROVEEDOR NO TIENE FORMATOS. Las bolsas de
+     Envases Vihal y Papelera Nueve de Julio quedaron sin carton_formato (formato es solo de los
+     cartones de Graficos Pol) y la pantalla mostraba un chip suelto "Sin formato (1)". Si ningun
+     item de la marca tiene formato, pintarFormatoChips() esconde la fila y lista los items directo. -->
 <!-- v3.62.0 (2026-09-25) — EL REMITO PUEDE VENIR CONTADO EN EL ENVASE DE LA PIEZA (usuario, sobre el
      C13 Corta Queso Bastidor c/Cilindro: "se recepciona en cajas de 144 uni y se le manda a lucho en
      esas cajas" + "Sí" a que la recepción también sea en cajas). componente.remito_unidad acepta un
@@ -1262,6 +1266,11 @@ function pintarFormatoChips(){
   var orden = ORDEN_FORMATO[marcaSel] || [];
   var permitidos = orden.filter(function(f){ return enDatos.indexOf(f)>=0; })
                         .concat(enDatos.filter(function(f){ return orden.indexOf(f)<0; }));
+  // v3.63.0 — Proveedor SIN formatos (bolsas de Envases Vihal y Papelera Nueve de Julio): no hay
+  // nada que clasificar, asi que no va la fila FORMATO ni el chip "Sin formato"; se ven los
+  // items de la marca y listo [usuario 2026-09-25: "simplemente aparecen los cartones de cada
+  // marca sin clasificacion de formato"]. Formato es solo de los cartones de Graficos Pol.
+  if (!permitidos.length){ formatoSel=''; fw.classList.add('hidden'); fg.innerHTML=''; return; }
   var cont = {}; permitidos.forEach(function(f){ cont[f]=0; }); var sinF=0;
   base.forEach(function(i){ if(i.carton_formato && permitidos.indexOf(i.carton_formato)>=0) cont[i.carton_formato]++; else sinF++; });
   fg.innerHTML='';
