@@ -13007,6 +13007,17 @@ la secuencia del `id` estaba desfasada → hubo que poner el id explícito (`max
 su `precio_proveedor` (de ahí el costo 13,25 / 38,00) y `componente_bom` como padre = 0 (comprados, no
 armados). No hace falta receta.
 
+**Remito en unidades, control en kg; al tallerista se le manda en kg** [Thomas 2026-09-25: *"la recepción
+de tablet insumos tendría que ser. Remito: unidades. Control: kg. Y al tallerista en la tablet envío a
+talleristas se le manda en kg"*]. Hecho: `remito_unidad='uni'` en 550/551 (la Recepción de Insumos fuerza
+unidades y esconde el toggle). **Falta el dato para que el resto ande solo** — hoy los dos tienen
+`kg_x_uni` y `uni_x_cajon` en **null**: (1) sin `kg_x_uni` el control no puede pasar de kg a unidades y
+queda pidiendo unidades (misma trampa que `PCP4A`); (2) el Enviar a tallerista ya carga en kg para todo
+lo que no es cartón/caja (`env_carga='kg'`), pero exige un envase (`uni_x_cajon`) y `kg_x_uni`, si no
+cae a unidades. **Pendiente del dueño: peso por unidad y cuántas por cajón/bolsa de cada uno.**
+`[dato]` La Lista de Precios de la planilla trae a 4 Zurdos como **cod. 4444** (cod ISIS 1897 "Prescintos
+Omega" $38, 4966 "Filtro p/Bombilla s/Envasar" $13,25) — `proveedor_insumo.cod_prov` sigue sin cargar.
+
 ### 4fz. IC3 / IC3V (Fleje N° 90 corto / largo): fleje que se CUENTA, en paquetes de 10 kg (2026-09-25)
 
 - `[usuario 2026-09-25]` *"IC3 e IC3V vienen en paquetes de 10kg cada uno."* → `entrega_unidad='paquetes'`
