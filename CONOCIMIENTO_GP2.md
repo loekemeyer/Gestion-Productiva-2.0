@@ -13097,3 +13097,14 @@ Bolsa **2**.] `V18D` (id 281, Sector Remache, sale niquelado de Guazzaroni y lo 
   (+$79,48 de servicio) y arrastra a **508** $1.554,93 → $1.634,41 y **708** $1.531,98 → $1.611,47. Nada
   más cambió (diff por componente: 3 filas).
 
+## 4gd. `Z21` Cuchillo Torta va a Martín Cornejo en CAJAS de 450, de 6,5 kg (2026-09-25)
+
+[Thomas: *"El cuchillo torta se manda en cajas de 450 uni y cada caja pesa 6.5kg"*.] `Z21` (id 757,
+Sector Bombilla, insumo que Martín Cornejo arma en el 311 y el 857): `entrega_unidad='cajas'`,
+`entrega_uni_x=450`, y `kg_x_uni` = 6,5 / 450 = **0,014444** `[CORRECCIÓN]`: antes decía **0,01932**, que
+daría 8,69 kg por caja — no cierra con la caja pesada (y la caja con cartón incluido pesa MÁS que las
+piezas, no menos). Manda el dato del dueño. Costo neutro (comprado: su costo es el precio; diff por
+componente vacío). Tablet: sugerido de hoy 4 uni = 1 caja; la cantidad se escribe en kg.
+⚠ `Z21.estado_compra='discontinuo'` pero se sigue mandando a Martín: a confirmar si ya no se compra
+(consume stock) o si el estado está mal.
+
