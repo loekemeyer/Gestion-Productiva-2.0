@@ -4,6 +4,7 @@
 (vacío)
 
 [HISTORIAL]
+2026-09-25 (9) - V18D TORNILLO SACAFUENTE EN BOLSAS DE 2 KG A MARTIN CORNEJO (Thomas). DB-only: kg_x_uni 0,0305, entrega_unidad=bolsas, entrega_uni_x 65,57. Tablet: 612 uni = 10 bolsas. COSTO: el niquelado Guazzaroni ($2.606/kg) antes daba 0 -> V18D 68,70->148,18; 508 +79,48; 708 +79,48. CONOCIMIENTO 4gc. thomas (claude-remote).
 2026-09-25 (8) - C13: REMITO EN CAJAS DE 144 + PESO 4,4 KG/CAJA (Thomas). DB: kg_x_uni=4,4/144 (costos identicos), remito_unidad='envase' (check ampliado), recepcion_bundle manda entrega_unidad/entrega_uni_x. RecepcionInsumos v3.62.0: carga cajas, guarda uni (x144). Test test_recepcion_uni + suite 58/58. version v1.187.0. CONOCIMIENTO 4gb. Cambio pedido -> sin auditoria. thomas (claude-remote).
 2026-09-25 (7) - GRJ21A/B: 5400 uni x caja al tallerista (Thomas). entrega_unidad='cajas', entrega_uni_x=5400 (0,81 / 1,809 kg por caja). Costos intactos. Envio en kg ya anda. CONOCIMIENTO 4fy. thomas (claude-remote).
 2026-09-25 (7) - C13 CORTA QUESO BASTIDOR EN CAJAS DE 144 A LUCHO (Thomas). DB-only: componente 547 entrega_unidad='cajas', entrega_uni_x=144 (patron Z31). Tablet: sugerido 7.854 uni = 55 cajas; cantidad en cajas (sin kg_x_uni). CONOCIMIENTO 4gb. Cambio pedido -> sin auditoria. thomas (claude-remote).

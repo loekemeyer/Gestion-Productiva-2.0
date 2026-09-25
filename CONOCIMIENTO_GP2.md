@@ -13082,3 +13082,18 @@ cuenta"*]:
   `RecepcionInsumos_GP2.html` v3.62.0 pide "Cantidad cajas" y guarda cajas × 144 en **unidades** (3 cajas
   = 432 uni). El 144 vive en un solo lugar: el mismo dato con que la Tablet se lo manda a Lucho.
   Sin factor, `'envase'` no se reconoce y la pieza cae a su regla de siempre (importado → unidades).
+
+## 4gc. `V18D` Tornillo Sacafuente va a Martín Cornejo en BOLSAS de 2 kg (2026-09-25)
+
+[Thomas, con la foto de su planilla: *"Viendo el envío a Martín Cornejo en versión tablet del tornillo
+Sacafuente, que me lo pone en unidades. Quiero que me lo ponga en bolsas"* — KG x Uni **0,0305**, Kg x
+Bolsa **2**.] `V18D` (id 281, Sector Remache, sale niquelado de Guazzaroni y lo arma Martín Cornejo en el
+508 y el 708) no tenía ni peso ni envase, así que la Tablet caía a unidades.
+- **Dato:** `kg_x_uni=0,0305`, `entrega_unidad='bolsas'`, `entrega_uni_x` = 2 / 0,0305 = **65,57 uni por
+  bolsa** (no redondo, como la bolsa de 1 kg del Z12: la bolsa se arma pesando). Tablet medida: sugerido
+  612 uni = **10 bolsas** (techo de 9,33); la cantidad se escribe en kg (≈ 18,67 kg).
+- ⚠ **Movió el costo, y es una corrección:** sin `kg_x_uni` el niquelado de Guazzaroni (cobra por kg,
+  **$2.606/kg**, la misma tarifa que V1/V11/V12/V13/D9/D13) daba **$0**. Ahora `V18D` $68,70 → **$148,18**
+  (+$79,48 de servicio) y arrastra a **508** $1.554,93 → $1.634,41 y **708** $1.531,98 → $1.611,47. Nada
+  más cambió (diff por componente: 3 filas).
+
