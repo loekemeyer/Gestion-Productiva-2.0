@@ -7664,7 +7664,10 @@ rep as (
                                       else ubic_de('sector', ent.sector_id) end
                     limit 1), 1) as meses,
          case
-           when ent.sector_id = 5         then coalesce(fk.consumo_kg_mes, 0)
+           -- solo el fleje que se PESA va por kg/mes. IC3/IC3V (alambre N 90 cortado) son sector 5 pero
+           -- se cuentan en unidades: no estan en v_consumo_fleje_kg y daban sugerido 0 a IJUPA
+           -- [usuario 2026-09-25: "me aparece cero cajones en el sugerido. Tendria que salir el consumo"].
+           when ent.sector_id = 5 and ent.unidad_medida = 'kg' then coalesce(fk.consumo_kg_mes, 0)
            when e.tipo = 'tallerista'     then coalesce(ct.uni_mes, 0)
            when e.tipo = 'proveedor_at'   then coalesce(cpa.uni_mes, 0)
            else                                coalesce(vc.consumo_uni_mes, 0)
