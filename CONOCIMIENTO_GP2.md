@@ -13134,6 +13134,5 @@ aparezca en cajones el sugerido"*.]
 - **Cartones a prov. AT** [Thomas: *"Se les manda a Carriero. En paquetes de 3500. El formato rayador es
   en paquetes de 3500"* / *"El 824 y el 825 son tipo corbata. El 026 y 027 son tipo 8"* y enseguida *"Me corrijo. 026 y 027 son tipo huevo"*]:
   formato `Rallador` uni_x_bolsa null → **3.500** (F5A 321, P2A 840); `C2A` 026 y `C2B` 027 pasan de
-  Corbata a formato **Huevo** (paquete 2.000). `Q6B` 824 / `Q6C` 825 siguen Corbata, que **no tiene tamaño de
-  paquete** → la Tablet dice "sin paquete cargado" hasta que se dé.
+  Corbata a formato **Huevo** (paquete 2.000). `Q6B` 824 / `Q6C` 825 siguen Corbata: paquete de **1.000** [Thomas: *"1000"*].
   El sugerido de hoy es 0 en todos porque máximo del destino = 0 y el Sector Cartón no tiene stock.
