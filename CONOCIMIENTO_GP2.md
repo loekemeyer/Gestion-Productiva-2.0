@@ -13281,3 +13281,44 @@ GRJ10A, ABPM, IVBCM, IVBLM; los importados de acero 941E-948E suman sus secundar
 - **Regla que queda**: en ubicaciones de tallerista el único origen que el recálculo respeta es `fisico`;
   un máximo cargado a mano por SQL con otro origen se pisa en el próximo sync. Hoy no hay ninguno.
 - 13 máximos de tallerista sin ruta ni consumo (Gentile 9, Cavallero 3, Cornejo PC8) se limpiaron a null.
+
+## 4gm. GP2 lee la O.C. de Gestión Virgilio: al Prov AT se le mandan las partes de su orden (2026-09-26)
+
+`[Thomas 2026-09-26: "Para los proveedores de artículo terminado solamente tenemos que mandarle partes
+para que puedan hacer lo que les pide su orden de compra"]`. Cierra el hueco que §4fr y §4fw dejaron
+escrito ("cuando salga orden de compra de Virgilio, que todavía no lo modelamos").
+
+**Cómo genera Virgilio las O.C.** `[dato: repo Gestion-Virgilio, sql/generar_ocs_automaticas.sql,
+gv_generador_oc_*, oc_nueva_pisa_vieja_v1460.sql]`: `vista_generador_oc` arma por artículo
+**máximo = ceil(proyección × índice)** (proyección = `gv_proyeccion_articulo`, índice default 1,5,
+"la proyección es rey": no se topa a la góndola), **a pedir = máximo + pedidos pendientes − stock
+disponible**, y el cron diario `gv_oc_auto_corrida()` (ancla `GV_OC_Auto`, cadencia 7 días) inserta
+una línea por (proveedor, código) en `public."Ordenes_Compra"` (rubro `Art Term`, unidad `Cajas`,
+estado `pendiente`, `oc_uni_caja`). El proveedor sale de `OC_Maximos.proveedor` (quién fabrica), salvo
+Blistpack/Oscar/Pedernera, cuya O.C. se emite a **Log/ Fabr** (`GV_OC_Fabrica_Para`). Al recibir,
+`gv_oc_recompute_recibido` cruza entregas contra O.C. por (proveedor, código) y sube
+`cantidad_recibida`/`estado`. **Regla "la nueva pisa la vieja"**: por (proveedor, código) sólo vive
+la O.C. de fecha más nueva no cerrada/anulada (ventana 120 días); pendiente = cantidad − recibida.
+Los proveedores de esa tabla son también nuestros talleristas (Lucho, Poly=IJUPA, Martin C, Garcia,
+German, Oscar, Pettofrezza, Carlos E) y fasoneros (Pedernera).
+
+**Lo hecho en GP2 (REGLA 0: sin leer `public` desde GP2):**
+- **`GP2.oc_virgilio`**: espejo fila a fila de `Ordenes_Compra` por el trigger `trg_oc_virgilio_espejo_gp2`
+  (en `public`, patrón `est_madre`; `fn_oc_virgilio_espejo` nunca frena a Virgilio: `raise warning`).
+  Semilla 872 filas; `db/verificar.sql` regla `AH` avisa si se desfasa.
+- **`v_oc_virgilio_pendiente`**: O.C. vigente por (contraparte GP2, código) con la regla de Virgilio;
+  el proveedor se resuelve a contraparte **activa** por nombre de `proveedor_at` (con o sin " SA"),
+  `contraparte_alias`, nombre de tallerista exacto o por prefijo ("Martin C" → Martin Cornejo).
+  Sin resolver hoy: "Carlos E" (¿Alex Escalante? el alias `CARLOS` apunta a Aguirre, §1-nonies),
+  "Log/ Fabr", "Blistpack", "Basconia" (flejes), "Paternal Goma" (prov AT inactivo).
+  `uni_pend` = cajas × `articulos_por_caja` (o la caja de la O.C.; en `Uni` ya son unidades).
+- **`v_oc_virgilio_partes`**: `uni_pend` × receta, sólo cartón y caja (lo que GP2 le manda al prov AT).
+- **`tablet_bundle`**: el techo del prov AT pasa de `0` a esas partes; sugerido = techo − lo que ya
+  tiene. Medido: 24 filas con sugerido en 5 prov AT (Pintos 13, Carriero 3, Maspoli 5, The Plast 3);
+  Cabral, Kuffo, Lopez Jose y Manfer sin O.C. vigente → 0, como antes.
+- Códigos de O.C. que **no son artículo GP2**: Manfer 565, Maspoli 55219, Tierra Nativa 55215 → no
+  generan partes (se ven en la vista con `articulo_id` null).
+
+**Pendiente (no hecho)**: los **talleristas O.C.** (Carlos Aguirre, Blist-Pack, §4fr) siguen con techo 0;
+la misma vista sirve, pero sus partes salen de `ruta_paso` (comp_entrada del paso del tallerista),
+no de la receta plana `[idea 7356]`. Pedernera (fasonero) idem.

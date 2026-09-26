@@ -1,7 +1,7 @@
 -- =====================================================================
 -- VISTAS del schema GP2 (pg_get_viewdef, exacto) — export automatico 2026-09-11 desde Supabase (hrxfctzncixxqmpfhskv)
 -- Respaldo/referencia. La fuente de verdad es la base; regenerar al cambiar el schema.
--- 24 vistas. Orden de creacion: las que dependen de otra van despues.
+-- 30 vistas (2026-09-26: + v_oc_virgilio_pendiente, v_oc_virgilio_partes). Orden de creacion: las que dependen de otra van despues.
 -- =====================================================================
 
 -- ---------- v_caj_contraparte ----------
@@ -859,6 +859,117 @@ create or replace view "GP2".v_nivel_stock_tallerista as
      JOIN "GP2".ubicacion u ON u.id = i.ubicacion_id AND u.tipo = 'tallerista'::text
      LEFT JOIN "GP2".v_consumo_tallerista ct ON ct.tallerista_id = u.ref_id AND ct.componente_id = i.componente_id;
 comment on view "GP2".v_nivel_stock_tallerista is 'max_calc = consumo repartido x meses_stock de la ubicacion del tallerista. La usa recalcular_maximos_talleristas.';
+
+-- ---------- v_oc_virgilio_pendiente ----------
+create or replace view "GP2".v_oc_virgilio_pendiente as
+ WITH oc AS (
+         SELECT o.id,
+            o.fecha,
+            o.proveedor,
+            o.codigo,
+            o.cantidad,
+            o.cantidad_recibida,
+            o.unidad,
+            o.estado,
+            o.oc_uni_caja,
+            regexp_replace(regexp_replace(upper(btrim(o.codigo)), '\s+(LK|CH)$'::text, ''::text), '^0+(?=.)'::text, ''::text) AS codb,
+            upper(btrim(o.proveedor)) AS provn
+           FROM "GP2".oc_virgilio o
+          WHERE o.fecha >= (CURRENT_DATE - 120) AND (lower(COALESCE(o.estado, ''::text)) <> ALL (ARRAY['cerrada'::text, 'anulada'::text])) AND NULLIF(btrim(o.codigo), ''::text) IS NOT NULL
+        ), res AS (
+         SELECT oc.id,
+            oc.fecha,
+            oc.proveedor,
+            oc.codigo,
+            oc.cantidad,
+            oc.cantidad_recibida,
+            oc.unidad,
+            oc.estado,
+            oc.oc_uni_caja,
+            oc.codb,
+            oc.provn,
+            ct.tipo,
+            ct.ref_id
+           FROM oc
+             LEFT JOIN LATERAL ( SELECT x.tipo,
+                    x.ref_id
+                   FROM ( SELECT 1 AS pri,
+                            'proveedor_at'::text AS tipo,
+                            p.id AS ref_id
+                           FROM "GP2".proveedor_at p
+                          WHERE COALESCE(p.activo, true) AND (upper(btrim(p.nombre)) = ANY (ARRAY[oc.provn, oc.provn || ' SA'::text]))
+                        UNION ALL
+                         SELECT 2,
+                            a_1.tipo,
+                            a_1.ref_id
+                           FROM "GP2".contraparte_alias a_1
+                          WHERE a_1.alias = oc.provn AND a_1.ref_id IS NOT NULL
+                        UNION ALL
+                         SELECT 3,
+                            'tallerista'::text,
+                            t.id
+                           FROM "GP2".tallerista t
+                          WHERE t.activo AND upper(btrim(t.nombre)) = oc.provn
+                        UNION ALL
+                         SELECT 4,
+                            'tallerista'::text,
+                            t.id
+                           FROM "GP2".tallerista t
+                          WHERE t.activo AND upper(btrim(t.nombre)) ~~ (oc.provn || '%'::text)) x
+                  ORDER BY x.pri, x.ref_id
+                 LIMIT 1) ct ON true
+        ), vig AS (
+         SELECT r.id,
+            r.fecha,
+            r.proveedor,
+            r.codigo,
+            r.cantidad,
+            r.cantidad_recibida,
+            r.unidad,
+            r.estado,
+            r.oc_uni_caja,
+            r.codb,
+            r.provn,
+            r.tipo,
+            r.ref_id,
+            max(r.fecha) OVER (PARTITION BY r.tipo, r.ref_id, r.codb) AS mf
+           FROM res r
+        )
+ SELECT v.tipo,
+    v.ref_id,
+    a.id AS articulo_id,
+    v.codb AS codigo,
+    v.fecha,
+    max(v.proveedor) AS proveedor_virgilio,
+    sum(v.cantidad) AS cajas_ped,
+    sum(COALESCE(v.cantidad_recibida, 0)) AS cajas_rec,
+    sum(v.cantidad - COALESCE(v.cantidad_recibida, 0)) AS cajas_pend,
+    sum((v.cantidad - COALESCE(v.cantidad_recibida, 0))::numeric *
+        CASE
+            WHEN lower(COALESCE(v.unidad, ''::text)) ~~ 'uni%'::text THEN 1::numeric
+            ELSE COALESCE(a.articulos_por_caja::numeric, v.oc_uni_caja, 1::numeric)
+        END) AS uni_pend,
+    string_agg(DISTINCT v.unidad, ','::text) AS unidad
+   FROM vig v
+     LEFT JOIN "GP2".articulo a ON regexp_replace(a.codigo, '^0+(?=.)'::text, ''::text) = v.codb
+  WHERE v.fecha = v.mf
+  GROUP BY v.tipo, v.ref_id, a.id, v.codb, v.fecha
+ HAVING sum(v.cantidad - COALESCE(v.cantidad_recibida, 0)) > 0;
+comment on view "GP2".v_oc_virgilio_pendiente is 'Lo que cada contraparte le debe a Gestión Virgilio según su O.C. vigente: por (contraparte, código) manda la O.C. de fecha MÁS NUEVA no cerrada/anulada de los últimos 120 días ("la nueva pisa la vieja", misma regla que oc_vigentes_por_proveedor allá); pendiente = cantidad − recibida. El proveedor de la O.C. se resuelve a contraparte GP2 ACTIVA, en este orden: nombre de proveedor_at (con o sin " SA"), contraparte_alias, nombre exacto de tallerista, nombre de tallerista que empieza así ("Martin C" → Martin Cornejo); tipo null = no se pudo resolver ("Carlos E", "Log/ Fabr"). uni_pend = cajas × articulos_por_caja del artículo GP2 (o la caja de la O.C.); si la O.C. está en Uni, ya son unidades. articulo_id null = el código no es un artículo GP2. 2026-09-26.';
+
+-- ---------- v_oc_virgilio_partes ----------
+create or replace view "GP2".v_oc_virgilio_partes as
+ SELECT p.tipo,
+    p.ref_id,
+    ac.componente_id,
+    sum(p.uni_pend * ac.cantidad) AS uni_requeridas,
+    count(DISTINCT p.articulo_id) AS articulos
+   FROM "GP2".v_oc_virgilio_pendiente p
+     JOIN "GP2".articulo_componente ac ON ac.articulo_id = p.articulo_id
+     JOIN "GP2".componente c ON c.id = ac.componente_id AND NOT COALESCE(c.discontinuado, false)
+  WHERE p.tipo = 'proveedor_at'::text AND (c.sector_id = ANY (ARRAY[10::bigint, 11::bigint]))
+  GROUP BY p.tipo, p.ref_id, ac.componente_id;
+comment on view "GP2".v_oc_virgilio_partes is 'Partes que hay que tener en poder del PROV. DE ART. TERMINADO para que cumpla su O.C. de Virgilio: uni_pend de cada artículo pendiente × receta (articulo_componente), solo cartón y caja (sectores 10 y 11), que es lo que GP2 le manda. Es el techo del Enviar de la Tablet para el prov AT (sugerido = techo − lo que ya tiene) [usuario 2026-09-26: "para los proveedores de artículo terminado solamente tenemos que mandarle partes para que puedan hacer lo que les pide su orden de compra"]. Sin O.C. vigente = 0, como antes.';
 
 -- ---------- v_planilla_costo ----------
 create or replace view "GP2".v_planilla_costo as

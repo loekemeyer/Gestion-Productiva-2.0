@@ -31,7 +31,8 @@ el CHECK de vocabulario de `movimiento.tipo_mov`, y FKs/índices que faltaban.
 (ver abajo), las secuencias sueltas viejas (quedan como `default nextval(...)`), ni los dos
 triggers espejo que viven sobre tablas de `public` (`trg_virgilio_espejo_gp2` sobre
 `Entregas Tallerista Virgilio` → `fn_entregas_virgilio_espejo`; `trg_est_madre_sync_gp2` sobre
-`proyeccion_madre` → `fn_est_madre_sync`; sus funciones sí están en `funciones_GP2.sql`), ni el
+`proyeccion_madre` → `fn_est_madre_sync`; `trg_oc_virgilio_espejo_gp2` sobre `Ordenes_Compra` →
+`fn_oc_virgilio_espejo`, 2026-09-26; sus funciones sí están en `funciones_GP2.sql`), ni el
 `cron.job` `actualizar_dolar_oficial`.
 
 **Grants (2026-09-04)**: ninguna tabla GP2 acepta escritura anónima directa (todas las policies

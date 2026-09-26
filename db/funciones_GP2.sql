@@ -1,7 +1,7 @@
 -- =====================================================================
 -- FUNCIONES del schema GP2 — export automatico 2026-09-21 (pg_get_functiondef, exacto)
 -- Fuente de verdad: Supabase (hrxfctzncixxqmpfhskv). Este archivo es respaldo/referencia.
--- 163 bloques = las 163 funciones de la base (fn_recalc_maximos_insumos -> fn_recalc_maximos_diferido el 2026-09-26). Verificado 2026-09-25 por md5(pg_get_functiondef)
+-- 164 bloques = las 164 funciones de la base (2026-09-26: fn_recalc_maximos_insumos -> fn_recalc_maximos_diferido, + fn_oc_virgilio_espejo). Verificado 2026-09-25 por md5(pg_get_functiondef)
 -- funcion por funcion: 0 distintas (se resincronizaron 6 que se habian tocado en vivo sin refrescar
 -- este archivo, se agrego relev_factor v2026-09-25 y se sacaron los 3 helpers __sim_* ya borrados).
 -- Los GRANT/REVOKE no estan aca: EXECUTE para anon solo en las RPC de pantalla (ver db/README.md).
@@ -3730,6 +3730,35 @@ end;
 $function$
 ;
 
+-- ---------- fn_oc_virgilio_espejo ----------
+CREATE OR REPLACE FUNCTION "GP2".fn_oc_virgilio_espejo()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'GP2'
+AS $function$
+-- Espejo fila a fila de public."Ordenes_Compra" en GP2.oc_virgilio (patron de fn_est_madre_sync).
+-- Un error aca NUNCA puede frenar a Gestion Virgilio: se avisa y la fila de public sigue.
+begin
+  begin
+    if TG_OP = 'DELETE' then
+      delete from "GP2".oc_virgilio where id = OLD.id;
+      return OLD;
+    end if;
+    insert into "GP2".oc_virgilio (id, fecha, proveedor, codigo, cantidad, cantidad_recibida, unidad, estado, oc_uni_caja, notas, actualizado)
+    values (NEW.id, NEW.fecha, NEW.proveedor, NEW.codigo, NEW.cantidad, NEW.cantidad_recibida, NEW.unidad, NEW.estado, NEW.oc_uni_caja, NEW.notas, now())
+    on conflict (id) do update
+      set fecha = excluded.fecha, proveedor = excluded.proveedor, codigo = excluded.codigo,
+          cantidad = excluded.cantidad, cantidad_recibida = excluded.cantidad_recibida,
+          unidad = excluded.unidad, estado = excluded.estado, oc_uni_caja = excluded.oc_uni_caja,
+          notas = excluded.notas, actualizado = now(), copiado_en = now();
+  exception when others then
+    raise warning 'fn_oc_virgilio_espejo: % (OC id %)', sqlerrm, coalesce(NEW.id, OLD.id);
+  end;
+  return coalesce(NEW, OLD);
+end $function$
+;
+
 -- ---------- fn_precio_tallerista_kg ----------
 CREATE OR REPLACE FUNCTION "GP2".fn_precio_tallerista_kg()
  RETURNS trigger
@@ -7444,7 +7473,14 @@ rep as (
                    -- Cuando salga orden de compra de Virgilio... lo hace otro sistema ahora"]. DA VUELTA
                    -- la migracion del 2026-09-23 (consumo x meses con reparto), que queda dormida.
                    when e.tipo = 'proveedor_at'
-                   then 0
+                   -- ...HASTA EL 2026-09-26: ahora GP2 lee esa O.C. (espejo GP2.oc_virgilio ->
+                   -- v_oc_virgilio_partes) y el techo son las PARTES (carton y caja) que el prov AT
+                   -- necesita tener para cumplir lo que le falta entregar de su O.C. vigente
+                   -- [usuario 2026-09-26: "solamente tenemos que mandarle partes para que puedan
+                   -- hacer lo que les pide su orden de compra"]. Sin O.C. vigente sigue en 0.
+                   then coalesce((select vp.uni_requeridas from v_oc_virgilio_partes vp
+                                   where vp.tipo = 'proveedor_at' and vp.ref_id = e.ref::bigint
+                                     and vp.componente_id = e.comp_id), 0)
                    else cons.consumo * cons.meses end as techo
     ) t
 ),

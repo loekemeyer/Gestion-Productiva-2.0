@@ -248,6 +248,14 @@ select 'AG_articulo_familia_desfasada_de_virgilio', count(*) from (
     union all
     (select cod_secundario, cod_principal from "GP2".articulo_familia
      except select btrim(cod_secundario), btrim(cod_principal) from public."Equivalencias_Familia")) d
+union all
+-- AH) GP2.oc_virgilio es ESPEJO de public."Ordenes_Compra" (trigger fila a fila en public). Consulta
+--     de AUDITORIA, por eso mira public: una fila distinta = el trigger no corrio o fallo. 2026-09-26.
+select 'AH_oc_virgilio_desfasado_de_ordenes_compra', count(*) from public."Ordenes_Compra" o
+ where not exists (select 1 from "GP2".oc_virgilio m
+                    where m.id = o.id and m.cantidad is not distinct from o.cantidad
+                      and m.cantidad_recibida is not distinct from o.cantidad_recibida
+                      and m.estado is not distinct from o.estado)
 ) chequeos
 order by regla;
 
