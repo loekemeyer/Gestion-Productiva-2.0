@@ -13309,8 +13309,13 @@ German, Oscar, Pettofrezza, Carlos E) y fasoneros (Pedernera).
 - **`v_oc_virgilio_pendiente`**: O.C. vigente por (contraparte GP2, código) con la regla de Virgilio;
   el proveedor se resuelve a contraparte **activa** por nombre de `proveedor_at` (con o sin " SA"),
   `contraparte_alias`, nombre de tallerista exacto o por prefijo ("Martin C" → Martin Cornejo).
-  Sin resolver hoy: "Carlos E" (¿Alex Escalante? el alias `CARLOS` apunta a Aguirre, §1-nonies),
-  "Log/ Fabr", "Blistpack", "Basconia" (flejes), "Paternal Goma" (prov AT inactivo).
+  **"Carlos E" = Alex Escalante** `[Thomas 2026-09-26: "Carlos E es el papá de Alex (el que
+  factura)"]`: Virgilio le emite la O.C. al padre porque es quien factura; el trabajo lo hace Alex
+  (tallerista 2). Alias `CARLOS E` → tallerista 2 cargado en `contraparte_alias` el 2026-09-26
+  (17 líneas de O.C. vigentes resolvieron: 506, 510, 248, 535, 515, 395, 333…). El alias `CARLOS`
+  a secas sigue siendo Aguirre (§1-nonies): no confundir. Como Escalante NO es `pedido_por_oc_virgilio`,
+  su techo en la Tablet no cambia (sigue consumo × meses).
+  Sin resolver hoy: "Log/ Fabr", "Blistpack", "Basconia" (flejes), "Paternal Goma" (prov AT inactivo).
   `uni_pend` = cajas × `articulos_por_caja` (o la caja de la O.C.; en `Uni` ya son unidades).
 - **`v_oc_virgilio_partes`**: `uni_pend` × receta, sólo cartón y caja (lo que GP2 le manda al prov AT).
 - **`tablet_bundle`**: el techo del prov AT pasa de `0` a esas partes; sugerido = techo − lo que ya
