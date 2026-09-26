@@ -106,6 +106,20 @@ PB1, PB7/PB8 (renombres), PC2A/PC2B, PEP4A/B, PEP6 · GRJ15 Pintura, GRJ16 Despo
 | **Tablet — Enviar a tallerista** | sugiere aunque el tallerista no tenga fila de inventario (PB2, PEP9, PV8, PV17 salen bien); sin error |
 | **Est. Madre sync** (`fn_est_madre_sync`) | 43 filas quedan con "uni = cajas" porque el artículo no existe en GP2: sin efecto hoy (ninguna tiene receta) |
 | **Invariantes** (`db/verificar.sql`) | 0 salvo AE=2 (preexistente, 567/537) y M=1 **falso positivo** (`reparto_guardar`, sin EXECUTE a propósito). Corregido el chequeo |
+| **Lista de conteo** (hoja de conteo de la planilla vs lo que el Relevamiento GP2 pide contar) | ver abajo |
+
+Qué pide contar GP2 que la hoja de conteo **no** tiene, y al revés (componentes activos):
+
+| Sector | GP2 pide y la planilla no | La planilla pide y GP2 no |
+|---|---|---|
+| Plástico | D9, PA10B, PA13B, PA18B, PA4, PA4B, PA5, PA5B, PB5, PB8A/PB8B, PC15A/AB/B, PC2, PC3B, PEP3, PEP4, PINCEL590, PV8B | PA15, PA16, PB1, PB3, PB7, PB8, PC15, PC2A, PC2B, PC3, PEP4A/B, PEP6, PGRJ12/PGRJ12B (renombres o faltantes de §3) |
+| Bombilla | C9, D14, I2, I3, Z21, Z25A, Z25B | BOM4, BOM5, BOM6, BOM11, BOM14 (caño 170), Z19A, Z2S, Z2SB, Z32, AA6/AE10 |
+| Remache | CV13, CV18D, V18, V18D, W1B, W8, EST1, EST2 | CV10, CV15, CV16, CV17, "S/S" (Rem Plaquita = CV13 en GP2) |
+| Garage | GRJ10A, GRJ22-GRJ28, GRJ30 | GRJ1, GRJ9, GRJ15, GRJ16, GRJ20 (=GRJ30); `GJR10` es typo de GRJ10 en la planilla |
+
+Las hojas de conteo están atrasadas respecto de GP2 (partes nuevas del 09 al 24-09), y GP2 no tiene
+las familias que la planilla todavía cuenta. Si el operario cuenta con el papel, esas filas quedan
+sin contar en el programa.
 
 ## 5. Duplicados e inconsistencias de tablas (sin tocar)
 
@@ -140,8 +154,15 @@ PB1, PB7/PB8 (renombres), PC2A/PC2B, PEP4A/B, PEP6 · GRJ15 Pintura, GRJ16 Despo
 - **D5 — Meses de máximo:** cartón 6 (planilla 3), remache 4 (planilla 6), MP plástica 2,5 (4).
 - **D2 — Cantidades por artículo:** V9 en 511, V8 en 723, PEP9 en 718, GRJ18 1,5.
 - **D3 — PC6/PB6/PA19/PEST1** en 609, 789, 856, 857, 709, 859: ¿van en la receta?
-- **D6 — Datos que propongo arreglar** (SQL listo, no ejecutado): borrar las filas de C12/C12B en
-  Sector Bombilla; poner cartón `Q7E` en la receta del 922; PA8A `uni_x_cajon` 33.000 → 5.000.
+- **D6 — Datos que propongo arreglar** (no ejecutado):
+  - `C12`: su máximo (1.656) quedó en la fila de **Sector Bombilla**; en Stock Procesado se ve **sin
+    máximo**. Mover la fila a Sector Procesado. `C12B`: ya tiene fila en Crudo (1.165) → borrar la
+    de Bombilla (stock 0).
+  - Poner el cartón `Q7E` en la receta y la ruta del 922 (hoy la O.C. lo tiene sin máximo).
+  - PA8A `uni_x_cajon` 33.000 → 5.000 (planilla).
+  - Consumibles sin receta que la O.C. nunca va a pedir (sin consumo ni máximo en GP2): `PIEA`/`PIEB`
+    ruedas (planilla 0,3/mes), `PCP4A` cinta (200/mes), `PCP2` níquel (36,27 kg/mes). Cargar
+    `inventario.maximo` "fisico" con el máximo de la planilla.
 - **D7 — Renombres de cartón** (I4C, E2B, G6A, D5A, H2A) y el choque G8C.
 - **D8 — CV15** Rem Tapón Hierro: ¿se dio de baja a propósito?
 
