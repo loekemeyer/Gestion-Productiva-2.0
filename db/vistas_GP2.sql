@@ -71,10 +71,18 @@ comment on view "GP2".v_consumo_componente is 'Consumo uni/mes por componente, t
 create or replace view "GP2".v_consumo_demanda as
  WITH RECURSIVE dem AS (
          SELECT a.id AS art_id,
-            em.proy_uni_mes AS uni
+            sum(em.proy_uni_mes) AS uni
            FROM "GP2".articulo a
-             JOIN "GP2".est_madre em ON regexp_replace(regexp_replace(em.cod, 'L$'::text, ''::text), '^0+'::text, ''::text) = regexp_replace(a.codigo, '^0+'::text, ''::text)
-          WHERE em.proy_uni_mes IS NOT NULL AND NOT a.discontinuado
+             JOIN LATERAL ( SELECT regexp_replace(a.codigo, '^0+'::text, ''::text) AS k
+                UNION
+                 SELECT regexp_replace(f.cod_secundario, '^0+'::text, ''::text) AS regexp_replace
+                   FROM "GP2".articulo_familia f
+                  WHERE regexp_replace(f.cod_principal, '^0+'::text, ''::text) = regexp_replace(a.codigo, '^0+'::text, ''::text)) k ON true
+             JOIN "GP2".est_madre em ON regexp_replace(regexp_replace(em.cod, 'L$'::text, ''::text), '^0+'::text, ''::text) = k.k
+          WHERE em.proy_uni_mes IS NOT NULL AND NOT a.discontinuado AND NOT (EXISTS ( SELECT 1
+                   FROM "GP2".articulo_familia f2
+                  WHERE regexp_replace(f2.cod_secundario, '^0+'::text, ''::text) = regexp_replace(a.codigo, '^0+'::text, ''::text)))
+          GROUP BY a.id
         ), receta AS (
          SELECT ac.articulo_id AS art_id,
             ac.componente_id AS comp_id,

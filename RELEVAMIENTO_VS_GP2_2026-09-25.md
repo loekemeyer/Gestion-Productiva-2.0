@@ -156,22 +156,35 @@ sin contar en el programa.
   En total GP2 deja afuera 75 cajas por mes (unas 900 uni). Seis artículos no tienen proyección en ninguna
   de las dos (231, 232, 233, 537, 567, 071): sin venta, igual en ambas. Propuesta D9.
 - ~~D1 — GRJ21A/GRJ21B: ¿2 o 1 por artículo?~~ **Resuelto** [Thomas 2026-09-26: *"cada unidad del código 550 lleva dos filtros y dos precintos. El blister viene por dos"*]: GP2 (×2) está bien; el error es de la planilla (×1). Sin cambios.
-- **D4 — Bolsa de remache: ¿2, 10, 20 o 25 kg?** Relevamiento 20, O.C. 25, planilla 2/10.
+- **D4 — Bolsa de remache: "depende"** [Thomas 2026-09-26]. Son dos envases distintos y no se tocó nada:
+  la **bolsa del proveedor** es la de la planilla (2 kg la mayoría; 10 kg V3/V5/V7/V8/V9; 20 kg la
+  cremallera) y la O.C. la pide en múltiplos de 25 kg (`remache_kg_x_bolsa`, dato del 18-09); el
+  **cajón de 20 kg** de `uni_x_cajon` es el que va a Guazzaroni a niquelar (medido: 21 kg anotados por
+  logística, §v_caj_contraparte). Pendiente: si el Relevamiento tiene que contar bolsas de proveedor,
+  hay que cargar el kg/bolsa por código en `entrega_uni_x` y hacer que `relev_factor` lo prefiera en Remache.
 - **D5 — Meses de máximo:** cartón 6 (planilla 3), remache 4 (planilla 6), MP plástica 2,5 (4).
 - **D2 — Cantidades por artículo:** V9 en 511, V8 en 723, PEP9 en 718, GRJ18 1,5.
 - **D3 — PC6/PB6/PA19/PEST1** en 609, 789, 856, 857, 709, 859: ¿van en la receta?
-- **D6 — Datos que propongo arreglar** (no ejecutado):
-  - `C12`: su máximo (1.656) quedó en la fila de **Sector Bombilla**; en Stock Procesado se ve **sin
-    máximo**. Mover la fila a Sector Procesado. `C12B`: ya tiene fila en Crudo (1.165) → borrar la
-    de Bombilla (stock 0).
-  - Poner el cartón `Q7E` en la receta y la ruta del 922 (hoy la O.C. lo tiene sin máximo).
-  - PA8A `uni_x_cajon` 33.000 → 5.000 (planilla).
-  - Consumibles sin receta que la O.C. nunca va a pedir (sin consumo ni máximo en GP2): `PIEA`/`PIEB`
-    ruedas (planilla 0,3/mes), `PCP4A` cinta (200/mes), `PCP2` níquel (36,27 kg/mes). Cargar
-    `inventario.maximo` "fisico" con el máximo de la planilla.
+- ~~D6 — Datos propuestos~~ **HECHOS 2026-09-26** [Thomas: *"Avanzá si podés vos"*]: cartón `Q7E` en la
+  receta del 922 (`articulo_componente` 979; consumo 274/mes); fila de `C12` movida de Bombilla a
+  Procesado (id 124411; el trigger la recalculó a 1.165, regla 5 cajones, como su hermana C12B en
+  Crudo); fila sobrante de `C12B` en Bombilla borrada (id 125353, stock 0); `PA8A` uni_x_cajon 33.000
+  → 5.000; máximos `fisico` a PIEA 1, PIEB 1, PCP4A 800 y PCP2 145 kg (PCP2 ya estaba en kg).
 - **D7 — Renombres de cartón** (I4C, E2B, G6A, D5A, H2A) y el choque G8C.
-- **D9 — Familias en GP2:** traer `Equivalencias_Familia` a una tabla propia de GP2 y que la demanda del
-  secundario se sume al principal (REGLA 0: no leer `public`). Hoy le falta demanda al 580 y a 7 importados de acero.
+- ~~D9 — Familias en GP2~~ **HECHO 2026-09-26**: tabla `GP2.articulo_familia` (19 pares, copia interna
+  de `Equivalencias_Familia`, RLS + policy SELECT, trigger que recalcula máximos) y `v_consumo_demanda`
+  suma la Est. Madre del secundario al principal (el secundario queda en 0 aunque exista como
+  artículo). Efecto medido: 13 componentes cambian de consumo — EP10, G7A, GRJ10A, ABPM, IVBCM 114 →
+  702/mes; IVBLM 342 → 2.106; IF9 6.758 → 7.346; PEST1 684 → 1.178; Q7E 0 → 274 (por D6); A11,
+  A9B, PINCEL590, CART590 +1 a +51. Máximos recalculados: 9 insumos, 68 filas de talleristas, 0 Prov AT.
+  Ahora GP2 y Gestión Virgilio dan lo mismo (±1 caja de redondeo) en todos los artículos vivos.
+  Invariante nuevo `AG` en `db/verificar.sql`: avisa si la tabla se desfasa de Virgilio (hoy 0).
+- **D10 — Los máximos de tallerista no se recalculan solos** `[hallazgo 2026-09-26]`: el trigger de
+  `est_madre` (`trg_maximos_est_madre`) corre `recalcular_maximos_insumos`, pero NO
+  `recalcular_maximos_talleristas` ni `recalcular_maximos_prov_at`. Al correrlos a mano cambiaron 68
+  máximos de tallerista que estaban viejos (ej. Martin Cornejo V1/V2/D4 8.748 → 8.610; IJUPA A1B
+  16.328 → 15.976; Pettofrezza E13 119 → 1.982). Propuesta: que `fn_recalc_maximos_insumos` llame a los
+  tres. No se cambió (afecta la Tablet de todos los talleristas; conviene mirarlo con stock cargado).
 - **D8 — CV15** Rem Tapón Hierro: ¿se dio de baja a propósito?
 
 ### Auditoría propuesta (no ejecutada: tu regla pide "sí" para escribir)

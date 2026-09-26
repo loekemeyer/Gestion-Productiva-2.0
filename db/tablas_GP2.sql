@@ -74,6 +74,17 @@ create table "GP2".articulo_componente (
 );
 comment on table "GP2".articulo_componente is 'Receta directa del articulo: que componentes lleva y cuantos por unidad. La escribe abm_bom_guardar.';
 
+-- ---------- articulo_familia ----------
+create table "GP2".articulo_familia (
+  cod_secundario text not null,
+  cod_principal text not null,
+  constraint articulo_familia_pkey PRIMARY KEY (cod_secundario),
+  constraint articulo_familia_distintos CHECK ((cod_secundario <> cod_principal))
+);
+comment on table "GP2".articulo_familia is 'Familias de artículos: la demanda (est_madre) del código SECUNDARIO se suma al PRINCIPAL en v_consumo_demanda, y el secundario queda en 0 aunque exista como artículo (misma regla que gv_proyeccion_articulo de Gestión Virgilio, v22.68/v22.72). Copia interna de public."Equivalencias_Familia" (REGLA 0: GP2 no lee public); se mantiene a mano, db/verificar.sql avisa si se desfasa. Cargada 2026-09-26 (19 pares).';
+-- trigger: CREATE TRIGGER trg_maximos_familia AFTER INSERT OR DELETE OR UPDATE ON "GP2".articulo_familia FOR EACH STATEMENT EXECUTE FUNCTION "GP2".fn_recalc_maximos_insumos()
+-- RLS habilitada; policy articulo_familia_select (SELECT, anon+authenticated); grant select to anon, authenticated.
+
 -- ---------- articulo_prov_at ----------
 create table "GP2".articulo_prov_at (
   id bigint not null default nextval('"GP2".articulo_prov_at_id_seq'::regclass),
@@ -1210,6 +1221,8 @@ CREATE TRIGGER trg_maximos_cajones_componente AFTER UPDATE OF uni_x_cajon ON "GP
 
 CREATE TRIGGER trg_maximos_est_madre AFTER INSERT OR DELETE OR UPDATE ON "GP2".est_madre FOR EACH STATEMENT EXECUTE FUNCTION "GP2".fn_recalc_maximos_insumos();
 
+CREATE TRIGGER trg_maximos_familia AFTER INSERT OR DELETE OR UPDATE ON "GP2".articulo_familia FOR EACH STATEMENT EXECUTE FUNCTION "GP2".fn_recalc_maximos_insumos();
+
 CREATE TRIGGER trg_movimiento_aplicar AFTER INSERT OR DELETE OR UPDATE ON "GP2".movimiento FOR EACH ROW EXECUTE FUNCTION "GP2".fn_movimiento_aplicar();
 
 CREATE TRIGGER trg_movimiento_calc BEFORE INSERT OR UPDATE ON "GP2".movimiento FOR EACH ROW EXECUTE FUNCTION "GP2".fn_movimiento_calc();
@@ -1238,6 +1251,7 @@ alter table "GP2".__sim_base enable row level security;
 alter table "GP2".alerta_recepcion enable row level security;
 alter table "GP2".articulo enable row level security;
 alter table "GP2".articulo_componente enable row level security;
+alter table "GP2".articulo_familia enable row level security;
 alter table "GP2".articulo_prov_at enable row level security;
 alter table "GP2".cajon enable row level security;
 alter table "GP2".carton_categoria enable row level security;
@@ -1300,6 +1314,7 @@ alter table "GP2".virgilio_espejo_pend enable row level security;
 
 create policy __sim_base_sel on "GP2".__sim_base for select to public using (false);
 create policy alerta_recepcion_sel on "GP2".alerta_recepcion for select to public using (true);
+create policy articulo_familia_select on "GP2".articulo_familia for select to anon, authenticated using (true);
 create policy p_gp2_select on "GP2".articulo for select to anon, authenticated using (true);
 create policy p_gp2_select on "GP2".articulo_componente for select to anon, authenticated using (true);
 create policy p_gp2_select on "GP2".articulo_prov_at for select to anon, authenticated using (true);

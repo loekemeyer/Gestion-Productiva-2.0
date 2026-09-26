@@ -237,6 +237,17 @@ select 'AF_reparto_prov_at_que_no_entrega_el_articulo', count(*) from "GP2".repa
  where not exists (select 1 from "GP2".v_hace_articulo h
                     where h.tipo = 'proveedor_at' and h.articulo_id = rp.articulo_id
                       and h.ref_id = rp.proveedor_at_id)
+union all
+-- AG) GP2.articulo_familia es copia interna de public."Equivalencias_Familia" (la mantiene Gestion
+--     Virgilio). Esta consulta es de AUDITORIA (no una funcion GP2), por eso puede mirar public:
+--     si un par falta o sobra, la demanda del principal en GP2 no coincide con la de Virgilio. 2026-09-26.
+select 'AG_articulo_familia_desfasada_de_virgilio', count(*) from (
+    select btrim(cod_secundario) s, btrim(cod_principal) p from public."Equivalencias_Familia"
+     where nullif(btrim(cod_secundario),'') is not null and nullif(btrim(cod_principal),'') is not null
+    except select cod_secundario, cod_principal from "GP2".articulo_familia
+    union all
+    (select cod_secundario, cod_principal from "GP2".articulo_familia
+     except select btrim(cod_secundario), btrim(cod_principal) from public."Equivalencias_Familia")) d
 ) chequeos
 order by regla;
 

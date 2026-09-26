@@ -13244,3 +13244,22 @@ recordar sin abrirlo:
   iguales salvo que **GP2 no suma la familia** (secundario → principal). Le falta demanda a 580 (el 580E
   aporta 49 caj/mes) y a 941E-948E y 590E (secundarios 332-338 y 548, que GP2 no tiene como artículo).
   Arreglo propuesto, no hecho: familias en una tabla propia de GP2 `[pendiente D9]`.
+
+## 4gk. Familias de artículos en GP2: la venta del secundario va al principal (2026-09-26)
+
+`[Thomas 2026-09-26: "Avanzá si podés vos"]` Hecho tras el cruce con Gestión Virgilio (§4gj). Tabla
+**`GP2.articulo_familia (cod_secundario pk, cod_principal)`**, 19 pares copiados de
+`public."Equivalencias_Familia"` (una vez; REGLA 0: ninguna función/vista GP2 lee `public`). La
+regla es la de Virgilio (v22.68/v22.72): **la Est. Madre del secundario se suma al principal y el
+secundario queda en 0** aunque exista como artículo GP2 (caso 338 → 941E). Vive en
+`v_consumo_demanda` (CTE `dem`); un trigger sobre la tabla recalcula máximos. Mantenimiento: a mano;
+`db/verificar.sql` regla `AG` compara con `Equivalencias_Familia` y avisa si se desfasa.
+Efecto: el 580 Batidor Mini pasó de 114 a 702 uni/mes (el 580E aporta 588) y con él EP10, G7A,
+GRJ10A, ABPM, IVBCM, IVBLM; los importados de acero 941E-948E suman sus secundarios 332-338
+(PEST1 684 → 1.178). **Hallazgo de paso**: `trg_maximos_est_madre` no recalcula talleristas ni Prov AT
+(68 máximos de tallerista estaban viejos); propuesto, no hecho `[pendiente D10]`.
+- **Bolsa de remache: "depende"** `[Thomas 2026-09-26]` — dos envases: bolsa del proveedor (planilla 2/10 kg,
+  O.C. múltiplos de 25 kg) y cajón de 20 kg a Guazzaroni (`uni_x_cajon`, medido 21 kg). Nada cambiado.
+- Datos aplicados 2026-09-26: cartón Q7E en receta 922; C12 inventario a Procesado (máx 1.165 por 5
+  cajones); fila C12B en Bombilla borrada; PA8A uni_x_cajon 5.000 (planilla); máximos físicos PIEA 1,
+  PIEB 1, PCP4A 800, PCP2 145 kg.

@@ -4,6 +4,7 @@
 (vacío)
 
 [HISTORIAL]
+2026-09-26 (1) - FAMILIAS EN GP2 + 5 CAMBIOS DE DATOS (Thomas: 'avanza si podes vos'). DB: tabla GP2.articulo_familia (19 pares, RLS, trigger recalc), v_consumo_demanda suma secundario->principal (580: 114->702), recalcular_maximos_insumos/talleristas/prov_at corridos. Datos: Q7E en receta 922, C12 a Procesado, C12B fila Bombilla borrada, PA8A uxc 5000, maximos fisicos PIEA/PIEB/PCP4A/PCP2. db/tablas+vistas+verificar (regla AG) sincronizados. Est Madre: manda GP2. CONOCIMIENTO 4gk. Suite 58/58. thomas (claude-remote).
 2026-09-25 (25) - CRUCE DE LAS 5 PLANILLAS VACIO (cartones, plastico, remaches, bombilla, garage) CONTRA GP2 (Thomas, sesion nocturna). Solo lectura sobre datos. Codigo: relev_factor cae a entrega_uni_x si no hay uni_x_cajon (GRJ13/14, GRJ21A/B, Z21 contables por caja); verificar.sql sin falso positivo reparto_guardar; db/ resincronizado (6 funciones + 3 vistas, md5 163/163). Informe RELEVAMIENTO_VS_GP2_2026-09-25.md + _detalle.xlsx con dudas D0-D8. Suite 58/58. CONOCIMIENTO 4gj. thomas (claude-remote).
 2026-09-25 (24) - TORNILLOS SUIPACHA DE BAJA (activo=false; sin piezas/alt/OC abiertas) (Thomas). DB-only. CONOCIMIENTO 4gi. thomas (claude-remote).
 2026-09-25 (23) - CV18D -> Imel (era Tornillos Suipacha), W8 -> Bella Vista (era Imel) (Thomas). DB-only, costo neutro. CONOCIMIENTO 4gi. thomas (claude-remote).
