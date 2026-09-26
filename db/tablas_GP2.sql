@@ -82,7 +82,7 @@ create table "GP2".articulo_familia (
   constraint articulo_familia_distintos CHECK ((cod_secundario <> cod_principal))
 );
 comment on table "GP2".articulo_familia is 'Familias de artículos: la demanda (est_madre) del código SECUNDARIO se suma al PRINCIPAL en v_consumo_demanda, y el secundario queda en 0 aunque exista como artículo (misma regla que gv_proyeccion_articulo de Gestión Virgilio, v22.68/v22.72). Copia interna de public."Equivalencias_Familia" (REGLA 0: GP2 no lee public); se mantiene a mano, db/verificar.sql avisa si se desfasa. Cargada 2026-09-26 (19 pares).';
--- trigger: CREATE TRIGGER trg_maximos_familia AFTER INSERT OR DELETE OR UPDATE ON "GP2".articulo_familia FOR EACH STATEMENT EXECUTE FUNCTION "GP2".fn_recalc_maximos_insumos()
+-- trigger: trg_maximos_familia (constraint trigger diferido, ver seccion TRIGGERS)
 -- RLS habilitada; policy articulo_familia_select (SELECT, anon+authenticated); grant select to anon, authenticated.
 
 -- ---------- articulo_prov_at ----------
@@ -382,7 +382,7 @@ create table "GP2".inventario (
   constraint inventario_pkey PRIMARY KEY (id),
   constraint inventario_componente_id_fkey FOREIGN KEY (componente_id) REFERENCES "GP2".componente(id),
   constraint inventario_ubicacion_id_fkey FOREIGN KEY (ubicacion_id) REFERENCES "GP2".ubicacion(id),
-  constraint inventario_maximo_origen_chk CHECK ((maximo_origen = ANY (ARRAY['cinco_cajones'::text, 'est_madre'::text, 'est_madre_x_reparto'::text, 'fisico'::text, 'faat_reserva_lote'::text, 'mb_4pct_por_color'::text, 'migrado_de_minimo'::text])))
+  constraint inventario_maximo_origen_chk CHECK ((maximo_origen = ANY (ARRAY['cinco_cajones'::text, 'est_madre'::text, 'est_madre_x_reparto'::text, 'fisico'::text, 'faat_reserva_lote'::text, 'mb_2pct_por_color'::text, 'mb_4pct_por_color'::text, 'migrado_de_minimo'::text])))
 );
 comment on table "GP2".inventario is 'Stock por componente y ubicacion (cantidad canonica, maximo y su origen). La cantidad la escriben SOLO los triggers de movimiento; el maximo, las RPC de recalculo. Las columnas minimo y minimo_origen se BORRARON el 2026-09-14 [usuario: "lo de minimo borralo. la orden de compra tiene que disparar segun el maximo"]: antes del drop, las 299 filas con minimo y sin maximo se migraron al maximo con origen migrado_de_minimo.';
 comment on column "GP2".inventario.maximo is 'Maximo de este componente en esta ubicacion. Crudo/Procesado: lo pone fn_recalc_maximos_cajones = max_cajones_x_ubicacion (parametro, hoy 5) x componente.uni_x_cajon. Insumos: fn_recalc_maximos_insumos, por Est Madre explotada x meses_stock. OJO: las columnas componente.cajones_x_ubicacion y componente.ubicaciones NO entran en la cuenta (la migracion del 2026-08-30 que las usaba quedo revertida: pregunta 5 de PREGUNTAS_ARQUITECTURA_GP2.md, sin responder).';
@@ -1215,13 +1215,13 @@ CREATE UNIQUE INDEX uq_produccion_id_ejecucion ON "GP2".produccion USING btree (
 
 -- ============ TRIGGERS ============
 
-CREATE TRIGGER trg_maximos_receta AFTER INSERT OR DELETE OR UPDATE ON "GP2".articulo_componente FOR EACH STATEMENT EXECUTE FUNCTION "GP2".fn_recalc_maximos_insumos();
+CREATE CONSTRAINT TRIGGER trg_maximos_receta AFTER INSERT OR DELETE OR UPDATE ON "GP2".articulo_componente DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION "GP2".fn_recalc_maximos_diferido();
 
 CREATE TRIGGER trg_maximos_cajones_componente AFTER UPDATE OF uni_x_cajon ON "GP2".componente FOR EACH STATEMENT EXECUTE FUNCTION "GP2".fn_recalc_maximos_cajones();
 
-CREATE TRIGGER trg_maximos_est_madre AFTER INSERT OR DELETE OR UPDATE ON "GP2".est_madre FOR EACH STATEMENT EXECUTE FUNCTION "GP2".fn_recalc_maximos_insumos();
+CREATE CONSTRAINT TRIGGER trg_maximos_est_madre AFTER INSERT OR DELETE OR UPDATE ON "GP2".est_madre DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION "GP2".fn_recalc_maximos_diferido();
 
-CREATE TRIGGER trg_maximos_familia AFTER INSERT OR DELETE OR UPDATE ON "GP2".articulo_familia FOR EACH STATEMENT EXECUTE FUNCTION "GP2".fn_recalc_maximos_insumos();
+CREATE CONSTRAINT TRIGGER trg_maximos_familia AFTER INSERT OR DELETE OR UPDATE ON "GP2".articulo_familia DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION "GP2".fn_recalc_maximos_diferido();
 
 CREATE TRIGGER trg_movimiento_aplicar AFTER INSERT OR DELETE OR UPDATE ON "GP2".movimiento FOR EACH ROW EXECUTE FUNCTION "GP2".fn_movimiento_aplicar();
 
@@ -1239,7 +1239,7 @@ CREATE TRIGGER trg_ubicacion_proveedor_servicio AFTER INSERT ON "GP2".proveedor_
 
 CREATE TRIGGER trg_rollo_desde_control AFTER INSERT OR DELETE OR UPDATE ON "GP2".recepcion_control_rollo FOR EACH ROW EXECUTE FUNCTION "GP2".fn_rollo_desde_control();
 
-CREATE TRIGGER trg_maximos_rutas AFTER INSERT OR DELETE OR UPDATE ON "GP2".ruta_paso FOR EACH STATEMENT EXECUTE FUNCTION "GP2".fn_recalc_maximos_insumos();
+CREATE CONSTRAINT TRIGGER trg_maximos_rutas AFTER INSERT OR DELETE OR UPDATE ON "GP2".ruta_paso DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION "GP2".fn_recalc_maximos_diferido();
 
 CREATE TRIGGER trg_ubicacion_sector AFTER INSERT OR UPDATE OF es_insumo ON "GP2".sector FOR EACH ROW EXECUTE FUNCTION "GP2".fn_ubicacion_de_contraparte();
 

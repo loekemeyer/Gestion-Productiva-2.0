@@ -405,7 +405,7 @@ respuesta sea una sola. Ninguna funcion busca mas una ubicacion por nombre
 |---|---|---|---|
 | `movimiento` | `trg_movimiento_calc` / `trg_movimiento_aplicar` | `fn_movimiento_calc`, `fn_movimiento_aplicar` | El motor de inventario: convierte kg/uni a `_delta_*` y aplica el delta en `inventario` |
 | `componente`, `parametro` | `trg_maximos_cajones_*` | `fn_recalc_maximos_cajones` | Maximo "5 cajones" de Crudo/Procesado al cambiar `uni_x_cajon` o el parametro |
-| `articulo_componente`, `est_madre`, `ruta_paso` | `trg_maximos_receta` / `_est_madre` / `_rutas` | `fn_recalc_maximos_insumos` | Maximo de insumos por Est Madre explotada |
+| `articulo_componente`, `est_madre`, `ruta_paso`, `articulo_familia` | `trg_maximos_receta` / `_est_madre` / `_rutas` / `_familia` (constraint triggers DEFERRABLE INITIALLY DEFERRED, por fila) | `fn_recalc_maximos_diferido` | Al COMMIT, UNA vez por transaccion: maximo de insumos por Est Madre explotada + maximos de tallerista (2026-09-26; antes era statement-level y corria 658 veces por sync de LK) |
 | `precio_tallerista` | `trg_precio_tallerista_kg` | `fn_precio_tallerista_kg` | Precio por kg derivado |
 | `recepcion_control_rollo` | `trg_rollo_desde_control` | `fn_rollo_desde_control` | Da de alta el rollo al pesar el pallet |
 | `public."Entregas Tallerista Virgilio"` | `trg_virgilio_espejo_gp2` | `fn_entregas_virgilio_espejo` | **Espejo public → GP2**: cada entrega en Virgilio se registra en `movimiento` (o queda en `virgilio_espejo_pend` si no cruza) |

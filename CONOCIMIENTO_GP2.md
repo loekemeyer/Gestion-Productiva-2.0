@@ -13263,3 +13263,21 @@ GRJ10A, ABPM, IVBCM, IVBLM; los importados de acero 941E-948E suman sus secundar
 - Datos aplicados 2026-09-26: cartón Q7E en receta 922; C12 inventario a Procesado (máx 1.165 por 5
   cajones); fila C12B en Bombilla borrada; PA8A uni_x_cajon 5.000 (planilla); máximos físicos PIEA 1,
   PIEB 1, PCP4A 800, PCP2 145 kg.
+
+## 4gl. Los máximos se recalculan UNA vez por transacción, al COMMIT (2026-09-26)
+
+`[Thomas 2026-09-26: "Dale" a D10]` + panel de 5 agentes (3 lentes + 2 refutadores) antes de tocar.
+- **Corrección a §4gk**: la Tablet **no** lee `inventario.maximo` de talleristas (calcula el techo en vivo:
+  consumo × meses); ese máximo guardado lo muestran sólo Proporciones_GP2 y la vista Talleristas de Stock
+  General. Lo de "afecta la Tablet" estaba mal dicho.
+- **Hallazgo `[dato, pg_stat_statements]`**: el sync de LK hace `DELETE FROM proyeccion_madre` + 330
+  `INSERT` de una fila, en una transacción, ~1,8 veces por día; `fn_est_madre_sync` es por fila, así que el
+  trigger statement-level de `est_madre` corría `recalcular_maximos_insumos` **658 veces por sync** (~54 s;
+  el DELETE 21,2 s promedio). Nadie lo notaba porque el rol `lk_ppp_reader` tiene timeout de 120 s.
+- **Arreglo**: `fn_recalc_maximos_diferido` + los 4 `trg_maximos_*` como **constraint triggers
+  DEFERRABLE INITIALLY DEFERRED** con bandera transaccional. Al COMMIT corre una sola vez insumos +
+  **talleristas** (antes nadie recalculaba talleristas al cambiar la Est. Madre: 68 estaban viejos).
+  Prov AT no entra (techo 0, regla 24-09). Probado con EP10/580. `fn_recalc_maximos_insumos` se borró.
+- **Regla que queda**: en ubicaciones de tallerista el único origen que el recálculo respeta es `fisico`;
+  un máximo cargado a mano por SQL con otro origen se pisa en el próximo sync. Hoy no hay ninguno.
+- 13 máximos de tallerista sin ruta ni consumo (Gentile 9, Cavallero 3, Cornejo PC8) se limpiaron a null.

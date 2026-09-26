@@ -179,12 +179,28 @@ sin contar en el programa.
   A9B, PINCEL590, CART590 +1 a +51. Máximos recalculados: 9 insumos, 68 filas de talleristas, 0 Prov AT.
   Ahora GP2 y Gestión Virgilio dan lo mismo (±1 caja de redondeo) en todos los artículos vivos.
   Invariante nuevo `AG` en `db/verificar.sql`: avisa si la tabla se desfasa de Virgilio (hoy 0).
-- **D10 — Los máximos de tallerista no se recalculan solos** `[hallazgo 2026-09-26]`: el trigger de
-  `est_madre` (`trg_maximos_est_madre`) corre `recalcular_maximos_insumos`, pero NO
-  `recalcular_maximos_talleristas` ni `recalcular_maximos_prov_at`. Al correrlos a mano cambiaron 68
-  máximos de tallerista que estaban viejos (ej. Martin Cornejo V1/V2/D4 8.748 → 8.610; IJUPA A1B
-  16.328 → 15.976; Pettofrezza E13 119 → 1.982). Propuesta: que `fn_recalc_maximos_insumos` llame a los
-  tres. No se cambió (afecta la Tablet de todos los talleristas; conviene mirarlo con stock cargado).
+- ~~D10 — Los máximos de tallerista no se recalculan solos~~ **HECHO 2026-09-26** [Thomas: *"Dale"*], con un
+  diseño distinto al propuesto. Antes de tocar, 5 agentes lo analizaron y 1 de 2 refutadores tumbó la
+  idea original (encadenar las 3 funciones en el trigger statement-level) con datos duros:
+  - **Corrección**: la Tablet NO lee el máximo guardado del tallerista (calcula el techo en vivo). Lo leen
+    sólo Proporciones_GP2 y la vista Talleristas de Stock General. La frase "afecta la Tablet" era falsa.
+  - **Hallazgo mayor**: el sync diario de LK borra e inserta las 330 filas de `proyeccion_madre` de a una,
+    en UNA transacción, y el trigger statement-level de `est_madre` corría el recálculo **658 veces por
+    sync (~54 s; el DELETE solo 21,2 s, medido en pg_stat_statements)**. Encadenar talleristas ahí
+    llevaba el DELETE a 76–200 s contra un `statement_timeout` de 120 s: riesgo de revertir el sync entero.
+  - **Lo hecho**: `fn_recalc_maximos_insumos` → **`fn_recalc_maximos_diferido`**; los 4 triggers
+    (`est_madre`, `articulo_componente`, `ruta_paso`, `articulo_familia`) pasan a **constraint triggers
+    DEFERRABLE INITIALLY DEFERRED por fila** con bandera transaccional (`set_config` local + `txid_current`):
+    al COMMIT corre UNA vez `recalcular_maximos_insumos()` + `recalcular_maximos_talleristas()` contra la
+    Est. Madre final; un error adentro avisa (`raise warning`) y no tumba el sync. Prov AT queda afuera
+    (techo 0 por regla del 24-09, 0 filas de inventario). Ninguna RPC que edite recetas/rutas lee el máximo
+    en la misma transacción (verificado), así que nada cambia para las pantallas.
+  - **Probado**: EP10 de Alex Escalante 702 → 700 a mano, `update est_madre … where cod='580'` (no-op),
+    al COMMIT volvió a 702. Esperado en el próximo sync de LK: el DELETE baja de ~21.000 ms a < 500 ms
+    (mirar `pg_stat_statements` del rol `lk_ppp_reader` el lunes).
+  - **Limpieza de paso**: `recalcular_maximos_talleristas(false, null, true)` puso en null 13 máximos de
+    tallerista sin ruta ni consumo (Gentile 9 filas, Cavallero 3, Cornejo PC8 404). Quedan 291 con máximo.
+  - `db/tablas_GP2.sql`: el CHECK de `maximo_origen` no tenía `mb_2pct_por_color` (la base sí): corregido.
 - **D8 — CV15** Rem Tapón Hierro: ¿se dio de baja a propósito?
 
 ### Auditoría propuesta (no ejecutada: tu regla pide "sí" para escribir)

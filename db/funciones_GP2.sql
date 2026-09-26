@@ -1,7 +1,7 @@
 -- =====================================================================
 -- FUNCIONES del schema GP2 — export automatico 2026-09-21 (pg_get_functiondef, exacto)
 -- Fuente de verdad: Supabase (hrxfctzncixxqmpfhskv). Este archivo es respaldo/referencia.
--- 163 bloques = las 163 funciones de la base. Verificado 2026-09-25 por md5(pg_get_functiondef)
+-- 163 bloques = las 163 funciones de la base (fn_recalc_maximos_insumos -> fn_recalc_maximos_diferido el 2026-09-26). Verificado 2026-09-25 por md5(pg_get_functiondef)
 -- funcion por funcion: 0 distintas (se resincronizaron 6 que se habian tocado en vivo sin refrescar
 -- este archivo, se agrego relev_factor v2026-09-25 y se sacaron los 3 helpers __sim_* ya borrados).
 -- Los GRANT/REVOKE no estan aca: EXECUTE para anon solo en las RPC de pantalla (ver db/README.md).
@@ -3763,15 +3763,32 @@ begin
 end $function$
 ;
 
--- ---------- fn_recalc_maximos_insumos ----------
-CREATE OR REPLACE FUNCTION "GP2".fn_recalc_maximos_insumos()
+-- ---------- fn_recalc_maximos_diferido ----------
+CREATE OR REPLACE FUNCTION "GP2".fn_recalc_maximos_diferido()
  RETURNS trigger
  LANGUAGE plpgsql
  SECURITY DEFINER
  SET search_path TO 'GP2'
 AS $function$
+-- Recalcula los maximos UNA vez por transaccion, al COMMIT (constraint trigger DEFERRABLE INITIALLY
+-- DEFERRED sobre est_madre / articulo_componente / ruta_paso / articulo_familia). El sync diario de LK
+-- borra e inserta las ~330 filas de proyeccion_madre de a una, en UNA transaccion: con el trigger
+-- statement-level anterior (fn_recalc_maximos_insumos) el recalculo corria ~658 veces por sync (~54 s,
+-- el DELETE solo 21 s contra un statement_timeout de 120 s). Ahora corre una vez, contra la est_madre
+-- final, y ademas refresca los maximos de TALLERISTA, que nadie recalculaba cuando cambiaba la Est
+-- Madre (68 estaban viejos el 2026-09-26). Prov AT queda afuera a proposito: la Tablet le pone techo 0
+-- (usuario 2026-09-24) y no tiene filas de inventario. D10, 2026-09-26.
+declare v_tx text := txid_current()::text;
 begin
-  perform "GP2".recalcular_maximos_insumos();
+  if current_setting('gp2.maximos_tx', true) = v_tx then return null; end if;
+  perform set_config('gp2.maximos_tx', v_tx, true);   -- local a la transaccion: se borra sola al COMMIT
+  begin
+    perform "GP2".recalcular_maximos_insumos();
+    perform "GP2".recalcular_maximos_talleristas();
+  exception when others then
+    -- un error en el recalculo NO puede tumbar el sync de LK ni un guardado de receta: se avisa y sigue
+    raise warning 'fn_recalc_maximos_diferido: % — los maximos quedan como estaban; correr recalcular_maximos_* a mano', sqlerrm;
+  end;
   return null;
 end $function$
 ;
