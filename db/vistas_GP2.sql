@@ -1025,7 +1025,7 @@ create or replace view "GP2".v_oc_virgilio_demanda as
    FROM walk w
      JOIN seed s ON s.art_id = w.art_id AND s.comp_id = w.seed
   GROUP BY w.art_id, w.comp_id;
-comment on view "GP2".v_oc_virgilio_demanda is 'La O.C. VIGENTE de Gestión Virgilio explotada por artículo y componente: lo que falta entregar de cada artículo (v_oc_virgilio_pendiente.uni_pend, sin importar a quién esté emitida) baja por la receta, el BOM y las rutas igual que v_consumo_demanda baja la Est. Madre. Es la demanda "por O.C." que usan los techos de la Tablet para la gente que trabaja contra orden (prov AT, talleristas O.C., pasos que entregan en Garage). 2026-09-26.';
+comment on view "GP2".v_oc_virgilio_demanda is 'La O.C. VIGENTE de Gestión Virgilio explotada por artículo y componente: lo que falta entregar de cada artículo (v_oc_virgilio_pendiente.uni_pend, sin importar a quién esté emitida) baja por la receta, el BOM y las rutas igual que v_consumo_demanda baja la Est. Madre. Es la demanda "por O.C." que usan los techos de la Tablet para la gente que trabaja contra orden (prov AT y talleristas O.C.; el Garage NO: va por O.C. de insumos, corrección del dueño del mismo día). 2026-09-26.';
 
 -- ---------- v_oc_virgilio_partes_tallerista ----------
 create or replace view "GP2".v_oc_virgilio_partes_tallerista as
@@ -1033,32 +1033,28 @@ create or replace view "GP2".v_oc_virgilio_partes_tallerista as
          SELECT DISTINCT r.articulo_id,
             rp.tallerista_id,
             rp.comp_entrada_id,
-            rp.comp_salida_id,
-            cs.sector_id AS sal_sector
+            rp.comp_salida_id
            FROM "GP2".ruta_paso rp
              JOIN "GP2".ruta r ON r.id = rp.ruta_id
-             JOIN "GP2".componente cs ON cs.id = rp.comp_salida_id
           WHERE rp.tipo_paso = 'tallerista'::text AND rp.tallerista_id IS NOT NULL AND rp.comp_entrada_id IS NOT NULL AND r.articulo_id IS NOT NULL
         ), sel AS (
          SELECT p.articulo_id,
             p.tallerista_id,
             p.comp_entrada_id,
-            p.comp_salida_id,
-            p.sal_sector
+            p.comp_salida_id
            FROM pasos p
              JOIN "GP2".tallerista t ON t.id = p.tallerista_id
-          WHERE t.pedido_por_oc_virgilio OR p.sal_sector = 9
+          WHERE t.pedido_por_oc_virgilio
         )
  SELECT s.tallerista_id,
     s.comp_entrada_id AS componente_id,
     sum(d.uni * COALESCE(re.pct, 100::numeric) / 100::numeric) AS uni_requeridas,
-    count(DISTINCT s.articulo_id) AS articulos,
-    bool_or(s.sal_sector = 9) AS entrega_garage
+    count(DISTINCT s.articulo_id) AS articulos
    FROM sel s
      JOIN "GP2".v_oc_virgilio_demanda d ON d.articulo_id = s.articulo_id AND d.componente_id = s.comp_entrada_id
      LEFT JOIN "GP2".v_reparto_efectivo re ON re.articulo_id = s.articulo_id AND re.comp_salida_id = s.comp_salida_id AND re.tallerista_id = s.tallerista_id
   GROUP BY s.tallerista_id, s.comp_entrada_id;
-comment on view "GP2".v_oc_virgilio_partes_tallerista is 'Partes que hay que tener en poder del TALLERISTA para cumplir la O.C. vigente de Virgilio, en dos casos [usuario 2026-09-26: "Los prov AT le tenemos que mandar mercadería en función de su OC. Lo mismo lo que entregan los talleristas en garage"]: (a) talleristas O.C. (tallerista.pedido_por_oc_virgilio: Carlos Aguirre, Blist-Pack), todos sus pasos; (b) cualquier tallerista, sólo los pasos cuya salida es Sector Garage (GRJ: Cornejo GRJ5/GRJ6, Escalante GRJ10). uni_requeridas = demanda por O.C. del artículo en esa entrada (v_oc_virgilio_demanda) × el % del tallerista (v_reparto_efectivo). Techo del Enviar de la Tablet para esas filas; el resto del tallerista sigue con consumo × meses.';
+comment on view "GP2".v_oc_virgilio_partes_tallerista is 'Partes que hay que tener en poder del TALLERISTA O.C. (tallerista.pedido_por_oc_virgilio: Carlos Aguirre, Blist-Pack) para cumplir la O.C. vigente de Virgilio: demanda por O.C. del artículo en esa entrada (v_oc_virgilio_demanda) × el % del tallerista (v_reparto_efectivo). Techo del Enviar de la Tablet para esas filas. OJO 2026-09-26: los pasos que entregan en Sector GARAGE (Cornejo GRJ5/GRJ6, Escalante GRJ10) estuvieron acá unas horas y el dueño lo corrigió: "los que llenan garage se tienen que llenar por orden de compra de INSUMOS, no por orden de compra de artículo terminado" — el garage no se rige por la O.C. de Virgilio.';
 
 -- ---------- v_planilla_costo ----------
 create or replace view "GP2".v_planilla_costo as

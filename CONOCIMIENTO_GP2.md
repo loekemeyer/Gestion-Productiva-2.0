@@ -13323,21 +13323,29 @@ German, Oscar, Pettofrezza, Carlos E) y fasoneros (Pedernera).
 la misma vista sirve, pero sus partes salen de `ruta_paso` (comp_entrada del paso del tallerista),
 no de la receta plana `[idea 7356]`. Pedernera (fasonero) idem.
 
-**Ampliación del mismo día — talleristas** `[Thomas 2026-09-26: "Los prov AT le tenemos que mandar
+**Ampliación del mismo día — talleristas O.C.** `[Thomas 2026-09-26: "Los prov AT le tenemos que mandar
 mercadería en función de su OC. Lo mismo lo que entregan los talleristas en garage"]`:
 - **`v_oc_virgilio_demanda`**: la O.C. vigente explotada por artículo y componente (receta + BOM +
   rutas, el mismo recorrido que `v_consumo_demanda` hace con la Est. Madre), sin importar a quién
   esté emitida la orden.
-- **`v_oc_virgilio_partes_tallerista`**: partes que necesita un tallerista para su O.C., en dos casos:
-  (a) **talleristas O.C.** (`pedido_por_oc_virgilio`: Carlos Aguirre, Blist-Pack), todos sus pasos —
-  cierra la idea 7356 y el `then 0` de §4fr; (b) **cualquier tallerista, sólo los pasos que entregan en
-  Sector Garage**: Martin Cornejo (GRJ5/GRJ6 → BOM8/BOM12) y Alex Escalante (GRJ10/GRJ10A → IE4, IE5,
-  LL7B, LLF8, IVBCM, IVBLM, ABPM, EP10). El resto de sus pasos sigue con consumo × meses.
-  uni_requeridas = demanda por O.C. × % del tallerista (`v_reparto_efectivo`).
-- **Medido**: Cornejo BOM8/BOM12 3.536 → **768** (Blistpack debe 29 cajas del 557 y 3 del 762);
-  Escalante IE4 6.644 → **3.948** … perdón: IE4 19.932 → 11.844, LLF8/IE5/LL7B 6.644 → 3.948
-  (Pedernera debe 329 cajas del 544 y 72 del 580); Aguirre C1A/GRJ10 0 → 3.948; Blist-Pack GRJ28 0 → 1.980,
-  GRJ4 960, GRJ6 768.
-- **Límite conocido**: si un mismo componente entra a la vez en un paso de garage y en otro paso normal
-  del mismo tallerista, el techo queda sólo con la parte de la O.C. (hoy no pasa: BOM8/BOM12 y las
-  partes del GRJ10 sólo se usan en esos pasos).
+- **`v_oc_virgilio_partes_tallerista`**: partes que necesita un **tallerista O.C.**
+  (`pedido_por_oc_virgilio`: Carlos Aguirre, Blist-Pack) para su O.C., todos sus pasos — cierra la
+  idea 7356 y el `then 0` de §4fr. uni_requeridas = demanda por O.C. × % del tallerista
+  (`v_reparto_efectivo`).
+- **Medido**: Aguirre C1A/GRJ10 0 → 3.948; Blist-Pack GRJ28 0 → 1.980, GRJ4 960, GRJ6 768.
+
+**⚠ Corrección del dueño, mismo día — el GARAGE NO va por la O.C. de Virgilio.** Durante unas horas
+(commit `db409de`) los pasos de cualquier tallerista con salida en Sector Garage (Cornejo GRJ5/GRJ6,
+Escalante GRJ10/GRJ10A) también tomaban el techo de la O.C. de Virgilio. `[Thomas 2026-09-26, textual:
+"En realidad no, mentira, te mentí. Los que llenan garage se tienen que llenar por orden de compra de
+INSUMOS, no por orden de compra de artículo terminado. Sí a Martín o a Carlos o a Poli debemos
+mandarle mercadería, pero es para que llenen el sector de garage o lo que entrega Poli o lo que
+entrega Lucho o lo que entrega Alex."]`. **Revertido** en la base y en `db/`: la vista quedó sólo con
+`pedido_por_oc_virgilio` (sin columna `entrega_garage`) y `tablet_bundle` sin la rama `sector_id = 9`;
+Cornejo y Escalante vuelven al máximo de la casa (consumo × meses).
+- `[deducido, sin confirmar]` Lo que el dueño describe para el garage es el **patrón fasonero** (§4b,
+  Maspoli): el GRJ lo compra GP2 con una **O.C. de insumos** (`GP2.orden_compra` al tallerista como
+  `proveedor_insumo`) y el techo de lo que se le manda son las partes de esa O.C. pendiente
+  (`oc_ps` de `tablet_bundle`). Hoy los GRJ son `estado_compra='fabricacion'` y no aparecen en
+  `oc_bundle`; sólo Gilardi Esther es `proveedor_insumo` de rubro Garage. **Falta definir con Thomas**
+  qué abarca "lo que entrega Poli / Lucho / Alex" (¿sólo GRJ o todo lo que entregan?) antes de modelarlo.
