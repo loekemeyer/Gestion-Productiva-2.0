@@ -1,7 +1,7 @@
 -- =====================================================================
 -- VISTAS del schema GP2 (pg_get_viewdef, exacto) — export automatico 2026-09-11 desde Supabase (hrxfctzncixxqmpfhskv)
 -- Respaldo/referencia. La fuente de verdad es la base; regenerar al cambiar el schema.
--- 30 vistas (2026-09-26: + v_oc_virgilio_pendiente, v_oc_virgilio_partes). Orden de creacion: las que dependen de otra van despues.
+-- 32 vistas (2026-09-26: + v_oc_virgilio_pendiente, v_oc_virgilio_partes, v_oc_virgilio_demanda, v_oc_virgilio_partes_tallerista; el orden de dependencia es pendiente -> demanda -> partes_tallerista). Orden de creacion: las que dependen de otra van despues.
 -- =====================================================================
 
 -- ---------- v_caj_contraparte ----------
@@ -970,6 +970,95 @@ create or replace view "GP2".v_oc_virgilio_partes as
   WHERE p.tipo = 'proveedor_at'::text AND (c.sector_id = ANY (ARRAY[10::bigint, 11::bigint]))
   GROUP BY p.tipo, p.ref_id, ac.componente_id;
 comment on view "GP2".v_oc_virgilio_partes is 'Partes que hay que tener en poder del PROV. DE ART. TERMINADO para que cumpla su O.C. de Virgilio: uni_pend de cada artículo pendiente × receta (articulo_componente), solo cartón y caja (sectores 10 y 11), que es lo que GP2 le manda. Es el techo del Enviar de la Tablet para el prov AT (sugerido = techo − lo que ya tiene) [usuario 2026-09-26: "para los proveedores de artículo terminado solamente tenemos que mandarle partes para que puedan hacer lo que les pide su orden de compra"]. Sin O.C. vigente = 0, como antes.';
+
+-- ---------- v_oc_virgilio_demanda ----------
+create or replace view "GP2".v_oc_virgilio_demanda as
+ WITH RECURSIVE dem AS (
+         SELECT p.articulo_id AS art_id,
+            sum(p.uni_pend) AS uni
+           FROM "GP2".v_oc_virgilio_pendiente p
+          WHERE p.articulo_id IS NOT NULL
+          GROUP BY p.articulo_id
+        ), receta AS (
+         SELECT ac.articulo_id AS art_id,
+            ac.componente_id AS comp_id,
+            d.uni * ac.cantidad AS qty
+           FROM "GP2".articulo_componente ac
+             JOIN dem d ON d.art_id = ac.articulo_id
+        UNION ALL
+         SELECT r.art_id,
+            b.componente_hijo_id,
+            r.qty * b.cantidad
+           FROM receta r
+             JOIN "GP2".componente_bom b ON b.componente_padre_id = r.comp_id
+        ), seed AS (
+         SELECT receta.art_id,
+            receta.comp_id,
+            sum(receta.qty) AS qty
+           FROM receta
+          GROUP BY receta.art_id, receta.comp_id
+        ), arista AS (
+         SELECT DISTINCT r.articulo_id AS art_id,
+            rp.comp_salida_id AS sal,
+            rp.comp_entrada_id AS ent
+           FROM "GP2".ruta_paso rp
+             JOIN "GP2".ruta r ON r.id = rp.ruta_id
+          WHERE rp.comp_entrada_id IS NOT NULL AND rp.comp_salida_id IS NOT NULL AND r.articulo_id IS NOT NULL
+        ), walk AS (
+         SELECT seed.art_id,
+            seed.comp_id,
+            seed.comp_id AS seed
+           FROM seed
+        UNION
+         SELECT a.art_id,
+            a.ent,
+            w_1.seed
+           FROM walk w_1
+             JOIN arista a ON a.art_id = w_1.art_id AND a.sal = w_1.comp_id
+          WHERE NOT (EXISTS ( SELECT 1
+                   FROM seed s2
+                  WHERE s2.art_id = a.art_id AND s2.comp_id = a.ent))
+        )
+ SELECT w.art_id AS articulo_id,
+    w.comp_id AS componente_id,
+    sum(s.qty) AS uni
+   FROM walk w
+     JOIN seed s ON s.art_id = w.art_id AND s.comp_id = w.seed
+  GROUP BY w.art_id, w.comp_id;
+comment on view "GP2".v_oc_virgilio_demanda is 'La O.C. VIGENTE de Gestión Virgilio explotada por artículo y componente: lo que falta entregar de cada artículo (v_oc_virgilio_pendiente.uni_pend, sin importar a quién esté emitida) baja por la receta, el BOM y las rutas igual que v_consumo_demanda baja la Est. Madre. Es la demanda "por O.C." que usan los techos de la Tablet para la gente que trabaja contra orden (prov AT, talleristas O.C., pasos que entregan en Garage). 2026-09-26.';
+
+-- ---------- v_oc_virgilio_partes_tallerista ----------
+create or replace view "GP2".v_oc_virgilio_partes_tallerista as
+ WITH pasos AS (
+         SELECT DISTINCT r.articulo_id,
+            rp.tallerista_id,
+            rp.comp_entrada_id,
+            rp.comp_salida_id,
+            cs.sector_id AS sal_sector
+           FROM "GP2".ruta_paso rp
+             JOIN "GP2".ruta r ON r.id = rp.ruta_id
+             JOIN "GP2".componente cs ON cs.id = rp.comp_salida_id
+          WHERE rp.tipo_paso = 'tallerista'::text AND rp.tallerista_id IS NOT NULL AND rp.comp_entrada_id IS NOT NULL AND r.articulo_id IS NOT NULL
+        ), sel AS (
+         SELECT p.articulo_id,
+            p.tallerista_id,
+            p.comp_entrada_id,
+            p.comp_salida_id,
+            p.sal_sector
+           FROM pasos p
+             JOIN "GP2".tallerista t ON t.id = p.tallerista_id
+          WHERE t.pedido_por_oc_virgilio OR p.sal_sector = 9
+        )
+ SELECT s.tallerista_id,
+    s.comp_entrada_id AS componente_id,
+    sum(d.uni * COALESCE(re.pct, 100::numeric) / 100::numeric) AS uni_requeridas,
+    count(DISTINCT s.articulo_id) AS articulos,
+    bool_or(s.sal_sector = 9) AS entrega_garage
+   FROM sel s
+     JOIN "GP2".v_oc_virgilio_demanda d ON d.articulo_id = s.articulo_id AND d.componente_id = s.comp_entrada_id
+     LEFT JOIN "GP2".v_reparto_efectivo re ON re.articulo_id = s.articulo_id AND re.comp_salida_id = s.comp_salida_id AND re.tallerista_id = s.tallerista_id
+  GROUP BY s.tallerista_id, s.comp_entrada_id;
+comment on view "GP2".v_oc_virgilio_partes_tallerista is 'Partes que hay que tener en poder del TALLERISTA para cumplir la O.C. vigente de Virgilio, en dos casos [usuario 2026-09-26: "Los prov AT le tenemos que mandar mercadería en función de su OC. Lo mismo lo que entregan los talleristas en garage"]: (a) talleristas O.C. (tallerista.pedido_por_oc_virgilio: Carlos Aguirre, Blist-Pack), todos sus pasos; (b) cualquier tallerista, sólo los pasos cuya salida es Sector Garage (GRJ: Cornejo GRJ5/GRJ6, Escalante GRJ10). uni_requeridas = demanda por O.C. del artículo en esa entrada (v_oc_virgilio_demanda) × el % del tallerista (v_reparto_efectivo). Techo del Enviar de la Tablet para esas filas; el resto del tallerista sigue con consumo × meses.';
 
 -- ---------- v_planilla_costo ----------
 create or replace view "GP2".v_planilla_costo as

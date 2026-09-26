@@ -13322,3 +13322,22 @@ German, Oscar, Pettofrezza, Carlos E) y fasoneros (Pedernera).
 **Pendiente (no hecho)**: los **talleristas O.C.** (Carlos Aguirre, Blist-Pack, §4fr) siguen con techo 0;
 la misma vista sirve, pero sus partes salen de `ruta_paso` (comp_entrada del paso del tallerista),
 no de la receta plana `[idea 7356]`. Pedernera (fasonero) idem.
+
+**Ampliación del mismo día — talleristas** `[Thomas 2026-09-26: "Los prov AT le tenemos que mandar
+mercadería en función de su OC. Lo mismo lo que entregan los talleristas en garage"]`:
+- **`v_oc_virgilio_demanda`**: la O.C. vigente explotada por artículo y componente (receta + BOM +
+  rutas, el mismo recorrido que `v_consumo_demanda` hace con la Est. Madre), sin importar a quién
+  esté emitida la orden.
+- **`v_oc_virgilio_partes_tallerista`**: partes que necesita un tallerista para su O.C., en dos casos:
+  (a) **talleristas O.C.** (`pedido_por_oc_virgilio`: Carlos Aguirre, Blist-Pack), todos sus pasos —
+  cierra la idea 7356 y el `then 0` de §4fr; (b) **cualquier tallerista, sólo los pasos que entregan en
+  Sector Garage**: Martin Cornejo (GRJ5/GRJ6 → BOM8/BOM12) y Alex Escalante (GRJ10/GRJ10A → IE4, IE5,
+  LL7B, LLF8, IVBCM, IVBLM, ABPM, EP10). El resto de sus pasos sigue con consumo × meses.
+  uni_requeridas = demanda por O.C. × % del tallerista (`v_reparto_efectivo`).
+- **Medido**: Cornejo BOM8/BOM12 3.536 → **768** (Blistpack debe 29 cajas del 557 y 3 del 762);
+  Escalante IE4 6.644 → **3.948** … perdón: IE4 19.932 → 11.844, LLF8/IE5/LL7B 6.644 → 3.948
+  (Pedernera debe 329 cajas del 544 y 72 del 580); Aguirre C1A/GRJ10 0 → 3.948; Blist-Pack GRJ28 0 → 1.980,
+  GRJ4 960, GRJ6 768.
+- **Límite conocido**: si un mismo componente entra a la vez en un paso de garage y en otro paso normal
+  del mismo tallerista, el techo queda sólo con la parte de la O.C. (hoy no pasa: BOM8/BOM12 y las
+  partes del GRJ10 sólo se usan en esos pasos).

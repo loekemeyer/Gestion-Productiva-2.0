@@ -7461,9 +7461,20 @@ rep as (
                    -- esta modelado aca. Por ahora sugeri 0"]. Cuando esa O.C. se modele, este 0
                    -- es lo unico que se cambia.
                    when e.tipo = 'tallerista'
-                    and exists (select 1 from tallerista t8
-                                 where t8.id = e.ref::bigint and t8.pedido_por_oc_virgilio)
-                   then 0
+                    and ( exists (select 1 from tallerista t8
+                                   where t8.id = e.ref::bigint and t8.pedido_por_oc_virgilio)
+                          -- ...y desde el 2026-09-26 tambien el paso de CUALQUIER tallerista que entrega
+                          -- en Sector Garage (GRJ): Cornejo GRJ5/GRJ6, Escalante GRJ10 [usuario: "lo
+                          -- mismo lo que entregan los talleristas en garage"].
+                       or exists (select 1 from ruta_paso rp9
+                                   join componente c9 on c9.id = rp9.comp_salida_id and c9.sector_id = 9
+                                  where rp9.tipo_paso = 'tallerista' and rp9.tallerista_id = e.ref::bigint
+                                    and rp9.comp_entrada_id = e.comp_id) )
+                   -- 2026-09-26: la O.C. de Virgilio YA se lee (espejo GP2.oc_virgilio). El techo son las
+                   -- partes que ese tallerista necesita para lo que falta entregar de la O.C. vigente,
+                   -- explotada por receta y ruta (v_oc_virgilio_partes_tallerista). Sin O.C. sigue en 0.
+                   then coalesce((select vt.uni_requeridas from v_oc_virgilio_partes_tallerista vt
+                                   where vt.tallerista_id = e.ref::bigint and vt.componente_id = e.comp_id), 0)
                    -- PROV. DE ART. TERMINADO: igual que el tallerista con O.C. de Virgilio. El proveedor de
                    -- articulo terminado no tiene un maximo de inventario nuestro alla (no es gente de
                    -- la misma confianza que el tallerista a facon): lo que hay que mandarle sale de una
