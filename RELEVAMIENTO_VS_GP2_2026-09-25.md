@@ -146,10 +146,10 @@ sin contar en el programa.
 
 ## 7. Dudas para el lunes (por impacto)
 
-- **D0 — ¿Qué Est. Madre manda?** GP2 usa la proyección real (−30 % LOEKE, −56 % CHEF contra la
+- **D0 — ¿Qué Est. Madre manda?** Ponderado sobre los artículos vivos en GP2: LOEKE 113 art., planilla 247.870 uni/mes vs GP2 209.421 (**−15,5 %**, 89 más bajos y 22 más altos); CHEF 68 art., 35.850 vs 22.476 (**−37 %**, 57 más bajos y 11 más altos). Detalle en la hoja `EstMadre` del xlsx. (La mediana −30/−56 % de la primera versión incluía artículos que GP2 no tiene.) GP2 usa la proyección real (contra la
   "Sugerencia" de la planilla). Decidido el 03-09 que manda `est_madre`; confirmar que sigue así
   sabiendo que el programa va a pedir bastante menos que la planilla.
-- **D1 — GRJ21A/GRJ21B: ¿2 o 1 por artículo 550/760?** Duplica la compra a 4 Zurdos.
+- ~~D1 — GRJ21A/GRJ21B: ¿2 o 1 por artículo?~~ **Resuelto** [Thomas 2026-09-26: *"cada unidad del código 550 lleva dos filtros y dos precintos. El blister viene por dos"*]: GP2 (×2) está bien; el error es de la planilla (×1). Sin cambios.
 - **D4 — Bolsa de remache: ¿2, 10, 20 o 25 kg?** Relevamiento 20, O.C. 25, planilla 2/10.
 - **D5 — Meses de máximo:** cartón 6 (planilla 3), remache 4 (planilla 6), MP plástica 2,5 (4).
 - **D2 — Cantidades por artículo:** V9 en 511, V8 en 723, PEP9 en 718, GRJ18 1,5.

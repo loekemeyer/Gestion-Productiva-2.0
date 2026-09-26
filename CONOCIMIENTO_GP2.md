@@ -13233,3 +13233,9 @@ recordar sin abrirlo:
   pidiendo; no hay rastro del borrado `[pendiente D8]`.
 - `db/` estaba desfasado (6 funciones + `v_consumo_fleje_kg` cambiadas en vivo): se resincronizó y
   quedó verificado por md5, 163/163 funciones.
+- **550 Filtro para bombillas lleva 2 filtros (`GRJ21A`) y 2 precintos (`GRJ21B`) por unidad**
+  `[Thomas 2026-09-26: "el blister viene por dos"]`. La receta GP2 (×2) está bien; la planilla de
+  Garage (Consumo Art, ×1) está mal. El 760 (gemelo CHEF) tiene la misma receta ×2 `[deducido]`.
+- **Est. Madre ponderada, corrección de la línea de arriba**: sobre artículos vivos, GP2 da −15,5 %
+  en LOEKE y −37 % en CHEF contra la planilla Madre 7-26 (la mediana −30/−56 % incluía artículos
+  que GP2 no tiene).
