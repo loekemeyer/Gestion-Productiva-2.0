@@ -13239,3 +13239,8 @@ recordar sin abrirlo:
 - **Est. Madre ponderada, corrección de la línea de arriba**: sobre artículos vivos, GP2 da −15,5 %
   en LOEKE y −37 % en CHEF contra la planilla Madre 7-26 (la mediana −30/−56 % incluía artículos
   que GP2 no tiene).
+- **DECIDIDO: manda la Est. Madre de GP2** `[Thomas 2026-09-26: "Considerá la est madre de GP2"]`, no la
+  de las planillas (Madre 7-26 / 10-25). Cruzada contra Gestión Virgilio (`gv_proyeccion_articulo`):
+  iguales salvo que **GP2 no suma la familia** (secundario → principal). Le falta demanda a 580 (el 580E
+  aporta 49 caj/mes) y a 941E-948E y 590E (secundarios 332-338 y 548, que GP2 no tiene como artículo).
+  Arreglo propuesto, no hecho: familias en una tabla propia de GP2 `[pendiente D9]`.

@@ -146,9 +146,15 @@ sin contar en el programa.
 
 ## 7. Dudas para el lunes (por impacto)
 
-- **D0 — ¿Qué Est. Madre manda?** Ponderado sobre los artículos vivos en GP2: LOEKE 113 art., planilla 247.870 uni/mes vs GP2 209.421 (**−15,5 %**, 89 más bajos y 22 más altos); CHEF 68 art., 35.850 vs 22.476 (**−37 %**, 57 más bajos y 11 más altos). Detalle en la hoja `EstMadre` del xlsx. (La mediana −30/−56 % de la primera versión incluía artículos que GP2 no tiene.) GP2 usa la proyección real (contra la
-  "Sugerencia" de la planilla). Decidido el 03-09 que manda `est_madre`; confirmar que sigue así
-  sabiendo que el programa va a pedir bastante menos que la planilla.
+- ~~D0 — ¿Qué Est. Madre manda?~~ **Resuelto** [Thomas 2026-09-26: *"Considerá la est madre de GP2"*].
+  Manda `GP2.est_madre`; la de las planillas (7-26 y 10-25) no se usa.
+  **Cruce con Gestión Virgilio** (`public.gv_proyeccion_articulo`, fuente única de Stock/OC/Importados
+  allá desde v22.68): de los artículos vivos de GP2 coinciden todos (±1 caja por redondeo) salvo
+  **8 a los que GP2 no les suma la familia**, porque el secundario no existe en GP2 y su venta se
+  pierde: 580 Batidor Mini (GP2 114 uni/mes vs GV 708: el 580E aporta 49 cajas), 943E (+7 caj del
+  336), 945E (+6, 332), 941E (+5, 338), 946E (+3, 335), 942E (+2, 334), 948E (+2, 333), 590E (+1, 548).
+  En total GP2 deja afuera 75 cajas por mes (unas 900 uni). Seis artículos no tienen proyección en ninguna
+  de las dos (231, 232, 233, 537, 567, 071): sin venta, igual en ambas. Propuesta D9.
 - ~~D1 — GRJ21A/GRJ21B: ¿2 o 1 por artículo?~~ **Resuelto** [Thomas 2026-09-26: *"cada unidad del código 550 lleva dos filtros y dos precintos. El blister viene por dos"*]: GP2 (×2) está bien; el error es de la planilla (×1). Sin cambios.
 - **D4 — Bolsa de remache: ¿2, 10, 20 o 25 kg?** Relevamiento 20, O.C. 25, planilla 2/10.
 - **D5 — Meses de máximo:** cartón 6 (planilla 3), remache 4 (planilla 6), MP plástica 2,5 (4).
@@ -164,6 +170,8 @@ sin contar en el programa.
     ruedas (planilla 0,3/mes), `PCP4A` cinta (200/mes), `PCP2` níquel (36,27 kg/mes). Cargar
     `inventario.maximo` "fisico" con el máximo de la planilla.
 - **D7 — Renombres de cartón** (I4C, E2B, G6A, D5A, H2A) y el choque G8C.
+- **D9 — Familias en GP2:** traer `Equivalencias_Familia` a una tabla propia de GP2 y que la demanda del
+  secundario se sume al principal (REGLA 0: no leer `public`). Hoy le falta demanda al 580 y a 7 importados de acero.
 - **D8 — CV15** Rem Tapón Hierro: ¿se dio de baja a propósito?
 
 ### Auditoría propuesta (no ejecutada: tu regla pide "sí" para escribir)
