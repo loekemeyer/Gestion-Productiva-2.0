@@ -1,6 +1,10 @@
 <!doctype html>
 <html lang="es">
 <head>
+<!-- v1.39.0 (2026-09-28) — SIN HUECOS ENTRE COLUMNAS + MINIMO EN ROJO [Thomas: "entre columna y columna veo
+     espacios" + "si no cumple con el minimo que aparezca igual pero con color rojo y negrita"]. La
+     tabla seguia al 100%: table.t de gp2-modulo.css le ganaba a .t-insumos. Ahora table.t.t-insumos
+     y el .table-wrap abrazan el dato. "min. proveedor" en rojo y negrita cuando lo pedido queda corto. -->
 <!-- v1.38.0 (2026-09-28) — LA O.C. SE PIDE EN LA UNIDAD DEL REMITO + COLUMNA "UNI MEDIDA" [Thomas: "usa las
      mismas unidades de medida para las ordenes de compra. Y al lado de pedir una columna Uni Medida...
      los resortes batidor los pido en unidades"]. umRemito() replica la decision de Recepcion de
@@ -458,7 +462,10 @@
   .chip.active{background:#0b3b73;color:#fff;border-color:#0b3b73}
   td.num{text-align:right;font-variant-numeric:tabular-nums}
   /* Cuadro sinoptico (v1.35.0): la tabla abraza el dato, sin 100% de ancho ni anchos fijos. */
-  .t-insumos{width:auto}
+  /* table.t (gp2-modulo.css) pone width:100% y le ganaba a .t-insumos: por eso los huecos (v1.39.0). */
+  table.t.t-insumos{width:auto}
+  #panGen .table-wrap{width:fit-content;max-width:100%}
+  table.t.t-insumos th,table.t.t-insumos td{padding:6px 8px}
   .t-insumos td small{white-space:normal}
   /* Pedir es el campo principal de la pantalla: llega con el sugerido puesto. */
   .pedir-in{width:120px;padding:10px 8px;font-size:20px;font-weight:700;text-align:right;border:2px solid #d0d7de;border-radius:8px}
@@ -466,7 +473,8 @@
   tr.con-pedido td{background:#eef7ee}
   .paq-eq{font-size:12px;color:#0b3b73;display:block}
   .min-uni{font-size:12px;color:#8a6d00;display:block}
-  .min-uni.corto{font-weight:700}
+  /* no cumple el minimo: rojo y negrita [Thomas 2026-09-28] */
+  .min-uni.corto{font-weight:800;color:#b71c1c}
   /* El proveedor dentro de la celda del insumo: solo se ve en pantalla chica. */
   .prov-mini{display:none}
   .barra{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:10px 0;padding:8px 10px;background:#f6f8fa;border-radius:10px;width:fit-content;max-width:100%;box-sizing:border-box}

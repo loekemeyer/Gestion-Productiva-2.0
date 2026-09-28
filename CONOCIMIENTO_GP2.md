@@ -13483,3 +13483,4 @@ Virgilio"` `[dato: el .bas]`, no toca GP2.
   Tornillos Corta Queso (Suipacha, de baja) y Rem. Tapón Hierro (12.000).
 - **Pendiente de carga**: 9 plásticos (PA10/13/18 y PA4 10.000, PC1A/B 36.000, Maspoli PC12/PEP7/PEP8
   500), ver el xlsx.
+- **v1.39.0** [usuario] Thomas: *"entre columna y columna veo espacios"* + *"si no cumple con el mínimo que aparezca igual pero con color rojo y negrita"*. Causa de los huecos: `table.t{width:100%}` de `gp2-modulo.css` le ganaba en especificidad a `.t-insumos{width:auto}` (y en los tests no se veía porque el CSS está stubeado). Ahora `table.t.t-insumos{width:auto}` y el `.table-wrap` abraza la tabla. "mín. proveedor" en rojo y negrita cuando lo pedido queda por debajo; vacío no se marca.

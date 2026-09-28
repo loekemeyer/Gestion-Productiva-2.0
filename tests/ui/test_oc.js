@@ -505,6 +505,18 @@ window.supabase = { createClient: function(){ return {
   ok(um[3].lbl === 'kg' && um[3].k === 1, 'fleje Basconia en kg');
   ok(um[4].lbl === 'uni' && um[4].k === 1, 'sin kg_x_uni no se convierte (no se inventa el peso)');
 
+  // ── v1.39.0: el minimo del proveedor en ROJO y negrita si lo pedido no llega ─────────
+  await page.click('#tabGen');
+  const corto = await page.evaluate(() => {
+    const i = D.insumos.find(x => x.comp_id === 14); i.pedido_minimo_uni = 20000;
+    rubroSel = null; provSel = null; render();
+    return [notaMinUni(i, 9400, false, 0), notaMinUni(i, 25000, false, 0), notaMinUni(i, 0, false, 0)];
+  });
+  ok(corto[0].includes('min-uni corto'), 'pide 9.400 con minimo 20.000: rojo y negrita');
+  ok(!corto[1].includes('corto'), 'pide 25.000: normal');
+  ok(!corto[2].includes('corto'), 'sin pedido no se marca');
+  ok(/table\.t\.t-insumos\{width:auto\}/.test(await page.content()), 'la tabla no hereda el 100% de table.t (sin huecos)');
+
   await browser.close();
   console.log(process.exitCode ? 'HAY FALLOS' : 'TODO OK');
 })();
