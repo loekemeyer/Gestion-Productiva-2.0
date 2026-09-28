@@ -5264,6 +5264,12 @@ de Gentile (tallerista 8) **quedan**: sirven de comparación y son el histórico
 > virgilio)"*: **Stock General no muestra la ubicación Virgilio** (tipo `virgilio` /
 > `virgilio_sector`) ni la columna "En Virgilio". El sector Bolsas Plásticas (en Virgilio) sí
 > queda: es materia prima de GP2.
+> `[usuario 2026-09-28]` "Sí" a borrar las filas de Virgilio de la base. `[dato]` De las 268 filas de
+> `inventario` en ubicación 33 (todas cantidad 0) se borraron **189**; quedan **79**: terminados
+> (sector 12) con `maximo` cargado, porque `v_reposicion` toma ESA fila como el máximo del terminado
+> y de ahí leen `oc_bundle` y `valorizacion_bundle` (264.453 uni de sugerido). Borrarlas cambiaba OC
+> y valorización. Respaldo: `GP2.bkp_inventario_virgilio_20260928` (268 filas, RLS prendida).
+> `inv_delta` hace upsert, así que un movimiento nuevo a Virgilio recrea la fila sola.
 
 ### ⚠️ Lo que todavía NO se hizo: las rutas siguen apuntando a Gentile
 
