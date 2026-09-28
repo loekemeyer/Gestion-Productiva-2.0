@@ -4,6 +4,7 @@
 (vacío)
 
 [HISTORIAL]
+2026-09-28 | thomas (claude-remote) | MENU FIJO v1.201.0 (Thomas: "quiero los dos modulos abiertos ... No lo quiero poder cerrar"). GP2_MODULOS.html: Stocks y Herramientas siempre abiertos, sin chevron/click (body.fijo); ?todos=1 sigue con acordeon. Celular: baldosas mas bajas para que entren los 2 grupos + pastillas Tablet en barra fija abajo. version.js v1.201.0 ?v=20260928m. test_menu_una_pantalla ajustado. CONOCIMIENTO 4gn.
 2026-09-28 | thomas (claude-remote) | OC v1.40.1: contenido de la tarjeta alineado a la izquierda (la tarjeta sigue centrada). version.js v1.200.1 ?v=20260928l.
 2026-09-28 | thomas (claude-remote) | OC v1.40.0: todo centrado, tarjeta del ancho de la tabla (piso 720px), proveedores bajan de renglon. version.js v1.200.0 ?v=20260928k. CONOCIMIENTO 4go.
 2026-09-28 | thomas (claude-remote) | OC v1.39.0: sin huecos entre columnas (table.t 100% le ganaba a .t-insumos) + "min. proveedor" rojo/negrita si no cumple. version.js v1.199.0 ?v=20260928j. CONOCIMIENTO 4go.

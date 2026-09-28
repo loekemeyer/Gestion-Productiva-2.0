@@ -13438,6 +13438,8 @@ Virgilio"` `[dato: el .bas]`, no toca GP2.
   tallerista/PS/Prov AT, el Relevamiento (conteo) y todo Producción salvo Tiempos Matrices. Los que
   se usan desde la tablet siguen accesibles por ahí; los de oficina sólo por `?todos=1` o URL.
 
+- **Los dos grupos quedan SIEMPRE abiertos y no se pueden cerrar** [usuario, Thomas 2026-09-28: *"Por default quiero los dos módulos abiertos ... No lo quiero poder cerrar. Que esté expandido ambos"*]. v1.201.0: en el menú normal no hay chevron ni click que los cierre (clase `body.fijo`); con `?todos=1` sigue el acordeón de siempre, porque 13 grupos abiertos no entran. En celular las baldosas bajan de alto para que los 2 grupos entren juntos en una pantalla, y las pastillas de Tablet pasan a una barra fija abajo (una al lado de la otra) porque apiladas tapaban la última baldosa. [dato] En pantalla baja (375×600) la última fila queda detrás de la barra y se ve scrolleando 70px.
+
 ## 4go. O.C.: la pantalla es un cuadro sinóptico, sin textos de ayuda (2026-09-28)
 
 - [usuario] Thomas: *"quiero que elimines todos esos textos... optimizame todo como cuadro sinóptico, lo más optimizado posible (tanto la página principal como el recuadro cuando tocás máximo)"*.

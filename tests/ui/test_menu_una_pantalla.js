@@ -68,6 +68,38 @@ const PANTALLAS = [
                    `${p.nom}: el menu normal muestra solo Stocks y Herramientas (${grupos})`);
     ok(grupos.length === m.grupos, `${p.nom}: se listan los ${m.grupos} rubros`);
 
+    /* v1.201.0 [Thomas 2026-09-28: "quiero los dos modulos abiertos ... No lo quiero poder
+       cerrar"]: en el menu normal los 2 grupos arrancan abiertos, sin chevron, y un toque en la
+       cabecera no los cierra. Los modulos van en baldosas de 2 columnas y todo entra sin scroll. */
+    if (!VISTA) {
+      await page.click('.card-head:has-text("Stocks")');
+      await page.waitForTimeout(150);
+      const f = await page.evaluate(() => {
+        const ops = [...document.querySelectorAll('.card .btns > *')].map(el => {
+          const r = el.getBoundingClientRect();
+          return { h: r.height, x: Math.round(r.x), fs: parseFloat(getComputedStyle(el).fontSize) };
+        });
+        return {
+          abiertos: [...document.querySelectorAll('.card')].every(c => c.classList.contains('open') &&
+                      !c.classList.contains('collapsed') && getComputedStyle(c.querySelector('.card-body')).display !== 'none'),
+          chevrons: document.querySelectorAll('.chevron').length,
+          alto: Math.min(...ops.map(o => o.h)), fuente: Math.min(...ops.map(o => o.fs)),
+          cols: new Set(ops.map(o => o.x)).size,
+          fondo: Math.max(...[...document.querySelectorAll('.card')].map(c => c.getBoundingClientRect().bottom)),
+          horizontal: document.documentElement.scrollWidth > window.innerWidth,
+        };
+      });
+      ok(f.abiertos, `${p.nom}: los 2 grupos abiertos y un toque no los cierra`);
+      ok(f.chevrons === 0, `${p.nom}: sin chevron de cerrar`);
+      ok(f.cols === 2, `${p.nom}: modulos en 2 columnas (mide ${f.cols})`);
+      ok(f.alto >= 44, `${p.nom}: baldosas tocables (${Math.round(f.alto)}px)`);
+      ok(f.fuente >= 15, `${p.nom}: texto legible (${f.fuente}px)`);
+      ok(!f.horizontal, `${p.nom}: sin scroll horizontal con los grupos abiertos`);
+      console.log(`INFO ${p.nom}: con los 2 abiertos termina en ${Math.round(f.fondo)} de ${p.h}`);
+      await ctx.close();
+      continue;
+    }
+
     for (const g of grupos) {
       await page.click(`.card-head:has-text("${g}")`);
       await page.waitForTimeout(200);
