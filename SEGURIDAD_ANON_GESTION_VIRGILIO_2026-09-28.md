@@ -3,6 +3,21 @@
 **Solo lectura. No se cambió nada** (ni base, ni Storage, ni Edge Functions, ni el repo de Gestión Virgilio).
 Proyecto Supabase `hrxfctzncixxqmpfhskv` (compartido por Gestión Virgilio, Planify, GP2 y el programa viejo).
 
+## Estado de los arreglos (se van aplicando 1 x 1 con el dueño)
+
+Decisión del dueño 28/09: el operario sigue entrando **solo con legajo (opción A)** por ahora → lo que
+depende de identificarlo (tablas de producción, bucket privado) queda abierto.
+
+- [x] `diag_ins` limitado a `planify_diag_priv` (verificado como anon). SQL en Gestión Virgilio `sql/seguridad_anon_v2338.sql`.
+- [x] `remitos_delete` borrado; `recepcion.js` v23.38 sube sin `upsert` (commit `acdafec`).
+- [ ] `remitos_update` / `remitos_select`: cuando ningún equipo mande versión < v23.38 (la app **no se
+      actualiza sola**: muestra "Actualizar" y espera; el dueño no quiere recarga automática porque puede
+      haber una carga a medio hacer). Chequeo programado 29/09.
+- [ ] Token de `GV_Alta_Articulo_Aprobacion`, `leer-produccion-foto`, `send-rendimiento-matrices`,
+      `gv-alta-articulo`, lectura anon de `github_repo_problemas`.
+- Hallazgos extra al revisar RLS: `github_repo_problemas` (la lista de agujeros) legible por anon;
+  `relevamiento_cervantes` 18 tablas con RLS apagada (solo lectura, stock: bajo).
+
 ## 0. El punto de partida
 
 - La `sb_publishable_…` está en el repo **público** `loekemeyer/Gestion-Virgilio` → la tiene cualquiera.
