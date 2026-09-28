@@ -6,6 +6,13 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
+<!-- v3.65.0 (2026-09-28) — GARAGE, BOLSAS PLASTICAS E IMPORTADO TAMBIEN SE CONTROLAN EN KG [Thomas:
+     "Todos los proveedores que te di en este chat, el control luego de la recepcion es en kg" +
+     Importado: "Remito en unidades y control en kg"]. CONTROL_URL suma los sectores 9 (Garage) y 14
+     (Bolsas Plasticas), que hasta hoy no pedian control. Importado vive en el Sector Procesado (2),
+     que comparte con piezas que NO se controlan asi (Eclipse, Charcas), por eso entra por proveedor
+     (CONTROL_URL_PROV) y la pantalla de control abre filtrada con ?prov=. La unidad del remito sigue
+     la diciendo la pieza (componente.remito_unidad): 'uni' en Garage e Importado, 'kg' en bolsas. -->
 <!-- v3.64.0 (2026-09-25) — LA BOLSA DE CARTÓN TRAE LO QUE DICE EL CARTÓN [Thomas: "trae las unidades
      que dice el uni x paquete x cartón que acabas de cargar" + "tendría que nada más decir el formato y
      esa tabla fija por formato de uni por paquete, sacala"]. componente.entrega_uni_x (col "Uni x Paq"
@@ -767,8 +774,22 @@ const CONTROL_URL = {
   11: 'control-cajas.html',              // Cajas: base x pisos + sueltas
   8:  'control-remaches.html',           // Remaches: pesar (8 es el default de esa pantalla)
   6:  'control-remaches.html?sector=6',  // Plasticos: misma pantalla de peso, otro sector
-  7:  'control-remaches.html?sector=7'   // Bombillas: idem [usuario 2026-09-03]
+  7:  'control-remaches.html?sector=7',  // Bombillas: idem [usuario 2026-09-03]
+  9:  'control-remaches.html?sector=9',  // Garage: remito en uni, control en kg [usuario 2026-09-28]
+  14: 'control-remaches.html?sector=14'  // Bolsas plasticas: remito y control en kg [usuario 2026-09-28]
 };
+/* Proveedores que se controlan por peso aunque su SECTOR no: Importado vive en el Sector
+   Procesado (2) junto a piezas de Eclipse y Charcas que tienen su propio pesaje, asi que no
+   puede entrar el sector entero [usuario 2026-09-28: "Remito en unidades y control en kg"]. */
+const CONTROL_URL_PROV = {
+  'importado': 'control-remaches.html?sector=2&prov=Importado'
+};
+function ctrlUrlDe(it){
+  if (!it) return null;
+  return CONTROL_URL[it.sector_id]
+      || CONTROL_URL_PROV[String(it.proveedor||'').trim().toLowerCase()]
+      || null;
+}
 // Unidad default por rubro (kg / uni). Los flejes y remaches se compran en kg.
 const RUBRO_UM={Flejes:"kg",Remaches:"kg",Cajas:"uni",Plasticos:"uni",Cartones:"uni",Bombillas:"uni",Garage:"uni",MatPlastica:"kg"};
 
@@ -2932,7 +2953,7 @@ async function guardar(){
     var esRemache = (itemSel.sector_id === 8);
     // El control externo ya no es una lista de booleanos: lo decide CONTROL_URL.
     // Asi sumar un sector (plasticos, 2026-09-03) no obliga a tocar el if-chain.
-    var ctrlUrl = CONTROL_URL[itemSel.sector_id] || null;
+    var ctrlUrl = ctrlUrlDe(itemSel);
     var pideControl = !!ctrlUrl;
     var esCarton = GP2UI.esCarton(itemSel);   /* el 10 vive en gp2-ui.js (idea 7334) */
     var pliegoIt = esPliegoIt(itemSel);
