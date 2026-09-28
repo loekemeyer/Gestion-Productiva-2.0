@@ -13420,3 +13420,20 @@ pedidos reales llegan con sesión — si se corta antes, una tablet con la versi
 queda muda. La macro `MACRO_ENTREGAS_SUPABASE.bas` solo **lee** `public."Entregas Tallerista
 Virgilio"` `[dato: el .bas]`, no toca GP2.
 
+
+## 4gn. El menú principal son DOS grupos: Stocks y Herramientas (2026-09-28)
+
+- [usuario, Thomas] *"Dos módulos en vez de 10"*. Lo que se ve en `GP2_MODULOS.html`: las dos
+  pastillas de tablet (Logística y Operarios — lo que usan logística y los operarios) y dos grupos:
+  - **Stocks**: Stock General, Control Partes Talleristas, Control Partes PS, Control Partes Prov. AT,
+    Faltantes, Validación de Stock, Proporciones.
+  - **Herramientas**: O.C., O.P., Despiece x Art., Consumo x Componente, Tiempos Matrices,
+    Casos Especiales, Devolución Cervantes.
+- [usuario] *"El resto ocultalos, si en algún momento te pido que los vuelvas a poner tenés que
+  poder"*. Por eso **no se borró nada**: los 10 grupos anteriores siguen enteros en `MENU_OCULTO`
+  (mismo archivo). Reponer un grupo = moverlo de `MENU_OCULTO` a `MENU`; un módulo suelto = copiar
+  su línea. `GP2_MODULOS.html?todos=1` muestra todo junto, sin editar. Las pantallas siguen
+  abriendo por su URL directa.
+- [deducido] Quedan fuera del menú normal, entre otras, Recepción Insumos, Envíos/Entregas de
+  tallerista/PS/Prov AT, el Relevamiento (conteo) y todo Producción salvo Tiempos Matrices. Los que
+  se usan desde la tablet siguen accesibles por ahí; los de oficina sólo por `?todos=1` o URL.

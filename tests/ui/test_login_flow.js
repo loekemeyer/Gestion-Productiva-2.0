@@ -45,7 +45,7 @@ const guardCon = on => 'window.GP2_GUARD_EN_FILE = true;\n' +
   await page.goto(ROOT + '/GP2_MODULOS.html');
   await page.waitForSelector('.card');
   ok(page.url().includes('GP2_MODULOS'), 'sin login el menu abre igual');
-  ok((await page.$$eval('.card', x => x.length)) > 8,
+  ok((await page.$$eval('.card', x => x.length)) === 2,   // v1.196.0: Stocks + Herramientas
      'menu renderizado (' + (await page.$$eval('.card', x=>x.length)) + ' grupos)');
   // sin sesion no hay nada que cerrar: el link no se muestra
   ok(await page.$eval('#sesion', e => e.hidden) === true, 'Cerrar sesion oculto');

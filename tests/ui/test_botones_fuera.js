@@ -35,7 +35,8 @@ const STUB = `window.supabase={createClient:function(){return{rpc:async function
     sessionStorage.setItem('gp_auth','ok'); sessionStorage.setItem('gp_role','admin');
     localStorage.setItem('sb-test-auth-token', JSON.stringify({access_token: jwt, refresh_token: 'r-test'}));
   }, fakeJwt());
-  await page.goto(ROOT + '/GP2_MODULOS.html');
+  // v1.196.0: Prov AT quedo oculto del menu normal; se mira en la vista completa (?todos=1)
+  await page.goto(ROOT + '/GP2_MODULOS.html?todos=1');
   await page.waitForSelector('.card');
   const t = await page.textContent('body');
   ok(!t.includes('Stock Online'), 'sin Stock Online duplicado');

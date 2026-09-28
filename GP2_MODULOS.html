@@ -36,7 +36,9 @@ body{background:#ffffff;color:#1e293b;font-family:-apple-system,Segoe UI,Roboto,
 
 /* ── layout ── */
 .wrap{max-width:1200px;margin:0 auto;padding:20px 16px 80px}
-.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px}
+/* columnas de ancho acotado y centradas: con 2 grupos no queda una tercera columna vacia
+   (v1.196.0, menu reducido) y con ?todos=1 siguen entrando 3 por fila */
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,370px));justify-content:center;align-items:start;gap:16px}
 
 /* ── cards ── */
 .card{background:#ffffff;border:1px solid #e2e8f0;border-radius:14px;overflow:hidden;transition:border-color .2s;box-shadow:0 1px 3px rgba(0,0,0,.06)}
@@ -215,7 +217,7 @@ a.tablet-link:hover{background:#1d4ed8}
     (GP2_AUTH_ON=false) no hay sesion que cerrar: el link se oculta solo -->
     <span id="sesion" hidden>&nbsp;·&nbsp; <a href="login.html?logout=1" onclick="try{sessionStorage.clear();}catch(e){}"
     style="color:#b42318;text-decoration:none;font-weight:700">⎋ Cerrar sesión</a></span></div>
-  <script src="version.js?v=20260928d"></script>
+  <script src="version.js?v=20260928e"></script>
   <script>if (window.GP2_AUTH_ON !== false) document.getElementById('sesion').hidden = false;</script>
   <div class="tablet-links">
     <a class="tablet-link" href="Tablet/Tablet_GP2.html">📱 Versión Tablet Logística</a>
@@ -225,7 +227,36 @@ a.tablet-link:hover{background:#1d4ed8}
 
 <div class="wrap"><div class="grid" id="grid"></div></div>
 <script>
+/* v1.196.0 (2026-09-28) - MENU REDUCIDO A DOS GRUPOS [Thomas: "Dos módulos en vez de 10 ... El
+   resto de los módulos que no te nombro ocultalos, si en algún momento te pido que los vuelvas a
+   poner tenes que poder"]. Lo visible es MENU (Stocks + Herramientas). Los 10 grupos de antes
+   quedan ENTEROS en MENU_OCULTO, sin tocar: para reponer un grupo se lo pasa de MENU_OCULTO a
+   MENU; para reponer un modulo suelto se copia su linea. Con ?todos=1 en la URL el menu muestra
+   tambien los ocultos (sirve para encontrar una pantalla sin editar nada). Ninguna pantalla se
+   borro: siguen abriendo por su URL. */
 const MENU = [
+ ["▦","Stocks", [
+   ["Stock General", "Stocks%20General/StockGeneral_GP2.html"],
+   ["Control Partes Talleristas", "Talleristas/Control%20Tall/ControlTalleristas_GP2.html"],
+   ["Control Partes PS", "Prov%20Serv/Control/ControlPS_GP2.html"],
+   ["Control Partes Prov. AT", "Prov%20Art%20Terminado/Control/ControlAT_GP2.html"],
+   ["Faltantes", "Faltantes/Faltantes_GP2.html"],
+   ["Validación de Stock", "Relevamiento/Validacion_Stock.html"],
+   ["Proporciones", "Talleristas/Proporciones/Proporciones_GP2.html"],
+ ]],
+ ["🛠","Herramientas", [
+   ["O.C.", "Compras/OC_GP2.html"],
+   ["O.P.", "OrdenProduccion/OrdenProduccion.html"],
+   ["Despiece x Art.", "Programa/Programa.html"],
+   ["Consumo x Componente", "Consumo/Consumo_GP2.html"],
+   ["Tiempos Matrices", "Produccion/tiempos_GP2.html"],
+   ["Casos Especiales", "CasosEspeciales/CasosEspeciales_GP2.html"],
+   ["Devolución Cervantes", "Talleristas/Recepcion/DevolucionCervantes_GP2.html"],
+ ]],
+];
+
+/* OCULTOS: el menu completo de hasta v1.195.0, tal cual. No se renderiza salvo ?todos=1. */
+const MENU_OCULTO = [
  ["🔧","Tallerista", [
    ["Control", "Talleristas/Control%20Tall/ControlTalleristas_GP2.html"],
    ["Envío", "Talleristas/Envios/EnviosTalleristas_GP2.html"],
@@ -323,7 +354,9 @@ const MENU = [
 ];
 
 const grid = document.getElementById("grid");
-MENU.forEach(([icon, titulo, items]) => {
+const VER_TODOS = new URLSearchParams(location.search).get("todos") === "1";
+const MENU_VISIBLE = VER_TODOS ? MENU.concat(MENU_OCULTO) : MENU;
+MENU_VISIBLE.forEach(([icon, titulo, items]) => {
   const allLocked = items.every(i => !i[1]);
   const activeCount = items.filter(i => i[1]).length;
 
@@ -384,7 +417,7 @@ MENU.forEach(([icon, titulo, items]) => {
 });
 // Grilla de 2 columnas en celular: con una cantidad impar de grupos el ultimo
 // quedaria solo en media fila. Se lo marca para que ocupe el ancho entero.
-if (MENU.length % 2 === 1) grid.lastElementChild.classList.add("solo");
+if (MENU_VISIBLE.length % 2 === 1) grid.lastElementChild.classList.add("solo");
 </script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="supabase-config.js?v=20260928a"></script>

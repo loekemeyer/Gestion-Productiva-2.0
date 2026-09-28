@@ -4,6 +4,7 @@
 (vacío)
 
 [HISTORIAL]
+2026-09-28 | thomas (claude-remote) | MENU GP2 A DOS GRUPOS (Thomas: "Dos modulos en vez de 10 ... el resto ocultalos, si te pido que los vuelva a poner tenes que poder"). GP2_MODULOS.html: MENU = Stocks (7) + Herramientas (7); los 10 grupos viejos intactos en MENU_OCULTO, ?todos=1 los muestra. Grilla centrada sin columna vacia y align-items:start. version.js v1.196.0 ?v=20260928e. Tests: menu_una_pantalla mide las 2 vistas, botones_fuera y login_flow ajustados. Suite 59/59. CONOCIMIENTO 4gn.
 2026-09-28 | thomas (claude-remote) | StockGeneral v2.2.0: fuera Gentile (tallerista.activo=false; movimientos_bundle.tall trae act) y fuera todo el inventario de Virgilio (ubicacion virgilio/virgilio_sector + columna En Virgilio). version.js v1.195.0 ?v=20260928d. Suite 59/59.
 2026-09-28 | thomas (claude-remote) | Recepcion v3.65.0 + control-remaches 1.7.0: control en kg para Garage (9), Bolsas (14) e Importado (por proveedor, ?prov=). version.js v1.194.0
 2026-09-28 - TABLET ENVIAR: ORDEN POR SECTOR TAMBIEN PARA P.S., PROV. AT E INYECTOR (usuario: 'Asi como me ordenaste por sector el envio a talleristas quiero que me ordenes prov de art terminado, proveedores de servicio e inyectores'). agrupaPorRubro() pasa a los 4 tipos de Enviar (mismo GP2EE.RUBRO_ORDEN + rotulo por bloque); Otro carton del prov AT cierra el bloque de cartones. Recibir sin cambio. Tablet v1.38.0, version.js v1.193.0 ?v=20260928b. test_tablet: rotulos de P.S./prov AT/inyector, selectores :first-of-type, chequeo 1280px con el inyector. Suite 58/58. claude-remote.
