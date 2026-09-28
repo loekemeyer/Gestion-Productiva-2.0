@@ -75,12 +75,13 @@ window.supabase = { createClient: function(){ return {
   ok(await val(5) === '', 'lleno (stock >= maximo): NO se carga solo');
 
   // Y la fila DICE por que.
-  ok((await fila(1)).includes('hay que pedir'), 'la fila abajo del maximo dice "hay que pedir"');
-  ok((await fila(2)).includes('hay que pedir'), 'la de abajo por poco tambien dice "hay que pedir"');
+  // Los cartelitos "hay que pedir" / "no hace falta" se sacaron en v1.35.0 [Thomas
+  // 2026-09-28: "elimina todos esos textos"]: lo dice el stock en rojo.
+  const rojo = id => page.$('tr[data-id="' + id + '"] td.bajo-min').then(x => !!x);
+  ok(await rojo(1) && await rojo(2), 'abajo del maximo: stock en rojo');
   ok((await fila(3)).includes('ya pediste 400 kg'), 'la fila avisa lo que ya viene en camino');
-  ok(!(await fila(4)).includes('hay que pedir') && !(await fila(4)).includes('no hace falta'),
-     'sin maximo no inventa un estado de gatillo');
-  ok((await fila(5)).includes('no hace falta'), 'la fila llena dice "no hace falta"');
+  ok(!(await rojo(4)), 'sin maximo no inventa un estado de gatillo');
+  ok(!(await rojo(5)) && !(await fila(5)).includes('hay que pedir'), 'la fila llena no se pinta ni dice nada');
 
   // "Aprovechar el viaje" se fue con el minimo: no queda nada afuera que aprovechar.
   ok(await page.$('#btnViaje') === null, 'ya no existe el boton "Aprovechar el viaje"');

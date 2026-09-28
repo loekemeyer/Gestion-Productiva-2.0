@@ -56,8 +56,13 @@ window.supabase = { createClient: function(){ return {
   ok(/IF11/.test(tit) && /Fleje N° 19/.test(tit), 'el título del modal es el componente: ' + tit);
 
   const cuerpo = await page.textContent('#dsgBody');
-  ok(/Meses de stock/.test(cuerpo) && /6/.test(cuerpo), 'muestra los meses de stock');
-  ok(/Consumo × meses/.test(cuerpo), 'muestra consumo × meses');
+  ok(/Meses destock/.test(cuerpo) && /6/.test(cuerpo), 'muestra los meses de stock');
+  ok(/Consumo ×meses/.test(cuerpo), 'muestra consumo × meses');
+  // Cuadro sinoptico (v1.35.0): sin recuadros, todo en tabla, y el modal del ancho del dato.
+  ok((await page.$$('#dsgBody .dsg-kpi')).length === 0, 'sin los recuadros de KPI: una fila de tabla');
+  const anchoModal = await page.$eval('#dsgBg .modal', x => x.getBoundingClientRect().width);
+  const anchoTabla = await page.$eval('#dsgBody', x => Math.max(...[...x.querySelectorAll('table')].map(t => t.getBoundingClientRect().width)));
+  ok(anchoModal - anchoTabla < 60, 'el modal abraza la tabla (' + Math.round(anchoModal) + ' vs ' + Math.round(anchoTabla) + ' px)');
   ok(/505/.test(cuerpo) && /Pelador Mgo Plástico/.test(cuerpo), 'lista el artículo que consume el insumo');
   ok(/27\.854/.test(cuerpo) || /27854/.test(cuerpo), 'muestra la venta (uni/mes) del artículo');
   ok(/190/.test(cuerpo), 'y los kg (primero uni, después kg)');

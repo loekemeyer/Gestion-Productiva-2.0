@@ -1,13 +1,21 @@
 <!doctype html>
 <html lang="es">
 <head>
-<!-- v1.35.0 (2026-09-28) — EL MINIMO DEL PROVEEDOR, DEBAJO DEL CAMPO PEDIR [usuario: "cargá esos
+<!-- v1.36.0 (2026-09-28) — EL MINIMO DEL PROVEEDOR, DEBAJO DEL CAMPO PEDIR [usuario: "cargá esos
      mínimos y que me aparezca abajo del 2 que aparece en la columna pedir"]. notaMinUni(): una
      linea "mín. proveedor N uni" (y "= N paq" para Charcas) bajo el input, en negrita cuando lo
      pedido queda corto. Solo informa: NO frena la OC ni la infla (el recuadro amarillo del 14-09
      no vuelve). Dato: componente.pedido_minimo_uni, ya en oc_bundle. Cargados hoy los 8 minimos
      del sector Bombilla de la planilla de relevamiento (EP10/LLF8/BOM8 10.000, BOM10 5.000,
      BOM12 1.760, Z22 1.200, Z25A/Z25B 1.000); quedan por cargar remaches y plastico. -->
+<!-- v1.35.0 (2026-09-28) — CUADRO SINOPTICO: FUERA LOS TEXTOS DE AYUDA [Thomas: "quiero que elimines
+     todos esos textos... optimizame todo como cuadro sinoptico, tanto la pagina principal como el
+     recuadro cuando tocas maximo"]. Fuera: el cartel "Elegi un proveedor", la leyenda de "Pedir", la
+     ayuda de la fecha y los dos cartelitos debajo de Pedir ("sugerido N · max − stock" y "hay que
+     pedir / no hace falta"). Queda solo "ya pediste N (en camino)", que es lo unico que explica una
+     fila vacia. La tabla y las barras abrazan su contenido (sin 100% de ancho ni anchos fijos) y las
+     dos barras son una. Modal del Maximo: los 4 recuadros pasan a UNA fila de tabla, el aviso sin
+     fondo de color, el desglose ordenado por consumo mayor → menor y el modal del ancho del dato. -->
 <!-- v1.34.0 (2026-09-21) — LA BOTONERA DE SECTOR SE CIERRA AL ELEGIR, Y SECTOR Y PROVEEDOR SE VEN
      COMO DOS BLOQUES DISTINTOS [usuario: "quiero que cuando toco un sector me desaparezca el resto
      de los sectores y ademas haya un boton que diga Todos" + "separame bien lo que es sector y
@@ -433,13 +441,9 @@
   .chip{padding:11px 16px;border-radius:22px;border:2px solid #d0d7de;background:#fff;font-weight:700;font-size:16px;cursor:pointer;color:#111;min-height:44px}
   .chip.active{background:#0b3b73;color:#fff;border-color:#0b3b73}
   td.num{text-align:right;font-variant-numeric:tabular-nums}
-  /* Sin Consumo/mes ni Sugerido, la tabla estirada al 100% dejaba huecos entre las
-     columnas de números. Van con ancho fijo y el sobrante se lo queda Insumo, que es
-     el que tiene texto largo: nada de espacio vacío solo para llenar la pantalla. */
-  .t-insumos th:nth-child(2),.t-insumos td:nth-child(2){width:170px}
-  .t-insumos th:nth-child(3),.t-insumos td:nth-child(3){width:120px}
-  .t-insumos th:nth-child(4),.t-insumos td:nth-child(4){width:110px}
-  .t-insumos th:nth-child(5),.t-insumos td:nth-child(5){width:230px}
+  /* Cuadro sinoptico (v1.35.0): la tabla abraza el dato, sin 100% de ancho ni anchos fijos. */
+  .t-insumos{width:auto}
+  .t-insumos td small{white-space:normal}
   /* Pedir es el campo principal de la pantalla: llega con el sugerido puesto. */
   .pedir-in{width:120px;padding:10px 8px;font-size:20px;font-weight:700;text-align:right;border:2px solid #d0d7de;border-radius:8px}
   .pedir-in.err{border-color:#eacdcd;background:#ffebee}
@@ -449,9 +453,9 @@
   .min-uni.corto{font-weight:700}
   /* El proveedor dentro de la celda del insumo: solo se ve en pantalla chica. */
   .prov-mini{display:none}
-  .barra{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:12px 0;padding:12px;background:#f6f8fa;border-radius:10px}
+  .barra{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:10px 0;padding:8px 10px;background:#f6f8fa;border-radius:10px;width:fit-content;max-width:100%;box-sizing:border-box}
   .barra .tot{font-size:17px;font-weight:800}
-  .barra input[type=text]{padding:10px;min-height:44px;font-size:18px;border:2px solid #d0d7de;border-radius:8px;flex:1;min-width:160px}
+  .barra input[type=text]{padding:10px;min-height:44px;font-size:18px;border:2px solid #d0d7de;border-radius:8px;width:200px}
   .btn-crear{padding:12px 22px;font-size:18px;font-weight:800;border-radius:8px;border:2px solid #111;background:#111;color:#fff;cursor:pointer}
   .btn-crear:disabled{opacity:.4;cursor:default}
   .btn-sug{padding:11px 14px;min-height:44px;font-size:16px;font-weight:700;border-radius:8px;border:2px solid #ead9cd;background:#fff;color:#b45309;cursor:pointer}
@@ -488,8 +492,9 @@
   .filtro .chips{margin:0;flex:1;min-width:0}
   /* "Todos" NO es un sector: se distingue del que quedo elegido para que no se confundan. */
   .chip.todos{background:#fff;border-style:dashed;border-color:#0b3b73;color:#0b3b73}
-  .prov-info{background:#f6f8fa;border:2px solid #e6ebf0;border-radius:10px;padding:9px 12px;font-size:15px;color:#333;margin:8px 0}
-  .leyenda{font-size:14px;color:#555;margin:8px 0 4px}
+  .prov-info{background:#f6f8fa;border:2px solid #e6ebf0;border-radius:10px;padding:9px 12px;font-size:15px;color:#333;margin:8px 0;width:fit-content;max-width:100%;box-sizing:border-box}
+  #panGen .search-box{width:fit-content;max-width:100%;box-sizing:border-box;padding:8px;margin:8px 0}
+  #panGen .search-box input{width:320px;max-width:100%}
   .sub-nota{display:block;font-size:12px;color:#777;font-weight:400}
   /* celda Maximo clickable: abre el desglose (de donde sale el maximo) */
   td.max-cell{cursor:pointer;text-decoration:underline dotted #b9c6d8}
@@ -497,37 +502,24 @@
   /* modal del desglose */
   .modal-bg{position:fixed;inset:0;background:rgba(15,23,42,.45);display:flex;align-items:flex-start;justify-content:center;padding:24px 12px;overflow:auto;z-index:50}
   .modal-bg[hidden]{display:none}
-  .modal{background:#fff;border-radius:14px;max-width:760px;width:100%;box-shadow:0 10px 40px rgba(0,0,0,.25)}
-  .modal-h{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:16px 20px;border-bottom:1px solid #e2e8f0}
-  .modal-h h2{font-size:18px;color:#0f172a}
+  .modal{background:#fff;border-radius:14px;width:fit-content;max-width:100%;box-shadow:0 10px 40px rgba(0,0,0,.25)}
+  .modal-h{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 14px;border-bottom:1px solid #e2e8f0}
+  .modal-h h2{font-size:16px;color:#0f172a}
   .modal-h .x{border:none;background:#f1f5f9;border-radius:8px;font-size:20px;width:40px;height:40px;cursor:pointer;color:#334155}
-  .modal-b{padding:16px 20px}
-  .dsg-kpis{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:14px}
-  .dsg-kpi{background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:8px 12px;min-width:110px}
-  .dsg-kpi .k{font-size:12px;color:#64748b}
-  .dsg-kpi .v{font-size:16px;font-weight:700;color:#0f172a}
-  .dsg-nota{font-size:14px;color:#7a5b00;background:#fff8e1;border:1px solid #f0c36d;border-radius:8px;padding:8px 12px;margin-bottom:12px}
-  table.dsg{border-collapse:collapse;width:100%;font-size:14px}
-  table.dsg th,table.dsg td{border-bottom:1px solid #eef2f7;padding:7px 8px;text-align:center;vertical-align:middle}
-  table.dsg th{font-size:13px;color:#475569;background:#f8fafc}
+  .modal-b{padding:10px 14px;overflow-x:auto}
+  .dsg-nota{font-size:14px;color:#7a5b00;margin:0 0 10px;max-width:520px}
+  table.dsg{border-collapse:collapse;width:auto;font-size:14px;margin:0 auto 10px}
+  table.dsg th,table.dsg td{border-bottom:1px solid #eef2f7;padding:5px 8px;text-align:center;vertical-align:middle}
+  table.dsg th{font-size:13px;color:#475569}
   table.dsg td.l,table.dsg th.l{text-align:left}
-  table.dsg td.num{text-align:right;font-variant-numeric:tabular-nums}
+  table.dsg td.num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
   table.dsg tfoot td{font-weight:700;border-top:2px solid #cbd5e1}
-  .sug-calc{display:block;font-size:12px;color:#8a6d3b;font-weight:600;white-space:nowrap}
-  /* Debajo del campo: la palabra "sugerido" con el número, para que se entienda de
-     dónde salió lo que ya viene cargado (y siga estando si se pisa a mano). */
-  .sug-lb{color:#b45309;font-weight:800}
   .rep-tag{display:block;font-size:12px;font-weight:700;white-space:nowrap}
-  .rep-pedir{color:#b71c1c}
-  .rep-viaje{color:#2e7d32}
   .rep-pend{color:#0b3b73}
   td.bajo-min b, td.bajo-min{color:#b71c1c}
   .campo{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
   .campo label{font-size:16px;font-weight:800;color:#333}
-  .campo-nota{flex:1;min-width:230px}
-  .campo-nota input{flex:1;min-width:170px}
   .barra input[type=date]{padding:9px;font-size:19px;font-weight:700;min-height:44px;border:2px solid #d0d7de;border-radius:8px;color:#111;background:#fff}
-  .ayuda{font-size:13px;color:#0b3b73}
   .badge.entrega{background:#fff3e0;color:#8a4b00;border:1px solid #f0d9b5}
   /* 390px: nada de scroll horizontal en la pagina (las tablas scrollean en .table-wrap) */
   @media(max-width:430px){
@@ -540,10 +532,10 @@
     .t-insumos th:nth-child(2),.t-insumos td:nth-child(2){display:none}
     .prov-mini{display:inline}
     .pedir-in{width:84px;font-size:19px;padding:9px 5px}
-    .sug-calc{white-space:normal}
     .rep-tag{white-space:normal}
     .filtro{flex-direction:column;align-items:flex-start;gap:6px;padding:8px}
     .filtro-lb{min-width:0;min-height:38px;padding:0 12px}
+    .barra{width:auto}
     .campo,.campo-nota{width:100%}
     .campo-nota input,.barra input[type=date]{width:100%}
     .barra .btn-crear,.barra .btn-sug,.barra .btn-limpiar{flex:1;min-width:140px}
@@ -590,23 +582,18 @@
         <button type="button" class="btn-sug" id="btnSug">Usar sugeridos</button>
         <button type="button" class="btn-limpiar" id="btnLimpiar">Limpiar</button>
         <span class="tot" id="tot">0 ítems</span>
-      </div>
-
-      <div class="barra">
         <div class="campo">
-          <label for="fechaEnt">Entrega estimada</label>
+          <label for="fechaEnt">Entrega</label>
           <input type="date" id="fechaEnt">
-          <span class="ayuda" id="fechaAyuda"></span>
         </div>
         <div class="campo campo-nota">
           <label for="nota">Nota</label>
-          <input type="text" id="nota" placeholder="Opcional: dónde entregar, contacto…">
+          <input type="text" id="nota" placeholder="Opcional">
         </div>
         <button type="button" class="btn-crear" id="btnCrear" disabled>Crear OC</button>
       </div>
 
       <div class="search-box"><input type="text" id="q" placeholder="Buscar insumo…"></div>
-      <div class="leyenda"><b>“Pedir” ya viene cargado con el sugerido</b> (<b>Máximo</b> − <b>Stock</b>): debajo de cada campo dice cuánto es el sugerido y de dónde sale. Cambiá la cantidad o <b>dejá el campo vacío</b> para no pedir ese insumo. Lo que quede en la tabla es lo que sale en la OC; <b>el total en plata y el botón Crear OC están acá arriba</b>.</div>
       <div class="table-wrap">
         <table class="t t-insumos">
           <thead><tr>
@@ -701,16 +688,6 @@ function tagOrigen(o){
   var mb=/^mb_(\d+)pct/.exec(o);
   if(mb) return 'MB '+mb[1]+'%';
   return o;
-}
-// La cuenta que explica el sugerido, debajo del numero: que nadie tenga que adivinarlo.
-function explicaSug(i){
-  // La columna "Pend. OC" se sacó de la pantalla [usuario 2026-09-04: "por ahora borralo"],
-  // así que la cuenta tampoco la menciona.
-  var mx=vMaximo(i), st=vStock(i);
-  if(mx!=null) return 'máx '+fmt(mx)+' − stock '+fmt(st==null?0:st);
-  var c=vConsumo(i);
-  if(c!=null && i.meses!=null) return 'cons '+fmt(c,1)+' × '+i.meses+' m − stock '+fmt(st==null?0:st);
-  return '';
 }
 
 var D={}, PAQ=250, PAQ_PLIEGO=100, rubroSel=null, provSel=null;
@@ -932,10 +909,9 @@ function diasEntregaProv(nom){
 function pintarProvInfo(){
   var el=$('provInfo');
   if(!el) return;
-  if(provSel==null){
-    el.innerHTML='<b>Elegí un proveedor</b> — la orden sale sólo con SUS insumos, y con las partes del sector que elegiste arriba.';
-    return;
-  }
+  // Sin proveedor no hay cartel [v1.35.0: "elimina todos esos textos"].
+  el.classList.toggle('hidden', provSel==null);
+  if(provSel==null){ el.innerHTML=''; return; }
   var xs=(D.insumos||[]).filter(function(i){
     return esDelProv(i, provSel) && (rubroSel==null || i.sector_id===rubroSel);
   });
@@ -955,16 +931,6 @@ function proponerFecha(){
     inp.value = (d!=null) ? hoyMas(d) : '';
     fechaTocada=false; fechaTocadaProv=null;
   }
-  pintarAyudaFecha();
-}
-function pintarAyudaFecha(){
-  var ay=$('fechaAyuda');
-  if(!ay) return;
-  if(provSel==null){ ay.textContent='Elegí el proveedor y se propone sola.'; return; }
-  var d=diasEntregaProv(provSel);
-  if(fechaTocada) ay.textContent='Puesta a mano para '+provSel+'.';
-  else if(d!=null) ay.textContent='Hoy + '+d+' día'+(d===1?'':'s')+' ('+provSel+').';
-  else ay.textContent=provSel+' no tiene plazo cargado: ponela a mano.';
 }
 
 /* Sin sector NI proveedor elegido no hay lista [usuario 2026-09-04: "si no pongo el
@@ -1053,23 +1019,12 @@ function cargarSugeridos(){
   if(toco) ajustarPedidoCarton();
 }
 
-/* El cartelito debajo del campo Pedir: DICE que ese numero es el sugerido y de donde
-   sale [usuario 2026-09-04: "que me aclare que es el sugerido"]. Se muestra siempre,
-   tambien si la cantidad se piso a mano — asi se ve contra que se esta cambiando. */
-function notaSugerido(i){
-  var v=valorSugerido(i);
-  if(!(v>0)) return '';
-  var calc=explicaSug(i);
-  return '<span class="sug-calc"><span class="sug-lb">sugerido '+fmt(v)+'</span>'+
-    (calc?(' · '+esc(calc)):'')+'</span>';
-}
-
-/* El cartelito de POR QUE esa fila esta (o no esta) cargada: el estado del gatillo y,
-   si corresponde, el aviso de lo que ya viene en camino. */
+/* Debajo de Pedir queda SOLO el aviso de lo que ya viene en camino: es lo unico que explica
+   por que una fila abajo del maximo llega vacia. Los cartelitos "sugerido N · max − stock" y
+   "hay que pedir / no hace falta" se sacaron en v1.35.0 [Thomas 2026-09-28: "elimina todos esos
+   textos"]: el stock en rojo ya dice que esta abajo del maximo. */
 function notaRepo(i){
-  var out='', e=estadoRepo(i), mx=vMaximo(i);
-  if(e==='pedir') out+='<span class="rep-tag rep-pedir">hay que pedir · stock &lt; máx '+fmt(mx)+'</span>';
-  else if(e==='lleno') out+='<span class="rep-tag rep-viaje">no hace falta · máx '+fmt(mx)+' completo</span>';
+  var out='';
   var pe=vPend(i);
   if(pe>0) out+='<span class="rep-tag rep-pend">ya pediste '+fmt(pe)+' '+esc(i.unidad||'')+' (en camino)</span>';
   return out;
@@ -1124,7 +1079,7 @@ function render(){
       '<td class="num'+(mx!=null?' max-cell" data-max="'+i.comp_id+'" title="Ver de qué se compone':'')+'">'+(mx==null?'—':fmt(mx))+'</td>'+
       '<td class="num"><input class="pedir-in" data-in="'+i.comp_id+'" inputmode="decimal" value="'+(ped?String(ped).replace('.',','):'')+'" placeholder="'+i.unidad+'">'+
         notaMinUni(i, ped, esChar, uxpChar)+paqEq+
-        notaSugerido(i)+notaRepo(i)+'</td>'+
+        notaRepo(i)+'</td>'+
     '</tr>';
   }).join('');
   // Toda la zona de armar la OC (buscador, leyenda, tabla y barras) aparece recien
@@ -1168,12 +1123,13 @@ async function abrirDesglose(compId){
   tit.textContent=(c.codigo||'')+' · '+(c.descripcion||'');
   var unidad=esRes?'kg':(esFleje?'kg':(c.unidad||'uni'));
   var consumo = esRes||esFleje ? d.consumo_kg_mes : d.consumo_uni_mes;
-  var kpis='<div class="dsg-kpis">'+
-    kpi('Máximo', d.maximo==null?'—':fmt(d.maximo)+(esRes||esFleje?' kg':''), tagOrigen(d.maximo_origen))+
-    kpi('Meses de stock', d.meses==null?'—':fmt(d.meses,1))+
-    kpi('Consumo / mes', consumo==null?'—':fmt(consumo)+' '+(esRes||esFleje?'kg':'uni'))+
-    kpi('Consumo × meses', d.consumo_x_meses==null?'—':fmt(d.consumo_x_meses)+(esRes||esFleje?' kg':''))+
-  '</div>';
+  // Cuadro sinoptico (v1.35.0): los 4 recuadros pasan a UNA fila de tabla, unidad en el encabezado.
+  var u=unidad;
+  var kpis='<table class="dsg"><thead><tr><th>Máximo<br>('+u+')</th><th>Origen</th><th>Meses de<br>stock</th>'+
+    '<th>Consumo<br>('+u+'/mes)</th><th>Consumo ×<br>meses ('+u+')</th></tr></thead><tbody><tr>'+
+    '<td class="num"><b>'+fmt(d.maximo)+'</b></td><td>'+esc(tagOrigen(d.maximo_origen)||'—')+'</td>'+
+    '<td class="num">'+(d.meses==null?'—':fmt(d.meses,1))+'</td>'+
+    '<td class="num">'+fmt(consumo)+'</td><td class="num">'+fmt(d.consumo_x_meses)+'</td></tr></tbody></table>';
   // Cuando el máximo no sale de la demanda (físico / migrado / master), se aclara.
   var nota='';
   var org=d.maximo_origen||'';
@@ -1181,7 +1137,8 @@ async function abrirDesglose(compId){
   else if(org==='migrado_de_minimo') nota='Este máximo viene del mínimo viejo que se migró el 14-09; no se recalculó por demanda todavía.';
   else if(esRes) nota='El máximo de resina se redondea a bolsas de 25 kg (con '+fmt(d.desperdicio_pct||0)+'% de desperdicio). El desglose es por pieza inyectada.';
   if(nota) kpis+='<div class="dsg-nota">'+esc(nota)+'</div>';
-  var filas=d.filas||[];
+  // Mayor → menor por lo que consume: lo que mas pesa en el maximo, arriba.
+  var filas=(d.filas||[]).slice().sort(function(a,b){ return (Number(b.aporte_uni_mes)||0)-(Number(a.aporte_uni_mes)||0); });
   var head, rows, totUni=0, totKg=0;
   if(d.base==='piezas'){
     head='<tr><th class="l">Pieza</th><th>Consume<br>(uni/mes)</th>'+(hayKg?'<th>kg/mes</th>':'')+'</tr>';
@@ -1199,9 +1156,8 @@ async function abrirDesglose(compId){
   var foot=filas.length?('<tfoot><tr><td class="l">Total ('+filas.length+')</td>'+
     (d.base==='piezas'?'':'<td></td>')+'<td class="num">'+fmt(totUni)+'</td>'+(hayKg?'<td class="num">'+fmt(totKg,2)+'</td>':'')+'</tr></tfoot>'):'';
   body.innerHTML=kpis+(filas.length?('<table class="dsg"><thead>'+head+'</thead><tbody>'+rows+'</tbody>'+foot+'</table>')
-    :'<p style="color:#64748b">Sin demanda registrada para este insumo (no está en est_madre / ninguna receta).</p>');
+    :'<p class="dsg-nota">Sin demanda registrada (no está en est_madre ni en ninguna receta).</p>');
 }
-function kpi(k,v,sub){ return '<div class="dsg-kpi"><div class="k">'+esc(k)+'</div><div class="v">'+esc(v)+(sub?(' <span style="font-size:12px;color:#94a3b8">'+esc(sub)+'</span>'):'')+'</div></div>'; }
 
 /* Solo los pedidos del rubro/proveedor seleccionado: lo cargado en otros chips
    queda guardado para su propia OC, no se mezcla en la OC de este rubro. */
@@ -1491,7 +1447,7 @@ $('btnLimpiar').addEventListener('click',function(){
   PEDIDO={}; PRECIO={}; MONEDA={}; render();
 });
 $('fechaEnt').addEventListener('change',function(){
-  fechaTocada=!!$('fechaEnt').value; fechaTocadaProv=provSel; pintarAyudaFecha();
+  fechaTocada=!!$('fechaEnt').value; fechaTocadaProv=provSel;
 });
 
 $('btnCrear').addEventListener('click', async function(){

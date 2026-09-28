@@ -13438,7 +13438,15 @@ Virgilio"` `[dato: el .bas]`, no toca GP2.
   tallerista/PS/Prov AT, el Relevamiento (conteo) y todo Producción salvo Tiempos Matrices. Los que
   se usan desde la tablet siguen accesibles por ahí; los de oficina sólo por `?todos=1` o URL.
 
-## 4go. Mínimos de pedido por pieza: la planilla los tiene, GP2 los muestra bajo "Pedir" (2026-09-28)
+## 4go. O.C.: la pantalla es un cuadro sinóptico, sin textos de ayuda (2026-09-28)
+
+- [usuario] Thomas: *"quiero que elimines todos esos textos... optimizame todo como cuadro sinóptico, lo más optimizado posible (tanto la página principal como el recuadro cuando tocás máximo)"*.
+- Fuera de `Compras/OC_GP2.html` (v1.35.0): el cartel "Elegí un proveedor…", la leyenda de "Pedir", la ayuda de la fecha ("se propone sola") y los dos cartelitos debajo de Pedir ("sugerido N · máx − stock" y "hay que pedir / no hace falta"). La fecha se sigue proponiendo sola; el sugerido sigue viniendo cargado en Pedir; el stock en rojo es lo que dice "abajo del máximo".
+- Queda sólo "ya pediste N (en camino)": es lo único que explica por qué una fila abajo del máximo llega vacía.
+- Tabla, barra y buscador abrazan el dato (sin 100% de ancho ni anchos fijos); las dos barras son una. El modal del Máximo: los 4 recuadros son una fila de tabla con la unidad en el encabezado, el desglose va ordenado por consumo mayor → menor y el modal toma el ancho de la tabla.
+- **No volver a meter texto explicativo en esta pantalla**: si algo necesita explicarse, es una columna o un dato, no una leyenda.
+
+## 4gp. Mínimos de pedido por pieza: la planilla los tiene, GP2 los muestra bajo "Pedir" (2026-09-28)
 
 `[Thomas 2026-09-28: "comencemos a ver los mínimos de los pedidos de órdenes de compra"]`. Cruce en
 `MINIMOS_OC_2026-09-28_detalle.xlsx`.
@@ -13455,7 +13463,7 @@ Virgilio"` `[dato: el .bas]`, no toca GP2.
   con mínimo en la planilla, **14 no existen en GP2** (BOM2/3/4/5/6/7/9/11/14, Z19A/B, Z32, AA6/AE10,
   tapitas). "A1 Arandelas Corta Queso" (Skotnica) no es el A1 de GP2, que es una caja. BOM8: la
   planilla dice Resortes Alfredo, GP2 Grudzien Claudia Laura — `[deducido]` el mismo proveedor.
-- **Cómo se muestra** (`OC_GP2.html` v1.35.0): una línea "mín. proveedor N uni" debajo del campo
+- **Cómo se muestra** (`OC_GP2.html` v1.36.0): una línea "mín. proveedor N uni" debajo del campo
   Pedir (para Charcas también "= N paq"), en negrita si lo pedido queda corto. **Sólo informa**: el
   recuadro amarillo con "Subir al mínimo" se sacó el 14-09 y no vuelve; la OC dispara por el máximo.
 - **Pendiente de carga**: 12 remaches Bella Vista (V1C 165.000 … V5C 6.700) y 9 plásticos (PA10/13/18

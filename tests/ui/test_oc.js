@@ -259,16 +259,10 @@ window.supabase = { createClient: function(){ return {
   ok(await page.$eval('.pedir-in[data-in="1"]', x => x.value) === '2449', 'el sugerido llega cargado en Pedir (2449)');
   ok(await page.$eval('.pedir-in[data-in="2"]', x => x.value) === '300', 'y el del otro fleje tambien (300)');
   const filaA1 = await page.textContent('tr[data-id="1"]');
-  // El cartel de abajo DICE que ese numero es el sugerido y de donde sale [usuario:
-  // "que me aclare que es el sugerido"]. (En el bundle de prueba no hay maximo cargado,
-  // asi que la cuenta cae al consumo.)
-  ok(await page.$eval('tr[data-id="1"] .sug-lb', x => x.textContent.trim()) === 'sugerido 2.449',
-     'el cartel aclara que es el sugerido y cuanto es');
-  // Y de donde sale, con la cuenta de HOY (idea 7242): maximo − stock. Antes esta linea
-  // aceptaba "máx" O "cons" y el fixture no tenia maximo, asi que lo unico que se probaba
-  // era el camino viejo.
-  const calcA1 = (await page.textContent('tr[data-id="1"] .sug-calc')).replace(/\s+/g, ' ').trim();
-  ok(calcA1 === 'sugerido 2.449 · máx 2.549 − stock 100', 'la cuenta es maximo − stock: ' + calcA1);
+  // Los carteles debajo de Pedir ("sugerido N · máx − stock") se sacaron en v1.35.0
+  // [Thomas 2026-09-28: "elimina todos esos textos"]: el numero ya esta en el campo.
+  ok((await page.$$('.sug-calc, .sug-lb, #fechaAyuda, .leyenda')).length === 0,
+     'sin carteles de ayuda: ni sugerido debajo de Pedir, ni ayuda de fecha, ni leyenda');
   // [usuario 2026-09-16: "no quiero que me especifique de donde sale el maximo"].
   // La fila ya no muestra el origen (ni "físico" ni "EM"): sigue en el desglose al tocar el Máximo.
   ok(!filaA1.includes('físico'), 'la fila ya no muestra el origen del maximo (físico)');
@@ -284,10 +278,6 @@ window.supabase = { createClient: function(){ return {
   await page.dispatchEvent('.pedir-in[data-in="2"]', 'change');
   ok(await page.$eval('.pedir-in[data-in="2"]', x => x.value) === '', 'vaciado se queda vacio (no se recarga solo)');
   ok((await page.textContent('#tot')).trim().startsWith('1 ítems'), 'y sale de la cuenta de la barra');
-  // El cartel del sugerido sigue estando aunque el campo este vacio o pisado: es la
-  // referencia contra la que se cambia.
-  ok(await page.$eval('tr[data-id="2"] .sug-lb', x => x.textContent.trim()) === 'sugerido 300',
-     'el cartel del sugerido queda aunque el campo este vacio');
   // "Usar sugeridos" lo repone
   await page.click('#btnSug');
   ok(await page.$eval('.pedir-in[data-in="2"]', x => x.value) === '300', '"Usar sugeridos" repone lo vaciado');
@@ -357,16 +347,14 @@ window.supabase = { createClient: function(){ return {
   // 1. El techo fisico manda aunque el consumo sea ridiculo al lado: 9.400, no 54.
   ok(await page.$eval('.pedir-in[data-in="14"]', x => x.value) === '9400',
      'el maximo fisico manda sobre el consumo (9.400 y no los 54 de consumo x meses)');
-  const calcMax = (await page.textContent('tr[data-id="14"] .sug-calc')).replace(/\s+/g, ' ').trim();
-  ok(calcMax === 'sugerido 9.400 · máx 9.400 − stock 0', 'y lo explica con la cuenta nueva: ' + calcMax);
   // 2. Y tambien cuando el techo queda CORTO contra el consumo: se pide lo que entra.
   ok(await page.$eval('.pedir-in[data-in="15"]', x => x.value) === '726',
      'con el techo por debajo del consumo se pide el techo (726 y no 5.228)');
   // 3. El gatillo (v1.26.0): lo que esta abajo del maximo se carga solo, sin punto de pedido.
   ok(await page.$eval('.pedir-in[data-in="16"]', x => x.value) === '2625',
      'abajo del maximo se carga solo lo que falta para el techo (2.625)');
-  const repPedir = (await page.textContent('tr[data-id="16"] .rep-tag')).replace(/\s+/g, ' ').trim();
-  ok(repPedir === 'hay que pedir · stock < máx 11.625', 'y la fila dice por que: ' + repPedir);
+  ok(await page.$eval('tr[data-id="16"] td.bajo-min', x => !!x),
+     'y el stock en rojo dice por que (el cartel "hay que pedir" se saco en v1.35.0)');
   // El origen del maximo (incluido Master Bach "MB 4%") ya NO se muestra en la fila
   // [usuario 2026-09-16]; sigue disponible en el desglose al tocar el Máximo.
   ok(!(await page.textContent('tr[data-id="16"]')).includes('MB 4%'),
