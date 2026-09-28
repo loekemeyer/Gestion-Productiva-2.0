@@ -33,7 +33,7 @@ const STUB = `window.supabase={createClient:function(){return{rpc:async function
   page = await ctx.newPage();
   await page.addInitScript(jwt => {
     sessionStorage.setItem('gp_auth','ok'); sessionStorage.setItem('gp_role','admin');
-    localStorage.setItem('sb-test-auth-token', JSON.stringify({access_token: jwt}));
+    localStorage.setItem('sb-test-auth-token', JSON.stringify({access_token: jwt, refresh_token: 'r-test'}));
   }, fakeJwt());
   await page.goto(ROOT + '/GP2_MODULOS.html');
   await page.waitForSelector('.card');

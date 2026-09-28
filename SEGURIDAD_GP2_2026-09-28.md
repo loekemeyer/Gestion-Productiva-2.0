@@ -8,7 +8,7 @@ nada. Ningún secreto se copia en este archivo.
 
 | # | Hallazgo | Severidad | Estado |
 |---|---|---|---|
-| 1 | 62 RPCs de GP2 que **escriben** se pueden llamar con la clave pública, **sin login** | **CRÍTICO** | abierto |
+| 1 | 62 RPCs de GP2 que **escriben** se pueden llamar con la clave pública, **sin login** | **CRÍTICO** | fase A hecha (login + sesión); falta fase B |
 | 2 | `gp2_leer_factura`: la puerta y el tope dependían del gateway (latente, no explotable hoy) | MEDIO | **corregido** (v17) |
 | 3 | Las 62 tablas de GP2 se **leen** enteras con la clave pública (precios, costos, empleados) | ALTO | abierto |
 | 4 | Bucket `remitos` es **público** | MEDIO | abierto |
@@ -93,8 +93,14 @@ llamadas para confirmarlo.
    (`sb_secret_`, nunca en un archivo que se reparte) o al token de dispositivo.
 4. Recién con 1-3 andando: revocar `anon` en todo lo demás y pasar `remitos` a privado.
 
-**A decidir por el dueño:** (a) prender el login de nuevo; (b) token por dispositivo para la
-tablet; (c) quién más llama a GP2 (Virgilio, n8n, la macro).
+**Decidido (2026-09-28):** (a) login prendido; (b) la tablet tiene login de Google → no hace
+falta token por dispositivo; (c) n8n no escribe; la macro solo lee `public`.
+
+**Fase A — HECHA:** login prendido, `GP2_SB()` manda la sesión y la renueva, el guard ya no
+desloguea al vencer el token de 1 h, vuelve a la pantalla de origen (`?next=` seguro), y las 31
+pantallas sin guard lo tienen. La base todavía acepta `anon`.
+**Fase B — PENDIENTE:** confirmar en los logs de la API que los pedidos llegan como
+`authenticated`, y recién ahí: helper de whitelist en las RPCs + revocar `anon`.
 
 ## 2. `gp2_leer_factura`: puerta y tope — MEDIO (latente) → CORREGIDO en v17
 

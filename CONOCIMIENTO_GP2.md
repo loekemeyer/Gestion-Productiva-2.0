@@ -13354,3 +13354,28 @@ Cornejo y Escalante vuelven al máximo de la casa (consumo × meses).
   (`oc_ps` de `tablet_bundle`). Hoy los GRJ son `estado_compra='fabricacion'` y no aparecen en
   `oc_bundle`; sólo Gilardi Esther es `proveedor_insumo` de rubro Garage. **Falta definir con Thomas**
   qué abarca "lo que entrega Poli / Lucho / Alex" (¿sólo GRJ o todo lo que entregan?) antes de modelarlo.
+
+### 4ga. El login vuelve a estar PRENDIDO, y ahora la base sabe quién llama (2026-09-28)
+
+**Decisión del dueño** `[usuario 2026-09-28]`, contestando la auditoría de seguridad
+(`SEGURIDAD_GP2_2026-09-28.md`, punto 1): **"1 si"** → se vuelve a pedir login con Google;
+**"2 si tiene"** → la tablet de operarios **sí** tiene login de Google (no hace falta un token
+por dispositivo); **"n8n no escribe"** → n8n no es un llamador que escriba en GP2.
+Revierte la decisión del 2026-08-29 (login apagado: "la página ya está privada… prefiero que
+esté suelta").
+
+**Por qué molestaba el login de antes** `[dato: auth-guard.js viejo]`: deslogueaba apenas vencía
+el token de acceso (1 hora) y las pantallas usaban un cliente *sin sesión*, así que nadie lo
+renovaba → Google de nuevo cada hora. **Fase A (hecha):** `GP2_SB()` usa la sesión guardada y la
+renueva sola (un solo cliente por página: dos se pisan al renovar y desloguean); el guard solo
+pide login si no hay sesión (sin `refresh_token`); al volver del login se regresa a la misma
+pantalla (`?next=`, solo rutas propias); las 31 pantallas GP2 que no cargaban el guard ahora lo
+cargan. El guard no actúa bajo `file://` (así abren los tests; la app real va por https).
+
+**Lo que la fase A NO hace todavía:** la base sigue aceptando a `anon`. Desde ahora los pedidos
+de un usuario logueado llegan como `authenticated` con su email; la **fase B** (exigir la
+whitelist en las RPCs y sacarle `EXECUTE` a `anon`) va recién cuando se vea en los logs que los
+pedidos reales llegan con sesión — si se corta antes, una tablet con la versión vieja cacheada
+queda muda. La macro `MACRO_ENTREGAS_SUPABASE.bas` solo **lee** `public."Entregas Tallerista
+Virgilio"` `[dato: el .bas]`, no toca GP2.
+
