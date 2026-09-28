@@ -24,12 +24,23 @@ Los cartones se **reciben en PAQUETES**: el proveedor siempre entrega alturas de
 **250 unidades** por paquete (`parametro.carton_uni_x_paquete`), sea cual sea el tipo
 (el C viene de a 1.000 = 4 paquetes de 250). La recepción carga paquetes y guarda unidades.
 
-| Formato | Pedido total múltiplo de | Por código múltiplo de | Mínimo por código |
-|---|---|---|---|
-| C | 12.000 | 1.000 | 1.000 por cada múltiplo de 12.000 |
-| LOKE | 16.000 | 1.000 | 1.000 por cada múltiplo de 16.000 |
-| 8 | 30.000 | 1.000 | 1.000 por cada múltiplo de 30.000 |
-| Huevo | 25.000 | 1.000 | **2.000** por cada múltiplo de 25.000 |
+| Formato | Marca | Pedido total múltiplo de | Por código múltiplo de | Mínimo por código |
+|---|---|---|---|---|
+| C | LK y CH | 12.000 | 1.000 | 1.000 |
+| LOKE | CH (y 8 LK) | 16.000 | 1.000 | 1.000 |
+| 8 (corbata LK) | LK | **12.000** | 1.000 | 1.000 |
+| Corbata (CH) | CH | 30.000 | 1.000 | 1.000 |
+| Huevo | CH | 25.000 | 1.000 | **2.000** |
+| Huevo LK | LK | **12.000** | 1.000 | 1.000 (sin confirmar) |
+| Rallador | LK/CH | 24.000 | 1.000 | 1.000 |
+| Manga | LK | 12.000 | 1.000 | 1.000 |
+
+**La tirada depende de la MARCA, no sólo de la geometría del pliego** `[Thomas 2026-09-28, planilla
+"Pedido Cartones VACIO": Huevo LK 12.000 / Huevo CH 25.000, Corb8 LK 12.000 / Corb8 CH 30.000;
+"manda la planilla"]`. Se resolvió sin tocar código: un formato por marca, como ya venía con
+`8` (corbata LK) y `Corbata` (CH). `Huevo LK` es nuevo (25 posiciones, igual que Huevo). Lo que
+la planilla pide fuera de esa regla y quedó SIN aplicar: tapones F4A1/F4B1/F4C 18.000 y Q4B/K1A
+25.000 (están en Huevo LK con 12.000). Detalle del cruce: `MINIMOS_OC_2026-09-28_detalle.xlsx`.
 
 - **Las BOLSAS son de `Envases Vihal`, no de Pol**, y tienen **pedido mínimo de 20.000
   unidades** `[usuario 2026-09-03: "ponele veinte mil y mañana lo chequeo"]` — **SIN

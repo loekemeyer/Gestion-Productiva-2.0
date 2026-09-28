@@ -13475,5 +13475,18 @@ Virgilio"` `[dato: el .bas]`, no toca GP2.
   tiene kg/uni 0,22 en esa fila, 57× el real): posible error de planilla, cargado tal cual.
   Sin componente en GP2: V17C Cremallera Doble Aleta (Bella Vista 16.632; GP2 tiene E13 de "Importado"),
   Tornillos Corta Queso (Suipacha, de baja) y Rem. Tapón Hierro (12.000).
+- `[usuario 2026-09-28: "Manda la planilla"]` **Cartón aplicado**: la tirada del pliego depende de la
+  marca. Sin tocar código: `carton_formato` nuevo **`Huevo LK`** (25 posiciones, múltiplo 12.000, mín.
+  por código 1.000 `[deducido]`), **`8` pasa a 12.000** (es la corbata de 30 posiciones LOEKE; `Corbata`
+  queda CHEF en 30.000), **`Manga` 12.000**. Formatos movidos según la planilla, cruzando POR ARTÍCULO
+  (el código de estante se repite en la planilla: F4A, Q7C, Q5D, O2C, N2A figuran dos veces con
+  artículos distintos): G4A/G4B/G4C C→Huevo LK; C2A/C2B/L4B/CART590 Huevo→8; M1/M2A/M2C/M3A/M3B
+  Corbata→8; M2B LOKE→8; Q3D 8→Corbata; P4A/Q5 LOKE→Corbata; Q5D/O2C/N2A LOKE→Huevo; T3A C→LOKE;
+  G8C1 (sin formato)→LOKE; G2A LOKE→C Resto; A1B2 (sin formato)→C Resto; Ñ4A/P6A ("Pelador", 12
+  posiciones) LOKE→C Pelapapas. **Quedó sin aplicar**: tapones F4A1/F4B1/F4C 18.000 y Q4B/K1A 25.000
+  (la planilla los pide distinto dentro del mismo Huevo LK; están en 12.000); BANDITA/BANDITAM y P2A
+  (la planilla tiene "Rallador" y "Bandita" cruzados); CCG6B del 760 (tipo C LOEKE en un artículo CH).
+  Sin formato siguen G8C, A1B, A1B1. Familias resultantes en `oc_bundle`: 8 LOEKE 18 · C LOEKE 41 ·
+  C CHEF 4 · Corbata CHEF 10 · Huevo CHEF 20 · Huevo LK 21 · LOKE CHEF 23 · LOKE LOEKE 8.
 - **Pendiente de carga**: 9 plásticos (PA10/13/18 y PA4 10.000, PC1A/B 36.000, Maspoli PC12/PEP7/PEP8
   500), ver el xlsx.
