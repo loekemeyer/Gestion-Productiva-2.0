@@ -16,6 +16,7 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
    con GP2.factura_lectura_permitida(); pasado el tope (parametro.facturas_lecturas_x_dia)
    devuelve 429 y no gasta un peso mas.
 
+   v18 (2026-09-28) — reenvia el JWT de la sesion al pedir el tope (fase B: solo usuarios habilitados).
    v17 (2026-09-28) — EL TOPE YA NO SE SALTEA (auditoria de seguridad, punto 2).
    Hasta la v16 la puerta aceptaba CUALQUIER texto que empezara con "sb_publishable_",
    y si la consulta del tope fallaba el codigo seguia de largo ("el tope no puede romper
@@ -140,8 +141,14 @@ Deno.serve(async (req: Request) => {
 
   /* Puerta de entrada: la funcion corre sin verify_jwt (la app usa la clave
      publicable, que no es un JWT). Aca solo se exige que venga UNA clave; si es
-     real o no lo decide la base en el paso del tope (ver v17 arriba). */
-  const traida = (req.headers.get("apikey") || (req.headers.get("authorization") || "").replace(/^Bearer\s+/i, "")).trim();
+     real o no lo decide la base en el paso del tope (ver v17 arriba).
+     v18 (fase B, 2026-09-28): el tope se pide reenviando el Authorization TAL CUAL
+     vino (el JWT de la sesion del usuario) + la apikey. Desde la fase B la base solo
+     deja pedir el tope a un usuario logueado de la whitelist, asi que sin sesion no
+     hay lectura. */
+  const apikey = (req.headers.get("apikey") || "").trim();
+  const authz = (req.headers.get("authorization") || "").trim();
+  const traida = apikey || authz.replace(/^Bearer\s+/i, "");
   if (!traida) return json({ error: "Falta la clave del proyecto" }, 401);
 
   const API_KEY = Deno.env.get("ANTHROPIC_API_KEY_GP2");
@@ -175,7 +182,7 @@ Deno.serve(async (req: Request) => {
     t = await fetch(`${SB_URL}/rest/v1/rpc/factura_lectura_permitida`, {
       method: "POST",
       headers: {
-        "apikey": traida, "Authorization": `Bearer ${traida}`,
+        "apikey": apikey || traida, "Authorization": authz || `Bearer ${traida}`,
         "Content-Type": "application/json", "Accept-Profile": "GP2", "Content-Profile": "GP2",
       },
       body: "{}",
@@ -183,7 +190,7 @@ Deno.serve(async (req: Request) => {
   } catch {
     return json({ error: "No se pudo verificar el tope diario (la base no contesta). Proba de nuevo o cargala a mano." }, 503);
   }
-  if (t.status === 401 || t.status === 403) return json({ error: "Clave del proyecto invalida" }, 401);
+  if (t.status === 401 || t.status === 403) return json({ error: "Sin permiso: inicia sesion con una cuenta habilitada (o la clave no es del proyecto)" }, 401);
   if (!t.ok) return json({ error: "No se pudo verificar el tope diario (HTTP " + t.status + "). Proba de nuevo o cargala a mano." }, 503);
   const cupo = await t.json().catch(() => null);
   if (!cupo || cupo.ok !== true) {

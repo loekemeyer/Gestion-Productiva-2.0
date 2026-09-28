@@ -8,7 +8,7 @@ nada. Ningún secreto se copia en este archivo.
 
 | # | Hallazgo | Severidad | Estado |
 |---|---|---|---|
-| 1 | 62 RPCs de GP2 que **escriben** se pueden llamar con la clave pública, **sin login** | **CRÍTICO** | fase A hecha (login + sesión); falta fase B |
+| 1 | 62 RPCs de GP2 que **escriben** se pueden llamar con la clave pública, **sin login** | **CRÍTICO** | **corregido** (fase A + fase B, 2026-09-28) |
 | 2 | `gp2_leer_factura`: la puerta y el tope dependían del gateway (latente, no explotable hoy) | MEDIO | **corregido** (v17) |
 | 3 | Las 62 tablas de GP2 se **leen** enteras con la clave pública (precios, costos, empleados) | ALTO | abierto |
 | 4 | Bucket `remitos` es **público** | MEDIO | abierto |
@@ -99,8 +99,24 @@ falta token por dispositivo; (c) n8n no escribe; la macro solo lee `public`.
 **Fase A — HECHA:** login prendido, `GP2_SB()` manda la sesión y la renueva, el guard ya no
 desloguea al vencer el token de 1 h, vuelve a la pantalla de origen (`?next=` seguro), y las 31
 pantallas sin guard lo tienen. La base todavía acepta `anon`.
-**Fase B — PENDIENTE:** confirmar en los logs de la API que los pedidos llegan como
-`authenticated`, y recién ahí: helper de whitelist en las RPCs + revocar `anon`.
+**Fase B — HECHA (2026-09-28)** (el dueño: "no se está utilizando actualmente", así que no hizo
+falta esperar a los logs). Migración `seguridad_fase_b_rpcs_escritura_solo_usuarios_habilitados`:
+- `"GP2"._autorizado()` / `_exigir_autorizado()`: pasa un usuario `authenticated` cuyo email está
+  en `public.usuarios_permitidos` (vía `GP2.get_role_for_email`, la misma whitelist del login), o
+  `service_role`, o SQL sin pedido de PostgREST (dueño, cron). Cualquier cuenta de Google puede
+  loguearse en Supabase: por eso no alcanza con el rol, hace falta la whitelist.
+- Las 62 llaman a `_exigir_autorizado()` al empezar y se les sacó `EXECUTE` a `PUBLIC`/`anon`.
+- Medido: en SQL, extraño logueado → no, anon → no, admin → sí, envíos (email en mayúsculas) → sí,
+  service_role → sí; en vivo con la clave pública, `factura_lectura_permitida`, `marcar_revisado`,
+  `relevamiento_eliminar` y `registrar_movimientos` → **401 permission denied** (el contador de
+  lecturas ni se movió); las lecturas siguen en 200 (eso es el punto 3).
+- `gp2_leer_factura` v18 reenvía el JWT de la sesión y `LecturaFacturas_GP2.html` lo manda; sin
+  sesión → 401.
+- Invariante nuevo `AI_` en `db/verificar.sql` (hoy 0).
+
+**OJO — whitelist:** hoy hay **2 cuentas habilitadas** (una `admin`, una `envios`). Toda tablet o
+persona que tenga que ESCRIBIR necesita estar en `public.usuarios_permitidos`; la cuenta `envios`
+además solo ve las pantallas de su lista en `auth-guard.js` (la tablet de operarios no está).
 
 ## 2. `gp2_leer_factura`: puerta y tope — MEDIO (latente) → CORREGIDO en v17
 

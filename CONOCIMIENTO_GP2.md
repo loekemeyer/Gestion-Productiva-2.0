@@ -13372,7 +13372,13 @@ pide login si no hay sesión (sin `refresh_token`); al volver del login se regre
 pantalla (`?next=`, solo rutas propias); las 31 pantallas GP2 que no cargaban el guard ahora lo
 cargan. El guard no actúa bajo `file://` (así abren los tests; la app real va por https).
 
-**Lo que la fase A NO hace todavía:** la base sigue aceptando a `anon`. Desde ahora los pedidos
+**Fase B — HECHA el mismo día** `[usuario: "b: no se está utilizando actualmente"]`: como el
+sistema no está en uso, no se esperó a los logs. Las 62 RPC que escriben exigen un usuario de la
+whitelist (`public.usuarios_permitidos`, hoy 2 cuentas: una `admin` y una `envios`) y `anon` ya no
+las ejecuta. **Toda cuenta que tenga que escribir (incluidas las tablets) tiene que estar en esa
+tabla**; la cuenta `envios` además sólo ve su lista de pantallas en `auth-guard.js`.
+
+**Lo que quedaba pendiente antes de la fase B (histórico):** la base sigue aceptando a `anon`. Desde ahora los pedidos
 de un usuario logueado llegan como `authenticated` con su email; la **fase B** (exigir la
 whitelist en las RPCs y sacarle `EXECUTE` a `anon`) va recién cuando se vea en los logs que los
 pedidos reales llegan con sesión — si se corta antes, una tablet con la versión vieja cacheada
