@@ -17,6 +17,13 @@
      solo Articulo (o Pieza) · Venta · Consume · kg/mes + Total. En tablet/celular, que no tienen
      "pasar por arriba", un toque la abre y otro toque (o tocar afuera) la cierra. La RPC se pide una
      vez por insumo y queda en memoria. -->
+<!-- v1.36.0-bis (2026-09-28, otra sesion) — EL MINIMO DEL PROVEEDOR, DEBAJO DEL CAMPO PEDIR [usuario: "cargá esos
+     mínimos y que me aparezca abajo del 2 que aparece en la columna pedir"]. notaMinUni(): una
+     linea "mín. proveedor N uni" (y "= N paq" para Charcas) bajo el input, en negrita cuando lo
+     pedido queda corto. Solo informa: NO frena la OC ni la infla (el recuadro amarillo del 14-09
+     no vuelve). Dato: componente.pedido_minimo_uni, ya en oc_bundle. Cargados hoy los 8 minimos
+     del sector Bombilla de la planilla de relevamiento (EP10/LLF8/BOM8 10.000, BOM10 5.000,
+     BOM12 1.760, Z22 1.200, Z25A/Z25B 1.000); quedan por cargar remaches y plastico. -->
 <!-- v1.35.0 (2026-09-28) — CUADRO SINOPTICO: FUERA LOS TEXTOS DE AYUDA [Thomas: "quiero que elimines
      todos esos textos... optimizame todo como cuadro sinoptico, tanto la pagina principal como el
      recuadro cuando tocas maximo"]. Fuera: el cartel "Elegi un proveedor", la leyenda de "Pedir", la
@@ -458,6 +465,8 @@
   .pedir-in.err{border-color:#eacdcd;background:#ffebee}
   tr.con-pedido td{background:#eef7ee}
   .paq-eq{font-size:12px;color:#0b3b73;display:block}
+  .min-uni{font-size:12px;color:#8a6d00;display:block}
+  .min-uni.corto{font-weight:700}
   /* El proveedor dentro de la celda del insumo: solo se ve en pantalla chica. */
   .prov-mini{display:none}
   .barra{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:10px 0;padding:8px 10px;background:#f6f8fa;border-radius:10px;width:fit-content;max-width:100%;box-sizing:border-box}
@@ -1043,6 +1052,24 @@ function notaRepo(i){
   return out;
 }
 
+// El PEDIDO MINIMO POR PIEZA (componente.pedido_minimo_uni), debajo del campo Pedir [usuario
+// 2026-09-28: "cargá esos mínimos y que me aparezca abajo del 2 que aparece en la columna pedir"].
+// Es un dato a la vista, no un freno (el recuadro amarillo con "Subir al minimo" se saco el 14-09
+// y no vuelve): el comprador ve cuanto pide el proveedor como minimo y decide. Para Charcas, que se
+// pide en paquetes, se muestra tambien el equivalente en paquetes (round up). Se marca "corto"
+// cuando lo pedido queda por debajo del minimo.
+function notaMinUni(i, ped, esChar, uxpChar, um){
+  var m = Number(i.pedido_minimo_uni)||0;
+  if(m<=0) return '';
+  var pedUni = esChar ? (Number(ped)||0)*uxpChar : (Number(ped)||0);
+  var corto = pedUni>0 && pedUni<m;
+  var txt = 'mín. proveedor '+fmt(m)+' uni';
+  if(esChar && uxpChar>0) txt += ' (= '+fmt(Math.ceil(m/uxpChar))+' paq)';
+  // v1.38.0: si Pedir va en otra unidad (la del remito), el minimo tambien se lee en esa unidad.
+  else if(um && um.k!==1 && i.unidad!=='kg') txt += ' (= '+fmt(m*um.k, um.lbl==='kg'?2:0)+' '+esc(um.lbl)+')';
+  return '<span class="min-uni'+(corto?' corto':'')+'">'+txt+'</span>';
+}
+
 function render(){
   cargarSugeridos();
   var fs=filtradas();
@@ -1076,7 +1103,8 @@ function render(){
       // [usuario 2026-09-16: "no quiero que me especifique de donde sale el maximo"].
       // Sigue disponible en el desglose que se abre al tocar el Maximo.
       '<td class="num'+(mx!=null?' max-cell" data-max="'+i.comp_id+'" title="Ver de qué se compone':'')+'">'+(mx==null?'—':fmt(mx))+'</td>'+
-      '<td class="num"><input class="pedir-in" data-in="'+i.comp_id+'" inputmode="decimal" value="'+(ped?valCampo(ped*um.k):'')+'" placeholder="'+esc(um.lbl)+'">'+paqEq+
+      '<td class="num"><input class="pedir-in" data-in="'+i.comp_id+'" inputmode="decimal" value="'+(ped?valCampo(ped*um.k):'')+'" placeholder="'+esc(um.lbl)+'">'+
+        notaMinUni(i, ped, esChar, uxpChar, um)+paqEq+
         notaRepo(i)+'</td>'+
       '<td class="um-cell">'+esc(um.lbl)+'</td>'+
     '</tr>';
