@@ -13288,6 +13288,13 @@ GRJ10A, ABPM, IVBCM, IVBLM; los importados de acero 941E-948E suman sus secundar
 
 ## 4gm. GP2 lee la O.C. de Gestión Virgilio: al Prov AT se le mandan las partes de su orden (2026-09-26)
 
+> **2026-09-28 — "📄 Ver O.C." en la Tablet** `[usuario: "en el envío a prov de art terminado y talleristas
+> o.c. … me aparezca arriba de 'buscar por código' una box que me diga ver o.c. y pueda ver la o.c. de gestión
+> virgilio"]`. En Enviar, para las contrapartes cuyo sugerido sale de esta O.C. (tallerista O.C. y prov AT), hay
+> una box arriba del buscador que abre lo PENDIENTE de `v_oc_virgilio_pendiente` (tipo + ref_id, con la
+> descripción de `articulo`): código, fecha de la O.C., pedido, recibido y pendiente en cajas. Se lee al abrir, no
+> viaja en `tablet_bundle`. Tablet v1.37.0, `tests/ui/test_tablet_ver_oc.js`.
+
 `[Thomas 2026-09-26: "Para los proveedores de artículo terminado solamente tenemos que mandarle partes
 para que puedan hacer lo que les pide su orden de compra"]`. Cierra el hueco que §4fr y §4fw dejaron
 escrito ("cuando salga orden de compra de Virgilio, que todavía no lo modelamos").

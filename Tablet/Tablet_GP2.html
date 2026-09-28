@@ -6,6 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
+<!-- v1.37.0 (2026-09-28) — "VER O.C." ARRIBA DEL BUSCADOR EN ENVIAR (usuario: "en el envío a prov de art terminado y talleristas o.c. … me aparezca arriba de 'buscar por código' una box que me diga ver o.c. y pueda ver la o.c. de gestión virgilio"). Sólo en Enviar y sólo para las contrapartes cuyo sugerido sale de la O.C. de Virgilio (c.oc o proveedor_at, el mismo criterio del título "· O.C. Virgilio"). El botón abre/cierra una tabla con lo PENDIENTE de esa O.C.: lee "GP2".v_oc_virgilio_pendiente (espejo GP2 de public.Ordenes_Compra; "la nueva pisa la vieja", sin cerradas/anuladas, últimos 120 días) filtrada por tipo+ref_id, y la descripción de "GP2".articulo. Nada de public (REGLA 0). Se lee al abrir, no con el bundle: el 99 % de los envíos no la mira. -->
 <!-- v1.36.2 (2026-09-25) — SE SACA EL CARTEL "⚠ N alerta(s) de recepción sin revisar" de la pantalla de tipos/contrapartes (Thomas: "Que no aparezcan más alertas"). Las alertas se siguen generando y viven en Alertas/alertas_GP2.html. -->
 <!-- v1.36.1 (2026-09-24) — SINGULAR DE "cajas" EN EL SUGERIDO DEL ENVIAR (usuario, sobre el Z31/Descorazonador a Alex Escalante: "el sugerido aparece una cajas y es una caja. Sin S"). El mapa SINGULAR tenía cajones/paquetes/bolsas pero NO cajas, y el Z31 quedó con env_unidad='cajas' (v1.35.x, 2026-09-24) → unidadTxt("cajas",1) devolvía "cajas". Se agregó cajas→caja y singularEnvase() ahora lee el MISMO mapa (una sola fuente: antes solo cubría bolsas/cajones, le faltaban paquetes y cajas en el renglón "= 1 …"). Tablet no-cache, sin ?v= que bumpear. -->
 <!-- v1.36.0 (2026-09-24) — EL PROV. DE ART. TERMINADO VA IGUAL QUE "TALLERISTAS O.C.": SUGERIDO 0
@@ -782,6 +783,13 @@
   .pc-rubro{grid-column:1/-1;font-size:18px;font-weight:900;color:#0b4aa2;letter-spacing:.4px;
     text-transform:uppercase;padding:10px 2px 0;border-top:2px solid #e3e8ee;margin-top:4px}
   .pc-rubro.primero{border-top:0;padding-top:0;margin-top:0}
+  /* Ver O.C. (v1.37.0): arriba del buscador, sólo Enviar a talleristas O.C. / prov. AT */
+  .oc-box{margin:12px 0 0;padding:10px 12px;background:#fff8e6;border:2px solid #f0c36d;border-radius:8px}
+  .oc-box .btn{min-height:44px;font-size:18px}
+  .oc-box .oc-msg{margin-top:8px;font-size:16px;color:#57606a}
+  .oc-box .table-wrap{width:fit-content;max-width:100%}
+  .oc-box table.t{margin-top:8px;width:auto}
+  .oc-box td.num,.oc-box th.num{text-align:right;white-space:nowrap}
   /* la vista de UNA parte: el sugerido bien grande y un solo campo para la cantidad que se manda */
   #detBox{max-width:560px}
   .det-card{border:2px solid #d0d7de;border-radius:16px;background:#fff;padding:18px 20px;margin-top:10px}
@@ -891,6 +899,10 @@
            buscador mide exactamente lo que miden las columnas y no queda una caja ancha arriba
            de una tabla angosta [usuario 2026-09-17: optimizar los blancos entre columnas]. -->
       <div id="tblBox">
+        <div id="ocBox" class="oc-box hidden">
+          <button class="btn" id="btnVerOC" type="button">📄 Ver O.C.</button>
+          <div id="ocBody" class="hidden"></div>
+        </div>
         <div class="search-box"><input type="text" id="q" placeholder="Buscar por código o descripción…"></div>
 
         <div id="alertaBox" class="alerta-box hidden"></div>
@@ -1647,6 +1659,7 @@ function elegir(c){
   // Virgilio que GP2 no lee, y sin ese renglón un 0 se lee como "no hay que mandarle nada"
   // [usuario 2026-09-24: el prov. AT va igual que talleristas O.C.].
   $("fase1Title").textContent = c.nombre + (MODO === "enviar" && (c.oc || c.tipo === "proveedor_at") ? " · O.C. Virgilio" : "");
+  ocPrepararBox(c);
   E.mostrarFase(1);
   var esRec = MODO === "recibir";
   $("lblRemito").classList.toggle("hidden", !esRec);
@@ -1674,6 +1687,67 @@ function elegir(c){
   // escrita (P.S. e inyector desde el 17, el tallerista desde el 18, elegido por el usuario). El
   // Sugerido se sigue mostrando: es la referencia, no la orden. Ver envSinMemoria().
   render();
+}
+
+/* ---------- Ver O.C. de Gestión Virgilio (v1.37.0) ----------
+   La box sólo existe donde el sugerido sale de la O.C. de Virgilio (mismo criterio que el título).
+   Se lee al abrirla: v_oc_virgilio_pendiente (espejo GP2, nada de public) + la descripción. */
+function ocAplica(c){ return MODO === "enviar" && !!c && (c.oc || c.tipo === "proveedor_at"); }
+function ocPrepararBox(c){
+  var box = $("ocBox"); if (!box) return;
+  box.classList.toggle("hidden", !ocAplica(c));
+  $("ocBody").classList.add("hidden");
+  $("ocBody").innerHTML = "";
+  $("btnVerOC").textContent = "📄 Ver O.C.";
+}
+async function ocToggle(){
+  var body = $("ocBody");
+  if (!body.classList.contains("hidden")) {
+    body.classList.add("hidden");
+    $("btnVerOC").textContent = "📄 Ver O.C.";
+    return;
+  }
+  var c = selCP; if (!ocAplica(c)) return;
+  body.classList.remove("hidden");
+  $("btnVerOC").textContent = "✕ Cerrar O.C.";
+  body.innerHTML = '<div class="oc-msg">Cargando la O.C. de Gestión Virgilio…</div>';
+  try {
+    if (typeof SB.from !== "function") throw new Error("sin conexión a la base");
+    var r = await SB.from("v_oc_virgilio_pendiente")
+      .select("articulo_id,codigo,fecha,cajas_ped,cajas_rec,cajas_pend,unidad")
+      .eq("tipo", c.tipo).eq("ref_id", Number(c.ref));
+    if (r.error) throw r.error;
+    if (selCP !== c) return;   // cambió de contraparte mientras cargaba
+    var filas = r.data || [];
+    if (!filas.length) { body.innerHTML = '<div class="oc-msg">No hay O.C. pendiente de Gestión Virgilio para ' + esc(c.nombre) + '.</div>'; return; }
+    var ids = filas.map(function(f){ return f.articulo_id; }).filter(function(x){ return x != null; });
+    var desc = {};
+    if (ids.length) {
+      var ra = await SB.from("articulo").select("id,descripcion").in("id", ids);
+      if (!ra.error) (ra.data || []).forEach(function(a){ desc[a.id] = a.descripcion || ""; });
+    }
+    if (selCP !== c) return;
+    filas.sort(function(a,b){ return String(a.codigo).localeCompare(String(b.codigo), "es", { numeric: true }); });
+    var tot = 0;
+    var h = '<div class="table-wrap"><table class="t"><thead><tr><th>Artículo</th><th>O.C. del</th>' +
+            '<th class="num">Pedido</th><th class="num">Recibido</th><th class="num">Pendiente</th></tr></thead><tbody>';
+    filas.forEach(function(f){
+      var u = /^uni/i.test(f.unidad || "") ? "uni" : "cajas";
+      tot += Number(f.cajas_pend) || 0;
+      h += "<tr><td><b>" + esc(f.codigo) + "</b> " + esc(desc[f.articulo_id] || "") + "</td>" +
+           "<td>" + esc(GP2UI.fechaAR(f.fecha)) + "</td>" +
+           '<td class="num">' + fmt(Number(f.cajas_ped), 0) + "</td>" +
+           '<td class="num">' + fmt(Number(f.cajas_rec), 0) + "</td>" +
+           '<td class="num"><b>' + fmt(Number(f.cajas_pend), 0) + "</b> " + u + "</td></tr>";
+    });
+    h += "</tbody></table></div>" +
+         '<div class="oc-msg">' + filas.length + " artículo" + (filas.length === 1 ? "" : "s") +
+         " pendientes · " + fmt(tot, 0) + " en total. Es lo que Gestión Virgilio le pidió y todavía no entregó.</div>";
+    body.innerHTML = h;
+  } catch (e) {
+    if (selCP !== c) return;
+    body.innerHTML = '<div class="oc-msg">No se pudo leer la O.C.: ' + esc(e.message || String(e)) + "</div>";
+  }
 }
 
 /* El "← Cambiar" vuelve un paso, no al principio: a la lista de contrapartes del tipo, y
@@ -2204,6 +2278,7 @@ $("detBox").addEventListener("input", function(e){
 });
 
 $("q").addEventListener("input", render);
+$("btnVerOC").addEventListener("click", ocToggle);
 $("q0").addEventListener("input", pintarCPS);
 $("btnVolver").addEventListener("click", volver);
 $("btnOtro").addEventListener("click", function(){ location.reload(); });
