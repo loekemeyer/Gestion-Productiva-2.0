@@ -12401,6 +12401,8 @@ movimientos, ni recepciones, no hubo nada que convertir.
 
 ### `componente.remito_unidad` ahora también manda en la Recepción de Insumos
 
+- **Metalúrgica Giser se recibe en KG** [usuario 2026-09-28: *"Metalúrgica Giser se recepciona en kg"*]. Su única pieza, **BOM12** (Caño Inox 140 mm, bombillas, `kg_x_uni` 0,0095), quedó con `remito_unidad='kg'`: la Recepción pide *Cantidad kg* y `to_canonical` lo pasa a unidades al guardar (1,9 kg = 200 uni) [dato]. Si Giser suma piezas, cada una lleva el mismo `remito_unidad`.
+
 Es la misma columna que la Tablet usa para las entregas de talleristas (§4fi). Si la pieza dice
 `'kg'` o `'uni'`, la Recepción fuerza esa unidad y **esconde el toggle Kg/Unidades**: no hay nada
 que elegir. La rama va **primera** en el if-chain de `abrirPopup()`, antes que la regla del rubro

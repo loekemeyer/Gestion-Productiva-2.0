@@ -288,6 +288,9 @@ window.supabase = { createClient: function(){ return {
   ok(resinas[0].includes('Sugerido 200 kg') && resinas[1].includes('Sugerido 30 kg'),
      'inyector: cada tarjeta muestra su sugerido — ' + resinas.join(' | '));
   ok(resinas.every(r => r.includes('sin cargar')), 'inyector: las tarjetas arrancan sin cargar — ' + resinas.join(' | '));
+  // v1.38.0: el inyector tambien va por rubro [usuario 2026-09-28] — sus resinas son un solo bloque
+  const rubIny = await page.$$eval('#cardsGrid .pc-rubro', xs => xs.map(e => e.textContent.trim()));
+  ok(rubIny.join(' | ') === 'Sector Bolsas Plásticas', 'inyector: rotulo de sector arriba del bloque — ' + rubIny.join(' | '));
   ok((await page.$$eval('#cardsGrid .parte-card.cargada', xs => xs.length)) === 0,
      'inyector: ninguna tarjeta se pinta como cargada');
   ok((await page.$eval('#btnEnviar', e => e.disabled)) === true, 'inyector: sin nada cargado el boton Enviar no habilita');
@@ -518,6 +521,9 @@ window.supabase = { createClient: function(){ return {
      'prov. AT: en Enviar ya no queda tabla, van en tarjetas');
   const atCards = await cards();
   ok(atCards.length === 2, 'prov. AT: una tarjeta por pieza (2) — ' + atCards.length);
+  // v1.38.0: el prov. AT va por rubro como el tallerista [usuario 2026-09-28]: cajas antes que cartones
+  const rubAt = await page.$$eval('#cardsGrid .pc-rubro', xs => xs.map(e => e.textContent.trim()));
+  ok(rubAt.join(' | ') === 'Sector Caja | Sector Cartón', 'prov. AT: un rotulo por rubro, cajas y despues cartones — ' + rubAt.join(' | '));
   ok(atCards.every(c => c.includes('Sugerido 0')),
      'prov. AT: todas las piezas vienen con sugerido 0 (la O.C. la hace Virgilio) — ' + atCards.join(' | '));
   ok(atCards.every(c => c.includes('paquetes')), 'prov. AT: cartones y cajas se mandan en paquetes — ' + atCards.join(' | '));
@@ -592,6 +598,9 @@ window.supabase = { createClient: function(){ return {
   ok(juCards[1].includes('PA10B') && juCards[1].includes('Sugerido 5 bolsas'),
      'Julio plastica: sugerido 5000 uni -> 5 bolsas — ' + juCards[1]);
   ok(juCards.every(c => c.includes('sin cargar')), 'Julio: las dos tarjetas arrancan sin cargar (P.S.)');
+  // v1.38.0: el P.S. tambien va por rubro [usuario 2026-09-28]: procesado antes que plasticas
+  const rubJu = await page.$$eval('#cardsGrid .pc-rubro', xs => xs.map(e => e.textContent.trim()));
+  ok(rubJu.join(' | ') === 'Sector Procesado | Sector Plástico', 'P.S.: un rotulo por rubro, en el orden del tallerista — ' + rubJu.join(' | '));
   // desde el 2026-09-18 (tarde) Julio vuelve a tener DOS campos, como todos los que se mandan
   // pesados: el bulto se ANOTA (no se calcula) y despues los kg [usuario: "tengo que poder poner
   // cajones primero y despues los kg"]. El renglon chico pasa a ser el CRUCE de los dos.
@@ -681,7 +690,7 @@ window.supabase = { createClient: function(){ return {
   ok(gzCards[1].includes('113.304') && gzCards[1].includes('sin cajón cargado'),
      'Guazzaroni: la pieza sin uni_x_cajon NO se convierte, queda en unidades y lo dice — ' + gzCards[1]);
   ok(gzCards.every(c => c.includes('sin cargar')), 'Guazzaroni (P.S.): las tarjetas arrancan sin cargar');
-  await page.click('#cardsGrid .parte-card:first-child');
+  await page.click('#cardsGrid .parte-card:first-of-type');
   await page.waitForSelector(DQ);
   ok((await page.$eval('#detCard .det-eq', e => e.textContent.trim())) === '',
      'Guazzaroni: con el campo vacio la equivalencia no dice nada');
@@ -692,7 +701,7 @@ window.supabase = { createClient: function(){ return {
      (await page.$eval('#detCard .det-eq', e => e.textContent.trim())));
   await page.click('#btnVolverPartes');
   // la pieza sin cajon se carga en unidades, a mano como el resto
-  await page.click('#cardsGrid .parte-card:nth-child(2)');
+  await page.click('#cardsGrid .parte-card:nth-of-type(2)');
   await page.waitForSelector(DQ);
   ok((await page.$eval('#detCard .det-uni', e => e.textContent.trim())) === 'uni',
      'Guazzaroni: la pieza sin cajón se escribe en unidades, no en kg');
@@ -1092,8 +1101,9 @@ window.supabase = { createClient: function(){ return {
   await pT.evaluate(() => localStorage.clear());
   await pT.reload();
   await pT.waitForFunction(() => document.querySelectorAll('#tipoGrid .tipo-btn').length > 0);
-  await pT.click('#tipoGrid .tipo-btn[data-tipo="proveedor_servicio"]');
-  await pT.click('#cpGrid .prov-btn:has-text("Hernandez Julio")');
+  // el inyector y no Julio: desde v1.38.0 el P.S. va en bloques por sector y las dos piezas de
+  // Julio son de sectores distintos (dos bloques = dos filas a proposito); las resinas son un bloque
+  await pT.click('#tipoGrid .tipo-btn[data-tipo="inyector"]');
   await pT.waitForFunction(() => document.querySelectorAll('#cardsGrid .parte-card').length > 0);
   const gT = await pT.evaluate(() => {
     const cs = [...document.querySelectorAll('#cardsGrid .parte-card')].map(c => c.getBoundingClientRect());
@@ -1113,7 +1123,8 @@ window.supabase = { createClient: function(){ return {
   // "Sugerido 113.304 uni · sin cajón cargado" de Guazzaroni. Se compara el ancho REAL del
   // texto (Range) contra el de su caja: con white-space:nowrap la caja mide bien y el texto se va
   // afuera igual, asi que scrollWidth no alcanza para verlo.
-  await pT.click('#btnVolver');
+  await pT.click('#btnVolver');           // un solo inyector: vuelve a los tipos
+  await pT.click('#tipoGrid .tipo-btn[data-tipo="proveedor_servicio"]');
   await pT.click('#cpGrid .prov-btn:has-text("Guazzaroni")');
   await pT.waitForFunction(() => document.querySelectorAll('#cardsGrid .parte-card').length > 0);
   const gzCorte = await pT.evaluate(() => Math.max(...[...document.querySelectorAll('#cardsGrid .parte-card span')]
