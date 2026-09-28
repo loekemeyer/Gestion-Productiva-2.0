@@ -6,7 +6,14 @@
 <script src="../gp2-ui.js?v=20260913e"></script>
 <script src="../gp2-numero.js?v=20260911o"></script>
 <title>Stock general · GP2</title>
-<!-- v2.1.0 (2026-09-21) - BUSCAR SIN SABER EL RUBRO [usuario: "Que me deje buscar por fuera de
+<!-- v2.2.0 (2026-09-28) - FUERA LO QUE NO ES STOCK DE GP2 [usuario: "Sigue apareciendo Gentile
+     Norberto y ya no es más tallerista" / "todo lo que es inventario de virgilio eliminalo (para
+     eso está gestión virgilio)"]. (a) no se listan las ubicaciones tipo virgilio/virgilio_sector
+     (Virgilio Distribución: 268 filas, todas en 0) y se saca la columna "En Virgilio" de SC/SP;
+     el sector Bolsas Plásticas (en Virgilio) QUEDA: es materia prima de GP2, ubicación tipo sector.
+     (b) tallerista inactivo (tallerista.activo=false, viene como 'act' en movimientos_bundle.tall)
+     con cantidad 0 no se lista; si tuviera stock != 0 se sigue viendo, porque eso es una anomalía.
+     v2.1.0 (2026-09-21) - BUSCAR SIN SABER EL RUBRO [usuario: "Que me deje buscar por fuera de
      algún sector y por dentro. Porque hoy en día si no se a que sector pertenece el componente
      tengo que entrar uno por uno"]. Dos cosas, y la segunda es la que ahorra los clicks:
      (a) rubro "🔎 Todos los rubros" (mode:'global'): una sola tabla con TODO el inventario,
@@ -17,7 +24,7 @@
          la tabla decía "Sin resultados" y no había forma de saber dónde estaba.
      FUENTE: D.inv de movimientos_bundle (ya cargado), o sea CERO RPC nuevas; prov AT y tránsito
      salen de extra_bundle como en sus rubros. Muestra también lo que NO tiene rubro propio en el
-     selector (Virgilio, inyectores, y sectores sin botón: hoy Y1 "Cuchilla para Afilar", Sector
+     selector (inyectores y sectores sin botón: hoy Y1 "Cuchilla para Afilar", Sector
      Afilado, era invisible en esta pantalla). Tope de 400 filas dibujadas cuando no hay búsqueda.
      v2.0.1 (2026-09-15) - CORRECCIONES del dueño sobre el rubro Prov. Servicio: (a) SIN columna
      Máximo (a un PS se le manda segun el maximo que necesita el SECTOR PROCESADO, el PS no tiene
@@ -186,7 +193,8 @@ function fmt(n,d){ return GP2N.fmt(n, d==null?0:d); }
 var fmtFecha = GP2UI.fechaTsAR;
 
 /* ═══ config de columnas de movimiento por sector ═══
-   COPIA de gp2-stock-sector.js (SECTORES): mantener en sync. */
+   COPIA de gp2-stock-sector.js (SECTORES): mantener en sync, SALVO "En Virgilio", que acá no va
+   (v2.2.0: el inventario de Virgilio lo lleva Gestión Virgilio). */
 var COLS_INSUMO = [
   { k:"compras", label:"Compras", tipos:["compra"], lado:"ent" },
   { k:"consumo", label:"Consumo", tipos:["consumo_prod","consumo_tall","consumo_virgilio","consumo","fabricacion"], lado:"sal" },
@@ -199,16 +207,14 @@ var COLS_MP = [
 var COLS_SC = [
   { k:"fabricacion", label:"Fabricación", tipos:["fabricacion","armado_fabrica"], lado:"neto" },
   { k:"envios",      label:"Envíos",      tipos:["envio_ps","envio_prov_at","envio_tallerista"], lado:"sal"  },
-  { k:"a_virgilio",  label:"A Virgilio",  tipos:["recepcion_virgilio","consumo_virgilio"], lado:"sal" },
-  { k:"virgilio",    label:"En Virgilio", tipos:["traslado"], campo:"en_virgilio" }
+  { k:"a_virgilio",  label:"A Virgilio",  tipos:["recepcion_virgilio","consumo_virgilio"], lado:"sal" }
 ];
 var COLS_SP = [
   { k:"entregas_ps", label:"Entregas PS",      tipos:["entrega_ps"],                             lado:"ent"  },
   { k:"fabricacion", label:"Fabricación",      tipos:["fabricacion","armado_fabrica"],           lado:"neto" },
   { k:"envios_tall", label:"Envíos Tallerista", tipos:["envio_tallerista"],                      lado:"sal"  },
   { k:"recep_tall",  label:"Recep. Tallerista", tipos:["entrega_tallerista"],                    lado:"ent"  },
-  { k:"a_virgilio",  label:"A Virgilio",        tipos:["recepcion_virgilio","consumo_virgilio"], lado:"sal"  },
-  { k:"virgilio",    label:"En Virgilio",       tipos:["traslado"], campo:"en_virgilio" }
+  { k:"a_virgilio",  label:"A Virgilio",        tipos:["recepcion_virgilio","consumo_virgilio"], lado:"sal"  }
 ];
 var COLS_MOV3 = [
   { k:"fabricado", label:"Fabricado", tipos:["fabricacion"], lado:"ent" },
@@ -286,6 +292,14 @@ function valorCol(x, col){
   return hubo ? tot : null;
 }
 
+/* inventario que Stock General NO muestra (v2.2.0): lo de Virgilio lo lleva Gestión Virgilio,
+   y un tallerista dado de baja (Gentile) sólo aparece si le quedó stock, que sería una anomalía. */
+function ocultarInv(u, v){
+  if (u.tipo==="virgilio" || u.tipo==="virgilio_sector") return true;
+  if (u.tipo==="tallerista" && ((D.tall||{})[String(u.ref)]||{}).act===false && Number(v.cant)===0) return true;
+  return false;
+}
+
 /* ---------- armar las filas del rubro activo ---------- */
 function compInfo(cid){
   var c = (D && D.comp[String(cid)]) || {};
@@ -311,6 +325,7 @@ function filasDe(r){
       var p=k.split(":"), cid=+p[0], uid=+p[1], u=D.ubic[String(uid)];
       if (!u || u.tipo!==tipo) continue;
       var v=D.inv[k];
+      if (ocultarInv(u, v)) continue;
       // PS: ocultar el ruido de empaque/consumo sembrado en 0 (una fila !=0 seria anomalia a ver).
       if (r.fuente==="ps" && SECT_CONSUMIBLE[(D.comp[String(cid)]||{}).s] && Number(v.cant)===0) continue;
       var ci=compInfo(cid);
@@ -343,7 +358,7 @@ function filasDe(r){
 /* ═══ índice transversal (rubro "Todos" + renglón "También en: …") ═══
    Sale de D.inv —el inventario entero, que movimientos_bundle YA trae— más los extras
    de prov AT y tránsito: no cuesta ninguna RPC nueva. Incluye A PROPÓSITO las ubicaciones
-   que no tienen botón propio (Virgilio, inyectores, sectores sin rubro), porque justamente
+   que no tienen botón propio (inyectores, sectores sin rubro; Virgilio NO desde v2.2.0), porque justamente
    ahí es donde un componente se volvía imposible de encontrar. */
 function rubroPorKey(k){ return RUBROS.filter(function(r){ return r.key===k; })[0] || null; }
 function rubroDeUbic(u){
@@ -369,6 +384,7 @@ function filasGlobales(){
     var p=k.split(":"), cid=+p[0], uid=+p[1], u=D.ubic[String(uid)];
     if (!u) continue;
     var v=D.inv[k], r=rubroDeUbic(u);
+    if (ocultarInv(u, v)) continue;
     // mismo criterio que el rubro Prov. Servicio: no listar el empaque sembrado en 0
     if (r && r.key==="ps" && SECT_CONSUMIBLE[(D.comp[String(cid)]||{}).s] && Number(v.cant)===0) continue;
     var ci=compInfo(cid);
@@ -562,7 +578,7 @@ async function seleccionar(key){
   render();
   var con = CUR.filas.filter(function(x){ return Number(x.online||0)!==0; }).length;
   $("status").textContent = r.mode==="global"
-    ? "Todos los rubros · " + fmt(CUR.filas.length) + " filas de inventario (sectores, talleristas, P.S., prov. AT, tránsito y Virgilio) · " + fmt(con) + " con stock."
+    ? "Todos los rubros · " + fmt(CUR.filas.length) + " filas de inventario (sectores, talleristas, P.S., prov. AT y tránsito) · " + fmt(con) + " con stock."
     : r.nom + " · " + CUR.filas.length + " componentes · " + con + " con stock.";
 }
 

@@ -4639,7 +4639,7 @@ AS $function$
     -- talleristas como de proveedores de articulo terminado. Antes el paso proveedor_at de
     -- ruta_paso no llegaba al bundle y la pantalla vieja lo sacaba de public.
     'prov_at', (select coalesce(jsonb_object_agg(id::text, jsonb_build_object('nom',nombre,'cod',cod_prov,'act',activo)),'{}'::jsonb) from proveedor_at),
-    'tall', (select coalesce(jsonb_object_agg(id::text, jsonb_build_object('nom',nombre,'ubi_stock',ubicacion_stock_id)),'{}'::jsonb) from tallerista),
+    'tall', (select coalesce(jsonb_object_agg(id::text, jsonb_build_object('nom',nombre,'ubi_stock',ubicacion_stock_id,'act',activo)),'{}'::jsonb) from tallerista),
     'mat', (select coalesce(jsonb_object_agg(id::text, jsonb_build_object('n',n_matriz,'d',descripcion,'tipo',tipo,'ppk',partes_por_kilo_de_fleje,'primera',(case when partes_por_kilo_de_fleje is not null then true end),'uxg',uni_x_golpe,'maq',maquina,'act',activa)),'{}'::jsonb) from matriz),
     -- vocabulario de movimiento (2026-09-11): unica fuente de los mapas TIPOS del JS
     'tipos_mov', (select coalesce(jsonb_object_agg(clave, jsonb_build_object('lbl',label,'lado',lado,'cls',clase,'ord',orden)),'{}'::jsonb) from tipo_movimiento),

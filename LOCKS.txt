@@ -4,6 +4,7 @@
 (vacío)
 
 [HISTORIAL]
+2026-09-28 | thomas (claude-remote) | StockGeneral v2.2.0: fuera Gentile (tallerista.activo=false; movimientos_bundle.tall trae act) y fuera todo el inventario de Virgilio (ubicacion virgilio/virgilio_sector + columna En Virgilio). version.js v1.195.0 ?v=20260928d. Suite 59/59.
 2026-09-28 | thomas (claude-remote) | Recepcion v3.65.0 + control-remaches 1.7.0: control en kg para Garage (9), Bolsas (14) e Importado (por proveedor, ?prov=). version.js v1.194.0
 2026-09-28 - TABLET ENVIAR: ORDEN POR SECTOR TAMBIEN PARA P.S., PROV. AT E INYECTOR (usuario: 'Asi como me ordenaste por sector el envio a talleristas quiero que me ordenes prov de art terminado, proveedores de servicio e inyectores'). agrupaPorRubro() pasa a los 4 tipos de Enviar (mismo GP2EE.RUBRO_ORDEN + rotulo por bloque); Otro carton del prov AT cierra el bloque de cartones. Recibir sin cambio. Tablet v1.38.0, version.js v1.193.0 ?v=20260928b. test_tablet: rotulos de P.S./prov AT/inyector, selectores :first-of-type, chequeo 1280px con el inyector. Suite 58/58. claude-remote.
 2026-09-28 - TABLET v1.37.0: BOX "VER O.C." ARRIBA DEL BUSCADOR EN ENVIAR (talleristas O.C. y prov AT). Lee GP2.v_oc_virgilio_pendiente (tipo+ref_id) + articulo.descripcion al abrir; nada de public. Test nuevo test_tablet_ver_oc.js. CONOCIMIENTO 4gm. claude-remote.

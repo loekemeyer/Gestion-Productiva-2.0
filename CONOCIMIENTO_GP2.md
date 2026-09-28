@@ -5256,6 +5256,15 @@ hacía Gentile. Respuestas textuales a las 6 preguntas:
 `XXX Terminado`, con el `referencia` diciendo que el cartón no está incluido. Los precios viejos
 de Gentile (tallerista 8) **quedan**: sirven de comparación y son el histórico de lo que se pagó.
 
+> `[usuario 2026-09-28]` *"Sigue apareciendo Gentile Norberto y ya no es más tallerista"*.
+> `[dato 2026-09-28]` Para esa fecha Gentile ya tenía **0 `ruta_paso`** (la cirugía de abajo se
+> hizo) pero seguía `tallerista.activo = true`. Se pasó a `activo = false`; sus 13 filas de
+> inventario (todas en 0) quedan en la base y Stock General las oculta.
+> `[usuario 2026-09-28]` *"todo lo que es inventario de virgilio eliminalo (para eso está gestión
+> virgilio)"*: **Stock General no muestra la ubicación Virgilio** (tipo `virgilio` /
+> `virgilio_sector`) ni la columna "En Virgilio". El sector Bolsas Plásticas (en Virgilio) sí
+> queda: es materia prima de GP2.
+
 ### ⚠️ Lo que todavía NO se hizo: las rutas siguen apuntando a Gentile
 
 **Los 48 `ruta_paso` de los 11 artículos siguen con `tallerista_id = 8` (Gentile, fallecido).**
