@@ -256,6 +256,18 @@ select 'AH_oc_virgilio_desfasado_de_ordenes_compra', count(*) from public."Orden
                     where m.id = o.id and m.cantidad is not distinct from o.cantidad
                       and m.cantidad_recibida is not distinct from o.cantidad_recibida
                       and m.estado is not distinct from o.estado)
+union all
+-- AI) Ninguna RPC de GP2 que ESCRIBE queda al alcance de la clave publica, y todas exigen un
+--     usuario habilitado. Seguridad punto 1 fase B (2026-09-28, SEGURIDAD_GP2_2026-09-28.md):
+--     una funcion nueva nace con EXECUTE para PUBLIC/anon por defecto; si escribe, tiene que
+--     llamar a "GP2"._exigir_autorizado() al empezar y no tener EXECUTE para anon.
+select 'AI_rpc_que_escribe_abierta_a_anon_o_sin_control', count(*) from pg_proc p
+ where p.pronamespace = '"GP2"'::regnamespace and p.prokind = 'f' and p.prosecdef
+   and p.proname not like '\_%'
+   and has_function_privilege('authenticated', p.oid, 'EXECUTE')
+   and pg_get_functiondef(p.oid) ~* '\m(insert|update|delete)\M'
+   and (has_function_privilege('anon', p.oid, 'EXECUTE')
+        or pg_get_functiondef(p.oid) !~ '_exigir_autorizado\(\)')
 ) chequeos
 order by regla;
 

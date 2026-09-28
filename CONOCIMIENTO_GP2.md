@@ -5256,6 +5256,21 @@ hacía Gentile. Respuestas textuales a las 6 preguntas:
 `XXX Terminado`, con el `referencia` diciendo que el cartón no está incluido. Los precios viejos
 de Gentile (tallerista 8) **quedan**: sirven de comparación y son el histórico de lo que se pagó.
 
+> `[usuario 2026-09-28]` *"Sigue apareciendo Gentile Norberto y ya no es más tallerista"*.
+> `[dato 2026-09-28]` Para esa fecha Gentile ya tenía **0 `ruta_paso`** (la cirugía de abajo se
+> hizo) pero seguía `tallerista.activo = true`. Se pasó a `activo = false`; sus 13 filas de
+> inventario (todas en 0) quedan en la base y Stock General las oculta.
+> `[usuario 2026-09-28]` *"todo lo que es inventario de virgilio eliminalo (para eso está gestión
+> virgilio)"*: **Stock General no muestra la ubicación Virgilio** (tipo `virgilio` /
+> `virgilio_sector`) ni la columna "En Virgilio". El sector Bolsas Plásticas (en Virgilio) sí
+> queda: es materia prima de GP2.
+> `[usuario 2026-09-28]` "Sí" a borrar las filas de Virgilio de la base. `[dato]` De las 268 filas de
+> `inventario` en ubicación 33 (todas cantidad 0) se borraron **189**; quedan **79**: terminados
+> (sector 12) con `maximo` cargado, porque `v_reposicion` toma ESA fila como el máximo del terminado
+> y de ahí leen `oc_bundle` y `valorizacion_bundle` (264.453 uni de sugerido). Borrarlas cambiaba OC
+> y valorización. Respaldo: `GP2.bkp_inventario_virgilio_20260928` (268 filas, RLS prendida).
+> `inv_delta` hace upsert, así que un movimiento nuevo a Virgilio recrea la fila sola.
+
 ### ⚠️ Lo que todavía NO se hizo: las rutas siguen apuntando a Gentile
 
 **Los 48 `ruta_paso` de los 11 artículos siguen con `tallerista_id = 8` (Gentile, fallecido).**
@@ -12401,6 +12416,15 @@ movimientos, ni recepciones, no hubo nada que convertir.
 
 ### `componente.remito_unidad` ahora también manda en la Recepción de Insumos
 
+- **Metalúrgica Giser se recibe en KG** [usuario 2026-09-28: *"Metalúrgica Giser se recepciona en kg"*]. Su única pieza, **BOM12** (Caño Inox 140 mm, bombillas, `kg_x_uni` 0,0095), quedó con `remito_unidad='kg'`: la Recepción pide *Cantidad kg* y `to_canonical` lo pasa a unidades al guardar (1,9 kg = 200 uni) [dato]. Si Giser suma piezas, cada una lleva el mismo `remito_unidad`.
+- **Cimarron se recibe en UNIDADES** [usuario 2026-09-28: *"Los remitos de Cimarron son en unidades"*]. Sus 10 piezas (GRJ4, GRJ5, GRJ6, GRJ18, GRJ19, GRJ21, GRJ25, GRJ26, GRJ27, GRJ30) quedaron con `remito_unidad='uni'` [dato]. 7 no tienen `kg_x_uni`: en el control se cuentan, no se pesan.
+- **Eduardo Pintos y Gilardi Esther se reciben en UNIDADES** [usuario 2026-09-28: *"El remito de Pintos y Gilardi es en unidades"*]. `remito_unidad='uni'` en GRJ12, GRJ12B, PEP5 (Pintos) y GRJ13, GRJ14, GRJ28 (Gilardi) [dato]. Los GRJ de Pintos están en Garage, fuera del alcance de `PLAST_UNI` (que sólo cubre Plásticos): por eso hacía falta la bandera en la pieza. GRJ12 y GRJ12B no tienen `kg_x_uni`.
+- **Tierra Nativa SA se recibe en UNIDADES** [usuario 2026-09-28: *"El remito de tierra nativa tambien es en unidades"*]. `remito_unidad='uni'` en GRJ17, GRJ22, GRJ23, GRJ24 (palos de amasar) [dato]. Ninguno tiene `kg_x_uni`: en el control se cuentan.
+- **Las bolsas plásticas se reciben en KG, todas** [usuario 2026-09-28: *"Todo lo que es bolsas plásticas el remito es en kg"*]. `remito_unidad='kg'` en las 13 piezas de Sector Bolsas Plásticas (Arcolor, Beta Plásticos, Indarnyl, Julio Garcia e Hijos, Santa Rosa Plásticos, Simco) [dato]. Su `unidad_medida` ya era kg y no tienen `kg_x_uni`: no hay conversión, se guarda lo pesado. Una bolsa nueva de ese sector tiene que nacer con `remito_unidad='kg'`.
+- **El control después de la recepción es en KG para Garage, Bolsas Plásticas e Importado** [usuario 2026-09-28: *"Todos los proveedores que te di en este chat, el control luego de la recepción es en kg"* + Importado: *"Remito en unidades y control en kg"*]. Hasta hoy esos rubros no tenían control: `CONTROL_URL` de la Recepción sólo mandaba 6, 7, 8 y 11. Se sumaron 9 (Garage) y 14 (Bolsas) a `control-remaches.html?sector=N`, e Importado **por proveedor** (`CONTROL_URL_PROV`, `?sector=2&prov=Importado`) porque el Sector Procesado lo comparte con Eclipse/Charcas, que tienen su propio pesaje. Importado: `remito_unidad='uni'` en D1, E13, Z23A, Z23B, PINCEL590; C13 sigue en `'envase'` [dato]. Una pieza con remito en uni y SIN `kg_x_uni` no se puede controlar en kg: la pantalla pide contarla. Faltan pesos en GRJ12, GRJ12B, GRJ17, GRJ18, GRJ21-GRJ27, GRJ30 y PINCEL590.
+- **GRJ19 (Bombilla Plana Ancha, Cimarron): `kg_x_uni` = 0,0667** [usuario 2026-09-28]. Vienen 720 uni por envase y el envase pesa 48 kg (48 / 720 = 0,0667). Primero dijo 0,05 y se corrigió: el 0,05 no cerraba con los 48 kg.
+- **"Rueda" pasó a llamarse "Rueda y CIA"** [usuario 2026-09-28]: `proveedor_insumo` id 26; las FK `ON UPDATE CASCADE` arrastraron el nombre a `componente` (BOM8B).
+
 Es la misma columna que la Tablet usa para las entregas de talleristas (§4fi). Si la pieza dice
 `'kg'` o `'uni'`, la Recepción fuerza esa unidad y **esconde el toggle Kg/Unidades**: no hay nada
 que elegir. La rama va **primera** en el if-chain de `abrirPopup()`, antes que la regla del rubro
@@ -13054,6 +13078,10 @@ Z12 (0,000165). **Los dos números no cierran entre sí (×2,6)** → `[usuario 
   (suma de los dos máximos Est Madre); la fila de Gentile (ubic 28, stock 0) pasó a GRJ28.
 - `GRJ28.proveedor` Cimarron → **Gilardi Esther** (id 30, rubro Sector Garage). Corrige lo anotado el 2026-09-13
   (Cimarrón). Sin precio cargado: costo sigue en 0 para esa pieza.
+- **Envase (2026-09-28)** [Thomas, con la foto de la Tablet: *"Peso por uni 0.00193 y vienen 3000 por caja.
+  Sugerido en caja"*]: `kg_x_uni=0,00193`, `entrega_unidad='cajas'`, `entrega_uni_x=3000` (5,79 kg/caja),
+  `uni_x_cajon` null — mismo modelo que `Z31`/`C13`. Tablet → Enviar (Sector Garage): sugerido 1.980 uni =
+  **1 caja** (techo); la cantidad se escribe en kg. `v_costo_componente` idéntico antes/después (805 filas, mismo hash).
 
 ## 4gb. `C13` Corta Queso Bastidor c/Cilindro va en CAJAS DE 144 (2026-09-25)
 
@@ -13284,6 +13312,13 @@ GRJ10A, ABPM, IVBCM, IVBLM; los importados de acero 941E-948E suman sus secundar
 
 ## 4gm. GP2 lee la O.C. de Gestión Virgilio: al Prov AT se le mandan las partes de su orden (2026-09-26)
 
+> **2026-09-28 — "📄 Ver O.C." en la Tablet** `[usuario: "en el envío a prov de art terminado y talleristas
+> o.c. … me aparezca arriba de 'buscar por código' una box que me diga ver o.c. y pueda ver la o.c. de gestión
+> virgilio"]`. En Enviar, para las contrapartes cuyo sugerido sale de esta O.C. (tallerista O.C. y prov AT), hay
+> una box arriba del buscador que abre lo PENDIENTE de `v_oc_virgilio_pendiente` (tipo + ref_id, con la
+> descripción de `articulo`): código, fecha de la O.C., pedido, recibido y pendiente en cajas. Se lee al abrir, no
+> viaja en `tablet_bundle`. Tablet v1.37.0, `tests/ui/test_tablet_ver_oc.js`.
+
 `[Thomas 2026-09-26: "Para los proveedores de artículo terminado solamente tenemos que mandarle partes
 para que puedan hacer lo que les pide su orden de compra"]`. Cierra el hueco que §4fr y §4fw dejaron
 escrito ("cuando salga orden de compra de Virgilio, que todavía no lo modelamos").
@@ -13354,3 +13389,51 @@ Cornejo y Escalante vuelven al máximo de la casa (consumo × meses).
   (`oc_ps` de `tablet_bundle`). Hoy los GRJ son `estado_compra='fabricacion'` y no aparecen en
   `oc_bundle`; sólo Gilardi Esther es `proveedor_insumo` de rubro Garage. **Falta definir con Thomas**
   qué abarca "lo que entrega Poli / Lucho / Alex" (¿sólo GRJ o todo lo que entregan?) antes de modelarlo.
+
+### 4ga. El login vuelve a estar PRENDIDO, y ahora la base sabe quién llama (2026-09-28)
+
+**Decisión del dueño** `[usuario 2026-09-28]`, contestando la auditoría de seguridad
+(`SEGURIDAD_GP2_2026-09-28.md`, punto 1): **"1 si"** → se vuelve a pedir login con Google;
+**"2 si tiene"** → la tablet de operarios **sí** tiene login de Google (no hace falta un token
+por dispositivo); **"n8n no escribe"** → n8n no es un llamador que escriba en GP2.
+Revierte la decisión del 2026-08-29 (login apagado: "la página ya está privada… prefiero que
+esté suelta").
+
+**Por qué molestaba el login de antes** `[dato: auth-guard.js viejo]`: deslogueaba apenas vencía
+el token de acceso (1 hora) y las pantallas usaban un cliente *sin sesión*, así que nadie lo
+renovaba → Google de nuevo cada hora. **Fase A (hecha):** `GP2_SB()` usa la sesión guardada y la
+renueva sola (un solo cliente por página: dos se pisan al renovar y desloguean); el guard solo
+pide login si no hay sesión (sin `refresh_token`); al volver del login se regresa a la misma
+pantalla (`?next=`, solo rutas propias); las 31 pantallas GP2 que no cargaban el guard ahora lo
+cargan. El guard no actúa bajo `file://` (así abren los tests; la app real va por https).
+
+**Fase B — HECHA el mismo día** `[usuario: "b: no se está utilizando actualmente"]`: como el
+sistema no está en uso, no se esperó a los logs. Las 62 RPC que escriben exigen un usuario de la
+whitelist (`public.usuarios_permitidos`, hoy 2 cuentas: una `admin` y una `envios`) y `anon` ya no
+las ejecuta. **Toda cuenta que tenga que escribir (incluidas las tablets) tiene que estar en esa
+tabla**; la cuenta `envios` además sólo ve su lista de pantallas en `auth-guard.js`.
+
+**Lo que quedaba pendiente antes de la fase B (histórico):** la base sigue aceptando a `anon`. Desde ahora los pedidos
+de un usuario logueado llegan como `authenticated` con su email; la **fase B** (exigir la
+whitelist en las RPCs y sacarle `EXECUTE` a `anon`) va recién cuando se vea en los logs que los
+pedidos reales llegan con sesión — si se corta antes, una tablet con la versión vieja cacheada
+queda muda. La macro `MACRO_ENTREGAS_SUPABASE.bas` solo **lee** `public."Entregas Tallerista
+Virgilio"` `[dato: el .bas]`, no toca GP2.
+
+
+## 4gn. El menú principal son DOS grupos: Stocks y Herramientas (2026-09-28)
+
+- [usuario, Thomas] *"Dos módulos en vez de 10"*. Lo que se ve en `GP2_MODULOS.html`: las dos
+  pastillas de tablet (Logística y Operarios — lo que usan logística y los operarios) y dos grupos:
+  - **Stocks**: Stock General, Control Partes Talleristas, Control Partes PS, Control Partes Prov. AT,
+    Faltantes, Validación de Stock, Proporciones.
+  - **Herramientas**: O.C., O.P., Despiece x Art., Consumo x Componente, Tiempos Matrices,
+    Casos Especiales, Devolución Cervantes.
+- [usuario] *"El resto ocultalos, si en algún momento te pido que los vuelvas a poner tenés que
+  poder"*. Por eso **no se borró nada**: los 10 grupos anteriores siguen enteros en `MENU_OCULTO`
+  (mismo archivo). Reponer un grupo = moverlo de `MENU_OCULTO` a `MENU`; un módulo suelto = copiar
+  su línea. `GP2_MODULOS.html?todos=1` muestra todo junto, sin editar. Las pantallas siguen
+  abriendo por su URL directa.
+- [deducido] Quedan fuera del menú normal, entre otras, Recepción Insumos, Envíos/Entregas de
+  tallerista/PS/Prov AT, el Relevamiento (conteo) y todo Producción salvo Tiempos Matrices. Los que
+  se usan desde la tablet siguen accesibles por ahí; los de oficina sólo por `?todos=1` o URL.

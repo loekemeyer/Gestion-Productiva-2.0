@@ -1,7 +1,9 @@
 <!doctype html>
 <html lang="es">
 <head>
-<!-- v2.0.0 (2026-09-17) — CASOS ESPECIALES: ENTREGA DIRECTA DE MATERIAL A CHARCAS Y ECLIPSE
+<!-- v2.0.1 (2026-09-28) — % Corto / % Largo desnivelados [usuario: "Está desnivelados Corto y
+     Largo"]: el rotulo de Corto pasa a 2 lineas en celular; los inputs se alinean abajo.
+     v2.0.0 (2026-09-17) — CASOS ESPECIALES: ENTREGA DIRECTA DE MATERIAL A CHARCAS Y ECLIPSE
      (usuario Nazareno: "Hace un boton que sea casos especiales... A ambos se le envia solo desde
      ese modulo y se registran los kg que se le mando de material. NO SE LE PUEDE ENVIAR NI A
      CHARCAS NI A ECLIPSE DESDE LA TABLET DE LOGISTICA"; "Se lo entregan directo a ellos. Pero no
@@ -18,10 +20,11 @@
      con reparto, revisar aca). Version 1.0.0 anterior usaba una RPC propia enviar_material_ps_especial
      que duplicaba stock -> borrada. -->
 <meta charset="utf-8"/>
+<script src="../auth-guard.js?v=20260928a"></script>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>Casos especiales · Charcas / Eclipse · GP2</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="../supabase-config.js?v=20260905k"></script>
+<script src="../supabase-config.js?v=20260928a"></script>
 <link rel="stylesheet" href="../gp2-modulo.css?v=20260912c"/>
 <link rel="icon" type="image/png" href="../GP2_favicon.png">
 <link rel="apple-touch-icon" href="../GP2_favicon.png">
@@ -41,6 +44,9 @@
   .ce-field input{font-size:22px;padding:12px 14px;border:2px solid #cbd5e1;border-radius:10px;width:100%}
   .ce-two{display:flex;gap:14px;flex-wrap:wrap}
   .ce-two > div{flex:1 1 150px}
+  /* v2.0.1: si un rotulo ocupa 2 lineas y el vecino 1, los inputs quedaban desnivelados.
+     Las dos columnas ya miden lo mismo (stretch): el input va al piso de cada una. */
+  .ce-two > .ce-field{justify-content:space-between}
   #ceSlider{width:100%;height:40px;margin-top:8px;accent-color:#0b3b73;cursor:pointer}
   #ceSliderLbl{text-align:center;font-size:18px;font-weight:800;color:#0b3b73}
   #ceSplit{font-size:14px;color:#666;font-weight:600;margin-top:6px}

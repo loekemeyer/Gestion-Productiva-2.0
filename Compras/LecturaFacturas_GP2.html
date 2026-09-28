@@ -5,12 +5,12 @@
      foto o PDF -> Edge Function gp2_leer_factura (API de Claude) -> GP2.factura_match()
      -> la persona corrige lo que haga falta -> crear_recepcion_insumo por renglón.
      Lo que no matchea NO se inventa: se ata una vez (factura_alias_guardar) y queda aprendido. -->
-<script src="../auth-guard.js?v=20260912d"></script>
+<script src="../auth-guard.js?v=20260928a"></script>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>Lectura de Facturas · GP2</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="../supabase-config.js?v=20260905k"></script>
+<script src="../supabase-config.js?v=20260928a"></script>
 <link rel="stylesheet" href="../gp2-modulo.css?v=20260912c"/>
 <link rel="icon" type="image/png" href="../GP2_favicon.png">
 <link rel="apple-touch-icon" href="../GP2_favicon.png">
@@ -166,9 +166,14 @@ async function procesar(file){
   $("status").textContent = "Leyendo la factura… (tarda unos segundos)";
   try {
     var b64 = await leerArchivo(file);
+    // Desde la fase B (2026-09-28) el tope diario solo lo puede pedir un usuario logueado de la
+    // whitelist: se manda el JWT de la SESION, no la clave publica (esa va solo en apikey).
+    var ses = null;
+    try { ses = (await SB.auth.getSession()).data.session; } catch (e) {}
     var res = await fetch(FN, {
       method: "POST",
-      headers: { "Content-Type": "application/json", "apikey": SUPABASE_KEY, "Authorization": "Bearer " + SUPABASE_KEY },
+      headers: { "Content-Type": "application/json", "apikey": SUPABASE_KEY,
+                 "Authorization": "Bearer " + (ses && ses.access_token ? ses.access_token : SUPABASE_KEY) },
       body: JSON.stringify({ archivo_b64: b64, mime: file.type || "image/jpeg" })
     });
     var data = await res.json();

@@ -115,6 +115,10 @@ const SECTOR_ID = Number(new URLSearchParams(location.search).get("sector")) || 
 /* Como llamar al insumo en los carteles de "no hay nada". El nombre lindo del
    sector lo manda el bundle; esto es solo para el plural de la frase. */
 const NOMBRE_PLURAL = { 8: "remaches", 6: "plásticos" }[SECTOR_ID] || "ítems";
+/* v1.7.0 (2026-09-28): ?prov=X abre la lista filtrada por ese proveedor. Lo usa Importado, que
+   comparte el Sector Procesado (2) con piezas que no se controlan por peso. */
+const PROV_INICIAL = String(new URLSearchParams(location.search).get("prov") || "").trim();
+let provInicialUsado = false;
 
 function fmtFechaCorta(iso) {
   if (!iso) return "—";
@@ -148,7 +152,10 @@ function poblarProveedores() {
   const cur = selProv.value;
   selProv.innerHTML = '<option value="todos">Todos</option>' +
     [...provs].sort().map(p => `<option value="${esc(p)}">${esc(p)}</option>`).join("");
-  if (cur && [...selProv.options].some(o => o.value === cur)) selProv.value = cur;
+  // El ?prov= se aplica UNA vez, al abrir: si despues eligen "Todos", se respeta.
+  const quiero = provInicialUsado ? cur : (PROV_INICIAL || cur);
+  provInicialUsado = true;
+  if (quiero && [...selProv.options].some(o => o.value === quiero)) selProv.value = quiero;
 }
 
 function filtrar() {

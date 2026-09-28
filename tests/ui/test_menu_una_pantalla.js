@@ -18,14 +18,19 @@ const PANTALLAS = [
   const browser = await chromium.launch(EXE ? { executablePath: EXE } : {});
   const ok = (c, m) => { console.log((c ? 'OK  ' : 'FAIL') + ' ' + m); if (!c) process.exitCode = 1; };
 
-  for (const p of PANTALLAS) {
+  /* v1.196.0: el menu normal muestra 2 grupos (Stocks + Herramientas) y ?todos=1 agrega los
+     10 ocultos. Se miden las dos vistas: la normal es la que usan, la completa sigue viva para
+     poder reponer grupos y ahi viven los chequeos de jerarquia de Insumos. */
+  for (const VISTA of ['', '?todos=1'])
+  for (const P0 of PANTALLAS) {
+    const p = Object.assign({}, P0, { nom: P0.nom + (VISTA ? ' ' + VISTA : '') });
     const ctx = await browser.newContext({ viewport: { width: p.w, height: p.h }, isMobile: true, hasTouch: true });
     const page = await ctx.newPage();
     page.on('pageerror', e => { console.log('PAGEERROR:', e.message); process.exitCode = 1; });
     // el login esta apagado y el service worker no hace falta para medir el layout
     await page.route('**/auth-guard.js*', r => r.fulfill({ contentType: 'application/javascript', body: 'window.GP2_AUTH_ON=false;' }));
     await page.route('**/pwa.js*', r => r.fulfill({ contentType: 'application/javascript', body: '' }));
-    await page.goto(ROOT + '/GP2_MODULOS.html');
+    await page.goto(ROOT + '/GP2_MODULOS.html' + VISTA);
     await page.waitForSelector('.card');
 
     const m = await page.evaluate(() => {
@@ -58,6 +63,9 @@ const PANTALLAS = [
        ocupa el ancho entero: ahi 1 columna es lo correcto, no un boton a medias. */
     const grupos = await page.evaluate(() =>
       [...document.querySelectorAll('.card-head .title')].map(t => t.textContent.trim()));
+    // Pedido de Thomas 2026-09-28: el menu normal son DOS grupos y nada mas
+    if (!VISTA) ok(JSON.stringify(grupos) === JSON.stringify(['Stocks', 'Herramientas']),
+                   `${p.nom}: el menu normal muestra solo Stocks y Herramientas (${grupos})`);
     ok(grupos.length === m.grupos, `${p.nom}: se listan los ${m.grupos} rubros`);
 
     for (const g of grupos) {
