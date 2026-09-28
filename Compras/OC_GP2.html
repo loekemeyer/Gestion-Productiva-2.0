@@ -1,6 +1,9 @@
 <!doctype html>
 <html lang="es">
 <head>
+<!-- v1.40.0 (2026-09-28) — TODO CENTRADO, SIN BLANCO A LOS COSTADOS [Thomas: "quiero que este todo centrado y sin
+     tanto blanco. Si es necesario pone proveedores sobrantes abajo"]. La tarjeta es del ancho de la tabla
+     (piso 720px) y la botonera de proveedores baja de renglon en vez de ensanchar la pagina. -->
 <!-- v1.39.0 (2026-09-28) — SIN HUECOS ENTRE COLUMNAS + MINIMO EN ROJO [Thomas: "entre columna y columna veo
      espacios" + "si no cumple con el minimo que aparezca igual pero con color rojo y negrita"]. La
      tabla seguia al 100%: table.t de gp2-modulo.css le ganaba a .t-insumos. Ahora table.t.t-insumos
@@ -544,6 +547,21 @@
   .campo label{font-size:16px;font-weight:800;color:#333}
   .barra input[type=date]{padding:9px;font-size:19px;font-weight:700;min-height:44px;border:2px solid #d0d7de;border-radius:8px;color:#111;background:#fff}
   .badge.entrega{background:#fff3e0;color:#8a4b00;border:1px solid #f0d9b5}
+  /* v1.40.0 — TODO CENTRADO Y LA TARJETA DEL ANCHO DEL DATO [Thomas 2026-09-28: "quiero que este todo
+     centrado y sin tanto blanco. Si es necesario pone proveedores sobrantes abajo"]. La tarjeta toma el
+     ancho de la TABLA (fit-content); los filtros y el cartel del proveedor no cuentan para ese ancho
+     (contain:inline-size) y sus chips bajan de renglon. Piso de 720px para que sin tabla (antes de
+     elegir sector, o en Ordenes) la botonera no quede angosta. */
+  .card{width:fit-content;min-width:min(100%,720px);max-width:100%}
+  .filtros,#reglaCarton,#panOcs,#elegiSector,#tblEmpty,#status{contain:inline-size}
+  .tabs{justify-content:center}
+  .filtros{align-items:center}
+  .filtro{justify-content:center}
+  /* los chips se quedan pegados a la etiqueta y bajan de renglon (no se estiran a lo ancho) */
+  .filtro .chips{flex:0 1 auto}
+  .filtro{flex-wrap:nowrap}
+  #provInfo,#reglaCarton,#panGen .search-box,#panGen .table-wrap{margin-left:auto;margin-right:auto}
+  .acc-crear{text-align:center}
   /* 390px: nada de scroll horizontal en la pagina (las tablas scrollean en .table-wrap) */
   @media(max-width:430px){
     /* En el celular los anchos fijos empujaban "Pedir" fuera de la pantalla, que es
