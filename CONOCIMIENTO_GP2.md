@@ -13466,5 +13466,14 @@ Virgilio"` `[dato: el .bas]`, no toca GP2.
 - **Cómo se muestra** (`OC_GP2.html` v1.36.0): una línea "mín. proveedor N uni" debajo del campo
   Pedir (para Charcas también "= N paq"), en negrita si lo pedido queda corto. **Sólo informa**: el
   recuadro amarillo con "Subir al mínimo" se sacó el 14-09 y no vuelve; la OC dispara por el máximo.
-- **Pendiente de carga**: 12 remaches Bella Vista (V1C 165.000 … V5C 6.700) y 9 plásticos (PA10/13/18
-  y PA4 10.000, PC1A/B 36.000, Maspoli PC12/PEP7/PEP8 500), ver el xlsx.
+- `[usuario 2026-09-28: "Sí, cargá"]` **Remaches, cargado en `componente.pedido_minimo_uni`** (16, sector 8):
+  el mínimo va en la pieza que se COMPRA (`CV*` "p/Niquelar"), no en la niquelada `V*`. CV1 165.000 ·
+  W8 150.000 · CV2 95.000 · CV9 90.000 · CV4 75.000 · V10 73.750 (no tiene CV) · CV3 70.000 · CV6 65.000 ·
+  CV12 58.000 · CV11 39.000 · CV7 26.300 · CV8 16.000 · CV14 11.111 · V18 10.000 · CV5 6.700 · CV13 1.000
+  (Mandelli). `[deducido]` W8 = "V16C Vástago Sacafuente 5,2×100" y V18 = "V18C Vástago Pisapapas",
+  apareados por kg/uni (0,0305 y 0,01437), no por código. `[deducido]` CV5 6.700 desentona (la planilla
+  tiene kg/uni 0,22 en esa fila, 57× el real): posible error de planilla, cargado tal cual.
+  Sin componente en GP2: V17C Cremallera Doble Aleta (Bella Vista 16.632; GP2 tiene E13 de "Importado"),
+  Tornillos Corta Queso (Suipacha, de baja) y Rem. Tapón Hierro (12.000).
+- **Pendiente de carga**: 9 plásticos (PA10/13/18 y PA4 10.000, PC1A/B 36.000, Maspoli PC12/PEP7/PEP8
+  500), ver el xlsx.
