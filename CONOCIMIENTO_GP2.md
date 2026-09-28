@@ -12403,6 +12403,7 @@ movimientos, ni recepciones, no hubo nada que convertir.
 
 - **Metalúrgica Giser se recibe en KG** [usuario 2026-09-28: *"Metalúrgica Giser se recepciona en kg"*]. Su única pieza, **BOM12** (Caño Inox 140 mm, bombillas, `kg_x_uni` 0,0095), quedó con `remito_unidad='kg'`: la Recepción pide *Cantidad kg* y `to_canonical` lo pasa a unidades al guardar (1,9 kg = 200 uni) [dato]. Si Giser suma piezas, cada una lleva el mismo `remito_unidad`.
 - **Cimarron se recibe en UNIDADES** [usuario 2026-09-28: *"Los remitos de Cimarron son en unidades"*]. Sus 10 piezas (GRJ4, GRJ5, GRJ6, GRJ18, GRJ19, GRJ21, GRJ25, GRJ26, GRJ27, GRJ30) quedaron con `remito_unidad='uni'` [dato]. 7 no tienen `kg_x_uni`: en el control se cuentan, no se pesan.
+- **Eduardo Pintos y Gilardi Esther se reciben en UNIDADES** [usuario 2026-09-28: *"El remito de Pintos y Gilardi es en unidades"*]. `remito_unidad='uni'` en GRJ12, GRJ12B, PEP5 (Pintos) y GRJ13, GRJ14, GRJ28 (Gilardi) [dato]. Los GRJ de Pintos están en Garage, fuera del alcance de `PLAST_UNI` (que sólo cubre Plásticos): por eso hacía falta la bandera en la pieza. GRJ12 y GRJ12B no tienen `kg_x_uni`.
 - **"Rueda" pasó a llamarse "Rueda y CIA"** [usuario 2026-09-28]: `proveedor_insumo` id 26; las FK `ON UPDATE CASCADE` arrastraron el nombre a `componente` (BOM8B).
 
 Es la misma columna que la Tablet usa para las entregas de talleristas (§4fi). Si la pieza dice
