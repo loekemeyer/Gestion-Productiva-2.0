@@ -8,13 +8,18 @@ Proyecto Supabase `hrxfctzncixxqmpfhskv` (compartido por Gestión Virgilio, Plan
 Decisión del dueño 28/09: el operario sigue entrando **solo con legajo (opción A)** por ahora → lo que
 depende de identificarlo (tablas de producción, bucket privado) queda abierto.
 
-- [x] `diag_ins` limitado a `planify_diag_priv` (verificado como anon). SQL en Gestión Virgilio `sql/seguridad_anon_v2338.sql`.
-- [x] `remitos_delete` borrado; `recepcion.js` v23.38 sube sin `upsert` (commit `acdafec`).
-- [ ] `remitos_update` / `remitos_select`: cuando ningún equipo mande versión < v23.38 (la app **no se
-      actualiza sola**: muestra "Actualizar" y espera; el dueño no quiere recarga automática porque puede
-      haber una carga a medio hacer). Chequeo programado 29/09.
-- [ ] Token de `GV_Alta_Articulo_Aprobacion`, `leer-produccion-foto`, `send-rendimiento-matrices`,
-      `gv-alta-articulo`, lectura anon de `github_repo_problemas`.
+- [x] `diag_ins` limitado a `planify_diag_priv` (verificado como anon).
+- [x] `remitos`: `delete` y `update` borrados; `recepcion.js` sube sin `upsert`. Falta `select` (probar contra Storage real; chequeo 29/09).
+- [x] Token de `GV_Alta_Articulo_Aprobacion` cerrado a anon (v23.39).
+- [x] `leer-produccion-foto`: sesión habilitada + tope 100/día (v49).
+- [x] `send-rendimiento-matrices` dada de baja (410); el reporte vigente es el PDF de `reporte-diario-rendimiento`.
+- [x] `gv-alta-articulo` v21: código validado, sin links, legajo conocido, tope 10/hora.
+- [x] `send-whatsapp` v55: texto/destinatario libre solo desde el servidor; con clave pública 4 plantillas sin links.
+      Arreglado el aviso "sugerencia aprobada" de Planify (roto desde 15/09) — probado con Elías, llegó.
+- [ ] Lo que depende de identificar al operario (tablas de producción, bucket privado, datos personales):
+      plan en Gestión Virgilio `docs/PLAN-LOGIN-OPERARIOS-RED.md` (legajo + red de la empresa, IP fija).
+- [ ] `github_repo_problemas` legible por anon (la lista de agujeros).
+- Caída de la base 14:11–14:19 del 28/09: incidente de la plataforma Supabase (dueño), no del proyecto.
 - Hallazgos extra al revisar RLS: `github_repo_problemas` (la lista de agujeros) legible por anon;
   `relevamiento_cervantes` 18 tablas con RLS apagada (solo lectura, stock: bajo).
 
