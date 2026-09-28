@@ -43,7 +43,24 @@ Proyecto Supabase `hrxfctzncixxqmpfhskv` (compartido por Gestión Virgilio, Plan
 
 ## 4. Edge Functions (`verify_jwt = false`)
 
-_(pendiente: resultado del relevamiento de las funciones — se completa abajo)_
+51 funciones con `verify_jwt=false`; se leyó el código de 40 (11 de Planify sin fuente recuperable).
+**Ninguna tiene rate limiting.** No hay secretos reales escritos en el código. Las tablas de secretos
+(`lecturacvs.*_secrets`, `impo_comex.app_secrets`) están cerradas a anon.
+
+| Riesgo | Función | Qué puede hacer un extraño |
+|---|---|---|
+| **CRÍTICO** | `planify_whatsapp-webhook` | El POST **no valida la firma de Meta** (`X-Hub-Signature-256`). Con un JSON falso y el celular de un empleado: crea tareas en su Planify, gasta Claude y le escribe por WA desde el número de la empresa; con el de Poli reordena el recorrido; con el de un candidato pisa su evaluación. `planify_social_webhook` sí valida la firma: es el modelo a copiar |
+| **ALTO** | `leer-produccion-foto` | Sin auth ni tope: manda imágenes a gpt-4o vision a costo de la empresa, en loop. La URL está en `maestro.html` del repo público |
+| **ALTO** | `gv-alta-articulo` | Sin auth: cada POST con un `cod` nuevo le manda a Thomas un WA + Telegram con texto y links del atacante (phishing desde el número propio). Y como anon lee los tokens de `GV_Alta_Articulo_Aprobacion` (política `gvaa_sel`), puede aprobar/rechazar cualquier alta. `cod` va al HTML sin escapar |
+| **ALTO** | `send-rendimiento-matrices` | Sin auth: WA ilimitados a los 2 números del dueño + recorre todo `db_n8n_espejo` con service_role en cada llamada |
+| MEDIO-ALTO | `fichada-qr-fichar` | Modo estático: desde la IP de la empresa alcanza con el email de un compañero para fichar por él (afecta sueldos) |
+| MEDIO | `recon-facial-*` | Clave de kiosco de 20 caracteres sin bloqueo por intentos; el "liveness" lo declara el cliente. Con la clave: enrolar tu cara en el legajo de otro |
+| MEDIO | `deposito-panel` | ABM de empleados y claves protegido por `clave_panel` sin bloqueo por intentos |
+| MEDIO | `planify_recruit_cv_url` | "Valida" que la apikey sea la publicable (pública). Con el UUID de un candidato baja su CV |
+| MEDIO | `planify_get_update_url` | Entrega el `.exe` de Planify a cualquiera usando el PAT de GitHub (2.098 llamadas en 24 h) |
+| MEDIO (condicional) | `planify_notify-programacion` | Si no está cargada la env `BOT_NOTIFY_SECRET`, cualquiera dispara plantillas WA a clientes |
+| SIN AUDITAR | 11 de Planify (`send-wa`, `transcribir`, `chat_media_url/up`, `get-produccion-dia`…) | No hay fuente. `get-produccion-dia` recibe llamadas desde ISPs residenciales con UA vacío |
+| BAJO | isis-api, Impo_Comex_* (12), social_inbox/webhook, reporte-diario, cumple-wa, recruit_mail_import, excel_extract, fichada-qr-emitir-token, arca healthcheck, estimado-entrega, ia_page, stubs | Protegidas por token/HMAC o sin daño. Detalle: `SEND_WA_TOKEN` es uno solo para 5 funciones y viaja en la query string (queda en logs y en `cron.job`) |
 
 ## 5. Arreglos propuestos (nada ejecutado)
 
@@ -55,10 +72,13 @@ darle identidad al operario.
 2. C2: borrar `diag_ins` o agregarle `bucket_id = '<bucket de diagnóstico>'`.
 3. C3: sacarle a anon las 4 políticas de `planify_sanciones` (dejarlo para `planify_is_maestro()`).
 4. C4 + A3 (planify): en cada función admin, `if not planify_is_maestro() then raise … end if`; revocar EXECUTE a anon.
-5. A2: vistas acotadas o `revoke select` de columnas personales a anon en las tablas que la tablet no lee (hay que cruzar con el código de `index.html` antes).
+5. Edge: `planify_whatsapp-webhook` → validar `X-Hub-Signature-256` con el App Secret de Meta (copiar `firmaValida` de `planify_social_webhook`).
+   `leer-produccion-foto`, `send-rendimiento-matrices`, `gv-alta-articulo` → exigir sesión de supervisor (JWT) o token de servidor + tope por día;
+   `gvaa_sel` → quitar SELECT anon de los tokens; escapar `cod`.
+6. A2: vistas acotadas o `revoke select` de columnas personales a anon en las tablas que la tablet no lee (hay que cruzar con el código de `index.html` antes).
 
 **Necesita identidad del operario** (decisión pendiente: legajo solo / **legajo + PIN validado en la base** / Google)
-6. C5 + A1 + A3 (public): revocar DELETE/UPDATE/INSERT anon y reemplazar por RPCs que validen al operario.
+7. C5 + A1 + A3 (public): revocar DELETE/UPDATE/INSERT anon y reemplazar por RPCs que validen al operario.
    **Revisado en el código: sacar DELETE a anon hoy SÍ rompe.** La app de operarios (`cervantes/app.js`
    L1183 y L1413) borra en `Registros Produccion Cervantes` y `db_n8n_espejo` cuando el operario deshace un
    registro, y las pantallas de `cervantes-admin/` borran en `Entregas PS`, `Proporcion_Articulo_Tallerista`,
