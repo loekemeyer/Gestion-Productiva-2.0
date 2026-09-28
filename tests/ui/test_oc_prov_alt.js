@@ -95,7 +95,7 @@ window.supabase = { createClient: function(){ return {
      'la columna Proveedor dice a quién se le está comprando (salió: ' + provCol.join(',') + ')');
 
   // ── 3 y 4) el precio sigue al proveedor, y lo que no cotizó queda sin precio ──
-  await page.click('#btnSug');
+  await page.$eval('#btnSug', b => b.click())  /* oculto desde v1.37.0 */;
   const tot = (await page.textContent('#tot')).replace(/\s+/g, ' ');
   ok(/19\.900/.test(tot), 'el total usa el precio de Recicor: 100 × 199 = $ 19.900 (salió: ' + tot + ')');
   ok(!/23\.442|24\.995/.test(tot), 'no se coló el precio de Corrugadora en el total');
@@ -118,7 +118,7 @@ window.supabase = { createClient: function(){ return {
   await page.click('#provs .chip:has-text("Corrugadora")');
   filas = await page.$$eval('#tbody tr', xs => xs.map(x => x.getAttribute('data-id')));
   ok(filas.length === 3, 'Corrugadora sigue con sus 3 cajas');
-  await page.click('#btnSug');
+  await page.$eval('#btnSug', b => b.click())  /* oculto desde v1.37.0 */;
   const tot2 = (await page.textContent('#tot')).replace(/\s+/g, ' ');
   // 100×245,53 + 10×344,26 + 5×208 = 24.553 + 3.442,60 + 1.040 = 29.035,60
   ok(/29\.035/.test(tot2), 'el total del principal no cambió (salió: ' + tot2 + ')');

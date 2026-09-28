@@ -1,7 +1,32 @@
 <!doctype html>
 <html lang="es">
 <head>
-<!-- v1.36.0 (2026-09-28) — EL MINIMO DEL PROVEEDOR, DEBAJO DEL CAMPO PEDIR [usuario: "cargá esos
+<!-- v1.40.1 (2026-09-28) — BOTONES, FILTROS, BUSCADOR Y CREAR OC A LA IZQUIERDA [Thomas: "todo esto alineacion
+     a la izquierda"]. La tarjeta sigue del ancho de la tabla y centrada en la pagina. -->
+<!-- v1.40.0 (2026-09-28) — TODO CENTRADO, SIN BLANCO A LOS COSTADOS [Thomas: "quiero que este todo centrado y sin
+     tanto blanco. Si es necesario pone proveedores sobrantes abajo"]. La tarjeta es del ancho de la tabla
+     (piso 720px) y la botonera de proveedores baja de renglon en vez de ensanchar la pagina. -->
+<!-- v1.39.0 (2026-09-28) — SIN HUECOS ENTRE COLUMNAS + MINIMO EN ROJO [Thomas: "entre columna y columna veo
+     espacios" + "si no cumple con el minimo que aparezca igual pero con color rojo y negrita"]. La
+     tabla seguia al 100%: table.t de gp2-modulo.css le ganaba a .t-insumos. Ahora table.t.t-insumos
+     y el .table-wrap abrazan el dato. "min. proveedor" en rojo y negrita cuando lo pedido queda corto. -->
+<!-- v1.38.0 (2026-09-28) — LA O.C. SE PIDE EN LA UNIDAD DEL REMITO + COLUMNA "UNI MEDIDA" [Thomas: "usa las
+     mismas unidades de medida para las ordenes de compra. Y al lado de pedir una columna Uni Medida...
+     los resortes batidor los pido en unidades"]. umRemito() replica la decision de Recepcion de
+     Insumos (remito_unidad de la pieza > carton paq > remaches/bombillas/cajas uni > plastico por
+     proveedor > fleje por proveedor/UM > recibe_en_cajas kg > UM). oc_bundle trae remito_unidad,
+     recibe_en_cajas, entrega_unidad, entrega_uni_x. Charcas en paquetes SOLO para sus flejes. -->
+<!-- v1.37.0 (2026-09-28) — SOLO QUEDA "CREAR OC", ABAJO DEL BUSCADOR [Thomas: "de todo esto quede el
+     boton de Crear O.C. nomas"]. Usar sugeridos, Limpiar, total, Entrega y Nota van a #barraOculta
+     (ocultos, la logica sigue: la fecha propuesta viaja igual a crear_oc). -->
+<!-- v1.36.0 (2026-09-28) — EL DESGLOSE DEL MAXIMO SE VE AL PASAR EL MOUSE, Y SOLO LA TABLA [Thomas: "quiero
+     que me aparezca esta ventanita cuando me pongo arriba de maximo, sin tener que clickear... solo
+     esos datos. El resto no lo quiero"]. El modal se reemplaza por una ventanita flotante (#dsgPop)
+     pegada a la celda: sin titulo, sin X, sin fila Maximo/Origen/Meses/Consumo y sin aviso; queda
+     solo Articulo (o Pieza) · Venta · Consume · kg/mes + Total. En tablet/celular, que no tienen
+     "pasar por arriba", un toque la abre y otro toque (o tocar afuera) la cierra. La RPC se pide una
+     vez por insumo y queda en memoria. -->
+<!-- v1.36.0-bis (2026-09-28, otra sesion) — EL MINIMO DEL PROVEEDOR, DEBAJO DEL CAMPO PEDIR [usuario: "cargá esos
      mínimos y que me aparezca abajo del 2 que aparece en la columna pedir"]. notaMinUni(): una
      linea "mín. proveedor N uni" (y "= N paq" para Charcas) bajo el input, en negrita cuando lo
      pedido queda corto. Solo informa: NO frena la OC ni la infla (el recuadro amarillo del 14-09
@@ -442,7 +467,10 @@
   .chip.active{background:#0b3b73;color:#fff;border-color:#0b3b73}
   td.num{text-align:right;font-variant-numeric:tabular-nums}
   /* Cuadro sinoptico (v1.35.0): la tabla abraza el dato, sin 100% de ancho ni anchos fijos. */
-  .t-insumos{width:auto}
+  /* table.t (gp2-modulo.css) pone width:100% y le ganaba a .t-insumos: por eso los huecos (v1.39.0). */
+  table.t.t-insumos{width:auto}
+  #panGen .table-wrap{width:fit-content;max-width:100%}
+  table.t.t-insumos th,table.t.t-insumos td{padding:6px 8px}
   .t-insumos td small{white-space:normal}
   /* Pedir es el campo principal de la pantalla: llega con el sugerido puesto. */
   .pedir-in{width:120px;padding:10px 8px;font-size:20px;font-weight:700;text-align:right;border:2px solid #d0d7de;border-radius:8px}
@@ -450,7 +478,8 @@
   tr.con-pedido td{background:#eef7ee}
   .paq-eq{font-size:12px;color:#0b3b73;display:block}
   .min-uni{font-size:12px;color:#8a6d00;display:block}
-  .min-uni.corto{font-weight:700}
+  /* no cumple el minimo: rojo y negrita [Thomas 2026-09-28] */
+  .min-uni.corto{font-weight:800;color:#b71c1c}
   /* El proveedor dentro de la celda del insumo: solo se ve en pantalla chica. */
   .prov-mini{display:none}
   .barra{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:10px 0;padding:8px 10px;background:#f6f8fa;border-radius:10px;width:fit-content;max-width:100%;box-sizing:border-box}
@@ -458,6 +487,8 @@
   .barra input[type=text]{padding:10px;min-height:44px;font-size:18px;border:2px solid #d0d7de;border-radius:8px;width:200px}
   .btn-crear{padding:12px 22px;font-size:18px;font-weight:800;border-radius:8px;border:2px solid #111;background:#111;color:#fff;cursor:pointer}
   .btn-crear:disabled{opacity:.4;cursor:default}
+  .acc-crear{margin:0 0 10px}
+  td.um-cell{white-space:nowrap;font-weight:700;color:#333}
   .btn-sug{padding:11px 14px;min-height:44px;font-size:16px;font-weight:700;border-radius:8px;border:2px solid #ead9cd;background:#fff;color:#b45309;cursor:pointer}
   .btn-limpiar{padding:11px 14px;min-height:44px;font-size:16px;font-weight:700;border-radius:8px;border:2px solid #d0d7de;background:#fff;cursor:pointer}
   .regla-carton{border:2px solid #eae0cd;background:#fff8e1;color:#7a5b00;border-radius:10px;padding:8px 12px;font-size:14px;margin:8px 0}
@@ -499,15 +530,12 @@
   /* celda Maximo clickable: abre el desglose (de donde sale el maximo) */
   td.max-cell{cursor:pointer;text-decoration:underline dotted #b9c6d8}
   td.max-cell:hover{background:#eef4fb}
-  /* modal del desglose */
-  .modal-bg{position:fixed;inset:0;background:rgba(15,23,42,.45);display:flex;align-items:flex-start;justify-content:center;padding:24px 12px;overflow:auto;z-index:50}
-  .modal-bg[hidden]{display:none}
-  .modal{background:#fff;border-radius:14px;width:fit-content;max-width:100%;box-shadow:0 10px 40px rgba(0,0,0,.25)}
-  .modal-h{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 14px;border-bottom:1px solid #e2e8f0}
-  .modal-h h2{font-size:16px;color:#0f172a}
-  .modal-h .x{border:none;background:#f1f5f9;border-radius:8px;font-size:20px;width:40px;height:40px;cursor:pointer;color:#334155}
-  .modal-b{padding:10px 14px;overflow-x:auto}
-  .dsg-nota{font-size:14px;color:#7a5b00;margin:0 0 10px;max-width:520px}
+  /* ventanita flotante del desglose (v1.36.0): se abre al pasar por el Maximo */
+  .dsg-pop{position:fixed;z-index:50;background:#fff;border:1px solid #d0d7de;border-radius:10px;
+           box-shadow:0 8px 28px rgba(0,0,0,.18);padding:6px 8px;max-width:calc(100vw - 16px);max-height:60vh;overflow:auto;pointer-events:none}
+  .dsg-pop[hidden]{display:none}
+  .dsg-pop table.dsg{margin:0}
+  .dsg-vacio{font-size:14px;color:#64748b;margin:4px}
   table.dsg{border-collapse:collapse;width:auto;font-size:14px;margin:0 auto 10px}
   table.dsg th,table.dsg td{border-bottom:1px solid #eef2f7;padding:5px 8px;text-align:center;vertical-align:middle}
   table.dsg th{font-size:13px;color:#475569}
@@ -521,6 +549,17 @@
   .campo label{font-size:16px;font-weight:800;color:#333}
   .barra input[type=date]{padding:9px;font-size:19px;font-weight:700;min-height:44px;border:2px solid #d0d7de;border-radius:8px;color:#111;background:#fff}
   .badge.entrega{background:#fff3e0;color:#8a4b00;border:1px solid #f0d9b5}
+  /* v1.40.0 — TODO CENTRADO Y LA TARJETA DEL ANCHO DEL DATO [Thomas 2026-09-28: "quiero que este todo
+     centrado y sin tanto blanco. Si es necesario pone proveedores sobrantes abajo"]. La tarjeta toma el
+     ancho de la TABLA (fit-content); los filtros y el cartel del proveedor no cuentan para ese ancho
+     (contain:inline-size) y sus chips bajan de renglon. Piso de 720px para que sin tabla (antes de
+     elegir sector, o en Ordenes) la botonera no quede angosta. */
+  .card{width:fit-content;min-width:min(100%,720px);max-width:100%}
+  .filtros,#reglaCarton,#panOcs,#elegiSector,#tblEmpty,#status{contain:inline-size}
+  /* v1.40.1: botones, filtros, buscador y Crear OC alineados a la IZQUIERDA [Thomas: "todo esto alineacion a la izquierda"] */
+  /* los chips se quedan pegados a la etiqueta y bajan de renglon (no se estiran a lo ancho) */
+  .filtro .chips{flex:0 1 auto}
+  .filtro{flex-wrap:nowrap}
   /* 390px: nada de scroll horizontal en la pagina (las tablas scrollean en .table-wrap) */
   @media(max-width:430px){
     /* En el celular los anchos fijos empujaban "Pedir" fuera de la pantalla, que es
@@ -544,13 +583,8 @@
 </head>
 <body>
 
-<!-- Desglose del Máximo: de qué se compone (meses × consumo, y qué artículos/piezas lo arman). -->
-<div class="modal-bg" id="dsgBg" hidden>
-  <div class="modal" role="dialog" aria-modal="true">
-    <div class="modal-h"><h2 id="dsgTit"></h2><button type="button" class="x" id="dsgX" aria-label="Cerrar">×</button></div>
-    <div class="modal-b" id="dsgBody"></div>
-  </div>
-</div>
+<!-- Desglose del Máximo (v1.36.0): ventanita flotante, se abre al pasar el mouse por la celda. -->
+<div class="dsg-pop" id="dsgPop" hidden></div>
 
 <div class="card">
   <div class="header">
@@ -575,31 +609,26 @@
            2026-09-04: "si no pongo el sector y no pongo el proveedor, que no me aparezca
            la lista"]: la pantalla arranca en los botones de sector y nada mas. -->
       <div id="zonaLista" class="hidden">
-      <!-- Las acciones (Usar sugeridos, Limpiar, total, Entrega, Nota, Crear OC) van
-           ARRIBA de la lista [usuario 2026-09-16: "todo lo que aparece en la foto...
-           aparezca arriba, no abajo"]. La tabla de insumos queda debajo. -->
-      <div class="barra">
+      <!-- v1.37.0 [Thomas 2026-09-28: "de todo esto quede el boton de Crear O.C. nomas. Que aparezca
+           abajo de Buscar Insumo"]. Usar sugeridos, Limpiar, total, Entrega y Nota quedan OCULTOS, no
+           borrados: la fecha se sigue proponiendo sola (hoy + dias_entrega) y viaja a crear_oc, y el
+           total sigue calculandose por si se vuelve a pedir. -->
+      <div class="hidden" id="barraOculta">
         <button type="button" class="btn-sug" id="btnSug">Usar sugeridos</button>
         <button type="button" class="btn-limpiar" id="btnLimpiar">Limpiar</button>
         <span class="tot" id="tot">0 ítems</span>
-        <div class="campo">
-          <label for="fechaEnt">Entrega</label>
-          <input type="date" id="fechaEnt">
-        </div>
-        <div class="campo campo-nota">
-          <label for="nota">Nota</label>
-          <input type="text" id="nota" placeholder="Opcional">
-        </div>
-        <button type="button" class="btn-crear" id="btnCrear" disabled>Crear OC</button>
+        <input type="date" id="fechaEnt" aria-label="Entrega">
+        <input type="text" id="nota" aria-label="Nota">
       </div>
 
       <div class="search-box"><input type="text" id="q" placeholder="Buscar insumo…"></div>
+      <div class="acc-crear"><button type="button" class="btn-crear" id="btnCrear" disabled>Crear OC</button></div>
       <div class="table-wrap">
         <table class="t t-insumos">
           <thead><tr>
             <th>Insumo</th><th>Proveedor</th>
             <th class="num">Stock<br>actual</th><th class="num">Máximo</th>
-            <th class="num">Pedir</th>
+            <th class="num">Pedir</th><th>Uni<br>Medida</th>
           </tr></thead>
           <tbody id="tbody"></tbody>
         </table>
@@ -670,25 +699,6 @@ function estadoRepo(i){
 // el payload que se MANDA a crear_oc la llama fecha_entrega. Se leen las dos: la fecha ya se
 // perdio una vez por esta diferencia de nombre (ver changelog v1.18.0) y no se pierde de nuevo.
 function vFechaEnt(o){ return o.fecha_entrega_estimada || o.fecha_entrega || ''; }
-// De donde viene el maximo (CONOCIMIENTO_GP2 §2e-bis): est_madre = derivado del consumo,
-// fisico / cinco_cajones = lo que entra fisicamente en el lugar.
-function tagOrigen(o){
-  o=String(o||'');
-  if(o==='est_madre') return 'EM';
-  /* el maximo de un tallerista: la demanda repartida por el % que hace de su paso
-     (reparto_tallerista, 2026-09-15). Hoy la OC lista sectores, pero si algun dia
-     muestra una fila de tallerista que no diga el codigo crudo. */
-  if(o==='est_madre_x_reparto') return 'EM × %';
-  if(o==='cinco_cajones') return '5 caj';
-  if(o==='fisico') return 'físico';
-  /* Master Bach: recalcular_maximo_material arma la etiqueta con el porcentaje adentro
-     ('mb_' || v_mb_pct || 'pct_por_color'), asi que el literal cambia si cambia el
-     parametro master_bach_pct -- por eso se lee con expresion regular y no con un ==.
-     Sin esto la celda mostraba el codigo crudo "mb_4pct_por_color". (idea 7242) */
-  var mb=/^mb_(\d+)pct/.exec(o);
-  if(mb) return 'MB '+mb[1]+'%';
-  return o;
-}
 
 var D={}, PAQ=250, PAQ_PLIEGO=100, rubroSel=null, provSel=null;
 var PEDIDO={}; // comp_id -> cantidad
@@ -955,8 +965,44 @@ function esCharcasIt(i){
   // de 10 kg. Antes filtraba tambien por sector_id=12; desde la migracion
   // f90_alambre_filtro_cafe_y_cod_prov_charcas_v2 (2026-09-02) los flejes F90/F90B
   // viven en sector 5 (Fleje). uniPorPaqCharcas() sigue valido: 10 / kg_x_uni.
-  return i && String(i.proveedor||'').trim().toLowerCase()==='resortes charcas';
+  // v1.38.0: SOLO sus flejes (sector 5). Los resortes que Charcas nos VENDE (EP10, LLF8, BOM10,
+  // sector 7) se reciben en UNIDADES y se piden en unidades [Thomas 2026-09-28: "los resortes
+  // batidor los pido en unidades"]; con el paquete, 3 paq de EP10 viajaban como 30 kg.
+  return i && String(i.proveedor||'').trim().toLowerCase()==='resortes charcas' && Number(i.sector_id)===5;
 }
+
+/* ═══ UNIDAD DEL REMITO (v1.38.0) ═══
+   La O.C. se pide en la MISMA unidad en que llega el remito [Thomas 2026-09-28: "te dije en todas
+   las recepciones con que unidad de medida va el remito. Usa las mismas para las ordenes de compra"].
+   Es la misma decision, en el mismo orden, que abrirPopup() de StockFlejes/RecepcionInsumos_GP2.html:
+   si se cambia alla, se cambia aca. Devuelve {lbl, k}: lo que se ve en "Pedir" = PEDIDO × k.
+   PEDIDO sigue guardado en la unidad del bundle (i.unidad) — asi el carton sigue validando sus
+   multiplos en unidades y a crear_oc viaja lo mismo que antes. */
+var PLAST_UNI=['eduardo pintos','pat bet plast','pettofrezza rafael'];   // = RecepcionInsumos
+function umRemito(i){
+  var canon = i.unidad==='kg' ? 'kg' : 'uni';
+  if(esCharcasIt(i)) return {lbl:'paq '+fmt(kgPorPaqCharcas())+' kg', k:1};   // PEDIDO ya va en paq
+  var kx=Number(i.kg_x_uni)||0, r=String(i.remito_unidad||'').toLowerCase(), u=null;
+  if(r==='envase' && Number(i.entrega_uni_x)>0 && canon==='uni')
+    return {lbl:String(i.entrega_unidad||'envases')+' '+fmt(i.entrega_uni_x), k:1/Number(i.entrega_uni_x)};
+  if(r==='kg' || r==='uni') u=r;
+  else if(GP2UI.esCarton(i)) u = i.es_pliego ? 'uni' : 'paq';
+  else if([7,8,11].indexOf(Number(i.sector_id))>=0) u='uni';
+  else if(Number(i.sector_id)===6 && PLAST_UNI.indexOf(String(provDeFila(i)||'').trim().toLowerCase())>=0) u='uni';
+  else if(Number(i.sector_id)===5){
+    var pv=String(provDeFila(i)||'').trim().toLowerCase();
+    u = (pv==='basconia'||pv==='altrak'||pv==='altrack') ? 'kg' : (String(i.um||'')==='unidad' ? 'uni' : 'kg');
+  }
+  else if(i.recibe_en_cajas) u='kg';
+  else u=canon;
+  if(u==='paq' && canon==='uni') return {lbl:'paq '+fmt(PAQ), k:1/PAQ};
+  if(u===canon) return {lbl:u, k:1};
+  // kg <-> uni: sin kg_x_uni no se puede convertir y queda la unidad del bundle (no se inventa)
+  if(!(kx>0)) return {lbl:canon, k:1};
+  return u==='kg' ? {lbl:'kg', k:kx} : {lbl:'uni', k:1/kx};
+}
+// numero para el campo: hasta 2 decimales, coma decimal
+function valCampo(n){ var r=Math.round(n*100)/100; return String(r).replace('.',','); }
 // Kg de producto por paquete de Charcas: vive en GP2.parametro (charcas_kg_x_paquete) y llega
 // en el bundle; el 10 de aca es solo el default por si el parametro no esta. crear_oc usa el
 // mismo parametro para guardar la OC en kg (la pantalla manda paquetes con unidad 'paq').
@@ -1036,13 +1082,15 @@ function notaRepo(i){
 // y no vuelve): el comprador ve cuanto pide el proveedor como minimo y decide. Para Charcas, que se
 // pide en paquetes, se muestra tambien el equivalente en paquetes (round up). Se marca "corto"
 // cuando lo pedido queda por debajo del minimo.
-function notaMinUni(i, ped, esChar, uxpChar){
+function notaMinUni(i, ped, esChar, uxpChar, um){
   var m = Number(i.pedido_minimo_uni)||0;
   if(m<=0) return '';
   var pedUni = esChar ? (Number(ped)||0)*uxpChar : (Number(ped)||0);
   var corto = pedUni>0 && pedUni<m;
   var txt = 'mín. proveedor '+fmt(m)+' uni';
   if(esChar && uxpChar>0) txt += ' (= '+fmt(Math.ceil(m/uxpChar))+' paq)';
+  // v1.38.0: si Pedir va en otra unidad (la del remito), el minimo tambien se lee en esa unidad.
+  else if(um && um.k!==1 && i.unidad!=='kg') txt += ' (= '+fmt(m*um.k, um.lbl==='kg'?2:0)+' '+esc(um.lbl)+')';
   return '<span class="min-uni'+(corto?' corto':'')+'">'+txt+'</span>';
 }
 
@@ -1060,7 +1108,9 @@ function render(){
     // Charcas: input en PAQUETES; el sugerido se convierte a paq (round up).
     // Parte plastica: se muestra en cuantas BOLSAS enteras cae lo pedido.
     // La equivalencia se muestra al lado del input.
-    var paqEq=(esCarton && ped>0)?('<span class="paq-eq">= '+fmt(ped/PAQ,1)+' paq de '+PAQ+'</span>')
+    var um=umRemito(i);
+    // Si el remito va en otra unidad que la del stock, abajo se ve la equivalencia en la del stock.
+    var paqEq=(um.k!==1 && ped>0)?('<span class="paq-eq">= '+fmt(ped,i.unidad==='kg'?2:0)+' '+esc(i.unidad)+'</span>')
              :(esChar && ped>0 && uxpChar>0)?('<span class="paq-eq">= '+fmt(ped*uxpChar)+' uni</span>')
              :(bolsa>0 && ped>0)?('<span class="paq-eq">= '+fmt(ped/bolsa,ped%bolsa===0?0:1)+' bolsa'+(ped/bolsa===1?'':'s')+' de '+fmt(bolsa)+'</span>'):'';
     return '<tr data-id="'+i.comp_id+'"'+(ped>0?' class="con-pedido"':'')+'>'+
@@ -1077,9 +1127,10 @@ function render(){
       // [usuario 2026-09-16: "no quiero que me especifique de donde sale el maximo"].
       // Sigue disponible en el desglose que se abre al tocar el Maximo.
       '<td class="num'+(mx!=null?' max-cell" data-max="'+i.comp_id+'" title="Ver de qué se compone':'')+'">'+(mx==null?'—':fmt(mx))+'</td>'+
-      '<td class="num"><input class="pedir-in" data-in="'+i.comp_id+'" inputmode="decimal" value="'+(ped?String(ped).replace('.',','):'')+'" placeholder="'+i.unidad+'">'+
-        notaMinUni(i, ped, esChar, uxpChar)+paqEq+
+      '<td class="num"><input class="pedir-in" data-in="'+i.comp_id+'" inputmode="decimal" value="'+(ped?valCampo(ped*um.k):'')+'" placeholder="'+esc(um.lbl)+'">'+
+        notaMinUni(i, ped, esChar, uxpChar, um)+paqEq+
         notaRepo(i)+'</td>'+
+      '<td class="um-cell">'+esc(um.lbl)+'</td>'+
     '</tr>';
   }).join('');
   // Toda la zona de armar la OC (buscador, leyenda, tabla y barras) aparece recien
@@ -1098,6 +1149,10 @@ function render(){
       var id=Number(inp.dataset.in);
       // Vaciar el campo = "este no lo pido": queda anotado en SIN_PEDIDO para que el
       // sugerido NO se vuelva a cargar solo en el proximo render.
+      // Lo tipeado esta en la unidad del remito; PEDIDO se guarda en la del bundle.
+      var itv=(D.insumos||[]).filter(function(x){ return x.comp_id===id; })[0];
+      var k=itv?umRemito(itv).k:1;
+      if(v>0 && k!==1){ v=v/k; if(itv.unidad!=='kg') v=Math.round(v); }
       if(v>0){ PEDIDO[id]=v; delete SIN_PEDIDO[id]; }
       else { delete PEDIDO[id]; SIN_PEDIDO[id]=true; }
       render(); barra();
@@ -1105,7 +1160,16 @@ function render(){
   });
   // Tocar el Máximo abre el desglose: de dónde sale ese número.
   document.querySelectorAll('td.max-cell').forEach(function(td){
-    td.addEventListener('click', function(){ abrirDesglose(Number(td.dataset.max)); });
+    // Mouse: se abre al pasar por arriba y se cierra al salir. Solo pointerType 'mouse': un
+    // toque tambien dispara "enter" y abriria y cerraria en el mismo gesto.
+    td.addEventListener('pointerenter', function(e){ if(e.pointerType==='mouse'){ DSG_HOVER=true; abrirDesglose(Number(td.dataset.max), td); } });
+    td.addEventListener('pointerleave', function(e){ if(e.pointerType==='mouse'){ DSG_HOVER=false; cerrarDesglose(); } });
+    // Tablet / celular: no hay "pasar por arriba", asi que el toque la abre y la cierra.
+    td.addEventListener('click', function(e){
+      e.stopPropagation();
+      if(DSG_HOVER) return;   // con mouse ya esta abierta; el clic no la cierra
+      if(DSG_TD===td && !$('dsgPop').hidden) cerrarDesglose(); else abrirDesglose(Number(td.dataset.max), td);
+    });
   });
   barra();
 }
@@ -1114,49 +1178,48 @@ function render(){
    Al tocar el Máximo se ve de qué se compone: cuántos meses, el consumo/mes y qué lo arma
    — por ARTÍCULO (con su venta de est_madre y lo que consume del insumo) o, en la resina,
    por PIEZA. Siempre en unidades y, si hay kg_x_uni, también en kg. [usuario 2026-09-14] */
-async function abrirDesglose(compId){
-  var bg=$('dsgBg'), body=$('dsgBody'), tit=$('dsgTit');
-  tit.textContent='Cargando…'; body.innerHTML=''; bg.hidden=false;
-  var r=await SB.rpc('oc_maximo_desglose',{p_componente_id:compId});
-  if(r.error){ tit.textContent='Error'; body.textContent=r.error.message; return; }
-  var d=r.data||{}, c=d.comp||{}, esRes=c.es_resina, esFleje=c.es_fleje, hayKg=esRes||esFleje||c.kg_x_uni!=null;
-  tit.textContent=(c.codigo||'')+' · '+(c.descripcion||'');
-  var unidad=esRes?'kg':(esFleje?'kg':(c.unidad||'uni'));
-  var consumo = esRes||esFleje ? d.consumo_kg_mes : d.consumo_uni_mes;
-  // Cuadro sinoptico (v1.35.0): los 4 recuadros pasan a UNA fila de tabla, unidad en el encabezado.
-  var u=unidad;
-  var kpis='<table class="dsg"><thead><tr><th>Máximo<br>('+u+')</th><th>Origen</th><th>Meses de<br>stock</th>'+
-    '<th>Consumo<br>('+u+'/mes)</th><th>Consumo ×<br>meses ('+u+')</th></tr></thead><tbody><tr>'+
-    '<td class="num"><b>'+fmt(d.maximo)+'</b></td><td>'+esc(tagOrigen(d.maximo_origen)||'—')+'</td>'+
-    '<td class="num">'+(d.meses==null?'—':fmt(d.meses,1))+'</td>'+
-    '<td class="num">'+fmt(consumo)+'</td><td class="num">'+fmt(d.consumo_x_meses)+'</td></tr></tbody></table>';
-  // Cuando el máximo no sale de la demanda (físico / migrado / master), se aclara.
-  var nota='';
-  var org=d.maximo_origen||'';
-  if(org==='fisico'||org==='cinco_cajones') nota='Este máximo lo pusiste a mano por el lugar que hay, no por la demanda. Abajo va el consumo real como referencia.';
-  else if(org==='migrado_de_minimo') nota='Este máximo viene del mínimo viejo que se migró el 14-09; no se recalculó por demanda todavía.';
-  else if(esRes) nota='El máximo de resina se redondea a bolsas de 25 kg (con '+fmt(d.desperdicio_pct||0)+'% de desperdicio). El desglose es por pieza inyectada.';
-  if(nota) kpis+='<div class="dsg-nota">'+esc(nota)+'</div>';
+var DSG_CACHE={}, DSG_TD=null, DSG_HOVER=false;
+async function abrirDesglose(compId, td){
+  DSG_TD=td;
+  var pop=$('dsgPop');
+  if(!DSG_CACHE[compId]){
+    pop.innerHTML='<p class="dsg-vacio">Cargando…</p>'; ubicarDesglose(); pop.hidden=false;
+    var r=await SB.rpc('oc_maximo_desglose',{p_componente_id:compId});
+    if(r.error){ if(DSG_TD===td){ pop.innerHTML='<p class="dsg-vacio">'+esc(r.error.message)+'</p>'; ubicarDesglose(); } return; }
+    DSG_CACHE[compId]=r.data||{};
+  }
+  if(DSG_TD!==td) return;   // el mouse ya se fue a otra celda (o afuera) mientras llegaba la RPC
+  pop.innerHTML=htmlDesglose(DSG_CACHE[compId]);
+  pop.hidden=false; ubicarDesglose();
+}
+/* SOLO la tabla por articulo (o por pieza en la resina) [Thomas 2026-09-28: "solo esos datos. El
+   resto no lo quiero"]: sin titulo, sin Maximo/Origen/Meses/Consumo y sin aviso. */
+function htmlDesglose(d){
+  var c=d.comp||{}, hayKg=c.es_resina||c.es_fleje||c.kg_x_uni!=null;
   // Mayor → menor por lo que consume: lo que mas pesa en el maximo, arriba.
   var filas=(d.filas||[]).slice().sort(function(a,b){ return (Number(b.aporte_uni_mes)||0)-(Number(a.aporte_uni_mes)||0); });
-  var head, rows, totUni=0, totKg=0;
-  if(d.base==='piezas'){
-    head='<tr><th class="l">Pieza</th><th>Consume<br>(uni/mes)</th>'+(hayKg?'<th>kg/mes</th>':'')+'</tr>';
-    rows=filas.map(function(f){ totUni+=Number(f.aporte_uni_mes)||0; totKg+=Number(f.aporte_kg)||0;
-      return '<tr><td class="l"><b>'+esc(f.cod)+'</b> '+esc(f.desc||'')+'</td>'+
-        '<td class="num">'+fmt(f.aporte_uni_mes)+'</td>'+(hayKg?'<td class="num">'+fmt(f.aporte_kg,2)+'</td>':'')+'</tr>'; }).join('');
-  } else {
-    head='<tr><th class="l">Artículo</th><th>Venta<br>(uni/mes)</th><th>Consume<br>(uni/mes)</th>'+(hayKg?'<th>kg/mes</th>':'')+'</tr>';
-    rows=filas.map(function(f){ totUni+=Number(f.aporte_uni_mes)||0; totKg+=Number(f.aporte_kg)||0;
-      return '<tr><td class="l"><b>'+esc(f.cod)+'</b> '+esc(f.desc||'')+'</td>'+
-        '<td class="num">'+(f.venta_uni_mes==null?'—':fmt(f.venta_uni_mes))+'</td>'+
-        '<td class="num">'+fmt(f.aporte_uni_mes)+'</td>'+(hayKg?'<td class="num">'+fmt(f.aporte_kg,2)+'</td>':'')+'</tr>'; }).join('');
-  }
-  var nc=(d.base==='piezas'?2:3)+(hayKg?1:0);
-  var foot=filas.length?('<tfoot><tr><td class="l">Total ('+filas.length+')</td>'+
-    (d.base==='piezas'?'':'<td></td>')+'<td class="num">'+fmt(totUni)+'</td>'+(hayKg?'<td class="num">'+fmt(totKg,2)+'</td>':'')+'</tr></tfoot>'):'';
-  body.innerHTML=kpis+(filas.length?('<table class="dsg"><thead>'+head+'</thead><tbody>'+rows+'</tbody>'+foot+'</table>')
-    :'<p class="dsg-nota">Sin demanda registrada (no está en est_madre ni en ninguna receta).</p>');
+  if(!filas.length) return '<p class="dsg-vacio">Sin demanda registrada.</p>';
+  var pz=d.base==='piezas', totUni=0, totKg=0;
+  var head='<tr><th class="l">'+(pz?'Pieza':'Artículo')+'</th>'+(pz?'':'<th>Venta<br>(uni/mes)</th>')+
+    '<th>Consume<br>(uni/mes)</th>'+(hayKg?'<th>kg/mes</th>':'')+'</tr>';
+  var rows=filas.map(function(f){ totUni+=Number(f.aporte_uni_mes)||0; totKg+=Number(f.aporte_kg)||0;
+    return '<tr><td class="l"><b>'+esc(f.cod)+'</b> '+esc(f.desc||'')+'</td>'+
+      (pz?'':'<td class="num">'+(f.venta_uni_mes==null?'—':fmt(f.venta_uni_mes))+'</td>')+
+      '<td class="num">'+fmt(f.aporte_uni_mes)+'</td>'+(hayKg?'<td class="num">'+fmt(f.aporte_kg,2)+'</td>':'')+'</tr>'; }).join('');
+  var foot='<tfoot><tr><td class="l">Total ('+filas.length+')</td>'+(pz?'':'<td></td>')+
+    '<td class="num">'+fmt(totUni)+'</td>'+(hayKg?'<td class="num">'+fmt(totKg,2)+'</td>':'')+'</tr></tfoot>';
+  return '<table class="dsg"><thead>'+head+'</thead><tbody>'+rows+'</tbody>'+foot+'</table>';
+}
+// Pegada a la celda: abajo si entra, si no arriba; nunca afuera de la pantalla.
+function ubicarDesglose(){
+  var pop=$('dsgPop'), td=DSG_TD;
+  if(!td) return;
+  var r=td.getBoundingClientRect(), vw=window.innerWidth, vh=window.innerHeight;
+  pop.style.left='0px'; pop.style.top='0px';
+  var w=pop.offsetWidth, h=pop.offsetHeight;
+  var x=Math.min(Math.max(8, r.right-w), vw-w-8);
+  var y=(r.bottom+6+h<=vh) ? r.bottom+6 : Math.max(8, r.top-6-h);
+  pop.style.left=x+'px'; pop.style.top=y+'px';
 }
 
 /* Solo los pedidos del rubro/proveedor seleccionado: lo cargado en otros chips
@@ -1750,10 +1813,10 @@ $('tabOcs').addEventListener('click',function(){ mostrarTab('ocs'); });
 
 $('q').addEventListener('input', render);
 // Cerrar el desglose: la X, tocar el fondo, o Escape.
-function cerrarDesglose(){ $('dsgBg').hidden=true; }
-$('dsgX').addEventListener('click', cerrarDesglose);
-$('dsgBg').addEventListener('click', function(e){ if(e.target===this) cerrarDesglose(); });
-document.addEventListener('keydown', function(e){ if(e.key==='Escape' && !$('dsgBg').hidden) cerrarDesglose(); });
+function cerrarDesglose(){ DSG_TD=null; $('dsgPop').hidden=true; }
+document.addEventListener('click', cerrarDesglose);          // tocar afuera la cierra (tablet)
+window.addEventListener('scroll', cerrarDesglose, true);     // si la tabla se mueve, la ventanita no queda flotando
+document.addEventListener('keydown', function(e){ if(e.key==='Escape') cerrarDesglose(); });
 boot();
 </script>
 </body>
