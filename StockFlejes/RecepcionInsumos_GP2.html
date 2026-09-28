@@ -6,7 +6,9 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<!-- v3.65.0 (2026-09-28) — GARAGE, BOLSAS PLASTICAS E IMPORTADO TAMBIEN SE CONTROLAN EN KG [Thomas:
+<!-- v3.65.1 (2026-09-28) — pares de campos lado a lado (Altrak % Corto/% Largo y los otros 2 pares) alineados abajo:
+     si un rotulo pasa a 2 lineas el input ya no queda desnivelado [usuario: "Está desnivelados Corto y Largo"].
+     v3.65.0 (2026-09-28) — GARAGE, BOLSAS PLASTICAS E IMPORTADO TAMBIEN SE CONTROLAN EN KG [Thomas:
      "Todos los proveedores que te di en este chat, el control luego de la recepcion es en kg" +
      Importado: "Remito en unidades y control en kg"]. CONTROL_URL suma los sectores 9 (Garage) y 14
      (Bolsas Plasticas), que hasta hoy no pedian control. Importado vive en el Sector Procesado (2),
@@ -613,11 +615,11 @@ input[type="text"]{width:200px}
         <div style="font-size:32px;font-weight:900;color:#0b3b73"><span id="akStock">0</span> <small style="font-size:18px;color:#0b5cad">kg</small></div>
       </div>
       <div style="display:flex;gap:14px;flex-wrap:wrap;margin:12px 0">
-        <div style="flex:1 1 150px;display:flex;flex-direction:column;gap:6px">
+        <div style="flex:1 1 150px;display:flex;flex-direction:column;justify-content:space-between;gap:6px">
           <label for="akFecha" style="font-size:16px;font-weight:700">Fecha</label>
           <input type="date" id="akFecha" style="height:48px;font-size:20px;padding:0 12px;border:2px solid #d0d7de;border-radius:10px">
         </div>
-        <div style="flex:1 1 150px;display:flex;flex-direction:column;gap:6px">
+        <div style="flex:1 1 150px;display:flex;flex-direction:column;justify-content:space-between;gap:6px">
           <label for="akRemito" style="font-size:16px;font-weight:700">N° remito (opcional)</label>
           <input type="text" id="akRemito" inputmode="text" placeholder="Opcional" style="height:48px;font-size:20px;padding:0 12px;border:2px solid #d0d7de;border-radius:10px">
         </div>
@@ -633,11 +635,11 @@ input[type="text"]{width:200px}
         <div id="akSliderLbl" style="text-align:center;font-size:18px;font-weight:800;color:#0b3b73">Definí el reparto</div>
       </div>
       <div style="display:flex;gap:14px;flex-wrap:wrap;margin:8px 0 0">
-        <div style="flex:1 1 150px;display:flex;flex-direction:column;gap:6px">
+        <div style="flex:1 1 150px;display:flex;flex-direction:column;justify-content:space-between;gap:6px">
           <label for="akPctCorto" style="font-size:16px;font-weight:700">% Corto (IC3) → Cervantes</label>
           <input type="text" id="akPctCorto" inputmode="numeric" placeholder="70" style="height:48px;font-size:22px;font-weight:700;padding:0 14px;border:2px solid #d0d7de;border-radius:10px">
         </div>
-        <div style="flex:1 1 150px;display:flex;flex-direction:column;gap:6px">
+        <div style="flex:1 1 150px;display:flex;flex-direction:column;justify-content:space-between;gap:6px">
           <label for="akPctLargo" style="font-size:16px;font-weight:700">% Largo (IC3V) → Virgilio</label>
           <input type="text" id="akPctLargo" inputmode="numeric" placeholder="30" style="height:48px;font-size:22px;font-weight:700;padding:0 14px;border:2px solid #d0d7de;border-radius:10px">
         </div>
@@ -660,11 +662,11 @@ input[type="text"]{width:200px}
         <div style="font-size:32px;font-weight:900;color:#0b3b73"><span id="chStock">0</span> <small style="font-size:18px;color:#0b5cad">kg</small></div>
       </div>
       <div style="display:flex;gap:14px;flex-wrap:wrap;margin:12px 0">
-        <div style="flex:1 1 150px;display:flex;flex-direction:column;gap:6px">
+        <div style="flex:1 1 150px;display:flex;flex-direction:column;justify-content:space-between;gap:6px">
           <label for="chFecha" style="font-size:16px;font-weight:700">Fecha</label>
           <input type="date" id="chFecha" style="height:48px;font-size:20px;padding:0 12px;border:2px solid #d0d7de;border-radius:10px">
         </div>
-        <div style="flex:1 1 150px;display:flex;flex-direction:column;gap:6px">
+        <div style="flex:1 1 150px;display:flex;flex-direction:column;justify-content:space-between;gap:6px">
           <label for="chRemito" style="font-size:16px;font-weight:700">N° remito (opcional)</label>
           <input type="text" id="chRemito" inputmode="text" placeholder="Opcional" style="height:48px;font-size:20px;padding:0 12px;border:2px solid #d0d7de;border-radius:10px">
         </div>
