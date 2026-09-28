@@ -1,0 +1,126 @@
+# Auditoría de seguridad GP2 — 2026-09-28
+
+Alcance: repo `Gestion-Productiva-2.0` (árbol + historial completo de git) y proyecto Supabase
+`hrxfctzncixxqmpfhskv` (schema `GP2`, sus Edge Functions y el Storage). Solo lectura: no se cambió
+nada. Ningún secreto se copia en este archivo.
+
+## Resumen
+
+| # | Hallazgo | Severidad | Estado |
+|---|---|---|---|
+| 1 | 62 RPCs de GP2 que **escriben** se pueden llamar con la clave pública, **sin login** | **CRÍTICO** | abierto |
+| 2 | `gp2_leer_factura`: el tope diario se saltea con una clave falsa → llamadas pagas sin límite | **ALTO** | abierto |
+| 3 | Las 62 tablas de GP2 se **leen** enteras con la clave pública (precios, costos, empleados) | ALTO | abierto |
+| 4 | Bucket `remitos` es **público** | MEDIO | abierto |
+| 5 | Clave `anon` legacy (JWT, vence 2036) en el historial de git | BAJO | conocido (plan en CLAUDE.md) |
+| 6 | Clave de OpenAI que estuvo pegada en `leer-factura` (programa viejo) | MEDIO | función ya tapada; **falta confirmar que la clave se revocó en OpenAI** |
+| — | Árbol de trabajo: sin secretos (solo la `sb_publishable_`, que es pública por diseño) | OK | — |
+| — | GP2: 62/62 tablas con RLS, ninguna política abre escritura a anon, 0 funciones SECURITY DEFINER sin `search_path`, 0 SQL dinámico | OK | — |
+
+## 1. Escritura anónima por RPC — CRÍTICO
+
+**Qué pasa.** La app se loguea con Google, pero el login vive **solo en el navegador**
+(`auth-guard.js` + `sessionStorage`). Después, todas las llamadas a la base salen con la clave
+publicable (`GP2_SB()`, sin sesión), o sea como rol `anon`. La base **no distingue** a un usuario
+logueado de un desconocido que copió la clave del HTML de cualquier pantalla (está en
+`supabase-config.js`, que se sirve a cualquiera, incluida `login.html`).
+
+**Medido:** en `GP2` hay 152 funciones `SECURITY DEFINER`; 119 las ejecuta `anon`; **62 escriben**
+(insert/update/delete) y **ninguna de las 62** mira quién llama (`auth.uid`, `auth.jwt`, email,
+rol). Entre ellas:
+
+- Stock: `registrar_movimientos`, `relevamiento_aplicar`, `fabricar_stock`, `traslado_virgilio`,
+  `cargar_recepcion*`, `crear_envio_*`, `crear_entrega_*`, `controlar_*`, `anular_recepcion`.
+- Maestros: `abm_articulo_upsert`, `abm_articulo_baja`, `abm_bom_guardar`, `alta_proveedor_*`,
+  `fleje_detalle_upsert`, `asignar_*`, `marcar_estado_compra`.
+- Personas: `empleado_guardar`, `empleado_activar`.
+- Compras / producción: `crear_oc`, `oc_marcar`, `registrar_produccion`, `anular_produccion`,
+  `tablet_registrar`.
+- Borran filas: `abm_articulo_baja`, `abm_bom_guardar`, `anular_recepcion`, `asignar_pintor_parte`,
+  `pesar_pallet`, `relevamiento_descartar_si_vacio`, `relevamiento_eliminar`.
+
+Lista completa (62): abm_articulo_baja, abm_articulo_upsert, abm_bom_guardar, ajustar_rollos,
+alerta_recepcion_marcar, alta_proveedor_insumo, alta_proveedor_servicio, anular_evento_prod,
+anular_produccion, anular_recepcion, asignar_pintor_activo, asignar_pintor_parte,
+asignar_proveedor_parte, cargar_compra_mp, cargar_recepcion, cargar_recepcion_charcas,
+cargar_recepcion_eclipse, cerrar_rollo, controlar_entrega, controlar_recepcion_cajas,
+controlar_recepcion_kg, crear_devolucion_tallerista, crear_entrega_prov_at, crear_entrega_ps,
+crear_envio_prov_at, crear_envio_ps, crear_envio_tallerista, crear_oc, crear_preaviso,
+descontrolar_recepcion, empleado_activar, empleado_guardar, enviar_material_inyector,
+fabricar_stock, factura_alias_guardar, factura_lectura_permitida, fleje_detalle_upsert,
+guardar_control_cartones, marcar_estado_compra, marcar_faltante, marcar_revisado, oc_marcar,
+pesar_pallet, preaviso_marcar, recibir_oc_virgilio, registrar_evento_prod, registrar_movimientos,
+registrar_produccion, relevamiento_abrir, relevamiento_aplicar, relevamiento_cerrar,
+relevamiento_decidir, relevamiento_descartar_si_vacio, relevamiento_eliminar, relevamiento_guardar,
+resolver_faltante, ruta_confirmar, ruta_reportar, ruta_resolver, tablet_registrar, tomar_rollo,
+traslado_virgilio.
+
+**Impacto:** cualquiera con la URL de la app puede mover stock, dar de baja artículos, cambiar
+recetas, crear OC o tocar empleados, sin dejar rastro de quién fue.
+
+**Arreglo propuesto (decide el dueño, es un cambio de arquitectura):**
+1. Que las pantallas manden el JWT de la sesión de Google (el login ya lo tiene; hoy se descarta
+   con "sin sesión persistida") y revocar `EXECUTE` a `anon` en las 62 → solo `authenticated`.
+2. Dentro de cada RPC (o en un helper común) validar que el email del JWT está en la whitelist
+   (`get_role_for_email`). Con eso la tablet de operarios necesita su propio camino (usuario de
+   servicio o PIN validado en la base), porque no tiene login de Google.
+3. Mientras tanto, lo mínimo: `revoke execute ... from anon` en las 7 que **borran** y en
+   `empleado_*`, si ninguna pantalla sin login las usa.
+
+## 2. `gp2_leer_factura`: tope diario salteable — ALTO
+
+La función corre con `verify_jwt=false` y hace su propia puerta:
+`if (!traida || (clave && traida !== clave && !traida.startsWith("sb_publishable_")))`.
+**Cualquier texto que empiece con `sb_publishable_` pasa**, aunque sea inventado. Después consulta
+el tope (`factura_lectura_permitida`) mandando esa misma clave falsa: PostgREST la rechaza, la
+respuesta no es `ok`, y el código **sigue de largo** ("si la base no contesta, se sigue") → llama a
+Anthropic igual. Resultado: con una clave inventada no hay tope y cada llamada se paga
+(modelo `claude-opus-5`, hasta 16.000 tokens de salida). No se probó contra producción para no
+gastar; sale de leer el código desplegado (v16).
+
+**Arreglo:** comparar contra la publicable real (secret) en vez de `startsWith`; y si el chequeo del
+tope **falla**, cortar (fail-closed), no seguir.
+
+## 3. Lectura anónima de todo GP2 — ALTO
+
+Las 62 tablas tienen RLS, pero con política `SELECT ... USING (true)` para todos. Con la clave
+pública se lee todo, incluidas: `precio_proveedor`, `precio_tallerista`, `precio_servicio_pieza`,
+`planilla_fila`/`planilla_snapshot` (la planilla de costos), `proveedor_*`, `empleado`,
+`factura_alias`, `factura_lectura`. Mismo origen que el punto 1: sin JWT la base no puede filtrar.
+Se arregla con el mismo cambio (políticas para `authenticated` + whitelist).
+
+## 4. Bucket `remitos` público — MEDIO
+
+`storage.buckets.remitos` tiene `public = true`: cualquier archivo se baja con su URL, sin clave.
+Si los nombres son predecibles, se pueden recorrer. Pasar a privado y servir con URLs firmadas.
+
+## 5. Clave `anon` legacy en el historial — BAJO
+
+Una sola en todo el historial: JWT `role=anon` del proyecto, vence en 2036. Tiene el mismo poder
+que la publicable (o sea, el del punto 1), así que no suma riesgo nuevo, pero **sigue viva** hasta
+apretar `Disable JWT-based API keys` (plan ya escrito en CLAUDE.md, lo aprieta el dueño). No hay
+`service_role`, `sb_secret_`, claves de OpenAI/GitHub/AWS ni cadenas de conexión en el historial.
+
+## 6. Clave de OpenAI de `leer-factura` — MEDIO
+
+La función ya es un tapón que devuelve 410 (sin clave en el código). Lo que no se puede ver desde
+acá: **si la clave se revocó en OpenAI.** Si no, sigue sirviendo para quien la haya copiado.
+Revocarla en platform.openai.com → API keys.
+
+## Fuera de GP2, mismo proyecto (para tener en cuenta)
+
+El proyecto es compartido, así que estos también afectan: 4 vistas `SECURITY DEFINER` en `public`
+(nivel ERROR del linter), 266 funciones `SECURITY DEFINER` de `public` y 61 de `planify`
+ejecutables por `anon`, 18 tablas de `relevamiento_cervantes` sin RLS (legibles por `anon`, no
+escribibles), extensiones en `public`, y la protección de contraseñas filtradas (HaveIBeenPwned)
+apagada en Auth. Detalle: `get_advisors(security)` del proyecto.
+
+## Cómo se midió
+
+- Árbol y `git log --all -p`: regex de JWT, `sb_secret_`, `sk-`, `ghp_`/`github_pat_`, `AKIA`,
+  `AIza`, `EAA…`, claves privadas y `postgres://usuario:clave@`. Los JWT se decodificaron para ver
+  el `role`.
+- Base: `pg_class.relrowsecurity`, `pg_policy`, `has_table_privilege`/`has_function_privilege`
+  para `anon`, `prosecdef`, `proconfig` y el cuerpo de cada función (`pg_get_functiondef`).
+- `get_advisors(security)`, `list_edge_functions` y el código desplegado de `leer-factura` y
+  `gp2_leer_factura`.
