@@ -6,6 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
+<!-- v1.38.0 (2026-09-28) — ENVIAR: EL ORDEN POR SECTOR TAMBIÉN PARA P.S., PROV. DE ART. TERMINADO E INYECTOR (usuario: "Así como me ordenaste por sector el envío a talleristas quiero que me ordenes prov de art terminado, proveedores de servicio e inyectores"). agrupaPorRubro() pasa de solo 'tallerista' a los cuatro tipos de Enviar: mismo RUBRO_ORDEN de GP2EE (Garage · Fleje · Crudo · Procesado · Plásticas · Remaches · Cajas · Cartones · Bombilla · resto) y el mismo rótulo de sector arriba de cada bloque. El "➕ Otro cartón" del prov. AT pasa a cerrar el bloque de cartones, igual que en el tallerista. Recibir no se tocó. Cero base. -->
 <!-- v1.37.0 (2026-09-28) — "VER O.C." ARRIBA DEL BUSCADOR EN ENVIAR (usuario: "en el envío a prov de art terminado y talleristas o.c. … me aparezca arriba de 'buscar por código' una box que me diga ver o.c. y pueda ver la o.c. de gestión virgilio"). Sólo en Enviar y sólo para las contrapartes cuyo sugerido sale de la O.C. de Virgilio (c.oc o proveedor_at, el mismo criterio del título "· O.C. Virgilio"). El botón abre/cierra una tabla con lo PENDIENTE de esa O.C.: lee "GP2".v_oc_virgilio_pendiente (espejo GP2 de public.Ordenes_Compra; "la nueva pisa la vieja", sin cerradas/anuladas, últimos 120 días) filtrada por tipo+ref_id, y la descripción de "GP2".articulo. Nada de public (REGLA 0). Se lee al abrir, no con el bundle: el 99 % de los envíos no la mira. -->
 <!-- v1.36.2 (2026-09-25) — SE SACA EL CARTEL "⚠ N alerta(s) de recepción sin revisar" de la pantalla de tipos/contrapartes (Thomas: "Que no aparezcan más alertas"). Las alertas se siguen generando y viven en Alertas/alertas_GP2.html. -->
 <!-- v1.36.1 (2026-09-24) — SINGULAR DE "cajas" EN EL SUGERIDO DEL ENVIAR (usuario, sobre el Z31/Descorazonador a Alex Escalante: "el sugerido aparece una cajas y es una caja. Sin S"). El mapa SINGULAR tenía cajones/paquetes/bolsas pero NO cajas, y el Z31 quedó con env_unidad='cajas' (v1.35.x, 2026-09-24) → unidadTxt("cajas",1) devolvía "cajas". Se agregó cajas→caja y singularEnvase() ahora lee el MISMO mapa (una sola fuente: antes solo cubría bolsas/cajones, le faltaban paquetes y cajas en el renglón "= 1 …"). Tablet no-cache, sin ?v= que bumpear. -->
@@ -1607,7 +1608,8 @@ function pintarCPS(){
    UN SECTOR QUE NO ESTÉ EN LA LISTA cae al fondo, DESPUÉS de Bombilla: hoy no hay ninguno en Enviar a
    tallerista (Movimiento, Terminado y Bolsas Plásticas no llegan acá), y si mañana aparece uno, el
    lugar honesto para algo que nadie clasificó es abajo, a la vista, no colado en el medio.
-   Solo el TALLERISTA: el P.S., el prov. de art. terminado y el inyector siguen alfabéticos. */
+   Desde v1.38.0 (2026-09-28) vale para los cuatro destinos de Enviar (tallerista, P.S., prov. de
+   art. terminado, inyector); Recibir sigue alfabético. */
 /* La lista vive UNA vez en gp2-envios-common.js (GP2EE), así el Control de partes la
    comparte sin copiarla [2026-09-24]. rubroDe delega en GP2EE.rubroSector (incluye el
    carve-out de "Sector Bolsas Plásticas" = resina del inyector, que va al final). */
@@ -1618,7 +1620,11 @@ function rubroDe(x){ return GP2EE.rubroSector(x && x.sector); }
 var RUBRO_CARTON = rubroDe({ sector: "Sector Cartón" });
 /* ¿esta contraparte se muestra en bloques por rubro? Lo consultan el orden y el rótulo de la grilla,
    así no hay dos criterios que se puedan separar. */
-function agrupaPorRubro(c){ return MODO === "enviar" && !!c && c.tipo === "tallerista"; }
+/* v1.38.0 (2026-09-28): los CUATRO destinos de Enviar van por rubro, no solo el tallerista
+   [usuario: "Así como me ordenaste por sector el envío a talleristas quiero que me ordenes prov de
+   art terminado, proveedores de servicio e inyectores"]. Mismo RUBRO_ORDEN, mismo rótulo. */
+var TIPOS_POR_RUBRO = { tallerista: 1, proveedor_servicio: 1, proveedor_at: 1, inyector: 1 };
+function agrupaPorRubro(c){ return MODO === "enviar" && !!c && !!TIPOS_POR_RUBRO[c.tipo]; }
 
 /* ---------- piezas de la contraparte elegida ---------- */
 function piezasDe(c){
@@ -1892,8 +1898,8 @@ function renderCards(){
       '<span class="pc-desc">sin stock del que va: mandá el de otro artículo y pegale la etiqueta</span>';
     // CIERRA EL BLOQUE DE CARTONES, no la grilla [usuario 2026-09-23: "el módulo de otro cartón no
     // lo dejes al final de todo, ponelo a lo último de los cartones"]: es un cartón más, y el que
-    // está cargando cartones lo tiene que tener ahí mismo, no dos bloques más abajo. Sin bloques
-    // (prov. de art. terminado) o si no hay ningún cartón en la lista, sigue al final.
+    // está cargando cartones lo tiene que tener ahí mismo, no dos bloques más abajo. Si no hay
+    // ningún cartón en la lista, sigue al final.
     if (ultCarton) g.insertBefore(bo, ultCarton.nextSibling); else g.appendChild(bo);
   }
   actualizar();
