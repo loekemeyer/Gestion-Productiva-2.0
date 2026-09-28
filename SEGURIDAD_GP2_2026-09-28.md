@@ -67,6 +67,35 @@ recetas, crear OC o tocar empleados, sin dejar rastro de quién fue.
 3. Mientras tanto, lo mínimo: `revoke execute ... from anon` en las 7 que **borran** y en
    `empleado_*`, si ninguna pantalla sin login las usa.
 
+### Plan del punto 1 (2026-09-28) — medido antes de decidir
+
+**El login está APAGADO desde el 2026-08-29** (`auth-guard.js`: `GP2_AUTH_ON = false`, pedido del
+usuario: "la página ya está privada… prefiero que esté suelta"), y 30 pantallas GP2 ni cargan
+`auth-guard.js`. Sin login, la base **no puede** distinguir la app de un extraño con la clave.
+"Privada" (Vercel) protege el HTML, no la base: la clave también viaja en las tablets y en la
+macro de Excel `MACRO_ENTREGAS_SUPABASE.bas`.
+
+**No hay atajo por "revocar lo que nadie usa":** de las 62, solo 3 no tienen llamador en este repo
+(`fabricar_stock`, `recibir_oc_virgilio`, `traslado_virgilio`), y las dos de Virgilio pueden
+usarse desde Gestión Virgilio / n8n. `track_functions` está en `none`, así que la base no cuenta
+llamadas para confirmarlo.
+
+**Fases:**
+1. **Oficina:** prender el login y que `GP2_SB()` mande la sesión de Google (hoy va "sin sesión").
+   En la base, un helper `GP2._autorizado()` que exige un email de la whitelist en el JWT; las RPCs
+   de oficina lo llaman primero, y se les revoca `EXECUTE` a `anon` (quedan para `authenticated`).
+   Lectura: las políticas `USING (true)` pasan a `authenticated`.
+2. **Tablet de operarios** (sin Google): usa `registro_operarios_bundle`, `registrar_evento_prod`,
+   `anular_evento_prod`, `tomar_rollo`, `cerrar_rollo`, `registrar_produccion`, `movimientos_bundle`.
+   Propuesta: **token por dispositivo** (una clave larga por tablet, guardada hasheada en GP2 y
+   revocable), que esas RPCs validan. Solo esas quedan para `anon`, y sin token no escriben.
+3. **Otros llamadores:** la macro `.bas` y Gestión Virgilio / n8n pasan a una clave de servidor
+   (`sb_secret_`, nunca en un archivo que se reparte) o al token de dispositivo.
+4. Recién con 1-3 andando: revocar `anon` en todo lo demás y pasar `remitos` a privado.
+
+**A decidir por el dueño:** (a) prender el login de nuevo; (b) token por dispositivo para la
+tablet; (c) quién más llama a GP2 (Virgilio, n8n, la macro).
+
 ## 2. `gp2_leer_factura`: puerta y tope — MEDIO (latente) → CORREGIDO en v17
 
 **Lo que decía el código v16:** la puerta aceptaba cualquier texto que empezara con
