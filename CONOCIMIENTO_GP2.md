@@ -13437,3 +13437,11 @@ Virgilio"` `[dato: el .bas]`, no toca GP2.
 - [deducido] Quedan fuera del menú normal, entre otras, Recepción Insumos, Envíos/Entregas de
   tallerista/PS/Prov AT, el Relevamiento (conteo) y todo Producción salvo Tiempos Matrices. Los que
   se usan desde la tablet siguen accesibles por ahí; los de oficina sólo por `?todos=1` o URL.
+
+## 4go. O.C.: la pantalla es un cuadro sinóptico, sin textos de ayuda (2026-09-28)
+
+- [usuario] Thomas: *"quiero que elimines todos esos textos... optimizame todo como cuadro sinóptico, lo más optimizado posible (tanto la página principal como el recuadro cuando tocás máximo)"*.
+- Fuera de `Compras/OC_GP2.html` (v1.35.0): el cartel "Elegí un proveedor…", la leyenda de "Pedir", la ayuda de la fecha ("se propone sola") y los dos cartelitos debajo de Pedir ("sugerido N · máx − stock" y "hay que pedir / no hace falta"). La fecha se sigue proponiendo sola; el sugerido sigue viniendo cargado en Pedir; el stock en rojo es lo que dice "abajo del máximo".
+- Queda sólo "ya pediste N (en camino)": es lo único que explica por qué una fila abajo del máximo llega vacía.
+- Tabla, barra y buscador abrazan el dato (sin 100% de ancho ni anchos fijos); las dos barras son una. El modal del Máximo: los 4 recuadros son una fila de tabla con la unidad en el encabezado, el desglose va ordenado por consumo mayor → menor y el modal toma el ancho de la tabla.
+- **No volver a meter texto explicativo en esta pantalla**: si algo necesita explicarse, es una columna o un dato, no una leyenda.

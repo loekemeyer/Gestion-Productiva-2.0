@@ -4,6 +4,7 @@
 (vacío)
 
 [HISTORIAL]
+2026-09-28 | thomas (claude-remote) | OC v1.35.0 CUADRO SINOPTICO (Thomas: "elimina todos esos textos... optimizame todo como cuadro sinoptico"). Fuera: cartel Elegi un proveedor, leyenda de Pedir, ayuda de fecha, cartelitos sugerido/hay que pedir (queda "en camino"). Tabla/barra/buscador sin 100% ni anchos fijos, una sola barra. Modal Maximo: KPIs a una fila de tabla, desglose mayor->menor, ancho del dato. Tests OC ajustados. version.js v1.197.0 ?v=20260928g. CONOCIMIENTO 4go.
 2026-09-28 | thomas (claude-remote) | MENU GP2 A DOS GRUPOS (Thomas: "Dos modulos en vez de 10 ... el resto ocultalos, si te pido que los vuelva a poner tenes que poder"). GP2_MODULOS.html: MENU = Stocks (7) + Herramientas (7); los 10 grupos viejos intactos en MENU_OCULTO, ?todos=1 los muestra. Grilla centrada sin columna vacia y align-items:start. version.js v1.196.0 ?v=20260928f. Tests: menu_una_pantalla mide las 2 vistas, botones_fuera y login_flow ajustados. Suite 59/59. CONOCIMIENTO 4gn.
 2026-09-28 | thomas (claude-remote) | CasosEspeciales v2.0.1 + RecepcionInsumos v3.65.1: % Corto / % Largo desnivelados en celular (rotulo de 2 lineas); pares de campos alineados abajo (justify-content:space-between). version.js v1.195.1 ?v=20260928e. Suite 59/59.
 2026-09-28 | thomas (claude-remote) | StockGeneral v2.2.0: fuera Gentile (tallerista.activo=false; movimientos_bundle.tall trae act) y fuera todo el inventario de Virgilio (ubicacion virgilio/virgilio_sector + columna En Virgilio). version.js v1.195.0 ?v=20260928d. Suite 59/59.
