@@ -13437,3 +13437,26 @@ Virgilio"` `[dato: el .bas]`, no toca GP2.
 - [deducido] Quedan fuera del menú normal, entre otras, Recepción Insumos, Envíos/Entregas de
   tallerista/PS/Prov AT, el Relevamiento (conteo) y todo Producción salvo Tiempos Matrices. Los que
   se usan desde la tablet siguen accesibles por ahí; los de oficina sólo por `?todos=1` o URL.
+
+## 4go. Mínimos de pedido por pieza: la planilla los tiene, GP2 los muestra bajo "Pedir" (2026-09-28)
+
+`[Thomas 2026-09-28: "comencemos a ver los mínimos de los pedidos de órdenes de compra"]`. Cruce en
+`MINIMOS_OC_2026-09-28_detalle.xlsx`.
+
+- `[dato: planillas de relevamiento]` **Cartón**: el "Pedi Min Uni" NO es por pieza, es el múltiplo de
+  pliego por (tipo, marca): C-LK 12.000, LOKE-CH 16.000, Huevo-CH 25.000, **Huevo-LK 12.000**,
+  Corb8-LK 12.000 / **Corb8-CH 30.000**, Rallador 24.000, tapones 18.000. GP2 tiene un solo
+  `pliegos_multiplo` por formato → 46 códigos no coinciden y 28 tienen otro formato que la planilla.
+  **Sin decidir**: si el múltiplo depende de la marca.
+- `[dato]` **Resina**: los 5 pisos en kg (`proveedor_insumo.pedido_minimo_kg`) coinciden.
+- `[usuario 2026-09-28: "cargá esos mínimos"]` **Bombilla, cargado en `componente.pedido_minimo_uni`**:
+  EP10, LLF8, BOM8 10.000 · BOM10 5.000 · BOM12 1.760 (planilla 1.764,7 = 1 cajón) · Z22 1.200 ·
+  Z25A/Z25B 1.000 (en la planilla figuran como Z2S/Z2SB "Aro/Argolla p/Llavero"). De los 22 códigos
+  con mínimo en la planilla, **14 no existen en GP2** (BOM2/3/4/5/6/7/9/11/14, Z19A/B, Z32, AA6/AE10,
+  tapitas). "A1 Arandelas Corta Queso" (Skotnica) no es el A1 de GP2, que es una caja. BOM8: la
+  planilla dice Resortes Alfredo, GP2 Grudzien Claudia Laura — `[deducido]` el mismo proveedor.
+- **Cómo se muestra** (`OC_GP2.html` v1.35.0): una línea "mín. proveedor N uni" debajo del campo
+  Pedir (para Charcas también "= N paq"), en negrita si lo pedido queda corto. **Sólo informa**: el
+  recuadro amarillo con "Subir al mínimo" se sacó el 14-09 y no vuelve; la OC dispara por el máximo.
+- **Pendiente de carga**: 12 remaches Bella Vista (V1C 165.000 … V5C 6.700) y 9 plásticos (PA10/13/18
+  y PA4 10.000, PC1A/B 36.000, Maspoli PC12/PEP7/PEP8 500), ver el xlsx.
