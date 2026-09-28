@@ -4736,6 +4736,11 @@ with pend as (
          coalesce(cc2.mezcla_libre, false) mezcla_libre,
          cf.pliegos_multiplo, cf.codigo_multiplo, cf.min_codigo_x_multiplo, cf.pedido_minimo,
          c.pedido_minimo_uni,
+         -- LA UNIDAD DEL REMITO (2026-09-28): la O.C. se pide en la misma unidad en que se recibe
+         -- [Thomas: "usa las mismas unidades de medida para las ordenes de compra"]. Mismos datos
+         -- que usa Recepcion de Insumos para decidir la unidad.
+         c.remito_unidad, coalesce(c.recibe_en_cajas, false) recibe_en_cajas,
+         c.entrega_unidad, c.entrega_uni_x,
          pv.precio, pv.moneda
   from componente c
   join sector s on s.id = c.sector_id
@@ -4819,7 +4824,9 @@ select jsonb_build_object(
       'marca',marca,'mezcla_libre',mezcla_libre,'es_pliego',es_pliego,
       'pliegos_multiplo',pliegos_multiplo,'pedido_minimo',pedido_minimo,
       'codigo_multiplo',codigo_multiplo,'min_codigo_x_multiplo',min_codigo_x_multiplo,
-      'pedido_minimo_uni',pedido_minimo_uni
+      'pedido_minimo_uni',pedido_minimo_uni,
+      'remito_unidad',remito_unidad,'recibe_en_cajas',recibe_en_cajas,
+      'entrega_unidad',entrega_unidad,'entrega_uni_x',entrega_uni_x
     ) order by sector_id, codigo),'[]'::jsonb) from calc),
   'pliego_uni_x_paquete', (select valor from parametro where clave='pliego_uni_x_paquete'),
   'paq', (select valor from parametro where clave='carton_uni_x_paquete'),

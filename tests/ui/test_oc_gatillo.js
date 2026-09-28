@@ -87,9 +87,9 @@ window.supabase = { createClient: function(){ return {
   ok(await page.$('#btnViaje') === null, 'ya no existe el boton "Aprovechar el viaje"');
 
   // "Usar sugeridos" sigue siendo la orden explicita: pisa el aviso de "en camino".
-  await page.click('#btnLimpiar');
+  await page.$eval('#btnLimpiar', b => b.click())  /* oculto desde v1.37.0 */;
   ok(await val(1) === '' && await val(2) === '', 'limpiar deja todo en cero');
-  await page.click('#btnSug');
+  await page.$eval('#btnSug', b => b.click())  /* oculto desde v1.37.0 */;
   ok(await val(1) === '950' && await val(2) === '500' && await val(3) === '950',
      '"Usar sugeridos" carga TODO lo visible, tambien lo que viene en camino');
 

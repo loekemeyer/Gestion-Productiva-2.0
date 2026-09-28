@@ -236,7 +236,7 @@ window.supabase = { createClient: function(){ return {
   const heads = await page.evaluate(() => [].map.call(
     document.getElementById('tbody').closest('table').querySelectorAll('thead th'),
     x => x.textContent.replace(/\s+/g, '').trim()));
-  ok(heads.join('|') === 'Insumo|Proveedor|Stockactual|Máximo|Pedir',
+  ok(heads.join('|') === 'Insumo|Proveedor|Stockactual|Máximo|Pedir|UniMedida',
      'columnas: ' + heads.join(' · '));
   // La plata no se muestra por fila: se mira en la barra y en la OC ya creada.
   ok(!(await page.textContent('#tbody')).includes('US$'), 'no hay precios ni subtotales en la tabla');
@@ -279,7 +279,7 @@ window.supabase = { createClient: function(){ return {
   ok(await page.$eval('.pedir-in[data-in="2"]', x => x.value) === '', 'vaciado se queda vacio (no se recarga solo)');
   ok((await page.textContent('#tot')).trim().startsWith('1 ítems'), 'y sale de la cuenta de la barra');
   // "Usar sugeridos" lo repone
-  await page.click('#btnSug');
+  await page.$eval('#btnSug', b => b.click())  /* oculto desde v1.37.0 */;
   ok(await page.$eval('.pedir-in[data-in="2"]', x => x.value) === '300', '"Usar sugeridos" repone lo vaciado');
 
   // EL PRECIO SE FUE DE LA TABLA [usuario 2026-09-04: "precio se va y subtotal tambien"],
@@ -290,7 +290,7 @@ window.supabase = { createClient: function(){ return {
   // filtro proveedor Basconia y crear OC
   await page.click('#provs .chip:has-text("Basconia")');
   ok(await page.$$eval('#tbody tr', x => x.length) === 1, 'filtro proveedor: 1 fila');
-  await page.fill('#nota', 'nota test');
+  await page.$eval('#nota', x => { x.value = 'nota test'; });  /* oculto desde v1.37.0 */
   await page.click('#btnCrear');
   await page.waitForFunction(() => (window.__calls || []).some(c => c.name === 'crear_oc'));
   const call = await page.evaluate(() => window.__calls.filter(c => c.name === 'crear_oc')[0].args.p);
@@ -319,17 +319,17 @@ window.supabase = { createClient: function(){ return {
   await page.click('#rubros .chip:has-text("Plastico")');
   await page.click('#provs .chip:has-text("Resortes Charcas")');
   ok(await page.$$eval('#tbody tr', x => x.length) === 1, 'Charcas: 1 fila (EP10)');
-  // 2.500 uni sugeridas; 1 paquete = 20 kg / 0,01 kg = 2.000 uni -> 2 paquetes (para arriba).
-  // Con el 10 que antes estaba escrito en la pantalla darian 3.
-  ok(await page.$eval('.pedir-in[data-in="13"]', x => x.value) === '2', 'el sugerido de Charcas llega en paquetes y usa el kg por paquete del bundle (2)');
-  const eqCh = (await page.textContent('tr[data-id="13"] .paq-eq')).replace(/\s+/g, ' ').trim();
-  ok(eqCh.includes('4.000') && eqCh.includes('uni'), 'la equivalencia dice 2 paq = 4.000 uni: ' + eqCh);
+  // v1.38.0: los resortes que Charcas nos VENDE se reciben en unidades y se piden en unidades
+  // [Thomas 2026-09-28: "los resortes batidor los pido en unidades"]. El paquete de 10 kg es solo
+  // para sus flejes (sector 5).
+  ok(await page.$eval('.pedir-in[data-in="13"]', x => x.value) === '2500', 'EP10 de Charcas se pide en unidades (2500)');
+  ok((await page.textContent('tr[data-id="13"] td.um-cell')).trim() === 'uni', 'Uni Medida de EP10: uni');
   await page.click('#btnCrear');
   await page.waitForFunction(() => (window.__calls || []).filter(c => c.name === 'crear_oc').length === 2);
   const callCh = await page.evaluate(() => window.__calls.filter(c => c.name === 'crear_oc')[1].args.p);
   ok(callCh.proveedor === 'Resortes Charcas' && callCh.items.length === 1 && callCh.items[0].comp_id === 13
-     && callCh.items[0].cantidad === 2 && callCh.items[0].unidad === 'paq',
-     'a crear_oc viajan los PAQUETES con unidad paq (la base los guarda en kg): ' + JSON.stringify(callCh.items));
+     && callCh.items[0].cantidad === 2500 && callCh.items[0].unidad === 'uni',
+     'a crear_oc viajan las UNIDADES: ' + JSON.stringify(callCh.items));
   await page.waitForFunction(() => document.getElementById('status').textContent.includes('gemela'));
   const stCh = (await page.textContent('#status')).replace(/\s+/g, ' ').trim();
   ok(stCh.includes('OC gemela N° 3 a Altrak') && stCh.includes('40,8 kg de FLEJE90_BRUTO'),
@@ -371,10 +371,10 @@ window.supabase = { createClient: function(){ return {
   ok(await page.$eval('#reglaCarton', x => x.classList.contains('hidden')),
      'el carton llega valido de fabrica (el sugerido entra redondeado a la familia)');
   // Para probar las reglas a mano se parte de la tabla vacia.
-  await page.click('#btnLimpiar');
+  await page.$eval('#btnLimpiar', b => b.click())  /* oculto desde v1.37.0 */;
   ok(await page.$eval('.pedir-in[data-in="3"]', x => x.value) === '', '"Limpiar" deja los campos vacios y no los recarga');
   // 1500 no es multiplo de 1000
-  await page.fill('.pedir-in[data-in="3"]', '1500');
+  await page.fill('.pedir-in[data-in="3"]', '6');
   await page.$eval('.pedir-in[data-in="3"]', x => x.dispatchEvent(new Event('change')));
   let regla = await page.textContent('#reglaCarton');
   ok(!(await page.$eval('#reglaCarton', x => x.classList.contains('hidden'))) && regla.includes('múltiplo de 12.000'),
@@ -382,30 +382,33 @@ window.supabase = { createClient: function(){ return {
   ok(await page.$eval('#btnCrear', b => b.disabled), 'btnCrear bloqueado con regla rota');
 
   // 11000 + 1000 = 12000 total, ambos multiplos de 1000, minimo 1000 -> valido
-  await page.fill('.pedir-in[data-in="3"]', '11000');
+  await page.fill('.pedir-in[data-in="3"]', '44');
   await page.$eval('.pedir-in[data-in="3"]', x => x.dispatchEvent(new Event('change')));
-  await page.fill('.pedir-in[data-in="4"]', '1000');
+  await page.fill('.pedir-in[data-in="4"]', '4');
   await page.$eval('.pedir-in[data-in="4"]', x => x.dispatchEvent(new Event('change')));
   ok(await page.$eval('#reglaCarton', x => x.classList.contains('hidden')), '12000 valido (11000+1000)');
   ok(!(await page.$eval('#btnCrear', b => b.disabled)), 'btnCrear habilitado con carton valido');
   // equivalencia en paquetes visible
+  // v1.38.0: el campo va en paquetes (como el remito) y abajo la equivalencia en unidades.
+  ok(await page.$eval('.pedir-in[data-in="3"]', x => x.value) === '44', 'el carton se pide en paquetes (44)');
+  ok((await page.textContent('tr[data-id="3"] td.um-cell')).trim() === 'paq 250', 'Uni Medida del carton: paq 250');
   const paq = await page.textContent('tr[data-id="3"] .paq-eq');
-  ok(paq.includes('44') && paq.includes('paq'), 'equivalencia paquetes: ' + paq.trim());
+  ok(paq.includes('11.000') && paq.includes('uni'), 'equivalencia en unidades: ' + paq.trim());
 
   // El minimo por codigo es FIJO (el paquete), NO escala con el multiplo [usuario
   // 2026-09-03: "el paquete viene a mil, se puede recibir a mil"]. 23.000 + 1.000 = 24.000,
   // dos multiplos, y el de 1.000 sigue estando bien: con el minimo escalado habria dado
   // error pidiendole 2.000, y una familia con muchos codigos no cerraba nunca.
-  await page.fill('.pedir-in[data-in="3"]', '23000');
+  await page.fill('.pedir-in[data-in="3"]', '92');
   await page.$eval('.pedir-in[data-in="3"]', x => x.dispatchEvent(new Event('change')));
   ok(await page.$eval('#reglaCarton', x => x.classList.contains('hidden')),
      'el minimo por codigo NO escala: 23.000 + 1.000 es valido');
   // Y abajo del minimo si avisa. Se usa el HUEVO, que es el unico donde el minimo
   // (2.000) es mayor que el paso (1.000) y por lo tanto se puede quedar corto siendo
   // multiplo: 24.000 + 1.000 = 25.000 cierra el pliego, pero ese 1.000 no llega al minimo.
-  await page.fill('.pedir-in[data-in="9"]', '24000');
+  await page.fill('.pedir-in[data-in="9"]', '96');
   await page.$eval('.pedir-in[data-in="9"]', x => x.dispatchEvent(new Event('change')));
-  await page.fill('.pedir-in[data-in="10"]', '1000');
+  await page.fill('.pedir-in[data-in="10"]', '4');
   await page.$eval('.pedir-in[data-in="10"]', x => x.dispatchEvent(new Event('change')));
   regla = await page.textContent('#reglaCarton');
   ok(/mínimo 2\.000 por código/.test(regla) && !/para un pedido de/.test(regla),
@@ -416,9 +419,10 @@ window.supabase = { createClient: function(){ return {
   // siguiente (24.000) y lo que falta se reparte de a 1.000 empezando por el que
   // mas pidio: 17.000 + 7.000. Ademas 24.000 son dos multiplos, asi que el minimo
   // por codigo pasa a 2.000 y los dos lo cumplen.
-  await page.click('#btnLimpiar');
-  await page.click('#btnSug');
-  const val = async id => Number(await page.$eval('.pedir-in[data-in="' + id + '"]', x => x.value));
+  await page.$eval('#btnLimpiar', b => b.click())  /* oculto desde v1.37.0 */;
+  await page.$eval('#btnSug', b => b.click())  /* oculto desde v1.37.0 */;
+  // v1.38.0: el campo del carton va en PAQUETES (unidad del remito); las reglas se miran en unidades.
+  const val = async id => page.evaluate(i => PEDIDO[i] || 0, id);
   // Familia C · LOEKE: Resto (16.000 + 6.000) + el sacacorchos comodin (3.000) = 25.000,
   // que sube al multiplo siguiente, 36.000, y lo que falta se reparte de a 1.000.
   const totC = (await val(3)) + (await val(4)) + (await val(6));
@@ -444,7 +448,7 @@ window.supabase = { createClient: function(){ return {
   ok(!(await page.$eval('#btnCrear', b => b.disabled)), 'la OC de cartones queda lista para crear');
 
   // Y si se escribe a mano algo que rompe la regla, el cartel ofrece arreglarlo
-  await page.fill('.pedir-in[data-in="3"]', '1500');
+  await page.fill('.pedir-in[data-in="3"]', '6');
   await page.$eval('.pedir-in[data-in="3"]', x => x.dispatchEvent(new Event('change')));
   ok(!(await page.$eval('#reglaCarton', x => x.classList.contains('hidden'))), 'a mano se puede romper la regla');
   await page.click('#btnAjustarCart');
@@ -458,7 +462,7 @@ window.supabase = { createClient: function(){ return {
 
   // Bajarla a mano por debajo del mínimo tiene que avisar, y con las palabras del piso
   // (no del múltiplo, que en la bolsa es 1 y siempre da bien).
-  await page.fill('.pedir-in[data-in="12"]', '10000');
+  await page.fill('.pedir-in[data-in="12"]', '40');
   await page.$eval('.pedir-in[data-in="12"]', x => x.dispatchEvent(new Event('change')));
   regla = await page.textContent('#reglaCarton');
   ok(/pedido mínimo es 20\.000/.test(regla), 'avisa si no llega al mínimo: ' + regla.trim().slice(0, 90));
@@ -486,6 +490,20 @@ window.supabase = { createClient: function(){ return {
   const wa = await page.evaluate(() => window.__wa || '');
   ok(/wa\.me\/\?text=/.test(wa), 'abre wa.me con texto');
   ok(/Orden%20de%20Compra/.test(wa), 'el texto de WhatsApp lleva la OC');
+
+  // ── UNIDAD DEL REMITO (v1.38.0): misma decision que Recepcion de Insumos ─────────────
+  const um = await page.evaluate(() => [
+    umRemito({ sector_id: 6, unidad: 'uni', um: 'unidad', kg_x_uni: 0.005, recibe_en_cajas: true, proveedor: 'Trefilados' }),
+    umRemito({ sector_id: 9, unidad: 'uni', um: 'unidad', remito_unidad: 'envase', entrega_unidad: 'cajas', entrega_uni_x: 144 }),
+    umRemito({ sector_id: 8, unidad: 'uni', um: 'unidad', kg_x_uni: 0.001 }),
+    umRemito({ sector_id: 5, unidad: 'kg', um: 'kg', proveedor: 'Basconia' }),
+    umRemito({ sector_id: 6, unidad: 'uni', um: 'unidad', recibe_en_cajas: true })   // sin kg_x_uni
+  ]);
+  ok(um[0].lbl === 'kg' && Math.abs(um[0].k - 0.005) < 1e-9, 'recibe en cajas -> se pide en kg: ' + JSON.stringify(um[0]));
+  ok(um[1].lbl === 'cajas 144' && Math.abs(um[1].k - 1 / 144) < 1e-9, 'remito en envase -> cajas de 144: ' + JSON.stringify(um[1]));
+  ok(um[2].lbl === 'uni' && um[2].k === 1, 'remaches en unidades');
+  ok(um[3].lbl === 'kg' && um[3].k === 1, 'fleje Basconia en kg');
+  ok(um[4].lbl === 'uni' && um[4].k === 1, 'sin kg_x_uni no se convierte (no se inventa el peso)');
 
   await browser.close();
   console.log(process.exitCode ? 'HAY FALLOS' : 'TODO OK');

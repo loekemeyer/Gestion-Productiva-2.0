@@ -47,29 +47,40 @@ window.supabase = { createClient: function(){ return {
   const ok = (c, m) => { console.log((c ? 'OK  ' : 'FAIL') + ' ' + m); if (!c) process.exitCode = 1; };
 
   await page.click('#rubros .chip:has-text("Fleje")');
-  ok(await page.$('td.max-cell') !== null, 'la celda Máximo es clickable (max-cell)');
-  ok(await page.$eval('#dsgBg', x => x.hidden), 'el modal arranca oculto');
+  ok(await page.$('td.max-cell') !== null, 'la celda Máximo tiene desglose (max-cell)');
+  ok(await page.$eval('#dsgPop', x => x.hidden), 'la ventanita arranca oculta');
 
+  // v1.36.0 [Thomas: "que me aparezca cuando me pongo arriba, sin tener que clickear"]
+  await page.hover('td.max-cell');
+  await page.waitForFunction(() => { const p = document.getElementById('dsgPop'); return !p.hidden && p.querySelector('table'); });
+  const cuerpo = await page.textContent('#dsgPop');
+  ok(/505/.test(cuerpo) && /Pelador Mgo Plástico/.test(cuerpo), 'al pasar el mouse lista el artículo que consume el insumo');
+  ok(/27\.854/.test(cuerpo), 'muestra la venta (uni/mes) del artículo');
+  ok(/190/.test(cuerpo), 'y los kg');
+  // "solo esos datos. El resto no lo quiero"
+  ok(!/Meses|Origen|Máximo|Consumo ×/.test(cuerpo), 'sin Máximo/Origen/Meses/Consumo × meses: ' + cuerpo.slice(0, 80));
+  ok((await page.$$('#dsgPop table')).length === 1, 'una sola tabla');
+  const fila1 = await page.$eval('#dsgPop tbody tr', x => x.textContent);
+  ok(/505/.test(fila1), 'ordenado mayor → menor (505 primero)');
+
+  await page.mouse.move(5, 5);
+  ok(await page.$eval('#dsgPop', x => x.hidden), 'al salir de la celda se cierra');
+
+  // Con mouse, el clic no la cierra (ya estaba abierta por el hover).
   await page.click('td.max-cell');
-  await page.waitForFunction(() => !document.getElementById('dsgBg').hidden);
-  const tit = await page.textContent('#dsgTit');
-  ok(/IF11/.test(tit) && /Fleje N° 19/.test(tit), 'el título del modal es el componente: ' + tit);
+  await page.waitForFunction(() => !document.getElementById('dsgPop').hidden);
+  ok(true, 'con mouse, clic sobre la celda la deja abierta');
+  await page.mouse.move(5, 5);
 
-  const cuerpo = await page.textContent('#dsgBody');
-  ok(/Meses destock/.test(cuerpo) && /6/.test(cuerpo), 'muestra los meses de stock');
-  ok(/Consumo ×meses/.test(cuerpo), 'muestra consumo × meses');
-  // Cuadro sinoptico (v1.35.0): sin recuadros, todo en tabla, y el modal del ancho del dato.
-  ok((await page.$$('#dsgBody .dsg-kpi')).length === 0, 'sin los recuadros de KPI: una fila de tabla');
-  const anchoModal = await page.$eval('#dsgBg .modal', x => x.getBoundingClientRect().width);
-  const anchoTabla = await page.$eval('#dsgBody', x => Math.max(...[...x.querySelectorAll('table')].map(t => t.getBoundingClientRect().width)));
-  ok(anchoModal - anchoTabla < 60, 'el modal abraza la tabla (' + Math.round(anchoModal) + ' vs ' + Math.round(anchoTabla) + ' px)');
-  ok(/505/.test(cuerpo) && /Pelador Mgo Plástico/.test(cuerpo), 'lista el artículo que consume el insumo');
-  ok(/27\.854/.test(cuerpo) || /27854/.test(cuerpo), 'muestra la venta (uni/mes) del artículo');
-  ok(/190/.test(cuerpo), 'y los kg (primero uni, después kg)');
-
-  // Cerrar con la X
-  await page.click('#dsgX');
-  ok(await page.$eval('#dsgBg', x => x.hidden), 'la X cierra el modal');
+  // Tablet: sin hover, un toque la abre, otro la cierra, y tocar afuera tambien.
+  await page.evaluate(() => document.querySelector('td.max-cell').click());
+  await page.waitForFunction(() => { const p = document.getElementById('dsgPop'); return !p.hidden && p.querySelector('table'); });
+  ok(true, 'tablet: el toque la abre');
+  await page.evaluate(() => document.querySelector('td.max-cell').click());
+  ok(await page.$eval('#dsgPop', x => x.hidden), 'tablet: el segundo toque la cierra');
+  await page.evaluate(() => document.querySelector('td.max-cell').click());
+  await page.evaluate(() => document.body.click());
+  ok(await page.$eval('#dsgPop', x => x.hidden), 'tablet: tocar afuera la cierra');
 
   await browser.close();
   console.log(process.exitCode ? 'HAY FALLOS' : 'TODO OK');
