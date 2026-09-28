@@ -13491,8 +13491,9 @@ Virgilio"` `[dato: el .bas]`, no toca GP2.
   artículos distintos): G4A/G4B/G4C C→Huevo LK; C2A/C2B/L4B/CART590 Huevo→8; M1/M2A/M2C/M3A/M3B
   Corbata→8; M2B LOKE→8; Q3D 8→Corbata; P4A/Q5 LOKE→Corbata; Q5D/O2C/N2A LOKE→Huevo; T3A C→LOKE;
   G8C1 (sin formato)→LOKE; G2A LOKE→C Resto; A1B2 (sin formato)→C Resto; Ñ4A/P6A ("Pelador", 12
-  posiciones) LOKE→C Pelapapas. **Quedó sin aplicar**: tapones F4A1/F4B1/F4C 18.000 y Q4B/K1A 25.000
-  (la planilla los pide distinto dentro del mismo Huevo LK; están en 12.000); BANDITA/BANDITAM y P2A
+  posiciones) LOKE→C Pelapapas. Tapones F4A1/F4B1/F4C (18.000) y Q4B/K1A (25.000) van como familias
+  aparte `[Thomas 2026-09-28: "Sí"]`: formatos `Huevo LK Tapon` y `Huevo LK 25` (un formato = un
+  múltiplo; la categoría no cambia el múltiplo). **Quedó sin aplicar**: BANDITA/BANDITAM y P2A
   (la planilla tiene "Rallador" y "Bandita" cruzados); CCG6B del 760 (tipo C LOEKE en un artículo CH).
   Sin formato siguen G8C, A1B, A1B1. Familias resultantes en `oc_bundle`: 8 LOEKE 18 · C LOEKE 41 ·
   C CHEF 4 · Corbata CHEF 10 · Huevo CHEF 20 · Huevo LK 21 · LOKE CHEF 23 · LOKE LOEKE 8.
