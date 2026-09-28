@@ -13054,6 +13054,10 @@ Z12 (0,000165). **Los dos números no cierran entre sí (×2,6)** → `[usuario 
   (suma de los dos máximos Est Madre); la fila de Gentile (ubic 28, stock 0) pasó a GRJ28.
 - `GRJ28.proveedor` Cimarron → **Gilardi Esther** (id 30, rubro Sector Garage). Corrige lo anotado el 2026-09-13
   (Cimarrón). Sin precio cargado: costo sigue en 0 para esa pieza.
+- **Envase (2026-09-28)** [Thomas, con la foto de la Tablet: *"Peso por uni 0.00193 y vienen 3000 por caja.
+  Sugerido en caja"*]: `kg_x_uni=0,00193`, `entrega_unidad='cajas'`, `entrega_uni_x=3000` (5,79 kg/caja),
+  `uni_x_cajon` null — mismo modelo que `Z31`/`C13`. Tablet → Enviar (Sector Garage): sugerido 1.980 uni =
+  **1 caja** (techo); la cantidad se escribe en kg. `v_costo_componente` idéntico antes/después (805 filas, mismo hash).
 
 ## 4gb. `C13` Corta Queso Bastidor c/Cilindro va en CAJAS DE 144 (2026-09-25)
 
