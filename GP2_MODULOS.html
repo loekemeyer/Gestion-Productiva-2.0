@@ -49,6 +49,9 @@ body{background:#ffffff;color:#1e293b;font-family:-apple-system,Segoe UI,Roboto,
 
 .card-head{padding:14px 18px;display:flex;align-items:center;gap:10px;border-bottom:1px solid #e2e8f0;cursor:pointer;user-select:none;transition:background .15s}
 .card-head:hover{background:#f8fafc}
+/* menu normal (v1.201.0): los grupos quedan abiertos y no se cierran */
+body.fijo .card-head{cursor:default}
+body.fijo .card-head:hover{background:transparent}
 .card-head .icon{font-size:24px;line-height:1;flex-shrink:0}
 .card-head .title{font-size:20px;font-weight:700;letter-spacing:.01em;color:#1e293b;flex:1}
 .card-head .badge{background:#dcfce7;color:#15803d;font-size:12px;font-weight:700;padding:2px 8px;border-radius:10px;letter-spacing:.5px}
@@ -115,11 +118,11 @@ span.op.lock .lk{font-size:14px;margin-left:auto;opacity:.7}
   a.op,span.op.lock{font-size:15px;padding:11px 12px}
 
   /* abierto: vuelve a una columna, para que los botones del grupo sean anchos */
-  body.focus .grid{grid-template-columns:1fr}
-  body.focus .card.open .card-head{flex-direction:row;align-items:center;gap:10px;
+  body.focus .grid,body.fijo .grid{grid-template-columns:1fr}
+  body.focus .card.open .card-head,body.fijo .card.open .card-head{flex-direction:row;align-items:center;gap:10px;
                                    min-height:0;padding:13px 14px}
-  body.focus .card.open .card-head .title{font-size:18px}
-  body.focus .card.open .card-head .badge{position:static}
+  body.focus .card.open .card-head .title,body.fijo .card.open .card-head .title{font-size:18px}
+  body.focus .card.open .card-head .badge,body.fijo .card.open .card-head .badge{position:static}
 
   /* vista FOCO: con un grupo abierto se ve solo ese grupo, hasta cerrarlo */
   body.focus .header,body.focus .foot{display:none}
@@ -136,27 +139,32 @@ span.op.lock .lk{font-size:14px;margin-left:auto;opacity:.7}
      Antes era una lista de filas finitas: se veian chicas, desperdiciaban el
      ancho y con 14 modulos (Produccion) habia que scrollear. En 2 columnas
      entran el doble por pantalla y cada boton es una baldosa tocable. */
-  body.focus .card.open .btns{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-  body.focus .card.open a.op,
-  body.focus .card.open span.op.lock{
+  :is(body.focus,body.fijo) .card.open .btns{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  :is(body.focus,body.fijo) .card.open a.op,
+  :is(body.focus,body.fijo) .card.open span.op.lock{
     flex-direction:column;align-items:center;justify-content:center;text-align:center;
     gap:4px;min-height:76px;padding:12px 10px;font-size:16px;font-weight:600;
     line-height:1.15;border-radius:12px;overflow-wrap:anywhere}
-  body.focus .card.open a.op .arrow{display:none}   /* en baldosa no aporta */
+  :is(body.focus,body.fijo) .card.open a.op .arrow{display:none}   /* en baldosa no aporta */
   /* el puntito (verde = GP2, ambar = modulo viejo) va a la esquina: si queda en
      el flujo se come una linea y empuja el nombre fuera del centro */
-  body.focus .card.open a.op{position:relative}
-  body.focus .card.open a.op .dot{position:absolute;top:8px;left:8px;margin:0}
-  body.focus .card.open span.op.lock .lk{margin:0}
+  :is(body.focus,body.fijo) .card.open a.op{position:relative}
+  :is(body.focus,body.fijo) .card.open a.op .dot{position:absolute;top:8px;left:8px;margin:0}
+  :is(body.focus,body.fijo) .card.open span.op.lock .lk{margin:0}
   /* nivel 1: baldosa a todo el ancho, mas alta y destacada — es lo que se
      abre todos los dias, tiene que caer bajo el pulgar sin buscar */
-  body.focus .card.open a.op.principal{grid-column:1 / -1;min-height:66px;font-size:18px}
+  :is(body.focus,body.fijo) .card.open a.op.principal{grid-column:1 / -1;min-height:66px;font-size:18px}
   /* nivel 3: misma grilla que los rubros pero apagado, para que no compita */
-  body.focus .card.open a.op.secundario{min-height:56px;font-size:15px}   /* 15 es el piso de legibilidad que fija el test */
+  :is(body.focus,body.fijo) .card.open a.op.secundario{min-height:56px;font-size:15px}   /* 15 es el piso de legibilidad que fija el test */
   /* cantidad impar: el ultimo ocupa el ancho entero para que no quede colgado.
      Los "principal" ya ocupan la fila entera, asi que no cuentan para la
      paridad: se mira solo entre los que comparten la grilla de 2 columnas. */
-  body.focus .card.open .btns > :last-child:nth-child(odd){grid-column:1 / -1;min-height:56px}
+  :is(body.focus,body.fijo) .card.open .btns > :last-child:nth-child(odd){grid-column:1 / -1;min-height:56px}
+  /* menu fijo: los 2 grupos abiertos a la vez tienen que entrar en una pantalla,
+     asi que las baldosas son mas bajas que en la vista foco (sigue >= 44 tocable) */
+  body.fijo .card.open .card-head{padding:10px 14px}
+  body.fijo .card.open a.op,body.fijo .card.open span.op.lock{min-height:56px;padding:8px 10px}
+  body.fijo .card.open .btns > :last-child:nth-child(odd){min-height:48px}
 }
 
 /* celulares de pantalla baja (SE, o el navegador con su barra a la vista):
@@ -171,10 +179,16 @@ span.op.lock .lk{font-size:14px;margin-left:auto;opacity:.7}
   /* las baldosas del grupo abierto se achican lo justo para que el grupo mas
      grande (Produccion, 15 modulos = 8 filas) tambien entre sin scrollear.
      Cada modulo nuevo que entre a Produccion aprieta esto: el test avisa. */
-  body.focus .card.open .btns{gap:6px}
-  body.focus .card.open a.op,
-  body.focus .card.open span.op.lock{min-height:56px;padding:8px;font-size:15px}
-  body.focus .card.open .btns > :last-child:nth-child(odd){min-height:50px}
+  :is(body.focus,body.fijo) .card.open .btns{gap:6px}
+  :is(body.focus,body.fijo) .card.open a.op,
+  :is(body.focus,body.fijo) .card.open span.op.lock{min-height:56px;padding:8px;font-size:15px}
+  :is(body.focus,body.fijo) .card.open .btns > :last-child:nth-child(odd){min-height:50px}
+  body.fijo .grid{gap:6px}
+  body.fijo .card.open .btns{gap:5px}
+  body.fijo .card.open .card-head{padding:8px 12px}
+  body.fijo .card.open .card-head .title{font-size:16px}
+  body.fijo .card.open a.op,body.fijo .card.open span.op.lock{min-height:44px;padding:6px 8px}
+  body.fijo .card.open .btns > :last-child:nth-child(odd){min-height:44px}
 }
 
 /* ── 📱 Versión Tablet (2026-09-13, v1.146.0) ── una sola pantalla con Enviar / Recibir /
@@ -197,6 +211,14 @@ a.tablet-link:hover{background:#1d4ed8}
   /* la vista foco (grupo fullscreen) es SOLO de celular: ahi si se ocultan para no tapar
      las baldosas. En escritorio no hay vista foco, asi que los botones quedan siempre visibles. */
   body.focus .tablet-links{display:none}
+  /* menu fijo (v1.201.0): con los 2 grupos abiertos las pastillas apiladas tapaban la ultima
+     baldosa. Pasan a una barra fija abajo, una al lado de la otra ("Versión" se oculta para
+     que entren las dos), y la pagina deja ese alto libre al final. */
+  body.fijo .wrap{padding-bottom:70px}
+  body.fijo .tablet-links{left:0;right:0;bottom:0;flex-direction:row;justify-content:center;
+    flex-wrap:nowrap;gap:8px;padding:8px 10px;background:#fff;border-top:1px solid #e2e8f0}
+  body.fijo a.tablet-link{flex:1;font-size:14px;padding:0 8px;white-space:nowrap}
+  body.fijo a.tablet-link .tl-v{display:none}
 }
 
 /* ── datos vivos que venian del dashboard viejo (Inicio/index_GP2.html) ── */
@@ -217,11 +239,11 @@ a.tablet-link:hover{background:#1d4ed8}
     (GP2_AUTH_ON=false) no hay sesion que cerrar: el link se oculta solo -->
     <span id="sesion" hidden>&nbsp;·&nbsp; <a href="login.html?logout=1" onclick="try{sessionStorage.clear();}catch(e){}"
     style="color:#b42318;text-decoration:none;font-weight:700">⎋ Cerrar sesión</a></span></div>
-  <script src="version.js?v=20260928l"></script>
+  <script src="version.js?v=20260928m"></script>
   <script>if (window.GP2_AUTH_ON !== false) document.getElementById('sesion').hidden = false;</script>
   <div class="tablet-links">
-    <a class="tablet-link" href="Tablet/Tablet_GP2.html">📱 Versión Tablet Logística</a>
-    <a class="tablet-link" href="Produccion/RegistroApp/Operarios_GP2.html">📱 Versión Tablet Operarios</a>
+    <a class="tablet-link" href="Tablet/Tablet_GP2.html">📱 <span class="tl-v">Versión </span>Tablet Logística</a>
+    <a class="tablet-link" href="Produccion/RegistroApp/Operarios_GP2.html">📱 <span class="tl-v">Versión </span>Tablet Operarios</a>
   </div>
 </div>
 
@@ -356,6 +378,12 @@ const MENU_OCULTO = [
 const grid = document.getElementById("grid");
 const VER_TODOS = new URLSearchParams(location.search).get("todos") === "1";
 const MENU_VISIBLE = VER_TODOS ? MENU.concat(MENU_OCULTO) : MENU;
+/* v1.201.0 (2026-09-28) - MENU FIJO [Thomas: "Por default quiero los dos modulos abiertos ...
+   No lo quiero poder cerrar. Que este expandido ambos"]: en el menu normal Stocks y
+   Herramientas arrancan abiertos, sin chevron ni click que los cierre. Con ?todos=1 sigue el
+   acordeon de siempre (13 grupos no entran abiertos). */
+const FIJO = !VER_TODOS;
+if (FIJO) document.body.classList.add("fijo");
 MENU_VISIBLE.forEach(([icon, titulo, items]) => {
   const allLocked = items.every(i => !i[1]);
   const activeCount = items.filter(i => i[1]).length;
@@ -363,7 +391,7 @@ MENU_VISIBLE.forEach(([icon, titulo, items]) => {
   const card = document.createElement("div");
   // arrancan todos minimizados: en el celular se ven los 13 grupos de una,
   // y los que estan 100% bloqueados ya no ocupan pantalla mostrando candados.
-  card.className = "card collapsed" + (allLocked ? " all-locked" : "");
+  card.className = "card " + (FIJO ? "open" : "collapsed") + (allLocked ? " all-locked" : "");
 
   // head
   const head = document.createElement("div");
@@ -372,8 +400,8 @@ MENU_VISIBLE.forEach(([icon, titulo, items]) => {
     '<span class="icon">' + icon + '</span>' +
     '<span class="title">' + titulo + '</span>' +
     (activeCount > 0 ? '<span class="badge">' + activeCount + '</span>' : '') +
-    '<span class="chevron">‹</span>';
-  head.addEventListener("click", () => {
+    (FIJO ? '' : '<span class="chevron">‹</span>');
+  if (!FIJO) head.addEventListener("click", () => {
     const abrir = card.classList.contains("collapsed");
     // acordeon exclusivo: abrir uno cierra el resto
     document.querySelectorAll(".card").forEach(c => {
