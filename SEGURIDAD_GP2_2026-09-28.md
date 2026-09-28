@@ -9,7 +9,7 @@ nada. Ningún secreto se copia en este archivo.
 | # | Hallazgo | Severidad | Estado |
 |---|---|---|---|
 | 1 | 62 RPCs de GP2 que **escriben** se pueden llamar con la clave pública, **sin login** | **CRÍTICO** | abierto |
-| 2 | `gp2_leer_factura`: el tope diario se saltea con una clave falsa → llamadas pagas sin límite | **ALTO** | abierto |
+| 2 | `gp2_leer_factura`: la puerta y el tope dependían del gateway (latente, no explotable hoy) | MEDIO | **corregido** (v17) |
 | 3 | Las 62 tablas de GP2 se **leen** enteras con la clave pública (precios, costos, empleados) | ALTO | abierto |
 | 4 | Bucket `remitos` es **público** | MEDIO | abierto |
 | 5 | Clave `anon` legacy (JWT, vence 2036) en el historial de git | BAJO | conocido (plan en CLAUDE.md) |
@@ -67,19 +67,28 @@ recetas, crear OC o tocar empleados, sin dejar rastro de quién fue.
 3. Mientras tanto, lo mínimo: `revoke execute ... from anon` en las 7 que **borran** y en
    `empleado_*`, si ninguna pantalla sin login las usa.
 
-## 2. `gp2_leer_factura`: tope diario salteable — ALTO
+## 2. `gp2_leer_factura`: puerta y tope — MEDIO (latente) → CORREGIDO en v17
 
-La función corre con `verify_jwt=false` y hace su propia puerta:
-`if (!traida || (clave && traida !== clave && !traida.startsWith("sb_publishable_")))`.
-**Cualquier texto que empiece con `sb_publishable_` pasa**, aunque sea inventado. Después consulta
-el tope (`factura_lectura_permitida`) mandando esa misma clave falsa: PostgREST la rechaza, la
-respuesta no es `ok`, y el código **sigue de largo** ("si la base no contesta, se sigue") → llama a
-Anthropic igual. Resultado: con una clave inventada no hay tope y cada llamada se paga
-(modelo `claude-opus-5`, hasta 16.000 tokens de salida). No se probó contra producción para no
-gastar; sale de leer el código desplegado (v16).
+**Lo que decía el código v16:** la puerta aceptaba cualquier texto que empezara con
+`sb_publishable_`, y si la consulta del tope fallaba el código seguía de largo y llamaba a la IA.
+Leído solo, eso permitía llamadas pagas sin tope con una clave inventada.
 
-**Arreglo:** comparar contra la publicable real (secret) en vez de `startsWith`; y si el chequeo del
-tope **falla**, cortar (fail-closed), no seguir.
+**Lo que midió la prueba en vivo (corrige el diagnóstico de arriba):** el gateway de Supabase ya
+rechaza con 401 `Invalid API key` cualquier `sb_publishable_…` inventada, venga en `apikey` o en
+`Authorization`, **antes** de llegar a la función; y un texto que no empiece así lo frenaba la
+propia puerta de v16. O sea: **no era explotable hoy**. Era latente: la función no se protegía
+sola, dependía de un comportamiento del gateway que nadie controla desde acá.
+
+**v17 (desplegada y versionada en `supabase/functions/gp2_leer_factura/index.ts`):**
+1. La clave la valida la base: el tope se consulta con la clave del llamador y PostgREST solo
+   contesta 200 a una clave real. No se escribe la publicable en la función.
+2. Tope obligatorio (fail-closed): si no se puede verificar, no se llama a la IA (503).
+3. Tope de tamaño: más de ~15 MB → 413.
+
+Pruebas en vivo, sin gastar: clave inventada `sb_publishable_…` → 401 (gateway); texto
+cualquiera en `Authorization` → **401 "Clave del proyecto invalida" (lo corta v17)**; sin clave
+→ 401; clave real sin archivo → 400; archivo de 20 MB → 413. No se probó una lectura real para no
+gastar.
 
 ## 3. Lectura anónima de todo GP2 — ALTO
 
