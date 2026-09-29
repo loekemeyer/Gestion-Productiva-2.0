@@ -5,12 +5,12 @@
 
 [HISTORIAL]
 2026-09-29 (1) - OC v1.42.0: MINIMO POR CARTON + TABLA SEPARADA POR FAMILIA (Thomas: "En cartones los minimos son por carton, aunque esten agrupados por familia. Ademas quiero que en la o.c. me separes por familia"). DB: componente.pedido_minimo_uni en 129 cartones (planilla, cruce por articulo). JS: fuera la linea "tirada min. por familia" (lectura equivocada del 28/09); conTitulosDeFamilia() con renglon .fam-hdr por familia. test_oc ajustado. version.js v1.203.0 ?v=20260929a. CONOCIMIENTO 4gp, REGLAS_OC_INSUMOS. thomas (claude-remote).
+2026-09-29 | Elias (claude-remote) | GP2.matriz: eliminada la 10B (id 409), la varilla curva es la 174
 2026-09-28 (6) - OC v1.41.0: (a) la TIRADA de la familia del carton debajo de Pedir (Thomas: "No me aparece el minimo todavia"); (b) FUERA el cartel rojo del multiplo y el boton "Ajustar al multiplo" (Thomas: "Que esto no aparezca"): el multiplo de familia y el minimo por codigo ya no frenan Crear OC, ni en el JS ni en la base (GP2._oc_validar_carton relajada, queda solo el piso pedido_minimo); "Sugerir" sigue redondeando. test_oc y test_oc_reglas_js_vs_db ajustados; db/funciones sincronizado. version.js v1.202.0 ?v=20260928n. thomas (claude-remote).
+2026-09-28 | claude-remote | db/*, CONOCIMIENTO_GP2.md | maximo de FLEJE90_BRUTO/CHAPA430 derivado de la pieza (recalcular_maximo_mp_ps) + rutas IC3/IC3V desde el bruto + v_nivel_stock IC3/IC3V por unidades
 2026-09-29 | Elias (claude-remote) | PROBLEMAS_MATRICES (+pdf): Fabrica como paso de matriz, tallerista = tercero; "Fabrica" tallerista id 3 mal clasificado
 2026-09-29 | Elias (claude-remote) | PROBLEMAS_MATRICES_2026-09-29.md: matrices sin ruta, variantes escondidas, sin tiempo, faltantes, nombres, tipo
 2026-09-29 | Elias (claude-remote) | permisos de botones en GP2.operario (migrados de Empleados) + operario_por_legajo devuelve permisos; conocimiento variante vs pieza
 2026-09-29 | Elias (claude-remote) | operario: habilitados todos (excepcion = false); verificar regla M acepta fase B; policy deny en bkp_inventario_virgilio; M y D en 0
 2026-09-29 | Elias (claude-remote) | GP2.operario (casilla registra produccion, 15 on / 4 off) + operario_por_legajo la exige; policies deny en operario y registros_produccion_cervantes; suite 59 OK
 2026-09-29 | claude-remote | GP2.matriz.carga_en (golpes|unidades; D y P = unidades) + conocimiento 4gr
-2026-09-29 | claude-remote | db/: registros_produccion_cervantes, _exigir_operario, recibir_mensaje_cervantes, operario_por_legajo (lee solo legajo/nombre/planta de Planify); verificar AI acepta _exigir_operario; suite 59 OK
-2026-09-29 | claude-remote | CONOCIMIENTO_GP2.md §4gq: maestro de empleados = planify.employees; letra del legajo = empresa

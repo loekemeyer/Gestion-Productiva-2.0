@@ -17,10 +17,10 @@ Uso = producción cargada en Cervantes (`public.db_n8n_espejo`) en los últimos 
 | Matriz | GP2 (rutas del Excel) | Base vieja (Causa-Efecto / nombres) |
 |---|---|---|
 | 12 / 12C | la **12** hace I6 (mariposa 502) **y I11** (701 Chef) | I11 la hace la **12C**; la 12 solo I6 |
-| 28 / 28B | 28 hace A15, J2, **J5 = "s/M p/Pintar"** | 28B = "p/**Cromar**" → J5 |
-| 10 / 10B | 10 hace H11 y H7-M10; **no hay H15** | 10B = Cuchilla **Curva (H15)** |
+| ~~28 / 28B~~ | **GP2 está bien** [Elías]: ya no se croma, se compra fleje inox → A15 | la vieja quedó con "28B p/Cromar". ⚠ En RP se siguió cargando 28B hasta el 01/09 (22 cajones, 34.460 u.) |
+| ~~10 / 10B~~ | **RESUELTO 29/09** [Elías]: la varilla curva (H15) es la **174** "Armado de Varilla Curva C/Cuchilla", que ya hace H15 en GP2. La **10B se eliminó** de `GP2.matriz` | (error mío: sí existe H15) |
 | 74 / 74A | 74 hace G7 e IE10-M74; **no hay G5** | 74A = Rompenuez **Abierta** → G5 |
-| 114 | GP2 usa la **114** (hace L9 y L10) | la vieja dice "114 **OBSOLETO** — usar 114A o 114B" |
+| 114 | GP2 usa la **114** (L11→L9 izq, L12→L10 der) | la vieja: 114A (izq) y 114B (der). En el último año se cargó solo la **114** (28 cajones, 31.384 u.); 114A/B nunca |
 | 221 | hace **D2 / D3** (aletas inox) | Causa-Efecto: 114A→**L9**, 114B→**L10** |
 | 349 | hace LL4 y **M2** | Causa-Efecto: LL4 y **M3** |
 
@@ -35,7 +35,7 @@ Uso = producción cargada en Cervantes (`public.db_n8n_espejo`) en los últimos 
 Si se traduce la letra a "matriz base + pieza" (3B → 3 + M9):
 
 - **Termina igual** (misma pieza, mismo tiempo, mismo factor): 3B, 12C, 28B, 74A, 79B, 80B, 81B, 114A, 114B.
-- **No termina igual — tiempo propio**: **10B** 8,2 s (la 10: 6,3 s) · **39B** 2,9 s (la 39: 1,8 s).
+- **No termina igual — tiempo propio**: **39B** 2,9 s (la 39: 1,8 s). (La 10B era un duplicado de la 174 y se eliminó.)
 - **Sin tiempo**: 127B, 360B. (360/360B: el dueño pidió el 22/09 *"dejalas ambas así"*.)
 - **12B** es la única con letra que tiene ruta propia (hace G13 → abrelatas a manija 101 y 501).
 - **Solo con letra, sin pieza** (tareas de mano de obra, iguales en las dos bases): 101 B–E, 150B, 186B, 214B, 254B, 255B, 305B,

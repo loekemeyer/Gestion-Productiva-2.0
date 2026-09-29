@@ -807,13 +807,13 @@ create or replace view "GP2".v_nivel_stock as
     c.sector_id,
     COALESCE(
         CASE
-            WHEN c.sector_id = 5 THEN fk.consumo_kg_mes
+            WHEN c.sector_id = 5 AND c.unidad_medida = 'kg'::text THEN fk.consumo_kg_mes
             ELSE cp.consumo_uni_mes
         END, 0::numeric) AS consumo_mes,
     u.meses_stock,
     round(COALESCE(
         CASE
-            WHEN c.sector_id = 5 THEN fk.consumo_kg_mes
+            WHEN c.sector_id = 5 AND c.unidad_medida = 'kg'::text THEN fk.consumo_kg_mes
             ELSE cp.consumo_uni_mes
         END, 0::numeric) * u.meses_stock) AS max_calc,
     "GP2"._es_sector_insumo(u.ref_id) AS es_insumo,
@@ -822,8 +822,8 @@ create or replace view "GP2".v_nivel_stock as
    FROM "GP2".inventario i
      JOIN "GP2".ubicacion u ON u.id = i.ubicacion_id AND u.tipo = 'sector'::text
      JOIN "GP2".componente c ON c.id = i.componente_id AND c.sector_id = u.ref_id
-     LEFT JOIN "GP2".v_consumo_fleje_kg fk ON fk.componente_id = c.id AND c.sector_id = 5
-     LEFT JOIN "GP2".v_consumo_componente cp ON cp.componente_id = c.id AND c.sector_id <> 5;
+     LEFT JOIN "GP2".v_consumo_fleje_kg fk ON fk.componente_id = c.id AND c.sector_id = 5 AND c.unidad_medida = 'kg'::text
+     LEFT JOIN "GP2".v_consumo_componente cp ON cp.componente_id = c.id AND NOT (c.sector_id = 5 AND c.unidad_medida = 'kg'::text);
 comment on view "GP2".v_nivel_stock is 'Consumo mensual (Est Madre explotada) por fila de inventario de SECTOR y el nivel que sale de el: max_calc = consumo x meses_stock. Unica definicion (2026-09-05); la usa recalcular_maximos_insumos. El 2026-09-14 se le sacaron meses_minimo, min_calc, minimo y minimo_origen: el minimo se borro de la base y recalcular_minimos con el.';
 
 -- ---------- v_nivel_stock_prov_at ----------

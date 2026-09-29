@@ -13639,4 +13639,43 @@ Contexto: app unificada `GP2-Registro-Produccion`, se arranca por Cervantes. Tab
   o "sin tipo" de las de catálogo con un error de GP2. Errores reales: 138 tipo A con máquina balancín; 129/130/131 con
   ruta y sin tipo; 9 matrices con tiempo en la vieja y vacío en GP2 (182, 21, 325B, 361, 509, 512, 62, 63, 64).
   Informe: `PROBLEMAS_MATRICES_2026-09-29.md` (versión 2).
+- [usuario Elías 29/09] **Matriz 28: GP2 está bien.** *"Cambió y ya no se croma; se compra el fleje inox para ese"* → la
+  versión cromada es A15 (fleje inox). La 28B "p/Cromar" de la base vieja quedó vieja. [dato] Igual en Registro
+  Producción 2.0 se siguió cargando 28B hasta el 01/09 (22 cajones, 34.460 u.): el cartel ofrece "Cromar (JF5)".
+- [dato 29/09] **114A / 114B → sacacorcho doble aleta 523 (LOEKE) y 723 (CHEF).** Cadena en GP2: Fleje IC2 → 116 Corte
+  Aleta (L11 izq / L12 der) → **114** Doblado (L9 / L10) → 221 Estampado (D3 / D2) → Pettofrezza → 523/723. La vieja
+  hace lo mismo con 114A (izq) y 114B (der). En un año solo se cargó la 114 (28 cajones); 114A/114B nunca.
+
+## 4gs. La materia prima que corta un PS no tiene consumo propio: su máximo sale del máximo de las piezas (2026-09-28)
+
+- [usuario] *"Tiene que mandarse según máximos de sector de alambres y descorazonador. Es decir, si
+  tengo que tener 10 alambres y eso equivale a 0.1 de fleje hay que mandarle eso"* + *"calcula el
+  maximo segun los meses del sector x consumo de articulo"* + *"y agrega el maximo en la o.c."*.
+- **Regla**: `maximo_mp (kg, en la ubicación del PS) = Σ maximo_pieza × kg_x_uni_pieza / (1 − desperdicio_pct del PS)`.
+  `maximo_pieza` = el máximo de la pieza en su sector; si está vacío, consumo (Est Madre) × `meses_stock`
+  del sector. Función `recalcular_maximo_mp_ps()`, origen `maximo_origen='derivado_pieza'`; la corre
+  `fn_recalc_maximos_diferido` DESPUÉS de insumos/talleristas. Aplica a todo paso de PS con entrada en kg
+  y salida contada: hoy FLEJE90_BRUTO → Charcas → IC3/IC3V y CHAPA430 → Eclipse → Z31.
+- [dato] Al 2026-09-28: **FLEJE90_BRUTO 1.028,07 kg** (IC3 113.208 × 0,0083 + IC3V 6.600 × 0,0134, Charcas
+  sin desperdicio) y **CHAPA430 3,31 kg** (Z31 402 × 0,0049 / (1 − 40,28 %), con 402 = consumo × 1 mes de
+  Procesado porque Z31 no tiene máximo). La O.C. los muestra solos: `oc_bundle` ya leía el máximo de la
+  ubicación del PS, que estaba en 0.
+- **Las rutas de IC3/IC3V (art 120, 031, 836, 867, 034) arrancan en FLEJE90_BRUTO**, igual que la de chapa
+  (antes arrancaban en IC3 y el bruto no aparecía en el despiece). El título "Fleje" de la ruta
+  (`despiece_verif_bundle` / `programa_bundle`) acepta también el sector 13 (Alambre, único componente:
+  FLEJE90_BRUTO). Las rutas confirmadas de esos 5 artículos cambian de firma: hay que reconfirmarlas.
+- **`v_nivel_stock`**: solo el fleje que se PESA (sector 5 con `unidad_medida='kg'`) va por kg/mes. IC3/IC3V
+  son sector 5 pero en unidades y daban `max_calc` 0 (misma regla que ya tenía `tablet_bundle`). Efecto:
+  IC3V pasó de vacío a 6.600 y **IC3 de 100.800 (`migrado_de_minimo`) a 113.208 (`est_madre`)**. Ningún
+  otro máximo ni consumo se movió (firma md5 de inventario/consumos/niveles igual antes y después).
+- ⚠ [dato] **Sigue mal el CONSUMO en kg de estas materias primas** (no el máximo): `v_consumo_fleje_kg` da
+  388 kg/mes de CHAPA430 (1 kg por descorazonador; real ≈ 3,3) y `v_consumo_componente` da 19.968 "uni"
+  de FLEJE90_BRUTO. Hoy no pesa: la O.C. usa el máximo y no muestra el consumo, y la Tablet deja afuera
+  a los PS híbridos. Si algo empieza a leer ese consumo, corregirlo primero.
+- [dato] La ruta del art 709 arranca en Z31 (insumo) sin la chapa: su descorazonador no cuenta chapa.
+- [usuario Elías 29/09] **La 10B no existe: la varilla con cuchilla curva (H15) es la matriz 174** "Armado de Varilla
+  Curva C/Cuchilla" (8,5 s, ya tenía ruta → H15). **Se eliminó la 10B de `GP2.matriz`** (id 409; sin producción ni
+  rutas en GP2; queda su fila histórica en `matriz_racha`). En la base vieja 10B tuvo 1 cajón en el año (17/07, 385 u.)
+  y el cartel de Registro Producción 2.0 todavía la ofrece como "Varilla c/ Cuchilla Curva": en la app nueva, la
+  varilla curva va a la 174.
 
