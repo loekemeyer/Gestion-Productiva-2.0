@@ -1,6 +1,13 @@
 <!doctype html>
 <html lang="es">
 <head>
+<!-- v1.43.0 (2026-09-29) — PLASTICO: FAMILIA DE PEDIDO CON MINIMO POR FAMILIA [Thomas: "el minimo va por
+     familia, no por parte. Es decir: entre todos los pirolos tengo que llegar a 36000. Separame por
+     familia al igual que los cartones"]. Base: tabla GP2.familia_pedido (30 familias = matrices del
+     inyector, de la planilla Pedido Plasticos VACIO) y componente.familia_pedido (49 piezas); oc_bundle
+     manda familia_pedido y familia_minimo. Pantalla: conTitulosDeFamiliaPlastico() agrupa el sector 6
+     por familia con un titulo "Pirolos · 3 piezas · min. familia 36.000 uni · pedido N uni" (rojo si
+     no llega); la linea "min. proveedor" por pieza no se muestra cuando hay familia. No frena. -->
 <!-- v1.42.1 (2026-09-29) — LA TABLA DE CARTONES SE AGRUPA SOLO POR FORMATO [Thomas: "Solo por formato, ni
      por marca ni por familia de articulo"]: un titulo por carton_formato (C, LOKE, 8, Huevo, Huevo LK...),
      mas "Pliegos" y "Sin formato". La familia de la regla de pedido (formato + marca + categoria) no cambia. -->
@@ -497,6 +504,7 @@
   tr.con-pedido td{background:#eef7ee}
   .paq-eq{font-size:12px;color:#0b3b73;display:block}
   .fam-hdr td{background:#eef2f7;color:#0b3b73;font-weight:700;font-size:13px;padding:6px 8px;text-align:left}
+  .fam-hdr.corto td{color:#b71c1c}
   .min-uni{font-size:12px;color:#8a6d00;display:block}
   /* no cumple el minimo: rojo y negrita [Thomas 2026-09-28] */
   .min-uni.corto{font-weight:800;color:#b71c1c}
@@ -1109,6 +1117,8 @@ function notaMinUni(i, ped, esChar, uxpChar, um){
   // se agrupen por familia [Thomas 2026-09-29: "En cartones los minimos son por carton, aunque
   // esten agrupados por familia"]. La v1.41.0 mostraba aca la tirada de la familia
   // (pliegos_multiplo); era una lectura equivocada de la planilla y se saco.
+  // v1.43.0: si la pieza tiene familia de pedido, el minimo es de la familia y se lee en su titulo.
+  if(i.familia_pedido) return '';
   if(m<=0) return '';
   var pedUni = esChar ? (Number(ped)||0)*uxpChar : (Number(ped)||0);
   var corto = pedUni>0 && pedUni<m;
@@ -1122,9 +1132,42 @@ function notaMinUni(i, ped, esChar, uxpChar, um){
 // v1.42.0: los CARTONES se listan SEPARADOS POR FAMILIA (formato + marca + categoria), con un
 // renglon de titulo por familia [Thomas 2026-09-29: "quiero que en la o.c. me separes por familia"].
 // El orden dentro de la familia es el que ya venia (el del bundle). Los demas sectores no cambian.
+// v1.43.0: el PLASTICO tambien va agrupado, por FAMILIA DE PEDIDO (componente.familia_pedido = las
+// piezas de la misma matriz del inyector) y el minimo del proveedor es de la familia, no de la pieza
+// [Thomas 2026-09-29: "el minimo va por familia, no por parte. Entre todos los pirolos tengo que
+// llegar a 36000"]. El titulo de la familia muestra el minimo y lo pedido entre todas sus piezas
+// (rojo si no llega); no frena. Las piezas sin familia van al final, sin titulo.
+function pedidoUniDe(i){
+  var ped=Number(PEDIDO[i.comp_id])||0;
+  if(esCharcasIt(i)) return ped*uniPorPaqCharcas(i);
+  return ped;
+}
+function conTitulosDeFamiliaPlastico(fs){
+  var plas=fs.filter(function(i){ return i.sector_id===6 && i.familia_pedido; });
+  if(!plas.length) return null;
+  var resto=fs.filter(function(i){ return !(i.sector_id===6 && i.familia_pedido); });
+  var grupos={}, orden=[];
+  plas.forEach(function(i){
+    var k=String(i.familia_pedido);
+    if(!grupos[k]){ grupos[k]=[]; orden.push(k); }
+    grupos[k].push(i);
+  });
+  orden.sort(function(a,b){ return a.localeCompare(b,'es'); });
+  var out=[];
+  orden.forEach(function(k){
+    var xs=grupos[k], m=Number(xs[0].familia_minimo)||0;
+    var tot=xs.reduce(function(a,i){ return a+pedidoUniDe(i); },0);
+    var corto=m>0 && tot>0 && tot<m;
+    out.push({hdr:k+' · '+xs.length+(xs.length===1?' pieza':' piezas')+
+                  (m>0?(' · mín. familia '+fmt(m)+' uni · pedido '+fmt(tot)+' uni'):''), corto:corto});
+    xs.forEach(function(i){ out.push({it:i}); });
+  });
+  return out.concat(resto.map(function(i){ return {it:i}; }));
+}
+
 function conTitulosDeFamilia(fs){
   var carton=fs.filter(function(i){ return i.sector_id===10; });
-  if(!carton.length) return fs.map(function(i){ return {it:i}; });
+  if(!carton.length) return conTitulosDeFamiliaPlastico(fs) || fs.map(function(i){ return {it:i}; });
   var otros=fs.filter(function(i){ return i.sector_id!==10; });
   var grupos={}, orden=[];
   // v1.42.1: SOLO por formato [Thomas 2026-09-29: "Solo por formato, ni por marca ni por familia
@@ -1149,7 +1192,7 @@ function render(){
   cargarSugeridos();
   var fs=filtradas();
   $('tbody').innerHTML=conTitulosDeFamilia(fs).map(function(fila){
-    if(fila.hdr) return '<tr class="fam-hdr"><td colspan="6">'+esc(fila.hdr)+'</td></tr>';
+    if(fila.hdr) return '<tr class="fam-hdr'+(fila.corto?' corto':'')+'"><td colspan="6">'+esc(fila.hdr)+'</td></tr>';
     var i=fila.it;
     var ped=PEDIDO[i.comp_id]||'';
     var esCarton=GP2UI.esCarton(i);   /* el 10 vive en gp2-ui.js (idea 7334) */
