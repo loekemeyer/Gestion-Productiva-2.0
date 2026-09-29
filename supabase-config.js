@@ -47,6 +47,15 @@ self.GP2_SB = function (opts) {
       db: { schema: "GP2" },
       auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: false }
     });
+    // Sesion caida (refresh_token invalido -> supabase-js emite SIGNED_OUT): al login.
+    // Si no, la pantalla sigue como anonimo y recien al grabar tira "permission denied".
+    // GP2_IR_AL_LOGIN lo define auth-guard.js solo cuando el login esta prendido.
+    var a = self.__GP2_SB_CLIENT.auth;
+    if (a && typeof a.onAuthStateChange === "function") {
+      a.onAuthStateChange(function (ev) {
+        if (ev === "SIGNED_OUT" && typeof self.GP2_IR_AL_LOGIN === "function") self.GP2_IR_AL_LOGIN();
+      });
+    }
   }
   return self.__GP2_SB_CLIENT;
 };

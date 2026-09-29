@@ -54,6 +54,12 @@ window.GP2_AUTH_ON = GP2_AUTH_ON;
     return;
   }
 
+  // 2b) Pantalla aceptada: si DESPUES se cae la sesion (el refresh_token deja de valer y
+  //     supabase-js la descarta), GP2_SB() llama a esto y se vuelve al login. Sin esto la
+  //     pantalla seguia andando como anonimo: leia bien y al grabar la base contestaba
+  //     "permission denied for function ..." (29/09, Tablet recibiendo Charcas).
+  window.GP2_IR_AL_LOGIN = function () { sessionStorage.clear(); redirigirLogin(); };
+
   // 3) Si el role es "envios", restringir las paginas accesibles.
   var role = sessionStorage.getItem('gp_role') || 'admin';
   if (role === 'envios') {
@@ -101,18 +107,17 @@ window.GP2_AUTH_ON = GP2_AUTH_ON;
     window.location.replace(dst);
   }
 
+  // Solo cuenta la sesion de ESTE proyecto (sb-<ref>-auth-token). Antes servia cualquier
+  // "sb-*-auth-token": en loekemeyer.github.io el localStorage es uno solo para todas las
+  // apps del dueno, y el token de otra app (otro proyecto Supabase) dejaba pasar la
+  // pantalla sin sesion GP2.
   function haySesionGuardada() {
     try {
-      for (var i = 0; i < localStorage.length; i++) {
-        var k = localStorage.key(i);
-        if (k && k.indexOf('sb-') === 0 && k.indexOf('-auth-token') !== -1) {
-          var ses = JSON.parse(localStorage.getItem(k) || 'null');
-          // supabase-js v2 guarda {access_token, refresh_token, ...}; versiones viejas
-          // lo anidaban en currentSession.
-          ses = ses && (ses.currentSession || ses);
-          if (ses && ses.refresh_token) return true;
-        }
-      }
+      var ses = JSON.parse(localStorage.getItem('sb-hrxfctzncixxqmpfhskv-auth-token') || 'null');
+      // supabase-js v2 guarda {access_token, refresh_token, ...}; versiones viejas
+      // lo anidaban en currentSession.
+      ses = ses && (ses.currentSession || ses);
+      if (ses && ses.refresh_token) return true;
     } catch (e) { console.warn('[auth-guard] sesion ilegible:', e); }
     return false;
   }

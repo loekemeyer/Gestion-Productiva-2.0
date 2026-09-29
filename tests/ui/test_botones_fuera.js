@@ -33,7 +33,7 @@ const STUB = `window.supabase={createClient:function(){return{rpc:async function
   page = await ctx.newPage();
   await page.addInitScript(jwt => {
     sessionStorage.setItem('gp_auth','ok'); sessionStorage.setItem('gp_role','admin');
-    localStorage.setItem('sb-test-auth-token', JSON.stringify({access_token: jwt, refresh_token: 'r-test'}));
+    localStorage.setItem('sb-hrxfctzncixxqmpfhskv-auth-token', JSON.stringify({access_token: jwt, refresh_token: 'r-test'}));
   }, fakeJwt());
   // v1.196.0: Prov AT quedo oculto del menu normal; se mira en la vista completa (?todos=1)
   await page.goto(ROOT + '/GP2_MODULOS.html?todos=1');

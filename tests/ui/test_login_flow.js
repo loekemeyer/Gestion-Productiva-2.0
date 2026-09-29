@@ -34,7 +34,7 @@ const guardCon = on => 'window.GP2_GUARD_EN_FILE = true;\n' +
   // Sesion como la guarda supabase-js v2: access_token (dura 1 h) + refresh_token.
   const logueado = async (page, segs = 3600, conPestana = true) => page.addInitScript(([jwt, pest]) => {
     if (pest) { sessionStorage.setItem('gp_auth','ok'); sessionStorage.setItem('gp_role','admin'); }
-    localStorage.setItem('sb-test-auth-token', JSON.stringify({access_token: jwt, refresh_token: 'r-test'}));
+    localStorage.setItem('sb-hrxfctzncixxqmpfhskv-auth-token', JSON.stringify({access_token: jwt, refresh_token: 'r-test'}));
   }, [fakeJwt(segs), conPestana]);
 
   console.log('-- interruptor APAGADO (GP2_AUTH_ON=false): se entra suelto');
@@ -141,6 +141,39 @@ const guardCon = on => 'window.GP2_GUARD_EN_FILE = true;\n' +
   ok((await irLogin(destino)).endsWith('/Faltantes/Faltantes_GP2.html'), 'login vuelve a la pantalla de origen');
   ok((await irLogin('//evil.example/x')).includes('GP2_MODULOS.html'), '"//otro-sitio" NO se sigue: va al menu');
   ok((await irLogin('https://evil.example/x')).includes('GP2_MODULOS.html'), '"https://otro-sitio" NO se sigue: va al menu');
+
+  // 8) 29/09: la sesion de OTRA app del mismo origen (github.io, otro proyecto Supabase)
+  //    no cuenta como sesion GP2.
+  console.log('-- sesion ajena y sesion caida');
+  ctx = await nuevoCtx(true);
+  page = await ctx.newPage();
+  await page.addInitScript(() => {
+    sessionStorage.setItem('gp_auth','ok'); sessionStorage.setItem('gp_role','admin');
+    localStorage.setItem('sb-otroproyecto-auth-token', JSON.stringify({access_token:'x', refresh_token:'r'}));
+  });
+  await page.goto(ROOT + '/GP2_MODULOS.html');
+  await page.waitForURL(/login\.html/);
+  ok(page.url().includes('login.html'), 'token de otro proyecto Supabase NO deja pasar -> login');
+  await ctx.close();
+
+  // 9) 29/09: la sesion se cae con la pantalla abierta (refresh_token invalido ->
+  //    SIGNED_OUT de supabase-js) -> vuelve al login, no sigue como anonimo.
+  const STUB_SB = `window.supabase={createClient:function(){return{
+    auth:{onAuthStateChange:function(cb){window.__authCb=cb;}},
+    rpc:async function(){return{data:null,error:null}},
+    from:function(){var q={select:function(){return q},eq:function(){return q},order:function(){return q},
+      then:function(r){return Promise.resolve({data:[],error:null}).then(r)}};return q}}}};`;
+  ctx = await nuevoCtx(true);
+  await ctx.route('**/supabase-js*', r => r.fulfill({ contentType: 'application/javascript', body: STUB_SB }));
+  page = await ctx.newPage();
+  await logueado(page);
+  await page.goto(ROOT + '/GP2_MODULOS.html');
+  await page.waitForSelector('.card');
+  ok(await page.evaluate(() => typeof window.__authCb === 'function'), 'GP2_SB escucha los cambios de sesion');
+  await page.evaluate(() => window.__authCb('SIGNED_OUT', null));
+  await page.waitForURL(/login\.html/);
+  ok(/next=/.test(page.url()), 'sesion caida -> login, con ?next= para volver');
+  await ctx.close();
 
   await browser.close();
   console.log(process.exitCode ? 'HAY FALLOS' : 'TODO OK');
