@@ -13607,9 +13607,11 @@ Contexto: app unificada `GP2-Registro-Produccion`, se arranca por Cervantes. Tab
   solo GP2 lo sabe (`matriz_salidas`) y pide "Fabricás …" para que el stock vaya a la pieza correcta.
 - [dato 29/09] **67 matrices usadas en 90 días no están en ninguna ruta de GP2**; 63 son tareas de mano de obra
   (envasar, reenvasar, armar importados, sacar film) sin Causa-Efecto tampoco en la base vieja. [usuario Elías]
-  *"Fábrica sí tiene que estar porque se hacen en fábrica"* + *"tallerista es un 3ro"*: deben figurar en la ruta del
-  artículo como **paso de matriz hecho en fábrica**, NO como tallerista. **Tallerista = siempre un tercero.** ⚠ Por eso
-  el tallerista "Fábrica" de GP2 (`GP2.tallerista` id 3, 141 pasos) está mal clasificado y hay que revisarlo. Listado: `PROBLEMAS_MATRICES_2026-09-29.md` (+ `.pdf`).
+  *"Fábrica sí tiene que estar porque se hacen en fábrica"*: deben figurar en la ruta del artículo como paso del
+  tallerista **"Fábrica"** (`GP2.tallerista` id 3). **CORRECCIÓN mismo día** [Elías, sobre el PDF]: *"Fábrica" queda
+  como tallerista, está bien así* — el "tallerista es un 3ro" vale para los demás; Fábrica es el interno y NO es un
+  error de modelo (retirado el punto 7 del informe). Falta decidir cómo se asocia la matriz al paso de Fábrica
+  (hoy los pasos de tallerista no llevan `matriz_id`). Listado: `PROBLEMAS_MATRICES_2026-09-29.md` (+ `.pdf`).
 - [usuario Elías 29/09, verificado en la app] **La 28B está en GP2 como matriz 28 + pieza J5** (la 28 ofrece A15, J2, J5):
   GP2 reemplazó la variante con letra por la elección de pieza. Para la app nueva hace falta un mapeo
   variante → (matriz base, pieza). ⚠ Conflicto de nombres a resolver: RP 2.0 dice 28B = Cromar (JF5); GP2 dice
