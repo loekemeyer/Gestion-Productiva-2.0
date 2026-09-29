@@ -66,11 +66,18 @@ window.supabase = { createClient: function(){ return {
   await page.mouse.move(5, 5);
   ok(await page.$eval('#dsgPop', x => x.hidden), 'al salir de la celda se cierra');
 
-  // Con mouse, el clic no la cierra (ya estaba abierta por el hover).
+  // v1.45.1 [Thomas: "que si hago click me quede fijo y lo saco haciendo un click afuera"]
   await page.click('td.max-cell');
   await page.waitForFunction(() => !document.getElementById('dsgPop').hidden);
-  ok(true, 'con mouse, clic sobre la celda la deja abierta');
+  ok(await page.$eval('#dsgPop', x => x.classList.contains('fija') && getComputedStyle(x).pointerEvents === 'auto'), 'con mouse, el clic la fija y recibe el mouse');
   await page.mouse.move(5, 5);
+  ok(!(await page.$eval('#dsgPop', x => x.hidden)), 'fijada, salir de la celda NO la cierra');
+  await page.$eval('#dsgPop', x => { x.scrollTop = 20; x.dispatchEvent(new Event('scroll')); });
+  ok(!(await page.$eval('#dsgPop', x => x.hidden)), 'scrollear adentro NO la cierra');
+  await page.click('#dsgPop');
+  ok(!(await page.$eval('#dsgPop', x => x.hidden)), 'clic adentro NO la cierra');
+  await page.mouse.click(5, 5);
+  ok(await page.$eval('#dsgPop', x => x.hidden && !x.classList.contains('fija')), 'clic afuera la cierra');
 
   // Tablet: sin hover, un toque la abre, otro la cierra, y tocar afuera tambien.
   await page.evaluate(() => document.querySelector('td.max-cell').click());
@@ -81,6 +88,11 @@ window.supabase = { createClient: function(){ return {
   await page.evaluate(() => document.querySelector('td.max-cell').click());
   await page.evaluate(() => document.body.click());
   ok(await page.$eval('#dsgPop', x => x.hidden), 'tablet: tocar afuera la cierra');
+
+  // v1.45.1 [Thomas: "hay mas blanco de un lado que de otro"]: con la tabla a la vista la tarjeta la abraza.
+  const anchos = await page.evaluate(() => [document.querySelector('.card').getBoundingClientRect().width,
+    document.querySelector('#panGen .table-wrap').getBoundingClientRect().width]);
+  ok(anchos[0] - anchos[1] < 60, 'la tarjeta abraza la tabla (sin blanco de un solo lado): ' + anchos.map(Math.round).join(' vs '));
 
   await browser.close();
   console.log(process.exitCode ? 'HAY FALLOS' : 'TODO OK');

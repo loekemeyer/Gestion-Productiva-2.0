@@ -4,6 +4,7 @@
 (vacío)
 
 [HISTORIAL]
+2026-09-29 (21) - OC v1.45.1: desglose del Maximo se FIJA con clic y se scrollea (cierra con clic afuera/Escape); tarjeta abraza la tabla (sin blanco a la derecha); columna Proveedor ofrece "o Recicor · $ precio" sin elegirlo arriba. version.js v1.207.5 ?v=20260929o. thomas (claude-remote).
 2026-09-29 (20) - CHAPA430 renombrada a FLEJE_DESCORAZONADOR / "Fleje Descorazonador" (Thomas). DB: componente 595 + 4 funciones. Recepcion Insumos, Entrega PS, db/, tests. version.js v1.207.3 ?v=20260929m. CONOCIMIENTO 4gv. thomas (claude-remote).
 2026-09-29 | claude-remote (Thomas) | ControlEntregaPS_GP2 v1.4.0: campos compactos (124px) + la diferencia sale solo de los kg donde la pieza se pesa (paquetes/bolsas/cajones = dato). version.js v1.207.4
 2026-09-29 (19) - FLEJE90_BRUTO renombrado a ALAMBRE (Thomas). DB: componente 583 + 5 funciones. Recepcion Insumos, Entrega PS, db/, tests. version.js v1.207.2 ?v=20260929l. CONOCIMIENTO 4gv. thomas (claude-remote).
