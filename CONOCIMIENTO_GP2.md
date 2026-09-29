@@ -13523,9 +13523,15 @@ Virgilio"` `[dato: el .bas]`, no toca GP2.
   legajo"*. El operario tipea el legajo completo (`c94`). Como el teclado del celular es numérico por regla, la
   pantalla de legajo lleva un **teclado propio en pantalla (0-9 + C)**, con botones grandes. `login-operario` hoy
   valida contra `public."Empleados"`: cambiar a `planify.employees` activo y de tipo operario.
-- [dato 29/09] **Hoy el filtro "por operario" devuelve 0**: los 56 empleados de Planify tienen `tipo='administrativo'`
-  (no hay constraint ni otro valor). Hay que marcar los operarios en Planify (RRHH). Candidatos = los que cargaron
-  producción en 30 días: c19, 233, 237, 245, 261, 277, 282, 501, 504, 74, c92, c94, c104, c8; el `600` que carga en
-  Virgilio **no está en Planify**.
+- [usuario 29/09, captura de Planify] **Planify SÍ clasifica**: el campo es `planify.empleados_liquidacion.tipo_empleado`
+  (Planta / Administrativo / Pasante / sin especificar), NO `planify.employees.tipo` (ese dice "administrativo" para
+  los 56 y no sirve). **Operario = `tipo_empleado='planta'` y activo**, unido por `employee_id`.
+- [dato 29/09] 19 de planta activos. Todos los que cargaron producción en 30 días son planta, salvo **261 Jennifer
+  Muñoz** (sin tipo; 1 solo registro) y **504 Melany Pierola**, que tiene DOS filas activas de liquidación (una
+  administrativo y otra planta). La empresa también está ahí (`empresa`): `c` = **CHEF SRL**, sin letra =
+  **Loekemeyer SRL**, 50x = **Agencia**.
+- [usuario 29/09] El legajo **600** es un caso especial para pruebas (carga en Virgilio): no es un empleado.
+- ⚠ `empleados_liquidacion` es la tabla de SUELDOS (CBU, CUIL, banco). La app de operarios nunca la lee directo:
+  una función `SECURITY DEFINER` que devuelva solo legajo, nombre y si es planta.
 - [dato 29/09] La producción histórica guarda el legajo **sin la letra** (`94`, `104`, `8`, `19`, `92`): al migrar,
   mapear número→legajo con letra usando Planify, y ojo con 29/c29 y 122/C122.
