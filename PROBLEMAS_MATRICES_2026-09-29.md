@@ -21,8 +21,8 @@ Uso = producción cargada en Cervantes (`public.db_n8n_espejo`) en los últimos 
 | ~~10 / 10B~~ | **RESUELTO 29/09** [Elías]: la varilla curva (H15) es la **174** "Armado de Varilla Curva C/Cuchilla", que ya hace H15 en GP2. La **10B se eliminó** de `GP2.matriz` | (error mío: sí existe H15) |
 | 74 / 74A | 74 hace G7 e IE10-M74; **no hay G5** | 74A = Rompenuez **Abierta** → G5 |
 | 114 | GP2 usa la **114** (L11→L9 izq, L12→L10 der) | la vieja: 114A (izq) y 114B (der). En el último año se cargó solo la **114** (28 cajones, 31.384 u.); 114A/B nunca |
-| 221 | hace **D2 / D3** (aletas inox) | Causa-Efecto: 114A→**L9**, 114B→**L10** |
-| 349 | hace LL4 y **M2** | Causa-Efecto: LL4 y **M3** |
+| 221 | hace **D2 / D3** (aletas inox) | Causa-Efecto: 114A→**L9**, 114B→**L10**. [Elías] las aletas ahora son **inox**; se está actualizando en GP2 (no tocar desde acá) |
+| ~~349~~ | **GP2 está bien** [Elías]: el disco ya sale calado en el primer corte (349 → M2); la 123 ya no va | la vieja: 349 → M3 → 123 perfora → M2 |
 
 ## 2. Error interno de GP2
 

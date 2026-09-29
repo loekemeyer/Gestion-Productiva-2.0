@@ -13682,4 +13682,12 @@ Contexto: app unificada `GP2-Registro-Produccion`, se arranca por Cervantes. Tab
   `Matrices_audit`) y `public."UnixCajon_Stock_Registro_Prod_Cerv"`. Causa-Efecto no tenía fila de la 10B. Registro
   Producción 2.0 **v1.9.1** (commit 47618cf): el cartel de la 10 "Varilla c/ Cuchilla Curva" ahora registra la **174**.
   Excepción puntual a la regla "public = solo lectura", pedida por Elías.
+- [usuario Elías 29/09] **349: el disco del pisapapas ya sale calado en el primer corte** (349 → M2). La 123 "Perfora
+  disco" de la base vieja ya no va: la ruta de GP2 está bien.
+- [usuario Elías 29/09] **Las aletas del sacacorcho doble aleta ahora son inox**, igual que el cuerpo uña de la 28. Se está
+  cambiando en GP2 en otra sesión (GP2 está más actualizado que la vieja, pero puede tener errores): no tocar desde acá.
+- [dato 29/09] **138 en GP2 = "Corte Grampa Batidor"** (Fleje N° 19 → W1B Grampa → Guazzaroni → Alex Escalante → Pedernera →
+  batidores 515/615), tipo A pero máquina balancín, **9 s**. En la vieja el 138 es "Doblado Sacafuente" (B, 9 s). Sin
+  producción en 2 años en ninguna. El 9 s lo copió la carga del 22/09 del vecino: [deducido] es el tiempo del doblado,
+  no del corte (un corte en alimentador anda en ~1,5 s), y entra en el costo del batidor.
 
