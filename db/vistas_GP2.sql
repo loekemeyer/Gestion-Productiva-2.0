@@ -149,10 +149,14 @@ create or replace view "GP2".v_consumo_fleje_kg as
             rp.comp_entrada_id,
             rp.comp_salida_id,
             NULL::numeric AS "numeric",
-            ce.kg_x_uni
+                CASE
+                    WHEN ce.unidad_medida = 'kg'::text AND ce.kg_x_uni = 1::numeric AND COALESCE(cs.kg_x_uni, 0::numeric) > 0::numeric THEN cs.kg_x_uni
+                    ELSE ce.kg_x_uni
+                END AS kg_x_uni
            FROM "GP2".ruta_paso rp
              JOIN "GP2".ruta r ON r.id = rp.ruta_id
              JOIN "GP2".componente ce ON ce.id = rp.comp_entrada_id AND ce.sector_id = 5
+             JOIN "GP2".componente cs ON cs.id = rp.comp_salida_id
              LEFT JOIN "GP2".matriz m ON m.id = rp.matriz_id
           WHERE r.articulo_id IS NOT NULL AND rp.comp_salida_id IS NOT NULL AND rp.comp_salida_id <> rp.comp_entrada_id AND rp.tipo_paso <> 'ingreso'::text AND COALESCE(m.partes_por_kilo_de_fleje, 0::numeric) = 0::numeric AND COALESCE(ce.kg_x_uni, 0::numeric) > 0::numeric
         )

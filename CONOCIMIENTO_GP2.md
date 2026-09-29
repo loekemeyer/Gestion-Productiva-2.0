@@ -13857,3 +13857,13 @@ Contexto: app unificada `GP2-Registro-Produccion`, se arranca por Cervantes. Tab
   `Chapa 430` → **`FLEJE_DESCORAZONADOR` / `Fleje Descorazonador`** (Aperam → Eclipse). Reemplazado en 4 funciones
   (`cargar_recepcion_eclipse`, `recalcular_maximo_mp_ps`, `control_ps_bundle`, `fn_recalc_maximos_diferido`) y en
   Recepción Insumos / Entrega PS. El proceso de Eclipse sigue rotulado "Corte Chapa 430" en Entrega PS.
+- [usuario] Thomas, mismo día, sobre Consumo (`ALAMBRE · Sector Alambre · 19.968 uni`): *"ES SECTOR FLEJE, NO
+  ALAMBRE"*. `componente` 583 `sector_id` 13 → **5 (Sector Fleje)**. Era el único componente del sector 13, que queda
+  vacío (no se borró: `sector.oc_rubro_id` 13→5 sigue para la OC). Stock intacto: su inventario vive en la ubicación
+  de Resortes Charcas, no en una ubicación de sector. `despiece_verif_bundle` / `programa_bundle` ya aceptaban (5, 13).
+- [dato] Esos 19.968 no eran alambre: eran las **piezas** cortadas (IC3 18.868 + IC3V 1.100/mes). Al pasar a Fleje la
+  pantalla lo lee en kg de `v_consumo_fleje_kg`, que multiplicaba piezas × `kg_x_uni` **de la entrada** (1 en la
+  materia prima a granel) → daba 19.968 kg. Se corrigió la vista: si la entrada es `kg` con `kg_x_uni = 1`, usa el
+  `kg_x_uni` de la pieza que sale. ALAMBRE: **171,3 kg/mes**. Mismo pozo, caso hermano ya vivo:
+  FLEJE_DESCORAZONADOR mostraba **388 kg/mes** y son **1,9** (Z31, 0,0049 kg). Los máximos no cambian: los dos son
+  `derivado_pieza` (§4gs), no salen de esta vista.
