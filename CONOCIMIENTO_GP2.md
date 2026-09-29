@@ -13535,3 +13535,32 @@ Virgilio"` `[dato: el .bas]`, no toca GP2.
   una función `SECURITY DEFINER` que devuelva solo legajo, nombre y si es planta.
 - [dato 29/09] La producción histórica guarda el legajo **sin la letra** (`94`, `104`, `8`, `19`, `92`): al migrar,
   mapear número→legajo con letra usando Planify, y ojo con 29/c29 y 122/C122.
+- [dato 29/09] El horario del operario está en `empleados_liquidacion.horario_laboral` (texto "08:30 a 17:30", los
+  19 de planta lo tienen); `planify.employees.hora_entrada` está VACÍO para todos ellos. `GP2.operario_por_legajo`
+  devuelve entrada y salida parseadas de ahí. Ej.: 501 Graciela Santillán entra 07:00 (hoy la app la mide desde 08:30).
+- [dato 29/09] **Planta NO alcanza para decir "operario de producción"**: Martín Pregelj (203, Técnico) y Martín
+  Cornejo (c91, Oficial) son planta y [usuario] *"no son operarios pero también están en la app"*. Tampoco sirve la
+  categoría (74 Omar Bachur es "Chofer de Carga" y carga producción). Falta un permiso propio "registra producción".
+
+## 4gr. Registro de producción (app nueva): decisiones del dueño (2026-09-29)
+
+Contexto: app unificada `GP2-Registro-Produccion`, se arranca por Cervantes. Tabla completa en
+`docs/INVENTARIO-FUNCIONES.md` §7.3 de ese repo.
+- [usuario] **Llegada tarde**: con el horario de Planify de cada operario, no 08:30 fijo.
+- [usuario] **PM (paro de matriz)**: igual que Registro Producción = tiempo muerto con duración, + aviso WhatsApp al
+  abrirlo (existe: `app.js` → `send-whatsapp`, plantilla `problemas_en_matriz_reducido`, permitida en v55).
+- [usuario] **CM (cambiar matriz)**: *"solo personas específicas + matricería + alimentador lo hacen, no el operario
+  común"* → quien hace CM NO es quien produce con esa matriz: CM asigna matriz↔balancín y **no** deja la matriz activa
+  para el que la cambió.
+- [usuario] **RM**: igual que hoy (cierra el cajón como completo y pasa a CM) + aviso WhatsApp "Rompió Matriz".
+- [usuario] **Deshacer / editar**: va en el **admin** (maestro), no en la app del operario.
+- [usuario] **Terminar día con TM abierto**: se cierra solo (hoy ya lo hace: `app.js` `confirmarTerminarDia`, paso 2).
+- [usuario] **Seguir cajón al día siguiente**: se mantiene; el código de Logística (hoy `151515` escrito en `app.js`,
+  repo público) pasa a ser un **secreto en la base**, validado del lado del servidor.
+- [usuario] **Rollos**: los maneja el **alimentador** (Eduardo c19 lo es), distinto de un balancín común → permiso de
+  rol, no `legajo === "19"`.
+- [usuario] **Turnos después de medianoche**: no hay. Cerrar lo abierto al terminar el día cierra los TIEMPOS MUERTOS,
+  no el cajón marcado "sigo mañana" (no se pisa con lo anterior).
+- [usuario] **WhatsApp**: los que ya están en las funciones (matriz sin tiempo, paro, rotura).
+- [usuario] **Botones**: los de Registro Producción (`capsDe`/`botonVisible` + flags), incluidos RD, REM, MM, TRM, TL, PCM.
+

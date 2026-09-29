@@ -5015,20 +5015,24 @@ $function$
 
 -- ---------- operario_por_legajo ----------
 CREATE OR REPLACE FUNCTION "GP2".operario_por_legajo(p_legajo text)
- RETURNS TABLE(employee_id bigint, legajo text, nombre text)
+ RETURNS TABLE(employee_id bigint, legajo text, nombre text, hora_entrada time without time zone, hora_salida time without time zone)
  LANGUAGE sql
  STABLE SECURITY DEFINER
  SET search_path TO ''
 AS $function$
   -- Operario = empleado activo con ficha de liquidación activa de tipo 'planta' (RRHH, Planify).
-  -- Lee SOLO legajo, nombre, activo y tipo_empleado: nada de sueldos, CBU, CUIL ni fechas.
+  -- Lee SOLO legajo, nombre, activo, tipo_empleado y horario_laboral ("08:30 a 17:30"): nada de
+  -- sueldos, CBU, CUIL ni fechas. El horario se usa para la llegada tarde y el cajón que sigue.
   -- La letra es parte del legajo (c = CHEF SRL); se compara sin distinguir mayúsculas.
-  select e.id::bigint, e.legajo::text, e.nombre::text
+  select e.id::bigint, e.legajo::text, e.nombre::text,
+         nullif(substring(l.horario_laboral::text from '^\s*(\d{1,2}:\d{2})'), '')::time,
+         nullif(substring(l.horario_laboral::text from '(\d{1,2}:\d{2})\s*$'), '')::time
     from planify.employees e
+    join planify.empleados_liquidacion l
+      on l.employee_id = e.id and l.activo and l.tipo_empleado = 'planta'
    where e.activo
      and lower(e.legajo::text) = lower(trim(p_legajo))
-     and exists (select 1 from planify.empleados_liquidacion l
-                  where l.employee_id = e.id and l.activo and l.tipo_empleado = 'planta')
+   order by l.id
    limit 1;
 $function$
 ;
