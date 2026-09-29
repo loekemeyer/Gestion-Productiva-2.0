@@ -26,7 +26,7 @@ Uso = producción cargada en Cervantes (`public.db_n8n_espejo`) en los últimos 
 
 ## 2. Error interno de GP2
 
-- **138**: tipo **A** (alimentador) pero máquina **balancín**; la vieja la tiene como B. Además el nombre cambia de sentido:
+- ~~**138**: tipo A con máquina balancín~~ → **corregido 29/09: alimentador** [Elías]. Queda: el tiempo de 9 s parece del doblado; la vieja la tiene como B. Además el nombre cambia de sentido:
   GP2 "Corte Grampa Batidor", vieja "Doblado Sacafuente".
 - **129, 130 y 131** tienen ruta pero **no tienen tipo** (las otras 104 con ruta sí).
 
