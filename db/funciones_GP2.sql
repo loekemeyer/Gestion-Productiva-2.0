@@ -5015,7 +5015,7 @@ $function$
 
 -- ---------- operario_por_legajo ----------
 CREATE OR REPLACE FUNCTION "GP2".operario_por_legajo(p_legajo text)
- RETURNS TABLE(employee_id bigint, legajo text, nombre text, hora_entrada time without time zone, hora_salida time without time zone)
+ RETURNS TABLE(employee_id bigint, legajo text, nombre text, hora_entrada time without time zone, hora_salida time without time zone, permisos jsonb)
  LANGUAGE sql
  STABLE SECURITY DEFINER
  SET search_path TO ''
@@ -5024,16 +5024,23 @@ AS $function$
   -- admin GP2 lo haya marcado "no registra producción" en GP2.operario (sin fila = habilitado).
   -- Lee SOLO legajo, nombre, activo, tipo_empleado y horario_laboral ("08:30 a 17:30"): nada de
   -- sueldos, CBU, CUIL ni fechas. El horario se usa para la llegada tarde y el cajón que sigue.
-  -- La letra es parte del legajo (c = CHEF SRL); se compara sin distinguir mayúsculas.
-  select e.id::bigint, e.legajo::text, e.nombre::text,
+  -- La letra es parte del legajo (c = CHEF SRL); se devuelve en minúscula (así va en la sesión).
+  -- permisos = los flags de rol de GP2.operario (sin fila = operario de balancín, todo en false).
+  select e.id::bigint, lower(e.legajo::text), e.nombre::text,
          nullif(substring(l.horario_laboral::text from '^\s*(\d{1,2}:\d{2})'), '')::time,
-         nullif(substring(l.horario_laboral::text from '(\d{1,2}:\d{2})\s*$'), '')::time
+         nullif(substring(l.horario_laboral::text from '(\d{1,2}:\d{2})\s*$'), '')::time,
+         jsonb_build_object(
+           'es_matriceria', coalesce(o.es_matriceria, false), 'es_piedra', coalesce(o.es_piedra, false),
+           'es_alimentador', coalesce(o.es_alimentador, false), 've_cm', coalesce(o.ve_cm, false),
+           've_trm', coalesce(o.ve_trm, false), 've_tl', coalesce(o.ve_tl, false),
+           've_rem', coalesce(o.ve_rem, false), 've_mm', coalesce(o.ve_mm, false))
     from planify.employees e
     join planify.empleados_liquidacion l
       on l.employee_id = e.id and l.activo and l.tipo_empleado = 'planta'
+    left join "GP2".operario o on o.employee_id = e.id
    where e.activo
      and lower(e.legajo::text) = lower(trim(p_legajo))
-     and not exists (select 1 from "GP2".operario o where o.employee_id = e.id and not o.registra_produccion)
+     and coalesce(o.registra_produccion, true)
    order by l.id
    limit 1;
 $function$

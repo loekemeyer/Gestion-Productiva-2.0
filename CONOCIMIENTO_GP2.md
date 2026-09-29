@@ -13594,4 +13594,15 @@ Contexto: app unificada `GP2-Registro-Produccion`, se arranca por Cervantes. Tab
   del "1" pueden ser pruebas, no de él. Otra colisión a tener en cuenta al migrar.
 - [usuario Elías] **Estos cambios son para GP2-Registro-Produccion**: Registro Producción 2.0 (la app en uso) no se toca
   (ej.: deja entrar legajos de baja porque no mira `Activo`; eso se corrige en la app nueva, no en la vieja).
+- [dato 29/09] **Permisos de botones migrados a `GP2.operario`** (una sola vez, desde `public."Empleados"`, casando el
+  número con el legajo de Planify activo + planta): es_matriceria, es_piedra, es_alimentador, ve_cm, ve_trm, ve_tl,
+  ve_rem, ve_mm. 7 con algún flag: matricería 203 y c91; piedra 233 (+CM +MM), 245, c92; alimentador c19 (+CM);
+  282 con CM. `ve_ctm`/`ve_am` (Oscar Bordon) NO se migraron: no tienen código en ninguna app. 260 Valdés tenía
+  piedra pero está de baja. `GP2.operario_por_legajo` devuelve `permisos` (jsonb) para la sesión del operario.
+- [dato 29/09] **Matriz con variante vs matriz con varias piezas** (pregunta de Elías "¿por qué se ve diferente una
+  bifurcada?"): son dos cosas. (1) *Variante* = otra matriz con letra (12/12B/12C; 39 en `GP2.matriz`, 40 en public
+  —falta **325C** en GP2—): RP 2.0 pide el número base y abre un cartel "Seleccioná el tipo" (8 con etiquetas escritas
+  en `app.js`: 10, 12, 28, 39, 79, 80, 81, 127; el resto las detecta de la base); la app GP2 muestra cada variante como
+  otra tarjeta. (2) *Varias salidas* = la MISMA matriz saca piezas distintas (28: A15 del fleje 94 y J2/J5 del 13):
+  solo GP2 lo sabe (`matriz_salidas`) y pide "Fabricás …" para que el stock vaya a la pieza correcta.
 

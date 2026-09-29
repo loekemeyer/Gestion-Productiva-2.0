@@ -4,6 +4,7 @@
 (vacío)
 
 [HISTORIAL]
+2026-09-29 | Elias (claude-remote) | permisos de botones en GP2.operario (migrados de Empleados) + operario_por_legajo devuelve permisos; conocimiento variante vs pieza
 2026-09-29 | Elias (claude-remote) | operario: habilitados todos (excepcion = false); verificar regla M acepta fase B; policy deny en bkp_inventario_virgilio; M y D en 0
 2026-09-29 | Elias (claude-remote) | GP2.operario (casilla registra produccion, 15 on / 4 off) + operario_por_legajo la exige; policies deny en operario y registros_produccion_cervantes; suite 59 OK
 2026-09-29 | claude-remote | GP2.matriz.carga_en (golpes|unidades; D y P = unidades) + conocimiento 4gr
