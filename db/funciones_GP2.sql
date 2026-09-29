@@ -1005,8 +1005,8 @@ begin
   v_uni_calc := round(p_kg_balanza / v_kg_x_uni);
   v_diff_pct := round( (abs(p_uni_remito - v_uni_calc)::numeric / greatest(p_uni_remito,1)) * 100, 2 );
 
-  select id into v_bruto from "GP2".componente where codigo='FLEJE90_BRUTO';
-  if v_bruto is null then raise exception 'FLEJE90_BRUTO no existe'; end if;
+  select id into v_bruto from "GP2".componente where codigo='ALAMBRE';
+  if v_bruto is null then raise exception 'ALAMBRE no existe'; end if;
 
   select coalesce(cantidad,0) into v_stock_bruto_antes
     from "GP2".inventario where componente_id=v_bruto and ubicacion_id=v_ubic_charcas;
@@ -1671,7 +1671,7 @@ env as (
   group by 1,2
 ),
 ent as (
-  -- Hibridos (Fleje90/Charcas, Chapa430/Eclipse): la MP BRUTA (FLEJE90_BRUTO, CHAPA430)
+  -- Hibridos (Fleje90/Charcas, Chapa430/Eclipse): la MP BRUTA (ALAMBRE, CHAPA430)
   -- se consume al cortarla, NO es una entrega. Lo que el PS entrega es el producto cortado
   -- (IC3/IC3V para Charcas, 1686 para Eclipse), que sale como 'compra' hacia su destino;
   -- esa compra se atribuye al PS que corta.
@@ -1683,7 +1683,7 @@ ent as (
     select ubic_origen_id ubic_id, comp_id, sum(_delta_dest) entregado
     from movimiento
     where tipo_mov='consumo' and ubic_origen_id in (select ubic_id from ps)
-      and comp_id not in (select id from componente where codigo in ('FLEJE90_BRUTO','CHAPA430'))
+      and comp_id not in (select id from componente where codigo in ('ALAMBRE','CHAPA430'))
     group by 1,2
     union all
     select (select ubic_id from ps where ps_id=1) ubic_id, m.comp_id, sum(m._delta_dest) entregado
@@ -3945,7 +3945,7 @@ AS $function$
 -- final, y ademas refresca los maximos de TALLERISTA, que nadie recalculaba cuando cambiaba la Est
 -- Madre (68 estaban viejos el 2026-09-26). Prov AT queda afuera a proposito: la Tablet le pone techo 0
 -- (usuario 2026-09-24) y no tiene filas de inventario. D10, 2026-09-26.
--- 2026-09-28: + recalcular_maximo_mp_ps (FLEJE90_BRUTO / CHAPA430), al final porque sale del maximo
+-- 2026-09-28: + recalcular_maximo_mp_ps (ALAMBRE / CHAPA430), al final porque sale del maximo
 -- de las piezas que acaban de recalcularse.
 -- 2026-09-29: + recalcular_maximos_consumo_meses (filas con maximo_origen 'consumo_meses'), antes de
 -- mp_ps porque este sale del maximo de las piezas.
@@ -4777,7 +4777,7 @@ with pend as (
     -- tratan como proveedor de servicio"). Si el proveedor que figura en el componente es el
     -- MISMO PS que lo produce en una ruta (ruta_paso tipo proveedor_servicio, comp_salida = el
     -- componente), no hay OC: se le manda la materia prima y se recibe por Entrega PS. Hoy son
-    -- IC3 e IC3V (Charcas corta el FLEJE90_BRUTO de Altrak, que SI se compra, en su rubro
+    -- IC3 e IC3V (Charcas corta el ALAMBRE de Altrak, que SI se compra, en su rubro
     -- Alambre). Se mira el proveedor DEL COMPONENTE, no el paso suelto: un insumo que compramos
     -- y mandamos a pintar (paso PS con entrada=salida) sigue en la OC, y las bombillas que
     -- Charcas nos VENDE (BOM10/EP10/LLF8) tambien.
@@ -5820,7 +5820,7 @@ CREATE OR REPLACE FUNCTION "GP2".recalcular_maximo_mp_ps()
 AS $function$
 -- [usuario 2026-09-28: "si tengo que tener 10 alambres y eso equivale a 0.1 de fleje hay que mandarle
 -- eso" + "calcula el maximo segun los meses del sector x consumo de articulo"]. La materia prima que
--- se compra en kg y la entrega el proveedor a un PS que la corta en piezas (FLEJE90_BRUTO -> Charcas
+-- se compra en kg y la entrega el proveedor a un PS que la corta en piezas (ALAMBRE -> Charcas
 -- -> IC3/IC3V; CHAPA430 -> Eclipse -> Z31) NO tiene consumo propio: su maximo es el de las piezas.
 --   maximo_mp (kg, en la ubicacion del PS) = sum por pieza de
 --     maximo_pieza x kg_x_uni_pieza / (1 - desperdicio_pct del PS / 100)

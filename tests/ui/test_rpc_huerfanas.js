@@ -51,7 +51,7 @@ const PERMITIDAS = {
   // escribir datos: lo autoriza el dueño, no una pantalla. Sin EXECUTE a anon.
   recalcular_maximos_prov_at:'mantenimiento: recalcula el máximo del Prov AT por SQL, sin grant a anon',
   // La corre fn_recalc_maximos_diferido (trigger al COMMIT); a mano solo para recalcular fuera de un cambio.
-  recalcular_maximo_mp_ps:'mantenimiento: maximo de la materia prima que corta un PS (FLEJE90_BRUTO, CHAPA430), sin grant a anon',
+  recalcular_maximo_mp_ps:'mantenimiento: maximo de la materia prima que corta un PS (ALAMBRE, CHAPA430), sin grant a anon',
   // 2026-09-24: helper interno del motor de producción; la llaman registrar_produccion y
   // registrar_evento_prod (por SQL, no por rpc()) para descontar TODAS las entradas de una
   // convergencia. No es RPC de pantalla y no matchea la convención de nombres interna (_/fn_).

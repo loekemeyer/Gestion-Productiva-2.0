@@ -304,7 +304,7 @@ function chProdSel(){ return CH_PROD.find(function(p){ return String(p.id)===Str
 async function chStock(){
   try{
     var st = await SB.from("inventario").select("cantidad, componente:componente_id(codigo)").eq("ubicacion_id",13);
-    var kg=0; (st.data||[]).forEach(function(r){ if(r.componente && r.componente.codigo==="FLEJE90_BRUTO") kg=Number(r.cantidad)||0; });
+    var kg=0; (st.data||[]).forEach(function(r){ if(r.componente && r.componente.codigo==="ALAMBRE") kg=Number(r.cantidad)||0; });
     $("chStock").textContent = fmt(kg);
   }catch(e){ $("chStock").textContent="—"; }
 }

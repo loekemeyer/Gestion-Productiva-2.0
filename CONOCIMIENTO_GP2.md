@@ -13840,3 +13840,12 @@ Contexto: app unificada `GP2-Registro-Produccion`, se arranca por Cervantes. Tab
   receta del 580 consume por **702/mes**. El secundario no cuenta por separado (para no contarlo dos veces). Es la
   única diferencia entre "venta del artículo × receta" y el consumo que usa el máximo.
 - Migración: `db/migracion_maximo_consumo_sectores.sql`.
+
+## 4gv. El fleje bruto de Charcas se llama ALAMBRE (2026-09-29)
+
+- [usuario] Thomas: *"En vez de fleje 90 bruto que se llame ALAMBRE"*. `GP2.componente` id 583: `codigo`
+  `FLEJE90_BRUTO` → **`ALAMBRE`**. La descripción (`Fleje N° 90`) no se tocó.
+- [dato] El código estaba fijo en 5 funciones (`control_ps_bundle`, `oc_bundle`, `cargar_recepcion_charcas`,
+  `recalcular_maximo_mp_ps`, `fn_recalc_maximos_diferido`) y en 2 pantallas (Recepción Insumos, Entrega PS):
+  se reemplazó en todas. Ninguna tabla lo guardaba como texto salvo `componente.codigo`.
+  Las menciones a `FLEJE90_BRUTO` en docs anteriores a esta fecha se refieren a este mismo componente.

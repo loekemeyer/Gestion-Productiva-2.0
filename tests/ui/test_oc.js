@@ -173,7 +173,7 @@ window.supabase = { createClient: function(){ return {
     if(name==='crear_oc') return { data: { ok:true, oc_id: 10, numero: 2, items: (args.p.items||[]).length,
       // la OC a un PS hibrido devuelve la gemela al proveedor de su materia prima (generica desde 2026-09-05)
       oc_gemela: args.p.proveedor === 'Resortes Charcas'
-        ? { oc_id: 11, numero: 3, proveedor: 'Altrak', componente: 'FLEJE90_BRUTO', kg: 40.8 } : null }, error: null };
+        ? { oc_id: 11, numero: 3, proveedor: 'Altrak', componente: 'ALAMBRE', kg: 40.8 } : null }, error: null };
     if(name==='oc_marcar') return { data: { ok:true }, error: null };
     return { data: null, error: { message: 'rpc desconocida '+name } };
   }
@@ -342,7 +342,7 @@ window.supabase = { createClient: function(){ return {
      'a crear_oc viajan las UNIDADES: ' + JSON.stringify(callCh.items));
   await page.waitForFunction(() => document.getElementById('status').textContent.includes('gemela'));
   const stCh = (await page.textContent('#status')).replace(/\s+/g, ' ').trim();
-  ok(stCh.includes('OC gemela N° 3 a Altrak') && stCh.includes('40,8 kg de FLEJE90_BRUTO'),
+  ok(stCh.includes('OC gemela N° 3 a Altrak') && stCh.includes('40,8 kg de ALAMBRE'),
      'el mensaje de la OC gemela sale de la respuesta generica (proveedor + componente + kg): ' + stCh.slice(0, 140));
   // se suelta el proveedor para que el bloque de cartones vea todas sus filas
   await page.click('#tabGen');
