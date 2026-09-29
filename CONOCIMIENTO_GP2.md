@@ -13585,4 +13585,13 @@ Contexto: app unificada `GP2-Registro-Produccion`, se arranca por Cervantes. Tab
   (74, 807 registros) y Pages son los dos "Chofer de Carga".
 - [dato 29/09] Planify tiene 14 inactivos y los 14 tienen también la ficha de liquidación de baja (coinciden); ninguno
   cargó producción en 30 días. El que se da de baja en Planify queda afuera solo (`operario_por_legajo` exige activo).
+- **CORRECCIÓN (mismo día)** [usuario Elías]: *"que queden habilitados"* — la casilla se dio vuelta: **entra todo
+  activo + planta**; `GP2.operario.registra_produccion = false` es la excepción (sin fila = habilitado, así el alta
+  nueva de RRHH entra sola). Los 19 quedaron habilitados. [dato, `public."Empleados"`] **Pregelj (203) y Cornejo (91)
+  son los 2 de matricería** de Registro Producción 2.0 (TRM, REM, CM; Cornejo también TL): no son operarios de
+  balancín pero SÍ usan la app con los botones de matricería. Lo que dije de "planta no alcanza" era falso.
+- [dato] En `public."Empleados"` el legajo **1 = "Pruebas"**; en Planify el 1 es **Alberto Práctico**. Los 2 registros
+  del "1" pueden ser pruebas, no de él. Otra colisión a tener en cuenta al migrar.
+- [usuario Elías] **Estos cambios son para GP2-Registro-Produccion**: Registro Producción 2.0 (la app en uso) no se toca
+  (ej.: deja entrar legajos de baja porque no mira `Activo`; eso se corrige en la app nueva, no en la vieja).
 

@@ -5020,8 +5020,8 @@ CREATE OR REPLACE FUNCTION "GP2".operario_por_legajo(p_legajo text)
  STABLE SECURITY DEFINER
  SET search_path TO ''
 AS $function$
-  -- Operario = activo en Planify + ficha de liquidación activa tipo 'planta' (RRHH)
-  --          + casilla "registra producción" prendida en GP2.operario (la maneja el admin GP2).
+  -- Operario = activo en Planify + ficha de liquidación activa tipo 'planta' (RRHH), salvo que el
+  -- admin GP2 lo haya marcado "no registra producción" en GP2.operario (sin fila = habilitado).
   -- Lee SOLO legajo, nombre, activo, tipo_empleado y horario_laboral ("08:30 a 17:30"): nada de
   -- sueldos, CBU, CUIL ni fechas. El horario se usa para la llegada tarde y el cajón que sigue.
   -- La letra es parte del legajo (c = CHEF SRL); se compara sin distinguir mayúsculas.
@@ -5031,10 +5031,9 @@ AS $function$
     from planify.employees e
     join planify.empleados_liquidacion l
       on l.employee_id = e.id and l.activo and l.tipo_empleado = 'planta'
-    join "GP2".operario o
-      on o.employee_id = e.id and o.registra_produccion
    where e.activo
      and lower(e.legajo::text) = lower(trim(p_legajo))
+     and not exists (select 1 from "GP2".operario o where o.employee_id = e.id and not o.registra_produccion)
    order by l.id
    limit 1;
 $function$
