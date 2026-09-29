@@ -13555,7 +13555,8 @@ Virgilio"` `[dato: el .bas]`, no toca GP2.
   esto todas las familias son de un solo proveedor y Kollplast no tiene piezas plásticas en GP2.
   `[Thomas 2026-09-29: "Por qué no veo el mínimo? Estoy viendo que en el relevamiento aparece"]` Los mínimos
   por pieza del plástico sin familia también se cargaron: Maspoli PC12/PEP7/PEP8 = 500 uni (era lo único que
-  faltaba; PIEA rueda de Barbetta no tiene mínimo en la planilla).
+  faltaba; PIEA rueda de Barbetta no tiene mínimo en la planilla). `[Thomas 2026-09-29: "A estos dos no les pongas
+  mínimo"]` Las ruedas PIEA/PIEB de Barbetta quedan **sin mínimo** (PIEB tenía 1, sacado).
   `[Thomas 2026-09-29: "Chequeá que no se te haya escapado alguno"]` Barrido de TODO lo comprable sin mínimo
   ni familia contra las 5 planillas: se habían escapado **dos**: la Bolsa Filtro Café LK (A1B, art. 031,
   Vihal) con mínimo 55.000 uni y el piso de **Simco** (Santoprene) de 25 kg (`proveedor_insumo.pedido_minimo_kg`;
