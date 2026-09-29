@@ -13577,3 +13577,12 @@ Contexto: app unificada `GP2-Registro-Produccion`, se arranca por Cervantes. Tab
   se carga después en el admin y queda en el cajón original (su día y su tiempo), con aviso si pasa un día sin pesar.
   **Solo aparece si el admin la habilita en el panel admin** (apagada por defecto; la base rechaza un "pendiente" si
   está apagada, no solo la pantalla).
+- [usuario Elías 29/09] **Casilla "registra producción" = OK.** Entra a la app de producción quien: **activo en Planify
+  (alta) + planta + casilla prendida**. Tabla `GP2.operario` (una fila por `planify.employees.id`), la maneja el admin GP2.
+  [dato] Carga inicial: 15 prendidos (los que cargaron en 90 días + **Alberto Práctico, prendido por decisión del
+  dueño**), 4 apagados: Pregelj 203 (Técnico 3º), Cornejo c91 (Oficial), Pages 2 (Chofer de Carga), González 191
+  (Logística). La categoría NO sirve de filtro: Cornejo y Farías (c8, 4.035 registros) son los dos "Oficial"; Bachur
+  (74, 807 registros) y Pages son los dos "Chofer de Carga".
+- [dato 29/09] Planify tiene 14 inactivos y los 14 tienen también la ficha de liquidación de baja (coinciden); ninguno
+  cargó producción en 30 días. El que se da de baja en Planify queda afuera solo (`operario_por_legajo` exige activo).
+
