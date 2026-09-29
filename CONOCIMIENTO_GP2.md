@@ -13678,4 +13678,8 @@ Contexto: app unificada `GP2-Registro-Produccion`, se arranca por Cervantes. Tab
   rutas en GP2; queda su fila histórica en `matriz_racha`). En la base vieja 10B tuvo 1 cajón en el año (17/07, 385 u.)
   y el cartel de Registro Producción 2.0 todavía la ofrece como "Varilla c/ Cuchilla Curva": en la app nueva, la
   varilla curva va a la 174.
+- [usuario Elías 29/09, "sí y sí"] **La 10B se borró también de la base vieja**: `public."Matrices"` (id 374, queda en
+  `Matrices_audit`) y `public."UnixCajon_Stock_Registro_Prod_Cerv"`. Causa-Efecto no tenía fila de la 10B. Registro
+  Producción 2.0 **v1.9.1** (commit 47618cf): el cartel de la 10 "Varilla c/ Cuchilla Curva" ahora registra la **174**.
+  Excepción puntual a la regla "public = solo lectura", pedida por Elías.
 
