@@ -13849,3 +13849,7 @@ Contexto: app unificada `GP2-Registro-Produccion`, se arranca por Cervantes. Tab
   `recalcular_maximo_mp_ps`, `fn_recalc_maximos_diferido`) y en 2 pantallas (Recepción Insumos, Entrega PS):
   se reemplazó en todas. Ninguna tabla lo guardaba como texto salvo `componente.codigo`.
   Las menciones a `FLEJE90_BRUTO` en docs anteriores a esta fecha se refieren a este mismo componente.
+- [usuario] Thomas, mismo día: *"en vez de chapa 430, Fleje Descorazonador"*. `componente` id 595: `CHAPA430` /
+  `Chapa 430` → **`FLEJE_DESCORAZONADOR` / `Fleje Descorazonador`** (Aperam → Eclipse). Reemplazado en 4 funciones
+  (`cargar_recepcion_eclipse`, `recalcular_maximo_mp_ps`, `control_ps_bundle`, `fn_recalc_maximos_diferido`) y en
+  Recepción Insumos / Entrega PS. El proceso de Eclipse sigue rotulado "Corte Chapa 430" en Entrega PS.
