@@ -13623,4 +13623,10 @@ Contexto: app unificada `GP2-Registro-Produccion`, se arranca por Cervantes. Tab
   12C (Chef) → I11 Mango Plano 701 doblado c/marca → abrelatas a manija 701 (CHEF).
   Los rótulos del cartel de RP 2.0 están BIEN. Lo que está mal: la descripción de la 12 en Causa-Efecto dice
   "(Chef Marip)" y GP2 pone I11 (701 Chef) como pieza de la **matriz 12** en vez de la **12C**.
+- [dato 29/09, CORRECCIÓN del análisis de matrices] **GP2 = 115 matrices originales (Excel del dueño, con tipo; 107 con ruta)
+  + 292 de catálogo (22/09, §4fa, sin tipo ni ruta a propósito).** Las variantes con letra están todas en el catálogo
+  (salvo 12B, que tiene ruta): el Excel original modela esos casos como PIEZA de la matriz base. No confundir "sin ruta"
+  o "sin tipo" de las de catálogo con un error de GP2. Errores reales: 138 tipo A con máquina balancín; 129/130/131 con
+  ruta y sin tipo; 9 matrices con tiempo en la vieja y vacío en GP2 (182, 21, 325B, 361, 509, 512, 62, 63, 64).
+  Informe: `PROBLEMAS_MATRICES_2026-09-29.md` (versión 2).
 

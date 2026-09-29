@@ -1,34 +1,73 @@
-# Problemas de matrices: GP2 vs Registro Producción 2.0 (29/09/2026)
+# Matrices: GP2 contra Registro Producción 2.0 — versión 2 (29/09/2026)
 
-Pedido de Elías Irace (*"listame todos los problemas de este estilo"*), a partir de la 12C y la familia 505.
-Uso = producción cargada en Cervantes (`public.db_n8n_espejo`) en los últimos **90 días**, sin eliminados.
-Ordenado por gravedad. Nada de esto se corrigió todavía: son datos que tiene que definir el dueño.
+Pedido de Elías Irace. **Esta versión reemplaza a la primera**, que tenía errores de lectura de GP2 (ver al final).
+Uso = producción cargada en Cervantes (`public.db_n8n_espejo`) en los últimos **90 días**. Nada se corrigió todavía.
 
-## 1. 67 matrices que se usan y NO están en ninguna ruta de GP2
+## Cómo está armado GP2 (sin esto, todo se lee mal)
 
-> **Corrección (mismo día, a pregunta de Elías "¿están como tallerista?")**: no están como tallerista (los pasos de
-> tallerista, incluido "Fábrica", no llevan matriz), y **no es stock perdido**: **63 de las 67 tampoco tienen
-> Causa-Efecto en la base vieja**. Son tareas de mano de obra —envasar, reenvasar, armar importados, sacar film,
-> poner capuchón— que cuentan para tiempo y premio, no transforman una pieza en otra. Antes decía "127.750 unidades
-> que no suman stock": era una lectura equivocada.
->
-> **Pero tienen que estar** [Elías: *"Fábrica sí tiene que estar porque se hacen en fábrica"*]: son trabajos que se
-> hacen en la fábrica, así que tienen que figurar en la ruta de cada artículo como paso del tallerista interno
-> **"Fábrica"** (que **queda como tallerista**, decisión de Elías 29/09). Hoy faltan: GP2 no sabe en qué artículo
-> termina ese trabajo ni puede costearlo. Pendiente de modelo: los pasos de tallerista no llevan matriz, así que
-> hay que decidir cómo se asocia la matriz al paso de Fábrica.
->
-> Las **4 que sí tienen Causa-Efecto** en la vieja:
->
-> - **12C → I11** y **28B → J5**: en GP2 esas piezas las hace la matriz **base** (12 y 28) con la pregunta "¿Qué
->   pieza vas a fabricar?". O sea, GP2 reemplazó la variante con letra por la elección de pieza: si el operario
->   carga 12C, GP2 no sabe qué hizo.
->   **Verificado por Elías en la app GP2**: la 28 ofrece A15, J2 y J5, así que la 28B **sí está**, como 28 + pieza J5.
->   ⚠ Pero los nombres se contradicen: Registro Producción 2.0 dice *28 = Pintar (JF2), 28B = **Cromar** (JF5)*; GP2
->   dice *J5 = Cuerpo Uña **s/M p/Pintar*** y la matriz 28B se llama "Corte Cuerpo Uña p/Cromar". Hay que definir qué
->   es J5 (¿cromar o pintar sin marca?) antes de mapear variante → pieza.
-> - **113 → M1**: en GP2 M1 es un insumo comprado, no algo que se fabrica.
-> - **309 → "Fabr"**: fabricación interna sin pieza.
+- **407 matrices en dos grupos.** **115 originales**, del Excel del dueño: tienen tipo (A/B/D/P), máquina, tiempo, y **107 tienen ruta**.
+  **292 de catálogo**, copiadas de la base vieja el **22/09 por pedido del dueño** (CONOCIMIENTO §4fa): solo N°, descripción y tiempo,
+  para que el operario las pueda elegir. **No tienen tipo ni ruta a propósito.** No es un error de GP2.
+- **En las 115 originales, una matriz que saca varias piezas pregunta cuál** ("¿Qué pieza vas a fabricar?", sale de las rutas).
+  La base vieja, en cambio, separa esos casos en matrices con letra (3/3B, 28/28B…). Las matrices con letra entraron a GP2 recién el
+  22/09, como catálogo: **por eso no tienen ruta**. Cargar 3 + pieza M9 en GP2 equivale a la 3B de la vieja.
+
+## 1. Diferencias de pieza entre GP2 y la base vieja (hay que decidir cuál vale)
+
+| Matriz | GP2 (rutas del Excel) | Base vieja (Causa-Efecto / nombres) |
+|---|---|---|
+| 12 / 12C | la **12** hace I6 (mariposa 502) **y I11** (701 Chef) | I11 la hace la **12C**; la 12 solo I6 |
+| 28 / 28B | 28 hace A15, J2, **J5 = "s/M p/Pintar"** | 28B = "p/**Cromar**" → J5 |
+| 10 / 10B | 10 hace H11 y H7-M10; **no hay H15** | 10B = Cuchilla **Curva (H15)** |
+| 74 / 74A | 74 hace G7 e IE10-M74; **no hay G5** | 74A = Rompenuez **Abierta** → G5 |
+| 114 | GP2 usa la **114** (hace L9 y L10) | la vieja dice "114 **OBSOLETO** — usar 114A o 114B" |
+| 221 | hace **D2 / D3** (aletas inox) | Causa-Efecto: 114A→**L9**, 114B→**L10** |
+| 349 | hace LL4 y **M2** | Causa-Efecto: LL4 y **M3** |
+
+## 2. Error interno de GP2
+
+- **138**: tipo **A** (alimentador) pero máquina **balancín**; la vieja la tiene como B. Además el nombre cambia de sentido:
+  GP2 "Corte Grampa Batidor", vieja "Doblado Sacafuente".
+- **129, 130 y 131** tienen ruta pero **no tienen tipo** (las otras 104 con ruta sí).
+
+## 3. Variantes con letra: cuándo termina igual y cuándo no
+
+Si se traduce la letra a "matriz base + pieza" (3B → 3 + M9):
+
+- **Termina igual** (misma pieza, mismo tiempo, mismo factor): 3B, 12C, 28B, 74A, 79B, 80B, 81B, 114A, 114B.
+- **No termina igual — tiempo propio**: **10B** 8,2 s (la 10: 6,3 s) · **39B** 2,9 s (la 39: 1,8 s).
+- **Sin tiempo**: 127B, 360B. (360/360B: el dueño pidió el 22/09 *"dejalas ambas así"*.)
+- **12B** es la única con letra que tiene ruta propia (hace G13 → abrelatas a manija 101 y 501).
+- **Solo con letra, sin pieza** (tareas de mano de obra, iguales en las dos bases): 101 B–E, 150B, 186B, 214B, 254B, 255B, 305B,
+  309B, 310B, 325B, 340B, 342B, 394 B y C, 395B, 401B, 505 B–F. Falta en GP2 la **325C** (se usó el 25/09).
+- **Pantalla**: Registro Producción 2.0 obliga a elegir la variante con un cartel; la app de GP2 la esconde si se escribe el número
+  exacto (regla del 31/08).
+
+## 4. Matrices donde solo GP2 pregunta pieza (en la vieja es un solo código)
+
+| Matriz | Piezas | Nota |
+|---|---|---|
+| 27 Corte Cuerpo Uña Pie | I1, I9, J13 | la vieja también tiene 3 salidas |
+| 33 Estampado 3 en 1 | J10 Loeke, J12 s/Marca | |
+| 37 y 38 | fleje 22 / fleje 93 | la elección es del fleje (CONOCIMIENTO §2c-octies) |
+| 78 Remachado Rompenuez | B1-M78 Chef, D5-M78 LK | |
+| 116 Corte de Aleta | L11 izq, L12 der | ¿el mismo golpe saca las dos? |
+| 137 Arandela Batidor | ABPM mini, LL7B | la vieja la llama "mini" |
+| 183 Soldar Ahueca | N1 fruta, N2 papa | |
+| 356 Corte Mango Plano Manija | G11 (501), I10 (701) | |
+| 368 Doblado Sacafuente | Z5 grande, Z6 chica | ¿salen juntas? |
+
+## 5. Tiempos: 9 matrices con tiempo en la vieja y vacío en GP2
+
+182 (7,8 s) · 21 (0,4) · 325B (27,6) · 361 (1,7) · 509 (58,9) · 512 (54,5) · 62 (1) · 63 (7,3) · 64 (1). El 22/09 no había
+ninguna diferencia: la vieja se completó después. (Otras 11 usadas no tienen tiempo en ninguna de las dos.)
+
+## 6. Matrices de catálogo que se usan y no están en ninguna ruta (67)
+
+Es la consecuencia esperada del catálogo del 22/09. **63 son trabajos de fábrica** (envasar, reenvasar, armar importados, sacar film)
+sin Causa-Efecto tampoco en la vieja: no transforman una pieza, cuentan tiempo y premio. [Elías] *"Fábrica sí tiene que estar porque
+se hacen en fábrica"*: van a la ruta del artículo como paso del tallerista **Fábrica** (queda como tallerista). Falta decidir cómo
+se guarda la matriz en ese paso (hoy los pasos de tallerista no llevan matriz).
 
 | Matriz | Descripción | Cajones | Unidades | Último |
 |---|---|--:|--:|--:|
@@ -100,163 +139,17 @@ Ordenado por gravedad. Nada de esto se corrigió todavía: son datos que tiene q
 | 105 | Sacar Rebarba Cucharon | 3 | 17 | 20/08 |
 | 372 | Soldado C.Q. Mgo Alamb | 1 | 1 | 24/09 |
 
-## 2. 28 matrices con variantes que la app de operarios de GP2 esconde
+## 7. Faltan de un lado
 
-En GP2, si lo escrito coincide exacto con una matriz, se muestra solo esa (regla del 31/08). Escribiendo `505` nunca aparecen 505B–505F: el operario carga la base sin enterarse. Registro Producción 2.0 abre un cartel obligatorio.
+- Solo en la vieja: **325C** Reenvasado Cola pastas 22,5 cm (usada 25/09) · **513** colocar etiqueta a bombillas.
+- Solo en GP2: **S/N** Corte Arandela Cuchillitos · **227** Armado Sacacorcho 525.
 
-| Base | Variantes escondidas |
-|---|---|
-| 3 | 3B Corte y Estampado Mango Pelador Sin Marca |
-| 10 | 10B Varilla c/ Cuchilla Curva (H15) |
-| 12 | 12B Doblado Mango Plano 501 · 12C Doblado Mango Plano Chef |
-| 28 | 28B Corte Cuerpo Uña p/Cromar |
-| 39 | 39B Cerrado Cuerpo Sacacorcho (Sin Marca) |
-| 74 | 74A Estampado Rompenuez Abierta |
-| 79 | 79B Corte Destapacorona Sin Marca |
-| 80 | 80B Estampa Destapacorona Sin Marca |
-| 81 | 81B Doblado Destapacorona Sin Marca |
-| 101 | 101B Remachado Espátula Calada · 101C Esp. Lisa · 101D Cuchara Salsera · 101E Cuchara Calada |
-| 114 | 114A Doblado Aleta Izquierda · 114B Derecha |
-| 127 | 127B Estampado Pza Gr Sacaf CH |
-| 150 | 150B Env Engranaje Grande |
-| 186 | 186B Repasar Agujero Cuchara |
-| 214 | 214B Sacar Film Protector Pala Canelones |
-| 254 | 254B Colocar Mgo a Pala Canelones Chef |
-| 255 | 255B Calado Mgo Pelador Met |
-| 305 | 305B Env Pinza Fideos CH |
-| 309 | 309B Env Rompenuez CH |
-| 310 | 310B Env Destapacorona Suelto |
-| 325 | 325B Reenvasado Colador N°20 Chino (+325C, que falta en GP2) |
-| 340 | 340B Env Cuch Untar Mad |
-| 342 | 342B Env Cuchara 33 cm Ny |
-| 360 | 360B Corte Ahueca |
-| 394 | 394B Env Pala Canelones x 50 · 394C Pala Canelones x 12 Chef |
-| 395 | 395B Sacar cartón 2 Precinto |
-| 401 | 401B Env Espátula Calada Mgo Madera Chino |
-| 505 | 505B Espumadera · 505C Cucharón · 505D Cuchara · 505E Espátula Lisa · 505F Espátula Calada |
+## Qué se retiró de la versión 1 (errores míos)
 
-## 3. 19 matrices que se usan y NO tienen tiempo histórico en GP2 — no se puede calcular el premio
-
-| Matriz | Descripción | Cajones | Unidades |
-|---|---|--:|--:|
-| 21 | Corte Arandela buje 501 | 4 | 60.000 |
-| 343 | Env Cuch Spaghetti 339 | 4 | 7.300 |
-| 64 | Corte Pinza Fiambre | 6 | 6.200 |
-| 182 | Estampado Flecha de Ahueca | 5 | 6.150 |
-| 361 | Corte Flechita Ahueca | 2 | 6.000 |
-| 63 | Estampado Pinza Fiambre Dere | 4 | 2.339 |
-| 330 | Env Rallador Cilindrico | 8 | 2.316 |
-| 395 | Sacar carton 1 Precinto | 6 | 1.362 |
-| 906 | Remachado Prensa p.p Ajo | 4 | 1.205 |
-| 396 | Sacacorcho Doble Impulso | 5 | 972 |
-| 512 | Reenvasado imp rallador | 8 | 888 |
-| 509 | Env Pelador Mgo Madera | 6 | 770 |
-| 325B | Reenvasado Colador N°20 Chino | 3 | 432 |
-| 325 | ReEnv Colador 10 | 1 | 432 |
-| 403 | Env Filtro Cafe | 2 | 360 |
-| 401B | Env Espatula Calada Mgo Madera Chino | 1 | 280 |
-| 327 | Env Sacafuente Gastro | 1 | 144 |
-| 508 | Env Aceitero | 1 | 60 |
-| 105 | Sacar Rebarba Cucharon | 3 | 17 |
-
-## 4. Matrices que están en una base y no en la otra
-
-| Matriz | Descripción | Dónde está | Uso 90 días |
-|---|---|---|---|
-| 325C | Reenvasado Cola pastas 22,5 cm | solo en la base vieja | 1 cajón, 36 uni (25/09) |
-| 513 | colocar etiqueta a bombillas | solo en la base vieja | 0 |
-| S/N | Corte Arandela Cuchillitos | solo en GP2 | — |
-| 227 | Armado Sacacorcho 525 | solo en GP2 | — |
-
-## 5. Matrices con distinto nombre en cada base (31)
-
-Las que cambian de SIGNIFICADO (hay que decidir cuál vale):
-
-| Matriz | GP2 | Base vieja |
-|---|---|---|
-| 138 | Corte Grampa Batidor (tipo A) | Doblado Sacafuente (tipo B) |
-| 501 | Afilado Cuchilla | Piedra (TP) |
-| 12B | Doblado Mango Plano 501 | Doblado Mango Plano Sin Marca |
-| 114 | Doblado de Aleta (activa) | OBSOLETO - usar 114A o 114B |
-| 64 | Corte Pinza Fiambre | Corte Pinza Fiambre Izquierda |
-| 73 | Corte Pza Rompenuez | Corte Rompe Pza |
-| 20 | Corte Engranaje Gr | Corte Engranaje |
-| 68 | Corte Resorte U | Corte Resorte |
-| 137 | Cortar arandela Batidor | Cortar arandela Batidor mini |
-| 350 | Corte Disco Corta Ravioles | Corte Corta Ravioles |
-| 74 | Estampado Rompenuez | Estampado Rompenuez Cerrada |
-
-Las otras 20 son abreviaturas del mismo nombre ("Sacaf Gast" = "Sacafuente", "Mgo Alamb" = "Mango Alambre"): 112, 127, 151, 152, 153, 154, 155, 156, 182, 234, 346, 364, 365, 368, 369, 371, 373, 512, 63, 65.
-
-## 6. 289 matrices sin tipo en GP2 (la base vieja sí lo tiene)
-
-`GP2.matriz.tipo` está vacío en 289 de 407; la base vieja las tiene clasificadas (A alimentador, B balancín, D dispositivo, P piedra, E). El tipo define la máquina y, en la app nueva, cómo se carga el cajón. Además la **138** es A en GP2 y B en la vieja.
-
-## 7. ~~"Fábrica" cargada como tallerista~~ — RETIRADO
-
-Elías (29/09): está bien así, **"Fábrica" queda como tallerista** (el interno). No es un problema.
-
-## 8. Matriz 12: qué artículo sale de cada variante (verificado 29/09)
-
-| Variante | Pieza que hace | Artículos |
-|---|---|---|
-| 12 (Loekemeyer) | I6 Mango Plano 502 doblado | 066, 502 y 512 Abrelatas Mariposa (LOEKE) |
-| 12B | G13 Mango Plano 501 doblado p/pintar | 101 y 501 Abrelatas A Manija |
-| 12C (Chef) | I11 Mango Plano 701 doblado c/marca | 701 Abrelatas A Manija (CHEF) |
-
-Los rótulos del cartel de Registro Producción 2.0 están bien. Errores: la Causa-Efecto vieja describe la 12 como
-"(Chef Marip)", y GP2 pone I11 (701 Chef) como pieza de la matriz **12** cuando la hace la **12C**.
-
-## 9. Todas las matrices con variantes: GP2 contra Registro Producción 2.0
-
-"Variante" en Registro Producción 2.0 (RP) = otra matriz con letra (12B, 28B…): el operario escribe el número y un
-cartel lo obliga a elegir. En GP2 hay dos formas: la misma matriz con letra, **o** una sola matriz que pregunta
-"¿Qué pieza vas a fabricar?" (sale de las rutas). ⚠ = un lado tiene la variante y el otro no.
-
-### 9.a GP2 pasó la variante a "pieza" de la matriz base, y la matriz con letra quedó sin ruta (13 bases)
-
-Si el operario carga la matriz con letra en GP2, no suma stock; tiene que elegir la base + la pieza.
-
-| Base | RP (cada letra = otra matriz) | GP2: piezas que ofrece la base | ⚠ |
-|---|---|---|---|
-| 3 | 3 → M10 · 3B Sin Marca → M9 | M10, M9 | 3B sin ruta |
-| 10 | 10 → H11 · 10B Cuchilla Curva (H15) | H11, H7-M10 | 10B sin ruta y **H15 no existe** en las piezas |
-| 12 | 12 LK → I6 · 12B → G13 · 12C Chef → I11 | I6, **I11** | I11 es de la 12C, no de la 12 (punto 8). 12B sí tiene ruta propia (G13) |
-| 28 | 28 Pintar → J2 · 28B Cromar → J5 | A15, J2, J5 | 28B sin ruta; J5 se llama "p/Pintar" en GP2 |
-| 39 | 39 Con Marca · 39B Sin Marca | C15, K2, K5 | 39B sin ruta |
-| 74 | 74 Cerrada → G7 · 74A Abierta → G5 | G7, IE10-M74 | 74A sin ruta y **G5 no está** en las piezas |
-| 79 | 79 Loeke · 79B Sin Marca | G1 (S/M), J8 (LK) | 79B sin ruta |
-| 80 | 80 Loeke · 80B Sin Marca | G1-M80, J8-M80 | 80B sin ruta |
-| 81 | 81 LK · 81B Sin Marca | G2 (S/M), J7 (LK) | 81B sin ruta |
-| 114 | 114 **obsoleta** · 114A Izquierda · 114B Derecha | L9, L10 | GP2 usa la 114 que RP da por obsoleta; 114A/B sin ruta |
-| 127 | 127 LK · 127B CH | Z2B (LK), Z3B (CH) | 127B sin ruta |
-| 360 | 360 → N4 · 360B → N5 | N4, N5 | 360B sin ruta |
-
-### 9.b Variantes con letra en los dos lados, sin pieza (tareas de mano de obra) — 16 bases
-
-101 (B–E), 150 (B), 186 (B), 214 (B), 254 (B), 255 (B), 305 (B), 309 (B), 310 (B), 325 (B, **C**), 340 (B), 342 (B),
-394 (B, C), 395 (B), 401 (B), 505 (B–F). Iguales en las dos bases salvo ⚠ **325C, que falta en GP2**. Diferencia de
-pantalla: RP obliga a elegir; la app GP2 las esconde si se escribe el número exacto.
-
-### 9.c Solo GP2 pregunta pieza; en RP es una sola matriz sin variante (12 bases) ⚠
-
-| Matriz | Piezas que pregunta GP2 | Qué revisar |
-|---|---|---|
-| 27 Corte Cuerpo Uña Pie | I1 p/pintar, I9 p/cromar, J13 uña pie | la base vieja también tiene 3 salidas: elección real |
-| 33 Estampado 3 en 1 | J10 Loeke, J12 s/Marca | elección por marca |
-| 37 Corte Cuerpo Sacac. | IF3-M37 (fleje 22), IF3A-M37 (fleje 93) | es el **fleje** que entra, no la pieza |
-| 38 Doblado Cuerpo Sacacorcho | IF3-M38 (fleje 22), IF3A-M38 (fleje 93) | ídem: fleje |
-| 78 Remachado Rompenuez | B1-M78 (Chef), D5-M78 (LK) | elección por marca |
-| 116 Corte de Aleta | L11 izquierda, L12 derecha | [Probable] el mismo golpe saca las dos: no es elección |
-| 137 Cortar arandela Batidor | ABPM (mini), LL7B | RP la llama "Batidor **mini**" |
-| 183 Soldar Ahuecapapa/fruta | N1 ahuecafruta, N2 ahuecapapa | elección |
-| 221 Estampado Aleta | D2 derecha, D3 izquierda | la vieja dice L9/L10, GP2 D2/D3: otras piezas |
-| 349 Corte Disco Pisapapa | LL4 disco corta pizza, M2 disco pisapapa | la vieja dice LL4 y **M3**, GP2 **M2** |
-| 356 Corte Mango Plano Manija | G11 (501), I10 (701) | elección por artículo |
-| 368 Doblado Sacafuente | Z5 grande, Z6 chica | [Probable] pueden salir juntas |
-
-## Relación entre los puntos
-
-- La **12C** y la familia **505** están en el punto 1 (sin ruta) y en el 2 (escondidas): son el caso que abrió este listado.
-- Punto 9.a: GP2 ya tiene las variantes **como pieza** (lo verificó Elías con la 28), pero la matriz con letra sigue existiendo y vacía: dos caminos para lo mismo, uno de los cuales no mueve stock.
-- La **325C** se usó el 25/09 y no existe en GP2: si la app nueva valida contra GP2, ese cajón se rechaza.
+- *"289 matrices sin tipo = problema"*: son las de catálogo del 22/09; sin tipo a propósito.
+- *"GP2 pasó la variante a pieza y dejó la letra sin ruta"*: no fue un cambio; el Excel original ya modelaba piezas y las letras
+  entraron después como catálogo.
+- *"127.750 unidades que no suman stock"*: son trabajos de fábrica, no transformaciones de pieza.
+- *"Fábrica mal cargada como tallerista"*: el dueño confirmó que queda como tallerista.
+- *"19 sin tiempo en GP2"*: 11 no tienen tiempo en ninguna base; las 9 reales están en el punto 5.
+- *"31 nombres distintos"*: en las 115 originales el nombre viene del Excel del dueño; lo que importa está en los puntos 1 y 2.
