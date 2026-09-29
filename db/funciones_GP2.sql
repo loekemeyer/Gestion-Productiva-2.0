@@ -3947,6 +3947,8 @@ AS $function$
 -- (usuario 2026-09-24) y no tiene filas de inventario. D10, 2026-09-26.
 -- 2026-09-28: + recalcular_maximo_mp_ps (FLEJE90_BRUTO / CHAPA430), al final porque sale del maximo
 -- de las piezas que acaban de recalcularse.
+-- 2026-09-29: + recalcular_maximos_consumo_meses (filas con maximo_origen 'consumo_meses'), antes de
+-- mp_ps porque este sale del maximo de las piezas.
 declare v_tx text := txid_current()::text;
 begin
   if current_setting('gp2.maximos_tx', true) = v_tx then return null; end if;
@@ -3954,6 +3956,7 @@ begin
   begin
     perform "GP2".recalcular_maximos_insumos();
     perform "GP2".recalcular_maximos_talleristas();
+    perform "GP2".recalcular_maximos_consumo_meses();
     perform "GP2".recalcular_maximo_mp_ps();
   exception when others then
     -- un error en el recalculo NO puede tumbar el sync de LK ni un guardado de receta: se avisa y sigue
@@ -5911,7 +5914,7 @@ begin
     join ubicacion u on u.id = i.ubicacion_id and u.tipo = 'sector'
     join componente c on c.id = i.componente_id and c.sector_id = u.ref_id
     where c.sector_id in (1, 2)
-      and coalesce(i.maximo_origen, '') not in ('fisico', 'faat_reserva_lote')
+      and coalesce(i.maximo_origen, '') not in ('fisico', 'faat_reserva_lote', 'consumo_meses')
   ), upd as (
     update inventario i
     set maximo = o.max_nuevo, maximo_origen = 'cinco_cajones'
@@ -5929,6 +5932,29 @@ begin
   )
   select (select count(*) from upd), (select count(*) from clr) into v_set, v_clr;
   return jsonb_build_object('ok', true, 'max_cajones', v_caj, 'actualizados', v_set, 'sin_uni_x_cajon', v_clr);
+end $function$
+;
+
+-- ---------- recalcular_maximos_consumo_meses ----------
+CREATE OR REPLACE FUNCTION "GP2".recalcular_maximos_consumo_meses()
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'GP2'
+AS $function$
+-- maximo_origen 'consumo_meses' = consumo mensual (Est Madre) x meses_stock de la ubicacion.
+-- Opt-in por fila de inventario; recalcular_maximos_cajones no lo pisa. Usuario 2026-09-29
+-- (G5/G6/G7/G8): "Consumo x maximo de meses por sector".
+declare v_set int := 0;
+begin
+  with upd as (
+    update inventario i set maximo = greatest(coalesce(v.max_calc,0),0)
+    from v_nivel_stock v
+    where v.inv_id = i.id and i.maximo_origen = 'consumo_meses'
+      and i.maximo is distinct from greatest(coalesce(v.max_calc,0),0)
+    returning 1)
+  select count(*) into v_set from upd;
+  return jsonb_build_object('ok', true, 'actualizados', v_set);
 end $function$
 ;
 

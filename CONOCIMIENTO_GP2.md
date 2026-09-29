@@ -13716,3 +13716,20 @@ Contexto: app unificada `GP2-Registro-Produccion`, se arranca por Cervantes. Tab
 - [usuario 29/09] **103 y 510 se llaman "Abrelata Uña Inox"** (antes "Abrelatas Uña Cromado" / "Abrelata Uña Cromado").
   Cambiado `GP2.articulo.descripcion` (ids 12 y 32) y `GP2.uni_x_articulo_x_caja` id 57 (510, "ABRELATA UÑA INOX").
   El 103 no tenía fila en `uni_x_articulo_x_caja`.
+
+
+## 4gt. Rompenueces, sacacorcho doble aleta y Art 66: correcciones de ruta del dueño (2026-09-29)
+
+- [usuario 29/09] **Art 66: la matriz 10 NO va.** Ruta "Fleje 30 → Art 66" queda IE11 → M6 → M173 → **M174** → Jade
+  (Z41) → IJUPA. Se borró el stock movimiento `H7-M10` (0 stock, 0 movimientos) y la receta de H15 pasó a H7-M173 × 1
+  + I16 × 1. H15/Z41 bajaron $12,60 (los 6,3 s de M10). M10 sigue viva en las otras 10 rutas (501/701/101/502/512).
+- [usuario 29/09] **G7/G8 son SOLO del 507; el 707 lleva G5 (Pieza Abierta Rompenuez S/M p/Pintar) y G6 (Pieza
+  Cerrada Rompenuez S/M p/Pintar).** Rutas 47/48: M77 → G6 → Jade → B1; M74 → G5 → Jade → B2. G5/G6 = mismo peso y
+  cajón que G7/G8 (0,0462 kg, 606 u) [usuario: "sí"]. G7 ya no pasa por Jade (fila de inventario borrada).
+- [usuario 29/09] **Máximo de G5/G6/G7/G8 = consumo × meses_stock del sector** ("Consumo x maximo de meses por
+  sector"), no 5 cajones. Nuevo `maximo_origen = 'consumo_meses'` (opt-in por fila, `recalcular_maximos_consumo_meses`,
+  lo refresca `fn_recalc_maximos_diferido`; `recalcular_maximos_cajones` no lo pisa). Hoy Crudo tiene meses_stock = 1
+  → G5/G6 = 30, G7/G8 = 456. ⚠ [deducido] con umbral de faltante = 1 cajón, G5/G6 figuran en faltante aun llenos.
+  Migración: `db/migracion_maximo_consumo_meses.sql`.
+- [usuario 29/09] **L9, L10, L11, L12 (aletas del 523/723) salen de Sector Crudo y pasan a Sector Movimiento**
+  (sector 3, ubicación 3, sin máximo). Stock 0 y sin movimientos al pasarlos; costos de D2/D3 sin cambio.
