@@ -13629,6 +13629,12 @@ Contexto: app unificada `GP2-Registro-Produccion`, se arranca por Cervantes. Tab
   o "sin tipo" de las de catálogo con un error de GP2. Errores reales: 138 tipo A con máquina balancín; 129/130/131 con
   ruta y sin tipo; 9 matrices con tiempo en la vieja y vacío en GP2 (182, 21, 325B, 361, 509, 512, 62, 63, 64).
   Informe: `PROBLEMAS_MATRICES_2026-09-29.md` (versión 2).
+- [usuario Elías 29/09] **Matriz 28: GP2 está bien.** *"Cambió y ya no se croma; se compra el fleje inox para ese"* → la
+  versión cromada es A15 (fleje inox). La 28B "p/Cromar" de la base vieja quedó vieja. [dato] Igual en Registro
+  Producción 2.0 se siguió cargando 28B hasta el 01/09 (22 cajones, 34.460 u.): el cartel ofrece "Cromar (JF5)".
+- [dato 29/09] **114A / 114B → sacacorcho doble aleta 523 (LOEKE) y 723 (CHEF).** Cadena en GP2: Fleje IC2 → 116 Corte
+  Aleta (L11 izq / L12 der) → **114** Doblado (L9 / L10) → 221 Estampado (D3 / D2) → Pettofrezza → 523/723. La vieja
+  hace lo mismo con 114A (izq) y 114B (der). En un año solo se cargó la 114 (28 cajones); 114A/114B nunca.
 
 ## 4gs. La materia prima que corta un PS no tiene consumo propio: su máximo sale del máximo de las piezas (2026-09-28)
 
