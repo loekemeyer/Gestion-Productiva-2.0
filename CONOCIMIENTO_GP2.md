@@ -13743,5 +13743,11 @@ Contexto: app unificada `GP2-Registro-Produccion`, se arranca por Cervantes. Tab
   lo refresca `fn_recalc_maximos_diferido`; `recalcular_maximos_cajones` no lo pisa). Hoy Crudo tiene meses_stock = 1
   → G5/G6 = 30, G7/G8 = 456. ⚠ [deducido] con umbral de faltante = 1 cajón, G5/G6 figuran en faltante aun llenos.
   Migración: `db/migracion_maximo_consumo_meses.sql`.
-- [usuario 29/09] **L9, L10, L11, L12 (aletas del 523/723) salen de Sector Crudo y pasan a Sector Movimiento**
-  (sector 3, ubicación 3, sin máximo). Stock 0 y sin movimientos al pasarlos; costos de D2/D3 sin cambio.
+- [usuario 29/09] **L9, L10, L11, L12 DESAPARECEN** (aletas del 523/723). Corrección del mismo día: primero se
+  pasaron a Sector Movimiento con su código — mal, el dueño: *"desaparecen… los nuevos stocks movimientos llevan la
+  descripción de stock movimiento que es componente tal tras matriz tal"*. Quedan **IC2-M116-I / -D** (Fleje N° 92 tras M116 (Izq/Der),
+  ex L11/L12) e **IC2-M114-I / -D** (Fleje N° 92 tras M114 (Izq/Der), ex L9/L10). Izquierda y derecha van SEPARADAS
+  con sufijo -I / -D [usuario: "sí", para no sumar el stock de las dos aletas]. Rutas 210/211 (izq) → D3, 212/213 (der) → D2. Borrados L9-L12 (stock
+  0, sin movimientos ni recetas). D2 $114,19 → $114,92 y D3 $114,30 → $115,26: el material ahora sale del fleje (37,8 u/kg).
+  **Convención del stock movimiento** [usuario]: código `<raíz>-M<matriz>`, descripción `<desc. raíz> tras M<matriz>`, sin
+  kg ni cajón; la raíz es el fleje/crudo de origen y se mantiene a lo largo de la cadena.
