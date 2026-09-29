@@ -1,6 +1,10 @@
 <!doctype html>
 <html lang="es">
 <head>
+<!-- v1.43.2 (2026-09-29) — EL "OTROS" DEL PLASTICO VA POR PROVEEDOR [Thomas: "La seccion de otros solo en
+     plasticos y agrupamela por proveedor. Cartones esta bien asi"]: titulos "Otros · <proveedor> · N piezas",
+     al final. Base: los insertos son UNA familia (PB6, PB8B, PEST2 y PEST1 de Kollplast, min. 2.000); el
+     inserto canelon (PC7) queda aparte con 5.000 [Thomas]. -->
 <!-- v1.43.1 (2026-09-29) — "OTROS" Y "MIN. PEDIDO" [Thomas: "todos aquellos que no tengan una familia barra
      formato, que me los metan en la familia o formato otros. Ademas quiero que me diga min. pedido en vez de
      min. proveedor"]. Carton sin formato y plastico sin familia van bajo el titulo "Otros" (ultimo); la linea
@@ -1153,15 +1157,21 @@ function conTitulosDeFamiliaPlastico(fs){
   var grupos={}, orden=[];
   // v1.43.1: lo que no tiene familia va junto en "Otros" [Thomas 2026-09-29: "todos aquellos que
   // no tengan una familia barra formato, que me los metan en la familia o formato otros"].
+  // v1.43.2: "Otros" se abre POR PROVEEDOR [Thomas 2026-09-29: "La seccion de otros solo en
+  // plasticos y agrupamela por proveedor"]: "Otros · Maspoli SRL · 3 piezas". Los cartones no.
   plas.forEach(function(i){
-    var k=i.familia_pedido ? String(i.familia_pedido) : 'Otros';
+    var k=i.familia_pedido ? String(i.familia_pedido) : ('Otros · '+String(provDeFila(i)||'sin proveedor'));
     if(!grupos[k]){ grupos[k]=[]; orden.push(k); }
     grupos[k].push(i);
   });
-  orden.sort(function(a,b){ if(a==='Otros') return 1; if(b==='Otros') return -1; return a.localeCompare(b,'es'); });
+  orden.sort(function(a,b){
+    var oa=a.indexOf('Otros')===0, ob=b.indexOf('Otros')===0;
+    if(oa!==ob) return oa?1:-1;
+    return a.localeCompare(b,'es');
+  });
   var out=[];
   orden.forEach(function(k){
-    var xs=grupos[k], m=(k==='Otros')?0:(Number(xs[0].familia_minimo)||0);
+    var xs=grupos[k], m=(k.indexOf('Otros')===0)?0:(Number(xs[0].familia_minimo)||0);
     var tot=xs.reduce(function(a,i){ return a+pedidoUniDe(i); },0);
     var corto=m>0 && tot>0 && tot<m;
     out.push({hdr:k+' · '+xs.length+(xs.length===1?' pieza':' piezas')+

@@ -13524,12 +13524,17 @@ Virgilio"` `[dato: el .bas]`, no toca GP2.
   (PA8A/PA8B, 33.000), Mango Pelador 505/123 (PC2/PC3B, 36.000), Manguitos Abrelata (PC13/PC14/PB5, 19.200),
   Capuchones (PA10B/PA13B/PA18B, 10.000), Mango Tellería (PEP1/PEP2, 10.000), Mango Cuchillo Untar
   (PA4B/PA5B, 10.000), Plaquitas (PA1/PA2, 6.000), Mangos LK (PA17/PC10/PC11, 6.000), Insertos
-  (PB6/PB8B/PEST2, 2.000), Cuerpo Sacacorcho Plast (PC15AB/PC15B, 2.000), Espátulas (PV3/PV7, 1.500),
+  (PB6/PB8B/PEST2/PEST1, 2.000 — `[Thomas 2026-09-29: "los insertos son todos una familia. El único que
+  tiene un mín aparte es el inserto canelón que es 5000. Resto 2000"]`; PEST1 es de Kollplast y aun así
+  suma con los de Pat Bet Plast), Cuerpo Sacacorcho Plast (PC15AB/PC15B, 2.000), Espátulas (PV3/PV7, 1.500),
   Cucharas Calada y Fideos (PV5/PV6, 1.500), Corta Torta (PV8/PV8B, 1.500). El resto son de una pieza.
   **No están en GP2** (8): PA15 Capuchón ф10, PA16 Mangos ф10 LK, PB1 Cilindro Corta Queso (12.000),
   PEP6 Cabo Madera 525, CP7 Mangos Corta Queso, CP5 Afila Caladas Blanco, HP2 Inserto Cuch y Pal, FP3
   (sin descripción, "Manolo"). Sin familia (no son matriz): Maspoli PC12/PEP7/PEP8 (500), Pintos PEP5,
-  consumibles PCP2/PCP3/PCP4A, ruedas PIEA/PIEB.
+  consumibles PCP2/PCP3/PCP4A, ruedas PIEA/PIEB → en la O.C. van bajo "Otros · <proveedor>" (v1.43.2;
+  `[Thomas: "La sección de otros solo en plásticos y agrupámela por proveedor. Cartones está bien así"]`).
+  Las familias salen de la columna **"Descripcion Matriz"** de la planilla `[Thomas 2026-09-29: "Sacaste
+  las familias de la columna descripcion matriz no?"]`, con nombres normalizados (Regatones → Pirolos).
 - **v1.39.0** [usuario] Thomas: *"entre columna y columna veo espacios"* + *"si no cumple con el mínimo que aparezca igual pero con color rojo y negrita"*. Causa de los huecos: `table.t{width:100%}` de `gp2-modulo.css` le ganaba en especificidad a `.t-insumos{width:auto}` (y en los tests no se veía porque el CSS está stubeado). Ahora `table.t.t-insumos{width:auto}` y el `.table-wrap` abraza la tabla. "mín. proveedor" en rojo y negrita cuando lo pedido queda por debajo; vacío no se marca.
 - **v1.40.0** [usuario] Thomas: *"quiero que esté todo centrado y sin tanto blanco. Si es necesario poné proveedores sobrantes abajo"*. La tarjeta de OC mide lo que mide la tabla (`.card{width:fit-content}`, piso 720px para cuando no hay tabla), todo centrado, y la botonera de proveedores baja de renglón al lado de su etiqueta en vez de ensanchar la página (`contain:inline-size` en los filtros: no cuentan para el ancho).
 - **v1.40.1** [usuario] Thomas: *"todo esto alineación a la izquierda"*: dentro de la tarjeta, botones Generar/Órdenes, filtros, cartel del proveedor, buscador y Crear OC van a la **izquierda**. La tarjeta sigue centrada en la página y del ancho de la tabla.
