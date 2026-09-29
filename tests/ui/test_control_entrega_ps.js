@@ -174,8 +174,14 @@ window.supabase = { createClient: function(){ return {
   await page.fill(card1 + ' input[data-f="env"]', '99');
   ok((await page.$eval(card1 + ' .diff', e => e.textContent)).includes('= 19 kg'),
      'con kg cargados, el envase no cambia lo que se guarda: manda el peso');
-  // y sin el peso NO se confirma: es el numero que se compara contra el remito
+  // y sin el peso NO hay calculo: el envase solo no se convierte [usuario 2026-09-29: "no quiero
+  // que me tire el calculo abajo si pongo paquetes, solo kg"]
   await page.fill(card1 + ' input[data-f="kg"]', '');
+  ok((await page.$eval(card1 + ' .diff', e => e.textContent.trim())) === '',
+     'pieza que se pesa: con solo el envase tipeado no aparece la diferencia');
+  ok(await page.$eval(card1 + ' .campos > div', e => e.getBoundingClientRect().width <= 130),
+     'los campos van compactos, no a media tarjeta');
+  // y sin el peso NO se confirma: es el numero que se compara contra el remito
   dialogs.length = 0;
   await page.click(card1 + ' button[data-a="ok"]');
   ok(dialogs.some(d => d.type === 'alert' && d.msg.includes('Falta el peso')),

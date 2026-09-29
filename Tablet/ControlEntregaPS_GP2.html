@@ -23,6 +23,13 @@
      LOS CAJONES SON EL DATO FÍSICO: acá se cuentan, no se derivan de los kg (misma regla que el
      stock del proveedor, ver CONOCIMIENTO 4et). Si la pieza no tiene envase cargado, el campo no
      se pide. -->
+<!-- v1.4.0 (2026-09-29) — LA DIFERENCIA SALE SÓLO DE LOS KILOS Y LOS CAMPOS VAN COMPACTOS (usuario,
+     textual: "no quiero que me tire el calculo abajo si pongo paquetes, solo kg ... no quiero que
+     tomes paquetes xq es la uni de medida secundaria, importan los kg, aplica a cada caso").
+     Donde la pieza se pesa, canonDe() ya no convierte envases: con sólo paquetes/bolsas/cajones
+     tipeados no hay renglón de diferencia, y aparece recién con los kilos. Donde NO se pesa (pliegos
+     de AJ, bombillas) el envase sigue siendo lo único que hay y calcula como antes. Los campos pasan
+     de ocupar media tarjeta cada uno a un ancho fijo de 124px (entran dos en la tarjeta de 390px). -->
 <!-- v1.3.0 (2026-09-23) — EL CONTROL TAMBIÉN ES DE LOS TALLERISTAS (usuario, textual: "Hicimos todas
      las recepciones de proveedores de servicio. Ahora seguimos con las recepciones de talleristas.
      Lucho. Remito en unidades y control en kg y cajones (acordate de hacer el control por kg —
@@ -110,7 +117,10 @@
   label{display:block;font-size:15px;font-weight:800;color:#475569;margin:10px 0 4px}
   input{width:100%;min-height:48px;font-size:20px;font-weight:700;padding:8px 10px;border:2px solid #d0d7de;
         border-radius:10px;background:#fff;color:#111;font-family:inherit;text-align:right}
-  .dos{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  /* v1.4.0: los campos van al ancho del número, no a lo ancho de la tarjeta [usuario 2026-09-29:
+     "quiero que los boxs de paquetes y kg estén más compactos"] */
+  .campos{display:flex;flex-wrap:wrap;gap:10px}
+  .campos > div{flex:0 0 124px}
   /* sin diferencia cargada no hay renglón: un hueco en blanco arriba del botón es espacio muerto */
   .diff{margin-top:8px;font-size:16px;font-weight:800;color:#166534}
   .diff:empty{display:none}
@@ -207,6 +217,13 @@ function canonDe(x, envases, kg) {
   var esKg = String(x.unidad || "").toLowerCase() === "kg";
   var kgu = Number(x.sp_kgxuni || 0);
   var env = envaseDe(x);
+  // v1.4.0 — DONDE LA PIEZA SE PESA, SÓLO CUENTAN LOS KILOS [usuario 2026-09-29: "no quiero que me
+  // tire el cálculo abajo si pongo paquetes, solo kg ... paquetes es la unidad de medida secundaria,
+  // importan los kg, aplica a cada caso"]. El envase queda como dato (p_cajones) y no se convierte.
+  if (pesaDe(x)) {
+    if (!(kg > 0)) return 0;
+    return esKg ? kg : (kgu > 0 ? kg / kgu : 0);
+  }
   if (esKg) {
     if (kg > 0) return kg;
     return (envases > 0 && env && kgu > 0) ? envases * env.factor * kgu : 0;
@@ -282,7 +299,7 @@ function render() {
         " · " + esc(GP2UI.fechaAR(String(x.fecha).slice(0, 10))) + "</div>" +
       '<div class="remito">Remito ' + fmt(Number(x.declarado), 2) + " " + esc(x.unidad) +
         (env ? " · " + fmt(env.factor, 0) + " por " + esc(singular(env.label)) : "") + "</div>" +
-      '<div class="' + (env && pesa ? "dos" : "") + '">' + campos + "</div>" +
+      '<div class="campos">' + campos + "</div>" +
       '<div class="diff"></div>' +
       '<button class="btn" type="button" data-a="ok">Confirmar control</button>';
     cont.appendChild(card);
