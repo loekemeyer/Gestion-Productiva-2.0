@@ -13502,3 +13502,22 @@ Virgilio"` `[dato: el .bas]`, no toca GP2.
 - **v1.39.0** [usuario] Thomas: *"entre columna y columna veo espacios"* + *"si no cumple con el mínimo que aparezca igual pero con color rojo y negrita"*. Causa de los huecos: `table.t{width:100%}` de `gp2-modulo.css` le ganaba en especificidad a `.t-insumos{width:auto}` (y en los tests no se veía porque el CSS está stubeado). Ahora `table.t.t-insumos{width:auto}` y el `.table-wrap` abraza la tabla. "mín. proveedor" en rojo y negrita cuando lo pedido queda por debajo; vacío no se marca.
 - **v1.40.0** [usuario] Thomas: *"quiero que esté todo centrado y sin tanto blanco. Si es necesario poné proveedores sobrantes abajo"*. La tarjeta de OC mide lo que mide la tabla (`.card{width:fit-content}`, piso 720px para cuando no hay tabla), todo centrado, y la botonera de proveedores baja de renglón al lado de su etiqueta en vez de ensanchar la página (`contain:inline-size` en los filtros: no cuentan para el ancho).
 - **v1.40.1** [usuario] Thomas: *"todo esto alineación a la izquierda"*: dentro de la tarjeta, botones Generar/Órdenes, filtros, cartel del proveedor, buscador y Crear OC van a la **izquierda**. La tarjeta sigue centrada en la página y del ancho de la tabla.
+
+## 4gq. El maestro de empleados es `planify.employees` (lo gestiona RRHH); la letra del legajo es la empresa (2026-09-29)
+
+- [usuario] Thomas: *"que el de planify sea el que se usa (lo gestiona RRHH); el que usábamos era manual"*. La lista
+  de operarios de la app nueva de registro de producción (repo `GP2-Registro-Produccion`) sale de
+  `planify.employees`, **no** de `public."Empleados"` (cargada a mano, queda desactualizada).
+- [usuario] *"el c es porque pertenece a otra empresa; para diferenciar los legajos se le puso una letra adelante"*.
+  → **El legajo es texto y la letra es parte de la clave.** El número solo NO identifica a nadie.
+- [dato, consulta 29/09] Colisiones reales: `29` = Viviana Gauna y `c29` = Nora Heredia; `122` = Adrián Villalba
+  y `C122` = Martín Castillo (baja). Hay `c` y `C` mezcladas (normalizar a minúscula al comparar).
+  `public."Empleados"` guarda `94` para quien en Planify es `c94` (perdió la letra).
+- [dato] De 35 activos en `Empleados`: 29 están en Planify; los 6 que faltan y los 6 que Planify tiene de baja
+  **no cargaron producción en los últimos 30 días** → RRHH tiene razón; pasar a Planify no deja afuera a nadie activo.
+- [dato] `planify.employees.tipo` dice "administrativo" también para operarios de la otra empresa (ej. c19
+  Eduardo): no sirve para saber quién es operario. Los permisos de botones (`es_piedra`, `ve_cm`, …) y
+  `hora_entrada` de producción solo existen en `Empleados` → hay que llevarlos a una tabla GP2 atada al
+  `planify.employees.id` (no al legajo).
+- [deducido, sin confirmar] Login del operario: el teclado es numérico (regla de campos) y la letra no se tipea →
+  elegir la empresa con un botón grande + número. `login-operario` hoy valida contra `public."Empleados"`: cambiar.
