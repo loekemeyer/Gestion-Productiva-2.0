@@ -1,6 +1,14 @@
 <!doctype html>
 <html lang="es">
 <head>
+<!-- v1.41.0 (2026-09-28) — EL MINIMO DEL CARTON TAMBIEN DEBAJO DE PEDIR [Thomas: "No me aparece el
+     minimo todavia", sobre una fila de carton]. El carton no tiene minimo por pieza: su minimo es la
+     tirada de la familia (carton_formato.pliegos_multiplo) y el paso por codigo (min_codigo_x_multiplo).
+     notaMinUni() lo muestra como "tirada min. 12.000 uni por familia Huevo LK · min. por codigo 1.000";
+     en rojo si lo pedido no llega al minimo por codigo. Y SE VA EL CARTEL ROJO del multiplo de familia
+     con su boton "Ajustar al multiplo" [Thomas: "Que esto no aparezca"]: el multiplo y el minimo por
+     codigo ya no frenan Crear OC; queda solo el piso de la familia (bolsa 20.000) y el piso en kg del
+     proveedor de resina. "Sugerir" sigue redondeando el carton a su familia. -->
 <!-- v1.40.1 (2026-09-28) — BOTONES, FILTROS, BUSCADOR Y CREAR OC A LA IZQUIERDA [Thomas: "todo esto alineacion
      a la izquierda"]. La tarjeta sigue del ancho de la tabla y centrada en la pagina. -->
 <!-- v1.40.0 (2026-09-28) — TODO CENTRADO, SIN BLANCO A LOS COSTADOS [Thomas: "quiero que este todo centrado y sin
@@ -1084,6 +1092,17 @@ function notaRepo(i){
 // cuando lo pedido queda por debajo del minimo.
 function notaMinUni(i, ped, esChar, uxpChar, um){
   var m = Number(i.pedido_minimo_uni)||0;
+  // v1.41.0: el CARTON no tiene minimo por pieza; su minimo es la TIRADA de la familia
+  // (carton_formato.pliegos_multiplo: 12.000 / 16.000 / 25.000...) y el paso por codigo
+  // (min_codigo_x_multiplo). Se muestra igual que el minimo del proveedor [Thomas 2026-09-28:
+  // "No me aparece el minimo todavia", sobre una fila de carton].
+  if(m<=0 && GP2UI.esCarton(i) && !i.es_pliego && Number(i.pliegos_multiplo)>1){
+    var pm = Number(i.pliegos_multiplo), mc = Number(i.min_codigo_x_multiplo)||0;
+    var pedU = Number(ped)||0;
+    var cortoC = mc>0 && pedU>0 && pedU<mc;
+    return '<span class="min-uni'+(cortoC?' corto':'')+'">tirada mín. '+fmt(pm)+' uni por familia '+
+           esc(i.carton_formato||'')+(mc>0?(' · mín. por código '+fmt(mc)):'')+'</span>';
+  }
   if(m<=0) return '';
   var pedUni = esChar ? (Number(ped)||0)*uxpChar : (Number(ped)||0);
   var corto = pedUni>0 && pedUni<m;
@@ -1349,20 +1368,12 @@ function validarCarton(items){
       errores.push(lbl+': el pedido mínimo es '+fmt(cf.pedido_minimo)+' y hay '+fmt(total)+'.');
       return;
     }
-    if(total % cf.pliegos_multiplo !== 0){
-      errores.push(lbl+': el total ('+fmt(total)+') debe ser múltiplo de '+fmt(cf.pliegos_multiplo)+'.');
-      return;
-    }
-    // El minimo por codigo es FIJO: es el PAQUETE en que viene el carton, no una cuota
-    // que crezca con el pedido [usuario 2026-09-03: "el paquete viene a mil, se puede
-    // recibir a mil"]. Ver el comentario de arriba: la doc vieja decia que escalaba.
-    var minCod=cf.min_codigo_x_multiplo;
-    xs.forEach(function(x){
-      if(x.cantidad % cf.codigo_multiplo !== 0)
-        errores.push(lbl+' · '+x.it.codigo+': '+fmt(x.cantidad)+' no es múltiplo de '+fmt(cf.codigo_multiplo)+'.');
-      else if(x.cantidad < minCod)
-        errores.push(lbl+' · '+x.it.codigo+': mínimo '+fmt(minCod)+' por código.');
-    });
+    // v1.41.0: el MULTIPLO de la familia y el minimo por codigo YA NO frenan ni avisan aca
+    // [Thomas 2026-09-28: "Que esto no aparezca", sobre el cartel rojo "Formato LOKE CHEF: el
+    // total (60.000) debe ser multiplo de 16.000 / Ajustar al multiplo"]. La tirada se lee en
+    // cada fila, debajo de Pedir (notaMinUni), y "Sugerir" sigue dejando el carton redondeado a
+    // su familia (ajustarPedidoCarton). Lo que el comprador escribe a mano es su decision.
+    // Solo queda el PISO de la familia (carton_formato.pedido_minimo: la bolsa de Vihal 20.000).
   });
   return errores;
 }
@@ -1465,10 +1476,8 @@ function barra(){
     rc.classList.remove('hidden'); rc.classList.add('mal');
     // El boton de ajustar es del CARTON (redondea al multiplo de la familia): si lo que falla es el
     // piso en kg del proveedor de resina no hay nada que redondear, lo resuelve el comprador.
-    rc.innerHTML=errs.map(esc).join('<br>')+
-      (errsCart.length ? '<br><button type="button" id="btnAjustarCart" class="btn-sug" style="margin-top:8px">Ajustar al múltiplo</button>' : '');
-    var ba=$('btnAjustarCart');
-    if(ba) ba.addEventListener('click',function(){ ajustarPedidoCarton(); render(); });
+    // v1.41.0: se fue el boton "Ajustar al multiplo" junto con el aviso del multiplo (arriba).
+    rc.innerHTML=errs.map(esc).join('<br>');
   }
   else rc.classList.add('hidden');
   var tUsd=0, tArs=0, sinPrecio=0;

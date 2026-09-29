@@ -149,6 +149,11 @@ CREATE OR REPLACE FUNCTION "GP2"._oc_validar_carton(p_items jsonb)
  STABLE SECURITY DEFINER
  SET search_path TO 'GP2'
 AS $function$
+  -- 2026-09-28: el MULTIPLO de la familia y el minimo por codigo YA NO frenan la OC [Thomas:
+  -- "Que esto no aparezca", sobre el cartel "el total debe ser multiplo de 16.000"]. La tirada se
+  -- muestra en cada fila de la pantalla; lo que el comprador escribe es su decision. Queda SOLO el
+  -- piso de la familia (carton_formato.pedido_minimo: la bolsa de Vihal 20.000). Es el port literal
+  -- de validarCarton() de Compras/OC_GP2.html; test_oc_reglas_js_vs_db compara los dos.
   with paq as (
     select coalesce((select valor::numeric from parametro where clave = 'pliego_uni_x_paquete'), 100) q
   ),
@@ -168,8 +173,6 @@ AS $function$
                      || coalesce(' · ' || c.carton_categoria, '') end as fam_label,
            (not coalesce(c.es_pliego,false)) and coalesce(cc.mezcla_libre,false) as comodin,
            case when coalesce(c.es_pliego,false) then paq.q else cf.pliegos_multiplo end as pm,
-           case when coalesce(c.es_pliego,false) then paq.q else coalesce(cf.codigo_multiplo,1) end as cm,
-           case when coalesce(c.es_pliego,false) then paq.q else coalesce(cf.min_codigo_x_multiplo,0) end as mc,
            case when coalesce(c.es_pliego,false) then 0 else coalesce(cf.pedido_minimo,0) end as pmin
       from jsonb_array_elements(coalesce(p_items,'[]'::jsonb)) it
       cross join paq
@@ -180,7 +183,6 @@ AS $function$
        and (coalesce(c.es_pliego,false) or coalesce(cf.pliegos_multiplo,0) > 0)
        and coalesce((it->>'cantidad')::numeric, 0) > 0
   ),
-  -- a que familia FIJA de su misma base le falta mas para llegar al multiplo
   destino as (
     select distinct on (fam_base) fam_base, fam_key
       from (select fam_base, fam_key,
@@ -195,42 +197,19 @@ AS $function$
       from base b
       left join destino d on d.fam_base = b.fam_base and b.comodin
   ),
-  -- la regla y la etiqueta salen del renglon NO comodin que abrio la familia
   cabecera as (
-    select distinct on (k) k, fam_label, pm, cm, mc, pmin from asignado
+    select distinct on (k) k, fam_label, pmin from asignado
      order by k, comodin, comp_id
   ),
   fam as (
     select a.k,
            max(c.fam_label) || case when bool_or(a.mudado) then ' (+ sacacorchos)' else '' end as lbl,
-           sum(a.cantidad) as total, max(c.pm) pm, max(c.cm) cm, max(c.mc) mc, max(c.pmin) pmin
+           sum(a.cantidad) as total, max(c.pmin) pmin
       from asignado a join cabecera c on c.k = a.k group by a.k
-  ),
-  err_fam as (
-    select f.k, 1 as orden, f.lbl || ': el pedido mínimo es ' || "GP2"._oc_num(f.pmin)
-           || ' y hay ' || "GP2"._oc_num(f.total) || '.' as msg
-      from fam f where f.pmin > 0 and f.total < f.pmin
-    union all
-    select f.k, 2, f.lbl || ': el total (' || "GP2"._oc_num(f.total) || ') debe ser múltiplo de '
-           || "GP2"._oc_num(f.pm) || '.'
-      from fam f where not (f.pmin > 0 and f.total < f.pmin)
-       and f.pm > 0 and (f.total % f.pm) <> 0
-  ),
-  err_cod as (
-    select a.k, 3 as orden, a.codigo,
-           case when f.cm > 0 and (a.cantidad % f.cm) <> 0
-                then f.lbl || ' · ' || a.codigo || ': ' || "GP2"._oc_num(a.cantidad)
-                     || ' no es múltiplo de ' || "GP2"._oc_num(f.cm) || '.'
-                when a.cantidad < f.mc
-                then f.lbl || ' · ' || a.codigo || ': mínimo ' || "GP2"._oc_num(f.mc) || ' por código.'
-           end as msg
-      from asignado a join fam f on f.k = a.k
-     where not exists (select 1 from err_fam e where e.k = a.k)
   )
-  select coalesce(array_agg(msg order by k, orden, codigo), '{}')
-    from (select k, orden, ''::text as codigo, msg from err_fam
-          union all
-          select k, orden, codigo, msg from err_cod where msg is not null) t;
+  select coalesce(array_agg(f.lbl || ': el pedido mínimo es ' || "GP2"._oc_num(f.pmin)
+           || ' y hay ' || "GP2"._oc_num(f.total) || '.' order by f.k), '{}')
+    from fam f where f.pmin > 0 and f.total < f.pmin;
 $function$
 ;
 
