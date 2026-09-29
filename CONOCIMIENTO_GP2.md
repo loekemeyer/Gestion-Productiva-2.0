@@ -13778,3 +13778,21 @@ Contexto: app unificada `GP2-Registro-Produccion`, se arranca por Cervantes. Tab
   kg ni cajón; la raíz es el fleje/crudo de origen y se mantiene a lo largo de la cadena.
 - [usuario 29/09] **Las aletas del 523/723 NO se croman: son inox.** La ruta IC2 → M116 → M114 → M221 → D3/D2 sin
   proveedor de cromado es correcta; el "p/Cromar" de las viejas L9/L10 era un resto (esos códigos ya no existen).
+
+## 4gq. Flejes: mínimos y proveedores del relevamiento "Conteo Gral FLEJES y Alambre" (2026-09-29)
+
+`[Thomas 2026-09-29: "Te paso el de flejes para que compruebes ahora"]`. Hoja "Pedido Flejes", columna
+"Ped Min KG", por número de fleje (`componente.descripcion` "Fleje N° X" en GP2).
+
+- `[dato]` **Mínimo en kg por fleje, cargado en `componente.pedido_minimo_uni`** (los flejes son canónicos
+  en kg): Basconia 500 (23 flejes), Aperam 300 (11) y 200 (fleje 95), Hermac 200 (5), Szapiro 150 (fleje
+  46), Brawin 25 (5 varillas). Sin cargar: Altrak fleje 90 (la planilla dice 0), JL Metales fleje 55
+  (dice 0,1: no se entiende) e IVBCM fleje 96 (no está en la planilla).
+- `[dato]` **Proveedor distinto**: fleje **59** (IB7): planilla Hermac, GP2 Aperam. Y un cruce de
+  numeración: la planilla llama **95** al "Vást. C Pizza 60×2" de Aperam, y en GP2 el 95 es la
+  "Varilla B Pera Larga Mini" de Brawin (IVBLM). Sin tocar hasta que el dueño diga.
+- `[dato]` **39 flejes de la planilla no existen en GP2** (piezas de otros artículos: Estribo Bombilla 91,
+  Arandela Chica Afila 11/12, C/Queso 78/80, Espiral Doble Aleta 47, Paleta Batidora 34, Ganchito 50
+  de Estametal, Arandela Base 36, cuchara/espátula/cucharón/espumadera inox 43/44/45, PP Ajo 65/66/67,
+  doble aleta 56/63/64/72, etc.). Los demás 50 coinciden en proveedor.
+- Archivo: copia en el scratchpad de la sesión; el original lo tiene el dueño.

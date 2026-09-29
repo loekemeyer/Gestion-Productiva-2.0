@@ -4,6 +4,7 @@
 (vacío)
 
 [HISTORIAL]
+2026-09-29 (15) - FLEJES: minimos en kg por fleje desde la planilla "Conteo Gral FLEJES y Alambre" (Basconia 500, Aperam 300, Hermac 200, Szapiro 150, Brawin 25; 46 flejes). DB-only. Proveedor distinto: fleje 59 (Hermac vs Aperam) y cruce de numeracion del 95. CONOCIMIENTO 4gq. thomas (claude-remote).
 2026-09-29 (14) - OC v1.45.0: fleje, remache, bombilla, garage, caja y bolsas plasticas ordenados por proveedor y codigo, sin titulos (Thomas). version.js v1.206.0 ?v=20260929i. thomas (claude-remote).
 2026-09-29 (13) - OC v1.44.2: sin equivalencias ("= 227 bolsas de 150", "= N uni") debajo de Pedir; queda solo "min. pedido" y "ya pediste" (Thomas). version.js v1.205.2 ?v=20260929h. thomas (claude-remote).
 2026-09-29 (12) - Ruedas PIEA/PIEB (Barbetta) sin minimo (Thomas: "a estos dos no les pongas minimo"). DB-only. thomas (claude-remote).
@@ -13,4 +14,3 @@
 2026-09-29 (8) - PLASTICO, PROVEEDORES SEGUN RELEVAMIENTO (Thomas: "las tres cosas de Telleria y la de Rodar mandalo a Rafael Pettofrezza"). DB-only: PEP2 Pat Bet Plast -> Pettofrezza Rafael (PB2, PEP1, PA4B ya estaban). Pendiente: Bujes PA8A/PA8B y PEST1 (Kollplast en GP2, Pat Bet en planilla). CONOCIMIENTO 4gp. thomas (claude-remote).
 2026-09-29 (7) - OC v1.44.1: "Otros" del plastico bajo UN solo titulo, piezas ordenadas por proveedor (Thomas). version.js v1.205.1 ?v=20260929g. thomas (claude-remote).
 2026-09-29 (6) - OC v1.44.0: el minimo se lee en la unidad de la O.C. ("min. pedido 1.000 kg (= 153.139 uni)"; Thomas: "siempre los min es la unidad del remito"); DB: Clavo 505 PCP3 1.000 -> 153.139 uni (la planilla lo daba en KG). Encabezados fijos (thead sticky) en escritorio en la tabla de insumos y la de O.C. emitidas. version.js v1.205.0 ?v=20260929f. thomas (claude-remote).
-2026-09-29 | claude-remote | IC2-M116 / IC2-M114 separados en -I (izq, D3) y -D (der, D2); rutas 210-213
