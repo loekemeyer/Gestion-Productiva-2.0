@@ -123,6 +123,20 @@ create table "GP2".carton_categoria (
 );
 comment on table "GP2".carton_categoria is 'Familias de pedido del carton tipo C. mezcla_libre = se puede sumar a cualquier otra familia para completar el multiplo (hoy solo Sacacorchos). Pisapapas quedo sin uso: no existe esa familia de articulo.';
 
+-- ---------- familia_pedido ----------
+create table "GP2".familia_pedido (
+  nombre text not null,
+  sector_id bigint,
+  pedido_minimo_uni numeric,
+  nota text,
+  constraint familia_pedido_pkey PRIMARY KEY (nombre),
+  constraint familia_pedido_sector_id_fkey FOREIGN KEY (sector_id) REFERENCES "GP2".sector(id)
+);
+comment on table "GP2".familia_pedido is 'Familia de PEDIDO de las partes plasticas: las piezas que salen de la misma matriz del inyector. El minimo del proveedor es POR FAMILIA, no por pieza [Thomas 2026-09-29: "el minimo va por familia, no por parte. Entre todos los pirolos tengo que llegar a 36000"]. De la planilla Pedido Plasticos VACIO, columna Descripcion Matriz. La OC agrupa por esta familia (como los cartones por formato) y muestra el minimo con el total pedido de la familia; no frena.';
+alter table "GP2".familia_pedido enable row level security;
+create policy familia_pedido_lectura on "GP2".familia_pedido for select using (true);
+-- componente.familia_pedido text references familia_pedido(nombre) on update cascade (2026-09-29)
+
 -- ---------- carton_formato ----------
 create table "GP2".carton_formato (
   nombre text not null,
@@ -160,6 +174,7 @@ create table "GP2".componente (
   codigo_isis_ch text,
   codigo_virgilio text,
   pedido_minimo_uni numeric,
+  familia_pedido text,
   mb_color text,
   discontinuado boolean not null default false,
   uni_x_paquete numeric,

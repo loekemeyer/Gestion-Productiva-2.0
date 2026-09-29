@@ -291,6 +291,11 @@ Faltan proveedor: 8 plásticos (ver abajo), bombillas/resortes 8, remaches 8, fl
   OP Bolsas Plast»): **Indarnyl 400 kg**, Beta Plásticos 25, Santa Rosa 25, masterbatch 5. Viaja en
   `oc_bundle.proveedores[]`; la pantalla suma los kg de la OC por proveedor y **no deja crearla si no llega
   al piso** (dice cuántos kg faltan). No se infla sola: sumar kg es una decisión de compra.
+- **Pedido mínimo POR FAMILIA (plástico, 2026-09-29)**: las piezas de la misma matriz del inyector
+  (`componente.familia_pedido` → `GP2.familia_pedido.pedido_minimo_uni`) suman para el mínimo
+  `[Thomas: "entre todos los pirolos tengo que llegar a 36000"]`. La O.C. agrupa el plástico por familia
+  y muestra en el título el mínimo y lo pedido; no frena. Donde hay familia, el mínimo por pieza de
+  abajo no se muestra.
 - **Pedido mínimo POR PIEZA** (`componente.pedido_minimo_uni`, del Excel, hoja «Pedido 31-08», columna
   `Pedi Min Uni`): el inyector no hace una tirada de menos de N piezas (1 a 36.000 según el molde), **47
   componentes cargados**. Viaja en `oc_bundle.insumos[].pedido_minimo_uni`. **NO bloquea**: hoy 24 de los

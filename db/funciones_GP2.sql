@@ -4738,6 +4738,10 @@ with pend as (
          coalesce(cc2.mezcla_libre, false) mezcla_libre,
          cf.pliegos_multiplo, cf.codigo_multiplo, cf.min_codigo_x_multiplo, cf.pedido_minimo,
          c.pedido_minimo_uni,
+         -- FAMILIA DE PEDIDO del plastico (2026-09-29): las piezas de la misma matriz del inyector;
+         -- el minimo del proveedor es de la FAMILIA [Thomas: "entre todos los pirolos tengo que
+         -- llegar a 36000"]. La OC agrupa por familia y muestra el minimo con el total pedido.
+         c.familia_pedido, fp.pedido_minimo_uni familia_minimo,
          -- LA UNIDAD DEL REMITO (2026-09-28): la O.C. se pide en la misma unidad en que se recibe
          -- [Thomas: "usa las mismas unidades de medida para las ordenes de compra"]. Mismos datos
          -- que usa Recepcion de Insumos para decidir la unidad.
@@ -4754,6 +4758,7 @@ with pend as (
   left join pend pd on pd.componente_id = c.id
   left join carton_formato cf on cf.nombre = c.carton_formato
   left join carton_categoria cc2 on cc2.nombre = c.carton_categoria and cc2.formato = c.carton_formato
+  left join familia_pedido fp on fp.nombre = c.familia_pedido
   left join pv on pv.componente_id = c.id
   left join fas on fas.comp_id = c.id
   where (
@@ -4827,6 +4832,7 @@ select jsonb_build_object(
       'pliegos_multiplo',pliegos_multiplo,'pedido_minimo',pedido_minimo,
       'codigo_multiplo',codigo_multiplo,'min_codigo_x_multiplo',min_codigo_x_multiplo,
       'pedido_minimo_uni',pedido_minimo_uni,
+      'familia_pedido',familia_pedido,'familia_minimo',familia_minimo,
       'remito_unidad',remito_unidad,'recibe_en_cajas',recibe_en_cajas,
       'entrega_unidad',entrega_unidad,'entrega_uni_x',entrega_uni_x
     ) order by sector_id, codigo),'[]'::jsonb) from calc),

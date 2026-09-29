@@ -13507,8 +13507,29 @@ Virgilio"` `[dato: el .bas]`, no toca GP2.
   "Sugerir", pero ya no son "el mínimo". `[Thomas 2026-09-29: "quiero que en la o.c. me separes por
   familia"]` → la tabla de cartones va con un renglón de título por familia (formato + marca +
   categoría), `OC_GP2.html` v1.42.0.
-- **Pendiente de carga**: 9 plásticos (PA10/13/18 y PA4 10.000, PC1A/B 36.000, Maspoli PC12/PEP7/PEP8
-  500), ver el xlsx.
+- `[Thomas 2026-09-29: "Seguimos con plásticos… Ahora sí el mínimo va por familia, no por parte. Es decir:
+  entre todos los pirolos tengo que llegar a 36000. Separame por familia al igual que los cartones"]`
+  **Plástico — familia de pedido = matriz del inyector.** Nueva tabla `GP2.familia_pedido` (30 familias,
+  de la columna "Descripcion Matriz" de la planilla) y `componente.familia_pedido` en 49 piezas. El mínimo
+  es de la familia (`familia_pedido.pedido_minimo_uni`); `componente.pedido_minimo_uni` por pieza queda
+  pero la O.C. no lo muestra cuando hay familia. `oc_bundle` manda `familia_pedido` y `familia_minimo`;
+  la O.C. (v1.43.0) agrupa el sector Plástico por familia con título "Pirolos · 3 piezas · mín. familia
+  36.000 uni · pedido N uni", rojo si no llega; no frena.
+  **Qué parte de la planilla es qué en GP2**: lo que se COMPRA es la variante sin serigrafía / sin calar:
+  PA10→PA10B, PA13→PA13B, PA18→PA18B, PA4→PA4B (+PA5B Chef), PC1A/PC1B (calados) → PC2/PC3B (sin calar,
+  36.000), PC15→PC15AB (+PC15B), PB8→PB8A, PB7→PB8B, PEP4A/PEP4B→PEP4, PA9=A11 Capuchón Mariposa. Las
+  serigrafiadas/caladas (PA10, PA13, PA18, PA4, PA5, PC1A, PC1B, PC15A, PEP3) son `estado_compra=fabricacion`
+  y no van a la O.C. `[deducido]` PB5 (manguito negro) en "Manguitos Abrelata" y PA5B en "Mango Cuchillo
+  Untar" por matriz común. Familias con más de una pieza: Pirolos (PA7A/PA7B/PA12, 36.000), Bujes
+  (PA8A/PA8B, 33.000), Mango Pelador 505/123 (PC2/PC3B, 36.000), Manguitos Abrelata (PC13/PC14/PB5, 19.200),
+  Capuchones (PA10B/PA13B/PA18B, 10.000), Mango Tellería (PEP1/PEP2, 10.000), Mango Cuchillo Untar
+  (PA4B/PA5B, 10.000), Plaquitas (PA1/PA2, 6.000), Mangos LK (PA17/PC10/PC11, 6.000), Insertos
+  (PB6/PB8B/PEST2, 2.000), Cuerpo Sacacorcho Plast (PC15AB/PC15B, 2.000), Espátulas (PV3/PV7, 1.500),
+  Cucharas Calada y Fideos (PV5/PV6, 1.500), Corta Torta (PV8/PV8B, 1.500). El resto son de una pieza.
+  **No están en GP2** (8): PA15 Capuchón ф10, PA16 Mangos ф10 LK, PB1 Cilindro Corta Queso (12.000),
+  PEP6 Cabo Madera 525, CP7 Mangos Corta Queso, CP5 Afila Caladas Blanco, HP2 Inserto Cuch y Pal, FP3
+  (sin descripción, "Manolo"). Sin familia (no son matriz): Maspoli PC12/PEP7/PEP8 (500), Pintos PEP5,
+  consumibles PCP2/PCP3/PCP4A, ruedas PIEA/PIEB.
 - **v1.39.0** [usuario] Thomas: *"entre columna y columna veo espacios"* + *"si no cumple con el mínimo que aparezca igual pero con color rojo y negrita"*. Causa de los huecos: `table.t{width:100%}` de `gp2-modulo.css` le ganaba en especificidad a `.t-insumos{width:auto}` (y en los tests no se veía porque el CSS está stubeado). Ahora `table.t.t-insumos{width:auto}` y el `.table-wrap` abraza la tabla. "mín. proveedor" en rojo y negrita cuando lo pedido queda por debajo; vacío no se marca.
 - **v1.40.0** [usuario] Thomas: *"quiero que esté todo centrado y sin tanto blanco. Si es necesario poné proveedores sobrantes abajo"*. La tarjeta de OC mide lo que mide la tabla (`.card{width:fit-content}`, piso 720px para cuando no hay tabla), todo centrado, y la botonera de proveedores baja de renglón al lado de su etiqueta en vez de ensanchar la página (`contain:inline-size` en los filtros: no cuentan para el ancho).
 - **v1.40.1** [usuario] Thomas: *"todo esto alineación a la izquierda"*: dentro de la tarjeta, botones Generar/Órdenes, filtros, cartel del proveedor, buscador y Crear OC van a la **izquierda**. La tarjeta sigue centrada en la página y del ancho de la tabla.

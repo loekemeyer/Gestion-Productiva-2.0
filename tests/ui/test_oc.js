@@ -107,7 +107,7 @@ const BUNDLE = {
     // CHARCAS: se pide en PAQUETES de charcas_kg_x_paquete kg (20 en este fixture / 0,01 kg
     // por unidad = 2.000 uni por paquete). El sugerido de 2.500 uni se redondea para arriba a
     // 2 paquetes, la pantalla manda unidad 'paq' y crear_oc lo guarda en kg.
-    { comp_id: 13, codigo: 'EP10', descripcion: 'Bombilla EP10', sector: 'Sector Plastico', sector_id: 6,
+    { comp_id: 13, codigo: 'EP10', descripcion: 'Bombilla EP10', sector: 'Sector Plastico', sector_id: 6, familia_pedido: 'Pirolos', familia_minimo: 36000,
       proveedor: 'Resortes Charcas', um: 'unidad', unidad: 'uni', kg_x_uni: 0.01,
       maximo: 2500, maximo_inventario: 2500, maximo_origen: 'est_madre', stock: 0,
       consumo: 400, consumo_uni_mes: 400, meses: 6, online: 0, pendiente_oc: 0,
@@ -130,7 +130,7 @@ const BUNDLE = {
       carton_formato: null, pliegos_multiplo: null, codigo_multiplo: null, min_codigo_x_multiplo: null },
     // 2. TECHO MUY POR DEBAJO DEL CONSUMO (el W8 real: entran 726 y el consumo de 6 meses son
     //    5.228). El maximo MANDA: se pide lo que entra, no lo que se consume.
-    { comp_id: 15, codigo: 'MAXBAJO', descripcion: 'Techo fisico abajo del consumo', sector: 'Sector Plastico', sector_id: 6,
+    { comp_id: 15, codigo: 'MAXBAJO', descripcion: 'Techo fisico abajo del consumo', sector: 'Sector Plastico', sector_id: 6, familia_pedido: 'Pirolos', familia_minimo: 36000,
       proveedor: 'Inyectores SA', um: 'unidad', unidad: 'uni', kg_x_uni: null,
       maximo: 726, maximo_inventario: 726, maximo_origen: 'fisico', stock: 0,
       consumo: 871.3, consumo_uni_mes: 871.3, meses: 6, online: 0, pendiente_oc: 0,
@@ -318,7 +318,14 @@ window.supabase = { createClient: function(){ return {
   await page.click('#rubroTodos');
   await page.click('#rubros .chip:has-text("Plastico")');
   await page.click('#provs .chip:has-text("Resortes Charcas")');
-  ok(await page.$$eval('#tbody tr', x => x.length) === 1, 'Charcas: 1 fila (EP10)');
+  ok(await page.$$eval('#tbody tr[data-id]', x => x.length) === 1, 'Charcas: 1 fila (EP10)');
+  // v1.43.0: la pieza con familia de pedido va bajo el titulo de su familia, con el minimo de la
+  // FAMILIA y lo pedido entre todas sus piezas; la fila no repite el minimo.
+  const famP = await page.$$eval('#tbody tr.fam-hdr td', xs => xs.map(x => x.textContent.trim()));
+  ok(famP.length === 1 && /^Pirolos · 1 pieza · mín\. familia 36\.000 uni · pedido 2\.500 uni$/.test(famP[0]),
+     'titulo de familia del plastico: ' + famP.join(' | '));
+  ok(await page.$eval('#tbody tr.fam-hdr', x => x.classList.contains('corto')), 'la familia corta (2.500 < 36.000) va en rojo');
+  ok(!(await page.$('tr[data-id="13"] .min-uni')), 'la fila con familia no repite el minimo por pieza');
   // v1.38.0: los resortes que Charcas nos VENDE se reciben en unidades y se piden en unidades
   // [Thomas 2026-09-28: "los resortes batidor los pido en unidades"]. El paquete de 10 kg es solo
   // para sus flejes (sector 5).
@@ -343,7 +350,7 @@ window.supabase = { createClient: function(){ return {
   // Tres filas reales de oc_bundle. Si alguien volviera a la formula vieja (consumo x meses),
   // las tres cambian de numero y esto se prende.
   await page.click('#provs .chip:has-text("Inyectores SA")');
-  ok(await page.$$eval('#tbody tr', x => x.length) === 3, 'Inyectores SA: 3 filas');
+  ok(await page.$$eval('#tbody tr[data-id]', x => x.length) === 3, 'Inyectores SA: 3 filas');
   // 1. El techo fisico manda aunque el consumo sea ridiculo al lado: 9.400, no 54.
   ok(await page.$eval('.pedir-in[data-in="14"]', x => x.value) === '9400',
      'el maximo fisico manda sobre el consumo (9.400 y no los 54 de consumo x meses)');
