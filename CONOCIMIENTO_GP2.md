@@ -2984,8 +2984,8 @@ mínimo de antes y el recalculado) para poder volver atrás. `[2026-09-04]` La t
 
 ## 2e. Faltantes y máximos de Crudo/Procesado: 5 cajones por ubicación (2026-08-31)
 
-> ⚠️ **RETIRADO EL 2026-09-29 (§4gu):** el máximo de Crudo/Procesado ya NO es 5 cajones, es consumo ×
-> `meses_stock` del sector. Lo de abajo queda como historia. El umbral de faltante (1 cajón) sigue igual.
+> ⚠️ **CAMBIADO EL 2026-09-29 (§4gu):** el máximo de Crudo/Procesado es consumo × `meses_stock` del sector
+> **con tope de 5 cajones** (el menor de los dos). El faltante automático ya no es "< 1 cajón": es **stock < máximo**.
 
 `[usuario 2026-08-30]` **"En crudo y procesado, el stock máximo tendría que ser 5
 CAJONES por ubicación."** El máximo físico de cada componente de Sector Crudo y Sector
@@ -13817,16 +13817,23 @@ Contexto: app unificada `GP2-Registro-Produccion`, se arranca por Cervantes. Tab
   hoy V9 = 113.304, V5 = 68.008, A9 Caja N°22 = 32.346, A5 Caja N°6 = 240. Quedan `fisico` sólo los 4 de Plástico sin
   consumo (PCP4A, PCP2, PIEA, PIEB), las 13 de resina/MB (regla propia, §4dr) y RULETA.
 - [usuario 29/09] **Y1** (Sector Afilado) también a consumo × meses: 43.946 → 44.068.
-- [usuario 29/09] **Z12, C13, Z31** (Procesado, sin `uni_x_cajon`) ahora tienen máximo por consumo: 9.034 / 7.854 / 402.
+- [usuario 29/09] **Z12, C13, Z31** (Procesado, sin `uni_x_cajon`) ahora tienen máximo por consumo: 9.034 / 7.854 / 402 (sin tope de cajones hasta que se cargue `uni_x_cajon`).
 - [usuario 29/09] **A9 "Cpo Mango Alambre Corta Queso Crom." (id 84) BORRADO: discontinuo.** Tenía 0 movimientos, 0
   recetas, 0 rutas. Se fueron con él 2 filas de inventario en 0 y su precio de cromado (Pedernera $4.757,70/kg, lista
   01/07/2026, `precio_servicio_pieza` id 1).
 - [dato, `valorizacion_bundle`] **Máximo por sector: $947,3 M → $913,2 M.** Crudo $53,2 M → $38,5 M; Procesado
   $80,4 M → $59,4 M; Remache $20,1 M → $21,9 M; Caja $26,6 M → $26,3 M. En unidades: Crudo 871.397 → 439.599, Procesado
   782.380 → 407.174 (los dos tienen `meses_stock` = 1).
-- ⚠ [dato] **69 piezas de Crudo/Procesado quedan con máximo MENOR a 1 cajón**, y el faltante automático
-  (`v_faltante_estado`) marca faltante con stock < 1 cajón (`faltante_cajones_umbral`). Esas piezas figuran en
-  faltante aun con el sector lleno. No se tocó: pendiente de decisión.
+- [usuario 29/09, textual] **"El máximo de sector crudo y sector procesado no puede exceder los 5 cajones"** → el
+  máximo es el MENOR entre consumo × meses y 5 × `uni_x_cajon` (`parametro.max_cajones_x_ubicacion`). 28 piezas se
+  pasaban (D1 Espiral Sacacorcho: 21,4 cajones; H11, B13, Z23, H7, M6, M5, M10: 15-20). Sin `uni_x_cajon` no hay tope
+  (Z12, C13, Z31). Con el tope, 31 piezas quedan con `ubicacion_corta` (el máximo no cubre 30 días): es la señal de que
+  ahí hay que reponer más de una vez por mes. Máximo en uni: Crudo 310.535, Procesado 318.866; en $: Crudo $24,5 M,
+  Procesado $39,7 M; **Máximo por sector total $879,4 M**. Migración `db/migracion_maximo_tope_cajones_faltante.sql`.
+- [usuario 29/09, textual] **Faltante automático = stock menor al máximo** ("Menor al máximo"; antes < 1 cajón, que
+  con máximos chicos marcaba faltante con el sector lleno). `faltante_cajones_umbral` quedó sin uso en la regla (el
+  bundle lo sigue mandando). Hoy las 161 piezas figuran en faltante porque las 161 tienen stock 0 (sin conteo cargado).
+  Faltantes v1.1.0: el cartel dice "bajo el máximo: faltan N uni".
 - **Cómo se arma el consumo de un artículo que tiene "familia"** (`articulo_familia`, 19 pares) `[dato, v_consumo_demanda]`:
   cuando un artículo se vende con dos códigos (ej. **580 Batidor Mini** y **580E**), la venta del código secundario
   se SUMA a la del principal y la receta del principal consume por las dos: 580 vende 114/mes + 580E 588/mes → la
