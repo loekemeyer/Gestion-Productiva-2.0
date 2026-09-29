@@ -5274,6 +5274,10 @@ de Gentile (tallerista 8) **quedan**: sirven de comparación y son el histórico
 > (sector 12) con `maximo` cargado, porque `v_reposicion` toma ESA fila como el máximo del terminado
 > y de ahí leen `oc_bundle` y `valorizacion_bundle` (264.453 uni de sugerido). Borrarlas cambiaba OC
 > y valorización. Respaldo: `GP2.bkp_inventario_virgilio_20260928` (268 filas, RLS prendida).
+> `[usuario 2026-09-29]` "Borra": el respaldo se eliminó (`drop table`). Con él se perdieron los
+> `maximo` de 86 de las 189 filas borradas; no hay otra copia. Ese mismo día se vaciaron también
+> `GP2.movimiento` (2 filas, `entrega_ps` de prueba) y `entrega_control`, y todo `inventario.cantidad`
+> quedó en 0 (las 1.137 filas y sus `maximo` siguen).
 > `inv_delta` hace upsert, así que un movimiento nuevo a Virgilio recrea la fila sola.
 
 ### ⚠️ Lo que todavía NO se hizo: las rutas siguen apuntando a Gentile
