@@ -12,7 +12,17 @@ Ordenado por gravedad. Nada de esto se corrigió todavía: son datos que tiene q
 > poner capuchón— que cuentan para tiempo y premio, no transforman una pieza en otra. Antes decía "127.750 unidades
 > que no suman stock": era una lectura equivocada.
 >
-> Las **4 que sí tienen Causa-Efecto** en la vieja son las que importan:
+> **Pero tienen que estar** [Elías: *"Fábrica sí tiene que estar porque se hacen en fábrica"* y *"tallerista es un
+> 3ro"*]: son trabajos que se hacen **en la fábrica con esa matriz**, así que tienen que figurar en la ruta de cada
+> artículo como **paso de matriz** (hecho en fábrica), no como tallerista. Hoy faltan: GP2 no sabe en qué artículo
+> termina ese trabajo ni puede costearlo.
+>
+> ⚠ Y aparece un problema de modelo: en GP2 **"Fábrica" está cargada como tallerista** (`GP2.tallerista` id 3, con
+> **141 pasos** de ruta). Si tallerista es siempre un tercero, esos 141 pasos están mal clasificados y hay que
+> revisarlos (probablemente son pasos de matriz o de armado interno).
+>
+> Las **4 que sí tienen Causa-Efecto** en la vieja:
+>
 > - **12C → I11** y **28B → J5**: en GP2 esas piezas las hace la matriz **base** (12 y 28) con la pregunta "¿Qué
 >   pieza vas a fabricar?". O sea, GP2 reemplazó la variante con letra por la elección de pieza: si el operario
 >   carga 12C, GP2 no sabe qué hizo.
@@ -180,6 +190,10 @@ Las otras 20 son abreviaturas del mismo nombre ("Sacaf Gast" = "Sacafuente", "Mg
 ## 6. 289 matrices sin tipo en GP2 (la base vieja sí lo tiene)
 
 `GP2.matriz.tipo` está vacío en 289 de 407; la base vieja las tiene clasificadas (A alimentador, B balancín, D dispositivo, P piedra, E). El tipo define la máquina y, en la app nueva, cómo se carga el cajón. Además la **138** es A en GP2 y B en la vieja.
+
+## 7. "Fábrica" cargada como tallerista (141 pasos)
+
+Tallerista es un tercero [Elías 29/09]. En GP2 hay un tallerista "Fábrica" (id 3) con 141 pasos de ruta: trabajo interno clasificado como de un tercero. Afecta envíos, stock en contraparte y costos de tallerista.
 
 ## Relación entre los puntos
 

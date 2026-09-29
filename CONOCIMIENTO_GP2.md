@@ -13605,4 +13605,9 @@ Contexto: app unificada `GP2-Registro-Produccion`, se arranca por Cervantes. Tab
   en `app.js`: 10, 12, 28, 39, 79, 80, 81, 127; el resto las detecta de la base); la app GP2 muestra cada variante como
   otra tarjeta. (2) *Varias salidas* = la MISMA matriz saca piezas distintas (28: A15 del fleje 94 y J2/J5 del 13):
   solo GP2 lo sabe (`matriz_salidas`) y pide "Fabricás …" para que el stock vaya a la pieza correcta.
+- [dato 29/09] **67 matrices usadas en 90 días no están en ninguna ruta de GP2**; 63 son tareas de mano de obra
+  (envasar, reenvasar, armar importados, sacar film) sin Causa-Efecto tampoco en la base vieja. [usuario Elías]
+  *"Fábrica sí tiene que estar porque se hacen en fábrica"* + *"tallerista es un 3ro"*: deben figurar en la ruta del
+  artículo como **paso de matriz hecho en fábrica**, NO como tallerista. **Tallerista = siempre un tercero.** ⚠ Por eso
+  el tallerista "Fábrica" de GP2 (`GP2.tallerista` id 3, 141 pasos) está mal clasificado y hay que revisarlo. Listado: `PROBLEMAS_MATRICES_2026-09-29.md` (+ `.pdf`).
 
