@@ -1,6 +1,12 @@
 <!doctype html>
 <html lang="es">
 <head>
+<!-- v1.44.0 (2026-09-29) — (1) EL MINIMO EN LA UNIDAD DE LA O.C. [Thomas: "el min es en kg en este caso... siempre
+     los min es la unidad de medida que aparece en el remito de recepcion y en la columna de la orden de
+     compra"]: "min. pedido 1.000,00 kg (= 153.139 uni)" para el Clavo 505, "48 paq 250 (= 12.000 uni)" para el
+     carton. En la base sigue en la unidad canonica; el Clavo 505 (planilla "Pedi Min KG" 1.000) paso de 1.000
+     a 153.139 uni. (2) ENCABEZADOS FIJOS al bajar [Thomas: "que me aparezcan los encabezados fijos"]: thead
+     sticky en la tabla de insumos y en la de O.C. emitidas, en escritorio (>700px). -->
 <!-- v1.43.2 (2026-09-29) — EL "OTROS" DEL PLASTICO VA POR PROVEEDOR [Thomas: "La seccion de otros solo en
      plasticos y agrupamela por proveedor. Cartones esta bien asi"]: titulos "Otros · <proveedor> · N piezas",
      al final. Base: los insertos son UNA familia (PB6, PB8B, PEST2 y PEST1 de Kollplast, min. 2.000); el
@@ -504,6 +510,15 @@
   /* table.t (gp2-modulo.css) pone width:100% y le ganaba a .t-insumos: por eso los huecos (v1.39.0). */
   table.t.t-insumos{width:auto}
   #panGen .table-wrap{width:fit-content;max-width:100%}
+  /* v1.44.0: ENCABEZADOS FIJOS al bajar [Thomas 2026-09-29: "quiero que en todas las o.c. me aparezcan los
+     encabezados fijos para que cuando baje siga leyendo los encabezados"]. Para que el sticky pegue contra
+     la pagina, el .table-wrap no puede ser un contenedor de scroll: en escritorio va overflow visible; en
+     el celular (<=700px) se queda con el scroll horizontal y sin sticky, porque ahi la tabla es mas ancha
+     que la pantalla y la regla de la casa es que la pagina nunca scrollee de costado. */
+  @media (min-width:701px){
+    #panGen .table-wrap, #panOcs .table-wrap{overflow:visible}
+    #panGen table.t thead th, #panOcs table.t thead th{position:sticky;top:0;z-index:3}
+  }
   table.t.t-insumos th,table.t.t-insumos td{padding:6px 8px}
   .t-insumos td small{white-space:normal}
   /* Pedir es el campo principal de la pantalla: llega con el sugerido puesto. */
@@ -1130,10 +1145,16 @@ function notaMinUni(i, ped, esChar, uxpChar, um){
   if(m<=0) return '';
   var pedUni = esChar ? (Number(ped)||0)*uxpChar : (Number(ped)||0);
   var corto = pedUni>0 && pedUni<m;
-  var txt = 'mín. pedido '+fmt(m)+' uni';   // v1.43.1 [Thomas: 'que me diga min. pedido en vez de min. proveedor']
-  if(esChar && uxpChar>0) txt += ' (= '+fmt(Math.ceil(m/uxpChar))+' paq)';
-  // v1.38.0: si Pedir va en otra unidad (la del remito), el minimo tambien se lee en esa unidad.
-  else if(um && um.k!==1 && i.unidad!=='kg') txt += ' (= '+fmt(m*um.k, um.lbl==='kg'?2:0)+' '+esc(um.lbl)+')';
+  // v1.44.0: el minimo se lee PRIMERO en la unidad de la O.C. (la del remito: kg, paq, cajas...) y
+  // entre parentesis en la unidad del stock [Thomas 2026-09-29: "el min es en kg en este caso, creo que
+  // siempre los min es la unidad de medida que aparece en el remito de recepcion y en la columna de la
+  // orden de compra"]. En la base sigue en la unidad canonica (uni o kg); la conversion es la misma
+  // que usa el campo Pedir (umRemito). Clavo 505: 1.000 kg (= 153.139 uni).
+  var canon = i.unidad==='kg' ? 'kg' : 'uni';
+  var txt;
+  if(esChar && uxpChar>0) txt = 'mín. pedido '+fmt(Math.ceil(m/uxpChar))+' paq (= '+fmt(m)+' uni)';
+  else if(um && um.k!==1) txt = 'mín. pedido '+fmt(m*um.k, um.lbl==='kg'?2:0)+' '+esc(um.lbl)+' (= '+fmt(m)+' '+canon+')';
+  else txt = 'mín. pedido '+fmt(m)+' '+canon;   // v1.43.1 [Thomas: 'que me diga min. pedido en vez de min. proveedor']
   return '<span class="min-uni'+(corto?' corto':'')+'">'+txt+'</span>';
 }
 

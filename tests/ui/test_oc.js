@@ -233,6 +233,9 @@ window.supabase = { createClient: function(){ return {
 
   // La tabla quedo en lo que se mira para pedir (v1.17.0): salieron Consumo/mes,
   // Sugerido y Precio.
+  // v1.44.0: encabezados fijos al bajar (escritorio).
+  const stick = await page.$eval('#tbody', tb => getComputedStyle(tb.closest('table').querySelector('thead th')).position);
+  ok(stick === 'sticky', 'los encabezados de la tabla quedan fijos (position: ' + stick + ')');
   const heads = await page.evaluate(() => [].map.call(
     document.getElementById('tbody').closest('table').querySelectorAll('thead th'),
     x => x.textContent.replace(/\s+/g, '').trim()));
@@ -391,7 +394,7 @@ window.supabase = { createClient: function(){ return {
   // ...pero la tirada de la familia se lee en la fila, debajo de Pedir.
   // v1.42.0: el minimo es POR CARTON (pedido_minimo_uni), no la tirada de la familia.
   const tir = await page.textContent('tr[data-id="3"] .min-uni');
-  ok(/mín\. pedido 12\.000 uni/.test(tir), 'la fila muestra el minimo del carton: ' + tir.trim());
+  ok(/mín\. pedido 48 paq 250 \(= 12\.000 uni\)/.test(tir), 'el minimo del carton en la unidad de la O.C. (paq) y en uni: ' + tir.trim());
   // ...y la tabla de cartones va separada por familia, con un renglon de titulo por familia.
   const hdrs = await page.$$eval('tr.fam-hdr td', xs => xs.map(x => x.textContent.trim()));
   ok(hdrs.length >= 3 && hdrs.some(h => /^Formato C · /.test(h)) && hdrs.some(h => /^Formato Huevo · /.test(h)) && !hdrs.some(h => /LOEKE|CHEF/.test(h)),

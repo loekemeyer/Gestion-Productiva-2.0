@@ -13533,6 +13533,13 @@ Virgilio"` `[dato: el .bas]`, no toca GP2.
   (sin descripción, "Manolo"). Sin familia (no son matriz): Maspoli PC12/PEP7/PEP8 (500), Pintos PEP5,
   consumibles PCP2/PCP3/PCP4A, ruedas PIEA/PIEB → en la O.C. van bajo "Otros · <proveedor>" (v1.43.2;
   `[Thomas: "La sección de otros solo en plásticos y agrupámela por proveedor. Cartones está bien así"]`).
+  `[Thomas 2026-09-29: "el mín es en kg en este caso, creo que siempre los mín es la unidad de medida que
+  aparece en el remito de recepción y en la columna de la orden de compra"]` **El mínimo se lee en la
+  unidad de la O.C.**: la planilla lo da en la unidad del remito (los bloques de Facciolo y Galvanoquímica
+  dicen "Pedi Min KG"; cartón, remache, bombilla y el resto del plástico "Uni"). En la base
+  `pedido_minimo_uni` sigue en la unidad canónica de la pieza (uni o kg): Clavo 505 PCP3 = 1.000 kg =
+  153.139 uni (kg_x_uni 0,00653); Plancha de Níquel PCP2 = 10 kg (canónica kg). La O.C. muestra
+  "mín. pedido 1.000 kg (= 153.139 uni)" / "48 paq 250 (= 12.000 uni)".
   Las familias salen de la columna **"Descripcion Matriz"** de la planilla `[Thomas 2026-09-29: "Sacaste
   las familias de la columna descripcion matriz no?"]`, con nombres normalizados (Regatones → Pirolos).
 - **v1.39.0** [usuario] Thomas: *"entre columna y columna veo espacios"* + *"si no cumple con el mínimo que aparezca igual pero con color rojo y negrita"*. Causa de los huecos: `table.t{width:100%}` de `gp2-modulo.css` le ganaba en especificidad a `.t-insumos{width:auto}` (y en los tests no se veía porque el CSS está stubeado). Ahora `table.t.t-insumos{width:auto}` y el `.table-wrap` abraza la tabla. "mín. proveedor" en rojo y negrita cuando lo pedido queda por debajo; vacío no se marca.
