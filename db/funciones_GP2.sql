@@ -1,7 +1,7 @@
 -- =====================================================================
 -- FUNCIONES del schema GP2 — export automatico 2026-09-28 (pg_get_functiondef, exacto)
 -- Fuente de verdad: Supabase (hrxfctzncixxqmpfhskv). Este archivo es respaldo/referencia.
--- 166 funciones. Los GRANT/REVOKE no estan aca: EXECUTE para anon solo en las RPC de pantalla (ver db/README.md).
+-- 167 funciones. Los GRANT/REVOKE no estan aca: EXECUTE para anon solo en las RPC de pantalla (ver db/README.md).
 -- Desde 2026-09-28 (seguridad fase B) las 62 RPC que escriben llaman a "GP2"._exigir_autorizado() y NO las ejecuta anon.
 -- =====================================================================
 
@@ -2767,7 +2767,7 @@ ruta_fleje as (
   -- fleje de la ruta = entrada del paso 1 de tipo 'ingreso' cuando es un componente del Sector Fleje (5)
   select distinct on (rp.ruta_id) rp.ruta_id, rp.comp_entrada_id fl
   from "GP2".ruta_paso rp
-  join "GP2".componente c on c.id = rp.comp_entrada_id and c.sector_id = 5
+  join "GP2".componente c on c.id = rp.comp_entrada_id and c.sector_id in (5, 13)
   where rp.tipo_paso = 'ingreso' and rp.orden = 1
   order by rp.ruta_id, rp.orden
 ),
@@ -3946,6 +3946,8 @@ AS $function$
 -- final, y ademas refresca los maximos de TALLERISTA, que nadie recalculaba cuando cambiaba la Est
 -- Madre (68 estaban viejos el 2026-09-26). Prov AT queda afuera a proposito: la Tablet le pone techo 0
 -- (usuario 2026-09-24) y no tiene filas de inventario. D10, 2026-09-26.
+-- 2026-09-28: + recalcular_maximo_mp_ps (FLEJE90_BRUTO / CHAPA430), al final porque sale del maximo
+-- de las piezas que acaban de recalcularse.
 declare v_tx text := txid_current()::text;
 begin
   if current_setting('gp2.maximos_tx', true) = v_tx then return null; end if;
@@ -3953,6 +3955,7 @@ begin
   begin
     perform "GP2".recalcular_maximos_insumos();
     perform "GP2".recalcular_maximos_talleristas();
+    perform "GP2".recalcular_maximo_mp_ps();
   exception when others then
     -- un error en el recalculo NO puede tumbar el sync de LK ni un guardado de receta: se avisa y sigue
     raise warning 'fn_recalc_maximos_diferido: % — los maximos quedan como estaban; correr recalcular_maximos_* a mano', sqlerrm;
@@ -5546,7 +5549,7 @@ AS $function$
 with ruta_fleje as (
   select distinct on (rp.ruta_id) rp.ruta_id, rp.comp_entrada_id fl
   from "GP2".ruta_paso rp
-  join "GP2".componente c on c.id = rp.comp_entrada_id and c.sector_id = 5
+  join "GP2".componente c on c.id = rp.comp_entrada_id and c.sector_id in (5, 13)
   where rp.tipo_paso = 'ingreso' and rp.orden = 1
   order by rp.ruta_id, rp.orden
 ),
@@ -5764,6 +5767,87 @@ begin
                             'mb_kg_con_color', round(v_kg_con_color,1), 'mb_kg_sin_color', round(v_kg_sin_color,1),
                             'cambios_mb', v_cambios_mb,
                             'total_bolsas', v_tot, 'pallets', ceil(v_tot / 15), 'capacidad_bolsas', 300);
+end $function$
+;
+
+-- ---------- recalcular_maximo_mp_ps ----------
+CREATE OR REPLACE FUNCTION "GP2".recalcular_maximo_mp_ps()
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'GP2'
+AS $function$
+-- [usuario 2026-09-28: "si tengo que tener 10 alambres y eso equivale a 0.1 de fleje hay que mandarle
+-- eso" + "calcula el maximo segun los meses del sector x consumo de articulo"]. La materia prima que
+-- se compra en kg y la entrega el proveedor a un PS que la corta en piezas (FLEJE90_BRUTO -> Charcas
+-- -> IC3/IC3V; CHAPA430 -> Eclipse -> Z31) NO tiene consumo propio: su maximo es el de las piezas.
+--   maximo_mp (kg, en la ubicacion del PS) = sum por pieza de
+--     maximo_pieza x kg_x_uni_pieza / (1 - desperdicio_pct del PS / 100)
+--   maximo_pieza = inventario.maximo de la pieza en su sector; si esta vacio,
+--                  consumo (v_consumo_componente) x meses_stock del sector.
+-- Pasos que entran: tipo proveedor_servicio, entrada en kg, salida contada (no kg) y distinta.
+declare v_set int := 0; v_ins int := 0; v_clr int := 0; v_det jsonb;
+begin
+  create temp table _mp_obj on commit drop as
+  with paso as (
+    select distinct rp.proveedor_id, rp.comp_entrada_id ent, rp.comp_salida_id sal
+      from ruta_paso rp
+      join ruta r on r.id = rp.ruta_id and r.articulo_id is not null
+      join componente ce on ce.id = rp.comp_entrada_id and ce.unidad_medida = 'kg'
+      join componente cs on cs.id = rp.comp_salida_id and coalesce(cs.unidad_medida,'') <> 'kg'
+     where rp.tipo_paso = 'proveedor_servicio' and rp.proveedor_id is not null
+       and rp.comp_entrada_id <> rp.comp_salida_id
+       and rp.comp_entrada_id not in (select comp_id from v_componente_muerto)
+       and rp.comp_salida_id  not in (select comp_id from v_componente_muerto)
+  ), pieza as (
+    select p.proveedor_id, p.ent, p.sal, cs.codigo, cs.kg_x_uni,
+           coalesce(ps.desperdicio_pct, 0) desp,
+           coalesce(isec.maximo, round(coalesce(vc.consumo_uni_mes, 0) * coalesce(u.meses_stock, 1))) max_pieza,
+           case when isec.maximo is not null then 'maximo' else 'consumo_x_meses' end fuente
+      from paso p
+      join componente cs on cs.id = p.sal
+      join proveedor_servicio ps on ps.id = p.proveedor_id
+      left join ubicacion u on u.id = ubic_de('sector', cs.sector_id)
+      left join inventario isec on isec.componente_id = p.sal and isec.ubicacion_id = u.id
+      left join v_consumo_componente vc on vc.componente_id = p.sal
+     where coalesce(cs.kg_x_uni, 0) > 0 and coalesce(ps.desperdicio_pct, 0) < 100
+  )
+  select proveedor_id, ent, ubic_de('proveedor_servicio', proveedor_id) ubic_id,
+         round(sum(max_pieza * kg_x_uni / (1 - desp / 100)), 2) max_kg,
+         jsonb_agg(jsonb_build_object('pieza', codigo, 'maximo_pieza', max_pieza, 'fuente', fuente,
+                                      'kg_x_uni', kg_x_uni, 'desperdicio_pct', desp) order by codigo) piezas
+    from pieza group by proveedor_id, ent;
+
+  with upd as (
+    update inventario i set maximo = o.max_kg, maximo_origen = 'derivado_pieza'
+      from _mp_obj o
+     where i.componente_id = o.ent and i.ubicacion_id = o.ubic_id and o.max_kg > 0
+       and coalesce(i.maximo_origen, '') <> 'fisico'
+       and (i.maximo is distinct from o.max_kg or i.maximo_origen is distinct from 'derivado_pieza')
+    returning 1)
+  select count(*) into v_set from upd;
+
+  with ins as (
+    insert into inventario (componente_id, ubicacion_id, cantidad, maximo, maximo_origen, actualizado_en)
+    select o.ent, o.ubic_id, 0, o.max_kg, 'derivado_pieza', now()
+      from _mp_obj o
+     where o.ubic_id is not null and o.max_kg > 0
+       and not exists (select 1 from inventario i where i.componente_id = o.ent and i.ubicacion_id = o.ubic_id)
+    returning 1)
+  select count(*) into v_ins from ins;
+
+  -- el que dejo de tener pieza (se cambio la ruta) no se queda con un maximo viejo
+  with clr as (
+    update inventario i set maximo = null, maximo_origen = null
+     where i.maximo_origen = 'derivado_pieza'
+       and not exists (select 1 from _mp_obj o where o.ent = i.componente_id and o.ubic_id = i.ubicacion_id and o.max_kg > 0)
+    returning 1)
+  select count(*) into v_clr from clr;
+
+  select coalesce(jsonb_agg(jsonb_build_object('mp', c.codigo, 'maximo_kg', o.max_kg, 'piezas', o.piezas)), '[]'::jsonb)
+    into v_det from _mp_obj o join componente c on c.id = o.ent;
+  drop table _mp_obj;
+  return jsonb_build_object('ok', true, 'actualizados', v_set, 'creados', v_ins, 'limpiados', v_clr, 'detalle', v_det);
 end $function$
 ;
 

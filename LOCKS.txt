@@ -4,6 +4,7 @@
 (vacío)
 
 [HISTORIAL]
+2026-09-28 | claude-remote | db/*, CONOCIMIENTO_GP2.md | maximo de FLEJE90_BRUTO/CHAPA430 derivado de la pieza (recalcular_maximo_mp_ps) + rutas IC3/IC3V desde el bruto + v_nivel_stock IC3/IC3V por unidades
 2026-09-28 (5) - CARTON: tapones y Q4B/K1A como familias aparte (Thomas: "Si"). DB-only: carton_formato "Huevo LK Tapon" (18.000, F4A1/F4B1/F4C) y "Huevo LK 25" (25.000, Q4B/K1A). REGLAS_OC_INSUMOS, CONOCIMIENTO 4gp. thomas (claude-remote).
 2026-09-28 (4) - CARTON: TIRADA POR MARCA, MANDA LA PLANILLA (Thomas). DB-only: carton_formato nuevo "Huevo LK" (12.000), "8" 30.000->12.000 (corbata LK), Manga 12.000; 33 componentes cambian de formato cruzando POR ARTICULO (el codigo de estante se repite en la planilla). Sin aplicar: tapones 18.000, Q4B/K1A 25.000, Bandita/Rallador cruzados. oc_bundle verificado (familias por formato+marca). REGLAS_OC_INSUMOS tabla, CONOCIMIENTO 4gp. thomas (claude-remote).
 2026-09-28 | thomas (claude-remote) | MENU FIJO v1.201.0 (Thomas: "quiero los dos modulos abiertos ... No lo quiero poder cerrar"). GP2_MODULOS.html: Stocks y Herramientas siempre abiertos, sin chevron/click (body.fijo); ?todos=1 sigue con acordeon. Celular: baldosas mas bajas para que entren los 2 grupos + pastillas Tablet en barra fija abajo. version.js v1.201.0 ?v=20260928m. test_menu_una_pantalla ajustado. CONOCIMIENTO 4gn.

@@ -13502,3 +13502,31 @@ Virgilio"` `[dato: el .bas]`, no toca GP2.
 - **v1.39.0** [usuario] Thomas: *"entre columna y columna veo espacios"* + *"si no cumple con el mínimo que aparezca igual pero con color rojo y negrita"*. Causa de los huecos: `table.t{width:100%}` de `gp2-modulo.css` le ganaba en especificidad a `.t-insumos{width:auto}` (y en los tests no se veía porque el CSS está stubeado). Ahora `table.t.t-insumos{width:auto}` y el `.table-wrap` abraza la tabla. "mín. proveedor" en rojo y negrita cuando lo pedido queda por debajo; vacío no se marca.
 - **v1.40.0** [usuario] Thomas: *"quiero que esté todo centrado y sin tanto blanco. Si es necesario poné proveedores sobrantes abajo"*. La tarjeta de OC mide lo que mide la tabla (`.card{width:fit-content}`, piso 720px para cuando no hay tabla), todo centrado, y la botonera de proveedores baja de renglón al lado de su etiqueta en vez de ensanchar la página (`contain:inline-size` en los filtros: no cuentan para el ancho).
 - **v1.40.1** [usuario] Thomas: *"todo esto alineación a la izquierda"*: dentro de la tarjeta, botones Generar/Órdenes, filtros, cartel del proveedor, buscador y Crear OC van a la **izquierda**. La tarjeta sigue centrada en la página y del ancho de la tabla.
+
+## 4gq. La materia prima que corta un PS no tiene consumo propio: su máximo sale del máximo de las piezas (2026-09-28)
+
+- [usuario] *"Tiene que mandarse según máximos de sector de alambres y descorazonador. Es decir, si
+  tengo que tener 10 alambres y eso equivale a 0.1 de fleje hay que mandarle eso"* + *"calcula el
+  maximo segun los meses del sector x consumo de articulo"* + *"y agrega el maximo en la o.c."*.
+- **Regla**: `maximo_mp (kg, en la ubicación del PS) = Σ maximo_pieza × kg_x_uni_pieza / (1 − desperdicio_pct del PS)`.
+  `maximo_pieza` = el máximo de la pieza en su sector; si está vacío, consumo (Est Madre) × `meses_stock`
+  del sector. Función `recalcular_maximo_mp_ps()`, origen `maximo_origen='derivado_pieza'`; la corre
+  `fn_recalc_maximos_diferido` DESPUÉS de insumos/talleristas. Aplica a todo paso de PS con entrada en kg
+  y salida contada: hoy FLEJE90_BRUTO → Charcas → IC3/IC3V y CHAPA430 → Eclipse → Z31.
+- [dato] Al 2026-09-28: **FLEJE90_BRUTO 1.028,07 kg** (IC3 113.208 × 0,0083 + IC3V 6.600 × 0,0134, Charcas
+  sin desperdicio) y **CHAPA430 3,31 kg** (Z31 402 × 0,0049 / (1 − 40,28 %), con 402 = consumo × 1 mes de
+  Procesado porque Z31 no tiene máximo). La O.C. los muestra solos: `oc_bundle` ya leía el máximo de la
+  ubicación del PS, que estaba en 0.
+- **Las rutas de IC3/IC3V (art 120, 031, 836, 867, 034) arrancan en FLEJE90_BRUTO**, igual que la de chapa
+  (antes arrancaban en IC3 y el bruto no aparecía en el despiece). El título "Fleje" de la ruta
+  (`despiece_verif_bundle` / `programa_bundle`) acepta también el sector 13 (Alambre, único componente:
+  FLEJE90_BRUTO). Las rutas confirmadas de esos 5 artículos cambian de firma: hay que reconfirmarlas.
+- **`v_nivel_stock`**: solo el fleje que se PESA (sector 5 con `unidad_medida='kg'`) va por kg/mes. IC3/IC3V
+  son sector 5 pero en unidades y daban `max_calc` 0 (misma regla que ya tenía `tablet_bundle`). Efecto:
+  IC3V pasó de vacío a 6.600 y **IC3 de 100.800 (`migrado_de_minimo`) a 113.208 (`est_madre`)**. Ningún
+  otro máximo ni consumo se movió (firma md5 de inventario/consumos/niveles igual antes y después).
+- ⚠ [dato] **Sigue mal el CONSUMO en kg de estas materias primas** (no el máximo): `v_consumo_fleje_kg` da
+  388 kg/mes de CHAPA430 (1 kg por descorazonador; real ≈ 3,3) y `v_consumo_componente` da 19.968 "uni"
+  de FLEJE90_BRUTO. Hoy no pesa: la O.C. usa el máximo y no muestra el consumo, y la Tablet deja afuera
+  a los PS híbridos. Si algo empieza a leer ese consumo, corregirlo primero.
+- [dato] La ruta del art 709 arranca en Z31 (insumo) sin la chapa: su descorazonador no cuenta chapa.
