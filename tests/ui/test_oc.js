@@ -376,10 +376,14 @@ window.supabase = { createClient: function(){ return {
   // 1500 no es multiplo de 1000
   await page.fill('.pedir-in[data-in="3"]', '6');
   await page.$eval('.pedir-in[data-in="3"]', x => x.dispatchEvent(new Event('change')));
-  let regla = await page.textContent('#reglaCarton');
-  ok(!(await page.$eval('#reglaCarton', x => x.classList.contains('hidden'))) && regla.includes('múltiplo de 12.000'),
-     'total no multiplo de 12000 bloquea: ' + regla.trim().slice(0, 60));
-  ok(await page.$eval('#btnCrear', b => b.disabled), 'btnCrear bloqueado con regla rota');
+  // v1.41.0: el multiplo de familia YA NO avisa ni frena [Thomas 2026-09-28: "Que esto no aparezca"].
+  let regla;
+  ok(await page.$eval('#reglaCarton', x => x.classList.contains('hidden')),
+     'total no multiplo de 12000 NO muestra cartel (v1.41.0)');
+  ok(!(await page.$eval('#btnCrear', b => b.disabled)), 'btnCrear sigue habilitado con el multiplo roto');
+  // ...pero la tirada de la familia se lee en la fila, debajo de Pedir.
+  const tir = await page.textContent('tr[data-id="3"] .min-uni');
+  ok(/tirada mín\. 12\.000 uni/.test(tir), 'la fila muestra la tirada de la familia: ' + tir.trim());
 
   // 11000 + 1000 = 12000 total, ambos multiplos de 1000, minimo 1000 -> valido
   await page.fill('.pedir-in[data-in="3"]', '44');
@@ -410,9 +414,10 @@ window.supabase = { createClient: function(){ return {
   await page.$eval('.pedir-in[data-in="9"]', x => x.dispatchEvent(new Event('change')));
   await page.fill('.pedir-in[data-in="10"]', '4');
   await page.$eval('.pedir-in[data-in="10"]', x => x.dispatchEvent(new Event('change')));
-  regla = await page.textContent('#reglaCarton');
-  ok(/mínimo 2\.000 por código/.test(regla) && !/para un pedido de/.test(regla),
-     'abajo del paquete avisa, y sin hablar de multiplos: ' + regla.trim().slice(0, 90));
+  ok(await page.$eval('#reglaCarton', x => x.classList.contains('hidden')),
+     'abajo del minimo por codigo tampoco hay cartel (v1.41.0); se ve en la fila');
+  ok((await page.$eval('tr[data-id="10"] .min-uni', x => x.classList.contains('corto'))),
+     'la fila del codigo corto se marca en rojo (min. por codigo 2.000)');
 
   // "Usar sugeridos" deja el carton YA VALIDO (usuario 2026-09-03: "sí, redondeá
   // para arriba"). Sugeridos 16.000 + 6.000 = 22.000 -> el total sube al multiplo
@@ -447,18 +452,13 @@ window.supabase = { createClient: function(){ return {
   ok(await page.$eval('#reglaCarton', x => x.classList.contains('hidden')), 'y no queda ningun error de regla');
   ok(!(await page.$eval('#btnCrear', b => b.disabled)), 'la OC de cartones queda lista para crear');
 
-  // Y si se escribe a mano algo que rompe la regla, el cartel ofrece arreglarlo
+  // Y si se escribe a mano algo que rompe la regla, NO hay cartel ni boton (v1.41.0):
+  // lo que el comprador escribe es su decision, y la tirada se lee en la fila.
   await page.fill('.pedir-in[data-in="3"]', '6');
   await page.$eval('.pedir-in[data-in="3"]', x => x.dispatchEvent(new Event('change')));
-  ok(!(await page.$eval('#reglaCarton', x => x.classList.contains('hidden'))), 'a mano se puede romper la regla');
-  await page.click('#btnAjustarCart');
-  ok(await page.$eval('#reglaCarton', x => x.classList.contains('hidden')),
-     '"Ajustar al múltiplo" lo deja valido de nuevo');
-  // 1.500 sube a 2.000 (multiplo de codigo); con los otros dos de la familia quedan
-  // 18.000, que sube al multiplo siguiente (24.000) repartiendo de a 1.000.
-  const a3 = await val(3), a4 = await val(4), a6 = await val(6);
-  ok(a3 + a4 + a6 === 24000 && a3 >= 2000 && a4 >= 2000 && a6 >= 2000,
-     'ajusta para arriba a 24.000 respetando el minimo por codigo (' + [a3, a4, a6].join(' + ') + ')');
+  ok(await page.$eval('#reglaCarton', x => x.classList.contains('hidden')), 'a mano se puede romper la regla sin cartel');
+  ok(!(await page.$('#btnAjustarCart')), 'ya no existe el boton "Ajustar al múltiplo"');
+  ok(!(await page.$eval('#btnCrear', b => b.disabled)), 'y Crear OC sigue habilitado');
 
   // Bajarla a mano por debajo del mínimo tiene que avisar, y con las palabras del piso
   // (no del múltiplo, que en la bolsa es 1 y siempre da bien).
