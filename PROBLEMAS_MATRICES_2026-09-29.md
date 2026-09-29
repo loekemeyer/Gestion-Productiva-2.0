@@ -4,9 +4,20 @@ Pedido de Elías Irace (*"listame todos los problemas de este estilo"*), a parti
 Uso = producción cargada en Cervantes (`public.db_n8n_espejo`) en los últimos **90 días**, sin eliminados.
 Ordenado por gravedad. Nada de esto se corrigió todavía: son datos que tiene que definir el dueño.
 
-## 1. 67 matrices que se usan y NO están en ninguna ruta de GP2 — la producción no mueve stock
+## 1. 67 matrices que se usan y NO están en ninguna ruta de GP2
 
-GP2 sabe qué pieza sale de una matriz solo por las rutas (`ruta_paso`). Sin ruta, un cajón cargado no suma a ninguna pieza. En 90 días fueron **127.750 unidades**.
+> **Corrección (mismo día, a pregunta de Elías "¿están como tallerista?")**: no están como tallerista (los pasos de
+> tallerista, incluido "Fábrica", no llevan matriz), y **no es stock perdido**: **63 de las 67 tampoco tienen
+> Causa-Efecto en la base vieja**. Son tareas de mano de obra —envasar, reenvasar, armar importados, sacar film,
+> poner capuchón— que cuentan para tiempo y premio, no transforman una pieza en otra. Antes decía "127.750 unidades
+> que no suman stock": era una lectura equivocada.
+>
+> Las **4 que sí tienen Causa-Efecto** en la vieja son las que importan:
+> - **12C → I11** y **28B → J5**: en GP2 esas piezas las hace la matriz **base** (12 y 28) con la pregunta "¿Qué
+>   pieza vas a fabricar?". O sea, GP2 reemplazó la variante con letra por la elección de pieza: si el operario
+>   carga 12C, GP2 no sabe qué hizo.
+> - **113 → M1**: en GP2 M1 es un insumo comprado, no algo que se fabrica.
+> - **309 → "Fabr"**: fabricación interna sin pieza.
 
 | Matriz | Descripción | Cajones | Unidades | Último |
 |---|---|--:|--:|--:|
