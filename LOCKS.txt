@@ -4,6 +4,7 @@
 (vacío)
 
 [HISTORIAL]
+2026-09-29 (13) - OC v1.44.2: sin equivalencias ("= 227 bolsas de 150", "= N uni") debajo de Pedir; queda solo "min. pedido" y "ya pediste" (Thomas). version.js v1.205.2 ?v=20260929h. thomas (claude-remote).
 2026-09-29 (12) - Ruedas PIEA/PIEB (Barbetta) sin minimo (Thomas: "a estos dos no les pongas minimo"). DB-only. thomas (claude-remote).
 2026-09-29 (11) - BARRIDO DE MINIMOS (Thomas: "chequea que no se te haya escapado alguno"): se escaparon 2. DB-only: A1B Bolsa Filtro Cafe LK pedido_minimo_uni 55.000 (Vihal), proveedor_insumo Simco pedido_minimo_kg 25. El resto sin minimo no esta en las planillas. CONOCIMIENTO 4gp. thomas (claude-remote).
 2026-09-29 (10) - PLASTICO: minimo 500 uni en PC12/PEP7/PEP8 de Maspoli (Thomas: "Por que no veo el minimo?"; faltaba cargarlo). DB-only. CONOCIMIENTO 4gp. thomas (claude-remote).
@@ -13,4 +14,3 @@
 2026-09-29 (6) - OC v1.44.0: el minimo se lee en la unidad de la O.C. ("min. pedido 1.000 kg (= 153.139 uni)"; Thomas: "siempre los min es la unidad del remito"); DB: Clavo 505 PCP3 1.000 -> 153.139 uni (la planilla lo daba en KG). Encabezados fijos (thead sticky) en escritorio en la tabla de insumos y la de O.C. emitidas. version.js v1.205.0 ?v=20260929f. thomas (claude-remote).
 2026-09-29 | claude-remote | IC2-M116 / IC2-M114 separados en -I (izq, D3) y -D (der, D2); rutas 210-213
 2026-09-29 | claude-remote | L9-L12 borrados: reemplazados por stock movimiento IC2-M116 / IC2-M114 (rutas 210-213, 523/723); CONOCIMIENTO 4gt corregido
-2026-09-29 (5) - OC v1.43.2: el "Otros" del plastico va por proveedor (Thomas; cartones quedan como estan). DB: insertos = UNA familia (PB6, PB8B, PEST2, PEST1; 2.000), Inserto Canelones aparte (5.000); familia "Insertos Mango Madera" borrada. version.js v1.204.2 ?v=20260929e. CONOCIMIENTO 4gp. thomas (claude-remote).

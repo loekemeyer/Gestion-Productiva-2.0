@@ -413,8 +413,8 @@ window.supabase = { createClient: function(){ return {
   // v1.38.0: el campo va en paquetes (como el remito) y abajo la equivalencia en unidades.
   ok(await page.$eval('.pedir-in[data-in="3"]', x => x.value) === '44', 'el carton se pide en paquetes (44)');
   ok((await page.textContent('tr[data-id="3"] td.um-cell')).trim() === 'paq 250', 'Uni Medida del carton: paq 250');
-  const paq = await page.textContent('tr[data-id="3"] .paq-eq');
-  ok(paq.includes('11.000') && paq.includes('uni'), 'equivalencia en unidades: ' + paq.trim());
+  // v1.44.2: sin equivalencia debajo del campo [Thomas: "Estas aclaraciones no las quiero"].
+  ok(!(await page.$('tr[data-id="3"] .paq-eq')), 'ya no hay "= N uni" debajo de Pedir');
 
   // El minimo por codigo es FIJO (el paquete), NO escala con el multiplo [usuario
   // 2026-09-03: "el paquete viene a mil, se puede recibir a mil"]. 23.000 + 1.000 = 24.000,

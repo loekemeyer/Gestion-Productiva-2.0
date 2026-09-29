@@ -1,6 +1,9 @@
 <!doctype html>
 <html lang="es">
 <head>
+<!-- v1.44.2 (2026-09-29) — SIN EQUIVALENCIAS DEBAJO DE PEDIR [Thomas: "Estas aclaraciones no las quiero, solo el
+     min pedido"]: se van los "= 227 bolsas de 150" / "= 11.000 uni" / "= N paq" bajo el campo. Quedan el
+     "min. pedido" y el "ya pediste N (en camino)". -->
 <!-- v1.44.1 (2026-09-29) — "OTROS" DEL PLASTICO: UN SOLO TITULO, PIEZAS ORDENADAS POR PROVEEDOR [Thomas: "Que
      los otros esten bajo un solo encabezado pero que esten ordenados por proveedor"]. Reemplaza el titulo por
      proveedor de la v1.43.2. -->
@@ -1246,10 +1249,11 @@ function render(){
     // Parte plastica: se muestra en cuantas BOLSAS enteras cae lo pedido.
     // La equivalencia se muestra al lado del input.
     var um=umRemito(i);
-    // Si el remito va en otra unidad que la del stock, abajo se ve la equivalencia en la del stock.
-    var paqEq=(um.k!==1 && ped>0)?('<span class="paq-eq">= '+fmt(ped,i.unidad==='kg'?2:0)+' '+esc(i.unidad)+'</span>')
-             :(esChar && ped>0 && uxpChar>0)?('<span class="paq-eq">= '+fmt(ped*uxpChar)+' uni</span>')
-             :(bolsa>0 && ped>0)?('<span class="paq-eq">= '+fmt(ped/bolsa,ped%bolsa===0?0:1)+' bolsa'+(ped/bolsa===1?'':'s')+' de '+fmt(bolsa)+'</span>'):'';
+    // v1.44.2: SIN equivalencias debajo del campo ("= 227 bolsas de 150", "= 11.000 uni", "= N paq")
+    // [Thomas 2026-09-29: "Estas aclaraciones no las quiero, solo el min pedido"]. Queda la linea del
+    // minimo (notaMinUni) y el "ya pediste N (en camino)" (notaRepo). El campo ya va en la unidad del
+    // remito, asi que la equivalencia no agregaba nada.
+    var paqEq='';
     return '<tr data-id="'+i.comp_id+'"'+(ped>0?' class="con-pedido"':'')+'>'+
       '<td><b>'+esc(i.codigo||'—')+'</b><br><small style="color:#777">'+esc(i.descripcion||'')+
         (i.carton_formato?(' · Formato '+esc(i.carton_formato)):'')+
