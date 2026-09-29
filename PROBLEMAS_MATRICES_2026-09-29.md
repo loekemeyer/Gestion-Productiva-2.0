@@ -199,6 +199,17 @@ Las otras 20 son abreviaturas del mismo nombre ("Sacaf Gast" = "Sacafuente", "Mg
 
 Tallerista es un tercero [Elías 29/09]. En GP2 hay un tallerista "Fábrica" (id 3) con 141 pasos de ruta: trabajo interno clasificado como de un tercero. Afecta envíos, stock en contraparte y costos de tallerista.
 
+## 8. Matriz 12: qué artículo sale de cada variante (verificado 29/09)
+
+| Variante | Pieza que hace | Artículos |
+|---|---|---|
+| 12 (Loekemeyer) | I6 Mango Plano 502 doblado | 066, 502 y 512 Abrelatas Mariposa (LOEKE) |
+| 12B | G13 Mango Plano 501 doblado p/pintar | 101 y 501 Abrelatas A Manija |
+| 12C (Chef) | I11 Mango Plano 701 doblado c/marca | 701 Abrelatas A Manija (CHEF) |
+
+Los rótulos del cartel de Registro Producción 2.0 están bien. Errores: la Causa-Efecto vieja describe la 12 como
+"(Chef Marip)", y GP2 pone I11 (701 Chef) como pieza de la matriz **12** cuando la hace la **12C**.
+
 ## Relación entre los puntos
 
 - La **12C** y la familia **505** están en el punto 1 (sin ruta) y en el 2 (escondidas): son el caso que abrió este listado.

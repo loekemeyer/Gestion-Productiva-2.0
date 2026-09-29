@@ -13614,4 +13614,11 @@ Contexto: app unificada `GP2-Registro-Produccion`, se arranca por Cervantes. Tab
   GP2 reemplazó la variante con letra por la elección de pieza. Para la app nueva hace falta un mapeo
   variante → (matriz base, pieza). ⚠ Conflicto de nombres a resolver: RP 2.0 dice 28B = Cromar (JF5); GP2 dice
   J5 = "Cuerpo Uña s/M p/Pintar".
+- [usuario Elías 29/09] **"LK" en el cartel de la 12 = Loekemeyer.** [dato, rutas GP2 + Causa-Efecto] Qué artículo sale de
+  cada variante de la 12 (Doblado Mango Plano):
+  12 (Loekemeyer) → I6 Mango Plano 502 doblado → abrelatas mariposa 066, 502, 512 (LOEKE);
+  12B → G13 Mango Plano 501 doblado p/pintar → abrelatas a manija 101 y 501;
+  12C (Chef) → I11 Mango Plano 701 doblado c/marca → abrelatas a manija 701 (CHEF).
+  Los rótulos del cartel de RP 2.0 están BIEN. Lo que está mal: la descripción de la 12 en Causa-Efecto dice
+  "(Chef Marip)" y GP2 pone I11 (701 Chef) como pieza de la **matriz 12** en vez de la **12C**.
 
