@@ -10179,7 +10179,7 @@ tallerista **no debería estar en la ruta**: no es un reparto mal medido, es un 
 
 **El 510 no cierra** [dato: `ruta_paso` del art 510, 2026-09-14]: Carlos Aguirre (tallerista 9) no
 aparece en ninguna ruta del 510 — ahí están Alex Escalante y Martin Cornejo — y en GP2 hace
-Repostería (115, 544, 580, 802), no Abrelatas. El 510 es "Abrelata Uña Cromado". No se tocó nada
+Repostería (115, 544, 580, 802), no Abrelatas. El 510 era "Abrelata Uña Cromado" (hoy "Abrelata Uña Inox", ver abajo). No se tocó nada
 hasta que el dueño aclare si (a) quiso decir otro tallerista, o (b) Carlos hace el 510 y las dos
 rutas que hay son las equivocadas. **No se adivina.**
 
@@ -13692,6 +13692,9 @@ Contexto: app unificada `GP2-Registro-Produccion`, se arranca por Cervantes. Tab
   no del corte (un corte en alimentador anda en ~1,5 s), y entra en el costo del batidor.
 - [usuario Elías 29/09] **138 = alimentador.** Corregido `GP2.matriz.maquina` 'balancin' → 'alimentador' (tipo ya era A).
   El tiempo de 9 s sigue pendiente de medir/confirmar (sospecha: es el del doblado sacafuente de la vieja).
+- [usuario 29/09] **103 y 510 se llaman "Abrelata Uña Inox"** (antes "Abrelatas Uña Cromado" / "Abrelata Uña Cromado").
+  Cambiado `GP2.articulo.descripcion` (ids 12 y 32) y `GP2.uni_x_articulo_x_caja` id 57 (510, "ABRELATA UÑA INOX").
+  El 103 no tenía fila en `uni_x_articulo_x_caja`.
 
 
 ## 4gt. Rompenueces, sacacorcho doble aleta y Art 66: correcciones de ruta del dueño (2026-09-29)
