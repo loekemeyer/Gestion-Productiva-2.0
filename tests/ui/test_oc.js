@@ -387,8 +387,8 @@ window.supabase = { createClient: function(){ return {
   ok(/mín\. proveedor 12\.000 uni/.test(tir), 'la fila muestra el minimo del carton: ' + tir.trim());
   // ...y la tabla de cartones va separada por familia, con un renglon de titulo por familia.
   const hdrs = await page.$$eval('tr.fam-hdr td', xs => xs.map(x => x.textContent.trim()));
-  ok(hdrs.length >= 3 && hdrs.some(h => /Formato C LOEKE/.test(h)) && hdrs.some(h => /Formato Huevo LOEKE/.test(h)),
-     'renglones de familia en la tabla: ' + hdrs.join(' | '));
+  ok(hdrs.length >= 3 && hdrs.some(h => /^Formato C · /.test(h)) && hdrs.some(h => /^Formato Huevo · /.test(h)) && !hdrs.some(h => /LOEKE|CHEF/.test(h)),
+     'renglones por FORMATO (sin marca) en la tabla: ' + hdrs.join(' | '));
   const primero = await page.$eval('#tbody tr', x => x.className);
   ok(primero === 'fam-hdr', 'la tabla de cartones arranca con el titulo de la primera familia');
 

@@ -1,6 +1,9 @@
 <!doctype html>
 <html lang="es">
 <head>
+<!-- v1.42.1 (2026-09-29) — LA TABLA DE CARTONES SE AGRUPA SOLO POR FORMATO [Thomas: "Solo por formato, ni
+     por marca ni por familia de articulo"]: un titulo por carton_formato (C, LOKE, 8, Huevo, Huevo LK...),
+     mas "Pliegos" y "Sin formato". La familia de la regla de pedido (formato + marca + categoria) no cambia. -->
 <!-- v1.42.0 (2026-09-29) — CARTON: MINIMO POR CARTON Y LA TABLA SEPARADA POR FAMILIA [Thomas: "En cartones
      los minimos son por carton, aunque esten agrupados por familia. Ademas quiero que en la o.c. me separes
      por familia"]. (1) El minimo del carton es componente.pedido_minimo_uni (129 cartones cargados desde la
@@ -1124,15 +1127,19 @@ function conTitulosDeFamilia(fs){
   if(!carton.length) return fs.map(function(i){ return {it:i}; });
   var otros=fs.filter(function(i){ return i.sector_id!==10; });
   var grupos={}, orden=[];
+  // v1.42.1: SOLO por formato [Thomas 2026-09-29: "Solo por formato, ni por marca ni por familia
+  // de articulo"]. famKey (formato + marca + categoria) sigue siendo la familia de la REGLA de
+  // pedido; aca es solo como se ordena la tabla.
+  function grupoDe(i){ return i.es_pliego ? 'Pliegos' : (i.carton_formato ? 'Formato '+String(i.carton_formato) : 'Sin formato'); }
   carton.forEach(function(i){
-    var k=famKey(i);
+    var k=grupoDe(i);
     if(!grupos[k]){ grupos[k]=[]; orden.push(k); }
     grupos[k].push(i);
   });
-  orden.sort(function(a,b){ return famLabel(grupos[a][0]).localeCompare(famLabel(grupos[b][0]),'es'); });
+  orden.sort(function(a,b){ return a.localeCompare(b,'es'); });
   var out=otros.map(function(i){ return {it:i}; });
   orden.forEach(function(k){
-    out.push({hdr:famLabel(grupos[k][0])+' · '+grupos[k].length+(grupos[k].length===1?' cartón':' cartones')});
+    out.push({hdr:k+' · '+grupos[k].length+(grupos[k].length===1?' cartón':' cartones')});
     grupos[k].forEach(function(i){ out.push({it:i}); });
   });
   return out;
