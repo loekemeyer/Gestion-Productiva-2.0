@@ -13570,3 +13570,10 @@ Contexto: app unificada `GP2-Registro-Produccion`, se arranca por Cervantes. Tab
   hoy guarda el crudo con coma ("5,72") y el espejo como número (`db_n8n_espejo."Uni"` es `real`: 5.72). En la base
   nueva va **numérico** (sin coma ni punto: es un número). Ojo con la regla GP2N (punto = miles): en el campo de kg
   el punto es DECIMAL (valores < 1000). [dato] Hay cajones de 501 con "0" / "00" kg.
+- [usuario] Los 0 kg de piedra (legajo 245, 22–28/09) fueron **por un problema en la fábrica: en ese lapso se pesaba lo
+  hecho al día siguiente**. El 233 cargó 5,6 fijo porque **pesaba antes** (su dato es válido). [dato] Los pesos del día
+  siguiente nunca volvieron a la base: esos cajones quedaron en 0.
+- [usuario] **Opción "pendiente de pesar"** en la app nueva: el operario marca el cajón de piedra sin peso; el peso real
+  se carga después en el admin y queda en el cajón original (su día y su tiempo), con aviso si pasa un día sin pesar.
+  **Solo aparece si el admin la habilita en el panel admin** (apagada por defecto; la base rechaza un "pendiente" si
+  está apagada, no solo la pantalla).
