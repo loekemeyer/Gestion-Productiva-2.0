@@ -210,7 +210,56 @@ Tallerista es un tercero [Elías 29/09]. En GP2 hay un tallerista "Fábrica" (id
 Los rótulos del cartel de Registro Producción 2.0 están bien. Errores: la Causa-Efecto vieja describe la 12 como
 "(Chef Marip)", y GP2 pone I11 (701 Chef) como pieza de la matriz **12** cuando la hace la **12C**.
 
+## 9. Todas las matrices con variantes: GP2 contra Registro Producción 2.0
+
+"Variante" en Registro Producción 2.0 (RP) = otra matriz con letra (12B, 28B…): el operario escribe el número y un
+cartel lo obliga a elegir. En GP2 hay dos formas: la misma matriz con letra, **o** una sola matriz que pregunta
+"¿Qué pieza vas a fabricar?" (sale de las rutas). ⚠ = un lado tiene la variante y el otro no.
+
+### 9.a GP2 pasó la variante a "pieza" de la matriz base, y la matriz con letra quedó sin ruta (13 bases)
+
+Si el operario carga la matriz con letra en GP2, no suma stock; tiene que elegir la base + la pieza.
+
+| Base | RP (cada letra = otra matriz) | GP2: piezas que ofrece la base | ⚠ |
+|---|---|---|---|
+| 3 | 3 → M10 · 3B Sin Marca → M9 | M10, M9 | 3B sin ruta |
+| 10 | 10 → H11 · 10B Cuchilla Curva (H15) | H11, H7-M10 | 10B sin ruta y **H15 no existe** en las piezas |
+| 12 | 12 LK → I6 · 12B → G13 · 12C Chef → I11 | I6, **I11** | I11 es de la 12C, no de la 12 (punto 8). 12B sí tiene ruta propia (G13) |
+| 28 | 28 Pintar → J2 · 28B Cromar → J5 | A15, J2, J5 | 28B sin ruta; J5 se llama "p/Pintar" en GP2 |
+| 39 | 39 Con Marca · 39B Sin Marca | C15, K2, K5 | 39B sin ruta |
+| 74 | 74 Cerrada → G7 · 74A Abierta → G5 | G7, IE10-M74 | 74A sin ruta y **G5 no está** en las piezas |
+| 79 | 79 Loeke · 79B Sin Marca | G1 (S/M), J8 (LK) | 79B sin ruta |
+| 80 | 80 Loeke · 80B Sin Marca | G1-M80, J8-M80 | 80B sin ruta |
+| 81 | 81 LK · 81B Sin Marca | G2 (S/M), J7 (LK) | 81B sin ruta |
+| 114 | 114 **obsoleta** · 114A Izquierda · 114B Derecha | L9, L10 | GP2 usa la 114 que RP da por obsoleta; 114A/B sin ruta |
+| 127 | 127 LK · 127B CH | Z2B (LK), Z3B (CH) | 127B sin ruta |
+| 360 | 360 → N4 · 360B → N5 | N4, N5 | 360B sin ruta |
+
+### 9.b Variantes con letra en los dos lados, sin pieza (tareas de mano de obra) — 16 bases
+
+101 (B–E), 150 (B), 186 (B), 214 (B), 254 (B), 255 (B), 305 (B), 309 (B), 310 (B), 325 (B, **C**), 340 (B), 342 (B),
+394 (B, C), 395 (B), 401 (B), 505 (B–F). Iguales en las dos bases salvo ⚠ **325C, que falta en GP2**. Diferencia de
+pantalla: RP obliga a elegir; la app GP2 las esconde si se escribe el número exacto.
+
+### 9.c Solo GP2 pregunta pieza; en RP es una sola matriz sin variante (12 bases) ⚠
+
+| Matriz | Piezas que pregunta GP2 | Qué revisar |
+|---|---|---|
+| 27 Corte Cuerpo Uña Pie | I1 p/pintar, I9 p/cromar, J13 uña pie | la base vieja también tiene 3 salidas: elección real |
+| 33 Estampado 3 en 1 | J10 Loeke, J12 s/Marca | elección por marca |
+| 37 Corte Cuerpo Sacac. | IF3-M37 (fleje 22), IF3A-M37 (fleje 93) | es el **fleje** que entra, no la pieza |
+| 38 Doblado Cuerpo Sacacorcho | IF3-M38 (fleje 22), IF3A-M38 (fleje 93) | ídem: fleje |
+| 78 Remachado Rompenuez | B1-M78 (Chef), D5-M78 (LK) | elección por marca |
+| 116 Corte de Aleta | L11 izquierda, L12 derecha | [Probable] el mismo golpe saca las dos: no es elección |
+| 137 Cortar arandela Batidor | ABPM (mini), LL7B | RP la llama "Batidor **mini**" |
+| 183 Soldar Ahuecapapa/fruta | N1 ahuecafruta, N2 ahuecapapa | elección |
+| 221 Estampado Aleta | D2 derecha, D3 izquierda | la vieja dice L9/L10, GP2 D2/D3: otras piezas |
+| 349 Corte Disco Pisapapa | LL4 disco corta pizza, M2 disco pisapapa | la vieja dice LL4 y **M3**, GP2 **M2** |
+| 356 Corte Mango Plano Manija | G11 (501), I10 (701) | elección por artículo |
+| 368 Doblado Sacafuente | Z5 grande, Z6 chica | [Probable] pueden salir juntas |
+
 ## Relación entre los puntos
 
 - La **12C** y la familia **505** están en el punto 1 (sin ruta) y en el 2 (escondidas): son el caso que abrió este listado.
+- Punto 9.a: GP2 ya tiene las variantes **como pieza** (lo verificó Elías con la 28), pero la matriz con letra sigue existiendo y vacía: dos caminos para lo mismo, uno de los cuales no mueve stock.
 - La **325C** se usó el 25/09 y no existe en GP2: si la app nueva valida contra GP2, ese cajón se rechaza.
