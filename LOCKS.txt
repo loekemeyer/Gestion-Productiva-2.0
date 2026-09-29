@@ -5,6 +5,8 @@
 
 [HISTORIAL]
 2026-09-29 (3) - PLASTICO: FAMILIA DE PEDIDO CON MINIMO POR FAMILIA (Thomas: "el minimo va por familia, no por parte... entre todos los pirolos tengo que llegar a 36000. Separame por familia"). DB: tabla GP2.familia_pedido (30, RLS lectura) + componente.familia_pedido (49 piezas); oc_bundle manda familia_pedido/familia_minimo. OC v1.43.0: conTitulosDeFamiliaPlastico() con titulo "familia · N piezas · min. familia · pedido" (rojo si corto), sin min por pieza cuando hay familia. 8 piezas de la planilla no existen en GP2. db/tablas+funciones, CONOCIMIENTO 4gp, REGLAS. version.js v1.204.0 ?v=20260929c. thomas (claude-remote).
+2026-09-29 | claude-remote | CONOCIMIENTO_GP2.md | 103 y 510 renombrados a "Abrelata Uña Inox" en GP2.articulo + uni_x_articulo_x_caja
+2026-09-29 | Elias (claude-remote) | GP2.matriz 138 maquina -> alimentador
 2026-09-29 (2) - OC v1.42.1: la tabla de cartones se agrupa SOLO POR FORMATO (Thomas: "Solo por formato, ni por marca ni por familia de articulo"). version.js v1.203.1 ?v=20260929b. Suite 59/59. thomas (claude-remote).
 2026-09-29 (1) - OC v1.42.0: MINIMO POR CARTON + TABLA SEPARADA POR FAMILIA (Thomas: "En cartones los minimos son por carton, aunque esten agrupados por familia. Ademas quiero que en la o.c. me separes por familia"). DB: componente.pedido_minimo_uni en 129 cartones (planilla, cruce por articulo). JS: fuera la linea "tirada min. por familia" (lectura equivocada del 28/09); conTitulosDeFamilia() con renglon .fam-hdr por familia. test_oc ajustado. version.js v1.203.0 ?v=20260929a. CONOCIMIENTO 4gp, REGLAS_OC_INSUMOS. thomas (claude-remote).
 2026-09-29 | Elias (claude-remote) | GP2.matriz: eliminada la 10B (id 409), la varilla curva es la 174
@@ -12,5 +14,3 @@
 2026-09-28 | claude-remote | db/*, CONOCIMIENTO_GP2.md | maximo de FLEJE90_BRUTO/CHAPA430 derivado de la pieza (recalcular_maximo_mp_ps) + rutas IC3/IC3V desde el bruto + v_nivel_stock IC3/IC3V por unidades
 2026-09-29 | Elias (claude-remote) | PROBLEMAS_MATRICES (+pdf): Fabrica como paso de matriz, tallerista = tercero; "Fabrica" tallerista id 3 mal clasificado
 2026-09-29 | Elias (claude-remote) | PROBLEMAS_MATRICES_2026-09-29.md: matrices sin ruta, variantes escondidas, sin tiempo, faltantes, nombres, tipo
-2026-09-29 | Elias (claude-remote) | permisos de botones en GP2.operario (migrados de Empleados) + operario_por_legajo devuelve permisos; conocimiento variante vs pieza
-2026-09-29 | Elias (claude-remote) | operario: habilitados todos (excepcion = false); verificar regla M acepta fase B; policy deny en bkp_inventario_virgilio; M y D en 0
