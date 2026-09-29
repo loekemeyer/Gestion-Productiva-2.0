@@ -152,7 +152,7 @@
      trae la descripcion ("Caja N°1", "Fleje N° 45"); lo que no tiene N° (cartones) cae a
      codigo con orden numerico-aware. -->
 <!-- v3.49.0 (2026-09-04) — CHAPA 430 DE APERAM SE RECIBE ACA (misma forma que Altrak, jubila
-     el modulo Pagos Aperam->Eclipse). Al tocar el item CHAPA430 en Flejes se abre un panel
+     el modulo Pagos Aperam->Eclipse). Al tocar el item FLEJE_DESCORAZONADOR en Flejes se abre un panel
      propio stepChapa (kg + remito, sin %) que llama cargar_compra_mp('Aperam') -> suma la
      chapa al stock de Eclipse (ubic 48). Ruteo por ITEM (no por proveedor): Aperam vende 13
      flejes normales + la chapa. -->
@@ -1178,7 +1178,7 @@ if($('akKg')){
 }
 
 // ============ Recepcion de Aperam (chapa 430 -> Eclipse) 2026-09-04 ============
-// Se abre al tocar el item CHAPA430 en Flejes (Aperam vende 13 flejes + la chapa, asi que
+// Se abre al tocar el item FLEJE_DESCORAZONADOR en Flejes (Aperam vende 13 flejes + la chapa, asi que
 // el ruteo es por ITEM, no por proveedor como Altrak). Solo kg + remito (sin %). Llama
 // cargar_compra_mp('Aperam'), que suma la chapa al stock de Eclipse (ubic 48).
 function irChapa(){
@@ -1194,7 +1194,7 @@ function irChapa(){
 async function cargarStockChapa(){
   try{
     var st = await SB.from('inventario').select('cantidad, componente:componente_id(codigo)').eq('ubicacion_id', 48);
-    var kg=0; (st.data||[]).forEach(function(r){ if(r.componente && r.componente.codigo==='CHAPA430') kg=Number(r.cantidad)||0; });
+    var kg=0; (st.data||[]).forEach(function(r){ if(r.componente && r.componente.codigo==='FLEJE_DESCORAZONADOR') kg=Number(r.cantidad)||0; });
     $('chStock').textContent = fmt(kg);
   }catch(e){ $('chStock').textContent='—'; }
 }
@@ -1762,7 +1762,7 @@ $('unitUni').addEventListener('click',()=>setUnit('uni'));
 function abrirPopup(i){
   // La chapa 430 (Aperam) no se recibe en el sector: es MP de Eclipse y va a su stock
   // (ubic 48) via cargar_compra_mp('Aperam'). Se rutea a su panel propio.
-  if(i && i.codigo==='CHAPA430'){ irChapa(); return; }
+  if(i && i.codigo==='FLEJE_DESCORAZONADOR'){ irChapa(); return; }
   itemSel=i;
   resetPiePopup();
   $('kgTitle').textContent='Recepción · '+rubroSel;

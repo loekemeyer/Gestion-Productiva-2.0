@@ -1100,8 +1100,8 @@ begin
   v_ubic_eclipse := "GP2".ubic_de('proveedor_servicio', v_ps_eclipse);
   if v_ubic_eclipse is null then raise exception 'El PS "Eclipse" no tiene ubicacion'; end if;
 
-  select id into v_chapa from "GP2".componente where codigo='CHAPA430';
-  if v_chapa is null then raise exception 'CHAPA430 no existe (Fase 1 pendiente)'; end if;
+  select id into v_chapa from "GP2".componente where codigo='FLEJE_DESCORAZONADOR';
+  if v_chapa is null then raise exception 'FLEJE_DESCORAZONADOR no existe (Fase 1 pendiente)'; end if;
   select coalesce(desperdicio_pct, 0) into v_desperdicio from "GP2".proveedor_servicio where id = v_ps_eclipse;
   if v_desperdicio < 0 or v_desperdicio >= 100 then v_desperdicio := 0; end if;  -- proteccion division
 
@@ -1671,7 +1671,7 @@ env as (
   group by 1,2
 ),
 ent as (
-  -- Hibridos (Fleje90/Charcas, Chapa430/Eclipse): la MP BRUTA (ALAMBRE, CHAPA430)
+  -- Hibridos (Fleje90/Charcas, Chapa430/Eclipse): la MP BRUTA (ALAMBRE, FLEJE_DESCORAZONADOR)
   -- se consume al cortarla, NO es una entrega. Lo que el PS entrega es el producto cortado
   -- (IC3/IC3V para Charcas, 1686 para Eclipse), que sale como 'compra' hacia su destino;
   -- esa compra se atribuye al PS que corta.
@@ -1683,7 +1683,7 @@ ent as (
     select ubic_origen_id ubic_id, comp_id, sum(_delta_dest) entregado
     from movimiento
     where tipo_mov='consumo' and ubic_origen_id in (select ubic_id from ps)
-      and comp_id not in (select id from componente where codigo in ('ALAMBRE','CHAPA430'))
+      and comp_id not in (select id from componente where codigo in ('ALAMBRE','FLEJE_DESCORAZONADOR'))
     group by 1,2
     union all
     select (select ubic_id from ps where ps_id=1) ubic_id, m.comp_id, sum(m._delta_dest) entregado
@@ -3945,7 +3945,7 @@ AS $function$
 -- final, y ademas refresca los maximos de TALLERISTA, que nadie recalculaba cuando cambiaba la Est
 -- Madre (68 estaban viejos el 2026-09-26). Prov AT queda afuera a proposito: la Tablet le pone techo 0
 -- (usuario 2026-09-24) y no tiene filas de inventario. D10, 2026-09-26.
--- 2026-09-28: + recalcular_maximo_mp_ps (ALAMBRE / CHAPA430), al final porque sale del maximo
+-- 2026-09-28: + recalcular_maximo_mp_ps (ALAMBRE / FLEJE_DESCORAZONADOR), al final porque sale del maximo
 -- de las piezas que acaban de recalcularse.
 -- 2026-09-29: + recalcular_maximos_consumo_meses (filas con maximo_origen 'consumo_meses'), antes de
 -- mp_ps porque este sale del maximo de las piezas.
@@ -5821,7 +5821,7 @@ AS $function$
 -- [usuario 2026-09-28: "si tengo que tener 10 alambres y eso equivale a 0.1 de fleje hay que mandarle
 -- eso" + "calcula el maximo segun los meses del sector x consumo de articulo"]. La materia prima que
 -- se compra en kg y la entrega el proveedor a un PS que la corta en piezas (ALAMBRE -> Charcas
--- -> IC3/IC3V; CHAPA430 -> Eclipse -> Z31) NO tiene consumo propio: su maximo es el de las piezas.
+-- -> IC3/IC3V; FLEJE_DESCORAZONADOR -> Eclipse -> Z31) NO tiene consumo propio: su maximo es el de las piezas.
 --   maximo_mp (kg, en la ubicacion del PS) = sum por pieza de
 --     maximo_pieza x kg_x_uni_pieza / (1 - desperdicio_pct del PS / 100)
 --   maximo_pieza = inventario.maximo de la pieza en su sector; si esta vacio,

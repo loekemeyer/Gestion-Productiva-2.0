@@ -5274,6 +5274,10 @@ de Gentile (tallerista 8) **quedan**: sirven de comparación y son el histórico
 > (sector 12) con `maximo` cargado, porque `v_reposicion` toma ESA fila como el máximo del terminado
 > y de ahí leen `oc_bundle` y `valorizacion_bundle` (264.453 uni de sugerido). Borrarlas cambiaba OC
 > y valorización. Respaldo: `GP2.bkp_inventario_virgilio_20260928` (268 filas, RLS prendida).
+> `[usuario 2026-09-29]` "Borra": el respaldo se eliminó (`drop table`). Con él se perdieron los
+> `maximo` de 86 de las 189 filas borradas; no hay otra copia. Ese mismo día se vaciaron también
+> `GP2.movimiento` (2 filas, `entrega_ps` de prueba) y `entrega_control`, y todo `inventario.cantidad`
+> quedó en 0 (las 1.137 filas y sus `maximo` siguen).
 > `inv_delta` hace upsert, así que un movimiento nuevo a Virgilio recrea la fila sola.
 
 ### ⚠️ Lo que todavía NO se hizo: las rutas siguen apuntando a Gentile
@@ -13849,3 +13853,7 @@ Contexto: app unificada `GP2-Registro-Produccion`, se arranca por Cervantes. Tab
   `recalcular_maximo_mp_ps`, `fn_recalc_maximos_diferido`) y en 2 pantallas (Recepción Insumos, Entrega PS):
   se reemplazó en todas. Ninguna tabla lo guardaba como texto salvo `componente.codigo`.
   Las menciones a `FLEJE90_BRUTO` en docs anteriores a esta fecha se refieren a este mismo componente.
+- [usuario] Thomas, mismo día: *"en vez de chapa 430, Fleje Descorazonador"*. `componente` id 595: `CHAPA430` /
+  `Chapa 430` → **`FLEJE_DESCORAZONADOR` / `Fleje Descorazonador`** (Aperam → Eclipse). Reemplazado en 4 funciones
+  (`cargar_recepcion_eclipse`, `recalcular_maximo_mp_ps`, `control_ps_bundle`, `fn_recalc_maximos_diferido`) y en
+  Recepción Insumos / Entrega PS. El proceso de Eclipse sigue rotulado "Corte Chapa 430" en Entrega PS.

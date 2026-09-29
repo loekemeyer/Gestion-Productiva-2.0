@@ -384,7 +384,7 @@ function ecProdSel(){ return EC_PROD.find(function(p){ return String(p.id)===Str
 async function ecStock(){
   try{
     var st = await SB.from("inventario").select("cantidad, componente:componente_id(codigo)").eq("ubicacion_id",48);
-    var kg=0; (st.data||[]).forEach(function(r){ if(r.componente && r.componente.codigo==="CHAPA430") kg=Number(r.cantidad)||0; });
+    var kg=0; (st.data||[]).forEach(function(r){ if(r.componente && r.componente.codigo==="FLEJE_DESCORAZONADOR") kg=Number(r.cantidad)||0; });
     $("ecStock").textContent = fmt(kg);
   }catch(e){ $("ecStock").textContent="—"; }
 }
