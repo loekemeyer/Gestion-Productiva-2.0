@@ -13519,5 +13519,13 @@ Virgilio"` `[dato: el .bas]`, no toca GP2.
   Eduardo): no sirve para saber quién es operario. Los permisos de botones (`es_piedra`, `ve_cm`, …) y
   `hora_entrada` de producción solo existen en `Empleados` → hay que llevarlos a una tabla GP2 atada al
   `planify.employees.id` (no al legajo).
-- [deducido, sin confirmar] Login del operario: el teclado es numérico (regla de campos) y la letra no se tipea →
-  elegir la empresa con un botón grande + número. `login-operario` hoy valida contra `public."Empleados"`: cambiar.
+- [usuario 29/09] *"de planify es para utilizar los legajos y filtrando por operario"* + *"la letra es parte del
+  legajo"*. El operario tipea el legajo completo (`c94`). Como el teclado del celular es numérico por regla, la
+  pantalla de legajo lleva un **teclado propio en pantalla (0-9 + C)**, con botones grandes. `login-operario` hoy
+  valida contra `public."Empleados"`: cambiar a `planify.employees` activo y de tipo operario.
+- [dato 29/09] **Hoy el filtro "por operario" devuelve 0**: los 56 empleados de Planify tienen `tipo='administrativo'`
+  (no hay constraint ni otro valor). Hay que marcar los operarios en Planify (RRHH). Candidatos = los que cargaron
+  producción en 30 días: c19, 233, 237, 245, 261, 277, 282, 501, 504, 74, c92, c94, c104, c8; el `600` que carga en
+  Virgilio **no está en Planify**.
+- [dato 29/09] La producción histórica guarda el legajo **sin la letra** (`94`, `104`, `8`, `19`, `92`): al migrar,
+  mapear número→legajo con letra usando Planify, y ojo con 29/c29 y 122/C122.
