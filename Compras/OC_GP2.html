@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="es">
 <head>
-<!-- v1.45.1 (2026-09-29) — LA VENTANITA DEL MAXIMO SE FIJA CON UN CLIC [Thomas: "No me deja bajar a ver el resto
+<!-- v1.46.1 (2026-09-29) — LA VENTANITA DEL MAXIMO SE FIJA CON UN CLIC [Thomas: "No me deja bajar a ver el resto
      de los componentes, que si hago click me quede fijo y lo saco haciendo un click afuera"]. Pasar el mouse
      sigue abriendola de vista previa; el clic la FIJA (.fija: pointer-events on), ya no se cierra al salir de
      la celda, se scrollea adentro, y se cierra con clic afuera, Escape o clic de nuevo en el Maximo. El
@@ -13,6 +13,10 @@
      aparece. Que me aparezca la opcion de comprarselo a ellos"]: sin proveedor elegido, la columna
      Proveedor muestra el principal y debajo un boton por cada alternativo (con su precio si cotiza);
      tocarlo es lo mismo que elegir ese proveedor arriba. -->
+<!-- v1.46.0 (2026-09-29) — SEMAFORO DE RECEPCION EN CADA RENGLON DE LA OC [Thomas: "Marca en verde lo que ya se
+     haya recibido por completo, amarillo si se entrego parcial y rojo si no se entrego nada"]. Compara
+     recibido contra cantidad (misma unidad del renglon, la recepcion ya convierte kg/uni al cruzar).
+     Solo en OC enviada/recibida: una en borrador todavia no se pidio, pintarla de rojo mentiria. -->
 <!-- v1.45.0 (2026-09-29) — FLEJE, REMACHE, BOMBILLA, GARAGE, CAJA Y BOLSAS PLASTICAS: LA TABLA VA ORDENADA POR
      PROVEEDOR (y codigo), SIN TITULOS [Thomas: "en la parte de todos los provs (cuando no filtro por prov)
      igualmente este ordenado por prov sin encabezados solo ordenado"]. ordenadoPorProveedor(); carton y
@@ -528,6 +532,10 @@
   .chip{padding:11px 16px;border-radius:22px;border:2px solid #d0d7de;background:#fff;font-weight:700;font-size:16px;cursor:pointer;color:#111;min-height:44px}
   .chip.active{background:#0b3b73;color:#fff;border-color:#0b3b73}
   td.num{text-align:right;font-variant-numeric:tabular-nums}
+  /* v1.46.0: semaforo de recepcion por renglon (verde completo, amarillo parcial, rojo nada). */
+  #panOcs tr.rc-ok td{background:#dcfce7}
+  #panOcs tr.rc-par td{background:#fef3c7}
+  #panOcs tr.rc-no td{background:#fee2e2}
   /* Cuadro sinoptico (v1.35.0): la tabla abraza el dato, sin 100% de ancho ni anchos fijos. */
   /* table.t (gp2-modulo.css) pone width:100% y le ganaba a .t-insumos: por eso los huecos (v1.39.0). */
   table.t.t-insumos{width:auto}
@@ -1758,7 +1766,10 @@ function pintarOcs(){
       '<div class="table-wrap" style="margin-top:8px"><table class="t"><thead><tr>'+
       '<th>Insumo</th><th class="num">Pedido</th><th class="num">Precio</th><th class="num">Subtotal</th><th class="num">Recibido</th></tr></thead><tbody>'+
       (o.items||[]).map(function(it){
-        return '<tr><td><b>'+esc(it.codigo)+'</b> <small style="color:#777">'+esc(it.descripcion||'')+'</small></td>'+
+        var rc=Number(it.recibido)||0, pe=Number(it.cantidad)||0;
+        var sem=(o.estado==='enviada'||o.estado==='recibida')?
+          (rc<=0?' class="rc-no"':(rc>=pe?' class="rc-ok"':' class="rc-par"')):'';
+        return '<tr'+sem+'><td><b>'+esc(it.codigo)+'</b> <small style="color:#777">'+esc(it.descripcion||'')+'</small></td>'+
           '<td class="num">'+fmt(it.cantidad)+' '+esc(it.unidad)+'</td>'+
           '<td class="num">'+(it.precio_uni==null?'—':((it.moneda==='ARS'?'$ ':'US$ ')+fmt(it.precio_uni,2)))+'</td>'+
           '<td class="num">'+(it.subtotal==null?'—':((it.moneda==='ARS'?'$ ':'US$ ')+fmt(it.subtotal,2)))+'</td>'+
