@@ -13663,3 +13663,9 @@ Contexto: app unificada `GP2-Registro-Produccion`, se arranca por Cervantes. Tab
   de FLEJE90_BRUTO. Hoy no pesa: la O.C. usa el máximo y no muestra el consumo, y la Tablet deja afuera
   a los PS híbridos. Si algo empieza a leer ese consumo, corregirlo primero.
 - [dato] La ruta del art 709 arranca en Z31 (insumo) sin la chapa: su descorazonador no cuenta chapa.
+- [usuario Elías 29/09] **La 10B no existe: la varilla con cuchilla curva (H15) es la matriz 174** "Armado de Varilla
+  Curva C/Cuchilla" (8,5 s, ya tenía ruta → H15). **Se eliminó la 10B de `GP2.matriz`** (id 409; sin producción ni
+  rutas en GP2; queda su fila histórica en `matriz_racha`). En la base vieja 10B tuvo 1 cajón en el año (17/07, 385 u.)
+  y el cartel de Registro Producción 2.0 todavía la ofrece como "Varilla c/ Cuchilla Curva": en la app nueva, la
+  varilla curva va a la 174.
+
