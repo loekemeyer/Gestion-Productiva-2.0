@@ -4,6 +4,7 @@
 (vacío)
 
 [HISTORIAL]
+2026-09-29 (9) - PLASTICO: Bujes PA8A/PA8B y PEST1 de Kollplast a Pat Bet Plast, como el relevamiento (Thomas). DB-only. Ya no queda familia con dos proveedores. CONOCIMIENTO 4gp. thomas (claude-remote).
 2026-09-29 (8) - PLASTICO, PROVEEDORES SEGUN RELEVAMIENTO (Thomas: "las tres cosas de Telleria y la de Rodar mandalo a Rafael Pettofrezza"). DB-only: PEP2 Pat Bet Plast -> Pettofrezza Rafael (PB2, PEP1, PA4B ya estaban). Pendiente: Bujes PA8A/PA8B y PEST1 (Kollplast en GP2, Pat Bet en planilla). CONOCIMIENTO 4gp. thomas (claude-remote).
 2026-09-29 (7) - OC v1.44.1: "Otros" del plastico bajo UN solo titulo, piezas ordenadas por proveedor (Thomas). version.js v1.205.1 ?v=20260929g. thomas (claude-remote).
 2026-09-29 (6) - OC v1.44.0: el minimo se lee en la unidad de la O.C. ("min. pedido 1.000 kg (= 153.139 uni)"; Thomas: "siempre los min es la unidad del remito"); DB: Clavo 505 PCP3 1.000 -> 153.139 uni (la planilla lo daba en KG). Encabezados fijos (thead sticky) en escritorio en la tabla de insumos y la de O.C. emitidas. version.js v1.205.0 ?v=20260929f. thomas (claude-remote).
@@ -13,4 +14,3 @@
 2026-09-29 (4) - OC v1.43.1: carton sin formato y plastico sin familia van bajo el titulo "Otros" (ultimo); la linea bajo Pedir dice "min. pedido" en vez de "min. proveedor" (Thomas). version.js v1.204.1 ?v=20260929d. thomas (claude-remote).
 2026-09-29 (3) - PLASTICO: FAMILIA DE PEDIDO CON MINIMO POR FAMILIA (Thomas: "el minimo va por familia, no por parte... entre todos los pirolos tengo que llegar a 36000. Separame por familia"). DB: tabla GP2.familia_pedido (30, RLS lectura) + componente.familia_pedido (49 piezas); oc_bundle manda familia_pedido/familia_minimo. OC v1.43.0: conTitulosDeFamiliaPlastico() con titulo "familia · N piezas · min. familia · pedido" (rojo si corto), sin min por pieza cuando hay familia. 8 piezas de la planilla no existen en GP2. db/tablas+funciones, CONOCIMIENTO 4gp, REGLAS. version.js v1.204.0 ?v=20260929c. thomas (claude-remote).
 2026-09-29 | claude-remote | CONOCIMIENTO_GP2.md | 103 y 510 renombrados a "Abrelata Uña Inox" en GP2.articulo + uni_x_articulo_x_caja
-2026-09-29 | Elias (claude-remote) | GP2.matriz 138 maquina -> alimentador
