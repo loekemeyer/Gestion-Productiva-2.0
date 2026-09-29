@@ -37,6 +37,12 @@ Los cartones se **reciben en PAQUETES**: el proveedor siempre entrega alturas de
 | Rallador | LK/CH | 24.000 | 1.000 | 1.000 |
 | Manga | LK | 12.000 | 1.000 | 1.000 |
 
+**⚠ 2026-09-29, corrección del dueño: "En cartones los mínimos son por cartón, aunque estén agrupados
+por familia."** Los números de la tabla de arriba son el **mínimo de cada cartón** de esa familia
+(`componente.pedido_minimo_uni`, 129 cargados desde la planilla), no una tirada que la familia tenga que
+sumar. La O.C. lo muestra bajo Pedir y no frena (desde el 28/09 el múltiplo de familia tampoco frena);
+la tabla de cartones va separada por familia con un título por familia.
+
 **La tirada depende de la MARCA, no sólo de la geometría del pliego** `[Thomas 2026-09-28, planilla
 "Pedido Cartones VACIO": Huevo LK 12.000 / Huevo CH 25.000, Corb8 LK 12.000 / Corb8 CH 30.000;
 "manda la planilla"]`. Se resolvió sin tocar código: un formato por marca, como ya venía con

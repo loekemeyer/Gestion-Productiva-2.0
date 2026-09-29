@@ -1,6 +1,14 @@
 <!doctype html>
 <html lang="es">
 <head>
+<!-- v1.42.0 (2026-09-29) — CARTON: MINIMO POR CARTON Y LA TABLA SEPARADA POR FAMILIA [Thomas: "En cartones
+     los minimos son por carton, aunque esten agrupados por familia. Ademas quiero que en la o.c. me separes
+     por familia"]. (1) El minimo del carton es componente.pedido_minimo_uni (129 cartones cargados desde la
+     planilla Pedido Cartones VACIO, por articulo: 12.000 / 16.000 / 25.000 / 30.000 / 18.000 / 24.000) y se
+     muestra como en los demas sectores ("min. proveedor N uni"); se saca la linea "tirada min. por familia"
+     de la v1.41.0, que leia mal la planilla. (2) conTitulosDeFamilia(): los cartones van agrupados por
+     famKey (formato + marca + categoria) con un renglon de titulo (.fam-hdr) por familia; el resto de los
+     sectores como antes. -->
 <!-- v1.41.0 (2026-09-28) — EL MINIMO DEL CARTON TAMBIEN DEBAJO DE PEDIR [Thomas: "No me aparece el
      minimo todavia", sobre una fila de carton]. El carton no tiene minimo por pieza: su minimo es la
      tirada de la familia (carton_formato.pliegos_multiplo) y el paso por codigo (min_codigo_x_multiplo).
@@ -485,6 +493,7 @@
   .pedir-in.err{border-color:#eacdcd;background:#ffebee}
   tr.con-pedido td{background:#eef7ee}
   .paq-eq{font-size:12px;color:#0b3b73;display:block}
+  .fam-hdr td{background:#eef2f7;color:#0b3b73;font-weight:700;font-size:13px;padding:6px 8px;text-align:left}
   .min-uni{font-size:12px;color:#8a6d00;display:block}
   /* no cumple el minimo: rojo y negrita [Thomas 2026-09-28] */
   .min-uni.corto{font-weight:800;color:#b71c1c}
@@ -1092,17 +1101,11 @@ function notaRepo(i){
 // cuando lo pedido queda por debajo del minimo.
 function notaMinUni(i, ped, esChar, uxpChar, um){
   var m = Number(i.pedido_minimo_uni)||0;
-  // v1.41.0: el CARTON no tiene minimo por pieza; su minimo es la TIRADA de la familia
-  // (carton_formato.pliegos_multiplo: 12.000 / 16.000 / 25.000...) y el paso por codigo
-  // (min_codigo_x_multiplo). Se muestra igual que el minimo del proveedor [Thomas 2026-09-28:
-  // "No me aparece el minimo todavia", sobre una fila de carton].
-  if(m<=0 && GP2UI.esCarton(i) && !i.es_pliego && Number(i.pliegos_multiplo)>1){
-    var pm = Number(i.pliegos_multiplo), mc = Number(i.min_codigo_x_multiplo)||0;
-    var pedU = Number(ped)||0;
-    var cortoC = mc>0 && pedU>0 && pedU<mc;
-    return '<span class="min-uni'+(cortoC?' corto':'')+'">tirada mín. '+fmt(pm)+' uni por familia '+
-           esc(i.carton_formato||'')+(mc>0?(' · mín. por código '+fmt(mc)):'')+'</span>';
-  }
+  // v1.42.0: en el CARTON el minimo tambien es POR CARTON (componente.pedido_minimo_uni, cargado
+  // desde la planilla: 12.000 / 16.000 / 25.000 / 30.000 / 18.000 / 24.000 segun el carton), aunque
+  // se agrupen por familia [Thomas 2026-09-29: "En cartones los minimos son por carton, aunque
+  // esten agrupados por familia"]. La v1.41.0 mostraba aca la tirada de la familia
+  // (pliegos_multiplo); era una lectura equivocada de la planilla y se saco.
   if(m<=0) return '';
   var pedUni = esChar ? (Number(ped)||0)*uxpChar : (Number(ped)||0);
   var corto = pedUni>0 && pedUni<m;
@@ -1113,10 +1116,34 @@ function notaMinUni(i, ped, esChar, uxpChar, um){
   return '<span class="min-uni'+(corto?' corto':'')+'">'+txt+'</span>';
 }
 
+// v1.42.0: los CARTONES se listan SEPARADOS POR FAMILIA (formato + marca + categoria), con un
+// renglon de titulo por familia [Thomas 2026-09-29: "quiero que en la o.c. me separes por familia"].
+// El orden dentro de la familia es el que ya venia (el del bundle). Los demas sectores no cambian.
+function conTitulosDeFamilia(fs){
+  var carton=fs.filter(function(i){ return i.sector_id===10; });
+  if(!carton.length) return fs.map(function(i){ return {it:i}; });
+  var otros=fs.filter(function(i){ return i.sector_id!==10; });
+  var grupos={}, orden=[];
+  carton.forEach(function(i){
+    var k=famKey(i);
+    if(!grupos[k]){ grupos[k]=[]; orden.push(k); }
+    grupos[k].push(i);
+  });
+  orden.sort(function(a,b){ return famLabel(grupos[a][0]).localeCompare(famLabel(grupos[b][0]),'es'); });
+  var out=otros.map(function(i){ return {it:i}; });
+  orden.forEach(function(k){
+    out.push({hdr:famLabel(grupos[k][0])+' · '+grupos[k].length+(grupos[k].length===1?' cartón':' cartones')});
+    grupos[k].forEach(function(i){ out.push({it:i}); });
+  });
+  return out;
+}
+
 function render(){
   cargarSugeridos();
   var fs=filtradas();
-  $('tbody').innerHTML=fs.map(function(i){
+  $('tbody').innerHTML=conTitulosDeFamilia(fs).map(function(fila){
+    if(fila.hdr) return '<tr class="fam-hdr"><td colspan="6">'+esc(fila.hdr)+'</td></tr>';
+    var i=fila.it;
     var ped=PEDIDO[i.comp_id]||'';
     var esCarton=GP2UI.esCarton(i);   /* el 10 vive en gp2-ui.js (idea 7334) */
     var esChar=esCharcasIt(i);

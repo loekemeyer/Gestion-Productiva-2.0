@@ -34,7 +34,7 @@ const BUNDLE = {
       proveedor: 'Cartonero', um: 'uni', unidad: 'uni', kg_x_uni: null,
       consumo: 3000, meses: 6, online: 2000, pendiente_oc: 0, sugerido: 16000,
       precio: 1, moneda: 'USD',
-      carton_formato: 'C', carton_categoria: 'Resto', marca: 'LOEKE', mezcla_libre: false,
+      carton_formato: 'C', pedido_minimo_uni: 12000, carton_categoria: 'Resto', marca: 'LOEKE', mezcla_libre: false,
       pliegos_multiplo: 12000, codigo_multiplo: 1000, min_codigo_x_multiplo: 1000 },
     { comp_id: 4, codigo: 'CARTPP', descripcion: 'Carton Pelapapas', sector: 'Sector Carton', sector_id: 10,
       proveedor: 'Cartonero', um: 'uni', unidad: 'uni', kg_x_uni: null,
@@ -83,7 +83,7 @@ const BUNDLE = {
       proveedor: 'Cartonero', um: 'unidad', unidad: 'uni', kg_x_uni: null,
       consumo: 100, meses: 6, online: 0, pendiente_oc: 0, sugerido: 600,
       precio: 1, moneda: 'USD',
-      carton_formato: 'Huevo', carton_categoria: null, marca: 'LOEKE', mezcla_libre: false,
+      carton_formato: 'Huevo', pedido_minimo_uni: 2000, carton_categoria: null, marca: 'LOEKE', mezcla_libre: false,
       pliegos_multiplo: 25000, codigo_multiplo: 1000, min_codigo_x_multiplo: 2000 },
     // EL PLIEGO DEL 500: lleva carton_formato 'C' porque son 12 POSICIONES (eso es para el
     // costo), pero NO se pide por la familia del carton C — va de a 100 pliegos
@@ -382,8 +382,15 @@ window.supabase = { createClient: function(){ return {
      'total no multiplo de 12000 NO muestra cartel (v1.41.0)');
   ok(!(await page.$eval('#btnCrear', b => b.disabled)), 'btnCrear sigue habilitado con el multiplo roto');
   // ...pero la tirada de la familia se lee en la fila, debajo de Pedir.
+  // v1.42.0: el minimo es POR CARTON (pedido_minimo_uni), no la tirada de la familia.
   const tir = await page.textContent('tr[data-id="3"] .min-uni');
-  ok(/tirada mín\. 12\.000 uni/.test(tir), 'la fila muestra la tirada de la familia: ' + tir.trim());
+  ok(/mín\. proveedor 12\.000 uni/.test(tir), 'la fila muestra el minimo del carton: ' + tir.trim());
+  // ...y la tabla de cartones va separada por familia, con un renglon de titulo por familia.
+  const hdrs = await page.$$eval('tr.fam-hdr td', xs => xs.map(x => x.textContent.trim()));
+  ok(hdrs.length >= 3 && hdrs.some(h => /Formato C LOEKE/.test(h)) && hdrs.some(h => /Formato Huevo LOEKE/.test(h)),
+     'renglones de familia en la tabla: ' + hdrs.join(' | '));
+  const primero = await page.$eval('#tbody tr', x => x.className);
+  ok(primero === 'fam-hdr', 'la tabla de cartones arranca con el titulo de la primera familia');
 
   // 11000 + 1000 = 12000 total, ambos multiplos de 1000, minimo 1000 -> valido
   await page.fill('.pedir-in[data-in="3"]', '44');
@@ -415,9 +422,9 @@ window.supabase = { createClient: function(){ return {
   await page.fill('.pedir-in[data-in="10"]', '4');
   await page.$eval('.pedir-in[data-in="10"]', x => x.dispatchEvent(new Event('change')));
   ok(await page.$eval('#reglaCarton', x => x.classList.contains('hidden')),
-     'abajo del minimo por codigo tampoco hay cartel (v1.41.0); se ve en la fila');
+     'abajo del minimo tampoco hay cartel (v1.41.0); se ve en la fila');
   ok((await page.$eval('tr[data-id="10"] .min-uni', x => x.classList.contains('corto'))),
-     'la fila del codigo corto se marca en rojo (min. por codigo 2.000)');
+     'la fila del carton corto se marca en rojo (min. por carton 2.000)');
 
   // "Usar sugeridos" deja el carton YA VALIDO (usuario 2026-09-03: "sí, redondeá
   // para arriba"). Sugeridos 16.000 + 6.000 = 22.000 -> el total sube al multiplo

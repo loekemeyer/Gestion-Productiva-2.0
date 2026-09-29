@@ -13497,6 +13497,16 @@ Virgilio"` `[dato: el .bas]`, no toca GP2.
   (la planilla tiene "Rallador" y "Bandita" cruzados); CCG6B del 760 (tipo C LOEKE en un artículo CH).
   Sin formato siguen G8C, A1B, A1B1. Familias resultantes en `oc_bundle`: 8 LOEKE 18 · C LOEKE 41 ·
   C CHEF 4 · Corbata CHEF 10 · Huevo CHEF 20 · Huevo LK 21 · LOKE CHEF 23 · LOKE LOEKE 8.
+- **⚠ Corrección del dueño (2026-09-29): "En cartones los mínimos son por cartón, aunque estén
+  agrupados por familia."** El "Pedi Min Uni" de la planilla NO es la tirada de la familia (como leí el
+  28/09): es el **mínimo de cada cartón**. Cargado en `componente.pedido_minimo_uni` para **129 cartones**,
+  cruzado por artículo (12.000 ×71 · 16.000 ×25 · 25.000 ×19 · 30.000 ×10 · 18.000 ×3 · 24.000 ×1); 28
+  cartones sin fila en la planilla quedan sin mínimo. La O.C. lo muestra bajo Pedir como en los demás
+  sectores ("mín. proveedor N uni", rojo si corto) y **no frena**. Los formatos por marca (`Huevo LK`,
+  `8` 12.000, `Huevo LK Tapon`, `Huevo LK 25`) quedan: sirven para agrupar y para el redondeo de
+  "Sugerir", pero ya no son "el mínimo". `[Thomas 2026-09-29: "quiero que en la o.c. me separes por
+  familia"]` → la tabla de cartones va con un renglón de título por familia (formato + marca +
+  categoría), `OC_GP2.html` v1.42.0.
 - **Pendiente de carga**: 9 plásticos (PA10/13/18 y PA4 10.000, PC1A/B 36.000, Maspoli PC12/PEP7/PEP8
   500), ver el xlsx.
 - **v1.39.0** [usuario] Thomas: *"entre columna y columna veo espacios"* + *"si no cumple con el mínimo que aparezca igual pero con color rojo y negrita"*. Causa de los huecos: `table.t{width:100%}` de `gp2-modulo.css` le ganaba en especificidad a `.t-insumos{width:auto}` (y en los tests no se veía porque el CSS está stubeado). Ahora `table.t.t-insumos{width:auto}` y el `.table-wrap` abraza la tabla. "mín. proveedor" en rojo y negrita cuando lo pedido queda por debajo; vacío no se marca.
