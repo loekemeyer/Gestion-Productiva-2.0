@@ -1,6 +1,18 @@
 <!doctype html>
 <html lang="es">
 <head>
+<!-- v1.46.1 (2026-09-29) — LA VENTANITA DEL MAXIMO SE FIJA CON UN CLIC [Thomas: "No me deja bajar a ver el resto
+     de los componentes, que si hago click me quede fijo y lo saco haciendo un click afuera"]. Pasar el mouse
+     sigue abriendola de vista previa; el clic la FIJA (.fija: pointer-events on), ya no se cierra al salir de
+     la celda, se scrollea adentro, y se cierra con clic afuera, Escape o clic de nuevo en el Maximo. El
+     scroll de la propia ventanita ya no la cierra.
+     (2) SIN BLANCO DE UN SOLO LADO [Thomas: "hay mas blanco de un lado que de otro"]: el piso de 720px de la
+     tarjeta (v1.40.0, pensado para cuando NO hay tabla) la dejaba mas ancha que la tabla y el sobrante caia
+     todo a la derecha. Con la lista a la vista el piso se apaga y la tarjeta abraza la tabla.
+     (3) EL PROVEEDOR ALTERNATIVO SE VE SIN ELEGIRLO [Thomas: "en sector caja, salvo que toque Recicor, no me
+     aparece. Que me aparezca la opcion de comprarselo a ellos"]: sin proveedor elegido, la columna
+     Proveedor muestra el principal y debajo un boton por cada alternativo (con su precio si cotiza);
+     tocarlo es lo mismo que elegir ese proveedor arriba. -->
 <!-- v1.46.0 (2026-09-29) — SEMAFORO DE RECEPCION EN CADA RENGLON DE LA OC [Thomas: "Marca en verde lo que ya se
      haya recibido por completo, amarillo si se entrego parcial y rojo si no se entrego nada"]. Compara
      recibido contra cantidad (misma unidad del renglon, la recepcion ya convierte kg/uni al cruzar).
@@ -551,6 +563,9 @@
   .min-uni.corto{font-weight:800;color:#b71c1c}
   /* El proveedor dentro de la celda del insumo: solo se ve en pantalla chica. */
   .prov-mini{display:none}
+  /* v1.45.1: proveedor alternativo en la fila, sin tener que elegirlo arriba */
+  .prov-alt{display:block;margin-top:4px;min-height:44px;padding:6px 12px;border-radius:22px;border:2px dashed #0b3b73;
+            background:#fff;color:#0b3b73;font-weight:700;font-size:15px;cursor:pointer;text-align:left}
   .barra{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:10px 0;padding:8px 10px;background:#f6f8fa;border-radius:10px;width:fit-content;max-width:100%;box-sizing:border-box}
   .barra .tot{font-size:17px;font-weight:800}
   .barra input[type=text]{padding:10px;min-height:44px;font-size:18px;border:2px solid #d0d7de;border-radius:8px;width:200px}
@@ -602,6 +617,7 @@
   /* ventanita flotante del desglose (v1.36.0): se abre al pasar por el Maximo */
   .dsg-pop{position:fixed;z-index:50;background:#fff;border:1px solid #d0d7de;border-radius:10px;
            box-shadow:0 8px 28px rgba(0,0,0,.18);padding:6px 8px;max-width:calc(100vw - 16px);max-height:60vh;overflow:auto;pointer-events:none}
+  .dsg-pop.fija{pointer-events:auto;border-color:#0b3b73}
   .dsg-pop[hidden]{display:none}
   .dsg-pop table.dsg{margin:0}
   .dsg-vacio{font-size:14px;color:#64748b;margin:4px}
@@ -624,6 +640,7 @@
      (contain:inline-size) y sus chips bajan de renglon. Piso de 720px para que sin tabla (antes de
      elegir sector, o en Ordenes) la botonera no quede angosta. */
   .card{width:fit-content;min-width:min(100%,720px);max-width:100%}
+  .card:has(#zonaLista:not(.hidden)){min-width:0}   /* v1.45.1: con tabla, la tarjeta abraza la tabla */
   .filtros,#reglaCarton,#panOcs,#elegiSector,#tblEmpty,#status{contain:inline-size}
   /* v1.40.1: botones, filtros, buscador y Crear OC alineados a la IZQUIERDA [Thomas: "todo esto alineacion a la izquierda"] */
   /* los chips se quedan pegados a la etiqueta y bajan de renglon (no se estiran a lo ancho) */
@@ -805,6 +822,16 @@ function esDelProv(i, p){ return p==null || provsDeInsumo(i).indexOf(p)>=0; }
 function provDeFila(i){
   if(provSel!=null && provSel!=='(sin proveedor)' && esDelProv(i, provSel)) return provSel;
   return i.proveedor || '—';
+}
+/* Celda Proveedor: con un proveedor elegido, ese. Sin elegir, el principal y un boton por cada
+   alternativo (Recicor en las cajas), con su precio si lo cotiza [Thomas 2026-09-29]. */
+function provCelda(i){
+  if(provSel!=null) return esc(provDeFila(i));
+  var ps=provsDeInsumo(i), m=i.precios_prov||{};
+  return esc(ps[0])+ps.slice(1).map(function(p){
+    var pp=m[p], pr=(pp&&pp.precio!=null)?' · '+(pp.moneda==='USD'?'US$ ':'$ ')+fmt(pp.precio,2):'';
+    return '<button type="button" class="prov-alt" data-prov="'+esc(p)+'">o '+esc(p)+pr+'</button>';
+  }).join('');
 }
 /* PRECIO POR PROVEEDOR: la hoja que se le manda a cada uno tiene que salir con SU lista
    (Recicor cotiza las cajas ~19% mas barato que Corrugadora). i.precios_prov trae el precio
@@ -1282,7 +1309,7 @@ function render(){
         // En el celular la columna Proveedor se esconde (no entraba y dejaba "Pedir"
         // fuera de pantalla) y el proveedor se lee acá mismo. Nada se pierde.
         '<span class="prov-mini"> · '+esc(provDeFila(i))+'</span></small></td>'+
-      '<td>'+esc(provDeFila(i))+'</td>'+
+      '<td>'+provCelda(i)+'</td>'+
       // El "mín N" debajo del stock se saco [usuario 2026-09-04: "eso no lo quiero ver"].
       // El stock se pinta en rojo cuando esta abajo del MAXIMO (el minimo se borro el 14-09).
       '<td class="num'+(bajoMin?' bajo-min':'')+'">'+(st==null?'—':(fmt(st)+' '+esc(i.unidad)))+'</td>'+
@@ -1321,17 +1348,23 @@ function render(){
       render(); barra();
     });
   });
+  // Proveedor alternativo en la fila: equivale a tocar su chip arriba.
+  document.querySelectorAll('button.prov-alt').forEach(function(b){
+    b.addEventListener('click', function(){ provSel=b.dataset.prov; pintarProvs(); proponerFecha(); render(); });
+  });
   // Tocar el Máximo abre el desglose: de dónde sale ese número.
   document.querySelectorAll('td.max-cell').forEach(function(td){
     // Mouse: se abre al pasar por arriba y se cierra al salir. Solo pointerType 'mouse': un
     // toque tambien dispara "enter" y abriria y cerraria en el mismo gesto.
     td.addEventListener('pointerenter', function(e){ if(e.pointerType==='mouse'){ DSG_HOVER=true; abrirDesglose(Number(td.dataset.max), td); } });
-    td.addEventListener('pointerleave', function(e){ if(e.pointerType==='mouse'){ DSG_HOVER=false; cerrarDesglose(); } });
-    // Tablet / celular: no hay "pasar por arriba", asi que el toque la abre y la cierra.
+    td.addEventListener('pointerleave', function(e){ if(e.pointerType==='mouse'){ DSG_HOVER=false; if(!DSG_FIJA) cerrarDesglose(); } });
+    // Clic (mouse o toque): la FIJA para poder bajar por la lista [Thomas 2026-09-29]. Un segundo clic
+    // sobre la misma celda, un clic afuera o Escape la cierran.
     td.addEventListener('click', function(e){
       e.stopPropagation();
-      if(DSG_HOVER) return;   // con mouse ya esta abierta; el clic no la cierra
-      if(DSG_TD===td && !$('dsgPop').hidden) cerrarDesglose(); else abrirDesglose(Number(td.dataset.max), td);
+      if(DSG_FIJA && DSG_TD===td){ cerrarDesglose(); return; }
+      DSG_FIJA=true; $('dsgPop').classList.add('fija');
+      if(DSG_TD!==td || $('dsgPop').hidden) abrirDesglose(Number(td.dataset.max), td);
     });
   });
   barra();
@@ -1341,7 +1374,7 @@ function render(){
    Al tocar el Máximo se ve de qué se compone: cuántos meses, el consumo/mes y qué lo arma
    — por ARTÍCULO (con su venta de est_madre y lo que consume del insumo) o, en la resina,
    por PIEZA. Siempre en unidades y, si hay kg_x_uni, también en kg. [usuario 2026-09-14] */
-var DSG_CACHE={}, DSG_TD=null, DSG_HOVER=false;
+var DSG_CACHE={}, DSG_TD=null, DSG_HOVER=false, DSG_FIJA=false;
 async function abrirDesglose(compId, td){
   DSG_TD=td;
   var pop=$('dsgPop');
@@ -1969,9 +2002,11 @@ $('tabOcs').addEventListener('click',function(){ mostrarTab('ocs'); });
 
 $('q').addEventListener('input', render);
 // Cerrar el desglose: la X, tocar el fondo, o Escape.
-function cerrarDesglose(){ DSG_TD=null; $('dsgPop').hidden=true; }
-document.addEventListener('click', cerrarDesglose);          // tocar afuera la cierra (tablet)
-window.addEventListener('scroll', cerrarDesglose, true);     // si la tabla se mueve, la ventanita no queda flotando
+function cerrarDesglose(){ DSG_TD=null; DSG_FIJA=false; var p=$('dsgPop'); p.hidden=true; p.classList.remove('fija'); }
+$('dsgPop').addEventListener('click', function(e){ e.stopPropagation(); });   // clic adentro no la cierra
+document.addEventListener('click', cerrarDesglose);          // tocar afuera la cierra
+// Si la PAGINA se mueve, la ventanita no queda flotando; el scroll de la propia ventanita no cuenta.
+window.addEventListener('scroll', function(e){ if(e.target!==$('dsgPop')) cerrarDesglose(); }, true);
 document.addEventListener('keydown', function(e){ if(e.key==='Escape') cerrarDesglose(); });
 boot();
 </script>
