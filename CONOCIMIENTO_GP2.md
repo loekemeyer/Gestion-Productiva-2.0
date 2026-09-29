@@ -13751,3 +13751,5 @@ Contexto: app unificada `GP2-Registro-Produccion`, se arranca por Cervantes. Tab
   0, sin movimientos ni recetas). D2 $114,19 → $114,92 y D3 $114,30 → $115,26: el material ahora sale del fleje (37,8 u/kg).
   **Convención del stock movimiento** [usuario]: código `<raíz>-M<matriz>`, descripción `<desc. raíz> tras M<matriz>`, sin
   kg ni cajón; la raíz es el fleje/crudo de origen y se mantiene a lo largo de la cadena.
+- [usuario 29/09] **Las aletas del 523/723 NO se croman: son inox.** La ruta IC2 → M116 → M114 → M221 → D3/D2 sin
+  proveedor de cromado es correcta; el "p/Cromar" de las viejas L9/L10 era un resto (esos códigos ya no existen).
