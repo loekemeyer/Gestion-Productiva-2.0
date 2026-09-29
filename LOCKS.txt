@@ -4,6 +4,7 @@
 (vacío)
 
 [HISTORIAL]
+2026-09-29 (15) - MAXIMOS DE SECTOR = CONSUMO x MESES (Thomas: "usa la regla de consumo, no de 5 cajones"). DB: Crudo/Procesado a consumo_meses (se retira 5 cajones), 20 fisico de Caja/Remache a est_madre, Y1 a consumo_meses, RULETA fisico, A9 Cpo Mango Alambre borrado. Maximo por sector $947,3 M -> $913,2 M. CONOCIMIENTO 4gu. thomas (claude-remote).
 2026-09-29 (14) - OC v1.45.0: fleje, remache, bombilla, garage, caja y bolsas plasticas ordenados por proveedor y codigo, sin titulos (Thomas). version.js v1.206.0 ?v=20260929i. thomas (claude-remote).
 2026-09-29 (13) - OC v1.44.2: sin equivalencias ("= 227 bolsas de 150", "= N uni") debajo de Pedir; queda solo "min. pedido" y "ya pediste" (Thomas). version.js v1.205.2 ?v=20260929h. thomas (claude-remote).
 2026-09-29 (12) - Ruedas PIEA/PIEB (Barbetta) sin minimo (Thomas: "a estos dos no les pongas minimo"). DB-only. thomas (claude-remote).

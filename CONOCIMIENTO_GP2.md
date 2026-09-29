@@ -1714,6 +1714,8 @@ recibe `p_comp_sp_id`, porque al recibir hay que decir cuál de los tres mangos 
 afilar las piedras**, no es una parte de nada. No es una ruta rota: es una herramienta. Las
 otras dos rutas sin `articulo_id` son la 632 (produce el pliego adhesivado, un intermedio) y
 ya ninguna más — las 10 del 581 y el 104 lo recuperaron.
+`[usuario 2026-09-29]` Confirmado otra vez: *"RULETA no se usa para ningún artículo, es para afilar la piedra
+que afila"*. Por eso no tiene consumo y su máximo (27.175) queda `fisico`: la regla de consumo le daría 0.
 
 **El `articulo_id` de la ruta y la receta son DOS cosas, y hacen falta las dos (2026-09-03)**
 `[dato]`: al 581 y a su clon 104 se les puso el `articulo_id` que les faltaba `[usuario:
@@ -2981,6 +2983,9 @@ mínimo de antes y el recalculado) para poder volver atrás. `[2026-09-04]` La t
 `REFACTOR_GP2.md`): las copias de datos no viven en la base, viven en git.
 
 ## 2e. Faltantes y máximos de Crudo/Procesado: 5 cajones por ubicación (2026-08-31)
+
+> ⚠️ **RETIRADO EL 2026-09-29 (§4gu):** el máximo de Crudo/Procesado ya NO es 5 cajones, es consumo ×
+> `meses_stock` del sector. Lo de abajo queda como historia. El umbral de faltante (1 cajón) sigue igual.
 
 `[usuario 2026-08-30]` **"En crudo y procesado, el stock máximo tendría que ser 5
 CAJONES por ubicación."** El máximo físico de cada componente de Sector Crudo y Sector
@@ -13778,3 +13783,33 @@ Contexto: app unificada `GP2-Registro-Produccion`, se arranca por Cervantes. Tab
   kg ni cajón; la raíz es el fleje/crudo de origen y se mantiene a lo largo de la cadena.
 - [usuario 29/09] **Las aletas del 523/723 NO se croman: son inox.** La ruta IC2 → M116 → M114 → M221 → D3/D2 sin
   proveedor de cromado es correcta; el "p/Cromar" de las viejas L9/L10 era un resto (esos códigos ya no existen).
+
+
+## 4gu. Máximos de sector = consumo × meses, también en Crudo y Procesado (2026-09-29)
+
+- [usuario 29/09, textual] *"Chequeá los máximos de los sectores. Tendrían que ser el máximo del sector en meses x
+  el consumo de sus artículos correspondientes"* → *"USÁ LA REGLA DE CONSUMO, NO DE 5 CAJONES"*. **Retira la regla de 5
+  cajones (§2e).** Todo Sector Crudo y Sector Procesado pasa a `maximo_origen = 'consumo_meses'`
+  (`recalcular_maximos_consumo_meses`, ya no es opt-in); `recalcular_maximos_cajones` quedó de nombre y delega en
+  ella. Sin consumo → máximo NULL. Excepciones que no se pisan: `fisico` y `faat_reserva_lote`.
+- [usuario 29/09] **Los máximos `fisico` de Caja (9) y Remache (11) se corrigen** ("CORREGÍ"): vuelven a
+  `est_madre`. Esto **revierte** la nota de §2e-bis (02/09) de que V9 con 10.581 "era la planta y no se arreglaba":
+  hoy V9 = 113.304, V5 = 68.008, A9 Caja N°22 = 32.346, A5 Caja N°6 = 240. Quedan `fisico` sólo los 4 de Plástico sin
+  consumo (PCP4A, PCP2, PIEA, PIEB), las 13 de resina/MB (regla propia, §4dr) y RULETA.
+- [usuario 29/09] **Y1** (Sector Afilado) también a consumo × meses: 43.946 → 44.068.
+- [usuario 29/09] **Z12, C13, Z31** (Procesado, sin `uni_x_cajon`) ahora tienen máximo por consumo: 9.034 / 7.854 / 402.
+- [usuario 29/09] **A9 "Cpo Mango Alambre Corta Queso Crom." (id 84) BORRADO: discontinuo.** Tenía 0 movimientos, 0
+  recetas, 0 rutas. Se fueron con él 2 filas de inventario en 0 y su precio de cromado (Pedernera $4.757,70/kg, lista
+  01/07/2026, `precio_servicio_pieza` id 1).
+- [dato, `valorizacion_bundle`] **Máximo por sector: $947,3 M → $913,2 M.** Crudo $53,2 M → $38,5 M; Procesado
+  $80,4 M → $59,4 M; Remache $20,1 M → $21,9 M; Caja $26,6 M → $26,3 M. En unidades: Crudo 871.397 → 439.599, Procesado
+  782.380 → 407.174 (los dos tienen `meses_stock` = 1).
+- ⚠ [dato] **69 piezas de Crudo/Procesado quedan con máximo MENOR a 1 cajón**, y el faltante automático
+  (`v_faltante_estado`) marca faltante con stock < 1 cajón (`faltante_cajones_umbral`). Esas piezas figuran en
+  faltante aun con el sector lleno. No se tocó: pendiente de decisión.
+- **Cómo se arma el consumo de un artículo que tiene "familia"** (`articulo_familia`, 19 pares) `[dato, v_consumo_demanda]`:
+  cuando un artículo se vende con dos códigos (ej. **580 Batidor Mini** y **580E**), la venta del código secundario
+  se SUMA a la del principal y la receta del principal consume por las dos: 580 vende 114/mes + 580E 588/mes → la
+  receta del 580 consume por **702/mes**. El secundario no cuenta por separado (para no contarlo dos veces). Es la
+  única diferencia entre "venta del artículo × receta" y el consumo que usa el máximo.
+- Migración: `db/migracion_maximo_consumo_sectores.sql`.

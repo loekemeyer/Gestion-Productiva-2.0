@@ -5899,39 +5899,9 @@ CREATE OR REPLACE FUNCTION "GP2".recalcular_maximos_cajones()
  SECURITY DEFINER
  SET search_path TO 'GP2'
 AS $function$
-declare
-  v_caj numeric;
-  v_set int := 0;
-  v_clr int := 0;
+-- 2026-09-29: la regla de 5 cajones (2026-08-30) se retiro. Crudo/Procesado = consumo x meses_stock.
 begin
-  select valor into v_caj from parametro where clave = 'max_cajones_x_ubicacion';
-  if v_caj is null or v_caj <= 0 then v_caj := 5; end if;
-
-  with objetivo as (
-    select i.id as inv_id,
-           case when c.uni_x_cajon > 0 then round(v_caj * c.uni_x_cajon) end as max_nuevo
-    from inventario i
-    join ubicacion u on u.id = i.ubicacion_id and u.tipo = 'sector'
-    join componente c on c.id = i.componente_id and c.sector_id = u.ref_id
-    where c.sector_id in (1, 2)
-      and coalesce(i.maximo_origen, '') not in ('fisico', 'faat_reserva_lote', 'consumo_meses')
-  ), upd as (
-    update inventario i
-    set maximo = o.max_nuevo, maximo_origen = 'cinco_cajones'
-    from objetivo o
-    where i.id = o.inv_id and o.max_nuevo > 0
-      and (i.maximo is distinct from o.max_nuevo or i.maximo_origen is distinct from 'cinco_cajones')
-    returning 1
-  ), clr as (
-    update inventario i
-    set maximo = null, maximo_origen = null
-    from objetivo o
-    where i.id = o.inv_id and o.max_nuevo is null
-      and (i.maximo is not null or i.maximo_origen is not null)
-    returning 1
-  )
-  select (select count(*) from upd), (select count(*) from clr) into v_set, v_clr;
-  return jsonb_build_object('ok', true, 'max_cajones', v_caj, 'actualizados', v_set, 'sin_uni_x_cajon', v_clr);
+  return "GP2".recalcular_maximos_consumo_meses();
 end $function$
 ;
 
@@ -5942,19 +5912,29 @@ CREATE OR REPLACE FUNCTION "GP2".recalcular_maximos_consumo_meses()
  SECURITY DEFINER
  SET search_path TO 'GP2'
 AS $function$
--- maximo_origen 'consumo_meses' = consumo mensual (Est Madre) x meses_stock de la ubicacion.
--- Opt-in por fila de inventario; recalcular_maximos_cajones no lo pisa. Usuario 2026-09-29
--- (G5/G6/G7/G8): "Consumo x maximo de meses por sector".
-declare v_set int := 0;
+-- maximo_origen 'consumo_meses' = consumo mensual (Est Madre explotada) x meses_stock de la ubicacion.
+-- 2026-09-29 (G5-G8): opt-in por fila. 2026-09-29 (mas tarde): TODO Sector Crudo y Sector Procesado entra
+-- solo, salvo 'fisico' / 'faat_reserva_lote' (usuario: "usa la regla de consumo, no de 5 cajones").
+-- Sin consumo -> maximo NULL (no 0): el componente no se repone.
+declare v_set int := 0; v_adop int := 0;
 begin
+  with adop as (
+    update inventario i set maximo_origen = 'consumo_meses'
+      from ubicacion u, componente c
+     where u.id = i.ubicacion_id and u.tipo = 'sector' and c.id = i.componente_id
+       and c.sector_id = u.ref_id and c.sector_id in (1, 2)
+       and coalesce(i.maximo_origen, '') not in ('fisico', 'faat_reserva_lote', 'consumo_meses')
+    returning 1)
+  select count(*) into v_adop from adop;
+
   with upd as (
-    update inventario i set maximo = greatest(coalesce(v.max_calc,0),0)
+    update inventario i set maximo = nullif(greatest(coalesce(v.max_calc,0),0), 0)
     from v_nivel_stock v
     where v.inv_id = i.id and i.maximo_origen = 'consumo_meses'
-      and i.maximo is distinct from greatest(coalesce(v.max_calc,0),0)
+      and i.maximo is distinct from nullif(greatest(coalesce(v.max_calc,0),0), 0)
     returning 1)
   select count(*) into v_set from upd;
-  return jsonb_build_object('ok', true, 'actualizados', v_set);
+  return jsonb_build_object('ok', true, 'adoptados', v_adop, 'actualizados', v_set);
 end $function$
 ;
 
