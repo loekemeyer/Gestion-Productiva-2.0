@@ -132,6 +132,26 @@ begin
 end $function$
 ;
 
+-- ---------- _exigir_operario ----------
+CREATE OR REPLACE FUNCTION "GP2"._exigir_operario(p_legajo text)
+ RETURNS void
+ LANGUAGE plpgsql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'GP2', 'pg_temp'
+AS $function$
+declare
+  v_claims jsonb := nullif(current_setting('request.jwt.claims', true), '')::jsonb;
+begin
+  if "GP2"._autorizado() then return; end if;   -- SQL, service_role o mail habilitado
+  if v_claims->>'role' = 'authenticated'
+     and v_claims->'app_metadata'->>'rol' = 'operario'
+     and v_claims->'app_metadata'->>'legajo' = btrim(coalesce(p_legajo, '')) then
+    return;
+  end if;
+  raise exception 'No autorizado: entrá con tu legajo desde la red de la empresa' using errcode = '42501';
+end $function$
+;
+
 -- ---------- _oc_num ----------
 CREATE OR REPLACE FUNCTION "GP2"._oc_num(p numeric)
  RETURNS text
@@ -4993,6 +5013,26 @@ where o.estado in ('borrador','enviada')
 $function$
 ;
 
+-- ---------- operario_por_legajo ----------
+CREATE OR REPLACE FUNCTION "GP2".operario_por_legajo(p_legajo text)
+ RETURNS TABLE(employee_id bigint, legajo text, nombre text)
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO ''
+AS $function$
+  -- Operario = empleado activo con ficha de liquidación activa de tipo 'planta' (RRHH, Planify).
+  -- Lee SOLO legajo, nombre, activo y tipo_empleado: nada de sueldos, CBU, CUIL ni fechas.
+  -- La letra es parte del legajo (c = CHEF SRL); se compara sin distinguir mayúsculas.
+  select e.id::bigint, e.legajo::text, e.nombre::text
+    from planify.employees e
+   where e.activo
+     and lower(e.legajo::text) = lower(trim(p_legajo))
+     and exists (select 1 from planify.empleados_liquidacion l
+                  where l.employee_id = e.id and l.activo and l.tipo_empleado = 'planta')
+   limit 1;
+$function$
+;
+
 -- ---------- orden_produccion_bundle ----------
 CREATE OR REPLACE FUNCTION "GP2".orden_produccion_bundle()
  RETURNS jsonb
@@ -6220,6 +6260,34 @@ begin
   from jsonb_array_elements(v_movs) m;
 
   return jsonb_build_object('ok',true,'articulos',v_n,'movimientos',jsonb_array_length(v_movs));
+end $function$
+;
+
+-- ---------- recibir_mensaje_cervantes ----------
+CREATE OR REPLACE FUNCTION "GP2".recibir_mensaje_cervantes(p jsonb)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'GP2', 'pg_temp'
+AS $function$
+declare v_id uuid; v_leg text := btrim(coalesce(p->>'legajo',''));
+begin
+  if v_leg = '' then raise exception 'Falta el legajo'; end if;
+  perform "GP2"._exigir_operario(v_leg);
+  if coalesce(p->>'client_id','') = '' or coalesce(p->>'opcion','') = '' then
+    raise exception 'Faltan client_id u opcion';
+  end if;
+  insert into registros_produccion_cervantes (client_id, legajo, opcion, descripcion, texto, matriz, ts_cliente, ts_inicio, app_version)
+  values (p->>'client_id', v_leg, p->>'opcion', nullif(p->>'descripcion',''), nullif(p->>'texto',''),
+          nullif(btrim(coalesce(p->>'matriz','')),''), coalesce(nullif(p->>'ts_cliente','')::timestamptz, now()),
+          nullif(p->>'ts_inicio','')::timestamptz, nullif(p->>'app_version',''))
+  on conflict (client_id) do nothing
+  returning id into v_id;
+  if v_id is null then   -- reintento de la cola offline: ya estaba
+    select id into v_id from registros_produccion_cervantes where client_id = p->>'client_id';
+    return jsonb_build_object('ok', true, 'id', v_id, 'dup', true);
+  end if;
+  return jsonb_build_object('ok', true, 'id', v_id);
 end $function$
 ;
 

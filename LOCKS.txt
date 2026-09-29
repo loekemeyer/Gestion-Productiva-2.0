@@ -4,6 +4,7 @@
 (vacío)
 
 [HISTORIAL]
+2026-09-29 | claude-remote | db/: registros_produccion_cervantes, _exigir_operario, recibir_mensaje_cervantes, operario_por_legajo (lee solo legajo/nombre/planta de Planify); verificar AI acepta _exigir_operario; suite 59 OK
 2026-09-29 | claude-remote | CONOCIMIENTO_GP2.md §4gq: maestro de empleados = planify.employees; letra del legajo = empresa
 2026-09-28 (5) - CARTON: tapones y Q4B/K1A como familias aparte (Thomas: "Si"). DB-only: carton_formato "Huevo LK Tapon" (18.000, F4A1/F4B1/F4C) y "Huevo LK 25" (25.000, Q4B/K1A). REGLAS_OC_INSUMOS, CONOCIMIENTO 4gp. thomas (claude-remote).
 2026-09-28 (4) - CARTON: TIRADA POR MARCA, MANDA LA PLANILLA (Thomas). DB-only: carton_formato nuevo "Huevo LK" (12.000), "8" 30.000->12.000 (corbata LK), Manga 12.000; 33 componentes cambian de formato cruzando POR ARTICULO (el codigo de estante se repite en la planilla). Sin aplicar: tapones 18.000, Q4B/K1A 25.000, Bandita/Rallador cruzados. oc_bundle verificado (familias por formato+marca). REGLAS_OC_INSUMOS tabla, CONOCIMIENTO 4gp. thomas (claude-remote).

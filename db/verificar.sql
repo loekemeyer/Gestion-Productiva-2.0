@@ -261,13 +261,15 @@ union all
 --     usuario habilitado. Seguridad punto 1 fase B (2026-09-28, SEGURIDAD_GP2_2026-09-28.md):
 --     una funcion nueva nace con EXECUTE para PUBLIC/anon por defecto; si escribe, tiene que
 --     llamar a "GP2"._exigir_autorizado() al empezar y no tener EXECUTE para anon.
+--     (2026-09-29) O a "GP2"._exigir_operario(legajo): sesion de operario (login por legajo desde la
+--     red de la empresa, Edge login-operario) para el registro de produccion; adentro llama a _autorizado().
 select 'AI_rpc_que_escribe_abierta_a_anon_o_sin_control', count(*) from pg_proc p
  where p.pronamespace = '"GP2"'::regnamespace and p.prokind = 'f' and p.prosecdef
    and p.proname not like '\_%'
    and has_function_privilege('authenticated', p.oid, 'EXECUTE')
    and pg_get_functiondef(p.oid) ~* '\m(insert|update|delete)\M'
    and (has_function_privilege('anon', p.oid, 'EXECUTE')
-        or pg_get_functiondef(p.oid) !~ '_exigir_autorizado\(\)')
+        or pg_get_functiondef(p.oid) !~ '_exigir_(autorizado\(\)|operario\()')
 ) chequeos
 order by regla;
 

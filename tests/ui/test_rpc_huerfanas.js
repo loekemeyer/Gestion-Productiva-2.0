@@ -29,6 +29,9 @@ const PERMITIDAS = {
   recibir_oc_virgilio:       'la llama Gestión Virgilio (cliente externo)',
   traslado_virgilio:         'la llama Gestión Virgilio (cliente externo)',
   enviar_material_virgilio:  'la llama Gestión Virgilio (cliente externo)',
+  // 2026-09-29: la app nueva de registro de produccion vive en otro repo (GP2-Registro-Produccion)
+  // y manda con sesion de operario (Edge login-operario). Sin EXECUTE a anon.
+  recibir_mensaje_cervantes: 'la llama GP2-Registro-Produccion (otro repo), con sesion de operario',
   // Mantenimiento: se corren a mano desde una sesión, no desde una pantalla.
   planilla_cargar:           'mantenimiento: carga el snapshot de la planilla de costos',
   planilla_snapshot_nuevo:   'mantenimiento: abre el snapshot de la planilla de costos',

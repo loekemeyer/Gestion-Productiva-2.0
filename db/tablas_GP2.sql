@@ -859,6 +859,25 @@ comment on column "GP2".recepcion_insumo.controlado is 'true = ya se hizo el con
 comment on column "GP2".recepcion_insumo.cantidad_declarada is 'cantidad segun remito del proveedor; se guarda al hacer control para poder comparar declarado vs real';
 
 -- ---------- relevamiento ----------
+create table "GP2".registros_produccion_cervantes (
+  id uuid not null default gen_random_uuid(),
+  client_id text not null,
+  legajo text not null,
+  opcion text not null,
+  descripcion text,
+  texto text,
+  matriz text,
+  ts_cliente timestamp with time zone not null,
+  ts_inicio timestamp with time zone,
+  app_version text,
+  created_at timestamp with time zone not null default now(),
+  procesado_at timestamp with time zone,
+  error text,
+  constraint registros_produccion_cervantes_client_id_key UNIQUE (client_id),
+  constraint registros_produccion_cervantes_pkey PRIMARY KEY (id)
+);
+comment on table "GP2".registros_produccion_cervantes is 'Mensajes crudos de la app de registro de produccion de Cervantes (repo GP2-Registro-Produccion). Solo se escribe por GP2.recibir_mensaje_cervantes, con sesion de operario (2026-09-29). RLS sin politicas.';
+
 create table "GP2".relevamiento (
   id bigint not null default nextval('"GP2".relevamiento_id_seq'::regclass),
   sector_id bigint not null,
@@ -1393,3 +1412,4 @@ create policy tipo_movimiento_sel on "GP2".tipo_movimiento for select to public 
 create policy p_gp2_select on "GP2".ubicacion for select to anon, authenticated using (true);
 create policy p_gp2_select on "GP2".uni_x_articulo_x_caja for select to anon, authenticated using (true);
 create policy p_gp2_select on "GP2".virgilio_espejo_pend for select to anon, authenticated using (true);
+alter table "GP2".registros_produccion_cervantes enable row level security;  -- sin politicas: solo por RPC
