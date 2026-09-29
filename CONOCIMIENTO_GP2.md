@@ -13553,7 +13553,7 @@ Contexto: app unificada `GP2-Registro-Produccion`, se arranca por Cervantes. Tab
   común"* → quien hace CM NO es quien produce con esa matriz: CM asigna matriz↔balancín y **no** deja la matriz activa
   para el que la cambió.
 - [usuario] **RM**: igual que hoy (cierra el cajón como completo y pasa a CM) + aviso WhatsApp "Rompió Matriz".
-- [usuario] **Deshacer / editar**: va en el **admin** (maestro), no en la app del operario.
+- [usuario] **Deshacer / editar**: va en el **admin**, no en la app del operario. [usuario] *"el admin es gestión productiva 2"*: el panel admin del registro de producción (habilitar "pendiente de pesar", cargar pesos, editar/deshacer) es una pantalla de **este repo** (GP2), no de Registro-Produccion-2.0.
 - [usuario] **Terminar día con TM abierto**: se cierra solo (hoy ya lo hace: `app.js` `confirmarTerminarDia`, paso 2).
 - [usuario] **Seguir cajón al día siguiente**: se mantiene; el código de Logística (hoy `151515` escrito en `app.js`,
   repo público) pasa a ser un **secreto en la base**, validado del lado del servidor.
