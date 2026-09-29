@@ -348,6 +348,14 @@ window.supabase = { createClient: function(){ return {
   await page.click('#tabGen');
   if (await page.evaluate(() => provSel !== null)) await page.click('#provs .chip:has-text("Resortes Charcas")');
   ok(await page.evaluate(() => provSel === null), 'proveedor Charcas soltado');
+  // v1.45.0: sin filtro de proveedor, los sectores sin familia van ordenados por proveedor y codigo.
+  await page.click('#rubroTodos');
+  await page.click('#rubros .chip:has-text("Fleje")');
+  const ordF = await page.$$eval('#tbody tr[data-id] td:nth-child(2)', xs => xs.map(x => x.textContent.trim()));
+  ok(ordF.length >= 2 && ordF.slice().sort((a, b) => a.localeCompare(b, 'es')).join('|') === ordF.join('|') && !(await page.$('#tbody tr.fam-hdr')),
+     'Fleje ordenado por proveedor y sin titulos: ' + ordF.join(' | '));
+  await page.click('#rubroTodos');
+  await page.click('#rubros .chip:has-text("Plastico")');
 
   // ── LA FORMULA DE HOY, EN LOS DOS EXTREMOS + EL GATILLO (idea 7242) ───────────────────
   // Tres filas reales de oc_bundle. Si alguien volviera a la formula vieja (consumo x meses),

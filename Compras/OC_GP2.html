@@ -1,6 +1,10 @@
 <!doctype html>
 <html lang="es">
 <head>
+<!-- v1.45.0 (2026-09-29) — FLEJE, REMACHE, BOMBILLA, GARAGE, CAJA Y BOLSAS PLASTICAS: LA TABLA VA ORDENADA POR
+     PROVEEDOR (y codigo), SIN TITULOS [Thomas: "en la parte de todos los provs (cuando no filtro por prov)
+     igualmente este ordenado por prov sin encabezados solo ordenado"]. ordenadoPorProveedor(); carton y
+     plastico siguen con sus titulos. -->
 <!-- v1.44.2 (2026-09-29) — SIN EQUIVALENCIAS DEBAJO DE PEDIR [Thomas: "Estas aclaraciones no las quiero, solo el
      min pedido"]: se van los "= 227 bolsas de 150" / "= 11.000 uni" / "= N paq" bajo el campo. Quedan el
      "min. pedido" y el "ya pediste N (en camino)". -->
@@ -1206,13 +1210,23 @@ function conTitulosDeFamiliaPlastico(fs){
                   (m>0?(' · mín. familia '+fmt(m)+' uni · pedido '+fmt(tot)+' uni'):''), corto:corto});
     xs.forEach(function(i){ out.push({it:i}); });
   });
-  return out.concat(resto.map(function(i){ return {it:i}; }));
+  return out.concat(ordenadoPorProveedor(resto).map(function(i){ return {it:i}; }));
+}
+
+// v1.45.0: los DEMAS sectores (fleje, remache, bombilla, garage, caja, bolsas plasticas) van ORDENADOS
+// por proveedor y despues por codigo, sin titulos [Thomas 2026-09-29: "quiero que en la parte de todos
+// los provs (cuando no filtro por prov) igualmente este ordenado por prov sin encabezados, solo ordenado"].
+function ordenadoPorProveedor(fs){
+  return fs.slice().sort(function(a,b){
+    var pa=String(provDeFila(a)||''), pb=String(provDeFila(b)||'');
+    return pa.localeCompare(pb,'es') || String(a.codigo||'').localeCompare(String(b.codigo||''),'es');
+  });
 }
 
 function conTitulosDeFamilia(fs){
   var carton=fs.filter(function(i){ return i.sector_id===10; });
-  if(!carton.length) return conTitulosDeFamiliaPlastico(fs) || fs.map(function(i){ return {it:i}; });
-  var otros=fs.filter(function(i){ return i.sector_id!==10; });
+  if(!carton.length) return conTitulosDeFamiliaPlastico(fs) || ordenadoPorProveedor(fs).map(function(i){ return {it:i}; });
+  var otros=ordenadoPorProveedor(fs.filter(function(i){ return i.sector_id!==10; }));
   var grupos={}, orden=[];
   // v1.42.1: SOLO por formato [Thomas 2026-09-29: "Solo por formato, ni por marca ni por familia
   // de articulo"]. famKey (formato + marca + categoria) sigue siendo la familia de la REGLA de
