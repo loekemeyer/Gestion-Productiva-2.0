@@ -13547,6 +13547,11 @@ Virgilio"` `[dato: el .bas]`, no toca GP2.
   `pedido_minimo_uni` sigue en la unidad canónica de la pieza (uni o kg): Clavo 505 PCP3 = 1.000 kg =
   153.139 uni (kg_x_uni 0,00653); Plancha de Níquel PCP2 = 10 kg (canónica kg). La O.C. muestra
   "mín. pedido 1.000 kg (= 153.139 uni)" / "48 paq 250 (= 12.000 uni)".
+  `[Thomas 2026-09-29: "Las tres cosas de Tellería y la de Rodar mandalo a Rafael Pettofrezza"]` La planilla
+  pone PB2, PEP1 y PEP2 bajo "Tellería" y PA4 bajo "Rodar", que no existen como proveedor de insumo en GP2:
+  las cuatro quedan en **Pettofrezza Rafael** (PEP2 cambió de Pat Bet Plast; las otras tres ya estaban).
+  Con eso la familia "Mango Tellería" (PEP1/PEP2) es de un solo proveedor. **Sin resolver**: PA8A/PA8B
+  (Bujes) y PEST1 están en Kollplast en GP2 y en Pat Bet Plast en la planilla.
   Las familias salen de la columna **"Descripcion Matriz"** de la planilla `[Thomas 2026-09-29: "Sacaste
   las familias de la columna descripcion matriz no?"]`, con nombres normalizados (Regatones → Pirolos).
 - **v1.39.0** [usuario] Thomas: *"entre columna y columna veo espacios"* + *"si no cumple con el mínimo que aparezca igual pero con color rojo y negrita"*. Causa de los huecos: `table.t{width:100%}` de `gp2-modulo.css` le ganaba en especificidad a `.t-insumos{width:auto}` (y en los tests no se veía porque el CSS está stubeado). Ahora `table.t.t-insumos{width:auto}` y el `.table-wrap` abraza la tabla. "mín. proveedor" en rojo y negrita cuando lo pedido queda por debajo; vacío no se marca.
