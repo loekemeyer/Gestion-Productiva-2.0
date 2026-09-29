@@ -5915,9 +5915,14 @@ AS $function$
 -- maximo_origen 'consumo_meses' = consumo mensual (Est Madre explotada) x meses_stock de la ubicacion.
 -- 2026-09-29 (G5-G8): opt-in por fila. 2026-09-29 (mas tarde): TODO Sector Crudo y Sector Procesado entra
 -- solo, salvo 'fisico' / 'faat_reserva_lote' (usuario: "usa la regla de consumo, no de 5 cajones").
+-- 2026-09-29: en Crudo/Procesado el maximo NO puede exceder max_cajones_x_ubicacion (5) x uni_x_cajon
+-- (usuario: "el maximo de sector crudo y sector procesado no puede exceder los 5 cajones").
 -- Sin consumo -> maximo NULL (no 0): el componente no se repone.
-declare v_set int := 0; v_adop int := 0;
+declare v_set int := 0; v_adop int := 0; v_caj numeric;
 begin
+  select valor into v_caj from parametro where clave = 'max_cajones_x_ubicacion';
+  if v_caj is null or v_caj <= 0 then v_caj := 5; end if;
+
   with adop as (
     update inventario i set maximo_origen = 'consumo_meses'
       from ubicacion u, componente c
@@ -5927,14 +5932,20 @@ begin
     returning 1)
   select count(*) into v_adop from adop;
 
-  with upd as (
-    update inventario i set maximo = nullif(greatest(coalesce(v.max_calc,0),0), 0)
-    from v_nivel_stock v
-    where v.inv_id = i.id and i.maximo_origen = 'consumo_meses'
-      and i.maximo is distinct from nullif(greatest(coalesce(v.max_calc,0),0), 0)
+  with obj as (
+    select v.inv_id,
+           nullif(case when v.sector_id in (1, 2) and c.uni_x_cajon > 0
+                       then least(greatest(coalesce(v.max_calc,0),0), round(v_caj * c.uni_x_cajon))
+                       else greatest(coalesce(v.max_calc,0),0) end, 0) as max_nuevo
+      from v_nivel_stock v join componente c on c.id = v.componente_id
+  ), upd as (
+    update inventario i set maximo = o.max_nuevo
+    from obj o
+    where o.inv_id = i.id and i.maximo_origen = 'consumo_meses'
+      and i.maximo is distinct from o.max_nuevo
     returning 1)
   select count(*) into v_set from upd;
-  return jsonb_build_object('ok', true, 'adoptados', v_adop, 'actualizados', v_set);
+  return jsonb_build_object('ok', true, 'adoptados', v_adop, 'actualizados', v_set, 'tope_cajones', v_caj);
 end $function$
 ;
 

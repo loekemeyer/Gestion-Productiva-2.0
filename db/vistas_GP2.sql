@@ -660,7 +660,7 @@ create or replace view "GP2".v_faltante_estado as
             WHEN COALESCE(cp.consumo_uni_mes, 0::numeric) > 0::numeric AND i.maximo IS NOT NULL THEN round(i.maximo / (cp.consumo_uni_mes / 30.0), 1)
             ELSE NULL::numeric
         END AS cobertura_llena_dias,
-    c.uni_x_cajon > 0::numeric AND i.cantidad < (u2.caj * c.uni_x_cajon) AS faltante_auto,
+    ((i.maximo IS NOT NULL) AND (i.cantidad < i.maximo)) AS faltante_auto,
     u2.caj AS umbral_cajones,
     COALESCE(cp.consumo_uni_mes, 0::numeric) > 0::numeric AND i.maximo IS NOT NULL AND (i.maximo / (cp.consumo_uni_mes / 30.0)) < 30::numeric AS ubicacion_corta
    FROM "GP2".componente c
@@ -669,6 +669,7 @@ create or replace view "GP2".v_faltante_estado as
      LEFT JOIN "GP2".v_consumo_componente cp ON cp.componente_id = c.id
      CROSS JOIN umbral u2
   WHERE c.sector_id = ANY (ARRAY[1::bigint, 2::bigint]);
+comment on view "GP2".v_faltante_estado is 'Faltantes de Crudo/Procesado. faltante_auto = stock < maximo (usuario 2026-09-29; antes < 1 cajon). ubicacion_corta = el maximo no cubre 30 dias de consumo (con el tope de 5 cajones pasa en las piezas de mucho consumo).';
 
 -- ---------- v_hace_articulo ----------
 create or replace view "GP2".v_hace_articulo as

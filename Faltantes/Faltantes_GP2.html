@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="es">
 <head>
-<!-- v1.0.0 — Faltantes automaticos por stock online (5 cajones por ubicacion) + marcas manuales persistidas -->
+<!-- v1.1.0 — Faltantes automaticos por stock online (faltante = stock menor al maximo; maximo = consumo x meses, tope 5 cajones) + marcas manuales persistidas -->
 <meta charset="utf-8"/>
 <script src="../auth-guard.js?v=20260929a"></script>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
@@ -182,8 +182,8 @@ function render(){
     var stockHtml = fmt(x.stock, 0) + " uni" +
       (x.caj_stock != null ? '<br><small class="sub">' + fmt(x.caj_stock, 2) + " caj</small>" : "");
     if (esFalt){
-      stockHtml += '<br><span class="pill-falt">menos de ' + fmt(D.umbral_cajones, 0) +
-        (Number(D.umbral_cajones) === 1 ? " cajón" : " cajones") + ": " + fmt(x.stock, 0) + " uni</span>";
+      stockHtml += '<br><span class="pill-falt">bajo el máximo: faltan ' +
+        fmt(Math.max(0, Number(x.maximo) - Number(x.stock)), 0) + " uni</span>";
     }
 
     var alcanzaHtml = (x.cob_dias == null)
@@ -191,7 +191,7 @@ function render(){
       : '<span class="dias' + (Number(x.cob_dias) < 30 ? " rojo" : " verde") + '">' + fmt(x.cob_dias, 1) + ' días</span>';
 
     var maxHtml = (x.maximo == null)
-      ? '—<br><small class="sub">sin uni×cajón</small>'
+      ? '—<br><small class="sub">sin consumo</small>'
       : fmt(x.maximo, 0) + ' uni';
 
     var llenaHtml = (x.cob_llena_dias == null) ? "—"
@@ -223,9 +223,9 @@ function render(){
   var pend = (D.pendientes_uxc||[]).filter(function(p){ return p.sector_id === tab; });
   $("avisoUxc").classList.toggle("hidden", !pend.length);
   if (pend.length){
-    $("avisoUxc").innerHTML = "<b>Sin uni×cajón (máximo pendiente):</b> " +
+    $("avisoUxc").innerHTML = "<b>Sin uni×cajón (el máximo no se puede topear a 5 cajones):</b> " +
       pend.map(function(p){ return "<code>" + esc(p.cod) + "</code> " + esc(p["desc"] || ""); }).join(" · ") +
-      " — cargar el dato para que entren al cálculo de faltantes.";
+      " — cargar el dato para que el tope aplique.";
   }
 }
 

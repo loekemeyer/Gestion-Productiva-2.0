@@ -114,7 +114,7 @@ falta esperar a los logs). Migración `seguridad_fase_b_rpcs_escritura_solo_usua
   sesión → 401.
 - Invariante nuevo `AI_` en `db/verificar.sql` (hoy 0).
 
-**Secuela (2026-09-29, v1.206.1):** si falla el refresh del login (`refresh_token_not_found`),
+**Secuela (2026-09-29, v1.207.1):** si falla el refresh del login (`refresh_token_not_found`),
 supabase-js descarta la sesion y la pantalla seguia **como anon**: leia bien y al grabar daba
 `permission denied for function tablet_registrar` (Tablet, recepcion Charcas). Ahora `GP2_SB()`
 escucha `SIGNED_OUT` y vuelve al login (`GP2_IR_AL_LOGIN` de `auth-guard.js`), y el guard solo
