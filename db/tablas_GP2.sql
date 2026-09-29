@@ -402,21 +402,21 @@ create table "GP2".matriz (
   tiempo_unidad text not null default 'uni'::text,
   maquina text,
   activa boolean not null default true,
-  carga_en text not null default 'golpes'::text,
+  carga_en text not null default 'unidades'::text,
   constraint matriz_pkey PRIMARY KEY (id),
   constraint matriz_n_matriz_key UNIQUE (n_matriz),
   constraint matriz_maquina_chk CHECK (((maquina IS NULL) OR (maquina = ANY (ARRAY['alimentador'::text, 'balancin'::text, 'piedra'::text])))),
   constraint matriz_tiempo_unidad_chk CHECK ((tiempo_unidad = ANY (ARRAY['uni'::text, 'kg'::text]))),
   constraint matriz_tipo_chk CHECK (((tipo IS NULL) OR (tipo = ANY (ARRAY['A'::text, 'B'::text, 'D'::text, 'P'::text])))),
   constraint matriz_uni_x_golpe_positivo CHECK ((uni_x_golpe > (0)::numeric)),
-  constraint matriz_carga_en_chk CHECK ((carga_en = ANY (ARRAY['golpes'::text, 'unidades'::text])))
+  constraint matriz_carga_en_chk CHECK ((carga_en = ANY (ARRAY['golpes'::text, 'unidades'::text, 'kg'::text])))
 );
 comment on table "GP2".matriz is 'Matrices de la fabrica (n°, descripcion, tiempo historico, uni x golpe, piezas por kg de fleje).';
 comment on column "GP2".matriz.uni_x_golpe is 'Unidades que salen por cada golpe del contador de la matriz (alimentador o balancin). El operario anota GOLPES; las unidades producidas = golpes * uni_x_golpe. Fuente inicial: Conteo_Gral_FLEJES_y_Alambre.xls, hoja Consumo KG x Art, columna "Uni x Golpe" (2026-08-31).';
 comment on column "GP2".matriz.tiempo_unidad is 'En que se mide tiempo_historico: "uni" = segundos por pieza (el caso normal, verificado contra db_n8n_espejo) o "kg" = segundos por kilo procesado. La 501 (afilado de cuchillas) es por kg [usuario 2026-08-31].';
 comment on column "GP2".matriz.maquina is 'Donde se produce: alimentador (un golpe por segundo) o balancin (6 a 10 s minimo). Mapeo del usuario 2026-08-31: A=alimentador, B y D=balancin, P=piedra (501, se mide por kg). Sirve para leer bien un tiempo: no se compara un tiempo de alimentador con uno de balancin.';
 comment on column "GP2".matriz.activa is 'false = la matriz existe pero hoy no se usa. Las apps no la ofrecen para elegir; se sigue leyendo para la historia.';
-comment on column "GP2".matriz.carga_en is 'Cómo carga el operario el cajón (dueño 2026-09-29): golpes (contador del balancín a la vista; la base multiplica por uni_x_golpe) o unidades (sin contador a la vista: tipo D = dispositivo, P = piedra, y excepciones que marque el dueño).';
+comment on column "GP2".matriz.carga_en is 'Cómo carga el operario el cajón (dueño 2026-09-29): golpes = sale más de 1 pieza por golpe (uni_x_golpe > 1; la base multiplica); unidades = sale 1 por golpe; kg = piedra (501), acepta coma o punto como decimal y se guarda numérico.';
 
 
 -- ---------- matriz_racha ----------

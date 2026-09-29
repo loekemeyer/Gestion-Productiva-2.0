@@ -13563,8 +13563,10 @@ Contexto: app unificada `GP2-Registro-Produccion`, se arranca por Cervantes. Tab
   no el cajón marcado "sigo mañana" (no se pisa con lo anterior).
 - [usuario] **WhatsApp**: los que ya están en las funciones (matriz sin tiempo, paro, rotura).
 - [usuario] **Botones**: los de Registro Producción (`capsDe`/`botonVisible` + flags), incluidos RD, REM, MM, TRM, TL, PCM.
-- [usuario] **Cajón: golpes × factor** (el balancín tiene el contador a la vista), **salvo algunas matrices y las de
-  tipo D (dispositivo)**, que van en unidades. Guardado por matriz en `GP2.matriz.carga_en` ('golpes'|'unidades');
-  [dato] hoy: D (11) y P/piedra (1) = unidades, el resto golpes. **Falta la lista de "algunas matrices"** del dueño.
-  Ojo: 292 de 407 matrices tienen `tipo` vacío.
-
+- [usuario] **Cajón**: *"toma como matriz de uni las que tienen salida de 1 unidad x golpe"* → `GP2.matriz.carga_en`:
+  `golpes` solo si `uni_x_golpe > 1` (18 matrices: 7, 14, 15, 16, 20, 21, 22, 29, 40, 60, 64, 66, 71, 72, 116, 344,
+  348, S/N), `unidades` el resto (388), `kg` la piedra 501.
+- [usuario] **Piedra (501) es por KG**: el operario tipea con coma o con punto y las dos valen como decimal. [dato] RP
+  hoy guarda el crudo con coma ("5,72") y el espejo como número (`db_n8n_espejo."Uni"` es `real`: 5.72). En la base
+  nueva va **numérico** (sin coma ni punto: es un número). Ojo con la regla GP2N (punto = miles): en el campo de kg
+  el punto es DECIMAL (valores < 1000). [dato] Hay cajones de 501 con "0" / "00" kg.
