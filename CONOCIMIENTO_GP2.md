@@ -13788,7 +13788,8 @@ Contexto: app unificada `GP2-Registro-Produccion`, se arranca por Cervantes. Tab
   en kg): Basconia 500 (23 flejes), Aperam 300 (11) y 200 (fleje 95), Hermac 200 (5), Szapiro 150 (fleje
   46), Brawin 25 (5 varillas). Sin cargar: Altrak fleje 90 (la planilla dice 0), JL Metales fleje 55
   (dice 0,1: no se entiende) e IVBCM fleje 96 (no está en la planilla).
-- `[dato]` **Proveedor distinto**: fleje **59** (IB7): planilla Hermac, GP2 Aperam. Y un cruce de
+- `[Thomas 2026-09-29: "Fleje 59: HERMAC"]` Fleje **59** (IB7) pasa de Aperam a **Hermac** (mínimo 200 kg,
+  como el resto de Hermac). Sin precio de Hermac cargado para ese fleje. Y un cruce de
   numeración: la planilla llama **95** al "Vást. C Pizza 60×2" de Aperam, y en GP2 el 95 es la
   "Varilla B Pera Larga Mini" de Brawin (IVBLM). Sin tocar hasta que el dueño diga.
 - `[dato]` **39 flejes de la planilla no existen en GP2** (piezas de otros artículos: Estribo Bombilla 91,
