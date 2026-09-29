@@ -26,6 +26,10 @@ Ordenado por gravedad. Nada de esto se corrigió todavía: son datos que tiene q
 > - **12C → I11** y **28B → J5**: en GP2 esas piezas las hace la matriz **base** (12 y 28) con la pregunta "¿Qué
 >   pieza vas a fabricar?". O sea, GP2 reemplazó la variante con letra por la elección de pieza: si el operario
 >   carga 12C, GP2 no sabe qué hizo.
+>   **Verificado por Elías en la app GP2**: la 28 ofrece A15, J2 y J5, así que la 28B **sí está**, como 28 + pieza J5.
+>   ⚠ Pero los nombres se contradicen: Registro Producción 2.0 dice *28 = Pintar (JF2), 28B = **Cromar** (JF5)*; GP2
+>   dice *J5 = Cuerpo Uña **s/M p/Pintar*** y la matriz 28B se llama "Corte Cuerpo Uña p/Cromar". Hay que definir qué
+>   es J5 (¿cromar o pintar sin marca?) antes de mapear variante → pieza.
 > - **113 → M1**: en GP2 M1 es un insumo comprado, no algo que se fabrica.
 > - **309 → "Fabr"**: fabricación interna sin pieza.
 

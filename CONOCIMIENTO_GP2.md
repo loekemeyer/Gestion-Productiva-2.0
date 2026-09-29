@@ -13610,4 +13610,8 @@ Contexto: app unificada `GP2-Registro-Produccion`, se arranca por Cervantes. Tab
   *"Fábrica sí tiene que estar porque se hacen en fábrica"* + *"tallerista es un 3ro"*: deben figurar en la ruta del
   artículo como **paso de matriz hecho en fábrica**, NO como tallerista. **Tallerista = siempre un tercero.** ⚠ Por eso
   el tallerista "Fábrica" de GP2 (`GP2.tallerista` id 3, 141 pasos) está mal clasificado y hay que revisarlo. Listado: `PROBLEMAS_MATRICES_2026-09-29.md` (+ `.pdf`).
+- [usuario Elías 29/09, verificado en la app] **La 28B está en GP2 como matriz 28 + pieza J5** (la 28 ofrece A15, J2, J5):
+  GP2 reemplazó la variante con letra por la elección de pieza. Para la app nueva hace falta un mapeo
+  variante → (matriz base, pieza). ⚠ Conflicto de nombres a resolver: RP 2.0 dice 28B = Cromar (JF5); GP2 dice
+  J5 = "Cuerpo Uña s/M p/Pintar".
 
