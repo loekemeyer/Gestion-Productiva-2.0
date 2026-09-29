@@ -1,6 +1,9 @@
 <!doctype html>
 <html lang="es">
 <head>
+<!-- v1.44.1 (2026-09-29) — "OTROS" DEL PLASTICO: UN SOLO TITULO, PIEZAS ORDENADAS POR PROVEEDOR [Thomas: "Que
+     los otros esten bajo un solo encabezado pero que esten ordenados por proveedor"]. Reemplaza el titulo por
+     proveedor de la v1.43.2. -->
 <!-- v1.44.0 (2026-09-29) — (1) EL MINIMO EN LA UNIDAD DE LA O.C. [Thomas: "el min es en kg en este caso... siempre
      los min es la unidad de medida que aparece en el remito de recepcion y en la columna de la orden de
      compra"]: "min. pedido 1.000,00 kg (= 153.139 uni)" para el Clavo 505, "48 paq 250 (= 12.000 uni)" para el
@@ -1178,21 +1181,22 @@ function conTitulosDeFamiliaPlastico(fs){
   var grupos={}, orden=[];
   // v1.43.1: lo que no tiene familia va junto en "Otros" [Thomas 2026-09-29: "todos aquellos que
   // no tengan una familia barra formato, que me los metan en la familia o formato otros"].
-  // v1.43.2: "Otros" se abre POR PROVEEDOR [Thomas 2026-09-29: "La seccion de otros solo en
-  // plasticos y agrupamela por proveedor"]: "Otros · Maspoli SRL · 3 piezas". Los cartones no.
+  // v1.44.1: "Otros" es UN solo titulo, con las piezas ORDENADAS por proveedor adentro [Thomas
+  // 2026-09-29: "Que los otros esten bajo un solo encabezado pero que esten ordenados por proveedor"].
+  // (La v1.43.2 abria un titulo por proveedor; duro un rato.) Los cartones no cambian.
   plas.forEach(function(i){
-    var k=i.familia_pedido ? String(i.familia_pedido) : ('Otros · '+String(provDeFila(i)||'sin proveedor'));
+    var k=i.familia_pedido ? String(i.familia_pedido) : 'Otros';
     if(!grupos[k]){ grupos[k]=[]; orden.push(k); }
     grupos[k].push(i);
   });
-  orden.sort(function(a,b){
-    var oa=a.indexOf('Otros')===0, ob=b.indexOf('Otros')===0;
-    if(oa!==ob) return oa?1:-1;
-    return a.localeCompare(b,'es');
+  if(grupos['Otros']) grupos['Otros'].sort(function(a,b){
+    var pa=String(provDeFila(a)||''), pb=String(provDeFila(b)||'');
+    return pa.localeCompare(pb,'es') || String(a.codigo||'').localeCompare(String(b.codigo||''),'es');
   });
+  orden.sort(function(a,b){ if(a==='Otros') return 1; if(b==='Otros') return -1; return a.localeCompare(b,'es'); });
   var out=[];
   orden.forEach(function(k){
-    var xs=grupos[k], m=(k.indexOf('Otros')===0)?0:(Number(xs[0].familia_minimo)||0);
+    var xs=grupos[k], m=(k==='Otros')?0:(Number(xs[0].familia_minimo)||0);
     var tot=xs.reduce(function(a,i){ return a+pedidoUniDe(i); },0);
     var corto=m>0 && tot>0 && tot<m;
     out.push({hdr:k+' · '+xs.length+(xs.length===1?' pieza':' piezas')+

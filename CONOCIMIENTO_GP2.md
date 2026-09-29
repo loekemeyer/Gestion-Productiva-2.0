@@ -13531,7 +13531,7 @@ Virgilio"` `[dato: el .bas]`, no toca GP2.
   **No están en GP2** (8): PA15 Capuchón ф10, PA16 Mangos ф10 LK, PB1 Cilindro Corta Queso (12.000),
   PEP6 Cabo Madera 525, CP7 Mangos Corta Queso, CP5 Afila Caladas Blanco, HP2 Inserto Cuch y Pal, FP3
   (sin descripción, "Manolo"). Sin familia (no son matriz): Maspoli PC12/PEP7/PEP8 (500), Pintos PEP5,
-  consumibles PCP2/PCP3/PCP4A, ruedas PIEA/PIEB → en la O.C. van bajo "Otros · <proveedor>" (v1.43.2;
+  consumibles PCP2/PCP3/PCP4A, ruedas PIEA/PIEB → en la O.C. van bajo un solo título "Otros", ordenadas por proveedor (v1.44.1;
   `[Thomas: "La sección de otros solo en plásticos y agrupámela por proveedor. Cartones está bien así"]`).
   `[Thomas 2026-09-29: "el mín es en kg en este caso, creo que siempre los mín es la unidad de medida que
   aparece en el remito de recepción y en la columna de la orden de compra"]` **El mínimo se lee en la

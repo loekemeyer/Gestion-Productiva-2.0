@@ -4,6 +4,7 @@
 (vacío)
 
 [HISTORIAL]
+2026-09-29 (7) - OC v1.44.1: "Otros" del plastico bajo UN solo titulo, piezas ordenadas por proveedor (Thomas). version.js v1.205.1 ?v=20260929g. thomas (claude-remote).
 2026-09-29 (6) - OC v1.44.0: el minimo se lee en la unidad de la O.C. ("min. pedido 1.000 kg (= 153.139 uni)"; Thomas: "siempre los min es la unidad del remito"); DB: Clavo 505 PCP3 1.000 -> 153.139 uni (la planilla lo daba en KG). Encabezados fijos (thead sticky) en escritorio en la tabla de insumos y la de O.C. emitidas. version.js v1.205.0 ?v=20260929f. thomas (claude-remote).
 2026-09-29 | claude-remote | IC2-M116 / IC2-M114 separados en -I (izq, D3) y -D (der, D2); rutas 210-213
 2026-09-29 | claude-remote | L9-L12 borrados: reemplazados por stock movimiento IC2-M116 / IC2-M114 (rutas 210-213, 523/723); CONOCIMIENTO 4gt corregido
@@ -13,4 +14,3 @@
 2026-09-29 | claude-remote | CONOCIMIENTO_GP2.md | 103 y 510 renombrados a "Abrelata Uña Inox" en GP2.articulo + uni_x_articulo_x_caja
 2026-09-29 | Elias (claude-remote) | GP2.matriz 138 maquina -> alimentador
 2026-09-29 (2) - OC v1.42.1: la tabla de cartones se agrupa SOLO POR FORMATO (Thomas: "Solo por formato, ni por marca ni por familia de articulo"). version.js v1.203.1 ?v=20260929b. Suite 59/59. thomas (claude-remote).
-2026-09-29 (1) - OC v1.42.0: MINIMO POR CARTON + TABLA SEPARADA POR FAMILIA (Thomas: "En cartones los minimos son por carton, aunque esten agrupados por familia. Ademas quiero que en la o.c. me separes por familia"). DB: componente.pedido_minimo_uni en 129 cartones (planilla, cruce por articulo). JS: fuera la linea "tirada min. por familia" (lectura equivocada del 28/09); conTitulosDeFamilia() con renglon .fam-hdr por familia. test_oc ajustado. version.js v1.203.0 ?v=20260929a. CONOCIMIENTO 4gp, REGLAS_OC_INSUMOS. thomas (claude-remote).
