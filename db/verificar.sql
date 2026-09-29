@@ -99,8 +99,12 @@ select 'L_rutas_sin_pasos', count(*) from "GP2".ruta r where not exists (select 
 union all
 -- M) Las RPC de pantalla (todo lo que no es interno) tienen EXECUTE para anon: si falta, la
 --    pantalla muestra "permission denied" (pasó con «Desmarcar», ciclo 2l).
+--    (2026-09-29) Salvo las que desde la seguridad fase B (28/09) exigen usuario a propósito:
+--    EXECUTE para authenticated + _exigir_autorizado() / _exigir_operario(). Esas las vigila la AI.
 select 'M_rpc_de_pantalla_sin_execute_anon', count(*) from pg_proc p
  where p.pronamespace = '"GP2"'::regnamespace and not has_function_privilege('anon', p.oid, 'EXECUTE')
+   and not (has_function_privilege('authenticated', p.oid, 'EXECUTE')
+            and pg_get_functiondef(p.oid) ~ '_exigir_(autorizado\(\)|operario\()')
    and not (p.prorettype = 'trigger'::regtype or p.proname like '\_%' or p.proname like 'fn\_%'
         or p.proname like 'relev\_%' or p.proname like 'recalcular\_%'
         or p.proname in ('to_canonical', 'inv_delta', 'ubic_de', 'ubic_de_componente', 'recepcion_tara',
@@ -114,7 +118,9 @@ select 'M_rpc_de_pantalla_sin_execute_anon', count(*) from pg_proc p
                          -- carton sustituto (2026-09-21): las llaman crear_envio_* y recepcion_virgilio
                          'chequear_sustituto', 'repartir_sustituto',
                          -- el % de reparto se carga por SQL desde 2026-09-21 (Proporciones_GP2 es solo lectura)
-                         'reparto_guardar'))
+                         'reparto_guardar',
+                         -- solo servidor: la llama la Edge login-operario (2026-09-29)
+                         'operario_por_legajo'))
 union all
 -- N) Ninguna funcion GP2 resuelve nombres en public (search_path = GP2 solo), salvo las dos que
 --    lo necesitan a proposito (get_role_for_email delega en public; actualizar_dolar_oficial usa http).
@@ -261,13 +267,15 @@ union all
 --     usuario habilitado. Seguridad punto 1 fase B (2026-09-28, SEGURIDAD_GP2_2026-09-28.md):
 --     una funcion nueva nace con EXECUTE para PUBLIC/anon por defecto; si escribe, tiene que
 --     llamar a "GP2"._exigir_autorizado() al empezar y no tener EXECUTE para anon.
+--     (2026-09-29) O a "GP2"._exigir_operario(legajo): sesion de operario (login por legajo desde la
+--     red de la empresa, Edge login-operario) para el registro de produccion; adentro llama a _autorizado().
 select 'AI_rpc_que_escribe_abierta_a_anon_o_sin_control', count(*) from pg_proc p
  where p.pronamespace = '"GP2"'::regnamespace and p.prokind = 'f' and p.prosecdef
    and p.proname not like '\_%'
    and has_function_privilege('authenticated', p.oid, 'EXECUTE')
    and pg_get_functiondef(p.oid) ~* '\m(insert|update|delete)\M'
    and (has_function_privilege('anon', p.oid, 'EXECUTE')
-        or pg_get_functiondef(p.oid) !~ '_exigir_autorizado\(\)')
+        or pg_get_functiondef(p.oid) !~ '_exigir_(autorizado\(\)|operario\()')
 ) chequeos
 order by regla;
 

@@ -13502,3 +13502,131 @@ Virgilio"` `[dato: el .bas]`, no toca GP2.
 - **v1.39.0** [usuario] Thomas: *"entre columna y columna veo espacios"* + *"si no cumple con el mínimo que aparezca igual pero con color rojo y negrita"*. Causa de los huecos: `table.t{width:100%}` de `gp2-modulo.css` le ganaba en especificidad a `.t-insumos{width:auto}` (y en los tests no se veía porque el CSS está stubeado). Ahora `table.t.t-insumos{width:auto}` y el `.table-wrap` abraza la tabla. "mín. proveedor" en rojo y negrita cuando lo pedido queda por debajo; vacío no se marca.
 - **v1.40.0** [usuario] Thomas: *"quiero que esté todo centrado y sin tanto blanco. Si es necesario poné proveedores sobrantes abajo"*. La tarjeta de OC mide lo que mide la tabla (`.card{width:fit-content}`, piso 720px para cuando no hay tabla), todo centrado, y la botonera de proveedores baja de renglón al lado de su etiqueta en vez de ensanchar la página (`contain:inline-size` en los filtros: no cuentan para el ancho).
 - **v1.40.1** [usuario] Thomas: *"todo esto alineación a la izquierda"*: dentro de la tarjeta, botones Generar/Órdenes, filtros, cartel del proveedor, buscador y Crear OC van a la **izquierda**. La tarjeta sigue centrada en la página y del ancho de la tabla.
+
+## 4gq. El maestro de empleados es `planify.employees` (lo gestiona RRHH); la letra del legajo es la empresa (2026-09-29)
+
+- [usuario] Elías Irace: *"que el de planify sea el que se usa (lo gestiona RRHH); el que usábamos era manual"*. La lista
+  de operarios de la app nueva de registro de producción (repo `GP2-Registro-Produccion`) sale de
+  `planify.employees`, **no** de `public."Empleados"` (cargada a mano, queda desactualizada).
+- [usuario] *"el c es porque pertenece a otra empresa; para diferenciar los legajos se le puso una letra adelante"*.
+  → **El legajo es texto y la letra es parte de la clave.** El número solo NO identifica a nadie.
+- [dato, consulta 29/09] Colisiones reales: `29` = Viviana Gauna y `c29` = Nora Heredia; `122` = Adrián Villalba
+  y `C122` = Martín Castillo (baja). Hay `c` y `C` mezcladas (normalizar a minúscula al comparar).
+  `public."Empleados"` guarda `94` para quien en Planify es `c94` (perdió la letra).
+- [dato] De 35 activos en `Empleados`: 29 están en Planify; los 6 que faltan y los 6 que Planify tiene de baja
+  **no cargaron producción en los últimos 30 días** → RRHH tiene razón; pasar a Planify no deja afuera a nadie activo.
+- [dato] `planify.employees.tipo` dice "administrativo" también para operarios de la otra empresa (ej. c19
+  Eduardo): no sirve para saber quién es operario. Los permisos de botones (`es_piedra`, `ve_cm`, …) y
+  `hora_entrada` de producción solo existen en `Empleados` → hay que llevarlos a una tabla GP2 atada al
+  `planify.employees.id` (no al legajo).
+- [usuario 29/09] *"de planify es para utilizar los legajos y filtrando por operario"* + *"la letra es parte del
+  legajo"*. El operario tipea el legajo completo (`c94`). Como el teclado del celular es numérico por regla, la
+  pantalla de legajo lleva un **teclado propio en pantalla (0-9 + C)**, con botones grandes. `login-operario` hoy
+  valida contra `public."Empleados"`: cambiar a `planify.employees` activo y de tipo operario.
+- [usuario 29/09, captura de Planify] **Planify SÍ clasifica**: el campo es `planify.empleados_liquidacion.tipo_empleado`
+  (Planta / Administrativo / Pasante / sin especificar), NO `planify.employees.tipo` (ese dice "administrativo" para
+  los 56 y no sirve). **Operario = `tipo_empleado='planta'` y activo**, unido por `employee_id`.
+- [dato 29/09] 19 de planta activos. Todos los que cargaron producción en 30 días son planta, salvo **261 Jennifer
+  Muñoz** (sin tipo; 1 solo registro) y **504 Melany Pierola**, que tiene DOS filas activas de liquidación (una
+  administrativo y otra planta). La empresa también está ahí (`empresa`): `c` = **CHEF SRL**, sin letra =
+  **Loekemeyer SRL**, 50x = **Agencia**.
+- [usuario 29/09] El legajo **600** es un caso especial para pruebas (carga en Virgilio): no es un empleado.
+- ⚠ `empleados_liquidacion` es la tabla de SUELDOS (CBU, CUIL, banco). La app de operarios nunca la lee directo:
+  una función `SECURITY DEFINER` que devuelva solo legajo, nombre y si es planta.
+- [dato 29/09] La producción histórica guarda el legajo **sin la letra** (`94`, `104`, `8`, `19`, `92`): al migrar,
+  mapear número→legajo con letra usando Planify, y ojo con 29/c29 y 122/C122.
+- [dato 29/09] El horario del operario está en `empleados_liquidacion.horario_laboral` (texto "08:30 a 17:30", los
+  19 de planta lo tienen); `planify.employees.hora_entrada` está VACÍO para todos ellos. `GP2.operario_por_legajo`
+  devuelve entrada y salida parseadas de ahí. Ej.: 501 Graciela Santillán entra 07:00 (hoy la app la mide desde 08:30).
+- [dato 29/09] **Planta NO alcanza para decir "operario de producción"**: Martín Pregelj (203, Técnico) y Martín
+  Cornejo (c91, Oficial) son planta y [usuario] *"no son operarios pero también están en la app"*. Tampoco sirve la
+  categoría (74 Omar Bachur es "Chofer de Carga" y carga producción). Falta un permiso propio "registra producción".
+
+## 4gr. Registro de producción (app nueva): decisiones del dueño (2026-09-29)
+
+Contexto: app unificada `GP2-Registro-Produccion`, se arranca por Cervantes. Tabla completa en
+`docs/INVENTARIO-FUNCIONES.md` §7.3 de ese repo.
+- [usuario] **Llegada tarde**: con el horario de Planify de cada operario, no 08:30 fijo.
+- [usuario] **PM (paro de matriz)**: igual que Registro Producción = tiempo muerto con duración, + aviso WhatsApp al
+  abrirlo (existe: `app.js` → `send-whatsapp`, plantilla `problemas_en_matriz_reducido`, permitida en v55).
+- [usuario] **CM (cambiar matriz)**: *"solo personas específicas + matricería + alimentador lo hacen, no el operario
+  común"* → quien hace CM NO es quien produce con esa matriz: CM asigna matriz↔balancín y **no** deja la matriz activa
+  para el que la cambió.
+- [usuario] **RM**: igual que hoy (cierra el cajón como completo y pasa a CM) + aviso WhatsApp "Rompió Matriz".
+- [usuario] **Deshacer / editar**: va en el **admin**, no en la app del operario. [usuario] *"el admin es gestión productiva 2"*: el panel admin del registro de producción (habilitar "pendiente de pesar", cargar pesos, editar/deshacer) es una pantalla de **este repo** (GP2), no de Registro-Produccion-2.0. [usuario, aclaración] *"el de Cervantes a Gestión Productiva 2.0, el admin; el de Virgilio en Gestión Virgilio"*: el admin/maestro de producción de **Cervantes** (ver y corregir el día, pesos, deshacer) se **muda a GP2**; el de **Virgilio** queda en **Gestión Virgilio**. Registro-Produccion-2.0 deja de tener maestro.
+- [usuario] **Terminar día con TM abierto**: se cierra solo (hoy ya lo hace: `app.js` `confirmarTerminarDia`, paso 2).
+- [usuario] **Seguir cajón al día siguiente**: se mantiene; el código de Logística (hoy `151515` escrito en `app.js`,
+  repo público) pasa a ser un **secreto en la base**, validado del lado del servidor.
+- [usuario] **Rollos**: los maneja el **alimentador** (Eduardo c19 lo es), distinto de un balancín común → permiso de
+  rol, no `legajo === "19"`.
+- [usuario] **Turnos después de medianoche**: no hay. Cerrar lo abierto al terminar el día cierra los TIEMPOS MUERTOS,
+  no el cajón marcado "sigo mañana" (no se pisa con lo anterior).
+- [usuario] **WhatsApp**: los que ya están en las funciones (matriz sin tiempo, paro, rotura).
+- [usuario] **Botones**: los de Registro Producción (`capsDe`/`botonVisible` + flags), incluidos RD, REM, MM, TRM, TL, PCM.
+- [usuario] **Cajón**: *"toma como matriz de uni las que tienen salida de 1 unidad x golpe"* → `GP2.matriz.carga_en`:
+  `golpes` solo si `uni_x_golpe > 1` (18 matrices: 7, 14, 15, 16, 20, 21, 22, 29, 40, 60, 64, 66, 71, 72, 116, 344,
+  348, S/N), `unidades` el resto (388), `kg` la piedra 501.
+- [usuario] **Piedra (501) es por KG**: el operario tipea con coma o con punto y las dos valen como decimal. [dato] RP
+  hoy guarda el crudo con coma ("5,72") y el espejo como número (`db_n8n_espejo."Uni"` es `real`: 5.72). En la base
+  nueva va **numérico** (sin coma ni punto: es un número). Ojo con la regla GP2N (punto = miles): en el campo de kg
+  el punto es DECIMAL (valores < 1000). [dato] Hay cajones de 501 con "0" / "00" kg.
+- [usuario] Los 0 kg de piedra (legajo 245, 22–28/09) fueron **por un problema en la fábrica: en ese lapso se pesaba lo
+  hecho al día siguiente**. El 233 cargó 5,6 fijo porque **pesaba antes** (su dato es válido). [dato] Los pesos del día
+  siguiente nunca volvieron a la base: esos cajones quedaron en 0.
+- [usuario] **Opción "pendiente de pesar"** en la app nueva: el operario marca el cajón de piedra sin peso; el peso real
+  se carga después en el admin y queda en el cajón original (su día y su tiempo), con aviso si pasa un día sin pesar.
+  **Solo aparece si el admin la habilita en el panel admin** (apagada por defecto; la base rechaza un "pendiente" si
+  está apagada, no solo la pantalla).
+- [usuario Elías 29/09] **Casilla "registra producción" = OK.** Entra a la app de producción quien: **activo en Planify
+  (alta) + planta + casilla prendida**. Tabla `GP2.operario` (una fila por `planify.employees.id`), la maneja el admin GP2.
+  [dato] Carga inicial: 15 prendidos (los que cargaron en 90 días + **Alberto Práctico, prendido por decisión del
+  dueño**), 4 apagados: Pregelj 203 (Técnico 3º), Cornejo c91 (Oficial), Pages 2 (Chofer de Carga), González 191
+  (Logística). La categoría NO sirve de filtro: Cornejo y Farías (c8, 4.035 registros) son los dos "Oficial"; Bachur
+  (74, 807 registros) y Pages son los dos "Chofer de Carga".
+- [dato 29/09] Planify tiene 14 inactivos y los 14 tienen también la ficha de liquidación de baja (coinciden); ninguno
+  cargó producción en 30 días. El que se da de baja en Planify queda afuera solo (`operario_por_legajo` exige activo).
+- **CORRECCIÓN (mismo día)** [usuario Elías]: *"que queden habilitados"* — la casilla se dio vuelta: **entra todo
+  activo + planta**; `GP2.operario.registra_produccion = false` es la excepción (sin fila = habilitado, así el alta
+  nueva de RRHH entra sola). Los 19 quedaron habilitados. [dato, `public."Empleados"`] **Pregelj (203) y Cornejo (91)
+  son los 2 de matricería** de Registro Producción 2.0 (TRM, REM, CM; Cornejo también TL): no son operarios de
+  balancín pero SÍ usan la app con los botones de matricería. Lo que dije de "planta no alcanza" era falso.
+- [dato] En `public."Empleados"` el legajo **1 = "Pruebas"**; en Planify el 1 es **Alberto Práctico**. Los 2 registros
+  del "1" pueden ser pruebas, no de él. Otra colisión a tener en cuenta al migrar.
+- [usuario Elías] **Estos cambios son para GP2-Registro-Produccion**: Registro Producción 2.0 (la app en uso) no se toca
+  (ej.: deja entrar legajos de baja porque no mira `Activo`; eso se corrige en la app nueva, no en la vieja).
+- [dato 29/09] **Permisos de botones migrados a `GP2.operario`** (una sola vez, desde `public."Empleados"`, casando el
+  número con el legajo de Planify activo + planta): es_matriceria, es_piedra, es_alimentador, ve_cm, ve_trm, ve_tl,
+  ve_rem, ve_mm. 7 con algún flag: matricería 203 y c91; piedra 233 (+CM +MM), 245, c92; alimentador c19 (+CM);
+  282 con CM. `ve_ctm`/`ve_am` (Oscar Bordon) NO se migraron: no tienen código en ninguna app. 260 Valdés tenía
+  piedra pero está de baja. `GP2.operario_por_legajo` devuelve `permisos` (jsonb) para la sesión del operario.
+- [dato 29/09] **Matriz con variante vs matriz con varias piezas** (pregunta de Elías "¿por qué se ve diferente una
+  bifurcada?"): son dos cosas. (1) *Variante* = otra matriz con letra (12/12B/12C; 39 en `GP2.matriz`, 40 en public
+  —falta **325C** en GP2—): RP 2.0 pide el número base y abre un cartel "Seleccioná el tipo" (8 con etiquetas escritas
+  en `app.js`: 10, 12, 28, 39, 79, 80, 81, 127; el resto las detecta de la base); la app GP2 muestra cada variante como
+  otra tarjeta. (2) *Varias salidas* = la MISMA matriz saca piezas distintas (28: A15 del fleje 94 y J2/J5 del 13):
+  solo GP2 lo sabe (`matriz_salidas`) y pide "Fabricás …" para que el stock vaya a la pieza correcta.
+- [dato 29/09] **67 matrices usadas en 90 días no están en ninguna ruta de GP2**; 63 son tareas de mano de obra
+  (envasar, reenvasar, armar importados, sacar film) sin Causa-Efecto tampoco en la base vieja. [usuario Elías]
+  *"Fábrica sí tiene que estar porque se hacen en fábrica"*: deben figurar en la ruta del artículo como paso del
+  tallerista **"Fábrica"** (`GP2.tallerista` id 3). **CORRECCIÓN mismo día** [Elías, sobre el PDF]: *"Fábrica" queda
+  como tallerista, está bien así* — el "tallerista es un 3ro" vale para los demás; Fábrica es el interno y NO es un
+  error de modelo (retirado el punto 7 del informe). Falta decidir cómo se asocia la matriz al paso de Fábrica
+  (hoy los pasos de tallerista no llevan `matriz_id`). Listado: `PROBLEMAS_MATRICES_2026-09-29.md` (+ `.pdf`).
+- [usuario Elías 29/09, verificado en la app] **La 28B está en GP2 como matriz 28 + pieza J5** (la 28 ofrece A15, J2, J5):
+  GP2 reemplazó la variante con letra por la elección de pieza. Para la app nueva hace falta un mapeo
+  variante → (matriz base, pieza). ⚠ Conflicto de nombres a resolver: RP 2.0 dice 28B = Cromar (JF5); GP2 dice
+  J5 = "Cuerpo Uña s/M p/Pintar".
+- [usuario Elías 29/09] **"LK" en el cartel de la 12 = Loekemeyer.** [dato, rutas GP2 + Causa-Efecto] Qué artículo sale de
+  cada variante de la 12 (Doblado Mango Plano):
+  12 (Loekemeyer) → I6 Mango Plano 502 doblado → abrelatas mariposa 066, 502, 512 (LOEKE);
+  12B → G13 Mango Plano 501 doblado p/pintar → abrelatas a manija 101 y 501;
+  12C (Chef) → I11 Mango Plano 701 doblado c/marca → abrelatas a manija 701 (CHEF).
+  Los rótulos del cartel de RP 2.0 están BIEN. Lo que está mal: la descripción de la 12 en Causa-Efecto dice
+  "(Chef Marip)" y GP2 pone I11 (701 Chef) como pieza de la **matriz 12** en vez de la **12C**.
+- [dato 29/09, CORRECCIÓN del análisis de matrices] **GP2 = 115 matrices originales (Excel del dueño, con tipo; 107 con ruta)
+  + 292 de catálogo (22/09, §4fa, sin tipo ni ruta a propósito).** Las variantes con letra están todas en el catálogo
+  (salvo 12B, que tiene ruta): el Excel original modela esos casos como PIEZA de la matriz base. No confundir "sin ruta"
+  o "sin tipo" de las de catálogo con un error de GP2. Errores reales: 138 tipo A con máquina balancín; 129/130/131 con
+  ruta y sin tipo; 9 matrices con tiempo en la vieja y vacío en GP2 (182, 21, 325B, 361, 509, 512, 62, 63, 64).
+  Informe: `PROBLEMAS_MATRICES_2026-09-29.md` (versión 2).
+
