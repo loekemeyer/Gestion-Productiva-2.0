@@ -1,6 +1,10 @@
 <!doctype html>
 <html lang="es">
 <head>
+<!-- v1.43.1 (2026-09-29) — "OTROS" Y "MIN. PEDIDO" [Thomas: "todos aquellos que no tengan una familia barra
+     formato, que me los metan en la familia o formato otros. Ademas quiero que me diga min. pedido en vez de
+     min. proveedor"]. Carton sin formato y plastico sin familia van bajo el titulo "Otros" (ultimo); la linea
+     bajo Pedir dice "min. pedido N uni". -->
 <!-- v1.43.0 (2026-09-29) — PLASTICO: FAMILIA DE PEDIDO CON MINIMO POR FAMILIA [Thomas: "el minimo va por
      familia, no por parte. Es decir: entre todos los pirolos tengo que llegar a 36000. Separame por
      familia al igual que los cartones"]. Base: tabla GP2.familia_pedido (30 familias = matrices del
@@ -1122,7 +1126,7 @@ function notaMinUni(i, ped, esChar, uxpChar, um){
   if(m<=0) return '';
   var pedUni = esChar ? (Number(ped)||0)*uxpChar : (Number(ped)||0);
   var corto = pedUni>0 && pedUni<m;
-  var txt = 'mín. proveedor '+fmt(m)+' uni';
+  var txt = 'mín. pedido '+fmt(m)+' uni';   // v1.43.1 [Thomas: 'que me diga min. pedido en vez de min. proveedor']
   if(esChar && uxpChar>0) txt += ' (= '+fmt(Math.ceil(m/uxpChar))+' paq)';
   // v1.38.0: si Pedir va en otra unidad (la del remito), el minimo tambien se lee en esa unidad.
   else if(um && um.k!==1 && i.unidad!=='kg') txt += ' (= '+fmt(m*um.k, um.lbl==='kg'?2:0)+' '+esc(um.lbl)+')';
@@ -1143,19 +1147,21 @@ function pedidoUniDe(i){
   return ped;
 }
 function conTitulosDeFamiliaPlastico(fs){
-  var plas=fs.filter(function(i){ return i.sector_id===6 && i.familia_pedido; });
+  var plas=fs.filter(function(i){ return i.sector_id===6; });
   if(!plas.length) return null;
-  var resto=fs.filter(function(i){ return !(i.sector_id===6 && i.familia_pedido); });
+  var resto=fs.filter(function(i){ return i.sector_id!==6; });
   var grupos={}, orden=[];
+  // v1.43.1: lo que no tiene familia va junto en "Otros" [Thomas 2026-09-29: "todos aquellos que
+  // no tengan una familia barra formato, que me los metan en la familia o formato otros"].
   plas.forEach(function(i){
-    var k=String(i.familia_pedido);
+    var k=i.familia_pedido ? String(i.familia_pedido) : 'Otros';
     if(!grupos[k]){ grupos[k]=[]; orden.push(k); }
     grupos[k].push(i);
   });
-  orden.sort(function(a,b){ return a.localeCompare(b,'es'); });
+  orden.sort(function(a,b){ if(a==='Otros') return 1; if(b==='Otros') return -1; return a.localeCompare(b,'es'); });
   var out=[];
   orden.forEach(function(k){
-    var xs=grupos[k], m=Number(xs[0].familia_minimo)||0;
+    var xs=grupos[k], m=(k==='Otros')?0:(Number(xs[0].familia_minimo)||0);
     var tot=xs.reduce(function(a,i){ return a+pedidoUniDe(i); },0);
     var corto=m>0 && tot>0 && tot<m;
     out.push({hdr:k+' · '+xs.length+(xs.length===1?' pieza':' piezas')+
@@ -1173,13 +1179,13 @@ function conTitulosDeFamilia(fs){
   // v1.42.1: SOLO por formato [Thomas 2026-09-29: "Solo por formato, ni por marca ni por familia
   // de articulo"]. famKey (formato + marca + categoria) sigue siendo la familia de la REGLA de
   // pedido; aca es solo como se ordena la tabla.
-  function grupoDe(i){ return i.es_pliego ? 'Pliegos' : (i.carton_formato ? 'Formato '+String(i.carton_formato) : 'Sin formato'); }
+  function grupoDe(i){ return i.es_pliego ? 'Pliegos' : (i.carton_formato ? 'Formato '+String(i.carton_formato) : 'Otros'); }
   carton.forEach(function(i){
     var k=grupoDe(i);
     if(!grupos[k]){ grupos[k]=[]; orden.push(k); }
     grupos[k].push(i);
   });
-  orden.sort(function(a,b){ return a.localeCompare(b,'es'); });
+  orden.sort(function(a,b){ if(a==='Otros') return 1; if(b==='Otros') return -1; return a.localeCompare(b,'es'); });
   var out=otros.map(function(i){ return {it:i}; });
   orden.forEach(function(k){
     out.push({hdr:k+' · '+grupos[k].length+(grupos[k].length===1?' cartón':' cartones')});

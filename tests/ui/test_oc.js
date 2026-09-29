@@ -391,7 +391,7 @@ window.supabase = { createClient: function(){ return {
   // ...pero la tirada de la familia se lee en la fila, debajo de Pedir.
   // v1.42.0: el minimo es POR CARTON (pedido_minimo_uni), no la tirada de la familia.
   const tir = await page.textContent('tr[data-id="3"] .min-uni');
-  ok(/mín\. proveedor 12\.000 uni/.test(tir), 'la fila muestra el minimo del carton: ' + tir.trim());
+  ok(/mín\. pedido 12\.000 uni/.test(tir), 'la fila muestra el minimo del carton: ' + tir.trim());
   // ...y la tabla de cartones va separada por familia, con un renglon de titulo por familia.
   const hdrs = await page.$$eval('tr.fam-hdr td', xs => xs.map(x => x.textContent.trim()));
   ok(hdrs.length >= 3 && hdrs.some(h => /^Formato C · /.test(h)) && hdrs.some(h => /^Formato Huevo · /.test(h)) && !hdrs.some(h => /LOEKE|CHEF/.test(h)),
