@@ -4,6 +4,7 @@
 (vacío)
 
 [HISTORIAL]
+2026-09-29 | claude-remote | CONOCIMIENTO_GP2.md | 103 y 510 renombrados a "Abrelata Uña Inox" en GP2.articulo + uni_x_articulo_x_caja
 2026-09-29 | Elias (claude-remote) | GP2.matriz 138 maquina -> alimentador
 2026-09-29 (2) - OC v1.42.1: la tabla de cartones se agrupa SOLO POR FORMATO (Thomas: "Solo por formato, ni por marca ni por familia de articulo"). version.js v1.203.1 ?v=20260929b. Suite 59/59. thomas (claude-remote).
 2026-09-29 (1) - OC v1.42.0: MINIMO POR CARTON + TABLA SEPARADA POR FAMILIA (Thomas: "En cartones los minimos son por carton, aunque esten agrupados por familia. Ademas quiero que en la o.c. me separes por familia"). DB: componente.pedido_minimo_uni en 129 cartones (planilla, cruce por articulo). JS: fuera la linea "tirada min. por familia" (lectura equivocada del 28/09); conTitulosDeFamilia() con renglon .fam-hdr por familia. test_oc ajustado. version.js v1.203.0 ?v=20260929a. CONOCIMIENTO 4gp, REGLAS_OC_INSUMOS. thomas (claude-remote).
