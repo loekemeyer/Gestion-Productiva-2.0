@@ -4,6 +4,7 @@
 (vacío)
 
 [HISTORIAL]
+2026-09-29 | claude-remote | GP2.matriz.carga_en (golpes|unidades; D y P = unidades) + conocimiento 4gr
 2026-09-29 | claude-remote | db/: registros_produccion_cervantes, _exigir_operario, recibir_mensaje_cervantes, operario_por_legajo (lee solo legajo/nombre/planta de Planify); verificar AI acepta _exigir_operario; suite 59 OK
 2026-09-29 | claude-remote | CONOCIMIENTO_GP2.md §4gq: maestro de empleados = planify.employees; letra del legajo = empresa
 2026-09-28 (5) - CARTON: tapones y Q4B/K1A como familias aparte (Thomas: "Si"). DB-only: carton_formato "Huevo LK Tapon" (18.000, F4A1/F4B1/F4C) y "Huevo LK 25" (25.000, Q4B/K1A). REGLAS_OC_INSUMOS, CONOCIMIENTO 4gp. thomas (claude-remote).

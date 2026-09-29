@@ -13563,4 +13563,8 @@ Contexto: app unificada `GP2-Registro-Produccion`, se arranca por Cervantes. Tab
   no el cajón marcado "sigo mañana" (no se pisa con lo anterior).
 - [usuario] **WhatsApp**: los que ya están en las funciones (matriz sin tiempo, paro, rotura).
 - [usuario] **Botones**: los de Registro Producción (`capsDe`/`botonVisible` + flags), incluidos RD, REM, MM, TRM, TL, PCM.
+- [usuario] **Cajón: golpes × factor** (el balancín tiene el contador a la vista), **salvo algunas matrices y las de
+  tipo D (dispositivo)**, que van en unidades. Guardado por matriz en `GP2.matriz.carga_en` ('golpes'|'unidades');
+  [dato] hoy: D (11) y P/piedra (1) = unidades, el resto golpes. **Falta la lista de "algunas matrices"** del dueño.
+  Ojo: 292 de 407 matrices tienen `tipo` vacío.
 
