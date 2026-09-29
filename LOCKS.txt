@@ -4,6 +4,7 @@
 (vacío)
 
 [HISTORIAL]
+2026-09-29 (10) - PLASTICO: minimo 500 uni en PC12/PEP7/PEP8 de Maspoli (Thomas: "Por que no veo el minimo?"; faltaba cargarlo). DB-only. CONOCIMIENTO 4gp. thomas (claude-remote).
 2026-09-29 (9) - PLASTICO: Bujes PA8A/PA8B y PEST1 de Kollplast a Pat Bet Plast, como el relevamiento (Thomas). DB-only. Ya no queda familia con dos proveedores. CONOCIMIENTO 4gp. thomas (claude-remote).
 2026-09-29 (8) - PLASTICO, PROVEEDORES SEGUN RELEVAMIENTO (Thomas: "las tres cosas de Telleria y la de Rodar mandalo a Rafael Pettofrezza"). DB-only: PEP2 Pat Bet Plast -> Pettofrezza Rafael (PB2, PEP1, PA4B ya estaban). Pendiente: Bujes PA8A/PA8B y PEST1 (Kollplast en GP2, Pat Bet en planilla). CONOCIMIENTO 4gp. thomas (claude-remote).
 2026-09-29 (7) - OC v1.44.1: "Otros" del plastico bajo UN solo titulo, piezas ordenadas por proveedor (Thomas). version.js v1.205.1 ?v=20260929g. thomas (claude-remote).
@@ -13,4 +14,3 @@
 2026-09-29 (5) - OC v1.43.2: el "Otros" del plastico va por proveedor (Thomas; cartones quedan como estan). DB: insertos = UNA familia (PB6, PB8B, PEST2, PEST1; 2.000), Inserto Canelones aparte (5.000); familia "Insertos Mango Madera" borrada. version.js v1.204.2 ?v=20260929e. CONOCIMIENTO 4gp. thomas (claude-remote).
 2026-09-29 (4) - OC v1.43.1: carton sin formato y plastico sin familia van bajo el titulo "Otros" (ultimo); la linea bajo Pedir dice "min. pedido" en vez de "min. proveedor" (Thomas). version.js v1.204.1 ?v=20260929d. thomas (claude-remote).
 2026-09-29 (3) - PLASTICO: FAMILIA DE PEDIDO CON MINIMO POR FAMILIA (Thomas: "el minimo va por familia, no por parte... entre todos los pirolos tengo que llegar a 36000. Separame por familia"). DB: tabla GP2.familia_pedido (30, RLS lectura) + componente.familia_pedido (49 piezas); oc_bundle manda familia_pedido/familia_minimo. OC v1.43.0: conTitulosDeFamiliaPlastico() con titulo "familia · N piezas · min. familia · pedido" (rojo si corto), sin min por pieza cuando hay familia. 8 piezas de la planilla no existen en GP2. db/tablas+funciones, CONOCIMIENTO 4gp, REGLAS. version.js v1.204.0 ?v=20260929c. thomas (claude-remote).
-2026-09-29 | claude-remote | CONOCIMIENTO_GP2.md | 103 y 510 renombrados a "Abrelata Uña Inox" en GP2.articulo + uni_x_articulo_x_caja

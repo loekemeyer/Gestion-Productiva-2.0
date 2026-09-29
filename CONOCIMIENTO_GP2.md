@@ -13553,6 +13553,9 @@ Virgilio"` `[dato: el .bas]`, no toca GP2.
   Con eso la familia "Mango Tellería" (PEP1/PEP2) es de un solo proveedor. `[Thomas 2026-09-29: "Las dos de Pat Bet Plast mandalas a
   Pat Bet Plast"]` PA8A/PA8B (Bujes) y PEST1 pasan de Kollplast a **Pat Bet Plast**, como la planilla. Con
   esto todas las familias son de un solo proveedor y Kollplast no tiene piezas plásticas en GP2.
+  `[Thomas 2026-09-29: "Por qué no veo el mínimo? Estoy viendo que en el relevamiento aparece"]` Los mínimos
+  por pieza del plástico sin familia también se cargaron: Maspoli PC12/PEP7/PEP8 = 500 uni (era lo único que
+  faltaba; PIEA rueda de Barbetta no tiene mínimo en la planilla).
   Las familias salen de la columna **"Descripcion Matriz"** de la planilla `[Thomas 2026-09-29: "Sacaste
   las familias de la columna descripcion matriz no?"]`, con nombres normalizados (Regatones → Pirolos).
 - **v1.39.0** [usuario] Thomas: *"entre columna y columna veo espacios"* + *"si no cumple con el mínimo que aparezca igual pero con color rojo y negrita"*. Causa de los huecos: `table.t{width:100%}` de `gp2-modulo.css` le ganaba en especificidad a `.t-insumos{width:auto}` (y en los tests no se veía porque el CSS está stubeado). Ahora `table.t.t-insumos{width:auto}` y el `.table-wrap` abraza la tabla. "mín. proveedor" en rojo y negrita cuando lo pedido queda por debajo; vacío no se marca.
