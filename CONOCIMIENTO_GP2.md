@@ -13060,6 +13060,13 @@ fleje 33: 13.6kg por paquete. El resto 10kg por paquete"*. Son piezas en **kg**,
 `entrega_uni_x` y **no** `uni_x_cajon` a propósito: `uni_x_cajon` lo leen 23 funciones (máximos, OC,
 calculadora de cajones) y ese número es del envío, no del stock. Costo intacto.
 
+**Corrección 2026-09-29** `[usuario]` *"Del batidor mini viene la varilla corta en diámetro 1.25 y 228mm de largo y
+la larga 300mm de largo y diámetro 1.25. Ambas en paquetes de 2.5kg"*. → `IVBCM`/`IVBLM`: `entrega_uni_x`
+**10 → 2,5** (el "10 kg" de arriba vale sólo para 31/32) y medidas en `fleje_detalle`: N° 96 corta **Ø1,25 x 228**,
+N° 95 larga **Ø1,25 x 300**. ⚠ `[deducido]` El `kg_x_uni` cargado **no cierra con esas medidas**: el acero
+teórico da **2,20 g** (corta) y **2,89 g** (larga), la base tiene 8,02 g y 7,32 g — ~3× y **la corta más pesada
+que la larga**. No se tocó (mueve costo); pendiente de confirmar.
+
 `[usuario]` *"el alambre aluminio ganchito se manda en bolsas de 1kg"* + *"pesa 0.000165 por uni"*: `Z12`
 (por unidad) → `kg_x_uni=0,000165`, `entrega_unidad='bolsas'`, `entrega_uni_x=6.060,61` uni (= 1 kg).
 **⚠ Movió el costo: Z12 $10,84 → $6,47.** Z12 sale por ruta del `IE8` Fleje N° 55 (matriz 56), y el costeo
