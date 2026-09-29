@@ -13556,6 +13556,14 @@ Virgilio"` `[dato: el .bas]`, no toca GP2.
   `[Thomas 2026-09-29: "Por qué no veo el mínimo? Estoy viendo que en el relevamiento aparece"]` Los mínimos
   por pieza del plástico sin familia también se cargaron: Maspoli PC12/PEP7/PEP8 = 500 uni (era lo único que
   faltaba; PIEA rueda de Barbetta no tiene mínimo en la planilla).
+  `[Thomas 2026-09-29: "Chequeá que no se te haya escapado alguno"]` Barrido de TODO lo comprable sin mínimo
+  ni familia contra las 5 planillas: se habían escapado **dos**: la Bolsa Filtro Café LK (A1B, art. 031,
+  Vihal) con mínimo 55.000 uni y el piso de **Simco** (Santoprene) de 25 kg (`proveedor_insumo.pedido_minimo_kg`;
+  la planilla lo escribe "Simko"). Cargados. Lo demás sin mínimo no tiene dato en las planillas: flejes,
+  cajas y alambre (sin planilla), 24 cartones que no figuran (515, 510, 059, 186, 500, 715, 867, 355, 101,
+  103, 108, 114, 115, 116, 121, 123, 104, 708, 909, banditas, bolsas 120 y 836), BOM8B, Z21, PIEA, garage
+  (la planilla no tiene columna de mínimo) y CV18D/EST1/EST2 (ya avisados). Las etiquetas de Cía Integral
+  (C3A/H4C/T4A 10.000) no son componentes GP2.
   Las familias salen de la columna **"Descripcion Matriz"** de la planilla `[Thomas 2026-09-29: "Sacaste
   las familias de la columna descripcion matriz no?"]`, con nombres normalizados (Regatones → Pirolos).
 - **v1.39.0** [usuario] Thomas: *"entre columna y columna veo espacios"* + *"si no cumple con el mínimo que aparezca igual pero con color rojo y negrita"*. Causa de los huecos: `table.t{width:100%}` de `gp2-modulo.css` le ganaba en especificidad a `.t-insumos{width:auto}` (y en los tests no se veía porque el CSS está stubeado). Ahora `table.t.t-insumos{width:auto}` y el `.table-wrap` abraza la tabla. "mín. proveedor" en rojo y negrita cuando lo pedido queda por debajo; vacío no se marca.
