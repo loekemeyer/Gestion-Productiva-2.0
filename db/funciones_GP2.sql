@@ -132,6 +132,26 @@ begin
 end $function$
 ;
 
+-- ---------- _exigir_operario ----------
+CREATE OR REPLACE FUNCTION "GP2"._exigir_operario(p_legajo text)
+ RETURNS void
+ LANGUAGE plpgsql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'GP2', 'pg_temp'
+AS $function$
+declare
+  v_claims jsonb := nullif(current_setting('request.jwt.claims', true), '')::jsonb;
+begin
+  if "GP2"._autorizado() then return; end if;   -- SQL, service_role o mail habilitado
+  if v_claims->>'role' = 'authenticated'
+     and v_claims->'app_metadata'->>'rol' = 'operario'
+     and v_claims->'app_metadata'->>'legajo' = btrim(coalesce(p_legajo, '')) then
+    return;
+  end if;
+  raise exception 'No autorizado: entrá con tu legajo desde la red de la empresa' using errcode = '42501';
+end $function$
+;
+
 -- ---------- _oc_num ----------
 CREATE OR REPLACE FUNCTION "GP2"._oc_num(p numeric)
  RETURNS text
@@ -4996,6 +5016,39 @@ where o.estado in ('borrador','enviada')
 $function$
 ;
 
+-- ---------- operario_por_legajo ----------
+CREATE OR REPLACE FUNCTION "GP2".operario_por_legajo(p_legajo text)
+ RETURNS TABLE(employee_id bigint, legajo text, nombre text, hora_entrada time without time zone, hora_salida time without time zone, permisos jsonb)
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO ''
+AS $function$
+  -- Operario = activo en Planify + ficha de liquidación activa tipo 'planta' (RRHH), salvo que el
+  -- admin GP2 lo haya marcado "no registra producción" en GP2.operario (sin fila = habilitado).
+  -- Lee SOLO legajo, nombre, activo, tipo_empleado y horario_laboral ("08:30 a 17:30"): nada de
+  -- sueldos, CBU, CUIL ni fechas. El horario se usa para la llegada tarde y el cajón que sigue.
+  -- La letra es parte del legajo (c = CHEF SRL); se devuelve en minúscula (así va en la sesión).
+  -- permisos = los flags de rol de GP2.operario (sin fila = operario de balancín, todo en false).
+  select e.id::bigint, lower(e.legajo::text), e.nombre::text,
+         nullif(substring(l.horario_laboral::text from '^\s*(\d{1,2}:\d{2})'), '')::time,
+         nullif(substring(l.horario_laboral::text from '(\d{1,2}:\d{2})\s*$'), '')::time,
+         jsonb_build_object(
+           'es_matriceria', coalesce(o.es_matriceria, false), 'es_piedra', coalesce(o.es_piedra, false),
+           'es_alimentador', coalesce(o.es_alimentador, false), 've_cm', coalesce(o.ve_cm, false),
+           've_trm', coalesce(o.ve_trm, false), 've_tl', coalesce(o.ve_tl, false),
+           've_rem', coalesce(o.ve_rem, false), 've_mm', coalesce(o.ve_mm, false))
+    from planify.employees e
+    join planify.empleados_liquidacion l
+      on l.employee_id = e.id and l.activo and l.tipo_empleado = 'planta'
+    left join "GP2".operario o on o.employee_id = e.id
+   where e.activo
+     and lower(e.legajo::text) = lower(trim(p_legajo))
+     and coalesce(o.registra_produccion, true)
+   order by l.id
+   limit 1;
+$function$
+;
+
 -- ---------- orden_produccion_bundle ----------
 CREATE OR REPLACE FUNCTION "GP2".orden_produccion_bundle()
  RETURNS jsonb
@@ -6304,6 +6357,34 @@ begin
   from jsonb_array_elements(v_movs) m;
 
   return jsonb_build_object('ok',true,'articulos',v_n,'movimientos',jsonb_array_length(v_movs));
+end $function$
+;
+
+-- ---------- recibir_mensaje_cervantes ----------
+CREATE OR REPLACE FUNCTION "GP2".recibir_mensaje_cervantes(p jsonb)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'GP2', 'pg_temp'
+AS $function$
+declare v_id uuid; v_leg text := btrim(coalesce(p->>'legajo',''));
+begin
+  if v_leg = '' then raise exception 'Falta el legajo'; end if;
+  perform "GP2"._exigir_operario(v_leg);
+  if coalesce(p->>'client_id','') = '' or coalesce(p->>'opcion','') = '' then
+    raise exception 'Faltan client_id u opcion';
+  end if;
+  insert into registros_produccion_cervantes (client_id, legajo, opcion, descripcion, texto, matriz, ts_cliente, ts_inicio, app_version)
+  values (p->>'client_id', v_leg, p->>'opcion', nullif(p->>'descripcion',''), nullif(p->>'texto',''),
+          nullif(btrim(coalesce(p->>'matriz','')),''), coalesce(nullif(p->>'ts_cliente','')::timestamptz, now()),
+          nullif(p->>'ts_inicio','')::timestamptz, nullif(p->>'app_version',''))
+  on conflict (client_id) do nothing
+  returning id into v_id;
+  if v_id is null then   -- reintento de la cola offline: ya estaba
+    select id into v_id from registros_produccion_cervantes where client_id = p->>'client_id';
+    return jsonb_build_object('ok', true, 'id', v_id, 'dup', true);
+  end if;
+  return jsonb_build_object('ok', true, 'id', v_id);
 end $function$
 ;
 
