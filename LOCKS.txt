@@ -4,6 +4,7 @@
 (vacío)
 
 [HISTORIAL]
+2026-09-29 | claude-remote | IC2-M116 / IC2-M114 separados en -I (izq, D3) y -D (der, D2); rutas 210-213
 2026-09-29 | claude-remote | L9-L12 borrados: reemplazados por stock movimiento IC2-M116 / IC2-M114 (rutas 210-213, 523/723); CONOCIMIENTO 4gt corregido
 2026-09-29 (5) - OC v1.43.2: el "Otros" del plastico va por proveedor (Thomas; cartones quedan como estan). DB: insertos = UNA familia (PB6, PB8B, PEST2, PEST1; 2.000), Inserto Canelones aparte (5.000); familia "Insertos Mango Madera" borrada. version.js v1.204.2 ?v=20260929e. CONOCIMIENTO 4gp. thomas (claude-remote).
 2026-09-29 (4) - OC v1.43.1: carton sin formato y plastico sin familia van bajo el titulo "Otros" (ultimo); la linea bajo Pedir dice "min. pedido" en vez de "min. proveedor" (Thomas). version.js v1.204.1 ?v=20260929d. thomas (claude-remote).

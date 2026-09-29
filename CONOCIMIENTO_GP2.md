@@ -13738,9 +13738,9 @@ Contexto: app unificada `GP2-Registro-Produccion`, se arranca por Cervantes. Tab
   Migración: `db/migracion_maximo_consumo_meses.sql`.
 - [usuario 29/09] **L9, L10, L11, L12 DESAPARECEN** (aletas del 523/723). Corrección del mismo día: primero se
   pasaron a Sector Movimiento con su código — mal, el dueño: *"desaparecen… los nuevos stocks movimientos llevan la
-  descripción de stock movimiento que es componente tal tras matriz tal"*. Quedan **IC2-M116** (Fleje N° 92 tras M116,
-  ex L11/L12) e **IC2-M114** (Fleje N° 92 tras M114, ex L9/L10), compartidos por la rama izquierda y la derecha (mismo
-  criterio que IE10-M73). Rutas 210-213: IC2 → M116 → IC2-M116 → M114 → IC2-M114 → M221 → D3/D2. Borrados L9-L12 (stock
+  descripción de stock movimiento que es componente tal tras matriz tal"*. Quedan **IC2-M116-I / -D** (Fleje N° 92 tras M116 (Izq/Der),
+  ex L11/L12) e **IC2-M114-I / -D** (Fleje N° 92 tras M114 (Izq/Der), ex L9/L10). Izquierda y derecha van SEPARADAS
+  con sufijo -I / -D [usuario: "sí", para no sumar el stock de las dos aletas]. Rutas 210/211 (izq) → D3, 212/213 (der) → D2. Borrados L9-L12 (stock
   0, sin movimientos ni recetas). D2 $114,19 → $114,92 y D3 $114,30 → $115,26: el material ahora sale del fleje (37,8 u/kg).
   **Convención del stock movimiento** [usuario]: código `<raíz>-M<matriz>`, descripción `<desc. raíz> tras M<matriz>`, sin
   kg ni cajón; la raíz es el fleje/crudo de origen y se mantiene a lo largo de la cadena.
