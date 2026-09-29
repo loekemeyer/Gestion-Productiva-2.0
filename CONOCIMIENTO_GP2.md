@@ -13505,7 +13505,7 @@ Virgilio"` `[dato: el .bas]`, no toca GP2.
 
 ## 4gq. El maestro de empleados es `planify.employees` (lo gestiona RRHH); la letra del legajo es la empresa (2026-09-29)
 
-- [usuario] Thomas: *"que el de planify sea el que se usa (lo gestiona RRHH); el que usábamos era manual"*. La lista
+- [usuario] Elías Irace: *"que el de planify sea el que se usa (lo gestiona RRHH); el que usábamos era manual"*. La lista
   de operarios de la app nueva de registro de producción (repo `GP2-Registro-Produccion`) sale de
   `planify.employees`, **no** de `public."Empleados"` (cargada a mano, queda desactualizada).
 - [usuario] *"el c es porque pertenece a otra empresa; para diferenciar los legajos se le puso una letra adelante"*.
