@@ -4,6 +4,7 @@
 (vacío)
 
 [HISTORIAL]
+2026-09-30 (4) - Espejos de solo lectura de Virgilio en GP2: virgilio_insumo_stock / _ubicacion / virgilio_lugar (cron gv-gp2-espejo-sync c/10 min). DB-only: db/tablas, CONOCIMIENTO 4gz. luis (claude-remote).
 2026-09-30 (4) - Control de la tablet: insumos sin controlar (Importado, Garage, remaches, plasticos, bombillas, cajas, bolsas, flejes sin pesar) con "Controlar ->" a su pantalla; boton Control cuenta P.S.+talleristas+insumos y solo se ve en Recibir (Nazareno). DB: control_entrega_bundle.insumos_pend. gp2-control-insumo.js (GP2CI) = lista unica de CONTROL_URL (sale de RecepcionInsumos). Tablet v1.39.0, ControlEntregaPS v1.5.0, RecepcionInsumos v3.65.2, version.js v1.211.0 ?v=20260930d. CONOCIMIENTO 4gz. naza (claude-remote).
 2026-09-30 (3) - GP2.aceptado_virgilio: lo que Virgilio le acepta a Cervantes (24 recepciones, 7 aceptadas, 17 TMP), la llena gv_gp2_aceptado_sync c/10 min. DB-only: db/tablas, CONOCIMIENTO 4gy. luis (claude-remote).
 2026-09-30 (2) - OC v1.48.0: sin precio en Generar OC; el proveedor alternativo (Recicor) es una fila repetida del insumo sin campo Pedir, tocarla elige el proveedor (Thomas). version.js v1.210.0 ?v=20260930c. thomas (claude-remote).

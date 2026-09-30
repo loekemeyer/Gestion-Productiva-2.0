@@ -13887,6 +13887,17 @@ Contexto: app unificada `GP2-Registro-Produccion`, se arranca por Cervantes. Tab
   pisaron: `codigo` no es único en la base y un código repetido rompe todo lo que busca por código. Queda en
   `GRJ31`/`GRJ32` hasta que el dueño diga si los palos se mueven de código o si es otra numeración.
 
+## 4gz. GP2 ve el stock de insumos y el Mapa de Virgilio en tablas de SOLO LECTURA (2026-09-30)
+
+- [usuario] Luis (D5): *"mete la tabla de solo lectura … me interesa que los dos tengan acceso a los datos y que puedan
+  hablar, después vemos si hablan en chino o japonés"*. O sea: primero que se vean; el vínculo de códigos (D3) va después.
+- Tres tablas en GP2 que llena Virgilio cada 10 min (`public.gv_gp2_espejo_sync`, cron `gv-gp2-espejo-sync`); GP2 sólo lee:
+  - `virgilio_insumo_stock` — saldo de cada insumo de Virgilio por unidad (164 filas al 30/09).
+  - `virgilio_insumo_ubicacion` — en qué posición del Mapa está cada insumo (149).
+  - `virgilio_lugar` — el Mapa entero: góndolas y racks, empresa, uso y qué códigos tiene cada celda (943).
+- Respeta la Regla 0: GP2 lee su propio schema. La copia se reescribe entera sólo si cambió algo (compara md5).
+- Con 4gx (`ingreso_virgilio`) y 4gy (`aceptado_virgilio`) son las tablas por donde "hablan" las dos plantas.
+
 ## 4gy. Lo que Virgilio le ACEPTA a Cervantes queda en GP2.aceptado_virgilio (2026-09-30)
 
 - [usuario] Luis: *"crea una tabla con los datos de lo que gestion virgilio le acepta a GP2 que los dos puedan leer"*.
