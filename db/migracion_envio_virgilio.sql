@@ -744,3 +744,12 @@ begin
   return NEW;
 end $function$
 ;
+
+-- ---------- 6) gv_cod: el código de Gestión Virgilio con que se recibió (memoria para el próximo envío) ----------
+-- Lo escribe public.gv_envio_cervantes_confirmar. Para un insumo / SC / SP sin vínculo en
+-- importado_virgilio_componente, Virgilio lo recibe con un código temporal (TMP-…) o el que
+-- elija: la próxima vez que Cervantes mande la MISMA pieza, el aviso ya propone ese código
+-- (si todavía existe en public."Insumos"). No se adivina: es el que alguien eligió al recibir.
+alter table "GP2".envio_virgilio add column if not exists gv_cod text;
+comment on column "GP2".envio_virgilio.gv_cod is
+  'Código de Gestión Virgilio con que se recibió (artículo o insumo). Lo escribe gv_envio_cervantes_confirmar.';
