@@ -69,6 +69,15 @@ const SECTOR = {
       mov: { compra: { ent: 60, sal: 0, n: 1 } },
     }],
   },
+  /* Garage (9): los codigos vienen DESORDENADOS a proposito para probar el orden numerico
+     [Nazareno 2026-09-30: "Primero tendria que aparecer GRJ4, GRJ5...GRJ10, GRJ10A"] */
+  9: {
+    sector: { id: 9, nombre: 'Sector Garage' }, ubicacion_id: 12, ubicacion_virgilio_id: null,
+    filas: ['GRJ12', 'GRJ10A', 'GRJ4', 'GRJ10'].map((cod, i) => ({
+      comp_id: 60 + i, cod, desc: 'Garage ' + cod, um: 'uni', kg_x_uni: null, uni_x_cajon: null,
+      online: 0, en_virgilio: null, maximo: null, n_fleje: null, mov: {},
+    })),
+  },
 };
 const MOVS = [{
   id: 1, fecha: '2026-08-30T12:00:00', tipo_mov: 'ajuste', comp_id: 10,
@@ -137,6 +146,13 @@ window.supabase = { createClient: function(){ return {
   const fle = await page.evaluate(() => document.getElementById('thead').innerText);
   ok(!/\bCAJ\b/i.test(fle) && !/UNI × CAJÓN/i.test(fle), 'Flejes: NO hay columna de cajones ni Uni×Cajón');
   ok(/N° FLEJE/i.test(fle), 'Flejes: sí aparece N° Fleje');
+
+  // ── SECTORES: el codigo se ordena numerico, no alfabetico (GRJ4 antes que GRJ10) ──
+  await page.click('.rubro-btn:has-text("Garage")');
+  await page.waitForFunction(() => /GRJ4/.test(document.getElementById('tbody').innerText));
+  const ordGar = await page.evaluate(() =>
+    Array.from(document.querySelectorAll('#tbody tr .cod')).map(e => e.textContent).join(','));
+  ok(ordGar === 'GRJ4,GRJ10,GRJ10A,GRJ12', 'Garage: orden numerico del codigo — ' + ordGar);
 
   // ── Prov. Art. Terminado y Tránsito PS como rubros con su tabla ──
   await page.click('.rubro-btn:has-text("Prov. Art. Term.")');

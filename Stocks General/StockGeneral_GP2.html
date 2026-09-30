@@ -6,7 +6,12 @@
 <script src="../gp2-ui.js?v=20260913e"></script>
 <script src="../gp2-numero.js?v=20260911o"></script>
 <title>Stock general · GP2</title>
-<!-- v2.2.0 (2026-09-28) - FUERA LO QUE NO ES STOCK DE GP2 [usuario: "Sigue apareciendo Gentile
+<!-- v2.2.1 (2026-09-30) - ORDEN NUMÉRICO EN SECTORES [Nazareno: "ordename, en el caso de sectores
+     (no de otros → ordenás por prov), numéricamente, no alfanuméricamente. Primero GRJ4,
+     GRJ5...GRJ10, GRJ10A"]. Los rubros de sector ordenan el código con localeCompare numeric
+     (GRJ4 < GRJ10 < GRJ10A < GRJ12); 'otros' sigue por proveedor/tallerista y "Todos" por código
+     alfabético, sin cambios.
+     v2.2.0 (2026-09-28) - FUERA LO QUE NO ES STOCK DE GP2 [usuario: "Sigue apareciendo Gentile
      Norberto y ya no es más tallerista" / "todo lo que es inventario de virgilio eliminalo (para
      eso está gestión virgilio)"]. (a) no se listan las ubicaciones tipo virgilio/virgilio_sector
      (Virgilio Distribución: 268 filas, todas en 0) y se saca la columna "En Virgilio" de SC/SP;
@@ -433,6 +438,11 @@ function filtradas(){
     var c=String(a.cod||"").localeCompare(String(b.cod||"")); if(c) return c;
     return (a.rubro_nom||"").localeCompare(b.rubro_nom||"");
   });
+  // en los sectores, orden numérico del código: GRJ4, GRJ5 … GRJ10, GRJ10A (no GRJ10 antes que GRJ4)
+  if (RUBRO && RUBRO.mode==="sector") return arr.sort(function(a,b){
+    return String(a.cod||"").localeCompare(String(b.cod||""), "es", { numeric:true });
+  });
+  // en 'otros' manda el proveedor / tallerista
   return arr.sort(function(a,b){
     var u=(a.ubic_nom||"").localeCompare(b.ubic_nom||""); if(u) return u;
     return String(a.cod||"").localeCompare(String(b.cod||""));
