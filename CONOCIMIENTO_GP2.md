@@ -14072,3 +14072,15 @@ Pettofrezza R3A (789). Sin esa fila no hay máximo, y la tablet no sabe que se l
 [deducido]. Es el paso 2 de la normalización (`inventario` para el componente nuevo) que se salteó al
 cargar esas rutas (ids 1078-1087 son de Danica y Cavallero). Crear las filas es cambio de datos fuera
 de lo pedido: queda propuesto.
+
+## 4hf. Despiece x Art: la ruta arranca en el PROVEEDOR que compra la pieza (2026-09-30)
+
+- [usuario 2026-09-30] *"Quiero que en despiece x art me aparezca como primer paso de las rutas el
+  proveedor. Por ejemplo: Basconia provee el fleje ID6"*. En `Programa/Programa.html` cada ruta
+  (bloque 1 fleje, rama de convergencia, bloque 4 insumo comprado) abre con una tarjeta celeste
+  **PROVEEDOR** antes del INSUMO.
+- [dato] Sale de `componente.proveedor` (+ `componente_proveedor_alt`, que se muestra como
+  "o Recicor"): `programa_bundle` lo manda como `comp.pv` / `comp.pva`. Al 30/09: **386 de 806**
+  componentes con proveedor; los 53 flejes lo tienen todos (Basconia, Hermac, JL Metales, Aperam…),
+  crudo / procesado / movimiento / terminado casi nunca (se fabrican acá).
+- Sin proveedor cargado **no se dibuja tarjeta**: no se inventa. Lo sostiene `tests/ui/test_programa_proveedor.js`.

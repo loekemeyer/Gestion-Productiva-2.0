@@ -362,6 +362,16 @@ function node(tp,cls,nm,ex,extra,qty,kg,dest){
  h+='</div>';
  return h;
 }
+/* PROVEEDOR = primer paso de la ruta [usuario 2026-09-30: "quiero que me aparezca como primer
+   paso de las rutas el proveedor, ej. Basconia provee el fleje ID6"]. Sale de GP2.componente.proveedor
+   (+ componente_proveedor_alt), que programa_bundle manda como comp.pv / comp.pva. Es lo de afuera:
+   celeste, como el prov. de servicio. Sin proveedor cargado no se dibuja nada -- no se inventa. */
+function provNode(comp){
+ if(!comp||!comp.pv)return "";
+ var alt=comp.pva||[];
+ return node("PROVEEDOR","prov",comp.pv,alt.length?("o "+alt.join(" o ")):"","",null,null,"")+
+        '<span class="arr">→</span>';
+}
 /* pie "queda en el sector X" */
 function destSector(sec,cod,desc){
  var t='📦 <span class="sc">'+esc(sec.toUpperCase())+'</span>';
@@ -448,7 +458,7 @@ function renderStandaloneLane(r,pasos,fl,need,uni,flejesTotal){
  var H='<div class="lane"><div class="head"><b>'+esc((flComp.cod||"?")+' · '+(flComp.d||"")+cs_desc)+'</b>'+
     (kg?'<span class="fkg">'+fmt(kg)+' kg fleje</span>':(qty?'<span style="color:#7d92a5">sin rendimiento</span>':""))+
     '</div><div class="flow">';
- H+=node("INSUMO","fleje",flComp.cod||"?",flComp.d||"",rend?unikg(rend):"",null,kg||null,"");
+ H+=provNode(flComp)+node("INSUMO","fleje",flComp.cod||"?",flComp.d||"",rend?unikg(rend):"",null,kg||null,"");
  pasos.forEach(function(p,i,arr){
   if((p.tp==="fleje"||p.tp==="ingreso"))return;
   H+='<span class="arr">→</span>'+pasoNode(p,need,uni,arr[i+1]);
@@ -523,12 +533,12 @@ function renderConvergenceLane(padre_id,ruta_list,need,uni,flejesTotal,aid,insum
    if(pasosNoFleje.length===0 && flComp2.cod===hc.cod){
     H+='<div class="branch-lbl"><span class="r">Rama '+brN+'</span> — Insumo '+esc(hc.cod||'?')+' · × '+fmt(qty_hijo)+' u</div>';
     H+='<div class="flow branch">';
-    H+=node("INSUMO",sCls(hc.s),hc.cod||"?",hc.d||"","",qty_hijo,null,"");
+    H+=provNode(hc)+node("INSUMO",sCls(hc.s),hc.cod||"?",hc.d||"","",qty_hijo,null,"");
     H+='</div>';
    } else {
     H+='<div class="branch-lbl"><span class="r">Rama '+brN+'</span> — '+esc((flComp2.cod||"?")+' produce '+hc.cod)+(kg?' · '+fmt(kg)+' kg fleje':'')+'</div>';
     H+='<div class="flow branch">';
-    H+=node("INSUMO",matchRuta.f?"fleje":sCls(flComp2.s),flComp2.cod||"?",flComp2.d||"",rend?unikg(rend):"",matchRuta.f?null:qty_hijo,kg||null,"");
+    H+=provNode(flComp2)+node("INSUMO",matchRuta.f?"fleje":sCls(flComp2.s),flComp2.cod||"?",flComp2.d||"",rend?unikg(rend):"",matchRuta.f?null:qty_hijo,kg||null,"");
     pasosNoFleje.forEach(function(p,i,arr){
      H+='<span class="arr">→</span>'+pasoNode(p,mergedNeed,uni,arr[i+1]);
     });
@@ -546,7 +556,7 @@ function renderConvergenceLane(padre_id,ruta_list,need,uni,flejesTotal,aid,insum
   var destIns=(sn && sn!=='terminado' && sn!=='fleje' && sn!=='?')?destSector(sn,hc.cod,""):"";
   H+='<div class="branch-lbl"><span class="r">Rama '+brN+'</span> — Insumo '+esc((hc.cod||'?')+' ('+sn+')')+' · × '+fmt(qty_hijo)+' u</div>';
   H+='<div class="flow branch">';
-  H+=node("INSUMO",sCls(hc.s),hc.cod||"?",hc.d||"","",qty_hijo,null,destIns);
+  H+=provNode(hc)+node("INSUMO",sCls(hc.s),hc.cod||"?",hc.d||"","",qty_hijo,null,destIns);
   H+='</div>';
  });
  // barra de convergencia
@@ -731,7 +741,7 @@ function render(){
    for(var ii=pasos.length-1;ii>=0;ii--){var pp=pasos[ii];if(pp.cs && need[pp.cs]){csFin=pp.cs;qFin=need[pp.cs]*uni;break;}}
    if(qFin===null && need[cidIni])qFin=need[cidIni]*uni;
    B+='<div class="lane"><div class="head"><b>'+esc(comp.cod+' — '+(comp.d||""))+'</b>'+(qFin?'<span class="uni">× '+fmt(qFin)+' u</span>':"")+'</div><div class="flow">';
-   B+=node("INSUMO",sCls(comp.s),comp.cod||"?",comp.d||"","",qFin,null,"");
+   B+=provNode(comp)+node("INSUMO",sCls(comp.s),comp.cod||"?",comp.d||"","",qFin,null,"");
    pasos.forEach(function(p,idx){
     if(idx===0)return;
     if(p.tp==="proveedor_servicio"){

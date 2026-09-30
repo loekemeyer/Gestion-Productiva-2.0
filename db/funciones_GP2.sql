@@ -5660,7 +5660,14 @@ rutas_full as (
 )
 select jsonb_build_object(
   'art', (select jsonb_agg(jsonb_build_object('id',id,'cod',codigo,'fam',familia,'d',descripcion,'mk',marca,'disc',discontinuado) order by id) from "GP2".articulo),
-  'comp', (select jsonb_object_agg(id::text, jsonb_build_object('cod',codigo,'d',descripcion,'s',sector_id)) from "GP2".componente),
+  'comp', (select jsonb_object_agg(c.id::text, jsonb_build_object('cod',c.codigo,'d',c.descripcion,'s',c.sector_id)
+         /* v1.216.0: el proveedor que compra la pieza (componente.proveedor + los alternativos),
+            para dibujarlo como primer paso de la ruta en Despiece x Art. Sin proveedor no viaja la clave. */
+         || jsonb_strip_nulls(jsonb_build_object('pv', nullif(btrim(c.proveedor),''),
+              'pva', (select jsonb_agg(distinct btrim(a.proveedor)) from "GP2".componente_proveedor_alt a
+                       where a.componente_id = c.id and nullif(btrim(a.proveedor),'') is not null
+                         and btrim(a.proveedor) is distinct from btrim(c.proveedor)))))
+         from "GP2".componente c),
   'fl', '{}'::jsonb,
   'mat', (select jsonb_object_agg(id::text, jsonb_build_object('n',n_matriz,'d',descripcion,'t',tipo,'r',partes_por_kilo_de_fleje,'p',(partes_por_kilo_de_fleje is not null))) from "GP2".matriz),
   'prov', (select jsonb_object_agg(id::text, jsonb_build_object('n',nombre,'p',proceso)) from "GP2".proveedor_servicio),
