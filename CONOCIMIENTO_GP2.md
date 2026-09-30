@@ -14178,6 +14178,11 @@ cajas; los **alambres son fleje** (el sector 13 "Alambre" no tiene ni una pieza)
   canónica (uni o kg); el terminado guarda además `cajas` y `articulos_por_caja` para que Virgilio lo lea en
   cajas. [deducido] **El stock se mueve al enviar, no al confirmar**: igual que un envío a un tallerista, la
   mercadería ya salió de Cervantes aunque todavía no la hayan aceptado.
+- **Dónde contesta Virgilio** (GV v25.41): los **terminados de Fábrica** en Recepción de Mercadería → **Log/ Fabr**
+  (arriba de los códigos, sólo los de la línea LK/CH elegida; ✓ Llegó suma las cajas a la carga); **insumos, SC
+  y SP** en Recibir Insumos → *«🏭 Cervantes te mandó N piezas»*. El código de GV no se adivina: terminado = el
+  mismo; insumo = el `gv_cod` de la última vez o `importado_virgilio_componente`; si no hay, entra como insumo
+  nuevo `TMP-…` y ese código queda en `gv_cod` para el próximo envío.
 - **Sí** lo dice Gestión Virgilio con `public.gv_envio_cervantes_confirmar` (estado `confirmado`, `gv_ref`
   = qué movimiento de GV lo recibió). GP2 no hace nada más: el stock ya se movió.
 - **No** lo dice GV con `public.gv_envio_cervantes_denegar(id, motivo)` (estado `denegado` y nada más). La
