@@ -13120,7 +13120,8 @@ cuenta"*]:
   comprado, su costo es el precio). Efecto en la Tablet: como ahora hay peso, la **cantidad** del envío a
   Lucho se escribe en **kg** con el renglón "= N cajas" debajo (4,4 kg = 1 caja), igual
   que el Z31 y el resto de los talleristas; el **sugerido sigue en cajas** (55).
-- **Recepción en cajas:** `componente.remito_unidad` acepta un tercer valor, **`'envase'`** (check
+- ~~**Recepción en cajas**~~ **Revertido el 30/09 (§4gz): el remito del C13 vuelve a unidades.** El mecanismo
+  queda: `componente.remito_unidad` acepta un tercer valor, **`'envase'`** (check
   `componente_remito_unidad_chk` ampliado): el remito viene contado en el envase de la pieza
   (`entrega_unidad` × `entrega_uni_x`). `recepcion_bundle` ahora manda `entrega_unidad`/`entrega_uni_x`, y
   `RecepcionInsumos_GP2.html` v3.62.0 pide "Cantidad cajas" y guarda cajas × 144 en **unidades** (3 cajas
@@ -13914,3 +13915,16 @@ CONFIRMALO Y UBICALO» (falta implementar confirmación y ubicación)"*.
 - **Falta**: confirmar (pasa a `confirmado`) y ubicar (entra al `inventario` en su `ubicacion`, con
   `componente_id`). [dato] Hoy **no hay** vínculo entre el código importado/insumo de Virgilio (1000900,
   H201Part, 007) y el `componente` de GP2: ubicar exige ese mapeo primero.
+
+## 4gz. Los 8 importados se reciben en UNIDADES, C13 incluido (2026-09-30)
+
+[usuario, Naza 30/09, con la foto de Recepción Insumos → Importados (C13, D1, E13, GRJ31, GRJ32, PINCEL590, Z23A,
+Z23B): *"Todos estos en el remito o packing list vienen en unidades. Cargar en uni"*.]
+- [dato] 7 de los 8 ya tenían `componente.remito_unidad='uni'`. El único distinto era **`C13`** (id 547), en
+  `'envase'` (cajas de 144) desde el §4gb. Se pasó a `'uni'`: la pantalla pide "Cantidad uni" y esconde el toggle.
+- **Contradice lo que dijo Thomas el 25/09** (*"Sí"* a recibirlo en cajas, §4gb). Manda el documento: el remito y
+  el packing list vienen contados en unidades. Si Thomas quiere volver a cajas es un `update` de una fila.
+- **No se tocó** `entrega_unidad='cajas'` / `entrega_uni_x=144` ni `kg_x_uni`: siguen siendo el envase con que la
+  Tablet se lo manda a Lucho y el peso del control. La rama `'envase'` de `RecepcionInsumos_GP2.html` queda sin
+  ninguna pieza que la use (el comentario de `envaseRemito()` que dice "Hoy C13" quedó viejo).
+- El control posterior sigue en kg (`CONTROL_URL_PROV`, Importado), sin cambios.
