@@ -4,6 +4,7 @@
 (vacío)
 
 [HISTORIAL]
+2026-09-30 (2) - OC v1.48.0: sin precio en Generar OC; el proveedor alternativo (Recicor) es una fila repetida del insumo sin campo Pedir, tocarla elige el proveedor (Thomas). version.js v1.210.0 ?v=20260930c. thomas (claude-remote).
 2026-09-30 - Portada v1.209.0: cartel "VIRGILIO DICE QUE TE LLEGO ESTO — CONFIRMALO Y UBICALO" desde GP2.ingreso_virgilio (lo escribe la recepcion de importados de Gestion Virgilio, destino Cervantes). Confirmar/ubicar pendiente. db/tablas, CONOCIMIENTO 4gx, test_aviso_virgilio. version.js v1.209.0 ?v=20260930b. luis (claude-remote).
 2026-09-29 (24) - OC v1.47.0: Ordenes en dos cajas, Vigentes (ultima OC por proveedor) e Historicas (Thomas). Solo pantalla. test_oc cubre cajas + semaforo. version.js v1.208.0 ?v=20260929q. thomas (claude-remote).
 2026-09-30 (1) - Importados GRJ31 "Ralladores" y GRJ32 "Pelador Mgo Madera" en Garage (sector 9, prov Importado, remito uni, inventario ubic 9 en 0) (Thomas). DB-only. CONOCIMIENTO 4gw. thomas (claude-remote).
@@ -13,5 +14,3 @@
 2026-09-29 (20) - CHAPA430 renombrada a FLEJE_DESCORAZONADOR / "Fleje Descorazonador" (Thomas). DB: componente 595 + 4 funciones. Recepcion Insumos, Entrega PS, db/, tests. version.js v1.207.3 ?v=20260929m. CONOCIMIENTO 4gv. thomas (claude-remote).
 2026-09-29 | claude-remote (Thomas) | ControlEntregaPS_GP2 v1.4.0: campos compactos (124px) + la diferencia sale solo de los kg donde la pieza se pesa (paquetes/bolsas/cajones = dato). version.js v1.207.4
 2026-09-29 (19) - FLEJE90_BRUTO renombrado a ALAMBRE (Thomas). DB: componente 583 + 5 funciones. Recepcion Insumos, Entrega PS, db/, tests. version.js v1.207.2 ?v=20260929l. CONOCIMIENTO 4gv. thomas (claude-remote).
-2026-09-29 | claude-remote (Thomas) | auth-guard.js + supabase-config.js v1.207.1: sesion caida -> login (antes seguia como anon y tablet_registrar daba permission denied); guard solo cuenta el token de este proyecto
-2026-09-29 (18) - MAXIMO CRUDO/PROCESADO con TOPE 5 cajones (Thomas: "no puede exceder los 5 cajones"; 28 piezas lo pasaban) + FALTANTE = stock < maximo (Thomas: "menor al maximo"). DB + Faltantes v1.1.0. Maximo por sector $879,4 M. version.js v1.207.0 ?v=20260929j. CONOCIMIENTO 4gu. thomas (claude-remote).

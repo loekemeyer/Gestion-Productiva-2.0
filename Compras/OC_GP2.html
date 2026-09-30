@@ -1,6 +1,11 @@
 <!doctype html>
 <html lang="es">
 <head>
+<!-- v1.48.0 (2026-09-30) — SIN PRECIOS EN GENERAR OC; EL ALTERNATIVO ES UNA FILA REPETIDA [Thomas: "No quiero que
+     me aparezcan los precios aca. Solo en el modulo de ordenes. Para poner a recicor repeti el item del
+     componente y ya"]. Se va el boton "o Recicor · $ 199" de v1.46.1: sin proveedor elegido, cada insumo
+     con alternativo sale dos veces (una por proveedor), la segunda sin campo Pedir; tocarla elige ese
+     proveedor. El precio sigue viajando a crear_oc y se ve en Ordenes y en la hoja impresa. -->
 <!-- v1.47.0 (2026-09-29) — ORDENES EN DOS CAJAS: VIGENTES E HISTORICAS [Thomas: "va a aparecer en vigente hasta
      que se haga una nueva orden de compra a Maspoli... pasa la actual a historica y la nueva a vigente"].
      Vigente = la OC de mayor numero de cada proveedor (sin contar anuladas). Es solo pantalla: no cambia
@@ -571,9 +576,8 @@
   .min-uni.corto{font-weight:800;color:#b71c1c}
   /* El proveedor dentro de la celda del insumo: solo se ve en pantalla chica. */
   .prov-mini{display:none}
-  /* v1.45.1: proveedor alternativo en la fila, sin tener que elegirlo arriba */
-  .prov-alt{display:block;margin-top:4px;min-height:44px;padding:6px 12px;border-radius:22px;border:2px dashed #0b3b73;
-            background:#fff;color:#0b3b73;font-weight:700;font-size:15px;cursor:pointer;text-align:left}
+  /* v1.48.0: el proveedor alternativo es una FILA REPETIDA del insumo (sin precio); tocarla elige ese proveedor. */
+  tr.fila-alt{cursor:pointer}
   .barra{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:10px 0;padding:8px 10px;background:#f6f8fa;border-radius:10px;width:fit-content;max-width:100%;box-sizing:border-box}
   .barra .tot{font-size:17px;font-weight:800}
   .barra input[type=text]{padding:10px;min-height:44px;font-size:18px;border:2px solid #d0d7de;border-radius:8px;width:200px}
@@ -831,14 +835,23 @@ function provDeFila(i){
   if(provSel!=null && provSel!=='(sin proveedor)' && esDelProv(i, provSel)) return provSel;
   return i.proveedor || '—';
 }
-/* Celda Proveedor: con un proveedor elegido, ese. Sin elegir, el principal y un boton por cada
-   alternativo (Recicor en las cajas), con su precio si lo cotiza [Thomas 2026-09-29]. */
-function provCelda(i){
-  if(provSel!=null) return esc(provDeFila(i));
-  var ps=provsDeInsumo(i), m=i.precios_prov||{};
-  return esc(ps[0])+ps.slice(1).map(function(p){
-    var pp=m[p], pr=(pp&&pp.precio!=null)?' · '+(pp.moneda==='USD'?'US$ ':'$ ')+fmt(pp.precio,2):'';
-    return '<button type="button" class="prov-alt" data-prov="'+esc(p)+'">o '+esc(p)+pr+'</button>';
+/* Celda Proveedor: el nombre y nada mas. v1.48.0 [Thomas 2026-09-30: "No quiero que me aparezcan los
+   precios aca. Solo en el modulo de ordenes. Para poner a recicor repeti el item del componente y ya"]:
+   el alternativo ya no es un boton con precio debajo del principal; sin proveedor elegido, render()
+   repite la fila del insumo a nombre de cada alternativo (filasAlt). */
+function provCelda(i){ return esc(provDeFila(i)); }
+function filasAlt(i, st, mx, bajoMin, um){
+  if(provSel!=null) return '';
+  return provsDeInsumo(i).slice(1).map(function(p){
+    return '<tr class="fila-alt" data-alt-prov="'+esc(p)+'" title="Tocar para armar la OC a '+esc(p)+'">'+
+      '<td><b>'+esc(i.codigo||'—')+'</b><br><small style="color:#777">'+esc(i.descripcion||'')+
+        '<span class="prov-mini"> · '+esc(p)+'</span></small></td>'+
+      '<td>'+esc(p)+'</td>'+
+      '<td class="num'+(bajoMin?' bajo-min':'')+'">'+(st==null?'—':(fmt(st)+' '+esc(i.unidad)))+'</td>'+
+      '<td class="num">'+(mx==null?'—':fmt(mx))+'</td>'+
+      '<td class="num"></td>'+
+      '<td class="um-cell">'+esc(um.lbl)+'</td>'+
+    '</tr>';
   }).join('');
 }
 /* PRECIO POR PROVEEDOR: la hoja que se le manda a cada uno tiene que salir con SU lista
@@ -1329,7 +1342,7 @@ function render(){
         notaMinUni(i, ped, esChar, uxpChar, um)+paqEq+
         notaRepo(i)+'</td>'+
       '<td class="um-cell">'+esc(um.lbl)+'</td>'+
-    '</tr>';
+    '</tr>'+filasAlt(i, st, mx, bajoMin, um);
   }).join('');
   // Toda la zona de armar la OC (buscador, leyenda, tabla y barras) aparece recien
   // cuando hay sector o proveedor elegido; hasta entonces solo se ve el cartel.
@@ -1356,9 +1369,9 @@ function render(){
       render(); barra();
     });
   });
-  // Proveedor alternativo en la fila: equivale a tocar su chip arriba.
-  document.querySelectorAll('button.prov-alt').forEach(function(b){
-    b.addEventListener('click', function(){ provSel=b.dataset.prov; pintarProvs(); proponerFecha(); render(); });
+  // Fila repetida del proveedor alternativo: tocarla equivale a tocar su chip arriba.
+  document.querySelectorAll('tr.fila-alt').forEach(function(b){
+    b.addEventListener('click', function(){ provSel=b.dataset.altProv; pintarProvs(); proponerFecha(); render(); });
   });
   // Tocar el Máximo abre el desglose: de dónde sale ese número.
   document.querySelectorAll('td.max-cell').forEach(function(td){
