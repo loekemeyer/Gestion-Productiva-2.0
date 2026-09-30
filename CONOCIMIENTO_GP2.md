@@ -2199,6 +2199,13 @@ exactos por pieza; la vista de costos usa el exacto y cae al plano si no hay).
   que en GP2 no existe). En una O.C. a Recicor esas tres van **sin precio** —no se les pone el de
   Corrugadora, sería inventar plata— y la barra avisa "⚠ N ítems sin precio". Si Recicor las
   entrega, hay que pedirle el precio y cargarlo.
+  **A Recicor se le pide en la MISMA pantalla, sin elegirlo arriba** `[Thomas 2026-09-30: "quiero que
+  me ordenes primero todo lo de corrugadora y después todo lo de recicor. y además que me deje pedir en
+  recicor"]` (OC v1.49.0): en Sector Caja la tabla va primero con todas las filas de Corrugadora y
+  después todas las de Recicor, y la de Recicor tiene su propio Pedir. El pedido es por **insumo y
+  proveedor**: el sugerido (máximo − stock) se carga sólo en Corrugadora y Recicor arranca vacío; lo que
+  se escribe en Recicor **no se descuenta solo** de Corrugadora `[deducido]` — si se pide a los dos, el
+  total puede pasar el máximo. "Crear OC" sin proveedor elegido crea **una O.C. por proveedor**.
 - **Plásticos: la lista de Pat Bet Plast es INYECCIÓN SOLA, SIN material** `[dato:
   hoja Plasticos]`. El precio real de la pieza = pellet × gramos (+4% desperdicio) +
   inyección — está calculado en la hoja "Plasticos" col "Total Mat e Inyeccion", y ESO

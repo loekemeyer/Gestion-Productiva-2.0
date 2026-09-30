@@ -1,6 +1,14 @@
 <!doctype html>
 <html lang="es">
 <head>
+<!-- v1.49.0 (2026-09-30) — CAJAS: PRIMERO TODO CORRUGADORA, DESPUES TODO RECICOR, Y RECICOR SE PIDE EN LA FILA [Thomas:
+     "quiero que me ordenes primero todo lo de corrugadora y despues todo lo de recicor. y ademas que me deje pedir
+     en recicor"]. (1) Sin proveedor elegido la tabla sale ordenada por el proveedor DE LA FILA: la fila repetida
+     del alternativo ya no va pegada a la del principal. (2) La fila de Recicor tiene su propio campo Pedir: el
+     pedido pasa a ser por insumo Y proveedor (PEDIDO[comp_id] el principal, PEDIDO['comp_id@Recicor'] el
+     alternativo). El sugerido se carga solo en el principal: el alternativo arranca vacio (si no, la caja saldria
+     pedida dos veces). Tocar la fila ya no elige el proveedor. (3) Crear OC sin proveedor elegido crea UNA OC POR
+     PROVEEDOR (antes salia una sola con proveedor vacio), cada una con el plazo de entrega de su proveedor. -->
 <!-- v1.48.0 (2026-09-30) — SIN PRECIOS EN GENERAR OC; EL ALTERNATIVO ES UNA FILA REPETIDA [Thomas: "No quiero que
      me aparezcan los precios aca. Solo en el modulo de ordenes. Para poner a recicor repeti el item del
      componente y ya"]. Se va el boton "o Recicor · $ 199" de v1.46.1: sin proveedor elegido, cada insumo
@@ -576,8 +584,8 @@
   .min-uni.corto{font-weight:800;color:#b71c1c}
   /* El proveedor dentro de la celda del insumo: solo se ve en pantalla chica. */
   .prov-mini{display:none}
-  /* v1.48.0: el proveedor alternativo es una FILA REPETIDA del insumo (sin precio); tocarla elige ese proveedor. */
-  tr.fila-alt{cursor:pointer}
+  /* v1.48.0: el proveedor alternativo es una FILA REPETIDA del insumo (sin precio). v1.49.0: con su propio campo
+     Pedir; tocarla ya no elige el proveedor. */
   .barra{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:10px 0;padding:8px 10px;background:#f6f8fa;border-radius:10px;width:fit-content;max-width:100%;box-sizing:border-box}
   .barra .tot{font-size:17px;font-weight:800}
   .barra input[type=text]{padding:10px;min-height:44px;font-size:18px;border:2px solid #d0d7de;border-radius:8px;width:200px}
@@ -799,11 +807,11 @@ function estadoRepo(i){
 function vFechaEnt(o){ return o.fecha_entrega_estimada || o.fecha_entrega || ''; }
 
 var D={}, PAQ=250, PAQ_PLIEGO=100, rubroSel=null, provSel=null;
-var PEDIDO={}; // comp_id -> cantidad
+var PEDIDO={}; // kPed(i,prov) -> cantidad: comp_id el principal, 'comp_id@Proveedor' el alternativo (v1.49.0)
 /* Insumos que el usuario DEJO VACIOS a proposito. Como el sugerido ahora se carga
    solo en "Pedir", sin esta marca cada render volveria a llenar lo que el acaba de
    borrar. Se limpia con "Usar sugeridos". */
-var SIN_PEDIDO={}; // comp_id -> true
+var SIN_PEDIDO={}; // misma clave que PEDIDO -> true
 /* Precio y Subtotal SALIERON DE LA TABLA en v1.18.0 [usuario 2026-09-04: "precio se va
    y subtotal tambien"]. La pantalla de pedir quedo en lo fisico (que hay, cuanto entra,
    cuanto pido) y la plata se mira en la barra de abajo y en la OC ya creada.
@@ -836,46 +844,49 @@ function provDeFila(i){
   return i.proveedor || '—';
 }
 /* Celda Proveedor: el nombre y nada mas. v1.48.0 [Thomas 2026-09-30: "No quiero que me aparezcan los
-   precios aca. Solo en el modulo de ordenes. Para poner a recicor repeti el item del componente y ya"]:
-   el alternativo ya no es un boton con precio debajo del principal; sin proveedor elegido, render()
-   repite la fila del insumo a nombre de cada alternativo (filasAlt). */
-function provCelda(i){ return esc(provDeFila(i)); }
-function filasAlt(i, st, mx, bajoMin, um){
-  if(provSel!=null) return '';
-  return provsDeInsumo(i).slice(1).map(function(p){
-    return '<tr class="fila-alt" data-alt-prov="'+esc(p)+'" title="Tocar para armar la OC a '+esc(p)+'">'+
-      '<td><b>'+esc(i.codigo||'—')+'</b><br><small style="color:#777">'+esc(i.descripcion||'')+
-        '<span class="prov-mini"> · '+esc(p)+'</span></small></td>'+
-      '<td>'+esc(p)+'</td>'+
-      '<td class="num'+(bajoMin?' bajo-min':'')+'">'+(st==null?'—':(fmt(st)+' '+esc(i.unidad)))+'</td>'+
-      '<td class="num">'+(mx==null?'—':fmt(mx))+'</td>'+
-      '<td class="num"></td>'+
-      '<td class="um-cell">'+esc(um.lbl)+'</td>'+
-    '</tr>';
-  }).join('');
+   precios aca. Solo en el modulo de ordenes. Para poner a recicor repeti el item del componente y ya"]. */
+function provCelda(p){ return esc(p==null || p==='(sin proveedor)' ? '—' : p); }
+/* v1.49.0: EL PEDIDO ES POR INSUMO Y PROVEEDOR [Thomas 2026-09-30: "que me deje pedir en recicor"]. Hasta
+   la v1.48.0 PEDIDO iba por comp_id y el proveedor salia del chip elegido: la caja A1 tenia UNA sola
+   cantidad, se la pidieras a Corrugadora o a Recicor. El principal sigue en PEDIDO[comp_id] (todo lo que
+   ya leia asi lee igual) y cada alternativo tiene su clave 'comp_id@Proveedor': la A1 puede ir una parte
+   a Corrugadora y otra a Recicor en la misma pasada. */
+function esAltDe(i, p){ return p!=null && p!=='(sin proveedor)' && !!i.proveedor && p!==i.proveedor && esDelProv(i, p); }
+function kPed(i, p){ return esAltDe(i, p) ? i.comp_id+'@'+p : i.comp_id; }
+// La clave de la fila cuando hay UN proveedor por insumo a la vista (el elegido, o el principal).
+function kFila(i){ return kPed(i, provSel!=null ? provSel : i.proveedor); }
+/* Las filas de la tabla: sin proveedor elegido, una por cada proveedor que entrega el insumo (principal +
+   alternativos, la del alternativo es la "fila repetida" de v1.48.0); con proveedor elegido, solo esa. */
+function filasDe(i){
+  if(provSel!=null) return [{it:i, prov:provSel}];
+  return provsDeInsumo(i).map(function(p){ return {it:i, prov:p}; });
 }
+function expandir(fs){ var out=[]; fs.forEach(function(i){ out.push.apply(out, filasDe(i)); }); return out; }
 /* PRECIO POR PROVEEDOR: la hoja que se le manda a cada uno tiene que salir con SU lista
    (Recicor cotiza las cajas ~19% mas barato que Corrugadora). i.precios_prov trae el precio
    de cada proveedor que cotiza el componente; i.precio sigue siendo el VIGENTE (el del
    proveedor asignado), que es el que usa el costo. */
-function precioProvSel(i){
+// p = el proveedor de la fila (v1.49.0); sin p, el elegido arriba (como hasta la v1.48.0).
+function precioProvSel(i, p){
   var m = i && i.precios_prov;
-  if(provSel!=null && m && m[provSel] && m[provSel].precio!=null) return m[provSel];
+  if(p==null) p=provSel;
+  if(p!=null && m && m[p] && m[p].precio!=null) return m[p];
   return null;
 }
-function precioDe(i){
+function precioDe(i, p){
   if(PRECIO[i.comp_id]!=null) return PRECIO[i.comp_id];
-  var pp=precioProvSel(i);
+  if(p==null) p=provSel;
+  var pp=precioProvSel(i, p);
   if(pp) return Number(pp.precio);
   // Se esta comprando a un proveedor que NO es el de la ficha y que no tiene lista propia
   // para esta pieza: se deja sin precio. Ponerle el del otro seria inventar plata en la
   // hoja que se le manda al proveedor.
-  if(provSel!=null && i.proveedor && provSel!==i.proveedor) return null;
+  if(p!=null && i.proveedor && p!==i.proveedor) return null;
   return i.precio!=null?Number(i.precio):null;
 }
-function monedaDe(i){
+function monedaDe(i, p){
   if(MONEDA[i.comp_id]) return MONEDA[i.comp_id];
-  var pp=precioProvSel(i);
+  var pp=precioProvSel(i, p);
   if(pp && pp.moneda) return pp.moneda;
   return i.moneda || 'ARS';
 }
@@ -1096,7 +1107,8 @@ function esCharcasIt(i){
    PEDIDO sigue guardado en la unidad del bundle (i.unidad) — asi el carton sigue validando sus
    multiplos en unidades y a crear_oc viaja lo mismo que antes. */
 var PLAST_UNI=['eduardo pintos','pat bet plast','pettofrezza rafael'];   // = RecepcionInsumos
-function umRemito(i){
+function umRemito(i, p){
+  var provU = (p!=null ? p : provDeFila(i));   // v1.49.0: el proveedor de la fila
   var canon = i.unidad==='kg' ? 'kg' : 'uni';
   if(esCharcasIt(i)) return {lbl:'paq '+fmt(kgPorPaqCharcas())+' kg', k:1};   // PEDIDO ya va en paq
   var kx=Number(i.kg_x_uni)||0, r=String(i.remito_unidad||'').toLowerCase(), u=null;
@@ -1105,9 +1117,9 @@ function umRemito(i){
   if(r==='kg' || r==='uni') u=r;
   else if(GP2UI.esCarton(i)) u = i.es_pliego ? 'uni' : 'paq';
   else if([7,8,11].indexOf(Number(i.sector_id))>=0) u='uni';
-  else if(Number(i.sector_id)===6 && PLAST_UNI.indexOf(String(provDeFila(i)||'').trim().toLowerCase())>=0) u='uni';
+  else if(Number(i.sector_id)===6 && PLAST_UNI.indexOf(String(provU||'').trim().toLowerCase())>=0) u='uni';
   else if(Number(i.sector_id)===5){
-    var pv=String(provDeFila(i)||'').trim().toLowerCase();
+    var pv=String(provU||'').trim().toLowerCase();
     u = (pv==='basconia'||pv==='altrak'||pv==='altrack') ? 'kg' : (String(i.um||'')==='unidad' ? 'uni' : 'kg');
   }
   else if(i.recibe_en_cajas) u='kg';
@@ -1167,7 +1179,11 @@ function valorSugerido(i){
 function cargarSugeridos(){
   var toco=false;
   filtradas().forEach(function(i){
-    if(PEDIDO[i.comp_id]!=null || SIN_PEDIDO[i.comp_id]) return;
+    var k=kFila(i);
+    // v1.49.0: el sugerido se carga SOLO en el principal. El alternativo (Recicor) arranca vacio y se
+    // pide a mano: si se llenaran los dos, la caja saldria pedida dos veces (maximo - stock a cada uno).
+    if(k!==i.comp_id) return;
+    if(PEDIDO[k]!=null || SIN_PEDIDO[k]) return;
     // El gatillo (v1.26.0): lo que ya llego al maximo NO se carga solo.
     if(estadoRepo(i)==='lleno') return;
     // Y lo que YA se pidio y viene en camino tampoco: se avisa en la fila y decide el
@@ -1175,7 +1191,7 @@ function cargarSugeridos(){
     // a la vista [usuario 2026-09-04: "por ahora borralo"].
     if(vPend(i)>0) return;
     var v=valorSugerido(i);
-    if(v>0){ PEDIDO[i.comp_id]=v; toco=true; }
+    if(v>0){ PEDIDO[k]=v; toco=true; }
   });
   // El carton se pide por familia: si entro un sugerido nuevo, se redondea al
   // multiplo para que la OC no nazca invalida (misma logica que "Usar sugeridos").
@@ -1233,7 +1249,7 @@ function notaMinUni(i, ped, esChar, uxpChar, um){
 // llegar a 36000"]. El titulo de la familia muestra el minimo y lo pedido entre todas sus piezas
 // (rojo si no llega); no frena. Las piezas sin familia van al final, sin titulo.
 function pedidoUniDe(i){
-  var ped=Number(PEDIDO[i.comp_id])||0;
+  var ped=Number(PEDIDO[kFila(i)])||0;
   if(esCharcasIt(i)) return ped*uniPorPaqCharcas(i);
   return ped;
 }
@@ -1252,10 +1268,6 @@ function conTitulosDeFamiliaPlastico(fs){
     if(!grupos[k]){ grupos[k]=[]; orden.push(k); }
     grupos[k].push(i);
   });
-  if(grupos['Otros']) grupos['Otros'].sort(function(a,b){
-    var pa=String(provDeFila(a)||''), pb=String(provDeFila(b)||'');
-    return pa.localeCompare(pb,'es') || String(a.codigo||'').localeCompare(String(b.codigo||''),'es');
-  });
   orden.sort(function(a,b){ if(a==='Otros') return 1; if(b==='Otros') return -1; return a.localeCompare(b,'es'); });
   var out=[];
   orden.forEach(function(k){
@@ -1264,24 +1276,27 @@ function conTitulosDeFamiliaPlastico(fs){
     var corto=m>0 && tot>0 && tot<m;
     out.push({hdr:k+' · '+xs.length+(xs.length===1?' pieza':' piezas')+
                   (m>0?(' · mín. familia '+fmt(m)+' uni · pedido '+fmt(tot)+' uni'):''), corto:corto});
-    xs.forEach(function(i){ out.push({it:i}); });
+    (k==='Otros' ? ordenadoPorProveedor(xs) : expandir(xs)).forEach(function(f){ out.push(f); });
   });
-  return out.concat(ordenadoPorProveedor(resto).map(function(i){ return {it:i}; }));
+  return out.concat(ordenadoPorProveedor(resto));
 }
 
 // v1.45.0: los DEMAS sectores (fleje, remache, bombilla, garage, caja, bolsas plasticas) van ORDENADOS
 // por proveedor y despues por codigo, sin titulos [Thomas 2026-09-29: "quiero que en la parte de todos
 // los provs (cuando no filtro por prov) igualmente este ordenado por prov sin encabezados, solo ordenado"].
+// v1.49.0: se ordena por el proveedor DE LA FILA, no del insumo [Thomas 2026-09-30: "primero todo lo de
+// corrugadora y despues todo lo de recicor"]. Devuelve filas {it, prov}: sin proveedor elegido, la caja con
+// alternativo aporta dos (una por proveedor) y cada una cae en el bloque de su proveedor.
 function ordenadoPorProveedor(fs){
-  return fs.slice().sort(function(a,b){
-    var pa=String(provDeFila(a)||''), pb=String(provDeFila(b)||'');
-    return pa.localeCompare(pb,'es') || String(a.codigo||'').localeCompare(String(b.codigo||''),'es');
+  return expandir(fs).sort(function(a,b){
+    var pa=String(provCelda(a.prov)), pb=String(provCelda(b.prov));
+    return pa.localeCompare(pb,'es') || String(a.it.codigo||'').localeCompare(String(b.it.codigo||''),'es');
   });
 }
 
 function conTitulosDeFamilia(fs){
   var carton=fs.filter(function(i){ return i.sector_id===10; });
-  if(!carton.length) return conTitulosDeFamiliaPlastico(fs) || ordenadoPorProveedor(fs).map(function(i){ return {it:i}; });
+  if(!carton.length) return conTitulosDeFamiliaPlastico(fs) || ordenadoPorProveedor(fs);
   var otros=ordenadoPorProveedor(fs.filter(function(i){ return i.sector_id!==10; }));
   var grupos={}, orden=[];
   // v1.42.1: SOLO por formato [Thomas 2026-09-29: "Solo por formato, ni por marca ni por familia
@@ -1294,10 +1309,10 @@ function conTitulosDeFamilia(fs){
     grupos[k].push(i);
   });
   orden.sort(function(a,b){ if(a==='Otros') return 1; if(b==='Otros') return -1; return a.localeCompare(b,'es'); });
-  var out=otros.map(function(i){ return {it:i}; });
+  var out=otros.slice();
   orden.forEach(function(k){
     out.push({hdr:k+' · '+grupos[k].length+(grupos[k].length===1?' cartón':' cartones')});
-    grupos[k].forEach(function(i){ out.push({it:i}); });
+    expandir(grupos[k]).forEach(function(f){ out.push(f); });
   });
   return out;
 }
@@ -1308,7 +1323,12 @@ function render(){
   $('tbody').innerHTML=conTitulosDeFamilia(fs).map(function(fila){
     if(fila.hdr) return '<tr class="fam-hdr'+(fila.corto?' corto':'')+'"><td colspan="6">'+esc(fila.hdr)+'</td></tr>';
     var i=fila.it;
-    var ped=PEDIDO[i.comp_id]||'';
+    // v1.49.0: cada fila es un insumo A UN PROVEEDOR. rep = la fila repetida del alternativo (sin proveedor
+    // elegido): tiene su campo Pedir pero no repite el desglose del maximo ni los avisos, que son del insumo.
+    var p=(fila.prov!=null) ? fila.prov : (provSel!=null ? provSel : i.proveedor);
+    var rep=(provSel==null) && esAltDe(i, p);
+    var kp=kPed(i, p);
+    var ped=PEDIDO[kp]||'';
     var esCarton=GP2UI.esCarton(i);   /* el 10 vive en gp2-ui.js (idea 7334) */
     var esChar=esCharcasIt(i);
     var uxpChar=esChar ? uniPorPaqCharcas(i) : 0;
@@ -1318,31 +1338,31 @@ function render(){
     // Charcas: input en PAQUETES; el sugerido se convierte a paq (round up).
     // Parte plastica: se muestra en cuantas BOLSAS enteras cae lo pedido.
     // La equivalencia se muestra al lado del input.
-    var um=umRemito(i);
+    var um=umRemito(i, p);
     // v1.44.2: SIN equivalencias debajo del campo ("= 227 bolsas de 150", "= 11.000 uni", "= N paq")
     // [Thomas 2026-09-29: "Estas aclaraciones no las quiero, solo el min pedido"]. Queda la linea del
     // minimo (notaMinUni) y el "ya pediste N (en camino)" (notaRepo). El campo ya va en la unidad del
     // remito, asi que la equivalencia no agregaba nada.
     var paqEq='';
-    return '<tr data-id="'+i.comp_id+'"'+(ped>0?' class="con-pedido"':'')+'>'+
+    var cl=[rep?'fila-alt':'', ped>0?'con-pedido':''].filter(Boolean).join(' ');
+    return '<tr data-id="'+i.comp_id+'" data-prov="'+esc(p)+'"'+(cl?' class="'+cl+'"':'')+'>'+
       '<td><b>'+esc(i.codigo||'—')+'</b><br><small style="color:#777">'+esc(i.descripcion||'')+
         (i.carton_formato?(' · Formato '+esc(i.carton_formato)):'')+
         // En el celular la columna Proveedor se esconde (no entraba y dejaba "Pedir"
         // fuera de pantalla) y el proveedor se lee acá mismo. Nada se pierde.
-        '<span class="prov-mini"> · '+esc(provDeFila(i))+'</span></small></td>'+
-      '<td>'+provCelda(i)+'</td>'+
+        '<span class="prov-mini"> · '+provCelda(p)+'</span></small></td>'+
+      '<td>'+provCelda(p)+'</td>'+
       // El "mín N" debajo del stock se saco [usuario 2026-09-04: "eso no lo quiero ver"].
       // El stock se pinta en rojo cuando esta abajo del MAXIMO (el minimo se borro el 14-09).
       '<td class="num'+(bajoMin?' bajo-min':'')+'">'+(st==null?'—':(fmt(st)+' '+esc(i.unidad)))+'</td>'+
       // El origen del maximo (fisico / EM / migrado) NO se muestra en la fila
       // [usuario 2026-09-16: "no quiero que me especifique de donde sale el maximo"].
       // Sigue disponible en el desglose que se abre al tocar el Maximo.
-      '<td class="num'+(mx!=null?' max-cell" data-max="'+i.comp_id+'" title="Ver de qué se compone':'')+'">'+(mx==null?'—':fmt(mx))+'</td>'+
-      '<td class="num"><input class="pedir-in" data-in="'+i.comp_id+'" inputmode="decimal" value="'+(ped?valCampo(ped*um.k):'')+'" placeholder="'+esc(um.lbl)+'">'+
-        notaMinUni(i, ped, esChar, uxpChar, um)+paqEq+
-        notaRepo(i)+'</td>'+
+      '<td class="num'+(mx!=null&&!rep?' max-cell" data-max="'+i.comp_id+'" title="Ver de qué se compone':'')+'">'+(mx==null?'—':fmt(mx))+'</td>'+
+      '<td class="num"><input class="pedir-in" data-in="'+i.comp_id+'" data-prov="'+esc(p)+'" inputmode="decimal" value="'+(ped?valCampo(ped*um.k):'')+'" placeholder="'+esc(um.lbl)+'">'+
+        (rep ? '' : notaMinUni(i, ped, esChar, uxpChar, um)+paqEq+notaRepo(i))+'</td>'+
       '<td class="um-cell">'+esc(um.lbl)+'</td>'+
-    '</tr>'+filasAlt(i, st, mx, bajoMin, um);
+    '</tr>';
   }).join('');
   // Toda la zona de armar la OC (buscador, leyenda, tabla y barras) aparece recien
   // cuando hay sector o proveedor elegido; hasta entonces solo se ve el cartel.
@@ -1357,22 +1377,23 @@ function render(){
   document.querySelectorAll('.pedir-in').forEach(function(inp){
     inp.addEventListener('change',function(){
       var v=parseNum(inp.value);
-      var id=Number(inp.dataset.in);
+      var id=Number(inp.dataset.in), pv=inp.dataset.prov;
       // Vaciar el campo = "este no lo pido": queda anotado en SIN_PEDIDO para que el
       // sugerido NO se vuelva a cargar solo en el proximo render.
       // Lo tipeado esta en la unidad del remito; PEDIDO se guarda en la del bundle.
       var itv=(D.insumos||[]).filter(function(x){ return x.comp_id===id; })[0];
-      var k=itv?umRemito(itv).k:1;
+      var k=itv?umRemito(itv, pv).k:1;
       if(v>0 && k!==1){ v=v/k; if(itv.unidad!=='kg') v=Math.round(v); }
-      if(v>0){ PEDIDO[id]=v; delete SIN_PEDIDO[id]; }
-      else { delete PEDIDO[id]; SIN_PEDIDO[id]=true; }
+      // v1.49.0: la clave es insumo + proveedor de la fila (la de Recicor no pisa la de Corrugadora).
+      var kp=itv?kPed(itv, pv):id;
+      if(v>0){ PEDIDO[kp]=v; delete SIN_PEDIDO[kp]; }
+      else { delete PEDIDO[kp]; SIN_PEDIDO[kp]=true; }
       render(); barra();
     });
   });
-  // Fila repetida del proveedor alternativo: tocarla equivale a tocar su chip arriba.
-  document.querySelectorAll('tr.fila-alt').forEach(function(b){
-    b.addEventListener('click', function(){ provSel=b.dataset.altProv; pintarProvs(); proponerFecha(); render(); });
-  });
+  // v1.49.0: la fila repetida del alternativo ya NO elige el proveedor al tocarla (v1.48.0): tiene su
+  // propio campo Pedir, y un toque para escribir la cantidad cambiaba toda la tabla. Para ver solo lo
+  // de Recicor sigue estando su chip arriba.
   // Tocar el Máximo abre el desglose: de dónde sale ese número.
   document.querySelectorAll('td.max-cell').forEach(function(td){
     // Mouse: se abre al pasar por arriba y se cierra al salir. Solo pointerType 'mouse': un
@@ -1442,19 +1463,30 @@ function ubicarDesglose(){
 /* Solo los pedidos del rubro/proveedor seleccionado: lo cargado en otros chips
    queda guardado para su propia OC, no se mezcla en la OC de este rubro. */
 function itemsPedidos(){
-  return (D.insumos||[]).filter(function(i){
-    if(!(PEDIDO[i.comp_id]>0)) return false;
-    if(ocultoRubro(i)) return false;
-    if(rubroSel!=null && rubroDe(i)!==rubroSel) return false;
-    if(!esDelProv(i, provSel)) return false;
-    return true;
-  }).map(function(i){
-    // Charcas: el PEDIDO viene ya en paquetes; unidad='paq' para la RPC
-    // (crear_oc se encarga de la OC gemela a Altrak).
-    var u = esCharcasIt(i) ? 'paq' : i.unidad;
-    return {comp_id:i.comp_id, cantidad:PEDIDO[i.comp_id], unidad:u,
-            precio:precioDe(i), moneda:monedaDe(i), it:i};
+  var out=[];
+  (D.insumos||[]).forEach(function(i){
+    if(ocultoRubro(i)) return;
+    if(rubroSel!=null && rubroDe(i)!==rubroSel) return;
+    if(!esDelProv(i, provSel)) return;
+    // v1.49.0: un renglon por proveedor de la fila (la caja pedida a Corrugadora y a Recicor da dos),
+    // cada uno con el precio de SU proveedor. prov dice a que OC va.
+    filasDe(i).forEach(function(f){
+      var c=PEDIDO[kPed(i, f.prov)];
+      if(!(c>0)) return;
+      // Charcas: el PEDIDO viene ya en paquetes; unidad='paq' para la RPC
+      // (crear_oc se encarga de la OC gemela a Altrak).
+      var u = esCharcasIt(i) ? 'paq' : i.unidad;
+      out.push({comp_id:i.comp_id, cantidad:c, unidad:u,
+                precio:precioDe(i, f.prov), moneda:monedaDe(i, f.prov), it:i, prov:f.prov});
+    });
   });
+  return out;
+}
+// Los proveedores de lo pedido, en orden de aparicion: sin proveedor elegido, uno por OC que se va a crear.
+function provsDeItems(items){
+  var out=[];
+  items.forEach(function(x){ if(out.indexOf(x.prov)<0) out.push(x.prov); });
+  return out;
 }
 
 /* ===== Cartones: como se pide cada familia (REGLAS_OC_INSUMOS.md) =====
@@ -1615,9 +1647,10 @@ function ajustarFamilia(xs){
    los codigos que YA tienen pedido: no agrega codigos que nadie pidio. */
 function ajustarPedidoCarton(){
   var cargados=[];
+  var kDe={};   // comp_id -> clave de PEDIDO (v1.49.0: la del proveedor de la fila)
   filtradas().forEach(function(i){
-    var c=Number(PEDIDO[i.comp_id])||0;
-    if(c>0) cargados.push({comp_id:i.comp_id, cantidad:c, it:i});
+    var k=kFila(i), c=Number(PEDIDO[k])||0;
+    if(c>0){ cargados.push({comp_id:i.comp_id, cantidad:c, it:i}); kDe[i.comp_id]=k; }
   });
   var toco=false;
   gruposCarton(cargados).forEach(function(grupo){
@@ -1629,7 +1662,8 @@ function ajustarPedidoCarton(){
     }));
     if(!q) return;
     Object.keys(q).forEach(function(id){
-      if(PEDIDO[Number(id)]!==q[id]){ PEDIDO[Number(id)]=q[id]; toco=true; }
+      var k=(kDe[id]!=null) ? kDe[id] : Number(id);
+      if(PEDIDO[k]!==q[id]){ PEDIDO[k]=q[id]; toco=true; }
     });
   });
   return toco;
@@ -1646,7 +1680,7 @@ function validarMinimoProveedor(items){
   if(!mats.length) return [];
   var porProv={};
   mats.forEach(function(x){
-    var p=provDeFila(x.it);
+    var p=x.prov||provDeFila(x.it);
     porProv[p]=(porProv[p]||0)+(Number(x.cantidad)||0);
   });
   var errs=[];
@@ -1683,7 +1717,10 @@ function barra(){
     if(x.precio==null){ sinPrecio++; return; }
     if(x.moneda==='ARS') tArs+=x.cantidad*x.precio; else tUsd+=x.cantidad*x.precio;
   });
-  var tot=items.length+' ítems';
+  // v1.49.0: sin proveedor elegido lo pedido puede ir a mas de uno (Corrugadora y Recicor): sale una OC por
+  // proveedor y el boton lo dice.
+  var nProv=provsDeItems(items).length;
+  var tot=items.length+' ítems'+(nProv>1?(' · '+nProv+' proveedores'):'');
   if(tUsd>0||tArs>0){
     tot+=' · '+fmtTotalMon(tUsd,tArs);
     if(D.tc && tUsd>0) tot+=' (≈ $ '+fmt(tUsd*Number(D.tc)+tArs,0)+')';
@@ -1695,6 +1732,7 @@ function barra(){
                         (provSel!=null?(' de '+provSel):'');
   $('tot').textContent=tot;
   $('btnCrear').disabled = items.length===0 || errs.length>0;
+  $('btnCrear').textContent = nProv>1 ? ('Crear '+nProv+' OC') : 'Crear OC';
 }
 
 // Vuelve a poner los sugeridos: borra las marcas de "este no lo pido" de lo que se ve.
@@ -1702,8 +1740,9 @@ function barra(){
 // carga TODO lo visible que tenga sugerido.
 $('btnSug').addEventListener('click',function(){
   filtradas().forEach(function(i){
-    delete SIN_PEDIDO[i.comp_id];
-    var v=valorSugerido(i); if(v>0) PEDIDO[i.comp_id]=v;
+    var k=kFila(i);
+    delete SIN_PEDIDO[k];
+    var v=valorSugerido(i); if(v>0) PEDIDO[k]=v;
   });
   // Los cartones salen ya redondeados a su familia [usuario 2026-09-03: "si,
   // redondea para arriba"], asi la OC queda valida sin corregirla a mano.
@@ -1713,7 +1752,7 @@ $('btnSug').addEventListener('click',function(){
 // Limpiar deja la pantalla en cero: marca lo visible como "no pedir" para que el
 // sugerido no se vuelva a cargar solo apenas se repinta.
 $('btnLimpiar').addEventListener('click',function(){
-  filtradas().forEach(function(i){ SIN_PEDIDO[i.comp_id]=true; });
+  filtradas().forEach(function(i){ SIN_PEDIDO[kFila(i)]=true; });
   PEDIDO={}; PRECIO={}; MONEDA={}; render();
 });
 $('fechaEnt').addEventListener('change',function(){
@@ -1724,41 +1763,73 @@ $('btnCrear').addEventListener('click', async function(){
   var items=itemsPedidos();
   if(!items.length) return;
   $('btnCrear').disabled=true;
+  // v1.49.0: UNA OC POR PROVEEDOR. Sin proveedor elegido lo pedido a Corrugadora y lo pedido a Recicor
+  // salen en dos OC (cada proveedor recibe su hoja, con su precio). Hasta la v1.48.0 salia UNA sola OC
+  // con proveedor vacio mezclando los dos. Con un proveedor elegido es una sola, como siempre.
+  var provs=provsDeItems(items), hechas=[], err=null;
+  var rubro = rubroSel!=null ? (rubrosDistintos().filter(function(r){return r.id===rubroSel;})[0]||{}).nombre : null;
+  // Fecha de entrega estimada: viaja dentro de p (crear_oc la lee de p.fecha_entrega).
+  // La overload crear_oc(p, p_fecha_entrega) se borro el 2026-09-04: era un wrapper que
+  // repetia un dato que ya viajaba en p.
+  var fEnt = ($('fechaEnt').value||'').trim() || null;
+  var nota = ($('nota').value||'').trim() || null;
   try{
-    var rubro = rubroSel!=null ? (rubrosDistintos().filter(function(r){return r.id===rubroSel;})[0]||{}).nombre : null;
-    // Fecha de entrega estimada: viaja dentro de p (crear_oc la lee de p.fecha_entrega).
-    // La overload crear_oc(p, p_fecha_entrega) se borro el 2026-09-04: era un wrapper que
-    // repetia un dato que ya viajaba en p.
-    var fEnt = ($('fechaEnt').value||'').trim() || null;
-    var r=await SB.rpc('crear_oc',{ p:{
-      proveedor: provSel && provSel!=='(sin proveedor)' ? provSel : null,
-      rubro: rubro, nota: ($('nota').value||'').trim() || null, usuario: null,
-      fecha_entrega: fEnt,
-      // precio/moneda viajan SIEMPRE: si no se toco nada son los de la lista, y si
-      // se pisaron, crear_oc guarda estos y no los de precio_proveedor.
-      items: items.map(function(x){ return {comp_id:x.comp_id, cantidad:x.cantidad, unidad:x.unidad,
-                                            precio:x.precio, moneda:x.moneda}; })
-    } });
-    if(r.error) throw r.error;
+    for(var g=0; g<provs.length; g++){
+      var pv=provs[g], xs=items.filter(function(x){ return x.prov===pv; });
+      var prov = (pv && pv!=='(sin proveedor)') ? pv : null;
+      // Sin fecha propuesta (no hay proveedor elegido) cada OC lleva hoy + el plazo de SU proveedor.
+      var dp = prov ? diasEntregaProv(prov) : null;
+      var fe = fEnt || (dp!=null ? hoyMas(dp) : null);
+      var r=await SB.rpc('crear_oc',{ p:{
+        proveedor: prov,
+        rubro: rubro, nota: nota, usuario: null,
+        fecha_entrega: fe,
+        // precio/moneda viajan SIEMPRE: si no se toco nada son los de la lista, y si
+        // se pisaron, crear_oc guarda estos y no los de precio_proveedor.
+        items: xs.map(function(x){ return {comp_id:x.comp_id, cantidad:x.cantidad, unidad:x.unidad,
+                                           precio:x.precio, moneda:x.moneda}; })
+      } });
+      if(r.error) throw r.error;
+      hechas.push({prov:prov, data:r.data, fe:fe});
+      // Lo ya creado sale de PEDIDO en el acto: si la OC siguiente falla, reintentar no lo duplica.
+      xs.forEach(function(x){ delete PEDIDO[kPed(x.it, x.prov)]; });
+    }
     PEDIDO={}; PRECIO={}; MONEDA={}; SIN_PEDIDO={}; $('nota').value='';
     fechaTocada=false; fechaTocadaProv=null;
-    await boot();
-    mostrarTab('ocs');
-    // Materia prima plastica: la OC se EMITE sola al generarla (se abre la hoja con el formato del
-    // usuario para imprimir / mandar al proveedor) [usuario 2026-09-11: "que se emita automaticamente
-    // desde gestion productiva cuando genero el pedido"].
-    var creada = (D.ocs||[]).filter(function(x){ return x.id===r.data.oc_id; })[0];
-    if (creada && esOcMaterial(creada)) imprimirOC(creada.id);
+  }catch(e){ err=e; }
+  try{
+    if(hechas.length){
+      await boot();
+      mostrarTab('ocs');
+      // Materia prima plastica: la OC se EMITE sola al generarla (se abre la hoja con el formato del
+      // usuario para imprimir / mandar al proveedor) [usuario 2026-09-11: "que se emita automaticamente
+      // desde gestion productiva cuando genero el pedido"].
+      hechas.forEach(function(h){
+        var creada = (D.ocs||[]).filter(function(x){ return x.id===h.data.oc_id; })[0];
+        if (creada && esOcMaterial(creada)) imprimirOC(creada.id);
+      });
+    }
     // OC gemela al proveedor de la materia prima de un PS hibrido (Charcas -> Altrak, Eclipse ->
     // Aperam, o el que se configure en proveedor_servicio): crear_oc la crea y la devuelve.
-    var gem = r.data && r.data.oc_gemela;
-    $('status').className='status ok';
-    $('status').innerHTML='✓ OC N° '+r.data.numero+' creada con '+r.data.items+' ítems (borrador).' +
-      (fEnt?(' Entrega estimada: '+fmtFecha(fEnt)+'.'):'') +
-      (gem ? ('<br><b style="color:#0b3b73">✓ OC gemela N° '+gem.numero+' a '+esc(gem.proveedor)+' con '+fmt(gem.kg,1)+' kg de '+esc(gem.componente)+'.</b>') : '');
-    setTimeout(function(){ $('status').innerHTML=''; $('status').className='status'; }, gem ? 12000 : 6000);
+    var hayGem=false;
+    var msg=hechas.map(function(h){
+      var gem = h.data && h.data.oc_gemela;
+      if(gem) hayGem=true;
+      return '✓ OC N° '+h.data.numero+(hechas.length>1&&h.prov?(' a '+esc(h.prov)):'')+' creada con '+h.data.items+' ítems (borrador).' +
+        (h.fe?(' Entrega estimada: '+fmtFecha(h.fe)+'.'):'') +
+        (gem ? ('<br><b style="color:#0b3b73">✓ OC gemela N° '+gem.numero+' a '+esc(gem.proveedor)+' con '+fmt(gem.kg,1)+' kg de '+esc(gem.componente)+'.</b>') : '');
+    }).join('<br>');
+    if(err){
+      $('status').className='status bad';
+      $('status').innerHTML=(msg?msg+'<br>':'')+'Error: '+esc(err.message||err)+
+        (hechas.length?' — lo que falta sigue cargado; volvé a tocar Crear OC.':'');
+    } else {
+      $('status').className='status ok';
+      $('status').innerHTML=msg;
+      setTimeout(function(){ $('status').innerHTML=''; $('status').className='status'; }, hayGem ? 12000 : 6000);
+    }
   }catch(e){ $('status').className='status bad'; $('status').textContent='Error: '+(e.message||e); }
-  finally{ $('btnCrear').disabled=false; }
+  finally{ $('btnCrear').disabled=false; barra(); }
 });
 
 function pintarOcs(){

@@ -4,6 +4,7 @@
 (vacío)
 
 [HISTORIAL]
+2026-09-30 (8) - OC v1.49.0: Sector Caja ordenado por proveedor de la fila (todo Corrugadora, despues todo Recicor); la fila de Recicor tiene su campo Pedir (PEDIDO por insumo+proveedor, sugerido solo al principal); Crear OC sin proveedor elegido = una OC por proveedor (Thomas). test_oc_prov_alt_fila reescrito. version.js v1.212.0 ?v=20260930h. CONOCIMIENTO (Recicor). thomas (claude-remote).
 2026-09-30 (5) - manifest: launch_handler focus-existing + handle_links preferred, para que el link desde Gestion Virgilio abra la app GP2 instalada (Luis). version.js v1.211.3. luis (claude-remote).
 2026-09-30 (7) - Stock General v2.2.1: en los rubros de sector el codigo se ordena numerico (GRJ4 < GRJ10 < GRJ10A < GRJ12); 'otros' sigue por proveedor (Nazareno). Solo pantalla + test_stock_general (Garage). version.js v1.211.2 ?v=20260930f (la v1.211.1 la tomo Control v1.5.1). naza (claude-remote).
 2026-09-30 (6) - CONOCIMIENTO 4ha: confirmado que el C13 queda en unidades (Naza: "Si"). Solo doc. naza (claude-remote).
@@ -13,5 +14,3 @@
 2026-09-30 (5) - Importados: C13 remito_unidad envase -> uni (los 8 importados quedan en uni: remito y packing list vienen en unidades) (Naza). DB-only, revierte la recepcion en cajas del 4gb. CONOCIMIENTO 4hc. naza (claude-remote).
 2026-09-30 (4) - Espejos de solo lectura de Virgilio en GP2: virgilio_insumo_stock / _ubicacion / virgilio_lugar (cron gv-gp2-espejo-sync c/10 min). DB-only: db/tablas, CONOCIMIENTO 4gz. luis (claude-remote).
 2026-09-30 (4) - Control de la tablet: insumos sin controlar (Importado, Garage, remaches, plasticos, bombillas, cajas, bolsas, flejes sin pesar) con "Controlar ->" a su pantalla; boton Control cuenta P.S.+talleristas+insumos y solo se ve en Recibir (Nazareno). DB: control_entrega_bundle.insumos_pend. gp2-control-insumo.js (GP2CI) = lista unica de CONTROL_URL (sale de RecepcionInsumos). Tablet v1.39.0, ControlEntregaPS v1.5.0, RecepcionInsumos v3.65.2, version.js v1.211.0 ?v=20260930d. CONOCIMIENTO 4hc. naza (claude-remote).
-2026-09-30 (3) - GP2.aceptado_virgilio: lo que Virgilio le acepta a Cervantes (24 recepciones, 7 aceptadas, 17 TMP), la llena gv_gp2_aceptado_sync c/10 min. DB-only: db/tablas, CONOCIMIENTO 4gy. luis (claude-remote).
-2026-09-30 (2) - OC v1.48.0: sin precio en Generar OC; el proveedor alternativo (Recicor) es una fila repetida del insumo sin campo Pedir, tocarla elige el proveedor (Thomas). version.js v1.210.0 ?v=20260930c. thomas (claude-remote).
