@@ -187,7 +187,8 @@ span.op.lock .lk{font-size:14px;margin-left:auto;opacity:.7}
   body.fijo .card.open .btns{gap:5px}
   body.fijo .card.open .card-head{padding:8px 12px}
   body.fijo .card.open .card-head .title{font-size:16px}
-  body.fijo .card.open a.op,body.fijo .card.open span.op.lock{min-height:44px;padding:6px 8px}
+  /* v1.212.1: 5px (antes 6) porque "Órdenes Compra Insumos" va en 2 lineas y el menu se pasaba 1px de 600 */
+  body.fijo .card.open a.op,body.fijo .card.open span.op.lock{min-height:44px;padding:5px 8px}
   body.fijo .card.open .btns > :last-child:nth-child(odd){min-height:44px}
 }
 
@@ -248,7 +249,7 @@ a.tablet-link:hover{background:#1d4ed8}
     (GP2_AUTH_ON=false) no hay sesion que cerrar: el link se oculta solo -->
     <span id="sesion" hidden>&nbsp;·&nbsp; <a href="login.html?logout=1" onclick="try{sessionStorage.clear();}catch(e){}"
     style="color:#b42318;text-decoration:none;font-weight:700">⎋ Cerrar sesión</a></span></div>
-  <script src="version.js?v=20260930h"></script>
+  <script src="version.js?v=20260930i"></script>
   <script>if (window.GP2_AUTH_ON !== false) document.getElementById('sesion').hidden = false;</script>
   <div class="tablet-links">
     <a class="tablet-link" href="Tablet/Tablet_GP2.html">📱 <span class="tl-v">Versión </span>Tablet Logística</a>
@@ -276,12 +277,12 @@ const MENU = [
    ["Control Partes P.S.", "Prov%20Serv/Control/ControlPS_GP2.html"],
    ["Control Partes Prov. A.T.", "Prov%20Art%20Terminado/Control/ControlAT_GP2.html"],
    ["Faltantes", "Faltantes/Faltantes_GP2.html"],
-   ["Validación de Stock", "Relevamiento/Validacion_Stock.html"],
+   ["Validación Stock", "Relevamiento/Validacion_Stock.html"],
    ["Proporciones", "Talleristas/Proporciones/Proporciones_GP2.html"],
  ]],
  ["🛠","Herramientas", [
-   ["O.C.", "Compras/OC_GP2.html"],
-   ["O.P.", "OrdenProduccion/OrdenProduccion.html"],
+   ["Órdenes Compra Insumos", "Compras/OC_GP2.html"],
+   ["Órdenes Producción", "OrdenProduccion/OrdenProduccion.html"],
    ["Despiece x Art.", "Programa/Programa.html"],
    ["Consumo x Componente", "Consumo/Consumo_GP2.html"],
    ["Tiempos Matrices", "Produccion/tiempos_GP2.html"],
