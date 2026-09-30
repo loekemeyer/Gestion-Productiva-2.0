@@ -35,5 +35,11 @@
       "auto"
     ]
   },
-  "handle_links": "preferred"
+  "handle_links": "preferred",
+  "protocol_handlers": [
+    {
+      "protocol": "web+gp2",
+      "url": "./GP2_MODULOS.html?desde=%s"
+    }
+  ]
 }
