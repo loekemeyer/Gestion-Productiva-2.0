@@ -4,6 +4,7 @@
 (vacío)
 
 [HISTORIAL]
+2026-09-30 (5) - manifest: launch_handler focus-existing + handle_links preferred, para que el link desde Gestion Virgilio abra la app GP2 instalada (Luis). version.js v1.211.2. luis (claude-remote).
 2026-09-30 (5) - Control de la tablet v1.5.1: "Controlado" suma los insumos ya controlados (recepcion_insumo controlado=true; remito=cantidad_declarada, contado=cantidad) (Nazareno: "Controle y no me aparecen en el historial"). DB: control_entrega_bundle.hechos. version.js v1.211.1 ?v=20260930e. CONOCIMIENTO 4hc. naza (claude-remote).
 2026-09-30 (4) - Conteo (Relevamiento): ALAMBRE y FLEJE_DESCORAZONADOR fuera (MP bruta de PS hibrido, proveedor_servicio.mp_componente_id) en relevamiento_abrir + relevamiento_bundle; Sector Fleje 53->51. Maximos OC ya eran los pedidos (4gs), no se tocaron. CONOCIMIENTO 4hb
 2026-09-30 (5) - Importados: C13 remito_unidad envase -> uni (los 8 importados quedan en uni: remito y packing list vienen en unidades) (Naza). DB-only, revierte la recepcion en cajas del 4gb. CONOCIMIENTO 4hc. naza (claude-remote).
