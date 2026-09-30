@@ -1,4 +1,5 @@
-/* v1.45.1 [Thomas 2026-09-29: "en sector caja, salvo que toque Recicor, no me aparece. Que me aparezca
+/* v1.48.0: el alternativo es una fila repetida sin precio (antes, v1.45.1: boton con precio).
+   v1.45.1 [Thomas 2026-09-29: "en sector caja, salvo que toque Recicor, no me aparece. Que me aparezca
    la opcion de comprarselo a ellos"]: sin proveedor elegido, la fila muestra el alternativo como boton,
    con su precio, y tocarlo elige ese proveedor. */
 const { chromium } = require('playwright');
@@ -29,12 +30,14 @@ const STUB = `window.supabase = { createClient: function(){ return {
   const ok = (c, m) => { console.log((c ? 'OK  ' : 'FAIL') + ' ' + m); if (!c) process.exitCode = 1; };
 
   await page.click('#rubros .chip:has-text("Caja")');
-  const btns = await page.$$eval('button.prov-alt', b => b.map(x => x.textContent));
-  ok(btns.length === 1 && /Recicor/.test(btns[0]) && /199/.test(btns[0]), 'sin elegir proveedor, la fila ofrece Recicor con su precio: ' + btns.join('|'));
-  ok((await page.$eval('button.prov-alt', b => b.getBoundingClientRect().height)) >= 44, 'el boton se toca bien (>=44px)');
-  await page.click('button.prov-alt');
-  ok(await page.$eval('#provs .chip.active', x => x.textContent) === 'Recicor', 'tocarlo elige Recicor arriba');
-  ok((await page.$$('button.prov-alt')).length === 0, 'con proveedor elegido la columna ya no ofrece alternativos');
+  // v1.48.0 [Thomas 2026-09-30]: sin precios en esta pantalla; el alternativo es la fila repetida.
+  const filas = await page.$$eval('#tbody tr[data-id], #tbody tr.fila-alt', t => t.map(r => r.cells[0].querySelector('b').textContent + '|' + r.cells[1].textContent));
+  ok(JSON.stringify(filas) === JSON.stringify(['A1|Corrugadora del Plata', 'A1|Recicor', 'A7B|Corrugadora del Plata']), 'A1 repetida a nombre de Recicor: ' + JSON.stringify(filas));
+  ok(!/\$/.test(await page.textContent('#tbody')), 'la tabla no muestra precios');
+  ok((await page.$$('tr.fila-alt input')).length === 0, 'la fila repetida no tiene campo Pedir');
+  await page.click('tr.fila-alt');
+  ok(await page.$eval('#provs .chip.active', x => x.textContent) === 'Recicor', 'tocarla elige Recicor arriba');
+  ok((await page.$$('tr.fila-alt')).length === 0, 'con proveedor elegido no se repite nada');
   ok(/Recicor/.test(await page.textContent('#tbody tr td:nth-child(2)')), 'la fila queda a nombre de Recicor');
 
   await browser.close();

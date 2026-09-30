@@ -13887,6 +13887,16 @@ Contexto: app unificada `GP2-Registro-Produccion`, se arranca por Cervantes. Tab
   pisaron: `codigo` no es único en la base y un código repetido rompe todo lo que busca por código. Queda en
   `GRJ31`/`GRJ32` hasta que el dueño diga si los palos se mueven de código o si es otra numeración.
 
+## 4gy. Lo que Virgilio le ACEPTA a Cervantes queda en GP2.aceptado_virgilio (2026-09-30)
+
+- [usuario] Luis: *"crea una tabla con los datos de lo que gestion virgilio le acepta a GP2 que los dos puedan leer"*.
+- [dato] Fuente: las recepciones de insumos de Virgilio que vinieron de Cervantes (`recepcion_insumo`, ref Cervantes):
+  24 al 30/09, **7 aceptadas** (ya con código real: N°44, 10, N° 43, N°94, 1060500, D4, N°41) y **17 con código
+  temporal TMP-** (todavía nadie las identificó en Virgilio).
+- La tabla vive en GP2 y la llena Virgilio (función `public.gv_gp2_aceptado_sync`, cada 10 min). GP2 sólo la lee.
+- `componente_id` está vacío a propósito: el vínculo código de Virgilio ↔ `GP2.componente` no existe y no se adivina.
+- Es el espejo de 4gx (`ingreso_virgilio`: lo que Virgilio le manda a Cervantes).
+
 ## 4gx. Lo que Virgilio manda a Cervantes aparece en la portada de GP2 (2026-09-30)
 
 [usuario, Luis 30/09] *"Cuando Gestión Virgilio marca que se ingresa algo en Cervantes, tiene que figurar
@@ -13905,7 +13915,7 @@ CONFIRMALO Y UBICALO» (falta implementar confirmación y ubicación)"*.
   `componente_id`). [dato] Hoy **no hay** vínculo entre el código importado/insumo de Virgilio (1000900,
   H201Part, 007) y el `componente` de GP2: ubicar exige ese mapeo primero.
 
-## 4gy. El botón "Control" de la tablet es de TODO lo que se recibe, y sólo en Recibir (2026-09-30)
+## 4gz. El botón "Control" de la tablet es de TODO lo que se recibe, y sólo en Recibir (2026-09-30)
 
 - [usuario] Nazareno: *"Cargué una recepción en recepción de insumos y no hice el control. Ahora voy a control y no
   me aparece"*. Y la regla: *"Me gustaría que aparezca en el botón de control que está a la izquierda del botón atrás
