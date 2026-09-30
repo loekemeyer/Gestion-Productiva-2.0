@@ -4,6 +4,7 @@
 (vacío)
 
 [HISTORIAL]
+2026-09-30 (12) - v1.214.3: gp2-ui.js?v=20260913e -> 20260930a en las 53 pantallas. fechaTsAR entro a gp2-ui.js el 26/09 sin bumpear el token: un navegador con el gp2-ui viejo cacheado rompia el cartel 'VIRGILIO DICE QUE TE LLEGO ESTO' (TypeError tragado por el try). Luis (claude-remote).
 2026-09-30 (10) - Remito vs Control v1.1.0: entran los FLEJES (pesaje por pallet; origen 'pesaje': peso_total -> balanza, resto -> rollos x kg; solo pesaje completo y en kg). El bundle manda en_stock y la pantalla cuenta cuantas decisiones cambian el stock. version.js v1.214.2 ?v=20260930l (el j y el k los tomaron Stock General y el Menu en paralelo). CONOCIMIENTO 4hd. thomas (claude-remote).
 2026-09-30 (11) - Menu GP2: "O.C." -> "Órdenes Compra Insumos", "O.P." -> "Órdenes Producción", "Validación de Stock" -> "Validación Stock" (solo el menu visible; MENU_OCULTO tal cual). Pantalla baja: padding de baldosa 6->5px para que siga entrando en 600px. version.js v1.214.1 ?v=20260930k. claude-remote.
 2026-09-30 (9) - Stock General v2.3.0: Transito PS pasa al grupo Sectores; rubro nuevo Inyectores en Otros (MP plastica mandada a cada inyector, ubicacion tipo inyector, en kg: Kg lleno y Uni vacio, sin Caj ni Maximo). Sale de D.inv, sin RPC nueva. test_stock_general ampliado. version.js v1.214.0 ?v=20260930j. sin identificar (claude-remote).
