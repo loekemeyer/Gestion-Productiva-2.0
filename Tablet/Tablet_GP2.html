@@ -6,6 +6,11 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
+<!-- v1.41.0 (2026-09-30) — LO QUE SE MANDA A VIRGILIO ESPERA SU SÍ (D4, Thomas: "lo que manda Cervantes llega a
+     Gestión Virgilio como aviso Sí/No donde recibe"). enviar_a_virgilio escribe una fila en GP2.envio_virgilio;
+     Virgilio la confirma o la deniega desde GV. La tarjeta de Enviar → Virgilio dice "⏳ Virgilio no confirmó N"
+     (vir_pend) y, si la denegó, "⛔ Denegado por Virgilio: N · motivo (ya volvió al stock)" (vir_deneg, 15 días):
+     el No lo revierte el trigger fn_envio_virgilio_denegado. db/migracion_envio_virgilio.sql. -->
 <!-- v1.40.0 (2026-09-30) — "VIRGILIO" EN ENVIAR Y RECIBIR, Y FÁBRICA PRODUCE EN CAJAS [usuario: "Quiero que
      en enviar y recibir (versión tablet) me aparezca «Virgilio»"]. (1) Enviar → Talleristas → FÁBRICA: no se
      le mandan partes, se le MANDA A PRODUCIR cada artículo que arma, en CAJAS (articulo.articulos_por_caja):
@@ -861,6 +866,10 @@
   .parte-card.otro .pc-desc{font-size:15px;color:#555}
   .parte-card.sust{border-color:#0b4aa2;background:#f5f9ff}
   .pc-sust,.det-sust{font-size:15px;font-weight:800;color:#0b4aa2}
+  .pc-vir{display:block;font-size:15px;font-weight:800;color:#78350f}
+  .pc-vir.no{color:#b91c1c}
+  .det-vir{margin-top:6px;font-size:17px;font-weight:800;color:#78350f}
+  .det-vir.no{color:#b91c1c}
   .det-sust{margin-top:6px;font-size:17px}
   /* el catálogo del reemplazo, adentro de la vista de la parte */
   .sust-lista{max-height:52vh;overflow:auto;margin-top:8px;-webkit-overflow-scrolling:touch}
@@ -1110,6 +1119,18 @@ function claveCP(c){ return MODO + ":" + c.tipo + ":" + c.ref; }
 /* FÁBRICA (tallerista 3, v1.40.0): a Fábrica no se le mandan partes, se le MANDA A PRODUCIR el artículo en
    cajas (la base descuenta el despiece y suma el terminado en "Art. Terminado (Fábrica)"). */
 function esFabrica(c){ return !!c && c.tipo === "tallerista" && String(c.ref) === "3"; }
+// AVISO A VIRGILIO (D4, 2026-09-30): lo que se mando a Virgilio y todavia espera su Si, y lo que
+// Virgilio DENEGO (ya volvio al stock de aca). Se ve donde se cargo [regla general GP2 <-> GV].
+function virEnvioAvisos(x, cls){
+  if (MODO !== "enviar" || !x || x.tipo !== "virgilio") return "";
+  var h = "", u = Number(x.sec_id) === 12 ? "uni" : unidadDe(x), d = u === "kg" ? 2 : 0;
+  var pend = Number(x.vir_pend || 0), dn = x.vir_deneg;
+  if (pend > 0) h += '<span class="' + cls + '">⏳ Virgilio no confirmó ' + fmt(pend, d) + " " + esc(unidadTxt(pend, u)) + "</span>";
+  if (dn && Number(dn.cantidad) > 0)
+    h += '<span class="' + cls + ' no">⛔ Denegado por Virgilio: ' + fmt(dn.cantidad, d) + " " + esc(unidadTxt(Number(dn.cantidad), u)) +
+         (dn.motivo ? " · " + esc(dn.motivo) : "") + " (ya volvió al stock)</span>";
+  return h;
+}
 
 /* En Enviar tienen sugerido: PS y talleristas (máximo − stock − lo que ya está en el destino) y los
    INYECTORES (bolsas de resina en kg = Σ deficit de las partes plásticas × kg_x_uni). El PROV. DE
@@ -2060,6 +2081,7 @@ function renderCards(){
         "</span>" +
       // el cartón de otro artículo: lo primero que hay que ver es a cuál reemplaza
       (x.sust_de ? '<span class="pc-sust">↔ en lugar de ' + esc(x.sust_cod) + "</span>" : "") +
+      virEnvioAvisos(x, "pc-vir") +
       '<span class="pc-sug"><span class="pc-rot">' + esc(si.rotulo) + "</span> " + si.txt +
         (si.uni ? " " + esc(unidadTxt(si.num, si.uni)) : "") +
         (si.nota ? '<span class="pc-nota"> · ' + esc(si.nota) + "</span>" : "") + "</span>" +
@@ -2301,6 +2323,7 @@ function pintarDetalle(){
     // cartón de otro artículo: a cuál reemplaza es lo que hay que leer antes de cargar la cantidad
     (x.sust_de ? '<div class="det-sust">↔ en lugar de <b>' + esc(x.sust_cod) +
                  "</b> · pegale la etiqueta del artículo que corresponde</div>" : "") +
+    virEnvioAvisos(x, "det-vir").replace(/<span/g, "<div").replace(/<\/span>/g, "</div>") +
     // en Recibir el rotulo lo decide rotuloRef() (stock del tallerista / del P.S.), asi que se
     // usa el que ya vino en refInfo en vez de escribirlo otra vez aca.
     '<div class="det-lbl">' + (si.rotulo === "Sugerido" ? "Sugerido a enviar"

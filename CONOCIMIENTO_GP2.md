@@ -14165,7 +14165,33 @@ cajas; los **alambres son fleje** (el sector 13 "Alambre" no tiene ni una pieza)
   (bloque 4 de `public.gv_gp2_espejo_sync`, cron c/10 min, sólo si cambió). [deducido] lo que Fábrica
   "manda" no se acumula en ningún lado de GP2: si se sumara, crecería para siempre porque nadie en GP2
   descuenta lo que Virgilio vende.
-- **Pendiente** [deducido, sin confirmar]: lo que Cervantes le manda a Virgilio todavía no le llega a
-  Virgilio como aviso Sí/No (la regla general lo pide del lado que recibe). GV puede leerlo de
-  `GP2.movimiento` (`recepcion_virgilio` y `traslado` a un `virgilio_sector`) cuando se decida.
+- ~~Pendiente: lo que Cervantes le manda a Virgilio todavía no le llega como aviso Sí/No~~ → hecho en §4hj.
 - `db/migracion_tablet_virgilio.sql`, tests `test_tablet_virgilio.js` y `test_aviso_virgilio.js`.
+
+## 4hj. Lo que Cervantes MANDA a Virgilio le llega a Gestión Virgilio como aviso Sí / No (2026-09-30)
+
+- **Pedido** [usuario, Thomas 30/09, "D4 si"]: lo que Cervantes envía a Virgilio desde la tablet llega a
+  Gestión Virgilio como aviso **Sí / No donde recibe**. Es la regla general GP2 ↔ GV al revés de §4hf.
+- **La frontera es `GP2.envio_virgilio`**, una fila por pieza, que escribe `enviar_a_virgilio` en el mismo
+  momento que mueve el stock (el terminado sale de "Art. Terminado (Fábrica)" con `recepcion_virgilio`; SC,
+  SP e insumos pasan con `traslado` al depósito de su sector en Virgilio). `cantidad` va en la unidad
+  canónica (uni o kg); el terminado guarda además `cajas` y `articulos_por_caja` para que Virgilio lo lea en
+  cajas. [deducido] **El stock se mueve al enviar, no al confirmar**: igual que un envío a un tallerista, la
+  mercadería ya salió de Cervantes aunque todavía no la hayan aceptado.
+- **Sí** lo dice Gestión Virgilio con `public.gv_envio_cervantes_confirmar` (estado `confirmado`, `gv_ref`
+  = qué movimiento de GV lo recibió). GP2 no hace nada más: el stock ya se movió.
+- **No** lo dice GV con `public.gv_envio_cervantes_denegar(id, motivo)` (estado `denegado` y nada más). La
+  reacción es de ESTE lado: el trigger `trg_envio_virgilio_denegado` → `fn_envio_virgilio_denegado` devuelve
+  el stock (terminado: `ajuste` de entrada a Art. Terminado (Fábrica); resto: `traslado` del depósito de
+  Virgilio de vuelta al sector). Si falla, **el No no se frena**: queda en `revertido_error` y a la vista en
+  `GP2.v_envio_virgilio_sin_revertir` (vacía = todo bien). Probado en transacción abortada: 12 uni del 718 y
+  5 del PC12 salieron y volvieron exactos.
+- **Se ve donde se cargó**: la tarjeta de Tablet → Enviar → Virgilio dice *"⏳ Virgilio no confirmó N"*
+  (`vir_pend` de `tablet_bundle`) y, si la denegó en los últimos 15 días, *"⛔ Denegado por Virgilio: N ·
+  motivo (ya volvió al stock)"* (`vir_deneg`). Tablet v1.41.0.
+- **Espejo viejo**: `fn_entregas_virgilio_espejo` (trigger apagado sobre `public."Entregas Tallerista
+  Virgilio"`) ya no procesa las entregas de **Log/ Fabr** (origen `interno`): la Fábrica ahora descuenta el
+  despiece al PRODUCIR (`fabrica_producir`), así que la recepción en Virgilio lo contaría dos veces si
+  alguien lo vuelve a prender.
+- `db/migracion_envio_virgilio.sql`; del lado de GV `sql/gv_envio_cervantes_v2540.sql`. Test
+  `test_tablet_virgilio.js` (los dos avisos en la tarjeta).

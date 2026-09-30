@@ -1,7 +1,7 @@
 -- =====================================================================
 -- FUNCIONES del schema GP2 — export automatico 2026-09-28 (pg_get_functiondef, exacto)
 -- Fuente de verdad: Supabase (hrxfctzncixxqmpfhskv). Este archivo es respaldo/referencia.
--- 167 funciones. Los GRANT/REVOKE no estan aca: EXECUTE para anon solo en las RPC de pantalla (ver db/README.md).
+-- 168 funciones. Los GRANT/REVOKE no estan aca: EXECUTE para anon solo en las RPC de pantalla (ver db/README.md).
 -- Desde 2026-09-28 (seguridad fase B) las 62 RPC que escriben llaman a "GP2"._exigir_autorizado() y NO las ejecuta anon.
 -- =====================================================================
 
@@ -3101,11 +3101,13 @@ CREATE OR REPLACE FUNCTION "GP2".enviar_a_virgilio(p_comp_id bigint, p_cantidad 
  SET search_path TO 'GP2'
 AS $function$
 declare v_sec bigint; v_um text; v_cod text; v_u text; v_o bigint; v_d bigint; v_mov bigint;
-        v_f timestamptz := coalesce(p_fecha, now());
+        v_f timestamptz := coalesce(p_fecha, now()); v_desc text; v_env bigint;
+        -- quien lo manda (el mail de la sesion de la tablet), para el aviso que ve Virgilio
+        v_por text := coalesce(nullif(lower(nullif(current_setting('request.jwt.claims', true), '')::jsonb->>'email'), ''), current_user);
 begin
   perform "GP2"._exigir_autorizado();
   if p_cantidad is null or p_cantidad <= 0 then raise exception 'La cantidad debe ser mayor a 0'; end if;
-  select sector_id, unidad_medida, codigo into v_sec, v_um, v_cod from componente where id = p_comp_id;
+  select sector_id, unidad_medida, codigo, descripcion into v_sec, v_um, v_cod, v_desc from componente where id = p_comp_id;
   if v_sec is null then raise exception 'El componente % no existe', p_comp_id; end if;
   v_u := case when lower(coalesce(p_unidad, v_um, 'uni')) = 'kg' then 'kg' else 'uni' end;
   if v_sec = 12 then
@@ -3121,7 +3123,17 @@ begin
     values (v_f, 'recepcion_virgilio', p_comp_id, v_o, null, p_cantidad, 'uni', 'uni',
             coalesce(p_nota, 'Enviado a Virgilio (tablet)'))
     returning id into v_mov;
-    return jsonb_build_object('ok', true, 'movimiento_id', v_mov, 'destino', 'virgilio',
+    -- AVISO A VIRGILIO (D4, 2026-09-30): queda en la frontera hasta que Virgilio diga Si / No
+    -- donde recibe. Si dice No, el trigger fn_envio_virgilio_denegado lo devuelve aca.
+    insert into envio_virgilio(creado_por, componente_id, codigo, descripcion, grupo, cantidad, unidad,
+                               cajas, articulos_por_caja, movimiento_id)
+    select v_por, p_comp_id, v_cod, coalesce(a.descripcion, v_desc), 'terminado', p_cantidad, 'uni',
+           case when a.articulos_por_caja > 0 then round(p_cantidad / a.articulos_por_caja, 4) end,
+           a.articulos_por_caja, v_mov
+      from (select 1) x left join articulo a on upper(a.codigo) = upper(v_cod)
+     limit 1
+    returning id into v_env;
+    return jsonb_build_object('ok', true, 'movimiento_id', v_mov, 'destino', 'virgilio', 'envio_id', v_env,
       'stock_art_terminado', (select cantidad from inventario where componente_id = p_comp_id and ubicacion_id = v_o));
   end if;
   if v_sec not in (1, 2, 5, 6, 11) then
@@ -3134,7 +3146,11 @@ begin
                          unidad_origen, unidad_destino, nota)
   values (v_f, 'traslado', p_comp_id, v_o, v_d, p_cantidad, v_u, v_u, coalesce(p_nota, 'Enviado a Virgilio (tablet)'))
   returning id into v_mov;
-  return jsonb_build_object('ok', true, 'movimiento_id', v_mov, 'destino', 'virgilio_sector',
+  insert into envio_virgilio(creado_por, componente_id, codigo, descripcion, grupo, cantidad, unidad, movimiento_id)
+  values (v_por, p_comp_id, v_cod, v_desc, case v_sec when 1 then 'sc' when 2 then 'sp' else 'insumo' end,
+          p_cantidad, v_u, v_mov)
+  returning id into v_env;
+  return jsonb_build_object('ok', true, 'movimiento_id', v_mov, 'destino', 'virgilio_sector', 'envio_id', v_env,
     'stock_cervantes', (select cantidad from inventario where componente_id = p_comp_id and ubicacion_id = v_o),
     'stock_virgilio',  (select cantidad from inventario where componente_id = p_comp_id and ubicacion_id = v_d));
 end $function$
@@ -3880,6 +3896,11 @@ begin
       values (NEW.id, NEW."Fecha", NEW."Nombre_Tall", NEW."Cod", NEW."Cajas", 'contraparte sin resolver');
       return NEW;
     end if;
+    -- FABRICA (interno, LOG/ FABR) desde 2026-09-30: el despiece lo descuenta "Producir en Fabrica" de
+    -- la tablet (fabrica_producir) y el terminado sale con Enviar -> Virgilio. Si el espejo lo
+    -- descontara otra vez cuando Virgilio recibe, el despiece saldria DOS veces. (El trigger esta
+    -- apagado; esto es para el dia que se prenda.)
+    if v_tipo = 'interno' then return NEW; end if;
 
     -- articulo: exacto primero, despues sin ceros de adelante en ambos lados
     select a.id, a.articulos_por_caja into v_art from articulo a
@@ -3908,6 +3929,46 @@ begin
     values (NEW.id, NEW."Fecha", NEW."Nombre_Tall", NEW."Cod", NEW."Cajas", 'error: '||sqlerrm);
   end;
   return NEW;
+end $function$
+;
+
+-- ---------- fn_envio_virgilio_denegado ----------
+CREATE OR REPLACE FUNCTION "GP2".fn_envio_virgilio_denegado()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'GP2'
+AS $function$
+declare v_sec bigint; v_o bigint; v_d bigint; v_mov bigint;
+begin
+  if not (old.estado = 'pendiente' and new.estado = 'denegado') then return new; end if;
+  begin
+    if new.grupo = 'terminado' then
+      v_d := ubic_de('art_terminado', 3);
+      insert into movimiento(fecha, tipo_mov, comp_id, ubic_origen_id, ubic_destino_id, cantidad,
+                             unidad_origen, unidad_destino, nota)
+      values (now(), 'ajuste', new.componente_id, null, v_d, new.cantidad, 'uni', 'uni',
+              'Denegado por Virgilio (envío #' || new.id || ')')
+      returning id into v_mov;
+    else
+      select sector_id into v_sec from componente where id = new.componente_id;
+      v_o := ubic_de('virgilio_sector', v_sec);
+      v_d := ubic_de('sector', v_sec);
+      if v_o is null or v_d is null then raise exception 'falta la ubicacion del sector % o su deposito en Virgilio', v_sec; end if;
+      insert into movimiento(fecha, tipo_mov, comp_id, ubic_origen_id, ubic_destino_id, cantidad,
+                             unidad_origen, unidad_destino, nota)
+      values (now(), 'traslado', new.componente_id, v_o, v_d, new.cantidad, new.unidad, new.unidad,
+              'Denegado por Virgilio (envío #' || new.id || ')')
+      returning id into v_mov;
+    end if;
+    new.revertido_en := now();
+    new.revertido_movimiento_id := v_mov;
+    new.revertido_error := null;
+  exception when others then
+    -- el No de Virgilio NO se frena: queda anotado y a la vista (v_envio_virgilio_sin_revertir)
+    new.revertido_error := sqlerrm;
+  end;
+  return new;
 end $function$
 ;
 
@@ -8312,6 +8373,17 @@ env_x as (
          case when e.tipo = 'virgilio' then case c.sector_id when 12 then 'Art. Terminados'
                                                              when 1 then 'SC' when 2 then 'SP'
                                                              else 'Insumos' end end grupo,
+         -- AVISO A VIRGILIO (D4): lo que todavia espera el Si de Virgilio y lo que Virgilio
+         -- DENEGO en los ultimos 15 dias (ya volvio al stock de aca) [regla general: se ve donde se cargo]
+         case when e.tipo = 'virgilio' then (select sum(ev.cantidad) from envio_virgilio ev
+                                              where ev.componente_id = c.id and ev.estado = 'pendiente') end vir_pend,
+         case when e.tipo = 'virgilio' then (select jsonb_build_object('cantidad', sum(ev.cantidad),
+                                                      'motivo', string_agg(distinct ev.denegado_motivo, ' · '),
+                                                      'ult', max(ev.denegado_en))
+                                               from envio_virgilio ev
+                                              where ev.componente_id = c.id and ev.estado = 'denegado'
+                                                and ev.denegado_en > now() - interval '15 days'
+                                             having count(*) > 0) end vir_deneg,
          -- saldo en poder del tercero = lo que le enviamos − lo que nos entregó = inventario de lo
          -- que se le manda (la pieza/resina) en la ubicacion del destino. [usuario 2026-09-16]
          coalesce((select i.cantidad from inventario i
@@ -8449,6 +8521,7 @@ select jsonb_build_object(
                                   then coalesce(env_carga_pieza,
                                          case when sec_id in (10,11) then 'envase' else 'kg' end) end,
              'online_sector', online_sector, 'saldo_dest', saldo_dest, 'grupo', grupo, 'sec_id', sec_id,
+             'vir_pend', vir_pend, 'vir_deneg', vir_deneg,
              'maximo', maximo_dest, 'stock_dest', stock_dest, 'sugerido', sugerido
            ) order by cod), '[]'::jsonb) from env_x),
   'recibir', (

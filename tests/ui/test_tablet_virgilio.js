@@ -36,9 +36,9 @@ const BUNDLE = {
     T({ comp_id: 80, cod: 'A1', desc: 'Mgo Plano 501 Pint.', sector: 'Sector Procesado', sec_id: 2, grupo: 'SP', um: 'unidad', uxc: 756, online_sector: 500 }),
     T({ comp_id: 5, cod: 'A10', desc: 'Cpo Una', sector: 'Sector Crudo', sec_id: 1, grupo: 'SC', um: 'unidad', online_sector: 100 }),
     T({ comp_id: 640, cod: 'PV6', desc: 'Pala Cuchara', sector: 'Sector Plástico', sec_id: 6, grupo: 'Insumos', um: 'unidad', online_sector: 2000 }),
-    T({ comp_id: 762, cod: '058', desc: 'Cierra Bolsa x2', sector: 'Terminado', sec_id: 12, grupo: 'Art. Terminados', um: 'unidad', online_sector: 24, env_unidad: 'cajas', env_factor: 12, env_carga: 'envase' }),
+    T({ comp_id: 762, cod: '058', desc: 'Cierra Bolsa x2', sector: 'Terminado', sec_id: 12, grupo: 'Art. Terminados', um: 'unidad', online_sector: 24, env_unidad: 'cajas', env_factor: 12, env_carga: 'envase', vir_pend: 12 }),
     T({ comp_id: 900, cod: 'F12', desc: 'Fleje 12', sector: 'Sector Fleje', sec_id: 5, grupo: 'Insumos', um: 'kg', online_sector: 150.5 }),
-    T({ comp_id: 463, cod: 'A9', desc: 'Caja N°9', sector: 'Sector Caja', sec_id: 11, grupo: 'Insumos', um: 'unidad', online_sector: 30 }),
+    T({ comp_id: 463, cod: 'A9', desc: 'Caja N°9', sector: 'Sector Caja', sec_id: 11, grupo: 'Insumos', um: 'unidad', online_sector: 30, vir_deneg: { cantidad: 5, motivo: 'no llegó', ult: '2026-09-30T18:00:00Z' } }),
   ],
   recibir: [
     { tipo: 'virgilio', ref: 'virgilio', comp_id: 547, comp_entrada_id: null, n_entradas: 0, tiene_bom: false, cod_art: null, cod: 'C13', desc: 'Corta Queso Bastidor c/Cilindro', sector: 'Sector Procesado', um: 'unidad', uxc: null, kg_x_uni: 0.0305, por_caja: null, remito_unidad: 'envase', env_unidad: 'cajas', env_factor: 144, esperado: null, esperado_origen: null, importado: true, sector_id: 2, proveedor: 'Importado' },
@@ -119,6 +119,11 @@ window.supabase = { createClient: function(){ return {
   cs = await cards();
   ok(/Stock Art\. Terminado 2 cajas/.test(cs[0] || ''), 'el terminado dice su stock en cajas — ' + cs[0]);
   ok(cs.some(c => /^A1uni/.test(c) && /Stock Cervantes 500 uni/.test(c)), 'el SP dice el stock de Cervantes — ' + cs.find(c => /^A1uni/.test(c)));
+  // D4: lo mandado espera el Sí de Virgilio; lo denegado ya volvió al stock y se ve acá
+  ok(/⏳ Virgilio no confirmó 12 uni/.test(cs[0] || ''), 'el terminado mandado espera el Sí de Virgilio — ' + cs[0]);
+  ok(cs.some(c => /^A9/.test(c) && /⛔ Denegado por Virgilio: 5 uni · no llegó \(ya volvió al stock\)/.test(c)),
+     'lo denegado por Virgilio se ve en la tarjeta — ' + cs.find(c => /^A9/.test(c)));
+  ok(cs.filter(c => /Virgilio no confirmó|Denegado por Virgilio/.test(c)).length === 2, 'sólo las tarjetas con aviso lo muestran');
   const horiz = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth);
   ok(!horiz, '390px: sin scroll horizontal');
   await abrir('762'); await page.fill('#detCard input[data-f="q"]', '1'); await page.click('#btnVolverPartes');

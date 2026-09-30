@@ -1,7 +1,7 @@
 -- =====================================================================
 -- VISTAS del schema GP2 (pg_get_viewdef, exacto) — export automatico 2026-09-11 desde Supabase (hrxfctzncixxqmpfhskv)
 -- Respaldo/referencia. La fuente de verdad es la base; regenerar al cambiar el schema.
--- 32 vistas (2026-09-26: + v_oc_virgilio_pendiente, v_oc_virgilio_partes, v_oc_virgilio_demanda, v_oc_virgilio_partes_tallerista; el orden de dependencia es pendiente -> demanda -> partes_tallerista). Orden de creacion: las que dependen de otra van despues.
+-- 33 vistas (2026-09-30: + v_envio_virgilio_sin_revertir; 2026-09-26: + v_oc_virgilio_pendiente, v_oc_virgilio_partes, v_oc_virgilio_demanda, v_oc_virgilio_partes_tallerista; el orden de dependencia es pendiente -> demanda -> partes_tallerista). Orden de creacion: las que dependen de otra van despues.
 -- =====================================================================
 
 -- ---------- v_caj_contraparte ----------
@@ -634,6 +634,22 @@ create or replace view "GP2".v_costo_componente as
      LEFT JOIN insumox ix ON ix.comp_id = c.id AND cb.id IS NULL
      LEFT JOIN talx tx ON tx.comp_id = c.id AND cb.id IS NULL;
 comment on view "GP2".v_costo_componente is 'Costo por componente (material + servicios + mano de obra). El precio de un insumo sale del proveedor ASIGNADO al componente (componente.proveedor), igual que en oc_bundle/crear_oc; si no hay, el mas nuevo por fecha_lista. Unica regla de precio en la base (2026-09-11).';
+
+-- ---------- v_envio_virgilio_sin_revertir ----------
+create or replace view "GP2".v_envio_virgilio_sin_revertir with (security_invoker = true) as
+ SELECT id,
+    creado_en,
+    codigo,
+    descripcion,
+    cantidad,
+    unidad,
+    denegado_en,
+    denegado_por,
+    denegado_motivo,
+    revertido_error
+   FROM "GP2".envio_virgilio
+  WHERE estado = 'denegado'::text AND revertido_en IS NULL;
+comment on view "GP2".v_envio_virgilio_sin_revertir is 'D4: envíos que Virgilio denegó y GP2 no pudo devolver al stock (revertido_error dice por qué). Vacía = todo bien.';
 
 -- ---------- v_faltante_estado ----------
 create or replace view "GP2".v_faltante_estado as
