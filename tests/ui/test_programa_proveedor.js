@@ -1,4 +1,4 @@
-// v1.216.0 [usuario 2026-09-30]: en Despiece x Art (Programa.html) el PRIMER paso de cada ruta es el
+// v1.217.0 [usuario 2026-09-30]: en Despiece x Art (Programa.html) el PRIMER paso de cada ruta es el
 // proveedor que compra la pieza: "Basconia provee el fleje ID6". Sale de componente.proveedor
 // (comp.pv) + los alternativos (comp.pva). Sin proveedor cargado no se dibuja tarjeta: no se inventa.
 // Cubre los tres lugares donde arranca una ruta: bloque 1 (fleje), bloque 2 (rama de convergencia)

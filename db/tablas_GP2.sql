@@ -423,6 +423,19 @@ create table "GP2".aceptado_virgilio (
   actualizado_en timestamptz not null default now()
 );
 
+-- ---------- importado_virgilio_componente ----------
+create table "GP2".importado_virgilio_componente (
+  cod_virgilio text not null,
+  componente_id bigint not null,
+  nota text,
+  creado_en timestamp with time zone not null default now(),
+  creado_por text,
+  constraint importado_virgilio_componente_pkey PRIMARY KEY (cod_virgilio),
+  constraint importado_virgilio_componente_componente_id_fkey FOREIGN KEY (componente_id) REFERENCES "GP2".componente(id),
+  constraint importado_virgilio_componente_cod_check CHECK (((cod_virgilio = upper(btrim(cod_virgilio))) AND (cod_virgilio <> ''::text)))
+);
+comment on table "GP2".importado_virgilio_componente is '2026-09-30: qué código de Gestión Virgilio (importado o insumo, en MAYÚSCULAS) es qué componente de GP2. Lo usa el aviso de Virgilio (ingreso_virgilio) para saber en qué tarjeta de Recepción de Insumos > Importados mostrarlo y a qué componente sumarle el stock cuando Cervantes dice Sí. Varios códigos de Virgilio pueden ir al mismo componente. Alta de un vínculo nuevo = un insert.';
+
 -- ---------- ingreso_virgilio ----------
 create table "GP2".ingreso_virgilio (
   id bigint generated always as identity not null,
@@ -444,11 +457,21 @@ create table "GP2".ingreso_virgilio (
   confirmado_por text,
   ubicacion_id bigint,
   componente_id bigint,
+  unidades numeric,
+  recepcion_insumo_id bigint,
+  denegado_en timestamp with time zone,
+  denegado_por text,
+  denegado_motivo text,
+  virgilio_revertido_en timestamp with time zone,
+  virgilio_revertido_error text,
+  constraint ingreso_virgilio_pkey PRIMARY KEY (id),
+  constraint ingreso_virgilio_recepcion_insumo_id_fkey FOREIGN KEY (recepcion_insumo_id) REFERENCES "GP2".recepcion_insumo(id),
   constraint ingreso_virgilio_cantidad_check CHECK ((cantidad > (0)::numeric)),
-  constraint ingreso_virgilio_estado_check CHECK ((estado = ANY (ARRAY['pendiente'::text, 'confirmado'::text, 'anulado'::text]))),
-  constraint ingreso_virgilio_pkey PRIMARY KEY (id)
+  constraint ingreso_virgilio_estado_check CHECK ((estado = ANY (ARRAY['pendiente'::text, 'confirmado'::text, 'denegado'::text, 'anulado'::text])))
 );
-comment on table "GP2".ingreso_virgilio is 'v25.10 (Luis 30/09): lo que Gestion Virgilio mando a Cervantes (recepcion de importados con destino Cervantes). La portada de GP2 lo muestra como "VIRGILIO DICE QUE TE LLEGO ESTO" mientras esta pendiente. Lo escribe public.gv_imp_recibir (SECURITY DEFINER). Confirmar y ubicar: pendiente.';
+comment on table "GP2".ingreso_virgilio is 'v25.10 (Luis 30/09): lo que Gestion Virgilio mando a Cervantes (recepcion de importados con destino Cervantes). Lo escribe public.gv_imp_recibir (SECURITY DEFINER). Desde el 30/09 (GP2 v1.216.0) ya NO sale en la portada: aparece en Recepcion de Insumos > Importados, en la tarjeta del componente (importado_virgilio_componente), con Si / No (resolver_ingreso_virgilio). Si = recepcion de Importado + control en kg; No = estado denegado y Gestion Virgilio vuelve a poner el pedido en viaje (trigger gv_ingreso_virgilio_denegado, del lado de Virgilio).';
+-- triggers: trg_ingreso_virgilio_componente (GP2, completa componente_id y unidades); gv_ingreso_virgilio_unidades y
+-- gv_ingreso_virgilio_denegado (funciones de public: los pone Gestion Virgilio, sql/gv_ingreso_cervantes_denegado_v2534.sql)
 
 -- ---------- inventario ----------
 create table "GP2".inventario (
@@ -1367,6 +1390,8 @@ CREATE UNIQUE INDEX uq_produccion_id_ejecucion ON "GP2".produccion USING btree (
 
 -- ============ TRIGGERS ============
 
+CREATE TRIGGER trg_ingreso_virgilio_componente BEFORE INSERT ON "GP2".ingreso_virgilio FOR EACH ROW EXECUTE FUNCTION "GP2".fn_ingreso_virgilio_componente();
+
 CREATE CONSTRAINT TRIGGER trg_maximos_receta AFTER INSERT OR DELETE OR UPDATE ON "GP2".articulo_componente DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION "GP2".fn_recalc_maximos_diferido();
 
 CREATE TRIGGER trg_maximos_cajones_componente AFTER UPDATE OF uni_x_cajon ON "GP2".componente FOR EACH STATEMENT EXECUTE FUNCTION "GP2".fn_recalc_maximos_cajones();
@@ -1398,6 +1423,8 @@ CREATE TRIGGER trg_ubicacion_sector AFTER INSERT OR UPDATE OF es_insumo ON "GP2"
 CREATE TRIGGER trg_ubicacion_tallerista AFTER INSERT ON "GP2".tallerista FOR EACH ROW EXECUTE FUNCTION "GP2".fn_ubicacion_de_contraparte();
 
 -- ============ ROW LEVEL SECURITY ============
+alter table "GP2".importado_virgilio_componente enable row level security;
+alter table "GP2".ingreso_virgilio enable row level security;
 
 alter table "GP2".__sim_base enable row level security;
 alter table "GP2".alerta_recepcion enable row level security;
@@ -1463,6 +1490,8 @@ alter table "GP2".uni_x_articulo_x_caja enable row level security;
 alter table "GP2".virgilio_espejo_pend enable row level security;
 
 -- ============ POLICIES ============
+create policy p_gp2_select on "GP2".importado_virgilio_componente for select to anon, authenticated using (true);
+create policy p_gp2_select on "GP2".ingreso_virgilio for select to anon, authenticated using (true);
 -- Todas son de SELECT: ninguna tabla GP2 acepta escritura anonima directa (la escritura va por RPC SECURITY DEFINER).
 
 create policy __sim_base_sel on "GP2".__sim_base for select to public using (false);

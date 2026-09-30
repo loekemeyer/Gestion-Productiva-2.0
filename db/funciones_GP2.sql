@@ -3857,6 +3857,23 @@ begin
 end $function$
 ;
 
+-- ---------- fn_ingreso_virgilio_componente ----------
+CREATE OR REPLACE FUNCTION "GP2".fn_ingreso_virgilio_componente()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SET search_path TO 'GP2'
+AS $function$
+begin
+  if new.componente_id is null then
+    new.componente_id := "GP2".importado_virgilio_componente_de(new.cod_insumo, new.cod_importado);
+  end if;
+  if new.unidades is null and lower(coalesce(new.unidad, '')) in ('unidades', 'uni', 'u') then
+    new.unidades := new.cantidad;
+  end if;
+  return new;
+end $function$
+;
+
 -- ---------- fn_material_mejor_proveedor ----------
 CREATE OR REPLACE FUNCTION "GP2".fn_material_mejor_proveedor()
  RETURNS trigger
@@ -4218,6 +4235,20 @@ END;
 $function$
 ;
 
+-- ---------- importado_virgilio_componente_de ----------
+CREATE OR REPLACE FUNCTION "GP2".importado_virgilio_componente_de(p_cod_insumo text, p_cod_importado text)
+ RETURNS bigint
+ LANGUAGE sql
+ STABLE
+ SET search_path TO 'GP2'
+AS $function$
+  -- primero el insumo (es la pieza que viaja: 323ES, H201Part), después el importado del pedido
+  select coalesce(
+    (select m.componente_id from "GP2".importado_virgilio_componente m where m.cod_virgilio = upper(btrim(p_cod_insumo))),
+    (select m.componente_id from "GP2".importado_virgilio_componente m where m.cod_virgilio = upper(btrim(p_cod_importado))));
+$function$
+;
+
 -- ---------- informes_bundle ----------
 CREATE OR REPLACE FUNCTION "GP2".informes_bundle(p_desde date DEFAULT NULL::date, p_hasta date DEFAULT NULL::date)
  RETURNS jsonb
@@ -4369,6 +4400,28 @@ select jsonb_build_object(
     left join cell_by_mat c on c.mat = m.mat
   ), '[]'::jsonb)
 );
+$function$
+;
+
+-- ---------- ingreso_virgilio_pendientes ----------
+CREATE OR REPLACE FUNCTION "GP2".ingreso_virgilio_pendientes()
+ RETURNS jsonb
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'GP2'
+AS $function$
+  select coalesce(jsonb_agg(jsonb_build_object(
+           'id', i.id, 'creado_en', i.creado_en, 'creado_por', i.creado_por,
+           'cod_importado', i.cod_importado, 'cod_insumo', i.cod_insumo, 'descripcion', i.descripcion,
+           'cantidad', i.cantidad, 'unidad', i.unidad, 'unidades', i.unidades,
+           'proveedor', i.proveedor, 'pedido_ref', i.pedido_ref, 'nota', i.nota,
+           'componente_id', c.id, 'codigo', c.codigo, 'comp_descripcion', c.descripcion,
+           'sector_id', c.sector_id, 'comp_proveedor', c.proveedor)
+         order by i.creado_en, i.id), '[]'::jsonb)
+    from "GP2".ingreso_virgilio i
+    left join "GP2".componente c
+      on c.id = coalesce(i.componente_id, "GP2".importado_virgilio_componente_de(i.cod_insumo, i.cod_importado))
+   where i.estado = 'pendiente';
 $function$
 ;
 
@@ -5661,7 +5714,7 @@ rutas_full as (
 select jsonb_build_object(
   'art', (select jsonb_agg(jsonb_build_object('id',id,'cod',codigo,'fam',familia,'d',descripcion,'mk',marca,'disc',discontinuado) order by id) from "GP2".articulo),
   'comp', (select jsonb_object_agg(c.id::text, jsonb_build_object('cod',c.codigo,'d',c.descripcion,'s',c.sector_id)
-         /* v1.216.0: el proveedor que compra la pieza (componente.proveedor + los alternativos),
+         /* v1.217.0: el proveedor que compra la pieza (componente.proveedor + los alternativos),
             para dibujarlo como primer paso de la ruta en Despiece x Art. Sin proveedor no viaja la clave. */
          || jsonb_strip_nulls(jsonb_build_object('pv', nullif(btrim(c.proveedor),''),
               'pva', (select jsonb_agg(distinct btrim(a.proveedor)) from "GP2".componente_proveedor_alt a
@@ -7449,6 +7502,62 @@ begin
   where id = v_id and resuelto_en is null;
 
   return jsonb_build_object('ok', true, 'resueltos', (select count(*) from faltante_marcado where id = v_id and resuelto_en is not null), 'id', v_id);
+end $function$
+;
+
+-- ---------- resolver_ingreso_virgilio ----------
+CREATE OR REPLACE FUNCTION "GP2".resolver_ingreso_virgilio(p_id bigint, p_acepta boolean, p_motivo text DEFAULT NULL::text)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'GP2'
+AS $function$
+declare r "GP2".ingreso_virgilio%rowtype; c record; v_comp bigint; v_uni numeric; v_por text;
+        v_rec jsonb; v_rec_id bigint; v_remito text;
+begin
+  perform "GP2"._exigir_autorizado();
+  if p_acepta is null then raise exception 'Falta decir si llegó (Sí) o no (No).'; end if;
+  select * into r from "GP2".ingreso_virgilio where id = p_id for update;
+  if not found then raise exception 'Ese aviso de Gestión Virgilio ya no existe: recargá la pantalla.'; end if;
+  if r.estado <> 'pendiente' then
+    raise exception 'Ese aviso ya se resolvió (%): recargá la pantalla.', r.estado;
+  end if;
+  v_por := coalesce(nullif(lower(nullif(current_setting('request.jwt.claims', true), '')::jsonb->>'email'), ''), current_user);
+
+  if p_acepta then
+    v_comp := coalesce(r.componente_id, "GP2".importado_virgilio_componente_de(r.cod_insumo, r.cod_importado));
+    if v_comp is null then
+      raise exception 'El código % de Gestión Virgilio no está vinculado a ningún componente de GP2: avisá para vincularlo.',
+        coalesce(r.cod_insumo, r.cod_importado);
+    end if;
+    select id, codigo, sector_id, proveedor into c from "GP2".componente where id = v_comp;
+    v_uni := coalesce(r.unidades, case when lower(coalesce(r.unidad, '')) in ('unidades', 'uni', 'u') then r.cantidad end);
+    if v_uni is null or v_uni <= 0 then
+      raise exception 'Gestión Virgilio lo mandó en % sin decir cuántas unidades son: avisá a Virgilio.', r.unidad;
+    end if;
+    -- Igual que un Importado cargado a mano: suma en la ubicación de su sector y queda la recepción
+    -- pendiente del control en kg (GP2CI la manda a su pantalla de control).
+    v_remito := 'Virgilio #' || r.id;
+    v_rec := "GP2".crear_recepcion_insumo(v_comp, c.proveedor, v_uni, 'uni', v_remito, now());
+    v_rec_id := (v_rec->>'recepcion_id')::bigint;
+    update "GP2".ingreso_virgilio
+       set estado = 'confirmado', confirmado_en = now(), confirmado_por = v_por,
+           componente_id = v_comp, ubicacion_id = "GP2".ubic_de('sector', c.sector_id),
+           recepcion_insumo_id = v_rec_id, unidades = v_uni
+     where id = p_id;
+    return jsonb_build_object('ok', true, 'estado', 'confirmado', 'recepcion_id', v_rec_id, 'remito', v_remito,
+      'componente_id', v_comp, 'codigo', c.codigo, 'sector_id', c.sector_id, 'proveedor', c.proveedor, 'unidades', v_uni);
+  end if;
+
+  -- No: GP2 sólo marca su fila. Gestión Virgilio escucha (trigger gv_ingreso_virgilio_denegado) y
+  -- vuelve a poner el pedido en viaje con el chip «Denegado por Cervantes».
+  update "GP2".ingreso_virgilio
+     set estado = 'denegado', denegado_en = now(), denegado_por = v_por,
+         denegado_motivo = nullif(btrim(coalesce(p_motivo, '')), '')
+   where id = p_id;
+  select * into r from "GP2".ingreso_virgilio where id = p_id;
+  return jsonb_build_object('ok', true, 'estado', 'denegado',
+    'virgilio_revertido', r.virgilio_revertido_en is not null, 'virgilio_error', r.virgilio_revertido_error);
 end $function$
 ;
 
