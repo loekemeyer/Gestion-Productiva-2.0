@@ -14004,3 +14004,30 @@ Z23B): *"Todos estos en el remito o packing list vienen en unidades. Cargar en u
   (`tablet_bundle`, `t.id <> 3`), mientras el Envío de escritorio y Entregas sí la muestran. Fábrica tiene 141 pasos
   de ruta (41 artículos activos) y **0 movimientos**: `GP2M.armadoFabrica` sigue en `gp2-motor.js`, pero ninguna
   pantalla lo llama.
+
+## 4hd. Validación de Stock tiene dos módulos: Conteo vs Sistema y Remito vs Control (2026-09-30)
+
+- [usuario] *"Dentro de validación stock quiero que haya un módulo para validar lo del conteo vs lo que hay cargado en
+  el sistema y otro módulo para validar lo que se anotó en el remito vs lo que se controló (en todas las recepciones de
+  versión tablet) entonces todas las diferencias entre remito y control se define que queda como ingreso real en este
+  módulo"*.
+- Regla: **el ingreso real de una recepción de la tablet lo decide el operador del sistema en Validación de Stock**, no
+  el operario que controla. Mismo criterio de dos roles que el conteo (2026-09-04: el operario cuenta, el sistema decide).
+- Cómo quedó: `Validacion_Stock.html` (Conteo vs Sistema, sin cambios) y `ValidacionRemitos_GP2.html` (Remito vs
+  Control), unidas por una barra de dos pestañas; el menú sigue abriendo la primera. Base: `validacion_remito_bundle`
+  (diferencias pendientes, ya validadas, contexto) y `validar_remito_control` (escribe `ingreso_real` + `validado_en/por`
+  en `entrega_control` o `recepcion_insumo` y deja el movimiento en el número elegido). Migración en
+  `db/migracion_validacion_remito_control.sql`.
+- [deducido] **Por default gana el control**, porque el control de la tablet YA pisa el movimiento (controlar_entrega,
+  controlar_recepcion_kg/_cajas): elegir Control no mueve el stock; elegir Remito lo devuelve al papel. En talleristas los
+  consumos se re-escalan con el mismo factor que usa el control ("entregó 98 de 100 → consumió 98"). Los cajones no se
+  tocan: son el envase contado, un dato físico.
+- Qué entra: sólo lo que tiene control con número propio — entregas de P.S. y talleristas, y recepciones de insumos.
+  **Afuera** [deducido, sin confirmar]: prov. de art. terminado y Virgilio (la tablet no les hace control) y el pesaje
+  por pallet de flejes (no marca `controlado` ni pisa el stock; es un chequeo de tara, no un conteo).
+- Una diferencia pendiente no vence. Si alguien re-controla después de validar, la fila vuelve a pendiente.
+- [dato] Al estrenarlo (30/09) había 3 diferencias: PC12 de P.S. (remito 2.500, control 2.513,15 uni), Z23B (20.400 vs
+  20.377) y Z23A (21.600 vs 21.605), de Importado. Probado con rollback: insumo, P.S. y tallerista ida y vuelta.
+- ⚠ Trampa [deducido]: validar "Remito" cambia un movimiento viejo. Si ese sector ya tuvo un conteo aplicado DESPUÉS de
+  la recepción, el stock actual se corre en la diferencia (lo mismo pasa hoy con el control de la tablet). Conviene
+  validar antes de contar.

@@ -292,17 +292,24 @@ create table "GP2".entrega_control (
   controlado_en timestamp with time zone not null default now(),
   controlado_por text,
   nota text,
+  ingreso_real text,
+  validado_en timestamp with time zone,
+  validado_por text,
   constraint entrega_control_pkey PRIMARY KEY (id),
   constraint entrega_control_mov_uk UNIQUE (movimiento_id),
   constraint entrega_control_mov_fkey FOREIGN KEY (movimiento_id) REFERENCES "GP2".movimiento(id) ON DELETE CASCADE,
   constraint entrega_control_declarado_check CHECK ((declarado > (0)::numeric)),
   constraint entrega_control_controlado_check CHECK ((controlado > (0)::numeric)),
-  constraint entrega_control_unidad_check CHECK ((declarado_unidad = ANY (ARRAY['kg'::text, 'uni'::text])))
+  constraint entrega_control_unidad_check CHECK ((declarado_unidad = ANY (ARRAY['kg'::text, 'uni'::text]))),
+  constraint entrega_control_ingreso_real_check CHECK (((ingreso_real IS NULL) OR (ingreso_real = ANY (ARRAY['control'::text, 'remito'::text]))))
 );
 comment on table "GP2".entrega_control is 'CONTROL FISICO de lo que entrego un tercero -proveedor de servicio o TALLERISTA-, con el mismo circuito que la recepcion de insumos: primero se carga lo que dice el REMITO y despues se cuenta [usuario 2026-09-21 y 2026-09-23]. Una fila por movimiento (entrega_ps o entrega_tallerista) controlado; el movimiento SIN fila aca es lo que sigue pendiente. Guarda lo que decia el remito (declarado) antes de que el control pise la cantidad del movimiento: el stock queda con lo CONTROLADO. Se llamaba entrega_ps_control hasta el 2026-09-23, cuando el control se abrio a los talleristas.';
 comment on column "GP2".entrega_control.declarado is 'Lo que decia el remito, en declarado_unidad y en la MISMA magnitud que movimiento.cantidad_transformada (lo que el P.S. entrego), no el consumo del SC.';
 comment on column "GP2".entrega_control.declarado_cajones is 'Cajones (o bolsas/paquetes) anotados al cargar el remito. Hoy la Tablet no los pide al recepcionar, asi que suele ser null: el numero real lo pone el control.';
 comment on column "GP2".entrega_control.controlado_cajones is 'Cajones (o el envase de la pieza) CONTADOS en el control. Es el dato que despues manda en el stock del proveedor (ver v_caj_contraparte y CONOCIMIENTO 4et).';
+comment on column "GP2".entrega_control.ingreso_real is 'Lo que decidio el operador del sistema en Validacion de Stock (Remito vs Control): ''control'' = queda lo contado (es lo que ya piso el control), ''remito'' = el movimiento vuelve a lo declarado. null = todavia no se valido. Si el control es posterior a validado_en, la validacion vuelve a quedar pendiente.';
+comment on column "GP2".entrega_control.validado_en  is 'Cuando se valido (Validacion de Stock, modulo Remito vs Control).';
+comment on column "GP2".entrega_control.validado_por is 'Quien valido (localStorage gp2_usuario de la pantalla).';
 
 -- ---------- est_madre ----------
 create table "GP2".est_madre (
@@ -945,18 +952,25 @@ create table "GP2".recepcion_insumo (
   controlado_en timestamp with time zone,
   controlado_por text,
   rollos_json jsonb,
+  ingreso_real text,
+  validado_en timestamp with time zone,
+  validado_por text,
   constraint recepcion_insumo_pkey PRIMARY KEY (id),
   constraint recepcion_insumo_componente_id_fkey FOREIGN KEY (componente_id) REFERENCES "GP2".componente(id),
   constraint recepcion_insumo_movimiento_id_fkey FOREIGN KEY (movimiento_id) REFERENCES "GP2".movimiento(id) ON DELETE SET NULL,
   constraint recepcion_insumo_proveedor_fkey FOREIGN KEY (proveedor) REFERENCES "GP2".proveedor_insumo(nombre) ON UPDATE CASCADE,
   constraint recepcion_insumo_pallets_check CHECK (((pallets IS NULL) OR (pallets > 0))),
-  constraint recepcion_insumo_unidad_chk CHECK ((unidad = ANY (ARRAY['kg'::text, 'uni'::text])))
+  constraint recepcion_insumo_unidad_chk CHECK ((unidad = ANY (ARRAY['kg'::text, 'uni'::text]))),
+  constraint recepcion_insumo_ingreso_real_check CHECK (((ingreso_real IS NULL) OR (ingreso_real = ANY (ARRAY['control'::text, 'remito'::text]))))
 );
 comment on table "GP2".recepcion_insumo is 'Recepciones de insumos: componente, proveedor, remito, cantidad declarada y controlada, movimiento asociado, rollos/pallets. Cruza contra las OC abiertas (_aplicar_recepcion_a_oc).';
 comment on column "GP2".recepcion_insumo.rollos is 'Cantidad de rollos declarada en el remito. Solo la informan algunos proveedores (Aperam, Basconia). Null = el remito no la trae.';
 comment on column "GP2".recepcion_insumo.pallets is 'Cantidad de pallets que llegaron, anotada en la carga junto con los kg y los rollos del remito. Cada pallet se pesa por separado en el control.';
 comment on column "GP2".recepcion_insumo.controlado is 'true = ya se hizo el control fisico (base x pisos + sueltas para cajas)';
 comment on column "GP2".recepcion_insumo.cantidad_declarada is 'cantidad segun remito del proveedor; se guarda al hacer control para poder comparar declarado vs real';
+comment on column "GP2".recepcion_insumo.ingreso_real is 'Lo que decidio el operador del sistema en Validacion de Stock (Remito vs Control): ''control'' = el movimiento queda con cantidad (lo contado), ''remito'' = el movimiento vuelve a cantidad_declarada. cantidad NO se toca: sigue siendo lo contado. null = sin validar.';
+comment on column "GP2".recepcion_insumo.validado_en  is 'Cuando se valido (Validacion de Stock, modulo Remito vs Control).';
+comment on column "GP2".recepcion_insumo.validado_por is 'Quien valido (localStorage gp2_usuario de la pantalla).';
 
 -- ---------- relevamiento ----------
 create table "GP2".registros_produccion_cervantes (

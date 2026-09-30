@@ -1,6 +1,11 @@
 <!doctype html>
 <html lang="es">
 <head>
+<!-- v1.1.0 (2026-09-30) — VALIDACIÓN DE STOCK TIENE DOS MÓDULOS [usuario 2026-09-30: "Dentro de
+     validación stock quiero que haya un módulo para validar lo del conteo vs lo que hay cargado en
+     el sistema y otro módulo para validar lo que se anotó en el remito vs lo que se controló"].
+     Esta pantalla es el primero (Conteo vs Sistema) y no cambia; arriba va la barra que lleva al
+     segundo, ValidacionRemitos_GP2.html (Remito vs Control). El menú sigue abriendo esta. -->
 <!-- v1.0.0 (2026-09-04) — VALIDACION DE STOCK. Modulo aparte del Relevamiento
      [usuario 2026-09-04: "necesito que me aparezca dentro de modulo relevamiento otro modulo
      que sea validacion de stock ... pero no quiero que me aparezca despues de hacer el
@@ -73,6 +78,11 @@
   .leyenda{font-size:15px;color:#475569;margin:8px 0}
   .sec-tit{font-size:16px;font-weight:800;color:#3a4653;margin:18px 0 6px}
   .hidden{display:none!important}
+  /* Los dos módulos de Validación de Stock: la misma barra en las dos pantallas (v1.1.0) */
+  .tabs{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 12px}
+  .tabs a{min-height:44px;display:inline-flex;align-items:center;padding:0 16px;border-radius:10px;
+          border:2px solid #d0d7de;font-size:16px;font-weight:800;color:#3a4653;text-decoration:none;background:#fff}
+  .tabs a.act{background:#0b3b73;border-color:#0b3b73;color:#fff}
 
   @media(max-width:430px){
     .li-acts{margin-left:0;width:100%}
@@ -91,6 +101,10 @@
   </div>
 
   <div class="steps">
+    <nav class="tabs">
+      <a href="Validacion_Stock.html" class="act">Conteo vs Sistema</a>
+      <a href="ValidacionRemitos_GP2.html">Remito vs Control</a>
+    </nav>
 
     <!-- ====== LISTA ====== -->
     <div id="panLista">
