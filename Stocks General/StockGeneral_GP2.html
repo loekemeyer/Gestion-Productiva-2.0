@@ -6,7 +6,15 @@
 <script src="../gp2-ui.js?v=20260913e"></script>
 <script src="../gp2-numero.js?v=20260911o"></script>
 <title>Stock general · GP2</title>
-<!-- v2.2.1 (2026-09-30) - ORDEN NUMÉRICO EN SECTORES [Nazareno: "ordename, en el caso de sectores
+<!-- v2.3.0 (2026-09-30) - TRÁNSITO PS A SECTORES + RUBRO INYECTORES [usuario: "Transito PS que esté
+     en SECTORES. En OTROS agrega al stock de inyectores (lo que se le envía)"]. (a) el botón
+     Tránsito PS pasa al grupo Sectores (sigue saliendo de stock_general_extra_bundle, mode 'otros').
+     (b) rubro "Inyectores" en Otros: el inventario de las ubicaciones tipo inyector (materia prima
+     plástica mandada con envio_inyector, que crear_recepcion_insumo descuenta al recibir las piezas),
+     en KG: el componente es um kg sin kg_x_uni, así que la cantidad va en la columna Kg y Uni queda
+     "—". Sin Caj ni Máximo. Sale de D.inv (movimientos_bundle): cero RPC nuevas. En "Todos" la
+     fila del inyector ahora dice rubro Inyectores y salta a ese rubro.
+     v2.2.1 (2026-09-30) - ORDEN NUMÉRICO EN SECTORES [Nazareno: "ordename, en el caso de sectores
      (no de otros → ordenás por prov), numéricamente, no alfanuméricamente. Primero GRJ4,
      GRJ5...GRJ10, GRJ10A"]. Los rubros de sector ordenan el código con localeCompare numeric
      (GRJ4 < GRJ10 < GRJ10A < GRJ12); 'otros' sigue por proveedor/tallerista y "Todos" por código
@@ -248,10 +256,13 @@ var RUBROS = [
   { key:"car", grupo:"Sectores", nom:"Cartones",         mode:"sector", sid:10, cols:COLS_INSUMO },
   { key:"caj", grupo:"Sectores", nom:"Cajas",            mode:"sector", sid:11, cols:COLS_INSUMO },
   { key:"bol", grupo:"Sectores", nom:"Bolsas Plásticas", mode:"sector", sid:14, cols:COLS_MP },
+  // v2.3.0: Tránsito PS se ve con los sectores; los datos siguen saliendo de extra_bundle
+  { key:"tra", grupo:"Sectores", nom:"Tránsito PS",      mode:"otros",  fuente:"transito", mostrar_ubic:"En tránsito", sin_max:true },
   { key:"ps",  grupo:"Otros",    nom:"Prov. Servicio",   mode:"otros",  fuente:"ps",       mostrar_ubic:"Prov. Servicio", sin_max:true },
   { key:"tal", grupo:"Otros",    nom:"Talleristas",      mode:"otros",  fuente:"tall",     mostrar_ubic:"Tallerista" },
   { key:"pat", grupo:"Otros",    nom:"Prov. Art. Term.", mode:"otros",  fuente:"provat",   mostrar_ubic:"Proveedor" },
-  { key:"tra", grupo:"Otros",    nom:"Tránsito PS",      mode:"otros",  fuente:"transito", mostrar_ubic:"En tránsito", sin_max:true }
+  // v2.3.0: la materia prima plástica que se le mandó a cada inyector (ubicación tipo inyector), en kg
+  { key:"iny", grupo:"Otros",    nom:"Inyectores",       mode:"otros",  fuente:"iny",      mostrar_ubic:"Inyector", sin_caj:true, sin_max:true }
 ];
 
 var D = null;                 // movimientos_bundle (para Ajuste y rubros 'otros')
@@ -283,7 +294,8 @@ function marcarActivo(){
 }
 
 /* ---------- conversiones (misma regla que Stock por Sector) ---------- */
-function kgDe(x){ return GP2N.aKg(x.kg_x_uni, x.online || 0); }
+/* en_kg: la cantidad YA está en kg (materia prima del inyector, um kg sin kg_x_uni): va en Kg, no en Uni */
+function kgDe(x){ return x.en_kg ? Number(x.online||0) : GP2N.aKg(x.kg_x_uni, x.online || 0); }
 function cajDe(x){ return x.uni_x_cajon ? Number(x.online||0)/Number(x.uni_x_cajon) : null; }
 function valorCol(x, col){
   if (col.campo) return x[col.campo]==null ? null : Number(x[col.campo]);
@@ -323,7 +335,16 @@ function filasDe(r){
   }
   // 'otros': no hay mov{}
   var out = [];
-  if (r.fuente==="ps" || r.fuente==="tall"){
+  if (r.fuente==="iny"){
+    for (var ki in (D.inv||{})){
+      var pi=ki.split(":"), cidi=+pi[0], uidi=+pi[1], ui=D.ubic[String(uidi)];
+      if (!ui || ui.tipo!=="inyector") continue;
+      var vi=D.inv[ki], cii=compInfo(cidi);
+      out.push({ cid:cidi, cod:cii.cod, desc:cii.desc, um:cii.um, kg_x_uni:cii.kg_x_uni,
+                 uni_x_cajon:null, online:Number(vi.cant)||0, maximo:null,
+                 en_kg:enKg(ui, cii), ubic_nom:nomUbic(ui), ubic_id:uidi });
+    }
+  } else if (r.fuente==="ps" || r.fuente==="tall"){
     var tipo = r.fuente==="ps" ? "proveedor_servicio" : "tallerista";
     var tabla = r.fuente==="ps" ? (D.prov_serv||{}) : (D.tall||{});
     for (var k in (D.inv||{})){
@@ -363,7 +384,7 @@ function filasDe(r){
 /* ═══ índice transversal (rubro "Todos" + renglón "También en: …") ═══
    Sale de D.inv —el inventario entero, que movimientos_bundle YA trae— más los extras
    de prov AT y tránsito: no cuesta ninguna RPC nueva. Incluye A PROPÓSITO las ubicaciones
-   que no tienen botón propio (inyectores, sectores sin rubro; Virgilio NO desde v2.2.0), porque justamente
+   que no tienen botón propio (sectores sin rubro; Virgilio NO desde v2.2.0; inyectores tienen rubro desde v2.3.0), porque justamente
    ahí es donde un componente se volvía imposible de encontrar. */
 function rubroPorKey(k){ return RUBROS.filter(function(r){ return r.key===k; })[0] || null; }
 function rubroDeUbic(u){
@@ -371,8 +392,11 @@ function rubroDeUbic(u){
   if (u.tipo==="sector") return RUBROS.filter(function(r){ return r.mode==="sector" && Number(r.sid)===Number(u.ref); })[0] || null;
   if (u.tipo==="tallerista") return rubroPorKey("tal");
   if (u.tipo==="proveedor_servicio") return rubroPorKey("ps");
+  if (u.tipo==="inyector") return rubroPorKey("iny");
   return null;
 }
+/* inyector: la ubicación guarda materia prima en kg sin factor (componente.unidad_medida kg) */
+function enKg(u, ci){ return u.tipo==="inyector" && ci.um==="kg" && !ci.kg_x_uni; }
 var TIPO_UBIC = { virgilio:"Virgilio", virgilio_sector:"Virgilio", inyector:"Inyector", analisis:"Análisis" };
 function etiqSuelta(u){
   if (u.tipo==="sector") return ((D.sect||{})[String(u.ref)]||{}).nom || u.nom || "Sector";
@@ -380,6 +404,8 @@ function etiqSuelta(u){
 }
 function nomUbic(u){
   var t = u.tipo==="tallerista" ? (D.tall||{}) : (u.tipo==="proveedor_servicio" ? (D.prov_serv||{}) : null);
+  // "Inyector Pettofrezza Rafael" -> "Pettofrezza Rafael": la columna ya dice Inyector
+  if (u.tipo==="inyector") return String(u.nom||"?").replace(/^Inyector\s+/i, "");
   return (t && (t[String(u.ref)]||{}).nom) || u.nom || "?";
 }
 function filasGlobales(){
@@ -397,7 +423,7 @@ function filasGlobales(){
     // corresponde uno propio [usuario 2026-09-15: "a un PS se le manda segun el maximo del
     // SECTOR PROCESADO"], así que acá tampoco, ni cuenta en "bajo el máximo".
     out.push({ cid:cid, cod:ci.cod, desc:ci.desc, um:ci.um, kg_x_uni:ci.kg_x_uni,
-               uni_x_cajon:ci.uni_x_cajon, online:Number(v.cant)||0,
+               uni_x_cajon:ci.uni_x_cajon, online:Number(v.cant)||0, en_kg:enKg(u, ci),
                maximo:(r && r.sin_max) ? null : v.max,
                rubro_key:r?r.key:null, rubro_nom:r?r.nom:etiqSuelta(u),
                ubic_nom:nomUbic(u), ubic_id:uid });
@@ -520,7 +546,7 @@ function render(){
   var tKg=0, tUni=0, tBajo=0;
   todas.forEach(function(x){
     var uni=Number(x.online||0);
-    tKg += (kgDe(x)||0); tUni += uni;
+    tKg += (kgDe(x)||0); if (!x.en_kg) tUni += uni;
     if (!r.sin_max && x.maximo!=null && uni < Number(x.maximo)) tBajo++;
   });
 
@@ -552,7 +578,7 @@ function render(){
       '<td>'+esc(x.desc||"")+'</td>'+
       '<td class="num sep'+stkCls+'"'+stkData+'>'+(kg==null?"—":fmt(kg))+'</td>'+
       (r.sin_caj?'':'<td class="num'+stkCls+'"'+stkData+'>'+(caj==null?"—":fmt(caj,1))+'</td>')+
-      '<td class="num'+stkCls+'"'+stkData+'><b>'+fmt(uni)+'</b></td>'+
+      '<td class="num'+stkCls+'"'+stkData+'>'+(x.en_kg?"—":'<b>'+fmt(uni)+'</b>')+'</td>'+
       celdasMov +
       '<td class="num sep">'+(x.kg_x_uni?fmt(x.kg_x_uni,6):"—")+'</td>'+
       (r.sin_caj?'':'<td class="num">'+(x.uni_x_cajon?fmt(x.uni_x_cajon):"—")+'</td>')+
@@ -588,7 +614,7 @@ async function seleccionar(key){
   render();
   var con = CUR.filas.filter(function(x){ return Number(x.online||0)!==0; }).length;
   $("status").textContent = r.mode==="global"
-    ? "Todos los rubros · " + fmt(CUR.filas.length) + " filas de inventario (sectores, talleristas, P.S., prov. AT y tránsito) · " + fmt(con) + " con stock."
+    ? "Todos los rubros · " + fmt(CUR.filas.length) + " filas de inventario (sectores, talleristas, P.S., prov. AT, inyectores y tránsito) · " + fmt(con) + " con stock."
     : r.nom + " · " + CUR.filas.length + " componentes · " + con + " con stock.";
 }
 
