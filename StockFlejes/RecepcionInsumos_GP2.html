@@ -6,6 +6,16 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
+<!-- v3.67.0 (2026-09-30) — PESAJE DE FLEJES: POR PALLET SOLO KG Y ROLLOS, Y SE GUARDA AUNQUE NO DE
+     [usuario: "Que me deje cargar igual aunque de mal. Tiene que ser como el control de cualquier otra
+     recepcion. Hay mucho texto. Que me pida kgs, rollos. Y si hay mas de un pallet: +pallet y vuelvo a
+     cargar kgs y rollos"]. (1) Cada pallet es una fila Kg + Rollos; el kg por rollo ya no se pide ni se
+     muestra: sale de (balanza - tara del pallet) / rollos al guardar, que es lo que ya calculaba solo.
+     Se van "+ rollos de otro peso", el rotulo "Pallet N" con codigo, la linea de sobrante y el texto de
+     arriba. (2) Los dos bloqueos (balanza <= remito y sobrante negativo) pasan a UN aviso con la cuenta y
+     "¿Confirmar de todos modos?", igual que control-remaches.js: la diferencia se resuelve despues en
+     Validacion Stock > Remito vs Control. Queda el aviso de Damian (+20 %). Test: test_recepcion_etapas.js
+     y test_recepcion_guardar_pesaje.js (guarda con la balanza por debajo del remito). -->
 <!-- v3.66.0 (2026-09-30) — LOS AVISOS DE GESTION VIRGILIO SE CONFIRMAN ACA, EN LA TARJETA DEL COMPONENTE
      [usuario: "El cartel amarillo de GP2 quiero que lo elimines de donde esta ahora y que en el modulo de
      recepcion de insumos (dentro de importados) me aparezca una notificacion en el sector correspondiente
@@ -470,47 +480,34 @@ input[type="text"]{width:200px}
 /* paso 2 anidado: pesaje dentro del mismo popup */
 /* pallet COMPACTO: filas de una linea, sin etiquetas en bloque, para que
    un remito de varios pallets no obligue a scrollear media pantalla por pallet */
-.pes-pallet{border:2px solid #d0d7de;border-radius:10px;padding:10px;margin-bottom:10px;background:#fafbfc}
-.pes-pallet .ph{display:flex;justify-content:space-between;align-items:center;font-weight:800;font-size:17px;margin-bottom:8px}
+/* PALLET = KG + ROLLOS, nada mas (v3.67.0) [usuario 2026-09-30: "Que me pida kgs, rollos. Y si hay
+   mas de un pallet: +pallet y vuelvo a cargar kgs y rollos"]. Una grilla: los rotulos Kg / Rollos van
+   UNA vez arriba y cada pallet es una fila; con un solo pallet no hay columna de numero. En 390px
+   entra en un renglon (antes la parte de rollos bajaba sola). .pes-pallet es display:contents para
+   que sus celdas caigan en la grilla y los handlers sigan ubicando el pallet con closest(). */
+.pes-grid{display:grid;grid-template-columns:auto auto auto;gap:8px 14px;align-items:center;justify-content:start;margin-bottom:10px}
+.pes-grid.uno{grid-template-columns:auto auto}
+.pes-grid .gh{font-size:14px;font-weight:800;color:#555;text-align:center}
+.pes-grid .pn{font-size:17px;font-weight:900;color:#0b3b73;text-align:center}
+.pes-pallet{display:contents}
 /* margin:0 a proposito: los inputs del pesaje heredaban el margin-bottom:16px
    de '.kg-modal input' (misma especificidad, declarado antes) y ese aire fantasma
-   estiraba el stepper a 64px contra los 44 de la balanza — con los dos campos en
-   el mismo renglon el escalon se veia. */
+   estiraba el stepper a 64px contra los 44 de la balanza. */
 .pes-pallet input{border:2px solid #d0d7de;border-radius:8px;padding:8px 10px;font-size:19px;text-align:center;width:100%;margin:0}
-/* TODO EL PALLET EN UNA FILA (pedido del usuario 2026-08-31: "toda esta info
-   esta ancha al pedo, ponela en una fila sola de ancho"):
-       Balanza [450] kg   Rollos [- 5 +] x [88,5] kg
-   Antes la balanza y los rollos eran dos bloques apilados y sus inputs iban con
-   flex:1, asi que un numero de 3 digitos ocupaba 400px de ancho. Ahora cada
-   campo mide lo que tiene que medir y las dos cosas entran en el mismo renglon;
-   en celular la parte de rollos baja sola (flex-wrap). */
-.pes-fila1{display:flex;align-items:center;gap:16px;flex-wrap:wrap}
-/* fila de balanza: etiqueta al lado, no arriba */
-.peso-row{display:flex;align-items:center;gap:8px;flex:0 0 auto}
+.pes-grid input.peso{width:120px !important;min-height:48px;text-align:right;font-size:20px !important;font-weight:700}
+/* modo peso total (Bella Vista): un solo campo con su rotulo al lado */
+.peso-row{display:flex;align-items:center;gap:8px;flex:0 0 auto;margin-bottom:10px}
 .peso-row .plbl{font-size:15px;font-weight:700;color:#555;flex:0 0 auto}
-.peso-row input{flex:0 0 96px;width:96px !important;min-height:44px;text-align:right;font-size:20px !important;font-weight:700}
+.peso-row input{flex:0 0 120px;width:120px !important;min-height:44px;text-align:right;font-size:20px !important;font-weight:700}
 .peso-row .punit{font-size:15px;font-weight:700;color:#555;flex:0 0 auto}
-.pes-linea{display:flex;gap:6px;align-items:center;flex:0 0 auto}
-/* las lineas de OTRO peso (raras) se apilan en columna al lado de la balanza,
-   asi todas arrancan en la misma x en vez de quedar escalonadas */
-.pes-rollos{display:flex;flex-direction:column;gap:8px;flex:0 0 auto}
-.pes-linea .x{cursor:pointer;font-size:18px;color:#b42318;font-weight:800;padding:0 4px;flex:0 0 auto}
-/* la linea entra en UNA fila: Rollos [- 5 +] x [88,5] kg */
+/* stepper de rollos: altura FIJA de 44, la misma del campo de kg */
 .stp{display:flex;align-items:center;border:2px solid #d0d7de;border-radius:8px;overflow:hidden;background:#fff;flex:0 0 auto}
-/* altura FIJA de 44: el stepper comparte renglon con la balanza y si crece
-   queda un escalon entre los dos campos */
-.stp .stb{width:36px;height:44px;min-height:44px;border:0;background:#f1f5f9;font-size:22px;font-weight:800;color:#0b3b73;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;padding:0}
+.stp .stb{width:40px;height:44px;min-height:44px;border:0;background:#f1f5f9;font-size:22px;font-weight:800;color:#0b3b73;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;padding:0}
 .stp .stb:active{background:#dbe4ee}
-.stp input{border:0 !important;width:38px !important;height:44px;min-height:44px;font-size:20px !important;font-weight:800;text-align:center;padding:0 !important;flex:0 0 38px}
-.pes-linea .lbl{font-size:14px;font-weight:700;color:#555;white-space:nowrap;flex:0 0 auto}
-.kgw{display:flex;align-items:center;gap:5px;flex:0 0 auto}
-.kgw input{flex:0 0 84px;width:84px !important;font-size:18px !important;padding:8px 6px !important;min-height:44px;text-align:right}
-.kgw span{font-size:15px;font-weight:700;color:#555;flex:0 0 auto}
-/* valor calculado solo (balanza - tara / rollos): azul hasta que lo corrijan */
-.kgw input.auto{color:#1d4ed8;font-weight:700}
-.pes-calc{font-size:15px;margin-top:8px;color:#555}
+.stp input{border:0 !important;width:44px !important;height:44px;min-height:44px;font-size:20px !important;font-weight:800;text-align:center;padding:0 !important;flex:0 0 44px}
+.pes-calc{font-size:15px;margin:0 0 10px;color:#555}
 .pes-calc .okc{color:#0a7a2f;font-weight:800} .pes-calc .warnc{color:#b45309;font-weight:800}
-.pes-add{font-size:15px;font-weight:700;color:#1d4ed8;cursor:pointer;background:none;border:1px dashed #cddbea;border-radius:8px;padding:6px 10px;margin-top:8px}
+.pes-add{font-size:15px;font-weight:700;color:#1d4ed8;cursor:pointer;background:none;border:1px dashed #cddbea;border-radius:8px;padding:6px 10px;margin:0 0 14px}
 /* pesaje por etapas: un item por vez, con chips de progreso y Anterior/Siguiente */
 .pes-chips{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
 .pes-chip{padding:6px 12px;border-radius:16px;border:2px solid #d0d7de;background:#fff;font-weight:800;font-size:14px;cursor:pointer;color:#334155}
@@ -536,29 +533,6 @@ input[type="text"]{width:200px}
 .pes-nav .ant{background:#fff;color:#0b3b73;border:2px solid #d0d7de}
 .pes-paso{font-size:14px;font-weight:800;color:#555;margin-bottom:4px}
 
-/* Mensaje del bloqueo (sobrante negativo, balanza<remito) — layout limpio
-   con card, titulo destacado y detalle indentado por pallet (usuario
-   2026-09-01: "el mensaje del palet puede ser mejor"). */
-.err-card{background:#fdf3f2;border:2px solid #eacfcd;border-radius:10px;padding:12px 14px;margin-top:10px;color:#111;font-size:15px;line-height:1.45}
-.err-card .err-title{font-size:17px;font-weight:900;color:#b42318;margin-bottom:6px}
-.err-card .err-sub{color:#555;margin-bottom:10px}
-.err-card .err-item{background:#fff;border:1px solid #eacfcd;border-radius:8px;padding:10px 12px;margin-top:8px}
-.err-card .err-item + .err-item{margin-top:8px}
-.err-card .err-cod{font-weight:900;color:#0b3b73;font-size:16px}
-.err-card .err-desc{color:#555;font-weight:600}
-.err-card .err-remito{margin-top:4px;font-size:15px}
-.err-card .err-remito b{color:#0b3b73}
-.err-card .err-plt{margin:6px 0 0 12px;font-size:14px;color:#333;font-variant-numeric:tabular-nums}
-.err-card .err-plt b{color:#0b3b73}
-/* Pallet CON el error (sobrante negativo): resaltado en rojo con "⚠" al lado
-   para que se vea CUAL es el que no cuadra dentro de un item con varios
-   pallets [usuario 2026-09-01, con foto: "algo no cuadra"]. Los OK quedan
-   en gris — la vista lee "solo este es el problema". */
-.err-card .err-plt.err{color:#b42318;font-weight:700;background:#fdf3f2;border-left:3px solid #b42318;padding:4px 8px;border-radius:4px}
-.err-card .err-plt.err b{color:#b42318}
-.err-card .err-plt.ok{color:#666}
-.err-card .err-plt.ok b{color:#555}
-.err-card .err-fix{margin-top:10px;font-weight:700;color:#7c2d12}
 </style>
 <link rel="icon" type="image/png" href="../GP2_favicon.png">
 <link rel="apple-touch-icon" href="../GP2_favicon.png">
@@ -2162,6 +2136,12 @@ function bloquesPrefill(rec){
 /* Abre el paso 2 con TODOS los items a pesar. */
 function montarPesaje(items){
   if(!items || !items.length) return;
+  // Un pallet lleva UNA cantidad de rollos: lo que venga en varias lineas (pallets ya pesados
+  // con el formato viejo) se suma en una (v3.67.0).
+  items.forEach(function(it){
+    if(it.modo==='peso') return;
+    Object.keys(it.blocks).forEach(function(nro){ unaLinea(it.blocks[nro]); });
+  });
   PES = { items: items, cur: 0 };
   syncExits();
   var totPall=items.reduce(function(t,it){ return t+Object.keys(it.blocks).length; },0);
@@ -2175,22 +2155,32 @@ function montarPesaje(items){
   $('kgPesajeSalir').classList.add('hidden');
   $('kgPesajeOk').classList.remove('hidden');
   $('kgMsg').className='status';
-  $('kgMsg').innerHTML='Por cada pallet: el peso de balanza y las líneas de rollos. Recién ahí la recepción queda completa.';
+  $('kgMsg').textContent='';
   $('pesajeWrap').classList.remove('hidden');
   pintarPesaje();
   $('kgPopup').classList.add('open');
   $('kgPopup').scrollTop=0;   // arrancar arriba: el pesaje largo abria scrolleado
 }
 
-function calcLinea(k){
-  return k.sob!=null
-    ? ('Rollos <b>'+k.rollos+'</b> · suma <b>'+fmt(k.kg)+' kg</b> · sobrante '+
-       '<span class="'+(k.estado==='ok'?'okc':'warnc')+'">'+fmt(k.sob)+' kg</span> (esperado '+k.tmin+'–'+k.tmax+')')
-    : 'Completá el peso de balanza y al menos una línea de rollos.';
+/* PALLET = KG + ROLLOS (v3.67.0). El kg por rollo ya no se pide: es (balanza - tara del pallet)
+   repartido entre los rollos, lo mismo que calculaba solo el auto-calculo de la v3.14.0. Viaja asi a
+   pesar_pallet, porque recepcion_control_rollo guarda la linea cantidad x kg y el ingreso real del
+   control (Remito vs Control) es esa suma = balanza - tara. */
+function rollosN(p){ return (p.rollos||[]).reduce(function(t,l){ return t+(pint(l.c)||0); },0); }
+function unaLinea(p){
+  var n=rollosN(p), c=n>0 ? String(n) : ((p.rollos&&p.rollos[0]&&p.rollos[0].c)||'');
+  p.rollos=[{c:c,k:''}];
+}
+function kgPorRollo(p){
+  var peso=pnum(p.peso), n=rollosN(p);
+  if(!(peso>0) || !(n>0)) return null;
+  // Una balanza por debajo de la tara es un error de carga que el aviso del remito ya marca;
+  // se reparte el peso entero para que el pallet no quede "sin rollos" (la base descarta kg <= 0).
+  var neto=peso-taraPallet();
+  return Math.round((neto>0?neto:peso)/n*1000)/1000;
 }
 
-/* La balanza pesa fleje + pallet: el total del item tiene que dar SIEMPRE
-   mas que los kg del remito (salvo que hayan entregado diferente). */
+/* La balanza pesa fleje + pallet. */
 function calcItem(it){
   var tot=0, n=0;
   Object.keys(it.blocks).forEach(function(nro){
@@ -2202,49 +2192,54 @@ function calcItem(it){
    puede exceder el 5% de diferencia"]. La clave tol_ctrl_peso_pct (2 %, sólo este pesaje) pasó
    a llamarse tol_ctrl_pct y la leen también el control de insumos y el de entregas. El piso de
    0,5 kg queda: con 3 kg de remito, el 5 % son 150 gramos y ninguna balanza afina tanto. */
-function tolKg(kg){ return Math.max(kg*(Number(TARA.tol_ctrl_pct)||5)/100, 0.5); }
+function tolPct(){ return Number(TARA.tol_ctrl_pct)||5; }
+function tolKg(kg){ return Math.max(kg*tolPct()/100, 0.5); }
+/* Remito contra lo pesado. En rollos se descuenta la tara de cada pallet pesado (la balanza pesa
+   producto + pallet: compararla cruda siempre miente) [usuario 2026-08-31]; en peso total no.
+   damian = excedente neto > 20 % [usuario 2026-09-01: "solo hay regla de si supera el 20%
+   excedente, que salte una alerta de Avisar a Damian"]. null = sin remito o sin nada pesado. */
+function itemDif(it){
+  var c=calcItem(it);
+  if(!(it.remitoKg>0) || !c.n) return null;
+  var tara=(it.modo==='peso') ? 0 : taraPallet()*c.n;
+  var neto=c.tot-tara, dif=neto-it.remitoKg, pct=dif/it.remitoKg*100;
+  return { tot:c.tot, n:c.n, tara:tara, neto:neto, dif:dif, pct:pct,
+           ok: Math.abs(dif)<=tolKg(it.remitoKg),
+           damian: it.modo!=='peso' && dif>0 && pct>20 };
+}
+/* Una linea corta [usuario 2026-09-30: "Hay mucho texto"]: remito, lo que llego y la diferencia.
+   La cuenta de la tara queda en el title. */
 function itemLinea(it){
   if(!it.remitoKg) return '';
-  var c=calcItem(it);
-  if(it.modo==='peso'){
-    if(!c.n) return 'Remito: <b>'+fmt(it.remitoKg)+' kg</b> · pesá lo que llegó: la balanza tiene que dar aproximado a eso.';
-    var d=c.tot-it.remitoKg, okp=Math.abs(d)<=tolKg(it.remitoKg);
-    return 'Remito: <b>'+fmt(it.remitoKg)+' kg</b> · balanza: <b>'+fmt(c.tot)+' kg</b> · dif '+
-      '<span class="'+(okp?'okc':'warnc')+'">'+(d>0?'+':'')+fmt(d)+' kg</span>'+
-      (okp?'':' ⚠ no coincide con el remito (¿entregaron diferente?)');
-  }
-  if(!c.n) return 'Remito: <b>'+fmt(it.remitoKg)+' kg</b> · la balanza tiene que dar MÁS que eso (se pesa el pallet).';
-  // La balanza pesa producto + PALLET, asi que compararla cruda contra el remito siempre
-  // miente. Se descuenta la tara (la aprendida del proveedor) y recien ahi se compara,
-  // con la misma tolerancia que el control por peso total. Antes era binario dif>0: con
-  // la balanza dando JUSTO el remito marcaba rojo y decia "dio menos", que ademas de
-  // asustar al pesador era falso — 0 no es menos. [usuario 2026-08-31]
-  var tara=taraPallet()*c.n, neto=c.tot-tara, dif=neto-it.remitoKg, tol=tolKg(it.remitoKg);
-  var ok=Math.abs(dif)<=tol;
-  // Excedente > 20% del remito (sobre el neto, no sobre balanza cruda): AVISAR
-  // A DAMIAN [usuario 2026-09-01: "solo hay regla de si supera el 20% excedente,
-  // que salte una alerta de Avisar a Damian"]. Aviso en vivo en la linea; el
-  // bloqueo real se hace en el submit (confirm con la lista).
-  var excedePorc = it.remitoKg>0 ? (dif/it.remitoKg)*100 : 0;
-  var damian = dif>0 && excedePorc>20;
-  return 'Remito: <b>'+fmt(it.remitoKg)+' kg</b> · balanza: <b>'+fmt(c.tot)+' kg</b>'+
-    ' − '+c.n+' pallet'+(c.n===1?'':'s')+' ('+fmt(tara)+' kg) = <b>'+fmt(neto)+' kg</b> · dif '+
-    '<span class="'+(ok?'okc':'warnc')+'">'+(dif>0?'+':'')+fmt(dif)+' kg</span>'+
-    (damian ? ' <b style="color:#b42318">⚠ +'+fmt(excedePorc)+'% — AVISAR A DAMIÁN</b>'
-      : ok ? ''
-      : dif<0 ? ' ⚠ dio menos que el remito: revisá antes de guardar (¿entregaron diferente?)'
-             : ' ⚠ dio más que el remito (¿entregaron de más?)');
+  var r='Remito <b>'+fmt(it.remitoKg)+' kg</b>', d=itemDif(it);
+  if(!d) return r;
+  var sig=function(x){ return (x>0?'+':'')+fmt(x); };
+  var tit=(it.modo==='peso') ? '' :
+    ' title="balanza '+fmt(d.tot)+' kg - '+d.n+' pallet'+(d.n===1?'':'s')+' ('+fmt(d.tara)+' kg)"';
+  return r+' · <span'+tit+'>'+(it.modo==='peso'?'balanza':'neto')+' <b>'+fmt(d.neto)+' kg</b></span> · '+
+    '<span class="'+(d.ok?'okc':'warnc')+'">'+sig(d.dif)+' kg'+(d.ok?'':' ⚠')+'</span>'+
+    (d.damian?' <b style="color:#b42318">'+sig(d.pct)+'% · AVISAR A DAMIÁN</b>':'');
+}
+/* El mismo texto para los avisos (confirm nativo, texto plano). */
+function difTexto(it){
+  var d=itemDif(it), sig=function(x){ return (x>0?'+':'')+fmt(x); };
+  return it.codigo+': remito '+fmt(it.remitoKg)+' kg · '+(it.modo==='peso'?'balanza':'neto')+' '+
+    fmt(d.neto)+' kg ('+sig(d.dif)+' kg, '+sig(d.pct)+' %)';
+}
+/* Como control-remaches.js: avisa con la cuenta y deja seguir [usuario 2026-09-30: "Que me deje
+   cargar igual aunque de mal. Tiene que ser como el control de cualquier otra recepcion"]. */
+function avisoDif(its, pregunta){
+  return '⚠ No coincide con el remito (tolerancia '+fmt(tolPct())+' %):\n\n'+
+    its.map(difTexto).join('\n')+'\n\n'+pregunta;
 }
 
-/* Un item esta "listo" cuando todos sus pallets tienen peso (y rollos, si aplica).
-   Solo pinta el chip de verde: la validacion de verdad sigue en Guardar. */
+/* Un item esta "listo" cuando todos sus pallets tienen kg (y rollos, si aplica).
+   Solo pinta el chip: la validacion de verdad sigue en Guardar. */
 function itemListo(it){
   var nros=Object.keys(it.blocks); if(!nros.length) return false;
   return nros.every(function(nro){
     var p=it.blocks[nro];
-    if(!(pnum(p.peso)>0)) return false;
-    if(it.modo==='peso') return true;
-    return p.rollos.some(function(l){ return pint(l.c)>0 && pnum(l.k)>0; });
+    return pnum(p.peso)>0 && (it.modo==='peso' || rollosN(p)>0);
   });
 }
 
@@ -2256,12 +2251,10 @@ function pintarPesaje(){
 
   var chips = n>1
     ? '<div class="pes-chips">'+PES.items.map(function(x,j){
-        // Error grave (sobrante negativo) manda: chip rojo con ⚠, sin done ni
-        // check verde, aunque itemListo diga que si. Antes quedaba ✓ verde
-        // aunque el mensaje bloqueara el paso [usuario 2026-09-01: "algo no
-        // cuadra"].
-        var err = itemConErrorGrave(x);
-        var done = !err && itemListo(x);
+        // Completo y lejos del remito: chip rojo con ⚠ (se puede guardar igual, pero se ve).
+        var listo = itemListo(x), d = itemDif(x);
+        var err = listo && d && !d.ok;
+        var done = listo && !err;
         var cls = 'pes-chip'+(j===i?' act':'')+(err?' err':'')+(done?' done':'');
         var pre = err ? '⚠ ' : (done ? '✓ ' : '');
         return '<button type="button" class="'+cls+'" data-nav="'+j+'">'+pre+esc(x.codigo)+'</button>';
@@ -2281,34 +2274,20 @@ function pintarPesaje(){
       '<span class="punit">kg</span></div>'+
     '</div>';
   }else{
-    cuerpo=Object.keys(it.blocks).sort((a,b)=>a-b).map(function(nro){
-      var p=it.blocks[nro];
-      // La PRIMERA linea de rollos va pegada a la balanza, en el mismo renglon;
-      // las de otro peso (raras) caen abajo. El data-l no cambia: los handlers
-      // y el auto-calculo siguen ubicando la linea por ahi.
-      var linea=function(l,idx){
-        return '<div class="pes-linea" data-l="'+idx+'">'+
-          '<span class="lbl">Rollos</span>'+
+    var nros=Object.keys(it.blocks).sort(function(a,b){ return a-b; }), multi=nros.length>1;
+    cuerpo='<div class="pes-grid'+(multi?'':' uno')+'">'+
+      (multi?'<span class="gh">Pallet</span>':'')+'<span class="gh">Kg</span><span class="gh">Rollos</span>'+
+      nros.map(function(nro){
+        var p=it.blocks[nro], c=(p.rollos[0]&&p.rollos[0].c)||'';
+        return '<div class="pes-pallet" data-i="'+i+'" data-p="'+nro+'">'+
+          (multi?'<span class="pn">'+esc(nro)+'</span>':'')+
+          '<input class="peso" inputmode="decimal" data-f="peso" value="'+esc(p.peso)+'" placeholder="0,0">'+
           '<div class="stp"><button type="button" class="stb" data-step="-1">−</button>'+
-          '<input inputmode="numeric" data-f="c" value="'+esc(l.c)+'">'+
+          '<input inputmode="numeric" data-f="c" value="'+esc(c)+'">'+
           '<button type="button" class="stb" data-step="1">+</button></div>'+
-          '<span class="lbl">×</span>'+
-          '<div class="kgw"><input inputmode="decimal" data-f="k" class="'+(l._auto?'auto':'')+'" value="'+esc(l.k)+'" placeholder="0,0"><span>kg</span></div>'+
-          (p.rollos.length>1?'<span class="x" data-del="1" title="Quitar línea">✕</span>':'')+
         '</div>';
-      };
-      return '<div class="pes-pallet" data-i="'+i+'" data-p="'+nro+'">'+
-        '<div class="ph"><span>'+esc(it.codigo)+' · Pallet '+nro+'</span></div>'+
-        '<div class="pes-fila1">'+
-          '<div class="peso-row"><span class="plbl">Balanza</span>'+
-          '<input inputmode="decimal" data-f="peso" value="'+esc(p.peso)+'" placeholder="0,0">'+
-          '<span class="punit">kg</span></div>'+
-          '<div class="pes-rollos">'+p.rollos.map(linea).join('')+'</div>'+
-        '</div>'+
-        '<button type="button" class="pes-add" data-addl="1">+ rollos de otro peso</button>'+
-        '<div class="pes-calc">'+calcLinea(calcPallet(p))+'</div>'+
-      '</div>';
-    }).join('')+'<button type="button" class="pes-add" data-addp="'+i+'">+ pallet en '+esc(it.codigo)+'</button>';
+      }).join('')+
+    '</div><button type="button" class="pes-add" data-addp="'+i+'">+ Pallet</button>';
   }
 
   var nav = n>1
@@ -2328,81 +2307,7 @@ function bloqueDeFila(pb){
   return it ? it.blocks[pb.dataset.p] : null;
 }
 
-/* Validacion del item CURRENT al navegar (chip / Anterior / Siguiente):
-   [usuario 2026-09-01: "cuando tenes 2 flejes en vez de guardar pasas al
-   siguiente, que eso tambien te tire el mensaje de guardar, para que
-   continuar si pusiste mal la informacion anterior"]. Devuelve HTML con
-   los errores o null si OK. Solo bloquea los ERRORES duros (sobrante
-   negativo, balanza<=remito): un item vacio o a medias deja pasar (el
-   operario todavia lo esta cargando).
-   NOTA: mismos chequeos que kgPesajeOk pero acotados al item — mantener
-   sincronizados si cambian los criterios. */
-/* Detalle de UN pallet como una linea HTML con estilo. Marca la clase segun
-   el estado del sobrante: `err` (rojo, es el que dispara el bloqueo por
-   negativo) u `ok` (gris, esta bien) — asi el operario ve rapido cual es
-   el pallet que no cuadra dentro de un item con varios. */
-function palletLinea(nro, p){
-  var c=calcPallet(p);
-  if (c.peso==null && !(c.rollos>0)) return '';
-  var lineas=(p.rollos||[]).filter(function(l){return pint(l.c)>0 && pnum(l.k)>0;})
-    .map(function(l){return pint(l.c)+' × '+fmt(pnum(l.k))+' kg';}).join(' + ') || 'sin rollos';
-  var suma=c.kg||0, sob=(c.peso!=null && c.rollos>0) ? (c.peso-suma) : null;
-  var cls = (sob!=null && sob<0) ? 'err' : (sob!=null ? 'ok' : '');
-  var flag = (sob!=null && sob<0) ? '⚠ ' : '';
-  return '<div class="err-plt '+cls+'">'+flag+'Pallet <b>'+nro+'</b>: '+esc(lineas)+' = <b>'+fmt(suma)+' kg</b>'+
-    (c.peso!=null ? (' · balanza <b>'+fmt(c.peso)+' kg</b>') : '')+
-    (sob!=null ? (' · sobrante <b>'+fmt(sob)+' kg</b>') : '')+
-    '</div>';
-}
-/* True si el item tiene ALGUN pallet con sobrante negativo — el chip pasa a
-   rojo (clase `err`) y NO recibe la clase `done` aunque itemListo diga que
-   si. Un item con error grave no puede estar "listo". */
-function itemConErrorGrave(it){
-  return Object.keys(it.blocks).some(function(nro){
-    var c=calcPallet(it.blocks[nro]);
-    return c.sob!=null && c.sob<0;
-  });
-}
-function palletsDeItemHTML(it){
-  return Object.keys(it.blocks).sort(function(a,b){return a-b;})
-    .map(function(nro){ return palletLinea(nro, it.blocks[nro]); }).join('');
-}
-/* Un "item block" del error card: codigo + descripcion + (opcional) remito
-   vs balanza + detalle de sus pallets. */
-function itemErrBlock(it, extra){
-  return '<div class="err-item">'+
-    '<div><span class="err-cod">'+esc(it.codigo)+'</span> <span class="err-desc">'+esc(it.desc||'')+'</span></div>'+
-    (extra||'')+
-    palletsDeItemHTML(it)+
-  '</div>';
-}
 
-function validarItemPesaje(it){
-  if(!it) return null;
-  // Al navegar entre items SOLO se valida el sobrante negativo — es un error
-  // puntual del pallet ya cargado (un rollo pesa mas que la balanza es
-  // imposible, hay que corregirlo ya). La comparacion balanza<remito NO
-  // aplica aca porque el operario puede estar cargando los pallets del item
-  // de a uno por vez: con 1 pallet cargado, la suma es solo la parte, no el
-  // total. Bloquear ahi impediria pasar al siguiente item para volver
-  // despues [usuario 2026-09-01: "saque uno de los rollos y igualmente no
-  // me deja seguir" — el bloqueo era balanza<remito, valido en Guardar
-  // pero no en Nav].
-  var neg=false;
-  Object.keys(it.blocks).forEach(function(nro){
-    var p=it.blocks[nro], c=calcPallet(p);
-    if(c.sob!=null && c.sob<0) neg=true;
-  });
-  if(neg){
-    return '<div class="err-card">'+
-      '<div class="err-title">No se puede continuar: sobrante negativo</div>'+
-      '<div class="err-sub">Los rollos pesan mas que la balanza.</div>'+
-      itemErrBlock(it, '')+
-      '<div class="err-fix">Corregi algun rollo mal anotado o el peso de balanza antes de pasar al proximo item.</div>'+
-    '</div>';
-  }
-  return null;
-}
 
 /* Delegación: inputs y botones del paso 2 (el DOM se re-arma seguido). */
 $('pesajeWrap').addEventListener('input', function(e){
@@ -2414,16 +2319,8 @@ $('pesajeWrap').addEventListener('input', function(e){
   // formato valido [usuario 2026-09-01].
   var val = (f==='c') ? sanInput(e.target, sanInt) : sanInput(e.target, sanDec);
   if(f==='peso') p.peso=val;
-  else{
-    var ln=e.target.closest('.pes-linea'); if(!ln) return;
-    var lx=p.rollos[Number(ln.dataset.l)];
-    lx[f]=val;
-    if(f==='k'){ lx._auto=false; e.target.classList.remove('auto'); }  // correccion manual: manda la persona
-  }
-  autoKg(p, pb);
-  // refrescar solo la línea de cálculo (sin re-render, para no perder el foco)
-  var cl=pb.querySelector('.pes-calc');
-  if(cl) cl.innerHTML=calcLinea(calcPallet(p));
+  else if(f==='c'){ if(!p.rollos.length) p.rollos=[{c:'',k:''}]; p.rollos[0].c=val; }
+  // refrescar solo la linea del remito (sin re-render, para no perder el foco)
   var ic=$('pesajeWrap').querySelector('[data-itemcalc="'+pb.dataset.i+'"]');
   if(ic) ic.innerHTML=itemLinea(PES.items[Number(pb.dataset.i)]);
 });
@@ -2431,42 +2328,13 @@ $('pesajeWrap').addEventListener('click', function(e){
   if(!PES) return;
   if(e.target.dataset.nav!==undefined && e.target.dataset.nav!==''){
     var destino=Number(e.target.dataset.nav);
-    // Al cambiar de item: (1) sobrante negativo BLOQUEA duro (imposible en la
-    // realidad); (2) balanza<remito muestra confirm nativo con la cuenta —
-    // el operario decide si continua igual o vuelve a corregir. Retroceder
-    // al mismo item no valida.
+    // Al cambiar de item, si lo pesado no coincide con el remito, avisa con la cuenta y deja
+    // seguir [usuario 2026-09-01: "y a parte deja seguir cuando es diferente a lo que dice el
+    // remito"; 2026-09-30: "Que me deje cargar igual aunque de mal"]. Retroceder al mismo item
+    // no avisa.
     if(destino!==PES.cur){
-      var itAct = PES.items[PES.cur];
-      var err = validarItemPesaje(itAct);
-      if(err){
-        var m=$('kgMsg'); m.className='status bad'; m.innerHTML=err;
-        $('kgPopup').scrollTop=$('kgPopup').scrollHeight;
-        return;
-      }
-      // Confirm de balanza<remito: si el item tiene remito y ya cargo algun
-      // peso pero la suma no supera al remito, avisar antes de pasar
-      // [usuario 2026-09-01: "y a parte deja seguir cuando es diferente a
-      // lo que dice el remito"]. Es confirm porque el operario puede estar
-      // cargando de a un pallet — a diferencia del Guardar final donde
-      // balanza<remito es bloqueo duro.
-      if(itAct && itAct.modo!=='peso' && Number(itAct.remitoKg)>0){
-        var sumaP=0, hayPeso=false;
-        Object.keys(itAct.blocks).forEach(function(nro){
-          var w=pnum(itAct.blocks[nro].peso); if(w>0){ sumaP+=w; hayPeso=true; }
-        });
-        if(hayPeso && sumaP<=itAct.remitoKg){
-          var dif = sumaP - itAct.remitoKg;
-          var okConf = confirm(
-            '⚠ La balanza de '+itAct.codigo+' no llega al remito.\n\n'+
-            'Remito: '+fmt(itAct.remitoKg)+' kg\n'+
-            'Balanza (suma pallets): '+fmt(sumaP)+' kg\n'+
-            'Diferencia: '+fmt(dif)+' kg\n\n'+
-            '¿Todavía te falta pesar pallets de este item?\n'+
-            'Aceptar = paso igual (vuelvo despues a completar)\n'+
-            'Cancelar = me quedo a terminar de cargar');
-          if(!okConf) return;
-        }
-      }
+      var itAct=PES.items[PES.cur], dAct=itemDif(itAct);
+      if(dAct && !dAct.ok && !confirm(avisoDif([itAct], '¿Pasar igual? (si faltan pallets, volvé después)'))) return;
     }
     PES.cur=destino;
     pintarPesaje();
@@ -2483,18 +2351,8 @@ $('pesajeWrap').addEventListener('click', function(e){
   var pb=e.target.closest('.pes-pallet'); if(!pb) return;
   var p=bloqueDeFila(pb); if(!p) return;
   if(e.target.dataset.step){
-    var ln0=e.target.closest('.pes-linea'); if(!ln0) return;
-    var l0=p.rollos[Number(ln0.dataset.l)];
-    l0.c=String(Math.max(0, pint(l0.c)+Number(e.target.dataset.step)));
-    autoKg(p);
-    pintarPesaje(); return;
-  }
-  // la linea nueva arranca en 1 rollo; casi siempre es "el mismo peso que el anterior no"
-  if(e.target.dataset.addl){ p.rollos.push({c:'1',k:''}); pintarPesaje(); return; }
-  if(e.target.dataset.del){
-    var ln=e.target.closest('.pes-linea');
-    p.rollos.splice(Number(ln.dataset.l),1);
     if(!p.rollos.length) p.rollos=[{c:'',k:''}];
+    p.rollos[0].c=String(Math.max(0, rollosN(p)+Number(e.target.dataset.step)));
     pintarPesaje(); return;
   }
 });
@@ -2683,124 +2541,49 @@ $('pesajeWrap').addEventListener('click', function(e){
    se cierra a mitad de camino, la recepción reaparece en la barra de arriba
    como "sin pesar" y hay que terminarla. */
 
-/* Guardar pesaje de TODO el remito: cierra la recepción. Alerta si algún
-   sobrante se va de 4–8, pero deja guardar igual (queda marcado). */
+/* Guardar pesaje de TODO el remito: cierra la recepción. Nada bloquea por el peso (v3.67.0)
+   [usuario 2026-09-30: "Que me deje cargar igual aunque de mal. Tiene que ser como el control de
+   cualquier otra recepcion"]: lo que no coincide con el remito se avisa con la cuenta y se guarda
+   igual; la diferencia se resuelve en Validacion Stock > Remito vs Control. */
 $('kgPesajeOk').addEventListener('click', async function(){
   if(CTL) return guardarControlCartones();
   if(!PES) return;
   var m=$('kgMsg');
 
   var listos=[];   // {recId, codigo, nro, peso, lineas}
-  var incompletos=[];  // pallets a medias (peso sin rollos, o rollos sin peso): avisar, no saltear en silencio
+  var incompletos=[];  // kg sin rollos: avisar, no saltear en silencio
   PES.items.forEach(function(it){
-    Object.keys(it.blocks).sort((a,b)=>a-b).forEach(function(nro){
-      var p=it.blocks[nro];
-      var lineas=p.rollos.map(function(l){ return {cantidad:pint(l.c),kg_por_rollo:pnum(l.k)}; })
-                         .filter(function(l){ return l.cantidad>0 && l.kg_por_rollo>0; });
-      if(pnum(p.peso)>0 && (lineas.length || it.modo==='peso'))
-        listos.push({recId:it.recId, codigo:it.codigo, nro:Number(nro), peso:pnum(p.peso), lineas:lineas, calc:calcPallet(p)});
-      else if(pnum(p.peso)>0 || lineas.length)
-        incompletos.push(it.codigo+' · Pallet '+nro);
+    Object.keys(it.blocks).sort(function(a,b){ return a-b; }).forEach(function(nro){
+      var p=it.blocks[nro], peso=pnum(p.peso);
+      if(!(peso>0)) return;                        // pallet sin kg = no se peso (se saltea)
+      if(it.modo==='peso'){ listos.push({recId:it.recId, codigo:it.codigo, nro:Number(nro), peso:peso, lineas:[]}); return; }
+      var n=rollosN(p), k=kgPorRollo(p);
+      if(n>0 && k>0) listos.push({recId:it.recId, codigo:it.codigo, nro:Number(nro), peso:peso,
+                                 lineas:[{cantidad:n, kg_por_rollo:k}]});
+      else incompletos.push(it.codigo+' · Pallet '+nro);
     });
   });
-  if(!listos.length){ m.className='status bad'; m.textContent='Cargá al menos un pallet: peso de balanza + rollos.'; return; }
+  if(!listos.length){ m.className='status bad'; m.textContent='Cargá los kg y los rollos de al menos un pallet.'; return; }
   if(incompletos.length && !confirm(
-      '⚠ Pallets a medias (falta el peso de balanza o las líneas de rollos):\n\n'+incompletos.join('\n')+
-      '\n\nSolo se guardan los pallets completos y la recepción queda SIN TERMINAR (reaparece como pendiente).\n\n¿Guardar igual?')) return;
+      '⚠ Pallets sin rollos:\n\n'+incompletos.join('\n')+
+      '\n\nSolo se guardan los pallets con kg y rollos, y la recepción queda SIN TERMINAR (reaparece como pendiente).\n\n¿Guardar igual?')) return;
 
-  /* Los mensajes de bloqueo usan la misma card visual que la validacion de
-     nav (validarItemPesaje) — un solo layout para no tener 2 estilos
-     distintos. Se agrupa por codigo de item y se reusa itemErrBlock. */
-  function itemsPorCodigo(pred){
-    var set={}; listos.forEach(function(x){ if(pred(x)) set[x.codigo]=true; });
-    return Object.keys(set).map(function(c){ return PES.items.find(function(i){ return i.codigo===c; }); }).filter(Boolean);
-  }
-
-  // Sobrante negativo (los rollos pesan mas que la balanza) BLOQUEA el guardar:
-  // no puede pasar en la realidad, es un error de carga.
-  var itsNeg = itemsPorCodigo(function(x){ return x.calc.sob!=null && x.calc.sob<0; });
-  if(itsNeg.length){
-    m.className='status bad';
-    m.innerHTML='<div class="err-card">'+
-      '<div class="err-title">No se puede guardar: sobrante negativo</div>'+
-      '<div class="err-sub">Los rollos pesan mas que la balanza.</div>'+
-      itsNeg.map(function(it){ return itemErrBlock(it, ''); }).join('')+
-      '<div class="err-fix">Corregi algun rollo mal anotado o el peso de balanza.</div>'+
-    '</div>';
-    return;
-  }
-
-  // La balanza pesa fleje + pallet: por item tiene que dar MAS que el remito.
-  // Si dio menos, o entregaron diferente o hay un error de carga.
-  var itsMenores=PES.items.filter(function(it){ return it.modo!=='peso'; })
-    .map(function(it){ return { it:it, c:calcItem(it) }; })
-    .filter(function(x){ return x.it.remitoKg>0 && x.c.n>0 && x.c.tot<=x.it.remitoKg; });
-  if(itsMenores.length){
-    m.className='status bad';
-    m.innerHTML='<div class="err-card">'+
-      '<div class="err-title">No se puede guardar: la balanza dio MENOS (o igual) que el remito</div>'+
-      '<div class="err-sub">Con el peso del pallet la balanza siempre tiene que dar mas que el remito.</div>'+
-      itsMenores.map(function(x){
-        var extra = '<div class="err-remito">Remito <b>'+fmt(x.it.remitoKg)+' kg</b> · balanza <b>'+fmt(x.c.tot)+' kg</b> · dif <b>'+fmt(x.c.tot-x.it.remitoKg)+' kg</b></div>';
-        return itemErrBlock(x.it, extra);
-      }).join('')+
-      '<div class="err-fix">Revisa el remito, algun rollo mal anotado o el peso de balanza.</div>'+
-    '</div>';
-    return;
-  }
-
-  // Sobrante bajo/alto (>=0) sigue siendo confirm: puede ser un rollo con un
-  // peso raro y no siempre es error. Confirm nativo -> texto plano.
-  function detallePlano(it){
-    return Object.keys(it.blocks).sort(function(a,b){return a-b;}).map(function(nro){
-      var p=it.blocks[nro], c=calcPallet(p);
-      if (c.peso==null && !(c.rollos>0)) return null;
-      var lineas=(p.rollos||[]).filter(function(l){return pint(l.c)>0 && pnum(l.k)>0;})
-        .map(function(l){return pint(l.c)+' × '+fmt(pnum(l.k))+' kg';}).join(' + ') || 'sin rollos';
-      var suma=c.kg||0, sob=(c.peso!=null && c.rollos>0) ? (c.peso-suma) : null;
-      return '   Pallet '+nro+': '+lineas+' = '+fmt(suma)+' kg'+
-        (c.peso!=null ? (' · balanza '+fmt(c.peso)+' kg') : '')+
-        (sob!=null ? (' · sobrante '+fmt(sob)+' kg') : '');
-    }).filter(Boolean).join('\n');
-  }
-  var itsFuera = itemsPorCodigo(function(x){ return x.calc.sob!=null && x.calc.estado!=='ok' && x.calc.sob>=0; });
-  if(itsFuera.length && !confirm(
-      '⚠ El sobrante no da el peso de un pallet en:\n\n'+
-      itsFuera.map(function(it){ return it.codigo+' '+(it.desc||'')+'\n'+detallePlano(it); }).join('\n\n')+
-      '\n\nEsperado sobrante entre '+(TARA.tara_pallet_min||4)+' y '+(TARA.tara_pallet_max||8)+' kg (el peso del pallet).\n'+
-      'Puede ser un rollo mal anotado o un error de balanza.\n\n¿Guardar así?')) return;
-
-  // Control por peso (Bella Vista): la balanza tiene que coincidir con el remito.
-  var nocoinc=PES.items.filter(function(it){ return it.modo==='peso'; })
-    .map(function(it){ return { it:it, c:calcItem(it) }; })
-    .filter(function(x){ return x.it.remitoKg>0 && x.c.n>0 && Math.abs(x.c.tot-x.it.remitoKg)>tolKg(x.it.remitoKg); })
-    .map(function(x){ return x.it.codigo+': remito '+fmt(x.it.remitoKg)+' kg · balanza '+fmt(x.c.tot)+' kg'; });
-  if(nocoinc.length && !confirm(
-      '⚠ El peso no coincide con el remito en:\n\n'+nocoinc.join('\n')+
-      '\n\n¿Entregaron diferente a lo facturado?\n\n¿Guardar así?')) return;
+  // Lejos del remito: UN aviso con la cuenta, como el resto de los controles. Lo que pasa del 20 %
+  // va al aviso de Damian, que tiene su propio camino (no se pregunta dos veces).
+  var difieren=PES.items.filter(function(it){ var d=itemDif(it); return d && !d.ok; });
+  var damian=difieren.filter(function(it){ return itemDif(it).damian; });
+  var avisar=difieren.filter(function(it){ return !itemDif(it).damian; });
+  if(avisar.length && !confirm(avisoDif(avisar, '¿Confirmar de todos modos?'))) return;
 
   // AVISAR A DAMIAN: excedente neto > 20% del remito. Confirm nativo — si
   // Damian NO autoriza (Cancelar), se ANULA TODA la carga del proveedor:
-  // borra las recepciones ya creadas en el paso 1 (los pallets pesados
-  // caen por CASCADE si el schema lo tiene; si algo queda hay que limpiar
-  // manual) y se vacia el remito local [usuario 2026-09-01: "y ahi un
-  // cancelar en caso que damian dijo que no, y se cancela toda la carga
-  // (de ese proveedor)"].
-  var damian = PES.items.filter(function(it){ return it.modo!=='peso'; })
-    .map(function(it){
-      var c=calcItem(it);
-      if(!(it.remitoKg>0) || !(c.n>0)) return null;
-      var neto = c.tot - taraPallet()*c.n, dif = neto - it.remitoKg;
-      var porc = (dif/it.remitoKg)*100;
-      return (dif>0 && porc>20) ? { it:it, neto:neto, dif:dif, porc:porc } : null;
-    }).filter(Boolean);
+  // borra las recepciones ya creadas en el paso 1 y se vacia el remito local
+  // [usuario 2026-09-01: "y ahi un cancelar en caso que damian dijo que no, y
+  // se cancela toda la carga (de ese proveedor)"].
   if(damian.length){
-    var lista = damian.map(function(x){
-      return x.it.codigo+': remito '+fmt(x.it.remitoKg)+' kg · neto '+fmt(x.neto)+' kg · +'+fmt(x.dif)+' kg ('+fmt(x.porc)+'%)';
-    }).join('\n');
     var autorizado = confirm(
       '⚠ AVISAR A DAMIÁN\n\n'+
-      'Excedente superior al 20% en:\n\n'+lista+'\n\n'+
+      'Excedente superior al 20% en:\n\n'+damian.map(difTexto).join('\n')+'\n\n'+
       '¿Damián AUTORIZA guardar la carga?\n\n'+
       'Aceptar = Damián autorizó, guardar todo.\n'+
       'Cancelar = Damián NO autorizó, se ANULA toda la carga del remito ('+
@@ -2817,9 +2600,7 @@ $('kgPesajeOk').addEventListener('click', async function(){
       try{
         // RPC GP2.anular_recepcion: borra el movimiento asociado (el trigger
         // AFTER DELETE revierte el inventario) y despues la recepcion_insumo
-        // (cascadea a recepcion_control y recepcion_control_rollo). Devuelve
-        // {anuladas, movimientos_borrados}. Verificado 2026-09-01: los FK
-        // cascadean y trg_movimiento_aplicar corre en DELETE tambien.
+        // (cascadea a recepcion_control y recepcion_control_rollo).
         var res = await SB.rpc('anular_recepcion', { p_recepcion_ids: recIds });
         if(res.error) throw res.error;
       }catch(e){
@@ -2856,13 +2637,10 @@ $('kgPesajeOk').addEventListener('click', async function(){
   $('successBox').querySelector('.title').textContent = incompletos.length ? '✓ Pesaje guardado (recepción SIN terminar)' : '✓ Recepción completa';
   $('successDetail').innerHTML=nItems+' ítem'+(nItems===1?'':'s')+' · '+ok+' pallet'+(ok===1?'':'s')+' pesado'+(ok===1?'':'s')+
     (incompletos.length?(' · <b style="color:#b42318">'+incompletos.length+' pallet'+(incompletos.length===1?'':'s')+' a medias sin guardar: queda pendiente</b>'):'')+
-    /* itsFuera, NO `fuera`: la variable se llama asi desde el rename del 2026-09-11.
-       Este uso quedo sin renombrar y como la linea corre SIEMPRE (despues de que
-       pesar_pallet ya guardo), tiraba ReferenceError y abortaba el handler antes de
-       cerrarPopup(): el pesaje quedaba guardado pero la pantalla clavada en
-       "Guardando pesaje…" [usuario 2026-09-11: "cuando pongo guardar pesaje no me
-       deja, se buguea"]. Lo vigila test_recepcion_guardar_pesaje.js. */
-    (itsFuera.length?(' · <b style="color:#b45309">'+itsFuera.length+' con sobrante fuera de rango (a revisar)</b>'):'')+'.';
+    /* Esta linea corre SIEMPRE, despues de que pesar_pallet ya guardo: un nombre de variable
+       mal puesto aca deja la pantalla clavada en "Guardando pesaje…" con el pesaje guardado
+       (paso el 2026-09-11 con `fuera` / `itsFuera`). Lo vigila test_recepcion_guardar_pesaje.js. */
+    (difieren.length?(' · <b style="color:#b45309">'+difieren.length+' distinto'+(difieren.length===1?'':'s')+' al remito</b>'):'')+'.';
   cerrarPopup();
   REMITO=[];
   setTimeout(function(){ sb.style.display='none'; },7000);
@@ -3058,8 +2836,8 @@ async function cargar(){
 }
 
 // ================= Control en balanza (paso 2 del proceso real) =================
-// Un pallet por pesada. Chequeos: pallets sin pesar = 0, rollos sin clasificar = 0,
-// y el sobrante de CADA pallet (peso - suma rollos) entre tara_pallet_min y max.
+// Un pallet por pesada: kg de balanza + cantidad de rollos (v3.67.0). El kg por rollo sale de
+// (balanza - tara) / rollos (kgPorRollo), asi que el sobrante de cada pallet es la tara.
 function badge(e){
   var c = e==='ok'?'b-ok' : e==='sin controlar'?'b-pend' : (e&&e.indexOf('sobrante')>=0)?'b-warn':'b-mal';
   return '<span class="badge '+c+'">'+esc(e||'')+'</span>';
@@ -3068,10 +2846,6 @@ function palletsDe(rid){ return PALL.filter(p=>p.recepcion_id===rid); }
 function rollosDe(cid){ return ROLL.filter(r=>r.control_id===cid); }
 function pint(v){var x=parseInt(String(v==null?'':v).replace(/\D/g,''),10);return isNaN(x)?null:x;}
 function pnum(v){var x=parseFloat(String(v==null?'':v).trim().replace(',','.'));return isNaN(x)?null:x;}
-/* AUTO-CALCULO del kg por rollo (pedido del usuario): balanza y cantidad alcanzan —
-   kg/rollo = (peso de balanza - tara media del pallet) / rollos. Solo cuando el pallet
-   tiene UNA linea de rollos y el campo esta vacio o ya era automatico: apenas el
-   operario lo corrige a mano, el auto deja de pisarlo. Redondeo a 0,1 kg. */
 /* Que tara descontar, de mejor a peor dato [usuario 2026-08-30: "cuando tengamos
    datos de carga de cuanto pesa cada pallet, asumirlo para calcular mejor"]:
    1. promedio REAL de los pallets ya pesados de ESTE proveedor (n>=5, lo trae la BD),
@@ -3084,30 +2858,7 @@ function taraPallet(){
   return (Number(TARA.tara_pallet_min||4)+Number(TARA.tara_pallet_max||8))/2;
 }
 
-function autoKg(p, pb){
-  if(!p || (p.rollos||[]).length!==1) return;
-  var l=p.rollos[0];
-  if(l.k!=='' && !l._auto) return;             // lo escribio la persona: no tocar
-  var peso=pnum(p.peso), c=pint(l.c);
-  if(!(peso>0) || !(c>0)) return;
-  var k=Math.round((peso-taraPallet())/c*10)/10;
-  if(!(k>0)) return;
-  l.k=String(k).replace('.',',');
-  l._auto=true;
-  if(pb){
-    var ki=pb.querySelector('.kgw input');
-    if(ki && ki!==document.activeElement){ ki.value=l.k; ki.classList.add('auto'); }
-  }
-}
 
-function calcPallet(p){
-  var peso=pnum(p.peso), kg=0, rollos=0, algo=false;
-  (p.rollos||[]).forEach(l=>{var c=pint(l.c),k=pnum(l.k); if(c&&k){kg+=c*k;rollos+=c;algo=true;}});
-  if(peso==null||!algo) return {peso:peso,kg:kg,rollos:rollos,sob:null,estado:null};
-  var sob=peso-kg, tmin=Number(TARA.tara_pallet_min||4), tmax=Number(TARA.tara_pallet_max||8);
-  return {peso:peso,kg:kg,rollos:rollos,sob:sob,tmin:tmin,tmax:tmax,
-          estado: sob<tmin?'sobrante bajo':sob>tmax?'sobrante alto':'ok'};
-}
 /* (el modulo Control en balanza se elimino: el pesaje vive en el flujo del remito) */
 /* Paso 1: sanitizar kgValue (rechazar letras + normalizar coma->punto) antes
    del updateConv, si no la conversion en pantalla lee basura. Los enteros

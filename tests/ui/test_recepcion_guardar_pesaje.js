@@ -61,5 +61,30 @@ const EXE = process.env.CHROMIUM_PATH || (fs.existsSync('/opt/pw-browsers/chromi
   const msg = await page.locator('#kgMsg').innerText();
   ok(!/Guardando pesaje/i.test(msg), 'no queda clavado en "Guardando pesaje…"');
 
+  // SE GUARDA AUNQUE DE MAL (v3.67.0) [usuario 2026-09-30: "Que me deje cargar igual aunque de mal.
+  // Tiene que ser como el control de cualquier otra recepcion"]. El caso de la foto: remito 100 kg,
+  // balanza 100 kg, 1 rollo. Antes: "No se puede guardar: la balanza dio MENOS (o igual) que el
+  // remito". Ahora: un aviso con la cuenta, se acepta y guarda, con el kg por rollo calculado.
+  // (En el stub la tara es 5 y la tolerancia 5 kg: con 100 kg de balanza el neto 95 entra justo,
+  // asi que el caso lleva 90 kg de balanza para quedar afuera: neto 85, -15 kg.)
+  await page.evaluate(() => { window.__args = []; const rpc = SB.rpc; SB.rpc = async (n, a) => { window.__args.push([n, a]); return rpc(n, a); }; });
+  await page.evaluate(() => montarPesaje([{
+    recId: 8, codigo: 'ID5', desc: 'Fleje N° 38', modo: 'rollos', remitoKg: 100,
+    blocks: { 1: { peso: '90', rollos: [{ c: '1', k: '' }] } },
+  }]));
+  await page.waitForTimeout(200);
+  const antes = dialogos.length;
+  await page.click('#kgPesajeOk');
+  await page.waitForTimeout(700);
+  const nuevos = dialogos.slice(antes);
+  ok(nuevos.length === 1 && /No coincide con el remito/.test(nuevos[0]) && /ID5: remito 100 kg/.test(nuevos[0]),
+     'balanza por debajo del remito: avisa con la cuenta — ' + (nuevos[0] || 'sin aviso').split('\n').slice(0, 3).join(' | '));
+  const pes = await page.evaluate(() => (window.__args || []).filter(x => x[0] === 'pesar_pallet').map(x => x[1]));
+  ok(pes.length === 1 && pes[0].p_peso_balanza === 90, 'y guarda igual (pesar_pallet con 90 kg)');
+  ok(pes.length === 1 && JSON.stringify(pes[0].p_rollos) === JSON.stringify([{ cantidad: 1, kg_por_rollo: 85 }]),
+     'el rollo va con (90 - 5) / 1 = 85 kg — ' + JSON.stringify(pes[0] && pes[0].p_rollos));
+  ok(await page.locator('#successBox').isVisible(), 'termina en la caja verde');
+  ok(/distinto al remito/.test(await page.locator('#successDetail').innerText()), 'y el detalle dice que quedo distinto al remito');
+
   await browser.close();
 })();

@@ -14110,3 +14110,24 @@ cartelito de «Denegado por Cervantes»"*.
   componentes con proveedor; los 53 flejes lo tienen todos (Basconia, Hermac, JL Metales, Aperam…),
   crudo / procesado / movimiento / terminado casi nunca (se fabrican acá).
 - Sin proveedor cargado **no se dibuja tarjeta**: no se inventa. Lo sostiene `tests/ui/test_programa_proveedor.js`.
+
+## 4hh. El pesaje de flejes pide Kg y Rollos por pallet, y se guarda aunque no coincida (2026-09-30)
+
+- [usuario 2026-09-30] *"Que me deje cargar igual aunque de mal. Tiene que ser como el control de cualquier otra
+  recepción. Hay mucho texto. Que me pida kgs, rollos. Y si hay más de un pallet: +pallet y vuelvo a cargar kgs y
+  rollos"*. Venía de la foto de ID5 Fleje N° 38: remito 100 kg, balanza 100 kg, 1 rollo → *"No se puede guardar: la
+  balanza dio MENOS (o igual) que el remito"*.
+- Regla: **el pesaje avisa y deja guardar, como el control de cualquier otra recepción** (`control-remaches.js`:
+  "Difiere ±X % … ¿Confirmar de todos modos?"). La diferencia se resuelve después en Validación Stock → Remito vs
+  Control (4hd). Se retiran los dos bloqueos: *balanza ≤ remito* y *sobrante negativo*. Queda el aviso de Damián
+  (excedente neto > 20 %, 2026-09-01), con su Cancelar = anular la carga.
+- Cada pallet es una fila **Kg · Rollos**; con 2+ pallets aparece la columna de número y **+ Pallet** agrega otra
+  fila. El **kg por rollo ya no se pide ni se muestra**: sale de (balanza − tara del pallet) ÷ rollos al guardar
+  (`kgPorRollo`), que es lo que el auto-cálculo de la v3.14.0 ya ponía solo. Se fueron "+ rollos de otro peso",
+  la línea de sobrante y el texto de arriba. Los pallets viejos con varias líneas de rollos se suman en una.
+- [deducido] Trampa: la tara aprendida (3c-ter) sale de balanza − rollos × kg. Con el kg por rollo derivado de la
+  tara, cada pallet nuevo devuelve la misma tara que se usó: **el promedio deja de aprender** y queda donde está hoy.
+  Ya pasaba con el auto-cálculo cada vez que nadie corregía el kg a mano. Si hace falta que aprenda, hay que pesar
+  un pallet vacío, no sacarlo de los rollos.
+- `StockFlejes/RecepcionInsumos_GP2.html` v3.67.0. Lo sostienen `tests/ui/test_recepcion_etapas.js` y
+  `test_recepcion_guardar_pesaje.js` (el caso de la foto guarda con aviso; verificado que falla contra la v3.66.0).
