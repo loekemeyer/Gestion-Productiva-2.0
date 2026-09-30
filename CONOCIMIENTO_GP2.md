@@ -13887,6 +13887,17 @@ Contexto: app unificada `GP2-Registro-Produccion`, se arranca por Cervantes. Tab
   pisaron: `codigo` no es único en la base y un código repetido rompe todo lo que busca por código. Queda en
   `GRJ31`/`GRJ32` hasta que el dueño diga si los palos se mueven de código o si es otra numeración.
 
+## 4gz. GP2 ve el stock de insumos y el Mapa de Virgilio en tablas de SOLO LECTURA (2026-09-30)
+
+- [usuario] Luis (D5): *"mete la tabla de solo lectura … me interesa que los dos tengan acceso a los datos y que puedan
+  hablar, después vemos si hablan en chino o japonés"*. O sea: primero que se vean; el vínculo de códigos (D3) va después.
+- Tres tablas en GP2 que llena Virgilio cada 10 min (`public.gv_gp2_espejo_sync`, cron `gv-gp2-espejo-sync`); GP2 sólo lee:
+  - `virgilio_insumo_stock` — saldo de cada insumo de Virgilio por unidad (164 filas al 30/09).
+  - `virgilio_insumo_ubicacion` — en qué posición del Mapa está cada insumo (149).
+  - `virgilio_lugar` — el Mapa entero: góndolas y racks, empresa, uso y qué códigos tiene cada celda (943).
+- Respeta la Regla 0: GP2 lee su propio schema. La copia se reescribe entera sólo si cambió algo (compara md5).
+- Con 4gx (`ingreso_virgilio`) y 4gy (`aceptado_virgilio`) son las tablas por donde "hablan" las dos plantas.
+
 ## 4gy. Lo que Virgilio le ACEPTA a Cervantes queda en GP2.aceptado_virgilio (2026-09-30)
 
 - [usuario] Luis: *"crea una tabla con los datos de lo que gestion virgilio le acepta a GP2 que los dos puedan leer"*.
@@ -13915,7 +13926,26 @@ CONFIRMALO Y UBICALO» (falta implementar confirmación y ubicación)"*.
   `componente_id`). [dato] Hoy **no hay** vínculo entre el código importado/insumo de Virgilio (1000900,
   H201Part, 007) y el `componente` de GP2: ubicar exige ese mapeo primero.
 
-## 4gz. La materia prima bruta de los PS híbridos no se cuenta en el conteo (2026-09-30)
+## 4gz. El botón "Control" de la tablet es de TODO lo que se recibe, y sólo en Recibir (2026-09-30)
+
+- [usuario] Nazareno: *"Cargué una recepción en recepción de insumos y no hice el control. Ahora voy a control y no
+  me aparece"*. Y la regla: *"Me gustaría que aparezca en el botón de control que está a la izquierda del botón atrás
+  … Tendrías que poner los de talleristas, p.s. y prov de insumo. Además quiero que este botón sea visible cuando estoy
+  en el módulo recibir (lo que traen): si estoy en enviar no quiero que aparezca"*.
+- [dato] El caso: E13, C13 (Sector Procesado) y GRJ31, GRJ32 (Garage), todos de Importado, `recepcion_insumo.controlado
+  = false`. Su control vive en `control-remaches.html` (sector 2 + prov Importado, y sector 9), y a esa pantalla **sólo
+  se llegaba por la redirección automática al guardar**: ningún menú ni botón la linkeaba. Saliendo sin controlar, la
+  recepción quedaba huérfana (Recepción de Insumos sólo retoma flejes; el Control de la tablet sólo miraba P.S. y
+  talleristas). Registrado en auditoría como bug.
+- Cómo quedó: `control_entrega_bundle` manda `insumos_pend` (agrupado por sector + proveedor; flejes con `via='pesaje'`
+  por `v_recepcion_control`), la lista "qué rubro se controla en qué página" se mudó a `gp2-control-insumo.js` (GP2CI,
+  una sola copia para Recepción de Insumos, el Control y la tablet), el Control de la tablet muestra una tarjeta por
+  grupo con "Controlar →", y el botón cuenta P.S. + talleristas + insumos y sólo aparece en Recibir.
+- **Pendiente** [deducido]: los **cartones** que quedan sin controlar tampoco tienen dónde retomarse (su control vive
+  adentro de Recepción de Insumos y la barra de pendientes sólo mira flejes). No se muestran en el Control porque no
+  hay pantalla a la cual mandarlos; hace falta que Recepción de Insumos los retome.
+
+## 4ha. La materia prima bruta de los PS híbridos no se cuenta en el conteo (2026-09-30)
 
 - [usuario] Sobre el conteo de Sector Fleje (Relevamiento, filas `ALAMBRE` y `FLEJE_DESCORAZONADOR`): *"Estos dos
   flejes no deberían aparecer en conteo: no tenemos esos flejes en cervantes"*. El proveedor (Altrak / Aperam) los

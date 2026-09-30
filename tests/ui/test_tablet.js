@@ -173,6 +173,14 @@ window.supabase = { createClient: function(){ return {
       });
       return { data: { ok:true, n:(p.items||[]).length, contraparte:'X', modo:p.modo, items:[], alertas: al }, error: null };
     }
+    // el contador del boton Control (v1.39.0): 1 entrega de P.S. + 2 recepciones de Importado con
+    // control = 3; los 3 cartones NO suman porque no tienen pantalla de control a donde ir
+    if(name==='control_entrega_bundle') return { data: { tol_pct: 5, hechos: [],
+      pend: [{ mov_id: 1, cp_tipo: 'proveedor_servicio', cp_nombre: 'Ester', sp_cod: 'PC1A', declarado: 10, unidad: 'kg' }],
+      insumos_pend: [
+        { via: 'control', sector_id: 2, sector: 'Sector Procesado', proveedor: 'Importado', n: 2, codigos: ['C13', 'E13'], desde: '2026-09-30T12:00:00-03:00' },
+        { via: 'control', sector_id: 10, sector: 'Sector Carton', proveedor: 'Cartocor', n: 3, codigos: ['C1'], desde: '2026-09-29T12:00:00-03:00' }
+      ] }, error: null };
     return { data: null, error: { message: 'rpc desconocida '+name } };
   }
 };}};
@@ -1290,6 +1298,20 @@ window.supabase = { createClient: function(){ return {
   itSust = regS.items.filter(i => i.comp_id === 810)[0];
   ok(itSust && itSust.cantidad === 75 && itSust.sustituye_comp_id === 456,
      'prov. AT: 3 paquetes de 25 cajas en lugar de A1 — ' + JSON.stringify(itSust));
+
+  // ── EL BOTON CONTROL: solo en Recibir, y cuenta P.S. + talleristas + prov. de insumos ──
+  // [Nazareno 2026-09-30: "Tendrias que poner los de talleristas, p.s. y prov de insumo. Ademas
+  // quiero que este boton sea visible cuando estoy en el modulo recibir (lo que traen): si estoy en
+  // enviar no quiero que aparezca"]
+  await page.goto(ROOT + '/Tablet/Tablet_GP2.html?modo=enviar');
+  await page.waitForFunction(() => document.querySelectorAll('#tipoGrid .tipo-btn').length > 0);
+  ok(!(await page.isVisible('#lnkControl')), 'Enviar: el boton Control no aparece');
+  await page.click('#modos .modo-btn[data-modo="recibir"]');
+  await page.waitForFunction(() => document.getElementById('lnkControl').textContent === 'Control (3)');
+  ok(await page.isVisible('#lnkControl'),
+     'Recibir: aparece "Control (3)" = 1 de P.S. + 2 de Importado (los cartones, sin control, no suman)');
+  await page.click('#modos .modo-btn[data-modo="enviar"]');
+  ok(!(await page.isVisible('#lnkControl')), 'volver a Enviar lo esconde de nuevo');
 
   await browser.close();
   console.log(process.exitCode ? 'HAY FALLOS' : 'TODO OK');
