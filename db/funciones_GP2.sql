@@ -6895,8 +6895,13 @@ BEGIN
   VALUES (p_sector_id, coalesce(v_fecha, current_date), nullif(trim(p_encargado),''), p_crono_id)
   RETURNING id INTO v_id;
 
+  -- La materia prima BRUTA de un PS hibrido (proveedor_servicio.mp_componente_id: ALAMBRE -> Charcas,
+  -- FLEJE_DESCORAZONADOR -> Eclipse) no se cuenta: el proveedor la entrega directo al PS y nunca pasa
+  -- por Cervantes; su stock vive en la ubicacion del PS [usuario 2026-09-30: "no tenemos esos flejes
+  -- en cervantes"]. Contarla aca la sumaria al sector por error.
   INSERT INTO "GP2".relevamiento_item (relevamiento_id, componente_id)
   SELECT v_id, c.id FROM "GP2".componente c WHERE c.sector_id = p_sector_id
+     AND NOT EXISTS (SELECT 1 FROM "GP2".proveedor_servicio ps WHERE ps.mp_componente_id = c.id)
   ON CONFLICT DO NOTHING;
 
   RETURN v_id;
@@ -6983,7 +6988,9 @@ AS $function$
       'tipo', f.tipo, 'sector_id', f.sector_id, 'sector', s.nombre,
       'crono_id', f.crono_id, 'fecha', f.fecha, 'dias', (f.fecha - current_date),
       'vencido', (f.fecha < current_date),
-      'componentes', (select count(*) from "GP2".componente c where c.sector_id = f.sector_id),
+      -- mismo criterio que relevamiento_abrir: sin la MP bruta de los PS hibridos
+      'componentes', (select count(*) from "GP2".componente c where c.sector_id = f.sector_id
+                        and not exists (select 1 from "GP2".proveedor_servicio ps where ps.mp_componente_id = c.id)),
       'relevamiento', (
         select jsonb_build_object('id', r.id, 'estado', r.estado,
                  'contados', (select count(*) from "GP2".relevamiento_item ri

@@ -13120,7 +13120,8 @@ cuenta"*]:
   comprado, su costo es el precio). Efecto en la Tablet: como ahora hay peso, la **cantidad** del envío a
   Lucho se escribe en **kg** con el renglón "= N cajas" debajo (4,4 kg = 1 caja), igual
   que el Z31 y el resto de los talleristas; el **sugerido sigue en cajas** (55).
-- **Recepción en cajas:** `componente.remito_unidad` acepta un tercer valor, **`'envase'`** (check
+- ~~**Recepción en cajas**~~ **Revertido el 30/09 (§4ha): el remito del C13 vuelve a unidades.** El mecanismo
+  queda: `componente.remito_unidad` acepta un tercer valor, **`'envase'`** (check
   `componente_remito_unidad_chk` ampliado): el remito viene contado en el envase de la pieza
   (`entrega_unidad` × `entrega_uni_x`). `recepcion_bundle` ahora manda `entrega_unidad`/`entrega_uni_x`, y
   `RecepcionInsumos_GP2.html` v3.62.0 pide "Cantidad cajas" y guarda cajas × 144 en **unidades** (3 cajas
@@ -13926,7 +13927,7 @@ CONFIRMALO Y UBICALO» (falta implementar confirmación y ubicación)"*.
   `componente_id`). [dato] Hoy **no hay** vínculo entre el código importado/insumo de Virgilio (1000900,
   H201Part, 007) y el `componente` de GP2: ubicar exige ese mapeo primero.
 
-## 4ha. El botón "Control" de la tablet es de TODO lo que se recibe, y sólo en Recibir (2026-09-30)
+## 4hc. El botón "Control" de la tablet es de TODO lo que se recibe, y sólo en Recibir (2026-09-30)
 
 - [usuario] Nazareno: *"Cargué una recepción en recepción de insumos y no hice el control. Ahora voy a control y no
   me aparece"*. Y la regla: *"Me gustaría que aparezca en el botón de control que está a la izquierda del botón atrás
@@ -13949,3 +13950,32 @@ CONFIRMALO Y UBICALO» (falta implementar confirmación y ubicación)"*.
   `control_entrega_bundle.hechos` suma las `recepcion_insumo` con `controlado = true` (remito = `cantidad_declarada`,
   contado = `cantidad`), con el mismo período de 7 días. Regla: **lo que el Control deja retomar, el Control lo
   muestra hecho**.
+
+## 4ha. Los 8 importados se reciben en UNIDADES, C13 incluido (2026-09-30)
+
+[usuario, Naza 30/09, con la foto de Recepción Insumos → Importados (C13, D1, E13, GRJ31, GRJ32, PINCEL590, Z23A,
+Z23B): *"Todos estos en el remito o packing list vienen en unidades. Cargar en uni"*.]
+- [dato] 7 de los 8 ya tenían `componente.remito_unidad='uni'`. El único distinto era **`C13`** (id 547), en
+  `'envase'` (cajas de 144) desde el §4gb. Se pasó a `'uni'`: la pantalla pide "Cantidad uni" y esconde el toggle.
+- **Contradice lo que dijo Thomas el 25/09** (*"Sí"* a recibirlo en cajas, §4gb). Manda el documento: el remito y
+  el packing list vienen contados en unidades. Si Thomas quiere volver a cajas es un `update` de una fila.
+- **No se tocó** `entrega_unidad='cajas'` / `entrega_uni_x=144` ni `kg_x_uni`: siguen siendo el envase con que la
+  Tablet se lo manda a Lucho y el peso del control. La rama `'envase'` de `RecepcionInsumos_GP2.html` queda sin
+  ninguna pieza que la use (el comentario de `envaseRemito()` que dice "Hoy C13" quedó viejo).
+- El control posterior sigue en kg (`CONTROL_URL_PROV`, Importado), sin cambios.
+
+## 4hb. La materia prima bruta de los PS híbridos no se cuenta en el conteo (2026-09-30)
+
+- [usuario] Sobre el conteo de Sector Fleje (Relevamiento, filas `ALAMBRE` y `FLEJE_DESCORAZONADOR`): *"Estos dos
+  flejes no deberían aparecer en conteo: no tenemos esos flejes en cervantes"*. El proveedor (Altrak / Aperam) los
+  entrega directo al PS (Charcas / Eclipse), y su stock vive en la ubicación del PS (13 y 48), nunca en Cervantes.
+- **Regla**: `relevamiento_abrir` no crea ítem para ningún componente que sea `proveedor_servicio.mp_componente_id`, y
+  el contador de componentes de `relevamiento_bundle` usa el mismo criterio. El criterio sale de ese dato: si
+  mañana hay otro PS híbrido, sale solo. Sector Fleje pasa de 53 a 51 componentes a contar. No hacía falta
+  modificar ningún conteo abierto: ninguno tenía esas dos filas (el que se ve en la captura se descartó vacío).
+- Por qué importa además de lo visual: `relevamiento_cerrar` compara contra la ubicación del **sector**. Si se cargaba
+  un kilo de ALAMBRE ahí, al aplicar quedaba stock de alambre en Sector Fleje, un lugar donde físicamente no está.
+- [usuario] En el mismo pedido reformuló la regla del máximo: el del alambre = máximo de IC3 + IC3V (Charcas no tiene
+  desperdicio), y el del fleje descorazonador sale del de Z31 con desperdicio. **Es la regla de §4gs, que ya estaba
+  viva**: [dato 2026-09-30, `oc_bundle`] ALAMBRE **1.028,07 kg** (IC3 113.208 × 0,0083 + IC3V 6.600 × 0,0134) y
+  FLEJE_DESCORAZONADOR **3,31 kg** (Z31 402 × 0,0049 / (1 − 40,28 %)), `maximo_origen='derivado_pieza'`. No se tocó.
