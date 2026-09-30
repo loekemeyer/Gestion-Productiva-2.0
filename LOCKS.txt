@@ -4,6 +4,7 @@
 (vacío)
 
 [HISTORIAL]
+2026-09-30 (6) - CONOCIMIENTO 4ha: confirmado que el C13 queda en unidades (Naza: "Si"). Solo doc. naza (claude-remote).
 2026-09-30 (5) - Importados: C13 remito_unidad envase -> uni (los 8 importados quedan en uni: remito y packing list vienen en unidades) (Naza). DB-only, revierte la recepcion en cajas del 4gb. CONOCIMIENTO 4ha. naza (claude-remote).
 2026-09-30 (4) - Espejos de solo lectura de Virgilio en GP2: virgilio_insumo_stock / _ubicacion / virgilio_lugar (cron gv-gp2-espejo-sync c/10 min). DB-only: db/tablas, CONOCIMIENTO 4gz. luis (claude-remote).
 2026-09-30 (4) - Control de la tablet: insumos sin controlar (Importado, Garage, remaches, plasticos, bombillas, cajas, bolsas, flejes sin pesar) con "Controlar ->" a su pantalla; boton Control cuenta P.S.+talleristas+insumos y solo se ve en Recibir (Nazareno). DB: control_entrega_bundle.insumos_pend. gp2-control-insumo.js (GP2CI) = lista unica de CONTROL_URL (sale de RecepcionInsumos). Tablet v1.39.0, ControlEntregaPS v1.5.0, RecepcionInsumos v3.65.2, version.js v1.211.0 ?v=20260930d. CONOCIMIENTO 4gz. naza (claude-remote).
@@ -13,4 +14,3 @@
 2026-09-29 (24) - OC v1.47.0: Ordenes en dos cajas, Vigentes (ultima OC por proveedor) e Historicas (Thomas). Solo pantalla. test_oc cubre cajas + semaforo. version.js v1.208.0 ?v=20260929q. thomas (claude-remote).
 2026-09-30 (1) - Importados GRJ31 "Ralladores" y GRJ32 "Pelador Mgo Madera" en Garage (sector 9, prov Importado, remito uni, inventario ubic 9 en 0) (Thomas). DB-only. CONOCIMIENTO 4gw. thomas (claude-remote).
 2026-09-29 (23) - ALAMBRE (583) a Sector Fleje (Thomas: "ES SECTOR FLEJE, NO ALAMBRE") + v_consumo_fleje_kg: granel kg usa kg_x_uni de la pieza que sale (ALAMBRE 19.968 -> 171,3 kg/mes; FLEJE_DESCORAZONADOR 388 -> 1,9). DB + db/vistas. CONOCIMIENTO 4gv. thomas (claude-remote).
-2026-09-29 (22) - OC v1.46.1: desglose del Maximo se FIJA con clic y se scrollea (cierra con clic afuera/Escape); tarjeta abraza la tabla (sin blanco a la derecha); columna Proveedor ofrece "o Recicor · $ precio" sin elegirlo arriba. version.js v1.207.6 ?v=20260929p. (test nuevo test_oc_prov_alt_fila.js) thomas (claude-remote).

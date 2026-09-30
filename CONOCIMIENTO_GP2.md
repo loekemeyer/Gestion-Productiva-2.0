@@ -13953,7 +13953,8 @@ Z23B): *"Todos estos en el remito o packing list vienen en unidades. Cargar en u
 - [dato] 7 de los 8 ya tenían `componente.remito_unidad='uni'`. El único distinto era **`C13`** (id 547), en
   `'envase'` (cajas de 144) desde el §4gb. Se pasó a `'uni'`: la pantalla pide "Cantidad uni" y esconde el toggle.
 - **Contradice lo que dijo Thomas el 25/09** (*"Sí"* a recibirlo en cajas, §4gb). Manda el documento: el remito y
-  el packing list vienen contados en unidades. Si Thomas quiere volver a cajas es un `update` de una fila.
+  el packing list vienen contados en unidades. **Confirmado el mismo día** [usuario, Naza: *"Sí"* a que el C13 queda
+  en unidades]: se da por cerrado, no se vuelve a cajas.
 - **No se tocó** `entrega_unidad='cajas'` / `entrega_uni_x=144` ni `kg_x_uni`: siguen siendo el envase con que la
   Tablet se lo manda a Lucho y el peso del control. La rama `'envase'` de `RecepcionInsumos_GP2.html` queda sin
   ninguna pieza que la use (el comentario de `envaseRemito()` que dice "Hoy C13" quedó viejo).
