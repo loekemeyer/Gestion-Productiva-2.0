@@ -155,6 +155,15 @@ const BUNDLE = {
       total_usd: 500, total_ars: 0,
       items: [ { codigo: 'A1', descripcion: 'Fleje N 13', cantidad: 500, unidad: 'kg', recibido: 0,
                  precio_uni: 1, moneda: 'USD', subtotal: 500 } ] },
+    // v1.47.0: dos OC a Maspoli -> la 3 es vigente, la 2 pasa a historicas. v1.46.0: semaforo.
+    { id: 12, numero: 3, proveedor: 'Maspoli SRL', rubro: 'Plastico', estado: 'enviada', nota: null,
+      creado_en: '2026-08-29T09:00:00Z', total_usd: 0, total_ars: 0,
+      items: [ { codigo: 'PC12', descripcion: 'x', cantidad: 100, unidad: 'uni', recibido: 100, subtotal: null, precio_uni: null },
+               { codigo: 'PEP7', descripcion: 'x', cantidad: 100, unidad: 'uni', recibido: 40, subtotal: null, precio_uni: null },
+               { codigo: 'PEP8', descripcion: 'x', cantidad: 100, unidad: 'uni', recibido: 0, subtotal: null, precio_uni: null } ] },
+    { id: 11, numero: 2, proveedor: 'Maspoli SRL', rubro: 'Plastico', estado: 'enviada', nota: null,
+      creado_en: '2026-08-28T09:00:00Z', total_usd: 0, total_ars: 0,
+      items: [ { codigo: 'PC12', descripcion: 'x', cantidad: 100, unidad: 'uni', recibido: 0, subtotal: null, precio_uni: null } ] },
     // La ANULADA no se muestra [usuario 2026-09-04]: sigue en la base, pero fuera de la lista.
     { id: 8, numero: 7, proveedor: 'Basconia', rubro: 'Fleje', estado: 'anulada', nota: null,
       creado_en: '2026-08-28T10:00:00Z', total_usd: 0, total_ars: 0, items: [] },
@@ -311,9 +320,16 @@ window.supabase = { createClient: function(){ return {
   ok(cardTxt.includes('US$ 500'), 'OC listada con total y subtotal US$ 500');
   // La ANULADA no se muestra [usuario 2026-09-04: "si anula una orden de compra, no
   // quiero que me siga apareciendo en ordenes"]. Sigue en la base, no en la pantalla.
-  ok((await page.$$('.oc-card')).length === 1, 'la OC anulada no se lista');
+  ok((await page.$$('.oc-card')).length === 3, 'la OC anulada no se lista');
+  // v1.47.0: vigentes = ultima OC por proveedor; la anterior de Maspoli va a historicas.
+  const boxes = await page.$$eval('#ocsList details.oc-box', ds => ds.map(d => [...d.querySelectorAll('.num-oc')].map(x => x.textContent.trim())));
+  ok(JSON.stringify(boxes) === JSON.stringify([['OC N° 1','OC N° 3'],['OC N° 2']]), 'vigentes/historicas por proveedor: ' + JSON.stringify(boxes));
+  ok(!(await page.$eval('#ocsHis', d => d.open)), 'historicas arranca cerrada');
+  // v1.46.0: semaforo de recepcion (solo enviada/recibida)
+  const sem = await page.$$eval('#ocsList details.oc-box:first-child tr[class^="rc-"]', trs => trs.map(t => t.className));
+  ok(JSON.stringify(sem) === JSON.stringify(['rc-ok','rc-par','rc-no']), 'semaforo verde/amarillo/rojo: ' + JSON.stringify(sem));
   ok(!(await page.textContent('#ocsList')).includes('OC N° 7'), 'y no queda rastro de la anulada');
-  ok((await page.textContent('#ocsN')).trim() === '(1)', 'el contador del tab no cuenta la anulada');
+  ok((await page.textContent('#ocsN')).trim() === '(3)', 'el contador del tab no cuenta la anulada');
 
   // ── CHARCAS: paquetes de charcas_kg_x_paquete kg (del bundle), unidad 'paq' a crear_oc y la
   // OC gemela generica en el mensaje (2026-09-05, ciclos 9-10 de la auditoria) ──

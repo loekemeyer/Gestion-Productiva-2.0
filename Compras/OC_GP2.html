@@ -1,6 +1,10 @@
 <!doctype html>
 <html lang="es">
 <head>
+<!-- v1.47.0 (2026-09-29) — ORDENES EN DOS CAJAS: VIGENTES E HISTORICAS [Thomas: "va a aparecer en vigente hasta
+     que se haga una nueva orden de compra a Maspoli... pasa la actual a historica y la nueva a vigente"].
+     Vigente = la OC de mayor numero de cada proveedor (sin contar anuladas). Es solo pantalla: no cambia
+     estado ni recibido. Historicas arranca cerrada. -->
 <!-- v1.46.1 (2026-09-29) — LA VENTANITA DEL MAXIMO SE FIJA CON UN CLIC [Thomas: "No me deja bajar a ver el resto
      de los componentes, que si hago click me quede fijo y lo saco haciendo un click afuera"]. Pasar el mouse
      sigue abriendola de vista previa; el clic la FIJA (.fija: pointer-events on), ya no se cierra al salir de
@@ -533,6 +537,10 @@
   .chip.active{background:#0b3b73;color:#fff;border-color:#0b3b73}
   td.num{text-align:right;font-variant-numeric:tabular-nums}
   /* v1.46.0: semaforo de recepcion por renglon (verde completo, amarillo parcial, rojo nada). */
+  /* v1.47.0: cajas Vigentes / Historicas */
+  .oc-box{border:2px solid #d0d7de;border-radius:12px;padding:8px 12px;margin:10px 0}
+  .oc-box>summary{font-weight:800;font-size:18px;cursor:pointer;min-height:44px;display:flex;align-items:center;gap:6px}
+  .oc-box>summary span{color:#777;font-weight:700}
   #panOcs tr.rc-ok td{background:#dcfce7}
   #panOcs tr.rc-par td{background:#fef3c7}
   #panOcs tr.rc-no td{background:#fee2e2}
@@ -1749,7 +1757,7 @@ function pintarOcs(){
   var ocs=(D.ocs||[]).filter(function(o){ return String(o.estado||'')!=='anulada'; });
   $('ocsN').textContent=ocs.length?('('+ocs.length+')'):'';
   $('ocsEmpty').classList.toggle('hidden', ocs.length>0);
-  $('ocsList').innerHTML=ocs.map(function(o){
+  var cardOC=function(o){
     var acts='<button type="button" class="imp" data-imp="'+o.id+'">🖨 Imprimir</button>';
     if(o.estado==='borrador'||o.estado==='enviada') acts+='<button type="button" class="wpp" data-oc="'+o.id+'">🟢 WhatsApp</button>'+
       '<button type="button" class="anu" data-oc="'+o.id+'" data-est="anulada">Anular</button>';
@@ -1776,7 +1784,17 @@ function pintarOcs(){
           '<td class="num">'+(it.recibido>0?fmt(it.recibido):'—')+'</td></tr>';
       }).join('')+
       '</tbody></table></div></div>';
-  }).join('');
+  };
+  /* v1.47.0: VIGENTES = la ultima OC (mayor numero) de cada proveedor; las anteriores de ese
+     proveedor pasan a HISTORICAS solas al emitir una nueva. Una OC sin proveedor queda vigente sola. */
+  var ult={};
+  ocs.forEach(function(o){ var k=o.proveedor||('#'+o.id); if(!ult[k]||Number(o.numero)>Number(ult[k].numero)) ult[k]=o; });
+  var vig=ocs.filter(function(o){ return ult[o.proveedor||('#'+o.id)]===o; });
+  var his=ocs.filter(function(o){ return ult[o.proveedor||('#'+o.id)]!==o; });
+  var abiertaHis=!!($('ocsHis')&&$('ocsHis').open);
+  $('ocsList').innerHTML=
+    '<details class="oc-box" open><summary>Vigentes <span>('+vig.length+')</span></summary>'+vig.map(cardOC).join('')+'</details>'+
+    (his.length?('<details class="oc-box" id="ocsHis"'+(abiertaHis?' open':'')+'><summary>Históricas <span>('+his.length+')</span></summary>'+his.map(cardOC).join('')+'</details>'):'');
 
   document.querySelectorAll('.oc-acts button.imp').forEach(function(b){
     b.addEventListener('click', function(){ imprimirOC(Number(b.dataset.imp)); });
