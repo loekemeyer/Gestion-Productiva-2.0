@@ -14037,3 +14037,38 @@ Z23B): *"Todos estos en el remito o packing list vienen en unidades. Cargar en u
 - ⚠ Trampa [deducido]: validar "Remito" cambia un movimiento viejo. Si ese sector ya tuvo un conteo aplicado DESPUÉS de
   la recepción, el stock actual se corre en la diferencia (lo mismo pasa hoy con el control de la tablet). Conviene
   validar antes de contar.
+
+## 4he. Proporciones: el % vuelve a editarse, y cada número es de ESE artículo (2026-09-30)
+
+**Pedido** [usuario, textual, sobre la pantalla]: *"Los bloques que dicen el cod de articulo de nuevo
+eliminalo"*, *"quiero que me aparezca una box debajo de otra no al lado"*, *"la proporcion en porcentaje
+la puedo cambiar escribiendo"* (confirmado: *"Sí, con Guardar"*) y *"no entiendo los números"*.
+
+**1. Por qué los números no se entendían** [dato: `proporciones_bundle` × `v_consumo_tallerista`,
+30/09]: cada celda era `inventario.maximo`, que es el **total de esa parte en la casa del tallerista,
+sumando TODOS sus artículos**. Por eso no seguían el %: en el 123 al 50/50, A11 decía Danica 1.224 /
+Lucho 1.508, cuando del 123 les toca **96 a cada uno** (el resto es del 505 y otros); D9 decía 12.391 /
+28.851 y del 123 son 1.148 cada uno. Y los "—" no eran "no recibe": eran partes que el tallerista
+recibe según la ruta pero **no tienen fila en su inventario**.
+Ahora la celda es **demanda del artículo para esa parte × su % × meses de su casa** (hoy 1 mes en
+todos), la columna **Total** es la suma, y el total de la casa va abajo en gris sólo cuando es distinto.
+
+**2. El % se edita otra vez, pero un default no se graba solo.** El 15-09 se había cerrado (4dw) porque
+un Guardar grabó el 50/50 que la pantalla mostraba de default. Ahora: Guardar arranca **apagado**, se
+prende recién cuando alguien **escribió** un % en ese paso y la suma da 100, y pide confirmación; con dos
+talleristas el otro se completa solo (100 − x). `reparto_guardar` volvió a ser de pantalla con la regla
+de la fase B (`_exigir_autorizado`, EXECUTE sólo `authenticated`) y además exige el % de **todos** los
+que hacen el paso (con uno solo, `v_reparto_efectivo` lo tomaba como "sin definir" y lo repartía mitad
+y mitad) y ninguno en 0 (0 % = no hace el paso: eso es la ruta). Migración:
+`db/migracion_proporciones_editable.sql`.
+
+**3. La etiqueta del paso** ("355 355 Terminado") sólo aparece cuando el paso NO es el artículo mismo
+(p.ej. un GRJ intermedio). Hoy los 5 pasos compartidos son el terminado, así que no aparece ninguna.
+
+**⚠ Lo que quedó a la vista y NO se tocó** [dato, 30/09]: **11 pares tallerista-parte** de pasos
+compartidos no tienen fila en `inventario` (la pantalla dice *"⚠ no figura en su stock"*): Danica
+I42 / PC1B / Z23A (123); Pettofrezza A6 / F3C / PV1 (355 y 789); Cavallero PEST2 y R3A (789) y
+Pettofrezza R3A (789). Sin esa fila no hay máximo, y la tablet no sabe que se los tiene que mandar
+[deducido]. Es el paso 2 de la normalización (`inventario` para el componente nuevo) que se salteó al
+cargar esas rutas (ids 1078-1087 son de Danica y Cavallero). Crear las filas es cambio de datos fuera
+de lo pedido: queda propuesto.

@@ -5713,16 +5713,18 @@ with pasos as (
   select articulo_id, comp_salida_id
     from pasos group by 1, 2 having count(distinct tallerista_id) >= 2
 ), filas as (
-  select p.*, re.pct, re.es_supuesto
+  select p.*, re.pct, re.es_supuesto, u.meses_stock meses
     from pasos p
     join compartidos c on c.articulo_id = p.articulo_id and c.comp_salida_id = p.comp_salida_id
     left join v_reparto_efectivo re on re.articulo_id = p.articulo_id
      and re.comp_salida_id = p.comp_salida_id and re.tallerista_id = p.tallerista_id
+    left join ubicacion u on u.tipo = 'tallerista' and u.ref_id = p.tallerista_id
 ), entradas as (
-  -- que parte recibe cada tallerista para ese articulo, y cuanto puede tener en su casa
-  select distinct r.articulo_id, rp.tallerista_id, rp.comp_entrada_id,
+  -- que parte recibe cada tallerista PARA ESE PASO, y cuanto puede tener en su casa (total, todos
+  -- sus articulos)
+  select distinct r.articulo_id, rp.comp_salida_id, rp.tallerista_id, rp.comp_entrada_id,
          ce.codigo parte_cod, ce.descripcion parte_desc,
-         i.maximo, i.cantidad, i.maximo_origen
+         i.id inv_id, i.maximo, i.cantidad, i.maximo_origen
     from ruta_paso rp
     join ruta r        on r.id = rp.ruta_id
     join componente ce on ce.id = rp.comp_entrada_id
@@ -5730,15 +5732,17 @@ with pasos as (
     left join inventario i on i.componente_id = rp.comp_entrada_id and i.ubicacion_id = u.id
    where rp.tallerista_id is not null and rp.comp_entrada_id is not null and r.articulo_id is not null
 ), partes_por_paso as (
-  select f.articulo_id, f.comp_salida_id, e.comp_entrada_id, e.parte_cod, e.parte_desc,
+  select e.articulo_id, e.comp_salida_id, e.comp_entrada_id, e.parte_cod, e.parte_desc,
+         max(d.uni_mes) dem_mes,
          jsonb_agg(jsonb_build_object('tall_id', e.tallerista_id, 'maximo', e.maximo,
-                                      'stock', e.cantidad, 'origen', e.maximo_origen)
+                                      'stock', e.cantidad, 'origen', e.maximo_origen,
+                                      'tiene_fila', e.inv_id is not null)
                    order by e.tallerista_id) por_tall
-    from (select distinct articulo_id, comp_salida_id from filas) f
-    join entradas e on e.articulo_id = f.articulo_id
-    join filas ff on ff.articulo_id = f.articulo_id and ff.comp_salida_id = f.comp_salida_id
+    from entradas e
+    join filas ff on ff.articulo_id = e.articulo_id and ff.comp_salida_id = e.comp_salida_id
                  and ff.tallerista_id = e.tallerista_id
-   group by f.articulo_id, f.comp_salida_id, e.comp_entrada_id, e.parte_cod, e.parte_desc
+    left join v_consumo_demanda d on d.articulo_id = e.articulo_id and d.componente_id = e.comp_entrada_id
+   group by e.articulo_id, e.comp_salida_id, e.comp_entrada_id, e.parte_cod, e.parte_desc
 )
 select jsonb_build_object(
   'generado_en', now(),
@@ -5750,10 +5754,11 @@ select jsonb_build_object(
          'n_talleristas', count(*),
          'suma_pct', round(sum(f.pct), 2),
          'talleristas', jsonb_agg(jsonb_build_object(
-            'tall_id', f.tallerista_id, 'tallerista', f.tallerista,
+            'tall_id', f.tallerista_id, 'tallerista', f.tallerista, 'meses', f.meses,
             'pct', f.pct, 'es_supuesto', coalesce(f.es_supuesto, false)) order by f.tallerista),
          'partes', coalesce((
-            select jsonb_agg(jsonb_build_object('cod', pp.parte_cod, 'desc', pp.parte_desc,
+            select jsonb_agg(jsonb_build_object('comp_id', pp.comp_entrada_id, 'cod', pp.parte_cod,
+                                                'desc', pp.parte_desc, 'dem_mes', pp.dem_mes,
                                                 'por_tall', pp.por_tall) order by pp.parte_cod)
               from partes_por_paso pp
              where pp.articulo_id = f.articulo_id and pp.comp_salida_id = f.comp_salida_id), '[]'::jsonb)
@@ -7273,16 +7278,21 @@ CREATE OR REPLACE FUNCTION "GP2".reparto_guardar(p_articulo_id bigint, p_comp_sa
  SECURITY DEFINER
  SET search_path TO 'GP2'
 AS $function$
-declare v_suma numeric; v_n int; v_intruso text; v_max jsonb;
+declare v_suma numeric; v_n int; v_intruso text; v_falta text; v_cero int; v_max jsonb;
 begin
+  perform "GP2"._exigir_autorizado();  -- seguridad punto 1 fase B (2026-09-28)
   if p_articulo_id is null or p_comp_salida_id is null then
     raise exception 'Falta el articulo o el paso';
   end if;
 
-  select count(*), coalesce(sum((f->>'pct')::numeric), 0)
-    into v_n, v_suma from jsonb_array_elements(coalesce(p_filas, '[]'::jsonb)) f;
+  select count(*), coalesce(sum((f->>'pct')::numeric), 0),
+         count(*) filter (where coalesce((f->>'pct')::numeric, 0) <= 0)
+    into v_n, v_suma, v_cero from jsonb_array_elements(coalesce(p_filas, '[]'::jsonb)) f;
 
   if v_n > 0 then
+    if v_cero > 0 then
+      raise exception 'Un %% en 0 es que no hace el paso: eso se cambia en la ruta, no en Proporciones';
+    end if;
     if abs(v_suma - 100) > 0.01 then
       raise exception 'Los porcentajes de un paso tienen que sumar 100 (suman %)', v_suma;
     end if;
@@ -7295,6 +7305,16 @@ begin
           and rp.tallerista_id = (f->>'tallerista_id')::bigint);
     if v_intruso is not null then
       raise exception 'Segun las rutas, % no hace ese paso', v_intruso;
+    end if;
+    -- con el % de uno solo, v_reparto_efectivo lo toma como "sin definir" y va mitad y mitad
+    select string_agg(distinct t.nombre, ', ') into v_falta
+      from ruta_paso rp join ruta r on r.id = rp.ruta_id
+      join tallerista t on t.id = rp.tallerista_id
+     where r.articulo_id = p_articulo_id and rp.comp_salida_id = p_comp_salida_id
+       and not exists (select 1 from jsonb_array_elements(p_filas) f
+                        where (f->>'tallerista_id')::bigint = rp.tallerista_id);
+    if v_falta is not null then
+      raise exception 'Falta el %% de %', v_falta;
     end if;
   end if;
 

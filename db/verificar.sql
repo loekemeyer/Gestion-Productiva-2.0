@@ -56,9 +56,7 @@ select 'C_funciones_internas_con_execute_anon', count(*) from pg_proc p
                          -- puerta unica interna: la llaman recepcion_virgilio y movimientos_bundle, no una pantalla
                          'comp_terminado_de',
                          -- carton sustituto (2026-09-21): las llaman crear_envio_* y recepcion_virgilio
-                         'chequear_sustituto', 'repartir_sustituto',
-                         -- el % de reparto se carga por SQL desde 2026-09-21 (Proporciones_GP2 es solo lectura)
-                         'reparto_guardar'))
+                         'chequear_sustituto', 'repartir_sustituto'))
 union all
 -- D) Toda tabla tiene RLS y una policy; ninguna policy es de escritura (la escritura va por RPC).
 select 'D_tablas_sin_rls_o_sin_policy', count(*) from pg_class c
@@ -117,8 +115,6 @@ select 'M_rpc_de_pantalla_sin_execute_anon', count(*) from pg_proc p
                          'comp_terminado_de',
                          -- carton sustituto (2026-09-21): las llaman crear_envio_* y recepcion_virgilio
                          'chequear_sustituto', 'repartir_sustituto',
-                         -- el % de reparto se carga por SQL desde 2026-09-21 (Proporciones_GP2 es solo lectura)
-                         'reparto_guardar',
                          -- solo servidor: la llama la Edge login-operario (2026-09-29)
                          'operario_por_legajo'))
 union all

@@ -11,31 +11,41 @@
  .top{background:#e7f0f8;padding:10px 16px;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;position:sticky;top:0;z-index:10}
  .top h1{margin:0;font-size:16px}
  .top .sel{display:flex;gap:8px;align-items:center;font-size:14px;flex-wrap:wrap}
- select,input,button{background:#eaeff6;color:#385475;border:1px solid #cddaea;border-radius:6px;padding:6px 10px;font-size:18px;font-family:inherit}
+ select,input,button{background:#eaeff6;color:#385475;border:1px solid #cddaea;border-radius:6px;padding:6px 10px;font-size:18px;font-family:inherit;min-height:44px}
  button{cursor:pointer}
  button:hover{background:#e8eef7}
+ button:disabled{opacity:.45;cursor:not-allowed}
  /* El contenido manda el ancho: no se estira nada para llenar la pantalla. */
  .canvas{padding:14px;max-width:1080px;margin:0 auto}
  .note{background:#f5eeea;border:1px solid #eadbcd;color:#8e4c20;border-radius:8px;padding:8px 12px;margin-bottom:12px;font-size:14px}
- .kpis{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+ .kpis{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;align-items:center}
  .kpi{border:1px solid #d1dae6;border-radius:8px;padding:6px 12px;font-size:14px;color:#475569}
  .kpi b{color:#166398;font-size:16px;margin-right:4px}
- .paso{border:1px solid #d1dae6;border-radius:10px;margin-bottom:14px;padding:10px 12px;display:inline-block;max-width:100%;vertical-align:top}
+ .aviso{font-size:14px;color:#1d6b3a;font-weight:700}
+ /* Una caja debajo de la otra, cada una del ancho de su tabla. */
+ .paso{border:1px solid #d1dae6;border-radius:10px;margin-bottom:14px;padding:10px 12px;width:fit-content;max-width:100%}
  .paso-head{display:flex;gap:10px;align-items:baseline;flex-wrap:wrap;margin-bottom:8px}
  .paso-head .cod{font-family:ui-monospace,SF Mono,monospace;color:#165d98;font-weight:700;font-size:16px}
  .paso-head .fam{color:#475569}
  .tag{display:inline-block;border:1px solid #cddcea;border-radius:5px;padding:1px 7px;font-size:14px}
  .tag .pc{color:#165d98;font-family:ui-monospace,monospace}
- .sup{color:#8e4c20;font-weight:700}
+ .sup{display:block;color:#8e4c20;font-weight:700;font-size:14px}
  .tbl-wrap{overflow-x:auto;max-width:100%}
  table{border-collapse:collapse;font-size:14px}
  th,td{padding:6px 12px;text-align:center;vertical-align:middle;border-bottom:1px solid #d0dae7;white-space:nowrap}
  th{color:#475569;font-size:14px;font-weight:700}
- th .pct{display:block;color:#8e4c20;font-weight:700}
+ th .pct{display:flex;align-items:center;justify-content:center;gap:4px;margin-top:4px;color:#8e4c20;font-weight:700}
+ input.pct-in{width:4.2em;font-size:20px;text-align:right;padding:6px 8px;font-weight:700;color:#8e4c20}
  td.parte{text-align:left}
  td.parte .pc{color:#165d98;font-family:ui-monospace,monospace;font-weight:700;margin-right:6px}
  td.max{font-weight:700}
  td.sinmax{color:#8494a8;font-weight:400}
+ td.tot,th.tot{color:#475569;border-left:1px solid #d0dae7}
+ td .casa{display:block;color:#8494a8;font-weight:400;font-size:14px}
+ td .sinfila{display:block;color:#982e16;font-weight:700;font-size:14px}
+ .pie{display:flex;gap:10px;align-items:center;justify-content:flex-end;flex-wrap:wrap;margin-top:8px}
+ .pie .suma{font-size:14px;color:#475569}
+ .pie .suma.mal{color:#982e16;font-weight:700}
  .empty{padding:30px;text-align:center;color:#475569;font-size:14px}
  @media (max-width:520px){
   th,td{padding:6px 5px}
@@ -64,83 +74,190 @@ var SB=GP2_SB();
 
 var esc = GP2UI.esc;   /* helpers de la casa (gp2-ui.js / gp2-numero.js) */
 
-/* La pantalla muestra UNA cosa y NO se toca: los PASOS que hacen dos o mas talleristas, el % de
-   cada uno y el MAXIMO de cada parte que recibe.
-   [usuario 2026-09-14/15: "que aparezcan solo los articulos compartidos" -> "que me aparezcan
-   nada mas los que hacen el mismo paso" -> "elimina la columna de situacion" -> "que no se pueda
-   modificar la proporcion en el programa" + "quiero que me pongas los maximos de cada parte del
-   articulo que se esta proporcionando".]
+/* Los PASOS que hacen dos o mas talleristas, el % de cada uno y lo que necesita cada uno de cada
+   parte que recibe. [usuario 2026-09-14/15: "que me aparezcan nada mas los que hacen el mismo
+   paso" + "quiero que me pongas los maximos de cada parte del articulo que se esta
+   proporcionando"; 2026-09-30: "la proporcion en porcentaje la puedo cambiar escribiendo" (-> "Si,
+   con Guardar"), "una box debajo de otra" y "no entiendo los numeros".]
 
-   POR QUE ES SOLO LECTURA: el 15-09, mientras se cargaban los porcentajes, alguien abrio la
-   pantalla y apreto Guardar en los tres pasos. Eso dejo grabado como dato dictado el 50/50 que la
-   pantalla mostraba de DEFAULT para el 510, y el maximo de Alex Escalante quedo en la mitad de lo
-   que necesita. El % se carga por SQL; reparto_guardar ya no es ejecutable por anon.
+   CADA NUMERO ES DE ESTE ARTICULO: demanda del articulo para esa parte (dem_mes) x el % del
+   tallerista x los meses de stock de su casa. Hasta el 30-09 la celda era inventario.maximo, que es
+   el TOTAL de la parte en la casa del tallerista sumando TODOS sus articulos: en el 123 al 50/50,
+   A11 decia 1.224 / 1.508 cuando del 123 les toca 96 a cada uno. Ese total va abajo en gris
+   ("casa") solo cuando es distinto, y la columna Total suma las de los talleristas.
+
+   EL % SE EDITA, PERO UN DEFAULT NUNCA SE GRABA SOLO. El 15-09 se habia cerrado la edicion porque
+   un Guardar grabo el 50/50 que la pantalla mostraba de default (CONOCIMIENTO 4dw). Por eso:
+   Guardar arranca apagado en cada paso, se prende recien cuando alguien ESCRIBIO un % y la suma da
+   100, y pide confirmacion. Con dos talleristas el otro se completa solo (100 - x).
+   reparto_guardar valida en la base (todos los del paso, ninguno en 0, suman 100) y recalcula los
+   maximos; exige usuario habilitado.
 
    POR QUE EL CORTE ES EL PASO Y NO EL ARTICULO: que dos talleristas toquen el mismo articulo NO
    es un reparto de volumen. Si cada uno hace un PASO DISTINTO de la ruta (uno el mango, el otro
    el armado) van en cadena y cada uno hace el 100 % de lo suyo. El reparto existe solo cuando
-   dos talleristas producen EL MISMO comp_salida, o sea la ruta duplicada por tallerista.
+   dos talleristas producen EL MISMO comp_salida, o sea la ruta duplicada por tallerista. */
 
-   EL % MANDA SOBRE EL MAXIMO: la columna de cada tallerista sale de v_consumo_tallerista
-   (demanda del articulo x su %) x los meses de su ubicacion. Por eso las dos columnas suman el
-   consumo del articulo y no lo duplican, que es lo que pasaba antes. */
+var ED={};          /* clave del paso -> {pct:{tall_id:n}, dirty:true} mientras se edita */
+var AVISO="";       /* lo que quedo del ultimo Guardar */
 
-function pctTxt(p){ return GP2N.fmt(Number(p), 2, "") + " %"; }
-function maxTxt(m){ return (m == null) ? "—" : GP2N.fmt(Number(m), 0, "—"); }
+function clave(p){ return p.articulo_id+":"+p.comp_salida_id; }
+function pctFmt(n){ return GP2N.fmt(Number(n), 2, ""); }
+function uni(n){ return GP2N.fmt(n, 0, "—"); }
+function pctDe(p,t){ var e=ED[clave(p)]; return e ? e.pct[t.tall_id] : Number(t.pct); }
+/* lo que le toca a un tallerista de ESTE articulo, con el % que se le pase */
+function paraArt(pa,t,pct){ return Math.round(Number(pa.dem_mes||0) * pct / 100 * Number(t.meses==null?1:t.meses)); }
+function xDe(pa,t){ return (pa.por_tall||[]).filter(function(y){return y.tall_id===t.tall_id;})[0]; }
+
+function mesesTxt(pasos){
+ var ms={};
+ pasos.forEach(function(p){ (p.talleristas||[]).forEach(function(t){ ms[t.meses==null?1:Number(t.meses)]=1; }); });
+ var k=Object.keys(ms);
+ if(k.length!==1) return "los meses de stock de su casa";
+ var m=Number(k[0]); return GP2N.fmt(m, 1, "")+(m===1?" mes":" meses")+" de stock";
+}
+
+function celdas(p){
+ var talls=(p.talleristas||[]);
+ return (p.partes||[]).map(function(pa){
+  var tot=0, alguna=false;
+  var tds=talls.map(function(t){
+   var x=xDe(pa,t);
+   if(!x) return '<td class="sinmax" title="Este tallerista no recibe esta parte en este paso">—</td>';
+   var v=paraArt(pa,t,pctDe(p,t)); tot+=v; alguna=true;
+   /* el total de su casa se mueve con lo que se esta escribiendo: lo de los otros articulos queda */
+   var casa=(x.maximo==null)?null:Number(x.maximo)-paraArt(pa,t,Number(t.pct))+v;
+   var extra=(casa!=null && Math.abs(casa-v)>1)?'<span class="casa" title="Máximo de esa parte en su casa, sumando todos sus artículos">casa '+uni(casa)+'</span>':'';
+   if(!x.tiene_fila) extra+='<span class="sinfila" title="La parte no está cargada en el stock de este tallerista: la tablet no sabe que se la tiene que mandar">⚠ no figura en su stock</span>';
+   return '<td class="max">'+uni(v)+extra+'</td>';
+  }).join("");
+  return '<tr><td class="parte"><span class="pc">'+esc(pa.cod)+'</span>'+esc(pa.desc||"")+'</td>'+tds+
+         '<td class="tot">'+(alguna?uni(tot):'—')+'</td></tr>';
+ }).join("") || '<tr><td class="parte" colspan="'+(talls.length+2)+'">(sin partes registradas)</td></tr>';
+}
+
+function estado(p){
+ var e=ED[clave(p)], talls=(p.talleristas||[]);
+ var suma=talls.reduce(function(a,t){return a+pctDe(p,t);},0);
+ var cero=talls.some(function(t){return !(pctDe(p,t)>0);});
+ return { dirty:!!(e&&e.dirty), suma:suma, ok:Math.abs(suma-100)<=0.01 && !cero, cero:cero };
+}
+
+function pie(p){
+ var s=estado(p);
+ var txt=s.cero ? 'Un % en 0 es que no hace el paso: eso se cambia en la ruta'
+        : (s.ok ? 'Suma '+pctFmt(s.suma)+' %' : 'Suman '+pctFmt(s.suma)+' %: tiene que dar 100');
+ return '<span class="suma'+(s.ok?'':' mal')+'">'+txt+'</span>'+
+   (s.dirty?'<button type="button" data-cancelar="'+clave(p)+'">Cancelar</button>':'')+
+   '<button type="button" data-guardar="'+clave(p)+'"'+(s.dirty&&s.ok?'':' disabled')+'>Guardar</button>';
+}
 
 function render(){
  var canvas=document.getElementById("canvas");
  var pasos=(D.pasos||[]);
  var nSup=pasos.filter(function(p){return (p.talleristas||[]).some(function(t){return t.es_supuesto;});}).length;
 
- var note='<div class="note">Los pasos que <b>hacen dos o más talleristas</b> (la misma pieza, la ruta '+
-   'duplicada): ahí y sólo ahí se reparte el volumen. El % <b>manda sobre el máximo</b> de cada parte '+
-   'que recibe cada uno, y por eso las columnas suman el consumo del artículo en vez de duplicarlo. '+
-   'El porcentaje <b>no se edita acá</b>. Los talleristas que hacen <b>otro</b> paso del mismo '+
-   'artículo no aparecen: van en cadena, cada uno hace el 100 % de lo suyo.</div>';
+ var note='<div class="note">Pasos que hacen <b>dos o más talleristas</b> (la misma pieza, con la ruta '+
+   'duplicada). Cada número es lo que ese tallerista necesita <b>por este artículo</b>, en unidades para '+
+   esc(mesesTxt(pasos))+': demanda del artículo × su %. <b>Total</b> es lo que pide el artículo. '+
+   'En gris, el máximo de <b>su casa</b> cuando usa la misma parte en otros artículos. '+
+   'El % se cambia escribiendo y se graba con <b>Guardar</b>, que recalcula los máximos.</div>';
  var kpi='<div class="kpis">'+
    '<div class="kpi"><b>'+pasos.length+'</b>pasos compartidos</div>'+
    (nSup?'<div class="kpi"><b>'+nSup+'</b>sin definir (va mitad y mitad)</div>':'')+
+   (AVISO?'<span class="aviso">'+esc(AVISO)+'</span>':'')+
  '</div>';
 
  if(!pasos.length){canvas.innerHTML=note+kpi+'<div class="empty">Hoy ningún paso lo hacen dos talleristas.</div>';return;}
 
  var H="";
  pasos.forEach(function(p){
-  var talls=(p.talleristas||[]);
+  var talls=(p.talleristas||[]), k=clave(p);
   var cab=talls.map(function(t){
-   return '<th>'+esc(t.tallerista)+'<span class="pct">'+pctTxt(t.pct)+
-     (t.es_supuesto?' <span class="sup">(sin definir)</span>':'')+'</span></th>';
+   return '<th>'+esc(t.tallerista)+'<span class="pct"><input class="pct-in" type="text" inputmode="decimal" '+
+     'data-paso="'+k+'" data-tall="'+t.tall_id+'" value="'+esc(pctFmt(pctDe(p,t)))+'" '+
+     'aria-label="% de '+esc(t.tallerista)+'"> %</span>'+
+     (t.es_supuesto?'<span class="sup">(sin definir)</span>':'')+'</th>';
   }).join("");
-  var filas=(p.partes||[]).map(function(pa){
-   var celdas=talls.map(function(t){
-    var x=(pa.por_tall||[]).filter(function(y){return y.tall_id===t.tall_id;})[0];
-    var m=x?x.maximo:null;
-    return '<td class="'+(m==null?"sinmax":"max")+'">'+maxTxt(m)+'</td>';
-   }).join("");
-   return '<tr><td class="parte"><span class="pc">'+esc(pa.cod)+'</span>'+esc(pa.desc||"")+'</td>'+celdas+'</tr>';
-  }).join("");
-  H+='<div class="paso"><div class="paso-head">'+
+  /* el paso solo se nombra cuando NO es el mismo articulo (hoy los 5 son el terminado) */
+  var tag=(String(p.paso_cod||"").trim()!==String(p.art_codigo||"").trim())
+    ?'<span class="tag"><span class="pc">'+esc(p.paso_cod)+'</span> '+esc(p.paso_desc||"")+'</span>':'';
+  H+='<div class="paso" data-caja="'+k+'"><div class="paso-head">'+
       '<span class="cod">'+esc(p.art_codigo)+'</span>'+
-      '<span class="fam">'+esc(p.familia||"")+'</span>'+
-      '<span class="tag"><span class="pc">'+esc(p.paso_cod)+'</span> '+esc(p.paso_desc||"")+'</span>'+
-     '</div><div class="tbl-wrap"><table><thead><tr><th>Parte que recibe</th>'+cab+'</tr></thead>'+
-     '<tbody>'+(filas||'<tr><td class="parte" colspan="'+(talls.length+1)+'">(sin partes registradas)</td></tr>')+
-     '</tbody></table></div></div>';
+      '<span class="fam">'+esc(p.familia||"")+'</span>'+tag+
+     '</div><div class="tbl-wrap"><table><thead><tr><th>Parte que recibe</th>'+cab+'<th class="tot">Total</th></tr></thead>'+
+     '<tbody>'+celdas(p)+'</tbody></table></div><div class="pie">'+pie(p)+'</div></div>';
  });
 
  canvas.innerHTML=note+kpi+H;
 }
 
+function pasoDe(k){ return (D.pasos||[]).filter(function(p){return clave(p)===k;})[0]; }
+
+/* repinta el cuerpo y el pie de UNA caja, sin tocar los campos (no se pierde el foco) */
+function refrescar(p){
+ var caja=document.querySelector('.paso[data-caja="'+clave(p)+'"]');
+ if(!caja) return;
+ caja.querySelector("tbody").innerHTML=celdas(p);
+ caja.querySelector(".pie").innerHTML=pie(p);
+}
+
+function alEscribir(inp){
+ var p=pasoDe(inp.dataset.paso); if(!p) return;
+ var k=clave(p), talls=(p.talleristas||[]);
+ if(!ED[k]){ ED[k]={pct:{},dirty:true}; talls.forEach(function(t){ ED[k].pct[t.tall_id]=Number(t.pct); }); }
+ var tid=Number(inp.dataset.tall), v=GP2N.num(inp.value);
+ ED[k].pct[tid]=v; ED[k].dirty=true;
+ if(talls.length===2){
+  var otro=talls.filter(function(t){return t.tall_id!==tid;})[0];
+  var r=Math.round((100-v)*100)/100; if(r<0) r=0;
+  ED[k].pct[otro.tall_id]=r;
+  var oi=document.querySelector('input.pct-in[data-paso="'+k+'"][data-tall="'+otro.tall_id+'"]');
+  if(oi) oi.value=pctFmt(r);
+ }
+ AVISO="";
+ refrescar(p);
+}
+
+async function guardar(k){
+ var p=pasoDe(k), s=p&&estado(p);
+ if(!p || !s.dirty || !s.ok) return;
+ var talls=(p.talleristas||[]);
+ var txt=talls.map(function(t){return t.tallerista+" "+pctFmt(pctDe(p,t))+" %";}).join(" · ");
+ if(!confirm("¿Grabar el reparto del "+p.art_codigo+"?\n\n"+txt+"\n\nSe recalculan los máximos de los talleristas.")) return;
+ var filas=talls.map(function(t){return {tallerista_id:t.tall_id, pct:pctDe(p,t)};});
+ var btn=document.querySelector('button[data-guardar="'+k+'"]'); if(btn) btn.disabled=true;
+ var r=await SB.rpc("reparto_guardar",{p_articulo_id:p.articulo_id, p_comp_salida_id:p.comp_salida_id, p_filas:filas});
+ if(r.error){ alert("No se grabó: "+(r.error.message||r.error)); if(btn) btn.disabled=false; return; }
+ var n=(r.data&&r.data.maximos&&r.data.maximos.actualizados)||0;
+ delete ED[k];
+ AVISO="✓ "+p.art_codigo+" guardado ("+txt+"): "+n+(n===1?" máximo recalculado":" máximos recalculados");
+ try{ await cargar(); }
+ catch(e){ alert("Se grabó, pero no se pudo volver a leer: "+(e.message||e)+". Recargá la página."); }
+}
+
 function __run(){
+ var canvas=document.getElementById("canvas");
+ canvas.addEventListener("input",function(ev){ if(ev.target.classList.contains("pct-in")) alEscribir(ev.target); });
+ canvas.addEventListener("click",function(ev){
+  var b=ev.target.closest("button"); if(!b) return;
+  if(b.dataset.guardar) guardar(b.dataset.guardar);
+  if(b.dataset.cancelar){ delete ED[b.dataset.cancelar]; render(); }
+ });
+ window.addEventListener("beforeunload",function(ev){
+  if(Object.keys(ED).length){ ev.preventDefault(); ev.returnValue=""; }
+ });
  document.getElementById("btnCsv").addEventListener("click",function(){
-  var out=[["Art_Codigo","Familia","Paso_cod","Paso_desc","Tallerista","Proporcion_pct","Parte_cod","Parte_desc","Maximo"]];
+  var out=[["Art_Codigo","Familia","Paso_cod","Paso_desc","Tallerista","Proporcion_pct","Parte_cod","Parte_desc",
+            "Demanda_articulo_mes","Maximo_este_articulo","Maximo_total_casa","En_su_stock"]];
   (D.pasos||[]).forEach(function(p){
    (p.talleristas||[]).forEach(function(t){
     (p.partes||[]).forEach(function(pa){
-     var x=(pa.por_tall||[]).filter(function(y){return y.tall_id===t.tall_id;})[0];
+     var x=xDe(pa,t);
+     if(!x) return;
      out.push([p.art_codigo,p.familia||"",p.paso_cod,p.paso_desc||"",t.tallerista,t.pct,
-               pa.cod,pa.desc||"",x&&x.maximo!=null?x.maximo:""]);
+               pa.cod,pa.desc||"",pa.dem_mes==null?"":pa.dem_mes,paraArt(pa,t,Number(t.pct)),
+               x.maximo!=null?x.maximo:"",x.tiene_fila?"si":"no"]);
     });
    });
   });
@@ -148,14 +265,18 @@ function __run(){
  });
 }
 
+async function cargar(){
+ var r=await SB.rpc("proporciones_bundle");
+ if(r.error)throw r.error;
+ D=r.data||{};
+ render();
+}
+
 async function __boot(){
  try{
   document.body.style.cursor="progress";
   __run();
-  var r=await SB.rpc("proporciones_bundle");
-  if(r.error)throw r.error;
-  D=r.data||{};
-  render();
+  await cargar();
  }catch(e){
   document.getElementById("canvas").innerHTML='<div class="empty" style="color:#982e16">Error cargando datos de Supabase: '+esc(e.message||e)+'</div>';
   console.error(e);

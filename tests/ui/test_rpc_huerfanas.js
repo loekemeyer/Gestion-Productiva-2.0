@@ -41,10 +41,8 @@ const PERMITIDAS = {
   // Las llama algo que no es una pantalla.
   actualizar_dolar_oficial:  'la llama el cron del dólar',
   factura_lectura_permitida: 'la llama la Edge Function gp2_leer_factura (tope diario, idea 7339)',
-  // 2026-09-15: la pantalla Proporciones paso a SOLO LECTURA por pedido del dueño ("que no se
-  // pueda modificar la proporcion en el programa"): el % se carga por SQL con esta función, que
-  // valida (suman 100, el tallerista hace ese paso) y recalcula los máximos. Sin EXECUTE a anon.
-  reparto_guardar:           'mantenimiento: carga el reparto por SQL; la pantalla es solo lectura',
+  // (reparto_guardar salió de acá el 2026-09-30: Proporciones_GP2 vuelve a editar el % con
+  //  Guardar -> rpc('reparto_guardar'), con _exigir_autorizado y sin EXECUTE a anon.)
   // 2026-09-23: el máximo del Prov AT sale del mismo motor que el del tallerista y se recalcula a
   // mano, igual que recalcular_maximos_talleristas. Además CREA filas de inventario cuando se la
   // llama con p_crear_faltantes => true (las 12 ubicaciones de prov AT tienen cero), y eso es
