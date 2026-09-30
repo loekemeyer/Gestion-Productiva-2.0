@@ -65,7 +65,7 @@ create or replace function "GP2".fabrica_producir(p_comp_id bigint, p_cantidad n
                                                   p_fecha timestamptz default now(), p_nota text default null)
  returns jsonb language plpgsql security definer set search_path to 'GP2'
 as $function$
-declare v_art record; v_ubic bigint; v_mov bigint; r record; v_q numeric; v_o bigint;
+declare v_art record; v_ubic bigint; v_mov bigint; pz record; v_q numeric; v_o bigint;
         v_cons jsonb := '[]'::jsonb; v_f timestamptz := coalesce(p_fecha, now());
 begin
   perform "GP2"._exigir_autorizado();
@@ -75,8 +75,9 @@ begin
    where c.id = p_comp_id and c.sector_id = 12
    limit 1;
   if v_art.id is null then raise exception 'El componente % no es un artículo terminado', p_comp_id; end if;
-  if not exists (select 1 from ruta r join ruta_paso rp on rp.ruta_id = r.id
-                  where r.articulo_id = v_art.id and rp.tallerista_id = 3) then
+  -- (alias ru, no r: con un record r declarado plpgsql lo toma por la variable)
+  if not exists (select 1 from ruta ru join ruta_paso rp on rp.ruta_id = ru.id
+                  where ru.articulo_id = v_art.id and rp.tallerista_id = 3) then
     raise exception 'El artículo % no lo arma Fábrica', v_art.codigo;
   end if;
   v_ubic := ubic_de('art_terminado', 3);
@@ -87,19 +88,19 @@ begin
           coalesce(p_nota, 'Producido en Fábrica (tablet)'))
   returning id into v_mov;
   -- el DESPIECE: cada pieza de la receta sale de la ubicación de su sector (hijos del armado)
-  for r in select ac.componente_id cid, ac.cantidad q, c.codigo, c.unidad_medida um
+  for pz in select ac.componente_id cid, ac.cantidad q, c.codigo, c.unidad_medida um
              from articulo_componente ac join componente c on c.id = ac.componente_id
             where ac.articulo_id = v_art.id order by c.sector_id, c.codigo loop
-    v_q := round(r.q * p_cantidad, 6);
+    v_q := round(pz.q * p_cantidad, 6);
     if v_q <= 0 then continue; end if;
-    v_o := ubic_de_componente(r.cid);
-    if v_o is null then raise exception 'La pieza % no tiene ubicación de la que descontar', r.codigo; end if;
+    v_o := ubic_de_componente(pz.cid);
+    if v_o is null then raise exception 'La pieza % no tiene ubicación de la que descontar', pz.codigo; end if;
     insert into movimiento(fecha, tipo_mov, comp_id, ubic_origen_id, ubic_destino_id, cantidad,
                            unidad_origen, unidad_destino, nota, mov_padre_id)
-    values (v_f, 'consumo_prod', r.cid, v_o, null, v_q,
-            case when lower(coalesce(r.um, '')) = 'kg' then 'kg' else 'uni' end, null,
+    values (v_f, 'consumo_prod', pz.cid, v_o, null, v_q,
+            case when lower(coalesce(pz.um, '')) = 'kg' then 'kg' else 'uni' end, null,
             'Despiece de ' || v_art.codigo || ' (Fábrica)', v_mov);
-    v_cons := v_cons || jsonb_build_object('cod', r.codigo, 'cantidad', v_q);
+    v_cons := v_cons || jsonb_build_object('cod', pz.codigo, 'cantidad', v_q);
   end loop;
   return jsonb_build_object('ok', true, 'movimiento_id', v_mov, 'articulo', v_art.codigo,
     'unidades', p_cantidad, 'cajas', case when v_art.uxc > 0 then round(p_cantidad / v_art.uxc, 2) end,
@@ -461,7 +462,12 @@ rec as (
 ),
 env_x as (
   select distinct on (e.tipo, e.ref, e.comp_id) e.tipo, e.ref, e.comp_id,
-         c.codigo cod, c.descripcion descr, s.nombre sector, c.unidad_medida um,
+         c.codigo cod,
+         -- el terminado se llama como el ARTICULO ("Cierra Bolsa x2", no "058 Terminado")
+         case when c.sector_id = 12
+              then coalesce((select a.descripcion from articulo a where upper(a.codigo) = upper(c.codigo) limit 1), c.descripcion)
+              else c.descripcion end descr,
+         s.nombre sector, c.unidad_medida um,
          c.uni_x_cajon uxc, c.kg_x_uni kgu,
          -- envase de ENVIO propio de la pieza (componente.entrega_unidad/entrega_uni_x): una caja
          -- de 100 (GRJ13/GRJ14), una caja de 2400 (Descorazonador) o las bolsas de 120 de GRJ5/GRJ6.
