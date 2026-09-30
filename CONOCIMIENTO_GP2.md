@@ -14097,7 +14097,7 @@ cartelito de «Denegado por Cervantes»"*.
 - ⚠ **Si ya se cargó a mano antes de que llegara el aviso, igual se contesta Sí o No** [usuario: "Sí/No sin nada
   más"]: no hay botón «ya lo cargué». Caso real 30/09: 3.000 u de 323ES llegaron también a mano (recepción
   17082, 13:38): el aviso #4 se vinculó a esa recepción a mano, sin duplicar stock.
-- `db/migracion_ingreso_virgilio_resolver.sql` (GP2) + `sql/gv_ingreso_cervantes_denegado_v2534.sql` (Virgilio).
+- `db/migracion_ingreso_virgilio_resolver.sql` (GP2) + `sql/gv_ingreso_cervantes_denegado_v2537.sql` (Virgilio).
 
 ## 4hg. Despiece x Art: la ruta arranca en el PROVEEDOR que compra la pieza (2026-09-30)
 
@@ -14131,3 +14131,41 @@ cartelito de «Denegado por Cervantes»"*.
   un pallet vacío, no sacarlo de los rollos.
 - `StockFlejes/RecepcionInsumos_GP2.html` v3.67.0. Lo sostienen `tests/ui/test_recepcion_etapas.js` y
   `test_recepcion_guardar_pesaje.js` (el caso de la foto guarda con aviso; verificado que falla contra la v3.66.0).
+
+## 4hi. "Virgilio" en la tablet: Fábrica produce en cajas, Enviar y Recibir Virgilio, y Stock General en 3 cajas (2026-09-30)
+
+[usuario, 30/09] *"Quiero que establezcas esta regla como general porque no es una eventualidad, suele pasar
+que haya interacción entre Cervantes (GP2) y Virgilio… Quiero que en enviar y recibir (versión tablet) me
+aparezca «Virgilio»"*. Contestado en la charla: mandar a producir = **Enviar → Talleristas → Fábrica**, en
+cajas; los **alambres son fleje** (el sector 13 "Alambre" no tiene ni una pieza) [usuario].
+
+- **Fábrica produce, no recibe partes** [usuario]: *"Cuando se manda a producir a fábrica, se descuenta el
+  despiece del artículo y aumentan los artículos terminados (stock en cajas)"*. En la tablet Fábrica
+  (tallerista 3) muestra sus **41 artículos** (los 42 de sus rutas menos el 070, discontinuado) en CAJAS
+  (`articulo.articulos_por_caja`). `fabrica_producir` anota el `armado_fabrica` del terminado en la
+  ubicación nueva **"Art. Terminado (Fábrica)"** (id 70, tipo `art_terminado`) y un `consumo_prod` por
+  cada pieza de la receta (`articulo_componente`), desde la ubicación de su sector, como hijos del armado
+  (`mov_padre_id`). Sin sugerido: se produce lo que se decida.
+- **Por qué no es un "sector 12"** [deducido]: `ubic_de_componente()` de los 198 terminados cae hoy en
+  Virgilio (33). Una ubicación `sector` 12 los mudaba a todos, también los que entregan los prov. AT.
+- **Enviar → Virgilio** [usuario]: 1) Art. Terminados de Fábrica, en cajas: *"baja el stock de fábrica y
+  termina ahí el proceso"* → `recepcion_virgilio` (sale, sin destino); 2) Insumos: plástico, fleje y caja;
+  3) SC y SP → `traslado` al depósito de ese sector en Virgilio. Se crearon los depósitos de Virgilio de
+  Fleje (71), Plástico (72) y Caja (73), como los de Crudo (64) y Procesado (65). `enviar_a_virgilio`.
+- **Recibir → Virgilio** [usuario]: *"Borra importados dentro de recepcion insumos y ponelo aca … que estén
+  sueltos"*. Los 8 importados salen sueltos junto a lo que vuelve; se registran como siempre
+  (`crear_recepcion_insumo`, remito en unidades) y la tablet va directo a su control en kg (GP2CI). Los
+  avisos Sí/No de Gestión Virgilio (§4hf) se mudaron ahí, arriba de las piezas, con 🔔 N en la baldosa.
+  Recepción de Insumos ya no tiene el rubro Importados (v3.68.0).
+- **Stock General en 3 cajas** [usuario]: *"1) Cervantes: lo que hay hoy bajo SECTORES menos Bolsas
+  Plásticas que migra a Virgilio + Art. terminado (lo que hace fábrica) 2) Virgilio: Bolsas Plásticas, SC,
+  SP, Plásticos, Flejes, Cajas, Art. Terminado 3) Terceros: lo que hay hoy bajo OTROS"*. Da vuelta la v2.2.0
+  ("todo lo que es inventario de virgilio eliminalo"). El Art. Terminado de la caja Virgilio es el stock
+  **REAL** de Virgilio, en cajas: espejo `GP2.virgilio_articulo_stock` que reescribe Gestión Virgilio
+  (bloque 4 de `public.gv_gp2_espejo_sync`, cron c/10 min, sólo si cambió). [deducido] lo que Fábrica
+  "manda" no se acumula en ningún lado de GP2: si se sumara, crecería para siempre porque nadie en GP2
+  descuenta lo que Virgilio vende.
+- **Pendiente** [deducido, sin confirmar]: lo que Cervantes le manda a Virgilio todavía no le llega a
+  Virgilio como aviso Sí/No (la regla general lo pide del lado que recibe). GV puede leerlo de
+  `GP2.movimiento` (`recepcion_virgilio` y `traslado` a un `virgilio_sector`) cuando se decida.
+- `db/migracion_tablet_virgilio.sql`, tests `test_tablet_virgilio.js` y `test_aviso_virgilio.js`.

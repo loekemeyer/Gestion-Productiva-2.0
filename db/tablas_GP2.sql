@@ -404,6 +404,15 @@ create table "GP2".virgilio_lugar (
   sector text primary key, tipo text, empresa text, uso text, orden integer, activo boolean, notas text,
   codigos text, cajas_max numeric, actualizado_en timestamptz not null default now()
 );
+-- (2026-09-30) el stock de ARTICULOS de Virgilio, en cajas: la caja "Virgilio > Art. Terminado" de Stock General
+-- (bloque 4 de public.gv_gp2_espejo_sync, sql/gv_gp2_espejo_articulo_v2538.sql del repo gestion-virgilio).
+-- RLS + policy p_gp2_select (select a anon/authenticated) como los otros espejos. db/migracion_tablet_virgilio.sql
+create table "GP2".virgilio_articulo_stock (
+  cod text primary key, cod_base text, linea text, descripcion text,
+  stock_total numeric, terminado numeric, excedente numeric, racks numeric, a_guardar numeric,
+  separar_pedidos numeric, a_facturar numeric,
+  actualizado_en timestamptz not null default now()
+);
 
 -- ---------- aceptado_virgilio ----------
 -- Lo que Gestión Virgilio le recibió/aceptó a Cervantes. La escribe public.gv_gp2_aceptado_sync (cron c/10 min).
@@ -471,7 +480,7 @@ create table "GP2".ingreso_virgilio (
 );
 comment on table "GP2".ingreso_virgilio is 'v25.10 (Luis 30/09): lo que Gestion Virgilio mando a Cervantes (recepcion de importados con destino Cervantes). Lo escribe public.gv_imp_recibir (SECURITY DEFINER). Desde el 30/09 (GP2 v1.216.0) ya NO sale en la portada: aparece en Recepcion de Insumos > Importados, en la tarjeta del componente (importado_virgilio_componente), con Si / No (resolver_ingreso_virgilio). Si = recepcion de Importado + control en kg; No = estado denegado y Gestion Virgilio vuelve a poner el pedido en viaje (trigger gv_ingreso_virgilio_denegado, del lado de Virgilio).';
 -- triggers: trg_ingreso_virgilio_componente (GP2, completa componente_id y unidades); gv_ingreso_virgilio_unidades y
--- gv_ingreso_virgilio_denegado (funciones de public: los pone Gestion Virgilio, sql/gv_ingreso_cervantes_denegado_v2534.sql)
+-- gv_ingreso_virgilio_denegado (funciones de public: los pone Gestion Virgilio, sql/gv_ingreso_cervantes_denegado_v2537.sql)
 
 -- ---------- inventario ----------
 create table "GP2".inventario (
@@ -1281,7 +1290,7 @@ create table "GP2".ubicacion (
   nombre text,
   meses_stock numeric,
   constraint ubicacion_pkey PRIMARY KEY (id),
-  constraint ubicacion_tipo_chk CHECK ((tipo = ANY (ARRAY['sector'::text, 'tallerista'::text, 'proveedor_servicio'::text, 'proveedor_at'::text, 'virgilio'::text, 'analisis'::text, 'inyector'::text, 'virgilio_sector'::text])))
+  constraint ubicacion_tipo_chk CHECK ((tipo = ANY (ARRAY['sector'::text, 'tallerista'::text, 'proveedor_servicio'::text, 'proveedor_at'::text, 'virgilio'::text, 'analisis'::text, 'inyector'::text, 'virgilio_sector'::text, 'art_terminado'::text])))
 );
 comment on table "GP2".ubicacion is 'Ubicaciones de stock: una por sector, PS, tallerista, Prov AT e INYECTOR (tipo inyector, ref_id = proveedor_insumo.id: materia prima plastica en poder del inyector, 2026-09-10), mas Virgilio y "Para Analizar" (singletons). Se resuelven con ubic_de(tipo, ref_id); indice unico (tipo, ref_id).';
 comment on column "GP2".ubicacion.ref_id is 'Referencia al id del sector/proveedor/tallerista según tipo. Es NULL sólo para tipos generales sin fila propia: virgilio, analisis.';

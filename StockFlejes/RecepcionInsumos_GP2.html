@@ -6,6 +6,14 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
+<!-- v3.68.0 (2026-09-30) — IMPORTADOS SE VA DE ACA: PASA A LA TABLET, RECIBIR -> VIRGILIO [usuario: "En recibir
+     Virgilio: todos los componentes que aparecen hoy en importados (dentro de recepcion de insumos). Borra
+     importados dentro de recepcion insumos y ponelo aca en recepcion «Virgilio» (que no esten dentro del
+     modulo «importados», que esten sueltos)"]. Se saca el boton del rubro y los avisos Si/No de Gestion
+     Virgilio (v3.66.0), que ahora estan arriba de las piezas en Tablet_GP2.html (Recibir -> Virgilio). La
+     recepcion del importado sigue siendo la misma (crear_recepcion_insumo, remito en unidades) y su control
+     en kg tambien (GP2CI, control-remaches.html?sector=2&prov=Importado). Las ramas internas por
+     'Importados' (saltaProv, insumosDelRubro) quedan sin boton que las abra. -->
 <!-- v3.67.0 (2026-09-30) — PESAJE DE FLEJES: POR PALLET SOLO KG Y ROLLOS, Y SE GUARDA AUNQUE NO DE
      [usuario: "Que me deje cargar igual aunque de mal. Tiene que ser como el control de cualquier otra
      recepcion. Hay mucho texto. Que me pida kgs, rollos. Y si hay mas de un pallet: +pallet y vuelvo a
@@ -398,26 +406,6 @@ input[type="text"]{width:200px}
 .rb-pend-item{display:inline-flex;align-items:center;gap:6px;padding:4px 8px;margin:2px 4px;background:#fff8e1;border:1px solid #eae0cd;border-radius:8px;font-size:14px}
 .rb-pend-item .qbtn-del{min-height:32px;padding:2px 6px;font-size:14px}
 .qbtn-primary:hover{background:#333}
-/* avisos de Gestion Virgilio (v3.66.0) */
-.vir-badge{display:inline-block;margin-left:8px;padding:2px 8px;border-radius:999px;background:#d97706;color:#fff;font-size:16px;font-weight:900;vertical-align:middle}
-.item-btn.con-aviso-vir{border-color:#d97706;background:#fffbeb}
-.vir-aviso{margin-top:10px;padding:10px;border:2px solid #d97706;border-radius:8px;background:#fef3c7;color:#78350f;text-align:center;cursor:default}
-#virSueltos .vir-aviso{margin:0 0 10px}
-.vir-txt{font-size:18px;font-weight:700;line-height:1.3}
-.vir-txt b{color:#451a03}
-.vir-meta{font-size:15px;font-weight:600;color:#92400e;margin-top:4px;overflow-wrap:anywhere}
-.vir-row{display:flex;gap:8px;justify-content:center;margin-top:8px;flex-wrap:wrap}
-.vir-b{flex:1 1 80px;min-height:48px;padding:6px 12px;border:2px solid #111;border-radius:8px;background:#fff;color:#111;font-weight:900;font-size:19px;cursor:pointer}
-.vir-b.vir-si{background:#0a7a2f;border-color:#0a7a2f;color:#fff}
-.vir-b.vir-no{border-color:#b42318;color:#b42318}
-.vir-b.vir-no-ok{background:#b42318;border-color:#b42318;color:#fff}
-.vir-b:disabled{opacity:.45;cursor:not-allowed}
-.vir-lbl{display:block;font-size:16px;font-weight:800;margin-top:8px;text-align:left}
-.vir-aviso input.vir-mot{display:block;width:100%;box-sizing:border-box;height:48px;font-size:19px;padding:6px 10px;border:2px solid #d0d7de;border-radius:8px;margin-top:4px}
-.vir-msg{margin:10px 0;padding:10px 14px;border-radius:8px;font-size:18px;font-weight:700}
-.vir-msg.ok{background:#eefbf1;border:2px solid #0a7a2f;color:#0a3d1a}
-.vir-msg.bad{background:#ffebee;border:2px solid #b42318;color:#7a1010}
-.vir-ctrl{display:inline-block;margin-left:6px;padding:6px 14px;background:#0b5cad;color:#fff;border-radius:8px;text-decoration:none;font-weight:900}
 .item-btn .cargado-info{display:block;font-size:15px;font-weight:800;line-height:1.25;margin-top:6px;
                         color:#0a7a2f;background:#dcfae4;border-radius:8px;padding:5px 8px}
 
@@ -580,7 +568,7 @@ input[type="text"]{width:200px}
              por estado_compra='importado', no por sector (el 1686 de Eclipse comparte sector).
              (El 2026-09-14 se probo renombrarlo a "Procesado"/recepcion por sector y el usuario
              dijo "me confundi, dejalo como importado": revertido, ver v3.58.0.) -->
-        <button class="prov-btn" data-rubro="Importados" data-sid="2">Importados</button>
+        <!-- (v3.68.0) el boton Importados se fue a la Tablet: Recibir -> Virgilio -->
         <!-- Los rubros Filtros (Charcas) y Cortados (Eclipse) se sacaron en Fase B
              del rework 2026-09-02 (usuario): ahora los PS hibridos viven en su
              pantalla dedicada Prov Serv/CharcasEclipse/CharcasEclipse_GP2.html
@@ -718,8 +706,6 @@ input[type="text"]{width:200px}
         <input type="text" id="searchInput" placeholder="Buscar por código o descripción…" oninput="filtrarItems()" style="flex:1 1 auto">
         <span id="remitoBtnSlot" style="flex:0 0 auto"></span>
       </div>
-      <div id="virMsg" class="vir-msg" hidden></div>
-      <div id="virSueltos"></div>
       <div class="items-grid" id="itemsGrid"></div>
       <div id="itemsEmpty" class="empty hidden">No hay insumos en este rubro.</div>
     </div>
@@ -1373,9 +1359,7 @@ function pintarItems(list){
     }
     var cargado = resumenCargadoRemito(i.codigo);
     // Usamos <div role=button> para poder anidar los <button> +N/+1 (HTML invalido dentro de <button>).
-    // v3.66.0: los avisos de Gestion Virgilio de ESTE componente (solo en Importados)
-    var avs = avisosDeComp(i.comp_id);
-    var b=document.createElement('div'); b.className='item-btn'+(cargado?' cargado':'')+(avs.length?' con-aviso-vir':''); b.setAttribute('role','button'); b.tabIndex=0;
+    var b=document.createElement('div'); b.className='item-btn'+(cargado?' cargado':''); b.setAttribute('role','button'); b.tabIndex=0;
     // Botones rapidos +N (bolsa) y +1 (paq) para cartones (regla usuario 2026-09-01:
     // "en vez de que sea un pop up. que haya botones de +4 (para los que van de 1000) +1
     // por si mando mal el prov"). N = paq_x_bolsa del formato (C/LOKE=4, Huevo=8, Ocho=12,
@@ -1416,14 +1400,10 @@ function pintarItems(list){
       }
     }
     b.innerHTML='<span class="code">'+esc(i.codigo)+'</span>'+
-      '<span class="desc">'+esc(i.descripcion||'')+'</span>'+ med + fmt + resumenOC(i.oc_pend) + cargado + quick +
-      avs.map(function(a){ return avisoVirHTML(a, i.codigo); }).join('');
+      '<span class="desc">'+esc(i.descripcion||'')+'</span>'+ med + fmt + resumenOC(i.oc_pend) + cargado + quick;
     // Click al cuerpo (fuera de los botones quick): abre popup como antes (fallback
     // para cargar cantidad libre).
     b.addEventListener('click',function(ev){
-      // v3.66.0: un toque adentro del aviso de Virgilio es del aviso, no abre el popup de cantidad
-      var av = ev.target.closest && ev.target.closest('.vir-aviso');
-      if (av){ ev.stopPropagation(); avisoVirClick(ev, av); return; }
       var q = ev.target.closest && ev.target.closest('.qbtn');
       if (q){
         ev.stopPropagation();
@@ -1441,7 +1421,6 @@ function pintarItems(list){
     });
     g.appendChild(b);
   });
-  pintarAvisosSueltos();
 }
 /* Carga rapida de un cartón/pliego desde la tarjeta (botones +N/+1).
    NO baja a la BD: acumula en PEND (buffer local). Recien al presionar
@@ -2877,118 +2856,7 @@ $('rolloPallRow').addEventListener('input', function(e){
   if(e.target.id==='kgPaquetes') sanInput(e.target, sanInt);
 });
 $('txtFecha').value=hoy();
-let AVISOS_VIR = [], AV_NO = {}, AV_ENVIANDO = {};
-cargar().then(cargarAvisosVirgilio, cargarAvisosVirgilio);
-
-/* ================= Avisos de Gestion Virgilio (v3.66.0, 2026-09-30) =================
-   Lo que Virgilio recibe con destino Cervantes (GP2.ingreso_virgilio, pendiente). Ver el comentario
-   de version de arriba. Sin dato no hay aviso: si la RPC falla, AVISOS_VIR queda vacio y la
-   recepcion sigue como siempre. */
-async function cargarAvisosVirgilio(){
-  var lista = [];
-  try {
-    var res = await SB.rpc('ingreso_virgilio_pendientes');
-    if (res && !res.error && Array.isArray(res.data)) lista = res.data;
-    else if (res && res.error) console.error('ingreso_virgilio_pendientes', res.error);
-  } catch(e){ console.error('ingreso_virgilio_pendientes', e); }
-  AVISOS_VIR = lista;
-  pintarBadgeVirgilio();
-  if (rubroSel==='Importados' && !$('step2').classList.contains('hidden')) filtrarItems();
-}
-function pintarBadgeVirgilio(){
-  var b = document.querySelector('#rubroGrid .prov-btn[data-rubro="Importados"]');
-  if (!b) return;
-  var v = b.querySelector('.vir-badge'); if (v) v.remove();
-  if (!AVISOS_VIR.length) return;
-  var s = document.createElement('span'); s.className = 'vir-badge';
-  s.textContent = '🔔 ' + AVISOS_VIR.length;
-  s.title = 'Gestión Virgilio avisó que te llegó mercadería: confirmalo adentro de Importados';
-  b.appendChild(s);
-}
-function avisoVirUnidades(a){
-  var u = Number(a.unidades);
-  return u > 0 ? fmt(u) + ' unidades' : fmt(a.cantidad) + ' ' + (a.unidad || '');
-}
-function avisoVirHTML(a, codigo){
-  var id = Number(a.id);
-  var cod = codigo || a.codigo || a.cod_insumo || a.cod_importado || '';
-  var meta = [a.cod_insumo || a.cod_importado, a.pedido_ref ? 'pedido ' + a.pedido_ref : '', a.proveedor,
-              a.creado_en ? GP2UI.fechaTsAR(a.creado_en) : ''].filter(Boolean).map(esc).join(' · ');
-  var h = '<div class="vir-aviso" data-vir="' + id + '">' +
-    '<div class="vir-txt">🔔 Gestión Virgilio notificó que recibiste <b>' + esc(avisoVirUnidades(a)) + '</b> de <b>' + esc(cod) + '</b>:</div>' +
-    (meta ? '<div class="vir-meta">' + meta + '</div>' : '');
-  if (AV_ENVIANDO[id]) return h + '<div class="vir-meta">Enviando…</div></div>';
-  if (AV_NO[id]) {
-    return h + '<label class="vir-lbl" for="virMot' + id + '">¿Por qué no llegó? (opcional)</label>' +
-      '<input type="text" id="virMot' + id + '" class="vir-mot" maxlength="200" autocomplete="off">' +
-      '<div class="vir-row"><button type="button" class="vir-b vir-no-ok" data-vir-acc="confirmar-no">Confirmar: NO llegó</button>' +
-      '<button type="button" class="vir-b" data-vir-acc="cancelar">Cancelar</button></div></div>';
-  }
-  var sinComp = !a.componente_id;
-  return h + (sinComp ? '<div class="vir-meta">Este código de Virgilio no está vinculado a ningún código de GP2: avisá para vincularlo.</div>' : '') +
-    '<div class="vir-row"><button type="button" class="vir-b vir-si" data-vir-acc="si"' + (sinComp ? ' disabled' : '') + '>Sí</button>' +
-    '<button type="button" class="vir-b vir-no" data-vir-acc="no">No</button></div></div>';
-}
-function avisosDeComp(compId){
-  if (rubroSel !== 'Importados') return [];
-  return AVISOS_VIR.filter(function(a){ return a.componente_id != null && Number(a.componente_id) === Number(compId); });
-}
-/* Los que no tienen tarjeta en Importados (codigo sin vincular, o vinculado a una pieza que no es
-   importada) van arriba de la grilla: un aviso que no se ve no lo resuelve nadie. */
-function pintarAvisosSueltos(){
-  var box = $('virSueltos'); if (!box) return;
-  if (rubroSel !== 'Importados') { box.innerHTML = ''; return; }
-  var ids = {}; insumosDelRubro().forEach(function(i){ ids[Number(i.comp_id)] = true; });
-  box.innerHTML = AVISOS_VIR.filter(function(a){ return !(a.componente_id != null && ids[Number(a.componente_id)]); })
-    .map(function(a){ return avisoVirHTML(a); }).join('');
-}
-function avisoVirClick(ev, av){
-  var btn = ev.target.closest && ev.target.closest('button');
-  if (!btn || btn.disabled) return;
-  var id = Number(av.dataset.vir), acc = btn.dataset.virAcc;
-  if (acc === 'si') resolverAvisoVir(id, true, null);
-  else if (acc === 'no') { AV_NO[id] = true; filtrarItems(); var inp = document.getElementById('virMot' + id); if (inp) inp.focus(); }
-  else if (acc === 'cancelar') { delete AV_NO[id]; filtrarItems(); }
-  else if (acc === 'confirmar-no') { var m = document.getElementById('virMot' + id); resolverAvisoVir(id, false, m ? m.value : ''); }
-}
-document.addEventListener('click', function(ev){
-  var av = ev.target.closest && ev.target.closest('#virSueltos .vir-aviso');
-  if (av) avisoVirClick(ev, av);
-});
-async function resolverAvisoVir(id, acepta, motivo){
-  if (AV_ENVIANDO[id]) return;
-  var a = AVISOS_VIR.find(function(x){ return Number(x.id) === id; }) || {};
-  AV_ENVIANDO[id] = true; filtrarItems();
-  var box = $('virMsg');
-  try {
-    var res = await SB.rpc('resolver_ingreso_virgilio', { p_id: id, p_acepta: !!acepta,
-      p_motivo: acepta ? null : (String(motivo || '').trim() || null) });
-    if (res.error) throw res.error;
-    var d = res.data || {};
-    AVISOS_VIR = AVISOS_VIR.filter(function(x){ return Number(x.id) !== id; });
-    delete AV_NO[id];
-    if (acepta) {
-      // el control en kg de un Importado vive en otra pantalla (GP2CI); queda tambien en el boton Control de la tablet
-      var url = ctrlUrlDe({ sector_id: d.sector_id != null ? d.sector_id : a.sector_id, proveedor: d.proveedor || a.comp_proveedor });
-      box.className = 'vir-msg ok';
-      box.innerHTML = '✓ Entraron <b>' + esc(fmt(d.unidades)) + ' u</b> de <b>' + esc(d.codigo || a.codigo || '') + '</b> (remito ' + esc(d.remito || '') + '). Falta el control en kg' +
-        (url ? ': <a class="vir-ctrl" href="' + esc(url) + '">Ir al control →</a>' : '.');
-    } else {
-      box.className = 'vir-msg ' + (d.virgilio_revertido ? 'ok' : 'bad');
-      box.innerHTML = d.virgilio_revertido
-        ? '✓ Listo: en Gestión Virgilio las ' + esc(avisoVirUnidades(a)) + ' vuelven a figurar en viaje, con «Denegado por Cervantes».'
-        : '⚠ Quedó denegado, pero Gestión Virgilio no pudo volver a ponerlo en viaje' + (d.virgilio_error ? ' (' + esc(d.virgilio_error) + ')' : '') + ': avisale a Virgilio.';
-    }
-  } catch(e) {
-    box.className = 'vir-msg bad';
-    box.textContent = 'No se pudo guardar: ' + ((e && e.message) || e);
-  } finally {
-    delete AV_ENVIANDO[id];
-    box.hidden = false;
-    pintarBadgeVirgilio();
-    filtrarItems();
-  }
-}
+cargar();
 
 document.addEventListener('click', function(ev){
   var b=ev.target && ev.target.closest && ev.target.closest('#btnNuevaRec');

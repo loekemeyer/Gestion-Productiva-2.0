@@ -6,7 +6,18 @@
 <script src="../gp2-ui.js?v=20260930a"></script>
 <script src="../gp2-numero.js?v=20260911o"></script>
 <title>Stock general · GP2</title>
-<!-- v2.3.1 (2026-09-30) - INYECTORES SIN ENVÍOS TAMBIÉN SE VEN [usuario: "Pat bet plas y jl
+<!-- v2.4.0 (2026-09-30) - TRES CAJAS: CERVANTES · VIRGILIO · TERCEROS [usuario: "Dentro de stock general que
+     haya 3 box: 1) Cervantes: que tenga lo que hay hoy bajo el subtitulo SECTORES menos Bolsas Plásticas
+     que migra a Virgilio. Además agregale el nuevo sector Art. terminado (lo que hace fabrica) 2) Virgilio:
+     Bolsas Plásticas, SC, SP, Plásticos, Flejes, Cajas, Art. Terminado 3) Terceros: lo que hay hoy bajo el
+     subtitulo OTROS"]. DA VUELTA la v2.2.0 en lo de Virgilio ("todo lo que es inventario de virgilio
+     eliminalo"): ahora se ve en su propia caja. Cervantes suma "Art. Terminado" = lo que produjo Fábrica y
+     todavía no mandó (ubicación art_terminado). Virgilio: Bolsas Plásticas (el mismo rubro de siempre, sector
+     14 "en Virgilio"), SC / SP / Plásticos / Flejes / Cajas = lo que hay de ese sector en los depósitos de
+     Virgilio (virgilio_sector + Virgilio Distribución), y Art. Terminado = el stock REAL de Virgilio de los
+     artículos de Fábrica, en cajas (espejo GP2.virgilio_articulo_stock que escribe Gestión Virgilio; GP2 no
+     lee public). Los dos Art. Terminado salen de stock_general_extra_bundle.
+     v2.3.1 (2026-09-30) - INYECTORES SIN ENVÍOS TAMBIÉN SE VEN [usuario: "Pat bet plas y jl
      matricería?"]. El rubro salía de D.inv y esos dos no tenían ninguna fila de inventario (nunca
      se les mandó resina). Ahora sale de stock_general_extra_bundle.inyector: la resina de cada pieza
      del inyector (componente.proveedor = inyector, material_id = resina, mismo filtro que rep_iny)
@@ -76,6 +87,9 @@
  /* grilla de rubros (foto 1): botones que no se estiran a todo el ancho */
  .rubro-lbl{font-size:13px;font-weight:800;color:#666;text-transform:uppercase;letter-spacing:.5px;margin:4px 0 8px}
  .rubro-grp{font-size:12px;font-weight:800;color:#999;text-transform:uppercase;margin:10px 0 6px}
+ /* v2.4.0: cada planta (Cervantes / Virgilio / Terceros) en su caja */
+ .rubro-box{border:2px solid #e3e8ee;border-radius:10px;padding:4px 10px 10px;margin:8px 0 0}
+ .rubro-box .rubro-grp{font-size:14px;color:#0b4aa2;margin:6px 0 6px}
  .rubros{display:flex;flex-wrap:wrap;gap:8px}
  .rubro-btn{padding:11px 16px;min-height:44px;border-radius:9px;border:2px solid #d0d7de;background:#fff;font-weight:700;cursor:pointer;font-size:17px;color:#111}
  .rubro-btn:hover{border-color:#111}
@@ -213,7 +227,7 @@ var fmtFecha = GP2UI.fechaTsAR;
 
 /* ═══ config de columnas de movimiento por sector ═══
    COPIA de gp2-stock-sector.js (SECTORES): mantener en sync, SALVO "En Virgilio", que acá no va
-   (v2.2.0: el inventario de Virgilio lo lleva Gestión Virgilio). */
+   como columna: desde la v2.4.0 lo de Virgilio tiene su propia caja (rubros mode 'virg'). */
 var COLS_INSUMO = [
   { k:"compras", label:"Compras", tipos:["compra"], lado:"ent" },
   { k:"consumo", label:"Consumo", tipos:["consumo_prod","consumo_tall","consumo_virgilio","consumo","fabricacion"], lado:"sal" },
@@ -251,28 +265,40 @@ var SECT_CONSUMIBLE = { 5:1, 6:1, 8:1, 10:1, 11:1, 14:1 }; // fleje, plastico, r
 var RUBROS = [
   // el buscador transversal: una sola tabla con TODO, para cuando no se sabe el rubro
   { key:"all", grupo:"Buscar", nom:"🔎 Todos los rubros", mode:"global", mostrar_ubic:"Dónde", mostrar_rubro:true },
-  { key:"sc",  grupo:"Sectores", nom:"Stock SC",         mode:"sector", sid:1,  cols:COLS_SC },
-  { key:"sp",  grupo:"Sectores", nom:"Stock SP",         mode:"sector", sid:2,  cols:COLS_SP },
-  { key:"mov", grupo:"Sectores", nom:"En Movimiento",    mode:"sector", sid:3,  cols:COLS_MOV3, sin_max:true },
-  { key:"fle", grupo:"Sectores", nom:"Flejes",           mode:"sector", sid:5,  cols:COLS_INSUMO, sin_caj:true, mostrar_fleje:true, detalle:true },
-  { key:"pla", grupo:"Sectores", nom:"Plásticos",        mode:"sector", sid:6,  cols:COLS_INSUMO },
-  { key:"bom", grupo:"Sectores", nom:"Bombillas",        mode:"sector", sid:7,  cols:COLS_INSUMO },
-  { key:"rem", grupo:"Sectores", nom:"Remaches",         mode:"sector", sid:8,  cols:COLS_INSUMO },
-  { key:"gar", grupo:"Sectores", nom:"Garage",           mode:"sector", sid:9,  cols:COLS_INSUMO },
-  { key:"car", grupo:"Sectores", nom:"Cartones",         mode:"sector", sid:10, cols:COLS_INSUMO },
-  { key:"caj", grupo:"Sectores", nom:"Cajas",            mode:"sector", sid:11, cols:COLS_INSUMO },
-  { key:"bol", grupo:"Sectores", nom:"Bolsas Plásticas", mode:"sector", sid:14, cols:COLS_MP },
+  // ── CERVANTES (v2.4.0): lo que antes era "Sectores", menos Bolsas Plásticas, más Art. Terminado ──
+  { key:"sc",  grupo:"Cervantes", nom:"Stock SC",         mode:"sector", sid:1,  cols:COLS_SC },
+  { key:"sp",  grupo:"Cervantes", nom:"Stock SP",         mode:"sector", sid:2,  cols:COLS_SP },
+  { key:"mov", grupo:"Cervantes", nom:"En Movimiento",    mode:"sector", sid:3,  cols:COLS_MOV3, sin_max:true },
+  { key:"fle", grupo:"Cervantes", nom:"Flejes",           mode:"sector", sid:5,  cols:COLS_INSUMO, sin_caj:true, mostrar_fleje:true, detalle:true },
+  { key:"pla", grupo:"Cervantes", nom:"Plásticos",        mode:"sector", sid:6,  cols:COLS_INSUMO },
+  { key:"bom", grupo:"Cervantes", nom:"Bombillas",        mode:"sector", sid:7,  cols:COLS_INSUMO },
+  { key:"rem", grupo:"Cervantes", nom:"Remaches",         mode:"sector", sid:8,  cols:COLS_INSUMO },
+  { key:"gar", grupo:"Cervantes", nom:"Garage",           mode:"sector", sid:9,  cols:COLS_INSUMO },
+  { key:"car", grupo:"Cervantes", nom:"Cartones",         mode:"sector", sid:10, cols:COLS_INSUMO },
+  { key:"caj", grupo:"Cervantes", nom:"Cajas",            mode:"sector", sid:11, cols:COLS_INSUMO },
   // v2.3.0: Tránsito PS se ve con los sectores; los datos siguen saliendo de extra_bundle
-  { key:"tra", grupo:"Sectores", nom:"Tránsito PS",      mode:"otros",  fuente:"transito", mostrar_ubic:"En tránsito", sin_max:true },
-  { key:"ps",  grupo:"Otros",    nom:"Prov. Servicio",   mode:"otros",  fuente:"ps",       mostrar_ubic:"Prov. Servicio", sin_max:true },
-  { key:"tal", grupo:"Otros",    nom:"Talleristas",      mode:"otros",  fuente:"tall",     mostrar_ubic:"Tallerista" },
-  { key:"pat", grupo:"Otros",    nom:"Prov. Art. Term.", mode:"otros",  fuente:"provat",   mostrar_ubic:"Proveedor" },
+  { key:"tra", grupo:"Cervantes", nom:"Tránsito PS",      mode:"otros",  fuente:"transito", mostrar_ubic:"En tránsito", sin_max:true },
+  // lo que produjo Fábrica y todavía no mandó a Virgilio (ubicación "Art. Terminado (Fábrica)")
+  { key:"fab", grupo:"Cervantes", nom:"Art. Terminado",   mode:"otros",  fuente:"fab", sin_max:true },
+  // ── VIRGILIO (v2.4.0) ──
+  { key:"bol",   grupo:"Virgilio", nom:"Bolsas Plásticas", mode:"sector", sid:14, cols:COLS_MP },
+  { key:"v_sc",  grupo:"Virgilio", nom:"SC",               mode:"virg", sid:1,  sin_max:true },
+  { key:"v_sp",  grupo:"Virgilio", nom:"SP",               mode:"virg", sid:2,  sin_max:true },
+  { key:"v_pla", grupo:"Virgilio", nom:"Plásticos",        mode:"virg", sid:6,  sin_max:true },
+  { key:"v_fle", grupo:"Virgilio", nom:"Flejes",           mode:"virg", sid:5,  sin_max:true, sin_caj:true },
+  { key:"v_caj", grupo:"Virgilio", nom:"Cajas",            mode:"virg", sid:11, sin_max:true },
+  // el stock REAL de Virgilio de los artículos de Fábrica (espejo que escribe Gestión Virgilio)
+  { key:"v_art", grupo:"Virgilio", nom:"Art. Terminado",   mode:"otros", fuente:"virg_art", mostrar_ubic:"Línea", sin_max:true },
+  // ── TERCEROS (v2.4.0): lo que antes era "Otros" ──
+  { key:"ps",  grupo:"Terceros", nom:"Prov. Servicio",   mode:"otros",  fuente:"ps",       mostrar_ubic:"Prov. Servicio", sin_max:true },
+  { key:"tal", grupo:"Terceros", nom:"Talleristas",      mode:"otros",  fuente:"tall",     mostrar_ubic:"Tallerista" },
+  { key:"pat", grupo:"Terceros", nom:"Prov. Art. Term.", mode:"otros",  fuente:"provat",   mostrar_ubic:"Proveedor" },
   // v2.3.0: la materia prima plástica que se le mandó a cada inyector (ubicación tipo inyector), en kg
-  { key:"iny", grupo:"Otros",    nom:"Inyectores",       mode:"otros",  fuente:"iny",      mostrar_ubic:"Inyector", sin_caj:true, sin_max:true }
+  { key:"iny", grupo:"Terceros", nom:"Inyectores",       mode:"otros",  fuente:"iny",      mostrar_ubic:"Inyector", sin_caj:true, sin_max:true }
 ];
 
 var D = null;                 // movimientos_bundle (para Ajuste y rubros 'otros')
-var EXTRA = { prov_at:[], transito:[], inyector:[] };
+var EXTRA = { prov_at:[], transito:[], inyector:[], art_terminado:{ filas:[] }, virgilio_art:[] };
 var CACHE = {};               // sid -> stock_sector_bundle
 var GLOBAL = null;            // indice transversal (todas las ubicaciones), se arma una vez
 var TOPE_GLOBAL = 400;        // filas dibujadas sin busqueda (el inventario entero son ~1.330)
@@ -287,7 +313,8 @@ function pintarRubros(){
     var btns = RUBROS.filter(function(r){ return r.grupo===g; }).map(function(r){
       return '<button class="rubro-btn" data-k="'+r.key+'" type="button">'+esc(r.nom)+'</button>';
     }).join("");
-    return '<div class="rubro-grp">'+esc(g)+'</div><div class="rubros">'+btns+'</div>';
+    var h = '<div class="rubro-grp">'+esc(g)+'</div><div class="rubros">'+btns+'</div>';
+    return g==="Buscar" ? h : '<div class="rubro-box" data-grupo="'+esc(g)+'">'+h+'</div>';
   }).join("");
   document.querySelectorAll(".rubro-btn").forEach(function(b){
     b.addEventListener("click", function(){ seleccionar(b.dataset.k); });
@@ -302,7 +329,7 @@ function marcarActivo(){
 /* ---------- conversiones (misma regla que Stock por Sector) ---------- */
 /* en_kg: la cantidad YA está en kg (materia prima del inyector, um kg sin kg_x_uni): va en Kg, no en Uni */
 function kgDe(x){ return x.en_kg ? Number(x.online||0) : GP2N.aKg(x.kg_x_uni, x.online || 0); }
-function cajDe(x){ return x.uni_x_cajon ? Number(x.online||0)/Number(x.uni_x_cajon) : null; }
+function cajDe(x){ return (x.uni_x_cajon && !x.sin_dato) ? Number(x.online||0)/Number(x.uni_x_cajon) : null; }
 function valorCol(x, col){
   if (col.campo) return x[col.campo]==null ? null : Number(x[col.campo]);
   var tot=0, hubo=false;
@@ -315,10 +342,9 @@ function valorCol(x, col){
   return hubo ? tot : null;
 }
 
-/* inventario que Stock General NO muestra (v2.2.0): lo de Virgilio lo lleva Gestión Virgilio,
-   y un tallerista dado de baja (Gentile) sólo aparece si le quedó stock, que sería una anomalía. */
+/* inventario que Stock General NO muestra: un tallerista dado de baja (Gentile) sólo aparece si le quedó stock, que sería una anomalía. */
 function ocultarInv(u, v){
-  if (u.tipo==="virgilio" || u.tipo==="virgilio_sector") return true;
+  // (v2.4.0) lo de Virgilio YA NO se oculta: tiene su caja (rubros mode 'virg')
   if (u.tipo==="tallerista" && ((D.tall||{})[String(u.ref)]||{}).act===false && Number(v.cant)===0) return true;
   return false;
 }
@@ -339,9 +365,45 @@ function filasDe(r){
                n_fleje:x.n_fleje, mov:x.mov, en_virgilio:x.en_virgilio, ubic_id:b.ubicacion_id };
     }) };
   }
+  if (r.mode==="virg"){
+    // (v2.4.0) lo que hay de ese sector en los depósitos de Virgilio: su virgilio_sector + Virgilio
+    // (Distribución). Todas las piezas del sector, con 0 si no hay (el tilde "solo con stock" filtra).
+    var uv = ubicVirg(r.sid), tot = {};
+    for (var kv in (D.inv||{})){
+      var pv = kv.split(":"), cv = +pv[0], uu = D.ubic[pv[1]];
+      if (!uu || (uu.tipo!=="virgilio_sector" && uu.tipo!=="virgilio")) continue;
+      if (Number(((D.comp||{})[String(cv)]||{}).s)!==Number(r.sid)) continue;
+      tot[cv] = (tot[cv]||0) + (Number(D.inv[kv].cant)||0);
+    }
+    CUR.ubic_id = uv;
+    var fv = [];
+    Object.keys(D.comp||{}).forEach(function(cid){
+      if (Number(D.comp[cid].s)!==Number(r.sid)) return;
+      var ci = compInfo(cid);
+      fv.push({ cid:+cid, cod:ci.cod, desc:ci.desc, um:ci.um, kg_x_uni:ci.kg_x_uni,
+                uni_x_cajon:ci.uni_x_cajon, online:tot[cid]||0, maximo:null, ubic_id:uv });
+    });
+    return { filas: fv };
+  }
   // 'otros': no hay mov{}
   var out = [];
-  if (r.fuente==="iny"){
+  if (r.fuente==="fab"){
+    // (v2.4.0) lo que produjo Fábrica y todavía no mandó a Virgilio, en cajas del artículo
+    var at = EXTRA.art_terminado || {};
+    (at.filas||[]).forEach(function(f){
+      var ci=compInfo(f.cid);
+      out.push({ cid:f.cid, cod:ci.cod, desc:descArt(ci.cod)||ci.desc, um:ci.um, kg_x_uni:ci.kg_x_uni,
+                 uni_x_cajon:f.uxc, online:Number(f.cant)||0, maximo:null, ubic_id:at.ubic });
+    });
+  } else if (r.fuente==="virg_art"){
+    // (v2.4.0) el stock real de Virgilio (en cajas) de los artículos de Fábrica. Sin fila en Virgilio = "—"
+    (EXTRA.virgilio_art||[]).forEach(function(f){
+      var ci=compInfo(f.cid), sin = f.cajas==null;
+      out.push({ cid:f.cid, cod:ci.cod, desc:descArt(ci.cod)||ci.desc, um:ci.um, kg_x_uni:ci.kg_x_uni,
+                 uni_x_cajon:f.uxc, online: sin ? 0 : Number(f.cajas)*(Number(f.uxc)||1), sin_dato:sin,
+                 maximo:null, ubic_nom:f.linea||"—", ubic_id:null });
+    });
+  } else if (r.fuente==="iny"){
     out = filasInyector(false);
   } else if (r.fuente==="ps" || r.fuente==="tall"){
     var tipo = r.fuente==="ps" ? "proveedor_servicio" : "tallerista";
@@ -380,15 +442,35 @@ function filasDe(r){
   return { filas: out };
 }
 
+/* el depósito de Virgilio de un sector (virgilio_sector); null si ese sector no tiene */
+function ubicVirg(sid){
+  for (var k in (D.ubic||{})){ var u=D.ubic[k]; if (u.tipo==="virgilio_sector" && Number(u.ref)===Number(sid)) return +k; }
+  return null;
+}
+/* el nombre del ARTÍCULO para el terminado ("Cierra Bolsa x2", no "058 Terminado") */
+function descArt(cod){
+  if (!D || !D.art) return null;
+  if (!D._artPorCod){ D._artPorCod = {}; for (var k in D.art){ var a=D.art[k]; D._artPorCod[String(a.cod||"").toUpperCase()] = a.desc; } }
+  return D._artPorCod[String(cod||"").toUpperCase()] || null;
+}
+
 /* ═══ índice transversal (rubro "Todos" + renglón "También en: …") ═══
    Sale de D.inv —el inventario entero, que movimientos_bundle YA trae— más los extras
    de prov AT y tránsito: no cuesta ninguna RPC nueva. Incluye A PROPÓSITO las ubicaciones
    que no tienen botón propio (sectores sin rubro; Virgilio NO desde v2.2.0; inyectores tienen rubro desde v2.3.0), porque justamente
    ahí es donde un componente se volvía imposible de encontrar. */
 function rubroPorKey(k){ return RUBROS.filter(function(r){ return r.key===k; })[0] || null; }
-function rubroDeUbic(u){
+/* (v2.4.0) Flejes, Plásticos, Cajas… existen en Cervantes Y en Virgilio: afuera de su caja se nombran con la planta */
+function nomRubro(r){ return r ? (r.grupo==="Virgilio" ? "Virgilio · " + r.nom : r.nom) : ""; }
+function rubroDeUbic(u, cid){
   if (!u) return null;
   if (u.tipo==="sector") return RUBROS.filter(function(r){ return r.mode==="sector" && Number(r.sid)===Number(u.ref); })[0] || null;
+  // (v2.4.0) Virgilio: su caja; lo de Virgilio (Distribución) va al rubro del sector de la pieza
+  if (u.tipo==="virgilio_sector" || u.tipo==="virgilio") {
+    var sidV = u.tipo==="virgilio_sector" ? u.ref : ((D.comp||{})[String(cid)]||{}).s;
+    return RUBROS.filter(function(r){ return r.mode==="virg" && Number(r.sid)===Number(sidV); })[0] || null;
+  }
+  if (u.tipo==="art_terminado") return rubroPorKey("fab");
   if (u.tipo==="tallerista") return rubroPorKey("tal");
   if (u.tipo==="proveedor_servicio") return rubroPorKey("ps");
   if (u.tipo==="inyector") return rubroPorKey("iny");
@@ -412,7 +494,7 @@ function filasInyector(conRubro){
   });
   return out;
 }
-var TIPO_UBIC = { virgilio:"Virgilio", virgilio_sector:"Virgilio", inyector:"Inyector", analisis:"Análisis" };
+var TIPO_UBIC = { virgilio:"Virgilio", virgilio_sector:"Virgilio", inyector:"Inyector", analisis:"Análisis", art_terminado:"Art. Terminado" };
 function etiqSuelta(u){
   if (u.tipo==="sector") return ((D.sect||{})[String(u.ref)]||{}).nom || u.nom || "Sector";
   return TIPO_UBIC[u.tipo] || u.nom || u.tipo || "?";
@@ -427,7 +509,7 @@ function filasGlobales(){
   for (var k in (D.inv||{})){
     var p=k.split(":"), cid=+p[0], uid=+p[1], u=D.ubic[String(uid)];
     if (!u || u.tipo==="inyector") continue;             // el inyector sale de extra_bundle (abajo)
-    var v=D.inv[k], r=rubroDeUbic(u);
+    var v=D.inv[k], r=rubroDeUbic(u, cid);
     if (ocultarInv(u, v)) continue;
     // mismo criterio que el rubro Prov. Servicio: no listar el empaque sembrado en 0
     if (r && r.key==="ps" && SECT_CONSUMIBLE[(D.comp[String(cid)]||{}).s] && Number(v.cant)===0) continue;
@@ -438,7 +520,7 @@ function filasGlobales(){
     out.push({ cid:cid, cod:ci.cod, desc:ci.desc, um:ci.um, kg_x_uni:ci.kg_x_uni,
                uni_x_cajon:ci.uni_x_cajon, online:Number(v.cant)||0, en_kg:enKg(u, ci),
                maximo:(r && r.sin_max) ? null : v.max,
-               rubro_key:r?r.key:null, rubro_nom:r?r.nom:etiqSuelta(u),
+               rubro_key:r?r.key:null, rubro_nom:r?nomRubro(r):etiqSuelta(u),
                ubic_nom:nomUbic(u), ubic_id:uid });
   }
   // prov AT, inyectores y tránsito no viven (completos) en el inventario por ubicación del bundle
@@ -457,6 +539,14 @@ function filasGlobales(){
                uni_x_cajon:ci.uni_x_cajon, online:Number(t.cant)||0, maximo:null,
                rubro_key:"tra", rubro_nom:(rubroPorKey("tra")||{}).nom,
                ubic_nom:(t.ps1||"?")+" → "+(t.ps2||"?"), ubic_id:null });
+  });
+  // (v2.4.0) el Art. Terminado que está en Virgilio (espejo de Gestión Virgilio, en cajas)
+  (EXTRA.virgilio_art||[]).forEach(function(f){
+    if (f.cajas==null) return;
+    var ci=compInfo(f.cid);
+    out.push({ cid:f.cid, cod:ci.cod, desc:descArt(ci.cod)||ci.desc, um:ci.um, kg_x_uni:ci.kg_x_uni,
+               uni_x_cajon:f.uxc, online:Number(f.cajas)*(Number(f.uxc)||1), maximo:null,
+               rubro_key:"v_art", rubro_nom:"Virgilio · Art. Terminado", ubic_nom:"Virgilio", ubic_id:null });
   });
   GLOBAL = out;
   return out;
@@ -479,7 +569,7 @@ function filtradas(){
     return (a.rubro_nom||"").localeCompare(b.rubro_nom||"");
   });
   // en los sectores, orden numérico del código: GRJ4, GRJ5 … GRJ10, GRJ10A (no GRJ10 antes que GRJ4)
-  if (RUBRO && RUBRO.mode==="sector") return arr.sort(function(a,b){
+  if (RUBRO && (RUBRO.mode==="sector" || RUBRO.mode==="virg")) return arr.sort(function(a,b){
     return String(a.cod||"").localeCompare(String(b.cod||""), "es", { numeric:true });
   });
   // en 'otros' manda el proveedor / tallerista
@@ -592,7 +682,7 @@ function render(){
       '<td>'+esc(x.desc||"")+'</td>'+
       '<td class="num sep'+stkCls+'"'+stkData+'>'+(kg==null?"—":fmt(kg))+'</td>'+
       (r.sin_caj?'':'<td class="num'+stkCls+'"'+stkData+'>'+(caj==null?"—":fmt(caj,1))+'</td>')+
-      '<td class="num'+stkCls+'"'+stkData+'>'+(x.en_kg?"—":'<b>'+fmt(uni)+'</b>')+'</td>'+
+      '<td class="num'+stkCls+'"'+stkData+'>'+((x.en_kg||x.sin_dato)?"—":'<b>'+fmt(uni)+'</b>')+'</td>'+
       celdasMov +
       '<td class="num sep">'+(x.kg_x_uni?fmt(x.kg_x_uni,6):"—")+'</td>'+
       (r.sin_caj?'':'<td class="num">'+(x.uni_x_cajon?fmt(x.uni_x_cajon):"—")+'</td>')+
@@ -615,7 +705,7 @@ async function seleccionar(key){
   RUBRO = r;
   marcarActivo();
   $("fljeLink").style.display = r.detalle ? "" : "none";
-  document.title = "Stock general · " + r.nom + " · GP2";
+  document.title = "Stock general · " + nomRubro(r) + " · GP2";
   if (r.mode==="sector" && !CACHE[r.sid]){
     $("status").textContent = "Cargando " + r.nom + "…";
     var res = await SB.rpc("stock_sector_bundle", { p_sector_id: r.sid });
@@ -629,7 +719,7 @@ async function seleccionar(key){
   var con = CUR.filas.filter(function(x){ return Number(x.online||0)!==0; }).length;
   $("status").textContent = r.mode==="global"
     ? "Todos los rubros · " + fmt(CUR.filas.length) + " filas de inventario (sectores, talleristas, P.S., prov. AT, inyectores y tránsito) · " + fmt(con) + " con stock."
-    : r.nom + " · " + CUR.filas.length + " componentes · " + con + " con stock.";
+    : nomRubro(r) + " · " + CUR.filas.length + " componentes · " + con + " con stock.";
 }
 
 /* ---------- popup detalle de un movimiento (rubros de sector) ---------- */
@@ -665,8 +755,8 @@ async function reload(){
   try{
     D = await GP2M.cargar(SB);
     try{ var rx = await SB.rpc("stock_general_extra_bundle");
-         EXTRA = (rx && !rx.error && rx.data) || { prov_at:[], transito:[], inyector:[] }; }
-    catch(_){ EXTRA = { prov_at:[], transito:[], inyector:[] }; }
+         EXTRA = (rx && !rx.error && rx.data) || { prov_at:[], transito:[], inyector:[], art_terminado:{ filas:[] }, virgilio_art:[] }; }
+    catch(_){ EXTRA = { prov_at:[], transito:[], inyector:[], art_terminado:{ filas:[] }, virgilio_art:[] }; }
   }catch(e){
     $("status").textContent = "Error: " + ((e&&e.message)||e);
     return;

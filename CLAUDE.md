@@ -191,12 +191,13 @@ sigue el mismo molde (el mismo bloque está en el `CLAUDE.md` de `loekemeyer/Ges
 
 | pieza | cómo |
 |---|---|
-| frontera | una tabla en el schema **`GP2`** (GP2 nunca lee `public`: Regla 0). Virgilio escribe ahí con una función `public.gv_*` SECURITY DEFINER. Hoy: `GP2.ingreso_virgilio` (GV → GP2), `GP2.aceptado_virgilio` (lo que GV le acepta a GP2) y los espejos de solo lectura `GP2.virgilio_insumo_stock` / `virgilio_insumo_ubicacion` / `virgilio_lugar` |
+| frontera | una tabla en el schema **`GP2`** (GP2 nunca lee `public`: Regla 0). Virgilio escribe ahí con una función `public.gv_*` SECURITY DEFINER. Hoy: `GP2.ingreso_virgilio` (GV → GP2), `GP2.aceptado_virgilio` (lo que GV le acepta a GP2) y los espejos de solo lectura `GP2.virgilio_insumo_stock` / `virgilio_insumo_ubicacion` / `virgilio_lugar` / `virgilio_articulo_stock` (stock de artículos de GV, en cajas) |
 | códigos | GV habla en código de ARTÍCULO (323ES), GP2 en COMPONENTE / sector (GRJ31). El vínculo vive en una tabla de mapeo (`GP2.importado_virgilio_componente`) y **nunca se adivina**: sin fila, el aviso sale "sin componente" y no se puede aceptar |
-| confirmar | el que recibe dice **Sí / No** donde trabaja, en la tarjeta del componente — no en un cartel de portada |
+| confirmar | el que recibe dice **Sí / No** donde trabaja — en GP2, la **Tablet → Recibir → Virgilio** (arriba de las piezas, 🔔 N en la baldosa) —, no en un cartel de portada |
+| en la tablet | **Enviar → Virgilio** (art. terminados de Fábrica en cajas, insumos plástico/fleje/caja, SC y SP) y **Recibir → Virgilio** (los importados sueltos + lo que vuelve). Fábrica **produce** en Enviar → Talleristas (descuenta despiece, suma en "Art. Terminado (Fábrica)"). Stock General: cajas **Cervantes · Virgilio · Terceros** |
 | Sí | el MISMO camino que la carga manual (misma RPC, mismo control en kg pendiente): sin atajos al stock |
 | No | cada lado toca SÓLO su fila; la reacción del otro lado la hace un trigger de ESE lado (`public.gv_ingreso_virgilio_denegado`) y se ve **donde se cargó** («⛔ Denegado por Cervantes») |
-| memoria | se anota en las dos: `CONOCIMIENTO_GP2.md` (§4gx, 4gy, 4gz, 4hf) y el `CLAUDE.md` de Gestión Virgilio |
+| memoria | se anota en las dos: `CONOCIMIENTO_GP2.md` (§4gx, 4gy, 4gz, 4hf, 4hi) y el `CLAUDE.md` de Gestión Virgilio |
 
 # ⚠️ ANTES DE CUALQUIER EDIT/WRITE: LEER LOCKS.txt Y REGISTRAR LockX. SIN EXCEPCIONES. ⚠️
 
