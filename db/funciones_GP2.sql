@@ -7556,6 +7556,23 @@ with pa as (
     join articulo_componente ac on ac.articulo_id = a.id
     join componente c on c.id = ac.componente_id
    where c.sector_id in (10, 11)          -- Sector Carton y Sector Caja
+), iny as (
+  select pi.id, pi.nombre, coalesce(pi.activo, true) activo, u.id ubic_id
+    from proveedor_insumo pi
+    join ubicacion u on u.tipo = 'inyector' and u.ref_id = pi.id
+), iny_mat as (
+  -- (2026-09-30) la RESINA de cada inyector sale de sus PIEZAS (componente.proveedor = el inyector,
+  -- componente.material_id = la resina), mismo filtro que rep_iny de tablet_bundle. Asi aparece
+  -- aunque nunca se le haya mandado nada (Pat Bet Plast y JL Matriceria no tenian fila en inventario).
+  select iny.id iny_id, iny.nombre, iny.ubic_id, c.material_id comp_id
+    from iny
+    join componente c on c.proveedor = iny.nombre
+   where iny.activo and c.material_id is not null and c.estado_compra is null
+  union
+  -- + lo que ya tiene fila en su ubicacion, aunque ninguna pieza lo declare
+  select iny.id, iny.nombre, iny.ubic_id, i.componente_id
+    from iny
+    join inventario i on i.ubicacion_id = iny.ubic_id
 ), pares as (
   select distinct p1.comp_salida_id comp_id, p1.proveedor_id ps1_id, p2.proveedor_id ps2_id
     from ruta_paso p1
@@ -7587,6 +7604,16 @@ select jsonb_build_object(
                                     where i.componente_id = comp_id and i.ubicacion_id = ubic_id))
                         order by comp_id)) x
         from pa_comp group by pa_id, nombre, ubic_id) y), '[]'::jsonb),
+  -- inyector: kg de resina en poder de cada inyector (0 si todavia no se le mando)
+  'inyector', coalesce((select jsonb_agg(x order by x->>'nom') from (
+      select jsonb_build_object(
+               'id', iny_id, 'nom', nombre, 'ubic', ubic_id,
+               'filas', jsonb_agg(jsonb_build_object(
+                          'cid', comp_id,
+                          'cant', coalesce((select i.cantidad from inventario i
+                                             where i.componente_id = comp_id and i.ubicacion_id = ubic_id), 0))
+                        order by comp_id)) x
+        from iny_mat group by iny_id, nombre, ubic_id) y), '[]'::jsonb),
   'transito', coalesce((select jsonb_agg(jsonb_build_object(
       'cid', comp_id, 'ps1', ps1_nombre, 'ps2', ps2_nombre, 'cant', cant)
       order by ps1_nombre, ps2_nombre, comp_id) from tr), '[]'::jsonb),
