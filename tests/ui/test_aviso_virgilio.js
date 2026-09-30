@@ -1,4 +1,4 @@
-// v1.208.0 (Luis 2026-09-30): la portada muestra "VIRGILIO DICE QUE TE LLEGO ESTO" con lo pendiente de
+// v1.209.0 (Luis 2026-09-30): la portada muestra "VIRGILIO DICE QUE TE LLEGO ESTO" con lo pendiente de
 // GP2.ingreso_virgilio, y no muestra nada si no hay pendientes o si la lectura falla.
 const { chromium } = require('playwright');
 const path = require('path');

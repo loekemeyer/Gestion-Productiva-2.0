@@ -13868,7 +13868,26 @@ Contexto: app unificada `GP2-Registro-Produccion`, se arranca por Cervantes. Tab
   FLEJE_DESCORAZONADOR mostraba **388 kg/mes** y son **1,9** (Z31, 0,0049 kg). Los máximos no cambian: los dos son
   `derivado_pieza` (§4gs), no salen de esta vista.
 
-## 4gw. Lo que Virgilio manda a Cervantes aparece en la portada de GP2 (2026-09-30)
+## 4gw. Ralladores y Pelador Mgo Madera: importados que viven en Garage (2026-09-30)
+
+- [usuario] Thomas, sobre Recepción Insumos → Importados: *"añadime acá: Ralladores, Pelador Mgo Madera. Ambos van a
+  tener ubicación en garage"*. Se crearon `GRJ31` "Ralladores" (id 949) y `GRJ32` "Pelador Mgo Madera" (id 950):
+  `sector_id` 9 (Garage), `proveedor='Importado'`, `estado_compra='importado'`, `remito_unidad='uni'`, e `inventario`
+  en la ubicación 9 con cantidad 0. Cero código: el rubro Importados se arma por `estado_compra` (§ de arriba, "viva
+  donde viva") y la recepción suma en la ubicación del sector de la pieza (`ubic_de('sector', 9)`). Códigos: siguiente
+  libre de la serie GRJ; no se reusó `GRJ29` (borrado) ni `GRJ16` (Batidor Mini 580 en la base vieja).
+- [dato] El control posterior va por `CONTROL_URL[9]` (Garage, en kg). Sin `kg_x_uni` la pantalla pide contarlas, igual
+  que el resto de los GRJ sin peso.
+- **Pendiente, sin receta** [deducido]: los Ralladores 321 (LOEKE) y 840 (CHEF) tienen receta de sólo caja A4 + cartón,
+  sin el rallador en sí; `GRJ31` sería esa pieza ×1, pero no se cargó sin confirmación. "Pelador Mgo Madera" **no existe
+  como artículo** en `GP2.articulo` (los peladores son de mango plástico o metálico). Sin receta no tienen consumo ni
+  máximo: la OC no los sugiere.
+- **Conflicto abierto** [usuario, mismo día]: *"ubicacion GRJ 23 y 24"*. Esos dos códigos **ya son** `GRJ23` Palo de
+  Amasar 40cm (id 737, art. 232) y `GRJ24` Palo de Amasar 50cm (id 738, art. 233), de Tierra Nativa, vivos. No se
+  pisaron: `codigo` no es único en la base y un código repetido rompe todo lo que busca por código. Queda en
+  `GRJ31`/`GRJ32` hasta que el dueño diga si los palos se mueven de código o si es otra numeración.
+
+## 4gx. Lo que Virgilio manda a Cervantes aparece en la portada de GP2 (2026-09-30)
 
 [usuario, Luis 30/09] *"Cuando Gestión Virgilio marca que se ingresa algo en Cervantes, tiene que figurar
 un cartel grande en la página principal de GP2 que diga «VIRGILIO DICE QUE TE LLEGÓ ESTO [detalle],

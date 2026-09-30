@@ -248,7 +248,7 @@ a.tablet-link:hover{background:#1d4ed8}
     (GP2_AUTH_ON=false) no hay sesion que cerrar: el link se oculta solo -->
     <span id="sesion" hidden>&nbsp;·&nbsp; <a href="login.html?logout=1" onclick="try{sessionStorage.clear();}catch(e){}"
     style="color:#b42318;text-decoration:none;font-weight:700">⎋ Cerrar sesión</a></span></div>
-  <script src="version.js?v=20260930a"></script>
+  <script src="version.js?v=20260930b"></script>
   <script>if (window.GP2_AUTH_ON !== false) document.getElementById('sesion').hidden = false;</script>
   <div class="tablet-links">
     <a class="tablet-link" href="Tablet/Tablet_GP2.html">📱 <span class="tl-v">Versión </span>Tablet Logística</a>
@@ -256,7 +256,7 @@ a.tablet-link:hover{background:#1d4ed8}
   </div>
 </div>
 
-<!-- v1.208.0 (Luis 2026-09-30): lo que Gestion Virgilio recibio con destino Cervantes y todavia
+<!-- v1.209.0 (Luis 2026-09-30): lo que Gestion Virgilio recibio con destino Cervantes y todavia
      nadie confirmo. Sale de GP2.ingreso_virgilio (estado pendiente). Confirmar y ubicar: pendiente. -->
 <div id="avisoVirgilio" class="aviso-vir" hidden></div>
 
@@ -465,7 +465,7 @@ if (MENU_VISIBLE.length % 2 === 1) grid.lastElementChild.classList.add("solo");
 <script src="gp2-ui.js?v=20260913e"></script>
 <script src="gp2-numero.js?v=20260911o"></script>
 <script>
-/* v1.208.0 (Luis 2026-09-30) - "VIRGILIO DICE QUE TE LLEGO ESTO": cuando Gestion Virgilio recibe una
+/* v1.209.0 (Luis 2026-09-30) - "VIRGILIO DICE QUE TE LLEGO ESTO": cuando Gestion Virgilio recibe una
    importacion con destino Cervantes (sobre todo insumos), no entra al stock de Virgilio y queda en
    GP2.ingreso_virgilio como pendiente. Aca se muestra grande hasta que alguien lo confirme y lo
    ubique (esa parte todavia no esta hecha). Su propio try: si falla no toca el resto del menu. */
