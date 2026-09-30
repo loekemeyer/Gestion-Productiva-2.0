@@ -54,6 +54,9 @@
       "WebFetch",
       "WebSearch",
       "Bash",
+      "Bash(git push:*)",
+      "Bash(git merge:*)",
+      "Bash(git pull:*)",
       "mcp__Supabase__execute_sql",
       "mcp__Supabase__list_tables",
       "mcp__Supabase__list_migrations",
@@ -88,7 +91,6 @@
       "mcp__github__get_check_run"
     ],
     "ask": [
-      "Bash(git push:*)",
       "Bash(curl:*)",
       "Bash(wget:*)",
       "mcp__Supabase__apply_migration",
