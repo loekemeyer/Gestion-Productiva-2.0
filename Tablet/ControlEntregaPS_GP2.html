@@ -23,6 +23,11 @@
      LOS CAJONES SON EL DATO FÍSICO: acá se cuentan, no se derivan de los kg (misma regla que el
      stock del proveedor, ver CONOCIMIENTO 4et). Si la pieza no tiene envase cargado, el campo no
      se pide. -->
+<!-- v1.5.1 (2026-09-30) — "CONTROLADO" MUESTRA TAMBIÉN LOS INSUMOS (Nazareno, textual: "Controlé y no me
+     aparecen en el historial"). La tabla leía sólo entrega_control (P.S. y talleristas); los controles de
+     insumos quedan en recepcion_insumo. control_entrega_bundle.hechos ahora suma los dos con las mismas
+     claves (remito = cantidad_declarada, contado = cantidad), ordenados por hora de control. Cero código
+     nuevo acá: la tabla es la misma. -->
 <!-- v1.5.0 (2026-09-30) — TAMBIÉN LOS INSUMOS SIN CONTROLAR (Nazareno, textual: "Cargué una recepción
      en recepción de insumos y no hice el control. Ahora voy a control y no me aparece" + "Me gustaría
      que aparezca en el botón de control ... Tendrías que poner los de talleristas, p.s. y prov de

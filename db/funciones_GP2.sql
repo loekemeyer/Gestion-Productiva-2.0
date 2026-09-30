@@ -1608,13 +1608,34 @@ select jsonb_build_object(
             'pesa', pesa,
             'declarado', declarado, 'unidad', unidad, 'cajones', cajones
           ) order by fecha desc, id desc) from fila where ctrl_id is null), '[]'::jsonb),
-  'hechos', coalesce((select jsonb_agg(jsonb_build_object(
+  -- LO YA CONTROLADO. Desde el 2026-09-30 suma TAMBIEN las recepciones de insumos controladas
+  -- [Nazareno: "Controle y no me aparecen en el historial"]: el Control de la tablet ya lleva a los
+  -- controles de insumos (insumos_pend, abajo), y lo que se controla alla tiene que figurar aca.
+  -- Mismas claves que las entregas, asi la tabla no aprende un modelo nuevo: la parte es el codigo,
+  -- el proveedor es recepcion_insumo.proveedor, el remito es cantidad_declarada (lo que dijo el
+  -- papel; null = no se piso) y lo contado es la cantidad, que controlar_recepcion_kg/_cajas pisan.
+  -- Mismo periodo que las entregas: p_dias sobre la fecha de la recepcion.
+  'hechos', coalesce((select jsonb_agg(x.h order by x.ts desc) from (
+      select jsonb_build_object(
             'mov_id', id, 'fecha', fecha, 'cp_tipo', cp_tipo, 'cp_nombre', cp_nombre,
             'sp_cod', sp_cod, 'sp_desc', sp_desc, 'unidad', unidad,
             'declarado', ctrl_decl, 'controlado', controlado, 'cajones', controlado_cajones,
             'diff', controlado - ctrl_decl,
             'controlado_en', controlado_en, 'controlado_por', controlado_por
-          ) order by controlado_en desc) from fila where ctrl_id is not null), '[]'::jsonb),
+          ) as h, controlado_en as ts
+        from fila where ctrl_id is not null
+      union all
+      select jsonb_build_object(
+            'mov_id', r.movimiento_id, 'rec_id', r.id, 'fecha', r.fecha, 'cp_tipo', 'proveedor_insumo',
+            'cp_nombre', r.proveedor, 'sp_cod', ci.codigo, 'sp_desc', ci.descripcion, 'unidad', r.unidad,
+            'declarado', coalesce(r.cantidad_declarada, r.cantidad), 'controlado', r.cantidad,
+            'cajones', null, 'diff', r.cantidad - coalesce(r.cantidad_declarada, r.cantidad),
+            'controlado_en', r.controlado_en, 'controlado_por', r.controlado_por
+          ), r.controlado_en
+        from recepcion_insumo r
+        join componente ci on ci.id = r.componente_id
+       where coalesce(r.controlado, false)
+         and r.fecha >= now() - make_interval(days => greatest(coalesce(p_dias,7), 1))) x), '[]'::jsonb),
   -- INSUMOS SIN CONTROLAR (2026-09-30) [Nazareno: "Me gustaria que aparezca en el boton de control
   -- ... Tendrias que poner los de talleristas, p.s. y prov de insumo"]. El control de un insumo que
   -- se controla en OTRA pagina (control-remaches / control-cajas) solo se abria con la redireccion
@@ -4760,7 +4781,13 @@ with pend as (
          case when c.sector_id = 5 then fk.consumo_kg_mes else cp.consumo_uni_mes end consumo,
          case when c.sector_id = 5 or lower(coalesce(c.unidad_medida,'')) = 'kg'
               then 'kg' else 'uni' end unidad,
-         inv.cantidad online,
+         -- STOCK DE LA MATERIA PRIMA DE UN PS (ALAMBRE -> Charcas, FLEJE_DESCORAZONADOR -> Eclipse): no es
+         -- solo lo que el PS tiene en bruto, tambien las piezas que ya salieron de ese fleje y estan en su
+         -- sector (IC3/IC3V en Fleje, Z31 en Procesado), llevadas a kg con el mismo factor que el maximo
+         -- [usuario 2026-09-30: "si tengo completo el maximo de descorazonador y de varillas ic3 e ic3v
+         -- no tendria que pedir de este fleje"]. Asi maximo y stock hablan de lo mismo (v_stock_mp_ps).
+         coalesce(smp.stock_equiv, inv.cantidad) online,
+         smp.stock_mp stock_mp_ps, smp.piezas stock_piezas,
          inv.maximo maximo_inv,
          inv.maximo_origen maximo_origen_inv,
          inv.ubicacion_id, inv.ubic_nombre,
@@ -4785,6 +4812,7 @@ with pend as (
   left join ubicacion u on u.id = "GP2".ubic_de('sector', c.sector_id)
   -- una sola definicion de "donde se repone este componente" (v_reposicion, 2026-09-11)
   left join "GP2".v_reposicion inv on inv.componente_id = c.id
+  left join "GP2".v_stock_mp_ps smp on smp.componente_id = c.id and smp.ubicacion_id = inv.ubicacion_id
   left join v_consumo_componente cp on cp.componente_id = c.id and c.sector_id <> 5
   left join v_consumo_fleje_kg fk on fk.componente_id = c.id and c.sector_id = 5
   left join pend pd on pd.componente_id = c.id
@@ -4853,6 +4881,9 @@ select jsonb_build_object(
       'um',um,'unidad',unidad,'kg_x_uni',kg_x_uni,'uni_x_cajon',uni_x_cajon,
       'consumo',consumo,'consumo_uni_mes',consumo,'meses',meses_stock,
       'online',coalesce(online,0),'stock',coalesce(online,0),
+      -- de donde sale el stock de la MP de un PS: lo que tiene el PS en bruto + cada pieza en kg
+      'stock_origen',case when stock_piezas is not null then 'derivado_pieza' end,
+      'stock_mp_ps',stock_mp_ps,'stock_piezas',stock_piezas,
       'maximo',maximo_ef,'maximo_origen',maximo_origen_ef,'maximo_inventario',maximo_inv,
       'ubicacion_id',ubicacion_id,'ubicacion',ubic_nombre,
       'pendiente_oc',pendiente_oc,
@@ -6874,8 +6905,13 @@ BEGIN
   VALUES (p_sector_id, coalesce(v_fecha, current_date), nullif(trim(p_encargado),''), p_crono_id)
   RETURNING id INTO v_id;
 
+  -- La materia prima BRUTA de un PS hibrido (proveedor_servicio.mp_componente_id: ALAMBRE -> Charcas,
+  -- FLEJE_DESCORAZONADOR -> Eclipse) no se cuenta: el proveedor la entrega directo al PS y nunca pasa
+  -- por Cervantes; su stock vive en la ubicacion del PS [usuario 2026-09-30: "no tenemos esos flejes
+  -- en cervantes"]. Contarla aca la sumaria al sector por error.
   INSERT INTO "GP2".relevamiento_item (relevamiento_id, componente_id)
   SELECT v_id, c.id FROM "GP2".componente c WHERE c.sector_id = p_sector_id
+     AND NOT EXISTS (SELECT 1 FROM "GP2".proveedor_servicio ps WHERE ps.mp_componente_id = c.id)
   ON CONFLICT DO NOTHING;
 
   RETURN v_id;
@@ -6962,7 +6998,9 @@ AS $function$
       'tipo', f.tipo, 'sector_id', f.sector_id, 'sector', s.nombre,
       'crono_id', f.crono_id, 'fecha', f.fecha, 'dias', (f.fecha - current_date),
       'vencido', (f.fecha < current_date),
-      'componentes', (select count(*) from "GP2".componente c where c.sector_id = f.sector_id),
+      -- mismo criterio que relevamiento_abrir: sin la MP bruta de los PS hibridos
+      'componentes', (select count(*) from "GP2".componente c where c.sector_id = f.sector_id
+                        and not exists (select 1 from "GP2".proveedor_servicio ps where ps.mp_componente_id = c.id)),
       'relevamiento', (
         select jsonb_build_object('id', r.id, 'estado', r.estado,
                  'contados', (select count(*) from "GP2".relevamiento_item ri

@@ -13927,7 +13927,7 @@ CONFIRMALO Y UBICALO» (falta implementar confirmación y ubicación)"*.
   `componente_id`). [dato] Hoy **no hay** vínculo entre el código importado/insumo de Virgilio (1000900,
   H201Part, 007) y el `componente` de GP2: ubicar exige ese mapeo primero.
 
-## 4gz. El botón "Control" de la tablet es de TODO lo que se recibe, y sólo en Recibir (2026-09-30)
+## 4hc. El botón "Control" de la tablet es de TODO lo que se recibe, y sólo en Recibir (2026-09-30)
 
 - [usuario] Nazareno: *"Cargué una recepción en recepción de insumos y no hice el control. Ahora voy a control y no
   me aparece"*. Y la regla: *"Me gustaría que aparezca en el botón de control que está a la izquierda del botón atrás
@@ -13945,6 +13945,11 @@ CONFIRMALO Y UBICALO» (falta implementar confirmación y ubicación)"*.
 - **Pendiente** [deducido]: los **cartones** que quedan sin controlar tampoco tienen dónde retomarse (su control vive
   adentro de Recepción de Insumos y la barra de pendientes sólo mira flejes). No se muestran en el Control porque no
   hay pantalla a la cual mandarlos; hace falta que Recepción de Insumos los retome.
+- [usuario] Nazareno, el mismo día, después de controlar C13, E13, GRJ31 y GRJ32: *"Controlé y no me aparecen en el
+  historial"*. La tabla "Controlado" del Control leía sólo `entrega_control` (P.S. y talleristas). Desde ahí
+  `control_entrega_bundle.hechos` suma las `recepcion_insumo` con `controlado = true` (remito = `cantidad_declarada`,
+  contado = `cantidad`), con el mismo período de 7 días. Regla: **lo que el Control deja retomar, el Control lo
+  muestra hecho**.
 
 ## 4ha. Los 8 importados se reciben en UNIDADES, C13 incluido (2026-09-30)
 
@@ -13958,3 +13963,36 @@ Z23B): *"Todos estos en el remito o packing list vienen en unidades. Cargar en u
   Tablet se lo manda a Lucho y el peso del control. La rama `'envase'` de `RecepcionInsumos_GP2.html` queda sin
   ninguna pieza que la use (el comentario de `envaseRemito()` que dice "Hoy C13" quedó viejo).
 - El control posterior sigue en kg (`CONTROL_URL_PROV`, Importado), sin cambios.
+
+## 4hb. La materia prima bruta de los PS híbridos no se cuenta en el conteo (2026-09-30)
+
+- [usuario] Sobre el conteo de Sector Fleje (Relevamiento, filas `ALAMBRE` y `FLEJE_DESCORAZONADOR`): *"Estos dos
+  flejes no deberían aparecer en conteo: no tenemos esos flejes en cervantes"*. El proveedor (Altrak / Aperam) los
+  entrega directo al PS (Charcas / Eclipse), y su stock vive en la ubicación del PS (13 y 48), nunca en Cervantes.
+- **Regla**: `relevamiento_abrir` no crea ítem para ningún componente que sea `proveedor_servicio.mp_componente_id`, y
+  el contador de componentes de `relevamiento_bundle` usa el mismo criterio. El criterio sale de ese dato: si
+  mañana hay otro PS híbrido, sale solo. Sector Fleje pasa de 53 a 51 componentes a contar. No hacía falta
+  modificar ningún conteo abierto: ninguno tenía esas dos filas (el que se ve en la captura se descartó vacío).
+- Por qué importa además de lo visual: `relevamiento_cerrar` compara contra la ubicación del **sector**. Si se cargaba
+  un kilo de ALAMBRE ahí, al aplicar quedaba stock de alambre en Sector Fleje, un lugar donde físicamente no está.
+- [usuario] En el mismo pedido reformuló la regla del máximo: el del alambre = máximo de IC3 + IC3V (Charcas no tiene
+  desperdicio), y el del fleje descorazonador sale del de Z31 con desperdicio. **Es la regla de §4gs, que ya estaba
+  viva**: [dato 2026-09-30, `oc_bundle`] ALAMBRE **1.028,07 kg** (IC3 113.208 × 0,0083 + IC3V 6.600 × 0,0134) y
+  FLEJE_DESCORAZONADOR **3,31 kg** (Z31 402 × 0,0049 / (1 − 40,28 %)), `maximo_origen='derivado_pieza'`. No se tocó.
+- [usuario] Y el problema de fondo era la O.C.: *"Si tengo completo el máximo de descorazonador y de varillas ic3 e
+  ic3v no tendría que pedir de este fleje. Por lo tanto el stock de estos dos flejes tendría que sumar lo que hay en
+  el sector ic3, ic3v y descorazonador según corresponda + lo que tienen los p.s. de estos flejes"*.
+- **Regla (stock de la O.C.)**: el stock de la MP de un PS = lo que el PS tiene en bruto + cada pieza que ya salió de
+  esa MP y está **en su sector**, llevada a kg con **el mismo factor que el máximo** (`pieza × kg_x_uni / (1 −
+  desperdicio del PS)`). Vista nueva `GP2.v_stock_mp_ps` (mismos pasos que `recalcular_maximo_mp_ps`), y `oc_bundle`
+  la usa como `stock` / `online` de esos dos (con `stock_origen='derivado_pieza'`, `stock_mp_ps` y `stock_piezas`
+  para ver de dónde sale). Máximo y stock pasan a medir lo mismo: si IC3 e IC3V están llenos, el sugerido del ALAMBRE
+  da ~0. Solo cuenta la pieza en su **sector**, no la que está en un tallerista (IJUPA tiene máximo propio de IC3):
+  es el mismo criterio que el máximo, que tampoco la suma.
+- [dato 2026-09-30] Hoy todo ese stock está en 0, así que el sugerido **no se movió** (1.028 kg y 3 kg). Ejemplo para
+  cuando se cargue: 50 kg de ALAMBRE en Charcas + 10.000 IC3 + 1.000 IC3V en Fleje = 146,40 kg → sugerido 882 kg.
+- [usuario] Sobre Fábrica (tallerista 3), mismo día: *"todo lo que es armado en fábrica lo vamos a modelar más
+  adelante, está bien que no aparezca en envío a talleristas"*. Hoy la tablet la excluye en Enviar y en Recibir
+  (`tablet_bundle`, `t.id <> 3`), mientras el Envío de escritorio y Entregas sí la muestran. Fábrica tiene 141 pasos
+  de ruta (41 artículos activos) y **0 movimientos**: `GP2M.armadoFabrica` sigue en `gp2-motor.js`, pero ninguna
+  pantalla lo llama.
