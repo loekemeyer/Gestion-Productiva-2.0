@@ -8581,6 +8581,8 @@ with ent as (
          coalesce(ps.nombre, t.nombre, u.nombre) as cp_nombre, null::text as remito_nro,
          k.codigo, k.descripcion, c.declarado_unidad as unidad,
          c.declarado as remito, c.controlado as control,
+         case when m.tipo_mov = 'entrega_ps' then coalesce(m.cantidad_transformada, m.cantidad)
+              else m.cantidad end as en_stock,
          c.controlado_en, c.controlado_por, c.ingreso_real, c.validado_en, c.validado_por
     from entrega_control c
     join movimiento m on m.id = c.movimiento_id
@@ -8590,21 +8592,42 @@ with ent as (
     left join tallerista t on u.tipo = 'tallerista' and t.id = u.ref_id
 ), ins as (
   -- insumos controlados: el remito es cantidad_declarada (lo guarda el primer control), lo
-  -- contado es cantidad (controlar_recepcion_kg / _cajas la pisan).
+  -- contado es cantidad (controlar_recepcion_kg / _cajas / guardar_control_cartones la pisan).
   select 'insumo'::text, r.id, r.movimiento_id, r.fecha, 'proveedor_insumo'::text,
          r.proveedor, r.remito, k.codigo, k.descripcion, r.unidad,
          coalesce(r.cantidad_declarada, r.cantidad), r.cantidad,
+         (select mm.cantidad from movimiento mm where mm.id = r.movimiento_id),
          r.controlado_en, r.controlado_por, r.ingreso_real, r.validado_en, r.validado_por
     from recepcion_insumo r
     join componente k on k.id = r.componente_id
    where coalesce(r.controlado, false)
+), pes as (
+  -- flejes: el control es el pesaje por pallet, que no marca controlado ni pisa el movimiento
+  select 'pesaje'::text, r.id, r.movimiento_id, r.fecha, 'proveedor_insumo'::text,
+         r.proveedor, r.remito, k.codigo, k.descripcion, r.unidad,
+         coalesce(r.cantidad_declarada, r.cantidad),
+         case when coalesce(pi.modo_control, '') = 'peso_total' then v.peso_balanza_total
+              else v.kg_rollos end,
+         (select mm.cantidad from movimiento mm where mm.id = r.movimiento_id),
+         (select max(ctl.controlado_en) from recepcion_control ctl where ctl.recepcion_id = r.id),
+         (select string_agg(distinct ctl.controlado_por, ', ') from recepcion_control ctl
+           where ctl.recepcion_id = r.id),
+         r.ingreso_real, r.validado_en, r.validado_por
+    from recepcion_insumo r
+    join componente k on k.id = r.componente_id
+    join v_recepcion_control v on v.recepcion_id = r.id
+    left join proveedor_insumo pi on pi.nombre = r.proveedor
+   where not coalesce(r.controlado, false)
+     and r.unidad = 'kg'
+     and v.pallets_pesados > 0
+     and v.estado not in ('sin controlar', 'faltan pallets por pesar', 'rollos sin clasificar')
 ), todo as (
   select x.*, round(x.control - x.remito, 3) as diff,
          -- PENDIENTE = hay diferencia y nadie la valido despues del ultimo control. Un re-control
-         -- posterior a la validacion la vuelve a abrir (el control piso el movimiento de nuevo).
+         -- (o re-pesaje) posterior a la validacion la vuelve a abrir.
          (round(x.control, 3) <> round(x.remito, 3)
           and (x.validado_en is null or x.validado_en < coalesce(x.controlado_en, x.validado_en))) as pendiente
-    from (select * from ent union all select * from ins) x
+    from (select * from ent union all select * from ins union all select * from pes) x
 )
 select jsonb_build_object(
   'generado_en', now(),
@@ -8614,7 +8637,7 @@ select jsonb_build_object(
         'origen', origen, 'id', id, 'mov_id', mov_id, 'fecha', fecha,
         'cp_tipo', cp_tipo, 'cp_nombre', cp_nombre, 'remito_nro', remito_nro,
         'codigo', codigo, 'descripcion', descripcion, 'unidad', unidad,
-        'remito', remito, 'control', control, 'diff', diff,
+        'remito', remito, 'control', control, 'diff', diff, 'en_stock', en_stock,
         'controlado_en', controlado_en, 'controlado_por', controlado_por
       ) order by fecha desc, id desc) from todo where pendiente), '[]'::jsonb),
   -- lo ya validado, lo mas nuevo arriba
@@ -8632,12 +8655,19 @@ select jsonb_build_object(
   'sin_diferencia', (select count(*) from todo
                       where diff = 0
                         and controlado_en >= now() - make_interval(days => greatest(coalesce(p_dias, 30), 1))),
-  -- y lo que la tablet todavia no controlo: se valida DESPUES del control, no antes
+  -- y lo que la tablet todavia no controlo (o el fleje que no termino de pesarse): se valida
+  -- DESPUES del control, no antes
   'sin_controlar', (select count(*) from movimiento m
                      where m.tipo_mov in ('entrega_ps','entrega_tallerista')
                        and not exists (select 1 from entrega_control c where c.movimiento_id = m.id))
                  + (select count(*) from recepcion_insumo r join componente k on k.id = r.componente_id
                      where not coalesce(r.controlado, false) and k.sector_id <> 5)
+                 + (select count(*) from v_recepcion_control v
+                      join recepcion_insumo r on r.id = v.recepcion_id
+                      join componente k on k.id = r.componente_id
+                     where k.sector_id = 5 and not coalesce(r.controlado, false)
+                       and (v.pallets_pesados = 0
+                            or v.estado in ('sin controlar', 'faltan pallets por pesar', 'rollos sin clasificar')))
 );
 $function$
 ;
@@ -8652,6 +8682,7 @@ AS $function$
 declare
   it jsonb; v_origen text; v_id bigint; v_vale text; v_obj numeric; v_factor numeric;
   c entrega_control%rowtype; m movimiento%rowtype; r recepcion_insumo%rowtype;
+  v_ctrl numeric; v_est text; v_pp bigint; v_modo text;
   v_n int := 0; v_rem int := 0; v_movs int := 0; v_hijos int := 0; v_k int;
   v_usr text := nullif(btrim(coalesce(p_usuario, '')), '');
 begin
@@ -8722,8 +8753,38 @@ begin
          set ingreso_real = v_vale, validado_en = now(), validado_por = v_usr
        where id = v_id;
 
+    elsif v_origen = 'pesaje' then
+      -- FLEJE: el control es el pesaje por pallet. Lo controlado se calcula igual que en el bundle.
+      select * into r from recepcion_insumo where id = v_id for update;
+      if not found then raise exception 'La recepcion % no existe.', v_id; end if;
+      select pi.modo_control into v_modo from proveedor_insumo pi where pi.nombre = r.proveedor;
+      select case when coalesce(v_modo, '') = 'peso_total' then v.peso_balanza_total else v.kg_rollos end,
+             v.estado, v.pallets_pesados
+        into v_ctrl, v_est, v_pp
+        from v_recepcion_control v where v.recepcion_id = v_id;
+      if coalesce(v_pp, 0) = 0 or v_est in ('sin controlar', 'faltan pallets por pesar', 'rollos sin clasificar') then
+        raise exception 'El pesaje de la recepcion % no esta completo (%): primero terminar de pesar.', v_id, coalesce(v_est, 'sin pesar');
+      end if;
+      if r.unidad <> 'kg' then
+        raise exception 'La recepcion % no esta en kg: el pesaje no se puede comparar.', v_id;
+      end if;
+      v_obj := case v_vale when 'remito' then coalesce(r.cantidad_declarada, r.cantidad) else v_ctrl end;
+      if v_obj is null or v_obj <= 0 then
+        raise exception 'La recepcion % no tiene kg pesados para usar como ingreso.', v_id;
+      end if;
+      if r.movimiento_id is not null then
+        update movimiento set cantidad = v_obj
+         where id = r.movimiento_id and cantidad is distinct from v_obj;
+        get diagnostics v_k = row_count;
+        v_movs := v_movs + v_k;
+      end if;
+      -- recepcion_insumo.cantidad queda con los kg del remito: es lo que lee v_recepcion_control
+      update recepcion_insumo
+         set ingreso_real = v_vale, validado_en = now(), validado_por = v_usr
+       where id = v_id;
+
     else
-      raise exception 'Origen invalido: "%". Tiene que ser entrega o insumo.', v_origen;
+      raise exception 'Origen invalido: "%". Tiene que ser entrega, insumo o pesaje.', v_origen;
     end if;
 
     v_n := v_n + 1;

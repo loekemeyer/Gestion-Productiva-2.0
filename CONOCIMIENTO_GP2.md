@@ -14018,13 +14018,19 @@ Z23B): *"Todos estos en el remito o packing list vienen en unidades. Cargar en u
   (diferencias pendientes, ya validadas, contexto) y `validar_remito_control` (escribe `ingreso_real` + `validado_en/por`
   en `entrega_control` o `recepcion_insumo` y deja el movimiento en el número elegido). Migración en
   `db/migracion_validacion_remito_control.sql`.
-- [deducido] **Por default gana el control**, porque el control de la tablet YA pisa el movimiento (controlar_entrega,
+- [deducido] **Por default gana el control**, porque en P.S., talleristas e insumos el control YA pisa el movimiento (controlar_entrega,
   controlar_recepcion_kg/_cajas): elegir Control no mueve el stock; elegir Remito lo devuelve al papel. En talleristas los
   consumos se re-escalan con el mismo factor que usa el control ("entregó 98 de 100 → consumió 98"). Los cajones no se
   tocan: son el envase contado, un dato físico.
-- Qué entra: sólo lo que tiene control con número propio — entregas de P.S. y talleristas, y recepciones de insumos.
-  **Afuera** [deducido, sin confirmar]: prov. de art. terminado y Virgilio (la tablet no les hace control) y el pesaje
-  por pallet de flejes (no marca `controlado` ni pisa el stock; es un chequeo de tara, no un conteo).
+- Qué entra: entregas de P.S. y talleristas, recepciones de insumos (cajas, kg, cartones) y **flejes**.
+  [usuario, mismo día] *"Sí, entran todas las recepciones xq todas tienen control"*. El control del fleje es el
+  **pesaje por pallet**, que **no pisa el stock** (el movimiento sigue con los kg del remito): ahí elegir Control es lo
+  que corrige el stock. Lo controlado [deducido, mismo criterio que `v_control_pallet`]: `peso_total` → la balanza;
+  `pesaje` / `rollos_remito` → rollos × kg por rollo (la balanza sólo chequea la tara). Entra sólo con el pesaje
+  COMPLETO (ningún pallet sin pesar ni rollo sin clasificar) y en kg. Origen `pesaje` en `validar_remito_control`.
+- [dato] Prov. de art. terminado y Virgilio **no tienen control** en la tablet: `entrega_prov_at` no guarda nada
+  contado y lo de Virgilio entra como `traslado` directo. Al 30/09 hay 0 recepciones de cada uno. Para validarlas
+  primero hay que construirles el control.
 - Una diferencia pendiente no vence. Si alguien re-controla después de validar, la fila vuelve a pendiente.
 - [dato] Al estrenarlo (30/09) había 3 diferencias: PC12 de P.S. (remito 2.500, control 2.513,15 uni), Z23B (20.400 vs
   20.377) y Z23A (21.600 vs 21.605), de Importado. Probado con rollback: insumo, P.S. y tallerista ida y vuelta.

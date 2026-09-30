@@ -4,6 +4,7 @@
 (vacío)
 
 [HISTORIAL]
+2026-09-30 (10) - Remito vs Control v1.1.0: entran los FLEJES (pesaje por pallet; origen 'pesaje': peso_total -> balanza, resto -> rollos x kg; solo pesaje completo y en kg). El bundle manda en_stock y la pantalla cuenta cuantas decisiones cambian el stock. version.js v1.213.1 ?v=20260930j. CONOCIMIENTO 4hd. thomas (claude-remote).
 2026-09-30 (9) - Validacion de Stock v1.1.0: dos modulos (Conteo vs Sistema + Remito vs Control, ValidacionRemitos_GP2.html nuevo). DB: entrega_control/recepcion_insumo.ingreso_real+validado_en/por, validacion_remito_bundle, validar_remito_control (default control; remito devuelve el movimiento al papel). version.js v1.213.0 ?v=20260930i. CONOCIMIENTO 4hd. thomas (claude-remote).
 2026-09-30 (7) - Informe STOCK_VS_ENVIO_2026-09-30.md: Stock General vs Enviar de la tablet por contraparte (120 de menos, 30 de mas, todo en 0; 11 coinciden). Solo lectura, sin cambios de codigo ni base
 2026-09-30 (8) - OC v1.49.0: Sector Caja ordenado por proveedor de la fila (todo Corrugadora, despues todo Recicor); la fila de Recicor tiene su campo Pedir (PEDIDO por insumo+proveedor, sugerido solo al principal); Crear OC sin proveedor elegido = una OC por proveedor (Thomas). test_oc_prov_alt_fila reescrito. version.js v1.212.0 ?v=20260930h. CONOCIMIENTO (Recicor). thomas (claude-remote).
@@ -13,4 +14,3 @@
 2026-09-30 (6) - OC: stock de ALAMBRE / FLEJE_DESCORAZONADOR = bruto en el PS + IC3/IC3V (Fleje) / Z31 (Procesado) en kg con el factor del maximo. Vista nueva v_stock_mp_ps + oc_bundle (stock_origen derivado_pieza). Hoy todo en 0: sugerido sin cambio. CONOCIMIENTO 4hb
 2026-09-30 (5) - Control de la tablet v1.5.1: "Controlado" suma los insumos ya controlados (recepcion_insumo controlado=true; remito=cantidad_declarada, contado=cantidad) (Nazareno: "Controle y no me aparecen en el historial"). DB: control_entrega_bundle.hechos. version.js v1.211.1 ?v=20260930e. CONOCIMIENTO 4hc. naza (claude-remote).
 2026-09-30 (4) - Conteo (Relevamiento): ALAMBRE y FLEJE_DESCORAZONADOR fuera (MP bruta de PS hibrido, proveedor_servicio.mp_componente_id) en relevamiento_abrir + relevamiento_bundle; Sector Fleje 53->51. Maximos OC ya eran los pedidos (4gs), no se tocaron. CONOCIMIENTO 4hb
-2026-09-30 (5) - Importados: C13 remito_unidad envase -> uni (los 8 importados quedan en uni: remito y packing list vienen en unidades) (Naza). DB-only, revierte la recepcion en cajas del 4gb. CONOCIMIENTO 4hc. naza (claude-remote).

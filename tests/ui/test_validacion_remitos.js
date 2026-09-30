@@ -9,6 +9,9 @@
      - por DEFAULT gana el control (es lo que ya esta en el stock) y se puede elegir el remito;
      - el payload de validar_remito_control: origen + id + ingreso_real, y el usuario;
      - el filtro por tipo manda solo lo visible;
+     - FLEJES (v1.1.0, "entran todas las recepciones xq todas tienen control"): el pesaje por pallet
+       no pisa el stock, asi que ahi elegir Control es lo que CAMBIA el stock; la pantalla lo cuenta
+       con en_stock en vez de suponerlo;
      - 390px sin scroll horizontal y botones tocables (>= 44px). */
 const { chromium } = require('playwright');
 const path = require('path');
@@ -23,20 +26,25 @@ const BUNDLE = {
     { origen: 'insumo', id: 17079, mov_id: 90001, fecha: '2026-09-30T12:00:00-03:00',
       cp_tipo: 'proveedor_insumo', cp_nombre: 'Importado', remito_nro: 'R-0001',
       codigo: 'Z23B', descripcion: 'Importado Z23B', unidad: 'uni',
-      remito: 20400, control: 20377, diff: -23, controlado_por: 'admin' },
+      remito: 20400, control: 20377, diff: -23, en_stock: 20377, controlado_por: 'admin' },
     { origen: 'insumo', id: 17078, mov_id: 90000, fecha: '2026-09-30T11:00:00-03:00',
       cp_tipo: 'proveedor_insumo', cp_nombre: 'Importado', remito_nro: null,
       codigo: 'Z23A', descripcion: 'Importado Z23A', unidad: 'uni',
-      remito: 21600, control: 21605, diff: 5, controlado_por: 'admin' },
+      remito: 21600, control: 21605, diff: 5, en_stock: 21605, controlado_por: 'admin' },
     { origen: 'entrega', id: 8, mov_id: 85600, fecha: '2026-09-29T17:00:00-03:00',
       cp_tipo: 'proveedor_servicio', cp_nombre: 'Ester', remito_nro: null,
       codigo: 'PC12', descripcion: 'Mango pelapapa', unidad: 'uni',
-      remito: 2500, control: 2513.1502045587376, diff: 13.15, controlado_por: null },
+      remito: 2500, control: 2513.1502045587376, diff: 13.15, en_stock: 2513.1502045587376, controlado_por: null },
     // tallerista con diferencia FUERA de la tolerancia (10 %)
     { origen: 'entrega', id: 9, mov_id: 85601, fecha: '2026-09-28T17:00:00-03:00',
       cp_tipo: 'tallerista', cp_nombre: 'Martin Cornejo', remito_nro: null,
       codigo: 'X4', descripcion: 'Cuchilla Pelapapa Cerrada', unidad: 'kg',
-      remito: 20, control: 18, diff: -2, controlado_por: 'naza' }
+      remito: 20, control: 18, diff: -2, en_stock: 18, controlado_por: 'naza' },
+    // FLEJE: el pesaje no piso el movimiento -> el stock todavia tiene los kg del remito
+    { origen: 'pesaje', id: 17090, mov_id: 90010, fecha: '2026-09-27T10:00:00-03:00',
+      cp_tipo: 'proveedor_insumo', cp_nombre: 'Altrak', remito_nro: 'A-77',
+      codigo: 'IA2', descripcion: 'Fleje N° 1', unidad: 'kg',
+      remito: 510, control: 500, diff: -10, en_stock: 510, controlado_por: 'naza' }
   ],
   hechos: [
     { origen: 'insumo', id: 17000, fecha: '2026-09-25T12:00:00-03:00', cp_tipo: 'proveedor_insumo',
@@ -58,7 +66,7 @@ window.supabase = { createClient: function(){ return {
     if(name==='validacion_remito_bundle')
       return { data: JSON.parse(JSON.stringify(${JSON.stringify(BUNDLE)})), error: null };
     if(name==='validar_remito_control')
-      return { data: { ok:true, validados: args.p_items.length,
+      return { data: { ok:true, validados: args.p_items.length, movimientos_ajustados: 2,
                        al_remito: args.p_items.filter(function(i){ return i.ingreso_real==='remito'; }).length }, error: null };
     if(name==='validacion_bundle') return { data: { pendientes: [], aplicados: [] }, error: null };
     return { data: null, error: { message: 'rpc desconocida '+name } };
@@ -91,7 +99,9 @@ window.supabase = { createClient: function(){ return {
 
   // ── la lista ──
   const fs0 = await filas();
-  ok(fs0.length === 4, 'las 4 diferencias pendientes se listan (insumos, P.S. y tallerista) — ' + fs0.length);
+  ok(fs0.length === 5, 'las 5 diferencias pendientes se listan (insumos, P.S., tallerista y fleje) — ' + fs0.length);
+  ok(fs0[4].includes('IA2') && fs0[4].includes('pesaje por pallet') && fs0[4].includes('Remito 510') &&
+     fs0[4].includes('Control 500'), 'el fleje entra, marcado como pesaje por pallet — ' + fs0[4]);
   ok(fs0[0].includes('Z23B') && fs0[0].includes('Importado') && fs0[0].includes('Remito 20.400') &&
      fs0[0].includes('Control 20.377') && fs0[0].includes('-23'),
      'la fila dice parte, proveedor, remito, control y diferencia — ' + fs0[0]);
@@ -107,26 +117,33 @@ window.supabase = { createClient: function(){ return {
 
   // ── default: control ──
   const act = await page.$$eval('#pendientes .pick button.act', xs => xs.map(x => x.dataset.v));
-  ok(act.length === 4 && act.every(v => v === 'control'), 'por default gana el CONTROL en todas — ' + act.join(','));
-  ok((await page.$eval('#resumen', e => e.textContent)).includes('4 quedan con el control, 0 vuelven al remito'),
-     'el resumen cuenta las decisiones');
+  ok(act.length === 5 && act.every(v => v === 'control'), 'por default gana el CONTROL en todas — ' + act.join(','));
+  const res0 = await page.$eval('#resumen', e => e.textContent);
+  ok(res0.includes('5 quedan con el control, 0 con el remito') && res0.includes('1 cambia el stock'),
+     'el resumen cuenta las decisiones, y que con todo en Control solo el fleje mueve el stock — ' + res0);
 
   // ── elegir remito en Z23B y validar todo ──
   await page.click('#pendientes .li:first-child .pick button[data-v="remito"]');
-  ok((await page.$eval('#resumen', e => e.textContent)).includes('3 quedan con el control, 1 vuelven al remito'),
-     'elegir Remito se refleja en el resumen');
+  const res1 = await page.$eval('#resumen', e => e.textContent);
+  ok(res1.includes('4 quedan con el control, 1 con el remito') && res1.includes('2 cambian el stock'),
+     'elegir Remito en Z23B se refleja: ahora cambian el stock Z23B y el fleje — ' + res1);
+  await page.click('#pendientes .li:nth-child(5) .pick button[data-v="remito"]');
+  ok((await page.$eval('#resumen', e => e.textContent)).includes('1 cambia el stock'),
+     'fleje con Remito: no mueve nada (el stock ya tiene el remito)');
+  await page.click('#pendientes .li:nth-child(5) .pick button[data-v="control"]');
   await page.click('#btnValidar');
   await page.waitForFunction(() => (window.__calls || []).some(c => c.name === 'validar_remito_control'));
   const v1 = (await calls('validar_remito_control'))[0].args;
   ok(v1.p_usuario === 'thomas', 'viaja quien valida (gp2_usuario) — ' + v1.p_usuario);
-  ok(v1.p_items.length === 4 &&
+  ok(v1.p_items.length === 5 &&
      JSON.stringify(v1.p_items[0]) === JSON.stringify({ origen: 'insumo', id: 17079, ingreso_real: 'remito' }) &&
-     JSON.stringify(v1.p_items[2]) === JSON.stringify({ origen: 'entrega', id: 8, ingreso_real: 'control' }),
+     JSON.stringify(v1.p_items[2]) === JSON.stringify({ origen: 'entrega', id: 8, ingreso_real: 'control' }) &&
+     JSON.stringify(v1.p_items[4]) === JSON.stringify({ origen: 'pesaje', id: 17090, ingreso_real: 'control' }),
      'payload: origen + id + ingreso_real por fila — ' + JSON.stringify(v1.p_items));
-  ok(dialogs.some(d => d.type === 'confirm' && d.msg.includes('1 vuelven al remito')),
-     'antes de validar pregunta, y dice cuantas mueven el stock');
+  ok(dialogs.some(d => d.type === 'confirm' && d.msg.includes('1 quedan con el remito') && d.msg.includes('2 cambian el stock')),
+     'antes de validar pregunta, y dice cuantas mueven el stock — ' + (dialogs[0] || {}).msg);
   await page.waitForFunction(() => /validada/.test(document.getElementById('status').textContent));
-  ok((await page.$eval('#status', e => e.textContent)).includes('1 volvieron al remito'),
+  ok((await page.$eval('#status', e => e.textContent)).includes('1 con el remito, 2 cambiaron el stock'),
      'el mensaje de exito queda a la vista (no lo borra la recarga)');
 
   // ── filtro: valida SOLO lo visible ──

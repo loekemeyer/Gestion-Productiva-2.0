@@ -1,6 +1,12 @@
 <!doctype html>
 <html lang="es">
 <head>
+<!-- v1.1.0 (2026-09-30) — TAMBIÉN LOS FLEJES [usuario, textual: "Sí, entran todas las recepciones xq
+     todas tienen control"]. El control del fleje es el PESAJE POR PALLET, y ese control NO pisa el
+     stock: el movimiento sigue con los kg del remito. Por eso el bundle manda `en_stock` (lo que
+     tiene HOY el movimiento) y la pantalla cuenta cuántas decisiones CAMBIAN el stock en vez de
+     suponer que "Control" nunca lo mueve: en un fleje elegir Control es lo que lo corrige.
+     Origen nuevo 'pesaje' en validar_remito_control; la fila lo dice ("pesaje por pallet"). -->
 <!-- v1.0.0 (2026-09-30) — VALIDACIÓN DE STOCK · REMITO VS CONTROL. Segundo módulo de Validación de
      Stock [usuario 2026-09-30: "otro módulo para validar lo que se anotó en el remito vs lo que se
      controló (en todas las recepciones de versión tablet) entonces todas las diferencias entre
@@ -103,8 +109,9 @@
     </nav>
 
     <div class="leyenda">Recepciones de la tablet donde lo que se <b>controló</b> no coincide con el
-      <b>remito</b>. Elegí cuál queda como <b>ingreso real</b>. Por default gana el control, que es lo
-      que ya está en el stock; elegir <b>Remito</b> devuelve el stock a lo que decía el papel.</div>
+      <b>remito</b>. Elegí cuál queda como <b>ingreso real</b>. Por default gana el control. En P.S.,
+      talleristas e insumos el control ya está en el stock y elegir <b>Remito</b> lo devuelve al papel;
+      en los <b>flejes</b> (pesaje por pallet) el stock todavía tiene el remito y validar el control lo corrige.</div>
     <div class="contexto" id="contexto"></div>
 
     <div class="filtros" id="filtros"></div>
@@ -158,6 +165,13 @@ var D = { pend: [], hechos: [], tol_pct: 5 }, FILTRO = 'todos';
 /* la decisión de cada fila, por clave origen:id. Default: control (lo que ya está en el stock). */
 var ELEGIDO = {};
 function clave(x){ return x.origen + ':' + x.id; }
+/* ¿La decision de esta fila cambia el stock? Se compara el numero elegido contra lo que tiene HOY el
+   movimiento (en_stock). No se supone: en el fleje el stock esta con el remito (v1.1.0). */
+function valorElegido(x){ return ELEGIDO[clave(x)]==='remito' ? Number(x.remito) : Number(x.control); }
+function mueve(x){
+  if(x.en_stock==null) return false;
+  return Math.round(valorElegido(x)*1000) !== Math.round(Number(x.en_stock)*1000);
+}
 
 async function boot(){
   var r = await SB.rpc('validacion_remito_bundle');
@@ -200,7 +214,8 @@ function pintar(){
     return '<div class="li '+(fuera?'fuera':'dentro')+'">'+
       '<span class="li-parte"><span class="cod">'+esc(x.codigo)+'</span><br><span class="desc">'+esc(x.descripcion||'')+'</span></span>'+
       '<span class="li-quien"><b>'+esc(x.cp_nombre||'—')+'</b><br>'+fechaTs(x.fecha)+
-        (x.remito_nro?(' · remito '+esc(x.remito_nro)):'')+'</span>'+
+        (x.remito_nro?(' · remito '+esc(x.remito_nro)):'')+
+        (x.origen==='pesaje'?'<br><span class="desc">pesaje por pallet</span>':'')+'</span>'+
       '<span class="li-num">'+
         '<span>Remito <b>'+fmt(x.remito)+'</b> '+esc(x.unidad)+'</span>'+
         '<span>Control <b>'+fmt(x.control)+'</b> '+esc(x.unidad)+'</span>'+
@@ -219,9 +234,11 @@ function pintar(){
   });
 
   var nRem = vis.filter(function(x){ return ELEGIDO[clave(x)]==='remito'; }).length;
+  var nMueve = vis.filter(mueve).length;
   $('barra').classList.toggle('hidden', vis.length===0);
   $('resumen').textContent = vis.length+(vis.length===1?' recepción':' recepciones')+': '+
-    (vis.length-nRem)+' quedan con el control, '+nRem+' vuelven al remito';
+    (vis.length-nRem)+' quedan con el control, '+nRem+' con el remito · '+
+    nMueve+(nMueve===1?' cambia':' cambian')+' el stock';
   $('btnValidar').textContent = 'Validar ('+vis.length+')';
   $('btnValidar').disabled = vis.length===0;
 
@@ -243,8 +260,9 @@ $('btnValidar').addEventListener('click', async function(){
   var vis = visibles();
   if(!vis.length) return;
   var nRem = vis.filter(function(x){ return ELEGIDO[clave(x)]==='remito'; }).length;
-  if(!confirm('Se validan '+vis.length+' recepción(es):\n· '+(vis.length-nRem)+' quedan con el control (el stock no cambia)\n· '+
-              nRem+' vuelven al remito (el stock se corrige)\n\n¿Validar?')) return;
+  var nMueve = vis.filter(mueve).length;
+  if(!confirm('Se validan '+vis.length+' recepción(es):\n· '+(vis.length-nRem)+' quedan con el control\n· '+
+              nRem+' quedan con el remito\n· '+nMueve+' cambian el stock\n\n¿Validar?')) return;
   $('btnValidar').disabled = true;
   var r = await SB.rpc('validar_remito_control', {
     p_items: vis.map(function(x){ return { origen:x.origen, id:x.id, ingreso_real:ELEGIDO[clave(x)] }; }),
@@ -252,7 +270,8 @@ $('btnValidar').addEventListener('click', async function(){
   });
   if(r.error){ msg('Error: '+r.error.message, true); $('btnValidar').disabled = false; return; }
   await boot();   /* primero recargar: boot() limpia el status al terminar */
-  msg('✓ '+(r.data.validados||0)+' validada(s) — '+(r.data.al_remito||0)+' volvieron al remito.');
+  msg('✓ '+(r.data.validados||0)+' validada(s) — '+(r.data.al_remito||0)+' con el remito, '+
+      (r.data.movimientos_ajustados||0)+' cambiaron el stock.');
 });
 
 boot();
