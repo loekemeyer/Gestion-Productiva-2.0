@@ -22,6 +22,7 @@ const BUNDLE = {
     '4': { tipo: 'virgilio', nom: 'Virgilio' },
     '5': { tipo: 'sector', ref: 12, nom: 'Terminado' },
     '6': { tipo: 'proveedor_servicio', ref: 9, nom: 'Pedernera Ilario' },
+    '7': { tipo: 'inyector', ref: 10, nom: 'Inyector Pettofrezza Rafael' },
   },
   tall: { '3': { nom: 'Fabrica' }, '6': { nom: 'Martin' } },
   prov_serv: { '9': { nom: 'Pedernera Ilario', proceso: 'Cromado' } },
@@ -30,6 +31,7 @@ const BUNDLE = {
     '20': { cod: 'T1', d: 'Terminado uno', s: 12, um: 'uni' },
     '30': { cod: 'B5', d: 'Parte be', s: 2, um: 'uni' },
     '50': { cod: 'CAJ1', d: 'Caja 510', s: 11, um: 'uni' }, // sector Caja = insumo de empaque
+    '60': { cod: '2405', d: 'PP 2630 (Polipropileno)', s: 14, um: 'kg' }, // MP plastica, kg sin factor
   },
   rp: {},
   c2a: {},
@@ -43,6 +45,7 @@ const BUNDLE = {
   inv: {
     '10:1': { cant: 100, max: 200 }, '30:1': { cant: 50, max: 0 }, '20:5': { cant: 0, max: 0 },
     '10:6': { cant: 0, max: null }, '50:6': { cant: 0, max: null }, '30:3': { cant: 20, max: null },
+    '60:7': { cant: 1250, max: null }, // 1.250 kg de PP mandados al inyector Pettofrezza
   },
 };
 /* Prov AT y transito salen de su propia RPC. */
@@ -159,9 +162,35 @@ window.supabase = { createClient: function(){ return {
   await page.waitForFunction(() => /Cabral/.test(document.getElementById('tbody').innerText));
   ok(true, 'Prov. Art. Terminado: aparece el proveedor con sus cajas/cartones (Cabral)');
 
+  // v2.3.0: Tránsito PS vive en el grupo Sectores, Inyectores en Otros
+  const grupos = await page.evaluate(() => {
+    const g = {}; let cur = null;
+    document.querySelectorAll('#rubros > div').forEach(d => {
+      if (d.classList.contains('rubro-grp')) cur = d.textContent.trim();
+      else d.querySelectorAll('.rubro-btn').forEach(b => { g[b.textContent.trim()] = cur; });
+    });
+    return g;
+  });
+  ok(grupos['Tránsito PS'] === 'Sectores', 'Tránsito PS está en el grupo Sectores (' + grupos['Tránsito PS'] + ')');
+  ok(grupos['Inyectores'] === 'Otros', 'Inyectores está en el grupo Otros (' + grupos['Inyectores'] + ')');
+
   await page.click('.rubro-btn:has-text("Tránsito PS")');
   await page.waitForFunction(() => /Laboratorio FAAT → Guazzaroni Patricio/.test(document.getElementById('tbody').innerText));
   ok(true, 'Tránsito PS: aparece el par PS origen → PS siguiente');
+
+  // ── Inyectores: la MP plástica mandada, en KG (no en Uni), sin Caj ni Máximo ──
+  await page.click('.rubro-btn:has-text("Inyectores")');
+  await page.waitForFunction(() => /Pettofrezza Rafael/.test(document.getElementById('tbody').innerText));
+  const iny = await page.evaluate(() => ({
+    thead: document.getElementById('thead').innerText,
+    celdas: Array.from(document.querySelectorAll('#tbody tr:first-child td')).map(t => t.textContent.trim()),
+    kpis: document.getElementById('kpis').innerText,
+  }));
+  ok(!/\bCAJ\b/i.test(iny.thead) && !/MÁXIMO/i.test(iny.thead), 'Inyectores: sin Caj ni Máximo');
+  // columnas: Inyector | Código | Descripción | Kg | Uni | Kg×Uni
+  ok(iny.celdas[0] === 'Pettofrezza Rafael' && iny.celdas[1] === '2405' && iny.celdas[3] === '1.250' && iny.celdas[4] === '—',
+     'Inyectores: 1.250 kg de PP van en Kg y Uni queda vacío — ' + iny.celdas.join(' | '));
+  ok(/Total kg\s*1\.250/i.test(iny.kpis), 'Inyectores: el KPI Total kg suma la MP — ' + iny.kpis.replace(/\s+/g, ' '));
 
   // ── Prov. Servicio: SIN Máximo, y SIN cajas (insumo de empaque sembrado en 0) ──
   await page.click('.rubro-btn:has-text("Prov. Servicio")');
