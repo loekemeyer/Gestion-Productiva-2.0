@@ -6,7 +6,13 @@
 <script src="../gp2-ui.js?v=20260930a"></script>
 <script src="../gp2-numero.js?v=20260911o"></script>
 <title>Stock general · GP2</title>
-<!-- v2.3.0 (2026-09-30) - TRÁNSITO PS A SECTORES + RUBRO INYECTORES [usuario: "Transito PS que esté
+<!-- v2.3.1 (2026-09-30) - INYECTORES SIN ENVÍOS TAMBIÉN SE VEN [usuario: "Pat bet plas y jl
+     matricería?"]. El rubro salía de D.inv y esos dos no tenían ninguna fila de inventario (nunca
+     se les mandó resina). Ahora sale de stock_general_extra_bundle.inyector: la resina de cada pieza
+     del inyector (componente.proveedor = inyector, material_id = resina, mismo filtro que rep_iny)
+     + lo que ya tenga en su ubicación, con 0 si no hay fila. Mismo patrón que Prov. Art. Term.
+     Kollplast no aparece: no tiene ninguna pieza asignada.
+     v2.3.0 (2026-09-30) - TRÁNSITO PS A SECTORES + RUBRO INYECTORES [usuario: "Transito PS que esté
      en SECTORES. En OTROS agrega al stock de inyectores (lo que se le envía)"]. (a) el botón
      Tránsito PS pasa al grupo Sectores (sigue saliendo de stock_general_extra_bundle, mode 'otros').
      (b) rubro "Inyectores" en Otros: el inventario de las ubicaciones tipo inyector (materia prima
@@ -266,7 +272,7 @@ var RUBROS = [
 ];
 
 var D = null;                 // movimientos_bundle (para Ajuste y rubros 'otros')
-var EXTRA = { prov_at:[], transito:[] };
+var EXTRA = { prov_at:[], transito:[], inyector:[] };
 var CACHE = {};               // sid -> stock_sector_bundle
 var GLOBAL = null;            // indice transversal (todas las ubicaciones), se arma una vez
 var TOPE_GLOBAL = 400;        // filas dibujadas sin busqueda (el inventario entero son ~1.330)
@@ -336,14 +342,7 @@ function filasDe(r){
   // 'otros': no hay mov{}
   var out = [];
   if (r.fuente==="iny"){
-    for (var ki in (D.inv||{})){
-      var pi=ki.split(":"), cidi=+pi[0], uidi=+pi[1], ui=D.ubic[String(uidi)];
-      if (!ui || ui.tipo!=="inyector") continue;
-      var vi=D.inv[ki], cii=compInfo(cidi);
-      out.push({ cid:cidi, cod:cii.cod, desc:cii.desc, um:cii.um, kg_x_uni:cii.kg_x_uni,
-                 uni_x_cajon:null, online:Number(vi.cant)||0, maximo:null,
-                 en_kg:enKg(ui, cii), ubic_nom:nomUbic(ui), ubic_id:uidi });
-    }
+    out = filasInyector(false);
   } else if (r.fuente==="ps" || r.fuente==="tall"){
     var tipo = r.fuente==="ps" ? "proveedor_servicio" : "tallerista";
     var tabla = r.fuente==="ps" ? (D.prov_serv||{}) : (D.tall||{});
@@ -397,6 +396,22 @@ function rubroDeUbic(u){
 }
 /* inyector: la ubicación guarda materia prima en kg sin factor (componente.unidad_medida kg) */
 function enKg(u, ci){ return u.tipo==="inyector" && ci.um==="kg" && !ci.kg_x_uni; }
+/* v2.3.1: las filas del inyector salen de extra_bundle.inyector —la resina de cada PIEZA suya
+   (componente.material_id) más lo que ya tenga en su ubicación—, NO de D.inv: Pat Bet Plast y
+   JL Matriceria no tenían ninguna fila en inventario porque nunca se les mandó nada, y no se veían. */
+function filasInyector(conRubro){
+  var out = [], R = rubroPorKey("iny") || {};
+  (EXTRA.inyector||[]).forEach(function(p){
+    (p.filas||[]).forEach(function(f){
+      var ci=compInfo(f.cid), fila={ cid:f.cid, cod:ci.cod, desc:ci.desc, um:ci.um, kg_x_uni:ci.kg_x_uni,
+               uni_x_cajon:null, online:Number(f.cant)||0, maximo:null,
+               en_kg:enKg({ tipo:"inyector" }, ci), ubic_nom:p.nom, ubic_id:p.ubic };
+      if (conRubro){ fila.rubro_key = "iny"; fila.rubro_nom = R.nom; }
+      out.push(fila);
+    });
+  });
+  return out;
+}
 var TIPO_UBIC = { virgilio:"Virgilio", virgilio_sector:"Virgilio", inyector:"Inyector", analisis:"Análisis" };
 function etiqSuelta(u){
   if (u.tipo==="sector") return ((D.sect||{})[String(u.ref)]||{}).nom || u.nom || "Sector";
@@ -404,8 +419,6 @@ function etiqSuelta(u){
 }
 function nomUbic(u){
   var t = u.tipo==="tallerista" ? (D.tall||{}) : (u.tipo==="proveedor_servicio" ? (D.prov_serv||{}) : null);
-  // "Inyector Pettofrezza Rafael" -> "Pettofrezza Rafael": la columna ya dice Inyector
-  if (u.tipo==="inyector") return String(u.nom||"?").replace(/^Inyector\s+/i, "");
   return (t && (t[String(u.ref)]||{}).nom) || u.nom || "?";
 }
 function filasGlobales(){
@@ -413,7 +426,7 @@ function filasGlobales(){
   var out = [];
   for (var k in (D.inv||{})){
     var p=k.split(":"), cid=+p[0], uid=+p[1], u=D.ubic[String(uid)];
-    if (!u) continue;
+    if (!u || u.tipo==="inyector") continue;             // el inyector sale de extra_bundle (abajo)
     var v=D.inv[k], r=rubroDeUbic(u);
     if (ocultarInv(u, v)) continue;
     // mismo criterio que el rubro Prov. Servicio: no listar el empaque sembrado en 0
@@ -428,7 +441,8 @@ function filasGlobales(){
                rubro_key:r?r.key:null, rubro_nom:r?r.nom:etiqSuelta(u),
                ubic_nom:nomUbic(u), ubic_id:uid });
   }
-  // prov AT y tránsito no viven en el inventario por ubicación del bundle
+  // prov AT, inyectores y tránsito no viven (completos) en el inventario por ubicación del bundle
+  out = out.concat(filasInyector(true));
   (EXTRA.prov_at||[]).forEach(function(pa){
     (pa.filas||[]).forEach(function(f){
       var ci=compInfo(f.cid);
@@ -651,8 +665,8 @@ async function reload(){
   try{
     D = await GP2M.cargar(SB);
     try{ var rx = await SB.rpc("stock_general_extra_bundle");
-         EXTRA = (rx && !rx.error && rx.data) || { prov_at:[], transito:[] }; }
-    catch(_){ EXTRA = { prov_at:[], transito:[] }; }
+         EXTRA = (rx && !rx.error && rx.data) || { prov_at:[], transito:[], inyector:[] }; }
+    catch(_){ EXTRA = { prov_at:[], transito:[], inyector:[] }; }
   }catch(e){
     $("status").textContent = "Error: " + ((e&&e.message)||e);
     return;

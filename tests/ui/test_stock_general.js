@@ -52,6 +52,12 @@ const BUNDLE = {
 const EXTRA = {
   prov_at: [{ id: 1, nom: 'Cabral', ubic: 34, filas: [{ cid: 10, cant: 0, max: null }] }],
   transito: [{ cid: 30, ps1: 'Laboratorio FAAT', ps2: 'Guazzaroni Patricio', cant: 7 }],
+  // v2.3.1: la resina de cada inyector sale de sus piezas; Pat Bet Plast nunca recibió nada
+  // (no tiene fila en inventario) y igual tiene que verse, en 0.
+  inyector: [
+    { id: 11, nom: 'Pat Bet Plast', ubic: 8, filas: [{ cid: 60, cant: 0 }] },
+    { id: 10, nom: 'Pettofrezza Rafael', ubic: 7, filas: [{ cid: 60, cant: 1250 }] },
+  ],
 };
 /* stock_sector_bundle por sector: SC (1) es el rubro por defecto; Flejes (5) prueba
    que NO salen las columnas de cajones (pedido del usuario, textual). */
@@ -182,8 +188,10 @@ window.supabase = { createClient: function(){ return {
   await page.click('.rubro-btn:has-text("Inyectores")');
   await page.waitForFunction(() => /Pettofrezza Rafael/.test(document.getElementById('tbody').innerText));
   const iny = await page.evaluate(() => ({
+    body: document.getElementById('tbody').innerText,
     thead: document.getElementById('thead').innerText,
-    celdas: Array.from(document.querySelectorAll('#tbody tr:first-child td')).map(t => t.textContent.trim()),
+    celdas: Array.from(document.querySelectorAll('#tbody tr')).map(tr => Array.from(tr.cells).map(t => t.textContent.trim()))
+      .filter(c => c[0] === 'Pettofrezza Rafael')[0] || [],
     kpis: document.getElementById('kpis').innerText,
   }));
   ok(!/\bCAJ\b/i.test(iny.thead) && !/MÁXIMO/i.test(iny.thead), 'Inyectores: sin Caj ni Máximo');
@@ -191,6 +199,7 @@ window.supabase = { createClient: function(){ return {
   ok(iny.celdas[0] === 'Pettofrezza Rafael' && iny.celdas[1] === '2405' && iny.celdas[3] === '1.250' && iny.celdas[4] === '—',
      'Inyectores: 1.250 kg de PP van en Kg y Uni queda vacío — ' + iny.celdas.join(' | '));
   ok(/Total kg\s*1\.250/i.test(iny.kpis), 'Inyectores: el KPI Total kg suma la MP — ' + iny.kpis.replace(/\s+/g, ' '));
+  ok(/Pat Bet Plast/.test(iny.body), 'Inyectores: aparece Pat Bet Plast aunque nunca se le mandó resina (sin fila en inventario)');
 
   // ── Prov. Servicio: SIN Máximo, y SIN cajas (insumo de empaque sembrado en 0) ──
   await page.click('.rubro-btn:has-text("Prov. Servicio")');
@@ -243,6 +252,12 @@ window.supabase = { createClient: function(){ return {
   await page.click('#tbody td.rub-cell:has-text("Talleristas")');
   await page.waitForFunction(() => document.title.indexOf('Talleristas') >= 0);
   ok(true, 'Todos: click en el rubro de la fila abre ese rubro');
+  await page.click('.rubro-btn:has-text("Todos los rubros")');
+  await page.fill('#q', '2405');
+  await page.waitForFunction(() => /2405/.test(document.getElementById('tbody').innerText));
+  const r2405 = await page.evaluate(() => Array.from(document.querySelectorAll('#tbody tr')).map(t => t.innerText.replace(/\s+/g, ' ')));
+  ok(r2405.length === 2 && r2405.every(t => /Inyectores/.test(t)),
+     'Todos: la resina 2405 sale una vez por inyector, sin duplicar la fila de inventario — ' + r2405.join(' / '));
   await page.fill('#q', '');
 
   // ── ultimos movimientos (vista heredada de Registrar_Movimiento) ──
