@@ -13904,3 +13904,19 @@ CONFIRMALO Y UBICALO» (falta implementar confirmación y ubicación)"*.
 - **Falta**: confirmar (pasa a `confirmado`) y ubicar (entra al `inventario` en su `ubicacion`, con
   `componente_id`). [dato] Hoy **no hay** vínculo entre el código importado/insumo de Virgilio (1000900,
   H201Part, 007) y el `componente` de GP2: ubicar exige ese mapeo primero.
+
+## 4gy. La materia prima bruta de los PS híbridos no se cuenta en el conteo (2026-09-30)
+
+- [usuario] Sobre el conteo de Sector Fleje (Relevamiento, filas `ALAMBRE` y `FLEJE_DESCORAZONADOR`): *"Estos dos
+  flejes no deberían aparecer en conteo: no tenemos esos flejes en cervantes"*. El proveedor (Altrak / Aperam) los
+  entrega directo al PS (Charcas / Eclipse), y su stock vive en la ubicación del PS (13 y 48), nunca en Cervantes.
+- **Regla**: `relevamiento_abrir` no crea ítem para ningún componente que sea `proveedor_servicio.mp_componente_id`, y
+  el contador de componentes de `relevamiento_bundle` usa el mismo criterio. El criterio sale de ese dato: si
+  mañana hay otro PS híbrido, sale solo. Sector Fleje pasa de 53 a 51 componentes a contar. No hacía falta
+  modificar ningún conteo abierto: ninguno tenía esas dos filas (el que se ve en la captura se descartó vacío).
+- Por qué importa además de lo visual: `relevamiento_cerrar` compara contra la ubicación del **sector**. Si se cargaba
+  un kilo de ALAMBRE ahí, al aplicar quedaba stock de alambre en Sector Fleje, un lugar donde físicamente no está.
+- [usuario] En el mismo pedido reformuló la regla del máximo: el del alambre = máximo de IC3 + IC3V (Charcas no tiene
+  desperdicio), y el del fleje descorazonador sale del de Z31 con desperdicio. **Es la regla de §4gs, que ya estaba
+  viva**: [dato 2026-09-30, `oc_bundle`] ALAMBRE **1.028,07 kg** (IC3 113.208 × 0,0083 + IC3V 6.600 × 0,0134) y
+  FLEJE_DESCORAZONADOR **3,31 kg** (Z31 402 × 0,0049 / (1 − 40,28 %)), `maximo_origen='derivado_pieza'`. No se tocó.
