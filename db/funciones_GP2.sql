@@ -4781,7 +4781,13 @@ with pend as (
          case when c.sector_id = 5 then fk.consumo_kg_mes else cp.consumo_uni_mes end consumo,
          case when c.sector_id = 5 or lower(coalesce(c.unidad_medida,'')) = 'kg'
               then 'kg' else 'uni' end unidad,
-         inv.cantidad online,
+         -- STOCK DE LA MATERIA PRIMA DE UN PS (ALAMBRE -> Charcas, FLEJE_DESCORAZONADOR -> Eclipse): no es
+         -- solo lo que el PS tiene en bruto, tambien las piezas que ya salieron de ese fleje y estan en su
+         -- sector (IC3/IC3V en Fleje, Z31 en Procesado), llevadas a kg con el mismo factor que el maximo
+         -- [usuario 2026-09-30: "si tengo completo el maximo de descorazonador y de varillas ic3 e ic3v
+         -- no tendria que pedir de este fleje"]. Asi maximo y stock hablan de lo mismo (v_stock_mp_ps).
+         coalesce(smp.stock_equiv, inv.cantidad) online,
+         smp.stock_mp stock_mp_ps, smp.piezas stock_piezas,
          inv.maximo maximo_inv,
          inv.maximo_origen maximo_origen_inv,
          inv.ubicacion_id, inv.ubic_nombre,
@@ -4806,6 +4812,7 @@ with pend as (
   left join ubicacion u on u.id = "GP2".ubic_de('sector', c.sector_id)
   -- una sola definicion de "donde se repone este componente" (v_reposicion, 2026-09-11)
   left join "GP2".v_reposicion inv on inv.componente_id = c.id
+  left join "GP2".v_stock_mp_ps smp on smp.componente_id = c.id and smp.ubicacion_id = inv.ubicacion_id
   left join v_consumo_componente cp on cp.componente_id = c.id and c.sector_id <> 5
   left join v_consumo_fleje_kg fk on fk.componente_id = c.id and c.sector_id = 5
   left join pend pd on pd.componente_id = c.id
@@ -4874,6 +4881,9 @@ select jsonb_build_object(
       'um',um,'unidad',unidad,'kg_x_uni',kg_x_uni,'uni_x_cajon',uni_x_cajon,
       'consumo',consumo,'consumo_uni_mes',consumo,'meses',meses_stock,
       'online',coalesce(online,0),'stock',coalesce(online,0),
+      -- de donde sale el stock de la MP de un PS: lo que tiene el PS en bruto + cada pieza en kg
+      'stock_origen',case when stock_piezas is not null then 'derivado_pieza' end,
+      'stock_mp_ps',stock_mp_ps,'stock_piezas',stock_piezas,
       'maximo',maximo_ef,'maximo_origen',maximo_origen_ef,'maximo_inventario',maximo_inv,
       'ubicacion_id',ubicacion_id,'ubicacion',ubic_nombre,
       'pendiente_oc',pendiente_oc,

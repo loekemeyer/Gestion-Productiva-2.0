@@ -13980,3 +13980,20 @@ Z23B): *"Todos estos en el remito o packing list vienen en unidades. Cargar en u
   desperdicio), y el del fleje descorazonador sale del de Z31 con desperdicio. **Es la regla de §4gs, que ya estaba
   viva**: [dato 2026-09-30, `oc_bundle`] ALAMBRE **1.028,07 kg** (IC3 113.208 × 0,0083 + IC3V 6.600 × 0,0134) y
   FLEJE_DESCORAZONADOR **3,31 kg** (Z31 402 × 0,0049 / (1 − 40,28 %)), `maximo_origen='derivado_pieza'`. No se tocó.
+- [usuario] Y el problema de fondo era la O.C.: *"Si tengo completo el máximo de descorazonador y de varillas ic3 e
+  ic3v no tendría que pedir de este fleje. Por lo tanto el stock de estos dos flejes tendría que sumar lo que hay en
+  el sector ic3, ic3v y descorazonador según corresponda + lo que tienen los p.s. de estos flejes"*.
+- **Regla (stock de la O.C.)**: el stock de la MP de un PS = lo que el PS tiene en bruto + cada pieza que ya salió de
+  esa MP y está **en su sector**, llevada a kg con **el mismo factor que el máximo** (`pieza × kg_x_uni / (1 −
+  desperdicio del PS)`). Vista nueva `GP2.v_stock_mp_ps` (mismos pasos que `recalcular_maximo_mp_ps`), y `oc_bundle`
+  la usa como `stock` / `online` de esos dos (con `stock_origen='derivado_pieza'`, `stock_mp_ps` y `stock_piezas`
+  para ver de dónde sale). Máximo y stock pasan a medir lo mismo: si IC3 e IC3V están llenos, el sugerido del ALAMBRE
+  da ~0. Solo cuenta la pieza en su **sector**, no la que está en un tallerista (IJUPA tiene máximo propio de IC3):
+  es el mismo criterio que el máximo, que tampoco la suma.
+- [dato 2026-09-30] Hoy todo ese stock está en 0, así que el sugerido **no se movió** (1.028 kg y 3 kg). Ejemplo para
+  cuando se cargue: 50 kg de ALAMBRE en Charcas + 10.000 IC3 + 1.000 IC3V en Fleje = 146,40 kg → sugerido 882 kg.
+- [usuario] Sobre Fábrica (tallerista 3), mismo día: *"todo lo que es armado en fábrica lo vamos a modelar más
+  adelante, está bien que no aparezca en envío a talleristas"*. Hoy la tablet la excluye en Enviar y en Recibir
+  (`tablet_bundle`, `t.id <> 3`), mientras el Envío de escritorio y Entregas sí la muestran. Fábrica tiene 141 pasos
+  de ruta (41 artículos activos) y **0 movimientos**: `GP2M.armadoFabrica` sigue en `gp2-motor.js`, pero ninguna
+  pantalla lo llama.

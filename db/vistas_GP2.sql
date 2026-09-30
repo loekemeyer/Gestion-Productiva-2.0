@@ -1337,6 +1337,49 @@ create or replace view "GP2".v_rollo_saldo as
      JOIN "GP2".componente c ON c.id = e.componente_id
   GROUP BY e.componente_id, c.codigo, c.descripcion, e.kg_por_rollo;
 
+-- ---------- v_stock_mp_ps ----------
+create or replace view "GP2".v_stock_mp_ps as
+ WITH paso AS (
+         SELECT DISTINCT rp.proveedor_id,
+            rp.comp_entrada_id AS ent,
+            rp.comp_salida_id AS sal
+           FROM ((("GP2".ruta_paso rp
+             JOIN "GP2".ruta r ON (((r.id = rp.ruta_id) AND (r.articulo_id IS NOT NULL))))
+             JOIN "GP2".componente ce ON (((ce.id = rp.comp_entrada_id) AND (ce.unidad_medida = 'kg'::text))))
+             JOIN "GP2".componente cs ON (((cs.id = rp.comp_salida_id) AND (COALESCE(cs.unidad_medida, ''::text) <> 'kg'::text))))
+          WHERE ((rp.tipo_paso = 'proveedor_servicio'::text) AND (rp.proveedor_id IS NOT NULL) AND (rp.comp_entrada_id <> rp.comp_salida_id) AND (NOT (rp.comp_entrada_id IN ( SELECT v_componente_muerto.comp_id
+                   FROM "GP2".v_componente_muerto))) AND (NOT (rp.comp_salida_id IN ( SELECT v_componente_muerto.comp_id
+                   FROM "GP2".v_componente_muerto))))
+        ), pieza AS (
+         SELECT p.proveedor_id,
+            p.ent,
+            cs.codigo,
+            cs.kg_x_uni,
+            COALESCE(ps.desperdicio_pct, (0)::numeric) AS desp,
+            COALESCE(isec.cantidad, (0)::numeric) AS stock_pieza
+           FROM (((paso p
+             JOIN "GP2".componente cs ON ((cs.id = p.sal)))
+             JOIN "GP2".proveedor_servicio ps ON ((ps.id = p.proveedor_id)))
+             LEFT JOIN "GP2".inventario isec ON (((isec.componente_id = p.sal) AND (isec.ubicacion_id = "GP2".ubic_de('sector'::text, cs.sector_id)))))
+          WHERE ((COALESCE(cs.kg_x_uni, (0)::numeric) > (0)::numeric) AND (COALESCE(ps.desperdicio_pct, (0)::numeric) < (100)::numeric))
+        ), agg AS (
+         SELECT pieza.ent,
+            pieza.proveedor_id,
+            sum(((pieza.stock_pieza * pieza.kg_x_uni) / ((1)::numeric - (pieza.desp / (100)::numeric)))) AS kg_piezas,
+            jsonb_agg(jsonb_build_object('pieza', pieza.codigo, 'stock_pieza', pieza.stock_pieza, 'kg_x_uni', pieza.kg_x_uni, 'desperdicio_pct', pieza.desp, 'kg_equiv', round(((pieza.stock_pieza * pieza.kg_x_uni) / ((1)::numeric - (pieza.desp / (100)::numeric))), 2)) ORDER BY pieza.codigo) AS piezas
+           FROM pieza
+          GROUP BY pieza.ent, pieza.proveedor_id
+        )
+ SELECT a.ent AS componente_id,
+    "GP2".ubic_de('proveedor_servicio'::text, a.proveedor_id) AS ubicacion_id,
+    COALESCE(imp.cantidad, (0)::numeric) AS stock_mp,
+    round(a.kg_piezas, 2) AS stock_piezas_kg,
+    round((COALESCE(imp.cantidad, (0)::numeric) + a.kg_piezas), 2) AS stock_equiv,
+    a.piezas
+   FROM (agg a
+     LEFT JOIN "GP2".inventario imp ON (((imp.componente_id = a.ent) AND (imp.ubicacion_id = "GP2".ubic_de('proveedor_servicio'::text, a.proveedor_id)))));
+comment on view "GP2".v_stock_mp_ps is 'Stock equivalente (kg) de la MP que un PS corta en piezas: bruto en el PS + piezas en su sector llevadas a kg (pieza x kg_x_uni / (1 - desperdicio)). La usa oc_bundle como stock de ALAMBRE / FLEJE_DESCORAZONADOR (2026-09-30).';
+
 -- ---------- v_tara_pallet_real ----------
 create or replace view "GP2".v_tara_pallet_real as
  SELECT rc.id AS control_id,
