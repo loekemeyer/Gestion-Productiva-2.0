@@ -4,6 +4,7 @@
 (vacío)
 
 [HISTORIAL]
+2026-09-30 (3) - GP2.aceptado_virgilio: lo que Virgilio le acepta a Cervantes (24 recepciones, 7 aceptadas, 17 TMP), la llena gv_gp2_aceptado_sync c/10 min. DB-only: db/tablas, CONOCIMIENTO 4gy. luis (claude-remote).
 2026-09-30 (2) - OC v1.48.0: sin precio en Generar OC; el proveedor alternativo (Recicor) es una fila repetida del insumo sin campo Pedir, tocarla elige el proveedor (Thomas). version.js v1.210.0 ?v=20260930c. thomas (claude-remote).
 2026-09-30 - Portada v1.209.0: cartel "VIRGILIO DICE QUE TE LLEGO ESTO — CONFIRMALO Y UBICALO" desde GP2.ingreso_virgilio (lo escribe la recepcion de importados de Gestion Virgilio, destino Cervantes). Confirmar/ubicar pendiente. db/tablas, CONOCIMIENTO 4gx, test_aviso_virgilio. version.js v1.209.0 ?v=20260930b. luis (claude-remote).
 2026-09-29 (24) - OC v1.47.0: Ordenes en dos cajas, Vigentes (ultima OC por proveedor) e Historicas (Thomas). Solo pantalla. test_oc cubre cajas + semaforo. version.js v1.208.0 ?v=20260929q. thomas (claude-remote).
