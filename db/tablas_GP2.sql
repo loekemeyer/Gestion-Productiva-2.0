@@ -383,6 +383,21 @@ create table "GP2".fleje_detalle (
 comment on table "GP2".fleje_detalle is 'Datos propios de cada fleje (n° de fleje, medida, codigo ISIS, kg por unidad despiece, consumo mensual, kg x cajon); una fila por componente de Sector Fleje.';
 comment on column "GP2".fleje_detalle.descripcion_parte is 'NO es una copia de componente.descripcion: es la PARTE que sale de ese fleje, otro dato. Difiere en las 52 filas y esta bien.';
 
+-- ---------- espejos de SOLO LECTURA de Gestión Virgilio (los llena public.gv_gp2_espejo_sync, cron c/10 min) ----------
+create table "GP2".virgilio_insumo_stock (
+  cod text not null, unidad text not null default ''::text, nombre text, categoria text,
+  saldo numeric not null, ubicacion text, actualizado_en timestamptz not null default now(),
+  primary key (cod, unidad)
+);
+create table "GP2".virgilio_insumo_ubicacion (
+  id bigint primary key, cod text, sector text, texto text, cantidad numeric, unidad text, estado text,
+  actualizado_en timestamptz not null default now()
+);
+create table "GP2".virgilio_lugar (
+  sector text primary key, tipo text, empresa text, uso text, orden integer, activo boolean, notas text,
+  codigos text, cajas_max numeric, actualizado_en timestamptz not null default now()
+);
+
 -- ---------- aceptado_virgilio ----------
 -- Lo que Gestión Virgilio le recibió/aceptó a Cervantes. La escribe public.gv_gp2_aceptado_sync (cron c/10 min).
 create table "GP2".aceptado_virgilio (
