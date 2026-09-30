@@ -640,8 +640,13 @@ select jsonb_build_object(
              'remito_unidad', remito_uni,
              -- envase de ENTREGA (hoy solo el tallerista): el esperado se mira en cajones (o en las
              -- bolsas de 120 de GRJ5/GRJ6) y la cantidad se escribe en kg.
-             'env_unidad', case when tipo = 'tallerista' then coalesce(ent_uni, 'cajones') end,
-             'env_factor', case when tipo = 'tallerista' then coalesce(ent_ux, uxc) end,
+             'env_unidad', case when tipo = 'tallerista' then coalesce(ent_uni, 'cajones')
+                                -- IMPORTADO con el remito en envases (C13 en cajas de 144) [2026-09-25]
+                                when tipo = 'virgilio' and importado and lower(coalesce(remito_uni,'')) = 'envase'
+                                     and ent_ux > 0 then coalesce(ent_uni, 'envases') end,
+             'env_factor', case when tipo = 'tallerista' then coalesce(ent_ux, uxc)
+                                when tipo = 'virgilio' and importado and lower(coalesce(remito_uni,'')) = 'envase'
+                                     and ent_ux > 0 then ent_ux end,
              'env_carga',  case when tipo = 'tallerista' then 'kg' end,
              'ent_cod', ent_cod, 'ent_desc', ent_desc, 'ent_uxc_anot', ent_uxc_anot,
              'ent_uxc', ent_uxc, 'ent_kgu', ent_kgu,
