@@ -13867,3 +13867,21 @@ Contexto: app unificada `GP2-Registro-Produccion`, se arranca por Cervantes. Tab
   `kg_x_uni` de la pieza que sale. ALAMBRE: **171,3 kg/mes**. Mismo pozo, caso hermano ya vivo:
   FLEJE_DESCORAZONADOR mostraba **388 kg/mes** y son **1,9** (Z31, 0,0049 kg). Los máximos no cambian: los dos son
   `derivado_pieza` (§4gs), no salen de esta vista.
+
+## 4gw. Lo que Virgilio manda a Cervantes aparece en la portada de GP2 (2026-09-30)
+
+[usuario, Luis 30/09] *"Cuando Gestión Virgilio marca que se ingresa algo en Cervantes, tiene que figurar
+un cartel grande en la página principal de GP2 que diga «VIRGILIO DICE QUE TE LLEGÓ ESTO [detalle],
+CONFIRMALO Y UBICALO» (falta implementar confirmación y ubicación)"*.
+
+- En Gestión Virgilio, la **recepción de importados** tiene el destino **«Cervantes»** primero en la lista
+  (sobre todo insumos). Lo que va ahí **no entra al stock de Virgilio**.
+- Queda una fila en **`GP2.ingreso_virgilio`** (`estado = 'pendiente'`): cantidad, unidad, código importado,
+  código de insumo, descripción, proveedor, pedido, nota. La escribe `public.gv_imp_recibir` (del lado de
+  Virgilio, SECURITY DEFINER). **GP2 no lee `public`**: el dato vive en su propio schema (Regla 0).
+- `GP2_MODULOS.html` lo muestra en un cartel grande (`#avisoVirgilio`) mientras esté pendiente.
+- Si Virgilio anula esa recepción, la fila pasa a `anulado` y el cartel deja de mostrarla. No se puede anular
+  si Cervantes ya la confirmó.
+- **Falta**: confirmar (pasa a `confirmado`) y ubicar (entra al `inventario` en su `ubicacion`, con
+  `componente_id`). [dato] Hoy **no hay** vínculo entre el código importado/insumo de Virgilio (1000900,
+  H201Part, 007) y el `componente` de GP2: ubicar exige ese mapeo primero.

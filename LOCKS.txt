@@ -4,6 +4,7 @@
 (vacío)
 
 [HISTORIAL]
+2026-09-30 - Portada v1.208.0: cartel "VIRGILIO DICE QUE TE LLEGO ESTO — CONFIRMALO Y UBICALO" desde GP2.ingreso_virgilio (lo escribe la recepcion de importados de Gestion Virgilio, destino Cervantes). Confirmar/ubicar pendiente. db/tablas, CONOCIMIENTO 4gw, test_aviso_virgilio. version.js v1.208.0 ?v=20260930a. luis (claude-remote).
 2026-09-29 (23) - ALAMBRE (583) a Sector Fleje (Thomas: "ES SECTOR FLEJE, NO ALAMBRE") + v_consumo_fleje_kg: granel kg usa kg_x_uni de la pieza que sale (ALAMBRE 19.968 -> 171,3 kg/mes; FLEJE_DESCORAZONADOR 388 -> 1,9). DB + db/vistas. CONOCIMIENTO 4gv. thomas (claude-remote).
 2026-09-29 (22) - OC v1.46.1: desglose del Maximo se FIJA con clic y se scrollea (cierra con clic afuera/Escape); tarjeta abraza la tabla (sin blanco a la derecha); columna Proveedor ofrece "o Recicor · $ precio" sin elegirlo arriba. version.js v1.207.6 ?v=20260929p. (test nuevo test_oc_prov_alt_fila.js) thomas (claude-remote).
 2026-09-29 (21) - OC v1.46.0: semaforo de recepcion por renglon (verde completo, amarillo parcial, rojo nada; solo enviada/recibida) (Thomas). version.js v1.207.5 ?v=20260929o. thomas (claude-remote).
