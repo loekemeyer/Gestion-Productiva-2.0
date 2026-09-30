@@ -78,7 +78,13 @@ const BUNDLE = {
     { mov_id: 85400, fecha: '2026-09-20T12:00:00-03:00', cp_nombre: 'Guazzaroni Patricio',
       sp_cod: 'V11', sp_desc: 'Remache Sacacorcho', unidad: 'kg',
       declarado: 40, controlado: 39.2, cajones: 2, diff: -0.8,
-      controlado_en: '2026-09-20T15:00:00-03:00', controlado_por: 'thomas' }
+      controlado_en: '2026-09-20T15:00:00-03:00', controlado_por: 'thomas' },
+    // un INSUMO ya controlado (v1.5.1) [Nazareno: "Controle y no me aparecen en el historial"]:
+    // viene en la misma lista, con las mismas claves
+    { mov_id: 90001, rec_id: 17079, fecha: '2026-09-30T12:00:00-03:00', cp_tipo: 'proveedor_insumo',
+      cp_nombre: 'Importado', sp_cod: 'Z23B', sp_desc: 'Importado Z23B', unidad: 'uni',
+      declarado: 20400, controlado: 20377, cajones: null, diff: -23,
+      controlado_en: '2026-09-30T12:33:33-03:00', controlado_por: 'admin' }
   ],
   // INSUMOS SIN CONTROLAR (v1.5.0, 2026-09-30) [Nazareno: "Cargue una recepcion en recepcion de
   // insumos y no hice el control. Ahora voy a control y no me aparece"]. Un grupo por pantalla de
@@ -233,6 +239,9 @@ window.supabase = { createClient: function(){ return {
   const tabla = await page.$eval('#hechosWrap', e => e.textContent.replace(/\s+/g, ' ').trim());
   ok(tabla.includes('V11') && tabla.includes('40') && tabla.includes('39,2') && tabla.includes('-0,8'),
      'lo controlado muestra remito, contado y diferencia — ' + tabla.slice(0, 120));
+  ok(tabla.includes('Z23B') && tabla.includes('Importado') && tabla.includes('20.400') &&
+     tabla.includes('20.377') && tabla.includes('-23'),
+     'y tambien los insumos controlados, con su remito y lo contado — ' + tabla.slice(120, 260));
 
   // ── 7) reglas de pantalla de la casa ─────────────────────────────────────────────
   const over = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);

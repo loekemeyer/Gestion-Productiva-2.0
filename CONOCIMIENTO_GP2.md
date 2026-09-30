@@ -13926,7 +13926,7 @@ CONFIRMALO Y UBICALO» (falta implementar confirmación y ubicación)"*.
   `componente_id`). [dato] Hoy **no hay** vínculo entre el código importado/insumo de Virgilio (1000900,
   H201Part, 007) y el `componente` de GP2: ubicar exige ese mapeo primero.
 
-## 4gz. El botón "Control" de la tablet es de TODO lo que se recibe, y sólo en Recibir (2026-09-30)
+## 4ha. El botón "Control" de la tablet es de TODO lo que se recibe, y sólo en Recibir (2026-09-30)
 
 - [usuario] Nazareno: *"Cargué una recepción en recepción de insumos y no hice el control. Ahora voy a control y no
   me aparece"*. Y la regla: *"Me gustaría que aparezca en el botón de control que está a la izquierda del botón atrás
@@ -13944,3 +13944,8 @@ CONFIRMALO Y UBICALO» (falta implementar confirmación y ubicación)"*.
 - **Pendiente** [deducido]: los **cartones** que quedan sin controlar tampoco tienen dónde retomarse (su control vive
   adentro de Recepción de Insumos y la barra de pendientes sólo mira flejes). No se muestran en el Control porque no
   hay pantalla a la cual mandarlos; hace falta que Recepción de Insumos los retome.
+- [usuario] Nazareno, el mismo día, después de controlar C13, E13, GRJ31 y GRJ32: *"Controlé y no me aparecen en el
+  historial"*. La tabla "Controlado" del Control leía sólo `entrega_control` (P.S. y talleristas). Desde ahí
+  `control_entrega_bundle.hechos` suma las `recepcion_insumo` con `controlado = true` (remito = `cantidad_declarada`,
+  contado = `cantidad`), con el mismo período de 7 días. Regla: **lo que el Control deja retomar, el Control lo
+  muestra hecho**.

@@ -1608,13 +1608,34 @@ select jsonb_build_object(
             'pesa', pesa,
             'declarado', declarado, 'unidad', unidad, 'cajones', cajones
           ) order by fecha desc, id desc) from fila where ctrl_id is null), '[]'::jsonb),
-  'hechos', coalesce((select jsonb_agg(jsonb_build_object(
+  -- LO YA CONTROLADO. Desde el 2026-09-30 suma TAMBIEN las recepciones de insumos controladas
+  -- [Nazareno: "Controle y no me aparecen en el historial"]: el Control de la tablet ya lleva a los
+  -- controles de insumos (insumos_pend, abajo), y lo que se controla alla tiene que figurar aca.
+  -- Mismas claves que las entregas, asi la tabla no aprende un modelo nuevo: la parte es el codigo,
+  -- el proveedor es recepcion_insumo.proveedor, el remito es cantidad_declarada (lo que dijo el
+  -- papel; null = no se piso) y lo contado es la cantidad, que controlar_recepcion_kg/_cajas pisan.
+  -- Mismo periodo que las entregas: p_dias sobre la fecha de la recepcion.
+  'hechos', coalesce((select jsonb_agg(x.h order by x.ts desc) from (
+      select jsonb_build_object(
             'mov_id', id, 'fecha', fecha, 'cp_tipo', cp_tipo, 'cp_nombre', cp_nombre,
             'sp_cod', sp_cod, 'sp_desc', sp_desc, 'unidad', unidad,
             'declarado', ctrl_decl, 'controlado', controlado, 'cajones', controlado_cajones,
             'diff', controlado - ctrl_decl,
             'controlado_en', controlado_en, 'controlado_por', controlado_por
-          ) order by controlado_en desc) from fila where ctrl_id is not null), '[]'::jsonb),
+          ) as h, controlado_en as ts
+        from fila where ctrl_id is not null
+      union all
+      select jsonb_build_object(
+            'mov_id', r.movimiento_id, 'rec_id', r.id, 'fecha', r.fecha, 'cp_tipo', 'proveedor_insumo',
+            'cp_nombre', r.proveedor, 'sp_cod', ci.codigo, 'sp_desc', ci.descripcion, 'unidad', r.unidad,
+            'declarado', coalesce(r.cantidad_declarada, r.cantidad), 'controlado', r.cantidad,
+            'cajones', null, 'diff', r.cantidad - coalesce(r.cantidad_declarada, r.cantidad),
+            'controlado_en', r.controlado_en, 'controlado_por', r.controlado_por
+          ), r.controlado_en
+        from recepcion_insumo r
+        join componente ci on ci.id = r.componente_id
+       where coalesce(r.controlado, false)
+         and r.fecha >= now() - make_interval(days => greatest(coalesce(p_dias,7), 1))) x), '[]'::jsonb),
   -- INSUMOS SIN CONTROLAR (2026-09-30) [Nazareno: "Me gustaria que aparezca en el boton de control
   -- ... Tendrias que poner los de talleristas, p.s. y prov de insumo"]. El control de un insumo que
   -- se controla en OTRA pagina (control-remaches / control-cajas) solo se abria con la redireccion
