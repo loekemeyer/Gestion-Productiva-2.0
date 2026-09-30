@@ -13886,3 +13886,22 @@ Contexto: app unificada `GP2-Registro-Produccion`, se arranca por Cervantes. Tab
   Amasar 40cm (id 737, art. 232) y `GRJ24` Palo de Amasar 50cm (id 738, art. 233), de Tierra Nativa, vivos. No se
   pisaron: `codigo` no es único en la base y un código repetido rompe todo lo que busca por código. Queda en
   `GRJ31`/`GRJ32` hasta que el dueño diga si los palos se mueven de código o si es otra numeración.
+
+## 4gx. El botón "Control" de la tablet es de TODO lo que se recibe, y sólo en Recibir (2026-09-30)
+
+- [usuario] Nazareno: *"Cargué una recepción en recepción de insumos y no hice el control. Ahora voy a control y no
+  me aparece"*. Y la regla: *"Me gustaría que aparezca en el botón de control que está a la izquierda del botón atrás
+  … Tendrías que poner los de talleristas, p.s. y prov de insumo. Además quiero que este botón sea visible cuando estoy
+  en el módulo recibir (lo que traen): si estoy en enviar no quiero que aparezca"*.
+- [dato] El caso: E13, C13 (Sector Procesado) y GRJ31, GRJ32 (Garage), todos de Importado, `recepcion_insumo.controlado
+  = false`. Su control vive en `control-remaches.html` (sector 2 + prov Importado, y sector 9), y a esa pantalla **sólo
+  se llegaba por la redirección automática al guardar**: ningún menú ni botón la linkeaba. Saliendo sin controlar, la
+  recepción quedaba huérfana (Recepción de Insumos sólo retoma flejes; el Control de la tablet sólo miraba P.S. y
+  talleristas). Registrado en auditoría como bug.
+- Cómo quedó: `control_entrega_bundle` manda `insumos_pend` (agrupado por sector + proveedor; flejes con `via='pesaje'`
+  por `v_recepcion_control`), la lista "qué rubro se controla en qué página" se mudó a `gp2-control-insumo.js` (GP2CI,
+  una sola copia para Recepción de Insumos, el Control y la tablet), el Control de la tablet muestra una tarjeta por
+  grupo con "Controlar →", y el botón cuenta P.S. + talleristas + insumos y sólo aparece en Recibir.
+- **Pendiente** [deducido]: los **cartones** que quedan sin controlar tampoco tienen dónde retomarse (su control vive
+  adentro de Recepción de Insumos y la barra de pendientes sólo mira flejes). No se muestran en el Control porque no
+  hay pantalla a la cual mandarlos; hace falta que Recepción de Insumos los retome.

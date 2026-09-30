@@ -79,6 +79,21 @@ const BUNDLE = {
       sp_cod: 'V11', sp_desc: 'Remache Sacacorcho', unidad: 'kg',
       declarado: 40, controlado: 39.2, cajones: 2, diff: -0.8,
       controlado_en: '2026-09-20T15:00:00-03:00', controlado_por: 'thomas' }
+  ],
+  // INSUMOS SIN CONTROLAR (v1.5.0, 2026-09-30) [Nazareno: "Cargue una recepcion en recepcion de
+  // insumos y no hice el control. Ahora voy a control y no me aparece"]. Un grupo por pantalla de
+  // control; los que no tienen pantalla (cartones, Eclipse en el Procesado) NO se muestran.
+  insumos_pend: [
+    { via: 'control', sector_id: 2, sector: 'Sector Procesado', proveedor: 'Importado', n: 2,
+      codigos: ['C13', 'E13'], desde: '2026-09-30T12:00:00-03:00' },
+    { via: 'control', sector_id: 9, sector: 'Sector Garage', proveedor: 'Importado', n: 2,
+      codigos: ['GRJ31', 'GRJ32'], desde: '2026-09-30T12:00:00-03:00' },
+    { via: 'control', sector_id: 10, sector: 'Sector Carton', proveedor: 'Cartocor', n: 3,
+      codigos: ['C1', 'C2'], desde: '2026-09-29T12:00:00-03:00' },
+    { via: 'control', sector_id: 2, sector: 'Sector Procesado', proveedor: 'Eclipse', n: 1,
+      codigos: ['1686'], desde: '2026-09-29T12:00:00-03:00' },
+    { via: 'pesaje', sector_id: 5, sector: 'Sector Fleje', proveedor: 'Basconia', n: 1,
+      codigos: ['Fleje 12'], desde: '2026-09-28T12:00:00-03:00' }
   ]
 };
 
@@ -228,6 +243,28 @@ window.supabase = { createClient: function(){ return {
   const alto = await page.$eval('#pend .card button[data-a="ok"]', e => e.getBoundingClientRect().height);
   ok(alto >= 44, 'el boton de confirmar es tocable (' + Math.round(alto) + 'px)');
 
+  // ── 7b) los INSUMOS sin controlar tienen su puerta (v1.5.0) ─────────────────────────
+  const ins = await page.$$eval('#insPend .card', xs => xs.map(x => ({
+    txt: x.textContent.replace(/\s+/g, ' ').trim(), href: x.querySelector('a.btn').getAttribute('href') })));
+  ok(ins.length === 3, 'una tarjeta por pantalla de control; cartones y Eclipse no tienen a donde ir — ' +
+     ins.map(x => x.txt.slice(0, 20)).join(' / '));
+  const hrefs = ins.map(x => x.href);
+  ok(hrefs.includes('../StockFlejes/control-remaches.html?sector=2&prov=Importado') &&
+     hrefs.includes('../StockFlejes/control-remaches.html?sector=9') &&
+     hrefs.includes('../StockFlejes/RecepcionInsumos_GP2.html?volver=tablet'),
+     'cada grupo lleva a SU control (Importado, Garage) y los flejes al pesaje — ' + hrefs.join(' | '));
+  const imp = ins.find(x => x.href.includes('prov=Importado')) || { txt: '' };
+  ok(imp.txt.includes('Procesado') && imp.txt.includes('Importado') && imp.txt.includes('2 recepciones') &&
+     imp.txt.includes('C13, E13') && imp.txt.includes('30/09/2026'),
+     'la tarjeta dice rubro, proveedor, cuantas, que codigos y desde cuando — ' + imp.txt);
+  ok((await page.$eval('#nIns', e => e.textContent)) === '5',
+     'el contador suma las recepciones que tienen control (2 + 2 + 1), no las que no — ' +
+     (await page.$eval('#nIns', e => e.textContent)));
+  const altoIns = await page.$eval('#insPend a.btn', e => e.getBoundingClientRect().height);
+  ok(altoIns >= 44, 'el boton Controlar es tocable (' + Math.round(altoIns) + 'px)');
+  ok((await page.$eval('a.hlink', e => e.getAttribute('href'))) === 'Tablet_GP2.html?modo=recibir',
+     '"Recepcion" vuelve a la tablet en Recibir, que es donde esta el boton Control');
+
   // ── 8) sin pendientes lo dice, no deja la pantalla muda ──────────────────────────
   await page.route('**/@supabase/supabase-js@2**', r => r.fulfill({ contentType: 'application/javascript', body: `
     window.supabase = { createClient: function(){ return { rpc: async function(){
@@ -236,10 +273,25 @@ window.supabase = { createClient: function(){ return {
   await page.reload();
   await page.waitForFunction(() => document.querySelectorAll('#pend .empty').length > 0);
   const vacio = await page.$eval('#pend', e => e.textContent.trim());
-  ok(vacio.includes('No hay entregas pendientes'),
+  ok(vacio.includes('No hay entregas de P.S. ni talleristas pendientes'),
      'sin pendientes se dice, no se deja la pantalla muda — ' + vacio);
   ok((await page.$eval('#hechosWrap', e => e.textContent)).includes('Todavía no se controló'),
      'y lo mismo cuando no se controlo nada todavia');
+  ok(await page.$eval('#insBox', e => e.classList.contains('hidden')) &&
+     (await page.$eval('#status', e => e.textContent)) === 'Todo controlado.',
+     'sin insumos pendientes la seccion no ocupa lugar y el cartel dice Todo controlado');
+
+  // ── 9) solo insumos pendientes: el cartel no miente "Todo controlado" ────────────
+  await page.route('**/@supabase/supabase-js@2**', r => r.fulfill({ contentType: 'application/javascript', body: `
+    window.supabase = { createClient: function(){ return { rpc: async function(){
+      return { data: { tol_pct: 5, pend: [], hechos: [], insumos_pend: ${JSON.stringify(BUNDLE.insumos_pend.slice(1, 2))} },
+               error: null }; } }; } };
+  ` }));
+  await page.reload();
+  await page.waitForFunction(() => document.querySelectorAll('#insPend .card').length === 1);
+  const st = await page.$eval('#status', e => e.textContent);
+  ok(!st.includes('Todo controlado') && st.includes('insumos sin controlar'),
+     'con insumos pendientes no dice "Todo controlado" — ' + st);
 
   console.log('TODO OK');
   await browser.close();

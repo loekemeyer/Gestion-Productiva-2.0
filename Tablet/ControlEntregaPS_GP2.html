@@ -23,6 +23,19 @@
      LOS CAJONES SON EL DATO FÍSICO: acá se cuentan, no se derivan de los kg (misma regla que el
      stock del proveedor, ver CONOCIMIENTO 4et). Si la pieza no tiene envase cargado, el campo no
      se pide. -->
+<!-- v1.5.0 (2026-09-30) — TAMBIÉN LOS INSUMOS SIN CONTROLAR (Nazareno, textual: "Cargué una recepción
+     en recepción de insumos y no hice el control. Ahora voy a control y no me aparece" + "Me gustaría
+     que aparezca en el botón de control ... Tendrías que poner los de talleristas, p.s. y prov de
+     insumo"). El control de un insumo que se controla en OTRA página (control-remaches /
+     control-cajas: Importado, Garage, remaches, plásticos, bombillas, cajas, bolsas) sólo se abría con
+     la redirección automática al guardar la recepción: si el operario salía, quedaba sin controlar y
+     ninguna pantalla lo llevaba de vuelta. Ahora control_entrega_bundle manda `insumos_pend`
+     (agrupado por sector y proveedor) y acá hay una tarjeta por grupo con "Controlar →", que lleva a
+     la MISMA pantalla de control de siempre: el control de insumos NO se reescribe acá. A dónde lleva
+     cada grupo lo dice gp2-control-insumo.js (GP2CI), la misma lista que usa Recepción de Insumos; un
+     grupo sin pantalla de control (cartones) no se muestra. Los flejes sin pesar llevan a Recepción
+     de Insumos, que abre con "⚖ Pesar ahora". "← Recepción" vuelve a la tablet en Recibir, que es
+     el único modo donde está el botón Control. -->
 <!-- v1.4.0 (2026-09-29) — LA DIFERENCIA SALE SÓLO DE LOS KILOS Y LOS CAMPOS VAN COMPACTOS (usuario,
      textual: "no quiero que me tire el calculo abajo si pongo paquetes, solo kg ... no quiero que
      tomes paquetes xq es la uni de medida secundaria, importan los kg, aplica a cada caso").
@@ -128,6 +141,7 @@
   .btn{width:100%;min-height:52px;margin-top:10px;border:0;border-radius:12px;background:#0b5cad;color:#fff;
        font-size:18px;font-weight:900;font-family:inherit;cursor:pointer}
   .btn[disabled]{background:#b6c2cf;cursor:default}
+  a.btn{display:flex;align-items:center;justify-content:center;text-decoration:none}
   .empty{border:2px dashed #d0d7de;border-radius:14px;padding:22px;text-align:center;color:#555;font-size:17px}
   .table-wrap{overflow-x:auto}
   table{border-collapse:collapse;width:100%;font-size:16px;background:#fff}
@@ -142,9 +156,9 @@
 <body>
 <div class="wrap">
   <header>
-    <h1>Control de entregas <span style="font-size:15px;font-weight:700;color:#475569">prov. de servicio y talleristas</span></h1>
+    <h1>Control de entregas <span style="font-size:15px;font-weight:700;color:#475569">prov. de servicio, talleristas e insumos</span></h1>
     <div class="hbtns">
-      <a class="hlink" href="Tablet_GP2.html">← Recepción</a>
+      <a class="hlink" href="Tablet_GP2.html?modo=recibir">← Recepción</a>
       <a class="hlink" href="../GP2_MODULOS.html">Menú</a>
     </div>
   </header>
@@ -154,6 +168,12 @@
   <h2>Pendiente de controlar (<span id="nPend">0</span>)</h2>
   <div class="cards" id="pend"></div>
 
+  <!-- prov. de insumos: se controlan en su propia pantalla; acá está la puerta (v1.5.0) -->
+  <div id="insBox" class="hidden">
+    <h2>Prov. de insumos sin controlar (<span id="nIns">0</span>)</h2>
+    <div class="cards" id="insPend"></div>
+  </div>
+
   <h2>Controlado</h2>
   <div class="table-wrap" id="hechosWrap"></div>
 </div>
@@ -161,13 +181,14 @@
 <script src="../auth-guard.js?v=20260929a"></script>
 <script src="../gp2-ui.js?v=20260913e"></script>
 <script src="../gp2-numero.js?v=20260911o"></script>
+<script src="../gp2-control-insumo.js?v=20260930a"></script>
 <script>
 "use strict";
 /* Cliente GP2 (schema GP2): nunca un createClient suelto, que cae en public. */
 var SB = GP2_SB();
 var $ = GP2UI.$, esc = GP2UI.esc, num = GP2N.num, fmt = GP2N.fmt;
 
-var D = { pend: [], hechos: [], tol: 2 };
+var D = { pend: [], hechos: [], ins: [], tol: 2 };
 
 function usuario() {
   try { return localStorage.getItem("gp2_usuario") || null; } catch (e) { return null; }
@@ -272,7 +293,7 @@ function render() {
   cont.innerHTML = "";
   $("nPend").textContent = D.pend.length;
   if (!D.pend.length) {
-    cont.innerHTML = '<div class="empty">No hay entregas pendientes de controlar.</div>';
+    cont.innerHTML = '<div class="empty">No hay entregas de P.S. ni talleristas pendientes de controlar.</div>';
   }
   D.pend.forEach(function (x) {
     // EL CONTROL SE CUENTA COMO SE CUENTA EN LA PLANTA: el ENVASE (paquetes, bolsas, cajones) y,
@@ -305,6 +326,8 @@ function render() {
     cont.appendChild(card);
   });
 
+  renderInsumos();
+
   var t = $("hechosWrap");
   if (!D.hechos.length) { t.innerHTML = '<div class="empty">Todavía no se controló ninguna entrega.</div>'; }
   else {
@@ -324,6 +347,27 @@ function render() {
   }
 }
 
+/* Las recepciones de insumos que quedaron sin controlar, UNA tarjeta por pantalla de control
+   (sector + proveedor). El control se hace allá, con sus reglas (kg -> unidades, cajas, pallets):
+   acá sólo está la puerta, que antes no existía (v1.5.0). */
+function renderInsumos() {
+  var n = D.ins.reduce(function (a, g) { return a + Number(g.n || 0); }, 0);
+  $("nIns").textContent = n;
+  $("insBox").classList.toggle("hidden", !D.ins.length);
+  $("insPend").innerHTML = D.ins.map(function (g) {
+    var rubro = String(g.sector || "").replace(/^Sector\s+/i, "");
+    var cods = (g.codigos || []).join(", ") + ((g.codigos || []).length >= 8 ? " …" : "");
+    var href = "../StockFlejes/" + g.url + (g.via === "pesaje" ? "?volver=tablet" : "");
+    return '<div class="card">' +
+      '<div class="cod">' + esc(rubro) + "</div>" +
+      '<div class="desc">' + esc(g.proveedor || "—") + "</div>" +
+      '<div class="meta">' + fmt(Number(g.n), 0) + (Number(g.n) === 1 ? " recepción" : " recepciones") +
+        (g.via === "pesaje" ? " sin pesar" : "") + " · desde " + esc(GP2UI.fechaTsAR(g.desde)) + "</div>" +
+      '<div class="remito">' + esc(cods) + "</div>" +
+      '<a class="btn" href="' + esc(href) + '">Controlar →</a></div>';
+  }).join("");
+}
+
 async function cargar() {
   $("status").textContent = "Cargando…";
   var r = await SB.rpc("control_entrega_bundle");
@@ -331,9 +375,10 @@ async function cargar() {
   D.pend = (r.data && r.data.pend) || [];
   D.hechos = (r.data && r.data.hechos) || [];
   D.tol = Number((r.data && r.data.tol_pct) || 2);
+  D.ins = GP2CI.pendientes(r.data && r.data.insumos_pend);
   $("status").textContent = D.pend.length
     ? ("Tolerancia " + fmt(D.tol, 1) + " % — arriba de eso hay que confirmar.")
-    : "Todo controlado.";
+    : D.ins.length ? "Quedan insumos sin controlar: tocá Controlar." : "Todo controlado.";
   render();
 }
 

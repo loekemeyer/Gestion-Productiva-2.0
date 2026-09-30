@@ -6,6 +6,16 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
+<!-- v1.39.0 (2026-09-30) — EL BOTÓN "CONTROL" CUENTA TAMBIÉN LOS INSUMOS Y SÓLO SE VE EN RECIBIR (Nazareno,
+     textual: "Me gustaría que aparezca en el botón de control que está a la izquierda del botón atrás.
+     Creo que hoy en día estás mandando los controles solo de p.s. hoy, Tendrías que poner los de
+     talleristas, p.s. y prov de insumo. Además quiero que este botón sea visible cuando estoy en el
+     módulo recibir (lo que traen): si estoy en enviar no quiero que aparezca"). El contador ya sumaba
+     P.S. y talleristas (control_entrega_bundle.pend trae los dos desde el 2026-09-23); le faltaban las
+     recepciones de insumos que quedaron sin controlar, que ahora vienen en insumos_pend y se filtran
+     con gp2-control-insumo.js (GP2CI): cuenta sólo lo que tiene pantalla de control a donde ir. El
+     link arranca OCULTO y lo prende setModo() sólo en Recibir: antes de que cargue el bundle no hay
+     modo, y un botón que aparece y se esconde al abrir es peor que uno que aparece tarde. -->
 <!-- v1.38.0 (2026-09-28) — ENVIAR: EL ORDEN POR SECTOR TAMBIÉN PARA P.S., PROV. DE ART. TERMINADO E INYECTOR (usuario: "Así como me ordenaste por sector el envío a talleristas quiero que me ordenes prov de art terminado, proveedores de servicio e inyectores"). agrupaPorRubro() pasa de solo 'tallerista' a los cuatro tipos de Enviar: mismo RUBRO_ORDEN de GP2EE (Garage · Fleje · Crudo · Procesado · Plásticas · Remaches · Cajas · Cartones · Bombilla · resto) y el mismo rótulo de sector arriba de cada bloque. El "➕ Otro cartón" del prov. AT pasa a cerrar el bloque de cartones, igual que en el tallerista. Recibir no se tocó. Cero base. -->
 <!-- v1.37.0 (2026-09-28) — "VER O.C." ARRIBA DEL BUSCADOR EN ENVIAR (usuario: "en el envío a prov de art terminado y talleristas o.c. … me aparezca arriba de 'buscar por código' una box que me diga ver o.c. y pueda ver la o.c. de gestión virgilio"). Sólo en Enviar y sólo para las contrapartes cuyo sugerido sale de la O.C. de Virgilio (c.oc o proveedor_at, el mismo criterio del título "· O.C. Virgilio"). El botón abre/cierra una tabla con lo PENDIENTE de esa O.C.: lee "GP2".v_oc_virgilio_pendiente (espejo GP2 de public.Ordenes_Compra; "la nueva pisa la vieja", sin cerradas/anuladas, últimos 120 días) filtrada por tipo+ref_id, y la descripción de "GP2".articulo. Nada de public (REGLA 0). Se lee al abrir, no con el bundle: el 99 % de los envíos no la mira. -->
 <!-- v1.36.2 (2026-09-25) — SE SACA EL CARTEL "⚠ N alerta(s) de recepción sin revisar" de la pantalla de tipos/contrapartes (Thomas: "Que no aparezcan más alertas"). Las alertas se siguen generando y viven en Alertas/alertas_GP2.html. -->
@@ -855,8 +865,9 @@
     <div class="hbtns">
       <button class="hlink hidden" id="btnVolver" type="button">← Cambiar</button>
       <!-- lo que se recepcionó y todavía nadie contó: se entra solo al registrar un remito de P.S.,
-           pero también desde acá, para retomar lo que quedó pendiente (2026-09-21) -->
-      <a href="ControlEntregaPS_GP2.html" id="lnkControl">Control</a>
+           pero también desde acá, para retomar lo que quedó pendiente (2026-09-21). Sólo en Recibir
+           y cuenta P.S. + talleristas + prov. de insumos (v1.39.0) -->
+      <a href="ControlEntregaPS_GP2.html" id="lnkControl" class="hidden">Control</a>
       <a href="../GP2_MODULOS.html">Atrás</a>
     </div>
   </div>
@@ -952,6 +963,7 @@
 <script src="../gp2-ui.js?v=20260913e"></script>
 <script src="../gp2-numero.js?v=20260911o"></script>
 <script src="../gp2-envios-common.js?v=20260924b"></script>
+<script src="../gp2-control-insumo.js?v=20260930a"></script>
 <script>
 "use strict";
 
@@ -1488,6 +1500,8 @@ function setModo(m){
   try { localStorage.setItem("gp2_tablet_modo", m); } catch(e){}
   var bs = document.querySelectorAll("#modos .modo-btn");
   for (var i = 0; i < bs.length; i++) bs[i].classList.toggle("active", bs[i].dataset.modo === m);
+  // el Control es de lo que TRAEN: en Enviar no hay nada que controlar (v1.39.0)
+  var lc = $("lnkControl"); if (lc) lc.classList.toggle("hidden", m !== "recibir");
   mostrarTipos();
 }
 
@@ -2419,14 +2433,17 @@ $("btnEnviar").addEventListener("click", async function(){
 $("fFecha").value = hoyISO();
 cargar();
 
-/* CUÁNTAS ENTREGAS DE P.S. QUEDARON SIN CONTROLAR (2026-09-21). El circuito nuevo es remito →
-   control, y lo que hace que no quede nada colgado es verlo en la puerta: si hay pendientes, el
-   link del encabezado los cuenta. Es BEST EFFORT y nunca bloquea la pantalla: si la RPC falla, el
-   link queda diciendo "Control" y la tablet funciona igual. */
+/* CUÁNTO QUEDÓ SIN CONTROLAR (2026-09-21; insumos desde v1.39.0). El circuito es remito → control,
+   y lo que hace que no quede nada colgado es verlo en la puerta: si hay pendientes, el link del
+   encabezado los cuenta — entregas de P.S. y talleristas (pend) más recepciones de insumos que
+   tienen pantalla de control (insumos_pend, filtradas por GP2CI). Es BEST EFFORT y nunca bloquea
+   la pantalla: si la RPC falla, el link queda diciendo "Control" y la tablet funciona igual. */
 (async function () {
   try {
     var r = await SB.rpc("control_entrega_bundle");
-    var n = ((r && r.data && r.data.pend) || []).length;
+    var d = (r && r.data) || {};
+    var n = (d.pend || []).length +
+            GP2CI.pendientes(d.insumos_pend).reduce(function (a, g) { return a + Number(g.n || 0); }, 0);
     var a = $("lnkControl");
     if (a && n) a.textContent = "Control (" + n + ")";
   } catch (e) {}

@@ -1614,11 +1614,40 @@ select jsonb_build_object(
             'declarado', ctrl_decl, 'controlado', controlado, 'cajones', controlado_cajones,
             'diff', controlado - ctrl_decl,
             'controlado_en', controlado_en, 'controlado_por', controlado_por
-          ) order by controlado_en desc) from fila where ctrl_id is not null), '[]'::jsonb)
+          ) order by controlado_en desc) from fila where ctrl_id is not null), '[]'::jsonb),
+  -- INSUMOS SIN CONTROLAR (2026-09-30) [Nazareno: "Me gustaria que aparezca en el boton de control
+  -- ... Tendrias que poner los de talleristas, p.s. y prov de insumo"]. El control de un insumo que
+  -- se controla en OTRA pagina (control-remaches / control-cajas) solo se abria con la redireccion
+  -- automatica al guardar la recepcion: si el operario salia, quedaba controlado=false y ninguna
+  -- pantalla lo llevaba de vuelta (caso real: E13, C13, GRJ31 y GRJ32 de Importado). Va AGRUPADO
+  -- por sector y proveedor (una fila por pantalla de control, no una por recepcion) y la pantalla
+  -- decide con gp2-control-insumo.js (GP2CI) a donde lleva cada grupo: un grupo sin pantalla de
+  -- control no se muestra. via='pesaje' son los flejes, cuyo control es el pesaje por pallet de
+  -- Recepcion de Insumos y no marca controlado: mismo criterio que pendientesDePesaje() de esa
+  -- pantalla (pallets sin pesar o 'sin controlar' en v_recepcion_control).
+  'insumos_pend', coalesce((select jsonb_agg(jsonb_build_object(
+            'via', g.via, 'sector_id', g.sector_id, 'sector', g.sector, 'proveedor', g.proveedor,
+            'n', g.n, 'codigos', to_jsonb(g.codigos), 'desde', g.desde
+          ) order by g.desde, g.sector_id, g.proveedor)
+      from (select 'control'::text as via, c.sector_id, s.nombre as sector,
+                   nullif(trim(r.proveedor), '') as proveedor, count(*) as n,
+                   (array_agg(distinct c.codigo order by c.codigo))[1:8] as codigos, min(r.fecha) as desde
+              from recepcion_insumo r
+              join componente c on c.id = r.componente_id
+              left join sector s on s.id = c.sector_id
+             where not coalesce(r.controlado, false) and c.sector_id <> 5
+             group by c.sector_id, s.nombre, nullif(trim(r.proveedor), '')
+            union all
+            select 'pesaje', c.sector_id, s.nombre, nullif(trim(r.proveedor), ''), count(*),
+                   (array_agg(distinct c.codigo order by c.codigo))[1:8], min(r.fecha)
+              from v_recepcion_control v
+              join recepcion_insumo r on r.id = v.recepcion_id
+              join componente c on c.id = r.componente_id
+              left join sector s on s.id = c.sector_id
+             where c.sector_id = 5 and (v.pallets_sin_pesar > 0 or v.estado = 'sin controlar')
+             group by c.sector_id, s.nombre, nullif(trim(r.proveedor), '')) g), '[]'::jsonb)
 );
-$function$
-;
-
+$function$;
 -- ---------- control_envios_bundle ----------
 CREATE OR REPLACE FUNCTION "GP2".control_envios_bundle(p_desde date, p_hasta date)
  RETURNS jsonb
