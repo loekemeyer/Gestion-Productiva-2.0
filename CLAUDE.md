@@ -183,6 +183,21 @@ estaba **vivo**, Calcular Cajones, se migró el 2026-09-13 (`CalcularCajones_GP2
 `GP2.cajon`). El mapa completo, con lo
 que se borró y lo que se relinkeó antes de borrar, está en `MIGRACION_PUBLIC_GP2.md`.
 
+# 🔁 REGLA GENERAL (30/09/2026): Cervantes (GP2) y Virgilio (GV) SE HABLAN — no es una excepción
+
+[usuario, 30/09] *"establecé esta regla como general porque no es una eventualidad, suele pasar que haya
+interacción entre Cervantes (GP2) y Virgilio"*. Toda mercadería o aviso que cruza de una planta a la otra
+sigue el mismo molde (el mismo bloque está en el `CLAUDE.md` de `loekemeyer/Gestion-Virgilio`):
+
+| pieza | cómo |
+|---|---|
+| frontera | una tabla en el schema **`GP2`** (GP2 nunca lee `public`: Regla 0). Virgilio escribe ahí con una función `public.gv_*` SECURITY DEFINER. Hoy: `GP2.ingreso_virgilio` (GV → GP2), `GP2.aceptado_virgilio` (lo que GV le acepta a GP2) y los espejos de solo lectura `GP2.virgilio_insumo_stock` / `virgilio_insumo_ubicacion` / `virgilio_lugar` |
+| códigos | GV habla en código de ARTÍCULO (323ES), GP2 en COMPONENTE / sector (GRJ31). El vínculo vive en una tabla de mapeo (`GP2.importado_virgilio_componente`) y **nunca se adivina**: sin fila, el aviso sale "sin componente" y no se puede aceptar |
+| confirmar | el que recibe dice **Sí / No** donde trabaja, en la tarjeta del componente — no en un cartel de portada |
+| Sí | el MISMO camino que la carga manual (misma RPC, mismo control en kg pendiente): sin atajos al stock |
+| No | cada lado toca SÓLO su fila; la reacción del otro lado la hace un trigger de ESE lado (`public.gv_ingreso_virgilio_denegado`) y se ve **donde se cargó** («⛔ Denegado por Cervantes») |
+| memoria | se anota en las dos: `CONOCIMIENTO_GP2.md` (§4gx, 4gy, 4gz, 4hf) y el `CLAUDE.md` de Gestión Virgilio |
+
 # ⚠️ ANTES DE CUALQUIER EDIT/WRITE: LEER LOCKS.txt Y REGISTRAR LockX. SIN EXCEPCIONES. ⚠️
 
 # 🚨 TODO VA A `main`. SIEMPRE. SIN RAMAS. 🚨

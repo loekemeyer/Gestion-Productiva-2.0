@@ -13933,6 +13933,8 @@ CONFIRMALO Y UBICALO» (falta implementar confirmación y ubicación)"*.
 - **Falta**: confirmar (pasa a `confirmado`) y ubicar (entra al `inventario` en su `ubicacion`, con
   `componente_id`). [dato] Hoy **no hay** vínculo entre el código importado/insumo de Virgilio (1000900,
   H201Part, 007) y el `componente` de GP2: ubicar exige ese mapeo primero.
+- ⚠ **Retirado el 30/09 (v1.216.0): el cartel de la portada ya no existe.** El aviso pasó a Recepción de
+  Insumos con Sí / No por componente — ver 4hf.
 
 ## 4hc. El botón "Control" de la tablet es de TODO lo que se recibe, y sólo en Recibir (2026-09-30)
 
@@ -14072,3 +14074,27 @@ Pettofrezza R3A (789). Sin esa fila no hay máximo, y la tablet no sabe que se l
 [deducido]. Es el paso 2 de la normalización (`inventario` para el componente nuevo) que se salteó al
 cargar esas rutas (ids 1078-1087 son de Danica y Cavallero). Crear las filas es cambio de datos fuera
 de lo pedido: queda propuesto.
+
+## 4hf. El aviso de Virgilio se contesta Sí / No en la tarjeta del componente (2026-09-30)
+
+[usuario, 30/09] *"En GV los códigos de importados son códigos de artículo terminado. En GP2 los mismos
+componentes importados aparecen con el código de sector. Ej: 323ES de GV es GRJ31 de GP2 … que en la tabla de
+Supa identifiques qué código matchea con qué sector"* · *"«Gestión Virgilio notificó que recibiste 3000 unidades
+de GRJ31: Sí/No». Sí: sumar stock a ese componente. No: en GV, donde se cargaron, que vuelvan a aparecer con un
+cartelito de «Denegado por Cervantes»"*.
+
+- **Mapeo** `GP2.importado_virgilio_componente` (código de Virgilio → `componente_id`), 12 filas [usuario eligió
+  "los 8 de la tabla"]: 323ES→GRJ31 · 599E/599ES→GRJ32 · 1000900/H201Part/007→D1 · 1546903/546P→C13 · 523C→E13 ·
+  587C→Z23B · 590ES→PINCEL590 · 505C→Z23A. Busca primero por código de insumo y después por código importado.
+- **Sí** = `GP2.resolver_ingreso_virgilio(id, true)`: hace la MISMA recepción que una carga manual de Importado
+  (`crear_recepcion_insumo`, remito `Virgilio #<id>`, `controlado = false`) → queda el **control en kg**
+  pendiente, con link directo a su pantalla. [usuario eligió "Recepción + control en kg"]
+- **No** = `resolver_ingreso_virgilio(id, false, motivo)`: la fila pasa a `denegado`. GP2 sólo toca SU fila; del
+  lado de Virgilio un trigger (`public.gv_ingreso_virgilio_denegado`) devuelve el pedido **a «en viaje»**
+  (bache `en_curso`, se descuentan las unidades) y la pantalla de Importados lo marca **«⛔ Denegado por
+  Cervantes»** para recibirlo de nuevo. [usuario eligió "Vuelve a en viaje"]
+- Un aviso sin componente mapeado sale aparte ("sin componente") con el Sí apagado: se puede decir No, no Sí.
+- ⚠ **Si ya se cargó a mano antes de que llegara el aviso, igual se contesta Sí o No** [usuario: "Sí/No sin nada
+  más"]: no hay botón «ya lo cargué». Caso real 30/09: 3.000 u de 323ES llegaron también a mano (recepción
+  17082, 13:38): el aviso #4 se vinculó a esa recepción a mano, sin duplicar stock.
+- `db/migracion_ingreso_virgilio_resolver.sql` (GP2) + `sql/gv_ingreso_cervantes_denegado_v2534.sql` (Virgilio).

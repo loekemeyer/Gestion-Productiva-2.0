@@ -228,15 +228,6 @@ a.tablet-link:hover{background:#1d4ed8}
 #kpiResumen:empty{display:none}
 @media (max-width:640px){#kpiResumen{font-size:11px}}
 
-/* ── aviso de Virgilio (v1.208.0, Luis 2026-09-30) ── */
-.aviso-vir{max-width:1200px;margin:12px auto 0;padding:14px 18px;background:#fef3c7;border:3px solid #d97706;border-radius:14px;color:#78350f}
-.aviso-vir h2{margin:0 0 8px;font-size:24px;line-height:1.2;color:#92400e}
-.aviso-vir ul{margin:0;padding-left:22px;font-size:19px;line-height:1.45}
-.aviso-vir li b{color:#451a03}
-.aviso-vir .av-meta{font-size:14px;color:#92400e}
-.aviso-vir .av-pie{margin-top:8px;font-size:15px;font-weight:700}
-@media (max-width:640px){.aviso-vir{margin:10px 10px 0}.aviso-vir h2{font-size:20px}.aviso-vir ul{font-size:17px}}
-
 /* ── footer ── */
 .foot{max-width:1200px;margin:0 auto;padding:0 16px;color:#475569;font-size:12px;text-align:center}
 </style></head><body>
@@ -249,7 +240,7 @@ a.tablet-link:hover{background:#1d4ed8}
     (GP2_AUTH_ON=false) no hay sesion que cerrar: el link se oculta solo -->
     <span id="sesion" hidden>&nbsp;·&nbsp; <a href="login.html?logout=1" onclick="try{sessionStorage.clear();}catch(e){}"
     style="color:#b42318;text-decoration:none;font-weight:700">⎋ Cerrar sesión</a></span></div>
-  <script src="version.js?v=20260930o"></script>
+  <script src="version.js?v=20260930p"></script>
   <script>if (window.GP2_AUTH_ON !== false) document.getElementById('sesion').hidden = false;</script>
   <div class="tablet-links">
     <a class="tablet-link" href="Tablet/Tablet_GP2.html">📱 <span class="tl-v">Versión </span>Tablet Logística</a>
@@ -257,9 +248,10 @@ a.tablet-link:hover{background:#1d4ed8}
   </div>
 </div>
 
-<!-- v1.209.0 (Luis 2026-09-30): lo que Gestion Virgilio recibio con destino Cervantes y todavia
-     nadie confirmo. Sale de GP2.ingreso_virgilio (estado pendiente). Confirmar y ubicar: pendiente. -->
-<div id="avisoVirgilio" class="aviso-vir" hidden></div>
+<!-- v1.216.0 (2026-09-30): el cartel "VIRGILIO DICE QUE TE LLEGO ESTO" se saco de la portada [usuario:
+     "El cartel amarillo de GP2 quiero que lo elimines de donde esta ahora"]. Lo que Gestion Virgilio
+     manda a Cervantes ahora aparece en Recepcion de Insumos > Importados, en la tarjeta del componente,
+     con Si / No (StockFlejes/RecepcionInsumos_GP2.html v3.66.0). -->
 
 <div class="wrap"><div class="grid" id="grid"></div></div>
 <script>
@@ -464,30 +456,6 @@ if (MENU_VISIBLE.length % 2 === 1) grid.lastElementChild.classList.add("solo");
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="supabase-config.js?v=20260929a"></script>
 <script src="gp2-ui.js?v=20260930a"></script>
-<script src="gp2-numero.js?v=20260911o"></script>
-<script>
-/* v1.209.0 (Luis 2026-09-30) - "VIRGILIO DICE QUE TE LLEGO ESTO": cuando Gestion Virgilio recibe una
-   importacion con destino Cervantes (sobre todo insumos), no entra al stock de Virgilio y queda en
-   GP2.ingreso_virgilio como pendiente. Aca se muestra grande hasta que alguien lo confirme y lo
-   ubique (esa parte todavia no esta hecha). Su propio try: si falla no toca el resto del menu. */
-(async () => {
-  try {
-    const { data, error } = await GP2_SB().from("ingreso_virgilio")
-      .select("id,creado_en,cod_importado,cod_insumo,descripcion,cantidad,unidad,proveedor,pedido_ref,nota")
-      .eq("estado", "pendiente").order("creado_en", { ascending: true });
-    if (error || !data || !data.length) return;
-    const e = GP2UI.esc;
-    const box = document.getElementById("avisoVirgilio");
-    box.innerHTML = '<h2>📦 VIRGILIO DICE QUE TE LLEGÓ ESTO — CONFIRMALO Y UBICALO</h2><ul>' + data.map(function (r) {
-      return '<li><b>' + GP2N.fmt(r.cantidad, 0) + ' ' + e(r.unidad || '') + '</b> de <b>' + e(r.cod_insumo || r.cod_importado || '') + '</b> ' +
-        e(r.descripcion || '') + ' <span class="av-meta">· ' + e(r.proveedor || '') + (r.pedido_ref ? ' · pedido ' + e(r.pedido_ref) : '') +
-        (r.cod_insumo && r.cod_importado && r.cod_insumo !== r.cod_importado ? ' · importado ' + e(r.cod_importado) : '') +
-        ' · ' + e(GP2UI.fechaTsAR(r.creado_en)) + (r.nota ? ' · ' + e(r.nota) : '') + '</span></li>';
-    }).join('') + '</ul><div class="av-pie">La confirmación y la ubicación todavía no están hechas: por ahora avisá a Virgilio si algo no llegó.</div>';
-    box.hidden = false;
-  } catch (err) { console.error(err); }
-})();
-</script>
 <script>
 /* Datos vivos del menu. Antes vivian en Inicio/index_GP2.html, que era una copia
    del menu viejo y quedo como redirect: el RPC "GP2".inicio_bundle() se trajo aca
