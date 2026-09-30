@@ -383,6 +383,33 @@ create table "GP2".fleje_detalle (
 comment on table "GP2".fleje_detalle is 'Datos propios de cada fleje (n° de fleje, medida, codigo ISIS, kg por unidad despiece, consumo mensual, kg x cajon); una fila por componente de Sector Fleje.';
 comment on column "GP2".fleje_detalle.descripcion_parte is 'NO es una copia de componente.descripcion: es la PARTE que sale de ese fleje, otro dato. Difiere en las 52 filas y esta bien.';
 
+-- ---------- ingreso_virgilio ----------
+create table "GP2".ingreso_virgilio (
+  id bigint generated always as identity not null,
+  creado_en timestamp with time zone not null default now(),
+  creado_por text,
+  origen text not null default 'importacion'::text,
+  recepcion_id bigint,
+  bache_id bigint,
+  cod_importado text,
+  cod_insumo text,
+  descripcion text,
+  cantidad numeric not null,
+  unidad text not null,
+  proveedor text,
+  pedido_ref text,
+  nota text,
+  estado text not null default 'pendiente'::text,
+  confirmado_en timestamp with time zone,
+  confirmado_por text,
+  ubicacion_id bigint,
+  componente_id bigint,
+  constraint ingreso_virgilio_cantidad_check CHECK ((cantidad > (0)::numeric)),
+  constraint ingreso_virgilio_estado_check CHECK ((estado = ANY (ARRAY['pendiente'::text, 'confirmado'::text, 'anulado'::text]))),
+  constraint ingreso_virgilio_pkey PRIMARY KEY (id)
+);
+comment on table "GP2".ingreso_virgilio is 'v25.10 (Luis 30/09): lo que Gestion Virgilio mando a Cervantes (recepcion de importados con destino Cervantes). La portada de GP2 lo muestra como "VIRGILIO DICE QUE TE LLEGO ESTO" mientras esta pendiente. Lo escribe public.gv_imp_recibir (SECURITY DEFINER). Confirmar y ubicar: pendiente.';
+
 -- ---------- inventario ----------
 create table "GP2".inventario (
   id bigint not null default nextval('"GP2".inventario_id_seq'::regclass),

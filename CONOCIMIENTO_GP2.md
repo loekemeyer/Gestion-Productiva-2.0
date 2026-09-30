@@ -13887,7 +13887,25 @@ Contexto: app unificada `GP2-Registro-Produccion`, se arranca por Cervantes. Tab
   pisaron: `codigo` no es único en la base y un código repetido rompe todo lo que busca por código. Queda en
   `GRJ31`/`GRJ32` hasta que el dueño diga si los palos se mueven de código o si es otra numeración.
 
-## 4gx. El botón "Control" de la tablet es de TODO lo que se recibe, y sólo en Recibir (2026-09-30)
+## 4gx. Lo que Virgilio manda a Cervantes aparece en la portada de GP2 (2026-09-30)
+
+[usuario, Luis 30/09] *"Cuando Gestión Virgilio marca que se ingresa algo en Cervantes, tiene que figurar
+un cartel grande en la página principal de GP2 que diga «VIRGILIO DICE QUE TE LLEGÓ ESTO [detalle],
+CONFIRMALO Y UBICALO» (falta implementar confirmación y ubicación)"*.
+
+- En Gestión Virgilio, la **recepción de importados** tiene el destino **«Cervantes»** primero en la lista
+  (sobre todo insumos). Lo que va ahí **no entra al stock de Virgilio**.
+- Queda una fila en **`GP2.ingreso_virgilio`** (`estado = 'pendiente'`): cantidad, unidad, código importado,
+  código de insumo, descripción, proveedor, pedido, nota. La escribe `public.gv_imp_recibir` (del lado de
+  Virgilio, SECURITY DEFINER). **GP2 no lee `public`**: el dato vive en su propio schema (Regla 0).
+- `GP2_MODULOS.html` lo muestra en un cartel grande (`#avisoVirgilio`) mientras esté pendiente.
+- Si Virgilio anula esa recepción, la fila pasa a `anulado` y el cartel deja de mostrarla. No se puede anular
+  si Cervantes ya la confirmó.
+- **Falta**: confirmar (pasa a `confirmado`) y ubicar (entra al `inventario` en su `ubicacion`, con
+  `componente_id`). [dato] Hoy **no hay** vínculo entre el código importado/insumo de Virgilio (1000900,
+  H201Part, 007) y el `componente` de GP2: ubicar exige ese mapeo primero.
+
+## 4gy. El botón "Control" de la tablet es de TODO lo que se recibe, y sólo en Recibir (2026-09-30)
 
 - [usuario] Nazareno: *"Cargué una recepción en recepción de insumos y no hice el control. Ahora voy a control y no
   me aparece"*. Y la regla: *"Me gustaría que aparezca en el botón de control que está a la izquierda del botón atrás
