@@ -7,6 +7,8 @@
      - que los rubros que no son sector (Prov AT, Tránsito) rendericen su tabla,
      - el PAYLOAD EXACTO del Ajuste +/- (heredado, contrato que no cambia),
      - los últimos movimientos, y el render celular (390px, tocable, 18px).
+   v2.8.0 (2026-10-01): las 3 pestañas se ven IGUAL — Cervantes ya no tiene el botón "Todos los
+   rubros" ni rótulos de grupo; la vista transversal sigue, pero se abre desde "ver todo junto →".
    v2.7.0 (2026-10-01): las 3 cajas DE VERDAD (Cervantes / Virgilio / Terceros — Prov. Servicio,
    Talleristas, Prov. Art. Term. e Inyectores se mudan a su propia pestaña, ya no "Otros" adentro
    de Cervantes) y, en Virgilio, SC/SP/Fleje/Plástico/Caja muestran TODO el universo del sector
@@ -319,18 +321,16 @@ window.supabase = { createClient: function(){ return {
     Array.from(document.querySelectorAll('#tbody tr .cod')).map(e => e.textContent).join(','));
   ok(ordGar === 'GRJ4,GRJ10,GRJ10A,GRJ12', 'Garage: orden numerico del codigo — ' + ordGar);
 
-  // ── Tránsito PS y Art. Terminado: rubros de Cervantes, grupo Sectores (NO se mudaron a Terceros) ──
-  const grupos = await page.evaluate(() => {
-    const g = {}; let cur = null;
-    document.querySelectorAll('#rubros > div').forEach(d => {
-      if (d.classList.contains('rubro-grp')) cur = d.textContent.trim();
-      else d.querySelectorAll('.rubro-btn').forEach(b => { g[b.textContent.trim()] = cur; });
-    });
-    return g;
-  });
-  ok(grupos['Tránsito PS'] === 'Sectores', 'Tránsito PS está en el grupo Sectores (' + grupos['Tránsito PS'] + ')');
-  ok(grupos['Art. Terminado'] === 'Sectores', 'Art. Terminado está en el grupo Sectores (' + grupos['Art. Terminado'] + ')');
-  ok(!grupos['Inyectores'], 'Inyectores ya no vive en el selector de Cervantes (se mudó a Terceros)');
+  // ── Tránsito PS y Art. Terminado: rubros de Cervantes (NO se mudaron a Terceros) ──
+  // v2.8.0: Cervantes arranca igual que Virgilio y Terceros — "Rubro" + botones, sin "🔎 Todos los
+  // rubros" ni rótulos de grupo [usuario: "Solo en Cervantes me aparece buscar todos los rubros.
+  // Eliminá así quedan todos los módulos igual"].
+  const rubrosCerv = await page.$$eval('#rubros .rubro-btn', xs => xs.map(x => x.textContent.trim()));
+  ok(rubrosCerv.indexOf('Tránsito PS') >= 0 && rubrosCerv.indexOf('Art. Terminado') >= 0,
+     'Tránsito PS y Art. Terminado siguen en el selector de Cervantes — ' + rubrosCerv.join(' | '));
+  ok(rubrosCerv.indexOf('Inyectores') < 0, 'Inyectores ya no vive en el selector de Cervantes (se mudó a Terceros)');
+  ok(!rubrosCerv.some(t => /Todos los rubros/i.test(t)), 'Cervantes: SIN el botón "Todos los rubros"');
+  ok(!(await page.locator('#rubros .rubro-grp').count()), 'Cervantes: sin rótulos de grupo ("Buscar" / "Sectores"), igual que Terceros y Virgilio');
 
   await page.click('#rubros .rubro-btn:has-text("Tránsito PS")');
   await page.waitForFunction(() => /Laboratorio FAAT → Guazzaroni Patricio/.test(document.getElementById('tbody').innerText));
@@ -342,20 +342,27 @@ window.supabase = { createClient: function(){ return {
   const artRow = await page.$eval('#tbody tr', e => e.textContent.replace(/\s+/g, ' ').trim());
   ok(/T1/.test(artRow) && /36/.test(artRow), 'Art. Terminado: T1 con 36 unidades (3 cajas de 12) — ' + artRow);
 
-  // ── BUSCAR SIN SABER EL RUBRO (v2.1.0) ──
-  // 1) el rubro "Todos": una tabla con todo el inventario, con Rubro + Dónde y sin movimientos
-  await page.click('#rubros .rubro-btn:has-text("Todos los rubros")');
-  await page.waitForFunction(() => /Martin/.test(document.getElementById('tbody').innerText));
+  // ── BUSCAR SIN SABER EL RUBRO (v2.1.0; v2.8.0: sin botón, se entra por "ver todo junto →") ──
+  // 1) adentro de un rubro, lo que NO tiene botón propio igual se encuentra: T1 vive en el sector
+  //    Terminado (sin rubro) y "ver todo junto →" abre la tabla transversal con Rubro + Dónde
+  await page.click('#rubros .rubro-btn:has-text("Stock SC")');
+  await page.fill('#q', 'T1');
+  await page.waitForFunction(() => /ver todo junto/.test(document.getElementById('hintOtros').innerText));
+  await page.click('#hintOtros a:has-text("ver todo junto")');
+  await page.waitForFunction(() => document.getElementById('thead').innerText.toUpperCase().indexOf('DÓNDE') >= 0);
   const glo = await page.evaluate(() => ({
     thead: document.getElementById('thead').innerText,
     body: document.getElementById('tbody').innerText,
     horizontal: document.documentElement.scrollWidth > window.innerWidth,
+    activos: document.querySelectorAll('#rubros .rubro-btn.active').length,
+    cerv: document.getElementById('tabCervantes').classList.contains('active'),
   }));
   ok(/RUBRO/i.test(glo.thead) && /DÓNDE/i.test(glo.thead), 'Todos: la tabla dice en qué rubro y en qué lugar está cada fila');
   ok(!/FABRICACIÓN/i.test(glo.thead), 'Todos: sin columnas de movimiento (cada rubro tiene las suyas)');
   ok(!glo.horizontal, 'Todos: celular 390px sin scroll horizontal');
   ok(/T1/.test(glo.body) && /Terminado/.test(glo.body),
      'Todos: aparece lo que NO tiene botón propio (T1 en el sector Terminado), antes invisible');
+  ok(glo.activos === 0 && glo.cerv, 'Todos: queda en Cervantes y no marca ningún botón (no tiene botón propio)');
 
   // 2) el mismo código en dos lugares distintos, de un saque
   await page.fill('#q', 'B5');
@@ -382,16 +389,21 @@ window.supabase = { createClient: function(){ return {
      'el salto a Talleristas cambió la pestaña a Terceros sola');
 
   // 4) en "Todos", la celda del rubro también lleva a esa pantalla
+  //    v2.8.0: volver a Cervantes abre el último rubro CON botón (SC), no la vista sin botón
   await page.click('#tabCervantes');
-  await page.click('#rubros .rubro-btn:has-text("Todos los rubros")');
+  await page.waitForFunction(() => document.title.indexOf('Stock SC') >= 0);
+  ok(await page.locator('#rubros .rubro-btn.active:has-text("Stock SC")').count() === 1,
+     'volver a Cervantes abre Stock SC (el último rubro con botón), no "Todos"');
+  await page.click('#hintOtros a:has-text("ver todo junto")');
   await page.waitForFunction(() => document.querySelectorAll('#tbody td.rub-cell').length > 0);
   await page.click('#tbody td.rub-cell:has-text("Talleristas")');
   await page.waitForFunction(() => document.title.indexOf('Talleristas') >= 0);
   ok(true, 'Todos: click en el rubro de la fila abre ese rubro');
-  // de nuevo saltó a Terceros: volver a Cervantes para seguir buscando en "Todos"
+  // de nuevo saltó a Terceros: volver a Cervantes y entrar a "Todos" buscando la resina
   await page.click('#tabCervantes');
-  await page.click('#rubros .rubro-btn:has-text("Todos los rubros")');
   await page.fill('#q', '2405');
+  await page.waitForFunction(() => /ver todo junto/.test(document.getElementById('hintOtros').innerText));
+  await page.click('#hintOtros a:has-text("ver todo junto")');
   await page.waitForFunction(() => /2405/.test(document.getElementById('tbody').innerText));
   const r2405 = await page.evaluate(() => Array.from(document.querySelectorAll('#tbody tr')).map(t => t.innerText.replace(/\s+/g, ' ')));
   ok(r2405.length === 2 && r2405.every(t => /Inyectores/.test(t)),

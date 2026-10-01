@@ -14361,3 +14361,19 @@ otra fila lo contenga, ej. 5010 con "501"); sin código exacto, la **primera fil
 hace nada y el panel queda abierto. Respeta el chip de marca puesto. Sólo front
 (`Programa/Programa.html`, `elegirArticulo`). `tests/ui/test_programa_enter.js` (falla contra el
 HTML anterior). version.js v1.226.1 ?v=20261001g.
+
+## 4ht. Stock General: las 3 pestañas arrancan igual — sin botón «Todos los rubros» (2026-10-01)
+
+[usuario, 01/10] *"Solo en Cervantes me aparece buscar todos los rubros. Eliminá así quedan todos los
+módulos igual"*. Stock General v2.8.0: Cervantes pierde el botón «🔎 Todos los rubros» y los rótulos
+«Buscar» / «Sectores» (un grupo solo no lleva rótulo, mismo criterio que Terceros desde §4hr). Las 3
+pestañas quedan «Rubro» + botones.
+
+⚠ **Lo que NO se borró, a propósito:** la vista transversal de §v2.1.0 (*"si no sé a qué sector
+pertenece el componente tengo que entrar uno por uno"*). Sigue viva, sin botón: al buscar adentro
+de cualquier rubro de Cervantes o Terceros aparece «También en otros rubros… · **ver todo junto →**»
+y ese link la abre. Es la única puerta a lo que no tiene botón propio (sectores sin rubro, ej. T1 en
+Terminado / Y1 en Afilado). [deducido] Si el pedido era borrar también la búsqueda transversal, es
+sacar el link y el rubro `all` (`oculto:true` en `RUBROS`). Volver a la pestaña abre el último rubro
+CON botón (`LAST_KEY` no guarda `all`). Sólo front. `tests/ui/test_stock_general.js` (+5 chequeos,
+falla contra el HTML anterior). version.js v1.226.2 ?v=20261001h.
