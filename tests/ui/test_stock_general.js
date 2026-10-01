@@ -6,7 +6,8 @@
      - que Flejes NO tenga Caj ni Uni×Cajón (y sí N° Fleje),
      - que los rubros que no son sector (Prov AT, Tránsito) rendericen su tabla,
      - el PAYLOAD EXACTO del Ajuste +/- (heredado, contrato que no cambia),
-     - los últimos movimientos, y el render celular (390px, tocable, 18px).  */
+     - los últimos movimientos, y el render celular (390px, tocable, 18px).
+   v2.4.0 (2026-10-01): tocar el Máximo abre su desglose (maximo_desglose por comp + ubic). */
 const { chromium } = require('playwright');
 const path = require('path');
 const fs = require('fs');
@@ -88,6 +89,24 @@ const SECTOR = {
     })),
   },
 };
+/* v2.4.0: maximo_desglose(comp, ubic) por fila. A10 en D1 (ubic 1) = consumo x meses (Crudo/
+   Procesado, con tope de 5 cajones que no llega); F1 (ubic 9) = fleje en kg por articulo. */
+const MAXD = {
+  '10:1': {
+    base: 'articulos', unidad: 'uni', maximo: 200, maximo_origen: 'consumo_meses', meses: 2,
+    consumo_mes: 100, consumo_x_meses: 200, tope_cajones: 500, cajones: 5,
+    comp: { cod: 'A10', uni_x_cajon: 100 }, ubic: { tipo: 'sector', nom: 'D1' },
+    filas: [
+      { cod: '501', desc: 'Art uno', venta_uni_mes: 60, aporte_uni_mes: 60, aporte_kg: 3 },
+      { cod: '502', desc: 'Art dos', venta_uni_mes: 40, aporte_uni_mes: 40, aporte_kg: 2 },
+    ],
+  },
+  '40:9': {
+    base: 'articulos', unidad: 'kg', maximo: 50, maximo_origen: 'est_madre', meses: 5,
+    consumo_mes: 10, consumo_x_meses: 50, comp: { cod: 'F1' }, ubic: { tipo: 'sector', nom: 'Fleje' },
+    filas: [{ cod: '501', desc: 'Art uno', venta_uni_mes: 60, aporte_kg: 10 }],
+  },
+};
 const MOVS = [{
   id: 1, fecha: '2026-08-30T12:00:00', tipo_mov: 'ajuste', comp_id: 10,
   ubic_origen_id: null, ubic_destino_id: 1, cantidad: -5, unidad_origen: 'uni',
@@ -104,6 +123,7 @@ window.supabase = { createClient: function(){ return {
     if (name === 'stock_sector_bundle') { var S = ${JSON.stringify(SECTOR)}; return { data: S[args.p_sector_id] || { filas: [], ubicacion_id: null }, error: null }; }
     if (name === 'registrar_movimientos') return { data: { ok: true, n: (args.p_rows || []).length }, error: null };
     if (name === 'composicion_stock') return { data: { movs: [] }, error: null };
+    if (name === 'maximo_desglose') { var M = ${JSON.stringify(MAXD)}; return { data: M[args.p_componente_id + ':' + args.p_ubicacion_id] || { base: null, filas: [] }, error: null }; }
     return { data: null, error: { message: 'rpc desconocida ' + name } };
   },
   from: function(){ return { select: function(){ return { order: function(){ return { limit: async function(){
@@ -149,12 +169,38 @@ window.supabase = { createClient: function(){ return {
   ok(/A10/.test(base.row) && /\b100\b/.test(base.row) && /\b5\b/.test(base.row),
      'SC: la fila A10 muestra sus Kg/Caj/Uni — ' + base.row.replace(/\s+/g, ' '));
 
+  // ── v2.4.0: TOCAR EL MÁXIMO ABRE SU DESGLOSE [Elías 2026-10-01] ──
+  ok(await page.locator('#tbody td.max-cell').count() === 1, 'SC: la celda Máximo de A10 se puede tocar');
+  await page.click('#tbody td.max-cell');
+  await page.waitForFunction(() => /Total/.test(document.getElementById('popBody').innerText));
+  const mx = await page.evaluate(() => ({
+    abierto: document.getElementById('popup').classList.contains('open'),
+    titulo: document.getElementById('popTitle').innerText,
+    body: document.getElementById('popBody').innerText,
+    call: window.__rpc.filter(c => c.n === 'maximo_desglose').pop(),
+    horizontal: document.documentElement.scrollWidth > window.innerWidth,
+  }));
+  ok(mx.abierto && /A10/.test(mx.titulo) && /Máximo/.test(mx.titulo), 'Máximo: abre el popup con el código — ' + mx.titulo.replace(/\s+/g, ' '));
+  ok(mx.call && mx.call.a.p_componente_id === 10 && mx.call.a.p_ubicacion_id === 1,
+     'Máximo: pide el desglose de ESA fila (componente + ubicación) — ' + JSON.stringify(mx.call && mx.call.a));
+  ok(/100 uni\/mes × 2 meses = 200 uni/.test(mx.body), 'Máximo: la cuenta en una línea (consumo/mes × meses) — ' + mx.body.split('\n')[0]);
+  ok(/501/.test(mx.body) && /502/.test(mx.body) && /Total \(2\)/.test(mx.body), 'Máximo: la tabla por artículo con su total');
+  ok(!/no coincide/.test(mx.body), 'Máximo: si la cuenta cierra con la celda, no hay aviso');
+  ok(!mx.horizontal, 'Máximo: celular 390px sin scroll horizontal con el popup abierto');
+  await page.click('#popClose');
+
   // ── FLEJES: sin cajones ni Uni×Cajón, con N° Fleje (pedido textual del usuario) ──
   await page.click('.rubro-btn:has-text("Flejes")');
   await page.waitForFunction(() => /F1/.test(document.getElementById('tbody').innerText));
   const fle = await page.evaluate(() => document.getElementById('thead').innerText);
   ok(!/\bCAJ\b/i.test(fle) && !/UNI × CAJÓN/i.test(fle), 'Flejes: NO hay columna de cajones ni Uni×Cajón');
   ok(/N° FLEJE/i.test(fle), 'Flejes: sí aparece N° Fleje');
+  // el fleje va en kg por artículo (de la matriz, igual que el máximo)
+  await page.click('#tbody td.max-cell');
+  await page.waitForFunction(() => /Total/.test(document.getElementById('popBody').innerText));
+  const mxF = await page.locator('#popBody').innerText();
+  ok(/CONSUME\s*\(KG\/MES\)/i.test(mxF) && /10 kg\/mes × 5 meses = 50 kg/.test(mxF), 'Máximo fleje: en kg por artículo — ' + mxF.replace(/\s+/g, ' '));
+  await page.click('#popClose');
 
   // ── SECTORES: el codigo se ordena numerico, no alfabetico (GRJ4 antes que GRJ10) ──
   await page.click('.rubro-btn:has-text("Garage")');
@@ -245,6 +291,7 @@ window.supabase = { createClient: function(){ return {
   await page.waitForFunction(() => /Martin/.test(document.getElementById('tbody').innerText));
   const salto = await page.evaluate(() => ({ q: document.getElementById('q').value, body: document.getElementById('tbody').innerText }));
   ok(salto.q === 'B5' && /B5/.test(salto.body), 'el salto conserva lo buscado y muestra la fila en el otro rubro');
+  ok(await page.locator('#tbody td.max-cell').count() === 0, 'Máximo "—" (B5 en Martin, sin máximo): no se puede tocar');
 
   // 4) en "Todos", la celda del rubro también lleva a esa pantalla
   await page.click('.rubro-btn:has-text("Todos los rubros")');

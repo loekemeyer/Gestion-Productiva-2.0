@@ -1,7 +1,7 @@
 -- =====================================================================
 -- VISTAS del schema GP2 (pg_get_viewdef, exacto) — export automatico 2026-09-11 desde Supabase (hrxfctzncixxqmpfhskv)
 -- Respaldo/referencia. La fuente de verdad es la base; regenerar al cambiar el schema.
--- 32 vistas (2026-09-26: + v_oc_virgilio_pendiente, v_oc_virgilio_partes, v_oc_virgilio_demanda, v_oc_virgilio_partes_tallerista; el orden de dependencia es pendiente -> demanda -> partes_tallerista). Orden de creacion: las que dependen de otra van despues.
+-- 35 vistas (2026-10-01: + v_consumo_fleje_kg_articulo, que va ANTES de v_consumo_fleje_kg porque esta sale de ella; 2026-09-26: + v_oc_virgilio_pendiente, v_oc_virgilio_partes, v_oc_virgilio_demanda, v_oc_virgilio_partes_tallerista; el orden de dependencia es pendiente -> demanda -> partes_tallerista). Orden de creacion: las que dependen de otra van despues.
 -- =====================================================================
 
 -- ---------- v_caj_contraparte ----------
@@ -131,8 +131,8 @@ create or replace view "GP2".v_consumo_demanda as
   GROUP BY w.art_id, w.comp_id;
 comment on view "GP2".v_consumo_demanda is 'Consumo uni/mes por (articulo, componente) para TODA la cadena, caminando la ruta hacia atras desde la receta del articulo terminado. Reemplaza al parche "primer nodo con consumo" que sobrecontaba.';
 
--- ---------- v_consumo_fleje_kg ----------
-create or replace view "GP2".v_consumo_fleje_kg as
+-- ---------- v_consumo_fleje_kg_articulo ----------
+create or replace view "GP2".v_consumo_fleje_kg_articulo as
  WITH paso AS (
          SELECT DISTINCT r.articulo_id AS art_id,
             rp.comp_entrada_id AS fleje_id,
@@ -160,21 +160,30 @@ create or replace view "GP2".v_consumo_fleje_kg as
              LEFT JOIN "GP2".matriz m ON m.id = rp.matriz_id
           WHERE r.articulo_id IS NOT NULL AND rp.comp_salida_id IS NOT NULL AND rp.comp_salida_id <> rp.comp_entrada_id AND rp.tipo_paso <> 'ingreso'::text AND COALESCE(m.partes_por_kilo_de_fleje, 0::numeric) = 0::numeric AND COALESCE(ce.kg_x_uni, 0::numeric) > 0::numeric
         )
- SELECT f.id AS componente_id,
-    f.codigo,
-    f.descripcion,
-    round(sum(
+ SELECT p.art_id AS articulo_id,
+    p.fleje_id AS componente_id,
+    sum(
         CASE
             WHEN p.ppk IS NOT NULL THEN d.uni_mes / p.ppk
             ELSE d.uni_mes * p.kgxuni
-        END), 1) AS consumo_kg_mes,
+        END) AS kg_mes,
     count(*) AS piezas
    FROM paso p
      JOIN "GP2".v_consumo_demanda d ON d.articulo_id = p.art_id AND d.componente_id = p.sal
-     JOIN "GP2".componente f ON f.id = p.fleje_id
+  GROUP BY p.art_id, p.fleje_id;
+comment on view "GP2".v_consumo_fleje_kg_articulo is 'Kg/mes de fleje POR ARTICULO (sin redondear): la misma cuenta de v_consumo_fleje_kg (partes_por_kilo_de_fleje de la matriz, o kg_x_uni de la pieza), antes de sumar por fleje. v_consumo_fleje_kg sale de aca, asi que hay UNA sola definicion. La usa maximo_desglose (Stock General v2.4.0, 2026-10-01) para que la tabla por articulo cierre con el maximo.';
+
+-- ---------- v_consumo_fleje_kg ----------
+create or replace view "GP2".v_consumo_fleje_kg as
+ SELECT f.id AS componente_id,
+    f.codigo,
+    f.descripcion,
+    round(sum(a.kg_mes), 1) AS consumo_kg_mes,
+    sum(a.piezas)::bigint AS piezas
+   FROM "GP2".v_consumo_fleje_kg_articulo a
+     JOIN "GP2".componente f ON f.id = a.componente_id
   GROUP BY f.id, f.codigo, f.descripcion;
 comment on view "GP2".v_consumo_fleje_kg is 'Kg/mes de fleje. Igual que v_consumo_fleje_kg pero tomando la demanda atribuida por articulo (v_consumo_demanda) en vez del consumo entero del primer nodo aguas abajo.';
-
 -- ---------- v_consumo_prov_at ----------
 create or replace view "GP2".v_consumo_prov_at as
  SELECT re.proveedor_at_id,

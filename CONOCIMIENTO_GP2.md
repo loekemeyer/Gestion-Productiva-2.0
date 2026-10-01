@@ -14152,3 +14152,30 @@ nada y avanzamos desde ahí"* · D4 sí, D5 sí · *"después vemos bien lo del 
 - Del lado de Gestión Virgilio se sacaron la v25.39 (bloque 4 de `gv_gp2_espejo_sync`) y la v25.41 (`gv_envio_cervantes_*`).
 - **Pendiente** [usuario]: el contenedor de insumos de Virgilio en GP2 se rearma desde cero, en blanco y sin
   conexión con nada. Antes de construirlo, que Luis defina qué muestra.
+
+## 4hl. Stock General: el Máximo se toca y muestra de qué se compone (2026-10-01)
+
+[usuario, Elías 01/10] *"que el maximo se pueda apretar y muestre el desglose de la misma forma que se hace para
+kg, caj, uni"*.
+
+- La celda Máximo (no "—", con ubicación) abre el popup de la pantalla con **la cuenta en una línea** y la tabla
+  que la arma. RPC `GP2.maximo_desglose(p_componente_id, p_ubicacion_id)`, lectura pura, ~160 ms por llamada.
+- [dato] Cada máximo lo escribe una función distinta y el desglose repite **esa** cuenta, si no la tabla no cierra
+  con la celda. Al 01/10, filas con máximo por origen: `est_madre` 362 (insumos: consumo × meses),
+  `est_madre_x_reparto` 291 (tallerista: consumo × % de reparto × meses), `consumo_meses` 161 (Crudo/Procesado:
+  consumo × meses con tope de 5 cajones; 28 están topeadas), `fisico` 13 (8 resinas en bolsas de 25 kg + 5 a mano:
+  RULETA, PIEA, PIEB, PCP4A, PCP2), `mb_2pct_por_color` 5 (master bach). PS (104 + 2) y Virgilio (79) no se ven en
+  Stock General. Muestra verificada: est_madre 55 (25 flejes), consumo_meses 55, tallerista 30 → 0 que no cierren.
+- [dato] **Los kg del fleje salen de la MATRIZ, no del `kg_x_uni` del fleje.** IC7: 15.842 I12/mes ÷ 31,32
+  `partes_por_kilo_de_fleje` (matriz 4) = 505,8 kg/mes × 6 = 3.035 kg = el máximo. El `kg_x_uni` de IC7
+  (0,01596563) da la mitad. 16 pares fleje-matriz difieren > 5 % (0,22× a 14×; IA10 matriz 107 el peor). Un fleje
+  que alimenta varias matrices (IA10, IF10, IB3) no puede tener un `kg_x_uni` único por pieza. El desglose de la O.C.
+  (`oc_maximo_desglose`) usa `kg_x_uni` y no cierra: **problema abierto en auditoría** + tarea en Proyectos de
+  Planify. [deducido, sin confirmar] el dato bueno es el de la matriz.
+- Para tener el kg por artículo hay vista nueva `GP2.v_consumo_fleje_kg_articulo`; `v_consumo_fleje_kg` ahora suma
+  desde ella (una sola definición). Se verificó que da las mismas 51 filas que antes.
+- [dato] **3 de 8 resinas tienen el máximo viejo**: 2405 2.050 kg cargado vs 1.925 por demanda de hoy, 2465 1.100
+  vs 1.025, 2505 275 vs 250. `recalcular_maximo_material` no está en el recálculo diferido
+  (`fn_recalc_maximos_diferido` corre insumos, talleristas, consumo_meses y mp_ps). El popup lo avisa
+  («⚠ El máximo cargado … no coincide con la cuenta de hoy»), no lo esconde.
+- `Stocks General/StockGeneral_GP2.html` v2.4.0; lo sostiene `tests/ui/test_stock_general.js`.

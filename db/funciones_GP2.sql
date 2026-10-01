@@ -1,7 +1,7 @@
 -- =====================================================================
 -- FUNCIONES del schema GP2 — export automatico 2026-09-28 (pg_get_functiondef, exacto)
 -- Fuente de verdad: Supabase (hrxfctzncixxqmpfhskv). Este archivo es respaldo/referencia.
--- 167 funciones. Los GRANT/REVOKE no estan aca: EXECUTE para anon solo en las RPC de pantalla (ver db/README.md).
+-- 178 funciones. Los GRANT/REVOKE no estan aca: EXECUTE para anon solo en las RPC de pantalla (ver db/README.md).
 -- Desde 2026-09-28 (seguridad fase B) las 62 RPC que escriben llaman a "GP2"._exigir_autorizado() y NO las ejecuta anon.
 -- =====================================================================
 
@@ -4726,6 +4726,152 @@ AS $function$
     'actualizado_en', (select max(actualizado_en) from matriz_racha)
   );
 $function$
+;
+
+-- ---------- maximo_desglose ----------
+CREATE OR REPLACE FUNCTION "GP2".maximo_desglose(p_componente_id bigint, p_ubicacion_id bigint)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'GP2'
+AS $function$
+-- De que se compone el Maximo de UNA fila de inventario (componente, ubicacion). Stock General
+-- v2.4.0 (2026-10-01) [Elias: "que el maximo se pueda apretar y muestre el desglose de la misma
+-- forma que se hace para kg, caj, uni"]. Lectura pura. Cada rama repite la cuenta de la funcion que
+-- ESCRIBE ese maximo, para que la tabla cierre con el numero de la celda:
+--   sector propio, insumo .......... recalcular_maximos_insumos   (consumo x meses)       -> por articulo
+--   sector propio, Crudo/Procesado . recalcular_maximos_consumo_meses (idem, tope 5 cajones) -> por articulo
+--   fleje en kg .................... v_consumo_fleje_kg_articulo  (kg por articulo)        -> por articulo
+--   resina (sector 14) ............. recalcular_maximo_material   (kg de sus piezas, bolsas) -> por pieza
+--   master bach (sector 14) ........ recalcular_maximo_material   (4 % de su color, bolsas)  -> por pieza
+--   tallerista ..................... recalcular_maximos_talleristas (consumo x % de reparto) -> por articulo
+-- Cualquier otra ubicacion devuelve la cabecera sin filas.
+declare
+  c record; u record;
+  v_max numeric; v_origen text; v_meses numeric; v_consumo numeric; v_unidad text := 'uni';
+  v_base text; v_filas jsonb := '[]'::jsonb; v_caj numeric; v_tope numeric;
+  v_kg_bolsa numeric; v_desp numeric; v_mb_pct numeric; v_letra text; v_es_mb boolean := false;
+begin
+  select * into c from componente where id = p_componente_id;
+  select * into u from ubicacion where id = p_ubicacion_id;
+  if c.id is null then raise exception 'componente % no existe', p_componente_id; end if;
+  if u.id is null then raise exception 'ubicacion % no existe', p_ubicacion_id; end if;
+  select i.maximo, i.maximo_origen into v_max, v_origen
+    from inventario i where i.componente_id = c.id and i.ubicacion_id = u.id;
+  v_meses := u.meses_stock;
+
+  if u.tipo = 'tallerista' then
+    -- misma cuenta que v_consumo_tallerista, pero sin sumar los articulos
+    v_base := 'tallerista';
+    with pasos as (
+      select distinct r.articulo_id, rp.comp_entrada_id, rp.comp_salida_id, rp.tallerista_id
+        from ruta_paso rp join ruta r on r.id = rp.ruta_id
+       where rp.tallerista_id = u.ref_id and rp.comp_entrada_id = c.id and r.articulo_id is not null
+    ), x as (
+      select p.articulo_id, max(d.uni_mes) lleva_uni_mes, sum(d.uni_mes * re.pct / 100) aporte, bool_or(re.es_supuesto) sup
+        from pasos p
+        join v_consumo_demanda d on d.articulo_id = p.articulo_id and d.componente_id = p.comp_entrada_id
+        join v_reparto_efectivo re on re.articulo_id = p.articulo_id and re.comp_salida_id = p.comp_salida_id
+                                  and re.tallerista_id = p.tallerista_id
+       group by p.articulo_id
+    )
+    select coalesce(sum(x.aporte), 0),
+           coalesce(jsonb_agg(jsonb_build_object(
+             'cod', a.codigo, 'desc', a.descripcion,
+             'venta_uni_mes', (select round(em.proy_uni_mes) from est_madre em
+                                where regexp_replace(regexp_replace(em.cod,'L$',''),'^0+','') = regexp_replace(a.codigo,'^0+','') limit 1),
+             'lleva_uni_mes', round(x.lleva_uni_mes, 2),
+             'pct', case when x.lleva_uni_mes > 0 then round(100 * x.aporte / x.lleva_uni_mes, 1) end,
+             'supuesto', x.sup,
+             'aporte_uni_mes', round(x.aporte, 2)) order by x.aporte desc), '[]'::jsonb)
+      into v_consumo, v_filas
+      from x join articulo a on a.id = x.articulo_id;
+
+  elsif u.tipo = 'sector' and u.ref_id = c.sector_id then
+    if c.sector_id = 14 then
+      -- resina o master bach: kg, en bolsas (recalcular_maximo_material)
+      v_unidad := 'kg';
+      v_kg_bolsa := coalesce((select valor from parametro where clave = 'material_plastico_kg_x_bolsa'), 25);
+      v_desp := coalesce((select valor from parametro where clave = 'inyeccion_desperdicio_pct'), 0);
+      v_meses := coalesce(v_meses, 2.5);
+      v_es_mb := coalesce(v_origen, '') like 'mb\_%';
+      if v_es_mb then
+        v_base := 'piezas_mb';
+        v_mb_pct := coalesce((select valor from parametro where clave = 'master_bach_pct'), 4);
+        v_letra := case when c.descripcion ilike '%rojo%'   then 'R'
+                        when c.descripcion ilike '%blanco%' then 'B'
+                        when c.descripcion ilike '%azul%'   then 'A'
+                        when c.descripcion ilike '%negro%'  then 'N' end;
+        with x as (
+          select p.codigo, p.descripcion, v.consumo_uni_mes uni,
+                 v.consumo_uni_mes * coalesce(p.kg_x_uni, 0) * (1 + v_desp / 100) resina_kg
+            from componente p join v_consumo_componente v on v.componente_id = p.id
+           where p.material_id is not null and p.mb_color = v_letra
+        )
+        select coalesce(sum(resina_kg) * v_mb_pct / 100, 0),
+               coalesce(jsonb_agg(jsonb_build_object('cod', codigo, 'desc', descripcion,
+                 'aporte_uni_mes', round(uni), 'resina_kg', round(resina_kg, 2),
+                 'aporte_kg', round(resina_kg * v_mb_pct / 100, 2)) order by resina_kg desc), '[]'::jsonb)
+          into v_consumo, v_filas from x;
+      else
+        v_base := 'piezas';
+        with x as (
+          select p.codigo, p.descripcion, coalesce(v.consumo_uni_mes, 0) uni,
+                 coalesce(v.consumo_uni_mes, 0) * coalesce(p.kg_x_uni, 0) * (1 + v_desp / 100) kg
+            from componente p left join v_consumo_componente v on v.componente_id = p.id
+           where p.material_id = c.id
+        )
+        select coalesce(sum(kg), 0),
+               coalesce(jsonb_agg(jsonb_build_object('cod', codigo, 'desc', descripcion,
+                 'aporte_uni_mes', round(uni), 'aporte_kg', round(kg, 2)) order by kg desc)
+                 filter (where kg > 0), '[]'::jsonb)
+          into v_consumo, v_filas from x;
+      end if;
+    elsif c.sector_id = 5 and c.unidad_medida = 'kg' then
+      v_unidad := 'kg';
+      v_base := 'articulos';
+      -- redondeado igual que v_consumo_fleje_kg, que es de donde sale el maximo
+      select coalesce(round(sum(f.kg_mes), 1), 0),
+             coalesce(jsonb_agg(jsonb_build_object('cod', a.codigo, 'desc', a.descripcion,
+               'venta_uni_mes', (select round(em.proy_uni_mes) from est_madre em
+                                  where regexp_replace(regexp_replace(em.cod,'L$',''),'^0+','') = regexp_replace(a.codigo,'^0+','') limit 1),
+               'aporte_kg', round(f.kg_mes, 2)) order by f.kg_mes desc), '[]'::jsonb)
+        into v_consumo, v_filas
+        from v_consumo_fleje_kg_articulo f join articulo a on a.id = f.articulo_id
+       where f.componente_id = c.id;
+    else
+      v_base := 'articulos';
+      -- redondeado igual que v_consumo_componente, que es de donde sale el maximo
+      select coalesce(round(sum(d.uni_mes)), 0),
+             coalesce(jsonb_agg(jsonb_build_object('cod', a.codigo, 'desc', a.descripcion,
+               'venta_uni_mes', (select round(em.proy_uni_mes) from est_madre em
+                                  where regexp_replace(regexp_replace(em.cod,'L$',''),'^0+','') = regexp_replace(a.codigo,'^0+','') limit 1),
+               'aporte_uni_mes', round(d.uni_mes, 2),
+               'aporte_kg', case when c.kg_x_uni is not null then round(d.uni_mes * c.kg_x_uni, 2) end)
+               order by d.uni_mes desc), '[]'::jsonb)
+        into v_consumo, v_filas
+        from v_consumo_demanda d join articulo a on a.id = d.articulo_id
+       where d.componente_id = c.id;
+      -- Crudo / Procesado: el maximo no pasa de 5 cajones (recalcular_maximos_consumo_meses)
+      if c.sector_id in (1, 2) and coalesce(c.uni_x_cajon, 0) > 0 then
+        v_caj := coalesce(nullif((select valor from parametro where clave = 'max_cajones_x_ubicacion'), 0), 5);
+        v_tope := round(v_caj * c.uni_x_cajon);
+      end if;
+    end if;
+  end if;
+
+  return jsonb_build_object(
+    'comp', jsonb_build_object('id', c.id, 'cod', c.codigo, 'desc', c.descripcion, 'sector_id', c.sector_id,
+                               'um', c.unidad_medida, 'kg_x_uni', c.kg_x_uni, 'uni_x_cajon', c.uni_x_cajon),
+    'ubic', jsonb_build_object('id', u.id, 'tipo', u.tipo, 'nom', u.nombre),
+    'maximo', v_max, 'maximo_origen', v_origen,
+    'meses', v_meses, 'unidad', v_unidad,
+    'consumo_mes', round(v_consumo, 2),
+    'consumo_x_meses', case when v_consumo is not null and v_meses is not null then round(v_consumo * v_meses, 2) end,
+    'tope_cajones', v_tope, 'cajones', v_caj,
+    'kg_x_bolsa', v_kg_bolsa, 'desperdicio_pct', v_desp, 'mb_pct', v_mb_pct, 'mb_color', v_letra,
+    'base', v_base, 'filas', v_filas);
+end $function$
 ;
 
 -- ---------- movimientos_bundle ----------

@@ -6,7 +6,18 @@
 <script src="../gp2-ui.js?v=20260930a"></script>
 <script src="../gp2-numero.js?v=20260911o"></script>
 <title>Stock general · GP2</title>
-<!-- v2.3.1 (2026-09-30) - INYECTORES SIN ENVÍOS TAMBIÉN SE VEN [usuario: "Pat bet plas y jl
+<!-- v2.4.0 (2026-10-01) - TOCAR EL MÁXIMO ABRE SU DESGLOSE [Elías: "que el maximo se pueda apretar
+     y muestre el desglose de la misma forma que se hace para kg, caj, uni"]. La celda Máximo (cuando
+     no es "—" y la fila tiene ubicación) abre el mismo popup que los movimientos, con la cuenta en una
+     línea (consumo/mes × meses, el tope de 5 cajones de Crudo/Procesado, las bolsas de la resina) y
+     la tabla que la arma: por ARTÍCULO en sectores e insumos, por artículo con su % en el tallerista,
+     y por PIEZA en resina y master bach. Sale de la RPC nueva GP2.maximo_desglose(comp, ubic), que
+     repite la cuenta de la función que ESCRIBE cada máximo, así la tabla cierra con la celda. Si el
+     máximo cargado no coincide con la cuenta de hoy, el popup lo dice en vez de esconderlo.
+     Flejes: los kg por artículo salen de la matriz (partes_por_kilo_de_fleje, v_consumo_fleje_kg_
+     articulo) como el máximo, NO de kg_x_uni del fleje (eso descuadra el desglose de la O.C.:
+     IC7 252,91 vs 505,8 kg/mes, problema abierto en auditoría).
+     v2.3.1 (2026-09-30) - INYECTORES SIN ENVÍOS TAMBIÉN SE VEN [usuario: "Pat bet plas y jl
      matricería?"]. El rubro salía de D.inv y esos dos no tenían ninguna fila de inventario (nunca
      se les mandó resina). Ahora sale de stock_general_extra_bundle.inyector: la resina de cada pieza
      del inyector (componente.proveedor = inyector, material_id = resina, mismo filtro que rep_iny)
@@ -94,8 +105,11 @@
  .nota-tabla{font-size:15px;color:#666;margin:8px 0 0;font-style:italic}
  table.t td.rub-cell{cursor:pointer;color:#0066cc;font-weight:800;text-decoration:underline dotted}
  table.t td.rub-cell:hover{background:#eef4fb}
- table.t td.mov-cell,table.t td.stk-cell{cursor:pointer;text-decoration:underline dotted}
- table.t td.mov-cell:hover,table.t td.stk-cell:hover{background:#eef4fb}
+ table.t td.mov-cell,table.t td.stk-cell,table.t td.max-cell{cursor:pointer;text-decoration:underline dotted}
+ table.t td.mov-cell:hover,table.t td.stk-cell:hover,table.t td.max-cell:hover{background:#eef4fb}
+ /* popup del Máximo: la cuenta en una línea arriba de la tabla */
+ .max-linea{font-size:16px;line-height:1.5;margin:0 0 10px;color:#111}
+ .max-aviso{font-size:16px;line-height:1.5;margin:0 0 10px;color:#b45309;font-weight:700}
  table.t td.pos{color:#15803d;font-weight:800}
  table.t td.neg{color:#b91c1c;font-weight:800}
  table.t td.cero{color:#9aa4af}
@@ -534,7 +548,7 @@ function renderHead(){
     cols.map(function(c,i){ return '<th class="num'+(i===0?' sep':'')+'">'+esc(c.label)+'</th>'; }).join("")+
     '<th class="num sep">Kg × Uni</th>'+
     (r.sin_caj?'':'<th class="num">Uni × Cajón</th>')+
-    (r.sin_max?'':'<th class="num">Máximo</th>')+
+    (r.sin_max?'':'<th class="num" title="Tocá un máximo para ver de qué se compone">Máximo</th>')+
     (r.mostrar_fleje?'<th class="num">N° Fleje</th>':'')+
   '</tr>';
   $("thead").innerHTML = g + h;
@@ -579,6 +593,11 @@ function render(){
     var clickable = x.ubic_id!=null && window.GP2Composicion;
     var stkCls = clickable ? " stk-cell" : "";
     var stkData = clickable ? ' data-cid="'+x.cid+'" data-uid="'+x.ubic_id+'"' : "";
+    // v2.4.0: el Máximo se toca y abre su desglose (hace falta la ubicación: el máximo es de esa fila)
+    var maxClick = x.maximo!=null && x.ubic_id!=null;
+    var maxCelda = maxClick
+      ? '<td class="num max-cell" data-cid="'+x.cid+'" data-uid="'+x.ubic_id+'">'+fmt(x.maximo)+'</td>'
+      : '<td class="num">'+(x.maximo!=null?fmt(x.maximo):"—")+'</td>';
 
     var tr = document.createElement("tr");
     if (bajo) tr.className = "falt";
@@ -596,7 +615,7 @@ function render(){
       celdasMov +
       '<td class="num sep">'+(x.kg_x_uni?fmt(x.kg_x_uni,6):"—")+'</td>'+
       (r.sin_caj?'':'<td class="num">'+(x.uni_x_cajon?fmt(x.uni_x_cajon):"—")+'</td>')+
-      (r.sin_max?'':'<td class="num">'+(x.maximo!=null?fmt(x.maximo):"—")+'</td>')+
+      (r.sin_max?'':maxCelda)+
       (r.mostrar_fleje?'<td class="num">'+(x.n_fleje!=null?esc(x.n_fleje):"—")+'</td>':"");
     tb.appendChild(tr);
   });
@@ -657,6 +676,104 @@ async function abrirDetalle(cid, colKey){
         '<td class="num '+(m.signo==="ent"?"pos":"neg")+'">'+signo+fmt(m.cantidad)+'</td></tr>';
     }).join("")+
     '</tbody><tfoot><tr><td colspan="3">'+rows.length+' movimientos</td><td class="num '+clsNum(tot)+'">'+fmt(tot)+'</td></tr></tfoot></table></div>';
+}
+
+/* ---------- popup desglose del Máximo (v2.4.0) ----------
+   GP2.maximo_desglose(comp, ubic) repite la cuenta de la función que ESCRIBE ese máximo, así la
+   tabla cierra con la celda. Comparte el popup (y su secuencia) con el detalle de movimientos. */
+var MAX_CACHE = {};
+async function abrirMaximo(cid, uid){
+  var miSeq = ++DET_SEQ, k = cid+":"+uid;
+  var fila = (CUR.filas||[]).filter(function(x){ return String(x.cid)===String(cid) && String(x.ubic_id)===String(uid); })[0] || {};
+  var titulo = function(lugar){
+    $("popTitle").innerHTML = '<span class="cod">'+esc(fila.cod||"")+'</span> — '+esc(fila.desc||"")+
+      '<br><small style="color:#666;font-weight:700">Máximo'+(lugar?' · '+esc(lugar):'')+'</small>';
+  };
+  titulo(fila.ubic_nom);
+  $("popBody").innerHTML = '<div class="empty">Cargando…</div>';
+  $("popup").classList.add("open");
+  if (!MAX_CACHE[k]){
+    var r = await SB.rpc("maximo_desglose", { p_componente_id:Number(cid), p_ubicacion_id:Number(uid) });
+    if (miSeq!==DET_SEQ) return;
+    if (r.error){ $("popBody").innerHTML = '<div class="empty">Error: '+esc(r.error.message)+'</div>'; return; }
+    MAX_CACHE[k] = r.data || {};
+  }
+  var d = MAX_CACHE[k];
+  titulo(fila.ubic_nom || (d.ubic && d.ubic.nom));
+  $("popBody").innerHTML = htmlMaximo(d);
+}
+/* La cuenta en una línea, según de dónde sale el máximo (inventario.maximo_origen). */
+function lineaMaximo(d){
+  var u = d.unidad==="kg" ? "kg" : "uni", dec = u==="kg" ? 2 : 0, o = String(d.maximo_origen||"");
+  var max = d.maximo, cons = Number(d.consumo_mes||0), meses = d.meses, cxm = Number(d.consumo_x_meses||0);
+  var cuenta = fmt(cons,dec)+" "+u+"/mes × "+fmt(meses,1)+" meses = "+fmt(cxm,dec)+" "+u;
+  var L = [], esperado = null, tope = d.tope_cajones!=null ? Number(d.tope_cajones) : null;
+  if (!d.base) return { L:['<p class="max-linea">Máximo '+fmt(max,dec)+' '+u+'. Este lugar no tiene desglose.</p>'], aviso:null };
+  if (d.base==="piezas_mb"){
+    L.push("Master bach: el "+fmt(d.mb_pct,1)+" % de la resina de las piezas color "+esc(d.mb_color||"?")+": "+cuenta+".");
+    L.push("Se le suma su parte de las piezas que no tienen color y se redondea a bolsas de "+fmt(d.kg_x_bolsa)+" kg (mínimo 1 bolsa): <b>"+fmt(max,dec)+" kg</b>.");
+  } else if (d.base==="piezas"){
+    var bolsa = Number(d.kg_x_bolsa||25);
+    esperado = Math.ceil(Math.round(cxm*100)/100/bolsa)*bolsa;
+    L.push("Resina de sus piezas"+(Number(d.desperdicio_pct)>0?" (con "+fmt(d.desperdicio_pct,1)+" % de desperdicio)":"")+": "+cuenta+".");
+    L.push("En bolsas de "+fmt(bolsa)+" kg: <b>"+fmt(esperado)+" kg</b> ("+fmt(esperado/bolsa)+" bolsas).");
+  } else if (o==="fisico"){
+    L.push("Máximo fijado a mano por el lugar físico: <b>"+fmt(max,dec)+" "+u+"</b>. No sale de la demanda.");
+    if (cons>0) L.push("Por demanda daría: "+cuenta+".");
+  } else {
+    esperado = Math.round(cxm);
+    if (tope!=null && esperado>tope){
+      L.push(cuenta+", pero en Crudo / Procesado no pasa de "+fmt(d.cajones)+" cajones × "+fmt((d.comp||{}).uni_x_cajon)+" uni = <b>"+fmt(tope)+" uni</b>.");
+      esperado = tope;
+    } else {
+      L.push("Máximo = "+fmt(cons,dec)+" "+u+"/mes × "+fmt(meses,1)+" meses = <b>"+fmt(esperado)+" "+u+"</b>.");
+    }
+    if (o && o!=="est_madre" && o!=="est_madre_x_reparto" && o!=="consumo_meses") L.push("Origen del máximo: "+esc(o)+".");
+  }
+  var aviso = (esperado!=null && max!=null && Math.round(Number(max))!==Math.round(esperado))
+    ? "⚠ El máximo cargado ("+fmt(max,dec)+" "+u+") no coincide con la cuenta de hoy ("+fmt(esperado,dec)+" "+u+")."
+    : null;
+  return { L:L.map(function(t){ return '<p class="max-linea">'+t+'</p>'; }), aviso:aviso };
+}
+function htmlMaximo(d){
+  var lm = lineaMaximo(d), filas = d.filas || [], base = d.base;
+  var html = lm.L.join("") + (lm.aviso ? '<p class="max-aviso">'+esc(lm.aviso)+'</p>' : "");
+  if (!base) return html;
+  if (!filas.length) return html + '<div class="empty">Sin demanda registrada.</div>';
+  var fleje = d.unidad==="kg" && base==="articulos";
+  var conKg = !fleje && base==="articulos" && filas.some(function(f){ return f.aporte_kg!=null; });
+  // columnas: [encabezado, valor(f), suma?, decimales]
+  var C = [];
+  if (base==="articulos" || base==="tallerista") C.push(["Venta<br>(uni/mes)", function(f){ return f.venta_uni_mes; }, false, 0]);
+  if (base==="tallerista"){
+    C.push(["Usa<br>(uni/mes)", function(f){ return f.lleva_uni_mes; }, false, 0]);
+    C.push(["%", function(f){ return f.pct; }, false, 1, function(f){ return f.supuesto ? "*" : ""; }]);
+    C.push(["Le toca<br>(uni/mes)", function(f){ return f.aporte_uni_mes; }, true, 0]);
+  } else if (fleje){
+    C.push(["Consume<br>(kg/mes)", function(f){ return f.aporte_kg; }, true, 2]);
+  } else {
+    C.push(["Consume<br>(uni/mes)", function(f){ return f.aporte_uni_mes; }, true, 0]);
+    if (base==="piezas_mb") C.push(["Resina<br>(kg/mes)", function(f){ return f.resina_kg; }, true, 2]);
+    if (base==="piezas_mb") C.push(["Master<br>(kg/mes)", function(f){ return f.aporte_kg; }, true, 2]);
+    if (base==="piezas" || conKg) C.push([base==="piezas"?"Resina<br>(kg/mes)":"kg/mes", function(f){ return f.aporte_kg; }, true, 2]);
+  }
+  var tot = C.map(function(){ return 0; });
+  var head = '<tr><th>'+(base==="piezas"||base==="piezas_mb"?"Pieza":"Artículo")+'</th>'+
+    C.map(function(c){ return '<th class="num">'+c[0]+'</th>'; }).join("")+'</tr>';
+  var body = filas.map(function(f){
+    return '<tr><td><span class="cod">'+esc(f.cod)+'</span> '+esc(f.desc||"")+'</td>'+
+      C.map(function(c,i){
+        var v = c[1](f);
+        if (c[2] && v!=null) tot[i] += Number(v);
+        return '<td class="num">'+(v==null?"—":fmt(v,c[3])+(c[4]?c[4](f):""))+'</td>';
+      }).join("")+'</tr>';
+  }).join("");
+  var foot = '<tr><td>Total ('+filas.length+')</td>'+
+    C.map(function(c,i){ return '<td class="num">'+(c[2]?fmt(tot[i],c[3]):"")+'</td>'; }).join("")+'</tr>';
+  var nota = filas.some(function(f){ return f.supuesto; })
+    ? '<p class="nota-tabla">* reparto supuesto (partes iguales): el % no está cargado en Proporciones.</p>' : "";
+  return html + '<div class="table-wrap"><table class="t"><thead>'+head+'</thead><tbody>'+body+
+    '</tbody><tfoot>'+foot+'</tfoot></table></div>' + nota;
 }
 
 /* ---------- carga inicial ---------- */
@@ -774,6 +891,8 @@ $("tbody").addEventListener("click", function(e){
   if(rub){ seleccionar(rub.dataset.rub); return; }
   var mov=e.target.closest("td.mov-cell");
   if(mov){ abrirDetalle(mov.dataset.cid, mov.dataset.col); return; }
+  var mx=e.target.closest("td.max-cell");
+  if(mx){ abrirMaximo(mx.dataset.cid, mx.dataset.uid); return; }
   var stk=e.target.closest("td.stk-cell");
   if(stk && window.GP2Composicion){
     var f=(CUR.filas||[]).filter(function(x){ return String(x.cid)===String(stk.dataset.cid); })[0]||{};
