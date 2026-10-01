@@ -14232,3 +14232,20 @@ mismo pedido — viene con la corrección puntual que cierra el riesgo que Luis 
   `tests/ui/test_recepcion_uni.js` (se sacó el caso de Importados, que ahora cubre test_tablet_virgilio.js),
   `tests/ui/test_rpc_huerfanas.js` (`fabrica_producir`/`enviar_a_virgilio` agregadas a PERMITIDAS: las llama
   `tablet_registrar` por SQL, no una pantalla con `rpc()`).
+
+## 4hp. Tablet de operarios: el cartel de rollo SOLO va en matrices que cortan de un fleje (2026-10-01)
+
+[usuario, 01/10, sobre la pantalla «Empecé Matriz» con la matriz 401 Env Cucharas Inox Imp] *"No todas las
+matrices necesitan rollos de flejes, que se vaya este cartel"*.
+
+- [dato] `GP2.registro_operarios_bundle()` trae `matriz_fleje` sólo para las matrices con un paso `tipo_paso='matriz'`
+  cuyo componente de entrada es un fleje (`componente.sector_id = 5`): **58 de 407 matrices** (346 de las activas
+  no tienen). La 401 no está en `matriz_fleje` ni en `matriz_fleje_pieza`.
+- Antes la tablet mostraba «¿De qué kilaje es el rollo que vas a agarrar?» en TODA matriz y, sin fleje, caía en
+  «Sin rollos disponibles» — un cartel que parecía un faltante de stock y no lo era.
+- Ahora `matrizSinFleje(n)` (operarios_gp2.js) esconde el cartel entero cuando la matriz es conocida y no tiene
+  fleje. Se vuelve a mostrar apenas se tipea o elige una matriz que sí lo lleva. **«Sin rollos disponibles» queda
+  SÓLO para matriz con fleje y sin rollos en stock** (eso sí es información). Un bundle viejo sin `matriz_fleje`
+  no oculta nada (no se puede saber).
+- Es sólo front: la base ya distinguía los dos casos. `tests/ui/test_op_e2e.js` +6 chequeos (348 sin fleje oculta,
+  28 con fleje muestra, ida y vuelta, matriz inexistente, sin stock, bundle viejo). version.js v1.225.1.
