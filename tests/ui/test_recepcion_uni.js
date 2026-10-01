@@ -29,7 +29,6 @@ const BUNDLE = {
     { nombre: 'Trefilados Industriales', modo_control: 'ninguno', informa_rollos: false, factura_uni: false },
     { nombre: 'Tornillos Suipacha', modo_control: 'ninguno', informa_rollos: false, factura_uni: false },
     { nombre: 'Kollplast', modo_control: 'ninguno', informa_rollos: false, factura_uni: false },
-    { nombre: 'Importado', modo_control: 'ninguno', informa_rollos: false, factura_uni: false },
   ],
   recepciones: [], pallets: [], rollos: [],
   insumos: [
@@ -55,15 +54,12 @@ const BUNDLE = {
     { comp_id: 5, codigo: 'PA8A', descripcion: 'Buje Blanco', sector: 'Sector Plástico', sector_id: 6,
       um: 'unidad', proveedor: 'Kollplast', kg_x_uni: 0.00063, recibe_en_cajas: false,
       remito_unidad: 'uni', stock: 0, ultima: null, oc_pend: null },
-    // EL REMITO EN EL ENVASE DE LA PIEZA (2026-09-25): el bastidor del corta queso llega en cajas
-    // de 144 y así viene contado el remito. remito_unidad='envase' + entrega_unidad/entrega_uni_x,
-    // el MISMO envase con el que la Tablet se lo manda a Lucho.
-    { comp_id: 6, codigo: 'C13', descripcion: 'Corta Queso Bastidor c/Cilindro', sector: 'Sector Procesado',
-      sector_id: 2, um: 'unidad', proveedor: 'Importado', estado_compra: 'importado',
-      kg_x_uni: 4.4 / 144, recibe_en_cajas: false, remito_unidad: 'envase',
-      entrega_unidad: 'cajas', entrega_uni_x: 144, stock: 0, ultima: null, oc_pend: null },
   ],
 };
+/* EL REMITO EN EL ENVASE DE LA PIEZA (C13, cajas de 144, importado) se probaba acá hasta el
+   2026-09-30; desde el rearmado del 01/10 Importados vive en Tablet -> Recibir -> Virgilio
+   (ese caso lo cubre tests/ui/test_tablet_virgilio.js, punto 4). Acá ya no hay rubro
+   "Importados" que clickear. */
 
 /* kg_x_uni y recibe_en_cajas vienen en el BUNDLE, con los insumos (2026-09-11).
    Hasta ese dia la pantalla los pedia aparte con from('componente') y este stub
@@ -201,27 +197,6 @@ const STUB = 'window.supabase={createClient:function(){return{'
   carga = ultimo('cargar_recepcion');
   ok(carga && carga.p_unidad === 'kg' && carga.p_cantidad === 12.5,
      'PCP2 baja 12,5 kg (bajó: ' + JSON.stringify(carga && { c: carga.p_cantidad, u: carga.p_unidad }) + ')');
-
-  // ── 1ter) EL REMITO EN CAJAS: C13 llega en cajas de 144 [usuario 2026-09-25] ──
-  await page.goto(ROOT + '/StockFlejes/RecepcionInsumos_GP2.html');
-  await page.click('#rubroGrid button:has-text("Importados")');
-  await page.click('#btnContinuar');
-  await page.waitForSelector('.item-btn:has-text("C13")');
-  await page.click('.item-btn:has-text("C13")');
-  await page.waitForSelector('#kgPopup.open');
-  ok(await page.locator('#unitRow').isHidden(), 'C13: sin toggle Kg/Uni');
-  ok(/cajas/.test(await page.locator('#kgValueLabel').innerText()),
-     'C13 pide cajas: ' + (await page.locator('#kgValueLabel').innerText()));
-  ok(await page.locator('#kgValue').getAttribute('inputmode') === 'numeric', 'cajas con teclado entero');
-  await page.fill('#kgValue', '3');
-  ok(/432 unidades/.test(await page.locator('#kgConvDisplay').innerText()),
-     'muestra las unidades: 3 cajas = 432 (' + (await page.locator('#kgConvDisplay').innerText()) + ')');
-  await page.click('#kgConfirm');
-  await page.click('#remitoBtnSlot button, #remitoBtnSlotCart button');
-  await page.waitForTimeout(400);
-  carga = ultimo('cargar_recepcion');
-  ok(carga && carga.p_unidad === 'uni' && carga.p_cantidad === 432,
-     'C13 baja 432 uni, no 3 (bajó: ' + JSON.stringify(carga && { c: carga.p_cantidad, u: carga.p_unidad }) + ')');
 
   // ── 2) CONTROL ─────────────────────────────────────────────────────────
   const RECS = {

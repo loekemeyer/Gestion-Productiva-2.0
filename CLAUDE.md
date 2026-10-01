@@ -198,11 +198,37 @@ sigue el mismo molde (el mismo bloque está en el `CLAUDE.md` de `loekemeyer/Ges
 | No | cada lado toca SÓLO su fila; la reacción del otro lado la hace un trigger de ESE lado (`public.gv_ingreso_virgilio_denegado`) y se ve **donde se cargó** («⛔ Denegado por Cervantes») |
 | memoria | se anota en las dos: `CONOCIMIENTO_GP2.md` (§4gx, 4gy, 4gz, 4hf) y el `CLAUDE.md` de Gestión Virgilio |
 
-⚠ **01/10/2026 — REVERTIDO (Luis): la v1.219.0 y la v1.220.0 se sacaron enteras** (tablet Enviar/Recibir → Virgilio,
-Fábrica → producir, Stock General en 3 cajas con el stock de Gestión Virgilio, `GP2.envio_virgilio`). Mezclaban el
-contenedor de insumos de Virgilio con botones que movían stock de Cervantes. Queda SOLO el aviso de importados
-(GV manda → GP2 dice Sí/No en Recepción de Insumos). **El contenedor de insumos de Virgilio se rearma desde cero,
-en blanco y sin conexión con nada, cuando Luis lo defina** — no reponer nada de lo revertido. CONOCIMIENTO §4hk.
+⚠ **01/10/2026 — REVERTIDO (Luis) y REARMADO EL MISMO DÍA (Thomas, dueño).** Historia completa:
+
+1. **Revertido (Luis, v1.221.0):** la v1.219.0 y la v1.220.0 se sacaron enteras (tablet Enviar/Recibir →
+   Virgilio, Fábrica → producir, Stock General en 3 cajas con el stock de Gestión Virgilio,
+   `GP2.envio_virgilio`). Motivo: *"el contenedor de insumos de Virgilio se mezcló con botones que movían
+   stock de Cervantes"*.
+2. **Rearmado (Thomas, v1.224.0 / Stock General v2.6.0):** *"quiero que vuelvas a hacer lo que te había
+   pedido. La única corrección que tendrías que hacer para que no pase lo que dijo Luis es dejar todos los
+   stocks en 0 en Virgilio y aumenta el stock solo si se envía a Virgilio"* — y, sobre Art. Terminado:
+   *"no quiero tener un stock de lo que tiene Virgilio de terminado por ahora"*. Thomas es el dueño: su
+   pedido manda sobre "cuando Luis lo defina" del punto 1, que queda sin efecto.
+3. **El aislamiento que evita la mezcla:** `fabrica_producir` y `enviar_a_virgilio` son las ÚNICAS dos
+   funciones que tocan "Art. Terminado (Fábrica)" y los depósitos `virgilio_sector` (SC/SP/Fleje/
+   Plástico/Caja) — nada de eso se mezcla con las funciones que mueven el stock propio de Cervantes
+   (`crear_envio_*`, `crear_entrega_*`). Arranca en 0 (son ubicaciones nuevas, sin inventario previo) y
+   SOLO cambia con esas dos acciones de la Tablet.
+4. **Lo que SÍ quedó igual al pedido original:** Enviar → Virgilio (Art. Terminados en cajas + Insumos +
+   SC/SP, 3 bloques) y Recibir → Virgilio (importados sueltos + lo que vuelve de Plásticos/Flejes/Cajas/
+   SC/SP, que DISMINUYE el depósito de Virgilio y aumenta el de Cervantes — es la "recepción" que Thomas
+   pidió mantener, no un agujero nuevo).
+5. **Lo que NO se repuso, a propósito:** el aviso Sí/No cruzado con Gestión Virgilio (D4/v1.41.0,
+   `GP2.envio_virgilio`) — Thomas pidió explícito *"no hagas nada en GV"*. `enviar_a_virgilio` es
+   unidireccional: la tablet registra el envío y ahí termina, sin esperar confirmación de GV.
+6. **Stock General, 3 cajas:** Cervantes (sectores de siempre, SIN Bolsas Plásticas que se mudó a Virgilio,
+   CON Art. Terminado nuevo) · Virgilio (Bolsas Plásticas + SC/SP/Fleje/Plástico/Caja en `virgilio_sector`,
+   leídos directo de `D.inv`, sin RPC nueva) · Terceros (sin cambios). Art. Terminado NO se muestra en la
+   caja Virgilio (punto 2).
+
+CONOCIMIENTO §4hk (el revert) y §4hn (el rearmado). `db/migracion_tablet_virgilio.sql` (reaplicado tal cual
+estaba, v1.40.0, SIN `db/migracion_envio_virgilio.sql`). `tests/ui/test_tablet_virgilio.js`,
+`tests/ui/test_stock_general.js`.
 
 # ⚠️ ANTES DE CUALQUIER EDIT/WRITE: LEER LOCKS.txt Y REGISTRAR LockX. SIN EXCEPCIONES. ⚠️
 

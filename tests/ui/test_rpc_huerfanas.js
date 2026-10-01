@@ -54,6 +54,10 @@ const PERMITIDAS = {
   // registrar_evento_prod (por SQL, no por rpc()) para descontar TODAS las entradas de una
   // convergencia. No es RPC de pantalla y no matchea la convención de nombres interna (_/fn_).
   fabricar_stock:            'helper interno de convergencia, la llaman registrar_produccion/registrar_evento_prod',
+  // 2026-10-01 (rearmado tras el revert del 01/10): las llama tablet_registrar por SQL, no una
+  // pantalla con rpc(). Enviar -> Talleristas -> Fabrica / Enviar -> Virgilio en Tablet_GP2.html.
+  fabrica_producir:          'la llama tablet_registrar (Enviar -> Talleristas -> Fabrica), sin rpc() directo',
+  enviar_a_virgilio:         'la llama tablet_registrar (Enviar -> Virgilio), sin rpc() directo',
 };
 
 /* Internas: helpers de otras funciones, cuerpos de trigger y simuladores. No son RPC de

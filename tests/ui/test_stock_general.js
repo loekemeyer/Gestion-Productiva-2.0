@@ -7,7 +7,10 @@
      - que los rubros que no son sector (Prov AT, Tránsito) rendericen su tabla,
      - el PAYLOAD EXACTO del Ajuste +/- (heredado, contrato que no cambia),
      - los últimos movimientos, y el render celular (390px, tocable, 18px).
-   v2.5.0 (2026-10-01): pestañas Cervantes (abre ahí) / Virgilio (vacía).
+   v2.6.0 (2026-10-01): Virgilio con contenido — Bolsas Plásticas (se mudó de Cervantes) +
+   SC/SP/Fleje/Plástico/Caja en el depósito virgilio_sector (D.inv, sin RPC nueva); Cervantes
+   suma el rubro Art. Terminado (lo que Fábrica produjo y no mandó, stock_general_extra_bundle).
+   v2.5.0 (2026-10-01): pestañas Cervantes (abre ahí) / Virgilio.
    v2.4.0 (2026-10-01): tocar el Máximo abre su desglose (maximo_desglose por comp + ubic). */
 const { chromium } = require('playwright');
 const path = require('path');
@@ -25,6 +28,9 @@ const BUNDLE = {
     '5': { tipo: 'sector', ref: 12, nom: 'Terminado' },
     '6': { tipo: 'proveedor_servicio', ref: 9, nom: 'Pedernera Ilario' },
     '7': { tipo: 'inyector', ref: 10, nom: 'Inyector Pettofrezza Rafael' },
+    // v2.6.0: el depósito de Virgilio para SC (sector 1) — lo que se envió con "Enviar -> Virgilio"
+    // de la Tablet y todavía no volvió con "Recibir -> Virgilio".
+    '8': { tipo: 'virgilio_sector', ref: 1, nom: 'Sector Crudo en Virgilio' },
   },
   tall: { '3': { nom: 'Fabrica' }, '6': { nom: 'Martin' } },
   prov_serv: { '9': { nom: 'Pedernera Ilario', proceso: 'Cromado' } },
@@ -48,6 +54,7 @@ const BUNDLE = {
     '10:1': { cant: 100, max: 200 }, '30:1': { cant: 50, max: 0 }, '20:5': { cant: 0, max: 0 },
     '10:6': { cant: 0, max: null }, '50:6': { cant: 0, max: null }, '30:3': { cant: 20, max: null },
     '60:7': { cant: 1250, max: null }, // 1.250 kg de PP mandados al inyector Pettofrezza
+    '10:8': { cant: 25, max: null },   // v2.6.0: 25 A10 en el depósito de Virgilio (SC)
   },
 };
 /* Prov AT y transito salen de su propia RPC. */
@@ -60,6 +67,8 @@ const EXTRA = {
     { id: 11, nom: 'Pat Bet Plast', ubic: 8, filas: [{ cid: 60, cant: 0 }] },
     { id: 10, nom: 'Pettofrezza Rafael', ubic: 7, filas: [{ cid: 60, cant: 1250 }] },
   ],
+  // v2.6.0: lo que Fábrica produjo (T1) y todavía no mandó a Virgilio.
+  art_terminado: { ubic: 5, filas: [{ cid: 20, uxc: 12, cant: 36 }] },
 };
 /* stock_sector_bundle por sector: SC (1) es el rubro por defecto; Flejes (5) prueba
    que NO salen las columnas de cajones (pedido del usuario, textual). */
@@ -160,16 +169,30 @@ window.supabase = { createClient: function(){ return {
   ok(!base.horizontal, 'celular 390px: sin scroll horizontal');
   ok(base.hAj >= 44, 'boton Ajuste tocable (' + Math.round(base.hAj) + 'px, minimo 44)');
 
-  // ── v2.5.0: pestañas de planta. Abre en Cervantes (lo de siempre); Virgilio vacía y sin Ajuste ──
+  // ── v2.6.0: pestañas de planta. Abre en Cervantes; Virgilio con SU contenido (SC/SP/Fleje/
+  // Plástico/Caja en virgilio_sector + Bolsas Plásticas), nada de ± Ajuste ahí ──
   const vis = (id) => page.evaluate(i => { const e = document.getElementById(i); return !!e && e.offsetParent !== null; }, id);
   ok(await vis('paneCervantes') && !(await vis('paneVirgilio')), 'abre en la pestaña Cervantes');
   ok(await page.evaluate(() => document.getElementById('tabCervantes').classList.contains('active')), 'pestaña Cervantes marcada al abrir');
+  // Cervantes YA NO tiene Bolsas Plásticas (se mudó a Virgilio) y SÍ tiene Art. Terminado (nuevo)
+  ok(!(await page.locator('#paneCervantes .rubro-btn:has-text("Bolsas Plásticas")').count()), 'Cervantes: sin Bolsas Plásticas (ahora vive en Virgilio)');
+  ok(await page.locator('#paneCervantes .rubro-btn:has-text("Art. Terminado")').count() === 1, 'Cervantes: tiene el rubro Art. Terminado');
   await page.click('#tabVirgilio');
   ok(!(await vis('paneCervantes')) && await vis('paneVirgilio'), 'Virgilio: oculta lo de Cervantes y muestra su pestaña');
-  ok(await page.evaluate(() => !document.getElementById('paneVirgilio').querySelector('table,button,input')), 'Virgilio: vacía (sin tabla ni controles)');
+  await page.waitForSelector('#rubrosVir .rubro-btn');
+  const rubrosVir = await page.$$eval('#rubrosVir .rubro-btn', xs => xs.map(x => x.textContent.trim()));
+  ok(JSON.stringify(rubrosVir) === JSON.stringify(['Bolsas Plásticas', 'SC en Virgilio', 'SP en Virgilio', 'Flejes en Virgilio', 'Plásticos en Virgilio', 'Cajas en Virgilio']),
+     'Virgilio: sus 6 rubros — ' + rubrosVir.join(' | '));
+  await page.waitForFunction(() => /Bolsas Plásticas/.test(document.getElementById('statusVir').textContent));
+  await page.click('#rubrosVir .rubro-btn:has-text("SC en Virgilio")');
+  await page.waitForFunction(() => document.querySelectorAll('#tbodyVir tr').length > 0);
+  const filaSC = await page.$eval('#tbodyVir tr', e => e.textContent.replace(/\s+/g, ' ').trim());
+  ok(/A10/.test(filaSC) && /25/.test(filaSC), 'SC en Virgilio: A10 con 25 (lo enviado y no recibido de vuelta) — ' + filaSC);
   ok(!(await vis('btnAjuste')), 'Virgilio: no muestra ± Ajuste (ajusta el stock de GP2)');
   const hTab = await page.evaluate(() => document.getElementById('tabVirgilio').getBoundingClientRect().height);
   ok(hTab >= 44, 'pestaña tocable (' + Math.round(hTab) + 'px)');
+  const horizVir = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth);
+  ok(!horizVir, 'Virgilio a 390px: sin scroll horizontal');
   await page.click('#tabCervantes');
   ok(await vis('paneCervantes') && await vis('btnAjuste'), 'vuelve a Cervantes con su Ajuste');
 
@@ -204,7 +227,7 @@ window.supabase = { createClient: function(){ return {
   await page.click('#popClose');
 
   // ── FLEJES: sin cajones ni Uni×Cajón, con N° Fleje (pedido textual del usuario) ──
-  await page.click('.rubro-btn:has-text("Flejes")');
+  await page.click('#rubros .rubro-btn:has-text("Flejes")');
   await page.waitForFunction(() => /F1/.test(document.getElementById('tbody').innerText));
   const fle = await page.evaluate(() => document.getElementById('thead').innerText);
   ok(!/\bCAJ\b/i.test(fle) && !/UNI × CAJÓN/i.test(fle), 'Flejes: NO hay columna de cajones ni Uni×Cajón');
@@ -217,14 +240,14 @@ window.supabase = { createClient: function(){ return {
   await page.click('#popClose');
 
   // ── SECTORES: el codigo se ordena numerico, no alfabetico (GRJ4 antes que GRJ10) ──
-  await page.click('.rubro-btn:has-text("Garage")');
+  await page.click('#rubros .rubro-btn:has-text("Garage")');
   await page.waitForFunction(() => /GRJ4/.test(document.getElementById('tbody').innerText));
   const ordGar = await page.evaluate(() =>
     Array.from(document.querySelectorAll('#tbody tr .cod')).map(e => e.textContent).join(','));
   ok(ordGar === 'GRJ4,GRJ10,GRJ10A,GRJ12', 'Garage: orden numerico del codigo — ' + ordGar);
 
   // ── Prov. Art. Terminado y Tránsito PS como rubros con su tabla ──
-  await page.click('.rubro-btn:has-text("Prov. Art. Term.")');
+  await page.click('#rubros .rubro-btn:has-text("Prov. Art. Term.")');
   await page.waitForFunction(() => /Cabral/.test(document.getElementById('tbody').innerText));
   ok(true, 'Prov. Art. Terminado: aparece el proveedor con sus cajas/cartones (Cabral)');
 
@@ -238,14 +261,21 @@ window.supabase = { createClient: function(){ return {
     return g;
   });
   ok(grupos['Tránsito PS'] === 'Sectores', 'Tránsito PS está en el grupo Sectores (' + grupos['Tránsito PS'] + ')');
+  ok(grupos['Art. Terminado'] === 'Sectores', 'Art. Terminado está en el grupo Sectores (' + grupos['Art. Terminado'] + ')');
   ok(grupos['Inyectores'] === 'Otros', 'Inyectores está en el grupo Otros (' + grupos['Inyectores'] + ')');
 
-  await page.click('.rubro-btn:has-text("Tránsito PS")');
+  await page.click('#rubros .rubro-btn:has-text("Tránsito PS")');
   await page.waitForFunction(() => /Laboratorio FAAT → Guazzaroni Patricio/.test(document.getElementById('tbody').innerText));
   ok(true, 'Tránsito PS: aparece el par PS origen → PS siguiente');
 
+  // ── v2.6.0: Art. Terminado — lo que Fábrica produjo y todavía no mandó a Virgilio ──
+  await page.click('#rubros .rubro-btn:has-text("Art. Terminado")');
+  await page.waitForFunction(() => /T1/.test(document.getElementById('tbody').innerText));
+  const artRow = await page.$eval('#tbody tr', e => e.textContent.replace(/\s+/g, ' ').trim());
+  ok(/T1/.test(artRow) && /36/.test(artRow), 'Art. Terminado: T1 con 36 unidades (3 cajas de 12) — ' + artRow);
+
   // ── Inyectores: la MP plástica mandada, en KG (no en Uni), sin Caj ni Máximo ──
-  await page.click('.rubro-btn:has-text("Inyectores")');
+  await page.click('#rubros .rubro-btn:has-text("Inyectores")');
   await page.waitForFunction(() => /Pettofrezza Rafael/.test(document.getElementById('tbody').innerText));
   const iny = await page.evaluate(() => ({
     body: document.getElementById('tbody').innerText,
@@ -262,7 +292,7 @@ window.supabase = { createClient: function(){ return {
   ok(/Pat Bet Plast/.test(iny.body), 'Inyectores: aparece Pat Bet Plast aunque nunca se le mandó resina (sin fila en inventario)');
 
   // ── Prov. Servicio: SIN Máximo, y SIN cajas (insumo de empaque sembrado en 0) ──
-  await page.click('.rubro-btn:has-text("Prov. Servicio")');
+  await page.click('#rubros .rubro-btn:has-text("Prov. Servicio")');
   await page.waitForFunction(() => /Pedernera Ilario/.test(document.getElementById('tbody').innerText));
   const ps = await page.evaluate(() => ({
     thead: document.getElementById('thead').innerText,
@@ -274,7 +304,7 @@ window.supabase = { createClient: function(){ return {
 
   // ── BUSCAR SIN SABER EL RUBRO (v2.1.0) ──
   // 1) el rubro "Todos": una tabla con todo el inventario, con Rubro + Dónde y sin movimientos
-  await page.click('.rubro-btn:has-text("Todos los rubros")');
+  await page.click('#rubros .rubro-btn:has-text("Todos los rubros")');
   await page.waitForFunction(() => /Martin/.test(document.getElementById('tbody').innerText));
   const glo = await page.evaluate(() => ({
     thead: document.getElementById('thead').innerText,
@@ -295,7 +325,7 @@ window.supabase = { createClient: function(){ return {
      'Todos: B5 se ve de un saque en sus tres lugares (sector, tallerista y tránsito) — ' + b5.replace(/\s+/g, ' '));
 
   // 3) desde adentro de un rubro, el renglón "También en: …" y el salto en un click
-  await page.click('.rubro-btn:has-text("Stock SC")');
+  await page.click('#rubros .rubro-btn:has-text("Stock SC")');
   await page.waitForFunction(() => !document.getElementById('hintOtros').classList.contains('hidden'));
   const hint = await page.locator('#hintOtros').innerText();
   ok(/También en otros rubros/i.test(hint) && /Talleristas/.test(hint),
@@ -308,12 +338,12 @@ window.supabase = { createClient: function(){ return {
   ok(await page.locator('#tbody td.max-cell').count() === 0, 'Máximo "—" (B5 en Martin, sin máximo): no se puede tocar');
 
   // 4) en "Todos", la celda del rubro también lleva a esa pantalla
-  await page.click('.rubro-btn:has-text("Todos los rubros")');
+  await page.click('#rubros .rubro-btn:has-text("Todos los rubros")');
   await page.waitForFunction(() => document.querySelectorAll('#tbody td.rub-cell').length > 0);
   await page.click('#tbody td.rub-cell:has-text("Talleristas")');
   await page.waitForFunction(() => document.title.indexOf('Talleristas') >= 0);
   ok(true, 'Todos: click en el rubro de la fila abre ese rubro');
-  await page.click('.rubro-btn:has-text("Todos los rubros")');
+  await page.click('#rubros .rubro-btn:has-text("Todos los rubros")');
   await page.fill('#q', '2405');
   await page.waitForFunction(() => /2405/.test(document.getElementById('tbody').innerText));
   const r2405 = await page.evaluate(() => Array.from(document.querySelectorAll('#tbody tr')).map(t => t.innerText.replace(/\s+/g, ' ')));

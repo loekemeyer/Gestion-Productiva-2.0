@@ -14182,3 +14182,47 @@ kg, caj, uni"*.
 
 ## 4hm. Stock General tiene dos pestañas: CERVANTES y VIRGILIO (2026-10-01)
 [usuario, Luis] "en GP2 quiero que haya una pestaña en stock general que sea VIRGILIO … que se abra en pestaña CERVANTES (lo que hay ahora) y que muestre otra pestaña para Virgilio que no tenga nada … vamos paso por paso". Es el primer paso del contenedor de insumos de Virgilio que se rearma desde cero (§4hk: no reponer lo revertido). Cervantes = la pantalla de siempre, sin un cambio; abre ahí. Virgilio = vacía a propósito, sin datos ni RPC todavía; «± Ajuste» no se ve ahí (ajusta el stock de GP2). Lo que lleve la pestaña Virgilio lo define Luis en el próximo paso. Stock General v2.5.0, version.js v1.223.0.
+
+## 4hn. REARMADO "Virgilio en la tablet" — Thomas (dueño) pide volver, con el aislamiento que evita §4hk (2026-10-01)
+
+[Thomas, dueño, 01/10, el mismo día del revert de Luis] *"quiero que vuelvas a hacer lo que te había pedido… La
+única corrección que tendrías que hacer para que no pase lo que dijo Luis es dejar todos los stocks en 0 en
+Virgilio y aumenta el stock solo si se envía a Virgilio"* · y, sobre el Stock General: *"se aumente el stock si
+hay un envío a Virgilio (Los art terminados no los agregues en stock general, no quiero tener un stock de lo que
+tiene Virgilio de terminado por ahora) y se disminuya el stock si hay una recepción de Plásticos, Flejes, Cajas,
+SC Y SP (tendrías que agregar a estos en recepción Virgilio)"* · *"Todo esto hacelo en GP2, no hagas nada en GV"*.
+
+**Thomas es el dueño: pisa el "cuando Luis lo defina" del §4hk anterior.** No es un segundo intento a ciegas del
+mismo pedido — viene con la corrección puntual que cierra el riesgo que Luis señaló.
+
+- **Se reaplicó `db/migracion_tablet_virgilio.sql` TAL COMO ESTABA** (v1.40.0, 2026-09-30): `fabrica_producir`,
+  `enviar_a_virgilio`, `tablet_bundle`, `tablet_registrar`, ubicaciones `art_terminado` (ref 3) y `virgilio_sector`
+  para Fleje(5)/Plástico(6)/Caja(11) — SC(1)/SP(2) ya existían de antes (`traslado_virgilio`, huérfana, 0 llamadas
+  desde ninguna pantalla; no se tocó). **NO se reaplicó `db/migracion_envio_virgilio.sql` (v1.41.0, D4)**: eso era
+  el aviso Sí/No cruzado con Gestión Virgilio (`GP2.envio_virgilio`), y Thomas pidió explícito no tocar GV.
+  `enviar_a_virgilio` queda unidireccional: la tablet envía y ahí termina, sin esperar confirmación.
+- **El aislamiento (la corrección pedida):** `fabrica_producir` y `enviar_a_virgilio` son las ÚNICAS funciones
+  que escriben en "Art. Terminado (Fábrica)" y en los depósitos `virgilio_sector`. Arrancan en 0 porque son
+  ubicaciones nuevas (medido antes de reponerlas: 0 movimientos). El único OTRO camino que toca esos depósitos es
+  `tablet_registrar` en modo recibir, tipo virgilio, NO importado — la "recepción de Plásticos, Flejes, Cajas, SC
+  y SP" que Thomas pidió mantener (resta de `virgilio_sector`, suma al sector de Cervantes): es la misma pieza que
+  ya traía `migracion_tablet_virgilio.sql` (el `else` final de `tablet_registrar`), no algo nuevo. Ninguna función
+  que mueve el stock PROPIO de Cervantes (`crear_envio_tallerista`, `crear_envio_ps`, `crear_entrega_*`) toca estos
+  depósitos: ahí estaba la mezcla que encontró Luis, y acá no puede volver a pasar porque son caminos separados.
+- **Stock General v2.6.0**, 3 cajas:
+  - **Cervantes**: los sectores de siempre MENOS Bolsas Plásticas (sector 14, se mudó a Virgilio) + rubro nuevo
+    **Art. Terminado** (`stock_general_extra_bundle.art_terminado`: lo que Fábrica produjo y todavía no mandó).
+  - **Virgilio**: Bolsas Plásticas (mismo sector 14 de siempre — `stock_sector_bundle`, compra/envío a inyector,
+    sin tocar nada de eso, sólo cambió de caja) + SC/SP/Fleje/Plástico/Caja en `virgilio_sector`, leídos directo
+    de `D.inv` (movimientos_bundle, ya cargado): **sin RPC nueva**. Sin Art. Terminado (pedido explícito).
+  - **Terceros**: sin cambios.
+- [deducido] `GP2.virgilio_articulo_stock` (el espejo de solo lectura del stock real de GV) **no se repuso**: con
+  Art. Terminado fuera de Stock General, no hace falta — era justamente la pieza "decidida sin preguntar" la vez
+  anterior, y la nueva instrucción de Thomas la vuelve innecesaria en vez de corregirla.
+- `db/` regenerado con `db/regenerar.sql` (no a mano): `funciones_GP2.sql` y `tablas_GP2.sql`.
+- `Tablet/Tablet_GP2.html`, `StockFlejes/RecepcionInsumos_GP2.html` (Importados vuelve a vivir sólo en Tablet →
+  Recibir → Virgilio), `Stocks General/StockGeneral_GP2.html` v2.6.0, version.js v1.224.0.
+  `tests/ui/test_tablet_virgilio.js` (nuevo), `tests/ui/test_stock_general.js` (pestaña Virgilio con contenido),
+  `tests/ui/test_recepcion_uni.js` (se sacó el caso de Importados, que ahora cubre test_tablet_virgilio.js),
+  `tests/ui/test_rpc_huerfanas.js` (`fabrica_producir`/`enviar_a_virgilio` agregadas a PERMITIDAS: las llama
+  `tablet_registrar` por SQL, no una pantalla con `rpc()`).

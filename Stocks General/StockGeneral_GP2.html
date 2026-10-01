@@ -6,11 +6,23 @@
 <script src="../gp2-ui.js?v=20260930a"></script>
 <script src="../gp2-numero.js?v=20260911o"></script>
 <title>Stock general · GP2</title>
-<!-- v2.5.0 (2026-10-01) - DOS PESTAÑAS: CERVANTES / VIRGILIO [Luis: "una pestaña en stock general que
+<!-- v2.6.0 (2026-10-01) - PESTAÑA VIRGILIO CON CONTENIDO [Thomas: "vuelvas a hacer lo que te habia
+     pedido… la única corrección es que se aumente el stock si hay un envío a Virgilio y se disminuya
+     si hay una recepción de Plásticos, Flejes, Cajas, SC y SP"]. 3 cajas: CERVANTES (lo de siempre,
+     sectores MENOS Bolsas Plásticas que se mudó a Virgilio, + Art. Terminado nuevo = lo que Fábrica
+     produjo y todavía no mandó); VIRGILIO (Bolsas Plásticas con su mecanismo de siempre + SC/SP/
+     Fleje/Plástico/Caja en el depósito virgilio_sector: arranca en 0, sube SOLO con Enviar → Virgilio
+     de la Tablet, baja SOLO con Recibir → Virgilio); TERCEROS sin cambios. Art. Terminado NO se
+     muestra en Virgilio a propósito [Thomas: "no quiero tener un stock de lo que tiene Virgilio de
+     terminado por ahora"]: el envío sólo descuenta de Cervantes y ahí termina. db:
+     stock_general_extra_bundle +fab/art_terminado (sin virgilio_art, sin mirror de GV). Sin RPC
+     nueva para la pestaña Virgilio: SC/SP/Fleje/Plástico/Caja salen de D.inv (movimientos_bundle, ya
+     cargado); Bolsas Plásticas de stock_sector_bundle(14), igual que siempre. Rearma lo que revirtió
+     Luis el 01/10 (v1.221.0) con el aislamiento que pidió evitar la mezcla con botones de Cervantes:
+     ver CLAUDE.md "Cervantes (GP2) y Virgilio (GV) SE HABLAN".
+     v2.5.0 (2026-10-01) - DOS PESTAÑAS: CERVANTES / VIRGILIO [Luis: "una pestaña en stock general que
      sea VIRGILIO; que se abra en pestaña CERVANTES (lo que hay ahora) y otra para Virgilio que no tenga
-     nada"]. Cervantes = la pantalla de siempre, sin cambios. Virgilio = vacía a propósito: es el
-     contenedor de insumos de Virgilio que se arma desde cero, paso a paso (no reponer lo revertido en
-     v1.221.0). Abre siempre en Cervantes; «± Ajuste» sólo se ve en Cervantes (ajusta el stock de GP2).
+     nada"]. Abre siempre en Cervantes; «± Ajuste» sólo se ve en Cervantes (ajusta el stock de GP2).
      v2.4.0 (2026-10-01) - TOCAR EL MÁXIMO ABRE SU DESGLOSE [Elías: "que el maximo se pueda apretar
      y muestre el desglose de la misma forma que se hace para kg, caj, uni"]. La celda Máximo (cuando
      no es "—" y la fila tiene ubicación) abre el mismo popup que los movimientos, con la cuenta en una
@@ -170,7 +182,22 @@
     <button type="button" class="planta-tab" id="tabVirgilio" role="tab" onclick="plantaTab('virgilio')">🏬 Virgilio</button>
   </div>
 
-  <div id="paneVirgilio" class="hidden"><div class="planta-vacia">Virgilio · todavía vacío</div></div>
+  <div id="paneVirgilio" class="hidden steps">
+    <div class="rubro-lbl">Rubro</div>
+    <div id="rubrosVir"></div>
+    <div class="toolbar">
+      <input type="text" id="qVir" placeholder="Buscar por código o descripción…">
+      <label class="chk"><input type="checkbox" id="soloStockVir"> Solo con stock</label>
+    </div>
+    <div class="table-wrap">
+      <table class="t">
+        <thead id="theadVir"></thead>
+        <tbody id="tbodyVir"></tbody>
+      </table>
+    </div>
+    <div id="tblEmptyVir" class="empty hidden">Sin resultados.</div>
+    <div id="statusVir" class="status">Cargando…</div>
+  </div>
 
   <div class="steps" id="paneCervantes">
     <div class="rubro-lbl">Rubro</div>
@@ -241,6 +268,7 @@ function plantaTab(p){
   document.getElementById("paneCervantes").classList.toggle("hidden", v);
   document.getElementById("paneVirgilio").classList.toggle("hidden", !v);
   document.getElementById("btnAjuste").classList.toggle("hidden", v);
+  if (v && typeof initVirSiHaceFalta === "function") initVirSiHaceFalta();
 }
 </script>
 <script src="../gp2-composicion.js?v=20260911p"></script>
@@ -302,9 +330,13 @@ var RUBROS = [
   { key:"gar", grupo:"Sectores", nom:"Garage",           mode:"sector", sid:9,  cols:COLS_INSUMO },
   { key:"car", grupo:"Sectores", nom:"Cartones",         mode:"sector", sid:10, cols:COLS_INSUMO },
   { key:"caj", grupo:"Sectores", nom:"Cajas",            mode:"sector", sid:11, cols:COLS_INSUMO },
-  { key:"bol", grupo:"Sectores", nom:"Bolsas Plásticas", mode:"sector", sid:14, cols:COLS_MP },
+  // v2.6.0: Bolsas Plásticas se mudó a la pestaña Virgilio (sigue siendo el mismo sector 14,
+  // stock_sector_bundle(14); sólo cambia en qué caja de Stock General se ve).
   // v2.3.0: Tránsito PS se ve con los sectores; los datos siguen saliendo de extra_bundle
   { key:"tra", grupo:"Sectores", nom:"Tránsito PS",      mode:"otros",  fuente:"transito", mostrar_ubic:"En tránsito", sin_max:true },
+  // v2.6.0 (2026-10-01): lo que produjo Fábrica y todavía no mandó a Virgilio (ubicación
+  // "Art. Terminado (Fábrica)"). Sale de stock_general_extra_bundle.art_terminado.
+  { key:"art", grupo:"Sectores", nom:"Art. Terminado",   mode:"otros",  fuente:"art_terminado", mostrar_ubic:"Art. Terminado (Fábrica)" },
   { key:"ps",  grupo:"Otros",    nom:"Prov. Servicio",   mode:"otros",  fuente:"ps",       mostrar_ubic:"Prov. Servicio", sin_max:true },
   { key:"tal", grupo:"Otros",    nom:"Talleristas",      mode:"otros",  fuente:"tall",     mostrar_ubic:"Tallerista" },
   { key:"pat", grupo:"Otros",    nom:"Prov. Art. Term.", mode:"otros",  fuente:"provat",   mostrar_ubic:"Proveedor" },
@@ -312,8 +344,104 @@ var RUBROS = [
   { key:"iny", grupo:"Otros",    nom:"Inyectores",       mode:"otros",  fuente:"iny",      mostrar_ubic:"Inyector", sin_caj:true, sin_max:true }
 ];
 
+/* ═══ pestaña Virgilio (v2.6.0, 2026-10-01) ═══
+   [Thomas]: "aumente el stock si hay un envío a Virgilio… y disminuya si hay una recepción
+   de Plásticos, Flejes, Cajas, SC y SP". Arranca en 0 y SOLO se mueve por esas dos acciones de
+   la Tablet (enviar_a_virgilio / tablet_registrar recibir→virgilio): nunca por un botón que
+   toque el stock propio de Cervantes — es la corrección pedida tras el revert de Luis del 01/10.
+   Bolsas Plásticas (sector 14) es la excepción histórica: vive en Virgilio desde antes de todo
+   esto (v2.2.0) y sigue con SU mecanismo de siempre (stock_sector_bundle, compra/envío a
+   inyector); acá sólo cambió de caja. SC/SP/Fleje/Plástico/Caja leen directo de D.inv (ya
+   cargado por Cervantes): sin RPC nueva. */
+var RUBROS_VIR = [
+  { key:"vbol", nom:"Bolsas Plásticas",      mode:"sector", sid:14, cols:COLS_MP },
+  { key:"vsc",  nom:"SC en Virgilio",        mode:"virg",   sid:1 },
+  { key:"vsp",  nom:"SP en Virgilio",        mode:"virg",   sid:2 },
+  { key:"vfle", nom:"Flejes en Virgilio",    mode:"virg",   sid:5 },
+  { key:"vpla", nom:"Plásticos en Virgilio", mode:"virg",   sid:6 },
+  { key:"vcaj", nom:"Cajas en Virgilio",     mode:"virg",   sid:11 }
+];
+var RUBRO_VIR = null, CUR_VIR = { filas:[] }, VIR_INIT = false;
+function pintarRubrosVir(){
+  $("rubrosVir").innerHTML = '<div class="rubros">' + RUBROS_VIR.map(function(r){
+    return '<button class="rubro-btn" data-k="'+r.key+'" type="button">'+esc(r.nom)+'</button>';
+  }).join("") + '</div>';
+  document.querySelectorAll("#rubrosVir .rubro-btn").forEach(function(b){
+    b.addEventListener("click", function(){ seleccionarVir(b.dataset.k); });
+  });
+}
+function marcarActivoVir(){
+  document.querySelectorAll("#rubrosVir .rubro-btn").forEach(function(b){
+    b.classList.toggle("active", RUBRO_VIR && b.dataset.k===RUBRO_VIR.key);
+  });
+}
+function filasDeVir(r){
+  if (r.mode==="sector"){
+    var b = CACHE[r.sid] || { filas:[], ubicacion_id:null };
+    return (b.filas||[]).map(function(x){
+      return { cid:x.comp_id, cod:x.cod, desc:x.desc, um:x.um, kg_x_uni:x.kg_x_uni,
+               uni_x_cajon:x.uni_x_cajon, online:Number(x.online||0) };
+    });
+  }
+  // mode "virg": el depósito virgilio_sector de ese sector. D.inv ya lo trae (el lado Cervantes
+  // lo esconde con ocultarInv; acá se lee directo, sin filtrar).
+  var out = [];
+  for (var k in (D.inv||{})){
+    var p=k.split(":"), cid=+p[0], uid=+p[1], u=D.ubic[String(uid)];
+    if (!u || u.tipo!=="virgilio_sector" || Number(u.ref)!==Number(r.sid)) continue;
+    var v=D.inv[k], ci=compInfo(cid);
+    out.push({ cid:cid, cod:ci.cod, desc:ci.desc, um:ci.um, kg_x_uni:ci.kg_x_uni,
+               uni_x_cajon:ci.uni_x_cajon, online:Number(v.cant)||0 });
+  }
+  return out;
+}
+async function seleccionarVir(key){
+  var r = RUBROS_VIR.filter(function(x){ return x.key===key; })[0];
+  if (!r) return;
+  RUBRO_VIR = r;
+  marcarActivoVir();
+  if (r.mode==="sector" && !CACHE[r.sid]){
+    $("statusVir").textContent = "Cargando " + r.nom + "…";
+    var res = await SB.rpc("stock_sector_bundle", { p_sector_id: r.sid });
+    if (res.error){ $("statusVir").textContent = "Error: " + res.error.message; return; }
+    CACHE[r.sid] = res.data || { filas:[], ubicacion_id:null };
+  }
+  CUR_VIR.filas = filasDeVir(r);
+  renderVir();
+}
+function renderVir(){
+  var q = (($("qVir")||{}).value||"").trim().toLowerCase();
+  var solo = (($("soloStockVir")||{}).checked)||false;
+  var filas = CUR_VIR.filas.filter(function(x){
+    if (solo && Number(x.online||0)===0) return false;
+    if (!q) return true;
+    return (x.cod||"").toLowerCase().indexOf(q)>=0 || (x.desc||"").toLowerCase().indexOf(q)>=0;
+  }).sort(function(a,b){ return (a.cod||"").localeCompare(b.cod||"", "es", {numeric:true}); });
+  var conKg = filas.some(function(x){ return x.kg_x_uni>0; });
+  var conCaj = filas.some(function(x){ return x.uni_x_cajon>0; });
+  $("theadVir").innerHTML = '<tr><th>Código</th><th>Descripción</th>'+
+    (conKg?'<th class="num">Kg</th>':'')+(conCaj?'<th class="num">Caj</th>':'')+'<th class="num">Uni</th></tr>';
+  $("tbodyVir").innerHTML = filas.map(function(x){
+    return '<tr><td><span class="cod">'+esc(x.cod)+'</span></td><td>'+esc(x.desc||"")+'</td>'+
+      (conKg?'<td class="num">'+(x.kg_x_uni?fmt(kgDe(x),2):"—")+'</td>':'')+
+      (conCaj?'<td class="num">'+(x.uni_x_cajon?fmt(cajDe(x),2):"—")+'</td>':'')+
+      '<td class="num '+clsNum(x.online)+'">'+fmt(x.online)+'</td></tr>';
+  }).join("");
+  $("tblEmptyVir").classList.toggle("hidden", filas.length>0);
+  var con = filas.filter(function(x){ return Number(x.online||0)!==0; }).length;
+  $("statusVir").textContent = RUBRO_VIR.nom + " · " + filas.length + " componentes · " + con + " con stock.";
+}
+function initVirSiHaceFalta(){
+  if (VIR_INIT || !D) return;
+  VIR_INIT = true;
+  pintarRubrosVir();
+  seleccionarVir("vbol");
+  var qi = $("qVir"); if (qi) qi.addEventListener("input", function(){ if (RUBRO_VIR) renderVir(); });
+  var si = $("soloStockVir"); if (si) si.addEventListener("change", function(){ if (RUBRO_VIR) renderVir(); });
+}
+
 var D = null;                 // movimientos_bundle (para Ajuste y rubros 'otros')
-var EXTRA = { prov_at:[], transito:[], inyector:[] };
+var EXTRA = { prov_at:[], transito:[], inyector:[], art_terminado:{ubic:null, filas:[]} };
 var CACHE = {};               // sid -> stock_sector_bundle
 var GLOBAL = null;            // indice transversal (todas las ubicaciones), se arma una vez
 var TOPE_GLOBAL = 400;        // filas dibujadas sin busqueda (el inventario entero son ~1.330)
@@ -408,6 +536,16 @@ function filasDe(r){
                    uni_x_cajon:ci.uni_x_cajon, online:Number(f.cant)||0, maximo:f.max,
                    ubic_nom:p.nom, ubic_id:p.ubic });
       });
+    });
+  } else if (r.fuente==="art_terminado"){
+    // v2.6.0: lo que Fábrica produjo y todavía no se mandó a Virgilio. Una fila por artículo
+    // (ubic_id fija: todos viven en "Art. Terminado (Fábrica)"), uxc viene de compInfo.
+    var ubicArt = (EXTRA.art_terminado||{}).ubic;
+    ((EXTRA.art_terminado||{}).filas||[]).forEach(function(f){
+      var ci=compInfo(f.cid);
+      out.push({ cid:f.cid, cod:ci.cod, desc:ci.desc, um:ci.um, kg_x_uni:ci.kg_x_uni,
+                 uni_x_cajon:f.uxc||ci.uni_x_cajon, online:Number(f.cant)||0, maximo:null,
+                 ubic_nom:"Art. Terminado (Fábrica)", ubic_id:ubicArt });
     });
   } else if (r.fuente==="transito"){
     (EXTRA.transito||[]).forEach(function(t){
@@ -809,8 +947,8 @@ async function reload(){
   try{
     D = await GP2M.cargar(SB);
     try{ var rx = await SB.rpc("stock_general_extra_bundle");
-         EXTRA = (rx && !rx.error && rx.data) || { prov_at:[], transito:[], inyector:[] }; }
-    catch(_){ EXTRA = { prov_at:[], transito:[], inyector:[] }; }
+         EXTRA = (rx && !rx.error && rx.data) || { prov_at:[], transito:[], inyector:[], art_terminado:{ubic:null, filas:[]} }; }
+    catch(_){ EXTRA = { prov_at:[], transito:[], inyector:[], art_terminado:{ubic:null, filas:[]} }; }
   }catch(e){
     $("status").textContent = "Error: " + ((e&&e.message)||e);
     return;
@@ -819,6 +957,7 @@ async function reload(){
   CACHE = {}; GLOBAL = null;
   await seleccionar(RUBRO ? RUBRO.key : "sc");
   renderMovs();
+  if (VIR_INIT && RUBRO_VIR) await seleccionarVir(RUBRO_VIR.key);
 }
 
 /* ═══ Ajuste +/- (heredado de Registrar_Movimiento) ═══ */
