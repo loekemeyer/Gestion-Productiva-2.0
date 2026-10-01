@@ -467,7 +467,7 @@ function renderStandaloneLane(r,pasos,fl,need,uni,flejesTotal){
  return H;
 }
 
-function renderConvergenceLane(padre_id,ruta_list,need,uni,flejesTotal,aid,insumoEnConv){
+function renderConvergenceLane(padre_id,ruta_list,need,uni,flejesTotal,aid,insumoEnConv,rutaDibujada){
  var pc=cById(padre_id);
  var hijos=D.children[String(padre_id)]||[];
  // Identificar paso de convergencia (matriz o tallerista que arma padre) desde primera ruta que lo tenga
@@ -512,6 +512,8 @@ function renderConvergenceLane(padre_id,ruta_list,need,uni,flejesTotal,aid,insum
   }
   if(matchRuta){
    usedRutas[matchRuta.id]=1;
+   // La ruta ya se dibuja como rama: no repetirla como ruta simple en el bloque 1 (570: F2 de la ruta 96)
+   if(rutaDibujada)rutaDibujada[matchRuta.id]=1;
    // La ruta de insumo ya se dibuja aca: no repetirla abajo en el bloque 4
    if(!matchRuta.f && insumoEnConv)insumoEnConv[matchRuta.id]=1;
    var pps=D.rp[String(matchRuta.id)]||[];
@@ -673,8 +675,17 @@ function render(){
 
  function titulo(n,txt){return '<div class="section-title"><span class="n">'+n+'</span>'+txt+'</div>';}
 
+ // Las convergencias se arman ANTES que las rutas simples: una ruta que se dibuja como rama
+ // de una convergencia (570: Fleje 28 -> L8 -> F2 entra a la Matriz 194) no se repite en el
+ // bloque 1, aunque su ultimo paso no sea el hijo (la ruta 96 sigue F2 -> Fabrica -> 570).
+ // Ademas evita sumar dos veces sus kg de fleje.
+ var convKeys=Object.keys(convergences);
+ var Bconv='', rutaDibujada={};
+ convKeys.forEach(function(padre){
+  Bconv+=renderConvergenceLane(parseInt(padre),convergences[padre],need,uni,flejesTotal,aid,insumoEnConv,rutaDibujada);
+ });
  // Rutas standalone
- var standalone=rutas_prod.filter(function(r){return !rutas_en_conv[r.id];});
+ var standalone=rutas_prod.filter(function(r){return !rutas_en_conv[r.id] && !rutaDibujada[r.id];});
  if(standalone.length){
   B+=titulo(1,'Partes que se fabrican en Cervantes ('+standalone.length+(standalone.length===1?' ruta simple)':' rutas simples)'));
   standalone.forEach(function(r){
@@ -683,12 +694,9 @@ function render(){
   });
  }
  // Rutas con convergencia
- var convKeys=Object.keys(convergences);
  if(convKeys.length){
   B+=titulo(2,'Convergencias · sub-conjuntos que unen 2+ rutas ('+convKeys.length+')');
-  convKeys.forEach(function(padre){
-   B+=renderConvergenceLane(parseInt(padre),convergences[padre],need,uni,flejesTotal,aid,insumoEnConv);
-  });
+  B+=Bconv;
   // Las rutas de insumo que ya se dibujaron dentro de una convergencia no se repiten en el bloque 4
   rutas_ins=rutas_ins.filter(function(r){return !insumoEnConv[r.id];});
  }

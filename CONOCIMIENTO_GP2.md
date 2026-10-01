@@ -14498,3 +14498,17 @@ version.js v1.230.1 ?v=20261001l.
   rubro al final), y adentro **código numérico** y después «Dónde». Se retira el «manda el código» del v2.2.0.
 - Sólo front (`rubroIdx` + el sort de `filtradas`). `test_stock_general` mide que ningún rubro reaparezca
   después de que empezó otro (falla con el orden viejo). Stock General v3.0.2, version.js v1.230.2.
+
+## 4ia. Programa: una ruta que es RAMA de una convergencia no se repite como «ruta simple» (2026-10-01)
+
+- [usuario, 01/10] *"en el 570, la ruta del vástago aparece duplicada"*: ID1 → M375 → L8 → F2 (Pedernera) salía
+  en el bloque 1 (*Partes que se fabrican en Cervantes*) **y** como Rama 2 de la convergencia E6-M194.
+- [dato] La ruta 96 termina F2 → Fábrica → 570, así que su ÚLTIMO paso no es un hijo de E6-M194; el bloque 1
+  sólo miraba el último paso, mientras la rama de la convergencia la encuentra por cualquier paso (F2). Los dos
+  criterios no coincidían y además sumaba dos veces sus kg de fleje.
+- Hoy las convergencias se arman primero y anotan qué rutas dibujaron (`rutaDibujada`); el bloque 1 las saltea.
+  Sólo front. `test_programa_conv_sin_duplicar` (recorte real del 570, falla contra el HTML anterior).
+  version.js v1.230.3.
+- [deducido, sin confirmar] El dato de la ruta 96 (F2 → tallerista directo) no cierra con el BOM, que dice que F2
+  entra a la Matriz 194. La pantalla ya no lo duplica; si la ruta debe pasar por M194, eso es un cambio de datos.
+
