@@ -14352,7 +14352,16 @@ mostraba 0 filas. Después del fix, los 77 aparecen (y lo mismo para SP/Fleje/Pl
 rubros exactos y sin encabezado de grupo repetido; SC en Virgilio con el universo completo —A10 con stock
 real + un segundo componente en 0—; el salto "También en…"/"Todos" hacia Talleristas cambia de pestaña
 sola). Mismo commit que §4hq, version.js bumpeado una vez para los dos cambios.
-## 4hs. Botón "→ Virgilio" en el control de cajas y flejes — el remito que no entra se baja directo a Virgilio (2026-10-01)
+## 4hs. Programa (¿Qué necesito para producir?): Enter en el buscador ENTRA al artículo (2026-10-01)
+
+[usuario, 01/10] *"cuando le doy enter quiero que me entre al artículo"*. En el selector «Elegí el
+artículo», Enter elige de la lista que se ve: gana el **código exacto** (066 entra al 066 aunque
+otra fila lo contenga, ej. 5010 con "501"); sin código exacto, la **primera fila**; sin filas, no
+hace nada y el panel queda abierto. Respeta el chip de marca puesto. Sólo front
+(`Programa/Programa.html`, `elegirArticulo`). `tests/ui/test_programa_enter.js` (falla contra el
+HTML anterior). version.js v1.226.1 ?v=20261001g.
+
+## 4ht. Botón "→ Virgilio" en el control de cajas y flejes — el remito que no entra se baja directo a Virgilio (2026-10-01)
 
 [usuario, Thomas, versión tablet] *"llega el camión con el remito. Anoto las cantidades del remito y después
 controlo cuando termino de bajar todo. En el caso de flejes y cajas: si el total del remito no entra en

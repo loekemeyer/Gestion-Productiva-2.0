@@ -872,11 +872,25 @@ document.addEventListener("keydown",function(e){if(e.key==="Escape"&&!pick.hidde
 pickMarcas.addEventListener("click",function(e){
  var b=e.target.closest("button[data-mk]");if(!b)return;
  selMarca.value=b.getAttribute("data-mk");pintarChips();llenarArticulos();});
+function elegirArticulo(id){
+ elegido=id;sel.value=elegido;document.getElementById('tallAlt').dataset.aid='';
+ cerrarPicker();pintarBoton();render();}
 pickList.addEventListener("click",function(e){
  var b=e.target.closest("button[data-id]");if(!b)return;
- elegido=b.getAttribute("data-id");sel.value=elegido;document.getElementById('tallAlt').dataset.aid='';
- cerrarPicker();pintarBoton();render();});
+ elegirArticulo(b.getAttribute("data-id"));});
 inpBuscar.addEventListener("input",function(){llenarArticulos();});
+/* 2026-10-01 [usuario: "cuando le doy enter quiero que me entre al articulo"]: Enter en el
+   buscador elige de la lista que se ve. Gana el codigo EXACTO (066 entra al 066 aunque el
+   texto aparezca en otra descripcion); si no hay, la primera fila de la lista. Sin filas, nada. */
+inpBuscar.addEventListener("keydown",function(e){
+ if(e.key!=="Enter"||e.isComposing)return;
+ e.preventDefault();
+ var bs=pickList.querySelectorAll("button[data-id]");if(!bs.length)return;
+ var q=norm(inpBuscar.value).trim(), b=bs[0];
+ if(q)Array.prototype.some.call(bs,function(x){
+  var a=D.art.find(function(y){return String(y.id)===x.getAttribute("data-id");});
+  if(a&&norm(a.cod)===q){b=x;return true;}return false;});
+ elegirArticulo(b.getAttribute("data-id"));});
 document.getElementById("uni").addEventListener("input",render);
 document.getElementById("tallAlt").addEventListener("change",render);
 var a501=D.art.find(function(a){return a.cod==="501";});
