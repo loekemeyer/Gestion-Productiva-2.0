@@ -14171,7 +14171,8 @@ kg, caj, uni"*.
   (0,01596563) da la mitad. 16 pares fleje-matriz difieren > 5 % (0,22× a 14×; IA10 matriz 107 el peor). Un fleje
   que alimenta varias matrices (IA10, IF10, IB3) no puede tener un `kg_x_uni` único por pieza. El desglose de la O.C.
   (`oc_maximo_desglose`) usa `kg_x_uni` y no cierra: **problema abierto en auditoría** + tarea en Proyectos de
-  Planify. [deducido, sin confirmar] el dato bueno es el de la matriz.
+  Planify. [deducido, sin confirmar] el dato bueno es el de la matriz. **→ Arreglado el mismo día, ver §4ht**: la
+  O.C. delega en `maximo_desglose`.
 - Para tener el kg por artículo hay vista nueva `GP2.v_consumo_fleje_kg_articulo`; `v_consumo_fleje_kg` ahora suma
   desde ella (una sola definición). Se verificó que da las mismas 51 filas que antes.
 - [dato] **3 de 8 resinas tienen el máximo viejo**: 2405 2.050 kg cargado vs 1.925 por demanda de hoy, 2465 1.100
@@ -14361,7 +14362,29 @@ hace nada y el panel queda abierto. Respeta el chip de marca puesto. Sólo front
 (`Programa/Programa.html`, `elegirArticulo`). `tests/ui/test_programa_enter.js` (falla contra el
 HTML anterior). version.js v1.226.1 ?v=20261001g.
 
-## 4ht. Botón "→ Virgilio" en el control de cajas y flejes — el remito que no entra se baja directo a Virgilio (2026-10-01)
+## 4ht. O.C.: el desglose del Máximo es Consume · kg/mes · Máximo, y sale de la MISMA cuenta que Stock General (2026-10-01)
+
+[usuario 01/10, sobre la ventanita del Máximo en Generar OC] *"Venta y consume aparece con los mismos valores.
+Tendria que ser consume, kg/mes y la tercera columna nueva que sea máximo (multiplica kg/mes con la cantidad de
+meses por sector segun el maximo)… Corregí llevándolo a cada caso correspondiente"*.
+
+- **Columnas** (OC v1.50.0): Artículo (o Pieza) · Consume (uni/mes) · kg/mes · **Máximo** = lo de la fila × meses del
+  sector (`ubicacion.meses_stock`; resina 2,5 si no hay). Venta se fue.
+- [dato] **Venta = Consume no era un bug**: en IC7 cada artículo lleva 1 pieza del fleje. Donde el coeficiente no es 1
+  difieren; igual se sacó porque el usuario no la quiere en esta ventanita.
+- **"Cada caso"** = el Máximo de la columna va en la **unidad del máximo de la celda**: kg en fleje, resina y master
+  bach; uni en el resto (sin columna kg/mes si el insumo no tiene peso). Así el Total cierra con la celda. [deducido]
+  así leí "llevándolo a cada caso".
+- [dato] **El bug real era otro**: la tabla del fleje pasaba a kg con el `kg_x_uni` del fleje y daba la mitad
+  (IC7 252,91 kg/mes contra 505,8 de la matriz → el "Máximo" habría salido 1.517 kg contra 3.035 de la celda).
+  `oc_maximo_desglose` ahora **delega** en `maximo_desglose(comp, ubic del sector)` — una sola cuenta para O.C. y Stock
+  General; dos copias de la misma cuenta es justo lo que divergió. 49 de 49 flejes con máximo cierran. De yapa el
+  master bach, que la versión vieja dejaba vacío, muestra sus piezas. `maximo_desglose` suma `aporte_uni_mes` en el
+  fleje (Stock General no lo usa).
+- Quedan sin cerrar contra la celda, a propósito: máximo `fisico` (fijado a mano) y las 3 resinas con máximo viejo de
+  §4hl — la tabla muestra la demanda de hoy, la celda lo cargado.
+- `Compras/OC_GP2.html` (`htmlDesglose`), `tests/ui/test_oc_maximo_desglose.js`, `db/funciones_GP2.sql`.
+## 4hu. Botón "→ Virgilio" en el control de cajas y flejes — el remito que no entra se baja directo a Virgilio (2026-10-01)
 
 [usuario, Thomas, versión tablet] *"llega el camión con el remito. Anoto las cantidades del remito y después
 controlo cuando termino de bajar todo. En el caso de flejes y cajas: si el total del remito no entra en
@@ -14394,5 +14417,5 @@ sola: descartado.
   invariante AI salta.
 - `db/migracion_recepcion_virgilio.sql`, `db/funciones_GP2.sql` (`recepcion_a_virgilio` +
   `controlar_recepcion_cajas` + `control_recepcion_bundle`), `db/vistas_GP2.sql` (`v_recepcion_control`),
-  `db/tablas_GP2.sql` (columnas). Front: `control-cajas` v1.3.0, `RecepcionInsumos` v3.69.0, version.js v1.227.0.
+  `db/tablas_GP2.sql` (columnas). Front: `control-cajas` v1.3.0, `RecepcionInsumos` v3.69.0, version.js v1.228.0.
   Test: `tests/ui/test_recepcion_virgilio.js`.
