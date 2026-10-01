@@ -6,7 +6,14 @@
 <script src="../gp2-ui.js?v=20260930a"></script>
 <script src="../gp2-numero.js?v=20260911o"></script>
 <title>Stock general · GP2</title>
-<!-- v2.8.0 (2026-10-01) - LAS 3 PESTAÑAS SE VEN IGUAL [usuario: "Solo en Cervantes me aparece buscar
+<!-- v2.9.0 (2026-10-01) - BOTÓN AFILADO [usuario: "Hay cosas en sectores sin boton?" → "Sí" a agregarlo].
+     Sector Afilado (4) era el ÚNICO sector con ubicación propia sin botón [dato 01/10: Terminado (12)
+     no tiene ubicación de sector -lo suyo se ve en Art. Terminado- y Alambre (13) no tiene ni ubicación
+     ni componentes]. Hoy lleva 1 componente, Y1 "Cuchilla para Afilar", stock 0, máximo 41.638, sin
+     ningún movimiento. Columnas Fabricado/Consumido como En Movimiento (es pieza intermedia entre una
+     matriz y el afilado) pero CON Máximo, porque lo tiene cargado. Con esto ningún sector queda
+     escondido detrás de "ver todo junto →".
+     v2.8.0 (2026-10-01) - LAS 3 PESTAÑAS SE VEN IGUAL [usuario: "Solo en Cervantes me aparece buscar
      todos los rubros. Eliminá así quedan todos los módulos igual"]. Sale el BOTÓN "🔎 Todos los
      rubros" (y con él el rótulo "Buscar") del selector de Cervantes; como queda un solo grupo, también
      sale el rótulo "Sectores" (mismo criterio que Terceros: un grupo solo no lleva encabezado). Ahora
@@ -365,6 +372,8 @@ var RUBROS = [
   { key:"sc",  grupo:"Sectores", nom:"Stock SC",         mode:"sector", sid:1,  cols:COLS_SC },
   { key:"sp",  grupo:"Sectores", nom:"Stock SP",         mode:"sector", sid:2,  cols:COLS_SP },
   { key:"mov", grupo:"Sectores", nom:"En Movimiento",    mode:"sector", sid:3,  cols:COLS_MOV3, sin_max:true },
+  // v2.9.0: Sector Afilado — el único sector con ubicación que no tenía botón (hoy: Y1, Cuchilla para Afilar)
+  { key:"afi", grupo:"Sectores", nom:"Afilado",          mode:"sector", sid:4,  cols:COLS_MOV3 },
   { key:"fle", grupo:"Sectores", nom:"Flejes",           mode:"sector", sid:5,  cols:COLS_INSUMO, sin_caj:true, mostrar_fleje:true, detalle:true },
   { key:"pla", grupo:"Sectores", nom:"Plásticos",        mode:"sector", sid:6,  cols:COLS_INSUMO },
   { key:"bom", grupo:"Sectores", nom:"Bombillas",        mode:"sector", sid:7,  cols:COLS_INSUMO },
