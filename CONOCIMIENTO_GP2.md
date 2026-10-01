@@ -14549,6 +14549,10 @@ Premium se recibe de Virgilio"*.
 - Hoy las convergencias se arman primero y anotan qué rutas dibujaron (`rutaDibujada`); el bloque 1 las saltea.
   Sólo front. `test_programa_conv_sin_duplicar` (recorte real del 570, falla contra el HTML anterior).
   version.js v1.230.3.
-- [deducido, sin confirmar] El dato de la ruta 96 (F2 → tallerista directo) no cierra con el BOM, que dice que F2
-  entra a la Matriz 194. La pantalla ya no lo duplica; si la ruta debe pasar por M194, eso es un cambio de datos.
+- [usuario, 01/10] La ruta 96 se corrigió: el F2 entra a la **Matriz 194** (F2 → E6-M194 → Fábrica → 570), igual que la
+  ruta del E6 y con el molde del 521. Efecto medido: el costo de E6-M194 pasa de $241,24 a $388,03 (antes no sumaba el
+  F2); el del 570 no cambia ($708,67). Máximo de F2 en Fábrica 636 → 120 (lo que queda es del 858).
+  `db/migracion_ruta96_570_m194_20261001.sql` (con rollback).
+- [dato, pendiente] El **858** tiene el mismo error (ruta 97: F2 → Fábrica directo, receta con E6-M194), y las rutas de
+  insumo del V10 van a Fábrica en vez de a la M194. No se tocaron.
 
