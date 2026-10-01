@@ -1707,6 +1707,11 @@ with ps as (
   select p.id ps_id, p.cod_prov, p.nombre, p.proceso, u.ubic_id
   from proveedor_servicio p
   join lateral (select "GP2".ubic_de('proveedor_servicio', p.id) ubic_id) u on u.ubic_id is not null
+  -- Contrapartes = las MISMAS que la tablet (Enviar/Recibir): solo PS con parte
+  -- configurada. Sin esto colaban Rec Color/Daniel/Blist-Pack (sin parte, todo en 0),
+  -- que la tablet no lista. [usuario 2026-10-01]
+  where exists (select 1 from v_contraparte_parte v
+                 where v.tipo = 'proveedor_servicio' and v.ref_id = p.id)
 ),
 cfg as (
   -- que parte entra por PS: v_contraparte_parte (una sola definicion)
@@ -1783,6 +1788,74 @@ left join lateral (select p2.nombre_corto from proveedor_servicio p2 where p2.id
 left join partes_j pj on pj.ps_id=ps.ps_id;
 $function$
 ;
+
+-- ---------- control_inyector_bundle ----------
+-- Control Partes Inyectores (2026-10-01): mismo molde que control_ps_bundle, pero
+-- por inyector las FILAS son las RESINAS (kg). El inyector no guarda piezas: guarda
+-- resina. Enviado = kg de bolsa que se le mando (envio_inyector), Consumido = kg
+-- gastado al entregar piezas (consumo_inyector), Saldo = kg en su ubicacion.
+-- Contrapartes = las mismas que la tablet "Enviar > Inyectores" (proveedor_insumo con
+-- ubicacion inyector y al menos una pieza con material): JL Matriceria, Pat Bet Plast,
+-- Pettofrezza Rafael. Kollplast queda afuera (no tiene piezas), igual que en la tablet.
+CREATE OR REPLACE FUNCTION "GP2".control_inyector_bundle()
+ RETURNS jsonb
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'GP2'
+AS $function$
+with iny as (
+  select pi.id iny_id, pi.nombre, u.id ubic_id
+    from proveedor_insumo pi
+    join ubicacion u on u.tipo='inyector' and u.ref_id=pi.id
+   where exists (select 1 from componente c
+                  where c.proveedor = pi.nombre
+                    and c.material_id is not null and c.estado_compra is null)
+),
+mats as (
+  select iny.iny_id, iny.ubic_id, c.material_id comp_id
+    from iny join componente c on c.proveedor = iny.nombre
+   where c.material_id is not null and c.estado_compra is null
+  union
+  select iny.iny_id, iny.ubic_id, i.componente_id
+    from iny join inventario i on i.ubicacion_id = iny.ubic_id
+  union
+  select iny.iny_id, iny.ubic_id, m.comp_id
+    from iny join movimiento m on iny.ubic_id in (m.ubic_origen_id, m.ubic_destino_id)
+   where m.tipo_mov in ('envio_inyector','consumo_inyector')
+),
+env as (
+  select ubic_destino_id ubic_id, comp_id, sum(_delta_dest) enviado
+    from movimiento where tipo_mov='envio_inyector' group by 1,2
+),
+con as (
+  select ubic_origen_id ubic_id, comp_id, sum(_delta_orig) consumido
+    from movimiento where tipo_mov='consumo_inyector' group by 1,2
+),
+inv as (select ubicacion_id ubic_id, componente_id comp_id, sum(cantidad) saldo from inventario group by 1,2),
+partes as (
+  select m.iny_id, m.comp_id,
+    coalesce(e.enviado,0) enviado, coalesce(cn.consumido,0) consumido, coalesce(iv.saldo,0) saldo
+  from mats m
+  left join env e  on e.ubic_id=m.ubic_id  and e.comp_id=m.comp_id
+  left join con cn on cn.ubic_id=m.ubic_id and cn.comp_id=m.comp_id
+  left join inv iv on iv.ubic_id=m.ubic_id and iv.comp_id=m.comp_id
+),
+partes_j as (
+  select p.iny_id, jsonb_agg(jsonb_build_object(
+      'comp_id',p.comp_id,'codigo',c.codigo,'descripcion',c.descripcion,'sector',s.nombre,
+      'enviado',round(p.enviado,3),'consumido',round(p.consumido,3),'saldo',round(p.saldo,3)
+    ) order by c.codigo, c.id) partes
+  from partes p join componente c on c.id=p.comp_id left join sector s on s.id=c.sector_id
+  group by p.iny_id
+)
+select jsonb_build_object('generado_en', now(),
+  'inyectores', coalesce(jsonb_agg(jsonb_build_object(
+    'iny_id',iny.iny_id,'nombre',iny.nombre,'partes',coalesce(pj.partes,'[]'::jsonb)
+  ) order by iny.nombre),'[]'::jsonb))
+from iny left join partes_j pj on pj.iny_id=iny.iny_id;
+$function$
+;
+grant execute on function "GP2".control_inyector_bundle() to anon, authenticated, service_role;
 
 -- ---------- control_recepcion_bundle ----------
 CREATE OR REPLACE FUNCTION "GP2".control_recepcion_bundle(p_sector_id integer)
