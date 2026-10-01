@@ -7,8 +7,13 @@
      - que los rubros que no son sector (Prov AT, Tránsito) rendericen su tabla,
      - el PAYLOAD EXACTO del Ajuste +/- (heredado, contrato que no cambia),
      - los últimos movimientos, y el render celular (390px, tocable, 18px).
-   v2.8.0 (2026-10-01): las 3 pestañas se ven IGUAL — Cervantes ya no tiene el botón "Todos los
-   rubros" ni rótulos de grupo; la vista transversal sigue, pero se abre desde "ver todo junto →".
+   v2.8.0 (2026-10-01): las pestañas DEJAN de ser un destino exclusivo [Thomas: "Cuando entro a
+   stock general quiero ver los stocks de todo y después si quiero puedo filtrar por Cervantes,
+   Virgilio, Terceros"]. Se entra SIEMPRE viendo "Todos los rubros" combinado (Cervantes +
+   Virgilio + Terceros); las pestañas pasan a ser un FILTRO sobre ese índice, no un pane que tapa
+   a los otros dos. Virgilio deja de tener su propio motor de tabla (RUBROS_VIR/renderVir): sus
+   6 rubros se mudan al RUBROS principal y pasan por el MISMO engine (con columnas de movimiento
+   donde corresponde, ej. Bolsas Plásticas — antes se calculaban y se tiraban).
    v2.7.0 (2026-10-01): las 3 cajas DE VERDAD (Cervantes / Virgilio / Terceros — Prov. Servicio,
    Talleristas, Prov. Art. Term. e Inyectores se mudan a su propia pestaña, ya no "Otros" adentro
    de Cervantes) y, en Virgilio, SC/SP/Fleje/Plástico/Caja muestran TODO el universo del sector
@@ -16,7 +21,6 @@
    v2.6.0 (2026-10-01): Virgilio con contenido — Bolsas Plásticas (se mudó de Cervantes) +
    SC/SP/Fleje/Plástico/Caja en el depósito virgilio_sector (D.inv, sin RPC nueva); Cervantes
    suma el rubro Art. Terminado (lo que Fábrica produjo y no mandó, stock_general_extra_bundle).
-   v2.5.0 (2026-10-01): pestañas Cervantes (abre ahí) / Virgilio.
    v2.4.0 (2026-10-01): tocar el Máximo abre su desglose (maximo_desglose por comp + ubic). */
 const { chromium } = require('playwright');
 const path = require('path');
@@ -25,7 +29,7 @@ const ROOT = 'file://' + path.resolve(__dirname, '..', '..').replace(/\\/g, '/')
 const EXE = process.env.CHROMIUM_PATH || (fs.existsSync('/opt/pw-browsers/chromium') ? '/opt/pw-browsers/chromium' : undefined);
 
 const BUNDLE = {
-  sect: { '1': { nom: 'Sector Crudo', tipo: 'crudo' }, '2': { nom: 'D1', tipo: 'crudo' }, '12': { nom: 'Terminado', tipo: 'terminado' } },
+  sect: { '1': { nom: 'Sector Crudo', tipo: 'crudo' }, '2': { nom: 'D1', tipo: 'crudo' }, '12': { nom: 'Terminado', tipo: 'terminado' }, '14': { nom: 'Bolsas Plásticas', tipo: 'insumo' } },
   ubic: {
     '1': { tipo: 'sector', ref: 2, nom: 'D1' },
     '2': { tipo: 'tallerista', ref: 3, nom: 'Cervantes (fábrica)' },
@@ -37,6 +41,10 @@ const BUNDLE = {
     // v2.6.0: el depósito de Virgilio para SC (sector 1) — lo que se envió con "Enviar -> Virgilio"
     // de la Tablet y todavía no volvió con "Recibir -> Virgilio".
     '8': { tipo: 'virgilio_sector', ref: 1, nom: 'Sector Crudo en Virgilio' },
+    // v2.8.0: Bolsas Plásticas (sector 14) es una ubicación tipo "sector" como cualquier otra —
+    // vive del lado Virgilio desde siempre, pero NO es tipo "virgilio_sector", así que el barrido
+    // general de Cervantes/Terceros SÍ la recorre (ocultarInv no la excluye).
+    '9': { tipo: 'sector', ref: 14, nom: 'Bolsas Plásticas' },
   },
   tall: { '3': { nom: 'Fabrica' }, '6': { nom: 'Martin' } },
   prov_serv: { '9': { nom: 'Pedernera Ilario', proceso: 'Cromado' } },
@@ -46,6 +54,7 @@ const BUNDLE = {
     '30': { cod: 'B5', d: 'Parte be', s: 2, um: 'uni' },
     '50': { cod: 'CAJ1', d: 'Caja 510', s: 11, um: 'uni' }, // sector Caja = insumo de empaque
     '60': { cod: '2405', d: 'PP 2630 (Polipropileno)', s: 14, um: 'kg' }, // MP plastica, kg sin factor
+    '80': { cod: 'BOL1', d: 'Bolsa chica', s: 14, um: 'uni' },
   },
   rp: {},
   c2a: {},
@@ -60,6 +69,7 @@ const BUNDLE = {
     '10:1': { cant: 100, max: 200 }, '30:1': { cant: 50, max: 0 }, '20:5': { cant: 0, max: 0 },
     '10:6': { cant: 0, max: null }, '50:6': { cant: 0, max: null }, '30:3': { cant: 20, max: null },
     '60:7': { cant: 1250, max: null }, // 1.250 kg de PP mandados al inyector Pettofrezza
+    '80:9': { cant: 15, max: 40 }, // Bolsas Plásticas: via el barrido general (no via el bloque virg)
     // v2.7.0: la pestaña Virgilio ya NO lee D.inv por virgilio_sector (ver SECTOR[1].filas,
     // campo en_virgilio) — esta fila queda sin consumidor a propósito, es la foto de ANTES.
   },
@@ -119,6 +129,16 @@ const SECTOR = {
       online: 0, en_virgilio: null, maximo: null, n_fleje: null, mov: {},
     })),
   },
+  // v2.8.0: Bolsas Plásticas pasó al rubro principal (mode "sector" como cualquier otro) —
+  // ahora SÍ pasa por el motor de columnas de movimiento (antes se calculaban y se tiraban).
+  14: {
+    sector: { id: 14, nombre: 'Bolsas Plásticas' }, ubicacion_id: 9, ubicacion_virgilio_id: null,
+    filas: [{
+      comp_id: 80, cod: 'BOL1', desc: 'Bolsa chica', um: 'uni', kg_x_uni: null, uni_x_cajon: null,
+      online: 15, en_virgilio: null, maximo: 40, n_fleje: null,
+      mov: { compra: { ent: 20, sal: 0, n: 1 } },
+    }],
+  },
 };
 /* v2.4.0: maximo_desglose(comp, ubic) por fila. A10 en D1 (ubic 1) = consumo x meses (Crudo/
    Procesado, con tope de 5 cajones que no llega); F1 (ubic 9) = fleje en kg por articulo. */
@@ -175,72 +195,133 @@ window.supabase = { createClient: function(){ return {
   await page.route('**/*.png', r => r.fulfill({ contentType: 'image/png', body: Buffer.from('') }));
   await page.goto(ROOT + '/Stocks%20General/StockGeneral_GP2.html');
   await page.waitForSelector('.rubro-btn');
-  // el rubro por defecto (SC) tiene que haber renderizado su fila
+  // v2.8.0: el rubro por defecto es "Todos los rubros" (vista combinada), no Stock SC.
   await page.waitForFunction(() => document.querySelectorAll('#tbody tr').length > 0);
 
-  // ── selector de rubros (foto 1) + tabla rica (foto 2) ──
+  const vis = (id) => page.evaluate(i => { const e = document.getElementById(i); return !!e && e.offsetParent !== null; }, id);
+  const activoPill = (id) => page.evaluate(i => document.getElementById(i).classList.contains('active'), id);
+
+  // ── v2.8.0: AL ENTRAR, "Todos" está activo y la tabla ya es la combinada ──
   const base = await page.evaluate(() => ({
     rubros: document.querySelectorAll('.rubro-btn').length,
     horizontal: document.documentElement.scrollWidth > window.innerWidth,
     hAj: document.querySelector('.hlink') ? document.querySelector('.hlink').getBoundingClientRect().height : 0,
     thead: document.getElementById('thead').innerText,
-    row: document.querySelector('#tbody tr').innerText,
+    body: document.getElementById('tbody').innerText,
   }));
-  ok(base.rubros >= 12, 'la grilla de rubros renderiza sus botones (' + base.rubros + ')');
+  ok(await activoPill('tabTodos'), 'al entrar, la pestaña "🔎 Todos" está activa');
+  ok(base.rubros >= 20, 'con "Todos" activo, la grilla muestra los rubros de las 3 plantas juntas (' + base.rubros + ')');
   ok(!base.horizontal, 'celular 390px: sin scroll horizontal');
+  // v3.0.2 ["Ordená por rubro"]: en "Todos" la tabla va por RUBRO, en el orden de los botones —
+  // un rubro no vuelve a aparecer después de que empezó otro (antes iba por código y se mezclaban)
+  const ordRub = await page.evaluate(() => {
+    const orden = Array.from(document.querySelectorAll('#rubros .rubro-btn')).map(b => b.getAttribute('data-k'));
+    const seq = Array.from(document.querySelectorAll('#tbody td.rub-cell')).map(td => td.getAttribute('data-rub'));
+    const idx = seq.map(k => orden.indexOf(k));
+    return { seq: seq.filter((k, i) => i === 0 || seq[i - 1] !== k), creciente: idx.every((v, i) => i === 0 || idx[i - 1] <= v), n: seq.length };
+  });
+  ok(ordRub.n > 1 && ordRub.creciente, 'Todos: ordenado por rubro en el orden de los botones — ' + ordRub.seq.join(' > '));
   ok(base.hAj >= 44, 'boton Ajuste tocable (' + Math.round(base.hAj) + 'px, minimo 44)');
+  ok(await vis('btnAjuste'), '± Ajuste siempre a la vista (ya no se esconde por pestaña)');
+  ok(/RUBRO/i.test(base.thead) && /DÓNDE/i.test(base.thead), 'Todos: la tabla dice en qué rubro y en qué lugar está cada fila');
+  // Thomas: "quiero ver los stocks de todo" — Cervantes, Virgilio y Terceros, sin tocar nada
+  ok(/Pedernera Ilario/.test(base.body), 'Todos: Terceros (Prov. Servicio) ya está, sin filtrar');
+  ok(/Martin/.test(base.body), 'Todos: Terceros (Talleristas) ya está, sin filtrar');
+  ok(/Cabral/.test(base.body), 'Todos: Terceros (Prov. Art. Term.) ya está, sin filtrar');
+  ok(/T1/.test(base.body), 'Todos: Cervantes (Art. Terminado) ya está, sin filtrar');
+  ok(/BOL1/.test(base.body), 'Todos: Virgilio (Bolsas Plásticas) ya está, sin filtrar');
+  const bol1Count = (base.body.match(/BOL1/g) || []).length;
+  ok(bol1Count === 1, 'Bolsas Plásticas NO se duplica (vive del barrido general Y del bloque Virgilio, pero sólo uno la empuja) — ' + bol1Count);
 
-  // ── v2.6.0: pestañas de planta. Abre en Cervantes; Virgilio con SU contenido (SC/SP/Fleje/
-  // Plástico/Caja en virgilio_sector + Bolsas Plásticas), nada de ± Ajuste ahí ──
-  const vis = (id) => page.evaluate(i => { const e = document.getElementById(i); return !!e && e.offsetParent !== null; }, id);
-  ok(await vis('paneCervantes') && !(await vis('paneVirgilio')), 'abre en la pestaña Cervantes');
-  ok(await page.evaluate(() => document.getElementById('tabCervantes').classList.contains('active')), 'pestaña Cervantes marcada al abrir');
-  // Cervantes YA NO tiene Bolsas Plásticas (se mudó a Virgilio) y SÍ tiene Art. Terminado (nuevo)
-  ok(!(await page.locator('#paneCervantes .rubro-btn:has-text("Bolsas Plásticas")').count()), 'Cervantes: sin Bolsas Plásticas (ahora vive en Virgilio)');
-  ok(await page.locator('#paneCervantes .rubro-btn:has-text("Art. Terminado")').count() === 1, 'Cervantes: tiene el rubro Art. Terminado');
+  // A10 vive en varias plantas: el sector D1 (ref 2, rubro Stock SP) por D.inv con 100, y en la
+  // contraparte Virgilio del sector Crudo (sid 1, rubro SC en Virgilio, vía stock_sector_bundle)
+  // con 25 — son DOS fuentes distintas (D.inv vs. stock_sector_bundle), a propósito desincronizadas
+  // en el fixture (igual que puede pasar en producción: lo que se mandó vs. lo que GP2 ve online).
+  await page.fill('#q', 'A10');
+  await page.waitForFunction(() => document.querySelectorAll('#tbody tr').length > 0);
+  const a10dos = await page.$$eval('#tbody tr', es => es.map(e => e.innerText.replace(/\s+/g, ' ')));
+  ok(a10dos.some(t => /Stock SP/.test(t) && /\b100\b/.test(t)), 'Todos: A10 de Cervantes (Stock SP, 100) — ' + a10dos.join(' / '));
+  ok(a10dos.some(t => /SC en Virgilio/.test(t) && /\b25\b/.test(t)), 'Todos: A10 de Virgilio (SC en Virgilio, 25) — ' + a10dos.join(' / '));
+  await page.fill('#q', '');
+
+  // ── v2.8.0: la pestaña "🏭 Cervantes" FILTRA el índice combinado, no lo tapa ──
+  await page.click('#tabCervantes');
+  ok(await activoPill('tabCervantes') && !(await activoPill('tabTodos')), 'pestaña Cervantes queda activa');
+  const cerv = await page.evaluate(() => document.getElementById('tbody').innerText);
+  ok(/A10/.test(cerv) && /Stock SP/.test(cerv), 'Cervantes: A10 de Stock SP sigue viéndose');
+  ok(!/SC en Virgilio/.test(cerv), 'Cervantes: NO se ve "SC en Virgilio"');
+  ok(!/BOL1/.test(cerv), 'Cervantes: NO se ve Bolsas Plásticas (es de Virgilio)');
+  ok(!/Pedernera Ilario/.test(cerv), 'Cervantes: NO se ve Prov. Servicio (es de Terceros)');
+  ok(!/Cabral/.test(cerv), 'Cervantes: NO se ve Prov. Art. Term. (es de Terceros)');
+  const rubrosCerv = await page.$$eval('#rubros .rubro-btn', xs => xs.map(x => x.textContent.trim()));
+  ok(rubrosCerv.indexOf('🔎 Todos los rubros') === 0, 'Cervantes: "Todos los rubros" sigue siempre a la vista — ' + rubrosCerv.join(' | '));
+  ok(rubrosCerv.indexOf('Talleristas') < 0 && rubrosCerv.indexOf('Bolsas Plásticas') < 0,
+     'Cervantes: su selector de rubros NO ofrece Talleristas ni Bolsas Plásticas');
+  ok(rubrosCerv.indexOf('Art. Terminado') >= 0, 'Cervantes: tiene el rubro Art. Terminado');
+  // v2.9.0: Afilado (sector 4) era el único sector con ubicación sin botón — se conserva
+  ok(rubrosCerv.indexOf('Afilado') === rubrosCerv.indexOf('En Movimiento') + 1,
+     'Cervantes: botón Afilado (sector 4), después de En Movimiento');
+  await page.click('#rubros .rubro-btn:has-text("Afilado")');
+  await page.waitForFunction(() => /Y1/.test(document.getElementById('tbody').innerText));
+  const afi = await page.evaluate(() => ({ thead: document.getElementById('thead').innerText,
+    fila: Array.from(document.querySelectorAll('#tbody tr td')).map(t => t.textContent.trim()).join(' | ') }));
+  ok(/FABRICADO/i.test(afi.thead) && /CONSUMIDO/i.test(afi.thead) && /MÁXIMO/i.test(afi.thead),
+     'Afilado: columnas Fabricado / Consumido + Máximo — ' + afi.thead.replace(/\s+/g, ' '));
+  ok(/Cuchilla para Afilar/.test(afi.fila) && /41\.638/.test(afi.fila), 'Afilado: Y1 con su máximo 41.638 — ' + afi.fila);
+
+  // ── v2.8.0: "🏬 Virgilio" — SC/SP/Fleje/Plástico/Caja con TODO el universo (stock 0 incluido) ──
   await page.click('#tabVirgilio');
-  ok(!(await vis('paneCervantes')) && await vis('paneVirgilio'), 'Virgilio: oculta lo de Cervantes y muestra su pestaña');
-  await page.waitForSelector('#rubrosVir .rubro-btn');
-  const rubrosVir = await page.$$eval('#rubrosVir .rubro-btn', xs => xs.map(x => x.textContent.trim()));
-  ok(JSON.stringify(rubrosVir) === JSON.stringify(['Bolsas Plásticas', 'SC en Virgilio', 'SP en Virgilio', 'Flejes en Virgilio', 'Plásticos en Virgilio', 'Cajas en Virgilio']),
-     'Virgilio: sus 6 rubros — ' + rubrosVir.join(' | '));
-  await page.waitForFunction(() => /Bolsas Plásticas/.test(document.getElementById('statusVir').textContent));
-  await page.click('#rubrosVir .rubro-btn:has-text("SC en Virgilio")');
-  await page.waitForFunction(() => document.querySelectorAll('#tbodyVir tr').length > 0);
+  ok(await activoPill('tabVirgilio'), 'pestaña Virgilio queda activa');
+  const virg = await page.evaluate(() => document.getElementById('tbody').innerText);
+  ok(/BOL1/.test(virg) && !/A10.*Stock SC/.test(virg), 'Virgilio: Bolsas Plásticas sí, Stock SC de Cervantes no');
+  ok(!/Pedernera Ilario/.test(virg) && !/Cabral/.test(virg), 'Virgilio: nada de Terceros');
+  const rubrosVirg = await page.$$eval('#rubros .rubro-btn', xs => xs.map(x => x.textContent.trim()));
+  ok(JSON.stringify(rubrosVirg) === JSON.stringify(['🔎 Todos los rubros', 'Bolsas Plásticas', 'SC en Virgilio', 'SP en Virgilio', 'Flejes en Virgilio', 'Plásticos en Virgilio', 'Cajas en Virgilio']),
+     'Virgilio: "Todos los rubros" + sus 6 rubros, en orden — ' + rubrosVirg.join(' | '));
+
+  await page.click('#rubros .rubro-btn:has-text("SC en Virgilio")');
+  ok(await activoPill('tabVirgilio'), 'al clickear un rubro de Virgilio, la pestaña sigue en Virgilio');
+  await page.waitForFunction(() => document.querySelectorAll('#tbody tr').length > 0);
   // v2.7.0: el universo entero del sector (A10 CON stock + B9 en 0), no sólo lo que ya se mandó
   // [Thomas 2026-10-01: "tienen que aparecerme los componentes con stock cero"]. Se lee celda por
   // celda (no el textContent crudo de la fila, que pega los números sin separador).
-  const filasSC = await page.$$eval('#tbodyVir tr', es => es.map(e => Array.from(e.cells).map(td => td.textContent.trim())));
+  const filasSC = await page.$$eval('#tbody tr', es => es.map(e => Array.from(e.cells).map(td => td.textContent.trim())));
   ok(filasSC.length === 2, 'SC en Virgilio: TODO el universo del sector (A10 + B9), no sólo lo que ya tiene stock — ' + filasSC.length);
   const filaA10 = filasSC.filter(c => c[0] === 'A10')[0] || [];
   const filaB9 = filasSC.filter(c => c[0] === 'B9')[0] || [];
-  ok(filaA10[filaA10.length - 1] === '25', 'SC en Virgilio: A10 con 25 (lo enviado y no recibido de vuelta) — ' + filaA10.join(' | '));
-  ok(filaB9[filaB9.length - 1] === '0', 'SC en Virgilio: B9 en 0 TAMBIÉN aparece (todavía no se le mandó nada) — ' + filaB9.join(' | '));
-  ok(!(await vis('btnAjuste')), 'Virgilio: no muestra ± Ajuste (ajusta el stock de GP2)');
+  // columnas (sin Caj por sin_caj=false, sin Máximo por sin_max=true): Código|Descripción|Kg|Caj|Uni|Kg×Uni|Uni×Cajón
+  ok(filaA10[4] === '25', 'SC en Virgilio: A10 con 25 (lo enviado y no recibido de vuelta) — ' + filaA10.join(' | '));
+  ok(filaB9[4] === '0', 'SC en Virgilio: B9 en 0 TAMBIÉN aparece (todavía no se le mandó nada) — ' + filaB9.join(' | '));
+  const theadVSC = await page.evaluate(() => document.getElementById('thead').innerText);
+  ok(!/MÁXIMO/i.test(theadVSC), 'SC en Virgilio: sin columna Máximo (ese concepto es de la demanda de Cervantes)');
   const hTab = await page.evaluate(() => document.getElementById('tabVirgilio').getBoundingClientRect().height);
   ok(hTab >= 44, 'pestaña tocable (' + Math.round(hTab) + 'px)');
   const horizVir = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth);
   ok(!horizVir, 'Virgilio a 390px: sin scroll horizontal');
-  await page.click('#tabCervantes');
-  ok(await vis('paneCervantes') && await vis('btnAjuste'), 'vuelve a Cervantes con su Ajuste');
 
-  // ── v2.7.0: la caja TERCEROS (Prov. Servicio / Talleristas / Prov. Art. Term. / Inyectores) ──
-  // [Thomas 2026-10-01: "no me hiciste la división en stock general de cervantes, virgilio y
-  // TERCEROS: acá aparece lo que hay bajo la descripción OTROS"]. Antes vivían adentro de
-  // Cervantes agrupados "Otros"; ahora son su propia pestaña.
-  for (const nom of ['Prov. Servicio', 'Talleristas', 'Prov. Art. Term.', 'Inyectores']) {
-    ok(!(await page.locator('#rubros .rubro-btn:has-text("' + nom + '")').count()),
-       'Cervantes: ya NO tiene "' + nom + '" en su selector (se mudó a Terceros)');
-  }
+  // v2.8.0: Bolsas Plásticas (mode "sector" como cualquier otro) ahora SÍ muestra sus columnas
+  // de movimiento — antes (renderVir) se calculaban y se tiraban.
+  await page.click('#rubros .rubro-btn:has-text("Bolsas Plásticas")');
+  await page.waitForFunction(() => /BOL1/.test(document.getElementById('tbody').innerText));
+  const bolThead = await page.evaluate(() => document.getElementById('thead').innerText);
+  ok(/COMPRAS/i.test(bolThead), 'Bolsas Plásticas: ahora muestra su columna de movimiento (Compras)');
+  const bolCells = await page.$eval('#tbody tr', e => Array.from(e.cells).map(td => td.textContent.trim()));
+  // columnas: Código|Descripción|Kg|Caj|Uni|Compras|Envíos a inyector|Kg×Uni|Uni×Cajón|Máximo
+  ok(bolCells[0] === 'BOL1' && bolCells[4] === '15' && bolCells[5] === '20',
+     'Bolsas Plásticas: BOL1 con 15 de stock y 20 de compras — ' + bolCells.join(' | '));
+
+  // ── v2.8.0: "👥 Terceros" ──
+  await page.click('#tabCervantes'); // por las dudas, volver a un estado conocido antes de ir a Terceros
   await page.click('#tabTerceros');
-  ok(await page.evaluate(() => document.getElementById('tabTerceros').classList.contains('active')), 'pestaña Terceros marcada al elegirla');
-  // Terceros comparte el MISMO motor que Cervantes (mismo pane, mismo Ajuste) — no es Virgilio
-  ok(await vis('paneCervantes') && !(await vis('paneVirgilio')) && await vis('btnAjuste'),
-     'Terceros: usa el mismo pane que Cervantes, con su Ajuste');
+  ok(await activoPill('tabTerceros'), 'pestaña Terceros queda activa');
   const rubrosTerc = await page.$$eval('#rubros .rubro-btn', xs => xs.map(x => x.textContent.trim()));
-  ok(JSON.stringify(rubrosTerc) === JSON.stringify(['Prov. Servicio', 'Talleristas', 'Prov. Art. Term.', 'Inyectores']),
-     'Terceros: exactamente sus 4 rubros, sin ninguno de Cervantes — ' + rubrosTerc.join(' | '));
-  ok(!(await page.locator('#rubros .rubro-grp').count()), 'Terceros: sin encabezado de grupo repetido (ya lo dice la pestaña)');
+  ok(JSON.stringify(rubrosTerc) === JSON.stringify(['🔎 Todos los rubros', 'Prov. Servicio', 'Talleristas', 'Prov. Art. Term.', 'Inyectores']),
+     'Terceros: "Todos los rubros" + exactamente sus 4 rubros — ' + rubrosTerc.join(' | '));
+  const gruposTerc = await page.evaluate(() => {
+    const g = []; document.querySelectorAll('#rubros > div').forEach(d => { if (d.classList.contains('rubro-grp')) g.push(d.textContent.trim()); });
+    return g;
+  });
+  ok(JSON.stringify(gruposTerc) === JSON.stringify(['Buscar', 'Terceros']), 'Terceros: dos grupos — Buscar (el índice) y Terceros — ' + gruposTerc.join(' | '));
 
   await page.click('#rubros .rubro-btn:has-text("Prov. Art. Term.")');
   await page.waitForFunction(() => /Cabral/.test(document.getElementById('tbody').innerText));
@@ -272,20 +353,27 @@ window.supabase = { createClient: function(){ return {
   ok(/A10/.test(ps.body), 'Terceros · PS: se ve la pieza procesada que el PS cromaria (A10)');
   ok(!/CAJ1/.test(ps.body), 'Terceros · PS: NO aparece la caja (insumo de empaque sembrado en 0 en el PS)');
 
+  // ── de vuelta a Cervantes para el resto de los rubros de sector ──
   await page.click('#tabCervantes');
-  ok(await page.evaluate(() => document.getElementById('tabCervantes').classList.contains('active')) &&
+  ok(await activoPill('tabCervantes') &&
      !(await page.locator('#rubros .rubro-btn:has-text("Prov. Servicio")').count()),
      'vuelve a Cervantes y su selector ya no tiene los rubros de Terceros');
+  await page.click('#rubros .rubro-btn:has-text("Stock SC")');
+  await page.waitForFunction(() => /A10/.test(document.getElementById('tbody').innerText));
+  const sc = await page.evaluate(() => ({
+    thead: document.getElementById('thead').innerText,
+    row: document.querySelector('#tbody tr').innerText,
+  }));
 
   // el pedido central: el stock separado por Kg / Caj / Uni + Info con Uni×Cajón
-  ok(/ONLINE/i.test(base.thead) && /\bKG\b/i.test(base.thead) && /\bCAJ\b/i.test(base.thead) && /\bUNI\b/i.test(base.thead),
+  ok(/ONLINE/i.test(sc.thead) && /\bKG\b/i.test(sc.thead) && /\bCAJ\b/i.test(sc.thead) && /\bUNI\b/i.test(sc.thead),
      'SC: el stock se separa en Kg / Caj / Uni (no una "cantidad" cruda)');
-  ok(/KG × UNI/i.test(base.thead) && /UNI × CAJÓN/i.test(base.thead) && /MÁXIMO/i.test(base.thead),
+  ok(/KG × UNI/i.test(sc.thead) && /UNI × CAJÓN/i.test(sc.thead) && /MÁXIMO/i.test(sc.thead),
      'SC: bloque Info con Kg×Uni, Uni×Cajón y Máximo');
-  ok(/FABRICACIÓN/i.test(base.thead), 'SC: columnas de movimiento propias del sector (Fabricación)');
+  ok(/FABRICACIÓN/i.test(sc.thead), 'SC: columnas de movimiento propias del sector (Fabricación)');
   // A10: 100 uni, kg_x_uni 0.05 -> 5 kg, uni_x_cajon 100 -> 1 caj
-  ok(/A10/.test(base.row) && /\b100\b/.test(base.row) && /\b5\b/.test(base.row),
-     'SC: la fila A10 muestra sus Kg/Caj/Uni — ' + base.row.replace(/\s+/g, ' '));
+  ok(/A10/.test(sc.row) && /\b100\b/.test(sc.row) && /\b5\b/.test(sc.row),
+     'SC: la fila A10 muestra sus Kg/Caj/Uni — ' + sc.row.replace(/\s+/g, ' '));
 
   // ── v2.4.0: TOCAR EL MÁXIMO ABRE SU DESGLOSE [Elías 2026-10-01] ──
   ok(await page.locator('#tbody td.max-cell').count() === 1, 'SC: la celda Máximo de A10 se puede tocar');
@@ -327,26 +415,20 @@ window.supabase = { createClient: function(){ return {
     Array.from(document.querySelectorAll('#tbody tr .cod')).map(e => e.textContent).join(','));
   ok(ordGar === 'GRJ4,GRJ10,GRJ10A,GRJ12', 'Garage: orden numerico del codigo — ' + ordGar);
 
-  // ── Tránsito PS y Art. Terminado: rubros de Cervantes (NO se mudaron a Terceros) ──
-  // v2.8.0: Cervantes arranca igual que Virgilio y Terceros — "Rubro" + botones, sin "🔎 Todos los
-  // rubros" ni rótulos de grupo [usuario: "Solo en Cervantes me aparece buscar todos los rubros.
-  // Eliminá así quedan todos los módulos igual"].
-  const rubrosCerv = await page.$$eval('#rubros .rubro-btn', xs => xs.map(x => x.textContent.trim()));
-  ok(rubrosCerv.indexOf('Tránsito PS') >= 0 && rubrosCerv.indexOf('Art. Terminado') >= 0,
-     'Tránsito PS y Art. Terminado siguen en el selector de Cervantes — ' + rubrosCerv.join(' | '));
-  // v2.9.0: Afilado (sector 4) era el único sector con ubicación sin botón
-  ok(rubrosCerv.indexOf('Afilado') === rubrosCerv.indexOf('En Movimiento') + 1,
-     'Cervantes: botón Afilado (sector 4), después de En Movimiento');
-  await page.click('#rubros .rubro-btn:has-text("Afilado")');
-  await page.waitForFunction(() => /Y1/.test(document.getElementById('tbody').innerText));
-  const afi = await page.evaluate(() => ({ thead: document.getElementById('thead').innerText,
-    fila: Array.from(document.querySelectorAll('#tbody tr td')).map(t => t.textContent.trim()).join(' | ') }));
-  ok(/FABRICADO/i.test(afi.thead) && /CONSUMIDO/i.test(afi.thead) && /MÁXIMO/i.test(afi.thead),
-     'Afilado: columnas Fabricado / Consumido + Máximo — ' + afi.thead.replace(/\s+/g, ' '));
-  ok(/Cuchilla para Afilar/.test(afi.fila) && /41\.638/.test(afi.fila), 'Afilado: Y1 con su máximo 41.638 — ' + afi.fila);
-  ok(rubrosCerv.indexOf('Inyectores') < 0, 'Inyectores ya no vive en el selector de Cervantes (se mudó a Terceros)');
-  ok(!rubrosCerv.some(t => /Todos los rubros/i.test(t)), 'Cervantes: SIN el botón "Todos los rubros"');
-  ok(!(await page.locator('#rubros .rubro-grp').count()), 'Cervantes: sin rótulos de grupo ("Buscar" / "Sectores"), igual que Terceros y Virgilio');
+  // ── Tránsito PS y Art. Terminado: rubros de Cervantes, grupo CERVANTES (NO se mudaron) ──
+  // [Thomas, 01/10: "que se llame CERVANTES en vez de SECTORES"] — mismo rótulo que las otras
+  // dos plantas (Virgilio / Terceros), ahora las 3 son nombres de planta.
+  const grupos = await page.evaluate(() => {
+    const g = {}; let cur = null;
+    document.querySelectorAll('#rubros > div').forEach(d => {
+      if (d.classList.contains('rubro-grp')) cur = d.textContent.trim();
+      else d.querySelectorAll('.rubro-btn').forEach(b => { g[b.textContent.trim()] = cur; });
+    });
+    return g;
+  });
+  ok(grupos['Tránsito PS'] === 'Cervantes', 'Tránsito PS está en el grupo Cervantes (' + grupos['Tránsito PS'] + ')');
+  ok(grupos['Art. Terminado'] === 'Cervantes', 'Art. Terminado está en el grupo Cervantes (' + grupos['Art. Terminado'] + ')');
+  ok(!grupos['Inyectores'], 'Inyectores ya no vive en el selector de Cervantes (es de Terceros)');
 
   await page.click('#rubros .rubro-btn:has-text("Tránsito PS")');
   await page.waitForFunction(() => /Laboratorio FAAT → Guazzaroni Patricio/.test(document.getElementById('tbody').innerText));
@@ -358,36 +440,35 @@ window.supabase = { createClient: function(){ return {
   const artRow = await page.$eval('#tbody tr', e => e.textContent.replace(/\s+/g, ' ').trim());
   ok(/T1/.test(artRow) && /36/.test(artRow), 'Art. Terminado: T1 con 36 unidades (3 cajas de 12) — ' + artRow);
 
-  // ── BUSCAR SIN SABER EL RUBRO (v2.1.0; v2.8.0: sin botón, se entra por "ver todo junto →") ──
-  // 1) adentro de un rubro, lo que NO tiene botón propio igual se encuentra: T1 vive en el sector
-  //    Terminado (sin rubro) y "ver todo junto →" abre la tabla transversal con Rubro + Dónde
-  await page.click('#rubros .rubro-btn:has-text("Stock SC")');
-  await page.fill('#q', 'T1');
-  await page.waitForFunction(() => /ver todo junto/.test(document.getElementById('hintOtros').innerText));
-  await page.click('#hintOtros a:has-text("ver todo junto")');
-  await page.waitForFunction(() => document.getElementById('thead').innerText.toUpperCase().indexOf('DÓNDE') >= 0);
-  const glo = await page.evaluate(() => ({
-    thead: document.getElementById('thead').innerText,
-    body: document.getElementById('tbody').innerText,
-    horizontal: document.documentElement.scrollWidth > window.innerWidth,
-    activos: document.querySelectorAll('#rubros .rubro-btn.active').length,
-    cerv: document.getElementById('tabCervantes').classList.contains('active'),
-  }));
-  ok(/RUBRO/i.test(glo.thead) && /DÓNDE/i.test(glo.thead), 'Todos: la tabla dice en qué rubro y en qué lugar está cada fila');
-  ok(!/FABRICACIÓN/i.test(glo.thead), 'Todos: sin columnas de movimiento (cada rubro tiene las suyas)');
-  ok(!glo.horizontal, 'Todos: celular 390px sin scroll horizontal');
-  ok(/T1/.test(glo.body) && /Terminado/.test(glo.body),
-     'Todos: aparece lo que NO tiene botón propio (T1 en el sector Terminado), antes invisible');
-  ok(glo.activos === 0 && glo.cerv, 'Todos: queda en Cervantes y no marca ningún botón (no tiene botón propio)');
+  // ── v2.8.0: elegir un rubro de OTRA planta sincroniza la pestaña sola ──
+  await page.click('#tabTodos');
+  ok(await activoPill('tabTodos'), 'vuelve a "Todos"');
+  await page.click('#rubros .rubro-btn:has-text("Talleristas")');
+  ok(await activoPill('tabTerceros') && !(await activoPill('tabTodos')), 'clickear "Talleristas" desde Todos saltó la pestaña sola a Terceros');
+  await page.waitForFunction(() => /Martin/.test(document.getElementById('tbody').innerText));
+  // y "Todos los rubros" NO resetea el filtro: sigue mostrando sólo Terceros
+  await page.click('#rubros .rubro-btn:has-text("Todos los rubros")');
+  ok(await activoPill('tabTerceros'), '"Todos los rubros" no toca la pestaña — sigue en Terceros');
+  const todosFiltrado = await page.evaluate(() => document.getElementById('tbody').innerText);
+  ok(/Martin/.test(todosFiltrado) && !/A10.*Stock SC/.test(todosFiltrado) && !/BOL1/.test(todosFiltrado),
+     '"Todos los rubros" con la pestaña en Terceros: sólo filas de Terceros');
 
-  // 2) el mismo código en dos lugares distintos, de un saque
+  // ── BUSCAR SIN SABER EL RUBRO (v2.1.0), ahora cruzando las 3 plantas ──
+  await page.click('#tabTodos');
+  ok(await activoPill('tabTodos'), 'vuelve a "Todos" (sin filtro) para buscar en todo');
+  await page.click('#rubros .rubro-btn:has-text("Todos los rubros")');
+  await page.waitForFunction(() => /Martin/.test(document.getElementById('tbody').innerText));
+  ok(!(await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth)), 'Todos: celular 390px sin scroll horizontal');
+  ok(/T1/.test(await page.evaluate(() => document.getElementById('tbody').innerText)) , 'Todos: aparece lo que NO tiene botón propio (T1 en el sector Terminado)');
+
+  // el mismo código en dos lugares distintos, de un saque
   await page.fill('#q', 'B5');
   await page.waitForFunction(() => document.querySelectorAll('#tbody tr').length === 3);
   const b5 = await page.locator('#tbody').innerText();
   ok(/Martin/.test(b5) && /D1/.test(b5) && /Laboratorio FAAT/.test(b5),
      'Todos: B5 se ve de un saque en sus tres lugares (sector, tallerista y tránsito) — ' + b5.replace(/\s+/g, ' '));
 
-  // 3) desde adentro de un rubro, el renglón "También en: …" y el salto en un click
+  // desde adentro de un rubro, el renglón "También en: …" y el salto en un click
   await page.click('#rubros .rubro-btn:has-text("Stock SC")');
   await page.waitForFunction(() => !document.getElementById('hintOtros').classList.contains('hidden'));
   const hint = await page.locator('#hintOtros').innerText();
@@ -399,27 +480,21 @@ window.supabase = { createClient: function(){ return {
   const salto = await page.evaluate(() => ({ q: document.getElementById('q').value, body: document.getElementById('tbody').innerText }));
   ok(salto.q === 'B5' && /B5/.test(salto.body), 'el salto conserva lo buscado y muestra la fila en el otro rubro');
   ok(await page.locator('#tbody td.max-cell').count() === 0, 'Máximo "—" (B5 en Martin, sin máximo): no se puede tocar');
-  // v2.7.0: Talleristas es de la caja TERCEROS — el salto desde "También en…" (Cervantes) cambió
-  // de pestaña solo, sin que el usuario tocara el selector de planta.
-  ok(await page.evaluate(() => document.getElementById('tabTerceros').classList.contains('active')),
-     'el salto a Talleristas cambió la pestaña a Terceros sola');
+  // v2.8.0: Talleristas es de la planta TERCEROS — el salto desde "También en…" (desde SC, Cervantes)
+  // cambió de pestaña solo, sin que el usuario tocara el selector de planta.
+  ok(await activoPill('tabTerceros'), 'el salto a Talleristas cambió la pestaña a Terceros sola');
 
-  // 4) en "Todos", la celda del rubro también lleva a esa pantalla
-  //    v2.8.0: volver a Cervantes abre el último rubro CON botón (SC), no la vista sin botón
-  await page.click('#tabCervantes');
-  await page.waitForFunction(() => document.title.indexOf('Stock SC') >= 0);
-  ok(await page.locator('#rubros .rubro-btn.active:has-text("Stock SC")').count() === 1,
-     'volver a Cervantes abre Stock SC (el último rubro con botón), no "Todos"');
-  await page.click('#hintOtros a:has-text("ver todo junto")');
+  // en "Todos", la celda del rubro también lleva a esa pantalla
+  await page.click('#tabTodos');
+  await page.click('#rubros .rubro-btn:has-text("Todos los rubros")');
   await page.waitForFunction(() => document.querySelectorAll('#tbody td.rub-cell').length > 0);
   await page.click('#tbody td.rub-cell:has-text("Talleristas")');
   await page.waitForFunction(() => document.title.indexOf('Talleristas') >= 0);
   ok(true, 'Todos: click en el rubro de la fila abre ese rubro');
-  // de nuevo saltó a Terceros: volver a Cervantes y entrar a "Todos" buscando la resina
-  await page.click('#tabCervantes');
+  // de nuevo saltó de pestaña: volver a "Todos" para seguir buscando en el índice completo
+  await page.click('#tabTodos');
+  await page.click('#rubros .rubro-btn:has-text("Todos los rubros")');
   await page.fill('#q', '2405');
-  await page.waitForFunction(() => /ver todo junto/.test(document.getElementById('hintOtros').innerText));
-  await page.click('#hintOtros a:has-text("ver todo junto")');
   await page.waitForFunction(() => /2405/.test(document.getElementById('tbody').innerText));
   const r2405 = await page.evaluate(() => Array.from(document.querySelectorAll('#tbody tr')).map(t => t.innerText.replace(/\s+/g, ' ')));
   ok(r2405.length === 2 && r2405.every(t => /Inyectores/.test(t)),

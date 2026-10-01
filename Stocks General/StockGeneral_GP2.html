@@ -6,7 +6,41 @@
 <script src="../gp2-ui.js?v=20260930a"></script>
 <script src="../gp2-numero.js?v=20260911o"></script>
 <title>Stock general · GP2</title>
-<!-- v2.9.0 (2026-10-01) - BOTÓN AFILADO [usuario: "Hay cosas en sectores sin boton?" → "Sí" a agregarlo].
+<!-- v3.0.2 (2026-10-01) - "TODOS LOS RUBROS" ORDENADO POR RUBRO ["Ordená por rubro"]. Antes
+     ordenaba por código (el mismo componente junto en un bloque); ahora va por rubro en el orden
+     de los botones (Cervantes → Virgilio → Terceros, sin rubro al final), código numérico adentro.
+     v3.0.1 (2026-10-01) - EL GRUPO SE LLAMA "CERVANTES" [Thomas: "que se llame CERVANTES en vez de
+     SECTORES"]. El grupo de rubros de la planta Cervantes (Stock SC, Stock SP, En Movimiento,
+     Afilado, Flejes, Plásticos, Bombillas, Remaches, Garage, Cartones, Cajas, Tránsito PS, Art.
+     Terminado) pasa de rotularse "Sectores" a "Cervantes" — las 3 plantas quedan con el mismo
+     tipo de rótulo (Cervantes / Virgilio / Terceros), consistente con las pestañas de arriba.
+     Sólo cambia el `grupo` de esos 13 rubros en RUBROS; la función/motor no se tocó.
+     v3.0.0 (2026-10-01) - VER TODO Y DESPUÉS FILTRAR [Thomas, sobre las 3 pestañas de abajo:
+     "Cuando entro a stock general quiero ver los stocks de todo y después si quiero puedo
+     filtrar por Cervantes, Virgilio, Terceros"]. Las pestañas dejan de ser un destino EXCLUSIVO
+     (3 panes que se tapaban entre sí) y pasan a ser un FILTRO sobre "Todos los rubros", que ahora
+     es la vista con la que se entra (antes abría directo en Stock SC). Un click en una pestaña
+     vuelve siempre al índice combinado, acotado a esa planta; los botones de Rubro de abajo
+     también se acotan (salvo "🔎 Todos los rubros", que sigue siempre a la vista). Elegir un
+     rubro puntual (Stock SC, Talleristas…) sincroniza la pestaña sola, igual que antes hacía
+     "También en: …" (mismo mecanismo, generalizado de 2 a 3 valores).
+     Virgilio deja de tener un pane aparte con su propio motor de tabla (RUBROS_VIR/renderVir,
+     sin columnas de movimiento ni Máximo): sus 6 rubros (Bolsas Plásticas + SC/SP/Fleje/Plástico/
+     Caja en Virgilio) se mudan al RUBROS principal con planta:"virg" y pasan por el MISMO motor
+     que Cervantes/Terceros (render/renderHead), así que ahora SÍ muestran sus columnas de
+     movimiento donde corresponde (Bolsas Plásticas, que vive en un sector de verdad) — antes se
+     calculaban y se tiraban. "Todos los rubros" los suma al índice leyendo el MISMO CACHE que ya
+     cargaban (stock_sector_bundle), sin RPC nueva: sólo hubo que precargarlo ANTES de armar el
+     índice (precargarVirgilio), porque antes se cargaba perezoso recién al tocar cada rubro.
+     ± Ajuste queda siempre a la vista (ya lo estaba para 2 de las 3 cajas; la protección de que
+     Virgilio no se toque a mano vive en GP2M.ajuste, no en si el botón se ve).
+     ⚠ RETIRA la v2.8.0 de abajo (ocultar "Todos los rubros" sólo en Cervantes, un grupo solo sin
+     rótulo): esa pestaña nació para resolver la MISMA queja de fondo ["Solo en Cervantes me
+     aparece buscar todos los rubros"] por el camino de esconder el botón; acá se resuelve
+     mostrándolo SIEMPRE, en las 3 plantas — así que `oculto`/`conRotulo` quedan sin uso (el
+     grupo "Buscar" de "Todos los rubros" está siempre presente, nunca hay un solo grupo). El
+     rubro `afi` (Afilado, v2.9.0) se conserva tal cual, dentro de "Sectores".
+     v2.9.0 (2026-10-01) - BOTÓN AFILADO [usuario: "Hay cosas en sectores sin boton?" → "Sí" a agregarlo].
      Sector Afilado (4) era el ÚNICO sector con ubicación propia sin botón [dato 01/10: Terminado (12)
      no tiene ubicación de sector -lo suyo se ve en Art. Terminado- y Alambre (13) no tiene ni ubicación
      ni componentes]. Hoy lleva 1 componente, Y1 "Cuchilla para Afilar", stock 0, máximo 41.638, sin
@@ -211,26 +245,10 @@
   </div>
 
   <div class="planta-tabs" role="tablist">
-    <button type="button" class="planta-tab active" id="tabCervantes" role="tab" onclick="plantaTab('cervantes')">🏭 Cervantes</button>
-    <button type="button" class="planta-tab" id="tabVirgilio" role="tab" onclick="plantaTab('virgilio')">🏬 Virgilio</button>
-    <button type="button" class="planta-tab" id="tabTerceros" role="tab" onclick="plantaTab('terceros')">👥 Terceros</button>
-  </div>
-
-  <div id="paneVirgilio" class="hidden steps">
-    <div class="rubro-lbl">Rubro</div>
-    <div id="rubrosVir"></div>
-    <div class="toolbar">
-      <input type="text" id="qVir" placeholder="Buscar por código o descripción…">
-      <label class="chk"><input type="checkbox" id="soloStockVir"> Solo con stock</label>
-    </div>
-    <div class="table-wrap">
-      <table class="t">
-        <thead id="theadVir"></thead>
-        <tbody id="tbodyVir"></tbody>
-      </table>
-    </div>
-    <div id="tblEmptyVir" class="empty hidden">Sin resultados.</div>
-    <div id="statusVir" class="status">Cargando…</div>
+    <button type="button" class="planta-tab active" id="tabTodos" role="tab" onclick="filtrarPlanta('todos')">🔎 Todos</button>
+    <button type="button" class="planta-tab" id="tabCervantes" role="tab" onclick="filtrarPlanta('cerv')">🏭 Cervantes</button>
+    <button type="button" class="planta-tab" id="tabVirgilio" role="tab" onclick="filtrarPlanta('virg')">🏬 Virgilio</button>
+    <button type="button" class="planta-tab" id="tabTerceros" role="tab" onclick="filtrarPlanta('terc')">👥 Terceros</button>
   </div>
 
   <div class="steps" id="paneCervantes">
@@ -293,32 +311,7 @@
 </div>
 <div id="toast"></div>
 
-<script>window.SB_CLIENT = GP2_SB();
-/* v2.7.0: TRES pestañas de planta [Thomas 2026-10-01: "no me hiciste la división en stock general
-   de cervantes, virgilio y TERCEROS: acá aparece lo que hay bajo la descripción OTROS"]. Cervantes
-   y Terceros comparten el MISMO motor de tabla (paneCervantes) — sólo cambia qué RUBROS puede
-   elegir (variable CAJA, ver pintarRubros/irACaja más abajo); Virgilio sigue siendo su pane aparte. */
-function plantaTab(p){
-  var v = p === "virgilio";
-  document.getElementById("tabCervantes").classList.toggle("active", p === "cervantes");
-  document.getElementById("tabTerceros").classList.toggle("active", p === "terceros");
-  document.getElementById("tabVirgilio").classList.toggle("active", v);
-  document.getElementById("paneCervantes").classList.toggle("hidden", v);
-  document.getElementById("paneVirgilio").classList.toggle("hidden", !v);
-  document.getElementById("btnAjuste").classList.toggle("hidden", v);
-  if (!v && typeof RUBROS !== "undefined"){
-    var cj = p === "terceros" ? "terc" : "cerv";
-    var cambia = cj !== CAJA;
-    CAJA = cj;
-    pintarRubros();
-    if (cambia){
-      var key = LAST_KEY[cj] || ((RUBROS.filter(function(r){ return cajaDeRubro(r)===cj; })[0])||{}).key;
-      if (key) seleccionar(key); else marcarActivo();
-    } else marcarActivo();
-  }
-  if (v && typeof initVirSiHaceFalta === "function") initVirSiHaceFalta();
-}
-</script>
+<script>window.SB_CLIENT = GP2_SB();</script>
 <script src="../gp2-composicion.js?v=20260911p"></script>
 <script src="../gp2-motor.js?v=20260905f"></script>
 <script>
@@ -366,127 +359,48 @@ var SECT_CONSUMIBLE = { 5:1, 6:1, 8:1, 10:1, 11:1, 14:1 }; // fleje, plastico, r
    Los de sector (mode:'sector') abren stock_sector_bundle(sid) con su config de columnas.
    Los de 'otros' salen de movimientos_bundle / extra_bundle y NO llevan columnas de movimiento. */
 var RUBROS = [
-  // el buscador transversal: una sola tabla con TODO, para cuando no se sabe el rubro.
-  // v2.8.0: SIN botón (oculto) — se abre desde "ver todo junto →" del renglón "También en…".
-  { key:"all", oculto:true, nom:"Todos los rubros", mode:"global", mostrar_ubic:"Dónde", mostrar_rubro:true },
-  { key:"sc",  grupo:"Sectores", nom:"Stock SC",         mode:"sector", sid:1,  cols:COLS_SC },
-  { key:"sp",  grupo:"Sectores", nom:"Stock SP",         mode:"sector", sid:2,  cols:COLS_SP },
-  { key:"mov", grupo:"Sectores", nom:"En Movimiento",    mode:"sector", sid:3,  cols:COLS_MOV3, sin_max:true },
+  // el buscador transversal: una sola tabla con TODO, para cuando no se sabe el rubro. v3.0.0:
+  // vuelve a tener botón (y SIEMPRE visible, en las 3 plantas) — ver el comentario de arriba.
+  { key:"all", grupo:"Buscar", nom:"🔎 Todos los rubros", mode:"global", mostrar_ubic:"Dónde", mostrar_rubro:true },
+  { key:"sc",  grupo:"Cervantes", nom:"Stock SC",         mode:"sector", sid:1,  cols:COLS_SC },
+  { key:"sp",  grupo:"Cervantes", nom:"Stock SP",         mode:"sector", sid:2,  cols:COLS_SP },
+  { key:"mov", grupo:"Cervantes", nom:"En Movimiento",    mode:"sector", sid:3,  cols:COLS_MOV3, sin_max:true },
   // v2.9.0: Sector Afilado — el único sector con ubicación que no tenía botón (hoy: Y1, Cuchilla para Afilar)
-  { key:"afi", grupo:"Sectores", nom:"Afilado",          mode:"sector", sid:4,  cols:COLS_MOV3 },
-  { key:"fle", grupo:"Sectores", nom:"Flejes",           mode:"sector", sid:5,  cols:COLS_INSUMO, sin_caj:true, mostrar_fleje:true, detalle:true },
-  { key:"pla", grupo:"Sectores", nom:"Plásticos",        mode:"sector", sid:6,  cols:COLS_INSUMO },
-  { key:"bom", grupo:"Sectores", nom:"Bombillas",        mode:"sector", sid:7,  cols:COLS_INSUMO },
-  { key:"rem", grupo:"Sectores", nom:"Remaches",         mode:"sector", sid:8,  cols:COLS_INSUMO },
-  { key:"gar", grupo:"Sectores", nom:"Garage",           mode:"sector", sid:9,  cols:COLS_INSUMO },
-  { key:"car", grupo:"Sectores", nom:"Cartones",         mode:"sector", sid:10, cols:COLS_INSUMO },
-  { key:"caj", grupo:"Sectores", nom:"Cajas",            mode:"sector", sid:11, cols:COLS_INSUMO },
+  { key:"afi", grupo:"Cervantes", nom:"Afilado",          mode:"sector", sid:4,  cols:COLS_MOV3 },
+  { key:"fle", grupo:"Cervantes", nom:"Flejes",           mode:"sector", sid:5,  cols:COLS_INSUMO, sin_caj:true, mostrar_fleje:true, detalle:true },
+  { key:"pla", grupo:"Cervantes", nom:"Plásticos",        mode:"sector", sid:6,  cols:COLS_INSUMO },
+  { key:"bom", grupo:"Cervantes", nom:"Bombillas",        mode:"sector", sid:7,  cols:COLS_INSUMO },
+  { key:"rem", grupo:"Cervantes", nom:"Remaches",         mode:"sector", sid:8,  cols:COLS_INSUMO },
+  { key:"gar", grupo:"Cervantes", nom:"Garage",           mode:"sector", sid:9,  cols:COLS_INSUMO },
+  { key:"car", grupo:"Cervantes", nom:"Cartones",         mode:"sector", sid:10, cols:COLS_INSUMO },
+  { key:"caj", grupo:"Cervantes", nom:"Cajas",            mode:"sector", sid:11, cols:COLS_INSUMO },
   // v2.6.0: Bolsas Plásticas se mudó a la pestaña Virgilio (sigue siendo el mismo sector 14,
   // stock_sector_bundle(14); sólo cambia en qué caja de Stock General se ve).
   // v2.3.0: Tránsito PS se ve con los sectores; los datos siguen saliendo de extra_bundle
-  { key:"tra", grupo:"Sectores", nom:"Tránsito PS",      mode:"otros",  fuente:"transito", mostrar_ubic:"En tránsito", sin_max:true },
+  { key:"tra", grupo:"Cervantes", nom:"Tránsito PS",      mode:"otros",  fuente:"transito", mostrar_ubic:"En tránsito", sin_max:true },
   // v2.6.0 (2026-10-01): lo que produjo Fábrica y todavía no mandó a Virgilio (ubicación
   // "Art. Terminado (Fábrica)"). Sale de stock_general_extra_bundle.art_terminado.
-  { key:"art", grupo:"Sectores", nom:"Art. Terminado",   mode:"otros",  fuente:"art_terminado", mostrar_ubic:"Art. Terminado (Fábrica)" },
-  // v2.7.0: estos 4 son la caja TERCEROS (planta:"terc"), no "Otros" adentro de Cervantes — ver
-  // pintarRubros/irACaja. Sin "grupo" propio: en su pestaña son el único grupo, no hace falta
-  // repetir el rótulo.
-  { key:"ps",  planta:"terc", nom:"Prov. Servicio",   mode:"otros",  fuente:"ps",       mostrar_ubic:"Prov. Servicio", sin_max:true },
-  { key:"tal", planta:"terc", nom:"Talleristas",      mode:"otros",  fuente:"tall",     mostrar_ubic:"Tallerista" },
-  { key:"pat", planta:"terc", nom:"Prov. Art. Term.", mode:"otros",  fuente:"provat",   mostrar_ubic:"Proveedor" },
+  { key:"art", grupo:"Cervantes", nom:"Art. Terminado",   mode:"otros",  fuente:"art_terminado", mostrar_ubic:"Art. Terminado (Fábrica)" },
+  // v3.0.0: Virgilio deja de ser pane aparte — mismo motor, filtro planta:"virg" (ver
+  // pintarRubros/filtrarPlanta). vbol (sector 14) vive del lado Virgilio desde siempre
+  // (stock_sector_bundle(14).online YA es lo que tiene Virgilio: ese sector no tiene presencia
+  // del lado Cervantes) — mode "sector" como cualquier otro, con sus columnas de movimiento.
+  // Los otros 5 comparten el MISMO CACHE[sid] que ya cargan sc/sp/fle/pla/caj (sin RPC nueva):
+  // leen "en_virgilio" en vez de "online" (mode "virg", ver filasDe/filasGlobales). Sin Máximo:
+  // ese concepto es de la demanda de Cervantes, no se duplica del lado Virgilio.
+  { key:"vbol", grupo:"Virgilio", planta:"virg", nom:"Bolsas Plásticas",      mode:"sector", sid:14, cols:COLS_MP },
+  { key:"vsc",  grupo:"Virgilio", planta:"virg", nom:"SC en Virgilio",        mode:"virg",   sid:1,  sin_max:true },
+  { key:"vsp",  grupo:"Virgilio", planta:"virg", nom:"SP en Virgilio",        mode:"virg",   sid:2,  sin_max:true },
+  { key:"vfle", grupo:"Virgilio", planta:"virg", nom:"Flejes en Virgilio",    mode:"virg",   sid:5,  sin_max:true, sin_caj:true, mostrar_fleje:true },
+  { key:"vpla", grupo:"Virgilio", planta:"virg", nom:"Plásticos en Virgilio", mode:"virg",   sid:6,  sin_max:true },
+  { key:"vcaj", grupo:"Virgilio", planta:"virg", nom:"Cajas en Virgilio",     mode:"virg",   sid:11, sin_max:true },
+  // v2.7.0: estos 4 son la planta TERCEROS (planta:"terc"), no "Otros" adentro de Cervantes.
+  { key:"ps",  grupo:"Terceros", planta:"terc", nom:"Prov. Servicio",   mode:"otros",  fuente:"ps",       mostrar_ubic:"Prov. Servicio", sin_max:true },
+  { key:"tal", grupo:"Terceros", planta:"terc", nom:"Talleristas",      mode:"otros",  fuente:"tall",     mostrar_ubic:"Tallerista" },
+  { key:"pat", grupo:"Terceros", planta:"terc", nom:"Prov. Art. Term.", mode:"otros",  fuente:"provat",   mostrar_ubic:"Proveedor" },
   // v2.3.0: la materia prima plástica que se le mandó a cada inyector (ubicación tipo inyector), en kg
-  { key:"iny", planta:"terc", nom:"Inyectores",       mode:"otros",  fuente:"iny",      mostrar_ubic:"Inyector", sin_caj:true, sin_max:true }
+  { key:"iny", grupo:"Terceros", planta:"terc", nom:"Inyectores",       mode:"otros",  fuente:"iny",      mostrar_ubic:"Inyector", sin_caj:true, sin_max:true }
 ];
-
-/* ═══ pestaña Virgilio (v2.6.0, 2026-10-01) ═══
-   [Thomas]: "aumente el stock si hay un envío a Virgilio… y disminuya si hay una recepción
-   de Plásticos, Flejes, Cajas, SC y SP". Arranca en 0 y SOLO se mueve por esas dos acciones de
-   la Tablet (enviar_a_virgilio / tablet_registrar recibir→virgilio): nunca por un botón que
-   toque el stock propio de Cervantes — es la corrección pedida tras el revert de Luis del 01/10.
-   Bolsas Plásticas (sector 14) es la excepción histórica: vive en Virgilio desde antes de todo
-   esto (v2.2.0) y sigue con SU mecanismo de siempre (stock_sector_bundle, compra/envío a
-   inyector); acá sólo cambió de caja. SC/SP/Fleje/Plástico/Caja leen directo de D.inv (ya
-   cargado por Cervantes): sin RPC nueva. */
-var RUBROS_VIR = [
-  { key:"vbol", nom:"Bolsas Plásticas",      mode:"sector", sid:14, cols:COLS_MP },
-  { key:"vsc",  nom:"SC en Virgilio",        mode:"virg",   sid:1 },
-  { key:"vsp",  nom:"SP en Virgilio",        mode:"virg",   sid:2 },
-  { key:"vfle", nom:"Flejes en Virgilio",    mode:"virg",   sid:5 },
-  { key:"vpla", nom:"Plásticos en Virgilio", mode:"virg",   sid:6 },
-  { key:"vcaj", nom:"Cajas en Virgilio",     mode:"virg",   sid:11 }
-];
-var RUBRO_VIR = null, CUR_VIR = { filas:[] }, VIR_INIT = false;
-function pintarRubrosVir(){
-  $("rubrosVir").innerHTML = '<div class="rubros">' + RUBROS_VIR.map(function(r){
-    return '<button class="rubro-btn" data-k="'+r.key+'" type="button">'+esc(r.nom)+'</button>';
-  }).join("") + '</div>';
-  document.querySelectorAll("#rubrosVir .rubro-btn").forEach(function(b){
-    b.addEventListener("click", function(){ seleccionarVir(b.dataset.k); });
-  });
-}
-function marcarActivoVir(){
-  document.querySelectorAll("#rubrosVir .rubro-btn").forEach(function(b){
-    b.classList.toggle("active", RUBRO_VIR && b.dataset.k===RUBRO_VIR.key);
-  });
-}
-function filasDeVir(r){
-  // las dos modalidades leen el MISMO stock_sector_bundle(sid) que ya carga Cervantes: esa RPC
-  // trae, por cada componente del sector (TODOS, aunque nunca se les haya movido nada — v2.7.0,
-  // Thomas 2026-10-01: "tienen que aparecerme los componentes con stock cero"), tanto el online de
-  // Cervantes ("online") como el de Virgilio ("en_virgilio", ya resuelto en el SQL: ubic_de(
-  // 'virgilio_sector', sid)). mode "sector" (Bolsas Plásticas) muestra el primero —vive siempre del
-  // lado Virgilio, es su mecanismo de toda la vida—; mode "virg" muestra el segundo.
-  var b = CACHE[r.sid] || { filas:[], ubicacion_id:null };
-  return (b.filas||[]).map(function(x){
-    return { cid:x.comp_id, cod:x.cod, desc:x.desc, um:x.um, kg_x_uni:x.kg_x_uni,
-             uni_x_cajon:x.uni_x_cajon,
-             online: Number((r.mode==="sector" ? x.online : x.en_virgilio) || 0) };
-  });
-}
-async function seleccionarVir(key){
-  var r = RUBROS_VIR.filter(function(x){ return x.key===key; })[0];
-  if (!r) return;
-  RUBRO_VIR = r;
-  marcarActivoVir();
-  if (!CACHE[r.sid]){
-    $("statusVir").textContent = "Cargando " + r.nom + "…";
-    var res = await SB.rpc("stock_sector_bundle", { p_sector_id: r.sid });
-    if (res.error){ $("statusVir").textContent = "Error: " + res.error.message; return; }
-    CACHE[r.sid] = res.data || { filas:[], ubicacion_id:null };
-  }
-  CUR_VIR.filas = filasDeVir(r);
-  renderVir();
-}
-function renderVir(){
-  var q = (($("qVir")||{}).value||"").trim().toLowerCase();
-  var solo = (($("soloStockVir")||{}).checked)||false;
-  var filas = CUR_VIR.filas.filter(function(x){
-    if (solo && Number(x.online||0)===0) return false;
-    if (!q) return true;
-    return (x.cod||"").toLowerCase().indexOf(q)>=0 || (x.desc||"").toLowerCase().indexOf(q)>=0;
-  }).sort(function(a,b){ return (a.cod||"").localeCompare(b.cod||"", "es", {numeric:true}); });
-  var conKg = filas.some(function(x){ return x.kg_x_uni>0; });
-  var conCaj = filas.some(function(x){ return x.uni_x_cajon>0; });
-  $("theadVir").innerHTML = '<tr><th>Código</th><th>Descripción</th>'+
-    (conKg?'<th class="num">Kg</th>':'')+(conCaj?'<th class="num">Caj</th>':'')+'<th class="num">Uni</th></tr>';
-  $("tbodyVir").innerHTML = filas.map(function(x){
-    return '<tr><td><span class="cod">'+esc(x.cod)+'</span></td><td>'+esc(x.desc||"")+'</td>'+
-      (conKg?'<td class="num">'+(x.kg_x_uni?fmt(kgDe(x),2):"—")+'</td>':'')+
-      (conCaj?'<td class="num">'+(x.uni_x_cajon?fmt(cajDe(x),2):"—")+'</td>':'')+
-      '<td class="num '+clsNum(x.online)+'">'+fmt(x.online)+'</td></tr>';
-  }).join("");
-  $("tblEmptyVir").classList.toggle("hidden", filas.length>0);
-  var con = filas.filter(function(x){ return Number(x.online||0)!==0; }).length;
-  $("statusVir").textContent = RUBRO_VIR.nom + " · " + filas.length + " componentes · " + con + " con stock.";
-}
-function initVirSiHaceFalta(){
-  if (VIR_INIT || !D) return;
-  VIR_INIT = true;
-  pintarRubrosVir();
-  seleccionarVir("vbol");
-  var qi = $("qVir"); if (qi) qi.addEventListener("input", function(){ if (RUBRO_VIR) renderVir(); });
-  var si = $("soloStockVir"); if (si) si.addEventListener("change", function(){ if (RUBRO_VIR) renderVir(); });
-}
 
 var D = null;                 // movimientos_bundle (para Ajuste y rubros 'otros')
 var EXTRA = { prov_at:[], transito:[], inyector:[], art_terminado:{ubic:null, filas:[]} };
@@ -495,37 +409,44 @@ var GLOBAL = null;            // indice transversal (todas las ubicaciones), se 
 var TOPE_GLOBAL = 400;        // filas dibujadas sin busqueda (el inventario entero son ~1.330)
 var RUBRO = null;             // rubro activo
 var CUR = { filas:[], ubic_id:null };
-var CAJA = "cerv";             // v2.7.0: "cerv" | "terc" — qué RUBROS se ofrecen en #rubros.
-                                // Virgilio es el pane aparte de siempre, no pasa por acá.
-var LAST_KEY = { cerv:null, terc:null };  // recordar el último rubro visto en cada caja al volver
+/* v3.0.0: PLANTA es un FILTRO sobre "Todos los rubros", no una pestaña exclusiva [Thomas: "Cuando
+   entro a stock general quiero ver los stocks de todo y después si quiero puedo filtrar por
+   Cervantes, Virgilio, Terceros"]. Se entra siempre en "todos" (ver reload) y el filtro recorta
+   tanto los botones de #rubros como las filas de la tabla "Todos los rubros". */
+var PLANTA = "todos";          // "todos" | "cerv" | "virg" | "terc"
 
 /* ---------- selector de rubros ---------- */
 function cajaDeRubro(r){ return r.planta || "cerv"; }
 function pintarRubros(){
-  var lista = RUBROS.filter(function(r){ return cajaDeRubro(r)===CAJA && !r.oculto; });
+  var lista = RUBROS.filter(function(r){
+    return r.mode==="global" || PLANTA==="todos" || cajaDeRubro(r)===PLANTA;
+  });
   var grupos = [], vistos = {};
   lista.forEach(function(r){ var g=r.grupo||""; if(!vistos[g]){ vistos[g]=1; grupos.push(g); } });
-  // v2.8.0: un grupo solo no lleva rótulo (ya lo dice la pestaña) — así las 3 pestañas se ven igual
-  var conRotulo = grupos.length > 1;
   $("rubros").innerHTML = grupos.map(function(g){
     var btns = lista.filter(function(r){ return (r.grupo||"")===g; }).map(function(r){
       return '<button class="rubro-btn" data-k="'+r.key+'" type="button">'+esc(r.nom)+'</button>';
     }).join("");
-    return (g && conRotulo ? '<div class="rubro-grp">'+esc(g)+'</div>' : '') + '<div class="rubros">'+btns+'</div>';
+    return (g ? '<div class="rubro-grp">'+esc(g)+'</div>' : '') + '<div class="rubros">'+btns+'</div>';
   }).join("");
   document.querySelectorAll("#rubros .rubro-btn").forEach(function(b){
     b.addEventListener("click", function(){ seleccionar(b.dataset.k); });
   });
 }
-/* v2.7.0: cambiar de caja (Cervantes/Terceros) sin pasar por el botón de la pestaña — lo usan el
-   click en una pestaña Y el salto "Rubro"/"También en: …" cuando el rubro al que se salta vive en
-   la OTRA caja (ej.: desde "Todos los rubros" -que es de Cervantes- a "Talleristas" -Terceros-). */
-function irACaja(cj){
-  if (cj === CAJA) return;
-  CAJA = cj;
-  document.getElementById("tabCervantes").classList.toggle("active", cj==="cerv");
-  document.getElementById("tabTerceros").classList.toggle("active", cj==="terc");
+function pintarPlantaTabs(){
+  document.getElementById("tabTodos").classList.toggle("active", PLANTA==="todos");
+  document.getElementById("tabCervantes").classList.toggle("active", PLANTA==="cerv");
+  document.getElementById("tabVirgilio").classList.toggle("active", PLANTA==="virg");
+  document.getElementById("tabTerceros").classList.toggle("active", PLANTA==="terc");
+}
+/* v3.0.0: el filtro de planta SIEMPRE vuelve al índice combinado ("Todos los rubros"), acotado a
+   esa planta — es la pestaña que pidió Thomas, no un destino nuevo. Elegir un rubro puntual (ver
+   seleccionar) sincroniza la pestaña sola, al revés. */
+function filtrarPlanta(p){
+  PLANTA = p;
+  pintarPlantaTabs();
   pintarRubros();
+  seleccionar("all");
 }
 function marcarActivo(){
   document.querySelectorAll("#rubros .rubro-btn").forEach(function(b){
@@ -571,6 +492,17 @@ function filasDe(r){
       return { cid:x.comp_id, cod:x.cod, desc:x.desc, um:x.um, kg_x_uni:x.kg_x_uni,
                uni_x_cajon:x.uni_x_cajon, online:Number(x.online||0), maximo:x.maximo,
                n_fleje:x.n_fleje, mov:x.mov, en_virgilio:x.en_virgilio, ubic_id:b.ubicacion_id };
+    }) };
+  }
+  if (r.mode==="virg"){
+    // v3.0.0: mismo CACHE[sid] que su contraparte de Cervantes (sc/sp/fle/pla/caj) — lee
+    // "en_virgilio" en vez de "online". Sin ubicación propia clickeable (no hay composición acá,
+    // igual que antes en renderVir): ni Máximo ni movimientos propios.
+    var bv = CACHE[r.sid] || { filas:[], ubicacion_id:null };
+    CUR.ubic_id = null;
+    return { filas:(bv.filas||[]).map(function(x){
+      return { cid:x.comp_id, cod:x.cod, desc:x.desc, um:x.um, kg_x_uni:x.kg_x_uni,
+               uni_x_cajon:x.uni_x_cajon, online:Number(x.en_virgilio||0), maximo:null, n_fleje:x.n_fleje };
     }) };
   }
   // 'otros': no hay mov{}
@@ -629,6 +561,7 @@ function filasDe(r){
    de prov AT y tránsito: no cuesta ninguna RPC nueva. Incluye A PROPÓSITO las ubicaciones
    que no tienen botón propio (sectores sin rubro; Virgilio NO desde v2.2.0; inyectores tienen rubro desde v2.3.0), porque justamente
    ahí es donde un componente se volvía imposible de encontrar. */
+function rubroIdx(k){ for (var i=0;i<RUBROS.length;i++) if (RUBROS[i].key===k) return i; return RUBROS.length; }
 function rubroPorKey(k){ return RUBROS.filter(function(r){ return r.key===k; })[0] || null; }
 function rubroDeUbic(u){
   if (!u) return null;
@@ -650,7 +583,7 @@ function filasInyector(conRubro){
       var ci=compInfo(f.cid), fila={ cid:f.cid, cod:ci.cod, desc:ci.desc, um:ci.um, kg_x_uni:ci.kg_x_uni,
                uni_x_cajon:null, online:Number(f.cant)||0, maximo:null,
                en_kg:enKg({ tipo:"inyector" }, ci), ubic_nom:p.nom, ubic_id:p.ubic };
-      if (conRubro){ fila.rubro_key = "iny"; fila.rubro_nom = R.nom; }
+      if (conRubro){ fila.rubro_key = "iny"; fila.rubro_nom = R.nom; fila.planta = "terc"; }
       out.push(fila);
     });
   });
@@ -664,6 +597,20 @@ function etiqSuelta(u){
 function nomUbic(u){
   var t = u.tipo==="tallerista" ? (D.tall||{}) : (u.tipo==="proveedor_servicio" ? (D.prov_serv||{}) : null);
   return (t && (t[String(u.ref)]||{}).nom) || u.nom || "?";
+}
+/* v3.0.0: para que "Todos los rubros" (vista con la que ahora se entra por defecto) incluya lo
+   que hay en Virgilio sin esperar a que el usuario clickee rubro por rubro, se precargan sus 6
+   sectores ANTES de armar el índice — mismo CACHE que después reusan sc/sp/fle/pla/caj/vbol
+   (y que vsc/vsp/vfle/vpla/vcaj leen directo), sin pedir nada dos veces. */
+var VIRGILIO_SIDS = [14,1,2,5,6,11];
+async function precargarVirgilio(){
+  var faltan = VIRGILIO_SIDS.filter(function(sid){ return !CACHE[sid]; });
+  if (!faltan.length) return;
+  var res = await Promise.all(faltan.map(function(sid){ return SB.rpc("stock_sector_bundle", { p_sector_id: sid }); }));
+  faltan.forEach(function(sid, i){
+    var rr = res[i];
+    CACHE[sid] = (rr && !rr.error && rr.data) || { filas:[], ubicacion_id:null };
+  });
 }
 function filasGlobales(){
   if (GLOBAL) return GLOBAL;
@@ -683,7 +630,7 @@ function filasGlobales(){
                uni_x_cajon:ci.uni_x_cajon, online:Number(v.cant)||0, en_kg:enKg(u, ci),
                maximo:(r && r.sin_max) ? null : v.max,
                rubro_key:r?r.key:null, rubro_nom:r?r.nom:etiqSuelta(u),
-               ubic_nom:nomUbic(u), ubic_id:uid });
+               ubic_nom:nomUbic(u), ubic_id:uid, planta:r?cajaDeRubro(r):"cerv" });
   }
   // prov AT, inyectores y tránsito no viven (completos) en el inventario por ubicación del bundle
   out = out.concat(filasInyector(true));
@@ -692,7 +639,7 @@ function filasGlobales(){
       var ci=compInfo(f.cid);
       out.push({ cid:f.cid, cod:ci.cod, desc:ci.desc, um:ci.um, kg_x_uni:ci.kg_x_uni,
                  uni_x_cajon:ci.uni_x_cajon, online:Number(f.cant)||0, maximo:f.max,
-                 rubro_key:"pat", rubro_nom:(rubroPorKey("pat")||{}).nom, ubic_nom:pa.nom, ubic_id:pa.ubic });
+                 rubro_key:"pat", rubro_nom:(rubroPorKey("pat")||{}).nom, ubic_nom:pa.nom, ubic_id:pa.ubic, planta:"terc" });
     });
   });
   (EXTRA.transito||[]).forEach(function(t){
@@ -700,7 +647,18 @@ function filasGlobales(){
     out.push({ cid:t.cid, cod:ci.cod, desc:ci.desc, um:ci.um, kg_x_uni:ci.kg_x_uni,
                uni_x_cajon:ci.uni_x_cajon, online:Number(t.cant)||0, maximo:null,
                rubro_key:"tra", rubro_nom:(rubroPorKey("tra")||{}).nom,
-               ubic_nom:(t.ps1||"?")+" → "+(t.ps2||"?"), ubic_id:null });
+               ubic_nom:(t.ps1||"?")+" → "+(t.ps2||"?"), ubic_id:null, planta:"cerv" });
+  });
+  // v3.0.0: lo que Virgilio tiene de SC/SP/Fleje/Plástico/Caja (Bolsas Plásticas ya entró arriba:
+  // su ubicación es tipo "sector" como cualquier otra, ocultarInv no la saca — ver rubroDeUbic).
+  // Mismo CACHE que ya cargan sus rubros "en Virgilio"; precargarVirgilio lo deja listo antes.
+  RUBROS.filter(function(r){ return r.mode==="virg"; }).forEach(function(r){
+    var b = CACHE[r.sid] || { filas:[], ubicacion_id:null };
+    (b.filas||[]).forEach(function(x){
+      out.push({ cid:x.comp_id, cod:x.cod, desc:x.desc, um:x.um, kg_x_uni:x.kg_x_uni,
+                 uni_x_cajon:x.uni_x_cajon, online:Number(x.en_virgilio||0), maximo:null,
+                 rubro_key:r.key, rubro_nom:r.nom, ubic_nom:"Virgilio", ubic_id:null, planta:"virg" });
+    });
   });
   GLOBAL = out;
   return out;
@@ -714,16 +672,24 @@ function texto(x){
 }
 function filtradas(){
   var arr = (CUR.filas||[]).slice();
+  // v3.0.0: el filtro de planta sólo aplica sobre el índice combinado — un rubro puntual
+  // (Stock SC, Talleristas…) ya es, de por sí, de UNA sola planta.
+  if (RUBRO && RUBRO.mode==="global" && PLANTA!=="todos"){
+    arr = arr.filter(function(x){ return x.planta===PLANTA; });
+  }
   var q = String($("q").value||"").trim().toLowerCase();
   if (q) arr = arr.filter(function(x){ return texto(x).indexOf(q)>=0; });
   if ($("soloStock").checked) arr = arr.filter(function(x){ return Number(x.online||0)!==0; });
-  // en "Todos" manda el código, para que el mismo componente quede junto en un solo bloque
+  // v3.0.2: en "Todos" manda el RUBRO, en el orden de los botones (Cervantes → Virgilio →
+  // Terceros; lo que no tiene rubro va al final); adentro, código numérico y después dónde.
   if (RUBRO && RUBRO.mode==="global") return arr.sort(function(a,b){
-    var c=String(a.cod||"").localeCompare(String(b.cod||"")); if(c) return c;
-    return (a.rubro_nom||"").localeCompare(b.rubro_nom||"");
+    var r=rubroIdx(a.rubro_key)-rubroIdx(b.rubro_key); if(r) return r;
+    var c=String(a.cod||"").localeCompare(String(b.cod||""), "es", { numeric:true }); if(c) return c;
+    return (a.ubic_nom||"").localeCompare(b.ubic_nom||"");
   });
-  // en los sectores, orden numérico del código: GRJ4, GRJ5 … GRJ10, GRJ10A (no GRJ10 antes que GRJ4)
-  if (RUBRO && RUBRO.mode==="sector") return arr.sort(function(a,b){
+  // en los sectores (y su contraparte "en Virgilio"), orden numérico del código: GRJ4, GRJ5 …
+  // GRJ10, GRJ10A (no GRJ10 antes que GRJ4)
+  if (RUBRO && (RUBRO.mode==="sector" || RUBRO.mode==="virg")) return arr.sort(function(a,b){
     return String(a.cod||"").localeCompare(String(b.cod||""), "es", { numeric:true });
   });
   // en 'otros' manda el proveedor / tallerista
@@ -861,17 +827,22 @@ function render(){
 async function seleccionar(key){
   var r = RUBROS.filter(function(x){ return x.key===key; })[0];
   if (!r) return;
-  irACaja(cajaDeRubro(r));       // si el rubro es de la OTRA caja (ej. un link de "También en…"), saltar la pestaña
-  if (!r.oculto) LAST_KEY[CAJA] = key;   // v2.8.0: volver a la pestaña abre el último rubro CON botón
+  // v3.0.0: elegir un rubro puntual sincroniza la pestaña de planta sola (como antes "También
+  // en: …"); "Todos los rubros" NO toca la pestaña — respeta el filtro que ya estaba elegido.
+  if (r.mode!=="global"){ PLANTA = cajaDeRubro(r); pintarPlantaTabs(); pintarRubros(); }
   RUBRO = r;
   marcarActivo();
   $("fljeLink").style.display = r.detalle ? "" : "none";
   document.title = "Stock general · " + r.nom + " · GP2";
-  if (r.mode==="sector" && !CACHE[r.sid]){
+  if ((r.mode==="sector" || r.mode==="virg") && !CACHE[r.sid]){
     $("status").textContent = "Cargando " + r.nom + "…";
     var res = await SB.rpc("stock_sector_bundle", { p_sector_id: r.sid });
     if (res.error){ $("status").textContent = "Error: " + res.error.message; return; }
     CACHE[r.sid] = res.data || { filas:[], ubicacion_id:null };
+  }
+  if (r.mode==="global" && !GLOBAL){
+    $("status").textContent = "Cargando…";
+    await precargarVirgilio();
   }
   var f = filasDe(r);
   CUR.filas = f.filas;
@@ -879,7 +850,7 @@ async function seleccionar(key){
   render();
   var con = CUR.filas.filter(function(x){ return Number(x.online||0)!==0; }).length;
   $("status").textContent = r.mode==="global"
-    ? "Todos los rubros · " + fmt(CUR.filas.length) + " filas de inventario (sectores, talleristas, P.S., prov. AT, inyectores y tránsito) · " + fmt(con) + " con stock."
+    ? "Todos los rubros · " + fmt(CUR.filas.length) + " filas de inventario (sectores, Virgilio, talleristas, P.S., prov. AT, inyectores y tránsito) · " + fmt(con) + " con stock."
     : r.nom + " · " + CUR.filas.length + " componentes · " + con + " con stock.";
 }
 
@@ -1022,9 +993,8 @@ async function reload(){
   }
   aplicarVocabulario();
   CACHE = {}; GLOBAL = null;
-  await seleccionar(RUBRO ? RUBRO.key : "sc");
+  await seleccionar(RUBRO ? RUBRO.key : "all");
   renderMovs();
-  if (VIR_INIT && RUBRO_VIR) await seleccionarVir(RUBRO_VIR.key);
 }
 
 /* ═══ Ajuste +/- (heredado de Registrar_Movimiento) ═══ */
@@ -1136,6 +1106,7 @@ $("tbody").addEventListener("click", function(e){
 $("popClose").addEventListener("click", function(){ $("popup").classList.remove("open"); });
 $("popup").addEventListener("click", function(e){ if(e.target===$("popup")) $("popup").classList.remove("open"); });
 
+pintarPlantaTabs();
 pintarRubros();
 reload();
 </script>

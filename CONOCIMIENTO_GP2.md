@@ -14435,7 +14435,126 @@ confirmar] y CON Máximo (lo tiene cargado). Sólo front. version.js v1.229.0 ?v
   (`componente.proveedor`): nada impide que una familia quede repartida entre dos inyectores, y el mínimo de
   familia de la O.C. se cuenta por proveedor. Sin confirmar si conviene que el inyector cuelgue de la familia.
 
-## 4hx. Botón "→ Virgilio" en el control de cajas y flejes — el remito que no entra se baja directo a Virgilio (2026-10-01)
+## 4hx. Stock General: VER TODO Y DESPUÉS FILTRAR — las pestañas pasan a ser un filtro, no un destino (2026-10-01)
+
+[Thomas, 01/10, con captura de las 3 pestañas] *"Cuando entro a stock general quiero ver los stocks
+de todo y después si quiero puedo filtrar por Cervantes, Virgilio, Terceros"*. Stock General v3.0.0:
+se entra SIEMPRE viendo **«Todos los rubros» combinado** (Cervantes + Virgilio + Terceros juntos, antes
+abría en Stock SC); las 3 pestañas pasan de ser un **pane exclusivo** que se tapaban entre sí a ser un
+**filtro** sobre ese índice. Elegir «🏭 Cervantes» / «🏬 Virgilio» / «👥 Terceros» vuelve siempre al
+índice combinado acotado a esa planta; los botones de Rubro también se acotan, salvo «🔎 Todos los
+rubros», que queda **siempre** a la vista (en las 3 plantas). Elegir un rubro puntual (Stock SC,
+Talleristas…) sincroniza la pestaña sola, igual que ya hacía «También en: …» — mismo mecanismo,
+generalizado de 2 a 3 valores (`PLANTA`, antes `CAJA`).
+
+⚠ **Esto RETIRA §4hu** (*"las 3 pestañas arrancan igual — sin botón «Todos los rubros»"*, v2.8.0,
+usuario no identificado). Esa versión resolvía la queja *"solo en Cervantes aparece buscar todos los
+rubros"* **escondiendo** el botón en las 3 plantas; esta versión resuelve la MISMA queja de fondo
+**mostrándolo siempre**, en las 3 — es una resolución más completa (el botón deja de faltar en
+cualquier lado, en vez de dejar de estar en todos). `oculto`/`conRotulo` (el truco de "un grupo solo
+no lleva rótulo") quedan sin uso: con «Todos los rubros» siempre presente (grupo «Buscar»), nunca hay
+un solo grupo.
+
+Virgilio deja de tener un **pane aparte** con su propio motor de tabla (`RUBROS_VIR`/`renderVir`, sin
+columnas de movimiento ni Máximo, agregado en §4hq/§4hr): sus 6 rubros (Bolsas Plásticas + SC/SP/
+Fleje/Plástico/Caja en Virgilio) se mudan al `RUBROS` principal con `planta:"virg"` y pasan por el
+MISMO motor que Cervantes/Terceros — así que ahora SÍ muestran columnas de movimiento donde
+corresponde (Bolsas Plásticas, que vive en un sector de verdad: antes se calculaban y se tiraban).
+«Todos los rubros» los suma al índice leyendo el MISMO `CACHE` que ya cargaban esos 6 rubros
+(`stock_sector_bundle`), sin RPC nueva: sólo hubo que **precargarlo** (`precargarVirgilio`, Promise.all
+de los 6 sectores) ANTES de armar el índice, porque antes se cargaba perezoso recién al tocar cada
+rubro — y «Todos» pasa a ser la vista de entrada, no una a la que se llegaba eventualmente.
+
+El rubro `afi` (Afilado, §4hv) se conserva igual, dentro de «Sectores». «± Ajuste» queda siempre a la
+vista (ya lo estaba para Cervantes y Terceros): la protección de que Virgilio no se toque a mano vive
+en `GP2M.ajuste` (qué ubicaciones ofrece el desplegable), no en si el botón aparece.
+
+⚠ **Colisión con otra sesión, resuelta por fast-forward + re-aplicación**: al ir a pushear, origin ya
+tenía §4hu y §4hv (otra sesión tocó el mismo archivo en paralelo, misma tarde). Se hizo `git merge
+origin/main` (fast-forward limpio, sin commits locales propios todavía) y se re-aplicó este cambio
+completo sobre esa base nueva, en vez de forzar un merge de texto — más seguro dado lo extenso del
+archivo. El botón Afilado (v2.9.0) se conservó tal cual quedó.
+
+Sólo front. `tests/ui/test_stock_general.js` reescrito (Afilado integrado). Suite 67/67. version.js
+v1.230.0 ?v=20261001k.
+
+## 4hy. Stock General: el grupo de rubros de Cervantes pasa de «Sectores» a «Cervantes» (2026-10-01)
+
+[Thomas, 01/10] *"Que se llame CERVANTES en vez de SECTORES"*. El `grupo` de los 13 rubros de la
+planta Cervantes (Stock SC, Stock SP, En Movimiento, Afilado, Flejes, Plásticos, Bombillas,
+Remaches, Garage, Cartones, Cajas, Tránsito PS, Art. Terminado) pasa de `"Sectores"` a
+`"Cervantes"` — las 3 plantas quedan con el mismo tipo de rótulo de grupo (Cervantes / Virgilio /
+Terceros), igual que las pestañas de §4hx. Sólo cambió el literal del `grupo` en `RUBROS`; nada
+de lógica. Sólo front. `tests/ui/test_stock_general.js` (2 assertions actualizadas). Suite 67/67.
+version.js v1.230.1 ?v=20261001l.
+
+## 4hz. Stock General: «Todos los rubros» se ordena por RUBRO (2026-10-01)
+
+- [usuario, 01/10] *"Ordená por rubro"*, sobre la tabla combinada (Rubro · Dónde · Código…).
+- Antes ordenaba por **código** (el mismo componente junto: 2405 en Bolsas Plásticas y en 3 inyectores
+  seguidos). Ahora va por **rubro en el orden de los botones** (Cervantes → Virgilio → Terceros; lo sin
+  rubro al final), y adentro **código numérico** y después «Dónde». Se retira el «manda el código» del v2.2.0.
+- Sólo front (`rubroIdx` + el sort de `filtradas`). `test_stock_general` mide que ningún rubro reaparezca
+  después de que empezó otro (falla con el orden viejo). Stock General v3.0.2, version.js v1.230.2.
+
+## 4ia. 94xE: el inserto se arma en matriz 505* con dos piezas importadas; 941E y 946E se dan de baja; GRJ33 (2026-10-01)
+
+[usuario, 01/10, textual] *"A PEST1 ponele Insertos Sonrisa en vez de Insertos Mango de Madera. El 941E y el 946E
+eliminalos de las rutas, de articulos terminados. No se hace más. Borralo"* · *"El 942E se usa PEST1, Z47: Cuchara
+Inox (Parte que se importa), Z43: Mgo Madera (Parte que se importa). Estas tres se convergen en la matriz 505D:
+Armado Cuchara Inox Imp"* (ídem 943E/Z44/505C, 944E/Z48/505, 945E/Z49/505F, 948E/Z50/505B) · *"Las partes que se
+importan se tienen que poder recibir desde Virgilio en versión tablet"* · *"agrega GRJ33 que es Doble Aleta
+Premium se recibe de Virgilio"*.
+
+- **Esto retira el "PEST1 queda discontinuo en noviembre" de §4cz y de la alta de los 94xE**: PEST1 (ahora
+  «Insertos Sonrisa») sigue en las 5 recetas. Lo que cambia es que el 94xE ya no llega hecho: llegan la pieza inox
+  y el mango por separado y se arman en Cervantes. `[usuario]`
+- **Modelo (molde del 507, matriz 78):** cada entrada tiene su ruta y las tres convergen en la matriz:
+  `insumo PEST1 | Zxx | Z46 → matriz 505x → <Zxx>-M505x (Sector Movimiento) → Fábrica (tallerista 3) arma con la
+  caja A9B → 9xxE → Virgilio`. La ruta de la caja no se tocó. Receta = PEST1 ×1 + pieza ×1 + mango ×1 + A9B ×1/12.
+  La ruta de PEST1 se reescribió en el lugar (antes iba directo a Fábrica). Matrices renombradas al texto del
+  usuario (505 «Armado Cuchara Fideos Inox Imp», 505F «Armado Espátula Calada Inox Imp»).
+- **Piezas importadas:** Z47 Cuchara Inox · Z44 Cucharon Inox · Z48 Cuchara Fideos Inox · Z49 Espátula Calada Inox ·
+  Z50 Espumadera Inox, en Sector Procesado con `proveedor='Importado'` y `estado_compra='importado'` (igual que
+  Z23A/Z23B/D1). Con eso salen solas en **Tablet → Recibir → Virgilio** (rama de importados de `tablet_bundle`).
+  Verificado: las 7 (5 piezas + mango + GRJ33) aparecen con `importado=true`.
+- **⚠ Z43 YA EXISTE:** es «Varilla c/Cuchilla Negro» del Abrelatas 101 (receta + 4 pasos de ruta). No se pisó: el
+  mango nació como `MGOMAD` (provisorio) y el usuario fijó **`Z46` «Mgo Madera»** el mismo día (D1). Ruta
+  renombrada «Insumo Z46 -> Art 9xxE». `[dato]`
+- **Vínculo GV → GP2** (`GP2.importado_virgilio_componente`): 942P→Z47, 943P→Z44, 944P→Z48, 945P→Z49, 948P→Z50
+  `[deducido: public."Importados_Stock_Parte" dice que la parte de 942E es 942P, «Parte Cuchara Ac. Inox»]`;
+  522E y 522ES→GRJ33 (molde 599E/599ES→GRJ32). **El mango no tiene código en GV**: sin fila, el aviso de Virgilio
+  sale "sin componente" — en la tablet se recibe igual.
+- **GRJ33 «Doble Aleta Premium»**: Sector Garage, importado, igual que GRJ31/GRJ32 (sin receta ni ruta).
+- **941E y 946E:** 0 inventario, 0 movimientos, 0 producción (medido). Matrices 505E/505G `activa=false`. **El
+  usuario confirmó el borrado (D2, «SI»), pero NO se pudo aplicar**: el MCP de Supabase retiene los DELETE y la
+  confirmación del chat no le llega; hay que correrlo en el SQL editor; quedaron
+  `discontinuado=true` y el bloque está comentado al final de `db/migracion_94xE_armado_505_20261001.sql`.
+  `GP2.articulo_familia` (941E→338, 946E→335) NO se toca desde GP2: es espejo de `Equivalencias_Familia` de GV
+  (invariante AG).
+- **Plata:** las 6 piezas nuevas no tienen precio (`precio_proveedor` vacío) → el costo de los 94xE queda con
+  `faltan_precios` hasta cargarlo. Los máximos se recalcularon solos al commit (Z46 700, Z47 172 uni).
+- Invariantes de `db/verificar.sql`: iguales antes y después (AE=2 y AG=9 ya estaban). Respaldo en
+  `zz_backups."GP2_bkp_*_20261001_94xe"`. Sólo base, sin front.
+
+## 4ib. Programa: una ruta que es RAMA de una convergencia no se repite como «ruta simple» (2026-10-01)
+
+- [usuario, 01/10] *"en el 570, la ruta del vástago aparece duplicada"*: ID1 → M375 → L8 → F2 (Pedernera) salía
+  en el bloque 1 (*Partes que se fabrican en Cervantes*) **y** como Rama 2 de la convergencia E6-M194.
+- [dato] La ruta 96 termina F2 → Fábrica → 570, así que su ÚLTIMO paso no es un hijo de E6-M194; el bloque 1
+  sólo miraba el último paso, mientras la rama de la convergencia la encuentra por cualquier paso (F2). Los dos
+  criterios no coincidían y además sumaba dos veces sus kg de fleje.
+- Hoy las convergencias se arman primero y anotan qué rutas dibujaron (`rutaDibujada`); el bloque 1 las saltea.
+  Sólo front. `test_programa_conv_sin_duplicar` (recorte real del 570, falla contra el HTML anterior).
+  version.js v1.230.3.
+- [usuario, 01/10] La ruta 96 se corrigió: el F2 entra a la **Matriz 194** (F2 → E6-M194 → Fábrica → 570), igual que la
+  ruta del E6 y con el molde del 521. Efecto medido: el costo de E6-M194 pasa de $241,24 a $388,03 (antes no sumaba el
+  F2); el del 570 no cambia ($708,67). Máximo de F2 en Fábrica 636 → 120 (lo que queda es del 858).
+  `db/migracion_ruta96_570_m194_20261001.sql` (con rollback).
+- [dato, pendiente] El **858** tiene el mismo error (ruta 97: F2 → Fábrica directo, receta con E6-M194), y las rutas de
+  insumo del V10 van a Fábrica en vez de a la M194. No se tocaron.
+
+## 4ic. Botón "→ Virgilio" en el control de cajas y flejes — el remito que no entra se baja directo a Virgilio (2026-10-01)
 
 [usuario, Thomas, versión tablet] *"llega el camión con el remito. Anoto las cantidades del remito y después
 controlo cuando termino de bajar todo. En el caso de flejes y cajas: si el total del remito no entra en
