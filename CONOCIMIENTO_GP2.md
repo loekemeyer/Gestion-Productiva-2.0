@@ -14384,7 +14384,23 @@ meses por sector segun el maximo)… Corregí llevándolo a cada caso correspond
 - Quedan sin cerrar contra la celda, a propósito: máximo `fisico` (fijado a mano) y las 3 resinas con máximo viejo de
   §4hl — la tabla muestra la demanda de hoy, la celda lo cargado.
 - `Compras/OC_GP2.html` (`htmlDesglose`), `tests/ui/test_oc_maximo_desglose.js`, `db/funciones_GP2.sql`.
-## 4hu. Botón "→ Virgilio" en el control de cajas y flejes — el remito que no entra se baja directo a Virgilio (2026-10-01)
+## 4hu. Stock General: las 3 pestañas arrancan igual — sin botón «Todos los rubros» (2026-10-01)
+
+[usuario, 01/10] *"Solo en Cervantes me aparece buscar todos los rubros. Eliminá así quedan todos los
+módulos igual"*. Stock General v2.8.0: Cervantes pierde el botón «🔎 Todos los rubros» y los rótulos
+«Buscar» / «Sectores» (un grupo solo no lleva rótulo, mismo criterio que Terceros desde §4hr). Las 3
+pestañas quedan «Rubro» + botones.
+
+⚠ **Lo que NO se borró, a propósito:** la vista transversal de §v2.1.0 (*"si no sé a qué sector
+pertenece el componente tengo que entrar uno por uno"*). Sigue viva, sin botón: al buscar adentro
+de cualquier rubro de Cervantes o Terceros aparece «También en otros rubros… · **ver todo junto →**»
+y ese link la abre. Es la única puerta a lo que no tiene botón propio (sectores sin rubro, ej. T1 en
+Terminado / Y1 en Afilado). [deducido] Si el pedido era borrar también la búsqueda transversal, es
+sacar el link y el rubro `all` (`oculto:true` en `RUBROS`). Volver a la pestaña abre el último rubro
+CON botón (`LAST_KEY` no guarda `all`). Sólo front. `tests/ui/test_stock_general.js` (+5 chequeos,
+falla contra el HTML anterior). version.js v1.228.1 ?v=20261001i.
+
+## 4hv. Botón "→ Virgilio" en el control de cajas y flejes — el remito que no entra se baja directo a Virgilio (2026-10-01)
 
 [usuario, Thomas, versión tablet] *"llega el camión con el remito. Anoto las cantidades del remito y después
 controlo cuando termino de bajar todo. En el caso de flejes y cajas: si el total del remito no entra en
@@ -14417,5 +14433,5 @@ sola: descartado.
   invariante AI salta.
 - `db/migracion_recepcion_virgilio.sql`, `db/funciones_GP2.sql` (`recepcion_a_virgilio` +
   `controlar_recepcion_cajas` + `control_recepcion_bundle`), `db/vistas_GP2.sql` (`v_recepcion_control`),
-  `db/tablas_GP2.sql` (columnas). Front: `control-cajas` v1.3.0, `RecepcionInsumos` v3.69.0, version.js v1.228.0.
+  `db/tablas_GP2.sql` (columnas). Front: `control-cajas` v1.3.0, `RecepcionInsumos` v3.70.0, version.js v1.228.2.
   Test: `tests/ui/test_recepcion_virgilio.js`.

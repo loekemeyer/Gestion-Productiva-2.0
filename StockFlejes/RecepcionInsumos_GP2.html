@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<!-- v3.69.0 (2026-10-01) — BOTÓN "→ Virgilio" EN EL PESAJE DE FLEJES [Thomas: "si el total del remito
+<!-- v3.70.0 (2026-10-01) — BOTÓN "→ Virgilio" EN EL PESAJE DE FLEJES [Thomas: "si el total del remito
      no entra en Cervantes porque excede el espacio físico, no se baja del camión una parte y va directo
      para Virgilio ... un botón en el control de cajas y flejes que se pueda mandar una cantidad a
      Virgilio"]. El remito entra COMPLETO a Cervantes (la O.C./factura cierra por el total); el botón
@@ -15,6 +15,16 @@
      contra el remito sino contra el ESPERADO = remito − lo de Virgilio (itemDif/v_recepcion_control),
      así lo que no se pesa deja de leerse como faltante. El equivalente en cajas vive en control-cajas.
      DB: db/migracion_recepcion_virgilio.sql. Test: test_recepcion_virgilio.js. -->
+<!-- v3.69.0 (2026-10-01) — ALTRAK -> CHARCAS y APERAM -> ECLIPSE (CHAPA) SE VAN DE ACA [Thomas:
+     "Estos modulos no tendrian que aparecer en recepcion insumos de version tablet, ya esta en
+     casos especiales dentro de herramientas"]. Las dos cargas ya viven en
+     CasosEspeciales/CasosEspeciales_GP2.html (misma RPC cargar_compra_mp, resuelve el PS hibrido
+     desde componente.proveedor), asi que aca eran un duplicado. Se saca: la inyeccion a mano de
+     Altrak en el rubro Flejes (no mas chip Altrak), el filtrado del item FLEJE_DESCORAZONADOR
+     (la chapa de Aperam ya no aparece; Aperam sigue con sus 13 flejes reales), los paneles
+     stepAltrak/stepChapa y todo su JS (irAltrak/irChapa, cargarStock*, listeners), y los dos
+     ruteos (irStep2 por proveedor Altrak, abrirPopup por item chapa). cargar_compra_mp NO se
+     toca: la sigue usando Casos Especiales. Sin base nueva. -->
 <!-- v3.68.0-R (2026-10-01) — REARMADO TRAS EL REVERT del 01/10 (Luis): vuelve el mismo v3.68.0 de
      abajo, SIN Importados acá (vive en Tablet -> Recibir -> Virgilio otra vez). Sin base nueva en
      este archivo. -->
@@ -619,83 +629,8 @@ input[type="text"]{width:200px}
     </div>
 
     <!-- Paso 2 -->
-    <!-- Recepcion de Altrak (opcion B, 2026-09-04): el fleje bruto va a Charcas. Flujo
-         propio (kg + % corto/largo = instruccion de corte). Llama cargar_compra_mp('Altrak');
-         NO usa pesaje/pallets/buffer. -->
-    <div id="stepAltrak" class="hidden">
-      <div class="row">
-        <button class="btn btn-secondary" id="btnVolverAltrak">← Volver</button>
-        <div style="font-size:22px;font-weight:900;color:#0b3b73">Flejes · Altrak → Charcas</div>
-      </div>
-      <div style="background:#eef4fb;border:2px solid #cddaea;border-radius:12px;padding:14px 18px;margin:12px 0;text-align:center">
-        <div style="font-size:13px;font-weight:800;color:#475569;text-transform:uppercase;letter-spacing:.4px">Stock de alambre en Charcas</div>
-        <div style="font-size:32px;font-weight:900;color:#0b3b73"><span id="akStock">0</span> <small style="font-size:18px;color:#0b5cad">kg</small></div>
-      </div>
-      <div style="display:flex;gap:14px;flex-wrap:wrap;margin:12px 0">
-        <div style="flex:1 1 150px;display:flex;flex-direction:column;justify-content:space-between;gap:6px">
-          <label for="akFecha" style="font-size:16px;font-weight:700">Fecha</label>
-          <input type="date" id="akFecha" style="height:48px;font-size:20px;padding:0 12px;border:2px solid #d0d7de;border-radius:10px">
-        </div>
-        <div style="flex:1 1 150px;display:flex;flex-direction:column;justify-content:space-between;gap:6px">
-          <label for="akRemito" style="font-size:16px;font-weight:700">N° remito (opcional)</label>
-          <input type="text" id="akRemito" inputmode="text" placeholder="Opcional" style="height:48px;font-size:20px;padding:0 12px;border:2px solid #d0d7de;border-radius:10px">
-        </div>
-      </div>
-      <div style="display:flex;flex-direction:column;gap:6px;margin:12px 0">
-        <label for="akKg" style="font-size:16px;font-weight:700">Kg de alambre comprados</label>
-        <input type="text" id="akKg" inputmode="decimal" placeholder="0,0" style="height:52px;font-size:26px;font-weight:800;text-align:right;padding:0 14px;border:2px solid #d0d7de;border-radius:10px">
-      </div>
-      <div style="margin:12px 0 2px">
-        <label style="font-size:16px;font-weight:700">Reparto corto / largo (deslizá o escribí)</label>
-        <input type="range" id="akPctSlider" min="0" max="100" step="1" value="50"
-               style="width:100%;height:40px;margin-top:8px;accent-color:#0b3b73;cursor:pointer">
-        <div id="akSliderLbl" style="text-align:center;font-size:18px;font-weight:800;color:#0b3b73">Definí el reparto</div>
-      </div>
-      <div style="display:flex;gap:14px;flex-wrap:wrap;margin:8px 0 0">
-        <div style="flex:1 1 150px;display:flex;flex-direction:column;justify-content:space-between;gap:6px">
-          <label for="akPctCorto" style="font-size:16px;font-weight:700">% Corto (IC3) → Cervantes</label>
-          <input type="text" id="akPctCorto" inputmode="numeric" placeholder="70" style="height:48px;font-size:22px;font-weight:700;padding:0 14px;border:2px solid #d0d7de;border-radius:10px">
-        </div>
-        <div style="flex:1 1 150px;display:flex;flex-direction:column;justify-content:space-between;gap:6px">
-          <label for="akPctLargo" style="font-size:16px;font-weight:700">% Largo (IC3V) → Virgilio</label>
-          <input type="text" id="akPctLargo" inputmode="numeric" placeholder="30" style="height:48px;font-size:22px;font-weight:700;padding:0 14px;border:2px solid #d0d7de;border-radius:10px">
-        </div>
-      </div>
-      <div id="akSplit" style="font-size:14px;color:#666;font-weight:600;margin-top:6px">Definí cómo Charcas tiene que cortar este alambre (deslizá o escribí, se completan solos a 100).</div>
-      <button id="akGuardar" class="btn btn-primary" disabled style="min-height:52px;font-size:20px;font-weight:900;width:100%;margin-top:14px">✓ Registrar entrega de Altrak</button>
-      <div id="akMsg" class="status" style="margin-top:10px"></div>
-    </div>
-
-    <!-- Recepcion de Aperam (chapa 430 -> Eclipse), mismo patron que Altrak pero SIN % (la
-         chapa no se reparte): solo kg + remito. cargar_compra_mp('Aperam') la suma al stock
-         de Eclipse (ubic 48); el 1686 lo genera despues la entrega de Eclipse en Entrega PS. -->
-    <div id="stepChapa" class="hidden">
-      <div class="row">
-        <button class="btn btn-secondary" id="btnVolverChapa">← Volver</button>
-        <div style="font-size:22px;font-weight:900;color:#0b3b73">Flejes · Aperam → Eclipse (chapa)</div>
-      </div>
-      <div style="background:#eef4fb;border:2px solid #cddaea;border-radius:12px;padding:14px 18px;margin:12px 0;text-align:center">
-        <div style="font-size:13px;font-weight:800;color:#475569;text-transform:uppercase;letter-spacing:.4px">Stock de chapa 430 en Eclipse</div>
-        <div style="font-size:32px;font-weight:900;color:#0b3b73"><span id="chStock">0</span> <small style="font-size:18px;color:#0b5cad">kg</small></div>
-      </div>
-      <div style="display:flex;gap:14px;flex-wrap:wrap;margin:12px 0">
-        <div style="flex:1 1 150px;display:flex;flex-direction:column;justify-content:space-between;gap:6px">
-          <label for="chFecha" style="font-size:16px;font-weight:700">Fecha</label>
-          <input type="date" id="chFecha" style="height:48px;font-size:20px;padding:0 12px;border:2px solid #d0d7de;border-radius:10px">
-        </div>
-        <div style="flex:1 1 150px;display:flex;flex-direction:column;justify-content:space-between;gap:6px">
-          <label for="chRemito" style="font-size:16px;font-weight:700">N° remito (opcional)</label>
-          <input type="text" id="chRemito" inputmode="text" placeholder="Opcional" style="height:48px;font-size:20px;padding:0 12px;border:2px solid #d0d7de;border-radius:10px">
-        </div>
-      </div>
-      <div style="display:flex;flex-direction:column;gap:6px;margin:12px 0">
-        <label for="chKg" style="font-size:16px;font-weight:700">Kg de chapa 430 comprados</label>
-        <input type="text" id="chKg" inputmode="decimal" placeholder="0,0" style="height:52px;font-size:26px;font-weight:800;text-align:right;padding:0 14px;border:2px solid #d0d7de;border-radius:10px">
-      </div>
-      <button id="chGuardar" class="btn btn-primary" disabled style="min-height:52px;font-size:20px;font-weight:900;width:100%;margin-top:14px">✓ Registrar chapa de Aperam</button>
-      <div id="chMsg" class="status" style="margin-top:10px"></div>
-    </div>
-
+    <!-- v3.69.0: los paneles stepAltrak (Altrak -> Charcas) y stepChapa (Aperam -> Eclipse)
+         se sacaron de aca. Esas dos cargas viven en Casos Especiales (herramientas). -->
     <div id="step2" class="hidden">
       <div class="row">
         <button class="btn btn-secondary" id="btnVolver1">← Volver</button>
@@ -888,10 +823,9 @@ function cargaEnUni(it){
 // completo pasa por gp2-cirujano.
 function ocultarProv(nom){
   var p = String(nom||'').trim().toLowerCase();
-  // Altrak YA NO se oculta (2026-09-04, opcion B): aparece como proveedor en el rubro
-  // Flejes y su entrega (fleje bruto ALAMBRE -> Charcas, kg + %) se carga con el
-  // flujo propio irAltrak(), no con el de flejes normales. EstaMetal sigue oculto (fuera
-  // de circulacion).
+  // v3.69.0: Altrak ya no entra aca (su alambre -> Charcas se carga en Casos Especiales) y de
+  // todos modos nunca cayo por sector (ALAMBRE es sector 13, no Flejes). EstaMetal sigue oculto
+  // (fuera de circulacion).
   return p==='estametal';
 }
 function pintarFieldsFleje(flds){
@@ -970,9 +904,7 @@ document.querySelectorAll('#rubroGrid .prov-btn').forEach(btn=>{
     // Principal + alternativos: una caja que entregan Corrugadora y Recicor tiene que
     // dar los DOS chips (provsDeInsumo), no solo el proveedor de la ficha.
     provsRubro=[...new Set([].concat(...insumosDelRubro().map(provsDeInsumo)).filter(Boolean))].sort();
-    // Altrak entrega el fleje bruto (ALAMBRE, sector 13, va a Charcas): no cae por
-    // sector en el rubro Flejes (sector 5), asi que se inyecta a mano y abre irAltrak().
-    if(rubroSel==='Flejes' && provsRubro.indexOf('Altrak')<0) provsRubro.push('Altrak');
+    // v3.69.0: Altrak ya no se inyecta aca (su carga alambre -> Charcas vive en Casos Especiales).
     // Importados tiene un solo proveedor ('Importado'): no se elige, se auto-selecciona
     // y se saltea el paso Proveedor (sin subtitulo ni chip). Usuario 2026-09-16.
     var saltaProv = (rubroSel==='Importados' && provsRubro.length===1);
@@ -992,7 +924,7 @@ function pintarProvs(){
   // Solo proveedores con al menos 1 insumo (usuario 2026-09-01: "todo lo que sea
   // 0 no me aparezca como opcion").
   provsRubro.forEach(p=>{
-    var n=(p==='Altrak')?1:insumosDelRubro().filter(i=>esDelProv(i,p)).length;
+    var n=insumosDelRubro().filter(i=>esDelProv(i,p)).length;
     if (n===0) return;
     var b=document.createElement('button'); b.className='prov-btn'; b.innerHTML=esc(p)+' <span style="opacity:.6;font-weight:600">('+n+')</span>';
     b.addEventListener('click',()=>{
@@ -1040,7 +972,9 @@ function insumosDelRubro(){
   // Importados: no se agrupan por sector (viven en Procesado, junto a piezas que se fabrican)
   // sino por estado_compra. El resto de los rubros sigue siendo su sector.
   if (rubroSel==='Importados') return INS.filter(i=>i.estado_compra==='importado' && !ocultarProv(i.proveedor));
-  return INS.filter(i=>i.sector_id===sidSel && i.estado_compra!=='importado' && !ocultarProv(i.proveedor) && !esCorteDePS(i));
+  // v3.69.0: la chapa 430 (FLEJE_DESCORAZONADOR, Aperam -> Eclipse) no se recibe aca; vive en
+  // Casos Especiales. Se filtra del rubro Flejes (Aperam sigue con sus 13 flejes reales).
+  return INS.filter(i=>i.sector_id===sidSel && i.estado_compra!=='importado' && !ocultarProv(i.proveedor) && !esCorteDePS(i) && i.codigo!=='FLEJE_DESCORAZONADOR');
 }
 // Fase B rework 2026-09-02: los helpers esFiltroCharcas / esCortadoEclipse se
 // sacaron. Los PS hibridos Charcas/Eclipse viven ahora en su pantalla dedicada
@@ -1076,7 +1010,6 @@ function insumosVista(){
   return l;
 }
 function irStep2(){
-  if(provSel==='Altrak'){ irAltrak(); return; }   // fleje bruto -> Charcas: flujo propio
   $('step1').classList.add('hidden');
   $('step2').classList.remove('hidden');
   $('step2Title').textContent=rubroSel+(provSel?(' · '+provSel):'');
@@ -1098,131 +1031,10 @@ function irStep2(){
   }
 }
 
-// ================= Recepcion de Altrak (fleje bruto -> Charcas), opcion B 2026-09-04 =================
-// Flujo propio, aislado del de flejes normales: kg + % corto/largo (instruccion de corte
-// a Charcas). Llama cargar_compra_mp('Altrak'), que suma el bruto al stock de Charcas (ubic 13)
-// y guarda el split como objetivo. El stock real de IC3/IC3V lo genera despues la
-// recepcion de Charcas (CharcasEclipse). No usa pesaje/pallets/buffer.
-function irAltrak(){
-  $('step1').classList.add('hidden');
-  $('step2').classList.add('hidden');
-  $('stepAltrak').classList.remove('hidden');
-  $('akFecha').value = hoy();
-  $('akKg').value=''; $('akRemito').value=''; $('akPctCorto').value=''; $('akPctLargo').value='';
-  $('akPctSlider').value='50'; $('akSliderLbl').textContent='Definí el reparto';
-  $('akMsg').textContent=''; $('akMsg').className='status';
-  $('akSplit').textContent='Definí cómo Charcas tiene que cortar este alambre (deslizá o escribí, se completan solos a 100).';
-  akRefresh();
-  cargarStockAltrak();
-}
-async function cargarStockAltrak(){
-  try{
-    var st = await SB.from('inventario').select('cantidad, componente:componente_id(codigo)').eq('ubicacion_id', 13);
-    var kg=0; (st.data||[]).forEach(function(r){ if(r.componente && r.componente.codigo==='ALAMBRE') kg=Number(r.cantidad)||0; });
-    $('akStock').textContent = fmt(kg);
-  }catch(e){ $('akStock').textContent='—'; }
-}
-function akPct(){ var c=parseInt($('akPctCorto').value,10); return isNaN(c)?NaN:c; }
-function akSplitShow(){
-  var kg=parseNum($('akKg').value)||0, c=akPct();
-  if(!(kg>0)||isNaN(c)||c<0||c>100){ $('akSplit').textContent='Definí cómo Charcas tiene que cortar este alambre (se completan solos a 100).'; return; }
-  var kgC=Math.round(kg*c/100*100)/100, kgL=Math.round(kg*(100-c)/100*100)/100;
-  $('akSplit').innerHTML='Charcas tiene que entregar: <b>'+fmt(kgC)+' kg corto</b> (IC3) · <b>'+fmt(kgL)+' kg largo</b> (IC3V).';
-}
-function akRefresh(){
-  var kg=parseNum($('akKg').value), c=akPct();
-  $('akGuardar').disabled = !(kg>0 && $('akFecha').value && !isNaN(c) && c>=0 && c<=100);
-}
-// Fija el % corto en los 3 controles a la vez (deslizante + campo corto + campo largo),
-// salvo el que disparo el cambio (from). Suman 100 siempre.
-function akSetCorto(c, from){
-  if(isNaN(c)){ $('akSliderLbl').textContent='Definí el reparto'; akSplitShow(); akRefresh(); return; }
-  c = Math.max(0, Math.min(100, c));
-  if(from!=='corto')  $('akPctCorto').value = String(c);
-  if(from!=='largo')  $('akPctLargo').value = String(100-c);
-  if(from!=='slider') $('akPctSlider').value = String(c);
-  $('akSliderLbl').textContent = c+'% corto · '+(100-c)+'% largo';
-  akSplitShow(); akRefresh();
-}
-if($('akKg')){
-  $('akKg').addEventListener('input', function(){ this.value=sanDec(this.value); akSplitShow(); akRefresh(); });
-  $('akFecha').addEventListener('input', akRefresh);
-  $('akPctCorto').addEventListener('input', function(){ this.value=sanInt(this.value).slice(0,3); akSetCorto(parseInt(this.value,10),'corto'); });
-  $('akPctLargo').addEventListener('input', function(){ this.value=sanInt(this.value).slice(0,3); var l=parseInt(this.value,10); akSetCorto(isNaN(l)?NaN:100-l,'largo'); });
-  $('akPctSlider').addEventListener('input', function(){ akSetCorto(parseInt(this.value,10),'slider'); });
-  $('btnVolverAltrak').addEventListener('click', function(){ $('stepAltrak').classList.add('hidden'); $('step1').classList.remove('hidden'); });
-  $('akGuardar').addEventListener('click', async function(){
-    var m=$('akMsg'); m.className='status'; m.textContent='';
-    var kg=parseNum($('akKg').value), fecha=$('akFecha').value, remito=$('akRemito').value.trim(), c=akPct();
-    if(!(kg>0)){ m.className='status bad'; m.textContent='Cargá los kg (mayor a 0).'; return; }
-    if(isNaN(c)||c<0||c>100){ m.className='status bad'; m.textContent='Definí el % corto/largo (0 a 100).'; return; }
-    var kgC=Math.round(kg*c/100*100)/100, kgL=Math.round(kg*(100-c)/100*100)/100;
-    if(!confirm('Registrar entrega de Altrak:\n\nKg alambre: '+fmt(kg)+'\nCharcas corta: '+c+'% corto ('+fmt(kgC)+' kg) / '+(100-c)+'% largo ('+fmt(kgL)+' kg)\n\nSe suma al stock de Charcas.\n\n¿Confirmar?')) return;
-    $('akGuardar').disabled=true; m.textContent='Registrando…';
-    try{
-      // cargar_compra_mp (2026-09-05): una RPC para toda materia prima bruta; el PS que la
-      // recibe sale de proveedor_servicio.mp_componente_id + componente.proveedor.
-      var res = await SB.rpc('cargar_compra_mp', { p_proveedor:'Altrak', p_kg:kg, p_remito:remito||null, p_fecha:fechaHora(fecha), p_pct_corto:c });
-      if(res.error) throw res.error;
-      var d=res.data||{};
-      m.className='status ok';
-      m.innerHTML='✓ Registrada. Stock Charcas: <b>'+fmt(d.stock_kg)+' kg</b>. Charcas debe entregar <b>'+fmt(d.kg_corto_objetivo)+' kg corto</b> / <b>'+fmt(d.kg_largo_objetivo)+' kg largo</b>.';
-      $('akKg').value=''; $('akRemito').value=''; $('akPctCorto').value=''; $('akPctLargo').value='';
-      $('akPctSlider').value='50'; $('akSliderLbl').textContent='Definí el reparto';
-      $('akSplit').textContent='Definí cómo Charcas tiene que cortar este alambre (deslizá o escribí, se completan solos a 100).';
-      cargarStockAltrak(); akRefresh();
-    }catch(e){ m.className='status bad'; m.textContent='Error: '+(e.message||e); }
-    finally{ akRefresh(); }
-  });
-}
-
-// ============ Recepcion de Aperam (chapa 430 -> Eclipse) 2026-09-04 ============
-// Se abre al tocar el item FLEJE_DESCORAZONADOR en Flejes (Aperam vende 13 flejes + la chapa, asi que
-// el ruteo es por ITEM, no por proveedor como Altrak). Solo kg + remito (sin %). Llama
-// cargar_compra_mp('Aperam'), que suma la chapa al stock de Eclipse (ubic 48).
-function irChapa(){
-  $('step1').classList.add('hidden');
-  $('step2').classList.add('hidden');
-  $('stepChapa').classList.remove('hidden');
-  $('chFecha').value = hoy();
-  $('chKg').value=''; $('chRemito').value='';
-  $('chMsg').textContent=''; $('chMsg').className='status';
-  chRefresh();
-  cargarStockChapa();
-}
-async function cargarStockChapa(){
-  try{
-    var st = await SB.from('inventario').select('cantidad, componente:componente_id(codigo)').eq('ubicacion_id', 48);
-    var kg=0; (st.data||[]).forEach(function(r){ if(r.componente && r.componente.codigo==='FLEJE_DESCORAZONADOR') kg=Number(r.cantidad)||0; });
-    $('chStock').textContent = fmt(kg);
-  }catch(e){ $('chStock').textContent='—'; }
-}
-function chRefresh(){
-  var kg=parseNum($('chKg').value);
-  $('chGuardar').disabled = !(kg>0 && $('chFecha').value);
-}
-if($('chKg')){
-  $('chKg').addEventListener('input', function(){ this.value=sanDec(this.value); chRefresh(); });
-  $('chFecha').addEventListener('input', chRefresh);
-  $('btnVolverChapa').addEventListener('click', function(){ $('stepChapa').classList.add('hidden'); $('step1').classList.remove('hidden'); });
-  $('chGuardar').addEventListener('click', async function(){
-    var m=$('chMsg'); m.className='status'; m.textContent='';
-    var kg=parseNum($('chKg').value), fecha=$('chFecha').value, remito=$('chRemito').value.trim();
-    if(!(kg>0)){ m.className='status bad'; m.textContent='Cargá los kg (mayor a 0).'; return; }
-    if(!confirm('Registrar chapa 430 de Aperam:\n\nKg: '+fmt(kg)+'\n\nSe suma al stock de Eclipse.\n\n¿Confirmar?')) return;
-    $('chGuardar').disabled=true; m.textContent='Registrando…';
-    try{
-      var res = await SB.rpc('cargar_compra_mp', { p_proveedor:'Aperam', p_kg:kg, p_remito:remito||null, p_fecha:fechaHora(fecha) });
-      if(res.error) throw res.error;
-      var d=res.data||{};
-      m.className='status ok';
-      m.innerHTML='✓ Registrada. Stock chapa en Eclipse: <b>'+fmt(d.stock_kg)+' kg</b>.';
-      $('chKg').value=''; $('chRemito').value='';
-      cargarStockChapa(); chRefresh();
-    }catch(e){ m.className='status bad'; m.textContent='Error: '+(e.message||e); }
-    finally{ chRefresh(); }
-  });
-}
+// v3.69.0: Recepcion de Altrak (alambre -> Charcas) y de Aperam (chapa 430 -> Eclipse) se
+// sacaron de esta pantalla. Las dos cargas viven en CasosEspeciales/CasosEspeciales_GP2.html
+// (menu Herramientas -> Casos especiales), que usa la misma RPC cargar_compra_mp y resuelve
+// el PS hibrido desde componente.proveedor. cargar_compra_mp NO se toco.
 
 /* Las marcas salen de los DATOS, no de una lista escrita a mano. Hasta el 2026-09-03
    estaban hardcodeadas LOEKE y CHEF, asi que el dia que aparecio la tercera —LOKE, la
@@ -1759,9 +1571,8 @@ function actualizarAvisoMultiplo(){
 $('unitKg').addEventListener('click',()=>setUnit('kg'));
 $('unitUni').addEventListener('click',()=>setUnit('uni'));
 function abrirPopup(i){
-  // La chapa 430 (Aperam) no se recibe en el sector: es MP de Eclipse y va a su stock
-  // (ubic 48) via cargar_compra_mp('Aperam'). Se rutea a su panel propio.
-  if(i && i.codigo==='FLEJE_DESCORAZONADOR'){ irChapa(); return; }
+  // v3.69.0: la chapa 430 (FLEJE_DESCORAZONADOR, Aperam -> Eclipse) ya no llega aca:
+  // insumosDelRubro() la filtra y su carga vive en Casos Especiales. Sin ruteo propio.
   itemSel=i;
   resetPiePopup();
   $('kgTitle').textContent='Recepción · '+rubroSel;
