@@ -14412,3 +14412,46 @@ ve en «Art. Terminado») y Alambre (13) no tiene ubicación ni componentes. Cor
 [usuario] *"Sí"* a agregarlo → Stock General v2.9.0: botón **Afilado** en Cervantes, después de En
 Movimiento, con columnas Fabricado / Consumido [deducido: pieza intermedia entre matriz y afilado, sin
 confirmar] y CON Máximo (lo tiene cargado). Sólo front. version.js v1.229.0 ?v=20261001j.
+
+## 4hw. Stock General: VER TODO Y DESPUÉS FILTRAR — las pestañas pasan a ser un filtro, no un destino (2026-10-01)
+
+[Thomas, 01/10, con captura de las 3 pestañas] *"Cuando entro a stock general quiero ver los stocks
+de todo y después si quiero puedo filtrar por Cervantes, Virgilio, Terceros"*. Stock General v3.0.0:
+se entra SIEMPRE viendo **«Todos los rubros» combinado** (Cervantes + Virgilio + Terceros juntos, antes
+abría en Stock SC); las 3 pestañas pasan de ser un **pane exclusivo** que se tapaban entre sí a ser un
+**filtro** sobre ese índice. Elegir «🏭 Cervantes» / «🏬 Virgilio» / «👥 Terceros» vuelve siempre al
+índice combinado acotado a esa planta; los botones de Rubro también se acotan, salvo «🔎 Todos los
+rubros», que queda **siempre** a la vista (en las 3 plantas). Elegir un rubro puntual (Stock SC,
+Talleristas…) sincroniza la pestaña sola, igual que ya hacía «También en: …» — mismo mecanismo,
+generalizado de 2 a 3 valores (`PLANTA`, antes `CAJA`).
+
+⚠ **Esto RETIRA §4hu** (*"las 3 pestañas arrancan igual — sin botón «Todos los rubros»"*, v2.8.0,
+usuario no identificado). Esa versión resolvía la queja *"solo en Cervantes aparece buscar todos los
+rubros"* **escondiendo** el botón en las 3 plantas; esta versión resuelve la MISMA queja de fondo
+**mostrándolo siempre**, en las 3 — es una resolución más completa (el botón deja de faltar en
+cualquier lado, en vez de dejar de estar en todos). `oculto`/`conRotulo` (el truco de "un grupo solo
+no lleva rótulo") quedan sin uso: con «Todos los rubros» siempre presente (grupo «Buscar»), nunca hay
+un solo grupo.
+
+Virgilio deja de tener un **pane aparte** con su propio motor de tabla (`RUBROS_VIR`/`renderVir`, sin
+columnas de movimiento ni Máximo, agregado en §4hq/§4hr): sus 6 rubros (Bolsas Plásticas + SC/SP/
+Fleje/Plástico/Caja en Virgilio) se mudan al `RUBROS` principal con `planta:"virg"` y pasan por el
+MISMO motor que Cervantes/Terceros — así que ahora SÍ muestran columnas de movimiento donde
+corresponde (Bolsas Plásticas, que vive en un sector de verdad: antes se calculaban y se tiraban).
+«Todos los rubros» los suma al índice leyendo el MISMO `CACHE` que ya cargaban esos 6 rubros
+(`stock_sector_bundle`), sin RPC nueva: sólo hubo que **precargarlo** (`precargarVirgilio`, Promise.all
+de los 6 sectores) ANTES de armar el índice, porque antes se cargaba perezoso recién al tocar cada
+rubro — y «Todos» pasa a ser la vista de entrada, no una a la que se llegaba eventualmente.
+
+El rubro `afi` (Afilado, §4hv) se conserva igual, dentro de «Sectores». «± Ajuste» queda siempre a la
+vista (ya lo estaba para Cervantes y Terceros): la protección de que Virgilio no se toque a mano vive
+en `GP2M.ajuste` (qué ubicaciones ofrece el desplegable), no en si el botón aparece.
+
+⚠ **Colisión con otra sesión, resuelta por fast-forward + re-aplicación**: al ir a pushear, origin ya
+tenía §4hu y §4hv (otra sesión tocó el mismo archivo en paralelo, misma tarde). Se hizo `git merge
+origin/main` (fast-forward limpio, sin commits locales propios todavía) y se re-aplicó este cambio
+completo sobre esa base nueva, en vez de forzar un merge de texto — más seguro dado lo extenso del
+archivo. El botón Afilado (v2.9.0) se conservó tal cual quedó.
+
+Sólo front. `tests/ui/test_stock_general.js` reescrito (Afilado integrado). Suite 67/67. version.js
+v1.230.0 ?v=20261001k.
