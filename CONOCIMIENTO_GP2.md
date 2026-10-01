@@ -14233,7 +14233,23 @@ mismo pedido — viene con la corrección puntual que cierra el riesgo que Luis 
   `tests/ui/test_rpc_huerfanas.js` (`fabrica_producir`/`enviar_a_virgilio` agregadas a PERMITIDAS: las llama
   `tablet_registrar` por SQL, no una pantalla con `rpc()`).
 
-## 4hp. §4ho quedó incompleto: Recibir → Virgilio no mostraba el universo, el diseño no era de tarjetas, y Enviar → Virgilio sobraba referencia (2026-10-01)
+## 4hp. Tablet de operarios: el cartel de rollo SOLO va en matrices que cortan de un fleje (2026-10-01)
+
+[usuario, 01/10, sobre la pantalla «Empecé Matriz» con la matriz 401 Env Cucharas Inox Imp] *"No todas las
+matrices necesitan rollos de flejes, que se vaya este cartel"*.
+
+- [dato] `GP2.registro_operarios_bundle()` trae `matriz_fleje` sólo para las matrices con un paso `tipo_paso='matriz'`
+  cuyo componente de entrada es un fleje (`componente.sector_id = 5`): **58 de 407 matrices** (346 de las activas
+  no tienen). La 401 no está en `matriz_fleje` ni en `matriz_fleje_pieza`.
+- Antes la tablet mostraba «¿De qué kilaje es el rollo que vas a agarrar?» en TODA matriz y, sin fleje, caía en
+  «Sin rollos disponibles» — un cartel que parecía un faltante de stock y no lo era.
+- Ahora `matrizSinFleje(n)` (operarios_gp2.js) esconde el cartel entero cuando la matriz es conocida y no tiene
+  fleje. Se vuelve a mostrar apenas se tipea o elige una matriz que sí lo lleva. **«Sin rollos disponibles» queda
+  SÓLO para matriz con fleje y sin rollos en stock** (eso sí es información). Un bundle viejo sin `matriz_fleje`
+  no oculta nada (no se puede saber).
+- Es sólo front: la base ya distinguía los dos casos. `tests/ui/test_op_e2e.js` +6 chequeos (348 sin fleje oculta,
+  28 con fleje muestra, ida y vuelta, matriz inexistente, sin stock, bundle viejo). version.js v1.225.1.
+## 4hq. §4ho quedó incompleto: Recibir → Virgilio no mostraba el universo, el diseño no era de tarjetas, y Enviar → Virgilio sobraba referencia (2026-10-01)
 
 **Thomas, textual, al ver §4ho en vivo:** *"Cambios que no hiciste: en recibir Virgilio no aparecen ni las
 cajas, ni los flejes, ni los plásticos, ni sc, ni sp. Además quiero que el diseño de recepción Virgilio sea
@@ -14286,11 +14302,11 @@ concurrente mismo día, §4ho).
 `tests/ui/test_tablet_virgilio.js` reescrito (los 3 bloques de Recibir con grupo "Insumos" partido por
 sector, igual que Enviar; sin referencia en ninguna tarjeta de Enviar → Virgilio; caso nuevo: recibir SOLO lo
 que vuelve —sin ningún importado en el lote— y confirmar que NO redirige a ningún control). Stock General
-v2.7.0 (bloque §4hq, abajo) se tocó el mismo commit por el mismo pedido de Thomas.
+v2.7.0 (bloque §4hr, abajo) se tocó el mismo commit por el mismo pedido de Thomas.
 
-## 4hq. Stock General: TERCEROS es una pestaña de verdad, y Virgilio muestra el catálogo completo (2026-10-01)
+## 4hr. Stock General: TERCEROS es una pestaña de verdad, y Virgilio muestra el catálogo completo (2026-10-01)
 
-Mismo mensaje de Thomas que §4hp, segunda mitad: *"no me hiciste la división en stock general de cervantes,
+Mismo mensaje de Thomas que §4hq, segunda mitad: *"no me hiciste la división en stock general de cervantes,
 virgilio y TERCEROS: acá aparece lo que hay bajo la descripción OTROS"* (con una captura del grupo "OTROS"
 —Prov. Servicio, Talleristas, Prov. Art. Term., Inyectores— adentro de la pestaña Cervantes) *"en stock
 general de Virgilio no me aparecen los componentes de los respectivos sectores: cuando entro a SC, SP,
@@ -14302,7 +14318,7 @@ envío a inyectores"*.
 **El bug de "Terceros": el comentario de §4hl/v2.6.0 ya DECÍA "Terceros: sin cambios"** — una frase copiada
 de la intención del dueño — **pero nunca se había armado la pestaña.** Prov. Servicio/Talleristas/Prov. Art.
 Term./Inyectores seguían siendo el grupo `"Otros"` DENTRO del selector de rubros de Cervantes, no una caja
-separada. Documentación que adelanta al código: justo el tipo de cosa que §4hp también encontró (sugerido
+separada. Documentación que adelanta al código: justo el tipo de cosa que §4hq también encontró (sugerido
 mal eliminado antes, control mal supuesto que faltaba). El fix: esos 4 rubros pasan a `planta:"terc"`, con
 una variable de estado nueva (`CAJA`, "cerv"/"terc") que decide qué rubros pinta `pintarRubros()` — **el
 motor de tabla sigue siendo UNO SOLO** (mismo `#rubros`/`#thead`/`#tbody`, mismo botón Ajuste, mismos
@@ -14313,7 +14329,7 @@ Sectores (incluido Tránsito PS y Art. Terminado, que NO son "Otros") se quedan 
 
 **El bug de Virgilio: el `online` de SC/SP/Fleje/Plástico/Caja se leía filtrando `D.inv` por ubicación
 `virgilio_sector`**, así que un componente sin NINGÚN movimiento (todos, hoy: nada se mandó todavía) no
-tenía fila en `D.inv` y no aparecía — el mismo síntoma exacto que §4hp encontró en la Tablet, con la misma
+tenía fila en `D.inv` y no aparecía — el mismo síntoma exacto que §4hq encontró en la Tablet, con la misma
 causa de fondo (condicionar la existencia de la fila al stock en vez de mostrar el universo con 0). La
 diferencia es que acá NO hizo falta tocar SQL: `GP2.stock_sector_bundle(sid)` — la MISMA RPC que ya carga
 Cervantes para ese sector — **ya devuelve, por cada componente del sector, el campo `en_virgilio`**
@@ -14324,7 +14340,7 @@ lo leyera: `filasDeVir()` pasó de escanear `D.inv` a mapear directo `CACHE[sid]
 nueva — mismo patrón que ya documentaba §4hl ("un universo fijo, el stock se superpone encima").
 
 **Lo que NO se tocó, a propósito:** Thomas pide que los movimientos de Virgilio salgan "por envíos o
-recepciones entre cervantes y virgilio" salvo Bolsas Plásticas — eso YA es así desde §4ho/§4hp
+recepciones entre cervantes y virgilio" salvo Bolsas Plásticas — eso YA es así desde §4ho/§4hq
 (`enviar_a_virgilio` / el `else` de `tablet_registrar`) y no necesitaba cambio; esta sección era sólo de
 LECTURA (mostrar lo que hay, incluido el 0).
 
@@ -14335,4 +14351,4 @@ mostraba 0 filas. Después del fix, los 77 aparecen (y lo mismo para SP/Fleje/Pl
 `Stocks General/StockGeneral_GP2.html` v2.7.0, `tests/ui/test_stock_general.js` (pestaña Terceros con sus 4
 rubros exactos y sin encabezado de grupo repetido; SC en Virgilio con el universo completo —A10 con stock
 real + un segundo componente en 0—; el salto "También en…"/"Todos" hacia Talleristas cambia de pestaña
-sola). Mismo commit que §4hp, version.js bumpeado una vez para los dos cambios.
+sola). Mismo commit que §4hq, version.js bumpeado una vez para los dos cambios.

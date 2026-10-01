@@ -193,6 +193,47 @@ window.supabase = { createClient: function(){ return {
     await page.evaluate(() => { piezaSel = null; });
   }
 
+  // NO TODAS LAS MATRICES LLEVAN FLEJE (usuario 2026-10-01: "no todas las matrices necesitan
+  // rollos de flejes, que se vaya este cartel"). La 348 no corta de ningun fleje: el cartel
+  // "¿De que kilaje es el rollo...?" no tiene que aparecer, ni siquiera con "Sin rollos".
+  {
+    const picker = () => page.evaluate(() => ({
+      oculto: document.getElementById('rolloPicker').classList.contains('hidden'),
+      texto: document.getElementById('rolloGrid').textContent.trim() }));
+    const tipear = async (n) => { await page.fill('#textInput', n); await page.dispatchEvent('#textInput', 'input'); };
+
+    await page.click('.box[data-code="E"]');
+    await tipear('348');
+    ok((await picker()).oculto, 'matriz SIN fleje (348): el cartel de rollo se oculta');
+    await tipear('28');
+    const conFleje = await picker();
+    ok(!conFleje.oculto && /A1/.test(conFleje.texto), 'matriz CON fleje (28): el cartel vuelve con sus rollos');
+    await tipear('348');
+    ok((await picker()).oculto, 'y al volver a una matriz sin fleje se vuelve a ocultar');
+    await tipear('9999');
+    ok(!(await picker()).oculto, 'matriz que no existe: no se oculta (sigue "Elegí una matriz")');
+
+    // matriz con fleje pero sin rollos en stock: el aviso sigue, eso si es informacion
+    const sinStock = await page.evaluate(() => {
+      const g = D.rollos_saldo; D.rollos_saldo = [];
+      actualizarRolloPicker('28');
+      const r = { oculto: $('rolloPicker').classList.contains('hidden'), texto: $('rolloGrid').textContent.trim() };
+      D.rollos_saldo = g; return r;
+    });
+    ok(!sinStock.oculto && /Sin rollos disponibles/.test(sinStock.texto),
+       'matriz CON fleje y sin rollos en stock: sigue diciendo "Sin rollos disponibles"');
+
+    // bundle viejo (sin matriz_fleje): no se puede saber, no se oculta nada
+    const viejo = await page.evaluate(() => {
+      const a = D.matriz_fleje, b = D.matriz_fleje_pieza; D.matriz_fleje = undefined; D.matriz_fleje_pieza = undefined;
+      actualizarRolloPicker('348');
+      const r = !$('rolloPicker').classList.contains('hidden');
+      D.matriz_fleje = a; D.matriz_fleje_pieza = b; return r;
+    });
+    ok(viejo, 'bundle viejo sin matriz_fleje: no se oculta el cartel');
+    await page.click('#btnResetSelection');
+  }
+
   // badge sync sin pendientes
   const badge = await page.textContent('#syncBadge');
   ok(badge.includes('✓'), 'cola sincronizada: ' + badge.trim());
