@@ -14413,7 +14413,31 @@ ve en «Art. Terminado») y Alambre (13) no tiene ubicación ni componentes. Cor
 Movimiento, con columnas Fabricado / Consumido [deducido: pieza intermedia entre matriz y afilado, sin
 confirmar] y CON Máximo (lo tiene cargado). Sólo front. version.js v1.229.0 ?v=20261001j.
 
-## 4hw. Stock General: VER TODO Y DESPUÉS FILTRAR — las pestañas pasan a ser un filtro, no un destino (2026-10-01)
+## 4hw. Inyector = tiene ubicación de inyector, TENGA O NO piezas hoy; la familia de plástico = la matriz (2026-10-01)
+
+- [usuario] *"esas familias están determinadas por las matrices que son nuestras que se les mandan a los
+  inyectores para que nos provean de las partes plásticas"*. → La matriz es de Loekemeyer y el inyector es
+  intercambiable: la **familia de pedido** (`GP2.familia_pedido`, §4gp) es la matriz, no el proveedor.
+- [usuario] *"Agrega a Kollplast como inyector aunque tenga 0 piezas que hoy nos entrega (tanto en control
+  partes inyectores como en recepcion de insumos versión tablet) porque las matrices las podemos ir cambiando
+  de proveedor y el día de mañana puede cambiar"*.
+- **Regla nueva: ser inyector = tener ubicación `tipo='inyector'`**, no tener piezas. Hoy son 4: JL Matriceria,
+  Kollplast (0 piezas desde el 29/09, §4gp), Pat Bet Plast, Pettofrezza Rafael.
+  - `control_inyector_bundle`: antes listaba sólo al inyector con ≥ 1 pieza con resina (`material_id`, sin
+    `estado_compra`); ahora lista a todo `proveedor_insumo` activo con ubicación de inyector. Kollplast sale
+    con 0 resinas.
+  - `recepcion_bundle`: `proveedores[].es_inyector`. Recepción de Insumos v3.70.0 suma esos chips al rubro
+    Plásticos aunque tengan 0 piezas y los muestra con **(0)** — la única excepción a *"todo lo que sea 0 no
+    me aparezca como opción"* (2026-09-01). Elegido con 0 piezas, el cartel dice que las piezas se le asignan en
+    Inyectores · Quién hace cada parte (`asignar_proveedor_parte`). Test: `test_recepcion_inyector_cero.js`.
+- [dato] **Lo que NO se tocó**: la tablet *Enviar → Inyectores* (`tablet_bundle`) sigue armando la lista desde
+  `componente.proveedor`, así que Kollplast **no** aparece ahí. Antes Control Inyectores y esa baldosa tenían
+  las mismas contrapartes; desde hoy difieren en Kollplast.
+- [deducido] Cuando una matriz cambia de inyector, hoy hay que mover el proveedor **pieza por pieza**
+  (`componente.proveedor`): nada impide que una familia quede repartida entre dos inyectores, y el mínimo de
+  familia de la O.C. se cuenta por proveedor. Sin confirmar si conviene que el inyector cuelgue de la familia.
+
+## 4hx. Stock General: VER TODO Y DESPUÉS FILTRAR — las pestañas pasan a ser un filtro, no un destino (2026-10-01)
 
 [Thomas, 01/10, con captura de las 3 pestañas] *"Cuando entro a stock general quiero ver los stocks
 de todo y después si quiero puedo filtrar por Cervantes, Virgilio, Terceros"*. Stock General v3.0.0:
