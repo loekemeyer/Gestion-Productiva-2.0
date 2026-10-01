@@ -1,5 +1,5 @@
-/* Al tocar el Máximo en Generar OC se abre el desglose (RPC oc_maximo_desglose): meses,
-   consumo, consumo×meses y la tabla de lo que lo arma. [usuario 2026-09-14: "al tocar en
+/* Al tocar el Máximo en Generar OC se abre el desglose (RPC oc_maximo_desglose): la tabla de lo
+   que lo arma, con Consume · kg/mes · Máximo (v1.50.0). [usuario 2026-09-14: "al tocar en
    maximo, pueda ver de que se compone... que articulos y que venta... primero en unidades
    para despues pasarse a kilos"]. */
 const { chromium } = require('playwright');
@@ -16,15 +16,15 @@ const BUNDLE = { paq: 250, ocs: [], pliego_uni_x_paquete: 100, tc: 1500, generad
   insumos: [ Object.assign({ comp_id: 7, codigo: 'IF11', descripcion: 'Fleje N° 19',
       stock: 100, maximo: 1769, pendiente_oc: 0, sugerido: 1669 }, base) ] };
 
-// Lo que devuelve la RPC del desglose para IF11 (fleje -> por articulo, con kg).
+// Lo que devuelve la RPC del desglose para IF11 (fleje -> por articulo, con kg). Desde v1.50.0 la RPC
+// delega en maximo_desglose (la de Stock General): unidad + meses + filas con uni y kg.
 const DESGLOSE = {
-  comp: { id: 7, codigo: 'IF11', descripcion: 'Fleje N° 19', sector_id: 5, unidad: 'kg', kg_x_uni: 0.02, es_resina: false, es_fleje: true },
-  meses: 6, maximo: 1769, maximo_origen: 'est_madre', consumo_uni_mes: null, consumo_kg_mes: 294.9,
-  desperdicio_pct: null, consumo_x_meses: 1769, base: 'articulos',
-  filas: [ { cod: '505', desc: 'Pelador Mgo Plástico', venta_uni_mes: 27854, aporte_uni_mes: 27875, aporte_kg: 190.7 },
-           { cod: '513', desc: 'Pelador Mgo Metálico', venta_uni_mes: 13586, aporte_uni_mes: 13658, aporte_kg: 93.44 } ],
-  generado_en: '2026-09-14T10:00:00Z' };
-
+  comp: { id: 7, cod: 'IF11', desc: 'Fleje N° 19', sector_id: 5, um: 'kg', kg_x_uni: 0.02, uni_x_cajon: null },
+  ubic: { id: 5, tipo: 'sector', nom: 'Sector Fleje' },
+  maximo: 1769, maximo_origen: 'est_madre', meses: 6, unidad: 'kg',
+  consumo_mes: 294.9, consumo_x_meses: 1769.4, base: 'articulos',
+  filas: [ { cod: '513', desc: 'Pelador Mgo Metálico', venta_uni_mes: 13586, aporte_uni_mes: 13658, aporte_kg: 93.44 },
+           { cod: '505', desc: 'Pelador Mgo Plástico', venta_uni_mes: 27854, aporte_uni_mes: 27875, aporte_kg: 201.46 } ] };
 const STUB = `
 window.supabase = { createClient: function(){ return {
   rpc: async function(name){
@@ -55,13 +55,30 @@ window.supabase = { createClient: function(){ return {
   await page.waitForFunction(() => { const p = document.getElementById('dsgPop'); return !p.hidden && p.querySelector('table'); });
   const cuerpo = await page.textContent('#dsgPop');
   ok(/505/.test(cuerpo) && /Pelador Mgo Plástico/.test(cuerpo), 'al pasar el mouse lista el artículo que consume el insumo');
-  ok(/27\.854/.test(cuerpo), 'muestra la venta (uni/mes) del artículo');
-  ok(/190/.test(cuerpo), 'y los kg');
-  // "solo esos datos. El resto no lo quiero"
-  ok(!/Meses|Origen|Máximo|Consumo ×/.test(cuerpo), 'sin Máximo/Origen/Meses/Consumo × meses: ' + cuerpo.slice(0, 80));
+  // v1.50.0 [usuario 2026-10-01: "Venta y consume aparece con los mismos valores. Tendria que ser consume,
+  // kg/mes y la tercera columna nueva que sea máximo (multiplica kg/mes con la cantidad de meses...)"]
+  const cols = await page.$$eval('#dsgPop thead th', ths => ths.map(t => t.textContent.trim()));
+  ok(cols.length === 4 && /^Artículo/.test(cols[0]) && /^Consume/.test(cols[1]) && /^kg\/mes/.test(cols[2]) && /^Máximo/.test(cols[3]),
+     'columnas Artículo · Consume · kg/mes · Máximo: ' + cols.join(' | '));
+  ok(!/Venta/.test(cuerpo) && !/27\.854/.test(cuerpo), 'sin la columna Venta');
+  ok(/kg, 6 meses/.test(cols[3]), 'el Máximo dice su unidad y los meses del sector: ' + cols[3]);
+  const fila1 = await page.$$eval('#dsgPop tbody tr:first-child td', tds => tds.map(t => t.textContent.trim()));
+  ok(/505/.test(fila1[0]), 'ordenado mayor → menor (505 primero)');
+  ok(fila1[1] === '27.875' && fila1[2] === '201,46', 'consume uni/mes y kg/mes de la fila: ' + fila1.join(' | '));
+  ok(fila1[3] === '1.209', 'Máximo de la fila = kg/mes × meses (201,46 × 6 = 1.209): ' + fila1[3]);
+  const tot = await page.$$eval('#dsgPop tfoot td', tds => tds.map(t => t.textContent.trim()));
+  ok(tot[3] === '1.769', 'el Total del Máximo cierra con la celda (1.769): ' + tot.join(' | '));
+  // "solo esos datos. El resto no lo quiero": sin líneas de Origen ni de cuenta fuera de la tabla
+  ok(!/Origen|Consumo ×/.test(cuerpo), 'sin Origen ni Consumo × meses: ' + cuerpo.slice(0, 80));
   ok((await page.$$('#dsgPop table')).length === 1, 'una sola tabla');
-  const fila1 = await page.$eval('#dsgPop tbody tr', x => x.textContent);
-  ok(/505/.test(fila1), 'ordenado mayor → menor (505 primero)');
+
+  // Cada caso con su unidad: insumo en uni (sin kg) y resina por pieza (en kg).
+  const uni = await page.evaluate(() => htmlDesglose({ unidad: 'uni', meses: 3, base: 'articulos',
+    filas: [ { cod: '401', desc: 'X', venta_uni_mes: 100, aporte_uni_mes: 200, aporte_kg: null } ] }));
+  ok(/Máximo<br>\(uni, 3 meses\)/.test(uni) && !/kg\/mes/.test(uni) && />600</.test(uni), 'insumo en uni: Máximo = uni/mes × meses, sin kg/mes');
+  const res = await page.evaluate(() => htmlDesglose({ unidad: 'kg', meses: 2.5, base: 'piezas',
+    filas: [ { cod: 'P1', desc: 'Pieza', aporte_uni_mes: 1000, aporte_kg: 10 } ] }));
+  ok(/<th class="l">Pieza/.test(res) && /Máximo<br>\(kg, 2,5 meses\)/.test(res) && />25</.test(res), 'resina por pieza: Máximo = kg/mes × 2,5 meses');
 
   await page.mouse.move(5, 5);
   ok(await page.$eval('#dsgPop', x => x.hidden), 'al salir de la celda se cierra');

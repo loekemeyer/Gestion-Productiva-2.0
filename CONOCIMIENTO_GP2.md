@@ -14171,7 +14171,8 @@ kg, caj, uni"*.
   (0,01596563) da la mitad. 16 pares fleje-matriz difieren > 5 % (0,22× a 14×; IA10 matriz 107 el peor). Un fleje
   que alimenta varias matrices (IA10, IF10, IB3) no puede tener un `kg_x_uni` único por pieza. El desglose de la O.C.
   (`oc_maximo_desglose`) usa `kg_x_uni` y no cierra: **problema abierto en auditoría** + tarea en Proyectos de
-  Planify. [deducido, sin confirmar] el dato bueno es el de la matriz.
+  Planify. [deducido, sin confirmar] el dato bueno es el de la matriz. **→ Arreglado el mismo día, ver §4hq**: la
+  O.C. delega en `maximo_desglose`.
 - Para tener el kg por artículo hay vista nueva `GP2.v_consumo_fleje_kg_articulo`; `v_consumo_fleje_kg` ahora suma
   desde ella (una sola definición). Se verificó que da las mismas 51 filas que antes.
 - [dato] **3 de 8 resinas tienen el máximo viejo**: 2405 2.050 kg cargado vs 1.925 por demanda de hoy, 2465 1.100
@@ -14249,3 +14250,26 @@ matrices necesitan rollos de flejes, que se vaya este cartel"*.
   no oculta nada (no se puede saber).
 - Es sólo front: la base ya distinguía los dos casos. `tests/ui/test_op_e2e.js` +6 chequeos (348 sin fleje oculta,
   28 con fleje muestra, ida y vuelta, matriz inexistente, sin stock, bundle viejo). version.js v1.225.1.
+
+## 4hq. O.C.: el desglose del Máximo es Consume · kg/mes · Máximo, y sale de la MISMA cuenta que Stock General (2026-10-01)
+
+[usuario 01/10, sobre la ventanita del Máximo en Generar OC] *"Venta y consume aparece con los mismos valores.
+Tendria que ser consume, kg/mes y la tercera columna nueva que sea máximo (multiplica kg/mes con la cantidad de
+meses por sector segun el maximo)… Corregí llevándolo a cada caso correspondiente"*.
+
+- **Columnas** (OC v1.50.0): Artículo (o Pieza) · Consume (uni/mes) · kg/mes · **Máximo** = lo de la fila × meses del
+  sector (`ubicacion.meses_stock`; resina 2,5 si no hay). Venta se fue.
+- [dato] **Venta = Consume no era un bug**: en IC7 cada artículo lleva 1 pieza del fleje. Donde el coeficiente no es 1
+  difieren; igual se sacó porque el usuario no la quiere en esta ventanita.
+- **"Cada caso"** = el Máximo de la columna va en la **unidad del máximo de la celda**: kg en fleje, resina y master
+  bach; uni en el resto (sin columna kg/mes si el insumo no tiene peso). Así el Total cierra con la celda. [deducido]
+  así leí "llevándolo a cada caso".
+- [dato] **El bug real era otro**: la tabla del fleje pasaba a kg con el `kg_x_uni` del fleje y daba la mitad
+  (IC7 252,91 kg/mes contra 505,8 de la matriz → el "Máximo" habría salido 1.517 kg contra 3.035 de la celda).
+  `oc_maximo_desglose` ahora **delega** en `maximo_desglose(comp, ubic del sector)` — una sola cuenta para O.C. y Stock
+  General; dos copias de la misma cuenta es justo lo que divergió. 49 de 49 flejes con máximo cierran. De yapa el
+  master bach, que la versión vieja dejaba vacío, muestra sus piezas. `maximo_desglose` suma `aporte_uni_mes` en el
+  fleje (Stock General no lo usa).
+- Quedan sin cerrar contra la celda, a propósito: máximo `fisico` (fijado a mano) y las 3 resinas con máximo viejo de
+  §4hl — la tabla muestra la demanda de hoy, la celda lo cargado.
+- `Compras/OC_GP2.html` (`htmlDesglose`), `tests/ui/test_oc_maximo_desglose.js`, `db/funciones_GP2.sql`.

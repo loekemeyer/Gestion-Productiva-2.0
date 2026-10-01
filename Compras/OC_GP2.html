@@ -1,6 +1,13 @@
 <!doctype html>
 <html lang="es">
 <head>
+<!-- v1.50.0 (2026-10-01) — DESGLOSE DEL MAXIMO: SIN VENTA, CON COLUMNA MAXIMO, Y LOS KG DEL FLEJE QUE CIERRAN [usuario:
+     "Venta y consume aparece con los mismos valores. Tendria que ser consume, kg/mes y la tercera columna nueva que
+     sea maximo (multiplica kg/mes con la cantidad de meses por sector segun el maximo)... llevandolo a cada caso
+     correspondiente"]. Columnas: Consume (uni/mes) · kg/mes · Maximo (fila x meses del sector, en kg si el maximo es
+     en kg —fleje, resina, master— y en uni si no). La RPC oc_maximo_desglose delega en maximo_desglose (la de Stock
+     General): los kg del fleje salen de partes_por_kilo_de_fleje de la matriz y no de kg_x_uni (IC7 mostraba 252,91
+     kg/mes contra 505,8 reales; 49 de 49 flejes cierran ahora) y el master bach deja de salir vacio. -->
 <!-- v1.49.0 (2026-09-30) — CAJAS: PRIMERO TODO CORRUGADORA, DESPUES TODO RECICOR, Y RECICOR SE PIDE EN LA FILA [Thomas:
      "quiero que me ordenes primero todo lo de corrugadora y despues todo lo de recicor. y ademas que me deje pedir
      en recicor"]. (1) Sin proveedor elegido la tabla sale ordenada por el proveedor DE LA FILA: la fila repetida
@@ -1413,9 +1420,9 @@ function render(){
 }
 
 /* ═══ Desglose del Máximo (RPC oc_maximo_desglose) ═══
-   Al tocar el Máximo se ve de qué se compone: cuántos meses, el consumo/mes y qué lo arma
-   — por ARTÍCULO (con su venta de est_madre y lo que consume del insumo) o, en la resina,
-   por PIEZA. Siempre en unidades y, si hay kg_x_uni, también en kg. [usuario 2026-09-14] */
+   Al tocar el Máximo se ve qué lo arma: por ARTÍCULO o, en resina y master, por PIEZA.
+   [usuario 2026-09-14] Desde v1.50.0 la RPC delega en maximo_desglose, la de Stock General:
+   una sola cuenta, que en los flejes usa los kg reales de la matriz y cierra con la celda. */
 var DSG_CACHE={}, DSG_TD=null, DSG_HOVER=false, DSG_FIJA=false;
 async function abrirDesglose(compId, td){
   DSG_TD=td;
@@ -1430,22 +1437,33 @@ async function abrirDesglose(compId, td){
   pop.innerHTML=htmlDesglose(DSG_CACHE[compId]);
   pop.hidden=false; ubicarDesglose();
 }
-/* SOLO la tabla por articulo (o por pieza en la resina) [Thomas 2026-09-28: "solo esos datos. El
-   resto no lo quiero"]: sin titulo, sin Maximo/Origen/Meses/Consumo y sin aviso. */
+/* SOLO la tabla [Thomas 2026-09-28: "solo esos datos. El resto no lo quiero"]. Columnas desde v1.50.0
+   [usuario 2026-10-01: "tendría que ser consume, kg/mes y la tercera columna nueva que sea máximo
+   (multiplica kg/mes con la cantidad de meses por sector según el máximo)"]: Consume (uni/mes) ·
+   kg/mes (si hay kg) · Máximo = lo de la fila × meses del sector, en la unidad del máximo de la celda
+   (kg en fleje, resina y master; uni en el resto), así el Total cierra con la celda. Venta se fue:
+   con 1 insumo por artículo repetía Consume. */
 function htmlDesglose(d){
-  var c=d.comp||{}, hayKg=c.es_resina||c.es_fleje||c.kg_x_uni!=null;
-  // Mayor → menor por lo que consume: lo que mas pesa en el maximo, arriba.
-  var filas=(d.filas||[]).slice().sort(function(a,b){ return (Number(b.aporte_uni_mes)||0)-(Number(a.aporte_uni_mes)||0); });
+  var enKg=d.unidad==='kg', meses=d.meses==null?null:Number(d.meses);
+  var hayKg=enKg||(d.filas||[]).some(function(f){ return f.aporte_kg!=null; });
+  var mes=function(f){ var v=enKg?f.aporte_kg:f.aporte_uni_mes; return v==null?null:Number(v); };
+  // Mayor → menor por lo que pesa en el máximo.
+  var filas=(d.filas||[]).slice().sort(function(a,b){ return (mes(b)||0)-(mes(a)||0); });
   if(!filas.length) return '<p class="dsg-vacio">Sin demanda registrada.</p>';
-  var pz=d.base==='piezas', totUni=0, totKg=0;
-  var head='<tr><th class="l">'+(pz?'Pieza':'Artículo')+'</th>'+(pz?'':'<th>Venta<br>(uni/mes)</th>')+
-    '<th>Consume<br>(uni/mes)</th>'+(hayKg?'<th>kg/mes</th>':'')+'</tr>';
-  var rows=filas.map(function(f){ totUni+=Number(f.aporte_uni_mes)||0; totKg+=Number(f.aporte_kg)||0;
+  var pz=d.base==='piezas'||d.base==='piezas_mb', totUni=0, totKg=0, totMax=0;
+  var head='<tr><th class="l">'+(pz?'Pieza':'Artículo')+'</th><th>Consume<br>(uni/mes)</th>'+
+    (hayKg?'<th>kg/mes</th>':'')+
+    (meses!=null?'<th>Máximo<br>('+(enKg?'kg':'uni')+', '+fmt(meses, meses%1?1:0)+' meses)</th>':'')+'</tr>';
+  var rows=filas.map(function(f){
+    var m=mes(f), mx=(m==null||meses==null)?null:m*meses;
+    totUni+=Number(f.aporte_uni_mes)||0; totKg+=Number(f.aporte_kg)||0; totMax+=mx||0;
     return '<tr><td class="l"><b>'+esc(f.cod)+'</b> '+esc(f.desc||'')+'</td>'+
-      (pz?'':'<td class="num">'+(f.venta_uni_mes==null?'—':fmt(f.venta_uni_mes))+'</td>')+
-      '<td class="num">'+fmt(f.aporte_uni_mes)+'</td>'+(hayKg?'<td class="num">'+fmt(f.aporte_kg,2)+'</td>':'')+'</tr>'; }).join('');
-  var foot='<tfoot><tr><td class="l">Total ('+filas.length+')</td>'+(pz?'':'<td></td>')+
-    '<td class="num">'+fmt(totUni)+'</td>'+(hayKg?'<td class="num">'+fmt(totKg,2)+'</td>':'')+'</tr></tfoot>';
+      '<td class="num">'+(f.aporte_uni_mes==null?'—':fmt(f.aporte_uni_mes))+'</td>'+
+      (hayKg?'<td class="num">'+(f.aporte_kg==null?'—':fmt(f.aporte_kg,2))+'</td>':'')+
+      (meses!=null?'<td class="num">'+(mx==null?'—':fmt(mx))+'</td>':'')+'</tr>'; }).join('');
+  var foot='<tfoot><tr><td class="l">Total ('+filas.length+')</td>'+
+    '<td class="num">'+fmt(totUni)+'</td>'+(hayKg?'<td class="num">'+fmt(totKg,2)+'</td>':'')+
+    (meses!=null?'<td class="num">'+fmt(totMax)+'</td>':'')+'</tr></tfoot>';
   return '<table class="dsg"><thead>'+head+'</thead><tbody>'+rows+'</tbody>'+foot+'</table>';
 }
 // Pegada a la celda: abajo si entra, si no arriba; nunca afuera de la pantalla.
