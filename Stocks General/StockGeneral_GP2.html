@@ -6,7 +6,13 @@
 <script src="../gp2-ui.js?v=20260930a"></script>
 <script src="../gp2-numero.js?v=20260911o"></script>
 <title>Stock general · GP2</title>
-<!-- v3.0.0 (2026-10-01) - VER TODO Y DESPUÉS FILTRAR [Thomas, sobre las 3 pestañas de abajo:
+<!-- v3.0.1 (2026-10-01) - EL GRUPO SE LLAMA "CERVANTES" [Thomas: "que se llame CERVANTES en vez de
+     SECTORES"]. El grupo de rubros de la planta Cervantes (Stock SC, Stock SP, En Movimiento,
+     Afilado, Flejes, Plásticos, Bombillas, Remaches, Garage, Cartones, Cajas, Tránsito PS, Art.
+     Terminado) pasa de rotularse "Sectores" a "Cervantes" — las 3 plantas quedan con el mismo
+     tipo de rótulo (Cervantes / Virgilio / Terceros), consistente con las pestañas de arriba.
+     Sólo cambia el `grupo` de esos 13 rubros en RUBROS; la función/motor no se tocó.
+     v3.0.0 (2026-10-01) - VER TODO Y DESPUÉS FILTRAR [Thomas, sobre las 3 pestañas de abajo:
      "Cuando entro a stock general quiero ver los stocks de todo y después si quiero puedo
      filtrar por Cervantes, Virgilio, Terceros"]. Las pestañas dejan de ser un destino EXCLUSIVO
      (3 panes que se tapaban entre sí) y pasan a ser un FILTRO sobre "Todos los rubros", que ahora
@@ -353,25 +359,25 @@ var RUBROS = [
   // el buscador transversal: una sola tabla con TODO, para cuando no se sabe el rubro. v3.0.0:
   // vuelve a tener botón (y SIEMPRE visible, en las 3 plantas) — ver el comentario de arriba.
   { key:"all", grupo:"Buscar", nom:"🔎 Todos los rubros", mode:"global", mostrar_ubic:"Dónde", mostrar_rubro:true },
-  { key:"sc",  grupo:"Sectores", nom:"Stock SC",         mode:"sector", sid:1,  cols:COLS_SC },
-  { key:"sp",  grupo:"Sectores", nom:"Stock SP",         mode:"sector", sid:2,  cols:COLS_SP },
-  { key:"mov", grupo:"Sectores", nom:"En Movimiento",    mode:"sector", sid:3,  cols:COLS_MOV3, sin_max:true },
+  { key:"sc",  grupo:"Cervantes", nom:"Stock SC",         mode:"sector", sid:1,  cols:COLS_SC },
+  { key:"sp",  grupo:"Cervantes", nom:"Stock SP",         mode:"sector", sid:2,  cols:COLS_SP },
+  { key:"mov", grupo:"Cervantes", nom:"En Movimiento",    mode:"sector", sid:3,  cols:COLS_MOV3, sin_max:true },
   // v2.9.0: Sector Afilado — el único sector con ubicación que no tenía botón (hoy: Y1, Cuchilla para Afilar)
-  { key:"afi", grupo:"Sectores", nom:"Afilado",          mode:"sector", sid:4,  cols:COLS_MOV3 },
-  { key:"fle", grupo:"Sectores", nom:"Flejes",           mode:"sector", sid:5,  cols:COLS_INSUMO, sin_caj:true, mostrar_fleje:true, detalle:true },
-  { key:"pla", grupo:"Sectores", nom:"Plásticos",        mode:"sector", sid:6,  cols:COLS_INSUMO },
-  { key:"bom", grupo:"Sectores", nom:"Bombillas",        mode:"sector", sid:7,  cols:COLS_INSUMO },
-  { key:"rem", grupo:"Sectores", nom:"Remaches",         mode:"sector", sid:8,  cols:COLS_INSUMO },
-  { key:"gar", grupo:"Sectores", nom:"Garage",           mode:"sector", sid:9,  cols:COLS_INSUMO },
-  { key:"car", grupo:"Sectores", nom:"Cartones",         mode:"sector", sid:10, cols:COLS_INSUMO },
-  { key:"caj", grupo:"Sectores", nom:"Cajas",            mode:"sector", sid:11, cols:COLS_INSUMO },
+  { key:"afi", grupo:"Cervantes", nom:"Afilado",          mode:"sector", sid:4,  cols:COLS_MOV3 },
+  { key:"fle", grupo:"Cervantes", nom:"Flejes",           mode:"sector", sid:5,  cols:COLS_INSUMO, sin_caj:true, mostrar_fleje:true, detalle:true },
+  { key:"pla", grupo:"Cervantes", nom:"Plásticos",        mode:"sector", sid:6,  cols:COLS_INSUMO },
+  { key:"bom", grupo:"Cervantes", nom:"Bombillas",        mode:"sector", sid:7,  cols:COLS_INSUMO },
+  { key:"rem", grupo:"Cervantes", nom:"Remaches",         mode:"sector", sid:8,  cols:COLS_INSUMO },
+  { key:"gar", grupo:"Cervantes", nom:"Garage",           mode:"sector", sid:9,  cols:COLS_INSUMO },
+  { key:"car", grupo:"Cervantes", nom:"Cartones",         mode:"sector", sid:10, cols:COLS_INSUMO },
+  { key:"caj", grupo:"Cervantes", nom:"Cajas",            mode:"sector", sid:11, cols:COLS_INSUMO },
   // v2.6.0: Bolsas Plásticas se mudó a la pestaña Virgilio (sigue siendo el mismo sector 14,
   // stock_sector_bundle(14); sólo cambia en qué caja de Stock General se ve).
   // v2.3.0: Tránsito PS se ve con los sectores; los datos siguen saliendo de extra_bundle
-  { key:"tra", grupo:"Sectores", nom:"Tránsito PS",      mode:"otros",  fuente:"transito", mostrar_ubic:"En tránsito", sin_max:true },
+  { key:"tra", grupo:"Cervantes", nom:"Tránsito PS",      mode:"otros",  fuente:"transito", mostrar_ubic:"En tránsito", sin_max:true },
   // v2.6.0 (2026-10-01): lo que produjo Fábrica y todavía no mandó a Virgilio (ubicación
   // "Art. Terminado (Fábrica)"). Sale de stock_general_extra_bundle.art_terminado.
-  { key:"art", grupo:"Sectores", nom:"Art. Terminado",   mode:"otros",  fuente:"art_terminado", mostrar_ubic:"Art. Terminado (Fábrica)" },
+  { key:"art", grupo:"Cervantes", nom:"Art. Terminado",   mode:"otros",  fuente:"art_terminado", mostrar_ubic:"Art. Terminado (Fábrica)" },
   // v3.0.0: Virgilio deja de ser pane aparte — mismo motor, filtro planta:"virg" (ver
   // pintarRubros/filtrarPlanta). vbol (sector 14) vive del lado Virgilio desde siempre
   // (stock_sector_bundle(14).online YA es lo que tiene Virgilio: ese sector no tiene presencia

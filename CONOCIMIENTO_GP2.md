@@ -14479,3 +14479,13 @@ archivo. El botón Afilado (v2.9.0) se conservó tal cual quedó.
 
 Sólo front. `tests/ui/test_stock_general.js` reescrito (Afilado integrado). Suite 67/67. version.js
 v1.230.0 ?v=20261001k.
+
+## 4hy. Stock General: el grupo de rubros de Cervantes pasa de «Sectores» a «Cervantes» (2026-10-01)
+
+[Thomas, 01/10] *"Que se llame CERVANTES en vez de SECTORES"*. El `grupo` de los 13 rubros de la
+planta Cervantes (Stock SC, Stock SP, En Movimiento, Afilado, Flejes, Plásticos, Bombillas,
+Remaches, Garage, Cartones, Cajas, Tránsito PS, Art. Terminado) pasa de `"Sectores"` a
+`"Cervantes"` — las 3 plantas quedan con el mismo tipo de rótulo de grupo (Cervantes / Virgilio /
+Terceros), igual que las pestañas de §4hx. Sólo cambió el literal del `grupo` en `RUBROS`; nada
+de lógica. Sólo front. `tests/ui/test_stock_general.js` (2 assertions actualizadas). Suite 67/67.
+version.js v1.230.1 ?v=20261001l.

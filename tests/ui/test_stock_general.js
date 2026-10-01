@@ -406,7 +406,9 @@ window.supabase = { createClient: function(){ return {
     Array.from(document.querySelectorAll('#tbody tr .cod')).map(e => e.textContent).join(','));
   ok(ordGar === 'GRJ4,GRJ10,GRJ10A,GRJ12', 'Garage: orden numerico del codigo — ' + ordGar);
 
-  // ── Tránsito PS y Art. Terminado: rubros de Cervantes, grupo Sectores (NO se mudaron) ──
+  // ── Tránsito PS y Art. Terminado: rubros de Cervantes, grupo CERVANTES (NO se mudaron) ──
+  // [Thomas, 01/10: "que se llame CERVANTES en vez de SECTORES"] — mismo rótulo que las otras
+  // dos plantas (Virgilio / Terceros), ahora las 3 son nombres de planta.
   const grupos = await page.evaluate(() => {
     const g = {}; let cur = null;
     document.querySelectorAll('#rubros > div').forEach(d => {
@@ -415,8 +417,8 @@ window.supabase = { createClient: function(){ return {
     });
     return g;
   });
-  ok(grupos['Tránsito PS'] === 'Sectores', 'Tránsito PS está en el grupo Sectores (' + grupos['Tránsito PS'] + ')');
-  ok(grupos['Art. Terminado'] === 'Sectores', 'Art. Terminado está en el grupo Sectores (' + grupos['Art. Terminado'] + ')');
+  ok(grupos['Tránsito PS'] === 'Cervantes', 'Tránsito PS está en el grupo Cervantes (' + grupos['Tránsito PS'] + ')');
+  ok(grupos['Art. Terminado'] === 'Cervantes', 'Art. Terminado está en el grupo Cervantes (' + grupos['Art. Terminado'] + ')');
   ok(!grupos['Inyectores'], 'Inyectores ya no vive en el selector de Cervantes (es de Terceros)');
 
   await page.click('#rubros .rubro-btn:has-text("Tránsito PS")');
