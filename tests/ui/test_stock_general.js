@@ -7,6 +7,7 @@
      - que los rubros que no son sector (Prov AT, Tránsito) rendericen su tabla,
      - el PAYLOAD EXACTO del Ajuste +/- (heredado, contrato que no cambia),
      - los últimos movimientos, y el render celular (390px, tocable, 18px).
+   v2.5.0 (2026-10-01): pestañas Cervantes (abre ahí) / Virgilio (vacía).
    v2.4.0 (2026-10-01): tocar el Máximo abre su desglose (maximo_desglose por comp + ubic). */
 const { chromium } = require('playwright');
 const path = require('path');
@@ -158,6 +159,19 @@ window.supabase = { createClient: function(){ return {
   ok(base.rubros >= 12, 'la grilla de rubros renderiza sus botones (' + base.rubros + ')');
   ok(!base.horizontal, 'celular 390px: sin scroll horizontal');
   ok(base.hAj >= 44, 'boton Ajuste tocable (' + Math.round(base.hAj) + 'px, minimo 44)');
+
+  // ── v2.5.0: pestañas de planta. Abre en Cervantes (lo de siempre); Virgilio vacía y sin Ajuste ──
+  const vis = (id) => page.evaluate(i => { const e = document.getElementById(i); return !!e && e.offsetParent !== null; }, id);
+  ok(await vis('paneCervantes') && !(await vis('paneVirgilio')), 'abre en la pestaña Cervantes');
+  ok(await page.evaluate(() => document.getElementById('tabCervantes').classList.contains('active')), 'pestaña Cervantes marcada al abrir');
+  await page.click('#tabVirgilio');
+  ok(!(await vis('paneCervantes')) && await vis('paneVirgilio'), 'Virgilio: oculta lo de Cervantes y muestra su pestaña');
+  ok(await page.evaluate(() => !document.getElementById('paneVirgilio').querySelector('table,button,input')), 'Virgilio: vacía (sin tabla ni controles)');
+  ok(!(await vis('btnAjuste')), 'Virgilio: no muestra ± Ajuste (ajusta el stock de GP2)');
+  const hTab = await page.evaluate(() => document.getElementById('tabVirgilio').getBoundingClientRect().height);
+  ok(hTab >= 44, 'pestaña tocable (' + Math.round(hTab) + 'px)');
+  await page.click('#tabCervantes');
+  ok(await vis('paneCervantes') && await vis('btnAjuste'), 'vuelve a Cervantes con su Ajuste');
 
   // el pedido central: el stock separado por Kg / Caj / Uni + Info con Uni×Cajón
   ok(/ONLINE/i.test(base.thead) && /\bKG\b/i.test(base.thead) && /\bCAJ\b/i.test(base.thead) && /\bUNI\b/i.test(base.thead),

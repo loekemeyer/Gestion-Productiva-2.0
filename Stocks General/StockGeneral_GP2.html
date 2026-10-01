@@ -6,7 +6,12 @@
 <script src="../gp2-ui.js?v=20260930a"></script>
 <script src="../gp2-numero.js?v=20260911o"></script>
 <title>Stock general · GP2</title>
-<!-- v2.4.0 (2026-10-01) - TOCAR EL MÁXIMO ABRE SU DESGLOSE [Elías: "que el maximo se pueda apretar
+<!-- v2.5.0 (2026-10-01) - DOS PESTAÑAS: CERVANTES / VIRGILIO [Luis: "una pestaña en stock general que
+     sea VIRGILIO; que se abra en pestaña CERVANTES (lo que hay ahora) y otra para Virgilio que no tenga
+     nada"]. Cervantes = la pantalla de siempre, sin cambios. Virgilio = vacía a propósito: es el
+     contenedor de insumos de Virgilio que se arma desde cero, paso a paso (no reponer lo revertido en
+     v1.221.0). Abre siempre en Cervantes; «± Ajuste» sólo se ve en Cervantes (ajusta el stock de GP2).
+     v2.4.0 (2026-10-01) - TOCAR EL MÁXIMO ABRE SU DESGLOSE [Elías: "que el maximo se pueda apretar
      y muestre el desglose de la misma forma que se hace para kg, caj, uni"]. La celda Máximo (cuando
      no es "—" y la fila tiene ubicación) abre el mismo popup que los movimientos, con la cuenta en una
      línea (consumo/mes × meses, el tope de 5 cajones de Crudo/Procesado, las bolsas de la resina) y
@@ -85,6 +90,11 @@
 <link rel="apple-touch-icon" href="../GP2_favicon.png">
 <style>
  /* grilla de rubros (foto 1): botones que no se estiran a todo el ancho */
+ /* v2.5.0: pestañas de planta (Cervantes / Virgilio) */
+ .planta-tabs{display:flex;gap:6px;padding:12px 18px 0;border-bottom:2px solid #e5e9ee}
+ .planta-tab{padding:10px 18px;min-height:44px;font-size:17px;font-weight:800;border:2px solid #d0d7de;border-bottom:none;border-radius:9px 9px 0 0;background:#f6f8fa;color:#555;cursor:pointer;margin-bottom:-2px}
+ .planta-tab.active{background:#fff;color:#111;border-color:#e5e9ee;border-bottom:2px solid #fff}
+ .planta-vacia{padding:28px 18px;text-align:center;color:#9aa4af;font-size:16px}
  .rubro-lbl{font-size:13px;font-weight:800;color:#666;text-transform:uppercase;letter-spacing:.5px;margin:4px 0 8px}
  .rubro-grp{font-size:12px;font-weight:800;color:#999;text-transform:uppercase;margin:10px 0 6px}
  .rubros{display:flex;flex-wrap:wrap;gap:8px}
@@ -150,12 +160,19 @@
   <div class="header">
     <h1>Stock general</h1>
     <div class="hbtns">
-      <button class="hlink" onclick="openAjuste()">± Ajuste</button>
+      <button class="hlink" id="btnAjuste" onclick="openAjuste()">± Ajuste</button>
       <a href="../GP2_MODULOS.html">Atrás</a>
     </div>
   </div>
 
-  <div class="steps">
+  <div class="planta-tabs" role="tablist">
+    <button type="button" class="planta-tab active" id="tabCervantes" role="tab" onclick="plantaTab('cervantes')">🏭 Cervantes</button>
+    <button type="button" class="planta-tab" id="tabVirgilio" role="tab" onclick="plantaTab('virgilio')">🏬 Virgilio</button>
+  </div>
+
+  <div id="paneVirgilio" class="hidden"><div class="planta-vacia">Virgilio · todavía vacío</div></div>
+
+  <div class="steps" id="paneCervantes">
     <div class="rubro-lbl">Rubro</div>
     <div id="rubros"></div>
 
@@ -215,7 +232,17 @@
 </div>
 <div id="toast"></div>
 
-<script>window.SB_CLIENT = GP2_SB();</script>
+<script>window.SB_CLIENT = GP2_SB();
+/* v2.5.0: pestañas de planta. Sólo muestra/oculta: Cervantes no se toca y Virgilio está vacía a propósito. */
+function plantaTab(p){
+  var v = p === "virgilio";
+  document.getElementById("tabCervantes").classList.toggle("active", !v);
+  document.getElementById("tabVirgilio").classList.toggle("active", v);
+  document.getElementById("paneCervantes").classList.toggle("hidden", v);
+  document.getElementById("paneVirgilio").classList.toggle("hidden", !v);
+  document.getElementById("btnAjuste").classList.toggle("hidden", v);
+}
+</script>
 <script src="../gp2-composicion.js?v=20260911p"></script>
 <script src="../gp2-motor.js?v=20260905f"></script>
 <script>

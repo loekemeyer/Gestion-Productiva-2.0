@@ -14179,3 +14179,6 @@ kg, caj, uni"*.
   (`fn_recalc_maximos_diferido` corre insumos, talleristas, consumo_meses y mp_ps). El popup lo avisa
   («⚠ El máximo cargado … no coincide con la cuenta de hoy»), no lo esconde.
 - `Stocks General/StockGeneral_GP2.html` v2.4.0; lo sostiene `tests/ui/test_stock_general.js`.
+
+## 4hm. Stock General tiene dos pestañas: CERVANTES y VIRGILIO (2026-10-01)
+[usuario, Luis] "en GP2 quiero que haya una pestaña en stock general que sea VIRGILIO … que se abra en pestaña CERVANTES (lo que hay ahora) y que muestre otra pestaña para Virgilio que no tenga nada … vamos paso por paso". Es el primer paso del contenedor de insumos de Virgilio que se rearma desde cero (§4hk: no reponer lo revertido). Cervantes = la pantalla de siempre, sin un cambio; abre ahí. Virgilio = vacía a propósito, sin datos ni RPC todavía; «± Ajuste» no se ve ahí (ajusta el stock de GP2). Lo que lleve la pestaña Virgilio lo define Luis en el próximo paso. Stock General v2.5.0, version.js v1.223.0.
