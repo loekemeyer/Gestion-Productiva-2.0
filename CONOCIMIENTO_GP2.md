@@ -14603,3 +14603,28 @@ sola: descartado.
 - `db/migracion_recepcion_virgilio.sql`, `db/funciones_GP2.sql`, `db/vistas_GP2.sql`, `db/tablas_GP2.sql`.
   Front: `control-cajas` v1.3.0, `RecepcionInsumos` v3.71.0, version.js v1.233.0. Test:
   `tests/ui/test_recepcion_virgilio.js`.
+
+## 4id. Matriz 237: Cervantes pone el capuchón al mango SÓLO en lo que arma Log/Fábrica — 570, 542, 543 (2026-10-01) — ⏸ PENDIENTE DE APLICAR
+
+[usuario, Thomas, 01/10, textual] *"Los únicos que le pone Cervantes la matriz de mangos y capuchón es los que
+entrega Log/Fabr. 570, 542, 543"*.
+
+- **Regla:** el capuchón `PA18` sobre el mango `PC10` lo pone **Cervantes con la matriz 237** «Poner Capuchon Mgo
+  Espatula» (5 s) sólo en **570 Pala de Canelones, 542 Ahueca Papas y 543 Ahueca Frutas** (los arma Fábrica).
+  En los otros 6 con PC10 + PA18 (116, 559, 562 Martin Cornejo · 546, 587 Lucho · 395 Alex Escalante) **el
+  capuchón lo pone el tallerista** y la ruta queda como está. `[usuario]`
+- **Por qué importa:** la 237 tiene producción real (90 registros, 33.132 uni, última 20/08/2026 `[dato:
+  public.db_n8n_espejo]`) pero **no figura en ningún `ruta_paso`**, así que no suma mano de obra al costo ni
+  aparece en el trazado. `[dato]`
+- **Qué hay que hacer (molde 94xE/505x de §4ia y E6-M194):** componente `PC10-M237` «Mango LK Espatula
+  c/Capuchon tras M237» en Sector Movimiento + inventario 0 + `componente_bom` PC10 ×1 + PA18 ×1; en las rutas
+  «Insumo PC10 → Art X» e «Insumo PA18B → Art X» de los 3 artículos, un paso `matriz` 237 antes de Fábrica, y
+  Fábrica consume `PC10-M237`. Receta del artículo: lo que haga el molde. Snapshot de costo antes/después y
+  `db/verificar.sql` antes/después. **Estado al cierre del 01/10: NADA aplicado** (medido: 0 componentes
+  `*M237*`, 0 pasos con la 237; los 3 artículos siguen con 82 pasos). Thomas cortó la sesión: *"que mañana lo
+  sigan"*.
+- **236 «Colocar Capucha Mgo LK»:** por la misma regla no entra en ninguna ruta: sus candidatos (515, 534, 535,
+  312, con capuchón PA13) los arman talleristas (Alex Escalante, Martin Cornejo), no Fábrica. `[deducido]`
+- **506 «Colocar Inserto Nuevo a Mgo Md Chino»:** no entra: el inserto de los 94xE va en las matrices 505x
+  (§4ia). `[deducido de §4ia]`
+- **Pregunta abierta a Thomas:** ¿desactivar 236 y 506 en `GP2.matriz` (`activa=false`) o dejarlas activas?
