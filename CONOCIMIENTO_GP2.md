@@ -14512,7 +14512,7 @@ Premium se recibe de Virgilio"*.
   «Insertos Sonrisa») sigue en las 5 recetas. Lo que cambia es que el 94xE ya no llega hecho: llegan la pieza inox
   y el mango por separado y se arman en Cervantes. `[usuario]`
 - **Modelo (molde del 507, matriz 78):** cada entrada tiene su ruta y las tres convergen en la matriz:
-  `insumo PEST1 | Zxx | MGOMAD → matriz 505x → <Zxx>-M505x (Sector Movimiento) → Fábrica (tallerista 3) arma con la
+  `insumo PEST1 | Zxx | Z46 → matriz 505x → <Zxx>-M505x (Sector Movimiento) → Fábrica (tallerista 3) arma con la
   caja A9B → 9xxE → Virgilio`. La ruta de la caja no se tocó. Receta = PEST1 ×1 + pieza ×1 + mango ×1 + A9B ×1/12.
   La ruta de PEST1 se reescribió en el lugar (antes iba directo a Fábrica). Matrices renombradas al texto del
   usuario (505 «Armado Cuchara Fideos Inox Imp», 505F «Armado Espátula Calada Inox Imp»).
@@ -14521,20 +14521,21 @@ Premium se recibe de Virgilio"*.
   Z23A/Z23B/D1). Con eso salen solas en **Tablet → Recibir → Virgilio** (rama de importados de `tablet_bundle`).
   Verificado: las 7 (5 piezas + mango + GRJ33) aparecen con `importado=true`.
 - **⚠ Z43 YA EXISTE:** es «Varilla c/Cuchilla Negro» del Abrelatas 101 (receta + 4 pasos de ruta). No se pisó: el
-  mango nació como **`MGOMAD`** (provisorio, criterio CART058). Cambiarle el código es un `update` de una fila
-  cuando el usuario diga cuál va. `[dato]`
+  mango nació como `MGOMAD` (provisorio) y el usuario fijó **`Z46` «Mgo Madera»** el mismo día (D1). Ruta
+  renombrada «Insumo Z46 -> Art 9xxE». `[dato]`
 - **Vínculo GV → GP2** (`GP2.importado_virgilio_componente`): 942P→Z47, 943P→Z44, 944P→Z48, 945P→Z49, 948P→Z50
   `[deducido: public."Importados_Stock_Parte" dice que la parte de 942E es 942P, «Parte Cuchara Ac. Inox»]`;
   522E y 522ES→GRJ33 (molde 599E/599ES→GRJ32). **El mango no tiene código en GV**: sin fila, el aviso de Virgilio
   sale "sin componente" — en la tablet se recibe igual.
 - **GRJ33 «Doble Aleta Premium»**: Sector Garage, importado, igual que GRJ31/GRJ32 (sin receta ni ruta).
 - **941E y 946E:** 0 inventario, 0 movimientos, 0 producción (medido). Matrices 505E/505G `activa=false`. **El
-  borrado NO se aplicó**: el MCP de Supabase retiene los DELETE esperando confirmación del dueño; quedaron
+  usuario confirmó el borrado (D2, «SI»), pero NO se pudo aplicar**: el MCP de Supabase retiene los DELETE y la
+  confirmación del chat no le llega; hay que correrlo en el SQL editor; quedaron
   `discontinuado=true` y el bloque está comentado al final de `db/migracion_94xE_armado_505_20261001.sql`.
   `GP2.articulo_familia` (941E→338, 946E→335) NO se toca desde GP2: es espejo de `Equivalencias_Familia` de GV
   (invariante AG).
 - **Plata:** las 6 piezas nuevas no tienen precio (`precio_proveedor` vacío) → el costo de los 94xE queda con
-  `faltan_precios` hasta cargarlo. Los máximos se recalcularon solos al commit (MGOMAD 700, Z47 172 uni).
+  `faltan_precios` hasta cargarlo. Los máximos se recalcularon solos al commit (Z46 700, Z47 172 uni).
 - Invariantes de `db/verificar.sql`: iguales antes y después (AE=2 y AG=9 ya estaban). Respaldo en
   `zz_backups."GP2_bkp_*_20261001_94xe"`. Sólo base, sin front.
 

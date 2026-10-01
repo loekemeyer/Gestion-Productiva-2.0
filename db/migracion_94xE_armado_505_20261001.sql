@@ -14,11 +14,11 @@
 --        Z47 Cuchara Inox · Z44 Cucharon Inox · Z48 Cuchara Fideos Inox ·
 --        Z49 Espátula Calada Inox · Z50 Espumadera Inox
 --     + el Mango de Madera. ⚠ El usuario dijo «Z43», pero Z43 YA ES «Varilla c/Cuchilla
---     Negro» (Abrelatas 101, receta + 4 pasos de ruta). No se pisa: nace como MGOMAD
+--     Negro» (Abrelatas 101, receta + 4 pasos de ruta). No se pisa: nació MGOMAD y el 01/10 el usuario fijó Z46 (D1)
 --     (provisorio, mismo criterio que CART058) hasta que el usuario diga el código.
 --  4) Despiece de 942E/943E/944E/945E/948E, molde del 507 (varias entradas → matriz →
 --     intermedio «<pieza>-M<matriz>» en Sector Movimiento → Fábrica arma con la caja → Virgilio):
---        PEST1 + pieza inox + MGOMAD  → matriz 505D/505C/505/505F/505B → <pieza>-M505x
+--        PEST1 + pieza inox + Z46 (mango) → matriz 505D/505C/505/505F/505B → <pieza>-M505x
 --        → Fábrica (tallerista 3) → 9xxE → Virgilio.   La ruta de la caja A9B no se toca.
 --  5) GRJ33 «Doble Aleta Premium», importado, se recibe de Virgilio (Sector Garage, igual
 --     que GRJ31/GRJ32), con su vínculo GV 522E / 522ES.
@@ -69,10 +69,10 @@ begin
   update "GP2".articulo set discontinuado = true where codigo in ('941E','946E');
   update "GP2".componente set discontinuado = true where codigo in ('941E','946E') and sector_id = 12;
 
-  select id into v_mgo from "GP2".componente where codigo = 'MGOMAD' and sector_id = 2;
+  select id into v_mgo from "GP2".componente where codigo in ('Z46','MGOMAD') and sector_id = 2;
   if v_mgo is null then
     insert into "GP2".componente (codigo, descripcion, sector_id, unidad_medida, proveedor, estado_compra, remito_unidad, recibe_en_cajas)
-    values ('MGOMAD', 'Mgo Madera', 2, 'unidad', 'Importado', 'importado', 'uni', false) returning id into v_mgo;
+    values ('Z46', 'Mgo Madera', 2, 'unidad', 'Importado', 'importado', 'uni', false) returning id into v_mgo;
   end if;
   insert into "GP2".inventario (componente_id, ubicacion_id, cantidad) values (v_mgo, 2, 0) on conflict (componente_id, ubicacion_id) do nothing;
 
@@ -151,7 +151,12 @@ begin
     on conflict (cod_virgilio) do nothing;
 end $$;
 
--- ---------- 2-bis) PENDIENTE DE CONFIRMACIÓN DEL DUEÑO: borrar 941E y 946E ----------
+-- D1 (01/10): MGOMAD -> Z46 (aplicado):
+--   update "GP2".componente set codigo = 'Z46' where codigo = 'MGOMAD' and sector_id = 2;
+--   update "GP2".ruta set nombre = replace(nombre, 'Insumo MGOMAD ', 'Insumo Z46 ') where nombre like 'Insumo MGOMAD -> %';
+
+-- ---------- 2-bis) borrar 941E y 946E: el dueño dijo SÍ (D2, 01/10) pero el MCP retiene los DELETE.
+--            Correr este bloque a mano en el SQL editor de Supabase (descomentado). ----------
 -- Medido el 01/10: 0 inventario, 0 movimientos, 0 producción, 0 reparto. Respaldo en zz_backups.
 -- NO toca GP2.articulo_familia (941E→338, 946E→335): es espejo de public."Equivalencias_Familia"
 -- de Gestión Virgilio y el invariante AG lo vigila; esas dos filas se sacan en GV.
