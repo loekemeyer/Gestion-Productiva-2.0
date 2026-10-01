@@ -168,3 +168,20 @@ end $$;
 --    and not exists (select 1 from "GP2".inventario i where i.componente_id = c.id)
 --    and not exists (select 1 from "GP2".movimiento m where c.id in (m.comp_id, m.comp_transformado_id, m.sustituye_comp_id))
 --    and not exists (select 1 from "GP2".ruta_paso p where c.id in (p.comp_entrada_id, p.comp_salida_id));
+
+-- ---------- 6) (01/10, 2.º pase) BOM del intermedio: lo que dibuja la convergencia ----------
+-- El usuario no veía «la convergencia de las tres partes con su matriz» en Despiece x Artículo:
+-- faltaba componente_bom <pieza>-M505x ← PEST1 + pieza + Z46 (molde D5-M78 ← D5 + D6 + V4).
+-- La receta queda con las partes sueltas (el DELETE que la pasaba al intermedio, como el 507,
+-- lo retuvo el MCP); no hay doble conteo porque el intermedio no está en la receta.
+do $$ declare r record; v_inter bigint; v_pieza bigint; v_pest bigint; v_mgo bigint; begin
+  select id into v_pest from "GP2".componente where codigo='PEST1' and sector_id=6;
+  select id into v_mgo from "GP2".componente where codigo='Z46' and sector_id=2;
+  for r in select * from (values ('Z47','505D'),('Z44','505C'),('Z48','505'),('Z49','505F'),('Z50','505B')) x(pieza,mat) loop
+    select id into v_pieza from "GP2".componente where codigo=r.pieza and sector_id=2;
+    select id into v_inter from "GP2".componente where codigo=r.pieza||'-M'||r.mat and sector_id=3;
+    insert into "GP2".componente_bom (componente_padre_id, componente_hijo_id, cantidad)
+      select v_inter, h, 1 from unnest(array[v_pest, v_pieza, v_mgo]) h
+       where not exists (select 1 from "GP2".componente_bom b where b.componente_padre_id=v_inter and b.componente_hijo_id=h);
+  end loop;
+end $$;

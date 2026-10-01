@@ -14555,4 +14555,12 @@ Premium se recibe de Virgilio"*.
   `db/migracion_ruta96_570_m194_20261001.sql` (con rollback).
 - [dato, pendiente] El **858** tiene el mismo error (ruta 97: F2 → Fábrica directo, receta con E6-M194), y las rutas de
   insumo del V10 van a Fábrica en vez de a la M194. No se tocaron.
-
+- **2.º pase, mismo día — la convergencia no se veía** [usuario: *"No veo la convergencia de las tres partes en el
+  despiece (con su respectiva matriz)"*]. Dos causas: (1) faltaba el BOM del intermedio — se cargó
+  `<pieza>-M505x ← PEST1 + pieza + Z46` (×1 c/u), molde `D5-M78 ← D5 + D6 + V4`; (2) Despiece x Artículo
+  (`Programa/Programa.html`) sólo detectaba convergencias desde rutas que arrancan en un FLEJE. Ahora también desde
+  rutas de insumo, **sólo si el paso que arma es una MATRIZ** (los armados de tallerista con insumos, GRJ5/GRJ6,
+  quedan igual), y si el intermedio no está en la receta la cantidad sale de la parte más escasa de su BOM.
+  La receta quedó con las partes sueltas (no el intermedio como en el 507): el DELETE para pasarla al intermedio lo
+  retuvo el MCP, y así no hay doble conteo (máximos de Z46/Z47 iguales antes y después). `[dato]`
+  `tests/ui/test_programa_matriz_insumos.js` (falla 7 contra el HTML anterior). version.js v1.231.0 ?v=20261001o.

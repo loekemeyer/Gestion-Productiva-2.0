@@ -487,6 +487,13 @@ function renderConvergenceLane(padre_id,ruta_list,need,uni,flejesTotal,aid,insum
    if(pc2 && need[pc2]){qty_padre=need[pc2]*uni;break;}
   }
  }
+ // El sub-conjunto no esta en la receta (la receta trae sus partes sueltas, 94xE): cuantos
+ // salen lo dice la parte mas escasa segun su BOM.
+ if(!qty_padre && hijos.length){
+  var _mn=null;
+  hijos.forEach(function(h){var q=(need[h.c]||0)/(h.q||1);if(_mn===null||q<_mn)_mn=q;});
+  if(_mn)qty_padre=_mn*uni;
+ }
  var H='<div class="lane conv"><div class="head"><b>🔀 Convergencia · '+esc(pc.cod+' · '+(pc.d||""))+'</b>'+
     '<span class="uni">× '+fmt(qty_padre)+' u</span></div>';
 
@@ -649,6 +656,23 @@ function render(){
     convergences[cs].push(r);
     rutas_en_conv[r.id]=cs;
     break; // primera convergencia por ruta
+   }
+  }
+ });
+ /* Convergencia armada SOLO con piezas compradas (94xE, 2026-10-01): PEST1 + pieza inox +
+    mango importados entran a la matriz 505x. Ninguna de esas rutas arranca en un fleje, asi
+    que el bucle de arriba no las veia. Se suman las rutas de insumo, pero solo cuando el paso
+    que arma el sub-conjunto es una MATRIZ: los armados de tallerista (GRJ5/GRJ6) quedan como
+    estaban. Las ramas se dibujan adentro y no se repiten en el bloque 4 (insumoEnConv). */
+ rutas_ins.forEach(function(r){
+  var pasos=D.rp[String(r.id)]||[];
+  for(var i=0;i<pasos.length;i++){
+   var cs=pasos[i].cs;
+   if(cs && pasos[i].tp==='matriz' && D.children[String(cs)]){
+    convergences[cs]=convergences[cs]||[];
+    convergences[cs].push(r);
+    rutas_en_conv[r.id]=cs;
+    break;
    }
   }
  });
