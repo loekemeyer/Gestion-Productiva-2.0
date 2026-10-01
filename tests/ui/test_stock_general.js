@@ -7,6 +7,10 @@
      - que los rubros que no son sector (Prov AT, Tránsito) rendericen su tabla,
      - el PAYLOAD EXACTO del Ajuste +/- (heredado, contrato que no cambia),
      - los últimos movimientos, y el render celular (390px, tocable, 18px).
+   v2.7.0 (2026-10-01): las 3 cajas DE VERDAD (Cervantes / Virgilio / Terceros — Prov. Servicio,
+   Talleristas, Prov. Art. Term. e Inyectores se mudan a su propia pestaña, ya no "Otros" adentro
+   de Cervantes) y, en Virgilio, SC/SP/Fleje/Plástico/Caja muestran TODO el universo del sector
+   (con stock 0 si todavía no se mandó nada), no sólo lo que ya tiene movimiento.
    v2.6.0 (2026-10-01): Virgilio con contenido — Bolsas Plásticas (se mudó de Cervantes) +
    SC/SP/Fleje/Plástico/Caja en el depósito virgilio_sector (D.inv, sin RPC nueva); Cervantes
    suma el rubro Art. Terminado (lo que Fábrica produjo y no mandó, stock_general_extra_bundle).
@@ -54,7 +58,8 @@ const BUNDLE = {
     '10:1': { cant: 100, max: 200 }, '30:1': { cant: 50, max: 0 }, '20:5': { cant: 0, max: 0 },
     '10:6': { cant: 0, max: null }, '50:6': { cant: 0, max: null }, '30:3': { cant: 20, max: null },
     '60:7': { cant: 1250, max: null }, // 1.250 kg de PP mandados al inyector Pettofrezza
-    '10:8': { cant: 25, max: null },   // v2.6.0: 25 A10 en el depósito de Virgilio (SC)
+    // v2.7.0: la pestaña Virgilio ya NO lee D.inv por virgilio_sector (ver SECTOR[1].filas,
+    // campo en_virgilio) — esta fila queda sin consumidor a propósito, es la foto de ANTES.
   },
 };
 /* Prov AT y transito salen de su propia RPC. */
@@ -74,12 +79,20 @@ const EXTRA = {
    que NO salen las columnas de cajones (pedido del usuario, textual). */
 const SECTOR = {
   1: {
-    sector: { id: 1, nombre: 'Sector Crudo' }, ubicacion_id: 1, ubicacion_virgilio_id: null,
-    filas: [{
-      comp_id: 10, cod: 'A10', desc: 'Cpo Una', um: 'uni', kg_x_uni: 0.05, uni_x_cajon: 100,
-      online: 100, en_virgilio: null, maximo: 200, n_fleje: null,
-      mov: { fabricacion: { ent: 120, sal: 20, n: 3 }, envio_ps: { ent: 0, sal: 80, n: 2 } },
-    }],
+    sector: { id: 1, nombre: 'Sector Crudo' }, ubicacion_id: 1, ubicacion_virgilio_id: 8,
+    filas: [
+      {
+        comp_id: 10, cod: 'A10', desc: 'Cpo Una', um: 'uni', kg_x_uni: 0.05, uni_x_cajon: 100,
+        online: 100, en_virgilio: 25, maximo: 200, n_fleje: null,
+        mov: { fabricacion: { ent: 120, sal: 20, n: 3 }, envio_ps: { ent: 0, sal: 80, n: 2 } },
+      },
+      // v2.7.0: B9 todavía no se mandó a Virgilio (en_virgilio 0) y TIENE que aparecer igual
+      // [Thomas 2026-10-01: "tienen que aparecerme los componentes con stock cero"].
+      {
+        comp_id: 70, cod: 'B9', desc: 'Cpo sin mandar', um: 'uni', kg_x_uni: null, uni_x_cajon: null,
+        online: 40, en_virgilio: 0, maximo: null, n_fleje: null, mov: {},
+      },
+    ],
   },
   5: {
     sector: { id: 5, nombre: 'Sector Fleje' }, ubicacion_id: 9, ubicacion_virgilio_id: null,
@@ -186,8 +199,15 @@ window.supabase = { createClient: function(){ return {
   await page.waitForFunction(() => /Bolsas Plásticas/.test(document.getElementById('statusVir').textContent));
   await page.click('#rubrosVir .rubro-btn:has-text("SC en Virgilio")');
   await page.waitForFunction(() => document.querySelectorAll('#tbodyVir tr').length > 0);
-  const filaSC = await page.$eval('#tbodyVir tr', e => e.textContent.replace(/\s+/g, ' ').trim());
-  ok(/A10/.test(filaSC) && /25/.test(filaSC), 'SC en Virgilio: A10 con 25 (lo enviado y no recibido de vuelta) — ' + filaSC);
+  // v2.7.0: el universo entero del sector (A10 CON stock + B9 en 0), no sólo lo que ya se mandó
+  // [Thomas 2026-10-01: "tienen que aparecerme los componentes con stock cero"]. Se lee celda por
+  // celda (no el textContent crudo de la fila, que pega los números sin separador).
+  const filasSC = await page.$$eval('#tbodyVir tr', es => es.map(e => Array.from(e.cells).map(td => td.textContent.trim())));
+  ok(filasSC.length === 2, 'SC en Virgilio: TODO el universo del sector (A10 + B9), no sólo lo que ya tiene stock — ' + filasSC.length);
+  const filaA10 = filasSC.filter(c => c[0] === 'A10')[0] || [];
+  const filaB9 = filasSC.filter(c => c[0] === 'B9')[0] || [];
+  ok(filaA10[filaA10.length - 1] === '25', 'SC en Virgilio: A10 con 25 (lo enviado y no recibido de vuelta) — ' + filaA10.join(' | '));
+  ok(filaB9[filaB9.length - 1] === '0', 'SC en Virgilio: B9 en 0 TAMBIÉN aparece (todavía no se le mandó nada) — ' + filaB9.join(' | '));
   ok(!(await vis('btnAjuste')), 'Virgilio: no muestra ± Ajuste (ajusta el stock de GP2)');
   const hTab = await page.evaluate(() => document.getElementById('tabVirgilio').getBoundingClientRect().height);
   ok(hTab >= 44, 'pestaña tocable (' + Math.round(hTab) + 'px)');
@@ -195,6 +215,59 @@ window.supabase = { createClient: function(){ return {
   ok(!horizVir, 'Virgilio a 390px: sin scroll horizontal');
   await page.click('#tabCervantes');
   ok(await vis('paneCervantes') && await vis('btnAjuste'), 'vuelve a Cervantes con su Ajuste');
+
+  // ── v2.7.0: la caja TERCEROS (Prov. Servicio / Talleristas / Prov. Art. Term. / Inyectores) ──
+  // [Thomas 2026-10-01: "no me hiciste la división en stock general de cervantes, virgilio y
+  // TERCEROS: acá aparece lo que hay bajo la descripción OTROS"]. Antes vivían adentro de
+  // Cervantes agrupados "Otros"; ahora son su propia pestaña.
+  for (const nom of ['Prov. Servicio', 'Talleristas', 'Prov. Art. Term.', 'Inyectores']) {
+    ok(!(await page.locator('#rubros .rubro-btn:has-text("' + nom + '")').count()),
+       'Cervantes: ya NO tiene "' + nom + '" en su selector (se mudó a Terceros)');
+  }
+  await page.click('#tabTerceros');
+  ok(await page.evaluate(() => document.getElementById('tabTerceros').classList.contains('active')), 'pestaña Terceros marcada al elegirla');
+  // Terceros comparte el MISMO motor que Cervantes (mismo pane, mismo Ajuste) — no es Virgilio
+  ok(await vis('paneCervantes') && !(await vis('paneVirgilio')) && await vis('btnAjuste'),
+     'Terceros: usa el mismo pane que Cervantes, con su Ajuste');
+  const rubrosTerc = await page.$$eval('#rubros .rubro-btn', xs => xs.map(x => x.textContent.trim()));
+  ok(JSON.stringify(rubrosTerc) === JSON.stringify(['Prov. Servicio', 'Talleristas', 'Prov. Art. Term.', 'Inyectores']),
+     'Terceros: exactamente sus 4 rubros, sin ninguno de Cervantes — ' + rubrosTerc.join(' | '));
+  ok(!(await page.locator('#rubros .rubro-grp').count()), 'Terceros: sin encabezado de grupo repetido (ya lo dice la pestaña)');
+
+  await page.click('#rubros .rubro-btn:has-text("Prov. Art. Term.")');
+  await page.waitForFunction(() => /Cabral/.test(document.getElementById('tbody').innerText));
+  ok(true, 'Terceros · Prov. Art. Terminado: aparece el proveedor con sus cajas/cartones (Cabral)');
+
+  await page.click('#rubros .rubro-btn:has-text("Inyectores")');
+  await page.waitForFunction(() => /Pettofrezza Rafael/.test(document.getElementById('tbody').innerText));
+  const iny = await page.evaluate(() => ({
+    body: document.getElementById('tbody').innerText,
+    thead: document.getElementById('thead').innerText,
+    celdas: Array.from(document.querySelectorAll('#tbody tr')).map(tr => Array.from(tr.cells).map(t => t.textContent.trim()))
+      .filter(c => c[0] === 'Pettofrezza Rafael')[0] || [],
+    kpis: document.getElementById('kpis').innerText,
+  }));
+  ok(!/\bCAJ\b/i.test(iny.thead) && !/MÁXIMO/i.test(iny.thead), 'Terceros · Inyectores: sin Caj ni Máximo');
+  // columnas: Inyector | Código | Descripción | Kg | Uni | Kg×Uni
+  ok(iny.celdas[0] === 'Pettofrezza Rafael' && iny.celdas[1] === '2405' && iny.celdas[3] === '1.250' && iny.celdas[4] === '—',
+     'Terceros · Inyectores: 1.250 kg de PP van en Kg y Uni queda vacío — ' + iny.celdas.join(' | '));
+  ok(/Total kg\s*1\.250/i.test(iny.kpis), 'Terceros · Inyectores: el KPI Total kg suma la MP — ' + iny.kpis.replace(/\s+/g, ' '));
+  ok(/Pat Bet Plast/.test(iny.body), 'Terceros · Inyectores: aparece Pat Bet Plast aunque nunca se le mandó resina (sin fila en inventario)');
+
+  await page.click('#rubros .rubro-btn:has-text("Prov. Servicio")');
+  await page.waitForFunction(() => /Pedernera Ilario/.test(document.getElementById('tbody').innerText));
+  const ps = await page.evaluate(() => ({
+    thead: document.getElementById('thead').innerText,
+    body: document.getElementById('tbody').innerText,
+  }));
+  ok(!/MÁXIMO/i.test(ps.thead), 'Terceros · PS: la tabla NO tiene columna Máximo (el maximo vive en el sector procesado)');
+  ok(/A10/.test(ps.body), 'Terceros · PS: se ve la pieza procesada que el PS cromaria (A10)');
+  ok(!/CAJ1/.test(ps.body), 'Terceros · PS: NO aparece la caja (insumo de empaque sembrado en 0 en el PS)');
+
+  await page.click('#tabCervantes');
+  ok(await page.evaluate(() => document.getElementById('tabCervantes').classList.contains('active')) &&
+     !(await page.locator('#rubros .rubro-btn:has-text("Prov. Servicio")').count()),
+     'vuelve a Cervantes y su selector ya no tiene los rubros de Terceros');
 
   // el pedido central: el stock separado por Kg / Caj / Uni + Info con Uni×Cajón
   ok(/ONLINE/i.test(base.thead) && /\bKG\b/i.test(base.thead) && /\bCAJ\b/i.test(base.thead) && /\bUNI\b/i.test(base.thead),
@@ -246,12 +319,7 @@ window.supabase = { createClient: function(){ return {
     Array.from(document.querySelectorAll('#tbody tr .cod')).map(e => e.textContent).join(','));
   ok(ordGar === 'GRJ4,GRJ10,GRJ10A,GRJ12', 'Garage: orden numerico del codigo — ' + ordGar);
 
-  // ── Prov. Art. Terminado y Tránsito PS como rubros con su tabla ──
-  await page.click('#rubros .rubro-btn:has-text("Prov. Art. Term.")');
-  await page.waitForFunction(() => /Cabral/.test(document.getElementById('tbody').innerText));
-  ok(true, 'Prov. Art. Terminado: aparece el proveedor con sus cajas/cartones (Cabral)');
-
-  // v2.3.0: Tránsito PS vive en el grupo Sectores, Inyectores en Otros
+  // ── Tránsito PS y Art. Terminado: rubros de Cervantes, grupo Sectores (NO se mudaron a Terceros) ──
   const grupos = await page.evaluate(() => {
     const g = {}; let cur = null;
     document.querySelectorAll('#rubros > div').forEach(d => {
@@ -262,7 +330,7 @@ window.supabase = { createClient: function(){ return {
   });
   ok(grupos['Tránsito PS'] === 'Sectores', 'Tránsito PS está en el grupo Sectores (' + grupos['Tránsito PS'] + ')');
   ok(grupos['Art. Terminado'] === 'Sectores', 'Art. Terminado está en el grupo Sectores (' + grupos['Art. Terminado'] + ')');
-  ok(grupos['Inyectores'] === 'Otros', 'Inyectores está en el grupo Otros (' + grupos['Inyectores'] + ')');
+  ok(!grupos['Inyectores'], 'Inyectores ya no vive en el selector de Cervantes (se mudó a Terceros)');
 
   await page.click('#rubros .rubro-btn:has-text("Tránsito PS")');
   await page.waitForFunction(() => /Laboratorio FAAT → Guazzaroni Patricio/.test(document.getElementById('tbody').innerText));
@@ -273,34 +341,6 @@ window.supabase = { createClient: function(){ return {
   await page.waitForFunction(() => /T1/.test(document.getElementById('tbody').innerText));
   const artRow = await page.$eval('#tbody tr', e => e.textContent.replace(/\s+/g, ' ').trim());
   ok(/T1/.test(artRow) && /36/.test(artRow), 'Art. Terminado: T1 con 36 unidades (3 cajas de 12) — ' + artRow);
-
-  // ── Inyectores: la MP plástica mandada, en KG (no en Uni), sin Caj ni Máximo ──
-  await page.click('#rubros .rubro-btn:has-text("Inyectores")');
-  await page.waitForFunction(() => /Pettofrezza Rafael/.test(document.getElementById('tbody').innerText));
-  const iny = await page.evaluate(() => ({
-    body: document.getElementById('tbody').innerText,
-    thead: document.getElementById('thead').innerText,
-    celdas: Array.from(document.querySelectorAll('#tbody tr')).map(tr => Array.from(tr.cells).map(t => t.textContent.trim()))
-      .filter(c => c[0] === 'Pettofrezza Rafael')[0] || [],
-    kpis: document.getElementById('kpis').innerText,
-  }));
-  ok(!/\bCAJ\b/i.test(iny.thead) && !/MÁXIMO/i.test(iny.thead), 'Inyectores: sin Caj ni Máximo');
-  // columnas: Inyector | Código | Descripción | Kg | Uni | Kg×Uni
-  ok(iny.celdas[0] === 'Pettofrezza Rafael' && iny.celdas[1] === '2405' && iny.celdas[3] === '1.250' && iny.celdas[4] === '—',
-     'Inyectores: 1.250 kg de PP van en Kg y Uni queda vacío — ' + iny.celdas.join(' | '));
-  ok(/Total kg\s*1\.250/i.test(iny.kpis), 'Inyectores: el KPI Total kg suma la MP — ' + iny.kpis.replace(/\s+/g, ' '));
-  ok(/Pat Bet Plast/.test(iny.body), 'Inyectores: aparece Pat Bet Plast aunque nunca se le mandó resina (sin fila en inventario)');
-
-  // ── Prov. Servicio: SIN Máximo, y SIN cajas (insumo de empaque sembrado en 0) ──
-  await page.click('#rubros .rubro-btn:has-text("Prov. Servicio")');
-  await page.waitForFunction(() => /Pedernera Ilario/.test(document.getElementById('tbody').innerText));
-  const ps = await page.evaluate(() => ({
-    thead: document.getElementById('thead').innerText,
-    body: document.getElementById('tbody').innerText,
-  }));
-  ok(!/MÁXIMO/i.test(ps.thead), 'PS: la tabla NO tiene columna Máximo (el maximo vive en el sector procesado)');
-  ok(/A10/.test(ps.body), 'PS: se ve la pieza procesada que el PS cromaria (A10)');
-  ok(!/CAJ1/.test(ps.body), 'PS: NO aparece la caja (insumo de empaque sembrado en 0 en el PS)');
 
   // ── BUSCAR SIN SABER EL RUBRO (v2.1.0) ──
   // 1) el rubro "Todos": una tabla con todo el inventario, con Rubro + Dónde y sin movimientos
@@ -336,13 +376,20 @@ window.supabase = { createClient: function(){ return {
   const salto = await page.evaluate(() => ({ q: document.getElementById('q').value, body: document.getElementById('tbody').innerText }));
   ok(salto.q === 'B5' && /B5/.test(salto.body), 'el salto conserva lo buscado y muestra la fila en el otro rubro');
   ok(await page.locator('#tbody td.max-cell').count() === 0, 'Máximo "—" (B5 en Martin, sin máximo): no se puede tocar');
+  // v2.7.0: Talleristas es de la caja TERCEROS — el salto desde "También en…" (Cervantes) cambió
+  // de pestaña solo, sin que el usuario tocara el selector de planta.
+  ok(await page.evaluate(() => document.getElementById('tabTerceros').classList.contains('active')),
+     'el salto a Talleristas cambió la pestaña a Terceros sola');
 
   // 4) en "Todos", la celda del rubro también lleva a esa pantalla
+  await page.click('#tabCervantes');
   await page.click('#rubros .rubro-btn:has-text("Todos los rubros")');
   await page.waitForFunction(() => document.querySelectorAll('#tbody td.rub-cell').length > 0);
   await page.click('#tbody td.rub-cell:has-text("Talleristas")');
   await page.waitForFunction(() => document.title.indexOf('Talleristas') >= 0);
   ok(true, 'Todos: click en el rubro de la fila abre ese rubro');
+  // de nuevo saltó a Terceros: volver a Cervantes para seguir buscando en "Todos"
+  await page.click('#tabCervantes');
   await page.click('#rubros .rubro-btn:has-text("Todos los rubros")');
   await page.fill('#q', '2405');
   await page.waitForFunction(() => /2405/.test(document.getElementById('tbody').innerText));

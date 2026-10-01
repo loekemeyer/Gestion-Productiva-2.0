@@ -8318,14 +8318,14 @@ rec as (
    group by o.proveedor, oi.componente_id
   having sum(oi.cantidad - coalesce(oi.recibido,0)) > 0
   union all
-  select 'virgilio', 'virgilio', i.componente_id, null::bigint, 0, false, null::text,
-         sum(i.cantidad), 'online_virgilio'
-    from inventario i
-    join ubicacion u on u.id = i.ubicacion_id and u.tipo in ('virgilio','virgilio_sector')
-    join componente c on c.id = i.componente_id
-   where c.sector_id <> 12 and not coalesce(c.discontinuado,false)
-   group by i.componente_id
-  having sum(i.cantidad) <> 0
+  select 'virgilio', 'virgilio', c.id, null::bigint, 0, false, null::text,
+         coalesce((select sum(i.cantidad) from inventario i
+                    join ubicacion u on u.id = i.ubicacion_id
+                   where i.componente_id = c.id and u.tipo in ('virgilio','virgilio_sector')), 0),
+         'online_virgilio'
+    from componente c
+   where c.sector_id in (1, 2, 5, 6, 11) and not coalesce(c.discontinuado, false)
+     and coalesce(c.estado_compra, '') <> 'importado'
   union all
   select 'virgilio', 'virgilio', c.id, null::bigint, 0, false, null::text, null::numeric, null::text
     from componente c
@@ -8387,7 +8387,8 @@ rec_x as (
                          where v.componente_id = r.comp_entrada_id
                            and v.ubicacion_id = ubic_de(r.tipo, r.ref::bigint)) end) ent_uxc_anot,
          (select a.articulos_por_caja from articulo a where a.codigo = r.cod_art) por_caja,
-         (c.estado_compra = 'importado') importado, c.sector_id sec_id, c.proveedor prov
+         (c.estado_compra = 'importado') importado, c.sector_id sec_id, c.proveedor prov,
+         case when r.tipo = 'virgilio' then case c.sector_id when 1 then 'SC' when 2 then 'SP' else 'Insumos' end end grupo
     from rec r
     left join componente c on c.id = r.comp_id
     left join componente ce on ce.id = r.comp_entrada_id
@@ -8475,7 +8476,8 @@ select jsonb_build_object(
              'ent_cod', ent_cod, 'ent_desc', ent_desc, 'ent_uxc_anot', ent_uxc_anot,
              'ent_uxc', ent_uxc, 'ent_kgu', ent_kgu,
              'esperado', esperado, 'esperado_origen', esperado_origen,
-             'importado', coalesce(importado, false), 'sector_id', sec_id, 'proveedor', prov
+             'importado', coalesce(importado, false), 'sector_id', sec_id, 'proveedor', prov,
+             'grupo', grupo
            ) order by cod), '[]'::jsonb) from rec_x),
   'alertas_abiertas', (select count(*) from alerta_recepcion where estado = 'abierta')
 );

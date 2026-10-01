@@ -14171,7 +14171,7 @@ kg, caj, uni"*.
   (0,01596563) da la mitad. 16 pares fleje-matriz difieren > 5 % (0,22× a 14×; IA10 matriz 107 el peor). Un fleje
   que alimenta varias matrices (IA10, IF10, IB3) no puede tener un `kg_x_uni` único por pieza. El desglose de la O.C.
   (`oc_maximo_desglose`) usa `kg_x_uni` y no cierra: **problema abierto en auditoría** + tarea en Proyectos de
-  Planify. [deducido, sin confirmar] el dato bueno es el de la matriz. **→ Arreglado el mismo día, ver §4hq**: la
+  Planify. [deducido, sin confirmar] el dato bueno es el de la matriz. **→ Arreglado el mismo día, ver §4hs**: la
   O.C. delega en `maximo_desglose`.
 - Para tener el kg por artículo hay vista nueva `GP2.v_consumo_fleje_kg_articulo`; `v_consumo_fleje_kg` ahora suma
   desde ella (una sola definición). Se verificó que da las mismas 51 filas que antes.
@@ -14250,8 +14250,111 @@ matrices necesitan rollos de flejes, que se vaya este cartel"*.
   no oculta nada (no se puede saber).
 - Es sólo front: la base ya distinguía los dos casos. `tests/ui/test_op_e2e.js` +6 chequeos (348 sin fleje oculta,
   28 con fleje muestra, ida y vuelta, matriz inexistente, sin stock, bundle viejo). version.js v1.225.1.
+## 4hq. §4ho quedó incompleto: Recibir → Virgilio no mostraba el universo, el diseño no era de tarjetas, y Enviar → Virgilio sobraba referencia (2026-10-01)
 
-## 4hq. O.C.: el desglose del Máximo es Consume · kg/mes · Máximo, y sale de la MISMA cuenta que Stock General (2026-10-01)
+**Thomas, textual, al ver §4ho en vivo:** *"Cambios que no hiciste: en recibir Virgilio no aparecen ni las
+cajas, ni los flejes, ni los plásticos, ni sc, ni sp. Además quiero que el diseño de recepción Virgilio sea
+el mismo que en los otros casos: box que apreto y pongo lo que recibo. Todo lo que sea envío a Virgilio no
+tiene sugerido porque no tiene que haber allá (son cosas que no entran acá) y recepción de Virgilio no tiene
+control. Pero el diseño igual."*
+
+**(1) Por qué Recibir → Virgilio salía vacío.** La CTE `rec` de `GP2.tablet_bundle()` sólo listaba un
+componente de SC/SP/Fleje/Plástico/Caja si YA tenía stock `<> 0` en `virgilio_sector`
+(`having sum(i.cantidad) <> 0`). Como nunca se había mandado nada todavía, la lista salía vacía — sólo se
+veían los importados, que tienen su propia rama sin esa condición. Se cambió a listar TODO el universo del
+sector (mismo `sector_id in (1,2,5,6,11)` que ya usa la rama "virgilio" de la CTE `env`, que es incondicional),
+con `esperado` = stock actual en Virgilio, **0 por defecto** — exactamente el mismo patrón que ya corrige
+§4hl para "el Máximo se toca y muestra de qué se compone": un universo fijo, el stock se superpone encima.
+Se agregó además `grupo` a `rec_x`/`'recibir'` (SC/SP/Insumos), espejo exacto de `env_x`, para que el front
+pudiera agrupar por rubro en Recibir igual que ya hacía en Enviar.
+
+**(2) El diseño.** `vistaTarjetas()` sólo daba tarjetas a Recibir de tallerista/P.S.; `agrupaPorRubro()` y
+`rotuloBloque()` sólo agrupaban en Enviar. Se sacaron esas dos restricciones puntuales — Recibir → Virgilio
+usa EXACTAMENTE el mismo motor de tarjetas/agrupamiento que ya existía (nada nuevo, sólo dejar de excluirlo).
+Confirmado al revisar: toda la lógica de abajo (`refInfo`, `exceso`, `claveDe`, `envaseDoble`, `filaCompleta`,
+el detalle `#detCard`) ya trataba `MODO==="recibir"` en general sin ramificar por tipo de contraparte, así que
+Recibir → Virgilio YA funcionaba de verdad por dentro — sólo se dibujaba como tabla en vez de tarjetas.
+
+**(3) "Sin sugerido" en Enviar → Virgilio.** `refInfo()` nunca devolvía un `sugerido` de verdad para Virgilio
+(ni el campo `sugerido` del backend, que siempre es `null` ahí: la CTE `rep` excluye explícitamente
+`tipo in ('proveedor_servicio','tallerista','proveedor_at')`, Virgilio no entra). Lo que la tarjeta mostraba
+era otra cosa — "Stock Art. Terminado" (cajas listas en Fábrica) o "Stock Cervantes" (online del sector) — pero
+para Thomas es la misma categoría de "número que no corresponde ahí": *"son cosas que no entran acá"*. Se sacó
+el renglón `pc-sug` ENTERO para cualquier tarjeta de Enviar → Virgilio (`sinSugerido = MODO==="enviar" &&
+selCP.tipo==="virgilio"`), sin excepción de sector. Esto REEMPLAZA lo que §4ho daba por bueno ("el terminado
+dice su stock en cajas", "el SP dice el stock de Cervantes"): ya no se muestra ningún renglón de referencia ahí.
+
+**(4) "Recepción de Virgilio no tiene control" — ya estaba bien, se verificó y no se tocó.** `tablet_registrar`
+sólo llama a `crear_recepcion_insumo` (la que dispara el control en kg) cuando `v_tipo='virgilio' AND
+estado_compra='importado'`; el resto (SC/SP/Fleje/Plástico/Caja que vuelven) cae en el `else` genérico, un
+`insert into movimiento` tipo `traslado` sin ningún control. Y el front, al terminar, sólo arma el botón "Ir al
+control en kg" para los ítems con `xi.importado === true` (`GP2CI.urlDe(...)`). O sea: "sin control" para lo
+no importado ya era cierto en el código — lo que faltaba era que el operario pudiera VER esos ítems para
+mandarlos (punto 1) con el diseño correcto (punto 2).
+
+**Medido, antes del fix:** `select jsonb_array_length(stock_sector_bundle(1)->'filas') n_sc, (select
+count(*) from jsonb_array_elements(stock_sector_bundle(1)->'filas') x where (x->>'en_virgilio')::numeric<>0)
+con_stock;` → `n_sc=77, con_stock=0` — ningún componente de SC tenía stock en Virgilio todavía, así que la
+`having` los tapaba a los 77. Con el fix: los 77 (+84 de SP, +134 de Insumos) aparecen, con `esperado=0` en
+la enorme mayoría. `sql/migracion_tablet_virgilio_recibir_universo.sql` (idempotente sobre
+`pg_get_functiondef`, con `raise` si el texto esperado no matchea — este archivo lo tocó otra sesión
+concurrente mismo día, §4ho).
+
+`tests/ui/test_tablet_virgilio.js` reescrito (los 3 bloques de Recibir con grupo "Insumos" partido por
+sector, igual que Enviar; sin referencia en ninguna tarjeta de Enviar → Virgilio; caso nuevo: recibir SOLO lo
+que vuelve —sin ningún importado en el lote— y confirmar que NO redirige a ningún control). Stock General
+v2.7.0 (bloque §4hr, abajo) se tocó el mismo commit por el mismo pedido de Thomas.
+
+## 4hr. Stock General: TERCEROS es una pestaña de verdad, y Virgilio muestra el catálogo completo (2026-10-01)
+
+Mismo mensaje de Thomas que §4hq, segunda mitad: *"no me hiciste la división en stock general de cervantes,
+virgilio y TERCEROS: acá aparece lo que hay bajo la descripción OTROS"* (con una captura del grupo "OTROS"
+—Prov. Servicio, Talleristas, Prov. Art. Term., Inyectores— adentro de la pestaña Cervantes) *"en stock
+general de Virgilio no me aparecen los componentes de los respectivos sectores: cuando entro a SC, SP,
+FLEJES, PLASTICOS Y CAJAS tienen que aparecerme los componentes con stock cero y los aumentos y
+disminuciones de estos stocks en virgilio se van a dar por envíos o recepciones entre cervantes y virgilio
+excepto el caso de bolsas plásticas que directamente se recepciona por recepción insumos y se manda por
+envío a inyectores"*.
+
+**El bug de "Terceros": el comentario de §4hl/v2.6.0 ya DECÍA "Terceros: sin cambios"** — una frase copiada
+de la intención del dueño — **pero nunca se había armado la pestaña.** Prov. Servicio/Talleristas/Prov. Art.
+Term./Inyectores seguían siendo el grupo `"Otros"` DENTRO del selector de rubros de Cervantes, no una caja
+separada. Documentación que adelanta al código: justo el tipo de cosa que §4hq también encontró (sugerido
+mal eliminado antes, control mal supuesto que faltaba). El fix: esos 4 rubros pasan a `planta:"terc"`, con
+una variable de estado nueva (`CAJA`, "cerv"/"terc") que decide qué rubros pinta `pintarRubros()` — **el
+motor de tabla sigue siendo UNO SOLO** (mismo `#rubros`/`#thead`/`#tbody`, mismo botón Ajuste, mismos
+"Últimos movimientos"): Cervantes y Terceros son la MISMA pantalla con una lista de botones distinta, no dos
+pantallas. Un salto de "También en…" o de la celda Rubro de "Todos" (Cervantes) a un rubro de Terceros
+cambia de pestaña solo (`seleccionar()` llama a `irACaja()` antes de render). "Todos los rubros" y los
+Sectores (incluido Tránsito PS y Art. Terminado, que NO son "Otros") se quedan en Cervantes.
+
+**El bug de Virgilio: el `online` de SC/SP/Fleje/Plástico/Caja se leía filtrando `D.inv` por ubicación
+`virgilio_sector`**, así que un componente sin NINGÚN movimiento (todos, hoy: nada se mandó todavía) no
+tenía fila en `D.inv` y no aparecía — el mismo síntoma exacto que §4hq encontró en la Tablet, con la misma
+causa de fondo (condicionar la existencia de la fila al stock en vez de mostrar el universo con 0). La
+diferencia es que acá NO hizo falta tocar SQL: `GP2.stock_sector_bundle(sid)` — la MISMA RPC que ya carga
+Cervantes para ese sector — **ya devuelve, por cada componente del sector, el campo `en_virgilio`**
+(`case when ubic_de('virgilio_sector',sid) is null then null else coalesce(iv.cantidad,0) end`), calculado
+sobre el universo completo de `componente where sector_id=sid`, con 0 por defecto. Sólo faltaba que el front
+lo leyera: `filasDeVir()` pasó de escanear `D.inv` a mapear directo `CACHE[sid].filas`, leyendo `x.online`
+(modo "sector", Bolsas Plásticas) o `x.en_virgilio` (modo "virg", los otros 5) según corresponda. Cero RPC
+nueva — mismo patrón que ya documentaba §4hl ("un universo fijo, el stock se superpone encima").
+
+**Lo que NO se tocó, a propósito:** Thomas pide que los movimientos de Virgilio salgan "por envíos o
+recepciones entre cervantes y virgilio" salvo Bolsas Plásticas — eso YA es así desde §4ho/§4hq
+(`enviar_a_virgilio` / el `else` de `tablet_registrar`) y no necesitaba cambio; esta sección era sólo de
+LECTURA (mostrar lo que hay, incluido el 0).
+
+**Medido, antes del fix:** `select count(*) from "GP2".componente where sector_id=1 and not
+coalesce(discontinuado,false);` → 77, y los 77 con `en_virgilio=0` (nada mandado todavía) — la pantalla
+mostraba 0 filas. Después del fix, los 77 aparecen (y lo mismo para SP/Fleje/Plástico/Caja).
+
+`Stocks General/StockGeneral_GP2.html` v2.7.0, `tests/ui/test_stock_general.js` (pestaña Terceros con sus 4
+rubros exactos y sin encabezado de grupo repetido; SC en Virgilio con el universo completo —A10 con stock
+real + un segundo componente en 0—; el salto "También en…"/"Todos" hacia Talleristas cambia de pestaña
+sola). Mismo commit que §4hq, version.js bumpeado una vez para los dos cambios.
+
+## 4hs. O.C.: el desglose del Máximo es Consume · kg/mes · Máximo, y sale de la MISMA cuenta que Stock General (2026-10-01)
 
 [usuario 01/10, sobre la ventanita del Máximo en Generar OC] *"Venta y consume aparece con los mismos valores.
 Tendria que ser consume, kg/mes y la tercera columna nueva que sea máximo (multiplica kg/mes con la cantidad de
