@@ -1,5 +1,5 @@
 [LOCKS]
-(ninguno)
+LockX | CONOCIMIENTO_GP2.md | Thomas Loekemeyer (claude-remote) | 2026-10-01 | §4id matriz 237 capuchón en 570/542/543
 
 [WAIT QUEUE]
 (vacío)
