@@ -14402,7 +14402,18 @@ sacar el link y el rubro `all` (`oculto:true` en `RUBROS`). Volver a la pestaña
 CON botón (`LAST_KEY` no guarda `all`). Sólo front. `tests/ui/test_stock_general.js` (+5 chequeos,
 falla contra el HTML anterior). version.js v1.228.1 ?v=20261001i.
 
-## 4hv. Inyector = tiene ubicación de inyector, TENGA O NO piezas hoy; la familia de plástico = la matriz (2026-10-01)
+## 4hv. Stock General: botón «Afilado» — ningún sector queda sin botón (2026-10-01)
+
+[usuario, 01/10] *"Hay cosas en sectores sin boton?"* → [dato, `GP2.sector` × `GP2.ubicacion` tipo
+sector] uno solo: **Sector Afilado (4)**, con 1 componente, **Y1 «Cuchilla para Afilar»**, stock 0,
+máximo 41.638 y **ningún movimiento**. Terminado (12) no tiene ubicación de sector (lo de Fábrica se
+ve en «Art. Terminado») y Alambre (13) no tiene ubicación ni componentes. Corrige §4hu: el ejemplo
+«T1 en Terminado» era del fixture del test, no de la base.
+[usuario] *"Sí"* a agregarlo → Stock General v2.9.0: botón **Afilado** en Cervantes, después de En
+Movimiento, con columnas Fabricado / Consumido [deducido: pieza intermedia entre matriz y afilado, sin
+confirmar] y CON Máximo (lo tiene cargado). Sólo front. version.js v1.229.0 ?v=20261001j.
+
+## 4hw. Inyector = tiene ubicación de inyector, TENGA O NO piezas hoy; la familia de plástico = la matriz (2026-10-01)
 
 - [usuario] *"esas familias están determinadas por las matrices que son nuestras que se les mandan a los
   inyectores para que nos provean de las partes plásticas"*. → La matriz es de Loekemeyer y el inyector es
