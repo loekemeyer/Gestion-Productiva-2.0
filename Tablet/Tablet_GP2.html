@@ -6,21 +6,6 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<!-- v1.41.0 (2026-09-30) — LO QUE SE MANDA A VIRGILIO ESPERA SU SÍ (D4, Thomas: "lo que manda Cervantes llega a
-     Gestión Virgilio como aviso Sí/No donde recibe"). enviar_a_virgilio escribe una fila en GP2.envio_virgilio;
-     Virgilio la confirma o la deniega desde GV. La tarjeta de Enviar → Virgilio dice "⏳ Virgilio no confirmó N"
-     (vir_pend) y, si la denegó, "⛔ Denegado por Virgilio: N · motivo (ya volvió al stock)" (vir_deneg, 15 días):
-     el No lo revierte el trigger fn_envio_virgilio_denegado. db/migracion_envio_virgilio.sql. -->
-<!-- v1.40.0 (2026-09-30) — "VIRGILIO" EN ENVIAR Y RECIBIR, Y FÁBRICA PRODUCE EN CAJAS [usuario: "Quiero que
-     en enviar y recibir (versión tablet) me aparezca «Virgilio»"]. (1) Enviar → Talleristas → FÁBRICA: no se
-     le mandan partes, se le MANDA A PRODUCIR cada artículo que arma, en CAJAS (articulo.articulos_por_caja):
-     tablet_registrar llama a fabrica_producir, que descuenta el despiece de la receta de cada sector y suma el
-     terminado en la ubicación nueva "Art. Terminado (Fábrica)". (2) Enviar → VIRGILIO: tres bloques — Art.
-     Terminados (lo que produjo Fábrica, en cajas: baja y ahí termina), Insumos (plástico, fleje —los
-     alambres son fleje— y caja) y SC / SP (pasan al depósito de ese sector en Virgilio). (3) Recibir →
-     Virgilio: los 8 importados SUELTOS (antes rubro Importados de Recepción de Insumos) + lo que vuelve,
-     con los avisos Sí/No de Gestión Virgilio arriba; el importado se registra como el de siempre (remito en
-     unidades) y va directo a su control en kg. Base: db/migracion_tablet_virgilio.sql. -->
 <!-- v1.39.0 (2026-09-30) — EL BOTÓN "CONTROL" CUENTA TAMBIÉN LOS INSUMOS Y SÓLO SE VE EN RECIBIR (Nazareno,
      textual: "Me gustaría que aparezca en el botón de control que está a la izquierda del botón atrás.
      Creo que hoy en día estás mandando los controles solo de p.s. hoy, Tendrías que poner los de
@@ -809,25 +794,6 @@
   .pc-rubro{grid-column:1/-1;font-size:18px;font-weight:900;color:#0b4aa2;letter-spacing:.4px;
     text-transform:uppercase;padding:10px 2px 0;border-top:2px solid #e3e8ee;margin-top:4px}
   .pc-rubro.primero{border-top:0;padding-top:0;margin-top:0}
-  /* AVISOS DE GESTIÓN VIRGILIO (v1.40.0, antes en Recepción de Insumos > Importados): Recibir → Virgilio */
-  .vir-badge{display:inline-block;margin-left:6px;padding:1px 8px;border-radius:999px;background:#d97706;color:#fff;font-size:16px;font-weight:900}
-  #virAvisos{margin:12px 0 0}
-  .vir-aviso{margin:0 0 10px;padding:10px;border:2px solid #d97706;border-radius:8px;background:#fef3c7;color:#78350f;text-align:center}
-  .vir-txt{font-size:19px;font-weight:700;line-height:1.3}
-  .vir-txt b{color:#451a03}
-  .vir-meta{font-size:15px;font-weight:600;color:#92400e;margin-top:4px;overflow-wrap:anywhere}
-  .vir-row{display:flex;gap:8px;justify-content:center;margin-top:8px;flex-wrap:wrap}
-  .vir-b{flex:1 1 90px;min-height:48px;padding:6px 12px;border:2px solid #111;border-radius:8px;background:#fff;color:#111;font-weight:900;font-size:19px;cursor:pointer}
-  .vir-b.vir-si{background:#0a7a2f;border-color:#0a7a2f;color:#fff}
-  .vir-b.vir-no{border-color:#b42318;color:#b42318}
-  .vir-b.vir-no-ok{background:#b42318;border-color:#b42318;color:#fff}
-  .vir-b:disabled{opacity:.45;cursor:not-allowed}
-  .vir-lbl{display:block;font-size:16px;font-weight:800;margin-top:8px;text-align:left}
-  .vir-aviso input.vir-mot{display:block;width:100%;box-sizing:border-box;height:48px;font-size:19px;padding:6px 10px;border:2px solid #d0d7de;border-radius:8px;margin-top:4px}
-  .vir-msg{margin:0 0 10px;padding:10px 14px;border-radius:8px;font-size:18px;font-weight:700}
-  .vir-msg.ok{background:#eefbf1;border:2px solid #0a7a2f;color:#0a3d1a}
-  .vir-msg.bad{background:#ffebee;border:2px solid #b42318;color:#7a1010}
-  .vir-ctrl{display:inline-block;margin-left:6px;padding:6px 14px;background:#0b5cad;color:#fff;border-radius:8px;text-decoration:none;font-weight:900}
   /* Ver O.C. (v1.37.0): arriba del buscador, sólo Enviar a talleristas O.C. / prov. AT */
   .oc-box{margin:12px 0 0;padding:10px 12px;background:#fff8e6;border:2px solid #f0c36d;border-radius:8px}
   .oc-box .btn{min-height:44px;font-size:18px}
@@ -866,10 +832,6 @@
   .parte-card.otro .pc-desc{font-size:15px;color:#555}
   .parte-card.sust{border-color:#0b4aa2;background:#f5f9ff}
   .pc-sust,.det-sust{font-size:15px;font-weight:800;color:#0b4aa2}
-  .pc-vir{display:block;font-size:15px;font-weight:800;color:#78350f}
-  .pc-vir.no{color:#b91c1c}
-  .det-vir{margin-top:6px;font-size:17px;font-weight:800;color:#78350f}
-  .det-vir.no{color:#b91c1c}
   .det-sust{margin-top:6px;font-size:17px}
   /* el catálogo del reemplazo, adentro de la vista de la parte */
   .sust-lista{max-height:52vh;overflow:auto;margin-top:8px;-webkit-overflow-scrolling:touch}
@@ -913,7 +875,7 @@
   <div class="steps">
 
     <div class="modos" id="modos">
-      <button type="button" class="modo-btn" data-modo="enviar">📤 Enviar<small>a tallerista / PS / prov. AT / Virgilio</small></button>
+      <button type="button" class="modo-btn" data-modo="enviar">📤 Enviar<small>a tallerista / PS / prov. AT</small></button>
       <button type="button" class="modo-btn" data-modo="recibir">📥 Recibir<small>lo que traen</small></button>
       <a class="modo-btn" id="modoConteo" href="../Relevamiento/Relevamiento_GP2.html?volver=tablet">🔢 Conteo<small>contar por sector (Relevamientos)</small></a>
     </div>
@@ -953,8 +915,6 @@
           <button class="btn" id="btnVerOC" type="button">📄 Ver O.C.</button>
           <div id="ocBody" class="hidden"></div>
         </div>
-        <!-- Recibir → Virgilio: lo que Gestión Virgilio avisó que te mandó (Sí / No), v1.40.0 -->
-        <div id="virAvisos" class="hidden"><div id="virMsg" class="vir-msg" hidden></div><div id="virLista"></div></div>
         <div class="search-box"><input type="text" id="q" placeholder="Buscar por código o descripción…"></div>
 
         <div id="alertaBox" class="alerta-box hidden"></div>
@@ -1050,16 +1010,14 @@ var TIPOS = {
        los separa para que nadie los confunda con un tallerista a façon. SOLO EN ENVIAR: en Recibir
        siguen adentro de Talleristas, que es donde se les registra lo que traen. */
     { tipo: "tallerista", clave: "tallerista_oc", oc: true,
-      icono: "🧾", titulo: "Talleristas O.C.", sub: "la O.C. la hace Virgilio" },
-    /* VIRGILIO (v1.40.0, 2026-09-30): art. terminados de Fábrica, insumos (plástico, fleje, caja), SC y SP */
-    { tipo: "virgilio",           icono: "🚚", titulo: "Virgilio",               sub: "art. terminados, insumos, SC y SP" }
+      icono: "🧾", titulo: "Talleristas O.C.", sub: "la O.C. la hace Virgilio" }
   ],
   recibir: [
     { tipo: "tallerista",         icono: "👷", titulo: "Talleristas",       sub: "lo que traen armado" },
     { tipo: "proveedor_servicio", icono: "🏭", titulo: "Prov. de servicio", sub: "lo que devuelven procesado" },
     { tipo: "proveedor_insumo",   icono: "🧰", titulo: "Prov. de insumos",  sub: "flejes, cartones, plásticos, garage",
       link: "../StockFlejes/RecepcionInsumos_GP2.html?volver=tablet" },
-    { tipo: "virgilio",           icono: "🚚", titulo: "Virgilio",          sub: "importados y lo que vuelve a Cervantes" }
+    { tipo: "virgilio",           icono: "🚚", titulo: "Virgilio",          sub: "lo que vuelve a Cervantes" }
   ]
 };
 
@@ -1116,22 +1074,6 @@ function claveDe(x){
 }
 function claveCP(c){ return MODO + ":" + c.tipo + ":" + c.ref; }
 
-/* FÁBRICA (tallerista 3, v1.40.0): a Fábrica no se le mandan partes, se le MANDA A PRODUCIR el artículo en
-   cajas (la base descuenta el despiece y suma el terminado en "Art. Terminado (Fábrica)"). */
-function esFabrica(c){ return !!c && c.tipo === "tallerista" && String(c.ref) === "3"; }
-// AVISO A VIRGILIO (D4, 2026-09-30): lo que se mando a Virgilio y todavia espera su Si, y lo que
-// Virgilio DENEGO (ya volvio al stock de aca). Se ve donde se cargo [regla general GP2 <-> GV].
-function virEnvioAvisos(x, cls){
-  if (MODO !== "enviar" || !x || x.tipo !== "virgilio") return "";
-  var h = "", u = Number(x.sec_id) === 12 ? "uni" : unidadDe(x), d = u === "kg" ? 2 : 0;
-  var pend = Number(x.vir_pend || 0), dn = x.vir_deneg;
-  if (pend > 0) h += '<span class="' + cls + '">⏳ Virgilio no confirmó ' + fmt(pend, d) + " " + esc(unidadTxt(pend, u)) + "</span>";
-  if (dn && Number(dn.cantidad) > 0)
-    h += '<span class="' + cls + ' no">⛔ Denegado por Virgilio: ' + fmt(dn.cantidad, d) + " " + esc(unidadTxt(Number(dn.cantidad), u)) +
-         (dn.motivo ? " · " + esc(dn.motivo) : "") + " (ya volvió al stock)</span>";
-  return h;
-}
-
 /* En Enviar tienen sugerido: PS y talleristas (máximo − stock − lo que ya está en el destino) y los
    INYECTORES (bolsas de resina en kg = Σ deficit de las partes plásticas × kg_x_uni). El PROV. DE
    ART. TERMINADO también muestra el renglón, pero su sugerido es SIEMPRE 0: igual que el tallerista
@@ -1161,7 +1103,7 @@ function envSinMemoria(c){
   // en Enviar ya no queda tabla ni memoria en ningun lado [usuario 2026-09-18].
   return MODO === "enviar" && !!c &&
     (c.tipo === "proveedor_servicio" || c.tipo === "inyector" ||
-     c.tipo === "tallerista" || c.tipo === "proveedor_at" || c.tipo === "virgilio");
+     c.tipo === "tallerista" || c.tipo === "proveedor_at");
 }
 function olvidarCargado(c){
   if (envSinMemoria(c)) { BUF.borrar(c.id); delete SUST[c.id]; }
@@ -1209,10 +1151,6 @@ function envaseDe(x){
     // aparte. componente.entrega_unidad / entrega_uni_x (las bolsas de 120 de GRJ5 y GRJ6) no se
     // borran: son el envase con el que se va a contar en el control.
     if (selCP.tipo === "tallerista") return null;
-    // IMPORTADO que trae Virgilio (v1.40.0): si el remito viene en envases (C13 en cajas de 144,
-    // remito_unidad='envase'), se carga en envases y viaja en unidades — igual que en Recepción de Insumos.
-    if (selCP.tipo === "virgilio" && x.importado && Number(x.env_factor) > 0)
-      return { factor: Number(x.env_factor), label: String(x.env_unidad || "envases"), cargaKg: false };
     // ENTREGA de un P.S.: VA EN UNIDADES, SIN ENVASE. Lo que se carga acá es EL REMITO, y el remito
     // del proveedor viene contado en unidades de la pieza; el envase (bolsas, paquetes, cajones) y
     // los kilos son del CONTROL, que es la pantalla siguiente [usuario 2026-09-23, dicho sobre cinco
@@ -1230,9 +1168,7 @@ function envaseDe(x){
   if (MODO !== "enviar") return null;
   // tallerista y prov. de art. terminado: la unidad la trae la PIEZA en el bundle. El prov. AT
   // recibe solo cartones y cajas, asi que para el siempre son PAQUETES.
-  // VIRGILIO (v1.40.0): sólo el art. terminado trae envase (cajas); el resto va en su unidad.
-  if (selCP.tipo === "tallerista" || selCP.tipo === "proveedor_at" ||
-      (selCP.tipo === "virgilio" && x.env_unidad)) {
+  if (selCP.tipo === "tallerista" || selCP.tipo === "proveedor_at") {
     var ft = Number(x.env_factor || 0);
     if (!x.env_unidad || !(ft > 0)) return null;   // pieza sin paquete / sin cajón cargado
     return { factor: ft, label: String(x.env_unidad),
@@ -1433,18 +1369,6 @@ function refInfo(x){
     return { rotulo: rot, txt: fmt(eR, uR === "kg" ? 2 : 0), num: eR, uni: uR,
              nota: faltaEnvase(x), small: "" };
   }
-  // FÁBRICA y VIRGILIO (v1.40.0): el terminado se mira EN CAJAS, en "Art. Terminado (Fábrica)" (la
-  // base lo manda en online_sector). Fábrica no tiene sugerido: se produce lo que se decida.
-  if (Number(x.sec_id) === 12 && (esFabrica(selCP) || selCP.tipo === "virgilio")) {
-    var evt = envaseDe(x), onT = Number(x.online_sector || 0), nT = evt ? onT / evt.factor : onT;
-    return { rotulo: "Stock Art. Terminado", txt: fmt(nT, Math.abs(nT - Math.round(nT)) < 0.005 ? 0 : 2),
-             num: nT, uni: evt ? evt.label : "uni", nota: "", small: "" };
-  }
-  if (selCP.tipo === "virgilio") {
-    var uV = unidadDe(x);
-    return { rotulo: "Stock Cervantes", txt: fmt(x.online_sector, uV === "kg" ? 2 : 0, "—"),
-             num: Number(x.online_sector), uni: uV, nota: "", small: "" };
-  }
   // el cartón de OTRO artículo no tiene sugerido (no es una pieza de este destino, no hay consumo
   // suyo que lo pida): la referencia útil es lo que hay en Cervantes para mandarle.
   if (envConSugerido(x) && !x.sust_de) {
@@ -1550,101 +1474,7 @@ function eqFila(x, q){
     return n != null ? textoEnvases(n, b.label) : "";
   }
   var ev = envaseDe(x);
-  // importado de Virgilio cargado en envases (C13 en cajas de 144): abajo, cuántas unidades son
-  if (MODO === "recibir" && ev && !ev.cargaKg)
-    return Number(q) > 0 ? "= " + fmt(Number(q) * ev.factor, 0) + " unidades" : "";
   return cargaEnKg(x) ? equivEnvase(q, kgPorEnvase(x), ev.label) : null;
-}
-
-/* ================= AVISOS DE GESTIÓN VIRGILIO (v1.40.0) =================
-   Lo que Virgilio recibió con destino Cervantes (GP2.ingreso_virgilio, pendiente). Hasta hoy se contestaban en
-   Recepción de Insumos > Importados; ahora van en Recibir → Virgilio, arriba de las piezas [usuario
-   2026-09-30: "Borra importados dentro de recepcion insumos y ponelo aca en recepción «Virgilio»"].
-   Sí = resolver_ingreso_virgilio(true): recepción de Importado (remito "Virgilio #N") pendiente del control
-   en kg. No = con motivo opcional: Gestión Virgilio vuelve a poner el pedido en viaje («Denegado por
-   Cervantes»). Sin dato no hay aviso: si la RPC falla, la tablet anda igual. */
-var AVISOS_VIR = [], AV_NO = {}, AV_ENVIANDO = {};
-async function cargarAvisosVir(){
-  var lista = [];
-  try {
-    var res = await SB.rpc("ingreso_virgilio_pendientes");
-    if (res && !res.error && Array.isArray(res.data)) lista = res.data;
-  } catch(e){}
-  AVISOS_VIR = lista;
-  if (!selCP) pintarTipos(); else pintarAvisosVir();
-}
-function avisoVirUnidades(a){
-  var u = Number(a.unidades);
-  return u > 0 ? fmt(u, 0) + " unidades" : fmt(a.cantidad, 0) + " " + (a.unidad || "");
-}
-function avisoVirHTML(a){
-  var id = Number(a.id);
-  var cod = a.codigo || a.cod_insumo || a.cod_importado || "";
-  var meta = [a.cod_insumo || a.cod_importado, a.pedido_ref ? "pedido " + a.pedido_ref : "", a.proveedor,
-              a.creado_en ? GP2UI.fechaTsAR(a.creado_en) : ""].filter(Boolean).map(esc).join(" · ");
-  var h = '<div class="vir-aviso" data-vir="' + id + '">' +
-    '<div class="vir-txt">🔔 Gestión Virgilio notificó que recibiste <b>' + esc(avisoVirUnidades(a)) + "</b> de <b>" + esc(cod) + "</b>:</div>" +
-    (meta ? '<div class="vir-meta">' + meta + "</div>" : "");
-  if (AV_ENVIANDO[id]) return h + '<div class="vir-meta">Enviando…</div></div>';
-  if (AV_NO[id]) {
-    return h + '<label class="vir-lbl" for="virMot' + id + '">¿Por qué no llegó? (opcional)</label>' +
-      '<input type="text" id="virMot' + id + '" class="vir-mot" maxlength="200" autocomplete="off">' +
-      '<div class="vir-row"><button type="button" class="vir-b vir-no-ok" data-vir-acc="confirmar-no">Confirmar: NO llegó</button>' +
-      '<button type="button" class="vir-b" data-vir-acc="cancelar">Cancelar</button></div></div>';
-  }
-  var sinComp = !a.componente_id;
-  return h + (sinComp ? '<div class="vir-meta">Este código de Virgilio no está vinculado a ningún código de GP2: avisá para vincularlo.</div>' : "") +
-    '<div class="vir-row"><button type="button" class="vir-b vir-si" data-vir-acc="si"' + (sinComp ? " disabled" : "") + ">Sí</button>" +
-    '<button type="button" class="vir-b vir-no" data-vir-acc="no">No</button></div></div>';
-}
-function pintarAvisosVir(){
-  var box = $("virAvisos"); if (!box) return;
-  var ver = MODO === "recibir" && !!selCP && selCP.tipo === "virgilio";
-  box.classList.toggle("hidden", !ver);
-  if (!ver) return;
-  $("virLista").innerHTML = AVISOS_VIR.map(avisoVirHTML).join("");
-}
-$("virAvisos").addEventListener("click", function(ev){
-  var btn = ev.target.closest && ev.target.closest("button[data-vir-acc]");
-  var av = ev.target.closest && ev.target.closest(".vir-aviso");
-  if (!btn || !av || btn.disabled) return;
-  var id = Number(av.dataset.vir), acc = btn.dataset.virAcc;
-  if (acc === "si") resolverAvisoVir(id, true, null);
-  else if (acc === "no") { AV_NO[id] = true; pintarAvisosVir(); var inp = document.getElementById("virMot" + id); if (inp) inp.focus(); }
-  else if (acc === "cancelar") { delete AV_NO[id]; pintarAvisosVir(); }
-  else if (acc === "confirmar-no") { var m = document.getElementById("virMot" + id); resolverAvisoVir(id, false, m ? m.value : ""); }
-});
-async function resolverAvisoVir(id, acepta, motivo){
-  if (AV_ENVIANDO[id]) return;
-  var a = AVISOS_VIR.filter(function(x){ return Number(x.id) === id; })[0] || {};
-  AV_ENVIANDO[id] = true; pintarAvisosVir();
-  var box = $("virMsg");
-  try {
-    var res = await SB.rpc("resolver_ingreso_virgilio", { p_id: id, p_acepta: !!acepta,
-      p_motivo: acepta ? null : (String(motivo || "").trim() || null) });
-    if (res.error) throw res.error;
-    var d = res.data || {};
-    AVISOS_VIR = AVISOS_VIR.filter(function(x){ return Number(x.id) !== id; });
-    delete AV_NO[id];
-    if (acepta) {
-      var url = window.GP2CI ? GP2CI.urlDe({ sector_id: d.sector_id != null ? d.sector_id : a.sector_id, proveedor: d.proveedor || a.comp_proveedor }) : null;
-      box.className = "vir-msg ok";
-      box.innerHTML = "✓ Entraron <b>" + esc(fmt(d.unidades, 0)) + " u</b> de <b>" + esc(d.codigo || a.codigo || "") + "</b> (remito " + esc(d.remito || "") + "). Falta el control en kg" +
-        (url ? ': <a class="vir-ctrl" href="../StockFlejes/' + esc(url) + '">Ir al control →</a>' : ".");
-    } else {
-      box.className = "vir-msg " + (d.virgilio_revertido ? "ok" : "bad");
-      box.innerHTML = d.virgilio_revertido
-        ? "✓ Listo: en Gestión Virgilio las " + esc(avisoVirUnidades(a)) + " vuelven a figurar en viaje, con «Denegado por Cervantes»."
-        : "⚠ Quedó denegado, pero Gestión Virgilio no pudo volver a ponerlo en viaje" + (d.virgilio_error ? " (" + esc(d.virgilio_error) + ")" : "") + ": avisale a Virgilio.";
-    }
-  } catch(e) {
-    box.className = "vir-msg bad";
-    box.textContent = "No se pudo guardar: " + ((e && e.message) || e);
-  } finally {
-    delete AV_ENVIANDO[id];
-    box.hidden = false;
-    pintarAvisosVir();
-  }
 }
 
 /* ---------- carga ---------- */
@@ -1658,7 +1488,6 @@ async function cargar(){
     var guardado = null;
     try { guardado = localStorage.getItem("gp2_tablet_modo"); } catch(e){}
     setModo(m || guardado || "enviar");
-    cargarAvisosVir();
   } catch(e){
     $("status").innerHTML = '<span style="color:#b91c1c">Error: ' + esc(e.message || e) + "</span>";
   }
@@ -1681,7 +1510,7 @@ function setModo(m){
    insumos, que tiene su propia pantalla con rubros, pesaje y cruce contra OC. */
 function cpsDelModo(){
   return (D.contrapartes || []).filter(function(c){
-    if (MODO === "enviar") return c.tipo !== "proveedor_insumo" && Number(c.n_env) > 0;
+    if (MODO === "enviar") return c.tipo !== "virgilio" && c.tipo !== "proveedor_insumo" && Number(c.n_env) > 0;
     return c.tipo !== "proveedor_at" && c.tipo !== "proveedor_insumo" && Number(c.n_rec) > 0;
   });
 }
@@ -1740,11 +1569,8 @@ function pintarTipos(){
     // el número sin la palabra "contraparte": el título del tipo ya dice qué son. NO se muestra
     // "N sin registrar" [usuario 2026-09-16]: desde que Enviar precarga el sugerido, abrir una
     // contraparte ya llenaba el buffer y el cartelito contaba destinos sin trabajo real.
-    b.innerHTML = '<span class="ti">' + t.icono + " " + esc(t.titulo) +
-      // los avisos de Gestión Virgilio sin contestar se ven desde la baldosa (v1.40.0)
-      (MODO === "recibir" && t.tipo === "virgilio" && AVISOS_VIR.length
-        ? '<span class="vir-badge" title="Gestión Virgilio avisó que te mandó mercadería">🔔 ' + AVISOS_VIR.length + "</span>" : "") +
-      "</span><small>" + esc(t.sub) + (lista ? " · " + lista.length : "") + "</small>";
+    b.innerHTML = '<span class="ti">' + t.icono + " " + esc(t.titulo) + "</span><small>" + esc(t.sub) +
+      (lista ? " · " + lista.length : "") + "</small>";
     if (!t.link) b.addEventListener("click", function(){ elegirTipo(t); });
     g.appendChild(b);
   });
@@ -1811,18 +1637,7 @@ var RUBRO_CARTON = rubroDe({ sector: "Sector Cartón" });
 /* v1.38.0 (2026-09-28): los CUATRO destinos de Enviar van por rubro, no solo el tallerista
    [usuario: "Así como me ordenaste por sector el envío a talleristas quiero que me ordenes prov de
    art terminado, proveedores de servicio e inyectores"]. Mismo RUBRO_ORDEN, mismo rótulo. */
-var TIPOS_POR_RUBRO = { tallerista: 1, proveedor_servicio: 1, proveedor_at: 1, inyector: 1, virgilio: 1 };
-/* VIRGILIO (v1.40.0): tres bloques en el orden del pedido [usuario 2026-09-30: "1) art terminados …
-   2) Insumos: Plásticos, Flejes y Cajas 3) SC y SP"]. Insumos se parte por sector adentro del bloque. */
-var GRUPOS_VIRG = ["Art. Terminados", "Insumos", "SC", "SP"];
-function grupoVirg(x){ var i = GRUPOS_VIRG.indexOf(String((x && x.grupo) || "")); return i < 0 ? GRUPOS_VIRG.length : i; }
-function rotuloBloque(x){
-  if (selCP && selCP.tipo === "virgilio" && MODO === "enviar") {
-    var g = String(x.grupo || "Otros");
-    return g === "Insumos" ? "Insumos · " + String(x.sector || "").replace(/^Sector\s+/i, "") : g;
-  }
-  return String(x.sector || "Sin sector");
-}
+var TIPOS_POR_RUBRO = { tallerista: 1, proveedor_servicio: 1, proveedor_at: 1, inyector: 1 };
 function agrupaPorRubro(c){ return MODO === "enviar" && !!c && !!TIPOS_POR_RUBRO[c.tipo]; }
 
 /* ---------- piezas de la contraparte elegida ---------- */
@@ -1841,13 +1656,6 @@ function piezasDe(c){
   }
   var porRubro = agrupaPorRubro(c);
   return arr.sort(function(a,b){
-    if (porRubro && c.tipo === "virgilio") {
-      var ga = grupoVirg(a), gb = grupoVirg(b);
-      if (ga !== gb) return ga - gb;
-      var sva = String(a.sector || ""), svb = String(b.sector || "");
-      if (sva !== svb) return sva.localeCompare(svb);
-      return String(a.cod).localeCompare(String(b.cod), "es", { numeric: true });
-    }
     if (porRubro) {
       var ra = rubroDe(a), rb = rubroDe(b);
       if (ra !== rb) return ra - rb;
@@ -1870,9 +1678,7 @@ function elegir(c){
   // sugerido es 0 porque el pedido no sale del máximo de la casa sino de una O.C. de Gestión
   // Virgilio que GP2 no lee, y sin ese renglón un 0 se lee como "no hay que mandarle nada"
   // [usuario 2026-09-24: el prov. AT va igual que talleristas O.C.].
-  $("fase1Title").textContent = c.nombre + (MODO === "enviar" && (c.oc || c.tipo === "proveedor_at") ? " · O.C. Virgilio" : "") +
-    (MODO === "enviar" && esFabrica(c) ? " · mandar a producir (cajas)" : "");
-  pintarAvisosVir();
+  $("fase1Title").textContent = c.nombre + (MODO === "enviar" && (c.oc || c.tipo === "proveedor_at") ? " · O.C. Virgilio" : "");
   ocPrepararBox(c);
   E.mostrarFase(1);
   var esRec = MODO === "recibir";
@@ -2054,7 +1860,7 @@ function renderCards(){
   var enBloques = agrupaPorRubro(selCP), ultRubro = null, ultCarton = null;
   arr.forEach(function(x){
     if (enBloques) {
-      var srub = rotuloBloque(x);
+      var srub = String(x.sector || "Sin sector");
       if (srub !== ultRubro) {
         var h = document.createElement("div");
         h.className = "pc-rubro" + (ultRubro === null ? " primero" : "");
@@ -2081,7 +1887,6 @@ function renderCards(){
         "</span>" +
       // el cartón de otro artículo: lo primero que hay que ver es a cuál reemplaza
       (x.sust_de ? '<span class="pc-sust">↔ en lugar de ' + esc(x.sust_cod) + "</span>" : "") +
-      virEnvioAvisos(x, "pc-vir") +
       '<span class="pc-sug"><span class="pc-rot">' + esc(si.rotulo) + "</span> " + si.txt +
         (si.uni ? " " + esc(unidadTxt(si.num, si.uni)) : "") +
         (si.nota ? '<span class="pc-nota"> · ' + esc(si.nota) + "</span>" : "") + "</span>" +
@@ -2137,8 +1942,7 @@ function renderTabla(){
     var cargaKgFila = cargaEnKg(x);
     // el cartelito de unidad dice con qué se carga la fila: por peso siempre kg, aunque la pieza
     // sea de unidades (a Julio se le manda pesado; a Ester y Guazzaroni también).
-    var uCarga = (MODO === "enviar" && ((pesoEnvio() && bultoDe(x)) || cargaKgFila)) ? "kg"
-               : MODO === "recibir" ? uniCarga(x) : u;
+    var uCarga = (MODO === "enviar" && ((pesoEnvio() && bultoDe(x)) || cargaKgFila)) ? "kg" : u;
     var pieza = '<td><span class="cod">' + esc(x.cod) + "</span>" + uniTag(uCarga) +
       '<br><small class="sub">' + sub + "</small>" +
       (ex > 0 ? '<br><span class="demas-tag">⚠ ' + fmt(ex, u === "kg" ? 2 : 0) + " de más</span>" : "") + "</td>";
@@ -2183,7 +1987,7 @@ function renderTabla(){
    [usuario 2026-09-21]. El catálogo lo trae la base al tocar el botón y no en el bundle: son ~190
    filas que el 99% de los envíos no mira. Se cachea por contraparte mientras dure la pantalla. */
 function puedeSustituir(){
-  return MODO === "enviar" && !!selCP && !esFabrica(selCP) &&
+  return MODO === "enviar" && !!selCP &&
     (selCP.tipo === "tallerista" || selCP.tipo === "proveedor_at");
 }
 
@@ -2323,12 +2127,10 @@ function pintarDetalle(){
     // cartón de otro artículo: a cuál reemplaza es lo que hay que leer antes de cargar la cantidad
     (x.sust_de ? '<div class="det-sust">↔ en lugar de <b>' + esc(x.sust_cod) +
                  "</b> · pegale la etiqueta del artículo que corresponde</div>" : "") +
-    virEnvioAvisos(x, "det-vir").replace(/<span/g, "<div").replace(/<\/span>/g, "</div>") +
     // en Recibir el rotulo lo decide rotuloRef() (stock del tallerista / del P.S.), asi que se
     // usa el que ya vino en refInfo en vez de escribirlo otra vez aca.
     '<div class="det-lbl">' + (si.rotulo === "Sugerido" ? "Sugerido a enviar"
-                              : MODO === "recibir" ? si.rotulo
-                              : si.rotulo === "Online sector" ? "Online en el sector" : si.rotulo) + "</div>" +
+                              : MODO === "recibir" ? si.rotulo : "Online en el sector") + "</div>" +
     '<div class="det-sug">' + si.txt + (si.uni ? " " + esc(unidadTxt(si.num, si.uni)) : "") +
       (si.nota ? "<small>" + esc(si.nota) + "</small>" : "") + "</div>" +
     // con envase Y kg se anotan las DOS, y primero el envase: es lo que el operario cuenta
@@ -2345,7 +2147,7 @@ function pintarDetalle(){
               esc(it.q || "") + '"><span class="det-uni">kg</span></div></div>' +
         "</div>" +
         '<small class="det-eq' + (chk.mal ? " mal" : "") + '">' + esc(chk.txt) + "</small>"
-      : '<div class="det-lbl">' + (MODO === "recibir" ? "Cantidad" : esFabrica(selCP) ? "Cantidad a producir" : "Cantidad a enviar") + "</div>" +
+      : '<div class="det-lbl">' + (MODO === "recibir" ? "Cantidad" : "Cantidad a enviar") + "</div>" +
         '<div><input class="det-in" data-f="q" inputmode="' +
           ((b || ckg) ? "decimal" : inputmodeDe(unidadDe(x))) + '" value="' + esc(it.q || "") + '">' +
           '<span class="det-uni">' + esc(uc) + "</span>" +
@@ -2586,7 +2388,7 @@ $("btnEnviar").addEventListener("click", async function(){
     var xs = meta[o.k] || {};
     return lineaResumen(o) + (xs.sust_de ? "  ↔ EN LUGAR DE " + xs.sust_cod : "");
   });
-  var verbo = MODO === "enviar" ? (esFabrica(selCP) ? "Producir en " : "Enviar a ") : "Recibir de ";
+  var verbo = MODO === "enviar" ? "Enviar a " : "Recibir de ";
   if (!confirm(verbo + selCP.nombre + " (" + fecha + "):\n\n" + resumen.join("\n") +
       (nEx ? "\n\n⚠ " + nEx + " pieza" + (nEx === 1 ? "" : "s") + " con más de lo esperado: se registra igual y queda la alerta." : ""))) return;
 
@@ -2600,14 +2402,14 @@ $("btnEnviar").addEventListener("click", async function(){
     delete SUST[selCP.id];          // los "otro cartón" ya registrados no siguen en la grilla
     var res = r.data || {};
     var al = res.alertas || [];
-    $("successTitle").textContent = MODO === "enviar" ? (esFabrica(selCP) ? "✓ Producido" : "✓ Enviado") : "✓ Recibido";
+    $("successTitle").textContent = MODO === "enviar" ? "✓ Enviado" : "✓ Recibido";
     $("successAlertas").innerHTML = al.length
       ? '<div class="alerta-box">⚠ <b>Quedó anotado para revisar</b>: ' + al.map(function(a){
           return esc(a.cod) + " (" + fmt(a.recibido, 0) + " contra " + fmt(a.esperado, 0) + " esperados)";
         }).join(", ") + ". La recepción se registró igual.</div>"
       : "";
     E.mostrarExito((res.n || items.length) + " pieza" + ((res.n || items.length) === 1 ? "" : "s") + " · " +
-      (MODO === "enviar" ? (esFabrica(selCP) ? "producidas en " : "enviadas a ") : "recibidas de ") + (res.contraparte || selCP.nombre) + " · " + fecha);
+      (MODO === "enviar" ? "enviadas a " : "recibidas de ") + (res.contraparte || selCP.nombre) + " · " + fecha);
     // DESPUÉS DEL REMITO VIENE EL CONTROL [usuario 2026-09-21: "Después de recepcionar tengo que ir
     // al control"]. Lo que se acaba de registrar es lo que dice el remito; lo que se contó de verdad
     // se carga en ControlEntregaPS_GP2.html, que es la que pisa la cantidad. Se va DIRECTO, sin
@@ -2620,22 +2422,6 @@ $("btnEnviar").addEventListener("click", async function(){
         '<div class="row" style="justify-content:center;margin-top:10px">' +
         '<a class="btn btn-primary" href="ControlEntregaPS_GP2.html"' +
         ' style="display:inline-flex;align-items:center;text-decoration:none">Ir al control →</a></div>';
-    }
-    // IMPORTADOS DE VIRGILIO (v1.40.0): remito en unidades y después el control en kg, igual que cuando se
-    // cargaban en Recepción de Insumos [Thomas 2026-09-28]. La pantalla la dice GP2CI; con una sola se va
-    // directo (salvo alerta), con varias quedan los botones.
-    if (MODO === "recibir" && selCP.tipo === "virgilio") {
-      var urls = [];
-      items.forEach(function(o){
-        var xi = meta[o.k] || {};
-        var u2 = xi.importado && window.GP2CI ? GP2CI.urlDe({ sector_id: xi.sector_id, proveedor: xi.proveedor }) : null;
-        if (u2 && urls.indexOf(u2) < 0) urls.push(u2);
-      });
-      if (urls.length === 1 && !al.length) { window.location.href = "../StockFlejes/" + urls[0]; return; }
-      if (urls.length)
-        $("successAlertas").innerHTML += '<div class="row" style="justify-content:center;margin-top:10px;gap:8px;flex-wrap:wrap">' +
-          urls.map(function(u3){ return '<a class="btn btn-primary" href="../StockFlejes/' + esc(u3) +
-            '" style="display:inline-flex;align-items:center;text-decoration:none">Ir al control en kg →</a>'; }).join("") + "</div>";
     }
     try { var r2 = await SB.rpc("tablet_bundle"); if (!r2.error && r2.data) D = r2.data; } catch(e2){}
   } catch(err){

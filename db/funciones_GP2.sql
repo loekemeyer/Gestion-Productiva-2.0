@@ -1,7 +1,7 @@
 -- =====================================================================
 -- FUNCIONES del schema GP2 — export automatico 2026-09-28 (pg_get_functiondef, exacto)
 -- Fuente de verdad: Supabase (hrxfctzncixxqmpfhskv). Este archivo es respaldo/referencia.
--- 168 funciones. Los GRANT/REVOKE no estan aca: EXECUTE para anon solo en las RPC de pantalla (ver db/README.md).
+-- 167 funciones. Los GRANT/REVOKE no estan aca: EXECUTE para anon solo en las RPC de pantalla (ver db/README.md).
 -- Desde 2026-09-28 (seguridad fase B) las 62 RPC que escriben llaman a "GP2"._exigir_autorizado() y NO las ejecuta anon.
 -- =====================================================================
 
@@ -3093,69 +3093,6 @@ select jsonb_build_object(
 $function$
 ;
 
--- ---------- enviar_a_virgilio ----------
-CREATE OR REPLACE FUNCTION "GP2".enviar_a_virgilio(p_comp_id bigint, p_cantidad numeric, p_unidad text DEFAULT NULL::text, p_fecha timestamp with time zone DEFAULT now(), p_nota text DEFAULT NULL::text)
- RETURNS jsonb
- LANGUAGE plpgsql
- SECURITY DEFINER
- SET search_path TO 'GP2'
-AS $function$
-declare v_sec bigint; v_um text; v_cod text; v_u text; v_o bigint; v_d bigint; v_mov bigint;
-        v_f timestamptz := coalesce(p_fecha, now()); v_desc text; v_env bigint;
-        -- quien lo manda (el mail de la sesion de la tablet), para el aviso que ve Virgilio
-        v_por text := coalesce(nullif(lower(nullif(current_setting('request.jwt.claims', true), '')::jsonb->>'email'), ''), current_user);
-begin
-  perform "GP2"._exigir_autorizado();
-  if p_cantidad is null or p_cantidad <= 0 then raise exception 'La cantidad debe ser mayor a 0'; end if;
-  select sector_id, unidad_medida, codigo, descripcion into v_sec, v_um, v_cod, v_desc from componente where id = p_comp_id;
-  if v_sec is null then raise exception 'El componente % no existe', p_comp_id; end if;
-  v_u := case when lower(coalesce(p_unidad, v_um, 'uni')) = 'kg' then 'kg' else 'uni' end;
-  if v_sec = 12 then
-    -- ART. TERMINADO de Fábrica: sale de "Art. Terminado (Fábrica)" y ahí termina el proceso
-    if not exists (select 1 from articulo a join ruta r on r.articulo_id = a.id
-                     join ruta_paso rp on rp.ruta_id = r.id and rp.tallerista_id = 3
-                    where upper(a.codigo) = upper(v_cod)) then
-      raise exception 'El artículo % no lo arma Fábrica: no sale de acá.', v_cod;
-    end if;
-    v_o := ubic_de('art_terminado', 3);
-    insert into movimiento(fecha, tipo_mov, comp_id, ubic_origen_id, ubic_destino_id, cantidad,
-                           unidad_origen, unidad_destino, nota)
-    values (v_f, 'recepcion_virgilio', p_comp_id, v_o, null, p_cantidad, 'uni', 'uni',
-            coalesce(p_nota, 'Enviado a Virgilio (tablet)'))
-    returning id into v_mov;
-    -- AVISO A VIRGILIO (D4, 2026-09-30): queda en la frontera hasta que Virgilio diga Si / No
-    -- donde recibe. Si dice No, el trigger fn_envio_virgilio_denegado lo devuelve aca.
-    insert into envio_virgilio(creado_por, componente_id, codigo, descripcion, grupo, cantidad, unidad,
-                               cajas, articulos_por_caja, movimiento_id)
-    select v_por, p_comp_id, v_cod, coalesce(a.descripcion, v_desc), 'terminado', p_cantidad, 'uni',
-           case when a.articulos_por_caja > 0 then round(p_cantidad / a.articulos_por_caja, 4) end,
-           a.articulos_por_caja, v_mov
-      from (select 1) x left join articulo a on upper(a.codigo) = upper(v_cod)
-     limit 1
-    returning id into v_env;
-    return jsonb_build_object('ok', true, 'movimiento_id', v_mov, 'destino', 'virgilio', 'envio_id', v_env,
-      'stock_art_terminado', (select cantidad from inventario where componente_id = p_comp_id and ubicacion_id = v_o));
-  end if;
-  if v_sec not in (1, 2, 5, 6, 11) then
-    raise exception '% : del sector % no se manda a Virgilio desde la tablet (solo SC, SP, fleje, plástico y caja).', v_cod, v_sec;
-  end if;
-  v_o := ubic_de('sector', v_sec);
-  v_d := ubic_de('virgilio_sector', v_sec);
-  if v_o is null or v_d is null then raise exception '% : falta la ubicación del sector o su depósito en Virgilio.', v_cod; end if;
-  insert into movimiento(fecha, tipo_mov, comp_id, ubic_origen_id, ubic_destino_id, cantidad,
-                         unidad_origen, unidad_destino, nota)
-  values (v_f, 'traslado', p_comp_id, v_o, v_d, p_cantidad, v_u, v_u, coalesce(p_nota, 'Enviado a Virgilio (tablet)'))
-  returning id into v_mov;
-  insert into envio_virgilio(creado_por, componente_id, codigo, descripcion, grupo, cantidad, unidad, movimiento_id)
-  values (v_por, p_comp_id, v_cod, v_desc, case v_sec when 1 then 'sc' when 2 then 'sp' else 'insumo' end,
-          p_cantidad, v_u, v_mov)
-  returning id into v_env;
-  return jsonb_build_object('ok', true, 'movimiento_id', v_mov, 'destino', 'virgilio_sector', 'envio_id', v_env,
-    'stock_cervantes', (select cantidad from inventario where componente_id = p_comp_id and ubicacion_id = v_o),
-    'stock_virgilio',  (select cantidad from inventario where componente_id = p_comp_id and ubicacion_id = v_d));
-end $function$
-;
-
 -- ---------- enviar_material_inyector ----------
 CREATE OR REPLACE FUNCTION "GP2".enviar_material_inyector(p_proveedor text, p_comp_id bigint, p_kg numeric, p_fecha timestamp with time zone DEFAULT now(), p_nota text DEFAULT NULL::text)
  RETURNS jsonb
@@ -3349,57 +3286,6 @@ select jsonb_build_object(
         from fila group by proveedor_id) z)
 );
 $function$
-;
-
--- ---------- fabrica_producir ----------
-CREATE OR REPLACE FUNCTION "GP2".fabrica_producir(p_comp_id bigint, p_cantidad numeric, p_fecha timestamp with time zone DEFAULT now(), p_nota text DEFAULT NULL::text)
- RETURNS jsonb
- LANGUAGE plpgsql
- SECURITY DEFINER
- SET search_path TO 'GP2'
-AS $function$
-declare v_art record; v_ubic bigint; v_mov bigint; pz record; v_q numeric; v_o bigint;
-        v_cons jsonb := '[]'::jsonb; v_f timestamptz := coalesce(p_fecha, now());
-begin
-  perform "GP2"._exigir_autorizado();
-  if p_cantidad is null or p_cantidad <= 0 then raise exception 'La cantidad debe ser mayor a 0'; end if;
-  select a.id, a.codigo, a.articulos_por_caja uxc into v_art
-    from componente c join articulo a on upper(a.codigo) = upper(c.codigo)
-   where c.id = p_comp_id and c.sector_id = 12
-   limit 1;
-  if v_art.id is null then raise exception 'El componente % no es un artículo terminado', p_comp_id; end if;
-  -- (alias ru, no r: con un record r declarado plpgsql lo toma por la variable)
-  if not exists (select 1 from ruta ru join ruta_paso rp on rp.ruta_id = ru.id
-                  where ru.articulo_id = v_art.id and rp.tallerista_id = 3) then
-    raise exception 'El artículo % no lo arma Fábrica', v_art.codigo;
-  end if;
-  v_ubic := ubic_de('art_terminado', 3);
-  if v_ubic is null then raise exception 'Falta la ubicación "Art. Terminado (Fábrica)"'; end if;
-  insert into movimiento(fecha, tipo_mov, comp_id, ubic_origen_id, ubic_destino_id, cantidad,
-                         unidad_origen, unidad_destino, nota)
-  values (v_f, 'armado_fabrica', p_comp_id, null, v_ubic, p_cantidad, 'uni', 'uni',
-          coalesce(p_nota, 'Producido en Fábrica (tablet)'))
-  returning id into v_mov;
-  -- el DESPIECE: cada pieza de la receta sale de la ubicación de su sector (hijos del armado)
-  for pz in select ac.componente_id cid, ac.cantidad q, c.codigo, c.unidad_medida um
-             from articulo_componente ac join componente c on c.id = ac.componente_id
-            where ac.articulo_id = v_art.id order by c.sector_id, c.codigo loop
-    v_q := round(pz.q * p_cantidad, 6);
-    if v_q <= 0 then continue; end if;
-    v_o := ubic_de_componente(pz.cid);
-    if v_o is null then raise exception 'La pieza % no tiene ubicación de la que descontar', pz.codigo; end if;
-    insert into movimiento(fecha, tipo_mov, comp_id, ubic_origen_id, ubic_destino_id, cantidad,
-                           unidad_origen, unidad_destino, nota, mov_padre_id)
-    values (v_f, 'consumo_prod', pz.cid, v_o, null, v_q,
-            case when lower(coalesce(pz.um, '')) = 'kg' then 'kg' else 'uni' end, null,
-            'Despiece de ' || v_art.codigo || ' (Fábrica)', v_mov);
-    v_cons := v_cons || jsonb_build_object('cod', pz.codigo, 'cantidad', v_q);
-  end loop;
-  return jsonb_build_object('ok', true, 'movimiento_id', v_mov, 'articulo', v_art.codigo,
-    'unidades', p_cantidad, 'cajas', case when v_art.uxc > 0 then round(p_cantidad / v_art.uxc, 2) end,
-    'consumos', v_cons,
-    'stock_art_terminado', (select cantidad from inventario where componente_id = p_comp_id and ubicacion_id = v_ubic));
-end $function$
 ;
 
 -- ---------- fabricar_stock ----------
@@ -3896,11 +3782,6 @@ begin
       values (NEW.id, NEW."Fecha", NEW."Nombre_Tall", NEW."Cod", NEW."Cajas", 'contraparte sin resolver');
       return NEW;
     end if;
-    -- FABRICA (interno, LOG/ FABR) desde 2026-09-30: el despiece lo descuenta "Producir en Fabrica" de
-    -- la tablet (fabrica_producir) y el terminado sale con Enviar -> Virgilio. Si el espejo lo
-    -- descontara otra vez cuando Virgilio recibe, el despiece saldria DOS veces. (El trigger esta
-    -- apagado; esto es para el dia que se prenda.)
-    if v_tipo = 'interno' then return NEW; end if;
 
     -- articulo: exacto primero, despues sin ceros de adelante en ambos lados
     select a.id, a.articulos_por_caja into v_art from articulo a
@@ -3929,46 +3810,6 @@ begin
     values (NEW.id, NEW."Fecha", NEW."Nombre_Tall", NEW."Cod", NEW."Cajas", 'error: '||sqlerrm);
   end;
   return NEW;
-end $function$
-;
-
--- ---------- fn_envio_virgilio_denegado ----------
-CREATE OR REPLACE FUNCTION "GP2".fn_envio_virgilio_denegado()
- RETURNS trigger
- LANGUAGE plpgsql
- SECURITY DEFINER
- SET search_path TO 'GP2'
-AS $function$
-declare v_sec bigint; v_o bigint; v_d bigint; v_mov bigint;
-begin
-  if not (old.estado = 'pendiente' and new.estado = 'denegado') then return new; end if;
-  begin
-    if new.grupo = 'terminado' then
-      v_d := ubic_de('art_terminado', 3);
-      insert into movimiento(fecha, tipo_mov, comp_id, ubic_origen_id, ubic_destino_id, cantidad,
-                             unidad_origen, unidad_destino, nota)
-      values (now(), 'ajuste', new.componente_id, null, v_d, new.cantidad, 'uni', 'uni',
-              'Denegado por Virgilio (envío #' || new.id || ')')
-      returning id into v_mov;
-    else
-      select sector_id into v_sec from componente where id = new.componente_id;
-      v_o := ubic_de('virgilio_sector', v_sec);
-      v_d := ubic_de('sector', v_sec);
-      if v_o is null or v_d is null then raise exception 'falta la ubicacion del sector % o su deposito en Virgilio', v_sec; end if;
-      insert into movimiento(fecha, tipo_mov, comp_id, ubic_origen_id, ubic_destino_id, cantidad,
-                             unidad_origen, unidad_destino, nota)
-      values (now(), 'traslado', new.componente_id, v_o, v_d, new.cantidad, new.unidad, new.unidad,
-              'Denegado por Virgilio (envío #' || new.id || ')')
-      returning id into v_mov;
-    end if;
-    new.revertido_en := now();
-    new.revertido_movimiento_id := v_mov;
-    new.revertido_error := null;
-  exception when others then
-    -- el No de Virgilio NO se frena: queda anotado y a la vista (v_envio_virgilio_sin_revertir)
-    new.revertido_error := sqlerrm;
-  end;
-  return new;
 end $function$
 ;
 
@@ -7854,14 +7695,6 @@ with pa as (
     join ruta_paso p2 on p2.ruta_id = p1.ruta_id and p2.orden = p1.orden + 1
    where p1.tipo_paso = 'proveedor_servicio' and p2.tipo_paso = 'proveedor_servicio'
      and p1.comp_salida_id is not null and p2.comp_entrada_id = p1.comp_salida_id
-), fab as (
-  -- ART. TERMINADO de Fabrica (2026-09-30): lo que produjo y todavia no mando a Virgilio
-  select distinct a.codigo, a.articulos_por_caja uxc, c.id comp_id
-    from articulo a
-    join ruta r on r.articulo_id = a.id
-    join ruta_paso rp on rp.ruta_id = r.id and rp.tallerista_id = 3
-    join componente c on upper(c.codigo) = upper(a.codigo) and c.sector_id = 12
-   where not a.discontinuado and not coalesce(c.discontinuado, false)
 ), tr as (
   select pr.comp_id, ps1.nombre ps1_nombre, ps2.nombre ps2_nombre,
          coalesce((select sum(m._delta_dest) from movimiento m
@@ -7900,24 +7733,6 @@ select jsonb_build_object(
   'transito', coalesce((select jsonb_agg(jsonb_build_object(
       'cid', comp_id, 'ps1', ps1_nombre, 'ps2', ps2_nombre, 'cant', cant)
       order by ps1_nombre, ps2_nombre, comp_id) from tr), '[]'::jsonb),
-  'art_terminado', jsonb_build_object(
-      'ubic', "GP2".ubic_de('art_terminado', 3),
-      'filas', coalesce((select jsonb_agg(jsonb_build_object(
-          'cid', f.comp_id, 'uxc', f.uxc,
-          'cant', coalesce((select i.cantidad from inventario i
-                             where i.componente_id = f.comp_id
-                               and i.ubicacion_id = "GP2".ubic_de('art_terminado', 3)), 0))
-        order by f.codigo) from fab f), '[]'::jsonb)),
-  -- el mismo articulo EN VIRGILIO: espejo de solo lectura que escribe Gestion Virgilio
-  -- (GP2.virgilio_articulo_stock, en CAJAS). GP2 no lee public (Regla 0).
-  'virgilio_art', coalesce((select jsonb_agg(jsonb_build_object(
-          'cid', f.comp_id, 'uxc', f.uxc, 'cod_gv', v.cod, 'linea', v.linea,
-          'cajas', v.stock_total, 'gondola', v.terminado, 'excedente', v.excedente, 'racks', v.racks,
-          'a_guardar', v.a_guardar, 'actualizado', v.actualizado_en)
-        order by f.codigo) from fab f
-        left join "GP2".virgilio_articulo_stock v
-          on regexp_replace(upper(v.cod_base), '^0+', '') = regexp_replace(upper(f.codigo), '^0+', '')),
-      '[]'::jsonb),
   'generado_en', now());
 $function$
 ;
@@ -8048,18 +7863,6 @@ CREATE OR REPLACE FUNCTION "GP2".tablet_bundle()
  SET search_path TO 'GP2'
 AS $function$
 with
--- FABRICA (tallerista 3, 2026-09-30): lo que arma Fabrica. A Fabrica no se le mandan partes: se le
--- MANDA A PRODUCIR el articulo en cajas (Enviar -> Talleristas -> Fabrica), que descuenta el despiece
--- y suma el terminado en la ubicacion "Art. Terminado (Fabrica)"; desde ahi se manda a Virgilio
--- (Enviar -> Virgilio). [usuario 2026-09-30]
-fab as materialized (
-  select distinct a.id art_id, a.codigo, a.articulos_por_caja uxc, c.id comp_id
-    from articulo a
-    join ruta r on r.articulo_id = a.id
-    join ruta_paso rp on rp.ruta_id = r.id and rp.tallerista_id = 3
-    join componente c on upper(c.codigo) = upper(a.codigo) and c.sector_id = 12
-   where not a.discontinuado and not coalesce(c.discontinuado, false)
-),
 -- FASONERO (proveedor_servicio.pedido_por_oc, hoy Maspoli): lo que falta entregar de su O.C.
 -- ENVIADA, sumado por (proveedor, pieza que se le manda). Es el techo de lo que hay que mandarle:
 -- si nos debe 10 mangos, hay que tener 10 virolas en su poder [usuario 2026-09-18]. Mismo criterio
@@ -8107,18 +7910,6 @@ env as (
    where c.material_id is not null and c.estado_compra is null and c.proveedor is not null
      and exists (select 1 from proveedor_insumo pi where pi.nombre = c.proveedor)
    group by c.proveedor, c.material_id
-  union all
-  -- FABRICA: sus articulos terminados (se cargan en cajas)
-  select 'tallerista', '3', f.comp_id from fab f
-  union all
-  -- VIRGILIO (2026-09-30): art. terminados de Fabrica + insumos (plastico, fleje, caja) + SC y SP.
-  -- Los importados no: esos los TRAE Virgilio (Recibir -> Virgilio).
-  select 'virgilio', 'virgilio', f.comp_id from fab f
-  union all
-  select 'virgilio', 'virgilio', c.id
-    from componente c
-   where c.sector_id in (1, 2, 5, 6, 11) and not coalesce(c.discontinuado, false)
-     and coalesce(c.estado_compra, '') <> 'importado'
 ),
 -- rep (Enviar a PS / tallerista): el Maximo y el Sugerido salen del CONSUMO DE LA PIEZA QUE SE
 -- ENVIA (la entrada), no de la salida. [usuario 2026-09-17: "sale del consumo de estadistica
@@ -8158,9 +7949,7 @@ rep as (
                            and i.ubicacion_id = ubic_de(e.tipo, e.ref::bigint) limit 1),0)
          , 2)) as sugerido
     from (select distinct tipo, ref, comp_id from env
-           where tipo in ('proveedor_servicio','tallerista','proveedor_at')
-             -- Fabrica no tiene sugerido: se le manda a producir lo que se decida (2026-09-30)
-             and not (tipo = 'tallerista' and ref = '3')) e
+           where tipo in ('proveedor_servicio','tallerista','proveedor_at')) e
     join componente ent on ent.id = e.comp_id
     left join cons_fk   fk on fk.componente_id = e.comp_id
     left join cons_tall ct on ct.componente_id = e.comp_id and e.tipo = 'tallerista'
@@ -8335,23 +8124,10 @@ rec as (
    where c.sector_id <> 12 and not coalesce(c.discontinuado,false)
    group by i.componente_id
   having sum(i.cantidad) <> 0
-  union all
-  -- IMPORTADOS (2026-09-30): los TRAE Virgilio. Antes eran el rubro "Importados" de Recepcion de
-  -- Insumos; ahora van sueltos en Recibir -> Virgilio [usuario: "que no esten dentro del modulo
-  -- importados, que esten sueltos"]. Se registran como la recepcion de un Importado (remito en
-  -- unidades y despues el control en kg).
-  select 'virgilio', 'virgilio', c.id, null::bigint, 0, false, null::text, null::numeric, null::text
-    from componente c
-   where c.estado_compra = 'importado' and not coalesce(c.discontinuado,false)
 ),
 env_x as (
   select distinct on (e.tipo, e.ref, e.comp_id) e.tipo, e.ref, e.comp_id,
-         c.codigo cod,
-         -- el terminado se llama como el ARTICULO ("Cierra Bolsa x2", no "058 Terminado")
-         case when c.sector_id = 12
-              then coalesce((select a.descripcion from articulo a where upper(a.codigo) = upper(c.codigo) limit 1), c.descripcion)
-              else c.descripcion end descr,
-         s.nombre sector, c.unidad_medida um,
+         c.codigo cod, c.descripcion descr, s.nombre sector, c.unidad_medida um,
          c.uni_x_cajon uxc, c.kg_x_uni kgu,
          -- envase de ENVIO propio de la pieza (componente.entrega_unidad/entrega_uni_x): una caja
          -- de 100 (GRJ13/GRJ14), una caja de 2400 (Descorazonador) o las bolsas de 120 de GRJ5/GRJ6.
@@ -8361,29 +8137,9 @@ env_x as (
          -- regla del sector (carton/caja en envase, el resto en kg). Z21: cajas [usuario 2026-09-25].
          c.envio_carga env_carga_pieza,
          c.sector_id sec_id, c.carton_formato cfmt,
-         -- el terminado de Fabrica vive en "Art. Terminado (Fabrica)", no en un sector (2026-09-30)
-         case when c.sector_id = 12
-              then coalesce((select i.cantidad from inventario i
-                              where i.componente_id = c.id
-                                and i.ubicacion_id = ubic_de('art_terminado', 3) limit 1), 0)
-              else coalesce((select i.cantidad from inventario i
-                              where i.componente_id = c.id
-                                and i.ubicacion_id = ubic_de('sector', c.sector_id) limit 1), 0) end online_sector,
-         (select f.uxc from fab f where f.comp_id = c.id limit 1) art_uxc,
-         case when e.tipo = 'virgilio' then case c.sector_id when 12 then 'Art. Terminados'
-                                                             when 1 then 'SC' when 2 then 'SP'
-                                                             else 'Insumos' end end grupo,
-         -- AVISO A VIRGILIO (D4): lo que todavia espera el Si de Virgilio y lo que Virgilio
-         -- DENEGO en los ultimos 15 dias (ya volvio al stock de aca) [regla general: se ve donde se cargo]
-         case when e.tipo = 'virgilio' then (select sum(ev.cantidad) from envio_virgilio ev
-                                              where ev.componente_id = c.id and ev.estado = 'pendiente') end vir_pend,
-         case when e.tipo = 'virgilio' then (select jsonb_build_object('cantidad', sum(ev.cantidad),
-                                                      'motivo', string_agg(distinct ev.denegado_motivo, ' · '),
-                                                      'ult', max(ev.denegado_en))
-                                               from envio_virgilio ev
-                                              where ev.componente_id = c.id and ev.estado = 'denegado'
-                                                and ev.denegado_en > now() - interval '15 days'
-                                             having count(*) > 0) end vir_deneg,
+         coalesce((select i.cantidad from inventario i
+                    where i.componente_id = c.id
+                      and i.ubicacion_id = ubic_de('sector', c.sector_id) limit 1), 0) online_sector,
          -- saldo en poder del tercero = lo que le enviamos − lo que nos entregó = inventario de lo
          -- que se le manda (la pieza/resina) en la ubicacion del destino. [usuario 2026-09-16]
          coalesce((select i.cantidad from inventario i
@@ -8438,8 +8194,7 @@ rec_x as (
                   then (select v.uni_x_cajon_anotado from v_caj_contraparte v
                          where v.componente_id = r.comp_entrada_id
                            and v.ubicacion_id = ubic_de(r.tipo, r.ref::bigint)) end) ent_uxc_anot,
-         (select a.articulos_por_caja from articulo a where a.codigo = r.cod_art) por_caja,
-         (c.estado_compra = 'importado') importado, c.sector_id sec_id, c.proveedor prov
+         (select a.articulos_por_caja from articulo a where a.codigo = r.cod_art) por_caja
     from rec r
     left join componente c on c.id = r.comp_id
     left join componente ce on ce.id = r.comp_entrada_id
@@ -8449,8 +8204,7 @@ rec_x as (
    group by r.tipo, r.ref, r.comp_id, r.comp_entrada_id, r.n_entradas, r.tiene_bom, r.cod_art,
             c.codigo, c.descripcion, s.nombre, c.unidad_medida, c.uni_x_cajon, c.kg_x_uni,
             c.entrega_unidad, c.entrega_uni_x, c.remito_unidad,
-            ce.codigo, ce.descripcion, ce.uni_x_cajon, ce.kg_x_uni, ce.sector_id,
-            c.estado_compra, c.sector_id, c.proveedor
+            ce.codigo, ce.descripcion, ce.uni_x_cajon, ce.kg_x_uni, ce.sector_id
 ),
 -- envio_unidad / envio_uni_x / envio_carga_unidad: unidad de ENVIO por proveedor (display), p.ej. AJ
 -- Adhesivos manda de a paquetes de 100 pliegos y Ester de a bolsas de 1800 mangos. Es solo
@@ -8463,7 +8217,7 @@ rec_x as (
 cp as (
   select 'tallerista'::text tipo, t.id::text ref, t.nombre, null::text envio_unidad, null::numeric envio_uni_x, null::text envio_carga_unidad, null::text entrega_unidad, null::numeric entrega_uni_x
     from tallerista t
-   where t.activo
+   where t.activo and t.id <> 3
      and exists (select 1 from v_contraparte_parte v where v.tipo='tallerista' and v.ref_id = t.id)
   union all
   select 'proveedor_servicio', ps.id::text, ps.nombre, ps.envio_unidad, ps.envio_uni_x, ps.envio_carga_unidad, ps.entrega_unidad, ps.entrega_uni_x
@@ -8505,23 +8259,18 @@ select jsonb_build_object(
     select coalesce(jsonb_agg(jsonb_build_object(
              'tipo', tipo, 'ref', ref, 'comp_id', comp_id, 'cod', cod, 'desc', descr,
              'sector', sector, 'um', um, 'uxc', uxc, 'kg_x_uni', kgu,
-             -- el TERMINADO de Fabrica se carga en CAJAS (articulo.articulos_por_caja) [2026-09-30]
-             'env_unidad', case when sec_id = 12 and art_uxc > 0 and tipo in ('tallerista','virgilio') then 'cajas'
-                                when tipo in ('tallerista','proveedor_at')
+             'env_unidad', case when tipo in ('tallerista','proveedor_at')
                                   then case when sec_id in (10,11) then coalesce(nullif(btrim(ent_uni),''), 'paquetes')
                                             else coalesce(nullif(btrim(ent_uni),''), 'cajones') end end,
-             'env_factor', case when sec_id = 12 and art_uxc > 0 and tipo in ('tallerista','virgilio') then art_uxc
-                                when tipo in ('tallerista','proveedor_at') then case
+             'env_factor', case when tipo in ('tallerista','proveedor_at') then case
                                   when sec_id = 10 then nullif(ent_ux,0)
                                   when sec_id = 11 then (select pa.valor::numeric from parametro pa
                                                           where pa.clave = 'caja_uni_x_paquete')
                                   else coalesce(nullif(ent_ux,0), uxc) end end,
-             'env_carga',  case when sec_id = 12 and art_uxc > 0 and tipo in ('tallerista','virgilio') then 'envase'
-                                when tipo in ('tallerista','proveedor_at')
+             'env_carga',  case when tipo in ('tallerista','proveedor_at')
                                   then coalesce(env_carga_pieza,
                                          case when sec_id in (10,11) then 'envase' else 'kg' end) end,
-             'online_sector', online_sector, 'saldo_dest', saldo_dest, 'grupo', grupo, 'sec_id', sec_id,
-             'vir_pend', vir_pend, 'vir_deneg', vir_deneg,
+             'online_sector', online_sector, 'saldo_dest', saldo_dest,
              'maximo', maximo_dest, 'stock_dest', stock_dest, 'sugerido', sugerido
            ) order by cod), '[]'::jsonb) from env_x),
   'recibir', (
@@ -8536,18 +8285,12 @@ select jsonb_build_object(
              'remito_unidad', remito_uni,
              -- envase de ENTREGA (hoy solo el tallerista): el esperado se mira en cajones (o en las
              -- bolsas de 120 de GRJ5/GRJ6) y la cantidad se escribe en kg.
-             'env_unidad', case when tipo = 'tallerista' then coalesce(ent_uni, 'cajones')
-                                -- IMPORTADO con el remito en envases (C13 en cajas de 144) [2026-09-25]
-                                when tipo = 'virgilio' and importado and lower(coalesce(remito_uni,'')) = 'envase'
-                                     and ent_ux > 0 then coalesce(ent_uni, 'envases') end,
-             'env_factor', case when tipo = 'tallerista' then coalesce(ent_ux, uxc)
-                                when tipo = 'virgilio' and importado and lower(coalesce(remito_uni,'')) = 'envase'
-                                     and ent_ux > 0 then ent_ux end,
+             'env_unidad', case when tipo = 'tallerista' then coalesce(ent_uni, 'cajones') end,
+             'env_factor', case when tipo = 'tallerista' then coalesce(ent_ux, uxc) end,
              'env_carga',  case when tipo = 'tallerista' then 'kg' end,
              'ent_cod', ent_cod, 'ent_desc', ent_desc, 'ent_uxc_anot', ent_uxc_anot,
              'ent_uxc', ent_uxc, 'ent_kgu', ent_kgu,
-             'esperado', esperado, 'esperado_origen', esperado_origen,
-             'importado', coalesce(importado, false), 'sector_id', sec_id, 'proveedor', prov
+             'esperado', esperado, 'esperado_origen', esperado_origen
            ) order by cod), '[]'::jsonb) from rec_x),
   'alertas_abiertas', (select count(*) from alerta_recepcion where estado = 'abierta')
 );
@@ -8596,8 +8339,8 @@ begin
   if v_nom is null then
     raise exception 'Contraparte inexistente (tipo=%, ref=%).', coalesce(v_tipo,'null'), v_ref;
   end if;
-  if v_modo = 'enviar' and v_tipo not in ('tallerista','proveedor_servicio','proveedor_at','inyector','virgilio') then
-    raise exception 'A "%" no se le envia desde la tablet: solo talleristas, prov. de servicio, prov. art. terminado, inyectores y Virgilio.', v_nom;
+  if v_modo = 'enviar' and v_tipo not in ('tallerista','proveedor_servicio','proveedor_at','inyector') then
+    raise exception 'A "%" no se le envia desde la tablet: solo talleristas, prov. de servicio, prov. art. terminado e inyectores.', v_nom;
   end if;
 
   for it in select value from jsonb_array_elements(p->'items') loop
@@ -8623,21 +8366,12 @@ begin
     v_cod := coalesce(v_cod, v_cod_art);
 
     if v_modo = 'enviar' then
-      -- FABRICA (tallerista 3, 2026-09-30): no se le mandan partes, se le manda a PRODUCIR el
-      -- articulo: descuenta el despiece y suma el terminado en "Art. Terminado (Fabrica)".
-      if v_tipo = 'tallerista' and v_ref = '3' then
-        if v_uni <> 'uni' then raise exception '% : a Fabrica se le manda a producir en cajas (unidades).', coalesce(v_cod,'?'); end if;
-        v_r := "GP2".fabrica_producir(v_comp, v_cant, v_fecha);
-      elsif v_tipo = 'tallerista' then
+      if v_tipo = 'tallerista' then
         v_r := "GP2".crear_envio_tallerista(v_ref::bigint, v_comp, v_cant, v_uni, v_fecha, v_sust);
       elsif v_tipo = 'proveedor_servicio' then
         v_r := "GP2".crear_envio_ps(v_ref::bigint, v_comp, v_cant, v_uni, v_fecha, v_cajones);
       elsif v_tipo = 'inyector' then
         v_r := "GP2".enviar_material_inyector(v_ref, v_comp, v_cant, v_fecha);
-      elsif v_tipo = 'virgilio' then
-        -- VIRGILIO (2026-09-30): el art. terminado de Fabrica se da de baja (ahi termina el proceso);
-        -- insumos, SC y SP pasan al deposito de ese sector en Virgilio.
-        v_r := "GP2".enviar_a_virgilio(v_comp, v_cant, v_uni, v_fecha);
       else
         v_r := "GP2".crear_envio_prov_at(v_ref::bigint, v_comp, v_cant, v_uni, v_fecha, v_sust);
       end if;
@@ -8655,12 +8389,6 @@ begin
         v_r := "GP2".crear_entrega_prov_at(v_ref::bigint, v_cod_art, v_cant::int, v_remito, v_fecha::date);
       elsif v_tipo = 'proveedor_insumo' then
         v_r := "GP2".crear_recepcion_insumo(v_comp, v_ref, v_cant, v_uni, v_remito, v_fecha);
-      elsif v_tipo = 'virgilio' and exists (select 1 from componente where id = v_comp and estado_compra = 'importado') then
-        -- IMPORTADO que trae Virgilio (2026-09-30, antes rubro Importados de Recepcion de Insumos):
-        -- la misma recepcion que el Importado cargado a mano; queda pendiente del control en kg.
-        v_r := "GP2".crear_recepcion_insumo(v_comp,
-                 (select coalesce(nullif(btrim(proveedor),''), 'Importado') from componente where id = v_comp),
-                 v_cant, v_uni, coalesce(v_remito, 'Virgilio (tablet)'), v_fecha);
       else
         select sector_id, unidad_medida into v_sec, v_um from componente where id = v_comp;
         if v_sec is null then raise exception 'El componente % no existe', v_comp; end if;

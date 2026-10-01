@@ -40,10 +40,6 @@ const PERMITIDAS = {
   crear_entrega_tallerista:  'no es el motor de la entrega de tallerista (idea 7316), sin grant a anon',
   // Las llama algo que no es una pantalla.
   actualizar_dolar_oficial:  'la llama el cron del dólar',
-  // 2026-09-30 (Tablet v1.40.0): las llama tablet_registrar (Enviar -> Fábrica / Enviar -> Virgilio),
-  // no una pantalla directo. Con _exigir_autorizado y sin EXECUTE a anon.
-  fabrica_producir:          'la llama tablet_registrar (Enviar -> Talleristas -> Fábrica)',
-  enviar_a_virgilio:         'la llama tablet_registrar (Enviar -> Virgilio)',
   factura_lectura_permitida: 'la llama la Edge Function gp2_leer_factura (tope diario, idea 7339)',
   // (reparto_guardar salió de acá el 2026-09-30: Proporciones_GP2 vuelve a editar el % con
   //  Guardar -> rpc('reparto_guardar'), con _exigir_autorizado y sin EXECUTE a anon.)

@@ -1,6 +1,6 @@
 -- =====================================================================
 -- 2026-09-30 — El aviso de Gestión Virgilio pasa de la PORTADA a Recepción de Insumos > Importados
--- con Sí / No por componente (GP2 v1.216.0, Gestión Virgilio v25.37).
+-- con Sí / No por componente (GP2 v1.216.0, Gestión Virgilio v25.34).
 --
 -- [usuario 30/09] "El cartel amarillo de GP2 quiero que lo elimines de donde está ahora y que en el
 -- módulo de recepción de insumos (dentro de importados) me aparezca una notificación en el sector
@@ -12,7 +12,7 @@
 --
 -- Lo que es de GP2 está acá (sólo lee y escribe el schema GP2, Regla 0). Lo que hace Gestión
 -- Virgilio con el «No» (volver a poner el pedido en viaje) vive del lado de Virgilio:
--- sql/gv_ingreso_cervantes_denegado_v2537.sql del repo gestion-virgilio.
+-- sql/gv_ingreso_cervantes_denegado_v2534.sql del repo gestion-virgilio.
 -- =====================================================================
 
 -- ---------- 1) qué código de Virgilio es qué componente de GP2 ----------

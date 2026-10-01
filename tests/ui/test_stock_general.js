@@ -23,11 +23,7 @@ const BUNDLE = {
     '5': { tipo: 'sector', ref: 12, nom: 'Terminado' },
     '6': { tipo: 'proveedor_servicio', ref: 9, nom: 'Pedernera Ilario' },
     '7': { tipo: 'inyector', ref: 10, nom: 'Inyector Pettofrezza Rafael' },
-    // v2.4.0: el depósito de Virgilio del SP (virgilio_sector) y el Art. Terminado de Fábrica
-    '20': { tipo: 'virgilio_sector', ref: 2, nom: 'Sector Procesado en Virgilio' },
-    '21': { tipo: 'art_terminado', ref: 3, nom: 'Art. Terminado (Fábrica)' },
   },
-  art: { '1': { id: 1, cod: 'T1', desc: 'Terminado uno (artículo)', por: 12 } },
   tall: { '3': { nom: 'Fabrica' }, '6': { nom: 'Martin' } },
   prov_serv: { '9': { nom: 'Pedernera Ilario', proceso: 'Cromado' } },
   comp: {
@@ -50,7 +46,6 @@ const BUNDLE = {
     '10:1': { cant: 100, max: 200 }, '30:1': { cant: 50, max: 0 }, '20:5': { cant: 0, max: 0 },
     '10:6': { cant: 0, max: null }, '50:6': { cant: 0, max: null }, '30:3': { cant: 20, max: null },
     '60:7': { cant: 1250, max: null }, // 1.250 kg de PP mandados al inyector Pettofrezza
-    '10:20': { cant: 40, max: null },  // v2.4.0: 40 A10 en el depósito de Virgilio (caja Virgilio > SP)
   },
 };
 /* Prov AT y transito salen de su propia RPC. */
@@ -63,9 +58,6 @@ const EXTRA = {
     { id: 11, nom: 'Pat Bet Plast', ubic: 8, filas: [{ cid: 60, cant: 0 }] },
     { id: 10, nom: 'Pettofrezza Rafael', ubic: 7, filas: [{ cid: 60, cant: 1250 }] },
   ],
-  // v2.4.0: lo que produjo Fábrica (2 cajas de 12) y el stock REAL de Virgilio (espejo, en cajas)
-  art_terminado: { ubic: 21, filas: [{ cid: 20, uxc: 12, cant: 24 }] },
-  virgilio_art: [{ cid: 20, uxc: 12, cajas: 14, linea: 'LK' }, { cid: 30, uxc: 6, cajas: null, linea: null }],
 };
 /* stock_sector_bundle por sector: SC (1) es el rubro por defecto; Flejes (5) prueba
    que NO salen las columnas de cajones (pedido del usuario, textual). */
@@ -176,45 +168,17 @@ window.supabase = { createClient: function(){ return {
   await page.waitForFunction(() => /Cabral/.test(document.getElementById('tbody').innerText));
   ok(true, 'Prov. Art. Terminado: aparece el proveedor con sus cajas/cartones (Cabral)');
 
-  // v2.4.0: TRES CAJAS — Cervantes (lo que era Sectores, sin Bolsas, + Art. Terminado), Virgilio y
-  // Terceros (lo que era Otros) [usuario 2026-09-30]
+  // v2.3.0: Tránsito PS vive en el grupo Sectores, Inyectores en Otros
   const grupos = await page.evaluate(() => {
-    const g = {};
-    document.querySelectorAll('#rubros .rubro-box').forEach(bx => {
-      g[bx.dataset.grupo] = Array.from(bx.querySelectorAll('.rubro-btn')).map(b => b.textContent.trim());
+    const g = {}; let cur = null;
+    document.querySelectorAll('#rubros > div').forEach(d => {
+      if (d.classList.contains('rubro-grp')) cur = d.textContent.trim();
+      else d.querySelectorAll('.rubro-btn').forEach(b => { g[b.textContent.trim()] = cur; });
     });
     return g;
   });
-  ok(JSON.stringify(Object.keys(grupos)) === '["Cervantes","Virgilio","Terceros"]', 'tres cajas en orden: ' + Object.keys(grupos).join(', '));
-  const C = grupos.Cervantes || [], V = grupos.Virgilio || [], T = grupos.Terceros || [];
-  ok(C.indexOf('Tránsito PS') >= 0 && C.indexOf('Art. Terminado') >= 0 && C.indexOf('Stock SC') >= 0 && C.indexOf('Bolsas Plásticas') < 0,
-     'Cervantes: los sectores + Tránsito PS + Art. Terminado, sin Bolsas Plásticas — ' + C.join(', '));
-  ok(JSON.stringify(V) === JSON.stringify(['Bolsas Plásticas', 'SC', 'SP', 'Plásticos', 'Flejes', 'Cajas', 'Art. Terminado']),
-     'Virgilio: Bolsas Plásticas, SC, SP, Plásticos, Flejes, Cajas, Art. Terminado — ' + V.join(', '));
-  ok(JSON.stringify(T) === JSON.stringify(['Prov. Servicio', 'Talleristas', 'Prov. Art. Term.', 'Inyectores']),
-     'Terceros: lo que era Otros — ' + T.join(', '));
-
-  // Cervantes > Art. Terminado: lo que produjo Fábrica, en cajas del artículo y con su nombre
-  await page.click('.rubro-box[data-grupo="Cervantes"] .rubro-btn:has-text("Art. Terminado")');
-  await page.waitForFunction(() => /T1/.test(document.getElementById('tbody').innerText));
-  const fab = await page.evaluate(() => Array.from(document.querySelector('#tbody tr').cells).map(t => t.textContent.trim()));
-  ok(fab[0] === 'T1' && fab[1] === 'Terminado uno (artículo)' && fab[3] === '2' && fab[4] === '24',
-     'Cervantes > Art. Terminado: T1 con el nombre del artículo, 2 cajas = 24 uni — ' + fab.join(' | '));
-
-  // Virgilio > SP: lo que hay del sector en el depósito de Virgilio
-  await page.click('.rubro-box[data-grupo="Virgilio"] .rubro-btn:has-text("SP")');
-  await page.waitForFunction(() => /A10/.test(document.getElementById('tbody').innerText));
-  const vsp = await page.evaluate(() => Array.from(document.querySelectorAll('#tbody tr')).map(tr => Array.from(tr.cells).map(t => t.textContent.trim()))
-    .filter(c => c[0] === 'A10')[0] || []);
-  ok(vsp[4] === '40', 'Virgilio > SP: A10 con las 40 uni que están en Virgilio (no las 100 de Cervantes) — ' + vsp.join(' | '));
-
-  // Virgilio > Art. Terminado: el stock real de Virgilio (espejo), en cajas; sin fila = "—"
-  await page.click('.rubro-box[data-grupo="Virgilio"] .rubro-btn:has-text("Art. Terminado")');
-  await page.waitForFunction(() => /T1/.test(document.getElementById('tbody').innerText));
-  const vart = await page.evaluate(() => Array.from(document.querySelectorAll('#tbody tr')).map(tr => Array.from(tr.cells).map(t => t.textContent.trim())));
-  const vt1 = vart.filter(c => c[1] === 'T1')[0] || [], vb5 = vart.filter(c => c[1] === 'B5')[0] || [];
-  ok(vt1[0] === 'LK' && vt1[4] === '14' && vt1[5] === '168', 'Virgilio > Art. Terminado: T1 = 14 cajas (168 uni), línea LK — ' + vt1.join(' | '));
-  ok(vb5[5] === '—', 'Virgilio > Art. Terminado: sin dato en Virgilio se ve "—", no 0 — ' + vb5.join(' | '));
+  ok(grupos['Tránsito PS'] === 'Sectores', 'Tránsito PS está en el grupo Sectores (' + grupos['Tránsito PS'] + ')');
+  ok(grupos['Inyectores'] === 'Otros', 'Inyectores está en el grupo Otros (' + grupos['Inyectores'] + ')');
 
   await page.click('.rubro-btn:has-text("Tránsito PS")');
   await page.waitForFunction(() => /Laboratorio FAAT → Guazzaroni Patricio/.test(document.getElementById('tbody').innerText));
@@ -262,7 +226,6 @@ window.supabase = { createClient: function(){ return {
   ok(!glo.horizontal, 'Todos: celular 390px sin scroll horizontal');
   ok(/T1/.test(glo.body) && /Terminado/.test(glo.body),
      'Todos: aparece lo que NO tiene botón propio (T1 en el sector Terminado), antes invisible');
-  ok(/Virgilio · SP/.test(glo.body), 'Todos (v2.4.0): lo de Virgilio aparece, con la planta en el nombre del rubro');
 
   // 2) el mismo código en dos lugares distintos, de un saque
   await page.fill('#q', 'B5');

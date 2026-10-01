@@ -191,13 +191,18 @@ sigue el mismo molde (el mismo bloque está en el `CLAUDE.md` de `loekemeyer/Ges
 
 | pieza | cómo |
 |---|---|
-| frontera | una tabla en el schema **`GP2`** (GP2 nunca lee `public`: Regla 0). Virgilio escribe ahí con una función `public.gv_*` SECURITY DEFINER. Hoy: `GP2.ingreso_virgilio` (GV → GP2), `GP2.envio_virgilio` (GP2 → GV: lo que la tablet manda a Virgilio, D4), `GP2.aceptado_virgilio` (lo que GV le acepta a GP2) y los espejos de solo lectura `GP2.virgilio_insumo_stock` / `virgilio_insumo_ubicacion` / `virgilio_lugar` / `virgilio_articulo_stock` (stock de artículos de GV, en cajas) |
+| frontera | una tabla en el schema **`GP2`** (GP2 nunca lee `public`: Regla 0). Virgilio escribe ahí con una función `public.gv_*` SECURITY DEFINER. Hoy: `GP2.ingreso_virgilio` (GV → GP2), `GP2.aceptado_virgilio` (lo que GV le acepta a GP2) y los espejos de solo lectura `GP2.virgilio_insumo_stock` / `virgilio_insumo_ubicacion` / `virgilio_lugar` |
 | códigos | GV habla en código de ARTÍCULO (323ES), GP2 en COMPONENTE / sector (GRJ31). El vínculo vive en una tabla de mapeo (`GP2.importado_virgilio_componente`) y **nunca se adivina**: sin fila, el aviso sale "sin componente" y no se puede aceptar |
-| confirmar | el que recibe dice **Sí / No** donde trabaja — en GP2, la **Tablet → Recibir → Virgilio** (arriba de las piezas, 🔔 N en la baldosa) —, no en un cartel de portada |
-| en la tablet | **Enviar → Virgilio** (art. terminados de Fábrica en cajas, insumos plástico/fleje/caja, SC y SP) y **Recibir → Virgilio** (los importados sueltos + lo que vuelve). Fábrica **produce** en Enviar → Talleristas (descuenta despiece, suma en "Art. Terminado (Fábrica)"). Stock General: cajas **Cervantes · Virgilio · Terceros** |
+| confirmar | el que recibe dice **Sí / No** donde trabaja, en la tarjeta del componente — no en un cartel de portada |
 | Sí | el MISMO camino que la carga manual (misma RPC, mismo control en kg pendiente): sin atajos al stock |
-| No | cada lado toca SÓLO su fila; la reacción del otro lado la hace un trigger de ESE lado (`public.gv_ingreso_virgilio_denegado`; al revés, `GP2.fn_envio_virgilio_denegado`) y se ve **donde se cargó** («⛔ Denegado por Cervantes» en GV; «⛔ Denegado por Virgilio» en la tarjeta de Enviar → Virgilio) |
-| memoria | se anota en las dos: `CONOCIMIENTO_GP2.md` (§4gx, 4gy, 4gz, 4hf, 4hi, 4hj) y el `CLAUDE.md` de Gestión Virgilio |
+| No | cada lado toca SÓLO su fila; la reacción del otro lado la hace un trigger de ESE lado (`public.gv_ingreso_virgilio_denegado`) y se ve **donde se cargó** («⛔ Denegado por Cervantes») |
+| memoria | se anota en las dos: `CONOCIMIENTO_GP2.md` (§4gx, 4gy, 4gz, 4hf) y el `CLAUDE.md` de Gestión Virgilio |
+
+⚠ **01/10/2026 — REVERTIDO (Luis): la v1.219.0 y la v1.220.0 se sacaron enteras** (tablet Enviar/Recibir → Virgilio,
+Fábrica → producir, Stock General en 3 cajas con el stock de Gestión Virgilio, `GP2.envio_virgilio`). Mezclaban el
+contenedor de insumos de Virgilio con botones que movían stock de Cervantes. Queda SOLO el aviso de importados
+(GV manda → GP2 dice Sí/No en Recepción de Insumos). **El contenedor de insumos de Virgilio se rearma desde cero,
+en blanco y sin conexión con nada, cuando Luis lo defina** — no reponer nada de lo revertido. CONOCIMIENTO §4hk.
 
 # ⚠️ ANTES DE CUALQUIER EDIT/WRITE: LEER LOCKS.txt Y REGISTRAR LockX. SIN EXCEPCIONES. ⚠️
 

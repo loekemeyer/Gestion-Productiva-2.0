@@ -202,12 +202,26 @@ const STUB = 'window.supabase={createClient:function(){return{'
   ok(carga && carga.p_unidad === 'kg' && carga.p_cantidad === 12.5,
      'PCP2 baja 12,5 kg (bajó: ' + JSON.stringify(carga && { c: carga.p_cantidad, u: carga.p_unidad }) + ')');
 
-  // ── 1ter) (v3.68.0) IMPORTADOS SE FUE A LA TABLET (Recibir → Virgilio). El remito de C13 en cajas de 144
-  //    [usuario 2026-09-25] ahora lo mide tests/ui/test_tablet_virgilio.js. Acá ya no hay botón. ──
+  // ── 1ter) EL REMITO EN CAJAS: C13 llega en cajas de 144 [usuario 2026-09-25] ──
   await page.goto(ROOT + '/StockFlejes/RecepcionInsumos_GP2.html');
-  await page.waitForSelector('#rubroGrid .prov-btn');
-  ok(await page.locator('#rubroGrid button:has-text("Importados")').count() === 0,
-     'Importados ya no está en Recepción de Insumos (pasó a la tablet, Recibir → Virgilio)');
+  await page.click('#rubroGrid button:has-text("Importados")');
+  await page.click('#btnContinuar');
+  await page.waitForSelector('.item-btn:has-text("C13")');
+  await page.click('.item-btn:has-text("C13")');
+  await page.waitForSelector('#kgPopup.open');
+  ok(await page.locator('#unitRow').isHidden(), 'C13: sin toggle Kg/Uni');
+  ok(/cajas/.test(await page.locator('#kgValueLabel').innerText()),
+     'C13 pide cajas: ' + (await page.locator('#kgValueLabel').innerText()));
+  ok(await page.locator('#kgValue').getAttribute('inputmode') === 'numeric', 'cajas con teclado entero');
+  await page.fill('#kgValue', '3');
+  ok(/432 unidades/.test(await page.locator('#kgConvDisplay').innerText()),
+     'muestra las unidades: 3 cajas = 432 (' + (await page.locator('#kgConvDisplay').innerText()) + ')');
+  await page.click('#kgConfirm');
+  await page.click('#remitoBtnSlot button, #remitoBtnSlotCart button');
+  await page.waitForTimeout(400);
+  carga = ultimo('cargar_recepcion');
+  ok(carga && carga.p_unidad === 'uni' && carga.p_cantidad === 432,
+     'C13 baja 432 uni, no 3 (bajó: ' + JSON.stringify(carga && { c: carga.p_cantidad, u: carga.p_unidad }) + ')');
 
   // ── 2) CONTROL ─────────────────────────────────────────────────────────
   const RECS = {
