@@ -212,6 +212,15 @@ window.supabase = { createClient: function(){ return {
   ok(await activoPill('tabTodos'), 'al entrar, la pestaña "🔎 Todos" está activa');
   ok(base.rubros >= 20, 'con "Todos" activo, la grilla muestra los rubros de las 3 plantas juntas (' + base.rubros + ')');
   ok(!base.horizontal, 'celular 390px: sin scroll horizontal');
+  // v3.0.2 ["Ordená por rubro"]: en "Todos" la tabla va por RUBRO, en el orden de los botones —
+  // un rubro no vuelve a aparecer después de que empezó otro (antes iba por código y se mezclaban)
+  const ordRub = await page.evaluate(() => {
+    const orden = Array.from(document.querySelectorAll('#rubros .rubro-btn')).map(b => b.getAttribute('data-k'));
+    const seq = Array.from(document.querySelectorAll('#tbody td.rub-cell')).map(td => td.getAttribute('data-rub'));
+    const idx = seq.map(k => orden.indexOf(k));
+    return { seq: seq.filter((k, i) => i === 0 || seq[i - 1] !== k), creciente: idx.every((v, i) => i === 0 || idx[i - 1] <= v), n: seq.length };
+  });
+  ok(ordRub.n > 1 && ordRub.creciente, 'Todos: ordenado por rubro en el orden de los botones — ' + ordRub.seq.join(' > '));
   ok(base.hAj >= 44, 'boton Ajuste tocable (' + Math.round(base.hAj) + 'px, minimo 44)');
   ok(await vis('btnAjuste'), '± Ajuste siempre a la vista (ya no se esconde por pestaña)');
   ok(/RUBRO/i.test(base.thead) && /DÓNDE/i.test(base.thead), 'Todos: la tabla dice en qué rubro y en qué lugar está cada fila');

@@ -6,7 +6,10 @@
 <script src="../gp2-ui.js?v=20260930a"></script>
 <script src="../gp2-numero.js?v=20260911o"></script>
 <title>Stock general · GP2</title>
-<!-- v3.0.1 (2026-10-01) - EL GRUPO SE LLAMA "CERVANTES" [Thomas: "que se llame CERVANTES en vez de
+<!-- v3.0.2 (2026-10-01) - "TODOS LOS RUBROS" ORDENADO POR RUBRO ["Ordená por rubro"]. Antes
+     ordenaba por código (el mismo componente junto en un bloque); ahora va por rubro en el orden
+     de los botones (Cervantes → Virgilio → Terceros, sin rubro al final), código numérico adentro.
+     v3.0.1 (2026-10-01) - EL GRUPO SE LLAMA "CERVANTES" [Thomas: "que se llame CERVANTES en vez de
      SECTORES"]. El grupo de rubros de la planta Cervantes (Stock SC, Stock SP, En Movimiento,
      Afilado, Flejes, Plásticos, Bombillas, Remaches, Garage, Cartones, Cajas, Tránsito PS, Art.
      Terminado) pasa de rotularse "Sectores" a "Cervantes" — las 3 plantas quedan con el mismo
@@ -558,6 +561,7 @@ function filasDe(r){
    de prov AT y tránsito: no cuesta ninguna RPC nueva. Incluye A PROPÓSITO las ubicaciones
    que no tienen botón propio (sectores sin rubro; Virgilio NO desde v2.2.0; inyectores tienen rubro desde v2.3.0), porque justamente
    ahí es donde un componente se volvía imposible de encontrar. */
+function rubroIdx(k){ for (var i=0;i<RUBROS.length;i++) if (RUBROS[i].key===k) return i; return RUBROS.length; }
 function rubroPorKey(k){ return RUBROS.filter(function(r){ return r.key===k; })[0] || null; }
 function rubroDeUbic(u){
   if (!u) return null;
@@ -676,10 +680,12 @@ function filtradas(){
   var q = String($("q").value||"").trim().toLowerCase();
   if (q) arr = arr.filter(function(x){ return texto(x).indexOf(q)>=0; });
   if ($("soloStock").checked) arr = arr.filter(function(x){ return Number(x.online||0)!==0; });
-  // en "Todos" manda el código, para que el mismo componente quede junto en un solo bloque
+  // v3.0.2: en "Todos" manda el RUBRO, en el orden de los botones (Cervantes → Virgilio →
+  // Terceros; lo que no tiene rubro va al final); adentro, código numérico y después dónde.
   if (RUBRO && RUBRO.mode==="global") return arr.sort(function(a,b){
-    var c=String(a.cod||"").localeCompare(String(b.cod||"")); if(c) return c;
-    return (a.rubro_nom||"").localeCompare(b.rubro_nom||"");
+    var r=rubroIdx(a.rubro_key)-rubroIdx(b.rubro_key); if(r) return r;
+    var c=String(a.cod||"").localeCompare(String(b.cod||""), "es", { numeric:true }); if(c) return c;
+    return (a.ubic_nom||"").localeCompare(b.ubic_nom||"");
   });
   // en los sectores (y su contraparte "en Virgilio"), orden numérico del código: GRJ4, GRJ5 …
   // GRJ10, GRJ10A (no GRJ10 antes que GRJ4)

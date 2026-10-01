@@ -14489,3 +14489,12 @@ Remaches, Garage, Cartones, Cajas, Tránsito PS, Art. Terminado) pasa de `"Secto
 Terceros), igual que las pestañas de §4hx. Sólo cambió el literal del `grupo` en `RUBROS`; nada
 de lógica. Sólo front. `tests/ui/test_stock_general.js` (2 assertions actualizadas). Suite 67/67.
 version.js v1.230.1 ?v=20261001l.
+
+## 4hz. Stock General: «Todos los rubros» se ordena por RUBRO (2026-10-01)
+
+- [usuario, 01/10] *"Ordená por rubro"*, sobre la tabla combinada (Rubro · Dónde · Código…).
+- Antes ordenaba por **código** (el mismo componente junto: 2405 en Bolsas Plásticas y en 3 inyectores
+  seguidos). Ahora va por **rubro en el orden de los botones** (Cervantes → Virgilio → Terceros; lo sin
+  rubro al final), y adentro **código numérico** y después «Dónde». Se retira el «manda el código» del v2.2.0.
+- Sólo front (`rubroIdx` + el sort de `filtradas`). `test_stock_general` mide que ningún rubro reaparezca
+  después de que empezó otro (falla con el orden viejo). Stock General v3.0.2, version.js v1.230.2.
