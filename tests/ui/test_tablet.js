@@ -742,13 +742,15 @@ window.supabase = { createClient: function(){ return {
   await page.click('#tipoGrid .tipo-btn[data-tipo="virgilio"]');
   await page.waitForFunction(() => !document.getElementById('fase1').classList.contains('hidden'));
   ok((await page.$eval('#fase1Title', e => e.textContent)) === 'Virgilio', 'un tipo con una sola contraparte entra derecho');
-  rows = await page.$$eval('#tbody tr', xs => xs.map(x => x.textContent.replace(/\s+/g, ' ')));
-  ok(rows.length === 1 && rows[0].includes('IC3V') && rows[0].includes('20 kg') && rows[0].includes('online Virgilio'),
-     'Virgilio: IC3V con esperado 20 kg del online — ' + rows[0]);
-  // Virgilio NO es tallerista ni P.S.: su columna sigue diciendo "Esperado" (el rotulo nuevo es
-  // solo para los dos que el usuario nombro el 2026-09-21)
-  ok((await page.$eval('#thead', e => e.textContent)).includes('Esperado'),
-     'Virgilio: la columna sigue siendo Esperado — ' + (await page.$eval('#thead', e => e.textContent)));
+  // v1.40.0-R2 (2026-10-01): Recibir -> Virgilio pasó a tarjetas, el mismo diseño que tallerista/P.S.
+  await page.waitForSelector('#cardsGrid .parte-card');
+  const csVir = await page.$$eval('#cardsGrid .parte-card', xs => xs.map(x => x.textContent.replace(/\s+/g, ' ')));
+  ok(csVir.length === 1 && /IC3V/.test(csVir[0]) && /20/.test(csVir[0]) && /kg/.test(csVir[0]),
+     'Virgilio: IC3V con esperado 20 kg (tarjeta) — ' + csVir[0]);
+  // Virgilio NO es tallerista ni P.S.: su tarjeta sigue diciendo "Esperado" (el rótulo nuevo es
+  // solo para los dos que el usuario nombró el 2026-09-21)
+  ok(/Esperado/.test(csVir[0]) && !/Stock tallerista|Stock prov/.test(csVir[0]),
+     'Virgilio: la referencia sigue siendo Esperado — ' + csVir[0]);
   await page.click('#btnVolver');
   await page.waitForFunction(() => document.querySelectorAll('#tipoGrid .tipo-btn').length > 0);
   ok(true, 'volver desde un tipo de una sola contraparte cae en los tipos');
@@ -1012,22 +1014,29 @@ window.supabase = { createClient: function(){ return {
   // ── 5) render a 390px ────────────────────────────────────────────────────
   await page.goto(ROOT + '/Tablet/Tablet_GP2.html?modo=enviar');
   await page.waitForFunction(() => document.querySelectorAll('#tipoGrid .tipo-btn').length > 0);
-  // en Enviar ya no queda ninguna tabla (los cuatro destinos van en tarjetas): la tabla que se
-  // mide es la de Recibir.
+  // v1.40.0-R2 (2026-10-01): Recibir -> Virgilio tambien pasó a tarjetas, asi que YA NO QUEDA
+  // ninguna tabla en ningun modo de este archivo — se mide la grilla de tarjetas de Virgilio.
   await page.click('#modos .modo-btn[data-modo="recibir"]');
   await page.click('#tipoGrid .tipo-btn[data-tipo="virgilio"]');
-  await page.waitForFunction(() => document.querySelectorAll('#tbody tr').length > 0);
+  await page.waitForFunction(() => document.querySelectorAll('#cardsGrid .parte-card').length > 0);
   const m = await page.evaluate(() => {
-    const ins = [...document.querySelectorAll('#tbody input.cell-in, #modos .modo-btn, #btnEnviar')];
+    const cs = [...document.querySelectorAll('#cardsGrid .parte-card'), ...document.querySelectorAll('#modos .modo-btn, #btnEnviar')];
     return {
       horizontal: document.documentElement.scrollWidth > window.innerWidth,
-      altoMin: Math.min(...ins.map(i => i.getBoundingClientRect().height)),
-      fuenteMin: Math.min(...[...document.querySelectorAll('#tbody input.cell-in')].map(i => parseFloat(getComputedStyle(i).fontSize))),
+      altoMin: Math.min(...cs.map(i => i.getBoundingClientRect().height)),
     };
   });
   ok(!m.horizontal, '390px: la pagina no scrollea horizontal');
-  ok(m.altoMin >= 44, '390px: campos y botones tocables (' + Math.round(m.altoMin) + 'px, minimo 44)');
-  ok(m.fuenteMin >= 19, '390px: letra grande en los campos de carga (' + m.fuenteMin + 'px)');
+  ok(m.altoMin >= 44, '390px: tarjetas y botones tocables (' + Math.round(m.altoMin) + 'px, minimo 44)');
+  await abrir('IC3V');
+  const mIC = await page.evaluate(() => {
+    const i = document.querySelector('#detCard input[data-f="q"]');
+    const r = i.getBoundingClientRect();
+    return { alto: r.height, fuente: parseFloat(getComputedStyle(i).fontSize), im: i.getAttribute('inputmode') };
+  });
+  ok(mIC.alto >= 44 && mIC.fuente >= 19, '390px: Virgilio, el campo de carga es grande y tocable (' + Math.round(mIC.alto) + 'px, ' + mIC.fuente + 'px)');
+  ok(mIC.im === 'decimal', '390px: y con teclado numerico (IC3V se mide en kg)');
+  await page.click('#btnVolverPartes');
 
   // las TARJETAS de un P.S. a 390px: una columna, sin desborde, y la vista de la parte con la
   // letra grande que pide la casa (el campo de carga nunca baja de 19px)
@@ -1066,43 +1075,19 @@ window.supabase = { createClient: function(){ return {
   const tMin = await page.$$eval('#tipoGrid .tipo-btn', xs => Math.min(...xs.map(x => x.getBoundingClientRect().height)));
   ok(tMin >= 44, '390px: los botones de tipo son tocables (' + Math.round(tMin) + 'px)');
 
-  // ── 6) a lo ancho de una TABLET la tabla no se estira: columnas pegadas, sin blanco muerto ──
+  // ── 6) "la tabla no se estira a lo ancho de una tablet" — SIN TABLA QUE MEDIR DESDE v1.40.0-R2 ──
   // [usuario 2026-09-17: "optimizame todos los espacios en blanco que hay entre las columnas en
-  // todas las pantallas de envio a ps en la version tablet"]. table.t viene a width:100%, asi que
-  // sin el encogido el navegador repartia el sobrante y dejaba media pantalla de blanco entre la
-  // pieza y su numero. Se mide en la tablet real (1280px), no a 390.
+  // todas las pantallas de envio a ps en la version tablet"]. Hasta el 2026-09-18 la tabla seguía
+  // viva en Recibir -> Virgilio (el único tipo que no había pasado a tarjetas) y era lo que medía
+  // esta sección. Desde que Virgilio también pasó a tarjetas (2026-10-01, §4hp) no queda NINGUNA
+  // tabla en esta pantalla — table.t sigue en el HTML pero oculta (`renderTabla` sin llamador). El
+  // reclamo de columnas pegadas/sin blanco muerto para tarjetas ya lo cubre la sección de abajo
+  // ("1280px: la grilla usa el ancho entero, no el de la tabla").
   const ctxT = await browser.newContext({ viewport: { width: 1280, height: 900 } });
   const pT = await ctxT.newPage();
   pT.on('pageerror', e => { console.log('PAGEERROR:', e.message); process.exitCode = 1; });
   await pT.route('**/@supabase/supabase-js@2**', r => r.fulfill({ contentType: 'application/javascript', body: STUB }));
   await pT.route('**/GP2_favicon.png', r => r.fulfill({ contentType: 'image/png', body: Buffer.from('') }));
-  // Desde 2026-09-18 van en TARJETAS los cuatro destinos de Enviar y el tallerista en Recibir: la
-  // tabla que queda viva es la del resto de Recibir, y es la que se mide aca (Virgilio, que ademas
-  // tiene una sola contraparte y se entra derecho).
-  for (const [modo, tipo, etiq] of [['recibir', 'virgilio', 'Virgilio (Recibir)']]) {
-    await pT.goto(ROOT + '/Tablet/Tablet_GP2.html?modo=' + modo);
-    await pT.evaluate(() => localStorage.clear());
-    await pT.reload();
-    await pT.waitForFunction(() => document.querySelectorAll('#tipoGrid .tipo-btn').length > 0);
-    await pT.click('#tipoGrid .tipo-btn[data-tipo="' + tipo + '"]');
-    await pT.waitForFunction(() => document.querySelectorAll('#tbody tr').length > 0);
-    const g = await pT.evaluate(() => {
-      const t = document.querySelector('table.t').getBoundingClientRect();
-      const paso = document.querySelector('.steps').getBoundingClientRect();
-      const bus = document.querySelector('#q').closest('.search-box').getBoundingClientRect();
-      // el blanco muerto ENTRE columnas = lo que la tabla mide de mas que su propio contenido
-      // (max-content es el ancho al que las columnas quedan pegadas a lo que tienen adentro)
-      const tab = document.querySelector('table.t');
-      const prev = tab.style.width;
-      tab.style.width = 'max-content';
-      const ideal = Math.round(tab.getBoundingClientRect().width);
-      tab.style.width = prev;
-      return { tabla: Math.round(t.width), ideal: ideal, disponible: Math.round(paso.width), buscador: Math.round(bus.width) };
-    });
-    ok(g.tabla < g.disponible * 0.75, etiq + ': la tabla ocupa lo que necesita, no todo el ancho (' + g.tabla + ' de ' + g.disponible + 'px)');
-    ok(g.tabla - g.ideal <= 4, etiq + ': las columnas quedan pegadas a su contenido, sin blanco repartido (' + g.tabla + ' vs ' + g.ideal + 'px de contenido)');
-    ok(Math.abs(g.buscador - g.tabla) <= 4, etiq + ': el buscador mide lo mismo que la tabla (' + g.buscador + ' vs ' + g.tabla + 'px)');
-  }
   // ── las TARJETAS de un P.S. en la tablet real: grilla de varias columnas, nada desbordado y
   //    tarjetas bien tocables. Se mide en Julio, que tiene dos partes. ──
   await pT.goto(ROOT + '/Tablet/Tablet_GP2.html?modo=enviar');

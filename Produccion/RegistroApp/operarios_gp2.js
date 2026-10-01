@@ -374,6 +374,16 @@ function flejesDeMatriz(n_matriz) {
   const porPieza = (D.matriz_fleje_pieza || {})[String(n_matriz || "").trim()] || {};
   return new Set(Object.values(porPieza).map(f => f && f.comp_id).filter(Boolean)).size;
 }
+/* Matriz conocida que no corta de ningun fleje: no hay rollo que elegir y el cartel
+   sobra (hoy son 346 de las 407 matrices; 401 Env Cucharas Inox Imp, por ejemplo).
+   Con un bundle viejo, sin matriz_fleje, no se puede saber: no se oculta nada.
+   [usuario 2026-10-01] */
+function matrizSinFleje(n_matriz) {
+  const n = String(n_matriz || "").trim();
+  if (!n || !D.matricesMap?.has(n)) return false;
+  if (!D.matriz_fleje && !D.matriz_fleje_pieza) return false;
+  return !flejeParaMatriz(n, null) && flejesDeMatriz(n) === 0;
+}
 function rollosParaMatriz(n_matriz, comp_salida_id) {
   const fleje = flejeParaMatriz(n_matriz, comp_salida_id);
   if (!fleje?.comp_id) return [];
@@ -741,6 +751,11 @@ function actualizarRolloPicker(n_matriz) {
   if (!grid) return;
   const n = String(n_matriz || "").trim();
   const msg = (t) => { grid.innerHTML = `<div class="rl-msg">${esc(t)}</div>`; rolloSel = null; };
+  // Matriz sin fleje: no hay rollo que elegir, el cartel entero se va. Se vuelve a
+  // mostrar apenas se elige una matriz que si lo lleva.
+  const wrap = $("rolloPicker");
+  if (matrizSinFleje(n)) { rolloSel = null; grid.innerHTML = ""; wrap?.classList.add("hidden"); return; }
+  wrap?.classList.remove("hidden");
   // Matriz que corta de dos flejes: hasta que no se elija la pieza no se sabe cual va,
   // y ofrecer el equivocado descuenta stock del fleje que no es. Si la pantalla va a
   // pedir la pieza (2+ salidas), se espera a que la elija; si no la va a pedir, se

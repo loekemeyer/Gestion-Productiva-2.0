@@ -1,17 +1,22 @@
-/* Tablet v1.40.0-R (2026-10-01) — REARMADO tras el revert de Luis del 01/10 [Thomas: "quiero que vuelvas
-   a hacer lo que te había pedido… la única corrección es que se aumente el stock si hay un envío a
-   Virgilio… y se disminuya si hay una recepción de Plásticos, Flejes, Cajas, SC y SP"].
+/* Tablet v1.40.0-R2 (2026-10-01) — Thomas, sobre el REARMADO de más arriba: "en recibir Virgilio no
+   aparecen ni las cajas, ni los flejes, ni los plasticos, ni sc, ni sp. Además quiero que el diseño de
+   recepción Virgilio sea el mismo que en los otros casos: box que apreto y pongo lo que recibo. Todo lo
+   que sea envío a Virgilio no tiene sugerido porque no tiene que haber alla (son cosas que no entran
+   aca) y recepción de Virgilio no tiene control. Pero el diseño igual".
    Con Supabase STUBEADO (la forma de tablet_bundle es la de la base). Fija:
      1. Enviar tiene la baldosa Virgilio;
-     2. Talleristas → Fábrica: se MANDA A PRODUCIR en cajas — el título lo dice, la referencia es el
-        stock de Art. Terminado en cajas, no hay "Otro cartón", y registrar manda tipo tallerista ref 3
-        con las UNIDADES (cajas × artículos por caja);
+     2. Talleristas → Fábrica: se MANDA A PRODUCIR en cajas — el título lo dice, no hay "Otro cartón", y
+        registrar manda tipo tallerista ref 3 con las UNIDADES (cajas × artículos por caja);
      3. Enviar → Virgilio: tres bloques en el orden del pedido (Art. Terminados, Insumos por sector, SC,
-        SP); el terminado se carga en cajas y viaja en unidades, el fleje en kg;
-     4. Recibir → Virgilio: el importado sale suelto junto a lo que vuelve (SC/SP/insumos); si el remito
-        del importado viene en envases (C13 en cajas de 144) se carga en cajas y viaja en unidades, y al
-        registrar va DIRECTO a su control en kg; lo que vuelve (no importado) registra tipo virgilio sin
-        tocar ningún botón de Cervantes;
+        SP); el terminado se carga en cajas y viaja en unidades, el fleje en kg; NINGUNA tarjeta muestra
+        sugerido/referencia (ni "Stock Art. Terminado" ni "Stock Cervantes": Virgilio no tiene consumo
+        propio del que salga un número — v1.40.0-R2);
+     4. Recibir → Virgilio: MISMO diseño de tarjetas que Enviar (v1.40.0-R2) y agrupado por rubro igual
+        (Insumos por sector, SC, SP); el importado sale junto a lo que vuelve, aunque esté en 0 (v1.40.0-R2,
+        "tienen que aparecerme los componentes con stock cero"); si el remito del importado viene en
+        envases (C13 en cajas de 144) se carga en cajas y viaja en unidades, y al registrar va DIRECTO a
+        su control en kg; lo que vuelve (no importado) registra tipo virgilio sin tocar ningún botón de
+        Cervantes y SIN ir a ningún control (eso es sólo de los importados — v1.40.0-R2);
      5. a 390px no hay scroll horizontal;
      6. NO queda nada del aviso Sí/No cruzado con Gestión Virgilio (D4/v1.41.0: eso pedía tocar GV y
         Thomas pidió no tocar GV en este pedido) — ni vir_pend ni vir_deneg se muestran en pantalla. */
@@ -44,11 +49,13 @@ const BUNDLE = {
     T({ comp_id: 463, cod: 'A9', desc: 'Caja N°9', sector: 'Sector Caja', sec_id: 11, grupo: 'Insumos', um: 'unidad', online_sector: 30 }),
   ],
   recibir: [
-    { tipo: 'virgilio', ref: 'virgilio', comp_id: 547, comp_entrada_id: null, n_entradas: 0, tiene_bom: false, cod_art: null, cod: 'C13', desc: 'Corta Queso Bastidor c/Cilindro', sector: 'Sector Procesado', um: 'unidad', uxc: null, kg_x_uni: 0.0305, por_caja: null, remito_unidad: 'envase', env_unidad: 'cajas', env_factor: 144, esperado: null, esperado_origen: null, importado: true, sector_id: 2, proveedor: 'Importado' },
-    { tipo: 'virgilio', ref: 'virgilio', comp_id: 949, comp_entrada_id: null, n_entradas: 0, tiene_bom: false, cod_art: null, cod: 'GRJ31', desc: 'Ralladores', sector: 'Sector Garage', um: 'unidad', uxc: null, kg_x_uni: null, por_caja: null, remito_unidad: 'uni', esperado: null, esperado_origen: null, importado: true, sector_id: 9, proveedor: 'Importado' },
+    { tipo: 'virgilio', ref: 'virgilio', comp_id: 547, comp_entrada_id: null, n_entradas: 0, tiene_bom: false, cod_art: null, cod: 'C13', desc: 'Corta Queso Bastidor c/Cilindro', sector: 'Sector Procesado', um: 'unidad', uxc: null, kg_x_uni: 0.0305, por_caja: null, remito_unidad: 'envase', env_unidad: 'cajas', env_factor: 144, esperado: null, esperado_origen: null, importado: true, sector_id: 2, proveedor: 'Importado', grupo: 'SP' },
+    { tipo: 'virgilio', ref: 'virgilio', comp_id: 949, comp_entrada_id: null, n_entradas: 0, tiene_bom: false, cod_art: null, cod: 'GRJ31', desc: 'Ralladores', sector: 'Sector Garage', um: 'unidad', uxc: null, kg_x_uni: null, por_caja: null, remito_unidad: 'uni', esperado: 0, esperado_origen: 'online_virgilio', importado: true, sector_id: 9, proveedor: 'Importado', grupo: 'Insumos' },
     // NO importado: SC/SP/insumos que VUELVEN de Virgilio (el "recepción de Plásticos, Flejes,
-    // Cajas, SC y SP" que Thomas pidió mantener) — mismo tipo "virgilio", importado:false.
-    { tipo: 'virgilio', ref: 'virgilio', comp_id: 373, comp_entrada_id: null, n_entradas: 0, tiene_bom: false, cod_art: null, cod: 'IC3V', desc: 'Fleje N° 90 LARGO', sector: 'Sector Fleje', um: 'kg', uxc: 24, kg_x_uni: 0.0134, por_caja: null, esperado: 20, esperado_origen: 'online_virgilio', importado: false, sector_id: 5, proveedor: null },
+    // Cajas, SC y SP" que Thomas pidió mantener) — mismo tipo "virgilio", importado:false. Con
+    // esperado 0 [v1.40.0-R2, Thomas 2026-10-01: "tienen que aparecerme los componentes con stock
+    // cero"]: todavía no se le mandó nada a Virgilio.
+    { tipo: 'virgilio', ref: 'virgilio', comp_id: 373, comp_entrada_id: null, n_entradas: 0, tiene_bom: false, cod_art: null, cod: 'IC3V', desc: 'Fleje N° 90 LARGO', sector: 'Sector Fleje', um: 'kg', uxc: 24, kg_x_uni: 0.0134, por_caja: null, esperado: 0, esperado_origen: 'online_virgilio', importado: false, sector_id: 5, proveedor: null, grupo: 'Insumos' },
   ],
 };
 
@@ -122,8 +129,10 @@ window.supabase = { createClient: function(){ return {
   ok(JSON.stringify(bloques) === JSON.stringify(['Art. Terminados', 'Insumos · Caja', 'Insumos · Fleje', 'Insumos · Plástico', 'SC', 'SP']),
      'Virgilio: Art. Terminados, Insumos (por sector), SC y SP, en ese orden — ' + bloques.join(' | '));
   cs = await cards();
-  ok(/Stock Art\. Terminado 2 cajas/.test(cs[0] || ''), 'el terminado dice su stock en cajas — ' + cs[0]);
-  ok(cs.some(c => /^A1uni/.test(c) && /Stock Cervantes 500 uni/.test(c)), 'el SP dice el stock de Cervantes — ' + cs.find(c => /^A1uni/.test(c)));
+  // v1.40.0-R2 [Thomas: "Todo lo que sea envío a Virgilio no tiene sugerido porque no tiene que
+  // haber allá (son cosas que no entran acá)"]: ninguna tarjeta de Enviar → Virgilio lleva
+  // "Stock Art. Terminado" ni "Stock Cervantes" ni ningún otro renglón de referencia.
+  ok(!cs.some(c => /Stock Art\. Terminado|Stock Cervantes/.test(c)), 'ninguna tarjeta de Enviar → Virgilio muestra sugerido/referencia — ' + cs.join(' // '));
   ok(!cs.some(c => /Virgilio no confirmó|Denegado por Virgilio/.test(c)), 'NADA de aviso cruzado con GV (D4 no se tocó en este pedido)');
   const horiz = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth);
   ok(!horiz, '390px: sin scroll horizontal');
@@ -138,19 +147,27 @@ window.supabase = { createClient: function(){ return {
   ok(i762.cantidad === 12 && i762.unidad === 'uni', '1 caja del terminado viaja como 12 unidades — ' + JSON.stringify(i762));
   ok(i900.cantidad === 10.5 && i900.unidad === 'kg', 'el fleje viaja en kg (10,5) — ' + JSON.stringify(i900));
 
-  // ── 4) Recibir → Virgilio: importado suelto + lo que vuelve (SC/SP/insumos), C13 en cajas de 144 ──
+  // ── 4) Recibir → Virgilio: MISMO diseño de tarjetas (tap -> cargar) que Enviar [Thomas 2026-10-01:
+  // "quiero que el diseño de recepción Virgilio sea el mismo que en los otros casos: box que apreto
+  // y pongo lo que recibo"], agrupado por rubro igual; el importado sale junto a lo que vuelve ──
   await page.goto(ROOT + '/Tablet/Tablet_GP2.html?modo=recibir');
   await page.waitForSelector('#tipoGrid .tipo-btn[data-tipo="virgilio"]');
   await page.click('#tipoGrid .tipo-btn[data-tipo="virgilio"]');
-  await page.waitForSelector('#tbody tr');
-  const filas = await page.$$eval('#tbody tr', xs => xs.map(x => x.textContent.replace(/\s+/g, ' ').trim()));
-  ok(filas.some(f => /^C13/.test(f)) && filas.some(f => /^GRJ31/.test(f)) && filas.some(f => /^IC3V/.test(f)),
-     'los importados salen sueltos junto a lo que vuelve (SC/SP/insumos) — ' + filas.map(f => f.split(' ')[0]).join(', '));
-  ok(/C13\s*cajas/.test(filas.find(f => /^C13/.test(f)) || ''), 'C13 se carga en cajas (remito en envases)');
-  const inp = page.locator('#tbody tr:has-text("C13") input.cell-in');
-  await inp.fill('3');
-  await inp.dispatchEvent('input');
-  ok(/= 432 unidades/.test(await page.locator('#tbody tr:has-text("C13") .env-eq').textContent()), 'debajo: 3 cajas = 432 unidades');
+  await page.waitForSelector('#cardsGrid .parte-card');
+  const bloquesRec = await page.$$eval('#cardsGrid .pc-rubro', xs => xs.map(x => x.textContent.trim()));
+  ok(JSON.stringify(bloquesRec) === JSON.stringify(['Insumos · Fleje', 'Insumos · Garage', 'SP']),
+     'Recibir → Virgilio: agrupado por rubro, igual que Enviar — ' + bloquesRec.join(' | '));
+  cs = await cards();
+  ok(cs.some(c => c.startsWith('C13')) && cs.some(c => c.startsWith('GRJ31')) && cs.some(c => c.startsWith('IC3V')),
+     'los importados salen en tarjetas junto a lo que vuelve (SC/SP/insumos), aunque esté en 0 — ' + cs.join(' // '));
+
+  // C13 (importado, comp_id 547): remito en envases -> se carga en cajas con su equivalencia
+  await abrir('547');
+  const detC13 = await page.$eval('#detCard', e => e.textContent.replace(/\s+/g, ' '));
+  ok(/cajas/.test(detC13), 'C13 se carga en cajas (remito en envases) — ' + detC13.slice(0, 140));
+  await page.fill('#detCard input[data-f="q"]', '3');
+  ok(/= 432 unidades/.test(await page.locator('#detCard .det-eq').textContent()), 'debajo: 3 cajas = 432 unidades');
+  await page.click('#btnVolverPartes');
   await page.fill('#fRemito', 'R-7');
   await Promise.all([
     page.waitForURL(/StockFlejes\/control-remaches\.html\?sector=2&prov=Importado/, { timeout: 8000 }).catch(() => {}),
@@ -161,6 +178,26 @@ window.supabase = { createClient: function(){ return {
   const ic = reg && reg.args.p.items[0];
   ok(reg && reg.args.p.modo === 'recibir' && reg.args.p.tipo === 'virgilio' && reg.args.p.remito === 'R-7', 'registra la recepción de Virgilio con el remito');
   ok(ic && ic.comp_id === 547 && ic.cantidad === 432 && ic.unidad === 'uni', 'C13: 3 cajas viajan como 432 unidades — ' + JSON.stringify(ic));
+
+  // ── 4b) lo que vuelve de Virgilio (NO importado) registra SIN pasar por ningún control [Thomas
+  // 2026-10-01: "recepción de Virgilio no tiene control. Pero el diseño igual"] — sólo el importado
+  // (arriba) va al control en kg ──
+  await page.goto(ROOT + '/Tablet/Tablet_GP2.html?modo=recibir');
+  await page.waitForSelector('#tipoGrid .tipo-btn[data-tipo="virgilio"]');
+  await page.click('#tipoGrid .tipo-btn[data-tipo="virgilio"]');
+  await page.waitForSelector('#cardsGrid .parte-card');
+  await abrir('373');   // IC3V, no importado — "lo que vuelve"
+  await page.fill('#detCard input[data-f="q"]', '10');
+  await page.click('#btnVolverPartes');
+  await page.click('#btnEnviar');
+  await page.waitForSelector('#fase3:not(.hidden)');
+  ok(!/control/i.test(page.url()), 'lo que vuelve (no importado) NO redirige a ningún control — ' + page.url());
+  const successBody = await page.locator('#successAlertas').innerText().catch(() => '');
+  ok(!/control/i.test(successBody), 'y no ofrece ningún botón "Ir al control" — ' + JSON.stringify(successBody));
+  reg = (await calls('tablet_registrar')).pop();
+  const i373 = reg && reg.args.p.items[0];
+  ok(reg && reg.args.p.modo === 'recibir' && reg.args.p.tipo === 'virgilio' && i373 && i373.comp_id === 373,
+     'IC3V registra tipo virgilio, sin tocar ningún botón de Cervantes — ' + JSON.stringify(i373));
 
   await browser.close();
   console.log(process.exitCode ? 'HAY FALLOS' : 'TODO OK');
