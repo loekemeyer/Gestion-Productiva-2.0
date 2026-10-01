@@ -279,7 +279,7 @@ function render(){
       '<td>'+esc(x["desc"]||"")+'</td>'+
       '<td class="num sep stk-cell" data-cid="'+x.comp_id+'" title="Ver cómo se compone">'+(kg==null?"—":fmt(kg,0))+'</td>'+
       '<td class="num stk-cell" data-cid="'+x.comp_id+'" title="Ver cómo se compone">'+(caj==null?"—":fmt(caj,1))+'</td>'+
-      '<td class="num stk-cell" data-cid="'+x.comp_id+'" title="Ver cómo se compone"><b>'+fmt(uni,0)+'</b></td>'+
+      '<td class="num stk-cell" data-cid="'+x.comp_id+'" title="Ver cómo se compone">'+fmt(uni,0)+'</td>'+
       celdasMov +
       '<td class="num sep">'+(x.kg_x_uni?fmt(x.kg_x_uni,6):"—")+'</td>'+
       '<td class="num">'+(x.uni_x_cajon?fmt(x.uni_x_cajon,0):"—")+'</td>'+
