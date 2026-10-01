@@ -1856,7 +1856,7 @@ AS $function$
     select r.id, r.fecha, r.componente_id, r.proveedor, r.remito, r.cantidad,
            r.unidad, r.movimiento_id, r.created_at, r.controlado,
            r.cantidad_declarada, r.base, r.pisos, r.sueltas, r.paquetes,
-           r.uni_x_paq, r.controlado_en, r.controlado_por,
+           r.uni_x_paq, r.controlado_en, r.controlado_por, r.virgilio,
            c.codigo, c.descripcion, c.recibe_en_cajas, c.kg_x_uni
     from recepcion_insumo r
     join componente c on c.id = r.componente_id
@@ -1964,8 +1964,10 @@ DECLARE
   v_sueltas int := GREATEST(COALESCE(p_sueltas, 0), 0);
   v_upp int := GREATEST(COALESCE(p_uni_x_paq, 25), 1);
   v_paq int := v_base * v_pisos;
-  v_total int := v_paq * v_upp + v_sueltas;
+  v_total int := v_paq * v_upp + v_sueltas;   -- lo contado físicamente en Cervantes
   v_declarada numeric;
+  v_virg numeric;      -- lo que se mandó directo a Virgilio (no se cuenta acá)
+  v_cantidad numeric;  -- total recibido = contado + virgilio (lo que lleva la compra)
 BEGIN
   perform "GP2"._exigir_autorizado();  -- seguridad punto 1 fase B (2026-09-28)
   SELECT * INTO r FROM "GP2".recepcion_insumo WHERE id = p_recepcion_id;
@@ -1978,6 +1980,10 @@ BEGIN
 
   -- La primera vez, guarda la cantidad declarada; en re-control mantiene la original.
   v_declarada := COALESCE(r.cantidad_declarada, r.cantidad);
+  -- Parte del remito que no entró a Cervantes y se trasladó directo a Virgilio (recepcion_a_virgilio).
+  v_virg := COALESCE(r.virgilio, 0);
+  -- La compra lleva el total recibido; el traslado a Virgilio descuenta su parte y deja Cervantes en lo contado.
+  v_cantidad := v_total + v_virg;
 
   UPDATE "GP2".recepcion_insumo
      SET controlado = true,
@@ -1987,25 +1993,26 @@ BEGIN
          sueltas = v_sueltas,
          paquetes = v_paq,
          uni_x_paq = v_upp,
-         cantidad = v_total,
+         cantidad = v_cantidad,
          controlado_en = now(),
          controlado_por = p_usuario
    WHERE id = p_recepcion_id;
 
   -- Ajustar el movimiento asociado: los triggers de GP2.movimiento recalculan
   -- _delta_orig / _delta_dest y actualizan GP2.inventario.
-  IF r.movimiento_id IS NOT NULL AND v_total::numeric <> r.cantidad THEN
-    UPDATE "GP2".movimiento SET cantidad = v_total WHERE id = r.movimiento_id;
+  IF r.movimiento_id IS NOT NULL AND v_cantidad <> r.cantidad THEN
+    UPDATE "GP2".movimiento SET cantidad = v_cantidad WHERE id = r.movimiento_id;
   END IF;
 
   RETURN jsonb_build_object(
     'recepcion_id', p_recepcion_id,
     'movimiento_id', r.movimiento_id,
     'declarada', v_declarada,
+    'virgilio', v_virg, 'contado', v_total,
     'base', v_base, 'pisos', v_pisos, 'sueltas', v_sueltas,
     'paquetes', v_paq, 'uni_x_paq', v_upp,
-    'total', v_total,
-    'diff', v_total - v_declarada
+    'total', v_cantidad,
+    'diff', v_total - (v_declarada - v_virg)
   );
 END;
 $function$
@@ -3197,6 +3204,58 @@ begin
   return jsonb_build_object('ok', true, 'movimiento_id', v_mov, 'destino', 'virgilio_sector',
     'stock_cervantes', (select cantidad from inventario where componente_id = p_comp_id and ubicacion_id = v_o),
     'stock_virgilio',  (select cantidad from inventario where componente_id = p_comp_id and ubicacion_id = v_d));
+end $function$
+;
+
+-- ---------- recepcion_a_virgilio ----------
+-- Botón "→ Virgilio" del control de cajas y del pesaje de flejes [Thomas 2026-10-01]: cuando el remito
+-- no entra en Cervantes por espacio, parte de la mercadería va directo a Virgilio. El remito entra
+-- COMPLETO como compra (la O.C./factura cierra por el total) y esta función traslada a Virgilio lo que
+-- no bajó (reusa enviar_a_virgilio: sector → depósito de Virgilio) y lo anota en recepcion_insumo.virgilio.
+-- p_cantidad es absoluto (0 = anula el envío). El control compara después contra remito − virgilio.
+CREATE OR REPLACE FUNCTION "GP2".recepcion_a_virgilio(p_recepcion_id bigint, p_cantidad numeric, p_usuario text DEFAULT NULL::text)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'GP2'
+AS $function$
+declare r "GP2".recepcion_insumo%rowtype; v_old numeric; v_remito numeric; v_counted numeric;
+        v_res jsonb; v_mov bigint;
+begin
+  perform "GP2"._exigir_autorizado();
+  if p_cantidad is null or p_cantidad < 0 then raise exception 'La cantidad a Virgilio no puede ser negativa'; end if;
+  select * into r from "GP2".recepcion_insumo where id = p_recepcion_id;
+  if not found then raise exception 'Recepción % no existe', p_recepcion_id using errcode='P0002'; end if;
+  v_old := coalesce(r.virgilio, 0);
+  v_remito := coalesce(r.cantidad_declarada, r.cantidad);
+  if p_cantidad > v_remito then
+    raise exception 'A Virgilio (%) no puede superar lo del remito (%)', p_cantidad, v_remito;
+  end if;
+
+  -- 1) sacar el traslado anterior (el trigger de DELETE devuelve el stock a Cervantes y lo quita de Virgilio)
+  if r.virgilio_mov_id is not null then delete from "GP2".movimiento where id = r.virgilio_mov_id; end if;
+
+  -- 2) si ya está controlado, la cantidad guardada es (contado + virgilio_anterior). El contado físico
+  --    no cambia; cantidad/compra se mueven con virgilio para que Cervantes quede siempre en el contado.
+  if coalesce(r.controlado, false) then
+    v_counted := r.cantidad - v_old;
+    update "GP2".recepcion_insumo set cantidad = v_counted + p_cantidad where id = p_recepcion_id;
+    if r.movimiento_id is not null then
+      update "GP2".movimiento set cantidad = v_counted + p_cantidad where id = r.movimiento_id;
+    end if;
+  end if;
+  -- (sin controlar: cantidad = remito entero, que ya incluye lo de Virgilio; no se toca)
+
+  -- 3) traslado nuevo a Virgilio (reusa enviar_a_virgilio: sector -> virgilio_sector)
+  if p_cantidad > 0 then
+    v_res := "GP2".enviar_a_virgilio(r.componente_id, p_cantidad, r.unidad, now(),
+               'A Virgilio desde recepción '||p_recepcion_id||coalesce(' · remito '||r.remito,''));
+    v_mov := (v_res->>'movimiento_id')::bigint;
+  end if;
+
+  update "GP2".recepcion_insumo set virgilio = p_cantidad, virgilio_mov_id = v_mov where id = p_recepcion_id;
+  return jsonb_build_object('ok', true, 'recepcion_id', p_recepcion_id, 'virgilio', p_cantidad,
+    'virgilio_mov_id', v_mov, 'traslado', v_res);
 end $function$
 ;
 

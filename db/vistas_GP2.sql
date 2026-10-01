@@ -1171,7 +1171,8 @@ create or replace view "GP2".v_recepcion_control as
     a.peso_balanza_total,
     COALESCE(ri.rollos, 0)::numeric - COALESCE(a.rollos_contados, 0::numeric) AS rollos_sin_clasificar,
     COALESCE(ri.pallets, 0) - COALESCE(a.pallets_pesados, 0::bigint) AS pallets_sin_pesar,
-    COALESCE(a.kg_rollos, 0::numeric) - ri.cantidad AS dif_kg_vs_remito,
+    -- Lo que se bajó directo a Virgilio no se pesa: el esperado en Cervantes es remito - virgilio.
+    COALESCE(a.kg_rollos, 0::numeric) - (ri.cantidad - COALESCE(ri.virgilio, 0::numeric)) AS dif_kg_vs_remito,
     COALESCE(a.pallets_con_problema, 0::bigint) AS pallets_con_problema,
     a.problemas,
         CASE
@@ -1181,7 +1182,9 @@ create or replace view "GP2".v_recepcion_control as
             WHEN ri.rollos IS NOT NULL AND (COALESCE(ri.rollos, 0)::numeric - COALESCE(a.rollos_contados, 0::numeric)) <> 0::numeric THEN 'rollos sin clasificar'::text
             WHEN COALESCE(a.pallets_con_problema, 0::bigint) > 0 THEN a.problemas
             ELSE 'ok'::text
-        END AS estado
+        END AS estado,
+    COALESCE(ri.virgilio, 0::numeric) AS virgilio,
+    (ri.cantidad - COALESCE(ri.virgilio, 0::numeric)) AS kg_esperado_cervantes
    FROM "GP2".recepcion_insumo ri
      JOIN "GP2".componente c ON c.id = ri.componente_id
      LEFT JOIN a ON a.recepcion_id = ri.id;

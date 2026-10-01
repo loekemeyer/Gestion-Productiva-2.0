@@ -6,6 +6,15 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
+<!-- v3.69.0 (2026-10-01) — BOTÓN "→ Virgilio" EN EL PESAJE DE FLEJES [Thomas: "si el total del remito
+     no entra en Cervantes porque excede el espacio físico, no se baja del camión una parte y va directo
+     para Virgilio ... un botón en el control de cajas y flejes que se pueda mandar una cantidad a
+     Virgilio"]. El remito entra COMPLETO a Cervantes (la O.C./factura cierra por el total); el botón
+     traslada a Virgilio lo que no bajó (RPC GP2.recepcion_a_virgilio, que reusa enviar_a_virgilio
+     sector→depósito Virgilio) y lo anota en recepcion_insumo.virgilio. El pesaje ya no compara el neto
+     contra el remito sino contra el ESPERADO = remito − lo de Virgilio (itemDif/v_recepcion_control),
+     así lo que no se pesa deja de leerse como faltante. El equivalente en cajas vive en control-cajas.
+     DB: db/migracion_recepcion_virgilio.sql. Test: test_recepcion_virgilio.js. -->
 <!-- v3.68.0-R (2026-10-01) — REARMADO TRAS EL REVERT del 01/10 (Luis): vuelve el mismo v3.68.0 de
      abajo, SIN Importados acá (vive en Tablet -> Recibir -> Virgilio otra vez). Sin base nueva en
      este archivo. -->
@@ -499,6 +508,12 @@ input[type="text"]{width:200px}
 .pes-calc{font-size:15px;margin:0 0 10px;color:#555}
 .pes-calc .okc{color:#0a7a2f;font-weight:800} .pes-calc .warnc{color:#b45309;font-weight:800}
 .pes-add{font-size:15px;font-weight:700;color:#1d4ed8;cursor:pointer;background:none;border:1px dashed #cddbea;border-radius:8px;padding:6px 10px;margin:0 0 14px}
+.pes-virg{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:0 0 14px;padding:10px 12px;background:#fff7ed;border:1px solid #fed7aa;border-radius:8px}
+.pes-virg label{font-size:16px;font-weight:800;color:#9a3412;width:100%}
+.pes-virg input{flex:1;min-width:110px;padding:10px 8px;font-size:20px;text-align:center;border:2px solid #fdba74;border-radius:8px;font-weight:900}
+.pes-virg input:focus{outline:none;border-color:#ea580c;background:#fff}
+.pes-virg-save{flex:0 0 auto;background:#9a3412;color:#fff;border:none;border-radius:8px;padding:10px 14px;font-size:16px;font-weight:800;cursor:pointer}
+.pes-virg-save:disabled{opacity:.5;cursor:not-allowed}
 /* pesaje por etapas: un item por vez, con chips de progreso y Anterior/Siguiente */
 .pes-chips{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
 .pes-chip{padding:6px 12px;border-radius:16px;border:2px solid #d0d7de;background:#fff;font-weight:800;font-size:14px;cursor:pointer;color:#334155}
@@ -2073,6 +2088,7 @@ function abrirPesajePendientes(pend){
     return { recId:r.recepcion_id, codigo:r.codigo, desc:r.descripcion||'',
              pallets:r.pallets_remito, modo:modo,
              remitoKg:Number(r.kg_remito)||null,
+             virgilio:Number(r.virgilio)||0,
              blocks:(modo==='peso'
                ? {1:{peso:String(r.peso_balanza_total||''),rollos:[]}}
                : bloquesPrefill(r)) };
@@ -2184,16 +2200,23 @@ function itemDif(it){
   var c=calcItem(it);
   if(!(it.remitoKg>0) || !c.n) return null;
   var tara=(it.modo==='peso') ? 0 : taraPallet()*c.n;
-  var neto=c.tot-tara, dif=neto-it.remitoKg, pct=dif/it.remitoKg*100;
-  return { tot:c.tot, n:c.n, tara:tara, neto:neto, dif:dif, pct:pct,
-           ok: Math.abs(dif)<=tolKg(it.remitoKg),
+  // Lo que se bajó directo a Virgilio no se pesa: el esperado en Cervantes es remito - Virgilio.
+  var virg=Number(it.virgilio)||0;
+  var esp=it.remitoKg-virg;
+  var base=esp>0?esp:it.remitoKg;
+  var neto=c.tot-tara, dif=neto-esp, pct=esp>0?(dif/esp*100):0;
+  return { tot:c.tot, n:c.n, tara:tara, neto:neto, dif:dif, pct:pct, esperado:esp, virgilio:virg,
+           ok: Math.abs(dif)<=tolKg(base),
            damian: it.modo!=='peso' && dif>0 && pct>20 };
 }
 /* Una linea corta [usuario 2026-09-30: "Hay mucho texto"]: remito, lo que llego y la diferencia.
    La cuenta de la tara queda en el title. */
 function itemLinea(it){
   if(!it.remitoKg) return '';
-  var r='Remito <b>'+fmt(it.remitoKg)+' kg</b>', d=itemDif(it);
+  var virg=Number(it.virgilio)||0;
+  var r='Remito <b>'+fmt(it.remitoKg)+' kg</b>'+
+    (virg>0?(' · <span style="color:#9a3412">→ Virgilio '+fmt(virg)+' kg · esperado <b>'+fmt(it.remitoKg-virg)+' kg</b></span>'):'');
+  var d=itemDif(it);
   if(!d) return r;
   var sig=function(x){ return (x>0?'+':'')+fmt(x); };
   var tit=(it.modo==='peso') ? '' :
@@ -2205,7 +2228,10 @@ function itemLinea(it){
 /* El mismo texto para los avisos (confirm nativo, texto plano). */
 function difTexto(it){
   var d=itemDif(it), sig=function(x){ return (x>0?'+':'')+fmt(x); };
-  return it.codigo+': remito '+fmt(it.remitoKg)+' kg · '+(it.modo==='peso'?'balanza':'neto')+' '+
+  var virg=Number(it.virgilio)||0;
+  var ref = virg>0 ? ('esperado '+fmt(it.remitoKg-virg)+' kg (remito '+fmt(it.remitoKg)+' − Virgilio '+fmt(virg)+')')
+                   : ('remito '+fmt(it.remitoKg)+' kg');
+  return it.codigo+': '+ref+' · '+(it.modo==='peso'?'balanza':'neto')+' '+
     fmt(d.neto)+' kg ('+sig(d.dif)+' kg, '+sig(d.pct)+' %)';
 }
 /* Como control-remaches.js: avisa con la cuenta y deja seguir [usuario 2026-09-30: "Que me deje
@@ -2243,9 +2269,18 @@ function pintarPesaje(){
       }).join('')+'</div>'
     : '';
 
+  // Lo que no entró a Cervantes y se bajó directo a Virgilio (reaparece como faltante si no se marca).
+  var virg=Number(it.virgilio)||0;
+  var virgBlock='<div class="pes-virg">'+
+    '<label>→ Virgilio (kg)</label>'+
+    '<input inputmode="decimal" data-virg="'+i+'" value="'+(virg>0?esc(String(virg)):'')+'" placeholder="0">'+
+    '<button type="button" class="pes-virg-save" data-virgsave="'+i+'">Guardar envío</button>'+
+    '</div>';
+
   var head=(n>1?('<div class="pes-paso">Ítem '+(i+1)+' de '+n+'</div>'):'')+
     '<div class="pes-item-h" style="margin-top:0"><span class="cod">'+esc(it.codigo)+'</span> '+esc(it.desc||'')+'</div>'+
-    (it.remitoKg?('<div class="pes-calc" data-itemcalc="'+i+'">'+itemLinea(it)+'</div>'):'');
+    (it.remitoKg?('<div class="pes-calc" data-itemcalc="'+i+'">'+itemLinea(it)+'</div>'):'')+
+    virgBlock;
 
   var cuerpo;
   if(it.modo==='peso'){
@@ -2293,6 +2328,8 @@ function bloqueDeFila(pb){
 
 /* Delegación: inputs y botones del paso 2 (el DOM se re-arma seguido). */
 $('pesajeWrap').addEventListener('input', function(e){
+  // El input de "→ Virgilio" vive fuera de .pes-pallet: se sanea aparte (kg, decimal).
+  if(e.target.dataset.virg!==undefined){ sanInput(e.target, sanDec); return; }
   var pb=e.target.closest('.pes-pallet'); if(!pb||!PES) return;
   var p=bloqueDeFila(pb); if(!p) return;
   var f=e.target.dataset.f;
@@ -2308,6 +2345,8 @@ $('pesajeWrap').addEventListener('input', function(e){
 });
 $('pesajeWrap').addEventListener('click', function(e){
   if(!PES) return;
+  var vs=e.target.closest('[data-virgsave]');
+  if(vs){ guardarVirgPesaje(Number(vs.dataset.virgsave)); return; }
   if(e.target.dataset.nav!==undefined && e.target.dataset.nav!==''){
     var destino=Number(e.target.dataset.nav);
     // Al cambiar de item, si lo pesado no coincide con el remito, avisa con la cuenta y deja
@@ -2338,6 +2377,27 @@ $('pesajeWrap').addEventListener('click', function(e){
     pintarPesaje(); return;
   }
 });
+
+/* "→ Virgilio" en el pesaje de flejes [Thomas 2026-10-01]: lo que no entró a Cervantes y se bajó
+   directo a Virgilio. recepcion_a_virgilio traslada sector(Cervantes)→depósito de Virgilio y lo
+   anota; el remito sigue entrando completo (la O.C. cierra por el total) y el pesaje compara contra
+   el esperado = remito − lo de Virgilio, así lo que no se pesa deja de leerse como faltante. */
+async function guardarVirgPesaje(i){
+  var it=PES && PES.items[i]; if(!it) return;
+  var inp=$('pesajeWrap').querySelector('[data-virg="'+i+'"]');
+  var cant=inp?(pnum(inp.value)||0):0; if(cant<0) cant=0;
+  if(cant>it.remitoKg){ $('kgMsg').className='status bad';
+    $('kgMsg').textContent='A Virgilio no puede superar el remito ('+fmt(it.remitoKg)+' kg).'; return; }
+  var btn=$('pesajeWrap').querySelector('[data-virgsave="'+i+'"]'); if(btn) btn.disabled=true;
+  $('kgMsg').className='status'; $('kgMsg').textContent='Enviando a Virgilio…';
+  try{
+    var r=await SB.rpc('recepcion_a_virgilio',{p_recepcion_id:it.recId,p_cantidad:cant,p_usuario:null});
+    if(r.error) throw r.error;
+    it.virgilio=cant;
+    $('kgMsg').className='status'; $('kgMsg').textContent=cant>0?('A Virgilio: '+fmt(cant)+' kg ✓'):'Envío a Virgilio anulado ✓';
+    pintarPesaje();
+  }catch(e){ $('kgMsg').className='status bad'; $('kgMsg').textContent='Error: '+(e.message||e); if(btn) btn.disabled=false; }
+}
 
 /* ============================================================
    CARTONES — FASE 2: CONTROL FISICO

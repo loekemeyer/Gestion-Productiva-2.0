@@ -14,6 +14,14 @@
      - pisa la cantidad con el total real
      - ajusta el movimiento asociado (los triggers recalculan inventario)
 
+   v1.3.0 (2026-10-01) — BOTÓN "→ Virgilio" [Thomas: "si el total del remito no entra en Cervantes
+   porque excede el espacio físico, no se baja del camión una parte y va directo para Virgilio ...
+   un botón en el control de cajas y flejes que se pueda mandar una cantidad a Virgilio"]. El remito
+   entra completo a Cervantes (la O.C./factura cierra por el total); el botón traslada a Virgilio lo
+   que no bajó (RPC recepcion_a_virgilio, que reusa enviar_a_virgilio sector→depósito Virgilio) y lo
+   deja anotado en recepcion_insumo.virgilio. El control ya no compara contra el remito sino contra
+   el ESPERADO = remito − lo de Virgilio, así la diferencia deja de leerse como faltante.
+
    v1.2.0 (2026-09-23) — LA TOLERANCIA ES 5 % Y SALE DE LA BASE [usuario: "acordate de la regla
    de que todo control no puede exceder el 5% de diferencia"]. Aca habia un 10 % escrito a mano;
    ahora hay UNA clave para toda la casa, parametro.tol_ctrl_pct (5), que control_recepcion_bundle
@@ -34,6 +42,8 @@ const inBase = $("inBase"), inPisos = $("inPisos"), inSueltas = $("inSueltas");
 const lblPaq = $("lblPaq"), lblUpp = $("lblUpp"), lblTotal = $("lblTotal"), lblDiff = $("lblDiff");
 const ctrlTitle = $("ctrlTitle"), ctrlInfo = $("ctrlInfo"), ctrlMsg = $("ctrlMsg");
 const btnCancel = $("btnCancel"), btnConfirm = $("btnConfirm"), btnDesmarcar = $("btnDesmarcar");
+const virgLine = $("virgLine"), virgBox = $("virgBox"), inVirg = $("inVirg");
+const btnVirgilio = $("btnVirgilio"), btnVirgSave = $("btnVirgSave");
 
 const esc = (s) => String(s ?? "").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
 const fmt = (n) => Number(n||0).toLocaleString("es-AR");
@@ -46,6 +56,13 @@ let selected = null;
    manda control_recepcion_bundle) [usuario 2026-09-23: "todo control no puede exceder el 5% de
    diferencia"]. Antes acá había un 10 % escrito a mano. */
 let TOL_PCT = 5;
+
+// Lo que se mandó directo a Virgilio (no entró a Cervantes).
+const virgDe = (it) => Number(it && it.virgilio) || 0;
+// Remito que declaró el proveedor (lo que vino en total).
+const declDe = (it) => Number(it && (it.cantidad_declarada != null ? it.cantidad_declarada : it.cantidad)) || 0;
+// Lo que SE ESPERA contar físicamente en Cervantes = remito - lo que se fue a Virgilio.
+const esperadoDe = (it) => declDe(it) - virgDe(it);
 
 function fmtFechaCorta(iso) {
   if (!iso) return "—";
@@ -142,25 +159,32 @@ function render() {
       <div class="items-grid">`;
     for (const it of g.items) {
       const cls = it.controlado ? "item-btn done" : "item-btn";
-      const decl = Number(it.cantidad_declarada != null ? it.cantidad_declarada : it.cantidad) || 0;
+      const decl = declDe(it);
+      const virg = virgDe(it);
+      const esperado = esperadoDe(it);   // lo que se espera contar en Cervantes
       let ctrlLine = "";
       if (it.controlado) {
-        const real = Number(it.cantidad) || 0;
-        const dif = real - decl;
+        // cantidad guardada = contado + virgilio; el contado físico es cantidad - virgilio.
+        const real = (Number(it.cantidad) || 0) - virg;
+        const dif = real - esperado;
         const b = Number(it.base) || 0, p = Number(it.pisos) || 0, s = Number(it.sueltas) || 0;
         const paq = Number(it.paquetes) || (b * p);
         const desglose = (b && p) ? `${b}×${p} = ${paq} paq` : (paq ? `${paq} paq` : "");
         const sTxt = s ? ` + ${s} sueltas` : "";
-        ctrlLine = `<div class="ctrl">Real: ${fmt(real)} uni<small>${esc(desglose)}${esc(sTxt)}</small></div>`;
+        ctrlLine = `<div class="ctrl">Contado: ${fmt(real)} uni<small>${esc(desglose)}${esc(sTxt)}</small></div>`;
         ctrlLine += (dif === 0)
           ? `<div class="diff ok">coincide ✓</div>`
-          : `<div class="diff dif">${dif > 0 ? "+" : ""}${fmt(dif)} vs declarado</div>`;
+          : `<div class="diff dif">${dif > 0 ? "+" : ""}${fmt(dif)} vs esperado</div>`;
       }
+      const virgLn = virg > 0
+        ? `<span class="decl" style="color:#9a3412">→ Virgilio: <b>${fmt(virg)}</b> uni · esperado acá <b>${fmt(esperado)}</b></span>`
+        : "";
       html += `<div class="${cls}" data-id="${it.id}">
         <span class="tilde">✓</span>
         <span class="cod">${esc(it.codigo || "—")}</span>
         <span class="desc">${esc(it.descripcion || "")}</span>
         <span class="decl">Declarado: <b>${fmt(decl)}</b> uni</span>
+        ${virgLn}
         ${ctrlLine}
       </div>`;
     }
@@ -188,17 +212,20 @@ function calc() {
   lblUpp.textContent = fmt(upp);
   lblTotal.textContent = `Total: ${fmt(total)} cajas`;
   if (selected) {
-    const decl = Number(selected.cantidad_declarada != null ? selected.cantidad_declarada : selected.cantidad) || 0;
-    if (total > 0 && decl > 0) {
-      const dif = total - decl;
+    // Se cuenta lo que entró a Cervantes; se compara contra lo esperado = remito - lo de Virgilio.
+    const esperado = esperadoDe(selected);
+    const virg = virgDe(selected);
+    if (total > 0 && esperado > 0) {
+      const dif = total - esperado;
       lblDiff.style.display = "block";
+      const colaV = virg > 0 ? ` (remito ${fmt(declDe(selected))} − ${fmt(virg)} a Virgilio)` : "";
       if (dif === 0) {
         lblDiff.className = "diff-line ok";
-        lblDiff.textContent = `Coincide con lo declarado (${fmt(decl)} uni) ✓`;
+        lblDiff.textContent = `Coincide con lo esperado (${fmt(esperado)} uni)${colaV} ✓`;
       } else {
         lblDiff.className = "diff-line bad";
         const s2 = dif > 0 ? "sobran" : "faltan";
-        lblDiff.textContent = `Declarado ${fmt(decl)} · ${s2} ${fmt(Math.abs(dif))} cajas`;
+        lblDiff.textContent = `Esperado ${fmt(esperado)}${colaV} · ${s2} ${fmt(Math.abs(dif))} cajas`;
       }
     } else {
       lblDiff.style.display = "none";
@@ -211,7 +238,7 @@ function calc() {
 function abrirPopup(it) {
   selected = it;
   ctrlMsg.textContent = ""; ctrlMsg.className = "msg";
-  const decl = Number(it.cantidad_declarada != null ? it.cantidad_declarada : it.cantidad) || 0;
+  const decl = declDe(it);
   ctrlTitle.textContent = it.controlado
     ? `Revisar control — ${it.codigo || ""}`
     : `Control — ${it.codigo || ""}`;
@@ -224,9 +251,24 @@ function abrirPopup(it) {
   inPisos.value   = it.controlado ? String(it.pisos   || "") : "";
   inSueltas.value = it.controlado ? String(it.sueltas || "") : "";
   btnDesmarcar.style.display = it.controlado ? "" : "none";
+  renderVirg();
   calc();
   ov.classList.add("open");
   setTimeout(() => inBase.focus(), 60);
+}
+
+// Muestra el estado de "a Virgilio" y deja el cajón de carga cerrado al abrir.
+function renderVirg() {
+  const virg = virgDe(selected);
+  if (virg > 0) {
+    virgLine.style.display = "block";
+    virgLine.innerHTML = `→ Virgilio: <b>${fmt(virg)}</b> uni · esperado en Cervantes <b>${fmt(esperadoDe(selected))}</b>`;
+  } else {
+    virgLine.style.display = "none";
+  }
+  virgBox.style.display = "none";
+  inVirg.value = virg > 0 ? String(virg) : "";
+  btnVirgilio.textContent = virg > 0 ? "→ Virgilio ✎" : "→ Virgilio";
 }
 
 function cerrarPopup() { ov.classList.remove("open"); selected = null; }
@@ -236,13 +278,14 @@ async function confirmar() {
   const { b, p, s, upp, total } = calc();
   if (total <= 0) { ctrlMsg.textContent = "Ingresá al menos base×pisos o sueltas."; ctrlMsg.className = "msg bad"; return; }
 
-  const decl = Number(selected.cantidad_declarada != null ? selected.cantidad_declarada : selected.cantidad) || 0;
-  if (decl > 0) {
-    const dif = total - decl;
-    const pct = Math.abs(dif) / decl;
+  // Tolerancia contra lo ESPERADO en Cervantes (remito menos lo que se fue a Virgilio).
+  const esperado = esperadoDe(selected);
+  if (esperado > 0) {
+    const dif = total - esperado;
+    const pct = Math.abs(dif) / esperado;
     if (pct * 100 > TOL_PCT) {
       const txt = dif > 0 ? `sobran ${fmt(dif)}` : `faltan ${fmt(-dif)}`;
-      if (!confirm(`Difiere ±${(pct*100).toFixed(1)}% de lo declarado (tolerancia ${fmt(TOL_PCT)} %).\nDeclarado: ${fmt(decl)} · Contado: ${fmt(total)} (${txt}).\n¿Confirmar de todos modos?`)) return;
+      if (!confirm(`Difiere ±${(pct*100).toFixed(1)}% de lo esperado (tolerancia ${fmt(TOL_PCT)} %).\nEsperado: ${fmt(esperado)} · Contado: ${fmt(total)} (${txt}).\n¿Confirmar de todos modos?`)) return;
     }
   }
 
@@ -286,11 +329,48 @@ async function desmarcar() {
   }
 }
 
+/* ===== A Virgilio: lo que no entró a Cervantes y se bajó directo a Virgilio ===== */
+function toggleVirg() {
+  if (!selected) return;
+  const abrir = virgBox.style.display === "none";
+  virgBox.style.display = abrir ? "flex" : "none";
+  if (abrir) setTimeout(() => inVirg.focus(), 60);
+}
+
+async function guardarVirg() {
+  if (!selected) return;
+  const cant = parseInt0(inVirg.value);
+  const remito = declDe(selected);
+  if (cant > remito) { ctrlMsg.textContent = `No puede superar el remito (${fmt(remito)} uni).`; ctrlMsg.className = "msg bad"; return; }
+  const usuario = (sessionStorage.getItem("gp_user") || sessionStorage.getItem("gp_role") || "").toString().slice(0, 80);
+  btnVirgSave.disabled = true;
+  ctrlMsg.textContent = "Enviando a Virgilio…"; ctrlMsg.className = "msg";
+  try {
+    // recepcion_a_virgilio traslada sector(Cervantes) -> depósito de Virgilio y deja anotado cuánto;
+    // el control compara después contra remito - lo de Virgilio.
+    const { error } = await SB.rpc("recepcion_a_virgilio", {
+      p_recepcion_id: selected.id, p_cantidad: cant, p_usuario: usuario || null
+    });
+    if (error) throw error;
+    ctrlMsg.textContent = cant > 0 ? `A Virgilio: ${fmt(cant)} uni ✓` : "Envío a Virgilio anulado ✓";
+    ctrlMsg.className = "msg ok";
+    setTimeout(async () => { cerrarPopup(); await cargar(); }, 350);
+  } catch (err) {
+    console.error(err);
+    ctrlMsg.textContent = "Error: " + (err.message || err); ctrlMsg.className = "msg bad";
+    btnVirgSave.disabled = false;
+  }
+}
+
 /* ===== Listeners ===== */
 [inBase, inPisos, inSueltas].forEach(el => {
   el.addEventListener("input", () => { el.value = el.value.replace(/\D/g, ""); calc(); });
   el.addEventListener("keydown", e => { if (e.key === "Enter") btnConfirm.click(); });
 });
+inVirg.addEventListener("input", () => { inVirg.value = inVirg.value.replace(/\D/g, ""); });
+inVirg.addEventListener("keydown", e => { if (e.key === "Enter") btnVirgSave.click(); });
+btnVirgilio.addEventListener("click", toggleVirg);
+btnVirgSave.addEventListener("click", guardarVirg);
 btnCancel.addEventListener("click", cerrarPopup);
 btnConfirm.addEventListener("click", confirmar);
 btnDesmarcar.addEventListener("click", desmarcar);

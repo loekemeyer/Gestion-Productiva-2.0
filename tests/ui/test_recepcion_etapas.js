@@ -110,7 +110,7 @@ const EXE = process.env.CHROMIUM_PATH || (fs.existsSync('/opt/pw-browsers/chromi
       return { mismaFila: Math.abs(r(bal).top - r(stp).top) <= 2, balH: Math.round(r(bal).height),
                stpH: Math.round(r(stp).height), der: Math.round(r(stp).right),
                ancho: document.documentElement.clientWidth,
-               inputs: document.querySelectorAll('#pesajeWrap input').length,
+               inputs: document.querySelectorAll('.pes-pallet input').length,
                txt: document.querySelector('#pesajeWrap').innerText };
     });
     ok(geo.inputs === 2, 'un pallet pide solo 2 cosas: kg y rollos (inputs: ' + geo.inputs + ')');
@@ -121,7 +121,7 @@ const EXE = process.env.CHROMIUM_PATH || (fs.existsSync('/opt/pw-browsers/chromi
     await page.click('[data-addp]');
     const n2 = await page.evaluate(() => ({ filas: document.querySelectorAll('.pes-pallet').length,
       pn: [...document.querySelectorAll('.pes-grid .pn')].map(e => e.textContent).join(','),
-      inputs: document.querySelectorAll('#pesajeWrap input').length }));
+      inputs: document.querySelectorAll('.pes-pallet input').length }));
     ok(n2.filas === 2 && n2.pn === '1,2' && n2.inputs === 4, '+ Pallet agrega otra fila Kg + Rollos (' + JSON.stringify(n2) + ')');
     await page.evaluate(() => montarPesaje([{ recId: 1, codigo: 'B1', desc: 'F', modo: 'rollos',
       remitoKg: 1200, blocks: { 1: { peso: '450', rollos: [{ c: '5', k: '88,5' }] } } }]));

@@ -14232,3 +14232,39 @@ mismo pedido — viene con la corrección puntual que cierra el riesgo que Luis 
   `tests/ui/test_recepcion_uni.js` (se sacó el caso de Importados, que ahora cubre test_tablet_virgilio.js),
   `tests/ui/test_rpc_huerfanas.js` (`fabrica_producir`/`enviar_a_virgilio` agregadas a PERMITIDAS: las llama
   `tablet_registrar` por SQL, no una pantalla con `rpc()`).
+
+## 4hp. Botón "→ Virgilio" en el control de cajas y flejes — el remito que no entra se baja directo a Virgilio (2026-10-01)
+
+[usuario, Thomas, versión tablet] *"llega el camión con el remito. Anoto las cantidades del remito y después
+controlo cuando termino de bajar todo. En el caso de flejes y cajas: si el total del remito no entra en
+Cervantes porque excede el espacio físico, no se baja del camión una parte de la mercadería y va directo para
+Virgilio. Cuando vaya a controlar las cantidades claramente no van a ser las mismas que el remito. Tendría que
+resolverse con un botón en el control de cajas y flejes que se pueda mandar una cantidad a Virgilio."*
+
+**El modelo (A, confirmado por Thomas, no el B):** el remito entra **completo** a Cervantes como compra, así la
+O.C. y la factura cierran por el total comprado; el botón **traslada a Virgilio** lo que no bajó. El alternativo
+—cargar sólo lo que entró— dejaba la O.C. con un pendiente que nunca iba a llegar a Cervantes y no se cerraba
+sola: descartado.
+
+- **Cómo queda el stock** (probado en transacción abortada, caja 456 / fleje 167): remito 10.000 → Cervantes
+  10.000 → botón Virgilio 3.000 → Cervantes 7.000 / Virgilio 3.000 / compra 10.000. El control cuenta 7.000 y
+  **coincide**, porque ahora compara contra el **esperado = remito − lo de Virgilio**, no contra el remito.
+- **No se duplicó nada:** el botón reusa `GP2.enviar_a_virgilio` (traslado `sector` → `virgilio_sector`, las
+  mismas ubicaciones y camino que la tablet Enviar → Virgilio, §4ho). La frontera es la RPC nueva
+  `GP2.recepcion_a_virgilio(recepcion_id, cantidad, usuario)`: cantidad **absoluta** (0 = anula el envío; borra
+  el traslado anterior por su `virgilio_mov_id`, y el trigger AFTER DELETE de `movimiento` devuelve el stock).
+- **Dónde:** cajas en `control-cajas.html/js` (unidades, botón en el popup); flejes en el **pesaje** dentro de
+  `RecepcionInsumos_GP2.html` (kg, botón por ítem en el paso 2) — no en control-remaches, que no toca flejes
+  (§GP2CI). La unidad la dice la recepción: `enviar_a_virgilio` traslada en uni o kg según corresponda.
+- **La columna que ata todo:** `recepcion_insumo.virgilio` (+ `virgilio_mov_id`). `controlar_recepcion_cajas`
+  guarda `cantidad = contado + virgilio` (la compra lleva el total; el traslado descuenta su parte) y
+  `control_recepcion_bundle` / `v_recepcion_control` la exponen: la vista resta `virgilio` de `dif_kg_vs_remito`
+  y agrega `kg_esperado_cervantes`. Invariante Q (recepción = compra) se mantiene: el traslado es un movimiento
+  aparte, no la compra.
+- **Seguridad:** `recepcion_a_virgilio` es SECURITY DEFINER, EXECUTE sólo para `authenticated` + `_exigir_autorizado()`
+  (fase B), igual que sus hermanas. Nace con EXECUTE para PUBLIC por default: hay que **revocar anon** o el
+  invariante AI salta.
+- `db/migracion_recepcion_virgilio.sql`, `db/funciones_GP2.sql` (`recepcion_a_virgilio` +
+  `controlar_recepcion_cajas` + `control_recepcion_bundle`), `db/vistas_GP2.sql` (`v_recepcion_control`),
+  `db/tablas_GP2.sql` (columnas). Front: `control-cajas` v1.3.0, `RecepcionInsumos` v3.69.0, version.js v1.226.0.
+  Test: `tests/ui/test_recepcion_virgilio.js`.
