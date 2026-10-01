@@ -6,7 +6,15 @@
 <script src="../gp2-ui.js?v=20260930a"></script>
 <script src="../gp2-numero.js?v=20260911o"></script>
 <title>Stock general · GP2</title>
-<!-- v2.7.0 (2026-10-01) - LAS 3 CAJAS DE VERDAD + VIRGILIO CON EL CATÁLOGO COMPLETO [Thomas: "no me
+<!-- v2.8.0 (2026-10-01) - LAS 3 PESTAÑAS SE VEN IGUAL [usuario: "Solo en Cervantes me aparece buscar
+     todos los rubros. Eliminá así quedan todos los módulos igual"]. Sale el BOTÓN "🔎 Todos los
+     rubros" (y con él el rótulo "Buscar") del selector de Cervantes; como queda un solo grupo, también
+     sale el rótulo "Sectores" (mismo criterio que Terceros: un grupo solo no lleva encabezado). Ahora
+     Cervantes, Virgilio y Terceros arrancan igual: "Rubro" + los botones. La VISTA transversal NO se
+     borró (es la de v2.1.0, pedida para "no entrar uno por uno"): se llega desde el renglón "También
+     en otros rubros… · ver todo junto →" que aparece al buscar adentro de cualquier rubro. El rubro
+     "all" queda con oculto:true (pintarRubros lo salta) y no se recuerda como último rubro de la caja.
+     v2.7.0 (2026-10-01) - LAS 3 CAJAS DE VERDAD + VIRGILIO CON EL CATÁLOGO COMPLETO [Thomas: "no me
      hiciste la división en stock general de cervantes, virgilio y TERCEROS: acá aparece lo que hay
      bajo la descripción OTROS" / "en stock general de Virgilio no me aparecen los componentes de
      los respectivos sectores: cuando entro a SC, SP, FLEJES, PLASTICOS Y CAJAS tienen que aparecerme
@@ -351,8 +359,9 @@ var SECT_CONSUMIBLE = { 5:1, 6:1, 8:1, 10:1, 11:1, 14:1 }; // fleje, plastico, r
    Los de sector (mode:'sector') abren stock_sector_bundle(sid) con su config de columnas.
    Los de 'otros' salen de movimientos_bundle / extra_bundle y NO llevan columnas de movimiento. */
 var RUBROS = [
-  // el buscador transversal: una sola tabla con TODO, para cuando no se sabe el rubro
-  { key:"all", grupo:"Buscar", nom:"🔎 Todos los rubros", mode:"global", mostrar_ubic:"Dónde", mostrar_rubro:true },
+  // el buscador transversal: una sola tabla con TODO, para cuando no se sabe el rubro.
+  // v2.8.0: SIN botón (oculto) — se abre desde "ver todo junto →" del renglón "También en…".
+  { key:"all", oculto:true, nom:"Todos los rubros", mode:"global", mostrar_ubic:"Dónde", mostrar_rubro:true },
   { key:"sc",  grupo:"Sectores", nom:"Stock SC",         mode:"sector", sid:1,  cols:COLS_SC },
   { key:"sp",  grupo:"Sectores", nom:"Stock SP",         mode:"sector", sid:2,  cols:COLS_SP },
   { key:"mov", grupo:"Sectores", nom:"En Movimiento",    mode:"sector", sid:3,  cols:COLS_MOV3, sin_max:true },
@@ -484,14 +493,16 @@ var LAST_KEY = { cerv:null, terc:null };  // recordar el último rubro visto en 
 /* ---------- selector de rubros ---------- */
 function cajaDeRubro(r){ return r.planta || "cerv"; }
 function pintarRubros(){
-  var lista = RUBROS.filter(function(r){ return cajaDeRubro(r)===CAJA; });
+  var lista = RUBROS.filter(function(r){ return cajaDeRubro(r)===CAJA && !r.oculto; });
   var grupos = [], vistos = {};
   lista.forEach(function(r){ var g=r.grupo||""; if(!vistos[g]){ vistos[g]=1; grupos.push(g); } });
+  // v2.8.0: un grupo solo no lleva rótulo (ya lo dice la pestaña) — así las 3 pestañas se ven igual
+  var conRotulo = grupos.length > 1;
   $("rubros").innerHTML = grupos.map(function(g){
     var btns = lista.filter(function(r){ return (r.grupo||"")===g; }).map(function(r){
       return '<button class="rubro-btn" data-k="'+r.key+'" type="button">'+esc(r.nom)+'</button>';
     }).join("");
-    return (g ? '<div class="rubro-grp">'+esc(g)+'</div>' : '') + '<div class="rubros">'+btns+'</div>';
+    return (g && conRotulo ? '<div class="rubro-grp">'+esc(g)+'</div>' : '') + '<div class="rubros">'+btns+'</div>';
   }).join("");
   document.querySelectorAll("#rubros .rubro-btn").forEach(function(b){
     b.addEventListener("click", function(){ seleccionar(b.dataset.k); });
@@ -842,7 +853,7 @@ async function seleccionar(key){
   var r = RUBROS.filter(function(x){ return x.key===key; })[0];
   if (!r) return;
   irACaja(cajaDeRubro(r));       // si el rubro es de la OTRA caja (ej. un link de "También en…"), saltar la pestaña
-  LAST_KEY[CAJA] = key;
+  if (!r.oculto) LAST_KEY[CAJA] = key;   // v2.8.0: volver a la pestaña abre el último rubro CON botón
   RUBRO = r;
   marcarActivo();
   $("fljeLink").style.display = r.detalle ? "" : "none";

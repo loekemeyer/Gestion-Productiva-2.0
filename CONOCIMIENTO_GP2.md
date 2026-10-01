@@ -14386,7 +14386,23 @@ meses por sector segun el maximo)… Corregí llevándolo a cada caso correspond
   §4hl — la tabla muestra la demanda de hoy, la celda lo cargado.
 - `Compras/OC_GP2.html` (`htmlDesglose`), `tests/ui/test_oc_maximo_desglose.js`, `db/funciones_GP2.sql`.
 
-## 4hu. Inyector = tiene ubicación de inyector, TENGA O NO piezas hoy; la familia de plástico = la matriz (2026-10-01)
+## 4hu. Stock General: las 3 pestañas arrancan igual — sin botón «Todos los rubros» (2026-10-01)
+
+[usuario, 01/10] *"Solo en Cervantes me aparece buscar todos los rubros. Eliminá así quedan todos los
+módulos igual"*. Stock General v2.8.0: Cervantes pierde el botón «🔎 Todos los rubros» y los rótulos
+«Buscar» / «Sectores» (un grupo solo no lleva rótulo, mismo criterio que Terceros desde §4hr). Las 3
+pestañas quedan «Rubro» + botones.
+
+⚠ **Lo que NO se borró, a propósito:** la vista transversal de §v2.1.0 (*"si no sé a qué sector
+pertenece el componente tengo que entrar uno por uno"*). Sigue viva, sin botón: al buscar adentro
+de cualquier rubro de Cervantes o Terceros aparece «También en otros rubros… · **ver todo junto →**»
+y ese link la abre. Es la única puerta a lo que no tiene botón propio (sectores sin rubro, ej. T1 en
+Terminado / Y1 en Afilado). [deducido] Si el pedido era borrar también la búsqueda transversal, es
+sacar el link y el rubro `all` (`oculto:true` en `RUBROS`). Volver a la pestaña abre el último rubro
+CON botón (`LAST_KEY` no guarda `all`). Sólo front. `tests/ui/test_stock_general.js` (+5 chequeos,
+falla contra el HTML anterior). version.js v1.228.1 ?v=20261001i.
+
+## 4hv. Inyector = tiene ubicación de inyector, TENGA O NO piezas hoy; la familia de plástico = la matriz (2026-10-01)
 
 - [usuario] *"esas familias están determinadas por las matrices que son nuestras que se les mandan a los
   inyectores para que nos provean de las partes plásticas"*. → La matriz es de Loekemeyer y el inyector es
