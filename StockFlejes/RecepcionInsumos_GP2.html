@@ -6,6 +6,12 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
+<!-- v3.70.0 (2026-10-01) — LOS INYECTORES APARECEN EN PLASTICOS AUNQUE TENGAN 0 PIEZAS [usuario: "Agrega a
+     Kollplast como inyector aunque tenga 0 piezas que hoy nos entrega ... porque las matrices las podemos ir
+     cambiando de proveedor"]. recepcion_bundle manda proveedores[].es_inyector (= tiene ubicacion de
+     inyector); el rubro Plasticos suma esos chips aunque no tengan piezas y los muestra con (0): es la
+     unica excepcion a "lo que sea 0 no me aparezca" (2026-09-01). Elegido con 0 piezas, el cartel dice
+     que se le asignan en Inyectores · Quien hace cada parte. Hoy: Kollplast. -->
 <!-- v3.69.0 (2026-10-01) — ALTRAK -> CHARCAS y APERAM -> ECLIPSE (CHAPA) SE VAN DE ACA [Thomas:
      "Estos modulos no tendrian que aparecer en recepcion insumos de version tablet, ya esta en
      casos especiales dentro de herramientas"]. Las dos cargas ya viven en
@@ -714,7 +720,7 @@ var ctrlUrlDe = GP2CI.urlDe;
 // Unidad default por rubro (kg / uni). Los flejes y remaches se compran en kg.
 const RUBRO_UM={Flejes:"kg",Remaches:"kg",Cajas:"uni",Plasticos:"uni",Cartones:"uni",Bombillas:"uni",Garage:"uni",MatPlastica:"kg"};
 
-let INS=[], UMBY={}, KGXUNI={}, PROVFLAGS={}, RECS=[], PALL=[], ROLL=[], TARA={tara_pallet_min:4,tara_pallet_max:8};
+let INS=[], UMBY={}, KGXUNI={}, PROVFLAGS={}, INYECTORES=[], RECS=[], PALL=[], ROLL=[], TARA={tara_pallet_min:4,tara_pallet_max:8};
 /* Insumos que el proveedor entrega en CAJAS y se pesan (componente.recibe_en_cajas).
    Hoy el Clavo 505 de Trefilados. Se cargan siempre en kg y el toggle Kg/Unidades
    no se muestra [usuario 2026-09-03: "que tire por default kg y borra unidades"]. */
@@ -889,6 +895,9 @@ document.querySelectorAll('#rubroGrid .prov-btn').forEach(btn=>{
     // Principal + alternativos: una caja que entregan Corrugadora y Recicor tiene que
     // dar los DOS chips (provsDeInsumo), no solo el proveedor de la ficha.
     provsRubro=[...new Set([].concat(...insumosDelRubro().map(provsDeInsumo)).filter(Boolean))].sort();
+    // v3.70.0: los INYECTORES (proveedor con ubicacion de inyector) van siempre en Plasticos,
+    // tengan o no piezas hoy: las matrices son nuestras y cambian de inyector [usuario 2026-10-01].
+    if(rubroSel==='Plasticos') provsRubro=[...new Set(provsRubro.concat(INYECTORES))].sort();
     // v3.69.0: Altrak ya no se inyecta aca (su carga alambre -> Charcas vive en Casos Especiales).
     // Importados tiene un solo proveedor ('Importado'): no se elige, se auto-selecciona
     // y se saltea el paso Proveedor (sin subtitulo ni chip). Usuario 2026-09-16.
@@ -907,10 +916,10 @@ document.querySelectorAll('#rubroGrid .prov-btn').forEach(btn=>{
 function pintarProvs(){
   var g=$('provGrid'); g.innerHTML='';
   // Solo proveedores con al menos 1 insumo (usuario 2026-09-01: "todo lo que sea
-  // 0 no me aparezca como opcion").
+  // 0 no me aparezca como opcion"). Excepcion: el inyector, que aparece con (0) [usuario 2026-10-01].
   provsRubro.forEach(p=>{
     var n=insumosDelRubro().filter(i=>esDelProv(i,p)).length;
-    if (n===0) return;
+    if (n===0 && INYECTORES.indexOf(p)<0) return;
     var b=document.createElement('button'); b.className='prov-btn'; b.innerHTML=esc(p)+' <span style="opacity:.6;font-weight:600">('+n+')</span>';
     b.addEventListener('click',()=>{
       provSel=p;
@@ -1160,6 +1169,11 @@ function resumenCargadoRemito(cod){
 function pintarItems(list){
   var g=$('itemsGrid'); g.innerHTML='';
   $('itemsEmpty').classList.toggle('hidden', list.length>0);
+  var inySinPiezas = rubroSel==='Plasticos' && INYECTORES.indexOf(provSel)>=0
+    && !insumosDelRubro().some(function(i){ return esDelProv(i, provSel); });
+  $('itemsEmpty').textContent = inySinPiezas
+    ? provSel+' no tiene piezas asignadas hoy. Cuando le pases una matriz, asigná sus piezas en Inyectores · Quién hace cada parte.'
+    : 'No hay insumos en este rubro.';
   list.forEach(i=>{
     var med = i.medida ? ('<span class="sect" style="color:#0b3b73;font-size:17px">'+esc(i.medida)+' mm</span>') : '';
     // Cartones (sector 10): mostrar el formato debajo (usuario 2026-09-01:
@@ -2608,6 +2622,7 @@ async function cargar(){
   var d=res.data||{};
   INS=d.insumos||[]; UMBY={}; INS.forEach(i=>UMBY[i.comp_id]=i.um);
   PROVFLAGS={}; (d.proveedores||[]).forEach(p=>PROVFLAGS[p.nombre]=p);
+  INYECTORES=(d.proveedores||[]).filter(p=>p.es_inyector).map(p=>p.nombre);
   RECS=d.recepciones||[]; PALL=d.pallets||[]; ROLL=d.rollos||[];
   if(d.tara) TARA=d.tara;
   // Factores kg/uni y "se recibe en cajas": salen del MISMO bundle que los insumos.

@@ -80,8 +80,10 @@
 "use strict";
 
 /* Pantalla de SOLO CONSULTA, igual que Control Partes P.S. / Tallerista.
-   Las contrapartes son las MISMAS que la tablet "Enviar > Inyectores"
-   (control_inyector_bundle filtra por eso). El dato sale del mismo ledger GP2:
+   Las contrapartes son TODOS los proveedores con ubicacion de inyector, tengan o no
+   piezas hoy (Kollplast con 0, 2026-10-01: las matrices cambian de inyector). OJO:
+   la tablet "Enviar > Inyectores" todavia lista solo a los que tienen piezas.
+   El dato sale del mismo ledger GP2:
    movimiento 'envio_inyector' (enviado) / 'consumo_inyector' (consumido) e
    inventario en la ubicacion del inyector (saldo). Todo en kg de resina. */
 
