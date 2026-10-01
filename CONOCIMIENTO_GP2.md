@@ -14400,4 +14400,4 @@ y ese link la abre. Es la única puerta a lo que no tiene botón propio (sectore
 Terminado / Y1 en Afilado). [deducido] Si el pedido era borrar también la búsqueda transversal, es
 sacar el link y el rubro `all` (`oculto:true` en `RUBROS`). Volver a la pestaña abre el último rubro
 CON botón (`LAST_KEY` no guarda `all`). Sólo front. `tests/ui/test_stock_general.js` (+5 chequeos,
-falla contra el HTML anterior). version.js v1.227.1 ?v=20261001i.
+falla contra el HTML anterior). version.js v1.228.1 ?v=20261001i.
