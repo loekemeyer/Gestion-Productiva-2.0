@@ -14171,7 +14171,7 @@ kg, caj, uni"*.
   (0,01596563) da la mitad. 16 pares fleje-matriz difieren > 5 % (0,22× a 14×; IA10 matriz 107 el peor). Un fleje
   que alimenta varias matrices (IA10, IF10, IB3) no puede tener un `kg_x_uni` único por pieza. El desglose de la O.C.
   (`oc_maximo_desglose`) usa `kg_x_uni` y no cierra: **problema abierto en auditoría** + tarea en Proyectos de
-  Planify. [deducido, sin confirmar] el dato bueno es el de la matriz. **→ Arreglado el mismo día, ver §4hs**: la
+  Planify. [deducido, sin confirmar] el dato bueno es el de la matriz. **→ Arreglado el mismo día, ver §4ht**: la
   O.C. delega en `maximo_desglose`.
 - Para tener el kg por artículo hay vista nueva `GP2.v_consumo_fleje_kg_articulo`; `v_consumo_fleje_kg` ahora suma
   desde ella (una sola definición). Se verificó que da las mismas 51 filas que antes.
@@ -14354,7 +14354,16 @@ rubros exactos y sin encabezado de grupo repetido; SC en Virgilio con el univers
 real + un segundo componente en 0—; el salto "También en…"/"Todos" hacia Talleristas cambia de pestaña
 sola). Mismo commit que §4hq, version.js bumpeado una vez para los dos cambios.
 
-## 4hs. O.C.: el desglose del Máximo es Consume · kg/mes · Máximo, y sale de la MISMA cuenta que Stock General (2026-10-01)
+## 4hs. Programa (¿Qué necesito para producir?): Enter en el buscador ENTRA al artículo (2026-10-01)
+
+[usuario, 01/10] *"cuando le doy enter quiero que me entre al artículo"*. En el selector «Elegí el
+artículo», Enter elige de la lista que se ve: gana el **código exacto** (066 entra al 066 aunque
+otra fila lo contenga, ej. 5010 con "501"); sin código exacto, la **primera fila**; sin filas, no
+hace nada y el panel queda abierto. Respeta el chip de marca puesto. Sólo front
+(`Programa/Programa.html`, `elegirArticulo`). `tests/ui/test_programa_enter.js` (falla contra el
+HTML anterior). version.js v1.226.1 ?v=20261001g.
+
+## 4ht. O.C.: el desglose del Máximo es Consume · kg/mes · Máximo, y sale de la MISMA cuenta que Stock General (2026-10-01)
 
 [usuario 01/10, sobre la ventanita del Máximo en Generar OC] *"Venta y consume aparece con los mismos valores.
 Tendria que ser consume, kg/mes y la tercera columna nueva que sea máximo (multiplica kg/mes con la cantidad de
