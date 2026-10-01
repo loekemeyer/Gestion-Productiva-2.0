@@ -80,6 +80,12 @@ const EXTRA = {
 /* stock_sector_bundle por sector: SC (1) es el rubro por defecto; Flejes (5) prueba
    que NO salen las columnas de cajones (pedido del usuario, textual). */
 const SECTOR = {
+  // v2.9.0: Sector Afilado — Y1 tal como está en la base al 01/10 (stock 0, máximo 41.638, sin movimientos)
+  4: {
+    sector: { id: 4, nombre: 'Sector Afilado' }, ubicacion_id: 4, ubicacion_virgilio_id: null,
+    filas: [{ comp_id: 165, cod: 'Y1', desc: 'Cuchilla para Afilar', um: 'unidad', kg_x_uni: null, uni_x_cajon: null,
+              online: 0, en_virgilio: 0, maximo: 41638, n_fleje: null, mov: {} }],
+  },
   1: {
     sector: { id: 1, nombre: 'Sector Crudo' }, ubicacion_id: 1, ubicacion_virgilio_id: 8,
     filas: [
@@ -328,6 +334,16 @@ window.supabase = { createClient: function(){ return {
   const rubrosCerv = await page.$$eval('#rubros .rubro-btn', xs => xs.map(x => x.textContent.trim()));
   ok(rubrosCerv.indexOf('Tránsito PS') >= 0 && rubrosCerv.indexOf('Art. Terminado') >= 0,
      'Tránsito PS y Art. Terminado siguen en el selector de Cervantes — ' + rubrosCerv.join(' | '));
+  // v2.9.0: Afilado (sector 4) era el único sector con ubicación sin botón
+  ok(rubrosCerv.indexOf('Afilado') === rubrosCerv.indexOf('En Movimiento') + 1,
+     'Cervantes: botón Afilado (sector 4), después de En Movimiento');
+  await page.click('#rubros .rubro-btn:has-text("Afilado")');
+  await page.waitForFunction(() => /Y1/.test(document.getElementById('tbody').innerText));
+  const afi = await page.evaluate(() => ({ thead: document.getElementById('thead').innerText,
+    fila: Array.from(document.querySelectorAll('#tbody tr td')).map(t => t.textContent.trim()).join(' | ') }));
+  ok(/FABRICADO/i.test(afi.thead) && /CONSUMIDO/i.test(afi.thead) && /MÁXIMO/i.test(afi.thead),
+     'Afilado: columnas Fabricado / Consumido + Máximo — ' + afi.thead.replace(/\s+/g, ' '));
+  ok(/Cuchilla para Afilar/.test(afi.fila) && /41\.638/.test(afi.fila), 'Afilado: Y1 con su máximo 41.638 — ' + afi.fila);
   ok(rubrosCerv.indexOf('Inyectores') < 0, 'Inyectores ya no vive en el selector de Cervantes (se mudó a Terceros)');
   ok(!rubrosCerv.some(t => /Todos los rubros/i.test(t)), 'Cervantes: SIN el botón "Todos los rubros"');
   ok(!(await page.locator('#rubros .rubro-grp').count()), 'Cervantes: sin rótulos de grupo ("Buscar" / "Sectores"), igual que Terceros y Virgilio');

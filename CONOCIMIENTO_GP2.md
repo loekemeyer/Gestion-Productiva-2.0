@@ -14400,7 +14400,42 @@ sacar el link y el rubro `all` (`oculto:true` en `RUBROS`). Volver a la pestaña
 CON botón (`LAST_KEY` no guarda `all`). Sólo front. `tests/ui/test_stock_general.js` (+5 chequeos,
 falla contra el HTML anterior). version.js v1.228.1 ?v=20261001i.
 
-## 4hv. Botón "→ Virgilio" en el control de cajas y flejes — el remito que no entra se baja directo a Virgilio (2026-10-01)
+## 4hv. Stock General: botón «Afilado» — ningún sector queda sin botón (2026-10-01)
+
+[usuario, 01/10] *"Hay cosas en sectores sin boton?"* → [dato, `GP2.sector` × `GP2.ubicacion` tipo
+sector] uno solo: **Sector Afilado (4)**, con 1 componente, **Y1 «Cuchilla para Afilar»**, stock 0,
+máximo 41.638 y **ningún movimiento**. Terminado (12) no tiene ubicación de sector (lo de Fábrica se
+ve en «Art. Terminado») y Alambre (13) no tiene ubicación ni componentes. Corrige §4hu: el ejemplo
+«T1 en Terminado» era del fixture del test, no de la base.
+[usuario] *"Sí"* a agregarlo → Stock General v2.9.0: botón **Afilado** en Cervantes, después de En
+Movimiento, con columnas Fabricado / Consumido [deducido: pieza intermedia entre matriz y afilado, sin
+confirmar] y CON Máximo (lo tiene cargado). Sólo front. version.js v1.229.0 ?v=20261001j.
+
+## 4hw. Inyector = tiene ubicación de inyector, TENGA O NO piezas hoy; la familia de plástico = la matriz (2026-10-01)
+
+- [usuario] *"esas familias están determinadas por las matrices que son nuestras que se les mandan a los
+  inyectores para que nos provean de las partes plásticas"*. → La matriz es de Loekemeyer y el inyector es
+  intercambiable: la **familia de pedido** (`GP2.familia_pedido`, §4gp) es la matriz, no el proveedor.
+- [usuario] *"Agrega a Kollplast como inyector aunque tenga 0 piezas que hoy nos entrega (tanto en control
+  partes inyectores como en recepcion de insumos versión tablet) porque las matrices las podemos ir cambiando
+  de proveedor y el día de mañana puede cambiar"*.
+- **Regla nueva: ser inyector = tener ubicación `tipo='inyector'`**, no tener piezas. Hoy son 4: JL Matriceria,
+  Kollplast (0 piezas desde el 29/09, §4gp), Pat Bet Plast, Pettofrezza Rafael.
+  - `control_inyector_bundle`: antes listaba sólo al inyector con ≥ 1 pieza con resina (`material_id`, sin
+    `estado_compra`); ahora lista a todo `proveedor_insumo` activo con ubicación de inyector. Kollplast sale
+    con 0 resinas.
+  - `recepcion_bundle`: `proveedores[].es_inyector`. Recepción de Insumos v3.70.0 suma esos chips al rubro
+    Plásticos aunque tengan 0 piezas y los muestra con **(0)** — la única excepción a *"todo lo que sea 0 no
+    me aparezca como opción"* (2026-09-01). Elegido con 0 piezas, el cartel dice que las piezas se le asignan en
+    Inyectores · Quién hace cada parte (`asignar_proveedor_parte`). Test: `test_recepcion_inyector_cero.js`.
+- [dato] **Lo que NO se tocó**: la tablet *Enviar → Inyectores* (`tablet_bundle`) sigue armando la lista desde
+  `componente.proveedor`, así que Kollplast **no** aparece ahí. Antes Control Inyectores y esa baldosa tenían
+  las mismas contrapartes; desde hoy difieren en Kollplast.
+- [deducido] Cuando una matriz cambia de inyector, hoy hay que mover el proveedor **pieza por pieza**
+  (`componente.proveedor`): nada impide que una familia quede repartida entre dos inyectores, y el mínimo de
+  familia de la O.C. se cuenta por proveedor. Sin confirmar si conviene que el inyector cuelgue de la familia.
+
+## 4hx. Botón "→ Virgilio" en el control de cajas y flejes — el remito que no entra se baja directo a Virgilio (2026-10-01)
 
 [usuario, Thomas, versión tablet] *"llega el camión con el remito. Anoto las cantidades del remito y después
 controlo cuando termino de bajar todo. En el caso de flejes y cajas: si el total del remito no entra en
@@ -14433,5 +14468,5 @@ sola: descartado.
   invariante AI salta.
 - `db/migracion_recepcion_virgilio.sql`, `db/funciones_GP2.sql` (`recepcion_a_virgilio` +
   `controlar_recepcion_cajas` + `control_recepcion_bundle`), `db/vistas_GP2.sql` (`v_recepcion_control`),
-  `db/tablas_GP2.sql` (columnas). Front: `control-cajas` v1.3.0, `RecepcionInsumos` v3.70.0, version.js v1.228.2.
+  `db/tablas_GP2.sql` (columnas). Front: `control-cajas` v1.3.0, `RecepcionInsumos` v3.71.0, version.js v1.231.0.
   Test: `tests/ui/test_recepcion_virgilio.js`.

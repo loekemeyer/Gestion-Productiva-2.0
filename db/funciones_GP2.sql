@@ -1708,9 +1708,10 @@ with iny as (
   select pi.id iny_id, pi.nombre, u.id ubic_id
     from proveedor_insumo pi
     join ubicacion u on u.tipo='inyector' and u.ref_id=pi.id
-   where exists (select 1 from componente c
-                  where c.proveedor = pi.nombre
-                    and c.material_id is not null and c.estado_compra is null)
+   -- inyector = proveedor con ubicacion de inyector, TENGA O NO piezas hoy. Las matrices
+   -- son nuestras y pasan de un inyector a otro: el que hoy no tiene ninguna (Kollplast,
+   -- 2026-10-01) igual aparece [usuario 2026-10-01]. Antes pedia >= 1 pieza con resina.
+   where pi.activo
 ),
 mats as (
   -- resina declarada por las piezas del inyector
@@ -6650,7 +6651,11 @@ AS $function$
     'proveedores', (select coalesce(jsonb_agg(jsonb_build_object(
         'nombre',p.nombre,'modo_control',p.modo_control,
         'informa_rollos',(p.modo_control='rollos_remito'),
-        'factura_uni',p.factura_uni) order by p.nombre),'[]'::jsonb)
+        'factura_uni',p.factura_uni,
+        -- inyector = tiene ubicacion de inyector: la pantalla lo muestra en Plasticos aunque
+        -- hoy no tenga piezas (las matrices cambian de inyector) [usuario 2026-10-01]
+        'es_inyector', exists (select 1 from "GP2".ubicacion u where u.tipo = 'inyector' and u.ref_id = p.id)
+      ) order by p.nombre),'[]'::jsonb)
       from "GP2".proveedor_insumo p where p.activo),
     'sectores', (select coalesce(jsonb_agg(jsonb_build_object('id',s.id,'nombre',s.nombre) order by s.nombre),'[]'::jsonb)
       from "GP2".sector s where "GP2"._es_sector_insumo(s.id)),
