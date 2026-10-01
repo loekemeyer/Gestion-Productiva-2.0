@@ -119,7 +119,8 @@ async function nueva(browser, modo, rpcs) {
        'GRJ31: «Gestión Virgilio notificó que recibiste 3.000 unidades de GRJ31» con Sí y No');
     ok(/323ES/.test(grj.txt) && /Hugo Wong/.test(grj.txt), 'el aviso dice el código de Virgilio y el proveedor');
     ok(suelto.siOff && suelto.no && /no está vinculado/.test(suelto.txt), 'el aviso sin componente vinculado sale con el Sí apagado');
-    ok(await page.locator('#tbody tr:has-text("GRJ31")').count() === 1, 'debajo de los avisos, las piezas (GRJ31 suelto, sin rubro Importados)');
+    // v1.40.0-R2 (2026-10-01): Recibir -> Virgilio pasó a tarjetas (mismo diseño que Enviar)
+    ok(await page.locator('#cardsGrid .parte-card:has-text("GRJ31")').count() === 1, 'debajo de los avisos, las piezas (GRJ31 suelto, sin rubro Importados)');
 
     // D) Sí
     await page.click('#virLista .vir-aviso[data-vir="10"] [data-vir-acc="si"]');
@@ -158,8 +159,8 @@ async function nueva(browser, modo, rpcs) {
     await page.waitForTimeout(300);
     ok(await page.locator('.vir-badge').count() === 0, 'sin avisos: la baldosa no lleva 🔔');
     await page.click('#tipoGrid .tipo-btn[data-tipo="virgilio"]');
-    await page.waitForSelector('#tbody tr');
-    ok(await page.locator('#virLista .vir-aviso').count() === 0 && await page.locator('#tbody tr:has-text("GRJ31")').count() === 1,
+    await page.waitForSelector('#cardsGrid .parte-card');
+    ok(await page.locator('#virLista .vir-aviso').count() === 0 && await page.locator('#cardsGrid .parte-card:has-text("GRJ31")').count() === 1,
        'y Recibir → Virgilio muestra las piezas igual');
     await page.close();
   }

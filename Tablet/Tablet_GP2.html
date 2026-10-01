@@ -1318,13 +1318,15 @@ function bultosSugeridos(b, sugUni){
    lo tipeado: la misma cuenta de envSinMemoria. Talleristas, prov. de art. terminado y TODO
    Recibir siguen con la tabla — ahí hay esperado, exceso y remito, y se leen de corrido. */
 function vistaTarjetas(){
-  // en Enviar, los cuatro destinos; en Recibir, el tallerista y el P.S. [usuario 2026-09-18:
-  // "quiero que tambien aparezcan las partes en box... en vez de sugerido y cantidad, va a ser
-  // esperado y cantidad"]. Ojo: en Recibir la tablet SI se acuerda de lo tipeado (envSinMemoria
-  // es solo de Enviar): lo que cambia aca es como se ve, no la memoria.
+  // en Enviar, los cuatro destinos; en Recibir, el tallerista, el P.S. y Virgilio [usuario
+  // 2026-09-18: "quiero que tambien aparezcan las partes en box... en vez de sugerido y cantidad,
+  // va a ser esperado y cantidad"; Thomas 2026-10-01, sobre Recibir Virgilio: "quiero que el
+  // diseño de recepcion Virgilio sea el mismo que en los otros casos: box que apreto y pongo lo
+  // que recibo"]. Ojo: en Recibir la tablet SI se acuerda de lo tipeado (envSinMemoria es solo de
+  // Enviar): lo que cambia aca es como se ve, no la memoria.
   return envSinMemoria(selCP) ||
     (MODO === "recibir" && !!selCP &&
-     (selCP.tipo === "tallerista" || selCP.tipo === "proveedor_servicio"));
+     (selCP.tipo === "tallerista" || selCP.tipo === "proveedor_servicio" || selCP.tipo === "virgilio"));
 }
 
 /* El SUGERIDO de una pieza tal como se muestra, en la unidad de envío del proveedor. Lo usan la
@@ -1799,17 +1801,23 @@ var RUBRO_CARTON = rubroDe({ sector: "Sector Cartón" });
    art terminado, proveedores de servicio e inyectores"]. Mismo RUBRO_ORDEN, mismo rótulo. */
 var TIPOS_POR_RUBRO = { tallerista: 1, proveedor_servicio: 1, proveedor_at: 1, inyector: 1, virgilio: 1 };
 /* VIRGILIO (v1.40.0): tres bloques en el orden del pedido [usuario 2026-09-30: "1) art terminados …
-   2) Insumos: Plásticos, Flejes y Cajas 3) SC y SP"]. Insumos se parte por sector adentro del bloque. */
+   2) Insumos: Plásticos, Flejes y Cajas 3) SC y SP"]. Insumos se parte por sector adentro del bloque.
+   Vale IGUAL en Recibir (Thomas 2026-10-01: "que el diseño de recepcion Virgilio sea el mismo que en
+   los otros casos"); ahí nunca aparece "Art. Terminados" (sector 12 no se recibe de Virgilio). */
 var GRUPOS_VIRG = ["Art. Terminados", "Insumos", "SC", "SP"];
 function grupoVirg(x){ var i = GRUPOS_VIRG.indexOf(String((x && x.grupo) || "")); return i < 0 ? GRUPOS_VIRG.length : i; }
 function rotuloBloque(x){
-  if (selCP && selCP.tipo === "virgilio" && MODO === "enviar") {
+  if (selCP && selCP.tipo === "virgilio") {
     var g = String(x.grupo || "Otros");
     return g === "Insumos" ? "Insumos · " + String(x.sector || "").replace(/^Sector\s+/i, "") : g;
   }
   return String(x.sector || "Sin sector");
 }
-function agrupaPorRubro(c){ return MODO === "enviar" && !!c && !!TIPOS_POR_RUBRO[c.tipo]; }
+function agrupaPorRubro(c){
+  if (!c) return false;
+  if (MODO === "enviar") return !!TIPOS_POR_RUBRO[c.tipo];
+  return MODO === "recibir" && c.tipo === "virgilio";
+}
 
 /* ---------- piezas de la contraparte elegida ---------- */
 function piezasDe(c){
@@ -2050,6 +2058,11 @@ function renderCards(){
       }
     }
     var k = claveDe(x), it = BUF.item(selCP.id, k), q = num(it.q);
+    // Enviar -> Virgilio NO lleva sugerido/referencia [Thomas 2026-10-01, textual: "Todo lo que sea
+    // envío a Virgilio no tiene sugerido porque no tiene que haber allá (son cosas que no entran
+    // acá)"]: Virgilio no tiene consumo propio del que salga un número, y mostrar "Stock Cervantes"
+    // u otro dato ahí era inventarle una referencia que no corresponde.
+    var sinSugerido = MODO === "enviar" && selCP.tipo === "virgilio";
     var si = refInfo(x), uc = uniCarga(x), ex = exceso(x, q);
     var ed = envaseDoble(x), c = num(it.c), completa = filaCompleta(x, it);
     var aMedias = !!ed && !completa && (q > 0 || c > 0);
@@ -2067,9 +2080,9 @@ function renderCards(){
         "</span>" +
       // el cartón de otro artículo: lo primero que hay que ver es a cuál reemplaza
       (x.sust_de ? '<span class="pc-sust">↔ en lugar de ' + esc(x.sust_cod) + "</span>" : "") +
-      '<span class="pc-sug"><span class="pc-rot">' + esc(si.rotulo) + "</span> " + si.txt +
+      (sinSugerido ? "" : '<span class="pc-sug"><span class="pc-rot">' + esc(si.rotulo) + "</span> " + si.txt +
         (si.uni ? " " + esc(unidadTxt(si.num, si.uni)) : "") +
-        (si.nota ? '<span class="pc-nota"> · ' + esc(si.nota) + "</span>" : "") + "</span>" +
+        (si.nota ? '<span class="pc-nota"> · ' + esc(si.nota) + "</span>" : "") + "</span>") +
       '<span class="pc-estado">' + (aMedias
         ? '<span class="pc-demas">⚠ falta anotar ' + esc(q > 0 ? ed.label : "los kg") + "</span>"
         : completa
