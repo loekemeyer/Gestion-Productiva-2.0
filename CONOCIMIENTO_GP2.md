@@ -14553,8 +14553,13 @@ Premium se recibe de Virgilio"*.
   ruta del E6 y con el molde del 521. Efecto medido: el costo de E6-M194 pasa de $241,24 a $388,03 (antes no sumaba el
   F2); el del 570 no cambia ($708,67). Máximo de F2 en Fábrica 636 → 120 (lo que queda es del 858).
   `db/migracion_ruta96_570_m194_20261001.sql` (con rollback).
-- [dato, pendiente] El **858** tiene el mismo error (ruta 97: F2 → Fábrica directo, receta con E6-M194), y las rutas de
-  insumo del V10 van a Fábrica en vez de a la M194. No se tocaron.
+- [usuario, 01/10] *"corregí en todos lados que veas incorrecto"*: barrido de toda la base → 3 rutas más, las tres de
+  esta familia: 858 ruta 97 (F2) y V10 en 570 (373) y 858 (375); ahora todas entran a la M194. Costos de 570/858 y
+  máximos sin cambio. `db/migracion_rutas_convergencia_e6m194_20261001.sql`.
+- [dato] ⚠ El motor de costos (`v_costo_componente`) toma un insumo de ruta con `LEAST(cantidad,1)` en el sub-conjunto
+  y manda el resto al ARTÍCULO: con el V10 ×2 dentro de la M194, E6-M194 cuenta 1 V10 ($369,12 en vez de $388,03) y el
+  2.º queda en el 570/858. Es el único insumo ×2 que entra a una matriz en toda la base. Pendiente: corregir el motor
+  o volver las rutas 373/375.
 - **2.º pase, mismo día — la convergencia no se veía** [usuario: *"No veo la convergencia de las tres partes en el
   despiece (con su respectiva matriz)"*]. Dos causas: (1) faltaba el BOM del intermedio — se cargó
   `<pieza>-M505x ← PEST1 + pieza + Z46` (×1 c/u), molde `D5-M78 ← D5 + D6 + V4`; (2) Despiece x Artículo

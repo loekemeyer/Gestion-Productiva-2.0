@@ -1,0 +1,26 @@
+-- 570 y 858: las piezas del sub-conjunto E6-M194 (E6 + F2 + 2 V10) entran a la Matriz 194 en TODAS sus rutas.
+-- [usuario, 01/10] "Si, corregi en todos lados que veas incorrecto". Sigue a migracion_ruta96_570_m194_20261001.sql.
+-- Barrido de toda la base (hijo de un sub-conjunto que el mismo articulo arma, y el paso siguiente no lo arma):
+-- 3 rutas, las 3 de esta familia. Lo demas que salio son piezas que van a OTRO sub-conjunto en ese articulo o que
+-- tambien son componente directo (V3 del 520/530/531/730/731, V6 del 508/708): legitimo.
+-- APLICADO el 2026-10-01. Backup: zz_backups."GP2_Backup_rutas_97_373_375_20261001".
+--
+--   ruta 97  (858, F2):  ... Pedernera L8->F2 · 640 matriz M194 F2->E6-M194 · 641 Fabrica E6-M194->858 · 4259 virgilio
+--   ruta 373 (570, V10): 1747 insumo V10 x2 · 1748 matriz M194 V10->E6-M194 · 1749 Fabrica E6-M194->570 · 4260 virgilio
+--   ruta 375 (858, V10): 1753 insumo V10 x2 · 1754 matriz M194 V10->E6-M194 · 1755 Fabrica E6-M194->858 · 4261 virgilio
+--
+-- Efecto medido (zz_backups."GP2_Snap_costo_max_20261001b"): costo del 570 y del 858 SIN cambio; maximos SIN cambio.
+-- ⚠ Unico cambio: costo de E6-M194 $388,03 -> $369,12. v_costo_componente toma el insumo de una ruta con
+-- LEAST(cantidad,1) en el sub-conjunto y manda el resto (cantidad-1) al ARTICULO (insumox): el 2.o V10 ($18,91)
+-- queda en el 570/858 y no en E6-M194. Antes no pasaba porque, sin el paso, el V10 lo sumaba bomx desde la receta.
+-- Es el unico insumo x2 que entra a una matriz en toda la base. Decision pendiente: corregir el motor o volver
+-- las rutas 373/375 (rollback de abajo; lleva un DELETE).
+--
+-- ROLLBACK de 373/375 (dejar 97):
+-- begin;
+-- delete from "GP2".ruta_paso where id in (4260,4261);
+-- update "GP2".ruta_paso p set tipo_paso=b.tipo_paso, matriz_id=b.matriz_id, tallerista_id=b.tallerista_id,
+--   proveedor_id=b.proveedor_id, comp_entrada_id=b.comp_entrada_id, comp_salida_id=b.comp_salida_id, cantidad=b.cantidad
+--  from zz_backups."GP2_Backup_rutas_97_373_375_20261001" b where b.id=p.id and p.ruta_id in (373,375);
+-- commit;
+-- ROLLBACK de 97: lo mismo con ruta 97 y el id 4259.
