@@ -14498,3 +14498,42 @@ version.js v1.230.1 ?v=20261001l.
   rubro al final), y adentro **código numérico** y después «Dónde». Se retira el «manda el código» del v2.2.0.
 - Sólo front (`rubroIdx` + el sort de `filtradas`). `test_stock_general` mide que ningún rubro reaparezca
   después de que empezó otro (falla con el orden viejo). Stock General v3.0.2, version.js v1.230.2.
+
+## 4ia. 94xE: el inserto se arma en matriz 505* con dos piezas importadas; 941E y 946E se dan de baja; GRJ33 (2026-10-01)
+
+[usuario, 01/10, textual] *"A PEST1 ponele Insertos Sonrisa en vez de Insertos Mango de Madera. El 941E y el 946E
+eliminalos de las rutas, de articulos terminados. No se hace más. Borralo"* · *"El 942E se usa PEST1, Z47: Cuchara
+Inox (Parte que se importa), Z43: Mgo Madera (Parte que se importa). Estas tres se convergen en la matriz 505D:
+Armado Cuchara Inox Imp"* (ídem 943E/Z44/505C, 944E/Z48/505, 945E/Z49/505F, 948E/Z50/505B) · *"Las partes que se
+importan se tienen que poder recibir desde Virgilio en versión tablet"* · *"agrega GRJ33 que es Doble Aleta
+Premium se recibe de Virgilio"*.
+
+- **Esto retira el "PEST1 queda discontinuo en noviembre" de §4cz y de la alta de los 94xE**: PEST1 (ahora
+  «Insertos Sonrisa») sigue en las 5 recetas. Lo que cambia es que el 94xE ya no llega hecho: llegan la pieza inox
+  y el mango por separado y se arman en Cervantes. `[usuario]`
+- **Modelo (molde del 507, matriz 78):** cada entrada tiene su ruta y las tres convergen en la matriz:
+  `insumo PEST1 | Zxx | MGOMAD → matriz 505x → <Zxx>-M505x (Sector Movimiento) → Fábrica (tallerista 3) arma con la
+  caja A9B → 9xxE → Virgilio`. La ruta de la caja no se tocó. Receta = PEST1 ×1 + pieza ×1 + mango ×1 + A9B ×1/12.
+  La ruta de PEST1 se reescribió en el lugar (antes iba directo a Fábrica). Matrices renombradas al texto del
+  usuario (505 «Armado Cuchara Fideos Inox Imp», 505F «Armado Espátula Calada Inox Imp»).
+- **Piezas importadas:** Z47 Cuchara Inox · Z44 Cucharon Inox · Z48 Cuchara Fideos Inox · Z49 Espátula Calada Inox ·
+  Z50 Espumadera Inox, en Sector Procesado con `proveedor='Importado'` y `estado_compra='importado'` (igual que
+  Z23A/Z23B/D1). Con eso salen solas en **Tablet → Recibir → Virgilio** (rama de importados de `tablet_bundle`).
+  Verificado: las 7 (5 piezas + mango + GRJ33) aparecen con `importado=true`.
+- **⚠ Z43 YA EXISTE:** es «Varilla c/Cuchilla Negro» del Abrelatas 101 (receta + 4 pasos de ruta). No se pisó: el
+  mango nació como **`MGOMAD`** (provisorio, criterio CART058). Cambiarle el código es un `update` de una fila
+  cuando el usuario diga cuál va. `[dato]`
+- **Vínculo GV → GP2** (`GP2.importado_virgilio_componente`): 942P→Z47, 943P→Z44, 944P→Z48, 945P→Z49, 948P→Z50
+  `[deducido: public."Importados_Stock_Parte" dice que la parte de 942E es 942P, «Parte Cuchara Ac. Inox»]`;
+  522E y 522ES→GRJ33 (molde 599E/599ES→GRJ32). **El mango no tiene código en GV**: sin fila, el aviso de Virgilio
+  sale "sin componente" — en la tablet se recibe igual.
+- **GRJ33 «Doble Aleta Premium»**: Sector Garage, importado, igual que GRJ31/GRJ32 (sin receta ni ruta).
+- **941E y 946E:** 0 inventario, 0 movimientos, 0 producción (medido). Matrices 505E/505G `activa=false`. **El
+  borrado NO se aplicó**: el MCP de Supabase retiene los DELETE esperando confirmación del dueño; quedaron
+  `discontinuado=true` y el bloque está comentado al final de `db/migracion_94xE_armado_505_20261001.sql`.
+  `GP2.articulo_familia` (941E→338, 946E→335) NO se toca desde GP2: es espejo de `Equivalencias_Familia` de GV
+  (invariante AG).
+- **Plata:** las 6 piezas nuevas no tienen precio (`precio_proveedor` vacío) → el costo de los 94xE queda con
+  `faltan_precios` hasta cargarlo. Los máximos se recalcularon solos al commit (MGOMAD 700, Z47 172 uni).
+- Invariantes de `db/verificar.sql`: iguales antes y después (AE=2 y AG=9 ya estaban). Respaldo en
+  `zz_backups."GP2_bkp_*_20261001_94xe"`. Sólo base, sin front.
