@@ -1,7 +1,7 @@
 -- =====================================================================
 -- FUNCIONES del schema GP2 — export automatico 2026-10-01 (pg_get_functiondef, exacto)
 -- Fuente de verdad: Supabase (hrxfctzncixxqmpfhskv). Este archivo es respaldo/referencia.
--- 180 funciones. Los GRANT/REVOKE no estan aca: EXECUTE para anon solo en las RPC de pantalla (ver db/README.md).
+-- 181 funciones. Los GRANT/REVOKE no estan aca: EXECUTE para anon solo en las RPC de pantalla (ver db/README.md).
 -- =====================================================================
 
 -- ---------- _aplicar_recepcion_a_oc ----------
@@ -1697,6 +1697,69 @@ select jsonb_build_object(
 $function$
 ;
 
+-- ---------- control_inyector_bundle ----------
+CREATE OR REPLACE FUNCTION "GP2".control_inyector_bundle()
+ RETURNS jsonb
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'GP2'
+AS $function$
+with iny as (
+  select pi.id iny_id, pi.nombre, u.id ubic_id
+    from proveedor_insumo pi
+    join ubicacion u on u.tipo='inyector' and u.ref_id=pi.id
+   where exists (select 1 from componente c
+                  where c.proveedor = pi.nombre
+                    and c.material_id is not null and c.estado_compra is null)
+),
+mats as (
+  -- resina declarada por las piezas del inyector
+  select iny.iny_id, iny.ubic_id, c.material_id comp_id
+    from iny join componente c on c.proveedor = iny.nombre
+   where c.material_id is not null and c.estado_compra is null
+  union
+  -- + resina con fila en su ubicacion aunque ninguna pieza la declare
+  select iny.iny_id, iny.ubic_id, i.componente_id
+    from iny join inventario i on i.ubicacion_id = iny.ubic_id
+  union
+  -- + resina con movimiento de inyector aunque hoy no tenga fila
+  select iny.iny_id, iny.ubic_id, m.comp_id
+    from iny join movimiento m on iny.ubic_id in (m.ubic_origen_id, m.ubic_destino_id)
+   where m.tipo_mov in ('envio_inyector','consumo_inyector')
+),
+env as (
+  select ubic_destino_id ubic_id, comp_id, sum(_delta_dest) enviado
+    from movimiento where tipo_mov='envio_inyector' group by 1,2
+),
+con as (
+  select ubic_origen_id ubic_id, comp_id, sum(_delta_orig) consumido
+    from movimiento where tipo_mov='consumo_inyector' group by 1,2
+),
+inv as (select ubicacion_id ubic_id, componente_id comp_id, sum(cantidad) saldo from inventario group by 1,2),
+partes as (
+  select m.iny_id, m.comp_id,
+    coalesce(e.enviado,0) enviado, coalesce(cn.consumido,0) consumido, coalesce(iv.saldo,0) saldo
+  from mats m
+  left join env e  on e.ubic_id=m.ubic_id  and e.comp_id=m.comp_id
+  left join con cn on cn.ubic_id=m.ubic_id and cn.comp_id=m.comp_id
+  left join inv iv on iv.ubic_id=m.ubic_id and iv.comp_id=m.comp_id
+),
+partes_j as (
+  select p.iny_id, jsonb_agg(jsonb_build_object(
+      'comp_id',p.comp_id,'codigo',c.codigo,'descripcion',c.descripcion,'sector',s.nombre,
+      'enviado',round(p.enviado,3),'consumido',round(p.consumido,3),'saldo',round(p.saldo,3)
+    ) order by c.codigo, c.id) partes
+  from partes p join componente c on c.id=p.comp_id left join sector s on s.id=c.sector_id
+  group by p.iny_id
+)
+select jsonb_build_object('generado_en', now(),
+  'inyectores', coalesce(jsonb_agg(jsonb_build_object(
+    'iny_id',iny.iny_id,'nombre',iny.nombre,'partes',coalesce(pj.partes,'[]'::jsonb)
+  ) order by iny.nombre),'[]'::jsonb))
+from iny left join partes_j pj on pj.iny_id=iny.iny_id;
+$function$
+;
+
 -- ---------- control_ps_bundle ----------
 CREATE OR REPLACE FUNCTION "GP2".control_ps_bundle()
  RETURNS jsonb
@@ -1708,9 +1771,10 @@ with ps as (
   select p.id ps_id, p.cod_prov, p.nombre, p.proceso, u.ubic_id
   from proveedor_servicio p
   join lateral (select "GP2".ubic_de('proveedor_servicio', p.id) ubic_id) u on u.ubic_id is not null
+  where exists (select 1 from v_contraparte_parte v
+                 where v.tipo = 'proveedor_servicio' and v.ref_id = p.id)
 ),
 cfg as (
-  -- que parte entra por PS: v_contraparte_parte (una sola definicion)
   select distinct ps.ubic_id, v.comp_id
   from ps join v_contraparte_parte v on v.tipo = 'proveedor_servicio' and v.ref_id = ps.ps_id and v.lado = 'entrada'
 ),
@@ -1722,10 +1786,6 @@ env as (
   group by 1,2
 ),
 ent as (
-  -- Hibridos (Fleje90/Charcas, Chapa430/Eclipse): la MP BRUTA (ALAMBRE, FLEJE_DESCORAZONADOR)
-  -- se consume al cortarla, NO es una entrega. Lo que el PS entrega es el producto cortado
-  -- (IC3/IC3V para Charcas, 1686 para Eclipse), que sale como 'compra' hacia su destino;
-  -- esa compra se atribuye al PS que corta.
   select ubic_id, comp_id, sum(entregado) entregado from (
     select ubic_origen_id ubic_id, comp_id, sum(_delta_dest) entregado
     from movimiento where tipo_mov='entrega_ps'

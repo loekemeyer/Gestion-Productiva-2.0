@@ -14183,7 +14183,13 @@ kg, caj, uni"*.
 ## 4hm. Stock General tiene dos pestañas: CERVANTES y VIRGILIO (2026-10-01)
 [usuario, Luis] "en GP2 quiero que haya una pestaña en stock general que sea VIRGILIO … que se abra en pestaña CERVANTES (lo que hay ahora) y que muestre otra pestaña para Virgilio que no tenga nada … vamos paso por paso". Es el primer paso del contenedor de insumos de Virgilio que se rearma desde cero (§4hk: no reponer lo revertido). Cervantes = la pantalla de siempre, sin un cambio; abre ahí. Virgilio = vacía a propósito, sin datos ni RPC todavía; «± Ajuste» no se ve ahí (ajusta el stock de GP2). Lo que lleve la pestaña Virgilio lo define Luis en el próximo paso. Stock General v2.5.0, version.js v1.223.0.
 
-## 4hn. REARMADO "Virgilio en la tablet" — Thomas (dueño) pide volver, con el aislamiento que evita §4hk (2026-10-01)
+## 4hn. Control Partes Inyectores: un inyector guarda RESINA (kg), no piezas (2026-10-01)
+[usuario] "que haya un módulo debajo de estos que sea Control Partes Inyectores y que tenga la misma lógica que estos 3 módulos … los proveedores o talleristas que aparecen en los controles sean los mismos que hay en la versión tablet en envío y recepción". Entra en **Stocks**, debajo de Control Partes Talleristas / P.S. / Prov. A.T. (`Compras/Control Inyectores/ControlInyectores_GP2.html`, RPC `control_inyector_bundle`, solo lectura, mismo molde que Control P.S.).
+- **La diferencia que importa:** el inyector **no stockea piezas** — le mandás la **bolsa de resina** y la consume al entregar la pieza (las piezas nunca pasan por su ubicación; medido: 0 movimientos de pieza en las ubicaciones inyector). Entonces las FILAS del control son las **resinas en kg**: Enviado = `envio_inyector`, Consumido = `consumo_inyector`, Saldo = inventario en su ubicación. Es lo único con saldo real y calca el modelo que ya existe (Stock General rubro Inyectores, §del 30/09). El usuario eligió esta opción (no "piezas", que darían saldo 0 siempre). Hoy todo da 0 hasta el primer envío de bolsa por la tablet.
+- **Contrapartes = la tablet "Enviar > Inyectores":** JL Matriceria, Pat Bet Plast, Pettofrezza Rafael (proveedor_insumo con ubicación inyector y ≥1 pieza con material). **Kollplast queda afuera** (no tiene piezas), igual que en la tablet.
+- **Parte 2 del pedido — alinear contrapartes de los 3 controles con la tablet:** Talleristas y Prov. A.T. **ya coincidían** (el front de Control Talleristas ya excluye Fábrica #3; Control A.T. ya filtra inactivos). El único desajuste real era **Control P.S.**, que mostraba de más Rec Color, Daniel y Blist-Pack (PS con ubicación pero **sin parte configurada**, todo en 0). Se agregó a `control_ps_bundle` el filtro `exists v_contraparte_parte` → ahora muestra exactamente lo mismo que la tablet. Ninguno de los 3 tenía stock ni movimientos (verificado), así que no se escondió nada. version.js v1.224.0.
+
+## 4ho. REARMADO "Virgilio en la tablet" — Thomas (dueño) pide volver, con el aislamiento que evita §4hk (2026-10-01)
 
 [Thomas, dueño, 01/10, el mismo día del revert de Luis] *"quiero que vuelvas a hacer lo que te había pedido… La
 única corrección que tendrías que hacer para que no pase lo que dijo Luis es dejar todos los stocks en 0 en
@@ -14221,7 +14227,7 @@ mismo pedido — viene con la corrección puntual que cierra el riesgo que Luis 
   anterior, y la nueva instrucción de Thomas la vuelve innecesaria en vez de corregirla.
 - `db/` regenerado con `db/regenerar.sql` (no a mano): `funciones_GP2.sql` y `tablas_GP2.sql`.
 - `Tablet/Tablet_GP2.html`, `StockFlejes/RecepcionInsumos_GP2.html` (Importados vuelve a vivir sólo en Tablet →
-  Recibir → Virgilio), `Stocks General/StockGeneral_GP2.html` v2.6.0, version.js v1.224.0.
+  Recibir → Virgilio), `Stocks General/StockGeneral_GP2.html` v2.6.0, version.js v1.225.0.
   `tests/ui/test_tablet_virgilio.js` (nuevo), `tests/ui/test_stock_general.js` (pestaña Virgilio con contenido),
   `tests/ui/test_recepcion_uni.js` (se sacó el caso de Importados, que ahora cubre test_tablet_virgilio.js),
   `tests/ui/test_rpc_huerfanas.js` (`fabrica_producir`/`enviar_a_virgilio` agregadas a PERMITIDAS: las llama
