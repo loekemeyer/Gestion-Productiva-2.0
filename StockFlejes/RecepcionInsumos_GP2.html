@@ -21,6 +21,12 @@
      inyector); el rubro Plasticos suma esos chips aunque no tengan piezas y los muestra con (0): es la
      unica excepcion a "lo que sea 0 no me aparezca" (2026-09-01). Elegido con 0 piezas, el cartel dice
      que se le asignan en Inyectores · Quien hace cada parte. Hoy: Kollplast. -->
+<!-- v3.69.1 (2026-10-01) — ALTRAK SEGUIA APARECIENDO [Thomas: "puede ser que siga viendo Altrak en
+     recepcion de insumos?"]. El error de v3.69.0: cref que el ALAMBRE caia por inyeccion, pero el
+     componente ALAMBRE tiene sector_id=5 (Flejes) y proveedor Altrak, asi que aparecia solo como
+     item ("Fleje N° 90") y Altrak como chip. Fix: ALAMBRE se agrega a la lista de MP que recibe un
+     PS en Casos Especiales y se filtra de insumosDelRubro, igual que FLEJE_DESCORAZONADOR. Al
+     quedar sin items, el chip Altrak desaparece solo. -->
 <!-- v3.69.0 (2026-10-01) — ALTRAK -> CHARCAS y APERAM -> ECLIPSE (CHAPA) SE VAN DE ACA [Thomas:
      "Estos modulos no tendrian que aparecer en recepcion insumos de version tablet, ya esta en
      casos especiales dentro de herramientas"]. Las dos cargas ya viven en
@@ -981,9 +987,11 @@ function insumosDelRubro(){
   // Importados: no se agrupan por sector (viven en Procesado, junto a piezas que se fabrican)
   // sino por estado_compra. El resto de los rubros sigue siendo su sector.
   if (rubroSel==='Importados') return INS.filter(i=>i.estado_compra==='importado' && !ocultarProv(i.proveedor));
-  // v3.69.0: la chapa 430 (FLEJE_DESCORAZONADOR, Aperam -> Eclipse) no se recibe aca; vive en
-  // Casos Especiales. Se filtra del rubro Flejes (Aperam sigue con sus 13 flejes reales).
-  return INS.filter(i=>i.sector_id===sidSel && i.estado_compra!=='importado' && !ocultarProv(i.proveedor) && !esCorteDePS(i) && i.codigo!=='FLEJE_DESCORAZONADOR');
+  // v3.69.x: la materia prima bruta que recibe un PS en Casos Especiales NO se recibe aca:
+  //   - ALAMBRE (Altrak -> Charcas): esconde tambien el chip Altrak (es su unico item).
+  //   - FLEJE_DESCORAZONADOR (chapa 430, Aperam -> Eclipse): Aperam sigue con sus 13 flejes reales.
+  var MP_CASOS_ESPECIALES = ['ALAMBRE','FLEJE_DESCORAZONADOR'];
+  return INS.filter(i=>i.sector_id===sidSel && i.estado_compra!=='importado' && !ocultarProv(i.proveedor) && !esCorteDePS(i) && MP_CASOS_ESPECIALES.indexOf(i.codigo)<0);
 }
 // Fase B rework 2026-09-02: los helpers esFiltroCharcas / esCortadoEclipse se
 // sacaron. Los PS hibridos Charcas/Eclipse viven ahora en su pantalla dedicada

@@ -14353,6 +14353,7 @@ mostraba 0 filas. Después del fix, los 77 aparecen (y lo mismo para SP/Fleje/Pl
 rubros exactos y sin encabezado de grupo repetido; SC en Virgilio con el universo completo —A10 con stock
 real + un segundo componente en 0—; el salto "También en…"/"Todos" hacia Talleristas cambia de pestaña
 sola). Mismo commit que §4hq, version.js bumpeado una vez para los dos cambios.
+
 ## 4hs. Programa (¿Qué necesito para producir?): Enter en el buscador ENTRA al artículo (2026-10-01)
 
 [usuario, 01/10] *"cuando le doy enter quiero que me entre al artículo"*. En el selector «Elegí el
@@ -14384,6 +14385,7 @@ meses por sector segun el maximo)… Corregí llevándolo a cada caso correspond
 - Quedan sin cerrar contra la celda, a propósito: máximo `fisico` (fijado a mano) y las 3 resinas con máximo viejo de
   §4hl — la tabla muestra la demanda de hoy, la celda lo cargado.
 - `Compras/OC_GP2.html` (`htmlDesglose`), `tests/ui/test_oc_maximo_desglose.js`, `db/funciones_GP2.sql`.
+
 ## 4hu. Stock General: las 3 pestañas arrancan igual — sin botón «Todos los rubros» (2026-10-01)
 
 [usuario, 01/10] *"Solo en Cervantes me aparece buscar todos los rubros. Eliminá así quedan todos los
@@ -14551,8 +14553,22 @@ Premium se recibe de Virgilio"*.
   ruta del E6 y con el molde del 521. Efecto medido: el costo de E6-M194 pasa de $241,24 a $388,03 (antes no sumaba el
   F2); el del 570 no cambia ($708,67). Máximo de F2 en Fábrica 636 → 120 (lo que queda es del 858).
   `db/migracion_ruta96_570_m194_20261001.sql` (con rollback).
-- [dato, pendiente] El **858** tiene el mismo error (ruta 97: F2 → Fábrica directo, receta con E6-M194), y las rutas de
-  insumo del V10 van a Fábrica en vez de a la M194. No se tocaron.
+- [usuario, 01/10] *"corregí en todos lados que veas incorrecto"*: barrido de toda la base → 3 rutas más, las tres de
+  esta familia: 858 ruta 97 (F2) y V10 en 570 (373) y 858 (375); ahora todas entran a la M194. Costos de 570/858 y
+  máximos sin cambio. `db/migracion_rutas_convergencia_e6m194_20261001.sql`.
+- [dato] ⚠ El motor de costos (`v_costo_componente`) toma un insumo de ruta con `LEAST(cantidad,1)` en el sub-conjunto
+  y manda el resto al ARTÍCULO: con el V10 ×2 dentro de la M194, E6-M194 cuenta 1 V10 ($369,12 en vez de $388,03) y el
+  2.º queda en el 570/858. Es el único insumo ×2 que entra a una matriz en toda la base. Pendiente: corregir el motor
+  o volver las rutas 373/375.
+- **2.º pase, mismo día — la convergencia no se veía** [usuario: *"No veo la convergencia de las tres partes en el
+  despiece (con su respectiva matriz)"*]. Dos causas: (1) faltaba el BOM del intermedio — se cargó
+  `<pieza>-M505x ← PEST1 + pieza + Z46` (×1 c/u), molde `D5-M78 ← D5 + D6 + V4`; (2) Despiece x Artículo
+  (`Programa/Programa.html`) sólo detectaba convergencias desde rutas que arrancan en un FLEJE. Ahora también desde
+  rutas de insumo, **sólo si el paso que arma es una MATRIZ** (los armados de tallerista con insumos, GRJ5/GRJ6,
+  quedan igual), y si el intermedio no está en la receta la cantidad sale de la parte más escasa de su BOM.
+  La receta quedó con las partes sueltas (no el intermedio como en el 507): el DELETE para pasarla al intermedio lo
+  retuvo el MCP, y así no hay doble conteo (máximos de Z46/Z47 iguales antes y después). `[dato]`
+  `tests/ui/test_programa_matriz_insumos.js` (falla 7 contra el HTML anterior). version.js v1.231.0 ?v=20261001o.
 
 ## 4ic. Botón "→ Virgilio" en el control de cajas y flejes — el remito que no entra se baja directo a Virgilio (2026-10-01)
 
@@ -14578,14 +14594,12 @@ sola: descartado.
   `RecepcionInsumos_GP2.html` (kg, botón por ítem en el paso 2) — no en control-remaches, que no toca flejes
   (§GP2CI). La unidad la dice la recepción: `enviar_a_virgilio` traslada en uni o kg según corresponda.
 - **La columna que ata todo:** `recepcion_insumo.virgilio` (+ `virgilio_mov_id`). `controlar_recepcion_cajas`
-  guarda `cantidad = contado + virgilio` (la compra lleva el total; el traslado descuenta su parte) y
-  `control_recepcion_bundle` / `v_recepcion_control` la exponen: la vista resta `virgilio` de `dif_kg_vs_remito`
-  y agrega `kg_esperado_cervantes`. Invariante Q (recepción = compra) se mantiene: el traslado es un movimiento
-  aparte, no la compra.
-- **Seguridad:** `recepcion_a_virgilio` es SECURITY DEFINER, EXECUTE sólo para `authenticated` + `_exigir_autorizado()`
-  (fase B), igual que sus hermanas. Nace con EXECUTE para PUBLIC por default: hay que **revocar anon** o el
-  invariante AI salta.
-- `db/migracion_recepcion_virgilio.sql`, `db/funciones_GP2.sql` (`recepcion_a_virgilio` +
-  `controlar_recepcion_cajas` + `control_recepcion_bundle`), `db/vistas_GP2.sql` (`v_recepcion_control`),
-  `db/tablas_GP2.sql` (columnas). Front: `control-cajas` v1.3.0, `RecepcionInsumos` v3.71.0, version.js v1.231.0.
-  Test: `tests/ui/test_recepcion_virgilio.js`.
+  guarda `cantidad = contado + virgilio`; `control_recepcion_bundle` / `v_recepcion_control` la exponen: la
+  vista resta `virgilio` de `dif_kg_vs_remito` y agrega `kg_esperado_cervantes`. Invariante Q (recepción =
+  compra) se mantiene: el traslado es un movimiento aparte, no la compra.
+- **Seguridad:** `recepcion_a_virgilio` es SECURITY DEFINER, EXECUTE sólo para `authenticated` +
+  `_exigir_autorizado()` (fase B), igual que sus hermanas. Nace con EXECUTE para PUBLIC por default: hay que
+  **revocar anon** o el invariante AI salta.
+- `db/migracion_recepcion_virgilio.sql`, `db/funciones_GP2.sql`, `db/vistas_GP2.sql`, `db/tablas_GP2.sql`.
+  Front: `control-cajas` v1.3.0, `RecepcionInsumos` v3.71.0, version.js v1.233.0. Test:
+  `tests/ui/test_recepcion_virgilio.js`.
