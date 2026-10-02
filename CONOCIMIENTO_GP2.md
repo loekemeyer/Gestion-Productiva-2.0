@@ -5402,6 +5402,26 @@ que lo tengas guardado."* Pasaba porque **ninguna sesión sabía que estaba en l
 2. **Regla en `CLAUDE.md`** («🧭 Otros archivos vivos»): la planilla vive en la base
    (`v_planilla_precio` / `v_planilla_costo`) y en `db/`; **no se le pide al usuario**.
 
+### 2026-10-02: el diff de la Lista de Precios (para la macro de subida, idea 7358)
+
+`[usuario 2026-10-02]` Thomas quiere que la planilla se suba por macro y que cada cambio de «Lista
+de Precios » llegue por Telegram a «LK Gerencia», comparando *"una foto de antes y una post
+subida"*. `[dato: openpyxl sobre db/A_Costos_VIGENTES.xlsx + v_planilla_precio, snapshot 1]`:
+
+- **La fila NO identifica nada**: insertar filas o celdas corre todo. **La clave es la columna A**,
+  un ID entero que la planilla ya usa para el `VLOOKUP` a `'Calculo IPC 2.0'`: 783 de 784 filas de
+  precio lo tienen; 1 duplicado (1506), 1 vacío. `B+E` (cod_prov + ISIS) no sirve sola: 16 pares
+  repetidos y 52 filas sin ISIS.
+- **G es el dato, H y L son fórmula**: `H = G × $H$3` (dólar) si F=Dolar, `× IPC` (VLOOKUP por A) si
+  F=Peso. Comparar H daría "aumentos" falsos: cada cotización mueve las 203 filas en dólares y cada
+  actualización del IPC las 580 en pesos (una dice `peso` en minúscula: Excel la iguala, un `=` de SQL no). Se compara **G y F**.
+- **`bloque` miente en 286 de 784 filas** (el encabezado se arrastra por regex `^\d+ - ` y los que
+  no tienen código, como "Altrak (alambre galvanizado)", quedan con el proveedor de arriba: Casa
+  Landau). La col C (razón social) dice "Falta Prov" en casi todas, y 29 de 97 `cod_prov` no tienen
+  encabezado con nombre. **El proveedor de una fila es B**, no `bloque`.
+- Celdas insertadas en B:P **sin** la col A desfasan los ID: se reconoce porque con la misma A
+  cambian a la vez E y K.
+
 ## 4w. El cruce planilla vs GP2: `v_costo_componente` ignora las cantidades (2026-09-08)
 
 `[usuario 2026-09-08]` Pedido: *"Revisa que el costo sin aportes de la hoja costos te de igual
