@@ -3520,7 +3520,11 @@ begin
   perform "GP2"._exigir_autorizado();  -- seguridad punto 1 fase B (2026-09-28)
   select partes_por_kilo_de_fleje into v_partes from matriz where id = p_mid;
   select unidad_medida, sector_id into v_sal_um, v_sec_sal from componente where id = p_salida;
-  v_usal := "GP2".ubic_de('sector', v_sec_sal);
+  -- El sector Terminado (12) no tiene ubicacion de sector; su stock vive en "Art. Terminado
+  -- (Fabrica)" (art_terminado 3). Una matriz de ENVASADO produce el terminado directo ahi
+  -- (2026-10-02): sin esto v_usal quedaba null y la produccion del terminado se descartaba.
+  v_usal := case when v_sec_sal = 12 then "GP2".ubic_de('art_terminado', 3)
+                 else "GP2".ubic_de('sector', v_sec_sal) end;
   v_ud := case when lower(coalesce(v_sal_um,'')) = 'kg' then 'kg' else 'uni' end;
   select exists(select 1 from componente_bom where componente_padre_id = p_salida) into v_has_bom;
 
@@ -8026,11 +8030,15 @@ with pa as (
    where p1.tipo_paso = 'proveedor_servicio' and p2.tipo_paso = 'proveedor_servicio'
      and p1.comp_salida_id is not null and p2.comp_entrada_id = p1.comp_salida_id
 ), fab as (
+  -- Art. Terminado (Fabrica) = lo que se arma/envasa en casa: el terminado (sector 12) lo cierra
+  -- una MATRIZ de envasado (modelo 2026-10-02) o el tallerista interno Fabrica (id 3, legado/Manga).
   select distinct a.codigo, a.articulos_por_caja uxc, c.id comp_id
     from articulo a
-    join ruta r on r.articulo_id = a.id
-    join ruta_paso rp on rp.ruta_id = r.id and rp.tallerista_id = 3
     join componente c on upper(c.codigo) = upper(a.codigo) and c.sector_id = 12
+    join ruta r on r.articulo_id = a.id
+    join ruta_paso rp on rp.ruta_id = r.id
+     and ( rp.tallerista_id = 3
+        or (rp.tipo_paso = 'matriz' and rp.comp_salida_id = c.id) )
    where not a.discontinuado and not coalesce(c.discontinuado, false)
 ), tr as (
   select pr.comp_id, ps1.nombre ps1_nombre, ps2.nombre ps2_nombre,

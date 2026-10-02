@@ -14789,3 +14789,20 @@ Cierre de §4ig (F2 y F3).
   operarios. El terminado de Fábrica se sigue pudiendo mandar a Virgilio desde la tablet (la línea
   `'virgilio' from fab` queda). EXCEPCIÓN viva: 280 Manga no tiene matriz de envasado todavía, así que
   queda sin camino en la tablet hasta que se le cree una.
+
+## 4il. Fix Art. Terminado tras el modelo matriz de envasado (2026-10-02)
+Dos bugs que dejó §4ig/4ik al pasar la convergencia a matriz:
+- **`fabricar_stock` descartaba el terminado.** El sector Terminado (12) NO tiene ubicación de
+  sector (`ubic_de('sector',12)` = null); el stock de terminados vive en "Art. Terminado (Fábrica)"
+  (`ubic_de('art_terminado',3)` = ubic 74). Al producir por una matriz de envasado, `v_usal` quedaba
+  null y el movimiento se saltaba → no se creaba stock. Fix: si el comp_salida es sector 12, `v_usal`
+  = `ubic_de('art_terminado',3)`. Ahí es donde el operario "manda a stock de art terminado".
+- **Stock General → Art. Terminado listaba sólo lo que arma el tallerista Fábrica.** El CTE `fab` de
+  `stock_general_extra_bundle` enumeraba por `rp.tallerista_id=3`; tras el repunteo esos 38 pasaron a
+  matriz y desaparecían (quedaba 1, Manga). Fix: `fab` ahora incluye también el terminado (sector 12)
+  cuyo comp_salida lo produce una MATRIZ. Verificado: Art. Terminado volvió a 39 filas.
+- **Fábrica en el envío a talleristas:** `tablet_bundle` ya no la muestra (0, F3 §4ik); lo que la
+  mantiene en `v_contraparte_parte` (y por eso aparece en EnviosTalleristas) son los pasos tallerista
+  id 3 de 280 Manga (y los eliminados 941E/946E). Para que 280 quede "sin asignar" hay que BORRARLOS;
+  el conector de Claude bloquea DELETE, así que lo corre el usuario en el SQL Editor:
+  `delete from "GP2".ruta_paso where tipo_paso='tallerista' and tallerista_id=3;`
