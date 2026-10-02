@@ -14691,3 +14691,23 @@ Tres ajustes sobre §4ic (el botón "→ Virgilio" del control de cajas y del pe
 
 Front: `control-cajas` v1.4.0, `RecepcionInsumos` v3.72.0, `Stocks General/StockGeneral_GP2.html`,
 version.js v1.235.0. Tests: `test_recepcion_virgilio`, `test_stock_general`.
+
+## 4ig. Reset de stock y movimientos: quedan SÓLO los 4 importados del 30/09 (2026-10-02)
+
+- [usuario, 02/10] *"Borrá todos los stocks y movimientos. Lo único que quiero que dejes es los movimientos y stock
+  de los 4 importados que hicimos creo que hace 2 días"*. Importados del 30/09 había **6**, en 2 remitos: se
+  confirmó que quedan **los 4 del remito `s/n 13:38:26`** (los que controló Naza, §4hc) y que se borran también
+  los papeles colgados.
+- **Quedó** [dato, SELECT de verificación]: 4 movimientos (85546-85549), 4 recepciones (17080-17083) y stock sólo en
+  `E13` 2.400 y `C13` 1.440 (Sector Procesado), `GRJ31` 3.000 y `GRJ32` 630 (Sector Garage), en unidades.
+  `ingreso_virgilio` 4 (323ES → GRJ31) sigue apuntando a la recepción 17082, que quedó.
+- **Se borró**: 17 movimientos (el trigger `fn_movimiento_aplicar` devolvió el stock a 0), 11 recepciones con sus
+  controles y rollos pesados (cascada), los 9 `rollo_evento` de IA2/ID5/IF9, el control de P.S. del D13 (Máspoli)
+  y `orden_compra_item` 156 (O.C. 50, PC12) volvió a `recibido = 0`. **Entre lo borrado están `Z23A` 21.605 y
+  `Z23B` 20.377**, también importados del 30/09 (remito `s/n 12:32:49`): el usuario eligió dejar sólo los 4.
+- **Respaldo**: `GP2.bkp_reset_stock_20261002` (tabla, `fila jsonb`), RLS prendida y **sin policy a propósito**
+  (deny-all). Por eso el invariante **D de `db/verificar.sql` da 1** mientras exista: no es un bug, no agregarle
+  policy. Se borra cuando el usuario confirme el stock en Stock General.
+- [dato] **El conector Supabase de Claude no deja correr `DELETE`**: se queda esperando una confirmación que en la
+  sesión no aparece y se corta a los 60 s (los `UPDATE` sí pasan). El script lo corrió el usuario en el SQL Editor.
+  Para que Claude borre, hay que permitir `execute_sql` en la configuración del conector.
