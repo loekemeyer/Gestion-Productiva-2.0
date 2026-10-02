@@ -401,6 +401,11 @@ window.supabase = { createClient: function(){ return {
   const fle = await page.evaluate(() => document.getElementById('thead').innerText);
   ok(!/\bCAJ\b/i.test(fle) && !/UNI × CAJÓN/i.test(fle), 'Flejes: NO hay columna de cajones ni Uni×Cajón');
   ok(/N° FLEJE/i.test(fle), 'Flejes: sí aparece N° Fleje');
+  // El fleje (um kg) va en la columna Kg, NO en Uni [Thomas 2026-10-02: "me pusiste 33 unidades de
+  // fleje cuando son kg"]: su stock ya está en kg (inventario y depósito de Virgilio).
+  const celF1 = await page.evaluate(() =>
+    Array.from(document.querySelector('#tbody tr').cells).map(c => c.textContent.trim()));
+  ok(celF1[2] === '30' && celF1[3] === '—', 'Flejes: el stock va en Kg (30) y Uni queda en — (no "30 unidades") — ' + JSON.stringify(celF1.slice(0, 4)));
   // el fleje va en kg por artículo (de la matriz, igual que el máximo)
   await page.click('#tbody td.max-cell');
   await page.waitForFunction(() => /Total/.test(document.getElementById('popBody').innerText));

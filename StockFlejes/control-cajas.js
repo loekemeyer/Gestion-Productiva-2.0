@@ -14,6 +14,10 @@
      - pisa la cantidad con el total real
      - ajusta el movimiento asociado (los triggers recalculan inventario)
 
+   v1.4.0 (2026-10-02) — EL BOTÓN "→ Virgilio" VA ARRIBA [Thomas: "que sea un botón arriba. No en esa
+   pantalla principal"]: pasa de la fila de acciones (abajo) al tope del popup, debajo del encabezado;
+   el input sigue apareciendo al tocarlo. Mismo RPC y misma cuenta (esperado = remito − Virgilio).
+
    v1.3.0 (2026-10-01) — BOTÓN "→ Virgilio" [Thomas: "si el total del remito no entra en Cervantes
    porque excede el espacio físico, no se baja del camión una parte y va directo para Virgilio ...
    un botón en el control de cajas y flejes que se pueda mandar una cantidad a Virgilio"]. El remito
@@ -267,8 +271,9 @@ function renderVirg() {
     virgLine.style.display = "none";
   }
   virgBox.style.display = "none";
+  btnVirgilio.classList.remove("on");
   inVirg.value = virg > 0 ? String(virg) : "";
-  btnVirgilio.textContent = virg > 0 ? "→ Virgilio ✎" : "→ Virgilio";
+  btnVirgilio.innerHTML = virg > 0 ? `→ Virgilio: <b>${fmt(virg)}</b> uni` : "→ Virgilio";
 }
 
 function cerrarPopup() { ov.classList.remove("open"); selected = null; }
@@ -334,6 +339,7 @@ function toggleVirg() {
   if (!selected) return;
   const abrir = virgBox.style.display === "none";
   virgBox.style.display = abrir ? "flex" : "none";
+  btnVirgilio.classList.toggle("on", abrir);
   if (abrir) setTimeout(() => inVirg.focus(), 60);
 }
 

@@ -95,8 +95,13 @@ window.supabase = { createClient: function(){ return {
   ok(dif && dif.esperado === 7000 && Math.abs(dif.dif) < 0.5 && dif.ok,
      'flejes: pesar 7.000 coincide con el esperado (dif≈0) — ' + JSON.stringify({ esp: dif && dif.esperado, dif: dif && dif.dif, ok: dif && dif.ok }));
 
-  ok(await page.locator('[data-virgsave="0"]').isVisible(), 'flejes: el botón "Guardar envío" (→ Virgilio) está en el ítem');
-  ok((await page.locator('[data-virg="0"]').inputValue()) === '3000', 'flejes: el input viene precargado con lo ya mandado');
+  // El envío a Virgilio ahora es un BOTÓN arriba que despliega el input [Thomas 2026-10-02].
+  ok(await page.locator('[data-virgtoggle="0"]').isVisible(), 'flejes: el "→ Virgilio" es un botón arriba');
+  ok(/3\.000/.test(await page.locator('[data-virgtoggle="0"]').innerText()), 'flejes: el botón muestra lo ya mandado (3.000)');
+  ok((await page.locator('[data-virg="0"]').count()) === 0, 'flejes: el input NO está a la vista hasta tocar el botón');
+  await page.click('[data-virgtoggle="0"]');
+  await page.waitForSelector('[data-virg="0"]');
+  ok((await page.locator('[data-virg="0"]').inputValue()) === '3000', 'flejes: al abrir, el input viene precargado');
 
   // Cambiar el envío a 2.500 llama a la RPC con la cantidad nueva.
   await page.fill('[data-virg="0"]', '2500');
@@ -105,6 +110,21 @@ window.supabase = { createClient: function(){ return {
   const fcall = await page.evaluate(() => (window.__calls || []).filter(c => c.name === 'recepcion_a_virgilio').pop());
   ok(fcall && fcall.args.p_recepcion_id === 77 && Number(fcall.args.p_cantidad) === 2500,
      'flejes: Guardar envío llama recepcion_a_virgilio(77, 2500) — ' + JSON.stringify(fcall && fcall.args));
+
+  // ── Kg por rollo al lado de Rollos = (balanza − tara 6) / rollos [Thomas 2026-10-02] ──
+  // tara por defecto (4+8)/2 = 6; 76 − 6 = 70 / 2 rollos = 35 kg/rollo (el ejemplo del pedido).
+  await page.evaluate(() => montarPesaje([{
+    recId: 88, codigo: 'ID5', desc: 'Fleje N° 38', modo: 'rollos', remitoKg: 100, virgilio: 0,
+    blocks: { 1: { peso: '76', rollos: [{ c: '2', k: '' }] } },
+  }]));
+  await page.waitForTimeout(150);
+  const kgr = await page.locator('[data-kgr="0-1"]').innerText();
+  ok(/35/.test(kgr) && /kg\/rollo/.test(kgr), 'flejes: muestra 35 kg/rollo = (76 − 6) / 2 — ' + kgr);
+  // y se recalcula en vivo al cambiar la balanza: (146 − 6) / 2 = 70
+  await page.fill('.pes-pallet[data-p="1"] input[data-f="peso"]', '146');
+  await page.waitForTimeout(120);
+  const kgr2 = await page.locator('[data-kgr="0-1"]').innerText();
+  ok(/70/.test(kgr2), 'flejes: el kg/rollo se recalcula en vivo (146 − 6)/2 = 70 — ' + kgr2);
 
   await browser.close();
 })();

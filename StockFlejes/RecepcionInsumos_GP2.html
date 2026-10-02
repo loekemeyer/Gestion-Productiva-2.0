@@ -6,6 +6,11 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
+<!-- v3.72.0 (2026-10-02) — EL "→ Virgilio" DEL PESAJE VA ARRIBA (botón que despliega el input, no la
+     caja fija del medio) [Thomas: "que sea un botón arriba. No en esa pantalla principal"]. Y al lado
+     del stepper de Rollos aparece el KG POR ROLLO = (balanza − tara del pallet) / rollos, en vivo
+     [Thomas: "al lado de rollos me aparezca el kg por rollo ... 76kg-6kg del pallet=70kg/2rollos=35kg"].
+     Reusa kgPorRollo() (la misma cuenta que ya usaba al guardar). Sólo front. -->
 <!-- v3.71.0 (2026-10-01) — BOTÓN "→ Virgilio" EN EL PESAJE DE FLEJES [Thomas: "si el total del remito
      no entra en Cervantes porque excede el espacio físico, no se baja del camión una parte y va directo
      para Virgilio ... un botón en el control de cajas y flejes que se pueda mandar una cantidad a
@@ -536,6 +541,12 @@ input[type="text"]{width:200px}
 .pes-virg input:focus{outline:none;border-color:#ea580c;background:#fff}
 .pes-virg-save{flex:0 0 auto;background:#9a3412;color:#fff;border:none;border-radius:8px;padding:10px 14px;font-size:16px;font-weight:800;cursor:pointer}
 .pes-virg-save:disabled{opacity:.5;cursor:not-allowed}
+/* "→ Virgilio" arriba: un botón que despliega el input, no una caja siempre a la vista [Thomas 2026-10-02]. */
+.pes-virg-btn{display:inline-flex;align-items:center;gap:6px;margin:0 0 12px;padding:9px 14px;background:#fff7ed;color:#9a3412;border:2px solid #fdba74;border-radius:8px;font-size:16px;font-weight:800;cursor:pointer;min-height:44px}
+.pes-virg-btn.on{background:#9a3412;color:#fff;border-color:#9a3412}
+/* Kg por rollo al lado del stepper de rollos (= (balanza − tara del pallet) / rollos). */
+.rollos-cell{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.rollos-cell .kgr{font-size:14px;font-weight:800;color:#0b3b73;white-space:nowrap}
 /* pesaje por etapas: un item por vez, con chips de progreso y Anterior/Siguiente */
 .pes-chips{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
 .pes-chip{padding:6px 12px;border-radius:16px;border:2px solid #d0d7de;background:#fff;font-weight:800;font-size:14px;cursor:pointer;color:#334155}
@@ -1973,7 +1984,7 @@ function montarPesaje(items){
     if(it.modo==='peso') return;
     Object.keys(it.blocks).forEach(function(nro){ unaLinea(it.blocks[nro]); });
   });
-  PES = { items: items, cur: 0 };
+  PES = { items: items, cur: 0, virgOpen: false };
   syncExits();
   var totPall=items.reduce(function(t,it){ return t+Object.keys(it.blocks).length; },0);
   $('kgTitle').textContent = 'Pesaje en balanza · paso 2 de 2';
@@ -2103,17 +2114,22 @@ function pintarPesaje(){
     : '';
 
   // Lo que no entró a Cervantes y se bajó directo a Virgilio (reaparece como faltante si no se marca).
+  // Arriba va sólo un BOTÓN; el input aparece al tocarlo [Thomas 2026-10-02: "que sea un botón arriba"].
   var virg=Number(it.virgilio)||0;
-  var virgBlock='<div class="pes-virg">'+
-    '<label>→ Virgilio (kg)</label>'+
-    '<input inputmode="decimal" data-virg="'+i+'" value="'+(virg>0?esc(String(virg)):'')+'" placeholder="0">'+
-    '<button type="button" class="pes-virg-save" data-virgsave="'+i+'">Guardar envío</button>'+
-    '</div>';
+  var virgBtn='<button type="button" class="pes-virg-btn'+(PES.virgOpen?' on':'')+'" data-virgtoggle="'+i+'">→ Virgilio'+
+    (virg>0?(': <b>'+fmt(virg)+' kg</b>'):'')+'</button>';
+  var virgBox=PES.virgOpen
+    ? '<div class="pes-virg">'+
+        '<label>→ Virgilio (kg)</label>'+
+        '<input inputmode="decimal" data-virg="'+i+'" value="'+(virg>0?esc(String(virg)):'')+'" placeholder="0">'+
+        '<button type="button" class="pes-virg-save" data-virgsave="'+i+'">Guardar envío</button>'+
+      '</div>'
+    : '';
 
   var head=(n>1?('<div class="pes-paso">Ítem '+(i+1)+' de '+n+'</div>'):'')+
+    virgBtn + virgBox +
     '<div class="pes-item-h" style="margin-top:0"><span class="cod">'+esc(it.codigo)+'</span> '+esc(it.desc||'')+'</div>'+
-    (it.remitoKg?('<div class="pes-calc" data-itemcalc="'+i+'">'+itemLinea(it)+'</div>'):'')+
-    virgBlock;
+    (it.remitoKg?('<div class="pes-calc" data-itemcalc="'+i+'">'+itemLinea(it)+'</div>'):'');
 
   var cuerpo;
   if(it.modo==='peso'){
@@ -2129,12 +2145,16 @@ function pintarPesaje(){
       (multi?'<span class="gh">Pallet</span>':'')+'<span class="gh">Kg</span><span class="gh">Rollos</span>'+
       nros.map(function(nro){
         var p=it.blocks[nro], c=(p.rollos[0]&&p.rollos[0].c)||'';
+        var kgr=kgPorRollo(p);   // (balanza − tara del pallet) / rollos, al lado del stepper [Thomas 2026-10-02]
         return '<div class="pes-pallet" data-i="'+i+'" data-p="'+nro+'">'+
           (multi?'<span class="pn">'+esc(nro)+'</span>':'')+
           '<input class="peso" inputmode="decimal" data-f="peso" value="'+esc(p.peso)+'" placeholder="0,0">'+
-          '<div class="stp"><button type="button" class="stb" data-step="-1">−</button>'+
-          '<input inputmode="numeric" data-f="c" value="'+esc(c)+'">'+
-          '<button type="button" class="stb" data-step="1">+</button></div>'+
+          '<div class="rollos-cell">'+
+            '<div class="stp"><button type="button" class="stb" data-step="-1">−</button>'+
+            '<input inputmode="numeric" data-f="c" value="'+esc(c)+'">'+
+            '<button type="button" class="stb" data-step="1">+</button></div>'+
+            '<span class="kgr" data-kgr="'+i+'-'+nro+'">'+(kgr?fmt(kgr)+' kg/rollo':'')+'</span>'+
+          '</div>'+
         '</div>';
       }).join('')+
     '</div><button type="button" class="pes-add" data-addp="'+i+'">+ Pallet</button>';
@@ -2175,9 +2195,16 @@ $('pesajeWrap').addEventListener('input', function(e){
   // refrescar solo la linea del remito (sin re-render, para no perder el foco)
   var ic=$('pesajeWrap').querySelector('[data-itemcalc="'+pb.dataset.i+'"]');
   if(ic) ic.innerHTML=itemLinea(PES.items[Number(pb.dataset.i)]);
+  // y el kg/rollo de ESTE pallet (sin re-render)
+  var kgrEl=$('pesajeWrap').querySelector('[data-kgr="'+pb.dataset.i+'-'+pb.dataset.p+'"]');
+  if(kgrEl){ var kgr=kgPorRollo(p); kgrEl.textContent=kgr?fmt(kgr)+' kg/rollo':''; }
 });
 $('pesajeWrap').addEventListener('click', function(e){
   if(!PES) return;
+  var vt=e.target.closest('[data-virgtoggle]');
+  if(vt){ PES.virgOpen=!PES.virgOpen; pintarPesaje();
+          if(PES.virgOpen) setTimeout(function(){ var el=$('pesajeWrap').querySelector('[data-virg]'); if(el) el.focus(); }, 60);
+          return; }
   var vs=e.target.closest('[data-virgsave]');
   if(vs){ guardarVirgPesaje(Number(vs.dataset.virgsave)); return; }
   if(e.target.dataset.nav!==undefined && e.target.dataset.nav!==''){
@@ -2190,7 +2217,7 @@ $('pesajeWrap').addEventListener('click', function(e){
       var itAct=PES.items[PES.cur], dAct=itemDif(itAct);
       if(dAct && !dAct.ok && !confirm(avisoDif([itAct], '¿Pasar igual? (si faltan pallets, volvé después)'))) return;
     }
-    PES.cur=destino;
+    PES.cur=destino; PES.virgOpen=false;   // al cambiar de item, el input de Virgilio se cierra
     pintarPesaje();
     $('kgPopup').scrollTop=0;   // cada etapa arranca arriba
     $('kgMsg').textContent=''; $('kgMsg').className='status';   // limpia error viejo
@@ -2227,6 +2254,7 @@ async function guardarVirgPesaje(i){
     var r=await SB.rpc('recepcion_a_virgilio',{p_recepcion_id:it.recId,p_cantidad:cant,p_usuario:null});
     if(r.error) throw r.error;
     it.virgilio=cant;
+    PES.virgOpen=false;   // guardado: el input se cierra y arriba queda el botón con el valor
     $('kgMsg').className='status'; $('kgMsg').textContent=cant>0?('A Virgilio: '+fmt(cant)+' kg ✓'):'Envío a Virgilio anulado ✓';
     pintarPesaje();
   }catch(e){ $('kgMsg').className='status bad'; $('kgMsg').textContent='Error: '+(e.message||e); if(btn) btn.disabled=false; }

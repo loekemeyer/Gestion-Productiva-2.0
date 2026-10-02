@@ -14603,3 +14603,30 @@ sola: descartado.
 - `db/migracion_recepcion_virgilio.sql`, `db/funciones_GP2.sql`, `db/vistas_GP2.sql`, `db/tablas_GP2.sql`.
   Front: `control-cajas` v1.3.0, `RecepcionInsumos` v3.71.0, version.js v1.233.0. Test:
   `tests/ui/test_recepcion_virgilio.js`.
+
+## 4id. "→ Virgilio" es un botón arriba, el pesaje muestra kg/rollo, y el fleje en Virgilio se ve en KG (2026-10-02)
+
+Tres ajustes sobre §4ic (el botón "→ Virgilio" del control de cajas y del pesaje de flejes):
+
+1. [usuario, Thomas] *"El envío a Virgilio que sea un botón arriba. No en esa pantalla principal. Tanto en
+   Cajas como en Flejes."* → el control de Virgilio deja de ser la caja naranja fija del medio y pasa a un
+   **botón al tope del popup** que, al tocarlo, despliega el input. Cajas: `control-cajas` v1.4.0 (el botón
+   sube de la fila de acciones al encabezado). Flejes: `RecepcionInsumos` v3.72.0 (botón arriba del pesaje,
+   `PES.virgOpen` controla si el input está abierto; se cierra al guardar o al cambiar de ítem).
+2. [usuario] *"en flejes quiero que al lado de rollos me aparezca el kg por rollo ... 76kg − 6kg del pallet
+   = 70kg / 2 rollos = 35kg por rollo"* → al lado del stepper de Rollos aparece el **kg/rollo en vivo**,
+   reusando `kgPorRollo(p)` = (balanza − `taraPallet()`) / rollos (la misma cuenta que ya se guardaba desde
+   la v3.67.0; la v3.67.0 lo había **sacado** de la vista, ahora vuelve). La tara por defecto es
+   (`tara_pallet_min` 4 + `tara_pallet_max` 8)/2 = 6.
+3. [usuario] *"me pusiste 33 unidades de fleje cuando son kg"* → **bug de display en Stock General**, no de
+   datos: el traslado a Virgilio ya quedaba en kg (ID5 = 30 + 3 = 33 kg en `virgilio_sector`), pero
+   `StockGeneral_GP2.html` mostraba todo componente sin `en_kg` en la columna **Uni**, y los flejes tienen
+   su inventario (y el depósito de Virgilio) **en kg**. Se generalizó: `esKg(x) = x.en_kg || x.um==='kg'`,
+   que usan `kgDe`, el render de la celda y el KPI. Así el fleje va a la columna **Kg** y Uni queda en «—»,
+   en Cervantes y en Virgilio por igual. Las cajas (`um='unidad'`) siguen en Uni, que es lo correcto.
+   El envío a Virgilio **ya aumentaba** el depósito de ese fleje/caja (traslado `sector → virgilio_sector`);
+   lo único que faltaba era mostrarlo con la unidad correcta.
+
+Front: `control-cajas` v1.4.0, `RecepcionInsumos` v3.72.0, `Stocks General/StockGeneral_GP2.html`,
+version.js v1.234.0. Tests: `test_recepcion_virgilio` (+ kg/rollo y botón arriba), `test_stock_general`
+(+ celda del fleje en Kg).

@@ -455,8 +455,12 @@ function marcarActivo(){
 }
 
 /* ---------- conversiones (misma regla que Stock por Sector) ---------- */
-/* en_kg: la cantidad YA está en kg (materia prima del inyector, um kg sin kg_x_uni): va en Kg, no en Uni */
-function kgDe(x){ return x.en_kg ? Number(x.online||0) : GP2N.aKg(x.kg_x_uni, x.online || 0); }
+/* en_kg: la cantidad YA está en kg y va en la columna Kg, NO en Uni. Son dos casos: la materia prima
+   del inyector (um kg sin kg_x_uni, marcada con en_kg) y TODO componente cuya unidad canónica es kg
+   —los flejes— cuyo inventario (y el depósito de Virgilio) se guarda en kg [Thomas 2026-10-02: "me
+   pusiste 33 unidades de fleje cuando son kg"]. aKg sobre un stock que ya es kg lo multiplicaba de más. */
+function esKg(x){ return !!(x && (x.en_kg || x.um==="kg")); }
+function kgDe(x){ return esKg(x) ? Number(x.online||0) : GP2N.aKg(x.kg_x_uni, x.online || 0); }
 function cajDe(x){ return x.uni_x_cajon ? Number(x.online||0)/Number(x.uni_x_cajon) : null; }
 function valorCol(x, col){
   if (col.campo) return x[col.campo]==null ? null : Number(x[col.campo]);
@@ -770,7 +774,7 @@ function render(){
   var tKg=0, tUni=0, tBajo=0;
   todas.forEach(function(x){
     var uni=Number(x.online||0);
-    tKg += (kgDe(x)||0); if (!x.en_kg) tUni += uni;
+    tKg += (kgDe(x)||0); if (!esKg(x)) tUni += uni;
     if (!r.sin_max && x.maximo!=null && uni < Number(x.maximo)) tBajo++;
   });
 
@@ -807,7 +811,7 @@ function render(){
       '<td>'+esc(x.desc||"")+'</td>'+
       '<td class="num sep'+stkCls+'"'+stkData+'>'+(kg==null?"—":fmt(kg))+'</td>'+
       (r.sin_caj?'':'<td class="num'+stkCls+'"'+stkData+'>'+(caj==null?"—":fmt(caj,1))+'</td>')+
-      '<td class="num'+stkCls+'"'+stkData+'>'+(x.en_kg?"—":'<b>'+fmt(uni)+'</b>')+'</td>'+
+      '<td class="num'+stkCls+'"'+stkData+'>'+(esKg(x)?"—":'<b>'+fmt(uni)+'</b>')+'</td>'+
       celdasMov +
       '<td class="num sep">'+(x.kg_x_uni?fmt(x.kg_x_uni,6):"—")+'</td>'+
       (r.sin_caj?'':'<td class="num">'+(x.uni_x_cajon?fmt(x.uni_x_cajon):"—")+'</td>')+
