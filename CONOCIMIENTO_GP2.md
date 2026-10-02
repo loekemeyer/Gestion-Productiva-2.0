@@ -14838,3 +14838,24 @@ y recién ese intermedio va a la matriz de envasado final. Queda un circuito de 
 - **Solo base, NO git:** esto son datos de `ruta_paso`/`componente`/`inventario`/`matriz`, que git NO
   versiona. El código (fabricar_stock, v_costo_componente, Programa.html) ya soporta el patrón desde
   §4ig; no hubo cambio de código para los armados.
+
+## 4in. Armado Inox: UNA sola matriz 505 con selector de pieza (2026-10-02)
+
+[usuario, Thomas, 02/10, textual] *"Todo lo que es armado inox tiene una matriz especifica (M 505 y sus
+derivados). Ahora quiero que sea solo M 505 (Armado Inox) y que cuando el operario toca M 505 le de la opción
+de Cuchara, Cucharon, etc"*.
+
+- **Retira el "una matriz por pieza" de §4ia** (505/505B/505C/505D/505F). Ahora: matriz **505 «Armado Inox»**
+  (id 171) con las 5 salidas; 505B/505C/505D/505F `activa=false` y 0 pasos (505E/505G ya estaban de baja).
+- Los 12 pasos de ruta de las 4 letras pasaron a la 505 (`ruta_paso.matriz_id` 175/215/176/383 → 171). Los
+  intermedios pierden la letra, mismo id: `Z47-M505` Cuchara · `Z44-M505` Cucharon · `Z48-M505` Cuchara Fideos ·
+  `Z49-M505` Espátula Calada · `Z50-M505` Espumadera (todos «… Inox tras M505»).
+- **Tablet de operarios sin cambio de código** `[dato]`: `registro_operarios_bundle.matriz_salidas` lista toda
+  matriz con 2+ salidas y `renderPiezaPicker` (operarios_gp2.js) obliga a elegir la pieza antes de Enviar; la
+  pieza viaja como `comp_salida_id` y `fabricar_stock(matriz, salida)` descuenta el BOM de ESA pieza
+  (PEST1 + Zxx + Z46). Las matrices `act=false` no se ofrecen.
+- **Plata:** las 5 tenían 14,7 s y `cuenta_mo=true` → huella de `v_costo_componente` idéntica antes/después
+  (md5 sin código/descripción `88fb7b8a…`). 0 producción y 0 movimientos en las 4 dadas de baja (medido).
+- Invariantes I/U/W/AB/L en 0. `db/migracion_m505_armado_inox_20261002.sql` (con rollback). Sólo base.
+- ⚠ La app de operarios **vieja** (`loekemeyer/Registro-Produccion-2.0`, `public.Matrices`) no se tocó: si allá
+  siguen las 505B/C/D/F, se ven igual que antes.
