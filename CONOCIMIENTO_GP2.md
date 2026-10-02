@@ -14719,7 +14719,17 @@ operarios pregunta cuál (mecanismo `matriz_salidas`/`renderPiezaPicker`, ya exi
   el operario debería cargar cajas y la app convertir × articulos_por_caja → unidades) y mande a stock de
   terminado; (F3) sacar a Fábrica de la tablet logística para que no se le mande a producir por ahí.
 
-## 4ih. Reset de stock y movimientos: quedan SÓLO los 4 importados del 30/09 (2026-10-02)
+## 4ih. Reset de stock y movimientos — HECHO Y REVERTIDO el mismo día (2026-10-02)
+
+> **⚠ REVERTIDO.** [usuario, 02/10, después del reset: *"Volvé atrás. Quiero todo ese stock de nuevo"*]. Se
+> reconstruyó TODO desde el respaldo: 21 movimientos con sus ids originales, 15 recepciones, 9 controles, 9 rollos,
+> el control de P.S. del D13 y la O.C. 50 en `recibido = 2500`. Verificado [dato]: los deltas recalculados por
+> `fn_movimiento_calc` dan igual al respaldo, el inventario quedó idéntico fila por fila (15 con stock, incluido
+> el `D13` en Sector Procesado en −9.375, que ya estaba así), y los invariantes B/P/Q/R dan 0. Único cambio: los
+> `rollo_evento` los recreó el trigger `fn_rollo_desde_control` con ids nuevos (los originales eran 53-61); se les
+> devolvió la fecha original. Nada los referencia (`rollo_uso` vacío). **Lo de abajo es la historia del reset, NO el
+> estado actual.** Lección: un reset así se hace con respaldo, porque se revirtió a la hora.
+
 
 - [usuario, 02/10] *"Borrá todos los stocks y movimientos. Lo único que quiero que dejes es los movimientos y stock
   de los 4 importados que hicimos creo que hace 2 días"*. Importados del 30/09 había **6**, en 2 remitos: se
