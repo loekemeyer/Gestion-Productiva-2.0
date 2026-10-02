@@ -14604,7 +14604,7 @@ sola: descartado.
   Front: `control-cajas` v1.3.0, `RecepcionInsumos` v3.71.0, version.js v1.233.0. Test:
   `tests/ui/test_recepcion_virgilio.js`.
 
-## 4id. Matriz 237: Cervantes pone el capuchón al mango SÓLO en lo que arma Log/Fábrica — 570, 542, 543 (2026-10-01) — ⏸ PENDIENTE DE APLICAR
+## 4id. Matriz 237: Cervantes pone el capuchón al mango SÓLO en lo que arma Log/Fábrica — 570, 542, 543 (2026-10-01, aplicado 2026-10-02)
 
 [usuario, Thomas, 01/10, textual] *"Los únicos que le pone Cervantes la matriz de mangos y capuchón es los que
 entrega Log/Fabr. 570, 542, 543"*.
@@ -14616,13 +14616,28 @@ entrega Log/Fabr. 570, 542, 543"*.
 - **Por qué importa:** la 237 tiene producción real (90 registros, 33.132 uni, última 20/08/2026 `[dato:
   public.db_n8n_espejo]`) pero **no figura en ningún `ruta_paso`**, así que no suma mano de obra al costo ni
   aparece en el trazado. `[dato]`
-- **Qué hay que hacer (molde 94xE/505x de §4ia y E6-M194):** componente `PC10-M237` «Mango LK Espatula
-  c/Capuchon tras M237» en Sector Movimiento + inventario 0 + `componente_bom` PC10 ×1 + PA18 ×1; en las rutas
-  «Insumo PC10 → Art X» e «Insumo PA18B → Art X» de los 3 artículos, un paso `matriz` 237 antes de Fábrica, y
-  Fábrica consume `PC10-M237`. Receta del artículo: lo que haga el molde. Snapshot de costo antes/después y
-  `db/verificar.sql` antes/después. **Estado al cierre del 01/10: NADA aplicado** (medido: 0 componentes
-  `*M237*`, 0 pasos con la 237; los 3 artículos siguen con 82 pasos). Thomas cortó la sesión: *"que mañana lo
-  sigan"*.
+- **APLICADO el 02/10** `[usuario, Thomas: "Aplica la 237 en esos 3 artículos. La lógica que tengo que ver en el
+  despiece es la convergencia del mango con el capuchón a través de esta matriz"]` — molde 94xE/505x (§4ia) y
+  E6-M194: componente **`PC10-M237`** «Mango LK Espatula c/Capuchon tras M237» (Sector Movimiento, unidad) +
+  inventario 0 en la ubicación 3 + `componente_bom` PC10 ×1 + PA18 ×1. En las 6 rutas de insumo:
+  `Insumo PC10 → Art X` (347 542 · 353 543 · 806 570): insumo PC10 › **M237 PC10→PC10-M237** › Fábrica › Virgilio;
+  `Insumo PA18B → Art X` (348 · 354 · 807): insumo PA18B › Hernandez PA18B→PA18 › **M237 PA18→PC10-M237** ›
+  Fábrica › Virgilio. Las dos ramas convergen en la 237 y Fábrica recibe el intermedio. **La receta del artículo no
+  se tocó** (lista las hojas PC10 y PA18, igual que el molde 944E). Ninguna otra ruta cambió (medido).
+- **Plata `[dato: v_costo_componente, snapshot zz_backups."GP2_Snap_costo_max_20261002_m237"]`:** 570 $709,31 →
+  $719,31 · 542 $488,56 → $498,56 · 543 $489,94 → $499,94 — **+$10,00 c/u = 5 s de la 237**; ningún otro
+  componente cambió de costo; máximos sin cambio. `PC10-M237` cuesta $268,73 (180,99 + 77,74 + 10).
+- **Despiece (`Despiece x Articulo/Despiece_GP2.html`):** verificado con datos reales; las dos rutas de cada
+  artículo muestran `PC10 › ⚙️ 237 PC10-M237 › Fábrica` y `PA18B › Hernandez › PA18 › ⚙️ 237 PC10-M237 ›
+  Fábrica`, sin «Incompleta».
+- **Efecto operativo `[deducido]`:** `PC10-M237` nace con stock 0; Fábrica lo va a pedir/ver en 0 hasta que se
+  registre producción de la 237 en Cervantes.
+- **De paso:** `GP2.ruta_paso_id_seq` estaba atrasada (4258 con máximo id 4261, por los ids a mano de
+  `migracion_rutas_convergencia_e6m194_20261001.sql`): el primer intento chocó por PK y se revirtió entero. Se
+  puso `setval` al máximo. **Una migración que inserta ids a mano tiene que hacer `setval` al final.**
+- Invariantes `db/verificar.sql`: antes AE=2, AG=9, M=1 (ya estaban); después, las reglas que toca esto (I, K, L,
+  T, T2, U, W, Y, AA, AB, AD, D) en 0 y AE sigue en 2. `db/migracion_m237_capuchon_20261002.sql` (con rollback).
+  Respaldo de las 6 rutas en `zz_backups."GP2_Backup_rutas_m237_20261002"`.
 - **236 «Colocar Capucha Mgo LK»:** por la misma regla no entra en ninguna ruta: sus candidatos (515, 534, 535,
   312, con capuchón PA13) los arman talleristas (Alex Escalante, Martin Cornejo), no Fábrica. `[deducido]`
 - **506 «Colocar Inserto Nuevo a Mgo Md Chino»:** no entra: el inserto de los 94xE va en las matrices 505x
