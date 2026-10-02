@@ -14806,3 +14806,35 @@ Dos bugs que dejó §4ig/4ik al pasar la convergencia a matriz:
   id 3 de 280 Manga (y los eliminados 941E/946E). Para que 280 quede "sin asignar" hay que BORRARLOS;
   el conector de Claude bloquea DELETE, así que lo corre el usuario en el SQL Editor:
   `delete from "GP2".ruta_paso where tipo_paso='tallerista' and tallerista_id=3;`
+
+## 4im. Matriz de ARMADO: un tercer nivel de convergencia antes de la matriz final (2026-10-02)
+Pedido de Thomas. En 6 artículos el mango-con-capuchón que expulsa la matriz de capuchón no va
+directo a la matriz final: pasa primero por una matriz de **armado** que lo une con otra parte,
+y recién ese intermedio va a la matriz de envasado final. Queda un circuito de 3 matrices:
+`(mango+capuchón) + (parte A) → ARMADO → <art>-ARM → FINAL → <art> terminado → virgilio`.
+
+| art | parte A | mango+capuchón | ARMADO | intermedio | FINAL |
+|---|---|---|---|---|---|
+| 542 (LK) | D16B | PC10-M237 | **261** | 542-ARM | 402 |
+| 543 (LK) | D16A | PC10-M237 | **261** | 543-ARM | 402 |
+| 570 (LK) | E6-M194 | PC10-M237 | **254** | 570-ARM | 394 |
+| 720 (CH) | D16B | PB6-M237B | **261** | 720-ARM | 402 |
+| 722 (CH) | D16A | PB6-M237B | **261** | 722-ARM | 402 |
+| 858 (CH) | E6-M194 | PC7-M237B | **254B** | 858-ARM | 394C |
+
+- **Las 3 matrices de armado (261/254/254B) son `cuenta_mo=false`** [usuario, "sin costo por ahora"]:
+  el armado no suma mano de obra al costeo. Si mañana se les pone tiempo, se prende el flag y el
+  costo aparece solo (v_costo_componente ya lo respeta, §4ig).
+- **Los 6 `<art>-ARM` son componentes nuevos** del Sector Movimiento (ids 967..972), con su fila de
+  inventario y su receta vía `ruta_paso` (entradas = parte A + mango-con-capuchón). No llevan BOM
+  propio: `fabricar_stock` resuelve las entradas por `(matriz, salida)` desde la ruta.
+- **Costo-neutro verificado:** total global pasó de 532.793,83 a 536.164,65; el +3.370,82 es
+  EXACTAMENTE la suma de las 6 filas nuevas `<art>-ARM` (438,50+439,89+638,48+550,86+552,25+750,84).
+  Ningún componente preexistente se movió → los 6 terminados quedan igual (441/442/450 idénticos al
+  centavo). El MO que muestran los `-ARM` (33,80 / 96,42 / …) es heredado de las matrices de
+  capuchón de aguas arriba (237/capuchón, que sí costean), NO del armado.
+- **Invariantes:** todos en 0 salvo `AE_paso_virgilio_y_codigo_dan_distinto=2`, que es la línea base
+  preexistente (arts 537/567) y no subió. El armado no introdujo ninguna violación.
+- **Solo base, NO git:** esto son datos de `ruta_paso`/`componente`/`inventario`/`matriz`, que git NO
+  versiona. El código (fabricar_stock, v_costo_componente, Programa.html) ya soporta el patrón desde
+  §4ig; no hubo cambio de código para los armados.
