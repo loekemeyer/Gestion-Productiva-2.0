@@ -14691,8 +14691,35 @@ Tres ajustes sobre §4ic (el botón "→ Virgilio" del control de cajas y del pe
 
 Front: `control-cajas` v1.4.0, `RecepcionInsumos` v3.72.0, `Stocks General/StockGeneral_GP2.html`,
 version.js v1.235.0. Tests: `test_recepcion_virgilio`, `test_stock_general`.
+## 4ig. Fábrica arma el terminado por MATRIZ DE ENVASADO, no por "tallerista Fábrica" (2026-10-02)
+[usuario, Thomas] "modelemos lo que arma tallerista fábrica hoy como artículo terminado … que ahora
+aparezca en la tablet de operarios las matrices de envasado y cuando mandan a la matriz de envasado se
+descuenten los componentes que se necesitaron … En el despiece en vez de tallerista fábrica va a aparecer
+que la convergencia final la hace una matriz". Fondo: "Fábrica" es el tallerista interno id 3; la
+convergencia final de 38 artículos terminados que entrega Fábrica a Virgilio era un paso
+`ruta_paso` tipo `tallerista` (Fábrica). Se repuntó a tipo `matriz` con la matriz de ENVASADO de cada
+uno (141 pasos). El motor no cambió: `fabricar_stock` ya explota el BOM leyendo las entradas del
+`ruta_paso` por (matriz, comp_salida), así que al producir por la matriz de envasado descuenta los
+componentes que convergen y crea el terminado (sector 12). Si una matriz cierra varios artículos
+(401→5 inox, 383→4 palos, 402→4 ahueca papa+fruta, 389→3 ñoqueras, varias nylon×2), la tablet de
+operarios pregunta cuál (mecanismo `matriz_salidas`/`renderPiezaPicker`, ya existía).
+- Mapeo art→matriz de envasado: 507→309, 707→309B, 441→405, 058→324, 715→318, 570→394, 858→394C;
+  942E/943E/944E/945E/948E→401; 390/843→323, 391/844→320, 392/845→314, 393/846→321, 394/842→322;
+  542/720/543/722→402 (frutas comparten la de papa, no hay "Env Ahueca Fruta"); 718→340; 299→334;
+  229/909/207→389; 231/232/233/234→383; 255/256→504; 071→397.
+- SIN matriz de envasado todavía (quedan como tallerista Fábrica): 280 Manga Repostera. Eliminados: 941E, 946E.
+- COSTO: [usuario, 2026-10-02] "por ahora no incluyas el costo". La MO de la matriz de envasado NO se
+  costea: columna nueva `matriz.cuenta_mo` (default true) y `v_costo_componente` (CTE lab) suma MO sólo
+  de matrices con `cuenta_mo=true`. Las 20 de envasado están en false. Verificado neutro: la huella de
+  costo quedó idéntica antes y después (total $532.031,65, md5 cade4cb…). Cuando se quiera costear el
+  envasado, basta poner esas matrices en `cuenta_mo=true`.
+- Despiece (`Despiece x Articulo/Despiece_GP2.html`): el nodo matriz ahora muestra el número Y la
+  descripción de la matriz ("⚙️ 309 · Env Rompenuez") — para TODAS las matrices, no sólo las de envasado.
+- PENDIENTE (no hecho en este push): (F2) que la tablet de operarios pregunte CAJAS (hoy pide golpes/uni;
+  el operario debería cargar cajas y la app convertir × articulos_por_caja → unidades) y mande a stock de
+  terminado; (F3) sacar a Fábrica de la tablet logística para que no se le mande a producir por ahí.
 
-## 4ig. Reset de stock y movimientos: quedan SÓLO los 4 importados del 30/09 (2026-10-02)
+## 4ih. Reset de stock y movimientos: quedan SÓLO los 4 importados del 30/09 (2026-10-02)
 
 - [usuario, 02/10] *"Borrá todos los stocks y movimientos. Lo único que quiero que dejes es los movimientos y stock
   de los 4 importados que hicimos creo que hace 2 días"*. Importados del 30/09 había **6**, en 2 remitos: se

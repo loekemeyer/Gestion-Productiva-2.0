@@ -457,7 +457,7 @@ create or replace view "GP2".v_costo_componente as
                    FROM wd
                   WHERE wd.tipo_paso = 'matriz'::text AND wd.matriz_id IS NOT NULL
                   GROUP BY wd.comp_id, wd.matriz_id) y
-             JOIN "GP2".matriz m ON m.id = y.matriz_id
+             JOIN "GP2".matriz m ON m.id = y.matriz_id AND COALESCE(m.cuenta_mo, true)
              LEFT JOIN "GP2".componente cm ON cm.id = y.sal
           GROUP BY y.comp_id
         ), nodos AS (

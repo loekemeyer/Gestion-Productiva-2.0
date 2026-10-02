@@ -665,13 +665,14 @@ var COLORES={
 function nodo(p){
   var col=COLORES[p.tp]||COLORES.otro;
   var label;
-  if(p.actor) label=col.icon+' '+p.actor;
+  if(p.tp==='matriz'&&p.actor) label=col.icon+' '+p.actor+(p.actor_desc?' · '+p.actor_desc:'');
+  else if(p.actor) label=col.icon+' '+p.actor;
   else if(p.tp==='virgilio') label=col.icon+' Art '+(p.art||p.ce||'');
   else if(p.tp==='ingreso') label=col.icon+' '+(p.ce||'');
   else label=col.icon+' '+(p.cs||p.ce||'');
   var subParts=[];
   if(p.cs&&p.tp!=='ingreso') subParts.push(p.cs);
-  var d=p.cs_d||p.actor_desc||p.ce_d||'';
+  var d=(p.tp==='matriz')?(p.cs_d||p.ce_d||''):(p.cs_d||p.actor_desc||p.ce_d||'');
   if(d) subParts.push(d);
   var sub=subParts.join(' · ');
   return '<span class="node" style="background:'+col.bg+'">'+
