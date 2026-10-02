@@ -18,6 +18,10 @@
    pantalla principal"]: pasa de la fila de acciones (abajo) al tope del popup, debajo del encabezado;
    el input sigue apareciendo al tocarlo. Mismo RPC y misma cuenta (esperado = remito − Virgilio).
 
+   v1.3.1 (2026-10-02) — NO MORIR MUDO SI NO CARGÓ supabase-js [Thomas: "me mandó a esta página
+   sin mostrarme el control"]. El cliente se arma dentro de cargar() (con try/catch), no al tope
+   del script; si la librería no llegó, se ve un error claro en vez de quedar en "0 items".
+
    v1.3.0 (2026-10-01) — BOTÓN "→ Virgilio" [Thomas: "si el total del remito no entra en Cervantes
    porque excede el espacio físico, no se baja del camión una parte y va directo para Virgilio ...
    un botón en el control de cajas y flejes que se pueda mandar una cantidad a Virgilio"]. El remito
@@ -32,8 +36,22 @@
    manda en tol_pct y leen tambien el control por peso y el de entregas.
    ============================================================ */
 
-// URL y clave anon salen de supabase-config.js (un solo lugar; ver ese archivo).
-const SB = window.supabase.createClient(self.SB_URL, self.SB_ANON, { db: { schema: "GP2" } });
+// Cliente GP2 (schema GP2 + sesión del login), resuelto cuando hace falta — NO al cargar el
+// script. Antes acá había `const SB = window.supabase.createClient(...)` al tope del archivo:
+// si el CDN de supabase-js no llegaba (conexión floja de la tablet), esa línea tiraba y, como
+// corre antes de cargar(), la pantalla quedaba congelada en "0 items" SIN ningún aviso — ni
+// "Cargando…" ni error [Thomas 2026-10-02: "me mandó a esta página sin mostrarme el control"].
+// Ahora cliente() se llama DENTRO de cargar()/confirmar()/… (todas con try/catch), así un
+// problema de carga se ve como error claro y no como pantalla muda. Usa GP2_SB() (el cliente
+// de la casa: schema GP2, sesión del login y redirección sola si la sesión cayó).
+let SB = null;
+function cliente() {
+  if (SB) return SB;
+  if (typeof GP2_SB !== "function" || !window.supabase)
+    throw new Error("No se pudo cargar. Revisá la conexión y recargá la página.");
+  SB = GP2_SB();
+  return SB;
+}
 
 const $ = (id) => document.getElementById(id);
 const listaEl = $("lista");
@@ -78,7 +96,7 @@ async function cargar() {
   statusMsg.textContent = "Cargando…"; statusMsg.className = "status";
   try {
     // misma RPC que control-remaches.js (control_recepcion_bundle), sector Caja = 11
-    const { data, error } = await SB.rpc("control_recepcion_bundle", { p_sector_id: 11 });
+    const { data, error } = await cliente().rpc("control_recepcion_bundle", { p_sector_id: 11 });
     if (error) throw error;
     recepciones = (data && data.recepciones) || [];
     TOL_PCT = Number(data && data.tol_pct) || 5;
@@ -298,7 +316,7 @@ async function confirmar() {
   btnConfirm.disabled = true;
   ctrlMsg.textContent = "Guardando…"; ctrlMsg.className = "msg";
   try {
-    const { data, error } = await SB.rpc("controlar_recepcion_cajas", {
+    const { data, error } = await cliente().rpc("controlar_recepcion_cajas", {
       p_recepcion_id: selected.id,
       p_base: b, p_pisos: p, p_sueltas: s,
       p_uni_x_paq: upp, p_usuario: usuario || null
@@ -323,7 +341,7 @@ async function desmarcar() {
     // asi que el UPDATE que habia aca fallaba con "permission denied". La RPC vuelve la
     // cantidad al declarado, borra el desglose y ajusta el movimiento (el trigger recalcula
     // el inventario).
-    const { error } = await SB.rpc("descontrolar_recepcion", { p_recepcion_id: selected.id });
+    const { error } = await cliente().rpc("descontrolar_recepcion", { p_recepcion_id: selected.id });
     if (error) throw error;
     ctrlMsg.textContent = "Desmarcado ✓"; ctrlMsg.className = "msg ok";
     setTimeout(async () => { cerrarPopup(); await cargar(); }, 300);
@@ -354,7 +372,7 @@ async function guardarVirg() {
   try {
     // recepcion_a_virgilio traslada sector(Cervantes) -> depósito de Virgilio y deja anotado cuánto;
     // el control compara después contra remito - lo de Virgilio.
-    const { error } = await SB.rpc("recepcion_a_virgilio", {
+    const { error } = await cliente().rpc("recepcion_a_virgilio", {
       p_recepcion_id: selected.id, p_cantidad: cant, p_usuario: usuario || null
     });
     if (error) throw error;

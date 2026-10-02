@@ -21,6 +21,8 @@
   .seg{display:flex;gap:6px;flex-wrap:wrap}
   table.t tr.bajo td{background:#fff7ed}
   td.mov-cell,td.stk-cell{cursor:pointer;text-decoration:underline dotted}
+  /* 2026-10-01: sin negrita en la tabla (ni Uni ni los movimientos verde/rojo de gp2-modulo.css) */
+  td.mov-cell,td.stk-cell{font-weight:400}
   td.mov-cell:hover,td.stk-cell:hover{background:#eef4fb}
   .popup{position:fixed;inset:0;background:rgba(0,0,0,.5);display:none;align-items:center;justify-content:center;z-index:200;padding:16px}
   .popup.open{display:flex}
@@ -86,6 +88,6 @@ window.SB_CLIENT = GP2_SB();
 <script src="../gp2-ui.js?v=20260930a"></script>
 <script src="../gp2-numero.js?v=20260911o"></script>
 <script src="../gp2-composicion.js?v=20260911p"></script>
-<script src="../gp2-stock-sector.js?v=20260914b"></script>
+<script src="../gp2-stock-sector.js?v=20261001a"></script>
 </body>
 </html>

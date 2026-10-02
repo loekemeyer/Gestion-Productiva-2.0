@@ -6,7 +6,12 @@
 <script src="../gp2-ui.js?v=20260930a"></script>
 <script src="../gp2-numero.js?v=20260911o"></script>
 <title>Stock general · GP2</title>
-<!-- v3.0.2 (2026-10-01) - "TODOS LOS RUBROS" ORDENADO POR RUBRO ["Ordená por rubro"]. Antes
+<!-- v3.0.4 (2026-10-01) - LOS MOVIMIENTOS VERDE/ROJO TAMPOCO VAN EN NEGRITA [usuario: "dale" a sacarla
+     también ahí]. td.pos / td.neg quedan sólo con el color.
+     v3.0.3 (2026-10-01) - SIN NEGRITA EN LAS FILAS CON STOCK [usuario: "están en negrita, no los quiero en
+     negrita"]. Se van tr.stk td{font-weight:600} y el <b> del número de Uni. El color de pos/neg y
+     el rojo de bajo el máximo no se tocan.
+     v3.0.2 (2026-10-01) - "TODOS LOS RUBROS" ORDENADO POR RUBRO ["Ordená por rubro"]. Antes
      ordenaba por código (el mismo componente junto en un bloque); ahora va por rubro en el orden
      de los botones (Cervantes → Virgilio → Terceros, sin rubro al final), código numérico adentro.
      v3.0.1 (2026-10-01) - EL GRUPO SE LLAMA "CERVANTES" [Thomas: "que se llame CERVANTES en vez de
@@ -199,10 +204,9 @@
  /* popup del Máximo: la cuenta en una línea arriba de la tabla */
  .max-linea{font-size:16px;line-height:1.5;margin:0 0 10px;color:#111}
  .max-aviso{font-size:16px;line-height:1.5;margin:0 0 10px;color:#b45309;font-weight:700}
- table.t td.pos{color:#15803d;font-weight:800}
- table.t td.neg{color:#b91c1c;font-weight:800}
+ table.t td.pos{color:#15803d}
+ table.t td.neg{color:#b91c1c}
  table.t td.cero{color:#9aa4af}
- table.t tr.stk td{font-weight:600}
  /* popup detalle de movimiento (igual que Stock por Sector) */
  .popup{position:fixed;inset:0;background:rgba(0,0,0,.5);display:none;align-items:center;justify-content:center;z-index:200;padding:16px}
  .popup.open{display:flex}
@@ -811,7 +815,7 @@ function render(){
       '<td>'+esc(x.desc||"")+'</td>'+
       '<td class="num sep'+stkCls+'"'+stkData+'>'+(kg==null?"—":fmt(kg))+'</td>'+
       (r.sin_caj?'':'<td class="num'+stkCls+'"'+stkData+'>'+(caj==null?"—":fmt(caj,1))+'</td>')+
-      '<td class="num'+stkCls+'"'+stkData+'>'+(esKg(x)?"—":'<b>'+fmt(uni)+'</b>')+'</td>'+
+      '<td class="num'+stkCls+'"'+stkData+'>'+(esKg(x)?"—":fmt(uni))+'</td>'+
       celdasMov +
       '<td class="num sep">'+(x.kg_x_uni?fmt(x.kg_x_uni,6):"—")+'</td>'+
       (r.sin_caj?'':'<td class="num">'+(x.uni_x_cajon?fmt(x.uni_x_cajon):"—")+'</td>')+
