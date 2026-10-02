@@ -489,6 +489,7 @@ create table "GP2".matriz (
   maquina text,
   activa boolean not null default true,
   carga_en text not null default 'unidades'::text,
+  cuenta_mo boolean not null default true,
   constraint matriz_pkey PRIMARY KEY (id),
   constraint matriz_n_matriz_key UNIQUE (n_matriz),
   constraint matriz_carga_en_chk CHECK ((carga_en = ANY (ARRAY['golpes'::text, 'unidades'::text, 'kg'::text]))),
@@ -503,6 +504,7 @@ comment on column "GP2".matriz.tiempo_unidad is 'En que se mide tiempo_historico
 comment on column "GP2".matriz.maquina is 'Donde se produce: alimentador (un golpe por segundo) o balancin (6 a 10 s minimo). Mapeo del usuario 2026-08-31: A=alimentador, B y D=balancin, P=piedra (501, se mide por kg). Sirve para leer bien un tiempo: no se compara un tiempo de alimentador con uno de balancin.';
 comment on column "GP2".matriz.activa is 'false = la matriz existe pero hoy no se usa. Las apps no la ofrecen para elegir; se sigue leyendo para la historia.';
 comment on column "GP2".matriz.carga_en is 'Cómo carga el operario el cajón (dueño 2026-09-29): golpes = sale más de 1 pieza por golpe (uni_x_golpe > 1; la base multiplica); unidades = sale 1 por golpe; kg = piedra (501), acepta coma o punto como decimal y se guarda numérico.';
+comment on column "GP2".matriz.cuenta_mo is 'Si false, la matriz NO suma mano de obra en v_costo_componente (CTE lab). Se usa para las matrices de ENVASADO que cierran el armado en fábrica: convergen el BOM del terminado (descuento por fabricar_stock) pero por decisión del usuario (2026-10-02) su tiempo NO se costea por ahora. Default true = todas las demás cuentan como siempre.';
 
 -- ---------- matriz_racha ----------
 create table "GP2".matriz_racha (
