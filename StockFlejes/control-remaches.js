@@ -61,7 +61,19 @@
    numero de la casa) en vez del saneador propio que tenia.
    ============================================================ */
 
-const SB = window.supabase.createClient(self.SB_URL, self.SB_ANON, { db: { schema: "GP2" } });
+// Cliente GP2 resuelto cuando hace falta, NO al cargar el script. Antes era
+// `const SB = window.supabase.createClient(...)` al tope: si el CDN de supabase-js no llegaba,
+// esa línea tiraba antes de cargar() y la pantalla quedaba muda (igual que pasó en cajas,
+// Thomas 2026-10-02). Ahora cliente() corre dentro de los try/catch y usa GP2_SB() (cliente
+// de la casa: schema GP2 + sesión del login).
+let SB = null;
+function cliente() {
+  if (SB) return SB;
+  if (typeof GP2_SB !== "function" || !window.supabase)
+    throw new Error("No se pudo cargar. Revisá la conexión y recargá la página.");
+  SB = GP2_SB();
+  return SB;
+}
 
 const $ = (id) => document.getElementById(id);
 const listaEl = $("lista");
@@ -129,7 +141,7 @@ function fmtFechaCorta(iso) {
 async function cargar() {
   statusMsg.textContent = "Cargando…"; statusMsg.className = "status";
   try {
-    const { data, error } = await SB.rpc("control_recepcion_bundle", { p_sector_id: SECTOR_ID });
+    const { data, error } = await cliente().rpc("control_recepcion_bundle", { p_sector_id: SECTOR_ID });
     if (error) throw error;
     recepciones = (data && data.recepciones) || [];
     TOL_PCT = Number(data && data.tol_pct) || 5;
@@ -388,7 +400,7 @@ async function confirmar() {
     // expresada en esa unidad: unidades para los remitos contados, kg para los
     // que vienen pesados. El "kg" del nombre quedo del dia que solo servia a
     // remaches, cuando todo el circuito era en kg.
-    const { data, error } = await SB.rpc("controlar_recepcion_kg", {
+    const { data, error } = await cliente().rpc("controlar_recepcion_kg", {
       p_recepcion_id: selected.id, p_kg: real, p_usuario: usuario || null
     });
     if (error) throw error;
@@ -409,7 +421,7 @@ async function desmarcar() {
   try {
     // Por RPC (2026-09-05): anon no escribe tablas GP2 directo desde el 2026-08-31; el UPDATE
     // que habia aca fallaba con "permission denied". Misma RPC que control-cajas.
-    const { error } = await SB.rpc("descontrolar_recepcion", { p_recepcion_id: selected.id });
+    const { error } = await cliente().rpc("descontrolar_recepcion", { p_recepcion_id: selected.id });
     if (error) throw error;
     ctrlMsg.textContent = "Desmarcado ✓"; ctrlMsg.className = "msg ok";
     setTimeout(async () => { cerrarPopup(); await cargar(); }, 300);
