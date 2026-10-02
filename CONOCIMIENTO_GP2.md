@@ -14604,7 +14604,7 @@ sola: descartado.
   Front: `control-cajas` v1.3.0, `RecepcionInsumos` v3.71.0, version.js v1.233.0. Test:
   `tests/ui/test_recepcion_virgilio.js`.
 
-## 4id. Matriz 237: Cervantes pone el capuchón al mango SÓLO en lo que arma Log/Fábrica — 570, 542, 543 (2026-10-01) — ⏸ PENDIENTE DE APLICAR
+## 4id. Matriz 237: Cervantes pone el capuchón al mango SÓLO en lo que arma Log/Fábrica — 570, 542, 543 (2026-10-01, aplicado 2026-10-02)
 
 [usuario, Thomas, 01/10, textual] *"Los únicos que le pone Cervantes la matriz de mangos y capuchón es los que
 entrega Log/Fabr. 570, 542, 543"*.
@@ -14616,40 +14616,75 @@ entrega Log/Fabr. 570, 542, 543"*.
 - **Por qué importa:** la 237 tiene producción real (90 registros, 33.132 uni, última 20/08/2026 `[dato:
   public.db_n8n_espejo]`) pero **no figura en ningún `ruta_paso`**, así que no suma mano de obra al costo ni
   aparece en el trazado. `[dato]`
-- **Qué hay que hacer (molde 94xE/505x de §4ia y E6-M194):** componente `PC10-M237` «Mango LK Espatula
-  c/Capuchon tras M237» en Sector Movimiento + inventario 0 + `componente_bom` PC10 ×1 + PA18 ×1; en las rutas
-  «Insumo PC10 → Art X» e «Insumo PA18B → Art X» de los 3 artículos, un paso `matriz` 237 antes de Fábrica, y
-  Fábrica consume `PC10-M237`. Receta del artículo: lo que haga el molde. Snapshot de costo antes/después y
-  `db/verificar.sql` antes/después. **Estado al cierre del 01/10: NADA aplicado** (medido: 0 componentes
-  `*M237*`, 0 pasos con la 237; los 3 artículos siguen con 82 pasos). Thomas cortó la sesión: *"que mañana lo
-  sigan"*.
+- **APLICADO el 02/10** `[usuario, Thomas: "Aplica la 237 en esos 3 artículos. La lógica que tengo que ver en el
+  despiece es la convergencia del mango con el capuchón a través de esta matriz"]` — molde 94xE/505x (§4ia) y
+  E6-M194: componente **`PC10-M237`** «Mango LK Espatula c/Capuchon tras M237» (Sector Movimiento, unidad) +
+  inventario 0 en la ubicación 3 + `componente_bom` PC10 ×1 + PA18 ×1. En las 6 rutas de insumo:
+  `Insumo PC10 → Art X` (347 542 · 353 543 · 806 570): insumo PC10 › **M237 PC10→PC10-M237** › Fábrica › Virgilio;
+  `Insumo PA18B → Art X` (348 · 354 · 807): insumo PA18B › Hernandez PA18B→PA18 › **M237 PA18→PC10-M237** ›
+  Fábrica › Virgilio. Las dos ramas convergen en la 237 y Fábrica recibe el intermedio. **La receta del artículo no
+  se tocó** (lista las hojas PC10 y PA18, igual que el molde 944E). Ninguna otra ruta cambió (medido).
+- **Plata `[dato: v_costo_componente, snapshot zz_backups."GP2_Snap_costo_max_20261002_m237"]`:** 570 $709,31 →
+  $719,31 · 542 $488,56 → $498,56 · 543 $489,94 → $499,94 — **+$10,00 c/u = 5 s de la 237**; ningún otro
+  componente cambió de costo; máximos sin cambio. `PC10-M237` cuesta $268,73 (180,99 + 77,74 + 10).
+- **Despiece (`Despiece x Articulo/Despiece_GP2.html`):** verificado con datos reales; las dos rutas de cada
+  artículo muestran `PC10 › ⚙️ 237 PC10-M237 › Fábrica` y `PA18B › Hernandez › PA18 › ⚙️ 237 PC10-M237 ›
+  Fábrica`, sin «Incompleta».
+- **Efecto operativo `[deducido]`:** `PC10-M237` nace con stock 0; Fábrica lo va a pedir/ver en 0 hasta que se
+  registre producción de la 237 en Cervantes.
+- **De paso:** `GP2.ruta_paso_id_seq` estaba atrasada (4258 con máximo id 4261, por los ids a mano de
+  `migracion_rutas_convergencia_e6m194_20261001.sql`): el primer intento chocó por PK y se revirtió entero. Se
+  puso `setval` al máximo. **Una migración que inserta ids a mano tiene que hacer `setval` al final.**
+- Invariantes `db/verificar.sql`: antes AE=2, AG=9, M=1 (ya estaban); después, las reglas que toca esto (I, K, L,
+  T, T2, U, W, Y, AA, AB, AD, D) en 0 y AE sigue en 2. `db/migracion_m237_capuchon_20261002.sql` (con rollback).
+  Respaldo de las 6 rutas en `zz_backups."GP2_Backup_rutas_m237_20261002"`.
 - **236 «Colocar Capucha Mgo LK»:** por la misma regla no entra en ninguna ruta: sus candidatos (515, 534, 535,
   312, con capuchón PA13) los arman talleristas (Alex Escalante, Martin Cornejo), no Fábrica. `[deducido]`
 - **506 «Colocar Inserto Nuevo a Mgo Md Chino»:** no entra: el inserto de los 94xE va en las matrices 505x
   (§4ia). `[deducido de §4ia]`
 - **Pregunta abierta a Thomas:** ¿desactivar 236 y 506 en `GP2.matriz` (`activa=false`) o dejarlas activas?
 
-## 4ie. "→ Virgilio" es un botón arriba, el pesaje muestra kg/rollo, y el fleje en Virgilio se ve en KG (2026-10-02)
+## 4ie. Validación Remito vs Control: lo que se mandó a Virgilio no es faltante (2026-10-02)
+
+Una recepción que mandó una parte directo a Virgilio con el botón «→ Virgilio» (control de cajas /
+pesaje de flejes, §4ic) **aparecía como faltante** en Validación de Stock → Remito vs Control.
+
+- **El pozo:** `validacion_remito_bundle` comparaba el control contra el **remito crudo** en vez del
+  **esperado-en-Cervantes = remito − Virgilio**. Caso real (recepción `GP2.recepcion_insumo` 17095,
+  Aperam, Fleje N° 38): remito 10 kg, Virgilio 3 kg, pesaje 7 kg → leía **«−3 (−30 %)»** cuando 7 =
+  esperado (10 − 3): no faltaba nada. `[dato: la recepción salió de `pend` tras el fix, diff 0]`
+- **Por qué la vista del control (§4ic) sí cerraba y ésta no:** `v_recepcion_control` ya restaba
+  Virgilio del `dif_kg_vs_remito` (compara contra `kg_esperado_cervantes`), pero el bundle de
+  Validación —otra función— nunca se actualizó cuando se agregó el botón. Dos funciones que miran el
+  mismo hecho; una quedó atrás. `[deducido]`
+- **El fix:** el bundle manda `virgilio` y `esperado` por fila, la diferencia se mide contra el
+  esperado, `en_stock` va neto de Virgilio, y en los **insumos (cajas)** el control pasa a ser el
+  **contado físico** (`cantidad − virgilio`; `cantidad` ya venía = contado + virgilio, §4ic). Sin
+  Virgilio todo queda idéntico. En `validar_remito_control`, rama `pesaje` con **Control**: al
+  movimiento (que lleva el remito entero) se le **suma Virgilio**, porque el traslado a Virgilio ya le
+  resta su parte, y así Cervantes termina justo en los kg pesados. La rama `insumo` ya era correcta.
+- **Front:** `Relevamiento/ValidacionRemitos_GP2.html` v1.2.0 — la fila ahora aclara «→ Virgilio N ·
+  espera M». `db/migracion_validacion_remito_virgilio.sql`, `db/funciones_GP2.sql`. version.js
+  v1.234.0. Test: `tests/ui/test_validacion_remitos.js` (caso fleje con parte a Virgilio).
+
+## 4if. "→ Virgilio" es un botón arriba, el pesaje muestra kg/rollo, y el fleje en Virgilio se ve en KG (2026-10-02)
 
 Tres ajustes sobre §4ic (el botón "→ Virgilio" del control de cajas y del pesaje de flejes):
 
 1. [usuario, Thomas] *"El envío a Virgilio que sea un botón arriba. No en esa pantalla principal. Tanto en
    Cajas como en Flejes."* → el control de Virgilio deja de ser la caja naranja fija del medio y pasa a un
-   **botón al tope del popup** que, al tocarlo, despliega el input. Cajas: `control-cajas` v1.4.0 (el botón
-   sube de la fila de acciones al encabezado). Flejes: `RecepcionInsumos` v3.72.0 (botón arriba del pesaje,
-   `PES.virgOpen` controla si el input está abierto; se cierra al guardar o al cambiar de ítem).
+   **botón al tope del popup** que, al tocarlo, despliega el input. Cajas: `control-cajas` v1.4.0. Flejes:
+   `RecepcionInsumos` v3.72.0 (botón arriba del pesaje; `PES.virgOpen` abre/cierra el input; se cierra al
+   guardar o al cambiar de ítem).
 2. [usuario] *"en flejes quiero que al lado de rollos me aparezca el kg por rollo ... 76kg − 6kg del pallet
    = 70kg / 2 rollos = 35kg por rollo"* → al lado del stepper de Rollos aparece el **kg/rollo en vivo**,
-   reusando `kgPorRollo(p)` = (balanza − `taraPallet()`) / rollos (la v3.67.0 lo había sacado de la vista;
-   vuelve). Tara por defecto (`tara_pallet_min` 4 + `tara_pallet_max` 8)/2 = 6.
+   reusando `kgPorRollo(p)` = (balanza − `taraPallet()`) / rollos. Tara por defecto (4+8)/2 = 6.
 3. [usuario] *"me pusiste 33 unidades de fleje cuando son kg"* → **bug de display en Stock General**, no de
-   datos: el traslado a Virgilio ya quedaba en kg (ID5 = 30 + 3 = 33 kg en `virgilio_sector`) y ya aumentaba
-   el depósito de Virgilio de ese fleje, pero `StockGeneral_GP2.html` mostraba todo componente sin `en_kg`
-   en la columna **Uni**, y los flejes tienen su inventario (y su depósito de Virgilio) **en kg**. Se
-   generalizó: `esKg(x) = x.en_kg || x.um==='kg'`, que usan `kgDe`, el render de la celda y el KPI. Así el
-   fleje va a la columna **Kg** y Uni queda en «—», en Cervantes y en Virgilio por igual. Las cajas
-   (`um='unidad'`) siguen en Uni, que es lo correcto.
+   datos: el traslado a Virgilio ya quedaba en kg (ID5 = 30 + 3 = 33 kg) y ya aumentaba el depósito de
+   Virgilio, pero `StockGeneral_GP2.html` mostraba todo componente sin `en_kg` en la columna **Uni**, y los
+   flejes tienen su inventario (y su depósito de Virgilio) **en kg**. `esKg(x) = x.en_kg || x.um==='kg'`
+   (lo usan `kgDe`, el render de la celda y el KPI) manda el fleje a la columna **Kg** y deja Uni en «—»,
+   en Cervantes y en Virgilio. Las cajas (`um='unidad'`) siguen en Uni, correcto.
 
 Front: `control-cajas` v1.4.0, `RecepcionInsumos` v3.72.0, `Stocks General/StockGeneral_GP2.html`,
-version.js v1.235.0. Tests: `test_recepcion_virgilio` (+ kg/rollo y botón arriba), `test_stock_general`
-(+ celda del fleje en Kg).
+version.js v1.235.0. Tests: `test_recepcion_virgilio`, `test_stock_general`.

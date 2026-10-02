@@ -64,7 +64,7 @@ window.supabase = { createClient: function(){ return {
     window.__calls = window.__calls || [];
     window.__calls.push({name:name, args:args});
     if(name==='validacion_remito_bundle')
-      return { data: JSON.parse(JSON.stringify(${JSON.stringify(BUNDLE)})), error: null };
+      return { data: JSON.parse(JSON.stringify(window.__BUNDLE__ || ${JSON.stringify(BUNDLE)})), error: null };
     if(name==='validar_remito_control')
       return { data: { ok:true, validados: args.p_items.length, movimientos_ajustados: 2,
                        al_remito: args.p_items.filter(function(i){ return i.ingreso_real==='remito'; }).length }, error: null };
@@ -173,6 +173,33 @@ window.supabase = { createClient: function(){ return {
   const tabs2 = await page.$$eval('.tabs a', xs => xs.map(x => [x.getAttribute('href'), x.classList.contains('act')]));
   ok(tabs2.length === 2 && tabs2[0][1] === true && tabs2[1][0] === 'ValidacionRemitos_GP2.html',
      'Conteo vs Sistema tiene la misma barra y lleva al modulo nuevo — ' + JSON.stringify(tabs2));
+
+  // ── FLEJE con una parte mandada a Virgilio (2026-10-02): NO es faltante. El control se compara
+  //    contra el ESPERADO = remito − Virgilio, y la fila aclara cuanto se fue a Virgilio. ──
+  const VIRB = { tol_pct: 5, sin_diferencia: 0, sin_controlar: 0, hechos: [], pend: [
+    { origen: 'pesaje', id: 17095, mov_id: 85602, fecha: '2026-10-02T13:34:12-03:00',
+      cp_tipo: 'proveedor_insumo', cp_nombre: 'Aperam', remito_nro: 's/n 13:34:12',
+      codigo: 'ID5', descripcion: 'Fleje N° 38', unidad: 'kg',
+      remito: 10, virgilio: 3, esperado: 7, control: 6, diff: -1, en_stock: 7, controlado_por: 'naza' }
+  ]};
+  const page2 = await ctx.newPage();
+  page2.on('pageerror', e => { console.log('PAGEERROR:', e.message); process.exitCode = 1; });
+  page2.on('dialog', d => d.accept());
+  await page2.addInitScript(b => { window.__BUNDLE__ = b; }, VIRB);
+  await page2.route('**/@supabase/supabase-js@2**', r => r.fulfill({ contentType: 'application/javascript', body: STUB }));
+  await page2.route('**/GP2_favicon.png', r => r.fulfill({ contentType: 'image/png', body: Buffer.from('') }));
+  await page2.goto(ROOT + '/Relevamiento/ValidacionRemitos_GP2.html');
+  await page2.waitForFunction(() => document.querySelectorAll('#pendientes .li').length > 0);
+  const vf = (await page2.$$eval('#pendientes .li', xs => xs.map(x => x.textContent.replace(/\s+/g, ' ').trim())))[0];
+  ok(vf.includes('ID5') && vf.includes('Remito 10') && vf.includes('Virgilio') && vf.includes('espera') &&
+     vf.includes('Control 6'),
+     'fleje con parte a Virgilio: la fila aclara los kg a Virgilio y el esperado — ' + vf);
+  const vres0 = await page2.$eval('#resumen', e => e.textContent);
+  ok(vres0.includes('1 cambia el stock'),
+     'control (6) ≠ esperado (7): por default (Control) mueve el stock — ' + vres0);
+  await page2.click('#pendientes .li:first-child .pick button[data-v="remito"]');
+  ok((await page2.$eval('#resumen', e => e.textContent)).includes('0 cambian el stock'),
+     'con Remito el fleje queda en el esperado (7) = lo que ya hay: no mueve');
 
   await browser.close();
 })();

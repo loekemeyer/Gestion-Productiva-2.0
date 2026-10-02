@@ -1,0 +1,29 @@
+-- =====================================================================
+-- VALIDACION DE STOCK · REMITO VS CONTROL — CONTAR LO QUE SE MANDO A VIRGILIO (2026-10-02)
+--
+-- Bug: una recepcion que mando una parte directo a Virgilio (boton "→ Virgilio" del control de
+-- cajas / pesaje de flejes, v1.233.0 / db/migracion_recepcion_virgilio.sql) aparecia en este
+-- modulo como FALTANTE. El bundle comparaba el control contra el REMITO crudo en vez del
+-- ESPERADO-en-Cervantes = remito − virgilio.
+--   Caso real (recepcion_insumo 17095, Aperam, Fleje N° 38): remito 10 kg, virgilio 3 kg,
+--   pesaje 7 kg → leia "-3 (-30 %)" cuando en realidad 7 = esperado (10 − 3). No faltaba nada.
+--
+-- Fix:
+--  1) validacion_remito_bundle: cada fila manda `virgilio` y `esperado` (= remito − virgilio),
+--     la dif se mide contra el esperado (control − esperado) y `en_stock` va neto de virgilio.
+--     En los insumos (cajas) el control pasa a ser el CONTADO fisico (cantidad − virgilio;
+--     cantidad ya venia = contado + virgilio). Sin virgilio todo queda idéntico (virgilio = 0).
+--  2) validar_remito_control (rama 'pesaje', eleccion Control): al movimiento (que lleva el
+--     remito entero) se le suma virgilio, porque el traslado a Virgilio ya le resta su parte;
+--     asi Cervantes termina justo en los kg pesados. Con Remito el movimiento queda en el remito.
+--     La rama 'insumo' ya era correcta (cantidad = contado + virgilio) y no se toca.
+--
+-- Aplicado a hrxfctzncixxqmpfhskv el 2026-10-02. Verificado: la recepcion 17095 deja de estar
+-- en `pend` (diff 0). Front: Relevamiento/ValidacionRemitos_GP2.html v1.2.0 (muestra "→ Virgilio
+-- N · espera M"). Test: tests/ui/test_validacion_remitos.js (caso fleje con parte a Virgilio).
+-- El cuerpo completo de las dos funciones vive en db/funciones_GP2.sql (regenerado).
+-- =====================================================================
+
+-- Ver db/funciones_GP2.sql para el cuerpo vigente de:
+--   "GP2".validacion_remito_bundle(integer)
+--   "GP2".validar_remito_control(jsonb, text)
