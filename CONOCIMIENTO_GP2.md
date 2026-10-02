@@ -14761,3 +14761,14 @@ no estaban colgadas — era que la pantalla no los mostraba):
   yendo sueltas a Virgilio.
 Las descripciones de matriz ya salían por `pasoNode` (ex = cs.d || mx.d); se ven en todos los
 pasos matriz. Sin cambios de versión global (Programa.html se navega directo, sin token propio).
+
+## 4ij. Recepción: el fleje NO muestra "kg por unidad" (2026-10-02)
+`[usuario]` *"No quiero que aparezca el kg por uni xq un mismo fleje se puede usar para muchas
+partes"*. El `kg_x_uni` de un fleje no describe al fleje: cada pieza que sale de él tiene su
+peso, así que un único "1 uni = X kg" en el encabezado del popup de Recepción (caso real: ID5,
+Fleje N° 38, "1 uni = 0,00135 kg") es un número que no corresponde a nada.
+- `RecepcionInsumos_GP2.html` v3.72.2: `abrirPopup` no arma el cartel para `esFleje(i)`
+  (sector 5). Los otros rubros (remaches, plásticos, etc.) lo siguen mostrando: ahí la unidad
+  SÍ es la pieza.
+- `[deducido]` Mismo criterio aplicaría a cualquier otra pantalla que muestre kg/uni de un
+  fleje; no se revisaron otras. Test: `test_recepcion_hermac_solo_kg.js` (punto 4).

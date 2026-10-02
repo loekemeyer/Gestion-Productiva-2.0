@@ -6,6 +6,9 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
+<!-- v3.72.2 (2026-10-02) — FLEJES SIN "(1 uni = X kg)" EN EL POPUP [usuario: "no quiero que aparezca
+     el kg por uni xq un mismo fleje se puede usar para muchas partes"]. Sólo el cartel del encabezado;
+     el resto de los rubros lo sigue mostrando. Sólo front. -->
 <!-- v3.72.1 (2026-10-02) — HERMAC PIDE SOLO KG, COMO EL RESTO [usuario: "en la recepción de flejes de
      Hermac me pide que le ponga paquetes, que me pida solo kg como el resto"]. Se saca el campo
      "Paquetes" obligatorio (fieldsFleje/pintarFieldsFleje/#rolloPallRow): era la última excepción de
@@ -1581,7 +1584,9 @@ function abrirPopup(i){
   itemSel=i;
   resetPiePopup();
   $('kgTitle').textContent='Recepción · '+rubroSel;
-  var kx=KGXUNI[i.comp_id];
+  // Flejes sin "(1 uni = X kg)": un mismo fleje sale para muchas partes, cada una con su
+  // peso, asi que un kg por unidad del fleje no dice nada [usuario 2026-10-02].
+  var kx=esFleje(i)?null:KGXUNI[i.comp_id];
   var convHint=kx?' <small style="color:#9a6700;font-weight:600">(1 uni = '+fmtKgUni(kx)+' kg)</small>':'';
   $('kgItemInfo').innerHTML='<b>'+esc(i.codigo)+'</b> — '+esc(i.descripcion||'')+(i.medida?(' · '+esc(i.medida)+' mm'):'')+convHint+'<br><small style="color:#666">'+esc(i.sector)+(provSel?(' · '+esc(provSel)):'')+'</small>';
   $('kgValue').value=''; $('kgMsg').textContent=''; $('kgConvDisplay').textContent='';

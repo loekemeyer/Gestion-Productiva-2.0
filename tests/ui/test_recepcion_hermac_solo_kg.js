@@ -9,7 +9,9 @@ const EXE = process.env.CHROMIUM_PATH || (fs.existsSync('/opt/pw-browsers/chromi
    excepcion de "todos los flejes, solo Kg total": el popup sumaba un campo "Paquetes" obligatorio y
    sin el no dejaba confirmar. Este test cubre: (1) el popup de un fleje de Hermac no tiene ningun
    campo de paquetes; (2) se confirma con el Kg solo; (3) baja con p_pallets null, que es lo que
-   hace que el pesaje arranque con 1 pallet (bloquesVacios), como Brawin/Szapiro. */
+   hace que el pesaje arranque con 1 pallet (bloquesVacios), como Brawin/Szapiro.
+   v3.72.2: (4) el encabezado del popup de un fleje NO muestra "(1 uni = X kg)" aunque el fleje
+   traiga kg_x_uni [usuario 2026-10-02: "un mismo fleje se puede usar para muchas partes"]. */
 const BUNDLE = {
   tara: { tara_pallet: '20', tol_ctrl_pct: '5', carton_uni_x_paquete: '250' },
   sectores: [{ id: 5, nombre: 'Sector Fleje' }],
@@ -17,7 +19,7 @@ const BUNDLE = {
   recepciones: [], pallets: [], rollos: [],
   insumos: [
     { comp_id: 189, codigo: 'ID1', descripcion: 'Fleje N° 28', sector: 'Sector Fleje', sector_id: 5, um: 'kg',
-      proveedor: 'Hermac', n_fleje: 28, medida: '10 x 2', ultima: null, oc_pend: null },
+      proveedor: 'Hermac', n_fleje: 28, medida: '10 x 2', kg_x_uni: 0.00135, ultima: null, oc_pend: null },
   ],
 };
 
@@ -56,7 +58,8 @@ const STUB = 'window.supabase={createClient:function(){return{'
         const pop = document.getElementById('kgPopup');
         const vis = el => !!el && el.offsetParent !== null;
         const labels = [...pop.querySelectorAll('label')].filter(vis).map(l => l.textContent.trim());
-        return { kgPaquetes: !!document.getElementById('kgPaquetes'),
+        return { info: document.getElementById('kgItemInfo').textContent,
+                 kgPaquetes: !!document.getElementById('kgPaquetes'),
                  paqLabel: labels.some(t => /paquete/i.test(t)) };
       });
       await page.fill('#kgValue', '360');
@@ -76,6 +79,9 @@ const STUB = 'window.supabase={createClient:function(){return{'
   // 1) el popup de Hermac no pide paquetes
   ok(!popup.kgPaquetes, 'el popup de Hermac no tiene el input #kgPaquetes');
   ok(!popup.paqLabel, 'el popup de Hermac no muestra ninguna etiqueta "Paquetes"');
+  // 4) el fleje no muestra kg por unidad (el dato existe: kg_x_uni 0,00135 en el bundle)
+  ok(!/1 uni =/.test(popup.info) && !/0,00135/.test(popup.info),
+     'el popup del fleje no muestra "(1 uni = X kg)": ' + popup.info);
   // 2) con el Kg solo se confirma (antes: "Cargá los paquetes del remito.")
   ok(true, 'con el Kg solo, Confirmar deja el item en el remito');
 
