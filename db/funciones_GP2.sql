@@ -7163,6 +7163,26 @@ AS $function$
         group by m.n_matriz
         having count(*) > 1
       ) t),
+    -- ENVASADO: matriz que cierra un articulo TERMINADO (sector 12). El operario carga CAJAS y
+    -- la app convierte a unidades (cajas x articulos_por_caja) para que fabricar_stock descuente
+    -- el BOM de esas unidades. 'salidas' = art/caja por cada comp_salida; 'unica' = art/caja
+    -- cuando la matriz cierra un solo articulo (no hace falta elegir pieza). 2026-10-02.
+    'envasado', (select coalesce(jsonb_object_agg(q.n_matriz, q.obj),'{}'::jsonb)
+      from (
+        select n_matriz,
+               jsonb_build_object(
+                 'unica', case when count(*)=1 then max(apc) end,
+                 'salidas', jsonb_object_agg(sid::text, apc)
+               ) obj
+        from (
+          select distinct m.n_matriz, rp.comp_salida_id sid, a.articulos_por_caja apc
+          from "GP2".matriz m
+          join "GP2".ruta_paso rp on rp.matriz_id=m.id and rp.tipo_paso='matriz' and rp.comp_salida_id is not null
+          join "GP2".componente cs on cs.id=rp.comp_salida_id and cs.sector_id=12
+          join "GP2".articulo a on a.codigo=cs.codigo
+        ) d
+        group by n_matriz
+      ) q),
     'rollos_saldo', (select coalesce(jsonb_agg(jsonb_build_object(
         'comp_id',v.componente_id,'codigo',v.codigo,'kg_por_rollo',v.kg_por_rollo,'rollos',v.rollos)
         order by v.codigo, v.kg_por_rollo),'[]'::jsonb)
@@ -8232,8 +8252,9 @@ env as (
      and exists (select 1 from proveedor_insumo pi where pi.nombre = c.proveedor)
    group by c.proveedor, c.material_id
   union all
-  select 'tallerista', '3', f.comp_id from fab f
-  union all
+  -- Fábrica (tallerista id 3) NO va al envío a talleristas: lo que armaba Fábrica ahora lo
+  -- cierra una matriz de envasado en la tablet de operarios (2026-10-02). Su terminado sigue
+  -- pudiéndose mandar a Virgilio desde la tablet (la línea de abajo).
   select 'virgilio', 'virgilio', f.comp_id from fab f
   union all
   select 'virgilio', 'virgilio', c.id
@@ -8468,7 +8489,7 @@ rec_x as (
 cp as (
   select 'tallerista'::text tipo, t.id::text ref, t.nombre, null::text envio_unidad, null::numeric envio_uni_x, null::text envio_carga_unidad, null::text entrega_unidad, null::numeric entrega_uni_x
     from tallerista t
-   where t.activo
+   where t.activo and t.id <> 3   -- Fábrica no es una contraparte de envío (armado interno por matriz)
      and exists (select 1 from v_contraparte_parte v where v.tipo='tallerista' and v.ref_id = t.id)
   union all
   select 'proveedor_servicio', ps.id::text, ps.nombre, ps.envio_unidad, ps.envio_uni_x, ps.envio_carga_unidad, ps.entrega_unidad, ps.entrega_uni_x
