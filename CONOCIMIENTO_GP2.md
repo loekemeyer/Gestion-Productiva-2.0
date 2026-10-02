@@ -14748,3 +14748,16 @@ operarios pregunta cuál (mecanismo `matriz_salidas`/`renderPiezaPicker`, ya exi
 - [dato] **El conector Supabase de Claude no deja correr `DELETE`**: se queda esperando una confirmación que en la
   sesión no aparece y se corta a los 60 s (los `UPDATE` sí pasan). El script lo corrió el usuario en el SQL Editor.
   Para que Claude borre, hay que permitir `execute_sql` en la configuración del conector.
+## 4ii. Programa.html (despiece "¿Qué necesito para producir?") dibuja la MATRIZ FINAL (2026-10-02)
+Secuela de §4ig. Tras pasar la convergencia de tallerista Fábrica a matriz de envasado, el
+despiece que usa el dueño es `Programa/Programa.html` (NO `Despiece x Articulo/Despiece_GP2.html`).
+Dos arreglos de RENDER (sin tocar datos; la caja y el cartón YA entran a la matriz en la base,
+no estaban colgadas — era que la pantalla no los mostraba):
+- Paso 5 "Convergencia final": si no hay tallerista ni prov AT pero sí una matriz cuyo
+  comp_salida es el terminado, muestra **"MATRIZ FINAL N° X · <descripción>"** en vez de
+  "TALLERISTA (sin asignar) · tabla incompleta" (`matrizFinal`).
+- En las ramas de insumo (bloque 4) se agregó el caso `tp==='matriz'` (antes se saltaba): así la
+  caja (A9), el cartón (G5A) y demás partes se ven **entrando a la matriz de envasado** y no
+  yendo sueltas a Virgilio.
+Las descripciones de matriz ya salían por `pasoNode` (ex = cs.d || mx.d); se ven en todos los
+pasos matriz. Sin cambios de versión global (Programa.html se navega directo, sin token propio).

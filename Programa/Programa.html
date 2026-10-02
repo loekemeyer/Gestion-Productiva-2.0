@@ -639,6 +639,17 @@ function render(){
    if(n&&provAT.indexOf(n)<0)provAT.push(n);
   });
  });
+ /* La convergencia final puede ser una MATRIZ (de envasado): lo que antes armaba el
+    tallerista "Fábrica" ahora lo cierra una matriz. Es la matriz cuyo comp_salida es el
+    terminado del artículo. Si no hay tallerista ni prov AT, el paso 5 muestra esta matriz. */
+ var matrizFinal=null;
+ rutas.forEach(function(r){
+  (D.rp[String(r.id)]||[]).forEach(function(p){
+   if(p.tp!=='matriz'||!p.cs||!p.m)return;
+   var csc=cById(p.cs);
+   if(csc&&sName(csc.s)==='terminado')matrizFinal=D.mat[String(p.m)]||matrizFinal;
+  });
+ });
  var rutas_prod=rutas.filter(function(r){return r.f;});
  var rutas_ins=rutas.filter(function(r){return !r.f;});
  var flejesTotal={};
@@ -796,6 +807,11 @@ function render(){
      var pa=(D.provat?D.provat[String(p.pat)]:null)||"(sin prov)";
      B+='<span class="arr">→</span>'+node("PROV. ART. TERM.","prov",pa.trim(),"entrega terminado","",qFin,null,"");
     }
+    else if(p.tp==="matriz"){
+     /* La parte (caja, cartón, pieza) entra a una MATRIZ (de envasado o intermedia) antes
+        de Virgilio: se dibuja el paso para que no parezca que va suelta a Virgilio. */
+     B+='<span class="arr">→</span>'+pasoNode(p,need,uni,pasos[idx+1]);
+    }
     else if(p.tp==="virgilio"){B+='<span class="arr">→</span>'+node("VIRGILIO","virg","Distribución","artículo","",null,null,"");}
    });
    B+='</div></div>';
@@ -807,6 +823,7 @@ function render(){
  B+='<div class="lane"><div class="flow">';
  if(talls.length){talls.forEach(function(t,i){B+=(i>0?'<span class="arr plus">O</span>':"")+node("TALLERISTA","tall",t,"ensambla","",uni,null,"");});}
  else if(provAT.length){provAT.forEach(function(n,i){B+=(i>0?'<span class="arr plus">O</span>':"")+node("PROV. ART. TERM.","prov",n,"entrega terminado","",uni,null,"");});}
+ else if(matrizFinal){B+=node("MATRIZ FINAL","matriz","N° "+matrizFinal.n,matrizFinal.d||"","",uni,null,"");}
  else B+=node("TALLERISTA","tall","(sin asignar)","tabla incompleta","",uni,null,"");
  B+='<span class="arr">→</span>'+node("ARTÍCULO","virg",a.cod,a.fam+" terminado","",uni,null,"")+
     '<span class="arr">→</span>'+node("VIRGILIO","virg","Distribución","centro logístico","",uni,null,"");
