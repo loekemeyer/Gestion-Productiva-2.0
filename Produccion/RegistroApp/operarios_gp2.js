@@ -23,6 +23,8 @@ const SB = supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
    registro_en_golpes  true = el cajon se cierra anotando GOLPES del contador
    matriz_fleje { n_matriz -> {comp_id, codigo, descripcion} }          (fallback)
    matriz_fleje_pieza { n_matriz -> { comp_salida_id -> {comp_id, codigo, descripcion} } }
+   envasado     { n_matriz -> {unica: art/caja o null, salidas: {comp_salida_id -> art/caja}} }
+                 (matriz que cierra un terminado: el operario carga CAJAS, no golpes)
    rollos_saldo [ {comp_id, codigo, kg_por_rollo, rollos} ]              */
 let D = {};
 
@@ -61,6 +63,19 @@ function matrizActiva(n) {
 function golpesAUni(nMatriz, golpes) {
   const g = Number(golpes) || 0;
   return pideGolpes() ? g * uniXGolpe(nMatriz) : g;
+}
+
+/* ENVASADO: la matriz cierra un articulo terminado. El operario carga CAJAS (no golpes) y
+   la base descuenta las UNIDADES = cajas * articulos_por_caja. El bundle manda, por matriz,
+   { unica: art/caja (cuando cierra UN solo articulo), salidas: { comp_salida_id -> art/caja } }. */
+function envasadoDe(n) { return (D.envasado || {})[String(n || "").trim()] || null; }
+function apcEnvase(n, compSalidaId) {
+  const e = envasadoDe(n);
+  if (!e) return null;
+  if (compSalidaId != null && e.salidas && e.salidas[String(compSalidaId)] != null) return Number(e.salidas[String(compSalidaId)]);
+  if (e.unica != null) return Number(e.unica);
+  const vals = e.salidas ? Object.values(e.salidas) : [];
+  return vals.length === 1 ? Number(vals[0]) : null;
 }
 
 /* ============================================================
@@ -278,10 +293,18 @@ function toRpcPayload(p) {
   if (p.comp_salida_id) rpc.comp_salida_id = p.comp_salida_id;
 
   if (["C", "CT"].includes(op)) {
-    // Se manda lo que el operario conto (golpes) y la RPC lo multiplica por
-    // matriz.uni_x_golpe. Con el interruptor apagado se manda uni como antes.
-    if (pideGolpes()) rpc.golpes = Number(p.texto) || 0;
-    else rpc.uni = Number(p.texto) || 0;
+    const env = envasadoDe(matriz);
+    if (env) {
+      // ENVASADO: el operario carga CAJAS; unidades = cajas x articulos_por_caja. Se manda uni
+      // directo (no golpes) para que fabricar_stock descuente el BOM de esas unidades.
+      const apc = apcEnvase(matriz, p.comp_salida_id) || 1;
+      rpc.uni = (Number(p.texto) || 0) * apc;
+    } else if (pideGolpes()) {
+      // Se manda lo que el operario conto (golpes) y la RPC lo multiplica por matriz.uni_x_golpe.
+      rpc.golpes = Number(p.texto) || 0;
+    } else {
+      rpc.uni = Number(p.texto) || 0;
+    }
     rpc.nombre_matriz = nombreMatriz(matriz) || undefined;
   } else {
     rpc.uni = 0;
@@ -710,11 +733,27 @@ function selectOption(opt) {
       : null;
   }
 
-  // Cajon: se anotan GOLPES y se muestra en vivo cuantas unidades salen de esos golpes.
+  // Cajon: se anotan GOLPES (o CAJAS si la matriz es de envasado) y se muestra en vivo cuantas
+  // unidades salen.
   const gh = $("golpeHint");
   if (gh) {
-    if (opt.code === "C" && pideGolpes()) {
-      const nMat = String(readState(legajoKey()).lastMatrix?.texto || "").trim();
+    const nMatC = opt.code === "C" ? String(readState(legajoKey()).lastMatrix?.texto || "").trim() : "";
+    const envC = opt.code === "C" ? envasadoDe(nMatC) : null;
+    if (opt.code === "C" && envC) {
+      // Matriz de envasado: el operario carga CAJAS.
+      $("inputLabel").innerText = "¿Cuántas CAJAS armaste?";
+      const apc = apcEnvase(nMatC, readState(legajoKey()).lastMatrix?.comp_salida_id) || 1;
+      const pintarC = () => {
+        const c = Number(textInput.value.trim()) || 0;
+        gh.className = "golpe-hint";
+        gh.innerText = `Matriz ${nMatC} (envasado): ${apc} unidades por caja.` + (c > 0 ? ` ${c} cajas = ${c * apc} unidades.` : "");
+      };
+      pintarC();
+      gh.classList.remove("hidden");
+      const prevC = textInput.oninput;
+      textInput.oninput = (ev) => { if (prevC) prevC(ev); pintarC(); };
+    } else if (opt.code === "C" && pideGolpes()) {
+      const nMat = nMatC;
       const f = uniXGolpe(nMat);
       const pintar = () => {
         const g = Number(textInput.value.trim()) || 0;
@@ -854,13 +893,19 @@ async function sendFast() {
     alert(`Hay un Tiempo Muerto pendiente (${s.lastDowntime.opcion}). Enviá el MISMO para cerrarlo.`);
     return;
   }
-  // Matrices que sacan mas de una pieza por golpe: se confirma en voz alta la cuenta,
-  // porque si el operario tipea unidades en vez de golpes la produccion se duplica.
-  if (selected.code === "C" && pideGolpes()) {
+  // Se confirma en voz alta la cuenta para que no se cargue cualquier cosa.
+  if (selected.code === "C") {
     const nMat = String(s.lastMatrix?.texto || "").trim();
-    const f = uniXGolpe(nMat);
-    const g = Number(texto) || 0;
-    if (f > 1 && !confirm(`Matriz ${nMat}: ${g} GOLPES x ${f} = ${g * f} unidades.\n\n¿Los ${g} son golpes del contador (no unidades)?`)) return;
+    const env = envasadoDe(nMat);
+    if (env) {
+      const apc = apcEnvase(nMat, s.lastMatrix?.comp_salida_id) || 1;
+      const c = Number(texto) || 0;
+      if (!confirm(`Matriz ${nMat} (envasado): ${c} CAJAS x ${apc} = ${c * apc} unidades.\n\n¿Son ${c} cajas armadas?`)) return;
+    } else if (pideGolpes()) {
+      const f = uniXGolpe(nMat);
+      const g = Number(texto) || 0;
+      if (f > 1 && !confirm(`Matriz ${nMat}: ${g} GOLPES x ${f} = ${g * f} unidades.\n\n¿Los ${g} son golpes del contador (no unidades)?`)) return;
+    }
   }
 
   // Rollo elegido en E (cualquier operario): ahora sale de un boton, no de un <select>

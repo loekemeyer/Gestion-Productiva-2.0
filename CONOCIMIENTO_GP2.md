@@ -14761,3 +14761,21 @@ no estaban colgadas — era que la pantalla no los mostraba):
   yendo sueltas a Virgilio.
 Las descripciones de matriz ya salían por `pasoNode` (ex = cs.d || mx.d); se ven en todos los
 pasos matriz. Sin cambios de versión global (Programa.html se navega directo, sin token propio).
+
+## 4ij. Tablet de operarios en CAJAS para envasado + Fábrica fuera del envío a talleristas (2026-10-02)
+Cierre de §4ig (F2 y F3).
+- **F2 — operario carga CAJAS, no golpes, para las matrices de envasado.** `registro_operarios_bundle`
+  manda `envasado` = { n_matriz → {unica: art/caja, salidas: {comp_salida_id → art/caja}} } para toda
+  matriz que cierra un terminado (sector 12). En `operarios_gp2.js`: al cerrar el cajón (C) de una
+  matriz de envasado, el campo pide "¿Cuántas CAJAS armaste?" y manda `uni = cajas × articulos_por_caja`
+  (no golpes); `registrar_evento_prod` usa ese `uni` y `fabricar_stock` descuenta el BOM de esas unidades
+  y crea el terminado. El art/caja sale por pieza (comp_salida_id que el operario ya elige cuando la
+  matriz hace varias) o por `unica` si cierra un solo artículo. No se tocó `uni_x_golpe` (decisión del
+  usuario). Token operario `?v=20261002a` (MI_V + script).
+- **F3 — "Fábrica" (tallerista id 3) ya no aparece en el envío a talleristas de la tablet.** En
+  `tablet_bundle` se sacó la línea del CTE `env` que lo agregaba (`'tallerista','3' from fab`) y la lista
+  de contrapartes `cp` ahora filtra `t.id <> 3`. Verificado: 0 en `contrapartes` y 0 en `enviar`, quedan
+  9 talleristas. Lo que armaba Fábrica se produce ahora por la matriz de envasado en la tablet de
+  operarios. El terminado de Fábrica se sigue pudiendo mandar a Virgilio desde la tablet (la línea
+  `'virgilio' from fab` queda). EXCEPCIÓN viva: 280 Manga no tiene matriz de envasado todavía, así que
+  queda sin camino en la tablet hasta que se le cree una.
