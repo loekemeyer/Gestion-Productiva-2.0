@@ -1,6 +1,14 @@
 <!doctype html>
 <html lang="es">
 <head>
+<!-- v1.2.0 (2026-10-02) — CUENTA LO QUE SE MANDÓ A VIRGILIO. Una recepción que mandó una parte directo a
+     Virgilio (botón "→ Virgilio" del control de cajas / pesaje de flejes, v1.233.0) entraba acá como
+     faltante: el bundle comparaba el control contra el REMITO crudo (10) en vez del ESPERADO en Cervantes
+     = remito − Virgilio (7). Caso real: fleje 38 remito 10, Virgilio 3, control 7 → leía "-3 (-30 %)".
+     Ahora el bundle manda `virgilio` y `esperado`, la dif se mide contra el esperado (así deja de leerse
+     como faltante), y la fila aclara "→ Virgilio N · espera M". En el fleje, elegir Control vuelve a
+     sumar lo de Virgilio al movimiento (validar_remito_control) para que Cervantes quede justo en lo
+     pesado. DB: db/migracion_validacion_remito_virgilio.sql. -->
 <!-- v1.1.0 (2026-09-30) — TAMBIÉN LOS FLEJES [usuario, textual: "Sí, entran todas las recepciones xq
      todas tienen control"]. El control del fleje es el PESAJE POR PALLET, y ese control NO pisa el
      stock: el movimiento sigue con los kg del remito. Por eso el bundle manda `en_stock` (lo que
@@ -65,6 +73,7 @@
   .dif{font-weight:800;font-size:18px;font-variant-numeric:tabular-nums}
   .dif.mas{color:#0a7a2f}
   .dif.menos{color:#c00}
+  .vir{font-size:15px;color:#0b3b73}   /* lo que se mando a Virgilio: no es faltante */
   .li-acts{margin-left:auto}
   /* Elegir cuál queda: dos botones, no un select (se toca con el dedo) */
   .pick{display:inline-flex;border:2px solid #d0d7de;border-radius:9px;overflow:hidden}
@@ -165,9 +174,13 @@ var D = { pend: [], hechos: [], tol_pct: 5 }, FILTRO = 'todos';
 /* la decisión de cada fila, por clave origen:id. Default: control (lo que ya está en el stock). */
 var ELEGIDO = {};
 function clave(x){ return x.origen + ':' + x.id; }
+/* El ESPERADO en Cervantes = remito − lo que se mando a Virgilio. Elegir "Remito" deja el esperado
+   (lo que el papel dice que tenia que quedar acá), no el remito entero; "Control" deja lo controlado.
+   Sin Virgilio (virgilio=0) esperado = remito, igual que siempre. */
+function esperadoDe(x){ return x.esperado!=null ? Number(x.esperado) : (Number(x.remito) - (Number(x.virgilio)||0)); }
 /* ¿La decision de esta fila cambia el stock? Se compara el numero elegido contra lo que tiene HOY el
-   movimiento (en_stock). No se supone: en el fleje el stock esta con el remito (v1.1.0). */
-function valorElegido(x){ return ELEGIDO[clave(x)]==='remito' ? Number(x.remito) : Number(x.control); }
+   movimiento (en_stock, neto de lo de Virgilio). No se supone: en el fleje el stock esta con el remito. */
+function valorElegido(x){ return ELEGIDO[clave(x)]==='remito' ? esperadoDe(x) : Number(x.control); }
 function mueve(x){
   if(x.en_stock==null) return false;
   return Math.round(valorElegido(x)*1000) !== Math.round(Number(x.en_stock)*1000);
@@ -207,8 +220,8 @@ function pintar(){
   var tol = Number(D.tol_pct)||5;
   var vis = visibles();
   $('pendientes').innerHTML = vis.length ? vis.map(function(x){
-    var d = Number(x.diff)||0, rem = Number(x.remito)||0;
-    var pct = rem ? (d/rem*100) : null;
+    var d = Number(x.diff)||0, vir = Number(x.virgilio)||0, esp = esperadoDe(x);
+    var pct = esp ? (d/esp*100) : null;   /* la dif es contra el esperado, no contra el remito crudo */
     var fuera = pct==null || Math.abs(pct) > tol;
     var k = clave(x), el = ELEGIDO[k];
     return '<div class="li '+(fuera?'fuera':'dentro')+'">'+
@@ -218,6 +231,7 @@ function pintar(){
         (x.origen==='pesaje'?'<br><span class="desc">pesaje por pallet</span>':'')+'</span>'+
       '<span class="li-num">'+
         '<span>Remito <b>'+fmt(x.remito)+'</b> '+esc(x.unidad)+'</span>'+
+        (vir>0 ? '<span class="vir">→ Virgilio <b>'+fmt(vir)+'</b> '+esc(x.unidad)+' · espera <b>'+fmt(esp)+'</b></span>' : '')+
         '<span>Control <b>'+fmt(x.control)+'</b> '+esc(x.unidad)+'</span>'+
         '<span class="dif '+(d>0?'mas':'menos')+'">'+(d>0?'+':'')+fmt(d)+
           (pct==null?'':' ('+(pct>0?'+':'')+GP2N.fmt(pct,1)+' %)')+'</span>'+
@@ -248,7 +262,8 @@ function pintar(){
       '<td>'+fechaTs(h.fecha)+'</td>'+
       '<td>'+esc(h.cp_nombre||'—')+'</td>'+
       '<td><b>'+esc(h.codigo)+'</b> <span class="desc">'+esc(h.descripcion||'')+'</span></td>'+
-      '<td class="num">'+fmt(h.remito)+' '+esc(h.unidad)+'</td>'+
+      '<td class="num">'+fmt(h.remito)+' '+esc(h.unidad)+
+        ((Number(h.virgilio)||0)>0 ? '<br><span class="desc">→ Virgilio '+fmt(h.virgilio)+'</span>' : '')+'</td>'+
       '<td class="num">'+fmt(h.control)+' '+esc(h.unidad)+'</td>'+
       '<td><span class="pill '+esc(h.ingreso_real)+'">'+(h.ingreso_real==='remito'?'Remito':'Control')+'</span></td>'+
       '<td>'+esc(h.validado_por||'—')+'<br><span class="desc">'+fechaTs(h.validado_en)+'</span></td>'+

@@ -14643,3 +14643,26 @@ entrega Log/Fabr. 570, 542, 543"*.
 - **506 «Colocar Inserto Nuevo a Mgo Md Chino»:** no entra: el inserto de los 94xE va en las matrices 505x
   (§4ia). `[deducido de §4ia]`
 - **Pregunta abierta a Thomas:** ¿desactivar 236 y 506 en `GP2.matriz` (`activa=false`) o dejarlas activas?
+
+## 4ie. Validación Remito vs Control: lo que se mandó a Virgilio no es faltante (2026-10-02)
+
+Una recepción que mandó una parte directo a Virgilio con el botón «→ Virgilio» (control de cajas /
+pesaje de flejes, §4ic) **aparecía como faltante** en Validación de Stock → Remito vs Control.
+
+- **El pozo:** `validacion_remito_bundle` comparaba el control contra el **remito crudo** en vez del
+  **esperado-en-Cervantes = remito − Virgilio**. Caso real (recepción `GP2.recepcion_insumo` 17095,
+  Aperam, Fleje N° 38): remito 10 kg, Virgilio 3 kg, pesaje 7 kg → leía **«−3 (−30 %)»** cuando 7 =
+  esperado (10 − 3): no faltaba nada. `[dato: la recepción salió de `pend` tras el fix, diff 0]`
+- **Por qué la vista del control (§4ic) sí cerraba y ésta no:** `v_recepcion_control` ya restaba
+  Virgilio del `dif_kg_vs_remito` (compara contra `kg_esperado_cervantes`), pero el bundle de
+  Validación —otra función— nunca se actualizó cuando se agregó el botón. Dos funciones que miran el
+  mismo hecho; una quedó atrás. `[deducido]`
+- **El fix:** el bundle manda `virgilio` y `esperado` por fila, la diferencia se mide contra el
+  esperado, `en_stock` va neto de Virgilio, y en los **insumos (cajas)** el control pasa a ser el
+  **contado físico** (`cantidad − virgilio`; `cantidad` ya venía = contado + virgilio, §4ic). Sin
+  Virgilio todo queda idéntico. En `validar_remito_control`, rama `pesaje` con **Control**: al
+  movimiento (que lleva el remito entero) se le **suma Virgilio**, porque el traslado a Virgilio ya le
+  resta su parte, y así Cervantes termina justo en los kg pesados. La rama `insumo` ya era correcta.
+- **Front:** `Relevamiento/ValidacionRemitos_GP2.html` v1.2.0 — la fila ahora aclara «→ Virgilio N ·
+  espera M». `db/migracion_validacion_remito_virgilio.sql`, `db/funciones_GP2.sql`. version.js
+  v1.234.0. Test: `tests/ui/test_validacion_remitos.js` (caso fleje con parte a Virgilio).
