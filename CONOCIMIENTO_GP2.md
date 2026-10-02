@@ -5421,6 +5421,10 @@ subida"*. `[dato: openpyxl sobre db/A_Costos_VIGENTES.xlsx + v_planilla_precio, 
   encabezado con nombre. **El proveedor de una fila es B**, no `bloque`.
 - Celdas insertadas en B:P **sin** la col A desfasan los ID: se reconoce porque con la misma A
   cambian a la vez E y K.
+- **El chat «LK Gerencia» de Telegram es `6282395816`** `[dato: repo Gestión Virgilio,
+  sql/lk_reporte_hoy_plata_v1424.sql + public.telegram_outbox de este proyecto]`: es el chat por
+  defecto de `tg_enqueue` en el proyecto LK (ahí caen los `rep_*` de gerencia) y este proyecto ya le
+  mandó 66 mensajes, todos `sent`. Id positivo = chat privado con el bot, no un grupo.
 
 ## 4w. El cruce planilla vs GP2: `v_costo_componente` ignora las cantidades (2026-09-08)
 
