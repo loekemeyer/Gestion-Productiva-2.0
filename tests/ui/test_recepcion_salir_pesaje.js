@@ -56,9 +56,9 @@ const STUB = 'window.supabase={createClient:function(){return{'
         await page.click('.item-btn');
         await page.waitForSelector('#kgPopup.open', { timeout: 3000 });
         // Desde v3.31.1 (revision usuario 2026-09-01) el popup de fleje pide SOLO el
-        // Kg total: Basconia perdio su "Kg x Rollo" y el unico proveedor con campo
-        // extra es Hermac (Paquetes). Por eso aca ya no se llenan #kgRollos/#kgPallets
-        // — no existen en el DOM.
+        // Kg total: Basconia perdio su "Kg x Rollo" y desde v3.72.1 tampoco Hermac pide
+        // Paquetes: ningun proveedor tiene campo extra. Por eso aca ya no se llenan
+        // #kgRollos/#kgPallets — no existen en el DOM.
         await page.fill('#kgValue', '360');
         await page.waitForFunction(() => document.getElementById('kgValue').value === '360',
                                    null, { timeout: 3000 });

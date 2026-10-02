@@ -647,7 +647,10 @@ kg, es exactamente **la caja que arma Eclipse** `[usuario 2026-09-02]`.
 
 **Revisión final `[usuario 2026-09-01]`:** TODOS los proveedores de fleje piden
 **solo `Kg total`**, con dos excepciones:
-- **Hermac** → `Kg total` + **`Paquetes`** (entero, se guarda en `p_pallets`).
+- ~~**Hermac** → `Kg total` + **`Paquetes`** (entero, se guarda en `p_pallets`).~~
+  **Retirado el 2026-10-02 (Recepción Insumos v3.72.1)** `[usuario: "en la recepción de flejes de
+  Hermac me pide que le ponga paquetes, que me pida solo kg como el resto"]`: Hermac pide solo
+  `Kg total`. Sin paquetes, el pesaje arma 1 pallet y se suman con "+ pallet", como Brawin/Szapiro.
 - **Importado** → sin cambios (nunca tuvo campo extra; queda como los demás).
 
 Los demás (Basconia, Aperam, Brawin, Szapiro, JL Metales, Altrak, EstaMetal

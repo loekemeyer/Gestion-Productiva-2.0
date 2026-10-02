@@ -6,6 +6,11 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
+<!-- v3.72.1 (2026-10-02) — HERMAC PIDE SOLO KG, COMO EL RESTO [usuario: "en la recepción de flejes de
+     Hermac me pide que le ponga paquetes, que me pida solo kg como el resto"]. Se saca el campo
+     "Paquetes" obligatorio (fieldsFleje/pintarFieldsFleje/#rolloPallRow): era la última excepción de
+     la regla "todos los flejes, solo Kg total". El pesaje arranca con 1 pallet y se suman con
+     "+ pallet", igual que Brawin/Szapiro. Sólo front. -->
 <!-- v3.72.0 (2026-10-02) — EL "→ Virgilio" DEL PESAJE VA ARRIBA (botón que despliega el input, no la
      caja fija del medio) [Thomas: "que sea un botón arriba. No en esa pantalla principal"]. Y al lado
      del stepper de Rollos aparece el KG POR ROLLO = (balanza − tara del pallet) / rollos, en vivo
@@ -704,14 +709,6 @@ input[type="text"]{width:200px}
       <label id="kgValueLabel" style="display:block;margin-bottom:8px;font-size:18px;font-weight:700">Cantidad</label>
       <input type="text" id="kgValue" inputmode="decimal" placeholder="0,0">
       <div id="kgConvDisplay" class="kg-conv"></div>
-      <!-- Campos extra POR PROVEEDOR de flejes (usuario 2026-09-01):
-             Basconia: KG x Rollo
-             Altrak / Hermac: Rollos totales
-             Aperam / Brawin / Szapiro / JL Metales (pend): solo KG total
-           El HTML se construye desde JS en abrirPopup segun fieldsFleje(prov).
-           Los inputs generados usan los ids conservados (kgRollos, kgKgPorRollo)
-           para que guardar() los lea sin ramas nuevas. -->
-      <div id="rolloPallRow" class="hidden" style="margin-bottom:16px"></div>
       <!-- La unidad casi nunca se cambia (cada insumo ya viene con la suya), asi
            que va discreta y al pie: se sigue viendo cual esta elegida, pero no
            compite con la cantidad, que es el dato que se carga. -->
@@ -771,21 +768,10 @@ let rubroSel="", sidSel=0, provSel="", provsRubro=[], marcaSel="", formatoSel=""
 //   pesaje:        remito solo kg, mismo pesaje por pallet (resto de flejeros)
 //   peso_total:    factura en uni, se pesa el total (Bella Vista)
 function provModo(nom){ var f=PROVFLAGS[nom]; return (f&&f.modo_control)||'ninguno'; }
-/* Campos extra en el popup de recepcion segun proveedor de flejes (usuario
-   2026-09-01): "añadir los datos en los que tienen mas datos aparte de KG
-   total (KG total ya aparece)". Retorno: {rollos, kgPorRollo}. Si el prov
-   no matchea, no se agrega ningun campo extra (solo KG total, como Aperam/
-   Brawin/Szapiro/JL Metales — este ultimo pendiente de definir por el
-   usuario, hoy queda como los demas). */
-function fieldsFleje(nom){
-  var p = String(nom||'').trim().toLowerCase();
-  // [usuario 2026-09-01, revision final]: TODOS los proveedores de fleje
-  // piden SOLO Kg total, excepto Hermac que suma Paquetes. Importado sin
-  // cambios (nunca tuvo campo extra). Basconia pierde el "Kg x Rollo" que
-  // tenia; Altrak/Aperam/Brawin/Szapiro/JL Metales siguen igual (solo kg).
-  if (p==='hermac') return { paquetes:true };
-  return {};
-}
+/* El remito de fleje pide SOLO el Kg total, para TODOS los proveedores. Hermac era la ultima
+   excepcion (pedia "Paquetes" obligatorio, guardado en p_pallets) y se saco el 2026-10-02 [usuario:
+   "en la recepcion de flejes de Hermac me pide que le ponga paquetes, que me pida solo kg como el
+   resto"]. Sin ese dato el pesaje arma 1 pallet y se suman con "+ pallet", como Brawin/Szapiro. */
 /* SE CARGA Y SE GUARDA EN UNIDADES (usuario 2026-09-03: "en el caso de eduardo
    pintos, pat bet plast, pettofrezza rafael. cuando voy a cargar un remito que
    me tire por default unidades (kg borralo) y en el control que pueda poner los
@@ -850,20 +836,6 @@ function ocultarProv(nom){
   // todos modos nunca cayo por sector (ALAMBRE es sector 13, no Flejes). EstaMetal sigue oculto
   // (fuera de circulacion).
   return p==='estametal';
-}
-function pintarFieldsFleje(flds){
-  var row = $('rolloPallRow');
-  var partes = [];
-  // Hermac: input Paquetes (entero). Se guarda en p_pallets (columna que ya
-  // existe en recepcion_insumo). Los rollos/kg-x-rollo del historico ya no
-  // se piden a ningun proveedor (revision usuario 2026-09-01).
-  if (flds.paquetes){
-    partes.push('<div style="flex:1"><label style="font-size:17px;font-weight:700">Paquetes</label>'+
-      '<input type="text" id="kgPaquetes" inputmode="numeric" placeholder="—" style="text-align:center;font-size:24px;padding:10px"></div>');
-  }
-  if (!partes.length){ row.classList.add('hidden'); row.innerHTML=''; return; }
-  row.innerHTML='<div style="display:flex;gap:12px">'+partes.join('')+'</div>';
-  row.classList.remove('hidden');
 }
 // El pesaje/rollos/pallets es EXCLUSIVO de flejes (sector_id=5). Para
 // cajas/plasticos/cartones/remaches/bombillas la recepcion es simple
@@ -1709,11 +1681,6 @@ function abrirPopup(i){
     var u = (UMBY[i.comp_id]==='kg') ? 'kg' : (UMBY[i.comp_id]==='unidad' ? 'uni' : (RUBRO_UM[rubroSel]||'uni'));
     setUnit(u);
   }
-  // Campos extra por proveedor (Basconia Kg x Rollo, Altrak/Hermac Rollos):
-  // el rolloPallRow se re-construye desde JS y arranca vacio. Fuera de flejes
-  // no se muestra nada.
-  var flds = esFleje(i) ? fieldsFleje(provSel) : {};
-  pintarFieldsFleje(flds);
   $('kgPopup').classList.add('open');
   setTimeout(()=>$('kgValue').focus(),50);
 }
@@ -2644,19 +2611,9 @@ async function guardar(){
   try{
     var fiso=$('txtFecha').value?($('txtFecha').value+'T12:00:00'):null;
     var modoCtl = esFleje(itemSel) ? provModo(provSel) : 'ninguno';
-    // Campos por proveedor (2026-09-01). Rollos: input directo. KgxRollo
-    // (Basconia): se guarda el rollos computado = round(kg / kg_por_rollo)
-    // asi el pesaje del paso 2 tiene con que armarse. Pallets ya no se pide
-    // en el remito: default null (el paso 2 arma 1 pallet y el operario
-    // suma con "+ pallet" si hace falta).
-    var flds = esFleje(itemSel) ? fieldsFleje(provSel) : {};
+    // Rollos y pallets ya no se piden en el remito (ningun proveedor, Hermac incluido desde el
+    // 2026-10-02): default null, el paso 2 arma 1 pallet y el operario suma con "+ pallet".
     var rll=null, pll=null;
-    // Hermac (revision usuario 2026-09-01): pide "Paquetes" que se guarda en
-    // p_pallets. El paso 2 arma N bloques (uno por paquete) para pesar.
-    if (flds.paquetes){
-      pll = parseInt(($('kgPaquetes').value||'').replace(/\D/g,''),10)||null;
-      if(!pll){ m.className='status bad'; m.textContent='Cargá los paquetes del remito.'; $('kgConfirm').disabled=false; return; }
-    }
     // NUEVO (2026-09-02): NO llamar cargar_recepcion aca. Bufferizar en PEND
     // y bajar todo junto al presionar "✓ Terminé de cargar remito" (para que
     // varios items compartan el mismo remito y se pueda restar/eliminar).
@@ -2773,12 +2730,6 @@ $('kgValue').addEventListener('input', function(){
   var entero = (unitSel==='uni' || unitSel==='paq' || unitSel==='env');
   sanInput($('kgValue'), entero ? sanInt : sanDec);
   updateConv();
-});
-/* Delegacion en rolloPallRow: hoy solo Hermac (kgPaquetes, entero).
-   [usuario 2026-09-01: TODOS los flejes solo Kg total; Hermac suma
-   Paquetes]. */
-$('rolloPallRow').addEventListener('input', function(e){
-  if(e.target.id==='kgPaquetes') sanInput(e.target, sanInt);
 });
 $('txtFecha').value=hoy();
 cargar();
