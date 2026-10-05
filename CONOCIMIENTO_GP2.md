@@ -15011,8 +15011,9 @@ de Cuchara, Cucharon, etc"*.
   `cuenta_mo=false` las dos). Invariantes U/W en 0.
 - **NO aplicado, espera al dueño** `[dato]`: la letra tiene otro tiempo u otro `cuenta_mo` que la base, y
   la matriz guarda UN solo tiempo, así que juntarlas pisa el de la letra:
-  - ✅ **237B: APLICADO el 05/10 (§4iy)** — el dueño dijo que se unificó. Lo que sigue es el análisis previo y quedó
-    resuelto: costea 5 s en 720/722/858 y la 237 ya no es «sólo 570/542/543».
+  - ↩ **237B: NO se une a la 237** (§4iy). El 05/10 se aplicó la unión y ese mismo día el dueño la **retiró**: la 237
+    sale SÓLO de 542/543/570 y los pasos de 720/722/858 viven en una matriz propia, la **515**. Lo que sigue es el
+    análisis previo, que vuelve a valer.
   - **237B** «Colocar Insertos y Ojales Mgo Chef» (sin tiempo, `cuenta_mo=false`) → **237** «Poner Capuchon
     Mgo Espatula» (5 s, `cuenta_mo=true`): 720/722/858 pasarían a costear 5 s de MO (+$10 c/u, el mismo
     efecto medido en 570/542/543 el 02/10). Y choca con `[Thomas 02/10]` *"Aplica la 237 en esos 3
@@ -15218,31 +15219,28 @@ de Cuchara, Cucharon, etc"*.
 - Tests: `test_cambiar_contraparte.js`, `test_programa_cambio_contraparte.js`. Respaldo `db/` al día (6 funciones, 2 tablas;
   md5 de cada función verificado contra la base).
 
-## 4iy. La 237 pregunta qué pieza fabricás (542·543·570 / 720·722 / 858): la 237B se unifica en la 237 (2026-10-05)
+## 4iy. La 237 NO se une con la 237B: 720/722/858 van en la matriz nueva 515 «Colocar Inserto y Ojal al Mgo» (2026-10-05)
 
-- **[usuario, Nazareno, 05/10, textual]** *«En la 237 no me aparecen las variantes de que quiero producir si el de 542,
-  543, 570, 720, 722 o 858 (los últimos tres porque se unificó la matriz 237B con la 237)»*. Es la última de las
-  «matrices con letra» que esperaban al dueño (§4is): la 237B pasa a ser la 237, como la 12B → 12 y la 254B → 254.
-- **Por qué no salía el selector `[dato]`:** la tablet pregunta *qué pieza fabricás* sólo si la matriz expulsa 2+ piezas
-  distintas (`registro_operarios_bundle().matriz_salidas`, el mismo mecanismo de la 505). La 237 expulsaba UNA
-  (`PC10-M237`) y 720/722/858 estaban en otra matriz (237B, activa), así que la 237 tipeada mostraba una sola tarjeta.
-- **Aplicado `[dato]`** (`db/migracion_matriz_237b_en_237_20261005.sql`): los 9 pasos de la 237B (`ruta_paso` 4268–4276)
-  pasan a la 237; matriz 413 (237B) `activa=false`, 0 pasos, 0 producción en las dos. La 237 saca ahora **3 piezas**:
-  `PC10-M237` (542·543·570), `PB6-M237B` (720·722) y `PC7-M237B` (858). Los 6 artículos son 3 piezas porque
-  542/543/570 comparten el mismo intermedio (y 720/722), igual que en la 505 hay una pieza por artículo; si se quisieran
-  6 tarjetas habría que separar el intermedio por artículo, y el stock sumaría igual a 3 componentes.
-- **Plata `[dato]`:** la 237B no tenía tiempo (`cuenta_mo=false`) y la 237 sí (5 s, `cuenta_mo=true`): con una sola matriz
-  hay un solo tiempo, así que **720, 722 y 858 pasan a costear 5 s de MO = +$10,00 c/u** (el mismo efecto que tuvieron
-  570/542/543 el 02/10, §4id). Medido contra el snapshot: cambian SÓLO 720 ($642,66 → $652,66), 722 ($643,99 → $653,99),
-  858 ($865,87 → $875,87), `PB6-M237B`, `PC7-M237B` y los tres `-ARM`, +$10,00 cada uno; ningún otro de los 831
-  componentes cambió. Respaldos con RLS: `zz_backups."GP2_Backup_rutas_237b_20261005"` y
-  `zz_backups."GP2_Snap_costo_20261005_237b"`. Invariantes L, U, W, AA, AB, AD, AJ = 0; AE = 2 (la base).
-- **Corrige §4id/§4is:** *«la 237 sólo en 570/542/543»* ya no vale. Eso era qué artículos pasan por la 237 cuando la
-  pone Cervantes en lo que arma Fábrica; el dueño unificó la 237B en la 237, así que 720/722/858 también.
-- **Tablet `[dato]`** (`operarios_gp2.js`, token `20261005c`, `version.js` v1.238.1): cada tarjeta del selector de pieza
-  muestra los artículos que usan esa pieza («Art. 542 · 543 · 570») y la línea ya elegida los repite. Sale de `arts`,
-  nuevo en cada salida de `matriz_salidas` (se calcula desde `ruta.articulo_id`); una tablet con el bundle viejo en
-  caché ignora el campo y muestra lo de antes. La 505 también lo gana (943E, 942E…). `test_op_e2e.js` (falla con el JS
-  anterior).
-- **Efecto operativo `[deducido]`:** `PB6-M237B` y `PC7-M237B` nacen con stock 0 y suben recién cuando se registre
-  producción de la 237 con esa pieza elegida.
+- **[usuario, Nazareno, 05/10, textual]** *«Me retracto: de la matriz 237 salen solo de los arts 542, 543 o 570. Crea un
+  número de matriz (el siguiente a la última) para 720, 722 o 858 y que se llame Colocar Inserto y Ojal al Mgo»*.
+- **RETIRADO** lo que esta misma sesión asentó una hora antes (*«se unificó la matriz 237B con la 237»*, que dio
+  +$10,00 en 720/722/858 y una 237 con 3 piezas): la unión no existe. La 237 sale **sólo de 542/543/570**, como
+  decía §4id; no hay selector de pieza en la 237 (una sola pieza, `PC10-M237`).
+- **Matriz 515 `[dato]`** (`db/migracion_matriz_inserto_ojal_20261005.sql`): id 414, «Colocar Inserto y Ojal al Mgo»,
+  activa, `cuenta_mo=false`, sin tiempo (copia de la 237B). Los 9 pasos de 720/722/858 (`ruta_paso` 4268–4276) pasan a
+  la 515. Costo: **huella de `v_costo_componente` idéntica a la de antes de la unión** (`a0a9f137…`, total $535.101,71,
+  0 componentes distintos), o sea que el +$10,00 desapareció. La 237B (id 413) queda `activa=false`, 0 pasos, 0
+  producción: reemplazada por la 515, no se reactiva.
+- **Por qué 515 y no 907 ni 513 `[dato]`:** la serie de números de la planta llega a **514** en el catálogo vivo
+  (`public."Matrices"`: 513 «colocar etiqueta a bombillas», 514 «Env Rallador Mini Imp.», con registros de hoy en
+  `public.db_n8n_espejo`), y GP2 sólo tiene hasta la 512. Un 513 en GP2 se habría pisado con la producción real de
+  Entero; la 900–906 es otra familia («p.p. Ajo»). `[deducido]` «la última» es la 514; **si se quería la 907, es un
+  `update "GP2".matriz set n_matriz='907' where id=414`** (0 producción, sin otra referencia).
+- **Tablet:** la 515 saca 2 piezas (`PB6-M237B` para 720·722 y `PC7-M237B` para 858) y el selector de pieza
+  aparece solo, con los artículos en cada tarjeta (el campo `arts` de `matriz_salidas`, v1.238.1, que se queda: también
+  lo usan la 505, la 12, etc.). `test_op_e2e.js` pasó a usar la matriz 12 como ejemplo (3 piezas, 6 artículos).
+- **Pendiente, propuesto y NO hecho:** los dos intermedios se siguen llamando `PB6-M237B` / `PC7-M237B` («… tras M237B»)
+  aunque ya no salen de la 237B; por la convención de la 505 (`Z44-M505`) pasarían a `PB6-M515` / `PC7-M515`.
+- **El respaldo** `zz_backups."GP2_Backup_rutas_237b_20261005"` (los 9 pasos de la 237B) y
+  `zz_backups."GP2_Snap_costo_20261005_237b"` (costos de los 831 componentes) quedan como prueba de que se volvió al
+  costo original.

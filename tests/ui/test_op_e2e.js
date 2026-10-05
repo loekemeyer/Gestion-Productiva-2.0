@@ -235,36 +235,35 @@ window.supabase = { createClient: function(url, key, opts){ window.__sbOpts = op
     await page.click('#btnResetSelection');
   }
 
-  // MATRIZ 237 (2026-10-05, usuario: "en la 237 no me aparecen las variantes de que quiero
-  // producir: 542, 543, 570, 720, 722 o 858"). Con la 237B unida a la 237 la matriz expulsa
-  // TRES piezas (542/543/570 comparten PC10-M237; 720/722 PB6-M237B; 858 PC7-M237B): la
-  // tablet tiene que preguntar cual y mostrar los ARTICULOS de cada una, que es en lo que
-  // piensa el operario. Antes la 237 expulsaba una sola pieza y no preguntaba nada.
+  // SELECTOR DE PIEZA CON LOS ARTICULOS (2026-10-05, usuario: "en la 237 no me aparecen las variantes
+  // de que quiero producir"). La tablet pregunta que pieza fabricas cuando la matriz expulsa 2+
+  // piezas, y cada tarjeta tiene que decir a que ARTICULOS corresponde, que es en lo que piensa
+  // el operario. Fixture real: la matriz 12 saca G13 (101 y 501), I11 (701) e I6 (502, 512 y 66).
   {
     await page.evaluate(() => {
-      D.matrices = D.matrices.concat([{ n: '237', d: 'Poner Capuchon Mgo Espatula', ppk: null, uxg: 1, maq: null, act: true }]);
-      D.matriz_salidas = Object.assign({}, D.matriz_salidas, { '237': [
-        { comp_id: 965, codigo: 'PB6-M237B', descripcion: 'Mango Chef armado (Espatula) tras M237B', arts: '720 · 722' },
-        { comp_id: 964, codigo: 'PC10-M237',  descripcion: 'Mango LK Espatula c/Capuchon tras M237',  arts: '542 · 543 · 570' },
-        { comp_id: 966, codigo: 'PC7-M237B',  descripcion: 'Mango Chef armado (Canelones) tras M237B', arts: '858' } ] });
+      D.matrices = D.matrices.concat([{ n: '12', d: 'Doblado Mango Plano', ppk: null, uxg: 1, maq: 'balancin', act: true }]);
+      D.matriz_salidas = Object.assign({}, D.matriz_salidas, { '12': [
+        { comp_id: 5,  codigo: 'G13', descripcion: 'Mgo Plano 501 Dobl p/Pintar',    arts: '101 · 501' },
+        { comp_id: 17, codigo: 'I11', descripcion: 'Mgo Plano 701 Doblado c/Marca',  arts: '701' },
+        { comp_id: 22, codigo: 'I6',  descripcion: 'Mango Plano 502 Doblado',        arts: '502 · 512 · 66' } ] });
     });
     await page.click('.box[data-code="E"]');
-    await page.fill('#textInput', '237');
+    await page.fill('#textInput', '12');
     await page.dispatchEvent('#textInput', 'input');
     const tiles = await page.locator('#piezaGrid .mz').allTextContents();
-    ok(tiles.length === 3, 'la 237 pregunta que pieza fabricas: 3 opciones — ' + tiles.length);
+    ok(tiles.length === 3, 'la matriz 12 pregunta que pieza fabricas: 3 opciones — ' + tiles.length);
     const todos = tiles.join(' | ');
-    ok(['542', '543', '570', '720', '722', '858'].every(a => todos.includes(a)),
-       'se ven los 6 articulos 542, 543, 570, 720, 722 y 858 — ' + todos);
-    ok(tiles.some(t => t.includes('PC10-M237') && t.includes('542 · 543 · 570')),
-       'cada pieza muestra SUS articulos (PC10-M237 -> 542 · 543 · 570)');
+    ok(['101', '501', '701', '502', '512', '66'].every(a => todos.includes(a)),
+       'se ven los 6 articulos 101, 501, 701, 502, 512 y 66 — ' + todos);
+    ok(tiles.some(t => t.includes('I6') && t.includes('502 · 512 · 66')),
+       'cada pieza muestra SUS articulos (I6 -> 502 · 512 · 66)');
     ok(await page.locator('#btnEnviar').isDisabled(), 'sin elegir pieza no se puede Enviar');
-    await page.locator('#piezaGrid .mz', { hasText: '858' }).click();
+    await page.locator('#piezaGrid .mz', { hasText: 'I11' }).click();
     const linea = await page.textContent('#piezaGrid .pieza-cambiar');
-    ok(linea.includes('PC7-M237B') && linea.includes('art. 858'), 'elegida la pieza, la linea dice los articulos — ' + linea.trim());
+    ok(linea.includes('I11') && linea.includes('art. 701'), 'elegida la pieza, la linea dice los articulos — ' + linea.trim());
     ok(!(await page.locator('#btnEnviar').isDisabled()), 'con la pieza elegida se habilita Enviar');
     // bundle viejo (cacheado en la tablet, sin "arts"): sigue funcionando, solo sin la linea
-    await page.evaluate(() => { piezaSel = null; D.matriz_salidas['237'].forEach(s => { delete s.arts; }); renderPiezaPicker('237'); });
+    await page.evaluate(() => { piezaSel = null; D.matriz_salidas['12'].forEach(s => { delete s.arts; }); renderPiezaPicker('12'); });
     const sinArts = await page.locator('#piezaGrid .mz').allTextContents();
     ok(sinArts.length === 3 && !sinArts.join('').includes('Art.'), 'bundle viejo sin arts: 3 piezas y sin linea de articulos');
     await page.click('#btnResetSelection');

@@ -1,3 +1,7 @@
+-- ⚠ REVERTIDO EL MISMO DIA (05/10/2026): el dueño retiro la union ("Me retracto: de la matriz 237 salen solo de los
+-- arts 542, 543 o 570"). Los pasos de la 237B NO quedaron en la 237: pasaron a la matriz nueva 515, ver
+-- db/migracion_matriz_inserto_ojal_20261005.sql. NO volver a correr este archivo; se conserva por la historia.
+-- La parte 2 (RPC con 'arts' en matriz_salidas) SI sigue vigente.
 -- 2026-10-05 — Matriz 237B unificada en la 237 + la tablet muestra los ARTICULOS de cada pieza.
 -- [usuario, Nazareno] "En la 237 no me aparecen las variantes de que quiero producir si el de 542, 543,
 -- 570, 720, 722 o 858 (los ultimos tres porque se unifico la matriz 237B con la 237)". CONOCIMIENTO §4iy.
