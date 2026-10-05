@@ -13735,6 +13735,8 @@ Contexto: app unificada `GP2-Registro-Produccion`, se arranca por Cervantes. Tab
   12C (Chef) → I11 Mango Plano 701 doblado c/marca → abrelatas a manija 701 (CHEF).
   Los rótulos del cartel de RP 2.0 están BIEN. Lo que está mal: la descripción de la 12 en Causa-Efecto dice
   "(Chef Marip)" y GP2 pone I11 (701 Chef) como pieza de la **matriz 12** en vez de la **12C**.
+  **CORRECCIÓN 05/10 (§4ir):** lo de I11 en la 12 NO está mal — la variante con letra es la base con una
+  salida más; la 12B también pasó a la 12.
 - [dato 29/09, CORRECCIÓN del análisis de matrices] **GP2 = 115 matrices originales (Excel del dueño, con tipo; 107 con ruta)
   + 292 de catálogo (22/09, §4fa, sin tipo ni ruta a propósito).** Las variantes con letra están todas en el catálogo
   (salvo 12B, que tiene ruta): el Excel original modela esos casos como PIEZA de la matriz base. No confundir "sin ruta"
@@ -14958,3 +14960,30 @@ de Cuchara, Cucharon, etc"*.
 - ⚠ El conector de Supabase de Claude **no ejecuta** SQL que contenga `DROP` o `delete from` (ni adentro
   del cuerpo de una función): espera una confirmación que en una sesión remota nadie da y corta a los
   60 s sin aplicar nada. Por eso la función nueva en vez de cambiarle la firma a la vieja.
+
+## 4ir. Matriz con letra = la matriz BASE que expulsa un componente más (lógica 505) (2026-10-05)
+- `[usuario 2026-10-05, sin identificar, textual]` *"Quiero que saques de los despieces las matrices que tienen
+  una letra. Observá como funciona la matriz 505 y esa es la lógica que quiero que uses. Ejemplo: Matriz 12B
+  desaparece porque en realidad es la matriz 12 que se le suma un componente más que expulsa que sería el
+  G13 · Mgo Plano 501 Dobl p/Pintar"*.
+- **Regla:** una variante con letra no es otra matriz: es la base con una salida más. En la ruta va la base;
+  la letra queda `activa=false` y con 0 pasos. Mismo molde que la 505 (§4in) y que la 28 (28B = 28 + pieza
+  J5, §4gr). La tablet de operarios ya pide la pieza (`matriz_salidas`): sin cambio de código.
+- **Corrige** la nota de §4gr del 29/09 (*"GP2 pone I11 como pieza de la matriz 12 en vez de la 12C"*): con esta
+  regla NO es un error, es lo correcto.
+- **Aplicado** `[dato]` (`db/migracion_matrices_con_letra_20261005.sql`): 12B → 12 (pasos 3 y 10, G11 → G13,
+  arts 101/501; la 12 saca ahora I6 · I11 · G13) y 254B → 254 (6 pasos → 858-ARM; la 254 saca 570-ARM ·
+  858-ARM). Matrices 10 y 318 `activa=false`, 0 producción. **Costo idéntico**: huella de
+  `v_costo_componente` `588e8801…` y total $534.957,43 antes y después (12/12B 6,5 s las dos; 254/254B
+  `cuenta_mo=false` las dos). Invariantes U/W en 0.
+- **NO aplicado, espera al dueño** `[dato]`: la letra tiene otro tiempo u otro `cuenta_mo` que la base, y
+  la matriz guarda UN solo tiempo, así que juntarlas pisa el de la letra:
+  - **237B** «Colocar Insertos y Ojales Mgo Chef» (sin tiempo, `cuenta_mo=false`) → **237** «Poner Capuchon
+    Mgo Espatula» (5 s, `cuenta_mo=true`): 720/722/858 pasarían a costear 5 s de MO (+$10 c/u, el mismo
+    efecto medido en 570/542/543 el 02/10). Y choca con `[Thomas 02/10]` *"Aplica la 237 en esos 3
+    artículos"* (570/542/543).
+  - **309B** «Env Rompenuez CH» 41 s → **309** «Env Rompenuez» 82 s (507 y 707 son 12 x caja los dos).
+  - **394C** «Pala Canelones X 12 Chef» 15 s → **394** «Env Pala Canelones X 24» 28 s.
+  309/394 son de envase (`cuenta_mo=false`): hoy no mueven costo, pero sí el premio de la tablet GP2 y el
+  costo el día que se costee el envasado.
+  - **S/N** «Corte Arandela Cuchillitos» (519/719): no tiene base; queda como está.
