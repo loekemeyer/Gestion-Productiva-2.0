@@ -125,7 +125,7 @@
       <div class="ctrl-group"><label>Producción de</label>
         <div class="seg-fuente" id="segFuente">
           <button type="button" class="btn-act" data-fuente="gp2" title="Tabla GP2.produccion">GP2</button>
-          <button type="button" class="btn-act ghost" data-fuente="entero" title="Tabla db_n8n_espejo de Gestión Productiva Entero (solo lectura)">Gestión Productiva Entero</button>
+          <button type="button" class="btn-act ghost" data-fuente="entero" title="Tabla db_n8n_espejo de Gestión Productiva Entero (se lee y se puede anular)">Gestión Productiva Entero</button>
         </div>
       </div>
       <div class="ctrl-group"><label>Desde</label><input type="date" id="fDesde" class="ctrl-input"></div>
@@ -217,9 +217,10 @@
   var FUENTE = 'gp2';     /* 'gp2' | 'entero' */
   /* ANULAR ACTIVADO (Elias, 2026-10-05; lo pidio apagar y despues lo pidio prender de nuevo, por eso
      queda este interruptor). true = el boton de la ventana de registros y el click sobre un punto de la
-     campana anulan / reactivan el registro con GP2.anular_produccion; false = esas dos acciones quedan
-     apagadas. Solo funciona con la fuente GP2: en Entero es de solo lectura (public no se escribe). Los
-     registros que YA estan anulados (anular_tiempo) quedan fuera del calculo con el interruptor que sea. */
+     campana anulan / reactivan el registro; false = esas dos acciones quedan apagadas. Con la fuente GP2
+     llama a GP2.anular_produccion; con la fuente Entero, a public.toggle_anular_tiempo (la misma funcion
+     que usa Tiempos Matrices de Entero; Elias lo pidio prendido tambien ahi). Los registros que YA estan
+     anulados (anular_tiempo) quedan fuera del calculo con el interruptor que sea. */
   var ANULAR_ACTIVO = true;
   var POP = null, POPSORT = { k: 'dist', dir: -1 }, GRA = null, CHART = null;
 
@@ -244,14 +245,15 @@
   /* ===== FUENTE DE LA PRODUCCION (pedido de Elias, 2026-10-05) =====
      'gp2'    -> GP2.produccion (por defecto: es el schema de esta app).
      'entero' -> public.db_n8n_espejo, la produccion de Gestion Productiva Entero. EXCEPCION a la
-                 Regla 0 ("GP2 nunca lee public") pedida por el dueño con nombre: es SOLO LECTURA,
-                 de esa unica tabla, y con anular apagado. GP2.produccion arranco el 2026-09-08 y
-                 tiene poco historico; Entero tiene la produccion desde enero.
-                 Se lee con sb.schema('public'): el mismo cliente GP2_SB(), sin createClient suelto.
+                 Regla 0 ("GP2 nunca lee public") pedida por el dueño con nombre: de esa unica
+                 tabla se LEE, y lo unico que se ESCRIBE es anular / reactivar un registro con la
+                 RPC public.toggle_anular_tiempo (tambien pedido por el dueño). GP2.produccion arranco
+                 el 2026-09-08 y tiene poco historico; Entero tiene la produccion desde enero.
+                 Todo va con sb.schema('public'): el mismo cliente GP2_SB(), sin createClient suelto.
      El maestro (GP2.matriz) y los nombres (GP2.empleado) salen siempre de GP2. */
   var FUENTES = {
     gp2:    { corto: 'GP2',    tabla: 'GP2.produccion' },
-    entero: { corto: 'ENTERO · solo lectura', tabla: 'public.db_n8n_espejo (Gestión Productiva Entero)' }
+    entero: { corto: 'ENTERO', tabla: 'public.db_n8n_espejo (Gestión Productiva Entero)' }
   };
   function fuenteGuardada() {
     try { return localStorage.getItem('gp2_tiempos_fuente') === 'entero' ? 'entero' : 'gp2'; } catch (e) { return 'gp2'; }
@@ -347,7 +349,7 @@
       .map(fuente === 'entero' ? deEntero : deGP2)
       .filter(function (p) { return p.matriz; });
     $('notaFuente').innerHTML = 'Producción leída de <b>' + esc(FUENTES[fuente].tabla) + '</b>: ' + n0(RECS.length) +
-      ' registros del rango' + (fuente === 'entero' ? ' (solo lectura)' : '') + '.';
+      ' registros del rango.';
     construir();
     render();
   }
@@ -643,7 +645,7 @@
       ar.textContent = th.getAttribute('data-pcol') === POPSORT.k ? (POPSORT.dir > 0 ? '▲' : '▼') : '▲';
       ar.style.color = th.getAttribute('data-pcol') === POPSORT.k ? '#111' : '#94a3b8';
     });
-    var soloLectura = FUENTE !== 'gp2' || !ANULAR_ACTIVO;
+    var sinAnular = !ANULAR_ACTIVO;
     $('thAnular').textContent = ANULAR_ACTIVO ? 'Anular' : 'Anulado';
     $('regBody').innerHTML = regs.map(function (r) {
       var excl = !r.anulado ? row.excluidos.get(r) : null;
@@ -653,7 +655,7 @@
         '<span class="' + (pj.p > 0 ? 'desv-good' : (pj.p < 0 ? 'desv-bad' : 'desv-na')) + '"' + (pj.calc ? ' style="font-style:italic" title="calculado al vuelo (el premio está en 0)"' : '') + '>' +
         (pj.p > 0 ? '+' : '') + n2(pj.p) + '</span>';
       var btn = '<button type="button" class="eye-btn' + (r.anulado ? ' off' : '') + '" data-id="' + esc(r.id) + '" ' +
-        (soloLectura ? 'disabled title="' + (!ANULAR_ACTIVO ? 'Anular está desactivado en esta pantalla' : 'Solo lectura: la producción de Gestión Productiva Entero se anula desde esa app') + '"' : 'title="' + (r.anulado ? 'Reactivar' : 'Anular') + ' tiempo"') + '>' +
+        (sinAnular ? 'disabled title="Anular está desactivado en esta pantalla"' : 'title="' + (r.anulado ? 'Reactivar' : 'Anular') + ' tiempo"') + '>' +
         (r.anulado ? '&#128683;' : '&#9989;') + '</button>';
       return '<tr' + cls + '>' +
         (row.grupo ? '<td>' + esc(r.matriz) + '</td>' : '') +
@@ -667,24 +669,38 @@
     }).join('');
   }
 
-  /* Anular / reactivar un registro: SOLO en GP2 (RPC GP2.anular_produccion, que exige sesion
-     autorizada). La RPC reescribe los campos que recibe, asi que se le manda lo que el registro
-     ya tiene y cambia unicamente p_anular. En modo Entero no se escribe nada: public es solo lectura. */
+  /* Anular / reactivar un registro. Dos caminos, segun la fuente:
+     - GP2: RPC GP2.anular_produccion (exige sesion autorizada). Reescribe los campos que recibe, asi
+       que se le manda lo que el registro ya tiene y cambia unicamente p_anular.
+     - Entero: RPC public.toggle_anular_tiempo(row_id), la misma que usa Tiempos Matrices de Entero, por
+       .schema('public'). ALTERNA el valor y devuelve el nuevo: se usa lo que devuelve, no lo que la pantalla
+       creia. Devuelve NULL si el registro no existe o si su Anular_Tiempo esta vacio (NULL): ahi no hace
+       nada, y se avisa. */
   async function alternarAnulado(id) {
     if (!ANULAR_ACTIVO) { toast('Anular está desactivado en esta pantalla.'); return; }
-    if (FUENTE !== 'gp2') { toast('Solo lectura: la producción de Gestión Productiva Entero se anula desde esa app.'); return; }
     var r = RECS.filter(function (x) { return String(x.id) === String(id); })[0];
     if (!r) return;
-    var anular = !r.anulado;
-    var res = await sb.rpc('anular_produccion', {
-      row_id: r.id,
-      p_hora_inicio: r.horaIni, p_hora_fin: r.horaFin,
-      p_seg_tiempo_muerto: r.segTM, p_uni: r.uni, p_seg_trabajados: r.seg,
-      p_seg_historico: r.segHist, p_premio: r.premio,
-      p_anular: anular
-    });
-    if (res.error) { toast('No se pudo ' + (anular ? 'anular' : 'reactivar') + ' el registro: ' + res.error.message); return; }
-    r.anulado = anular;
+    var nuevo;
+    if (FUENTE === 'entero') {
+      var rt = await sb.schema('public').rpc('toggle_anular_tiempo', { row_id: r.id });
+      if (rt.error) { toast('No se pudo cambiar el registro: ' + rt.error.message); return; }
+      if (rt.data === null || rt.data === undefined) {
+        toast('No se pudo anular: el registro no existe o tiene el campo Anular_Tiempo vacío (se corrige desde Gestión Productiva Entero).');
+        return;
+      }
+      nuevo = !!rt.data;
+    } else {
+      nuevo = !r.anulado;
+      var res = await sb.rpc('anular_produccion', {
+        row_id: r.id,
+        p_hora_inicio: r.horaIni, p_hora_fin: r.horaFin,
+        p_seg_tiempo_muerto: r.segTM, p_uni: r.uni, p_seg_trabajados: r.seg,
+        p_seg_historico: r.segHist, p_premio: r.premio,
+        p_anular: nuevo
+      });
+      if (res.error) { toast('No se pudo ' + (nuevo ? 'anular' : 'reactivar') + ' el registro: ' + res.error.message); return; }
+    }
+    r.anulado = nuevo;
     construir();
     render();
     if (POP) { var rowP = filaDe(POP); if (rowP) renderRegistros(rowP); }
@@ -776,7 +792,6 @@
           if (!ANULAR_ACTIVO) return;
           var pt = puntos[el.index];
           if (pt.regId == null) { toast('Este punto junta ' + pt.nRegs + ' registros (' + pt.quien + '): anulalos desde la ventana de registros.'); return; }
-          if (FUENTE !== 'gp2') { toast('Solo lectura: la producción de Gestión Productiva Entero se anula desde esa app.'); return; }
           if (confirm('¿Anular este registro?\n' + pt.quien + ' — ' + n2(pt.x) + ' s' + (pt.excluido ? '\n(excluido automático: ' + pt.excluido + ')' : ''))) alternarAnulado(pt.regId);
         },
         plugins: { legend: { display: false }, tooltip: { callbacks: { label: function (it) {

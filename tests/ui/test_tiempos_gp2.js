@@ -7,7 +7,8 @@
    - el Gauss: un punto por operario y dia, sin Uni 0 / Seg<=1, fuera de 1/3..3x mediana, ni mu+-2 sigma;
    - variantes (3 y 3B juntas; 325 / 325B separadas), avisos "revisar" y "pocos datos";
    - ventana de registros (columna Var solo con variantes, excluidos tachados) y campana;
-   - anular: en GP2 manda anular_produccion con lo que el registro ya tenia; en Entero esta apagado. */
+   - anular: en GP2 manda anular_produccion con lo que el registro ya tenia; en Entero llama a
+     public.toggle_anular_tiempo (por .schema('public')) y usa lo que devuelve; si devuelve NULL avisa. */
 const { chromium } = require('playwright');
 const path = require('path');
 const fs = require('fs');
@@ -54,9 +55,10 @@ const PROD = [
 const MASIVOS = [...Array(2300)].map((_, i) => G('900', 'M' + (i % 50), '2026-09-' + String(1 + (i % 28)).padStart(2, '0'), 100, 1000, 10));
 const ENTERO = PROD.map(aEntero).concat(MASIVOS.map(aEntero));
 
+const ID_NULL = PROD.filter(p => p.matriz_raw === '207')[2].id;   // un registro de la 207 con Anular_Tiempo vacio (NULL)
 const STUB = `
 (function(){
-  window.__consultas = []; window.__rpcs = [];
+  window.__consultas = []; window.__rpcs = []; window.__anul = {}; window.__ID_NULL = ${ID_NULL};
   var DATOS = { 'GP2.matriz': ${JSON.stringify(MATRIZ)}, 'GP2.empleado': ${JSON.stringify(EMPLEADO)},
                 'GP2.produccion': ${JSON.stringify(PROD)}, 'public.db_n8n_espejo': ${JSON.stringify(ENTERO)} };
   function mk(tabla, esquema){
@@ -75,7 +77,18 @@ const STUB = `
   window.supabase = { createClient: function(){ return {
     auth: { onAuthStateChange: function(){} },
     from: function(t){ return mk(t, 'GP2'); },
-    schema: function(s){ return { from: function(t){ return mk(t, s); } }; },
+    schema: function(s){ return {
+      from: function(t){ return mk(t, s); },
+      rpc: async function(n, a){
+        window.__rpcs.push({ n: n, a: a, esquema: s });
+        if (n === 'toggle_anular_tiempo') {
+          if (a.row_id === window.__ID_NULL) return { data: null, error: null };   // Anular_Tiempo vacio: no hace nada
+          var nv = !window.__anul[a.row_id]; window.__anul[a.row_id] = nv;
+          return { data: nv, error: null };
+        }
+        return { data: null, error: null };
+      }
+    }; },
     rpc: async function(n, a){ window.__rpcs.push({ n: n, a: a }); return { data: null, error: null }; }
   }; } };
   window.Chart = function(ctx, cfg){ window.__chart = cfg; this.destroy = function(){}; };
@@ -186,13 +199,27 @@ const STUB = `
   ok(f207 && f207[8] === '16,8' && f207[10] === '15 / 18', 'Entero: los mismos datos dan el mismo Gauss 16,8 (columnas con mayuscula normalizadas)');
   const f900e = await fila('900');
   ok(f900e && f900e[4] === '2.304', 'Entero: 900 tiene 2.304 producciones (4 + 2.300 masivas): ' + (f900e && f900e[4]));
-  // anular apagado en Entero
+  // anular PRENDIDO en Entero: public.toggle_anular_tiempo por .schema('public'), y se usa lo que devuelve
   await page.click('td.mz-tag[data-reg="207"]');
-  ok((await page.$$('#regBody .eye-btn:not([disabled])')).length === 0, 'Entero: todos los botones de anular deshabilitados (solo lectura)');
-  await page.$eval('#regBody .eye-btn', b => { b.disabled = false; b.click(); });
-  await page.waitForTimeout(200);
-  ok((await rpcs()).length === 2, 'Entero: aunque se fuerce el click no se llama a ninguna RPC (siguen las 2 de GP2)');
-  ok((await page.textContent('#toast')).includes('Solo lectura'), 'Entero: el click forzado avisa "Solo lectura" en vez de anular');
+  ok((await page.$$('#regBody .eye-btn:not([disabled])')).length === 18, 'Entero: los 18 botones de anular habilitados');
+  const idUsado = await page.$eval('#regBody tr:not(.excluido):not(.anulado) .eye-btn', b => b.getAttribute('data-id'));
+  await page.click('#regBody tr:not(.excluido):not(.anulado) .eye-btn');
+  await page.waitForFunction(() => window.__rpcs.some(r => r.n === 'toggle_anular_tiempo'));
+  let rt = (await rpcs()).filter(r => r.n === 'toggle_anular_tiempo');
+  ok(rt.length === 1 && rt[0].esquema === 'public' && rt[0].a.row_id === Number(idUsado) && Object.keys(rt[0].a).join() === 'row_id',
+     'Entero: anular llama a public.toggle_anular_tiempo({row_id}) por .schema(public): ' + JSON.stringify(rt[0]));
+  ok((await rpcs()).filter(r => r.n === 'anular_produccion').length === 2, 'Entero: NO llama a anular_produccion de GP2 (siguen las 2 de antes)');
+  ok((await page.$$('#regBody tr.anulado')).length === 1, 'Entero: el registro anulado se ve tachado');
+  ok((await page.textContent('#regStats')).includes('Anulados a mano: 1'), 'Entero: la cabecera cuenta 1 anulado a mano');
+  await page.click('#regBody tr.anulado .eye-btn');
+  await page.waitForFunction(() => window.__rpcs.filter(r => r.n === 'toggle_anular_tiempo').length === 2);
+  ok((await page.$$('#regBody tr.anulado')).length === 0, 'Entero: reactivar (el toggle devuelve false) lo destacha');
+  // el registro con Anular_Tiempo vacio: el toggle devuelve NULL => se avisa y no cambia nada
+  await page.click('#regBody .eye-btn[data-id="' + ID_NULL + '"]');
+  await page.waitForFunction(() => window.__rpcs.filter(r => r.n === 'toggle_anular_tiempo').length === 3);
+  await page.waitForFunction(() => document.querySelector('#toast').classList.contains('on'));
+  ok((await page.textContent('#toast')).includes('Anular_Tiempo vacío'), 'Entero: si el toggle devuelve NULL avisa que el campo esta vacio');
+  ok((await page.$$('#regBody tr.anulado')).length === 0, 'Entero: con NULL el registro no cambia de estado');
   await page.click('#regCerrar');
 
   // ===== 7) volver a GP2 =====

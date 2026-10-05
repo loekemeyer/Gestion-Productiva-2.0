@@ -15085,18 +15085,28 @@ de Cuchara, Cucharon, etc"*.
   esa lista. Coincide con la lógica 505 de 4is (la matriz con letra es la base).
 - **Botón de fuente** (`GP2` · `Gestión Productiva Entero`; la elección queda en el navegador):
   `GP2.produccion` por defecto; `public.db_n8n_espejo` a pedido. **EXCEPCIÓN A LA REGLA 0, pedida por el dueño con
-  nombre:** es solo lectura, de esa única tabla, con `GP2_SB().schema('public')` (no un `createClient` suelto) y
-  `anular` queda apagado en esa fuente. El maestro (`GP2.matriz`) y los nombres (`GP2.empleado`) salen siempre de GP2.
-  `tests/ui/test_contratos_db.js` tiene la excepción **acotada** (`LECTURAS_PUBLIC_PERMITIDAS`: esa pantalla, esa
-  tabla, con `.schema('public')`, y exige que se use una sola vez); cualquier otra lectura de `public` sigue fallando.
+  nombre:** de esa única tabla se **lee**, y lo único que se **escribe** es anular / reactivar un registro con
+  `public.toggle_anular_tiempo(row_id)` (la RPC que ya usa Tiempos Matrices de Entero), todo con
+  `GP2_SB().schema('public')` (no un `createClient` suelto). El maestro (`GP2.matriz`) y los nombres
+  (`GP2.empleado`) salen siempre de GP2. `tests/ui/test_contratos_db.js` tiene la excepción **acotada**
+  (`LECTURAS_PUBLIC_PERMITIDAS` y `RPC_PUBLIC_PERMITIDAS`: esa pantalla, esa tabla, esa RPC, con `.schema('public')`,
+  y exige que cada una se use una sola vez); cualquier otra lectura o RPC de `public` sigue fallando.
 - **Por qué hace falta el botón `[dato, medido 05/10]`:** `GP2.produccion` tiene 36 filas (10 válidas) desde el
   08/09/2026; `public.db_n8n_espejo` tiene 16.240 (6.437 válidas) desde el 18/01. Con la fuente GP2 casi todo da «pocos
   datos». Además 5 matrices reales de Entero (10B, 115, 325C, 513, 514) no están en `GP2.matriz` y salen «no está en el
   maestro», y 9 tienen tiempo cargado distinto entre `GP2.matriz` y `public."Matrices"` (manda GP2).
-- **Anular:** con la fuente GP2 el botón de la ventana y el click en un punto de la campana llaman a
-  `GP2.anular_produccion`, mandándole lo que el registro ya tenía (esa RPC reescribe los campos que recibe) y cambiando
-  solo `p_anular`. Interruptor `ANULAR_ACTIVO` en la pantalla: Elías lo pidió apagar y después prender; hoy `true`.
-- **Hallazgo, NO tocado `[dato, medido 05/10]`:** `public.db_n8n_espejo` tiene políticas de `insert`, `update` y `delete` para `anon` y
-  `authenticated` (`select_all` también): cualquiera con la clave publishable puede escribir o borrar producción de
-  Entero. No se tocó.
+- **Anular** (botón de la ventana de registros y click en un punto de la campana), prendido en las dos fuentes
+  `[usuario Elías, 05/10: "Con la fuente Entero queda apagado, prendido"]`: con GP2 llama a `GP2.anular_produccion`,
+  mandándole lo que el registro ya tenía (esa RPC reescribe los campos que recibe) y cambiando solo `p_anular`; con
+  Entero llama a `public.toggle_anular_tiempo(row_id)`, que ALTERNA y devuelve el valor nuevo (se usa lo que devuelve).
+  ⚠ Esa RPC devuelve NULL, sin hacer nada, si el registro no existe **o si su `Anular_Tiempo` está vacío (NULL)**: la
+  pantalla lo avisa en vez de fallar callada. Interruptor `ANULAR_ACTIVO`: Elías lo pidió apagar y después prender.
+- **Hallazgo, NO tocado `[dato, medido 05/10]`:** `public.db_n8n_espejo` tiene políticas de `insert`, `update` y `delete`
+  para `anon` y `authenticated` (más `select_all`): cualquiera con la clave publishable puede escribir o borrar
+  producción de Entero. **Por qué existen:** la app de operarios `Registro-Produccion-2.0` (`app.js`, clave publishable,
+  sin sesión) guarda el crudo en `"Registros Produccion Cervantes"` y **ella misma** calcula (`procesarParaEspejo`,
+  «replica n8n») y escribe en `db_n8n_espejo` con upsert / insert / update / delete: la base NO pasa el crudo al espejo
+  (ninguna función, trigger ni tarea programada inserta ahí; el único trigger, `gp2_matriz_racha_espejo`, recalcula la
+  racha). Cerrar las políticas rompe esa app: antes hay que mover `procesarParaEspejo` a una RPC `SECURITY DEFINER`.
+  `Registro-Produccion-3.0` está vacío (sin commits) al 05/10.
 - Prueba: `tests/ui/test_tiempos_gp2.js` (42 comprobaciones, Supabase stubeado).
