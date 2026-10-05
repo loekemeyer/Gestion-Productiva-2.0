@@ -2544,10 +2544,15 @@ factor > 1** y 98 en 1:
 
 | Factor | Matrices |
 |---|---|
-| **4** | m16 Corte Arandela manguito (fleje 38 / D4) |
-| **3** | m71 Arandela Grande Afila (10 / F2) · m344 Arandela Base (74 / F10) · mS/N Arandela Cuchillitos (38 / D5) |
+| **4** | m16 Corte Arandela manguito (fleje 38 / D4) · **m344 Arandela Base (74 / F10)** — `[usuario 2026-10-05]` *"4 uni por golpes"*, antes 3 (el Excel decía 3); `GP2.matriz` id 88 |
+| **3** | m71 Arandela Grande Afila (10 / F2) · mS/N Arandela Cuchillitos (38 / D5) |
 | **5** | m72 Arandela Chica Afila (10-11 / F2) — **resuelto abajo**: la hoja buena dice 5, el bloque del final está corrupto |
 | **2** | m7 Cuchilla Abrelatas (2/C7) · m20 Engranaje Gr (3/B8) · m21 Buje 501 (4/C9) · m22 Arandela fina 501 (5/D6) · m15 Arandela fina 502 (5/D6) · m14 Engranaje chico (8/A10) · m40 Sacatapita (25/C1) · m60 Pinza Fideos (39/A4) · **m64 Pinza Fiambre (40/A4)** · **m348 Corte Cuch Untar Mgo Madera (41/B2)** · m66 Pinza Ensalada (45/F5) · m29 Corte Uña (57/B4) · m116 Corte de Aleta (92/C2) |
+
+`[dato 2026-10-05]` **m344 pasó de 3 a 4** (id 88; sin triggers ni vistas que dependan del factor, 0 registros de
+producción de esa matriz). **`tiempo_historico` NO se tocó** y sigue en 0,6 s/uni: con 4 por golpe eso implica
+2,4 s por golpe (con 3 eran 1,8 s). `[deducido]` si el golpe sigue durando 1,8 s, el tiempo por unidad correcto es
+0,45 s; **sin confirmar por el dueño** y mueve el costo de mano de obra de la arandela base.
 
 **Cómo leer la columna sin equivocarse**: la hoja tiene DOS columnas parecidas, *"Uni x Art
 Term"* (col. 13, cuántas piezas lleva el artículo) y *"Uni x Golpe"* (col. 14). Coinciden en
