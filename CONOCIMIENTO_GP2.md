@@ -15015,3 +15015,51 @@ de Cuchara, Cucharon, etc"*.
   309/394 son de envase (`cuenta_mo=false`): hoy no mueven costo, pero sí el premio de la tablet GP2 y el
   costo el día que se costee el envasado.
   - **S/N** «Corte Arandela Cuchillitos» (519/719): no tiene base; queda como está.
+
+## 4it. Envasado de 4 importados: 522E, 323E, 838E, 599E — pieza GRJ + caja → matriz → terminado (2026-10-05)
+
+- `[usuario, Nazareno, 05/10, textual]` *"Te voy a agregar la ruta de 4 artículos porque nos envía Virgilio (que
+  lo importan) y Cervantes lo envasa."* Cada uno: la pieza importada (GRJ) y una caja entran a una matriz y sale
+  el componente terminado (sector 12). Los cuatro eran inexistentes en `GP2.articulo` y como terminado `[dato]`;
+  las matrices 509/510/512 y los GRJ31/32/33 ya estaban, sin pasos.
+
+  | art | marca | pieza (Garage) | caja | matriz | por caja |
+  |---|---|---|---|---|---:|
+  | 522E Sacacorcho Doble Aleta Premium | LOEKE | GRJ33 | A8 · N°2 | 510 «Reenvasado de sacacorcho chino» | 12 |
+  | 323E Rallador 4 Lados Mini | LOEKE | GRJ31 | A11 · N°29 | 512 «Reenvasado imp rallador» | 12 |
+  | 838E Rallador 4 Lados Mini | CHEF | GRJ31 | A11 · N°29 | 512 | 12 |
+  | 599E Pelador Mgo Madera | LOEKE | GRJ32 | A1 · N°1 | 509 «Env Pelador Mgo Madera» | 12 |
+
+- **12 por caja en los 4** `[usuario, 05/10, "12 en los 4"]`. Marca de 838E = CHEF `[usuario 13/09]` (§ ARTICULOS_FUERA:
+  «es el 323E con otro cartón», el Rallador Mini de Chef); las otras tres LOEKE, que es la marca de la línea E
+  `[deducido]`. Descripciones = las que ya usaba el vínculo GV (323ES, 599E, 522E) `[dato]`.
+- **Modelo** (molde 507 / 942E, `db/migracion_envasado_importados_20261005.sql`): una ruta por entrada,
+  `insumo → matriz → virgilio`, nombre «Insumo <cod> -> Art <art>»; receta = pieza ×1 + caja ×1/12 (el invariante
+  AA exige que el paso de insumo diga lo mismo que la receta). 4 artículos, 4 terminados, 8 recetas, 8 rutas, 24
+  pasos. **Sin fila de inventario para el terminado**, igual que 942E y otros 118: `inv_delta` la crea sola en
+  la ubicación «Art. Terminado (Fábrica)» cuando la tablet registra la producción `[dato]`.
+- **La matriz 512 cierra DOS artículos** (323E y 838E): la tablet de operarios pregunta cuál se armó
+  (`matriz_salidas`) y pide CAJAS × 12. 509 y 510 cierran uno solo (`unica` = 12). Sin cambio de código `[dato]`.
+- **No se tocó el vínculo GV → GP2.** El resolutor `importado_virgilio_componente_de` mira SÓLO
+  `importado_virgilio_componente`, nunca `componente.codigo`, así que el terminado `599E`/`522E` de GP2 no le
+  pisa el GRJ32/GRJ33 al aviso de ingreso de Virgilio `[dato: leída la función]`. Queda sin vínculo `838ES`
+  (el suelto de 838E); no se adivina: si Virgilio lo manda, sale «sin componente» hasta que el dueño diga que va a GRJ31.
+- **Verificado** `[dato]`: invariantes L/S/U/W/X/Y/AA/AB/AD/I/K/B en 0 y AE=2 (línea base, no subió); +4/+4/+8/+8/+24
+  exactos; la huella de `v_costo_componente` de los 827 componentes preexistentes no cambió (`2a7497a6…`, total
+  $534.957,43). Costos nuevos: 522E $96,02 (material 21,82 + MO 74,20) · 599E $20,46 · 323E y 838E $13,90 — los
+  4 con `faltan_precios=1` (los GRJ no tienen precio), así que están **subvaluados**.
+- **⚠ Defecto previo, heredado a propósito (decisión 1 abajo).** `fabricar_stock` descuenta `unidades × cantidad del
+  paso de matriz`; en el molde la CAJA lleva cantidad **1** en ese paso (el 1/N está sólo en el paso `insumo` y en la
+  receta). Medido: **42 de 42** terminados con caja en matriz (los 38 previos + estos 4, de 4 a 24 por caja) la
+  tienen en 1, y el simulacro de `fabricar_stock` para 509/510/512 da «caja ×1, pieza ×1». Con la tablet mandando
+  `uni = cajas × articulos_por_caja`, armar 1 caja de 12 descontaría 12 cajas. Hoy no se manifiesta: hay 0
+  movimientos de fabricación de terminados en toda la base `[dato]`; apenas la tablet cargue el primero, el
+  stock de cajas se vacía N veces más rápido de lo real. **No se copió
+  distinto en estos 4**: arreglarlo en la fila de ruta de uno solo los haría divergir de los otros 38 y, si el
+  arreglo es en la función (dividir por `articulos_por_caja` cuando la entrada es sector Caja), 1/12 en el dato se
+  dividiría dos veces.
+- **Decisiones pendientes** (el dueño): (1) cómo corregir la caja ×1 de `fabricar_stock` — en la función (lo que
+  recomiendo) o en las 42 filas; (2) `cuenta_mo` de 509/510/512: nacieron `true` y las otras 20 matrices de
+  envasado están en `false` («por ahora no incluyas el costo», 02/10), por eso 522E suma $74,20 de MO y los demás
+  no; 509 y 512 además no tienen `tiempo_historico` (faltan_tiempos); (3) precio de GRJ31/32/33 (los 4 salen
+  subvaluados) y si 838E lleva el cartón que lo distingue del 323E: no se cargó, el pedido sólo nombró GRJ + caja.
