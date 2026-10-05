@@ -14910,3 +14910,19 @@ de Cuchara, Cucharon, etc"*.
   legajo tipeado, la etiqueta PENDIENTE/ERROR de cada ítem en «Resumen del día», que es donde está el 🗑.
   `[dato]` A las 13:45 del 05/10 los 5 de la captura (LT, E 505, C 10, E 505, C 10, de 13:26 a 13:31) **no
   estaban en `GP2.produccion`** (última fila: 25/09): siguen en la tablet y salen solos al cargar el fix.
+
+## 4ip. Validación Remito vs Control: se valida de a UNA fila (2026-10-05)
+
+[usuario] *"Quiero que me de la opción de validar una por una en vez de tener que validar todas juntas"*.
+
+- **Antes:** el único botón era «Validar (N)» abajo, que mandaba **todas las filas visibles** juntas
+  (§4hd). Para cerrar una sola había que filtrar o dejar las demás para después sin poder separarlas.
+- **Ahora:** cada fila tiene su botón **«Validar»** al lado de Control/Remito. Manda **sólo esa
+  recepción** a `validar_remito_control` (la RPC ya recibía una lista; una lista de uno es lo mismo:
+  **sin cambio en la base**). Pregunta antes qué queda (Remito/Control con su número) y si cambia el
+  stock. Las demás filas siguen en la lista **con lo que se les eligió** (`boot()` conserva `ELEGIDO`).
+- El botón de abajo queda como **«Validar todas (N)»** (lo visible, igual que antes). Mientras una fila
+  se está validando, su botón y su Control/Remito se apagan y «Validar todas» también, para que un doble
+  toque no la mande dos veces.
+- Front: `Relevamiento/ValidacionRemitos_GP2.html` v1.3.0, version.js v1.236.0 (`?v=20261005c`). Test:
+  `tests/ui/test_validacion_remitos.js` (bloque «validar DE A UNA»).

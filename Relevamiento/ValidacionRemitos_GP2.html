@@ -1,6 +1,11 @@
 <!doctype html>
 <html lang="es">
 <head>
+<!-- v1.3.0 (2026-10-05) — VALIDAR DE A UNA [usuario: "Quiero que me de la opción de validar una por una en
+     vez de tener que validar todas juntas"]. Cada fila tiene su botón «Validar» al lado de Control/Remito:
+     manda SOLO esa fila a validar_remito_control (la RPC ya recibía una lista; una lista de uno es lo
+     mismo) y las demás siguen en la lista con lo que se les haya elegido. El botón de abajo queda como
+     «Validar todas (N)» para lo visible, igual que antes. Sin cambio en la base. -->
 <!-- v1.2.0 (2026-10-02) — CUENTA LO QUE SE MANDÓ A VIRGILIO. Una recepción que mandó una parte directo a
      Virgilio (botón "→ Virgilio" del control de cajas / pesaje de flejes, v1.233.0) entraba acá como
      faltante: el bundle comparaba el control contra el REMITO crudo (10) en vez del ESPERADO en Cervantes
@@ -67,24 +72,27 @@
   .cod{font-weight:800;font-size:18px}
   .desc{color:#5a6672;font-size:14px}
   .li-quien{font-size:15px;color:#475569;min-width:150px}
-  .li-num{display:flex;gap:14px;flex-wrap:wrap;font-variant-numeric:tabular-nums}
+  /* los números ceden ancho (se parten en dos líneas) antes que los botones bajen a otra fila (v1.3.0) */
+  .li-num{display:flex;gap:4px 14px;flex-wrap:wrap;font-variant-numeric:tabular-nums;flex:1 1 220px}
   .li-num span{font-size:16px}
   .li-num b{font-size:18px}
   .dif{font-weight:800;font-size:18px;font-variant-numeric:tabular-nums}
   .dif.mas{color:#0a7a2f}
   .dif.menos{color:#c00}
   .vir{font-size:15px;color:#0b3b73}   /* lo que se mando a Virgilio: no es faltante */
-  .li-acts{margin-left:auto}
+  .li-acts{margin-left:auto;display:flex;gap:8px;align-items:center}
   /* Elegir cuál queda: dos botones, no un select (se toca con el dedo) */
   .pick{display:inline-flex;border:2px solid #d0d7de;border-radius:9px;overflow:hidden}
   .pick button{min-height:44px;padding:0 14px;font-size:15px;font-weight:800;
                border:none;background:#fff;cursor:pointer;color:#3a4653}
   .pick button.act{background:#0b3b73;color:#fff}
+  .pick button:disabled{opacity:.45;cursor:not-allowed}
 
   .b{min-height:48px;padding:12px 20px;border-radius:10px;border:2px solid #d0d7de;
      background:#fff;font-size:17px;font-weight:800;cursor:pointer;color:#111}
   .b.ok{background:#0a7a2f;color:#fff;border-color:#0a7a2f}
   .b:disabled{opacity:.45;cursor:not-allowed}
+  .b.una{padding:0 16px}   /* el Validar de cada fila: misma altura que Control/Remito (48 con borde) */
   .barra{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:12px 0;
          padding:12px;background:#f6f8fa;border-radius:10px}
   .barra .info{font-size:17px;font-weight:800}
@@ -97,6 +105,7 @@
 
   @media(max-width:430px){
     .li-acts{margin-left:0;width:100%}
+    .li-acts .b.una{flex:1}
     .li-parte,.li-quien{min-width:0;width:100%}
     .barra .b{flex:1;min-width:140px}
   }
@@ -120,7 +129,8 @@
     <div class="leyenda">Recepciones de la tablet donde lo que se <b>controló</b> no coincide con el
       <b>remito</b>. Elegí cuál queda como <b>ingreso real</b>. Por default gana el control. En P.S.,
       talleristas e insumos el control ya está en el stock y elegir <b>Remito</b> lo devuelve al papel;
-      en los <b>flejes</b> (pesaje por pallet) el stock todavía tiene el remito y validar el control lo corrige.</div>
+      en los <b>flejes</b> (pesaje por pallet) el stock todavía tiene el remito y validar el control lo corrige.
+      Validá <b>cada fila con su botón</b> o todas juntas con el de abajo.</div>
     <div class="contexto" id="contexto"></div>
 
     <div class="filtros" id="filtros"></div>
@@ -173,6 +183,9 @@ var TIPOS = [
 var D = { pend: [], hechos: [], tol_pct: 5 }, FILTRO = 'todos';
 /* la decisión de cada fila, por clave origen:id. Default: control (lo que ya está en el stock). */
 var ELEGIDO = {};
+/* las filas que se están validando de a una (v1.3.0): su botón y su Control/Remito quedan apagados
+   hasta que vuelve la RPC, así un doble toque no la manda dos veces */
+var EN_CURSO = {};
 function clave(x){ return x.origen + ':' + x.id; }
 /* El ESPERADO en Cervantes = remito − lo que se mando a Virgilio. Elegir "Remito" deja el esperado
    (lo que el papel dice que tenia que quedar acá), no el remito entero; "Control" deja lo controlado.
@@ -223,7 +236,7 @@ function pintar(){
     var d = Number(x.diff)||0, vir = Number(x.virgilio)||0, esp = esperadoDe(x);
     var pct = esp ? (d/esp*100) : null;   /* la dif es contra el esperado, no contra el remito crudo */
     var fuera = pct==null || Math.abs(pct) > tol;
-    var k = clave(x), el = ELEGIDO[k];
+    var k = clave(x), el = ELEGIDO[k], off = EN_CURSO[k] ? ' disabled' : '';
     return '<div class="li '+(fuera?'fuera':'dentro')+'">'+
       '<span class="li-parte"><span class="cod">'+esc(x.codigo)+'</span><br><span class="desc">'+esc(x.descripcion||'')+'</span></span>'+
       '<span class="li-quien"><b>'+esc(x.cp_nombre||'—')+'</b><br>'+fechaTs(x.fecha)+
@@ -237,14 +250,19 @@ function pintar(){
           (pct==null?'':' ('+(pct>0?'+':'')+GP2N.fmt(pct,1)+' %)')+'</span>'+
       '</span>'+
       '<span class="li-acts"><span class="pick">'+
-        '<button type="button" data-k="'+esc(k)+'" data-v="control"'+(el==='control'?' class="act"':'')+'>Control</button>'+
-        '<button type="button" data-k="'+esc(k)+'" data-v="remito"'+(el==='remito'?' class="act"':'')+'>Remito</button>'+
-      '</span></span>'+
+        '<button type="button" data-k="'+esc(k)+'" data-v="control"'+(el==='control'?' class="act"':'')+off+'>Control</button>'+
+        '<button type="button" data-k="'+esc(k)+'" data-v="remito"'+(el==='remito'?' class="act"':'')+off+'>Remito</button>'+
+      '</span>'+
+      '<button type="button" class="b ok una" data-una="'+esc(k)+'"'+off+'>'+(EN_CURSO[k]?'Validando…':'Validar')+'</button>'+
+      '</span>'+
     '</div>';
   }).join('') : '<div class="empty">No hay diferencias entre remito y control para validar.</div>';
 
   document.querySelectorAll('[data-k]').forEach(function(b){
     b.addEventListener('click', function(){ ELEGIDO[b.dataset.k] = b.dataset.v; pintar(); });
+  });
+  document.querySelectorAll('[data-una]').forEach(function(b){
+    b.addEventListener('click', function(){ validarUna(b.dataset.una); });
   });
 
   var nRem = vis.filter(function(x){ return ELEGIDO[clave(x)]==='remito'; }).length;
@@ -253,8 +271,8 @@ function pintar(){
   $('resumen').textContent = vis.length+(vis.length===1?' recepción':' recepciones')+': '+
     (vis.length-nRem)+' quedan con el control, '+nRem+' con el remito · '+
     nMueve+(nMueve===1?' cambia':' cambian')+' el stock';
-  $('btnValidar').textContent = 'Validar ('+vis.length+')';
-  $('btnValidar').disabled = vis.length===0;
+  $('btnValidar').textContent = (vis.length===1 ? 'Validar' : 'Validar todas')+' ('+vis.length+')';
+  $('btnValidar').disabled = vis.length===0 || Object.keys(EN_CURSO).length>0;
 
   $('wrapHechos').classList.toggle('hidden', D.hechos.length===0);
   $('hechos').innerHTML = D.hechos.map(function(h){
@@ -269,6 +287,32 @@ function pintar(){
       '<td>'+esc(h.validado_por||'—')+'<br><span class="desc">'+fechaTs(h.validado_en)+'</span></td>'+
     '</tr>';
   }).join('');
+}
+
+/* Validar UNA fila (v1.3.0): la misma RPC con una lista de uno. Las demás quedan en la lista con lo
+   que se les eligió (boot() conserva ELEGIDO de las que siguen vivas). */
+async function validarUna(k){
+  if(EN_CURSO[k]) return;
+  var x = D.pend.filter(function(y){ return clave(y)===k; })[0];
+  if(!x) return;
+  var el = ELEGIDO[k] || 'control';
+  if(!confirm('Validar '+x.codigo+(x.cp_nombre?(' · '+x.cp_nombre):'')+':\n'+
+              '· queda con el '+(el==='remito'?'REMITO':'CONTROL')+': '+fmt(valorElegido(x))+' '+x.unidad+'\n'+
+              '· '+(mueve(x)?'cambia el stock':'no cambia el stock')+'\n\n¿Validar?')) return;
+  EN_CURSO[k] = true;
+  pintar();
+  var r;
+  try {
+    r = await SB.rpc('validar_remito_control', {
+      p_items: [{ origen:x.origen, id:x.id, ingreso_real:el }],
+      p_usuario: usuario()
+    });
+  } catch(e){ r = { error: { message: e.message || String(e) } }; }   /* sin red: que la fila no quede trabada */
+  delete EN_CURSO[k];
+  if(r.error){ pintar(); msg('Error: '+r.error.message, true); return; }
+  await boot();   /* primero recargar: boot() limpia el status al terminar */
+  msg('✓ '+x.codigo+' validada — quedó con el '+(el==='remito'?'remito':'control')+
+      ((Number(r.data.movimientos_ajustados)||0)>0 ? ' y cambió el stock.' : '; el stock no cambió.'));
 }
 
 $('btnValidar').addEventListener('click', async function(){
