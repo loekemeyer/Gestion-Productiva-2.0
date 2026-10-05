@@ -496,20 +496,12 @@ function renderSummary() {
   });
 }
 
-function renderPending() {
-  const q = readQueue();
-  const sec = $("pendingSection");
-  const list = $("pendingList");
-  if (!q.length) { sec.classList.add("hidden"); return; }
-  sec.classList.remove("hidden");
-  list.innerHTML = q.map(x => `<div>${x.opcion}${x.texto ? ` ${x.texto}` : ""} — ${formatDateTimeAR(x.ts_event)}</div>`).join("");
-}
-
 function renderSyncBadge() {
   const q = readQueue();
   const el = $("syncBadge");
   // El badge NO muestra version [usuario 2026-08-31]: solo el estado de la cola. Toca para
   // forzar el envio. La version del cache vive en el ?v= del <script>, no a la vista.
+  // Es el UNICO aviso de cola: el cartel "Pendientes en cola" se saco [usuario 2026-10-05].
   el.innerText = q.length ? `⚠ ${q.length} sin enviar` : `✓ al día`;
   el.style.background = q.length ? "#fff7ed" : "#f1f5f9";
   el.style.color = q.length ? "#9a3412" : "#475569";
@@ -965,7 +957,6 @@ async function sendFast() {
   updateStateAfterSend(legajo, payload);
   enqueue(payload);
   renderSummary();
-  renderPending();
 
   selected = null;
   $("selectedArea").classList.add("hidden");
@@ -977,7 +968,6 @@ async function sendFast() {
 
   try {
     await flushQueue();
-    renderPending();
     renderSyncBadge();
     renderSummary();
   } finally {
@@ -1032,7 +1022,6 @@ async function deleteHistItem(legajo, idx) {
   writeQueue(q);
 
   renderSummary();
-  renderPending();
   renderSyncBadge();
 }
 
@@ -1071,7 +1060,6 @@ async function confirmarTerminarDia() {
   $("terminarDiaModal").classList.add("hidden");
   await flushQueue();
   renderSummary();
-  renderPending();
   renderSyncBadge();
 }
 
@@ -1170,7 +1158,7 @@ document.addEventListener("DOMContentLoaded", () => {
   cargarBundle().catch(e => console.warn("Bundle GP2:", e));
 
   // Legajo input: render summary on change
-  $("legajoInput").addEventListener("input", () => { renderSummary(); renderPending(); });
+  $("legajoInput").addEventListener("input", () => { renderSummary(); });
 
   $("btnContinuar").addEventListener("click", goToOptions);
   $("legajoInput").addEventListener("keydown", e => { if (e.key === "Enter") goToOptions(); });
@@ -1183,7 +1171,7 @@ document.addEventListener("DOMContentLoaded", () => {
   $("syncBadge").addEventListener("click", async () => {
     $("syncBadge").innerText = "Enviando...";
     await flushQueue();
-    renderSummary(); renderPending(); renderSyncBadge();
+    renderSummary(); renderSyncBadge();
   });
 
   $("btnHistDias").addEventListener("click", openHistDias);
@@ -1194,13 +1182,11 @@ document.addEventListener("DOMContentLoaded", () => {
   $("editCancel").addEventListener("click", () => $("editModal").classList.add("hidden"));
 
   renderSummary();
-  renderPending();
   renderSyncBadge();
 
   // Flush periodico (cada 60s)
   setInterval(async () => {
     await flushQueue();
-    renderPending();
     renderSyncBadge();
     renderSummary();
   }, 60000);

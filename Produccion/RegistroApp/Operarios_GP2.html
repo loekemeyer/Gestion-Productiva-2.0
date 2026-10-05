@@ -19,7 +19,7 @@
     (function(){
       // El operario ya no tiene version propia: se compara el TOKEN de cache compartido
       // (el mismo ?v= que llevan todos los assets). Si cambia, el HTML cacheado es viejo.
-      var MI_V = '20261005a';
+      var MI_V = '20261005b';
       function chequear(){
         fetch(location.pathname, { cache: 'no-store' }).then(function(r){ return r.text(); }).then(function(html){
           var m = html.match(/operarios_gp2\.js\?v=([\w.]+)/);
@@ -56,9 +56,6 @@
     #daySummary { background: #fff; border-radius: 12px; padding: 12px; box-shadow: 0 1px 4px rgba(0,0,0,.08); }
     .day-item .t1 { font-size: 12px; font-weight: 700; color: #64748b; margin-bottom: 8px; }
     .day-item .t2 { font-size: 14px; }
-    .pending-section { margin-top: 12px; background: #fff7ed; border: 1px solid #fed7aa; border-radius: 10px; padding: 10px; }
-    .pending-title { font-size: 12px; font-weight: 700; color: #9a3412; margin-bottom: 6px; }
-    .pending-list { font-size: 13px; color: #78350f; }
     .hidden { display: none !important; }
     #optionsScreen { padding: 8px; max-width: 520px; margin: 0 auto; }
     .top-bar { display: flex; align-items: center; gap: 10px; padding: 8px 0 12px; }
@@ -171,10 +168,6 @@
     <div class="history-title">Resumen del día (en este dispositivo)</div>
     <div id="daySummary" class="history-empty">Ingresa tu legajo para ver el resumen</div>
   </div>
-  <div id="pendingSection" class="pending-section hidden">
-    <div class="pending-title">Pendientes en cola (este dispositivo)</div>
-    <div id="pendingList" class="pending-list"></div>
-  </div>
 </div>
 
 <!-- OPCIONES -->
@@ -277,6 +270,6 @@
 </div>
 
 <script src="../../supabase-config.js?v=20260929a"></script>
-<script src="operarios_gp2.js?v=20261005a"></script>
+<script src="operarios_gp2.js?v=20261005b"></script>
 </body>
 </html>

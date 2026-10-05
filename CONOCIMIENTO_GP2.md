@@ -14904,3 +14904,9 @@ de Cuchara, Cucharon, etc"*.
   a andar y mueve stock real (no hay base de prueba). El tachito 🗑 lo saca también de la cola.
 - ⚠ Para grabar, la cuenta de Google de la tablet tiene que estar en `public.usuarios_permitidos` (hoy 2:
   `admin` y `envios`; `envios` además no ve esta pantalla en `auth-guard.js`).
+- `[usuario 2026-10-05]` *"El cartel de pendientes en cola no quiero que me aparezca"*: se sacó el bloque
+  «Pendientes en cola (este dispositivo)» de la pantalla de legajo (v1.235.5, token `?v=20261005b`). La cola
+  sigue igual; el único aviso que queda es el badge `⚠ N sin enviar` (tocarlo fuerza el envío) y, ya con el
+  legajo tipeado, la etiqueta PENDIENTE/ERROR de cada ítem en «Resumen del día», que es donde está el 🗑.
+  `[dato]` A las 13:45 del 05/10 los 5 de la captura (LT, E 505, C 10, E 505, C 10, de 13:26 a 13:31) **no
+  estaban en `GP2.produccion`** (última fila: 25/09): siguen en la tablet y salen solos al cargar el fix.

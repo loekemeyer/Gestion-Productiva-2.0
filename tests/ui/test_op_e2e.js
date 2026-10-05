@@ -265,6 +265,19 @@ window.supabase = { createClient: function(url, key, opts){ window.__sbOpts = op
   ok(rq.alVolver === 0, 'con el permiso de vuelta, la cola de rollos se vacia');
   ok(rq.definitivo === 0, 'rechazo de negocio (P0001) se sigue descartando');
 
+  // 2026-10-05 [usuario]: el cartel "Pendientes en cola" no va mas; con la cola llena el
+  // unico aviso es el badge "⚠ N sin enviar".
+  const cola = await page.evaluate(() => {
+    writeQueue([{ id: 'x1', legajo: '19', opcion: 'E', texto: '505', ts_event: '2026-10-05T13:26:52-03:00' }]);
+    renderSyncBadge();
+    const r = { cartel: !!document.getElementById('pendingSection') || document.body.innerText.includes('Pendientes en cola'),
+                badge: $('syncBadge').innerText };
+    writeQueue([]); renderSyncBadge();
+    return r;
+  });
+  ok(!cola.cartel, 'sin cartel "Pendientes en cola" en la pantalla de legajo');
+  ok(cola.badge.includes('1 sin enviar'), 'con cola llena el badge avisa: ' + cola.badge);
+
   await browser.close();
   console.log(process.exitCode ? 'HAY FALLOS' : 'TODO OK');
 })();
