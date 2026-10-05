@@ -235,6 +235,41 @@ window.supabase = { createClient: function(url, key, opts){ window.__sbOpts = op
     await page.click('#btnResetSelection');
   }
 
+  // MATRIZ 237 (2026-10-05, usuario: "en la 237 no me aparecen las variantes de que quiero
+  // producir: 542, 543, 570, 720, 722 o 858"). Con la 237B unida a la 237 la matriz expulsa
+  // TRES piezas (542/543/570 comparten PC10-M237; 720/722 PB6-M237B; 858 PC7-M237B): la
+  // tablet tiene que preguntar cual y mostrar los ARTICULOS de cada una, que es en lo que
+  // piensa el operario. Antes la 237 expulsaba una sola pieza y no preguntaba nada.
+  {
+    await page.evaluate(() => {
+      D.matrices = D.matrices.concat([{ n: '237', d: 'Poner Capuchon Mgo Espatula', ppk: null, uxg: 1, maq: null, act: true }]);
+      D.matriz_salidas = Object.assign({}, D.matriz_salidas, { '237': [
+        { comp_id: 965, codigo: 'PB6-M237B', descripcion: 'Mango Chef armado (Espatula) tras M237B', arts: '720 · 722' },
+        { comp_id: 964, codigo: 'PC10-M237',  descripcion: 'Mango LK Espatula c/Capuchon tras M237',  arts: '542 · 543 · 570' },
+        { comp_id: 966, codigo: 'PC7-M237B',  descripcion: 'Mango Chef armado (Canelones) tras M237B', arts: '858' } ] });
+    });
+    await page.click('.box[data-code="E"]');
+    await page.fill('#textInput', '237');
+    await page.dispatchEvent('#textInput', 'input');
+    const tiles = await page.locator('#piezaGrid .mz').allTextContents();
+    ok(tiles.length === 3, 'la 237 pregunta que pieza fabricas: 3 opciones — ' + tiles.length);
+    const todos = tiles.join(' | ');
+    ok(['542', '543', '570', '720', '722', '858'].every(a => todos.includes(a)),
+       'se ven los 6 articulos 542, 543, 570, 720, 722 y 858 — ' + todos);
+    ok(tiles.some(t => t.includes('PC10-M237') && t.includes('542 · 543 · 570')),
+       'cada pieza muestra SUS articulos (PC10-M237 -> 542 · 543 · 570)');
+    ok(await page.locator('#btnEnviar').isDisabled(), 'sin elegir pieza no se puede Enviar');
+    await page.locator('#piezaGrid .mz', { hasText: '858' }).click();
+    const linea = await page.textContent('#piezaGrid .pieza-cambiar');
+    ok(linea.includes('PC7-M237B') && linea.includes('art. 858'), 'elegida la pieza, la linea dice los articulos — ' + linea.trim());
+    ok(!(await page.locator('#btnEnviar').isDisabled()), 'con la pieza elegida se habilita Enviar');
+    // bundle viejo (cacheado en la tablet, sin "arts"): sigue funcionando, solo sin la linea
+    await page.evaluate(() => { piezaSel = null; D.matriz_salidas['237'].forEach(s => { delete s.arts; }); renderPiezaPicker('237'); });
+    const sinArts = await page.locator('#piezaGrid .mz').allTextContents();
+    ok(sinArts.length === 3 && !sinArts.join('').includes('Art.'), 'bundle viejo sin arts: 3 piezas y sin linea de articulos');
+    await page.click('#btnResetSelection');
+  }
+
   // badge sync sin pendientes
   const badge = await page.textContent('#syncBadge');
   ok(badge.includes('✓'), 'cola sincronizada: ' + badge.trim());

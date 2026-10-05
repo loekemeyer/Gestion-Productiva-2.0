@@ -7740,13 +7740,17 @@ AS $function$
     'matriz_salidas', (select coalesce(jsonb_object_agg(t.n_matriz, t.salidas),'{}'::jsonb)
       from (
         select m.n_matriz,
-               jsonb_agg(jsonb_build_object('comp_id',q.comp_salida_id,'codigo',q.codigo,'descripcion',q.descripcion)
+               jsonb_agg(jsonb_build_object('comp_id',q.comp_salida_id,'codigo',q.codigo,'descripcion',q.descripcion,'arts',q.arts)
                          order by q.codigo) salidas
         from (
-          select distinct rp.matriz_id, rp.comp_salida_id, c.codigo, c.descripcion
+          select rp.matriz_id, rp.comp_salida_id, c.codigo, c.descripcion,
+                 string_agg(distinct a.codigo, ' · ' order by a.codigo) arts
           from "GP2".ruta_paso rp
           join "GP2".componente c on c.id=rp.comp_salida_id
+          left join "GP2".ruta r on r.id=rp.ruta_id
+          left join "GP2".articulo a on a.id=r.articulo_id
           where rp.tipo_paso='matriz' and rp.comp_salida_id is not null
+          group by rp.matriz_id, rp.comp_salida_id, c.codigo, c.descripcion
         ) q
         join "GP2".matriz m on m.id=q.matriz_id
         group by m.n_matriz

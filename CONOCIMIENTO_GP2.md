@@ -15011,6 +15011,8 @@ de Cuchara, Cucharon, etc"*.
   `cuenta_mo=false` las dos). Invariantes U/W en 0.
 - **NO aplicado, espera al dueño** `[dato]`: la letra tiene otro tiempo u otro `cuenta_mo` que la base, y
   la matriz guarda UN solo tiempo, así que juntarlas pisa el de la letra:
+  - ✅ **237B: APLICADO el 05/10 (§4iy)** — el dueño dijo que se unificó. Lo que sigue es el análisis previo y quedó
+    resuelto: costea 5 s en 720/722/858 y la 237 ya no es «sólo 570/542/543».
   - **237B** «Colocar Insertos y Ojales Mgo Chef» (sin tiempo, `cuenta_mo=false`) → **237** «Poner Capuchon
     Mgo Espatula» (5 s, `cuenta_mo=true`): 720/722/858 pasarían a costear 5 s de MO (+$10 c/u, el mismo
     efecto medido en 570/542/543 el 02/10). Y choca con `[Thomas 02/10]` *"Aplica la 237 en esos 3
@@ -15215,3 +15217,32 @@ de Cuchara, Cucharon, etc"*.
   termina) y en 108 (IJUPA, M8) y 515 (Alex, C12B) el mismo que termina. No es un error.
 - Tests: `test_cambiar_contraparte.js`, `test_programa_cambio_contraparte.js`. Respaldo `db/` al día (6 funciones, 2 tablas;
   md5 de cada función verificado contra la base).
+
+## 4iy. La 237 pregunta qué pieza fabricás (542·543·570 / 720·722 / 858): la 237B se unifica en la 237 (2026-10-05)
+
+- **[usuario, Nazareno, 05/10, textual]** *«En la 237 no me aparecen las variantes de que quiero producir si el de 542,
+  543, 570, 720, 722 o 858 (los últimos tres porque se unificó la matriz 237B con la 237)»*. Es la última de las
+  «matrices con letra» que esperaban al dueño (§4is): la 237B pasa a ser la 237, como la 12B → 12 y la 254B → 254.
+- **Por qué no salía el selector `[dato]`:** la tablet pregunta *qué pieza fabricás* sólo si la matriz expulsa 2+ piezas
+  distintas (`registro_operarios_bundle().matriz_salidas`, el mismo mecanismo de la 505). La 237 expulsaba UNA
+  (`PC10-M237`) y 720/722/858 estaban en otra matriz (237B, activa), así que la 237 tipeada mostraba una sola tarjeta.
+- **Aplicado `[dato]`** (`db/migracion_matriz_237b_en_237_20261005.sql`): los 9 pasos de la 237B (`ruta_paso` 4268–4276)
+  pasan a la 237; matriz 413 (237B) `activa=false`, 0 pasos, 0 producción en las dos. La 237 saca ahora **3 piezas**:
+  `PC10-M237` (542·543·570), `PB6-M237B` (720·722) y `PC7-M237B` (858). Los 6 artículos son 3 piezas porque
+  542/543/570 comparten el mismo intermedio (y 720/722), igual que en la 505 hay una pieza por artículo; si se quisieran
+  6 tarjetas habría que separar el intermedio por artículo, y el stock sumaría igual a 3 componentes.
+- **Plata `[dato]`:** la 237B no tenía tiempo (`cuenta_mo=false`) y la 237 sí (5 s, `cuenta_mo=true`): con una sola matriz
+  hay un solo tiempo, así que **720, 722 y 858 pasan a costear 5 s de MO = +$10,00 c/u** (el mismo efecto que tuvieron
+  570/542/543 el 02/10, §4id). Medido contra el snapshot: cambian SÓLO 720 ($642,66 → $652,66), 722 ($643,99 → $653,99),
+  858 ($865,87 → $875,87), `PB6-M237B`, `PC7-M237B` y los tres `-ARM`, +$10,00 cada uno; ningún otro de los 831
+  componentes cambió. Respaldos con RLS: `zz_backups."GP2_Backup_rutas_237b_20261005"` y
+  `zz_backups."GP2_Snap_costo_20261005_237b"`. Invariantes L, U, W, AA, AB, AD, AJ = 0; AE = 2 (la base).
+- **Corrige §4id/§4is:** *«la 237 sólo en 570/542/543»* ya no vale. Eso era qué artículos pasan por la 237 cuando la
+  pone Cervantes en lo que arma Fábrica; el dueño unificó la 237B en la 237, así que 720/722/858 también.
+- **Tablet `[dato]`** (`operarios_gp2.js`, token `20261005c`, `version.js` v1.238.1): cada tarjeta del selector de pieza
+  muestra los artículos que usan esa pieza («Art. 542 · 543 · 570») y la línea ya elegida los repite. Sale de `arts`,
+  nuevo en cada salida de `matriz_salidas` (se calcula desde `ruta.articulo_id`); una tablet con el bundle viejo en
+  caché ignora el campo y muestra lo de antes. La 505 también lo gana (943E, 942E…). `test_op_e2e.js` (falla con el JS
+  anterior).
+- **Efecto operativo `[deducido]`:** `PB6-M237B` y `PC7-M237B` nacen con stock 0 y suben recién cuando se registre
+  producción de la 237 con esa pieza elegida.

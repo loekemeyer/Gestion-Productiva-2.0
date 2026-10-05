@@ -618,7 +618,8 @@ function renderPiezaPicker(n) {
     wrap.classList.add("collapsed");
     const btn = document.createElement("button");
     btn.type = "button"; btn.className = "pieza-cambiar";
-    btn.innerHTML = `Fabricás <b>${esc(piezaSel.codigo || "")}</b> · ${esc(piezaSel.descripcion || "")} — <u>cambiar</u>`;
+    const arts = piezaSel.arts ? ` (art. ${esc(piezaSel.arts)})` : "";
+    btn.innerHTML = `Fabricás <b>${esc(piezaSel.codigo || "")}</b> · ${esc(piezaSel.descripcion || "")}${arts} — <u>cambiar</u>`;
     btn.addEventListener("click", () => {
       piezaSel = null;
       renderPiezaPicker(n);
@@ -634,7 +635,10 @@ function renderPiezaPicker(n) {
   salidas.forEach(sa => {
     const el = document.createElement("div");
     el.className = "mz";
-    el.innerHTML = `<div class="mz-n">${esc(sa.codigo || "")}</div><div class="mz-d">${esc(sa.descripcion || "")}</div>`;
+    // Los articulos que usan esa pieza (la 237 saca 3 piezas para 542/543/570, 720/722 y 858):
+    // el operario piensa en el articulo, no en el codigo del intermedio. [usuario 2026-10-05]
+    const arts = sa.arts ? `<div class="mz-a">Art. ${esc(sa.arts)}</div>` : "";
+    el.innerHTML = `<div class="mz-n">${esc(sa.codigo || "")}</div><div class="mz-d">${esc(sa.descripcion || "")}</div>${arts}`;
     el.addEventListener("click", () => {
       piezaSel = sa; $("error").innerText = "";
       renderPiezaPicker(n);
