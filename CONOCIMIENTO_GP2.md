@@ -13735,7 +13735,7 @@ Contexto: app unificada `GP2-Registro-Produccion`, se arranca por Cervantes. Tab
   12C (Chef) → I11 Mango Plano 701 doblado c/marca → abrelatas a manija 701 (CHEF).
   Los rótulos del cartel de RP 2.0 están BIEN. Lo que está mal: la descripción de la 12 en Causa-Efecto dice
   "(Chef Marip)" y GP2 pone I11 (701 Chef) como pieza de la **matriz 12** en vez de la **12C**.
-  **CORRECCIÓN 05/10 (§4ir):** lo de I11 en la 12 NO está mal — la variante con letra es la base con una
+  **CORRECCIÓN 05/10 (§4is):** lo de I11 en la 12 NO está mal — la variante con letra es la base con una
   salida más; la 12B también pasó a la 12.
 - [dato 29/09, CORRECCIÓN del análisis de matrices] **GP2 = 115 matrices originales (Excel del dueño, con tipo; 107 con ruta)
   + 292 de catálogo (22/09, §4fa, sin tipo ni ruta a propósito).** Las variantes con letra están todas en el catálogo
@@ -14961,7 +14961,35 @@ de Cuchara, Cucharon, etc"*.
   del cuerpo de una función): espera una confirmación que en una sesión remota nadie da y corta a los
   60 s sin aplicar nada. Por eso la función nueva en vez de cambiarle la firma a la vieja.
 
-## 4ir. Matriz con letra = la matriz BASE que expulsa un componente más (lógica 505) (2026-10-05)
+## 4ir. Enviar → Virgilio: salían 1 de 39 terminados — el criterio de «lo que produce Fábrica» seguía en tallerista 3 (2026-10-05)
+
+- `[usuario]` *"Cuando en la versión tablet voy a enviar a Virgilio: no me aparecen todos los artículos
+  terminados"* y, al aclarar el alcance: ***"se tienen que poder mandar no todos los art terminados sino todos
+  los que tienen stock porque produce fábrica a través de matrices"***. O sea: el universo NO es el catálogo
+  entero (188 terminados activos) sino los que **Fábrica produce por matriz de envasado** (39).
+- `[dato]` Causa: desde el 2026-10-02 (4ik/4il) el terminado lo cierra una **matriz de envasado**, no el
+  tallerista Fábrica (id 3). `tablet_bundle` y la guarda de `enviar_a_virgilio` seguían pidiendo «un paso del
+  tallerista 3» → quedaba **sólo el 280 Manga** (1 de 39) y, aunque la tablet los hubiera mostrado, la base
+  rechazaba los otros 38 con *«no lo arma Fábrica»*. `stock_general_extra_bundle` ya se había corregido en 4il
+  (39 filas): quedaron **tres copias del mismo criterio y se arregló una sola** — la misma clase de desfase de
+  siempre (derivada que no sigue a su madre).
+- **Arreglo (sólo base, `db/migracion_tablet_virgilio_terminados_matriz.sql`):** criterio único = terminado
+  (sector 12) de un artículo activo cuya ruta tiene un paso tallerista 3 **o** un paso `tipo_paso='matriz'`
+  cuyo `comp_salida_id` es ese terminado. Aplicado a `tablet_bundle` (CTE `fab`: qué se muestra y cuántas
+  artículos por caja) y a la guarda de `enviar_a_virgilio` (qué se acepta). `fabrica_producir` **no se tocó**:
+  ya no la llama ninguna pantalla (Fábrica salió del Enviar a talleristas, 4ik).
+- Medido tras aplicar: 39 terminados en Enviar → Virgilio, los 39 con envase en cajas definido, y
+  `enviar_a_virgilio` acepta el 058 (sólo-matriz) — probado en transacción revertida.
+- ⚠ `[dato]` Hoy **ninguno de los 39 tiene stock** en «Art. Terminado (Fábrica)» (0 movimientos
+  `armado_fabrica`): el stock aparece cuando los operarios cargan envasado en la tablet. Por eso el universo
+  **no se filtra por stock > 0** (la pantalla quedaría vacía). `[deducido]` Si el usuario quería sólo los que
+  tienen stock, es un filtro de una línea en el CTE de `env`; sin confirmar.
+- ⚠ `[dato]` `enviar_a_virgilio` deja el terminado en **negativo** si se manda más de lo producido (probado:
+  mandar 1 con stock 0 → −1). Es el comportamiento de siempre del motor de inventario; no se cambió.
+- Guardián: `tests/ui/test_tablet_virgilio.js` bloque 5 lee `db/funciones_GP2.sql` y exige el mismo criterio
+  en `tablet_bundle`, `enviar_a_virgilio` y `stock_general_extra_bundle` (falla con el SQL anterior).
+
+## 4is. Matriz con letra = la matriz BASE que expulsa un componente más (lógica 505) (2026-10-05)
 - `[usuario 2026-10-05, sin identificar, textual]` *"Quiero que saques de los despieces las matrices que tienen
   una letra. Observá como funciona la matriz 505 y esa es la lógica que quiero que uses. Ejemplo: Matriz 12B
   desaparece porque en realidad es la matriz 12 que se le suma un componente más que expulsa que sería el

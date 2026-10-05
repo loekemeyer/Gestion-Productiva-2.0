@@ -199,6 +199,21 @@ window.supabase = { createClient: function(){ return {
   ok(reg && reg.args.p.modo === 'recibir' && reg.args.p.tipo === 'virgilio' && i373 && i373.comp_id === 373,
      'IC3V registra tipo virgilio, sin tocar ningún botón de Cervantes — ' + JSON.stringify(i373));
 
+  // ── 5) la BASE decide qué terminados salen en Enviar → Virgilio, y no se ve con el bundle stubeado
+  // [Thomas 2026-10-05: "no me aparecen todos los artículos terminados" — salía 1 (280) de 39]. Desde que
+  // el terminado lo cierra una MATRIZ de envasado (4ik/4il) el criterio "paso del tallerista 3" solo
+  // dejaba al 280. Tienen que usar el mismo criterio (tallerista 3 O matriz que expulsa el terminado):
+  // el CTE fab de tablet_bundle (lo que se muestra), la guarda de enviar_a_virgilio (lo que se acepta)
+  // y el fab de stock_general_extra_bundle (lo que se cuenta). Si uno se desfasa, falla acá. ──
+  const SQL = fs.readFileSync(path.join(__dirname, '..', '..', 'db', 'funciones_GP2.sql'), 'utf8');
+  const cuerpo = (nombre) => {
+    const i = SQL.indexOf('CREATE OR REPLACE FUNCTION "GP2".' + nombre + '(');
+    return i < 0 ? '' : SQL.slice(i, SQL.indexOf('$function$\n;', SQL.indexOf('$function$', i) + 5));
+  };
+  const criterio = /rp\.tallerista_id\s*=\s*3\s+or\s*\(\s*rp\.tipo_paso\s*=\s*'matriz'\s+and\s+rp\.comp_salida_id\s*=\s*(c\.id|p_comp_id)\s*\)/;
+  for (const f of ['tablet_bundle', 'enviar_a_virgilio', 'stock_general_extra_bundle'])
+    ok(criterio.test(cuerpo(f)), 'db: ' + f + ' reconoce al terminado producido por MATRIZ (no solo tallerista 3)');
+
   await browser.close();
   console.log(process.exitCode ? 'HAY FALLOS' : 'TODO OK');
 })();

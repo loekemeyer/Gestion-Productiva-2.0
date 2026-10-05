@@ -3229,9 +3229,11 @@ begin
   v_u := case when lower(coalesce(p_unidad, v_um, 'uni')) = 'kg' then 'kg' else 'uni' end;
   if v_sec = 12 then
     if not exists (select 1 from articulo a join ruta r on r.articulo_id = a.id
-                     join ruta_paso rp on rp.ruta_id = r.id and rp.tallerista_id = 3
+                     join ruta_paso rp on rp.ruta_id = r.id
+                      and ( rp.tallerista_id = 3
+                         or (rp.tipo_paso = 'matriz' and rp.comp_salida_id = p_comp_id) )
                     where upper(a.codigo) = upper(v_cod)) then
-      raise exception 'El artículo % no lo arma Fábrica: no sale de acá.', v_cod;
+      raise exception 'El artículo % no lo produce Fábrica: no sale de acá.', v_cod;
     end if;
     v_o := ubic_de('art_terminado', 3);
     insert into movimiento(fecha, tipo_mov, comp_id, ubic_origen_id, ubic_destino_id, cantidad,
@@ -8339,11 +8341,17 @@ CREATE OR REPLACE FUNCTION "GP2".tablet_bundle()
 AS $function$
 with
 fab as materialized (
+  -- Art. Terminado (Fabrica) = lo que se arma/envasa en casa: lo cierra una MATRIZ de envasado
+  -- (modelo 2026-10-02) o el tallerista interno Fabrica (id 3, legado/Manga). MISMO criterio que el
+  -- CTE fab de stock_general_extra_bundle: con solo "tallerista 3" Enviar -> Virgilio mostraba 1
+  -- terminado (280) de los 39.
   select distinct a.id art_id, a.codigo, a.articulos_por_caja uxc, c.id comp_id
     from articulo a
-    join ruta r on r.articulo_id = a.id
-    join ruta_paso rp on rp.ruta_id = r.id and rp.tallerista_id = 3
     join componente c on upper(c.codigo) = upper(a.codigo) and c.sector_id = 12
+    join ruta r on r.articulo_id = a.id
+    join ruta_paso rp on rp.ruta_id = r.id
+     and ( rp.tallerista_id = 3
+        or (rp.tipo_paso = 'matriz' and rp.comp_salida_id = c.id) )
    where not a.discontinuado and not coalesce(c.discontinuado, false)
 ),
 oc_ps as (
