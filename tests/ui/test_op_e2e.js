@@ -24,9 +24,10 @@ const BUNDLE = {
 };
 
 const STUB = `
-window.supabase = { createClient: function(){ return {
+window.supabase = { createClient: function(url, key, opts){ window.__sbOpts = opts; return {
   rpc: async function(name, args){
     window.__calls = (window.__calls||[]); window.__calls.push({name:name, args:args});
+    if(window.__falla === name) return { data: null, error: { code: window.__fallaCode, message: 'falla de prueba ' + name } };
     if(name==='registro_operarios_bundle') return { data: ${JSON.stringify(BUNDLE)}, error: null };
     if(name==='registrar_evento_prod') return { data: { ok:true, id: window.__calls.length }, error: null };
     if(name==='tomar_rollo') return { data: { ok:true, uso_id: 1 }, error: null };
@@ -237,6 +238,32 @@ window.supabase = { createClient: function(){ return {
   // badge sync sin pendientes
   const badge = await page.textContent('#syncBadge');
   ok(badge.includes('✓'), 'cola sincronizada: ' + badge.trim());
+
+  // 2026-10-05: el cliente tiene que ser el de GP2_SB() (manda la sesion del login). El que
+  // tenia la pantalla iba "sin sesion" y desde la fase B la base rechazaba todo con 42501.
+  const opts = await page.evaluate(() => window.__sbOpts);
+  ok(!!(opts && opts.auth && opts.auth.persistSession === true && opts.db && opts.db.schema === 'GP2'),
+     'el cliente usa la sesion del login (GP2_SB), no uno anonimo propio');
+
+  // Cola de rollos: sin permiso (42501) NO es un rechazo definitivo -> se reintenta.
+  // Un error de negocio con code (P0001) si es definitivo y se descarta, como antes.
+  const rq = await page.evaluate(async () => {
+    const flush = async () => { while (flushing) await new Promise(r => setTimeout(r, 20)); await flushQueue(); };
+    const item = { fn: 'cerrar_rollo', args: { p_legajo: '19', p_quedo_resto: false, p_fecha: '2026-10-05T10:00:00-03:00' } };
+    window.__falla = 'cerrar_rollo'; window.__fallaCode = '42501';
+    writeRolloQueue([item]); await flush();
+    const sinPermiso = readRolloQueue().length;
+    window.__falla = null; await flush();
+    const alVolver = readRolloQueue().length;
+    window.__falla = 'cerrar_rollo'; window.__fallaCode = 'P0001';
+    writeRolloQueue([item]); await flush();
+    const definitivo = readRolloQueue().length;
+    window.__falla = null;
+    return { sinPermiso, alVolver, definitivo };
+  });
+  ok(rq.sinPermiso === 1, 'cerrar_rollo con "permission denied" queda en la cola (antes se tiraba)');
+  ok(rq.alVolver === 0, 'con el permiso de vuelta, la cola de rollos se vacia');
+  ok(rq.definitivo === 0, 'rechazo de negocio (P0001) se sigue descartando');
 
   await browser.close();
   console.log(process.exitCode ? 'HAY FALLOS' : 'TODO OK');

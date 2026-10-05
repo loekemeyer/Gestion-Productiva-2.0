@@ -9,10 +9,10 @@
 
 const LEGAJO_EDUARDO = "19";
 
-const SB = supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
-  db: { schema: "GP2" },
-  auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false, storageKey: "gp2_operarios_anon" }
-});
+// El cliente con la SESION del login (supabase-config.js). Hasta el 2026-10-05 esta pantalla
+// tenia su propio cliente "sin sesion": desde la fase B de seguridad (2026-09-28) la base no
+// deja escribir a anon y cada E/C volvia "permission denied for function registrar_evento_prod".
+const SB = GP2_SB();
 
 /* ============================================================
    DATOS (cargados una vez desde bundle)
@@ -346,8 +346,10 @@ async function flushQueue() {
     while (rq.length) {
       try {
         const { error } = await SB.rpc(rq[0].fn, rq[0].args);
-        if (error && !error.code) throw error;
-        // sin error, o rechazo definitivo del server (tiene code): no se reintenta
+        if (error && (!error.code || error.code === "42501" || /^PGRST3/.test(error.code))) throw error;
+        // sin error, o rechazo definitivo del server (tiene code): no se reintenta.
+        // Sin permiso (42501) o sin sesion valida (PGRST3xx) NO es definitivo: el dato
+        // esta bien y vuelve a andar al reloguear, asi que se reintenta en vez de tirarlo.
         rq.shift(); writeRolloQueue(rq);
       } catch { break; }
     }

@@ -19,7 +19,7 @@
     (function(){
       // El operario ya no tiene version propia: se compara el TOKEN de cache compartido
       // (el mismo ?v= que llevan todos los assets). Si cambia, el HTML cacheado es viejo.
-      var MI_V = '20261002a';
+      var MI_V = '20261005a';
       function chequear(){
         fetch(location.pathname, { cache: 'no-store' }).then(function(r){ return r.text(); }).then(function(html){
           var m = html.match(/operarios_gp2\.js\?v=([\w.]+)/);
@@ -277,6 +277,6 @@
 </div>
 
 <script src="../../supabase-config.js?v=20260929a"></script>
-<script src="operarios_gp2.js?v=20261002a"></script>
+<script src="operarios_gp2.js?v=20261005a"></script>
 </body>
 </html>

@@ -116,7 +116,9 @@ ok(conUI.length >= 11, 'gp2-ui.js esta en las pantallas que lo necesitan (' + co
 const PERMITIDO_CLIENTE = new Set([
   'supabase-config.js',                          // la fabrica misma
   'login.html',                                  // cliente de auth (schema public), no de datos
-  'Produccion/RegistroApp/operarios_gp2.js',     // opciones de auth propias (storageKey de operarios)
+  // operarios_gp2.js estuvo aca ("opciones de auth propias") y por eso nadie vio que su cliente
+  // iba sin sesion: desde la fase B (2026-09-28) cada evento de la tablet volvia "permission
+  // denied". Sacado el 2026-10-05: ahora usa GP2_SB() como todas.
 ]);
 const ES_GP2 = p => /_GP2\.html$/.test(p) || /(^|[\\/])(Programa|Validacion_Stock|OrdenProduccion|GP2_MODULOS|envios-only)\.html$/.test(p);
 const conCliente = [];
@@ -146,7 +148,7 @@ ok(conCliente.length === 0, 'ninguna pantalla GP2 crea su propio cliente Supabas
 // "permission denied" (asi estuvo roto "Desmarcar" en control-cajas/remaches 5 dias).
 const escriben = [];
 for (const rel of vistos) {
-  if (PERMITIDO_CLIENTE.has(rel) && rel !== 'Produccion/RegistroApp/operarios_gp2.js') continue;
+  if (PERMITIDO_CLIENTE.has(rel)) continue;
   const t = fs.readFileSync(path.join(ROOT, rel), 'utf8');
   for (const m of t.matchAll(/\.from\(\s*['"][A-Za-z_]+['"]\s*\)[^;\n]*\.(insert|update|delete|upsert)\s*\(/g)) {
     escriben.push(rel + ':' + t.slice(0, m.index).split('\n').length + '  .' + m[1] + '(');

@@ -14883,3 +14883,24 @@ de Cuchara, Cucharon, etc"*.
 - Invariantes I/U/W/AB/L en 0. `db/migracion_m505_armado_inox_20261002.sql` (con rollback). Sólo base.
 - ⚠ La app de operarios **vieja** (`loekemeyer/Registro-Produccion-2.0`, `public.Matrices`) no se tocó: si allá
   siguen las 505B/C/D/F, se ven igual que antes.
+
+## 4io. La tablet de operarios no grababa NADA desde la fase B: su cliente iba sin sesión (2026-10-05)
+- `[usuario 2026-10-05]` Captura de `Operarios_GP2.html`: «E: 505» y «C: 10» en rojo con
+  `permission denied for function registrar_evento_prod`. Eran movimientos de prueba para ver el despiece.
+- `[dato]` Causa: `operarios_gp2.js` armaba su propio `createClient(...)` con `persistSession: false`
+  (storageKey `gp2_operarios_anon`), así que **todo salía como `anon`** aunque la página carga
+  `auth-guard.js` y la tablet está logueada con Google. Desde la fase B (§4ga, 2026-09-28) `anon` no
+  ejecuta `registrar_evento_prod`, `anular_evento_prod`, `tomar_rollo` ni `cerrar_rollo` (medido con
+  `has_function_privilege`: anon=false, authenticated=true, las 4 llaman a `_exigir_autorizado`). Lectura
+  (`registro_operarios_bundle`) siguió en anon → la pantalla cargaba bien y fallaba recién al grabar.
+- `[dato]` Por qué nadie lo vio: `test_helpers_ui.js` tenía a `operarios_gp2.js` en `PERMITIDO_CLIENTE`
+  ("opciones de auth propias"). La excepción tapaba justo el caso que el test existe para atrapar.
+- **Arreglo (v1.235.4, token operario `?v=20261005a`):** `const SB = GP2_SB();` (la sesión del login,
+  igual que el resto); sacada la excepción del test; y la **cola de rollos** ya no tira un pedido que volvió
+  42501 / PGRST3xx (antes cualquier error con `code` se consideraba "rechazo definitivo" y el tomar/cerrar
+  rollo de Eduardo se perdía en silencio). `test_op_e2e.js` cubre las tres cosas (fallan con el código viejo).
+- La cola de eventos (`flushQueue`) **nunca perdió nada**: lo que falla queda en la tablet y se reintenta
+  cada 60 s. Ojo con eso al probar: un evento de prueba que quedó en rojo **se manda solo** cuando vuelve
+  a andar y mueve stock real (no hay base de prueba). El tachito 🗑 lo saca también de la cola.
+- ⚠ Para grabar, la cuenta de Google de la tablet tiene que estar en `public.usuarios_permitidos` (hoy 2:
+  `admin` y `envios`; `envios` además no ve esta pantalla en `auth-guard.js`).

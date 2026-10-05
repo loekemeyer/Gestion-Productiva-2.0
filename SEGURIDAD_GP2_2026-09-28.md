@@ -121,6 +121,11 @@ escucha `SIGNED_OUT` y vuelve al login (`GP2_IR_AL_LOGIN` de `auth-guard.js`), y
 acepta el token `sb-hrxfctzncixxqmpfhskv-auth-token` (en `loekemeyer.github.io` conviven otras
 apps con su propio `sb-*`). Cubierto en `test_login_flow.js` (8 y 9).
 
+**Secuela 2 (2026-10-05, v1.235.4):** la tablet de operarios (`operarios_gp2.js`) tenía su propio
+cliente **sin sesión** y estaba exceptuada del test que lo prohíbe: desde la fase B ningún evento
+llegó a la base (`permission denied for function registrar_evento_prod`). Pasó a `GP2_SB()`.
+CONOCIMIENTO §4io.
+
 **OJO — whitelist:** hoy hay **2 cuentas habilitadas** (una `admin`, una `envios`). Toda tablet o
 persona que tenga que ESCRIBIR necesita estar en `public.usuarios_permitidos`; la cuenta `envios`
 además solo ve las pantallas de su lista en `auth-guard.js` (la tablet de operarios no está).
