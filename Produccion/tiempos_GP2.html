@@ -11,6 +11,7 @@
   <link rel="apple-touch-icon" href="../GP2_favicon.png">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <script src="../supabase-config.js?v=20260929a"></script>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -58,6 +59,51 @@
     .msg { padding: 30px; text-align: center; color: #64748b; font-size: 14px; }
     .msg.err { color: #dc2626; font-weight: 600; }
     .note { font-size: 12px; color: #64748b; margin-top: 10px; }
+    /* Boton de fuente de la produccion (GP2 / Gestion Productiva Entero) */
+    .seg-fuente { display: inline-flex; }
+    .seg-fuente .btn-act { border-radius: 0; }
+    .seg-fuente .btn-act:first-child { border-radius: 10px 0 0 10px; }
+    .seg-fuente .btn-act:last-child { border-radius: 0 10px 10px 0; border-left-width: 0; }
+    .gran-pill.pill-entero { background: #fef3c7; color: #92400e; }
+    /* Gauss automatico */
+    .gauss-cell { cursor: pointer; color: #7c3aed; font-weight: 700; }
+    .gauss-cell:hover { background: #f5f3ff; }
+    .gauss-cell.pocos { color: #94a3b8; font-weight: 500; }
+    .aviso { color: #b45309; }
+    .var-hint { color: #94a3b8; font-size: 11px; font-weight: 500; }
+    .mz-tag.clic { cursor: pointer; text-decoration: underline; text-decoration-style: dotted; }
+    /* Ventanas (registros y campana) */
+    .ov { position: fixed; inset: 0; background: rgba(15,23,42,.55); display: none; align-items: center; justify-content: center; z-index: 1000; padding: 16px; }
+    .ov.on { display: flex; }
+    .ov-box { background: #fff; border-radius: 14px; max-height: 92vh; max-width: 100%; display: flex; flex-direction: column; overflow: hidden; }
+    .ov-head { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 16px 20px; border-bottom: 1px solid #e2e8f0; }
+    .ov-head h3 { font-size: 18px; color: #111; max-width: 36ch; }
+    .ov-x { width: 44px; height: 44px; border: 0; border-radius: 10px; background: #f1f5f9; font-size: 22px; cursor: pointer; }
+    .ov-stats { display: flex; flex-wrap: wrap; gap: 6px 18px; padding: 10px 20px; background: #f8fafc; border-bottom: 1px solid #e2e8f0; font-size: 14px; color: #475569; }
+    .ov-stats b { color: #111; }
+    .ov-body { overflow: auto; }
+    .pop-table { width: max-content; min-width: 100%; font-size: 14px; }
+    .pop-table th { font-size: 16px; text-transform: none; letter-spacing: 0; text-align: center; vertical-align: middle; padding: 8px 6px; }
+    .pop-table td { text-align: center; vertical-align: middle; white-space: nowrap; padding: 4px 6px; }
+    .pop-table .ps-arrow { font-size: 10px; color: #94a3b8; }
+    .pop-table tr.anulado { opacity: .45; text-decoration: line-through; }
+    .pop-table tr.excluido { opacity: .45; text-decoration: line-through; font-style: italic; }
+    .pop-table tr.excluido td { color: #64748b; }
+    .eye-btn { width: 44px; height: 44px; border: 0; border-radius: 10px; cursor: pointer; font-size: 18px; background: #f0fdf4; }
+    .eye-btn.off { background: #fef2f2; }
+    .eye-btn:disabled { cursor: not-allowed; opacity: .4; }
+    .gra-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 8px; padding: 12px 20px; background: #faf5ff; }
+    .gra-stat { background: #fff; border: 1px solid #e9d5ff; border-radius: 10px; padding: 8px 12px; }
+    .gra-stat span { display: block; font-size: 11px; font-weight: 700; color: #7c3aed; text-transform: uppercase; }
+    .gra-stat b { font-size: 17px; color: #111; }
+    .gra-stat.hl { background: #7c3aed; border-color: #7c3aed; }
+    .gra-stat.hl span { color: #e9d5ff; }
+    .gra-stat.hl b { color: #fff; }
+    .gra-canvas { position: relative; width: min(900px, 92vw); height: 380px; padding: 12px 20px 0; }
+    .gra-leyenda { display: flex; flex-wrap: wrap; gap: 6px 18px; padding: 10px 20px 14px; font-size: 13px; color: #475569; border-top: 1px solid #e2e8f0; }
+    .gra-leyenda i { display: inline-block; width: 12px; height: 12px; border-radius: 3px; margin-right: 5px; vertical-align: -1px; }
+    #toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: #111; color: #fff; padding: 12px 18px; border-radius: 10px; display: none; z-index: 2000; font-size: 15px; max-width: 90vw; }
+    #toast.on { display: block; }
   </style>
 </head>
 <body>
@@ -72,10 +118,16 @@
 <div class="main-card">
   <div class="card-header">
     <h2>Tiempo real vs tiempo histórico por matriz</h2>
-    <span class="gran-pill">GP2</span>
+    <span class="gran-pill" id="pillFuente">GP2</span>
   </div>
   <div class="card-body">
     <div class="controls-row">
+      <div class="ctrl-group"><label>Producción de</label>
+        <div class="seg-fuente" id="segFuente">
+          <button type="button" class="btn-act" data-fuente="gp2" title="Tabla GP2.produccion">GP2</button>
+          <button type="button" class="btn-act ghost" data-fuente="entero" title="Tabla db_n8n_espejo de Gestión Productiva Entero (se lee y se puede anular)">Gestión Productiva Entero</button>
+        </div>
+      </div>
       <div class="ctrl-group"><label>Desde</label><input type="date" id="fDesde" class="ctrl-input"></div>
       <div class="ctrl-group"><label>Hasta</label><input type="date" id="fHasta" class="ctrl-input"></div>
       <div class="ctrl-group"><label>Operario</label><select id="fOperario" class="ctrl-select"><option value="">Todos</option></select></div>
@@ -98,16 +150,59 @@
             <th class="num" data-k="prods">Prod.</th>
             <th class="num" data-k="uni">Unidades</th>
             <th class="num" data-k="segs">Seg. trabajados</th>
-            <th class="num" data-k="segUni">Seg/uni real</th>
-            <th class="num" data-k="desvio">Desvío</th>
+            <th class="num" data-k="segUni" title="Segundos totales / unidades totales de todo el rango, sin descartar nada">Seg/uni real</th>
+            <th class="num" data-k="gauss" title="Promedio automático de seg/uni sin los registros irreales. Click en el número: la campana">Gauss</th>
+            <th class="num" data-k="desvio" title="Gauss contra el tiempo cargado">Desvío</th>
+            <th class="num" data-k="usadosCount" title="Registros usados en el Gauss / registros totales (con las variantes juntas)">Reg</th>
           </tr>
         </thead>
-        <tbody id="tbody"><tr><td colspan="9" class="msg">Elegí el rango y tocá Cargar.</td></tr></tbody>
+        <tbody id="tbody"><tr><td colspan="11" class="msg">Elegí el rango y tocá Cargar.</td></tr></tbody>
       </table>
     </div>
-    <div class="note">Lista <b>todas</b> las matrices de <b>GP2.matriz</b> (las inactivas, marcadas). <b>Tiempo cargado</b> = <code>matriz.tiempo_historico</code>, en segundos por unidad (la 501, por kg): es el que usa el costo. Producción del rango: <b>GP2.produccion</b> (unidades &gt; 0, sin eliminadas). Desvío = real contra tiempo cargado (negativo = más rápido).</div>
+    <div class="note" id="notaFuente"></div>
+    <div class="note">Lista <b>todas</b> las matrices de <b>GP2.matriz</b> (las inactivas, marcadas). <b>Tiempo cargado</b> = <code>matriz.tiempo_historico</code>, en segundos por unidad (la 501, por kg): es el que usa el costo. Producción del rango: <b>GP2.produccion</b> (unidades &gt; 0, sin eliminadas). <b>Gauss</b> = promedio de seg/uni por <b>operario y día</b> (segundos totales / unidades totales de ese día), sin los días con Uni 0 o Seg ≤ 1, fuera de ⅓ a 3 veces la mediana, o fuera de μ ± 2σ; los registros excluidos se ven tachados en gris al abrir la matriz. <b>Desvío</b> = Gauss contra tiempo cargado (negativo = más rápido). ⚠ = la mediana está a más de 3 veces del tiempo cargado (revisar el tiempo o los registros). Gris = menos de 3 operario-día. Las matrices con letra (3 y 3B) cuentan juntas, salvo 101, 150, 186, 214, 325 y 401.</div>
   </div>
 </div>
+
+<div class="ov" id="ovReg">
+  <div class="ov-box">
+    <div class="ov-head"><h3 id="regTitulo"></h3><button type="button" class="ov-x" id="regCerrar" aria-label="Cerrar">&times;</button></div>
+    <div class="ov-stats" id="regStats"></div>
+    <div class="ov-body">
+      <table class="pop-table">
+        <thead>
+          <tr>
+            <th data-pcol="variante" id="thVar" style="cursor:pointer;display:none" title="Variante de la matriz (3, 3B...): solo aparece si la matriz tiene variantes">Var <span class="ps-arrow">▲</span></th>
+            <th data-pcol="operario" style="cursor:pointer">Operario <span class="ps-arrow">▲</span></th>
+            <th data-pcol="toma" class="num" style="cursor:pointer" title="Segundos por unidad (Tiempo_Toma, o segundos / unidades)">Seg<br>x<br>Uni <span class="ps-arrow">▲</span></th>
+            <th data-pcol="fecha" style="cursor:pointer">Fecha <span class="ps-arrow">▲</span></th>
+            <th data-pcol="uni" class="num" style="cursor:pointer">Uni <span class="ps-arrow">▲</span></th>
+            <th data-pcol="seg" class="num" style="cursor:pointer" title="Segundos trabajados del registro completo, ya sin el tiempo muerto">Total<br>Seg <span class="ps-arrow">▲</span></th>
+            <th data-pcol="ptje" class="num" style="cursor:pointer">Ptje <span class="ps-arrow">▲</span></th>
+            <th id="thAnular">Anular</th>
+          </tr>
+        </thead>
+        <tbody id="regBody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<div class="ov" id="ovGra">
+  <div class="ov-box">
+    <div class="ov-head"><h3 id="graTitulo"></h3><button type="button" class="ov-x" id="graCerrar" aria-label="Cerrar">&times;</button></div>
+    <div class="gra-stats" id="graStats"></div>
+    <div class="ov-body"><div class="gra-canvas"><canvas id="graCanvas"></canvas></div></div>
+    <div class="gra-leyenda">
+      <span><i style="background:rgba(59,130,246,.6)"></i>Usado en el Gauss (un punto por operario y día)</span>
+      <span><i style="background:rgba(148,163,184,.8)"></i>Excluido automático</span>
+      <span><i style="background:#16a34a"></i>Media (μ)</span>
+      <span><i style="background:#f59e0b"></i>Límites ±2σ</span>
+    </div>
+  </div>
+</div>
+
+<div id="toast" role="status"></div>
 
 <script>
 (function () {
@@ -116,8 +211,21 @@
 
   var $ = GP2UI.$;
   var ROWS = [], SORT = { k: 'matriz', dir: 1 }, MATRICES = null;
+  var RECS = [];          /* producción de la fuente elegida, ya normalizada (ver deGP2 / deEntero) */
+  var EMP = {};           /* legajo -> nombre */
+  var THIST = {};         /* matriz -> tiempo cargado (para el Ptje de cada registro) */
+  var FUENTE = 'gp2';     /* 'gp2' | 'entero' */
+  /* ANULAR ACTIVADO (Elias, 2026-10-05; lo pidio apagar y despues lo pidio prender de nuevo, por eso
+     queda este interruptor). true = el boton de la ventana de registros y el click sobre un punto de la
+     campana anulan / reactivan el registro; false = esas dos acciones quedan apagadas. Con la fuente GP2
+     llama a GP2.anular_produccion; con la fuente Entero, a public.toggle_anular_tiempo (la misma funcion
+     que usa Tiempos Matrices de Entero; Elias lo pidio prendido tambien ahi). Los registros que YA estan
+     anulados (anular_tiempo) quedan fuera del calculo con el interruptor que sea. */
+  var ANULAR_ACTIVO = true;
+  var POP = null, POPSORT = { k: 'dist', dir: -1 }, GRA = null, CHART = null;
 
   var esc = GP2UI.esc;   /* helper de la casa, gp2-ui.js (2026-09-05) */
+  function n1(v) { return GP2N.fmt(v, 1, '—', true); }
   function n2(v) { return GP2N.fmt(v, 2, '—'); }
   function n0(v) { return GP2N.fmt(v, 0, '—'); }   /* la regla de numero de la casa (gp2-numero.js) */
 
@@ -125,11 +233,47 @@
   function primerDiaMes() { return GP2UI.hoyAR().slice(0, 8) + '01'; }
   var hoy = GP2UI.hoyAR;   /* era un envoltorio: una linea menos que mantener */
 
+  var toastT = null;
+  function toast(msg) {
+    var t = $('toast');
+    t.textContent = msg;
+    t.classList.add('on');
+    clearTimeout(toastT);
+    toastT = setTimeout(function () { t.classList.remove('on'); }, 5000);
+  }
+
+  /* ===== FUENTE DE LA PRODUCCION (pedido de Elias, 2026-10-05) =====
+     'gp2'    -> GP2.produccion (por defecto: es el schema de esta app).
+     'entero' -> public.db_n8n_espejo, la produccion de Gestion Productiva Entero. EXCEPCION a la
+                 Regla 0 ("GP2 nunca lee public") pedida por el dueño con nombre: de esa unica
+                 tabla se LEE, y lo unico que se ESCRIBE es anular / reactivar un registro con la
+                 RPC public.toggle_anular_tiempo (tambien pedido por el dueño). GP2.produccion arranco
+                 el 2026-09-08 y tiene poco historico; Entero tiene la produccion desde enero.
+                 Todo va con sb.schema('public'): el mismo cliente GP2_SB(), sin createClient suelto.
+     El maestro (GP2.matriz) y los nombres (GP2.empleado) salen siempre de GP2. */
+  var FUENTES = {
+    gp2:    { corto: 'GP2',    tabla: 'GP2.produccion' },
+    entero: { corto: 'ENTERO', tabla: 'public.db_n8n_espejo (Gestión Productiva Entero)' }
+  };
+  function fuenteGuardada() {
+    try { return localStorage.getItem('gp2_tiempos_fuente') === 'entero' ? 'entero' : 'gp2'; } catch (e) { return 'gp2'; }
+  }
+  function guardarFuente(f) { try { localStorage.setItem('gp2_tiempos_fuente', f); } catch (e) { /* sin storage: no pasa nada */ } }
+  function pintarFuente() {
+    document.querySelectorAll('#segFuente [data-fuente]').forEach(function (b) {
+      b.classList.toggle('ghost', b.getAttribute('data-fuente') !== FUENTE);
+    });
+    var pill = $('pillFuente');
+    pill.textContent = FUENTES[FUENTE].corto;
+    pill.classList.toggle('pill-entero', FUENTE === 'entero');
+  }
+
   async function cargarOperarios() {
     var r = await sb.from('empleado').select('legajo,nombre,activo').order('nombre');
     if (r.error) { console.warn('empleado:', r.error); return; }
     var sel = $('fOperario');
     (r.data || []).forEach(function (e) {
+      EMP[String(e.legajo).trim()] = e.nombre;
       var o = document.createElement('option');
       o.value = e.legajo;
       o.textContent = e.nombre + ' (' + e.legajo + ')' + (e.activo === false ? ' · inactivo' : '');
@@ -137,33 +281,187 @@
     });
   }
 
+  /* PostgREST corta cada pedido en 1000 filas: se pide por paginas, con orden fijo */
+  async function traerPaginas(armar) {
+    var out = [], PAG = 1000, desde = 0;
+    for (;;) {
+      var r = await armar().range(desde, desde + PAG - 1);
+      if (r.error) return { error: r.error };
+      var d = r.data || [];
+      out = out.concat(d);
+      if (d.length < PAG) return { data: out };
+      desde += PAG;
+    }
+  }
+
+  /* Los dos origenes se llevan a la misma forma */
+  function deGP2(p) {
+    return { id: p.id, fecha: p.fecha, legajo: String(p.legajo || '').trim(), matriz: String(p.matriz_raw || '').trim(),
+      nombre: p.nombre_matriz || '', uni: Number(p.uni) || 0, seg: Number(p.segundos_trabajados) || 0,
+      toma: p.tiempo_toma, anulado: !!p.anular_tiempo, premio: p.premio,
+      horaIni: p.hora_inicio, horaFin: p.hora_fin, segTM: p.segundos_tiempo_muerto, segHist: p.segundos_historico };
+  }
+  function deEntero(p) {
+    return { id: p.id, fecha: p.Fecha, legajo: String(p.Legajo || '').trim(), matriz: String(p.Matriz || '').trim(),
+      nombre: p.Nombre_Matriz || '', uni: Number(p.Uni) || 0, seg: Number(p.Segundos_Trabajados) || 0,
+      toma: p.Tiempo_Toma, anulado: !!p.Anular_Tiempo, premio: p.Premio,
+      horaIni: null, horaFin: null, segTM: null, segHist: null };
+  }
+
   async function cargar() {
     var tb = $('tbody');
-    tb.innerHTML = '<tr><td colspan="9" class="msg">Cargando...</td></tr>';
+    tb.innerHTML = '<tr><td colspan="11" class="msg">Cargando...</td></tr>';
     /* el maestro va primero: sin el, la pantalla solo mostraba las matrices que
        produjeron en el rango (2026-09-22, "me aparecen solo 4 matrices") */
     if (!MATRICES) {
       var rm = await sb.from('matriz')
         .select('n_matriz,descripcion,tiempo_historico,tiempo_unidad,uni_x_golpe,activa');
-      if (rm.error) { tb.innerHTML = '<tr><td colspan="9" class="msg err">Error: ' + esc(rm.error.message) + '</td></tr>'; return; }
+      if (rm.error) { tb.innerHTML = '<tr><td colspan="11" class="msg err">Error: ' + esc(rm.error.message) + '</td></tr>'; return; }
       MATRICES = rm.data || [];
     }
-    var q = sb.from('produccion')
-      .select('matriz_raw,nombre_matriz,uni,segundos_trabajados,legajo,fecha,eliminar')
-      .gt('uni', 0)
-      .gte('fecha', $('fDesde').value + 'T00:00:00-03:00')
-      .lte('fecha', $('fHasta').value + 'T23:59:59-03:00')
-      .limit(20000);
-    if ($('fOperario').value) q = q.eq('legajo', $('fOperario').value);
+    var desde = $('fDesde').value + 'T00:00:00-03:00', hasta = $('fHasta').value + 'T23:59:59-03:00';
+    var op = $('fOperario').value;
+    var fuente = FUENTE, r;
+    if (fuente === 'entero') {
+      r = await traerPaginas(function () {
+        var q = sb.schema('public').from('db_n8n_espejo')
+          .select('id,Fecha,Legajo,Matriz,Nombre_Matriz,Uni,Segundos_Trabajados,Tiempo_Toma,Anular_Tiempo,Premio,Eliminar')
+          .gt('Uni', 0).neq('Legajo', '1')
+          .gte('Fecha', desde).lte('Fecha', hasta).order('id');
+        if (op) q = q.eq('Legajo', op);
+        return q;
+      });
+    } else {
+      r = await traerPaginas(function () {
+        var q = sb.from('produccion')
+          .select('id,fecha,legajo,matriz_raw,nombre_matriz,uni,segundos_trabajados,tiempo_toma,anular_tiempo,premio,hora_inicio,hora_fin,segundos_tiempo_muerto,segundos_historico,eliminar')
+          .gt('uni', 0)
+          .gte('fecha', desde).lte('fecha', hasta).order('id');
+        if (op) q = q.eq('legajo', op);
+        return q;
+      });
+    }
+    if (fuente !== FUENTE) return;   /* tocaron el boton mientras cargaba: manda la ultima eleccion */
+    if (r.error) { tb.innerHTML = '<tr><td colspan="11" class="msg err">Error: ' + esc(r.error.message) + '</td></tr>'; return; }
 
-    var r = await q;
-    if (r.error) { tb.innerHTML = '<tr><td colspan="9" class="msg err">Error: ' + esc(r.error.message) + '</td></tr>'; return; }
+    RECS = (r.data || [])
+      .filter(function (p) { return String(p.eliminar || p.Eliminar || '').toUpperCase() !== 'S'; })
+      .map(fuente === 'entero' ? deEntero : deGP2)
+      .filter(function (p) { return p.matriz; });
+    $('notaFuente').innerHTML = 'Producción leída de <b>' + esc(FUENTES[fuente].tabla) + '</b>: ' + n0(RECS.length) +
+      ' registros del rango.';
+    construir();
+    render();
+  }
 
+  /* ===== GAUSS AUTOMATICO (mismo criterio que Tiempos Matrices de Gestion Productiva Entero) =====
+     Hasta ahi el tiempo "real" era segundos totales / unidades totales de todo el rango, y un
+     registro irreal lo movia (Matriz 207: 69,2 s contra 16,8 s reales; los registros con Uni 0
+     contaban los segundos de todo el turno como si fueran de una unidad).
+     Sobre los registros NO anulados a mano, y SIN escribir nada en la base:
+       1. Seg <= 1 (o Uni 0): no es produccion medible.
+       2. UN PUNTO POR OPERARIO Y DIA = segundos totales / unidades totales de ese dia. Asi quien
+          carga caja por caja (un registro de 2 h y 100 de 6 s, cada uno imposible solo) cuenta
+          como lo que trabajo en el dia. Un punto excluido excluye todos sus registros.
+       3. Punto fuera de [mediana / 3, mediana * 3].
+       4. Punto fuera de mu +- 2 sigma (95 %) de lo que quedo.
+     El Gauss es el promedio de los puntos que sobreviven. */
+  var GAUSS_Z = 2, GAUSS_RANGO_MEDIANA = 3;
+  function segXUni(r) {
+    if (Number(r.toma) > 0) return Number(r.toma);
+    return r.uni > 0 ? r.seg / r.uni : 0;
+  }
+  function claveOperarioDia(r) {
+    var d = new Date(r.fecha);
+    var dia = isNaN(d.getTime()) ? String(r.fecha || '').slice(0, 10) : GP2UI.hoyAR(d);
+    return r.legajo + '|' + dia;
+  }
+  function media(xs) { return xs.reduce(function (a, b) { return a + b; }, 0) / xs.length; }
+  function gaussAuto(activos) {
+    var excluidos = new Map();    /* registro -> motivo */
+    var todosPuntos = [], porDia = {}, orden = [];
+    activos.forEach(function (r) {
+      var motivo = null;
+      if (!(r.uni > 0)) motivo = 'Uni 0';
+      else if (r.seg <= 1) motivo = 'Seg ≤ 1';
+      if (motivo) {
+        excluidos.set(r, motivo);
+        todosPuntos.push({ regs: [r], t: segXUni(r), excluido: motivo });
+        return;
+      }
+      var k = claveOperarioDia(r);
+      if (!porDia[k]) { porDia[k] = []; orden.push(k); }
+      porDia[k].push(r);
+    });
+    var vivos = orden.map(function (k) {
+      var regs = porDia[k];
+      if (regs.length === 1) return { regs: regs, t: segXUni(regs[0]), excluido: null };
+      var seg = 0, uni = 0;
+      regs.forEach(function (r) { seg += r.seg; uni += r.uni; });
+      return { regs: regs, t: seg / uni, excluido: null };
+    });
+    vivos.forEach(function (v) { todosPuntos.push(v); });
+    function excluir(v, motivo) { v.excluido = motivo; v.regs.forEach(function (r) { excluidos.set(r, motivo); }); }
+
+    var mediana = null;
+    if (vivos.length) {
+      var ord = vivos.map(function (v) { return v.t; }).sort(function (a, b) { return a - b; });
+      var m = Math.floor(ord.length / 2);
+      mediana = ord.length % 2 ? ord[m] : (ord[m - 1] + ord[m]) / 2;
+      vivos = vivos.filter(function (v) {
+        if (v.t > mediana * GAUSS_RANGO_MEDIANA) { excluir(v, 'Más de ' + GAUSS_RANGO_MEDIANA + 'x la mediana (' + n1(mediana) + ' s)'); return false; }
+        if (v.t < mediana / GAUSS_RANGO_MEDIANA) { excluir(v, 'Menos de 1/' + GAUSS_RANGO_MEDIANA + ' de la mediana (' + n1(mediana) + ' s)'); return false; }
+        return true;
+      });
+    }
+    if (vivos.length > 1) {
+      var ts = vivos.map(function (v) { return v.t; });
+      var mu = media(ts);
+      var sd = Math.sqrt(ts.reduce(function (a, t) { return a + (t - mu) * (t - mu); }, 0) / ts.length);
+      if (sd > 0) {
+        vivos = vivos.filter(function (v) {
+          if (Math.abs(v.t - mu) > GAUSS_Z * sd) { excluir(v, 'Fuera de la campana (±' + GAUSS_Z + 'σ)'); return false; }
+          return true;
+        });
+      }
+    }
+    var tiempos = vivos.map(function (v) { return v.t; });
+    var usados = [];
+    vivos.forEach(function (v) { usados = usados.concat(v.regs); });
+    return { gauss: tiempos.length ? media(tiempos) : null, puntos: vivos, todosPuntos: todosPuntos,
+      usados: usados, excluidos: excluidos, mediana: mediana };
+  }
+
+  /* ===== VARIANTES: 3, 3B, 3C... cuentan como UNA sola matriz para el Gauss y la ventana de registros.
+     Cada fila de la tabla conserva su tiempo cargado (es el que paga el premio de cada una). Se juntan
+     todas las que comparten numero, aunque su tiempo cargado sea distinto (309/309B, 394/394B/394C,
+     310/310B son variantes: lo confirmo Elias), SALVO los numeros de abajo, donde la letra es OTRO
+     producto. Matriz nueva con letra que no sea variante: agregar su numero aca. */
+  var NO_SON_VARIANTES = ['101', '150', '186', '214', '325', '401'];
+  var GRUPO = {};   /* codigo -> [codigos de todas las variantes del grupo] */
+  function armarGruposVariantes(codigos) {
+    var porBase = {};
+    codigos.forEach(function (n) {
+      var b = /^(\d+)[A-Za-z]*$/.exec(n);
+      if (!b || NO_SON_VARIANTES.indexOf(b[1]) >= 0) return;
+      (porBase[b[1]] = porBase[b[1]] || []).push(n);
+    });
+    GRUPO = {};
+    Object.keys(porBase).forEach(function (b) {
+      var ns = porBase[b];
+      if (ns.length < 2) return;
+      ns.sort(function (x, y) { return x.length - y.length || x.localeCompare(y); });
+      ns.forEach(function (n) { GRUPO[n] = ns; });
+    });
+  }
+
+  function construir() {
     var acc = {};
     function fila(k) {
       if (!acc[k]) acc[k] = { matriz: k, nombre: '', tiempo: null, unidad: 'uni', uxg: null, activa: true, maestro: false, prods: 0, uni: 0, segs: 0 };
       return acc[k];
     }
+    THIST = {};
     MATRICES.forEach(function (m) {
       var a = fila(String(m.n_matriz).trim());
       a.maestro = true;
@@ -172,26 +470,49 @@
       a.unidad = m.tiempo_unidad || 'uni';
       a.uxg = m.uni_x_golpe == null ? null : Number(m.uni_x_golpe);
       a.activa = m.activa !== false;
+      if (a.tiempo) THIST[a.matriz] = a.tiempo;
     });
-    (r.data || []).forEach(function (p) {
-      if (String(p.eliminar || '').toUpperCase() === 'S') return;
-      var k = String(p.matriz_raw || '').trim();
-      if (!k) return;
-      var a = fila(k);
+    var porMatriz = {};
+    RECS.forEach(function (p) {
+      var a = fila(p.matriz);
       a.prods++;
-      a.uni += Number(p.uni) || 0;
-      a.segs += Number(p.segundos_trabajados) || 0;
-      if (!a.nombre && p.nombre_matriz) a.nombre = p.nombre_matriz;
+      a.uni += p.uni;
+      a.segs += p.seg;
+      if (!a.nombre && p.nombre) a.nombre = p.nombre;
+      (porMatriz[p.matriz] = porMatriz[p.matriz] || []).push(p);
     });
+    armarGruposVariantes(Object.keys(acc));
 
+    var cache = {};
     ROWS = Object.keys(acc).map(function (k) {
       var a = acc[k];
+      var grupo = GRUPO[k] || [k], clave = grupo.join('|');
+      if (!cache[clave]) {
+        var regs = [];
+        grupo.forEach(function (m) { regs = regs.concat(porMatriz[m] || []); });
+        var activos = regs.filter(function (x) { return !x.anulado; });
+        cache[clave] = { regs: regs, activos: activos.length, g: gaussAuto(activos) };
+      }
+      var c = cache[clave], g = c.g;
+      a.grupo = grupo.length > 1 ? grupo : null;
+      a.regsGrupo = c.regs;
+      a.totalReg = c.regs.length;
+      a.activosCount = c.activos;
+      a.usadosCount = g.usados.length;
+      a.puntos = g.puntos;
+      a.todosPuntos = g.todosPuntos;
+      a.excluidos = g.excluidos;
+      a.gauss = g.gauss;
+      a.mediana = g.mediana;
+      a.pocos = g.puntos.length > 0 && g.puntos.length < 3;
+      a.revisar = a.unidad === 'uni' && a.tiempo > 0 && g.mediana != null &&
+        (g.mediana > a.tiempo * GAUSS_RANGO_MEDIANA || g.mediana < a.tiempo / GAUSS_RANGO_MEDIANA);
       a.segUni = a.uni > 0 && a.segs > 0 ? a.segs / a.uni : null;
-      /* la 501 va en seg/kg: no se compara contra seg/uni real */
-      a.desvio = (a.segUni != null && a.tiempo > 0 && a.unidad === 'uni') ? ((a.segUni - a.tiempo) / a.tiempo) * 100 : null;
+      /* el desvio se mide contra el Gauss (sin los registros irreales), no contra el total bruto;
+         la 501 va en seg/kg: no se compara contra seg/uni real */
+      a.desvio = (a.gauss != null && a.tiempo > 0 && a.unidad === 'uni') ? ((a.gauss - a.tiempo) / a.tiempo) * 100 : null;
       return a;
     });
-    render();
   }
 
   function filtradas() {
@@ -209,6 +530,13 @@
       return (x - y) * SORT.dir;
     });
     return out;
+  }
+
+  function avisosDe(r) {
+    var av = [];
+    if (r.revisar) av.push('Revisar: la mediana (' + n1(r.mediana) + ' s) está a más de ' + GAUSS_RANGO_MEDIANA + ' veces del tiempo cargado');
+    if (r.pocos) av.push('Pocos datos: ' + r.puntos.length + ' operario-día usados');
+    return av;
   }
 
   function render() {
@@ -229,7 +557,7 @@
       card('Horas trabajadas', n2(tSegs / 3600)) +
       card('Desvío promedio', desvProm == null ? '—' : (desvProm > 0 ? '+' : '') + n2(desvProm) + '%', desvProm == null ? '' : (desvProm > 0 ? 'red' : 'green'));
 
-    if (!rows.length) { tb.innerHTML = '<tr><td colspan="9" class="msg">Sin matrices para ese filtro.</td></tr>'; return; }
+    if (!rows.length) { tb.innerHTML = '<tr><td colspan="11" class="msg">Sin matrices para ese filtro.</td></tr>'; return; }
 
     tb.innerHTML = rows.map(function (r) {
       var cls = r.desvio == null ? 'desv-na' : (r.desvio > 0 ? 'desv-bad' : 'desv-good');
@@ -238,8 +566,17 @@
         : n2(r.tiempo) + (r.unidad === 'kg' ? ' s/kg' : ' s');
       var marca = !r.maestro ? ' <span class="desv-na">(no está en el maestro)</span>'
         : (!r.activa ? ' <span class="desv-na">(inactiva)</span>' : '');
+      var hint = r.grupo ? ' <span class="var-hint" title="Cuenta junto con: ' + esc(r.grupo.join(', ')) + '">+' + (r.grupo.length - 1) + '</span>' : '';
+      var av = avisosDe(r);
+      var gaussTd = r.gauss == null ? '<td class="num">—</td>'
+        : '<td class="num gauss-cell' + (r.pocos ? ' pocos' : '') + '" data-gra="' + esc(r.matriz) + '" title="Ver la campana' +
+          (av.length ? ' — ' + esc(av.join(' · ')) : '') + '">' + n1(r.gauss) + (r.revisar ? ' <span class="aviso">⚠</span>' : '') + '</td>';
+      var regTd = r.totalReg
+        ? '<td class="num" title="Usados en el Gauss / total' + (r.grupo ? ' (con ' + esc(r.grupo.join(', ')) + ')' : '') + '. Excluidos automáticos: ' +
+          n0(r.activosCount - r.usadosCount) + '. Anulados a mano: ' + n0(r.totalReg - r.activosCount) + '.">' + n0(r.usadosCount) + ' / ' + n0(r.totalReg) + '</td>'
+        : '<td class="num">—</td>';
       return '<tr>' +
-        '<td class="mz-tag">' + esc(r.matriz) + '</td>' +
+        '<td class="mz-tag' + (r.totalReg ? ' clic' : '') + '" data-reg="' + esc(r.matriz) + '">' + esc(r.matriz) + hint + '</td>' +
         '<td>' + esc(r.nombre) + marca + '</td>' +
         '<td class="num">' + tiempo + '</td>' +
         '<td class="num">' + n0(r.uxg) + '</td>' +
@@ -247,7 +584,9 @@
         '<td class="num">' + (r.prods ? n0(r.uni) : '—') + '</td>' +
         '<td class="num">' + (r.prods ? n0(r.segs) : '—') + '</td>' +
         '<td class="num">' + n2(r.segUni) + '</td>' +
+        gaussTd +
         '<td class="num ' + cls + '">' + txt + '</td>' +
+        regTd +
         '</tr>';
     }).join('');
   }
@@ -256,19 +595,236 @@
     return '<div class="stat-card ' + (cls || '') + '"><div class="stat-label">' + label + '</div><div class="stat-value">' + value + '</div></div>';
   }
 
+  function filaDe(clave) { return ROWS.filter(function (r) { return r.matriz === clave; })[0]; }
+
+  /* ===== VENTANA DE REGISTROS ===== */
+  function ptjeDe(r) {
+    var p = Number(r.premio) || 0, calc = false;
+    var tt = segXUni(r), th = THIST[r.matriz] > 0 ? THIST[r.matriz] : 0;
+    if (!p && tt > 0 && th > 0) { p = Math.round(((1 - tt / th) * 10) * 100) / 100; calc = true; }
+    return { p: p, calc: calc };
+  }
+  function valorOrden(r, k, row) {
+    if (k === 'variante') return r.matriz;
+    if (k === 'operario') return EMP[r.legajo] || r.legajo;
+    if (k === 'fecha') return String(r.fecha || '');
+    if (k === 'uni') return r.uni;
+    if (k === 'seg') return r.seg;
+    if (k === 'toma') return segXUni(r);
+    if (k === 'ptje') return ptjeDe(r).p;
+    return Math.abs(segXUni(r) - (row.tiempo || 0));   /* por defecto: los mas lejos del tiempo cargado primero */
+  }
+  function abrirRegistros(clave) {
+    var row = filaDe(clave);
+    if (!row || !row.totalReg) return;
+    POP = clave;
+    renderRegistros(row);
+    $('ovReg').classList.add('on');
+  }
+  function renderRegistros(row) {
+    var regs = row.regsGrupo.slice();
+    regs.sort(function (a, b) {
+      var x = valorOrden(a, POPSORT.k, row), y = valorOrden(b, POPSORT.k, row);
+      if (typeof x === 'string') return x.localeCompare(y, 'es', { numeric: true }) * POPSORT.dir;
+      return (x - y) * POPSORT.dir;
+    });
+    $('regTitulo').textContent = 'Matriz ' + row.matriz + ' — ' + row.nombre;
+    var autoExcl = row.activosCount - row.usadosCount, av = avisosDe(row);
+    $('regStats').innerHTML =
+      '<span>Tiempo cargado: <b>' + (row.tiempo ? n1(row.tiempo) + ' s' : 'sin tiempo') + '</b></span>' +
+      '<span>Gauss: <b>' + (row.gauss == null ? '—' : n1(row.gauss) + ' s') + '</b></span>' +
+      '<span title="Un punto por operario y día: segundos totales / unidades totales">Registros usados: <b>' + n0(row.usadosCount) + ' / ' + n0(row.totalReg) + '</b> (' + n0(row.puntos.length) + ' operario-día)</span>' +
+      (row.grupo ? '<span>Variantes: <b>' + esc(row.grupo.join(', ')) + '</b></span>' : '') +
+      (autoExcl > 0 ? '<span>Excluidos auto: <b>' + n0(autoExcl) + '</b></span>' : '') +
+      (row.totalReg - row.activosCount > 0 ? '<span>Anulados a mano: <b>' + n0(row.totalReg - row.activosCount) + '</b></span>' : '') +
+      (av.length ? '<span class="aviso">⚠ ' + esc(av.join(' · ')) + '</span>' : '');
+    $('thVar').style.display = row.grupo ? '' : 'none';
+    document.querySelectorAll('#ovReg th[data-pcol]').forEach(function (th) {
+      var ar = th.querySelector('.ps-arrow');
+      if (!ar) return;
+      ar.textContent = th.getAttribute('data-pcol') === POPSORT.k ? (POPSORT.dir > 0 ? '▲' : '▼') : '▲';
+      ar.style.color = th.getAttribute('data-pcol') === POPSORT.k ? '#111' : '#94a3b8';
+    });
+    var sinAnular = !ANULAR_ACTIVO;
+    $('thAnular').textContent = ANULAR_ACTIVO ? 'Anular' : 'Anulado';
+    $('regBody').innerHTML = regs.map(function (r) {
+      var excl = !r.anulado ? row.excluidos.get(r) : null;
+      var cls = r.anulado ? ' class="anulado"' : (excl ? ' class="excluido" title="Excluido automáticamente del Gauss: ' + esc(excl) + '"' : '');
+      var pj = ptjeDe(r);
+      var pjTxt = (!pj.p && !pj.calc) ? '—' :
+        '<span class="' + (pj.p > 0 ? 'desv-good' : (pj.p < 0 ? 'desv-bad' : 'desv-na')) + '"' + (pj.calc ? ' style="font-style:italic" title="calculado al vuelo (el premio está en 0)"' : '') + '>' +
+        (pj.p > 0 ? '+' : '') + n2(pj.p) + '</span>';
+      var btn = '<button type="button" class="eye-btn' + (r.anulado ? ' off' : '') + '" data-id="' + esc(r.id) + '" ' +
+        (sinAnular ? 'disabled title="Anular está desactivado en esta pantalla"' : 'title="' + (r.anulado ? 'Reactivar' : 'Anular') + ' tiempo"') + '>' +
+        (r.anulado ? '&#128683;' : '&#9989;') + '</button>';
+      return '<tr' + cls + '>' +
+        (row.grupo ? '<td>' + esc(r.matriz) + '</td>' : '') +
+        '<td>' + esc(EMP[r.legajo] || r.legajo) + '</td>' +
+        '<td class="num">' + (segXUni(r) > 0 ? n1(segXUni(r)) : '—') + '</td>' +
+        '<td>' + esc(GP2UI.fechaTsAR(r.fecha)) + '</td>' +
+        '<td class="num">' + n0(r.uni) + '</td>' +
+        '<td class="num">' + n0(r.seg) + '</td>' +
+        '<td class="num">' + pjTxt + '</td>' +
+        '<td>' + btn + '</td></tr>';
+    }).join('');
+  }
+
+  /* Anular / reactivar un registro. Dos caminos, segun la fuente:
+     - GP2: RPC GP2.anular_produccion (exige sesion autorizada). Reescribe los campos que recibe, asi
+       que se le manda lo que el registro ya tiene y cambia unicamente p_anular.
+     - Entero: RPC public.toggle_anular_tiempo(row_id), la misma que usa Tiempos Matrices de Entero, por
+       .schema('public'). ALTERNA el valor y devuelve el nuevo: se usa lo que devuelve, no lo que la pantalla
+       creia. Devuelve NULL si el registro no existe o si su Anular_Tiempo esta vacio (NULL): ahi no hace
+       nada, y se avisa. */
+  async function alternarAnulado(id) {
+    if (!ANULAR_ACTIVO) { toast('Anular está desactivado en esta pantalla.'); return; }
+    var r = RECS.filter(function (x) { return String(x.id) === String(id); })[0];
+    if (!r) return;
+    var nuevo;
+    if (FUENTE === 'entero') {
+      var rt = await sb.schema('public').rpc('toggle_anular_tiempo', { row_id: r.id });
+      if (rt.error) { toast('No se pudo cambiar el registro: ' + rt.error.message); return; }
+      if (rt.data === null || rt.data === undefined) {
+        toast('No se pudo anular: el registro no existe o tiene el campo Anular_Tiempo vacío (se corrige desde Gestión Productiva Entero).');
+        return;
+      }
+      nuevo = !!rt.data;
+    } else {
+      nuevo = !r.anulado;
+      var res = await sb.rpc('anular_produccion', {
+        row_id: r.id,
+        p_hora_inicio: r.horaIni, p_hora_fin: r.horaFin,
+        p_seg_tiempo_muerto: r.segTM, p_uni: r.uni, p_seg_trabajados: r.seg,
+        p_seg_historico: r.segHist, p_premio: r.premio,
+        p_anular: nuevo
+      });
+      if (res.error) { toast('No se pudo ' + (nuevo ? 'anular' : 'reactivar') + ' el registro: ' + res.error.message); return; }
+    }
+    r.anulado = nuevo;
+    construir();
+    render();
+    if (POP) { var rowP = filaDe(POP); if (rowP) renderRegistros(rowP); }
+    if (GRA) { var rowG = filaDe(GRA); if (rowG && rowG.usadosCount) abrirGrafico(GRA); else cerrarGrafico(); }
+  }
+
+  /* ===== CAMPANA ===== */
+  function cerrarRegistros() { POP = null; $('ovReg').classList.remove('on'); }
+  function cerrarGrafico() {
+    GRA = null;
+    $('ovGra').classList.remove('on');
+    if (CHART) { CHART.destroy(); CHART = null; }
+  }
+  function abrirGrafico(clave) {
+    var row = filaDe(clave);
+    if (!row || !row.totalReg) return;
+    if (!row.usadosCount) { toast('Todos los registros quedaron excluidos o anulados: no hay nada que graficar.'); return; }
+    if (typeof Chart === 'undefined') { toast('No cargó Chart.js (hace falta internet para dibujar la campana).'); return; }
+    GRA = clave;
+    var tiempos = row.puntos.map(function (p) { return p.t; });
+    var n = tiempos.length, mean = row.gauss;
+    var variance = n < 2 ? 0 : tiempos.reduce(function (a, b) { return a + (b - mean) * (b - mean); }, 0) / n;
+    var std = Math.sqrt(variance), stdView = std > 0 ? std : 1;
+    var low = mean - GAUSS_Z * std, high = mean + GAUSS_Z * std;
+    /* Curva normal f(x) = 1/(sigma*raiz(2*pi)) * e^(-(x-mu)^2 / (2*sigma^2)), con el eje en mu +- 4 sigma
+       de los puntos usados; los excluidos muy lejos quedan fuera de escala (se cuentan en la tarjeta). */
+    var xStart = mean - 4 * stdView, xEnd = mean + 4 * stdView, pdf = [];
+    for (var i = 0; i <= 160; i++) {
+      var x = xStart + (i / 160) * (xEnd - xStart);
+      pdf.push({ x: x, y: (1 / (stdView * Math.sqrt(2 * Math.PI))) * Math.exp(-0.5 * Math.pow((x - mean) / stdView, 2)) });
+    }
+    var puntos = row.todosPuntos.map(function (p) {
+      var r0 = p.regs[0];
+      return { x: p.t, y: 0, excluido: p.excluido, regId: p.regs.length === 1 ? r0.id : null, nRegs: p.regs.length,
+        quien: (EMP[r0.legajo] || r0.legajo) + ' ' + GP2UI.fechaTsAR(r0.fecha) };
+    });
+    var autoExcl = puntos.length - n;
+    var fuera = puntos.filter(function (p) { return p.excluido && (p.x < xStart || p.x > xEnd); }).length;
+
+    $('graTitulo').textContent = 'Matriz ' + row.matriz + ' — ' + row.nombre;
+    $('graStats').innerHTML = [
+      ['Puntos (operario-día)', n0(n) + ' / ' + n0(puntos.length)],
+      ['Media (μ)', n2(mean) + ' s'], ['Desvío (σ)', n2(std)],
+      ['Rango 95%', n1(low) + '–' + n1(high) + ' s'],
+      ['Gauss', n2(mean) + ' s', true],
+      ['Excluidos auto', n0(autoExcl) + (fuera ? ' (' + n0(fuera) + ' fuera de escala)' : '')]
+    ].map(function (s) { return '<div class="gra-stat' + (s[2] ? ' hl' : '') + '"><span>' + s[0] + '</span><b>' + s[1] + '</b></div>'; }).join('');
+
+    if (CHART) { CHART.destroy(); CHART = null; }
+    var lineas = {
+      id: 'refLines',
+      afterDatasetsDraw: function (chart) {
+        var ctx = chart.ctx, a = chart.chartArea, xs = chart.scales.x;
+        function linea(valor, color, label, lane) {
+          if (valor < xs.min || valor > xs.max) return;
+          var xp = xs.getPixelForValue(valor);
+          ctx.save();
+          ctx.strokeStyle = color; ctx.lineWidth = 2; ctx.setLineDash([6, 4]);
+          ctx.beginPath(); ctx.moveTo(xp, a.top + 6); ctx.lineTo(xp, a.bottom); ctx.stroke(); ctx.setLineDash([]);
+          ctx.font = '600 12px Inter, sans-serif';
+          var w = ctx.measureText(label).width + 16, h = 22, y0 = a.top + 2 + lane * (h + 4);
+          var x0 = Math.min(Math.max(xp - w / 2, a.left + 2), a.right - 2 - w);
+          ctx.fillStyle = color; ctx.fillRect(x0, y0, w, h);
+          ctx.fillStyle = '#fff'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+          ctx.fillText(label, x0 + w / 2, y0 + h / 2 + 0.5);
+          ctx.restore();
+        }
+        linea(mean, '#16a34a', 'μ ' + n1(mean), 0);
+        if (std > 0) {
+          linea(low, '#f59e0b', '−' + GAUSS_Z + 'σ ' + n1(low), 1);
+          linea(high, '#f59e0b', '+' + GAUSS_Z + 'σ ' + n1(high), 1);
+        }
+      }
+    };
+    $('ovGra').classList.add('on');
+    CHART = new Chart($('graCanvas').getContext('2d'), {
+      type: 'line',
+      data: { datasets: [
+        { label: 'Campana', data: pdf, borderColor: '#1e3a8a', backgroundColor: 'rgba(59,130,246,0.18)', borderWidth: 3, fill: true, tension: 0.4, pointRadius: 0, pointHoverRadius: 0, order: 2 },
+        { type: 'scatter', label: 'Datos', data: puntos, pointRadius: 6, pointHoverRadius: 8, order: 1,
+          pointBackgroundColor: function (c) { return c.raw && c.raw.excluido ? 'rgba(148,163,184,0.9)' : 'rgba(59,130,246,0.9)'; },
+          pointBorderColor: function (c) { return c.raw && c.raw.excluido ? '#64748b' : '#1d4ed8'; } }
+      ] },
+      options: {
+        responsive: true, maintainAspectRatio: false, layout: { padding: { top: 56, right: 10, left: 10 } },
+        onClick: function (e, els) {
+          var el = els.filter(function (x) { return x.datasetIndex === 1; })[0];
+          if (!el) return;
+          if (!ANULAR_ACTIVO) return;
+          var pt = puntos[el.index];
+          if (pt.regId == null) { toast('Este punto junta ' + pt.nRegs + ' registros (' + pt.quien + '): anulalos desde la ventana de registros.'); return; }
+          if (confirm('¿Anular este registro?\n' + pt.quien + ' — ' + n2(pt.x) + ' s' + (pt.excluido ? '\n(excluido automático: ' + pt.excluido + ')' : ''))) alternarAnulado(pt.regId);
+        },
+        plugins: { legend: { display: false }, tooltip: { callbacks: { label: function (it) {
+          if (it.dataset.label !== 'Datos') return 'x=' + n2(it.parsed.x) + ', densidad=' + GP2N.fmt(it.parsed.y, 4);
+          var d = it.raw, acc = d.nRegs > 1 ? d.nRegs + ' registros juntos' : (ANULAR_ACTIVO ? 'click para anular' : '');
+          return d.quien + ' — ' + n2(d.x) + ' s' + (d.excluido ? ' (excluido automático: ' + d.excluido + (acc ? ' — ' + acc : '') + ')' : (acc ? ' (' + acc + ')' : ''));
+        } } } },
+        scales: {
+          x: { type: 'linear', min: xStart, max: xEnd, title: { display: true, text: 'Seg por unidad', font: { weight: 600 } } },
+          y: { beginAtZero: true, title: { display: true, text: 'Densidad de probabilidad', font: { weight: 600 } }, ticks: { callback: function (v) { return GP2N.fmt(v, 3); } } }
+        }
+      },
+      plugins: [lineas]
+    });
+  }
+
   function csv() {
     /* el armado del CSV (;, BOM, coma decimal) es el de la casa: GP2UI.exportarCSV */
-    var filas = [['Matriz', 'Nombre', 'Tiempo cargado', 'Unidad tiempo', 'Uni x golpe', 'Producciones', 'Unidades', 'Seg trabajados', 'Seg/uni real', 'Desvio %']];
+    var filas = [['Matriz', 'Nombre', 'Tiempo cargado', 'Unidad tiempo', 'Uni x golpe', 'Producciones', 'Unidades', 'Seg trabajados', 'Seg/uni real', 'Gauss', 'Desvio %', 'Registros usados', 'Registros total', 'Aviso']];
     filtradas().forEach(function (r) {
       filas.push([r.matriz, r.nombre, r.tiempo == null ? '' : r.tiempo, r.unidad, r.uxg == null ? '' : r.uxg,
         r.prods, r.uni, r.segs,
         r.segUni == null ? '' : Number(r.segUni.toFixed(3)),
-        r.desvio == null ? '' : Number(r.desvio.toFixed(2))]);
+        r.gauss == null ? '' : Number(r.gauss.toFixed(3)),
+        r.desvio == null ? '' : Number(r.desvio.toFixed(2)),
+        r.usadosCount, r.totalReg, avisosDe(r).join(' · ')]);
     });
-    GP2UI.exportarCSV('tiempos_matrices_GP2', filas);
+    GP2UI.exportarCSV('tiempos_matrices_GP2_' + FUENTE, filas);
   }
 
   document.addEventListener('DOMContentLoaded', function () {
+    FUENTE = fuenteGuardada();
+    pintarFuente();
     $('fDesde').value = primerDiaMes();
     $('fHasta').value = hoy();
     $('btnCargar').addEventListener('click', cargar);
@@ -276,7 +832,16 @@
     $('fBuscar').addEventListener('input', render);
     $('fVer').addEventListener('change', render);
     $('fOperario').addEventListener('change', cargar);
-    document.querySelectorAll('thead th').forEach(function (th) {
+    $('segFuente').addEventListener('click', function (e) {
+      var b = e.target.closest('[data-fuente]');
+      if (!b || b.getAttribute('data-fuente') === FUENTE) return;
+      FUENTE = b.getAttribute('data-fuente');
+      guardarFuente(FUENTE);
+      pintarFuente();
+      cerrarRegistros(); cerrarGrafico();
+      cargar();
+    });
+    document.querySelectorAll('.table-wrap thead th').forEach(function (th) {
       th.addEventListener('click', function () {
         var k = th.dataset.k;
         SORT.dir = (SORT.k === k) ? -SORT.dir : -1;
@@ -284,6 +849,29 @@
         render();
       });
     });
+    $('tbody').addEventListener('click', function (e) {
+      var g = e.target.closest('[data-gra]');
+      if (g) { abrirGrafico(g.getAttribute('data-gra')); return; }
+      var m = e.target.closest('[data-reg]');
+      if (m && m.classList.contains('clic')) abrirRegistros(m.getAttribute('data-reg'));
+    });
+    document.querySelectorAll('#ovReg th[data-pcol]').forEach(function (th) {
+      th.addEventListener('click', function () {
+        var k = th.getAttribute('data-pcol');
+        POPSORT = { k: k, dir: POPSORT.k === k ? -POPSORT.dir : (k === 'fecha' || k === 'operario' || k === 'variante' ? 1 : -1) };
+        var row = POP && filaDe(POP);
+        if (row) renderRegistros(row);
+      });
+    });
+    $('regBody').addEventListener('click', function (e) {
+      var b = e.target.closest('.eye-btn');
+      if (b && !b.disabled) alternarAnulado(b.getAttribute('data-id'));
+    });
+    $('regCerrar').addEventListener('click', cerrarRegistros);
+    $('graCerrar').addEventListener('click', cerrarGrafico);
+    $('ovReg').addEventListener('click', function (e) { if (e.target === $('ovReg')) cerrarRegistros(); });
+    $('ovGra').addEventListener('click', function (e) { if (e.target === $('ovGra')) cerrarGrafico(); });
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape') { cerrarRegistros(); cerrarGrafico(); } });
     cargarOperarios();
     cargar();
   });
