@@ -9,6 +9,8 @@
      - por DEFAULT gana el control (es lo que ya esta en el stock) y se puede elegir el remito;
      - el payload de validar_remito_control: origen + id + ingreso_real, y el usuario;
      - el filtro por tipo manda solo lo visible;
+     - DE A UNA (v1.3.0): cada fila tiene su botón Validar que manda solo esa recepción, y no pisa
+       lo elegido en las demás;
      - FLEJES (v1.1.0, "entran todas las recepciones xq todas tienen control"): el pesaje por pallet
        no pisa el stock, asi que ahi elegir Control es lo que CAMBIA el stock; la pantalla lo cuenta
        con en_stock en vez de suponerlo;
@@ -155,6 +157,28 @@ window.supabase = { createClient: function(){ return {
   const v2 = (await calls('validar_remito_control'))[1].args;
   ok(v2.p_items.length === 1 && v2.p_items[0].id === 9, 'con filtro se valida solo lo que se ve — ' + JSON.stringify(v2.p_items));
 
+  // ── validar DE A UNA (v1.3.0, "validar una por una en vez de tener que validar todas juntas") ──
+  await page.click('.filtros button[data-f="todos"]');
+  const unas = await page.$$eval('#pendientes .li .li-acts [data-una]', xs => xs.map(x => x.textContent.trim()));
+  ok(unas.length === 5 && unas.every(t => t === 'Validar'), 'cada fila tiene su propio botón Validar — ' + unas.join(','));
+  ok((await page.$eval('#btnValidar', e => e.textContent)).includes('Validar todas (5)'),
+     'el de abajo queda como "Validar todas (N)"');
+  await page.click('#pendientes .li:nth-child(2) .pick button[data-v="remito"]');
+  const nDlg = dialogs.length;
+  await page.click('#pendientes .li:nth-child(2) [data-una]');
+  await page.waitForFunction(() => (window.__calls || []).filter(c => c.name === 'validar_remito_control').length === 3);
+  const v3 = (await calls('validar_remito_control'))[2].args;
+  ok(v3.p_items.length === 1 &&
+     JSON.stringify(v3.p_items[0]) === JSON.stringify({ origen: 'insumo', id: 17078, ingreso_real: 'remito' }) &&
+     v3.p_usuario === 'thomas',
+     'la fila manda SOLO esa recepción, con lo elegido y quién valida — ' + JSON.stringify(v3));
+  const d3 = (dialogs[nDlg] || {}).msg || '';
+  ok(d3.includes('Z23A') && d3.includes('REMITO') && d3.includes('21.600') && d3.includes('cambia el stock'),
+     'antes de validar la fila pregunta qué queda y si mueve el stock — ' + d3);
+  await page.waitForFunction(() => /Z23A validada/.test(document.getElementById('status').textContent));
+  const elegidos = await page.$$eval('#pendientes .pick button.act', xs => xs.map(x => x.dataset.v));
+  ok(elegidos[0] === 'remito', 'validar una fila no pisa lo elegido en las otras (Z23B sigue en Remito) — ' + elegidos.join(','));
+
   // ── ya validadas ──
   const h = await page.$$eval('#hechos tr', xs => xs.map(x => x.textContent.replace(/\s+/g, ' ').trim()));
   ok(h.length === 1 && h[0].includes('Remito') && h[0].includes('thomas'),
@@ -163,7 +187,7 @@ window.supabase = { createClient: function(){ return {
   // ── reglas de pantalla ──
   const anchoOk = await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1);
   ok(anchoOk, '390px: la pagina no scrollea horizontal');
-  const chicos = await page.$$eval('.pick button, .filtros button, .tabs a, #btnValidar',
+  const chicos = await page.$$eval('.pick button, .filtros button, .tabs a, #btnValidar, [data-una]',
     xs => xs.filter(x => x.offsetParent && x.getBoundingClientRect().height < 44).map(x => x.textContent.trim()));
   ok(chicos.length === 0, 'botones tocables (>= 44px) — ' + chicos.join(', '));
 

@@ -14883,3 +14883,19 @@ de Cuchara, Cucharon, etc"*.
 - Invariantes I/U/W/AB/L en 0. `db/migracion_m505_armado_inox_20261002.sql` (con rollback). Sólo base.
 - ⚠ La app de operarios **vieja** (`loekemeyer/Registro-Produccion-2.0`, `public.Matrices`) no se tocó: si allá
   siguen las 505B/C/D/F, se ven igual que antes.
+
+## 4io. Validación Remito vs Control: se valida de a UNA fila (2026-10-05)
+
+[usuario] *"Quiero que me de la opción de validar una por una en vez de tener que validar todas juntas"*.
+
+- **Antes:** el único botón era «Validar (N)» abajo, que mandaba **todas las filas visibles** juntas
+  (§4hd). Para cerrar una sola había que filtrar o dejar las demás para después sin poder separarlas.
+- **Ahora:** cada fila tiene su botón **«Validar»** al lado de Control/Remito. Manda **sólo esa
+  recepción** a `validar_remito_control` (la RPC ya recibía una lista; una lista de uno es lo mismo:
+  **sin cambio en la base**). Pregunta antes qué queda (Remito/Control con su número) y si cambia el
+  stock. Las demás filas siguen en la lista **con lo que se les eligió** (`boot()` conserva `ELEGIDO`).
+- El botón de abajo queda como **«Validar todas (N)»** (lo visible, igual que antes). Mientras una fila
+  se está validando, su botón y su Control/Remito se apagan y «Validar todas» también, para que un doble
+  toque no la mande dos veces.
+- Front: `Relevamiento/ValidacionRemitos_GP2.html` v1.3.0, version.js v1.236.0. Test:
+  `tests/ui/test_validacion_remitos.js` (bloque «validar DE A UNA»).
