@@ -11,10 +11,24 @@ CREATE OR REPLACE FUNCTION "GP2"._aplicar_recepcion_a_oc(p_comp_id bigint, p_can
  SECURITY DEFINER
  SET search_path TO 'GP2'
 AS $function$
+begin
+  -- 2026-10-05: el cuerpo vive en _aplicar_recepcion_a_oc_mov (excedente + cruce por movimiento)
+  return _aplicar_recepcion_a_oc_mov(p_comp_id, p_cantidad, p_unidad, p_proveedor, null);
+end $function$
+;
+
+-- ---------- _aplicar_recepcion_a_oc_mov ----------
+CREATE OR REPLACE FUNCTION "GP2"._aplicar_recepcion_a_oc_mov(p_comp_id bigint, p_cantidad numeric, p_unidad text, p_proveedor text, p_mov_id bigint)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'GP2'
+AS $function$
 declare
   it record; v_resto numeric := p_cantidad; v_aplicar numeric; v_pend numeric;
   v_kgu numeric; v_cant_item numeric; v_ocs jsonb := '[]'::jsonb;
   v_prov text := nullif(btrim(coalesce(p_proveedor,'')),'');
+  v_ult_id bigint; v_ult_unidad text; v_ult_num integer; v_exc numeric;
 begin
   select kg_x_uni into v_kgu from componente where id = p_comp_id;
   for it in
@@ -43,6 +57,12 @@ begin
     v_aplicar := least(v_cant_item, v_pend);
     if v_aplicar <= 0 then continue; end if;
     update orden_compra_item set recibido = recibido + v_aplicar where id = it.id;
+    -- cruce: deja anotado que este movimiento entro por este renglon (lo usa el trigger de
+    -- movimiento cuando el control / la validacion / anular cambian lo recibido)
+    if p_mov_id is not null then
+      insert into oc_item_recepcion(oc_item_id, movimiento_id, cantidad) values (it.id, p_mov_id, v_aplicar);
+    end if;
+    v_ult_id := it.id; v_ult_unidad := it.unidad; v_ult_num := it.numero;
     -- descontar del resto en la unidad de la recepcion
     if lower(coalesce(it.unidad,'uni')) <> lower(coalesce(p_unidad,'uni')) then
       if lower(coalesce(it.unidad,'uni')) = 'kg' then v_resto := v_resto - v_aplicar / v_kgu;
@@ -57,6 +77,20 @@ begin
       v_ocs := v_ocs || jsonb_build_object('numero', it.numero, 'completa', true);
     end if;
   end loop;
+  -- EXCEDENTE (2026-10-05): entro mas de lo que quedaba pedido. Antes se tiraba (la OC no podia
+  -- pasar de lo pedido); ahora va al ultimo renglon que toco esta recepcion, para que "Recibido"
+  -- diga lo que entro de verdad [usuario: "quiero que me ponga lo que realmente recibi"].
+  if v_ult_id is not null and round(v_resto, 6) > 0 then
+    v_exc := _oc_convertir(v_resto, p_unidad, v_ult_unidad, v_kgu);
+    if v_exc is not null and v_exc > 0 then
+      update orden_compra_item set recibido = recibido + v_exc where id = v_ult_id;
+      if p_mov_id is not null then
+        update oc_item_recepcion set cantidad = cantidad + v_exc
+         where id = (select max(x.id) from oc_item_recepcion x where x.movimiento_id = p_mov_id and x.oc_item_id = v_ult_id);
+      end if;
+      v_ocs := v_ocs || jsonb_build_object('numero', v_ult_num, 'excedente', round(v_exc,2), 'unidad', v_ult_unidad);
+    end if;
+  end if;
   return v_ocs;
 end $function$
 ;
@@ -149,6 +183,22 @@ begin
   end if;
   raise exception 'No autorizado: entrá con tu legajo desde la red de la empresa' using errcode = '42501';
 end $function$
+;
+
+-- ---------- _oc_convertir ----------
+CREATE OR REPLACE FUNCTION "GP2"._oc_convertir(p_cant numeric, p_de text, p_a text, p_kg_x_uni numeric)
+ RETURNS numeric
+ LANGUAGE sql
+ IMMUTABLE
+AS $function$
+  -- Todo lo que no es 'kg' es unidad (mismo criterio que _aplicar_recepcion_a_oc).
+  select case
+    when (lower(coalesce(p_de,'uni')) = 'kg') = (lower(coalesce(p_a,'uni')) = 'kg') then p_cant
+    when p_kg_x_uni is null or p_kg_x_uni <= 0 then null
+    when lower(coalesce(p_a,'uni')) = 'kg' then p_cant * p_kg_x_uni   -- uni -> kg
+    else p_cant / p_kg_x_uni                                          -- kg -> uni
+  end
+$function$
 ;
 
 -- ---------- _oc_num ----------
@@ -917,7 +967,7 @@ begin
   values (v_f, v_comp, p_proveedor, nullif(btrim(coalesce(p_remito,'')),''), p_kg, 'kg', v_mov, v_split)
   returning id into v_rec;
 
-  perform _aplicar_recepcion_a_oc(v_comp, p_kg, 'kg');
+  perform _aplicar_recepcion_a_oc_mov(v_comp, p_kg, 'kg', null, v_mov);
   select cantidad into v_stock from inventario where componente_id = v_comp and ubicacion_id = v_ubic;
 
   return jsonb_build_object('ok', true, 'recepcion_id', v_rec, 'movimiento_id', v_mov,
@@ -1037,7 +1087,7 @@ begin
           ))
   returning id into v_rec;
 
-  perform "GP2"._aplicar_recepcion_a_oc(p_comp_id, p_kg_balanza, 'kg');
+  perform "GP2"._aplicar_recepcion_a_oc_mov(p_comp_id, p_kg_balanza, 'kg', null, v_mov_prod);
 
   select coalesce(cantidad,0) into v_stock_bruto_despues
     from "GP2".inventario where componente_id=v_bruto and ubicacion_id=v_ubic_charcas;
@@ -1139,7 +1189,7 @@ begin
                              'movimiento_chapa_id', v_mov_chapa))
   returning id into v_rec;
 
-  perform "GP2"._aplicar_recepcion_a_oc(p_comp_id, v_kg_producto, 'kg');
+  perform "GP2"._aplicar_recepcion_a_oc_mov(p_comp_id, v_kg_producto, 'kg', null, v_mov_prod);
 
   select coalesce(cantidad,0) into v_stock_chapa_despues
     from "GP2".inventario where componente_id=v_chapa and ubicacion_id=v_ubic_eclipse;
@@ -2247,7 +2297,7 @@ begin
   -- proveedor de la pieza. Los PS normales no tienen O.C. y no pasan por aca.
   select ps.pedido_por_oc into v_por_oc from proveedor_servicio ps where ps.id = p_ps_id;
   if coalesce(v_por_oc, false) then
-    v_oc := "GP2"._aplicar_recepcion_a_oc(p_comp_sp_id, p_kg, v_u, v_prov_sp);
+    v_oc := "GP2"._aplicar_recepcion_a_oc_mov(p_comp_sp_id, p_kg, v_u, v_prov_sp, v_id);
   end if;
 
   return jsonb_build_object('ok',true,'id',v_id,'sc',v_codsc,'sp',v_codsp,'cantidad',p_kg,'unidad',v_u,
@@ -2772,7 +2822,7 @@ begin
   insert into "GP2".recepcion_insumo(fecha,componente_id,proveedor,remito,cantidad,unidad,movimiento_id)
   values(v_f,p_comp_id,nullif(btrim(coalesce(p_proveedor,'')),''),nullif(btrim(coalesce(p_remito,'')),''),p_cantidad,v_u,v_movid)
   returning id into v_recid;
-  v_oc := "GP2"._aplicar_recepcion_a_oc(p_comp_id, p_cantidad, v_u, p_proveedor);
+  v_oc := "GP2"._aplicar_recepcion_a_oc_mov(p_comp_id, p_cantidad, v_u, p_proveedor, v_movid);
 
   v_prov := coalesce(nullif(btrim(coalesce(p_proveedor,'')),''), v_prov);
   if v_mat is not null and v_prov is not null then
@@ -4155,6 +4205,79 @@ end;
 $function$
 ;
 
+-- ---------- fn_movimiento_oc_recibido ----------
+CREATE OR REPLACE FUNCTION "GP2".fn_movimiento_oc_recibido()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'GP2'
+AS $function$
+-- La O.C. sigue al INGRESO REAL de cada recepcion cruzada (2026-10-05) [usuario: "En principio
+-- siempre queda lo del control pero despues con la validacion puede cambiar"]. El control, la
+-- validacion Remito vs Control, el traslado a Virgilio y anular_recepcion terminan todos en
+-- movimiento.cantidad (o en cantidad_transformada en la entrega del fasonero): por eso se mira aca
+-- y no en cada una de esas funciones. Solo actua sobre movimientos con cruce en oc_item_recepcion.
+declare
+  v_old numeric; v_new numeric; v_delta numeric; v_u text; v_kgu numeric;
+  l record; v_d numeric; v_q numeric; v_oc bigint;
+begin
+  if tg_op = 'DELETE' then
+    -- se anulo la recepcion: se devuelve todo lo que habia entrado por cada renglon. El cruce no
+    -- se borra: queda en 0 como rastro (la auditoria no se borra).
+    for l in select x.oc_item_id, sum(x.cantidad) cant from oc_item_recepcion x
+              where x.movimiento_id = old.id group by x.oc_item_id loop
+      update orden_compra_item set recibido = greatest(recibido - l.cant, 0) where id = l.oc_item_id;
+    end loop;
+    update oc_item_recepcion set cantidad = 0 where movimiento_id = old.id;
+    return old;
+  end if;
+
+  if not exists (select 1 from oc_item_recepcion where movimiento_id = new.id) then return new; end if;
+  if new.tipo_mov = 'entrega_ps' then
+    -- fasonero con O.C.: lo recibido es la pieza procesada (crear_entrega_ps / controlar_entrega)
+    v_old := coalesce(old.cantidad_transformada, old.cantidad);
+    v_new := coalesce(new.cantidad_transformada, new.cantidad);
+    v_u   := new.unidad_destino;
+    select kg_x_uni into v_kgu from componente where id = coalesce(new.comp_transformado_id, new.comp_id);
+  else
+    v_old := old.cantidad; v_new := new.cantidad; v_u := new.unidad_origen;
+    select kg_x_uni into v_kgu from componente where id = new.comp_id;
+  end if;
+  v_delta := v_new - v_old;
+  if v_delta is null or v_delta = 0 then return new; end if;
+
+  if v_delta > 0 then
+    -- entro mas: al ultimo renglon que toco esta recepcion (donde termino de entrar)
+    select x.id, x.oc_item_id, oi.unidad, oi.oc_id into l
+      from oc_item_recepcion x join orden_compra_item oi on oi.id = x.oc_item_id
+     where x.movimiento_id = new.id order by x.id desc limit 1;
+    v_d := _oc_convertir(v_delta, v_u, l.unidad, v_kgu);
+    if v_d is null then return new; end if;
+    update orden_compra_item set recibido = recibido + v_d where id = l.oc_item_id;
+    update oc_item_recepcion set cantidad = cantidad + v_d where id = l.id;
+    -- se completa sola, igual que en _aplicar_recepcion_a_oc
+    update orden_compra o set estado = 'recibida'
+     where o.id = l.oc_id and o.estado in ('enviada','borrador')
+       and not exists (select 1 from orden_compra_item x where x.oc_id = o.id and x.recibido < x.cantidad);
+  else
+    -- entro menos: se descuenta del ultimo renglon para atras, sin bajar de 0. La OC NO se reabre
+    -- sola (oc_marcar deja cerrar a mano una OC parcial; eso no se pisa).
+    v_q := -v_delta;  -- en la unidad del movimiento
+    for l in select x.id, x.oc_item_id, x.cantidad, oi.unidad
+               from oc_item_recepcion x join orden_compra_item oi on oi.id = x.oc_item_id
+              where x.movimiento_id = new.id and x.cantidad > 0 order by x.id desc loop
+      exit when round(v_q, 6) <= 0;
+      v_d := least(_oc_convertir(v_q, v_u, l.unidad, v_kgu), l.cantidad);
+      if v_d is null or v_d <= 0 then continue; end if;
+      update orden_compra_item set recibido = greatest(recibido - v_d, 0) where id = l.oc_item_id;
+      update oc_item_recepcion set cantidad = cantidad - v_d where id = l.id;
+      v_q := v_q - _oc_convertir(v_d, l.unidad, v_u, v_kgu);
+    end loop;
+  end if;
+  return new;
+end $function$
+;
+
 -- ---------- fn_oc_virgilio_espejo ----------
 CREATE OR REPLACE FUNCTION "GP2".fn_oc_virgilio_espejo()
  RETURNS trigger
@@ -5156,7 +5279,7 @@ CREATE OR REPLACE FUNCTION "GP2".oc_bundle()
  SET search_path TO 'GP2'
 AS $function$
 with pend as (
-  select oi.componente_id, sum(oi.cantidad - oi.recibido) pendiente
+  select oi.componente_id, sum(greatest(oi.cantidad - oi.recibido, 0)) pendiente
   from orden_compra_item oi join orden_compra o on o.id = oi.oc_id
   where o.estado in ('borrador','enviada')
   group by oi.componente_id
@@ -8230,7 +8353,7 @@ oc_ps as (
             join proveedor_servicio ps on ps.id = rp.proveedor_id and ps.pedido_por_oc
            where rp.tipo_paso = 'proveedor_servicio' and rp.comp_entrada_id is not null) p
     left join lateral (
-       select sum(oi.cantidad - coalesce(oi.recibido,0)) as pend
+       select sum(greatest(oi.cantidad - coalesce(oi.recibido,0), 0)) as pend
          from orden_compra_item oi join orden_compra o on o.id = oi.oc_id
         where oi.componente_id = p.comp_salida_id and o.estado = 'enviada'
           and oi.cantidad > coalesce(oi.recibido,0)
@@ -8342,7 +8465,7 @@ rep_iny as (
          , 2)) as sugerido
     from componente c
     left join lateral (
-       select sum(oi.cantidad - coalesce(oi.recibido,0)) as pend
+       select sum(greatest(oi.cantidad - coalesce(oi.recibido,0), 0)) as pend
          from orden_compra o
          join orden_compra_item oi on oi.oc_id = o.id
         where o.estado = 'enviada' and oi.componente_id = c.id
@@ -8390,7 +8513,7 @@ rec as (
     join componente cs on cs.id = rp.comp_salida_id and not coalesce(cs.discontinuado,false)
   union all
   select 'proveedor_at', a.proveedor_at_id::text, null::bigint, null::bigint, 0, false, a.cod_art,
-         (select sum(oi.cantidad - coalesce(oi.recibido,0)) from orden_compra o
+         (select sum(greatest(oi.cantidad - coalesce(oi.recibido,0), 0)) from orden_compra o
             join orden_compra_item oi on oi.oc_id = o.id
             join componente ci on ci.id = oi.componente_id
            where o.estado in ('borrador','enviada')
@@ -8403,13 +8526,13 @@ rec as (
      and not exists (select 1 from articulo art where art.codigo = a.cod_art and art.discontinuado)
   union all
   select 'proveedor_insumo', o.proveedor, oi.componente_id, null::bigint, 0, false, null::text,
-         sum(oi.cantidad - coalesce(oi.recibido,0)),
+         sum(greatest(oi.cantidad - coalesce(oi.recibido,0), 0)),
          'oc'
     from orden_compra o
     join orden_compra_item oi on oi.oc_id = o.id
    where o.estado in ('borrador','enviada')
    group by o.proveedor, oi.componente_id
-  having sum(oi.cantidad - coalesce(oi.recibido,0)) > 0
+  having sum(greatest(oi.cantidad - coalesce(oi.recibido,0), 0)) > 0
   union all
   select 'virgilio', 'virgilio', c.id, null::bigint, 0, false, null::text,
          coalesce((select sum(i.cantidad) from inventario i

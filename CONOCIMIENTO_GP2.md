@@ -14926,3 +14926,35 @@ de Cuchara, Cucharon, etc"*.
   toque no la mande dos veces.
 - Front: `Relevamiento/ValidacionRemitos_GP2.html` v1.3.0, version.js v1.236.0 (`?v=20261005c`). Test:
   `tests/ui/test_validacion_remitos.js` (bloque «validar DE A UNA»).
+
+## 4iq. O.C.: «Recibido» = lo que REALMENTE entró, y sigue al control y a la validación (2026-10-05)
+- `[usuario 2026-10-05]` Captura de Órdenes (2): OC N° 2 de JL Matricería decía PEP9 «Cuchillo de Untar
+  Blanc» 1.250 recibido. *"Recibí más de 1250 cuchillos de untar blanco. Quiero que me ponga lo que realmente
+  recibí"*. Y la regla, textual: ***"En principio siempre queda lo del control pero después con la validación
+  puede cambiar"*** → «Recibido» de la OC = el ingreso real de la recepción (`movimiento.cantidad` de la
+  compra), no lo tipeado al cargar el remito.
+- `[dato]` PEP9: remito 1.300, control 1.342, stock 1.342 → la OC 1.250. PC4 (misma OC): control 2.806 → la OC
+  2.800. Dos causas: (1) `_aplicar_recepcion_a_oc` hacía `least(recibido, pendiente)` y **tiraba el
+  excedente**; (2) el cruce con la OC se hacía **una sola vez**, al cargar, y el control (cajas, kg,
+  cartones), el traslado a Virgilio, la validación Remito vs Control y `anular_recepcion` cambian o borran
+  el movimiento sin avisarle a la OC. Anular una recepción dejaba la OC con lo recibido igual.
+- **Arreglo (sólo base, `db/migracion_oc_recibido_real.sql`):** tabla `GP2.oc_item_recepcion` (qué
+  movimiento entró por qué renglón y cuánto); `_aplicar_recepcion_a_oc_mov` (la vieja quedó de envoltorio)
+  anota el cruce y manda el **excedente al último renglón que tocó**; trigger
+  `trg_movimiento_oc_recibido` lleva cada cambio de cantidad (compra) o `cantidad_transformada` (entrega
+  del fasonero Máspoli) a esos renglones: sube → último renglón, baja → del último para atrás sin bajar de
+  0, anular → devuelve todo (el cruce queda en 0, no se borra). Pendientes de `oc_bundle` /
+  `tablet_bundle` con `greatest(…, 0)` por renglón.
+- **La OC se cierra sola pero NUNCA se reabre sola** `[deducido]`: `oc_marcar` deja cerrar a mano una OC
+  parcial y eso no se pisa. Si se anula una recepción que había completado una OC, queda «recibida» con
+  renglones en rojo/amarillo: se reabre a mano.
+- Probado contra la base (transacción revertida): remito 1.100 sobre 1.000 pedidos → 1.100; control 1.142
+  → 1.142; validación «remito» → 1.100; recontrol 900 → 900; anular → 0. Fasonero: entrega 3.050 sobre
+  3.000 → 3.050; control 2.980 → 2.980.
+- Datos: OC N° 2 corregida a PC4 2.806 y PEP9 1.342. ⚠ OC N° 1 PC12 (Máspoli) tiene el mismo caso
+  (control 2.513,15 contra 2.500 en la OC) y **no se tocó**: espera el ok del usuario. Las recepciones
+  anteriores a hoy no tienen cruce (salvo las 2 de la OC N° 2, cargado a mano): si se recontrolan, la OC
+  no se entera.
+- ⚠ El conector de Supabase de Claude **no ejecuta** SQL que contenga `DROP` o `delete from` (ni adentro
+  del cuerpo de una función): espera una confirmación que en una sesión remota nadie da y corta a los
+  60 s sin aplicar nada. Por eso la función nueva en vez de cambiarle la firma a la vieja.
