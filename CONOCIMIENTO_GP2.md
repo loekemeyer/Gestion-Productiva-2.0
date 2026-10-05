@@ -15150,11 +15150,17 @@ de Cuchara, Cucharon, etc"*.
   Stock General lee `componente.descripcion` y ninguna función ni vista de GP2 trae el texto escrito.
   `db/migracion_z48_pinza_fideos_20261005.sql`.
 - **[dato] Sigue diciendo «Cuchara Fideos» a propósito (otra pieza o fuera de GP2):** PV5 «Cuchara Fideos Nylon 1 Pza» (el
-  plástico, ésa sí es cuchara); artículos 391, 844 y **944E «Cuchara Fideos Ac. Inox»** (el terminado que se arma con
-  Z48); `944P` «Parte Cuchara Fideos Ac. Inox» en el espejo de Virgilio (lo escribe GV); la planilla de costos del usuario
-  (`A_Costos_VIGENTES.xlsx`, hojas Costos/Cajas/Importados); la matriz 171 ya se llama «Armado Inox».
-  **[deducido, sin confirmar]** si Z48 es una pinza, 944E también lo sería: queda para que el dueño decida si se renombra
-  (el nombre del artículo viene de su planilla, hay que cambiarlo allá también o se pisa en la próxima carga).
+  plástico, ésa sí es cuchara); artículos 391 y 844 (nylon, también cucharas); `944P` «Parte Cuchara Fideos Ac. Inox» en
+  el espejo de Virgilio (lo escribe GV); la planilla de costos del usuario (`A_Costos_VIGENTES.xlsx`, hojas
+  Costos/Cajas/Importados); la matriz 171 ya se llama «Armado Inox». ~~**944E** «Cuchara Fideos Ac. Inox»~~: ver abajo.
+- **[usuario, 05/10, sobre la captura del selector «944E — Cuchara Fideos Ac. Inox»]** *«Que sea Pinza Fideos Ac. Inox en
+  vez de Cuchara»*. Resuelve la duda anterior: el terminado que se arma con Z48 también es una pinza.
+  **[dato]** `GP2.articulo` id 166 `944E`: «Cuchara Fideos Ac. Inox» → «Pinza Fideos Ac. Inox». Verificado con SELECT; 391 y
+  844 siguen diciendo «Cuchara Fideos Nylon 1 Pza». Solo base, sin código (la tabla no tiene triggers y ninguna función ni
+  vista de GP2 trae el texto). `db/migracion_944e_pinza_fideos_20261005.sql`.
+  ⚠ **[deducido, sin confirmar]** la planilla del usuario (`A_Costos_VIGENTES.xlsx`) sigue diciendo «Cuchara Fideos Ac.
+  Inox»: si `articulo.descripcion` se vuelve a cargar desde ella, el nombre vuelve a pisarse. Hay que cambiarlo allá
+  también. `944P` en el espejo de Virgilio lo escribe GV y tampoco se tocó.
 
 ## 4ix. Cambiar Tallerista / Prov. A.T. y la LÍNEA IMAGINARIA entre Fábrica y el tallerista (2026-10-05)
 
