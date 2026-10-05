@@ -15137,3 +15137,18 @@ de Cuchara, Cucharon, etc"*.
   exige que sus filas estén en «Todos» (falla con el código viejo: 10 faltantes).
 - **Regla para el próximo rubro:** si un rubro nuevo lee de una fuente que no es `D.inv`, no hace falta tocar «Todos»
   (lo recoge `completarConRubros`), pero si agrega un sector nuevo a `RUBROS` hay que mirar el costo de su bundle.
+
+## 4iw. Z48 se llama «Pinza Fideos», no «Cuchara Fideos» (2026-10-05)
+
+- **[usuario]** (captura de Stock General buscando `z48`): *«En vez de Cuchara Fideos renombra a Pinza Fideos»*. La pieza
+  inox que arma la matriz 505 es una pinza, no una cuchara.
+- **[dato]** `GP2.componente`: id 956 `Z48` «Cuchara Fideos Inox» → «Pinza Fideos Inox»; id 957 `Z48-M505`
+  «Cuchara Fideos Inox tras M505» → «Pinza Fideos Inox tras M505». Verificado con SELECT. Solo base, sin código:
+  Stock General lee `componente.descripcion` y ninguna función ni vista de GP2 trae el texto escrito.
+  `db/migracion_z48_pinza_fideos_20261005.sql`.
+- **[dato] Sigue diciendo «Cuchara Fideos» a propósito (otra pieza o fuera de GP2):** PV5 «Cuchara Fideos Nylon 1 Pza» (el
+  plástico, ésa sí es cuchara); artículos 391, 844 y **944E «Cuchara Fideos Ac. Inox»** (el terminado que se arma con
+  Z48); `944P` «Parte Cuchara Fideos Ac. Inox» en el espejo de Virgilio (lo escribe GV); la planilla de costos del usuario
+  (`A_Costos_VIGENTES.xlsx`, hojas Costos/Cajas/Importados); la matriz 171 ya se llama «Armado Inox».
+  **[deducido, sin confirmar]** si Z48 es una pinza, 944E también lo sería: queda para que el dueño decida si se renombra
+  (el nombre del artículo viene de su planilla, hay que cambiarlo allá también o se pisa en la próxima carga).
