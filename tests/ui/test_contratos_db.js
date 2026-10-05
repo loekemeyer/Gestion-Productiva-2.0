@@ -88,7 +88,13 @@ const fromInexistentes = [];
 const clavesMalas = [];
 const faltanRequeridos = [];
 const columnasMalas = [];
-let nRpc = 0, nFrom = 0, nLlamadasConObjeto = 0;
+let nRpc = 0, nFrom = 0, nLlamadasConObjeto = 0, nExcepciones = 0;
+
+// EXCEPCION A LA REGLA 0 (pedida por el dueño, 2026-10-05): Tiempos Matrices tiene un boton para
+// tomar la produccion de Gestion Productiva Entero, y para eso LEE public.db_n8n_espejo. Es solo
+// lectura, de esa unica tabla, con el cliente GP2_SB() y .schema('public') (nunca un createClient
+// suelto). Cualquier otra pantalla, o cualquier otra tabla de public, sigue fallando aca.
+const LECTURAS_PUBLIC_PERMITIDAS = { 'Produccion/tiempos_GP2.html': ['db_n8n_espejo'] };
 
 // objeto literal que sigue a rpc('x', { ... }): claves de PRIMER nivel
 function clavesTopLevel(txt, desde) {
@@ -132,6 +138,8 @@ for (const p of archivos) {
   for (const m of txt.matchAll(/\.from\(\s*["'](\w+)["']\s*\)(?:\s*\.select\(\s*["']([^"']*)["']\s*\))?/g)) {
     nFrom++;
     const linea = txt.slice(0, m.index).split('\n').length;
+    if ((LECTURAS_PUBLIC_PERMITIDAS[rel(p)] || []).includes(m[1]) &&
+        /\.schema\(\s*['"]public['"]\s*\)\s*$/.test(txt.slice(Math.max(0, m.index - 40), m.index))) { nExcepciones++; continue; }
     if (!relaciones.has(m[1])) { fromInexistentes.push(rel(p) + ':' + linea + '  ' + m[1]); continue; }
     // columnas del select literal, solo para TABLAS (las vistas no declaran columnas en db/):
     // "a, b, alias:col, rel:fk_col(sub, cols)" -> a, b, col, fk_col
@@ -155,7 +163,8 @@ for (const p of archivos) {
 rpcInexistentes.forEach(i => console.log('     ' + i));
 ok(rpcInexistentes.length === 0, 'toda RPC que nombra una pantalla existe en la base (' + nRpc + ' llamadas en ' + archivos.length + ' archivos)');
 fromInexistentes.forEach(i => console.log('     ' + i));
-ok(fromInexistentes.length === 0, 'toda tabla/vista que lee una pantalla existe (' + nFrom + ' from())');
+ok(fromInexistentes.length === 0, 'toda tabla/vista que lee una pantalla existe (' + nFrom + ' from(), ' + nExcepciones + ' de public permitidos por excepcion)');
+ok(nExcepciones === 1, 'la excepcion a la Regla 0 se usa UNA vez, en tiempos_GP2.html con .schema(\'public\') (se usa ' + nExcepciones + ')');
 // una columna borrada o renombrada en la base rompe la pantalla en silencio (PostgREST 400)
 columnasMalas.forEach(i => console.log('     ' + i));
 ok(columnasMalas.length === 0, 'cada columna que una pantalla pide en from(tabla).select(...) existe en la tabla');

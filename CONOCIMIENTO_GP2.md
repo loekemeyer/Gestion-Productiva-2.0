@@ -15063,3 +15063,40 @@ de Cuchara, Cucharon, etc"*.
   envasado están en `false` («por ahora no incluyas el costo», 02/10), por eso 522E suma $74,20 de MO y los demás
   no; 509 y 512 además no tienen `tiempo_historico` (faltan_tiempos); (3) precio de GRJ31/32/33 (los 4 salen
   subvaluados) y si 838E lleva el cartón que lo distingue del 323E: no se cargó, el pedido sólo nombró GRJ + caja.
+
+## 4iu. Tiempos Matrices GP2: Gauss automático, variantes juntas y botón de fuente GP2 / Gestión Productiva Entero (2026-10-05)
+
+- `[usuario, Elías, 05/10, textual]` *"usa también el repo de gestión productiva 2.0"* / *"a, y hacé un botón para que
+  cambien de dónde toma la producción, por si toma de la tabla de GP2 y de Gestión Productiva Entero"* / *"aplicale
+  todos los cambios que hicimos a tiempos matrices"*. Los cambios son los de `Produccion/tiempos.html` de
+  GestionProductivaEntero (mismo día), portados a `Produccion/tiempos_GP2.html`.
+- **Qué había:** una sola cifra por matriz, segundos totales / unidades totales de todo el rango, sin descartar nada; un
+  registro irreal la movía (Matriz 207 de Entero: 69,2 s contra 16,8 s reales).
+- **Gauss automático**, sobre los registros no anulados y **sin escribir nada en la base**: (1) Seg ≤ 1 o Uni 0 afuera;
+  (2) un punto por operario y día = segundos totales / unidades totales de ese día (quien carga caja por caja, un
+  registro de 2 h y 100 de 6 s, cuenta como lo que trabajó en el día); (3) punto fuera de ⅓…3× la mediana afuera;
+  (4) punto fuera de μ ± 2σ afuera. El Gauss es el promedio de lo que sobrevive. El viejo filtro μ ± 1,036σ (70 %) no
+  se repuso: con datos limpios tiraba 3 de cada 10 registros buenos. El **Desvío** pasa a medirse contra el Gauss.
+- **Avisos:** ⚠ si la mediana está a más de 3× del tiempo cargado (o a menos de ⅓); número en gris si quedan menos de 3
+  operario-día. Columna **Reg** = usados / total, y la ventana de registros muestra los excluidos tachados con el motivo.
+- **Variantes:** 3, 3B, 3C… comparten Gauss y ventana (columna **Var** solo si hay variantes); cada fila conserva su
+  tiempo cargado. Se juntan todas las que comparten número **salvo** `NO_SON_VARIANTES` = 101, 150, 186, 214, 325 y
+  401, donde la letra es otro producto `[usuario 05/10]`. Matriz nueva con letra que no sea variante: agregar su número a
+  esa lista. Coincide con la lógica 505 de 4is (la matriz con letra es la base).
+- **Botón de fuente** (`GP2` · `Gestión Productiva Entero`; la elección queda en el navegador):
+  `GP2.produccion` por defecto; `public.db_n8n_espejo` a pedido. **EXCEPCIÓN A LA REGLA 0, pedida por el dueño con
+  nombre:** es solo lectura, de esa única tabla, con `GP2_SB().schema('public')` (no un `createClient` suelto) y
+  `anular` queda apagado en esa fuente. El maestro (`GP2.matriz`) y los nombres (`GP2.empleado`) salen siempre de GP2.
+  `tests/ui/test_contratos_db.js` tiene la excepción **acotada** (`LECTURAS_PUBLIC_PERMITIDAS`: esa pantalla, esa
+  tabla, con `.schema('public')`, y exige que se use una sola vez); cualquier otra lectura de `public` sigue fallando.
+- **Por qué hace falta el botón `[dato, medido 05/10]`:** `GP2.produccion` tiene 36 filas (10 válidas) desde el
+  08/09/2026; `public.db_n8n_espejo` tiene 16.240 (6.437 válidas) desde el 18/01. Con la fuente GP2 casi todo da «pocos
+  datos». Además 5 matrices reales de Entero (10B, 115, 325C, 513, 514) no están en `GP2.matriz` y salen «no está en el
+  maestro», y 9 tienen tiempo cargado distinto entre `GP2.matriz` y `public."Matrices"` (manda GP2).
+- **Anular:** con la fuente GP2 el botón de la ventana y el click en un punto de la campana llaman a
+  `GP2.anular_produccion`, mandándole lo que el registro ya tenía (esa RPC reescribe los campos que recibe) y cambiando
+  solo `p_anular`. Interruptor `ANULAR_ACTIVO` en la pantalla: Elías lo pidió apagar y después prender; hoy `true`.
+- **Hallazgo, NO tocado `[dato, medido 05/10]`:** `public.db_n8n_espejo` tiene políticas de `insert`, `update` y `delete` para `anon` y
+  `authenticated` (`select_all` también): cualquiera con la clave publishable puede escribir o borrar producción de
+  Entero. No se tocó.
+- Prueba: `tests/ui/test_tiempos_gp2.js` (42 comprobaciones, Supabase stubeado).
