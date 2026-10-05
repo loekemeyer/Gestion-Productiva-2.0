@@ -1,0 +1,353 @@
+<!doctype html>
+<html lang="es">
+<head>
+<!-- v1.0.0 (2026-10-05) — CAMBIAR TALLERISTA / PROV. A.T. [usuario: "En herramientas quiero que me agregues
+     un modulo que sea Cambiar Tallerista/Prov. A.T. Entonces, si quiero cambiar de tallerista o prov at de
+     algun articulo no va a haber problema. El tema es cuando un art se envasa aca en fabrica. En ese caso
+     tendrias que mandar las partes al nuevo tallerista (la linea imaginaria estaria antes de la matriz
+     envasado, excepto ...)"].
+
+     Tres cambios, todos por RPC (nada se escribe desde la pantalla):
+       · tallerista -> tallerista   (cambiar_contraparte_aplicar, tipo 'tallerista', desde = el actual)
+       · prov. A.T. -> prov. A.T.   (tipo 'prov_at')
+       · Fabrica -> tallerista      (tipo 'tallerista', desde = null): lo que hoy arman y envasan las
+         matrices de Fabrica pasa a un tallerista. La LINEA IMAGINARIA decide que partes se le mandan:
+         por defecto antes de la matriz de envasado; 13 articulos tienen su excepcion en
+         GP2.articulo_linea_tallerista (942E 943E 944E 945E 948E -> 505; 542 543 720 722 -> 261;
+         570 858 -> 194; 507 707 -> 78).
+     Siempre se muestra primero "Ver el cambio" (cambiar_contraparte_preview): partes que recibe el nuevo,
+     matrices que dejan de hacerse aca, avisos (sin precio, sin ubicacion) y bloqueos. Recien despues
+     "Confirmar". Despiece x Art. (Programa.html) lee la ruta en vivo: lo que se cambia aca se ve alla. -->
+<meta charset="utf-8"/>
+<script src="../auth-guard.js?v=20260929a"></script>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Cambiar tallerista / Prov. A.T. · GP2</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="../supabase-config.js?v=20260929a"></script>
+<link rel="stylesheet" href="../gp2-modulo.css?v=20260912c"/>
+<link rel="icon" type="image/png" href="../GP2_favicon.png">
+<link rel="apple-touch-icon" href="../GP2_favicon.png">
+<style>
+  .ct-wrap{max-width:760px}
+  .ct-buscar{display:flex;flex-direction:column;gap:6px;margin:6px 0 10px}
+  .ct-buscar label{font-size:18px;font-weight:800;color:#111}
+  .ct-buscar input{width:100%;padding:12px 14px;border:2px solid #cbd5e1;border-radius:10px;font-size:20px}
+  .ct-lista{display:flex;flex-direction:column;gap:8px;margin:8px 0}
+  .ct-art{display:flex;flex-direction:column;gap:6px;text-align:left;background:#fff;border:2px solid #d0d7de;
+          border-radius:12px;padding:12px 14px;cursor:pointer;font-size:18px;min-height:44px;color:#111}
+  .ct-art:hover{border-color:#111}
+  .ct-art .t{font-size:20px}
+  .ct-art .t b{font-size:22px;font-weight:900}
+  .ct-chips{display:flex;flex-wrap:wrap;gap:6px}
+  .ct-chip{font-size:15px;font-weight:700;padding:3px 10px;border-radius:999px;background:#eef2f7;color:#334155}
+  .ct-chip.fab{background:#fef3c7;color:#92400e}
+  .ct-chip.pat{background:#dcfce7;color:#166534}
+  .ct-mas{font-size:16px;color:#64748b;margin:4px 0}
+  .ct-tit{font-size:22px;margin:4px 0 8px}
+  .ct-tit b{font-size:26px;font-weight:900}
+  .lbl2{font-size:14px;font-weight:800;color:#475569;text-transform:uppercase;letter-spacing:.4px;margin:14px 0 6px}
+  .ct-fila{border:2px solid #e2e8f0;border-radius:12px;padding:12px 14px;margin:8px 0;display:flex;flex-direction:column;gap:8px}
+  .ct-quien{display:flex;align-items:flex-start;gap:10px}
+  .ct-ico{font-size:28px;line-height:1}
+  .ct-quien b{font-size:21px}
+  .ct-sub{font-size:16px;color:#475569;margin-top:2px}
+  .ct-cambia{display:flex;flex-direction:column;gap:6px}
+  .ct-cambia label{font-size:16px;font-weight:800;color:#111}
+  .ct-cambia select{width:100%;padding:10px 12px;border:2px solid #cbd5e1;border-radius:10px;background:#fff;min-height:48px}
+  .ct-prev{border:2px solid #0b3b73;border-radius:12px;padding:14px 16px;margin:14px 0;background:#f8fbff}
+  .ct-prev h3{font-size:20px;margin:0 0 6px}
+  .ct-prev h4{font-size:15px;font-weight:800;color:#475569;text-transform:uppercase;letter-spacing:.4px;margin:12px 0 4px}
+  .ct-prev ul{margin:0;padding-left:0;list-style:none}
+  .ct-prev li{font-size:18px;padding:4px 0;border-bottom:1px solid #e2e8f0;display:flex;justify-content:space-between;gap:10px}
+  .ct-prev li .q{color:#475569;white-space:nowrap}
+  .ct-aviso{font-size:17px;padding:8px 10px;border-radius:8px;margin:6px 0}
+  .ct-aviso.warn{background:#fef3c7;color:#78350f}
+  .ct-aviso.info{background:#e0f2fe;color:#075985}
+  .ct-aviso.bloq{background:#fee2e2;color:#991b1b;font-weight:700}
+  .ct-quien2{display:flex;flex-direction:column;gap:6px;margin:12px 0 4px}
+  .ct-quien2 label{font-size:16px;font-weight:800}
+  .ct-quien2 input{width:100%;padding:10px 12px;border:2px solid #cbd5e1;border-radius:10px}
+  .ct-acc{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}
+  .ct-acc .btn{flex:1 1 180px}
+</style>
+</head>
+<body>
+
+<div class="card ct-wrap">
+  <div class="header">
+    <h1>Cambiar tallerista / Prov. A.T.</h1>
+    <div class="hbtns">
+      <button class="hlink hidden" id="btnVolver" type="button">← Otro artículo</button>
+      <a href="../GP2_MODULOS.html">Atrás</a>
+    </div>
+  </div>
+
+  <div class="steps">
+
+    <!-- FASE 0 — elegir artículo -->
+    <div id="fase0">
+      <div class="ct-buscar">
+        <label for="q">Artículo (código o descripción)</label>
+        <input type="text" id="q" inputmode="text" autocomplete="off" placeholder="Ej: 542 o ahueca">
+      </div>
+      <div id="status" class="status">Cargando…</div>
+      <div id="lista" class="ct-lista"></div>
+    </div>
+
+    <!-- FASE 1 — el artículo elegido -->
+    <div id="fase1" class="hidden">
+      <div id="detalle"></div>
+      <div id="prev"></div>
+    </div>
+
+    <!-- FASE 2 — hecho -->
+    <div id="fase2" class="hidden">
+      <div class="successBox">
+        <div class="title">✓ Cambio hecho</div>
+        <div id="okDetail" style="font-size:18px;color:#333"></div>
+      </div>
+      <div class="row" style="justify-content:center">
+        <a class="btn btn-secondary" id="btnDespiece" href="../Programa/Programa.html" style="text-decoration:none;display:inline-flex;align-items:center">Ver en Despiece x Art.</a>
+        <button class="btn btn-primary" id="btnOtro" type="button">Cambiar otro artículo</button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script src="../gp2-ui.js?v=20260930a"></script>
+<script src="../gp2-numero.js?v=20260911o"></script>
+<script>
+"use strict";
+
+var $ = GP2UI.$, esc = GP2UI.esc;
+var fmt = GP2N.fmt;
+
+var SB = GP2_SB();
+
+var B = null;      // bundle: { art[], tall[], pat[] }
+var ART = null;    // articulo elegido
+var FILAS = [];    // lo que hace hoy el articulo: [{tipo, id, n, ico, sub}]
+var SEL = null;    // cambio que se esta mirando: {tipo, desde, hasta}
+
+var MAX_LISTA = 40;
+
+function norm(s){
+  return String(s == null ? "" : s).toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
+}
+
+/* ---------- carga ---------- */
+async function cargar(){
+  var r = await SB.rpc("cambiar_contraparte_bundle");
+  if (r.error){ $("status").textContent = "Error: " + r.error.message; return; }
+  B = r.data || { art: [], tall: [], pat: [] };
+  $("status").textContent = (B.art || []).length + " artículos.";
+  renderLista();
+}
+
+/* ---------- fase 0: lista ---------- */
+function chipsDe(a){
+  var h = "";
+  (a.tall || []).forEach(function(t){ h += '<span class="ct-chip">👷 ' + esc(t.n) + '</span>'; });
+  (a.pat || []).forEach(function(p){ h += '<span class="ct-chip pat">🏭 ' + esc(p.n) + '</span>'; });
+  if (a.fab) h += '<span class="ct-chip fab">🏠 Fábrica (matrices)</span>';
+  return h || '<span class="ct-chip">sin asignar</span>';
+}
+
+function renderLista(){
+  var q = norm($("q").value).trim();
+  var arts = (B && B.art) || [];
+  var hit = arts.filter(function(a){
+    if (!q) return true;
+    return norm(a.cod + " " + (a.d || "") + " " + (a.fam || "") + " " + (a.mk || "")).indexOf(q) >= 0;
+  });
+  var cont = $("lista"); cont.innerHTML = "";
+  hit.slice(0, MAX_LISTA).forEach(function(a){
+    var b = document.createElement("button");
+    b.type = "button"; b.className = "ct-art"; b.setAttribute("data-id", a.id);
+    b.innerHTML =
+      '<span class="t"><b>' + esc(a.cod) + '</b> ' + esc(a.d || "") + (a.mk ? " · " + esc(a.mk) : "") + '</span>' +
+      '<span class="ct-chips">' + chipsDe(a) + '</span>';
+    cont.appendChild(b);
+  });
+  if (hit.length > MAX_LISTA){
+    var m = document.createElement("div"); m.className = "ct-mas";
+    m.textContent = "Se muestran " + MAX_LISTA + " de " + hit.length + ". Escribí más del código para acotar.";
+    cont.appendChild(m);
+  } else if (!hit.length && B){
+    var v = document.createElement("div"); v.className = "ct-mas";
+    v.textContent = "Ningún artículo coincide con «" + $("q").value + "».";
+    cont.appendChild(v);
+  }
+}
+
+/* ---------- fase 1: el articulo ---------- */
+function subTall(t, a){
+  var hace = (t.hace || []).map(function(c){ return c === a.cod ? "el artículo terminado" : "arma " + c; });
+  return "hace: " + (hace.join(" y ") || "—");
+}
+
+function elegirArt(id){
+  ART = (B.art || []).filter(function(a){ return String(a.id) === String(id); })[0];
+  if (!ART) return;
+  SEL = null; $("prev").innerHTML = "";
+  FILAS = [];
+  (ART.tall || []).forEach(function(t){
+    FILAS.push({ tipo:"tallerista", id:t.id, n:t.n, ico:"👷", sub:subTall(t, ART) });
+  });
+  (ART.pat || []).forEach(function(p){
+    FILAS.push({ tipo:"prov_at", id:p.id, n:p.n, ico:"🏭", sub:"entrega el artículo terminado" });
+  });
+  if (ART.fab){
+    var l = ART.linea || {};
+    FILAS.push({ tipo:"tallerista", id:null, n:"Fábrica", ico:"🏠",
+      sub:"Lo arman y envasan las matrices de Fábrica. Si pasa a un tallerista, él empieza antes de la matriz N° " +
+          (l.n || "?") + (l.d ? " (" + l.d + ")" : "") + (l.ex ? " — excepción" : " — la de envasado") + "." });
+  }
+  $("fase0").classList.add("hidden"); $("fase2").classList.add("hidden");
+  $("fase1").classList.remove("hidden"); $("btnVolver").classList.remove("hidden");
+  renderDetalle();
+}
+
+function opcionesDe(f){
+  var lista = f.tipo === "prov_at" ? (B.pat || []) : (B.tall || []);
+  var ya = {};
+  (f.tipo === "prov_at" ? ART.pat : ART.tall).forEach(function(x){ ya[x.id] = true; });
+  var h = '<option value="">— elegí —</option>';
+  lista.forEach(function(x){
+    if (ya[x.id]) return;
+    h += '<option value="' + x.id + '">' + esc(x.n) + (x.ub ? "" : " (sin ubicación de stock)") + '</option>';
+  });
+  return h;
+}
+
+function renderDetalle(){
+  var a = ART;
+  var h = '<div class="ct-tit"><b>' + esc(a.cod) + '</b> ' + esc(a.d || "") + (a.mk ? " · " + esc(a.mk) : "") + '</div>';
+  h += '<div class="lbl2">Hoy lo hace</div>';
+  if (!FILAS.length) h += '<div class="ct-mas">Este artículo no tiene tallerista, prov. A.T. ni matriz de envasado cargados.</div>';
+  FILAS.forEach(function(f, i){
+    var etiqueta = f.id == null ? "Pasa al tallerista" : (f.tipo === "prov_at" ? "Pasa al prov. A.T." : "Pasa al tallerista");
+    h += '<div class="ct-fila">' +
+      '<div class="ct-quien"><span class="ct-ico">' + f.ico + '</span><div><b>' + esc(f.n) + '</b><div class="ct-sub">' + esc(f.sub) + '</div></div></div>' +
+      '<div class="ct-cambia"><label for="sel' + i + '">' + etiqueta + '</label>' +
+      '<select id="sel' + i + '" data-i="' + i + '">' + opcionesDe(f) + '</select></div>' +
+      '<button class="btn btn-primary" type="button" data-ver="' + i + '" id="ver' + i + '" disabled>Ver el cambio</button>' +
+    '</div>';
+  });
+  $("detalle").innerHTML = h;
+}
+
+/* ---------- vista previa ---------- */
+function cantTxt(c){
+  var x = Number(c);
+  if (!isFinite(x) || x <= 0) return "";
+  if (x < 1) return "1 cada " + fmt(1 / x, 0);
+  return "× " + fmt(x, 2);
+}
+
+function renderPrev(r){
+  var d = r.desde || {}, h2 = r.hasta || {}, a = r.articulo || {};
+  var h = '<div class="ct-prev"><h3>Qué cambia en el ' + esc(a.cod) + '</h3>' +
+    '<div style="font-size:19px"><b>' + esc(d.n || "—") + '</b> → <b>' + esc(h2.n || "—") + '</b></div>';
+
+  (r.bloqueos || []).forEach(function(b){ h += '<div class="ct-aviso bloq">⛔ ' + esc(b) + '</div>'; });
+
+  if ((r.partes || []).length){
+    var titulo = r.tipo === "fabrica_a_tallerista"
+      ? "Le mandás a " + (h2.n || "el nuevo") + " (todo lo que entra antes de la línea)"
+      : (h2.n || "El nuevo") + " recibe las mismas partes";
+    h += '<h4>' + esc(titulo) + '</h4><ul>';
+    r.partes.forEach(function(p){
+      h += '<li><span>' + esc(p.cod) + ' · ' + esc(p.d || "") + '</span><span class="q">' + esc(cantTxt(p.cantidad)) + '</span></li>';
+    });
+    h += '</ul>';
+  }
+  if ((r.dejan || []).length){
+    h += '<h4>Deja de hacerse acá, para este artículo</h4><ul>';
+    r.dejan.forEach(function(m){ h += '<li><span>N° ' + esc(m.n) + ' · ' + esc(m.d || "") + '</span></li>'; });
+    h += '</ul>';
+  }
+  (r.avisos || []).forEach(function(av){
+    h += '<div class="ct-aviso ' + (av.nivel === "warn" ? "warn" : "info") + '">' + (av.nivel === "warn" ? "⚠ " : "ℹ ") + esc(av.txt) + '</div>';
+  });
+
+  var u = "";
+  try { u = localStorage.getItem("gp2_usuario") || ""; } catch (e) {}
+  h += '<div class="ct-quien2"><label for="usuario">Tu nombre (queda en la bitácora)</label>' +
+       '<input type="text" id="usuario" inputmode="text" autocomplete="off" value="' + esc(u) + '"></div>';
+  h += '<div class="ct-acc">' +
+       '<button class="btn btn-primary" type="button" id="btnConfirmar"' + (r.ok ? "" : " disabled") + '>Confirmar cambio</button>' +
+       '<button class="btn btn-secondary" type="button" id="btnCancelar">Cancelar</button></div>' +
+       '<div id="msgPrev" class="status"></div></div>';
+  $("prev").innerHTML = h;
+  $("prev").scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+async function verCambio(i){
+  var f = FILAS[i];
+  var hasta = GP2N.entero($("sel" + i).value);
+  if (!f || !hasta) return;
+  SEL = { tipo: f.tipo, desde: f.id, hasta: hasta, fila: i };
+  $("ver" + i).disabled = true;
+  $("prev").innerHTML = '<div class="status">Calculando…</div>';
+  var r = await SB.rpc("cambiar_contraparte_preview",
+    { p_articulo: ART.id, p_tipo: SEL.tipo, p_desde: SEL.desde, p_hasta: SEL.hasta });
+  $("ver" + i).disabled = false;
+  if (r.error){ $("prev").innerHTML = '<div class="ct-aviso bloq">⛔ ' + esc(r.error.message) + '</div>'; return; }
+  renderPrev(r.data);
+}
+
+async function confirmar(){
+  if (!SEL) return;
+  var btn = $("btnConfirmar"); btn.disabled = true;
+  $("msgPrev").textContent = "Guardando…";
+  var u = ($("usuario").value || "").trim();
+  if (u){ try { localStorage.setItem("gp2_usuario", u); } catch (e) {} }
+  var r = await SB.rpc("cambiar_contraparte_aplicar",
+    { p_articulo: ART.id, p_tipo: SEL.tipo, p_desde: SEL.desde, p_hasta: SEL.hasta, p_usuario: u });
+  if (r.error){
+    btn.disabled = false;
+    $("msgPrev").innerHTML = '<span style="color:#991b1b;font-weight:700">⛔ ' + esc(r.error.message) + '</span>';
+    return;
+  }
+  var d = r.data || {};
+  $("okDetail").innerHTML =
+    '<b>' + esc((d.articulo || {}).cod) + '</b>: de <b>' + esc((d.desde || {}).n || "—") + '</b> a <b>' + esc((d.hasta || {}).n || "—") + '</b>.' +
+    '<br>' + (d.pasos || 0) + ' paso(s) de ruta' + ((d.inventario_nuevo || 0) ? ', ' + d.inventario_nuevo + ' parte(s) nuevas en su stock' : '') + '.' +
+    '<br><span style="font-size:15px;color:#555">Despiece x Art. ya lo muestra con el cambio.</span>';
+  $("fase1").classList.add("hidden"); $("fase2").classList.remove("hidden");
+  $("btnVolver").classList.remove("hidden");
+}
+
+function volver(){
+  ART = null; SEL = null;
+  $("fase1").classList.add("hidden"); $("fase2").classList.add("hidden");
+  $("fase0").classList.remove("hidden"); $("btnVolver").classList.add("hidden");
+  cargar();
+}
+
+/* ---------- eventos ---------- */
+$("q").addEventListener("input", renderLista);
+$("lista").addEventListener("click", function(e){
+  var b = e.target.closest("[data-id]"); if (b) elegirArt(b.getAttribute("data-id"));
+});
+$("detalle").addEventListener("change", function(e){
+  var s = e.target.closest("select[data-i]"); if (!s) return;
+  $("ver" + s.getAttribute("data-i")).disabled = !s.value;
+  $("prev").innerHTML = ""; SEL = null;
+});
+$("detalle").addEventListener("click", function(e){
+  var b = e.target.closest("[data-ver]"); if (b) verCambio(parseInt(b.getAttribute("data-ver"), 10));
+});
+$("prev").addEventListener("click", function(e){
+  if (e.target.closest("#btnConfirmar")) confirmar();
+  else if (e.target.closest("#btnCancelar")){ $("prev").innerHTML = ""; SEL = null; }
+});
+$("btnVolver").addEventListener("click", volver);
+$("btnOtro").addEventListener("click", volver);
+
+cargar();
+</script>
+</body>
+</html>

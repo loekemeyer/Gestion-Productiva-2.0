@@ -110,6 +110,22 @@ Reemplazo (2026-08-30) de los viejos `despiece_bundle` y `verificacion_bundle`, 
 La pantalla pide además `faltantes_bundle` (lazy, al abrir un artículo) para la matemática de
 faltantes prorrateados: ver más arriba, hoy es un envoltorio de `movimientos_bundle`.
 
+## cambiar_contraparte_bundle() / _preview / _aplicar — CambiarTallerista/CambiarTallerista_GP2.html
+
+Módulo de Herramientas (2026-10-05, CONOCIMIENTO §4ix). Cambia el tallerista o el prov. A.T. de un
+artículo; si hoy lo arma y envasa Fábrica con matrices, pasa las partes al tallerista nuevo (la LÍNEA
+IMAGINARIA). Escribe solo por RPC: `cambiar_contraparte_aplicar` exige sesión habilitada (anon sin EXECUTE).
+
+| RPC | Parámetros | Devuelve |
+|---|---|---|
+| `cambiar_contraparte_bundle()` | — | `{ art[], tall[], pat[] }`. `art[]` = `{ id, cod, d, fam, mk, tall[{id,n,hace[],final}], pat[{id,n}], fab, linea{n,d,ex} }` (`fab` = lo hacen matrices de Fábrica; `linea.ex` = excepción a la regla del envasado). `tall[]`/`pat[]` = destinos activos `{ id, n, ub }` (`ub` = tiene ubicación de stock; el tallerista 3 «Fábrica» no es destino) |
+| `cambiar_contraparte_preview(p_articulo, p_tipo, p_desde, p_hasta)` | `p_tipo` = `tallerista` \| `prov_at`; `p_desde` = el actual, **`null` = lo hace Fábrica** | `{ ok, tipo, articulo, desde, hasta, pasos, partes[{cod,d,cantidad}], dejan[{n,d}], avisos[{nivel,txt}], bloqueos[] }`. No escribe |
+| `cambiar_contraparte_aplicar(p_articulo, p_tipo, p_desde, p_hasta, p_usuario)` | igual + nombre para la bitácora (si va vacío, el mail de la sesión) | lo mismo + `aplicado`, `cambio_id`, `inventario_nuevo`, `despues` (contrapartes nuevas). Con bloqueos **falla** con el primer motivo |
+
+Tablas: `articulo_linea_tallerista` (las 13 excepciones de la línea) y `contraparte_cambio` (bitácora: los
+`ruta_paso` de antes y de después). Internas (sin EXECUTE para nadie): `_linea_tallerista`,
+`_contrapartes_articulo`, `_cambiar_contraparte`. `_cc_quitar_pasos` (único borrado) se crea a mano en el SQL Editor.
+
 ## produccion_bundle(p_matriz, p_anio) — Produccion/rendimiento_GP2.js (solo lectura)
 
 Se llama 2 veces: sin args al init (usa `matrices` + `empleados`) y con
@@ -134,6 +150,7 @@ confirmar acá que la clave existe; si un bundle cambia, actualizar esta tabla e
 | `abm_articulos_bundle()` | ABM Artículos | `art, partes, sect` |
 | `alertas_bundle()` | Alertas | `generado_en, matriz_sin_tiempo, pendientes, pm, recepcion_de_mas, ref_fecha, rm, ventana_dias` (`recepcion_de_mas` = `{total, items}` de `alerta_recepcion` en estado `abierta`, 2026-09-13) |
 | `calculadora_cajones_bundle()` | Calcular Cajones | `cajones, sectores, comps` |
+| `cambiar_contraparte_bundle()` | Cambiar Tallerista / Prov. A.T. | `art, pat, tall` |
 | `control_recepcion_bundle(p_sector_id)` | control-cajas.js (11) y control-remaches.js (5, 8, …) | `recepciones, sector, sector_id, uni_x_paq_default` (reemplaza a `control_cajas_bundle` + `control_kg_bundle`, 2026-09-05) |
 | `control_envios_bundle(p_desde, p_hasta)` | Control Envíos y Entregas | (por vista/tipo, ver la pantalla) |
 | `control_ps_bundle()` | Control PS | `generado_en, proveedores` (cada proveedor trae `nombre_corto`) |

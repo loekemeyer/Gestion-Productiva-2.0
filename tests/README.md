@@ -12,6 +12,7 @@ base): verifican payloads de RPC, filtros, cálculos en pantalla y flujos comple
 |---|---|
 | test_bom.js | Editor de BOM del ABM Artículos |
 | test_botones_fuera.js | Botones sacados 2026-08-29 (RD/CM/REM) fuera y el resto presente; menú sin los candados muertos |
+| test_cambiar_contraparte.js | Cambiar Tallerista / Prov. A.T. (2026-10-05): lista y buscador, la línea imaginaria del que hoy hace Fábrica, destinos sin repetir al que ya lo hace, vista previa (partes, matrices que dejan de hacerse, avisos, bloqueos) y payload de `cambiar_contraparte_preview` / `_aplicar`; celular 390 px |
 | test_contratos_db.js | Guardia del contrato pantalla ↔ base: toda `rpc('x')` y todo `from('x')` de las pantallas GP2 (las `_GP2`, las de entrada y `control-cajas`/`control-remaches`) existe en `db/` (funciones, tablas, vistas); cada columna pedida en `from(tabla).select(...)` existe en la tabla; en cada llamada con objeto literal, cada clave es un parámetro real de la función y no falta ninguno sin DEFAULT. Si falla porque `db/` está viejo, se regenera `db/`, no se toca el test (sin navegador, lee archivos) |
 | test_control_tall_gp2.js | Control Talleristas GP2: caracterización previa a la unificación de pantallas |
 | test_ctrl.js | Control Envíos y Entregas (pivote, medidas Kg/Uni/Cajas) |
@@ -36,6 +37,7 @@ base): verifican payloads de RPC, filtros, cálculos en pantalla y flujos comple
 | test_op_e2e.js | App Operarios entera: legajo → E con rollo → C → RM → baja vía RPC → cola ✓. El stub **revienta** si la app toca una tabla directo |
 | test_pm.js | Problemas con Matrices (RM/PM, uni acumuladas, golpes) |
 | test_pwa_icono.js | El icono de la app llega al teléfono: apple-touch-icon en las páginas de entrada, iconos del manifest existentes, maskable declarado y con token de versión |
+| test_programa_cambio_contraparte.js | Despiece x Art. después de Cambiar Tallerista / Prov. A.T.: el 542 pasado a un tallerista dibuja al tallerista (no la «matriz final») y sigue mostrando la 237; el 208 pasado de Pintos a Maspoli nombra solo al nuevo |
 | test_recepcion_etapas.js | Recepción: pesaje por etapas con varios ítems |
 | test_recepcion_oc.js | Recepción: la tarjeta muestra "OC: N" (lo que falta de las OC abiertas) |
 | test_recepcion_salir_pesaje.js | Recepción v3.22: no se puede salir sin controlar |

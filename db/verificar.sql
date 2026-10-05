@@ -272,6 +272,15 @@ select 'AI_rpc_que_escribe_abierta_a_anon_o_sin_control', count(*) from pg_proc 
    and pg_get_functiondef(p.oid) ~* '\m(insert|update|delete)\M'
    and (has_function_privilege('anon', p.oid, 'EXECUTE')
         or pg_get_functiondef(p.oid) !~ '_exigir_(autorizado\(\)|operario\()')
+union all
+-- AJ) La LINEA IMAGINARIA de cada articulo (GP2.articulo_linea_tallerista: la matriz desde la cual un
+--     tallerista haria lo que hoy hace Fabrica) tiene que ser una matriz que ese articulo USA en su
+--     ruta. Si no, _linea_tallerista no encuentra por donde cortar y "Cambiar Tallerista" de ese
+--     articulo queda bloqueado. Sin fila en la tabla = la linea es el envasado y no hay nada que
+--     chequear. 2026-10-05.
+select 'AJ_linea_tallerista_que_no_cae_en_la_ruta', count(*) from "GP2".articulo_linea_tallerista l
+ where not exists (select 1 from "GP2".ruta r join "GP2".ruta_paso rp on rp.ruta_id = r.id
+                    where r.articulo_id = l.articulo_id and rp.tipo_paso = 'matriz' and rp.matriz_id = l.matriz_id)
 ) chequeos
 order by regla;
 

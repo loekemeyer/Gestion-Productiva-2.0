@@ -15152,3 +15152,66 @@ de Cuchara, Cucharon, etc"*.
   (`A_Costos_VIGENTES.xlsx`, hojas Costos/Cajas/Importados); la matriz 171 ya se llama «Armado Inox».
   **[deducido, sin confirmar]** si Z48 es una pinza, 944E también lo sería: queda para que el dueño decida si se renombra
   (el nombre del artículo viene de su planilla, hay que cambiarlo allá también o se pisa en la próxima carga).
+
+## 4ix. Cambiar Tallerista / Prov. A.T. y la LÍNEA IMAGINARIA entre Fábrica y el tallerista (2026-10-05)
+
+- **[usuario, 05/10, textual]** *«En herramientas quiero que me agregues un módulo que sea Cambiar Tallerista/Prov. A.T.
+  Entonces, si quiero cambiar de tallerista o prov at de algún articulo no va a haber problema. El tema es cuando un art
+  se envasa acá en fábrica. En ese caso tendrías que mandar las partes al nuevo tallerista»*; *«En todos los arts que
+  fabricamos hay una linea imaginaria que es la matriz que o la hacemos nosotros acá o lo hace el tallerista en su
+  taller»*; *«no me interesa que ellos registren ni anoten su produccion con el numero de matriz, solamente lo controlo
+  con lo que entregan en virgilio»*; *«en el caso de cambiar en este módulo el tallerista o prov at tendrías que cambiar
+  el módulo de despiece x Art»*. El mensaje con las excepciones quedó cortado al final («En el caso de la matriz)»);
+  las 13 excepciones tienen matriz asignada, así que no falta ninguna.
+- **La línea `[usuario]`:** por defecto es **antes de la matriz de ENVASADO** (la que expulsa el terminado, sector 12): al
+  tallerista se le manda la pieza, el cartón y la caja. Excepciones (13 artículos), donde la línea va antes de la
+  anteúltima o antepenúltima matriz y **desde ahí TODA la cadena hasta el envasado pasa al tallerista**: **942E 943E 944E
+  945E 948E → matriz 505** (Armado Inox) · **542 543 720 722 → 261** (la 237/237B sigue acá: se le manda `PC10-M237` /
+  `PB6-M237B` ya armado) · **570 858 → 194** (se le mandan E6, F2 y V10 sueltos, no `E6-M194`) · **507 707 → 78** (D5, D6 y
+  V4 sueltos, no `D5-M78`). El tallerista no registra matriz ni producción: se lo controla por lo que entrega en Virgilio.
+- **Dónde vive `[dato]`:** `GP2.articulo_linea_tallerista` (articulo_id, matriz_id, nota): SOLO las 13 excepciones; sin fila =
+  el envasado. `GP2._linea_tallerista(art)` calcula por ruta dónde empieza lo del tallerista (la matriz de la línea más toda
+  matriz que consume lo que ella expulsa, hasta virgilio) y qué parte entra. Probada sobre los 42 artículos que se cierran con
+  matriz: resuelven sin error y **cada ruta queda cubierta** (p. ej. 542 → D16B, PC10-M237, G5A y A9; 570 → E6, F2, V10,
+  PC10-M237, F2B y A6). Invariante nuevo **AJ** en `db/verificar.sql` (cada excepción tiene que caer en la ruta del artículo).
+- **El módulo** (`CambiarTallerista/CambiarTallerista_GP2.html`, Herramientas, v1.238.0): elegís el artículo, ves quién lo hace hoy
+  (tallerista, prov. A.T. o «Fábrica (matrices)»), elegís el nuevo y **«Ver el cambio»** muestra partes que recibe, matrices que
+  dejan de hacerse acá, avisos y bloqueos; recién después «Confirmar». Tres cambios, todos por RPC
+  (`cambiar_contraparte_bundle / _preview / _aplicar`, contratos en `GP2_MAPA.md`), atómicos y con bitácora
+  (`GP2.contraparte_cambio`: los `ruta_paso` de antes y de después, quién y cuándo; no se borra):
+  - **tallerista → tallerista** (también el sub-armado de otro tallerista, p. ej. 115): cambia `ruta_paso.tallerista_id` de ESE
+    tallerista, `reparto_tallerista`, la firma de `ruta_revision` (Despiece_GP2.html confirma rutas por firma y la firma lleva el
+    nombre) y crea en su casa una fila de inventario en 0 por cada parte.
+  - **prov. A.T. → prov. A.T.:** `ruta_paso.proveedor_at_id` **y el padrón `articulo_prov_at`** (el renglón viejo queda
+    `activo=false`, no se borra), `reparto_prov_at`, inventario. **Hay DOS fuentes de prov. A.T.** y no coinciden: 38 artículos
+    iguales, 6 con otro proveedor (222, 223, 224, 246, 577, 910) y 47 solo en el padrón. No se unificaron; el módulo toca las dos
+    donde existan.
+  - **Fábrica → tallerista** (`p_desde = null`): en cada ruta los pasos de matriz desde la línea hasta virgilio se reemplazan por
+    UN paso `tallerista` (molde del 116). La matriz sigue viva para los otros artículos.
+  - **Bloquea:** el nuevo ya está en el artículo, el actual no lo hace, tallerista inexistente o inactivo, «Fábrica» como destino,
+    reparto viejo cargado para el nuevo. **Avisa:** el nuevo no tiene precio en `precio_tallerista` para ese artículo, no tiene
+    ubicación de stock (hoy **Carlos Aguirre, id 9**, activo y con 30 pasos), el que sale todavía tiene stock de esas partes (no
+    se mueve), y **la mano de obra que deja de contarse**.
+- **Plata `[dato]` / `[deducido]`:** el costo de un terminado por tallerista sale de `precio_tallerista` (tallerista × terminado). Al
+  pasar un artículo, si el nuevo no tiene precio **el costo sale SIN mano de obra**. Además, de los 42, **10 pierden MO que hoy
+  cuenta** porque la matriz de la línea tiene `cuenta_mo=true`: 507 y 707 (78, 14,4 s), 570 y 858 (194, 27 s), los 5 94xE (505,
+  14,7 s) y 522E (510, 37,1 s); 323E, 599E y 838E tienen la flag pero la matriz no tiene tiempo. Los de la 261/402/394/309
+  (`cuenta_mo=false`) no pierden nada, y 542/543/720/722 siguen pagando la 237 (5 s). `[deducido]` no se corrió el costo.
+- **Despiece x Art. `[dato]`:** el menú lo abre en `Programa/Programa.html`, que lee la ruta en vivo (`programa_bundle`: `rp`, `tall`,
+  `provat`, `tall_art`), así que **no necesitó cambios**. Comprobado con la base real dentro de una transacción revertida:
+  116 de Martin a Lucho y 208 de Pintos a Maspoli aparecieron en `tall_art` y en `rp` en el mismo instante. Test:
+  `test_programa_cambio_contraparte.js` (el 542 pasado a un tallerista dibuja al tallerista, no la «matriz final», y sigue
+  mostrando la 237).
+- **⚠ El conector de Claude retiene todo texto con `delete` o `drop`** (también `apply_migration`): espera una confirmación humana
+  que en una sesión remota nunca llega y se cuelga a los 60 s (se colgaron 6 llamadas). No se esquiva. Por eso el único borrado vive
+  aislado en `GP2._cc_quitar_pasos(ids)` (sección 8 de `db/migracion_cambiar_contraparte_20261005.sql`), que **hay que correr una vez
+  en el SQL Editor**. Sin ella, tallerista → tallerista y prov. A.T. andan; Fábrica → tallerista queda **bloqueado con un cartel
+  que lo explica** (probado), no falla a medias.
+- **Retirado:** una sesión propuso «la línea es la receta del artículo» (`articulo_componente`). Coincidía en 94 de 111
+  artículos de tallerista y 41 de 46 de Fábrica, pero **no es la regla**: la fijó el dueño por matriz y difiere en las 13
+  excepciones (la receta lista `E6-M194`, `D5-M78` o `PC10` suelto). Sirve de control cruzado, nada más. Los 16 artículos donde el
+  tallerista recibe más que la receta (097, 108, 114, 115, 504, 505, 513, 515, 544, 557, 558, 580, 713, 762, 763, 802) tienen un
+  paso de **sub-armado** cuyas entradas no figuran en la receta: en 14 lo arma OTRO tallerista (097: Lucho arma J1 y Martin
+  termina) y en 108 (IJUPA, M8) y 515 (Alex, C12B) el mismo que termina. No es un error.
+- Tests: `test_cambiar_contraparte.js`, `test_programa_cambio_contraparte.js`. Respaldo `db/` al día (6 funciones, 2 tablas;
+  md5 de cada función verificado contra la base).
