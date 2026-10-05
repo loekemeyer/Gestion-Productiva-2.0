@@ -15115,3 +15115,25 @@ de Cuchara, Cucharon, etc"*.
   racha). Cerrar las políticas rompe esa app: antes hay que mover `procesarParaEspejo` a una RPC `SECURITY DEFINER`.
   `Registro-Produccion-3.0` está vacío (sin commits) al 05/10.
 - Prueba: `tests/ui/test_tiempos_gp2.js` (42 comprobaciones, Supabase stubeado).
+
+## 4iv. Stock General: «Todos los rubros» es la UNIÓN de lo que muestra cada rubro (2026-10-05)
+
+- `[usuario, 05/10, textual]` *«Por qué si busco 323 en todos los rubros no me aparece el art terminado 323E»* y, mirando
+  los botones de rubro: *«Todos los rubros se tiene que armar de todos los items que hay acá adentro»*. **Regla:** cada
+  fila que dibuja un rubro tiene que estar en «Todos los rubros», con ese rubro. No es una lista aparte.
+- `[dato, SQL 05/10]` **Causa:** el índice de «Todos» se armaba sólo con filas que EXISTEN en `GP2.inventario`, y los
+  rubros no leen todos de ahí. **Art. Terminado** sale de `stock_general_extra_bundle` (los terminados por receta/ruta,
+  `coalesce(cantidad, 0)`): 43 terminados, **0 con fila de inventario** — la ubicación 74 (`tipo art_terminado`) tiene 0
+  filas, de las 1.168 de la tabla — así que los 43 (323E incluido, componente 974) no aparecían en «Todos» y sí en su
+  rubro. Los rubros de **sector** salen de `stock_sector_bundle` (todos los componentes del sector, tengan o no fila):
+  hoy 3 componentes sin fila (2 de Fleje, 1 de Plástico) tenían el mismo hueco.
+- **Arreglo** (`StockGeneral_GP2.html` v3.1.0, `version.js` v1.237.2): `completarConRubros()` recorre los rubros y suma a
+  «Todos» cada fila que le falte (clave rubro + componente + ubicación; no repite). Para eso `precargarSectores()` lee el
+  bundle de los 12 sectores que algún rubro usa (antes `precargarVirgilio()` leía 6). Un sector que falla ya no se cachea
+  vacío: «Todos» avisa con ⚠ y el rubro lo reintenta. `rubroDeUbic` conoce el tipo `art_terminado`.
+- **Trampa que dejó el test viejo:** el fixture de `test_stock_general.js` ponía a T1 como ubicación tipo `sector` CON fila
+  de inventario, algo que en producción no existe, y por eso «Todos: Cervantes (Art. Terminado) ya está» pasaba en verde.
+  Ahora el fixture usa una ubicación `art_terminado` sin filas (T2 = el caso 323E) y una guardia recorre cada rubro y
+  exige que sus filas estén en «Todos» (falla con el código viejo: 10 faltantes).
+- **Regla para el próximo rubro:** si un rubro nuevo lee de una fuente que no es `D.inv`, no hace falta tocar «Todos»
+  (lo recoge `completarConRubros`), pero si agrega un sector nuevo a `RUBROS` hay que mirar el costo de su bundle.

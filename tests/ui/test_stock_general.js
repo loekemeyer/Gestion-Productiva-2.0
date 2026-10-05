@@ -45,12 +45,18 @@ const BUNDLE = {
     // vive del lado Virgilio desde siempre, pero NO es tipo "virgilio_sector", así que el barrido
     // general de Cervantes/Terceros SÍ la recorre (ocultarInv no la excluye).
     '9': { tipo: 'sector', ref: 14, nom: 'Bolsas Plásticas' },
+    // v3.1.0: la ubicación REAL de Art. Terminado en producción (ubic 74): tipo art_terminado y SIN
+    // NINGUNA fila en inventario — lo que se produjo vive en stock_general_extra_bundle.
+    '10': { tipo: 'art_terminado', nom: 'Art. Terminado (Fábrica)' },
   },
   tall: { '3': { nom: 'Fabrica' }, '6': { nom: 'Martin' } },
   prov_serv: { '9': { nom: 'Pedernera Ilario', proceso: 'Cromado' } },
   comp: {
     '10': { cod: 'A10', d: 'Cpo Una', s: 2, um: 'uni', kg_x_uni: 0.05, uxc: 100 },
     '20': { cod: 'T1', d: 'Terminado uno', s: 12, um: 'uni' },
+    // v3.1.0: T2 = el caso del 323E — un terminado que nunca se produjo: está en la lista de Art.
+    // Terminado (cant 0) y NO tiene fila de inventario en ningún lado.
+    '90': { cod: 'T2', d: 'Terminado dos', s: 12, um: 'uni' },
     '30': { cod: 'B5', d: 'Parte be', s: 2, um: 'uni' },
     '50': { cod: 'CAJ1', d: 'Caja 510', s: 11, um: 'uni' }, // sector Caja = insumo de empaque
     '60': { cod: '2405', d: 'PP 2630 (Polipropileno)', s: 14, um: 'kg' }, // MP plastica, kg sin factor
@@ -85,7 +91,7 @@ const EXTRA = {
     { id: 10, nom: 'Pettofrezza Rafael', ubic: 7, filas: [{ cid: 60, cant: 1250 }] },
   ],
   // v2.6.0: lo que Fábrica produjo (T1) y todavía no mandó a Virgilio.
-  art_terminado: { ubic: 5, filas: [{ cid: 20, uxc: 12, cant: 36 }] },
+  art_terminado: { ubic: 10, filas: [{ cid: 20, uxc: 12, cant: 36 }, { cid: 90, uxc: 12, cant: 0 }] },
 };
 /* stock_sector_bundle por sector: SC (1) es el rubro por defecto; Flejes (5) prueba
    que NO salen las columnas de cajones (pedido del usuario, textual). */
@@ -465,6 +471,64 @@ window.supabase = { createClient: function(){ return {
   await page.waitForFunction(() => /Martin/.test(document.getElementById('tbody').innerText));
   ok(!(await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth)), 'Todos: celular 390px sin scroll horizontal');
   ok(/T1/.test(await page.evaluate(() => document.getElementById('tbody').innerText)) , 'Todos: aparece lo que NO tiene botón propio (T1 en el sector Terminado)');
+
+  // ── v3.1.0 [usuario 2026-10-05: "Todos los rubros se tiene que armar de todos los items que hay
+  // acá adentro"] ── Caso real: buscar 323 no traía el terminado 323E (Art. Terminado, sin NINGUNA fila
+  // de inventario). T2 es ese caso; B9 e Y1 son componentes de sector que tampoco tienen fila.
+  const filasDe = async (q) => {
+    await page.fill('#q', q);
+    await page.waitForFunction(() => document.getElementById('status').textContent.indexOf('Todos los rubros') === 0);
+    return page.$$eval('#tbody tr', trs => trs.map(tr => ({
+      rub: (tr.querySelector('td.rub-cell') || {}).dataset ? tr.querySelector('td.rub-cell').dataset.rub : null,
+      cod: (tr.querySelector('.cod') || {}).textContent, txt: tr.innerText.replace(/\s+/g, ' ') })));
+  };
+  const t2 = (await filasDe('T2')).filter(f => f.cod === 'T2');
+  ok(t2.length === 1 && t2[0].rub === 'art', 'Todos: T2 (terminado sin fila de inventario) aparece, en el rubro Art. Terminado — ' + JSON.stringify(t2));
+  const t1 = (await filasDe('T1')).filter(f => f.cod === 'T1' && f.rub === 'art');
+  ok(t1.length === 1 && /36/.test(t1[0].txt), 'Todos: T1 también entra por Art. Terminado, con sus 36 unidades — ' + JSON.stringify(t1));
+  const b9 = (await filasDe('B9')).filter(f => f.cod === 'B9');
+  ok(b9.some(f => f.rub === 'sc' && /\b40\b/.test(f.txt)), 'Todos: B9 sin fila de inventario sale en Stock SC con sus 40 — ' + JSON.stringify(b9));
+  const y1 = (await filasDe('Y1')).filter(f => f.cod === 'Y1');
+  ok(y1.length === 1 && y1[0].rub === 'afi', 'Todos: Y1 (Afilado, sin fila de inventario) aparece una sola vez — ' + JSON.stringify(y1));
+  await page.fill('#q', '');
+
+  // LA REGLA, rubro por rubro: cada fila que dibuja un rubro está en "Todos" con ese rubro.
+  await page.waitForFunction(() => document.getElementById('status').textContent.indexOf('Todos los rubros') === 0);
+  const rubrosBtn = await page.$$eval('#rubros .rubro-btn', bs => bs.map(b => [b.dataset.k, b.textContent.trim()]).filter(p => p[0] !== 'all'));
+  const todosPorRubro = await page.evaluate(() => {
+    const m = {};
+    document.querySelectorAll('#tbody tr').forEach(tr => {
+      const c = tr.querySelector('td.rub-cell'); if (!c) return;
+      (m[c.dataset.rub] = m[c.dataset.rub] || []).push(tr.querySelector('.cod').textContent);
+    });
+    return m;
+  });
+  const faltan = [];
+  for (const [k, nom] of rubrosBtn) {
+    await page.click('#tabTodos');
+    await page.click('#rubros .rubro-btn[data-k="' + k + '"]');
+    await page.waitForFunction(n => document.getElementById('status').textContent.indexOf(n + ' · ') === 0, nom);
+    const cods = await page.$$eval('#tbody tr .cod', es => es.map(e => e.textContent));
+    const cuenta = (arr) => arr.reduce((m, c) => (m[c] = (m[c] || 0) + 1, m), {});
+    const enTodos = cuenta(todosPorRubro[k] || []);
+    Object.entries(cuenta(cods)).forEach(([c, n]) => { if ((enTodos[c] || 0) < n) faltan.push(nom + ': ' + c); });
+  }
+  ok(rubrosBtn.length >= 20, 'la guardia recorre los rubros de las 3 plantas (' + rubrosBtn.length + ')');
+  ok(faltan.length === 0, 'Todos contiene TODAS las filas de CADA rubro' + (faltan.length ? ' — faltan: ' + faltan.join(', ') : ''));
+  await page.click('#tabTodos');
+  await page.waitForFunction(() => /Martin/.test(document.getElementById('tbody').innerText));
+
+  // abriendo UN solo rubro (sin haber pasado por "Todos"), "También en…" completa los demás sectores
+  // solo: T2 sólo vive en Art. Terminado, que no es de Stock SC.
+  await page.evaluate(() => { CACHE = {}; GLOBAL = null; PRECARGA = null; });
+  await page.click('#rubros .rubro-btn:has-text("Stock SC")');
+  await page.waitForFunction(() => /Stock SC · /.test(document.getElementById('status').textContent));
+  await page.fill('#q', 'T2');
+  await page.waitForFunction(() => /Art\. Terminado/.test(document.getElementById('hintOtros').innerText));
+  ok(true, 'dentro de SC (sin pasar por Todos), buscar T2 avisa que está en Art. Terminado');
+  await page.fill('#q', '');
+  await page.click('#tabTodos');
+  await page.waitForFunction(() => /Martin/.test(document.getElementById('tbody').innerText));
 
   // el mismo código en dos lugares distintos, de un saque
   await page.fill('#q', 'B5');

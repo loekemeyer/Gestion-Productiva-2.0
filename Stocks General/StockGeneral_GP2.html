@@ -6,7 +6,18 @@
 <script src="../gp2-ui.js?v=20260930a"></script>
 <script src="../gp2-numero.js?v=20260911o"></script>
 <title>Stock general · GP2</title>
-<!-- v3.0.4 (2026-10-01) - LOS MOVIMIENTOS VERDE/ROJO TAMPOCO VAN EN NEGRITA [usuario: "dale" a sacarla
+<!-- v3.1.0 (2026-10-05) - "TODOS LOS RUBROS" = LA UNIÓN DE LO QUE MUESTRA CADA RUBRO [usuario: "Todos los
+     rubros se tiene que armar de todos los items que hay acá adentro"]. Buscar 323 no traía el
+     terminado 323E: el índice sólo veía filas que EXISTEN en inventario, pero Art. Terminado sale de
+     stock_general_extra_bundle (los 43 terminados por receta/ruta, en 0 si nunca se produjeron: ninguno tiene
+     fila en la ubicación 74) y los rubros de sector de stock_sector_bundle (todos los componentes del
+     sector, tengan o no fila). Nuevo completarConRubros(): suma a "Todos" cada fila que dibuja un rubro y
+     le falte, sin repetir lo que ya entró (clave rubro+componente+ubicación). Cuesta leer el bundle de
+     los 12 sectores (antes 6, los de Virgilio): precargarSectores() reemplaza a precargarVirgilio().
+     Un sector que falla ya no se cachea vacío (el rubro lo reintenta y "Todos" avisa con ⚠). El índice
+     sólo se cachea completo. "También en…" completa los sectores en segundo plano si se abrió un solo
+     rubro. rubroDeUbic conoce el tipo de ubicación art_terminado (la fila con stock iba sin rubro).
+     v3.0.4 (2026-10-01) - LOS MOVIMIENTOS VERDE/ROJO TAMPOCO VAN EN NEGRITA [usuario: "dale" a sacarla
      también ahí]. td.pos / td.neg quedan sólo con el color.
      v3.0.3 (2026-10-01) - SIN NEGRITA EN LAS FILAS CON STOCK [usuario: "están en negrita, no los quiero en
      negrita"]. Se van tr.stk td{font-weight:600} y el <b> del número de Uni. El color de pos/neg y
@@ -577,6 +588,7 @@ function rubroDeUbic(u){
   if (u.tipo==="tallerista") return rubroPorKey("tal");
   if (u.tipo==="proveedor_servicio") return rubroPorKey("ps");
   if (u.tipo==="inyector") return rubroPorKey("iny");
+  if (u.tipo==="art_terminado") return rubroPorKey("art");
   return null;
 }
 /* inyector: la ubicación guarda materia prima en kg sin factor (componente.unidad_medida kg) */
@@ -606,18 +618,25 @@ function nomUbic(u){
   var t = u.tipo==="tallerista" ? (D.tall||{}) : (u.tipo==="proveedor_servicio" ? (D.prov_serv||{}) : null);
   return (t && (t[String(u.ref)]||{}).nom) || u.nom || "?";
 }
-/* v3.0.0: para que "Todos los rubros" (vista con la que ahora se entra por defecto) incluya lo
-   que hay en Virgilio sin esperar a que el usuario clickee rubro por rubro, se precargan sus 6
-   sectores ANTES de armar el índice — mismo CACHE que después reusan sc/sp/fle/pla/caj/vbol
-   (y que vsc/vsp/vfle/vpla/vcaj leen directo), sin pedir nada dos veces. */
-var VIRGILIO_SIDS = [14,1,2,5,6,11];
-async function precargarVirgilio(){
-  var faltan = VIRGILIO_SIDS.filter(function(sid){ return !CACHE[sid]; });
+/* v3.1.0: "Todos los rubros" = lo que muestra CADA rubro, así que antes de armar el índice se
+   precargan los bundles de TODOS los sectores que algún rubro lee (v3.0.0 sólo precargaba los 6
+   de Virgilio) — mismo CACHE que después reusan los rubros, sin pedir nada dos veces. Lo que
+   falla NO se cachea vacío: el rubro lo reintenta al abrirlo y "Todos" avisa que le faltan filas. */
+function sidsDeRubros(){
+  var vistos = {}, out = [];
+  RUBROS.forEach(function(r){
+    if ((r.mode==="sector" || r.mode==="virg") && !vistos[r.sid]){ vistos[r.sid] = 1; out.push(r.sid); }
+  });
+  return out;
+}
+function sidsSinLeer(){ return sidsDeRubros().filter(function(sid){ return !CACHE[sid]; }); }
+async function precargarSectores(){
+  var faltan = sidsSinLeer();
   if (!faltan.length) return;
   var res = await Promise.all(faltan.map(function(sid){ return SB.rpc("stock_sector_bundle", { p_sector_id: sid }); }));
   faltan.forEach(function(sid, i){
     var rr = res[i];
-    CACHE[sid] = (rr && !rr.error && rr.data) || { filas:[], ubicacion_id:null };
+    if (rr && !rr.error && rr.data) CACHE[sid] = rr.data;
   });
 }
 function filasGlobales(){
@@ -659,7 +678,7 @@ function filasGlobales(){
   });
   // v3.0.0: lo que Virgilio tiene de SC/SP/Fleje/Plástico/Caja (Bolsas Plásticas ya entró arriba:
   // su ubicación es tipo "sector" como cualquier otra, ocultarInv no la saca — ver rubroDeUbic).
-  // Mismo CACHE que ya cargan sus rubros "en Virgilio"; precargarVirgilio lo deja listo antes.
+  // Mismo CACHE que ya cargan sus rubros "en Virgilio"; precargarSectores lo deja listo antes.
   RUBROS.filter(function(r){ return r.mode==="virg"; }).forEach(function(r){
     var b = CACHE[r.sid] || { filas:[], ubicacion_id:null };
     (b.filas||[]).forEach(function(x){
@@ -668,8 +687,34 @@ function filasGlobales(){
                  rubro_key:r.key, rubro_nom:r.nom, ubic_nom:"Virgilio", ubic_id:null, planta:"virg" });
     });
   });
-  GLOBAL = out;
+  completarConRubros(out);
+  // sólo se cachea completo: con algún sector sin leer, el próximo pedido lo vuelve a armar
+  if (!sidsSinLeer().length) GLOBAL = out;
   return out;
+}
+/* v3.1.0: lo que dibuja cada rubro TIENE que estar en "Todos" [usuario 2026-10-05: "Todos los
+   rubros se tiene que armar de todos los items que hay acá adentro"]. El barrido de arriba sólo ve
+   filas que EXISTEN en inventario, y los rubros no leen todos de ahí: los de sector salen de
+   stock_sector_bundle (todos los componentes del sector, tengan o no fila) y Art. Terminado de
+   stock_general_extra_bundle (los terminados por receta/ruta, en 0 si nunca se produjeron). Acá se
+   suma, con la misma fila que dibuja el rubro, lo que le falte al índice; lo que ya entró no se repite. */
+function claveFila(x){ return (x.rubro_key||"_")+"|"+x.cid+"|"+(x.ubic_id!=null ? x.ubic_id : (x.ubic_nom||"")); }
+function completarConRubros(out){
+  var visto = {}, ubicAnt = CUR.ubic_id;            // filasDe deja CUR.ubic_id puesto: se restituye
+  out.forEach(function(x){ visto[claveFila(x)] = 1; });
+  RUBROS.forEach(function(r){
+    if (r.mode==="global") return;
+    filasDe(r).filas.forEach(function(x){
+      x.rubro_key = r.key; x.rubro_nom = r.nom; x.planta = cajaDeRubro(r);
+      if (r.sin_max) x.maximo = null;
+      if (x.ubic_nom==null) x.ubic_nom = r.mode==="virg" ? "Virgilio"
+        : (((D.ubic||{})[String(x.ubic_id)]||{}).nom || ((D.sect||{})[String(r.sid)]||{}).nom || r.nom);
+      var k = claveFila(x);
+      if (visto[k]) return;
+      visto[k] = 1; out.push(x);
+    });
+  });
+  CUR.ubic_id = ubicAnt;
 }
 
 /* ---------- filtros ---------- */
@@ -720,8 +765,12 @@ function otrosRubros(q){
   });
   return orden.map(function(k){ return acum[k]; }).sort(function(a,b){ return b.n-a.n; });
 }
+var PRECARGA = null;          // lectura de los sectores que dispara el renglón "También en…" (una por carga)
 function pintarHint(){
   var el = $("hintOtros"), q = String($("q").value||"").trim().toLowerCase();
+  // v3.1.0: "También en…" lee el índice de TODOS los rubros; si sólo se abrió uno, se completa acá
+  if (q && RUBRO && RUBRO.mode!=="global" && !PRECARGA && sidsSinLeer().length)
+    PRECARGA = precargarSectores().then(pintarHint);
   var otros = (RUBRO && RUBRO.mode==="global") ? [] : otrosRubros(q);
   if (!otros.length){ el.className = "hint-otros hidden"; el.innerHTML = ""; return; }
   var tot = otros.reduce(function(s,o){ return s+o.n; }, 0);
@@ -850,15 +899,17 @@ async function seleccionar(key){
   }
   if (r.mode==="global" && !GLOBAL){
     $("status").textContent = "Cargando…";
-    await precargarVirgilio();
+    await precargarSectores();
   }
   var f = filasDe(r);
   CUR.filas = f.filas;
   renderHead();
   render();
   var con = CUR.filas.filter(function(x){ return Number(x.online||0)!==0; }).length;
+  var sinLeer = r.mode==="global" ? sidsSinLeer().length : 0;
   $("status").textContent = r.mode==="global"
-    ? "Todos los rubros · " + fmt(CUR.filas.length) + " filas de inventario (sectores, Virgilio, talleristas, P.S., prov. AT, inyectores y tránsito) · " + fmt(con) + " con stock."
+    ? "Todos los rubros · " + fmt(CUR.filas.length) + " filas (todo lo que muestra cada rubro: sectores, Virgilio, tránsito, art. terminado, talleristas, P.S., prov. AT e inyectores) · " + fmt(con) + " con stock."
+      + (sinLeer ? " ⚠ No se pudieron leer " + sinLeer + " sector(es): faltan filas." : "")
     : r.nom + " · " + CUR.filas.length + " componentes · " + con + " con stock.";
 }
 
@@ -1000,7 +1051,7 @@ async function reload(){
     return;
   }
   aplicarVocabulario();
-  CACHE = {}; GLOBAL = null;
+  CACHE = {}; GLOBAL = null; PRECARGA = null;
   await seleccionar(RUBRO ? RUBRO.key : "all");
   renderMovs();
 }
