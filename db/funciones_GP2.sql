@@ -8751,10 +8751,12 @@ select jsonb_build_object(
 $function$
 ;
 
--- ---------- virgilio_insumos_sin_match_bundle (v3.2.0, Stock General pestaña Virgilio) ----------
+-- ---------- virgilio_insumos_sin_match_bundle (v3.3.0, Stock General pestaña Virgilio) ----------
 -- Insumos de Virgilio (espejo del stock REAL de GV: GP2.virgilio_insumo_stock, Regla 0) que todavía NO
--- tienen un código asignado (no están en GP2.importado_virgilio_componente). Lo lee la tabla "Insumos de
--- Virgilio sin asignar a un código". Cod ISIS / Cod C quedan "—" porque justamente no están matcheados.
+-- tienen un COMPONENTE de Cervantes asignado (no hay fila con componente_id en la equivalencia). Lo lee la
+-- tabla "Insumos de Virgilio sin asignar a un código". Trae el isis conocido (de la equivalencia, o del
+-- espejo = Insumos.isis de GV) para pre-cargar la columna Cod ISIS. v3.3.0: componente_id ahora es nullable,
+-- así que una fila con SOLO isis cargado sigue en "sin asignar" (todavía no tiene el Cervantes).
 CREATE OR REPLACE FUNCTION "GP2".virgilio_insumos_sin_match_bundle()
  RETURNS jsonb
  LANGUAGE sql
@@ -8762,11 +8764,13 @@ CREATE OR REPLACE FUNCTION "GP2".virgilio_insumos_sin_match_bundle()
  SET search_path TO 'GP2'
 AS $function$
   with base as (
-    select v.cod, v.nombre, v.categoria, v.unidad, v.saldo, v.ubicacion
+    select v.cod, v.nombre, v.categoria, v.unidad, v.saldo, v.ubicacion,
+           coalesce(m.isis, v.isis) as isis
     from "GP2".virgilio_insumo_stock v
+    left join "GP2".importado_virgilio_componente m on upper(btrim(m.cod_virgilio)) = upper(btrim(v.cod))
     where not exists (
-      select 1 from "GP2".importado_virgilio_componente m
-      where upper(btrim(m.cod_virgilio)) = upper(btrim(v.cod))
+      select 1 from "GP2".importado_virgilio_componente m2
+      where upper(btrim(m2.cod_virgilio)) = upper(btrim(v.cod)) and m2.componente_id is not null
     )
   )
   select jsonb_build_object(
@@ -8776,10 +8780,44 @@ AS $function$
     'filas', coalesce((
         select jsonb_agg(jsonb_build_object(
           'cod_v', cod, 'nombre', nombre, 'categoria', categoria,
-          'unidad', unidad, 'saldo', saldo, 'ubicacion', ubicacion
+          'unidad', unidad, 'saldo', saldo, 'ubicacion', ubicacion, 'isis', isis
         ) order by saldo desc nulls last, cod)
         from base), '[]'::jsonb)
   );
+$function$
+;
+
+-- ---------- virgilio_equivalencia_guardar (v3.3.0) ----------
+-- Establece/edita la equivalencia de un insumo de Virgilio desde el front (Stock General, pestaña Virgilio):
+-- Cod V (cod_virgilio) ↔ Cod C (componente de Cervantes, por codigo → se guarda el componente_id, NO el
+-- string, así un rename de componente.codigo no rompe la equivalencia) ↔ Cod ISIS. Al setear el componente,
+-- la fila sale de "sin asignar". Solo escribe GP2 (Regla 0). El rename del Cod V lo sincroniza el trigger
+-- public.gv_insumo_cod_sync_equiv (ver db/migracion_equivalencia_editor_20261006.sql).
+CREATE OR REPLACE FUNCTION "GP2".virgilio_equivalencia_guardar(p_cod_virgilio text, p_cod_cervantes text, p_isis text)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'GP2'
+AS $function$
+declare v_comp bigint; v_cod text; v_cerv text;
+begin
+  v_cod := upper(btrim(coalesce(p_cod_virgilio,'')));
+  if v_cod = '' then raise exception 'COD_VIRGILIO_VACIO'; end if;
+  v_cerv := nullif(btrim(coalesce(p_cod_cervantes,'')),'');
+  if v_cerv is not null then
+    select id into v_comp from "GP2".componente where upper(btrim(codigo)) = upper(v_cerv);
+    if v_comp is null then raise exception 'COMPONENTE_INEXISTENTE: % no es un codigo de Cervantes', v_cerv; end if;
+  end if;
+  insert into "GP2".importado_virgilio_componente (cod_virgilio, componente_id, isis, creado_por, creado_en)
+  values (v_cod, v_comp, nullif(btrim(coalesce(p_isis,'')),''), 'stockgeneral', now())
+  on conflict (cod_virgilio) do update set
+    componente_id = coalesce(excluded.componente_id, "GP2".importado_virgilio_componente.componente_id),
+    isis = coalesce(excluded.isis, "GP2".importado_virgilio_componente.isis);
+  return jsonb_build_object('ok', true, 'cod_virgilio', v_cod,
+    'componente_id', (select componente_id from "GP2".importado_virgilio_componente where cod_virgilio = v_cod),
+    'cod_cervantes', (select c.codigo from "GP2".importado_virgilio_componente m join "GP2".componente c on c.id = m.componente_id where m.cod_virgilio = v_cod),
+    'isis', (select isis from "GP2".importado_virgilio_componente where cod_virgilio = v_cod));
+end
 $function$
 ;
 

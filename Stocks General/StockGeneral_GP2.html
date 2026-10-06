@@ -6,7 +6,16 @@
 <script src="../gp2-ui.js?v=20260930a"></script>
 <script src="../gp2-numero.js?v=20260911o"></script>
 <title>Stock general · GP2</title>
-<!-- v3.2.0 (2026-10-06) - PESTAÑA VIRGILIO SEPARADA + TABLA "INSUMOS SIN ASIGNAR" [Luis: "move la pestaña
+<!-- v3.3.0 (2026-10-06) - EDITOR DE EQUIVALENCIAS EN LA TABLA DE SIN ASIGNAR [Luis: "se pueda establecer
+     la equivalencia ahi en el front (completar que codigo X en virgilio es codigo Y en Cervantes o 333 en
+     isis)"]. En cada fila de "sin asignar" ahora Cod ISIS y Cod C son editables + un ✓ para guardar:
+     llama GP2.virgilio_equivalencia_guardar(cod_virgilio, cod_cervantes, isis) que resuelve el componente
+     por su codigo (guarda componente_id, NO el string → un rename de componente.codigo se refleja solo) y
+     escribe SOLO GP2 (Regla 0). Al setear el Cervantes, la fila SALE de sin asignar. El ISIS se precarga de
+     Insumos.isis de GV (los 47 que ya existen) via el espejo. STOCK: nada por ahora (Luis: entra en el ultimo
+     paso, cuando GP2 maneje el stock de GV). Rename del Cod V: lo sincroniza un trigger en GV (ver
+     db/migracion_equivalencia_editor_20261006.sql — correr UNA vez en el SQL Editor; el conector cuelga ese DDL).
+     v3.2.0 (2026-10-06) - PESTAÑA VIRGILIO SEPARADA + TABLA "INSUMOS SIN ASIGNAR" [Luis: "move la pestaña
      virgilio para que este separada… que se muestre una tabla arriba de los filtros con todo lo que tenga
      de insumos virgilio que no se matchearon todavia"]. (a) la pestaña Virgilio se corre a la DERECHA,
      separada de Todos/Cervantes/Terceros (clase .sep → margin-left:auto). (b) cuando PLANTA=virg aparece,
@@ -209,6 +218,12 @@
  .vins-sub{font-size:14px;color:#7a6a3a}
  .vins-box .toolbar{margin:6px 0 10px}
  .vins-box table.t td.cod-vacio{color:#c2a84f;text-align:center;font-weight:700}
+ /* v3.3.0: inputs del editor de equivalencia (Cod C / Cod ISIS) + botón guardar */
+ .vins-in{padding:6px 8px;font-size:18px;border:2px solid #d0d7de;border-radius:7px;width:96px}
+ .vins-cerv{width:118px}
+ .vins-cc{white-space:nowrap}
+ .vins-ok{margin-left:5px;min-height:38px;padding:4px 11px;font-size:18px;font-weight:800;border:2px solid #15803d;background:#dcfce7;color:#15803d;border-radius:7px;cursor:pointer}
+ .vins-ok[disabled]{opacity:.5;cursor:progress}
  .rubro-lbl{font-size:13px;font-weight:800;color:#666;text-transform:uppercase;letter-spacing:.5px;margin:4px 0 8px}
  .rubro-grp{font-size:12px;font-weight:800;color:#999;text-transform:uppercase;margin:10px 0 6px}
  .rubros{display:flex;flex-wrap:wrap;gap:8px}
@@ -546,10 +561,10 @@ function renderVins(){
   });
   $("vinsBody").innerHTML = filas.map(function(f){
     var kg = (f.unidad||"").toLowerCase()==="kg";
-    return '<tr>'+
-      '<td class="cod-vacio">—</td>'+
+    return '<tr data-cv="'+esc(f.cod_v||"")+'">'+
+      '<td><input class="vins-in vins-isis" type="text" inputmode="numeric" value="'+esc(f.isis||"")+'" placeholder="ISIS"></td>'+
       '<td><span class="cod">'+esc(f.cod_v||"")+'</span></td>'+
-      '<td class="cod-vacio">—</td>'+
+      '<td class="vins-cc"><input class="vins-in vins-cerv" type="text" placeholder="Cód. Cervantes"><button type="button" class="vins-ok" title="Vincular esta equivalencia">✓</button></td>'+
       '<td>'+esc(f.nombre||"")+'</td>'+
       '<td>'+esc(vinsRubro(f.categoria))+'</td>'+
       '<td class="num">'+fmt(f.saldo, kg?2:0)+'</td>'+
@@ -561,7 +576,29 @@ function renderVins(){
   if (!filas.length) $("vinsEmpty").textContent = q ? ("Sin resultados para «"+q+"».") : "Todo asignado 🎉";
   var ts = VINS.actualizado_en ? fmtFecha(VINS.actualizado_en) : "—";
   $("vinsSub").innerHTML = fmt(VINS.total||0)+" sin asignar · "+fmt(VINS.con_saldo||0)+
-    " con stock · espejo del stock de Virgilio (refresca c/10 min) · últ. cambio "+esc(ts);
+    " con stock · completá el <b>Cód. Cervantes</b> y/o el <b>ISIS</b> y tocá ✓ · espejo (refresca c/10 min) · últ. cambio "+esc(ts);
+}
+
+/* v3.3.0: guardar la equivalencia de una fila (Cod V ↔ Cod C ↔ ISIS). Escribe SOLO GP2 (Regla 0)
+   vía GP2.virgilio_equivalencia_guardar. Al setear el componente de Cervantes, la fila SALE de sin asignar. */
+async function vinsGuardar(tr){
+  if (!tr) return;
+  var cv = tr.getAttribute("data-cv")||"";
+  var cc = ((tr.querySelector(".vins-cerv")||{}).value||"").trim();
+  var isis = ((tr.querySelector(".vins-isis")||{}).value||"").trim();
+  if (!cc && !isis){ toast("Completá el Cód. Cervantes o el ISIS", true); return; }
+  var btn = tr.querySelector(".vins-ok"); if (btn){ btn.disabled = true; btn.textContent = "…"; }
+  var res;
+  try { res = await SB.rpc("virgilio_equivalencia_guardar", { p_cod_virgilio: cv, p_cod_cervantes: cc, p_isis: isis }); }
+  catch(e){ res = { error:e }; }
+  if (!res || res.error){
+    var m = ((res && res.error && res.error.message) || "")+"";
+    toast(/COMPONENTE_INEXISTENTE/.test(m) ? ("No existe el código de Cervantes «"+cc+"»") : ("Error: "+(m||"no se pudo guardar")), true);
+    if (btn){ btn.disabled = false; btn.textContent = "✓"; }
+    return;
+  }
+  toast("✔ Equivalencia guardada"+((res.data && res.data.componente_id) ? " · sale de sin asignar" : ""));
+  await cargarVins();   // si quedó vinculado el componente, la fila desaparece de sin asignar
 }
 function marcarActivo(){
   document.querySelectorAll("#rubros .rubro-btn").forEach(function(b){
@@ -1246,6 +1283,12 @@ async function renderMovs(){
 $("q").addEventListener("input", render);
 $("soloStock").addEventListener("change", render);
 $("vinsQ").addEventListener("input", renderVins);
+$("vinsBody").addEventListener("click", function(e){
+  var b = e.target.closest(".vins-ok"); if (b) vinsGuardar(b.closest("tr"));
+});
+$("vinsBody").addEventListener("keydown", function(e){
+  if (e.key==="Enter" && e.target.classList && e.target.classList.contains("vins-in")){ e.preventDefault(); vinsGuardar(e.target.closest("tr")); }
+});
 $("hintOtros").addEventListener("click", function(e){
   var a=e.target.closest("a[data-k]"); if(a) seleccionar(a.dataset.k);   // la búsqueda del input se conserva
 });

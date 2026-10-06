@@ -172,8 +172,8 @@ const MOVS = [{
 
 // v3.2.0: fixture de la RPC de insumos de Virgilio sin código asignado (pestaña Virgilio)
 const VINS_DATA = { actualizado_en: '2026-10-05T14:05:00-03:00', total: 2, con_saldo: 2, filas: [
-  { cod_v: 'Mgo Pelador 505', nombre: 'Mango Pelador 505 Rojo', categoria: 'partes_plasticas', unidad: 'Uni', saldo: 27000, ubicacion: null },
-  { cod_v: 'N°13', nombre: '84 X 1,75', categoria: 'fleje', unidad: 'Kg', saldo: 3251, ubicacion: 'V14AD' },
+  { cod_v: 'Mgo Pelador 505', nombre: 'Mango Pelador 505 Rojo', categoria: 'partes_plasticas', unidad: 'Uni', saldo: 27000, ubicacion: null, isis: '' },
+  { cod_v: 'N°13', nombre: '84 X 1,75', categoria: 'fleje', unidad: 'Kg', saldo: 3251, ubicacion: 'V14AD', isis: '12345' },
 ]};
 
 const STUB = `
@@ -188,6 +188,7 @@ window.supabase = { createClient: function(){ return {
     if (name === 'composicion_stock') return { data: { movs: [] }, error: null };
     if (name === 'maximo_desglose') { var M = ${JSON.stringify(MAXD)}; return { data: M[args.p_componente_id + ':' + args.p_ubicacion_id] || { base: null, filas: [] }, error: null }; }
     if (name === 'virgilio_insumos_sin_match_bundle') return { data: JSON.parse(JSON.stringify(${JSON.stringify(VINS_DATA)})), error: null };
+    if (name === 'virgilio_equivalencia_guardar') return { data: { ok: true, cod_virgilio: (args && args.p_cod_virgilio), componente_id: 999, cod_cervantes: (args && args.p_cod_cervantes), isis: (args && args.p_isis) }, error: null };
     return { data: null, error: { message: 'rpc desconocida ' + name } };
   },
   from: function(){ return { select: function(){ return { order: function(){ return { limit: async function(){
@@ -299,8 +300,22 @@ window.supabase = { createClient: function(){ return {
   ok(vins.length === 2, 'Insumos sin asignar: las 2 filas del espejo — ' + vins.length);
   const vMgo = vins.filter(c => c[1] === 'Mgo Pelador 505')[0] || [];
   // columnas: Cod ISIS | Cod V | Cod C | Descripción | Rubro | Saldo | Unidad | Ubicación
-  ok(vMgo[0] === '—' && vMgo[2] === '—', 'Insumos sin asignar: Cod ISIS y Cod C quedan "—" (no matcheados) — ' + vMgo.join(' | '));
   ok(vMgo[3] === 'Mango Pelador 505 Rojo' && vMgo[5] === '27.000', 'Insumos sin asignar: descripción y saldo del espejo — ' + vMgo.join(' | '));
+  // v3.3.0: Cod ISIS y Cod C son editables + ✓ para vincular la equivalencia
+  const tieneEditor = await page.evaluate(() => {
+    const tr = [...document.querySelectorAll('#vinsBody tr')].find(t => t.getAttribute('data-cv') === 'Mgo Pelador 505');
+    return !!(tr && tr.querySelector('.vins-cerv') && tr.querySelector('.vins-isis') && tr.querySelector('.vins-ok'));
+  });
+  ok(tieneEditor, 'Insumos sin asignar: la fila tiene inputs de Cod C / Cod ISIS y el botón ✓');
+  await page.evaluate(() => {
+    const tr = [...document.querySelectorAll('#vinsBody tr')].find(t => t.getAttribute('data-cv') === 'Mgo Pelador 505');
+    tr.querySelector('.vins-cerv').value = 'GRJ31';
+    tr.querySelector('.vins-ok').click();
+  });
+  await page.waitForFunction(() => (window.__rpc || []).some(r => r.n === 'virgilio_equivalencia_guardar'));
+  const argEq = await page.evaluate(() => (window.__rpc || []).filter(r => r.n === 'virgilio_equivalencia_guardar').pop().a);
+  ok(argEq && argEq.p_cod_virgilio === 'Mgo Pelador 505' && argEq.p_cod_cervantes === 'GRJ31',
+     'Vincular: ✓ guarda la equivalencia (Cod V + Cod C) — ' + JSON.stringify(argEq));
 
   await page.click('#rubros .rubro-btn:has-text("SC en Virgilio")');
   ok(await activoPill('tabVirgilio'), 'al clickear un rubro de Virgilio, la pestaña sigue en Virgilio');
