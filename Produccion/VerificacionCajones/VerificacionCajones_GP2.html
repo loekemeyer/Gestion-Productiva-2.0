@@ -1,0 +1,265 @@
+<!doctype html>
+<html lang="es">
+<head>
+<!-- v1.0.0 (2026-10-06) — Verificación de cajones. Pedido de Elías Irace para Alan Gonzalez (Logística):
+     a las 15:00 se sortean 2 cajones de lo que produjo Cervantes en el día (public.gp2_verif_cajones_sortear,
+     cron gp2-verif-cajones-15h, copia a GP2.verif_cajon). Se registra cuándo EMPEZÓ (botón ▶ Empezar) y cuándo
+     TERMINÓ (se sella solo al cargar el último cajón). El que verifica elige en qué cajón físico lo pesó (la tara
+     sale de GP2.cajon) y carga lo que marca la balanza. Lee GP2.verif_cajones_bundle. -->
+<meta charset="utf-8"/>
+<script src="../../auth-guard.js?v=20261006b"></script>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<meta http-equiv="Cache-Control" content="no-store"/>
+<title>Verificación de cajones · GP2</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="../../supabase-config.js?v=20260929a"></script>
+<script src="../../gp2-ui.js?v=20260930a"></script>
+<script src="../../gp2-numero.js?v=20260911o"></script>
+<script>window.GP2VC_SIN_CARTEL = true;</script>
+<script src="../../gp2-verif-cajones.js?v=20261006d"></script>
+<link rel="stylesheet" href="../../gp2-modulo.css?v=20260912c"/>
+<link rel="icon" type="image/png" href="../../GP2_favicon.png">
+<link rel="apple-touch-icon" href="../../GP2_favicon.png">
+<style>
+  .dia{display:flex;gap:10px 18px;flex-wrap:wrap;align-items:center;background:#f6f8fa;border:2px solid #d0d7de;border-radius:12px;padding:12px 16px;margin:10px 0;font-size:18px}
+  .dia .k{font-size:12px;font-weight:800;color:#666;text-transform:uppercase;display:block}
+  .dia .v{font-size:22px;font-weight:900;font-variant-numeric:tabular-nums}
+  .dia .grow{flex:1}
+  .btn-go{background:#b45309;color:#fff;font-size:22px;min-height:56px;padding:0 26px}
+  .caj{border:2px solid #d0d7de;border-radius:12px;padding:12px 16px;margin:12px 0;background:#fff}
+  .caj.ok{border-color:#1a7f37}
+  .caj.no{border-color:#b42318}
+  .caj h2{font-size:21px;font-weight:900;margin-bottom:6px}
+  .datos{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:6px 18px;margin:6px 0 10px}
+  .datos div{font-size:17px}
+  .datos .k{display:block;font-size:12px;font-weight:800;color:#666;text-transform:uppercase}
+  .datos .esp{font-size:22px;font-weight:900}
+  .form{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;border-top:1px dashed #d0d7de;padding-top:10px}
+  .form .f{display:flex;flex-direction:column;gap:4px}
+  .form label{font-size:15px;font-weight:800;color:#555}
+  .form select,.form input,.form textarea{min-height:48px;border:2px solid #d0d7de;border-radius:8px;font-size:20px;padding:6px 10px}
+  .form input.peso{width:150px;text-align:right;font-variant-numeric:tabular-nums}
+  .form textarea{min-width:260px;flex:1;font-size:18px}
+  .vivo{font-size:18px;font-weight:800;min-height:24px}
+  .res{font-size:17px;line-height:1.6}
+  .res b{font-variant-numeric:tabular-nums}
+  .link{background:none;border:none;color:#b42318;font-weight:800;font-size:17px;cursor:pointer;text-decoration:underline;min-height:44px}
+  .opt{display:flex;align-items:center;gap:8px;font-size:17px;font-weight:700;color:#555}
+  .opt input{width:24px;height:24px}
+  table.t.fit{width:auto}
+  .table-wrap.fit{display:inline-block;max-width:100%}
+  tr.click{cursor:pointer}
+  tr.click:hover td{background:#f6f8fa}
+</style>
+</head>
+<body>
+
+<div class="card">
+  <div class="header">
+    <h1>⚖ Verificación de cajones</h1>
+    <div class="hbtns"><a href="../../GP2_MODULOS.html">Atrás</a></div>
+  </div>
+
+  <div class="steps">
+    <div class="row">
+      <label class="lbl" for="fecha">Día</label>
+      <input type="date" id="fecha">
+      <label class="opt"><input type="checkbox" id="avisar"> Avisarme en esta PC a las 15:00</label>
+    </div>
+
+    <div id="dia" class="dia"></div>
+    <div id="cajones"></div>
+    <div id="status" class="status"></div>
+
+    <h3 style="margin:18px 0 6px;font-size:18px">Últimos días</h3>
+    <div class="table-wrap fit"><table class="t fit">
+      <thead><tr>
+        <th>Día</th><th class="num">Cajones</th><th class="num">Empezó</th><th class="num">Terminó</th><th class="num">Tardó</th>
+      </tr></thead>
+      <tbody id="tdias"></tbody>
+    </table></div>
+    <div class="aviso">Los cajones se sortean <b>solos a las 15:00</b>: 2 por día, de lo que produjo Cervantes hasta esa hora
+      (sin envasado, que no tiene peso). Primero entre los que tienen <b>peso por unidad cargado en GP2</b>, y de operarios distintos.
+      <b>Debería pesar</b> es sin el cajón: el neto sale de lo que marca la balanza menos la tara del cajón que elegís.</div>
+  </div>
+</div>
+
+<script>
+var SB = GP2_SB();
+var $ = GP2UI.$;
+var esc = GP2UI.esc;
+var B = {};
+var abiertos = {};   // id -> "peso" | "no": formulario abierto aunque el cajón ya esté cargado (para corregir)
+
+function msg(t, malo){ $('status').className = 'status' + (malo ? ' neg' : ''); $('status').textContent = t || ''; }
+
+function minutos(a, b){
+  if (!a || !b) return null;
+  return Math.round((new Date(b) - new Date(a)) / 60000);
+}
+function tardo(a, b){ var m = minutos(a, b); return m == null ? '—' : GP2N.fmt(m, 0) + ' min'; }
+
+async function cargar(fecha){
+  msg('Cargando…');
+  var r = await SB.rpc('verif_cajones_bundle', { p_fecha: fecha || null });
+  if (r.error){ msg('No se pudo leer: ' + r.error.message, true); return; }
+  B = r.data || {};
+  $('fecha').value = B.fecha || '';
+  msg('');
+  render();
+}
+
+function render(){
+  var dia = B.dia, cs = B.cajones || [];
+  if (!dia){
+    $('dia').innerHTML = '<div class="grow">' + (B.fecha === B.hoy
+      ? 'Todavía no hay cajones sorteados para hoy: se sortean <b>solos a las 15:00</b>.'
+      : 'Ese día no hubo verificación.') + '</div>';
+  } else {
+    $('dia').innerHTML =
+      '<div><span class="k">Sorteados</span><span class="v">' + GP2VC.hora(dia.sorteado_en) + '</span></div>' +
+      '<div><span class="k">Empezó</span><span class="v">' + GP2VC.hora(dia.empezado_en) + '</span></div>' +
+      '<div><span class="k">Terminó</span><span class="v">' + GP2VC.hora(dia.terminado_en) + '</span></div>' +
+      '<div><span class="k">Tardó</span><span class="v">' + tardo(dia.empezado_en, dia.terminado_en) + '</span></div>' +
+      '<div class="grow"></div>' +
+      (dia.empezado_en ? '' : '<button class="btn btn-go" id="btnEmpezar" type="button">▶ Empezar</button>');
+    if (!dia.empezado_en) $('btnEmpezar').onclick = empezar;
+  }
+  $('cajones').innerHTML = cs.map(function(c, i){ return tarjeta(c, i); }).join('');
+  cs.forEach(function(c){ enganchar(c); });
+  $('tdias').innerHTML = (B.dias || []).map(function(d){
+    return '<tr class="click" data-f="' + esc(d.fecha) + '">' +
+      '<td>' + GP2UI.fechaAR(d.fecha) + '</td>' +
+      '<td class="num">' + d.resueltos + ' de ' + d.cajones + '</td>' +
+      '<td class="num">' + GP2VC.hora(d.empezado_en) + '</td>' +
+      '<td class="num">' + GP2VC.hora(d.terminado_en) + '</td>' +
+      '<td class="num">' + tardo(d.empezado_en, d.terminado_en) + '</td></tr>';
+  }).join('') || '<tr><td colspan="5" class="empty">Todavía no hubo ningún sorteo.</td></tr>';
+  [].forEach.call(document.querySelectorAll('#tdias tr.click'), function(tr){
+    tr.onclick = function(){ cargar(tr.getAttribute('data-f')); };
+  });
+}
+
+function tarjeta(c, i){
+  var empezo = !!(B.dia && B.dia.empezado_en);
+  var modo = abiertos[c.id] || (c.resultado ? null : 'peso');
+  var cls = c.resultado === 'pesado' ? ' ok' : (c.resultado === 'no_encontrado' ? ' no' : '');
+  var piezas = (c.piezas || []).length > 1
+    ? '<div><span class="k">Piezas que saca la matriz</span>' + c.piezas.map(function(p){
+        return esc(p.codigo) + ' ' + GP2VC.kg(p.kg_x_uni, 4); }).join(' · ') + '</div>' : '';
+  var h = '<div class="caj' + cls + '" id="caj' + c.id + '">' +
+    '<h2>Cajón ' + (i + 1) + ' · Matriz ' + esc(c.matriz) + ' ' + esc(c.nombre_matriz || '') + '</h2>' +
+    '<div class="datos">' +
+      '<div><span class="k">Quién lo hizo</span>' + esc(c.operario || '?') + ' (leg. ' + esc(c.legajo || '?') + ')</div>' +
+      '<div><span class="k">Hora</span>' + GP2VC.hhmm(c.hora_inicio) + ' a ' + GP2VC.hhmm(c.hora_fin) + '</div>' +
+      '<div><span class="k">Unidades</span>' + GP2VC.unidades(c) + '</div>' +
+      '<div><span class="k">Dónde buscarlo</span>' + esc(c.sectores || 'sector sin cargar en GP2') + '</div>' +
+      '<div><span class="k">Peso por unidad</span>' + GP2VC.porUnidad(c) + '</div>' +
+      '<div><span class="k">Debería pesar (sin el cajón)</span><span class="esp">' + GP2VC.esperado(c) + '</span></div>' +
+      piezas +
+    '</div>';
+  if (c.resultado === 'pesado' && !abiertos[c.id]){
+    h += '<div class="res">✔ <b>Pesado</b> a las ' + GP2VC.hora(c.cargado_en) + ' · en el cajón <b>N° ' + c.cajon_numero + '</b>' +
+      ' (tara ' + GP2VC.kg(c.tara_kg) + ') · balanza <b>' + GP2VC.kg(c.peso_bruto_kg) + '</b> · neto <b>' + GP2VC.kg(c.peso_neto_kg) + '</b>' +
+      textoDif(c) + (c.nota ? '<br>Nota: ' + esc(c.nota) : '') +
+      ' <button class="link" type="button" data-corr="' + c.id + '">Corregir</button></div>';
+  } else if (c.resultado === 'no_encontrado' && !abiertos[c.id]){
+    h += '<div class="res">✖ <b>No lo encontró</b> (' + GP2VC.hora(c.cargado_en) + '): ' + esc(c.nota) +
+      ' <button class="link" type="button" data-corr="' + c.id + '">Corregir</button></div>';
+  } else if (!empezo){
+    h += '<div class="res sub">Apretá <b>▶ Empezar</b> arriba para cargar el peso: así queda la hora en que empezó la verificación.</div>';
+  } else if (modo === 'no'){
+    h += '<div class="form">' +
+      '<div class="f" style="flex:1"><label for="nota' + c.id + '">¿Qué pasó? ¿Dónde lo buscaste?</label>' +
+      '<textarea id="nota' + c.id + '" rows="2">' + esc(c.nota || '') + '</textarea></div>' +
+      '<button class="btn btn-primary" type="button" data-noenc="' + c.id + '">Guardar: no lo encontré</button>' +
+      '<button class="link" type="button" data-peso="' + c.id + '" style="color:#111">Volver a cargar peso</button></div>';
+  } else {
+    h += '<div class="form">' +
+      '<div class="f"><label for="cn' + c.id + '">¿En qué cajón está?</label><select id="cn' + c.id + '">' +
+        '<option value="">Elegí…</option>' + (B.taras || []).map(function(t){
+          return '<option value="' + t.numero + '"' + (Number(c.cajon_numero) === Number(t.numero) ? ' selected' : '') + '>N° ' + t.numero +
+            ' · tara ' + GP2VC.kg(t.tara_kg) + '</option>'; }).join('') + '</select></div>' +
+      '<div class="f"><label for="pb' + c.id + '">Balanza (kg)</label><input class="peso" id="pb' + c.id + '" inputmode="decimal" autocomplete="off"' +
+        ' value="' + (c.peso_bruto_kg != null ? GP2N.fmt(c.peso_bruto_kg, 3) : '') + '"></div>' +
+      '<button class="btn btn-primary" type="button" data-guardar="' + c.id + '">Guardar peso</button>' +
+      '<button class="link" type="button" data-noform="' + c.id + '">No lo encontré</button>' +
+      '<div class="vivo" id="vivo' + c.id + '" style="flex-basis:100%"></div></div>';
+  }
+  return h + '</div>';
+}
+
+function textoDif(c){
+  var d = GP2VC.diferencia(c);
+  if (!d) return '';
+  var cl = Math.abs(d.kg) < 0.0005 ? 'cero' : (d.kg > 0 ? 'pos' : 'neg');
+  return ' · diferencia <b class="' + cl + '">' + (d.kg > 0 ? '+' : '') + GP2N.fmt(d.kg, 2, null, true) + ' kg' +
+    (d.pct == null ? '' : ' (' + (d.pct > 0 ? '+' : '') + GP2N.fmt(d.pct, 1, null, true) + ' %)') + '</b>';
+}
+
+/* Mientras tipea: neto = balanza − tara del cajón elegido, y contra lo esperado. */
+function vivo(c){
+  var sel = $('cn' + c.id), inp = $('pb' + c.id), out = $('vivo' + c.id);
+  if (!sel || !inp || !out) return;
+  var t = (B.taras || []).filter(function(x){ return String(x.numero) === sel.value; })[0];
+  var bruto = GP2N.num(inp.value);
+  if (!t || !bruto){ out.textContent = ''; return; }
+  var neto = bruto - Number(t.tara_kg);
+  if (neto <= 0){ out.innerHTML = '<span class="neg">La balanza tiene que marcar más que la tara (' + GP2VC.kg(t.tara_kg) + ')</span>'; return; }
+  out.innerHTML = 'Neto: ' + GP2VC.kg(neto) + textoDif(Object.assign({}, c, { peso_neto_kg: neto }));
+}
+
+function enganchar(c){
+  var sel = $('cn' + c.id), inp = $('pb' + c.id);
+  if (inp) GP2N.autoMiles(inp);
+  if (sel) sel.onchange = function(){ vivo(c); };
+  if (inp) inp.oninput = function(){ vivo(c); };
+  if (sel || inp) vivo(c);
+}
+
+document.addEventListener('click', async function(ev){
+  var b = ev.target.closest('button');
+  if (!b) return;
+  var id;
+  if ((id = b.getAttribute('data-corr'))){ abiertos[id] = 'peso'; render(); return; }
+  if ((id = b.getAttribute('data-noform'))){ abiertos[id] = 'no'; render(); return; }
+  if ((id = b.getAttribute('data-peso'))){ abiertos[id] = 'peso'; render(); return; }
+  if ((id = b.getAttribute('data-guardar'))){
+    var cajon = Number($('cn' + id).value || 0), bruto = GP2N.num($('pb' + id).value);
+    if (!cajon){ msg('Elegí en qué cajón lo pesaste.', true); return; }
+    if (!bruto){ msg('Cargá lo que marca la balanza.', true); return; }
+    await guardar(id, { p_id: Number(id), p_cajon: cajon, p_bruto_kg: bruto, p_no_encontrado: false, p_nota: null });
+    return;
+  }
+  if ((id = b.getAttribute('data-noenc'))){
+    var nota = ($('nota' + id).value || '').trim();
+    if (!nota){ msg('Escribí qué pasó: dónde lo buscaste.', true); return; }
+    await guardar(id, { p_id: Number(id), p_cajon: null, p_bruto_kg: null, p_no_encontrado: true, p_nota: nota });
+  }
+});
+
+async function guardar(id, args){
+  msg('Guardando…');
+  var r = await SB.rpc('verif_cajon_cargar', args);
+  if (r.error){ msg(r.error.message, true); return; }
+  delete abiertos[id];
+  B = r.data || B;
+  render();
+  msg(B.dia && B.dia.terminado_en ? 'Listo: verificación terminada a las ' + GP2VC.hora(B.dia.terminado_en) + '.' : 'Guardado.');
+}
+
+async function empezar(){
+  $('btnEmpezar').disabled = true;
+  var r = await SB.rpc('verif_cajones_empezar', { p_fecha: B.fecha });
+  if (r.error){ msg('No se pudo registrar el inicio: ' + r.error.message, true); $('btnEmpezar').disabled = false; return; }
+  B = r.data || B;
+  render();
+}
+
+$('avisar').checked = GP2VC.avisoActivo();
+$('avisar').onchange = function(){ GP2VC.setAviso(this.checked); };
+$('fecha').onchange = function(){ if (this.value) cargar(this.value); };
+cargar(new URLSearchParams(location.search).get('fecha'));
+</script>
+</body>
+</html>

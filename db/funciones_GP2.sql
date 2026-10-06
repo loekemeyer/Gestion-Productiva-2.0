@@ -1,7 +1,7 @@
 -- =====================================================================
 -- FUNCIONES del schema GP2 — export automatico 2026-10-01 (pg_get_functiondef, exacto)
 -- Fuente de verdad: Supabase (hrxfctzncixxqmpfhskv). Este archivo es respaldo/referencia.
--- 181 funciones. Los GRANT/REVOKE no estan aca: EXECUTE para anon solo en las RPC de pantalla (ver db/README.md).
+-- 184 funciones. Los GRANT/REVOKE no estan aca: EXECUTE para anon solo en las RPC de pantalla (ver db/README.md).
 -- =====================================================================
 
 -- ---------- _aplicar_recepcion_a_oc ----------
@@ -9857,6 +9857,115 @@ begin
   return jsonb_build_object('ok', true, 'validados', v_n, 'al_remito', v_rem,
                             'movimientos_ajustados', v_movs, 'consumos_ajustados', v_hijos);
 end $function$
+;
+
+-- ---------- verif_cajon_cargar ----------
+CREATE OR REPLACE FUNCTION "GP2".verif_cajon_cargar(p_id bigint, p_cajon integer DEFAULT NULL::integer, p_bruto_kg numeric DEFAULT NULL::numeric, p_no_encontrado boolean DEFAULT false, p_nota text DEFAULT NULL::text)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'GP2'
+AS $function$
+declare
+  v_fecha date;
+  v_empezo timestamptz;
+  v_tara numeric;
+  v_nota text := nullif(btrim(coalesce(p_nota, '')), '');
+begin
+  select v.fecha, d.empezado_en into v_fecha, v_empezo
+    from "GP2".verif_cajon v join "GP2".verif_cajon_dia d on d.fecha = v.fecha
+   where v.id = p_id;
+  if not found then raise exception 'No encontré ese cajón' using errcode = 'P0002'; end if;
+  if v_empezo is null then
+    raise exception 'Primero apretá ▶ Empezar: así queda registrada la hora en que empezó la verificación' using errcode = '22023';
+  end if;
+
+  if coalesce(p_no_encontrado, false) then
+    if v_nota is null then
+      raise exception 'Si no encontraste el cajón, escribí qué pasó (dónde lo buscaste)' using errcode = '22023';
+    end if;
+    update "GP2".verif_cajon v
+       set resultado = 'no_encontrado', cajon_numero = null, tara_kg = null, peso_bruto_kg = null, peso_neto_kg = null,
+           nota = v_nota, cargado_en = now()
+     where v.id = p_id;
+  else
+    select c.tara_kg into v_tara from "GP2".cajon c where c.numero = p_cajon;
+    if not found then raise exception 'Elegí en qué cajón lo pesaste (N° 1 a 10)' using errcode = '22023'; end if;
+    if p_bruto_kg is null or p_bruto_kg <= v_tara then
+      raise exception 'El peso de la balanza tiene que ser mayor que la tara del cajón N° % (% kg)',
+        p_cajon, replace(v_tara::text, '.', ',') using errcode = '22023';
+    end if;
+    if p_bruto_kg > 300 then
+      raise exception 'Más de 300 kg no puede ser un cajón: revisá el número' using errcode = '22023';
+    end if;
+    update "GP2".verif_cajon v
+       set resultado = 'pesado', cajon_numero = p_cajon, tara_kg = v_tara, peso_bruto_kg = round(p_bruto_kg, 3),
+           peso_neto_kg = round(p_bruto_kg - v_tara, 3), nota = v_nota, cargado_en = now()
+     where v.id = p_id;
+  end if;
+
+  update "GP2".verif_cajon_dia d set terminado_en = now()
+   where d.fecha = v_fecha and d.terminado_en is null
+     and not exists (select 1 from "GP2".verif_cajon v where v.fecha = v_fecha and v.resultado is null);
+
+  return "GP2".verif_cajones_bundle(v_fecha);
+end;
+$function$
+;
+
+-- ---------- verif_cajones_bundle ----------
+CREATE OR REPLACE FUNCTION "GP2".verif_cajones_bundle(p_fecha date DEFAULT NULL::date)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'GP2'
+AS $function$
+  select t.id, t.legajo, t.operario, t.matriz, t.nombre_matriz, t.uni, t.carga_en, t.hora_inicio, t.hora_fin, t.piezas,
+         (select min((j->>'kg_x_uni')::numeric) from jsonb_array_elements(t.piezas) j where (j->>'kg_x_uni')::numeric > 0),
+         (select max((j->>'kg_x_uni')::numeric) from jsonb_array_elements(t.piezas) j where (j->>'kg_x_uni')::numeric > 0),
+         (select string_agg(distinct j->>'sector', ' / ') from jsonb_array_elements(t.piezas) j where j->>'sector' is not null)
+    from (
+      select e.id, e."Legajo" as legajo, e."Nombre_Empleado" as operario, e."Matriz" as matriz,
+             e."Nombre_Matriz" as nombre_matriz, e."Uni"::numeric as uni,
+             (select gm.carga_en from "GP2".matriz gm where gm.n_matriz = e."Matriz" limit 1) as carga_en,
+             e."Hora_Inicio" as hora_inicio, e."Hora_Fin" as hora_fin,
+             (select coalesce(jsonb_agg(distinct jsonb_build_object(
+                       'codigo', c.codigo, 'descripcion', c.descripcion, 'kg_x_uni', c.kg_x_uni, 'sector', s.nombre)),
+                     '[]'::jsonb)
+                from "GP2".matriz gm
+                join "GP2".ruta_paso rp on rp.matriz_id = gm.id
+                join "GP2".componente c on c.id = rp.comp_salida_id
+                left join "GP2".sector s on s.id = c.sector_id
+               where gm.n_matriz = e."Matriz") as piezas
+        from public.db_n8n_espejo e
+       where (e."Fecha" at time zone 'America/Argentina/Buenos_Aires')::date = p_fecha
+         and coalesce(e."Eliminar", '') <> 'S'
+         and coalesce(e."Uni", 0) >= 1
+         and coalesce(e."Matriz", '') <> ''
+         and coalesce(e."Nombre_Matriz", '') not like '[CONT]%'
+         and not exists (select 1 from public."Matrices" pm
+                          where pm."N_Matriz" = e."Matriz" and pm."Tipo_Matriz" = 'E')      -- envasado
+         and coalesce(e."Nombre_Matriz", '') !~* '^(re)?env'
+         and not exists (select 1 from "GP2".verif_cajon v where v.fecha = p_fecha and v.espejo_id = e.id)
+    ) t;
+$function$
+;
+
+-- ---------- verif_cajones_empezar ----------
+CREATE OR REPLACE FUNCTION "GP2".verif_cajones_empezar(p_fecha date)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'GP2'
+AS $function$
+begin
+  update "GP2".verif_cajon_dia d set empezado_en = coalesce(d.empezado_en, now()) where d.fecha = p_fecha;
+  if not found then
+    raise exception 'No hay cajones sorteados para el %', to_char(p_fecha, 'DD/MM/YYYY') using errcode = 'P0002';
+  end if;
+  return "GP2".verif_cajones_bundle(p_fecha);
+end;
+$function$
 ;
 
 -- ---------- valorizacion_bundle ----------

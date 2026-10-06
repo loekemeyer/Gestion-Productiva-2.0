@@ -15276,3 +15276,37 @@ de Cuchara, Cucharon, etc"*.
 - **El respaldo** `zz_backups."GP2_Backup_rutas_237b_20261005"` (los 9 pasos de la 237B) y
   `zz_backups."GP2_Snap_costo_20261005_237b"` (costos de los 831 componentes) quedan como prueba de que se volvió al
   costo original.
+
+## 4iz. Verificación de cajones: 2 cajones por día a las 15:00, con cuándo empezó y cuándo terminó (2026-10-06)
+
+Pedido de Elías Irace (employee_id 1) para **Alan Gonzalez** (Logística): *"a las 3 de la tarde le tiene que aparecer
+busca y revisa los siguientes cajones, con la información de quién lo hizo, a qué hs, cuántas unidades, en qué sector se
+pudo haber guardado, el peso que tendría que tener, el peso x uni (todo peso en KG)"*, *"solo van a ser 2 cajones x día"*,
+*"solo Cervantes"*, *"el envasado no tiene peso"*, y quien verifica *"no sabe cuál cajón usó"*. Primero se pensó dentro de
+Planify; Elías: *"no va a estar en planify, va a estar dentro de GP2 y se va a registrar cuando tomo la tarea y cuando la
+termino"* y *"no es quién la tomó, sino cuándo empezó y cuándo terminó"*.
+
+- **Pantalla:** `Produccion/VerificacionCajones/VerificacionCajones_GP2.html` (menú: Relevamiento, oculto → `?todos=1`, porque Producción ya no entra en el celular; se llega
+  por el cartel). **Cartel:** `gp2-verif-cajones.js`, en `GP2_MODULOS.html` y `envios-only.html`.
+- **El cajón = una fila de `public.db_n8n_espejo`** (Cervantes). `GP2.produccion` no sirve: 3 filas en 8 días.
+  **Regla 0:** igual que Unidades sin accidente (`public.gp2_matriz_racha_sync` → `GP2.matriz_racha`), el que lee public es
+  `public.gp2_verif_cajones_sortear(fecha)` (+ `public._gp2_verif_candidatos`), que **copia** el cajón a `GP2.verif_cajon`.
+  Las tres RPC de pantalla (`verif_cajones_bundle`, `verif_cajones_empezar`, `verif_cajon_cargar`) leen sólo GP2.
+- **Qué entra al sorteo:** Uni ≥ 1, `Eliminar` ≠ 'S', con matriz, sin `[CONT]` (cajón que viene del día anterior) y sin
+  envasado (`public."Matrices"."Tipo_Matriz"` = 'E', 96 matrices). Primero los que tienen **peso por unidad en GP2** (o se
+  cargan en kg), y de **operarios distintos** (el 05/10, 9 de los 11 cajones con peso eran de la misma persona y matriz).
+- **Peso por unidad:** `matriz.n_matriz` → `ruta_paso.comp_salida_id` → `componente.kg_x_uni`. ⚠ Sólo 15 de las 38 matrices
+  usadas en 14 días lo tienen (**49% de los cajones**): el resto sale con *"sin peso por unidad en GP2: pesalo igual"*. Una
+  matriz que saca varias piezas (la 12) da un **rango**. La **501 (piedra) se carga en kg**: lo cargado ES el peso esperado.
+- **Sector donde buscarlo** = `componente.sector_id` de esa pieza. **Tara** = `GP2.cajon` (N° 1 a 10): quien pesa elige el cajón.
+- **Tiempos:** `GP2.verif_cajon_dia.empezado_en` lo sella **▶ Empezar** (del cartel o de la pantalla; sin empezar la base no
+  deja cargar peso); `terminado_en` se sella **solo** al resolver el último cajón (pesado o *no lo encontré*, que exige nota)
+  y no se pisa si después se corrige un peso. **No se guarda quién**: GP2 entra con 2 cuentas de Google compartidas.
+- **El cartel es por PC:** sólo aparece donde alguien tildó *"Avisarme en esta PC a las 15:00"* en la pantalla
+  (`localStorage gp2_verif_cajones_aviso`). Sin el tilde no carga nada ni consulta la base. Mira al abrir y cada 2 min;
+  *Más tarde* lo posterga 30 min; con el día terminado no sale.
+- **Reloj:** cron `gp2-verif-cajones-15h` (jobid 135), `0 18 * * *` = 15:00 ARG, todos los días; sin producción no sortea.
+  Es idempotente: si el día ya tiene 2, no hace nada.
+- **Diferencia:** neto contra lo esperado (con rango, contra el borde más cercano; adentro del rango = 0). **No hay
+  tolerancia definida**: la pantalla muestra kg y % sin decir bien o mal. Es decisión del dueño.
+- Prueba: `tests/ui/test_verif_cajones.js` (36). Migración: `db/migracion_verificacion_cajones_20261006.sql` (con el revertir).

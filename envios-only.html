@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <script src="auth-guard.js?v=20261006a"></script>
+  <script src="auth-guard.js?v=20261006b"></script>
   <!-- PWA: inyecta manifest, theme-color, apple-touch-icon y registra el SW -->
   <script src="pwa.js?v=20260830e"></script>
   <meta charset="UTF-8" />
@@ -145,7 +145,9 @@
     <div class="app-version" id="appVersion"></div>
   </div>
 
-  <script src="version.js?v=20261006c"></script>
+  <script src="version.js?v=20261006d"></script>
+  <!-- Verificacion de cajones: el cartel de las 15:00, solo si esta PC lo tildo (sin el tilde no carga nada) -->
+  <script src="gp2-verif-cajones.js?v=20261006d"></script>
   <script>
     function cerrarSesion(){
       sessionStorage.clear();

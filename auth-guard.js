@@ -100,6 +100,9 @@ window.GP2_AUTH_ON = GP2_AUTH_ON;
       'calculadora.html',
       'calculadora-basica.html',
       'calcularcajones_gp2.html',
+      // Verificacion de cajones (2026-10-06): Alan Gonzalez es de Logistica y el cartel de las 15:00
+      // tambien sale en envios-only.html (si esa PC lo tildó)
+      'produccion/verificacioncajones/verificacioncajones_gp2.html',
       'login.html'
     ];
     var ok = permitidos.some(function(p){ return path.indexOf(p) !== -1; });
