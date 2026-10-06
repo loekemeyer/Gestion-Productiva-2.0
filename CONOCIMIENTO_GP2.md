@@ -15024,6 +15024,36 @@ de Cuchara, Cucharon, etc"*.
   costo el día que se costee el envasado.
   - **S/N** «Corte Arandela Cuchillitos» (519/719): no tiene base; queda como está.
 
+### 4is (adenda, 2026-10-06) — 383B/C/D, 394C y 309B también vuelven a su matriz base
+
+- `[usuario, sin identificar, 06/10, textual]` *"Las siguientes matrices no tienen que estar en despieces: 383B 383C 383D. En
+  realidad en los despieces tiene que estar la matriz 383 y poder expulsar cualquiera de los 3 palos de amasar"* · *"394C tampoco
+  tendría que estar en el despiece, sería la matriz 394 que puede expulsar el componente de la matriz 394C"* · lo mismo con la
+  *"309B … la matriz 309 que puede expulsar el componente de la matriz 309B"*. **Retira** la variante 383B/C/D de §4iz adenda 4
+  (Elías, mismo día) y **resuelve** el "no aplicado" de arriba para 309B y 394C: el dueño eligió unir aunque el Chef pierda su tiempo.
+- **Aplicado** `[dato]` (`db/migracion_matrices_383_394_309_base_20261006.sql`): 383 ← 9 pasos de 383B/C/D (saca 231·232·233 de a 24
+  y 234 de a 12) y vuelve a llamarse «Env Palo de Amasar»; 394 ← 8 pasos de la 394C (saca 570 ×24 y 858 ×12) y pasa de «Env Pala
+  Canelones X 24» a «Env Pala Canelones»; 309 ← 5 pasos de la 309B (saca 507 y 707, ×12 los dos). 383B/C/D, 394C y 309B
+  `activa=false`, 0 pasos, 0 producción. **Costo idéntico** (huella `ef25071c…`, $535.101,71, 831 filas: todas `cuenta_mo=false`).
+  La tablet GP2 ya ofrece la pieza y pasa cajas a unidades por pieza (`envasado.salidas`: 383 → 24/24/24/12, 394 → 24/12).
+- **Se pierde** `[dato]` el tiempo propio del Chef: 707 queda con los 82 s de la 309 (tenía 41) y 858 con los 28 s de la 394 (tenía
+  15). Hoy no costea (`cuenta_mo=false`); sí entra en el premio de la tablet GP2 y en el costo el día que se costee el envasado.
+- **⚠ Choque con la verificación de cajones (§4iz)** `[dato]`: `_gp2_verif_candidatos` lee `public.db_n8n_espejo` (Registro
+  Producción 2.0) y busca la matriz en GP2 **por el texto** (`gm.n_matriz = e."Matriz"`). En RP 2.0 la letra ES el selector de
+  pieza, y `public."Matrices"` sigue teniendo 383B/C/D (cargadas hoy por Elías), 394C y 309B: un cajón cargado como «383B» va a
+  salir *"sin unidades por caja en GP2"*, y uno cargado como «383» muestra el rango 12–24. En 30 días hubo 0 registros de
+  309B/394C/383B-D (sí 505B ×1 y 505C ×3, el mismo hueco desde §4in). Arreglo propuesto, **no aplicado**: guardar en la fila de
+  la letra el mapeo variante → (matriz base, pieza) que §4gr ya pedía y que la verificación lo use.
+- **S/N «Corte Arandela Cuchillitos» → matriz 21** `[usuario, 06/10, textual]` *"Esta matriz eliminala, en el despiece sería la
+  matriz 21 que además de corte buje 501 también corta arandela cuchillitos"*. Avisado de que la matriz guarda UN factor y los dos
+  cortes no coinciden (**uni_x_golpe** 21 = 2 vs S/N = 3; **partes_por_kilo_de_fleje** 21 = 188,15 vs S/N = 740,84), contestó
+  *"Que tome el dato de la 21"*. **Aplicado**: pasos 787 y 791 (ID5 Fleje N° 38 → W5, arts 519/719) a la 21 (id 19), que pasa a
+  llamarse «Corte Arandela buje 501 / Arandela Cuchillitos»; S/N (id 117) `activa=false`, 0 pasos. **Costo idéntico** (huella
+  `ef25071c…`, $535.101,71: el material del fleje sale del `kg_x_uni` del fleje, no del ppk; ninguna de las dos tenía tiempo).
+  **Efecto en stock** `[dato]`: en la tablet GP2 la W5 entra con golpes × 2 (antes × 3) y `fabricar_stock` descuenta el Fleje N° 38
+  con 188,15 piezas/kg (antes 740,84) — es la decisión del dueño, no un error. **El DELETE de la S/N lo retuvo el conector**:
+  borrarla en el SQL Editor → `delete from "GP2".matriz where id = 117;` (0 pasos, 0 producción).
+
 ## 4it. Envasado de 4 importados: 522E, 323E, 838E, 599E — pieza GRJ + caja → matriz → terminado (2026-10-05)
 
 - `[usuario, Nazareno, 05/10, textual]` *"Te voy a agregar la ruta de 4 artículos porque nos envía Virgilio (que
@@ -15384,6 +15414,11 @@ total que hizo"*. **Retira** lo de arriba que decía *"sin envasado, que no tien
 
 
 ### 4iz (adenda 4, 2026-10-06) — Palo de Amasar: matrices variantes 383B, 383C y 383D
+
+> **⛔ RETIRADO EN GP2 el mismo 06/10 (§4is, adenda):** `[usuario, sin identificar, textual]` *"Las siguientes matrices no
+> tienen que estar en despieces: 383B 383C 383D. En realidad en los despieces tiene que estar la matriz 383 y poder expulsar
+> cualquiera de los 3 palos de amasar"*. Los 9 pasos volvieron a la 383, que se llama otra vez «Env Palo de Amasar»; 383B/C/D
+> `activa=false`. `public."Matrices"` NO se tocó: ahí siguen 383B/C/D y la 383 «Frances» (ver §4is, adenda).
 
 - `[usuario, Elías, 06/10, textual]` *"hace matrices variantes de los restantes (B,C,...). el 383 actualmente es del palo de
   amasar frances"*. Antes la 383 «Env Palo de Amasar» cerraba los 4 palos (231, 232, 233 y 234; 12 pasos, 3 por artículo: el palo

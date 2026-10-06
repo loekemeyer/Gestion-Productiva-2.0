@@ -1,3 +1,5 @@
+-- ⛔ REVERTIDA EN GP2 el 2026-10-06 por db/migracion_matrices_383_394_309_base_20261006.sql (CONOCIMIENTO §4is adenda):
+--    los 9 pasos volvieron a la 383 «Env Palo de Amasar» y 383B/C/D quedaron activa=false. public."Matrices" no se tocó.
 -- Matrices variantes del Palo de Amasar: 383B, 383C y 383D (2026-10-06)
 -- [Elías 06/10/2026, textual] "hace matrices variantes de los restantes (B,C,...). el 383 actualmente es del palo de
 -- amasar frances". Antes la 383 «Env Palo de Amasar» (id 386) cerraba los 4 palos y el operario no registraba cuál:
