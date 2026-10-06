@@ -16,8 +16,10 @@
          GP2.articulo_linea_tallerista (942E 943E 944E 945E 948E -> 505; 542 543 720 722 -> 261;
          570 858 -> 194; 507 707 -> 78).
      Siempre se muestra primero "Ver el cambio" (cambiar_contraparte_preview): partes que recibe el nuevo,
-     matrices que dejan de hacerse aca, avisos (sin precio, sin ubicacion) y bloqueos. Recien despues
-     "Confirmar". Despiece x Art. (Programa.html) lee la ruta en vivo: lo que se cambia aca se ve alla. -->
+     matrices que dejan de hacerse aca, avisos (sin ubicacion de stock) y bloqueos. Recien despues
+     "Confirmar". Despiece x Art. (Programa.html) lee la ruta en vivo: lo que se cambia aca se ve alla.
+     v1.0.1 (2026-10-06): ya no avisa "sin precio cargado" y ya no pide el nombre [usuario: "que no tire el
+     cartel del costo ni tampoco pida un nombre"]: la bitacora guarda el mail de la sesion. -->
 <meta charset="utf-8"/>
 <script src="../auth-guard.js?v=20261006b"></script>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
@@ -64,9 +66,6 @@
   .ct-aviso.warn{background:#fef3c7;color:#78350f}
   .ct-aviso.info{background:#e0f2fe;color:#075985}
   .ct-aviso.bloq{background:#fee2e2;color:#991b1b;font-weight:700}
-  .ct-quien2{display:flex;flex-direction:column;gap:6px;margin:12px 0 4px}
-  .ct-quien2 label{font-size:16px;font-weight:800}
-  .ct-quien2 input{width:100%;padding:10px 12px;border:2px solid #cbd5e1;border-radius:10px}
   .ct-acc{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}
   .ct-acc .btn{flex:1 1 180px}
 </style>
@@ -272,10 +271,6 @@ function renderPrev(r){
     h += '<div class="ct-aviso ' + (av.nivel === "warn" ? "warn" : "info") + '">' + (av.nivel === "warn" ? "⚠ " : "ℹ ") + esc(av.txt) + '</div>';
   });
 
-  var u = "";
-  try { u = localStorage.getItem("gp2_usuario") || ""; } catch (e) {}
-  h += '<div class="ct-quien2"><label for="usuario">Tu nombre (queda en la bitácora)</label>' +
-       '<input type="text" id="usuario" inputmode="text" autocomplete="off" value="' + esc(u) + '"></div>';
   h += '<div class="ct-acc">' +
        '<button class="btn btn-primary" type="button" id="btnConfirmar"' + (r.ok ? "" : " disabled") + '>Confirmar cambio</button>' +
        '<button class="btn btn-secondary" type="button" id="btnCancelar">Cancelar</button></div>' +
@@ -302,10 +297,9 @@ async function confirmar(){
   if (!SEL) return;
   var btn = $("btnConfirmar"); btn.disabled = true;
   $("msgPrev").textContent = "Guardando…";
-  var u = ($("usuario").value || "").trim();
-  if (u){ try { localStorage.setItem("gp2_usuario", u); } catch (e) {} }
+  /* sin nombre: la bitácora guarda el mail de la sesión (lo pone la base) */
   var r = await SB.rpc("cambiar_contraparte_aplicar",
-    { p_articulo: ART.id, p_tipo: SEL.tipo, p_desde: SEL.desde, p_hasta: SEL.hasta, p_usuario: u });
+    { p_articulo: ART.id, p_tipo: SEL.tipo, p_desde: SEL.desde, p_hasta: SEL.hasta, p_usuario: null });
   if (r.error){
     btn.disabled = false;
     $("msgPrev").innerHTML = '<span style="color:#991b1b;font-weight:700">⛔ ' + esc(r.error.message) + '</span>';

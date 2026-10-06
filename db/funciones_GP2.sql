@@ -139,7 +139,6 @@ declare
   v_dejan jsonb := '[]'::jsonb;
   v_antes jsonb := '[]'::jsonb;
   v_despues jsonb := '[]'::jsonb;
-  v_sin_precio text;
   v_con_stock text;
   v_mo text;
   v_pasos int := 0;
@@ -191,10 +190,6 @@ begin
       select array_agg(distinct rp.comp_entrada_id) into v_comps from ruta_paso rp
        where rp.id = any(v_ids) and rp.comp_entrada_id is not null;
       select u.id into v_ubic_desde from ubicacion u where u.tipo = 'tallerista' and u.ref_id = p_desde order by u.id limit 1;
-      select string_agg(distinct cs.codigo, ', ') into v_sin_precio
-        from ruta_paso rp join componente cs on cs.id = rp.comp_salida_id
-       where rp.id = any(v_ids)
-         and not exists (select 1 from precio_tallerista pt where pt.tallerista_id = p_hasta and pt.componente_id = rp.comp_salida_id);
     else
       -- ===== Fabrica -> tallerista (las partes salen de la linea imaginaria)
       v_tipo_log := 'fabrica_a_tallerista';
@@ -249,14 +244,6 @@ begin
     if v_ubic_hasta is null then
       v_av := v_av || jsonb_build_object('nivel', 'warn', 'txt',
         format('%s no tiene ubicacion de stock: se le puede cambiar el articulo, pero no se le pueden registrar envios hasta crearla.', coalesce(v_hasta_nom, 'El nuevo')));
-    end if;
-    if p_desde is not null and v_sin_precio is not null then
-      v_av := v_av || jsonb_build_object('nivel', 'warn', 'txt',
-        format('%s no tiene precio cargado para %s: el costo va a salir SIN su mano de obra hasta que se cargue.', coalesce(v_hasta_nom, 'El nuevo'), v_sin_precio));
-    elsif p_desde is null and not exists (select 1 from precio_tallerista pt join componente c on c.id = pt.componente_id
-                                           where pt.tallerista_id = p_hasta and c.codigo = a.codigo and c.sector_id = 12) then
-      v_av := v_av || jsonb_build_object('nivel', 'warn', 'txt',
-        format('%s no tiene precio cargado para el %s: el costo va a salir SIN su mano de obra hasta que se cargue.', coalesce(v_hasta_nom, 'El nuevo'), a.codigo));
     end if;
     if p_desde is not null and v_ubic_desde is not null and v_comps is not null then
       select string_agg(c.codigo || ' (' || trim(to_char(i.cantidad, 'FM999999990.##')) || ')', ', ' order by c.codigo)

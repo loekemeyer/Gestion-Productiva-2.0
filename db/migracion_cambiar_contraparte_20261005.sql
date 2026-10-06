@@ -36,8 +36,10 @@
 --   · prov. A.T. -> prov. A.T. : ruta_paso.proveedor_at_id, el padrón articulo_prov_at (el viejo
 --                                queda activo=false, no se borra), reparto_prov_at e inventario.
 -- NO toca: precios (precio_tallerista), stock existente, componentes, matrices ni recetas.
--- Avisa (no bloquea): el nuevo no tiene precio cargado para el artículo, no tiene ubicación de stock,
--- el que sale todavía tiene stock de esas partes.
+-- Avisa (no bloquea): el nuevo no tiene ubicación de stock, el que sale todavía tiene stock de esas
+-- partes. 06/10: YA NO avisa "no tiene precio cargado" [usuario: "que no tire el cartel del costo"]; el
+-- precio del tallerista se carga aparte y el costo lo muestra donde corresponde.
+-- Y la bitácora ya no pide nombre [usuario: "ni tampoco pida un nombre"]: guarda el mail de la sesión.
 -- Idempotente: se puede volver a correr.
 -- =====================================================================
 
@@ -245,7 +247,6 @@ declare
   v_dejan jsonb := '[]'::jsonb;
   v_antes jsonb := '[]'::jsonb;
   v_despues jsonb := '[]'::jsonb;
-  v_sin_precio text;
   v_con_stock text;
   v_mo text;
   v_pasos int := 0;
@@ -297,10 +298,6 @@ begin
       select array_agg(distinct rp.comp_entrada_id) into v_comps from ruta_paso rp
        where rp.id = any(v_ids) and rp.comp_entrada_id is not null;
       select u.id into v_ubic_desde from ubicacion u where u.tipo = 'tallerista' and u.ref_id = p_desde order by u.id limit 1;
-      select string_agg(distinct cs.codigo, ', ') into v_sin_precio
-        from ruta_paso rp join componente cs on cs.id = rp.comp_salida_id
-       where rp.id = any(v_ids)
-         and not exists (select 1 from precio_tallerista pt where pt.tallerista_id = p_hasta and pt.componente_id = rp.comp_salida_id);
     else
       -- ===== Fabrica -> tallerista (las partes salen de la linea imaginaria)
       v_tipo_log := 'fabrica_a_tallerista';
@@ -355,14 +352,6 @@ begin
     if v_ubic_hasta is null then
       v_av := v_av || jsonb_build_object('nivel', 'warn', 'txt',
         format('%s no tiene ubicacion de stock: se le puede cambiar el articulo, pero no se le pueden registrar envios hasta crearla.', coalesce(v_hasta_nom, 'El nuevo')));
-    end if;
-    if p_desde is not null and v_sin_precio is not null then
-      v_av := v_av || jsonb_build_object('nivel', 'warn', 'txt',
-        format('%s no tiene precio cargado para %s: el costo va a salir SIN su mano de obra hasta que se cargue.', coalesce(v_hasta_nom, 'El nuevo'), v_sin_precio));
-    elsif p_desde is null and not exists (select 1 from precio_tallerista pt join componente c on c.id = pt.componente_id
-                                           where pt.tallerista_id = p_hasta and c.codigo = a.codigo and c.sector_id = 12) then
-      v_av := v_av || jsonb_build_object('nivel', 'warn', 'txt',
-        format('%s no tiene precio cargado para el %s: el costo va a salir SIN su mano de obra hasta que se cargue.', coalesce(v_hasta_nom, 'El nuevo'), a.codigo));
     end if;
     if p_desde is not null and v_ubic_desde is not null and v_comps is not null then
       select string_agg(c.codigo || ' (' || trim(to_char(i.cantidad, 'FM999999990.##')) || ')', ', ' order by c.codigo)

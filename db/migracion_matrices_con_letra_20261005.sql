@@ -16,6 +16,8 @@ commit;
 -- NO APLICADO (espera al dueño, §4is): la letra tiene otro tiempo o cuenta_mo que la base.
 --   237B (id 413, sin tiempo, cuenta_mo=false) -> 237 (id 143, 5 s, cuenta_mo=true): +5 s de MO en 720/722/858.
 --   309B (id 331, 41 s) -> 309 (id 330, 82 s) · 394C (id 260, 15 s) -> 394 (id 394, 28 s).
+--   -> 237B: resuelta aparte con la matriz nueva 515 (§4iy). 309B y 394C: APLICADAS el 06/10 en
+--      db/migracion_matrices_383_394_309_base_20261006.sql (el dueño eligió unir).
 --   S/N (id 117): no tiene base.
 
 -- ROLLBACK
