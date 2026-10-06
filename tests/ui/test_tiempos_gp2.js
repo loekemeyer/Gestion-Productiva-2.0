@@ -5,7 +5,7 @@
    - el boton "Gestion Productiva Entero" lee public.db_n8n_espejo (solo con .schema('public'), por paginas
      de 1000) y nunca escribe;
    - el Gauss: un punto por operario y dia, sin Uni 0 / Seg<=1, fuera de 1/3..3x mediana, ni mu+-2 sigma;
-   - variantes (3 y 3B juntas; 325 / 325B separadas), avisos "revisar" y "pocos datos";
+   - variantes (3 y 3B juntas; 101, 150, 186, 214, 325 y 401 con su B NO se juntan), avisos "revisar" y "pocos datos";
    - ventana de registros (columna Var solo con variantes, excluidos tachados) y campana;
    - anular: en GP2 manda anular_produccion con lo que el registro ya tenia; en Entero llama a
      public.toggle_anular_tiempo (por .schema('public')) y usa lo que devuelve; si devuelve NULL avisa. */
@@ -39,6 +39,10 @@ const MATRIZ = [
   { n_matriz: '60',  descripcion: 'Corte Pinza Fideos', tiempo_historico: null, tiempo_unidad: 'uni', uni_x_golpe: 1, activa: true },
   { n_matriz: '60B', descripcion: 'Corte Pinza Fideos CH', tiempo_historico: 9, tiempo_unidad: 'uni', uni_x_golpe: 1, activa: true },
   { n_matriz: '950', descripcion: 'Sin produccion en el rango', tiempo_historico: 5, tiempo_unidad: 'uni', uni_x_golpe: 1, activa: true },
+  // las otras cinco de NO_SON_VARIANTES (la 325 ya esta arriba): la letra es OTRO producto, cada una con su tiempo cargado
+  ...['101', '150', '186', '214', '401'].reduce((a, n) => a.concat([
+    { n_matriz: n,       descripcion: 'Producto ' + n,       tiempo_historico: 10, tiempo_unidad: 'uni', uni_x_golpe: 1, activa: true },
+    { n_matriz: n + 'B', descripcion: 'Otro producto ' + n + 'B', tiempo_historico: 20, tiempo_unidad: 'uni', uni_x_golpe: 1, activa: true }]), []),
 ];
 const EMPLEADO = [{ legajo: '19', nombre: 'Eduardo B', activo: true }, { legajo: '74', nombre: 'Omar Banchur', activo: true }];
 
@@ -60,6 +64,9 @@ const PROD = [
   // 80 produjo, 80B no: con el filtro "Con produccion" tienen que salir las dos filas
   G('80', '19', D + '1', 100, 700, 7), G('80', '74', D + '2', 100, 720, 7.2),
   G('60', '19', D + '1', 100, 900, 9), G('60B', '74', D + '2', 100, 930, 9.3),
+  // 101, 150, 186, 214 y 401: la base trabaja a 10 s/uni y la B a 20 s/uni (la 401B NO produjo)
+  ...['101', '150', '186', '214'].reduce((a, n, i) => a.concat([G(n, 'N' + i, D + '1', 100, 1000, 10), G(n + 'B', 'P' + i, D + '2', 100, 2000, 20)]), []),
+  G('401', 'N9', D + '1', 100, 1000, 10),
 ];
 // Gestion Productiva Entero tiene mas: 2300 registros de la 900 ademas de los de arriba (para probar el paginado de a 1000)
 const MASIVOS = [...Array(2300)].map((_, i) => G('900', 'M' + (i % 50), '2026-09-' + String(1 + (i % 28)).padStart(2, '0'), 100, 1000, 10));
@@ -163,6 +170,7 @@ const STUB = `
   ok(f80b && f80b[4] === '—' && f80b[8] === f80[8] && f80b[10] === f80[10], '80B: sin produccion propia ("—") pero el mismo Gauss y Reg que la 80: ' + (f80b && f80b.join(' | ')));
   ok(f80b && f80b[0].includes('+1') && f80 && f80[0].includes('+1'), '80 y 80B llevan el +1');
   ok(await fila('950') === null, 'Con produccion: la 950 (sin produccion y sin variantes) NO sale');
+  ok(await fila('401') !== null && await fila('401B') === null, 'Con produccion: la 401B (NO es variante de la 401) no sale aunque la 401 si produjo');
   // mismo T. Hist en todo el grupo: el de la base; con * y explicacion si el propio es otro
   ok(f80[2] === '7 s' && f80b[2] === '7 s *', '80 y 80B muestran el mismo tiempo cargado, el de la base (7 s); la 80B lleva *: ' + f80[2] + ' / ' + f80b[2]);
   ok(f80b[9] === f80[9], '80 y 80B tienen el mismo Desvio (se mide contra el tiempo de la base): ' + f80[9] + ' / ' + f80b[9]);
@@ -177,6 +185,20 @@ const STUB = `
   await page.click('#regCerrar');
   await page.selectOption('#fVer', '');
   ok(await fila('950') !== null, 'Todas: la 950 si sale');
+
+  // ===== 2c) 101, 150, 186, 214, 325 y 401 con su B NO son variantes: cada una con lo suyo =====
+  for (const n of ['101', '150', '186', '214']) {
+    const b = await fila(n), v = await fila(n + 'B');
+    ok(b && v && !b[0].includes('+1') && !v[0].includes('+1'), n + ' y ' + n + 'B no llevan +1: ' + (b && b[0]) + ' / ' + (v && v[0]));
+    ok(b && v && b[8] === '10,0' && v[8] === '20,0', n + ' y ' + n + 'B cada una con su Gauss (10,0 y 20,0): ' + (b && b[8]) + ' / ' + (v && v[8]));
+    ok(b && v && b[2] === '10 s' && v[2] === '20 s', n + ' y ' + n + 'B cada una con su tiempo cargado, sin * (10 s y 20 s): ' + (b && b[2]) + ' / ' + (v && v[2]));
+    ok(b && v && b[10] === '1 / 1' && v[10] === '1 / 1', n + ' y ' + n + 'B cada una con sus propios registros (1 / 1)');
+  }
+  const f401 = await fila('401'), f401b = await fila('401B');
+  ok(f401 && f401b && !f401[0].includes('+1') && !f401b[0].includes('+1') && f401[10] === '1 / 1' && f401b[10] === '—', '401 y 401B separadas: la 401B no hereda el registro de la 401: ' + (f401 && f401[10]) + ' / ' + (f401b && f401b[10]));
+  await page.click('td.mz-tag[data-reg="150B"]');
+  ok((await page.$$('#regBody tr')).length === 1 && await page.$eval('#thVar', e => getComputedStyle(e).display === 'none'), 'abrir la 150B muestra solo SU registro, sin columna Var (la 150 no se mezcla)');
+  await page.click('#regCerrar');
 
   // ===== 3) ventana de registros =====
   await page.click('td.mz-tag[data-reg="207"]');

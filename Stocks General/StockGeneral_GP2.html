@@ -2,11 +2,22 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<script src="../auth-guard.js?v=20260929a"></script>
+<script src="../auth-guard.js?v=20261006a"></script>
 <script src="../gp2-ui.js?v=20260930a"></script>
 <script src="../gp2-numero.js?v=20260911o"></script>
 <title>Stock general · GP2</title>
-<!-- v3.1.0 (2026-10-05) - "TODOS LOS RUBROS" = LA UNIÓN DE LO QUE MUESTRA CADA RUBRO [usuario: "Todos los
+<!-- v3.2.0 (2026-10-06) - PESTAÑA VIRGILIO SEPARADA + TABLA "INSUMOS SIN ASIGNAR" [Luis: "move la pestaña
+     virgilio para que este separada… que se muestre una tabla arriba de los filtros con todo lo que tenga
+     de insumos virgilio que no se matchearon todavia"]. (a) la pestaña Virgilio se corre a la DERECHA,
+     separada de Todos/Cervantes/Terceros (clase .sep → margin-left:auto). (b) cuando PLANTA=virg aparece,
+     ARRIBA de los filtros, la tabla de insumos de Virgilio que todavía no tienen un código asignado: sale
+     del espejo del stock REAL de GV (GP2.virgilio_insumo_stock, lo refresca el cron de GV cada 10 min —
+     Regla 0: GP2 lee el espejo, NUNCA public) menos los ya mapeados en GP2.importado_virgilio_componente.
+     RPC nueva GP2.virgilio_insumos_sin_match_bundle (SECURITY DEFINER). Columnas Cod ISIS / Cod V / Cod C:
+     hoy sólo Cod V (el código inconsistente de Virgilio); ISIS y Cervantes quedan "—" PORQUE no están
+     matcheados — ver CLAUDE.md "TRES SISTEMAS DE CÓDIGOS". El resto de la pestaña Virgilio (stock GP2 en
+     virgilio_sector) NO se tocó. Una lectura fallida del espejo lo DICE, no muestra la tabla vacía.
+     v3.1.0 (2026-10-05) - "TODOS LOS RUBROS" = LA UNIÓN DE LO QUE MUESTRA CADA RUBRO [usuario: "Todos los
      rubros se tiene que armar de todos los items que hay acá adentro"]. Buscar 323 no traía el
      terminado 323E: el índice sólo veía filas que EXISTEN en inventario, pero Art. Terminado sale de
      stock_general_extra_bundle (los 43 terminados por receta/ruta, en 0 si nunca se produjeron: ninguno tiene
@@ -190,6 +201,14 @@
  .planta-tab{padding:10px 18px;min-height:44px;font-size:17px;font-weight:800;border:2px solid #d0d7de;border-bottom:none;border-radius:9px 9px 0 0;background:#f6f8fa;color:#555;cursor:pointer;margin-bottom:-2px}
  .planta-tab.active{background:#fff;color:#111;border-color:#e5e9ee;border-bottom:2px solid #fff}
  .planta-vacia{padding:28px 18px;text-align:center;color:#9aa4af;font-size:16px}
+ .planta-tab.sep{margin-left:auto}
+ /* v3.2.0: tabla de insumos de Virgilio sin código asignado (arriba de los filtros, sólo en Virgilio) */
+ .vins-box{border:2px solid #f0c36d;background:#fffdf5;border-radius:12px;padding:14px 16px;margin:12px 0 6px}
+ .vins-head{display:flex;flex-wrap:wrap;align-items:baseline;gap:10px;margin-bottom:6px}
+ .vins-ttl{font-size:18px;font-weight:800;color:#8a5a00}
+ .vins-sub{font-size:14px;color:#7a6a3a}
+ .vins-box .toolbar{margin:6px 0 10px}
+ .vins-box table.t td.cod-vacio{color:#c2a84f;text-align:center;font-weight:700}
  .rubro-lbl{font-size:13px;font-weight:800;color:#666;text-transform:uppercase;letter-spacing:.5px;margin:4px 0 8px}
  .rubro-grp{font-size:12px;font-weight:800;color:#999;text-transform:uppercase;margin:10px 0 6px}
  .rubros{display:flex;flex-wrap:wrap;gap:8px}
@@ -262,11 +281,31 @@
   <div class="planta-tabs" role="tablist">
     <button type="button" class="planta-tab active" id="tabTodos" role="tab" onclick="filtrarPlanta('todos')">🔎 Todos</button>
     <button type="button" class="planta-tab" id="tabCervantes" role="tab" onclick="filtrarPlanta('cerv')">🏭 Cervantes</button>
-    <button type="button" class="planta-tab" id="tabVirgilio" role="tab" onclick="filtrarPlanta('virg')">🏬 Virgilio</button>
     <button type="button" class="planta-tab" id="tabTerceros" role="tab" onclick="filtrarPlanta('terc')">👥 Terceros</button>
+    <button type="button" class="planta-tab sep" id="tabVirgilio" role="tab" onclick="filtrarPlanta('virg')">🏬 Virgilio</button>
   </div>
 
   <div class="steps" id="paneCervantes">
+
+    <!-- v3.2.0: insumos de Virgilio sin código asignado (sólo pestaña Virgilio, arriba de los filtros) -->
+    <div id="vinsBox" class="vins-box hidden">
+      <div class="vins-head">
+        <div class="vins-ttl">🔗 Insumos de Virgilio sin asignar a un código</div>
+        <div class="vins-sub" id="vinsSub"></div>
+      </div>
+      <div class="toolbar"><input type="text" id="vinsQ" placeholder="Buscar insumo sin asignar…"></div>
+      <div class="table-wrap">
+        <table class="t">
+          <thead><tr>
+            <th>Cod ISIS</th><th>Cod V</th><th>Cod C</th><th>Descripción</th><th>Rubro</th>
+            <th class="num">Saldo</th><th>Unidad</th><th>Ubicación</th>
+          </tr></thead>
+          <tbody id="vinsBody"></tbody>
+        </table>
+      </div>
+      <div id="vinsEmpty" class="empty hidden"></div>
+    </div>
+
     <div class="rubro-lbl">Rubro</div>
     <div id="rubros"></div>
 
@@ -461,7 +500,68 @@ function filtrarPlanta(p){
   PLANTA = p;
   pintarPlantaTabs();
   pintarRubros();
+  mostrarVins();            // v3.2.0: la tabla de insumos sin asignar sólo vive en Virgilio
   seleccionar("all");
+}
+
+/* ═══ v3.2.0: insumos de Virgilio sin código asignado (sólo pestaña Virgilio) ═══
+   Sale del espejo del stock REAL de GV (GP2.virgilio_insumo_stock — Regla 0: GP2 lee el espejo,
+   NUNCA public) menos los ya mapeados en GP2.importado_virgilio_componente, vía la RPC
+   GP2.virgilio_insumos_sin_match_bundle. Cod ISIS / Cod C quedan "—" porque justamente NO están
+   matcheados (ver CLAUDE.md "TRES SISTEMAS DE CÓDIGOS"). */
+var VINS = null, VINS_CARGANDO = false;
+var VINS_RUBRO = { partes_plasticas:"Partes plásticas", importados:"Importados", cajas:"Cajas",
+  fleje:"Flejes", cartones:"Cartones", carton:"Cartones", plasticos:"Plásticos", plastico:"Plásticos",
+  bolsas:"Bolsas", remaches:"Remaches", remache:"Remaches", bombillas:"Bombillas", garage:"Garage" };
+function vinsRubro(c){ return c ? (VINS_RUBRO[c] || c) : "—"; }
+function mostrarVins(){
+  var box = $("vinsBox"); if (!box) return;
+  var on = PLANTA==="virg";
+  box.classList.toggle("hidden", !on);
+  if (!on) return;
+  if (!VINS && !VINS_CARGANDO) cargarVins();
+  else if (VINS) renderVins();
+}
+async function cargarVins(){
+  VINS_CARGANDO = true;
+  $("vinsSub").textContent = "Cargando stock de Virgilio…";
+  var res;
+  try { res = await SB.rpc("virgilio_insumos_sin_match_bundle"); }
+  catch(e){ res = { error:e }; }
+  VINS_CARGANDO = false;
+  if (!res || res.error || !res.data){
+    // una lectura ROTA no es "0 insumos": lo dice, no muestra la tabla vacía.
+    VINS = null; $("vinsBody").innerHTML = ""; $("vinsEmpty").classList.add("hidden");
+    $("vinsSub").innerHTML = '<span style="color:#b91c1c;font-weight:700">No se pudo leer el stock de Virgilio — reintentá.</span>';
+    return;
+  }
+  VINS = res.data;
+  renderVins();
+}
+function renderVins(){
+  if (!VINS) return;
+  var q = String(($("vinsQ")||{}).value||"").trim().toLowerCase();
+  var filas = (VINS.filas||[]).filter(function(f){
+    return !q || ((f.cod_v||"")+" "+(f.nombre||"")+" "+(f.ubicacion||"")+" "+vinsRubro(f.categoria)).toLowerCase().indexOf(q)>=0;
+  });
+  $("vinsBody").innerHTML = filas.map(function(f){
+    var kg = (f.unidad||"").toLowerCase()==="kg";
+    return '<tr>'+
+      '<td class="cod-vacio">—</td>'+
+      '<td><span class="cod">'+esc(f.cod_v||"")+'</span></td>'+
+      '<td class="cod-vacio">—</td>'+
+      '<td>'+esc(f.nombre||"")+'</td>'+
+      '<td>'+esc(vinsRubro(f.categoria))+'</td>'+
+      '<td class="num">'+fmt(f.saldo, kg?2:0)+'</td>'+
+      '<td>'+esc(f.unidad||"")+'</td>'+
+      '<td>'+esc(f.ubicacion||"—")+'</td>'+
+    '</tr>';
+  }).join("");
+  $("vinsEmpty").classList.toggle("hidden", filas.length>0);
+  if (!filas.length) $("vinsEmpty").textContent = q ? ("Sin resultados para «"+q+"».") : "Todo asignado 🎉";
+  var ts = VINS.actualizado_en ? fmtFecha(VINS.actualizado_en) : "—";
+  $("vinsSub").innerHTML = fmt(VINS.total||0)+" sin asignar · "+fmt(VINS.con_saldo||0)+
+    " con stock · espejo del stock de Virgilio (refresca c/10 min) · últ. cambio "+esc(ts);
 }
 function marcarActivo(){
   document.querySelectorAll("#rubros .rubro-btn").forEach(function(b){
@@ -886,7 +986,7 @@ async function seleccionar(key){
   if (!r) return;
   // v3.0.0: elegir un rubro puntual sincroniza la pestaña de planta sola (como antes "También
   // en: …"); "Todos los rubros" NO toca la pestaña — respeta el filtro que ya estaba elegido.
-  if (r.mode!=="global"){ PLANTA = cajaDeRubro(r); pintarPlantaTabs(); pintarRubros(); }
+  if (r.mode!=="global"){ PLANTA = cajaDeRubro(r); pintarPlantaTabs(); pintarRubros(); mostrarVins(); }
   RUBRO = r;
   marcarActivo();
   $("fljeLink").style.display = r.detalle ? "" : "none";
@@ -1145,6 +1245,7 @@ async function renderMovs(){
 /* ---------- eventos ---------- */
 $("q").addEventListener("input", render);
 $("soloStock").addEventListener("change", render);
+$("vinsQ").addEventListener("input", renderVins);
 $("hintOtros").addEventListener("click", function(e){
   var a=e.target.closest("a[data-k]"); if(a) seleccionar(a.dataset.k);   // la búsqueda del input se conserva
 });

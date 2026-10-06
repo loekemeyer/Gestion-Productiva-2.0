@@ -170,6 +170,12 @@ const MOVS = [{
   comp_transformado_id: null, cantidad_transformada: null, unidad_destino: 'uni',
 }];
 
+// v3.2.0: fixture de la RPC de insumos de Virgilio sin código asignado (pestaña Virgilio)
+const VINS_DATA = { actualizado_en: '2026-10-05T14:05:00-03:00', total: 2, con_saldo: 2, filas: [
+  { cod_v: 'Mgo Pelador 505', nombre: 'Mango Pelador 505 Rojo', categoria: 'partes_plasticas', unidad: 'Uni', saldo: 27000, ubicacion: null },
+  { cod_v: 'N°13', nombre: '84 X 1,75', categoria: 'fleje', unidad: 'Kg', saldo: 3251, ubicacion: 'V14AD' },
+]};
+
 const STUB = `
 window.__rpc = [];
 window.supabase = { createClient: function(){ return {
@@ -181,6 +187,7 @@ window.supabase = { createClient: function(){ return {
     if (name === 'registrar_movimientos') return { data: { ok: true, n: (args.p_rows || []).length }, error: null };
     if (name === 'composicion_stock') return { data: { movs: [] }, error: null };
     if (name === 'maximo_desglose') { var M = ${JSON.stringify(MAXD)}; return { data: M[args.p_componente_id + ':' + args.p_ubicacion_id] || { base: null, filas: [] }, error: null }; }
+    if (name === 'virgilio_insumos_sin_match_bundle') return { data: JSON.parse(JSON.stringify(${JSON.stringify(VINS_DATA)})), error: null };
     return { data: null, error: { message: 'rpc desconocida ' + name } };
   },
   from: function(){ return { select: function(){ return { order: function(){ return { limit: async function(){
@@ -285,6 +292,16 @@ window.supabase = { createClient: function(){ return {
   ok(JSON.stringify(rubrosVirg) === JSON.stringify(['🔎 Todos los rubros', 'Bolsas Plásticas', 'SC en Virgilio', 'SP en Virgilio', 'Flejes en Virgilio', 'Plásticos en Virgilio', 'Cajas en Virgilio']),
      'Virgilio: "Todos los rubros" + sus 6 rubros, en orden — ' + rubrosVirg.join(' | '));
 
+  // v3.2.0: la tabla "Insumos de Virgilio sin asignar a un código" aparece en Virgilio, arriba de los filtros
+  ok(await vis('vinsBox'), 'Virgilio: aparece la tabla de insumos sin asignar');
+  await page.waitForFunction(() => document.querySelectorAll('#vinsBody tr').length > 0);
+  const vins = await page.$$eval('#vinsBody tr', es => es.map(e => Array.from(e.cells).map(td => td.textContent.trim())));
+  ok(vins.length === 2, 'Insumos sin asignar: las 2 filas del espejo — ' + vins.length);
+  const vMgo = vins.filter(c => c[1] === 'Mgo Pelador 505')[0] || [];
+  // columnas: Cod ISIS | Cod V | Cod C | Descripción | Rubro | Saldo | Unidad | Ubicación
+  ok(vMgo[0] === '—' && vMgo[2] === '—', 'Insumos sin asignar: Cod ISIS y Cod C quedan "—" (no matcheados) — ' + vMgo.join(' | '));
+  ok(vMgo[3] === 'Mango Pelador 505 Rojo' && vMgo[5] === '27.000', 'Insumos sin asignar: descripción y saldo del espejo — ' + vMgo.join(' | '));
+
   await page.click('#rubros .rubro-btn:has-text("SC en Virgilio")');
   ok(await activoPill('tabVirgilio'), 'al clickear un rubro de Virgilio, la pestaña sigue en Virgilio');
   await page.waitForFunction(() => document.querySelectorAll('#tbody tr').length > 0);
@@ -320,6 +337,7 @@ window.supabase = { createClient: function(){ return {
   await page.click('#tabCervantes'); // por las dudas, volver a un estado conocido antes de ir a Terceros
   await page.click('#tabTerceros');
   ok(await activoPill('tabTerceros'), 'pestaña Terceros queda activa');
+  ok(!(await vis('vinsBox')), 'la tabla de insumos sin asignar NO aparece fuera de Virgilio');
   const rubrosTerc = await page.$$eval('#rubros .rubro-btn', xs => xs.map(x => x.textContent.trim()));
   ok(JSON.stringify(rubrosTerc) === JSON.stringify(['🔎 Todos los rubros', 'Prov. Servicio', 'Talleristas', 'Prov. Art. Term.', 'Inyectores']),
      'Terceros: "Todos los rubros" + exactamente sus 4 rubros — ' + rubrosTerc.join(' | '));

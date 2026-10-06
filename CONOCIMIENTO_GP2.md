@@ -15101,10 +15101,22 @@ de Cuchara, Cucharon, etc"*.
   el suyo (309 = 82 s, 309B = 41 s; 310 = 18,2 s, 310B = 1,2 s; 394 = 28 s, 394B = 11,5 s, 394C = 15 s), que es el que
   usa el costo. La fila cuyo tiempo propio es otro lleva un `*` con la explicación, y el CSV trae la columna «Tiempo
   propio».
-  `[adivinando]` **Abierto:** la **10B** no está en el maestro (`GP2.matriz` no la tiene): es el código viejo de la
-  174 «Varilla c/ Cuchilla Curva (H15)» (la app de operarios v1.9.1 ya registra la 174: «la 10B no existe»). Hoy un código
-  que solo aparece en la producción se une por número a la matriz del maestro (10B con 10, que es «Armado Varilla
-  C/Cuchilla»): si no es variante, agregar `'10'` a `NO_SON_VARIANTES` o llevar los registros de la 10B a la 174.
+  **Abierto: la 10B** `[dato, medido 06/10]`. No está en el maestro (`GP2.matriz` no la tiene desde el 29/09) y solo
+  aparece con la fuente Entero: es **un solo registro**, `public.db_n8n_espejo` id 13958 (17/07/2026 11:47, legajo 237,
+  385 u., 3.353 s = 8,71 s/uni; el crudo `Registros Produccion Cervantes` tiene la fila `8376d03b-…` con `matriz = '10B'`).
+  Historia: la matriz se creó el **10/04/2026 11:25** en `public."Matrices"` id 374 (usuario `postgres`, o sea por SQL; la
+  auditoría no dice qué persona) como «Varilla c/ Cuchilla Curva (HF15)» con 8,2 s; el 21/04 le pusieron Tipo B; el nombre
+  pasó a «(H15)» sin fila de auditoría; se borró el 29/09 14:58. Hasta la v1.9.1 de Registro Producción 2.0 (29/09) el menú
+  ofrecía esa Curva como 10B, así que el registro era un código **vigente** al cargarse, no un error de tipeo. Es del producto
+  de la 174 `[probable]` (el mismo operario cargó la 10 Recta a las 09:58 y 10:41 y la Curva a las 11:47; el tiempo no
+  desempata: 8,71 contra 8,48 de la 10 y 10,07 de la 174). `GP2.matriz_racha` conserva una fila «10B» (385 u.) que se
+  recalcula mientras el registro siga como 10B. Hoy un código que solo aparece en la producción se une por número a la
+  matriz del maestro (10B con 10, «Armado Varilla C/Cuchilla»), y la 10 muestra «+1». Dos salidas, sin decidir:
+  llevar el registro a la 174 (UPDATE de `Matriz` en `db_n8n_espejo` y en el crudo; requiere el «sí» del dueño; el trigger
+  `gp2_matriz_racha_espejo` recalcula la racha de la 174) o agregar `'10'` a `NO_SON_VARIANTES`.
+  **Las seis excepciones tienen prueba** (`tests/ui/test_tiempos_gp2.js`, sección 2c): 101, 150, 186, 214 y 401 con su B
+  quedan separadas (sin «+1», cada una su Gauss, su tiempo cargado y sus registros; con «Con producción» la 401B no sale
+  porque la 401 no es su grupo), y la 325 ya estaba. Verificado en rojo: con `NO_SON_VARIANTES = []` fallan 21 chequeos.
 - **Botón de fuente** (`GP2` · `Gestión Productiva Entero`; la elección queda en el navegador):
   `GP2.produccion` por defecto; `public.db_n8n_espejo` a pedido. **EXCEPCIÓN A LA REGLA 0, pedida por el dueño con
   nombre:** de esa única tabla se **lee**, y lo único que se **escribe** es anular / reactivar un registro con
