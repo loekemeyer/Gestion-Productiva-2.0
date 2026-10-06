@@ -1,5 +1,5 @@
 [LOCKS]
-LockX | Stocks General/StockGeneral_GP2.html + tests/ui/test_stock_general.js + version.js | Luis (claude-remote) | 2026-10-06 | Virgilio: Cod Vir 1ra columna + tabla sin-asignar colapsable
+(ninguno)
 
 [WAIT QUEUE]
 (vacío)
