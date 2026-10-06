@@ -13823,9 +13823,7 @@ Contexto: app unificada `GP2-Registro-Produccion`, se arranca por Cervantes. Tab
   pasaron a Sector Movimiento con su código — mal, el dueño: *"desaparecen… los nuevos stocks movimientos llevan la
   descripción de stock movimiento que es componente tal tras matriz tal"*. Quedan **IC2-M116-I / -D** (Fleje N° 92 tras M116 (Izq/Der),
   ex L11/L12) e **IC2-M114-I / -D** (Fleje N° 92 tras M114 (Izq/Der), ex L9/L10). Izquierda y derecha van SEPARADAS
-  con sufijo -I / -D [usuario: "sí", para no sumar el stock de las dos aletas]. ⚠ **CORREGIDO el 06/10 (§4jf): el CORTE ya no se
-  separa — `IC2-M116` es uno solo (como IA4-M60 / IA4-M64); izq/der se separa recién desde el doblado M114.**
-  Rutas 210/211 (izq) → D3, 212/213 (der) → D2. Borrados L9-L12 (stock
+  con sufijo -I / -D [usuario: "sí", para no sumar el stock de las dos aletas]. Rutas 210/211 (izq) → D3, 212/213 (der) → D2. Borrados L9-L12 (stock
   0, sin movimientos ni recetas). D2 $114,19 → $114,92 y D3 $114,30 → $115,26: el material ahora sale del fleje (37,8 u/kg).
   **Convención del stock movimiento** [usuario]: código `<raíz>-M<matriz>`, descripción `<desc. raíz> tras M<matriz>`, sin
   kg ni cajón; la raíz es el fleje/crudo de origen y se mantiene a lo largo de la cadena.
@@ -15548,28 +15546,3 @@ total que hizo"*. **Retira** lo de arriba que decía *"sin envasado, que no tien
   la cuenta mal, es lo primero que hay que mirar. El `confirm` de «¿Eliminar este registro?» (🗑) **se mantiene**.
 - `tests/ui/test_op_e2e.js`: orden RM,C,E con idx 2,1,0, y ningún diálogo «GOLPES x / CAJAS x» al enviar C en la 348 (los tres
   chequeos fallan con el código anterior). Versión: `version.js` v1.245.2, `?v=20261006k`.
-
-## 4jf. Aletas del 523/723: el corte M116 expulsa UN solo componente, `IC2-M116`; izq/der se separa desde el doblado M114 (2026-10-06)
-
-- **[usuario, 06/10]** *«En el corte de Pinza de Fiambre y en el corte de Pinza de Fideos se expulsa el mismo componente. En el caso
-  de las Aletas, quiero que del corte se expulse el mismo componente también: IC2-M116 (no diferenciar entre izq y der). Recién en
-  el doblado separa.»* Retira de §4gt el corte separado en `IC2-M116-I / -D` (decidido el 29/09 «para no sumar el stock de las dos
-  aletas»); el doblado `IC2-M114-I / -D` y el estampado D3/D2 siguen separados.
-- **[dato]** Forma final, igual a las gemelas M60 (`IA4-M60`) y M64 (`IA4-M64`): un corte, dos salidas desde el doblado.
-  `IC2 → M116 → IC2-M116 → M114 → IC2-M114-I → M221 → D3` (rutas 210/211, izq) y `… → IC2-M114-D → M221 → D2` (212/213, der).
-  `GP2.componente` 945 se **renombró** (`IC2-M116-I` → `IC2-M116`, «Fleje N° 92 tras M116»; conserva id e inventario) y 4 filas de
-  `ruta_paso` (1254/1260 salida, 1255/1261 entrada) apuntan ahora al 945. Verificado con SELECT: invariantes B/I/K/L/U/W/Y/AA/AB/AJ
-  = 0, 0 pasos con componente inexistente. `db/migracion_aletas_m116_un_solo_corte_20261006.sql` (con reversa).
-- ⚠ **[dato] Costo (`v_costo_componente`, pesos), medido con ensayo revertido y después aplicado:** **523 3.001,16 → 2.918,91 y 723
-  2.958,32 → 2.876,07 (−82,25 c/u)**, solo material (US$ 1,207038 → 1,153628), mano de obra idéntica (16,2 s). Los otros 832
-  costos, huella md5 idéntica; D2 y D3 no cambian. Foto previa en `zz_backups."GP2_Snap_costo_20261006_m116"` (835 filas, con RLS).
-- ⚠ **[deducido]** ese −82,25 es el **sub-costeo de §4cv/§4jd**: el motor deduplica la arista `IC2→M116` compartida y cuenta UN
-  corte de fleje para las dos aletas. El fleje por aleta sale de `partes_por_kilo_de_fleje` 37,8 (0,0265 kg) y la aleta terminada
-  pesa 0,0245 kg (D2) → ppk es **por aleta**, y un par necesita dos. Es la misma magnitud que el −82,62 de la pinza de fiambre
-  del 31/08 (§2c-quinquies), así que **053/055/594/595 ya arrastran lo mismo**. Hoy el 523/723 está **sub**-costeado en media
-  pasada de fleje + M116 por el modelo pedido; si se quiere el costo físico, hay que decidirlo aparte (no se tocó).
-- ⚠ **[dato] Efecto operativo:** registrar golpes de la **M116** ya no pide elegir izquierda/derecha (una sola salida, como la 60 y
-  la 64; `uni_x_golpe` 2); el que elige es el doblado **M114**. El stock del corte se junta en un solo `IC2-M116`.
-- **[pendiente]** el sobrante `IC2-M116-D` (id 947, stock 0, sin ninguna referencia, costo 0,00) **no se pudo borrar**: el conector
-  de la sesión cuelga los DELETE a los 60 s (probado, no aplicó nada). Correr los 2 DELETE de la parte 3 del `.sql` en el SQL
-  Editor; mientras tanto queda inerte pero visible como «Fleje N° 92 tras M116 (Der)». `public.Matrices` no se tocó.

@@ -51,7 +51,7 @@ Si se traduce la letra a "matriz base + pieza" (3B → 3 + M9):
 | 33 Estampado 3 en 1 | J10 Loeke, J12 s/Marca | |
 | 37 y 38 | fleje 22 / fleje 93 | la elección es del fleje (CONOCIMIENTO §2c-octies) |
 | 78 Remachado Rompenuez | B1-M78 Chef, D5-M78 LK | |
-| ~~116 Corte de Aleta~~ | ~~L11 izq, L12 der~~ | **RESUELTO 06/10** [dueño]: el corte saca UN solo componente, `IC2-M116`; izq/der se separa desde el doblado 114 (CONOCIMIENTO §4jf) |
+| 116 Corte de Aleta | L11 izq, L12 der | ¿el mismo golpe saca las dos? |
 | 137 Arandela Batidor | ABPM mini, LL7B | la vieja la llama "mini" |
 | 183 Soldar Ahueca | N1 fruta, N2 papa | |
 | 356 Corte Mango Plano Manija | G11 (501), I10 (701) | |
