@@ -15224,9 +15224,17 @@ de Cuchara, Cucharon, etc"*.
   - **Fábrica → tallerista** (`p_desde = null`): en cada ruta los pasos de matriz desde la línea hasta virgilio se reemplazan por
     UN paso `tallerista` (molde del 116). La matriz sigue viva para los otros artículos.
   - **Bloquea:** el nuevo ya está en el artículo, el actual no lo hace, tallerista inexistente o inactivo, «Fábrica» como destino,
-    reparto viejo cargado para el nuevo. **Avisa:** el nuevo no tiene precio en `precio_tallerista` para ese artículo, no tiene
-    ubicación de stock (hoy **Carlos Aguirre, id 9**, activo y con 30 pasos), el que sale todavía tiene stock de esas partes (no
+    reparto viejo cargado para el nuevo. **Avisa:** ~~el nuevo no tiene precio en `precio_tallerista` para ese artículo~~
+    (**RETIRADO el 06/10**, ver abajo), no tiene ubicación de stock (hoy **Carlos Aguirre, id 9**, activo y con 30 pasos), el que sale todavía tiene stock de esas partes (no
     se mueve), y **la mano de obra que deja de contarse**.
+- **06/10 — sin cartel de costo y sin nombre `[usuario, textual]`** *«que no tire el cartel del costo ni tampoco pida un nombre»*
+  (captura: 058 Fábrica → Alex Escalante). (a) `GP2._cambiar_contraparte` ya **no emite** el aviso «X no tiene precio cargado…»
+  (ni en tallerista → tallerista ni en Fábrica → tallerista); se sacó también la consulta a `precio_tallerista` que lo alimentaba.
+  Sigue avisando la ubicación de stock, el stock que queda en la casa del que sale y la mano de obra que deja de contarse.
+  (b) La pantalla ya **no pide «Tu nombre»**: manda `p_usuario = null` y la bitácora guarda el **mail de la sesión**
+  (`request.jwt.claims->>'email'`, que la función ya usaba cuando no venía nombre). **Ojo:** que no salga el cartel NO cambia la
+  plata: si el nuevo no tiene precio, el costo sigue saliendo sin su mano de obra (párrafo siguiente). `[dato]` el 058 tiene
+  3 rutas (828, 829, 978) con un solo paso de matriz (347 = N° 324) entre la línea y virgilio.
 - **Plata `[dato]` / `[deducido]`:** el costo de un terminado por tallerista sale de `precio_tallerista` (tallerista × terminado). Al
   pasar un artículo, si el nuevo no tiene precio **el costo sale SIN mano de obra**. Además, de los 42, **10 pierden MO que hoy
   cuenta** porque la matriz de la línea tiene `cuenta_mo=true`: 507 y 707 (78, 14,4 s), 570 y 858 (194, 27 s), los 5 94xE (505,

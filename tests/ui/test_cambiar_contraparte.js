@@ -11,8 +11,9 @@
  *   3. "Ver el cambio" llama a cambiar_contraparte_preview con (articulo, tipo, desde, hasta) correctos:
  *      desde = null cuando lo hace Fabrica, y muestra partes, matrices que dejan de hacerse y avisos
  *   4. una vista previa con bloqueo deja "Confirmar" apagado y muestra el motivo
- *   5. "Confirmar" llama a cambiar_contraparte_aplicar con el nombre escrito y muestra el resultado,
- *      con el atajo a Despiece x Art.
+ *   5. "Confirmar" llama a cambiar_contraparte_aplicar SIN nombre (p_usuario null: la bitacora guarda el
+ *      mail de la sesion) y muestra el resultado, con el atajo a Despiece x Art.
+ *   5b. la pantalla NO pide nombre y NO muestra el aviso de "precio cargado" (06/10: pedido del dueño)
  *   6. en celular (390 px): sin scroll horizontal, campos >= 18 px, botones tocables >= 44 px
  */
 const { chromium } = require('playwright');
@@ -50,7 +51,7 @@ const PREVIEW_FAB = {
     { comp_id: 4, cod: 'PC10-M237', d: 'Mango LK Espatula c/Capuchon tras M237', cantidad: 1 },
   ],
   dejan: [{ n: '261', d: 'Colocar Mgo a Ahueca Papa' }, { n: '402', d: 'Env Ahueca Papa' }],
-  avisos: [{ nivel: 'warn', txt: 'Lucho no tiene precio cargado para el 542: el costo va a salir SIN su mano de obra hasta que se cargue.' }],
+  avisos: [{ nivel: 'warn', txt: 'Deja de contarse la mano de obra de las matrices 261 (30 s): pasa a ser el precio del tallerista, que se carga aparte.' }],
   bloqueos: [],
 };
 const PREVIEW_BLOQ = Object.assign({}, PREVIEW_FAB, {
@@ -135,7 +136,9 @@ window.supabase = { createClient: function(){ return {
   ok(/le mandás a lucho/i.test(prev) && /PC10-M237/.test(prev) && /D16B/.test(prev) && /G5A/.test(prev), 'muestra las partes que se le mandan');
   ok(/1 cada 12/.test(prev), 'la caja se lee "1 cada 12", no 0,08');
   ok(/N° 261/.test(prev) && /N° 402/.test(prev), 'muestra las matrices que dejan de hacerse acá');
-  ok(/sin su mano de obra/i.test(prev), 'muestra el aviso de precio faltante');
+  ok(/deja de contarse la mano de obra/i.test(prev), 'sigue mostrando los avisos que vienen de la base');
+  ok(!/precio cargado/i.test(prev) && !/SIN su mano de obra/.test(prev), 'NO muestra el cartel de "sin precio cargado"');
+  ok(!/nombre/i.test(prev) && (await page.$('#usuario')) === null, 'NO pide el nombre: no hay campo ni etiqueta');
   ok(!(await page.$eval('#btnConfirmar', b => b.disabled)), 'sin bloqueos: "Confirmar" prendido');
 
   // ── bloqueo: deja Confirmar apagado ──
@@ -161,12 +164,11 @@ window.supabase = { createClient: function(){ return {
   pv = (await llamadas('cambiar_contraparte_preview')).pop();
   ok(pv.p_articulo === 16 && pv.p_tipo === 'tallerista' && pv.p_desde === 6 && pv.p_hasta === 5, '116: preview con desde=Martin(6) hasta=Lucho(5): ' + JSON.stringify(pv));
   ok(/recibe las mismas partes/i.test(await page.$eval('#prev', e => e.innerText)), '116: "recibe las mismas partes"');
-  await page.fill('#usuario', 'Nazareno');
   await page.click('#btnConfirmar');
   await page.waitForSelector('#fase2:not(.hidden)');
   const ap = (await llamadas('cambiar_contraparte_aplicar'))[0];
-  ok(ap.p_articulo === 16 && ap.p_tipo === 'tallerista' && ap.p_desde === 6 && ap.p_hasta === 5 && ap.p_usuario === 'Nazareno',
-     '116: aplicar con el nombre escrito: ' + JSON.stringify(ap));
+  ok(ap.p_articulo === 16 && ap.p_tipo === 'tallerista' && ap.p_desde === 6 && ap.p_hasta === 5 && ap.p_usuario === null,
+     '116: aplicar sin nombre (p_usuario null): ' + JSON.stringify(ap));
   const fin = await page.$eval('#okDetail', e => e.innerText);
   ok(/116/.test(fin) && /Martin Cornejo/.test(fin) && /Lucho/.test(fin), 'resultado: de Martin a Lucho');
   ok((await page.$eval('#btnDespiece', a => a.getAttribute('href'))).endsWith('Programa/Programa.html'), 'atajo a Despiece x Art.');
