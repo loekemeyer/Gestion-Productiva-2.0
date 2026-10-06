@@ -1,3 +1,7 @@
+-- >>> RETIRADA EL MISMO DIA (06/10/2026, Nazareno: "Usa la 177 y elimina la que creaste"). La ABPM NO queda en la 516: queda en la
+-- >>> 177 «Corte Arandela Batidor Mini» (id 237), que ya existia y estaba vacia. La 516 queda activa=false con 0 pasos hasta que se
+-- >>> corra el DELETE de la PARTE 2 (el conector cuelga los DELETE). Lo de abajo es la PARTE 1, ya reemplazada.
+--
 -- 2026-10-06 — Matriz 516 «Corte Arandela Batidor Pera Mini»: la ABPM deja de salir de la 137.
 -- [usuario, Nazareno] "La Matriz 137 expulsa la arandela batidor pera y arandela batidor pera mini. Está mal, la
 -- arandela batidor pera mini la corta una matriz que no está creada: Sería Corte Arandela Batidor Pera Mini, el
@@ -45,3 +49,41 @@ returning id, ruta_id, matriz_id;                                          -- 1 
 -- ROLLBACK (devuelve el paso a la 137 y borra la 516; sólo si todavía no tiene producción)
 -- update "GP2".ruta_paso set matriz_id = 67 where id = 992;
 -- delete from "GP2".matriz where n_matriz = '516' and not exists (select 1 from "GP2".produccion p where p.matriz_id = "GP2".matriz.id);
+
+-- =====================================================================================================================
+-- PARTE 2 (2026-10-06) — la ABPM pasa a la 177 y se borra la 516 [Nazareno: "Usa la 177 y elimina la que creaste"].
+-- La 177 (id 237) estaba VACIA en GP2 (sin tipo, maquina, tiempo ni partes por kg; en public."Matrices" figura con todo en 0,
+-- cargada el 09/02/2026 10:21:29, el mismo minuto que la 137). Pasar la ABPM a la 177 SIN completarla, medido en una
+-- transaccion revertida: ABPM, GRJ10A y 580 bajan $1,46 cada uno de mano de obra y aparece 1 «faltan tiempos». Por eso se le
+-- copiaron a la 177 los 4 atributos que la 516 (y antes la 137) ya cobraban: tipo A, alimentador, 0,73 s/uni, 391,32 partes por kg.
+-- Costo IDENTICO: huella v_costo_componente d3755dcef914e779285ec2e2100bcd09 (831 filas, total 535.101,71, 0 componentes distintos)
+-- contra zz_backups."GP2_Snap_costo_20261006_m137". Invariantes L / paso sin quien / AJ / n_matriz duplicado = 0.
+-- 2a) APLICADA:
+with attr as (
+  update "GP2".matriz m
+     set tipo = s.tipo, maquina = s.maquina, tiempo_historico = s.tiempo_historico, partes_por_kilo_de_fleje = s.partes_por_kilo_de_fleje
+    from (select tipo, maquina, tiempo_historico, partes_por_kilo_de_fleje from "GP2".matriz where id = 418 and n_matriz = '516') s
+   where m.id = 237 and m.n_matriz = '177'
+     and m.tipo is null and m.maquina is null and m.tiempo_historico is null and m.partes_por_kilo_de_fleje is null
+  returning m.id),
+mover as (
+  update "GP2".ruta_paso set matriz_id = 237 where id = 992 and matriz_id = 418 and comp_salida_id = 1 returning id)
+select (select count(*) from attr) as matriz_177_actualizada, (select count(*) from mover) as pasos_movidos;   -- 1, 1
+-- 2b) la 516 queda inactiva mientras tanto (APLICADA):
+update "GP2".matriz set activa = false where id = 418 and n_matriz = '516';
+-- 2c) PENDIENTE: correr UNA VEZ en el SQL Editor. El conector de la sesion CUELGA este DELETE (60 s, 2 intentos; sin triggers
+--     en GP2.matriz, sin locks, y las unicas FK son ruta_paso / produccion / articulo_linea_tallerista, que estan en 0). Las
+--     guardas lo hacen no-op si la 516 llegara a tener algo.
+-- delete from "GP2".matriz
+--  where id = 418 and n_matriz = '516'
+--    and not exists (select 1 from "GP2".ruta_paso rp where rp.matriz_id = 418)
+--    and not exists (select 1 from "GP2".produccion p where p.matriz_id = 418)
+--    and not exists (select 1 from "GP2".articulo_linea_tallerista l where l.matriz_id = 418);   -- 1 fila
+-- verificacion: 137 -> LL7B x3 (115/544/802) · 177 -> ABPM x1 (580) · la 516 ya no existe
+-- select m.n_matriz, m.activa, count(rp.id) pasos, string_agg(distinct cs.codigo, ',') sale
+--   from "GP2".matriz m left join "GP2".ruta_paso rp on rp.matriz_id = m.id left join "GP2".componente cs on cs.id = rp.comp_salida_id
+--  where m.n_matriz in ('137','177','516') group by m.id order by 1;
+-- ROLLBACK de la parte 2 (la 177 vuelve a vacia y el paso a la 516; sólo si la 516 sigue existiendo):
+-- update "GP2".ruta_paso set matriz_id = 418 where id = 992;
+-- update "GP2".matriz set tipo = null, maquina = null, tiempo_historico = null, partes_por_kilo_de_fleje = null where id = 237;
+-- update "GP2".matriz set activa = true where id = 418;
