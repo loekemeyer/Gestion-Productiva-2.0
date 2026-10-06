@@ -1,5 +1,5 @@
 [LOCKS]
-(ninguno)
+LockX | Produccion/VerificacionCajones/VerificacionCajones_GP2.html + gp2-verif-cajones.js + db/ + tests/ui/test_verif_cajones.js + version.js + GP2_MODULOS.html/login.html/envios-only.html (solo ?v=) + CONOCIMIENTO_GP2.md | Elias (claude-remote) | 2026-10-06 | Verificacion de cajones: tilde 'coincide con la Planilla de carga'
 
 [WAIT QUEUE]
 (vacío)
