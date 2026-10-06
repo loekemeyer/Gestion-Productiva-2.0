@@ -230,6 +230,38 @@ CONOCIMIENTO §4hk (el revert) y §4hn (el rearmado). `db/migracion_tablet_virgi
 estaba, v1.40.0, SIN `db/migracion_envio_virgilio.sql`). `tests/ui/test_tablet_virgilio.js`,
 `tests/ui/test_stock_general.js`.
 
+# ⚠ REGLA (Luis, 2026-10-06): TRES SISTEMAS DE CÓDIGOS — Cervantes · Virgilio · ISIS — y hay que unificarlos
+
+**Luis, textual:** *"tenemos actualmente 3 sistemas de codigos diferentes: codigos de cervantes
+(normalmente definidos por ubicacion), codigos de Virgilio (incosistentes) y codigos de ISIS (nuestro
+sistema de gestion, numericos). Diferentes codigos pueden referirse a la misma cosa."*
+
+| sistema | cómo son | ejemplo (mismo ítem) |
+|---|---|---|
+| **Cervantes** (GP2) | normalmente por **ubicación** | `GRJ31` |
+| **Virgilio** (GV) | **inconsistentes** (texto libre: `Mgo Pelador 505`, `Caja 22`, `N°13`, `TMP-0024`, `323ES`) | `323ES` |
+| **ISIS** (ERP de gestión) | **numéricos** | un número |
+
+> **Un mismo artículo tiene los tres códigos.** `323ES` (Virgilio) = `GRJ31` (Cervantes) = un número (ISIS).
+> El objetivo es **UNIFICARLOS**. Hasta entonces, donde se muestren códigos de insumos de Virgilio van
+> **tres columnas: Cod ISIS · Cod V · Cod C**.
+
+**El puente que ya existe (al 06/10), y de dónde sale cada código — para no repreguntarlo:**
+- El **stock real de insumos de Virgilio** entra a GP2 por el espejo **`GP2.virgilio_insumo_stock`** (lo
+  escribe GV con `public.gv_gp2_espejo_sync`, cron cada 10 min; **Regla 0: GP2 lee el espejo, nunca
+  `public`**). 177 insumos. Su `cod` es el **Cod V** (el inconsistente).
+- El **mapeo Virgilio ↔ componente Cervantes** vive en **`GP2.importado_virgilio_componente`**
+  (`cod_virgilio` → `componente_id`). Al 06/10: 19 filas → **sólo 17 insumos matchean; 160 NO**. El
+  **Cod C** sale de `GP2.componente.codigo` del componente mapeado.
+- **Cod ISIS todavía NO tiene fuente** para insumos: hasta que se cargue el mapeo a ISIS, la columna
+  queda **"—"**. Un insumo **"no matcheado"** es el que no está en `importado_virgilio_componente`.
+
+En **Stock General → pestaña Virgilio**, la tabla **"Insumos de Virgilio sin asignar a un código"**
+(arriba de los filtros) lista esos 160, leyendo el espejo **en vivo** vía la RPC
+**`GP2.virgilio_insumos_sin_match_bundle`** (SECURITY DEFINER). v3.2.0 de `StockGeneral_GP2.html`.
+⚠ GP2 pasa a ser dueño del dato de insumos de Virgilio **recién cuando esto funcione 10/10** (Luis,
+06/10); por ahora es sólo el nexo de lectura, GV sigue siendo el dueño.
+
 # ⚠️ ANTES DE CUALQUIER EDIT/WRITE: LEER LOCKS.txt Y REGISTRAR LockX. SIN EXCEPCIONES. ⚠️
 
 # 🚨 TODO VA A `main`. SIEMPRE. SIN RAMAS. 🚨
