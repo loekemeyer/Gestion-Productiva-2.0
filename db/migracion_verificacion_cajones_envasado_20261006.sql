@@ -86,6 +86,11 @@ as $$
          and coalesce(e."Uni", 0) >= 1
          and coalesce(e."Matriz", '') <> ''
          and coalesce(e."Nombre_Matriz", '') not like '[CONT]%'
+         -- PIEDRA fuera del sorteo [Elías, 06/10: "piedra queda fuera"]: la 501 (Piedra (TP) en public.Matrices, Tipo 'P'; en GP2 es
+         -- "Afilado Cuchilla" y la única que se carga en kg). Se excluye por las tres vías, así no depende de una sola.
+         and not (exists (select 1 from public."Matrices" pm where pm."N_Matriz" = e."Matriz" and pm."Tipo_Matriz" = 'P')
+                  or coalesce(e."Nombre_Matriz", '') ilike '%piedra%'
+                  or exists (select 1 from "GP2".matriz gm where gm.n_matriz = e."Matriz" and gm.carga_en = 'kg'))
          and not exists (select 1 from "GP2".verif_cajon v where v.fecha = p_fecha and v.espejo_id = e.id)
     ) t;
 $$;

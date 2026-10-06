@@ -66,6 +66,7 @@
       <label class="lbl" for="fecha">Día</label>
       <input type="date" id="fecha">
       <label class="opt"><input type="checkbox" id="avisar"> Avisarme en esta PC a las 15:00</label>
+      <span class="sub" id="auto"></span>
     </div>
 
     <div id="dia" class="dia"></div>
@@ -91,6 +92,8 @@ var SB = GP2_SB();
 var $ = GP2UI.$;
 var esc = GP2UI.esc;
 var B = {};
+var dirty = false;      // hay algo tipeado en una tarjeta sin guardar: no se repinta (se perdería)
+var refrescando = false;
 var abiertos = {};   // id -> "peso" | "no": formulario abierto aunque el cajón ya esté cargado (para corregir)
 
 function msg(t, malo){ $('status').className = 'status' + (malo ? ' neg' : ''); $('status').textContent = t || ''; }
@@ -112,6 +115,7 @@ async function cargar(fecha){
 }
 
 function render(){
+  dirty = false;   // render() reemplaza las tarjetas: lo tipeado ya no está, no hay nada pendiente
   var dia = B.dia, cs = B.cajones || [];
   if (!dia){
     $('dia').innerHTML = '<div class="grow">' + (B.fecha === B.hoy
@@ -140,6 +144,36 @@ function render(){
   [].forEach.call(document.querySelectorAll('#tdias tr.click'), function(tr){
     tr.onclick = function(){ cargar(tr.getAttribute('data-f')); };
   });
+}
+
+/* ── Se actualiza sola (Elías, 06/10: "la página se tiene que auto actualizar") ───────────────────────────
+   Para que a las 15:00 aparezcan los cajones sin recargar, y para ver lo que carga la otra PC (Empezar, pesos).
+   Cada 30 s vuelve a pedir el día, SÓLO si se está mirando hoy. Reglas para no pisar a quien trabaja:
+   - si hay un campo con el cursor adentro o algo tipeado sin guardar (dirty), ese turno no repinta;
+   - si lo que llegó es igual a lo que se ve, no repinta (el foco y el scroll quedan donde están);
+   - si falla la lectura, deja lo que hay en pantalla y lo dice (nunca la vacía). */
+function firma(b){ return JSON.stringify([b.fecha, b.dia, b.cajones, b.dias]); }
+function horaSeg(){
+  return new Intl.DateTimeFormat('es-AR', { timeZone: 'America/Argentina/Buenos_Aires', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false }).format(new Date());
+}
+async function refrescar(){
+  if (refrescando || document.hidden || !B.fecha || B.fecha !== B.hoy) return;
+  var el = document.activeElement;
+  if (dirty || (el && /^(INPUT|SELECT|TEXTAREA)$/.test(el.tagName) && $('cajones').contains(el))) return;
+  refrescando = true;
+  try {
+    var r = await SB.rpc('verif_cajones_bundle', { p_fecha: B.fecha });
+    if (r.error || !r.data){ $('auto').textContent = '↻ sin conexión: sigue mostrando lo último (' + horaSeg() + ')'; return; }
+    if (dirty) return;   // el usuario empezó a tipear mientras llegaba la respuesta
+    if (firma(r.data) !== firma(B)){
+      B = r.data; render();
+      $('auto').textContent = '↻ se actualizó sola a las ' + horaSeg();
+    } else {
+      $('auto').textContent = '↻ se actualiza sola · última lectura ' + horaSeg();
+    }
+  } catch (e) {
+    $('auto').textContent = '↻ sin conexión: sigue mostrando lo último (' + horaSeg() + ')';
+  } finally { refrescando = false; }
 }
 
 function tarjeta(c, i){
@@ -304,6 +338,10 @@ async function empezar(){
   render();
 }
 
+$('cajones').addEventListener('input', function(){ dirty = true; });
+$('cajones').addEventListener('change', function(){ dirty = true; });
+setInterval(refrescar, 30000);
+document.addEventListener('visibilitychange', function(){ if (!document.hidden) refrescar(); });
 $('avisar').checked = GP2VC.avisoActivo();
 $('avisar').onchange = function(){ GP2VC.setAviso(this.checked); };
 $('fecha').onchange = function(){ if (this.value) cargar(this.value); };

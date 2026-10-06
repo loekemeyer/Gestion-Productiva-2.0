@@ -71,6 +71,7 @@ const STUB = `(function(){
     await page.route('**/GP2_favicon.png', r => r.fulfill({ contentType: 'image/png', body: Buffer.from('') }));
     await page.addInitScript(([resp, init]) => {
       window.__resp = resp;
+      window.__timers = []; var _si = window.setInterval; window.setInterval = function(f, t){ window.__timers.push(t); return _si.apply(window, arguments); };
       try { localStorage.clear(); sessionStorage.clear(); } catch (e) {}
       if (init && init.aviso) try { localStorage.setItem('gp2_verif_cajones_aviso', '1'); } catch (e) {}
     }, [resp, init || {}]);
@@ -243,6 +244,49 @@ const STUB = `(function(){
   ok(ce.includes('Total que hizo: 250 uni') && ce.includes('Unidades por caja: 12 uni') && ce.includes('Debería haber: 20 cajas (+ 10 uni sueltas)'), 'el cartel trae total, unidades por caja y cajas esperadas');
   ok(ce.includes('Envasado: no se pesa, se cuentan las cajas') && ce.includes('sin unidades por caja en GP2: contá las cajas igual'), 'el cartel avisa que se cuenta y cubre el caso sin dato');
   ok(ce.includes('Debería pesar: entre 29,82 kg y 33,26 kg'), 'y el cajón que no es envasado sigue con su peso');
+  await page.close();
+
+  // ── 10. La pantalla se actualiza sola ───────────────────────────────────────
+  page = await abrir('Produccion/VerificacionCajones/VerificacionCajones_GP2.html', { verif_cajones_bundle: { data: bundle(null, []), error: null } });
+  await page.waitForFunction(() => document.getElementById('dia').textContent.length > 0);
+  ok((await page.evaluate(() => window.__timers)).some(t => t > 0 && t <= 60000), 'tiene un temporizador que vuelve a leer (cada 60 s o menos)');
+  ok((await texto(page, '#dia')).includes('se sortean solos a las 15:00') && !(await page.$('#caj11')), 'antes de las 15:00 no hay cajones');
+  await page.evaluate((b) => { window.__resp.verif_cajones_bundle = { data: b, error: null }; }, bundle(SORTEADO, [C1, C2]));
+  await page.evaluate(() => refrescar());
+  await page.waitForSelector('#caj11');
+  ok((await texto(page, '#dia')).includes('Sorteados15:00') && !!(await page.$('#caj12')), 'a las 15:00 aparecen los cajones sin recargar la página');
+  ok((await texto(page, '#auto')).includes('se actualizó sola a las'), 'avisa que se actualizó sola');
+  // lo que llega igual no repinta: el foco y el scroll quedan donde están
+  await page.evaluate(() => { document.getElementById('caj11').__marca = 1; });
+  await page.evaluate(() => refrescar());
+  ok(await page.evaluate(() => document.getElementById('caj11').__marca === 1), 'si no cambió nada, no repinta las tarjetas');
+  ok((await texto(page, '#auto')).includes('última lectura'), 'y lo dice: última lectura');
+  // lo que cargó otra PC se ve solo (Empezar)
+  await page.evaluate((b) => { window.__resp.verif_cajones_bundle = { data: b, error: null }; }, bundle(empezado, [C1, C2]));
+  await page.evaluate(() => refrescar());
+  await page.waitForSelector('#cn11');
+  ok((await texto(page, '#dia')).includes('Empezó15:12'), 'lo que hizo otra PC (Empezar) aparece solo');
+  // NO pisa lo que se está escribiendo
+  await page.fill('#pb11', '20,5');
+  const antes = (await rpcs(page, 'verif_cajones_bundle')).length;
+  await page.evaluate((b) => { window.__resp.verif_cajones_bundle = { data: b, error: null }; }, bundle(terminado, [C1p, C2n]));
+  await page.evaluate(() => refrescar());
+  ok((await rpcs(page, 'verif_cajones_bundle')).length === antes && (await page.inputValue('#pb11')) === '20,5', 'con algo tipeado sin guardar no repinta ni pide nada: no se pierde lo escrito');
+  await page.close();
+
+  page = await abrir('Produccion/VerificacionCajones/VerificacionCajones_GP2.html', { verif_cajones_bundle: { data: bundle(SORTEADO, [C1, C2]), error: null } });
+  await page.waitForSelector('#caj11');
+  await page.evaluate(() => { window.__resp.verif_cajones_bundle = { data: null, error: { message: 'sin red' } }; });
+  await page.evaluate(() => refrescar());
+  ok(!!(await page.$('#caj11')) && (await texto(page, '#auto')).includes('sin conexión'), 'si falla la lectura deja los cajones en pantalla y lo dice');
+  await page.close();
+
+  // un día pasado no cambia: no vuelve a pedir nada
+  const pasado = Object.assign({}, bundle(empezado, [C1, C2]), { fecha: '2026-10-05' });
+  page = await abrir('Produccion/VerificacionCajones/VerificacionCajones_GP2.html?fecha=2026-10-05', { verif_cajones_bundle: { data: pasado, error: null } });
+  await page.waitForSelector('#caj11');
+  await page.evaluate(() => refrescar());
+  ok((await rpcs(page, 'verif_cajones_bundle')).length === 1, 'un día pasado no se vuelve a leer solo');
   await page.close();
 
   await browser.close();

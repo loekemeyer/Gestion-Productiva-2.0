@@ -15337,3 +15337,26 @@ total que hizo"*. **Retira** lo de arriba que decía *"sin envasado, que no tien
   `db/migracion_verificacion_cajones_envasado_20261006.sql` (aplicada; el conector cuelga los `drop` en texto plano, se
   aplicaron partiendo la palabra: `execute 'dr' || 'op function …'`).
 
+### 4iz (adenda 2, 2026-10-06) — la piedra queda fuera, la pantalla se actualiza sola, y de dónde sale «unidades por caja»
+
+- **La piedra (matriz 501) queda FUERA del sorteo** [Elías: *"piedra queda fuera"*]. Se excluye por tres vías para que no dependa
+  de una sola: `public."Matrices"."Tipo_Matriz" = 'P'` (la única, «Piedra (TP)»), nombre con «piedra», y
+  `GP2.matriz.carga_en = 'kg'` (la única, «Afilado Cuchilla»). Eran **55 registros en 30 días**. El camino «se carga en kg» de la
+  pantalla y del sorteo quedó sin uso (no se borró). Aplicado en `public._gp2_verif_candidatos`.
+- **La pantalla se actualiza sola** [Elías: *"la página se tiene que auto actualizar"*]: cada 30 s vuelve a leer el día, **sólo si
+  se mira hoy**, para que a las 15:00 aparezcan los cajones y se vea lo que carga la otra PC (Empezar, pesos). No pisa a quien
+  escribe: con el cursor en un campo o algo tipeado sin guardar no repinta; si lo que llega es igual no repinta; si falla la lectura
+  deja lo último y lo dice. El cartel del menú ya miraba cada 2 min.
+- **De dónde sale «unidades por caja» (búsqueda del 06/10, GP2 y Gestión Productiva).** Hay tabla, **varias**:
+  `GP2.articulo.articulos_por_caja` (199 de 199 artículos; la que usa la pantalla), `GP2.uni_x_articulo_x_caja` (434 filas CH/LK,
+  141 de 199 artículos; la lee Control AT), y en `public`: `Articulos_Cajas` (191 de 199), `vista_uni_x_caja` (182 de 199, fuente
+  `GV_UxB`), `Despiece x Articulo`, `Articulos Virgilio X Tallerista`, `Importados` y `OC_Maximos`. **GP2 y Gestión Productiva
+  coinciden en todos los artículos que tienen en común salvo 3: 231, 232 y 233 (Palo de Amasar 30/40/50 cm), GP2 dice 12 y
+  Gestión Productiva 24** (el 234 sí es 12 en las dos). Afecta a la matriz 383 «Env Palo de Amasar»: con 12 muestra 7 cajas para
+  84 uni, con 24 serían 3,5. **Sin resolver: cuál es el correcto lo dice el dueño.**
+- **Lo que falta NO es unidades por caja por artículo: es el vínculo matriz de envasado → artículo.** `public."Causa-Efecto"` sólo
+  tiene la 309 y dice «Fabr» (sin artículo). Candidatos **por el nombre, sin confirmar**: 343 «Env Cuch Spaghetti 339» → artículo
+  339 (24 por caja en `Articulos_Cajas`; **no existe en `GP2.articulo`**), 341 «Env Uña Inox» → 103 o 510 (12), 514 «Env Rallador
+  Mini Imp.» → 323E o 838E (12), 406 «Filtro de Bombilla» → 550 (36) o 760 (24, ambiguo), 513 «colocar etiqueta a bombillas»
+  (varios artículos, ambiguo). Nada de eso se cargó: se modela en GP2 (matriz → ruta → terminado sector 12) cuando el dueño confirme.
+
