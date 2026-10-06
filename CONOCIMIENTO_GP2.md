@@ -15360,12 +15360,18 @@ total que hizo"*. **Retira** lo de arriba que decía *"sin envasado, que no tien
   Mini Imp.» → 323E o 838E (12), 406 «Filtro de Bombilla» → 550 (36) o 760 (24, ambiguo), 513 «colocar etiqueta a bombillas»
   (varios artículos, ambiguo). Nada de eso se cargó: se modela en GP2 (matriz → ruta → terminado sector 12) cuando el dueño confirme.
 
-### 4iz (adenda 3, 2026-10-06) — tilde de la «Planilla de carga» y el Palo de Amasar es de 12
+### 4iz (adenda 3, 2026-10-06) — tilde de la «Planilla de carga» y el Palo de Amasar es de 24 (corregida el mismo día)
 
-- **Palo de Amasar (231, 232, 233): 12 unidades por caja** [Elías: *"los palos de amasar son 12 unidades"*]. **GP2 estaba bien**
-  (`articulo.articulos_por_caja = 12`) y **Gestión Productiva estaba mal** (24 en `Articulos_Cajas` y en `vista_uni_x_caja`).
-  Retira la duda de la adenda 2. No se tocó `public` (es la casa del vecino: sólo lectura); queda anotado que ahí dice 24.
-  Con 12, la matriz 383 «Env Palo de Amasar» (84 uni) da **7 cajas**, como ya mostraba.
+- **Palo de Amasar (231, 232, 233): 24 unidades por caja; el 234 Francés sigue en 12** [Elías, 06/10: *"usa las unix caja de la pagina
+  para los palos de amasar"*, con la captura del catálogo web de LK: 231, 232 y 233 UxB 24; 234 UxB 12]. **RETIRA lo que decía esta
+  adenda un rato antes** (*"los palos de amasar son 12 unidades"* y *"GP2 estaba bien y Gestión Productiva estaba mal"*): el dato
+  correcto es el de la página, el que estaba mal era GP2. Aplicado `update "GP2".articulo set articulos_por_caja = 24 where codigo in
+  ('231','232','233')` (`db/migracion_palo_amasar_24_20261006.sql`; revertir = volver a poner 12). §4as ya los había creado con «24 por
+  bulto (UxB del catálogo)» el 10/09; no encontré en `db/` ni acá quién los pasó a 12 después. `public` no se tocó (ya decía 24).
+  `GP2.uni_x_articulo_x_caja` no tiene filas de estos códigos, así que no había nada más que sincronizar. **Efecto**: la matriz 383
+  «Env Palo de Amasar» cierra 4 artículos (24, 24, 24 y 12), así que la pantalla de verificación muestra un **rango** (84 uni = entre 3
+  y 7 cajas) en vez de 7. Todo lo que convierte cajas↔unidades con `articulos_por_caja` (proyección, entregas, O.C. a Virgilio) usa 24
+  desde ahora; lo que ya se guardó con 12 no se recalcula.
 - **Tilde «Coincide con la Planilla de carga»** [Elías: *"añadí un tilde de si coincide con la Planilla de carga (es un papel
   donde el operario pone cuántas unidades hizo, se coloca en el cajón)"*]. La **Planilla de carga** es el papel que el operario
   deja **dentro del cajón** con las unidades que hizo; el tilde dice si ese papel coincide con lo que está registrado. Un tilde por
