@@ -9898,7 +9898,7 @@ end $function$
 ;
 
 -- ---------- verif_cajon_cargar ----------
-CREATE OR REPLACE FUNCTION "GP2".verif_cajon_cargar(p_id bigint, p_cajon integer DEFAULT NULL::integer, p_bruto_kg numeric DEFAULT NULL::numeric, p_no_encontrado boolean DEFAULT false, p_nota text DEFAULT NULL::text, p_cajas integer DEFAULT NULL::integer, p_sueltas integer DEFAULT NULL::integer)
+CREATE OR REPLACE FUNCTION "GP2".verif_cajon_cargar(p_id bigint, p_cajon integer DEFAULT NULL::integer, p_bruto_kg numeric DEFAULT NULL::numeric, p_no_encontrado boolean DEFAULT false, p_nota text DEFAULT NULL::text, p_cajas integer DEFAULT NULL::integer, p_sueltas integer DEFAULT NULL::integer, p_planilla_coincide boolean DEFAULT NULL::boolean)
  RETURNS jsonb
  LANGUAGE plpgsql
  SECURITY DEFINER
@@ -9925,7 +9925,7 @@ begin
     end if;
     update "GP2".verif_cajon v
        set resultado = 'no_encontrado', cajon_numero = null, tara_kg = null, peso_bruto_kg = null, peso_neto_kg = null,
-           cajas_contadas = null, sueltas_contadas = null, nota = v_nota, cargado_en = now()
+           cajas_contadas = null, sueltas_contadas = null, planilla_coincide = null, nota = v_nota, cargado_en = now()
      where v.id = p_id;
   elsif v_env then
     if p_cajon is not null or p_bruto_kg is not null then
@@ -9942,7 +9942,7 @@ begin
     end if;
     update "GP2".verif_cajon v
        set resultado = 'contado', cajas_contadas = p_cajas, sueltas_contadas = coalesce(p_sueltas, 0),
-           nota = v_nota, cargado_en = now()
+           planilla_coincide = p_planilla_coincide, nota = v_nota, cargado_en = now()
      where v.id = p_id;
   else
     if p_cajas is not null or p_sueltas is not null then
@@ -9959,7 +9959,7 @@ begin
     end if;
     update "GP2".verif_cajon v
        set resultado = 'pesado', cajon_numero = p_cajon, tara_kg = v_tara, peso_bruto_kg = round(p_bruto_kg, 3),
-           peso_neto_kg = round(p_bruto_kg - v_tara, 3), nota = v_nota, cargado_en = now()
+           peso_neto_kg = round(p_bruto_kg - v_tara, 3), planilla_coincide = p_planilla_coincide, nota = v_nota, cargado_en = now()
      where v.id = p_id;
   end if;
 

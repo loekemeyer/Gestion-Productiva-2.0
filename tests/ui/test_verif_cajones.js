@@ -120,16 +120,21 @@ const STUB = `(function(){
   ok((await texto(page, '#vivo11')).includes('mas que la tara') || (await texto(page, '#vivo11')).includes('más que la tara'), 'avisa si la balanza marca menos que la tara');
 
   // ── 4. Guardar ─────────────────────────────────────────────────────────────
-  const C1p = Object.assign({}, C1, { resultado: 'pesado', cajon_numero: 2, tara_kg: 1.97, peso_bruto_kg: 20.5, peso_neto_kg: 18.53, cargado_en: '2026-10-06T15:20:00-03:00' });
+  const C1p = Object.assign({}, C1, { resultado: 'pesado', cajon_numero: 2, tara_kg: 1.97, peso_bruto_kg: 20.5, peso_neto_kg: 18.53, planilla_coincide: true, cargado_en: '2026-10-06T15:20:00-03:00' });
   await page.evaluate((b) => { window.__resp.verif_cajon_cargar = { data: b, error: null }; }, bundle(empezado, [C1p, C2]));
+  ok(!!(await page.$('#pl11')) && !(await page.isChecked('#pl11')), 'cada cajón tiene el tilde «Coincide con la Planilla de carga», sin tildar de entrada');
+  const lp = await texto(page, 'label[for="pl11"]');
+  ok(lp.includes('Planilla de carga') && lp.includes('840 uni'), 'el tilde dice qué tiene que decir el papel: las unidades del registro (' + lp + ')');
+  await page.check('#pl11');
   await page.fill('#pb11', '20,5');
   await page.click('[data-guardar="11"]');
   await page.waitForFunction(() => !document.querySelector('#cn11'));
   const car = await rpcs(page, 'verif_cajon_cargar');
-  ok(car.length === 1 && car[0].a.p_id === 11 && car[0].a.p_cajon === 2 && car[0].a.p_bruto_kg === 20.5 && car[0].a.p_no_encontrado === false,
+  ok(car.length === 1 && car[0].a.p_id === 11 && car[0].a.p_cajon === 2 && car[0].a.p_bruto_kg === 20.5 && car[0].a.p_no_encontrado === false && car[0].a.p_planilla_coincide === true,
      'Guardar manda el cajon y el peso tipeado con coma como numero (' + JSON.stringify(car[0] && car[0].a) + ')');
   const tr = await texto(page, '#caj11');
   ok(tr.includes('N° 2') && tr.includes('balanza 20,50 kg') && tr.includes('neto 18,53 kg'), 'muestra lo cargado: cajon, balanza y neto');
+  ok(tr.includes('Planilla de carga: ✔ coincide'), 'el resultado dice que la planilla coincide');
 
   // ── 5. No lo encontre ──────────────────────────────────────────────────────
   await page.click('[data-noform="12"]');
@@ -143,6 +148,7 @@ const STUB = `(function(){
   await page.waitForFunction(() => !document.querySelector('#nota12'));
   const ne = (await rpcs(page, 'verif_cajon_cargar'))[1];
   ok(ne && ne.a.p_no_encontrado === true && ne.a.p_nota === 'no estaba en SP' && ne.a.p_cajon === null, 'no lo encontre manda la nota y sin cajon');
+  ok(ne && !('p_planilla_coincide' in ne.a), 'y no manda el tilde de la planilla (no hay cajón que comparar)');
   ok((await texto(page, '#dia')).includes('Terminó15:30') && (await texto(page, '#dia')).includes('Tardó18 min'), 'al terminar el ultimo queda la hora de fin y cuanto tardo');
   ok((await texto(page, '#status')).includes('verificación terminada a las 15:30'), 'avisa que la verificacion termino');
 
@@ -201,7 +207,7 @@ const STUB = `(function(){
   await page.close();
 
   // ── 9. ENVASADO: no se pesa, se cuentan cajas ──────────────────────────────
-  const C3c = Object.assign({}, C3, { resultado: 'contado', cajas_contadas: 19, sueltas_contadas: 0, cargado_en: '2026-10-06T15:20:00-03:00' });
+  const C3c = Object.assign({}, C3, { resultado: 'contado', cajas_contadas: 19, sueltas_contadas: 0, planilla_coincide: false, cargado_en: '2026-10-06T15:20:00-03:00' });
   page = await abrir('Produccion/VerificacionCajones/VerificacionCajones_GP2.html', {
     verif_cajones_bundle: { data: bundle(empezado, [C3, C4]), error: null },
     verif_cajon_cargar: { data: bundle(empezado, [C3c, C4]), error: null },
@@ -222,13 +228,15 @@ const STUB = `(function(){
   await page.fill('#cj31', '20'); await page.dispatchEvent('#cj31', 'input');
   ok((await texto(page, '#vivo31')).includes('diferencia 0 cajas'), 'con las cajas justas la diferencia es 0');
   await page.fill('#cj31', '19'); await page.dispatchEvent('#cj31', 'input');
+  ok(!!(await page.$('#pl31')) && !(await page.isChecked('#pl31')), 'el envasado también tiene el tilde de la planilla');
   await page.click('[data-guardar-env="31"]');
   await page.waitForFunction(() => !document.querySelector('#cj31'));
   const g3 = await rpcs(page, 'verif_cajon_cargar');
   ok(g3.length === 1 && g3[0].a.p_id === 31 && g3[0].a.p_cajas === 19 && g3[0].a.p_no_encontrado === false &&
-     !('p_sueltas' in g3[0].a) && !('p_cajon' in g3[0].a) && !('p_bruto_kg' in g3[0].a), 'Guardar manda sólo las cajas, sin sueltas, cajón ni peso (' + JSON.stringify(g3[0] && g3[0].a) + ')');
+     !('p_sueltas' in g3[0].a) && !('p_cajon' in g3[0].a) && !('p_bruto_kg' in g3[0].a) && g3[0].a.p_planilla_coincide === false, 'Guardar manda sólo las cajas y el tilde (sin tildar = NO coincide), sin sueltas, cajón ni peso (' + JSON.stringify(g3[0] && g3[0].a) + ')');
   const r3 = await texto(page, '#caj31');
   ok(r3.includes('Contado') && r3.includes('19 cajas') && r3.includes('diferencia -1 cajas'), 'muestra lo contado y la diferencia en cajas');
+  ok(r3.includes('Planilla de carga: ✖ NO coincide'), 'si no se tildó, el resultado dice NO coincide');
   // C4: la matriz no tiene unidades por caja en GP2
   const e4 = await texto(page, '#caj32');
   ok(e4.includes('Total que hizo228 uni') && e4.includes('Unidades por cajasin cargar en GP2'), 'sin dato en GP2 lo dice y muestra igual el total que hizo');
@@ -244,6 +252,7 @@ const STUB = `(function(){
   ok(ce.includes('Total que hizo: 250 uni') && ce.includes('Unidades por caja: 12 uni') && ce.includes('Debería haber: 20 cajas (+ 10 uni sueltas)'), 'el cartel trae total, unidades por caja y cajas esperadas');
   ok(ce.includes('Envasado: no se pesa, se cuentan las cajas') && ce.includes('sin unidades por caja en GP2: contá las cajas igual'), 'el cartel avisa que se cuenta y cubre el caso sin dato');
   ok(ce.includes('Debería pesar: entre 29,82 kg y 33,26 kg'), 'y el cajón que no es envasado sigue con su peso');
+  ok(ce.includes('Revisá también la Planilla de carga') && ce.includes('tiene que decir 250 uni'), 'el cartel recuerda revisar la Planilla de carga y cuántas unidades tiene que decir');
   await page.close();
 
   // ── 10. La pantalla se actualiza sola ───────────────────────────────────────

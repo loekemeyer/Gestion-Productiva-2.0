@@ -141,6 +141,7 @@
                   '<div style="color:#92400e;font-weight:700">📦 Envasado: no se pesa, se cuentan las cajas</div>'
                 : '<div><b>Unidades:</b> ' + unidades(c) + ' · <b>Buscalo en:</b> ' + esc(c.sectores || "sector sin cargar en GP2") + '</div>' +
                   '<div><b>Peso por unidad:</b> ' + porUnidad(c) + ' · <b>Debería pesar:</b> ' + esperado(c) + '</div>') +
+              '<div>📄 Revisá también la <b>Planilla de carga</b> (el papel del cajón): tiene que decir <b>' + unidades(c) + '</b></div>' +
             '</div>';
           }).join("") +
           '<div style="display:flex;gap:10px;flex-wrap:wrap;margin:14px 0 6px">' +

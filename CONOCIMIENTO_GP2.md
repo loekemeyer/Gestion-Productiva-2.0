@@ -15360,3 +15360,19 @@ total que hizo"*. **Retira** lo de arriba que decía *"sin envasado, que no tien
   Mini Imp.» → 323E o 838E (12), 406 «Filtro de Bombilla» → 550 (36) o 760 (24, ambiguo), 513 «colocar etiqueta a bombillas»
   (varios artículos, ambiguo). Nada de eso se cargó: se modela en GP2 (matriz → ruta → terminado sector 12) cuando el dueño confirme.
 
+### 4iz (adenda 3, 2026-10-06) — tilde de la «Planilla de carga» y el Palo de Amasar es de 12
+
+- **Palo de Amasar (231, 232, 233): 12 unidades por caja** [Elías: *"los palos de amasar son 12 unidades"*]. **GP2 estaba bien**
+  (`articulo.articulos_por_caja = 12`) y **Gestión Productiva estaba mal** (24 en `Articulos_Cajas` y en `vista_uni_x_caja`).
+  Retira la duda de la adenda 2. No se tocó `public` (es la casa del vecino: sólo lectura); queda anotado que ahí dice 24.
+  Con 12, la matriz 383 «Env Palo de Amasar» (84 uni) da **7 cajas**, como ya mostraba.
+- **Tilde «Coincide con la Planilla de carga»** [Elías: *"añadí un tilde de si coincide con la Planilla de carga (es un papel
+  donde el operario pone cuántas unidades hizo, se coloca en el cajón)"*]. La **Planilla de carga** es el papel que el operario
+  deja **dentro del cajón** con las unidades que hizo; el tilde dice si ese papel coincide con lo que está registrado. Un tilde por
+  cajón, **en los pesados y en los de envasado** (`GP2.verif_cajon.planilla_coincide`: `true` coincide, `false` no coincide,
+  `null` no se verificó o no lo encontró). El texto del tilde trae las unidades del registro (*"el papel del cajón tiene que decir
+  840 uni"*) y el cartel de las 15:00 lo recuerda. **Sin tildar al guardar = NO coincide**: el resultado muestra *✔ coincide* o
+  *✖ NO coincide* y *Corregir* permite arreglar un olvido. «No lo encontré» no manda el tilde. Es una decisión mía sin confirmar
+  (Elías pidió «un tilde»; un tilde sin tildar no distingue «no coincide» de «no miré»): si hace falta distinguirlos, son tres
+  estados y se cambia. `verif_cajon_cargar` pasó a 8 parámetros (migración `db/migracion_verificacion_cajones_planilla_20261006.sql`).
+

@@ -16,7 +16,7 @@
 <script src="../../gp2-ui.js?v=20260930a"></script>
 <script src="../../gp2-numero.js?v=20260911o"></script>
 <script>window.GP2VC_SIN_CARTEL = true;</script>
-<script src="../../gp2-verif-cajones.js?v=20261006e"></script>
+<script src="../../gp2-verif-cajones.js?v=20261006f"></script>
 <link rel="stylesheet" href="../../gp2-modulo.css?v=20260912c"/>
 <link rel="icon" type="image/png" href="../../GP2_favicon.png">
 <link rel="apple-touch-icon" href="../../GP2_favicon.png">
@@ -43,6 +43,8 @@
   .vivo{font-size:18px;font-weight:800;min-height:24px}
   .res{font-size:17px;line-height:1.6}
   .res b{font-variant-numeric:tabular-nums}
+  .form .chk-plan{flex-basis:100%;display:flex;align-items:center;gap:10px;font-size:18px;font-weight:600;color:#222;background:#f6f8fa;border:2px solid #d0d7de;border-radius:10px;padding:10px 14px;cursor:pointer}
+  .chk-plan input{width:26px;height:26px;min-height:0;flex:none;accent-color:#1a7f37}
   .tag-env{display:inline-block;margin-left:8px;font-size:13px;font-weight:800;color:#92400e;background:#fef3c7;border:1px solid #fde68a;border-radius:999px;padding:2px 10px;vertical-align:middle}
   .link{background:none;border:none;color:#b42318;font-weight:800;font-size:17px;cursor:pointer;text-decoration:underline;min-height:44px}
   .opt{display:flex;align-items:center;gap:8px;font-size:17px;font-weight:700;color:#555}
@@ -176,6 +178,18 @@ async function refrescar(){
   } finally { refrescando = false; }
 }
 
+/* Planilla de carga: el papel que el operario deja en el cajón con las unidades que hizo [Elías, 06/10]. Un tilde por cajón:
+   tildado = coincide con el registro; sin tildar al guardar = NO coincide. Se ve en el resultado, así un olvido se corrige con «Corregir». */
+function chkPlanilla(c){
+  return '<label class="chk-plan" for="pl' + c.id + '"><input type="checkbox" id="pl' + c.id + '"' + (c.planilla_coincide ? ' checked' : '') + '>' +
+    '<span>Coincide con la <b>Planilla de carga</b> (el papel del cajón tiene que decir <b>' + GP2VC.unidades(c) + '</b>)</span></label>';
+}
+function textoPlanilla(c){
+  if (c.planilla_coincide === true) return ' · Planilla de carga: <b class="pos">✔ coincide</b>';
+  if (c.planilla_coincide === false) return ' · Planilla de carga: <b class="neg">✖ NO coincide</b>';
+  return '';
+}
+
 function tarjeta(c, i){
   var empezo = !!(B.dia && B.dia.empezado_en);
   var modo = abiertos[c.id] || (c.resultado ? null : 'peso');
@@ -202,12 +216,12 @@ function tarjeta(c, i){
     '</div>';
   if (c.resultado === 'contado' && !abiertos[c.id]){
     h += '<div class="res">✔ <b>Contado</b> a las ' + GP2VC.hora(c.cargado_en) + ' · <b>' + GP2N.fmt(c.cajas_contadas, 0) + '</b> cajas' +
-      textoDifEnv(c, c.cajas_contadas) + (c.nota ? '<br>Nota: ' + esc(c.nota) : '') +
+      textoDifEnv(c, c.cajas_contadas) + textoPlanilla(c) + (c.nota ? '<br>Nota: ' + esc(c.nota) : '') +
       ' <button class="link" type="button" data-corr="' + c.id + '">Corregir</button></div>';
   } else if (c.resultado === 'pesado' && !abiertos[c.id]){
     h += '<div class="res">✔ <b>Pesado</b> a las ' + GP2VC.hora(c.cargado_en) + ' · en el cajón <b>N° ' + c.cajon_numero + '</b>' +
       ' (tara ' + GP2VC.kg(c.tara_kg) + ') · balanza <b>' + GP2VC.kg(c.peso_bruto_kg) + '</b> · neto <b>' + GP2VC.kg(c.peso_neto_kg) + '</b>' +
-      textoDif(c) + (c.nota ? '<br>Nota: ' + esc(c.nota) : '') +
+      textoDif(c) + textoPlanilla(c) + (c.nota ? '<br>Nota: ' + esc(c.nota) : '') +
       ' <button class="link" type="button" data-corr="' + c.id + '">Corregir</button></div>';
   } else if (c.resultado === 'no_encontrado' && !abiertos[c.id]){
     h += '<div class="res">✖ <b>No lo encontró</b> (' + GP2VC.hora(c.cargado_en) + '): ' + esc(c.nota) +
@@ -221,14 +235,14 @@ function tarjeta(c, i){
       '<button class="btn btn-primary" type="button" data-noenc="' + c.id + '">Guardar: no lo encontré</button>' +
       '<button class="link" type="button" data-peso="' + c.id + '" style="color:#111">' + (env ? 'Volver a contar las cajas' : 'Volver a cargar peso') + '</button></div>';
   } else if (env){
-    h += '<div class="form">' +
+    h += '<div class="form">' + chkPlanilla(c) +
       '<div class="f"><label for="cj' + c.id + '">Cajas que contaste</label><input class="peso" id="cj' + c.id + '" inputmode="numeric" autocomplete="off"' +
         ' value="' + (c.cajas_contadas != null ? GP2N.fmt(c.cajas_contadas, 0) : '') + '"></div>' +
       '<button class="btn btn-primary" type="button" data-guardar-env="' + c.id + '">Guardar cajas</button>' +
       '<button class="link" type="button" data-noform="' + c.id + '">No lo encontré</button>' +
       '<div class="vivo" id="vivo' + c.id + '" style="flex-basis:100%"></div></div>';
   } else {
-    h += '<div class="form">' +
+    h += '<div class="form">' + chkPlanilla(c) +
       '<div class="f"><label for="cn' + c.id + '">¿En qué cajón está?</label><select id="cn' + c.id + '">' +
         '<option value="">Elegí…</option>' + (B.taras || []).map(function(t){
           return '<option value="' + t.numero + '"' + (Number(c.cajon_numero) === Number(t.numero) ? ' selected' : '') + '>N° ' + t.numero +
@@ -305,12 +319,14 @@ document.addEventListener('click', async function(ev){
     var cajon = Number($('cn' + id).value || 0), bruto = GP2N.num($('pb' + id).value);
     if (!cajon){ msg('Elegí en qué cajón lo pesaste.', true); return; }
     if (!bruto){ msg('Cargá lo que marca la balanza.', true); return; }
-    await guardar(id, { p_id: Number(id), p_cajon: cajon, p_bruto_kg: bruto, p_no_encontrado: false, p_nota: null });
+    await guardar(id, { p_id: Number(id), p_cajon: cajon, p_bruto_kg: bruto, p_no_encontrado: false, p_nota: null,
+                        p_planilla_coincide: $('pl' + id).checked });
     return;
   }
   if ((id = b.getAttribute('data-guardar-env'))){
     if ($('cj' + id).value.trim() === ''){ msg('Cargá cuántas cajas contaste (0 si no había).', true); return; }
-    await guardar(id, { p_id: Number(id), p_cajas: GP2N.entero($('cj' + id).value), p_no_encontrado: false, p_nota: null });
+    await guardar(id, { p_id: Number(id), p_cajas: GP2N.entero($('cj' + id).value), p_no_encontrado: false, p_nota: null,
+                        p_planilla_coincide: $('pl' + id).checked });
     return;
   }
   if ((id = b.getAttribute('data-noenc'))){

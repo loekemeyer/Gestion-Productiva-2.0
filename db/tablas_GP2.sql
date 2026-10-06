@@ -1359,6 +1359,7 @@ create table "GP2".verif_cajon (
   cajas_esperadas_max numeric,
   cajas_contadas integer,
   sueltas_contadas integer,
+  planilla_coincide boolean,
   constraint verif_cajon_pkey PRIMARY KEY (id),
   constraint verif_cajon_fecha_espejo_key UNIQUE (fecha, espejo_id),
   constraint verif_cajon_fecha_fkey FOREIGN KEY (fecha) REFERENCES "GP2".verif_cajon_dia(fecha),
@@ -1374,6 +1375,7 @@ comment on column "GP2".verif_cajon.piezas is '[{codigo, descripcion, kg_x_uni, 
 comment on column "GP2".verif_cajon.resultado is 'pesado | contado (envasado) | no_encontrado (con nota obligatoria). null = falta.';
 comment on column "GP2".verif_cajon.es_envasado is 'true: matriz de envasado. No se pesa: se cuentan cajas (cajas_contadas + sueltas_contadas) contra uni / uni_x_caja.';
 comment on column "GP2".verif_cajon.uni_x_caja_min is 'GP2.articulo.articulos_por_caja del terminado que cierra la matriz (min y max si cierra varios). null = la matriz no tiene ruta con terminado en GP2.';
+comment on column "GP2".verif_cajon.planilla_coincide is 'Planilla de carga (el papel que el operario deja en el cajón con las unidades que hizo): true = coincide con el registro, false = no coincide, null = no se verificó (o no lo encontró).';
 
 -- ---------- verif_cajon_dia ----------
 create table "GP2".verif_cajon_dia (
