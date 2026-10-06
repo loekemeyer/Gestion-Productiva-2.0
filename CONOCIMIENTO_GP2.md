@@ -15395,8 +15395,12 @@ total que hizo"*. **Retira** lo de arriba que decía *"sin envasado, que no tien
   la 383. La verificación de la 383 vuelve a dar un solo valor: 12 por caja (60 uni = 5 cajas, 84 uni = 7).
 - Contradice en parte §4is (05/10: *«la matriz con letra es la base que expulsa un componente más»*), pero lo pidió el dueño el
   06/10 y sirve a la verificación: con la letra queda registrado de qué medida es la tanda.
-- **Lo que NO se hizo:** `public."Matrices"` no tiene 383B/C/D (es la casa del vecino, Regla 0). El Registro Producción 2.0 no las
-  ofrece hasta que se carguen ahí; la tablet de GP2 sí las ve (`registro_operarios_bundle` lee `GP2.matriz`). Los 1.916 uni
+- **`public."Matrices"` (casa del vecino, Regla 0): cargadas con el sí del dueño** `[usuario, Elías, 06/10, "1 si"]` a «cargamos 383,
+  383B, 383C y 383D también en public.Matrices, con estos nombres»: ids 426/427/428 (la tabla no tiene default de `id`, se usó
+  max+1) y la 383 (id 336) renombrada a «Frances». Es la **única escritura de GP2 sobre `public`** y es una excepción pedida por
+  el dueño, no un precedente (`db/migracion_public_matrices_383_20261006.sql`, con efectos en cadena y reversa). Los triggers de
+  `Matrices` sólo dejaron 4 filas de auditoría; el stock de cajón y el historial no se movieron. Ahora el Registro Producción 2.0
+  puede ofrecerlas, y la tablet de GP2 también (`registro_operarios_bundle` lee `GP2.matriz`). Los 1.916 uni
   históricos de la 383 en `db_n8n_espejo` (27/04 al 29/09) siguen bajo «383» y mezclan las cuatro medidas. **Renombrada la 383
   a «Env Palo de Amasar Frances 40cm»** `[usuario, Elías, 06/10: "383 tiene que decir frances"]`, para no confundirla con la 383C
   «Env Palo de Amasar 40cm» (costo idéntico; los registros viejos conservan el nombre con el que se cargaron).
