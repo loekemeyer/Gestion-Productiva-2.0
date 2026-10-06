@@ -15571,3 +15571,24 @@ total que hizo"*. **Retira** lo de arriba que decía *"sin envasado, que no tien
   todos menos `oc_bundle` (no tiene máximo). Invariantes B/I/K/L/U/W/Y/AA/AB/AJ = 0, 0 huérfanos.
 - ⚠ **[dato] Efecto operativo:** registrar golpes de la M116 pide elegir la pieza (L9 izq / L10 der); el stock del corte queda en
   **Sector Crudo** y el doblado M114 lo consume de ahí y entrega L9-M114 / L10-M114.
+
+## 4jg. Sacafuente Pizzero, pieza chica (Z6): la matriz 364 corta y dobla, la 368 ya no interviene (2026-10-06) — ⚠ DECIDIDO, NO APLICADO
+
+- **[usuario, 06/10]** (captura de la ruta del 518, «Rama 2 — IB3 produce Z6»): *«Ya no se dobla la pieza chica del sacafuente
+  pizzero. Ahora la matriz 364 corta y dobla, después de esta matriz se va a Z6.»* Cambia lo de §4bd (donde la 364 cortaba y la
+  368 doblaba la Z6).
+- **[dato]** Ruta 27 «Fleje 6 → Art 518». Hoy: `IB3 → M364 → IB3-M364 → M368 → Z6 → M151 → Z36 → Pedernera → E10 → Lucho → 518`
+  (7 pasos). Queda: `IB3 → M364 → Z6 → M151 → Z36 → …` (6 pasos). **La 368 sigue haciendo la pieza GRANDE**: ruta 34
+  `IA10 → M365 → IA10-M365 → M368 → Z5`; no se toca.
+- **[dato]** Medido con ensayo revertido (se simuló sacar el paso 3 sin borrarlo): el **único costo que cambia es Z6**, 175,75 →
+  151,75 (−24,00 = los 12 s de la 368 a $2/s; segundos 15 → 3). `IB3-M364` 118,59 → 0,00 (queda sin uso). Z36, E10, 518 y los otros
+  833 costos, sin cambio; 0 órdenes repetidos, 0 rutas sin pasos.
+- ⚠ **[NO APLICADO]** sacar el paso exige un DELETE de `ruta_paso` (fila 178) y borrar el intermedio `IB3-M364` (id 480). El
+  conector de la sesión cuelga los DELETE a los 60 s (se reintentó con todo en una transacción: no aplicó nada, ruta 27 intacta;
+  no hay ninguna función de la app que quite pasos de una ruta). Script atómico y con reversa en
+  `db/pendiente/2026-10-06_sacafuente_pizzero_z6_m364_corta_y_dobla.sql`: correrlo UNA vez en el SQL Editor.
+- ⚠ **[pendiente del dueño]** la matriz 364 sigue cargada como «Corte Pieza Chica Sacaf Pizz», tipo A, alimentador, 3 s, 46,23 u/kg:
+  describe sólo el corte. Si ahora corta y dobla, el **nombre, la máquina y el tiempo** hay que decirlos (con 3 s, Z6 pierde $24 de
+  mano de obra). No se tocaron.
+- **[efecto operativo al aplicar]** la 364 entrega Z6 directo (crudo) y la 368 queda con una sola salida (Z5): la tablet deja de
+  preguntar pieza en la 368 (la duda «¿salen juntas?» de PROBLEMAS_MATRICES ya no corresponde).

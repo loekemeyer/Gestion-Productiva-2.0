@@ -55,7 +55,7 @@ Si se traduce la letra a "matriz base + pieza" (3B → 3 + M9):
 | 137 Arandela Batidor | ABPM mini, LL7B | la vieja la llama "mini" |
 | 183 Soldar Ahueca | N1 fruta, N2 papa | |
 | 356 Corte Mango Plano Manija | G11 (501), I10 (701) | |
-| 368 Doblado Sacafuente | Z5 grande, Z6 chica | ¿salen juntas? |
+| 368 Doblado Sacafuente | Z5 grande, ~~Z6 chica~~ | **06/10 [dueño]: la Z6 ya no se dobla en la 368, la 364 corta y dobla** (CONOCIMIENTO §4jg; **pendiente de aplicar**: necesita DELETE, ver `db/pendiente/`). Con eso la duda «¿salen juntas?» deja de aplicar |
 
 ## 5. Tiempos: 9 matrices con tiempo en la vieja y vacío en GP2
 
