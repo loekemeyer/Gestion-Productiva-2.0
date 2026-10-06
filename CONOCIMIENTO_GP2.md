@@ -15409,3 +15409,31 @@ total que hizo"*. **Retira** lo de arriba que decía *"sin envasado, que no tien
   802 (24 contra 12) y las cucharas de madera CHEF «SUEL» (36 contra 12 del display). Afecta a las matrices de envasado **406**
   (550 LOEKE 36 / 760 CHEF 24 ó 36) y **327** (508/708 con 6 ó 12): **sin resolver**. Del historial de la 406 (52 registros) 27 son
   sólo múltiplos de 36 y 5 sólo de 24: apunta a 36, pero no es concluyente.
+
+## 4ja. La 137 ya no expulsa la ABPM: matriz nueva 516 «Corte Arandela Batidor Pera Mini» (2026-10-06)
+
+- **[usuario, Nazareno, 06/10, textual]** *«La Matriz 137 expulsa la arandela batidor pera y arandela batidor pera mini. Está mal,
+  la arandela batidor pera mini la corta una matriz que no está creada: Sería Corte Arandela Batidor Pera Mini, el número
+  ponele el que sigue a la última sin letra»*.
+- **Antes `[dato]`:** la 137 «Cortar arandela Batidor» (id 67) sacaba **dos** componentes del fleje 58 (`IF9`): `LL7B` «Arandela
+  Batidor Pera» en 3 pasos (art 115, 544, 802) y `ABPM` «Arandela Batidor Pera Mini» en 1 (`ruta_paso` 992, ruta 164 del art 580
+  Batidor Mini). **Ahora** (`db/migracion_matriz_516_arandela_pera_mini_20261006.sql`, aplicada): la 137 queda sólo con `LL7B` (3
+  pasos) y la **516** (id 418, activa) saca `ABPM` (1 paso, art 580). La 137 no tenía producción en `GP2.produccion` ni era línea
+  imaginaria de nadie.
+- **Por qué 516 `[deducido]`:** «la última sin letra» de la serie principal es la 515 (§4iy, 05/10); la 900–906 es otra familia
+  («p.p. Ajo») y la planta llega a la 514 en `public."Matrices"`. Si se quería la 907:
+  `update "GP2".matriz set n_matriz='907' where n_matriz='516'` (0 producción, una sola referencia).
+- **Atributos copiados de la 137, NO medidos para la mini:** tipo A, alimentador, **0,73 s/uni**, 391,32 partes por kg de fleje,
+  1 por golpe, `cuenta_mo`. Se copiaron para que el costo quede **exacto**: la ABPM ya los cobraba a través de la 137 (huella de
+  `v_costo_componente` `d3755dce…` antes y después, 831 filas, total $535.101,71, 0 componentes distintos; snapshot
+  `zz_backups."GP2_Snap_costo_20261006_m137"`, con RLS). `[dato]` Ojo con el 0,73: sale de 5 registros de la 137 que en
+  `public."Matrices"` figura como **«Cortar arandela Batidor mini»** (6 registros, 62.200 uni, 06/05 a 18/06/2026), así que puede
+  ser el tiempo de la mini y no el de la pera. **A medir cuando la 516 tenga producción propia.**
+- **Pendiente del dueño, NO hecho:**
+  1. **¿La 177 ya era esta matriz?** `[dato]` existe «Corte Arandela Batidor Mini» (GP2 id 237, `public."Matrices"` 177): 0 pasos,
+     sin tiempo, 0 producción. `[deducido]` el nombre calza con la ABPM (el 580 se llama «Batidor Mini»); si es la misma, la 516
+     es un duplicado y habría que dejar una sola (desactivar la 177 o mover el paso a ella).
+  2. **La 516 no existe en `public."Matrices"`** (Regla 0: no se escribe ahí sin el «sí» del dueño, como la 383B/C/D de §4iz): el
+     Registro Producción 2.0 no la ofrece hasta que se cargue allá. La tablet de GP2 sí la ve (`registro_operarios_bundle` lee
+     `GP2.matriz`).
+  3. Renombrar la 137 de «Cortar arandela Batidor» a «… Pera» ahora que sólo corta la `LL7B` (en `public` se llama «…mini»).
