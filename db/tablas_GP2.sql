@@ -1,7 +1,7 @@
 -- =====================================================================
 -- TABLAS del schema GP2 (DDL reconstruido de pg_catalog: columnas, identity, defaults, constraints, comentarios) — export automatico 2026-10-01 desde Supabase (hrxfctzncixxqmpfhskv)
 -- Respaldo/referencia. La fuente de verdad es la base; regenerar al cambiar el schema.
--- 73 tablas, 262 constraints, 67 indices sueltos, 18 triggers, RLS en 73 tablas, 71 policies.
+-- 73 tablas, 265 constraints, 67 indices sueltos, 18 triggers, RLS en 73 tablas, 71 policies.
 -- =====================================================================
 
 -- ---------- aceptado_virgilio ----------
@@ -1352,17 +1352,28 @@ create table "GP2".verif_cajon (
   peso_neto_kg numeric,
   cargado_en timestamp with time zone,
   nota text,
+  es_envasado boolean not null default false,
+  uni_x_caja_min integer,
+  uni_x_caja_max integer,
+  cajas_esperadas_min numeric,
+  cajas_esperadas_max numeric,
+  cajas_contadas integer,
+  sueltas_contadas integer,
   constraint verif_cajon_pkey PRIMARY KEY (id),
   constraint verif_cajon_fecha_espejo_key UNIQUE (fecha, espejo_id),
   constraint verif_cajon_fecha_fkey FOREIGN KEY (fecha) REFERENCES "GP2".verif_cajon_dia(fecha),
+  constraint verif_cajon_contado_ck CHECK (((resultado IS DISTINCT FROM 'contado'::text) OR (es_envasado AND (cajas_contadas IS NOT NULL) AND (cajas_contadas >= 0) AND (sueltas_contadas IS NOT NULL) AND (sueltas_contadas >= 0)))),
+  constraint verif_cajon_envasado_no_pesa_ck CHECK (((NOT es_envasado) OR ((cajon_numero IS NULL) AND (peso_bruto_kg IS NULL) AND (peso_neto_kg IS NULL) AND (kg_esperado_min IS NULL)))),
   constraint verif_cajon_no_encontrado_ck CHECK (((resultado IS DISTINCT FROM 'no_encontrado'::text) OR (NULLIF(btrim(COALESCE(nota, ''::text)), ''::text) IS NOT NULL))),
   constraint verif_cajon_pesado_ck CHECK (((resultado IS DISTINCT FROM 'pesado'::text) OR ((cajon_numero IS NOT NULL) AND (peso_bruto_kg IS NOT NULL) AND (peso_neto_kg IS NOT NULL)))),
-  constraint verif_cajon_resultado_ck CHECK (((resultado IS NULL) OR (resultado = ANY (ARRAY['pesado'::text, 'no_encontrado'::text]))))
+  constraint verif_cajon_resultado_ck CHECK (((resultado IS NULL) OR (resultado = ANY (ARRAY['pesado'::text, 'contado'::text, 'no_encontrado'::text]))))
 );
 comment on table "GP2".verif_cajon is 'Verificación de cajones: copia del registro de producción (public.db_n8n_espejo.id = espejo_id) al sortearlo, más el peso de la balanza. La llena public.gp2_verif_cajones_sortear (cron 15:00).';
 comment on column "GP2".verif_cajon.carga_en is 'GP2.matriz.carga_en: unidades | golpes | kg. Con kg, el peso esperado es uni.';
 comment on column "GP2".verif_cajon.piezas is '[{codigo, descripcion, kg_x_uni, sector}] de las piezas que saca la matriz según GP2.';
-comment on column "GP2".verif_cajon.resultado is 'pesado | no_encontrado (con nota obligatoria). null = falta.';
+comment on column "GP2".verif_cajon.resultado is 'pesado | contado (envasado) | no_encontrado (con nota obligatoria). null = falta.';
+comment on column "GP2".verif_cajon.es_envasado is 'true: matriz de envasado. No se pesa: se cuentan cajas (cajas_contadas + sueltas_contadas) contra uni / uni_x_caja.';
+comment on column "GP2".verif_cajon.uni_x_caja_min is 'GP2.articulo.articulos_por_caja del terminado que cierra la matriz (min y max si cierra varios). null = la matriz no tiene ruta con terminado en GP2.';
 
 -- ---------- verif_cajon_dia ----------
 create table "GP2".verif_cajon_dia (

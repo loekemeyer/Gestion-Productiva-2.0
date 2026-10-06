@@ -16,7 +16,7 @@
 <script src="../../gp2-ui.js?v=20260930a"></script>
 <script src="../../gp2-numero.js?v=20260911o"></script>
 <script>window.GP2VC_SIN_CARTEL = true;</script>
-<script src="../../gp2-verif-cajones.js?v=20261006d"></script>
+<script src="../../gp2-verif-cajones.js?v=20261006e"></script>
 <link rel="stylesheet" href="../../gp2-modulo.css?v=20260912c"/>
 <link rel="icon" type="image/png" href="../../GP2_favicon.png">
 <link rel="apple-touch-icon" href="../../GP2_favicon.png">
@@ -43,6 +43,7 @@
   .vivo{font-size:18px;font-weight:800;min-height:24px}
   .res{font-size:17px;line-height:1.6}
   .res b{font-variant-numeric:tabular-nums}
+  .tag-env{display:inline-block;margin-left:8px;font-size:13px;font-weight:800;color:#92400e;background:#fef3c7;border:1px solid #fde68a;border-radius:999px;padding:2px 10px;vertical-align:middle}
   .link{background:none;border:none;color:#b42318;font-weight:800;font-size:17px;cursor:pointer;text-decoration:underline;min-height:44px}
   .opt{display:flex;align-items:center;gap:8px;font-size:17px;font-weight:700;color:#555}
   .opt input{width:24px;height:24px}
@@ -78,9 +79,10 @@
       </tr></thead>
       <tbody id="tdias"></tbody>
     </table></div>
-    <div class="aviso">Los cajones se sortean <b>solos a las 15:00</b>: 2 por día, de lo que produjo Cervantes hasta esa hora
-      (sin envasado, que no tiene peso). Primero entre los que tienen <b>peso por unidad cargado en GP2</b>, y de operarios distintos.
-      <b>Debería pesar</b> es sin el cajón: el neto sale de lo que marca la balanza menos la tara del cajón que elegís.</div>
+    <div class="aviso">Los cajones se sortean <b>solos a las 15:00</b>: 2 por día, de lo que produjo Cervantes hasta esa hora.
+      Primero entre los que tienen <b>peso por unidad cargado en GP2</b> (o <b>unidades por caja</b>, si es envasado), y de operarios distintos.
+      <b>Debería pesar</b> es sin el cajón: el neto sale de lo que marca la balanza menos la tara del cajón que elegís.
+      El <b>envasado</b> no se pesa: se cuentan las cajas contra el <b>total que hizo</b> el operario ÷ las unidades por caja.</div>
   </div>
 </div>
 
@@ -143,22 +145,32 @@ function render(){
 function tarjeta(c, i){
   var empezo = !!(B.dia && B.dia.empezado_en);
   var modo = abiertos[c.id] || (c.resultado ? null : 'peso');
-  var cls = c.resultado === 'pesado' ? ' ok' : (c.resultado === 'no_encontrado' ? ' no' : '');
+  var cls = (c.resultado === 'pesado' || c.resultado === 'contado') ? ' ok' : (c.resultado === 'no_encontrado' ? ' no' : '');
+  var env = !!c.es_envasado;
   var piezas = (c.piezas || []).length > 1
-    ? '<div><span class="k">Piezas que saca la matriz</span>' + c.piezas.map(function(p){
-        return esc(p.codigo) + ' ' + GP2VC.kg(p.kg_x_uni, 4); }).join(' · ') + '</div>' : '';
+    ? '<div><span class="k">' + (env ? 'Artículos que cierra la matriz' : 'Piezas que saca la matriz') + '</span>' + c.piezas.map(function(p){
+        return esc(p.codigo) + ' ' + (env ? (p.uni_x_caja == null ? '—' : p.uni_x_caja + ' x caja') : GP2VC.kg(p.kg_x_uni, 4)); }).join(' · ') + '</div>' : '';
   var h = '<div class="caj' + cls + '" id="caj' + c.id + '">' +
-    '<h2>Cajón ' + (i + 1) + ' · Matriz ' + esc(c.matriz) + ' ' + esc(c.nombre_matriz || '') + '</h2>' +
+    '<h2>Cajón ' + (i + 1) + ' · Matriz ' + esc(c.matriz) + ' ' + esc(c.nombre_matriz || '') + (env ? ' <span class="tag-env">📦 Envasado: se cuenta, no se pesa</span>' : '') + '</h2>' +
     '<div class="datos">' +
       '<div><span class="k">Quién lo hizo</span>' + esc(c.operario || '?') + ' (leg. ' + esc(c.legajo || '?') + ')</div>' +
       '<div><span class="k">Hora</span>' + GP2VC.hhmm(c.hora_inicio) + ' a ' + GP2VC.hhmm(c.hora_fin) + '</div>' +
-      '<div><span class="k">Unidades</span>' + GP2VC.unidades(c) + '</div>' +
-      '<div><span class="k">Dónde buscarlo</span>' + esc(c.sectores || 'sector sin cargar en GP2') + '</div>' +
-      '<div><span class="k">Peso por unidad</span>' + GP2VC.porUnidad(c) + '</div>' +
-      '<div><span class="k">Debería pesar (sin el cajón)</span><span class="esp">' + GP2VC.esperado(c) + '</span></div>' +
+      (env
+        ? '<div><span class="k">Total que hizo</span>' + GP2VC.unidades(c) + '</div>' +
+          '<div><span class="k">Dónde buscarlo</span>' + esc(c.sectores || 'sector sin cargar en GP2') + '</div>' +
+          '<div><span class="k">Unidades por caja</span>' + GP2VC.unPorCaja(c) + '</div>' +
+          '<div><span class="k">Cajas que debería haber</span><span class="esp">' + GP2VC.cajasEsperadas(c) + '</span></div>'
+        : '<div><span class="k">Unidades</span>' + GP2VC.unidades(c) + '</div>' +
+          '<div><span class="k">Dónde buscarlo</span>' + esc(c.sectores || 'sector sin cargar en GP2') + '</div>' +
+          '<div><span class="k">Peso por unidad</span>' + GP2VC.porUnidad(c) + '</div>' +
+          '<div><span class="k">Debería pesar (sin el cajón)</span><span class="esp">' + GP2VC.esperado(c) + '</span></div>') +
       piezas +
     '</div>';
-  if (c.resultado === 'pesado' && !abiertos[c.id]){
+  if (c.resultado === 'contado' && !abiertos[c.id]){
+    h += '<div class="res">✔ <b>Contado</b> a las ' + GP2VC.hora(c.cargado_en) + ' · <b>' + GP2N.fmt(c.cajas_contadas, 0) + '</b> cajas' +
+      textoDifEnv(c, c.cajas_contadas) + (c.nota ? '<br>Nota: ' + esc(c.nota) : '') +
+      ' <button class="link" type="button" data-corr="' + c.id + '">Corregir</button></div>';
+  } else if (c.resultado === 'pesado' && !abiertos[c.id]){
     h += '<div class="res">✔ <b>Pesado</b> a las ' + GP2VC.hora(c.cargado_en) + ' · en el cajón <b>N° ' + c.cajon_numero + '</b>' +
       ' (tara ' + GP2VC.kg(c.tara_kg) + ') · balanza <b>' + GP2VC.kg(c.peso_bruto_kg) + '</b> · neto <b>' + GP2VC.kg(c.peso_neto_kg) + '</b>' +
       textoDif(c) + (c.nota ? '<br>Nota: ' + esc(c.nota) : '') +
@@ -167,13 +179,20 @@ function tarjeta(c, i){
     h += '<div class="res">✖ <b>No lo encontró</b> (' + GP2VC.hora(c.cargado_en) + '): ' + esc(c.nota) +
       ' <button class="link" type="button" data-corr="' + c.id + '">Corregir</button></div>';
   } else if (!empezo){
-    h += '<div class="res sub">Apretá <b>▶ Empezar</b> arriba para cargar el peso: así queda la hora en que empezó la verificación.</div>';
+    h += '<div class="res sub">Apretá <b>▶ Empezar</b> arriba para cargar ' + (env ? 'las cajas' : 'el peso') + ': así queda la hora en que empezó la verificación.</div>';
   } else if (modo === 'no'){
     h += '<div class="form">' +
       '<div class="f" style="flex:1"><label for="nota' + c.id + '">¿Qué pasó? ¿Dónde lo buscaste?</label>' +
       '<textarea id="nota' + c.id + '" rows="2">' + esc(c.nota || '') + '</textarea></div>' +
       '<button class="btn btn-primary" type="button" data-noenc="' + c.id + '">Guardar: no lo encontré</button>' +
-      '<button class="link" type="button" data-peso="' + c.id + '" style="color:#111">Volver a cargar peso</button></div>';
+      '<button class="link" type="button" data-peso="' + c.id + '" style="color:#111">' + (env ? 'Volver a contar las cajas' : 'Volver a cargar peso') + '</button></div>';
+  } else if (env){
+    h += '<div class="form">' +
+      '<div class="f"><label for="cj' + c.id + '">Cajas que contaste</label><input class="peso" id="cj' + c.id + '" inputmode="numeric" autocomplete="off"' +
+        ' value="' + (c.cajas_contadas != null ? GP2N.fmt(c.cajas_contadas, 0) : '') + '"></div>' +
+      '<button class="btn btn-primary" type="button" data-guardar-env="' + c.id + '">Guardar cajas</button>' +
+      '<button class="link" type="button" data-noform="' + c.id + '">No lo encontré</button>' +
+      '<div class="vivo" id="vivo' + c.id + '" style="flex-basis:100%"></div></div>';
   } else {
     h += '<div class="form">' +
       '<div class="f"><label for="cn' + c.id + '">¿En qué cajón está?</label><select id="cn' + c.id + '">' +
@@ -197,6 +216,23 @@ function textoDif(c){
     (d.pct == null ? '' : ' (' + (d.pct > 0 ? '+' : '') + GP2N.fmt(d.pct, 1, null, true) + ' %)') + '</b>';
 }
 
+/* Envasado: cajas contadas contra las que tiene que haber (total que hizo ÷ unidades por caja). */
+function textoDifEnv(c, cajas){
+  var d = GP2VC.difEnvasado(c, cajas);
+  if (!d) return '';
+  var cl = d.cajas === 0 ? 'cero' : (d.cajas > 0 ? 'pos' : 'neg');
+  return ' · diferencia <b class="' + cl + '">' + (d.cajas > 0 ? '+' : '') + GP2N.fmt(d.cajas, 0) + ' cajas' +
+    (d.pct == null ? '' : ' (' + (d.pct > 0 ? '+' : '') + GP2N.fmt(d.pct, 1, null, true) + ' %)') + '</b>';
+}
+
+function vivoEnv(c){
+  var cj = $('cj' + c.id), out = $('vivo' + c.id);
+  if (!cj || !out) return;
+  if (cj.value.trim() === ''){ out.textContent = ''; return; }
+  var t = textoDifEnv(c, GP2N.entero(cj.value));
+  out.innerHTML = t ? 'Contaste ' + GP2N.fmt(GP2N.entero(cj.value), 0) + ' cajas' + t : '';
+}
+
 /* Mientras tipea: neto = balanza − tara del cajón elegido, y contra lo esperado. */
 function vivo(c){
   var sel = $('cn' + c.id), inp = $('pb' + c.id), out = $('vivo' + c.id);
@@ -210,6 +246,13 @@ function vivo(c){
 }
 
 function enganchar(c){
+  var cj = $('cj' + c.id);
+  if (cj){
+    GP2N.autoMiles(cj);
+    cj.oninput = function(){ vivoEnv(c); };
+    vivoEnv(c);
+    return;
+  }
   var sel = $('cn' + c.id), inp = $('pb' + c.id);
   if (inp) GP2N.autoMiles(inp);
   if (sel) sel.onchange = function(){ vivo(c); };
@@ -229,6 +272,11 @@ document.addEventListener('click', async function(ev){
     if (!cajon){ msg('Elegí en qué cajón lo pesaste.', true); return; }
     if (!bruto){ msg('Cargá lo que marca la balanza.', true); return; }
     await guardar(id, { p_id: Number(id), p_cajon: cajon, p_bruto_kg: bruto, p_no_encontrado: false, p_nota: null });
+    return;
+  }
+  if ((id = b.getAttribute('data-guardar-env'))){
+    if ($('cj' + id).value.trim() === ''){ msg('Cargá cuántas cajas contaste (0 si no había).', true); return; }
+    await guardar(id, { p_id: Number(id), p_cajas: GP2N.entero($('cj' + id).value), p_no_encontrado: false, p_nota: null });
     return;
   }
   if ((id = b.getAttribute('data-noenc'))){

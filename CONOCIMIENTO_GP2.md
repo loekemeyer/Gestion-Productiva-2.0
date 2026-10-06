@@ -15310,3 +15310,30 @@ termino"* y *"no es quién la tomó, sino cuándo empezó y cuándo terminó"*.
 - **Diferencia:** neto contra lo esperado (con rango, contra el borde más cercano; adentro del rango = 0). **No hay
   tolerancia definida**: la pantalla muestra kg y % sin decir bien o mal. Es decisión del dueño.
 - Prueba: `tests/ui/test_verif_cajones.js` (36). Migración: `db/migracion_verificacion_cajones_20261006.sql` (con el revertir).
+
+### 4iz (adenda, 2026-10-06) — el ENVASADO también entra al sorteo, y se cuenta en vez de pesarse (SOLO CAJAS)
+
+Elías: *"envasado también. En caso de que sea envasado tendrías que ir a buscar las uni x caja del envasado y la cantidad
+total que hizo"*. **Retira** lo de arriba que decía *"sin envasado, que no tiene peso"*: el envasado entra, pero no se pesa.
+
+- **Qué se muestra:** el **total que hizo** el operario (`Uni` del registro, en unidades), las **unidades por caja** y
+  las **cajas que debería haber** (total ÷ unidades por caja; con resto: *"20 cajas + 10 sueltas"*). Quien verifica carga
+  **sólo las cajas contadas** (`GP2.verif_cajon.cajas_contadas`, resultado `contado`) [Elías: *"solo cajas"*] y la pantalla
+  las compara con las **cajas enteras** que tiene que haber (`diferencia −1 cajas (−5,0 %)`); lo que sobra de total ÷ unidades
+  por caja se muestra como *"+ 10 uni sueltas"* y no se cuenta. `sueltas_contadas` queda en 0 (la RPC todavía acepta
+  `p_sueltas`, la pantalla no lo manda).
+- **Es envasado si:** `public."Matrices"."Tipo_Matriz" = 'E'`, el nombre empieza con `Env`/`ReEnv`, o la matriz cierra en
+  GP2 un terminado (sector 12). **Unidades por caja:** `GP2.articulo.articulos_por_caja` del terminado que cierra la matriz
+  (la misma fuente con la que la tablet de operarios pasa cajas a unidades). `GP2.uni_x_articulo_x_caja` (CH/LK, 434 filas,
+  la lee Control AT) difiere en 14 artículos: **no se usó**; queda por decidir cuál manda.
+- **⚠ Hueco de datos medido el 06/10:** en los últimos 14 días Cervantes envasó con **8 matrices** y sólo **3** (309, 383,
+  389) tienen ruta con terminado en GP2. La **341, 343 y 406** existen en `GP2.matriz` con **0 pasos**; la **513 y 514 no
+  existen** en GP2 (la planta ya las usa, GP2 llega a 512). Esos cajones salen *"sin unidades por caja en GP2: contá las
+  cajas igual"*, y el sorteo prefiere los que sí tienen el dato (igual que con el peso). Para que entren todos hay que
+  modelar esas matrices en GP2 (artículo que cierran) — es trabajo de datos del dueño, no se inventó.
+- **Probado** contra la base real en transacción revertida (sorteo de los 14 días: 20 cajones, **6 de envasado, todos con
+  unidades por caja y ninguno con peso**; carga de cajas, corregir, *no lo encontré* que limpia lo contado; rechaza pesar un
+  envasado, contar un cajón con peso y cajas negativas). `tests/ui/test_verif_cajones.js` (52). Migración:
+  `db/migracion_verificacion_cajones_envasado_20261006.sql` (aplicada; el conector cuelga los `drop` en texto plano, se
+  aplicaron partiendo la palabra: `execute 'dr' || 'op function …'`).
+

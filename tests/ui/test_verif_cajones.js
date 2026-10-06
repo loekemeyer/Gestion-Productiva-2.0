@@ -25,6 +25,17 @@ const C2 = { id: 12, fecha: '2026-10-06', espejo_id: 901, legajo: '233', operari
   nombre_matriz: 'Afilado', uni: 5.6, carga_en: 'kg', hora_inicio: '08:26:43', hora_fin: '17:26:46', piezas: [],
   kg_x_uni_min: 0.0043, kg_x_uni_max: 0.0043, kg_esperado_min: 5.6, kg_esperado_max: 5.6, sectores: 'Sector Procesado',
   resultado: null, cajon_numero: null, tara_kg: null, peso_bruto_kg: null, peso_neto_kg: null, cargado_en: null, nota: null };
+// Envasado: 250 uni / 12 por caja = 20 cajas + 10 sueltas (C3). C4: matriz sin ruta con terminado en GP2 (sin unidades por caja).
+const ENV = { es_envasado: true, kg_x_uni_min: null, kg_x_uni_max: null, kg_esperado_min: null, kg_esperado_max: null, carga_en: 'unidades',
+  resultado: null, cajon_numero: null, tara_kg: null, peso_bruto_kg: null, peso_neto_kg: null, cargado_en: null, nota: null,
+  cajas_contadas: null, sueltas_contadas: null };
+const C3 = Object.assign({ id: 31, fecha: '2026-10-06', espejo_id: 910, legajo: '74', operario: 'Franco Ortiz', matriz: '389', nombre_matriz: 'Env Ñoquera',
+  uni: 250, hora_inicio: '09:53:30', hora_fin: '14:01:27', sectores: 'Terminado', uni_x_caja_min: 12, uni_x_caja_max: 12,
+  cajas_esperadas_min: 20.833, cajas_esperadas_max: 20.833,
+  piezas: [{ codigo: '207', uni_x_caja: 12 }, { codigo: '229', uni_x_caja: 12 }] }, ENV);
+const C4 = Object.assign({ id: 32, fecha: '2026-10-06', espejo_id: 911, legajo: '233', operario: 'David Ayala', matriz: '514', nombre_matriz: 'Env Rallador Mini Imp.',
+  uni: 228, hora_inicio: '08:41:58', hora_fin: '10:19:48', sectores: null, uni_x_caja_min: null, uni_x_caja_max: null,
+  cajas_esperadas_min: null, cajas_esperadas_max: null, piezas: [] }, ENV);
 const TARAS = [{ numero: 1, tara_kg: 1.7 }, { numero: 2, tara_kg: 1.97 }];
 const bundle = (dia, cajones) => ({ fecha: '2026-10-06', hoy: '2026-10-06', dia, cajones, taras: TARAS,
   dias: dia ? [{ fecha: '2026-10-06', sorteado_en: dia.sorteado_en, empezado_en: dia.empezado_en, terminado_en: dia.terminado_en,
@@ -186,6 +197,52 @@ const STUB = `(function(){
   ok((await texto(page, '#vcIr')) === 'Seguir verificando', 'si ya empezo, el cartel ofrece seguir');
   await Promise.all([page.waitForURL(/VerificacionCajones_GP2/, { timeout: 5000 }).catch(() => {}), page.click('#vcIr')]);
   ok(/VerificacionCajones_GP2/.test(page.url()) && page.__log.filter(x => x.n === 'verif_cajones_empezar').length === 0, 'y seguir no vuelve a sellar el inicio');
+  await page.close();
+
+  // ── 9. ENVASADO: no se pesa, se cuentan cajas ──────────────────────────────
+  const C3c = Object.assign({}, C3, { resultado: 'contado', cajas_contadas: 19, sueltas_contadas: 0, cargado_en: '2026-10-06T15:20:00-03:00' });
+  page = await abrir('Produccion/VerificacionCajones/VerificacionCajones_GP2.html', {
+    verif_cajones_bundle: { data: bundle(empezado, [C3, C4]), error: null },
+    verif_cajon_cargar: { data: bundle(empezado, [C3c, C4]), error: null },
+  });
+  await page.waitForSelector('#caj31');
+  const e1 = await texto(page, '#caj31');
+  ok(e1.includes('Envasado: se cuenta, no se pesa'), 'el envasado dice que se cuenta y no se pesa');
+  ok(e1.includes('Total que hizo250 uni') && e1.includes('Unidades por caja12 uni'), 'muestra el total que hizo y las unidades por caja');
+  ok(e1.includes('Cajas que debería haber20 cajas (+ 10 uni sueltas)'), 'cajas esperadas: 250 / 12 = 20 cajas enteras (+ 10 uni sueltas que no se cuentan)');
+  ok(e1.includes('207 12 x caja · 229 12 x caja'), 'lista los artículos que cierra la matriz con su cantidad por caja');
+  ok(!e1.includes('Debería pesar') && !e1.includes('Peso por unidad') && !(await page.$('#cn31')) && !(await page.$('#pb31')), 'el envasado no pide peso ni tara');
+  ok(!!(await page.$('#cj31')) && !(await page.$('#su31')), 'pide SOLO las cajas contadas (sin unidades sueltas)');
+  await page.click('[data-guardar-env="31"]');
+  ok((await texto(page, '#status')).includes('Cargá cuántas cajas contaste') && (await rpcs(page, 'verif_cajon_cargar')).length === 0, 'sin cajas no llama a la base');
+  await page.fill('#cj31', '19'); await page.dispatchEvent('#cj31', 'input');
+  const v3 = await texto(page, '#vivo31');
+  ok(v3.includes('Contaste 19 cajas') && v3.includes('diferencia -1 cajas (-5,0 %)'), 'en vivo: cajas contadas contra las esperadas (' + v3 + ')');
+  await page.fill('#cj31', '20'); await page.dispatchEvent('#cj31', 'input');
+  ok((await texto(page, '#vivo31')).includes('diferencia 0 cajas'), 'con las cajas justas la diferencia es 0');
+  await page.fill('#cj31', '19'); await page.dispatchEvent('#cj31', 'input');
+  await page.click('[data-guardar-env="31"]');
+  await page.waitForFunction(() => !document.querySelector('#cj31'));
+  const g3 = await rpcs(page, 'verif_cajon_cargar');
+  ok(g3.length === 1 && g3[0].a.p_id === 31 && g3[0].a.p_cajas === 19 && g3[0].a.p_no_encontrado === false &&
+     !('p_sueltas' in g3[0].a) && !('p_cajon' in g3[0].a) && !('p_bruto_kg' in g3[0].a), 'Guardar manda sólo las cajas, sin sueltas, cajón ni peso (' + JSON.stringify(g3[0] && g3[0].a) + ')');
+  const r3 = await texto(page, '#caj31');
+  ok(r3.includes('Contado') && r3.includes('19 cajas') && r3.includes('diferencia -1 cajas'), 'muestra lo contado y la diferencia en cajas');
+  // C4: la matriz no tiene unidades por caja en GP2
+  const e4 = await texto(page, '#caj32');
+  ok(e4.includes('Total que hizo228 uni') && e4.includes('Unidades por cajasin cargar en GP2'), 'sin dato en GP2 lo dice y muestra igual el total que hizo');
+  ok(e4.includes('sin unidades por caja en GP2: contá las cajas igual'), 'y pide contar las cajas igual');
+  await page.fill('#cj32', '19'); await page.dispatchEvent('#cj32', 'input');
+  ok((await texto(page, '#vivo32')) === '', 'sin unidades por caja no inventa una diferencia');
+  await page.close();
+
+  // el cartel del menu para un cajon envasado
+  page = await abrir('GP2_MODULOS.html', { verif_cajones_bundle: { data: bundle(SORTEADO, [C3, C4, C1]), error: null } }, { aviso: true });
+  await page.waitForSelector('#vcCartel');
+  const ce = await texto(page, '#vcCartel');
+  ok(ce.includes('Total que hizo: 250 uni') && ce.includes('Unidades por caja: 12 uni') && ce.includes('Debería haber: 20 cajas (+ 10 uni sueltas)'), 'el cartel trae total, unidades por caja y cajas esperadas');
+  ok(ce.includes('Envasado: no se pesa, se cuentan las cajas') && ce.includes('sin unidades por caja en GP2: contá las cajas igual'), 'el cartel avisa que se cuenta y cubre el caso sin dato');
+  ok(ce.includes('Debería pesar: entre 29,82 kg y 33,26 kg'), 'y el cajón que no es envasado sigue con su peso');
   await page.close();
 
   await browser.close();

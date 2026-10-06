@@ -60,6 +60,32 @@
   }
   function unidades(c) { return c.carga_en === "kg" ? kg(c.uni) : uni(c.uni) + " uni"; }
 
+  /* ENVASADO (2026-10-06, Elías: "envasado también… ir a buscar las uni x caja del envasado y la cantidad
+     total que hizo"): no se pesa, se cuentan cajas. Las unidades por caja salen de GP2.articulo del terminado
+     que cierra la matriz; si la matriz no tiene ruta con terminado en GP2 no hay dato y se cuenta igual. */
+  function unPorCaja(c) {
+    if (c.uni_x_caja_min == null) return "sin cargar en GP2";
+    if (Number(c.uni_x_caja_min) === Number(c.uni_x_caja_max)) return c.uni_x_caja_min + " uni";
+    return "entre " + c.uni_x_caja_min + " y " + c.uni_x_caja_max + " uni";
+  }
+  /* Cajas que tiene que haber: las ENTERAS (total ÷ unidades por caja); lo que sobra son unidades sueltas, que no se cuentan. */
+  function cajasEsperadas(c) {
+    if (c.uni_x_caja_min == null) return "sin unidades por caja en GP2: contá las cajas igual, queda registrado";
+    var f = global.GP2N.fmt;
+    if (Number(c.uni_x_caja_min) === Number(c.uni_x_caja_max)) {
+      var apc = Number(c.uni_x_caja_min), cj = Math.floor(Number(c.uni) / apc), su = Math.round(Number(c.uni) - cj * apc);
+      return f(cj, 0) + (cj === 1 ? " caja" : " cajas") + (su ? " (+ " + f(su, 0) + " uni sueltas)" : "");
+    }
+    return "entre " + f(Math.floor(Number(c.uni) / Number(c.uni_x_caja_max)), 0) + " y " + f(Math.floor(Number(c.uni) / Number(c.uni_x_caja_min)), 0) + " cajas";
+  }
+  /* Cajas contadas contra las esperadas. Con un rango de unidades por caja, contra el borde más cercano (0 si cae adentro). */
+  function difEnvasado(c, cajas) {
+    if (c.uni_x_caja_min == null) return null;
+    var lo = Math.floor(Number(c.uni) / Number(c.uni_x_caja_max)), hi = Math.floor(Number(c.uni) / Number(c.uni_x_caja_min));
+    var n = Number(cajas), ref = n < lo ? lo : (n > hi ? hi : n);
+    return { cajas: n - ref, pct: ref ? (n - ref) / ref * 100 : null };
+  }
+
   /* Neto contra lo esperado. Con un rango, la diferencia es contra el borde más cercano (0 si cae adentro). */
   function diferencia(c) {
     if (c.peso_neto_kg == null || c.kg_esperado_min == null) return null;
@@ -109,8 +135,12 @@
             return '<div style="border:2px solid #e5e9ee;border-radius:12px;padding:10px 14px;margin:8px 0;font-size:16px;line-height:1.5">' +
               '<div style="font-size:18px;font-weight:900">Cajón ' + (i + 1) + ' · Matriz ' + esc(c.matriz) + ' ' + esc(c.nombre_matriz || "") + hecho + '</div>' +
               '<div><b>Quién:</b> ' + esc(c.operario || "?") + ' (leg. ' + esc(c.legajo || "?") + ') · <b>Hora:</b> ' + hhmm(c.hora_inicio) + ' a ' + hhmm(c.hora_fin) + '</div>' +
-              '<div><b>Unidades:</b> ' + unidades(c) + ' · <b>Buscalo en:</b> ' + esc(c.sectores || "sector sin cargar en GP2") + '</div>' +
-              '<div><b>Peso por unidad:</b> ' + porUnidad(c) + ' · <b>Debería pesar:</b> ' + esperado(c) + '</div>' +
+              (c.es_envasado
+                ? '<div><b>Total que hizo:</b> ' + unidades(c) + ' · <b>Unidades por caja:</b> ' + unPorCaja(c) + '</div>' +
+                  '<div><b>Debería haber:</b> ' + cajasEsperadas(c) + ' · <b>Buscalo en:</b> ' + esc(c.sectores || "sector sin cargar en GP2") + '</div>' +
+                  '<div style="color:#92400e;font-weight:700">📦 Envasado: no se pesa, se cuentan las cajas</div>'
+                : '<div><b>Unidades:</b> ' + unidades(c) + ' · <b>Buscalo en:</b> ' + esc(c.sectores || "sector sin cargar en GP2") + '</div>' +
+                  '<div><b>Peso por unidad:</b> ' + porUnidad(c) + ' · <b>Debería pesar:</b> ' + esperado(c) + '</div>') +
             '</div>';
           }).join("") +
           '<div style="display:flex;gap:10px;flex-wrap:wrap;margin:14px 0 6px">' +
@@ -150,7 +180,8 @@
   }
 
   global.GP2VC = { MODULO: MODULO, avisoActivo: avisoActivo, setAviso: setAviso, kg: kg, hora: hora, hhmm: hhmm,
-                   esperado: esperado, porUnidad: porUnidad, unidades: unidades, diferencia: diferencia, revisar: revisar };
+                   esperado: esperado, porUnidad: porUnidad, unidades: unidades, diferencia: diferencia,
+                   unPorCaja: unPorCaja, cajasEsperadas: cajasEsperadas, difEnvasado: difEnvasado, revisar: revisar };
 
   /* El sorteo es a las 15:00: se mira al abrir y cada 2 minutos, así el cartel aparece aunque la
      pantalla haya quedado abierta desde la mañana. Sin el tilde, ni eso. */

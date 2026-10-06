@@ -9898,7 +9898,7 @@ end $function$
 ;
 
 -- ---------- verif_cajon_cargar ----------
-CREATE OR REPLACE FUNCTION "GP2".verif_cajon_cargar(p_id bigint, p_cajon integer DEFAULT NULL::integer, p_bruto_kg numeric DEFAULT NULL::numeric, p_no_encontrado boolean DEFAULT false, p_nota text DEFAULT NULL::text)
+CREATE OR REPLACE FUNCTION "GP2".verif_cajon_cargar(p_id bigint, p_cajon integer DEFAULT NULL::integer, p_bruto_kg numeric DEFAULT NULL::numeric, p_no_encontrado boolean DEFAULT false, p_nota text DEFAULT NULL::text, p_cajas integer DEFAULT NULL::integer, p_sueltas integer DEFAULT NULL::integer)
  RETURNS jsonb
  LANGUAGE plpgsql
  SECURITY DEFINER
@@ -9907,10 +9907,11 @@ AS $function$
 declare
   v_fecha date;
   v_empezo timestamptz;
+  v_env boolean;
   v_tara numeric;
   v_nota text := nullif(btrim(coalesce(p_nota, '')), '');
 begin
-  select v.fecha, d.empezado_en into v_fecha, v_empezo
+  select v.fecha, d.empezado_en, v.es_envasado into v_fecha, v_empezo, v_env
     from "GP2".verif_cajon v join "GP2".verif_cajon_dia d on d.fecha = v.fecha
    where v.id = p_id;
   if not found then raise exception 'No encontré ese cajón' using errcode = 'P0002'; end if;
@@ -9924,9 +9925,29 @@ begin
     end if;
     update "GP2".verif_cajon v
        set resultado = 'no_encontrado', cajon_numero = null, tara_kg = null, peso_bruto_kg = null, peso_neto_kg = null,
+           cajas_contadas = null, sueltas_contadas = null, nota = v_nota, cargado_en = now()
+     where v.id = p_id;
+  elsif v_env then
+    if p_cajon is not null or p_bruto_kg is not null then
+      raise exception 'Es envasado: no se pesa, se cuentan las cajas' using errcode = '22023';
+    end if;
+    if p_cajas is null or p_cajas < 0 then
+      raise exception 'Cargá cuántas cajas contaste (0 si no había)' using errcode = '22023';
+    end if;
+    if coalesce(p_sueltas, 0) < 0 then
+      raise exception 'Las unidades sueltas no pueden ser negativas' using errcode = '22023';
+    end if;
+    if p_cajas > 5000 then
+      raise exception 'Más de 5.000 cajas no puede ser: revisá el número' using errcode = '22023';
+    end if;
+    update "GP2".verif_cajon v
+       set resultado = 'contado', cajas_contadas = p_cajas, sueltas_contadas = coalesce(p_sueltas, 0),
            nota = v_nota, cargado_en = now()
      where v.id = p_id;
   else
+    if p_cajas is not null or p_sueltas is not null then
+      raise exception 'Ese cajón no es envasado: se pesa, no se cuentan cajas' using errcode = '22023';
+    end if;
     select c.tara_kg into v_tara from "GP2".cajon c where c.numero = p_cajon;
     if not found then raise exception 'Elegí en qué cajón lo pesaste (N° 1 a 10)' using errcode = '22023'; end if;
     if p_bruto_kg is null or p_bruto_kg <= v_tara then
