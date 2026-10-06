@@ -8991,7 +8991,7 @@ otras 12 piezas que pinta Jade valen $127 o $150 — las mitades a $305 cada una
 máximo. Corregido a **$152,50 por mitad** (ids 71 y 72): el 707 pasa de 1.264,56 a **959,56**. La
 diferencia real 507/707 son ~$72: cartón (−22) y pintar vs cromar (+94). Auditoría: problema 114.
 
-**Hallazgo de paso, NO corregido (para el auditor de costos):** [Probable] el motor deduplica
+**Hallazgo de paso (para el auditor de costos) — ⚠ RESUELTO el 06/10/2026 para 507/707, ver §4jd (IE10-M73 y IE10-M74 partidos por marca y forma: ahora cada mitad tiene su propia arista y los dos suben $228,93):** [Probable] el motor deduplica
 aristas del grafo (`wd` = distinct sobre entrada/salida/paso). Las dos mitades del rompenuez salen
 del **mismo fleje IE10 vía M73**, así que el fleje y la M73 se cuentan **una** vez para las dos. El
 507/707 está **sub**-costeado en una mitad de fleje + una pasada de M73. Es anterior a esta
@@ -15500,3 +15500,34 @@ total que hizo"*. **Retira** lo de arriba que decía *"sin envasado, que no tien
 - **[dato]** `GP2.matriz` 402 (id 257) → «Env Ahueca Papa y Ahueca Fruta»; 261 (id 259) → «Colocar Mgo a Ahueca Papa y Ahueca
   Fruta». Verificado con SELECT. Solo base. `public.Matrices` sigue con el nombre viejo (Regla 0: no se toca).
   `db/migracion_matrices_261_402_ahueca_fruta_20261006.sql`.
+
+## 4jd. Fleje N° 15 (IE10): la M73 y la M74 tienen una salida por marca y forma — 6 intermedios en vez de 2 (2026-10-06)
+
+- **[usuario, 06/10]** M73: *"después de pasar por la matriz 73 se puede ir a IE10-M73-A-L (Abierta Loeke), IE10-M73-C-L
+  (Cerrada Loeke), IE10-M73-A-C (Abierta Chef) y IE10-M73-C-C (Cerrada Chef)"*. M74: *"hoy expulsa G5, G7 e IE10-M74.
+  Tendría que ser G5, G7, IE10-M74-L (Loeke) y IE10-M74-C (Chef)"*. Y pidió *"cambiá los despieces también"*.
+- ⚠ **Nomenclatura (del usuario, no se toca):** en M73 la **C del medio es Cerrada** (`IE10-M73-C-L`); en M74 la **C
+  final es Chef** (`IE10-M74-C`). Quien lea el stock de Sector Movimiento tiene que saberlo.
+- **[dato]** Mapeo (507 = Loeke/LK cromado, 707 = Chef pintado; abierta = rama M74→G7/G5, cerrada = rama M74→M77→G8/G6):
+  ruta 46 (507 abierta) `IE10→M73→IE10-M73-A-L→M74→G7` · ruta 45 (507 cerrada) `…→IE10-M73-C-L→M74→IE10-M74-L→M77→G8` ·
+  ruta 48 (707 abierta) `…→IE10-M73-A-C→M74→G5` · ruta 47 (707 cerrada) `…→IE10-M73-C-C→M74→IE10-M74-C→M77→G6`.
+  `GP2.componente` 482 y 483 se **renombraron** (`IE10-M73-A-L`, `IE10-M74-L`; conservan id e inventario) y se dieron de alta
+  988 `IE10-M73-C-L`, 989 `IE10-M73-A-C`, 990 `IE10-M73-C-C`, 991 `IE10-M74-C` (sector 3, unidad, inventario ubic 3 = 0, como
+  `IC2-M114-D/I`). 7 filas de `ruta_paso`. Verificado: 0 huérfanos, invariantes I/K/L/U/W/Y/AB/AJ en 0.
+  `db/migracion_ie10_m73_m74_loeke_chef_20261006.sql` (con reversa).
+- **[dato]** Costo (`v_costo_componente`, pesos): **507 649,02 → 877,95 · 707 721,05 → 949,98 · D5-M78 538,20 → 767,13 ·
+  B1-M78 632,48 → 861,41**; los otros 827 costos, huella md5 idéntica. **Por qué hubo que partir también la M74:** con sólo
+  las 4 de la M73, `IE10-M74` (lo comparten las ramas cerradas de 507 y 707) recibía dos flejes y 507/707 subían **+$457,86**
+  c/u, un artefacto del motor (ensayo con rollback). **[deducido]** el +$228,93 que queda es una mitad de material (US$0,14866
+  por pieza G7/G8) y es exactamente el sub-costeo que §4cv dejó marcado: las dos mitades compartían la arista IE10→M73 y el
+  motor la contaba una vez.
+- **[dato] "Los despieces":** no hay tabla de despiece en GP2. `Despiece_GP2.html` lee `ruta_paso` en vivo
+  (`despiece_verif_bundle()` ya devuelve las rutas 45-48 con los códigos nuevos) y `ruta_revision` tiene 0 filas, así que no
+  hay firmas confirmadas que migrar (la firma usa el nº de matriz como actor, no el código del intermedio). `public."Despiece
+  x Articulo"` (programa viejo) **no se tocó** (Regla 0).
+- ⚠ **[dato] Efecto operativo:** `registrar_produccion` exige elegir la pieza cuando una matriz tiene varias salidas
+  (`p_comp_salida_id`) y la tablet de operarios ya tiene el selector (la M74 ya tenía 3). **Ahora la M73 también lo pide: 4
+  piezas** en vez de 1; el operario elige abierta/cerrada y Loeke/Chef al registrar cada golpe de la 73. El fleje por pieza
+  (`matriz_fleje_pieza`) se deriva de `ruta_paso`, así que las 4 salidas ya quedan asociadas a `IE10`.
+- **[pendiente]** `public.Matrices` y el Registro Producción 2.0 no se tocaron. Estas 6 piezas no tienen mínimo/máximo ni
+  stock cargado (arrancan en 0).
