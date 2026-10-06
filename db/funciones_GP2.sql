@@ -8751,6 +8751,38 @@ select jsonb_build_object(
 $function$
 ;
 
+-- ---------- virgilio_insumos_sin_match_bundle (v3.2.0, Stock General pestaña Virgilio) ----------
+-- Insumos de Virgilio (espejo del stock REAL de GV: GP2.virgilio_insumo_stock, Regla 0) que todavía NO
+-- tienen un código asignado (no están en GP2.importado_virgilio_componente). Lo lee la tabla "Insumos de
+-- Virgilio sin asignar a un código". Cod ISIS / Cod C quedan "—" porque justamente no están matcheados.
+CREATE OR REPLACE FUNCTION "GP2".virgilio_insumos_sin_match_bundle()
+ RETURNS jsonb
+ LANGUAGE sql
+ SECURITY DEFINER
+ SET search_path TO 'GP2'
+AS $function$
+  with base as (
+    select v.cod, v.nombre, v.categoria, v.unidad, v.saldo, v.ubicacion
+    from "GP2".virgilio_insumo_stock v
+    where not exists (
+      select 1 from "GP2".importado_virgilio_componente m
+      where upper(btrim(m.cod_virgilio)) = upper(btrim(v.cod))
+    )
+  )
+  select jsonb_build_object(
+    'actualizado_en', (select max(actualizado_en) from "GP2".virgilio_insumo_stock),
+    'total',     (select count(*) from base),
+    'con_saldo', (select count(*) from base where saldo <> 0),
+    'filas', coalesce((
+        select jsonb_agg(jsonb_build_object(
+          'cod_v', cod, 'nombre', nombre, 'categoria', categoria,
+          'unidad', unidad, 'saldo', saldo, 'ubicacion', ubicacion
+        ) order by saldo desc nulls last, cod)
+        from base), '[]'::jsonb)
+  );
+$function$
+;
+
 -- ---------- stock_transito_ps_bundle ----------
 CREATE OR REPLACE FUNCTION "GP2".stock_transito_ps_bundle()
  RETURNS jsonb
