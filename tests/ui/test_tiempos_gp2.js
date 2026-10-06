@@ -32,6 +32,13 @@ const MATRIZ = [
   { n_matriz: '325B', descripcion: 'Reenvasado Colador 20', tiempo_historico: 27.6, tiempo_unidad: 'uni', uni_x_golpe: 1, activa: true },
   { n_matriz: '900', descripcion: 'Con tiempo mal cargado', tiempo_historico: 100, tiempo_unidad: 'uni', uni_x_golpe: 1, activa: true },
   { n_matriz: '901', descripcion: 'Pocos datos', tiempo_historico: 10, tiempo_unidad: 'uni', uni_x_golpe: 1, activa: true },
+  // variante donde SOLO una produjo (80) y una matriz sin produccion que no es de ningun grupo (950)
+  { n_matriz: '80',  descripcion: 'Estampa Destapacorona', tiempo_historico: 7, tiempo_unidad: 'uni', uni_x_golpe: 1, activa: true },
+  { n_matriz: '80B', descripcion: 'Estampa Destapacorona Sin Marca', tiempo_historico: 3.5, tiempo_unidad: 'uni', uni_x_golpe: 1, activa: true },
+  // la base (60) no tiene tiempo cargado y la variante (60B) si: las dos muestran el de la 60B
+  { n_matriz: '60',  descripcion: 'Corte Pinza Fideos', tiempo_historico: null, tiempo_unidad: 'uni', uni_x_golpe: 1, activa: true },
+  { n_matriz: '60B', descripcion: 'Corte Pinza Fideos CH', tiempo_historico: 9, tiempo_unidad: 'uni', uni_x_golpe: 1, activa: true },
+  { n_matriz: '950', descripcion: 'Sin produccion en el rango', tiempo_historico: 5, tiempo_unidad: 'uni', uni_x_golpe: 1, activa: true },
 ];
 const EMPLEADO = [{ legajo: '19', nombre: 'Eduardo B', activo: true }, { legajo: '74', nombre: 'Omar Banchur', activo: true }];
 
@@ -50,6 +57,9 @@ const PROD = [
   G('900', '19', D + '1', 100, 1000, 10), G('900', '74', D + '2', 100, 1000, 10), G('900', '95', D + '3', 100, 1100, 11), G('900', '94', D + '4', 100, 900, 9),
   // 901: 2 puntos => "pocos datos"
   G('901', '19', D + '1', 100, 1000, 10), G('901', '74', D + '2', 100, 1100, 11),
+  // 80 produjo, 80B no: con el filtro "Con produccion" tienen que salir las dos filas
+  G('80', '19', D + '1', 100, 700, 7), G('80', '74', D + '2', 100, 720, 7.2),
+  G('60', '19', D + '1', 100, 900, 9), G('60B', '74', D + '2', 100, 930, 9.3),
 ];
 // Gestion Productiva Entero tiene mas: 2300 registros de la 900 ademas de los de arriba (para probar el paginado de a 1000)
 const MASIVOS = [...Array(2300)].map((_, i) => G('900', 'M' + (i % 50), '2026-09-' + String(1 + (i % 28)).padStart(2, '0'), 100, 1000, 10));
@@ -145,6 +155,28 @@ const STUB = `
   ok(f900 && f900[8].includes('⚠'), '900: mediana ~10 contra tiempo cargado 100 => ⚠ revisar: ' + (f900 && f900[8]));
   ok(await page.$eval('td.gauss-cell[data-gra="901"]', td => td.classList.contains('pocos')), '901: 2 operario-dia => numero en gris (pocos datos)');
   ok(await page.$eval('td.gauss-cell[data-gra="901"]', td => !td.textContent.includes('⚠')), '901: pocos datos no lleva ⚠');
+
+  // ===== 2b) variantes: cada una su fila, y con "Con produccion" salen todas si alguna produjo =====
+  await page.selectOption('#fVer', 'prod');
+  let f80 = await fila('80'), f80b = await fila('80B');
+  ok(f80 && f80b, 'Con produccion: 80 (produjo) y 80B (no produjo, pero es variante de la 80) salen las dos, cada una su fila');
+  ok(f80b && f80b[4] === '—' && f80b[8] === f80[8] && f80b[10] === f80[10], '80B: sin produccion propia ("—") pero el mismo Gauss y Reg que la 80: ' + (f80b && f80b.join(' | ')));
+  ok(f80b && f80b[0].includes('+1') && f80 && f80[0].includes('+1'), '80 y 80B llevan el +1');
+  ok(await fila('950') === null, 'Con produccion: la 950 (sin produccion y sin variantes) NO sale');
+  // mismo T. Hist en todo el grupo: el de la base; con * y explicacion si el propio es otro
+  ok(f80[2] === '7 s' && f80b[2] === '7 s *', '80 y 80B muestran el mismo tiempo cargado, el de la base (7 s); la 80B lleva *: ' + f80[2] + ' / ' + f80b[2]);
+  ok(f80b[9] === f80[9], '80 y 80B tienen el mismo Desvio (se mide contra el tiempo de la base): ' + f80[9] + ' / ' + f80b[9]);
+  const titulo80b = await page.evaluate(() => { const tr = [...document.querySelectorAll('#tbody tr')].find(x => x.querySelector('td.mz-tag[data-reg="80B"]')); return tr.cells[2].querySelector('span').title; });
+  ok(titulo80b.includes('80B') && titulo80b.includes('3,5') && titulo80b.includes('80 (base'), 'el * explica que la 80B tiene cargado 3,5 s y se muestra el de la 80: ' + titulo80b);
+  const f60 = await fila('60'), f60b = await fila('60B');
+  ok(f60 && f60b && f60[2] === '9 s *' && f60b[2] === '9 s', 'base sin tiempo: la 60 muestra el de la 60B (9 s) con *, y la 60B sin *: ' + (f60 && f60[2]) + ' / ' + (f60b && f60b[2]));
+  ok(f60[8] === f60b[8], '60 y 60B muestran el mismo Gauss: ' + f60[8] + ' / ' + f60b[8]);
+  await page.click('td.mz-tag[data-reg="80B"]');
+  ok((await page.$$('#regBody tr')).length === 2, 'abrir la 80B (que no produjo) muestra los 2 registros de la 80');
+  ok(await page.$eval('#thVar', e => getComputedStyle(e).display !== 'none'), 'abrir la 80B muestra la columna Var');
+  await page.click('#regCerrar');
+  await page.selectOption('#fVer', '');
+  ok(await fila('950') !== null, 'Todas: la 950 si sale');
 
   // ===== 3) ventana de registros =====
   await page.click('td.mz-tag[data-reg="207"]');

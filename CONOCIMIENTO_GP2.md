@@ -15091,6 +15091,20 @@ de Cuchara, Cucharon, etc"*.
   tiempo cargado. Se juntan todas las que comparten número **salvo** `NO_SON_VARIANTES` = 101, 150, 186, 214, 325 y
   401, donde la letra es otro producto `[usuario 05/10]`. Matriz nueva con letra que no sea variante: agregar su número a
   esa lista. Coincide con la lógica 505 de 4is (la matriz con letra es la base).
+  **Cada variante es su propia fila** (3 y 3B, 10 y 10B) y abriendo cualquiera se ven los registros de todas
+  `[usuario Elías, 06/10, textual]` *"que no quede junto. que sean cada una su matriz, pero al entrar en cualquiera tenga
+  todo"*. Con el filtro «Con producción», si alguna del grupo produjo salen **todas** las filas (antes la que no
+  había producido en el rango quedaba oculta y la otra se veía sola, con un «+1» que parecía una fila pegada).
+  **Mismo tiempo cargado en todo el grupo** `[usuario Elías, 06/10: "que todas muestren el mismo t hist y gauss"]`: todas
+  las variantes muestran el tiempo cargado de la **base** (la matriz sin letra; si no lo tiene, el de la primera que lo
+  tenga), y con ese miden el Desvío y el aviso ⚠. **Es solo lo que muestra la pantalla:** en la base cada matriz conserva
+  el suyo (309 = 82 s, 309B = 41 s; 310 = 18,2 s, 310B = 1,2 s; 394 = 28 s, 394B = 11,5 s, 394C = 15 s), que es el que
+  usa el costo. La fila cuyo tiempo propio es otro lleva un `*` con la explicación, y el CSV trae la columna «Tiempo
+  propio».
+  `[adivinando]` **Abierto:** la **10B** no está en el maestro (`GP2.matriz` no la tiene): es el código viejo de la
+  174 «Varilla c/ Cuchilla Curva (H15)» (la app de operarios v1.9.1 ya registra la 174: «la 10B no existe»). Hoy un código
+  que solo aparece en la producción se une por número a la matriz del maestro (10B con 10, que es «Armado Varilla
+  C/Cuchilla»): si no es variante, agregar `'10'` a `NO_SON_VARIANTES` o llevar los registros de la 10B a la 174.
 - **Botón de fuente** (`GP2` · `Gestión Productiva Entero`; la elección queda en el navegador):
   `GP2.produccion` por defecto; `public.db_n8n_espejo` a pedido. **EXCEPCIÓN A LA REGLA 0, pedida por el dueño con
   nombre:** de esa única tabla se **lee**, y lo único que se **escribe** es anular / reactivar un registro con

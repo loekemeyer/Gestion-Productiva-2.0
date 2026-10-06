@@ -160,7 +160,7 @@
       </table>
     </div>
     <div class="note" id="notaFuente"></div>
-    <div class="note">Lista <b>todas</b> las matrices de <b>GP2.matriz</b> (las inactivas, marcadas). <b>Tiempo cargado</b> = <code>matriz.tiempo_historico</code>, en segundos por unidad (la 501, por kg): es el que usa el costo. Producción del rango: <b>GP2.produccion</b> (unidades &gt; 0, sin eliminadas). <b>Gauss</b> = promedio de seg/uni por <b>operario y día</b> (segundos totales / unidades totales de ese día), sin los días con Uni 0 o Seg ≤ 1, fuera de ⅓ a 3 veces la mediana, o fuera de μ ± 2σ; los registros excluidos se ven tachados en gris al abrir la matriz. <b>Desvío</b> = Gauss contra tiempo cargado (negativo = más rápido). ⚠ = la mediana está a más de 3 veces del tiempo cargado (revisar el tiempo o los registros). Gris = menos de 3 operario-día. Las matrices con letra (3 y 3B) cuentan juntas, salvo 101, 150, 186, 214, 325 y 401.</div>
+    <div class="note">Lista <b>todas</b> las matrices de <b>GP2.matriz</b> (las inactivas, marcadas). <b>Tiempo cargado</b> = <code>matriz.tiempo_historico</code>, en segundos por unidad (la 501, por kg): es el que usa el costo. Producción del rango: <b>GP2.produccion</b> (unidades &gt; 0, sin eliminadas). <b>Gauss</b> = promedio de seg/uni por <b>operario y día</b> (segundos totales / unidades totales de ese día), sin los días con Uni 0 o Seg ≤ 1, fuera de ⅓ a 3 veces la mediana, o fuera de μ ± 2σ; los registros excluidos se ven tachados en gris al abrir la matriz. <b>Desvío</b> = Gauss contra tiempo cargado (negativo = más rápido). ⚠ = la mediana está a más de 3 veces del tiempo cargado (revisar el tiempo o los registros). Gris = menos de 3 operario-día. Las matrices con letra (3 y 3B) son cada una su fila pero cuentan juntas: muestran el mismo tiempo cargado (el de la base, con * si el propio es otro) y el mismo Gauss, al abrir cualquiera se ven los registros de todas, y con «Con producción» salen todas si alguna produjo. Quedan aparte 101, 150, 186, 214, 325 y 401.</div>
   </div>
 </div>
 
@@ -483,6 +483,23 @@
     });
     armarGruposVariantes(Object.keys(acc));
 
+    /* T. HIST DEL GRUPO (pedido de Elias, 2026-10-06: "que todas muestren el mismo t hist y gauss"): las
+       variantes de un grupo (3 y 3B, 309 y 309B) muestran TODAS el tiempo cargado de la base del grupo, la
+       matriz sin letra (el grupo viene ordenado: la base primero); si la base no tiene, el de la primera
+       que lo tenga. Es solo lo que MUESTRA la pantalla (y con lo que mide el desvio y el aviso): en la base
+       cada matriz conserva su tiempo, y es ese el que usa el costo. Si el de la fila es otro, se marca. */
+    Object.keys(acc).forEach(function (k) { acc[k].tiempoPropio = acc[k].tiempo; acc[k].unidadPropia = acc[k].unidad; });
+    Object.keys(acc).forEach(function (k) {
+      var g = GRUPO[k];
+      if (!g) return;
+      var de = null;
+      g.forEach(function (m) { if (!de && acc[m] && acc[m].tiempoPropio > 0) de = m; });
+      acc[k].tiempo = de ? acc[de].tiempoPropio : null;
+      acc[k].unidad = de ? acc[de].unidadPropia : acc[k].unidad;
+      acc[k].tiempoDe = de;
+      if (acc[k].tiempo > 0) THIST[k] = acc[k].tiempo; else delete THIST[k];
+    });
+
     var cache = {};
     ROWS = Object.keys(acc).map(function (k) {
       var a = acc[k];
@@ -519,7 +536,10 @@
     var q = $('fBuscar').value.trim().toLowerCase(), ver = $('fVer').value;
     var out = ROWS.filter(function (r) {
       if (ver === 'sin' && r.tiempo != null) return false;
-      if (ver === 'prod' && !r.prods) return false;
+      /* "Con produccion": cada variante es su propia fila (3 y 3B, 10 y 10B), pero si alguna del grupo
+         produjo salen TODAS: abriendo cualquiera se ven los registros de todas. Sin esto, la que no produjo
+         en el rango quedaba oculta y la otra se veia sola con un "+1" (pedido de Elias, 2026-10-06). */
+      if (ver === 'prod' && !r.prods && !(r.grupo && r.totalReg)) return false;
       return !q || r.matriz.toLowerCase().indexOf(q) >= 0 || String(r.nombre).toLowerCase().indexOf(q) >= 0;
     });
     out.sort(function (a, b) {
@@ -564,6 +584,11 @@
       var txt = r.desvio == null ? '—' : (r.desvio > 0 ? '+' : '') + n2(r.desvio) + '%';
       var tiempo = r.tiempo == null ? '<span class="desv-bad">sin tiempo</span>'
         : n2(r.tiempo) + (r.unidad === 'kg' ? ' s/kg' : ' s');
+      /* variante cuyo tiempo propio es otro: se muestra el de la base del grupo y se marca con * */
+      if (r.grupo && r.tiempo != null && r.tiempoPropio !== r.tiempo) {
+        tiempo = '<span title="La ' + esc(r.matriz) + ' tiene cargado ' + (r.tiempoPropio == null ? 'nada' : n2(r.tiempoPropio) + ' s') +
+          '; se muestra el de la ' + esc(r.tiempoDe) + ' (base del grupo)">' + tiempo + ' *</span>';
+      }
       var marca = !r.maestro ? ' <span class="desv-na">(no está en el maestro)</span>'
         : (!r.activa ? ' <span class="desv-na">(inactiva)</span>' : '');
       var hint = r.grupo ? ' <span class="var-hint" title="Cuenta junto con: ' + esc(r.grupo.join(', ')) + '">+' + (r.grupo.length - 1) + '</span>' : '';
@@ -810,9 +835,9 @@
 
   function csv() {
     /* el armado del CSV (;, BOM, coma decimal) es el de la casa: GP2UI.exportarCSV */
-    var filas = [['Matriz', 'Nombre', 'Tiempo cargado', 'Unidad tiempo', 'Uni x golpe', 'Producciones', 'Unidades', 'Seg trabajados', 'Seg/uni real', 'Gauss', 'Desvio %', 'Registros usados', 'Registros total', 'Aviso']];
+    var filas = [['Matriz', 'Nombre', 'Tiempo cargado', 'Tiempo propio', 'Unidad tiempo', 'Uni x golpe', 'Producciones', 'Unidades', 'Seg trabajados', 'Seg/uni real', 'Gauss', 'Desvio %', 'Registros usados', 'Registros total', 'Aviso']];
     filtradas().forEach(function (r) {
-      filas.push([r.matriz, r.nombre, r.tiempo == null ? '' : r.tiempo, r.unidad, r.uxg == null ? '' : r.uxg,
+      filas.push([r.matriz, r.nombre, r.tiempo == null ? '' : r.tiempo, r.tiempoPropio == null ? '' : r.tiempoPropio, r.unidad, r.uxg == null ? '' : r.uxg,
         r.prods, r.uni, r.segs,
         r.segUni == null ? '' : Number(r.segUni.toFixed(3)),
         r.gauss == null ? '' : Number(r.gauss.toFixed(3)),
