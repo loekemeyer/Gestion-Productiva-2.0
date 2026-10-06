@@ -253,14 +253,22 @@ sistema de gestion, numericos). Diferentes codigos pueden referirse a la misma c
 - El **mapeo Virgilio ↔ componente Cervantes** vive en **`GP2.importado_virgilio_componente`**
   (`cod_virgilio` → `componente_id`). Al 06/10: 19 filas → **sólo 17 insumos matchean; 160 NO**. El
   **Cod C** sale de `GP2.componente.codigo` del componente mapeado.
-- **Cod ISIS todavía NO tiene fuente** para insumos: hasta que se cargue el mapeo a ISIS, la columna
-  queda **"—"**. Un insumo **"no matcheado"** es el que no está en `importado_virgilio_componente`.
+- **Cod ISIS**: su fuente es **`Insumos.isis`** de GV (al 06/10: 47 de los 160 ya lo tienen); el espejo lo
+  trae y el editor lo pre-carga. Un insumo **"sin asignar"** es el que todavía NO tiene **componente de
+  Cervantes** en la equivalencia (`importado_virgilio_componente.componente_id` null o sin fila).
 
-En **Stock General → pestaña Virgilio**, la tabla **"Insumos de Virgilio sin asignar a un código"**
-(arriba de los filtros) lista esos 160, leyendo el espejo **en vivo** vía la RPC
-**`GP2.virgilio_insumos_sin_match_bundle`** (SECURITY DEFINER). v3.2.0 de `StockGeneral_GP2.html`.
-⚠ GP2 pasa a ser dueño del dato de insumos de Virgilio **recién cuando esto funcione 10/10** (Luis,
-06/10); por ahora es sólo el nexo de lectura, GV sigue siendo el dueño.
+En **Stock General → pestaña Virgilio**, la tabla **"Insumos de Virgilio sin asignar a un código"** (arriba
+de los filtros, RPC `GP2.virgilio_insumos_sin_match_bundle`) lista esos 160 y **desde v3.3.0 es EDITABLE**:
+por fila se completa el **Cod C** (código de Cervantes) y el **Cod ISIS** y se guarda con ✓
+(`GP2.virgilio_equivalencia_guardar`, escribe SOLO GP2 — Regla 0). La equivalencia vive en
+**`importado_virgilio_componente`** (ahora con columna `isis` y `componente_id` nullable): guarda el **Cod C
+por `componente_id`, NO por el string**, así un rename de `componente.codigo` se refleja solo. Al setear el
+Cervantes, la fila **sale de sin asignar**. **Stock: nada todavía** (Luis, 06/10: entra en el último paso,
+cuando GP2 maneje el stock de GV). El rename del **Cod V** lo sincroniza un trigger en GV
+(`public.gv_insumo_cod_sync_equiv`); ese trigger y el `isis` del espejo están en
+`db/migracion_equivalencia_editor_20261006.sql`, **a correr UNA vez en el SQL Editor** (el conector de la
+sesión cuelga ese DDL de trigger). ⚠ GP2 es dueño del dato **recién cuando funcione 10/10**; por ahora GV
+sigue siendo el dueño.
 
 # ⚠️ ANTES DE CUALQUIER EDIT/WRITE: LEER LOCKS.txt Y REGISTRAR LockX. SIN EXCEPCIONES. ⚠️
 
