@@ -13822,7 +13822,8 @@ Contexto: app unificada `GP2-Registro-Produccion`, se arranca por Cervantes. Tab
 - [usuario 29/09] **L9, L10, L11, L12 DESAPARECEN** (aletas del 523/723). Corrección del mismo día: primero se
   pasaron a Sector Movimiento con su código — mal, el dueño: *"desaparecen… los nuevos stocks movimientos llevan la
   descripción de stock movimiento que es componente tal tras matriz tal"*. Quedan **IC2-M116-I / -D** (Fleje N° 92 tras M116 (Izq/Der),
-  ex L11/L12) e **IC2-M114-I / -D** (Fleje N° 92 tras M114 (Izq/Der), ex L9/L10). Izquierda y derecha van SEPARADAS
+  ex L11/L12) e **IC2-M114-I / -D** (Fleje N° 92 tras M114 (Izq/Der), ex L9/L10). ⚠ **CORREGIDO el 06/10 (§4jf): L9/L10 VUELVEN
+  como crudos (salida del corte M116) y los 4 intermedios IC2-M116/M114-I/-D pasaron a L9, L10, L9-M114 y L10-M114.** Izquierda y derecha van SEPARADAS
   con sufijo -I / -D [usuario: "sí", para no sumar el stock de las dos aletas]. Rutas 210/211 (izq) → D3, 212/213 (der) → D2. Borrados L9-L12 (stock
   0, sin movimientos ni recetas). D2 $114,19 → $114,92 y D3 $114,30 → $115,26: el material ahora sale del fleje (37,8 u/kg).
   **Convención del stock movimiento** [usuario]: código `<raíz>-M<matriz>`, descripción `<desc. raíz> tras M<matriz>`, sin
@@ -15546,3 +15547,27 @@ total que hizo"*. **Retira** lo de arriba que decía *"sin envasado, que no tien
   la cuenta mal, es lo primero que hay que mirar. El `confirm` de «¿Eliminar este registro?» (🗑) **se mantiene**.
 - `tests/ui/test_op_e2e.js`: orden RM,C,E con idx 2,1,0, y ningún diálogo «GOLPES x / CAJAS x» al enviar C en la 348 (los tres
   chequeos fallan con el código anterior). Versión: `version.js` v1.245.2, `?v=20261006k`.
+
+## 4jf. Aletas del 523/723: el corte M116 entrega a los crudos L9/L10 y el doblado M114 entrega «L9-M114» / «L10-M114» (2026-10-06)
+
+- **[usuario, 06/10]** *«Después de Corte de Aleta van a los sectores crudos L9 (Aleta Izq s/Doblar y s/Estampar), L10 (Aleta Der
+  s/Doblar y s/Estampar). Ahora lo que expulsa el doblado sería SC tras Matriz.»* Corrige §4gt: L9/L10 **vuelven** (el 29/09 se
+  habían dado por desaparecidos) pero como **salida del corte**, y los 4 intermedios `IC2-M116/M114-I/-D` dejan de existir con ese
+  nombre. L11/L12 no vuelven. (Antes, el mismo día, se probó «un solo `IC2-M116`» y se deshizo: LOCKS (42)/(43).)
+- **[dato]** Cadena: `IC2 → M116 → L9 → M114 → L9-M114 → M221 → D3` (rutas 210/211, izq) y `… → L10 → M114 → L10-M114 → M221 → D2`
+  (212/213, der). **Sin DELETE y sin tocar `ruta_paso`**: se reutilizaron los 4 ids — 945 `IC2-M116-I` → **L9** (sector 1 Crudo; su
+  inventario pasó de la ubicación 3 a la 1), 947 `IC2-M116-D` → **L10**, 946 `IC2-M114-I` → **L9-M114**, 948 `IC2-M114-D` →
+  **L10-M114** (siguen en Sector Movimiento). Las 4 filas tenían stock 0 y ninguna otra referencia. Verificado con SELECT.
+  `db/migracion_aletas_l9_l10_crudo_20261006.sql` (con reversa, sin DELETE).
+- **[dato]** «Tras matriz» aplicado literal a la convención del 29/09 (`<raíz>-M<matriz>` / `<desc. raíz> tras M<matriz>`), con el
+  crudo como raíz. Queda «Aleta Izq s/Doblar y s/Estampar tras M114», que lee raro porque ya está doblada; se dejó así.
+- ⚠ **[pendiente del dueño]** L9 y L10 nacen **sin `kg_x_uni` ni `uni_x_cajon`**: son los primeros 2 de los 79 crudos sin peso (los
+  otros 77 lo tienen). No se inventaron ni se copiaron de la base vieja (su `SC_Kg` del 10/08 las tiene como LF9/LF11 con otros
+  nombres: Regla 0). Sin cajón no hay máximo por cajones ni derivado. **Costo sin cambio**: sin kg en la cadena el material cae a
+  1/`partes_por_kilo_de_fleje` de la M116 (37,8 u/kg). Cuando se carguen, el costo del crudo va a salir del kg real.
+- **[dato]** Medido con ensayo revertido y luego aplicado: `v_costo_componente` 835 filas, **0 costos distintos** contra
+  `zz_backups."GP2_Snap_costo_20261006_m116"` (total 537.420,79; 523 3.001,16 · 723 2.958,32); inventario del resto idéntico
+  (md5); los bundles faltantes/oc/programa/tablet/despiece_verif/valorizacion/stock_sector(1) corren sin error y L9 aparece en
+  todos menos `oc_bundle` (no tiene máximo). Invariantes B/I/K/L/U/W/Y/AA/AB/AJ = 0, 0 huérfanos.
+- ⚠ **[dato] Efecto operativo:** registrar golpes de la M116 pide elegir la pieza (L9 izq / L10 der); el stock del corte queda en
+  **Sector Crudo** y el doblado M114 lo consume de ahí y entrega L9-M114 / L10-M114.

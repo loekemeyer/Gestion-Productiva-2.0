@@ -20,7 +20,7 @@ Uso = producción cargada en Cervantes (`public.db_n8n_espejo`) en los últimos 
 | ~~28 / 28B~~ | **GP2 está bien** [Elías]: ya no se croma, se compra fleje inox → A15 | la vieja quedó con "28B p/Cromar". ⚠ En RP se siguió cargando 28B hasta el 01/09 (22 cajones, 34.460 u.) |
 | ~~10 / 10B~~ | **RESUELTO 29/09** [Elías]: la varilla curva (H15) es la **174** "Armado de Varilla Curva C/Cuchilla", que ya hace H15 en GP2. La **10B se eliminó** de `GP2.matriz` | (error mío: sí existe H15) |
 | 74 / 74A | 74 hace G7 e IE10-M74; **no hay G5** | 74A = Rompenuez **Abierta** → G5 |
-| 114 | GP2 usa la **114** (L11→L9 izq, L12→L10 der) | la vieja: 114A (izq) y 114B (der). En el último año se cargó solo la **114** (28 cajones, 31.384 u.); 114A/B nunca |
+| 114 | GP2 usa la **114** (L9→L9-M114 izq, L10→L10-M114 der; el corte 116 entrega L9/L10 crudos, CONOCIMIENTO §4jf, 06/10) | la vieja: 114A (izq) y 114B (der). En el último año se cargó solo la **114** (28 cajones, 31.384 u.); 114A/B nunca |
 | 221 | hace **D2 / D3** (aletas inox) | Causa-Efecto: 114A→**L9**, 114B→**L10**. [Elías] las aletas ahora son **inox**; se está actualizando en GP2 (no tocar desde acá) |
 | ~~349~~ | **GP2 está bien** [Elías]: el disco ya sale calado en el primer corte (349 → M2); la 123 ya no va | la vieja: 349 → M3 → 123 perfora → M2 |
 
@@ -51,7 +51,7 @@ Si se traduce la letra a "matriz base + pieza" (3B → 3 + M9):
 | 33 Estampado 3 en 1 | J10 Loeke, J12 s/Marca | |
 | 37 y 38 | fleje 22 / fleje 93 | la elección es del fleje (CONOCIMIENTO §2c-octies) |
 | 78 Remachado Rompenuez | B1-M78 Chef, D5-M78 LK | |
-| 116 Corte de Aleta | L11 izq, L12 der | ¿el mismo golpe saca las dos? |
+| 116 Corte de Aleta | **L9 izq, L10 der** (crudos desde el 06/10, §4jf; antes L11/L12) | ¿el mismo golpe saca las dos? |
 | 137 Arandela Batidor | ABPM mini, LL7B | la vieja la llama "mini" |
 | 183 Soldar Ahueca | N1 fruta, N2 papa | |
 | 356 Corte Mango Plano Manija | G11 (501), I10 (701) | |
