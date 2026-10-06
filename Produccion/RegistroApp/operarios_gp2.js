@@ -475,10 +475,12 @@ function renderSummary() {
     return "";
   };
   el.className = "";
+  // Lo ultimo arriba y lo primero abajo [usuario 2026-10-06]. last2 se guarda en orden de carga
+  // (el mas viejo primero) y se invierte SOLO al dibujar: el idx del 🗑 sigue siendo el real.
   el.innerHTML = `<div class="day-item">
     <div class="t1">Historial del día (${s.last2.length})</div>
     <div class="t2" style="max-height:360px;overflow:auto;">
-      ${s.last2.map((it, idx) => `
+      ${s.last2.map((it, idx) => ({ it, idx })).reverse().map(({ it, idx }) => `
         <div style="margin-top:10px;padding-bottom:10px;border-bottom:1px solid rgba(0,0,0,.08);">
           <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
             <span style="font-weight:900;font-size:34px;">${it.opcion}${it.texto ? `: ${it.texto}` : ""}</span>
@@ -891,20 +893,8 @@ async function sendFast() {
     alert(`Hay un Tiempo Muerto pendiente (${s.lastDowntime.opcion}). Enviá el MISMO para cerrarlo.`);
     return;
   }
-  // Se confirma en voz alta la cuenta para que no se cargue cualquier cosa.
-  if (selected.code === "C") {
-    const nMat = String(s.lastMatrix?.texto || "").trim();
-    const env = envasadoDe(nMat);
-    if (env) {
-      const apc = apcEnvase(nMat, s.lastMatrix?.comp_salida_id) || 1;
-      const c = Number(texto) || 0;
-      if (!confirm(`Matriz ${nMat} (envasado): ${c} CAJAS x ${apc} = ${c * apc} unidades.\n\n¿Son ${c} cajas armadas?`)) return;
-    } else if (pideGolpes()) {
-      const f = uniXGolpe(nMat);
-      const g = Number(texto) || 0;
-      if (f > 1 && !confirm(`Matriz ${nMat}: ${g} GOLPES x ${f} = ${g * f} unidades.\n\n¿Los ${g} son golpes del contador (no unidades)?`)) return;
-    }
-  }
+  // Terminar cajon (C) NO pide confirmacion al Enviar [usuario 2026-10-06]. La cuenta (golpes x
+  // factor / cajas x unidades) ya se ve en pantalla en el aviso #golpeHint mientras se tipea.
 
   // Rollo elegido en E (cualquier operario): ahora sale de un boton, no de un <select>
   let rolloInfo = null;

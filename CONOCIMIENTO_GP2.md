@@ -15531,3 +15531,18 @@ total que hizo"*. **Retira** lo de arriba que decía *"sin envasado, que no tien
   (`matriz_fleje_pieza`) se deriva de `ruta_paso`, así que las 4 salidas ya quedan asociadas a `IE10`.
 - **[pendiente]** `public.Matrices` y el Registro Producción 2.0 no se tocaron. Estas 6 piezas no tienen mínimo/máximo ni
   stock cargado (arrancan en 0).
+
+## 4je. Tablet de operarios: el historial del día va de lo último a lo primero, y Enviar en Terminar cajón no pregunta (2026-10-06)
+
+- **[usuario, Nazareno, 06/10]** *"Ordename arriba lo último y abajo lo primero que hice"* (el «Historial del día» de la pantalla
+  de legajo) y *"no me tiene que pedir confirmación cuando pongo Enviar en Terminar cajón"*.
+- **[dato]** `operarios_gp2.js`: `renderSummary` dibuja `last2` al revés; el array sigue guardado de más viejo a más nuevo
+  (`deleteHistItem` recorre desde el final para reconstruir `lastCajon`, y el cierre del día lo exporta en ese orden) y el
+  `data-idx` del 🗑 es el índice REAL, no la posición en pantalla. Se sacaron los dos `confirm()` de C: el de envasado («N CAJAS x apc = … ¿Son N cajas
+  armadas?») y el de golpes («N GOLPES x f = … ¿Los N son golpes del contador?»). La cuenta no se pierde: sigue a la vista en el
+  aviso `#golpeHint` mientras se tipea.
+- ⚠ **[deducido]** el confirm de golpes existía para frenar que se cargaran unidades en vez de golpes en matrices de factor > 1
+  (`uni_x_golpe`). Sin él, ese error pasa directo; el único freno que queda es el aviso en pantalla. Si aparecen cajones con
+  la cuenta mal, es lo primero que hay que mirar. El `confirm` de «¿Eliminar este registro?» (🗑) **se mantiene**.
+- `tests/ui/test_op_e2e.js`: orden RM,C,E con idx 2,1,0, y ningún diálogo «GOLPES x / CAJAS x» al enviar C en la 348 (los tres
+  chequeos fallan con el código anterior). Versión: `version.js` v1.245.2, `?v=20261006k`.

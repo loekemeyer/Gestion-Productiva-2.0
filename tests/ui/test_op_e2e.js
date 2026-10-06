@@ -42,7 +42,8 @@ window.supabase = { createClient: function(url, key, opts){ window.__sbOpts = op
   const browser = await chromium.launch(EXE ? { executablePath: EXE } : {});
   const page = await browser.newPage();
   page.on('pageerror', e => { console.log('PAGEERROR:', e.message); process.exitCode = 1; });
-  page.on('dialog', d => d.accept());
+  const dialogos = [];   // se registran para vigilar que Enviar en C no pregunte nada
+  page.on('dialog', d => { dialogos.push(d.type() + ': ' + d.message()); d.accept(); });
 
   await page.route('**/@supabase/supabase-js@2', r => r.fulfill({ contentType: 'application/javascript', body: STUB }));
   await page.route(/Operarios_GP2\.html$/, r => r.continue()).catch(()=>{});
@@ -110,8 +111,14 @@ window.supabase = { createClient: function(url, key, opts){ window.__sbOpts = op
   ok(evRM.args.p.matriz === '28' && evRM.args.p.uni === 0, 'RM sobre matriz 28');
 
   // borrar del historial (pantalla legajo) -> RPC anular_evento_prod (ya no update directo)
-  await page.waitForSelector('.hist-del');
-  await page.click('.hist-del');
+  await page.waitForFunction(() => document.querySelectorAll('#daySummary .hist-del').length === 3);
+  // orden del historial: lo ultimo arriba, lo primero abajo [usuario 2026-10-06]; el idx del 🗑
+  // sigue siendo el del registro real (last2 se guarda de mas viejo a mas nuevo)
+  const orden = await page.$$eval('#daySummary .hist-del', els => els.map(e => ({
+    op: e.parentElement.firstElementChild.textContent.trim().split(':')[0], idx: e.dataset.idx })));
+  ok(orden.map(x => x.op).join(',') === 'RM,C,E', 'historial: lo ultimo arriba, lo primero abajo — ' + JSON.stringify(orden));
+  ok(orden.map(x => x.idx).join(',') === '2,1,0', 'el 🗑 sigue apuntando al registro real (idx 2,1,0)');
+  await page.click('.hist-del[data-idx="0"]');   // el E, el mas viejo: ya esta enviado -> baja por RPC
   await page.waitForFunction(() => (window.__calls||[]).some(c => c.name === 'anular_evento_prod'));
   cs = await calls();
   const evDel = cs.find(c => c.name === 'anular_evento_prod');
@@ -139,6 +146,8 @@ window.supabase = { createClient: function(url, key, opts){ window.__sbOpts = op
   cs = await calls();
   const evG = cs.find(c => c.name === 'registrar_evento_prod' && c.args.p.golpes === 240);
   ok(evG.args.p.matriz === '348' && evG.args.p.uni === undefined, 'matriz de 2 por golpe: manda 240 golpes, no 480 uni');
+  // Enviar en Terminar cajon NO pide confirmacion [usuario 2026-10-06]
+  ok(!dialogos.some(m => /GOLPES x|CAJAS x/.test(m)), 'Enviar en C no abre ningun confirm de la cuenta — ' + JSON.stringify(dialogos));
 
   // Matriz dada de baja: ni aparece en la lista ni se acepta tipeada
   await page.click('#btnContinuar');
