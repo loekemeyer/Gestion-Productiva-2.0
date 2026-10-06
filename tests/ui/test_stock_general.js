@@ -298,9 +298,12 @@ window.supabase = { createClient: function(){ return {
   await page.waitForFunction(() => document.querySelectorAll('#vinsBody tr').length > 0);
   const vins = await page.$$eval('#vinsBody tr', es => es.map(e => Array.from(e.cells).map(td => td.textContent.trim())));
   ok(vins.length === 2, 'Insumos sin asignar: las 2 filas del espejo — ' + vins.length);
-  const vMgo = vins.filter(c => c[1] === 'Mgo Pelador 505')[0] || [];
-  // columnas: Cod ISIS | Cod V | Cod C | Descripción | Rubro | Saldo | Unidad | Ubicación
+  const vMgo = vins.filter(c => c[0] === 'Mgo Pelador 505')[0] || [];
+  // columnas: Cod Vir | Cod Cer | Cod ISIS | Descripción | Rubro | Saldo | Unidad | Ubicación
   ok(vMgo[3] === 'Mango Pelador 505 Rojo' && vMgo[5] === '27.000', 'Insumos sin asignar: descripción y saldo del espejo — ' + vMgo.join(' | '));
+  // v3.4.0: Cod Vir es la 1ra columna (el dato que tenemos)
+  const th0 = await page.$eval('#vinsBox thead th', e => e.textContent.trim());
+  ok(th0 === 'Cod Vir', 'Insumos sin asignar: la 1ra columna es Cod Vir — ' + th0);
   // v3.3.0: Cod ISIS y Cod C son editables + ✓ para vincular la equivalencia
   const tieneEditor = await page.evaluate(() => {
     const tr = [...document.querySelectorAll('#vinsBody tr')].find(t => t.getAttribute('data-cv') === 'Mgo Pelador 505');
@@ -316,6 +319,10 @@ window.supabase = { createClient: function(){ return {
   const argEq = await page.evaluate(() => (window.__rpc || []).filter(r => r.n === 'virgilio_equivalencia_guardar').pop().a);
   ok(argEq && argEq.p_cod_virgilio === 'Mgo Pelador 505' && argEq.p_cod_cervantes === 'GRJ31',
      'Vincular: ✓ guarda la equivalencia (Cod V + Cod C) — ' + JSON.stringify(argEq));
+  // v3.4.0: la sección es colapsable (arranca colapsada, el header la abre/cierra)
+  ok(await page.$eval('#vinsBox', e => e.classList.contains('collapsed')), 'Insumos sin asignar: arranca colapsada');
+  await page.click('#vinsHead');
+  ok(await page.$eval('#vinsBox', e => !e.classList.contains('collapsed')), 'Insumos sin asignar: el header la despliega');
 
   await page.click('#rubros .rubro-btn:has-text("SC en Virgilio")');
   ok(await activoPill('tabVirgilio'), 'al clickear un rubro de Virgilio, la pestaña sigue en Virgilio');

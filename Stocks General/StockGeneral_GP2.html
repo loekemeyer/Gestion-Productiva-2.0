@@ -213,7 +213,10 @@
  .planta-tab.sep{margin-left:auto}
  /* v3.2.0: tabla de insumos de Virgilio sin código asignado (arriba de los filtros, sólo en Virgilio) */
  .vins-box{border:2px solid #f0c36d;background:#fffdf5;border-radius:12px;padding:14px 16px;margin:12px 0 6px}
- .vins-head{display:flex;flex-wrap:wrap;align-items:baseline;gap:10px;margin-bottom:6px}
+ .vins-head{display:flex;flex-wrap:wrap;align-items:baseline;gap:10px;margin-bottom:6px;cursor:pointer;user-select:none}
+ .vins-caret{font-size:16px;color:#8a5a00;line-height:1}
+ .vins-box.collapsed .vins-body{display:none}
+ .vins-box.collapsed{margin-bottom:12px}
  .vins-ttl{font-size:18px;font-weight:800;color:#8a5a00}
  .vins-sub{font-size:14px;color:#7a6a3a}
  .vins-box .toolbar{margin:6px 0 10px}
@@ -303,22 +306,25 @@
   <div class="steps" id="paneCervantes">
 
     <!-- v3.2.0: insumos de Virgilio sin código asignado (sólo pestaña Virgilio, arriba de los filtros) -->
-    <div id="vinsBox" class="vins-box hidden">
-      <div class="vins-head">
+    <div id="vinsBox" class="vins-box hidden collapsed">
+      <div class="vins-head" id="vinsHead" role="button" tabindex="0" title="Mostrar / ocultar">
+        <span class="vins-caret" id="vinsCaret">▸</span>
         <div class="vins-ttl">🔗 Insumos de Virgilio sin asignar a un código</div>
         <div class="vins-sub" id="vinsSub"></div>
       </div>
-      <div class="toolbar"><input type="text" id="vinsQ" placeholder="Buscar insumo sin asignar…"></div>
-      <div class="table-wrap">
-        <table class="t">
-          <thead><tr>
-            <th>Cod ISIS</th><th>Cod V</th><th>Cod C</th><th>Descripción</th><th>Rubro</th>
-            <th class="num">Saldo</th><th>Unidad</th><th>Ubicación</th>
-          </tr></thead>
-          <tbody id="vinsBody"></tbody>
-        </table>
+      <div class="vins-body" id="vinsBodyWrap">
+        <div class="toolbar"><input type="text" id="vinsQ" placeholder="Buscar insumo sin asignar…"></div>
+        <div class="table-wrap">
+          <table class="t">
+            <thead><tr>
+              <th>Cod Vir</th><th>Cod Cer</th><th>Cod ISIS</th><th>Descripción</th><th>Rubro</th>
+              <th class="num">Saldo</th><th>Unidad</th><th>Ubicación</th>
+            </tr></thead>
+            <tbody id="vinsBody"></tbody>
+          </table>
+        </div>
+        <div id="vinsEmpty" class="empty hidden"></div>
       </div>
-      <div id="vinsEmpty" class="empty hidden"></div>
     </div>
 
     <div class="rubro-lbl">Rubro</div>
@@ -562,9 +568,9 @@ function renderVins(){
   $("vinsBody").innerHTML = filas.map(function(f){
     var kg = (f.unidad||"").toLowerCase()==="kg";
     return '<tr data-cv="'+esc(f.cod_v||"")+'">'+
-      '<td><input class="vins-in vins-isis" type="text" inputmode="numeric" value="'+esc(f.isis||"")+'" placeholder="ISIS"></td>'+
       '<td><span class="cod">'+esc(f.cod_v||"")+'</span></td>'+
       '<td class="vins-cc"><input class="vins-in vins-cerv" type="text" placeholder="Cód. Cervantes"><button type="button" class="vins-ok" title="Vincular esta equivalencia">✓</button></td>'+
+      '<td><input class="vins-in vins-isis" type="text" inputmode="numeric" value="'+esc(f.isis||"")+'" placeholder="ISIS"></td>'+
       '<td>'+esc(f.nombre||"")+'</td>'+
       '<td>'+esc(vinsRubro(f.categoria))+'</td>'+
       '<td class="num">'+fmt(f.saldo, kg?2:0)+'</td>'+
@@ -1283,6 +1289,15 @@ async function renderMovs(){
 $("q").addEventListener("input", render);
 $("soloStock").addEventListener("change", render);
 $("vinsQ").addEventListener("input", renderVins);
+function vinsToggle(){
+  var box = $("vinsBox"); if (!box) return;
+  var col = box.classList.toggle("collapsed");
+  var c = $("vinsCaret"); if (c) c.textContent = col ? "▸" : "▾";
+}
+$("vinsHead").addEventListener("click", vinsToggle);
+$("vinsHead").addEventListener("keydown", function(e){
+  if (e.key==="Enter" || e.key===" "){ e.preventDefault(); vinsToggle(); }
+});
 $("vinsBody").addEventListener("click", function(e){
   var b = e.target.closest(".vins-ok"); if (b) vinsGuardar(b.closest("tr"));
 });
