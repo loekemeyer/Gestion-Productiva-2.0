@@ -15382,3 +15382,25 @@ total que hizo"*. **Retira** lo de arriba que decía *"sin envasado, que no tien
   (Elías pidió «un tilde»; un tilde sin tildar no distingue «no coincide» de «no miré»): si hace falta distinguirlos, son tres
   estados y se cambia. `verif_cajon_cargar` pasó a 8 parámetros (migración `db/migracion_verificacion_cajones_planilla_20261006.sql`).
 
+
+### 4iz (adenda 4, 2026-10-06) — Palo de Amasar: matrices variantes 383B, 383C y 383D
+
+- `[usuario, Elías, 06/10, textual]` *"hace matrices variantes de los restantes (B,C,...). el 383 actualmente es del palo de
+  amasar frances"*. Antes la 383 «Env Palo de Amasar» cerraba los 4 palos (231, 232, 233 y 234; 12 pasos, 3 por artículo: el palo
+  GRJ, la Caja N°15 `A9B` y `BANDITA`) y el operario no registraba cuál, por eso la verificación de cajones mostraba un rango.
+- **Ahora** (`db/migracion_matrices_383bcd_palo_amasar_20261006.sql`, aplicada): **383 = Francés (234, 12 x caja)**, sin tocar su
+  nombre ni sus 3 pasos; **383B = 30 cm (231, 24 x caja)**, **383C = 40 cm (232, 24)**, **383D = 50 cm (233, 24)** (ids 415, 416, 417),
+  cada una con los 3 pasos de su artículo, movidos de la 383. Atributos copiados de la 383 (30,2 s, `cuenta_mo` false, unidades):
+  costo **idéntico** (huella de `v_costo_componente` 4fa3bf02… antes y después, 831 filas). `GP2.produccion` no tenía registros de
+  la 383. La verificación de la 383 vuelve a dar un solo valor: 12 por caja (60 uni = 5 cajas, 84 uni = 7).
+- Contradice en parte §4is (05/10: *«la matriz con letra es la base que expulsa un componente más»*), pero lo pidió el dueño el
+  06/10 y sirve a la verificación: con la letra queda registrado de qué medida es la tanda.
+- **Lo que NO se hizo:** `public."Matrices"` no tiene 383B/C/D (es la casa del vecino, Regla 0). El Registro Producción 2.0 no las
+  ofrece hasta que se carguen ahí; la tablet de GP2 sí las ve (`registro_operarios_bundle` lee `GP2.matriz`). Los 1.916 uni
+  históricos de la 383 en `db_n8n_espejo` (27/04 al 29/09) siguen bajo «383» y mezclan las cuatro medidas. Propuesto, no hecho:
+  renombrar la 383 a «Env Palo de Amasar Frances 40cm».
+- `[dato]` **`GP2.uni_x_articulo_x_caja` (Gestión Productiva) guarda un renglón por TIPO de caja y no coincide con `articulo`** en:
+  508 y 708 (12 contra 6; el catálogo web LK dice 6), **760 CHEF (36 en la Caja N°29, contra 24 en `articulo` y en `chef_ext`)**,
+  802 (24 contra 12) y las cucharas de madera CHEF «SUEL» (36 contra 12 del display). Afecta a las matrices de envasado **406**
+  (550 LOEKE 36 / 760 CHEF 24 ó 36) y **327** (508/708 con 6 ó 12): **sin resolver**. Del historial de la 406 (52 registros) 27 son
+  sólo múltiplos de 36 y 5 sólo de 24: apunta a 36, pero no es concluyente.
