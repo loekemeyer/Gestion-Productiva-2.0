@@ -15482,3 +15482,14 @@ total que hizo"*. **Retira** lo de arriba que decía *"sin envasado, que no tien
      Completarla allá (Regla 0) necesita el «sí» del dueño; la 516 nunca se cargó en `public`.
   3. Renombrar la 137 de «Cortar arandela Batidor» a «… Pera» ahora que sólo corta la `LL7B` (en `public` se llama «…mini»).
 
+
+## 4jb. 942E es «Cuchara Lisa Ac. Inox», no «Cuchara Ac. Inox» (2026-10-06)
+
+- **[usuario, Thomas, 06/10]** *"942E renombra es Cuchara Lisa, no Cuchara sólo"*. La distingue de la 946E «Cuchara
+  Calada Ac. Inox».
+- **[dato]** `GP2.articulo` id 164 `942E` → «Cuchara Lisa Ac. Inox»; la pieza que arma la 505, `Z47` (id 952) → «Cuchara
+  Lisa Inox» y `Z47-M505` (id 953) → «Cuchara Lisa Inox tras M505» (mismo criterio que Z48/944E en §4iw). Verificado con
+  SELECT. Solo base. `db/migracion_942e_cuchara_lisa_20261006.sql`.
+- ⚠ **[deducido]** la planilla `A_Costos_VIGENTES.xlsx` y `942P` del espejo de Virgilio siguen diciendo «Cuchara Ac. Inox»:
+  si `articulo.descripcion` se recarga desde la planilla, se pisa. Matriz 401 «Env Cucharas Inox Imp» (genérica) y 505D
+  (inactiva) no se tocaron.
