@@ -1,5 +1,5 @@
 [LOCKS]
-(ninguno)
+LockX | Produccion/VerificacionCajones/ (nuevo) + gp2-verif-cajones-aviso.js (nuevo) + GP2_MODULOS.html + envios-only.html + auth-guard.js + version.js + db/ + CONOCIMIENTO_GP2.md + tests/ui/test_verif_cajones.js | Elias (claude-remote) | 2026-10-06 | Verificacion de cajones (sorteo de 2 cajones/dia a las 15:00, empezo/termino, peso balanza)
 
 [WAIT QUEUE]
 (vacío)
