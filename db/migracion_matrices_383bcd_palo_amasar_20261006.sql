@@ -45,3 +45,9 @@ commit;
 -- update "GP2".ruta_paso set matriz_id = 386 where id in (3199, 3727, 3730, 3202, 3733, 3736, 3205, 3739, 3742);
 -- delete from "GP2".matriz where id in (415, 416, 417);
 -- commit;
+
+-- RENOMBRE (2026-10-06, Elías: "383 tiene que decir frances"): la 383 pasa de «Env Palo de Amasar» a
+-- «Env Palo de Amasar Frances 40cm», para no confundirla con la 383C «Env Palo de Amasar 40cm». APLICADO.
+-- update "GP2".matriz set descripcion = 'Env Palo de Amasar Frances 40cm' where n_matriz = '383' and descripcion = 'Env Palo de Amasar';
+-- ROLLBACK del renombre:
+-- update "GP2".matriz set descripcion = 'Env Palo de Amasar' where n_matriz = '383' and descripcion = 'Env Palo de Amasar Frances 40cm';

@@ -15397,8 +15397,9 @@ total que hizo"*. **Retira** lo de arriba que decía *"sin envasado, que no tien
   06/10 y sirve a la verificación: con la letra queda registrado de qué medida es la tanda.
 - **Lo que NO se hizo:** `public."Matrices"` no tiene 383B/C/D (es la casa del vecino, Regla 0). El Registro Producción 2.0 no las
   ofrece hasta que se carguen ahí; la tablet de GP2 sí las ve (`registro_operarios_bundle` lee `GP2.matriz`). Los 1.916 uni
-  históricos de la 383 en `db_n8n_espejo` (27/04 al 29/09) siguen bajo «383» y mezclan las cuatro medidas. Propuesto, no hecho:
-  renombrar la 383 a «Env Palo de Amasar Frances 40cm».
+  históricos de la 383 en `db_n8n_espejo` (27/04 al 29/09) siguen bajo «383» y mezclan las cuatro medidas. **Renombrada la 383
+  a «Env Palo de Amasar Frances 40cm»** `[usuario, Elías, 06/10: "383 tiene que decir frances"]`, para no confundirla con la 383C
+  «Env Palo de Amasar 40cm» (costo idéntico; los registros viejos conservan el nombre con el que se cargaron).
 - `[dato]` **`GP2.uni_x_articulo_x_caja` (Gestión Productiva) guarda un renglón por TIPO de caja y no coincide con `articulo`** en:
   508 y 708 (12 contra 6; el catálogo web LK dice 6), **760 CHEF (36 en la Caja N°29, contra 24 en `articulo` y en `chef_ext`)**,
   802 (24 contra 12) y las cucharas de madera CHEF «SUEL» (36 contra 12 del display). Afecta a las matrices de envasado **406**
