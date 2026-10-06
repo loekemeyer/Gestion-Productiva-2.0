@@ -15493,3 +15493,10 @@ total que hizo"*. **Retira** lo de arriba que decía *"sin envasado, que no tien
 - ⚠ **[deducido]** la planilla `A_Costos_VIGENTES.xlsx` y `942P` del espejo de Virgilio siguen diciendo «Cuchara Ac. Inox»:
   si `articulo.descripcion` se recarga desde la planilla, se pisa. Matriz 401 «Env Cucharas Inox Imp» (genérica) y 505D
   (inactiva) no se tocaron.
+
+## 4jc. Matrices 261 y 402 sirven al Ahueca Papa Y al Ahueca Fruta (2026-10-06)
+
+- **[usuario, Thomas, 06/10]** *"la matriz 261 y 402 renombra a '...ahueca papa y ahueca fruta' en vez de ahueca papa solo"*.
+- **[dato]** `GP2.matriz` 402 (id 257) → «Env Ahueca Papa y Ahueca Fruta»; 261 (id 259) → «Colocar Mgo a Ahueca Papa y Ahueca
+  Fruta». Verificado con SELECT. Solo base. `public.Matrices` sigue con el nombre viejo (Regla 0: no se toca).
+  `db/migracion_matrices_261_402_ahueca_fruta_20261006.sql`.
