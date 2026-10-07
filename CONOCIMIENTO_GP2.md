@@ -15826,3 +15826,26 @@ total que hizo"*. **Retira** lo de arriba que decía *"sin envasado, que no tien
   demanda Chef sigue en los 630/631/633/636/637 viejos (3, 2, 0, 0, 0 uni/mes) —, así que hoy los 63xE **no suman al máximo** de PEST1, Z46,
   las piezas ni la caja. Tampoco están en `Equivalencias_Familia` (espejo `articulo_familia`, invariante AG). Se resuelve cargándolos en GV.
 - `db/migracion_alta_63xE_chef_20261007.sql` (sólo altas, idempotente, con reversa comentada). Sólo base: sin UI, sin bump.
+
+## 4jo. Tablet de operarios: los arreglos de Registro Producción 3.0 también en GP2 (2026-10-07)
+
+`[usuario, Elías]` «los cambios/parches que hicimos arreglando los errores aplicalos también al original»; «el anular también con
+anti-duplicado»; «en cola, pero asegurate de que no se tome su duplicado». Lo que se encontró al revisar el traspaso a Registro
+Producción 3.0 (`cervantes-gp2/`) y vale igual para la tablet de GP2:
+
+- **Sin señal ≠ ERROR.** `flushQueue` marcaba ERROR cualquier falla, también la de red; ahora un error sin código de la base corta y
+  queda PENDIENTE para el próximo intento. ERROR = la base lo rechazó. `markSent` borra el `lastError` viejo.
+- **🗑 sin señal ya no obliga a repetirlo.** Antes: «No se pudo eliminar… probá de nuevo». Ahora la baja va a una cola
+  (`gp2_op_aqueue`), **una sola por toque** (por `id_ejecucion`), y sale en `flushQueue` **después** de los eventos (nunca antes que
+  el alta). Si el toque estaba saliendo justo en ese momento (`flushing`), también va a la cola. Si la base la rechaza con código
+  (no 42501 / PGRST3xx), avisa y no lo borra de la tablet. El badge «⚠ N sin enviar» cuenta eventos + bajas + rollos.
+- **Rollos sin duplicado.** Si «tomar rollo» llegaba a la base pero la respuesta no volvía, el reintento descontaba **otro** rollo
+  (y «cerrar» podía cerrar el siguiente). `GP2.rollo_tomar` / `GP2.rollo_cerrar` reciben un `p_id` que pone la tablet y viaja en la
+  cola; si ya está en `GP2.rollo_llamadas`, devuelven la respuesta de la primera vez con `dup: true`. La tablet las usa sólo si el
+  bundle trae `rollos_antiduplicado: true`; `tomar_rollo` / `cerrar_rollo` quedan para tablets viejas.
+- **Lo anulado no cuenta** en lo producido con el rollo (`cerrar_rollo` y `kg_usados` del bundle filtran `eliminar = 'S'`).
+- **Anular devuelve el stock** — ⏳ **la base todavía no**: `registrar_evento_prod` ya anota en `produccion.movimientos` qué
+  movimientos hizo cada toque; falta pegar `anular_evento_prod` (borra esos movimientos una sola vez → `fn_movimiento_aplicar`
+  revierte el inventario, como `anular_recepcion`). Tiene un DELETE adentro y la herramienta de Claude no lo aplica: va por el SQL
+  Editor (bloque 1c de `db/migracion_arreglos_reg_prod_3_0_20261007.sql`). Los toques anteriores a hoy no tienen la lista: no se revierten.
+- Prueba: `tests/ui/test_op_e2e.js`, bloque «arreglos traídos de Registro Producción 3.0» (11 checks). Tablet `20261007h`, v1.251.0.

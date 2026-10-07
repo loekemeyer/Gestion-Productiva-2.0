@@ -364,6 +364,88 @@ window.supabase = { createClient: function(url, key, opts){ window.__sbOpts = op
   ok(rq.alVolver === 0, 'con el permiso de vuelta, la cola de rollos se vacia');
   ok(rq.definitivo === 0, 'rechazo de negocio (P0001) se sigue descartando');
 
+  // 2026-10-07: arreglos traidos de Registro Produccion 3.0 [usuario: "los parches que hicimos arreglando los errores
+  // aplicalos tambien al original"; "anular en cola, pero asegurate de que no se tome su duplicado"].
+  const arr = await page.evaluate(async () => {
+    const flush = async () => { while (flushing) await new Promise(r => setTimeout(r, 20)); await flushQueue(); };
+    const desde = () => window.__calls.length;
+    const r = {};
+    // a) rollos sin duplicado: con la bandera del bundle van rollo_tomar / rollo_cerrar con un p_id cada una
+    const bandera = D.rollos_antiduplicado;
+    D.rollos_antiduplicado = true;
+    let k = desde();
+    await tomarRollo('19', 176, 50, '28'); await cerrarRollo('19', false);
+    const [t, c] = window.__calls.slice(k);
+    r.tomar = t.name === 'rollo_tomar' && typeof t.args.p_id === 'string' && t.args.p_comp_id === 176;
+    r.cerrar = c.name === 'rollo_cerrar' && typeof c.args.p_id === 'string' && c.args.p_id !== t.args.p_id;
+    //    sin señal queda en cola y el reintento repite el MISMO p_id (la base no descuenta otro rollo)
+    window.__falla = 'rollo_tomar'; window.__fallaCode = '';
+    await tomarRollo('19', 176, 50, '28');
+    const enCola = readRolloQueue();
+    window.__falla = null;
+    k = desde(); await flush();
+    const reint = window.__calls.slice(k).find(x => x.name === 'rollo_tomar');
+    r.mismoId = enCola.length === 1 && !!reint && reint.args.p_id === enCola[0].args.p_id && readRolloQueue().length === 0;
+    //    sin la bandera (base vieja): las de siempre, sin p_id
+    D.rollos_antiduplicado = false;
+    k = desde(); await tomarRollo('19', 176, 50, '28');
+    const v = window.__calls[k];
+    r.sinBandera = v.name === 'tomar_rollo' && v.args.p_id === undefined;
+    D.rollos_antiduplicado = bandera;
+
+    // b) evento sin señal (error sin codigo): queda PENDIENTE en la cola, no ERROR; con codigo de la base si es ERROR
+    const ev = { id: 'prueba-sin-senal', legajo: '19', opcion: 'RM', descripcion: 'Rotura Matriz', texto: '', ts_event: isoNow() };
+    updateStateAfterSend('19', ev); enqueue(ev);
+    window.__falla = 'registrar_evento_prod'; window.__fallaCode = '';
+    await flush();
+    const st = () => (readState('19').last2.find(x => x.id === ev.id) || {}).status;
+    r.sinSenal = st() === 'queued' && readQueue().some(x => x.id === ev.id);
+    window.__fallaCode = 'P0001'; await flush();
+    r.rechazo = st() === 'failed';
+    window.__falla = null; await flush();
+    r.alVolver = st() === 'sent' && !readQueue().length && !('lastError' in readState('19').last2.find(x => x.id === ev.id));
+
+    // c) 🗑 sin señal: no obliga a repetirlo; la baja queda en cola (una sola) y sale DESPUES de los eventos
+    const s = readState('19');
+    const idx = s.last2.findIndex(x => x.id === ev.id);
+    window.__falla = 'anular_evento_prod'; window.__fallaCode = '';
+    await deleteHistItem('19', idx);
+    r.borradoLocal = !readState('19').last2.some(x => x.id === ev.id);
+    enqueueAnular(ev.id);                               // un segundo 🗑 / reintento no la duplica
+    r.unaSola = JSON.stringify(readAnularQueue()) === JSON.stringify([ev.id]);
+    renderSyncBadge(); r.badge = $('syncBadge').innerText;
+    await flush();                                      // sigue sin señal: no se pierde
+    r.sigue = readAnularQueue().length === 1;
+    window.__falla = null;
+    const ev2 = { id: 'prueba-despues', legajo: '19', opcion: 'RM', descripcion: 'Rotura Matriz', texto: '', ts_event: isoNow() };
+    updateStateAfterSend('19', ev2); enqueue(ev2);
+    k = desde(); await flush();
+    const tras = window.__calls.slice(k).map(x => x.name);
+    r.orden = tras.indexOf('registrar_evento_prod') > -1 && tras.indexOf('registrar_evento_prod') < tras.indexOf('anular_evento_prod');
+    r.unaVez = tras.filter(x => x === 'anular_evento_prod').length === 1 && !readAnularQueue().length;
+    await flush();
+    r.noRepite = !window.__calls.slice(k).slice(tras.length).some(x => x.name === 'anular_evento_prod');
+    //    rechazo de la base con codigo (no de red ni de permiso): avisa y NO lo borra de la tablet
+    const s2 = readState('19');
+    window.__falla = 'anular_evento_prod'; window.__fallaCode = 'P0001';
+    await deleteHistItem('19', s2.last2.findIndex(x => x.id === ev2.id));
+    r.rechazoNoBorra = readState('19').last2.some(x => x.id === ev2.id) && !readAnularQueue().length;
+    window.__falla = null;
+    renderSyncBadge();
+    return r;
+  });
+  ok(arr.tomar && arr.cerrar, 'rollos con bandera: rollo_tomar / rollo_cerrar con un p_id propio cada una');
+  ok(arr.mismoId, 'rollo_tomar sin señal: queda en cola y el reintento lleva el MISMO p_id');
+  ok(arr.sinBandera, 'sin rollos_antiduplicado en el bundle: tomar_rollo de siempre, sin p_id');
+  ok(arr.sinSenal, 'evento sin señal (error sin codigo): queda PENDIENTE en la cola, no ERROR');
+  ok(arr.rechazo, 'evento rechazado por la base (P0001): ERROR');
+  ok(arr.alVolver, 'con señal sale, queda enviado y sin el error viejo pegado');
+  ok(arr.borradoLocal && arr.unaSola, '🗑 sin señal: se borra de la tablet y la baja queda en cola UNA sola vez');
+  ok(arr.badge.includes('1 sin enviar'), 'el badge cuenta la baja pendiente: ' + arr.badge);
+  ok(arr.sigue, 'la baja no se pierde mientras siga sin señal');
+  ok(arr.orden && arr.unaVez && arr.noRepite, 'con señal: primero los eventos, despues la baja, una sola vez');
+  ok(arr.rechazoNoBorra, 'baja rechazada por la base (P0001): avisa y NO se borra de la tablet');
+
   // 2026-10-05 [usuario]: el cartel "Pendientes en cola" no va mas; con la cola llena el
   // unico aviso es el badge "⚠ N sin enviar".
   const cola = await page.evaluate(() => {

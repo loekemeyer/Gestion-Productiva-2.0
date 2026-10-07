@@ -876,6 +876,8 @@ create table "GP2".produccion (
   origen_created_at timestamp with time zone,
   golpes numeric,
   uni_x_golpe numeric,
+  movimientos bigint[],
+  stock_revertido_at timestamp with time zone,
   constraint produccion_pkey PRIMARY KEY (id),
   constraint produccion_legajo_fkey FOREIGN KEY (legajo) REFERENCES "GP2".empleado(legajo) ON UPDATE CASCADE,
   constraint produccion_matriz_id_fkey FOREIGN KEY (matriz_id) REFERENCES "GP2".matriz(id)
@@ -885,6 +887,8 @@ comment on column "GP2".produccion.nombre_empleado is 'SNAPSHOT del nombre del e
 comment on column "GP2".produccion.nombre_matriz is 'SNAPSHOT del nombre de la matriz al momento de la produccion, no un espejo de matriz.descripcion: si la matriz se renombra, lo ya producido sigue diciendo como se llamaba entonces. Hoy difiere en 2 de 13 filas y eso es correcto.';
 comment on column "GP2".produccion.golpes is 'Golpes que marco el contador de la matriz. NULL = el registro vino en unidades directas (app vieja).';
 comment on column "GP2".produccion.uni_x_golpe is 'Foto del matriz.uni_x_golpe usado para pasar golpes -> uni en este registro.';
+comment on column "GP2".produccion.movimientos is 'Ids de GP2.movimiento que creó este toque (registrar_evento_prod). anular_evento_prod los borra para devolver el stock. NULL = toque anterior al 07/10/2026 o sin stock.';
+comment on column "GP2".produccion.stock_revertido_at is 'Cuándo anular_evento_prod devolvió el stock de este toque (una sola vez).';
 
 -- ---------- proveedor_at ----------
 create table "GP2".proveedor_at (
@@ -1157,6 +1161,17 @@ create table "GP2".rollo_evento (
   constraint rollo_evento_motivo_check CHECK ((motivo = ANY (ARRAY['inicial'::text, 'recepcion'::text, 'toma_operario'::text, 'ajuste'::text, 'devolucion'::text])))
 );
 comment on table "GP2".rollo_evento is 'Eventos de rollos de fleje (alta desde el control, ajustes, tomas): componente, kg por rollo, delta, motivo, legajo.';
+
+-- ---------- rollo_llamadas ----------
+create table "GP2".rollo_llamadas (
+  id text not null,
+  fn text not null,
+  legajo text,
+  at timestamp with time zone not null default now(),
+  resultado jsonb,
+  constraint rollo_llamadas_pkey PRIMARY KEY (id)
+);
+comment on table "GP2".rollo_llamadas is 'Anti-duplicado de rollo_tomar / rollo_cerrar: el id lo pone la tablet y se repite en cada reintento; si ya está, se devuelve el resultado guardado sin descontar otro rollo.';
 
 -- ---------- rollo_uso ----------
 create table "GP2".rollo_uso (
@@ -1638,6 +1653,7 @@ alter table "GP2".relevamiento_item enable row level security;
 alter table "GP2".reparto_prov_at enable row level security;
 alter table "GP2".reparto_tallerista enable row level security;
 alter table "GP2".rollo_evento enable row level security;
+alter table "GP2".rollo_llamadas enable row level security;
 alter table "GP2".rollo_uso enable row level security;
 alter table "GP2".ruta enable row level security;
 alter table "GP2".ruta_paso enable row level security;
@@ -1719,6 +1735,7 @@ create policy p_gp2_select on "GP2".relevamiento_item for select to anon, authen
 create policy p_gp2_select on "GP2".reparto_prov_at for select to anon, authenticated using (true);
 create policy p_gp2_select on "GP2".reparto_tallerista for select to anon, authenticated using (true);
 create policy p_gp2_select on "GP2".rollo_evento for select to anon, authenticated using (true);
+create policy p_gp2_select on "GP2".rollo_llamadas for select to anon, authenticated using (true);
 create policy p_gp2_select on "GP2".rollo_uso for select to anon, authenticated using (true);
 create policy p_gp2_select on "GP2".ruta for select to anon, authenticated using (true);
 create policy p_gp2_select on "GP2".ruta_paso for select to anon, authenticated using (true);

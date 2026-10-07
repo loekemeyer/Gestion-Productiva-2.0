@@ -1727,7 +1727,8 @@ begin
   end if;
   v_uni := coalesce(p_uni_producidas,
     (select coalesce(sum(uni),0) from produccion
-      where legajo=p_legajo and fecha >= u.ts_inicio and fecha <= coalesce(p_fecha,now()) and uni > 0));
+      where legajo=p_legajo and fecha >= u.ts_inicio and fecha <= coalesce(p_fecha,now()) and uni > 0
+        and coalesce(eliminar,'') <> 'S'));   -- (arreglo de Registro Producción 3.0) lo anulado no cuenta
   select partes_por_kilo_de_fleje into v_ppk from matriz
    where btrim(n_matriz) = btrim(coalesce(u.matriz_raw,'')) limit 1;
   v_esp := case when v_ppk is not null and v_ppk > 0 then u.kg_por_rollo * v_ppk end;
@@ -7505,6 +7506,7 @@ declare
   v_movid bigint; v_aviso text;
   v_th numeric; v_tt numeric; v_premio numeric; v_segs numeric;
   v_golpes numeric; v_uxg numeric; v_res jsonb;
+  v_movs bigint[];
 begin
   perform "GP2"._exigir_autorizado();  -- seguridad punto 1 fase B (2026-09-28)
   v_f   := coalesce(nullif(p->>'fecha','')::timestamptz, now());
@@ -7584,6 +7586,12 @@ begin
       v_res := "GP2".fabricar_stock(v_mid, v_salida, v_uni, v_f);
       v_movid := nullif(v_res->>'movimiento_id','')::bigint;
       if (v_res->>'n_entradas')::int = 0 then v_aviso := coalesce(v_aviso, v_res->>'aviso'); end if;
+      -- (arreglo de Registro Producción 3.0, 07/10/2026) los movimientos que acaba de crear ESTA transacción, para devolverlos al anular
+      if v_movid is not null then
+        select array_agg(id order by id) into v_movs from movimiento
+         where id >= v_movid and xmin::text::bigint = (txid_current() % 4294967296);
+        update produccion set movimientos = v_movs where id = v_id;
+      end if;
     end if;
   end if;
 
@@ -7732,6 +7740,7 @@ CREATE OR REPLACE FUNCTION "GP2".registro_operarios_bundle()
  SET search_path TO 'GP2'
 AS $function$
   select jsonb_build_object(
+    'rollos_antiduplicado', true,   -- (arreglo de Registro Producción 3.0) la tablet usa rollo_tomar / rollo_cerrar con id
     'registro_en_golpes', (select coalesce((select valor from "GP2".parametro where clave='registro_en_golpes'),'1') = '1'),
     'empleados', (select coalesce(jsonb_object_agg(e.legajo, jsonb_build_object(
         'nombre',e.nombre,'activo',e.activo,'hora_entrada',e.hora_entrada)),'{}'::jsonb)
@@ -7823,7 +7832,8 @@ AS $function$
         'kg_por_rollo',u.kg_por_rollo,'matriz',u.matriz_raw,'ts_inicio',u.ts_inicio,
         'kg_usados', case when m.partes_por_kilo_de_fleje > 0 then round(
             (coalesce((select sum(p.uni) from "GP2".produccion p
-                       where p.legajo=u.legajo and p.fecha >= u.ts_inicio and p.uni > 0),0)
+                       where p.legajo=u.legajo and p.fecha >= u.ts_inicio and p.uni > 0
+                         and coalesce(p.eliminar,'') <> 'S'),0)   -- (arreglo de Registro Producción 3.0) lo anulado no cuenta
             / m.partes_por_kilo_de_fleje)::numeric, 2) else 0 end)),'{}'::jsonb)
       from "GP2".rollo_uso u
       join "GP2".componente c on c.id=u.componente_id
@@ -8521,6 +8531,50 @@ begin
   select * into r from "GP2".ingreso_virgilio where id = p_id;
   return jsonb_build_object('ok', true, 'estado', 'denegado',
     'virgilio_revertido', r.virgilio_revertido_en is not null, 'virgilio_error', r.virgilio_revertido_error);
+end $function$
+;
+
+-- ---------- rollo_cerrar ----------
+CREATE OR REPLACE FUNCTION "GP2".rollo_cerrar(p_id text, p_legajo text, p_quedo_resto boolean, p_uni_producidas numeric DEFAULT NULL::numeric, p_fecha timestamp with time zone DEFAULT now())
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'GP2'
+AS $function$
+declare v_prev jsonb; v_res jsonb;
+begin
+  perform "GP2"._exigir_autorizado();
+  if nullif(btrim(coalesce(p_id, '')), '') is null then raise exception 'Falta el id de la llamada'; end if;
+  insert into rollo_llamadas (id, fn, legajo) values (p_id, 'cerrar', p_legajo) on conflict (id) do nothing;
+  if not found then                     -- ya llegó antes: no se cierra otra vez (podría cerrar el rollo siguiente)
+    select resultado into v_prev from rollo_llamadas where id = p_id;
+    return coalesce(v_prev, '{}'::jsonb) || jsonb_build_object('dup', true);
+  end if;
+  v_res := "GP2".cerrar_rollo(p_legajo, p_quedo_resto, p_uni_producidas, p_fecha);
+  update rollo_llamadas set resultado = v_res where id = p_id;
+  return v_res;
+end $function$
+;
+
+-- ---------- rollo_tomar ----------
+CREATE OR REPLACE FUNCTION "GP2".rollo_tomar(p_id text, p_legajo text, p_comp_id bigint, p_kg_por_rollo numeric, p_matriz text DEFAULT NULL::text, p_fecha timestamp with time zone DEFAULT now())
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'GP2'
+AS $function$
+declare v_prev jsonb; v_res jsonb;
+begin
+  perform "GP2"._exigir_autorizado();
+  if nullif(btrim(coalesce(p_id, '')), '') is null then raise exception 'Falta el id de la llamada'; end if;
+  insert into rollo_llamadas (id, fn, legajo) values (p_id, 'tomar', p_legajo) on conflict (id) do nothing;
+  if not found then                     -- ya llegó antes: la misma respuesta, sin descontar otro rollo
+    select resultado into v_prev from rollo_llamadas where id = p_id;
+    return coalesce(v_prev, '{}'::jsonb) || jsonb_build_object('dup', true);
+  end if;
+  v_res := "GP2".tomar_rollo(p_legajo, p_comp_id, p_kg_por_rollo, p_matriz, p_fecha);
+  update rollo_llamadas set resultado = v_res where id = p_id;
+  return v_res;
 end $function$
 ;
 

@@ -231,7 +231,7 @@ function updateStateAfterSend(legajo, payload) {
 function markSent(legajo, id) {
   const s = readState(legajo);
   const item = s.last2.find(x => x.id === id);
-  if (item) { item.status = "sent"; item.sentAt = isoNow(); }
+  if (item) { item.status = "sent"; item.sentAt = isoNow(); delete item.lastError; }
   writeState(legajo, s);
 }
 
@@ -254,6 +254,15 @@ const LS_RQUEUE = "gp2_op_rqueue";
 function readRolloQueue()  { try { return JSON.parse(localStorage.getItem(LS_RQUEUE) || "[]"); } catch { return []; } }
 function writeRolloQueue(q) { localStorage.setItem(LS_RQUEUE, JSON.stringify(q || [])); }
 function enqueueRollo(fn, args) { const rq = readRolloQueue(); rq.push({ fn, args }); writeRolloQueue(rq); }
+
+/* Cola de ANULACIONES (arreglo de Registro Produccion 3.0, 2026-10-07 [usuario: "en cola, pero asegurate de que no se tome
+   su duplicado"]): un 🗑 sin señal ya no obliga a repetirlo; la baja queda guardada y sale sola en flushQueue, DESPUES de los
+   eventos (asi nunca llega antes que el alta). Sin duplicados: una sola por toque (por id_ejecucion) y la base anula una sola
+   vez (anular_evento_prod devuelve el stock una sola vez). */
+const LS_AQUEUE = "gp2_op_aqueue";
+function readAnularQueue()  { try { return JSON.parse(localStorage.getItem(LS_AQUEUE) || "[]"); } catch { return []; } }
+function writeAnularQueue(q) { localStorage.setItem(LS_AQUEUE, JSON.stringify(q || [])); }
+function enqueueAnular(id) { const aq = readAnularQueue(); if (!aq.includes(id)) { aq.push(id); writeAnularQueue(aq); } }
 
 function enqueue(payload) {
   const q = readQueue();
@@ -335,11 +344,25 @@ async function flushQueue() {
         markSent(payload.legajo, payload.id);
         enviados.add(payload.id);
       } catch (e) {
+        // Sin señal (el error no trae codigo de la base): queda PENDIENTE y se reintenta. ERROR es solo
+        // cuando la base lo rechazo (arreglo de Registro Produccion 3.0, 2026-10-07).
+        if (!e?.code) break;
         markFailed(payload.legajo, payload.id, e?.message || e);
       }
     }
     // Re-leer la cola: pudo haber items nuevos encolados mientras se enviaba
     if (enviados.size) writeQueue(readQueue().filter(x => !enviados.has(x.id)));
+    // Anulaciones pendientes (🗑 sin señal), una por toque. Mismo criterio que los rollos: sin señal o sin
+    // permiso (42501 / PGRST3xx) se reintenta; un rechazo de la base con codigo es definitivo y se descarta.
+    let aq = readAnularQueue();
+    while (aq.length) {
+      const id = aq[0];
+      try {
+        const { error } = await SB.rpc("anular_evento_prod", { p_id_ejecucion: id });
+        if (error && (!error.code || error.code === "42501" || /^PGRST3/.test(error.code))) throw error;
+        aq = readAnularQueue().filter(x => x !== id); writeAnularQueue(aq);
+      } catch { break; }
+    }
     // RPCs de rollo pendientes (tomar/cerrar que fallaron sin red): FIFO para
     // respetar el orden tomar->cerrar; corta al primer fallo de red.
     let rq = readRolloQueue();
@@ -422,23 +445,33 @@ function rollosDeTodosLosFlejes(n_matriz) {
   return (D.rollos_saldo || []).filter(r => ids.has(r.comp_id) && Number(r.rollos) > 0);
 }
 
+/* ROLLOS SIN DUPLICADO (arreglo de Registro Produccion 3.0, 2026-10-07): con rollo_tomar / rollo_cerrar cada llamada lleva un id
+   que viaja en la cola; si la base la hizo pero la respuesta no llego (se corto la señal), el reintento repite el MISMO id y la
+   base no descuenta otro rollo ni cierra el siguiente. Solo si el bundle dice rollos_antiduplicado (si no, las de siempre).
+   Los nombres van escritos enteros en cada SB.rpc: tests/ui/test_rpc_huerfanas.js los busca asi. */
+function rollosAntiduplicado() { return D.rollos_antiduplicado === true; }
+
 async function tomarRollo(legajo, comp_id, kg_por_rollo, matriz) {
-  const args = {
+  const anti = rollosAntiduplicado();
+  const fn = anti ? "rollo_tomar" : "tomar_rollo";
+  const args = Object.assign(anti ? { p_id: uuidv4() } : {}, {
     p_legajo: String(legajo), p_comp_id: Number(comp_id),
     p_kg_por_rollo: Number(kg_por_rollo), p_matriz: String(matriz), p_fecha: isoNow()
-  };
+  });
   try {
-    const { error } = await SB.rpc("tomar_rollo", args);
+    const { error } = anti ? await SB.rpc("rollo_tomar", args) : await SB.rpc("tomar_rollo", args);
     if (error) throw error;
-  } catch (e) { console.error("tomar_rollo:", e); enqueueRollo("tomar_rollo", args); }
+  } catch (e) { console.error(fn + ":", e); enqueueRollo(fn, args); }
 }
 
 async function cerrarRollo(legajo, quedoResto) {
-  const args = { p_legajo: String(legajo), p_quedo_resto: !!quedoResto, p_fecha: isoNow() };
+  const anti = rollosAntiduplicado();
+  const fn = anti ? "rollo_cerrar" : "cerrar_rollo";
+  const args = Object.assign(anti ? { p_id: uuidv4() } : {}, { p_legajo: String(legajo), p_quedo_resto: !!quedoResto, p_fecha: isoNow() });
   try {
-    const { error } = await SB.rpc("cerrar_rollo", args);
+    const { error } = anti ? await SB.rpc("rollo_cerrar", args) : await SB.rpc("cerrar_rollo", args);
     if (error) throw error;
-  } catch (e) { console.error("cerrar_rollo:", e); enqueueRollo("cerrar_rollo", args); }
+  } catch (e) { console.error(fn + ":", e); enqueueRollo(fn, args); }
 }
 
 /* ============================================================
@@ -499,7 +532,7 @@ function renderSummary() {
 }
 
 function renderSyncBadge() {
-  const q = readQueue();
+  const q = readQueue().concat(readAnularQueue(), readRolloQueue());
   const el = $("syncBadge");
   // El badge NO muestra version [usuario 2026-08-31]: solo el estado de la cola. Toca para
   // forzar el envio. La version del cache vive en el ?v= del <script>, no a la vista.
@@ -1002,16 +1035,23 @@ async function deleteHistItem(legajo, idx) {
 
   // Baja logica en la base (si ya se habia enviado). Va por RPC: con RLS activo
   // la clave anon ya no puede tocar la tabla produccion directo.
-  if (item.id && item.status === "sent") {
+  if (item.id && item.status !== "sent" && flushing) {
+    // Estaba saliendo justo ahora: puede llegar a la base aunque aca figure pendiente. La baja va a la cola y
+    // sale DESPUES del alta (flushQueue manda primero los eventos).
+    enqueueAnular(item.id);
+  } else if (item.id && item.status === "sent") {
     try {
       const { error } = await SB.rpc("anular_evento_prod", { p_id_ejecucion: item.id });
       if (error) throw error;
     } catch (e) {
       console.warn("No se pudo marcar eliminado:", e);
-      // Si el server no lo anulo, NO borrarlo localmente: quedaria vivo en la BD
-      // (produccion + stock) mientras aca figura como eliminado.
-      alert("No se pudo eliminar en el servidor (¿sin señal?). Probá de nuevo cuando vuelva la conexión.");
-      return;
+      if (e?.code && e.code !== "42501" && !/^PGRST3/.test(e.code)) {
+        // La base lo rechazo por el dato: NO borrarlo localmente (quedaria vivo en la BD mientras aca figura eliminado).
+        alert("No se pudo eliminar en el servidor: " + (e.message || e.code));
+        return;
+      }
+      // Sin señal o sin sesion: la baja queda en cola y sale sola (arreglo de Registro Produccion 3.0, 2026-10-07).
+      enqueueAnular(item.id);
     }
   }
 
