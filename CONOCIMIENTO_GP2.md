@@ -15680,6 +15680,16 @@ total que hizo"*. **Retira** lo de arriba que decía *"sin envasado, que no tien
   (`L10-M114` < `L9-M114`). El dueño dio «Chef» o «S/Marca» según la matriz para la marca CH (p. ej. 254 → 570-ARM «Loeke» / 858-ARM
   «S/Marca»; 394 → «Loeke» / «Chef»): se aplicó TAL CUAL se escribió. Si alguna etiqueta quedó en la opción equivocada, es un
   `update` de una fila a `matriz_salida_etiqueta` (no hay que tocar código ni el bundle).
+- **Orden de las cajas: Loeke, Chef, c/Marca, s/Marca (2026-10-07) `[usuario, textual]`** *«En todos los casos que aparezca Loeke,
+  Chef, c/Marca, s/Marca. Ordename en este orden: Loeke, Chef, c/Marca, s/Marca la aparición de las box»*. `[dato]` Sólo cambió
+  `matriz_salida_etiqueta.orden` (24 filas, `db/migracion_matriz_salida_etiqueta_orden_20261007.sql`, con guarda del orden viejo): **12**
+  → Loeke · Chef · S/Marca; **39** → Inox · Loeke · S/Marca; **356** → Chef · S/Marca; **77 a 81** → Loeke · S/Marca; **73 y 74** →
+  Loeke Abierta · S/Marca Abierta · Loeke Cerrada · S/Marca Cerrada. Regla `[deducido]`: dentro de cada grupo de cajas que difieren
+  SOLO en la marca va ese orden y el grupo conserva sus lugares; lo que no lleva marca (Inox) no se mueve. **No se hizo** juntar todos los
+  Loeke arriba y todos los S/Marca abajo en 73/74/401: rompería los pares «forma + marca» (73/74) y los de la 401 que otra sesión dejó
+  «Cucharón Loeke / Cucharón Chef» por pedido del usuario. Ya cumplían y no se tocaron: 3, 28, 33, 127, 254, 261, 309, 314, 320 a 323,
+  394, 401, 402 y 512. Hoy en la base no existe ninguna etiqueta «C/Marca»; el rango queda reservado para cuando aparezca. (Ojo: este
+  archivo tiene DOS secciones «4jk»; ésta es la de las etiquetas del selector de pieza.)
 - **Matrices nuevas con 2+ salidas**: hay que cargarles sus filas en `matriz_salida_etiqueta` en el mismo cambio; sin ellas la tablet
   muestra el formato viejo. `test_matriz_etiquetas.js` fija que las 105 filas de la migración no tengan huecos de orden ni etiquetas
   repetidas dentro de una matriz.

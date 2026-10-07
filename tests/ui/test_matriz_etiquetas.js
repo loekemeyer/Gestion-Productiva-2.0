@@ -48,6 +48,56 @@ ok(E('114', 'L9-M114') === 'Izquierda' && E('114', 'L10-M114') === 'Derecha' &&
 ok(E('221', 'D2') === 'Derecha' && E('221', 'D3') === 'Izquierda', '221: D2 Derecha · D3 Izquierda');
 ok(E('383', '234') === 'Francés' && E('515', 'PC7-M237B') === 'Inserto Canelón', '383: 234 Francés · 515: PC7 Inserto Canelón');
 
+// ORDEN FINAL (2026-10-07, usuario: "En todos los casos que aparezca Loeke, Chef, c/Marca, s/Marca. Ordename en este
+// orden: Loeke, Chef, c/Marca, s/Marca la aparición de las box"). La migración de orden trae, por fila que se mueve,
+// el orden VIEJO esperado y el NUEVO. Regla: dentro de cada grupo de cajas que difieren SOLO en la marca, la marca va
+// Loeke < Chef < C/Marca < S/Marca; lo que no lleva marca (Inox…) no se mueve de su lugar.
+const mo = leer('db/migracion_matriz_salida_etiqueta_orden_20261007.sql');
+const cambios = [...mo.matchAll(/\('([^']+)','([^']+)',(\d+),(\d+)\)/g)]
+  .map(m => ({ matriz: m[1], codigo: m[2], antes: Number(m[3]), despues: Number(m[4]) }));
+ok(cambios.length === 24 && /n1 <> 24/.test(mo) && /n2 <> 24/.test(mo),
+   'la migración de orden mueve 24 filas y cancela todo si el estado previo no coincide — ' + cambios.length);
+const final = filas.map(f => Object.assign({}, f));
+const desfasadas = [];
+cambios.forEach(c => {
+  const f = final.find(x => x.matriz === c.matriz && x.codigo === c.codigo);
+  if (!f || f.orden !== c.antes) desfasadas.push(c.matriz + '/' + c.codigo); else f.orden = c.despues;
+});
+ok(!desfasadas.length, 'cada fila que se mueve parte del orden de la migración original — ' + (desfasadas.join(',') || 'ok'));
+
+const MARCAS = [['loeke', 1], ['chef', 2], ['c/marca', 3], ['s/marca', 4]];
+const rango = (e) => { const l = e.toLowerCase(); const m = MARCAS.find(([k]) => l.includes(k)); return m ? m[1] : 0; };
+const baseDe = (e) => e.replace(/loeke|chef|c\/marca|s\/marca/i, '').replace(/\s+/g, ' ').trim();
+const roto = [];
+const fm = {};
+final.forEach(f => { (fm[f.matriz] = fm[f.matriz] || []).push(f); });
+Object.entries(fm).forEach(([n, fs_]) => {
+  const ords = fs_.map(f => f.orden).sort((a, b) => a - b);
+  if (ords.some((o, i) => o !== i + 1)) roto.push(n + ': orden final con huecos o repetido');
+  const grupos = {};
+  fs_.filter(f => rango(f.etiqueta) > 0).forEach(f => { (grupos[baseDe(f.etiqueta)] = grupos[baseDe(f.etiqueta)] || []).push(f); });
+  Object.entries(grupos).forEach(([b, g]) => {
+    const rs = g.sort((x, y) => x.orden - y.orden).map(f => rango(f.etiqueta));
+    if (rs.some((r, i) => i && r < rs[i - 1])) roto.push(n + ' [' + (b || 'solo marca') + ']: ' + g.map(f => f.etiqueta).join(' > '));
+  });
+  fs_.filter(f => rango(f.etiqueta) === 0).forEach(f => {
+    const o = filas.find(x => x.matriz === f.matriz && x.codigo === f.codigo);
+    if (o.orden !== f.orden) roto.push(n + ': «' + f.etiqueta + '» (sin marca) se movió de lugar');
+  });
+});
+ok(!roto.length, 'en cada grupo de cajas que difieren solo en la marca van Loeke, Chef, C/Marca, S/Marca y lo que no lleva marca no se mueve — ' + (roto.join(' | ') || 'ok'));
+const ordenDe = (n) => final.filter(f => f.matriz === n).sort((a, b) => a.orden - b.orden).map(f => f.etiqueta).join(' | ');
+ok(ordenDe('12') === 'Loeke | Chef | S/Marca', '12: Loeke · Chef · S/Marca — ' + ordenDe('12'));
+ok(ordenDe('39') === 'Inox | Loeke | S/Marca', '39: Inox · Loeke · S/Marca — ' + ordenDe('39'));
+ok(ordenDe('356') === 'Chef | S/Marca', '356: Chef · S/Marca — ' + ordenDe('356'));
+ok(['77', '78', '79', '80', '81'].every(n => ordenDe(n) === 'Loeke | S/Marca'), '77 a 81: Loeke · S/Marca');
+ok(ordenDe('73') === 'Loeke Abierta | S/Marca Abierta | Loeke Cerrada | S/Marca Cerrada' &&
+   ordenDe('74') === 'Loeke Abierta | S/Marca Abierta | Loeke Cerrada | S/Marca Cerrada',
+   '73 y 74: Loeke primero dentro de cada forma (Abierta, luego Cerrada)');
+const LOEKE_Y_DESPUES_CHEF = 'Ahueca Papa Loeke | Ahueca Fruta Loeke | Ahueca Papa Chef | Ahueca Fruta Chef';
+ok(ordenDe('261') === LOEKE_Y_DESPUES_CHEF && ordenDe('402') === LOEKE_Y_DESPUES_CHEF,
+   '261 y 402 no se tocan: ya iban Loeke y después Chef');
+
 // Respaldo de la base
 const tablas = leer('db/tablas_GP2.sql');
 ok(/create table "GP2"\.matriz_salida_etiqueta \(/.test(tablas) &&

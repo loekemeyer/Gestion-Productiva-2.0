@@ -284,17 +284,18 @@ window.supabase = { createClient: function(url, key, opts){ window.__sbOpts = op
   // en el orden que manda el bundle. Lo que viaja (comp_salida_id y pieza = codigo) NO cambia.
   {
     await page.evaluate(() => {
+      // Orden REAL del bundle (2026-10-07: Loeke, Chef, c/Marca, s/Marca): I6 Loeke, I11 Chef, G13 S/Marca.
       D.matriz_salidas = Object.assign({}, D.matriz_salidas, { '12': [
-        { comp_id: 5,  codigo: 'G13', descripcion: 'Mgo Plano 501 Dobl p/Pintar',   arts: '101 · 501',       etiqueta: 'S/Marca' },
+        { comp_id: 22, codigo: 'I6',  descripcion: 'Mango Plano 502 Doblado',       arts: '066 · 502 · 512', etiqueta: 'Loeke' },
         { comp_id: 17, codigo: 'I11', descripcion: 'Mgo Plano 701 Doblado c/Marca', arts: '701',             etiqueta: 'Chef' },
-        { comp_id: 22, codigo: 'I6',  descripcion: 'Mango Plano 502 Doblado',       arts: '066 · 502 · 512', etiqueta: 'Loeke' } ] });
+        { comp_id: 5,  codigo: 'G13', descripcion: 'Mgo Plano 501 Dobl p/Pintar',   arts: '101 · 501',       etiqueta: 'S/Marca' } ] });
     });
     await page.click('.box[data-code="E"]');
     await page.fill('#textInput', '12');
     await page.dispatchEvent('#textInput', 'input');
     const et = (await page.locator('#piezaGrid .mz').allTextContents()).map(t => t.trim());
-    ok(et.length === 3 && et[0] === 'S/Marca' && et[1] === 'Chef' && et[2] === 'Loeke',
-       'con etiquetas la tarjeta dice SOLO la etiqueta y en el orden del bundle — ' + JSON.stringify(et));
+    ok(et.length === 3 && et[0] === 'Loeke' && et[1] === 'Chef' && et[2] === 'S/Marca',
+       'con etiquetas la tarjeta dice SOLO la etiqueta y en el orden del bundle (Loeke, Chef, S/Marca) — ' + JSON.stringify(et));
     ok(!/G13|I11|I6|Art\.|\d/.test(et.join(' ')), 'sin codigo, sin descripcion y sin articulos en las tarjetas');
     ok((await page.locator('#piezaGrid .mz.mz-et').count()) === 3, 'las 3 tarjetas usan el estilo grande de etiqueta (mz-et)');
     await page.locator('#piezaGrid .mz', { hasText: 'Chef' }).click();
@@ -307,9 +308,9 @@ window.supabase = { createClient: function(url, key, opts){ window.__sbOpts = op
     ok(datos.id === 17 && datos.cod === 'I11', 'lo que viaja no cambia: comp_salida_id 17 y pieza = I11 — ' + JSON.stringify(datos));
     ok(!(await page.locator('#btnEnviar').isDisabled()), 'con la pieza elegida se habilita Enviar');
     // salida SIN etiqueta en una matriz que si las tiene (matriz nueva): esa tarjeta cae al formato de siempre
-    await page.evaluate(() => { piezaSel = null; D.matriz_salidas['12'][2] = { comp_id: 22, codigo: 'I6', descripcion: 'Mango Plano 502 Doblado', arts: '066 · 502 · 512' }; renderPiezaPicker('12'); });
+    await page.evaluate(() => { piezaSel = null; D.matriz_salidas['12'][2] = { comp_id: 5, codigo: 'G13', descripcion: 'Mgo Plano 501 Dobl p/Pintar', arts: '101 · 501' }; renderPiezaPicker('12'); });
     const mixto = (await page.locator('#piezaGrid .mz').allTextContents()).map(t => t.trim());
-    ok(mixto[0] === 'S/Marca' && mixto[2].includes('I6') && mixto[2].includes('Art. 066 · 502 · 512'),
+    ok(mixto[0] === 'Loeke' && mixto[2].includes('G13') && mixto[2].includes('Art. 101 · 501'),
        'una salida sin etiqueta cae al formato de siempre sin romper las otras — ' + JSON.stringify(mixto));
     await page.click('#btnResetSelection');
   }
