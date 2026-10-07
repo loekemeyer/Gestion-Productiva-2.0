@@ -15620,7 +15620,7 @@ total que hizo"*. **Retira** lo de arriba que decía *"sin envasado, que no tien
   se cae, no muestra el código hasta volver a entrar).
 - ⚠ **No es un candado** (igual que en GT): `monitor_clave_validar` está abierta a `anon` porque el operario que tipea no tiene sesión;
   devuelve sólo `{ok}`. 4 dígitos = 10.000 combinaciones y 2 válidas por minuto: se puede adivinar. Sirve para que se entre estando en
-  la planta, no para proteger datos. **Nada la llama todavía**: la usará la app de registro de producción (otro repo).
+  la planta, no para proteger datos. **La llama Registro Producción 3.0** (`loekemeyer/Registro-Produccion-3.0`, `reg_prod_3_0_cerv_ingresar`: `"GP2".monitor_clave_validar(p_clave) ->> 'ok'`) — [usuario, Elías 07/10: *«se está armando en registro producción 3.0, y por eso te agregamos el TV»*]: el monitor es **el código de la TV de Cervantes** que esa app pide para entrar. Ninguna pantalla de este repo la llama.
 - **[dato]** Desde la sesión SQL (sin JWT) `_exigir_autorizado()` deja pasar siempre: la prueba de «no autorizado» hay que hacerla por la
   API con la clave publishable, no por `execute_sql`.
 
@@ -15631,9 +15631,12 @@ total que hizo"*. **Retira** lo de arriba que decía *"sin envasado, que no tien
   en `public.seg_inventario_anon`).
 - **[hecho]** La rutina nocturna «Inventario escrituras clave pública (etapa 0)» (`trig_013i1TeBcwZ27wJqYMS9AQcx`) se **DESACTIVÓ**
   (no se borró: está atada a la sesión que la creó). El inventario quedó con 6 días, del 28/09 al 03/10 (`seg_inventario_anon`).
-- **[dato]** Lo que ya existe y NO se tocó: `GP2.operario_por_legajo`, `GP2._exigir_operario`, la tabla `GP2.operario`, las reglas AI/M de
-  `verificar.sql` que las nombran y `recibir_mensaje_cervantes`. Si el plan no vuelve, esas piezas quedan sin uso: decidir aparte si se
-  sacan.
+- **[dato, corregido 07/10 tras mirar Registro-Produccion-3.0]** Se retira lo de «quedan sin uso» para `red_empresa` e `ip_en_red_empresa`: **Registro 3.0 los
+  usa** (`reg_prod_3_0_ingreso_log` anota si la IP estaba en `public.red_empresa`, sólo para saber si el operario estaba adentro o afuera; no bloquea) y
+  depende de `GP2.monitor_clave_validar` (4jh). El **login por legajo desde la red** (Edge `login-operario`, sesión `op<legajo>@operarios.interno`,
+  `GP2.operario_por_legajo`, `GP2._exigir_operario`, `GP2.recibir_mensaje_cervantes`, `GP2.registros_produccion_cervantes`) es de la app anterior
+  (`GP2-Registro-Produccion`); **3.0 no las llama** (su README: «no llama a ninguna función de GP2»). Eso sí es candidato a sacar, pero **no se tocó** y
+  falta que Elías lo confirme: `GP2.operario` (flags de botones) puede seguir siendo la fuente de roles.
 - **[dato]** Con esto dejan de correr las dudas del plan: si la IP 186.18.168.56 (Telecentro) es de la empresa, y de qué app son las
   funciones `gt_*` (son de GT, `loekemeyer/GT`: el monitor del código de ingreso y la botonera de GT).
 
@@ -15712,6 +15715,4 @@ total que hizo"*. **Retira** lo de arriba que decía *"sin envasado, que no tien
   `Tablet/Tablet_GP2.html` v1.36.1 carga el script en modo banda. `version.js` v1.249.0. `tests/ui/test_verif_cajones.js` (secciones 10–11).
 - **[dato]** El aviso sigue siendo **por equipo**: sólo aparece donde alguien tildó *«Avisarme en esta PC a las 15:00»* (localStorage). La
   tablet de Alan lo tiene que tildar **una vez**, desde el botón ⚖ Cajones. Sin el tilde no carga nada ni consulta la base.
-- ⚠ **[NO APLICADO]** borrar la prueba del 06/10 (2 cajones sin cargar, ids 29 y 30, y la fila del día): el conector de la sesión frena los
-  DELETE. Script con condiciones y verificación en `db/pendiente/2026-10-07_verif_cajones_borrar_prueba_06_10.sql`: correrlo UNA vez en el
-  SQL Editor. Mientras no se corra, el cartel de una PC con el tilde sigue mostrando esos 2 cajones.
+- **[hecho 07/10]** La prueba del 06/10 (2 cajones sin cargar, ids 29 y 30, y la fila del día) se borró: el conector de la sesión frena los DELETE, así que **Elías corrió el script** `db/pendiente/2026-10-07_verif_cajones_borrar_prueba_06_10.sql` en el SQL Editor y mostró el resultado (`cajones_06_10 = 0`, `dias_06_10 = 0`). Verificado por captura, no por consulta de la sesión.
