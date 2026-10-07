@@ -15761,6 +15761,17 @@ total que hizo"*. **Retira** lo de arriba que decía *"sin envasado, que no tien
   (c) El **stock de los V se sigue mostrando en «cajones»** en las pantallas de stock (no hay columna de unidad de stock; `uni_x_cajon` ya es la
   bolsa): es un rótulo, no un error de cantidad. (d) **OC**: los crudos ahora redondean a cajón de 25 kg (antes 20 kg); `oc_bundle` lee `uni_x_cajon`
   y **no se midió** cuánto cambia lo sugerido. (e) V10 está en el selector aunque no se niquela, porque el dueño pidió «todos los V menos V18 y V18D».
+- **[usuario, 07/10, textual]** sobre la captura del selector de la 150 (con «V1 · Remache Espiral · Art. 520 · 521…»): *«quiero que solo aparezca que
+  tipo de remache es (ni código, ni qué artículos, solo descripción y sacale la palabra rem./remache/rem/etc)»*; y, preguntado si era la tablet de GP2 o el
+  Registro Producción 3.0: *«ambos tendrían que aparecer igual»*.
+- **[hecho, base, `db/migracion_matriz_150_etiquetas_20261007.sql`]** 13 filas en `GP2.matriz_salida_etiqueta` para la 150, orden `V1`…`V13` por número:
+  Espiral · Cabezal Niq · Sacatapita Niq · Rompenuez · Afila niq. · Sacafuente 3.7 x 29.6 · Abrelatas Niq · Doble Aleta · Uña niq. · Alum Canel · Sacacorcho ·
+  C/ Pizza/Raviol · Plaquita 3 en 1 (la descripción sin «Rem.»/«Rem»/«Remache»; «Niq» se dejó porque no se pidió sacarlo). **Sin cambio de código en ninguno de
+  los dos repos**: `registro_operarios_bundle` (tablet de GP2) y `reg_prod_3_0.reg_prod_3_0_bundle` (3.0) ya devolvían `etiqueta` y ordenaban por `orden`, y
+  `operarios_gp2.js` / `cervantes-gp2/app.js` ya dibujaban sólo la etiqueta (medido 07/10; otra sesión había portado el mecanismo al 3.0). La tarjeta, la línea
+  «Fabricás … — cambiar» y el chip de la matriz usan la etiqueta. El catálogo del celular se renueva cada 30 min o al reabrir la app.
+- **[regla para el próximo caso]** una matriz que aparece con 2+ salidas **sin etiqueta** cae al formato largo (código + descripción + artículos): al darle
+  salidas nuevas a una matriz hay que cargarle sus filas de `matriz_salida_etiqueta` en el mismo paso.
 
 ## 4jn. 630E/631E/633E/636E/637E: los gemelos CHEF de los inox importados 94xE (2026-10-07) — ✅ APLICADO
 
