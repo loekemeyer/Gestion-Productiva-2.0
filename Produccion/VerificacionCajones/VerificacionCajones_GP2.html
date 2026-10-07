@@ -60,8 +60,18 @@
 <div class="card">
   <div class="header">
     <h1>⚖ Verificación de cajones</h1>
-    <div class="hbtns"><a href="../../GP2_MODULOS.html">Atrás</a></div>
+    <div class="hbtns"><a href="../../GP2_MODULOS.html" id="btnAtrasHeader">Atrás</a></div>
   </div>
+  <!-- Si se entró desde la Versión Tablet (modo Cajones), el "Atrás" devuelve a la tablet en vez del menú. -->
+  <script>
+  (function(){
+    try {
+      if (new URLSearchParams(location.search).get("volver") !== "tablet") return;
+      var a = document.getElementById("btnAtrasHeader");
+      if (a) a.href = "../../Tablet/Tablet_GP2.html";
+    } catch(e){}
+  })();
+  </script>
 
   <div class="steps">
     <div class="row">

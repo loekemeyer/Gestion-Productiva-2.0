@@ -15636,3 +15636,15 @@ total que hizo"*. **Retira** lo de arriba que decía *"sin envasado, que no tien
   sacan.
 - **[dato]** Con esto dejan de correr las dudas del plan: si la IP 186.18.168.56 (Telecentro) es de la empresa, y de qué app son las
   funciones `gt_*` (son de GT, `loekemeyer/GT`: el monitor del código de ingreso y la botonera de GT).
+
+## 4jj. Verificación de cajones, como módulo dentro de la Versión Tablet Logística (2026-10-07)
+
+- **[usuario, Elías 07/10, textual]** *«ponelo dentro de la tablet … como otro modulo»*, sobre la Verificación de cajones de Alan (4iz), que
+  hasta hoy sólo se llegaba con `?todos=1` en el menú. **[deducido] sin confirmar**: «la tablet» = **Tablet Logística**
+  (`Tablet/Tablet_GP2.html`, la de Alan), no la de Operarios.
+- **[hecho]** `Tablet/Tablet_GP2.html` v1.36.0: cuarto botón de arriba, **«⚖ Cajones»**, al lado de Enviar / Recibir / Conteo. Es un link
+  igual que Conteo (no un modo): abre `VerificacionCajones_GP2.html?volver=tablet` y el «Atrás» de esa pantalla vuelve a la tablet.
+  La grilla de modos pasó de 3 columnas fijas a `auto-fit` (4 en la tablet, 2×2 en el celular). `version.js` v1.247.0.
+  `tests/ui/test_tablet.js`: «los tres modos de siempre + Cajones».
+- ⚠ **El cartel de las 15:00** (`gp2-verif-cajones.js`) sigue cargado sólo en el menú y en `envios-only.html`, **no en la tablet**: sin cambios,
+  porque no se pidió. Si Alan usa sólo la tablet, el aviso no le aparece ahí.

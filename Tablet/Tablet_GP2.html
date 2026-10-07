@@ -60,6 +60,7 @@
      hacía la base: envConSugerido() muestra el renglón con 0. El "➕ Otro cartón" (sust_de) sigue
      cayendo a "Online sector", que es correcto (no es consumo de ese proveedor). -->
 <!-- v1.35.2 (2026-09-24) — ENVIAR: EL FLEJE NO DICE "sin cajón cargado" (usuario: "cuando es sector fleje no quiero esa aclaración, no tienen uni x cajón, se manda en kilos"). faltaEnvase() ahora no avisa para la pieza medida en kg: se manda pesada y el sugerido ya sale en kg. El aviso queda para la pieza que SE CUENTA (uni) y caería a unidades sin el factor. -->
+<!-- v1.36.0 (2026-10-07) — entra "⚖ Cajones" como CUARTO modo de arriba, al lado de Conteo [Elías: "ponelo dentro de la tablet … como otro modulo" — Verificación de cajones, para Alan]. Es un link como Conteo (no es un modo de Enviar/Recibir): abre VerificacionCajones_GP2.html?volver=tablet y su "Atrás" vuelve acá. La grilla de modos pasa de 3 columnas fijas a auto-fit (4 en la tablet, 2x2 en pantallas angostas). -->
 <!-- v1.35.1 (2026-09-24) — "Talleristas O.C." pasa al FINAL del grupo Enviar [usuario: "Talleristas O.C. que aparezca al final"]. Solo reorden de la baldosa dentro de TIPOS.enviar (queda después de "Prov. de art. terminado"); nada más cambia. -->
 <!-- v1.35.0 (2026-09-23) — TALLERISTAS O.C.: BLIST-PACK Y CARLOS AGUIRRE SALEN DE "TALLERISTAS"
      (usuario, con la foto de la Tablet: "a Blist-Pack SA y Carlos Aguirre quiero que me los saques
@@ -720,7 +721,7 @@
 <style>
   /* los tres modos: baldosas grandes, el activo en negro (mismo lenguaje que .seg-btn).
      Conteo es un <a>: se va al módulo de Relevamientos, así que nunca queda "activo". */
-  .modos{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin:10px 0}
+  .modos{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px;margin:10px 0}
   .modo-btn{min-height:60px;border-radius:12px;border:2px solid #d0d7de;background:#fff;
     font-weight:900;font-size:20px;cursor:pointer;color:#111;text-decoration:none;
     display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center}
@@ -913,6 +914,7 @@
       <button type="button" class="modo-btn" data-modo="enviar">📤 Enviar<small>a tallerista / PS / prov. AT / Virgilio</small></button>
       <button type="button" class="modo-btn" data-modo="recibir">📥 Recibir<small>lo que traen</small></button>
       <a class="modo-btn" id="modoConteo" href="../Relevamiento/Relevamiento_GP2.html?volver=tablet">🔢 Conteo<small>contar por sector (Relevamientos)</small></a>
+      <a class="modo-btn" id="modoCajones" href="../Produccion/VerificacionCajones/VerificacionCajones_GP2.html?volver=tablet">⚖ Cajones<small>verificar el peso (2 por día)</small></a>
     </div>
 
     <!-- FASE 0 — primero el TIPO de contraparte, después la contraparte de ese tipo -->
