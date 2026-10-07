@@ -45,3 +45,33 @@ select e.orden, c.codigo, e.etiqueta
   join "GP2".matriz m on m.id = e.matriz_id
   join "GP2".componente c on c.id = e.componente_id
  where m.n_matriz = '150' order by e.orden;
+
+-- =====================================================================
+-- 2.º PASE (2026-10-07, mismo día, con «Sí» del dueño): las etiquetas pasan a llevar «Remache» adelante y sin «Niq».
+-- [usuario, con la captura del selector ya con las etiquetas de arriba]: «Que queden así: Espiral, Cabezal, Sacatapita,
+--   Rompenuez, Afila, Sacafuente, Abrelatas, Doble Aleta, Uña, Aluminio Canelón, Sacacorcho, C/Pizza/Raviol, Plaquita 3 en 1.
+--   Y a todas agregale la palabra Remache adelante.»  (Es lo contrario del pedido de sacar «Remache»: manda lo último dicho.)
+-- UPDATE de 13 filas sobre las del 1.er pase (sólo el texto: orden, rutas y stock no cambian). «C/Pizza/Raviol» va sin
+-- espacio, como se dictó. Verificación: 13 filas, orden 1..13, texto nuevo.
+-- ↩ Revertir al 1.er pase (UPDATE, no cuelga en el conector):
+--   update "GP2".matriz_salida_etiqueta e set etiqueta = v.etiqueta
+--     from (values ('V1','Espiral'),('V2','Cabezal Niq'),('V3','Sacatapita Niq'),('V4','Rompenuez'),('V5','Afila niq.'),
+--                  ('V6','Sacafuente 3.7 x 29.6'),('V7','Abrelatas Niq'),('V8','Doble Aleta'),('V9','Uña niq.'),
+--                  ('V10','Alum Canel'),('V11','Sacacorcho'),('V12','C/ Pizza/Raviol'),('V13','Plaquita 3 en 1')) v(codigo, etiqueta)
+--     join "GP2".componente c on c.codigo = v.codigo join "GP2".matriz m on m.n_matriz = '150'
+--    where e.matriz_id = m.id and e.componente_id = c.id;
+-- ⚠ Esta parte (2.º pase) se aplica DESPUÉS del bloque de arriba; con la guarda de idempotencia del bloque 1 no se corre dos veces.
+do $$
+declare n int;
+begin
+  update "GP2".matriz_salida_etiqueta e set etiqueta = v.etiqueta
+    from (values ('V1','Remache Espiral'),('V2','Remache Cabezal'),('V3','Remache Sacatapita'),('V4','Remache Rompenuez'),
+                 ('V5','Remache Afila'),('V6','Remache Sacafuente'),('V7','Remache Abrelatas'),('V8','Remache Doble Aleta'),
+                 ('V9','Remache Uña'),('V10','Remache Aluminio Canelón'),('V11','Remache Sacacorcho'),
+                 ('V12','Remache C/Pizza/Raviol'),('V13','Remache Plaquita 3 en 1')) v(codigo, etiqueta)
+    join "GP2".componente c on c.codigo = v.codigo
+    join "GP2".matriz m on m.n_matriz = '150'
+   where e.matriz_id = m.id and e.componente_id = c.id;
+  get diagnostics n = row_count;
+  if n <> 13 then raise exception 'se esperaban 13 filas y fueron %', n; end if;
+end $$;

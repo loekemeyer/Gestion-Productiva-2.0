@@ -15766,8 +15766,12 @@ total que hizo"*. **Retira** lo de arriba que decía *"sin envasado, que no tien
   Es porque el motor de costos **ignora los pasos con entrada = salida** (`edges … comp_entrada_id <> comp_salida_id`) y porque las dos vistas de
   demanda recorren con `UNION` (cortan solas). Un paso `matriz` con entrada = salida **no tenía precedente** (0 antes; sí `insumo`/`ingreso`).
 - **[PENDIENTE — decisiones que quedan]** (a) **La mano de obra de la 150 (55 s por bolsa) no entra al costo del remache**, por lo de arriba;
-  para sumarla hay que convertir segundos por bolsa a por remaches (bolsa = `uni_x_cajon`) y tocar el motor. (b) **Fase 1c del Registro 3.0**
-  (stock): `GP2.fabricar_stock` leería 6 bolsas como 6 remaches V→V en el mismo sector (neto 0, con ruido): la 150 necesita su regla antes de mover stock.
+  para sumarla hay que convertir segundos por bolsa a por remaches (bolsa = `uni_x_cajon`) y tocar el motor. (b) **Registro Producción 3.0 YA mueve stock** (Fase 1c/1d,
+  `reg_prod_3_0_registrar_evento` llama a `GP2.fabricar_stock`) y **eso alcanza a la 150**. `[dato, ensayo revertido 07/10]` un toque de la 150 con 6 bolsas en `V9`
+  (`reg_prod_3_0_gp2_fabricar_stock(150, V9, 6)`) crea el movimiento **`fabricacion` V9, Sector Remache → Sector Remache, 6 uni**: el inventario **no cambia**
+  (V9 sigue −480 y −1.176; neto 0) pero el historial de movimientos muestra «fabricaciones» de remaches que no existen, y 6 bolsas se leen como 6 remaches.
+  Por ahora **se deja** (la recomendación quedó sin objeción). La regla de verdad (bolsas → unidades, o excluir la 150 de `fabricar_stock`, función
+  compartida con la tablet de GP2) está sin decidir.
   (c) El **stock de los V se sigue mostrando en «cajones»** en las pantallas de stock (no hay columna de unidad de stock; `uni_x_cajon` ya es la
   bolsa): es un rótulo, no un error de cantidad. (d) **OC**: los crudos ahora redondean a cajón de 25 kg (antes 20 kg); `oc_bundle` lee `uni_x_cajon`
   y **no se midió** cuánto cambia lo sugerido. (e) V10 está en el selector aunque no se niquela, porque el dueño pidió «todos los V menos V18 y V18D».
@@ -15776,7 +15780,12 @@ total que hizo"*. **Retira** lo de arriba que decía *"sin envasado, que no tien
   Registro Producción 3.0: *«ambos tendrían que aparecer igual»*.
 - **[hecho, base, `db/migracion_matriz_150_etiquetas_20261007.sql`]** 13 filas en `GP2.matriz_salida_etiqueta` para la 150, orden `V1`…`V13` por número:
   Espiral · Cabezal Niq · Sacatapita Niq · Rompenuez · Afila niq. · Sacafuente 3.7 x 29.6 · Abrelatas Niq · Doble Aleta · Uña niq. · Alum Canel · Sacacorcho ·
-  C/ Pizza/Raviol · Plaquita 3 en 1 (la descripción sin «Rem.»/«Rem»/«Remache»; «Niq» se dejó porque no se pidió sacarlo). **Sin cambio de código en ninguno de
+  C/ Pizza/Raviol · Plaquita 3 en 1 (1.er pase: la descripción sin «Rem.»/«Rem»/«Remache»).
+  **2.º pase, mismo día `[usuario, textual, con la captura del 1.º]`** *«Que queden así: Espiral, Cabezal, Sacatapita, Rompenuez, Afila, Sacafuente, Abrelatas,
+  Doble Aleta, Uña, Aluminio Canelón, Sacacorcho, C/Pizza/Raviol, Plaquita 3 en 1. Y a todas agregale la palabra Remache adelante.»* — lo contrario de sacar
+  «Remache»; manda lo último dicho. **Hoy el operario ve:** Remache Espiral · Remache Cabezal · Remache Sacatapita · Remache Rompenuez · Remache Afila · Remache
+  Sacafuente · Remache Abrelatas · Remache Doble Aleta · Remache Uña · Remache Aluminio Canelón · Remache Sacacorcho · Remache C/Pizza/Raviol · Remache
+  Plaquita 3 en 1 (sin «Niq»; UPDATE de 13 filas, con su reversa al 1.er pase en el mismo `.sql`). **Sin cambio de código en ninguno de
   los dos repos**: `registro_operarios_bundle` (tablet de GP2) y `reg_prod_3_0.reg_prod_3_0_bundle` (3.0) ya devolvían `etiqueta` y ordenaban por `orden`, y
   `operarios_gp2.js` / `cervantes-gp2/app.js` ya dibujaban sólo la etiqueta (medido 07/10; otra sesión había portado el mecanismo al 3.0). La tarjeta, la línea
   «Fabricás … — cambiar» y el chip de la matriz usan la etiqueta. El catálogo del celular se renueva cada 30 min o al reabrir la app.
