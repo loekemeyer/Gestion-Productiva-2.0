@@ -958,7 +958,9 @@ window.supabase = { createClient: function(){ return {
   ok(await page.$eval('#modos .modo-btn.active', b => b.dataset.modo) === 'recibir', 'el modo se recuerda al recargar');
   const hrefConteo = await page.$eval('#modoConteo', a => a.getAttribute('href'));
   ok(hrefConteo === '../Relevamiento/Relevamiento_GP2.html?volver=tablet', 'Conteo abre Relevamientos — ' + hrefConteo);
-  ok((await page.$$('#modos .modo-btn')).length === 3, 'siguen los tres modos arriba');
+  ok((await page.$$('#modos .modo-btn')).length === 4, 'los tres modos de siempre + Cajones arriba');
+  const hrefCajones = await page.$eval('#modoCajones', a => a.getAttribute('href'));
+  ok(hrefCajones === '../Produccion/VerificacionCajones/VerificacionCajones_GP2.html?volver=tablet', 'Cajones abre la Verificación de cajones y vuelve a la tablet — ' + hrefCajones);
 
   // las dos pantallas que se abren desde acá devuelven el "Atrás" a la tablet
   for (const [url, vuelve] of [['/StockFlejes/RecepcionInsumos_GP2.html?volver=tablet', '../Tablet/Tablet_GP2.html?modo=recibir'],

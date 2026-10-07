@@ -15637,7 +15637,19 @@ total que hizo"*. **Retira** lo de arriba que decía *"sin envasado, que no tien
 - **[dato]** Con esto dejan de correr las dudas del plan: si la IP 186.18.168.56 (Telecentro) es de la empresa, y de qué app son las
   funciones `gt_*` (son de GT, `loekemeyer/GT`: el monitor del código de ingreso y la botonera de GT).
 
-## 4jj. Selector de pieza de la tablet: el operario ve SOLO una etiqueta corta por matriz y componente (2026-10-07)
+## 4jj. Verificación de cajones, como módulo dentro de la Versión Tablet Logística (2026-10-07)
+
+- **[usuario, Elías 07/10, textual]** *«ponelo dentro de la tablet … como otro modulo»*, sobre la Verificación de cajones de Alan (4iz), que
+  hasta hoy sólo se llegaba con `?todos=1` en el menú. **[deducido] sin confirmar**: «la tablet» = **Tablet Logística**
+  (`Tablet/Tablet_GP2.html`, la de Alan), no la de Operarios.
+- **[hecho]** `Tablet/Tablet_GP2.html` v1.36.0: cuarto botón de arriba, **«⚖ Cajones»**, al lado de Enviar / Recibir / Conteo. Es un link
+  igual que Conteo (no un modo): abre `VerificacionCajones_GP2.html?volver=tablet` y el «Atrás» de esa pantalla vuelve a la tablet.
+  La grilla de modos pasó de 3 columnas fijas a `auto-fit` (4 en la tablet, 2×2 en el celular). `version.js` v1.247.0.
+  `tests/ui/test_tablet.js`: «los tres modos de siempre + Cajones».
+- ⚠ **El cartel de las 15:00** (`gp2-verif-cajones.js`) sigue cargado sólo en el menú y en `envios-only.html`, **no en la tablet**: sin cambios,
+  porque no se pidió. Si Alan usa sólo la tablet, el aviso no le aparece ahí.
+
+## 4jk. Selector de pieza de la tablet: el operario ve SOLO una etiqueta corta por matriz y componente (2026-10-07)
 - `[usuario 2026-10-07, sin identificar, textual]` *«En vez de esos nombres como variantes en el recuadro amarillo quiero que solo le
   aparezca esto al operario (esta ordenado por matriz y por componente como me lo mandaste en la lista)»*, con la lista de las 42
   matrices que expulsan 2+ componentes (105 salidas). Ejemplos: 12 → S/Marca · Chef · Loeke; 401 → Cuchara Lisa · Cucharón · Pinza
@@ -15647,7 +15659,7 @@ total que hizo"*. **Retira** lo de arriba que decía *"sin envasado, que no tien
   `registro_operarios_bundle().matriz_salidas` (matriz + componente que expulsa). 105 filas, RLS con policy de sólo lectura
   (`anon`/`authenticated` leen, nadie escribe). El bundle devuelve `etiqueta` en cada salida y ordena por `orden`. Nada por número de
   matriz hardcodeado en el JS (regla de la casa: el rol y los datos viven en la base, no en el código).
-- **Tablet `[dato]`** (`operarios_gp2.js`, v1.247.0, `?v=20261007b`): con etiqueta la tarjeta dice SOLO eso (20 px, centrada, sin código, sin
+- **Tablet `[dato]`** (`operarios_gp2.js`, v1.248.0, operarios `?v=20261007b`): con etiqueta la tarjeta dice SOLO eso (20 px, centrada, sin código, sin
   descripción y sin «Art. …»); la línea ya elegida es «Fabricás <etiqueta> — cambiar»; el chip a la derecha de la matriz y el
   «Pieza:» del último registro usan la etiqueta. **Sin etiqueta** (matriz nueva con 2+ salidas o bundle viejo cacheado) esa tarjeta
   cae al formato de siempre (código + descripción + artículos): no se rompe nada.
