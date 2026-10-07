@@ -15636,3 +15636,32 @@ total que hizo"*. **Retira** lo de arriba que decía *"sin envasado, que no tien
   sacan.
 - **[dato]** Con esto dejan de correr las dudas del plan: si la IP 186.18.168.56 (Telecentro) es de la empresa, y de qué app son las
   funciones `gt_*` (son de GT, `loekemeyer/GT`: el monitor del código de ingreso y la botonera de GT).
+
+## 4jj. Selector de pieza de la tablet: el operario ve SOLO una etiqueta corta por matriz y componente (2026-10-07)
+- `[usuario 2026-10-07, sin identificar, textual]` *«En vez de esos nombres como variantes en el recuadro amarillo quiero que solo le
+  aparezca esto al operario (esta ordenado por matriz y por componente como me lo mandaste en la lista)»*, con la lista de las 42
+  matrices que expulsan 2+ componentes (105 salidas). Ejemplos: 12 → S/Marca · Chef · Loeke; 401 → Cuchara Lisa · Cucharón · Pinza
+  Fideos · Espátula Calada · Espumadera; 73/74 → S/Marca Abierta · Loeke Abierta · S/Marca Cerrada · Loeke Cerrada; 383 → 30cm · 40cm ·
+  50cm · Francés; 114/116 → Izquierda · Derecha; 515 → Inserto Espátula · Inserto Canelón.
+- **Dónde vive `[dato]`**: tabla nueva `GP2.matriz_salida_etiqueta (matriz_id, componente_id, etiqueta, orden)`, la MISMA clave que usa
+  `registro_operarios_bundle().matriz_salidas` (matriz + componente que expulsa). 105 filas, RLS con policy de sólo lectura
+  (`anon`/`authenticated` leen, nadie escribe). El bundle devuelve `etiqueta` en cada salida y ordena por `orden`. Nada por número de
+  matriz hardcodeado en el JS (regla de la casa: el rol y los datos viven en la base, no en el código).
+- **Tablet `[dato]`** (`operarios_gp2.js`, v1.247.0, `?v=20261007b`): con etiqueta la tarjeta dice SOLO eso (20 px, centrada, sin código, sin
+  descripción y sin «Art. …»); la línea ya elegida es «Fabricás <etiqueta> — cambiar»; el chip a la derecha de la matriz y el
+  «Pieza:» del último registro usan la etiqueta. **Sin etiqueta** (matriz nueva con 2+ salidas o bundle viejo cacheado) esa tarjeta
+  cae al formato de siempre (código + descripción + artículos): no se rompe nada.
+- **Lo que viaja NO cambió `[dato]`**: el evento sigue mandando `comp_salida_id` y `pieza` = código del componente. La etiqueta es sólo de
+  pantalla. Huella del bundle (ids y artículos de las 105 salidas) idéntica antes y después: `4f155a368402dccf330fe3ea20b017fe`.
+- **Cómo se asignó cada etiqueta `[deducido]`**: POSICIONAL, matriz por matriz, contra el orden de componentes de la lista que se le
+  mandó al dueño (por código), salvo 114/116 donde la lista decía «L9 Izq · L10 Der» y se respetó eso y no el orden alfabético
+  (`L10-M114` < `L9-M114`). El dueño dio «Chef» o «S/Marca» según la matriz para la marca CH (p. ej. 254 → 570-ARM «Loeke» / 858-ARM
+  «S/Marca»; 394 → «Loeke» / «Chef»): se aplicó TAL CUAL se escribió. Si alguna etiqueta quedó en la opción equivocada, es un
+  `update` de una fila a `matriz_salida_etiqueta` (no hay que tocar código ni el bundle).
+- **Matrices nuevas con 2+ salidas**: hay que cargarles sus filas en `matriz_salida_etiqueta` en el mismo cambio; sin ellas la tablet
+  muestra el formato viejo. `test_matriz_etiquetas.js` fija que las 105 filas de la migración no tengan huecos de orden ni etiquetas
+  repetidas dentro de una matriz.
+- **La 368 / Z6** (§4jg, decidido y NO aplicado): si se aplica y la 368 queda con una sola salida (Z5), la fila (368, Z6) queda sin uso —
+  inofensiva (el bundle sólo une etiquetas con salidas que existen)— y se puede borrar.
+- `db/migracion_matriz_salida_etiqueta_20261007.sql` (una transacción, cancela entera si algún par no resuelve a 1 componente). Tests:
+  `tests/ui/test_matriz_etiquetas.js` (estático) y bloque nuevo en `test_op_e2e.js` (en pantalla, incluido el caso mixto).

@@ -19,7 +19,7 @@
     (function(){
       // El operario ya no tiene version propia: se compara el TOKEN de cache compartido
       // (el mismo ?v= que llevan todos los assets). Si cambia, el HTML cacheado es viejo.
-      var MI_V = '20261006k';
+      var MI_V = '20261007b';
       function chequear(){
         fetch(location.pathname, { cache: 'no-store' }).then(function(r){ return r.text(); }).then(function(html){
           var m = html.match(/operarios_gp2\.js\?v=([\w.]+)/);
@@ -104,6 +104,9 @@
     .pieza-cambiar b { color: #713f12; }
     .pieza-cambiar u { font-weight: 800; }
     #piezaGrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 6px; }
+    /* Opcion de pieza con etiqueta corta (GP2.matriz_salida_etiqueta): SOLO la etiqueta, grande y centrada [usuario 2026-10-07] */
+    .mz.mz-et { display: flex; align-items: center; justify-content: center; text-align: center; min-height: 64px; }
+    .mz.mz-et .mz-n { font-size: 20px; line-height: 1.15; overflow-wrap: anywhere; }
     .error { color: #dc2626; font-size: 14px; font-weight: 600; margin-top: 8px; min-height: 20px; }
     /* Rollo picker for Eduardo */
     #rolloPicker { background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; padding: 10px 14px; margin-bottom: 10px; }
@@ -271,6 +274,6 @@
 </div>
 
 <script src="../../supabase-config.js?v=20260929a"></script>
-<script src="operarios_gp2.js?v=20261006k"></script>
+<script src="operarios_gp2.js?v=20261007b"></script>
 </body>
 </html>

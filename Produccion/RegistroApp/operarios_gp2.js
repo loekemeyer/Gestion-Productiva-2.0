@@ -519,7 +519,9 @@ function renderMatrizInfo() {
   const nm = s.lastMatrix.texto;
   const desc = nombreMatriz(nm);
   el.classList.remove("hidden");
-  const pieza = s.lastMatrix.pieza ? ` · Pieza: ${esc(s.lastMatrix.pieza)}` : "";
+  // La pieza se muestra con su etiqueta corta si la matriz la tiene; lo guardado en el estado sigue siendo el codigo.
+  const piezaTxt = etiquetaDeSalida(nm, s.lastMatrix.comp_salida_id) || s.lastMatrix.pieza;
+  const pieza = piezaTxt ? ` · Pieza: ${esc(piezaTxt)}` : "";
   // Rollo en uso: cuanto queda, estimado con lo producido (uni / ppk por cajon).
   // Si la tablet perdio el estado (otro dia, otro equipo o storage borrado), cae
   // al uso abierto persistido en el servidor: rollos_abiertos trae kg_usados
@@ -572,7 +574,7 @@ function renderMatrizPicker(filtro) {
     el.className = "mz" + (esElegida ? " sel" : "") + (conPieza ? " has-chip" : "");
     el.dataset.n = n;
     const cuerpo = `<div class="mz-main"><div class="mz-n">${esc(n)}</div><div class="mz-d">${esc(m.d || "")}</div></div>`;
-    const chip = conPieza ? `<div class="mz-chip">${esc(piezaSel.codigo || "")}<small>acá va el stock</small></div>` : "";
+    const chip = conPieza ? `<div class="mz-chip">${esc(piezaSel.etiqueta || piezaSel.codigo || "")}<small>acá va el stock</small></div>` : "";
     el.innerHTML = cuerpo + chip;
     el.addEventListener("click", () => elegirMatriz(n));
     grid.appendChild(el);
@@ -594,11 +596,19 @@ function elegirMatriz(n) {
    La pieza elegida viaja como comp_salida_id en el C para que
    el stock se sume en el componente correcto.
    ============================================================ */
-let piezaSel = null; // {comp_id, codigo, descripcion}
+let piezaSel = null; // {comp_id, codigo, descripcion, arts, etiqueta}
 let rolloSel = null; // {comp_id, codigo, kg_por_rollo} — rollo elegido (antes era el value del <select>)
 
 function salidasDeMatriz(n) {
   return (D.matriz_salidas || {})[String(n || "").trim()] || [];
+}
+
+// Etiqueta CORTA de una salida (GP2.matriz_salida_etiqueta, bundle.matriz_salidas[n][i].etiqueta): es lo UNICO que
+// ve el operario al elegir la pieza [usuario 2026-10-07: "solo le aparezca esto al operario"]. Sin etiqueta
+// (matriz nueva o bundle viejo cacheado en la tablet) devuelve "" y la pantalla cae a codigo + descripcion + arts.
+function etiquetaDeSalida(n, compId) {
+  const sa = salidasDeMatriz(n).find(x => x.comp_id === compId);
+  return (sa && String(sa.etiqueta || "").trim()) || "";
 }
 
 function renderPiezaPicker(n) {
@@ -620,8 +630,12 @@ function renderPiezaPicker(n) {
     wrap.classList.add("collapsed");
     const btn = document.createElement("button");
     btn.type = "button"; btn.className = "pieza-cambiar";
-    const arts = piezaSel.arts ? ` (art. ${esc(piezaSel.arts)})` : "";
-    btn.innerHTML = `Fabricás <b>${esc(piezaSel.codigo || "")}</b> · ${esc(piezaSel.descripcion || "")}${arts} — <u>cambiar</u>`;
+    if (piezaSel.etiqueta) {
+      btn.innerHTML = `Fabricás <b>${esc(piezaSel.etiqueta)}</b> — <u>cambiar</u>`;
+    } else {
+      const arts = piezaSel.arts ? ` (art. ${esc(piezaSel.arts)})` : "";
+      btn.innerHTML = `Fabricás <b>${esc(piezaSel.codigo || "")}</b> · ${esc(piezaSel.descripcion || "")}${arts} — <u>cambiar</u>`;
+    }
     btn.addEventListener("click", () => {
       piezaSel = null;
       renderPiezaPicker(n);
@@ -639,8 +653,14 @@ function renderPiezaPicker(n) {
     el.className = "mz";
     // Los articulos que usan esa pieza (la 237 saca 3 piezas para 542/543/570, 720/722 y 858):
     // el operario piensa en el articulo, no en el codigo del intermedio. [usuario 2026-10-05]
-    const arts = sa.arts ? `<div class="mz-a">Art. ${esc(sa.arts)}</div>` : "";
-    el.innerHTML = `<div class="mz-n">${esc(sa.codigo || "")}</div><div class="mz-d">${esc(sa.descripcion || "")}</div>${arts}`;
+    // Con etiqueta (GP2.matriz_salida_etiqueta) la tarjeta dice SOLO eso: ni codigo, ni descripcion, ni articulos.
+    if (sa.etiqueta) {
+      el.classList.add("mz-et");
+      el.innerHTML = `<div class="mz-n">${esc(sa.etiqueta)}</div>`;
+    } else {
+      const arts = sa.arts ? `<div class="mz-a">Art. ${esc(sa.arts)}</div>` : "";
+      el.innerHTML = `<div class="mz-n">${esc(sa.codigo || "")}</div><div class="mz-d">${esc(sa.descripcion || "")}</div>${arts}`;
+    }
     el.addEventListener("click", () => {
       piezaSel = sa; $("error").innerText = "";
       renderPiezaPicker(n);

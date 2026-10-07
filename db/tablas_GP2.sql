@@ -557,6 +557,20 @@ comment on column "GP2".matriz_racha.ultimo_tipo is 'RM (rotura) | PM (pare matr
 comment on column "GP2".matriz_racha.record is 'Mejor racha historica de unidades entre dos accidentes (incluye la racha en curso).';
 comment on column "GP2".matriz_racha.es_record is 'true si la racha EN CURSO es la mejor de la historia de esa matriz.';
 
+-- ---------- matriz_salida_etiqueta ----------
+create table "GP2".matriz_salida_etiqueta (
+  matriz_id bigint not null,
+  componente_id bigint not null,
+  etiqueta text not null,
+  orden smallint not null,
+  constraint matriz_salida_etiqueta_pkey PRIMARY KEY (matriz_id, componente_id),
+  constraint matriz_salida_etiqueta_orden_uk UNIQUE (matriz_id, orden),
+  constraint matriz_salida_etiqueta_txt_chk CHECK ((btrim(etiqueta) <> ''::text)),
+  constraint matriz_salida_etiqueta_matriz_id_fkey FOREIGN KEY (matriz_id) REFERENCES "GP2".matriz(id) ON DELETE CASCADE,
+  constraint matriz_salida_etiqueta_componente_id_fkey FOREIGN KEY (componente_id) REFERENCES "GP2".componente(id) ON DELETE CASCADE
+);
+comment on table "GP2".matriz_salida_etiqueta is 'Etiqueta CORTA que ve el operario en la tablet al elegir que pieza fabrica una matriz con 2+ salidas (matriz + componente que expulsa). orden = orden en pantalla. Sin fila, la tablet cae a codigo + descripcion + articulos.';
+
 -- ---------- movimiento ----------
 create table "GP2".movimiento (
   id bigint not null default nextval('"GP2".movimiento_id_seq'::regclass),
@@ -1594,6 +1608,7 @@ alter table "GP2".ingreso_virgilio enable row level security;
 alter table "GP2".inventario enable row level security;
 alter table "GP2".matriz enable row level security;
 alter table "GP2".matriz_racha enable row level security;
+alter table "GP2".matriz_salida_etiqueta enable row level security;
 alter table "GP2".movimiento enable row level security;
 alter table "GP2".oc_item_recepcion enable row level security;
 alter table "GP2".oc_virgilio enable row level security;
@@ -1674,6 +1689,7 @@ create policy p_gp2_select on "GP2".ingreso_virgilio for select to anon, authent
 create policy p_gp2_select on "GP2".inventario for select to anon, authenticated using (true);
 create policy p_gp2_select on "GP2".matriz for select to anon, authenticated using (true);
 create policy matriz_racha_sel on "GP2".matriz_racha for select to public using (true);
+create policy p_gp2_select on "GP2".matriz_salida_etiqueta for select to anon, authenticated using (true);
 create policy p_gp2_select on "GP2".movimiento for select to anon, authenticated using (true);
 create policy p_gp2_select on "GP2".oc_item_recepcion for select to anon, authenticated using (true);
 create policy oc_virgilio_select on "GP2".oc_virgilio for select to anon, authenticated using (true);

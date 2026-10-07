@@ -7770,11 +7770,13 @@ AS $function$
       ) t),
     -- Matrices que producen MAS de una pieza: la app pregunta cual se fabrica
     -- y manda comp_salida_id en el evento C para que el stock vaya al lugar correcto.
+    -- 'etiqueta' (GP2.matriz_salida_etiqueta, 2026-10-07) = lo UNICO que ve el operario en cada opcion;
+    -- 'orden' define el orden en pantalla. Sin fila, la tablet cae a codigo + descripcion + arts.
     'matriz_salidas', (select coalesce(jsonb_object_agg(t.n_matriz, t.salidas),'{}'::jsonb)
       from (
         select m.n_matriz,
-               jsonb_agg(jsonb_build_object('comp_id',q.comp_salida_id,'codigo',q.codigo,'descripcion',q.descripcion,'arts',q.arts)
-                         order by q.codigo) salidas
+               jsonb_agg(jsonb_build_object('comp_id',q.comp_salida_id,'codigo',q.codigo,'descripcion',q.descripcion,'arts',q.arts,'etiqueta',e.etiqueta)
+                         order by coalesce(e.orden, 9999), q.codigo) salidas
         from (
           select rp.matriz_id, rp.comp_salida_id, c.codigo, c.descripcion,
                  string_agg(distinct a.codigo, ' · ' order by a.codigo) arts
@@ -7786,6 +7788,7 @@ AS $function$
           group by rp.matriz_id, rp.comp_salida_id, c.codigo, c.descripcion
         ) q
         join "GP2".matriz m on m.id=q.matriz_id
+        left join "GP2".matriz_salida_etiqueta e on e.matriz_id=q.matriz_id and e.componente_id=q.comp_salida_id
         group by m.n_matriz
         having count(*) > 1
       ) t),
