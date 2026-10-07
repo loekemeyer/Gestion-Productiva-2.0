@@ -7,6 +7,8 @@
 --   Marca» de Omar Banchur, 880 uni). Ninguno se empezó ni se cargó (empezado_en, terminado_en, resultado y pesos
 --   en NULL): no hay stock ni ajuste que deshacer. Por eso el cartel de Alan seguía mostrando esos 2 cajones.
 --
+-- ✅ APLICADO el 2026-10-07 por Elías en el SQL Editor (verificación: cajones_06_10 = 0, dias_06_10 = 0). No volver a correr.
+--
 -- POR QUÉ NO SE APLICÓ DESDE LA SESIÓN: el conector de Supabase de la sesión frena todo DELETE (60 s sin llegar
 --   a la base; mismo caso que db/pendiente/2026-10-06_sacafuente_pizzero_...). Correrlo UNA vez en el SQL Editor.
 --
