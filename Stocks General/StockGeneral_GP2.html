@@ -6,6 +6,9 @@
 <script src="../gp2-ui.js?v=20260930a"></script>
 <script src="../gp2-numero.js?v=20260911o"></script>
 <title>Stock general · GP2</title>
+<!-- v3.4.1 (2026-10-07) - SIN LOS 4 CUADROS DE TOTALES [usuario: "No quiero que me aparezcan estos datos en
+     stock general"]. Se sacaron Filas/Componentes, Total uni, Total kg y Bajo el máximo (y el cálculo que los
+     alimentaba). La tabla, el buscador y el rojo de "bajo el máximo" en cada fila no se tocan. -->
 <!-- v3.3.0 (2026-10-06) - EDITOR DE EQUIVALENCIAS EN LA TABLA DE SIN ASIGNAR [Luis: "se pueda establecer
      la equivalencia ahi en el front (completar que codigo X en virgilio es codigo Y en Cervantes o 333 en
      isis)"]. En cada fila de "sin asignar" ahora Cod ISIS y Cod C son editables + un ✓ para guardar:
@@ -329,8 +332,6 @@
 
     <div class="rubro-lbl">Rubro</div>
     <div id="rubros"></div>
-
-    <div class="kpis" id="kpis"></div>
 
     <div class="toolbar">
       <input type="text" id="q" placeholder="Buscar por código o descripción…">
@@ -950,7 +951,7 @@ function renderHead(){
   $("thead").innerHTML = g + h;
 }
 
-/* ---------- tbody + kpis ---------- */
+/* ---------- tbody ---------- */
 function render(){
   if (!RUBRO) return;
   var r = RUBRO, cols = (r.mode==="sector" ? r.cols : []) || [];
@@ -965,14 +966,6 @@ function render(){
   var nota = $("notaTabla");
   nota.classList.toggle("hidden", !cortado);
   if (cortado) nota.textContent = "Mostrando las primeras "+fmt(TOPE_GLOBAL)+" de "+fmt(cortado)+" filas — escribí en el buscador para afinar.";
-
-  // los KPI cuentan TODO lo filtrado, aunque la tabla dibuje menos filas
-  var tKg=0, tUni=0, tBajo=0;
-  todas.forEach(function(x){
-    var uni=Number(x.online||0);
-    tKg += (kgDe(x)||0); if (!esKg(x)) tUni += uni;
-    if (!r.sin_max && x.maximo!=null && uni < Number(x.maximo)) tBajo++;
-  });
 
   arr.forEach(function(x){
     var kg=kgDe(x), caj=cajDe(x), uni=Number(x.online||0);
@@ -1015,12 +1008,6 @@ function render(){
       (r.mostrar_fleje?'<td class="num">'+(x.n_fleje!=null?esc(x.n_fleje):"—")+'</td>':"");
     tb.appendChild(tr);
   });
-
-  $("kpis").innerHTML =
-    '<div class="kpi"><div class="k">'+(r.mode==="global"?"Filas":"Componentes")+'</div><div class="v">'+fmt(todas.length)+'</div></div>'+
-    '<div class="kpi"><div class="k">Total uni</div><div class="v">'+fmt(tUni)+'</div></div>'+
-    '<div class="kpi"><div class="k">Total kg</div><div class="v">'+fmt(tKg)+'</div></div>'+
-    (r.sin_max?'':'<div class="kpi"><div class="k">Bajo el máximo</div><div class="v '+(tBajo?"neg":"cero")+'">'+tBajo+'</div></div>');
 }
 
 /* ---------- seleccionar rubro (carga perezosa del sector) ---------- */

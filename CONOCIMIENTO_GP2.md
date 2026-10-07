@@ -15726,3 +15726,38 @@ total que hizo"*. **Retira** lo de arriba que decía *"sin envasado, que no tien
 - **[dato]** El aviso sigue siendo **por equipo**: sólo aparece donde alguien tildó *«Avisarme en esta PC a las 15:00»* (localStorage). La
   tablet de Alan lo tiene que tildar **una vez**, desde el botón ⚖ Cajones. Sin el tilde no carga nada ni consulta la base.
 - **[hecho 07/10]** La prueba del 06/10 (2 cajones sin cargar, ids 29 y 30, y la fila del día) se borró: el conector de la sesión frena los DELETE, así que **Elías corrió el script** `db/pendiente/2026-10-07_verif_cajones_borrar_prueba_06_10.sql` en el SQL Editor y mostró el resultado (`cajones_06_10 = 0`, `dias_06_10 = 0`). Verificado por captura, no por consulta de la sesión.
+
+## 4jm. Remaches: crudo en CAJÓN de 25 kg, niquelado en BOLSA de 2/10 kg, y la matriz 150 en las rutas (2026-10-07)
+
+- **[usuario, 07/10, textual]** *«La matriz 150 Env Remaches sirve para pasar de los cajones de remaches a bolsas más chiquitas. Los remaches
+  crudos vienen en bolsas de 25 kg → se guardan en cajones de 25 kg → se mandan a Guazzaroni para niquelar → vuelve en cajones de 25 kg → se
+  guarda en las bolsas de 2 kg/10 kg. Por lo tanto en remaches crudos (los que arrancan con C) el stock es en cajones de 25 kg, remaches
+  niquelados (los que arrancan con V) se guardan en bolsas de 2 kg/10 kg con la matriz 150.»* Y: *«a los talleristas se les manda bolsas de
+  remaches (nunca cajones)»*.
+- **[usuario]** Bolsa de cada niquelado: **10 kg** = V3, V5, V7, V8, V9; **2 kg** = V1, V2, V4, V6, V10, V11, V12, V13, V18 (y V18D, que ya era 2).
+- **[usuario]** *«En la tablet de operario cuando ponen M150 tendrían que aparecer las variantes (todos los remaches que arrancan con V menos
+  V18 y V18D que no se mandan a niquelar)»* y *«las rutas en el despiece tendrían que aparecer que después del niquelado vienen ya como V.. y que
+  pasan por la matriz 150 y van de vuelta al sector V.... Este trazado sirve para mandar al tallerista en bolsa»*.
+- **[hecho, base, `db/migracion_remaches_cajon_bolsa_matriz150_20261007.sql`]** (1) **13 crudos `CV*` = cajón de 25,00 kg** (`uni_x_cajon = 25 /
+  kg_x_uni`); antes 10 tenían 20 kg, CV13 11, CV9 10 y CV6 2: **cierra la discrepancia que dejó abierta §1-sexies** (base 20 kg vs planilla 2/10 kg:
+  el dueño dijo 25). (2) **V9 → bolsa de 10 kg** (era 2) y **V18 → 2 kg** (era 11,01); las otras 12 ya coincidían. (3) **14 niquelados con
+  `entrega_unidad = 'bolsas'` y `entrega_uni_x` = su bolsa** (V18D ya lo tenía): las pantallas de envío a talleristas (`envase()` de
+  `EnviosTalleristas_GP2.html`, la Tablet) dicen «bolsas» en vez de «cajones». (4) **La 150 en 55 rutas**: paso `matriz` V → M150 → V justo después
+  del niquelado (53 rutas, V1–V9 y V11–V13) y, para V10 —que se compra ya como V—, entre el `insumo` y la M194 (rutas 373 y 375). 55 pasos nuevos,
+  118 corridos un lugar.
+- **[dato, medido 07/10]** El selector de variantes de la tablet **sale solo de la base**: `reg_prod_3_0_bundle` → `matriz_salidas` lista las
+  salidas de los pasos `matriz` de cada matriz (con ≥ 2). Antes la 150 tenía **0 pasos**, así que el Registro Producción 3.0 la mostraba como una
+  matriz común y no preguntaba qué remache. Ahora tiene **13 salidas (V1…V13)**, cada una con los artículos que la usan (V9: 043/103/500/506/510/511/706).
+  Los toques de la 150 **no son «envasado»**: el bloque `envasado` del bundle sólo mira terminados (sector 12) y multiplicaría bolsas por unidades por caja.
+- **[dato, `public.db_n8n_espejo`]** La 150 tiene 48 registros válidos (03/2026 → 11/09/2026): **mediana 6, y ~75 s por unidad** contra 55 s
+  históricos → **la «unidad» de la 150 es la BOLSA**, no el remache. Hay un registro de 102.000 (alguien tipeó remaches). `[deducido]`.
+- **[dato, ensayo revertido + aplicación]** **No cambió ningún costo ni máximo**: 11 vistas (`v_costo_componente`, `v_consumo_demanda`,
+  `v_oc_virgilio_demanda`, `v_hace_articulo`, …) con 0 filas distintas, `inventario.maximo` idéntico, 0 órdenes repetidos, 0 pasos sin actor.
+  Es porque el motor de costos **ignora los pasos con entrada = salida** (`edges … comp_entrada_id <> comp_salida_id`) y porque las dos vistas de
+  demanda recorren con `UNION` (cortan solas). Un paso `matriz` con entrada = salida **no tenía precedente** (0 antes; sí `insumo`/`ingreso`).
+- **[PENDIENTE — decisiones que quedan]** (a) **La mano de obra de la 150 (55 s por bolsa) no entra al costo del remache**, por lo de arriba;
+  para sumarla hay que convertir segundos por bolsa a por remaches (bolsa = `uni_x_cajon`) y tocar el motor. (b) **Fase 1c del Registro 3.0**
+  (stock): `GP2.fabricar_stock` leería 6 bolsas como 6 remaches V→V en el mismo sector (neto 0, con ruido): la 150 necesita su regla antes de mover stock.
+  (c) El **stock de los V se sigue mostrando en «cajones»** en las pantallas de stock (no hay columna de unidad de stock; `uni_x_cajon` ya es la
+  bolsa): es un rótulo, no un error de cantidad. (d) **OC**: los crudos ahora redondean a cajón de 25 kg (antes 20 kg); `oc_bundle` lee `uni_x_cajon`
+  y **no se midió** cuánto cambia lo sugerido. (e) V10 está en el selector aunque no se niquela, porque el dueño pidió «todos los V menos V18 y V18D».
