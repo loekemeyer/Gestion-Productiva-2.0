@@ -380,13 +380,13 @@ window.supabase = { createClient: function(){ return {
     thead: document.getElementById('thead').innerText,
     celdas: Array.from(document.querySelectorAll('#tbody tr')).map(tr => Array.from(tr.cells).map(t => t.textContent.trim()))
       .filter(c => c[0] === 'Pettofrezza Rafael')[0] || [],
-    kpis: document.getElementById('kpis').innerText,
+    kpis: document.getElementById('kpis') ? document.getElementById('kpis').innerText : null,
   }));
   ok(!/\bCAJ\b/i.test(iny.thead) && !/MÁXIMO/i.test(iny.thead), 'Terceros · Inyectores: sin Caj ni Máximo');
   // columnas: Inyector | Código | Descripción | Kg | Uni | Kg×Uni
   ok(iny.celdas[0] === 'Pettofrezza Rafael' && iny.celdas[1] === '2405' && iny.celdas[3] === '1.250' && iny.celdas[4] === '—',
      'Terceros · Inyectores: 1.250 kg de PP van en Kg y Uni queda vacío — ' + iny.celdas.join(' | '));
-  ok(/Total kg\s*1\.250/i.test(iny.kpis), 'Terceros · Inyectores: el KPI Total kg suma la MP — ' + iny.kpis.replace(/\s+/g, ' '));
+  ok(iny.kpis === null, 'Terceros · Inyectores: sin cuadros de totales (el usuario pidió sacarlos, v3.4.1)');
   ok(/Pat Bet Plast/.test(iny.body), 'Terceros · Inyectores: aparece Pat Bet Plast aunque nunca se le mandó resina (sin fila en inventario)');
 
   await page.click('#rubros .rubro-btn:has-text("Prov. Servicio")');
