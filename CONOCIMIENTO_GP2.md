@@ -15615,8 +15615,9 @@ total que hizo"*. **Retira** lo de arriba que decía *"sin envasado, que no tien
   (mismo proyecto de Supabase) ni con el de la TV de Virgilio — medido: 7373 contra 7814 en el mismo minuto. (2) **Sin clave
   compartida**: ver el código exige un **mail habilitado** (`_exigir_autorizado()`, la whitelist del login); `monitor_clave_actual`
   no tiene EXECUTE para `anon` (medido contra la API real: `42501 permission denied`). (3) Sin tabla de ingresos ni Telegram: eso es de la
-  clave del lunes de GT. Esos tres puntos son un **[deducido] sin confirmar**: si Elías quiere la clave compartida con ventana del lunes,
-  se agrega.
+  clave del lunes de GT. **[usuario, Elías 07/10, textual]** *«mail habilitado. la que se usa para entrar al admin»* → CONFIRMADO: el monitor se ve con la
+  cuenta habilitada del admin, sin clave compartida ni aviso de Telegram. La PC del monitor queda logueada con esa cuenta (si la sesión
+  se cae, no muestra el código hasta volver a entrar).
 - ⚠ **No es un candado** (igual que en GT): `monitor_clave_validar` está abierta a `anon` porque el operario que tipea no tiene sesión;
   devuelve sólo `{ok}`. 4 dígitos = 10.000 combinaciones y 2 válidas por minuto: se puede adivinar. Sirve para que se entre estando en
   la planta, no para proteger datos. **Nada la llama todavía**: la usará la app de registro de producción (otro repo).
