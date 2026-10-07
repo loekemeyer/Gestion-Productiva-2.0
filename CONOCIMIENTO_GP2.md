@@ -15561,10 +15561,17 @@ total que hizo"*. **Retira** lo de arriba que decía *"sin envasado, que no tien
   `db/migracion_aletas_l9_l10_crudo_20261006.sql` (con reversa, sin DELETE).
 - **[dato]** «Tras matriz» aplicado literal a la convención del 29/09 (`<raíz>-M<matriz>` / `<desc. raíz> tras M<matriz>`), con el
   crudo como raíz. Queda «Aleta Izq s/Doblar y s/Estampar tras M114», que lee raro porque ya está doblada; se dejó así.
-- ⚠ **[pendiente del dueño]** L9 y L10 nacen **sin `kg_x_uni` ni `uni_x_cajon`**: son los primeros 2 de los 79 crudos sin peso (los
-  otros 77 lo tienen). No se inventaron ni se copiaron de la base vieja (su `SC_Kg` del 10/08 las tiene como LF9/LF11 con otros
-  nombres: Regla 0). Sin cajón no hay máximo por cajones ni derivado. **Costo sin cambio**: sin kg en la cadena el material cae a
-  1/`partes_por_kilo_de_fleje` de la M116 (37,8 u/kg). Cuando se carguen, el costo del crudo va a salir del kg real.
+- ✔ **[CARGADO el 07/10 — era el «pendiente del dueño»]** L9 y L10 nacieron **sin `kg_x_uni` ni `uni_x_cajon`** (los primeros 2 de los
+  79 crudos sin peso; no se inventaron ni se copiaron de la base vieja, cuyo `SC_Kg` del 10/08 las tiene como LF9/LF11: Regla 0).
+  **[usuario, 07/10]** *«Uni x Cajón 1234 · KG x Uni 0.024316667, los dos iguales»* → las dos piezas (izq y der) llevan
+  **`kg_x_uni` 0,024316667 y `uni_x_cajon` 1.234** (≈ 41,12 u/kg; antes el material caía a 37,8 u/kg de la M116). Hoy **0 crudos sin
+  peso o cajón**. `db/migracion_l9_l10_peso_cajon_20261007.sql` (con reversa, sin DELETE).
+- **[dato]** Efecto medido contra la foto `zz_backups."GP2_Snap_costo_20261007_l9_l10"` (834 filas): cambian **8 costos, sólo el
+  material** (M116/M114 son `tiempo_unidad 'uni'`: la mano de obra no depende del kg). L9/L10 91,81 → 84,64 y L9-M114/L10-M114
+  108,81 → 101,64 (−7,17 c/u); **D3 114,99 → 114,04 y D2 114,65 → 114,04 (ahora iguales)**; **523 3.001,16 → 2.999,60 y 723
+  2.958,32 → 2.956,76** (−1,56 c/u). Total 537.113,64 → 537.080,28 (−33,36). ⚠ La base de comparación del párrafo de arriba
+  (537.420,79 del 06/10) ya no vale: la baja de 307,15 hasta 537.113,64 es de otros cambios del 07/10 (LOCKS (51), CV18D), no de este.
+  `maximo` de L9/L10 **sin cambio** (1.932 por consumo < tope de 5 cajones = 6.170); `inventario.maximo` idéntico en las 1.180 filas.
 - **[dato]** Medido con ensayo revertido y luego aplicado: `v_costo_componente` 835 filas, **0 costos distintos** contra
   `zz_backups."GP2_Snap_costo_20261006_m116"` (total 537.420,79; 523 3.001,16 · 723 2.958,32); inventario del resto idéntico
   (md5); los bundles faltantes/oc/programa/tablet/despiece_verif/valorizacion/stock_sector(1) corren sin error y L9 aparece en
