@@ -15761,3 +15761,26 @@ total que hizo"*. **Retira** lo de arriba que decía *"sin envasado, que no tien
   (c) El **stock de los V se sigue mostrando en «cajones»** en las pantallas de stock (no hay columna de unidad de stock; `uni_x_cajon` ya es la
   bolsa): es un rótulo, no un error de cantidad. (d) **OC**: los crudos ahora redondean a cajón de 25 kg (antes 20 kg); `oc_bundle` lee `uni_x_cajon`
   y **no se midió** cuánto cambia lo sugerido. (e) V10 está en el selector aunque no se niquela, porque el dueño pidió «todos los V menos V18 y V18D».
+
+## 4jn. 630E/631E/633E/636E/637E: los gemelos CHEF de los inox importados 94xE (2026-10-07) — ✅ APLICADO
+
+- **[usuario, 07/10, sin identificar, textual]** *«Vamos a modelar los siguientes artículos 63XE, son idénticos a los artículos que te voy a
+  decir, lo único que cambia es que son de marca Chef: 633E→942E, 630E→943E, 637E→944E, 636E→945E, 631E→948E»*.
+- **No son los 630–637 sin E** (§4cp: *"332/7 y 630/7 son discontinuos. Se reemplazaron por 941/8E"*). Ésos siguen discontinuados; los
+  **63xE** son códigos nuevos, la versión Chef del juego 94xE. Mapa: **633E** Cuchara Lisa · **630E** Cucharón · **637E** Pinza Fideos ·
+  **636E** Espátula Calada · **631E** Espumadera (todos «… Ac. Inox», marca CHEF, familia Utensilios, Caja N°15 `A9B`, 12 por caja).
+- **[dato] Calco completo del gemelo** (molde §4bl / §4cb): artículo + terminado sector 12 (sin fila de inventario, como el gemelo) + receta
+  (PEST1 + pieza inox + Z46 ×1, A9B ×1/12) + **las 4 rutas** paso por paso + la excepción de `articulo_linea_tallerista` (línea antes de la
+  505). **Las piezas y el intermedio son LOS MISMOS** (`Z47/Z44/Z48/Z49/Z50`, `<pieza>-M505`): la 505 «Armado Inox» no cambia (5 salidas)
+  y la **401 «Env Cucharas Inox Imp»** pasa a envasar en 10 terminados. La marca se decide en la 401.
+- **Tablet:** la 401 ofrece 10 opciones; las Chef con etiqueta **«<etiqueta del gemelo> Chef»** (orden 6–10, molde 512: 323E «Loeke» /
+  838E «Chef»). Las 5 LK quedaron como las dictó el dueño hoy («Cuchara Lisa», …), **sin «Loeke»** — si se quiere simetría, es un `update`
+  de 5 filas de `matriz_salida_etiqueta`.
+- **Plata [dato]:** cada 63xE cuesta **$58,09**, igual que su gemelo (MO $29,40; `faltan_precios=1` heredado: las piezas importadas no
+  tienen precio, §4ia). El gemelo no tiene tarifa colgada del terminado → nada que copiar (lección del 760). Total de `v_costo_componente`
+  537.080,28 → 537.370,73 (+290,45 = 5 × 58,09); **huella del resto idéntica** (`d7f8b140…`) e `inventario.maximo` idéntico (`e795c4eb…`,
+  1.180 filas). Invariantes iguales antes y después (AE=2 y AG=9 ya estaban). GP2 queda con **204 artículos**.
+- **[dato] Lo que falta del lado de Gestión Virgilio, y GP2 NO toca:** `GP2.est_madre` (proyección de GV) todavía no tiene ningún 63xE — la
+  demanda Chef sigue en los 630/631/633/636/637 viejos (3, 2, 0, 0, 0 uni/mes) —, así que hoy los 63xE **no suman al máximo** de PEST1, Z46,
+  las piezas ni la caja. Tampoco están en `Equivalencias_Familia` (espejo `articulo_familia`, invariante AG). Se resuelve cargándolos en GV.
+- `db/migracion_alta_63xE_chef_20261007.sql` (sólo altas, idempotente, con reversa comentada). Sólo base: sin UI, sin bump.
