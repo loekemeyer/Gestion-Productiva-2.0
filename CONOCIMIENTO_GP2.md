@@ -15677,3 +15677,27 @@ total que hizo"*. **Retira** lo de arriba que decía *"sin envasado, que no tien
   inofensiva (el bundle sólo une etiquetas con salidas que existen)— y se puede borrar.
 - `db/migracion_matriz_salida_etiqueta_20261007.sql` (una transacción, cancela entera si algún par no resuelve a 1 componente). Tests:
   `tests/ui/test_matriz_etiquetas.js` (estático) y bloque nuevo en `test_op_e2e.js` (en pantalla, incluido el caso mixto).
+
+## 4jl. El tornillo sacafuente llega de Imel YA como V18D: desaparecen el CV18D y el paso de niquelado (2026-10-07) — ⚠ DECIDIDO, NO APLICADO
+
+- **[usuario, 07/10]** (captura de la ruta «CV18D — Tornillo Sacafuente p/Niquelar»: Imel → CV18D → Guazzaroni «Niquelado» → Martin Cornejo →
+  Virgilio): *«Ese tornillo sacafuente viene de Imel ya como V18D, elimina CV18D y también el paso que se manda a niquelar.»* Cambia lo de
+  §4k (tabla «crudo → niquelado»: la fila `CV18D` ya no existe; queda sólo `CV13`) y deja sin efecto el niquelado de §4gc.
+- **[dato]** Rutas 219 (art. 508) y 583 (art. 708), idénticas. Hoy: `ingreso CV18D → Guazzaroni (CV18D→V18D) → Martin Cornejo (V18D→art) →
+  virgilio` (4 pasos). Queda: `insumo V18D → Martin Cornejo → virgilio` (3 pasos), como las rutas de `W8`. Barrido de las 30 FK a
+  `componente`: CV18D sólo lo tocan 6 `ruta_paso`, 1 `inventario` (id 839, stock 0) y 1 `precio_proveedor` (id 66, $68,70 de Imel, lista
+  21/08); 0 movimientos, recepciones, OC y alias.
+- **[dato]** Medido con ensayo revertido: sólo cambian 4 costos de 835 — **V18D 148,18 → 68,70** (origen `precio`; los 79,48 de servicio
+  se van), **508 1.634,41 → 1.554,93**, **708 1.611,47 → 1.531,98**, y CV18D desaparece. `faltan_precios/kg/tiempos` de 508 y 708 sin cambio.
+  Foto previa: `zz_backups."GP2_Snap_costo_20261007_cv18d"` (con RLS).
+- ⚠ **[NO APLICADO]** exige 4 DELETE (2 `ruta_paso`, `inventario` 839, `componente` 477, más la tarifa `precio_servicio_pieza` 112 del niquelado del
+  V18D). El conector retiene los DELETE a los 60 s (se reintentó en una transacción: no aplicó nada, base intacta; no hay función de la app que quite
+  pasos ni componentes). Script atómico, con guarda y reversa, en `db/pendiente/2026-10-07_cv18d_desaparece_v18d_directo_imel.sql`: correrlo UNA
+  vez en el SQL Editor.
+- **[efecto operativo al aplicar]** V18D pasa de `fabricacion` a comprado (`estado_compra` null, `proveedor` Imel): vuelve a la OC y a la Recepción
+  de Insumos bajo Imel (antes lo pedía el CV18D). Se va el paso de Guazzaroni: el Envío a Guazzaroni deja de ofrecer el tornillo.
+- ⚠ **[pendiente del dueño]** el $68,70 es la lista de Imel del 21/08 («Tornillo sacafuentes») y estaba pensado como precio del crudo. Si Imel ya
+  vende el tornillo niquelado a ese precio, queda bien; si ese precio era del crudo y el niquelado se paga aparte, el costo real de V18D es
+  mayor. Lo confirma la factura de Imel. Tampoco se tocó la tarifa de niquelado de Guazzaroni ($2.606/kg): la siguen usando V1/V11/V12/V13/D9/D13.
+- **[para después de aplicar]** actualizar los textos que nombran al CV18D: `REGLAS_OC_INSUMOS.md` (línea 241) y `COMPONENTES_SIN_CAJON_2026-09-23.md`;
+  §4gc/4ge/4gi quedan como historia.
