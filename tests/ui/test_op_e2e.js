@@ -304,6 +304,25 @@ window.supabase = { createClient: function(url, key, opts){ window.__sbOpts = op
        'elegida la pieza, la linea dice solo la etiqueta — ' + lin);
     const chip = (await page.textContent('#matrizGrid .mz-chip')).replace(/\s+/g, ' ').trim();
     ok(chip.includes('Chef') && !chip.includes('I11'), 'la card de la matriz muestra la etiqueta a la derecha — ' + chip);
+    // El chip queda ADENTRO de la tarjeta de la matriz (2026-10-07, usuario con captura de la 150: "Siempre el
+    // cartel amarillo me queda afuera"). Con la etiqueta real más larga (Remache Plaquita 3 en 1), en tablet y a 390px.
+    const afuera = [];
+    for (const w of [1280, 390]) {
+      await page.setViewportSize({ width: w, height: 800 });
+      for (const e of ['Remache Espiral', 'Remache Plaquita 3 en 1']) {
+        await page.evaluate((x) => { piezaSel.etiqueta = x; renderMatrizPicker(); }, e);
+        const r = await page.evaluate(() => {
+          const g = $('matrizGrid'), card = g.querySelector('.mz.has-chip');
+          const a = card.getBoundingClientRect(), b = card.querySelector('.mz-chip').getBoundingClientRect();
+          const m = card.querySelector('.mz-d');
+          return { dentro: b.left >= a.left && b.right <= a.right + 0.5 && b.bottom <= a.bottom + 0.5,
+                   sinScroll: g.scrollWidth <= g.clientWidth, descEntera: m.scrollWidth <= m.clientWidth + 0.5 && m.getClientRects().length === 1 && m.offsetHeight < 20 };
+        });
+        if (!r.dentro || !r.sinScroll || !r.descEntera) afuera.push(w + 'px «' + e + '» ' + JSON.stringify(r));
+      }
+    }
+    await page.setViewportSize({ width: 1280, height: 720 });
+    ok(!afuera.length, 'el chip amarillo queda adentro de la tarjeta y el nombre de la matriz no se parte (1280 y 390px) — ' + (afuera.join(' | ') || 'ok'));
     const datos = await page.evaluate(() => ({ id: piezaSel.comp_id, cod: piezaSel.codigo }));
     ok(datos.id === 17 && datos.cod === 'I11', 'lo que viaja no cambia: comp_salida_id 17 y pieza = I11 — ' + JSON.stringify(datos));
     ok(!(await page.locator('#btnEnviar').isDisabled()), 'con la pieza elegida se habilita Enviar');

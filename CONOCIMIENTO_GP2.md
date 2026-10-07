@@ -2836,6 +2836,12 @@ Varios pedidos del usuario sobre `Produccion/RegistroApp/Operarios_GP2.html` en 
   al elegir la pieza, la card de la matriz muestra un chip con el código de la pieza a la
   derecha (`.mz.has-chip` + `.mz-chip` "acá va el stock"), y el box amarillo de selección se
   **colapsa a una línea** ("Fabricás A15 · … — cambiar"). Tocar "cambiar" reabre el grid.
+  ⚠ 2026-10-07 (v1.250.1) `[usuario, con captura de la 150: "Siempre el cartel amarillo me queda afuera"]`:
+  con las etiquetas largas («Remache Espiral») el chip no entraba en la celda de 150px de la grilla
+  (`flex: 0 0 auto`, no se achicaba) y quedaba AFUERA de la tarjeta, con el nombre partido a mitad de
+  palabra («Rema/ches»). Ahora la card con chip ocupa la fila entera pero mide lo que su contenido
+  (`justify-self: start`), y si falta lugar el chip parte su texto por palabras. Lo vigila
+  `test_op_e2e.js` (1280 y 390px, con «Remache Plaquita 3 en 1», la etiqueta real más larga).
 
 
 ## 2c-undecies. Stock en Movimiento (Sector Tránsito): sin mín/máx ni carteles (2026-08-31)
