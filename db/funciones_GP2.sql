@@ -584,6 +584,18 @@ begin
 end $function$
 ;
 
+-- ---------- _monitor_clave_de ----------
+CREATE OR REPLACE FUNCTION "GP2"._monitor_clave_de(p_tramo bigint)
+ RETURNS text
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'GP2', 'pg_temp'
+AS $function$
+  select lpad(((('x' || substr(md5((select system_identifier from pg_catalog.pg_control_system())::text
+                 || ':gp2-clave:' || p_tramo::text), 1, 8))::bit(32)::bigint) % 10000)::text, 4, '0');
+$function$
+;
+
 -- ---------- _oc_convertir ----------
 CREATE OR REPLACE FUNCTION "GP2"._oc_convertir(p_cant numeric, p_de text, p_a text, p_kg_x_uni numeric)
  RETURNS numeric
@@ -5667,6 +5679,40 @@ begin
     'tope_cajones', v_tope, 'cajones', v_caj,
     'kg_x_bolsa', v_kg_bolsa, 'desperdicio_pct', v_desp, 'mb_pct', v_mb_pct, 'mb_color', v_letra,
     'base', v_base, 'filas', v_filas);
+end $function$
+;
+
+-- ---------- monitor_clave_actual ----------
+CREATE OR REPLACE FUNCTION "GP2".monitor_clave_actual()
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'GP2', 'pg_temp'
+AS $function$
+begin
+  perform "GP2"._exigir_autorizado();
+  return jsonb_build_object(
+    'clave', "GP2"._monitor_clave_de(floor(extract(epoch from now()) / 60)::bigint),
+    'cambia_en_s', 60 - (floor(extract(epoch from now()))::bigint % 60));
+end $function$
+;
+
+-- ---------- monitor_clave_validar ----------
+CREATE OR REPLACE FUNCTION "GP2".monitor_clave_validar(p_clave text)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'GP2', 'pg_temp'
+AS $function$
+declare
+  v_t bigint := floor(extract(epoch from now()) / 60)::bigint;
+  v_c text := regexp_replace(coalesce(p_clave, ''), '\D', '', 'g');
+begin
+  -- vale el de este minuto y el del anterior (el operario lo lee, camina y lo tipea)
+  if v_c = '' or (v_c <> "GP2"._monitor_clave_de(v_t) and v_c <> "GP2"._monitor_clave_de(v_t - 1)) then
+    return jsonb_build_object('ok', false);
+  end if;
+  return jsonb_build_object('ok', true);
 end $function$
 ;
 

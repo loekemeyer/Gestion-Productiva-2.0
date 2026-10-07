@@ -1,0 +1,107 @@
+/* test_monitor_ingreso.js — Monitor · Código de ingreso (copia la forma del Monitor de GT Admin)
+ *
+ * Lo que vigila (offline, Supabase stubeado):
+ *  1. Pide el código con GP2.monitor_clave_actual (una RPC, nada de tablas) y lo muestra TAL CUAL:
+ *     los ceros de adelante se conservan ("0042", no "42") y no lleva separador de miles ("1234").
+ *  2. La rueda muestra los segundos que faltan y el arco acompaña (sobre 60).
+ *  3. Cuando se cumple el minuto vuelve a pedir y cambia el código solo.
+ *  4. Si la base falla: avisa, reintenta, y el código queda en «····» (no muestra uno viejo de memoria).
+ *  5. Cuenta no habilitada (42501): lo dice y NO reintenta (reintentar no lo arregla).
+ *  6. Está en el menú (Producción) y la RPC existe en db/funciones_GP2.sql.
+ */
+const { chromium } = require('playwright');
+const path = require('path');
+const fs = require('fs');
+const ROOT_DIR = path.resolve(__dirname, '..', '..');
+const ROOT = 'file://' + ROOT_DIR.replace(/\\/g, '/');
+const EXE = process.env.CHROMIUM_PATH || (fs.existsSync('/opt/pw-browsers/chromium') ? '/opt/pw-browsers/chromium' : undefined);
+const PANTALLA = '/Produccion/MonitorIngreso/MonitorIngreso_GP2.html';
+
+// El stub lee window.__modo (lo fija cada escenario antes de cargar la página).
+const STUB = `
+window.supabase = { createClient: function(){ return {
+  from: function(){ throw new Error('esta pantalla NO lee tablas sueltas, va por la RPC'); },
+  auth: { getSession: async function(){ return { data: { session: null } }; }, onAuthStateChange: function(){} },
+  rpc: async function(n, args){
+    window.__llamadas = (window.__llamadas || 0) + 1;
+    window.__rpc = [n, args];
+    var m = window.__modo;
+    if (m === 'cae')   return { data: null, error: { message: 'boom' } };
+    if (m === 'sinpermiso') return { data: null, error: { code: '42501', message: 'No autorizado' } };
+    if (m === 'cambia') return { data: { clave: window.__llamadas === 1 ? '0042' : '1234', cambia_en_s: 1 }, error: null };
+    return { data: { clave: '0042', cambia_en_s: 21 }, error: null };
+  }
+};}};
+`;
+
+let fallas = 0;
+const ok = (c, msg) => { console.log((c ? 'OK  ' : 'FAIL') + ' ' + msg); if (!c) { fallas++; process.exitCode = 1; } };
+
+async function abrir(browser, modo) {
+  const page = await browser.newPage({ viewport: { width: 1280, height: 720 } });
+  page.on('pageerror', e => { console.log('PAGEERROR:', e.message); fallas++; process.exitCode = 1; });
+  await page.addInitScript(m => { window.__modo = m; }, modo);
+  await page.route('**/@supabase/supabase-js@2', r => r.fulfill({ contentType: 'application/javascript', body: STUB }));
+  await page.route('**/auth-guard.js**', r => r.fulfill({ contentType: 'application/javascript', body: 'window.GP2_AUTH_ON=false;' }));
+  await page.route('**/GP2_favicon.png', r => r.fulfill({ contentType: 'image/png', body: Buffer.from('') }));
+  await page.goto(ROOT + PANTALLA);
+  return page;
+}
+
+(async () => {
+  const browser = await chromium.launch(EXE ? { executablePath: EXE } : {});
+
+  // 1 y 2) código, rueda
+  let page = await abrir(browser, 'ok');
+  await page.waitForFunction(() => document.getElementById('clave').textContent !== '····');
+  ok((await page.textContent('#clave')) === '0042', 'el código se muestra tal cual, con el cero de adelante: ' + (await page.textContent('#clave')));
+  const rpc = await page.evaluate(() => window.__rpc);
+  ok(rpc[0] === 'monitor_clave_actual', 'llama a la RPC del schema GP2: ' + rpc[0]);
+  await page.waitForTimeout(400);                       // la rueda se redibuja cada 250 ms
+  const seg = Number(await page.textContent('#seg'));
+  ok(seg >= 19 && seg <= 21, 'la rueda muestra los segundos que faltan: ' + seg);
+  const off = Number(await page.evaluate(() => document.getElementById('arco').style.strokeDashoffset));
+  ok(Math.abs(off - 263.9 * (1 - seg / 60)) < 0.5, 'el arco acompaña a los segundos (offset ' + off.toFixed(1) + ')');
+  ok((await page.textContent('#estado')) === '', 'sin avisos cuando anda');
+  await page.close();
+
+  // 3) cada minuto pide de nuevo y cambia solo
+  page = await abrir(browser, 'cambia');
+  await page.waitForFunction(() => document.getElementById('clave').textContent === '0042');
+  await page.waitForFunction(() => document.getElementById('clave').textContent === '1234', null, { timeout: 8000 });
+  ok(true, 'al cumplirse el minuto pide de nuevo y cambia solo: 0042 -> ' + (await page.textContent('#clave')));
+  ok((await page.evaluate(() => window.__llamadas)) >= 2, 'segunda llamada hecha');
+  await page.close();
+
+  // 4) la base falla
+  page = await abrir(browser, 'cae');
+  await page.waitForFunction(() => /No pude leer/.test(document.getElementById('estado').textContent));
+  ok(/boom/.test(await page.textContent('#estado')), 'avisa y muestra el motivo: ' + (await page.textContent('#estado')));
+  ok((await page.textContent('#clave')) === '····', 'sin código no muestra uno inventado');
+  ok(await page.evaluate(() => document.getElementById('estado').classList.contains('err')), 'el aviso va en rojo');
+  await page.close();
+
+  // 5) cuenta no habilitada
+  page = await abrir(browser, 'sinpermiso');
+  await page.waitForFunction(() => /no está habilitada/.test(document.getElementById('estado').textContent));
+  ok(true, 'cuenta no habilitada: lo dice');
+  await page.waitForTimeout(1500);
+  ok((await page.evaluate(() => window.__llamadas)) === 1, 'y no reintenta (una sola llamada)');
+  ok((await page.textContent('#clave')) === '····', 'sin código a la vista');
+  await page.close();
+
+  await browser.close();
+
+  // 6) menú y base
+  const menu = fs.readFileSync(path.join(ROOT_DIR, 'GP2_MODULOS.html'), 'utf8');
+  // va como pastilla del header (junto a las dos Tablet): una baldosa más en Herramientas hacía que
+  // los 2 grupos dejaran de entrar en 375x600 (644 de 600), y en MENU_OCULTO sólo se vería con ?todos=1
+  ok(/<a class="tablet-link" href="Produccion\/MonitorIngreso\/MonitorIngreso_GP2\.html">🔑 Monitor<\/a>/.test(menu), 'está en el menú: pastilla «🔑 Monitor» del header');
+  const fn = fs.readFileSync(path.join(ROOT_DIR, 'db', 'funciones_GP2.sql'), 'utf8');
+  ok(/FUNCTION "GP2"\.monitor_clave_actual\(\)/.test(fn), 'db/funciones_GP2.sql tiene monitor_clave_actual');
+  ok(/FUNCTION "GP2"\.monitor_clave_validar\(p_clave text\)/.test(fn), 'db/funciones_GP2.sql tiene monitor_clave_validar');
+  const act = (fn.match(/FUNCTION "GP2"\.monitor_clave_actual\(\)[\s\S]*?end \$function\$/) || [''])[0];
+  ok(/_exigir_autorizado\(\)/.test(act), 'monitor_clave_actual exige mail habilitado (no hay clave compartida)');
+
+  console.log(fallas ? '\n' + fallas + ' falla(s)' : '\nTodo OK');
+})().catch(e => { console.error(e); process.exit(1); });

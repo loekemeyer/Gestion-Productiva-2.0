@@ -15592,3 +15592,33 @@ total que hizo"*. **Retira** lo de arriba que decía *"sin envasado, que no tien
   mano de obra). No se tocaron.
 - **[efecto operativo al aplicar]** la 364 entrega Z6 directo (crudo) y la 368 queda con una sola salida (Z5): la tablet deja de
   preguntar pieza en la 368 (la duda «¿salen juntas?» de PROBLEMAS_MATRICES ya no corresponde).
+
+## 4jh. Monitor · Código de ingreso: copia de la forma del Monitor de GT (2026-10-07)
+
+- **[usuario, Elías 07/10, textual]** *«mira el repo GT y copia la forma de hacer el monitor y añadi el modulo de monitor»* y, con la captura
+  del Monitor de **GT Admin**: *«con monitor me refiero a este»* = la pantalla del **código de ingreso**: 4 dígitos enormes que cambian
+  cada minuto, con la rueda de cuenta regresiva. **No es** «Monitor en Vivo · Operarios» (`Produccion/monitor_GP2.html`, que ya existía).
+- **[dato]** Cómo lo hace GT (repo `loekemeyer/GT`, `sql/gt_schema_v3.sql`, `admin.html`): el código sale de la hora (tramo = minuto
+  entero) y de una semilla (`md5(system_identifier || ':gt-clave:' || tramo)` → 4 dígitos); vale el de este minuto y el anterior; el
+  monitor lo pide con `gt_monitor_clave(pass)`, dibuja la rueda y vuelve a pedir a los `cambia_en_s + 0,6` s; el celular lo valida con
+  `gt_clave_validar` y recién ahí lista los empleados. GT agrega una **clave de monitor compartida** (bcrypt en `gt.config`, la pone
+  Javier los lunes 07:00–08:00, aviso de Telegram fuera de horario).
+- **[hecho]** Pantalla `Produccion/MonitorIngreso/MonitorIngreso_GP2.html` (`version.js` v1.246.0). **En el menú va como PASTILLA
+  «🔑 Monitor» del header, junto a «Tablet Logística» y «Tablet Operarios»**, no como baldosa: una novena baldosa en Herramientas
+  hacía que los 2 grupos dejaran de entrar en 375×600 (644 de 600, `test_menu_una_pantalla`), y en el grupo Producción de
+  `MENU_OCULTO` sólo se vería con `?todos=1`. Con tres pastillas, en pantallas ≤440 px se acorta a «📱 Logística / 📱 Operarios /
+  🔑 Monitor» (medido en 320, 360, 375 y 390 px: ninguna se corta) y la vista `?todos=1` reserva 170 px abajo para que las tres,
+  apiladas, no tapen la última cabecera. Base, en `db/migracion_monitor_clave_20261007.sql` (aplicada) y `db/funciones_GP2.sql`:
+  `GP2._monitor_clave_de(tramo)` (interna), `GP2.monitor_clave_actual()` y `GP2.monitor_clave_validar(p_clave)`. Prueba:
+  `tests/ui/test_monitor_ingreso.js`.
+- **[decisión, distinta de GT, a propósito]** (1) **Semilla propia** `:gp2-clave:`: el código de GP2 no coincide con el de GT
+  (mismo proyecto de Supabase) ni con el de la TV de Virgilio — medido: 7373 contra 7814 en el mismo minuto. (2) **Sin clave
+  compartida**: ver el código exige un **mail habilitado** (`_exigir_autorizado()`, la whitelist del login); `monitor_clave_actual`
+  no tiene EXECUTE para `anon` (medido contra la API real: `42501 permission denied`). (3) Sin tabla de ingresos ni Telegram: eso es de la
+  clave del lunes de GT. Esos tres puntos son un **[deducido] sin confirmar**: si Elías quiere la clave compartida con ventana del lunes,
+  se agrega.
+- ⚠ **No es un candado** (igual que en GT): `monitor_clave_validar` está abierta a `anon` porque el operario que tipea no tiene sesión;
+  devuelve sólo `{ok}`. 4 dígitos = 10.000 combinaciones y 2 válidas por minuto: se puede adivinar. Sirve para que se entre estando en
+  la planta, no para proteger datos. **Nada la llama todavía**: la usará la app de registro de producción (otro repo).
+- **[dato]** Desde la sesión SQL (sin JWT) `_exigir_autorizado()` deja pasar siempre: la prueba de «no autorizado» hay que hacerla por la
+  API con la clave publishable, no por `execute_sql`.

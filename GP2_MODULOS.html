@@ -216,11 +216,15 @@ a.tablet-link:hover{background:#1d4ed8}
      baldosa. Pasan a una barra fija abajo, una al lado de la otra ("Versión" se oculta para
      que entren las dos), y la pagina deja ese alto libre al final. */
   body.fijo .wrap{padding-bottom:70px}
+  /* vista completa (?todos=1): tres pastillas apiladas miden ~150px y tapaban la ultima cabecera */
+  body:not(.fijo) .wrap{padding-bottom:170px}
   body.fijo .tablet-links{left:0;right:0;bottom:0;flex-direction:row;justify-content:center;
     flex-wrap:nowrap;gap:8px;padding:8px 10px;background:#fff;border-top:1px solid #e2e8f0}
   body.fijo a.tablet-link{flex:1;font-size:14px;padding:0 8px;white-space:nowrap}
   body.fijo a.tablet-link .tl-v{display:none}
 }
+/* con la pastilla «Monitor» son tres: en pantallas angostas ya no entran con «Tablet » (queda 📱 Logística / 📱 Operarios) */
+@media (max-width:440px){ body.fijo a.tablet-link .tl-t{display:none} }
 
 /* ── datos vivos que venian del dashboard viejo (Inicio/index_GP2.html) ── */
 #kpiResumen{display:block;margin-top:4px;font-size:12px;color:#475569}
@@ -240,11 +244,12 @@ a.tablet-link:hover{background:#1d4ed8}
     (GP2_AUTH_ON=false) no hay sesion que cerrar: el link se oculta solo -->
     <span id="sesion" hidden>&nbsp;·&nbsp; <a href="login.html?logout=1" onclick="try{sessionStorage.clear();}catch(e){}"
     style="color:#b42318;text-decoration:none;font-weight:700">⎋ Cerrar sesión</a></span></div>
-  <script src="version.js?v=20261006k"></script>
+  <script src="version.js?v=20261007a"></script>
   <script>if (window.GP2_AUTH_ON !== false) document.getElementById('sesion').hidden = false;</script>
   <div class="tablet-links">
-    <a class="tablet-link" href="Tablet/Tablet_GP2.html">📱 <span class="tl-v">Versión </span>Tablet Logística</a>
-    <a class="tablet-link" href="Produccion/RegistroApp/Operarios_GP2.html">📱 <span class="tl-v">Versión </span>Tablet Operarios</a>
+    <a class="tablet-link" href="Tablet/Tablet_GP2.html">📱 <span class="tl-v">Versión </span><span class="tl-t">Tablet </span>Logística</a>
+    <a class="tablet-link" href="Produccion/RegistroApp/Operarios_GP2.html">📱 <span class="tl-v">Versión </span><span class="tl-t">Tablet </span>Operarios</a>
+    <a class="tablet-link" href="Produccion/MonitorIngreso/MonitorIngreso_GP2.html">🔑 Monitor</a>
   </div>
 </div>
 

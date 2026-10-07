@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="es">
+<head>
+<!-- v1.0.0 — Monitor · Código de ingreso. Copia la forma del Monitor de GT Admin (loekemeyer/GT): 4 dígitos grandes que cambian cada minuto, con la rueda de cuenta regresiva. El operario lo tipea en su celular para entrar estando en la planta. Lee GP2.monitor_clave_actual (sólo mail habilitado; sin clave compartida como en GT). -->
+<meta charset="utf-8"/>
+<script src="../../auth-guard.js?v=20261006b"></script>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<meta http-equiv="Cache-Control" content="no-store"/>
+<title>Monitor · Código de ingreso · GP2</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="../../supabase-config.js?v=20260929a"></script>
+<script src="../../gp2-ui.js?v=20260930a"></script>
+<link rel="stylesheet" href="../../gp2-modulo.css?v=20260912c"/>
+<link rel="icon" type="image/png" href="../../GP2_favicon.png">
+<link rel="apple-touch-icon" href="../../GP2_favicon.png">
+<style>
+  /* El código, centrado y grande: se lee desde lejos (la pantalla del taller). Sin ancho fijo ni
+     huecos: el bloque mide lo que miden el código y la rueda. */
+  .monitor{display:flex;flex-direction:column;align-items:center;gap:2vh;padding:4vh 0 3vh}
+  .rot{font-size:clamp(18px,3vw,40px);color:#6b7280;letter-spacing:2px;text-transform:uppercase}
+  .clave-fila{display:flex;align-items:center;justify-content:center;gap:3vw;flex-wrap:wrap}
+  #clave{font-size:clamp(90px,20vw,320px);font-weight:bold;letter-spacing:.08em;font-variant-numeric:tabular-nums;line-height:1;color:#1e293b}
+  .rueda{width:clamp(60px,9vw,150px);height:clamp(60px,9vw,150px)}
+  .rueda circle{fill:none;stroke-width:10}
+  .rueda .fondo{stroke:#e5e7eb}
+  .rueda .arco{stroke:#163e98;stroke-linecap:round;transform:rotate(-90deg);transform-origin:50% 50%;transition:stroke-dashoffset .9s linear}
+  .rueda text{font-size:30px;font-weight:bold;fill:#1e293b;text-anchor:middle;dominant-baseline:central}
+  #estado{font-size:18px;color:#6b7280;min-height:1.2em;text-align:center}
+  #estado.err{color:#b42318}
+  .nota{max-width:640px;font-size:16px;color:#555;text-align:center;line-height:1.4}
+</style>
+</head>
+<body>
+
+<div class="card">
+  <div class="header">
+    <h1>Monitor · Código de ingreso</h1>
+    <div class="hbtns">
+      <a href="../../GP2_MODULOS.html">Atrás</a>
+    </div>
+  </div>
+
+  <div class="steps">
+    <div class="monitor">
+      <div class="rot">🔑 Código de ingreso</div>
+      <div class="clave-fila">
+        <div id="clave">····</div>
+        <svg class="rueda" viewBox="0 0 100 100" aria-label="segundos para el próximo código">
+          <circle class="fondo" cx="50" cy="50" r="42"></circle>
+          <circle class="arco" id="arco" cx="50" cy="50" r="42" stroke-dasharray="263.9" stroke-dashoffset="0"></circle>
+          <text x="50" y="50" id="seg">--</text>
+        </svg>
+      </div>
+      <div id="estado">Cargando…</div>
+      <div class="nota">Cambia cada minuto y vale también el del minuto anterior. No es un candado: sirve para que se entre estando en la planta.</div>
+    </div>
+  </div>
+</div>
+
+<script>
+var SB = GP2_SB();
+var $ = GP2UI.$;
+var CIRC = 263.9;          // 2·π·42: el largo del arco de la rueda
+var fin = 0, timer = null, ultimoOk = 0;
+
+async function pedir(){
+  clearTimeout(timer);
+  var r;
+  try { r = await SB.rpc('monitor_clave_actual'); }
+  catch (e) { r = { error: { message: (e && e.message) || String(e) } }; }
+  if (r.error){
+    // 42501 = la cuenta no está en la whitelist: reintentar no lo arregla
+    if (r.error.code === '42501'){
+      $('clave').textContent = '····'; fin = 0;
+      $('estado').textContent = '⚠ Tu cuenta no está habilitada para ver el código.';
+      $('estado').classList.add('err');
+      return;
+    }
+    $('estado').textContent = '⚠ No pude leer el código (' + r.error.message + '). Reintentando…';
+    $('estado').classList.add('err');
+    if (Date.now() - ultimoOk > 120000) $('clave').textContent = '····';
+    timer = setTimeout(pedir, 5000);
+    return;
+  }
+  var d = r.data || {};
+  $('clave').textContent = d.clave;
+  fin = Date.now() + d.cambia_en_s * 1000;
+  ultimoOk = Date.now();
+  $('estado').textContent = '';
+  $('estado').classList.remove('err');
+  timer = setTimeout(pedir, d.cambia_en_s * 1000 + 600);
+}
+
+/* La rueda: segundos que faltan para el próximo código, sobre 60. */
+setInterval(function(){
+  var s = Math.max(0, Math.ceil((fin - Date.now()) / 1000));
+  $('seg').textContent = fin ? s : '--';
+  $('arco').style.strokeDashoffset = fin ? String(CIRC * (1 - s / 60)) : '0';
+}, 250);
+
+/* Una pantalla que vuelve de dormida (tablet, TV) pide el código de nuevo al volver. */
+document.addEventListener('visibilitychange', function(){ if (!document.hidden) pedir(); });
+pedir();
+</script>
+</body>
+</html>
