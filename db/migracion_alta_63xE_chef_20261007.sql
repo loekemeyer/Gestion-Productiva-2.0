@@ -99,6 +99,28 @@ begin
   end loop;
 end $$;
 
+-- ---------- 2.º pase (07/10): la marca se lee en la 401, de a pares ----------
+-- [usuario, 07/10] sobre la 505: «tiene que ser Cucharón Loeke, Cucharón Chef, etc... Porque sino no se sabe
+-- qué art terminado aumenta». La 505 no aumenta ningún terminado (expulsa el intermedio, compartido por las
+-- dos marcas); el usuario eligió que la marca se decida en la 401 («En la 401»). La 505 queda con 5 opciones.
+-- 401: las 5 LK pasan a «… Loeke» y el orden queda de a pares (Loeke a la izquierda, Chef a la derecha en la
+-- grilla de 2 columnas). UNIQUE (matriz_id, orden) no es diferible: primero se corre todo +100.
+do $$ declare v_mat bigint; begin
+  select id into v_mat from "GP2".matriz where n_matriz = '401';
+  update "GP2".matriz_salida_etiqueta set orden = orden + 100 where matriz_id = v_mat;
+  update "GP2".matriz_salida_etiqueta e set etiqueta = x.etiqueta, orden = x.orden
+    from (values ('942E','Cuchara Lisa Loeke',1),   ('633E','Cuchara Lisa Chef',2),
+                 ('943E','Cucharón Loeke',3),       ('630E','Cucharón Chef',4),
+                 ('944E','Pinza Fideos Loeke',5),   ('637E','Pinza Fideos Chef',6),
+                 ('945E','Espátula Calada Loeke',7),('636E','Espátula Calada Chef',8),
+                 ('948E','Espumadera Loeke',9),     ('631E','Espumadera Chef',10)) as x(cod, etiqueta, orden)
+    join "GP2".componente c on c.codigo = x.cod and c.sector_id = 12
+   where e.matriz_id = v_mat and e.componente_id = c.id;
+  if exists (select 1 from "GP2".matriz_salida_etiqueta where matriz_id = v_mat and orden > 100) then
+    raise exception 'la 401 tiene una salida que no está en la lista de 10';
+  end if;
+end $$;
+
 -- ---------- REVERSA (correr a mano si hiciera falta; sin producción ni movimientos de los 63xE) ----------
 -- delete from "GP2".matriz_salida_etiqueta where componente_id in (select id from "GP2".componente where sector_id = 12 and codigo in ('630E','631E','633E','636E','637E'));
 -- delete from "GP2".articulo_linea_tallerista where articulo_id in (select id from "GP2".articulo where codigo in ('630E','631E','633E','636E','637E'));

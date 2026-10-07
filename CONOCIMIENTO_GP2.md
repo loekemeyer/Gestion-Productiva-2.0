@@ -15773,9 +15773,15 @@ total que hizo"*. **Retira** lo de arriba que decía *"sin envasado, que no tien
   (PEST1 + pieza inox + Z46 ×1, A9B ×1/12) + **las 4 rutas** paso por paso + la excepción de `articulo_linea_tallerista` (línea antes de la
   505). **Las piezas y el intermedio son LOS MISMOS** (`Z47/Z44/Z48/Z49/Z50`, `<pieza>-M505`): la 505 «Armado Inox» no cambia (5 salidas)
   y la **401 «Env Cucharas Inox Imp»** pasa a envasar en 10 terminados. La marca se decide en la 401.
-- **Tablet:** la 401 ofrece 10 opciones; las Chef con etiqueta **«<etiqueta del gemelo> Chef»** (orden 6–10, molde 512: 323E «Loeke» /
-  838E «Chef»). Las 5 LK quedaron como las dictó el dueño hoy («Cuchara Lisa», …), **sin «Loeke»** — si se quiere simetría, es un `update`
-  de 5 filas de `matriz_salida_etiqueta`.
+- **Tablet — la MARCA se elige en la 401, NO en la 505 `[usuario, 07/10]`.** Pidió *«Cucharón Loeke, Cucharón Chef, etc.»* en la 505
+  *«porque sino no se sabe qué art terminado aumenta»*. **La 505 no aumenta ningún terminado**: expulsa el intermedio `<pieza>-M505`, el
+  mismo para las dos marcas; el terminado (94xE o 63xE) lo aumenta la **401**. Con eso a la vista eligió **«En la 401»** (descartó partir
+  el intermedio por marca y descartó que la 505 saque el terminado). Quedó: **505 con 5 opciones** sin marca; **401 con 10, de a pares**
+  (Loeke a la izquierda, Chef a la derecha): Cuchara Lisa Loeke · Cuchara Lisa Chef · Cucharón Loeke · Cucharón Chef · Pinza Fideos
+  Loeke · Pinza Fideos Chef · Espátula Calada Loeke · Espátula Calada Chef · Espumadera Loeke · Espumadera Chef (molde 512: «Loeke» /
+  «Chef»). Esto **reemplaza** las 5 etiquetas sin marca de la 401 de §4jk. Sólo `matriz_salida_etiqueta`; stock y rutas sin cambio.
+  ⚠ `[dato]` hoy la 401 tiene 1 registro de producción y la 505 2 (pruebas): si en la planta nadie registra la 401, el intermedio se
+  acumula y nunca pasa a terminado — ahí habría que revisar la opción «la 505 saca el terminado».
 - **Plata [dato]:** cada 63xE cuesta **$58,09**, igual que su gemelo (MO $29,40; `faltan_precios=1` heredado: las piezas importadas no
   tienen precio, §4ia). El gemelo no tiene tarifa colgada del terminado → nada que copiar (lección del 760). Total de `v_costo_componente`
   537.080,28 → 537.370,73 (+290,45 = 5 × 58,09); **huella del resto idéntica** (`d7f8b140…`) e `inventario.maximo` idéntico (`e795c4eb…`,
