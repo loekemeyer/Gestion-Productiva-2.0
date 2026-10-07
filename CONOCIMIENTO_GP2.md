@@ -15701,3 +15701,17 @@ total que hizo"*. **Retira** lo de arriba que decía *"sin envasado, que no tien
   mayor. Lo confirma la factura de Imel. Tampoco se tocó la tarifa de niquelado de Guazzaroni ($2.606/kg): la siguen usando V1/V11/V12/V13/D9/D13.
 - **[para después de aplicar]** actualizar los textos que nombran al CV18D: `REGLAS_OC_INSUMOS.md` (línea 241) y `COMPONENTES_SIN_CAJON_2026-09-23.md`;
   §4gc/4ge/4gi quedan como historia.
+
+## 4jk. El aviso de cajones también en la tablet, y se puede sacar (2026-10-07)
+
+- **[usuario, Elías 07/10, textual]** *«sí, y que se pueda sacar para no interrumpir lo que se está haciendo»* (sobre poner el aviso de las
+  15:00 de Verificación de cajones dentro de la Tablet) y *«elimina lo que esta para hacer de ⚖ Cajones pendiente de la prueba de ayer»*.
+- **[hecho]** `gp2-verif-cajones.js` (`?v=20261007a`): (1) **✕ y Esc** sacan el cartel del menú y lo posponen 30 min (igual que «Más tarde»);
+  (2) con `window.GP2VC_BANDA = true` el aviso es una **BANDA abajo**, sin fondo oscuro, que deja tocar todo lo de arriba: la página reserva su
+  alto y lo devuelve al cerrarla; su ✕ la saca 30 min; «Empezar» abre la verificación con `&volver=tablet` y su «Atrás» vuelve a la tablet.
+  `Tablet/Tablet_GP2.html` v1.36.1 carga el script en modo banda. `version.js` v1.249.0. `tests/ui/test_verif_cajones.js` (secciones 10–11).
+- **[dato]** El aviso sigue siendo **por equipo**: sólo aparece donde alguien tildó *«Avisarme en esta PC a las 15:00»* (localStorage). La
+  tablet de Alan lo tiene que tildar **una vez**, desde el botón ⚖ Cajones. Sin el tilde no carga nada ni consulta la base.
+- ⚠ **[NO APLICADO]** borrar la prueba del 06/10 (2 cajones sin cargar, ids 29 y 30, y la fila del día): el conector de la sesión frena los
+  DELETE. Script con condiciones y verificación en `db/pendiente/2026-10-07_verif_cajones_borrar_prueba_06_10.sql`: correrlo UNA vez en el
+  SQL Editor. Mientras no se corra, el cartel de una PC con el tilde sigue mostrando esos 2 cajones.

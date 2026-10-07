@@ -74,6 +74,7 @@ const STUB = `(function(){
       window.__timers = []; var _si = window.setInterval; window.setInterval = function(f, t){ window.__timers.push(t); return _si.apply(window, arguments); };
       try { localStorage.clear(); sessionStorage.clear(); } catch (e) {}
       if (init && init.aviso) try { localStorage.setItem('gp2_verif_cajones_aviso', '1'); } catch (e) {}
+      if (init && init.banda) window.GP2VC_BANDA = true;
     }, [resp, init || {}]);
     await page.goto(ROOT + '/' + url);
     return page;
@@ -297,6 +298,57 @@ const STUB = `(function(){
   await page.evaluate(() => refrescar());
   ok((await rpcs(page, 'verif_cajones_bundle')).length === 1, 'un día pasado no se vuelve a leer solo');
   await page.close();
+
+  // ── 10. SE PUEDE SACAR: ✕ y Esc (Elías 07/10: "que se pueda sacar para no interrumpir lo que se está haciendo") ──
+  const BUN = { verif_cajones_bundle: { data: bundle(SORTEADO, [C1, C2]), error: null },
+                verif_cajones_empezar: { data: bundle(empezado, [C1, C2]), error: null } };
+  page = await abrir('GP2_MODULOS.html', BUN, { aviso: true });
+  await page.waitForSelector('#vcCartel');
+  ok(!!(await page.$('#vcX')), 'el cartel del menú trae una ✕ para sacarlo');
+  await page.click('#vcX');
+  ok(!(await page.$('#vcCartel')) && await page.evaluate(() => Number(sessionStorage.getItem('gp2_verif_cajones_posponer')) > Date.now()), 'la ✕ lo saca y lo posterga 30 min');
+  await page.evaluate(() => GP2VC.revisar());
+  await page.waitForTimeout(200);
+  ok(!(await page.$('#vcCartel')), 'sacado con la ✕ no vuelve enseguida');
+  await page.close();
+
+  page = await abrir('GP2_MODULOS.html', BUN, { aviso: true });
+  await page.waitForSelector('#vcCartel');
+  await page.keyboard.press('Escape');
+  ok(!(await page.$('#vcCartel')) && await page.evaluate(() => Number(sessionStorage.getItem('gp2_verif_cajones_posponer')) > Date.now()), 'Esc también lo saca y lo posterga');
+  await page.close();
+
+  // ── 11. La BANDA de la tablet: no tapa lo que se está haciendo ───────────────
+  page = await abrir('GP2_MODULOS.html', BUN, { aviso: true, banda: true });
+  await page.waitForSelector('#vcCartel');
+  const banda = await page.evaluate(() => {
+    const o = document.getElementById('vcCartel'), r = o.getBoundingClientRect();
+    const arriba = document.elementFromPoint(window.innerWidth / 2, 60);
+    return { pos: getComputedStyle(o).position, fondo: getComputedStyle(o).backgroundColor, alto: r.height, bottom: r.bottom, w: r.width, iw: window.innerWidth, ih: window.innerHeight,
+             tapaArriba: !!(arriba && o.contains(arriba)), pad: parseFloat(document.body.style.paddingBottom) || 0, texto: o.textContent.replace(/\s+/g, ' ').trim() };
+  });
+  ok(banda.pos === 'fixed' && banda.alto < 160 && banda.bottom > banda.ih - 20, 'en la tablet es una banda abajo (' + Math.round(banda.alto) + ' px de alto), no un cartel grande');
+  ok(banda.w < banda.iw && !banda.tapaArriba, 'no hay fondo oscuro ni tapa lo de arriba: se puede seguir tocando la tablet');
+  ok(banda.texto.includes('Hay 2 cajones para verificar') && !banda.texto.includes('Buscá y revisá estos cajones'), 'dice cuántos cajones hay, sin el detalle del cartel grande');
+  ok(banda.pad >= banda.alto, 'la página reserva el alto de la banda para no tapar lo de abajo (' + banda.pad + ' px)');
+  ok((await texto(page, '#vcIr')) === '▶ Empezar', 'la banda ofrece Empezar');
+  await page.click('#vcLuego');
+  ok(!(await page.$('#vcCartel')), 'la ✕ saca la banda');
+  ok(await page.evaluate(() => document.body.style.paddingBottom === ''), 'y la página recupera el espacio que había reservado');
+  ok(await page.evaluate(() => Number(sessionStorage.getItem('gp2_verif_cajones_posponer')) > Date.now()), 'sacada, vuelve en 30 min (no enseguida)');
+  await page.close();
+
+  page = await abrir('GP2_MODULOS.html', BUN, { aviso: true, banda: true });
+  await page.waitForSelector('#vcCartel');
+  await Promise.all([page.waitForURL(/VerificacionCajones_GP2\.html\?fecha=2026-10-06&volver=tablet/, { timeout: 5000 }).catch(() => {}), page.click('#vcIr')]);
+  ok(/VerificacionCajones_GP2\.html\?fecha=2026-10-06&volver=tablet/.test(page.url()), 'Empezar desde la banda abre el módulo y su «Atrás» vuelve a la tablet');
+  ok(page.__log.filter(x => x.n === 'verif_cajones_empezar').length === 1, 'y registra el inicio una vez');
+  await page.close();
+
+  // la tablet carga el cartel en modo banda (GP2VC_BANDA antes del script)
+  const tab = fs.readFileSync(path.resolve(__dirname, '..', '..', 'Tablet', 'Tablet_GP2.html'), 'utf8');
+  const iB = tab.indexOf('window.GP2VC_BANDA = true'), iS = tab.indexOf('../gp2-verif-cajones.js');
+  ok(iB > 0 && iS > iB, 'la Tablet Logística marca GP2VC_BANDA y después carga gp2-verif-cajones.js');
 
   await browser.close();
   console.log(process.exitCode ? 'HAY FALLOS' : 'TODO OK');

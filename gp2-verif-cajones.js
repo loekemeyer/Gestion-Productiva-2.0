@@ -11,7 +11,12 @@
  *
  * Se carga en GP2_MODULOS.html y envios-only.html (el cartel) y en la pantalla del módulo (sólo los
  * helpers: ahí va con window.GP2VC_SIN_CARTEL = true). Sin el tilde no pide nada a la base ni carga
- * nada: en la tablet de Logística no agrega ni un pedido.
+ * nada.
+ *
+ * SE PUEDE SACAR (2026-10-07, Elías: "que se pueda sacar para no interrumpir lo que se está haciendo"):
+ * el cartel se cierra con la ✕ o con Esc, y vuelve a los 30 min (igual que «Más tarde»).
+ * En la Tablet Logística (window.GP2VC_BANDA = true) NO es un cartel que tapa la pantalla sino una
+ * BANDA abajo, que deja usar todo lo de arriba: la página reserva su alto y lo devuelve al cerrarla.
  *
  *   GP2VC.MODULO              ruta del módulo, relativa a la raíz
  *   GP2VC.avisoActivo()       true si esta PC recibe el cartel;  GP2VC.setAviso(bool)
@@ -114,9 +119,56 @@
 
   function pospuesto() { try { return Number(sessionStorage.getItem(POSPONER) || 0) > Date.now(); } catch (e) { return false; } }
 
-  function cerrar() { var o = document.getElementById("vcCartel"); if (o) o.remove(); abierto = false; }
+  var paddingAntes = null;
+  function cerrar() {
+    var o = document.getElementById("vcCartel"); if (o) o.remove(); abierto = false;
+    if (paddingAntes !== null) { document.body.style.paddingBottom = paddingAntes; paddingAntes = null; }
+  }
+  /* Sacar el cartel sin tocar nada de la verificación: vuelve a los 30 min. */
+  function posponer() {
+    try { sessionStorage.setItem(POSPONER, String(Date.now() + 30 * 60000)); } catch (e) {}
+    cerrar();
+  }
+  document.addEventListener("keydown", function (e) { if (e.key === "Escape" && abierto) posponer(); });
+
+  /* «Empezar» / «Seguir verificando»: sella el inicio (sólo la primera vez) y abre la pantalla del módulo. */
+  async function ir(b, empezo, btn) {
+    btn.disabled = true;
+    if (!empezo) {
+      var r = await SB.rpc("verif_cajones_empezar", { p_fecha: b.fecha });
+      if (r.error) { document.getElementById("vcMsg").textContent = "No se pudo registrar el inicio: " + r.error.message; btn.disabled = false; return; }
+    }
+    global.location.href = RAIZ + MODULO + "?fecha=" + encodeURIComponent(b.fecha) + (global.GP2VC_BANDA ? "&volver=tablet" : "");
+  }
+
+  /* La BANDA de la tablet: una fila abajo, sin fondo oscuro, que no impide tocar nada de arriba. */
+  function pintarBanda(b) {
+    var cs = b.cajones || [], empezo = !!(b.dia && b.dia.empezado_en);
+    var pend = cs.filter(function (c) { return !c.resultado; }).length;
+    var o = document.createElement("div");
+    o.id = "vcCartel";
+    o.setAttribute("role", "status");
+    o.style.cssText = "position:fixed;left:8px;right:8px;bottom:8px;z-index:9999;background:#b45309;color:#fff;border-radius:14px;" +
+      "padding:10px 12px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;box-shadow:0 6px 24px rgba(0,0,0,.35);font-family:Arial,sans-serif";
+    o.innerHTML =
+      '<div style="flex:1;min-width:220px;font-size:18px;font-weight:900;line-height:1.25">⚖ ' +
+        (pend === 1 ? "Hay 1 cajón para verificar" : "Hay " + pend + " cajones para verificar") +
+        '<div style="font-size:14px;font-weight:700;opacity:.9">Sorteo de las 15:00 · podés seguir con lo que estás haciendo</div></div>' +
+      '<button type="button" id="vcIr" style="min-height:48px;padding:0 16px;border:none;border-radius:10px;background:#fff;color:#111;font-size:18px;font-weight:900;cursor:pointer">' +
+        (empezo ? "Seguir verificando" : "▶ Empezar") + '</button>' +
+      '<button type="button" id="vcLuego" aria-label="Sacar el aviso (vuelve en 30 min)" title="Sacar el aviso (vuelve en 30 min)" style="min-height:48px;min-width:48px;border:2px solid rgba(255,255,255,.6);border-radius:10px;background:transparent;color:#fff;font-size:22px;font-weight:900;cursor:pointer">✕</button>' +
+      '<div id="vcMsg" style="flex-basis:100%;color:#fee2e2;font-size:15px;min-height:0"></div>';
+    document.body.appendChild(o);
+    abierto = true;
+    /* que la banda no tape lo de abajo de la página: se reserva su alto y se devuelve al cerrarla */
+    paddingAntes = document.body.style.paddingBottom || "";
+    document.body.style.paddingBottom = (o.offsetHeight + 20) + "px";
+    document.getElementById("vcLuego").onclick = posponer;
+    document.getElementById("vcIr").onclick = function () { ir(b, empezo, this); };
+  }
 
   function pintar(b) {
+    if (global.GP2VC_BANDA) return pintarBanda(b);
     var cs = b.cajones || [], dia = b.dia || {};
     var empezo = !!dia.empezado_en;
     var o = document.createElement("div");
@@ -125,7 +177,8 @@
     o.style.cssText = "position:fixed;inset:0;z-index:9999;background:rgba(15,23,42,.55);display:flex;align-items:center;justify-content:center;padding:16px;font-family:Arial,sans-serif";
     o.innerHTML =
       '<div style="background:#fff;border-radius:16px;max-width:620px;width:100%;max-height:92vh;overflow:auto;box-shadow:0 12px 40px rgba(0,0,0,.35)">' +
-        '<div style="background:#b45309;color:#fff;padding:14px 18px;border-radius:16px 16px 0 0">' +
+        '<div style="background:#b45309;color:#fff;padding:14px 56px 14px 18px;border-radius:16px 16px 0 0;position:relative">' +
+          '<button type="button" id="vcX" aria-label="Sacar el aviso (vuelve en 30 min)" title="Sacar el aviso (vuelve en 30 min)" style="position:absolute;top:8px;right:10px;min-width:44px;min-height:44px;border:none;border-radius:10px;background:rgba(255,255,255,.2);color:#fff;font-size:22px;font-weight:900;cursor:pointer">✕</button>' +
           '<div style="font-size:13px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;opacity:.9">Verificación de cajones · ' + esc((b.fecha || "").split("-").reverse().join("/")) + '</div>' +
           '<div style="font-size:24px;font-weight:900;margin-top:2px">⚖ Buscá y revisá estos cajones</div>' +
         '</div>' +
@@ -154,18 +207,9 @@
       '</div>';
     document.body.appendChild(o);
     abierto = true;
-    document.getElementById("vcLuego").onclick = function () {
-      try { sessionStorage.setItem(POSPONER, String(Date.now() + 30 * 60000)); } catch (e) {}
-      cerrar();
-    };
-    document.getElementById("vcIr").onclick = async function () {
-      var btn = this; btn.disabled = true;
-      if (!empezo) {
-        var r = await SB.rpc("verif_cajones_empezar", { p_fecha: b.fecha });
-        if (r.error) { document.getElementById("vcMsg").textContent = "No se pudo registrar el inicio: " + r.error.message; btn.disabled = false; return; }
-      }
-      global.location.href = RAIZ + MODULO + "?fecha=" + encodeURIComponent(b.fecha);
-    };
+    document.getElementById("vcLuego").onclick = posponer;
+    document.getElementById("vcX").onclick = posponer;
+    document.getElementById("vcIr").onclick = function () { ir(b, empezo, this); };
   }
 
   async function revisar() {

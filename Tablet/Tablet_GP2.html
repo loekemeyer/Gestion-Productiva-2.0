@@ -60,6 +60,7 @@
      hacía la base: envConSugerido() muestra el renglón con 0. El "➕ Otro cartón" (sust_de) sigue
      cayendo a "Online sector", que es correcto (no es consumo de ese proveedor). -->
 <!-- v1.35.2 (2026-09-24) — ENVIAR: EL FLEJE NO DICE "sin cajón cargado" (usuario: "cuando es sector fleje no quiero esa aclaración, no tienen uni x cajón, se manda en kilos"). faltaEnvase() ahora no avisa para la pieza medida en kg: se manda pesada y el sugerido ya sale en kg. El aviso queda para la pieza que SE CUENTA (uni) y caería a unidades sin el factor. -->
+<!-- v1.36.1 (2026-10-07) — carga el aviso de las 15:00 de Verificación de cajones (gp2-verif-cajones.js) en modo BANDA [Elías: «sí, y que se pueda sacar para no interrumpir lo que se está haciendo»]: fila fija abajo, la página reserva su alto, ✕ la saca 30 min. -->
 <!-- v1.36.0 (2026-10-07) — entra "⚖ Cajones" como CUARTO modo de arriba, al lado de Conteo [Elías: "ponelo dentro de la tablet … como otro modulo" — Verificación de cajones, para Alan]. Es un link como Conteo (no es un modo de Enviar/Recibir): abre VerificacionCajones_GP2.html?volver=tablet y su "Atrás" vuelve acá. La grilla de modos pasa de 3 columnas fijas a auto-fit (4 en la tablet, 2x2 en pantallas angostas). -->
 <!-- v1.35.1 (2026-09-24) — "Talleristas O.C." pasa al FINAL del grupo Enviar [usuario: "Talleristas O.C. que aparezca al final"]. Solo reorden de la baldosa dentro de TIPOS.enviar (queda después de "Prov. de art. terminado"); nada más cambia. -->
 <!-- v1.35.0 (2026-09-23) — TALLERISTAS O.C.: BLIST-PACK Y CARLOS AGUIRRE SALEN DE "TALLERISTAS"
@@ -2662,5 +2663,9 @@ cargar();
   } catch (e) {}
 })();
 </script>
+<!-- Aviso de las 15:00 de Verificación de cajones (v1.36.1): en la tablet es una BANDA abajo que no tapa lo que se está
+     haciendo y se saca con la ✕ (vuelve a los 30 min). Sólo aparece en la tablet donde se tildó "Avisarme en esta PC". -->
+<script>window.GP2VC_BANDA = true;</script>
+<script src="../gp2-verif-cajones.js?v=20261007a"></script>
 </body>
 </html>
