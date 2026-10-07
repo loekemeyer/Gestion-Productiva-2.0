@@ -237,8 +237,8 @@ Faltan proveedor: 8 plásticos (ver abajo), bombillas/resortes 8, remaches 8, fl
 
 - Asignar formato/categoría a cada cartón (`componente.carton_formato/carton_categoria`).
 - Varillas: proveedor y forma de control.
-- Proveedor de: los 8 resortes (BOM10, C9, C12, D14, EP10, I2, I3, LLF8), los 8 remaches
-  (V4, V10, V13, V14, V18D, W8, CV13, CV18D) y el fleje F12 (N° 49).
+- Proveedor de: los 8 resortes (BOM10, C9, C12, D14, EP10, I2, I3, LLF8), los 6 remaches
+  (V4, V10, V13, V14, W8, CV13; el CV18D ya no existe y el V18D es de Imel desde el 2026-10-07, CONOCIMIENTO 4jl) y el fleje F12 (N° 49).
 - Los 8 plásticos que quedaron sin proveedor y por qué:
   - `PA10B` Capuchón ф8 s/Serig, `PC16` Inserto Chef — códigos nativos de GP2, el vecino
     no los tiene (PA10B parece la variante sin serigrafía de PA10 = Pat Bet Plast).

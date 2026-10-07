@@ -23,7 +23,7 @@ kilos, así que el operario carga a ojo en unidades.
 |---|---|---|---|
 | Procesado | C13 | Corta Queso Bastidor c/Cilindro | Enviar |
 | Procesado | Z12 | Alamb. Aluminio Ganch. | Enviar |
-| Remache | CV18D | Tornillo Sacafuente p/Niquelar | Enviar |
+| Remache | ~~CV18D~~ | Tornillo Sacafuente p/Niquelar — ya no existe desde el 2026-10-07 (CONOCIMIENTO 4jl) | Enviar |
 | Remache | V18D | Tornillo Sacafuente | Enviar y Recibir |
 | Plástico | PINCEL590 | Pincel Silicona 11 gms (granel) | Enviar |
 | Bombilla | BOM13 | Filtro p/Bombilla | Enviar |

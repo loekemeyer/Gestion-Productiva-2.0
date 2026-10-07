@@ -1,7 +1,11 @@
 -- 2026-10-07 — El tornillo sacafuente llega de Imel YA como V18D: desaparece el CV18D y el paso de niquelado (508 y 708).
--- ⚠ NO APLICADO. Hay que correrlo UNA vez en el SQL Editor de Supabase: necesita DELETE y el conector de la sesión retiene los DELETE
---   (cuelga a los 60 s esperando una confirmación humana que una sesión remota no puede dar; se reintentó con todo en una transacción:
---   no aplicó nada, CV18D y los 8 pasos de las rutas 219/583 quedaron intactos). Es UNA transacción: o entra todo o nada.
+-- ✅ APLICADO EL 2026-10-07 por el usuario en el SQL Editor (resultado «Success»), una sola transacción. Antes no se pudo desde la sesión:
+--   el conector retiene los DELETE a los 60 s esperando una confirmación humana (se reintentó: no aplicó nada, base intacta).
+--   Verificado después con SELECT: rutas 219 y 583 con 3 pasos (insumo V18D→V18D · tallerista 6 V18D→art · virgilio); CV18D, inventario 839 y
+--   precio_servicio_pieza 112 ya no existen; V18D = proveedor Imel, estado_compra NULL, precio_proveedor 66 colgado de él, 2 inventarios y 2 recetas
+--   intactos; costo contra la foto previa: exactamente las 3 filas esperadas (V18D 148,18→68,70 · 508 1.634,41→1.554,93 · 708 1.611,47→1.531,98) más
+--   CV18D borrado; la OC (oc_bundle) trae V18D bajo Imel (sugerido 2.692 uni a $68,70) y ya no trae CV18D; invariantes de db/verificar.sql
+--   AA/AB/B/I/K/L/U/W = 0.
 -- [usuario] (captura de la ruta «CV18D — Tornillo Sacafuente p/Niquelar»: Imel → CV18D → Guazzaroni (niquelado) → Martin Cornejo →
 --   Virgilio): "Ese tornillo sacafuente viene de Imel ya como V18D, elimina CV18D y también el paso que se manda a niquelar".
 --
@@ -78,8 +82,7 @@ commit;
 --     or n.faltan_precios <> s.faltan_precios or n.faltan_kg <> s.faltan_kg or n.faltan_tiempos <> s.faltan_tiempos;
 --   -- 4 filas: V18D 148,18→68,70 · 508 1.634,41→1.554,93 · 708 1.611,47→1.531,98 · CV18D 68,70→(borrado)
 -- \i db/verificar.sql   -- cada fila n = 0
--- Después: mover este archivo a db/, regenerar db/ si hace falta, y actualizar los textos que nombran al CV18D
---   (REGLAS_OC_INSUMOS.md línea 241, COMPONENTES_SIN_CAJON_2026-09-23.md, CONOCIMIENTO 4gc/4ge/4gi quedan como historia).
+-- (Hecho: archivo movido a db/ y textos del CV18D actualizados; CONOCIMIENTO 4gc/4ge/4gi quedan como historia.)
 
 -- REVERSA (los ids se conservan: se vuelve a insertar con el mismo id; si la tabla usa identidad, agregar OVERRIDING SYSTEM VALUE):
 -- begin;
