@@ -15623,3 +15623,16 @@ total que hizo"*. **Retira** lo de arriba que decía *"sin envasado, que no tien
   la planta, no para proteger datos. **Nada la llama todavía**: la usará la app de registro de producción (otro repo).
 - **[dato]** Desde la sesión SQL (sin JWT) `_exigir_autorizado()` deja pasar siempre: la prueba de «no autorizado» hay que hacerla por la
   API con la clave publishable, no por `execute_sql`.
+
+## 4ji. El login de operarios por red de la empresa YA NO SE HACE (2026-10-07)
+
+- **[usuario, Elías 07/10, textual]** *«ya no se va a hacer»*, sobre el plan de que el operario entre por legajo sólo desde la red de la
+  empresa (plan de seguridad del 28–29/09: Edge `login-operario`, `GP2.operario_por_legajo`, inventario de escrituras con la clave pública
+  en `public.seg_inventario_anon`).
+- **[hecho]** La rutina nocturna «Inventario escrituras clave pública (etapa 0)» (`trig_013i1TeBcwZ27wJqYMS9AQcx`) se **DESACTIVÓ**
+  (no se borró: está atada a la sesión que la creó). El inventario quedó con 6 días, del 28/09 al 03/10 (`seg_inventario_anon`).
+- **[dato]** Lo que ya existe y NO se tocó: `GP2.operario_por_legajo`, `GP2._exigir_operario`, la tabla `GP2.operario`, las reglas AI/M de
+  `verificar.sql` que las nombran y `recibir_mensaje_cervantes`. Si el plan no vuelve, esas piezas quedan sin uso: decidir aparte si se
+  sacan.
+- **[dato]** Con esto dejan de correr las dudas del plan: si la IP 186.18.168.56 (Telecentro) es de la empresa, y de qué app son las
+  funciones `gt_*` (son de GT, `loekemeyer/GT`: el monitor del código de ingreso y la botonera de GT).
