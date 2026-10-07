@@ -15776,8 +15776,8 @@ total que hizo"*. **Retira** lo de arriba que decía *"sin envasado, que no tien
   `reg_prod_3_0_registrar_evento` llama a `GP2.fabricar_stock`) y **eso alcanza a la 150**. `[dato, ensayo revertido 07/10]` un toque de la 150 con 6 bolsas en `V9`
   (`reg_prod_3_0_gp2_fabricar_stock(150, V9, 6)`) crea el movimiento **`fabricacion` V9, Sector Remache → Sector Remache, 6 uni**: el inventario **no cambia**
   (V9 sigue −480 y −1.176; neto 0) pero el historial de movimientos muestra «fabricaciones» de remaches que no existen, y 6 bolsas se leen como 6 remaches.
-  Por ahora **se deja** (la recomendación quedó sin objeción). La regla de verdad (bolsas → unidades, o excluir la 150 de `fabricar_stock`, función
-  compartida con la tablet de GP2) está sin decidir.
+  **RESUELTO el mismo día** al cambiar la lógica de la 150 a `VxSE → Vx` (ver el último bloque de esta sección): `GP2.fabricar_stock` convierte bolsas →
+  remaches cuando la matriz carga en bolsas. (La lógica V → V de esta sección quedó superada.)
   (c) El **stock de los V se sigue mostrando en «cajones»** en las pantallas de stock (no hay columna de unidad de stock; `uni_x_cajon` ya es la
   bolsa): es un rótulo, no un error de cantidad. (d) **OC**: los crudos ahora redondean a cajón de 25 kg (antes 20 kg); `oc_bundle` lee `uni_x_cajon`
   y **no se midió** cuánto cambia lo sugerido. (e) V10 está en el selector aunque no se niquela, porque el dueño pidió «todos los V menos V18 y V18D».
@@ -15797,6 +15797,24 @@ total que hizo"*. **Retira** lo de arriba que decía *"sin envasado, que no tien
   «Fabricás … — cambiar» y el chip de la matriz usan la etiqueta. El catálogo del celular se renueva cada 30 min o al reabrir la app.
 - **[regla para el próximo caso]** una matriz que aparece con 2+ salidas **sin etiqueta** cae al formato largo (código + descripción + artículos): al darle
   salidas nuevas a una matriz hay que cargarle sus filas de `matriz_salida_etiqueta` en el mismo paso.
+- **[usuario, 07/10, textual — CAMBIA LA LÓGICA DE LA 150]** *«Te cambio la lógica que chupe un componente la matriz 150 y expulse el mismo componente. Después de
+  Guazzaroni vuelve el componente como sector tránsito: V1SE, V2SE, etc. En la matriz 150 agarra estos componentes con el agregado SE y ahí sí expulsa VX. Los
+  terminados en SE están en cajones de 25 kg, los VX fraccionados en bolsas por la matriz (como te pasé).»* Preguntado dónde viven: *«En sector remache. La
+  descripción que me pusiste es correcta»* (= la del `Vx` + « s/envasar»).
+- **[hecho, base, `db/migracion_remaches_se_matriz150_20261007.sql`, «Sí» del dueño]** **12 `VxSE`** (`V1`–`V9`, `V11`–`V13`) en **Sector Remache**, cajón de 25 kg,
+  `estado_compra = 'fabricacion'`, inventario en 0. **Guazzaroni entrega `VxSE`** (53 pasos CV → VxSE) y **la 150 toma `VxSE` y expulsa `Vx`** (53 pasos);
+  `V10` no se niquela y sigue `V10 → V10`. **Se movieron a `VxSE` los 12 precios de niquelado** (`precio_servicio_pieza`, proveedor 4: cuelgan de la pieza que
+  entrega el servicio). **La 150 carga en `bolsas` y `cuenta_mo = false`** (el `check` de `matriz.carga_en` admite `'bolsas'`). **`GP2.fabricar_stock`**: si la
+  matriz carga en bolsas, `p_uni = round(bolsas × entrega_uni_x)` de la pieza (si no, `uni_x_cajon`); el premio sigue por bolsa y sólo el stock va en remaches.
+- **[dato, ensayo revertido + aplicación con bloque de control]** Costos: **839 comparados, 0 distintos**; máximos de inventario: 0 distintos; 0 órdenes repetidos, 0
+  huecos. `v_consumo_demanda` +52 filas y `v_oc_virgilio_demanda` +32 (aparecen los `VxSE`); `v_contraparte_parte` pasa 12 piezas de Guazzaroni de `Vx` a `VxSE`.
+  Prueba funcional (revertida): **6 bolsas de V9 (10 kg) → V9SE −105.820 y V9 +105.820 (= 60 kg)**; 3 bolsas de V1 (2 kg) → ±17.142; 2 bolsas de V10 → V10 → V10
+  10.000 (neto 0, con ruido). **Trampa medida:** sin `estado_compra = 'fabricacion'` el motor toma a los `VxSE` por comprados (el sector Remache es de insumos) y pierde
+  el crudo y el niquelado (V1 quedaba en $110 solo). **Otra:** con la 150 contando mano de obra, +$110,00 a 54 componentes (55 s POR REMACHE).
+- **[PENDIENTE]** (1) **Los `VxSE` nacen en 0 y quedan en NEGATIVO** hasta que Guazzaroni entregue como `VxSE` en Control Entrega PS (los CV de su ubicación están en 0:
+  no hay nada en tránsito que migrar); el historial anterior sigue colgado de `Vx`. (2) **Mano de obra de la 150 sin costear** (55 s por bolsa → hay que pasarla a por remache y
+  tocar el motor; `cuenta_mo` vuelve a `true` recién entonces). (3) `fabricar_stock` es compartida: la tablet de GP2 y el 3.0 convierten igual; **V10** sigue dejando el
+  movimiento `V10 → V10` de ruido (neto 0).
 
 ## 4jn. 630E/631E/633E/636E/637E: los gemelos CHEF de los inox importados 94xE (2026-10-07) — ✅ APLICADO
 

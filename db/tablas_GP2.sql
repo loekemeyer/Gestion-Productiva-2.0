@@ -521,7 +521,7 @@ create table "GP2".matriz (
   cuenta_mo boolean not null default true,
   constraint matriz_pkey PRIMARY KEY (id),
   constraint matriz_n_matriz_key UNIQUE (n_matriz),
-  constraint matriz_carga_en_chk CHECK ((carga_en = ANY (ARRAY['golpes'::text, 'unidades'::text, 'kg'::text]))),
+  constraint matriz_carga_en_chk CHECK ((carga_en = ANY (ARRAY['golpes'::text, 'unidades'::text, 'kg'::text, 'bolsas'::text]))),
   constraint matriz_maquina_chk CHECK (((maquina IS NULL) OR (maquina = ANY (ARRAY['alimentador'::text, 'balancin'::text, 'piedra'::text])))),
   constraint matriz_tiempo_unidad_chk CHECK ((tiempo_unidad = ANY (ARRAY['uni'::text, 'kg'::text]))),
   constraint matriz_tipo_chk CHECK (((tipo IS NULL) OR (tipo = ANY (ARRAY['A'::text, 'B'::text, 'D'::text, 'P'::text])))),

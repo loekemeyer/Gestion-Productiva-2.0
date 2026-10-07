@@ -4028,9 +4028,19 @@ declare
   r record; v_first boolean := true; v_movid bigint; v_first_mov bigint;
   v_ent_um text; v_sec_ent int; v_uent bigint; v_cant numeric; v_uo text;
   v_aviso text := null; v_n int := 0; v_has_bom boolean;
+  v_carga text; v_xb numeric;
 begin
   perform "GP2"._exigir_autorizado();  -- seguridad punto 1 fase B (2026-09-28)
-  select partes_por_kilo_de_fleje into v_partes from matriz where id = p_mid;
+  select partes_por_kilo_de_fleje, carga_en into v_partes, v_carga from matriz where id = p_mid;
+  -- Matriz que se carga en BOLSAS (la 150, 2026-10-07): el operario cuenta bolsas y el stock se mueve en unidades
+  -- (remaches): bolsas x unidades por bolsa de la pieza (componente.entrega_uni_x; si no, uni_x_cajon).
+  if v_carga = 'bolsas' then
+    select coalesce(nullif(entrega_uni_x, 0), nullif(uni_x_cajon, 0)) into v_xb from componente where id = p_salida;
+    if v_xb is null then
+      return jsonb_build_object('movimiento_id', null, 'n_entradas', 0, 'aviso', 'Registrado, pero la pieza no tiene unidades por bolsa: no se movio stock');
+    end if;
+    p_uni := round(p_uni * v_xb);
+  end if;
   select unidad_medida, sector_id into v_sal_um, v_sec_sal from componente where id = p_salida;
   -- El sector Terminado (12) no tiene ubicacion de sector; su stock vive en "Art. Terminado
   -- (Fabrica)" (art_terminado 3). Una matriz de ENVASADO produce el terminado directo ahi

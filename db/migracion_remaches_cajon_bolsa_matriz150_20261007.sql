@@ -35,6 +35,9 @@ update "GP2".componente set uni_x_cajon = round(case codigo when 'V9' then 10 el
 update "GP2".componente set entrega_unidad = 'bolsas', entrega_uni_x = uni_x_cajon
  where codigo ~ '^V[0-9]' and codigo <> 'V18D' and entrega_unidad is null;
 
+-- ⚠ SUPERADO el mismo 07/10 por db/migracion_remaches_se_matriz150_20261007.sql: la 150 ya NO es V → V, ahora toma VxSE (en
+--    tránsito, cajón de 25 kg) y expulsa Vx, carga en bolsas y fabricar_stock convierte a remaches. La parte C queda como historia
+--    (su guarda de idempotencia impide volver a correrla). Las partes A, B1 y B2 siguen vigentes.
 -- ── C) La matriz 150 en las rutas: un paso 'matriz' V → [150] → V (entrada = salida) justo después del niquelado
 --    (53 rutas con V1..V9, V11..V13) y, para V10 —que se compra ya como V—, justo después del paso 'insumo'
 --    (rutas 373 y 375). 55 pasos nuevos, 118 pasos existentes corridos un lugar. Efecto: la 150 sale con 13 salidas
