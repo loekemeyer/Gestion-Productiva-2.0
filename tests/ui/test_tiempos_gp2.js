@@ -1,7 +1,7 @@
 /* Tiempos Matrices GP2 (Produccion/tiempos_GP2.html): Gauss automatico, variantes, boton de fuente de
    la produccion (GP2 / Gestion Productiva Entero) y anular. Supabase STUBEADO: no toca la base.
    Pedido de Elias, 2026-10-05. Verifica:
-   - por defecto la produccion sale de GP2.produccion y NO se toca public;
+   - por defecto la produccion sale de GP2.v_produccion_todas (GP2 + Registro Produccion 3.0) y NO se toca public;
    - el boton "Gestion Productiva Entero" lee public.db_n8n_espejo (solo con .schema('public'), por paginas
      de 1000) y nunca escribe;
    - el Gauss: un punto por operario y dia, sin Uni 0 / Seg<=1, fuera de 1/3..3x mediana, ni mu+-2 sigma;
@@ -16,7 +16,7 @@ const ROOT = 'file://' + path.resolve(__dirname, '..', '..').replace(/\\/g, '/')
 const EXE = process.env.CHROMIUM_PATH || (fs.existsSync('/opt/pw-browsers/chromium') ? '/opt/pw-browsers/chromium' : undefined);
 
 let _id = 0;
-// Registro de GP2.produccion. Cada uno con su propio legajo => cada uno es su propio punto operario-dia.
+// Registro de GP2.v_produccion_todas. Cada uno con su propio legajo => cada uno es su propio punto operario-dia.
 const G = (mat, leg, dia, uni, seg, toma, extra) => Object.assign({ id: ++_id, fecha: dia + 'T12:00:00-03:00', legajo: leg, matriz_raw: mat,
   nombre_matriz: '', uni, segundos_trabajados: seg, tiempo_toma: toma, anular_tiempo: false, premio: 0, hora_inicio: '08:00:00',
   hora_fin: '09:00:00', segundos_tiempo_muerto: 0, segundos_historico: 0, eliminar: null }, extra || {});
@@ -77,7 +77,7 @@ const STUB = `
 (function(){
   window.__consultas = []; window.__rpcs = []; window.__anul = {}; window.__ID_NULL = ${ID_NULL};
   var DATOS = { 'GP2.matriz': ${JSON.stringify(MATRIZ)}, 'GP2.empleado': ${JSON.stringify(EMPLEADO)},
-                'GP2.produccion': ${JSON.stringify(PROD)}, 'public.db_n8n_espejo': ${JSON.stringify(ENTERO)} };
+                'GP2.v_produccion_todas': ${JSON.stringify(PROD)}, 'public.db_n8n_espejo': ${JSON.stringify(ENTERO)} };
   function mk(tabla, esquema){
     var q = { f: [] };
     ['select','gt','neq','gte','lte','eq','order','range'].forEach(function(m){
@@ -141,7 +141,8 @@ const STUB = `
 
   // ===== 1) fuente por defecto: GP2, sin tocar public =====
   let cs = await consultas();
-  ok(cs.some(c => c.tabla === 'produccion' && c.esquema === 'GP2'), 'por defecto la produccion sale de GP2.produccion');
+  ok(cs.some(c => c.tabla === 'v_produccion_todas' && c.esquema === 'GP2'), 'por defecto la produccion sale de GP2.v_produccion_todas (GP2 + Registro Produccion 3.0)');
+  ok(!cs.some(c => c.tabla === 'produccion'), 'ya no lee GP2.produccion sola (le faltaria lo de Registro Produccion 3.0)');
   ok(!cs.some(c => c.esquema === 'public' || c.tabla === 'db_n8n_espejo'), 'por defecto no se toca public');
   ok((await page.textContent('#pillFuente')).trim() === 'GP2', 'la etiqueta de la tarjeta dice GP2');
   ok(await page.$eval('#segFuente [data-fuente="gp2"]', b => !b.classList.contains('ghost')), 'el boton GP2 queda marcado');
@@ -245,7 +246,7 @@ const STUB = `
   cs = (await consultas()).slice(antes);
   const ent = cs.filter(c => c.tabla === 'db_n8n_espejo');
   ok(ent.length === 3 && ent.every(c => c.esquema === 'public'), 'Entero: lee public.db_n8n_espejo con .schema(public), en 3 paginas de 1000 (2.340 registros): ' + ent.length + ' pedidos');
-  ok(!cs.some(c => c.tabla === 'produccion'), 'Entero: ya no lee GP2.produccion');
+  ok(!cs.some(c => c.tabla === 'v_produccion_todas'), 'Entero: ya no lee GP2.v_produccion_todas');
   ok(ent.every(c => c.filtros.some(x => x[0] === 'neq' && x[1] === 'Legajo' && x[2] === '1') && c.filtros.some(x => x[0] === 'gt' && x[1] === 'Uni')), 'Entero: sin el legajo 1 (Pruebas) y con Uni > 0');
   ok((await page.textContent('#pillFuente')).includes('ENTERO'), 'la etiqueta dice ENTERO · solo lectura');
   ok(await page.evaluate(() => localStorage.getItem('gp2_tiempos_fuente')) === 'entero', 'la eleccion queda guardada');
@@ -279,7 +280,7 @@ const STUB = `
   // ===== 7) volver a GP2 =====
   const antes2 = (await consultas()).length;
   await page.click('#segFuente [data-fuente="gp2"]');
-  await page.waitForFunction((n) => window.__consultas.slice(n).some(c => c.tabla === 'produccion'), antes2);
+  await page.waitForFunction((n) => window.__consultas.slice(n).some(c => c.tabla === 'v_produccion_todas'), antes2);
   ok((await page.textContent('#pillFuente')).trim() === 'GP2', 'volver a GP2: la etiqueta vuelve a GP2');
 
   // ===== 8) la eleccion guardada se respeta al reabrir =====

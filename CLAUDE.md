@@ -953,7 +953,14 @@ copia y hacer modificaciones para testear"*.
 - **La base sigue siendo compartida**: 3.0 escribe en `reg_prod_3_0` pero mueve el stock y los rollos con las funciones de
   `GP2` (`fabricar_stock`, `tomar_rollo`, `cerrar_rollo`, el bundle). Un cambio en esas funciones afecta a los operarios
   aunque se haya probado desde esta tablet.
-- Historia: CONOCIMIENTO §4jo (arreglos de 3.0 traídos acá), §4jp (lista vacía hasta escribir) y §4jq (este cambio).
+- **La producción de los operarios ya NO está en `GP2.produccion`** `[Elías, 08/10: «3 si. y revisa que otras cosas en GP lo usan o
+  usaban, para también actualizarlo»]`: está en `reg_prod_3_0.procesado_cervantes`; a `GP2.produccion` sólo le llega la Carga Manual.
+  **Todo lo que lee producción lee `GP2.v_produccion_todas`** (las dos juntas; los registros de 3.0 con **id negativo** y
+  `fuente = 'reg_prod_3_0'`): los 8 bundles de informes y 4 pantallas (Monitor, Monitor 2, Entrevistas, Tiempos). Las 2 RPC que
+  escriben sobre un registro desde la oficina (`marcar_revisado`, `anular_produccion`) mandan el id negativo a 3.0. Es el **único**
+  lugar donde GP2 lee `reg_prod_3_0` para informes (otra excepción a la Regla 0, del dueño). **Un informe nuevo lee la vista, nunca
+  `GP2.produccion` sola.** `db/migracion_produccion_todas_20261008.sql`, CONOCIMIENTO §4jt.
+- Historia: CONOCIMIENTO §4jo (arreglos de 3.0 traídos acá), §4jp (lista vacía hasta escribir), §4jq (este cambio) y §4jt (informes).
 
 ## ⚠ REGLA: qué tipo de operario ve qué botón (app de operarios / tablet)
 

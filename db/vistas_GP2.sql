@@ -1,7 +1,7 @@
 -- =====================================================================
 -- VISTAS del schema GP2 (pg_get_viewdef, exacto) — export automatico 2026-09-11 desde Supabase (hrxfctzncixxqmpfhskv)
 -- Respaldo/referencia. La fuente de verdad es la base; regenerar al cambiar el schema.
--- 35 vistas (2026-10-01: + v_consumo_fleje_kg_articulo, que va ANTES de v_consumo_fleje_kg porque esta sale de ella; 2026-09-26: + v_oc_virgilio_pendiente, v_oc_virgilio_partes, v_oc_virgilio_demanda, v_oc_virgilio_partes_tallerista; el orden de dependencia es pendiente -> demanda -> partes_tallerista). Orden de creacion: las que dependen de otra van despues.
+-- 36 vistas (2026-10-08: + v_produccion_todas, GP2.produccion + reg_prod_3_0.produccion_gp2, la que leen los informes; 2026-10-01: + v_consumo_fleje_kg_articulo, que va ANTES de v_consumo_fleje_kg porque esta sale de ella; 2026-09-26: + v_oc_virgilio_pendiente, v_oc_virgilio_partes, v_oc_virgilio_demanda, v_oc_virgilio_partes_tallerista; el orden de dependencia es pendiente -> demanda -> partes_tallerista). Orden de creacion: las que dependen de otra van despues.
 -- =====================================================================
 
 -- ---------- v_caj_contraparte ----------
@@ -1142,6 +1142,68 @@ create or replace view "GP2".v_preaviso_estado as
      LEFT JOIN "GP2".proveedor_servicio ps ON p.tipo_contraparte = 'proveedor_servicio'::text AND ps.id = p.contraparte_id
      LEFT JOIN "GP2".proveedor_at pa ON p.tipo_contraparte = 'proveedor_at'::text AND pa.id = p.contraparte_id;
 comment on view "GP2".v_preaviso_estado is 'Los preavisos con su contraparte, los dias que faltan (negativo = vencido) y cuanto de esa pieza entrego esa contraparte desde que lo prometio. Solo lectura.';
+
+-- ---------- v_produccion_todas ----------
+create or replace view "GP2".v_produccion_todas as
+ SELECT p.id,
+    p.fecha,
+    p.legajo,
+    p.nombre_empleado,
+    p.matriz_raw,
+    p.nombre_matriz,
+    p.matriz_id,
+    p.uni,
+    p.premio,
+    p.tiempo_toma,
+    p.tiempo_historico,
+    p.hora_inicio,
+    p.hora_fin,
+    p.anular_tiempo,
+    p.segundos_historico,
+    p.segundos_trabajados,
+    p.segundos_tiempo_muerto,
+    p.dia,
+    p.mes,
+    p.quincena,
+    p.id_ejecucion,
+    p.eliminar,
+    p.revisado,
+    p.origen_created_at,
+    p.golpes,
+    p.uni_x_golpe,
+    'gp2'::text AS fuente
+   FROM "GP2".produccion p
+UNION ALL
+ SELECT (- r.id) AS id,
+    r.fecha,
+    r.legajo,
+    r.nombre_empleado,
+    r.matriz_raw,
+    r.nombre_matriz,
+    r.matriz_id,
+    r.uni,
+    r.premio,
+    r.tiempo_toma,
+    r.tiempo_historico,
+    r.hora_inicio,
+    r.hora_fin,
+    r.anular_tiempo,
+    r.segundos_historico,
+    r.segundos_trabajados,
+    r.segundos_tiempo_muerto,
+    r.dia,
+    r.mes,
+    r.quincena,
+    r.id_ejecucion,
+    r.eliminar,
+    r.revisado,
+    r.origen_created_at,
+    r.golpes,
+    r.uni_x_golpe,
+    'reg_prod_3_0'::text AS fuente
+   FROM reg_prod_3_0.produccion_gp2 r;
+comment on view "GP2".v_produccion_todas is 'Producción de GP2 ("GP2".produccion: Carga Manual + historia de la tablet vieja) + la de Registro Producción 3.0 (reg_prod_3_0.produccion_gp2, id NEGATIVO). Fuente única de los informes desde el 08/10/2026.';
+-- grants: revoke all from public, anon; grant select to authenticated (la producción de 3.0 no queda a la vista de la clave pública)
 
 -- ---------- v_recepcion_control ----------
 create or replace view "GP2".v_recepcion_control as

@@ -148,7 +148,7 @@
     if (!leg) { tb.innerHTML = '<tr><td colspan="12" class="msg">Elegí un operario.</td></tr>'; $('stats').innerHTML = ''; return; }
     tb.innerHTML = '<tr><td colspan="12" class="msg">Cargando...</td></tr>';
 
-    var r = await sb.from('produccion')
+    var r = await sb.from('v_produccion_todas')   /* GP2 + Registro Produccion 3.0 (2026-10-08) */
       .select('id,fecha,matriz_raw,nombre_matriz,uni,hora_inicio,hora_fin,segundos_trabajados,segundos_historico,premio,eliminar')
       .eq('legajo', leg)
       .gt('uni', 0)

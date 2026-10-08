@@ -124,7 +124,7 @@
     <div class="controls-row">
       <div class="ctrl-group"><label>Producción de</label>
         <div class="seg-fuente" id="segFuente">
-          <button type="button" class="btn-act" data-fuente="gp2" title="Tabla GP2.produccion">GP2</button>
+          <button type="button" class="btn-act" data-fuente="gp2" title="GP2.produccion + Registro Producción 3.0 (vista GP2.v_produccion_todas)">GP2</button>
           <button type="button" class="btn-act ghost" data-fuente="entero" title="Tabla db_n8n_espejo de Gestión Productiva Entero (se lee y se puede anular)">Gestión Productiva Entero</button>
         </div>
       </div>
@@ -333,7 +333,7 @@
       });
     } else {
       r = await traerPaginas(function () {
-        var q = sb.from('produccion')
+        var q = sb.from('v_produccion_todas')   /* GP2 + Registro Produccion 3.0 (2026-10-08); los de 3.0 vienen con id negativo */
           .select('id,fecha,legajo,matriz_raw,nombre_matriz,uni,segundos_trabajados,tiempo_toma,anular_tiempo,premio,hora_inicio,hora_fin,segundos_tiempo_muerto,segundos_historico,eliminar')
           .gt('uni', 0)
           .gte('fecha', desde).lte('fecha', hasta).order('id');

@@ -15937,7 +15937,7 @@ Producción 3.0 (`cervantes-gp2/`) y vale igual para la tablet de GP2:
   `rollo_llamadas` → `db/PENDIENTE_borrar_funciones_tablet_vieja.sql`, con las 3 condiciones (nadie grabando por la tablet vieja;
   la copia vieja sin enlace de 3.0 `gp2/` las llama; sacar de PERMITIDAS y regenerar `db/` en el mismo commit).
 
-## 4jr. Monitor · Código de ingreso: queda prendido TODO EL DÍA y no se desconecta (2026-10-08)
+## 4ju. Monitor · Código de ingreso: queda prendido TODO EL DÍA y no se desconecta (2026-10-08)
 
 - `[usuario, Elías 08/10, textual]`: *«en [el monitor] salió "tu cuenta no está habilitada"»* — *«necesito que el monitor no se desconecte»* —
   *«porque el monitor código de ingreso va a estar todo el día»*. Es una pantalla de TV/tablet, no de consulta: tiene que sobrevivir horas sin que nadie la toque.
@@ -15954,3 +15954,29 @@ Producción 3.0 (`cervantes-gp2/`) y vale igual para la tablet de GP2:
   `[Adivinando]` si hace falta algo más duro (un monitor que no dependa de sesión, p. ej. clave de dispositivo), es otra decisión: hoy se eligió «mail habilitado, sin clave compartida».
 - Prueba: `tests/ui/test_monitor_ingreso.js` (403 sin reintento, 401 sin sesión, 401 que se recupera, guardián, latido, Wake Lock, `online`).
 
+
+## 4jt. Los informes de GP2 leen también la producción de Registro Producción 3.0: `GP2.v_produccion_todas` (2026-10-08)
+
+- `[usuario, Elías, 08/10]`: *«3 si»* (que los informes lean también `reg_prod_3_0.produccion_gp2`) *«y revisa que otras cosas en GP lo
+  usan o usaban, para también actualizarlo»*.
+- `[dato, 08/10]` El inventario, en la base (`prosrc ~ '\yproduccion\y'`) y en el repo (`from('produccion')`):
+  - **8 bundles que leen**: `alertas_bundle`, `disruptivas_bundle`, `informes_bundle`, `informes_matriz_bundle`, `inicio_bundle`,
+    `problemas_matrices_bundle`, `produccion_bundle`, `produccion_maestro_bundle`.
+  - **2 RPC que escriben sobre un registro desde la oficina**: `marcar_revisado` y `anular_produccion` (Disruptivas y Tiempos).
+  - **4 pantallas que leen la tabla directo**: Monitor, Monitor 2, Entrevistas y Tiempos.
+  - Sin vistas, triggers ni FK que dependan de `GP2.produccion`.
+- **Cómo quedó**: `GP2.v_produccion_todas` = `GP2.produccion` (`fuente 'gp2'`) + `reg_prod_3_0.produccion_gp2` (`fuente 'reg_prod_3_0'`,
+  **id negativo**: los dos lados numeran solos y chocan; 3.0 tiene el 19 y el 20, GP2 va del 235 al 7524). Los 14 de arriba la usan; con
+  id negativo, `marcar_revisado` / `anular_produccion` tocan `reg_prod_3_0.procesado_cervantes` (id = -row_id). SELECT sólo para
+  `authenticated` (las 4 pantallas entran con Gmail): la producción de 3.0 no queda a la vista de la clave pública.
+- `[dato, 08/10]` Antes y después: 6 de los 8 bundles dan **idéntico** (md5); los otros 2 (`produccion_bundle`,
+  `produccion_maestro_bundle`) suman sólo la Llegada Tarde de prueba del legajo 0 (id -19). Las 2 RPC, probadas en transacción deshecha:
+  marcan / anulan la fila de 3.0, `-999999` da «no encontrado» y `GP2.produccion` no cambia.
+- **No se tocaron, a propósito**: `registrar_produccion` (la Carga Manual sigue grabando en `GP2.produccion`, y su lista «Últimos
+  registros» muestra lo cargado ahí); `registrar_evento_prod`, `anular_evento_prod`, `cerrar_rollo`, `registro_operarios_bundle` (tablet
+  vieja, anotadas para borrar). En 3.0, `reg_prod_3_0_bundle` y `reg_prod_3_0_cerrar_rollo` ya sumaban las dos.
+- `[dato, 08/10]` **Fuera de GP2, y sin tocar**: 5 funciones de `planify` (`planify_donde_estan`, `_donde_estan_dia`, `planify_informe_comida`,
+  `_fuentes`, `_jornada`) y 5 de `public` (`gv_alerta_inactivo_servidor`, `gv_monitor_horas_operario_dia`,
+  `gv_monitor_ingresos`, `planify_operario_mensajes_dia`, `planify_produccion_dia`) leen a los operarios de Cervantes de
+  `public."Registros Produccion Cervantes"` (la app vieja). Cuando los operarios pasen a 3.0 (`reg_prod_3_0.crudo_cervantes`) esas no los
+  van a ver. Son de otros repos; queda para decidir.
