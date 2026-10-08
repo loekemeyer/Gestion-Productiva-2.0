@@ -7,8 +7,10 @@
 --   ✅ 1a, 2, 3a, 3b — migraciones gp2_arreglos_reg_prod_3_0_a_columnas_y_rollos, _b_registrar_evento_prod, _c_bundle,
 --      _d_comentarios. Verificado con md5(pg_get_functiondef) = este archivo (db/funciones_GP2.sql actualizado).
 --   ✅ 1b — registrar_evento_prod ya anota produccion.movimientos.
---   ⏳ 1c — anular_evento_prod con la devolución del stock: tiene un DELETE adentro y la herramienta de Claude no lo aplica;
---      lo pega Elías en el SQL Editor. Mientras tanto anular sigue sin devolver el stock (como siempre en GP2).
+--   ✅ 1c — anular_evento_prod con la devolución del stock: tiene un DELETE adentro y la herramienta de Claude no lo aplica;
+--      lo pegó Elías en el SQL Editor el 08/10 (con el comentario de una línea; el cuerpo quedó con CRLF, md5 023b5308…).
+--      Probado en la base en una transacción deshecha: registrar mueve el stock, anular lo deja idéntico, anular dos veces no
+--      devuelve de más.
 --
 -- Qué arregla:
 --   1) ANULAR DEVUELVE EL STOCK (una sola vez: stock_revertido_at). Sólo toques registrados desde hoy (antes no hay lista).

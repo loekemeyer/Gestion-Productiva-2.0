@@ -1112,7 +1112,7 @@ CREATE OR REPLACE FUNCTION "GP2".anular_evento_prod(p_id_ejecucion text)
  SECURITY DEFINER
  SET search_path TO 'GP2'
 AS $function$
-declare v_n int;
+declare v_n int; v_movs bigint[]; v_rev int := 0;
 begin
   perform "GP2"._exigir_autorizado();  -- seguridad punto 1 fase B (2026-09-28)
   if nullif(btrim(coalesce(p_id_ejecucion,'')),'') is null then
@@ -1120,7 +1120,16 @@ begin
   end if;
   update produccion set eliminar = 'S' where id_ejecucion = p_id_ejecucion;
   get diagnostics v_n = row_count;
-  return jsonb_build_object('ok', true, 'anulados', v_n);
+  -- (arreglo de Registro Producción 3.0, 07/10/2026) devolver el stock que movió el toque, una sola vez
+  select movimientos into v_movs from produccion
+   where id_ejecucion = p_id_ejecucion and movimientos is not null and stock_revertido_at is null
+   for update;
+  if v_movs is not null then
+    delete from movimiento where id = any(v_movs) and tipo_mov = 'fabricacion';
+    get diagnostics v_rev = row_count;
+    update produccion set stock_revertido_at = now() where id_ejecucion = p_id_ejecucion;
+  end if;
+  return jsonb_build_object('ok', true, 'anulados', v_n, 'movimientos_revertidos', v_rev);
 end $function$
 ;
 

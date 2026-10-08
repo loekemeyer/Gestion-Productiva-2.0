@@ -15862,8 +15862,9 @@ Producción 3.0 (`cervantes-gp2/`) y vale igual para la tablet de GP2:
   cola; si ya está en `GP2.rollo_llamadas`, devuelven la respuesta de la primera vez con `dup: true`. La tablet las usa sólo si el
   bundle trae `rollos_antiduplicado: true`; `tomar_rollo` / `cerrar_rollo` quedan para tablets viejas.
 - **Lo anulado no cuenta** en lo producido con el rollo (`cerrar_rollo` y `kg_usados` del bundle filtran `eliminar = 'S'`).
-- **Anular devuelve el stock** — ⏳ **la base todavía no**: `registrar_evento_prod` ya anota en `produccion.movimientos` qué
-  movimientos hizo cada toque; falta pegar `anular_evento_prod` (borra esos movimientos una sola vez → `fn_movimiento_aplicar`
-  revierte el inventario, como `anular_recepcion`). Tiene un DELETE adentro y la herramienta de Claude no lo aplica: va por el SQL
-  Editor (bloque 1c de `db/migracion_arreglos_reg_prod_3_0_20261007.sql`). Los toques anteriores a hoy no tienen la lista: no se revierten.
+- **Anular devuelve el stock** — ✅ desde el 08/10 (Elías pegó `anular_evento_prod` en el SQL Editor: tiene un DELETE adentro y la
+  herramienta de Claude no lo aplica). `registrar_evento_prod` anota en `produccion.movimientos` qué movimientos hizo cada toque;
+  `anular_evento_prod` los borra una sola vez (`stock_revertido_at`) y `fn_movimiento_aplicar` revierte el inventario, como
+  `anular_recepcion`. `[dato, ensayo revertido 08/10]` toque de 10 uni en la matriz 10: 2 movimientos; al anular, `inventario` queda
+  con la misma huella que antes del toque y una 2.ª anulación no cambia nada. Los toques anteriores al 07/10 no tienen la lista: no se revierten.
 - Prueba: `tests/ui/test_op_e2e.js`, bloque «arreglos traídos de Registro Producción 3.0» (11 checks). Tablet `20261007h`, v1.251.0.
