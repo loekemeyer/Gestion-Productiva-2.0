@@ -20,9 +20,11 @@
 --   nada que migrar. En Stock General dejan los rubros «Stock SC» y «Stock SP».
 --
 -- Medido en el ensayo (revertido): 13 componentes y 13 filas de inventario movidos, 0 conflictos en la ubicación 8; costos 851
---   comparados, 0 distintos; 10 vistas (demanda, consumo, contraparte…) idénticas; máximos de inventario idénticos, también
---   forzando el recálculo de máximos (recalcular_maximos_*). Aplicado con «Sí» del dueño dentro de un bloque de control que se
---   aborta solo (y no guarda nada) si cambia un costo, un máximo o una vista.
+--   comparados, 0 distintos; 10 vistas (demanda, consumo, contraparte…) idénticas; máximos de inventario idénticos en el momento del cambio.
+--   ⚠ CORREGIDO el 08/10: esta nota decía «también forzando el recálculo de máximos»; era FALSO. El recálculo (que corre con cualquier cambio
+--   de ruta o con el sync diario de la Est Madre) pasa los 13 W de 'consumo_meses' (regla de Crudo/Procesado, tope de 5 cajones) a 'est_madre'
+--   (regla de los sectores de insumos): W1 7.238 → 28.952, W6 14.476 → 57.904, etc. Aceptado por el dueño: ver db/migracion_w_se_matriz150_20261008.sql.
+--   Aplicado con «Sí» del dueño dentro de un bloque de control que se aborta solo (y no guarda nada) si cambia un costo, un máximo o una vista.
 --
 -- ↩ Revertir (UPDATE, no cuelga en el conector):
 --   begin;

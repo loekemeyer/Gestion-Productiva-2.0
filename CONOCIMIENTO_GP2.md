@@ -16002,9 +16002,10 @@ Producción 3.0 (`cervantes-gp2/`) y vale igual para la tablet de GP2:
   caja»); el 8 no se manda a Virgilio. Estos W tenían **0 stock** en los depósitos de Virgilio (ubicaciones 64 y 65): no había nada que migrar. En Stock General dejan
   los rubros «Stock SC» y «Stock SP» `[Probable: la pantalla agrupa por sector; no se midió]`.
 - **[dato, ensayo revertido + aplicación con bloque de control]** 13 componentes y 13 filas de inventario movidos, **0 conflictos** en la ubicación 8; **costos: 851
-  comparados, 0 distintos**; 10 vistas (demanda, consumo, contraparte…) idénticas; **máximos de inventario idénticos**, también forzando el recálculo (`recalcular_maximos_*`).
-  `[deducido, sin confirmar]` el recálculo de máximos de un sector de insumos (`recalcular_maximos_insumos`) podría usar otra regla que la de SC/SP; hoy dio igual, pero
-  si cambia el consumo de un W conviene mirar su máximo.
+  comparados, 0 distintos**; 10 vistas (demanda, consumo, contraparte…) idénticas; **máximos de inventario idénticos en el momento del cambio**.
+  **⚠ CORREGIDO el 08/10 (la versión anterior de esta línea decía «idénticos, también forzando el recálculo»: era FALSO):** el recálculo de máximos SÍ los cambia — ver 4jx.
+  `recalcular_maximos_insumos` pisa (con `maximo_origen = 'est_madre'`) todo lo que esté en un sector de insumos y no sea `fisico`, y `consumo_meses` (la regla de Crudo y
+  Procesado, con tope de 5 cajones) sólo rige para los sectores 1 y 2. Los 13 W salieron de esa regla al pasar a Remache.
 - **[regla para el próximo caso]** pasar un componente fabricado a un sector de insumos exige `estado_compra = 'fabricacion'` en el mismo paso (V, VxSE y W lo muestran).
 
 
@@ -16016,3 +16017,24 @@ Producción 3.0 (`cervantes-gp2/`) y vale igual para la tablet de GP2:
   un sector. Esto **reemplaza** la regla de v1.0.0 ("por consumo de mayor a menor, nunca alfabético").
 - `[deducido, sin confirmar]` el orden de los SECTORES no se tocó (sigue por cantidad de componentes, como los botones); si
   "alfanuméricamente" también quería decir los sectores por nombre, es un cambio de una línea en `visibles()`.
+
+## 4jx. Los W con «SE»: lo que vuelve de Guazzaroni / Pedernera o sale del corte pasa por la matriz 150 y se transforma en el W final (2026-10-08)
+
+- **[usuario, 08/10, textual]** *«Para: W1P W2P W3P W7P W9P — Cuando se recepcionan de Guazzaroni o Pedernera se recepcionan como W1PSE, W2PSE, etc. Después pasan por la
+  matriz 150 que se ponen en bolsas de 2kg y se van al sector W1P, W2P, etc. W4, W5 y W6. Después de cortarse van a W4SE, W5SE y W6SE. Luego pasan por la matriz de envasado 150
+  y se transforman en W4, W5 y W6. Cambiá esas rutas y agregalo en la tablet de operarios la opción de que expulse estos componentes la matriz 150.»* A mis 3 decisiones: *«Sí a todo»*.
+- **[hecho, base, `db/migracion_w_se_matriz150_20261008.sql`]** **8 componentes SE** en Sector Remache (`W1PSE`, `W2PSE`, `W3PSE`, `W7PSE`, `W9PSE`, `W4SE`, `W5SE`, `W6SE`):
+  «descripción del W + s/envasar», cajón de **25 kg** `[supuesto mío, aceptado]`, `estado_compra = 'fabricacion'`, inventario en 0. **23 rutas**: los 15 pasos de servicio (Guazzaroni:
+  W1/W3/W9 → niquelado; Pedernera: W2/W7 → cromado) y los 8 cortes (matrices **344 → W4, 21 → W5, 16 → W6**) entregan el SE; justo después, un paso de la **matriz 150 (SE → W final)**. Los
+  pasos de tallerista que consumen el W final no cambian. **5 precios de servicio** pasan del W?P al W?PSE (cuelgan de la pieza que entrega el servicio). **Etiquetas**: la de W5 en la
+  matriz 21 pasa a W5SE y la 150 suma 8 opciones (orden 14–21) con la descripción del W como etiqueta `[supuesto mío, aceptado]`: **el selector de la 150 en la tablet pasa de 13 a 21 opciones**
+  (la 150 tiene ahora 78 pasos en 78 rutas). Sin tocar código: las dos tablets leen `matriz_salidas` + `etiqueta` del bundle.
+- **[dato, ensayo revertido + aplicación con bloque de control]** costos **851 comparados, 0 distintos**; sólo cambian a propósito `v_consumo_demanda` (+23), `v_oc_virgilio_demanda` (+11)
+  y `v_contraparte_parte` (5 piezas de proveedores); 7 vistas idénticas; 0 órdenes repetidos / huecos / pasos sin actor. Prueba funcional: **3 bolsas de W1P = 5.001 unidades de W1PSE → W1P; 2 bolsas
+  de W4 = 5.970 de W4SE → W4** (todos estos W son bolsa de 2,00 kg).
+- **[dato, SQL 08/10] ⚠ LOS MÁXIMOS DE LOS 13 W CAMBIARON — efecto del pase a Sector Remache (4jv), que salió acá.** El recálculo de máximos (corre con cualquier cambio de ruta y con el sync diario de la
+  Est Madre) pasa los 13 W de `consumo_meses` (regla de Crudo/Procesado: consumo × meses, **tope de 5 cajones**) a `est_madre` (regla de los sectores de insumos, **sin tope**): W1 7.238 → 28.952,
+  W6 14.476 → 57.904, W7 4.770 → 35.960… (10 de 13 se cuadruplican; W2, W2P y W7 suben unas 8 veces). **Retiro lo que dije en 4jv** («máximos idénticos, también forzando el recálculo»): era falso. El dueño
+  aceptó la regla del Sector Remache («Sí a todo» a mi recomendación); la alternativa, congelarlos como `fisico` con los valores de hoy, quedó descartada. El tope de 5 cajones (`[usuario 29/09]`) ya no rige para estos W.
+- **[PENDIENTE]** (1) Los 8 SE nacen en 0 y quedan en **negativo** hasta que Guazzaroni / Pedernera entreguen como SE en Control Entrega PS y el corte se registre como SE; el historial anterior sigue
+  colgado del W final. (2) La mano de obra de la 150 sigue sin costear (`cuenta_mo = false`). (3) Stock General muestra los W en «cajones» aunque sean bolsas de 2 kg (rótulo, no cantidad).
