@@ -15915,3 +15915,12 @@ Producción 3.0 (`cervantes-gp2/`) y vale igual para la tablet de GP2:
   simple → v3.1.N y 69/69; un punto de la copia tocado en GP2 → frena; 3.0 cambió otra línea → une; misma línea → frena; copiar
   encima de un cambio sin traer → frena (con `--pisar`, copia). Antes de esta copia se verificó que el original de GP2 no tenía
   cambios después de `e110890` (lo que ya estaba en 3.0 desde la v3.1.6).
+
+## 4jq. Verificación de cajones: se borró el sorteo del 07/10, que nadie pudo hacer (2026-10-08)
+
+- `[usuario, Elías 08/10, textual]`: *«elimina el de los días pasados, que no pudo hacerlo»*. El sorteo de las 15:00 del 07/10 (cajones 31: matriz
+  356 de Eduardo Barrionuevo, 770 uni; y 32: matriz 512 de Graciela Santillan, 240 uni) quedó sin empezar ni cargar: la página de Entero no se
+  había publicado (Vercel rechazó 3 builds por el límite del plan Hobby). Se borró con la condición «sin resultado, sin carga, sin empezar».
+- `[dato, SELECT 08/10]` después: `verif_cajon` = 0 y `verif_cajon_dia` = 0. No hubo stock ni ajuste que deshacer.
+- ⚠ El conector de Supabase de la sesión **sí aplicó** este DELETE (con CTE, un solo statement); el 07/10 había frenado otro. No es regla fija.
+
