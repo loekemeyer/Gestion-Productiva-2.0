@@ -6,6 +6,11 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
+<!-- v1.40.1 (2026-10-08) — LAS BALDOSAS DE ENVIAR / RECIBIR APARECEN TODAS JUNTAS (Nazareno: "Siempre que
+     entro me carga primero el módulo de prov de insumo" — "quiero que me carguen todos los módulos a la vez").
+     tablet_bundle tarda (1,45 s en la base + ~580 KB) y Enviar/Recibir ya se tocan antes: como "Prov. de
+     insumos" es un link sin datos, se dibujaba sola y borraba el "Cargando…". Ahora pintarTipos() no dibuja
+     NINGUNA hasta que llegó el bundle (ESTADO_CARGA). tests/ui/test_tablet_carga_junta.js. Cero base. -->
 <!-- v1.40.0-R (2026-10-01) — REARMADO TRAS EL REVERT [Thomas: "quiero que vuelvas a hacer lo que
      te habia pedido"]. Mismo alcance que v1.40.0 de abajo (que se dejo intacta, es la version historica real):
      Fabrica produce, Enviar/Recibir -> Virgilio con 3 bloques. Sin el aviso Si/No cruzado con Gestion Virgilio
@@ -1012,6 +1017,11 @@ var $ = GP2UI.$, esc = GP2UI.esc, num = GP2N.num, fmt = GP2N.fmt, hoyISO = E.hoy
 var SB = GP2_SB();
 
 var D = { contrapartes: [], enviar: [], recibir: [], alertas_abiertas: 0 };
+/* Las baldosas se dibujan TODAS JUNTAS, cuando llegó el bundle (v1.40.1). Mientras tanto Enviar/Recibir
+   ya se pueden tocar, y como "Prov. de insumos" es un link que no necesita datos, aparecía sola durante
+   el segundo y pico que tarda tablet_bundle [Nazareno 2026-10-08: "quiero que me carguen todos los
+   módulos a la vez"]. null = cargando · "" = cargado · texto = el error de la carga. */
+var ESTADO_CARGA = null;
 var MODO = null;        // enviar | recibir  (Conteo no es un modo: es el salto a Relevamientos)
 var selTipo = null;     // la baldosa elegida (objeto de TIPOS), no el string del tipo
 var selCP = null;       // { tipo, ref, nombre, id }
@@ -1644,6 +1654,7 @@ async function cargar(){
     var r = await SB.rpc("tablet_bundle");
     if (r.error) throw r.error;
     D = r.data || D;
+    ESTADO_CARGA = "";
     BUF.load();
     var m = new URLSearchParams(location.search).get("modo");
     var guardado = null;
@@ -1651,7 +1662,8 @@ async function cargar(){
     setModo(m || guardado || "enviar");
     cargarAvisosVir();
   } catch(e){
-    $("status").innerHTML = '<span style="color:#b91c1c">Error: ' + esc(e.message || e) + "</span>";
+    ESTADO_CARGA = String((e && e.message) || e);
+    $("status").innerHTML = '<span style="color:#b91c1c">Error: ' + esc(ESTADO_CARGA) + "</span>";
   }
 }
 
@@ -1721,6 +1733,10 @@ function mostrarTipos(){
 function pintarTipos(){
   var g = $("tipoGrid");
   g.innerHTML = "";
+  if (ESTADO_CARGA !== "") {   // sin bundle no se dibuja ninguna, tampoco el link: todas a la vez
+    if (ESTADO_CARGA === null) $("status").textContent = "Cargando…";
+    return;                    // con error queda el mensaje rojo que dejó cargar()
+  }
   (TIPOS[MODO] || []).forEach(function(t){
     var lista = t.link ? null : cpsDelTipo(t);
     if (lista && !lista.length) return;   // un tipo sin contrapartes no se dibuja: no lleva a nada
