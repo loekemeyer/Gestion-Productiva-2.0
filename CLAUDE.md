@@ -995,12 +995,13 @@ Tres cosas que no se negocian:
    balancín, y asigna la matriz al balancín en `public.Balancines`— y el 2do lo cierra midiendo
    la duración. No es un evento puntual. Los que no son tiempo muerto son E, C, RM, RD y LT.
 
-**Estado al 2026-09-23 de la tablet de operarios de GP2** (`Produccion/RegistroApp/`,
-`operarios_gp2.js` + `Registro_GP2.html`): **no aplica nada de esto todavía**. Muestra la misma
-lista de botones a todo el mundo, no lee ningún flag, y ramifica por `LEGAJO_EDUARDO = "19"`
-hardcodeado (le agrega el botón CT y le cambia el comportamiento de PR) — justo lo que el punto 1
-prohíbe. Además le faltan CM, RD y REM, sacados el 2026-08-29 por uso histórico bajo. Cuando esa
-pantalla vuelva a tocar botones, se arranca por acá.
+**Estado al 2026-10-08 de la tablet de operarios de GP2** (`Produccion/RegistroApp/`, copia de
+`cervantes-gp2/` de Registro Producción 3.0 desde la v3.1.10): **aplica esta tabla**, con `capsDe()` +
+`botonVisible()` de 2.0 y los flags de `public."Empleados"` que trae el catálogo; ya no hay `LEGAJO_EDUARDO`
+(lo que era «de Eduardo» —CT y «¿quedó resto?»— es del alimentador) y CM, RD y REM volvieron, cada uno para
+su tipo [Elías, 08/10: «12: 2.0, pensé que ya se había integrado completo, y no sólo para Eduardo»]. Lo vigila
+`tests/ui/test_botones_fuera.js`. (Hasta el 2026-10-08 este párrafo decía que la tablet no aplicaba nada de
+esto: mostraba la misma lista a todos y ramificaba por el legajo 19.)
 
 ## Verificacion - Trazado de Rutas (reescrito 2026-04-18)
 

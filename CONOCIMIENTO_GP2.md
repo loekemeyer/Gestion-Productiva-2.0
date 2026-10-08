@@ -16050,3 +16050,24 @@ Producción 3.0 (`cervantes-gp2/`) y vale igual para la tablet de GP2:
   fila en `inventario`, y lo enviado aparece. La falta de fila sólo deja sin el gris «casa» (no hay máximo total que mostrar); la parte por artículo se sigue calculando.
 - `Proporciones_GP2.html`: fuera el `<span class="sinfila">` y su CSS. El CSV conserva la columna `En_su_stock` (es el dato crudo, sin interpretar). `test_proporciones.js` ahora
   exige que el cartel NO aparezca.
+
+## 4jz. Tablet de operarios = copia de Registro 3.0 v3.1.10: la botonera de Registro Producción 2.0 (2026-10-08) — v1.253.5
+
+- **[Elías, 08/10]** pidió que la botonera de Cervantes sea **como Registro Producción 2.0** punto por punto: *"12: 2.0, pensé que ya se había
+  integrado completo, y no sólo para Eduardo"*, *"todo lo del 10 debería ser como Reg Prod"*, *"4 se tiene que"* (Continuar Matriz),
+  *"6 debería, y podés usar lo que tiene GP2 de máximo de unidades por cajón"*, *"8 usar el de Reg Prod y que envíe todo el día como
+  respaldo"*, *"15 tiene que estar"* (errores de envío), *"16 como en 2.0"* (envío en segundo plano), *"18 como en 2.0"* (fin de jornada).
+  Se hizo en 3.0 (la fuente: v3.1.9 `7a39d8e` y v3.1.10 `99277f8`) y acá se **recopió** (token `20261008h`, `gp2-20261008h/v3.1.10`).
+- **Qué cambia en la tablet**: cada operario ve los botones de SU tipo (`capsDe`/`botonVisible` de 2.0 con los flags de `public."Empleados"`;
+  sin `LEGAJO_EDUARDO`; CM, RD y REM vuelven, cada uno para su tipo); con un tiempo muerto abierto sólo se puede tocar ése; PM es tiempo
+  muerto; RM, CM (con balancín), PCM y la matriz de alimentador como 2.0; la 501 en kilos; contador de cajón con `GP2.componente.uni_x_cajon`
+  de la pieza («Faltan X», «cajón completo»); Terminar Día como 2.0 (último cajón / ¿seguís mañana?, FJ con id fijo que pisa al anterior y
+  lleva el día entero); «⚡ Continuar» el cajón de ayer; errores de envío a `reg_prod_3_0.auditoria`; reintento cada 3 s. El envío en
+  segundo plano (service worker) es sólo de 3.0: la copia no tiene service worker propio.
+- **Lo que mueve en la base es de 3.0** (`sql/reg_prod_3_0_fase_2a/2b/2c` de 3.0): el premio descuenta los tiempos muertos del cajón, la
+  501 pasa kilos a unidades para el stock (kilos / `kg_x_uni`), y el contador vive en `reg_prod_3_0.contador_cajon`. **GP2 no se tocó.**
+- `tools/copiar_botonera_de_3_0.py`: `p_app: "cervantes"` ahora aparece 3 veces en 3.0 (ingreso, código de la TV y error de envío); acepta 2
+  o 3 para poder comparar con una copia anterior. Vuelta exacta: `traer_de_gp2.py --revisar` dice que no hay nada nuevo.
+- `tests/ui/test_botones_fuera.js`: la sección 1 decía «RD/CM/REM fuera, todos ven lo mismo» (decisión del 29/08). **Esa decisión quedó
+  reemplazada** por la de Elías del 08/10 (botones por tipo, como 2.0): la prueba ahora exige el reparto por tipo (base, alimentador, piedra,
+  matricería). El párrafo «Estado de la tablet» de `CLAUDE.md` decía que no aplicaba nada de la tabla de roles: corregido.

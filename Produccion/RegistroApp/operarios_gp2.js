@@ -1,13 +1,13 @@
 "use strict";
 
-/* ⚠ COPIA PARA PROBAR — la FUENTE es cervantes-gp2/app.js de loekemeyer/Registro-Produccion-3.0 (v3.1.8).
+/* ⚠ COPIA PARA PROBAR — la FUENTE es cervantes-gp2/app.js de loekemeyer/Registro-Produccion-3.0 (v3.1.10).
    Copiada con tools/copiar_botonera_de_3_0.py [Elías, 08/10/2026: «GP2 sólo hacer copia y hacer modificaciones para
    testear»]. Lo que tiene que llegar a los operarios se cambia en 3.0, no acá: la próxima copia pisa este archivo.
-   Graba IGUAL que 3.0 (código de la TV, pase, funciones reg_prod_3_0); lo cargado desde acá lleva app_version 'gp2-20261008e/v3.1.8'.
+   Graba IGUAL que 3.0 (código de la TV, pase, funciones reg_prod_3_0); lo cargado desde acá lleva app_version 'gp2-20261008h/v3.1.10'.
    Diferencias con 3.0: claves gp2c_*, p_app "gp2", sin service worker propio y «Volver» al menú de GP2. */
 
 /* ============================================================
-   app.js — Registro Producción 3.0 · Cervantes · botonera de GP2 (v3.1.7)
+   app.js — Registro Producción 3.0 · Cervantes · botonera de GP2 (v3.1.10)
    ESTE ARCHIVO ES LA FUENTE de la botonera de Cervantes desde el 08/10/2026 [Elías: «se va a dejar de modificar en GP2 y
    modificar en este, y GP2 sólo hacer copia y hacer modificaciones para testear»]: los cambios se hacen ACÁ, a mano.
    Nació de la tablet de GP2 (Produccion/RegistroApp/operarios_gp2.js de loekemeyer/Gestion-Productiva-2.0, commit e110890,
@@ -22,14 +22,21 @@
        pase e internet. El catálogo (empleados, matrices, envasado, rollos) se guarda en el celular para poder abrir sin señal;
      · STOCK Y ROLLOS (Fase 1c): los mueve la base, en la misma transacción que el toque (reg_prod_3_0_registrar_evento →
        GP2.fabricar_stock) y con reg_prod_3_0_rollo_tomar / _rollo_cerrar, siempre con el pase. Mientras la base no lo tenga, el
-       catálogo no trae `rollos_activos` y el selector de rollo, «¿quedó resto?» y el botón CT de Eduardo quedan apagados.
+       catálogo no trae `rollos_activos` y el selector de rollo, «¿quedó resto?» y el botón CT del alimentador quedan apagados.
      · ANULAR (el 🗑 del historial) devuelve el stock que había movido ese toque (Fase 1d, lo hace la base). Los rollos llevan un
        id anti-duplicado: un reintento no descuenta otro rollo ni cierra el siguiente (como los toques, que ya lo tenían).
-   Eduardo Barrionuevo (legajo "19"): CT button + rollo en E/PR (sólo con rollos_activos).
+   QUÉ BOTONES VE CADA UNO, como Registro Producción 2.0 (v3.1.9, Elías 08/10: «pensé que ya se había integrado completo, y no sólo
+   para Eduardo»): capsDe() + botonVisible() con los permisos de public."Empleados" que trae el catálogo (es_matriceria, es_piedra,
+   es_alimentador, ve_cm, ve_trm, ve_tl, ve_rem, ve_mm). Nunca un legajo fijo: lo que antes era «de Eduardo» (CT y «¿quedó resto?»
+   del rollo) es del ALIMENTADOR. Y los botones se portan igual que en 2.0: CM (matriz nueva + balancín, tiempo muerto), PM tiempo
+   muerto, RM con su recorrido (cierra el cajón, marca la rotura, abre Cambiar Matriz), PCM (al cerrar pregunta si se rompió),
+   TRM/TL/REM de matricería, MM, RD; con un tiempo muerto abierto sólo se puede tocar ése (los demás quedan grises).
+   v3.1.10, también como 2.0: CONTADOR DE CAJÓN («Faltan X unidades», con el uni_x_cajon de GP2, y «cajón completo»), TERMINAR DÍA
+   (último cajón / ¿seguís mañana?, FJ con id fijo que pisa al anterior y lleva el día entero, reenvío del día), «⚡ CONTINUAR» (cajón
+   de ayer), los errores de envío a la auditoría, reintento cada 3 s y envío en segundo plano por el service worker.
    ============================================================ */
 
-const COPIA_GP2 = "gp2-20261008e/v3.1.8";   // va en el app_version de cada toque (GP2 no lleva const de versión)
-const LEGAJO_EDUARDO = "19";
+const COPIA_GP2 = "gp2-20261008h/v3.1.10";   // va en el app_version de cada toque (GP2 no lleva const de versión)
 
 const SUPABASE_URL = "https://hrxfctzncixxqmpfhskv.supabase.co";
 const SUPABASE_KEY = "sb_publishable_BqpAgZH6ty-9wft10_YMhw_0rcIPuWT";
@@ -241,6 +248,7 @@ async function consultarClaveTv(clave) {
 
 // Con el pase conseguido: catálogo al día y lo que estaba en cola se manda.
 function alTenerPase() {
+  if (typeof espejarColaSW === "function") espejarColaSW();   // el service worker manda con el pase nuevo
   cargarBundle().catch(() => {});
   flushQueue().then(() => { renderSyncBadge(); renderSummary(); }).catch(() => {});
   renderSyncBadge();
@@ -344,7 +352,7 @@ function armarBundle(d) {
   x.matricesMap = new Map((x.matrices || []).map(m => [String(m.n || "").trim(), m]));
   return x;
 }
-function repintarCatalogo() { if (selected && ["E", "CM"].includes(selected.code)) renderMatrizPicker(); }
+function repintarCatalogo() { if (selected && selected.code === "E") renderMatrizPicker(); }
 
 async function cargarBundle() {
   clearTimeout(_bundleTimer);
@@ -410,9 +418,11 @@ function apcEnvase(n, compSalidaId) {
    OPCIONES (botones)
    ============================================================ */
 const OPTIONS = [
-  // row 1
+  // row 1 (los botones de matricería también van arriba, como 2.0)
   { code: "E",  desc: "Empece Matriz",     row: 1, needsInput: true,  label: "Ingresa el número", validate: /^[0-9]+[A-Za-z]?$/ },
   { code: "C",  desc: "Cajon",             row: 1, needsInput: true,  label: "Ingresa los GOLPES del contador", validate: /^[0-9]+$/ },
+  { code: "TRM", desc: "Trabajando en Matriz", row: 1, needsInput: true, label: "Número de la matriz", validate: /^[0-9]+[A-Za-z]?$/ },
+  { code: "TL",  desc: "Taller",            row: 1, needsInput: false },
   // row 2
   { code: "PB",   desc: "Pare Bano",       row: 2, needsInput: false },
   { code: "BC",   desc: "Busque Cajon",    row: 2, needsInput: false },
@@ -420,22 +430,126 @@ const OPTIONS = [
   { code: "LIMP", desc: "Limpieza",        row: 2, needsInput: false },
   { code: "Perm", desc: "Permiso",         row: 2, needsInput: false },
   // row 3
-  { code: "AL",    desc: "Ayuda Logistica",     row: 3, needsInput: false },
-  { code: "PR",    desc: "Pare Carga Rollo",     row: 3, needsInput: false },
-  { code: "PC",    desc: "Pare Comida",          row: 3, needsInput: false },
-  { code: "MOV P", desc: "Movimiento Piedra",    row: 3, needsInput: false },
+  { code: "AL",    desc: "Ayuda Logistica",       row: 3, needsInput: false },
+  { code: "PR",    desc: "Pare Carga Rollo",      row: 3, needsInput: false },
+  { code: "PC",    desc: "Pare Comida",           row: 3, needsInput: false },
+  { code: "RD",    desc: "Rollo Fleje Doblado",   row: 3, needsInput: false },
+  { code: "MOV P", desc: "Movimiento Piedra",     row: 3, needsInput: false },
+  { code: "MM",    desc: "Movimiento Matriceria", row: 3, needsInput: false },
   // row 4
-  // Sacados 2026-08-29 (uso historico): RD (0 usos), CM (nada desde abril; con E
-  // alcanza para cambiar de matriz), REM (13 usos en la vida).
-  { code: "PM",  desc: "Pare Matriz",      row: 4, needsInput: false },
-  { code: "RM",  desc: "Rotura Matriz",    row: 4, needsInput: false },
+  { code: "CM",  desc: "Cambiar Matriz",       row: 4, needsInput: false },   // abre con el cartel matriz nueva + balancín
+  { code: "PM",  desc: "Pare Matriz",          row: 4, needsInput: false },
+  { code: "RM",  desc: "Rotura Matriz",        row: 4, needsInput: false },
+  { code: "REM", desc: "Reparando Matriz",     row: 4, needsInput: false },
+  { code: "PCM", desc: "Pare Consulta Matriz", row: 4, needsInput: false },
 ];
 
 const CT_OPTION = { code: "CT", desc: "Cajon Termine", row: 1, needsInput: false, isCT: true };
 
-const NON_DOWNTIME = new Set(["E", "C", "CT", "RM", "PM", "RD", "LT"]);
+// Como 2.0: E, C, RM, RD y LT son puntuales; todo lo demás (PM, CM, PCM, TRM, TL, REM, MM, PB…) es TIEMPO MUERTO: el 1.er toque lo
+// abre y el 2.º (el MISMO) lo cierra midiendo la duración. CT es el cajón de cierre del alimentador (puntual).
+const NON_DOWNTIME = new Set(["E", "C", "CT", "RM", "RD", "LT"]);
 const isDowntime = (op) => !NON_DOWNTIME.has(op);
 const sameDowntime = (a, b) => a && b && a.opcion === b.opcion && (a.texto || "") === (b.texto || "");
+
+/* ============================================================
+   QUIÉN VE QUÉ BOTÓN — capsDe() + botonVisible() de Registro Producción 2.0 (cervantes/app.js, v1.8.54), con los permisos de
+   public."Empleados" que trae el catálogo. El orden importa: matricería se pregunta primero (un matricero ve SÓLO sus botones).
+   ============================================================ */
+const NORMAL_BASE = new Set(["E", "C", "PB", "BC", "LIMP", "Perm", "AL", "PC", "PM", "RM", "PCM"]);
+function capsDe(legajo) {
+  const e = (D.empleados || {})[String(legajo || "").trim()] || {};
+  const alimentador = e.es_alimentador === true;
+  return {
+    matriceria: e.es_matriceria === true,
+    piedra: e.es_piedra === true,
+    alimentador,
+    cm: e.ve_cm === true || alimentador,   // el alimentador ya implica CM
+    pr_rd: alimentador,                     // PR + RD = rol alimentador
+    trm: e.ve_trm === true,
+    tl: e.ve_tl === true,
+    rem: e.ve_rem === true,
+    mm: e.ve_mm === true                    // Movimiento Matricería (piedra que también hace matricería)
+  };
+}
+function puedeCM(legajo) { return capsDe(legajo).cm; }
+function botonVisible(code, caps) {
+  if (caps.matriceria) {
+    if (code === "TRM") return caps.trm;
+    if (code === "TL") return caps.tl;
+    if (code === "CM") return caps.cm;
+    if (code === "REM") return caps.rem;
+    return false;                           // matricería no ve los botones normales
+  }
+  if (code === "CT") return caps.alimentador && rollosActivos();   // cierre de cajón con rollo: del alimentador
+  if (code === "MOV") return !caps.piedra;
+  if (code === "MOV P") return caps.piedra;
+  if (code === "MM") return caps.mm;
+  if (code === "CM") return caps.cm;
+  if (code === "PR" || code === "RD") return caps.pr_rd;
+  if (code === "TRM" || code === "TL" || code === "REM") return false;
+  return NORMAL_BASE.has(code);
+}
+// Matriz de alimentador (GP2.matriz.tipo = 'A', el Tipo_Matriz de 2.0): al cerrar un cajón pregunta «Continuar / Cambiar Matriz».
+function esMatrizAlimentador(n) { return String(D.matricesMap?.get(String(n || "").trim())?.tipo || "").trim().toUpperCase() === "A"; }
+// 501: el operario no carga golpes sino los KILOS que hizo, con coma o punto; se guarda con coma (como 2.0) y viaja como uni.
+function es501(n) {
+  const k = String(n || "").trim();
+  return k === "501" || String(D.matricesMap?.get(k)?.tu || "").trim().toLowerCase() === "kg";
+}
+function normalizarComa(v) { return String(v || "").trim().replace(/\./g, ","); }
+function kilos501(v) { return Number(String(v || "").trim().replace(",", ".")) || 0; }
+
+/* ============================================================
+   CONTADOR DE CAJÓN, como 2.0 («Faltan X unidades para completar el cajón»), con lo que entra en el cajón según GP2
+   (componente.uni_x_cajon de la pieza). Lo lleva la base al grabar cada C (fase 2c); acá se muestra. Es compartido entre
+   operarios: al elegir la matriz o el C se relee (reg_prod_3_0_contador_cajon), como 2.0.
+   D.cajon = { n_matriz: { comp_id: {uxc, act, codigo} } }
+   ============================================================ */
+function contadorDe(n, compId) {
+  const m = (D.cajon || {})[String(n || "").trim()];
+  if (!m) return null;
+  if (compId != null && m[String(compId)]) return { comp_id: String(compId), ...m[String(compId)] };
+  const ks = Object.keys(m);
+  return ks.length === 1 ? { comp_id: ks[0], ...m[ks[0]] } : null;   // varias piezas y ninguna elegida: no se sabe cuál
+}
+function textoFaltante(c) {
+  if (!c || !(Number(c.uxc) > 0)) return "";
+  const act = Number(c.act) || 0;
+  const falta = Math.max(Number(c.uxc) - act, 0);
+  return `Faltan ${falta.toLocaleString("es-AR")} unidades para completar el cajón` + (act > 0 ? ` (ya hay ${act.toLocaleString("es-AR")})` : "");
+}
+function aplicarContador(n, info) {
+  if (!info || info.comp_id == null) return;
+  const k = String(n || "").trim();
+  D.cajon = D.cajon || {};
+  D.cajon[k] = D.cajon[k] || {};
+  const prev = D.cajon[k][String(info.comp_id)] || {};
+  D.cajon[k][String(info.comp_id)] = { ...prev, uxc: info.uxc != null ? info.uxc : prev.uxc, act: info.act };
+}
+let _contadorPedido = {};
+async function refrescarContador(n) {
+  const k = String(n || "").trim();
+  if (!k || !(D.cajon || {})[k] || !paseVigente() || navigator.onLine === false) return false;
+  if (Date.now() - (_contadorPedido[k] || 0) < 5000) return false;
+  _contadorPedido[k] = Date.now();
+  const { data, error } = await rpc("reg_prod_3_0_contador_cajon", { p_n_matriz: k });
+  if (error || !data || typeof data !== "object") return false;
+  D.cajon[k] = data;
+  return true;
+}
+// Mientras la base no contesta, el contador se mueve en el celular con lo que se acaba de cargar (la respuesta de la base lo corrige).
+function contadorOptimista(payload) {
+  if (!["C", "CT"].includes(payload.opcion)) return;
+  const n = String(payload.matriz || "").trim();
+  if (!n || es501(n)) return;
+  const c = contadorDe(n, payload.comp_salida_id);
+  if (!c) return;
+  const r = toRpcPayload(payload);
+  const uni = Number(r.uni) > 0 ? Number(r.uni) : (Number(r.golpes) || 0) * uniXGolpe(n);
+  const tot = (Number(c.act) || 0) + uni;
+  aplicarContador(n, { comp_id: c.comp_id, act: (payload.cajon_completo || tot >= Number(c.uxc)) ? 0 : tot });
+}
 
 /* ============================================================
    TIEMPO / ZONA AR
@@ -538,11 +652,12 @@ function updateStateAfterSend(legajo, payload) {
       if (ppk > 0 && uni > 0) s.rollo.kg_usados = (Number(s.rollo.kg_usados) || 0) + uni / ppk;
     }
     s.lastDowntime = null; s.matrixNeedsC = false;
+    if (s.cajonContinuado) s.cajonContinuado = null;    // ya se mandó el C que completa el cajón de ayer
     s.last2.push({ ...payload, status: "queued" });
     writeState(legajo, s); return;
   }
-  if (["RM", "PM", "RD"].includes(op)) {
-    s.lastDowntime = null;
+  if (["RM", "RD", "LT"].includes(op)) {        // puntuales (PM es tiempo muerto desde la v3.1.9, como 2.0)
+    if (op !== "LT") s.lastDowntime = null;
     s.last2.push({ ...payload, status: "queued" });
     writeState(legajo, s); return;
   }
@@ -586,9 +701,28 @@ function writeAnularQueue(q) { localStorage.setItem(LS_AQUEUE, JSON.stringify(q 
 function enqueueAnular(id) { const aq = readAnularQueue(); if (!aq.includes(id)) { aq.push(id); writeAnularQueue(aq); } }
 
 function enqueue(payload) {
-  const q = readQueue();
+  // El fin de jornada tiene id fijo por legajo y día: uno nuevo reemplaza al que estuviera esperando (como 2.0).
+  const q = readQueue().filter(x => !(payload.opcion === "FJ" && x.id === payload.id));
   if (!q.some(x => x.id === payload.id)) q.push(payload);
   writeQueue(q);
+  if (typeof espejarColaSW === "function") espejarColaSW();   // copia para el envío en segundo plano (si hay service worker)
+}
+
+/* ERRORES DE ENVÍO a la auditoría de la base (como el ERROR_ENVIO de 2.0 en Auditoria_Produccion): al primer intento fallido de
+   cada toque y después cada 5. Sin pase a propósito (falla justo cuando el pase o la base fallan); si no hay señal, tampoco llega. */
+function anotarErrorEnvio(payload, error) {
+  const q = readQueue();
+  const it = q.find(x => x.id === payload.id);
+  const n = ((it && it._intentos) || 0) + 1;
+  const rechazo = esRechazoDefinitivo(error);
+  if (it) { it._intentos = n; if (rechazo) it._rechazado = true; writeQueue(q); }
+  if (n !== 1 && (rechazo || n % 5 !== 0)) return;   // un rechazo por los datos se anota una sola vez
+  rpc("reg_prod_3_0_registrar_error_envio", {
+    p_app: "gp2", p_dispositivo: idDispositivo(), p_legajo: String(payload.legajo || ""),
+    p_detalle: { id: payload.id, opcion: payload.opcion, intentos: n, codigo: String((error && error.code) || ""),
+                 error: String((error && error.message) || "").slice(0, 300), estado: (error && error.status) || null,
+                 sin_red: !!(error && error.red), online: navigator.onLine !== false }
+  }, { pase: false, timeout: 8000 }).catch(() => {});
 }
 
 function horaAR(iso) {
@@ -608,7 +742,8 @@ function horaAR(iso) {
 function toRpcPayload(p) {
   const op = String(p.opcion || "").toUpperCase();
   let matriz;
-  if (["E", "CM"].includes(op)) matriz = p.texto || "";
+  if (op === "E") matriz = p.texto || "";
+  else if (op === "CM" || op === "TRM") matriz = op;     // como 2.0: la matriz que se cambia / se repara va en el texto
   else if (p.matriz) matriz = p.matriz;
   else matriz = op;
 
@@ -622,9 +757,14 @@ function toRpcPayload(p) {
   if (p.hs_inicio) rpc.hora_inicio = horaAR(p.hs_inicio);
   if (p.comp_salida_id) rpc.comp_salida_id = p.comp_salida_id;
 
+  if (p.balancin) rpc.balancin = p.balancin;            // CM: en qué balancín quedó la matriz (va a la cruda)
+  if (p.cajon_completo) rpc.cajon_completo = true;      // «cajón completo»: el contador vuelve a 0 (como 2.0)
   if (["C", "CT"].includes(op)) {
     const env = envasadoDe(matriz);
-    if (env) {
+    if (es501(matriz)) {
+      // 501: KILOS (con coma, como 2.0). La base calcula el premio en kilos y pasa los kilos a unidades para el stock.
+      rpc.uni = kilos501(p.texto);
+    } else if (env) {
       // ENVASADO: el operario carga CAJAS; unidades = cajas x articulos_por_caja. Se manda uni
       // directo (no golpes) para que fabricar_stock descuente el BOM de esas unidades.
       const apc = apcEnvase(matriz, p.comp_salida_id) || 1;
@@ -638,7 +778,10 @@ function toRpcPayload(p) {
     rpc.nombre_matriz = nombreMatriz(matriz) || undefined;
   } else {
     rpc.uni = 0;
-    rpc.nombre_matriz = ["E", "CM"].includes(op) ? (nombreMatriz(matriz) || undefined) : p.descripcion;
+    rpc.nombre_matriz = op === "E" ? (nombreMatriz(matriz) || undefined)
+      : op === "CM" ? `Cambiar Matriz a ${p.texto || ""}`.trim()
+      : op === "TRM" ? `Trabajando en Matriz ${p.texto || ""}`.trim()
+      : p.descripcion;
   }
 
   const segs = (p.hs_inicio && p.ts_event)
@@ -647,6 +790,16 @@ function toRpcPayload(p) {
   if (segs !== null) {
     if (["C", "CT"].includes(op)) rpc.segundos_trabajados = segs;
     else if (isDowntime(op)) rpc.segundos_tiempo_muerto = segs;
+  }
+  // CAJÓN CONTINUADO de ayer (como 2.0): segundos = hoy (desde que se tocó «Continuar») + lo de ayer hasta la hora de salida;
+  // la hora de inicio es la del cajón de ayer y el nombre lleva [CONT]. Los tiempos muertos que se descuentan son sólo los de hoy.
+  if (op === "C" && p.cajon_continuado) {
+    const cc = p.cajon_continuado;
+    const hoy = Math.max(1, Math.round((new Date(p.ts_event) - new Date(cc.tsActivacion || p.hs_inicio || p.ts_event)) / 1000));
+    rpc.segundos_trabajados = hoy + (Number(cc.segPostAyer) || 0);
+    if (cc.tsInicioCajon) rpc.hora_inicio = horaAR(cc.tsInicioCajon);
+    rpc.nombre_matriz = `[CONT] ${nombreMatriz(matriz) || ""}`.trim();
+    rpc.cajon_continuado = cc;
   }
   return rpc;
 }
@@ -672,18 +825,26 @@ async function flushQueue() {
   flushing = true;
   try {
     const q = readQueue();
-    if (!q.length && !readRolloQueue().length && !readAnularQueue().length) return;
+    if (!q.length && !readRolloQueue().length && !readAnularQueue().length && !readBalancinQueue().length) return;
     if (!paseVigente()) { verificarEntrada(); return; }       // sin pase no se manda: queda en la cola y se pide el código
     const enviados = new Set();
     for (const payload of q) {
-      const { error } = await rpc("reg_prod_3_0_registrar_evento", { p: eventoParaEnviar(payload) });
-      if (!error) { markSent(payload.legajo, payload.id); enviados.add(payload.id); continue; }
+      const { data, error } = await rpc("reg_prod_3_0_registrar_evento", { p: eventoParaEnviar(payload) });
+      if (!error) {
+        markSent(payload.legajo, payload.id); enviados.add(payload.id);
+        if (data && data.cajon) aplicarContador(payload.matriz, data.cajon);   // el contador como quedó en la base
+        continue;
+      }
       if (error.code === "28000") { pasePerdido(); break; }   // pase vencido o de otro equipo: vuelve el código, nada se pierde
+      anotarErrorEnvio(payload, error);
       if (!esRechazoDefinitivo(error)) break;                 // sin señal / base caída: se reintenta
       markFailed(payload.legajo, payload.id, error.message);
     }
     // Re-leer la cola: pudo haber items nuevos encolados mientras se enviaba
-    if (enviados.size) writeQueue(readQueue().filter(x => !enviados.has(x.id)));
+    if (enviados.size) {
+      writeQueue(readQueue().filter(x => !enviados.has(x.id)));
+      if (typeof espejarColaSW === "function") espejarColaSW();   // lo enviado sale también de la copia del service worker
+    }
     // Bajas pendientes (🗑 sin señal o sin pase), una por toque, DESPUÉS de los eventos: nunca llegan antes que el alta. La base anula
     // y devuelve el stock una sola vez, así que repetirla no hace daño; un rechazo por los datos se descarta.
     let aq = readAnularQueue();
@@ -702,31 +863,177 @@ async function flushQueue() {
       if (error && !esRechazoDefinitivo(error)) break;
       rq = readRolloQueue(); rq.shift(); writeRolloQueue(rq);
     }
+    // Balancines (CM: en qué balancín quedó la matriz), FIFO igual que los rollos.
+    let bq = readBalancinQueue();
+    while (bq.length && paseVigente()) {
+      const { error } = await rpc("reg_prod_3_0_asignar_matriz_balancin", bq[0]);
+      if (error && error.code === "28000") { pasePerdido(); break; }
+      if (error && !esRechazoDefinitivo(error)) break;
+      bq = readBalancinQueue(); bq.shift(); writeBalancinQueue(bq);
+    }
   } finally { flushing = false; }
 }
 
 /* ============================================================
    LLEGADA TARDE
    ============================================================ */
+// La hora de entrada DE CADA OPERARIO (catálogo: Planify, si no Empleados, si no GP2) [Elías, 08/10: «tiene que ser la llegada tarde
+// del operario de verdad»]. Sin hora en ningún lado, 08:30 como antes.
+function horaEntradaDe(legajo) {
+  const h = String(((D.empleados || {})[String(legajo || "").trim()] || {}).hora_entrada || "").trim();
+  const m = h.match(/^(\d{1,2}):(\d{2})/);
+  if (!m) return { min: 8 * 60 + 30, hhmm: "08:30" };
+  return { min: Number(m[1]) * 60 + Number(m[2]), hhmm: m[1].padStart(2, "0") + ":" + m[2] };
+}
 function maybeSendLateArrival(legajo) {
   const s = readState(legajo);
   const isFirst = !s.last2.length && !s.lastMatrix && !s.lastCajon && !s.lastDowntime;
   if (!isFirst || s.lateArrivalSent || s.lateArrivalDiscarded) return;
 
-  if (nowMinutesAR() <= 8 * 60 + 30) {
+  const entrada = horaEntradaDe(legajo);
+  if (nowMinutesAR() <= entrada.min) {
     s.lateArrivalDiscarded = true; writeState(legajo, s); return;
   }
   const day = dayKeyAR();
   const payload = {
     id: uuidv4(), legajo, opcion: "LT", descripcion: "Llegada Tarde",
-    texto: "", ts_event: isoNow(), hs_inicio: `${day}T08:30:00-03:00`, matriz: ""
+    texto: "", ts_event: isoNow(), hs_inicio: `${day}T${entrada.hhmm}:00-03:00`, matriz: ""
   };
   s.lateArrivalSent = true; writeState(legajo, s);
+  updateStateAfterSend(legajo, payload);   // queda en el historial (como 2.0)
   enqueue(payload);
 }
 
 /* ============================================================
-   ROLLOS (Eduardo)
+   CONTINUAR MATRIZ (el cajón del día anterior), como 2.0 [Elías, 08/10: «4: se tiene que»]
+   Si ayer, al terminar el día, el operario dijo «sigo mañana con esta matriz» (terminoConContinuacion) y la matriz quedó sin
+   cajón, hoy aparece «⚡ Continuar Matriz» al lado de E. Al tocarlo, la matriz de ayer queda activa y el cajón que cierre suma
+   lo de ayer (desde el inicio del cajón hasta su HORA DE SALIDA) + lo de hoy (desde que tocó Continuar); los tiempos muertos que
+   se descuentan son sólo los de hoy. Tocar otro botón con el «Continuar» a la vista pide el código de Logística (151515) y
+   después el botón ya no aparece.
+   ============================================================ */
+function horaSalidaDe(legajo) {
+  const h = String(((D.empleados || {})[String(legajo || "").trim()] || {}).hora_salida || "").trim();
+  const m = h.match(/^(\d{1,2}):(\d{2})(?::(\d{2}))?/);
+  return m ? `${m[1].padStart(2, "0")}:${m[2]}:${m[3] || "00"}` : "";
+}
+function stateAnteriorConMatrizAbierta(legajo) {
+  const leg = String(legajo || "").trim();
+  const hoy = dayKeyAR();
+  let mejor = null;
+  for (let i = 0; i < localStorage.length; i++) {
+    const k = localStorage.key(i);
+    if (!k || !k.startsWith(LS_PREFIX + "::")) continue;
+    const parts = k.split("::");
+    if (parts.length < 3 || parts[2] !== leg || parts[1] >= hoy) continue;
+    try {
+      const s = JSON.parse(localStorage.getItem(k));
+      if (!s || !s.lastMatrix?.texto || !s.matrixNeedsC) continue;
+      if (!mejor || parts[1] > mejor.dia) mejor = { dia: parts[1], state: s };
+    } catch { /* estado roto: se saltea */ }
+  }
+  return mejor;
+}
+function evaluarBannerContinuar(legajo) {
+  const leg = String(legajo || "").trim();
+  if (!leg) return null;
+  const st = readState(leg);
+  if (st.lastMatrix || st.lastCajon || st.continuacionConsultada) return null;
+  const salida = horaSalidaDe(leg);
+  if (!salida) return null;
+  const ant = stateAnteriorConMatrizAbierta(leg);
+  if (!ant || !ant.state.terminoConContinuacion) return null;
+  const lm = ant.state.lastMatrix, lc = ant.state.lastCajon;
+  const matriz = String(lm.texto || "").trim();
+  if (!matriz) return null;
+  const tsLM = lm.ts || "", tsLC = lc?.ts || "";
+  const tsInicioCajon = (tsLC && tsLC > tsLM) ? tsLC : tsLM;
+  if (!tsInicioCajon) return null;
+  const dSalida = new Date(`${ant.dia}T${salida}-03:00`), dIni = new Date(tsInicioCajon);
+  if (isNaN(dSalida) || isNaN(dIni)) return null;
+  return {
+    legajo: leg, matriz, fechaAyer: ant.dia, tsInicioCajon, horaSalidaAyer: salida,
+    segPostAyer: Math.max(0, Math.floor((dSalida - dIni) / 1000)),
+    comp_salida_id: lm.comp_salida_id || null, pieza: lm.pieza || null
+  };
+}
+function hayContinuarPendiente() { return !!evaluarBannerContinuar(legajoKey()); }
+
+const CODIGO_LOGISTICA_IGNORAR_CONT = "151515";
+function mostrarAdvertenciaIgnorarContinuar(onConfirm) {
+  const viejo = document.getElementById("advIgnorarContModal");
+  if (viejo) viejo.remove();
+  const modal = document.createElement("div");
+  modal.id = "advIgnorarContModal";
+  modal.className = "adv-cont-modal";
+  modal.innerHTML =
+    '<div class="adv-cont-card">' +
+    '  <div class="adv-cont-header">⚠ Cajón pendiente de continuar</div>' +
+    '  <div class="adv-cont-body">' +
+    '    <p>Tenés un cajón pendiente del día anterior.</p>' +
+    '    <p>Si seguís con otra opción, <b>perdés la posibilidad de continuar el cajón</b> (no va a aparecer más el botón).</p>' +
+    '    <p><b>Avisá a Logística</b> antes de seguir. Te van a dar un código:</p>' +
+    '    <input type="text" id="advIgnorarContCodigo" inputmode="numeric" placeholder="Código de Logística" autocomplete="off">' +
+    '    <div class="adv-cont-fb" id="advIgnorarContFb"></div>' +
+    '  </div>' +
+    '  <div class="adv-cont-footer">' +
+    '    <button type="button" class="adv-cont-cancel" id="advIgnorarContCancel">Cancelar</button>' +
+    '    <button type="button" class="adv-cont-ok" id="advIgnorarContOk">Continuar con otra opción</button>' +
+    '  </div>' +
+    '</div>';
+  document.body.appendChild(modal);
+  const input = modal.querySelector("#advIgnorarContCodigo");
+  const fb = modal.querySelector("#advIgnorarContFb");
+  modal.querySelector("#advIgnorarContCancel").addEventListener("click", () => modal.remove());
+  modal.querySelector("#advIgnorarContOk").addEventListener("click", () => {
+    if (String(input.value || "").trim() !== CODIGO_LOGISTICA_IGNORAR_CONT) {
+      fb.innerText = "Código incorrecto. Pedile el código a Logística."; return;
+    }
+    const leg = legajoKey();
+    if (leg) { const s = readState(leg); s.continuacionConsultada = true; writeState(leg, s); }
+    modal.remove();
+    renderOptions();
+    if (typeof onConfirm === "function") onConfirm();
+  });
+  setTimeout(() => { try { input.focus(); } catch { /* sin foco */ } }, 50);
+}
+
+// «⚡ Continuar Matriz»: la matriz de ayer queda activa (con su pieza) y el próximo C es el cajón continuado.
+async function handleClickBotonContinuar(info) {
+  if (!info) return;
+  const leg = info.legajo;
+  if (!paseVigente()) await asegurarEntrada();
+  const tsActivacion = isoNow();
+  const s = readState(leg);
+  s.lastMatrix = { opcion: "E", texto: info.matriz, ts: tsActivacion, comp_salida_id: info.comp_salida_id, pieza: info.pieza };
+  s.lastCajon = { opcion: "C", texto: info.matriz, ts: tsActivacion };
+  s.matrixNeedsC = true;
+  s.continuacionConsultada = true;
+  s.cajonContinuado = { matriz: info.matriz, fechaAyer: info.fechaAyer, tsInicioCajon: info.tsInicioCajon,
+                        segPostAyer: info.segPostAyer, tsActivacion };
+  writeState(leg, s);
+  // Llegada Tarde con la hora de entrada DEL OPERARIO (como el resto de la app), si llegó un minuto o más tarde.
+  if (!s.lateArrivalSent && !s.lateArrivalDiscarded) {
+    const ent = horaEntradaDe(leg);
+    const dEnt = new Date(`${dayKeyAR()}T${ent.hhmm}:00-03:00`);
+    const s2 = readState(leg);
+    if (Date.parse(tsActivacion) - dEnt >= 60000) {
+      s2.lateArrivalSent = true; writeState(leg, s2);
+      const lt = { id: uuidv4(), legajo: leg, opcion: "LT", descripcion: "Llegada Tarde", texto: "", ts_event: tsActivacion,
+                   hs_inicio: `${dayKeyAR()}T${ent.hhmm}:00-03:00`, matriz: "" };
+      updateStateAfterSend(leg, lt);
+      enqueue(lt);
+    } else { s2.lateArrivalDiscarded = true; writeState(leg, s2); }
+  }
+  renderOptions();
+  renderSummary();
+  const av = $("avisoBotones");
+  if (av) { av.textContent = `Continuando Matriz ${info.matriz}: apretá C cuando termines el cajón.`; av.classList.remove("hidden"); }
+  despacharCola();
+}
+
+/* ============================================================
+   ROLLOS (todos eligen en E; el alimentador cierra con CT o PR)
    ============================================================ */
 /* El fleje NO depende solo de la matriz: hay matrices que cortan de dos flejes distintos
    segun la pieza. La 28 saca A15 del Fleje N° 94 (inox) y J2/J5 del Fleje N° 13; la 37
@@ -812,7 +1119,7 @@ let selected = null;
 function esc(s) { return (s == null ? "" : String(s)).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c])); }
 
 function legajoKey() { return String($("legajoInput").value || "").trim(); }
-function isEduardo()  { return legajoKey() === LEGAJO_EDUARDO; }
+function esAlimentadorLeg() { return capsDe(legajoKey()).alimentador; }   // lo que antes era «de Eduardo» (legajo fijo)
 
 function computeHsInicio(state) {
   if (state.lastCajon?.ts) return state.lastCajon.ts;
@@ -844,9 +1151,9 @@ function renderSummary() {
       ${s.last2.map((it, idx) => ({ it, idx })).reverse().map(({ it, idx }) => `
         <div style="margin-top:10px;padding-bottom:10px;border-bottom:1px solid rgba(0,0,0,.08);">
           <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
-            <span style="font-weight:900;font-size:34px;">${it.opcion}${it.texto ? `: ${it.texto}` : ""}</span>
+            <span style="font-weight:900;font-size:34px;">${esc(it.opcion)}${it.texto && String(it.opcion || "").toUpperCase() !== "FJ" ? `: ${esc(it.texto)}` : ""}</span>
             ${badge(it.status)}
-            <span class="hist-btn hist-del" data-idx="${idx}" title="Eliminar">🗑</span>
+            ${String(it.opcion || "").toUpperCase() === "FJ" ? "" : `<span class="hist-btn hist-del" data-idx="${idx}" title="Eliminar">🗑</span>`}
           </div>
           ${it.ts_event ? `<div style="color:#555;">${formatDateTimeAR(it.ts_event)}</div>` : ""}
           ${it.lastError ? `<div style="color:#9b1c1c;font-size:12px;">${esc(it.lastError)}</div>` : ""}
@@ -874,7 +1181,7 @@ function renderSyncBadge() {
 
 function renderMatrizInfo() {
   const el = $("matrizInfo");
-  if (!selected || !["C", "CT", "RM", "PM", "RD", "CM"].includes(selected.code)) {
+  if (!selected || !["C", "CT", "RM", "PM", "RD", "PCM"].includes(selected.code)) {
     el.classList.add("hidden"); return;
   }
   const s = readState(legajoKey());
@@ -899,7 +1206,10 @@ function renderMatrizInfo() {
     rollo = `<br>🧻 Rollo de ${fmt1(r.kg_por_rollo)} kg (${esc(r.codigo || "fleje")}): ` +
             `<b style="color:${color}">quedan ~${fmt1(Math.max(0, queda))} kg</b>`;
   }
-  el.innerHTML = `<b>Matriz activa: ${esc(nm)}</b>${desc ? ` — ${esc(desc)}` : ""}${pieza}${rollo}`;
+  const falta = textoFaltante(contadorDe(nm, s.lastMatrix.comp_salida_id));
+  const cont = s.cajonContinuado ? `<br>⚡ Continuando el cajón de ayer (${Math.round((Number(s.cajonContinuado.segPostAyer) || 0) / 60)} min de ayer)` : "";
+  el.innerHTML = `<b>Matriz activa: ${esc(nm)}</b>${desc ? ` — ${esc(desc)}` : ""}${pieza}${rollo}${cont}` +
+    (falta ? `<div class="cajon-faltante">${esc(falta)}</div>` : "");
 }
 
 /* ============================================================
@@ -956,7 +1266,7 @@ function elegirMatriz(n) {
     x.classList.toggle("sel", x.dataset.n === n);
   });
   renderPiezaPicker(n);
-  if (selected?.code === "E") actualizarRolloPicker(n);
+  if (selected?.code === "E") { actualizarRolloPicker(n); refrescarContador(n).catch(() => {}); }
 }
 
 /* ============================================================
@@ -982,7 +1292,7 @@ function etiquetaDeSalida(n, compId) {
 function renderPiezaPicker(n) {
   const wrap = $("piezaPicker"), grid = $("piezaGrid");
   if (!wrap || !grid) return;
-  const salidas = (selected && ["E", "CM"].includes(selected.code)) ? salidasDeMatriz(n) : [];
+  const salidas = (selected && selected.code === "E") ? salidasDeMatriz(n) : [];
   if (salidas.length < 2) {
     piezaSel = null; wrap.classList.add("hidden"); grid.innerHTML = "";
     $("btnEnviar").disabled = false;
@@ -1046,22 +1356,69 @@ function renderPiezaPicker(n) {
    RENDERIZAR BOTONES
    ============================================================ */
 function renderOptions() {
-  const isEd = isEduardo();
+  const leg = legajoKey();
+  const st = leg ? readState(leg) : null;
+  const pendiente = st?.lastDowntime || null;
+  const caps = capsDe(leg);
   [1, 2, 3, 4].forEach(r => { $(`row${r}`).innerHTML = ""; });
 
-  const all = (isEd && rollosActivos()) ? [...OPTIONS, CT_OPTION] : OPTIONS;
-  all.forEach(opt => {
+  [...OPTIONS, CT_OPTION].forEach(opt => {
+    if (!botonVisible(opt.code, caps)) return;            // cada uno ve los de SU rol (como 2.0)
     const el = document.createElement("div");
     el.className = "box" + (opt.isCT ? " ct-btn" : "");
     el.dataset.code = opt.code;
     el.innerHTML = `<div style="font-size:18px;font-weight:900;">${opt.code}</div><div style="font-size:11px;font-weight:600;color:inherit;margin-top:3px;">${opt.desc}</div>`;
-    el.addEventListener("click", () => selectOption(opt));
+    // Como 2.0: con un tiempo muerto abierto sólo se puede tocar ÉSE (los demás quedan grises: así nadie queda trabado);
+    // E gris mientras falte el cajón de la matriz en curso; C / CT grises sin matriz.
+    const permitido = (!pendiente || opt.code === pendiente.opcion)
+      && (opt.code !== "E" || !st?.matrixNeedsC)
+      && (!["C", "CT"].includes(opt.code) || !!st?.lastMatrix);
+    if (!permitido) {
+      el.classList.add("bloq");
+      el.setAttribute("aria-disabled", "true");
+    } else {
+      el.addEventListener("click", () => {
+        const proceder = () => {
+          const s2 = readState(legajoKey());
+          // CM: el 1.er toque abre el cartel «matriz nueva + balancín»; el 2.º (con el CM abierto) lo cierra por el camino normal.
+          if (opt.code === "CM" && !(s2.lastDowntime && s2.lastDowntime.opcion === "CM")) { abrirCambiarMatriz(); return; }
+          selectOption(opt);
+        };
+        // Con «Continuar Matriz» a la vista, otro botón pide el código de Logística (como 2.0).
+        if (hayContinuarPendiente()) { mostrarAdvertenciaIgnorarContinuar(proceder); return; }
+        proceder();
+      });
+    }
     $(`row${opt.row}`).appendChild(el);
   });
+
+  // «⚡ Continuar Matriz» (cajón de ayer): entre E y C, como 2.0.
+  const cont = evaluarBannerContinuar(leg);
+  if (cont) {
+    const b = document.createElement("div");
+    b.className = "box box-cont";
+    b.id = "btnContinuarMatriz";
+    b.innerHTML = `<div style="font-size:18px;font-weight:900;">⚡ Continuar</div><div style="font-size:11px;font-weight:600;margin-top:3px;">Mat ${esc(cont.matriz)} — ayer ${Math.round(cont.segPostAyer / 60)} min</div>`;
+    b.addEventListener("click", () => handleClickBotonContinuar(cont));
+    const row1 = $("row1");
+    const cBox = row1.querySelector('.box[data-code="C"]');
+    if (cBox) row1.insertBefore(b, cBox); else row1.appendChild(b);
+  }
+
+  const av = $("avisoBotones");
+  if (av) {
+    av.textContent = pendiente
+      ? `Hay un tiempo muerto abierto (${pendiente.opcion}): tocalo para cerrarlo.`
+      : (st?.matrixNeedsC ? "Para iniciar una nueva matriz (E), primero terminá la cantidad de la matriz en curso (C)." : "");
+  }
+  mostrarBotones(true);
 }
 
 function mostrarBotones(mostrar) {
-  [1, 2, 3, 4].forEach(r => $(`row${r}`).classList.toggle("hidden", !mostrar));
+  // Las filas sin botones (por el rol) no se muestran: sin huecos.
+  [1, 2, 3, 4].forEach(r => { const row = $(`row${r}`); row.classList.toggle("hidden", !mostrar || !row.childElementCount); });
+  const av = $("avisoBotones");
+  if (av) av.classList.toggle("hidden", !mostrar || !av.textContent);
 }
 
 function selectOption(opt) {
@@ -1075,22 +1432,28 @@ function selectOption(opt) {
   $("selectedDesc").innerText = opt.desc;
   $("selectedArea").classList.remove("hidden");
 
+  const st = readState(legajoKey());
+  // CM / TRM: el 2.º toque cierra el tiempo muerto con el MISMO texto (la matriz) y no pide nada (como 2.0).
+  const cerrando = ["CM", "TRM"].includes(opt.code) && st.lastDowntime?.opcion === opt.code;
+  const c501 = opt.code === "C" && es501(st.lastMatrix?.texto);
+
   const inputArea = $("inputArea");
   const textInput = $("textInput");
-  if (opt.needsInput) {
-    $("inputLabel").innerText = opt.label || "Ingresa valor";
+  textInput.inputMode = c501 ? "decimal" : "numeric";
+  if (opt.needsInput && !cerrando) {
+    $("inputLabel").innerText = c501 ? "Ingresá los KILOS que hiciste" : (opt.label || "Ingresa valor");
     textInput.value = "";
     inputArea.classList.remove("hidden");
     setTimeout(() => textInput.focus(), 50);
   } else {
     inputArea.classList.add("hidden");
-    textInput.value = "";
+    textInput.value = cerrando ? (st.lastDowntime.texto || "") : "";
   }
 
-  // Listado de matrices para E / CM
+  // Listado de matrices para E
   const matrizPicker = $("matrizPicker");
   piezaSel = null;
-  if (["E", "CM"].includes(opt.code)) {
+  if (opt.code === "E") {
     matrizPicker.classList.remove("hidden");
     renderMatrizPicker("");
     renderPiezaPicker("");
@@ -1113,24 +1476,22 @@ function selectOption(opt) {
     actualizarRolloPicker("");
   } else {
     rolloPicker.classList.add("hidden");
-    textInput.oninput = opt.code === "CM"
-      ? () => {
-          renderMatrizPicker();
-          renderPiezaPicker(textInput.value.trim());
-        }
-      : null;
+    textInput.oninput = null;
   }
 
-  // Cajon: se anotan GOLPES (o CAJAS si la matriz es de envasado) y se muestra en vivo cuantas
-  // unidades salen.
+  // Cajon: se anotan GOLPES (o CAJAS si la matriz es de envasado, o KILOS en la 501) y se muestra en vivo cuantas unidades salen.
   const gh = $("golpeHint");
   if (gh) {
-    const nMatC = opt.code === "C" ? String(readState(legajoKey()).lastMatrix?.texto || "").trim() : "";
+    const nMatC = opt.code === "C" ? String(st.lastMatrix?.texto || "").trim() : "";
     const envC = opt.code === "C" ? envasadoDe(nMatC) : null;
-    if (opt.code === "C" && envC) {
+    if (c501) {
+      gh.className = "golpe-hint";
+      gh.innerText = `Matriz ${nMatC}: se cargan los KILOS hechos, con coma o punto (ej: 5,6).`;
+      gh.classList.remove("hidden");
+    } else if (opt.code === "C" && envC) {
       // Matriz de envasado: el operario carga CAJAS.
       $("inputLabel").innerText = "¿Cuántas CAJAS armaste?";
-      const apc = apcEnvase(nMatC, readState(legajoKey()).lastMatrix?.comp_salida_id) || 1;
+      const apc = apcEnvase(nMatC, st.lastMatrix?.comp_salida_id) || 1;
       const pintarC = () => {
         const c = Number(textInput.value.trim()) || 0;
         gh.className = "golpe-hint";
@@ -1160,14 +1521,21 @@ function selectOption(opt) {
     }
   }
 
-  // Eduardo: quedoResto para PR
+  // Alimentador: «¿quedó resto?» en PR (antes era sólo el legajo 19)
   const quedoRestoWrap = $("quedoRestoWrap");
-  if (rollosActivos() && isEduardo() && opt.code === "PR") {
+  if (rollosActivos() && esAlimentadorLeg() && opt.code === "PR") {
     quedoRestoWrap.classList.remove("hidden");
     $("quedoRestoChk").checked = false;
   } else {
     quedoRestoWrap.classList.add("hidden");
   }
+
+  // Contador de cajón (como 2.0): en C, «cajón completo» (no hay más material: el contador vuelve a 0) y el faltante al día.
+  const ccWrap = $("cajonCompletoWrap");
+  const nMatCC = String(st.lastMatrix?.texto || "").trim();
+  const conContador = opt.code === "C" && !es501(nMatCC) && !!contadorDe(nMatCC, st.lastMatrix?.comp_salida_id);
+  if (ccWrap) { ccWrap.classList.toggle("hidden", !conContador); $("cajonCompletoChk").checked = false; }
+  if (conContador) refrescarContador(nMatCC).then((ok) => { if (ok && selected === opt) renderMatrizInfo(); }).catch(() => {});
 
   renderMatrizInfo();
   $("error").innerText = "";
@@ -1215,7 +1583,8 @@ function actualizarRolloPicker(n_matriz) {
 
 function resetSelection() {
   const s = readState(legajoKey());
-  if (s?.lastDowntime && selected) return; // downtime abierto: hay que enviar el mismo, no se sale
+  // Elegido el tiempo muerto que está abierto: hay que enviarlo para cerrarlo (como 2.0). Cualquier otra cosa se puede soltar.
+  if (s?.lastDowntime && selected && selected.code === s.lastDowntime.opcion) return;
   selected = null;
   mostrarBotones(true);
   $("selectedArea").classList.add("hidden");
@@ -1227,7 +1596,343 @@ function resetSelection() {
   piezaSel = null; rolloSel = null;
   $("rolloPicker").classList.add("hidden");
   $("quedoRestoWrap").classList.add("hidden");
+  $("cajonCompletoWrap")?.classList.add("hidden");
   document.querySelectorAll(".box.selected").forEach(x => x.classList.remove("selected"));
+}
+
+// Después de enviar (o de un cartel de 2.0): vuelve a la pantalla del legajo, como siempre.
+function volverAInicio() {
+  selected = null;
+  $("selectedArea").classList.add("hidden");
+  $("optionsScreen").classList.add("hidden");
+  $("legajoScreen").classList.remove("hidden");
+  $("matrizInfo").classList.add("hidden");
+  $("error").innerText = "";
+  $("btnEnviar").disabled = false;
+  $("btnEnviar").innerText = "Enviar";
+  document.querySelectorAll(".box.selected").forEach(x => x.classList.remove("selected"));
+  renderSummary();
+}
+async function despacharCola() {
+  try { await flushQueue(); } catch { /* queda en la cola */ }
+  renderSyncBadge(); renderSummary();
+}
+
+/* ============================================================
+   CATÁLOGO AL DÍA CUANDO FALTA ALGO [Elías, 08/10: «si no encuentra el legajo o la matriz, que actualice»]
+   Además del refresco cada 30 min: si el legajo o la matriz no están, se vuelve a pedir el catálogo UNA vez (como mucho cada
+   20 s) y se mira de nuevo. Sin pase o sin señal no hay a quién preguntar: se queda con lo guardado.
+   ============================================================ */
+let _refrescoPorFaltaAt = 0;
+async function refrescarCatalogoSiFalta() {
+  if (!paseVigente() || navigator.onLine === false) return false;
+  if (Date.now() - _refrescoPorFaltaAt < 20000) return false;
+  _refrescoPorFaltaAt = Date.now();
+  const antes = _catalogoAt;
+  try { await cargarBundle(); } catch { /* sin catálogo nuevo */ }
+  return _catalogoAt !== antes;
+}
+async function matrizConocida(n) {
+  if (D.matricesMap?.has(n)) return true;
+  if (await refrescarCatalogoSiFalta()) return !!D.matricesMap?.has(n);
+  return false;
+}
+
+/* ============================================================
+   AVISOS POR WHATSAPP, como 2.0 (Edge Function send-whatsapp): «Matriz sin Tiempo» al empezar una matriz sin tiempo
+   histórico, «Paro Matriz» al abrir un PM y «Rompio Matriz» en la rotura. El legajo 0 (pruebas) no avisa a nadie
+   [Elías, 08/10: «con la exclusión de no mandar si se está usando el legajo 0 (testeo)»].
+   ============================================================ */
+const EDGE_WA = SUPABASE_URL + "/functions/v1/send-whatsapp";
+function avisarWA(legajo, problema, matriz) {
+  const leg = String(legajo || "").trim();
+  if (!leg || leg === "0") return;
+  let plantilla = "problemas_en_matriz_reducido";
+  try { plantilla = localStorage.getItem("wa_plantilla_activa") || plantilla; } catch { /* sin storage */ }
+  const emp = (D.empleados || {})[leg];
+  const operario = (emp && emp.nombre) || ("Legajo " + leg);
+  const hora = new Date().toLocaleString("es-AR", { timeZone: "America/Argentina/Buenos_Aires" });
+  const desc = nombreMatriz(matriz) || "";
+  const parametros = plantilla === "problema_en_matriz_completo"
+    ? [problema, String(matriz || "?"), desc, operario, hora]
+    : [problema, String(matriz || "?"), desc, hora];
+  fetch(EDGE_WA, {
+    method: "POST",
+    headers: { "Authorization": "Bearer " + SUPABASE_KEY, "apikey": SUPABASE_KEY, "Content-Type": "application/json" },
+    body: JSON.stringify({ parametros, plantilla, idioma: "es_AR" })
+  }).catch((e) => console.warn("Aviso WhatsApp:", e));
+}
+function avisarSiMatrizSinTiempo(legajo, n) {
+  const m = D.matricesMap?.get(String(n || "").trim());
+  if (m && "th" in m && !(Number(m.th) > 0)) avisarWA(legajo, "Matriz sin Tiempo", n);
+}
+
+/* ============================================================
+   CARTELES DE 2.0 (elegir, cantidad del cajón, matriz nueva + balancín)
+   ============================================================ */
+function elegirOpcion(pregunta, opciones, sinCancelar) {
+  return new Promise((resolve) => {
+    const overlay = document.createElement("div");
+    overlay.className = "rp-modal";
+    overlay.style.cssText = "position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:350;display:flex;align-items:center;justify-content:center;padding:16px;";
+    const modal = document.createElement("div");
+    modal.style.cssText = "background:#fff;border-radius:16px;padding:24px 20px;max-width:440px;width:100%;text-align:center;box-shadow:0 8px 32px rgba(0,0,0,.3);";
+    const t = document.createElement("p");
+    t.style.cssText = "font-size:24px;font-weight:800;margin:0 0 18px;line-height:1.25;";
+    t.textContent = pregunta;
+    modal.appendChild(t);
+    opciones.forEach((op) => {
+      const btn = document.createElement("button");
+      btn.type = "button"; btn.className = "rp-op"; btn.dataset.val = op.val; btn.textContent = op.label;
+      btn.style.cssText = "display:block;width:100%;padding:20px;margin-bottom:12px;border:1px solid #c9d1d9;border-radius:14px;font-size:22px;font-weight:800;background:#f8f9fa;";
+      btn.onclick = () => { overlay.remove(); resolve(op); };
+      modal.appendChild(btn);
+    });
+    if (!sinCancelar) {
+      const no = document.createElement("button");
+      no.type = "button"; no.className = "rp-cancelar"; no.textContent = "Cancelar";
+      no.style.cssText = "display:block;width:100%;padding:12px;border:none;background:transparent;color:#64748b;font-size:17px;";
+      no.onclick = () => { overlay.remove(); resolve(null); };
+      modal.appendChild(no);
+    }
+    overlay.appendChild(modal);
+    document.body.appendChild(overlay);
+  });
+}
+
+// Cantidad para cerrar el cajón en la rotura: OBLIGATORIA (sin cancelar), en la unidad de esa matriz (golpes, cajas o kilos).
+function pedirCantidadCajon(matriz) {
+  const kilos = es501(matriz);
+  const env = !kilos && envasadoDe(matriz);
+  const titulo = kilos ? "KILOS hechos para cerrar el cajón"
+    : env ? "CAJAS armadas para cerrar el cajón"
+    : (pideGolpes() ? "GOLPES del contador para cerrar el cajón" : "Unidades hechas para cerrar el cajón");
+  return new Promise((resolve) => {
+    const overlay = document.createElement("div");
+    overlay.id = "cantidadCajonModal";
+    overlay.style.cssText = "position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:350;display:flex;align-items:center;justify-content:center;padding:16px;";
+    const modal = document.createElement("div");
+    modal.style.cssText = "background:#fff;border-radius:16px;padding:24px 20px;max-width:440px;width:100%;text-align:center;";
+    const t = document.createElement("p");
+    t.style.cssText = "font-size:24px;font-weight:800;margin:0 0 16px;line-height:1.25;";
+    t.textContent = titulo;
+    const inp = document.createElement("input");
+    inp.id = "cantidadCajonInput";
+    inp.type = "text"; inp.inputMode = kilos ? "decimal" : "numeric";
+    inp.placeholder = kilos ? "Ej: 5,6" : "Ej: 1500";
+    inp.style.cssText = "width:100%;box-sizing:border-box;padding:16px;font-size:28px;text-align:center;border:2px solid #c9d1d9;border-radius:14px;margin-bottom:8px;";
+    const err = document.createElement("div");
+    err.style.cssText = "color:#dc2626;font-size:16px;min-height:20px;margin-bottom:12px;";
+    const ok = document.createElement("button");
+    ok.id = "cantidadCajonOk"; ok.type = "button"; ok.textContent = "Confirmar y cerrar cajón";
+    ok.style.cssText = "display:block;width:100%;padding:20px;border:1px solid #1aa34a;border-radius:14px;font-size:22px;font-weight:800;background:#eafff1;color:#0b6b2c;";
+    const re = kilos ? /^\d+(?:[.,]\d+)?$/ : /^\d+$/;
+    const confirmar = () => {
+      const v = String(inp.value || "").trim();
+      if (!re.test(v)) { err.textContent = kilos ? "Número válido (coma o punto)" : "Sólo números enteros"; return; }
+      overlay.remove(); resolve(v);
+    };
+    ok.onclick = confirmar;
+    inp.addEventListener("keydown", (e) => { if (e.key === "Enter") confirmar(); });
+    modal.append(t, inp, err, ok);
+    overlay.appendChild(modal);
+    document.body.appendChild(overlay);
+    setTimeout(() => { try { inp.focus(); } catch { /* sin foco */ } }, 50);
+  });
+}
+
+// Cambiar Matriz: el número de la matriz nueva Y el balancín donde se coloca (los activos del catálogo). -> {matriz, balancin} | null
+function pedirMatrizYBalancin() {
+  return new Promise((resolve) => {
+    const overlay = document.createElement("div");
+    overlay.id = "cmModal";
+    overlay.style.cssText = "position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:350;display:flex;align-items:center;justify-content:center;padding:16px;";
+    const modal = document.createElement("div");
+    modal.style.cssText = "background:#fff;border-radius:16px;padding:24px 20px;max-width:440px;width:100%;text-align:center;";
+    const t = document.createElement("p");
+    t.style.cssText = "font-size:24px;font-weight:800;margin:0 0 16px;";
+    t.textContent = "Cambiar Matriz";
+    const lm = document.createElement("div");
+    lm.style.cssText = "font-size:18px;font-weight:700;color:#334155;text-align:left;margin-bottom:6px;";
+    lm.textContent = "Matriz nueva";
+    const inp = document.createElement("input");
+    inp.id = "cmMatriz"; inp.type = "text"; inp.inputMode = "numeric"; inp.placeholder = "Ej: 110";
+    inp.style.cssText = "width:100%;box-sizing:border-box;padding:16px;font-size:26px;text-align:center;border:2px solid #c9d1d9;border-radius:14px;margin-bottom:12px;";
+    const lb = document.createElement("div");
+    lb.style.cssText = lm.style.cssText;
+    lb.textContent = "En qué balancín";
+    const sel = document.createElement("select");
+    sel.id = "cmBalancin";
+    sel.style.cssText = "width:100%;box-sizing:border-box;padding:14px;font-size:20px;border:2px solid #c9d1d9;border-radius:14px;margin-bottom:8px;background:#fff;";
+    const bals = D.balancines || [];
+    const ph = document.createElement("option");
+    ph.value = ""; ph.textContent = bals.length ? "Elegí un balancín…" : "(no hay balancines cargados)";
+    sel.appendChild(ph);
+    bals.forEach((b) => {
+      const o = document.createElement("option");
+      o.value = String(b.num);
+      o.textContent = (String(b.tipo || "") === String(b.num)) ? String(b.num) : ((b.tipo || "Balancín") + " " + b.num);
+      sel.appendChild(o);
+    });
+    const err = document.createElement("div");
+    err.id = "cmError";
+    err.style.cssText = "color:#dc2626;font-size:16px;min-height:20px;margin-bottom:12px;";
+    const ok = document.createElement("button");
+    ok.id = "cmOk"; ok.type = "button"; ok.textContent = "Enviar";
+    ok.style.cssText = "display:block;width:100%;padding:20px;margin-bottom:8px;border:1px solid #1d4ed8;border-radius:14px;font-size:22px;font-weight:800;background:#eff6ff;color:#1e3a8a;";
+    const no = document.createElement("button");
+    no.id = "cmCancelar"; no.type = "button"; no.textContent = "Cancelar";
+    no.style.cssText = "display:block;width:100%;padding:12px;border:none;background:transparent;color:#64748b;font-size:17px;";
+    const confirmar = async () => {
+      const m = String(inp.value || "").trim();
+      if (!/^[0-9]+[A-Za-z]?$/.test(m)) { err.textContent = "Matriz: sólo números"; return; }
+      if (!(await matrizConocida(m))) { err.textContent = "La matriz " + m + " no existe"; return; }
+      if (!matrizActiva(m)) { err.textContent = "La matriz " + m + " está dada de baja"; return; }
+      const b = String(sel.value || "").trim();
+      if (!b) { err.textContent = "Elegí el balancín"; return; }
+      overlay.remove(); resolve({ matriz: m, balancin: b });
+    };
+    ok.onclick = confirmar;
+    no.onclick = () => { overlay.remove(); resolve(null); };
+    inp.addEventListener("keydown", (e) => { if (e.key === "Enter") confirmar(); });
+    modal.append(t, lm, inp, lb, sel, err, ok, no);
+    overlay.appendChild(modal);
+    document.body.appendChild(overlay);
+    setTimeout(() => { try { inp.focus(); } catch { /* sin foco */ } }, 50);
+  });
+}
+
+/* Balancín: misma lógica que 2.0 (public.asignar_matriz_balancin: libera la matriz de otro balancín y la pone en éste), con el pase.
+   Sin señal o sin pase espera en su cola y sale en flushQueue. */
+const LS_BQUEUE = "gp2c_balq";
+function readBalancinQueue()  { try { return JSON.parse(localStorage.getItem(LS_BQUEUE) || "[]"); } catch { return []; } }
+function writeBalancinQueue(q) { try { localStorage.setItem(LS_BQUEUE, JSON.stringify(q || [])); } catch { /* storage lleno */ } }
+function asignarMatrizBalancin(balancin, matriz) {
+  const q = readBalancinQueue();
+  q.push({ p_balancin: String(balancin), p_matriz: String(matriz) });
+  writeBalancinQueue(q);
+}
+
+/* ============================================================
+   RECORRIDOS DE 2.0: Cambiar Matriz, Rotura Matriz, Pare Consulta Matriz, cajón de alimentador
+   ============================================================ */
+// CM (apertura): cartel matriz nueva + balancín → balancín asignado → CM abierto (tiempo muerto; se cierra tocando CM otra vez).
+async function abrirCambiarMatriz() {
+  const legajo = legajoKey();
+  const res = await pedirMatrizYBalancin();
+  if (!res) {
+    const s = readState(legajo);
+    if (s.pendingRM) { s.pendingRM = null; writeState(legajo, s); }   // canceló: termina el recorrido de rotura
+    volverAInicio();
+    return;
+  }
+  maybeSendLateArrival(legajo);
+  asignarMatrizBalancin(res.balancin, res.matriz);
+  const p = {
+    id: uuidv4(), legajo, opcion: "CM", descripcion: "Cambiar Matriz",
+    texto: res.matriz, ts_event: isoNow(), hs_inicio: "", matriz: "", balancin: res.balancin
+  };
+  updateStateAfterSend(legajo, p);
+  enqueue(p);
+  const s2 = readState(legajo);
+  if (s2.pendingRM) { s2.pendingRM = null; writeState(legajo, s2); }
+  volverAInicio();
+  await despacharCola();
+}
+
+// Matriz de alimentador (tipo 'A'), al cerrar un cajón o en la rotura: «Continuar Produciendo» o «Cambiar Matriz».
+async function popupAlimentadorCajon(legajo, opts) {
+  const desdeRotura = !!(opts && opts.desdeRotura);
+  const el = await elegirOpcion(desdeRotura ? "Rotura registrada. ¿Qué querés hacer?" : "Cajón cerrado. ¿Qué querés hacer?", [
+    { label: desdeRotura ? "No cambiar matriz" : "Continuar Produciendo", val: "SEGUIR" },
+    { label: "Cambiar Matriz", val: "CM" }
+  ], true);
+  if (el && el.val === "CM") { await abrirCambiarMatriz(); return; }
+  if (desdeRotura) {
+    const s = readState(legajo);
+    if (s.pendingRM) { s.pendingRM = null; writeState(legajo, s); }
+  }
+  volverAInicio();
+}
+
+// RM: no es tiempo muerto. Pide la cantidad (obligatoria) → cierra el cajón → marca la rotura (+ WhatsApp) → Cambiar Matriz (si
+// tiene permiso). Si se recarga a mitad, se retoma (state.pendingRM), como 2.0.
+async function ejecutarFlujoRM(legajo) {
+  const s0 = readState(legajo);
+  const matriz = s0.lastMatrix?.texto || "";
+  if (!matriz) { alert('Primero enviá "E (Empecé Matriz)" para registrar una matriz.'); return; }
+  s0.pendingRM = { matriz, cajonHecho: false };
+  writeState(legajo, s0);
+  await pasoCantidadYCajonRM(legajo);
+}
+async function pasoCantidadYCajonRM(legajo) {
+  const s = readState(legajo);
+  const matriz = s.lastMatrix?.texto || s.pendingRM?.matriz || "";
+  if (!matriz) { volverAInicio(); return; }
+  const cant = await pedirCantidadCajon(matriz);
+  maybeSendLateArrival(legajo);
+  const cajon = {
+    id: uuidv4(), legajo, opcion: "C", descripcion: "Cajon",
+    texto: es501(matriz) ? normalizarComa(cant) : cant, ts_event: isoNow(),
+    hs_inicio: computeHsInicio(s) || (s.last2[0]?.ts_event || ""), matriz
+  };
+  if (s.lastMatrix?.comp_salida_id) { cajon.comp_salida_id = s.lastMatrix.comp_salida_id; cajon.pieza = s.lastMatrix.pieza || ""; }
+  if (s.cajonContinuado) cajon.cajon_continuado = { ...s.cajonContinuado };
+  updateStateAfterSend(legajo, cajon);
+  enqueue(cajon);
+  contadorOptimista(cajon);
+  const ts = isoNow();
+  const rm = { id: uuidv4(), legajo, opcion: "RM", descripcion: "Rotura Matriz", texto: "", ts_event: ts, hs_inicio: ts, matriz };
+  updateStateAfterSend(legajo, rm);
+  enqueue(rm);
+  avisarWA(legajo, "Rompio Matriz", matriz);
+  const s2 = readState(legajo);
+  if (s2.pendingRM) { s2.pendingRM.cajonHecho = true; writeState(legajo, s2); }
+  renderSummary();
+  despacharCola();
+  await finalizarFlujoRM(legajo);
+}
+async function finalizarFlujoRM(legajo) {
+  if (puedeCM(legajo)) {
+    const s0 = readState(legajo);
+    const rota = s0.pendingRM?.matriz || s0.lastMatrix?.texto || "";
+    if (esMatrizAlimentador(rota)) { await popupAlimentadorCajon(legajo, { desdeRotura: true }); return; }
+    await abrirCambiarMatriz();
+    return;
+  }
+  const s = readState(legajo);
+  if (s.pendingRM) { s.pendingRM = null; writeState(legajo, s); }
+  volverAInicio();
+}
+async function resumirFlujoRMSiHace(legajo) {
+  const s = readState(legajo);
+  if (!s.pendingRM) return false;
+  if (!s.pendingRM.cajonHecho) await pasoCantidadYCajonRM(legajo);
+  else await finalizarFlujoRM(legajo);
+  return true;
+}
+
+// PCM: al cerrarla (2.º toque) pregunta si la matriz se rompió. Rota → cierra la PCM y sigue con la rotura; no rota → sólo la cierra.
+function cerrarPCM(legajo) {
+  const s = readState(legajo);
+  const dt = s.lastDowntime;
+  const cierre = {
+    id: uuidv4(), legajo, opcion: "PCM", descripcion: "Pare Consulta Matriz",
+    texto: "", ts_event: isoNow(), hs_inicio: (dt && dt.opcion === "PCM") ? (dt.ts || "") : "", matriz: ""
+  };
+  updateStateAfterSend(legajo, cierre);
+  enqueue(cierre);
+  renderSummary();
+}
+async function manejarCierrePCM(legajo) {
+  const el = await elegirOpcion("¿La matriz se rompió?", [
+    { label: "Matriz Rota (RM)", val: "RM" },
+    { label: "Matriz no Rota (continúa)", val: "NO" }
+  ]);
+  if (!el) return;                       // canceló: la PCM sigue abierta
+  cerrarPCM(legajo);
+  if (el.val !== "RM") { volverAInicio(); await despacharCola(); return; }
+  await ejecutarFlujoRM(legajo);
 }
 
 /* ============================================================
@@ -1240,40 +1945,43 @@ async function sendFast() {
 
   maybeSendLateArrival(legajo);
 
-  const texto = String($("textInput").value || "").trim();
+  let texto = String($("textInput").value || "").trim();
   const s = readState(legajo);
 
+  // RM no es un envío normal ni un tiempo muerto: su recorrido (como 2.0).
+  if (selected.code === "RM") { await ejecutarFlujoRM(legajo); return; }
+  // PCM: el 2.º toque pregunta si la matriz se rompió.
+  if (selected.code === "PCM" && s.lastDowntime?.opcion === "PCM") { await manejarCierrePCM(legajo); return; }
+
+  const cerrando = !!(s.lastDowntime && s.lastDowntime.opcion === selected.code);
+  if (cerrando && ["CM", "TRM"].includes(selected.code)) texto = s.lastDowntime.texto || "";
+  const c501 = selected.code === "C" && es501(s.lastMatrix?.texto);
+
   // Validaciones
-  if (selected.needsInput) {
-    if (!selected.validate?.test(texto)) {
-      $("error").innerText = "Solo se permiten números"; return;
-    }
+  if (selected.needsInput && !cerrando) {
+    const ok = c501 ? /^\d+(?:[.,]\d+)?$/.test(texto) : !!selected.validate?.test(texto);
+    if (!ok) { $("error").innerText = c501 ? "Matriz 501: kilos con coma o punto (ej: 5,6)" : "Solo se permiten números"; return; }
   }
 
   if (selected.code === "E") {
     if (s.matrixNeedsC) {
       alert('Antes de iniciar una nueva matriz (E), enviá al menos 1 Cajón (C).'); return;
     }
-    if (!D.matricesMap?.has(texto)) {
+    if (!(await matrizConocida(texto))) {
       alert(`La matriz ${texto} no existe. Verifica el número.`); return;
     }
     if (!matrizActiva(texto)) {
       alert(`La matriz ${texto} está dada de baja, no se usa más.`); return;
     }
   }
-  if (selected.code === "CM") {
-    if (!D.matricesMap?.has(texto)) {
-      alert(`La matriz ${texto} no existe.`); return;
-    }
-    if (!matrizActiva(texto)) {
-      alert(`La matriz ${texto} está dada de baja, no se usa más.`); return;
-    }
+  if (selected.code === "TRM" && !cerrando && !(await matrizConocida(texto))) {
+    alert(`La matriz ${texto} no existe.`); return;
   }
-  if (["E", "CM"].includes(selected.code) && salidasDeMatriz(texto).length > 1 && !piezaSel) {
+  if (selected.code === "E" && salidasDeMatriz(texto).length > 1 && !piezaSel) {
     $("error").innerText = "Esta matriz hace varias piezas. Elegí cuál vas a fabricar.";
     return;
   }
-  if (["C", "CT", "RM", "PM", "RD"].includes(selected.code)) {
+  if (["C", "CT", "PM", "RD", "PCM"].includes(selected.code)) {
     if (!s.lastMatrix?.texto) {
       alert('Primero enviá "E (Empecé Matriz)" para registrar una matriz.'); return;
     }
@@ -1292,17 +2000,17 @@ async function sendFast() {
   const tsEvent = isoNow();
   const payload = {
     id: uuidv4(), legajo, opcion: selected.code, descripcion: selected.desc,
-    texto, ts_event: tsEvent, hs_inicio: "", matriz: ""
+    texto: c501 ? normalizarComa(texto) : texto, ts_event: tsEvent, hs_inicio: "", matriz: ""
   };
 
-  if (["E", "CM"].includes(payload.opcion) && piezaSel) {
+  if (payload.opcion === "E" && piezaSel) {
     payload.comp_salida_id = piezaSel.comp_id;
     payload.pieza = piezaSel.codigo || "";
   }
   if (payload.opcion === "E" && rolloInfo) {
     payload.rollo = rolloInfo;   // {comp_id, codigo, kg_por_rollo} -> queda en el estado
   }
-  if (["C", "CT", "RM", "PM", "RD"].includes(payload.opcion)) {
+  if (["C", "CT", "PM", "RD"].includes(payload.opcion)) {
     payload.matriz = s.lastMatrix?.texto || "";
     if (["C", "CT"].includes(payload.opcion) && s.lastMatrix?.comp_salida_id) {
       payload.comp_salida_id = s.lastMatrix.comp_salida_id;
@@ -1310,14 +2018,19 @@ async function sendFast() {
     }
   }
   if (payload.opcion === "C" || payload.opcion === "CT") {
-    payload.hs_inicio = computeHsInicio(s);
+    payload.hs_inicio = computeHsInicio(s) || (s.last2[0]?.ts_event || "");
   }
-  if (["RM", "PM", "RD"].includes(payload.opcion)) {
-    payload.hs_inicio = tsEvent;
+  if (payload.opcion === "C") {
+    if ($("cajonCompletoChk")?.checked && !$("cajonCompletoWrap")?.classList.contains("hidden")) payload.cajon_completo = true;
+    // Cajón continuado de ayer: el inicio es el «Continuar» de hoy (los tiempos muertos que se descuentan son los de hoy) y la
+    // base recibe los segundos de ayer aparte (cajon_continuado), como 2.0.
+    if (s.cajonContinuado) payload.cajon_continuado = { ...s.cajonContinuado };
   }
-  if (s.lastDowntime && sameDowntime(s.lastDowntime, payload)) {
-    payload.hs_inicio = s.lastDowntime.ts || "";
-  }
+  if (payload.opcion === "RD") payload.hs_inicio = tsEvent;          // puntual
+  if (cerrando) payload.hs_inicio = s.lastDowntime.ts || "";          // cierre de tiempo muerto: se mide desde que se abrió
+
+  if (payload.opcion === "E") avisarSiMatrizSinTiempo(legajo, texto);
+  if (payload.opcion === "PM" && !cerrando) avisarWA(legajo, "Paro Matriz", payload.matriz);
 
   $("btnEnviar").disabled = true;
   $("btnEnviar").innerText = "Enviando...";
@@ -1326,8 +2039,8 @@ async function sendFast() {
   if (selected.code === "E" && rolloInfo) {
     await tomarRollo(legajo, rolloInfo.comp_id, rolloInfo.kg_por_rollo, texto);
   }
-  // Cerrar rollo: los eventos especiales de Eduardo (CT / PR con quedo-resto)
-  if (isEduardo()) {
+  // Cerrar rollo: el alimentador, con CT o con PR «¿quedó resto?» (antes era sólo el legajo 19)
+  if (esAlimentadorLeg() && rollosActivos()) {
     if (selected.code === "CT") {
       await cerrarRollo(legajo, false);
     }
@@ -1339,20 +2052,22 @@ async function sendFast() {
 
   updateStateAfterSend(legajo, payload);
   enqueue(payload);
+  contadorOptimista(payload);
   renderSummary();
 
-  selected = null;
-  $("selectedArea").classList.add("hidden");
-  $("optionsScreen").classList.add("hidden");
-  $("legajoScreen").classList.remove("hidden");
-  $("matrizInfo").classList.add("hidden");
-  $("error").innerText = "";
-  document.querySelectorAll(".box.selected").forEach(x => x.classList.remove("selected"));
+  // Matriz de alimentador (tipo 'A'): al cerrar un cajón pregunta «Continuar Produciendo / Cambiar Matriz» (como 2.0).
+  if (payload.opcion === "C" && esMatrizAlimentador(payload.matriz) && puedeCM(legajo)) {
+    volverAInicio();
+    despacharCola();
+    await popupAlimentadorCajon(legajo, { desdeRotura: false });
+    return;
+  }
 
+  volverAInicio();
+  $("btnEnviar").disabled = true;
+  $("btnEnviar").innerText = "Enviando...";
   try {
-    await flushQueue();
-    renderSyncBadge();
-    renderSummary();
+    await despacharCola();
   } finally {
     $("btnEnviar").disabled = false;
     $("btnEnviar").innerText = "Enviar";
@@ -1368,6 +2083,7 @@ async function deleteHistItem(legajo, idx) {
   const item = s.last2[idx];
   if (!item) return;
   const op = String(item.opcion || "").toUpperCase();
+  if (op === "FJ") return;   // el fin de jornada no se borra (se pisa con uno nuevo)
 
   // Baja logica en la base (si ya se habia enviado). Va por RPC: con RLS activo
   // la clave anon ya no puede tocar la tabla produccion directo.
@@ -1408,47 +2124,295 @@ async function deleteHistItem(legajo, idx) {
 
   const q = readQueue().filter(x => x.id !== item.id);
   writeQueue(q);
+  if (typeof espejarColaSW === "function") espejarColaSW();
 
   renderSummary();
   renderSyncBadge();
 }
 
 /* ============================================================
-   TERMINAR DIA
+   TERMINAR DÍA, como 2.0 [Elías, 08/10: «8: usar el de Reg Prod y que envíe todo el día como respaldo» · «18: como en 2.0»]
+   · resumen del día; si ya lo cerró, avisa que el nuevo REEMPLAZA al anterior (id fijo fj_<legajo>_<día>: la base lo pisa,
+     fase 2c), y el FJ no se puede borrar;
+   · un tiempo muerto abierto se cierra solo;
+   · matriz con contador de cajón: «¿Hiciste un último cajón?» (Sí: cantidad + «cajón completo» · No: qué estuvo haciendo, como
+     tiempo muerto desde el fin del último cajón) y termina en un solo paso;
+   · otra matriz sin cajón: «¿Vas a seguir mañana?» (Sí: mañana aparece «⚡ Continuar» · No: la cantidad O un tiempo muerto);
+   · el FJ lleva en el texto el día entero ({counts, events}) y después se reenvía el día en segundo plano, por si se perdió algún
+     mensaje (la base no duplica: cada toque tiene su id).
    ============================================================ */
+const DESC_EXTRA = { LT: "Llegada Tarde", FJ: "Fin de Jornada", CT: "Cajon Termine" };
+function descDe(code) { return (OPTIONS.find(o => o.code === code) || {}).desc || DESC_EXTRA[code] || ""; }
+function resumenDelDia(legajo) {
+  const counts = {};
+  let total = 0;
+  for (const it of readState(legajo).last2) {
+    if (String(it.opcion || "").toUpperCase() === "FJ") continue;
+    counts[it.opcion] = (counts[it.opcion] || 0) + 1;
+    total++;
+  }
+  return { total, counts };
+}
+// Los tiempos muertos que se pueden cargar al cerrar el día: los del rol del operario (sin CM ni TRM, que piden una matriz).
+function opcionesTM(legajo) {
+  const caps = capsDe(legajo);
+  return OPTIONS.filter(o => isDowntime(o.code) && !["CM", "TRM"].includes(o.code) && botonVisible(o.code, caps));
+}
+// La cantidad del cajón en la unidad de esa matriz (la misma que pide el botón C).
+function unidadCajon(matriz) {
+  if (es501(matriz)) return { txt: "KILOS hechos", re: /^\d+(?:[.,]\d+)?$/, im: "decimal", err: "Kilos: un número con coma o punto (ej: 5,6)." };
+  if (envasadoDe(matriz)) return { txt: "CAJAS armadas", re: /^\d+$/, im: "numeric", err: "Sólo números enteros." };
+  return { txt: pideGolpes() ? "GOLPES del contador" : "Unidades hechas", re: /^\d+$/, im: "numeric", err: "Sólo números enteros." };
+}
+function inicioDesdeUltimoCajon(s) {
+  const tsLM = s.lastMatrix?.ts || "", tsLC = s.lastCajon?.ts || "";
+  return (tsLC && tsLC > tsLM) ? tsLC : tsLM;
+}
+// El tiempo muerto abierto se cierra solo al terminar el día (como 2.0). Va ANTES de cargar el último cajón: el C limpia el tiempo
+// muerto abierto del estado y quedaba sin cerrar (en 2.0 pasa: el «Sí, hice un último cajón» pierde el tiempo muerto abierto).
+function cerrarTMAbiertoTD(legajo) {
+  const s0 = readState(legajo);
+  const ld = s0.lastDowntime;
+  if (!ld) return;
+  const cierre = { id: uuidv4(), legajo, opcion: ld.opcion, descripcion: descDe(ld.opcion), texto: ld.texto || "",
+                   ts_event: isoNow(), hs_inicio: ld.ts || "", matriz: ld.opcion === "PM" ? (s0.lastMatrix?.texto || "") : "" };
+  updateStateAfterSend(legajo, cierre);
+  enqueue(cierre);
+}
+// Carga lo que faltaba al cerrar el día: el último cajón (C) o el tiempo muerto desde el fin del último cajón. -> texto para mostrar
+function cargarCierreTD(legajo, tipo, valor, completo) {
+  cerrarTMAbiertoTD(legajo);
+  const s = readState(legajo);
+  const lm = s.lastMatrix;
+  const ini = inicioDesdeUltimoCajon(s);
+  const ahora = isoNow();
+  if (tipo === "C") {
+    const p = { id: uuidv4(), legajo, opcion: "C", descripcion: "Cajon", texto: es501(lm.texto) ? normalizarComa(valor) : valor,
+                ts_event: ahora, hs_inicio: ini, matriz: lm.texto };
+    if (lm.comp_salida_id) { p.comp_salida_id = lm.comp_salida_id; p.pieza = lm.pieza || ""; }
+    if (completo) p.cajon_completo = true;
+    if (s.cajonContinuado) p.cajon_continuado = { ...s.cajonContinuado };
+    updateStateAfterSend(legajo, p);
+    enqueue(p);
+    contadorOptimista(p);
+    return `Último cajón: ${p.texto} ${unidadCajon(lm.texto).txt.split(" ")[0].toLowerCase()} (Matriz ${lm.texto})${completo ? " — completo" : ""}`;
+  }
+  // Tiempo muerto ya cerrado (inicio y fin): va al historial sin dejar nada abierto.
+  const p = { id: uuidv4(), legajo, opcion: tipo, descripcion: descDe(tipo), texto: "", ts_event: ahora, hs_inicio: ini,
+              matriz: tipo === "PM" ? lm.texto : "" };
+  const s2 = readState(legajo);
+  s2.last2.push({ ...p, status: "queued" });
+  writeState(legajo, s2);
+  enqueue(p);
+  return `Tiempo Muerto: ${descDe(tipo) || tipo}`;
+}
+function avisoTD(id, txt, ok) {
+  const e = $(id);
+  if (e) { e.style.color = ok ? "#15803d" : "#b91c1c"; e.innerText = txt || ""; }
+}
+
 function openTerminarDia() {
   const legajo = legajoKey();
+  if (!legajo) { alert("Falta el número de legajo"); return; }
   const s = readState(legajo);
-  const cont = $("terminarDiaContent");
-
+  const res = resumenDelDia(legajo);
+  let html = "";
+  if (s.last2.some(it => String(it.opcion || "").toUpperCase() === "FJ")) {
+    html += '<div class="td-fj-warn"><b>⚠ Ya cerraste el día hoy.</b><br>Si confirmás, se reemplaza el reporte anterior.</div>';
+  }
+  html += `<div class="td-section"><div><b>Legajo:</b> ${esc(legajo)}</div><div><b>Eventos hoy:</b> ${res.total}</div>`;
+  const ops = Object.keys(res.counts).sort((a, b) => res.counts[b] - res.counts[a]);
+  html += ops.length
+    ? "<ul>" + ops.map(op => `<li><b>${esc(op)}</b>${descDe(op) ? " — " + esc(descDe(op)) : ""}: ${res.counts[op]}</li>`).join("") + "</ul>"
+    : '<div style="color:#64748b;">Sin reportes hoy.</div>';
+  html += "</div>";
   if (s.lastDowntime) {
-    cont.innerHTML = `<p>Hay un <b>Tiempo Muerto abierto (${s.lastDowntime.opcion})</b>. Cerralo antes de terminar el día.</p>`;
-    $("btnConfirmTD").disabled = true;
-  } else if (s.matrixNeedsC) {
-    cont.innerHTML = `<p>Hay una <b>Matriz abierta (${s.lastMatrix?.texto})</b> sin cajón. Si terminaste, enviá el cajón (C) primero.</p>`;
-    $("btnConfirmTD").disabled = true;
-  } else {
-    cont.innerHTML = `<p>¿Confirmás que terminaste el día?</p>`;
-    $("btnConfirmTD").disabled = false;
+    const ld = s.lastDowntime;
+    html += `<div class="td-warn-tm"><div class="td-warn-tm-title">⛔ Tiempo Muerto abierto</div>` +
+            `<div>Se cierra automáticamente: <b>${esc(ld.opcion)}</b>${descDe(ld.opcion) ? " — " + esc(descDe(ld.opcion)) : ""}${ld.texto ? ` (${esc(ld.texto)})` : ""}</div></div>`;
+  }
+
+  const matriz = String(s.lastMatrix?.texto || "").trim();
+  const usarUltimo = !!(matriz && !es501(matriz) && contadorDe(matriz, s.lastMatrix?.comp_salida_id));
+  const yaCargo = !!(s.tdCargaPreviaListo && s.tdCargaPreviaInfo);
+  const cant = matriz ? unidadCajon(matriz) : null;
+  const optsTM = opcionesTM(legajo).map(o => `<option value="${esc(o.code)}">${esc(o.code)} — ${esc(o.desc)}</option>`).join("");
+  const matTxt = matriz ? `Matriz <b>${esc(matriz)}</b>${nombreMatriz(matriz) ? " — " + esc(nombreMatriz(matriz)) : ""}` : "";
+  let modo = "simple";
+  if (usarUltimo) {
+    modo = "ultimo";
+    if (yaCargo) {
+      html += `<div class="td-cont-pregunta"><div class="td-cont-title">✓ Ya cargaste el cierre</div>` +
+              `<div class="td-cont-ok">${esc(s.tdCargaPreviaInfo.texto || "")}</div>` +
+              `<button type="button" id="btnUltFinalizar" class="td-confirm-btn">Finalizar día</button></div>`;
+    } else {
+      const falta = textoFaltante(contadorDe(matriz, s.lastMatrix?.comp_salida_id));
+      html += `<div class="td-cont-pregunta" id="tdUltBox">
+        <div class="td-cont-title">¿Hiciste un último cajón?</div>
+        <div class="td-cont-mat">${matTxt}${falta ? `<br><small>${esc(falta)}</small>` : ""}</div>
+        <div class="td-cont-btns"><button type="button" id="btnUltSi" class="td-cont-btn-si">Sí</button><button type="button" id="btnUltNo" class="td-cont-btn-no">No</button></div>
+        <div class="td-cont-no-form hidden" id="tdUltSiForm">
+          <div class="td-cont-no-row"><label for="tdUltUni">${esc(cant.txt)} en ese último cajón:</label><input type="text" id="tdUltUni" inputmode="${cant.im}" autocomplete="off"></div>
+          <div class="td-cont-no-row"><label class="td-chk"><input type="checkbox" id="tdUltCompleto"> Cajón completo (no hay más material: el contador vuelve a 0)</label></div>
+          <button type="button" id="btnUltSiCargar" class="td-cont-no-cargar">Cargar y finalizar día</button>
+        </div>
+        <div class="td-cont-no-form hidden" id="tdUltNoForm">
+          <div class="td-cont-no-title">¿Qué estuviste haciendo en ese tiempo?</div>
+          <div class="td-cont-no-row"><select id="tdUltNoTM"><option value="">-- elegí --</option>${optsTM}</select></div>
+          <button type="button" id="btnUltNoCargar" class="td-cont-no-cargar">Cargar y finalizar día</button>
+        </div>
+        <div class="td-cont-no-feedback" id="tdUltFb"></div>
+      </div>`;
+    }
+  } else if (matriz && s.matrixNeedsC) {
+    modo = "seguir";
+    if (yaCargo) {
+      html += `<div class="td-cont-pregunta"><div class="td-cont-title">✓ Ya cargaste lo que faltaba</div>` +
+              `<div class="td-cont-ok">${esc(s.tdCargaPreviaInfo.texto || "")}</div><div>Apretá <b>Sí, terminar día</b> para finalizar.</div></div>`;
+    } else {
+      html += `<div class="td-cont-pregunta" id="tdContPregunta">
+        <div class="td-cont-title">¿Vas a seguir mañana con esta matriz?</div>
+        <div class="td-cont-mat">${matTxt}</div>
+        <div class="td-cont-btns"><button type="button" id="btnContSi" class="td-cont-btn-si">Sí, sigo mañana</button><button type="button" id="btnContNo" class="td-cont-btn-no">No</button></div>
+        <div class="td-cont-feedback" id="tdContFeedback"></div>
+      </div>
+      <div class="td-cont-no-form hidden" id="tdContNoForm">
+        <div class="td-cont-no-title">Antes de terminar, completá lo que falta (una sola cosa):</div>
+        <div class="td-cont-no-row"><label for="tdContNoUni">${esc(cant.txt)} del cajón (Matriz ${esc(matriz)}):</label><input type="text" id="tdContNoUni" inputmode="${cant.im}" autocomplete="off" placeholder="o vacío si fue tiempo muerto"></div>
+        <div class="td-cont-no-row"><label for="tdContNoTM">O un Tiempo Muerto:</label><select id="tdContNoTM"><option value="">-- ninguno --</option>${optsTM}</select></div>
+        <button type="button" id="btnContNoCargar" class="td-cont-no-cargar">Cargar y habilitar Terminar Día</button>
+        <div class="td-cont-no-feedback" id="tdContNoFeedback"></div>
+      </div>`;
+    }
+  }
+
+  $("terminarDiaContent").innerHTML = html;
+  const btn = $("btnConfirmTD");
+  btn.textContent = "Sí, terminar día";
+  btn.style.display = modo === "ultimo" ? "none" : "";          // el último cajón tiene su propio botón (cargar y finalizar)
+  btn.disabled = modo === "seguir" && !(s.terminoConContinuacion || s.tdCargaPreviaListo);
+
+  if (modo === "ultimo") {
+    const cerrarConCarga = (tipo, v, completo) => {
+      ["btnUltSiCargar", "btnUltNoCargar"].forEach(id => { if ($(id)) $(id).disabled = true; });
+      const s0 = readState(legajo);
+      if (!s0.tdCargaPreviaListo) {
+        const info = cargarCierreTD(legajo, tipo, v, completo);
+        const s2 = readState(legajo);
+        s2.tdCargaPreviaListo = true; s2.tdCargaPreviaInfo = { tipo, texto: info };
+        writeState(legajo, s2);
+      }
+      avisoTD("tdUltFb", "Finalizando día…", true);
+      confirmarTerminarDia();
+    };
+    $("btnUltSi")?.addEventListener("click", () => {
+      $("tdUltSiForm").classList.remove("hidden"); $("tdUltNoForm").classList.add("hidden"); avisoTD("tdUltFb", "");
+      setTimeout(() => { try { $("tdUltUni").focus(); } catch { /* sin foco */ } }, 50);
+    });
+    $("btnUltNo")?.addEventListener("click", () => {
+      $("tdUltNoForm").classList.remove("hidden"); $("tdUltSiForm").classList.add("hidden"); avisoTD("tdUltFb", "");
+    });
+    $("btnUltSiCargar")?.addEventListener("click", () => {
+      const v = String($("tdUltUni").value || "").trim();
+      if (!cant.re.test(v)) { avisoTD("tdUltFb", cant.err); return; }
+      cerrarConCarga("C", v, !!$("tdUltCompleto").checked);
+    });
+    $("btnUltNoCargar")?.addEventListener("click", () => {
+      const tm = String($("tdUltNoTM").value || "");
+      if (!tm) { avisoTD("tdUltFb", "Elegí qué estuviste haciendo."); return; }
+      cerrarConCarga(tm, "", false);
+    });
+    $("btnUltFinalizar")?.addEventListener("click", () => confirmarTerminarDia());
+  } else if (modo === "seguir") {
+    $("btnContSi")?.addEventListener("click", () => {
+      const s2 = readState(legajo); s2.terminoConContinuacion = true; writeState(legajo, s2);
+      avisoTD("tdContFeedback", "OK. Mañana al entrar va a aparecer el botón «⚡ Continuar».", true);
+      $("btnContSi").disabled = true; $("btnContNo").disabled = true; $("tdContNoForm").classList.add("hidden");
+      $("btnConfirmTD").disabled = false;
+    });
+    $("btnContNo")?.addEventListener("click", () => {
+      const s2 = readState(legajo); s2.terminoConContinuacion = false; writeState(legajo, s2);
+      avisoTD("tdContFeedback", "Cargá abajo lo que faltaba antes de terminar.");
+      $("btnContSi").disabled = true; $("btnContNo").disabled = true; $("tdContNoForm").classList.remove("hidden");
+    });
+    $("btnContNoCargar")?.addEventListener("click", () => {
+      if (readState(legajo).tdCargaPreviaListo) { avisoTD("tdContNoFeedback", "Ya cargaste un evento. Apretá Terminar Día o Cancelá."); return; }
+      const v = String($("tdContNoUni").value || "").trim(), tm = String($("tdContNoTM").value || "");
+      if (!v && !tm) { avisoTD("tdContNoFeedback", "Cargá la cantidad o elegí un tiempo muerto (uno solo)."); return; }
+      if (v && tm) { avisoTD("tdContNoFeedback", "Cargá UNA sola opción: cantidad O tiempo muerto, no las dos."); return; }
+      if (v && !cant.re.test(v)) { avisoTD("tdContNoFeedback", cant.err); return; }
+      const info = cargarCierreTD(legajo, v ? "C" : tm, v, false);
+      const s2 = readState(legajo);
+      s2.tdCargaPreviaListo = true; s2.tdCargaPreviaInfo = { tipo: v ? "C" : tm, texto: info };
+      writeState(legajo, s2);
+      avisoTD("tdContNoFeedback", "OK. Ya podés apretar Terminar Día.", true);
+      $("btnContNoCargar").disabled = true;
+      $("btnConfirmTD").disabled = false;
+      renderSummary();
+    });
   }
   $("terminarDiaModal").classList.remove("hidden");
 }
 
+// El día entero otra vez, en segundo plano (después del FJ), por si se perdió algún mensaje. La base no duplica (cada toque tiene su
+// id); lo que está en la cola lo manda flushQueue y lo rechazado por los datos no se repite.
+let _reenviandoDia = false;
+async function reenviarDia(legajo) {
+  if (_reenviandoDia || !paseVigente() || navigator.onLine === false) return;
+  _reenviandoDia = true;
+  try {
+    const enCola = new Set(readQueue().map(x => x.id));
+    for (const it of readState(legajo).last2) {
+      if (!it || !it.id || String(it.opcion || "").toUpperCase() === "FJ" || enCola.has(it.id) || it.status === "failed") continue;
+      const { error } = await rpc("reg_prod_3_0_registrar_evento", { p: eventoParaEnviar(it) });
+      if (error) {
+        if (error.code === "28000") { pasePerdido(); break; }
+        if (!esRechazoDefinitivo(error)) break;            // sin señal: lo que falte, la próxima vez
+        continue;
+      }
+      if (it.status !== "sent") markSent(legajo, it.id);  // se había perdido de la cola y ahora llegó
+    }
+  } finally { _reenviandoDia = false; }
+}
+
+let _cerrandoDia = false;
 async function confirmarTerminarDia() {
   const legajo = legajoKey();
-  const payload = {
-    id: uuidv4(), legajo, opcion: "FJ", descripcion: "Fin Jornada",
-    texto: "", ts_event: isoNow(), hs_inicio: "", matriz: ""
-  };
-  const s = readState(legajo);
-  s.last2.push({ ...payload, status: "queued" });
-  writeState(legajo, s);
-  enqueue(payload);
-
-  $("terminarDiaModal").classList.add("hidden");
-  await flushQueue();
-  renderSummary();
-  renderSyncBadge();
+  const modal = $("terminarDiaModal");
+  if (!legajo) { modal.classList.add("hidden"); return; }
+  if (_cerrandoDia) return;
+  _cerrandoDia = true;
+  const btn = $("btnConfirmTD");
+  btn.disabled = true; btn.textContent = "Procesando...";
+  try {
+    // 1) El tiempo muerto abierto se cierra solo (como 2.0).
+    cerrarTMAbiertoTD(legajo);
+    // 2) El FJ: id fijo por legajo y día (uno nuevo pisa al anterior) y el día entero en el texto, para ver si se perdió algo.
+    const res = resumenDelDia(legajo);
+    const s1 = readState(legajo);
+    const events = s1.last2.filter(it => it && String(it.opcion || "").toUpperCase() !== "FJ").map(it => ({
+      id: it.id, opcion: it.opcion, descripcion: it.descripcion || "", texto: it.texto || "", ts: it.ts_event || "",
+      hsInicio: it.hs_inicio || "", matriz: it.matriz || "", status: it.status || "", sentAt: it.sentAt || "" }));
+    const fj = { id: `fj_${legajo}_${dayKeyAR()}`, legajo, opcion: "FJ", descripcion: "Fin de Jornada",
+                 texto: JSON.stringify({ counts: res.counts, events }), ts_event: isoNow(), hs_inicio: "", matriz: "" };
+    s1.last2 = s1.last2.filter(it => String(it.opcion || "").toUpperCase() !== "FJ");
+    s1.last2.push({ ...fj, status: "queued" });
+    s1.tdCargaPreviaListo = false; s1.tdCargaPreviaInfo = null;
+    writeState(legajo, s1);
+    enqueue(fj);
+    // 3) Se manda, con 10 s de tope: lo que no salga queda en la cola y sale solo (cada 3 s, o el service worker).
+    await Promise.race([flushQueue(), new Promise(r => setTimeout(r, 10000))]);
+    // 4) Respaldo: el día entero otra vez, en segundo plano.
+    reenviarDia(legajo).catch(() => {});
+    const pend = readQueue().length;
+    modal.classList.add("hidden");
+    goToLegajo();
+    renderSyncBadge();
+    if (pend > 0) alert(`El cierre del día quedó guardado, pero ${pend} registro(s) esperan para enviarse. Se reintenta solo cuando haya señal.`);
+  } finally {
+    _cerrandoDia = false;
+    btn.disabled = false; btn.textContent = "Sí, terminar día";
+  }
 }
 
 /* ============================================================
@@ -1482,7 +2446,7 @@ function openHistDias() {
   </div>` + (dias.length ? dias.map(d => `
     <div style="margin-bottom:16px;">
       <div style="font-weight:700;color:#475569;margin-bottom:6px;">${d.dia}</div>
-      ${d.items.map(it => `<div style="font-size:14px;padding:4px 0;border-bottom:1px solid #f1f5f9;">${it.opcion}${it.texto ? ` ${it.texto}` : ""} — ${formatDateTimeAR(it.ts_event)}</div>`).join("")}
+      ${d.items.map(it => `<div style="font-size:14px;padding:4px 0;border-bottom:1px solid #f1f5f9;">${esc(it.opcion)}${it.texto && String(it.opcion || "").toUpperCase() !== "FJ" ? ` ${esc(it.texto)}` : ""} — ${formatDateTimeAR(it.ts_event)}</div>`).join("")}
     </div>`).join("") : '<p style="color:#94a3b8;">Sin historial.</p>');
   overlay.appendChild(box);
   document.body.appendChild(overlay);
@@ -1493,9 +2457,12 @@ function openHistDias() {
 /* ============================================================
    NAVEGACION
    ============================================================ */
-function goToOptions() {
+async function goToOptions() {
   const legajo = legajoKey();
   if (!legajo) { alert("Ingresa el número de legajo"); return; }
+  if (!D.empleados?.[legajo] && await refrescarCatalogoSiFalta() && !D.empleados?.[legajo]) {
+    alert(`El legajo ${legajo} no existe en el sistema.`); return;
+  }
   if (!D.empleados?.[legajo]) {
     alert(`El legajo ${legajo} no existe en el sistema.`); return;
   }
@@ -1505,13 +2472,19 @@ function goToOptions() {
   registrarLegajoEnEquipo(legajo, nombre);
   $("legajoScreen").classList.add("hidden");
   $("optionsScreen").classList.remove("hidden");
+  selected = null;
   renderOptions();
   resetSelection();
+  resumirFlujoRMSiHace(legajo);   // una rotura que quedó a medias (se recargó la página): se retoma
 }
 
 function goToLegajo() {
+  selected = null;
+  $("terminarDiaModal")?.classList.add("hidden");                // como 2.0: al volver al legajo se suelta lo elegido (no queda nada trabado)
+  $("selectedArea").classList.add("hidden");
   $("optionsScreen").classList.add("hidden");
   $("legajoScreen").classList.remove("hidden");
+  renderSummary();
 }
 
 /* ============================================================
@@ -1569,10 +2542,16 @@ document.addEventListener("DOMContentLoaded", () => {
   $("btnCancelTD").addEventListener("click", () => $("terminarDiaModal").classList.add("hidden"));
   $("btnConfirmTD").addEventListener("click", confirmarTerminarDia);
 
-  $("editCancel").addEventListener("click", () => $("editModal").classList.add("hidden"));
-
   renderSummary();
   renderSyncBadge();
+
+  // Como 2.0: mientras quede algo en la cola, se reintenta cada 3 s (con señal y con pase).
+  setInterval(() => {
+    if (flushing || navigator.onLine === false || !paseVigente()) return;
+    // lo que la base rechazó por los datos no apura el reintento (sigue en el de cada 60 s): sólo lo que espera señal o base
+    if (!readQueue().some(x => !x._rechazado) && !readAnularQueue().length && !readRolloQueue().length && !readBalancinQueue().length) return;
+    flushQueue().then(() => { renderSyncBadge(); renderSummary(); }).catch(() => {});
+  }, 3000);
 
   // Flush periodico (cada 60s)
   setInterval(async () => {

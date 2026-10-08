@@ -79,8 +79,10 @@ def copiar_js(js, token):
     if js.count('"rp3c_') < 7:
         raise Falta(f'claves rp3c_: se esperaban 7 o más y hay {js.count(chr(34) + "rp3c_")}')
     js = js.replace('"rp3c_', '"gp2c_')
-    if js.count('p_app: "cervantes"') != 2:
-        raise Falta(f'p_app "cervantes": se esperaban 2 y hay {js.count(chr(112) + "_app: " + chr(34) + "cervantes" + chr(34))}')
+    # el ingreso del legajo y el código de la TV; desde 3.0 v3.1.10 también el error de envío a la auditoría (3). Se acepta 2 para
+    # poder comparar con una copia hecha antes de la v3.1.10 (el control de vuelta exacta rearma esa versión).
+    if js.count('p_app: "cervantes"') not in (2, 3):
+        raise Falta(f'p_app "cervantes": se esperaban 2 o 3 y hay {js.count(chr(112) + "_app: " + chr(34) + "cervantes" + chr(34))}')
     js = js.replace('p_app: "cervantes"', 'p_app: "gp2"')
     js = una(js, 'volver.href = "../"; volver.textContent = "← Volver al inicio";',
              'volver.href = "../../GP2_MODULOS.html"; volver.textContent = "← Volver al menú";', '«Volver» del código de la TV')
