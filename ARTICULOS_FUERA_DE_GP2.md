@@ -20,6 +20,9 @@ Se parten en dos, y sólo el primer grupo es trabajo:
 > (−1.195) —, que ya NO faltan: se dieron de alta en la base** (CONOCIMIENTO §4ct).
 > **De los 2.460 que quedan, 1.038 son coladores que también se van a importar en poco tiempo**:
 > el trabajo estable son ~1.400 uni/mes, y el más grande es el 565 Pinza De Hielo (534).
+>
+> **2026-10-08: el 110 y el 111 (coladores LOKE, −680) se dieron de alta a pedido explícito**, contra la
+> recomendación de abajo de no modelar los coladores (CONOCIMIENTO §4ke). El grupo A queda en **21 / 1.780**.
 
 **El criterio de corte no es el volumen, es si alguien los fabrica**: un código sin despiece y sin
 tallerista no tiene nada que modelar en GP2 aunque venda mucho.
@@ -35,9 +38,9 @@ Tallerista"`; recordar que **«Carlos» del vecino es Alex Escalante en GP2** (C
 | Cód | Artículo | uni/mes | Tallerista | partes |
 |---|---|---:|---|---:|
 | 565 | Pinza De Hielo | 534 | Manfer | 1 |
-| 110 | Colador N°8 Loke — *José López, sólo le damos el cartón* | 384 | Lopez Jose | 1 |
+| ~~110~~ | ~~Colador N°8 Loke~~ — **dado de alta el 2026-10-08** (CONOCIMIENTO §4ke) | ~~384~~ | Lopez Jose | 1 |
 | 561 | Pinza Grande LK | 324 | Pedernera | 2 |
-| 111 | Colador N°10 Loke — *José López, sólo le damos el cartón* | 296 | Lopez Jose | 1 |
+| ~~111~~ | ~~Colador N°10 Loke~~ — **dado de alta el 2026-10-08** (CONOCIMIENTO §4ke) | ~~296~~ | Lopez Jose | 1 |
 | 112 | Ø 16 Env. Loke — *el 16 no lleva nuestro cartón* | 160 | Lopez Jose | 0 |
 | 113 | Colador N°20 Loke — *el 20 no lleva nuestro cartón* | 160 | Garcia | 0 |
 | 323 | Rallador Cilíndrico Chico | 124 | Garcia | 2 |
