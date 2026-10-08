@@ -16191,3 +16191,26 @@ Producción 3.0 (`cervantes-gp2/`) y vale igual para la tablet de GP2:
 - [dato] `GP2.uni_x_articulo_x_caja` (lo lee Control AT para pasar cajas a unidades) no tiene 110 ni 111 — tampoco ningún otro
   LOKE (104, 108, 120, 186). Si Lopez Jose entrega 110/111, Control AT los va a mostrar sin unidades; el dato normalizado
   (`articulo.articulos_por_caja` 36 / 24) sí está.
+
+## 4kf. Sistema de diseño v2: GP2 pasa a ser UN producto visual (2026-10-08) — v1.257.0
+
+- [usuario, sin identificar en la sesión] Pidió un rediseño integral *"para que deje de sentirse como un conjunto de módulos
+  diseñados por separado y pase a tener una identidad visual única, coherente y profesional"*: una tipografía, jerarquía y
+  componentes comunes, **denso** (*"más información visible, menos scroll, buena utilización del ancho"*), **encabezados y
+  títulos pegados al scrollear** (*"siempre entienda dónde está"*), y libertad para romper el diseño anterior.
+- [dato, relevamiento del 08/10] Había **tres familias** que no se parecían: `gp2-modulo.css` (card de 1180px centrada + header
+  negro, ~40 pantallas), `gp2-claro.css` (barra con logo + `.top` con gradiente pastel pisando con `!important`, 11 pantallas)
+  y ~15 con CSS propio (Arial; `'Inter'` escrito pero **nunca cargado**, así que caía a la fuente del sistema; Despiece x Art y
+  las calculadoras con fondo oscuro).
+- **Qué se decidió** (`DISENO_GP2.md`): una hoja (`gp2-modulo.css`), Inter auto-hospedada (`fonts/`, la tablet no depende de
+  Google), tokens de color/tamaño, **azul = acción · azul marino = seleccionado · verde/ámbar/rojo = estado**, barra de app
+  igual en todas y pegada arriba, ancho completo, tablas con `thead` y totales pegados (`.fix1` fija la columna del código), y
+  **navegación persistente**: la marca GP2 de la barra abre el selector de módulos (`gp2-nav.js`). El menú pasó a
+  `gp2-menu.js`, única copia (antes vivía sólo adentro de `GP2_MODULOS.html`).
+- **Despiece x Art (`Programa.html`) deja el fondo oscuro** que se le puso el 11/09 (*"fondo más oscuro, más legible"*). Lo que
+  resolvía aquel pedido era **contraste**, no oscuridad: el tema claro viejo tenía texto gris-azulado pastel sobre gris claro.
+  El sistema nuevo tiene contraste alto (tinta casi negra sobre blanco) y conserva los DOS colores con significado de esa
+  pantalla (ámbar = lo nuestro, azul = lo de afuera). Si el dueño la quiere oscura otra vez, es un tema con los mismos tokens.
+- Fuera, a propósito: la tablet de operarios (`Operarios_GP2.html`, copia de Registro Producción 3.0 — regla de Elías 08/10: se
+  rediseña allá) y las pantallas muertas que miran `public`. `Tablet_GP2.html` sólo recibió la hoja y el selector (otra sesión
+  la estaba editando).

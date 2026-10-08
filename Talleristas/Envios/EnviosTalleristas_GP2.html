@@ -8,10 +8,10 @@
 <title>Envíos por Tallerista · GP2</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="../../supabase-config.js?v=20260929a"></script>
-<link rel="stylesheet" href="../../gp2-modulo.css?v=20260912c"/>
-<link rel="stylesheet" href="../../tandas-popup.css?v=20260903b"/>
+<link rel="stylesheet" href="../../tandas-popup.css?v=20261008dsA"/>
 <link rel="icon" type="image/png" href="../../GP2_favicon.png">
 <link rel="apple-touch-icon" href="../../GP2_favicon.png">
+<link rel="stylesheet" href="../../gp2-modulo.css?v=20261008ds">
 </head>
 <body>
 
@@ -360,5 +360,7 @@ $("btnEnviar").addEventListener("click", async function(){
 $("fFecha").value=hoyISO();
 cargar().catch(function(e){ $("status").textContent="Error: "+(e&&e.message?e.message:e); });
 </script>
+<script src="../../gp2-menu.js?v=20261008ds"></script>
+<script src="../../gp2-nav.js?v=20261008ds"></script>
 </body>
 </html>

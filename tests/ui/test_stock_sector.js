@@ -192,7 +192,8 @@ const VIEJOS = ['StockFlejes/Bombillas_GP2.html', 'StockFlejes/Cajas_GP2.html', 
   ok(/Falta el sector/.test(s.status) && s.rpc === 0, 'sin ?sector=: avisa que falta y no llama a la base');
 
   // ── el menu manda cada rotulo al sector correcto, y los 9 HTML viejos no volvieron ──
-  const menu = fs.readFileSync(path.join(ROOT_DIR, 'GP2_MODULOS.html'), 'utf8');
+  // los modulos del menu viven en gp2-menu.js desde el 2026-10-08 (los comparte el selector de la barra)
+  const menu = fs.readFileSync(path.join(ROOT_DIR, 'gp2-menu.js'), 'utf8') + fs.readFileSync(path.join(ROOT_DIR, 'GP2_MODULOS.html'), 'utf8');
   const links = [...menu.matchAll(/\["([^"]+)",\s*"StockSector\/StockSector_GP2\.html\?sector=(\d+)"\]/g)].map(m => [m[1], Number(m[2])]);
   ok(JSON.stringify(links) === JSON.stringify(MENU_ESPERADO), 'menu: los 10 rotulos van a la pantalla unica con su sector, en el orden de siempre ' + JSON.stringify(links));
   ok(links.every(([rot, sec]) => ESPERADO[sec] && ESPERADO[sec].titulo === rot), 'menu: cada rotulo coincide con el titulo de su sector');

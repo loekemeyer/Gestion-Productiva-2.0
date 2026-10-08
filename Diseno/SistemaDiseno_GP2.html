@@ -1,0 +1,156 @@
+<!doctype html><html lang="es"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>GP2 · Sistema de diseño</title>
+<link rel="icon" type="image/png" href="../GP2_favicon.png?v=1.2.0">
+<!-- La guia VIVA del sistema de diseño de GP2 (2026-10-08). Cada componente de gp2-modulo.css
+     aparece aca con su marcado exacto: antes de inventar un estilo en una pantalla, buscarlo aca.
+     Las reglas escritas estan en DISENO_GP2.md. No llama a la base. -->
+<link rel="stylesheet" href="../gp2-modulo.css?v=20261008ds">
+<style>
+.sw{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
+.sw div{border:1px solid var(--line);border-radius:var(--r-md);overflow:hidden;background:var(--surface);font-size:13px}
+.sw i{display:block;height:46px}
+.sw span{display:block;padding:6px 10px}
+.sw code{background:none;padding:0;color:var(--ink-3)}
+.ts>*{margin:6px 0}
+.demo-row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:8px 0}
+.dos{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,460px),1fr));gap:16px;align-items:start}
+</style>
+</head><body>
+<div class="card">
+  <div class="header">
+    <h1>Sistema de diseño<small>La guía viva de gp2-modulo.css</small></h1>
+    <div class="hbtns">
+      <button class="hlink" type="button">⬇ Exportar CSV</button>
+      <a href="../GP2_MODULOS.html">Atrás</a>
+    </div>
+  </div>
+
+  <div class="steps">
+    <div class="tabs" id="tabs">
+      <button class="tab active" type="button">Componentes</button>
+      <button class="tab" type="button">Tabla larga</button>
+      <button class="tab" type="button">Formulario</button>
+    </div>
+
+    <div class="dos">
+      <section class="panel">
+        <div class="panel-h">Color <span class="badge">tokens</span></div>
+        <div class="sw">
+          <div><i style="background:var(--bar)"></i><span><b>Barra</b><br><code>--bar</code></span></div>
+          <div><i style="background:var(--sel)"></i><span><b>Seleccionado</b><br><code>--sel</code></span></div>
+          <div><i style="background:var(--pri)"></i><span><b>Acción</b><br><code>--pri</code></span></div>
+          <div><i style="background:var(--accent)"></i><span><b>Línea eléctrica</b><br><code>--accent</code></span></div>
+          <div><i style="background:var(--ok)"></i><span><b>OK</b><br><code>--ok</code></span></div>
+          <div><i style="background:#dc9a00"></i><span><b>Atención</b><br><code>--warn</code></span></div>
+          <div><i style="background:var(--err)"></i><span><b>Error</b><br><code>--err</code></span></div>
+          <div><i style="background:var(--bg)"></i><span><b>Fondo</b><br><code>--bg</code></span></div>
+        </div>
+      </section>
+
+      <section class="panel ts">
+        <div class="panel-h">Tipografía <span class="badge">Inter</span></div>
+        <h1>Título de pantalla · 21/750</h1>
+        <h2>Título de sección · 18/700</h2>
+        <h3>Subsección · 16/700</h3>
+        <p>Texto normal · 16/400. El número <b>1.234,56</b> usa cifras tabulares: las columnas alinean solas.</p>
+        <div class="eyebrow">Rótulo en mayúscula · 12/700</div>
+        <p class="sub">Ayuda o meta · 13,5 · color tinta-3</p>
+      </section>
+    </div>
+
+    <h2 class="sec-h">Botones <span class="sub">azul = acción · uno primario por zona</span></h2>
+    <div class="demo-row">
+      <button class="btn btn-primary" type="button">Guardar</button>
+      <button class="btn btn-secondary" type="button">Cancelar</button>
+      <button class="btn btn-ghost" type="button">Ver detalle</button>
+      <button class="btn btn-ok" type="button">✓ Confirmar</button>
+      <button class="btn btn-danger" type="button">Anular</button>
+      <button class="btn btn-primary" type="button" disabled>Deshabilitado</button>
+      <button class="btn btn-primary btn-lg" type="button">Grande (tablet)</button>
+    </div>
+
+    <h2 class="sec-h">Elegir uno / filtros <span class="sub">azul marino = seleccionado</span></h2>
+    <div class="provs-grid">
+      <button class="prov-btn active" type="button">Pedernera Ilario<span class="meta">Cromado · 12 partes</span></button>
+      <button class="prov-btn" type="button">New Metal<span class="meta">Pulido · 4 partes</span></button>
+      <button class="prov-btn" type="button">FAAT<span class="meta">Templado · 7 partes</span></button>
+    </div>
+    <div class="chips">
+      <button class="chip active" type="button">Todos <span class="n">128</span></button>
+      <button class="chip" type="button">Con stock <span class="n">97</span></button>
+      <button class="chip" type="button">Sin stock <span class="n">31</span></button>
+      <button class="chip" type="button">Bajo el máximo</button>
+    </div>
+
+    <div class="kpis">
+      <div class="kpi pri"><span class="k">Partes</span><span class="v">128</span></div>
+      <div class="kpi ok"><span class="k">Enviado (uni)</span><span class="v">14.520</span></div>
+      <div class="kpi"><span class="k">Entregado (uni)</span><span class="v">12.008</span></div>
+      <div class="kpi warn"><span class="k">Saldo (uni)</span><span class="v">2.512</span></div>
+      <div class="kpi err"><span class="k">Faltantes</span><span class="v">6</span></div>
+    </div>
+
+    <div class="aviso"><b>Aviso.</b> Lo que el usuario tiene que saber antes de seguir: el stock de Virgilio arranca en 0.</div>
+    <div class="aviso info">Información: la tabla se actualiza cada 10 minutos.</div>
+    <div class="demo-row">
+      <span class="badge ok">✓ Recibida</span><span class="badge warn">Pendiente</span><span class="badge err">Anulada</span>
+      <span class="badge pri">GP2</span><span class="badge">Borrador</span><span class="badge dark">Enviada</span>
+      <span class="pos">+250</span><span class="neg">−18</span><span class="cero">0</span><span class="cod">GRJ31</span>
+    </div>
+
+    <h2 class="sec-h">Tabla <span class="sub">encabezado y totales pegados · primera columna fija (.fix1)</span></h2>
+    <div class="search-box"><input type="text" placeholder="Buscar por código o descripción…"></div>
+    <div class="table-wrap fix1">
+      <table class="t" id="tabla">
+        <thead>
+          <tr><th rowspan="2">Código</th><th rowspan="2">Descripción</th><th colspan="3" class="ctr sep">Online</th><th colspan="2" class="ctr sep">Movimientos (mes)</th><th rowspan="2" class="num sep">Máximo</th></tr>
+          <tr><th class="num sep">Kg</th><th class="num">Caj</th><th class="num">Uni</th><th class="num sep">Entró</th><th class="num">Salió</th></tr>
+        </thead>
+        <tbody></tbody>
+        <tfoot><tr><td>Total</td><td></td><td class="num sep" id="tk"></td><td class="num" id="tc"></td><td class="num" id="tu"></td><td class="num sep"></td><td class="num"></td><td class="num sep"></td></tr></tfoot>
+      </table>
+    </div>
+
+    <h2 class="sec-h">Formulario</h2>
+    <div class="panel">
+      <div class="grid-auto" style="--grid-min:200px">
+        <div class="field"><label for="f1">Fecha</label><input id="f1" type="date" value="2026-10-08"></div>
+        <div class="field"><label for="f2">Proveedor</label><select id="f2"><option>Pedernera Ilario</option><option>FAAT</option></select></div>
+        <div class="field"><label for="f3">Cantidad (uni)</label><input id="f3" type="text" inputmode="numeric" value="1.500"></div>
+        <div class="field"><label for="f4">Peso (kg)</label><input id="f4" type="text" inputmode="decimal" placeholder="0,00"></div>
+      </div>
+      <div class="field" style="margin-top:12px"><label for="f5">Observación</label><textarea id="f5" rows="2" placeholder="Opcional"></textarea></div>
+      <div class="row end" style="justify-content:space-between">
+        <label class="chk"><input type="checkbox" checked> Sólo con stock</label>
+        <div class="actions"><button class="btn btn-secondary" type="button">Cancelar</button><button class="btn btn-primary" type="button">Guardar</button></div>
+      </div>
+    </div>
+
+    <details class="acc"><summary>Últimos movimientos</summary><p class="sub" style="padding:0 0 14px">Acordeón: details.acc &gt; summary.</p></details>
+    <div class="empty">Sin datos para estos filtros.</div>
+  </div>
+</div>
+<script>
+(function(){
+  var tb = document.querySelector('#tabla tbody'), h = '', tk = 0, tc = 0, tu = 0;
+  var D = ['Cuchilla pelapapas','Mango abrelatas','Cuerpo colador','Remache 4x8','Fleje 31','Caja 510','Bolsa chica','Tapa sacacorchos'];
+  for (var i = 0; i < 60; i++) {
+    var kg = Math.round((i * 37.3 % 210) * 100) / 100, cj = i % 9, un = (i * 137) % 4000;
+    tk += kg; tc += cj; tu += un;
+    h += '<tr' + (i % 11 === 4 ? ' class="falt"' : '') + '><td class="cod">' + ['A','B','C','GRJ','F'][i % 5] + (10 + i) + '</td><td>' + D[i % D.length] + '</td>' +
+      '<td class="num sep">' + kg.toLocaleString('es-AR') + '</td><td class="num">' + cj + '</td><td class="num">' + un.toLocaleString('es-AR') + '</td>' +
+      '<td class="num sep pos">+' + (i * 13 % 300) + '</td><td class="num neg">−' + (i * 7 % 120) + '</td><td class="num sep">' + (un + 500).toLocaleString('es-AR') + '</td></tr>';
+  }
+  tb.innerHTML = h;
+  document.getElementById('tk').textContent = (Math.round(tk * 100) / 100).toLocaleString('es-AR');
+  document.getElementById('tc').textContent = tc;
+  document.getElementById('tu').textContent = tu.toLocaleString('es-AR');
+  document.querySelectorAll('.chip,.prov-btn,.tab').forEach(function (b) {
+    b.addEventListener('click', function () { b.parentNode.querySelectorAll('.' + b.classList[0]).forEach(function (x) { x.classList.toggle('active', x === b); }); });
+  });
+})();
+</script>
+<script src="../gp2-menu.js?v=20261008ds"></script>
+<script src="../gp2-nav.js?v=20261008ds"></script>
+</body></html>

@@ -11,19 +11,20 @@
 <script src="../gp2-ui.js?v=20260930a"></script>
 <script src="../gp2-numero.js?v=20260911o"></script>
 <script src="../gp2-envios-common.js?v=20260924b"></script>
-<link rel="stylesheet" href="../gp2-modulo.css?v=20260912c"/>
 <link rel="icon" type="image/png" href="../GP2_favicon.png">
 <link rel="apple-touch-icon" href="../GP2_favicon.png">
+<link rel="stylesheet" href="../gp2-modulo.css?v=20261008ds">
 <style>
-  .chips{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0;align-items:center}
-  .chips .lbl{font-weight:800;font-size:15px;min-width:70px}
-  /* 44px = minimo tactil de la casa (2026-09-03). */
-  .chip{padding:10px 16px;min-height:44px;border-radius:20px;border:2px solid #d0d7de;background:#fff;font-weight:700;font-size:16px;cursor:pointer;color:#111}
-  .chip.active{background:#e7eff8;color:#fff;border-color:#cddaea}
-  input[type=month]{padding:10px;min-height:44px;border:2px solid #d0d7de;border-radius:8px;font-size:18px}
-  td.num,th.num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
-  table.t td.tot,table.t th.tot{background:#f0f4f8;font-weight:800}
-  .t tbody tr:hover td{background:#f6faff}
+  /* filtros: cada grupo es un .field con su rotulo arriba y los chips abajo */
+  .toolbar .chips{margin:0}
+  /* pivote por dia: la 1ra columna (parte + descripcion) queda fija al scrollear de costado */
+  table.t td.num,table.t th.num{white-space:nowrap}
+  table.t td.parte{min-width:150px;max-width:260px}
+  table.t td.tot,table.t th.tot{background:var(--surface-2);font-weight:750}
+  /* la fila de totales vive en el tbody (la cuenta el test) pero queda pegada abajo como un tfoot */
+  table.t tr.tot-row>td{position:sticky;bottom:0;z-index:2;background:var(--surface-2);font-weight:750;border-top:2px solid var(--line-2);border-bottom:0}
+  .fix1 table.t tr.tot-row>td:first-child{z-index:3;background:var(--surface-2)}
+  @media (max-width:640px){ table.t td.parte{min-width:120px;max-width:170px} }
 </style>
 </head>
 <body>
@@ -38,21 +39,21 @@
   </div>
 
   <div class="steps">
-    <div class="chips"><span class="lbl">Origen:</span><span id="origChips"></span></div>
-    <div class="chips"><span class="lbl">Tipo:</span><span id="tipoChips"></span></div>
-    <div class="chips">
-      <span class="lbl">Mes:</span><input type="month" id="mes">
-      <span class="lbl" style="margin-left:14px">Medida:</span><span id="medChips"></span>
+    <div class="toolbar">
+      <div class="field"><label>Origen</label><div class="chips" id="origChips"></div></div>
+      <div class="field"><label>Tipo</label><div class="chips" id="tipoChips"></div></div>
+      <div class="field"><label for="mes">Mes</label><input type="month" id="mes"></div>
+      <div class="field"><label>Medida</label><div class="chips" id="medChips"></div></div>
     </div>
 
     <div class="search-box"><input type="text" id="q" placeholder="Buscar parte o nombre…"></div>
+    <div id="status" class="status">Elegí origen y tipo.</div>
 
-    <div class="table-wrap"><table class="t">
+    <div class="table-wrap fix1"><table class="t">
       <thead id="thead"></thead>
       <tbody id="tbody"></tbody>
     </table></div>
     <div id="tblEmpty" class="empty hidden">Sin movimientos para esa selección.</div>
-    <div id="status" class="status">Elegí origen y tipo.</div>
   </div>
 </div>
 
@@ -176,7 +177,7 @@ function render(){
   var totCols={}, totGral=0;
   $('tbody').innerHTML=p.rows.map(function(r){
     totGral+=r.total;
-    return '<tr><td><b>'+esc(r.codigo)+'</b><br><small style="color:#777">'+esc(r.descripcion||'')+'</small></td>'+
+    return '<tr><td class="parte"><span class="cod">'+esc(r.codigo)+'</span><br><small class="sub">'+esc(r.descripcion||'')+'</small></td>'+
       '<td>'+esc(r.contraparte)+'</td><td>'+r.unidad+'</td>'+
       p.cols.map(function(d){
         var v=r.celdas[d];
@@ -184,7 +185,7 @@ function render(){
         return '<td class="num">'+(v==null?'':fmt(v,dec))+'</td>';
       }).join('')+
       '<td class="num tot">'+fmt(r.total,dec)+'</td></tr>';
-  }).join('') + (p.rows.length ? ('<tr><td class="tot" colspan="3">Total</td>'+
+  }).join('') + (p.rows.length ? ('<tr class="tot-row"><td class="tot" colspan="3">Total</td>'+
       p.cols.map(function(d){ return '<td class="num tot">'+(mixto?'—':fmt(totCols[d]||0,dec))+'</td>'; }).join('')+
       '<td class="num tot">'+(mixto?'—':fmt(totGral,dec))+'</td></tr>') : '');
   $('tblEmpty').classList.toggle('hidden', p.rows.length>0 || !origSel);
@@ -216,5 +217,7 @@ tipoSel = Object.keys(VISTAS[origSel].tipos)[0];
 pintarChips();
 cargar();
 </script>
+<script src="../gp2-menu.js?v=20261008ds"></script>
+<script src="../gp2-nav.js?v=20261008ds"></script>
 </body>
 </html>

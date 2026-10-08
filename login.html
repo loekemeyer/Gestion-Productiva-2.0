@@ -11,79 +11,56 @@
   <meta name="theme-color" content="#ffffff">
   <link rel="icon" type="image/png" href="GP2_favicon.png?v=1.2.0">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="gp2-modulo.css?v=20261008ds">
   <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
+    /* Login · Sistema de diseño v2 (2026-10-08): mismo azul marino y la misma linea electrica
+       que la barra de todas las pantallas y la portada. Tokens en gp2-modulo.css. */
     body {
-      font-family: 'Inter', sans-serif;
-      background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
-      min-height: 100vh; display: flex;
-      align-items: center; justify-content: center; padding: 20px;
+      min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px;
+      background: radial-gradient(1000px 420px at 20% -10%, rgba(47,140,255,.30), transparent 70%),
+                  radial-gradient(700px 360px at 110% 110%, rgba(70,182,255,.16), transparent 70%), var(--bar);
     }
-    .card {
-      background: rgba(255,255,255,0.97);
-      border-radius: 24px;
-      padding: 48px 40px;
-      width: 100%; max-width: 420px;
-      box-shadow: 0 20px 60px rgba(0,0,0,0.35);
+    .login-card {
+      width: 100%; max-width: 420px; background: var(--surface); border-radius: var(--r-lg);
+      box-shadow: 0 24px 70px rgba(0,0,0,.45); overflow: hidden;
     }
-    .logo { text-align: center; margin-bottom: 32px; }
-    .logo-icon {
-      width: 64px; height: 64px;
-      background: linear-gradient(135deg, #1e293b, #334155);
-      border-radius: 16px;
-      display: inline-flex; align-items: center; justify-content: center;
-      margin-bottom: 16px;
-    }
-    .logo-icon svg { width: 32px; height: 32px; fill: none; stroke: white; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
-    h1 { font-size: 22px; font-weight: 800; color: #0f172a; text-transform: uppercase; letter-spacing: 0.5px; }
-    .subtitle { font-size: 13px; color: #64748b; margin-top: 4px; }
-    .version { text-align: center; font-size: 11px; color: #64748b; margin-bottom: 24px; letter-spacing: 0.5px; font-family: 'Consolas', monospace; }
-    .version b { color: #0f172a; }
+    .logo { position: relative; background: var(--bar); text-align: center; padding: 22px 20px 20px; }
+    .logo::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 3px;
+      background: linear-gradient(90deg, var(--accent), #46b6ff 45%, rgba(70,182,255,0) 90%); }
+    .logo img { width: 100%; max-width: 300px; height: auto; border-radius: 10px; display: block; margin: 0 auto; }
+    .cuerpo { padding: 26px 30px 28px; }
+    h1 { font-size: var(--fs-xl); font-weight: 750; color: var(--ink); text-align: center; }
+    .subtitle { font-size: 15px; color: var(--ink-3); margin-top: 4px; text-align: center; }
+    .version { text-align: center; font-size: 13px; color: var(--ink-3); margin: 10px 0 22px; font-variant-numeric: tabular-nums; }
+    .version b { color: var(--ink); }
     .btn-google {
-      width: 100%;
-      padding: 16px;
-      background: #fff;
-      color: #1e293b;
-      border: 2px solid #e2e8f0;
-      border-radius: 12px;
-      font-size: 15px;
-      font-weight: 700;
-      font-family: inherit;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 12px;
-      transition: all .15s;
+      width: 100%; min-height: 54px; padding: 0 16px; background: var(--surface); color: var(--ink);
+      border: 1px solid var(--line-2); border-radius: var(--r-sm); font: 650 17px var(--font);
+      cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 12px;
+      transition: background .12s, border-color .12s, box-shadow .12s;
     }
-    .btn-google:hover { background: #f8fafc; border-color: #94a3b8; box-shadow: 0 4px 12px rgba(0,0,0,.08); }
-    .btn-google:active { transform: scale(.99); }
-    .btn-google:disabled { opacity: .55; cursor: not-allowed; }
+    .btn-google:hover { background: var(--surface-2); border-color: var(--pri); box-shadow: 0 4px 14px rgba(31,91,216,.14); }
+    .btn-google:focus-visible { outline: none; box-shadow: var(--focus); }
+    .btn-google:active { transform: translateY(1px); }
+    .btn-google:disabled { opacity: .5; cursor: not-allowed; }
     .btn-google svg { width: 22px; height: 22px; }
-    .error-msg {
-      display: none; color: #ef4444; font-size: 13px; font-weight: 500;
-      margin-top: 16px; padding: 12px; background: #fef2f2;
-      border: 1px solid #fca5a5; border-radius: 8px; text-align: center;
-    }
+    .error-msg { display: none; margin-top: 16px; text-align: center; }
     .error-msg.visible { display: block; }
-    .spinner-wrap { display: none; text-align: center; margin-top: 16px; }
+    .spinner-wrap { display: none; text-align: center; margin-top: 18px; }
     .spinner-wrap.visible { display: block; }
-    .spinner {
-      width: 28px; height: 28px;
-      border: 3px solid #e2e8f0; border-top-color: #1e293b;
-      border-radius: 50%; animation: spin .8s linear infinite;
-      display: inline-block;
-    }
+    .spinner { width: 28px; height: 28px; border: 3px solid var(--line); border-top-color: var(--pri);
+      border-radius: 50%; animation: spin .8s linear infinite; display: inline-block; }
     @keyframes spin { to { transform: rotate(360deg); } }
-    .spinner-text { font-size: 13px; color: #64748b; margin-top: 8px; }
+    .spinner-text { font-size: 14px; color: var(--ink-3); margin-top: 8px; }
   </style>
 </head>
 <body>
-  <div class="card">
+  <div class="login-card">
     <div class="logo">
-      <div class="logo-icon">
-        <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
-      </div>
+      <img src="GP2_logo.png?v=1.2.0" alt="GP2 · Gestión Productiva — Loekemeyer">
+    </div>
+    <div class="cuerpo">
+    <div class="titulo">
       <h1>Gestión Productiva</h1>
       <div class="subtitle">Ingresá con tu cuenta de Google</div>
     </div>
@@ -105,7 +82,8 @@
       <div class="spinner-text">Verificando acceso...</div>
     </div>
 
-    <div id="errorMsg" class="error-msg"></div>
+    <div id="errorMsg" class="error-msg aviso err"></div>
+    </div>
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>

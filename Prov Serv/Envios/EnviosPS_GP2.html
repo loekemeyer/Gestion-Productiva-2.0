@@ -118,10 +118,10 @@
 <title>Envío a Proveedores de Servicios · GP2</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="../../supabase-config.js?v=20260929a"></script>
-<link rel="stylesheet" href="../../gp2-modulo.css?v=20260912c"/>
-<link rel="stylesheet" href="../../tandas-popup.css?v=20260903b"/>
+<link rel="stylesheet" href="../../tandas-popup.css?v=20261008dsA"/>
 <link rel="icon" type="image/png" href="../../GP2_favicon.png">
 <link rel="apple-touch-icon" href="../../GP2_favicon.png">
+<link rel="stylesheet" href="../../gp2-modulo.css?v=20261008ds">
 <style>
   /* equivalencia en la unidad de envio del proveedor (Ester: se carga kg, debajo las bolsas) */
   .env-eq{display:block;margin-top:4px;color:#0b4aa2;font-size:14px;font-weight:800;white-space:nowrap}
@@ -708,5 +708,7 @@ $("btnEnviar").addEventListener("click", async function(){
 $("fFecha").value = hoyISO();
 cargar().catch(function(e){ $("status").textContent = "Error: "+(e && e.message ? e.message : e); });
 </script>
+<script src="../../gp2-menu.js?v=20261008ds"></script>
+<script src="../../gp2-nav.js?v=20261008ds"></script>
 </body>
 </html>

@@ -19,21 +19,24 @@
 "use strict";
 window.GP2ConsumoDetalle = (function () {
 
+  /* Sistema de diseño v2 (2026-10-08): el aspecto sale de gp2-modulo.css — fondo .popup,
+     tarjeta .pop-card, tabla table.t, .btn, .sub, .empty. Aca queda el armado propio del popup
+     con los tokens del sistema (ningun color ni fuente suelta). */
   var CSS = [
-    "#cdOverlay{position:fixed;inset:0;background:rgba(15,23,42,.55);z-index:900;display:flex;align-items:center;justify-content:center;padding:16px}",
-    "#cdCard{background:#fff;border-radius:16px;max-width:520px;width:100%;max-height:82vh;overflow:auto;box-shadow:0 18px 50px rgba(0,0,0,.35);padding:18px 18px 14px}",
-    "#cdCard h3{margin:0;font-size:17px;font-weight:800;color:#0f172a}",
-    "#cdCard .cd-sub{font-size:13px;color:#64748b;margin:2px 0 10px}",
-    "#cdCard .cd-total{font-size:15px;font-weight:800;color:#0f172a;background:#f1f5f9;border-radius:10px;padding:8px 12px;margin-bottom:10px}",
-    "#cdCard table{width:100%;border-collapse:collapse;font-size:14px}",
-    "#cdCard th{text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.4px;color:#64748b;padding:4px 6px;border-bottom:1px solid #e2e8f0}",
-    "#cdCard td{padding:6px;border-bottom:1px solid #f1f5f9;vertical-align:top}",
-    "#cdCard td.num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}",
-    "#cdCard .cd-bar{height:5px;border-radius:3px;background:#2563eb;margin-top:3px;min-width:2px}",
-    "#cdCard .cd-via{font-size:11px;color:#94a3b8}",
-    "#cdCard .cd-cerrar{margin-top:12px;width:100%;padding:12px;border:0;border-radius:10px;background:#0f172a;color:#fff;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit}",
-    "#cdCard .cd-vacio{color:#64748b;font-size:14px;padding:8px 0}",
-    ".cd-tocable{cursor:pointer;text-decoration:underline dotted #94a3b8;text-underline-offset:3px}"
+    "#cdOverlay{position:fixed;inset:0;z-index:950;display:flex;align-items:center;justify-content:center;padding:var(--s4)}",
+    "#cdCard{max-width:560px;width:100%;max-height:82vh;overflow:auto;padding:var(--s4) var(--s4) var(--s3)}",
+    "#cdCard h3{margin:0}",
+    "#cdCard .cd-sub{margin:2px 0 var(--s3)}",
+    "#cdCard .cd-total{font-size:var(--fs-base);font-weight:750;color:var(--ink);background:var(--surface-2);border:1px solid var(--line);border-radius:var(--r-sm);padding:var(--s2) var(--s3);margin-bottom:var(--s3);font-variant-numeric:tabular-nums}",
+    "#cdCard table.t>thead{top:calc(-1 * var(--s4))}",
+    "#cdCard table.t td{vertical-align:top}",
+    "#cdCard table.t td.num,#cdCard table.t th.num{white-space:nowrap}",
+    "#cdCard .cd-bar{height:5px;border-radius:3px;background:var(--pri);margin-top:4px;min-width:2px}",
+    "#cdCard .cd-via{font-size:var(--fs-sm);color:var(--ink-3)}",
+    "#cdCard .cd-cerrar{margin-top:var(--s3)}",
+    "#cdCard .cd-vacio{text-align:left;padding:var(--s2) 0}",
+    ".cd-tocable{cursor:pointer;text-decoration:underline dotted var(--ink-4);text-underline-offset:3px}",
+    "@media (max-width:640px){#cdOverlay{padding:var(--s2)}#cdCard{max-height:92vh}}"
   ].join("\n");
 
   /* sin decimales por default y "—" cuando no hay valor (el sustento del
@@ -66,7 +69,7 @@ window.GP2ConsumoDetalle = (function () {
     var max = 0;
     pzs.forEach(function (p) { if (p.kg_mes > max) max = p.kg_mes; });
     if (!pzs.length) {
-      return "<div class='cd-vacio'>Ninguna pieza está declarada con esta resina como material: no hay consumo que sustentar.</div>";
+      return "<div class='cd-vacio empty'>Ninguna pieza está declarada con esta resina como material: no hay consumo que sustentar.</div>";
     }
     var filas = pzs.map(function (p) {
       return "<tr>" +
@@ -76,9 +79,9 @@ window.GP2ConsumoDetalle = (function () {
         "<td class='num'><b>" + fmt(p.kg_mes, 2) + " kg</b></td>" +
       "</tr>";
     }).join("");
-    return "<table><thead><tr><th>Pieza que se inyecta con ella</th>" +
-           "<th style='text-align:right'>Piezas<br>uni/mes</th>" +
-           "<th style='text-align:right'>Le pide<br>kg/mes</th></tr></thead><tbody>" + filas + "</tbody></table>";
+    return "<table class='t'><thead><tr><th>Pieza que se inyecta con ella</th>" +
+           "<th class='num'>Piezas<br>uni/mes</th>" +
+           "<th class='num'>Le pide<br>kg/mes</th></tr></thead><tbody>" + filas + "</tbody></table>";
   }
 
   function render(d) {
@@ -110,18 +113,19 @@ window.GP2ConsumoDetalle = (function () {
     var cuerpo = esResina
       ? cuerpoResina(d)
       : (arts.length
-          ? "<table><thead><tr><th>Artículo que lo usa</th><th style='text-align:right'>Proyección<br>art/mes</th><th style='text-align:right'>Le pide<br>" + (esFleje ? "kg" : "uni") + "/mes</th></tr></thead><tbody>" + filas + "</tbody></table>"
-          : "<div class='cd-vacio'>Ningún artículo de la Est Madre llega a esta parte por las rutas: no hay consumo que sustentar.</div>");
+          ? "<table class='t'><thead><tr><th>Artículo que lo usa</th><th class='num'>Proyección<br>art/mes</th><th class='num'>Le pide<br>" + (esFleje ? "kg" : "uni") + "/mes</th></tr></thead><tbody>" + filas + "</tbody></table>"
+          : "<div class='cd-vacio empty'>Ningún artículo de la Est Madre llega a esta parte por las rutas: no hay consumo que sustentar.</div>");
 
     var o = document.createElement("div");
     o.id = "cdOverlay";
+    o.className = "popup";
     o.innerHTML =
-      "<div id='cdCard'>" +
+      "<div id='cdCard' class='pop-card'>" +
         "<h3>" + esc(d.codigo || "—") + " — ¿de dónde sale el consumo?</h3>" +
-        "<div class='cd-sub'>" + esc(d.descripcion || "") + " · " + esc(d.sector || "") + "</div>" +
+        "<div class='cd-sub sub'>" + esc(d.descripcion || "") + " · " + esc(d.sector || "") + "</div>" +
         "<div class='cd-total'>Total: " + total + "</div>" +
         cuerpo +
-        "<button type='button' class='cd-cerrar'>Cerrar</button>" +
+        "<button type='button' class='cd-cerrar btn btn-secondary btn-block'>Cerrar</button>" +
       "</div>";
     o.addEventListener("click", function (e) { if (e.target === o) cerrar(); });
     o.querySelector(".cd-cerrar").addEventListener("click", cerrar);

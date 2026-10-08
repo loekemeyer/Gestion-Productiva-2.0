@@ -4,117 +4,428 @@
    Los estilos propios de cada pantalla pueden subirla, nunca bajarla. */
 input, select, textarea { font-size: 18px; }
 
-/* ============================================================
-   gp2-modulo.css — esqueleto compartido de los modulos GP2.
+/* ==========================================================================
+   gp2-modulo.css — EL SISTEMA DE DISEÑO DE GP2 (v2, 2026-10-08)
 
-   Reproduce la estructura de Gestion Productiva Entero:
-     card blanca + header negro
-     fase0: fila de chips (proveedor / tallerista)
-     fase1: tabla editable (cantidad + tandas + faltante)
-     fase3: confirmacion
+   UNA hoja para todo el programa. Antes convivian tres familias que no se
+   parecian entre si: esta hoja (card blanca + header negro, ~40 pantallas),
+   gp2-claro.css (barra con logo + .top con gradiente, pisando todo con
+   !important, 11 pantallas) y ~15 pantallas con estilo propio (Arial, Inter sin
+   cargar, fondos oscuros). gp2-claro.css se borro: todas cargan esta.
 
-   Lo usan: PS Envio, PS Entrega, Tallerista Control/Envio/Entrega.
-   ============================================================ */
+   Reglas del sistema (detalle y ejemplos: DISENO_GP2.md y
+   Diseno/SistemaDiseno_GP2.html, que es la guia viva):
+     1. Una sola familia: Inter (auto-hospedada en fonts/, no depende de Google).
+     2. Los colores, tamaños, radios y sombras salen de los TOKENS de :root.
+        Una pantalla no escribe un #hex propio para algo que el token ya resuelve.
+     3. La barra de la app (.header) es SIEMPRE la misma y queda pegada arriba
+        al scrollear. El encabezado de cada tabla larga tambien (thead sticky).
+     4. Azul = accion (botones). Azul marino = seleccionado (chips, pestañas).
+        Verde/ambar/rojo = estado (ok / atencion / error). Nada mas tiene color.
+     5. Ancho completo: la pagina usa todo el ancho de la pantalla. Lo angosto
+        (un formulario chico) lo pide la pantalla con .angosto.
+     6. Piso de accesibilidad de la casa: campos 18px, tocable 44px.
 
-*{box-sizing:border-box;margin:0;padding:0}
-body{font-family:Arial,sans-serif;background:#f5f6f8;padding:12px;color:#111}
+   Las reglas de base van con :where() (especificidad 0) para que el CSS
+   propio de una pantalla las pueda ajustar sin pelear; los componentes van
+   con una sola clase. Nada de !important salvo los utilitarios.
+   ========================================================================== */
 
-/* ---- card + header ---- */
-.card{max-width:1180px;margin:auto;background:#fff;border-radius:12px;box-shadow:0 2px 12px rgba(0,0,0,.08);overflow:hidden}
-.header{background:#1a1a1a;color:#fff;padding:14px 18px;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
-.header h1{font-size:24px;font-weight:700}
-.header .hbtns{display:flex;gap:8px;flex-wrap:wrap}
-.header a,.header button.hlink{background:#fff;color:#111;padding:8px 14px;border-radius:6px;font-weight:700;font-size:18px;text-decoration:none;border:none;cursor:pointer;
-  display:inline-flex;align-items:center;min-height:44px}  /* accesibilidad: mismo look, area tocable de 44px */
+/* ---- tipografia: Inter variable (100-900), solo latin (español completo) ---- */
+@font-face{font-family:"Inter GP2";font-style:normal;font-weight:100 900;font-display:swap;
+  src:url(fonts/inter-latin-wght-normal.woff2) format("woff2");
+  unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+2074,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}
+@font-face{font-family:"Inter GP2";font-style:italic;font-weight:100 900;font-display:swap;
+  src:url(fonts/inter-latin-wght-italic.woff2) format("woff2");
+  unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+2074,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}
 
-.steps{padding:14px 18px}
-.row{display:flex;gap:10px;flex-wrap:wrap;margin:10px 0;align-items:center}
-label.lbl{font-weight:800;font-size:20px}
-input[type="date"]{height:44px;border:2px solid #d0d7de;border-radius:8px;padding:0 10px;font-size:20px}
+/* ==========================================================================
+   TOKENS
+   ========================================================================== */
+:root{
+  --font:"Inter GP2",Inter,system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;
 
-/* ---- botones ---- */
-.btn{padding:10px 16px;min-height:44px;border-radius:8px;border:none;font-weight:800;cursor:pointer;font-size:20px}
-.btn-primary{background:#111;color:#fff}
-.btn-secondary{background:#fff;border:2px solid #d0d7de;color:#111}
-.btn:disabled{opacity:.45;cursor:not-allowed}
+  /* tinta: neutros frios, del texto al fondo */
+  --ink:#0f1c2e;          /* texto principal */
+  --ink-2:#3b4a60;        /* texto secundario */
+  --ink-3:#5f6e84;        /* meta, rotulos (4,9:1 sobre blanco) */
+  --ink-4:#8b97a8;        /* deshabilitado, placeholder */
+  --line:#e0e6ee;         /* borde suave (separadores, paneles) */
+  --line-2:#c9d2de;       /* borde fuerte (botones secundarios) */
+  --field-line:#b3bfcf;   /* borde de campo: se tiene que ver bien */
+  --bg:#f2f4f8;           /* fondo de la pagina */
+  --surface:#ffffff;      /* paneles, tablas, campos */
+  --surface-2:#f6f8fb;    /* encabezado de tabla, barras de filtro */
+  --surface-3:#ebeff5;    /* hover de fila */
 
-.status{margin:8px 0;font-size:18px;color:#555;min-height:10px}
+  /* marca (sale del logo: azul marino + azul electrico + el rojo del mango) */
+  --bar:#0b1830;          /* barra de la app */
+  --bar-2:#172a4b;        /* hover sobre la barra */
+  --sel:#13264a;          /* SELECCIONADO: chip / pestaña activa */
+  --pri:#1f5bd8;          /* ACCION: boton primario, link, foco */
+  --pri-h:#1849b2;
+  --pri-ink:#1a4cb8;      /* codigos y links sobre blanco */
+  --pri-soft:#eaf1ff;
+  --pri-line:#b8ccf5;
+  --accent:#2f8cff;       /* la linea electrica de la barra */
+  --brand-red:#d6262f;
 
-/* ---- chips (fase 0) ---- */
-.provs-grid{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0}
-.prov-btn{padding:10px 16px;border-radius:8px;border:2px solid #d0d7de;background:#fff;font-weight:700;cursor:pointer;font-size:19px;color:#111;text-align:left}
-.prov-btn:hover{border-color:#111}
-.prov-btn.active{background:#111;color:#fff;border-color:#111}
-.prov-btn .meta{display:block;font-size:14px;color:#777;font-weight:700;margin-top:3px}
-.prov-btn.active .meta{color:#cfcfcf}
+  /* estado */
+  --ok:#11763b;   --ok-soft:#e6f5eb;   --ok-line:#a6d9b7;
+  --warn:#8f5200; --warn-soft:#fff4dc; --warn-line:#efcd85;
+  --err:#bd2229;  --err-soft:#fdeceb;  --err-line:#f1b2b4;
 
-/* ---- buscador ---- */
-.search-box{margin:12px 0;padding:12px;background:#f6f8fa;border-radius:8px}
-.search-box input{width:100%;padding:10px;font-size:18px;border:2px solid #d0d7de;border-radius:6px}
+  /* escala tipografica (px). Inter tiene ojo grande: 16 de Inter se lee como 17 de Arial */
+  --fs-xs:12px;     /* rotulos en mayuscula, th */
+  --fs-sm:13.5px;   /* meta, ayudas */
+  --fs-md:15px;     /* celdas de tabla */
+  --fs-base:16px;   /* texto */
+  --fs-lg:18px;     /* subtitulo de seccion, campos */
+  --fs-xl:21px;     /* titulo de pantalla */
+  --fs-2xl:28px;    /* numero KPI */
 
-/* ---- tabla ---- */
-.table-wrap{overflow-x:auto;border:1px solid #e5e9ee;border-radius:10px}
-table.t{width:100%;border-collapse:collapse;font-size:17px;background:#fff}
-table.t th{background:#f6f8fa;color:#333;text-align:left;padding:9px 8px;border-bottom:2px solid #e5e9ee;font-size:13px;text-transform:uppercase;white-space:nowrap}
-table.t td{padding:7px 8px;border-bottom:1px solid #eef1f4;vertical-align:middle}
-table.t td.num,table.t th.num{text-align:right;font-variant-numeric:tabular-nums}
-table.t td.ctr,table.t th.ctr{text-align:center}
-table.t tr.falt td{background:#fff7ed}
-table.t tfoot td{font-weight:900;background:#f6f8fa;border-top:2px solid #e5e9ee}
-.sep{border-left:2px solid #e5e9ee}
-.cod{font-weight:900;color:#0066cc}
-.proc{color:#555}
-.sub{color:#777;font-size:14px}
+  /* espacio (base 4) */
+  --s1:4px; --s2:8px; --s3:12px; --s4:16px; --s5:20px; --s6:24px; --s8:32px;
+  --gutter:20px;
 
-/* ---- filtros segmentados (Todos / Con stock / Sin stock / ...) ----
-   Estaban copiados IDENTICOS en 9 pantallas de stock (Flejes x6, SC, SP,
-   Movimiento) y median 38px de alto, por debajo del minimo tactil de 44.
-   Unificados aca 2026-09-03: se toca una vez y valen para las 9. */
-.seg-btn{padding:11px 14px;min-height:44px;border-radius:8px;border:2px solid #d0d7de;background:#fff;font-weight:700;cursor:pointer;font-size:17px;color:#111}
-.seg-btn.active{background:#111;color:#fff;border-color:#111}
+  /* forma */
+  --r-sm:7px; --r-md:10px; --r-lg:14px; --r-pill:999px;
+  --sh-1:0 1px 2px rgba(11,24,48,.06);
+  --sh-2:0 8px 28px rgba(11,24,48,.16);
+  --focus:0 0 0 3px rgba(31,91,216,.30);
 
-/* ---- celdas editables ---- */
-/* min-height 44px = minimo tactil de la casa (idea 7337, 2026-09-12): median 39 en
-   TODAS las pantallas de envios/entregas/recepcion. El ancho es fijo, asi que crecer
-   a lo alto no mueve la columna. */
-.cell-in{width:96px;min-height:44px;padding:7px 8px;font-size:18px;border:2px solid #d0d7de;border-radius:6px;text-align:right;font-variant-numeric:tabular-nums}
-.cell-in:focus{outline:none;border-color:#111}
-.cell-in.ro{background:#f6f8fa;color:#555}
-/* 44px = minimo tactil de la casa. Median 34 y son los botones de TODA la carga
-   de envios y entregas (tandas y faltante), que se tocan con el dedo en la
-   tablet del galpon. El .cell-in de al lado tiene ancho fijo, asi que agrandarlos
-   no revienta la columna (2026-09-03). */
-.tanda-btn{width:44px;height:44px;border-radius:8px;border:2px solid #d0d7de;background:#fff;font-weight:900;cursor:pointer;font-size:18px;color:#111}
-.tanda-btn.on{background:#0066cc;border-color:#0066cc;color:#fff}
-.falt-box{width:44px;height:44px;border-radius:8px;border:2px solid #d0d7de;background:#fff;font-weight:900;cursor:pointer;font-size:18px;color:#111}
+  --touch:44px;           /* minimo tocable de la casa */
+  --bar-min:60px;         /* alto de diseño de la barra */
+  --bar-h:63px;           /* alto REAL (barra + linea): lo mide gp2-nav.js; lo usan los sticky */
+}
+@media (max-width:640px){ :root{ --gutter:12px; --fs-xl:18px; } }
+
+/* ==========================================================================
+   BASE
+   ========================================================================== */
+*,*::before,*::after{box-sizing:border-box}
+*{margin:0;padding:0}
+html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
+body{font-family:var(--font);font-size:var(--fs-base);line-height:1.45;color:var(--ink);background:var(--bg);
+  font-feature-settings:"cv11" 1,"ss01" 0;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
+:where(button,input,select,textarea){font-family:inherit;color:inherit}
+:where(h1){font-size:var(--fs-xl);font-weight:750;letter-spacing:-.012em;line-height:1.2}
+:where(h2){font-size:var(--fs-lg);font-weight:700;letter-spacing:-.006em;line-height:1.25}
+:where(h3){font-size:var(--fs-base);font-weight:700;line-height:1.3}
+:where(h4,h5,h6){font-size:var(--fs-sm);font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-3)}
+:where(a){color:var(--pri-ink)}
+:where(b,strong){font-weight:700}
+:where(code){font-family:ui-monospace,"SF Mono",Menlo,Consolas,monospace;font-size:.9em;background:var(--surface-3);padding:1px 5px;border-radius:4px}
+:where(hr){border:0;border-top:1px solid var(--line);margin:var(--s4) 0}
+::selection{background:#cfe0ff}
+:where(:focus-visible){outline:none;box-shadow:var(--focus)}
+
+/* ---- campos ---- */
+:where(input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=file]):not([type=color]),select,textarea){
+  font-size:var(--fs-lg);font-weight:450;min-height:var(--touch);padding:0 12px;
+  background:var(--surface);color:var(--ink);border:1px solid var(--field-line);border-radius:var(--r-sm);
+  transition:border-color .12s,box-shadow .12s}
+:where(textarea){padding:10px 12px;line-height:1.4}
+:where(select){padding-right:34px;appearance:none;-webkit-appearance:none;cursor:pointer;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1.5l5 5 5-5' fill='none' stroke='%233b4a60' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:right 12px center}
+:where(select[multiple]){background-image:none;padding:6px}
+:where(input,select,textarea):hover{border-color:#8f9db1}
+:where(input,select,textarea):focus{outline:none;border-color:var(--pri);box-shadow:var(--focus)}
+:where(input,select,textarea):disabled,:where(input,textarea)[readonly]{background:var(--surface-2);color:var(--ink-3)}
+:where(input,textarea)::placeholder{color:var(--ink-4);font-weight:400}
+:where(input[type=checkbox],input[type=radio]){width:20px;height:20px;accent-color:var(--pri);vertical-align:middle;cursor:pointer}
+:where(input[type=date],input[type=month],input[type=time]){font-variant-numeric:tabular-nums}
+:where(label){color:var(--ink-2)}
+
+/* ==========================================================================
+   ESQUELETO DE PAGINA
+   <div class="card">                      ← la pagina (ancho completo)
+     <div class="header">                  ← barra de la app, pegada arriba
+       <h1>Titulo</h1>
+       <div class="hbtns"> acciones … <a href="…/GP2_MODULOS.html">Atrás</a></div>
+     </div>
+     <div class="steps"> contenido </div>
+   </div>
+   ========================================================================== */
+body>.card,.page{min-height:100vh;min-height:100dvh;background:transparent;display:flex;flex-direction:column}
+body>.card.angosto>.steps,.page.angosto>.steps,.steps.angosto{max-width:820px;width:100%;margin:0 auto}
+body>.card.medio>.steps,.steps.medio{max-width:1240px;width:100%;margin:0 auto}
+.steps{padding:var(--s4) var(--gutter) var(--s8);flex:1}
+
+/* ---- BARRA DE LA APP ----
+   Siempre igual en todo GP2: azul marino, marca a la izquierda (la pone gp2-nav.js
+   y abre el selector de modulos), titulo, y las acciones a la derecha. Queda
+   pegada arriba: el usuario siempre sabe en que pantalla esta. */
+.header{position:sticky;top:0;z-index:60;display:flex;align-items:center;gap:var(--s2) var(--s3);flex-wrap:wrap;
+  min-height:var(--bar-min);padding:8px var(--gutter);background:var(--bar);color:#fff;
+  box-shadow:0 1px 0 rgba(255,255,255,.04) inset,0 2px 10px rgba(11,24,48,.18)}
+.header::after{content:"";position:absolute;left:0;right:0;bottom:-3px;height:3px;pointer-events:none;
+  background:linear-gradient(90deg,var(--accent) 0%,#46b6ff 38%,rgba(70,182,255,0) 82%)}
+.header h1{flex:1 1 220px;min-width:0;color:#fff;font-size:var(--fs-xl);font-weight:750;letter-spacing:-.012em;line-height:1.2;margin:0}
+.header h1 small,.header .h-sub,.header .header-sub{display:block;font-size:var(--fs-sm);font-weight:500;color:#a9b8d0;letter-spacing:0;margin-top:1px}
+.header .hbtns{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-left:auto}
+.header a,.header button.hlink,.header .hlink,.header .hbtn{display:inline-flex;align-items:center;justify-content:center;gap:6px;
+  min-height:var(--touch);padding:0 14px;border-radius:var(--r-sm);font:600 15px/1.1 var(--font);text-decoration:none;cursor:pointer;
+  background:rgba(255,255,255,.07);color:#fff;border:1px solid rgba(255,255,255,.18);white-space:nowrap;transition:background .12s,border-color .12s}
+.header a:hover,.header .hlink:hover,.header .hbtn:hover{background:rgba(255,255,255,.16);border-color:rgba(255,255,255,.34)}
+.header a:focus-visible,.header .hlink:focus-visible{box-shadow:0 0 0 3px rgba(70,182,255,.55)}
+.header .hbtn.primary,.header a.primary{background:var(--pri);border-color:var(--pri)}
+.header .hbtn.primary:hover,.header a.primary:hover{background:#2c6af0}
+/* el link al menu principal ("Atrás") va un poco mas apagado: es salida, no accion */
+.header a[href$="GP2_MODULOS.html"]{background:transparent;border-color:rgba(255,255,255,.26);color:#d7e1f0}
+.header :where(select,input:not([type=checkbox]):not([type=radio])){background-color:#fff;color:var(--ink);border-color:transparent}
+.header :where(label,span,.status,#status){color:#c9d5e6}
+.header .status{margin:0;min-height:0;font-size:var(--fs-sm)}
+
+/* marca GP2 = boton del selector de modulos (gp2-nav.js). Sin JS queda la marca sola. */
+.header::before{content:"";flex:0 0 34px;width:34px;height:34px;border-radius:8px;
+  background:url(icons/gp2-mark-64.png) center/cover no-repeat;box-shadow:0 0 0 1px rgba(255,255,255,.12)}
+.header:has(> .gp2-nav-btn)::before{display:none}
+.gp2-nav-btn{flex:0 0 auto;display:inline-flex;align-items:center;gap:6px;height:var(--touch);padding:0 10px 0 5px;border-radius:var(--r-sm);
+  background:transparent;border:1px solid transparent;color:#cfe0ff;cursor:pointer;font:700 13px var(--font);letter-spacing:.02em}
+.gp2-nav-btn img{width:34px;height:34px;border-radius:8px;box-shadow:0 0 0 1px rgba(255,255,255,.14);display:block}
+.gp2-nav-btn:hover,.gp2-nav-btn[aria-expanded=true]{background:rgba(255,255,255,.09);border-color:rgba(255,255,255,.16)}
+.gp2-nav-btn .gnb-car{font-size:11px;opacity:.85}
+@media (max-width:640px){
+  .header{gap:6px 8px;padding:6px var(--gutter)}
+  .header h1{flex-basis:140px}
+  .header a,.header button.hlink,.header .hlink,.header .hbtn{padding:0 11px;font-size:14px}
+  .header::before{flex-basis:30px;width:30px;height:30px}
+  .gp2-nav-btn img{width:30px;height:30px}
+  .gp2-nav-btn .gnb-car{display:none}
+  .header h1 small,.header .h-sub{display:none}
+  /* "Atrás" (al menu) pasa a flecha sola: la marca GP2 ya abre los modulos y la barra entra en menos lineas */
+  .header a[href$="GP2_MODULOS.html"]{font-size:0;width:var(--touch);padding:0;gap:0}
+  .header a[href$="GP2_MODULOS.html"]::before{content:"\2190";font-size:21px;line-height:1}
+}
+
+/* ---- selector de modulos (panel que abre la marca) ---- */
+.gp2-nav-ov{position:fixed;inset:0;z-index:900;background:rgba(11,24,48,.42);opacity:0;pointer-events:none;transition:opacity .16s}
+.gp2-nav-ov.on{opacity:1;pointer-events:auto}
+.gp2-nav{position:fixed;z-index:901;top:0;left:0;bottom:0;width:min(360px,92vw);background:var(--surface);
+  box-shadow:var(--sh-2);transform:translateX(-102%);transition:transform .18s ease-out;display:flex;flex-direction:column}
+.gp2-nav.on{transform:none}
+.gp2-nav-h{display:flex;align-items:center;gap:10px;padding:12px 14px;background:var(--bar);color:#fff;min-height:var(--bar-min)}
+.gp2-nav-h img{width:34px;height:34px;border-radius:8px}
+.gp2-nav-h b{font-size:16px;flex:1}
+.gp2-nav-h small{display:block;color:#a9b8d0;font-size:12px;font-weight:500}
+.gp2-nav-x{min-width:var(--touch);min-height:var(--touch);border:0;border-radius:var(--r-sm);background:rgba(255,255,255,.08);color:#fff;font-size:20px;cursor:pointer}
+.gp2-nav-b{overflow:auto;padding:8px 10px 16px;flex:1}
+.gp2-nav-g{font:700 var(--fs-xs) var(--font);text-transform:uppercase;letter-spacing:.07em;color:var(--ink-3);padding:14px 8px 6px}
+.gp2-nav-b a{display:flex;align-items:center;gap:10px;min-height:var(--touch);padding:0 10px;border-radius:var(--r-sm);
+  color:var(--ink);text-decoration:none;font-size:16px;font-weight:500}
+.gp2-nav-b a:hover{background:var(--surface-3)}
+.gp2-nav-b a.on{background:var(--pri-soft);color:var(--pri-h);font-weight:700;box-shadow:inset 3px 0 0 var(--pri)}
+.gp2-nav-b a.home{font-weight:700}
+.gp2-nav-f{border-top:1px solid var(--line);padding:10px 12px;display:flex;gap:8px;flex-wrap:wrap}
+.gp2-nav-f a{flex:1 1 auto;justify-content:center}
+
+/* ==========================================================================
+   TEXTO Y ROTULOS
+   ========================================================================== */
+.eyebrow,.rubro-lbl,.sec-lbl{font:700 var(--fs-xs)/1.3 var(--font);text-transform:uppercase;letter-spacing:.07em;color:var(--ink-3)}
+label.lbl,.lbl{font-weight:700;font-size:17px;color:var(--ink)}
+.sec-h{display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-size:var(--fs-lg);font-weight:700;color:var(--ink);margin:var(--s5) 0 var(--s3)}
+.sec-h:first-child{margin-top:0}
+.sec-h .sub,.sec-h small{font-size:var(--fs-sm);font-weight:500;color:var(--ink-3)}
+/* titulo de seccion que acompaña el scroll (listas largas que no son tabla) */
+.sticky-sec{position:sticky;top:var(--bar-h);z-index:30;background:var(--bg);box-shadow:0 1px 0 var(--line)}
+.sub,.muted,.hint,.mini{color:var(--ink-3);font-size:var(--fs-sm)}
+.proc{color:var(--ink-2)}
+.cod{font-weight:700;color:var(--pri-ink);font-variant-numeric:tabular-nums}
+.num{font-variant-numeric:tabular-nums}
+.status{margin:var(--s2) 0;font-size:15px;color:var(--ink-3);min-height:10px}
+.status.err,.status.error,.msg.err,.err-txt{color:var(--err)}
+.status.ok,.msg.ok,.ok-txt{color:var(--ok)}
+.msg.warn,.warn-txt{color:var(--warn)}
+
+/* ---- saldos y signos ---- */
+.pos{color:var(--ok);font-weight:700}
+.neg{color:var(--err);font-weight:700}
+.cero{color:var(--ink-4)}
+
+/* ---- disposicion ---- */
+.row{display:flex;gap:var(--s2) var(--s3);flex-wrap:wrap;margin:var(--s3) 0;align-items:center}
+.row.end{align-items:flex-end}
+.toolbar,.filters{display:flex;gap:var(--s2) var(--s3);flex-wrap:wrap;align-items:flex-end;margin:var(--s3) 0}
+.toolbar input[type=text],.toolbar input[type=search],.filters input[type=text]{flex:1 1 260px;min-width:200px}
+.grid-auto{display:grid;gap:var(--s3);grid-template-columns:repeat(auto-fill,minmax(var(--grid-min,280px),1fr))}
+.spacer{flex:1}
+/* campo con rotulo arriba: <div class="field"><label>Fecha</label><input …></div> */
+.field{display:flex;flex-direction:column;gap:5px;min-width:0}
+.field>label,.field>.lb,.field>span.lb{font:600 var(--fs-sm)/1.2 var(--font);color:var(--ink-2)}
+.chk{display:inline-flex;align-items:center;gap:8px;font-size:15px;color:var(--ink-2);cursor:pointer;user-select:none;min-height:var(--touch)}
+
+/* ==========================================================================
+   BOTONES — azul = accion. Un primario por zona.
+   ========================================================================== */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:var(--touch);padding:0 18px;
+  border-radius:var(--r-sm);border:1px solid var(--pri);background:var(--pri);color:#fff;
+  font:650 16px/1.15 var(--font);letter-spacing:.005em;text-decoration:none;cursor:pointer;white-space:nowrap;
+  transition:background .12s,border-color .12s,box-shadow .12s,color .12s}
+.btn:hover{background:var(--pri-h);border-color:var(--pri-h)}
+.btn:active{transform:translateY(1px)}
+.btn:focus-visible{outline:none;box-shadow:var(--focus)}
+.btn-primary,.btn.primary,button.primary,.btn-generar{background:var(--pri);border-color:var(--pri);color:#fff}
+.btn-secondary,.btn.secondary,.btn-cancel,.btn.ghost-dark{background:var(--surface);border-color:var(--line-2);color:var(--ink)}
+.btn-secondary:hover,.btn.secondary:hover,.btn-cancel:hover{background:var(--surface-2);border-color:#8f9db1;color:var(--ink)}
+.btn-ghost,.btn.ghost{background:transparent;border-color:transparent;color:var(--pri-ink)}
+.btn-ghost:hover,.btn.ghost:hover{background:var(--pri-soft);border-color:transparent}
+.btn-ok,.btn-success,.btn.ok{background:var(--ok);border-color:var(--ok);color:#fff}
+.btn-ok:hover,.btn-success:hover,.btn.ok:hover{background:#0c5f2f;border-color:#0c5f2f}
+.btn-danger,.btn.danger,.btn-err{background:var(--err);border-color:var(--err);color:#fff}
+.btn-danger:hover,.btn.danger:hover,.btn-err:hover{background:#9c1a20;border-color:#9c1a20}
+.btn-sm,.btn.sm{padding:0 12px;font-size:15px}
+.btn-lg,.btn.lg{min-height:54px;padding:0 24px;font-size:18px}
+.btn-block,.btn.block{display:flex;width:100%}
+.btn:disabled,.btn[disabled],.btn.disabled{opacity:.42;cursor:not-allowed;transform:none}
+
+/* ==========================================================================
+   CHIPS / FILTROS / ELEGIR UNO — azul marino = seleccionado
+   (.prov-btn, .seg-btn y compañia son los nombres que ya usaban las pantallas)
+   ========================================================================== */
+.chip,.prov-btn,.seg-btn,.tab-btn,.pill-btn,.filtro-btn,.tallerista-btn{
+  display:inline-flex;flex-direction:column;align-items:flex-start;justify-content:center;gap:1px;
+  min-height:var(--touch);padding:6px 14px;border-radius:var(--r-sm);border:1px solid var(--line-2);
+  background:var(--surface);color:var(--ink);font:600 16px/1.2 var(--font);cursor:pointer;text-align:left;
+  transition:border-color .12s,background .12s,color .12s}
+.chip,.seg-btn,.tab-btn,.pill-btn,.filtro-btn{flex-direction:row;align-items:center;gap:6px}
+.chip:hover,.prov-btn:hover,.seg-btn:hover,.tab-btn:hover,.pill-btn:hover,.filtro-btn:hover,.tallerista-btn:hover{border-color:var(--pri);color:var(--pri-h)}
+.chip.active,.chip.on,.chip[aria-pressed=true],.prov-btn.active,.seg-btn.active,.tab-btn.active,.tab-btn[aria-selected=true],
+.pill-btn.active,.filtro-btn.active,.tallerista-btn.active{background:var(--sel);border-color:var(--sel);color:#fff}
+.prov-btn .meta,.tallerista-btn .prov-meta,.chip .meta{display:block;font-size:var(--fs-sm);font-weight:500;color:var(--ink-3);margin-top:1px}
+.prov-btn.active .meta,.tallerista-btn.active .prov-meta,.chip.active .meta{color:#b9c7dd}
+.chip .n,.seg-btn .n{font-size:13px;font-weight:700;padding:1px 7px;border-radius:var(--r-pill);background:var(--surface-3);color:var(--ink-2)}
+.chip.active .n,.seg-btn.active .n{background:rgba(255,255,255,.16);color:#fff}
+.provs-grid,.chips{display:flex;flex-wrap:wrap;gap:var(--s2);margin:var(--s2) 0}
+
+/* ---- pestañas (subrayadas): cambian la vista entera ---- */
+.tabs{display:flex;gap:2px;border-bottom:1px solid var(--line-2);margin:0 0 var(--s4);overflow-x:auto;scrollbar-width:thin}
+.tab{flex:0 0 auto;display:inline-flex;align-items:center;gap:8px;min-height:var(--touch);padding:0 16px;margin-bottom:-1px;
+  background:none;border:0;border-bottom:3px solid transparent;color:var(--ink-3);font:650 16px var(--font);cursor:pointer;white-space:nowrap}
+.tab:hover{color:var(--ink)}
+.tab.active,.tab[aria-selected=true]{color:var(--ink);border-bottom-color:var(--pri)}
+
+/* ==========================================================================
+   PANELES Y METRICAS
+   ========================================================================== */
+.panel,.box{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-md);padding:var(--s4)}
+.panel>.panel-h,.box>.box-h{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:calc(-1 * var(--s4)) calc(-1 * var(--s4)) var(--s3);
+  padding:10px var(--s4);border-bottom:1px solid var(--line);background:var(--surface-2);border-radius:var(--r-md) var(--r-md) 0 0;
+  font-weight:700;font-size:16px}
+.kpis{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:var(--s2);margin:var(--s3) 0}
+.kpi{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-md);padding:10px 14px;min-width:0}
+.kpi .k,.kpi .lb,.kpi .kl,.kpi-l{display:block;font:700 var(--fs-xs)/1.3 var(--font);text-transform:uppercase;letter-spacing:.06em;color:var(--ink-3)}
+.kpi .v,.kpi .n,.kpi .kv,.kpi-v{display:block;font-size:var(--fs-2xl);font-weight:750;line-height:1.15;letter-spacing:-.02em;font-variant-numeric:tabular-nums;color:var(--ink);margin-top:2px}
+.kpi.ok{border-left:4px solid var(--ok)} .kpi.warn{border-left:4px solid #e0a100} .kpi.err{border-left:4px solid var(--err)} .kpi.pri{border-left:4px solid var(--pri)}
+
+/* ---- buscador: el campo solo, con lupa ---- */
+.search-box{margin:var(--s3) 0}
+.search-box input,input.search,input[type=search]{width:100%;padding-left:42px;
+  background:var(--surface) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='18' height='18' viewBox='0 0 24 24' fill='none' stroke='%235f6e84' stroke-width='2.4' stroke-linecap='round'%3E%3Ccircle cx='10.5' cy='10.5' r='6.5'/%3E%3Cpath d='M15.5 15.5L21 21'/%3E%3C/svg%3E") no-repeat 14px center}
+
+/* ==========================================================================
+   TABLAS — el encabezado queda a la vista mientras se scrollea.
+   .table-wrap scrollea por dentro (alto de la pantalla menos la barra): el
+   thead (todas sus filas juntas) y el tfoot de totales quedan pegados.
+   .fix1 en el wrap = la primera columna (el codigo) tambien queda pegada al
+   scrollear de costado. Solo cuando la primera columna es angosta.
+   ========================================================================== */
+.table-wrap{position:relative;overflow:auto;max-height:calc(100vh - var(--bar-h) - 20px);max-height:calc(100dvh - var(--bar-h) - 20px);
+  background:var(--surface);border:1px solid var(--line);border-radius:var(--r-md);overscroll-behavior-x:contain;scrollbar-width:thin}
+.table-wrap.libre{max-height:none}
+table.t{width:100%;border-collapse:separate;border-spacing:0;font-size:var(--fs-md);background:var(--surface);font-variant-numeric:tabular-nums}
+table.t>thead{position:sticky;top:0;z-index:3}
+table.t th{background:var(--surface-2);color:var(--ink-2);text-align:left;padding:9px 10px;font:700 var(--fs-xs)/1.25 var(--font);
+  text-transform:uppercase;letter-spacing:.05em;white-space:nowrap;border-bottom:1px solid var(--line-2);vertical-align:bottom}
+table.t td{padding:8px 10px;border-bottom:1px solid var(--line);vertical-align:middle;color:var(--ink)}
+table.t tbody tr:last-child>td{border-bottom:0}
+table.t tbody tr:hover>td{background:var(--surface-3)}
+table.t td.num,table.t th.num,table.t td.r,table.t th.r{text-align:right}
+table.t td.ctr,table.t th.ctr,table.t td.c,table.t th.c{text-align:center}
+table.t tr.falt td{background:#fff6ea}
+table.t>tfoot{position:sticky;bottom:0;z-index:2}
+table.t tfoot td{font-weight:750;background:var(--surface-2);border-top:2px solid var(--line-2);border-bottom:0}
+table.t tr.grp>td,table.t tr.group>td{background:var(--surface-2);font-weight:700;color:var(--ink-2)}
+.fix1 table.t :is(th,td):first-child,table.t.fix1 :is(th,td):first-child{position:sticky;left:0;z-index:1;box-shadow:1px 0 0 var(--line)}
+.fix1 table.t td:first-child,table.t.fix1 td:first-child{background:var(--surface)}
+.fix1 table.t th:first-child,table.t.fix1 th:first-child{z-index:4;background:var(--surface-2)}
+.sep{border-left:1px solid var(--line-2)}
+table.t th.sep,table.t td.sep{border-left:1px solid var(--line-2)}
+/* tablas sin clase (pantallas viejas): mismo aspecto, sin pelear con su CSS */
+:where(table){border-collapse:collapse;font-variant-numeric:tabular-nums}
+:where(th){font-weight:700;text-align:left}
+
+/* ---- celdas editables (envios / entregas / recepcion) ---- */
+.cell-in{width:96px;min-height:var(--touch);padding:6px 8px;font-size:18px;font-weight:550;border:1px solid var(--field-line);border-radius:var(--r-sm);
+  text-align:right;font-variant-numeric:tabular-nums;background:var(--surface)}
+.cell-in:focus{outline:none;border-color:var(--pri);box-shadow:var(--focus)}
+.cell-in.ro{background:var(--surface-2);color:var(--ink-3)}
+.tanda-btn,.falt-box{width:var(--touch);height:var(--touch);border-radius:var(--r-sm);border:1px solid var(--line-2);background:var(--surface);
+  font:750 18px var(--font);cursor:pointer;color:var(--ink)}
+.tanda-btn:hover,.falt-box:hover{border-color:var(--pri)}
+.tanda-btn.on{background:var(--pri);border-color:var(--pri);color:#fff}
 .falt-box.on{background:#c2410c;border-color:#c2410c;color:#fff}
 
-/* ---- saldos ---- */
-.pos{color:#0a7a2f;font-weight:800}
-.neg{color:#b91c1c;font-weight:800}
-.cero{color:#999}
+/* ==========================================================================
+   ETIQUETAS, AVISOS, ESTADOS
+   ========================================================================== */
+.badge,.tag,.pill{display:inline-flex;align-items:center;gap:4px;height:22px;padding:0 8px;border-radius:var(--r-pill);
+  font:700 12px/1 var(--font);letter-spacing:.02em;background:var(--surface-3);color:var(--ink-2);white-space:nowrap;vertical-align:middle}
+.badge.ok,.tag.ok,.pill.ok{background:var(--ok-soft);color:var(--ok)}
+.badge.warn,.tag.warn,.pill.warn{background:var(--warn-soft);color:var(--warn)}
+.badge.err,.tag.err,.pill.err,.badge.bad,.pill.bad{background:var(--err-soft);color:var(--err)}
+.badge.pri,.tag.pri,.pill.pri,.badge.info,.pill.info{background:var(--pri-soft);color:var(--pri-h)}
+.badge.dark,.tag.dark{background:var(--sel);color:#fff}
 
-/* ---- varios ---- */
-.empty{color:#888;padding:16px;text-align:center;font-style:italic;font-size:18px}
+/* aviso: lo que el usuario tiene que saber antes de seguir */
+.aviso,.note,.callout{background:var(--warn-soft);border:1px solid var(--warn-line);border-left:4px solid #dc9a00;color:#5a3600;
+  border-radius:var(--r-sm);padding:10px 14px;font-size:15px;line-height:1.5;margin:var(--s3) 0}
+.aviso b,.note b{color:#3f2500}
+.aviso code{background:rgba(255,255,255,.6)}
+.aviso.info,.callout.info{background:var(--pri-soft);border-color:var(--pri-line);border-left-color:var(--pri);color:#173b80}
+.aviso.ok,.callout.ok{background:var(--ok-soft);border-color:var(--ok-line);border-left-color:var(--ok);color:#0b4d27}
+.aviso.err,.callout.err{background:var(--err-soft);border-color:var(--err-line);border-left-color:var(--err);color:#7d1116}
+
+.empty{color:var(--ink-3);padding:24px 16px;text-align:center;font-size:16px}
+.successBox{margin:var(--s3) 0;border:1px solid var(--ok-line);background:var(--ok-soft);border-radius:var(--r-md);padding:24px;text-align:center}
+.successBox .title{font-weight:750;font-size:22px;color:var(--ok);margin-bottom:10px}
+.successBox .code{font-size:46px;font-weight:800;letter-spacing:5px;color:var(--ink);margin:10px 0;font-variant-numeric:tabular-nums}
+
+/* ==========================================================================
+   CAPAS: popup / modal / toast — solo el aspecto. Mostrar y ocultar lo
+   maneja cada pantalla (algunas usan .on, otras .open, otras style.display).
+   ========================================================================== */
+.modal-bg,.popup,.overlay{background:rgba(11,24,48,.55)}
+.modal,.pop-card,.dialog{background:var(--surface);border-radius:var(--r-lg);box-shadow:var(--sh-2);color:var(--ink)}
+.modal h3,.pop-card h3,.dialog h3{font-size:var(--fs-lg);font-weight:750}
+.pop-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:14px}
+.actions{display:flex;gap:var(--s2);justify-content:flex-end;flex-wrap:wrap}
+#toast,.toast{border-radius:var(--r-sm);font:650 15px var(--font);box-shadow:var(--sh-2)}
+
+/* ---- acordeon (details/summary) ---- */
+details.acc,details.movs{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-md);margin:var(--s3) 0}
+details.acc>summary,details.movs>summary{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;min-height:var(--touch);padding:0 14px;font-weight:700;font-size:16px}
+details.acc>summary::-webkit-details-marker,details.movs>summary::-webkit-details-marker{display:none}
+details.acc>summary::before,details.movs>summary::before{content:"";width:8px;height:8px;border-right:2px solid var(--ink-3);border-bottom:2px solid var(--ink-3);transform:rotate(-45deg);transition:transform .12s;flex:0 0 auto}
+details.acc[open]>summary::before,details.movs[open]>summary::before{transform:rotate(45deg)}
+details.acc>:not(summary),details.movs>:not(summary){margin-left:14px;margin-right:14px}
+
+/* ---- utilitarios ---- */
 .hidden{display:none!important}
-
-.successBox{margin:12px 0;border:2px solid #c7e8d1;background:#f3fbf6;border-radius:12px;padding:22px;text-align:center}
-.successBox .title{font-weight:900;font-size:24px;color:#0a7a2f;margin-bottom:10px}
-.successBox .code{font-size:46px;font-weight:900;letter-spacing:5px;color:#111;margin:10px 0}
-
-/* ---- aviso (estado de los datos) ---- */
-.aviso{background:#fffbeb;border:1px solid #fde68a;color:#7a5200;border-radius:10px;padding:10px 14px;font-size:15px;line-height:1.45;margin:10px 0}
-.aviso b{color:#5c3d00}
-.aviso code{background:#fef3c7;padding:1px 5px;border-radius:4px;font-size:14px}
-
-/* ---- KPIs ---- */
-.kpis{display:flex;gap:10px;flex-wrap:wrap;margin:10px 0}
-.kpi{background:#f6f8fa;border:1px solid #e5e9ee;border-radius:10px;padding:10px 16px;min-width:130px}
-.kpi .k{font-size:13px;color:#666;text-transform:uppercase;font-weight:700}
-.kpi .v{font-size:26px;font-weight:900;font-variant-numeric:tabular-nums}
+.nowrap{white-space:nowrap}
+.r{text-align:right}
+.c{text-align:center}
+.mt0{margin-top:0!important} .mb0{margin-bottom:0!important}
 
 @media print{
-  body{background:#fff;padding:0}
-  .header,.search-box,.btn,.provs-grid,.no-print{display:none!important}
-  .card{box-shadow:none;max-width:none}
+  :root{--bar-h:0px}
+  body{background:#fff;color:#000}
+  .header,.search-box,.btn,.provs-grid,.chips,.tabs,.toolbar,.gp2-nav,.gp2-nav-ov,.no-print{display:none!important}
+  .steps{padding:0}
+  .table-wrap{max-height:none;overflow:visible;border:0;border-radius:0}
+  table.t>thead,table.t>tfoot{position:static}
+  .fix1 table.t :is(th,td):first-child{position:static}
+  .kpi,.panel,.box{break-inside:avoid}
 }

@@ -663,6 +663,28 @@ En TODA pantalla, nueva o tocada:
    cuatro dígitos. Una pantalla que lo carga ya tiene el formato en todos sus campos.
    **Nunca escribir un saneador de número propio**: `tests/ui/test_numero.js` lo rechaza.
 
+## 🎨 Sistema de diseño: UNA hoja, UNA barra, UNA tipografía (OBLIGATORIO desde 2026-10-08)
+
+Pedido del dueño (08/10): *"que deje de sentirse como un conjunto de módulos diseñados por separado y
+pase a tener una identidad visual única"*. Reglas completas en **`DISENO_GP2.md`**; guía viva con el
+marcado exacto de cada componente en **`Diseno/SistemaDiseno_GP2.html`**. Lo vigila
+`tests/ui/test_diseno.js`.
+
+1. **Una hoja: `gp2-modulo.css`** (tokens en `:root` + componentes). `gp2-claro.css` se borró. Toda
+   pantalla la carga ANTES de su `<style>` propio, y al final del body `gp2-menu.js` + `gp2-nav.js`.
+2. **Una tipografía: Inter**, auto-hospedada en `fonts/`. Ninguna pantalla escribe `font-family`.
+3. **Una barra**: `<div class="card"><div class="header"><h1>…</h1><div class="hbtns">… <a …GP2_MODULOS.html>Atrás</a></div></div><div class="steps">…`.
+   Pegada arriba; la marca GP2 abre el **selector de módulos** (`gp2-nav.js`, lee `gp2-menu.js`, que es
+   la ÚNICA copia del menú: agregar un módulo al menú = editar `gp2-menu.js`).
+4. **Tokens, no hex**: `var(--ink)`, `var(--pri)` (acción), `var(--sel)` (seleccionado), `var(--ok/--warn/--err)`.
+   Un `#hex` en una pantalla sólo si es color de dominio.
+5. **Tablas**: `.table-wrap > table.t` → encabezado y totales pegados al scrollear; `.fix1` fija la
+   primera columna. **Ancho completo**; un formulario chico pide `.card.angosto`.
+6. **Pantalla nueva = componentes del catálogo.** Si falta uno, se agrega a `gp2-modulo.css` y a la guía
+   viva en el mismo commit, no en el `<style>` de la pantalla.
+7. Fuera del sistema a propósito: la tablet de operarios (`Operarios_GP2.html`, copia de Registro 3.0:
+   se rediseña allá) y las pantallas muertas que miran `public`.
+
 ## Helpers de pantalla y cliente Supabase: UNA copia (OBLIGATORIO desde 2026-09-05)
 
 Ninguna pantalla GP2 escribe su propio `esc()`, `$()`, "hoy", exportador CSV ni

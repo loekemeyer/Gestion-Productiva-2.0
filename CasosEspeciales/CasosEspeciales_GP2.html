@@ -25,9 +25,9 @@
 <title>Casos especiales · Charcas / Eclipse · GP2</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="../supabase-config.js?v=20260929a"></script>
-<link rel="stylesheet" href="../gp2-modulo.css?v=20260912c"/>
 <link rel="icon" type="image/png" href="../GP2_favicon.png">
 <link rel="apple-touch-icon" href="../GP2_favicon.png">
+<link rel="stylesheet" href="../gp2-modulo.css?v=20261008ds">
 <style>
   .ce-wrap{max-width:560px}
   .ce-dest{display:flex;flex-direction:column;gap:10px;margin:10px 0}
@@ -321,5 +321,7 @@ $("btnEnviar").addEventListener("click", async function(){
 $("fFecha").value = hoyAR();
 cargar().catch(function(e){ $("status").textContent = "Error: " + (e && e.message ? e.message : e); });
 </script>
+<script src="../gp2-menu.js?v=20261008ds"></script>
+<script src="../gp2-nav.js?v=20261008ds"></script>
 </body>
 </html>

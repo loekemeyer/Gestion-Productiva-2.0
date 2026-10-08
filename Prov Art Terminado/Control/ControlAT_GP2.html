@@ -15,18 +15,12 @@
 <script src="../../supabase-config.js?v=20260929a"></script>
 <!-- GP2EE.rubroSector: el orden de partes por sector, el mismo de "Enviar a tallerista" [2026-09-24]. -->
 <script src="../../gp2-envios-common.js?v=20260924b"></script>
-<link rel="stylesheet" href="../../gp2-modulo.css?v=20260912c"/>
 <link rel="icon" type="image/png" href="../../GP2_favicon.png">
 <link rel="apple-touch-icon" href="../../GP2_favicon.png">
+<link rel="stylesheet" href="../../gp2-modulo.css?v=20261008ds">
 <style>
-  .bloque-tit{
-    font-size:15px; font-weight:800; margin:22px 0 8px;
-    padding-bottom:6px; border-bottom:2px solid #e3e7ec;
-  }
-  .bloque-tit .sub-nota{ font-weight:400; font-size:12px; color:#6b7683; margin-left:8px; }
-  .prov-btn .pb-sub{ display:block; font-size:11px; color:#6b7683; margin-top:3px; font-weight:400; }
   td.fecha{ white-space:nowrap; }
-  .sin-dato{ color:#98a1ab; font-style:italic; }
+  .sin-dato{ color:var(--ink-4); font-style:italic; font-weight:400; }
 </style>
 </head>
 <body>
@@ -48,14 +42,14 @@
 
     <!-- FASE 0 — elegir proveedor -->
     <div id="fase0">
-      <div class="row"><label class="lbl">Proveedor de Artículo Terminado</label></div>
+      <h2 class="sec-h">Proveedor de Artículo Terminado</h2>
       <div class="provs-grid" id="provGrid"></div>
       <div id="status" class="status">Cargando…</div>
     </div>
 
     <!-- FASE 1 — control del proveedor -->
     <div id="fase1" class="hidden">
-      <div class="row"><label class="lbl" id="fase1Title">Proveedor</label></div>
+      <h2 class="sec-h" id="fase1Title">Proveedor</h2>
 
       <div class="aviso" id="aviso"></div>
 
@@ -65,11 +59,11 @@
         <input type="text" id="q" placeholder="Buscar por código o descripción…">
       </div>
 
-      <div class="bloque-tit">
+      <h2 class="sec-h">
         Artículos del proveedor
-        <span class="sub-nota">lo que nos entregó, en cajas y en unidades</span>
-      </div>
-      <div class="table-wrap">
+        <span class="sub">lo que nos entregó, en cajas y en unidades</span>
+      </h2>
+      <div class="table-wrap fix1">
         <table class="t">
           <thead>
             <tr>
@@ -88,11 +82,11 @@
       </div>
       <div id="artEmpty" class="empty hidden">Este proveedor no tiene artículos cargados en «Articulos x Prov AT».</div>
 
-      <div class="bloque-tit">
+      <h2 class="sec-h">
         Cartón y cajas en poder del proveedor
-        <span class="sub-nota">lo que le mandamos y todavía tiene</span>
-      </div>
-      <div class="table-wrap">
+        <span class="sub">lo que le mandamos y todavía tiene</span>
+      </h2>
+      <div class="table-wrap libre">
         <table class="t">
           <thead>
             <tr>
@@ -423,7 +417,7 @@ function renderGrid(){
     var sub = arts + " art." + (cajas ? " · " + fmt(cajas) + " cajas entregadas" : " · sin entregas");
     return '<button class="prov-btn" data-id="' + p.id + '">' +
              esc(p.nombre) +
-             '<span class="pb-sub">' + esc(sub) + '</span>' +
+             '<span class="meta">' + esc(sub) + '</span>' +
            '</button>';
   }).join("");
 
@@ -489,8 +483,8 @@ function render(){
     kpi("Entregado (cajas)", fmt(totCaj)) +
     kpi("Unidades", fmt(totUni)) +
     kpi("Enviado (cartón/cajas)", hayEnvios ? fmt(ins.reduce(function(s,i){ return s+i.enviado; },0)) : "0") +
-    (sinUxc ? kpi("Sin uni x caja", fmt(sinUxc)) : "") +
-    (ambiguos ? kpi("Uni x caja ambiguo", fmt(ambiguos)) : "");
+    (sinUxc ? kpi("Sin uni x caja", fmt(sinUxc), "warn") : "") +
+    (ambiguos ? kpi("Uni x caja ambiguo", fmt(ambiguos), "warn") : "");
 
   // --- tabla articulos ---
   elArtEmpty.classList.toggle("hidden", artsVis.length > 0);
@@ -512,9 +506,9 @@ function render(){
   var vCaj = artsVis.reduce(function(s,a){ return s + a.entregado; }, 0);
   var vUni = artsVis.reduce(function(s,a){ return s + (a.unidades || 0); }, 0);
   elArtFoot.innerHTML = artsVis.length
-    ? '<tr><th colspan="4">Total (' + artsVis.length + ')</th>' +
-      '<th class="num sep">' + fmt(vCaj) + "</th>" +
-      '<th class="num">' + fmt(vUni) + '</th><th class="sep"></th></tr>'
+    ? '<tr><td colspan="4">Total (' + artsVis.length + ')</td>' +
+      '<td class="num sep">' + fmt(vCaj) + "</td>" +
+      '<td class="num">' + fmt(vUni) + '</td><td class="sep"></td></tr>'
     : "";
 
   // --- tabla insumos ---
@@ -530,8 +524,8 @@ function render(){
   }).join("");
 }
 
-function kpi(lbl, val){
-  return '<div class="kpi"><span class="sub">' + esc(lbl) + "</span><b>" + esc(val) + "</b></div>";
+function kpi(lbl, val, cls){
+  return '<div class="kpi' + (cls ? " " + cls : "") + '"><span class="k">' + esc(lbl) + '</span><span class="v">' + esc(val) + "</span></div>";
 }
 
 /* ===== CSV ===== */
@@ -569,5 +563,7 @@ elQ.addEventListener("input", function(){ if (provSel) render(); });
 
 cargar();
 </script>
+<script src="../../gp2-menu.js?v=20261008ds"></script>
+<script src="../../gp2-nav.js?v=20261008ds"></script>
 </body>
 </html>

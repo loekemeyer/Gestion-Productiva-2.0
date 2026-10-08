@@ -1,193 +1,184 @@
-/* tandas-popup.css — popup de tandas reutilizable */
+/* tandas-popup.css — popup de tandas reutilizable (lo arma tandas-popup.js).
+   Sistema de diseño v2 (2026-10-08): colores, radios, sombras y tamaños salen de los
+   TOKENS de gp2-modulo.css (DISENO_GP2.md); acá sólo va lo propio del popup. La cabecera
+   usa el azul marino de la barra de la app, como el selector de módulos. */
 
 .tandas-overlay{
   position: fixed; inset: 0;
-  background: rgba(0,0,0,.5);
+  background: rgba(11,24,48,.55);
   display: none;
   align-items: center; justify-content: center;
   z-index: 10050; /* sobre cualquier otro popup (popup-overlay usa 9999) */
-  padding: 16px;
+  padding: var(--s4);
 }
 .tandas-overlay.open{ display: flex; }
 
 .tandas-modal{
-  background: #fff;
-  border-radius: 14px;
+  background: var(--surface);
+  color: var(--ink);
+  border-radius: var(--r-lg);
   width: min(560px, 100%);
   max-height: 90vh;
   display: flex; flex-direction: column;
-  box-shadow: 0 20px 60px rgba(0,0,0,.3);
+  box-shadow: var(--sh-2);
   overflow: hidden;
 }
 
 .tandas-head{
-  background: #111;
+  background: var(--bar);
   color: #fff;
-  padding: 14px 18px;
-  display: flex; align-items: center; justify-content: space-between;
+  padding: 8px 8px 8px var(--s4);
+  min-height: var(--bar-min);
+  display: flex; align-items: center; justify-content: space-between; gap: var(--s3);
 }
 .tandas-head .titulo{
-  font-weight: 800;
-  font-size: 16px;
+  font-weight: 750;
+  font-size: var(--fs-lg);
+  line-height: 1.25;
 }
 .tandas-head .close-btn{
-  background: #fff;
-  color: #111;
-  border: 0;
-  border-radius: 8px;
-  padding: 6px 12px;
-  font-weight: 800;
+  flex: 0 0 auto;
+  min-width: var(--touch); min-height: var(--touch);
+  background: rgba(255,255,255,.08);
+  color: #fff;
+  border: 1px solid rgba(255,255,255,.18);
+  border-radius: var(--r-sm);
+  font-size: 20px;
   cursor: pointer;
 }
+.tandas-head .close-btn:hover{ background: rgba(255,255,255,.16); }
 
 .tandas-body{
-  padding: 16px 18px;
+  padding: var(--s3) var(--s4) var(--s4);
   overflow-y: auto;
   flex: 1;
+}
+
+/* las columnas las fija tandas-popup.js (style="grid-template-columns:…") */
+.tandas-headers{
+  display: grid;
+  grid-template-columns: 50px 1fr 1fr 1fr 40px;
+  gap: var(--s2);
+  padding: 6px 0;
+  border-bottom: 1px solid var(--line-2);
+  font: 700 var(--fs-xs)/1.25 var(--font);
+  text-transform: uppercase; letter-spacing: .05em;
+  color: var(--ink-3);
+  text-align: center;
 }
 
 .tanda-row{
   display: grid;
   grid-template-columns: 50px 1fr 1fr 1fr 40px;
-  gap: 8px;
+  gap: var(--s2);
   align-items: center;
   padding: 6px 0;
-  border-bottom: 1px solid #e5e7eb;
+  border-bottom: 1px solid var(--line);
 }
 .tanda-row .num{
-  font-weight: 800;
-  color: #555;
-  font-size: 16px;
+  font-weight: 700;
+  color: var(--ink-3);
+  font-size: var(--fs-base);
+  text-align: center;
 }
-/* Es carga de CANTIDADES: va con el piso de la casa (campos >=18px, tactil 44px).
-   Estaba en 16px/38px — existia una variante grande (.tandas-lg) pero ninguna
-   pantalla pasaba grande:true, o sea era codigo muerto. Subido 2026-09-03. */
+/* Es carga de CANTIDADES: va con el piso de la casa (campos >=18px, tactil 44px). */
 .tanda-row input{
   height: 48px;
-  border: 2px solid #d0d7de;
-  border-radius: 8px;
+  width: 100%;
+  border: 1px solid var(--field-line);
+  border-radius: var(--r-sm);
   padding: 0 10px;
   font-size: 20px;
+  font-weight: 650;
   text-align: center;
-  font-weight: 700;
-  width: 100%;
+  font-variant-numeric: tabular-nums;
+  background: var(--surface);
+  color: var(--ink);
 }
-.tanda-row input:focus{ border-color: #111; outline: none; }
+.tanda-row input:focus{ border-color: var(--pri); box-shadow: var(--focus); outline: none; }
+/* la columna del ✕ mide 40px (la fija el JS); el boton se centra y llega al tocable de 44 */
 .tanda-row .del-btn{
-  background: #fee2e2;
-  color: #b91c1c;
-  border: 0;
-  border-radius: 8px;
-  padding: 6px 10px;
+  justify-self: center;
+  width: var(--touch); height: var(--touch);
+  background: var(--err-soft);
+  color: var(--err);
+  border: 1px solid var(--err-line);
+  border-radius: var(--r-sm);
   cursor: pointer;
-  font-weight: 800;
-  font-size: 14px;
+  font-weight: 750;
+  font-size: 16px;
 }
-.tanda-row .del-btn:hover{ background: #fecaca; }
-
-.tandas-headers{
-  display: grid;
-  grid-template-columns: 50px 1fr 1fr 1fr 40px;
-  gap: 8px;
-  padding: 4px 0;
-  border-bottom: 2px solid #111;
-  font-weight: 800;
-  font-size: 13px;
-  color: #444;
-  text-align: center;
-}
+.tanda-row .del-btn:hover{ border-color: var(--err); }
 
 .tandas-add-row{
   display: flex;
   justify-content: center;
-  margin: 12px 0 0;
+  margin: var(--s3) 0 0;
 }
 .tandas-add-btn{
-  background: #fff;
-  color: #111;
-  border: 2px dashed #111;
-  border-radius: 10px;
-  padding: 10px 20px;
-  font-weight: 800;
+  min-height: var(--touch);
+  padding: 0 20px;
+  background: var(--surface);
+  color: var(--pri-ink);
+  border: 1px dashed var(--pri-line);
+  border-radius: var(--r-sm);
+  font: 650 16px var(--font);
   cursor: pointer;
-  font-size: 14px;
 }
-.tandas-add-btn:hover{ background: #f3f4f6; }
+.tandas-add-btn:hover{ background: var(--pri-soft); border-color: var(--pri); }
 
 .tandas-totales{
-  background: #f3f4f6;
-  border-top: 2px solid #111;
-  padding: 14px 18px;
+  margin-top: var(--s3);
+  background: var(--surface-2);
+  border-top: 2px solid var(--line-2);
+  border-radius: 0 0 var(--r-sm) var(--r-sm);
+  padding: 10px 0;
   display: grid;
   grid-template-columns: 50px 1fr 1fr 1fr 40px;
-  gap: 8px;
-  font-weight: 800;
-  font-size: 16px;
+  gap: var(--s2);
+  font-weight: 750;
+  font-size: var(--fs-lg);
+  font-variant-numeric: tabular-nums;
   text-align: center;
 }
-.tandas-totales .lbl{ text-align: left; padding-left: 8px; }
+.tandas-totales .lbl{ text-align: left; padding-left: var(--s2); font-size: var(--fs-base); color: var(--ink-2); }
 
 .tandas-footer{
-  padding: 12px 18px;
+  padding: var(--s3) var(--s4);
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  gap: 10px;
-  border-top: 1px solid #e5e7eb;
+  gap: var(--s3);
+  border-top: 1px solid var(--line);
 }
 .tandas-msg{
-  color: #c00;
-  font-weight: 800;
-  font-size: 14px;
+  color: var(--err);
+  font-weight: 650;
+  font-size: var(--fs-sm);
   text-align: left;
   margin-right: auto;
 }
+/* "Listo" confirma el popup: es la accion de la zona, azul (no el verde de .btn-ok) */
 .tandas-footer .btn-ok{
-  background: #111;
+  min-height: var(--touch);
+  padding: 0 28px;
+  background: var(--pri);
   color: #fff;
-  border: 0;
-  border-radius: 10px;
-  padding: 10px 24px;
-  font-weight: 800;
+  border: 1px solid var(--pri);
+  border-radius: var(--r-sm);
+  font: 650 16px var(--font);
   cursor: pointer;
-  font-size: 15px;
 }
+.tandas-footer .btn-ok:hover{ background: var(--pri-h); border-color: var(--pri-h); }
 
-/* Trigger button (icono + en celda de fila) */
-.tanda-trigger{
-  background: #fff;
-  border: 2px solid #111;
-  border-radius: 6px;
-  width: 32px; height: 32px;
-  font-weight: 800; font-size: 16px;
-  cursor: pointer;
-  padding: 0;
-  line-height: 1;
-}
-.tanda-trigger:hover{ background: #f3f4f6; }
-.tanda-trigger.has-tandas{
-  background: #fef3c7;
-  border-color: #d97706;
-}
-
-/* Cell con tandas: input read-only marca distinta */
-.input-with-tandas{
-  background: #fef3c7 !important;
-  cursor: not-allowed;
-}
-
-/* ===== Variante GRANDE (tablet) — solo cuando el overlay tiene .tandas-lg ===== */
+/* ===== Variante GRANDE (tablet) — solo cuando el overlay tiene .tandas-lg (grande:true) ===== */
 .tandas-lg .tandas-modal{ width: min(760px, 100%); }
-.tandas-lg .tandas-head{ padding: 18px 22px; }
-.tandas-lg .tandas-head .titulo{ font-size: 22px; }
-.tandas-lg .tandas-head .close-btn{ padding: 10px 16px; font-size: 18px; }
-.tandas-lg .tandas-body{ padding: 20px 22px; }
-.tandas-lg .tandas-headers{ font-size: 18px; padding: 8px 0; }
-.tandas-lg .tanda-row{ padding: 10px 0; gap: 12px; }
+.tandas-lg .tandas-head .titulo{ font-size: var(--fs-xl); }
+.tandas-lg .tandas-headers{ font-size: var(--fs-sm); }
+.tandas-lg .tanda-row{ padding: 10px 0; gap: var(--s3); }
 .tandas-lg .tanda-row .num{ font-size: 20px; }
-.tandas-lg .tanda-row input{ height: 60px; font-size: 26px; border-radius: 10px; }
-.tandas-lg .tanda-row .del-btn{ padding: 12px 14px; font-size: 20px; }
-.tandas-lg .tandas-add-btn{ padding: 14px 26px; font-size: 19px; }
-.tandas-lg .tandas-totales{ font-size: 24px; padding: 18px 22px; }
-.tandas-lg .tandas-msg{ font-size: 18px; }
-.tandas-lg .tandas-footer .btn-ok{ padding: 16px 40px; font-size: 22px; }
+.tandas-lg .tanda-row input{ height: 60px; font-size: 26px; }
+.tandas-lg .tandas-add-btn{ min-height: 54px; font-size: 18px; }
+.tandas-lg .tandas-totales{ font-size: 24px; }
+.tandas-lg .tandas-msg{ font-size: var(--fs-base); }
+.tandas-lg .tandas-footer .btn-ok{ min-height: 54px; padding: 0 40px; font-size: 20px; }

@@ -90,57 +90,61 @@ window.GP2Composicion = (function () {
     if (montado) return;
     montado = true;
 
+    /* Sistema de diseño v2 (2026-10-08): el aspecto sale de gp2-modulo.css — fondo .popup,
+       tarjeta .pop-card, tabla table.t (encabezado pegado), filas de dia tr.grp, .cod, .eyebrow,
+       .empty, .btn. Aca queda solo el armado propio del popup, con los tokens del sistema. */
     var css = document.createElement("style");
     css.textContent = [
-      "#cpBg{position:fixed;inset:0;background:rgba(15,23,42,.55);display:none;align-items:center;justify-content:center;z-index:9999;padding:16px}",
+      "#cpBg{position:fixed;inset:0;display:none;align-items:center;justify-content:center;z-index:9999;padding:var(--s4)}",
       "#cpBg.open{display:flex}",
-      "#cpBox{background:#fff;border-radius:14px;width:100%;max-width:860px;max-height:92vh;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 20px 50px rgba(0,0,0,.3)}",
-      "#cpHead{padding:14px 18px;border-bottom:1px solid #e2e8f0;display:flex;align-items:flex-start;gap:12px}",
+      /* padding:0 a proposito: algunas pantallas tienen su propio .pop-card con padding */
+      "#cpBox{width:100%;max-width:860px;max-height:92vh;display:flex;flex-direction:column;overflow:hidden;padding:0}",
+      "#cpHead{padding:var(--s3) var(--s4);border-bottom:1px solid var(--line);display:flex;align-items:flex-start;gap:var(--s3)}",
       "#cpHead .cp-t{flex:1;min-width:0}",
-      "#cpHead .cp-cod{font-weight:800;color:#1e40af;font-family:ui-monospace,Menlo,Consolas,monospace}",
-      "#cpHead .cp-desc{font-size:15px;font-weight:700;color:#1e293b;margin-top:2px;overflow-wrap:anywhere}",
-      "#cpHead .cp-ubic{font-size:12px;color:#64748b;margin-top:3px}",
-      "#cpX{border:1px solid #cbd5e1;background:#f8fafc;border-radius:9px;font-size:20px;line-height:1;padding:5px 11px;cursor:pointer;color:#475569;flex-shrink:0}",
-      "#cpHoy{padding:12px 18px;background:#f8fafc;border-bottom:1px solid #e2e8f0;display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end}",
-      "#cpHoy .cp-k{font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.5px}",
-      "#cpHoy .cp-big{font-size:30px;font-weight:800;line-height:1.05}",
-      "#cpHoy .cp-sec{font-size:14px;font-weight:700;color:#475569}",
-      "#cpHoy .cp-when{font-size:11px;color:#94a3b8;width:100%}",
-      "#cpBody{overflow:auto;padding:0 0 8px}",
-      "#cpBody table{width:100%;border-collapse:collapse;font-size:14px}",
-      "#cpBody th{position:sticky;top:0;background:#f1f5f9;color:#475569;font-size:11px;text-transform:uppercase;letter-spacing:.4px;padding:8px 10px;text-align:left;border-bottom:1px solid #e2e8f0;z-index:1}",
-      "#cpBody td{padding:9px 10px;border-bottom:1px solid #f1f5f9;vertical-align:top}",
-      "#cpBody td.num,#cpBody th.num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}",
-      "#cpBody .cp-dia td{background:#eef2f7;font-weight:800;color:#334155;font-size:12px;padding:6px 10px;border-bottom:1px solid #e2e8f0}",
-      "#cpBody .cp-hora{color:#64748b;font-size:12px;white-space:nowrap}",
-      "#cpBody .cp-tipo{font-weight:700;color:#1e293b}",
-      "#cpBody .cp-cp{color:#64748b;font-size:12px}",
-      "#cpBody .cp-pos{color:#15803d;font-weight:700}",
-      "#cpBody .cp-neg{color:#b91c1c;font-weight:700}",
-      "#cpBody .cp-cero{color:#94a3b8}",
-      "#cpBody .cp-saldo{font-weight:800;color:#0f172a}",
-      "#cpBody .cp-arr td{background:#fffbeb;color:#92400e;font-size:12px;font-weight:700;padding:9px 10px}",
-      "#cpBody .cp-vacio{padding:24px 18px;color:#94a3b8;text-align:center}",
+      "#cpHead .cp-desc{font-size:var(--fs-base);font-weight:700;color:var(--ink);margin-top:2px;overflow-wrap:anywhere}",
+      "#cpHead .cp-ubic{margin-top:2px}",
+      "#cpX{flex-shrink:0;width:var(--touch);padding:0;font-size:24px;line-height:1}",
+      "#cpHoy{padding:var(--s3) var(--s4);background:var(--surface-2);border-bottom:1px solid var(--line);display:flex;gap:var(--s2) var(--s5);flex-wrap:wrap;align-items:flex-end}",
+      "#cpHoy .cp-big{font-size:var(--fs-2xl);font-weight:750;line-height:1.1;letter-spacing:-.02em;font-variant-numeric:tabular-nums;color:var(--ink)}",
+      "#cpHoy .cp-big.cp-neg{color:var(--err)}",
+      "#cpHoy .cp-u{font-size:var(--fs-md);font-weight:700;letter-spacing:0;color:var(--ink-2)}",
+      "#cpHoy .cp-col{padding-bottom:4px}",
+      "#cpHoy .cp-der{margin-left:auto}",
+      "#cpHoy .cp-sec{font-size:var(--fs-md);font-weight:700;color:var(--ink-2)}",
+      "#cpHoy .cp-when{font-size:var(--fs-sm);color:var(--ink-3);width:100%}",
+      "#cpBody{overflow:auto;overscroll-behavior:contain}",
+      "#cpBody table.t td{vertical-align:top}",
+      "#cpBody td.num,#cpBody th.num{white-space:nowrap}",
+      "#cpBody .cp-dia td{font-size:var(--fs-sm);padding-top:6px;padding-bottom:6px}",
+      "#cpBody .cp-hora{color:var(--ink-3);font-size:var(--fs-sm);white-space:nowrap}",
+      "#cpBody .cp-tipo{font-weight:700}",
+      "#cpBody .cp-cp{color:var(--ink-3);font-size:var(--fs-sm)}",
+      "#cpBody .cp-pos{color:var(--ok);font-weight:700}",
+      "#cpBody .cp-neg{color:var(--err);font-weight:700}",
+      "#cpBody .cp-cero{color:var(--ink-4)}",
+      "#cpBody .cp-saldo{font-weight:750}",
+      "#cpBody .cp-arr td{background:var(--warn-soft);color:var(--warn);font-size:var(--fs-sm);font-weight:700}",
+      /* la F de faltante: el mismo naranja que la casilla F de envios (.falt-box.on) */
       "#cpBody .cp-f{color:#c2410c;font-weight:800}",
       "@media (max-width:640px){",
       "  #cpBg{padding:0}",
-      "  #cpBox{max-width:none;max-height:100vh;height:100vh;border-radius:0}",
-      "  #cpHoy .cp-big{font-size:26px}",
-      "  #cpBody table{font-size:13px}",
-      "  #cpBody td,#cpBody th{padding:7px 8px}",
+      "  #cpBox{max-width:none;max-height:100vh;height:100vh;height:100dvh;border-radius:0}",
+      "  #cpHead,#cpHoy{padding-left:var(--gutter);padding-right:var(--gutter)}",
+      "  #cpBody table.t td,#cpBody table.t th{padding-left:8px;padding-right:8px}",
       "}"
     ].join("\n");
     document.head.appendChild(css);
 
     var bg = document.createElement("div");
     bg.id = "cpBg";
+    bg.className = "popup";
     bg.innerHTML =
-      '<div id="cpBox">' +
+      '<div id="cpBox" class="pop-card">' +
         '<div id="cpHead"><div class="cp-t">' +
-          '<div><span class="cp-cod" id="cpCod"></span></div>' +
+          '<div><span class="cp-cod cod" id="cpCod"></span></div>' +
           '<div class="cp-desc" id="cpDesc"></div>' +
-          '<div class="cp-ubic" id="cpUbic"></div>' +
-        '</div><button id="cpX" type="button" title="Cerrar">&times;</button></div>' +
+          '<div class="cp-ubic sub" id="cpUbic"></div>' +
+        '</div><button id="cpX" class="btn btn-secondary" type="button" title="Cerrar">&times;</button></div>' +
         '<div id="cpHoy"></div>' +
         '<div id="cpBody"></div>' +
       '</div>';
@@ -169,7 +173,7 @@ window.GP2Composicion = (function () {
     document.getElementById("cpCod").textContent = o.cod || "";
     document.getElementById("cpDesc").textContent = o.desc || "";
     document.getElementById("cpUbic").textContent = "";
-    document.getElementById("cpHoy").innerHTML = '<div class="cp-k">Cargando…</div>';
+    document.getElementById("cpHoy").innerHTML = '<div class="cp-k eyebrow">Cargando…</div>';
     document.getElementById("cpBody").innerHTML = "";
     document.getElementById("cpBg").classList.add("open");
 
@@ -185,7 +189,7 @@ window.GP2Composicion = (function () {
     if (r.error) {
       document.getElementById("cpHoy").innerHTML = "";
       document.getElementById("cpBody").innerHTML =
-        '<div class="cp-vacio">Error: ' + esc(r.error.message) + "</div>";
+        '<div class="cp-vacio empty err-txt">Error: ' + esc(r.error.message) + "</div>";
       return;
     }
     pintar(r.data || {}, o);
@@ -220,16 +224,16 @@ window.GP2Composicion = (function () {
     if (uxc) extra.push(fmt(online / uxc, 1) + " caj");
     var act = d.actualizado_en ? dt(d.actualizado_en) : null;
     document.getElementById("cpHoy").innerHTML =
-      '<div><div class="cp-k">Stock hoy</div>' +
-        '<div class="cp-big ' + clsNum(online) + '">' + fmt(online, 0) + ' <span style="font-size:15px;font-weight:700">uni</span></div></div>' +
-      (extra.length ? '<div style="padding-bottom:5px"><div class="cp-k">Equivale a</div><div class="cp-sec">' + extra.join(" · ") + "</div></div>" : "") +
-      '<div style="padding-bottom:5px;margin-left:auto"><div class="cp-k">Movimientos</div><div class="cp-sec">' + fmt(total, 0) + "</div></div>" +
+      '<div><div class="cp-k eyebrow">Stock hoy</div>' +
+        '<div class="cp-big ' + clsNum(online) + '">' + fmt(online, 0) + ' <span class="cp-u">uni</span></div></div>' +
+      (extra.length ? '<div class="cp-col"><div class="cp-k eyebrow">Equivale a</div><div class="cp-sec">' + extra.join(" · ") + "</div></div>" : "") +
+      '<div class="cp-col cp-der"><div class="cp-k eyebrow">Movimientos</div><div class="cp-sec">' + fmt(total, 0) + "</div></div>" +
       (act ? '<div class="cp-when">Último cambio de stock: ' + esc(act.dia) + " " + esc(act.hora) + "</div>" : "");
 
     /* ---- ledger ---- */
     var body = document.getElementById("cpBody");
     if (!movs.length) {
-      body.innerHTML = '<div class="cp-vacio">Este stock todavía no tiene movimientos registrados.<br>' +
+      body.innerHTML = '<div class="cp-vacio empty">Este stock todavía no tiene movimientos registrados.<br>' +
         "El número de arriba viene de la carga inicial del inventario.</div>";
       return;
     }
@@ -244,7 +248,7 @@ window.GP2Composicion = (function () {
       if (f.clave !== diaActual) {
         diaActual = f.clave;
         var et = etiquetaDia(f.clave);
-        filas.push('<tr class="cp-dia"><td colspan="5">' + esc(f.dia) + (et ? " · " + et : "") + "</td></tr>");
+        filas.push('<tr class="cp-dia grp"><td colspan="5">' + esc(f.dia) + (et ? " · " + et : "") + "</td></tr>");
       }
 
       var via = m.via ? ' <span class="cp-cp">(vía ' + esc(m.via) + ")</span>" : "";
@@ -279,7 +283,7 @@ window.GP2Composicion = (function () {
     );
 
     body.innerHTML =
-      "<table><thead><tr>" +
+      '<table class="t"><thead><tr>' +
         "<th>Hora</th><th>Movimiento</th>" +
         '<th class="num">Entra</th><th class="num">Sale</th><th class="num">Saldo</th>' +
       "</tr></thead><tbody>" + filas.join("") + "</tbody></table>";
