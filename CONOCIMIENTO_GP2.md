@@ -15287,6 +15287,8 @@ de Cuchara, Cucharon, etc"*.
   aislado en `GP2._cc_quitar_pasos(ids)` (sección 8 de `db/migracion_cambiar_contraparte_20261005.sql`), que **hay que correr una vez
   en el SQL Editor**. Sin ella, tallerista → tallerista y prov. A.T. andan; Fábrica → tallerista queda **bloqueado con un cartel
   que lo explica** (probado), no falla a medias.
+  **CREADA el 08/10/2026** `[dato]`: el conector volvió a colgarse a los 60 s, se pegó la sección 8 en el SQL Editor y quedó
+  `security definer`, sin EXECUTE para anon ni authenticated; el preview del 507 (Fábrica → Alex Escalante) pasó a 0 bloqueos.
 - **Retirado:** una sesión propuso «la línea es la receta del artículo» (`articulo_componente`). Coincidía en 94 de 111
   artículos de tallerista y 41 de 46 de Fábrica, pero **no es la regla**: la fijó el dueño por matriz y difiere en las 13
   excepciones (la receta lista `E6-M194`, `D5-M78` o `PC10` suelto). Sirve de control cruzado, nada más. Los 16 artículos donde el
