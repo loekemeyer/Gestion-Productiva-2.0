@@ -933,8 +933,23 @@ copia y hacer modificaciones para testear"*.
 - **La fuente es `cervantes-gp2/`** (`app.js` + `index.html`) de `loekemeyer/Registro-Produccion-3.0`: es la que usan los
   operarios en su celular (la tarjeta «Cervantes» del inicio, desde el 08/10). Un cambio pedido para el operario se hace ALLÁ.
 - **`Produccion/RegistroApp/` (`operarios_gp2.js` + `Operarios_GP2.html`) deja de ser el origen**: es una COPIA para probar.
-  Se la puede modificar para testear, pero lo que tiene que llegar a los operarios no se hace sólo acá: nada viaja solo de
-  acá hacia 3.0 (el script que generaba 3.0 desde esta tablet, `tools/portar_botonera_gp2.py` de 3.0, se retiró el 08/10).
+  Se la modifica para probar cambios; **nada viaja solo** a los operarios. Cuando un cambio está terminado, Elías dice
+  *«implementá lo nuevo de GP2 a Reg Prod 3.0 en Cervantes»* `[Elías, 08/10]` y se corre, en 3.0,
+  `python3 tools/traer_de_gp2.py --gp2 <este repo> --version 3.1.N`: deshace las diferencias de la copia, exige que la vuelta sea
+  exacta, une con `git merge-file` si 3.0 cambió en el medio y frena si algo no cierra (no adivina; nunca se porta a mano).
+  Trae también la prueba (`tests/ui/test_op_e2e.js`): **si se cambia la tablet, se cambia esa prueba en el mismo commit.**
+  Después se vuelve a copiar acá con un token nuevo (`tools/copiar_botonera_de_3_0.py`), así la copia dice la versión nueva.
+- **Antes de pisar la tablet** `[Elías, 08/10: «antes de hacer un cambio fijate si había cambios en el original de GP2»]`: el script
+  de copia se niega si la tablet tiene cambios que no están en 3.0 (los mira con el camino de vuelta de 3.0); hay que traerlos
+  primero, o `--pisar` para descartarlos a propósito. En 3.0, `traer_de_gp2.py --revisar` dice lo mismo sin escribir nada.
+- **Cómo se copia** `[Elías, 08/10: «hacé que GP2 use el código de la TV» — «recién cuando entra acá [Versión Tablet Operarios]:
+  el login de admin sigue siendo por Gmail»; elegido: «igual que 3.0»]`: `python3 tools/copiar_botonera_de_3_0.py --rp3 <clon de
+  3.0> --token <AAAAMMDDx>`. La tablet queda IGUAL a la de 3.0 (código de la TV de Cervantes, pase, funciones `reg_prod_3_0_*`;
+  graba en las mismas tablas que los operarios) con 6 diferencias: claves `gp2c_*`, `p_app` "gp2", sin `const APP_VERSION` (la
+  versión viaja en el `app_version` de cada toque como `gp2-<token>/<versión de 3.0>`: así se filtra lo cargado desde acá), sin
+  service worker propio, «Volver»/«Menú» al menú de GP2, y con `auth-guard.js` (para llegar hay que entrar a GP2 con Gmail).
+  Su prueba (`tests/ui/test_op_e2e.js`) es la misma de 3.0 (`tests/cervantes-gp2.cjs`) con esas diferencias. ⚠ Excepción a la
+  Regla 0: esta pantalla habla con `reg_prod_3_0`, no con `GP2` (decisión del dueño, 08/10).
 - **La base sigue siendo compartida**: 3.0 escribe en `reg_prod_3_0` pero mueve el stock y los rollos con las funciones de
   `GP2` (`fabricar_stock`, `tomar_rollo`, `cerrar_rollo`, el bundle). Un cambio en esas funciones afecta a los operarios
   aunque se haya probado desde esta tablet.

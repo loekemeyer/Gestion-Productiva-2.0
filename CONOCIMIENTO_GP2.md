@@ -15892,3 +15892,26 @@ Producción 3.0 (`cervantes-gp2/`) y vale igual para la tablet de GP2:
 - Desde ahora: la fuente es `cervantes-gp2/` en 3.0 (v3.1.7); `tools/portar_botonera_gp2.py` se borró (3.0 `5e11689`); esta
   tablet queda como copia para probar. Regla escrita en `CLAUDE.md` («la botonera del operario de Cervantes se modifica en
   Registro Producción 3.0»). Cómo copia GP2 desde 3.0 (a mano o con un script inverso) **no está definido todavía**.
+
+## 4jr. La tablet de operarios de GP2 es una COPIA exacta de la de 3.0 y entra con el código de la TV (2026-10-08) — v1.252.0
+
+- `[usuario, Elías, 08/10/2026]`: *«hacé que GP2 use el código de la TV»*; *«pero recién cuando entra acá [botón «Versión Tablet
+  Operarios»]: el login de admin sigue siendo por Gmail»*. Elegido entre dos caminos: **«igual que 3.0»** (copia 1 a 1, graba en
+  `reg_prod_3_0`) en vez de «en GP2.produccion como hoy» (que obligaba a cambiar la seguridad de las funciones de GP2).
+- `[dato, 08/10]` en los 10 días anteriores `GP2.produccion` sólo recibió pruebas (legajos 0 y 1; el 401 el 02/10): nadie de planta
+  usaba esta tablet desde que los operarios pasaron al celular.
+- Qué quedó: `Produccion/RegistroApp/operarios_gp2.js` + `Operarios_GP2.html` = `cervantes-gp2/` de 3.0 v3.1.7, copiados con
+  `tools/copiar_botonera_de_3_0.py` (6 diferencias, ver `CLAUDE.md`). Lo cargado desde acá se reconoce en
+  `reg_prod_3_0.crudo_cervantes.app_version like 'gp2-%'` y los ingresos en `reg_prod_3_0.reg_prod_3_0_ingresos.app = 'gp2'`.
+  ⚠ Mueve stock real de GP2, igual que los celulares. `GP2.registrar_evento_prod` / `anular_evento_prod` / `rollo_tomar` /
+  `rollo_cerrar` quedan sin pantalla (en `PERMITIDAS` de `test_rpc_huerfanas.js`), por si se vuelve atrás.
+- Pruebas: `test_op_e2e.js` = la de 3.0 (69 chequeos); `test_botones_fuera.js` entra con el código de la TV simulado;
+  `test_numero.js` deja pasar el `replace(/\D/g)` del código de la TV (4 dígitos: con miles quedaría «4.821»).
+- **El circuito** `[usuario, Elías, 08/10]`: *«para en el futuro hacer cambios en GP2 y cuando están terminados decirle a la IA
+  "implementá lo nuevo de GP2 a Reg Prod 3.0 en Cervantes", y que no cometa errores»* y *«antes de hacer un cambio fijate si había
+  cambios en el original de GP2»*. Se cambia y se prueba acá → con esa orden, `tools/traer_de_gp2.py` de 3.0 lo lleva a
+  `cervantes-gp2/` (vuelta exacta comprobada, unión con `git merge-file`, frena si algo no cierra) → se vuelve a copiar acá. La copia
+  no pisa la tablet si tiene cambios sin traer. `[dato, 08/10]` probado en copias de los dos repos: sin cambios no escribe; cambio
+  simple → v3.1.N y 69/69; un punto de la copia tocado en GP2 → frena; 3.0 cambió otra línea → une; misma línea → frena; copiar
+  encima de un cambio sin traer → frena (con `--pisar`, copia). Antes de esta copia se verificó que el original de GP2 no tenía
+  cambios después de `e110890` (lo que ya estaba en 3.0 desde la v3.1.6).

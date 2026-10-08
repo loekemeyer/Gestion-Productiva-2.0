@@ -4,8 +4,19 @@ const fs = require('fs');
 // Raiz del repo (los tests viven en tests/ui/) y Chromium portable si existe.
 const ROOT = 'file://' + path.resolve(__dirname, '..', '..').replace(/\\/g, '/');
 const EXE = process.env.CHROMIUM_PATH || (fs.existsSync('/opt/pw-browsers/chromium') ? '/opt/pw-browsers/chromium' : undefined);
-const BUNDLE = { empleados: { '19': { nombre: 'Eduardo B', activo: true } }, matrices: [], matriz_fleje: {}, matriz_salidas: {}, rollos_saldo: [], rollos_abiertos: {} };
-const STUB = `window.supabase={createClient:function(){return{rpc:async function(n){return {data:${JSON.stringify(BUNDLE)},error:null};},from:function(){throw new Error('no');}}}};`;
+// 2026-10-08: la tablet es COPIA de Registro Producción 3.0 (código de la TV + pase + reg_prod_3_0). Supabase simulado:
+// el código de la TV da el pase y el catálogo trae rollos_activos (sin eso Eduardo no tiene CT, igual que en 3.0).
+const BUNDLE = { empleados: { '19': { nombre: 'Eduardo B', activo: true } }, matrices: [], matriz_fleje: {}, matriz_salidas: {},
+                 rollos_saldo: [], rollos_abiertos: {}, rollos_activos: true, rollos_antiduplicado: true };
+const CORS = { 'access-control-allow-origin': '*', 'access-control-allow-headers': '*', 'access-control-allow-methods': 'POST, OPTIONS' };
+const mockBase = r => {
+  const req = r.request();
+  if (req.method() === 'OPTIONS') return r.fulfill({ status: 204, headers: CORS });
+  const fn = (req.url().match(/\/rpc\/(\w+)/) || [])[1] || '';
+  const body = fn === 'reg_prod_3_0_cerv_ingresar' ? { ok: true, pase: 'PASE.T', vence: new Date(Date.now() + 3600e3).toISOString() }
+             : fn === 'reg_prod_3_0_bundle' ? BUNDLE : { ok: true };
+  return r.fulfill({ status: 200, headers: { ...CORS, 'content-type': 'application/json' }, body: JSON.stringify(body) });
+};
 (async () => {
   const browser = await chromium.launch(EXE ? { executablePath: EXE } : {});
   const ok = (c,m)=>{ console.log((c?'OK  ':'FAIL')+' '+m); if(!c) process.exitCode=1; };
@@ -13,8 +24,13 @@ const STUB = `window.supabase={createClient:function(){return{rpc:async function
   // 1) app operarios: RD/CM/REM fuera, el resto sigue
   let page = await browser.newPage();
   page.on('pageerror', e => { console.log('PAGEERROR:', e.message); process.exitCode = 1; });
-  await page.route('**/@supabase/supabase-js@2', r => r.fulfill({ contentType: 'application/javascript', body: STUB }));
+  await page.route('**/*.supabase.co/**', mockBase);
   await page.goto(ROOT + '/Produccion/RegistroApp/Operarios_GP2.html');
+  await page.waitForSelector('#tvClaveModal', { state: 'visible' });        // primero el código de la TV
+  await page.fill('#tvClaveInput', '1234');
+  await page.click('#tvClaveOk');
+  await page.waitForSelector('#tvClaveModal', { state: 'detached' });
+  await page.waitForFunction(() => typeof D !== 'undefined' && !!(D.empleados && D.empleados['19']));
   await page.fill('#legajoInput', '19');
   await page.click('#btnContinuar');
   await page.waitForSelector('.box[data-code="E"]');

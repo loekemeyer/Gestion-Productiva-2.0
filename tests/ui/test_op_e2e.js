@@ -1,473 +1,463 @@
-const { chromium } = require('playwright');
-const path = require('path');
-const fs = require('fs');
-// Raiz del repo (los tests viven en tests/ui/) y Chromium portable si existe.
-const ROOT = 'file://' + path.resolve(__dirname, '..', '..').replace(/\\/g, '/');
-const EXE = process.env.CHROMIUM_PATH || (fs.existsSync('/opt/pw-browsers/chromium') ? '/opt/pw-browsers/chromium' : undefined);
+/* Tablet de operarios de GP2 = COPIA de la botonera de Registro Producción 3.0 (cervantes-gp2/) desde el 08/10/2026
+   [Elías: «GP2 sólo hacer copia y hacer modificaciones para testear»; «hacé que GP2 use el código de la TV»].
+   Esta prueba es la MISMA de 3.0 (tests/cervantes-gp2.cjs) con las diferencias de la copia (claves gp2c_, p_app "gp2", app_version
+   'gp2-…', se abre como archivo). Si 3.0 cambia la botonera, se copia con tools/copiar_botonera_de_3_0.py y se trae su prueba.
+   Entra con el código de la TV, usa el PASE y habla con el schema reg_prod_3_0.
+   Supabase está simulado: la base de mentira exige el pase (igual que reg_prod_3_0_pase_ok) y guarda lo que le llega.
+     1) sin pase aparece la pantalla del código; código malo no entra; código bueno entra, guarda el pase y trae el catálogo
+        con el pase, el id del equipo y la cabecera Content-Profile: reg_prod_3_0
+     2) la botonera es la de GP2 (13 botones; sin CT de Eduardo mientras los rollos estén apagados) y el legajo se anota 1 vez
+     3) E y C llegan con el toque crudo adentro (opción, texto, hora, versión) y los golpes tal cual los cargó el operario
+     4) el historial marca ENVIADO y el 🗑 anula en la base (con pase)
+     5) sin señal: el toque queda PENDIENTE y se manda solo cuando vuelve
+     6) pase vencido en la base: vuelve el código de la TV, el toque espera en la cola y sale con el pase nuevo
+        6b) la pieza se elige por su ETIQUETA corta (como la tablet de GP2 desde el 07/10) y viaja como comp_salida_id
+     7) base caída al abrir: se abre con el catálogo guardado en el celular y sin pase se puede cargar (queda en la cola, con aviso)
+        hasta que vuelve y se ingresa el código
+     8) rollos (Fase 1c): sólo si el catálogo trae rollos_activos; elegir rollo en E y «CT» / «PR quedó resto» de Eduardo; sin señal esperan
+        en su cola y salen en orden; ANTI-DUPLICADO (Fase 1d): si la base lo hizo pero la respuesta se perdió, el reintento lleva el MISMO
+        id y no descuenta otro rollo
+     9) NO se llama a nada de GP2 (registro_operarios_bundle, registrar_evento_prod, anular_evento_prod, tomar_rollo, cerrar_rollo)
+   Sale 1 si falla. */
+const fs = require("fs");
+const path = require("path");
+const { chromium } = require("playwright");
+const EXE = process.env.CHROMIUM_PATH || (fs.existsSync("/opt/pw-browsers/chromium") ? "/opt/pw-browsers/chromium" : undefined);
+// Se abre como ARCHIVO (file://): así el auth-guard (login de admin con Gmail) no actúa, como en el resto de las pruebas de GP2.
+const URL_APP = "file://" + path.resolve(__dirname, "..", "..", "Produccion", "RegistroApp", "Operarios_GP2.html").replace(/\\/g, "/");
+
+const CORS = {
+  "access-control-allow-origin": "*",
+  "access-control-allow-headers": "authorization, apikey, content-type, x-client-info, prefer, accept-profile, content-profile, x-supabase-api-version, accept",
+  "access-control-allow-methods": "GET, POST, PATCH, DELETE, OPTIONS",
+};
+const pausa = (ms) => new Promise((r) => setTimeout(r, ms));
+const CODIGO_TV = "4821";
+const GP2_FNS = /\/rpc\/(registro_operarios_bundle|registrar_evento_prod|anular_evento_prod|tomar_rollo|cerrar_rollo|fabricar_stock)/;
 
 const BUNDLE = {
-  empleados: { '19': { nombre: 'Eduardo B', activo: true, hora_entrada: '08:00' } },
-  registro_en_golpes: true,
-  // 28 saca 1 pieza por golpe (el caso normal), 348 saca 2 (Corte Cuch Untar Mgo Madera)
-  matrices: [ { n: '28', d: 'Pinza Grande', ppk: 30, uxg: 1, maq: 'alimentador', act: true },
-              { n: '348', d: 'Corte Cuch Untar Mgo Madera', ppk: 84, uxg: 2, maq: 'alimentador', act: true },
-              { n: '62', d: 'Corte Pinza Fiambre Derecha', ppk: 40, uxg: 1, maq: 'alimentador', act: false } ],
-  matriz_fleje: { '28': { comp_id: 176, codigo: 'A1', descripcion: 'Fleje 13' } },
-  // La 28 corta de DOS flejes segun la pieza: A15 sale del 94 (inox), J2 del 13.
-  matriz_fleje_pieza: { '28': {
-    '29': { comp_id: 176, codigo: 'A1',  descripcion: 'Fleje 13' },
-    '86': { comp_id: 217, codigo: 'F1A', descripcion: 'Fleje 94' } } },
-  matriz_salidas: {},
-  rollos_saldo: [ { comp_id: 176, codigo: 'A1',  kg_por_rollo: 50, rollos: 3 },
-                  { comp_id: 217, codigo: 'F1A', kg_por_rollo: 67, rollos: 2 } ],
-  rollos_abiertos: {},
-};
-
-const STUB = `
-window.supabase = { createClient: function(url, key, opts){ window.__sbOpts = opts; return {
-  rpc: async function(name, args){
-    window.__calls = (window.__calls||[]); window.__calls.push({name:name, args:args});
-    if(window.__falla === name) return { data: null, error: { code: window.__fallaCode, message: 'falla de prueba ' + name } };
-    if(name==='registro_operarios_bundle') return { data: ${JSON.stringify(BUNDLE)}, error: null };
-    if(name==='registrar_evento_prod') return { data: { ok:true, id: window.__calls.length }, error: null };
-    if(name==='tomar_rollo') return { data: { ok:true, uso_id: 1 }, error: null };
-    if(name==='anular_evento_prod') return { data: { ok:true, anulados: 1 }, error: null };
-    return { data: { ok:true }, error: null };
+  empleados: {
+    "999": { nombre: "Prueba Operario", activo: true, hora_entrada: "08:30:00" },
+    "19": { nombre: "Eduardo Prueba", activo: true, hora_entrada: "08:30:00" },
   },
-  from: function(){ throw new Error('DIRECT TABLE ACCESS: ' + 'la app no debe tocar tablas directo'); }
-};}};
-`;
+  matrices: [
+    { n: "10", d: "Varilla c/ Cuchilla", ppk: 1, uxg: 2, maq: "", act: true },
+    { n: "322", d: "Env Espatula NY", ppk: 1, uxg: 1, maq: "", act: true },
+  ],
+  registro_en_golpes: true,
+  // la 322 saca 2 piezas con etiqueta corta (GP2.matriz_salida_etiqueta): el operario ve sólo «LK» / «CH»
+  matriz_salidas: { "322": [
+    { comp_id: 1, codigo: "394", descripcion: "394 Terminado", arts: "394", etiqueta: "LK" },
+    { comp_id: 2, codigo: "842", descripcion: "842 Terminado", arts: "842", etiqueta: "CH" },
+  ] },
+  matriz_fleje: {}, matriz_fleje_pieza: {}, envasado: {}, rollos_saldo: [], rollos_abiertos: {},
+};
+// Catálogo de la Fase 1c: trae `rollos_activos` y los flejes (la 10 corta del fleje 100; hay 4 rollos de 25 kg)
+const BUNDLE_ROLLOS = Object.assign({}, BUNDLE, {
+  rollos_activos: true,
+  rollos_antiduplicado: true,
+  matriz_fleje: { "10": { comp_id: 100, codigo: "FL94", descripcion: "Fleje 94" } },
+  rollos_saldo: [{ comp_id: 100, codigo: "FL94", kg_por_rollo: 25, rollos: 4 }],
+});
+const ARTICULOS = { "322": [{ pieza_codigo: "394", pieza_desc: "394 Terminado", arts: [{ codigo: "394", nombre: "Espátula Lisa Nylon 1 Pza", marca: "LOEKE" }] }] };
 
 (async () => {
-  const browser = await chromium.launch(EXE ? { executablePath: EXE } : {});
-  const page = await browser.newPage();
-  page.on('pageerror', e => { console.log('PAGEERROR:', e.message); process.exitCode = 1; });
-  const dialogos = [];   // se registran para vigilar que Enviar en C no pregunte nada
-  page.on('dialog', d => { dialogos.push(d.type() + ': ' + d.message()); d.accept(); });
+  const b = await chromium.launch(EXE ? { executablePath: EXE } : {});
+  const errs = [];
+  const res = [];
+  const chequeo = (n, ok) => { res.push([n, !!ok]); if (!ok) console.log("  ✗ " + n); };
+  const esperar = async (cond, ms = 8000) => { for (let t = 0; t < ms; t += 100) { if (await cond()) return true; await pausa(100); } return false; };
 
-  await page.route('**/@supabase/supabase-js@2', r => r.fulfill({ contentType: 'application/javascript', body: STUB }));
-  await page.route(/Operarios_GP2\.html$/, r => r.continue()).catch(()=>{});
-
-  await page.goto(ROOT + '/Produccion/RegistroApp/Operarios_GP2.html');
-  await page.waitForFunction(() => (window.__calls||[]).some(c => c.name === 'registro_operarios_bundle'));
-
-  const ok = (c, m) => { console.log((c?'OK  ':'FAIL')+' '+m); if(!c) process.exitCode = 1; };
-  const calls = () => page.evaluate(() => window.__calls);
-
-  // legajo -> opciones
-  await page.fill('#legajoInput', '19');
-  await page.click('#btnContinuar');
-  await page.waitForSelector('.box[data-code="E"]');
-
-  // E: matriz 28 + rollo
-  await page.click('.box[data-code="E"]');
-  await page.fill('#textInput', '28');
-  await page.dispatchEvent('#textInput', 'input');
-  await page.waitForSelector('#rolloGrid .rl');
-  ok(await page.locator('#rolloGrid select').count() === 0, 'los rollos son BOTONES, no un desplegable');
-  await page.locator('#rolloGrid .rl').first().click();   // A1 50 kg (primer boton)
-  ok(await page.locator('#rolloGrid .rl.sel').count() === 1, 'el rollo elegido queda marcado');
-  await page.click('#btnEnviar');
-  await page.waitForFunction(() => (window.__calls||[]).some(c =>
-    c.name === 'registrar_evento_prod' && c.args.p && c.args.p.matriz === '28' && c.args.p.uni === 0));
-  let cs = await calls();
-  const evE = cs.find(c => c.name === 'registrar_evento_prod' && c.args.p.matriz === '28');
-  ok(evE.args.p.nombre_matriz === 'Pinza Grande' && evE.args.p.legajo === '19', 'evento E: matriz 28 Pinza Grande legajo 19');
-  ok(cs.some(c => c.name === 'tomar_rollo' && c.args.p_comp_id === 176 && c.args.p_kg_por_rollo === 50 && c.args.p_matriz === '28'),
-     'tomar_rollo A1 50kg matriz 28');
-
-  // C: 500 GOLPES del contador (la app vuelve a la pantalla de legajo tras cada envio).
-  // La app manda golpes crudos; multiplicar por uni_x_golpe es tarea de la RPC.
-  await page.click('#btnContinuar');
-  await page.waitForSelector('.box[data-code="C"]');
-  await page.click('.box[data-code="C"]');
-  ok((await page.textContent('#inputLabel')).toUpperCase().includes('GOLPES'), 'el cajon pide GOLPES, no unidades');
-  await page.fill('#textInput', '500');
-  await page.click('#btnEnviar');
-  await page.waitForFunction(() => (window.__calls||[]).some(c =>
-    c.name === 'registrar_evento_prod' && c.args.p && c.args.p.golpes === 500));
-  cs = await calls();
-  const evC = cs.find(c => c.name === 'registrar_evento_prod' && c.args.p.golpes === 500);
-  ok(evC.args.p.matriz === '28' && evC.args.p.hora_inicio && evC.args.p.hora_fin, 'cajon 500 golpes con matriz y horas');
-  ok(evC.args.p.uni === undefined, 'no manda uni: el factor lo aplica la base, no la app');
-
-  // cartel de rollo: 500/30 = 16,7 kg usados -> quedan ~33,3
-  await page.click('#btnContinuar');
-  await page.waitForSelector('.box[data-code="C"]');
-  await page.click('.box[data-code="C"]');
-  await page.waitForSelector('#matrizInfo:not(.hidden)');
-  const info = await page.textContent('#matrizInfo');
-  ok(info.includes('Rollo de 50 kg') && info.includes('33,3'), 'rollo: quedan ~33,3 kg — ' + info.trim().slice(-60));
-
-  // RM (volver de la seleccion C con la flecha; seguimos en la pantalla de opciones)
-  await page.click('#btnResetSelection');
-  await page.waitForSelector('.box[data-code="RM"]');
-  await page.click('.box[data-code="RM"]');
-  await page.click('#btnEnviar');
-  await page.waitForFunction(() => (window.__calls||[]).some(c =>
-    c.name === 'registrar_evento_prod' && c.args.p && c.args.p.nombre_matriz === 'Rotura Matriz'));
-  cs = await calls();
-  const evRM = cs.find(c => c.name === 'registrar_evento_prod' && c.args.p.nombre_matriz === 'Rotura Matriz');
-  ok(evRM.args.p.matriz === '28' && evRM.args.p.uni === 0, 'RM sobre matriz 28');
-
-  // borrar del historial (pantalla legajo) -> RPC anular_evento_prod (ya no update directo)
-  await page.waitForFunction(() => document.querySelectorAll('#daySummary .hist-del').length === 3);
-  // orden del historial: lo ultimo arriba, lo primero abajo [usuario 2026-10-06]; el idx del 🗑
-  // sigue siendo el del registro real (last2 se guarda de mas viejo a mas nuevo)
-  const orden = await page.$$eval('#daySummary .hist-del', els => els.map(e => ({
-    op: e.parentElement.firstElementChild.textContent.trim().split(':')[0], idx: e.dataset.idx })));
-  ok(orden.map(x => x.op).join(',') === 'RM,C,E', 'historial: lo ultimo arriba, lo primero abajo — ' + JSON.stringify(orden));
-  ok(orden.map(x => x.idx).join(',') === '2,1,0', 'el 🗑 sigue apuntando al registro real (idx 2,1,0)');
-  await page.click('.hist-del[data-idx="0"]');   // el E, el mas viejo: ya esta enviado -> baja por RPC
-  await page.waitForFunction(() => (window.__calls||[]).some(c => c.name === 'anular_evento_prod'));
-  cs = await calls();
-  const evDel = cs.find(c => c.name === 'anular_evento_prod');
-  ok(typeof evDel.args.p_id_ejecucion === 'string' && evDel.args.p_id_ejecucion.length > 10, 'baja logica via RPC con id_ejecucion');
-
-  // Matriz que saca 2 piezas por golpe: la app avisa la cuenta y sigue mandando GOLPES
-  await page.click('#btnContinuar');
-  await page.waitForSelector('.box[data-code="E"]');
-  await page.click('.box[data-code="E"]');
-  await page.fill('#textInput', '348');
-  await page.dispatchEvent('#textInput', 'input');
-  await page.click('#btnEnviar');
-  await page.waitForFunction(() => (window.__calls||[]).some(c =>
-    c.name === 'registrar_evento_prod' && c.args.p && c.args.p.matriz === '348'));
-  await page.click('#btnContinuar');
-  await page.waitForSelector('.box[data-code="C"]');
-  await page.click('.box[data-code="C"]');
-  await page.fill('#textInput', '240');
-  await page.dispatchEvent('#textInput', 'input');
-  const hint = await page.textContent('#golpeHint');
-  ok(hint.includes('2') && hint.includes('480'), 'avisa 240 golpes x 2 = 480 unidades — ' + hint.trim());
-  await page.click('#btnEnviar');
-  await page.waitForFunction(() => (window.__calls||[]).some(c =>
-    c.name === 'registrar_evento_prod' && c.args.p && c.args.p.golpes === 240));
-  cs = await calls();
-  const evG = cs.find(c => c.name === 'registrar_evento_prod' && c.args.p.golpes === 240);
-  ok(evG.args.p.matriz === '348' && evG.args.p.uni === undefined, 'matriz de 2 por golpe: manda 240 golpes, no 480 uni');
-  // Enviar en Terminar cajon NO pide confirmacion [usuario 2026-10-06]
-  ok(!dialogos.some(m => /GOLPES x|CAJAS x/.test(m)), 'Enviar en C no abre ningun confirm de la cuenta — ' + JSON.stringify(dialogos));
-
-  // Matriz dada de baja: ni aparece en la lista ni se acepta tipeada
-  await page.click('#btnContinuar');
-  await page.waitForSelector('.box[data-code="E"]');
-  await page.click('.box[data-code="E"]');
-  // Sin nada escrito NO hay lista (ni titulo): aparece recien cuando se escribe algo [usuario 2026-10-08]
-  ok(await page.locator('#matrizGrid .mz').count() === 0, 'sin escribir nada la lista de matrices esta vacia');
-  ok(!(await page.isVisible('#mpLabel')), 'y tampoco se ve el titulo «O elegila de la lista»');
-  // el buscador de abajo se saco (v1.9.0): el campo de arriba filtra numero Y nombre
-  await page.fill('#textInput', '62');
-  await page.dispatchEvent('#textInput', 'input');
-  ok(!(await page.textContent('#matrizGrid')).includes('Fiambre'), 'la matriz de baja no se ofrece en la lista');
-  ok(await page.isVisible('#mpLabel'), 'al escribir aparece el titulo de la lista');
-  await page.fill('#textInput', '');
-  await page.dispatchEvent('#textInput', 'input');
-  ok(await page.locator('#matrizGrid .mz').count() === 0, 'si se borra lo escrito, la lista vuelve a desaparecer');
-  await page.fill('#textInput', '62');
-  await page.dispatchEvent('#textInput', 'input');
-  // el campo de arriba tambien filtra por NOMBRE (por eso el buscador de abajo sobraba)
-  await page.fill('#textInput', 'untar');
-  await page.dispatchEvent('#textInput', 'input');
-  const porNombre = await page.textContent('#matrizGrid');
-  ok(porNombre.includes('348') && !porNombre.includes('Pinza Grande'),
-     'escribiendo un NOMBRE arriba se filtra la lista (sin buscador aparte)');
-  // match EXACTO de numero: la lista colapsa a esa sola matriz (usuario: "cuando elijo 1
-  // no me muestres las demas"). '28' matchea exacto la 28 y NO debe mostrar 348 ni otras.
-  await page.fill('#textInput', '28');
-  await page.dispatchEvent('#textInput', 'input');
-  ok(await page.locator('#matrizGrid .mz').count() === 1, 'match exacto de numero: la lista muestra SOLO esa matriz');
-  ok((await page.textContent('#matrizGrid')).includes('28'), 'y es la matriz que se tipeo');
-  const antes = (await calls()).length;
-  await page.fill('#textInput', '62');
-  await page.dispatchEvent('#textInput', 'input');
-  await page.click('#btnEnviar');
-  ok((await calls()).length === antes, 'la matriz de baja tampoco se acepta tipeada');
-  await page.click('#btnResetSelection');
-
-  // EL ROLLO DEPENDE DE LA PIEZA, no solo de la matriz (usuario 2026-08-31: "A15 usa un
-  // tipo de rollo (inox) y J2/J5 usa otro"). Antes se ofrecia siempre el mismo fleje y el
-  // stock se descontaba del equivocado.
-  {
-    const rollosDe = (compSalidaId) => page.evaluate(id => {
-      piezaSel = id === null ? null : { comp_id: id };
-      actualizarRolloPicker('28');
-      const msg = document.querySelector('#rolloGrid .rl-msg');
-      if (msg) return [msg.textContent];
-      return [...document.querySelectorAll('#rolloGrid .rl')].map(o => o.textContent);
-    }, compSalidaId);
-
-    // sin selector de pieza en pantalla (matriz_salidas vacio en este stub) se ofrecen
-    // los rollos de LOS DOS flejes, con el codigo a la vista: nunca deja sin opciones
-    const sinPieza = (await rollosDe(null)).join(' | ');
-    ok(/A1/.test(sinPieza) && /F1A/.test(sinPieza),
-       'sin pieza elegida ofrece los rollos de los dos flejes — ' + sinPieza);
-
-    const deJ2 = (await rollosDe(29)).join(' | ');
-    ok(/A1/.test(deJ2) && !/F1A/.test(deJ2), 'J2 ofrece SOLO rollos del Fleje 13 — ' + deJ2);
-
-    const deA15 = (await rollosDe(86)).join(' | ');
-    ok(/F1A/.test(deA15) && !/A1/.test(deA15), 'A15 ofrece SOLO rollos del Fleje 94 (inox) — ' + deA15);
-
-    await page.evaluate(() => { piezaSel = null; });
+  // La «base»: lo que hay que recordar entre pedidos.
+  function nuevaBase() {
+    return {
+      paseValido: "PASE.OK1",        // el único pase que acepta hoy
+      paseNuevo: "PASE.OK1",         // el que entrega al ingresar el código
+      vence: new Date(Date.now() + 3 * 3600 * 1000).toISOString(),
+      caida: false,                  // true = sin respuesta (como sin señal)
+      bundle: BUNDLE,                // lo que devuelve reg_prod_3_0_bundle (hoy sin rollos; la Fase 1c los trae)
+      rollos: [],                    // llamadas aceptadas de tomar/cerrar rollo (una por id)
+      entregas: [],                  // todo lo que llegó de rollos, con los repetidos
+      perderRespuesta: false,        // true = la base lo hace pero la respuesta no llega al celular (una vez)
+      llamadas: [],                  // { fn, perfil, cuerpo }
+      eventos: [],                   // cuerpos de reg_prod_3_0_registrar_evento aceptados
+      anulados: [],
+      anularRechazo: false,          // true = la base rechaza la baja por los datos (P0001)
+    };
   }
+  const llamadas = (base, fn) => base.llamadas.filter((c) => c.fn === fn);
 
-  // NO TODAS LAS MATRICES LLEVAN FLEJE (usuario 2026-10-01: "no todas las matrices necesitan
-  // rollos de flejes, que se vaya este cartel"). La 348 no corta de ningun fleje: el cartel
-  // "¿De que kilaje es el rollo...?" no tiene que aparecer, ni siquiera con "Sin rollos".
-  {
-    const picker = () => page.evaluate(() => ({
-      oculto: document.getElementById('rolloPicker').classList.contains('hidden'),
-      texto: document.getElementById('rolloGrid').textContent.trim() }));
-    const tipear = async (n) => { await page.fill('#textInput', n); await page.dispatchEvent('#textInput', 'input'); };
-
-    await page.click('.box[data-code="E"]');
-    await tipear('348');
-    ok((await picker()).oculto, 'matriz SIN fleje (348): el cartel de rollo se oculta');
-    await tipear('28');
-    const conFleje = await picker();
-    ok(!conFleje.oculto && /A1/.test(conFleje.texto), 'matriz CON fleje (28): el cartel vuelve con sus rollos');
-    await tipear('348');
-    ok((await picker()).oculto, 'y al volver a una matriz sin fleje se vuelve a ocultar');
-    await tipear('9999');
-    ok(!(await picker()).oculto, 'matriz que no existe: no se oculta (sigue "Elegí una matriz")');
-
-    // matriz con fleje pero sin rollos en stock: el aviso sigue, eso si es informacion
-    const sinStock = await page.evaluate(() => {
-      const g = D.rollos_saldo; D.rollos_saldo = [];
-      actualizarRolloPicker('28');
-      const r = { oculto: $('rolloPicker').classList.contains('hidden'), texto: $('rolloGrid').textContent.trim() };
-      D.rollos_saldo = g; return r;
-    });
-    ok(!sinStock.oculto && /Sin rollos disponibles/.test(sinStock.texto),
-       'matriz CON fleje y sin rollos en stock: sigue diciendo "Sin rollos disponibles"');
-
-    // bundle viejo (sin matriz_fleje): no se puede saber, no se oculta nada
-    const viejo = await page.evaluate(() => {
-      const a = D.matriz_fleje, b = D.matriz_fleje_pieza; D.matriz_fleje = undefined; D.matriz_fleje_pieza = undefined;
-      actualizarRolloPicker('348');
-      const r = !$('rolloPicker').classList.contains('hidden');
-      D.matriz_fleje = a; D.matriz_fleje_pieza = b; return r;
-    });
-    ok(viejo, 'bundle viejo sin matriz_fleje: no se oculta el cartel');
-    await page.click('#btnResetSelection');
-  }
-
-  // SELECTOR DE PIEZA CON LOS ARTICULOS (2026-10-05, usuario: "en la 237 no me aparecen las variantes
-  // de que quiero producir"). La tablet pregunta que pieza fabricas cuando la matriz expulsa 2+
-  // piezas, y cada tarjeta tiene que decir a que ARTICULOS corresponde, que es en lo que piensa
-  // el operario. Fixture real: la matriz 12 saca G13 (101 y 501), I11 (701) e I6 (502, 512 y 66).
-  {
-    await page.evaluate(() => {
-      D.matrices = D.matrices.concat([{ n: '12', d: 'Doblado Mango Plano', ppk: null, uxg: 1, maq: 'balancin', act: true }]);
-      D.matriz_salidas = Object.assign({}, D.matriz_salidas, { '12': [
-        { comp_id: 5,  codigo: 'G13', descripcion: 'Mgo Plano 501 Dobl p/Pintar',    arts: '101 · 501' },
-        { comp_id: 17, codigo: 'I11', descripcion: 'Mgo Plano 701 Doblado c/Marca',  arts: '701' },
-        { comp_id: 22, codigo: 'I6',  descripcion: 'Mango Plano 502 Doblado',        arts: '502 · 512 · 66' } ] });
-    });
-    await page.click('.box[data-code="E"]');
-    await page.fill('#textInput', '12');
-    await page.dispatchEvent('#textInput', 'input');
-    const tiles = await page.locator('#piezaGrid .mz').allTextContents();
-    ok(tiles.length === 3, 'la matriz 12 pregunta que pieza fabricas: 3 opciones — ' + tiles.length);
-    const todos = tiles.join(' | ');
-    ok(['101', '501', '701', '502', '512', '66'].every(a => todos.includes(a)),
-       'se ven los 6 articulos 101, 501, 701, 502, 512 y 66 — ' + todos);
-    ok(tiles.some(t => t.includes('I6') && t.includes('502 · 512 · 66')),
-       'cada pieza muestra SUS articulos (I6 -> 502 · 512 · 66)');
-    ok(await page.locator('#btnEnviar').isDisabled(), 'sin elegir pieza no se puede Enviar');
-    await page.locator('#piezaGrid .mz', { hasText: 'I11' }).click();
-    const linea = await page.textContent('#piezaGrid .pieza-cambiar');
-    ok(linea.includes('I11') && linea.includes('art. 701'), 'elegida la pieza, la linea dice los articulos — ' + linea.trim());
-    ok(!(await page.locator('#btnEnviar').isDisabled()), 'con la pieza elegida se habilita Enviar');
-    // bundle viejo (cacheado en la tablet, sin "arts"): sigue funcionando, solo sin la linea
-    await page.evaluate(() => { piezaSel = null; D.matriz_salidas['12'].forEach(s => { delete s.arts; }); renderPiezaPicker('12'); });
-    const sinArts = await page.locator('#piezaGrid .mz').allTextContents();
-    ok(sinArts.length === 3 && !sinArts.join('').includes('Art.'), 'bundle viejo sin arts: 3 piezas y sin linea de articulos');
-    await page.click('#btnResetSelection');
-  }
-
-  // ETIQUETA CORTA EN EL SELECTOR DE PIEZA (2026-10-07, usuario: "en vez de esos nombres como variantes en el
-  // recuadro amarillo quiero que solo le aparezca esto al operario"). Cuando matriz_salidas trae 'etiqueta'
-  // (GP2.matriz_salida_etiqueta) la tarjeta dice SOLO la etiqueta — ni codigo, ni descripcion, ni articulos —,
-  // en el orden que manda el bundle. Lo que viaja (comp_salida_id y pieza = codigo) NO cambia.
-  {
-    await page.evaluate(() => {
-      // Orden REAL del bundle (2026-10-07: Loeke, Chef, c/Marca, s/Marca): I6 Loeke, I11 Chef, G13 S/Marca.
-      D.matriz_salidas = Object.assign({}, D.matriz_salidas, { '12': [
-        { comp_id: 22, codigo: 'I6',  descripcion: 'Mango Plano 502 Doblado',       arts: '066 · 502 · 512', etiqueta: 'Loeke' },
-        { comp_id: 17, codigo: 'I11', descripcion: 'Mgo Plano 701 Doblado c/Marca', arts: '701',             etiqueta: 'Chef' },
-        { comp_id: 5,  codigo: 'G13', descripcion: 'Mgo Plano 501 Dobl p/Pintar',   arts: '101 · 501',       etiqueta: 'S/Marca' } ] });
-    });
-    await page.click('.box[data-code="E"]');
-    await page.fill('#textInput', '12');
-    await page.dispatchEvent('#textInput', 'input');
-    const et = (await page.locator('#piezaGrid .mz').allTextContents()).map(t => t.trim());
-    ok(et.length === 3 && et[0] === 'Loeke' && et[1] === 'Chef' && et[2] === 'S/Marca',
-       'con etiquetas la tarjeta dice SOLO la etiqueta y en el orden del bundle (Loeke, Chef, S/Marca) — ' + JSON.stringify(et));
-    ok(!/G13|I11|I6|Art\.|\d/.test(et.join(' ')), 'sin codigo, sin descripcion y sin articulos en las tarjetas');
-    ok((await page.locator('#piezaGrid .mz.mz-et').count()) === 3, 'las 3 tarjetas usan el estilo grande de etiqueta (mz-et)');
-    await page.locator('#piezaGrid .mz', { hasText: 'Chef' }).click();
-    const lin = (await page.textContent('#piezaGrid .pieza-cambiar')).replace(/\s+/g, ' ').trim();
-    ok(lin.includes('Fabricás Chef') && !lin.includes('I11') && !lin.includes('701'),
-       'elegida la pieza, la linea dice solo la etiqueta — ' + lin);
-    const chip = (await page.textContent('#matrizGrid .mz-chip')).replace(/\s+/g, ' ').trim();
-    ok(chip.includes('Chef') && !chip.includes('I11'), 'la card de la matriz muestra la etiqueta a la derecha — ' + chip);
-    // El chip queda ADENTRO de la tarjeta de la matriz (2026-10-07, usuario con captura de la 150: "Siempre el
-    // cartel amarillo me queda afuera"). Con la etiqueta real más larga (Remache Plaquita 3 en 1), en tablet y a 390px.
-    const afuera = [];
-    for (const w of [1280, 390]) {
-      await page.setViewportSize({ width: w, height: 800 });
-      for (const e of ['Remache Espiral', 'Remache Plaquita 3 en 1']) {
-        await page.evaluate((x) => { piezaSel.etiqueta = x; renderMatrizPicker(); }, e);
-        const r = await page.evaluate(() => {
-          const g = $('matrizGrid'), card = g.querySelector('.mz.has-chip');
-          const a = card.getBoundingClientRect(), b = card.querySelector('.mz-chip').getBoundingClientRect();
-          const m = card.querySelector('.mz-d');
-          return { dentro: b.left >= a.left && b.right <= a.right + 0.5 && b.bottom <= a.bottom + 0.5,
-                   sinScroll: g.scrollWidth <= g.clientWidth, descEntera: m.scrollWidth <= m.clientWidth + 0.5 && m.getClientRects().length === 1 && m.offsetHeight < 20 };
-        });
-        if (!r.dentro || !r.sinScroll || !r.descEntera) afuera.push(w + 'px «' + e + '» ' + JSON.stringify(r));
+  async function contexto(base, extraInit) {
+    const ctx = await b.newContext({ serviceWorkers: "block", viewport: { width: 390, height: 800 } });
+    ctx.setDefaultTimeout(8000);
+    if (extraInit) await ctx.addInitScript(extraInit);
+    await ctx.route("**/*.supabase.co/**", async (route) => {
+      const req = route.request(); const url = req.url(); const m = req.method();
+      const json = (status, body) => route.fulfill({ status, headers: { ...CORS, "content-type": "application/json" }, body: JSON.stringify(body) });
+      if (m === "OPTIONS") return route.fulfill({ status: 204, headers: CORS });
+      if (base.caida) return route.abort("failed");
+      const fn = (url.match(/\/rpc\/([a-z0-9_]+)/i) || [])[1] || "";
+      let cuerpo = {};
+      try { cuerpo = JSON.parse(req.postData() || "{}"); } catch { /* sin cuerpo */ }
+      base.llamadas.push({ fn, perfil: req.headers()["content-profile"] || "", cuerpo, url });
+      const paseMal = () => json(400, { code: "28000", details: null, hint: null, message: "Pase inválido o vencido" });
+      const conPase = cuerpo.p_pase === base.paseValido && !!cuerpo.p_dispositivo;
+      if (fn === "reg_prod_3_0_cerv_ingresar") {
+        if (cuerpo.p_clave === CODIGO_TV) return json(200, { ok: true, nombre: null, pase: base.paseNuevo, vence: base.vence });
+        return json(200, { ok: false, error: "codigo" });
       }
-    }
-    await page.setViewportSize({ width: 1280, height: 720 });
-    ok(!afuera.length, 'el chip amarillo queda adentro de la tarjeta y el nombre de la matriz no se parte (1280 y 390px) — ' + (afuera.join(' | ') || 'ok'));
-    const datos = await page.evaluate(() => ({ id: piezaSel.comp_id, cod: piezaSel.codigo }));
-    ok(datos.id === 17 && datos.cod === 'I11', 'lo que viaja no cambia: comp_salida_id 17 y pieza = I11 — ' + JSON.stringify(datos));
-    ok(!(await page.locator('#btnEnviar').isDisabled()), 'con la pieza elegida se habilita Enviar');
-    // salida SIN etiqueta en una matriz que si las tiene (matriz nueva): esa tarjeta cae al formato de siempre
-    await page.evaluate(() => { piezaSel = null; D.matriz_salidas['12'][2] = { comp_id: 5, codigo: 'G13', descripcion: 'Mgo Plano 501 Dobl p/Pintar', arts: '101 · 501' }; renderPiezaPicker('12'); });
-    const mixto = (await page.locator('#piezaGrid .mz').allTextContents()).map(t => t.trim());
-    ok(mixto[0] === 'Loeke' && mixto[2].includes('G13') && mixto[2].includes('Art. 101 · 501'),
-       'una salida sin etiqueta cae al formato de siempre sin romper las otras — ' + JSON.stringify(mixto));
-    await page.click('#btnResetSelection');
+      if (fn === "reg_prod_3_0_registrar_ingreso") return json(200, 1);
+      if (fn === "reg_prod_3_0_bundle") return conPase ? json(200, base.bundle) : paseMal();
+      if (["reg_prod_3_0_tomar_rollo", "reg_prod_3_0_cerrar_rollo", "reg_prod_3_0_rollo_tomar", "reg_prod_3_0_rollo_cerrar"].includes(fn)) {
+        if (!conPase) return paseMal();
+        base.entregas.push({ fn, cuerpo });
+        const repetido = !!cuerpo.p_id && base.rollos.some((r) => r.cuerpo.p_id === cuerpo.p_id);   // como reg_prod_3_0.rollo_llamadas
+        if (!repetido) base.rollos.push({ fn, cuerpo });
+        if (base.perderRespuesta) { base.perderRespuesta = false; return route.abort("failed"); }
+        return json(200, repetido ? { ok: true, dup: true } : { ok: true });
+      }
+      if (fn === "reg_prod_3_0_envasado_articulos") return conPase ? json(200, ARTICULOS) : paseMal();
+      if (fn === "reg_prod_3_0_registrar_evento") {
+        if (!conPase) return paseMal();
+        const id = String(cuerpo.p && cuerpo.p.id_ejecucion);
+        if (base.eventos.some((e) => String(e.p.id_ejecucion) === id)) return json(200, { ok: true, id, dup: true });
+        base.eventos.push(cuerpo);
+        return json(200, { ok: true, id: base.eventos.length, premio: 0.5, uni: 0 });
+      }
+      if (fn === "reg_prod_3_0_anular_evento") {
+        if (!conPase) return paseMal();
+        if (base.anularRechazo) return json(400, { code: "P0001", details: null, hint: null, message: "no se puede anular" });
+        base.anulados.push(cuerpo.p_id_ejecucion);
+        return json(200, { ok: true, anulados: 1 });
+      }
+      if (fn) return json(404, { code: "PGRST202", message: "function not found: " + fn });
+      if (m === "GET") return json(200, []);
+      return json(201, []);
+    });
+    const p = await ctx.newPage();
+    p.on("pageerror", (e) => errs.push(e.message));
+    p.on("dialog", (d) => d.accept().catch(() => {}));
+    return { ctx, p };
   }
 
-  // badge sync sin pendientes
-  const badge = await page.textContent('#syncBadge');
-  ok(badge.includes('✓'), 'cola sincronizada: ' + badge.trim());
+  const entrarConCodigo = async (p, codigo) => {
+    await p.waitForSelector("#tvClaveModal", { state: "visible" });
+    await p.fill("#tvClaveInput", codigo);
+    await p.click("#tvClaveOk");
+  };
+  const ponerLegajo = async (p, leg) => {
+    await p.fill("#legajoInput", leg);
+    await p.click("#btnContinuar");
+    await p.waitForSelector("#optionsScreen:not(.hidden)");
+  };
+  const enviarOpcion = async (p, code, valor) => {
+    await p.click(`.box[data-code="${code}"]`);
+    if (valor != null) await p.fill("#textInput", valor);
+    await p.click("#btnEnviar");
+    await p.waitForSelector("#legajoScreen:not(.hidden)");
+  };
 
-  // 2026-10-05: el cliente tiene que ser el de GP2_SB() (manda la sesion del login). El que
-  // tenia la pantalla iba "sin sesion" y desde la fase B la base rechazaba todo con 42501.
-  const opts = await page.evaluate(() => window.__sbOpts);
-  ok(!!(opts && opts.auth && opts.auth.persistSession === true && opts.db && opts.db.schema === 'GP2'),
-     'el cliente usa la sesion del login (GP2_SB), no uno anonimo propio');
+  // ============ 1) código de la TV → pase → catálogo ============
+  const base = nuevaBase();
+  const { ctx, p } = await contexto(base);
+  await p.goto(URL_APP, { waitUntil: "domcontentloaded" });
+  await p.waitForSelector("#tvClaveModal", { state: "visible" });
+  chequeo("1 sin pase aparece la pantalla del código de la TV", true);
+  chequeo("1 no se pidió el catálogo antes de tener pase", llamadas(base, "reg_prod_3_0_bundle").length === 0);
+  await p.fill("#tvClaveInput", "0000");
+  await p.click("#tvClaveOk");
+  await esperar(() => p.evaluate(() => /incorrecto/i.test(document.getElementById("tvClaveError")?.textContent || "")));
+  chequeo("1 código malo: avisa y la pantalla sigue", await p.isVisible("#tvClaveModal") && /incorrecto/i.test(await p.textContent("#tvClaveError")));
+  await p.fill("#tvClaveInput", CODIGO_TV);
+  await p.click("#tvClaveOk");
+  await p.waitForSelector("#tvClaveModal", { state: "detached" });
+  await esperar(() => p.evaluate(() => typeof D !== "undefined" && !!(D.empleados && D.empleados["999"])));
+  const idEquipo = await p.evaluate(() => localStorage.getItem("gv_dispositivo"));
+  const ing = llamadas(base, "reg_prod_3_0_cerv_ingresar").pop();
+  chequeo("1 el código viaja con el id del equipo", !!ing && ing.cuerpo.p_clave === CODIGO_TV && ing.cuerpo.p_dispositivo === idEquipo && idEquipo.length >= 8);
+  chequeo("1 las funciones se llaman en el schema reg_prod_3_0", llamadas(base, "reg_prod_3_0_bundle").every((c) => c.perfil === "reg_prod_3_0") && ing.perfil === "reg_prod_3_0");
+  const bun = llamadas(base, "reg_prod_3_0_bundle").pop();
+  chequeo("1 el catálogo se pide con el pase y el equipo", !!bun && bun.cuerpo.p_pase === "PASE.OK1" && bun.cuerpo.p_dispositivo === idEquipo);
+  chequeo("1 el pase y el catálogo quedan guardados en el celular", await p.evaluate(() => !!JSON.parse(localStorage.getItem("gp2c_pase") || "null")?.pase && !!JSON.parse(localStorage.getItem("gp2c_bundle") || "null")?.data?.matrices));
+  chequeo("1 ya no pide los nombres de artículo (GP2 los cambió por la etiqueta)", llamadas(base, "reg_prod_3_0_envasado_articulos").length === 0);
 
-  // Cola de rollos: sin permiso (42501) NO es un rechazo definitivo -> se reintenta.
-  // Un error de negocio con code (P0001) si es definitivo y se descarta, como antes.
-  const rq = await page.evaluate(async () => {
-    const flush = async () => { while (flushing) await new Promise(r => setTimeout(r, 20)); await flushQueue(); };
-    const item = { fn: 'cerrar_rollo', args: { p_legajo: '19', p_quedo_resto: false, p_fecha: '2026-10-05T10:00:00-03:00' } };
-    window.__falla = 'cerrar_rollo'; window.__fallaCode = '42501';
-    writeRolloQueue([item]); await flush();
-    const sinPermiso = readRolloQueue().length;
-    window.__falla = null; await flush();
-    const alVolver = readRolloQueue().length;
-    window.__falla = 'cerrar_rollo'; window.__fallaCode = 'P0001';
-    writeRolloQueue([item]); await flush();
-    const definitivo = readRolloQueue().length;
-    window.__falla = null;
-    return { sinPermiso, alVolver, definitivo };
-  });
-  ok(rq.sinPermiso === 1, 'cerrar_rollo con "permission denied" queda en la cola (antes se tiraba)');
-  ok(rq.alVolver === 0, 'con el permiso de vuelta, la cola de rollos se vacia');
-  ok(rq.definitivo === 0, 'rechazo de negocio (P0001) se sigue descartando');
+  // ============ 2) la botonera de GP2 ============
+  await p.fill("#legajoInput", "12345");
+  await p.click("#btnContinuar");
+  await pausa(300);
+  chequeo("2 un legajo que no está en el catálogo no entra", await p.isVisible("#legajoScreen"));
+  await ponerLegajo(p, "999");
+  const codigos = await p.$$eval(".box", (els) => els.map((e) => e.dataset.code));
+  chequeo("2 los 13 botones de GP2", JSON.stringify(codigos) === JSON.stringify(["E", "C", "PB", "BC", "MOV", "LIMP", "Perm", "AL", "PR", "PC", "MOV P", "PM", "RM"]));
+  await esperar(() => llamadas(base, "reg_prod_3_0_registrar_ingreso").length > 0);
+  const reg = llamadas(base, "reg_prod_3_0_registrar_ingreso")[0];
+  chequeo("2 el legajo se anota en el equipo (1 vez), sin pase", !!reg && reg.cuerpo.p_legajo === "999" && reg.cuerpo.p_dispositivo === idEquipo && reg.cuerpo.p_app === "gp2" && !("p_pase" in reg.cuerpo));
+  await p.click("#btnBackTop");
+  await ponerLegajo(p, "999");
+  await pausa(200);
+  chequeo("2 al volver a entrar con el mismo legajo no se anota otra vez", llamadas(base, "reg_prod_3_0_registrar_ingreso").length === 1);
+  await p.click("#btnBackTop");
+  await ponerLegajo(p, "19");
+  chequeo("2 Eduardo (19) no tiene CT si el catálogo no trae rollos_activos", (await p.$$eval(".box", (els) => els.map((e) => e.dataset.code))).indexOf("CT") === -1);
+  await p.click("#btnBackTop");
+  await ponerLegajo(p, "999");
 
-  // 2026-10-07: arreglos traidos de Registro Produccion 3.0 [usuario: "los parches que hicimos arreglando los errores
-  // aplicalos tambien al original"; "anular en cola, pero asegurate de que no se tome su duplicado"].
-  const arr = await page.evaluate(async () => {
-    const flush = async () => { while (flushing) await new Promise(r => setTimeout(r, 20)); await flushQueue(); };
-    const desde = () => window.__calls.length;
-    const r = {};
-    // a) rollos sin duplicado: con la bandera del bundle van rollo_tomar / rollo_cerrar con un p_id cada una
-    const bandera = D.rollos_antiduplicado;
-    D.rollos_antiduplicado = true;
-    let k = desde();
-    await tomarRollo('19', 176, 50, '28'); await cerrarRollo('19', false);
-    const [t, c] = window.__calls.slice(k);
-    r.tomar = t.name === 'rollo_tomar' && typeof t.args.p_id === 'string' && t.args.p_comp_id === 176;
-    r.cerrar = c.name === 'rollo_cerrar' && typeof c.args.p_id === 'string' && c.args.p_id !== t.args.p_id;
-    //    sin señal queda en cola y el reintento repite el MISMO p_id (la base no descuenta otro rollo)
-    window.__falla = 'rollo_tomar'; window.__fallaCode = '';
-    await tomarRollo('19', 176, 50, '28');
-    const enCola = readRolloQueue();
-    window.__falla = null;
-    k = desde(); await flush();
-    const reint = window.__calls.slice(k).find(x => x.name === 'rollo_tomar');
-    r.mismoId = enCola.length === 1 && !!reint && reint.args.p_id === enCola[0].args.p_id && readRolloQueue().length === 0;
-    //    sin la bandera (base vieja): las de siempre, sin p_id
-    D.rollos_antiduplicado = false;
-    k = desde(); await tomarRollo('19', 176, 50, '28');
-    const v = window.__calls[k];
-    r.sinBandera = v.name === 'tomar_rollo' && v.args.p_id === undefined;
-    D.rollos_antiduplicado = bandera;
+  // ============ 3) E y C ============
+  await enviarOpcion(p, "E", "10");
+  await esperar(() => base.eventos.some((e) => e.p.toque.opcion === "E"));
+  const e1 = base.eventos.find((e) => e.p.toque.opcion === "E");
+  chequeo("3 el E llega con el pase y el equipo", !!e1 && e1.p_pase === "PASE.OK1" && e1.p_dispositivo === idEquipo);
+  chequeo("3 el E lleva la matriz, el legajo y 0 unidades", !!e1 && e1.p.matriz === "10" && e1.p.legajo === "999" && e1.p.uni === 0);
+  chequeo("3 el toque crudo viaja adentro (opción, texto, hora y versión)", !!e1 && e1.p.toque.texto === "10" && !!e1.p.toque.ts_event && /^gp2-\d{8}[a-z]\/v3\.1\.\d+$/.test(e1.p.toque.app_version) && e1.p.toque.id === e1.p.id_ejecucion);
+  await ponerLegajo(p, "999");
+  await enviarOpcion(p, "C", "120");
+  await esperar(() => base.eventos.some((e) => e.p.toque.opcion === "C"));
+  const c1 = base.eventos.find((e) => e.p.toque.opcion === "C");
+  chequeo("3 el C manda los GOLPES tal cual (la base los multiplica)", !!c1 && c1.p.golpes === 120 && c1.p.matriz === "10" && c1.p.uni === undefined);
+  chequeo("3 el C lleva los segundos trabajados y la hora de inicio", !!c1 && typeof c1.p.segundos_trabajados === "number" && !!c1.p.hora_inicio && !!c1.p.toque.hs_inicio);
 
-    // b) evento sin señal (error sin codigo): queda PENDIENTE en la cola, no ERROR; con codigo de la base si es ERROR
-    const ev = { id: 'prueba-sin-senal', legajo: '19', opcion: 'RM', descripcion: 'Rotura Matriz', texto: '', ts_event: isoNow() };
-    updateStateAfterSend('19', ev); enqueue(ev);
-    window.__falla = 'registrar_evento_prod'; window.__fallaCode = '';
-    await flush();
-    const st = () => (readState('19').last2.find(x => x.id === ev.id) || {}).status;
-    r.sinSenal = st() === 'queued' && readQueue().some(x => x.id === ev.id);
-    window.__fallaCode = 'P0001'; await flush();
-    r.rechazo = st() === 'failed';
-    window.__falla = null; await flush();
-    r.alVolver = st() === 'sent' && !readQueue().length && !('lastError' in readState('19').last2.find(x => x.id === ev.id));
+  // ============ 4) historial y anular ============
+  await esperar(() => p.evaluate(() => (document.getElementById("daySummary").textContent.match(/ENVIADO/g) || []).length >= 2));
+  chequeo("4 el historial marca los toques como ENVIADO", await p.evaluate(() => (document.getElementById("daySummary").textContent.match(/ENVIADO/g) || []).length >= 2));
+  await p.fill("#legajoInput", "999");
+  await p.locator("#daySummary .hist-del").first().click();      // el de arriba = el último (C)
+  await esperar(() => base.anulados.length > 0);
+  chequeo("4 el 🗑 anula en la base con el id del toque", base.anulados[0] === c1.p.id_ejecucion);
+  const anu = llamadas(base, "reg_prod_3_0_anular_evento").pop();
+  chequeo("4 la anulación va con pase y equipo", !!anu && anu.cuerpo.p_pase === "PASE.OK1" && anu.cuerpo.p_dispositivo === idEquipo && anu.perfil === "reg_prod_3_0");
 
-    // c) 🗑 sin señal: no obliga a repetirlo; la baja queda en cola (una sola) y sale DESPUES de los eventos
-    const s = readState('19');
-    const idx = s.last2.findIndex(x => x.id === ev.id);
-    window.__falla = 'anular_evento_prod'; window.__fallaCode = '';
-    await deleteHistItem('19', idx);
-    r.borradoLocal = !readState('19').last2.some(x => x.id === ev.id);
-    enqueueAnular(ev.id);                               // un segundo 🗑 / reintento no la duplica
-    r.unaSola = JSON.stringify(readAnularQueue()) === JSON.stringify([ev.id]);
-    renderSyncBadge(); r.badge = $('syncBadge').innerText;
-    await flush();                                      // sigue sin señal: no se pierde
-    r.sigue = readAnularQueue().length === 1;
-    window.__falla = null;
-    const ev2 = { id: 'prueba-despues', legajo: '19', opcion: 'RM', descripcion: 'Rotura Matriz', texto: '', ts_event: isoNow() };
-    updateStateAfterSend('19', ev2); enqueue(ev2);
-    k = desde(); await flush();
-    const tras = window.__calls.slice(k).map(x => x.name);
-    r.orden = tras.indexOf('registrar_evento_prod') > -1 && tras.indexOf('registrar_evento_prod') < tras.indexOf('anular_evento_prod');
-    r.unaVez = tras.filter(x => x === 'anular_evento_prod').length === 1 && !readAnularQueue().length;
-    await flush();
-    r.noRepite = !window.__calls.slice(k).slice(tras.length).some(x => x.name === 'anular_evento_prod');
-    //    rechazo de la base con codigo (no de red ni de permiso): avisa y NO lo borra de la tablet
-    const s2 = readState('19');
-    window.__falla = 'anular_evento_prod'; window.__fallaCode = 'P0001';
-    await deleteHistItem('19', s2.last2.findIndex(x => x.id === ev2.id));
-    r.rechazoNoBorra = readState('19').last2.some(x => x.id === ev2.id) && !readAnularQueue().length;
-    window.__falla = null;
-    renderSyncBadge();
-    return r;
-  });
-  ok(arr.tomar && arr.cerrar, 'rollos con bandera: rollo_tomar / rollo_cerrar con un p_id propio cada una');
-  ok(arr.mismoId, 'rollo_tomar sin señal: queda en cola y el reintento lleva el MISMO p_id');
-  ok(arr.sinBandera, 'sin rollos_antiduplicado en el bundle: tomar_rollo de siempre, sin p_id');
-  ok(arr.sinSenal, 'evento sin señal (error sin codigo): queda PENDIENTE en la cola, no ERROR');
-  ok(arr.rechazo, 'evento rechazado por la base (P0001): ERROR');
-  ok(arr.alVolver, 'con señal sale, queda enviado y sin el error viejo pegado');
-  ok(arr.borradoLocal && arr.unaSola, '🗑 sin señal: se borra de la tablet y la baja queda en cola UNA sola vez');
-  ok(arr.badge.includes('1 sin enviar'), 'el badge cuenta la baja pendiente: ' + arr.badge);
-  ok(arr.sigue, 'la baja no se pierde mientras siga sin señal');
-  ok(arr.orden && arr.unaVez && arr.noRepite, 'con señal: primero los eventos, despues la baja, una sola vez');
-  ok(arr.rechazoNoBorra, 'baja rechazada por la base (P0001): avisa y NO se borra de la tablet');
+  // ============ 5) sin señal ============
+  await ponerLegajo(p, "999");
+  base.caida = true;                                          // sin señal: los pedidos a la base no responden
+  const antes = base.eventos.length;
+  await enviarOpcion(p, "PB");
+  await esperar(() => p.evaluate(() => /sin enviar/.test(document.getElementById("syncBadge").textContent)), 6000);
+  chequeo("5 sin señal el toque queda en la cola (el badge lo dice)", await p.evaluate(() => /1 sin enviar/.test(document.getElementById("syncBadge").textContent)) && base.eventos.length === antes);
+  chequeo("5 y figura PENDIENTE (no ERROR)", await p.evaluate(() => /PENDIENTE/.test(document.getElementById("daySummary").textContent) && !/ERROR/.test(document.getElementById("daySummary").textContent)));
+  base.caida = false;
+  await p.click("#syncBadge");
+  await esperar(() => base.eventos.length === antes + 1);
+  chequeo("5 al volver la señal se manda con su hora original", base.eventos.length === antes + 1 && base.eventos[antes].p.toque.opcion === "PB");
+  await esperar(() => p.evaluate(() => /al día/.test(document.getElementById("syncBadge").textContent)));
+  chequeo("5 y la cola queda vacía", await p.evaluate(() => /al día/.test(document.getElementById("syncBadge").textContent)));
 
-  // 2026-10-05 [usuario]: el cartel "Pendientes en cola" no va mas; con la cola llena el
-  // unico aviso es el badge "⚠ N sin enviar".
-  const cola = await page.evaluate(() => {
-    writeQueue([{ id: 'x1', legajo: '19', opcion: 'E', texto: '505', ts_event: '2026-10-05T13:26:52-03:00' }]);
-    renderSyncBadge();
-    const r = { cartel: !!document.getElementById('pendingSection') || document.body.innerText.includes('Pendientes en cola'),
-                badge: $('syncBadge').innerText };
-    writeQueue([]); renderSyncBadge();
-    return r;
-  });
-  ok(!cola.cartel, 'sin cartel "Pendientes en cola" en la pantalla de legajo');
-  ok(cola.badge.includes('1 sin enviar'), 'con cola llena el badge avisa: ' + cola.badge);
+  // ============ 6) pase vencido en la base ============
+  base.paseValido = "PASE.OK2"; base.paseNuevo = "PASE.OK2";   // el pase que tiene el celular ya no sirve
+  await ponerLegajo(p, "999");
+  const antes6 = base.eventos.length;
+  await p.click('.box[data-code="PB"]');                       // cierra el tiempo muerto abierto en 5
+  await p.click("#btnEnviar");
+  await p.waitForSelector("#tvClaveModal", { state: "visible" });
+  chequeo("6 la base rechaza el pase y vuelve la pantalla del código", true);
+  chequeo("6 el toque espera en la cola (no se perdió)", base.eventos.length === antes6 && await p.evaluate(() => JSON.parse(localStorage.getItem("gp2c_queue") || "[]").length === 1));
+  chequeo("6 el pase viejo se descartó", await p.evaluate(() => !localStorage.getItem("gp2c_pase")));
+  await p.fill("#tvClaveInput", CODIGO_TV);
+  await p.click("#tvClaveOk");
+  await p.waitForSelector("#tvClaveModal", { state: "detached" });
+  await esperar(() => base.eventos.length === antes6 + 1);
+  chequeo("6 con el código nuevo sale lo que estaba en la cola, con el pase nuevo", base.eventos.length === antes6 + 1 && base.eventos[antes6].p_pase === "PASE.OK2");
+  await esperar(() => p.evaluate(() => /al día/.test(document.getElementById("syncBadge").textContent)));
+  chequeo("6 y la cola queda vacía", await p.evaluate(() => /al día/.test(document.getElementById("syncBadge").textContent)));
 
-  await browser.close();
-  console.log(process.exitCode ? 'HAY FALLOS' : 'TODO OK');
+  // ============ 6b) pieza con etiqueta (como GP2 desde el 07/10) ============
+  await ponerLegajo(p, "19");
+  await p.click('.box[data-code="E"]');
+  // [Elías, 08/10: «que si no escribo nada no aparezca nada; después de la 1.ª letra aparezcan cosas»]
+  chequeo("6b sin nada escrito la lista de matrices está vacía y sin rótulo", (await p.locator("#matrizGrid .mz").count()) === 0 && !(await p.isVisible("#matrizPicker .mp-label")));
+  await p.type("#textInput", "3");
+  await p.waitForSelector("#matrizGrid .mz");
+  chequeo("6b con la 1.ª letra o número aparecen las que coinciden", (await p.locator('#matrizGrid .mz[data-n="322"]').count()) === 1 && (await p.isVisible("#matrizPicker .mp-label")));
+  await p.fill("#textInput", "");
+  await p.dispatchEvent("#textInput", "input");
+  chequeo("6b al borrar lo escrito la lista vuelve a quedar vacía", (await p.locator("#matrizGrid .mz").count()) === 0);
+  await p.fill("#textInput", "322");
+  await p.waitForSelector("#piezaGrid .mz");
+  const tarjetas = (await p.locator("#piezaGrid .mz").allInnerTexts()).map((t) => t.trim());
+  chequeo("6b la pieza se elige por su etiqueta y la tarjeta dice sólo eso", JSON.stringify(tarjetas) === JSON.stringify(["LK", "CH"]));
+  await p.click("#piezaGrid .mz >> nth=1");
+  await p.waitForSelector("#piezaGrid .pieza-cambiar");
+  chequeo("6b elegida, la línea dice «Fabricás CH»", /Fabricás CH/.test(await p.textContent("#piezaGrid .pieza-cambiar")));
+  chequeo("6b y la tarjeta de la matriz lleva la etiqueta", /CH/.test(await p.textContent('#matrizGrid .mz[data-n="322"] .mz-chip')));
+  await p.click("#btnEnviar");
+  await p.waitForSelector("#legajoScreen:not(.hidden)");
+  await esperar(() => base.eventos.some((e) => e.p.toque.opcion === "E" && e.p.matriz === "322"));
+  const e322 = base.eventos.find((e) => e.p.toque.opcion === "E" && e.p.matriz === "322");
+  chequeo("6b el E lleva la pieza elegida (comp_salida_id), que decide dónde va el stock", !!e322 && e322.p.comp_salida_id === 2);
+  await ponerLegajo(p, "19");
+  await p.click('.box[data-code="C"]');
+  chequeo("6b en el C la matriz activa dice «Pieza: CH»", /Pieza: CH/.test(await p.textContent("#matrizInfo")));
+  await p.fill("#textInput", "5");
+  await p.click("#btnEnviar");
+  await p.waitForSelector("#legajoScreen:not(.hidden)");
+  await esperar(() => base.eventos.some((e) => e.p.toque.opcion === "C" && e.p.matriz === "322"));
+  chequeo("6b el C de la 322 también lleva la pieza", (base.eventos.find((e) => e.p.toque.opcion === "C" && e.p.matriz === "322") || { p: {} }).p.comp_salida_id === 2);
+
+  // ============ 6c) 🗑 sin señal: la baja queda en cola, UNA vez, y sale DESPUÉS de los eventos ============
+  // [Elías, 07/10: «en cola, pero asegurate de que no tenga o no se tome su duplicado»]
+  await esperar(() => p.evaluate(() => /al día/.test(document.getElementById("syncBadge").textContent) && /ENVIADO/.test(document.getElementById("daySummary").textContent)));
+  const idC322 = base.eventos.find((e) => e.p.toque.opcion === "C" && e.p.matriz === "322").p.id_ejecucion;
+  const colaBajas = () => p.evaluate(() => JSON.parse(localStorage.getItem("gp2c_aqueue") || "[]"));
+  const enHistorial = (id) => p.evaluate((x) => readState("19").last2.some((i) => i.id === x), id);
+  await p.fill("#legajoInput", "19");
+  await p.waitForSelector("#daySummary .hist-del");
+  base.caida = true;
+  const anuAntes = base.anulados.length;
+  await p.locator("#daySummary .hist-del").first().click();          // el de arriba = el C de la 322, ya ENVIADO
+  await esperar(async () => (await colaBajas()).length === 1);
+  chequeo("6c 🗑 sin señal: no hay que repetirlo, la baja queda en su cola", JSON.stringify(await colaBajas()) === JSON.stringify([idC322]));
+  chequeo("6c y el toque sale del historial", !(await enHistorial(idC322)));
+  chequeo("6c el badge cuenta la baja pendiente", await p.evaluate(() => /1 sin enviar/.test(document.getElementById("syncBadge").textContent)));
+  await p.evaluate((id) => enqueueAnular(id), idC322);                // otro 🗑 o un reintento no la duplica
+  chequeo("6c la misma baja no se anota dos veces", (await colaBajas()).length === 1);
+  await ponerLegajo(p, "19");
+  await enviarOpcion(p, "PB");                                         // un toque nuevo, también sin señal
+  await esperar(() => p.evaluate(() => /2 sin enviar/.test(document.getElementById("syncBadge").textContent)));
+  base.caida = false;
+  const desde6c = base.llamadas.length;
+  await p.click("#syncBadge");
+  await esperar(() => base.anulados.length === anuAntes + 1);
+  const orden6c = base.llamadas.slice(desde6c).map((c) => c.fn);
+  chequeo("6c con señal sale primero el toque y después la baja", orden6c.indexOf("reg_prod_3_0_registrar_evento") > -1 && orden6c.indexOf("reg_prod_3_0_registrar_evento") < orden6c.indexOf("reg_prod_3_0_anular_evento"));
+  chequeo("6c la baja llega con el id del toque", base.anulados[anuAntes] === idC322);
+  await esperar(() => p.evaluate(() => /al día/.test(document.getElementById("syncBadge").textContent)));
+  await p.click("#syncBadge"); await pausa(400);
+  chequeo("6c y llega UNA sola vez (la cola queda vacía)", base.anulados.length === anuAntes + 1 && (await colaBajas()).length === 0);
+  // rechazo de la base por los datos: avisa y NO se borra de la pantalla (quedaría vivo en la base)
+  const idPB = base.eventos[base.eventos.length - 1].p.id_ejecucion;
+  await p.fill("#legajoInput", "19");
+  await esperar(() => p.evaluate(() => /ENVIADO/.test(document.getElementById("daySummary").textContent)));
+  base.anularRechazo = true;
+  await p.locator("#daySummary .hist-del").first().click();          // el PB recién enviado
+  await esperar(() => llamadas(base, "reg_prod_3_0_anular_evento").some((c) => c.cuerpo.p_id_ejecucion === idPB));
+  await pausa(300);
+  chequeo("6c baja rechazada por la base: el toque sigue en el historial y no va a la cola", (await enHistorial(idPB)) && (await colaBajas()).length === 0);
+  base.anularRechazo = false;
+
+  // ============ 7) base caída ============
+  // 7a) con pase y catálogo guardados: se abre igual
+  base.caida = true;
+  const storage = await ctx.storageState();
+  await p.close();
+  const p2 = await ctx.newPage();
+  p2.on("pageerror", (e) => errs.push(e.message));
+  p2.on("dialog", (d) => d.accept().catch(() => {}));
+  await p2.goto(URL_APP, { waitUntil: "domcontentloaded" });
+  await p2.waitForSelector("#legajoScreen", { state: "visible" });
+  await pausa(500);
+  chequeo("7 con pase guardado y la base caída no pide el código", !(await p2.locator("#tvClaveModal").count()));
+  await esperar(() => p2.evaluate(() => typeof D !== "undefined" && !!(D.empleados && D.empleados["999"])));
+  chequeo("7 el catálogo sale de lo guardado en el celular", await p2.evaluate(() => !!(D.empleados && D.empleados["999"]) && D.matricesMap && D.matricesMap.has("10")));
+  await ponerLegajo(p2, "999");
+  chequeo("7 se puede entrar con el legajo sin conexión con la base", await p2.isVisible("#optionsScreen"));
+  await p2.close();
+
+  // 7b) sin pase y la base caída: se puede cargar, queda en la cola con aviso
+  const base2 = nuevaBase(); base2.caida = true;
+  const { ctx: ctx2, p: p3 } = await contexto(base2);
+  await p3.goto(URL_APP, { waitUntil: "domcontentloaded" });
+  await entrarConCodigo(p3, CODIGO_TV);
+  await p3.waitForSelector("#tvClaveModal", { state: "detached" });
+  await p3.waitForSelector("#legajoScreen", { state: "visible" });
+  chequeo("7 sin poder verificar el código, la pantalla se va y se puede cargar", true);
+  await p3.evaluate((d) => { localStorage.setItem("gp2c_bundle", JSON.stringify({ at: new Date().toISOString(), data: d })); }, BUNDLE);
+  await p3.reload({ waitUntil: "domcontentloaded" });
+  await entrarConCodigo(p3, CODIGO_TV);                      // sin pase, al abrir vuelve a pedir el código (la base sigue caída)
+  await p3.waitForSelector("#tvClaveModal", { state: "detached" });
+  await p3.waitForSelector("#legajoScreen", { state: "visible" });
+  await esperar(() => p3.evaluate(() => typeof D !== "undefined" && !!(D.empleados && D.empleados["999"])));
+  await ponerLegajo(p3, "999");
+  await enviarOpcion(p3, "E", "10");
+  await esperar(() => p3.evaluate(() => !!document.getElementById("redAviso")));
+  chequeo("7 el toque queda en la cola y hay un aviso para ingresar el código", await p3.isVisible("#redAvisoBtn") && /esperan el código/.test(await p3.textContent("#redAvisoTxt")) && base2.eventos.length === 0);
+  chequeo("7 el badge dice que esperan el código", await p3.evaluate(() => /esperan el código/.test(document.getElementById("syncBadge").textContent)));
+  base2.caida = false;
+  await p3.click("#redAvisoBtn");
+  await entrarConCodigo(p3, CODIGO_TV);
+  await p3.waitForSelector("#tvClaveModal", { state: "detached" });
+  await esperar(() => base2.eventos.some((e) => e.p.toque.opcion === "E"));   // (antes puede salir el LT «llegada tarde», según la hora)
+  if (process.env.TRAZA) console.log("   · base2:", JSON.stringify(base2.llamadas.map((c) => c.fn)), JSON.stringify(base2.eventos.map((e) => [e.p.toque.opcion, e.p_pase])));
+  chequeo("7 al volver la base y poner el código, sale lo cargado sin conexión", base2.eventos.some((e) => e.p.toque.opcion === "E") && base2.eventos.every((e) => e.p_pase === "PASE.OK1"));
+  await esperar(() => p3.evaluate(() => !document.getElementById("redAviso")));
+  chequeo("7 y el aviso desaparece", await p3.evaluate(() => !document.getElementById("redAviso")));
+  await ctx2.close();
+
+  // ============ 8) rollos (Fase 1c) ============
+  const base3 = nuevaBase(); base3.bundle = BUNDLE_ROLLOS;
+  const { ctx: ctx3, p: p4 } = await contexto(base3);
+  await p4.goto(URL_APP, { waitUntil: "domcontentloaded" });
+  await entrarConCodigo(p4, CODIGO_TV);
+  await p4.waitForSelector("#tvClaveModal", { state: "detached" });
+  await esperar(() => p4.evaluate(() => typeof D !== "undefined" && !!(D.empleados && D.empleados["999"]) && D.rollos_activos === true));
+  await ponerLegajo(p4, "999");
+  await p4.click('.box[data-code="E"]');
+  await p4.fill("#textInput", "10");
+  await p4.waitForSelector("#rolloGrid .rl");
+  chequeo("8 con rollos_activos, al elegir la matriz 10 se ofrece el rollo de 25 kg del fleje 94", /25 kg/.test(await p4.textContent("#rolloGrid .rl")) && /FL94/.test(await p4.textContent("#rolloGrid .rl")));
+  await p4.click("#rolloGrid .rl");
+  await p4.click("#btnEnviar");
+  await p4.waitForSelector("#legajoScreen:not(.hidden)");
+  await esperar(() => base3.rollos.length === 1);
+  const tom = base3.rollos[0];
+  chequeo("8 el E con rollo llama a tomar_rollo con legajo, fleje, kg y matriz", !!tom && tom.fn === "reg_prod_3_0_rollo_tomar" && !!tom.cuerpo.p_id && tom.cuerpo.p_legajo === "999" && tom.cuerpo.p_comp_id === 100 && tom.cuerpo.p_kg_por_rollo === 25 && tom.cuerpo.p_matriz === "10" && !!tom.cuerpo.p_fecha);
+  chequeo("8 y va con pase y equipo", !!tom && tom.cuerpo.p_pase === "PASE.OK1" && !!tom.cuerpo.p_dispositivo);
+  await esperar(() => base3.eventos.some((e) => e.p.toque.opcion === "E"));
+  chequeo("8 el toque E sale igual", base3.eventos.some((e) => e.p.toque.opcion === "E" && e.p.matriz === "10"));
+  // Eduardo: el CT y «quedó resto» existen sólo con rollos
+  await p4.click("#btnBackTop").catch(() => {});
+  await p4.fill("#legajoInput", "19"); await p4.click("#btnContinuar"); await p4.waitForSelector("#optionsScreen:not(.hidden)");
+  chequeo("8 Eduardo (19) tiene el botón CT cuando hay rollos", (await p4.$$eval(".box", (els) => els.map((e) => e.dataset.code))).includes("CT"));
+  await p4.click('.box[data-code="PR"]');
+  chequeo("8 en PR aparece «¿quedó resto?»", await p4.isVisible("#quedoRestoWrap"));
+  await p4.check("#quedoRestoChk");
+  await p4.click("#btnEnviar");
+  await p4.waitForSelector("#legajoScreen:not(.hidden)");
+  await esperar(() => base3.rollos.length === 2);
+  const cer = base3.rollos[1];
+  chequeo("8 PR con «quedó resto» llama a cerrar_rollo con quedo_resto = true", !!cer && cer.fn === "reg_prod_3_0_rollo_cerrar" && !!cer.cuerpo.p_id && cer.cuerpo.p_legajo === "19" && cer.cuerpo.p_quedo_resto === true && cer.cuerpo.p_pase === "PASE.OK1");
+  // sin señal: tomar y cerrar esperan en orden
+  await ponerLegajo(p4, "999");
+  await enviarOpcion(p4, "C", "10");                          // el cajón de la matriz abierta, para poder empezar otra
+  await esperar(() => base3.eventos.some((e) => e.p.toque.opcion === "C"));
+  await ponerLegajo(p4, "999");
+  base3.caida = true;
+  await p4.click('.box[data-code="E"]'); await p4.fill("#textInput", "10"); await p4.waitForSelector("#rolloGrid .rl"); await p4.click("#rolloGrid .rl");
+  await p4.click("#btnEnviar"); await p4.waitForSelector("#legajoScreen:not(.hidden)");
+  await esperar(() => p4.evaluate(() => JSON.parse(localStorage.getItem("gp2c_rqueue") || "[]").length === 1));
+  chequeo("8 sin señal el tomar_rollo espera en su cola y el badge lo cuenta", await p4.evaluate(() => JSON.parse(localStorage.getItem("gp2c_rqueue") || "[]").length === 1 && /sin enviar/.test(document.getElementById("syncBadge").textContent)) && base3.rollos.length === 2);
+  base3.caida = false;
+  await p4.click("#syncBadge");
+  await esperar(() => base3.rollos.length === 3);
+  chequeo("8 al volver la señal sale el tomar_rollo guardado, con su fecha original", base3.rollos.length === 3 && base3.rollos[2].fn === "reg_prod_3_0_rollo_tomar" && !!base3.rollos[2].cuerpo.p_fecha);
+  await esperar(() => p4.evaluate(() => JSON.parse(localStorage.getItem("gp2c_rqueue") || "[]").length === 0 && /al día/.test(document.getElementById("syncBadge").textContent)));
+  // la base hizo el «tomar» pero la respuesta se perdió: el reintento lleva el MISMO id y no descuenta otro rollo
+  await esperar(() => p4.evaluate(() => /al día/.test(document.getElementById("syncBadge").textContent)));
+  await ponerLegajo(p4, "999");
+  await enviarOpcion(p4, "C", "10");
+  await esperar(() => p4.evaluate(() => /al día/.test(document.getElementById("syncBadge").textContent)));
+  await ponerLegajo(p4, "999");
+  const nRollos = base3.rollos.length, nEntregas = base3.entregas.length;
+  base3.perderRespuesta = true;
+  await p4.click('.box[data-code="E"]'); await p4.fill("#textInput", "10"); await p4.waitForSelector("#rolloGrid .rl"); await p4.click("#rolloGrid .rl");
+  await p4.click("#btnEnviar"); await p4.waitForSelector("#legajoScreen:not(.hidden)");
+  await esperar(() => base3.entregas.length === nEntregas + 1);
+  await esperar(() => p4.evaluate(() => JSON.parse(localStorage.getItem("gp2c_rqueue") || "[]").length === 1));
+  await p4.click("#syncBadge");
+  await esperar(() => base3.entregas.length === nEntregas + 2);
+  const [primera, reintento] = base3.entregas.slice(nEntregas);
+  chequeo("8 respuesta perdida: el reintento lleva el MISMO id", !!primera && !!reintento && !!primera.cuerpo.p_id && primera.cuerpo.p_id === reintento.cuerpo.p_id);
+  chequeo("8 y la base lo cuenta una sola vez (no descuenta otro rollo)", base3.rollos.length === nRollos + 1);
+  await esperar(() => p4.evaluate(() => JSON.parse(localStorage.getItem("gp2c_rqueue") || "[]").length === 0));
+  chequeo("8 y las colas quedan vacías", await p4.evaluate(() => JSON.parse(localStorage.getItem("gp2c_rqueue") || "[]").length === 0 && JSON.parse(localStorage.getItem("gp2c_queue") || "[]").length === 0));
+  await ctx3.close();
+
+  // ============ 9) nada de GP2 ============
+  const todas = base.llamadas.concat(base2.llamadas, base3.llamadas);
+  chequeo("9 no se llamó a ninguna función de GP2 (bundle, registrar, anular, rollos, stock)", todas.length > 0 && todas.every((c) => !GP2_FNS.test(c.url)));
+  chequeo("9 todas las funciones son reg_prod_3_0_*", todas.every((c) => /^reg_prod_3_0_/.test(c.fn)));
+
+  await ctx.close();
+  const fallas = res.filter(([, ok]) => !ok);
+  console.log(`test_op_e2e (copia de 3.0): ${res.length - fallas.length}/${res.length} chequeos OK · pageerrors: ${errs.length ? errs.join(" | ") : "none"} · ${fallas.length === 0 && errs.length === 0 ? "✓ OK" : "✗ FAIL"}`);
+  await b.close();
+  process.exit(fallas.length === 0 && errs.length === 0 ? 0 : 1);
 })();

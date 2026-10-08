@@ -1,23 +1,327 @@
 "use strict";
 
+/* ⚠ COPIA PARA PROBAR — la FUENTE es cervantes-gp2/app.js de loekemeyer/Registro-Produccion-3.0 (v3.1.7).
+   Copiada con tools/copiar_botonera_de_3_0.py [Elías, 08/10/2026: «GP2 sólo hacer copia y hacer modificaciones para
+   testear»]. Lo que tiene que llegar a los operarios se cambia en 3.0, no acá: la próxima copia pisa este archivo.
+   Graba IGUAL que 3.0 (código de la TV, pase, funciones reg_prod_3_0); lo cargado desde acá lleva app_version 'gp2-20261008b/v3.1.7'.
+   Diferencias con 3.0: claves gp2c_*, p_app "gp2", sin service worker propio y «Volver» al menú de GP2. */
+
 /* ============================================================
-   operarios_gp2.js — App de operarios sobre schema GP2
-   Usa registro_operarios_bundle() para datos y
-   registrar_evento_prod(p jsonb) para eventos.
-   Eduardo Barrionuevo (legajo "19"): CT button + rollo en E/PR.
+   app.js — Registro Producción 3.0 · Cervantes · botonera de GP2 (v3.1.7)
+   ESTE ARCHIVO ES LA FUENTE de la botonera de Cervantes desde el 08/10/2026 [Elías: «se va a dejar de modificar en GP2 y
+   modificar en este, y GP2 sólo hacer copia y hacer modificaciones para testear»]: los cambios se hacen ACÁ, a mano.
+   Nació de la tablet de GP2 (Produccion/RegistroApp/operarios_gp2.js de loekemeyer/Gestion-Productiva-2.0, commit e110890,
+   v1.251.1) con tools/portar_botonera_gp2.py, que se retiró (está en el historial de git).
+   Lo que cambia respecto de la tablet:
+     · se entra con el CÓDIGO DE LA TV (4 números), no con Google. La base devuelve un PASE firmado, atado a este
+       equipo, que vale hasta las 17:45 (o 3 h si se entra más tarde);
+     · todo va por funciones del schema reg_prod_3_0 (cabecera Content-Profile) que exigen ese pase:
+         reg_prod_3_0_bundle · reg_prod_3_0_registrar_evento · reg_prod_3_0_anular_evento · reg_prod_3_0_rollo_tomar · reg_prod_3_0_rollo_cerrar
+       La base guarda la CRUDA tal cual vino y arma la PROCESADA en la misma transacción;
+     · sin internet se carga igual: los toques quedan en la cola del celular y se envían, con su hora original, cuando hay
+       pase e internet. El catálogo (empleados, matrices, envasado, rollos) se guarda en el celular para poder abrir sin señal;
+     · STOCK Y ROLLOS (Fase 1c): los mueve la base, en la misma transacción que el toque (reg_prod_3_0_registrar_evento →
+       GP2.fabricar_stock) y con reg_prod_3_0_rollo_tomar / _rollo_cerrar, siempre con el pase. Mientras la base no lo tenga, el
+       catálogo no trae `rollos_activos` y el selector de rollo, «¿quedó resto?» y el botón CT de Eduardo quedan apagados.
+     · ANULAR (el 🗑 del historial) devuelve el stock que había movido ese toque (Fase 1d, lo hace la base). Los rollos llevan un
+       id anti-duplicado: un reintento no descuenta otro rollo ni cierra el siguiente (como los toques, que ya lo tenían).
+   Eduardo Barrionuevo (legajo "19"): CT button + rollo en E/PR (sólo con rollos_activos).
    ============================================================ */
 
+const COPIA_GP2 = "gp2-20261008b/v3.1.7";   // va en el app_version de cada toque (GP2 no lleva const de versión)
 const LEGAJO_EDUARDO = "19";
 
-// El cliente con la SESION del login (supabase-config.js). Hasta el 2026-10-05 esta pantalla
-// tenia su propio cliente "sin sesion": desde la fase B de seguridad (2026-09-28) la base no
-// deja escribir a anon y cada E/C volvia "permission denied for function registrar_evento_prod".
-const SB = GP2_SB();
+const SUPABASE_URL = "https://hrxfctzncixxqmpfhskv.supabase.co";
+const SUPABASE_KEY = "sb_publishable_BqpAgZH6ty-9wft10_YMhw_0rcIPuWT";
+const SCHEMA = "reg_prod_3_0";
+const RPC_TIMEOUT_MS = 20000;
+
+/* ============================================================
+   TRANSPORTE: la clave pública + el PASE. Devuelve { data, error } como supabase-js; error.red = sin señal / base caída.
+   ============================================================ */
+async function rpc(fn, args, opts) {
+  const o = opts || {};
+  const body = Object.assign({}, args || {});
+  if (o.pase !== false) { body.p_pase = paseActual(); body.p_dispositivo = idDispositivo(); }
+  const ctl = typeof AbortController !== "undefined" ? new AbortController() : null;
+  const timer = ctl ? setTimeout(() => ctl.abort(), o.timeout || RPC_TIMEOUT_MS) : null;
+  try {
+    const r = await fetch(`${SUPABASE_URL}/rest/v1/rpc/${fn}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "apikey": SUPABASE_KEY, "Authorization": "Bearer " + SUPABASE_KEY, "Content-Profile": SCHEMA },
+      body: JSON.stringify(body),
+      signal: ctl ? ctl.signal : undefined
+    });
+    let j = null;
+    try { j = await r.json(); } catch { /* sin cuerpo */ }
+    if (!r.ok) {
+      return { data: null, error: { code: String((j && j.code) || ("HTTP" + r.status)), message: String((j && j.message) || ("HTTP " + r.status)), status: r.status } };
+    }
+    return { data: j, error: null };
+  } catch (e) {
+    return { data: null, error: { code: "", message: String((e && e.message) || e || "sin red"), red: true } };
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
+}
+
+/* ============================================================
+   EQUIPO: id guardado en el celular (el MISMO gv_dispositivo de Virgilio y Cervantes) + huella + navegador + modelo
+   ============================================================ */
+const LS_DISPOSITIVO = "gv_dispositivo";
+const LS_LEG_REG = "gp2c_legreg";            // + "::" + día + "::" + legajo (ya anotado en el registro de ingresos)
+let _dispMemoria = "";
+function idDispositivo() {
+  try {
+    let id = localStorage.getItem(LS_DISPOSITIVO);
+    if (!id || id.length < 8) {
+      id = (window.crypto && crypto.randomUUID) ? crypto.randomUUID()
+        : ("d" + Date.now().toString(36) + Math.random().toString(36).slice(2, 10));
+      localStorage.setItem(LS_DISPOSITIVO, id);
+    }
+    return id;
+  } catch {
+    if (!_dispMemoria) _dispMemoria = "m" + Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+    return _dispMemoria;   // sin storage: vale mientras no se recargue
+  }
+}
+async function huellaDe(txt) {
+  try {
+    if (window.crypto && crypto.subtle && window.TextEncoder) {
+      const b = new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(txt)));
+      return Array.from(b.slice(0, 8)).map(x => x.toString(16).padStart(2, "0")).join("");
+    }
+  } catch { /* cae al hash simple */ }
+  let h = 2166136261;
+  for (let i = 0; i < txt.length; i++) { h ^= txt.charCodeAt(i); h = Math.imul(h, 16777619); }
+  return (h >>> 0).toString(16).padStart(8, "0");
+}
+let _infoDisp = null;
+async function infoDispositivo() {
+  if (_infoDisp) return _infoDisp;
+  const n = navigator, s = window.screen || {};
+  let zona = "";
+  try { zona = Intl.DateTimeFormat().resolvedOptions().timeZone || ""; } catch { /* sin Intl */ }
+  const extra = {
+    pantalla: (s.width || 0) + "x" + (s.height || 0) + "@" + (window.devicePixelRatio || 1),
+    idioma: n.language || "", zona, plataforma: n.platform || "",
+    nucleos: n.hardwareConcurrency || null, memoria_gb: n.deviceMemory || null, tactil: n.maxTouchPoints || 0
+  };
+  try {
+    if (n.userAgentData && n.userAgentData.getHighEntropyValues) {
+      const h = await n.userAgentData.getHighEntropyValues(["model", "platform", "platformVersion"]);
+      extra.modelo = h.model || "";
+      extra.so = ((h.platform || "") + " " + (h.platformVersion || "")).trim();
+    }
+  } catch { /* el navegador no da el modelo */ }
+  const navegador = String(n.userAgent || "").slice(0, 300);
+  const huella = await huellaDe([navegador, extra.pantalla, extra.idioma, extra.zona, extra.plataforma,
+    extra.nucleos, extra.memoria_gb, extra.modelo || ""].join("|"));
+  _infoDisp = { dispositivo: idDispositivo(), huella, navegador, extra };
+  return _infoDisp;
+}
+const _infoVacia = () => ({ dispositivo: idDispositivo(), huella: "", navegador: "", extra: {} });
+
+// Anota «este legajo se usó en este equipo» (1 vez por legajo, equipo y día): alimenta el aviso de un celular con 2+ legajos.
+// Best-effort: si falla no pasa nada. Es un REGISTRO, no bloquea.
+async function registrarLegajoEnEquipo(legajo, nombre) {
+  try {
+    const leg = String(legajo || "").trim();
+    if (!leg || navigator.onLine === false) return;
+    const clave = LS_LEG_REG + "::" + dayKeyAR() + "::" + leg;
+    try { if (localStorage.getItem(clave)) return; } catch { /* sin storage: se anota cada vez */ }
+    const info = await infoDispositivo().catch(_infoVacia);
+    const { error } = await rpc("reg_prod_3_0_registrar_ingreso", {
+      p_app: "gp2", p_legajo: leg, p_nombre: String(nombre || "").trim() || null, p_metodo: "legajo",
+      p_dispositivo: info.dispositivo, p_huella: info.huella, p_navegador: info.navegador, p_extra: info.extra
+    }, { pase: false });
+    if (!error) { try { localStorage.setItem(clave, "1"); } catch { /* sin storage */ } }
+  } catch { /* best-effort */ }
+}
+
+/* ============================================================
+   ENTRADA CON EL CÓDIGO DE LA TV + PASE
+   Al abrir (y al volver a la app, y al volver internet) si no hay un pase vigente aparece, entera, la pantalla del código:
+   4 números que cambian cada minuto (vale el de este minuto y el anterior). La base los valida
+   (reg_prod_3_0_cerv_ingresar), deja el ingreso registrado (hora del servidor, IP, equipo) y devuelve el pase.
+     · código malo o vencido → la pantalla sigue; demasiados intentos → lo dice y sigue.
+     · sin internet / base caída → se puede entrar y cargar: los toques quedan en la cola y se mandan cuando haya pase.
+     · el pase vence a las 17:45: pasada esa hora vuelve a pedir el código (y lo que se cargue queda en la auditoría).
+   ============================================================ */
+const LS_PASE = "gp2c_pase";
+const ENTRADA_POSPONER_MS = 5 * 60 * 1000;   // tras «no se pudo verificar», no se vuelve a abrir sola por 5 min
+let _entradaEnCurso = null;
+let _entradaPospuestaHasta = 0;
+
+function leerPase() { try { return JSON.parse(localStorage.getItem(LS_PASE) || "null"); } catch { return null; } }
+function paseActual() { const p = leerPase(); return (p && p.pase) || ""; }
+function paseVigente() {
+  const p = leerPase();
+  if (!(p && p.pase)) return false;
+  const v = Date.parse(p.vence || "");
+  return v > Date.now();
+}
+function guardarPase(j) {
+  try { localStorage.setItem(LS_PASE, JSON.stringify({ pase: j.pase, vence: j.vence, at: isoNow() })); } catch { /* sin storage: se vuelve a pedir */ }
+}
+function borrarPase() { try { localStorage.removeItem(LS_PASE); } catch { /* sin storage */ } }
+
+// Pantalla del código. Entera (tapa todo) mientras no haya pase. -> "1234" | null (canceló; sólo si es cancelable)
+function pedirClaveTv(aviso, cancelable) {
+  return new Promise((resolve) => {
+    const viejo = document.getElementById("tvClaveModal");
+    if (viejo) viejo.remove();
+    const fondo = document.createElement("div");
+    fondo.id = "tvClaveModal";
+    fondo.style.cssText = "position:fixed;inset:0;z-index:400;background:#f1f5f9;display:flex;align-items:center;justify-content:center;padding:16px;overflow:auto;";
+    const caja = document.createElement("div");
+    caja.style.cssText = "background:#fff;border-radius:14px;padding:22px 20px;max-width:340px;width:100%;box-shadow:0 10px 30px rgba(15,23,42,.25);text-align:center;font-family:inherit;";
+    const t = document.createElement("div");
+    t.style.cssText = "font-size:22px;font-weight:800;color:#0f172a;margin-bottom:6px;";
+    t.textContent = "📺 Código de la TV";
+    const d = document.createElement("div");
+    d.style.cssText = "font-size:15px;color:#475569;margin-bottom:14px;";
+    d.textContent = "Mirá la TV de Cervantes y poné los 4 números para entrar (cambian cada minuto).";
+    const inp = document.createElement("input");
+    inp.id = "tvClaveInput";
+    inp.type = "text"; inp.inputMode = "numeric"; inp.maxLength = 4; inp.autocomplete = "one-time-code";
+    inp.setAttribute("pattern", "[0-9]*");
+    inp.style.cssText = "width:100%;box-sizing:border-box;font-size:34px;letter-spacing:12px;text-align:center;padding:8px;border:2px solid #cbd5e1;border-radius:10px;font-weight:800;";
+    const err = document.createElement("div");
+    err.id = "tvClaveError";
+    err.style.cssText = "min-height:20px;margin:8px 0;font-size:14px;font-weight:700;color:#b91c1c;";
+    err.textContent = aviso || "";
+    const fila = document.createElement("div");
+    fila.style.cssText = "display:flex;gap:8px;";
+    const ok = document.createElement("button");
+    ok.id = "tvClaveOk"; ok.type = "button"; ok.textContent = "Entrar";
+    ok.style.cssText = "flex:1;padding:12px;border-radius:10px;border:none;background:#1e40af;color:#fff;font-size:17px;font-weight:800;";
+    if (cancelable) {
+      const no = document.createElement("button");
+      no.id = "tvClaveNo"; no.type = "button"; no.textContent = "Ahora no";
+      no.style.cssText = "flex:1;padding:12px;border-radius:10px;border:1px solid #cbd5e1;background:#f8fafc;font-size:16px;font-weight:700;";
+      no.addEventListener("click", () => cerrar(null));
+      fila.append(no);
+    }
+    fila.append(ok);
+    caja.append(t, d, inp, err, fila);
+    const volver = document.createElement("a");
+    volver.id = "tvClaveVolver"; volver.href = "../../GP2_MODULOS.html"; volver.textContent = "← Volver al menú";
+    volver.style.cssText = "display:inline-block;margin-top:14px;font-size:14px;font-weight:600;color:#0e7490;text-decoration:none;";
+    caja.append(volver);
+    fondo.appendChild(caja);
+    document.body.appendChild(fondo);
+
+    function cerrar(v) { fondo.remove(); resolve(v); }
+    const enviar = () => {
+      const v = inp.value.replace(/\D/g, "");
+      if (v.length !== 4) { err.textContent = "Son 4 números."; return; }
+      cerrar(v);
+    };
+    inp.addEventListener("input", () => { inp.value = inp.value.replace(/\D/g, "").slice(0, 4); });
+    inp.addEventListener("keydown", (e) => { if (e.key === "Enter") enviar(); });
+    ok.addEventListener("click", enviar);
+    setTimeout(() => { try { inp.focus(); } catch { /* sin foco */ } }, 50);
+  });
+}
+
+// Manda el código a la base. -> { estado: "ok" | "codigo" | "bloqueo" | "sin_red" }
+async function consultarClaveTv(clave) {
+  if (navigator.onLine === false) return { estado: "sin_red" };
+  const info = await infoDispositivo().catch(_infoVacia);
+  const { data, error } = await rpc("reg_prod_3_0_cerv_ingresar", {
+    p_app: "gp2", p_clave: clave,
+    p_dispositivo: info.dispositivo, p_huella: info.huella, p_navegador: info.navegador, p_extra: info.extra
+  }, { pase: false, timeout: 12000 });
+  if (error) return { estado: "sin_red" };   // 404 (función sin crear) / 5xx / sin señal: no se pudo verificar; no es culpa del operario
+  if (data && data.ok && data.pase) { guardarPase(data); return { estado: "ok" }; }
+  if (data && data.ok) return { estado: "sin_red" };   // la base no devolvió pase: no se puede seguir
+  return { estado: String((data && data.error) || "") === "bloqueo" ? "bloqueo" : "codigo" };
+}
+
+// Con el pase conseguido: catálogo al día y lo que estaba en cola se manda.
+function alTenerPase() {
+  cargarBundle().catch(() => {});
+  flushQueue().then(() => { renderSyncBadge(); renderSummary(); }).catch(() => {});
+  renderSyncBadge();
+}
+
+// Asegura el pase del equipo (muestra la pantalla del código si hace falta).
+// -> { ok: true, pendiente: false } | { ok: true, pendiente: true } (sin internet o sin poder verificar: se carga igual y
+//    queda en la cola) | { ok: false } (canceló: sólo si opts.cancelable)
+function asegurarEntrada(opts) {
+  const cancelable = !!(opts && opts.cancelable);
+  if (paseVigente()) return Promise.resolve({ ok: true, pendiente: false });
+  if (_entradaEnCurso) return _entradaEnCurso;
+  if (!(opts && opts.forzar) && Date.now() < _entradaPospuestaHasta) return Promise.resolve({ ok: true, pendiente: true });
+  const p = (async () => {
+    if (navigator.onLine === false) return { ok: true, pendiente: true };
+    let aviso = "";
+    for (;;) {
+      const clave = await pedirClaveTv(aviso, cancelable);
+      if (clave == null) return { ok: false };
+      const r = await consultarClaveTv(clave);
+      if (r.estado === "ok") { alTenerPase(); return { ok: true, pendiente: false }; }
+      if (r.estado === "sin_red") { _entradaPospuestaHasta = Date.now() + ENTRADA_POSPONER_MS; return { ok: true, pendiente: true }; }
+      aviso = r.estado === "bloqueo"
+        ? "Demasiados intentos con el código. Esperá unos minutos y probá de nuevo."
+        : "Código incorrecto o vencido: mirá la TV y probá de nuevo.";
+    }
+  })().finally(() => { _entradaEnCurso = null; renderSyncBadge(); });
+  _entradaEnCurso = p;
+  return p;
+}
+
+// Al abrir la app, al volver a ella y al volver internet: si falta el pase, aparece la pantalla del código.
+function verificarEntrada() {
+  if (paseVigente() || navigator.onLine === false || Date.now() < _entradaPospuestaHasta) return;
+  asegurarEntrada().catch(() => {});
+}
+
+// La base dijo «Pase inválido o vencido» (venció, o es de otro equipo): se descarta y vuelve el código. Lo cargado queda en la cola.
+function pasePerdido() {
+  borrarPase();
+  _entradaPospuestaHasta = 0;
+  renderSyncBadge();
+  return asegurarEntrada({ forzar: true }).catch(() => {});
+}
+
+// Botón del aviso: pide el código para mandar lo que quedó en la cola (se puede dejar para después).
+async function ingresarCodigo() {
+  _entradaPospuestaHasta = 0;
+  await asegurarEntrada({ cancelable: true, forzar: true });
+  renderSyncBadge();
+}
+
+// Aviso fijo arriba mientras haya toques esperando el código de la TV.
+function actualizarAvisoRed(pendientes) {
+  let el = document.getElementById("redAviso");
+  const espera = pendientes > 0 && !paseVigente();
+  if (!espera) { if (el) el.remove(); return; }
+  if (!el) {
+    el = document.createElement("div");
+    el.id = "redAviso";
+    el.style.cssText = "position:fixed;top:0;left:0;right:0;z-index:200;padding:8px 12px;font-size:14px;font-weight:700;text-align:center;background:#fef3c7;color:#92400e;border-bottom:2px solid #f59e0b;";
+    const txt = document.createElement("span");
+    txt.id = "redAvisoTxt";
+    const btn = document.createElement("button");
+    btn.id = "redAvisoBtn"; btn.type = "button"; btn.textContent = "Ingresar código";
+    btn.style.cssText = "margin-left:10px;padding:4px 12px;border-radius:8px;border:1px solid #b45309;background:#fff;color:#92400e;font-size:14px;font-weight:800;";
+    btn.addEventListener("click", ingresarCodigo);
+    el.append(txt, btn);
+    document.body.appendChild(el);
+  }
+  const sinRed = navigator.onLine === false;
+  el.querySelector("#redAvisoTxt").textContent = sinRed
+    ? `📺 ${pendientes} registro(s) esperan: cuando vuelva internet ingresá el código de la TV.`
+    : `📺 ${pendientes} registro(s) esperan el código de la TV para enviarse.`;
+  el.querySelector("#redAvisoBtn").style.display = sinRed ? "none" : "";
+}
 
 /* ============================================================
    DATOS (cargados una vez desde bundle)
    ============================================================ */
-/* Shape real de registro_operarios_bundle():
+/* Shape real de reg_prod_3_0_bundle() (el de registro_operarios_bundle() de GP2, con pase; `rollos_activos` desde la Fase 1c):
    empleados    { legajo -> {nombre, activo, hora_entrada} }
    matrices     [ {n, d, ppk, uxg, maq, act} ]   uxg = unidades por golpe, act = activa
    registro_en_golpes  true = el cajon se cierra anotando GOLPES del contador
@@ -28,18 +332,42 @@ const SB = GP2_SB();
    rollos_saldo [ {comp_id, codigo, kg_por_rollo, rollos} ]              */
 let D = {};
 
+const LS_BUNDLE = "gp2c_bundle";
+const CATALOGO_REFRESCO_MS = 30 * 60 * 1000;   // con la app abierta, el catálogo se vuelve a pedir cada 30 min
+let _catalogoAt = 0;
+let _bundleTimer = null;
+
+function leerCache(clave) { try { return JSON.parse(localStorage.getItem(clave) || "null"); } catch { return null; } }
+function guardarCache(clave, data) { try { localStorage.setItem(clave, JSON.stringify({ at: isoNow(), data })); } catch { /* storage lleno: sin caché */ } }
+function armarBundle(d) {
+  const x = (d && typeof d === "object") ? d : {};
+  x.matricesMap = new Map((x.matrices || []).map(m => [String(m.n || "").trim(), m]));
+  return x;
+}
+function repintarCatalogo() { if (selected && ["E", "CM"].includes(selected.code)) renderMatrizPicker(); }
+
 async function cargarBundle() {
-  try {
-    const { data, error } = await SB.rpc("registro_operarios_bundle");
-    if (error) throw error;
-    D = data || {};
-    D.matricesMap = new Map((D.matrices || []).map(m => [String(m.n || "").trim(), m]));
-    if (selected && ["E", "CM"].includes(selected.code)) renderMatrizPicker();
-  } catch (e) {
-    // Sin bundle la app rechaza todo legajo/matriz: reintentar solo hasta que cargue
-    console.error("Bundle error:", e);
-    setTimeout(() => { cargarBundle().catch(() => {}); }, 15000);
+  clearTimeout(_bundleTimer);
+  if (!D.matricesMap) {                                      // primero lo guardado en el celular (abre sin señal)
+    const c = leerCache(LS_BUNDLE);
+    if (c && c.data) { D = armarBundle(c.data); _catalogoAt = Date.parse(c.at) || 0; repintarCatalogo(); }
   }
+  if (!paseVigente() || navigator.onLine === false) return;  // el pase y el internet los traen verificarEntrada() y "online"
+  const { data, error } = await rpc("reg_prod_3_0_bundle");
+  if (error) {
+    console.error("Bundle error:", error);
+    if (error.code === "28000") pasePerdido();
+    else _bundleTimer = setTimeout(() => { cargarBundle().catch(() => {}); }, 15000);   // sin catálogo la app rechaza todo: reintenta
+    return;
+  }
+  guardarCache(LS_BUNDLE, data);
+  D = armarBundle(data);
+  _catalogoAt = Date.now();
+  repintarCatalogo();
+}
+function refrescarCatalogos() {
+  if (navigator.onLine === false || !paseVigente() || Date.now() - _catalogoAt < CATALOGO_REFRESCO_MS) return;
+  cargarBundle().catch(() => {});
 }
 
 function nombreMatriz(n) { return D.matricesMap?.get(String(n).trim())?.d || ""; }
@@ -154,8 +482,8 @@ function uuidv4() {
 /* ============================================================
    ESTADO POR LEGAJO (localStorage)
    ============================================================ */
-const LS_PREFIX  = "gp2_op_state";
-const LS_QUEUE   = "gp2_op_queue";
+const LS_PREFIX  = "gp2c_state";
+const LS_QUEUE   = "gp2c_queue";
 
 function stateKey(legajo) { return `${LS_PREFIX}::${dayKeyAR()}::${String(legajo).trim()}`; }
 
@@ -248,18 +576,11 @@ function markFailed(legajo, id, err) {
 function readQueue()  { try { return JSON.parse(localStorage.getItem(LS_QUEUE) || "[]"); } catch { return []; } }
 function writeQueue(q) { localStorage.setItem(LS_QUEUE, JSON.stringify(q || [])); }
 
-/* Cola aparte para las RPCs de rollo (tomar_rollo / cerrar_rollo) que fallan sin
-   red: se reintentan en flushQueue con la fecha original en p_fecha. */
-const LS_RQUEUE = "gp2_op_rqueue";
-function readRolloQueue()  { try { return JSON.parse(localStorage.getItem(LS_RQUEUE) || "[]"); } catch { return []; } }
-function writeRolloQueue(q) { localStorage.setItem(LS_RQUEUE, JSON.stringify(q || [])); }
-function enqueueRollo(fn, args) { const rq = readRolloQueue(); rq.push({ fn, args }); writeRolloQueue(rq); }
-
 /* Cola de ANULACIONES (arreglo de Registro Produccion 3.0, 2026-10-07 [usuario: "en cola, pero asegurate de que no se tome
    su duplicado"]): un 🗑 sin señal ya no obliga a repetirlo; la baja queda guardada y sale sola en flushQueue, DESPUES de los
    eventos (asi nunca llega antes que el alta). Sin duplicados: una sola por toque (por id_ejecucion) y la base anula una sola
-   vez (anular_evento_prod devuelve el stock una sola vez). */
-const LS_AQUEUE = "gp2_op_aqueue";
+   vez (reg_prod_3_0_anular_evento devuelve el stock una sola vez). */
+const LS_AQUEUE = "gp2c_aqueue";
 function readAnularQueue()  { try { return JSON.parse(localStorage.getItem(LS_AQUEUE) || "[]"); } catch { return []; } }
 function writeAnularQueue(q) { localStorage.setItem(LS_AQUEUE, JSON.stringify(q || [])); }
 function enqueueAnular(id) { const aq = readAnularQueue(); if (!aq.includes(id)) { aq.push(id); writeAnularQueue(aq); } }
@@ -330,51 +651,56 @@ function toRpcPayload(p) {
   return rpc;
 }
 
+/* El toque como lo guarda la base: la fila PROCESADA sale de `p` (lo de toRpcPayload) y la CRUDA es `p.toque`, tal cual lo cargó el operario. */
+function eventoParaEnviar(payload) {
+  const p = toRpcPayload(payload);
+  p.toque = {
+    id: payload.id, opcion: payload.opcion, descripcion: payload.descripcion || "", texto: payload.texto || "",
+    ts_event: payload.ts_event, hs_inicio: payload.hs_inicio || "", matriz: payload.matriz || "", app_version: COPIA_GP2
+  };
+  return p;
+}
+// Rechazo de la base por los datos (SQLSTATE de 5 caracteres, 4xx): no se arregla reintentando. Sin señal, 5xx o función
+// inexistente (PGRST…): se reintenta y el toque queda PENDIENTE.
+function esRechazoDefinitivo(e) {
+  return !!e && e.status >= 400 && e.status < 500 && /^[0-9A-Z]{5}$/.test(String(e.code || ""));
+}
+
 let flushing = false; // guard: interval de 60s, syncBadge, sendFast y Terminar Dia no deben solaparse (duplicarian inserts)
 async function flushQueue() {
   if (flushing) return;
   flushing = true;
   try {
     const q = readQueue();
+    if (!q.length && !readRolloQueue().length && !readAnularQueue().length) return;
+    if (!paseVigente()) { verificarEntrada(); return; }       // sin pase no se manda: queda en la cola y se pide el código
     const enviados = new Set();
     for (const payload of q) {
-      try {
-        const { error } = await SB.rpc("registrar_evento_prod", { p: toRpcPayload(payload) });
-        if (error) throw error;
-        markSent(payload.legajo, payload.id);
-        enviados.add(payload.id);
-      } catch (e) {
-        // Sin señal (el error no trae codigo de la base): queda PENDIENTE y se reintenta. ERROR es solo
-        // cuando la base lo rechazo (arreglo de Registro Produccion 3.0, 2026-10-07).
-        if (!e?.code) break;
-        markFailed(payload.legajo, payload.id, e?.message || e);
-      }
+      const { error } = await rpc("reg_prod_3_0_registrar_evento", { p: eventoParaEnviar(payload) });
+      if (!error) { markSent(payload.legajo, payload.id); enviados.add(payload.id); continue; }
+      if (error.code === "28000") { pasePerdido(); break; }   // pase vencido o de otro equipo: vuelve el código, nada se pierde
+      if (!esRechazoDefinitivo(error)) break;                 // sin señal / base caída: se reintenta
+      markFailed(payload.legajo, payload.id, error.message);
     }
     // Re-leer la cola: pudo haber items nuevos encolados mientras se enviaba
     if (enviados.size) writeQueue(readQueue().filter(x => !enviados.has(x.id)));
-    // Anulaciones pendientes (🗑 sin señal), una por toque. Mismo criterio que los rollos: sin señal o sin
-    // permiso (42501 / PGRST3xx) se reintenta; un rechazo de la base con codigo es definitivo y se descarta.
+    // Bajas pendientes (🗑 sin señal o sin pase), una por toque, DESPUÉS de los eventos: nunca llegan antes que el alta. La base anula
+    // y devuelve el stock una sola vez, así que repetirla no hace daño; un rechazo por los datos se descarta.
     let aq = readAnularQueue();
-    while (aq.length) {
+    while (aq.length && paseVigente()) {
       const id = aq[0];
-      try {
-        const { error } = await SB.rpc("anular_evento_prod", { p_id_ejecucion: id });
-        if (error && (!error.code || error.code === "42501" || /^PGRST3/.test(error.code))) throw error;
-        aq = readAnularQueue().filter(x => x !== id); writeAnularQueue(aq);
-      } catch { break; }
+      const { error } = await rpc("reg_prod_3_0_anular_evento", { p_id_ejecucion: id });
+      if (error && error.code === "28000") { pasePerdido(); break; }
+      if (error && !esRechazoDefinitivo(error)) break;
+      aq = readAnularQueue().filter(x => x !== id); writeAnularQueue(aq);
     }
-    // RPCs de rollo pendientes (tomar/cerrar que fallaron sin red): FIFO para
-    // respetar el orden tomar->cerrar; corta al primer fallo de red.
+    // Rollos pendientes (tomar/cerrar que no pudieron salir): FIFO, corta al primer fallo de red o de pase.
     let rq = readRolloQueue();
     while (rq.length) {
-      try {
-        const { error } = await SB.rpc(rq[0].fn, rq[0].args);
-        if (error && (!error.code || error.code === "42501" || /^PGRST3/.test(error.code))) throw error;
-        // sin error, o rechazo definitivo del server (tiene code): no se reintenta.
-        // Sin permiso (42501) o sin sesion valida (PGRST3xx) NO es definitivo: el dato
-        // esta bien y vuelve a andar al reloguear, asi que se reintenta en vez de tirarlo.
-        rq.shift(); writeRolloQueue(rq);
-      } catch { break; }
+      const { error } = await rpc(rq[0].fn, rq[0].args);
+      if (error && error.code === "28000") { pasePerdido(); break; }
+      if (error && !esRechazoDefinitivo(error)) break;
+      rq = readRolloQueue(); rq.shift(); writeRolloQueue(rq);
     }
   } finally { flushing = false; }
 }
@@ -445,33 +771,35 @@ function rollosDeTodosLosFlejes(n_matriz) {
   return (D.rollos_saldo || []).filter(r => ids.has(r.comp_id) && Number(r.rollos) > 0);
 }
 
-/* ROLLOS SIN DUPLICADO (arreglo de Registro Produccion 3.0, 2026-10-07): con rollo_tomar / rollo_cerrar cada llamada lleva un id
-   que viaja en la cola; si la base la hizo pero la respuesta no llego (se corto la señal), el reintento repite el MISMO id y la
-   base no descuenta otro rollo ni cierra el siguiente. Solo si el bundle dice rollos_antiduplicado (si no, las de siempre).
-   Los nombres van escritos enteros en cada SB.rpc: tests/ui/test_rpc_huerfanas.js los busca asi. */
-function rollosAntiduplicado() { return D.rollos_antiduplicado === true; }
+/* Los rollos los maneja la base (Fase 1c): sólo se muestran si el catálogo dice rollos_activos. Si no se puede mandar al
+   momento (sin pase, sin señal), la llamada espera en su cola (FIFO, para respetar el orden tomar → cerrar) y sale con la
+   fecha original. */
+function rollosActivos() { return D.rollos_activos === true; }
 
-async function tomarRollo(legajo, comp_id, kg_por_rollo, matriz) {
-  const anti = rollosAntiduplicado();
-  const fn = anti ? "rollo_tomar" : "tomar_rollo";
-  const args = Object.assign(anti ? { p_id: uuidv4() } : {}, {
-    p_legajo: String(legajo), p_comp_id: Number(comp_id),
-    p_kg_por_rollo: Number(kg_por_rollo), p_matriz: String(matriz), p_fecha: isoNow()
-  });
-  try {
-    const { error } = anti ? await SB.rpc("rollo_tomar", args) : await SB.rpc("tomar_rollo", args);
-    if (error) throw error;
-  } catch (e) { console.error(fn + ":", e); enqueueRollo(fn, args); }
+const LS_RQUEUE = "gp2c_rqueue";
+function readRolloQueue()  { try { return JSON.parse(localStorage.getItem(LS_RQUEUE) || "[]"); } catch { return []; } }
+function writeRolloQueue(q) { try { localStorage.setItem(LS_RQUEUE, JSON.stringify(q || [])); } catch { /* storage lleno */ } }
+function enqueueRollo(fn, args) { const rq = readRolloQueue(); rq.push({ fn, args }); writeRolloQueue(rq); }
+
+async function llamarRollo(fn, args) {
+  if (paseVigente()) {
+    const { error } = await rpc(fn, args);
+    if (!error) return;
+    if (error.code === "28000") pasePerdido();
+    else if (esRechazoDefinitivo(error)) { console.warn(fn + ":", error.message); return; }   // la base lo rechazó por los datos: no se reintenta
+    else console.error(fn + ":", error);
+  }
+  enqueueRollo(fn, args);
 }
-
+// ANTI-DUPLICADO (Fase 1d): cada llamada lleva un id propio que viaja en la cola, así que un reintento (la base lo hizo pero la
+// respuesta no llegó) repite el MISMO id y la base no descuenta otro rollo ni cierra el siguiente. v3.1.7: siempre con id (las de
+// la Fase 1c sin id ya no se llaman; reg_prod_3_0_tomar_rollo se borra en la limpieza final).
+async function tomarRollo(legajo, comp_id, kg_por_rollo, matriz) {
+  await llamarRollo("reg_prod_3_0_rollo_tomar", { p_id: uuidv4(), p_legajo: String(legajo), p_comp_id: Number(comp_id),
+    p_kg_por_rollo: Number(kg_por_rollo), p_matriz: String(matriz), p_fecha: isoNow() });
+}
 async function cerrarRollo(legajo, quedoResto) {
-  const anti = rollosAntiduplicado();
-  const fn = anti ? "rollo_cerrar" : "cerrar_rollo";
-  const args = Object.assign(anti ? { p_id: uuidv4() } : {}, { p_legajo: String(legajo), p_quedo_resto: !!quedoResto, p_fecha: isoNow() });
-  try {
-    const { error } = anti ? await SB.rpc("rollo_cerrar", args) : await SB.rpc("cerrar_rollo", args);
-    if (error) throw error;
-  } catch (e) { console.error(fn + ":", e); enqueueRollo(fn, args); }
+  await llamarRollo("reg_prod_3_0_rollo_cerrar", { p_id: uuidv4(), p_legajo: String(legajo), p_quedo_resto: !!quedoResto, p_fecha: isoNow() });
 }
 
 /* ============================================================
@@ -537,9 +865,11 @@ function renderSyncBadge() {
   // El badge NO muestra version [usuario 2026-08-31]: solo el estado de la cola. Toca para
   // forzar el envio. La version del cache vive en el ?v= del <script>, no a la vista.
   // Es el UNICO aviso de cola: el cartel "Pendientes en cola" se saco [usuario 2026-10-05].
-  el.innerText = q.length ? `⚠ ${q.length} sin enviar` : `✓ al día`;
+  const espera = q.length > 0 && !paseVigente();
+  el.innerText = espera ? `📺 ${q.length} esperan el código` : q.length ? `⚠ ${q.length} sin enviar` : `✓ al día`;
   el.style.background = q.length ? "#fff7ed" : "#f1f5f9";
   el.style.color = q.length ? "#9a3412" : "#475569";
+  actualizarAvisoRed(q.length);
 }
 
 function renderMatrizInfo() {
@@ -719,7 +1049,7 @@ function renderOptions() {
   const isEd = isEduardo();
   [1, 2, 3, 4].forEach(r => { $(`row${r}`).innerHTML = ""; });
 
-  const all = isEd ? [...OPTIONS, CT_OPTION] : OPTIONS;
+  const all = (isEd && rollosActivos()) ? [...OPTIONS, CT_OPTION] : OPTIONS;
   all.forEach(opt => {
     const el = document.createElement("div");
     el.className = "box" + (opt.isCT ? " ct-btn" : "");
@@ -832,7 +1162,7 @@ function selectOption(opt) {
 
   // Eduardo: quedoResto para PR
   const quedoRestoWrap = $("quedoRestoWrap");
-  if (isEduardo() && opt.code === "PR") {
+  if (rollosActivos() && isEduardo() && opt.code === "PR") {
     quedoRestoWrap.classList.remove("hidden");
     $("quedoRestoChk").checked = false;
   } else {
@@ -846,6 +1176,7 @@ function selectOption(opt) {
 function actualizarRolloPicker(n_matriz) {
   const grid = $("rolloGrid");
   if (!grid) return;
+  if (!rollosActivos()) { rolloSel = null; grid.innerHTML = ""; $("rolloPicker")?.classList.add("hidden"); return; }   // sin rollos en la base
   const n = String(n_matriz || "").trim();
   const msg = (t) => { grid.innerHTML = `<div class="rl-msg">${esc(t)}</div>`; rolloSel = null; };
   // Matriz sin fleje: no hay rollo que elegir, el cartel entero se va. Se vuelve a
@@ -1045,18 +1376,16 @@ async function deleteHistItem(legajo, idx) {
     // sale DESPUES del alta (flushQueue manda primero los eventos).
     enqueueAnular(item.id);
   } else if (item.id && item.status === "sent") {
-    try {
-      const { error } = await SB.rpc("anular_evento_prod", { p_id_ejecucion: item.id });
-      if (error) throw error;
-    } catch (e) {
-      console.warn("No se pudo marcar eliminado:", e);
-      if (e?.code && e.code !== "42501" && !/^PGRST3/.test(e.code)) {
+    const { error } = await rpc("reg_prod_3_0_anular_evento", { p_id_ejecucion: item.id });
+    if (error) {
+      console.warn("No se pudo marcar eliminado:", error);
+      if (error.code === "28000") pasePerdido();          // sin pase: la baja espera en la cola y sale al ingresar el código
+      else if (esRechazoDefinitivo(error)) {
         // La base lo rechazo por el dato: NO borrarlo localmente (quedaria vivo en la BD mientras aca figura eliminado).
-        alert("No se pudo eliminar en el servidor: " + (e.message || e.code));
+        alert("No se pudo eliminar en el servidor: " + (error.message || error.code));
         return;
       }
-      // Sin señal o sin sesion: la baja queda en cola y sale sola (arreglo de Registro Produccion 3.0, 2026-10-07).
-      enqueueAnular(item.id);
+      enqueueAnular(item.id);                             // sin señal o sin pase: sale sola, una vez, después de los eventos
     }
   }
 
@@ -1173,6 +1502,7 @@ function goToOptions() {
   const emp = D.empleados[legajo];
   const nombre = typeof emp === "string" ? emp : (emp?.nombre || "");
   $("btnBackLabel").innerText = `${nombre} · Legajo ${legajo}`;
+  registrarLegajoEnEquipo(legajo, nombre);
   $("legajoScreen").classList.add("hidden");
   $("optionsScreen").classList.remove("hidden");
   renderOptions();
@@ -1213,8 +1543,9 @@ function cleanupOldStates() {
 document.addEventListener("DOMContentLoaded", () => {
   cleanupOldStates();
 
-  // Cargar bundle en background
-  cargarBundle().catch(e => console.warn("Bundle GP2:", e));
+  // Antes de entrar: el código de la TV (si falta el pase). Hasta que haya pase, el catálogo sale de lo guardado en el celular.
+  verificarEntrada();
+  cargarBundle().catch(e => console.warn("Bundle:", e));
 
   // Legajo input: render summary on change
   $("legajoInput").addEventListener("input", () => { renderSummary(); });
@@ -1245,8 +1576,23 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // Flush periodico (cada 60s)
   setInterval(async () => {
+    verificarEntrada();      // el pase vence a las 17:45: pasada esa hora vuelve el código
+    refrescarCatalogos();
     await flushQueue();
     renderSyncBadge();
     renderSummary();
   }, 60000);
+
+  // Al volver a la app y al volver internet: pase, catálogo y cola al día.
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState !== "visible") return;
+    verificarEntrada(); refrescarCatalogos();
+    flushQueue().then(() => { renderSyncBadge(); renderSummary(); });
+  });
+  window.addEventListener("online", () => {
+    verificarEntrada();
+    cargarBundle().catch(() => {});
+    flushQueue().then(() => { renderSyncBadge(); renderSummary(); });
+  });
+  window.addEventListener("offline", renderSyncBadge);
 });

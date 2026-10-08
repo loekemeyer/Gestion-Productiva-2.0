@@ -32,6 +32,15 @@ const PERMITIDAS = {
   // 2026-09-29: la app nueva de registro de produccion vive en otro repo (GP2-Registro-Produccion)
   // y manda con sesion de operario (Edge login-operario). Sin EXECUTE a anon.
   recibir_mensaje_cervantes: 'la llama GP2-Registro-Produccion (otro repo), con sesion de operario',
+  // 2026-10-08 [Elías: «hacé que GP2 use el código de la TV»]: Produccion/RegistroApp/ es COPIA de Registro Producción 3.0
+  // (tools/copiar_botonera_de_3_0.py) y graba por reg_prod_3_0_*. Estas seis las llamaba la tablet vieja (con Google).
+  // tomar_rollo y cerrar_rollo las siguen usando por dentro reg_prod_3_0_gp2_tomar_rollo / _cerrar_rollo.
+  registrar_evento_prod:     'desde el 08/10 la tablet de operarios es copia de Registro Producción 3.0 y graba por reg_prod_3_0; queda por si se vuelve atrás',
+  anular_evento_prod:        'desde el 08/10 la tablet de operarios es copia de Registro Producción 3.0 y graba por reg_prod_3_0; queda por si se vuelve atrás',
+  rollo_tomar:               'desde el 08/10 la tablet de operarios es copia de Registro Producción 3.0 y graba por reg_prod_3_0; queda por si se vuelve atrás',
+  rollo_cerrar:              'desde el 08/10 la tablet de operarios es copia de Registro Producción 3.0 y graba por reg_prod_3_0; queda por si se vuelve atrás',
+  tomar_rollo:               'la usa por dentro reg_prod_3_0_gp2_tomar_rollo (Registro Producción 3.0, rollo con pase)',
+  cerrar_rollo:              'la usa por dentro reg_prod_3_0_gp2_cerrar_rollo (Registro Producción 3.0, rollo con pase)',
   // Mantenimiento: se corren a mano desde una sesión, no desde una pantalla.
   planilla_cargar:           'mantenimiento: carga el snapshot de la planilla de costos',
   planilla_snapshot_nuevo:   'mantenimiento: abre el snapshot de la planilla de costos',

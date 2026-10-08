@@ -12,6 +12,7 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
   <title>Operarios GP2</title>
+  <link rel="icon" href="data:," />
   <script>
     // Auto-recarga si el celular/tablet quedo con un HTML cacheado viejo.
     // Pide este mismo HTML sin cache, compara el ?v= del script y recarga si difiere.
@@ -19,7 +20,7 @@
     (function(){
       // El operario ya no tiene version propia: se compara el TOKEN de cache compartido
       // (el mismo ?v= que llevan todos los assets). Si cambia, el HTML cacheado es viejo.
-      var MI_V = '20261008a';
+      var MI_V = '20261008b';
       function chequear(){
         fetch(location.pathname, { cache: 'no-store' }).then(function(r){ return r.text(); }).then(function(html){
           var m = html.match(/operarios_gp2\.js\?v=([\w.]+)/);
@@ -36,7 +37,6 @@
       });
     })();
   </script>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     body { font-family: system-ui, -apple-system, sans-serif; background: #f1f5f9; min-height: 100dvh; padding: 0; }
@@ -278,7 +278,6 @@
   </div>
 </div>
 
-<script src="../../supabase-config.js?v=20260929a"></script>
-<script src="operarios_gp2.js?v=20261008a"></script>
+<script src="operarios_gp2.js?v=20261008b"></script>
 </body>
 </html>

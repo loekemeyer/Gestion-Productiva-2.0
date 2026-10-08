@@ -91,7 +91,9 @@ const PROPIOS = [
 // Recepcion Insumos trae parseNum + sanitizadores propios (usuario 2026-09-01) que contradicen
 // la regla del 2026-09-03 ("12.5" es 12,5 ahi y 125 en la casa). Es la pantalla de carga mas
 // usada: se migra con el operario al lado (IDEAS 7259), no a ciegas. Hasta entonces, permitida.
-const PERMITIDO_PARSER = new Set(['StockFlejes/RecepcionInsumos_GP2.html']);
+// 2026-10-08: la tablet de operarios es COPIA de Registro Producción 3.0 (tools/copiar_botonera_de_3_0.py). Lo que limpia con
+// replace(/\D/g) es el CÓDIGO DE LA TV (4 dígitos, no una cantidad: con miles quedaría «4.821»). La fuente es la de 3.0.
+const PERMITIDO_PARSER = new Set(['StockFlejes/RecepcionInsumos_GP2.html', 'Produccion/RegistroApp/operarios_gp2.js']);
 const infractores = [];
 for (const p of archivos) {
   if (PERMITIDO_PARSER.has(path.relative(ROOT, p).replace(/\\/g, '/'))) continue;
