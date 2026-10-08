@@ -1,0 +1,15 @@
+OK   gp2-claro.css no existe (una sola hoja: gp2-modulo.css)
+OK   ninguna pantalla carga gp2-claro.css
+OK   toda pantalla carga gp2-modulo.css (66)
+OK   toda pantalla carga gp2-menu.js y despues gp2-nav.js
+     calculadora-basica.html -> font-family: 'Inter', sans-serif
+     calculadora.html -> font-family: 'Inter', sans-serif
+     envios-only.html -> font-family: 'Inter', sans-serif
+FAIL ninguna pantalla escribe su propia tipografia: la unica es Inter (var(--font))
+FAIL toda pantalla tiene la barra de la app (.header con <h1>) — faltan: calculadora.html, envios-only.html
+OK   el menu vive solo en gp2-menu.js y GP2_MODULOS.html lo carga
+OK   Inter auto-hospedada en fonts/ (fonts/inter-latin-wght-normal.woff2, fonts/inter-latin-wght-italic.woff2)
+OK   los tokens base estan en :root
+FAIL el body se dibuja con Inter en todas las pantallas — calculadora-basica.html (Inter, sans-serif), calculadora.html (Inter, sans-serif), envios-only.html (Inter, sans-serif)
+FAIL la barra es la del sistema (pegada arriba, azul marino) — calculadora.html (sin .header), envios-only.html (sin .header)
+FAIL a 390px ninguna pagina scrollea de costado — envios-only.html (+7px)

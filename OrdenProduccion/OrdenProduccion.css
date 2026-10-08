@@ -336,10 +336,46 @@
     print-color-adjust:exact;
   }
 
+  /* en A4 entra la tabla entera: letra y aire de papel, sin scroll */
+  .tabla-wrap{
+    overflow:visible;
+  }
+
+  .tabla{
+    font-size:12px;
+  }
+
+  .tabla th{
+    font-size:10px;
+    white-space:normal;
+  }
+
+  .tabla th,
+  .tabla td{
+    padding:4px 5px;
+  }
+
+  .tabla .falta{
+    font-size:13px;
+  }
+
+  .tabla .chip{
+    height:18px;
+    padding:0 6px;
+    font-size:10px;
+  }
+
+  .sin-consumo,
+  .via{
+    font-size:10px;
+  }
+
   .stock-input{
+    width:64px;
     min-height:0;
     border:0;
     background:transparent;
+    font-size:12px;
     font-weight:700;
     padding:0;
   }

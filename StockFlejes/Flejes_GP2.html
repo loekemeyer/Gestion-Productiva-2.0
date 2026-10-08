@@ -16,10 +16,14 @@
      de rollos. */
   .status.bad{color:var(--err)}
   .toolbar .chips{margin:0}
+  .toolbar .hint{align-self:center}
+  /* +/− de movimientos en las tablas: table.t td pisa el color de .pos/.neg del sistema */
+  table.t td.pos{color:var(--ok)}
+  table.t td.neg{color:var(--err)}
   .prov-btn .cnt{opacity:.65;font-weight:500}   /* "(12)" al lado del proveedor */
 
   /* ── tarjetas de fleje ── */
-  .items-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:var(--s3);margin:var(--s3) 0}
+  .items-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:var(--s3);margin:var(--s3) 0}
   .item-btn{position:relative;padding:14px 10px;background:var(--surface);border:1px solid var(--line-2);border-radius:var(--r-md);
             cursor:pointer;text-align:center;overflow:hidden;transition:border-color .12s,box-shadow .12s}
   .item-btn:hover{border-color:var(--pri);box-shadow:var(--sh-1)}
@@ -67,7 +71,7 @@
   .det-tabla td{white-space:nowrap}
 
   /* ── submódulo Rollos ── */
-  #tabRollos .saldos{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:var(--s3);margin:var(--s3) 0}
+  #tabRollos .saldos{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:var(--s3);margin:var(--s3) 0}
   #tabRollos .saldos .empty{grid-column:1/-1}
   #tabRollos .saldo-card{border:1px solid var(--line);border-radius:var(--r-md);padding:12px 14px;text-align:center;background:var(--surface)}
   #tabRollos .saldo-card .cod{font-size:20px;font-weight:800}

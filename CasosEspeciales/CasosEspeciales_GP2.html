@@ -38,7 +38,7 @@
   /* stock en el destino: el numero grande de la pantalla */
   .ce-stock{text-align:center;margin:0 0 var(--s4)}
   .ce-stock .v small{font-size:var(--fs-lg);font-weight:650;color:var(--ink-3);letter-spacing:0}
-  .ce-two{--grid-min:200px;margin:var(--s3) 0}
+  .ce-two{grid-template-columns:repeat(auto-fit,minmax(200px,1fr));margin:var(--s3) 0}
   /* v2.0.1: si un rotulo ocupa 2 lineas y el vecino 1, los inputs quedaban desnivelados.
      Las dos columnas ya miden lo mismo (stretch): el input va al piso de cada una. */
   .ce-two > .field{justify-content:space-between}

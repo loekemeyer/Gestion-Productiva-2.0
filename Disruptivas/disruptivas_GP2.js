@@ -67,13 +67,13 @@ async function init() {
       String(empMap.get(a) || a).localeCompare(String(empMap.get(b) || b), "es"));
 
     empGrid.innerHTML =
-      `<button type="button" class="emp-chip emp-chip-todos active" data-legajo="__todos__">Todos</button>` +
+      `<button type="button" class="emp-chip emp-chip-todos chip active" data-legajo="__todos__">Todos</button>` +
       legajos.map(leg => {
         const nom = String(empMap.get(leg) || ("Leg " + leg)).trim();
         const parts = nom.split(/\s+/);
         const l1 = parts[0] || "";
         const l2 = parts.slice(1).join(" ");
-        return `<button type="button" class="emp-chip" data-legajo="${esc(leg)}"><span class="emp-chip-l1">${esc(l1)}</span><span class="emp-chip-l2">${esc(l2)} (${counts[leg]})</span></button>`;
+        return `<button type="button" class="emp-chip chip" data-legajo="${esc(leg)}"><span class="emp-chip-l1">${esc(l1)}</span><span class="emp-chip-l2 meta">${esc(l2)} (${counts[leg]})</span></button>`;
       }).join("");
 
     const btnTodos = empGrid.querySelector('[data-legajo="__todos__"]');
@@ -163,15 +163,16 @@ function renderDisruptivas() {
   if (btnExcel) btnExcel.classList.toggle("hidden", !positivas.length && !negativas.length);
 
   function buildTable(items, titulo, colorCls) {
-    if (!items.length) return `<p style="color:#888;padding:12px;">Sin registros ${titulo.toLowerCase()}.</p>`;
+    if (!items.length) return `<p class="empty">Sin registros ${titulo.toLowerCase()}.</p>`;
+    /* sistema de diseño v2: titulo de seccion + .table-wrap > table.t (encabezado pegado) */
     let h = `
-    <div class="informe-wrap" style="margin-bottom:18px;">
-      <div class="informe-title">${esc(titulo)} (${items.length})</div>
-      <div class="informe-scroll">
-        <table class="tbl">
+    <div class="informe-wrap">
+      <h2 class="informe-title sec-h">${esc(titulo)} <span class="badge">${items.length}</span></h2>
+      <div class="informe-scroll table-wrap">
+        <table class="tbl t">
           <thead><tr>
-            <th>Fecha</th><th>Leg</th><th>Empleado</th><th>Mat</th><th>Descripcion</th>
-            <th>Uni</th><th>T. Prom</th><th>Prom Hist</th><th>Seg Trab</th><th>Seg Hist</th><th>Puntaje</th><th></th>
+            <th class="c">Fecha</th><th class="c">Leg</th><th>Empleado</th><th class="c">Mat</th><th>Descripcion</th>
+            <th class="r">Uni</th><th class="r">T. Prom</th><th class="r">Prom Hist</th><th class="r">Seg Trab</th><th class="r">Seg Hist</th><th class="c">Puntaje</th><th></th>
           </tr></thead>
           <tbody>`;
     items.forEach(i => {
@@ -187,9 +188,9 @@ function renderDisruptivas() {
         <td class="r">${f(i.segTrab)}</td>
         <td class="r">${f(i.segHist)}</td>
         <td class="c b ${colorCls}">${f(i.premio, 1)}</td>
-        <td class="c" style="white-space:nowrap;">
-          <button class="btn-icon btn-ok" title="Revisado" onclick="revisarDisruptiva(${i.id}, this)">&#10003;</button>
-          <button class="btn-icon btn-edit" title="Editar" onclick="abrirEditDisruptiva(${i.id})">&#9998;</button>
+        <td class="c nowrap acc">
+          <button type="button" class="btn-icon btn-ok" title="Revisado" aria-label="Revisado" onclick="revisarDisruptiva(${i.id}, this)">&#10003;</button>
+          <button type="button" class="btn-icon btn-edit" title="Editar" aria-label="Editar" onclick="abrirEditDisruptiva(${i.id})">&#9998;</button>
         </td>
       </tr>`;
     });
@@ -198,15 +199,15 @@ function renderDisruptivas() {
   }
 
   const resumen = `
-  <div class="resumen">
-    <div class="resumen-card"><div class="val pos">${positivas.length}</div><div class="lbl">Puntaje &gt; 5</div></div>
-    <div class="resumen-card"><div class="val neg">${negativas.length}</div><div class="lbl">Puntaje &lt; -5</div></div>
-    <div class="resumen-card"><div class="val">${prodRows.length}</div><div class="lbl">Total producciones</div></div>
+  <div class="resumen kpis">
+    <div class="resumen-card kpi ok"><span class="k">Puntaje &gt; 5</span><span class="v">${positivas.length}</span></div>
+    <div class="resumen-card kpi err"><span class="k">Puntaje &lt; -5</span><span class="v">${negativas.length}</span></div>
+    <div class="resumen-card kpi"><span class="k">Total producciones</span><span class="v">${prodRows.length}</span></div>
   </div>`;
 
   const modal = `
-  <div id="modalEdit" class="modal-overlay hidden">
-    <div class="modal-box">
+  <div id="modalEdit" class="modal-overlay modal-bg hidden">
+    <div class="modal-box modal">
       <div class="modal-header">Editar produccion</div>
       <div class="modal-body">
         <div class="modal-info" id="modalInfo"></div>
@@ -214,15 +215,15 @@ function renderDisruptivas() {
           <div class="field"><label>Hora Inicio</label><input type="time" id="modalHoraIni" step="1"/></div>
           <div class="field"><label>Hora Fin</label><input type="time" id="modalHoraFin" step="1"/></div>
           <div class="field"><label>Tiempo Muerto (hs)</label><input inputmode="decimal" type="number" id="modalTM" min="0" step="0.01"/></div>
-          <div id="modalTMDetalle" style="width:100%;font-size:12px;color:#666;margin-top:-4px;"></div>
+          <div id="modalTMDetalle" class="tm-det hint"></div>
           <div class="field"><label>Unidades</label><input inputmode="numeric" type="number" id="modalUni" min="0" step="1"/></div>
-          <div class="field" style="justify-content:center;"><label style="display:flex;align-items:center;gap:6px;cursor:pointer;"><input type="checkbox" id="modalAnular" style="width:18px;height:18px;cursor:pointer;"/> Anular Tiempo</label></div>
+          <label class="chk"><input type="checkbox" id="modalAnular"/> Anular Tiempo</label>
         </div>
         <div class="modal-preview" id="modalPreview"></div>
       </div>
       <div class="modal-footer">
-        <button class="btn" onclick="cerrarModal()">Cancelar</button>
-        <button class="btn btn-dark" onclick="guardarEditDisruptiva()">Guardar</button>
+        <button type="button" class="btn btn-secondary" onclick="cerrarModal()">Cancelar</button>
+        <button type="button" class="btn btn-primary" onclick="guardarEditDisruptiva()">Guardar</button>
       </div>
     </div>
   </div>`;
@@ -266,7 +267,7 @@ function abrirEditDisruptiva(id) {
   // PENDIENTE GP2: el detalle de TMs del mismo empleado/fecha requeria todas las
   // filas no-matriz; el bundle solo trae disruptivas, asi que aca no hay TM detalle.
   const detalleEl = document.getElementById("modalTMDetalle");
-  detalleEl.innerHTML = '<span style="color:#bbb;">Detalle de TM no disponible en GP2 (pendiente)</span>';
+  detalleEl.textContent = 'Detalle de TM no disponible en GP2 (pendiente)';
 
   actualizarPreview();
   document.getElementById("modalEdit").classList.remove("hidden");
@@ -309,12 +310,12 @@ function actualizarPreview() {
   const origSegHist = n(editingRow.Segundos_Historico);
   const origPremio = n(editingRow.Premio);
   document.getElementById("modalPreview").innerHTML = `
-    <div style="display:flex;gap:16px;margin-top:10px;flex-wrap:wrap;">
+    <div class="prev-row">
       <div><span class="lbl">Seg Trab:</span> <strong>${f(c.segTrab)}</strong></div>
       <div><span class="lbl">Seg Hist:</span> <strong>${f(c.segHist)}</strong></div>
       <div><span class="lbl">Puntaje:</span> <strong class="${cls(c.premio)}">${f(c.premio, 1)}</strong></div>
     </div>
-    <div style="display:flex;gap:16px;margin-top:4px;flex-wrap:wrap;color:#94a3b8;font-size:12px;">
+    <div class="prev-row prev-old">
       <div><span class="lbl">Anterior:</span> Seg Trab: ${f(origSegTrab)} | Seg Hist: ${f(origSegHist)} | Puntaje: ${f(origPremio, 1)}</div>
     </div>`;
 }

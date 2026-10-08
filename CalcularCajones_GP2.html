@@ -15,56 +15,53 @@
 <link rel="apple-touch-icon" href="GP2_favicon.png">
 <link rel="stylesheet" href="gp2-modulo.css?v=20261008ds">
 <style>
-  .card{max-width:560px}
-  .paso{margin:18px 0 8px;font-size:15px;font-weight:900;letter-spacing:.5px;color:#555;text-transform:uppercase}
-  .campo{margin:10px 0}
-  .campo label{display:block;font-size:17px;font-weight:800;margin-bottom:5px;color:#333}
-  .campo input, .campo select{width:100%;min-height:48px;padding:9px 10px;font-size:20px;
-    border:2px solid #d0d7de;border-radius:8px;background:#fff;color:#111}
-  .campo input:focus, .campo select:focus{outline:none;border-color:#111}
-  .dosCol{display:flex;gap:10px}
-  .dosCol .campo{flex:1;min-width:0}
-  .hint{font-size:15px;color:#666;margin-top:4px}
-  .res{background:#1a1a1a;color:#fff;border-radius:12px;padding:14px 16px;margin:12px 0}
-  .res .fila{display:flex;justify-content:space-between;align-items:baseline;gap:10px;padding:5px 0}
-  .res .k{font-size:16px;color:#b9b9b9;font-weight:700}
-  .res .v{font-size:21px;font-weight:900;font-variant-numeric:tabular-nums}
-  .res .grande{font-size:30px;color:#34d399}
-  .res .uni{font-size:30px;color:#60a5fa}
-  .alerta{background:#fff4f4;border:2px solid #f3c2c2;color:#b42318;border-radius:10px;
-    padding:10px 12px;font-weight:800;font-size:17px;margin:10px 0}
+  /* el peso y la cantidad son LOS campos de esta pantalla: un punto mas grandes que el piso */
+  #fBruto,#fCant{font-size:20px;font-weight:600}
+  .panel .hint{margin-top:6px}
+  .panel .hint:empty{display:none}
+  /* resultado: renglones con el dato grande a la derecha */
+  .res{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-md);padding:4px 16px;margin:var(--s3) 0}
+  .res .fila{display:flex;justify-content:space-between;align-items:baseline;gap:10px;padding:8px 0;border-bottom:1px solid var(--line)}
+  .res .fila:last-child{border-bottom:0}
+  .res .k{font-size:var(--fs-base);font-weight:600;color:var(--ink-2);white-space:nowrap}
+  .res .v{font-size:21px;font-weight:750;font-variant-numeric:tabular-nums;text-align:right}
+  .res .grande{font-size:var(--fs-2xl);color:var(--ok)}
+  .res .uni{font-size:var(--fs-2xl);color:var(--pri-ink)}
+  .alerta{font-weight:650;font-size:var(--fs-base)}
 </style>
 </head>
 <body>
 
-<div class="card">
+<div class="card angosto">
   <div class="header">
     <h1>Calcular Cajones</h1>
     <div class="hbtns">
       <a href="calculadora.html">← Volver</a>
+      <a href="GP2_MODULOS.html">Atrás</a>
     </div>
   </div>
 
   <div class="steps">
 
-    <div class="paso">1 · Peso neto</div>
+    <h2 class="sec-h">1 · Peso neto</h2>
 
-    <div class="campo">
-      <label for="fBruto">Peso bruto de la balanza (kg)</label>
-      <input type="text" id="fBruto" inputmode="decimal" placeholder="0,00" autocomplete="off">
-    </div>
-
-    <div class="dosCol">
-      <div class="campo">
-        <label for="fCajon">Cajón N°</label>
-        <select id="fCajon"><option value="">— Elegir —</option></select>
+    <div class="panel">
+      <div class="grid-auto" style="--grid-min:200px">
+        <div class="field">
+          <label for="fBruto">Peso bruto de la balanza (kg)</label>
+          <input type="text" id="fBruto" inputmode="decimal" placeholder="0,00" autocomplete="off">
+        </div>
+        <div class="field">
+          <label for="fCajon">Cajón N°</label>
+          <select id="fCajon"><option value="">— Elegir —</option></select>
+        </div>
+        <div class="field">
+          <label for="fCant">Cantidad de cajones</label>
+          <input type="text" id="fCant" inputmode="numeric" value="1" autocomplete="off">
+        </div>
       </div>
-      <div class="campo">
-        <label for="fCant">Cantidad de cajones</label>
-        <input type="text" id="fCant" inputmode="numeric" value="1" autocomplete="off">
-      </div>
+      <div class="hint" id="hintCajon"></div>
     </div>
-    <div class="hint" id="hintCajon"></div>
 
     <div class="res hidden" id="resNeto">
       <div class="fila"><span class="k">Bruto</span><span class="v" id="rBruto">—</span></div>
@@ -72,18 +69,21 @@
       <div class="fila"><span class="k">Neto</span><span class="v grande" id="rNeto">—</span></div>
     </div>
 
-    <div class="alerta hidden" id="alerta"></div>
+    <div class="aviso err alerta hidden" id="alerta"></div>
 
-    <div class="paso">2 · Unidades <span style="font-weight:700;text-transform:none;color:#888">(opcional)</span></div>
+    <h2 class="sec-h">2 · Unidades <span class="sub">(opcional)</span></h2>
 
-    <div class="campo">
-      <label for="fSector">Sector</label>
-      <select id="fSector"><option value="">— Elegir —</option></select>
-    </div>
-
-    <div class="campo">
-      <label for="fPieza">Pieza</label>
-      <select id="fPieza"><option value="">— Elegir sector primero —</option></select>
+    <div class="panel">
+      <div class="grid-auto" style="--grid-min:min(100%,320px)">
+        <div class="field">
+          <label for="fSector">Sector</label>
+          <select id="fSector"><option value="">— Elegir —</option></select>
+        </div>
+        <div class="field">
+          <label for="fPieza">Pieza</label>
+          <select id="fPieza"><option value="">— Elegir sector primero —</option></select>
+        </div>
+      </div>
       <div class="hint" id="hintPieza"></div>
     </div>
 
