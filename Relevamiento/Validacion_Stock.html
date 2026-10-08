@@ -208,7 +208,10 @@ async function verComparacion(relId){
   var r = await SB.rpc('relevamiento_comparar', { p_id: relId });
   if(r.error){ msg('Error: '+r.error.message, true); return; }
   REL = r.data.relevamiento;
-  COMP = r.data.items || [];
+  /* Mismo orden alfanumerico natural que la carga (Relevamiento_GP2.html, 2026-10-08). */
+  COMP = (r.data.items || []).sort(function(a,b){
+    return String(a.codigo||'').localeCompare(String(b.codigo||''), 'es', { numeric:true });
+  });
   pintarComp();
   mostrar('comp');
   $('status').textContent='';

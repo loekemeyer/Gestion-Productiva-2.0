@@ -4794,7 +4794,7 @@ de páginas del rol `envios` en `auth-guard.js` apuntan ahora al GP2. Ver `REFAC
 | Fleje | **Kilos** |
 | Bombilla | **Bolsas** |
 | Plástico | Bolsas |
-| Remache | Bolsas |
+| Remache | Bolsas y Cajones (desde 2026-10-08, §4ke) |
 | Garage | Cajones |
 | Caja | Paquetes (+ uni sueltas) |
 | Cartón | Paquetes (+ uni sueltas) — los `es_pliego`, paq. de 100 pliegos |
@@ -4806,8 +4806,9 @@ ya estaba bien — el usuario lo confirmó con *"el único que quiero que cambie
 **PENDIENTE, sin aplicar** — el usuario había dicho antes dos cosas que después acotó a sólo
 bombillas, así que **quedaron sin hacer** y hay que confirmarlas antes de tocar:
 
-1. *"remaches crudo, es decir todos los que tienen la c, en kilos, y todo lo que es procesado
-   en bolsas"* → hoy **todo Remache cuenta en Bolsas**. Partirlo es fácil: los crudos son los
+1. ~~*"remaches crudo, es decir todos los que tienen la c, en kilos, y todo lo que es procesado
+   en bolsas"*~~ → **resuelto el 2026-10-08 (§4ke): Remache se parte en Bolsas y Cajones, no en kilos.**
+   Hasta esa fecha **todo Remache contaba en Bolsas**. Partirlo es fácil: los crudos son los
    16 `CV*` (todos dicen "p/Niquelar" en la descripción; 15 de 16 tienen `kg_x_uni`), los
    procesados son los otros 17.
 2. *"dentro de cajas y cartones también tendría que ir uni sueltas"* → hoy la columna de
@@ -16156,3 +16157,39 @@ Producción 3.0 (`cervantes-gp2/`) y vale igual para la tablet de GP2:
 - [pendiente] Quedaron 2 tablas de snapshot de esta cirugía, `"GP2"._bak_costos_20261008_510` y `"GP2"._bak_maxtall_20261008_510`
   (RLS prendida, sin acceso anon): el conector de la sesión no ejecuta `DROP` (pide una confirmación que no puede mostrar).
   Borrarlas a mano en el SQL Editor.
+
+## 4ke. Relevamiento: orden alfanumérico natural en TODOS, y Sector Remache partido en BOLSAS y CAJONES (2026-10-08) — v1.257.0
+
+`[usuario 2026-10-08, textual: "Ordename alfanumericamente" → "Todos los relevamientos"]`. La base
+manda los ítems con `order by c.codigo` (texto): GRJ10, GRJ10A, GRJ12 … GRJ2. Ahora **las dos pantallas**
+que muestran un relevamiento (`Relevamiento_GP2.html` carga y `Validacion_Stock.html` comparación) los
+ordenan natural (`localeCompare('es', {numeric:true})`, el mismo patrón que Stock General, Consumo,
+Despiece): GRJ2 · GRJ9 · GRJ10 · GRJ10A. Sin tocar la base.
+
+`[usuario 2026-10-08, textual: "Dividí en 2. 1) Bolsas para los que arrancan con V pero que no terminan
+con SE y W1P, W2P, W3P, W4, W5, W6, W7P y W9B. Todos los que arrancan con W bolsas de 2 kilos los de V ya
+sabes de cuanto son las bolsas. 2) Cajones para todo el resto"]`. Resuelve el PENDIENTE de "En qué unidad
+se cuenta cada sector" (los crudos `CV*` en kilos): **no** van en kilos, van en **cajones**.
+
+| envase | cuántos | cuáles |
+|---|---|---|
+| **Bolsas** | 23 | 15 `V` sin `SE` (V1…V13, V18, V18D) + W1P, W2P, W3P, W4, W5, W6, W7P, **W9P** |
+| **Cajones** | 42 | 13 `CV`, 12 `V…SE`, 8 `W…SE`, W1, W1B, W2, W3, W7, W8, W9, EST1, EST2 |
+
+- **"W9B" no existe** `[dato GP2.componente]`: se tomó **W9P** `[deducido]` — es el único W que completa la
+  serie con su "s/envasar" (W1PSE, W2PSE, W3PSE, W4SE, W5SE, W6SE, W7PSE, W9PSE). W1B (Grampa Batidor) no es
+  de esa serie y quedó en cajones.
+- **Los factores NO se tocaron**: los 8 W de la lista ya tenían `uni_x_cajon` = 2 kg ÷ `kg_x_uni` (W1P 1.667 ×
+  0,0012 = 2,00 kg) y los V su bolsa de 2 o 10 kg (§4eo). Sólo cambia el **rótulo** → ningún total cambia.
+- **Cómo**: columna nueva **`componente.relev_envase`** (mismo criterio que `relev_solo_sueltas`: dato de la
+  pieza, no lista en el JS). `relev_factor` la prefiere; el default del Sector Remache (8) pasó de 'Bolsas' a
+  **'Cajones'** ("todo el resto"). ⚠ Un remache NUEVO que vaya en bolsa hay que marcarlo con
+  `relev_envase = 'Bolsas'`; si no, sale en cajones. `relev_factor` sólo lo usan `relev_total` y
+  `relevamiento_detalle`: nada fuera del relevamiento cambió.
+- **Pantalla**: con 2+ envases la tabla se parte en un bloque por envase (título «Bolsas · 23» y su propio
+  encabezado); con uno solo queda igual que antes. Lo que no tiene envase va con el primer bloque.
+- ⚠ **Quedan en "Cajones" con un factor que no es de cajón** `[dato]`: W1, W2, W3, W7, W8, W9 tienen
+  `uni_x_cajon` ≈ **2 kg** (es una bolsa, ya anotado para W1/W2/W7 en la sección de FAAT), y EST1/EST2 son
+  **bidones de 20 l**. El operario va a leer "cajones" y el sistema multiplica por 2 kg / 20 l. Sin respuesta
+  del usuario todavía.
+- `db/migracion_relev_envase_remache_20261008.sql`, `tests/ui/test_relevamiento.js`.

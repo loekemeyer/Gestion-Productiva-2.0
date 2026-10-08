@@ -113,6 +113,8 @@
   /* NO es un error: esta pieza no se cuenta por envase. Por eso no va en rojo. */
   .solo-sueltas{font-size:14px;color:#5a6672;font-style:italic}
   tr.cargado td{background:#f2faf5}
+  /* Bloque por envase (Remache: Bolsas / Cajones). El titulo se distingue del encabezado. */
+  table.t tr.grupo th{font-size:17px;text-transform:none;background:#e3e9f0;color:#111;padding:12px 8px}
   .cod{font-weight:800;font-size:17px}
   .desc{color:#5a6672;font-size:14px}
 
@@ -300,7 +302,11 @@ async function cargarDetalle(relId){
   var r = await SB.rpc('relevamiento_detalle', { p_id: relId });
   if(r.error){ msg('Error: '+r.error.message, true); return; }
   REL = r.data.relevamiento; REL.sector = r.data.sector;
-  ITEMS = r.data.items || [];
+  /* Orden alfanumerico natural (GRJ2 antes que GRJ10) [usuario 2026-10-08: "Ordename
+     alfanumericamente ... Todos los relevamientos"]. La base ordena por codigo como texto. */
+  ITEMS = (r.data.items || []).sort(function(a,b){
+    return String(a.codigo||'').localeCompare(String(b.codigo||''), 'es', { numeric:true });
+  });
   pintarCarga();
   mostrar('carga');
   $('status').textContent='';
@@ -310,17 +316,52 @@ async function cargarDetalle(relId){
 function cuentaKg(){ return ITEMS.length>0 && ITEMS[0].cuenta_kg; }
 function nombreEnvase(){ return (ITEMS[0] && ITEMS[0].envase) || 'Envases'; }
 
+/* Un sector puede mezclar envases: Remache se cuenta en BOLSAS (V sin SE y W1P..W9P) y en
+   CAJONES el resto [usuario 2026-10-08: "Dividí en 2. 1) Bolsas ... 2) Cajones para todo el
+   resto"]. El envase lo decide la base (relev_factor / componente.relev_envase); la pantalla
+   solo agrupa: con 2+ envases la tabla se parte en un bloque por envase, cada uno con su
+   encabezado. Con uno solo queda como siempre. Lo que no tiene envase va con el primer bloque. */
+function gruposEnvase(){
+  var nombres = [];
+  ITEMS.forEach(function(i){ if(i.envase && nombres.indexOf(i.envase)<0) nombres.push(i.envase); });
+  if(nombres.length < 2) return null;
+  nombres.sort(function(a,b){ return a.localeCompare(b, 'es'); });
+  return nombres.map(function(n, k){
+    return { envase:n, items: ITEMS.filter(function(i){ return i.envase===n || (k===0 && !i.envase); }) };
+  });
+}
+function encabezado(envase){
+  return '<th>Insumo</th><th class="num">'+esc(envase)+'</th><th class="num">Sueltas</th><th class="num">Total</th>';
+}
+
 function pintarCarga(){
+  var grupos = cuentaKg() ? null : gruposEnvase();
   $('cargaTitulo').textContent = REL.sector + ' · ' + fmtFecha(REL.fecha);
   $('cargaAyuda').innerHTML = cuentaKg()
     ? 'Cargá el <b>total de kilos</b> de cada fleje.'
-    : 'Cargá <b>'+esc(nombreEnvase().toLowerCase())+'</b> y las <b>unidades sueltas</b>. El total lo calcula el sistema.';
+    : 'Cargá <b>'+(grupos
+        ? grupos.map(function(g){ return esc(g.envase.toLowerCase()); }).join('</b> o <b>')
+        : esc(nombreEnvase().toLowerCase()))+'</b> y las <b>unidades sueltas</b>. El total lo calcula el sistema.';
 
   $('cargaHead').innerHTML = cuentaKg()
     ? '<th>Insumo</th><th class="num">Total Kg</th><th class="num">Total</th>'
-    : '<th>Insumo</th><th class="num">'+esc(nombreEnvase())+'</th><th class="num">Sueltas</th><th class="num">Total</th>';
+    : (grupos ? '' : encabezado(nombreEnvase()));
 
-  $('cargaBody').innerHTML = ITEMS.map(function(i){
+  $('cargaBody').innerHTML = grupos
+    ? grupos.map(function(g){
+        return '<tr class="grupo"><th colspan="4">'+esc(g.envase)+' · '+g.items.length+'</th></tr>'+
+               '<tr class="sub">'+encabezado(g.envase)+'</tr>'+
+               g.items.map(filaCarga).join('');
+      }).join('')
+    : ITEMS.map(filaCarga).join('');
+
+  document.querySelectorAll('.in-num').forEach(function(inp){
+    inp.addEventListener('input', function(){ recalcularFila(Number(inp.dataset.id)); });
+  });
+  progreso();
+}
+
+function filaCarga(i){
     var cargado = (i.envases!=null || i.sueltas!=null || i.kg!=null);
     var celdas;
     if(i.cuenta_kg){
@@ -348,12 +389,6 @@ function pintarCarga(){
       celdas+
       '<td class="tot num" data-tot="'+i.item_id+'">'+fmt(i.total_uni)+'</td>'+
     '</tr>';
-  }).join('');
-
-  document.querySelectorAll('.in-num').forEach(function(inp){
-    inp.addEventListener('input', function(){ recalcularFila(Number(inp.dataset.id)); });
-  });
-  progreso();
 }
 
 function itemDe(id){ return ITEMS.filter(function(x){ return x.item_id===id; })[0]; }

@@ -191,11 +191,13 @@ create table "GP2".componente (
   remito_unidad text,
   envio_carga text,
   familia_pedido text,
+  relev_envase text,
   constraint componente_pkey PRIMARY KEY (id),
   constraint componente_carton_categoria_fkey FOREIGN KEY (carton_categoria) REFERENCES "GP2".carton_categoria(nombre),
   constraint componente_carton_formato_fkey FOREIGN KEY (carton_formato) REFERENCES "GP2".carton_formato(nombre),
   constraint componente_familia_pedido_fkey FOREIGN KEY (familia_pedido) REFERENCES "GP2".familia_pedido(nombre) ON UPDATE CASCADE,
   constraint componente_material_id_fkey FOREIGN KEY (material_id) REFERENCES "GP2".componente(id),
+  constraint componente_relev_envase_chk CHECK (relev_envase is null or btrim(relev_envase) <> ''),
   constraint componente_proveedor_fkey FOREIGN KEY (proveedor) REFERENCES "GP2".proveedor_insumo(nombre) ON UPDATE CASCADE ON DELETE SET NULL,
   constraint componente_sector_id_fkey FOREIGN KEY (sector_id) REFERENCES "GP2".sector(id),
   constraint componente_envio_carga_chk CHECK (((envio_carga IS NULL) OR (envio_carga = ANY (ARRAY['envase'::text, 'kg'::text])))),
@@ -211,6 +213,7 @@ comment on column "GP2".componente.uni_x_cajon is 'Cantidad por ENVASE (no solo 
 comment on column "GP2".componente.estado_compra is 'null = se compra; fabricacion = se hace adentro; discontinuo = ya no se usa. Los que tienen estado quedan fuera de la OC y no cuentan como "sin proveedor".';
 comment on column "GP2".componente.recibe_en_cajas is 'El proveedor lo entrega en cajas que se PESAN: la recepcion va siempre en kg (sin toggle) y el control se carga como cajas x kg por caja. No cambia la unidad_medida canonica del componente.';
 comment on column "GP2".componente.relev_solo_sueltas is 'true = en el relevamiento se cuenta SOLO por unidades sueltas, sin envase (no aplica cajon/bolsa/paquete).';
+comment on column "GP2".componente.relev_envase is 'Rótulo del envase en el relevamiento (Bolsas, Cajones…). NULL = el del sector (relev_factor). No cambia el factor: ése sigue siendo uni_x_cajon / entrega_uni_x. 2026-10-08: Remache en bolsas y cajones.';
 comment on column "GP2".componente.material_id is 'Materia prima (componente del Sector Materia Prima Plastica, en kg) con la que se inyecta esta pieza. kg consumidos por unidad = kg_x_uni x (1 + parametro inyeccion_desperdicio_pct/100). Lo descuenta crear_recepcion_insumo del stock del inyector al recepcionar. null = no se sabe / no aplica (no se inventa).';
 comment on column "GP2".componente.codigo_isis_ch is 'Cod ISIS con el que CHEF SRL identifica el mismo material (la OC de materia prima lleva un renglon LK con codigo y otro CH con este). null = Chef no lo tiene codificado. Hoy solo materia prima plastica (2026-09-11).';
 comment on column "GP2".componente.codigo_virgilio is 'Codigo del mismo insumo en el catalogo Insumos de Gestion Virgilio (bolsas: PP, ABS, AI, NV, NR, N25, PE, PS). 2026-09-11.';
