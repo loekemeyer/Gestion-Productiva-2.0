@@ -18,8 +18,8 @@
 -- ANTES DE CORRERLO, las tres cosas:
 --   1) Que nadie haya seguido grabando por la tablet vieja (un celular con la página cacheada): tiene que dar 0.
 --        select count(*) from "GP2".produccion where origen_created_at > '2026-10-08 14:38:16+00';   -- el 08/10 a la noche: 0
---   2) Registro-Produccion-3.0 · gp2/Produccion/RegistroApp/ (copia vieja de esta tablet, SIN enlace desde el inicio) todavía las
---      llama: borrar esa carpeta o aceptar que deje de andar.
+--   2) ✅ CUMPLIDA el 08/10: la copia vieja gp2/ de Registro-Produccion-3.0 (lo único que todavía las llamaba) se borró
+--      [Elías: «2 si»] en el commit c86f84a de 3.0.
 --   3) En el MISMO commit de GP2: sacar las 4 de PERMITIDAS en tests/ui/test_rpc_huerfanas.js, y regenerar db/funciones_GP2.sql y
 --      db/tablas_GP2.sql (rollo_llamadas). Las columnas produccion.movimientos / stock_revertido_at se dejan (tienen historia).
 
