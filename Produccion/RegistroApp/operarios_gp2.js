@@ -582,6 +582,11 @@ function renderMatrizPicker(filtro) {
   // el buscador de abajo era una segunda caja para lo mismo. Se saco. [usuario 2026-08-31]
   const elegida = String($("textInput").value || "").trim();
   const q = String(filtro != null ? filtro : elegida).trim().toLowerCase();
+  // Sin nada escrito NO se muestra la lista (ni su titulo): aparece recien cuando se escribe algo. [usuario 2026-10-08:
+  // "que cuando no escribi nada no aparezca nada, que recien aparezca cuando escribi algo"]
+  const lbl = $("mpLabel");
+  if (lbl) lbl.classList.toggle("hidden", !q);
+  if (!q) { grid.innerHTML = ""; return; }
   let matrices = (D.matrices || []).filter(m => {
     if (m.act === false) return false;          // matriz dada de baja: no se ofrece
     if (!q) return true;

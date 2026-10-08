@@ -15868,3 +15868,14 @@ Producción 3.0 (`cervantes-gp2/`) y vale igual para la tablet de GP2:
   `anular_recepcion`. `[dato, ensayo revertido 08/10]` toque de 10 uni en la matriz 10: 2 movimientos; al anular, `inventario` queda
   con la misma huella que antes del toque y una 2.ª anulación no cambia nada. Los toques anteriores al 07/10 no tienen la lista: no se revierten.
 - Prueba: `tests/ui/test_op_e2e.js`, bloque «arreglos traídos de Registro Producción 3.0» (11 checks). Tablet `20261007h`, v1.251.0.
+
+## 4jp. Tablet de operarios: la lista de matrices no se ve hasta que se escribe algo (2026-10-08)
+
+- `[usuario, 08/10/2026, con captura de la lista «O elegila de la lista:» con todas las matrices]`: *«que cuando no escribí nada no
+  aparezca nada, que recién aparezca cuando escribí algo»*. En E (Enviar) y CM, la lista de matrices **y su título** están ocultos
+  mientras el campo está vacío; al escribir un número o parte del nombre aparece filtrada; si se borra, vuelve a desaparecer.
+  Antes mostraba las ~200 matrices de entrada y el operario tenía que scrollear.
+- Código: `renderMatrizPicker` de `operarios_gp2.js` corta con `q` vacío y alterna `#mpLabel`. Prueba: `tests/ui/test_op_e2e.js`
+  (4 checks nuevos). Tablet `20261008a`, v1.251.1.
+- ⚠ La botonera de **Registro Producción 3.0** (`cervantes-gp2/`) se GENERA desde esta pantalla con `tools/portar_botonera_gp2.py`:
+  el cambio llega allá volviendo a correr el script, no a mano.

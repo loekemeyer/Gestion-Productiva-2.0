@@ -153,10 +153,19 @@ window.supabase = { createClient: function(url, key, opts){ window.__sbOpts = op
   await page.click('#btnContinuar');
   await page.waitForSelector('.box[data-code="E"]');
   await page.click('.box[data-code="E"]');
+  // Sin nada escrito NO hay lista (ni titulo): aparece recien cuando se escribe algo [usuario 2026-10-08]
+  ok(await page.locator('#matrizGrid .mz').count() === 0, 'sin escribir nada la lista de matrices esta vacia');
+  ok(!(await page.isVisible('#mpLabel')), 'y tampoco se ve el titulo «O elegila de la lista»');
   // el buscador de abajo se saco (v1.9.0): el campo de arriba filtra numero Y nombre
   await page.fill('#textInput', '62');
   await page.dispatchEvent('#textInput', 'input');
   ok(!(await page.textContent('#matrizGrid')).includes('Fiambre'), 'la matriz de baja no se ofrece en la lista');
+  ok(await page.isVisible('#mpLabel'), 'al escribir aparece el titulo de la lista');
+  await page.fill('#textInput', '');
+  await page.dispatchEvent('#textInput', 'input');
+  ok(await page.locator('#matrizGrid .mz').count() === 0, 'si se borra lo escrito, la lista vuelve a desaparecer');
+  await page.fill('#textInput', '62');
+  await page.dispatchEvent('#textInput', 'input');
   // el campo de arriba tambien filtra por NOMBRE (por eso el buscador de abajo sobraba)
   await page.fill('#textInput', 'untar');
   await page.dispatchEvent('#textInput', 'input');
