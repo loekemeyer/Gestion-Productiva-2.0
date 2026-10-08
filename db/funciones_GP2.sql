@@ -7934,6 +7934,7 @@ AS $function$
     end,
     case
       when coalesce(c.relev_solo_sueltas,false) then null  -- sin envase: solo sueltas
+      when c.relev_envase is not null then c.relev_envase  -- la pieza dice su envase (2026-10-08)
       when c.sector_id not in (5, 10, 11) and nullif(c.uni_x_cajon, 0) is null
            and nullif(c.entrega_uni_x, 0) is not null and c.entrega_unidad is not null
         then initcap(c.entrega_unidad)
@@ -7943,7 +7944,7 @@ AS $function$
         when  6 then 'Bolsas'
         when  7 then 'Bolsas'
         when  9 then 'Cajones'
-        when  8 then 'Bolsas'
+        when  8 then 'Cajones'   -- Remache: cajones salvo los marcados 'Bolsas' (2026-10-08; antes 'Bolsas')
         else 'Cajones'
       end
     end,
