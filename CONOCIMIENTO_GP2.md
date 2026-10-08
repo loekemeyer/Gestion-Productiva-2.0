@@ -15980,3 +15980,11 @@ Producción 3.0 (`cervantes-gp2/`) y vale igual para la tablet de GP2:
   `gv_monitor_ingresos`, `planify_operario_mensajes_dia`, `planify_produccion_dia`) leen a los operarios de Cervantes de
   `public."Registros Produccion Cervantes"` (la app vieja). Cuando los operarios pasen a 3.0 (`reg_prod_3_0.crudo_cervantes`) esas no los
   van a ver. Son de otros repos; queda para decidir.
+
+## 4ju. La tablet copia Registro 3.0 v3.1.8: allá hay una sola app instalable (2026-10-08)
+
+- `[usuario, Elías, 08/10: «1 si»]` En Registro 3.0 el inicio, Virgilio y Cervantes usan **el mismo manifiesto** (el de la raíz de 3.0),
+  así que `cervantes-gp2/index.html` enlaza `../manifest.json` (v3.1.8, 3.0 `ca8f851`). La copia de acá lo sigue sacando (la tablet se
+  abre desde el menú de GP2): `tools/copiar_botonera_de_3_0.py` busca ahora ese enlace. Recopiada con el token `20261008e`
+  (`gp2-20261008e/v3.1.8`); `traer_de_gp2.py --revisar` en 3.0 dice que no hay nada nuevo. Sin cambios de comportamiento en la tablet.
+

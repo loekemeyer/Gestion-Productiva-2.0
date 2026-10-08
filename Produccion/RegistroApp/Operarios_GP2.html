@@ -20,7 +20,7 @@
     (function(){
       // El operario ya no tiene version propia: se compara el TOKEN de cache compartido
       // (el mismo ?v= que llevan todos los assets). Si cambia, el HTML cacheado es viejo.
-      var MI_V = '20261008b';
+      var MI_V = '20261008e';
       function chequear(){
         fetch(location.pathname, { cache: 'no-store' }).then(function(r){ return r.text(); }).then(function(html){
           var m = html.match(/operarios_gp2\.js\?v=([\w.]+)/);
@@ -278,6 +278,6 @@
   </div>
 </div>
 
-<script src="operarios_gp2.js?v=20261008b"></script>
+<script src="operarios_gp2.js?v=20261008e"></script>
 </body>
 </html>

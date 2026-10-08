@@ -1,9 +1,9 @@
 "use strict";
 
-/* ⚠ COPIA PARA PROBAR — la FUENTE es cervantes-gp2/app.js de loekemeyer/Registro-Produccion-3.0 (v3.1.7).
+/* ⚠ COPIA PARA PROBAR — la FUENTE es cervantes-gp2/app.js de loekemeyer/Registro-Produccion-3.0 (v3.1.8).
    Copiada con tools/copiar_botonera_de_3_0.py [Elías, 08/10/2026: «GP2 sólo hacer copia y hacer modificaciones para
    testear»]. Lo que tiene que llegar a los operarios se cambia en 3.0, no acá: la próxima copia pisa este archivo.
-   Graba IGUAL que 3.0 (código de la TV, pase, funciones reg_prod_3_0); lo cargado desde acá lleva app_version 'gp2-20261008b/v3.1.7'.
+   Graba IGUAL que 3.0 (código de la TV, pase, funciones reg_prod_3_0); lo cargado desde acá lleva app_version 'gp2-20261008e/v3.1.8'.
    Diferencias con 3.0: claves gp2c_*, p_app "gp2", sin service worker propio y «Volver» al menú de GP2. */
 
 /* ============================================================
@@ -28,7 +28,7 @@
    Eduardo Barrionuevo (legajo "19"): CT button + rollo en E/PR (sólo con rollos_activos).
    ============================================================ */
 
-const COPIA_GP2 = "gp2-20261008b/v3.1.7";   // va en el app_version de cada toque (GP2 no lleva const de versión)
+const COPIA_GP2 = "gp2-20261008e/v3.1.8";   // va en el app_version de cada toque (GP2 no lleva const de versión)
 const LEGAJO_EDUARDO = "19";
 
 const SUPABASE_URL = "https://hrxfctzncixxqmpfhskv.supabase.co";

@@ -94,8 +94,8 @@ def copiar_html(html, token, guard):
     html = una(html, '<meta name="apple-mobile-web-app-title" content="Registro" />',
                '<meta name="apple-mobile-web-app-title" content="Operarios GP2" />', 'título de la app')
     html = una(html, '<title>Registro Produccion</title>', '<title>Operarios GP2</title>', 'título')
-    # sin manifiesto: el de Produccion/RegistroApp es el viejo de oficina (start_url ./ no abre nada); la tablet se abre desde el menú
-    html = una(html, '  <link rel="manifest" href="manifest.json" />\n', '', 'manifiesto')
+    # sin manifiesto: 3.0 usa el del inicio de 3.0 (una sola app instalable, v3.1.8); acá la tablet se abre desde el menú de GP2
+    html = una(html, '  <link rel="manifest" href="../manifest.json" />\n', '', 'manifiesto')
     html, n = re.subn(r"var MI_V = '[^']*';", f"var MI_V = '{token}';", html)
     if n != 1:
         raise Falta('MI_V')
