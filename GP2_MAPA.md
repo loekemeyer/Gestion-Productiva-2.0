@@ -44,7 +44,8 @@ __boot();
 | `prov` | dict → `{ n (nombre), p (proceso) }` |
 | `tall` | dict → **string plano** con el nombre (puede traer espacios colgantes → `.trim()`) |
 | `rutas_by_art` | dict `String(art_id)` → lista `{ id (→rp), f (comp_id del fleje; null = ruta de insumo) }` |
-| `tall_art` | dict `String(art_id)` → lista de NOMBRES (strings) de talleristas alternativos |
+| `tall_art` | dict `String(art_id)` → lista de NOMBRES (strings) de los talleristas que dejan el terminado (sector 12). Desde 2026-10-08 la pantalla lo usa sólo de respaldo: quién ensambla sale de las rutas (`p.tas`) |
+| `reparto` | dict `String(art_id)` → `String(comp_salida_id)` → `String(tallerista_id)` → `{ p (pct), s (es_supuesto) }`. Sólo los pasos que hacen 2+ talleristas (`v_reparto_efectivo.n_tall > 1`); `null` si no hay ninguno. Lo usa Despiece x Art para nombrar a todos con su % (2026-10-08) |
 
 ## faltantes_bundle() — Despiece x Articulo/Despiece_GP2.html (solo lectura; lazy)
 
@@ -175,7 +176,7 @@ confirmar acá que la clave existe; si un bundle cambia, actualizar esta tabla e
 | `problemas_matrices_bundle(p_desde, p_hasta)` | Problemas con Matrices | (eventos RM/PM) |
 | `produccion_bundle(p_matriz, p_anio)` | rendimiento_GP2.js | `matrices, empleados, rows` (ver sección propia) |
 | `produccion_maestro_bundle(p_desde, p_hasta)` | Maestro de producción | `desde, empleados, hasta, matrices, rows` |
-| `programa_bundle()` | Programa | `art, bom, children, comp, fl, mat, prov, rp, rutas, rutas_by_art, sect, tall, tall_art` (nombres CORTOS, ver sección propia; idea 7252) |
+| `programa_bundle()` | Programa | `art, bom, children, comp, fl, mat, prov, rp, rutas, rutas_by_art, sect, reparto, tall, tall_art` (nombres CORTOS, ver sección propia; idea 7252) |
 | `proporciones_bundle()` | Proporciones (**solo lectura**) | `generado_en, pasos` — reescrita el 2026-09-15. `pasos` = los PASOS (`articulo_id` + `comp_salida_id`) que hacen **2 o más talleristas**, con `art_codigo, familia, paso_cod, paso_desc, n_talleristas, suma_pct`, `talleristas[{tall_id, tallerista, pct, es_supuesto}]` y `partes[{cod, desc, por_tall[{tall_id, maximo, stock, origen}]}]` (el máximo de cada parte en la casa de cada tallerista). Ya no devuelve `articulos_compartidos`: la lógica de "mismo paso" vive en la función, no en el front |
 | `reparto_guardar(p_articulo_id, p_comp_salida_id, p_filas)` | **nadie: se corre por SQL** | `p_filas` = `[{tallerista_id, pct}]`; exige que sumen 100 y que cada tallerista haga ESE paso según las rutas. Escribe `GP2.reparto_tallerista` y **recalcula los máximos** (`recalcular_maximos_talleristas(true)`). Desde el 2026-09-15 **no tiene EXECUTE para `anon`**: la pantalla es solo lectura [usuario: "que no se pueda modificar la proporción en el programa"] |
 | `recepcion_bundle()` | Recepción Insumos | `insumos, pallets, proveedores, recepciones, rollos, sectores, tara`. Cada `insumos[]` trae `proveedor` (el principal, `componente.proveedor`) y **`proveedores_alt[]`** (los de `componente_proveedor_alt`, que entregan la misma pieza sin duplicar el componente; 2026-09-17, caso Recicor en Cajas) |

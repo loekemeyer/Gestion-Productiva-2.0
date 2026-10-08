@@ -10362,6 +10362,9 @@ lado, se mueve la fila de `inventario`, no el componente.
 modificar la proporción en el programa"* y *"quiero que me pongas los máximos de cada parte del
 artículo que se está proporcionando"*.
 
+> ⚠ **CORREGIDO el 2026-10-08 (§4kd):** el 510 vuelve a ser de **Alex Escalante y Martin Cornejo, 50 / 50**
+> [Nazareno]. Martin ya lo estaba entregando (-1.176 en sus partes). El punto 1 de abajo queda como historia.
+
 **1. El 510.** Se borraron las 5 rutas de Martin Cornejo (601, 602, 604, 605, 607). Alex Escalante
 pasa al 100 %: A15 y Cartón 510 van de 3.170 a **6.340**, Uñas Zinc. y Remache de 15.020 a
 **18.190**. Con eso ya no queda ningún paso compartido sin porcentaje dictado: los dos que quedan
@@ -16122,3 +16125,34 @@ Producción 3.0 (`cervantes-gp2/`) y vale igual para la tablet de GP2:
   todos Alex Escalante) ya eran convergencia por las rutas de fleje: render idéntico.
 - Prueba: `tests/ui/test_programa_matriz_insumos.js` — su control decía lo contrario («un armado de tallerista no es
   convergencia»); ahora exige la convergencia de tallerista (falla 5 contra el HTML anterior).
+
+## 4kd. El 510 vuelve a Alex Escalante + Martin Cornejo, 50 / 50 — y Despiece x Art muestra a TODOS los que arman (2026-10-08) — v1.256.0
+
+- [usuario: Nazareno] *"El artículo 510 se les manda para armar a los talleristas Alex Escalante y Martín Cornejo 50 y 50.
+  Agregalo en proporciones y también agregá que se le puedan mandar las partes del 510 a Martín Cornejo"*. **Corrige §4dw**
+  ("510 solo alex lo hace", 15-09, cuando se borraron las 5 rutas de Martin).
+- [dato] **La planta ya iba por delante del dato**: Martin tenía **-1.176** en A15, Cartón 510 (A2B), C10 y V9 en su casa
+  (`inventario`, ubicación 26) = entregaba 510 sin que GP2 supiera que había que mandárselo. Y la Tablet no le ofrecía A15 ni
+  Cartón 510 (no figuraban en `v_contraparte_parte` de Martin; C10, V9 y A11 sí, por el 506).
+- **Base** (`db/migracion_510_martin_cornejo_20261008.sql`, idempotente, con revert): las 5 rutas de Alex (160, 215, 302, 303, 490)
+  copiadas para Martin paso por paso (rutas **1137-1141**, molde del 506); las 2 de Alex sin sufijo ganan "(Alex Escalante)";
+  `reparto_tallerista` 510 / paso 403 → 50 + 50. Componente, inventario (Martin ya tenía fila de las 5 partes), recetas y
+  `contraparte_alias` sin cambios. Ensayo con rollback antes de aplicar.
+- [dato] Medido: costos (`v_costo_componente`) **0 de 859 cambiaron** (la ruta duplicada no duplica consumo, §4dt). Máximos de
+  tallerista: cambiaron exactamente 10 filas y ninguna más — A15 y Cartón 510: Alex 6.720 → 3.360, Martin — → 3.360; C10 y V9:
+  Alex 14.531 → 11.171, Martin +3.360 (13.141 → 16.501 y 13.605 → 16.965); Caja A11: 280 de Alex a Martin. La suma se conserva.
+  Tablet: Envío a Talleristas ya le ofrece a Martin A15 y Cartón 510 (máx 3.360, sugerido 4.536 por el -1.176). Proporciones
+  muestra el 510 a 50 / 50.
+- **Despiece x Art** (`Programa/Programa.html`) [Nazareno: *"todos los artículos que tienen 2 talleristas (modelado en
+  Proporciones) quiero que me aparezca en el módulo de Despiece x Art… aparece solo Alex Escalante como tallerista que ensambla
+  y también entrega Martín Cornejo"*]: con 2+ talleristas había un **selector** que dibujaba sólo las rutas del elegido — el
+  otro no aparecía en ningún lado. Se sacó: las copias de una ruta por tallerista se juntan en UNA (firma sin el tallerista; los
+  kg de fleje se suman una vez), cada tarjeta de tallerista nombra a todos con su %, el encabezado dice «Alex Escalante 50% ·
+  Martin Cornejo 50% — ensamblan» y el cierre reparte las unidades (100 u → 50 + 50). Un % que nadie dictó sale «(sin dictar)».
+- El % viaja en `programa_bundle.reparto` (`db/migracion_programa_bundle_reparto_20261008.sql`): `{art: {comp_salida: {tall:
+  {p, s}}}}` desde `v_reparto_efectivo` (`n_tall > 1`), la misma vista de Proporciones y de los máximos.
+- [dato] Con el bundle real, 194 artículos antes/después: cambian **exactamente los 6** con 2 talleristas (123, 355, 505, 506,
+  510, 789); los otros 188 dan el mismo texto. Prueba: `tests/ui/test_programa_dos_talleristas.js` (7 FAIL contra el HTML anterior).
+- [pendiente] Quedaron 2 tablas de snapshot de esta cirugía, `"GP2"._bak_costos_20261008_510` y `"GP2"._bak_maxtall_20261008_510`
+  (RLS prendida, sin acceso anon): el conector de la sesión no ejecuta `DROP` (pide una confirmación que no puede mostrar).
+  Borrarlas a mano en el SQL Editor.

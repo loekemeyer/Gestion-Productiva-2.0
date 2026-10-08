@@ -51,7 +51,7 @@
  .top input#uni{width:130px;text-align:right;color:var(--amb);font-weight:800;font-size:20px}
  .top input#buscar{width:230px;max-width:78vw;font-weight:500}
  .top select#art{max-width:min(620px,78vw)}
- .top select#marca,.top select#tallAlt{max-width:78vw}
+ .top select#marca{max-width:78vw}
  [hidden]{display:none!important}
  /* ---- selector de articulo en UN PASO: se abre en el buscador con TODOS los articulos
     (usuario 2026-09-23: "no me hagas elegir por marca, que el buscador aparezca en todas
@@ -170,6 +170,9 @@
            line-height:1.25}
  .node .nm{font-size:21px;font-weight:800;font-family:ui-monospace,SF Mono,Menlo,monospace;color:var(--tx);
            line-height:1.15;word-break:break-word;margin-top:1px}
+ /* 2+ talleristas en el mismo paso: uno por renglón, el nombre y su % sin cortarse */
+ .node.multi{max-width:none}
+ .node .nm .tl{display:block;white-space:nowrap}
  .node .ex{font-size:14.5px;color:var(--tx2);line-height:1.3;margin-top:1px;
            display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
  .node .rend{font-size:14px;color:var(--amb);font-weight:700;margin-top:2px}
@@ -220,7 +223,6 @@
   <select id="marca" hidden><option value="">Todas</option><option value="LOEKE">Loeke</option><option value="LOKE">Loke</option><option value="CHEF">Chef</option></select>
   <select id="art" hidden></select>
   <span class="fld">Unidades <input inputmode="numeric" id="uni" type="text" value="1"></span>
-  <span class="fld" id="tallAltBox" style="display:none">Tallerista <select id="tallAlt"></select></span>
  </div>
 </div>
 <div class="canvas" id="canvas"></div>
@@ -263,6 +265,55 @@ function unikg(r){return GP2N.fmt(r, 2)+" uni/kg";}
 
 // Defensive: ordenar rp por 'orden' aunque en Excel esté fuera de orden físico
 for(var _rid in D.rp)D.rp[_rid].sort(function(a,b){return a.o-b.o;});
+
+/* DOS O MÁS TALLERISTAS EN EL MISMO PASO [Nazareno 2026-10-08: "todos los artículos que tienen 2
+   talleristas (modelado en Proporciones) quiero que me aparezca en el módulo de Despiece x Art"].
+   La convención de la casa DUPLICA la ruta por tallerista: misma cadena, distinto tallerista en el
+   paso. Hasta ese día un selector elegía uno y dibujaba sólo sus rutas: el 506 decía "Alex Escalante
+   ensambla" y Martin Cornejo, que hace la mitad, no aparecía en ningún lado. Ahora las copias se
+   juntan en UNA (la de id más bajo: los kg de fleje se siguen sumando una sola vez) y cada paso de
+   tallerista lleva en p.tas a TODOS los que lo hacen y en p.rep su % (D.reparto = v_reparto_efectivo,
+   lo mismo que muestra Proporciones). Una ruta que tiene un solo tallerista queda igual que antes. */
+var RUTAS_ART={};
+function rutasDeArt(aid){
+ var k=String(aid);
+ if(RUTAS_ART[k])return RUTAS_ART[k];
+ var rep=(D.reparto||{})[k]||{}, grupos={}, orden=[];
+ (D.rutas_by_art[k]||[]).forEach(function(r){
+  var pasos=D.rp[String(r.id)]||[];
+  // la firma ignora QUIÉN es el tallerista: dos rutas iguales salvo eso son la misma ruta
+  var firma=pasos.map(function(p){return [p.tp,p.m||"",p.pr||"",p.pat||"",p.ce||"",p.cs||""].join(":");}).join(">");
+  if(!grupos[firma]){grupos[firma]={r:r,copias:[],tas:{}};orden.push(firma);}
+  grupos[firma].copias.push(pasos);
+  pasos.forEach(function(p,i){
+   if(p.tp!=="tallerista"||!p.ta)return;
+   var l=grupos[firma].tas[i]=grupos[firma].tas[i]||[];
+   if(l.indexOf(p.ta)<0)l.push(p.ta);
+  });
+ });
+ orden.forEach(function(f){
+  var g=grupos[f];
+  Object.keys(g.tas).forEach(function(i){
+   var ids=g.tas[i].slice().sort(function(x,y){return String(D.tall[String(x)]||"").localeCompare(String(D.tall[String(y)]||""),"es");});
+   // todas las copias llevan la lista: una convergencia puede tomar cualquiera de ellas
+   g.copias.forEach(function(pasos){var p=pasos[i];p.tas=ids;p.rep=ids.length>1?(rep[String(p.cs)]||null):null;});
+  });
+ });
+ return (RUTAS_ART[k]=orden.map(function(f){return grupos[f].r;}));
+}
+/* "50%" con la regla de número de la casa; "(sin dictar)" cuando el % es el reparto parejo por
+   default y nadie lo cargó en Proporciones (un default no se muestra como si fuera un dato, 4dw). */
+function pctTxt(r){return r?(GP2N.fmt(r.p,1)+"%"+(r.s?" (sin dictar)":"")):"";}
+/* Quién hace un paso de tallerista: un nombre, o uno por renglón con su % si son 2+. */
+function tallNombres(p){
+ var ids=p.tas||(p.ta?[p.ta]:[]);
+ if(!ids.length)return "(sin asignar)";
+ var l=ids.map(function(id){
+  var n=String(D.tall[String(id)]||"?").trim(), r=p.rep&&p.rep[String(id)];
+  return r?n+" "+pctTxt(r):n;
+ });
+ return l.length>1?l:l[0];
+}
 var sel=document.getElementById("art");
 var selMarca=document.getElementById("marca");
 var inpBuscar=document.getElementById("buscar");
@@ -347,9 +398,10 @@ function expandBOM(aid){
    (sector de stock o tránsito). Antes era un nodo aparte y duplicaba el largo
    de la cadena; ahora vive adentro de la tarjeta que lo produce. */
 function node(tp,cls,nm,ex,extra,qty,kg,dest){
- var h='<div class="node n-'+cls+'">';
+ var h='<div class="node n-'+cls+(Array.isArray(nm)?' multi':'')+'">';
  h+='<div class="tp">'+esc(tp)+'</div>';
- h+='<div class="nm">'+esc(nm)+'</div>';
+ /* nm puede ser una lista (2+ talleristas en el mismo paso): uno por renglón */
+ h+='<div class="nm">'+(Array.isArray(nm)?nm.map(function(x){return '<span class="tl">'+esc(x)+'</span>';}).join(''):esc(nm))+'</div>';
  if(ex)h+='<div class="ex">'+esc(ex)+'</div>';
  if(extra)h+='<div class="rend">'+esc(extra)+'</div>';
  if(dest||qty!=null||kg!=null){
@@ -427,7 +479,7 @@ function pasoNode(p,need,uni,pNext){
  var ce=cById(p.ce), cs=cById(p.cs);
  if(p.tp==="matriz"){var mx=D.mat[String(p.m)]||{};tp="MATRIZ N°"+mx.n;cls="matriz";nm=(mx.d||cs.cod||"?");ex=(cs.cod||"")+((cs.d&&cs.d!==mx.d)?(" · "+cs.d):"");if(mx.r)extra="⚙️ "+unikg(mx.r);}
  else if(p.tp==="proveedor_servicio"){var px=D.prov[String(p.pr)]||{};tp="PROV "+(px.n||"?");cls="prov";nm=cs.cod||ce.cod||"?";ex=(px.p||"")+(cs.cod?(" · "+cs.cod):"");}
- else if(p.tp==="tallerista"){var tx=D.tall[String(p.ta)]||"(sin asignar)";tp="TALLERISTA";cls="tall";nm=tx.trim();ex=(ce.cod||"")+" → "+(cs.cod||"?");}
+ else if(p.tp==="tallerista"){tp="TALLERISTA";cls="tall";nm=tallNombres(p);ex=(ce.cod||"")+" → "+(cs.cod||"?");}
  else if(p.tp==="afilado"){tp="AFILADO";cls="afil";nm="Afilar";ex=(ce.cod||"")+" → "+(cs.cod||"?");}
  else if(p.tp==="proveedor_at"){var pa=D.provat?D.provat[String(p.pat)]:null;tp="PROV. ART. TERM.";cls="prov";nm=(pa||"(sin prov)").trim();ex="entrega terminado";}
  else if(p.tp==="virgilio"){tp="VIRGILIO";cls="virg";nm="Distribución";ex="centro";}
@@ -577,7 +629,7 @@ function renderConvergenceLane(padre_id,ruta_list,need,uni,flejesTotal,aid,insum
  var extra=mx.r?"⚙️ "+unikg(mx.r):"";
  var convTp,convCls,convNm,convEx;
  if(convPaso.tp==="matriz"){convTp="MATRIZ N°"+mx.n;convCls="matriz";convNm=pc.cod;convEx=pc.d||"";}
- else if(convPaso.tp==="tallerista"){var _tn=D.tall[String(convPaso.ta)]||"(sin asignar)";convTp="TALLERISTA";convCls="tall";convNm=(typeof _tn==='string'?_tn.trim():_tn.n||"?");convEx=pc.cod+" · "+(pc.d||"");}
+ else if(convPaso.tp==="tallerista"){convTp="TALLERISTA";convCls="tall";convNm=tallNombres(convPaso);convEx=pc.cod+" · "+(pc.d||"");}
  else if(convPaso.tp==="proveedor_servicio"){var _px=D.prov[String(convPaso.pr)]||{};convTp="PROV "+(_px.n||"?");convCls="prov";convNm=pc.cod;convEx=(_px.p||"")+" · "+(pc.d||"");}
  else {convTp=convPaso.tp.toUpperCase();convCls="prov";convNm=pc.cod;convEx=pc.d||"";}
  var _snConv=sName(pc.s), _post=postPasos||[];
@@ -599,32 +651,20 @@ function render(){
  if(!a){document.getElementById("canvas").innerHTML='<div style="padding:20px">Artículo no encontrado</div>';return;}
  var ex=expandBOM(aid);
  var need=ex.need, bom=ex.bom;
- var rutas=(D.rutas_by_art[String(aid)]||[]);
- var talls=D.tall_art[String(aid)]||[];
- // Selector tallerista alternativo: rellenar dropdown y filtrar rutas
- var tallAltBox=document.getElementById('tallAltBox');
- var tallAlt=document.getElementById('tallAlt');
- // FIX aud4-p6: selector usa tallerista_id, nombre es solo label (evita bug de espacios "Pettofrezza Rafael ")
- var nomToId={};Object.keys(D.tall).forEach(function(k){nomToId[(D.tall[k]||'').trim()]=parseInt(k);});
- var tallsIds=talls.map(function(n){return nomToId[(n||'').trim()];}).filter(Boolean);
- if(tallsIds.length>1){
-  tallAltBox.style.display='';
-  if(tallAlt.dataset.aid!==String(aid)){
-   tallAlt.innerHTML='';
-   tallsIds.forEach(function(tid){tallAlt.innerHTML+='<option value="'+tid+'">'+esc((D.tall[String(tid)]||'').trim())+'</option>';});
-   tallAlt.dataset.aid=String(aid);
-  }
-  var tallElegidoId=GP2N.entero(tallAlt.value);
-  rutas=rutas.filter(function(r){
-   var pasos=D.rp[String(r.id)]||[];
-   var tids=pasos.filter(function(p){return p.tp==='tallerista' && p.ta;}).map(function(p){return parseInt(p.ta);});
-   if(!tids.length)return true;
-   return tids.indexOf(tallElegidoId)>=0;
+ var rutas=rutasDeArt(aid);   // las copias de una ruta por tallerista ya vienen juntas
+ /* QUIÉN ENSAMBLA: los talleristas del paso que deja el artículo TERMINADO, TODOS, cada uno con
+    su % (2026-10-08). Antes salía de tall_art y, con 2+, un selector se quedaba con uno solo. */
+ var ensam=[], vistos={};
+ rutas.forEach(function(r){
+  (D.rp[String(r.id)]||[]).forEach(function(p){
+   if(p.tp!=='tallerista'||!p.cs||sName(cById(p.cs).s)!=='terminado')return;
+   (p.tas||(p.ta?[p.ta]:[])).forEach(function(id){
+    if(vistos[id])return;vistos[id]=1;
+    ensam.push({n:String(D.tall[String(id)]||'?').trim(),r:(p.rep&&p.rep[String(id)])||null});
+   });
   });
-  talls=[(D.tall[String(tallElegidoId)]||'').trim()];
- } else {
-  tallAltBox.style.display='none';
- }
+ });
+ if(!ensam.length)(D.tall_art[String(aid)]||[]).forEach(function(n){ensam.push({n:String(n).trim(),r:null});});
  /* EL PROV. DE ARTÍCULO TERMINADO REEMPLAZA AL TALLERISTA [usuario 2026-09-11, textual].
     Un artículo comprado terminado no lo ensambla nadie acá: de casa sale el cartón y la
     caja, y el proveedor entrega el artículo hecho en Virgilio. Antes, como tall_art no
@@ -775,9 +815,9 @@ function render(){
    if(!grupos[sigSinTall])grupos[sigSinTall]={pasos:pasos,cidIni:cidIni,tallsPorPos:{}};
    pasos.forEach(function(p,idx){
     if(p.tp==='tallerista'&&p.ta){
-     var n=(D.tall[String(p.ta)]||'').trim();
-     grupos[sigSinTall].tallsPorPos[idx]=grupos[sigSinTall].tallsPorPos[idx]||[];
-     if(grupos[sigSinTall].tallsPorPos[idx].indexOf(n)<0)grupos[sigSinTall].tallsPorPos[idx].push(n);
+     // ids, no nombres: p.tas ya trae a todos los talleristas de las copias de la ruta (rutasDeArt)
+     var l=grupos[sigSinTall].tallsPorPos[idx]=grupos[sigSinTall].tallsPorPos[idx]||[];
+     (p.tas||[p.ta]).forEach(function(id){if(l.indexOf(id)<0)l.push(id);});
     }
    });
   });
@@ -801,8 +841,7 @@ function render(){
      B+='<span class="arr">→</span>'+node("PROV.SERV.","prov",pv.n.trim(),pv.p||"","",qFin,null,dst);
     }
     else if(p.tp==="tallerista"){
-     var tallsEtapa=g.tallsPorPos[idx]||[(D.tall[String(p.ta)]||'').trim()];
-     var lbl=tallsEtapa.length>1?tallsEtapa.join(' O '):tallsEtapa[0];
+     var lbl=tallNombres({ta:p.ta,tas:g.tallsPorPos[idx],rep:p.rep});
      B+='<span class="arr">→</span>'+node("TALLERISTA","tall",lbl,"","",qFin,null,"");
     }
     else if(p.tp==="proveedor_at"){
@@ -822,10 +861,11 @@ function render(){
   });
  }
 
- B+=titulo(5,(talls.length||!provAT.length)?'Convergencia final → Artículo → Virgilio'
+ B+=titulo(5,(ensam.length||!provAT.length)?'Convergencia final → Artículo → Virgilio'
                                           :'Artículo comprado terminado → Virgilio');
  B+='<div class="lane"><div class="flow">';
- if(talls.length){talls.forEach(function(t,i){B+=(i>0?'<span class="arr plus">O</span>':"")+node("TALLERISTA","tall",t,"ensambla","",uni,null,"");});}
+ /* con % se reparten el volumen: "+" y cada uno con SU parte de las unidades (50% de 100 = 50) */
+ if(ensam.length){ensam.forEach(function(e,i){B+=(i>0?'<span class="arr plus">'+(e.r?'+':'O')+'</span>':"")+node("TALLERISTA","tall",e.n,"ensambla"+(e.r?" "+pctTxt(e.r):""),"",e.r?uni*e.r.p/100:uni,null,"");});}
  else if(provAT.length){provAT.forEach(function(n,i){B+=(i>0?'<span class="arr plus">O</span>':"")+node("PROV. ART. TERM.","prov",n,"entrega terminado","",uni,null,"");});}
  else if(matrizFinal){B+=node("MATRIZ FINAL","matriz","N° "+matrizFinal.n,matrizFinal.d||"","",uni,null,"");}
  else B+=node("TALLERISTA","tall","(sin asignar)","tabla incompleta","",uni,null,"");
@@ -840,7 +880,7 @@ function render(){
       '<div class="kpi"><b>'+fmt(uni)+'</b>unidades a producir</div>'+
       '<div class="kpi"><b>'+bom.length+'</b>partes BOM</div>'+
       '<div class="kpi"><b>'+rutas_prod.length+'</b>rutas de producción</div>'+
-      (talls.length?'<div class="kpi ens"><b>'+esc(talls.join(" O "))+'</b>ensambla</div>'
+      (ensam.length?'<div class="kpi ens"><b>'+ensam.map(function(e){return esc(e.n+(e.r?" "+pctTxt(e.r):""));}).join("<br>")+'</b>'+(ensam.length>1?'ensamblan':'ensambla')+'</div>'
         :provAT.length?'<div class="kpi ens"><b>'+esc(provAT.join(" O "))+'</b>entrega terminado</div>':"")+
     '</div></div>';
 
@@ -903,7 +943,7 @@ function ajustarFilas(){
 var _rsz;
 window.addEventListener("resize",function(){clearTimeout(_rsz);_rsz=setTimeout(ajustarFilas,120);});
 
-sel.addEventListener("change",function(){elegido=sel.value;document.getElementById('tallAlt').dataset.aid='';pintarBoton();render();});
+sel.addEventListener("change",function(){elegido=sel.value;pintarBoton();render();});
 /* El selector abre DIRECTO en el buscador con todos los articulos (usuario 2026-09-23:
    "no me hagas elegir por marca"). La marca es un filtro opcional -- los chips de arriba --
    y se resetea a "Todas" en cada apertura, para que nadie se coma un filtro que dejo puesto
@@ -926,7 +966,7 @@ pickMarcas.addEventListener("click",function(e){
  var b=e.target.closest("button[data-mk]");if(!b)return;
  selMarca.value=b.getAttribute("data-mk");pintarChips();llenarArticulos();});
 function elegirArticulo(id){
- elegido=id;sel.value=elegido;document.getElementById('tallAlt').dataset.aid='';
+ elegido=id;sel.value=elegido;
  cerrarPicker();pintarBoton();render();}
 pickList.addEventListener("click",function(e){
  var b=e.target.closest("button[data-id]");if(!b)return;
@@ -945,7 +985,6 @@ inpBuscar.addEventListener("keydown",function(e){
   if(a&&norm(a.cod)===q){b=x;return true;}return false;});
  elegirArticulo(b.getAttribute("data-id"));});
 document.getElementById("uni").addEventListener("input",render);
-document.getElementById("tallAlt").addEventListener("change",render);
 var a501=D.art.find(function(a){return a.cod==="501";});
 sel.value=a501?a501.id:D.art[0].id;
 elegido=sel.value;

@@ -6733,6 +6733,16 @@ select jsonb_build_object(
        from "GP2".ruta_paso rp join "GP2".ruta r on r.id = rp.ruta_id join "GP2".tallerista t on t.id = rp.tallerista_id
        join "GP2".componente cs on cs.id = rp.comp_salida_id
        where rp.tallerista_id is not null and r.articulo_id is not null and cs.sector_id = 12 group by r.articulo_id) x),
+  /* 2026-10-08 [Nazareno]: el % de cada tallerista en un paso que hacen 2+ (Proporciones):
+     {articulo: {comp_salida: {tallerista: {p: pct, s: es_supuesto}}}}. Despiece x Art muestra a
+     TODOS los que arman, con su parte, en vez de elegir uno. Sale de v_reparto_efectivo, la misma
+     vista que usan Proporciones y los maximos. */
+  'reparto', (select jsonb_object_agg(a::text, m) from (
+       select articulo_id a, jsonb_object_agg(comp_salida_id::text, t) m from (
+         select articulo_id, comp_salida_id,
+                jsonb_object_agg(tallerista_id::text, jsonb_build_object('p', pct, 's', es_supuesto)) t
+         from "GP2".v_reparto_efectivo where n_tall > 1 group by articulo_id, comp_salida_id) x
+       group by articulo_id) y),
   'sect', (select jsonb_object_agg(id::text, jsonb_build_object('t',tipo)) from "GP2".sector),
   'rutas_by_art', (select jsonb_object_agg(a::text, arr) from (
        select a, jsonb_agg(jsonb_build_object('id',id,'nom',nom,'f',f,'a',a) order by id) arr
