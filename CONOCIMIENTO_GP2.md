@@ -15877,5 +15877,18 @@ Producción 3.0 (`cervantes-gp2/`) y vale igual para la tablet de GP2:
   Antes mostraba las ~200 matrices de entrada y el operario tenía que scrollear.
 - Código: `renderMatrizPicker` de `operarios_gp2.js` corta con `q` vacío y alterna `#mpLabel`. Prueba: `tests/ui/test_op_e2e.js`
   (4 checks nuevos). Tablet `20261008a`, v1.251.1.
-- ⚠ La botonera de **Registro Producción 3.0** (`cervantes-gp2/`) se GENERA desde esta pantalla con `tools/portar_botonera_gp2.py`:
-  el cambio llega allá volviendo a correr el script, no a mano.
+- ~~La botonera de **Registro Producción 3.0** (`cervantes-gp2/`) se GENERA desde esta pantalla con `tools/portar_botonera_gp2.py`~~
+  — **corregido el mismo 08/10 (§4jq)**: ya no se genera; la fuente pasó a ser 3.0 y esta tablet es una copia para probar. 3.0 ya
+  tenía lo mismo como cambio propio (v3.1.5).
+
+## 4jq. La botonera del operario se modifica en Registro Producción 3.0; GP2 sólo copia y prueba (2026-10-08)
+
+- `[usuario, Elías, 08/10/2026]`: *«se va a dejar de modificar en GP2 y modificar en este [Registro Producción 3.0], y GP2 sólo
+  hacer copia y hacer modificaciones para testear»*. Hasta el 07/10 era al revés (*«tendría que ser el de GP2, como está
+  funcionando actualmente»*): `cervantes-gp2/` se generaba desde `Produccion/RegistroApp/operarios_gp2.js` con un script.
+- Por qué cambió `[deducido]`: los operarios ya entran por su celular a 3.0 (la tarjeta «Cervantes» del inicio abre
+  `cervantes-gp2/` desde el 08/10) y dos sesiones tocando la misma pantalla en dos repos se pisaban (§4jp: el parche propio
+  de 3.0 se rompió en cuanto GP2 cambió la misma función).
+- Desde ahora: la fuente es `cervantes-gp2/` en 3.0 (v3.1.7); `tools/portar_botonera_gp2.py` se borró (3.0 `5e11689`); esta
+  tablet queda como copia para probar. Regla escrita en `CLAUDE.md` («la botonera del operario de Cervantes se modifica en
+  Registro Producción 3.0»). Cómo copia GP2 desde 3.0 (a mano o con un script inverso) **no está definido todavía**.

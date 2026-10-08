@@ -925,6 +925,21 @@ Cada modulo es una carpeta con su propio HTML/JS/CSS. Los modulos principales:
 - `Inicio/` - Dashboard principal
 - `Verificacion/` - Trazado de Rutas (REESCRITO 2026-04-18, ver abajo)
 
+## ⚠ REGLA (Elías, 2026-10-08): la botonera del operario de Cervantes se modifica en Registro Producción 3.0, NO acá
+
+**Elías, textual:** *"se va a dejar de modificar en GP2 y modificar en este [Registro Producción 3.0], y GP2 solo hacer
+copia y hacer modificaciones para testear"*.
+
+- **La fuente es `cervantes-gp2/`** (`app.js` + `index.html`) de `loekemeyer/Registro-Produccion-3.0`: es la que usan los
+  operarios en su celular (la tarjeta «Cervantes» del inicio, desde el 08/10). Un cambio pedido para el operario se hace ALLÁ.
+- **`Produccion/RegistroApp/` (`operarios_gp2.js` + `Operarios_GP2.html`) deja de ser el origen**: es una COPIA para probar.
+  Se la puede modificar para testear, pero lo que tiene que llegar a los operarios no se hace sólo acá: nada viaja solo de
+  acá hacia 3.0 (el script que generaba 3.0 desde esta tablet, `tools/portar_botonera_gp2.py` de 3.0, se retiró el 08/10).
+- **La base sigue siendo compartida**: 3.0 escribe en `reg_prod_3_0` pero mueve el stock y los rollos con las funciones de
+  `GP2` (`fabricar_stock`, `tomar_rollo`, `cerrar_rollo`, el bundle). Un cambio en esas funciones afecta a los operarios
+  aunque se haya probado desde esta tablet.
+- Historia: CONOCIMIENTO §4jo (arreglos de 3.0 traídos acá), §4jp (lista vacía hasta escribir) y §4jq (este cambio).
+
 ## ⚠ REGLA: qué tipo de operario ve qué botón (app de operarios / tablet)
 
 **El operario no ve todos los botones: ve los de SU rol, y el rol vive en la BASE, no en el
