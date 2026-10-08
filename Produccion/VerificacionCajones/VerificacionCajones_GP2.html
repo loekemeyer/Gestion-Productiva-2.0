@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="es">
 <head>
-<!-- v1.0.0 (2026-10-06) — Verificación de cajones. Pedido de Elías Irace para Alan Gonzalez (Logística):
+<!-- v1.1.0 (2026-10-08) — 2 cajones POR OPERARIO que trabajó ese día (antes 2 en total); el aviso de las 15:00 es automático (se saca el tilde «Avisarme en esta PC»). v1.0.0 (2026-10-06) — Verificación de cajones. Pedido de Elías Irace para Alan Gonzalez (Logística):
      a las 15:00 se sortean 2 cajones de lo que produjo Cervantes en el día (public.gp2_verif_cajones_sortear,
      cron gp2-verif-cajones-15h, copia a GP2.verif_cajon). Se registra cuándo EMPEZÓ (botón ▶ Empezar) y cuándo
      TERMINÓ (se sella solo al cargar el último cajón). El que verifica elige en qué cajón físico lo pesó (la tara
@@ -16,7 +16,7 @@
 <script src="../../gp2-ui.js?v=20260930a"></script>
 <script src="../../gp2-numero.js?v=20260911o"></script>
 <script>window.GP2VC_SIN_CARTEL = true;</script>
-<script src="../../gp2-verif-cajones.js?v=20261007a"></script>
+<script src="../../gp2-verif-cajones.js?v=20261008a"></script>
 <link rel="stylesheet" href="../../gp2-modulo.css?v=20260912c"/>
 <link rel="icon" type="image/png" href="../../GP2_favicon.png">
 <link rel="apple-touch-icon" href="../../GP2_favicon.png">
@@ -47,8 +47,6 @@
   .chk-plan input{width:26px;height:26px;min-height:0;flex:none;accent-color:#1a7f37}
   .tag-env{display:inline-block;margin-left:8px;font-size:13px;font-weight:800;color:#92400e;background:#fef3c7;border:1px solid #fde68a;border-radius:999px;padding:2px 10px;vertical-align:middle}
   .link{background:none;border:none;color:#b42318;font-weight:800;font-size:17px;cursor:pointer;text-decoration:underline;min-height:44px}
-  .opt{display:flex;align-items:center;gap:8px;font-size:17px;font-weight:700;color:#555}
-  .opt input{width:24px;height:24px}
   table.t.fit{width:auto}
   .table-wrap.fit{display:inline-block;max-width:100%}
   tr.click{cursor:pointer}
@@ -77,7 +75,6 @@
     <div class="row">
       <label class="lbl" for="fecha">Día</label>
       <input type="date" id="fecha">
-      <label class="opt"><input type="checkbox" id="avisar"> Avisarme en esta PC a las 15:00</label>
       <span class="sub" id="auto"></span>
     </div>
 
@@ -92,8 +89,8 @@
       </tr></thead>
       <tbody id="tdias"></tbody>
     </table></div>
-    <div class="aviso">Los cajones se sortean <b>solos a las 15:00</b>: 2 por día, de lo que produjo Cervantes hasta esa hora.
-      Primero entre los que tienen <b>peso por unidad cargado en GP2</b> (o <b>unidades por caja</b>, si es envasado), y de operarios distintos.
+    <div class="aviso">Los cajones se sortean <b>solos a las 15:00</b>: <b>2 por cada operario que trabajó ese día</b> en Cervantes (1 si solo hizo un registro), de lo que produjo hasta esa hora.
+      En cada operario se prefieren los que tienen <b>peso por unidad cargado en GP2</b> (o <b>unidades por caja</b>, si es envasado) y de matrices distintas.
       <b>Debería pesar</b> es sin el cajón: el neto sale de lo que marca la balanza menos la tara del cajón que elegís.
       El <b>envasado</b> no se pesa: se cuentan las cajas contra el <b>total que hizo</b> el operario ÷ las unidades por caja.</div>
   </div>
@@ -368,8 +365,6 @@ $('cajones').addEventListener('input', function(){ dirty = true; });
 $('cajones').addEventListener('change', function(){ dirty = true; });
 setInterval(refrescar, 30000);
 document.addEventListener('visibilitychange', function(){ if (!document.hidden) refrescar(); });
-$('avisar').checked = GP2VC.avisoActivo();
-$('avisar').onchange = function(){ GP2VC.setAviso(this.checked); };
 $('fecha').onchange = function(){ if (this.value) cargar(this.value); };
 cargar(new URLSearchParams(location.search).get('fecha'));
 </script>

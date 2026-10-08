@@ -1,25 +1,22 @@
-/* gp2-verif-cajones.js — VERIFICACIÓN DE CAJONES: el cartel de las 15:00 y los textos de un cajón.
+/* gp2-verif-cajones.js — VERIFICACIÓN DE CAJONES: el aviso de las 15:00 y los textos de un cajón.
  *
- * Pedido de Elías (2026-10-06) para Alan Gonzalez (Logística): a las 15:00 se sortean 2 cajones de
- * lo que produjo Cervantes en el día (public.gp2_verif_cajones_sortear, cron gp2-verif-cajones-15h)
- * y "le tiene que aparecer: buscá y revisá los siguientes cajones". Se registra CUÁNDO empezó y
- * CUÁNDO terminó (no quién: GP2 entra con cuentas compartidas).
+ * Pedido de Elías (2026-10-06) para Alan Gonzalez (Logística): a las 15:00 se sortean 2 cajones POR OPERARIO que trabajó en
+ * Cervantes ese día (public.gp2_verif_cajones_sortear, cron gp2-verif-cajones-15h) y "le tiene que aparecer: buscá y revisá
+ * los siguientes cajones". Se registra CUÁNDO empezó y CUÁNDO terminó (no quién: GP2 entra con cuentas compartidas).
  *
- * QUIÉN VE EL CARTEL: sólo la PC donde alguien tildó "Avisarme en esta PC" en la pantalla
- * (localStorage gp2_verif_cajones_aviso = "1"). GP2 no distingue personas (dos cuentas de Google
- * para todos), así que el aviso es por PC: si no, le saltaría a cualquiera que abra el menú.
+ * EL AVISO ES AUTOMÁTICO, SIEMPRE [Elías, 08/10: «el avisarme es automático siempre»]: ya no hay tilde por PC.
+ * DÓNDE APARECE [Elías, 08/10: «dentro de GP2 SOLO si está navegando dentro de [la Versión Tablet Logística], no si está en el
+ *   menú»]: sólo en Tablet/Tablet_GP2.html (el menú GP2_MODULOS.html y el resto NO lo cargan).
+ * CUÁNDO [Elías, 08/10: «si está en medio de algo en la tablet se espera a que termine… que esté en la pantalla principal»]:
+ *   la página que lo carga puede definir window.GP2VC_LIBRE() → true cuando está en su pantalla principal. Mientras devuelva
+ *   false no se muestra; si ya estaba a la vista y la persona se pone a trabajar, se esconde (sin posponerlo) y vuelve solo
+ *   al regresar a la pantalla principal. Sin GP2VC_LIBRE se considera libre.
+ * SE PUEDE SACAR [Elías, 07/10: «que se pueda sacar para no interrumpir lo que se está haciendo»]: es una BANDA abajo que no
+ *   tapa nada; la ✕ o Esc la sacan y vuelve a los 30 min. La página reserva su alto y lo devuelve al cerrarla.
  *
- * Se carga en GP2_MODULOS.html y envios-only.html (el cartel) y en la pantalla del módulo (sólo los
- * helpers: ahí va con window.GP2VC_SIN_CARTEL = true). Sin el tilde no pide nada a la base ni carga
- * nada.
+ * Se carga en Tablet/Tablet_GP2.html (el aviso) y en la pantalla del módulo (sólo los helpers: ahí va con
+ * window.GP2VC_SIN_CARTEL = true).
  *
- * SE PUEDE SACAR (2026-10-07, Elías: "que se pueda sacar para no interrumpir lo que se está haciendo"):
- * el cartel se cierra con la ✕ o con Esc, y vuelve a los 30 min (igual que «Más tarde»).
- * En la Tablet Logística (window.GP2VC_BANDA = true) NO es un cartel que tapa la pantalla sino una
- * BANDA abajo, que deja usar todo lo de arriba: la página reserva su alto y lo devuelve al cerrarla.
- *
- *   GP2VC.MODULO              ruta del módulo, relativa a la raíz
- *   GP2VC.avisoActivo()       true si esta PC recibe el cartel;  GP2VC.setAviso(bool)
  *   GP2VC.kg(n, dec)          "30,03 kg" (regla de número de la casa), "—" sin valor
  *   GP2VC.hora(ts)            "15:12" en Argentina
  *   GP2VC.esperado(c)         texto del peso que debería tener el cajón (sin la tara)
@@ -28,14 +25,10 @@
 (function (global) {
   "use strict";
 
-  var CLAVE = "gp2_verif_cajones_aviso";
   var POSPONER = "gp2_verif_cajones_posponer";
   var MODULO = "Produccion/VerificacionCajones/VerificacionCajones_GP2.html";
   var yo = document.currentScript ? document.currentScript.src : "";
   var RAIZ = yo ? yo.replace(/gp2-verif-cajones\.js.*$/, "") : "";
-
-  function avisoActivo() { try { return localStorage.getItem(CLAVE) === "1"; } catch (e) { return false; } }
-  function setAviso(on) { try { if (on) localStorage.setItem(CLAVE, "1"); else localStorage.removeItem(CLAVE); } catch (e) {} }
 
   /* La regla de número es GP2N (gp2-numero.js). El cartel lo carga antes de pintar si la página no lo trae. */
   function kg(n, dec) { var t = global.GP2N.fmt(n, dec == null ? 2 : dec, "—", true); return t === "—" ? t : t + " kg"; }
@@ -138,11 +131,11 @@
       var r = await SB.rpc("verif_cajones_empezar", { p_fecha: b.fecha });
       if (r.error) { document.getElementById("vcMsg").textContent = "No se pudo registrar el inicio: " + r.error.message; btn.disabled = false; return; }
     }
-    global.location.href = RAIZ + MODULO + "?fecha=" + encodeURIComponent(b.fecha) + (global.GP2VC_BANDA ? "&volver=tablet" : "");
+    global.location.href = RAIZ + MODULO + "?fecha=" + encodeURIComponent(b.fecha) + "&volver=tablet";
   }
 
-  /* La BANDA de la tablet: una fila abajo, sin fondo oscuro, que no impide tocar nada de arriba. */
-  function pintarBanda(b) {
+  /* La BANDA: una fila abajo, sin fondo oscuro, que no impide tocar nada de arriba. */
+  function pintar(b) {
     var cs = b.cajones || [], empezo = !!(b.dia && b.dia.empezado_en);
     var pend = cs.filter(function (c) { return !c.resultado; }).length;
     var o = document.createElement("div");
@@ -167,71 +160,45 @@
     document.getElementById("vcIr").onclick = function () { ir(b, empezo, this); };
   }
 
-  function pintar(b) {
-    if (global.GP2VC_BANDA) return pintarBanda(b);
-    var cs = b.cajones || [], dia = b.dia || {};
-    var empezo = !!dia.empezado_en;
-    var o = document.createElement("div");
-    o.id = "vcCartel";
-    o.setAttribute("role", "dialog");
-    o.style.cssText = "position:fixed;inset:0;z-index:9999;background:rgba(15,23,42,.55);display:flex;align-items:center;justify-content:center;padding:16px;font-family:Arial,sans-serif";
-    o.innerHTML =
-      '<div style="background:#fff;border-radius:16px;max-width:620px;width:100%;max-height:92vh;overflow:auto;box-shadow:0 12px 40px rgba(0,0,0,.35)">' +
-        '<div style="background:#b45309;color:#fff;padding:14px 56px 14px 18px;border-radius:16px 16px 0 0;position:relative">' +
-          '<button type="button" id="vcX" aria-label="Sacar el aviso (vuelve en 30 min)" title="Sacar el aviso (vuelve en 30 min)" style="position:absolute;top:8px;right:10px;min-width:44px;min-height:44px;border:none;border-radius:10px;background:rgba(255,255,255,.2);color:#fff;font-size:22px;font-weight:900;cursor:pointer">✕</button>' +
-          '<div style="font-size:13px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;opacity:.9">Verificación de cajones · ' + esc((b.fecha || "").split("-").reverse().join("/")) + '</div>' +
-          '<div style="font-size:24px;font-weight:900;margin-top:2px">⚖ Buscá y revisá estos cajones</div>' +
-        '</div>' +
-        '<div style="padding:12px 18px">' +
-          cs.map(function (c, i) {
-            var hecho = c.resultado ? ' <span style="color:#0a7a2f;font-weight:800">✔ ya cargado</span>' : "";
-            return '<div style="border:2px solid #e5e9ee;border-radius:12px;padding:10px 14px;margin:8px 0;font-size:16px;line-height:1.5">' +
-              '<div style="font-size:18px;font-weight:900">Cajón ' + (i + 1) + ' · Matriz ' + esc(c.matriz) + ' ' + esc(c.nombre_matriz || "") + hecho + '</div>' +
-              '<div><b>Quién:</b> ' + esc(c.operario || "?") + ' (leg. ' + esc(c.legajo || "?") + ') · <b>Hora:</b> ' + hhmm(c.hora_inicio) + ' a ' + hhmm(c.hora_fin) + '</div>' +
-              (c.es_envasado
-                ? '<div><b>Total que hizo:</b> ' + unidades(c) + ' · <b>Unidades por caja:</b> ' + unPorCaja(c) + '</div>' +
-                  '<div><b>Debería haber:</b> ' + cajasEsperadas(c) + ' · <b>Buscalo en:</b> ' + esc(c.sectores || "sector sin cargar en GP2") + '</div>' +
-                  '<div style="color:#92400e;font-weight:700">📦 Envasado: no se pesa, se cuentan las cajas</div>'
-                : '<div><b>Unidades:</b> ' + unidades(c) + ' · <b>Buscalo en:</b> ' + esc(c.sectores || "sector sin cargar en GP2") + '</div>' +
-                  '<div><b>Peso por unidad:</b> ' + porUnidad(c) + ' · <b>Debería pesar:</b> ' + esperado(c) + '</div>') +
-              '<div>📄 Revisá también la <b>Planilla de carga</b> (el papel del cajón): tiene que decir <b>' + unidades(c) + '</b></div>' +
-            '</div>';
-          }).join("") +
-          '<div style="display:flex;gap:10px;flex-wrap:wrap;margin:14px 0 6px">' +
-            '<button type="button" id="vcIr" style="flex:1;min-width:200px;min-height:52px;border:none;border-radius:10px;background:#111;color:#fff;font-size:20px;font-weight:900;cursor:pointer">' +
-              (empezo ? "Seguir verificando" : "▶ Empezar") + '</button>' +
-            '<button type="button" id="vcLuego" style="min-height:52px;padding:0 18px;border:2px solid #d0d7de;border-radius:10px;background:#fff;color:#111;font-size:18px;font-weight:800;cursor:pointer">Más tarde (30 min)</button>' +
-          '</div>' +
-          '<div id="vcMsg" style="color:#b42318;font-size:15px;min-height:18px"></div>' +
-        '</div>' +
-      '</div>';
-    document.body.appendChild(o);
-    abierto = true;
-    document.getElementById("vcLuego").onclick = posponer;
-    document.getElementById("vcX").onclick = posponer;
-    document.getElementById("vcIr").onclick = function () { ir(b, empezo, this); };
+  /* ¿La persona está en la pantalla principal, o en medio de algo? La página que carga el aviso lo define
+     (window.GP2VC_LIBRE). Sin definir, siempre libre. Si la función revienta, se asume libre (mejor avisar que callar). */
+  function libre() {
+    try { return typeof global.GP2VC_LIBRE !== "function" || !!global.GP2VC_LIBRE(); } catch (e) { return true; }
   }
 
+  var ultimo = null;        // el último bundle que pedía verificar algo (null = nada pendiente)
+
+  /* Mira la base y se acuerda de si hay algo pendiente; lo MUESTRA mostrarSiLibre(). */
   async function revisar() {
-    if (abierto || !avisoActivo() || pospuesto()) return;
     try {
       var sb = await cliente();
       var r = await sb.rpc("verif_cajones_bundle", {});
       if (r.error || !r.data) return;
       var b = r.data;
-      if (!(b.cajones || []).length || (b.dia && b.dia.terminado_en)) return;
-      if (!abierto) pintar(b);
+      var pendiente = (b.cajones || []).some(function (c) { return !c.resultado; }) && !(b.dia && b.dia.terminado_en);
+      ultimo = pendiente ? b : null;
+      if (!ultimo && abierto) cerrar();       // lo terminó otra PC: la banda sobra
+      mostrarSiLibre();
     } catch (e) { console.warn("[verif-cajones]", e); }
   }
 
-  global.GP2VC = { MODULO: MODULO, avisoActivo: avisoActivo, setAviso: setAviso, kg: kg, hora: hora, hhmm: hhmm,
-                   esperado: esperado, porUnidad: porUnidad, unidades: unidades, diferencia: diferencia,
-                   unPorCaja: unPorCaja, cajasEsperadas: cajasEsperadas, difEnvasado: difEnvasado, revisar: revisar };
+  /* Muestra la banda si hay algo pendiente, no se pospuso y la persona está en la pantalla principal; si estaba a la vista
+     y ahora está en medio de algo, la esconde SIN posponerla (vuelve sola al volver a la pantalla principal). */
+  function mostrarSiLibre() {
+    if (abierto) { if (!libre()) cerrar(); return; }
+    if (ultimo && !pospuesto() && libre()) pintar(ultimo);
+  }
 
-  /* El sorteo es a las 15:00: se mira al abrir y cada 2 minutos, así el cartel aparece aunque la
-     pantalla haya quedado abierta desde la mañana. Sin el tilde, ni eso. */
-  if (!global.GP2VC_SIN_CARTEL && avisoActivo()) {
+  global.GP2VC = { MODULO: MODULO, kg: kg, hora: hora, hhmm: hhmm,
+                   esperado: esperado, porUnidad: porUnidad, unidades: unidades, diferencia: diferencia,
+                   unPorCaja: unPorCaja, cajasEsperadas: cajasEsperadas, difEnvasado: difEnvasado,
+                   revisar: revisar, mostrarSiLibre: mostrarSiLibre };
+
+  /* AUTOMÁTICO: el sorteo es a las 15:00, así que se mira al abrir y cada 2 minutos (aparece aunque la pantalla haya quedado
+     abierta desde la mañana) y cada 2 segundos se revisa si la persona pasó a la pantalla principal o salió de ella. */
+  if (!global.GP2VC_SIN_CARTEL) {
     if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", revisar); else revisar();
     setInterval(revisar, 120000);
+    setInterval(mostrarSiLibre, 2000);
   }
 })(typeof window !== "undefined" ? window : this);

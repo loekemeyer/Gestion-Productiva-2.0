@@ -16049,3 +16049,24 @@ Producción 3.0 (`cervantes-gp2/`) y vale igual para la tablet de GP2:
   fila en `inventario`, y lo enviado aparece. La falta de fila sólo deja sin el gris «casa» (no hay máximo total que mostrar); la parte por artículo se sigue calculando.
 - `Proporciones_GP2.html`: fuera el `<span class="sinfila">` y su CSS. El CSV conserva la columna `En_su_stock` (es el dato crudo, sin interpretar). `test_proporciones.js` ahora
   exige que el cartel NO aparezca.
+
+## 4jv. Verificación de cajones: 2 cajones POR OPERARIO, aviso automático y sólo en la pantalla principal de la Tablet (2026-10-08) — v1.254.0
+
+- `[usuario, Elías 08/10, textual]`: *«tanto en GP2 como en gestión prod entera sean 2 cajones x operario que trabajó ese día en Cervantes»* — *«el avisarme es
+  automático siempre (si está en medio de algo en la tablet se espera a que termine eso para mostrar el aviso, o sea que esté en la pantalla principal)»* — *«dentro
+  de GP2 SOLO si está navegando dentro de [la Versión Tablet Logística], no si está en [el menú]»* — *«y en gest prod entera solo si está en envios only»*.
+- **Sorteo** (`public.gp2_verif_cajones_sortear`, cron 15:00 AR, `db/migracion_verificacion_cajones_por_operario_20261008.sql`): hasta **2 cajones por legajo** que
+  produjo ese día (1 si hizo un solo registro; no se inventa). En cada operario se prefiere: (a) cajón con dato para verificar (peso por unidad, unidades por caja o carga
+  en kg), (b) matrices distintas, (c) azar. Se puede volver a llamar: completa hasta 2 por operario sin tocar lo sorteado ni lo cargado. Los candidatos
+  (`public._gp2_verif_candidatos`) leen `db_n8n_espejo` **y** la producción de Registro Producción 3.0 (`GP2.v_produccion_todas`, fuente `reg_prod_3_0`, ids negativos,
+  sin repetir lo que el espejo ya tiene); quedan afuera los legajos de prueba 0, 1, 600, 999 y 9999. Es el mismo sorteo para GP2 y Entero (leen la misma base).
+- `[dato, base 08/10]`: el día de hoy estaba sorteado con la regla vieja (2 en total). Se volvió a llamar al sorteo (todos los registros de hoy terminaron antes de las
+  15:00, o sea lo mismo que habría hecho el cron): **8 cajones = 4 operarios × 2** (legajos 19, 237, 501 y 74), ninguno empezado. Los 2 de antes se conservaron.
+- **Aviso**: ya no hay tilde «Avisarme en esta PC»; es automático. Es una banda abajo (✕ / Esc la sacan 30 min). Aparece **sólo** en `Tablet/Tablet_GP2.html` y
+  **sólo en su pantalla principal** (tipo de contraparte sin elegir: `GP2VC_LIBRE()`); al elegir un tipo o cargar, se esconde sin posponerse y vuelve sola al volver al
+  principio. `GP2_MODULOS.html` y `envios-only.html` de GP2 ya no la cargan; en Entero va sólo en `envios-only.html`. Se sacó el cartel grande (modal): con 8 cajones no
+  entraba, y el detalle está en la pantalla de Verificación.
+- ⚠ Consecuencia: el rol `envios` (logística) **no entra** a `Tablet_GP2.html` (auth-guard), así que en GP2 no ve el aviso; lo ve en Entero (`envios-only`). Es lo pedido.
+- Pruebas: `tests/ui/test_verif_cajones.js` (85 checks; la banda se prueba sobre `tests/ui/fixtures/cajones_host.html`) y `tests/ui/test_tablet.js` (aviso sólo en la
+  pantalla principal de la Tablet real).
+

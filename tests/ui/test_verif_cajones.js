@@ -73,13 +73,11 @@ const STUB = `(function(){
       window.__resp = resp;
       window.__timers = []; var _si = window.setInterval; window.setInterval = function(f, t){ window.__timers.push(t); return _si.apply(window, arguments); };
       try { localStorage.clear(); sessionStorage.clear(); } catch (e) {}
-      if (init && init.aviso) try { localStorage.setItem('gp2_verif_cajones_aviso', '1'); } catch (e) {}
-      if (init && init.banda) window.GP2VC_BANDA = true;
     }, [resp, init || {}]);
     await page.goto(ROOT + '/' + url);
     return page;
   }
-  const rpcs = (page, n) => page.evaluate((n) => window.__rpcs.filter(x => !n || x.n === n), n);
+  const rpcs = (page, n) => page.evaluate((n) => (window.__rpcs || []).filter(x => !n || x.n === n), n);
   const texto = (page, sel) => page.$eval(sel, e => e.textContent.replace(/\s+/g, ' ').trim());
 
   // ── 1. La pantalla con el dia sorteado y sin empezar ───────────────────────
@@ -153,11 +151,10 @@ const STUB = `(function(){
   ok((await texto(page, '#dia')).includes('Terminó15:30') && (await texto(page, '#dia')).includes('Tardó18 min'), 'al terminar el ultimo queda la hora de fin y cuanto tardo');
   ok((await texto(page, '#status')).includes('verificación terminada a las 15:30'), 'avisa que la verificacion termino');
 
-  // ── 6. El tilde de la PC ───────────────────────────────────────────────────
-  ok(!(await page.isChecked('#avisar')), 'arranca sin avisar en esta PC');
-  await page.check('#avisar');
-  ok(await page.evaluate(() => localStorage.getItem('gp2_verif_cajones_aviso') === '1'), 'tildarlo deja la PC avisada');
-  ok(!(await page.$('#vcCartel')), 'en la pantalla del modulo el cartel no aparece');
+  // ── 6. SIN tilde: el aviso es automático siempre [Elías 08/10: «el avisarme es automático siempre»] ─────
+  ok(!(await page.$('#avisar')), 'ya no existe el tilde «Avisarme en esta PC»');
+  ok(await page.evaluate(() => typeof GP2VC.avisoActivo === 'undefined' && typeof GP2VC.setAviso === 'undefined'), 'ni las funciones del aviso por PC');
+  ok(!(await page.$('#vcCartel')), 'en la pantalla del modulo el aviso no aparece');
   await page.close();
 
   // ── 7. Dia sin sorteo ──────────────────────────────────────────────────────
@@ -166,45 +163,79 @@ const STUB = `(function(){
   ok((await texto(page, '#dia')).includes('se sortean solos a las 15:00'), 'sin sorteo dice que se sortean solos a las 15:00');
   await page.close();
 
-  // ── 8. El cartel del menu ──────────────────────────────────────────────────
+  // ── 8. El AVISO automático (banda) ──────────────────────────────────────────
+  const HOST = 'tests/ui/fixtures/cajones_host.html';
   const MENU = { verif_cajones_bundle: { data: bundle(SORTEADO, [C1, C2]), error: null },
                  verif_cajones_empezar: { data: bundle(empezado, [C1, C2]), error: null } };
-  page = await abrir('GP2_MODULOS.html', MENU);
-  await page.waitForTimeout(600);
-  ok(!(await page.$('#vcCartel')) && (await rpcs(page, 'verif_cajones_bundle')).length === 0, 'sin el tilde de la PC no pide nada a la base ni muestra el cartel');
-  await page.close();
 
-  page = await abrir('GP2_MODULOS.html', MENU, { aviso: true });
+  // 8a. donde NO va: el menú de GP2 y el envios-only de GP2 no lo cargan [Elías 08/10: «SOLO … dentro de la Tablet Logística»]
+  for (const pagina of ['GP2_MODULOS.html', 'envios-only.html']) {
+    page = await abrir(pagina, MENU);
+    await page.waitForTimeout(700);
+    ok(!(await page.$('#vcCartel')) && (await rpcs(page, 'verif_cajones_bundle')).length === 0, pagina + ': no muestra el aviso ni pide nada a la base');
+    await page.close();
+  }
+
+  // 8b. donde SÍ va: aparece SOLO, sin tilde ni nada guardado en la PC
+  page = await abrir(HOST, MENU);
   await page.waitForSelector('#vcCartel');
   const cartel = await texto(page, '#vcCartel');
-  ok(cartel.includes('Buscá y revisá estos cajones'), 'con el tilde aparece "Busca y revisa estos cajones"');
-  ok(cartel.includes('Cajón 1') && cartel.includes('Cajón 2') && cartel.includes('840 uni') && cartel.includes('Sector Crudo') &&
-     cartel.includes('entre 29,82 kg y 33,26 kg') && cartel.includes('11:52 a 13:00'), 'el cartel trae quien, hora, unidades, sector y peso de los dos');
-  ok(cartel.includes('Barrionuevo <b>Eduardo</b> (leg. 19)'), 'el nombre va escapado en el cartel (se lee el texto, no se interpreta)');
+  ok(cartel.includes('Hay 2 cajones para verificar'), 'aparece solo, sin tilde: "Hay 2 cajones para verificar"');
+  ok(await page.evaluate(() => localStorage.getItem('gp2_verif_cajones_aviso') === null), 'y no depende de nada guardado en la PC');
   await page.click('#vcLuego');
-  ok(!(await page.$('#vcCartel')) && await page.evaluate(() => Number(sessionStorage.getItem('gp2_verif_cajones_posponer')) > Date.now()), 'Mas tarde lo cierra y lo posterga');
+  ok(!(await page.$('#vcCartel')) && await page.evaluate(() => Number(sessionStorage.getItem('gp2_verif_cajones_posponer')) > Date.now()), 'la ✕ lo saca y lo posterga');
   await page.evaluate(() => GP2VC.revisar());
-  await page.waitForTimeout(200);
+  await page.waitForTimeout(300);
   ok(!(await page.$('#vcCartel')), 'postergado no vuelve a aparecer enseguida');
   await page.evaluate(() => { sessionStorage.clear(); return GP2VC.revisar(); });
   await page.waitForSelector('#vcCartel');
-  await Promise.all([page.waitForURL(/VerificacionCajones_GP2\.html\?fecha=2026-10-06/, { timeout: 5000 }).catch(() => {}), page.click('#vcIr')]);
-  ok(/VerificacionCajones_GP2\.html\?fecha=2026-10-06/.test(page.url()), 'Empezar del cartel lleva al modulo con la fecha del dia');
+  await Promise.all([page.waitForURL(/VerificacionCajones_GP2\.html\?fecha=2026-10-06&volver=tablet/, { timeout: 5000 }).catch(() => {}), page.click('#vcIr')]);
+  ok(/VerificacionCajones_GP2\.html\?fecha=2026-10-06&volver=tablet/.test(page.url()), 'Empezar lleva al modulo con la fecha del dia y su «Atrás» vuelve a la tablet');
   const e2 = page.__log.filter(x => x.n === 'verif_cajones_empezar');
-  ok(e2.length === 1 && e2[0].a.p_fecha === '2026-10-06', 'el boton Empezar del cartel registra el inicio con la fecha, antes de navegar');
+  ok(e2.length === 1 && e2[0].a.p_fecha === '2026-10-06', 'y registra el inicio con la fecha, antes de navegar');
   await page.close();
 
   const fin = Object.assign({}, SORTEADO, { empezado_en: '2026-10-06T15:12:00-03:00', terminado_en: '2026-10-06T15:30:00-03:00' });
-  page = await abrir('GP2_MODULOS.html', { verif_cajones_bundle: { data: bundle(fin, [C1, C2]), error: null } }, { aviso: true });
-  await page.waitForTimeout(600);
-  ok(!(await page.$('#vcCartel')) && (await rpcs(page, 'verif_cajones_bundle')).length === 1, 'con el dia terminado consulta pero no muestra el cartel');
+  page = await abrir(HOST, { verif_cajones_bundle: { data: bundle(fin, [C1, C2]), error: null } });
+  await page.waitForTimeout(700);
+  ok(!(await page.$('#vcCartel')) && (await rpcs(page, 'verif_cajones_bundle')).length >= 1, 'con el dia terminado consulta pero no muestra el aviso');
   await page.close();
 
-  page = await abrir('GP2_MODULOS.html', { verif_cajones_bundle: { data: bundle(empezado, [C1, C2]), error: null } }, { aviso: true });
+  page = await abrir(HOST, { verif_cajones_bundle: { data: bundle(empezado, [C1, C2]), error: null } });
   await page.waitForSelector('#vcCartel');
-  ok((await texto(page, '#vcIr')) === 'Seguir verificando', 'si ya empezo, el cartel ofrece seguir');
+  ok((await texto(page, '#vcIr')) === 'Seguir verificando', 'si ya empezo, el aviso ofrece seguir');
   await Promise.all([page.waitForURL(/VerificacionCajones_GP2/, { timeout: 5000 }).catch(() => {}), page.click('#vcIr')]);
   ok(/VerificacionCajones_GP2/.test(page.url()) && page.__log.filter(x => x.n === 'verif_cajones_empezar').length === 0, 'y seguir no vuelve a sellar el inicio');
+  await page.close();
+
+  // 8c. cuenta SOLO los pendientes (con 2 por operario hay muchos y se van resolviendo)
+  const C1h = Object.assign({}, C1, { resultado: 'pesado', cajon_numero: 3, tara_kg: 1.5, peso_bruto_kg: 31, peso_neto_kg: 29.5, cargado_en: '2026-10-06T15:20:00-03:00' });
+  page = await abrir(HOST, { verif_cajones_bundle: { data: bundle(empezado, [C1h, C2, C3, C4]), error: null } });
+  await page.waitForSelector('#vcCartel');
+  ok((await texto(page, '#vcCartel')).includes('Hay 3 cajones para verificar'), 'con 4 cajones y 1 ya pesado dice "Hay 3 cajones para verificar"');
+  await page.close();
+
+  // 8d. SÓLO en la pantalla principal [Elías 08/10: «si está en medio de algo en la tablet se espera a que termine»]
+  page = await abrir(HOST, MENU, {});
+  await page.waitForSelector('#vcCartel');
+  await page.evaluate(() => { window.__libre = false; window.GP2VC_LIBRE = () => window.__libre; });
+  await page.waitForFunction(() => !document.getElementById('vcCartel'), null, { timeout: 5000 });
+  ok(await page.evaluate(() => sessionStorage.getItem('gp2_verif_cajones_posponer') === null), 'en medio de algo se ESCONDE la banda sin posponerla');
+  ok(await page.evaluate(() => document.body.style.paddingBottom === ''), 'y la página recupera el espacio reservado');
+  await page.waitForTimeout(2600);
+  ok(!(await page.$('#vcCartel')), 'mientras sigue en medio de algo no aparece');
+  await page.evaluate(() => { window.__libre = true; });
+  await page.waitForSelector('#vcCartel', { timeout: 5000 });
+  ok(true, 'al volver a la pantalla principal reaparece sola');
+  await page.close();
+
+  page = await abrir(HOST, MENU, {});
+  await page.waitForSelector('#vcCartel');
+  await page.evaluate(() => { window.GP2VC_LIBRE = () => false; });
+  await page.waitForFunction(() => !document.getElementById('vcCartel'), null, { timeout: 5000 });
+  await page.evaluate(() => { sessionStorage.clear(); return GP2VC.revisar(); });
+  await page.waitForTimeout(500);
+  ok(!(await page.$('#vcCartel')), 'si la base se vuelve a leer en medio de algo tampoco se muestra');
   await page.close();
 
   // ── 9. ENVASADO: no se pesa, se cuentan cajas ──────────────────────────────
@@ -244,16 +275,6 @@ const STUB = `(function(){
   ok(e4.includes('sin unidades por caja en GP2: contá las cajas igual'), 'y pide contar las cajas igual');
   await page.fill('#cj32', '19'); await page.dispatchEvent('#cj32', 'input');
   ok((await texto(page, '#vivo32')) === '', 'sin unidades por caja no inventa una diferencia');
-  await page.close();
-
-  // el cartel del menu para un cajon envasado
-  page = await abrir('GP2_MODULOS.html', { verif_cajones_bundle: { data: bundle(SORTEADO, [C3, C4, C1]), error: null } }, { aviso: true });
-  await page.waitForSelector('#vcCartel');
-  const ce = await texto(page, '#vcCartel');
-  ok(ce.includes('Total que hizo: 250 uni') && ce.includes('Unidades por caja: 12 uni') && ce.includes('Debería haber: 20 cajas (+ 10 uni sueltas)'), 'el cartel trae total, unidades por caja y cajas esperadas');
-  ok(ce.includes('Envasado: no se pesa, se cuentan las cajas') && ce.includes('sin unidades por caja en GP2: contá las cajas igual'), 'el cartel avisa que se cuenta y cubre el caso sin dato');
-  ok(ce.includes('Debería pesar: entre 29,82 kg y 33,26 kg'), 'y el cajón que no es envasado sigue con su peso');
-  ok(ce.includes('Revisá también la Planilla de carga') && ce.includes('tiene que decir 250 uni'), 'el cartel recuerda revisar la Planilla de carga y cuántas unidades tiene que decir');
   await page.close();
 
   // ── 10. La pantalla se actualiza sola ───────────────────────────────────────
@@ -302,53 +323,39 @@ const STUB = `(function(){
   // ── 10. SE PUEDE SACAR: ✕ y Esc (Elías 07/10: "que se pueda sacar para no interrumpir lo que se está haciendo") ──
   const BUN = { verif_cajones_bundle: { data: bundle(SORTEADO, [C1, C2]), error: null },
                 verif_cajones_empezar: { data: bundle(empezado, [C1, C2]), error: null } };
-  page = await abrir('GP2_MODULOS.html', BUN, { aviso: true });
-  await page.waitForSelector('#vcCartel');
-  ok(!!(await page.$('#vcX')), 'el cartel del menú trae una ✕ para sacarlo');
-  await page.click('#vcX');
-  ok(!(await page.$('#vcCartel')) && await page.evaluate(() => Number(sessionStorage.getItem('gp2_verif_cajones_posponer')) > Date.now()), 'la ✕ lo saca y lo posterga 30 min');
-  await page.evaluate(() => GP2VC.revisar());
-  await page.waitForTimeout(200);
-  ok(!(await page.$('#vcCartel')), 'sacado con la ✕ no vuelve enseguida');
-  await page.close();
-
-  page = await abrir('GP2_MODULOS.html', BUN, { aviso: true });
+  page = await abrir(HOST, BUN);
   await page.waitForSelector('#vcCartel');
   await page.keyboard.press('Escape');
   ok(!(await page.$('#vcCartel')) && await page.evaluate(() => Number(sessionStorage.getItem('gp2_verif_cajones_posponer')) > Date.now()), 'Esc también lo saca y lo posterga');
   await page.close();
 
-  // ── 11. La BANDA de la tablet: no tapa lo que se está haciendo ───────────────
-  page = await abrir('GP2_MODULOS.html', BUN, { aviso: true, banda: true });
+  // ── 11. La BANDA: no tapa lo que se está haciendo ────────────────────────────
+  page = await abrir(HOST, BUN);
   await page.waitForSelector('#vcCartel');
   const banda = await page.evaluate(() => {
     const o = document.getElementById('vcCartel'), r = o.getBoundingClientRect();
     const arriba = document.elementFromPoint(window.innerWidth / 2, 60);
-    return { pos: getComputedStyle(o).position, fondo: getComputedStyle(o).backgroundColor, alto: r.height, bottom: r.bottom, w: r.width, iw: window.innerWidth, ih: window.innerHeight,
+    return { pos: getComputedStyle(o).position, alto: r.height, bottom: r.bottom, w: r.width, iw: window.innerWidth, ih: window.innerHeight,
              tapaArriba: !!(arriba && o.contains(arriba)), pad: parseFloat(document.body.style.paddingBottom) || 0, texto: o.textContent.replace(/\s+/g, ' ').trim() };
   });
-  ok(banda.pos === 'fixed' && banda.alto < 160 && banda.bottom > banda.ih - 20, 'en la tablet es una banda abajo (' + Math.round(banda.alto) + ' px de alto), no un cartel grande');
+  ok(banda.pos === 'fixed' && banda.alto < 160 && banda.bottom > banda.ih - 20, 'es una banda abajo (' + Math.round(banda.alto) + ' px de alto), no un cartel grande');
   ok(banda.w < banda.iw && !banda.tapaArriba, 'no hay fondo oscuro ni tapa lo de arriba: se puede seguir tocando la tablet');
-  ok(banda.texto.includes('Hay 2 cajones para verificar') && !banda.texto.includes('Buscá y revisá estos cajones'), 'dice cuántos cajones hay, sin el detalle del cartel grande');
+  ok(banda.texto.includes('Hay 2 cajones para verificar'), 'dice cuántos cajones hay');
   ok(banda.pad >= banda.alto, 'la página reserva el alto de la banda para no tapar lo de abajo (' + banda.pad + ' px)');
   ok((await texto(page, '#vcIr')) === '▶ Empezar', 'la banda ofrece Empezar');
   await page.click('#vcLuego');
-  ok(!(await page.$('#vcCartel')), 'la ✕ saca la banda');
-  ok(await page.evaluate(() => document.body.style.paddingBottom === ''), 'y la página recupera el espacio que había reservado');
-  ok(await page.evaluate(() => Number(sessionStorage.getItem('gp2_verif_cajones_posponer')) > Date.now()), 'sacada, vuelve en 30 min (no enseguida)');
+  ok(await page.evaluate(() => document.body.style.paddingBottom === ''), 'al sacarla la página recupera el espacio que había reservado');
   await page.close();
 
-  page = await abrir('GP2_MODULOS.html', BUN, { aviso: true, banda: true });
-  await page.waitForSelector('#vcCartel');
-  await Promise.all([page.waitForURL(/VerificacionCajones_GP2\.html\?fecha=2026-10-06&volver=tablet/, { timeout: 5000 }).catch(() => {}), page.click('#vcIr')]);
-  ok(/VerificacionCajones_GP2\.html\?fecha=2026-10-06&volver=tablet/.test(page.url()), 'Empezar desde la banda abre el módulo y su «Atrás» vuelve a la tablet');
-  ok(page.__log.filter(x => x.n === 'verif_cajones_empezar').length === 1, 'y registra el inicio una vez');
-  await page.close();
-
-  // la tablet carga el cartel en modo banda (GP2VC_BANDA antes del script)
+  // la Tablet Logística: define cuándo está «libre» (pantalla principal), carga el aviso y NO el viejo modo con tilde
   const tab = fs.readFileSync(path.resolve(__dirname, '..', '..', 'Tablet', 'Tablet_GP2.html'), 'utf8');
-  const iB = tab.indexOf('window.GP2VC_BANDA = true'), iS = tab.indexOf('../gp2-verif-cajones.js');
-  ok(iB > 0 && iS > iB, 'la Tablet Logística marca GP2VC_BANDA y después carga gp2-verif-cajones.js');
+  const iL = tab.indexOf('window.GP2VC_LIBRE = function'), iS = tab.indexOf('../gp2-verif-cajones.js');
+  ok(iL > 0 && iS > iL, 'la Tablet Logística define GP2VC_LIBRE y después carga gp2-verif-cajones.js');
+  ok(!/GP2VC_BANDA/.test(tab), 'y ya no usa la marca GP2VC_BANDA (la banda es la única forma)');
+  ok(/\$\("fase0"\)[\s\S]{0,200}\$\("tipoGrid"\)/.test(tab.slice(iL, iS)), 'la pantalla principal es «#fase0 y #tipoGrid a la vista» (sin tipo elegido)');
+  for (const f of ['GP2_MODULOS.html', 'envios-only.html', 'login.html']) {
+    ok(!/gp2-verif-cajones\.js/.test(fs.readFileSync(path.resolve(__dirname, '..', '..', f), 'utf8').replace(/<!--[\s\S]*?-->/g, '')), f + ' no carga el aviso');
+  }
 
   await browser.close();
   console.log(process.exitCode ? 'HAY FALLOS' : 'TODO OK');

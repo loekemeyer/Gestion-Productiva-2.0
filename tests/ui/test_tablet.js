@@ -181,6 +181,9 @@ window.supabase = { createClient: function(){ return {
         { via: 'control', sector_id: 2, sector: 'Sector Procesado', proveedor: 'Importado', n: 2, codigos: ['C13', 'E13'], desde: '2026-09-30T12:00:00-03:00' },
         { via: 'control', sector_id: 10, sector: 'Sector Carton', proveedor: 'Cartocor', n: 3, codigos: ['C1'], desde: '2026-09-29T12:00:00-03:00' }
       ] }, error: null };
+    // el aviso de las 15:00 de Verificación de cajones (gp2-verif-cajones.js): hay 2 cajones sorteados sin cargar
+    if(name==='verif_cajones_bundle') return { data: { fecha: '2026-10-08', hoy: '2026-10-08', dia: { empezado_en: null, terminado_en: null },
+      cajones: [{ id: 1, resultado: null }, { id: 2, resultado: null }] }, error: null };
     return { data: null, error: { message: 'rpc desconocida '+name } };
   }
 };}};
@@ -250,6 +253,18 @@ window.supabase = { createClient: function(){ return {
   // el "← Cambiar tipo" vuelve a los tipos sin recargar
   await page.click('#btnVolverTipo');
   ok((await tipos()).length === 5 && await page.$eval('#cpBox', e => e.classList.contains('hidden')), 'Cambiar tipo vuelve a los tipos');
+
+  // ── el aviso de Cajones SÓLO en la pantalla principal [Elías 08/10: «si está en medio de algo en la tablet se espera a que termine»] ──
+  await page.evaluate(() => { sessionStorage.removeItem('gp2_verif_cajones_posponer'); return GP2VC.revisar(); });
+  await page.waitForSelector('#vcCartel', { timeout: 4000 });
+  ok((await page.textContent('#vcCartel')).includes('Hay 2 cajones para verificar'), 'en la pantalla principal de la tablet aparece el aviso de Cajones');
+  await page.click('#tipoGrid .tipo-btn[data-tipo="tallerista"]');
+  await page.waitForFunction(() => !document.getElementById('vcCartel'), null, { timeout: 5000 });
+  ok(true, 'al elegir un tipo (en medio de algo) el aviso se esconde');
+  await page.click('#btnVolverTipo');
+  await page.waitForSelector('#vcCartel', { timeout: 5000 });
+  ok(true, 'al volver a la pantalla principal reaparece solo');
+  await page.click('#vcLuego');
 
   /* ── TALLERISTAS O.C.: BALDOSA PROPIA EN ENVIAR ────────────────────────────────
      [usuario 2026-09-23, con la foto: "a Blist-Pack SA y Carlos Aguirre quiero que me los saques
