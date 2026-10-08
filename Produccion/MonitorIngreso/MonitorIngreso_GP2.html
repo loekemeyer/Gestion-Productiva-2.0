@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="es">
 <head>
-<!-- v1.0.0 — Monitor · Código de ingreso. Copia la forma del Monitor de GT Admin (loekemeyer/GT): 4 dígitos grandes que cambian cada minuto, con la rueda de cuenta regresiva. El operario lo tipea en su celular para entrar estando en la planta. Lee GP2.monitor_clave_actual (sólo mail habilitado; sin clave compartida como en GT). -->
+<!-- v1.1.0 (2026-10-08) — no se desconecta: reintenta para siempre, guardián del temporizador, latido de sesión y pantalla siempre prendida; un pedido sin sesión (401) ya no dice «tu cuenta no está habilitada». v1.0.0 — Monitor · Código de ingreso. Copia la forma del Monitor de GT Admin (loekemeyer/GT): 4 dígitos grandes que cambian cada minuto, con la rueda de cuenta regresiva. El operario lo tipea en su celular para entrar estando en la planta. Lee GP2.monitor_clave_actual (sólo mail habilitado; sin clave compartida como en GT). -->
 <meta charset="utf-8"/>
 <script src="../../auth-guard.js?v=20261006b"></script>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
@@ -61,45 +61,98 @@
 var SB = GP2_SB();
 var $ = GP2UI.$;
 var CIRC = 263.9;          // 2·π·42: el largo del arco de la rueda
-var fin = 0, timer = null, ultimoOk = 0;
+var fin = 0, timer = null, ultimoOk = 0, sinSesion = 0, proximo = 0, pidiendo = false;
+
+/* ESTA PANTALLA QUEDA PRENDIDA TODO EL DÍA [Elías, 08/10: «necesito que el monitor no se desconecte, porque el monitor
+   código de ingreso va a estar todo el día»]. Por eso NUNCA se rinde:
+   - si falla (red, sesión, base) reintenta para siempre: cada pocos segundos al principio y cada 30 s después;
+   - un guardián revisa cada 250 ms que el próximo pedido siga en marcha: si el navegador frenó o perdió el temporizador
+     (pestaña en segundo plano, TV que se durmió) vuelve a pedir solo;
+   - cada 4 min toca la sesión (getSession) para que el token se renueve aunque los temporizadores de supabase-js se
+     hayan frenado; al volver la red (`online`) o la pantalla (`visibilitychange`) pide de nuevo;
+   - pide que la pantalla no se apague (Wake Lock) donde el navegador lo permite.
+   Lo único que no puede arreglar solo es una sesión muerta de verdad (el refresh_token dejó de valer): ahí el guard del
+   sitio manda al login y hay que entrar de nuevo con Google. */
+function agendar(ms){ clearTimeout(timer); proximo = Date.now() + ms; timer = setTimeout(pedir, ms); }
 
 async function pedir(){
+  if (pidiendo) return;
+  pidiendo = true;
   clearTimeout(timer);
+  try { await pedirUna(); }
+  catch (e) { $('estado').textContent = '⚠ Error inesperado (' + ((e && e.message) || e) + '). Reintentando…'; $('estado').classList.add('err'); agendar(5000); }
+  finally { pidiendo = false; }
+}
+
+async function pedirUna(){
   var r;
   try { r = await SB.rpc('monitor_clave_actual'); }
   catch (e) { r = { error: { message: (e && e.message) || String(e) } }; }
   if (r.error){
-    // 42501 = la cuenta no está en la whitelist: reintentar no lo arregla
-    if (r.error.code === '42501'){
+    // 42501 tiene DOS caras y la base las distingue por el estado HTTP:
+    //   403 = hay sesión pero el mail NO está en la whitelist → reintentar no lo arregla, se avisa y se corta.
+    //   401 = el pedido llegó SIN sesión (anónimo): sesión vencida, o una 2.ª pestaña que pisó el refresh_token.
+    //         La cuenta puede estar perfectamente habilitada: se renueva la sesión y se reintenta, sin rendirse.
+    if (r.error.code === '42501' && r.status !== 401){
       $('clave').textContent = '····'; fin = 0;
       $('estado').textContent = '⚠ Tu cuenta no está habilitada para ver el código.';
       $('estado').classList.add('err');
+      proximo = 0;                                            // sin próximo pedido: el guardián tampoco insiste
+      return;                                                 // única salida sin reintento: reintentar no lo arregla
+    }
+    if (r.error.code === '42501'){
+      sinSesion++;
+      $('clave').textContent = '····'; fin = 0;
+      $('estado').classList.add('err');
+      try { if (SB.auth && SB.auth.refreshSession) await SB.auth.refreshSession(); } catch (e) {}   // intenta renovar la sesión ya
+      if (sinSesion > 3){
+        $('estado').innerHTML = '⚠ Se perdió la sesión (no es que tu cuenta no esté habilitada). Sigo intentando; si no vuelve, <a href="../../login.html?next=' +
+          encodeURIComponent(location.pathname + location.search) + '">entrá de nuevo</a>.';
+        agendar(window.GP2_ESPERA_LARGA || 30000);
+        return;
+      }
+      $('estado').textContent = '⚠ No encuentro tu sesión. Reintentando… (' + sinSesion + ' de 3)';
+      agendar(window.GP2_ESPERA_SIN_SESION || 3000);
       return;
     }
     $('estado').textContent = '⚠ No pude leer el código (' + r.error.message + '). Reintentando…';
     $('estado').classList.add('err');
     if (Date.now() - ultimoOk > 120000) $('clave').textContent = '····';
-    timer = setTimeout(pedir, 5000);
+    agendar(5000);
     return;
   }
   var d = r.data || {};
   $('clave').textContent = d.clave;
   fin = Date.now() + d.cambia_en_s * 1000;
   ultimoOk = Date.now();
+  sinSesion = 0;
   $('estado').textContent = '';
   $('estado').classList.remove('err');
-  timer = setTimeout(pedir, d.cambia_en_s * 1000 + 600);
+  agendar(d.cambia_en_s * 1000 + 600);
 }
 
-/* La rueda: segundos que faltan para el próximo código, sobre 60. */
+/* La rueda: segundos que faltan para el próximo código, sobre 60. Y el guardián: si el próximo pedido debería haber
+   salido hace más de 15 s y no hay ninguno en marcha, se lo lanza (temporizador perdido por el navegador). */
 setInterval(function(){
   var s = Math.max(0, Math.ceil((fin - Date.now()) / 1000));
   $('seg').textContent = fin ? s : '--';
   $('arco').style.strokeDashoffset = fin ? String(CIRC * (1 - s / 60)) : '0';
+  if (!pidiendo && proximo && Date.now() > proximo + (window.GP2_GUARDIAN_MS || 15000)) pedir();
 }, 250);
 
-/* Una pantalla que vuelve de dormida (tablet, TV) pide el código de nuevo al volver. */
-document.addEventListener('visibilitychange', function(){ if (!document.hidden) pedir(); });
+/* Mantener viva la sesión: getSession renueva el token si está por vencer, aunque los temporizadores internos se frenen. */
+setInterval(function(){ try { SB.auth.getSession().catch(function(){}); } catch (e) {} }, window.GP2_LATIDO_MS || 240000);
+
+/* Que la pantalla no se apague (TV, tablet). El navegador suelta el bloqueo al ocultarse: se vuelve a pedir al volver. */
+var pantalla = null;
+async function pantallaPrendida(){
+  try { if ('wakeLock' in navigator && !document.hidden) pantalla = await navigator.wakeLock.request('screen'); } catch (e) {}
+}
+
+/* Una pantalla que vuelve de dormida (tablet, TV) o recupera la red pide el código de nuevo al volver. */
+document.addEventListener('visibilitychange', function(){ if (!document.hidden){ pantallaPrendida(); pedir(); } });
+window.addEventListener('online', function(){ pedir(); });
+pantallaPrendida();
 pedir();
 </script>
 </body>

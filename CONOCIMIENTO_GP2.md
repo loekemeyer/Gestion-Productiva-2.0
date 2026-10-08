@@ -15936,3 +15936,21 @@ Producción 3.0 (`cervantes-gp2/`) y vale igual para la tablet de GP2:
 - **Anotadas para borrar** (no borradas): `registrar_evento_prod`, `anular_evento_prod`, `rollo_tomar`, `rollo_cerrar` y la tabla
   `rollo_llamadas` → `db/PENDIENTE_borrar_funciones_tablet_vieja.sql`, con las 3 condiciones (nadie grabando por la tablet vieja;
   la copia vieja sin enlace de 3.0 `gp2/` las llama; sacar de PERMITIDAS y regenerar `db/` en el mismo commit).
+
+## 4jr. Monitor · Código de ingreso: queda prendido TODO EL DÍA y no se desconecta (2026-10-08)
+
+- `[usuario, Elías 08/10, textual]`: *«en [el monitor] salió "tu cuenta no está habilitada"»* — *«necesito que el monitor no se desconecte»* —
+  *«porque el monitor código de ingreso va a estar todo el día»*. Es una pantalla de TV/tablet, no de consulta: tiene que sobrevivir horas sin que nadie la toque.
+- `[dato, logs de Supabase 08/10]`: `monitor_clave_actual` dio **200 cada minuto** desde una PC, y un **401 aislado** (15:48:01) pegado a un 200 de la otra
+  pestaña. En PostgREST el **42501 tiene dos caras**: **403** = hay sesión pero el mail no está en `public.usuarios_permitidos` (hoy 2 mails: `admin` y `envios`)
+  y **401** = el pedido llegó SIN sesión (anónimo). La pantalla trataba las dos como «tu cuenta no está habilitada» y se cortaba. `[deducido]` el caso real fue el
+  401: una 2.ª pestaña (mismo `localStorage`) pisó el `refresh_token` o la sesión no estaba lista. **Sin confirmar** qué cuenta/pantalla vio Elías el mensaje.
+- Cambio (`MonitorIngreso_GP2.html` v1.1.0): 403 → avisa y corta (única salida sin reintento). 401 → renueva la sesión (`refreshSession`), reintenta 3 veces cada 3 s y
+  después **cada 30 s para siempre**, con el aviso «Se perdió la sesión… entrá de nuevo» y un enlace al login. Además: **guardián** de 250 ms que relanza el pedido si el
+  temporizador se perdió (pestaña dormida), **latido** de sesión cada 4 min (`getSession`), pedido al volver la red (`online`) y la pantalla, y **Wake Lock** para que
+  la pantalla no se apague.
+- ⚠ **Lo que no se puede arreglar sola:** una sesión MUERTA de verdad (el `refresh_token` dejó de valer). Ahí el guard del sitio manda al login y alguien tiene que
+  tocar «Entrar con Google». Para evitarlo: **una sola pestaña** del monitor por navegador, y que el navegador de la TV no sea el mismo que se usa para trabajar.
+  `[Adivinando]` si hace falta algo más duro (un monitor que no dependa de sesión, p. ej. clave de dispositivo), es otra decisión: hoy se eligió «mail habilitado, sin clave compartida».
+- Prueba: `tests/ui/test_monitor_ingreso.js` (403 sin reintento, 401 sin sesión, 401 que se recupera, guardián, latido, Wake Lock, `online`).
+
