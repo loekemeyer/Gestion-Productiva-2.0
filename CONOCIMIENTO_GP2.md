@@ -4794,7 +4794,7 @@ de páginas del rol `envios` en `auth-guard.js` apuntan ahora al GP2. Ver `REFAC
 | Fleje | **Kilos** |
 | Bombilla | **Bolsas** |
 | Plástico | Bolsas |
-| Remache | Bolsas y Cajones (desde 2026-10-08, §4ke) |
+| Remache | Bolsas y Cajones (desde 2026-10-08, §4kf) |
 | Garage | Cajones |
 | Caja | Paquetes (+ uni sueltas) |
 | Cartón | Paquetes (+ uni sueltas) — los `es_pliego`, paq. de 100 pliegos |
@@ -4807,7 +4807,7 @@ ya estaba bien — el usuario lo confirmó con *"el único que quiero que cambie
 bombillas, así que **quedaron sin hacer** y hay que confirmarlas antes de tocar:
 
 1. ~~*"remaches crudo, es decir todos los que tienen la c, en kilos, y todo lo que es procesado
-   en bolsas"*~~ → **resuelto el 2026-10-08 (§4ke): Remache se parte en Bolsas y Cajones, no en kilos.**
+   en bolsas"*~~ → **resuelto el 2026-10-08 (§4kf): Remache se parte en Bolsas y Cajones, no en kilos.**
    Hasta esa fecha **todo Remache contaba en Bolsas**. Partirlo es fácil: los crudos son los
    16 `CV*` (todos dicen "p/Niquelar" en la descripción; 15 de 16 tienen `kg_x_uni`), los
    procesados son los otros 17.
@@ -16158,7 +16158,42 @@ Producción 3.0 (`cervantes-gp2/`) y vale igual para la tablet de GP2:
   (RLS prendida, sin acceso anon): el conector de la sesión no ejecuta `DROP` (pide una confirmación que no puede mostrar).
   Borrarlas a mano en el SQL Editor.
 
-## 4ke. Relevamiento: orden alfanumérico natural en TODOS, y Sector Remache partido en BOLSAS y CAJONES (2026-10-08) — v1.257.0
+## 4ke. 110 y 111, los coladores LOKE: gemelos del 026 y del 027, con cartón propio (2026-10-08)
+
+- [usuario, sin identificar en la sesión] *"Agregá los artículos 110 y 111. El 110 es igual al 026 y el 111 es igual al 027. Lo
+  único que cambia es la marca: es LOKE no Loeke."* **110 = Colador Ø 8cm** (36 x Caja N°2) · **111 = Colador Ø 10cm** (24 x
+  Caja N°2). Los dos los hace **Lopez Jose** (proveedor AT): GP2 le manda la caja y el cartón y recibe el colador hecho.
+- **Contradice a propósito** la recomendación de `ARTICULOS_FUERA_DE_GP2.md` (*"Los coladores están de salida… no modelarlos"*,
+  usuario 13/09: pasan a importados "dentro de muy poco"). El pedido explícito manda: el 110 y el 111 salen de esa lista. El 112 y
+  el 113 (16 y 20 cm LOKE, sin cartón nuestro) siguen afuera.
+- **"Sólo cambia la marca" ≠ "comparten el cartón".** La marca va impresa en el cartón (§4cb: *"lo único que un gemelo NO puede
+  compartir es el cartón"*), y la planilla de costos lo confirma `[dato: planilla_fila, hoja " Cartones"]`: 026 fila 307 tipo 20
+  **$43** · 110 fila 317 tipo **17** **$48**; 027 fila 309 · 111 fila 318, igual. Cada uno tiene ahora el suyo: **`CART110`
+  «Cartón 110»** y **`CART111` «Cartón 111»**, código **provisorio** (ninguna planilla trae la posición de estantería; precedente
+  `CART186`, renombrar es seguro porque `codigo` no es FK).
+- Atributos del cartón = los del cartón del gemelo (`C2A` / `C2B`): Talleres Gráficos Pol, **formato `8`**, **marca LOEKE**, 2.500
+  x paquete, mínimo 12.000. Formato por la regla *"el formato lo dicta el gemelo, no la marca"* (§1-nonies, 09/09) y marca LOEKE
+  porque *"la marca loke no va"* en componentes (§4g, 08/09; LOKE es marca de **artículo**, §4aq-bis). `[deducido]` El tipo 17
+  de la planilla en GP2 sólo aparece en cartones `Huevo LK` (115 y 121, 2 de 2): si el troquel real del cartón LOKE no es el
+  corbata de 30, el formato a corregir es ése — se dejó el del gemelo hasta que el dueño diga.
+- **Ya estaban en la base y no se tocaron**: `est_madre` (110: 288 uni/mes · 111: 296) y `articulo_prov_at` (Lopez Jose: «Colador
+  N° 8 Loke» 110 y «Colador N°10 Loke» 111, caja 2). Por eso la demanda entró sola al dar el alta.
+- **Base** (`db/migracion_alta_110_111_coladores_loke_20261008.sql`, idempotente, con reversa): artículo (marca LOKE, misma
+  familia/caja/descripción), terminado `110`/`111` (sector 12, sin inventario como el gemelo), cartón propio con inventario en 0 en
+  Sector Cartón, receta caja 1/N + su cartón ×1, y las 2 rutas del gemelo (cartón y caja → Lopez Jose → Virgilio) con nombre
+  «Insumo X -> Art N». Sin precio, reparto ni etiqueta que copiar (medido: el gemelo no tiene).
+- [dato] Medido antes/después: costos (`v_costo_componente`) **0 de 859 cambiaron** (huella md5 idéntica). Máximos: idénticos
+  salvo **Caja N°2 en Sector Caja 14.538 → 14.658** (consumo 2.422,67 → 2.443,00 uni/mes = +8,00 del 110 +12,33 del 111; el
+  máximo redondea el consumo antes de ×6, por eso +120 y no +122) y los cartones nuevos: **CART110 1.728** (288 × 6) · **CART111
+  1.776** (296 × 6). Invariantes: iguales a antes (AE = 2 por 567/537 y D = 6, los dos preexistentes). GP2 va por **206
+  artículos**.
+- [pendiente] **Costo $0**, igual que el 026/027: ni el colador de Lopez Jose ni los cartones `C2A`/`C2B`/`CART110`/`CART111`
+  tienen precio en GP2. La planilla dice $43 (026/027) y $48 (110/111) por cartón; no se cargó porque no se pidió.
+- [dato] `GP2.uni_x_articulo_x_caja` (lo lee Control AT para pasar cajas a unidades) no tiene 110 ni 111 — tampoco ningún otro
+  LOKE (104, 108, 120, 186). Si Lopez Jose entrega 110/111, Control AT los va a mostrar sin unidades; el dato normalizado
+  (`articulo.articulos_por_caja` 36 / 24) sí está.
+
+## 4kf. Relevamiento: orden alfanumérico natural en TODOS, y Sector Remache partido en BOLSAS y CAJONES (2026-10-08) — v1.257.0
 
 `[usuario 2026-10-08, textual: "Ordename alfanumericamente" → "Todos los relevamientos"]`. La base
 manda los ítems con `order by c.codigo` (texto): GRJ10, GRJ10A, GRJ12 … GRJ2. Ahora **las dos pantallas**
