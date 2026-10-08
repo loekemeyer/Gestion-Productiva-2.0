@@ -14606,7 +14606,7 @@ Premium se recibe de Virgilio"*.
   `<pieza>-M505x ← PEST1 + pieza + Z46` (×1 c/u), molde `D5-M78 ← D5 + D6 + V4`; (2) Despiece x Artículo
   (`Programa/Programa.html`) sólo detectaba convergencias desde rutas que arrancan en un FLEJE. Ahora también desde
   rutas de insumo, **sólo si el paso que arma es una MATRIZ** (los armados de tallerista con insumos, GRJ5/GRJ6,
-  quedan igual — ⚠ **retirado el 08/10, §4kb**: el tallerista también converge), y si el intermedio no está en la receta la cantidad sale de la parte más escasa de su BOM.
+  quedan igual — ⚠ **retirado el 08/10, §4kc**: el tallerista también converge), y si el intermedio no está en la receta la cantidad sale de la parte más escasa de su BOM.
   La receta quedó con las partes sueltas (no el intermedio como en el 507): el DELETE para pasarla al intermedio lo
   retuvo el MCP, y así no hay doble conteo (máximos de Z46/Z47 iguales antes y después). `[dato]`
   `tests/ui/test_programa_matriz_insumos.js` (falla 7 contra el HTML anterior). version.js v1.231.0 ?v=20261001o.
@@ -16092,7 +16092,22 @@ Producción 3.0 (`cervantes-gp2/`) y vale igual para la tablet de GP2:
 - Pruebas: `tests/ui/test_verif_cajones.js` (85 checks; la banda se prueba sobre `tests/ui/fixtures/cajones_host.html`) y `tests/ui/test_tablet.js` (aviso sólo en la
   pantalla principal de la Tablet real).
 
-## 4kb. Despiece x Artículo: BOM12 + BOM8 convergen en Martin Cornejo (GRJ6/GRJ5) — el armado de TALLERISTA con insumos también es convergencia (2026-10-08) — v1.255.0
+
+## 4kb. Legajos 282, 1 y 249: quién es cada uno (2026-10-08)
+
+- **282** — [usuario Elías, 08/10] *"Oscar está inactivo, la otra persona se tiene que mostrar"*. [dato] En `public."Empleados"` el 282 tiene
+  2 filas: Ivan Dantova (NO, alta 09/02) y **Oscar Bordon (SI, alta 17/07)**; en Planify Oscar está inactivo; `"GP2".empleado` tiene a Ivan
+  Dantova, inactivo. Oscar marcó en 2.0 hasta el 18/09 (23 registros en los 30 días anteriores al 08/10). ⚠ **Empleados sigue diciendo SI**:
+  de ahí salen los botones (`ve_cm`) y la hora de la app de Cervantes (Registro 3.0), así que el 282 entra con los permisos de Oscar.
+  Ni la app de 2.0 ni la de 3.0 miran si el legajo está activo al entrar.
+- **1** — [usuario Elías, 08/10] *"legajo 1 existe pero no va a producir, se encarga de otras cosas"*: es **Alberto Práctico** (Planify, el
+  dato bueno). En Empleados y GP2 el 1 es la cuenta «Pruebas» (comparten número; ya anotado el 29/09 en 4gr).
+  Mientras Alberto no produzca, no afecta.
+- **249** — [dato] En Empleados es una fila «RRHH» creada el 17/06 (sede V, mail rrhhloeke@gmail.com, tipo «operario»), que GP2 copió a
+  `"GP2".empleado` como operario activo. En Planify el 249 es **Tomás Beviglia**. Nunca cargó producción (0 en 2.0, 3.0 y GP2).
+  [deducido] es la cuenta de ingreso de RRHH, no un operario. Sin decidir: si se la da de baja como operario en GP2.
+
+## 4kc. Despiece x Artículo: BOM12 + BOM8 convergen en Martin Cornejo (GRJ6/GRJ5) — el armado de TALLERISTA con insumos también es convergencia (2026-10-08) — v1.255.0
 
 - [usuario: Nazareno, sobre el 557] *"Ese subconjunto no tendría que aparecer así. En las dos rutas de BOM8 y BOM12 hacé la
   convergencia"*. Se veía GRJ6 en el bloque 3 «Sub-conjuntos (BOM sin ruta explícita)» (BOM12 + BOM8 = GRJ6) y, abajo, BOM12 y
