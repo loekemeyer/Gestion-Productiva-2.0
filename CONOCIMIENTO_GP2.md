@@ -16007,3 +16007,12 @@ Producción 3.0 (`cervantes-gp2/`) y vale igual para la tablet de GP2:
   si cambia el consumo de un W conviene mirar su máximo.
 - **[regla para el próximo caso]** pasar un componente fabricado a un sector de insumos exige `estado_compra = 'fabricacion'` en el mismo paso (V, VxSE y W lo muestran).
 
+
+## 4jw. Consumo x Componente: orden por sector y por código alfanumérico, no por consumo (2026-10-08) — Consumo v1.2.0
+- `[usuario]` *"No me ordenes por sector y consumo. Ordename por sector y alfanumericamente"* (con captura de "Todos los
+  sectores", donde Cartón salía B3A, A1B, CART506… por consumo de mayor a menor).
+- Hecho: la tabla (y el CSV, que sale de la misma lista) va por **sector** —en el orden de los botones, el de más componentes
+  arriba— y adentro por **código con orden natural** (`localeCompare` con `numeric`: E3B antes que E10B). Vale igual adentro de
+  un sector. Esto **reemplaza** la regla de v1.0.0 ("por consumo de mayor a menor, nunca alfabético").
+- `[deducido, sin confirmar]` el orden de los SECTORES no se tocó (sigue por cantidad de componentes, como los botones); si
+  "alfanuméricamente" también quería decir los sectores por nombre, es un cambio de una línea en `visibles()`.

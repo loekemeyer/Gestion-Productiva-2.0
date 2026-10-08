@@ -1,11 +1,13 @@
-/* Consumo x Componente v1.1.0 (2026-09-23).
+/* Consumo x Componente v1.2.0 (2026-10-08).
  *
  * El pedido del usuario, textual: "un modulo que pueda ver por componente, por sector, el
  * consumo... en PB6 cuando toco el maximo me dice en que articulo se usa. Bueno, lo quiero
  * eso, pero afuera. Otro modulo aparte". Este test fija lo que hace que el modulo sirva:
  *   - el selector por SECTOR con la cuenta de componentes, mas "Todos los sectores";
  *   - la UNIDAD no se mezcla: fleje y resina en kg, el resto en unidades;
- *   - el orden es por consumo de MAYOR a MENOR (dentro del sector), nunca alfabetico;
+ *   - el orden es por SECTOR y, adentro, por CODIGO alfanumerico natural (E3B antes que
+ *     E10B) — desde el 08/10 [usuario: "No me ordenes por sector y consumo. Ordename por
+ *     sector y alfanumericamente"]; antes era por consumo de mayor a menor;
  *   - la columna Sector aparece solo en "Todos" (adentro de un sector seria una columna
  *     con el mismo valor en todas las filas);
  *   - tocar la fila abre el sustento por ARTICULO (el popup compartido consumo-detalle.js);
@@ -28,18 +30,23 @@ const EXE = process.env.CHROMIUM_PATH || (fs.existsSync('/opt/pw-browsers/chromi
    por fleje y uno de kg por resina. Los sectores vienen ordenados por cantidad, como la RPC. */
 const BUNDLE = {
   sectores: [
-    { id: 10, nombre: 'Sector Cartón', n: 2, unidad: 'uni', uni_mes: 1500, kg_mes: null, cajones_mes: null },
+    { id: 10, nombre: 'Sector Cartón', n: 3, unidad: 'uni', uni_mes: 1550, kg_mes: null, cajones_mes: null },
     { id: 5, nombre: 'Sector Fleje', n: 1, unidad: 'kg', uni_mes: 23750, kg_mes: 871.5, cajones_mes: null },
     { id: 14, nombre: 'Sector Bolsas Plásticas', n: 1, unidad: 'kg', uni_mes: null, kg_mes: 807, cajones_mes: null },
   ],
   filas: [
-    // a proposito PRIMERO el mas chico: si la pantalla no ordena, E3B queda arriba de T3B
-    { comp_id: 2, cod: 'E3B', desc: 'Carton Espatula', sector_id: 10, sector: 'Sector Cartón',
-      um: 'uni', kg_x_uni: null, uni_x_cajon: null, es_fleje: false, es_resina: false,
-      base: 'articulos', uni_mes: 300, kg_mes: null, cajones_mes: null, en_articulos: 1 },
+    // a proposito al reves del orden pedido, y T3B (el de MAS consumo) primero: si la pantalla
+    // no ordena, o vuelve a ordenar por consumo, T3B queda arriba de E3B. E10B va despues de
+    // E3B: orden natural (un orden de texto puro pondria E10B antes que E3B).
     { comp_id: 1, cod: 'T3B', desc: 'Carton Sacacorcho', sector_id: 10, sector: 'Sector Cartón',
       um: 'uni', kg_x_uni: null, uni_x_cajon: 600, es_fleje: false, es_resina: false,
       base: 'articulos', uni_mes: 1200, kg_mes: null, cajones_mes: 2, en_articulos: 3 },
+    { comp_id: 5, cod: 'E10B', desc: 'Carton Abrelatas', sector_id: 10, sector: 'Sector Cartón',
+      um: 'uni', kg_x_uni: null, uni_x_cajon: null, es_fleje: false, es_resina: false,
+      base: 'articulos', uni_mes: 50, kg_mes: null, cajones_mes: null, en_articulos: 1 },
+    { comp_id: 2, cod: 'E3B', desc: 'Carton Espatula', sector_id: 10, sector: 'Sector Cartón',
+      um: 'uni', kg_x_uni: null, uni_x_cajon: null, es_fleje: false, es_resina: false,
+      base: 'articulos', uni_mes: 300, kg_mes: null, cajones_mes: null, en_articulos: 1 },
     { comp_id: 3, cod: 'IE11', desc: 'Fleje N° 30', sector_id: 5, sector: 'Sector Fleje',
       um: 'kg', kg_x_uni: 1, uni_x_cajon: null, es_fleje: true, es_resina: false,
       base: 'articulos', uni_mes: 23750, kg_mes: 871.5, cajones_mes: null, en_articulos: 2 },
@@ -108,12 +115,12 @@ window.supabase = { createClient: function(){ return {
     horizontal: document.documentElement.scrollWidth > window.innerWidth,
   }));
   ok(secs.botones.length === 4, 'hay un boton por sector mas "Todos" (' + secs.botones.length + ')');
-  ok(/Todos los sectores\s*4/.test(secs.botones[0]), 'el primero es Todos, con los 4 componentes — ' + secs.botones[0]);
-  ok(secs.botones.some(b => /Sector Cartón\s*2/.test(b)), 'cada sector muestra cuantos componentes tiene');
+  ok(/Todos los sectores\s*5/.test(secs.botones[0]), 'el primero es Todos, con los 5 componentes — ' + secs.botones[0]);
+  ok(secs.botones.some(b => /Sector Cartón\s*3/.test(b)), 'cada sector muestra cuantos componentes tiene');
   ok(secs.alto >= 44, 'botones de sector tocables (' + Math.round(secs.alto) + 'px, minimo 44)');
   ok(!secs.horizontal, 'celular 390px: sin scroll horizontal');
 
-  // ── "Todos": columna Sector, y orden por sector y por consumo ─────────
+  // ── "Todos": columna Sector, y orden por sector y por codigo ──────────
   const todos = await page.evaluate(() => ({
     thead: document.getElementById('thead').innerText,
     cods: [...document.querySelectorAll('#tbody tr td:first-child')].map(td => td.innerText.trim()),
@@ -123,8 +130,8 @@ window.supabase = { createClient: function(){ return {
     kpis: document.getElementById('kpis').innerText.replace(/\s+/g, ' '),
   }));
   ok(/SECTOR/i.test(todos.thead), 'Todos: la tabla dice de que sector es cada componente');
-  ok(todos.cods.join(',') === 'T3B,E3B,IE11,2405',
-     'Todos: ordenado por sector y, adentro, por consumo de mayor a menor — ' + todos.cods.join(','));
+  ok(todos.cods.join(',') === 'E3B,E10B,T3B,IE11,2405',
+     'Todos: ordenado por sector y, adentro, por codigo alfanumerico natural — ' + todos.cods.join(','));
   ok(todos.fuente >= 16, 'letra de tabla >= 16px (' + todos.fuente + ')');
 
   // ── "Cajones / mes" NO existe mas (23/09) ─────────────────────────────
@@ -135,21 +142,24 @@ window.supabase = { createClient: function(){ return {
      'ninguna fila muestra cajones, ni la que los tiene cargados (T3B, 2 cajones en el bundle)');
 
   // ── la unidad no se mezcla: kg donde es kg, uni donde es uni ──────────
-  ok(/1\.200 uni/.test(todos.filas[0]), 'Cartón: el consumo va en unidades — ' + todos.filas[0]);
-  ok(/871,5 kg/.test(todos.filas[2]), 'Fleje: el consumo va en kg, no en piezas — ' + todos.filas[2]);
-  ok(/807 kg/.test(todos.filas[3]), 'Resina: el consumo va en kg — ' + todos.filas[3]);
-  ok(/20 pzas/.test(todos.filas[3]) && /3 art/.test(todos.filas[0]),
+  ok(/1\.200 uni/.test(todos.filas[2]), 'Cartón: el consumo va en unidades — ' + todos.filas[2]);
+  ok(/871,5 kg/.test(todos.filas[3]), 'Fleje: el consumo va en kg, no en piezas — ' + todos.filas[3]);
+  ok(/807 kg/.test(todos.filas[4]), 'Resina: el consumo va en kg — ' + todos.filas[4]);
+  ok(/20 pzas/.test(todos.filas[4]) && /3 art/.test(todos.filas[2]),
      'la columna "En" dice artículos para una parte y piezas para una resina');
 
   // ── adentro de un sector: sin la columna Sector, y solo sus filas ─────
   await page.click('.sec-btn:has-text("Sector Cartón")');
-  await page.waitForFunction(() => document.querySelectorAll('#tbody tr').length === 2);
+  await page.waitForFunction(() => document.querySelectorAll('#tbody tr').length === 3);
   const cart = await page.evaluate(() => ({
+    cods: [...document.querySelectorAll('#tbody tr td:first-child')].map(td => td.innerText.trim()),
     thead: document.getElementById('thead').innerText,
     kpis: document.getElementById('kpis').innerText.replace(/\s+/g, ' '),
   }));
   ok(!/SECTOR/i.test(cart.thead), 'dentro de un sector NO se repite la columna Sector');
-  ok(/1\.500 uni/.test(cart.kpis), 'el sector muestra su consumo total del mes — ' + cart.kpis);
+  ok(cart.cods.join(',') === 'E3B,E10B,T3B',
+     'dentro de un sector: por codigo alfanumerico, no por consumo — ' + cart.cods.join(','));
+  ok(/1\.550 uni/.test(cart.kpis), 'el sector muestra su consumo total del mes — ' + cart.kpis);
   ok(!/Cajon/i.test(cart.kpis), 'dentro de un sector tampoco hay KPI de cajones — ' + cart.kpis);
   ok(!/CAJON/i.test(cart.thead), 'dentro de un sector tampoco esta la columna de cajones');
 
@@ -160,7 +170,7 @@ window.supabase = { createClient: function(){ return {
   await page.fill('#q', '');
 
   // ── el sustento POR ARTICULO (lo que el usuario queria sacar de la O.C.) ──
-  await page.click('#tbody tr:first-child');
+  await page.click('#tbody tr[data-c="1"]');
   await page.waitForSelector('#cdOverlay');
   const pop = await page.evaluate(() => document.getElementById('cdCard').innerText.replace(/\s+/g, ' '));
   ok(/T3B/.test(pop) && /artículo que lo usa/i.test(pop), 'tocar la fila abre el sustento por articulo');

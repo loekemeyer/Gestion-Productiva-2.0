@@ -9,7 +9,12 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>Consumo x Componente · GP2</title>
-<!-- v1.1.0 (2026-09-23) — SIN "CAJONES / MES" [usuario, textual: "Saca el dato de cajones x mes
+<!-- v1.2.0 (2026-10-08) — ORDEN POR SECTOR Y CODIGO ALFANUMERICO [usuario, textual: "No me
+     ordenes por sector y consumo. Ordename por sector y alfanumericamente"]. Adentro de cada
+     sector la tabla (y el CSV, que sale de la misma lista) va por codigo con orden natural
+     (localeCompare numeric: C2 antes que C10); el sector sigue el orden de los botones.
+
+     v1.1.0 (2026-09-23) — SIN "CAJONES / MES" [usuario, textual: "Saca el dato de cajones x mes
      porque no todos los componentes tienen cargados el cajon x uni o no todos usan cajon"].
      La columna salia de uni_x_cajon del inventario: donde no esta cargado, o donde la parte no
      se mueve en cajones, la celda quedaba en "—". Un sector entero de guiones no es un dato
@@ -176,10 +181,11 @@ function secActual(){
   return SECTORES.filter(function(s){ return String(s.id) === sel; })[0] || null;
 }
 
-/* Orden: dentro de un sector, por consumo de mayor a menor. En "Todos" primero por
-   sector (el de mas componentes arriba, igual que los botones) y adentro por consumo:
-   ordenar 500 filas por un numero que a veces son kg y a veces unidades seria mezclar
-   peras con manzanas. */
+/* Orden (v1.2.0): por sector y, adentro, por CODIGO alfanumerico natural (A1B, A2B, B1A…;
+   C2 antes que C10). En "Todos" los sectores van en el orden de los botones (el de mas
+   componentes arriba). Antes adentro iba por consumo de mayor a menor: el usuario lo
+   saco [usuario, 08/10: "No me ordenes por sector y consumo. Ordename por sector y
+   alfanumericamente"]. */
 function visibles(){
   var q = ($('q').value || '').trim().toLowerCase();
   var peso = {};
@@ -190,7 +196,7 @@ function visibles(){
   });
   return l.sort(function(a, b){
     if (sel === 'todos' && a.sector_id !== b.sector_id) return (peso[a.sector_id]||0) - (peso[b.sector_id]||0);
-    return (valor(b) || 0) - (valor(a) || 0);
+    return String(a.cod || '').localeCompare(String(b.cod || ''), 'es', { numeric: true });
   });
 }
 
