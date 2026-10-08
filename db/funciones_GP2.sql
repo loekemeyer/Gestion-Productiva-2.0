@@ -986,13 +986,13 @@ CREATE OR REPLACE FUNCTION "GP2".alertas_bundle()
  SET search_path TO 'GP2'
 AS $function$
 with ref as (
-  select max(fecha)::date d from "GP2".produccion where (eliminar is null or eliminar <> 'S')
+  select max(fecha)::date d from "GP2".v_produccion_todas where (eliminar is null or eliminar <> 'S')
 ),
 matrices as (
   select matriz_raw m,
          (array_agg(nombre_matriz) filter (where nombre_matriz is not null and nombre_matriz <> ''))[1] nm,
          max(tiempo_historico) th
-  from "GP2".produccion
+  from "GP2".v_produccion_todas
   where matriz_raw is not null and matriz_raw <> ''
     and (eliminar is null or eliminar <> 'S')
   group by matriz_raw
@@ -1003,7 +1003,7 @@ sin_tiempo as (
 eventos as (
   select nombre_matriz, matriz_raw, legajo, nombre_empleado, fecha,
          to_char(fecha,'YYYY-MM-DD') fstr, to_char(hora_inicio,'HH24:MI:SS') hstr
-  from "GP2".produccion
+  from "GP2".v_produccion_todas
   where (eliminar is null or eliminar <> 'S')
     and fecha >= (select d from ref) - interval '30 days'
 )
@@ -1142,17 +1142,32 @@ CREATE OR REPLACE FUNCTION "GP2".anular_produccion(row_id bigint, p_hora_inicio 
 AS $function$
 begin
   perform "GP2"._exigir_autorizado();  -- seguridad punto 1 fase B (2026-09-28)
-  update produccion
-  set hora_inicio = p_hora_inicio::time,
-      hora_fin = p_hora_fin::time,
-      segundos_tiempo_muerto = p_seg_tiempo_muerto,
-      uni = p_uni,
-      segundos_trabajados = p_seg_trabajados,
-      segundos_historico = p_seg_historico,
-      premio = p_premio,
-      anular_tiempo = p_anular,
-      revisado = case when p_anular then true else revisado end
-  where id = row_id;
+  -- id negativo = registro de Registro Producción 3.0 (v_produccion_todas lo expone como -id; 2026-10-08)
+  if row_id < 0 then
+    update reg_prod_3_0.procesado_cervantes
+    set hora_inicio = p_hora_inicio::time,
+        hora_fin = p_hora_fin::time,
+        segundos_tiempo_muerto = p_seg_tiempo_muerto,
+        uni = p_uni,
+        segundos_trabajados = p_seg_trabajados,
+        segundos_historico = p_seg_historico,
+        premio = p_premio,
+        anular_tiempo = p_anular,
+        revisado = case when p_anular then true else revisado end
+    where id = -row_id;
+  else
+    update produccion
+    set hora_inicio = p_hora_inicio::time,
+        hora_fin = p_hora_fin::time,
+        segundos_tiempo_muerto = p_seg_tiempo_muerto,
+        uni = p_uni,
+        segundos_trabajados = p_seg_trabajados,
+        segundos_historico = p_seg_historico,
+        premio = p_premio,
+        anular_tiempo = p_anular,
+        revisado = case when p_anular then true else revisado end
+    where id = row_id;
+  end if;
   if not found then
     raise exception 'Registro id=% no encontrado', row_id;
   end if;
@@ -3551,7 +3566,7 @@ select jsonb_build_object(
     from (
       select legajo,
              (array_agg(nombre_empleado) filter (where nombre_empleado is not null and nombre_empleado <> ''))[1] nom
-      from "GP2".produccion
+      from "GP2".v_produccion_todas
       where legajo is not null and legajo <> ''
       group by legajo
     ) e
@@ -3575,7 +3590,7 @@ select jsonb_build_object(
       'Anular_Tiempo', anular_tiempo,
       'Revisado', revisado
     ) order by matriz_raw, fecha desc)
-    from "GP2".produccion
+    from "GP2".v_produccion_todas
     where (eliminar is null or eliminar <> 'S')
       and (revisado is null or revisado = false)
       and (anular_tiempo is null or anular_tiempo = false)
@@ -5089,7 +5104,7 @@ with base as (
     coalesce(segundos_trabajados,0)::numeric as seg,
     coalesce(segundos_historico,0)::numeric  as segh,
     coalesce(anular_tiempo,false)         as anul
-  from "GP2".produccion
+  from "GP2".v_produccion_todas
   where (eliminar is null or eliminar <> 'S')
     and coalesce(legajo,'') <> '1'
     and coalesce(legajo,'') <> ''
@@ -5168,7 +5183,7 @@ with base as (
     coalesce(segundos_trabajados,0)::numeric   as seg,
     coalesce(segundos_historico,0)::numeric    as segh,
     tiempo_historico::numeric                  as thist
-  from "GP2".produccion
+  from "GP2".v_produccion_todas
   where (eliminar is null or eliminar <> 'S')
     and coalesce(legajo,'') not in ('','1')
     and coalesce(anular_tiempo,false) = false
@@ -5258,7 +5273,7 @@ CREATE OR REPLACE FUNCTION "GP2".inicio_bundle()
 AS $function$
 with base as (
   select *
-  from "GP2".produccion
+  from "GP2".v_produccion_todas
   where (eliminar is null or eliminar <> 'S')
     and coalesce(legajo,'') <> '1'
     and coalesce(uni,0) > 0
@@ -5273,7 +5288,7 @@ mes_rows as (
 ),
 disruptivas as (
   select count(*) c
-  from "GP2".produccion
+  from "GP2".v_produccion_todas
   where (eliminar is null or eliminar <> 'S')
     and coalesce(legajo,'') <> '1'
     and revisado is not true
@@ -5286,7 +5301,7 @@ sin_tiempo as (
   select count(*) c
   from (
     select matriz_raw
-    from "GP2".produccion
+    from "GP2".v_produccion_todas
     where matriz_raw ~ '^\d+\w*$'
       and (eliminar is null or eliminar <> 'S')
     group by matriz_raw
@@ -5475,7 +5490,12 @@ CREATE OR REPLACE FUNCTION "GP2".marcar_revisado(row_id bigint)
 AS $function$
 begin
   perform "GP2"._exigir_autorizado();  -- seguridad punto 1 fase B (2026-09-28)
-  update produccion set revisado = true where id = row_id;
+  -- id negativo = registro de Registro Producción 3.0 (v_produccion_todas lo expone como -id; 2026-10-08)
+  if row_id < 0 then
+    update reg_prod_3_0.procesado_cervantes set revisado = true where id = -row_id;
+  else
+    update produccion set revisado = true where id = row_id;
+  end if;
   if not found then
     raise exception 'Registro id=% no encontrado', row_id;
   end if;
@@ -6484,7 +6504,7 @@ with base as (
          p.legajo, p.nombre_empleado, p.uni, p.segundos_tiempo_muerto,
          case when p.nombre_matriz = 'Rotura Matriz' then 'RM'
               when p.nombre_matriz = 'Pare Matriz'   then 'PM' end as tipo
-  from produccion p
+  from "GP2".v_produccion_todas p
   where (p.eliminar is null or p.eliminar <> 'S')
     and (p.fecha at time zone 'America/Argentina/Buenos_Aires')::date between p_desde and p_hasta
 ), ord as (
@@ -6536,7 +6556,7 @@ select jsonb_build_object(
       select matriz_raw m,
              (array_agg(nombre_matriz) filter (where nombre_matriz is not null and nombre_matriz <> ''))[1] nm,
              max(tiempo_historico) th
-      from "GP2".produccion
+      from "GP2".v_produccion_todas
       where matriz_raw is not null and matriz_raw <> ''
         and (eliminar is null or eliminar <> 'S')
       group by matriz_raw
@@ -6547,7 +6567,7 @@ select jsonb_build_object(
     from (
       select legajo,
              (array_agg(nombre_empleado) filter (where nombre_empleado is not null and nombre_empleado <> ''))[1] nom
-      from "GP2".produccion
+      from "GP2".v_produccion_todas
       where legajo is not null and legajo <> ''
       group by legajo
     ) e
@@ -6567,7 +6587,7 @@ select jsonb_build_object(
       'Premio', premio,
       'Eliminar', eliminar
     ) order by fecha, hora_inicio)
-    from "GP2".produccion
+    from "GP2".v_produccion_todas
     where p_matriz is not null
       and matriz_raw = p_matriz
       and (eliminar is null or eliminar <> 'S')
@@ -6600,7 +6620,7 @@ select jsonb_build_object(
     from (
       select matriz_raw m,
              (array_agg(nombre_matriz) filter (where nombre_matriz is not null and nombre_matriz <> ''))[1] nm
-      from "GP2".produccion
+      from "GP2".v_produccion_todas
       where matriz_raw is not null and matriz_raw <> '' and coalesce(uni,0) > 0
       group by matriz_raw
     ) q
@@ -6611,7 +6631,7 @@ select jsonb_build_object(
     from (
       select legajo,
              (array_agg(nombre_empleado) filter (where nombre_empleado is not null and nombre_empleado <> ''))[1] nom
-      from "GP2".produccion
+      from "GP2".v_produccion_todas
       where legajo is not null and legajo <> ''
       group by legajo
     ) e
@@ -6637,7 +6657,7 @@ select jsonb_build_object(
       'mes', mes,
       'revisado', revisado
     ) order by fecha desc, hora_inicio desc)
-    from "GP2".produccion, lims
+    from "GP2".v_produccion_todas, lims
     where (eliminar is null or eliminar <> 'S')
       and (fecha at time zone 'America/Argentina/Buenos_Aires')::date between lims.d0 and lims.d1
   ), '[]'::jsonb)

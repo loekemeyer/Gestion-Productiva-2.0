@@ -90,7 +90,7 @@ function premioDe(p){
 
 async function cargar(){
   var dia=$('fDia').value||hoyAR();
-  var r=await SB.from('produccion')
+  var r=await SB.from('v_produccion_todas')   /* GP2 + Registro Produccion 3.0 (2026-10-08) */
     .select('legajo,nombre_empleado,matriz_raw,nombre_matriz,uni,fecha,premio,tiempo_toma,tiempo_historico,eliminar')
     .gte('fecha', dia+'T00:00:00-03:00')
     .lte('fecha', dia+'T23:59:59-03:00')
