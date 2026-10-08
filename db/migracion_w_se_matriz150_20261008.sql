@@ -141,3 +141,35 @@ end $outer$;
 select c.codigo, c.descripcion, round(c.kg_x_uni * c.uni_x_cajon, 2) kg_cajon, c.estado_compra, i.cantidad
   from "GP2".componente c join "GP2".inventario i on i.componente_id = c.id
  where c.codigo ~ '^W[0-9]P?SE$' order by c.codigo;
+
+-- ═════════════════════════════════════════════════════════════════════════════════════════════
+-- ADENDA 2026-10-08 — las 8 etiquetas de los W en la matriz 150 pasan a nombres cortos
+-- ═════════════════════════════════════════════════════════════════════════════════════════════
+-- [usuario, 08/10, textual] «Quiero estas descripciones en las etiquetas de la matriz 150: Buje Abrelata / Engranaje Grande / Arandela Fina Manija / Arandela Base /
+-- Arandela Cuchillito Untar / Arandela p/Mango / Engranaje Chico / Arandela Fina Mariposa» — y «Sí» al UPDATE con el mapeo W1P, W2P, W3P, W4, W5, W6, W7P, W9P (en ese orden).
+-- Reemplaza el SUPUESTO de la nota 4) de arriba (la descripción del W como etiqueta). Sólo texto: orden 14..21, rutas, pasos y stock quedan igual.
+-- Aplicado con un bloque que se aborta solo si no toca exactamente 8 filas. Verificación posterior: 21 etiquetas de la 150 (orden 1..21), las 8 nuevas con el texto de abajo.
+--
+-- ↩ Revertir (UPDATE, no cuelga en el conector): volver a los textos de la nota 4):
+--   update "GP2".matriz_salida_etiqueta e set etiqueta = v.etiqueta
+--     from (values ('W1P','Buje Abrelata Manija'),('W2P','Engranaje Gde Crom'),('W3P','Arandela Fina Manija'),('W4','Arandela Base Inox'),
+--                  ('W5','Arandela Cuch Unt'),('W6','Arandela Inox p/Mgo Rojo'),('W7P','Engranaje Chico Crom'),('W9P','Arandela Fina Marip Niq.')) v(codigo, etiqueta)
+--     join "GP2".componente c on c.codigo = v.codigo join "GP2".matriz m on m.n_matriz = '150'
+--    where e.matriz_id = m.id and e.componente_id = c.id;
+
+do $$
+declare n int;
+begin
+  update "GP2".matriz_salida_etiqueta e set etiqueta = v.etiqueta
+    from (values ('W1P','Buje Abrelata'),('W2P','Engranaje Grande'),('W3P','Arandela Fina Manija'),('W4','Arandela Base'),
+                 ('W5','Arandela Cuchillito Untar'),('W6','Arandela p/Mango'),('W7P','Engranaje Chico'),('W9P','Arandela Fina Mariposa')) v(codigo, etiqueta)
+    join "GP2".componente c on c.codigo = v.codigo
+    join "GP2".matriz m on m.n_matriz = '150'
+   where e.matriz_id = m.id and e.componente_id = c.id;
+  get diagnostics n = row_count;
+  if n <> 8 then raise exception 'se esperaban 8 filas y fueron %', n; end if;
+end $$;
+
+select e.orden, c.codigo, e.etiqueta
+  from "GP2".matriz_salida_etiqueta e join "GP2".matriz m on m.id = e.matriz_id join "GP2".componente c on c.id = e.componente_id
+ where m.n_matriz = '150' and e.orden >= 14 order by e.orden;
