@@ -173,3 +173,38 @@ end $$;
 select e.orden, c.codigo, e.etiqueta
   from "GP2".matriz_salida_etiqueta e join "GP2".matriz m on m.id = e.matriz_id join "GP2".componente c on c.id = e.componente_id
  where m.n_matriz = '150' and e.orden >= 14 order by e.orden;
+
+-- ═════════════════════════════════════════════════════════════════════════════════════════════
+-- ADENDA 2 2026-10-08 — orden del selector de la 150: remaches · arandelas · engranajes · bujes
+-- ═════════════════════════════════════════════════════════════════════════════════════════════
+-- [usuario, 08/10, textual] «Poneme las etiquetas en orden: primero los remaches, después las arandelas, después los engranajes y por último los bujes».
+-- Los V (orden 1-13) no se tocan. Los 8 W (orden 14..21) se reordenan; adentro de cada grupo se respeta el orden en que ya estaban `[supuesto mío]`:
+--   14 W3P Arandela Fina Manija · 15 W4 Arandela Base · 16 W5 Arandela Cuchillito Untar · 17 W6 Arandela p/Mango · 18 W9P Arandela Fina Mariposa
+--   19 W2P Engranaje Grande · 20 W7P Engranaje Chico · 21 W1P Buje Abrelata
+-- Se hace en 2 pasos (+100 y orden final) porque UNIQUE (matriz_id, orden) no deja intercambiar de a una fila. Solo cambia matriz_salida_etiqueta.orden.
+--
+-- ↩ Revertir (mismo método en 2 pasos): primero orden + 100 a los 8, después W1P 14, W2P 15, W3P 16, W4 17, W5 18, W6 19, W7P 20, W9P 21.
+
+do $$
+declare n int; v_m bigint;
+begin
+  select id into v_m from "GP2".matriz where n_matriz = '150';
+  update "GP2".matriz_salida_etiqueta set orden = orden + 100 where matriz_id = v_m and orden between 14 and 21;
+  get diagnostics n = row_count;
+  if n <> 8 then raise exception 'paso 1: se esperaban 8 filas y fueron %', n; end if;
+  update "GP2".matriz_salida_etiqueta e set orden = v.orden
+    from (values ('W3P',14),('W4',15),('W5',16),('W6',17),('W9P',18),('W2P',19),('W7P',20),('W1P',21)) v(codigo, orden)
+    join "GP2".componente c on c.codigo = v.codigo
+   where e.matriz_id = v_m and e.componente_id = c.id;
+  get diagnostics n = row_count;
+  if n <> 8 then raise exception 'paso 2: se esperaban 8 filas y fueron %', n; end if;
+  if (select count(*) from "GP2".matriz_salida_etiqueta where matriz_id = v_m) <> 21
+     or (select min(orden) from "GP2".matriz_salida_etiqueta where matriz_id = v_m) <> 1
+     or (select max(orden) from "GP2".matriz_salida_etiqueta where matriz_id = v_m) <> 21 then
+    raise exception 'el orden final no quedo 1..21';
+  end if;
+end $$;
+
+select e.orden, c.codigo, e.etiqueta
+  from "GP2".matriz_salida_etiqueta e join "GP2".matriz m on m.id = e.matriz_id join "GP2".componente c on c.id = e.componente_id
+ where m.n_matriz = '150' order by e.orden;
