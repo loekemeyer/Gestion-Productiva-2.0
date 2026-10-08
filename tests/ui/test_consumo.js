@@ -132,7 +132,10 @@ window.supabase = { createClient: function(){ return {
   ok(/SECTOR/i.test(todos.thead), 'Todos: la tabla dice de que sector es cada componente');
   ok(todos.cods.join(',') === 'E3B,E10B,T3B,IE11,2405',
      'Todos: ordenado por sector y, adentro, por codigo alfanumerico natural — ' + todos.cods.join(','));
-  ok(todos.fuente >= 16, 'letra de tabla >= 16px (' + todos.fuente + ')');
+  // 15px = --fs-md, la letra de celda del sistema de diseño v2 (08/10, DISENO_GP2.md regla 8:
+  // Inter tiene ojo grande, 15 de Inter se lee como 16 de Arial). Antes la pantalla subia a 16
+  // con un CSS propio para celular; ese override se borro al pasar al sistema.
+  ok(todos.fuente >= 15, 'letra de tabla >= 15px (' + todos.fuente + ')');
 
   // ── "Cajones / mes" NO existe mas (23/09) ─────────────────────────────
   ok(!/CAJON/i.test(todos.thead), 'no hay columna "Cajones / mes" — ' + todos.thead.replace(/\s+/g, ' '));

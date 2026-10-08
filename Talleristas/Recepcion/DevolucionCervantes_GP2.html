@@ -14,22 +14,10 @@
 <link rel="apple-touch-icon" href="../../GP2_favicon.png">
 <link rel="stylesheet" href="../../gp2-modulo.css?v=20261008ds">
 <style>
-  .chips{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0}
-  .chip{padding:10px 16px;border-radius:10px;border:2px solid #d0d7de;background:#fff;font-weight:800;font-size:16px;cursor:pointer;color:#111}
-  .chip.active{background:#111;color:#fff;border-color:#111}
-  .dest-btns{display:flex;gap:10px;flex-wrap:wrap;margin:8px 0}
-  .dest-btns button{padding:12px 18px;border-radius:10px;border:2px solid #d0d7de;background:#fff;font-weight:800;font-size:16px;cursor:pointer}
-  .dest-btns button.sc.active{background:#e7f8ed;color:#fff;border-color:#cdead6}
-  .dest-btns button.ana.active{background:#f8e8e7;color:#fff;border-color:#eacfcd}
-  td.num{text-align:right;font-variant-numeric:tabular-nums}
-  .dev-in{width:100px;padding:8px;font-size:18px;text-align:right;border:2px solid #d0d7de;border-radius:8px}
-  tr.con-dev td{background:#eef7ee}
-  .motivo{width:100%;padding:10px;font-size:16px;border:2px solid #d0d7de;border-radius:8px;min-height:56px;resize:vertical}
-  .btn-conf{padding:12px 22px;font-size:18px;font-weight:800;border-radius:8px;border:2px solid #111;background:#111;color:#fff;cursor:pointer;margin-top:10px}
-  .btn-conf:disabled{opacity:.4;cursor:default}
-  .badge-dest{padding:4px 12px;border-radius:14px;font-size:13px;font-weight:800}
-  .badge-dest.sector{background:#e8f5e9;color:#0a7a2f}
-  .badge-dest.analizar{background:#ffebee;color:#b71c1c}
+  /* fila con cantidad cargada: se ve qué partes vuelven */
+  table.t tr.con-dev>td{background:var(--ok-soft)}
+  .motivo{width:100%;min-height:56px;resize:vertical}
+  .dest .chips{margin:0}
 </style>
 </head>
 <body>
@@ -41,19 +29,19 @@
   </div>
 
   <div class="steps">
-    <div class="row"><b style="font-size:18px">Tallerista:</b></div>
-    <div class="chips" id="talls"></div>
+    <h2 class="sec-h">Tallerista</h2>
+    <div class="provs-grid" id="talls"></div>
 
     <div id="zona" class="hidden">
-      <div class="row"><b style="font-size:18px">Destino de la devolución:</b></div>
-      <div class="dest-btns">
-        <button type="button" class="sc" id="destSC">Vuelve a sector</button>
-        <button type="button" class="ana" id="destAna">Para Analizar</button>
-      </div>
-
-      <div class="row" style="align-items:center;gap:8px">
-        <label style="font-weight:800">Fecha:</label>
-        <input type="date" id="fecha" style="padding:8px;border:2px solid #d0d7de;border-radius:8px;font-size:16px">
+      <div class="toolbar">
+        <div class="field dest">
+          <label>Destino de la devolución</label>
+          <div class="chips">
+            <button type="button" class="chip sc" id="destSC">Vuelve a sector</button>
+            <button type="button" class="chip ana" id="destAna">Para Analizar</button>
+          </div>
+        </div>
+        <div class="field"><label for="fecha">Fecha</label><input type="date" id="fecha"></div>
       </div>
 
       <div class="search-box"><input type="text" id="q" placeholder="Buscar parte…"></div>
@@ -65,26 +53,26 @@
       </div>
       <div id="tblEmpty" class="empty hidden">Este tallerista no tiene stock online.</div>
 
-      <label style="font-weight:800;display:block;margin-top:10px">Motivo / observaciones (opcional):</label>
-      <textarea id="motivo" class="motivo" placeholder="Ej: piezas con rebaba, medida fuera de tolerancia..."></textarea>
-      <button type="button" class="btn-conf" id="btnConf" disabled>Confirmar Devolución</button>
+      <div class="field" style="margin-top:12px">
+        <label for="motivo">Motivo / observaciones (opcional)</label>
+        <textarea id="motivo" class="motivo" placeholder="Ej: piezas con rebaba, medida fuera de tolerancia..."></textarea>
+      </div>
+      <div class="row">
+        <button type="button" class="btn btn-primary btn-lg btn-conf" id="btnConf" disabled>Confirmar Devolución</button>
+      </div>
     </div>
 
-    <div style="margin-top:18px">
-      <h2 style="font-size:18px;margin:0 0 6px">Stock "Para Analizar"</h2>
-      <div class="table-wrap"><table class="t">
-        <thead><tr><th>Parte</th><th class="num">Cantidad</th></tr></thead>
-        <tbody id="anaBody"></tbody>
-      </table></div>
-    </div>
+    <h2 class="sec-h">Stock "Para Analizar"</h2>
+    <div class="table-wrap libre"><table class="t">
+      <thead><tr><th>Parte</th><th class="num">Cantidad</th></tr></thead>
+      <tbody id="anaBody"></tbody>
+    </table></div>
 
-    <div style="margin-top:18px">
-      <h2 style="font-size:18px;margin:0 0 6px">Últimas devoluciones</h2>
-      <div class="table-wrap"><table class="t">
-        <thead><tr><th>Fecha</th><th>Tallerista</th><th>Parte</th><th class="num">Cantidad</th><th>Destino</th><th>Motivo</th></tr></thead>
-        <tbody id="ultBody"></tbody>
-      </table></div>
-    </div>
+    <h2 class="sec-h">Últimas devoluciones</h2>
+    <div class="table-wrap libre"><table class="t">
+      <thead><tr><th>Fecha</th><th>Tallerista</th><th>Parte</th><th class="num">Cantidad</th><th>Destino</th><th>Motivo</th></tr></thead>
+      <tbody id="ultBody"></tbody>
+    </table></div>
 
     <div id="status" class="status">Cargando…</div>
   </div>
@@ -106,7 +94,7 @@ async function boot(){
   var g=$('talls'); g.innerHTML='';
   (D.talleristas||[]).forEach(function(t){
     var b=document.createElement('button'); b.type='button';
-    b.className='chip'+(tallSel&&tallSel.id===t.id?' active':''); b.textContent=t.nombre;
+    b.className='chip prov-btn'+(tallSel&&tallSel.id===t.id?' active':''); b.textContent=t.nombre;
     b.addEventListener('click',function(){
       // DEV vive solo en memoria: cambiar de tallerista borraba TODO lo cargado sin
       // preguntar. Un chip tocado sin querer despues de cargar 15 partes las perdia.
@@ -142,10 +130,10 @@ function render(){
   $('tbody').innerHTML=fs.map(function(x){
     var v=DEV[x.comp_id]||'';
     return '<tr'+(v>0?' class="con-dev"':'')+'>'+
-      '<td><b>'+esc(x.codigo)+'</b><br><small style="color:#777">'+esc(x.descripcion||'')+'</small></td>'+
+      '<td><span class="cod">'+esc(x.codigo)+'</span><br><small class="sub">'+esc(x.descripcion||'')+'</small></td>'+
       '<td>'+esc(x.sector||'—')+'</td>'+
       '<td class="num">'+fmt(x.cantidad,2)+' '+unidadDe(x)+'</td>'+
-      '<td class="num"><input class="dev-in" data-in="'+x.comp_id+'" inputmode="decimal" value="'+(v||'')+'" placeholder="'+unidadDe(x)+'"></td>'+
+      '<td class="num"><input class="dev-in cell-in" data-in="'+x.comp_id+'" inputmode="decimal" value="'+(v||'')+'" placeholder="'+unidadDe(x)+'"></td>'+
     '</tr>';
   }).join('');
   $('tblEmpty').classList.toggle('hidden', fs.length>0 || !tallSel);
@@ -201,25 +189,25 @@ $('btnConf').addEventListener('click', async function(){
       (avisos.length?(' '+avisos.join(' ')):'');
   }catch(e){
     render(); // quedan marcadas solo las que fallaron
-    $('status').className='status bad';
+    $('status').className='status err';
     $('status').textContent='Error (se cargaron '+hechas+' de '+items.length+', las cargadas ya no se reintentan): '+(e.message||e);
   }finally{ $('btnConf').disabled=false; habilitar(); }
 });
 
 function pintarAnalizar(){
   $('anaBody').innerHTML=(D.analizar||[]).map(function(x){
-    return '<tr><td><b>'+esc(x.codigo)+'</b> <small style="color:#777">'+esc(x.descripcion||'')+'</small></td>'+
+    return '<tr><td><span class="cod">'+esc(x.codigo)+'</span> <small class="sub">'+esc(x.descripcion||'')+'</small></td>'+
       '<td class="num">'+fmt(x.cantidad,2)+'</td></tr>';
-  }).join('') || '<tr><td colspan="2" style="color:#888">Nada para analizar.</td></tr>';
+  }).join('') || '<tr><td colspan="2"><span class="muted">Nada para analizar.</span></td></tr>';
 }
 
 function pintarUltimas(){
   $('ultBody').innerHTML=(D.ultimas||[]).map(function(u){
     return '<tr><td>'+new Date(u.fecha).toLocaleDateString('es-AR')+'</td><td>'+esc(u.tallerista)+'</td>'+
       '<td>'+esc(u.codigo)+'</td><td class="num">'+fmt(u.cantidad,2)+' '+esc(u.unidad)+'</td>'+
-      '<td><span class="badge-dest '+esc(u.destino)+'">'+(u.destino==='analizar'?'Analizar':'A sector')+'</span></td>'+
+      '<td><span class="badge badge-dest '+(u.destino==='analizar'?'err':'ok')+' '+esc(u.destino)+'">'+(u.destino==='analizar'?'Analizar':'A sector')+'</span></td>'+
       '<td>'+esc(u.motivo||'')+'</td></tr>';
-  }).join('') || '<tr><td colspan="6" style="color:#888">Sin devoluciones todavía.</td></tr>';
+  }).join('') || '<tr><td colspan="6"><span class="muted">Sin devoluciones todavía.</span></td></tr>';
 }
 
 $('q').addEventListener('input', render);

@@ -124,7 +124,10 @@
 <link rel="stylesheet" href="../../gp2-modulo.css?v=20261008ds">
 <style>
   /* equivalencia en la unidad de envio del proveedor (Ester: se carga kg, debajo las bolsas) */
-  .env-eq{display:block;margin-top:4px;color:#0b4aa2;font-size:14px;font-weight:800;white-space:nowrap}
+  .env-eq{display:block;margin-top:4px;color:var(--pri-ink);font-size:var(--fs-sm);font-weight:700;white-space:nowrap}
+  /* hermanas de envio/entrega (sistema v2): la fila marcada F conserva su color tambien en la columna fija */
+  .fix1 table.t tr.falt>td:first-child{background:#fff6ea}
+  .fin{justify-content:center}
 </style>
 </head>
 <body>
@@ -143,28 +146,24 @@
 
     <!-- FASE 0 — elegir proveedor -->
     <div id="fase0">
-      <div class="row"><label class="lbl">Proveedor de Servicio</label></div>
+      <h2 class="sec-h">Proveedor de Servicio</h2>
       <div class="provs-grid" id="psGrid"></div>
       <div id="status" class="status">Cargando…</div>
     </div>
 
     <!-- FASE 1 — cargar cajones + kg neto -->
     <div id="fase1" class="hidden">
-      <div class="row" style="justify-content:space-between">
-        <div class="row" style="margin:0">
-          <label class="lbl" id="fase1Title">Proveedor</label>
-        </div>
-        <div class="row" style="margin:0">
-          <label class="lbl" style="font-size:16px">Fecha</label>
-          <input type="date" id="fFecha">
-          <button class="btn btn-secondary" id="btnLimpiar" type="button" title="Vaciar todo lo cargado">🗑 Limpiar</button>
-          <button class="btn btn-primary" id="btnEnviar" type="button" disabled>Enviar</button>
-        </div>
+      <div class="toolbar mt0">
+        <h2 class="sec-h mt0 mb0" id="fase1Title">Proveedor</h2>
+        <span class="spacer"></span>
+        <div class="field"><label for="fFecha">Fecha</label><input type="date" id="fFecha"></div>
+        <button class="btn btn-secondary" id="btnLimpiar" type="button" title="Vaciar todo lo cargado">🗑 Limpiar</button>
+        <button class="btn btn-primary" id="btnEnviar" type="button" disabled>Enviar</button>
       </div>
 
       <div class="search-box"><input type="text" id="q" placeholder="Buscar por SC, parte o descripción…"></div>
 
-      <div class="table-wrap">
+      <div class="table-wrap fix1">
         <table class="t">
           <!-- el encabezado lo arma theadHTML(): un proveedor con unidad de envio propia
                (Ester: bolsas) no tiene columna de cajón y su sugerido va en bolsas -->
@@ -190,9 +189,9 @@
         <div class="title">✓ Envío registrado</div>
         <div>Tu código de envío:</div>
         <div class="code" id="successCode">—</div>
-        <div id="successDetail" style="font-size:17px;color:#444"></div>
+        <div id="successDetail"></div>
       </div>
-      <div class="row" style="justify-content:center">
+      <div class="row fin">
         <button class="btn btn-primary" id="btnVolverPS" type="button">← Cambiar proveedor</button>
       </div>
     </div>
@@ -428,8 +427,8 @@ function renderTablaInyector(){
     var tr = document.createElement("tr");
     tr.dataset.k = keyDe(x);
     tr.innerHTML =
-      '<td><span class="cod">'+esc(x.sc_cod)+'</span><br><small style="color:#777">'+esc(x.sc_desc||"")+'</small></td>'+
-      '<td class="num" style="color:#bbb">—</td>'+
+      '<td><span class="cod">'+esc(x.sc_cod)+'</span><br><small class="sub">'+esc(x.sc_desc||"")+'</small></td>'+
+      '<td class="num cero">—</td>'+
       E.tdInput("kg", it.kg, false, null, "decimal")+
       '<td class="ctr">—</td>'+
       '<td class="ctr">—</td>'+
@@ -526,17 +525,17 @@ function renderTabla(){
       tdKg = tdKg.replace("</td>", '<small class="env-eq">'+
                esc(equivEnvase(num(vKg), kgPorEnvase(x, pk), pk.label))+'</small></td>');
     tr.innerHTML =
-      '<td><span class="cod">'+esc(x.sc_cod)+'</span><br><small style="color:#777">'+esc(x.sc_desc||"")+'</small></td>'+
+      '<td><span class="cod">'+esc(x.sc_cod)+'</span><br><small class="sub">'+esc(x.sc_desc||"")+'</small></td>'+
       (ckgT ? "" : E.tdInput("caj", vCaj, t.hayT))+
       tdKg+
       E.tdTanda(it)+
       E.tdFalt(it)+
       '<td class="sep">'+((x.salidas||[]).length
           ? (x.salidas||[]).map(function(sp){
-              return esc(sp.sp_cod)+'<br><small style="color:#777">'+esc(sp.sp_desc||"")+'</small>';
+              return esc(sp.sp_cod)+'<br><small class="sub">'+esc(sp.sp_desc||"")+'</small>';
             }).join('<br>')
           : "—")+'</td>'+
-      '<td class="num">'+(sug!=null&&sug>0?'<b style="color:#b42318">'+sugTxt+'</b>':sugTxt)+'</td>';
+      '<td class="num">'+(sug!=null&&sug>0?'<b class="err-txt">'+sugTxt+'</b>':sugTxt)+'</td>';
     tb.appendChild(tr);
   });
 
@@ -684,7 +683,7 @@ $("btnEnviar").addEventListener("click", async function(){
 
   if (res.errs.length){
     renderTabla(); // limpia de la tabla los items ya registrados; quedan solo los que fallaron
-    $("msg1").innerHTML = '<span style="color:#b91c1c">Se registraron '+res.ok+' de '+items.length+
+    $("msg1").innerHTML = '<span class="err-txt">Se registraron '+res.ok+' de '+items.length+
       '. Errores:<br>'+esc(res.errs.join(" | "))+'</span>';
     return;
   }

@@ -4,64 +4,58 @@
 <title>Faltante Partes Tallerista · GP2</title>
 <link rel="stylesheet" href="../../gp2-modulo.css?v=20261008ds">
 <style>
- *{box-sizing:border-box}
- body{margin:0;background:#ebeff4;color:#385475;font:13px/1.4 -apple-system,Segoe UI,Roboto,sans-serif}
- .top{background:linear-gradient(90deg,#e7f0f8,#e7f0f8);padding:10px 16px;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;position:sticky;top:0;z-index:10}
- .top h1{margin:0;font-size:16px}
- .top .sel{display:flex;gap:8px;align-items:center;font-size:12px;flex-wrap:wrap}
- select,input,button{background:#eaeff6;color:#385475;border:1px solid #cddaea;border-radius:6px;padding:6px 10px;font-size:18px;font-family:inherit}
- input{width:200px}
- button{cursor:pointer}
- button:hover{background:#e8eef7}
- label.chk{display:flex;gap:5px;align-items:center;cursor:pointer;user-select:none}
- label.chk input{width:auto}
- .canvas{padding:14px;min-height:calc(100vh - 50px)}
- .note{background:#f5eeea;border:1px solid #eadbcd;color:#8e4c20;border-radius:8px;padding:8px 12px;margin-bottom:12px;font-size:12px}
- .kpis{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
- .kpi{background:#ebf0f5;border:1px solid #d1dae6;border-radius:8px;padding:6px 12px;font-size:11px;color:#475569}
- .kpi b{color:#166398;font-size:15px;margin-right:4px}
- .tall-card{background:#ebf0f5;border:1px solid #d1dae6;border-radius:10px;margin-bottom:12px;overflow:hidden}
- .tall-head{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;padding:10px 14px;background:#e8eef7;cursor:pointer}
- .tall-head .nm{font-size:14px;font-weight:800;color:#385775}
- .tall-head .cod{font-size:11px;color:#475569;font-weight:400;margin-left:6px}
+ /* Sistema de diseño v2 (gp2-modulo.css): barra, chips, campos, tablas, kpis y avisos los da el
+    sistema. Aca queda solo lo propio: la tarjeta de cada tallerista. */
+ .toolbar{margin-top:0}
+ .toolbar #fBuscar{flex:1 1 320px;min-width:220px;width:auto}
+ .toolbar .chk{align-self:center}
+ /* una tarjeta por tallerista; su encabezado queda pegado bajo la barra mientras se recorre su tabla */
+ .tall-card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-md);margin-bottom:var(--s3)}
+ .tall-head{display:flex;justify-content:space-between;align-items:center;gap:6px 10px;flex-wrap:wrap;padding:8px var(--s4);min-height:52px;
+   background:var(--surface-2);border-bottom:1px solid var(--line);border-radius:var(--r-md) var(--r-md) 0 0;box-shadow:none}
+ .tall-head .nm{font-size:var(--fs-lg);font-weight:700;color:var(--ink)}
+ .tall-head .cod{font-size:var(--fs-sm);color:var(--ink-3);font-weight:500;margin-left:6px}
  .tall-head .tot{display:flex;gap:6px;flex-wrap:wrap}
- .pill{padding:2px 10px;border-radius:10px;font-weight:700;font-size:12px;background:#eaeff5}
- .pill.pend{color:#986d16;background:#f5f2ea}
- .pill.pos{color:#258858;background:#eaf5ef}
- .pill.neg{color:#982e16;background:#f5eceb}
- .tbl-wrap{overflow-x:auto}
- table{width:100%;border-collapse:collapse;font-size:12px}
- th,td{padding:6px 10px;text-align:right;border-bottom:1px solid #d0dae7;white-space:nowrap}
- th{background:#eaeff6;color:#475569;text-transform:uppercase;font-size:10px;letter-spacing:.4px;position:sticky;top:50px}
- th.l,td.l{text-align:left}
- td.cod{font-family:ui-monospace,SF Mono,monospace;color:#165d98;font-weight:600}
- td.desc{color:#385775;max-width:320px;overflow:hidden;text-overflow:ellipsis}
- td.sec{color:#475569}
- td.env{color:#258858}
- td.ent{color:#166398}
- td.saldo{font-weight:800}
- td.saldo.pos{color:#986d16}
- td.saldo.neg{color:#982e16}
- tr.neg-row td{background:#f4edeb}
- .flag{color:#8e4c20;font-size:10px}
- .empty{padding:30px;text-align:center;color:#475569}
+ .tall-head .pill{height:26px;padding:0 10px;font-size:var(--fs-sm)}
+ .tall-card .table-wrap{border:0;border-radius:0 0 var(--r-md) var(--r-md)}
+ .tall-card table.t td{white-space:nowrap}
+ td.desc{max-width:320px;overflow:hidden;text-overflow:ellipsis}
+ .tall-card table.t td.sec{color:var(--ink-3)}
+ td.saldo{font-weight:750}
+ .tall-card table.t td.saldo.pos{color:var(--warn)}
+ .tall-card table.t td.saldo.neg{color:var(--err)}
+ .tall-card table.t tr.neg-row>td{background:var(--err-soft)}
+ .tall-card table.t td.kg{font-size:var(--fs-sm)}
+ .flag{color:var(--warn);font-size:var(--fs-sm)}
+ /* en pantalla ancha la tabla entra sin scroll de costado: el encabezado de columnas tambien queda
+    pegado, justo debajo del nombre del tallerista (52px) */
+ @media (min-width:1200px){
+  .tall-card .table-wrap{overflow:visible}
+  .tall-head{height:52px;flex-wrap:nowrap}
+  .tall-card table.t>thead{top:calc(var(--bar-h) + 52px)}
+ }
 </style><link rel="icon" type="image/png" href="../../GP2_favicon.png">
 <link rel="apple-touch-icon" href="../../GP2_favicon.png">
 </head>
 <body>
-<div id="gp2-logobar" style="position:relative;background:#e8edf7;text-align:center;padding:6px 0;border-bottom:1px solid #d0dae7"><a href="../../GP2_MODULOS.html" style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:#385475;text-decoration:none;font-weight:700;font-size:15px;padding:5px 10px;border:1px solid #d1d9e5;border-radius:8px;background:#e9eef7">← Atrás</a><a href="../../GP2_MODULOS.html" style="text-decoration:none"><img src="../../GP2_logo.png" alt="GP2 · Gestión Productiva" style="height:40px;vertical-align:middle"></a></div>
-
-<div class="top">
- <h1>📦 Faltante Partes Tallerista <span style="font-size:11px;color:#2a5783;font-weight:400">· GP2</span></h1>
- <div class="sel">
-  <select id="fTall" style="display:none"><option value="">Todos</option></select>
-  <input id="fBuscar" type="text" placeholder="Buscar código, descripción, sector…">
-  <label class="chk"><input id="fSoloPos" type="checkbox"> Solo pendiente (saldo &gt; 0)</label>
-  <button id="btnCsv">⬇ Exportar CSV</button>
+<div class="card">
+<div class="header">
+ <h1>Faltante Partes Tallerista<small>Saldo pendiente en poder del tallerista · GP2</small></h1>
+ <div class="hbtns">
+  <button class="hlink" type="button" id="btnCsv">⬇ Exportar CSV</button>
+  <a href="../../GP2_MODULOS.html">Atrás</a>
  </div>
 </div>
-<div id="tallChips" class="provs-grid" style="display:flex;flex-wrap:wrap;gap:8px;padding:10px 14px 0"></div>
+<div class="steps">
+<div class="toolbar sel">
+ <select id="fTall" style="display:none"><option value="">Todos</option></select>
+ <input id="fBuscar" class="search" type="text" placeholder="Buscar código, descripción, sector…" aria-label="Buscar código, descripción o sector">
+ <label class="chk"><input id="fSoloPos" type="checkbox"> Solo pendiente (saldo &gt; 0)</label>
+</div>
+<div id="tallChips" class="provs-grid"></div>
 <div class="canvas" id="canvas"><div class="empty">Cargando…</div></div>
+</div>
+</div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="../../supabase-config.js?v=20260929a"></script>
 <script src="../../gp2-ui.js?v=20260930a"></script>
@@ -143,39 +137,39 @@ function __run(){
       '<td class="l cod">'+esc(p.cod)+(p.kg_sin_factor?' <span class="flag" title="envío en kg sin factor kg_x_uni">⚠</span>':'')+"</td>"+
       '<td class="l desc" title="'+esc(p.desc)+'">'+esc(p.desc)+"</td>"+
       '<td class="l sec">'+esc(p.sector)+"</td>"+
-      '<td class="env">'+fmt(p.enviado)+"</td>"+
-      '<td class="ent">'+fmt(p.entregado)+"</td>"+
-      '<td class="ent">'+fmt(p.devuelto)+"</td>"+
-      '<td class="saldo '+(neg?"neg":"pos")+'">'+fmt(saldo)+"</td>"+
-      '<td class="sec" style="font-size:11px">'+kgTxt+"</td>"+
+      '<td class="num env">'+fmt(p.enviado)+"</td>"+
+      '<td class="num ent">'+fmt(p.entregado)+"</td>"+
+      '<td class="num ent">'+fmt(p.devuelto)+"</td>"+
+      '<td class="num saldo '+(neg?"neg":"pos")+'">'+fmt(saldo)+"</td>"+
+      '<td class="num sec kg">'+kgTxt+"</td>"+
     "</tr>";
    });
 
    H+='<div class="tall-card">'+
-     '<div class="tall-head">'+
+     '<div class="tall-head sticky-sec">'+
        '<div><span class="nm">'+esc(t.nombre)+'</span>'+(t.cod_prov?'<span class="cod">'+esc(t.cod_prov)+'</span>':'')+' <span class="cod">· '+partes.length+' partes</span></div>'+
        '<div class="tot">'+
-         '<span class="pill pend">Pendiente '+fmt(sPend)+'</span>'+
-         '<span class="pill neg">Negativo '+fmt(sNeg)+'</span>'+
-         '<span class="pill '+((sPend+sNeg)<0?"neg":"pos")+'">Saldo neto '+fmt(sPend+sNeg)+'</span>'+
+         '<span class="pill pend warn">Pendiente '+fmt(sPend)+'</span>'+
+         '<span class="pill neg err">Negativo '+fmt(sNeg)+'</span>'+
+         '<span class="pill '+((sPend+sNeg)<0?"neg err":"pos ok")+'">Saldo neto '+fmt(sPend+sNeg)+'</span>'+
        '</div>'+
      '</div>'+
-     '<div class="tbl-wrap"><table><thead><tr>'+
+     '<div class="tbl-wrap table-wrap libre"><table class="t"><thead><tr>'+
        '<th class="l">Código</th><th class="l">Descripción</th><th class="l">Sector</th>'+
-       '<th>Enviado (uni)</th><th>Entregado (uni)</th><th>Devuelto (uni)</th><th>Saldo (uni)</th><th>Env (kg)</th>'+
+       '<th class="num">Enviado (uni)</th><th class="num">Entregado (uni)</th><th class="num">Devuelto (uni)</th><th class="num">Saldo (uni)</th><th class="num">Env (kg)</th>'+
      '</tr></thead><tbody>'+rows+'</tbody></table></div>'+
    '</div>';
   });
 
   var kpi='<div class="kpis">'+
-    '<div class="kpi"><b>'+vistos+'</b>talleristas</div>'+
-    '<div class="kpi"><b>'+totPares+'</b>partes</div>'+
-    '<div class="kpi"><b>'+fmt(totPend)+'</b>pendiente en poder (uni)</div>'+
-    '<div class="kpi"><b>'+fmt(totNeg)+'</b>saldo negativo (uni)</div>'+
-    '<div class="kpi"><b>'+fmt(totPend+totNeg)+'</b>saldo neto (uni)</div>'+
+    '<div class="kpi"><span class="k">talleristas</span><span class="v">'+vistos+'</span></div>'+
+    '<div class="kpi"><span class="k">partes</span><span class="v">'+totPares+'</span></div>'+
+    '<div class="kpi warn"><span class="k">pendiente en poder (uni)</span><span class="v">'+fmt(totPend)+'</span></div>'+
+    '<div class="kpi err"><span class="k">saldo negativo (uni)</span><span class="v">'+fmt(totNeg)+'</span></div>'+
+    '<div class="kpi"><span class="k">saldo neto (uni)</span><span class="v">'+fmt(totPend+totNeg)+'</span></div>'+
   '</div>';
 
-  var note='<div class="note">📦 <b>Faltante = saldo pendiente en poder del tallerista</b> (enviado − entregado − devuelto). Positivo = todavía no lo devolvió; negativo = devolvió más de lo que figura enviado. ⚠ El ledger GP2 es <b>parcial</b>: falta cargar producción / stock inicial, por eso muchos saldos dan <b>negativos</b>. Es lo esperado en esta etapa — los datos se muestran tal cual, sin corregir. Enviado normalizado a unidades vía <code>kg_x_uni</code> (envíos originales mayormente en kg); entregas siempre en unidades.'+(hayFlag?' <b>⚠ Hay componentes con envío en kg sin factor de conversión</b> (marcados con ⚠, no sumados en unidades).':'')+'</div>';
+  var note='<div class="aviso">📦 <b>Faltante = saldo pendiente en poder del tallerista</b> (enviado − entregado − devuelto). Positivo = todavía no lo devolvió; negativo = devolvió más de lo que figura enviado. ⚠ El ledger GP2 es <b>parcial</b>: falta cargar producción / stock inicial, por eso muchos saldos dan <b>negativos</b>. Es lo esperado en esta etapa — los datos se muestran tal cual, sin corregir. Enviado normalizado a unidades vía <code>kg_x_uni</code> (envíos originales mayormente en kg); entregas siempre en unidades.'+(hayFlag?' <b>⚠ Hay componentes con envío en kg sin factor de conversión</b> (marcados con ⚠, no sumados en unidades).':'')+'</div>';
 
   canvas.innerHTML=note+kpi+(H||'<div class="empty">Sin resultados para el filtro.</div>');
  }
@@ -213,7 +207,7 @@ async function __boot(){
   Object.assign(D,r.data);
   __run();
  }catch(e){
-  document.getElementById("canvas").innerHTML='<div class="empty" style="color:#982e16">Error cargando datos de Supabase: '+esc(e.message||e)+'</div>';
+  document.getElementById("canvas").innerHTML='<div class="aviso err">Error cargando datos de Supabase: '+esc(e.message||e)+'</div>';
   console.error(e);
  }finally{document.body.style.cursor="";}
 }

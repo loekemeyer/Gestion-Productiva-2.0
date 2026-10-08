@@ -11,58 +11,44 @@
 <script src="../gp2-numero.js?v=20260911o"></script>
 <link rel="stylesheet" href="../gp2-modulo.css?v=20261008ds">
 <style>
-  :root{--bg:#ebeff4;--card:#ffffff;--line:#d0d7de;--txt:#1e293b;--muted:#64748b;--accent:#0066cc;--pos:#0a7a2f;--neg:#b91c1c;}
-  *{box-sizing:border-box}
-  body{margin:0;background:var(--bg);color:var(--txt);font:14px/1.4 Inter,system-ui,Segoe UI,sans-serif}
-  .page{max-width:1200px;margin:0 auto;padding:22px}
-  h1{font-size:20px;margin:0 0 2px}
-  .muted{color:var(--muted);font-size:12px}
-  .bar{display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap;margin:18px 0;padding:14px;background:var(--card);border:1px solid var(--line);border-radius:12px}
-  .field{display:flex;flex-direction:column;gap:4px}
-  label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px}
-  input[type=date]{background:#e8edf7;color:var(--txt);border:1px solid var(--line);border-radius:8px;padding:8px 10px;font:inherit}
-  button{background:var(--accent);color:#04222f;border:0;border-radius:8px;padding:9px 16px;font-weight:700;cursor:pointer}
-  button:disabled{opacity:.5;cursor:default}
-  .status{color:var(--muted);font-size:12px;min-height:16px;margin:6px 2px}
-  .scroll{overflow-x:auto;border:1px solid var(--line);border-radius:12px}
-  table{border-collapse:collapse;width:100%;font-size:13px;background:var(--card)}
-  th,td{padding:7px 9px;border-bottom:1px solid var(--line);white-space:nowrap}
-  thead th{position:sticky;top:0;background:#e8edf7;color:var(--muted);font-weight:600;text-align:center;font-size:11px}
-  tbody td{text-align:center}
-  td.l{text-align:left}
-  td.r{text-align:right;font-variant-numeric:tabular-nums}
-  td.b{font-weight:700}
-  .pos{color:var(--pos)}
-  .neg{color:var(--neg)}
-  tbody tr:hover{background:#e8edf7}
-  .title{font-weight:700;padding:10px 12px;background:#e8edf7;border-bottom:1px solid var(--line)}
+  /* Sistema de diseño v2 (gp2-modulo.css). Misma estructura que informe_matriz_GP2.html:
+     barra · filtros (.toolbar con .field) · estado · KPIs · tabla (.table-wrap.fix1 > table.t). */
+  .toolbar{margin-top:0}
+  #result table.t :is(th,td){text-align:center}
+  #result table.t th{vertical-align:middle}
+  #result table.t td.l{text-align:left}
+  #result table.t td.r{text-align:right}
+  #result table.t td.b{font-weight:700}
+  /* table.t td fija el color de la celda: el verde/rojo del puntaje se repone aca */
+  #result table.t td.pos{color:var(--ok)}
+  #result table.t td.neg{color:var(--err)}
+  #result table.t td:is(.pos,.neg):not(.b){font-weight:inherit}
+  .fuente{margin-top:var(--s3)}
 </style>
 <link rel="icon" type="image/png" href="../GP2_favicon.png">
 <link rel="apple-touch-icon" href="../GP2_favicon.png">
 </head>
 <body>
-<div id="gp2-logobar" style="position:relative;background:#e8edf7;text-align:center;padding:6px 0;border-bottom:1px solid #d0dae7"><a href="../GP2_MODULOS.html" style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:#385475;text-decoration:none;font-weight:700;font-size:15px;padding:5px 10px;border:1px solid #d1d9e5;border-radius:8px;background:#e9eef7">← Atrás</a><a href="../GP2_MODULOS.html" style="text-decoration:none"><img src="../GP2_logo.png" alt="GP2 · Gestión Productiva" style="height:40px;vertical-align:middle"></a></div>
-
-<div class="page">
-  <h1>Informe &mdash; Rendimiento x Persona</h1>
-  <div class="muted">Schema GP2 &middot; RPC <code>informes_bundle(desde,hasta)</code> &middot; agregado desde <code>"GP2".v_produccion_todas</code> (GP2 + Registro Producción 3.0)</div>
-
-  <div class="bar">
-    <div class="field">
-      <label>Desde</label>
-      <input type="date" id="desde" value="2026-07-01" />
-    </div>
-    <div class="field">
-      <label>Hasta</label>
-      <input type="date" id="hasta" value="2026-07-31" />
-    </div>
-    <div class="field">
-      <button id="btn">Generar</button>
+<div class="card">
+  <div class="header">
+    <h1>Rendimiento x Persona<small>Informe &middot; puntaje, tiempos y tiempo muerto por empleado</small></h1>
+    <div class="hbtns">
+      <a href="../GP2_MODULOS.html">Atrás</a>
     </div>
   </div>
 
-  <div id="status" class="status"></div>
-  <div id="result"></div>
+  <div class="steps">
+    <div class="toolbar">
+      <div class="field"><label for="desde">Desde</label><input type="date" id="desde" value="2026-07-01" /></div>
+      <div class="field"><label for="hasta">Hasta</label><input type="date" id="hasta" value="2026-07-31" /></div>
+      <button class="btn btn-primary" type="button" id="btn">Generar</button>
+    </div>
+
+    <div id="status" class="status"></div>
+    <div id="kpis" class="kpis"></div>
+    <div id="result"></div>
+    <p class="sub fuente">Schema GP2 &middot; RPC <code>informes_bundle(desde,hasta)</code> &middot; agregado desde <code>"GP2".v_produccion_todas</code> (GP2 + Registro Producción 3.0)</p>
+  </div>
 </div>
 
 <script>
@@ -75,6 +61,7 @@ var SB = GP2_SB();
 var $status = document.getElementById('status');
 var $result = document.getElementById('result');
 var $btn = document.getElementById('btn');
+var $kpis = document.getElementById('kpis');
 
 /* ===== Helpers (portados del informes.js viejo) ===== */
 function n(v){ var x = Number(v); return Number.isFinite(x) ? x : 0; }
@@ -90,7 +77,7 @@ function cls(v){ return n(v) > 0 ? 'pos' : (n(v) < 0 ? 'neg' : ''); }
 
 /* ===== Render (equivalente a renderPersona del modulo viejo) ===== */
 function renderPersona(personas){
-  if(!personas.length){ $result.innerHTML = '<p class="muted" style="padding:20px">No se encontraron registros en el rango.</p>'; return; }
+  if(!personas.length){ $result.innerHTML = '<div class="empty">No se encontraron registros en el rango.</div>'; return; }
 
   // Recolectar codigos de Tiempo Muerto (pivot dinamico)
   var tmCodes = {};
@@ -98,9 +85,9 @@ function renderPersona(personas){
   var tmSorted = Object.keys(tmCodes).sort();
 
   var html = ''
-    + '<div class="scroll">'
-    + '<div class="title">Rendimiento x Persona</div>'
-    + '<table>'
+    + '<h2 class="sec-h title">Rendimiento x Persona</h2>'
+    + '<div class="table-wrap fix1 scroll">'
+    + '<table class="t">'
     + '<thead><tr>'
     + '<th rowspan="2">Leg</th><th rowspan="2">Empleado</th>'
     + '<th colspan="2">Puntaje</th>'
@@ -138,20 +125,34 @@ function renderPersona(personas){
   $result.innerHTML = html;
 }
 
+/* ===== KPIs (los mismos tres que el informe x matriz: cuantos, cuantos, horas) ===== */
+function renderKpis(personas){
+  var seg = 0, rot = 0;
+  personas.forEach(function(g){ seg += n(g.segTotal); rot += n(g.roturas); });
+  $kpis.innerHTML =
+      '<div class="kpi pri"><span class="k">Personas</span><span class="v">' + f(personas.length) + '</span></div>'
+    + '<div class="kpi"><span class="k">Roturas de matriz</span><span class="v">' + f(rot) + '</span></div>'
+    + '<div class="kpi"><span class="k">Horas (total)</span><span class="v">' + hs(seg) + '</span></div>';
+}
+
 /* ===== Carga via RPC ===== */
 async function __run(){
   var desde = document.getElementById('desde').value || null;
   var hasta = document.getElementById('hasta').value || null;
   $btn.disabled = true;
+  $status.className = 'status';
   $status.textContent = 'Cargando...';
   $result.innerHTML = '';
+  $kpis.innerHTML = '';
   try {
     var r = await SB.rpc('informes_bundle', { p_desde: desde, p_hasta: hasta });
     if (r.error) throw r.error;
     var personas = (r.data && r.data.personas) || [];
     renderPersona(personas);
+    renderKpis(personas);
     $status.textContent = personas.length + ' persona(s) · ' + (desde || 'inicio') + ' a ' + (hasta || 'fin');
   } catch (e) {
+    $status.className = 'status err';
     $status.textContent = 'Error: ' + (e.message || e);
     console.error(e);
   } finally {

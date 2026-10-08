@@ -12,6 +12,9 @@
 <link rel="icon" type="image/png" href="../../GP2_favicon.png">
 <link rel="apple-touch-icon" href="../../GP2_favicon.png">
 <link rel="stylesheet" href="../../gp2-modulo.css?v=20261008ds">
+<style>
+  .fin{justify-content:center}
+</style>
 </head>
 <body>
 
@@ -30,21 +33,19 @@
 
     <!-- FASE 0 — elegir tallerista -->
     <div id="fase0">
-      <div class="row"><label class="lbl">Tallerista</label></div>
+      <h2 class="sec-h">Tallerista</h2>
       <div class="provs-grid" id="tallGrid"></div>
       <div id="status" class="status">Cargando…</div>
     </div>
 
     <!-- FASE 1 — cargar el envío -->
     <div id="fase1" class="hidden">
-      <div class="row" style="justify-content:space-between">
-        <div class="row" style="margin:0"><label class="lbl" id="fase1Title">Tallerista</label></div>
-        <div class="row" style="margin:0">
-          <label class="lbl" style="font-size:16px">Fecha</label>
-          <input type="date" id="fFecha">
-          <button class="btn btn-secondary" id="btnLimpiar" type="button" title="Vaciar todo lo cargado">🗑 Limpiar</button>
-          <button class="btn btn-primary" id="btnEnviar" type="button" disabled>Enviar</button>
-        </div>
+      <div class="toolbar mt0">
+        <h2 class="sec-h mt0 mb0" id="fase1Title">Tallerista</h2>
+        <span class="spacer"></span>
+        <div class="field"><label for="fFecha">Fecha</label><input type="date" id="fFecha"></div>
+        <button class="btn btn-secondary" id="btnLimpiar" type="button" title="Vaciar todo lo cargado">🗑 Limpiar</button>
+        <button class="btn btn-primary" id="btnEnviar" type="button" disabled>Enviar</button>
       </div>
 
       <div class="search-box"><input type="text" id="q" placeholder="Buscar artículo por código, descripción o sector…"></div>
@@ -74,10 +75,10 @@
         <div class="title">✓ Envío registrado</div>
         <div>Tu código de envío:</div>
         <div class="code" id="successCode">—</div>
-        <div id="successDetail" style="font-size:17px;color:#444"></div>
+        <div id="successDetail"></div>
       </div>
 
-      <div class="row"><label class="lbl" id="printTitle">Remito</label></div>
+      <h2 class="sec-h" id="printTitle">Remito</h2>
       <div class="table-wrap">
         <table class="t">
           <thead><tr>
@@ -89,7 +90,7 @@
         </table>
       </div>
 
-      <div class="row no-print" style="justify-content:center;margin-top:14px">
+      <div class="row fin no-print">
         <button class="btn btn-secondary" id="btnImprimir" type="button">🖨 Imprimir</button>
         <button class="btn btn-primary" id="btnVolverTall" type="button">← Cambiar tallerista</button>
       </div>
@@ -322,7 +323,7 @@ $("btnEnviar").addEventListener("click", async function(){
 
   if(res.errs.length){
     render(); // en la tabla quedan cargados solo los que fallaron
-    $("msg1").innerHTML='<span style="color:#b91c1c">Se registraron '+res.ok+' de '+items.length+
+    $("msg1").innerHTML='<span class="err-txt">Se registraron '+res.ok+' de '+items.length+
       ' (los registrados ya salieron de la carga; reintentá solo lo que quedó). Errores:<br>'+esc(res.errs.join(" | "))+'</span>';
     return;
   }

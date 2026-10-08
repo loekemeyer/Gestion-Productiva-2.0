@@ -114,7 +114,7 @@ const VIEJOS = ['StockFlejes/Bombillas_GP2.html', 'StockFlejes/Cajas_GP2.html', 
         title: document.title,
         h1: txt(document.getElementById('titulo')),
         botones: hb.map(txt),
-        links: hb.filter(x => x.tagName === 'A').map(a => ({ t: txt(a), href: a.getAttribute('href'), style: a.getAttribute('style') || '' })),
+        links: hb.filter(x => x.tagName === 'A').map(a => ({ t: txt(a), href: a.getAttribute('href'), style: a.getAttribute('style') || '', cls: a.className || '' })),
         tieneCSV: !!document.getElementById('btnCSV'),
         filtros: [...document.querySelectorAll('.seg-btn')].map(txt),
         ph: document.getElementById('q').placeholder,
@@ -140,8 +140,10 @@ const VIEJOS = ['StockFlejes/Bombillas_GP2.html', 'StockFlejes/Cajas_GP2.html', 
       const sinQuery = l.href.split('?')[0].split('#')[0];
       const existe = sinQuery === '' ? true : fs.existsSync(path.resolve(ROOT_DIR, 'StockSector', sinQuery));
       ok(existe, tag + ': el link "' + l.t + '" -> ' + l.href + ' existe');
-      if (l.t === e.destacado) ok(/#0b5cad/.test(l.style), tag + ': "' + l.t + '" va destacado en azul');
-      else ok(l.style === '', tag + ': "' + l.t + '" sin estilo propio');
+      /* Sistema de diseño v2 (2026-10-08): el destacado es la clase .primary de la barra
+         (azul de accion de gp2-modulo.css), ya no un style="background:#0b5cad" en linea. */
+      if (l.t === e.destacado) ok(/\bprimary\b/.test(l.cls) && l.style === '', tag + ': "' + l.t + '" va destacado en azul (.primary)');
+      else ok(l.style === '' && !/\bprimary\b/.test(l.cls), tag + ': "' + l.t + '" sin estilo propio');
     }
     if (e.destacado) ok(m.links.some(l => l.t === e.destacado), tag + ': tiene el link ' + e.destacado);
     const filtrosEsp = e.sin_min_max ? ['Todos', 'Con stock', 'Sin stock', 'Con movimientos']

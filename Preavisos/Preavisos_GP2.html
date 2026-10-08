@@ -15,20 +15,25 @@
 <link rel="apple-touch-icon" href="../GP2_favicon.png">
 <link rel="stylesheet" href="../gp2-modulo.css?v=20261008ds">
 <style>
-  .pend{display:flex;flex-direction:column;gap:8px;margin:10px 0}
-  .pcard{border:1px solid #e5e9ee;border-left:5px solid #0066cc;border-radius:8px;padding:10px 12px;background:#fff;
-    display:flex;gap:10px;align-items:center;flex-wrap:wrap}
-  .pcard.vencido{border-left-color:#b42318;background:#fff8f8}
-  .pcard.hoy{border-left-color:#a15c00;background:#fffdf5}
-  .pcard .qué{flex:1;min-width:200px;font-size:17px}
-  .pcard .cuando{font-size:15px;font-weight:800;white-space:nowrap}
-  .pcard .llego{font-size:14px;color:#0a7a2f;font-weight:800}
-  .sub2{font-size:14px;color:#777}
+  /* pendientes: una tarjeta por promesa, con el borde izquierdo segun el vencimiento */
+  .pend{display:flex;flex-direction:column;gap:var(--s2);margin:var(--s2) 0 var(--s4)}
+  .pcard{border:1px solid var(--line);border-left:4px solid var(--pri);border-radius:var(--r-sm);padding:8px 12px;background:var(--surface);
+    display:flex;gap:var(--s2) var(--s3);align-items:center;flex-wrap:wrap}
+  .pcard.vencido{border-left-color:var(--err);background:var(--err-soft)}
+  .pcard.hoy{border-left-color:var(--warn);background:var(--warn-soft)}
+  .pcard .qué{flex:1;min-width:200px;font-size:var(--fs-base)}
+  .pcard .cuando{font-size:var(--fs-md);font-weight:750;white-space:nowrap}
+  .pcard.vencido .cuando{color:var(--err)}
+  .pcard.hoy .cuando{color:var(--warn)}
+  .f1-bar{align-items:flex-end}
+  .f1-bar .sec-h{margin:0;align-self:center}
+  #successDetail{font-size:var(--fs-lg);color:var(--ink-2)}
+  .pv-fin{justify-content:center}
 </style>
 </head>
 <body>
 
-<div class="card">
+<div class="card angosto">
   <div class="header">
     <h1>Preavisos</h1>
     <div class="hbtns">
@@ -41,10 +46,10 @@
 
     <!-- FASE 0 — pendientes + elegir quién avisa -->
     <div id="fase0">
-      <div class="row"><label class="lbl">Lo prometido y todavía no entregado</label></div>
+      <h2 class="sec-h">Lo prometido y todavía no entregado</h2>
       <div class="pend" id="pend"></div>
 
-      <div class="row"><label class="lbl">Anotar un preaviso nuevo · ¿Quién avisa?</label></div>
+      <h2 class="sec-h">Anotar un preaviso nuevo <span class="sub">¿Quién avisa?</span></h2>
       <div class="provs-grid" id="cpGrid"></div>
       <div class="aviso">
         Esto <b>no mueve stock</b>: es la promesa. Cuando la mercadería llega de verdad se carga
@@ -55,13 +60,11 @@
 
     <!-- FASE 1 — cargar lo que promete -->
     <div id="fase1" class="hidden">
-      <div class="row" style="justify-content:space-between">
-        <div class="row" style="margin:0"><label class="lbl" id="fase1Title">—</label></div>
-        <div class="row" style="margin:0">
-          <label class="lbl" style="font-size:16px">Lo trae el</label>
-          <input type="date" id="fFecha">
-          <button class="btn btn-primary" id="btnEnviar" type="button" disabled>Anotar</button>
-        </div>
+      <div class="toolbar f1-bar">
+        <h2 class="sec-h" id="fase1Title">—</h2>
+        <span class="spacer"></span>
+        <div class="field"><label for="fFecha">Lo trae el</label><input type="date" id="fFecha"></div>
+        <button class="btn btn-primary" id="btnEnviar" type="button" disabled>Anotar</button>
       </div>
 
       <div class="search-box"><input type="text" id="q" placeholder="Buscar por código o descripción…"></div>
@@ -85,9 +88,9 @@
         <div class="title">✓ Preaviso anotado</div>
         <div>Tu código:</div>
         <div class="code" id="successCode">—</div>
-        <div id="successDetail" style="font-size:17px;color:#444"></div>
+        <div id="successDetail"></div>
       </div>
-      <div class="row" style="justify-content:center">
+      <div class="row pv-fin">
         <button class="btn btn-primary" id="btnVolverTall" type="button">← Volver</button>
       </div>
     </div>
@@ -123,7 +126,7 @@ async function cargar(){
       D.abiertos.length + " preaviso" + (D.abiertos.length === 1 ? "" : "s") + " pendiente" +
       (D.abiertos.length === 1 ? "" : "s") + ".";
   } catch(e){
-    $("status").innerHTML = '<span style="color:#b91c1c">Error: ' + esc(e.message || e) + "</span>";
+    $("status").innerHTML = '<span class="err-txt">Error: ' + esc(e.message || e) + "</span>";
   }
 }
 
@@ -140,14 +143,14 @@ function pintarPendientes(){
               : d === 0 ? "hoy"
               : ("en " + d + " día" + (d === 1 ? "" : "s"));
     var llego = Number(p.entregado_desde) > 0
-      ? '<span class="llego">ya entregó ' + GP2N.fmt(p.entregado_desde, 0) + "</span>" : "";
+      ? '<span class="llego badge ok">ya entregó ' + GP2N.fmt(p.entregado_desde, 0) + "</span>" : "";
     return '<div class="pcard' + cls + '">' +
       '<div class="qué"><b>' + esc(p.contraparte || "—") + "</b> · " +
         '<span class="cod">' + esc(p.comp_cod) + "</span> " + GP2N.fmt(p.cantidad, 0) + " " + esc(p.unidad) +
-        '<br><small class="sub2">' + esc(p.comp_desc || "") + (p.nota ? (" · " + esc(p.nota)) : "") + "</small></div>" +
+        '<br><small class="sub">' + esc(p.comp_desc || "") + (p.nota ? (" · " + esc(p.nota)) : "") + "</small></div>" +
       '<div class="cuando">' + esc(cuando) + "</div>" + llego +
-      '<button class="btn btn-secondary" data-a="cumplido" data-id="' + p.id + '">✓ Llegó</button>' +
-      '<button class="btn btn-secondary" data-a="anulado" data-id="' + p.id + '">✕ No viene</button>' +
+      '<button class="btn btn-sm btn-secondary" data-a="cumplido" data-id="' + p.id + '">✓ Llegó</button>' +
+      '<button class="btn btn-sm btn-secondary" data-a="anulado" data-id="' + p.id + '">✕ No viene</button>' +
       "</div>";
   }).join("");
 }
@@ -270,7 +273,7 @@ $("btnEnviar").addEventListener("click", async function(){
     await cargar();
     E.mostrarExito((r.data && r.data.n) + " piezas prometidas por " + selCP.nombre + " para el " + fecha);
   } catch(err){
-    $("msg1").innerHTML = '<span style="color:#b91c1c">Error: ' + esc(err.message || err) + "</span>";
+    $("msg1").innerHTML = '<span class="err-txt">Error: ' + esc(err.message || err) + "</span>";
     btn.disabled = false; actualizar();
   }
 });

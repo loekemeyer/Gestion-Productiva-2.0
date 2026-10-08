@@ -22,6 +22,11 @@
   /* el stock online se toca para ver como se compone (gp2-composicion.js) */
   table.t td.stk-cell{cursor:pointer;text-decoration:underline dotted var(--ink-4);text-underline-offset:3px}
   table.t tbody tr:hover>td.stk-cell{background:var(--pri-soft)}
+  /* saldo con signo: table.t td pinta todo en --ink y le gana a .pos/.neg del sistema (propuesta al sistema) */
+  table.t td.pos{color:var(--ok)} table.t td.neg{color:var(--err)} table.t td.cero{color:var(--ink-4)}
+  /* celular: CSV / Imprimir / Cambiar quedan con el icono solo, para que la barra entre en 2 lineas */
+  .header .hl-t{color:inherit}
+  @media (max-width:640px){ .header .hl-t{display:none} }
 </style>
 </head>
 <body>
@@ -30,9 +35,9 @@
   <div class="header">
     <h1>Control Partes Tallerista</h1>
     <div class="hbtns">
-      <button class="hlink hidden" id="btnVolver" type="button">← Cambiar tallerista</button>
-      <button class="hlink hidden" id="btnCSV" type="button">⬇ Exportar CSV</button>
-      <button class="hlink hidden" id="btnImprimir" type="button">🖨 Imprimir</button>
+      <button class="hlink hidden" id="btnVolver" type="button" title="Cambiar tallerista">← Cambiar<span class="hl-t"> tallerista</span></button>
+      <button class="hlink hidden" id="btnCSV" type="button" title="Exportar CSV">⬇<span class="hl-t"> Exportar CSV</span></button>
+      <button class="hlink hidden" id="btnImprimir" type="button" title="Imprimir">🖨<span class="hl-t"> Imprimir</span></button>
       <a href="../Envios/EnviosTalleristas_GP2.html">Envío</a>
       <a href="../Recepcion/EntregasTalleristas_GP2.html">Entrega</a>
       <a href="../../GP2_MODULOS.html">Atrás</a>

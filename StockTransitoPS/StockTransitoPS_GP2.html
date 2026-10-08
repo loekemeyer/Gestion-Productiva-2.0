@@ -14,10 +14,12 @@
 <link rel="apple-touch-icon" href="../GP2_favicon.png">
 <link rel="stylesheet" href="../gp2-modulo.css?v=20261008ds">
 <style>
-  td.num{text-align:right;font-variant-numeric:tabular-nums}
-  td.stk-cell{cursor:pointer;text-decoration:underline dotted}
-  td.stk-cell:hover{background:#eef4fb}
-  .aviso{border:2px solid #f0c36d;background:#fff8e1;color:#7a5b00;border-radius:10px;padding:10px 14px;font-size:15px;margin:10px 0}
+  /* Lo generico (barra, aviso, buscador, tabla) es de gp2-modulo.css. Aca solo lo propio. */
+  td.stk-cell{cursor:pointer;text-decoration:underline dotted;text-underline-offset:3px}
+  table.t tbody tr>td.stk-cell:hover{background:var(--pri-soft)}
+  .steps>.aviso:first-child{margin-top:0}
+  table.t td:first-child{min-width:170px}   /* parte + descripcion: que no quede en una columna de 3 palabras en el celular */
+  .aviso.info b{color:inherit}   /* el .aviso b del sistema es marron (pensado para el ambar) */
 </style>
 </head>
 <body>
@@ -33,7 +35,7 @@
   </div>
 
   <div class="steps">
-    <div class="aviso">Partes que van de un PS a OTRO PS: lo que el <b>PS de origen</b> ya
+    <div class="aviso info">Partes que van de un PS a OTRO PS: lo que el <b>PS de origen</b> ya
     entregó y espera en su sector hasta mandarse al <b>PS siguiente</b>
     (ej. FAAT templa y Guazzaroni niquela). Tocá el Online para ver la composición.</div>
 
@@ -85,10 +87,10 @@ function render(){
     var kg  = (x.online!=null && x.kg_x_uni) ? x.online*x.kg_x_uni : null;
     var cj  = (x.online!=null && x.uni_x_cajon) ? x.online/x.uni_x_cajon : null;
     return '<tr>'+
-      '<td><b>'+esc(x.codigo)+'</b><br><small style="color:#777">'+esc(x.descripcion||'')+'</small></td>'+
+      '<td><span class="cod">'+esc(x.codigo)+'</span><br><small class="muted">'+esc(x.descripcion||'')+'</small></td>'+
       '<td>'+esc(x.sc_cod||'—')+'</td>'+
-      '<td>'+esc(x.ps1_nombre)+'<br><small style="color:#777">'+esc(x.ps1_proceso||'')+'</small></td>'+
-      '<td>'+esc(x.ps2_nombre)+'<br><small style="color:#777">'+esc(x.ps2_proceso||'')+'</small></td>'+
+      '<td>'+esc(x.ps1_nombre)+'<br><small class="muted">'+esc(x.ps1_proceso||'')+'</small></td>'+
+      '<td>'+esc(x.ps2_nombre)+'<br><small class="muted">'+esc(x.ps2_proceso||'')+'</small></td>'+
       '<td class="num stk-cell" data-i="'+i+'"><b>'+uni(x.online)+'</b></td>'+
       '<td class="num">'+(kg==null?'—':uni(kg))+'</td>'+
       '<td class="num">'+(cj==null?'—':caj(cj))+'</td>'+

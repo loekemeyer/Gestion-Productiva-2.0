@@ -20,37 +20,26 @@
 <link rel="apple-touch-icon" href="../GP2_favicon.png">
 <link rel="stylesheet" href="../gp2-modulo.css?v=20261008ds">
 <style>
-/* tabs Crudo | Procesado */
-.tabs{display:flex;gap:8px;margin:12px 0;flex-wrap:wrap}
-.tab-btn{flex:1;min-width:140px;min-height:52px;border-radius:10px;border:2px solid #d0d7de;background:#fff;
-  font-size:20px;font-weight:800;color:#111;cursor:pointer}
-.tab-btn.active{background:#111;color:#fff;border-color:#111}
+/* filas por gravedad: faltante (rojo suave) > marca manual abierta (ambar suave) > resto */
+table.t tr.r-falt>td{background:var(--err-soft)}
+table.t tr.r-marca>td{background:var(--warn-soft)}
+table.t td.comp{min-width:180px}
 
-/* filas por gravedad */
-table.t tr.r-falt td{background:#fef2f2}
-table.t tr.r-marca td{background:#fffbeb}
+/* etiquetas dentro de la celda (badge del sistema); la de la marca puede ser larga: se parte */
+.pill-falt,.pill-corta{margin-top:4px}
+.badge-marca{height:auto;min-height:24px;padding:3px 9px;white-space:normal;line-height:1.3;margin:2px 6px 2px 0;font-size:var(--fs-sm)}
+.btn-resolver{margin:2px 0}
+.dias{font-size:var(--fs-lg);font-weight:750;font-variant-numeric:tabular-nums}
+.dias.rojo{color:var(--err)}
+.dias.verde{color:var(--ok)}
 
-.pill-falt{display:inline-block;background:#b91c1c;color:#fff;border-radius:999px;padding:3px 10px;
-  font-size:14px;font-weight:800;white-space:nowrap;margin-top:3px}
-.pill-corta{display:inline-block;background:#fee2e2;color:#b91c1c;border:1px solid #fca5a5;border-radius:8px;
-  padding:2px 8px;font-size:13px;font-weight:800;white-space:nowrap;margin-top:3px}
-.badge-marca{display:inline-block;background:#fef3c7;color:#7a5200;border:1px solid #fde68a;border-radius:8px;
-  padding:3px 8px;font-size:14px;font-weight:700;margin:2px 4px 2px 0}
-.btn-resolver{min-height:44px;padding:6px 14px;border-radius:8px;border:2px solid #0a7a2f;background:#fff;
-  color:#0a7a2f;font-weight:800;font-size:17px;cursor:pointer}
-.btn-resolver:hover{background:#f3fbf6}
-.dias{font-size:19px;font-weight:900;font-variant-numeric:tabular-nums}
-.dias.rojo{color:#b91c1c}
-.dias.verde{color:#0a7a2f}
-
-/* popup marcar faltante */
-.overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;padding:14px;z-index:50}
-.popup{background:#fff;border-radius:12px;padding:18px;max-width:520px;width:100%;box-shadow:0 8px 30px rgba(0,0,0,.25)}
-.popup h2{font-size:22px;margin-bottom:12px}
-.popup label{display:block;font-weight:800;font-size:18px;margin:10px 0 4px}
-.popup select,.popup input{width:100%;padding:10px;font-size:18px;border:2px solid #d0d7de;border-radius:8px}
-.popup .acciones{display:flex;gap:10px;justify-content:flex-end;margin-top:16px}
-.popup .btn{min-height:48px}
+/* popup marcar faltante: fondo .popup + tarjeta .pop-card del sistema */
+#ovMarcar{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;padding:var(--s4);z-index:100}
+#ovMarcar .pop-card{padding:var(--s5);max-width:520px;width:100%}
+#ovMarcar .pop-card h3{margin-bottom:var(--s2)}
+#ovMarcar .field{margin-top:var(--s3)}
+#ovMarcar .field select,#ovMarcar .field input{width:100%}
+#ovMarcar .actions{margin-top:var(--s5)}
 </style>
 </head>
 <body>
@@ -65,18 +54,19 @@ table.t tr.r-marca td{background:#fffbeb}
 
   <div class="steps">
     <div class="tabs">
-      <button type="button" class="tab-btn active" id="tabCrudo" data-s="1">Crudo</button>
-      <button type="button" class="tab-btn" id="tabProc" data-s="2">Procesado</button>
+      <button type="button" class="tab active" id="tabCrudo" data-s="1">Crudo</button>
+      <button type="button" class="tab" id="tabProc" data-s="2">Procesado</button>
     </div>
 
     <div class="kpis">
-      <div class="kpi"><div class="k">Faltantes autom.</div><div class="v" id="kFalt">—</div></div>
-      <div class="kpi"><div class="k">Marcas abiertas</div><div class="v" id="kMarcas">—</div></div>
-      <div class="kpi"><div class="k">Ubicación corta</div><div class="v" id="kCortas">—</div></div>
+      <div class="kpi err"><div class="k">Faltantes autom.</div><div class="v" id="kFalt">—</div></div>
+      <div class="kpi warn"><div class="k">Marcas abiertas</div><div class="v" id="kMarcas">—</div></div>
+      <div class="kpi warn"><div class="k">Ubicación corta</div><div class="v" id="kCortas">—</div></div>
     </div>
 
-    <div class="row" style="justify-content:space-between">
-      <div class="status" id="status" style="margin:0">Cargando…</div>
+    <div class="row">
+      <div class="status mt0 mb0" id="status">Cargando…</div>
+      <span class="spacer"></span>
       <button class="btn btn-primary" id="btnMarcar" type="button">+ Marcar faltante</button>
     </div>
 
@@ -101,16 +91,16 @@ table.t tr.r-marca td{background:#fffbeb}
 </div>
 
 <!-- popup marcar faltante -->
-<div class="overlay hidden" id="ovMarcar">
-  <div class="popup">
-    <h2>Marcar faltante</h2>
-    <label for="mComp">Componente</label>
-    <select id="mComp"></select>
-    <label for="mNota">Nota (opcional)</label>
-    <input type="text" id="mNota" placeholder="Ej: no hay para mandar a pintar">
-    <label for="mUser">Tu nombre</label>
-    <input type="text" id="mUser" placeholder="Quién marca">
-    <div class="acciones">
+<div class="popup hidden" id="ovMarcar">
+  <div class="pop-card">
+    <h3>Marcar faltante</h3>
+    <div class="field"><label for="mComp">Componente</label>
+    <select id="mComp"></select></div>
+    <div class="field"><label for="mNota">Nota (opcional)</label>
+    <input type="text" id="mNota" placeholder="Ej: no hay para mandar a pintar"></div>
+    <div class="field"><label for="mUser">Tu nombre</label>
+    <input type="text" id="mUser" placeholder="Quién marca"></div>
+    <div class="actions">
       <button class="btn btn-secondary" id="mCancelar" type="button">Cancelar</button>
       <button class="btn btn-primary" id="mConfirmar" type="button">Marcar</button>
     </div>
@@ -182,7 +172,7 @@ function render(){
     var stockHtml = fmt(x.stock, 0) + " uni" +
       (x.caj_stock != null ? '<br><small class="sub">' + fmt(x.caj_stock, 2) + " caj</small>" : "");
     if (esFalt){
-      stockHtml += '<br><span class="pill-falt">bajo el máximo: faltan ' +
+      stockHtml += '<br><span class="pill-falt badge err">bajo el máximo: faltan ' +
         fmt(Math.max(0, Number(x.maximo) - Number(x.stock)), 0) + " uni</span>";
     }
 
@@ -196,16 +186,16 @@ function render(){
 
     var llenaHtml = (x.cob_llena_dias == null) ? "—"
       : '<span class="dias' + (x.ubic_corta ? " rojo" : "") + '">' + fmt(x.cob_llena_dias, 1) + ' días</span>' +
-        (x.ubic_corta ? '<br><span class="pill-corta">⚠ la ubicación no alcanza</span>' : "");
+        (x.ubic_corta ? '<br><span class="pill-corta badge warn">⚠ la ubicación no alcanza</span>' : "");
 
     var marcasHtml = marcas.map(function(m){
-      return '<span class="badge-marca">' + esc(ORIGEN_LBL[m.origen] || m.origen) +
+      return '<span class="badge-marca badge warn">' + esc(ORIGEN_LBL[m.origen] || m.origen) +
         (m.nota ? " · " + esc(m.nota) : "") + (m.por ? " · " + esc(m.por) : "") + '</span>' +
-        '<button type="button" class="btn-resolver" data-mid="' + m.id + '" data-cod="' + esc(m.cod) + '">Resolver</button>';
+        '<button type="button" class="btn-resolver btn btn-sm btn-secondary" data-mid="' + m.id + '" data-cod="' + esc(m.cod) + '">Resolver</button>';
     }).join("<br>");
 
     tr.innerHTML =
-      '<td><span class="cod">' + esc(x.cod) + '</span><br><small class="sub">' + esc(x["desc"] || "") + '</small></td>' +
+      '<td class="comp"><span class="cod">' + esc(x.cod) + '</span><br><small class="sub">' + esc(x["desc"] || "") + '</small></td>' +
       '<td class="num">' + stockHtml + '</td>' +
       '<td class="num">' + (x.consumo_mes > 0 ? fmt(x.consumo_mes, 0) : "—") + '</td>' +
       '<td class="num">' + alcanzaHtml + '</td>' +

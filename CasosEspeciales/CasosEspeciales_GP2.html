@@ -29,32 +29,35 @@
 <link rel="apple-touch-icon" href="../GP2_favicon.png">
 <link rel="stylesheet" href="../gp2-modulo.css?v=20261008ds">
 <style>
-  .ce-wrap{max-width:560px}
-  .ce-dest{display:flex;flex-direction:column;gap:10px;margin:10px 0}
-  .ce-card{display:flex;flex-direction:column;gap:2px;text-align:left;background:#fff;border:2px solid #d0d7de;
-           border-radius:12px;padding:16px 18px;cursor:pointer;font-size:18px}
-  .ce-card:hover{border-color:#111}
-  .ce-card .n{font-size:22px;font-weight:900;color:#111}
-  .ce-card .m{font-size:16px;color:#555}
-  .ce-stock{background:#eef4fb;border:2px solid #cddaea;border-radius:12px;padding:14px 18px;margin:12px 0;text-align:center}
-  .ce-stock .lbl2{font-size:13px;font-weight:800;color:#475569;text-transform:uppercase;letter-spacing:.4px}
-  .ce-stock .big{font-size:32px;font-weight:900;color:#0b3b73}
-  .ce-field{display:flex;flex-direction:column;gap:6px;margin:12px 0}
-  .ce-field label{font-size:18px;font-weight:800;color:#111}
-  .ce-field input{font-size:22px;padding:12px 14px;border:2px solid #cbd5e1;border-radius:10px;width:100%}
-  .ce-two{display:flex;gap:14px;flex-wrap:wrap}
-  .ce-two > div{flex:1 1 150px}
+  /* destinos: tarjetas para elegir (.prov-btn del sistema), una al lado de la otra */
+  .ce-dest{--grid-min:260px;margin:var(--s2) 0}
+  .ce-card{width:100%;padding:12px 16px;gap:2px}
+  .ce-card .n{font-size:var(--fs-xl);font-weight:750}
+  .ce-card .m{font-size:var(--fs-md)}
+  .ce-card .m b{color:var(--ink-2)}
+  /* stock en el destino: el numero grande de la pantalla */
+  .ce-stock{text-align:center;margin:0 0 var(--s4)}
+  .ce-stock .v small{font-size:var(--fs-lg);font-weight:650;color:var(--ink-3);letter-spacing:0}
+  .ce-two{--grid-min:200px;margin:var(--s3) 0}
   /* v2.0.1: si un rotulo ocupa 2 lineas y el vecino 1, los inputs quedaban desnivelados.
      Las dos columnas ya miden lo mismo (stretch): el input va al piso de cada una. */
-  .ce-two > .ce-field{justify-content:space-between}
-  #ceSlider{width:100%;height:40px;margin-top:8px;accent-color:#0b3b73;cursor:pointer}
-  #ceSliderLbl{text-align:center;font-size:18px;font-weight:800;color:#0b3b73}
-  #ceSplit{font-size:14px;color:#666;font-weight:600;margin-top:6px}
+  .ce-two > .field{justify-content:space-between}
+  .ce-field{margin:var(--s3) 0}
+  .ce-two > .ce-field{margin:0}
+  .ce-field input{width:100%}
+  /* el kg es EL dato de la pantalla: un poco mas grande que el piso de 18px */
+  #kg{font-size:22px;font-weight:600;min-height:52px}
+  #splitBox{margin:var(--s4) 0}
+  #ceSlider{display:block;width:100%;height:40px;margin-top:var(--s2);accent-color:var(--sel);cursor:pointer}
+  #ceSliderLbl{text-align:center;font-size:var(--fs-lg);font-weight:750;color:var(--sel)}
+  #ceSplit{margin-top:6px}
+  #okDetail{font-size:var(--fs-lg);color:var(--ink-2)}
+  .ce-fin{justify-content:center}
 </style>
 </head>
 <body>
 
-<div class="card ce-wrap">
+<div class="card angosto">
   <div class="header">
     <h1>Casos especiales</h1>
     <div class="hbtns">
@@ -67,54 +70,54 @@
 
     <!-- FASE 0 — elegir destino -->
     <div id="fase0">
-      <div class="row"><label class="lbl">Entrega directa de material a…</label></div>
-      <div class="ce-dest" id="destGrid"></div>
+      <h2 class="sec-h">Entrega directa de material a…</h2>
+      <div class="ce-dest grid-auto" id="destGrid"></div>
       <div id="status" class="status">Cargando…</div>
     </div>
 
     <!-- FASE 1 — cargar kg -->
     <div id="fase1" class="hidden">
-      <div class="ce-stock">
-        <div class="lbl2" id="stockLbl">Stock en el destino</div>
-        <div class="big"><span id="pStock">—</span> <small style="font-size:18px;color:#0b5cad">kg</small></div>
+      <div class="kpi pri ce-stock">
+        <span class="k" id="stockLbl">Stock en el destino</span>
+        <span class="v"><span id="pStock">—</span> <small>kg</small></span>
       </div>
 
-      <div class="ce-two">
-        <div class="ce-field">
+      <div class="ce-two grid-auto">
+        <div class="ce-field field">
           <label for="fFecha">Fecha</label>
           <input type="date" id="fFecha">
         </div>
-        <div class="ce-field">
+        <div class="ce-field field">
           <label for="fRemito">N° remito (opcional)</label>
           <input type="text" id="fRemito" inputmode="text" placeholder="Opcional">
         </div>
       </div>
 
-      <div class="ce-field">
+      <div class="ce-field field">
         <label for="kg" id="kgLbl">Kg de material entregados</label>
         <input type="text" id="kg" inputmode="decimal" autocomplete="off" placeholder="0">
       </div>
 
       <!-- reparto corto/largo (solo Charcas) -->
-      <div id="splitBox" class="hidden">
-        <label style="font-size:18px;font-weight:800;color:#111">Reparto corto / largo (deslizá o escribí)</label>
+      <div id="splitBox" class="panel hidden">
+        <label class="lbl" for="ceSlider">Reparto corto / largo (deslizá o escribí)</label>
         <input type="range" id="ceSlider" min="0" max="100" step="1" value="50">
         <div id="ceSliderLbl">Definí el reparto</div>
-        <div class="ce-two" style="margin-top:8px">
-          <div class="ce-field">
+        <div class="ce-two grid-auto">
+          <div class="ce-field field">
             <label for="pctCorto">% Corto (IC3) → Cervantes</label>
             <input type="text" id="pctCorto" inputmode="numeric" placeholder="70">
           </div>
-          <div class="ce-field">
+          <div class="ce-field field">
             <label for="pctLargo">% Largo (IC3V) → Virgilio</label>
             <input type="text" id="pctLargo" inputmode="numeric" placeholder="30">
           </div>
         </div>
-        <div id="ceSplit">Definí cómo tiene que cortar este material (se completan solos a 100).</div>
+        <div id="ceSplit" class="sub">Definí cómo tiene que cortar este material (se completan solos a 100).</div>
       </div>
 
-      <div class="row" style="margin-top:14px">
-        <button class="btn btn-primary" id="btnEnviar" type="button" disabled style="width:100%">Registrar entrega</button>
+      <div class="row">
+        <button class="btn btn-primary btn-lg btn-block" id="btnEnviar" type="button" disabled>Registrar entrega</button>
       </div>
       <div id="msg1" class="status"></div>
     </div>
@@ -123,9 +126,9 @@
     <div id="fase2" class="hidden">
       <div class="successBox">
         <div class="title">✓ Entrega registrada</div>
-        <div id="okDetail" style="font-size:18px;color:#333"></div>
+        <div id="okDetail"></div>
       </div>
-      <div class="row" style="justify-content:center">
+      <div class="row ce-fin">
         <button class="btn btn-primary" id="btnOtro" type="button">← Registrar otra</button>
       </div>
     </div>
@@ -185,11 +188,11 @@ function renderDest(){
   var cont = $("destGrid"); cont.innerHTML = "";
   DEST.forEach(function(d){
     var b = document.createElement("button");
-    b.type = "button"; b.className = "ce-card";
+    b.type = "button"; b.className = "ce-card prov-btn";
     b.innerHTML =
       '<span class="n">'+esc(d.nombre)+'</span>'+
-      '<span class="m">Material: <b>'+esc(d.mp_cod)+'</b>'+(d.mp_desc? " · "+esc(d.mp_desc):"")+'</span>'+
-      '<span class="m">Vende: '+esc(d.proveedor)+(d.split? " · con reparto corto/largo":"")+'</span>';
+      '<span class="m meta">Material: <b>'+esc(d.mp_cod)+'</b>'+(d.mp_desc? " · "+esc(d.mp_desc):"")+'</span>'+
+      '<span class="m meta">Vende: '+esc(d.proveedor)+(d.split? " · con reparto corto/largo":"")+'</span>';
     b.addEventListener("click", function(){ elegir(d); });
     cont.appendChild(b);
   });
@@ -302,7 +305,7 @@ $("btnEnviar").addEventListener("click", async function(){
 
   if (r.error){
     btn.disabled = false;
-    $("msg1").innerHTML = '<span style="color:#b91c1c">Error: ' + esc(r.error.message || "no se pudo registrar") + '</span>';
+    $("msg1").innerHTML = '<span class="err-txt">Error: ' + esc(r.error.message || "no se pudo registrar") + '</span>';
     return;
   }
 

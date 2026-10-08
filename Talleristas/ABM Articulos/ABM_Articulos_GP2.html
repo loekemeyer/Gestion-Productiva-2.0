@@ -11,9 +11,12 @@
  /* Sistema de diseño v2 (gp2-modulo.css): barra, botones, campos, tablas, kpis y avisos los da el
     sistema. Aca queda solo lo propio: el acordeon de articulos, el editor de receta y el modal. */
  .aviso{margin-top:0}
- .toolbar .field.grow{flex:1 1 260px}
- .toolbar .field.grow input{width:100%}
- .toolbar select{min-width:200px}
+ .toolbar .field{flex:1 1 200px}
+ .toolbar .field.grow{flex:2 1 260px}
+ /* el sistema da flex-basis 260px a los buscadores de .toolbar; adentro de un .field (columna) eso
+    seria ALTO: se anula */
+ .toolbar .field.grow input{width:100%;flex:none}
+ .toolbar select{width:100%}
  /* acordeon: un articulo por seccion */
  .art-section{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-md);margin:0 0 var(--s2)}
  .art-head{display:flex;align-items:center;gap:var(--s2) var(--s4);flex-wrap:wrap;min-height:56px;padding:6px var(--s3) 6px var(--s4);cursor:pointer;user-select:none;border-radius:var(--r-md)}
@@ -56,7 +59,8 @@
  .topmsg.ok,.topmsg.err,.fmsg.ok,.fmsg.err{display:block}
  .fmsg{margin:0}
  /* editor de receta (BOM) */
- .bom-edit{border:2px solid var(--pri-line);border-radius:var(--r-md);padding:var(--s3);margin:var(--s3) var(--s4) var(--s4);background:var(--surface)}
+ .bom-edit{border:2px solid var(--pri-line);border-radius:var(--r-md);padding:var(--s3);margin:var(--s3) var(--s4) var(--s4);background:var(--surface);overflow-x:auto}
+ .art-body .bom-edit table.t{min-width:520px}
  .bom-tit{font-weight:700;margin-bottom:var(--s2)}
  .bom-edit .row{margin-bottom:0}
  .bom-add{min-width:220px;flex:0 1 320px}

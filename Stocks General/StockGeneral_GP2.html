@@ -207,85 +207,79 @@
 <link rel="apple-touch-icon" href="../GP2_favicon.png">
 <link rel="stylesheet" href="../gp2-modulo.css?v=20261008ds">
 <style>
- /* grilla de rubros (foto 1): botones que no se estiran a todo el ancho */
- /* v2.5.0: pestañas de planta (Cervantes / Virgilio) */
- .planta-tabs{display:flex;gap:6px;padding:12px 18px 0;border-bottom:2px solid #e5e9ee}
- .planta-tab{padding:10px 18px;min-height:44px;font-size:17px;font-weight:800;border:2px solid #d0d7de;border-bottom:none;border-radius:9px 9px 0 0;background:#f6f8fa;color:#555;cursor:pointer;margin-bottom:-2px}
- .planta-tab.active{background:#fff;color:#111;border-color:#e5e9ee;border-bottom:2px solid #fff}
- .planta-vacia{padding:28px 18px;text-align:center;color:#9aa4af;font-size:16px}
- .planta-tab.sep{margin-left:auto}
- /* v3.2.0: tabla de insumos de Virgilio sin código asignado (arriba de los filtros, sólo en Virgilio) */
- .vins-box{border:2px solid #f0c36d;background:#fffdf5;border-radius:12px;padding:14px 16px;margin:12px 0 6px}
- .vins-head{display:flex;flex-wrap:wrap;align-items:baseline;gap:10px;margin-bottom:6px;cursor:pointer;user-select:none}
- .vins-caret{font-size:16px;color:#8a5a00;line-height:1}
- .vins-box.collapsed .vins-body{display:none}
- .vins-box.collapsed{margin-bottom:12px}
- .vins-ttl{font-size:18px;font-weight:800;color:#8a5a00}
- .vins-sub{font-size:14px;color:#7a6a3a}
- .vins-box .toolbar{margin:6px 0 10px}
- .vins-box table.t td.cod-vacio{color:#c2a84f;text-align:center;font-weight:700}
- /* v3.3.0: inputs del editor de equivalencia (Cod C / Cod ISIS) + botón guardar */
- .vins-in{padding:6px 8px;font-size:18px;border:2px solid #d0d7de;border-radius:7px;width:96px}
- .vins-cerv{width:118px}
- .vins-cc{white-space:nowrap}
- .vins-ok{margin-left:5px;min-height:38px;padding:4px 11px;font-size:18px;font-weight:800;border:2px solid #15803d;background:#dcfce7;color:#15803d;border-radius:7px;cursor:pointer}
- .vins-ok[disabled]{opacity:.5;cursor:progress}
- .rubro-lbl{font-size:13px;font-weight:800;color:#666;text-transform:uppercase;letter-spacing:.5px;margin:4px 0 8px}
- .rubro-grp{font-size:12px;font-weight:800;color:#999;text-transform:uppercase;margin:10px 0 6px}
- .rubros{display:flex;flex-wrap:wrap;gap:8px}
- .rubro-btn{padding:11px 16px;min-height:44px;border-radius:9px;border:2px solid #d0d7de;background:#fff;font-weight:700;cursor:pointer;font-size:17px;color:#111}
- .rubro-btn:hover{border-color:#111}
- .rubro-btn.active{background:#111;color:#fff;border-color:#111}
- .toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:12px 0}
- .toolbar input[type=text]{flex:1 1 260px;min-width:200px;padding:10px 12px;font-size:18px;border:2px solid #d0d7de;border-radius:8px}
- .chk{display:flex;align-items:center;gap:6px;font-size:16px;color:#333;cursor:pointer;user-select:none}
- .chk input{width:20px;height:20px}
- .flje-link{margin-left:auto;font-size:15px;font-weight:700;color:#0066cc;text-decoration:none}
+ /* Sistema de diseño v2 (2026-10-08): barra, chips, pestañas, tablas, popup, modal y toast salen de
+    gp2-modulo.css. Acá queda SOLO el armado propio de esta pantalla, con tokens. */
+ /* pestañas de planta (.tabs > .tab): Virgilio va aparte, a la derecha (v3.2.0) */
+ .planta-tabs{margin-bottom:var(--s3)}
+ .planta-tab.sep{margin-left:auto;border-left:0}
+ /* selector de rubros: el rótulo de la planta a la izquierda y sus chips al lado, un renglón por grupo */
+ #rubros{display:grid;grid-template-columns:max-content minmax(0,1fr);gap:6px var(--s4);align-items:start;margin:0 0 var(--s1)}
+ #rubros .rubro-grp{min-width:84px;padding-top:15px}
+ #rubros .rubros{position:relative;margin:0;gap:6px}
+ #rubros .chip{white-space:nowrap}
+ .flje-link{margin-left:auto}
  /* "También en: …" — el componente aparece en otros rubros que el abierto */
- .hint-otros{font-size:16px;color:#333;margin:-4px 0 10px;line-height:1.7}
- .hint-otros b{color:#111}
- .hint-otros a{color:#0066cc;font-weight:800;text-decoration:none;cursor:pointer;white-space:nowrap}
+ .hint-otros{margin:0 0 var(--s3);line-height:1.7}
+ .hint-otros a{font-weight:700;text-decoration:none;cursor:pointer;white-space:nowrap}
  .hint-otros a:hover{text-decoration:underline}
- .hint-otros .sin-link{font-weight:800;color:#555;white-space:nowrap}
- .nota-tabla{font-size:15px;color:#666;margin:8px 0 0;font-style:italic}
- table.t td.rub-cell{cursor:pointer;color:#0066cc;font-weight:800;text-decoration:underline dotted}
- table.t td.rub-cell:hover{background:#eef4fb}
- table.t td.mov-cell,table.t td.stk-cell,table.t td.max-cell{cursor:pointer;text-decoration:underline dotted}
- table.t td.mov-cell:hover,table.t td.stk-cell:hover,table.t td.max-cell:hover{background:#eef4fb}
- /* popup del Máximo: la cuenta en una línea arriba de la tabla */
- .max-linea{font-size:16px;line-height:1.5;margin:0 0 10px;color:#111}
- .max-aviso{font-size:16px;line-height:1.5;margin:0 0 10px;color:#b45309;font-weight:700}
- table.t td.pos{color:#15803d}
- table.t td.neg{color:#b91c1c}
- table.t td.cero{color:#9aa4af}
- /* popup detalle de movimiento (igual que Stock por Sector) */
- .popup{position:fixed;inset:0;background:rgba(0,0,0,.5);display:none;align-items:center;justify-content:center;z-index:200;padding:16px}
+ .hint-otros .sin-link{font-weight:700;white-space:nowrap}
+ .nota-tabla{font-size:var(--fs-sm);color:var(--ink-3);margin:var(--s2) 0 0}
+ /* tabla: una fila = un renglón (la descripción es la única que parte); scrollea de costado adentro */
+ #tbody td{white-space:nowrap}
+ #tbody td.dsc{white-space:normal;min-width:200px}
+ table.t td.rub-cell{cursor:pointer;color:var(--pri-ink);font-weight:700}
+ table.t td.rub-cell:hover{background:var(--pri-soft);text-decoration:underline}
+ table.t td.mov-cell,table.t td.stk-cell,table.t td.max-cell{cursor:pointer;text-decoration:underline dotted var(--ink-4);text-underline-offset:3px}
+ table.t td.mov-cell:hover,table.t td.stk-cell:hover,table.t td.max-cell:hover{background:var(--pri-soft)}
+ /* v3.0.4: los movimientos verde/rojo van sólo con el color, sin negrita */
+ table.t td.pos,table.t td.neg{font-weight:400}
+ /* v3.2.0: insumos de Virgilio sin código asignado (arriba de los filtros, sólo en Virgilio) */
+ .vins-box{padding:0;margin:0 0 var(--s3);border-left:4px solid var(--warn-line)}
+ .vins-head{display:flex;flex-wrap:wrap;align-items:baseline;gap:2px 10px;min-height:var(--touch);padding:10px var(--s4);cursor:pointer;user-select:none;border-radius:var(--r-md)}
+ .vins-head:hover{background:var(--surface-2)}
+ .vins-caret{color:var(--ink-3);display:inline-block;width:16px}
+ .vins-ttl{font-size:var(--fs-lg);font-weight:700;color:var(--ink)}
+ .vins-body{padding:0 var(--s4) var(--s4)}
+ .vins-body .search-box{margin:0 0 var(--s3)}
+ .vins-box.collapsed .vins-body{display:none}
+ /* v3.3.0: el editor de equivalencia (Cod C / Cod ISIS) + ✓ para guardar */
+ .vins-in{width:96px;padding:0 8px}
+ .vins-cerv{width:150px}
+ .vins-cc{white-space:nowrap}
+ .vins-ok{margin-left:6px}
+ /* popup del detalle (movimiento / Máximo) */
+ .popup{position:fixed;inset:0;display:none;align-items:center;justify-content:center;z-index:200;padding:var(--s4)}
  .popup.open{display:flex}
- .pop-card{background:#fff;border-radius:14px;width:100%;max-width:880px;max-height:86vh;overflow:auto;padding:20px}
- .pop-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:14px}
- .pop-head h3{font-size:20px;font-weight:800}
- /* Ajuste (heredado de Registrar_Movimiento) */
- .modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;align-items:center;justify-content:center;z-index:250;padding:14px}
+ .pop-card{width:100%;max-width:880px;max-height:86vh;overflow:auto;padding:var(--s5)}
+ .pop-head h3 small{display:block;margin-top:2px;font-size:var(--fs-sm);font-weight:700;color:var(--ink-3)}
+ .max-linea{line-height:1.5;margin:0 0 var(--s2)}
+ /* Ajuste ± (heredado de Registrar_Movimiento) */
+ .modal-bg{position:fixed;inset:0;display:none;align-items:center;justify-content:center;z-index:250;padding:14px}
  .modal-bg.on{display:flex}
- .modal{background:#fff;border-radius:12px;padding:22px;max-width:600px;width:100%;max-height:94vh;overflow-y:auto}
- .modal h3{margin:0 0 14px;font-size:19px}
- .frow{margin-bottom:12px}
- .frow label{display:block;font-size:13px;text-transform:uppercase;color:#666;font-weight:700;margin-bottom:4px}
- .frow select,.frow input{width:100%;border:2px solid #d0d7de;border-radius:8px;padding:10px 12px;font-size:18px}
- .frow .hint{font-size:13px;color:#666;margin-top:3px;font-style:italic}
- .actions{display:flex;gap:8px;justify-content:flex-end;margin-top:16px;border-top:1px solid #e5e9ee;padding-top:14px}
- .btn-m{padding:12px 20px;border-radius:8px;border:2px solid;font-size:16px;font-weight:800;cursor:pointer;min-height:44px}
- .btn-m.primary{background:#111;border-color:#111;color:#fff}
- .btn-m.primary[disabled]{opacity:.5;cursor:progress}
- .btn-m.cancel{background:#fff;border-color:#d0d7de;color:#111}
- #toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#dcfce7;border:1px solid #86efac;color:#15803d;padding:10px 18px;border-radius:8px;font-size:15px;font-weight:700;z-index:300;opacity:0;transition:opacity .2s;pointer-events:none}
+ .modal{max-width:600px;width:100%;max-height:94vh;overflow-y:auto;padding:var(--s6)}
+ .modal h3{margin:0 0 var(--s4)}
+ .frow{margin-bottom:var(--s3)}
+ .frow select,.frow input{width:100%}
+ .modal .actions{margin-top:var(--s4);border-top:1px solid var(--line);padding-top:var(--s4)}
+ #toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);z-index:300;max-width:calc(100vw - 32px);padding:10px 18px;
+   background:var(--ok-soft);border:1px solid var(--ok-line);color:var(--ok);opacity:0;transition:opacity .2s;pointer-events:none}
  #toast.on{opacity:1}
- #toast.err{background:#fee2e2;border-color:#fca5a5;color:#b91c1c}
- .movs-wrap{overflow-x:auto}
- .tag{display:inline-block;padding:2px 7px;border-radius:4px;font-size:11px;font-weight:800;text-transform:uppercase;background:#eef2f7;color:#334}
- details.movs{margin-top:18px;border:1px solid #e5e9ee;border-radius:10px;padding:0 12px}
- details.movs>summary{cursor:pointer;font-weight:800;font-size:17px;padding:12px 0;list-style:none}
- details.movs>summary::-webkit-details-marker{display:none}
+ #toast.err{background:var(--err-soft);border-color:var(--err-line);color:var(--err)}
+ .movs-wrap{margin-bottom:14px}
+ @media (max-width:640px){
+   .planta-tab{padding:0 10px;font-size:15px}
+   .planta-tab .ico{display:none}
+   #rubros{grid-template-columns:minmax(0,1fr);gap:2px}
+   #rubros .rubro-grp{margin-top:6px;padding-top:0}
+   /* en el celular cada planta es UN renglón que se desliza de costado (y llega al borde, para que se note) */
+   #rubros .rubros{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;margin-right:calc(-1 * var(--gutter));padding-right:var(--gutter)}
+   #rubros .rubros::-webkit-scrollbar{display:none}
+   #rubros .chip{flex:0 0 auto}
+   /* "Todos": Rubro y Dónde parten en dos renglones, así el Código entra en la primera pantalla */
+   #tbody td.rub,#tbody td.ubi{white-space:normal;min-width:84px;max-width:120px;font-size:var(--fs-sm)}
+   .popup{padding:var(--s2)}
+   .pop-card,.modal{padding:var(--s4)}
+ }
 </style>
 </head>
 <body>
@@ -294,29 +288,28 @@
   <div class="header">
     <h1>Stock general</h1>
     <div class="hbtns">
-      <button class="hlink" id="btnAjuste" onclick="openAjuste()">± Ajuste</button>
+      <button type="button" class="hlink" id="btnAjuste" onclick="openAjuste()">± Ajuste</button>
       <a href="../GP2_MODULOS.html">Atrás</a>
     </div>
   </div>
 
-  <div class="planta-tabs" role="tablist">
-    <button type="button" class="planta-tab active" id="tabTodos" role="tab" onclick="filtrarPlanta('todos')">🔎 Todos</button>
-    <button type="button" class="planta-tab" id="tabCervantes" role="tab" onclick="filtrarPlanta('cerv')">🏭 Cervantes</button>
-    <button type="button" class="planta-tab" id="tabTerceros" role="tab" onclick="filtrarPlanta('terc')">👥 Terceros</button>
-    <button type="button" class="planta-tab sep" id="tabVirgilio" role="tab" onclick="filtrarPlanta('virg')">🏬 Virgilio</button>
-  </div>
-
   <div class="steps" id="paneCervantes">
 
+    <div class="planta-tabs tabs" role="tablist">
+      <button type="button" class="planta-tab tab active" id="tabTodos" role="tab" onclick="filtrarPlanta('todos')"><span class="ico" aria-hidden="true">🔎</span> Todos</button>
+      <button type="button" class="planta-tab tab" id="tabCervantes" role="tab" onclick="filtrarPlanta('cerv')"><span class="ico" aria-hidden="true">🏭</span> Cervantes</button>
+      <button type="button" class="planta-tab tab" id="tabTerceros" role="tab" onclick="filtrarPlanta('terc')"><span class="ico" aria-hidden="true">👥</span> Terceros</button>
+      <button type="button" class="planta-tab tab sep" id="tabVirgilio" role="tab" onclick="filtrarPlanta('virg')"><span class="ico" aria-hidden="true">🏬</span> Virgilio</button>
+    </div>
+
     <!-- v3.2.0: insumos de Virgilio sin código asignado (sólo pestaña Virgilio, arriba de los filtros) -->
-    <div id="vinsBox" class="vins-box hidden collapsed">
+    <div id="vinsBox" class="vins-box panel hidden collapsed">
       <div class="vins-head" id="vinsHead" role="button" tabindex="0" title="Mostrar / ocultar">
-        <span class="vins-caret" id="vinsCaret">▸</span>
-        <div class="vins-ttl">🔗 Insumos de Virgilio sin asignar a un código</div>
-        <div class="vins-sub" id="vinsSub"></div>
+        <div class="vins-ttl"><span class="vins-caret" id="vinsCaret">▸</span>🔗 Insumos de Virgilio sin asignar a un código</div>
+        <div class="vins-sub sub" id="vinsSub"></div>
       </div>
       <div class="vins-body" id="vinsBodyWrap">
-        <div class="toolbar"><input type="text" id="vinsQ" placeholder="Buscar insumo sin asignar…"></div>
+        <div class="search-box"><input type="text" id="vinsQ" placeholder="Buscar insumo sin asignar…"></div>
         <div class="table-wrap">
           <table class="t">
             <thead><tr>
@@ -330,18 +323,17 @@
       </div>
     </div>
 
-    <div class="rubro-lbl">Rubro</div>
-    <div id="rubros"></div>
+    <div id="rubros" aria-label="Rubro"></div>
 
     <div class="toolbar">
-      <input type="text" id="q" placeholder="Buscar por código o descripción…">
+      <input type="text" id="q" class="search" placeholder="Buscar por código o descripción…">
       <label class="chk"><input type="checkbox" id="soloStock"> Solo con stock</label>
-      <a id="fljeLink" class="flje-link" style="display:none" href="../StockFlejes/Flejes_GP2.html">Detalle de flejes / rollos →</a>
+      <a id="fljeLink" class="flje-link btn btn-ghost" style="display:none" href="../StockFlejes/Flejes_GP2.html">Detalle de flejes / rollos →</a>
     </div>
 
-    <div class="hint-otros hidden" id="hintOtros"></div>
+    <div class="hint-otros aviso info hidden" id="hintOtros"></div>
 
-    <div class="table-wrap">
+    <div class="table-wrap" id="tblWrap">
       <table class="t">
         <thead id="thead"></thead>
         <tbody id="tbody"></tbody>
@@ -353,7 +345,7 @@
 
     <details class="movs" id="grpMovs">
       <summary>📜 Últimos movimientos <span id="movsBadge"></span></summary>
-      <div class="movs-wrap">
+      <div class="movs-wrap table-wrap">
         <table class="t" id="tblMovs">
           <thead><tr>
             <th>Fecha</th><th>Tipo</th><th>Componente</th><th>Origen</th><th>Destino</th>
@@ -369,7 +361,7 @@
 <!-- popup detalle de un movimiento (rubros de sector) -->
 <div class="popup" id="popup">
   <div class="pop-card">
-    <div class="pop-head"><h3 id="popTitle"></h3><button class="btn-m cancel" id="popClose" type="button">Cerrar</button></div>
+    <div class="pop-head"><h3 id="popTitle"></h3><button class="btn btn-secondary" id="popClose" type="button">Cerrar</button></div>
     <div id="popBody"></div>
   </div>
 </div>
@@ -380,8 +372,8 @@
     <h3 id="modalTitle"></h3>
     <div id="modalForm"></div>
     <div class="actions">
-      <button class="btn-m cancel" onclick="closeModal()">Cancelar</button>
-      <button class="btn-m primary" id="btnSave" onclick="saveModal()">✔ Registrar</button>
+      <button type="button" class="btn btn-secondary" onclick="closeModal()">Cancelar</button>
+      <button type="button" class="btn btn-primary" id="btnSave" onclick="saveModal()">✔ Registrar</button>
     </div>
   </div>
 </div>
@@ -501,9 +493,9 @@ function pintarRubros(){
   lista.forEach(function(r){ var g=r.grupo||""; if(!vistos[g]){ vistos[g]=1; grupos.push(g); } });
   $("rubros").innerHTML = grupos.map(function(g){
     var btns = lista.filter(function(r){ return (r.grupo||"")===g; }).map(function(r){
-      return '<button class="rubro-btn" data-k="'+r.key+'" type="button">'+esc(r.nom)+'</button>';
+      return '<button class="rubro-btn chip" data-k="'+r.key+'" type="button">'+esc(r.nom)+'</button>';
     }).join("");
-    return (g ? '<div class="rubro-grp">'+esc(g)+'</div>' : '') + '<div class="rubros">'+btns+'</div>';
+    return (g ? '<div class="rubro-grp eyebrow">'+esc(g)+'</div>' : '') + '<div class="rubros chips">'+btns+'</div>';
   }).join("");
   document.querySelectorAll("#rubros .rubro-btn").forEach(function(b){
     b.addEventListener("click", function(){ seleccionar(b.dataset.k); });
@@ -554,7 +546,7 @@ async function cargarVins(){
   if (!res || res.error || !res.data){
     // una lectura ROTA no es "0 insumos": lo dice, no muestra la tabla vacía.
     VINS = null; $("vinsBody").innerHTML = ""; $("vinsEmpty").classList.add("hidden");
-    $("vinsSub").innerHTML = '<span style="color:#b91c1c;font-weight:700">No se pudo leer el stock de Virgilio — reintentá.</span>';
+    $("vinsSub").innerHTML = '<b class="err-txt">No se pudo leer el stock de Virgilio — reintentá.</b>';
     return;
   }
   VINS = res.data;
@@ -570,7 +562,7 @@ function renderVins(){
     var kg = (f.unidad||"").toLowerCase()==="kg";
     return '<tr data-cv="'+esc(f.cod_v||"")+'">'+
       '<td><span class="cod">'+esc(f.cod_v||"")+'</span></td>'+
-      '<td class="vins-cc"><input class="vins-in vins-cerv" type="text" placeholder="Cód. Cervantes"><button type="button" class="vins-ok" title="Vincular esta equivalencia">✓</button></td>'+
+      '<td class="vins-cc"><input class="vins-in vins-cerv" type="text" placeholder="Cód. Cervantes"><button type="button" class="vins-ok btn btn-ok btn-sm" title="Vincular esta equivalencia">✓</button></td>'+
       '<td><input class="vins-in vins-isis" type="text" inputmode="numeric" value="'+esc(f.isis||"")+'" placeholder="ISIS"></td>'+
       '<td>'+esc(f.nombre||"")+'</td>'+
       '<td>'+esc(vinsRubro(f.categoria))+'</td>'+
@@ -611,6 +603,11 @@ function marcarActivo(){
   document.querySelectorAll("#rubros .rubro-btn").forEach(function(b){
     b.classList.toggle("active", RUBRO && b.dataset.k===RUBRO.key);
   });
+  // en el celular cada grupo de rubros es un renglón que se desliza de costado: el elegido queda a la vista
+  var a = document.querySelector("#rubros .rubro-btn.active"), fila = a && a.parentNode;
+  if (fila && fila.scrollWidth > fila.clientWidth &&
+      (a.offsetLeft < fila.scrollLeft || a.offsetLeft + a.offsetWidth > fila.scrollLeft + fila.clientWidth))
+    fila.scrollLeft = Math.max(0, a.offsetLeft - 12);
 }
 
 /* ---------- conversiones (misma regla que Stock por Sector) ---------- */
@@ -916,9 +913,9 @@ function pintarHint(){
   if (q && RUBRO && RUBRO.mode!=="global" && !PRECARGA && sidsSinLeer().length)
     PRECARGA = precargarSectores().then(pintarHint);
   var otros = (RUBRO && RUBRO.mode==="global") ? [] : otrosRubros(q);
-  if (!otros.length){ el.className = "hint-otros hidden"; el.innerHTML = ""; return; }
+  if (!otros.length){ el.className = "hint-otros aviso info hidden"; el.innerHTML = ""; return; }
   var tot = otros.reduce(function(s,o){ return s+o.n; }, 0);
-  el.className = "hint-otros";
+  el.className = "hint-otros aviso info";
   el.innerHTML = '<b>También en otros rubros ('+tot+'):</b> ' + otros.map(function(o){
     return o.key ? '<a data-k="'+esc(o.key)+'">'+esc(o.nom)+' ('+o.n+')</a>'
                  : '<span class="sin-link">'+esc(o.nom)+' ('+o.n+')</span>';
@@ -932,10 +929,11 @@ function renderHead(){
   var nInfo = 1 + (r.sin_caj?0:1) + (r.sin_max?0:1) + (r.mostrar_fleje?1:0); // Kg×Uni (Uni×Cajón) (Máximo) (N°Fleje)
   var baseCols = 2 + (r.mostrar_rubro?1:0) + (r.mostrar_ubic?1:0);
   var g = '<tr>'+
-    '<th colspan="'+baseCols+'">Base</th>'+
-    '<th colspan="'+nOnline+'" class="num sep">Online</th>'+
-    (cols.length ? '<th colspan="'+cols.length+'" class="num sep">Movimientos (Uni)</th>' : '')+
-    '<th colspan="'+nInfo+'" class="num sep">Info</th>'+
+    // "Base" va sobre la 1ª columna sola: con .fix1 queda fija con ella y no tapa a los otros grupos
+    '<th>Base</th><th colspan="'+(baseCols-1)+'"></th>'+
+    '<th colspan="'+nOnline+'" class="ctr sep">Online</th>'+
+    (cols.length ? '<th colspan="'+cols.length+'" class="ctr sep">Movimientos (Uni)</th>' : '')+
+    '<th colspan="'+nInfo+'" class="ctr sep">Info</th>'+
   '</tr>';
   var h = '<tr>'+
     (r.mostrar_rubro ? '<th>Rubro</th>' : '')+
@@ -949,6 +947,8 @@ function renderHead(){
     (r.mostrar_fleje?'<th class="num">N° Fleje</th>':'')+
   '</tr>';
   $("thead").innerHTML = g + h;
+  // la 1ª columna queda fija al scrollear de costado sólo cuando es el Código (no Rubro / Dónde)
+  $("tblWrap").classList.toggle("fix1", !r.mostrar_rubro && !r.mostrar_ubic);
 }
 
 /* ---------- tbody ---------- */
@@ -993,11 +993,11 @@ function render(){
     else if (uni>0) tr.className = "stk";
     tr.innerHTML =
       (r.mostrar_rubro ? (x.rubro_key
-          ? '<td class="rub-cell" data-rub="'+esc(x.rubro_key)+'">'+esc(x.rubro_nom||"")+'</td>'
-          : '<td>'+esc(x.rubro_nom||"")+'</td>') : '')+
-      (r.mostrar_ubic ? '<td>'+esc(x.ubic_nom||"")+'</td>' : '')+
+          ? '<td class="rub rub-cell" data-rub="'+esc(x.rubro_key)+'">'+esc(x.rubro_nom||"")+'</td>'
+          : '<td class="rub">'+esc(x.rubro_nom||"")+'</td>') : '')+
+      (r.mostrar_ubic ? '<td class="ubi">'+esc(x.ubic_nom||"")+'</td>' : '')+
       '<td><span class="cod">'+esc(x.cod)+'</span></td>'+
-      '<td>'+esc(x.desc||"")+'</td>'+
+      '<td class="dsc">'+esc(x.desc||"")+'</td>'+
       '<td class="num sep'+stkCls+'"'+stkData+'>'+(kg==null?"—":fmt(kg))+'</td>'+
       (r.sin_caj?'':'<td class="num'+stkCls+'"'+stkData+'>'+(caj==null?"—":fmt(caj,1))+'</td>')+
       '<td class="num'+stkCls+'"'+stkData+'>'+(esKg(x)?"—":fmt(uni))+'</td>'+
@@ -1050,7 +1050,7 @@ async function abrirDetalle(cid, colKey){
   var fila = (CUR.filas||[]).filter(function(x){ return String(x.cid)===String(cid); })[0] || {};
   var col  = ((RUBRO&&RUBRO.cols)||[]).filter(function(c){ return c.k===colKey; })[0] || { label:"Movimientos", tipos:[] };
   $("popTitle").innerHTML = '<span class="cod">'+esc(fila.cod||"")+'</span> — '+esc(fila.desc||"")+
-    '<br><small style="color:#666;font-weight:700">'+esc(col.label)+'</small>';
+    '<small>'+esc(col.label)+'</small>';
   $("popBody").innerHTML = '<div class="empty">Cargando…</div>';
   $("popup").classList.add("open");
   var r = await SB.rpc("composicion_stock", { p_comp_id:Number(cid), p_ubic_id:Number(CUR.ubic_id), p_limit:DET_LIMIT });
@@ -1061,7 +1061,7 @@ async function abrirDetalle(cid, colKey){
   if (!rows.length){ $("popBody").innerHTML = '<div class="empty">Sin movimientos de este tipo.</div>'; return; }
   var tot = rows.reduce(function(s,m){ return s + (m.signo==="ent"?Number(m.cantidad||0):-Number(m.cantidad||0)); }, 0);
   $("popBody").innerHTML =
-    '<div class="table-wrap"><table class="t"><thead><tr><th>Fecha</th><th>Tipo</th><th>Contraparte</th><th class="num">Uni</th></tr></thead><tbody>'+
+    '<div class="table-wrap libre"><table class="t"><thead><tr><th>Fecha</th><th>Tipo</th><th>Contraparte</th><th class="num">Uni</th></tr></thead><tbody>'+
     rows.map(function(m){
       var signo = m.signo==="ent"?"+":"−";
       return '<tr><td>'+esc(fmtFecha(m.fecha))+'</td><td>'+esc(m.tipo)+'</td><td>'+esc(m.contraparte||"—")+'</td>'+
@@ -1079,7 +1079,7 @@ async function abrirMaximo(cid, uid){
   var fila = (CUR.filas||[]).filter(function(x){ return String(x.cid)===String(cid) && String(x.ubic_id)===String(uid); })[0] || {};
   var titulo = function(lugar){
     $("popTitle").innerHTML = '<span class="cod">'+esc(fila.cod||"")+'</span> — '+esc(fila.desc||"")+
-      '<br><small style="color:#666;font-weight:700">Máximo'+(lugar?' · '+esc(lugar):'')+'</small>';
+      '<small>Máximo'+(lugar?' · '+esc(lugar):'')+'</small>';
   };
   titulo(fila.ubic_nom);
   $("popBody").innerHTML = '<div class="empty">Cargando…</div>';
@@ -1129,7 +1129,7 @@ function lineaMaximo(d){
 }
 function htmlMaximo(d){
   var lm = lineaMaximo(d), filas = d.filas || [], base = d.base;
-  var html = lm.L.join("") + (lm.aviso ? '<p class="max-aviso">'+esc(lm.aviso)+'</p>' : "");
+  var html = lm.L.join("") + (lm.aviso ? '<p class="max-aviso aviso">'+esc(lm.aviso)+'</p>' : "");
   if (!base) return html;
   if (!filas.length) return html + '<div class="empty">Sin demanda registrada.</div>';
   var fleje = d.unidad==="kg" && base==="articulos";
@@ -1164,7 +1164,7 @@ function htmlMaximo(d){
     C.map(function(c,i){ return '<td class="num">'+(c[2]?fmt(tot[i],c[3]):"")+'</td>'; }).join("")+'</tr>';
   var nota = filas.some(function(f){ return f.supuesto; })
     ? '<p class="nota-tabla">* reparto supuesto (partes iguales): el % no está cargado en Proporciones.</p>' : "";
-  return html + '<div class="table-wrap"><table class="t"><thead>'+head+'</thead><tbody>'+body+
+  return html + '<div class="table-wrap libre"><table class="t"><thead>'+head+'</thead><tbody>'+body+
     '</tbody><tfoot>'+foot+'</tfoot></table></div>' + nota;
 }
 
@@ -1201,10 +1201,10 @@ function openAjuste(){
   MODAL_TIPO="ajuste";
   $("modalTitle").textContent="✏️ Ajuste de inventario (+/-)";
   $("modalForm").innerHTML=
-    '<div class="frow"><label>Fecha</label><input type="date" id="f_fecha" value="'+todayLocal()+'"></div>'+
-    '<div class="frow"><label>Componente</label><select id="f_comp" onchange="onAjComp()"><option value="">— Elegí —</option>'+optsComps(Object.keys(D.comp).map(Number))+'</select></div>'+
-    '<div class="frow"><label>Ubicación</label><select id="f_ubic"><option value="">Elegí componente primero</option></select></div>'+
-    '<div class="frow"><label>Cantidad (+/-)</label><input inputmode="decimal" type="number" id="f_qty" step="0.01" placeholder="ej -5 o +12"><div class="hint">Positivo suma, negativo descuenta. Corrección manual del stock.</div></div>';
+    '<div class="frow field"><label>Fecha</label><input type="date" id="f_fecha" value="'+todayLocal()+'"></div>'+
+    '<div class="frow field"><label>Componente</label><select id="f_comp" onchange="onAjComp()"><option value="">— Elegí —</option>'+optsComps(Object.keys(D.comp).map(Number))+'</select></div>'+
+    '<div class="frow field"><label>Ubicación</label><select id="f_ubic"><option value="">Elegí componente primero</option></select></div>'+
+    '<div class="frow field"><label>Cantidad (+/-)</label><input inputmode="decimal" type="number" id="f_qty" step="0.01" placeholder="ej -5 o +12"><div class="hint">Positivo suma, negativo descuenta. Corrección manual del stock.</div></div>';
   $("modalBg").classList.add("on");
 }
 function onAjComp(){

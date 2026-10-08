@@ -62,6 +62,22 @@ const $popBody  = document.getElementById("popupBody");
 document.getElementById("closePopup").addEventListener("click", () => $overlay.classList.remove("visible"));
 $overlay.addEventListener("click", (e) => { if (e.target === $overlay) $overlay.classList.remove("visible"); });
 
+/* ===== PALETA (sistema de diseño v2, 2026-10-08) =====
+   El grafico va sobre fondo claro y toma sus colores de los TOKENS de gp2-modulo.css
+   (:root), no de hex propios: accion/serie principal = --pri, mejor = --ok, peor = --err,
+   ejes y rotulos = --ink-3 / --line. Si el token no esta (gp2-modulo.css sin cargar),
+   cae al valor de diseño. */
+const C = (() => {
+  const cs = getComputedStyle(document.documentElement);
+  const t = (n, d) => (cs.getPropertyValue(n) || "").trim() || d;
+  return {
+    ink: t("--ink", "#0f1c2e"), ink2: t("--ink-2", "#3b4a60"), ink3: t("--ink-3", "#5f6e84"),
+    line: t("--line", "#e0e6ee"), line2: t("--line-2", "#c9d2de"), surface: t("--surface", "#ffffff"),
+    pri: t("--pri", "#1f5bd8"), sel: t("--sel", "#13264a"), ok: t("--ok", "#11763b"), err: t("--err", "#bd2229"),
+    font: t("--font", "Inter, system-ui, sans-serif"),
+  };
+})();
+
 /* ===== HELPERS ===== */
 const fmt2 = (v) => (v == null || isNaN(v) ? "—" : Number(v).toFixed(2));
 const fmtSeg = (v) => (v == null || isNaN(v) ? "—" : Number(v).toFixed(2) + " s");
@@ -77,12 +93,21 @@ function nombreOperario(legajo) {
   const k = String(legajo).trim();
   return empleadosMap[k] || `Leg ${k}`;
 }
+/* Color del operario = su IDENTIDAD en el grafico (dato, no adorno). Paleta categorica en orden
+   fijo, validada para daltonismo sobre fondo claro (skill dataviz: azul, naranja, aqua, amarillo,
+   magenta, violeta; el verde y el rojo quedan reservados para mejor/peor). Se asigna una vez por
+   matriz cargada (renderChips, por nombre) y no cambia al filtrar con los chips. Del 7mo operario
+   en adelante cae al tono por hash de siempre; los nombres van escritos al lado (chips, leyenda,
+   detalle), asi que el color nunca es la unica pista. */
+const PAL_OP = ["#2a78d6", "#eb6834", "#1baf7a", "#eda100", "#e87ba4", "#4a3aa7"];
+let colorOpMap = {};
 function colorOperario(legajo) {
   const s = String(legajo);
+  if (colorOpMap[s]) return colorOpMap[s];
   let h = 0;
   for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0;
   const hue = h % 360;
-  return `hsl(${hue}, 78%, 62%)`;  // más saturado/claro para fondo oscuro
+  return `hsl(${hue}, 66%, 44%)`;
 }
 function parseHoraOffset(h) {
   if (!h) return 0;
@@ -251,22 +276,24 @@ function renderChips(rows) {
   });
   const legajos = Object.keys(counts).sort((a, b) => nombreOperario(a).localeCompare(nombreOperario(b), "es"));
   if (!legajos.length) { $chipsRow.style.display = "none"; return; }
+  colorOpMap = {};
+  legajos.forEach((leg, i) => { if (i < PAL_OP.length) colorOpMap[leg] = PAL_OP[i]; });
 
   const chipsHtml = legajos.map(leg => {
     const c = colorOperario(leg);
     return `
-      <button class="oper-chip" data-leg="${leg}" type="button">
+      <button class="oper-chip chip" data-leg="${leg}" type="button">
         <span class="chip-dot" style="background:${c}"></span>
         ${nombreOperario(leg)}
-        <span class="chip-n">${counts[leg]}</span>
+        <span class="chip-n n">${counts[leg]}</span>
       </button>
     `;
   }).join("");
 
   const actions = legajos.length > 1 ? `
     <span class="chips-actions">
-      <button class="chips-action-btn" id="chipsAllBtn" type="button">Todos</button>
-      <button class="chips-action-btn" id="chipsNoneBtn" type="button">Ninguno</button>
+      <button class="chips-action-btn btn btn-ghost btn-sm" id="chipsAllBtn" type="button">Todos</button>
+      <button class="chips-action-btn btn btn-ghost btn-sm" id="chipsNoneBtn" type="button">Ninguno</button>
     </span>
   ` : "";
 
@@ -360,8 +387,8 @@ function computeAll(rows) {
       __premio: Number(r.Premio) || 0,
       __isOutlier: isOut,
       itemStyle: isOut
-        ? { color: "#ef4444", borderColor: "#fca5a5", borderWidth: 1, shadowBlur: 6, shadowColor: "rgba(239,68,68,.5)" }
-        : { color: colorOperario(legajo), opacity: .9, borderColor: "rgba(255,255,255,.4)", borderWidth: 1 },
+        ? { color: C.err, borderColor: C.surface, borderWidth: 1.5 }
+        : { color: colorOperario(legajo), opacity: .85, borderColor: C.surface, borderWidth: 1 },
       symbol: isOut ? "triangle" : "circle",
       symbolSize: isOut ? 14 : 11,
     };
@@ -392,11 +419,11 @@ function computeAll(rows) {
       __open: open, __close: close, __low: low, __high: high,
       __avg: avg, __n: items.length,
       itemStyle: {
-        color: mejora ? "#22c55e" : "#ef4444",
-        color0: mejora ? "#22c55e" : "#ef4444",
-        borderColor: mejora ? "#16a34a" : "#dc2626",
-        borderColor0: mejora ? "#16a34a" : "#dc2626",
-        opacity: .85,
+        color: mejora ? C.ok : C.err,
+        color0: mejora ? C.ok : C.err,
+        borderColor: mejora ? C.ok : C.err,
+        borderColor0: mejora ? C.ok : C.err,
+        opacity: .8,
       }
     });
   });
@@ -453,13 +480,16 @@ function renderChart() {
     animationDurationUpdate: 700,
     animationEasing: "cubicOut",
     animationEasingUpdate: "cubicInOut",
-    grid: { left: 60, right: 28, top: 28, bottom: 48 },
+    // derecha: lugar para el rotulo final de cada linea (endLabel); arriba: el nombre del eje
+    grid: { left: 56, right: window.innerWidth < 640 ? 28 : 120, top: 40, bottom: 44 },
+    textStyle: { fontFamily: C.font },
     tooltip: {
       trigger: "item",
-      backgroundColor: "rgba(15,23,42,.96)",
-      borderColor: "#475569",
+      backgroundColor: C.surface,
+      borderColor: C.line2,
       borderWidth: 1,
-      textStyle: { color: "#f8fafc", fontFamily: "Inter, sans-serif", fontSize: 12 },
+      extraCssText: "box-shadow:0 8px 28px rgba(11,24,48,.16);border-radius:10px;",
+      textStyle: { color: C.ink, fontFamily: C.font, fontSize: 13 },
       formatter: tooltipFormatter,
     },
     xAxis: {
@@ -467,19 +497,19 @@ function renderChart() {
       // padding 60 dias a cada lado para poder scrollear mas alla del rango de datos
       min: fullStartMs - 60 * 86400000,
       max: fullEndMs + 60 * 86400000,
-      axisLine: { lineStyle: { color: "#475569" } },
-      axisLabel: { color: "#94a3b8", fontSize: 11 },
+      axisLine: { lineStyle: { color: C.line2 } },
+      axisLabel: { color: C.ink3, fontSize: 12 },
       splitLine: { show: false },
     },
     yAxis: {
       type: "value",
       name: "seg/uni",
-      nameTextStyle: { color: "#94a3b8", fontSize: 11, padding: [0, 0, 6, 0] },
+      nameTextStyle: { color: C.ink3, fontSize: 12, padding: [0, 0, 6, 0] },
       min: 0,
       max: yMax > 0 ? yMax : null,
-      axisLine: { lineStyle: { color: "#475569" } },
-      axisLabel: { color: "#94a3b8", fontSize: 11 },
-      splitLine: { lineStyle: { color: "rgba(148,163,184,.08)" } },
+      axisLine: { lineStyle: { color: C.line2 } },
+      axisLabel: { color: C.ink3, fontSize: 12, formatter: (v) => String(+Number(v).toFixed(1)) },
+      splitLine: { lineStyle: { color: C.line } },
     },
     dataZoom: [
       {
@@ -510,14 +540,13 @@ function buildSeries(showDots, showBloques) {
     symbol: ["none", "none"],
     silent: true,
     lineStyle: {
-      color: "#a78bfa", type: [8, 6], width: 2.5,
-      shadowBlur: 8, shadowColor: "rgba(167,139,250,.5)",
+      color: C.sel, type: [8, 6], width: 2,
     },
     label: {
       show: true,
       formatter: `T. HISTÓRICO   ${fmt2(tHistGlobal)} s/u`,
-      color: "#fff", backgroundColor: "#7c3aed",
-      borderColor: "#a78bfa", borderWidth: 1, borderRadius: 6,
+      color: "#fff", backgroundColor: C.sel,
+      borderColor: C.sel, borderWidth: 1, borderRadius: 6,
       padding: [4, 10, 4, 10], fontWeight: 800, fontSize: 12,
       letterSpacing: 0.5, position: "insideStartTop", distance: 6,
     },
@@ -576,7 +605,8 @@ function buildRollingSeries() {
       smooth: true,
       showSymbol: false,
       data: rollingData,
-      lineStyle: { color: "#fbbf24", width: 2.4, shadowBlur: 6, shadowColor: "rgba(251,191,36,.35)" },
+      lineStyle: { color: C.pri, width: 2.6 },
+      itemStyle: { color: C.pri },
       z: 3,
       endLabel: rollingData.length ? {
         show: true,
@@ -588,9 +618,9 @@ function buildRollingSeries() {
           return `Avg ${fmt2(v)} s/u${deltaTxt}`;
         },
         color: "#fff",
-        backgroundColor: "rgba(251,191,36,.95)",
+        backgroundColor: C.pri,
         padding: [3, 8, 3, 8], borderRadius: 6,
-        fontWeight: 800, fontSize: 11, distance: 8,
+        fontWeight: 700, fontSize: 12, distance: 8,
       } : { show: false },
       markPoint: rollingData.length >= 2 ? (() => {
         let iMin = 0, iMax = 0;
@@ -604,8 +634,8 @@ function buildRollingSeries() {
           __mkKind: kind,
           __mkFecha: new Date(rollingData[idx][0]).toISOString().slice(0,10),
           itemStyle: {
-            color: kind === "mejor" ? "#16a34a" : "#dc2626",
-            borderColor: "#fff", borderWidth: 1.5,
+            color: kind === "mejor" ? C.ok : C.err,
+            borderColor: C.surface, borderWidth: 1.5,
           },
         });
         return {
@@ -628,7 +658,7 @@ function buildRollingSeries() {
       smooth: true,
       showSymbol: false,
       data,
-      lineStyle: { color: c, width: 2.2, opacity: .95, shadowBlur: 4, shadowColor: "rgba(0,0,0,.2)" },
+      lineStyle: { color: c, width: 2.2, opacity: .95 },
       itemStyle: { color: c },
       z: 3,
       endLabel: data.length ? {
@@ -640,7 +670,7 @@ function buildRollingSeries() {
         color: "#fff",
         backgroundColor: c,
         padding: [3, 8, 3, 8], borderRadius: 6,
-        fontWeight: 700, fontSize: 10, distance: 6,
+        fontWeight: 700, fontSize: 11, distance: 6,
       } : { show: false },
       // Sin markPoint en multi-linea para no saturar
       emphasis: { focus: "series", lineStyle: { width: 3.2 } },
@@ -656,19 +686,19 @@ function tooltipFormatter(p) {
     const kind = d.__mkKind;
     const fecha = d.__mkFecha || "";
     const titulo = kind === "mejor" ? "▼ Mejor día (rolling 7d)" : "▲ Peor día (rolling 7d)";
-    const color = kind === "mejor" ? "#22c55e" : "#ef4444";
+    const cl = kind === "mejor" ? "tt-ok" : "tt-err";
     return `
-      <div style="font-weight:800;color:${color}">${titulo}</div>
-      <div style="opacity:.85;margin-top:2px">${fecha}</div>
-      <div style="margin-top:4px">Promedio: <strong>${fmt2(p.value)} s/u</strong></div>
-      ${tHistGlobal ? `<div style="font-size:11px;opacity:.7">vs T.Hist ${fmt2(tHistGlobal)}: ${((p.value - tHistGlobal)/tHistGlobal*100).toFixed(1)}%</div>` : ""}
+      <div class="tt-t ${cl}">${titulo}</div>
+      <div class="tt-m">${fecha}</div>
+      <div>Promedio: <strong>${fmt2(p.value)} s/u</strong></div>
+      ${tHistGlobal ? `<div class="tt-m">vs T.Hist ${fmt2(tHistGlobal)}: ${((p.value - tHistGlobal)/tHistGlobal*100).toFixed(1)}%</div>` : ""}
     `;
   }
   // Línea rolling (global o por operario)
   if (p.seriesType === "line") {
     if (!Array.isArray(p.value)) return "";
     const dt = new Date(p.value[0]);
-    const color = p.color || "#fbbf24";
+    const color = p.color || C.pri;   // color de la serie (dato: el operario)
     return `<strong style="color:${color}">${p.seriesName}</strong><br/>${dt.toISOString().slice(0,10)}: <strong>${fmt2(p.value[1])} s/u</strong>`;
   }
   // Candlestick
@@ -676,16 +706,16 @@ function tooltipFormatter(p) {
     const mejora = d.__close < d.__open;
     const dt = new Date(d.value[0]);
     return `
-      <div style="font-weight:800;color:#fbbf24">${MESES_NOM[dt.getUTCMonth()]} ${dt.getUTCFullYear()}</div>
-      <div style="font-size:11px;opacity:.8;margin-bottom:6px">${d.__n} cajón${d.__n===1?"":"es"}</div>
-      <table style="font-size:12px;border-spacing:0">
-        <tr><td style="opacity:.7;padding-right:8px">Apertura:</td><td><strong>${fmt2(d.__open)}</strong></td></tr>
-        <tr><td style="opacity:.7;padding-right:8px">Cierre:</td><td><strong style="color:${mejora?'#22c55e':'#ef4444'}">${fmt2(d.__close)}</strong></td></tr>
-        <tr><td style="opacity:.7;padding-right:8px">Mejor:</td><td><strong style="color:#86efac">${fmt2(d.__low)}</strong></td></tr>
-        <tr><td style="opacity:.7;padding-right:8px">Peor:</td><td><strong style="color:#fca5a5">${fmt2(d.__high)}</strong></td></tr>
-        <tr><td style="opacity:.7;padding-right:8px">Promedio:</td><td><strong>${fmt2(d.__avg)}</strong></td></tr>
+      <div class="tt-t">${MESES_NOM[dt.getUTCMonth()]} ${dt.getUTCFullYear()}</div>
+      <div class="tt-m">${d.__n} cajón${d.__n===1?"":"es"}</div>
+      <table class="tt-tab">
+        <tr><td>Apertura:</td><td><strong>${fmt2(d.__open)}</strong></td></tr>
+        <tr><td>Cierre:</td><td><strong class="${mejora?'tt-ok':'tt-err'}">${fmt2(d.__close)}</strong></td></tr>
+        <tr><td>Mejor:</td><td><strong class="tt-ok">${fmt2(d.__low)}</strong></td></tr>
+        <tr><td>Peor:</td><td><strong class="tt-err">${fmt2(d.__high)}</strong></td></tr>
+        <tr><td>Promedio:</td><td><strong>${fmt2(d.__avg)}</strong></td></tr>
       </table>
-      <div style="font-size:10px;opacity:.55;margin-top:6px">Click para ver el detalle del mes</div>
+      <div class="tt-m">Click para ver el detalle del mes</div>
     `;
   }
   // Scatter (dot)
@@ -693,14 +723,14 @@ function tooltipFormatter(p) {
   const fechaTxt = `${pad2(dt.getUTCDate())}/${pad2(dt.getUTCMonth()+1)}/${dt.getUTCFullYear()}`;
   const hora = d.__hora ? ` ${String(d.__hora).slice(0,5)}` : "";
   const real = d.__isOutlier
-    ? `<span style="color:#fca5a5">⚠ OUTLIER: ${fmt2(d.__real)} s/u (recortado)</span>`
+    ? `<span class="tt-err">⚠ OUTLIER: ${fmt2(d.__real)} s/u (recortado)</span>`
     : `<strong>${fmt2(d.__real)} s/u</strong>`;
   return `
-    <div style="font-weight:800;color:#fbbf24">${d.__nombre || "?"}</div>
-    <div style="opacity:.85">${fechaTxt}${hora}</div>
-    <div style="margin-top:4px">${real}</div>
-    <div style="font-size:11px;opacity:.7">Uni ${d.__uni||0} · Seg total ${d.__segTotal||0} · Pje ${d.__premio ? fmt2(d.__premio) : "—"}</div>
-    <div style="font-size:10px;opacity:.55;margin-top:4px">Click para detalle del día</div>
+    <div class="tt-t">${d.__nombre || "?"}</div>
+    <div class="tt-m">${fechaTxt}${hora}</div>
+    <div>${real}</div>
+    <div class="tt-m">Uni ${d.__uni||0} · Seg total ${d.__segTotal||0} · Pje ${d.__premio ? fmt2(d.__premio) : "—"}</div>
+    <div class="tt-m">Click para detalle del día</div>
   `;
 }
 
@@ -778,7 +808,7 @@ function renderLegendOperarios(legajos, hasOutliers) {
     </span>
   `).join("");
   const outItem = hasOutliers
-    ? `<span class="lo-item"><span class="lo-dot lo-out" style="background:#dc2626"></span>Outlier (recortado)</span>`
+    ? `<span class="lo-item"><span class="lo-dot lo-out"></span>Outlier (recortado)</span>`
     : "";
   $legend.innerHTML = items + outItem;
 }
@@ -823,7 +853,7 @@ function mostrarDetalleDia(fecha, items) {
     return `
       <tr>
         <td>${i.fechaStr}${i.hora ? " " + String(i.hora).slice(0,5) : ""}</td>
-        <td><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:${colorOperario(i.legajo)};margin-right:6px;vertical-align:middle"></span>${nombreOperario(i.legajo)}</td>
+        <td><span class="op-dot" style="background:${colorOperario(i.legajo)}"></span>${nombreOperario(i.legajo)}</td>
         <td class="num">${i.uni}</td>
         <td class="num">${i.segTotal}</td>
         <td class="num ${cls}">${fmt2(i.tiempo)}</td>
@@ -846,8 +876,8 @@ function mostrarDetalleMes(block) {
   $popStats.innerHTML = `
     <span>Apertura: <strong>${fmtSeg(block.__open)}</strong></span>
     <span>Cierre: <strong>${fmtSeg(block.__close)}</strong></span>
-    <span>Mejor: <strong style="color:#16a34a">${fmtSeg(block.__low)}</strong></span>
-    <span>Peor: <strong style="color:#dc2626">${fmtSeg(block.__high)}</strong></span>
+    <span>Mejor: <strong class="pos">${fmtSeg(block.__low)}</strong></span>
+    <span>Peor: <strong class="neg">${fmtSeg(block.__high)}</strong></span>
     <span>Promedio: <strong>${fmtSeg(block.__avg)}</strong></span>
     ${tHistGlobal ? `<span>T.Hist: <strong>${fmtSeg(tHistGlobal)}</strong></span>` : ""}
   `;
@@ -858,7 +888,7 @@ function mostrarDetalleMes(block) {
     return `
       <tr>
         <td>${i.fechaStr}${i.hora ? " " + String(i.hora).slice(0,5) : ""}</td>
-        <td><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:${colorOperario(i.legajo)};margin-right:6px;vertical-align:middle"></span>${nombreOperario(i.legajo)}</td>
+        <td><span class="op-dot" style="background:${colorOperario(i.legajo)}"></span>${nombreOperario(i.legajo)}</td>
         <td class="num">${i.uni}</td>
         <td class="num">${i.segTotal}</td>
         <td class="num ${cls}">${fmt2(i.tiempo)}</td>
@@ -917,7 +947,7 @@ function actualizarStats(rows) {
     const cls = Math.abs(delta) < 2 ? "neutral" : (delta > 0 ? "up" : "down");
     const flecha = Math.abs(delta) < 2 ? "≈" : (delta > 0 ? "▲ Empeora" : "▼ Mejora");
     $stTrend.textContent = `${(delta > 0 ? "+" : "") + delta.toFixed(1)}%`;
-    $stTrend.style.color = cls === "up" ? "#dc2626" : (cls === "down" ? "#16a34a" : "#64748b");
+    $stTrend.style.color = cls === "up" ? C.err : (cls === "down" ? C.ok : C.ink3);
     $stTrendSub.textContent = flecha;
     $stTrendSub.className = `stat-sub ${cls}`;
   } else {

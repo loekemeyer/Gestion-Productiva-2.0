@@ -199,7 +199,7 @@ function render() {
           : `<div class="diff dif">${dif > 0 ? "+" : ""}${fmt(dif)} vs esperado</div>`;
       }
       const virgLn = virg > 0
-        ? `<span class="decl" style="color:#9a3412">→ Virgilio: <b>${fmt(virg)}</b> uni · esperado acá <b>${fmt(esperado)}</b></span>`
+        ? `<span class="decl virg">→ Virgilio: <b>${fmt(virg)}</b> uni · esperado acá <b>${fmt(esperado)}</b></span>`
         : "";
       html += `<div class="${cls}" data-id="${it.id}">
         <span class="tilde">✓</span>

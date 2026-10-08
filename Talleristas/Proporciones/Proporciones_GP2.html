@@ -7,63 +7,53 @@
 <title>Proporciones · GP2</title>
 <link rel="stylesheet" href="../../gp2-modulo.css?v=20261008ds">
 <style>
- *{box-sizing:border-box}
- body{margin:0;background:#ebeff4;color:#385475;font:14px/1.4 -apple-system,Segoe UI,Roboto,sans-serif}
- .top{background:#e7f0f8;padding:10px 16px;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;position:sticky;top:0;z-index:10}
- .top h1{margin:0;font-size:16px}
- .top .sel{display:flex;gap:8px;align-items:center;font-size:14px;flex-wrap:wrap}
- select,input,button{background:#eaeff6;color:#385475;border:1px solid #cddaea;border-radius:6px;padding:6px 10px;font-size:18px;font-family:inherit;min-height:44px}
- button{cursor:pointer}
- button:hover{background:#e8eef7}
- button:disabled{opacity:.45;cursor:not-allowed}
- /* El contenido manda el ancho: no se estira nada para llenar la pantalla. */
- .canvas{padding:14px;max-width:1080px;margin:0 auto}
- .note{background:#f5eeea;border:1px solid #eadbcd;color:#8e4c20;border-radius:8px;padding:8px 12px;margin-bottom:12px;font-size:14px}
- .kpis{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;align-items:center}
- .kpi{border:1px solid #d1dae6;border-radius:8px;padding:6px 12px;font-size:14px;color:#475569}
- .kpi b{color:#166398;font-size:16px;margin-right:4px}
- .aviso{font-size:14px;color:#1d6b3a;font-weight:700}
- /* Una caja debajo de la otra, cada una del ancho de su tabla. */
- .paso{border:1px solid #d1dae6;border-radius:10px;margin-bottom:14px;padding:10px 12px;width:fit-content;max-width:100%}
- .paso-head{display:flex;gap:10px;align-items:baseline;flex-wrap:wrap;margin-bottom:8px}
- .paso-head .cod{font-family:ui-monospace,SF Mono,monospace;color:#165d98;font-weight:700;font-size:16px}
- .paso-head .fam{color:#475569}
- .tag{display:inline-block;border:1px solid #cddcea;border-radius:5px;padding:1px 7px;font-size:14px}
- .tag .pc{color:#165d98;font-family:ui-monospace,monospace}
- .sup{display:block;color:#8e4c20;font-weight:700;font-size:14px}
+ /* Sistema de diseño v2 (gp2-modulo.css): barra, botones, campos, tablas, kpis y avisos los da el
+    sistema. Aca queda solo lo propio de la pantalla. */
+ #canvas>.aviso:first-child{margin-top:0}
+ .kpis .aviso{grid-column:1/-1;margin:0}
+ /* Una caja debajo de la otra, cada una del ancho de su tabla (pedido del usuario, 30-09). */
+ .paso{margin-bottom:var(--s3);padding:var(--s3);width:fit-content;max-width:100%}
+ .paso-head{display:flex;gap:10px;align-items:baseline;flex-wrap:wrap;margin-bottom:var(--s2)}
+ .paso-head .cod{font-size:var(--fs-lg)}
+ .paso-head .fam{color:var(--ink-3)}
+ .paso-head .tag{font-size:var(--fs-sm);height:26px;padding:0 10px}
+ .pc{font-weight:700}
+ .sup{display:block;color:var(--warn);font-weight:700;font-size:var(--fs-sm);text-transform:none;letter-spacing:0}
  .tbl-wrap{overflow-x:auto;max-width:100%}
- table{border-collapse:collapse;font-size:14px}
- th,td{padding:6px 12px;text-align:center;vertical-align:middle;border-bottom:1px solid #d0dae7;white-space:nowrap}
- th{color:#475569;font-size:14px;font-weight:700}
- th .pct{display:flex;align-items:center;justify-content:center;gap:4px;margin-top:4px;color:#8e4c20;font-weight:700}
- input.pct-in{width:4.2em;font-size:20px;text-align:right;padding:6px 8px;font-weight:700;color:#8e4c20}
- td.parte{text-align:left}
- td.parte .pc{color:#165d98;font-family:ui-monospace,monospace;font-weight:700;margin-right:6px}
+ .paso table.t :is(th,td){text-align:center}
+ .paso table.t th{vertical-align:bottom}
+ .paso table.t th .pct{display:flex;align-items:center;justify-content:center;gap:4px;margin-top:6px;color:var(--ink-2);font-size:var(--fs-md)}
+ input.pct-in{width:4.2em;font-size:20px;text-align:right;padding:6px 8px;font-weight:700}
+ .paso table.t :is(th,td).parte{text-align:left}
+ td.parte .pc{color:var(--pri-ink);margin-right:6px}
  td.max{font-weight:700}
- td.sinmax{color:#8494a8;font-weight:400}
- td.tot,th.tot{color:#475569;border-left:1px solid #d0dae7}
- td .casa{display:block;color:#8494a8;font-weight:400;font-size:14px}
- .pie{display:flex;gap:10px;align-items:center;justify-content:flex-end;flex-wrap:wrap;margin-top:8px}
- .pie .suma{font-size:14px;color:#475569}
- .pie .suma.mal{color:#982e16;font-weight:700}
- .empty{padding:30px;text-align:center;color:#475569;font-size:14px}
+ .paso table.t td.sinmax{color:var(--ink-4);font-weight:400}
+ td.tot,th.tot{border-left:1px solid var(--line-2)}
+ .paso table.t td.tot{color:var(--ink-2)}
+ td .casa{display:block;color:var(--ink-4);font-weight:400;font-size:var(--fs-sm)}
+ .pie{display:flex;gap:10px;align-items:center;justify-content:flex-end;flex-wrap:wrap;margin-top:var(--s2)}
+ .pie .suma{font-size:var(--fs-md);color:var(--ink-3)}
+ .pie .suma.mal{color:var(--err);font-weight:700}
  @media (max-width:520px){
-  th,td{padding:6px 5px}
+  .paso table.t :is(th,td){padding:6px 5px}
   .paso{padding:8px}
  }
 </style><link rel="icon" type="image/png" href="../../GP2_favicon.png">
 <link rel="apple-touch-icon" href="../../GP2_favicon.png">
 </head>
 <body>
-<div id="gp2-logobar" style="position:relative;background:#e8edf7;text-align:center;padding:6px 0;border-bottom:1px solid #d0dae7"><a href="../../GP2_MODULOS.html" style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:#385475;text-decoration:none;font-weight:700;font-size:15px;padding:5px 10px;border:1px solid #d1d9e5;border-radius:8px;background:#e9eef7">← Atrás</a><a href="../../GP2_MODULOS.html" style="text-decoration:none"><img src="../../GP2_logo.png" alt="GP2 · Gestión Productiva" style="height:40px;vertical-align:middle"></a></div>
-
-<div class="top">
- <h1>📊 Proporciones <span style="font-size:14px;color:#2a5783;font-weight:400">· pasos que hacen dos o más talleristas</span></h1>
- <div class="sel">
-  <button id="btnCsv">⬇ Exportar CSV</button>
+<div class="card">
+<div class="header">
+ <h1>Proporciones<small>Pasos que hacen dos o más talleristas</small></h1>
+ <div class="hbtns">
+  <button class="hlink" type="button" id="btnCsv">⬇ Exportar CSV</button>
+  <a href="../../GP2_MODULOS.html">Atrás</a>
  </div>
 </div>
+<div class="steps">
 <div class="canvas" id="canvas"><div class="empty">Cargando…</div></div>
+</div>
+</div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="../../supabase-config.js?v=20260929a"></script>
 <script src="../../gp2-ui.js?v=20260930a"></script>
@@ -146,8 +136,8 @@ function pie(p){
  var txt=s.cero ? 'Un % en 0 es que no hace el paso: eso se cambia en la ruta'
         : (s.ok ? 'Suma '+pctFmt(s.suma)+' %' : 'Suman '+pctFmt(s.suma)+' %: tiene que dar 100');
  return '<span class="suma'+(s.ok?'':' mal')+'">'+txt+'</span>'+
-   (s.dirty?'<button type="button" data-cancelar="'+clave(p)+'">Cancelar</button>':'')+
-   '<button type="button" data-guardar="'+clave(p)+'"'+(s.dirty&&s.ok?'':' disabled')+'>Guardar</button>';
+   (s.dirty?'<button class="btn btn-secondary" type="button" data-cancelar="'+clave(p)+'">Cancelar</button>':'')+
+   '<button class="btn btn-primary" type="button" data-guardar="'+clave(p)+'"'+(s.dirty&&s.ok?'':' disabled')+'>Guardar</button>';
 }
 
 function render(){
@@ -155,15 +145,15 @@ function render(){
  var pasos=(D.pasos||[]);
  var nSup=pasos.filter(function(p){return (p.talleristas||[]).some(function(t){return t.es_supuesto;});}).length;
 
- var note='<div class="note">Pasos que hacen <b>dos o más talleristas</b> (la misma pieza, con la ruta '+
+ var note='<div class="aviso info">Pasos que hacen <b>dos o más talleristas</b> (la misma pieza, con la ruta '+
    'duplicada). Cada número es lo que ese tallerista necesita <b>por este artículo</b>, en unidades para '+
    esc(mesesTxt(pasos))+': demanda del artículo × su %. <b>Total</b> es lo que pide el artículo. '+
    'En gris, el máximo de <b>su casa</b> cuando usa la misma parte en otros artículos. '+
    'El % se cambia escribiendo y se graba con <b>Guardar</b>, que recalcula los máximos.</div>';
  var kpi='<div class="kpis">'+
-   '<div class="kpi"><b>'+pasos.length+'</b>pasos compartidos</div>'+
-   (nSup?'<div class="kpi"><b>'+nSup+'</b>sin definir (va mitad y mitad)</div>':'')+
-   (AVISO?'<span class="aviso">'+esc(AVISO)+'</span>':'')+
+   '<div class="kpi pri"><span class="k">pasos compartidos</span><span class="v">'+pasos.length+'</span></div>'+
+   (nSup?'<div class="kpi warn"><span class="k">sin definir (va mitad y mitad)</span><span class="v">'+nSup+'</span></div>':'')+
+   (AVISO?'<div class="aviso ok">'+esc(AVISO)+'</div>':'')+
  '</div>';
 
  if(!pasos.length){canvas.innerHTML=note+kpi+'<div class="empty">Hoy ningún paso lo hacen dos talleristas.</div>';return;}
@@ -179,11 +169,11 @@ function render(){
   }).join("");
   /* el paso solo se nombra cuando NO es el mismo articulo (hoy los 5 son el terminado) */
   var tag=(String(p.paso_cod||"").trim()!==String(p.art_codigo||"").trim())
-    ?'<span class="tag"><span class="pc">'+esc(p.paso_cod)+'</span> '+esc(p.paso_desc||"")+'</span>':'';
-  H+='<div class="paso" data-caja="'+k+'"><div class="paso-head">'+
+    ?'<span class="tag pri"><span class="pc">'+esc(p.paso_cod)+'</span> '+esc(p.paso_desc||"")+'</span>':'';
+  H+='<div class="paso panel" data-caja="'+k+'"><div class="paso-head">'+
       '<span class="cod">'+esc(p.art_codigo)+'</span>'+
       '<span class="fam">'+esc(p.familia||"")+'</span>'+tag+
-     '</div><div class="tbl-wrap"><table><thead><tr><th>Parte que recibe</th>'+cab+'<th class="tot">Total</th></tr></thead>'+
+     '</div><div class="tbl-wrap"><table class="t"><thead><tr><th class="parte">Parte que recibe</th>'+cab+'<th class="tot">Total</th></tr></thead>'+
      '<tbody>'+celdas(p)+'</tbody></table></div><div class="pie">'+pie(p)+'</div></div>';
  });
 
@@ -276,7 +266,7 @@ async function __boot(){
   __run();
   await cargar();
  }catch(e){
-  document.getElementById("canvas").innerHTML='<div class="empty" style="color:#982e16">Error cargando datos de Supabase: '+esc(e.message||e)+'</div>';
+  document.getElementById("canvas").innerHTML='<div class="aviso err">Error cargando datos de Supabase: '+esc(e.message||e)+'</div>';
   console.error(e);
  }finally{document.body.style.cursor="";}
 }

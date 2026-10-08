@@ -18,17 +18,18 @@
 <link rel="apple-touch-icon" href="../GP2_favicon.png">
 <link rel="stylesheet" href="../gp2-modulo.css?v=20261008ds">
 <style>
-  .seg{display:flex;gap:6px;flex-wrap:wrap}
-  table.t tr.bajo td{background:#fff7ed}
-  td.mov-cell,td.stk-cell{cursor:pointer;text-decoration:underline dotted}
+  /* Lo generico (barra, kpis, chips, buscador, tabla, popup) es de gp2-modulo.css.
+     Aca solo lo propio de esta pantalla. */
+  .toolbar .chips{margin:0}
+  table.t tr.bajo td{background:var(--warn-soft)}
+  td.mov-cell,td.stk-cell{cursor:pointer;text-decoration:underline dotted;text-underline-offset:3px}
   /* 2026-10-01: sin negrita en la tabla (ni Uni ni los movimientos verde/rojo de gp2-modulo.css) */
   td.mov-cell,td.stk-cell{font-weight:400}
-  td.mov-cell:hover,td.stk-cell:hover{background:#eef4fb}
-  .popup{position:fixed;inset:0;background:rgba(0,0,0,.5);display:none;align-items:center;justify-content:center;z-index:200;padding:16px}
+  table.t tbody tr>td.mov-cell:hover,table.t tbody tr>td.stk-cell:hover{background:var(--pri-soft)}
+  /* popup de detalle: mostrar/ocultar es de la pantalla (.open); el aspecto, del sistema */
+  .popup{position:fixed;inset:0;display:none;align-items:center;justify-content:center;z-index:200;padding:var(--s4)}
   .popup.open{display:flex}
-  .pop-card{background:#fff;border-radius:14px;width:100%;max-width:880px;max-height:86vh;overflow:auto;padding:20px}
-  .pop-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:14px}
-  .pop-head h3{font-size:20px;font-weight:800}
+  .pop-card{width:100%;max-width:880px;max-height:86vh;overflow:auto;padding:var(--s5)}
 </style>
 </head>
 <body>
@@ -47,8 +48,10 @@
     <div class="kpis" id="kpis"></div>
     <div class="aviso hidden" id="avisoFactores"></div>
 
-    <div class="row">
-      <div class="seg">
+    <!-- filtros y buscador en UNA barra: menos alto muerto arriba de la tabla -->
+    <div class="toolbar">
+      <input type="search" class="search" id="q" placeholder="Buscar por código o descripción…">
+      <div class="chips">
         <button class="seg-btn active" data-f="todos" type="button">Todos</button>
         <button class="seg-btn" data-f="con" type="button">Con stock</button>
         <button class="seg-btn" data-f="sin" type="button">Sin stock</button>
@@ -56,8 +59,6 @@
         <button class="seg-btn" data-f="mov" type="button">Con movimientos</button>
       </div>
     </div>
-
-    <div class="search-box"><input type="text" id="q" placeholder="Buscar por código o descripción…"></div>
 
     <div class="table-wrap">
       <table class="t">
@@ -88,7 +89,7 @@ window.SB_CLIENT = GP2_SB();
 <script src="../gp2-ui.js?v=20260930a"></script>
 <script src="../gp2-numero.js?v=20260911o"></script>
 <script src="../gp2-composicion.js?v=20261008dsA"></script>
-<script src="../gp2-stock-sector.js?v=20261001a"></script>
+<script src="../gp2-stock-sector.js?v=20261008dsD"></script>
 <script src="../gp2-menu.js?v=20261008ds"></script>
 <script src="../gp2-nav.js?v=20261008ds"></script>
 </body>

@@ -51,9 +51,18 @@
 <link rel="apple-touch-icon" href="../../GP2_favicon.png">
 <link rel="stylesheet" href="../../gp2-modulo.css?v=20261008ds">
 <style>
-/* Botones Corto/Largo del panel de entrega de Charcas (reemplazan al <select>) */
-.chprod-btn{flex:1 1 130px;min-height:52px;font-size:18px;font-weight:800;border:2px solid #d0d7de;border-radius:10px;background:#fff;color:#334155;cursor:pointer;font-family:inherit;padding:8px 12px}
-.chprod-btn.act{background:#cddaea;border-color:#7ea3c7;color:#0b3b73}
+/* Botones Corto/Largo del panel de entrega de Charcas (reemplazan al <select>): son .chip del
+   sistema; el JS marca el elegido con .act, que se ve como el seleccionado de la casa */
+.chprod-btn{flex:1 1 130px;justify-content:center;min-height:52px;font-size:18px}
+.chprod-btn.act{background:var(--sel);border-color:var(--sel);color:#fff}
+/* hibridos (Charcas / Eclipse): el campo "Producto" ocupa dos columnas de la grilla */
+.hib .ancho{grid-column:span 2}
+@media (max-width:640px){ .hib .ancho{grid-column:auto} }
+.hib .kpis{margin-top:0;grid-template-columns:minmax(0,340px)}
+.verif{font-size:var(--fs-sm);color:var(--ink-2);min-height:20px;padding:4px 0}
+#chObjetivo:empty{display:none}
+.aviso.info b{color:inherit}  /* el sistema pinta el <b> de todo .aviso en ambar oscuro */
+.fin{justify-content:center}
 </style>
 </head>
 <body>
@@ -73,23 +82,19 @@
 
     <!-- FASE 0 — elegir proveedor -->
     <div id="fase0">
-      <div class="row"><label class="lbl">Proveedor de Servicio</label></div>
+      <h2 class="sec-h">Proveedor de Servicio</h2>
       <div class="provs-grid" id="psGrid"></div>
       <div id="status" class="status">Cargando…</div>
     </div>
 
     <!-- FASE 1 — cargar lo que devolvió el proveedor -->
     <div id="fase1" class="hidden">
-      <div class="row" style="justify-content:space-between">
-        <div class="row" style="margin:0">
-          <label class="lbl" id="fase1Title">Proveedor</label>
-        </div>
-        <div class="row" style="margin:0">
-          <label class="lbl" style="font-size:16px">Fecha</label>
-          <input type="date" id="fFecha">
-          <button class="btn btn-secondary" id="btnLimpiar" type="button" title="Vaciar todo lo cargado">🗑 Limpiar</button>
-          <button class="btn btn-primary" id="btnEnviar" type="button" disabled>Enviar</button>
-        </div>
+      <div class="toolbar mt0">
+        <h2 class="sec-h mt0 mb0" id="fase1Title">Proveedor</h2>
+        <span class="spacer"></span>
+        <div class="field"><label for="fFecha">Fecha</label><input type="date" id="fFecha"></div>
+        <button class="btn btn-secondary" id="btnLimpiar" type="button" title="Vaciar todo lo cargado">🗑 Limpiar</button>
+        <button class="btn btn-primary" id="btnEnviar" type="button" disabled>Enviar</button>
       </div>
 
       <div class="search-box"><input type="text" id="q" placeholder="Buscar por parte, SC o SP…"></div>
@@ -118,36 +123,33 @@
          su MP (alambre bruto) entra por Recepcion Insumos->Altrak. Aca registra lo que
          entrega: corto (IC3 -> Cervantes) / largo (IC3V -> Virgilio), uni del remito + kg de
          balanza (tolerancia 5%), via cargar_recepcion_charcas. Panel propio, no la tabla SC->SP. -->
-    <div id="faseCharcas" class="hidden">
-      <div class="row" style="justify-content:space-between">
-        <label class="lbl" id="chTitle">Resortes Charcas · Corte Alambre</label>
-        <div class="row" style="margin:0">
-          <label class="lbl" style="font-size:16px">Fecha</label>
-          <input type="date" id="chFecha">
+    <div id="faseCharcas" class="hidden hib">
+      <div class="toolbar mt0">
+        <h2 class="sec-h mt0 mb0" id="chTitle">Resortes Charcas · Corte Alambre</h2>
+        <span class="spacer"></span>
+        <div class="field"><label for="chFecha">Fecha</label><input type="date" id="chFecha"></div>
+      </div>
+      <div class="kpis">
+        <div class="kpi pri"><span class="k">Stock de alambre en Charcas</span><span class="v"><span id="chStock">0</span> kg</span></div>
+      </div>
+      <div id="chObjetivo" class="aviso info"></div>
+      <div class="grid-auto" style="--grid-min:200px">
+        <div class="field ancho">
+          <label>Producto entregado</label>
+          <div id="chProdBtns" class="chips mt0 mb0"></div>
+        </div>
+        <div class="field">
+          <label for="chUni">Unidades del remito</label>
+          <input type="text" id="chUni" inputmode="numeric" placeholder="0">
+        </div>
+        <div class="field">
+          <label for="chKg">Kg de balanza</label>
+          <input type="text" id="chKg" inputmode="decimal" placeholder="0,0">
         </div>
       </div>
-      <div style="background:#eef4fb;border:2px solid #cddaea;border-radius:12px;padding:12px 16px;margin:10px 0;text-align:center">
-        <div style="font-size:13px;font-weight:800;color:#475569;text-transform:uppercase;letter-spacing:.4px">Stock de alambre en Charcas</div>
-        <div style="font-size:28px;font-weight:900;color:#0b3b73"><span id="chStock">0</span> <small style="font-size:16px;color:#0b5cad">kg</small></div>
-      </div>
-      <div id="chObjetivo" style="font-size:15px;font-weight:700;color:#0b3b73;text-align:center;background:#f6faff;border:1px solid #cddaea;border-radius:8px;padding:8px 10px;margin:0 0 10px"></div>
-      <div class="row" style="flex-wrap:wrap;gap:12px">
-        <div style="display:flex;flex-direction:column;gap:6px;flex:1 1 260px">
-          <label class="lbl">Producto entregado</label>
-          <div id="chProdBtns" style="display:flex;gap:10px;flex-wrap:wrap"></div>
-        </div>
-        <div style="display:flex;flex-direction:column;gap:6px;flex:1 1 130px">
-          <label class="lbl" for="chUni">Unidades del remito</label>
-          <input type="text" id="chUni" inputmode="numeric" placeholder="0" style="height:48px;font-size:20px;font-weight:700;padding:0 12px;border:2px solid #d0d7de;border-radius:10px">
-        </div>
-        <div style="display:flex;flex-direction:column;gap:6px;flex:1 1 130px">
-          <label class="lbl" for="chKg">Kg de balanza</label>
-          <input type="text" id="chKg" inputmode="decimal" placeholder="0,0" style="height:48px;font-size:20px;font-weight:700;padding:0 12px;border:2px solid #d0d7de;border-radius:10px">
-        </div>
-      </div>
-      <div id="chVerif" style="font-size:14px;color:#0b3b73;font-weight:700;padding:4px 0;min-height:20px"></div>
+      <div id="chVerif" class="verif"></div>
       <div class="row">
-        <button class="btn btn-primary" id="chGuardar" type="button" disabled>✓ Registrar entrega de Charcas</button>
+        <button class="btn btn-primary btn-lg" id="chGuardar" type="button" disabled>✓ Registrar entrega de Charcas</button>
       </div>
       <div id="chMsg" class="status"></div>
     </div>
@@ -155,35 +157,32 @@
     <!-- FASE ECLIPSE — entrega del cortado (hibrido). Eclipse corta chapa 430 (de Aperam) y
          entrega el 1686 en unidades. Panel propio: uni del remito -> cargar_recepcion_eclipse
          (suma uni en Procesado, descuenta kg de chapa en Eclipse). -->
-    <div id="faseEclipse" class="hidden">
-      <div class="row" style="justify-content:space-between">
-        <label class="lbl">Eclipse · Corte Chapa 430</label>
-        <div class="row" style="margin:0">
-          <label class="lbl" style="font-size:16px">Fecha</label>
-          <input type="date" id="ecFecha">
+    <div id="faseEclipse" class="hidden hib">
+      <div class="toolbar mt0">
+        <h2 class="sec-h mt0 mb0">Eclipse · Corte Chapa 430</h2>
+        <span class="spacer"></span>
+        <div class="field"><label for="ecFecha">Fecha</label><input type="date" id="ecFecha"></div>
+      </div>
+      <div class="kpis">
+        <div class="kpi pri"><span class="k">Stock de chapa 430 en Eclipse</span><span class="v"><span id="ecStock">0</span> kg</span></div>
+      </div>
+      <div class="grid-auto" style="--grid-min:200px">
+        <div class="field ancho">
+          <label for="ecProd">Producto entregado</label>
+          <select id="ecProd"></select>
+        </div>
+        <div class="field">
+          <label for="ecUni">Unidades del remito <span class="sub">(referencia)</span></label>
+          <input type="text" id="ecUni" inputmode="numeric" placeholder="0">
+        </div>
+        <div class="field">
+          <label for="ecKg">Kg de entrega <span class="sub">(peso del producto)</span></label>
+          <input type="text" id="ecKg" inputmode="decimal" placeholder="0,0">
         </div>
       </div>
-      <div style="background:#eef4fb;border:2px solid #cddaea;border-radius:12px;padding:12px 16px;margin:10px 0;text-align:center">
-        <div style="font-size:13px;font-weight:800;color:#475569;text-transform:uppercase;letter-spacing:.4px">Stock de chapa 430 en Eclipse</div>
-        <div style="font-size:28px;font-weight:900;color:#0b3b73"><span id="ecStock">0</span> <small style="font-size:16px;color:#0b5cad">kg</small></div>
-      </div>
-      <div class="row" style="flex-wrap:wrap;gap:12px">
-        <div style="display:flex;flex-direction:column;gap:6px;flex:1 1 200px">
-          <label class="lbl" for="ecProd">Producto entregado</label>
-          <select id="ecProd" style="height:48px;font-size:19px;font-weight:600;padding:0 12px;border:2px solid #d0d7de;border-radius:10px"></select>
-        </div>
-        <div style="display:flex;flex-direction:column;gap:6px;flex:1 1 150px">
-          <label class="lbl" for="ecUni">Unidades del remito <small style="color:#64748b;font-weight:700">(referencia)</small></label>
-          <input type="text" id="ecUni" inputmode="numeric" placeholder="0" style="height:48px;font-size:20px;font-weight:700;padding:0 12px;border:2px solid #d0d7de;border-radius:10px">
-        </div>
-        <div style="display:flex;flex-direction:column;gap:6px;flex:1 1 150px">
-          <label class="lbl" for="ecKg">Kg de entrega <small style="color:#64748b;font-weight:700">(peso del producto)</small></label>
-          <input type="text" id="ecKg" inputmode="decimal" placeholder="0,0" style="height:48px;font-size:20px;font-weight:800;padding:0 12px;border:2px solid #0b3b73;border-radius:10px">
-        </div>
-      </div>
-      <div id="ecVerif" style="font-size:14px;color:#0b3b73;font-weight:700;padding:4px 0;min-height:20px"></div>
+      <div id="ecVerif" class="verif"></div>
       <div class="row">
-        <button class="btn btn-primary" id="ecGuardar" type="button" disabled>✓ Registrar entrega de Eclipse</button>
+        <button class="btn btn-primary btn-lg" id="ecGuardar" type="button" disabled>✓ Registrar entrega de Eclipse</button>
       </div>
       <div id="ecMsg" class="status"></div>
     </div>
@@ -194,9 +193,9 @@
         <div class="title">✓ Entrega registrada</div>
         <div>Tu código de entrega:</div>
         <div class="code" id="successCode">—</div>
-        <div id="successDetail" style="font-size:17px;color:#444"></div>
+        <div id="successDetail"></div>
       </div>
-      <div class="row" style="justify-content:center">
+      <div class="row fin">
         <button class="btn btn-primary" id="btnVolverPS" type="button">← Cambiar proveedor</button>
       </div>
     </div>
@@ -252,7 +251,7 @@ async function cargarProdCharcas(){
     CH_PROD = pr.data || [];
     $("chProdBtns").innerHTML = CH_PROD.map(function(p){
       var lbl = p.codigo==='IC3' ? 'Corto (IC3)' : (p.codigo==='IC3V' ? 'Largo (IC3V)' : esc(p.codigo));
-      return '<button type="button" class="chprod-btn" data-id="'+p.id+'">'+lbl+'</button>';
+      return '<button type="button" class="chprod-btn chip" data-id="'+p.id+'">'+lbl+'</button>';
     }).join("");
   }catch(e){ CH_PROD=[]; }
 }
@@ -336,13 +335,13 @@ function chRefresh(){
     // Sin kg_x_uni no hay conversion posible: se dice, no se muestra 0 (regla unica GP2N.aUni)
     var uniCalc = GP2N.aUni(prod.kg_x_uni, kg);
     if (uniCalc === null){
-      $("chVerif").innerHTML = '<span style="color:#b42318;font-weight:800">'+esc(prod.codigo)+
-        ' no tiene kg por unidad cargado: no se puede verificar la balanza contra el remito.</span>';
+      $("chVerif").innerHTML = '<b class="err-txt">'+esc(prod.codigo)+
+        ' no tiene kg por unidad cargado: no se puede verificar la balanza contra el remito.</b>';
     } else {
       uniCalc = Math.round(uniCalc);
       var diff = uni>0 ? Math.round(Math.abs(uni-uniCalc)/uni*10000)/100 : 0;
       $("chVerif").innerHTML = "≈ <b>"+fmt(uniCalc)+" uni</b> por balanza vs "+fmt(uni)+" del remito · dif "+fmt(diff)+"% "+
-        (diff<=5 ? '<span style="color:#0a7c2f;font-weight:800">✓ OK</span>' : '<span style="color:#b42318;font-weight:800">⚠ fuera de 5%</span>');
+        (diff<=5 ? '<b class="ok-txt">✓ OK</b>' : '<b class="err-txt">⚠ fuera de 5%</b>');
     }
   } else { $("chVerif").textContent=""; }
   $("chGuardar").disabled = !(prod && uni>0 && kg>0 && $("chFecha").value);
@@ -360,7 +359,7 @@ $("chFecha").addEventListener("input", chRefresh);
 $("chGuardar").addEventListener("click", async function(){
   var prod=chProdSel(), uni=Math.round(num($("chUni").value)), kg=num($("chKg").value), fecha=$("chFecha").value||hoyISO();
   var m=$("chMsg"); m.className="status"; m.textContent="";
-  if(!prod || !(uni>0) || !(kg>0)){ m.className="status bad"; m.textContent="Elegí producto, unidades y kg de balanza."; return; }
+  if(!prod || !(uni>0) || !(kg>0)){ m.className="status err"; m.textContent="Elegí producto, unidades y kg de balanza."; return; }
   if(!confirm("Registrar entrega de Charcas:\n\n"+prod.codigo+" — "+(prod.descripcion||"")+"\nUnidades: "+fmt(uni)+"\nKg balanza: "+fmt(kg)+"\n\n¿Confirmar?")) return;
   $("chGuardar").disabled=true; m.textContent="Registrando…";
   try{
@@ -369,13 +368,13 @@ $("chGuardar").addEventListener("click", async function(){
     var d=res.data||{};
     m.className="status ok";
     m.innerHTML="✓ Entrega registrada ("+(d.producto||"")+"). Consumió <b>"+fmt(d.kg_balanza)+" kg alambre</b>. Stock Charcas: "+fmt(d.stock_bruto_charcas_antes)+" → <b>"+fmt(d.stock_bruto_charcas_despues)+" kg</b>"+
-      (d.dentro_tolerancia===false?' <span style="color:#b42318;font-weight:800">⚠ dif '+fmt(d.diferencia_pct)+'% fuera de tolerancia</span>':'')+
-      (d.bruto_negativo?' <span style="color:#b42318;font-weight:800">⚠ stock NEGATIVO</span>':'');
+      (d.dentro_tolerancia===false?' <b class="err-txt">⚠ dif '+fmt(d.diferencia_pct)+'% fuera de tolerancia</b>':'')+
+      (d.bruto_negativo?' <b class="err-txt">⚠ stock NEGATIVO</b>':'');
     $("chUni").value=""; $("chKg").value=""; $("chVerif").textContent="";
     chSelId=null;
     Array.prototype.forEach.call(document.querySelectorAll("#chProdBtns .chprod-btn"), function(b){ b.classList.remove("act"); });
     chStock(); chPendiente(); chRefresh();
-  }catch(e){ m.className="status bad"; m.textContent="Error: "+(e.message||e); }
+  }catch(e){ m.className="status err"; m.textContent="Error: "+(e.message||e); }
   finally{ chRefresh(); }
 });
 
@@ -427,8 +426,8 @@ $("ecFecha").addEventListener("input", ecRefresh);
 $("ecGuardar").addEventListener("click", async function(){
   var prod=ecProdSel(), uni=Math.round(num($("ecUni").value)), kg=num($("ecKg").value), fecha=$("ecFecha").value||hoyISO();
   var m=$("ecMsg"); m.className="status"; m.textContent="";
-  if(!prod || !(uni>0)){ m.className="status bad"; m.textContent="Elegí producto y unidades."; return; }
-  if(!(kg>0)){ m.className="status bad"; m.textContent="Cargá el peso de la entrega (kg del remito)."; return; }
+  if(!prod || !(uni>0)){ m.className="status err"; m.textContent="Elegí producto y unidades."; return; }
+  if(!(kg>0)){ m.className="status err"; m.textContent="Cargá el peso de la entrega (kg del remito)."; return; }
   var chapa = Math.round(kg*((ecDesp>=0&&ecDesp<100)?1/(1-ecDesp/100):1)*1000)/1000;
   if(!confirm("Registrar entrega de Eclipse:\n\n"+prod.codigo+" — "+(prod.descripcion||"")+"\nUnidades (referencia): "+fmt(uni)+"\nPeso entregado: "+fmt(kg)+" kg\nDescuenta ~"+fmt(chapa)+" kg de chapa\n\n¿Confirmar?")) return;
   $("ecGuardar").disabled=true; m.textContent="Registrando…";
@@ -438,10 +437,10 @@ $("ecGuardar").addEventListener("click", async function(){
     var d=res.data||{};
     m.className="status ok";
     m.innerHTML="✓ Entrega registrada. Consumió <b>"+fmt(d.kg_chapa_consumida)+" kg chapa</b>. Stock chapa: "+fmt(d.stock_chapa_eclipse_antes)+" → <b>"+fmt(d.stock_chapa_eclipse_despues)+" kg</b>"+
-      (d.chapa_negativa?' <span style="color:#b42318;font-weight:800">⚠ stock NEGATIVO</span>':'');
+      (d.chapa_negativa?' <b class="err-txt">⚠ stock NEGATIVO</b>':'');
     $("ecUni").value=""; $("ecKg").value=""; $("ecVerif").textContent="";
     ecStock(); ecRefresh();
-  }catch(e){ m.className="status bad"; m.textContent="Error: "+(e.message||e); }
+  }catch(e){ m.className="status err"; m.textContent="Error: "+(e.message||e); }
   finally{ ecRefresh(); }
 });
 
@@ -484,8 +483,8 @@ function renderTabla(){
       '<td>'+esc(x.sc_desc||x.sp_desc||"")+'</td>'+
       '<td class="proc">'+esc(x.proceso||"—")+'</td>'+
       '<td><span class="cod">'+esc(x.sc_cod)+'</span></td>'+
-      '<td><span class="cod">'+esc(x.sp_cod||"—")+'</span><br><small style="color:#777">'+esc(x.sp_desc||"")+'</small>'+
-        (seCuenta(x)?'<br><small style="color:#0b5cad;font-weight:700">se cuenta: cargar UNIDADES</small>':'')+'</td>'+
+      '<td><span class="cod">'+esc(x.sp_cod||"—")+'</span><br><small class="sub">'+esc(x.sp_desc||"")+'</small>'+
+        (seCuenta(x)?'<br><small class="cod">se cuenta: cargar UNIDADES</small>':'')+'</td>'+
       E.tdInput("caj", vCaj, t.hayT)+
       E.tdInput("kg",  vKg,  t.hayT, null, seCuenta(x)?"numeric":"decimal")+
       E.tdTanda(it)+
@@ -601,7 +600,7 @@ $("btnEnviar").addEventListener("click", async function(){
 
   if (res.errs.length){
     renderTabla(); // limpia de la tabla las entregas ya registradas; quedan solo las que fallaron
-    $("msg1").innerHTML = '<span style="color:#b91c1c">Se registraron '+res.ok+' de '+items.length+
+    $("msg1").innerHTML = '<span class="err-txt">Se registraron '+res.ok+' de '+items.length+
       '. Errores:<br>'+esc(res.errs.join(" | "))+'</span>';
     return;
   }

@@ -12,140 +12,125 @@
 <link rel="stylesheet" href="../gp2-modulo.css?v=20261008ds">
 <style>
  /* ============================================================================
-    GP2 · ¿Qué necesito para producir? — rediseño 2026-09-11 (pedido del usuario:
-    "más grande, sin tantos colores, no tan claro, fondo más oscuro, más legible").
-    Tres decisiones de fondo:
-      1. FONDO OSCURO y contraste alto. Esta pantalla NO carga gp2-claro.css
-         (el tema claro global) a propósito: se pisa entera acá.
-      2. DOS colores, no once. Ámbar = lo nuestro (matriz, fleje, kg, artículo).
-         Celeste = lo de afuera (proveedor, tallerista). Todo lo demás, gris.
-         El tipo de nodo se lee por la ETIQUETA y por la barra lateral, no por
-         diez fondos de colores distintos.
-      3. El sector donde queda el stock dejó de ser un nodo suelto: es el pie de
-         la tarjeta del paso que lo produce. Eso parte al medio el largo de cada
-         cadena (de ~10 nodos a ~5), que era lo que obligaba a scrollear y a
-         achicar la letra.
-    ========================================================================== */
- *{box-sizing:border-box}
- /* Gris azulado MEDIO, no negro. La primera vuelta (2026-09-11) quedó casi negra y el
-    usuario la vio menos legible, no más: con el fondo muy oscuro el texto gris de las
-    descripciones se apaga. Fondo medio + texto blanco puro = más contraste real. */
- :root{
-  --bg:#29323d; --bar:#212a35; --lane:#343f4c; --card:#414e5d; --cardq:#3a4655;
-  --line:#4d5b6b; --line2:#64748a;
-  --tx:#ffffff; --tx2:#d3dde8; --tx3:#adbbc9;
-  --amb:#ffc046; --blu:#8fd0ff;
- }
- html,body{background:var(--bg);color:var(--tx)}
- body{margin:0;font:16px/1.45 -apple-system,Segoe UI,Roboto,sans-serif}
+    GP2 · Despiece x Artículo ("¿Qué necesito para producir?").
 
- /* ---- barra de filtros: pegada arriba, campos grandes (regla de accesibilidad) ---- */
- .top{position:sticky;top:0;z-index:30;background:var(--bar);border-bottom:1px solid var(--line);
-      padding:10px 16px;display:flex;justify-content:space-between;align-items:center;gap:14px;flex-wrap:wrap}
- .top h1{margin:0;font-size:19px;font-weight:800;letter-spacing:.2px;color:var(--tx)}
- .top .sel{display:flex;gap:14px;align-items:center;flex-wrap:wrap;font-size:13px;
-           text-transform:uppercase;letter-spacing:.7px;color:var(--tx3);font-weight:700}
- .top .fld{display:flex;flex-direction:column;gap:3px}
- .top select,.top input{background:#0d151d;color:var(--tx);border:1px solid var(--line2);border-radius:8px;
-                        padding:8px 11px;font-size:19px;font-family:inherit;font-weight:600}
- .top select:focus,.top input:focus{outline:none;border-color:var(--amb)}
- .top input#uni{width:130px;text-align:right;color:var(--amb);font-weight:800;font-size:20px}
- .top input#buscar{width:230px;max-width:78vw;font-weight:500}
- .top select#art{max-width:min(620px,78vw)}
- .top select#marca{max-width:78vw}
- [hidden]{display:none!important}
+    TEMA (08/10/2026): pasa al TEMA COMÚN de GP2 (fondo claro, gp2-modulo.css).
+    Desde el rediseño del 11/09 esta pantalla era OSCURA a propósito, pisada entera
+    acá (pedido del usuario: "más grande, sin tantos colores, no tan claro, fondo
+    más oscuro, más legible"). El 08/10 el dueño pidió que GP2 sea UN solo producto
+    —misma barra, misma letra, mismo fondo en todos los módulos— y esta era la única
+    pantalla que parecía de otro programa. Se cambia el FONDO, no lo que resolvió
+    aquel pedido, que se conserva tal cual:
+      1. CONTRASTE ALTO: nombres y números en tinta (--ink), descripciones en
+         --ink-2. Nada de grises lavados (--ink-3/--ink-4 no se usan para datos).
+      2. LETRA GRANDE: el nombre del paso a 20px, cantidades y kg a 16px en negrita,
+         el código del artículo a 40px. Los campos, 18-20px (regla de la casa).
+      3. DOS colores, no once. ÁMBAR = lo nuestro (matriz, fleje, kg, artículo).
+         AZUL CELESTE = lo de afuera (proveedor, tallerista). Todo lo demás neutro.
+         El tipo de nodo se lee por la ETIQUETA y por la barra lateral, no por
+         diez fondos de colores distintos. Sobre fondo claro el ámbar es oscuro
+         (texto) y el lleno es suave (fondo), para que se lea igual de bien.
+      4. El sector donde queda el stock NO es un nodo suelto: es el pie de la
+         tarjeta del paso que lo produce (la cadena mide ~5 nodos, no ~10).
+    El selector de artículo y las unidades viven en una barra pegada debajo de la
+    barra de la app (antes eran la .top oscura pegada arriba).
+    ========================================================================== */
+ /* colores de DOMINIO de esta pantalla (los dos únicos): ámbar = nuestro, celeste = de afuera */
+ :root{
+  --nos:#dc9a00;            /* barra lateral / acento ámbar */
+  --nos-ink:var(--warn);    /* texto ámbar sobre blanco (6,5:1) */
+  --nos-soft:var(--warn-soft);
+  --nos-line:var(--warn-line);
+  --ext:#0284c7;            /* barra lateral celeste */
+  --ext-ink:#075985;        /* texto celeste sobre blanco (8:1) */
+  --ext-soft:#e0f2fe;
+  --ext-line:#9fd3f3;
+ }
+
+ /* ---- elegir artículo + unidades: pegado debajo de la barra de la app ---- */
+ .elegir{position:sticky;top:var(--bar-h);z-index:30;background:var(--bg);
+   margin:calc(-1 * var(--s4)) calc(-1 * var(--gutter)) var(--s3);padding:var(--s3) var(--gutter);
+   box-shadow:0 1px 0 var(--line)}
+ .elegir .field>label{font-size:var(--fs-xs);font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-2)}
+ /* #uni: el sistema estira los input[type=text] de una .toolbar; acá va angosto */
+ .elegir .f-art{flex:0 1 620px;min-width:0}
+ #uni{flex:none;width:130px;min-width:0;text-align:right;font-size:20px;font-weight:750}
+ .pick[hidden]{display:none}
  /* ---- selector de articulo en UN PASO: se abre en el buscador con TODOS los articulos
     (usuario 2026-09-23: "no me hagas elegir por marca, que el buscador aparezca en todas
     directamente"). La marca quedo como filtro opcional en chips, arriba del buscador; antes
     era un paso obligatorio previo (2026-09-11). El <select id="art"> sigue existiendo
     OCULTO: es el modelo que lee el resto de la pantalla. ---- */
- .top .artbtn{background:#0d151d;color:var(--tx);border:1px solid var(--line2);border-radius:8px;
-   padding:8px 12px;font-size:19px;font-family:inherit;font-weight:700;text-align:left;cursor:pointer;
-   min-height:46px;min-width:260px;max-width:min(620px,78vw);text-transform:none;letter-spacing:0;
-   display:flex;align-items:center;justify-content:space-between;gap:12px}
- .top .artbtn #artBtnTxt{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
- .top .artbtn .caret{color:var(--tx3);font-size:15px;flex-shrink:0}
- .top .artbtn:focus{outline:none;border-color:var(--amb)}
- .pick{position:fixed;inset:0;background:rgba(10,16,22,.62);display:flex;align-items:flex-start;
-   justify-content:center;padding:20px 12px;z-index:60}
- .pickbox{background:var(--lane);border:1px solid var(--line);border-radius:14px;width:100%;
-   max-width:480px;max-height:calc(100vh - 40px);display:flex;flex-direction:column;overflow:hidden}
- .pickhead{display:flex;align-items:center;gap:10px;padding:10px 12px;border-bottom:1px solid var(--line);
-   font-size:17px;color:var(--tx)}
- .pickhead b{flex:1;font-weight:800}
- .pickhead button{background:var(--card);border:1px solid var(--line2);border-radius:9px;color:var(--tx);
-   font-size:19px;min-width:46px;min-height:46px;cursor:pointer;font-family:inherit}
- .marcas{display:flex;flex-wrap:wrap;gap:8px}
- .marcas button{background:var(--card);border:1px solid var(--line2);border-radius:999px;color:var(--tx2);
-   font-size:18px;font-weight:700;min-height:44px;padding:0 16px;cursor:pointer;font-family:inherit}
- .marcas button:hover{border-color:var(--amb);color:var(--amb)}
- .marcas button.on{border-color:var(--amb);color:var(--amb);font-weight:800}
+ .artbtn{display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;
+   min-height:var(--touch);padding:0 12px;background:var(--surface);color:var(--ink);
+   border:1px solid var(--field-line);border-radius:var(--r-sm);font-size:var(--fs-lg);font-weight:650;
+   text-align:left;cursor:pointer}
+ .artbtn:hover{border-color:var(--ink-4)}
+ .artbtn:focus-visible{border-color:var(--pri)}
+ .artbtn #artBtnTxt{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+ .artbtn .caret{color:var(--ink-2);font-size:15px;flex-shrink:0}
+ .pick{position:fixed;inset:0;display:flex;align-items:flex-start;justify-content:center;padding:20px 12px;z-index:200}
+ .pickbox{width:100%;max-width:520px;max-height:calc(100vh - 40px);display:flex;flex-direction:column;overflow:hidden}
+ .pickhead{display:flex;align-items:center;gap:10px;padding:10px 12px 10px 16px;border-bottom:1px solid var(--line);font-size:var(--fs-lg)}
+ .pickhead b{flex:1;font-weight:750}
+ .pickhead .btn{padding:0;width:var(--touch);font-size:19px}
+ .marcas{margin:0}
  #pickArts{display:flex;flex-direction:column;min-height:0;padding:14px;gap:10px}
- #pickArts input{background:#0d151d;color:var(--tx);border:1px solid var(--line2);border-radius:8px;
-   padding:11px 12px;font-size:19px;font-family:inherit;width:100%}
- #pickArts input:focus{outline:none;border-color:var(--amb)}
  .picklist{overflow-y:auto;min-height:0}
- .picklist .fam{font-size:12px;text-transform:uppercase;letter-spacing:1px;color:var(--tx3);
-   margin:12px 0 5px;font-weight:800}
- .picklist button{display:block;width:100%;text-align:left;background:var(--cardq);
-   border:1px solid var(--line);border-radius:9px;color:var(--tx2);font-size:18px;padding:11px 13px;
-   min-height:46px;margin-bottom:7px;cursor:pointer;font-family:inherit}
- .picklist button:hover{border-color:var(--line2);color:var(--tx)}
- .picklist button.on{border-color:var(--amb);color:var(--amb);font-weight:800}
+ .picklist .fam{font-size:var(--fs-xs);text-transform:uppercase;letter-spacing:.07em;color:var(--ink-2);margin:12px 0 5px;font-weight:750}
+ .picklist button{display:block;width:100%;text-align:left;background:var(--surface);
+   border:1px solid var(--line);border-radius:var(--r-sm);color:var(--ink);font-size:var(--fs-lg);font-weight:500;
+   padding:10px 13px;min-height:var(--touch);margin-bottom:6px;cursor:pointer}
+ .picklist button:hover{border-color:var(--pri);background:var(--surface-2)}
+ .picklist button.on{background:var(--sel);border-color:var(--sel);color:#fff;font-weight:700}
 
- .canvas{padding:18px 18px 48px;max-width:1680px;overflow-x:auto}
+ .canvas{overflow-x:auto}
 
- /* ---- encabezado del artículo ---- */
- .hero{background:linear-gradient(180deg,#1e2b3a,#18222e);border:1px solid var(--line);
-       border-left:5px solid var(--amb);border-radius:14px;padding:14px 20px;margin-bottom:14px;
-       display:flex;justify-content:space-between;align-items:center;gap:20px;flex-wrap:wrap;
-       width:fit-content;max-width:100%}
- .hero .cod{font-size:42px;font-weight:800;color:var(--amb);line-height:1;letter-spacing:1px}
- .hero .fam{font-size:16px;color:var(--tx2);margin-top:5px}
- .hero .kpis{display:flex;flex-wrap:wrap;align-items:stretch;gap:0}
- .hero .kpi{padding:2px 18px;border-left:1px solid var(--line);font-size:12px;color:var(--tx3);
-            text-transform:uppercase;letter-spacing:.6px;font-weight:700}
- .hero .kpi b{display:block;font-size:21px;color:var(--tx);font-weight:800;text-transform:none;letter-spacing:0}
- .hero .kpi.ens b{color:var(--blu)}
+ /* ---- encabezado del artículo + despiece, lado a lado si entran ---- */
+ .cabeza{display:flex;flex-wrap:wrap;gap:var(--s3);align-items:flex-start;margin-bottom:var(--s2)}
+ .cabeza>.hero{flex:1 1 480px}
+ .cabeza>.despiece{flex:0 1 auto}
+ .hero{background:var(--surface);border:1px solid var(--line);border-left:5px solid var(--nos);
+       border-radius:var(--r-md);padding:var(--s3) var(--s5);display:flex;justify-content:space-between;
+       align-items:center;gap:var(--s3) var(--s5);flex-wrap:wrap;width:fit-content;max-width:100%}
+ .hero .cod{font-size:40px;font-weight:800;color:var(--ink);line-height:1;letter-spacing:-.01em}
+ .hero .fam{font-size:var(--fs-base);color:var(--ink-2);margin-top:5px}
+ .hero .kpis{display:flex;flex-wrap:wrap;gap:0;margin:0}
+ .hero .kpi{border:0;border-left:1px solid var(--line);border-radius:0;padding:2px 16px;background:none}
+ .hero .kpi .v{font-size:24px;margin:0 0 2px}
+ .hero .kpi .k{color:var(--ink-2)}
+ .hero .kpi.ens .v{font-size:var(--fs-lg);line-height:1.3;color:var(--ext-ink)}
 
  /* ---- despiece del artículo (qué piezas lleva y cuántas) ---- */
- .despiece{background:var(--lane);border:1px solid var(--line);border-left:5px solid var(--amb);
-           border-radius:14px;padding:12px 18px 14px;margin-bottom:16px;width:fit-content;max-width:100%;
-           overflow-x:auto}
- .despiece h3{margin:0 0 8px;color:var(--tx3);font-size:12.5px;text-transform:uppercase;letter-spacing:1px}
- .despiece table{border-collapse:collapse;width:auto}
- .despiece th{font-size:12px;text-transform:uppercase;letter-spacing:.7px;color:var(--tx3);
-              text-align:left;padding:4px 16px 6px 0;border-bottom:1px solid var(--line);white-space:nowrap}
- .despiece td{font-size:16px;color:var(--tx2);padding:6px 16px 6px 0;border-bottom:1px solid var(--line);
-              white-space:nowrap}
- .despiece tr:last-child td{border-bottom:0}
- .despiece td:last-child,.despiece th:last-child{padding-right:0}
- .despiece .cd{font-family:ui-monospace,SF Mono,Menlo,monospace;font-weight:800;color:var(--tx);font-size:16.5px}
- .despiece .ds{color:var(--tx2);white-space:normal;max-width:380px}
- .despiece .sc{color:var(--tx3);font-size:14px;text-transform:uppercase;letter-spacing:.5px}
- .despiece .nu{text-align:right;font-weight:800;color:var(--tx)}
- .despiece .tt{text-align:right;font-weight:800;color:var(--amb);font-size:17px}
+ .despiece{max-width:100%;min-width:0}
+ .despiece h3{margin:2px 0 6px;color:var(--ink-2)}
+ .despiece .table-wrap{width:fit-content;max-width:100%}
+ .despiece table.t{width:auto}
+ .despiece table.t td{font-size:var(--fs-base);white-space:nowrap}
+ .despiece .cd{font-weight:750;color:var(--ink)}
+ .despiece .ds{color:var(--ink-2);white-space:normal;min-width:160px;max-width:340px}
+ .despiece .sc{color:var(--ink-2);font-size:var(--fs-sm);text-transform:uppercase;letter-spacing:.04em}
+ .despiece .nu{font-weight:750}
+ .despiece .tt{font-weight:800;color:var(--nos-ink)}
 
  /* ---- títulos de bloque ---- */
- .section-title{display:flex;align-items:center;gap:10px;margin:26px 0 10px;font-size:14px;font-weight:800;
-                color:var(--tx2);text-transform:uppercase;letter-spacing:1.2px}
- .section-title .n{display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;
-                   border-radius:50%;background:rgba(243,175,69,.15);border:1px solid rgba(243,175,69,.45);
-                   color:var(--amb);font-size:14px;font-weight:800;letter-spacing:0;flex-shrink:0}
+ .section-title{margin:var(--s5) 0 var(--s2);flex-wrap:nowrap}
+ .section-title .n{display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;
+   border-radius:50%;background:var(--sel);color:#fff;font-size:15px;font-weight:750;flex-shrink:0}
 
  /* ---- carril de una ruta. width:fit-content = sin espacio muerto a la derecha.
         Sin max-width: si la ruta es más larga que la pantalla, el carril mide lo que
         necesita y ajustarFilas() lo escala para que entre entero. ---- */
- .lane{background:var(--lane);border:1px solid var(--line);border-radius:14px;padding:12px 14px;
-       margin-bottom:10px;width:fit-content}
- .lane.conv{border-color:#4a5b6e}
+ .lane{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-md);padding:12px 14px;
+       margin-bottom:var(--s2);width:fit-content;box-shadow:var(--sh-1)}
+ .lane.conv{border-color:var(--line-2)}
  .lane .head{display:flex;justify-content:space-between;align-items:center;gap:20px;margin-bottom:10px;
-             font-size:16px;color:var(--tx2);flex-wrap:wrap}
- .lane .head b{color:var(--tx);font-size:17px;font-weight:800}
- .lane .head .fkg{background:rgba(243,175,69,.13);color:var(--amb);border:1px solid rgba(243,175,69,.38);
-                  padding:3px 13px;border-radius:20px;font-weight:800;font-size:16px;white-space:nowrap}
- .lane .head .uni{background:rgba(255,255,255,.07);border:1px solid var(--line2);color:var(--tx);
-                  padding:3px 13px;border-radius:20px;font-weight:800;font-size:16px;white-space:nowrap}
+             font-size:var(--fs-base);color:var(--ink-2);flex-wrap:wrap}
+ .lane .head b{color:var(--ink);font-size:17px;font-weight:750}
+ .lane .head .fkg,.lane .head .uni{padding:3px 13px;border-radius:var(--r-pill);font-weight:750;font-size:var(--fs-base);white-space:nowrap}
+ .lane .head .fkg{background:var(--nos-soft);color:var(--nos-ink);border:1px solid var(--nos-line)}
+ .lane .head .uni{background:var(--surface-3);color:var(--ink);border:1px solid var(--line-2)}
+ .lane .head .sinrend{color:var(--ink-2);font-size:var(--fs-sm)}
 
  /* ---- la cadena ----
     UNA RUTA = UNA FILA [usuario 2026-09-11: "quiero que una misma ruta entre en una sola
@@ -155,56 +140,57 @@
     ilegible. En celular la cadena sigue bajando en vertical. */
  .flow{display:flex;gap:8px;align-items:stretch;flex-wrap:nowrap;padding-bottom:2px}
  .flow.branch{margin-bottom:4px}
- .branch-lbl{font-size:14.5px;font-weight:700;color:var(--tx2);margin:12px 0 5px}
- .branch-lbl .r{color:var(--amb);font-weight:800}
- .converge-bar{display:flex;align-items:center;gap:12px;margin:14px 0 10px;color:var(--amb);font-size:13px;
-               font-weight:800;text-transform:uppercase;letter-spacing:1.2px}
- .converge-bar .line{flex:1;height:1px;background:linear-gradient(90deg,transparent,var(--line2),transparent)}
+ .branch-lbl{font-size:15px;font-weight:650;color:var(--ink-2);margin:12px 0 5px}
+ .branch-lbl .r{color:var(--nos-ink);font-weight:800}
+ .converge-bar{display:flex;align-items:center;gap:12px;margin:14px 0 10px;color:var(--nos-ink);font-size:13px;
+               font-weight:800;text-transform:uppercase;letter-spacing:.1em}
+ .converge-bar .line{flex:1;height:1px;background:var(--line-2)}
 
  /* ---- tarjeta de paso ---- */
  /* Angosta a propósito: cuanto más angosta la tarjeta, menos hay que achicar el carril
     para que la ruta entre en una fila — y la letra queda más grande, no más chica. */
- .node{background:var(--card);border:1px solid var(--line2);border-left:4px solid var(--line2);
-       border-radius:10px;padding:9px 11px;min-width:150px;max-width:225px;display:flex;flex-direction:column;
+ .node{background:var(--surface);border:1px solid var(--line-2);border-left:4px solid var(--line-2);
+       border-radius:var(--r-sm);padding:9px 11px;min-width:150px;max-width:225px;display:flex;flex-direction:column;
        gap:2px;flex-shrink:0}
- .node .tp{font-size:12px;font-weight:800;letter-spacing:.7px;text-transform:uppercase;color:var(--tx3);
+ .node .tp{font-size:var(--fs-xs);font-weight:750;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-2);
            line-height:1.25}
- .node .nm{font-size:21px;font-weight:800;font-family:ui-monospace,SF Mono,Menlo,monospace;color:var(--tx);
-           line-height:1.15;word-break:break-word;margin-top:1px}
+ .node .nm{font-size:20px;font-weight:750;color:var(--ink);line-height:1.15;letter-spacing:-.01em;
+           word-break:break-word;margin-top:1px}
  /* 2+ talleristas en el mismo paso: uno por renglón, el nombre y su % sin cortarse */
  .node.multi{max-width:none}
  .node .nm .tl{display:block;white-space:nowrap}
- .node .ex{font-size:14.5px;color:var(--tx2);line-height:1.3;margin-top:1px;
+ .node .ex{font-size:14.5px;color:var(--ink-2);line-height:1.3;margin-top:1px;
            display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
- .node .rend{font-size:14px;color:var(--amb);font-weight:700;margin-top:2px}
+ .node .rend{font-size:14px;color:var(--nos-ink);font-weight:700;margin-top:2px}
  .node .foot{margin-top:auto;padding-top:8px;display:flex;flex-wrap:wrap;gap:6px;align-items:center}
- .node .dest{width:100%;font-size:13.5px;font-weight:700;color:var(--tx2);background:var(--cardq);
-             border:1px dashed var(--line2);border-radius:8px;padding:4px 9px;line-height:1.3}
- .node .dest .sc{color:var(--tx);font-weight:800}
- .node .qty{font-size:16px;font-weight:800;color:var(--tx);background:rgba(255,255,255,.09);
-            border-radius:8px;padding:2px 10px;white-space:nowrap}
- .node .kg{font-size:16px;font-weight:800;color:var(--amb);background:rgba(243,175,69,.13);
-           border-radius:8px;padding:2px 10px;white-space:nowrap}
+ .node .dest{width:100%;font-size:13.5px;font-weight:600;color:var(--ink-2);background:var(--surface-2);
+             border:1px dashed var(--line-2);border-radius:var(--r-sm);padding:4px 9px;line-height:1.3}
+ .node .dest .sc{color:var(--ink);font-weight:800}
+ .node .qty,.node .kg{font-size:var(--fs-base);font-weight:800;border-radius:var(--r-sm);padding:2px 10px;white-space:nowrap}
+ .node .qty{color:var(--ink);background:var(--surface-3)}
+ .node .kg{color:var(--nos-ink);background:var(--nos-soft)}
 
  /* ---- SOLO DOS COLORES: ámbar = lo nuestro, celeste = lo de afuera ---- */
- .n-matriz,.n-afil,.n-fleje{border-left-color:var(--amb)}
- .n-matriz .tp,.n-afil .tp,.n-fleje .tp{color:var(--amb)}
- .n-prov,.n-tall{border-left-color:var(--blu)}
- .n-prov .tp,.n-tall .tp{color:var(--blu)}
- .n-virg{background:linear-gradient(180deg,#2c2314,#231c11);border-color:#6a512c;border-left-color:var(--amb)}
- .n-virg .tp{color:var(--amb)}
- .n-virg .nm{color:var(--amb)}
+ .n-matriz,.n-afil,.n-fleje{border-left-color:var(--nos)}
+ .n-matriz .tp,.n-afil .tp,.n-fleje .tp{color:var(--nos-ink)}
+ .n-prov,.n-tall{border-left-color:var(--ext)}
+ .n-prov .tp,.n-tall .tp{color:var(--ext-ink)}
+ .n-virg{background:var(--nos-soft);border-color:var(--nos-line);border-left-color:var(--nos)}
+ .n-virg .tp{color:var(--nos-ink)}
 
- .arr{color:var(--tx3);font-size:22px;align-self:center;user-select:none;flex-shrink:0;padding:0 1px}
- .arr.plus{color:var(--amb);font-size:20px;font-weight:800}
+ .arr{color:var(--ink-2);font-size:22px;align-self:center;user-select:none;flex-shrink:0;padding:0 1px}
+ .arr.plus{color:var(--nos-ink);font-size:20px;font-weight:800}
 
  /* ---- celular: la cadena baja en vertical y cada tarjeta ocupa el ancho ---- */
  @media(max-width:560px){
-  .top h1{font-size:17px}
-  .canvas{padding:14px 12px 40px}
+  .elegir{flex-wrap:nowrap}
+  .elegir .f-art{flex:1 1 auto}
+  #uni{width:96px}
+  .hero{width:100%;padding:var(--s3)}
   .hero .cod{font-size:34px}
-  .hero .kpi{padding:2px 12px}
-  .hero .kpi:first-child{border-left:0;padding-left:0}
+  .hero .kpis{display:grid;grid-template-columns:repeat(3,auto);justify-content:start;gap:var(--s2) var(--s4)}
+  .hero .kpi{border:0;padding:0}
+  .hero .kpi.ens{grid-column:1 / -1}
   .lane{width:auto;padding:12px}
   .flow{flex-direction:column;align-items:stretch;gap:6px}
   .node{min-width:0;max-width:none}
@@ -215,32 +201,35 @@
 <link rel="apple-touch-icon" href="../GP2_favicon.png">
 </head>
 <body>
-<div id="gp2-logobar" style="position:relative;background:#141e28;text-align:center;padding:6px 0;border-bottom:1px solid #2a3a4a"><a href="../GP2_MODULOS.html" style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:#eef4f9;text-decoration:none;font-weight:700;font-size:16px;padding:6px 12px;border:1px solid #3c5468;border-radius:8px;background:#1d2836">← Atrás</a><a href="../GP2_MODULOS.html" style="text-decoration:none"><img src="../GP2_logo.png" alt="GP2 · Gestión Productiva" style="height:40px;vertical-align:middle"></a></div>
-
-<div class="top">
- <h1>🏭 ¿Qué necesito para producir?</h1>
- <div class="sel">
-  <span class="fld">Artículo <button type="button" id="artBtn" class="artbtn"><span id="artBtnTxt">—</span><span class="caret">▾</span></button></span>
-  <select id="marca" hidden><option value="">Todas</option><option value="LOEKE">Loeke</option><option value="LOKE">Loke</option><option value="CHEF">Chef</option></select>
-  <select id="art" hidden></select>
-  <span class="fld">Unidades <input inputmode="numeric" id="uni" type="text" value="1"></span>
+<div class="card">
+ <div class="header">
+  <h1>Despiece x Artículo<small>¿Qué necesito para producir?</small></h1>
+  <div class="hbtns"><a href="../GP2_MODULOS.html">Atrás</a></div>
+ </div>
+ <div class="steps">
+  <div class="toolbar elegir">
+   <div class="field f-art"><label for="artBtn">Artículo</label><button type="button" id="artBtn" class="artbtn"><span id="artBtnTxt">—</span><span class="caret">▾</span></button></div>
+   <select id="marca" hidden><option value="">Todas</option><option value="LOEKE">Loeke</option><option value="LOKE">Loke</option><option value="CHEF">Chef</option></select>
+   <select id="art" hidden></select>
+   <div class="field"><label for="uni">Unidades</label><input inputmode="numeric" id="uni" type="text" value="1"></div>
+  </div>
+  <div class="canvas" id="canvas"></div>
  </div>
 </div>
-<div class="canvas" id="canvas"></div>
 
-<div id="pick" class="pick" hidden>
- <div class="pickbox">
+<div id="pick" class="pick modal-bg" hidden>
+ <div class="pickbox modal">
   <div class="pickhead">
    <b id="pickTit">Elegí el artículo</b>
-   <button type="button" id="pickX">✕</button>
+   <button type="button" id="pickX" class="btn btn-secondary" aria-label="Cerrar">✕</button>
   </div>
   <div id="pickArts">
    <input id="buscar" type="search" placeholder="código o nombre" autocomplete="off">
-   <div id="pickMarcas" class="marcas">
-    <button type="button" data-mk="" class="on">Todas</button>
-    <button type="button" data-mk="LOEKE">Loeke</button>
-    <button type="button" data-mk="LOKE">Loke</button>
-    <button type="button" data-mk="CHEF">Chef</button>
+   <div id="pickMarcas" class="marcas chips">
+    <button type="button" data-mk="" class="chip on">Todas</button>
+    <button type="button" data-mk="LOEKE" class="chip">Loeke</button>
+    <button type="button" data-mk="LOKE" class="chip">Loke</button>
+    <button type="button" data-mk="CHEF" class="chip">Chef</button>
    </div>
    <div id="pickList" class="picklist"></div>
   </div>
@@ -509,7 +498,7 @@ function renderStandaloneLane(r,pasos,fl,need,uni,flejesTotal){
  if(!flComp)flComp=cById(r.f);
  var cs_desc = cs_final ? (" → "+cById(cs_final).cod+" ("+(cById(cs_final).d||"")+")") : "";
  var H='<div class="lane"><div class="head"><b>'+esc((flComp.cod||"?")+' · '+(flComp.d||"")+cs_desc)+'</b>'+
-    (kg?'<span class="fkg">'+fmt(kg)+' kg fleje</span>':(qty?'<span style="color:#7d92a5">sin rendimiento</span>':""))+
+    (kg?'<span class="fkg">'+fmt(kg)+' kg fleje</span>':(qty?'<span class="sinrend">sin rendimiento</span>':""))+
     '</div><div class="flow">';
  H+=provNode(flComp)+node("INSUMO","fleje",flComp.cod||"?",flComp.d||"",rend?unikg(rend):"",null,kg||null,"");
  pasos.forEach(function(p,i,arr){
@@ -649,7 +638,7 @@ function render(){
  var aid=GP2N.entero(sel.value);
  var uni=Math.max(1,GP2N.num(document.getElementById("uni").value)||1);
  var a=D.art.find(function(x){return x.id===aid;});
- if(!a){document.getElementById("canvas").innerHTML='<div style="padding:20px">Artículo no encontrado</div>';return;}
+ if(!a){document.getElementById("canvas").innerHTML='<div class="empty">Artículo no encontrado</div>';return;}
  var ex=expandBOM(aid);
  var need=ex.need, bom=ex.bom;
  var rutas=rutasDeArt(aid);   // las copias de una ruta por tallerista ya vienen juntas
@@ -753,7 +742,7 @@ function render(){
   if(lastCs && childrenOfConv[lastCs]){rutas_en_conv[r.id]=childrenOfConv[lastCs];}
  });
 
- function titulo(n,txt){return '<div class="section-title"><span class="n">'+n+'</span>'+txt+'</div>';}
+ function titulo(n,txt){return '<h2 class="sec-h section-title"><span class="n">'+n+'</span>'+txt+'</h2>';}
 
  // Las convergencias se arman ANTES que las rutas simples: una ruta que se dibuja como rama
  // de una convergencia (570: Fleje 28 -> L8 -> F2 entra a la Matriz 194) no se repite en el
@@ -875,14 +864,15 @@ function render(){
  B+='</div></div>';
 
  // ---- encabezado + resumen de fleje (se arman al final: necesitan los kg sumados) ----
- var H='<div class="hero">'+
+ /* el número va ARRIBA del rótulo (.v + .k): así se lee "2 rutas de producción" */
+ var H='<div class="cabeza"><div class="hero">'+
     '<div><div class="cod">'+esc(a.cod)+'</div><div class="fam">'+esc(a.d||"")+(a.d&&a.fam?' · ':'')+esc(a.fam||"")+(a.mk?' · '+esc(a.mk):'')+'</div></div>'+
     '<div class="kpis">'+
-      '<div class="kpi"><b>'+fmt(uni)+'</b>unidades a producir</div>'+
-      '<div class="kpi"><b>'+bom.length+'</b>partes BOM</div>'+
-      '<div class="kpi"><b>'+rutas_prod.length+'</b>rutas de producción</div>'+
-      (ensam.length?'<div class="kpi ens"><b>'+ensam.map(function(e){return esc(e.n+(e.r?" "+pctTxt(e.r):""));}).join("<br>")+'</b>'+(ensam.length>1?'ensamblan':'ensambla')+'</div>'
-        :provAT.length?'<div class="kpi ens"><b>'+esc(provAT.join(" O "))+'</b>entrega terminado</div>':"")+
+      '<div class="kpi"><span class="v">'+fmt(uni)+'</span><span class="k">unidades a producir</span></div>'+
+      '<div class="kpi"><span class="v">'+bom.length+'</span><span class="k">partes BOM</span></div>'+
+      '<div class="kpi"><span class="v">'+rutas_prod.length+'</span><span class="k">rutas de producción</span></div>'+
+      (ensam.length?'<div class="kpi ens"><span class="v">'+ensam.map(function(e){return esc(e.n+(e.r?" "+pctTxt(e.r):""));}).join("<br>")+'</span><span class="k">'+(ensam.length>1?'ensamblan':'ensambla')+'</span></div>'
+        :provAT.length?'<div class="kpi ens"><span class="v">'+esc(provAT.join(" O "))+'</span><span class="k">entrega terminado</span></div>':"")+
     '</div></div>';
 
  // DESPIECE: qué piezas lleva el artículo y cuántas. Sale del BOM ya expandido (need),
@@ -892,17 +882,18 @@ function render(){
  var despKeys=Object.keys(need).filter(function(k){return need[k]>0;});
  if(despKeys.length){
   despKeys.sort(function(x,y){return (need[y]*uni)-(need[x]*uni);});
-  H+='<div class="despiece"><h3>Despiece del artículo · '+despKeys.length+' componentes para '+fmt(uni)+' unidades</h3>'+
-     '<table><thead><tr><th>Código</th><th>Descripción</th><th>Sector</th>'+
-     '<th style="text-align:right">Por unidad</th><th style="text-align:right">Total</th></tr></thead><tbody>';
+  H+='<div class="despiece"><h3 class="eyebrow">Despiece del artículo · '+despKeys.length+' componentes para '+fmt(uni)+' unidades</h3>'+
+     '<div class="table-wrap libre"><table class="t"><thead><tr><th>Código</th><th>Descripción</th><th>Sector</th>'+
+     '<th class="num">Por unidad</th><th class="num">Total</th></tr></thead><tbody>';
   despKeys.forEach(function(k){
    var c=cById(k), sn=sName(c.s);
    H+='<tr><td class="cd">'+esc(c.cod||"?")+'</td><td class="ds">'+esc(c.d||"")+'</td>'+
       '<td class="sc">'+esc(sn==='?'?'—':sn)+'</td>'+
-      '<td class="nu">'+fmt(need[k])+'</td><td class="tt">'+fmt(need[k]*uni)+' u</td></tr>';
+      '<td class="nu num">'+fmt(need[k])+'</td><td class="tt num">'+fmt(need[k]*uni)+' u</td></tr>';
   });
-  H+='</tbody></table></div>';
+  H+='</tbody></table></div></div>';
  }
+ H+='</div>';   /* cierra .cabeza (hero + despiece) */
 
  document.getElementById("canvas").innerHTML=H+B;
  ajustarFilas();
@@ -933,7 +924,7 @@ function ajustarFilas(){
   var l=carriles[i];
   l.style.zoom="";                          // medir siempre sin escalar
   if(movil)continue;
-  var disp=cv.clientWidth-36;               // el padding del canvas
+  var disp=cv.clientWidth;                  // el canvas no tiene padding (lo pone .steps)
   if(disp<=0)continue;
   var filas=l.querySelectorAll(".flow"), nec=0;
   for(var j=0;j<filas.length;j++)nec=Math.max(nec,anchoFila(filas[j]));
@@ -1000,7 +991,10 @@ async function __boot(){
     Object.assign(D, r.data);
     __run();
   }catch(e){
-    document.body.innerHTML='<p style=\'padding:24px;font-family:system-ui;color:#ff9b8a\'>Error cargando datos de Supabase: '+(e.message||e)+'</p>';
+    /* el aviso va en el lienzo: la barra de la app queda (se puede ir a otro módulo) */
+    var cv=document.getElementById('canvas');
+    cv.innerHTML='<div class="aviso err"></div>';
+    cv.firstChild.textContent='Error cargando datos de Supabase: '+(e.message||e);
     console.error(e);
   }finally{ document.body.style.cursor=''; }
 }

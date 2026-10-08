@@ -14,20 +14,24 @@
 <link rel="apple-touch-icon" href="../../GP2_favicon.png">
 <link rel="stylesheet" href="../../gp2-modulo.css?v=20261008ds">
 <style>
-  /* El código, centrado y grande: se lee desde lejos (la pantalla del taller). Sin ancho fijo ni
-     huecos: el bloque mide lo que miden el código y la rueda. */
-  .monitor{display:flex;flex-direction:column;align-items:center;gap:2vh;padding:4vh 0 3vh}
-  .rot{font-size:clamp(18px,3vw,40px);color:#6b7280;letter-spacing:2px;text-transform:uppercase}
-  .clave-fila{display:flex;align-items:center;justify-content:center;gap:3vw;flex-wrap:wrap}
-  #clave{font-size:clamp(90px,20vw,320px);font-weight:bold;letter-spacing:.08em;font-variant-numeric:tabular-nums;line-height:1;color:#1e293b}
-  .rueda{width:clamp(60px,9vw,150px);height:clamp(60px,9vw,150px)}
+  /* PANTALLA DE TV: el código se tiene que leer desde lejos. Ocupa todo el alto que deja la barra y se
+     centra; los 4 dígitos crecen con el ancho Y con el alto de la pantalla (lo que limite primero), así en
+     una TV de 1920×1080 miden ~500px y en un celular igual entran en una línea con la rueda al lado. */
+  .monitor{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2.2vh;text-align:center;
+    min-height:calc(100vh - var(--bar-h) - 48px);min-height:calc(100dvh - var(--bar-h) - 48px)}
+  .rot{font-size:clamp(18px,2.6vw,40px);font-weight:700;color:var(--ink-3);letter-spacing:.12em;text-transform:uppercase}
+  .clave-fila{display:flex;align-items:center;justify-content:center;gap:clamp(12px,3vw,56px);flex-wrap:wrap}
+  #clave{font-size:clamp(88px,min(24vw,56vh),620px);font-weight:800;letter-spacing:.06em;font-variant-numeric:tabular-nums;line-height:.95;color:var(--ink)}
+  .rueda{width:clamp(64px,min(11vw,20vh),220px);height:clamp(64px,min(11vw,20vh),220px)}
   .rueda circle{fill:none;stroke-width:10}
-  .rueda .fondo{stroke:#e5e7eb}
-  .rueda .arco{stroke:#163e98;stroke-linecap:round;transform:rotate(-90deg);transform-origin:50% 50%;transition:stroke-dashoffset .9s linear}
-  .rueda text{font-size:30px;font-weight:bold;fill:#1e293b;text-anchor:middle;dominant-baseline:central}
-  #estado{font-size:18px;color:#6b7280;min-height:1.2em;text-align:center}
-  #estado.err{color:#b42318}
-  .nota{max-width:640px;font-size:16px;color:#555;text-align:center;line-height:1.4}
+  .rueda .fondo{stroke:var(--line)}
+  .rueda .arco{stroke:var(--pri);stroke-linecap:round;transform:rotate(-90deg);transform-origin:50% 50%;transition:stroke-dashoffset .9s linear}
+  .rueda text{font-size:30px;font-weight:800;fill:var(--ink);text-anchor:middle;dominant-baseline:central}
+  #estado{font-size:clamp(18px,1.8vw,28px);font-weight:600;color:var(--ink-3);min-height:1.2em}
+  #estado.err{color:var(--err)}
+  .nota{max-width:720px;font-size:clamp(15px,1.3vw,20px);color:var(--ink-3);line-height:1.45}
+  /* celular: la rueda baja a la linea de abajo y el codigo toma todo el ancho */
+  @media (max-width:640px){ #clave{font-size:min(29vw,56vh)} }
 </style>
 </head>
 <body>

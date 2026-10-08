@@ -549,130 +549,112 @@
 <link rel="apple-touch-icon" href="../GP2_favicon.png">
 <link rel="stylesheet" href="../gp2-modulo.css?v=20261008ds">
 <style>
-  .tabs{display:flex;gap:8px;margin:10px 0}
-  .tab-btn{min-height:44px;padding:10px 18px;border-radius:10px;border:2px solid #d0d7de;background:#fff;font-weight:800;font-size:17px;cursor:pointer;color:#111}
-  .tab-btn.active{background:#111;color:#fff;border-color:#111}
-  .chips{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0}
-  .chip{padding:11px 16px;border-radius:22px;border:2px solid #d0d7de;background:#fff;font-weight:700;font-size:16px;cursor:pointer;color:#111;min-height:44px}
-  .chip.active{background:#0b3b73;color:#fff;border-color:#0b3b73}
-  td.num{text-align:right;font-variant-numeric:tabular-nums}
-  /* v1.46.0: semaforo de recepcion por renglon (verde completo, amarillo parcial, rojo nada). */
-  /* v1.47.0: cajas Vigentes / Historicas */
-  .oc-box{border:2px solid #d0d7de;border-radius:12px;padding:8px 12px;margin:10px 0}
-  .oc-box>summary{font-weight:800;font-size:18px;cursor:pointer;min-height:44px;display:flex;align-items:center;gap:6px}
-  .oc-box>summary span{color:#777;font-weight:700}
-  #panOcs tr.rc-ok td{background:#dcfce7}
-  #panOcs tr.rc-par td{background:#fef3c7}
-  #panOcs tr.rc-no td{background:#fee2e2}
+  /* 08/10/2026 — Sistema de diseño v2: pestañas, chips, botones, avisos, badges y tablas los pone
+     gp2-modulo.css. Acá queda SOLO el layout propio de la OC, con tokens. La tarjeta ya no abraza
+     la tabla (v1.40.0/v1.45.1, .card fit-content): la página va a lo ancho como todo GP2 y lo que
+     abraza el dato es la caja de la tabla (#panGen .table-wrap fit-content), sin huecos. */
+  .status.bad{color:var(--err)}
+
+  /* Filtros: DOS bloques separados, Sector arriba y Proveedor abajo. Cada uno es su propia
+     caja, con la etiqueta pegada adentro a la izquierda [usuario 2026-09-21: "separame bien lo
+     que es sector y proveedor porque no se entiende bien la separacion"]. La caja ABRAZA su
+     contenido (inline-flex): con un sector elegido queda chica, sin barra vacia a lo ancho.
+     Los chips quedan pegados a la etiqueta y bajan de renglon (no se estiran a lo ancho). */
+  .filtros{display:flex;flex-direction:column;align-items:flex-start;gap:var(--s2);margin:0 0 var(--s3)}
+  .filtro{display:inline-flex;align-items:flex-start;gap:10px;flex-wrap:nowrap;max-width:100%;
+          border:1px solid var(--line);border-radius:var(--r-md);background:var(--surface);padding:6px 10px 6px 6px}
+  .filtro-lb{display:inline-flex;align-items:center;min-height:var(--touch);padding:0 14px;border-radius:var(--r-sm);
+             background:var(--surface-2);color:var(--ink-2);font-size:var(--fs-xs);font-weight:750;
+             text-transform:uppercase;letter-spacing:.06em}
+  .filtro .chips{margin:0;flex:0 1 auto;min-width:0}
+  /* "Todos" NO es un sector: se distingue del que quedo elegido para que no se confundan. */
+  .chip.todos{background:var(--surface);border-style:dashed;border-color:var(--sel);color:var(--sel)}
+  .prov-info{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-sm);padding:8px 12px;
+             font-size:15px;color:var(--ink-2);margin:var(--s2) 0;width:fit-content;max-width:100%}
+  .prov-info b{color:var(--ink)}
+  .regla-carton{width:fit-content;max-width:100%}
+  .regla-carton.mal{background:var(--err-soft);border-color:var(--err-line);border-left-color:var(--err);color:#7d1116}
+  #panGen .search-box{margin:var(--s2) 0}
+  #panGen .search-box input{width:360px;max-width:100%}
+  .acc-crear{margin:0 0 var(--s3)}
+
   /* Cuadro sinoptico (v1.35.0): la tabla abraza el dato, sin 100% de ancho ni anchos fijos. */
   /* table.t (gp2-modulo.css) pone width:100% y le ganaba a .t-insumos: por eso los huecos (v1.39.0). */
   table.t.t-insumos{width:auto}
   #panGen .table-wrap{width:fit-content;max-width:100%}
-  /* v1.44.0: ENCABEZADOS FIJOS al bajar [Thomas 2026-09-29: "quiero que en todas las o.c. me aparezcan los
-     encabezados fijos para que cuando baje siga leyendo los encabezados"]. Para que el sticky pegue contra
-     la pagina, el .table-wrap no puede ser un contenedor de scroll: en escritorio va overflow visible; en
-     el celular (<=700px) se queda con el scroll horizontal y sin sticky, porque ahi la tabla es mas ancha
-     que la pantalla y la regla de la casa es que la pagina nunca scrollee de costado. */
+  /* v1.44.0: ENCABEZADOS FIJOS al bajar [Thomas 2026-09-29: "quiero que en todas las o.c. me aparezcan
+     los encabezados fijos para que cuando baje siga leyendo los encabezados"]. En Generar OC la tabla
+     scrollea por dentro (.table-wrap del sistema) y el encabezado queda arriba. En Órdenes hay una
+     tabla por OC: en escritorio la caja no scrollea y el encabezado se pega DEBAJO de la barra de la
+     app al bajar la página; en el celular (<=700px) queda el scroll horizontal y sin sticky, porque
+     la regla de la casa es que la pagina nunca scrollee de costado. */
+  #panGen table.t thead th{position:sticky;top:0;z-index:3}
   @media (min-width:701px){
-    #panGen .table-wrap, #panOcs .table-wrap{overflow:visible}
-    #panGen table.t thead th, #panOcs table.t thead th{position:sticky;top:0;z-index:3}
+    #panOcs .table-wrap{overflow:visible;max-height:none}
+    #panOcs table.t>thead{top:var(--bar-h)}
   }
   table.t.t-insumos th,table.t.t-insumos td{padding:6px 8px}
   .t-insumos td small{white-space:normal}
   /* Pedir es el campo principal de la pantalla: llega con el sugerido puesto. */
-  .pedir-in{width:120px;padding:10px 8px;font-size:20px;font-weight:700;text-align:right;border:2px solid #d0d7de;border-radius:8px}
-  .pedir-in.err{border-color:#eacdcd;background:#ffebee}
-  tr.con-pedido td{background:#eef7ee}
-  .paq-eq{font-size:12px;color:#0b3b73;display:block}
-  .fam-hdr td{background:#eef2f7;color:#0b3b73;font-weight:700;font-size:13px;padding:6px 8px;text-align:left}
-  .fam-hdr.corto td{color:#b71c1c}
-  .min-uni{font-size:12px;color:#8a6d00;display:block}
+  .pedir-in{width:120px;min-height:44px;padding:0 8px;font-size:20px;font-weight:700;text-align:right}
+  .pedir-in.err{border-color:var(--err);background:var(--err-soft)}
+  tr.con-pedido td{background:var(--ok-soft)}
+  .fam-hdr td{background:var(--surface-2);color:var(--sel);font-weight:750;font-size:13px;padding:6px 8px;text-align:left;
+              text-transform:uppercase;letter-spacing:.04em}
+  .fam-hdr.corto td{color:var(--err)}
+  .min-uni{font-size:12px;color:var(--warn);display:block}
   /* no cumple el minimo: rojo y negrita [Thomas 2026-09-28] */
-  .min-uni.corto{font-weight:800;color:#b71c1c}
+  .min-uni.corto{font-weight:800;color:var(--err)}
   /* El proveedor dentro de la celda del insumo: solo se ve en pantalla chica. */
   .prov-mini{display:none}
   /* v1.48.0: el proveedor alternativo es una FILA REPETIDA del insumo (sin precio). v1.49.0: con su propio campo
      Pedir; tocarla ya no elige el proveedor. */
-  .barra{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:10px 0;padding:8px 10px;background:#f6f8fa;border-radius:10px;width:fit-content;max-width:100%;box-sizing:border-box}
-  .barra .tot{font-size:17px;font-weight:800}
-  .barra input[type=text]{padding:10px;min-height:44px;font-size:18px;border:2px solid #d0d7de;border-radius:8px;width:200px}
-  .btn-crear{padding:12px 22px;font-size:18px;font-weight:800;border-radius:8px;border:2px solid #111;background:#111;color:#fff;cursor:pointer}
-  .btn-crear:disabled{opacity:.4;cursor:default}
-  .acc-crear{margin:0 0 10px}
-  td.um-cell{white-space:nowrap;font-weight:700;color:#333}
-  .btn-sug{padding:11px 14px;min-height:44px;font-size:16px;font-weight:700;border-radius:8px;border:2px solid #ead9cd;background:#fff;color:#b45309;cursor:pointer}
-  .btn-limpiar{padding:11px 14px;min-height:44px;font-size:16px;font-weight:700;border-radius:8px;border:2px solid #d0d7de;background:#fff;cursor:pointer}
-  .regla-carton{border:2px solid #eae0cd;background:#fff8e1;color:#7a5b00;border-radius:10px;padding:8px 12px;font-size:14px;margin:8px 0}
-  .regla-carton.mal{border-color:#eacdcd;background:#ffebee;color:#b71c1c}
-  .oc-card{border:2px solid #d0d7de;border-radius:12px;padding:14px;margin:10px 0;background:#fff}
-  .oc-head{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
-  .oc-head .num-oc{font-size:20px;font-weight:800}
-  .badge{padding:4px 12px;border-radius:14px;font-size:13px;font-weight:800}
-  .badge.borrador{background:#f6f8fa;color:#555;border:1px solid #d0d7de}
-  .badge.enviada{background:#e3f2fd;color:#0b3b73}
-  .badge.recibida{background:#e8f5e9;color:#0a7a2f}
-  .badge.anulada{background:#ffebee;color:#b71c1c}
-  .oc-acts{margin-left:auto;display:flex;gap:8px}
-  .oc-acts button{padding:8px 12px;font-size:14px;font-weight:700;border-radius:8px;border:2px solid #d0d7de;background:#fff;cursor:pointer}
-  .oc-acts button.wpp{border-color:#25d366;color:#0a7a2f;background:#eafff1}
-  .oc-acts button.anu{border-color:#eacdcd;color:#c62828}
-  /* Filtros: DOS bloques separados, Sector arriba y Proveedor abajo. Cada uno es su propia
-     caja, con la etiqueta pegada adentro a la izquierda; antes las dos botoneras se leian
-     como una sola corrida [usuario 2026-09-21: "separame bien lo que es sector y proveedor
-     porque no se entiende bien la separacion"]. La caja ABRAZA su contenido (inline-flex):
-     con un sector elegido queda chica, sin barra vacia a lo ancho. */
-  .filtros{display:flex;flex-direction:column;align-items:flex-start;gap:10px;margin:10px 0 12px}
-  /* align-items:flex-start: con la botonera en dos renglones, la etiqueta queda arriba,
-     a la altura del primer chip, y no flotando en el medio. */
-  .filtro{display:inline-flex;align-items:flex-start;gap:10px;flex-wrap:wrap;margin:0;max-width:100%;
-          border:2px solid #dbe3ec;border-radius:14px;background:#f6f8fa;padding:8px 14px 8px 8px}
-  .filtro-lb{font-size:14px;font-weight:800;color:#0b3b73;text-transform:uppercase;letter-spacing:.5px;
-             background:#fff;border:2px solid #dbe3ec;border-radius:10px;padding:0 14px;
-             min-height:44px;display:inline-flex;align-items:center}
-  /* flex:1 para que los chips queden AL LADO de la etiqueta y envuelvan entre ellos: sin esto,
-     una botonera larga (11 proveedores) se va entera abajo y la etiqueta se come un renglon. */
-  .filtro .chips{margin:0;flex:1;min-width:0}
-  /* "Todos" NO es un sector: se distingue del que quedo elegido para que no se confundan. */
-  .chip.todos{background:#fff;border-style:dashed;border-color:#0b3b73;color:#0b3b73}
-  .prov-info{background:#f6f8fa;border:2px solid #e6ebf0;border-radius:10px;padding:9px 12px;font-size:15px;color:#333;margin:8px 0;width:fit-content;max-width:100%;box-sizing:border-box}
-  #panGen .search-box{width:fit-content;max-width:100%;box-sizing:border-box;padding:8px;margin:8px 0}
-  #panGen .search-box input{width:320px;max-width:100%}
-  .sub-nota{display:block;font-size:12px;color:#777;font-weight:400}
+  td.um-cell{white-space:nowrap;font-weight:700;color:var(--ink-2)}
   /* celda Maximo clickable: abre el desglose (de donde sale el maximo) */
-  td.max-cell{cursor:pointer;text-decoration:underline dotted #b9c6d8}
-  td.max-cell:hover{background:#eef4fb}
+  td.max-cell{cursor:pointer;text-decoration:underline dotted var(--line-2);text-underline-offset:3px}
+  td.max-cell:hover{background:var(--pri-soft)}
+  .rep-tag{display:block;font-size:12px;font-weight:700;white-space:nowrap}
+  .rep-pend{color:var(--pri-ink)}
+  td.bajo-min b, td.bajo-min{color:var(--err)}
+
   /* ventanita flotante del desglose (v1.36.0): se abre al pasar por el Maximo */
-  .dsg-pop{position:fixed;z-index:50;background:#fff;border:1px solid #d0d7de;border-radius:10px;
-           box-shadow:0 8px 28px rgba(0,0,0,.18);padding:6px 8px;max-width:calc(100vw - 16px);max-height:60vh;overflow:auto;pointer-events:none}
-  .dsg-pop.fija{pointer-events:auto;border-color:#0b3b73}
+  .dsg-pop{position:fixed;z-index:70;background:var(--surface);border:1px solid var(--line-2);border-radius:var(--r-md);
+           box-shadow:var(--sh-2);padding:6px 8px;max-width:calc(100vw - 16px);max-height:60vh;overflow:auto;pointer-events:none}
+  .dsg-pop.fija{pointer-events:auto;border-color:var(--sel)}
   .dsg-pop[hidden]{display:none}
   .dsg-pop table.dsg{margin:0}
-  .dsg-vacio{font-size:14px;color:#64748b;margin:4px}
+  .dsg-vacio{font-size:14px;color:var(--ink-3);margin:4px}
   table.dsg{border-collapse:collapse;width:auto;font-size:14px;margin:0 auto 10px}
-  table.dsg th,table.dsg td{border-bottom:1px solid #eef2f7;padding:5px 8px;text-align:center;vertical-align:middle}
-  table.dsg th{font-size:13px;color:#475569}
+  table.dsg th,table.dsg td{border-bottom:1px solid var(--line);padding:5px 8px;text-align:center;vertical-align:middle}
+  table.dsg th{font-size:12px;color:var(--ink-2);text-transform:uppercase;letter-spacing:.04em}
   table.dsg td.l,table.dsg th.l{text-align:left}
-  table.dsg td.num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
-  table.dsg tfoot td{font-weight:700;border-top:2px solid #cbd5e1}
-  .rep-tag{display:block;font-size:12px;font-weight:700;white-space:nowrap}
-  .rep-pend{color:#0b3b73}
-  td.bajo-min b, td.bajo-min{color:#b71c1c}
-  .campo{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
-  .campo label{font-size:16px;font-weight:800;color:#333}
-  .barra input[type=date]{padding:9px;font-size:19px;font-weight:700;min-height:44px;border:2px solid #d0d7de;border-radius:8px;color:#111;background:#fff}
-  .badge.entrega{background:#fff3e0;color:#8a4b00;border:1px solid #f0d9b5}
-  /* v1.40.0 — TODO CENTRADO Y LA TARJETA DEL ANCHO DEL DATO [Thomas 2026-09-28: "quiero que este todo
-     centrado y sin tanto blanco. Si es necesario pone proveedores sobrantes abajo"]. La tarjeta toma el
-     ancho de la TABLA (fit-content); los filtros y el cartel del proveedor no cuentan para ese ancho
-     (contain:inline-size) y sus chips bajan de renglon. Piso de 720px para que sin tabla (antes de
-     elegir sector, o en Ordenes) la botonera no quede angosta. */
-  .card{width:fit-content;min-width:min(100%,720px);max-width:100%}
-  .card:has(#zonaLista:not(.hidden)){min-width:0}   /* v1.45.1: con tabla, la tarjeta abraza la tabla */
-  .filtros,#reglaCarton,#panOcs,#elegiSector,#tblEmpty,#status{contain:inline-size}
-  /* v1.40.1: botones, filtros, buscador y Crear OC alineados a la IZQUIERDA [Thomas: "todo esto alineacion a la izquierda"] */
-  /* los chips se quedan pegados a la etiqueta y bajan de renglon (no se estiran a lo ancho) */
-  .filtro .chips{flex:0 1 auto}
-  .filtro{flex-wrap:nowrap}
+  table.dsg td.num{text-align:right;white-space:nowrap}
+  table.dsg tfoot td{font-weight:750;border-top:2px solid var(--line-2)}
+
+  /* ── Órdenes: cajas Vigentes / Históricas (v1.47.0) y una tarjeta plana por OC ── */
+  .oc-box>summary span{color:var(--ink-3);font-weight:600}
+  .oc-card{border-top:1px solid var(--line);padding:var(--s3) 0}
+  .oc-box>.oc-card:last-child{padding-bottom:var(--s4)}
+  .oc-head{display:flex;gap:6px 12px;align-items:center;flex-wrap:wrap}
+  .oc-head .num-oc{font-size:var(--fs-lg);font-weight:800}
+  .oc-head .oc-tot{font-weight:800}
+  .oc-nota{margin-top:4px}
+  /* la tabla de cada OC abraza el dato (cuadro sinoptico): sin 100% de ancho ni huecos */
+  .oc-card .table-wrap{margin-top:8px;width:fit-content;max-width:100%}
+  .oc-card table.t{width:auto}
+  .oc-card table.t td:first-child{min-width:220px}
+  .oc-acts{margin-left:auto;display:flex;gap:8px;flex-wrap:wrap}
+  .oc-acts .btn.anu{color:var(--err)}
+  /* estados de la OC sobre .badge del sistema */
+  .badge.enviada{background:var(--pri-soft);color:var(--pri-h)}
+  .badge.recibida{background:var(--ok-soft);color:var(--ok)}
+  .badge.anulada{background:var(--err-soft);color:var(--err)}
+  .badge.entrega{background:var(--warn-soft);color:var(--warn)}
+  /* v1.46.0: semaforo de recepcion por renglon (verde completo, amarillo parcial, rojo nada). */
+  #panOcs tr.rc-ok td{background:var(--ok-soft)}
+  #panOcs tr.rc-par td{background:var(--warn-soft)}
+  #panOcs tr.rc-no td{background:var(--err-soft)}
+
   /* 390px: nada de scroll horizontal en la pagina (las tablas scrollean en .table-wrap) */
   @media(max-width:430px){
     /* En el celular los anchos fijos empujaban "Pedir" fuera de la pantalla, que es
@@ -683,14 +665,11 @@
        "Pedir" fuera de pantalla. El proveedor pasa a leerse abajo del insumo. */
     .t-insumos th:nth-child(2),.t-insumos td:nth-child(2){display:none}
     .prov-mini{display:inline}
-    .pedir-in{width:84px;font-size:19px;padding:9px 5px}
+    .pedir-in{width:84px;font-size:19px;padding:0 5px}
     .rep-tag{white-space:normal}
     .filtro{flex-direction:column;align-items:flex-start;gap:6px;padding:8px}
-    .filtro-lb{min-width:0;min-height:38px;padding:0 12px}
-    .barra{width:auto}
-    .campo,.campo-nota{width:100%}
-    .campo-nota input,.barra input[type=date]{width:100%}
-    .barra .btn-crear,.barra .btn-sug,.barra .btn-limpiar{flex:1;min-width:140px}
+    .filtro-lb{min-height:32px;padding:0 12px}
+    .acc-crear .btn{width:100%}
   }
 </style>
 </head>
@@ -707,8 +686,8 @@
 
   <div class="steps">
     <div class="tabs">
-      <button type="button" class="tab-btn active" id="tabGen">Generar OC</button>
-      <button type="button" class="tab-btn" id="tabOcs">Órdenes <span id="ocsN"></span></button>
+      <button type="button" class="tab active" id="tabGen">Generar OC</button>
+      <button type="button" class="tab" id="tabOcs">Órdenes <span id="ocsN"></span></button>
     </div>
 
     <div id="panGen">
@@ -717,7 +696,7 @@
         <div class="filtro hidden" id="filtroProv"><span class="filtro-lb">Proveedor</span><div class="chips" id="provs"></div></div>
       </div>
       <div class="prov-info hidden" id="provInfo"></div>
-      <div class="regla-carton hidden" id="reglaCarton"></div>
+      <div class="regla-carton aviso hidden" id="reglaCarton"></div>
       <!-- Sin sector ni proveedor elegido no se muestra NADA de la lista [usuario
            2026-09-04: "si no pongo el sector y no pongo el proveedor, que no me aparezca
            la lista"]: la pantalla arranca en los botones de sector y nada mas. -->
@@ -727,15 +706,15 @@
            borrados: la fecha se sigue proponiendo sola (hoy + dias_entrega) y viaja a crear_oc, y el
            total sigue calculandose por si se vuelve a pedir. -->
       <div class="hidden" id="barraOculta">
-        <button type="button" class="btn-sug" id="btnSug">Usar sugeridos</button>
-        <button type="button" class="btn-limpiar" id="btnLimpiar">Limpiar</button>
+        <button type="button" class="btn-sug btn btn-secondary" id="btnSug">Usar sugeridos</button>
+        <button type="button" class="btn-limpiar btn btn-secondary" id="btnLimpiar">Limpiar</button>
         <span class="tot" id="tot">0 ítems</span>
         <input type="date" id="fechaEnt" aria-label="Entrega">
         <input type="text" id="nota" aria-label="Nota">
       </div>
 
       <div class="search-box"><input type="text" id="q" placeholder="Buscar insumo…"></div>
-      <div class="acc-crear"><button type="button" class="btn-crear" id="btnCrear" disabled>Crear OC</button></div>
+      <div class="acc-crear"><button type="button" class="btn-crear btn btn-primary btn-lg" id="btnCrear" disabled>Crear OC</button></div>
       <div class="table-wrap">
         <table class="t t-insumos">
           <thead><tr>
@@ -1353,7 +1332,7 @@ function render(){
     var paqEq='';
     var cl=[rep?'fila-alt':'', ped>0?'con-pedido':''].filter(Boolean).join(' ');
     return '<tr data-id="'+i.comp_id+'" data-prov="'+esc(p)+'"'+(cl?' class="'+cl+'"':'')+'>'+
-      '<td><b>'+esc(i.codigo||'—')+'</b><br><small style="color:#777">'+esc(i.descripcion||'')+
+      '<td><b>'+esc(i.codigo||'—')+'</b><br><small class="sub">'+esc(i.descripcion||'')+
         (i.carton_formato?(' · Formato '+esc(i.carton_formato)):'')+
         // En el celular la columna Proveedor se esconde (no entraba y dejaba "Pedir"
         // fuera de pantalla) y el proveedor se lee acá mismo. Nada se pierde.
@@ -1835,7 +1814,7 @@ $('btnCrear').addEventListener('click', async function(){
       if(gem) hayGem=true;
       return '✓ OC N° '+h.data.numero+(hechas.length>1&&h.prov?(' a '+esc(h.prov)):'')+' creada con '+h.data.items+' ítems (borrador).' +
         (h.fe?(' Entrega estimada: '+fmtFecha(h.fe)+'.'):'') +
-        (gem ? ('<br><b style="color:#0b3b73">✓ OC gemela N° '+gem.numero+' a '+esc(gem.proveedor)+' con '+fmt(gem.kg,1)+' kg de '+esc(gem.componente)+'.</b>') : '');
+        (gem ? ('<br><b class="gemela">✓ OC gemela N° '+gem.numero+' a '+esc(gem.proveedor)+' con '+fmt(gem.kg,1)+' kg de '+esc(gem.componente)+'.</b>') : '');
     }).join('<br>');
     if(err){
       $('status').className='status bad';
@@ -1860,26 +1839,26 @@ function pintarOcs(){
   $('ocsN').textContent=ocs.length?('('+ocs.length+')'):'';
   $('ocsEmpty').classList.toggle('hidden', ocs.length>0);
   var cardOC=function(o){
-    var acts='<button type="button" class="imp" data-imp="'+o.id+'">🖨 Imprimir</button>';
-    if(o.estado==='borrador'||o.estado==='enviada') acts+='<button type="button" class="wpp" data-oc="'+o.id+'">🟢 WhatsApp</button>'+
-      '<button type="button" class="anu" data-oc="'+o.id+'" data-est="anulada">Anular</button>';
+    var acts='<button type="button" class="imp btn btn-secondary btn-sm" data-imp="'+o.id+'">🖨 Imprimir</button>';
+    if(o.estado==='borrador'||o.estado==='enviada') acts+='<button type="button" class="wpp btn btn-ok btn-sm" data-oc="'+o.id+'">WhatsApp</button>'+
+      '<button type="button" class="anu btn btn-secondary btn-sm" data-oc="'+o.id+'" data-est="anulada">Anular</button>';
     return '<div class="oc-card">'+
       '<div class="oc-head"><span class="num-oc">OC N° '+o.numero+'</span>'+
       '<span class="badge '+o.estado+'">'+o.estado+'</span>'+
       (o.proveedor?('<span>'+esc(o.proveedor)+'</span>'):'')+
-      (o.rubro?('<span style="color:#777">'+esc(o.rubro)+'</span>'):'')+
-      '<span style="color:#777">'+new Date(o.creado_en).toLocaleDateString('es-AR')+'</span>'+
+      (o.rubro?('<span class="sub">'+esc(o.rubro)+'</span>'):'')+
+      '<span class="sub">'+new Date(o.creado_en).toLocaleDateString('es-AR')+'</span>'+
       (vFechaEnt(o)?('<span class="badge entrega">Entrega '+fmtFecha(vFechaEnt(o))+'</span>'):'')+
-      ((o.total_usd>0||o.total_ars>0)?('<span style="font-weight:800">'+fmtTotalMon(Number(o.total_usd)||0,Number(o.total_ars)||0)+'</span>'):'')+
+      ((o.total_usd>0||o.total_ars>0)?('<span class="oc-tot">'+fmtTotalMon(Number(o.total_usd)||0,Number(o.total_ars)||0)+'</span>'):'')+
       '<div class="oc-acts">'+acts+'</div></div>'+
-      (o.nota?('<div style="color:#555;font-size:14px;margin-top:4px">'+esc(o.nota)+'</div>'):'')+
-      '<div class="table-wrap" style="margin-top:8px"><table class="t"><thead><tr>'+
+      (o.nota?('<div class="sub oc-nota">'+esc(o.nota)+'</div>'):'')+
+      '<div class="table-wrap libre"><table class="t"><thead><tr>'+
       '<th>Insumo</th><th class="num">Pedido</th><th class="num">Precio</th><th class="num">Subtotal</th><th class="num">Recibido</th></tr></thead><tbody>'+
       (o.items||[]).map(function(it){
         var rc=Number(it.recibido)||0, pe=Number(it.cantidad)||0;
         var sem=(o.estado==='enviada'||o.estado==='recibida')?
           (rc<=0?' class="rc-no"':(rc>=pe?' class="rc-ok"':' class="rc-par"')):'';
-        return '<tr'+sem+'><td><b>'+esc(it.codigo)+'</b> <small style="color:#777">'+esc(it.descripcion||'')+'</small></td>'+
+        return '<tr'+sem+'><td><b>'+esc(it.codigo)+'</b> <small class="sub">'+esc(it.descripcion||'')+'</small></td>'+
           '<td class="num">'+fmt(it.cantidad)+' '+esc(it.unidad)+'</td>'+
           '<td class="num">'+(it.precio_uni==null?'—':((it.moneda==='ARS'?'$ ':'US$ ')+fmt(it.precio_uni,2)))+'</td>'+
           '<td class="num">'+(it.subtotal==null?'—':((it.moneda==='ARS'?'$ ':'US$ ')+fmt(it.subtotal,2)))+'</td>'+
@@ -1895,8 +1874,8 @@ function pintarOcs(){
   var his=ocs.filter(function(o){ return ult[o.proveedor||('#'+o.id)]!==o; });
   var abiertaHis=!!($('ocsHis')&&$('ocsHis').open);
   $('ocsList').innerHTML=
-    '<details class="oc-box" open><summary>Vigentes <span>('+vig.length+')</span></summary>'+vig.map(cardOC).join('')+'</details>'+
-    (his.length?('<details class="oc-box" id="ocsHis"'+(abiertaHis?' open':'')+'><summary>Históricas <span>('+his.length+')</span></summary>'+his.map(cardOC).join('')+'</details>'):'');
+    '<details class="oc-box acc" open><summary>Vigentes <span>('+vig.length+')</span></summary>'+vig.map(cardOC).join('')+'</details>'+
+    (his.length?('<details class="oc-box acc" id="ocsHis"'+(abiertaHis?' open':'')+'><summary>Históricas <span>('+his.length+')</span></summary>'+his.map(cardOC).join('')+'</details>'):'');
 
   document.querySelectorAll('.oc-acts button.imp').forEach(function(b){
     b.addEventListener('click', function(){ imprimirOC(Number(b.dataset.imp)); });

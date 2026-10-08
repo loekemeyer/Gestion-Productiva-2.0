@@ -14,8 +14,7 @@
 <link rel="apple-touch-icon" href="../../GP2_favicon.png">
 <link rel="stylesheet" href="../../gp2-modulo.css?v=20261008ds">
 <style>
-  .sub{color:#555}
-  .disc{color:#b42318;font-size:13px}
+  .fin{justify-content:center}
 </style>
 </head>
 <body>
@@ -34,7 +33,7 @@
 
     <!-- FASE 0 — elegir quién entrega -->
     <div id="fase0">
-      <div class="row"><label class="lbl">¿Quién entrega?</label></div>
+      <h2 class="sec-h">¿Quién entrega?</h2>
       <div class="provs-grid" id="cpGrid"></div>
       <div class="aviso">
         Acá entra el <b>artículo terminado</b> que llega al centro logístico de Virgilio, venga
@@ -46,19 +45,17 @@
 
     <!-- FASE 1 — cargar lo entregado -->
     <div id="fase1" class="hidden">
-      <div class="row" style="justify-content:space-between">
-        <div class="row" style="margin:0"><label class="lbl" id="fase1Title">—</label></div>
-        <div class="row" style="margin:0">
-          <label class="lbl" style="font-size:16px">Fecha</label>
-          <input type="date" id="fFecha">
-          <button class="btn btn-secondary" id="btnLimpiar" type="button" title="Vaciar todo lo cargado">🗑 Limpiar</button>
-          <button class="btn btn-primary" id="btnEnviar" type="button" disabled>Registrar</button>
-        </div>
+      <div class="toolbar mt0">
+        <h2 class="sec-h mt0 mb0" id="fase1Title">—</h2>
+        <span class="spacer"></span>
+        <div class="field"><label for="fFecha">Fecha</label><input type="date" id="fFecha"></div>
+        <button class="btn btn-secondary" id="btnLimpiar" type="button" title="Vaciar todo lo cargado">🗑 Limpiar</button>
+        <button class="btn btn-primary" id="btnEnviar" type="button" disabled>Registrar</button>
       </div>
 
       <div class="search-box"><input type="text" id="q" placeholder="Buscar por código o descripción…"></div>
 
-      <div class="table-wrap">
+      <div class="table-wrap fix1">
         <table class="t">
           <thead><tr>
             <th>Artículo</th>
@@ -80,9 +77,9 @@
         <div class="title">✓ Recepción registrada</div>
         <div>Tu código de recepción:</div>
         <div class="code" id="successCode">—</div>
-        <div id="successDetail" style="font-size:17px;color:#444"></div>
+        <div id="successDetail"></div>
       </div>
-      <div class="row" style="justify-content:center">
+      <div class="row fin">
         <button class="btn btn-primary" id="btnVolverTall" type="button">← Cambiar quién entrega</button>
       </div>
     </div>
@@ -315,7 +312,7 @@ $("btnEnviar").addEventListener("click", async function(){
     E.mostrarExito(items.length + " artículos recibidos de " + selCP.nombre + " · " + fecha +
       " · " + n + " movimientos (incluye los consumos de la receta)");
   } catch(e){
-    $("msg1").innerHTML = '<span style="color:#b91c1c">Error: ' + esc(e.message || e) + '</span>';
+    $("msg1").innerHTML = '<span class="err-txt">Error: ' + esc(e.message || e) + '</span>';
   } finally {
     btn.disabled = false; actualizarEnviar();
   }

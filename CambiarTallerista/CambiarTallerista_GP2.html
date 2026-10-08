@@ -30,49 +30,43 @@
 <link rel="apple-touch-icon" href="../GP2_favicon.png">
 <link rel="stylesheet" href="../gp2-modulo.css?v=20261008ds">
 <style>
-  .ct-wrap{max-width:760px}
-  .ct-buscar{display:flex;flex-direction:column;gap:6px;margin:6px 0 10px}
-  .ct-buscar label{font-size:18px;font-weight:800;color:#111}
-  .ct-buscar input{width:100%;padding:12px 14px;border:2px solid #cbd5e1;border-radius:10px;font-size:20px}
-  .ct-lista{display:flex;flex-direction:column;gap:8px;margin:8px 0}
-  .ct-art{display:flex;flex-direction:column;gap:6px;text-align:left;background:#fff;border:2px solid #d0d7de;
-          border-radius:12px;padding:12px 14px;cursor:pointer;font-size:18px;min-height:44px;color:#111}
-  .ct-art:hover{border-color:#111}
-  .ct-art .t{font-size:20px}
-  .ct-art .t b{font-size:22px;font-weight:900}
+  .ct-buscar{margin:0 0 var(--s2)}
+  /* lista de articulos: tarjetas para elegir (.prov-btn del sistema), en dos columnas si entran */
+  .ct-lista{--grid-min:330px;margin:var(--s2) 0}
+  .ct-art{width:100%;gap:6px;padding:10px 14px}
+  .ct-art .t{font-size:var(--fs-base);font-weight:500;color:var(--ink-2)}
+  .ct-art .t b{font-size:var(--fs-lg);font-weight:750;color:var(--pri-ink);margin-right:2px}
   .ct-chips{display:flex;flex-wrap:wrap;gap:6px}
-  .ct-chip{font-size:15px;font-weight:700;padding:3px 10px;border-radius:999px;background:#eef2f7;color:#334155}
-  .ct-chip.fab{background:#fef3c7;color:#92400e}
-  .ct-chip.pat{background:#dcfce7;color:#166534}
-  .ct-mas{font-size:16px;color:#64748b;margin:4px 0}
-  .ct-tit{font-size:22px;margin:4px 0 8px}
-  .ct-tit b{font-size:26px;font-weight:900}
-  .lbl2{font-size:14px;font-weight:800;color:#475569;text-transform:uppercase;letter-spacing:.4px;margin:14px 0 6px}
-  .ct-fila{border:2px solid #e2e8f0;border-radius:12px;padding:12px 14px;margin:8px 0;display:flex;flex-direction:column;gap:8px}
-  .ct-quien{display:flex;align-items:flex-start;gap:10px}
+  .ct-chip.badge{height:auto;min-height:24px;padding:2px 9px;font-size:var(--fs-sm);white-space:normal}
+  .ct-mas{grid-column:1/-1;margin:var(--s1) 0}
+  .ct-tit{margin:0 0 var(--s3)}
+  .ct-tit .cod{font-size:var(--fs-xl);margin-right:4px}
+  /* una fila por quien lo hace hoy: quien | a quien pasa | ver */
+  .ct-fila{display:grid;grid-template-columns:minmax(0,1fr) minmax(200px,280px) auto;align-items:end;gap:var(--s3) var(--s4);margin:var(--s2) 0}
+  .ct-quien{display:flex;align-items:flex-start;gap:10px;align-self:center}
   .ct-ico{font-size:28px;line-height:1}
-  .ct-quien b{font-size:21px}
-  .ct-sub{font-size:16px;color:#475569;margin-top:2px}
-  .ct-cambia{display:flex;flex-direction:column;gap:6px}
-  .ct-cambia label{font-size:16px;font-weight:800;color:#111}
-  .ct-cambia select{width:100%;padding:10px 12px;border:2px solid #cbd5e1;border-radius:10px;background:#fff;min-height:48px}
-  .ct-prev{border:2px solid #0b3b73;border-radius:12px;padding:14px 16px;margin:14px 0;background:#f8fbff}
-  .ct-prev h3{font-size:20px;margin:0 0 6px}
-  .ct-prev h4{font-size:15px;font-weight:800;color:#475569;text-transform:uppercase;letter-spacing:.4px;margin:12px 0 4px}
+  .ct-quien b{font-size:var(--fs-lg);font-weight:750}
+  .ct-sub{font-size:var(--fs-md);color:var(--ink-2);margin-top:2px}
+  .ct-cambia select{width:100%}
+  /* vista previa del cambio */
+  .ct-prev{margin:var(--s4) 0;border-color:var(--pri-line);border-left:4px solid var(--pri)}
+  .ct-prev .ct-flecha{font-size:var(--fs-lg)}
+  .ct-prev h4{margin:var(--s3) 0 var(--s1)}
   .ct-prev ul{margin:0;padding-left:0;list-style:none}
-  .ct-prev li{font-size:18px;padding:4px 0;border-bottom:1px solid #e2e8f0;display:flex;justify-content:space-between;gap:10px}
-  .ct-prev li .q{color:#475569;white-space:nowrap}
-  .ct-aviso{font-size:17px;padding:8px 10px;border-radius:8px;margin:6px 0}
-  .ct-aviso.warn{background:#fef3c7;color:#78350f}
-  .ct-aviso.info{background:#e0f2fe;color:#075985}
-  .ct-aviso.bloq{background:#fee2e2;color:#991b1b;font-weight:700}
-  .ct-acc{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}
-  .ct-acc .btn{flex:1 1 180px}
+  .ct-prev li{font-size:var(--fs-base);padding:6px 0;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;gap:10px}
+  .ct-prev li .q{color:var(--ink-3);white-space:nowrap;font-variant-numeric:tabular-nums}
+  .ct-acc{margin-top:var(--s3)}
+  #okDetail{font-size:var(--fs-lg);color:var(--ink-2)}
+  .ct-fin{justify-content:center}
+  @media (max-width:640px){
+    .ct-fila{grid-template-columns:1fr}
+    .ct-acc .btn{flex:1 1 160px}
+  }
 </style>
 </head>
 <body>
 
-<div class="card ct-wrap">
+<div class="card angosto">
   <div class="header">
     <h1>Cambiar tallerista / Prov. A.T.</h1>
     <div class="hbtns">
@@ -85,12 +79,12 @@
 
     <!-- FASE 0 — elegir artículo -->
     <div id="fase0">
-      <div class="ct-buscar">
+      <div class="ct-buscar field">
         <label for="q">Artículo (código o descripción)</label>
-        <input type="text" id="q" inputmode="text" autocomplete="off" placeholder="Ej: 542 o ahueca">
+        <input type="text" id="q" class="search" inputmode="text" autocomplete="off" placeholder="Ej: 542 o ahueca">
       </div>
       <div id="status" class="status">Cargando…</div>
-      <div id="lista" class="ct-lista"></div>
+      <div id="lista" class="ct-lista grid-auto"></div>
     </div>
 
     <!-- FASE 1 — el artículo elegido -->
@@ -103,10 +97,10 @@
     <div id="fase2" class="hidden">
       <div class="successBox">
         <div class="title">✓ Cambio hecho</div>
-        <div id="okDetail" style="font-size:18px;color:#333"></div>
+        <div id="okDetail"></div>
       </div>
-      <div class="row" style="justify-content:center">
-        <a class="btn btn-secondary" id="btnDespiece" href="../Programa/Programa.html" style="text-decoration:none;display:inline-flex;align-items:center">Ver en Despiece x Art.</a>
+      <div class="row ct-fin">
+        <a class="btn btn-secondary" id="btnDespiece" href="../Programa/Programa.html">Ver en Despiece x Art.</a>
         <button class="btn btn-primary" id="btnOtro" type="button">Cambiar otro artículo</button>
       </div>
     </div>
@@ -147,10 +141,10 @@ async function cargar(){
 /* ---------- fase 0: lista ---------- */
 function chipsDe(a){
   var h = "";
-  (a.tall || []).forEach(function(t){ h += '<span class="ct-chip">👷 ' + esc(t.n) + '</span>'; });
-  (a.pat || []).forEach(function(p){ h += '<span class="ct-chip pat">🏭 ' + esc(p.n) + '</span>'; });
-  if (a.fab) h += '<span class="ct-chip fab">🏠 Fábrica (matrices)</span>';
-  return h || '<span class="ct-chip">sin asignar</span>';
+  (a.tall || []).forEach(function(t){ h += '<span class="ct-chip badge pri">👷 ' + esc(t.n) + '</span>'; });
+  (a.pat || []).forEach(function(p){ h += '<span class="ct-chip pat badge ok">🏭 ' + esc(p.n) + '</span>'; });
+  if (a.fab) h += '<span class="ct-chip fab badge warn">🏠 Fábrica (matrices)</span>';
+  return h || '<span class="ct-chip badge">sin asignar</span>';
 }
 
 function renderLista(){
@@ -163,18 +157,18 @@ function renderLista(){
   var cont = $("lista"); cont.innerHTML = "";
   hit.slice(0, MAX_LISTA).forEach(function(a){
     var b = document.createElement("button");
-    b.type = "button"; b.className = "ct-art"; b.setAttribute("data-id", a.id);
+    b.type = "button"; b.className = "ct-art prov-btn"; b.setAttribute("data-id", a.id);
     b.innerHTML =
       '<span class="t"><b>' + esc(a.cod) + '</b> ' + esc(a.d || "") + (a.mk ? " · " + esc(a.mk) : "") + '</span>' +
       '<span class="ct-chips">' + chipsDe(a) + '</span>';
     cont.appendChild(b);
   });
   if (hit.length > MAX_LISTA){
-    var m = document.createElement("div"); m.className = "ct-mas";
+    var m = document.createElement("div"); m.className = "ct-mas sub";
     m.textContent = "Se muestran " + MAX_LISTA + " de " + hit.length + ". Escribí más del código para acotar.";
     cont.appendChild(m);
   } else if (!hit.length && B){
-    var v = document.createElement("div"); v.className = "ct-mas";
+    var v = document.createElement("div"); v.className = "ct-mas empty";
     v.textContent = "Ningún artículo coincide con «" + $("q").value + "».";
     cont.appendChild(v);
   }
@@ -222,14 +216,14 @@ function opcionesDe(f){
 
 function renderDetalle(){
   var a = ART;
-  var h = '<div class="ct-tit"><b>' + esc(a.cod) + '</b> ' + esc(a.d || "") + (a.mk ? " · " + esc(a.mk) : "") + '</div>';
-  h += '<div class="lbl2">Hoy lo hace</div>';
-  if (!FILAS.length) h += '<div class="ct-mas">Este artículo no tiene tallerista, prov. A.T. ni matriz de envasado cargados.</div>';
+  var h = '<h2 class="ct-tit sec-h"><span class="cod">' + esc(a.cod) + '</span> ' + esc(a.d || "") + (a.mk ? " · " + esc(a.mk) : "") + '</h2>';
+  h += '<div class="lbl2 eyebrow">Hoy lo hace</div>';
+  if (!FILAS.length) h += '<div class="ct-mas empty">Este artículo no tiene tallerista, prov. A.T. ni matriz de envasado cargados.</div>';
   FILAS.forEach(function(f, i){
     var etiqueta = f.id == null ? "Pasa al tallerista" : (f.tipo === "prov_at" ? "Pasa al prov. A.T." : "Pasa al tallerista");
-    h += '<div class="ct-fila">' +
+    h += '<div class="ct-fila panel">' +
       '<div class="ct-quien"><span class="ct-ico">' + f.ico + '</span><div><b>' + esc(f.n) + '</b><div class="ct-sub">' + esc(f.sub) + '</div></div></div>' +
-      '<div class="ct-cambia"><label for="sel' + i + '">' + etiqueta + '</label>' +
+      '<div class="ct-cambia field"><label for="sel' + i + '">' + etiqueta + '</label>' +
       '<select id="sel' + i + '" data-i="' + i + '">' + opcionesDe(f) + '</select></div>' +
       '<button class="btn btn-primary" type="button" data-ver="' + i + '" id="ver' + i + '" disabled>Ver el cambio</button>' +
     '</div>';
@@ -247,10 +241,10 @@ function cantTxt(c){
 
 function renderPrev(r){
   var d = r.desde || {}, h2 = r.hasta || {}, a = r.articulo || {};
-  var h = '<div class="ct-prev"><h3>Qué cambia en el ' + esc(a.cod) + '</h3>' +
-    '<div style="font-size:19px"><b>' + esc(d.n || "—") + '</b> → <b>' + esc(h2.n || "—") + '</b></div>';
+  var h = '<div class="ct-prev panel"><h3 class="panel-h">Qué cambia en el ' + esc(a.cod) + '</h3>' +
+    '<div class="ct-flecha"><b>' + esc(d.n || "—") + '</b> → <b>' + esc(h2.n || "—") + '</b></div>';
 
-  (r.bloqueos || []).forEach(function(b){ h += '<div class="ct-aviso bloq">⛔ ' + esc(b) + '</div>'; });
+  (r.bloqueos || []).forEach(function(b){ h += '<div class="ct-aviso bloq aviso err">⛔ ' + esc(b) + '</div>'; });
 
   if ((r.partes || []).length){
     var titulo = r.tipo === "fabrica_a_tallerista"
@@ -268,10 +262,10 @@ function renderPrev(r){
     h += '</ul>';
   }
   (r.avisos || []).forEach(function(av){
-    h += '<div class="ct-aviso ' + (av.nivel === "warn" ? "warn" : "info") + '">' + (av.nivel === "warn" ? "⚠ " : "ℹ ") + esc(av.txt) + '</div>';
+    h += '<div class="ct-aviso aviso ' + (av.nivel === "warn" ? "warn" : "info") + '">' + (av.nivel === "warn" ? "⚠ " : "ℹ ") + esc(av.txt) + '</div>';
   });
 
-  h += '<div class="ct-acc">' +
+  h += '<div class="ct-acc actions">' +
        '<button class="btn btn-primary" type="button" id="btnConfirmar"' + (r.ok ? "" : " disabled") + '>Confirmar cambio</button>' +
        '<button class="btn btn-secondary" type="button" id="btnCancelar">Cancelar</button></div>' +
        '<div id="msgPrev" class="status"></div></div>';
@@ -289,7 +283,7 @@ async function verCambio(i){
   var r = await SB.rpc("cambiar_contraparte_preview",
     { p_articulo: ART.id, p_tipo: SEL.tipo, p_desde: SEL.desde, p_hasta: SEL.hasta });
   $("ver" + i).disabled = false;
-  if (r.error){ $("prev").innerHTML = '<div class="ct-aviso bloq">⛔ ' + esc(r.error.message) + '</div>'; return; }
+  if (r.error){ $("prev").innerHTML = '<div class="ct-aviso bloq aviso err">⛔ ' + esc(r.error.message) + '</div>'; return; }
   renderPrev(r.data);
 }
 
@@ -302,14 +296,14 @@ async function confirmar(){
     { p_articulo: ART.id, p_tipo: SEL.tipo, p_desde: SEL.desde, p_hasta: SEL.hasta, p_usuario: null });
   if (r.error){
     btn.disabled = false;
-    $("msgPrev").innerHTML = '<span style="color:#991b1b;font-weight:700">⛔ ' + esc(r.error.message) + '</span>';
+    $("msgPrev").innerHTML = '<b class="err-txt">⛔ ' + esc(r.error.message) + '</b>';
     return;
   }
   var d = r.data || {};
   $("okDetail").innerHTML =
     '<b>' + esc((d.articulo || {}).cod) + '</b>: de <b>' + esc((d.desde || {}).n || "—") + '</b> a <b>' + esc((d.hasta || {}).n || "—") + '</b>.' +
     '<br>' + (d.pasos || 0) + ' paso(s) de ruta' + ((d.inventario_nuevo || 0) ? ', ' + d.inventario_nuevo + ' parte(s) nuevas en su stock' : '') + '.' +
-    '<br><span style="font-size:15px;color:#555">Despiece x Art. ya lo muestra con el cambio.</span>';
+    '<br><span class="sub">Despiece x Art. ya lo muestra con el cambio.</span>';
   $("fase1").classList.add("hidden"); $("fase2").classList.remove("hidden");
   $("btnVolver").classList.remove("hidden");
 }

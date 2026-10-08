@@ -46,10 +46,12 @@
  .f-ok{color:var(--ok)}
  .falt-nota{margin:var(--s2) 0 0}
  /* tipo de sector (color de dominio) */
- .sect-tag{display:inline-flex;align-items:center;height:22px;padding:0 8px;border-radius:var(--r-pill);font:700 12px/1 var(--font);letter-spacing:.02em;white-space:nowrap}
+ .sect-tag{display:inline-flex;align-items:center;height:22px;padding:0 8px;border-radius:var(--r-pill);font:700 12px/1 var(--font);letter-spacing:.02em;white-space:nowrap;
+   background:var(--surface-3);color:var(--ink-2)}
  .st-crudo{background:#fdf1dc;color:#7a4a00}
  .st-procesado{background:#e3f4e8;color:#11633a}
- .st-transito{background:#e4edfb;color:#1d4a99}
+ .st-transito,.st-movimiento{background:#e4edfb;color:#1d4a99}
+ .st-materiaprima{background:#efebe6;color:#4f4336}
  .st-afilado{background:#f3f0dc;color:#5f5512}
  .st-fleje{background:#fbe6ee;color:#8e1a45}
  .st-plástico{background:#efe8fa;color:#4f2a99}
@@ -92,7 +94,10 @@
  .modal-bg .actions{margin-top:var(--s3)}
  @media (max-width:640px){
   .toolbar .field{flex:1 1 100%}
+  .toolbar .field:has(#inpUsuario){flex:1 1 150px}
   .toolbar #selArt,.toolbar #inpUsuario{width:100%;min-width:0}
+  .toolbar #expAll{order:1}
+  .toolbar .chk{order:2}
   .art-head{padding:6px 10px}
   .art-head .stats{margin-left:0;width:100%}
   .art-body{padding:var(--s2) var(--s2) var(--s3)}
@@ -528,11 +533,11 @@ function renderFaltArt(a){
   if(!rows.length)return h+'<div class="empty">Ningún componente de este artículo tiene mínimo asignado en una ubicación donde el artículo aporte.</div>';
   h+='<div class="tabla-wrap table-wrap libre"><table class="falt-tabla t"><thead><tr>'+
     '<th>Cód</th><th>Componente</th><th>Ubicación</th>'+
-    '<th title="Mínimo total de esa ubicación (todos los artículos)">Mín. ubic</th>'+
-    '<th>Stock</th>'+
-    '<th title="Lo que falta en la ubicación, entre todos los artículos">Falta total</th>'+
-    '<th title="Parte del mínimo que aporta ESTE artículo (repartido entre talleristas si comparten)">Aporte art</th>'+
-    '<th title="Parte del faltante atribuible a ESTE artículo (prorrateo por aporte)">Falta art</th>'+
+    '<th class="num" title="Mínimo total de esa ubicación (todos los artículos)">Mín. ubic</th>'+
+    '<th class="num">Stock</th>'+
+    '<th class="num" title="Lo que falta en la ubicación, entre todos los artículos">Falta total</th>'+
+    '<th class="num" title="Parte del mínimo que aporta ESTE artículo (repartido entre talleristas si comparten)">Aporte art</th>'+
+    '<th class="num" title="Parte del faltante atribuible a ESTE artículo (prorrateo por aporte)">Falta art</th>'+
     '<th>Un</th></tr></thead><tbody>';
   rows.forEach(function(r){
     var uo=FD.ubic[String(r.u.uid)]||{};
@@ -739,7 +744,7 @@ function render(){
       }else{
         h+='<div class="tabla-wrap table-wrap libre"><table class="t"><thead><tr>'+
           '<th>Cód. parte</th><th>Descripción</th><th>Sector</th>'+
-          '<th>Partes/uni</th><th>Kg x uni</th><th>Uni x cajón</th><th>UM</th>'+
+          '<th class="num">Partes/uni</th><th class="num">Kg x uni</th><th class="num">Uni x cajón</th><th>UM</th>'+
           '</tr></thead><tbody>';
         comps.forEach(function(c){
           var tipo=sectTipo(c.s)||'';
