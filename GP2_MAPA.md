@@ -124,7 +124,7 @@ IMAGINARIA). Escribe solo por RPC: `cambiar_contraparte_aplicar` exige sesión h
 
 Tablas: `articulo_linea_tallerista` (las 13 excepciones de la línea) y `contraparte_cambio` (bitácora: los
 `ruta_paso` de antes y de después). Internas (sin EXECUTE para nadie): `_linea_tallerista`,
-`_contrapartes_articulo`, `_cambiar_contraparte`. `_cc_quitar_pasos` (único borrado) se crea a mano en el SQL Editor.
+`_contrapartes_articulo`, `_cambiar_contraparte`. `_cc_quitar_pasos` (único borrado) se creó a mano en el SQL Editor (08/10/2026).
 
 ## produccion_bundle(p_matriz, p_anio) — Produccion/rendimiento_GP2.js (solo lectura)
 

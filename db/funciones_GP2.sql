@@ -389,6 +389,23 @@ begin
 end $function$
 ;
 
+-- ---------- _cc_quitar_pasos ----------
+-- Creada a mano en el SQL Editor el 2026-10-08 (seccion 8 de db/migracion_cambiar_contraparte_20261005.sql).
+CREATE OR REPLACE FUNCTION "GP2"._cc_quitar_pasos(p_ids bigint[])
+ RETURNS integer
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'GP2', 'pg_temp'
+AS $function$
+declare v_n integer;
+begin
+  perform "GP2"._exigir_autorizado();
+  delete from ruta_paso where id = any(p_ids);
+  get diagnostics v_n = row_count;
+  return v_n;
+end $function$
+;
+
 -- ---------- _contrapartes_articulo ----------
 CREATE OR REPLACE FUNCTION "GP2"._contrapartes_articulo(p_art bigint)
  RETURNS jsonb
