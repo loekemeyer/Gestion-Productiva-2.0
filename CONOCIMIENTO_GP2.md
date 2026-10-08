@@ -16092,3 +16092,17 @@ Producción 3.0 (`cervantes-gp2/`) y vale igual para la tablet de GP2:
 - Pruebas: `tests/ui/test_verif_cajones.js` (85 checks; la banda se prueba sobre `tests/ui/fixtures/cajones_host.html`) y `tests/ui/test_tablet.js` (aviso sólo en la
   pantalla principal de la Tablet real).
 
+
+## 4kb. Legajos 282, 1 y 249: quién es cada uno (2026-10-08)
+
+- **282** — [usuario Elías, 08/10] *"Oscar está inactivo, la otra persona se tiene que mostrar"*. [dato] En `public."Empleados"` el 282 tiene
+  2 filas: Ivan Dantova (NO, alta 09/02) y **Oscar Bordon (SI, alta 17/07)**; en Planify Oscar está inactivo; `"GP2".empleado` tiene a Ivan
+  Dantova, inactivo. Oscar marcó en 2.0 hasta el 18/09 (23 registros en los 30 días anteriores al 08/10). ⚠ **Empleados sigue diciendo SI**:
+  de ahí salen los botones (`ve_cm`) y la hora de la app de Cervantes (Registro 3.0), así que el 282 entra con los permisos de Oscar.
+  Ni la app de 2.0 ni la de 3.0 miran si el legajo está activo al entrar.
+- **1** — [usuario Elías, 08/10] *"legajo 1 existe pero no va a producir, se encarga de otras cosas"*: es **Alberto Práctico** (Planify, el
+  dato bueno). En Empleados y GP2 el 1 es la cuenta «Pruebas» (comparten número; ya anotado el 29/09 en 4gr).
+  Mientras Alberto no produzca, no afecta.
+- **249** — [dato] En Empleados es una fila «RRHH» creada el 17/06 (sede V, mail rrhhloeke@gmail.com, tipo «operario»), que GP2 copió a
+  `"GP2".empleado` como operario activo. En Planify el 249 es **Tomás Beviglia**. Nunca cargó producción (0 en 2.0, 3.0 y GP2).
+  [deducido] es la cuenta de ingreso de RRHH, no un operario. Sin decidir: si se la da de baja como operario en GP2.
