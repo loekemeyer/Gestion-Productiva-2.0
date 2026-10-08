@@ -6,7 +6,8 @@
    Supabase está simulado: la base de mentira exige el pase (igual que reg_prod_3_0_pase_ok) y guarda lo que le llega.
      1) sin pase aparece la pantalla del código; código malo no entra; código bueno entra, guarda el pase y trae el catálogo
         con el pase, el id del equipo y la cabecera Content-Profile: reg_prod_3_0
-     2) la botonera es la de GP2 (13 botones; sin CT de Eduardo mientras los rollos estén apagados) y el legajo se anota 1 vez
+     2) cada operario ve los botones de SU tipo (como 2.0; sin CT del alimentador mientras los rollos estén apagados) y el legajo se
+        anota 1 vez
      3) E y C llegan con el toque crudo adentro (opción, texto, hora, versión) y los golpes tal cual los cargó el operario
      4) el historial marca ENVIADO y el 🗑 anula en la base (con pase)
      5) sin señal: el toque queda PENDIENTE y se manda solo cuando vuelve
@@ -17,6 +18,13 @@
      8) rollos (Fase 1c): sólo si el catálogo trae rollos_activos; elegir rollo en E y «CT» / «PR quedó resto» de Eduardo; sin señal esperan
         en su cola y salen en orden; ANTI-DUPLICADO (Fase 1d): si la base lo hizo pero la respuesta se perdió, el reintento lleva el MISMO
         id y no descuenta otro rollo
+    10) v3.1.9, la botonera de Registro Producción 2.0: botones por tipo de operario; con un tiempo muerto abierto sólo ése; PM tiempo
+        muerto con aviso; 501 en kilos; RM con su recorrido; CM con balancín; cartel del alimentador; PCM; WhatsApp sin legajo 0;
+        llegada tarde con la hora de cada uno; legajo nuevo actualiza el catálogo; el FJ no se borra
+    11) v3.1.10: contador de cajón (lo que falta, «cajón completo»); error de envío a la auditoría y reintento solo cada 3 s; Terminar
+        Día como 2.0 (último cajón, tiempo muerto abierto, FJ con id fijo que pisa al anterior y lleva el día entero, reenvío del día);
+        «¿seguís mañana?» y al día siguiente «⚡ Continuar» (cajón continuado con lo de ayer; otro botón pide el código de Logística);
+        la cola copiada al IndexedDB para el service worker y lo que él mandó se da por enviado
      9) NO se llama a nada de GP2 (registro_operarios_bundle, registrar_evento_prod, anular_evento_prod, tomar_rollo, cerrar_rollo)
    Sale 1 si falla. */
 const fs = require("fs");
@@ -38,7 +46,7 @@ const GP2_FNS = /\/rpc\/(registro_operarios_bundle|registrar_evento_prod|anular_
 const BUNDLE = {
   empleados: {
     "999": { nombre: "Prueba Operario", activo: true, hora_entrada: "08:30:00" },
-    "19": { nombre: "Eduardo Prueba", activo: true, hora_entrada: "08:30:00" },
+    "19": { nombre: "Eduardo Prueba", activo: true, hora_entrada: "08:30:00", es_alimentador: true, ve_cm: true },
   },
   matrices: [
     { n: "10", d: "Varilla c/ Cuchilla", ppk: 1, uxg: 2, maq: "", act: true },
@@ -58,6 +66,26 @@ const BUNDLE_ROLLOS = Object.assign({}, BUNDLE, {
   rollos_antiduplicado: true,
   matriz_fleje: { "10": { comp_id: 100, codigo: "FL94", descripcion: "Fleje 94" } },
   rollos_saldo: [{ comp_id: 100, codigo: "FL94", kg_por_rollo: 25, rollos: 4 }],
+});
+// v3.1.9 — la botonera de 2.0: permisos por tipo de operario (public."Empleados"), su hora de entrada, matriz de alimentador (tipo A),
+// la 501 en kilos (tu = kg), una matriz sin tiempo histórico y los balancines.
+const BUNDLE_20 = Object.assign({}, BUNDLE, {
+  empleados: {
+    "999": { nombre: "Operario Base", activo: true, hora_entrada: "00:01:00" },
+    "19": { nombre: "Eduardo Prueba", activo: true, hora_entrada: "00:01:00", es_alimentador: true, ve_cm: true },
+    "91": { nombre: "Matricero Prueba", activo: true, es_matriceria: true, ve_cm: true, ve_trm: true, ve_tl: true, ve_rem: true },
+    "92": { nombre: "Piedra Prueba", activo: true, es_piedra: true },
+    "233": { nombre: "Piedra con CM", activo: true, es_piedra: true, ve_cm: true, ve_mm: true },
+    "0": { nombre: "Prueba (TESTING)", activo: true, hora_entrada: "00:01:00" },
+    "556": { nombre: "Entra Tarde", activo: true, hora_entrada: "23:59:00" },
+  },
+  matrices: [
+    { n: "10", d: "Varilla c/ Cuchilla", ppk: 1, uxg: 2, maq: "", act: true, th: 6.3 },
+    { n: "71", d: "Corte Arandela Grande", ppk: 1, uxg: 3, maq: "alimentador", act: true, tipo: "A", th: 5 },
+    { n: "99", d: "Matriz sin tiempo", ppk: 1, uxg: 1, maq: "", act: true, th: null },
+    { n: "501", d: "Afilado Cuchilla", ppk: null, uxg: 1, maq: "", act: true, tipo: "P", th: 7650, tu: "kg" },
+  ],
+  balancines: [{ num: "1", tipo: "Balancin", matriz: null }, { num: "2", tipo: "Balancin", matriz: null }],
 });
 const ARTICULOS = { "322": [{ pieza_codigo: "394", pieza_desc: "394 Terminado", arts: [{ codigo: "394", nombre: "Espátula Lisa Nylon 1 Pza", marca: "LOEKE" }] }] };
 
@@ -83,6 +111,12 @@ const ARTICULOS = { "322": [{ pieza_codigo: "394", pieza_desc: "394 Terminado", 
       eventos: [],                   // cuerpos de reg_prod_3_0_registrar_evento aceptados
       anulados: [],
       anularRechazo: false,          // true = la base rechaza la baja por los datos (P0001)
+      wa: [],                        // avisos de WhatsApp (Edge Function send-whatsapp)
+      balancines: [],                // reg_prod_3_0_asignar_matriz_balancin aceptados
+      erroresEnvio: [],              // reg_prod_3_0_registrar_error_envio (sin pase)
+      contador: {},                  // contador de cajón por pieza (como reg_prod_3_0.contador_cajon)
+      fjPisados: 0,                  // fines de jornada que pisaron a uno anterior (mismo id)
+      falla500: false,               // true = registrar_evento contesta 500 (base caída a medias)
     };
   }
   const llamadas = (base, fn) => base.llamadas.filter((c) => c.fn === fn);
@@ -99,6 +133,7 @@ const ARTICULOS = { "322": [{ pieza_codigo: "394", pieza_desc: "394 Terminado", 
       const fn = (url.match(/\/rpc\/([a-z0-9_]+)/i) || [])[1] || "";
       let cuerpo = {};
       try { cuerpo = JSON.parse(req.postData() || "{}"); } catch { /* sin cuerpo */ }
+      if (/\/functions\/v1\/send-whatsapp/.test(url)) { base.wa.push(cuerpo); return json(200, { ok: true }); }
       base.llamadas.push({ fn, perfil: req.headers()["content-profile"] || "", cuerpo, url });
       const paseMal = () => json(400, { code: "28000", details: null, hint: null, message: "Pase inválido o vencido" });
       const conPase = cuerpo.p_pase === base.paseValido && !!cuerpo.p_dispositivo;
@@ -116,13 +151,44 @@ const ARTICULOS = { "322": [{ pieza_codigo: "394", pieza_desc: "394 Terminado", 
         if (base.perderRespuesta) { base.perderRespuesta = false; return route.abort("failed"); }
         return json(200, repetido ? { ok: true, dup: true } : { ok: true });
       }
+      if (fn === "reg_prod_3_0_asignar_matriz_balancin") {
+        if (!conPase) return paseMal();
+        base.balancines.push(cuerpo);
+        return json(200, { ok: true, balancin: cuerpo.p_balancin, matriz: cuerpo.p_matriz });
+      }
       if (fn === "reg_prod_3_0_envasado_articulos") return conPase ? json(200, ARTICULOS) : paseMal();
+      if (fn === "reg_prod_3_0_registrar_error_envio") { base.erroresEnvio.push(cuerpo); return json(200, true); }
+      if (fn === "reg_prod_3_0_contador_cajon") {
+        if (!conPase) return paseMal();
+        const caj = (base.bundle.cajon || {})[String(cuerpo.p_n_matriz)] || {};
+        const out = {};
+        Object.keys(caj).forEach((k) => { out[k] = Object.assign({}, caj[k], { act: base.contador[k] != null ? base.contador[k] : caj[k].act }); });
+        return json(200, out);
+      }
       if (fn === "reg_prod_3_0_registrar_evento") {
         if (!conPase) return paseMal();
+        if (base.falla500) return json(500, { code: "XX000", details: null, hint: null, message: "base caída" });
         const id = String(cuerpo.p && cuerpo.p.id_ejecucion);
-        if (base.eventos.some((e) => String(e.p.id_ejecucion) === id)) return json(200, { ok: true, id, dup: true });
+        const previo = base.eventos.findIndex((e) => String(e.p.id_ejecucion) === id);
+        if (previo >= 0 && cuerpo.p.toque && cuerpo.p.toque.opcion === "FJ") {   // como la fase 2c: un FJ nuevo pisa al anterior
+          base.eventos[previo] = cuerpo; base.fjPisados++;
+          return json(200, { ok: true, id: previo + 1, fj_pisado: true });
+        }
+        if (previo >= 0) return json(200, { ok: true, id, dup: true });
         base.eventos.push(cuerpo);
-        return json(200, { ok: true, id: base.eventos.length, premio: 0.5, uni: 0 });
+        // contador de cajón (fase 2c): C/CT de una matriz con contador suman; al llegar (o con «cajón completo») vuelve a 0
+        let cajon = null;
+        const caj = (base.bundle.cajon || {})[String(cuerpo.p.matriz)];
+        if (caj && cuerpo.p.toque && ["C", "CT"].includes(cuerpo.p.toque.opcion)) {
+          const k = Object.keys(caj)[0];
+          const uxg = ((base.bundle.matrices || []).find((m) => m.n === cuerpo.p.matriz) || {}).uxg || 1;
+          const uni = cuerpo.p.uni > 0 ? cuerpo.p.uni : (cuerpo.p.golpes || 0) * uxg;
+          const antes = base.contador[k] != null ? base.contador[k] : caj[k].act;
+          const completo = !!cuerpo.p.cajon_completo || antes + uni >= caj[k].uxc;
+          base.contador[k] = completo ? 0 : antes + uni;
+          cajon = { comp_id: Number(k), uxc: caj[k].uxc, antes, act: base.contador[k], completo };
+        }
+        return json(200, { ok: true, id: base.eventos.length, premio: 0.5, uni: 0, cajon });
       }
       if (fn === "reg_prod_3_0_anular_evento") {
         if (!conPase) return paseMal();
@@ -188,7 +254,8 @@ const ARTICULOS = { "322": [{ pieza_codigo: "394", pieza_desc: "394 Terminado", 
   chequeo("2 un legajo que no está en el catálogo no entra", await p.isVisible("#legajoScreen"));
   await ponerLegajo(p, "999");
   const codigos = await p.$$eval(".box", (els) => els.map((e) => e.dataset.code));
-  chequeo("2 los 13 botones de GP2", JSON.stringify(codigos) === JSON.stringify(["E", "C", "PB", "BC", "MOV", "LIMP", "Perm", "AL", "PR", "PC", "MOV P", "PM", "RM"]));
+  // v3.1.9: cada uno ve los de SU tipo, como 2.0 (el 999 no tiene permisos: operario base)
+  chequeo("2 el operario base ve los 12 botones de 2.0", JSON.stringify(codigos) === JSON.stringify(["E", "C", "PB", "BC", "MOV", "LIMP", "Perm", "AL", "PC", "PM", "RM", "PCM"]));
   await esperar(() => llamadas(base, "reg_prod_3_0_registrar_ingreso").length > 0);
   const reg = llamadas(base, "reg_prod_3_0_registrar_ingreso")[0];
   chequeo("2 el legajo se anota en el equipo (1 vez), sin pase", !!reg && reg.cuerpo.p_legajo === "999" && reg.cuerpo.p_dispositivo === idEquipo && reg.cuerpo.p_app === "gp2" && !("p_pase" in reg.cuerpo));
@@ -450,8 +517,319 @@ const ARTICULOS = { "322": [{ pieza_codigo: "394", pieza_desc: "394 Terminado", 
   chequeo("8 y las colas quedan vacías", await p4.evaluate(() => JSON.parse(localStorage.getItem("gp2c_rqueue") || "[]").length === 0 && JSON.parse(localStorage.getItem("gp2c_queue") || "[]").length === 0));
   await ctx3.close();
 
+
+  // ============ 10) la botonera de Registro Producción 2.0 (v3.1.9) ============
+  // [Elías, 08/10: «2.0», «todo lo del 10 debería ser como Reg Prod», «la 501 pone los kilos», «no mandar si se está usando el legajo 0»]
+  const base4 = nuevaBase(); base4.bundle = BUNDLE_20;
+  const { ctx: ctx4, p: p5 } = await contexto(base4);
+  await p5.goto(URL_APP, { waitUntil: "domcontentloaded" });
+  await entrarConCodigo(p5, CODIGO_TV);
+  await p5.waitForSelector("#tvClaveModal", { state: "detached" });
+  await esperar(() => p5.evaluate(() => typeof D !== "undefined" && !!(D.empleados && D.empleados["91"])));
+  const botonesDe = async (leg) => {
+    await p5.fill("#legajoInput", leg); await p5.click("#btnContinuar"); await p5.waitForSelector("#optionsScreen:not(.hidden)");
+    const v = await p5.$$eval(".box", (els) => els.map((e) => e.dataset.code).join(" "));
+    await p5.click("#btnBackTop");
+    return v;
+  };
+  const eventosDe = (op) => base4.eventos.filter((e) => e.p.toque.opcion === op);
+  const ultimo = (op) => eventosDe(op).slice(-1)[0];
+  // 10a) cada uno ve los de SU tipo (la tabla de capsDe/botonVisible de 2.0)
+  chequeo("10a alimentador: base + PR, RD y CM", (await botonesDe("19")) === "E C PB BC MOV LIMP Perm AL PR PC RD CM PM RM PCM");
+  chequeo("10a matricería: sólo TRM, TL, CM y REM", (await botonesDe("91")) === "TRM TL CM REM");
+  chequeo("10a piedra: MOV P en lugar de MOV", (await botonesDe("92")) === "E C PB BC LIMP Perm AL PC MOV P PM RM PCM");
+  chequeo("10a piedra con ve_cm y ve_mm: suma MM y CM", (await botonesDe("233")) === "E C PB BC LIMP Perm AL PC MOV P MM CM PM RM PCM");
+  // 10b) tiempo muerto abierto: sólo ése se puede tocar; volver al legajo no deja nada trabado
+  await ponerLegajo(p5, "999");
+  await enviarOpcion(p5, "PB");
+  await ponerLegajo(p5, "999");
+  const libres = await p5.$$eval(".box:not(.bloq)", (els) => els.map((e) => e.dataset.code).join(" "));
+  chequeo("10b con PB abierto sólo PB se puede tocar (los demás grises)", libres === "PB" && /tiempo muerto abierto \(PB\)/.test(await p5.textContent("#avisoBotones")));
+  await p5.click('.box[data-code="PB"]');
+  await p5.click("#btnBackTop");
+  await ponerLegajo(p5, "999");
+  chequeo("10b volver al legajo y entrar de nuevo: nada queda elegido ni trabado", await p5.isHidden("#selectedArea") && (await p5.$$eval(".box:not(.bloq)", (els) => els.length)) === 1);
+  await p5.click('.box[data-code="PB"]'); await p5.click("#btnEnviar"); await p5.waitForSelector("#legajoScreen:not(.hidden)");
+  await esperar(() => eventosDe("PB").length === 2);
+  chequeo("10b el 2.º PB cierra el tiempo muerto con su duración", eventosDe("PB").length === 2 && typeof eventosDe("PB")[1].p.segundos_tiempo_muerto === "number");
+  // 10c) PM es tiempo muerto (como 2.0): abre con aviso «Paro Matriz», cierra midiendo
+  await ponerLegajo(p5, "999");
+  await enviarOpcion(p5, "E", "10");
+  await ponerLegajo(p5, "999");
+  await enviarOpcion(p5, "PM");
+  await esperar(() => eventosDe("PM").length === 1 && base4.wa.length >= 1);
+  chequeo("10c PM abre un tiempo muerto y avisa «Paro Matriz» por WhatsApp", eventosDe("PM").length === 1 && base4.wa.some((w) => w.parametros[0] === "Paro Matriz" && w.parametros[1] === "10"));
+  await ponerLegajo(p5, "999");
+  chequeo("10c con el PM abierto sólo PM se puede tocar", (await p5.$$eval(".box:not(.bloq)", (els) => els.map((e) => e.dataset.code).join(" "))) === "PM");
+  await enviarOpcion(p5, "PM");
+  await esperar(() => eventosDe("PM").length === 2);
+  chequeo("10c el 2.º PM lo cierra con los segundos de tiempo muerto", typeof (eventosDe("PM")[1] || { p: {} }).p.segundos_tiempo_muerto === "number" && base4.wa.filter((w) => w.parametros[0] === "Paro Matriz").length === 1);
+  // 10d) 501: kilos con coma o punto, se guardan con coma y viajan como unidades (sin golpes)
+  await ponerLegajo(p5, "999");
+  await enviarOpcion(p5, "C", "40");
+  await ponerLegajo(p5, "999");
+  await enviarOpcion(p5, "E", "501");
+  await ponerLegajo(p5, "999");
+  await p5.click('.box[data-code="C"]');
+  chequeo("10d en la 501 el C pide KILOS (teclado con coma)", /KILOS/.test(await p5.textContent("#inputLabel")) && (await p5.getAttribute("#textInput", "inputmode")) === "decimal");
+  await p5.fill("#textInput", "5.6"); await p5.click("#btnEnviar"); await p5.waitForSelector("#legajoScreen:not(.hidden)");
+  await esperar(() => eventosDe("C").some((e) => e.p.matriz === "501"));
+  const c501 = eventosDe("C").find((e) => e.p.matriz === "501");
+  chequeo("10d 5.6 kilos: el toque dice «5,6» y viajan 5,6 unidades, sin golpes", !!c501 && c501.p.toque.texto === "5,6" && c501.p.uni === 5.6 && c501.p.golpes === undefined);
+  // 10e) RM: cantidad obligatoria → cierra el cajón → marca la rotura (WhatsApp); sin permiso de CM termina ahí
+  await ponerLegajo(p5, "999");
+  await p5.click('.box[data-code="RM"]'); await p5.click("#btnEnviar");
+  await p5.waitForSelector("#cantidadCajonModal");
+  await p5.fill("#cantidadCajonInput", "3,5"); await p5.click("#cantidadCajonOk");
+  await esperar(() => eventosDe("RM").length === 1 && eventosDe("C").filter((e) => e.p.matriz === "501").length === 2);
+  const cRM = eventosDe("C").filter((e) => e.p.matriz === "501")[1];
+  chequeo("10e la rotura cierra el cajón con lo cargado y marca RM sobre la matriz", !!cRM && cRM.p.uni === 3.5 && ultimo("RM").p.matriz === "501");
+  chequeo("10e y avisa «Rompio Matriz» por WhatsApp", base4.wa.some((w) => w.parametros[0] === "Rompio Matriz" && w.parametros[1] === "501"));
+  chequeo("10e sin permiso de CM no se abre Cambiar Matriz y vuelve al legajo", !(await p5.locator("#cmModal").count()) && await p5.isVisible("#legajoScreen"));
+  // 10f) CM (alimentador): matriz nueva + balancín → balancín asignado con pase → CM abierto; el 2.º toque lo cierra
+  await ponerLegajo(p5, "19");
+  await p5.click('.box[data-code="CM"]');
+  await p5.waitForSelector("#cmModal");
+  await p5.fill("#cmMatriz", "71"); await p5.selectOption("#cmBalancin", "2"); await p5.click("#cmOk");
+  await p5.waitForSelector("#legajoScreen:not(.hidden)");
+  await esperar(() => base4.balancines.length === 1 && eventosDe("CM").length === 1);
+  chequeo("10f el balancín se asigna con el pase (2 → matriz 71)", base4.balancines[0] && base4.balancines[0].p_balancin === "2" && base4.balancines[0].p_matriz === "71" && base4.balancines[0].p_pase === "PASE.OK1");
+  const cm1 = eventosDe("CM")[0];
+  chequeo("10f el CM viaja como en 2.0: código CM y «Cambiar Matriz a 71»", !!cm1 && cm1.p.matriz === "CM" && cm1.p.nombre_matriz === "Cambiar Matriz a 71" && cm1.p.toque.texto === "71" && cm1.p.balancin === "2");
+  await ponerLegajo(p5, "19");
+  chequeo("10f con el CM abierto sólo CM se puede tocar", (await p5.$$eval(".box:not(.bloq)", (els) => els.map((e) => e.dataset.code).join(" "))) === "CM");
+  await p5.click('.box[data-code="CM"]');
+  chequeo("10f el 2.º CM no pide nada (cierra con la misma matriz)", await p5.isHidden("#inputArea"));
+  await p5.click("#btnEnviar"); await p5.waitForSelector("#legajoScreen:not(.hidden)");
+  await esperar(() => eventosDe("CM").length === 2);
+  chequeo("10f y cierra el tiempo muerto con su duración", eventosDe("CM")[1].p.toque.texto === "71" && typeof eventosDe("CM")[1].p.segundos_tiempo_muerto === "number");
+  // 10g) cajón de una matriz de alimentador (tipo A): pregunta «Continuar Produciendo / Cambiar Matriz»
+  await ponerLegajo(p5, "19");
+  await enviarOpcion(p5, "E", "71");
+  await ponerLegajo(p5, "19");
+  await p5.click('.box[data-code="C"]'); await p5.fill("#textInput", "5"); await p5.click("#btnEnviar");
+  await p5.waitForSelector(".rp-op");
+  const ops = (await p5.locator(".rp-op").allInnerTexts()).map((t) => t.trim());
+  chequeo("10g matriz de alimentador: al cerrar el cajón pregunta Continuar / Cambiar Matriz", JSON.stringify(ops) === JSON.stringify(["Continuar Produciendo", "Cambiar Matriz"]));
+  await p5.click('.rp-op[data-val="SEGUIR"]');
+  await p5.waitForSelector("#legajoScreen:not(.hidden)");
+  chequeo("10g «Continuar Produciendo» vuelve al legajo sin abrir CM", !(await p5.locator("#cmModal").count()));
+  // 10h) PCM: al cerrarla pregunta si la matriz se rompió; «no rota» sólo la cierra
+  await ponerLegajo(p5, "92");
+  await enviarOpcion(p5, "E", "10");
+  await ponerLegajo(p5, "92");
+  await enviarOpcion(p5, "PCM");
+  await ponerLegajo(p5, "92");
+  await p5.click('.box[data-code="PCM"]'); await p5.click("#btnEnviar");
+  await p5.waitForSelector(".rp-op");
+  chequeo("10h al cerrar la PCM pregunta si la matriz se rompió", /se rompió/.test(await p5.textContent(".rp-modal")));
+  await p5.click('.rp-op[data-val="NO"]');
+  await esperar(() => eventosDe("PCM").length === 2);
+  chequeo("10h «no rota» cierra la PCM midiendo el tiempo y no hay rotura", typeof eventosDe("PCM")[1].p.segundos_tiempo_muerto === "number" && !eventosDe("RM").some((e) => e.p.legajo === "92"));
+  // 10i) «Matriz sin Tiempo» por WhatsApp, pero nunca con el legajo 0 (pruebas)
+  const waAntes = base4.wa.length;
+  await ponerLegajo(p5, "0");
+  await enviarOpcion(p5, "E", "99");
+  await esperar(() => eventosDe("E").some((e) => e.p.legajo === "0"));
+  await pausa(300);
+  chequeo("10i el legajo 0 (pruebas) no manda WhatsApp", base4.wa.length === waAntes);
+  await ponerLegajo(p5, "999");
+  await enviarOpcion(p5, "E", "99");
+  await esperar(() => base4.wa.length === waAntes + 1);
+  chequeo("10i otro legajo con una matriz sin tiempo: avisa «Matriz sin Tiempo»", base4.wa.length === waAntes + 1 && base4.wa[waAntes].parametros[0] === "Matriz sin Tiempo" && base4.wa[waAntes].parametros[1] === "99");
+  // 10j) llegada tarde con la hora de entrada DE CADA UNO (no 08:30 para todos)
+  const lt999 = eventosDe("LT").find((e) => e.p.legajo === "999");
+  chequeo("10j la llegada tarde usa la hora de entrada del operario (00:01)", !!lt999 && /T00:01:00/.test(lt999.p.toque.hs_inicio));
+  await ponerLegajo(p5, "556");
+  await enviarOpcion(p5, "E", "10");
+  await esperar(() => eventosDe("E").some((e) => e.p.legajo === "556"));
+  chequeo("10j quien entra a las 23:59 no tiene llegada tarde", !eventosDe("LT").some((e) => e.p.legajo === "556"));
+  // 10k) legajo nuevo que el celular todavía no tenía: se vuelve a pedir el catálogo y entra
+  base4.bundle = Object.assign({}, BUNDLE_20, { empleados: Object.assign({}, BUNDLE_20.empleados, { "777": { nombre: "Recién Cargado", activo: true } }) });
+  const nBundle = llamadas(base4, "reg_prod_3_0_bundle").length;
+  await ponerLegajo(p5, "777");
+  chequeo("10k legajo que no estaba: actualiza el catálogo y entra", llamadas(base4, "reg_prod_3_0_bundle").length === nBundle + 1 && /Recién Cargado/.test(await p5.textContent("#btnBackLabel")));
+  await p5.click("#btnBackTop");
+  // 10l) el fin de jornada no se borra
+  await ponerLegajo(p5, "0");
+  await enviarOpcion(p5, "C", "1");
+  await ponerLegajo(p5, "0");
+  await p5.click("#btnTerminarDia"); await p5.click("#btnConfirmTD");
+  await esperar(() => eventosDe("FJ").some((e) => e.p.legajo === "0"));
+  await p5.click("#btnBackTop").catch(() => {});
+  await p5.fill("#legajoInput", "0");
+  await esperar(() => p5.evaluate(() => /FJ/.test(document.getElementById("daySummary").textContent)));
+  chequeo("10l el fin de jornada no tiene 🗑", await p5.evaluate(() => { const ids = readState("0").last2.map((x, i) => [x.opcion, i]); const iFJ = ids.find(([o]) => o === "FJ")[1]; return !document.querySelector(`#daySummary .hist-del[data-idx="${iFJ}"]`) && document.querySelectorAll("#daySummary .hist-del").length > 0; }));
+  await ctx4.close();
+
+  // ============ 11) v3.1.10: contador de cajón, Terminar Día como 2.0, Continuar Matriz, errores a la auditoría, reintento ============
+  // [Elías, 08/10: «4 se tiene que» · «6 debería, con el máximo de unidades por cajón de GP2» · «8 usar el de Reg Prod y que envíe todo
+  //  el día como respaldo» · «15 tiene que estar» · «16 como en 2.0» · «18 como en 2.0»]
+  const BUNDLE_11 = Object.assign({}, BUNDLE_20, {
+    empleados: Object.assign({}, BUNDLE_20.empleados, {
+      "92": Object.assign({}, BUNDLE_20.empleados["92"], { hora_salida: "17:00:00" }),
+      "233": Object.assign({}, BUNDLE_20.empleados["233"], { hora_salida: "17:00:00" }),
+    }),
+    cajon: { "10": { "500": { uxc: 100, act: 30, codigo: "Z10" } } },   // la 10 saca Z10: entran 100 por cajón y ya hay 30
+  });
+  const base5 = nuevaBase(); base5.bundle = BUNDLE_11;
+  const { ctx: ctx5, p: p6 } = await contexto(base5);
+  await p6.goto(URL_APP, { waitUntil: "domcontentloaded" });
+  await entrarConCodigo(p6, CODIGO_TV);
+  await p6.waitForSelector("#tvClaveModal", { state: "detached" });
+  await esperar(() => p6.evaluate(() => typeof D !== "undefined" && !!(D.cajon && D.cajon["10"])));
+  const ev5 = (op, leg) => base5.eventos.filter((e) => e.p.toque.opcion === op && (!leg || e.p.legajo === leg));
+  const intentos5 = (id) => llamadas(base5, "reg_prod_3_0_registrar_evento").filter((c) => c.cuerpo.p && c.cuerpo.p.id_ejecucion === id).length;
+  // 11a) el contador de cajón: lo que falta, «cajón completo»
+  await ponerLegajo(p6, "999");
+  await enviarOpcion(p6, "E", "10");
+  await ponerLegajo(p6, "999");
+  await p6.click('.box[data-code="C"]');
+  await esperar(() => llamadas(base5, "reg_prod_3_0_contador_cajon").length >= 1);
+  chequeo("11a el C muestra lo que falta para completar el cajón (100 − 30) y la casilla «cajón completo»", /Faltan 70 unidades para completar el cajón \(ya hay 30\)/.test(await p6.textContent("#matrizInfo")) && await p6.isVisible("#cajonCompletoWrap"));
+  chequeo("11a y relee el contador en la base, con el pase", llamadas(base5, "reg_prod_3_0_contador_cajon").some((c) => c.cuerpo.p_n_matriz === "10" && c.cuerpo.p_pase === "PASE.OK1"));
+  await p6.fill("#textInput", "20"); await p6.click("#btnEnviar"); await p6.waitForSelector("#legajoScreen:not(.hidden)");
+  await esperar(() => ev5("C", "999").length === 1);
+  await esperar(() => p6.evaluate(() => readQueue().length === 0));
+  await ponerLegajo(p6, "999");
+  await p6.click('.box[data-code="C"]');
+  chequeo("11a 20 golpes × 2 = 40 unidades: ahora faltan 30", /Faltan 30 unidades/.test(await p6.textContent("#matrizInfo")));
+  await p6.fill("#textInput", "1"); await p6.check("#cajonCompletoChk"); await p6.click("#btnEnviar"); await p6.waitForSelector("#legajoScreen:not(.hidden)");
+  await esperar(() => ev5("C", "999").length === 2);
+  await esperar(() => p6.evaluate(() => readQueue().length === 0));
+  chequeo("11a «cajón completo» viaja y el contador vuelve a 0 (en la base y en el celular)", ev5("C", "999")[1].p.cajon_completo === true && base5.contador["500"] === 0 && await p6.evaluate(() => D.cajon["10"]["500"].act === 0));
+  await ponerLegajo(p6, "999");
+  await p6.click('.box[data-code="E"]');
+  chequeo("11a en otro botón la casilla no aparece", await p6.isHidden("#cajonCompletoWrap"));
+  await p6.click("#btnResetSelection");
+  await p6.click("#btnBackTop");
+
+  // 11b) error de envío a la auditoría (al 1.er intento y cada 5) y reintento solo, cada 3 s
+  base5.falla500 = true;
+  await ponerLegajo(p6, "999");
+  await enviarOpcion(p6, "PB");
+  const idPB1 = await p6.evaluate(() => readQueue().slice(-1)[0].id);
+  await esperar(() => base5.erroresEnvio.length >= 1);
+  const errEnv = llamadas(base5, "reg_prod_3_0_registrar_error_envio")[0];
+  chequeo("11b el envío fallido queda en la auditoría, sin pase", !!errEnv && errEnv.cuerpo.p_app === reg.cuerpo.p_app && errEnv.cuerpo.p_legajo === "999" && errEnv.cuerpo.p_detalle.opcion === "PB" && errEnv.cuerpo.p_detalle.intentos === 1 && errEnv.cuerpo.p_detalle.estado === 500 && !("p_pase" in errEnv.cuerpo));
+  await esperar(() => intentos5(idPB1) >= 2, 7000);
+  chequeo("11b se reintenta solo (cada 3 s) y no anota cada intento", intentos5(idPB1) >= 2 && base5.erroresEnvio.length === 1);
+  base5.falla500 = false;
+  await esperar(() => ev5("PB", "999").length === 1, 7000);
+  chequeo("11b cuando la base vuelve, sale sin tocar nada", ev5("PB", "999").length === 1);
+
+  // 11c) Terminar Día como 2.0 — matriz con contador: «¿Hiciste un último cajón?»
+  await ponerLegajo(p6, "999");
+  await p6.click("#btnTerminarDia");
+  const td1 = await p6.textContent("#terminarDiaContent");
+  chequeo("11c Terminar Día: resumen, el tiempo muerto abierto se cierra solo y pregunta por el último cajón", /Eventos hoy/.test(td1) && /Tiempo Muerto abierto/.test(td1) && /último cajón/.test(td1) && await p6.isHidden("#btnConfirmTD"));
+  await p6.click("#btnUltSi");
+  await p6.fill("#tdUltUni", "abc"); await p6.click("#btnUltSiCargar");
+  chequeo("11c cantidad inválida: avisa y no carga nada", /enteros/.test(await p6.textContent("#tdUltFb")) && ev5("C", "999").length === 2);
+  await p6.fill("#tdUltUni", "5"); await p6.check("#tdUltCompleto"); await p6.click("#btnUltSiCargar");
+  await p6.waitForSelector("#legajoScreen:not(.hidden)");
+  await esperar(() => ev5("FJ", "999").length === 1 && ev5("C", "999").length === 3 && ev5("PB", "999").length === 2);
+  const dia5 = await p6.evaluate(() => dayKeyAR());
+  const fj1 = ev5("FJ", "999")[0];
+  let fjTexto = null;
+  try { fjTexto = JSON.parse(fj1.p.toque.texto); } catch { /* no es JSON */ }
+  const cUlt = ev5("C", "999")[2];
+  chequeo("11c el último cajón llega con «cajón completo» y el PB abierto se cerró midiendo", cUlt.p.golpes === 5 && cUlt.p.cajon_completo === true && typeof ev5("PB", "999")[1].p.segundos_tiempo_muerto === "number");
+  chequeo("11c el FJ tiene id fijo fj_<legajo>_<día> y el día entero en el texto", fj1.p.id_ejecucion === `fj_999_${dia5}` && !!fjTexto && fjTexto.counts.C === 3 && fjTexto.events.length >= 6 && fjTexto.events.every((x) => x.opcion !== "FJ"));
+  const idE5 = ev5("E", "999")[0].p.id_ejecucion;
+  await esperar(() => intentos5(idE5) >= 2);
+  chequeo("11c después del FJ se reenvía el día entero como respaldo (la base no duplica)", intentos5(idE5) >= 2 && ev5("E", "999").length === 1);
+  await p6.fill("#legajoInput", "999");
+  await esperar(() => p6.evaluate(() => /FJ/.test(document.getElementById("daySummary").textContent)));
+  chequeo("11c el historial muestra el FJ sin el texto del día", !/counts/.test(await p6.textContent("#daySummary")));
+  // un 2.º Terminar Día PISA al anterior; el «No» carga el tiempo muerto desde el último cajón, ya cerrado
+  await ponerLegajo(p6, "999");
+  await p6.click("#btnTerminarDia");
+  chequeo("11c otra vez Terminar Día: avisa que reemplaza el reporte anterior", /Ya cerraste el día hoy/.test(await p6.textContent("#terminarDiaContent")));
+  await p6.click("#btnUltNo");
+  await p6.selectOption("#tdUltNoTM", "LIMP"); await p6.click("#btnUltNoCargar");
+  await p6.waitForSelector("#legajoScreen:not(.hidden)");
+  await esperar(() => base5.fjPisados === 1 && ev5("LIMP", "999").length === 1);
+  chequeo("11c el 2.º FJ pisa al 1.º (mismo id, una sola fila)", base5.fjPisados === 1 && ev5("FJ", "999").length === 1 && await p6.evaluate(() => readState("999").last2.filter((x) => x.opcion === "FJ").length === 1));
+  chequeo("11c el «No» manda el tiempo muerto ya cerrado y no deja nada abierto", typeof ev5("LIMP", "999")[0].p.segundos_tiempo_muerto === "number" && await p6.evaluate(() => !readState("999").lastDowntime));
+
+  // 11d) matriz sin contador: «¿Vas a seguir mañana?»; al día siguiente «⚡ Continuar» entre E y C
+  const pasarAyer = (leg) => p6.evaluate((lg) => {
+    const hoy = dayKeyAR(); const d = new Date(hoy + "T12:00:00-03:00"); d.setUTCDate(d.getUTCDate() - 1);
+    const ayer = d.toISOString().slice(0, 10);
+    const s = readState(lg); s.lastMatrix.ts = `${ayer}T15:00:00-03:00`; s.lastCajon = null;   // la empezó ayer a las 15:00
+    localStorage.setItem(`${LS_PREFIX}::${ayer}::${lg}`, JSON.stringify(s));
+    localStorage.removeItem(`${LS_PREFIX}::${hoy}::${lg}`);
+  }, leg);
+  await ponerLegajo(p6, "92");
+  await enviarOpcion(p6, "E", "99");
+  await ponerLegajo(p6, "92");
+  await p6.click("#btnTerminarDia");
+  chequeo("11d matriz sin cajón: pregunta si sigue mañana y no deja terminar sin contestar", /seguir mañana/.test(await p6.textContent("#terminarDiaContent")) && await p6.isDisabled("#btnConfirmTD"));
+  await p6.click("#btnContSi");
+  chequeo("11d «Sí, sigo mañana» habilita Terminar Día", await p6.isEnabled("#btnConfirmTD"));
+  await p6.click("#btnConfirmTD");
+  await p6.waitForSelector("#legajoScreen:not(.hidden)");
+  await esperar(() => ev5("FJ", "92").length === 1);
+  await pasarAyer("92");
+  await ponerLegajo(p6, "92");
+  const fila1 = await p6.$$eval("#row1 > .box", (els) => els.map((e) => e.dataset.code || e.id).join(" "));
+  chequeo("11d al día siguiente aparece «⚡ Continuar» entre E y C, con lo de ayer (15:00 a 17:00 = 120 min)", fila1 === "E btnContinuarMatriz C" && /120 min/.test(await p6.textContent("#btnContinuarMatriz")));
+  await p6.click('.box[data-code="PB"]');
+  await p6.waitForSelector("#advIgnorarContModal");
+  await p6.fill("#advIgnorarContCodigo", "1234"); await p6.click("#advIgnorarContOk");
+  chequeo("11d tocar otro botón pide el código de Logística (uno malo no pasa)", /incorrecto/.test(await p6.textContent("#advIgnorarContFb")) && await p6.isHidden("#selectedArea"));
+  await p6.click("#advIgnorarContCancel");
+  await p6.click("#btnContinuarMatriz");
+  await esperar(() => p6.evaluate(() => /Continuando Matriz 99/.test(document.getElementById("avisoBotones").textContent)));
+  chequeo("11d «Continuar» deja activa la matriz de ayer (con aviso a la vista) y el botón se va", await p6.isVisible("#avisoBotones") && await p6.evaluate(() => readState("92").lastMatrix.texto === "99" && !!readState("92").cajonContinuado) && !(await p6.locator("#btnContinuarMatriz").count()));
+  await p6.click('.box[data-code="C"]'); await p6.fill("#textInput", "10"); await p6.click("#btnEnviar");
+  await p6.waitForSelector("#legajoScreen:not(.hidden)");
+  await esperar(() => ev5("C", "92").length === 1);
+  const cc5 = ev5("C", "92")[0];
+  chequeo("11e el cajón continuado suma lo de ayer (7.200 s hasta la salida), con la hora de inicio de ayer y [CONT]", !!cc5 && cc5.p.segundos_trabajados >= 7200 && cc5.p.hora_inicio === "15:00:00" && /^\[CONT\]/.test(cc5.p.nombre_matriz) && cc5.p.cajon_continuado.segPostAyer === 7200);
+  chequeo("11e el inicio del toque es el «Continuar» de hoy (la base descuenta sólo los tiempos muertos de hoy)", !!cc5 && Date.parse(cc5.p.toque.hs_inicio) > Date.now() - 10 * 60000 && await p6.evaluate(() => !readState("92").cajonContinuado));
+  // con el código de Logística sigue con lo que tocó y el «Continuar» no vuelve
+  await ponerLegajo(p6, "233");
+  await enviarOpcion(p6, "E", "99");
+  await ponerLegajo(p6, "233");
+  await p6.click("#btnTerminarDia"); await p6.click("#btnContSi"); await p6.click("#btnConfirmTD");
+  await p6.waitForSelector("#legajoScreen:not(.hidden)");
+  await esperar(() => ev5("FJ", "233").length === 1);
+  await pasarAyer("233");
+  await ponerLegajo(p6, "233");
+  await p6.click('.box[data-code="PB"]');
+  await p6.waitForSelector("#advIgnorarContModal");
+  await p6.fill("#advIgnorarContCodigo", "151515"); await p6.click("#advIgnorarContOk");
+  chequeo("11d con el código de Logística sigue con lo que tocó y «Continuar» no vuelve", await p6.isVisible("#selectedArea") && (await p6.textContent("#selectedBox")) === "PB" && !(await p6.locator("#btnContinuarMatriz").count()));
+  await p6.click("#btnResetSelection");
+  await p6.click("#btnBackTop");
+
+  // 11f) envío en segundo plano: la cola copiada al IndexedDB para el service worker (la copia de GP2 no tiene service worker propio)
+  if (await p6.evaluate(() => typeof espejarColaSW === "function")) {
+    base5.caida = true;
+    await ponerLegajo(p6, "999");
+    await enviarOpcion(p6, "PB");
+    const idPB2 = await p6.evaluate(() => readQueue().slice(-1)[0].id);
+    const leerCopia = (id) => p6.evaluate(async (i) => ({
+      r: await idbTx(["cola"], "readonly", (tx) => tx.objectStore("cola").get(i)),
+      m: await idbTx(["meta"], "readonly", (tx) => tx.objectStore("meta").get("envio")),
+      disp: idDispositivo(),
+    }), id);
+    await esperar(async () => !!(await leerCopia(idPB2)).r);
+    const copia = await leerCopia(idPB2);
+    chequeo("11f la cola se copia al IndexedDB lista para el service worker (cuerpo del toque + pase + equipo)", !!copia.r && copia.r.cuerpo.id_ejecucion === idPB2 && copia.r.cuerpo.toque.opcion === "PB" && copia.m.pase === "PASE.OK1" && copia.m.dispositivo === copia.disp);
+    await p6.evaluate(async (i) => {
+      await idbTx(["enviados"], "readwrite", (tx) => tx.objectStore("enviados").put({ id: i, legajo: "999", matriz: "", cajon: null }));
+      await recogerEnviadosSW();
+    }, idPB2);
+    chequeo("11f lo que mandó el service worker sale de la cola y figura ENVIADO", await p6.evaluate((i) => !readQueue().some((x) => x.id === i) && readState("999").last2.find((x) => x.id === i).status === "sent", idPB2));
+    base5.caida = false;
+  }
+  await ctx5.close();
+
   // ============ 9) nada de GP2 ============
-  const todas = base.llamadas.concat(base2.llamadas, base3.llamadas);
+  const todas = base.llamadas.concat(base2.llamadas, base3.llamadas, base4.llamadas, base5.llamadas);
   chequeo("9 no se llamó a ninguna función de GP2 (bundle, registrar, anular, rollos, stock)", todas.length > 0 && todas.every((c) => !GP2_FNS.test(c.url)));
   chequeo("9 todas las funciones son reg_prod_3_0_*", todas.every((c) => /^reg_prod_3_0_/.test(c.fn)));
 

@@ -16038,6 +16038,8 @@ Producción 3.0 (`cervantes-gp2/`) y vale igual para la tablet de GP2:
   Est Madre) pasa los 13 W de `consumo_meses` (regla de Crudo/Procesado: consumo × meses, **tope de 5 cajones**) a `est_madre` (regla de los sectores de insumos, **sin tope**): W1 7.238 → 28.952,
   W6 14.476 → 57.904, W7 4.770 → 35.960… (10 de 13 se cuadruplican; W2, W2P y W7 suben unas 8 veces). **Retiro lo que dije en 4jv** («máximos idénticos, también forzando el recálculo»): era falso. El dueño
   aceptó la regla del Sector Remache («Sí a todo» a mi recomendación); la alternativa, congelarlos como `fisico` con los valores de hoy, quedó descartada. El tope de 5 cajones (`[usuario 29/09]`) ya no rige para estos W.
+- **[usuario, 08/10, textual] Etiquetas cortas de los 8 W en la 150** — *«Quiero estas descripciones en las etiquetas de la matriz 150: Buje Abrelata / Engranaje Grande / Arandela Fina Manija / Arandela Base / Arandela Cuchillito Untar / Arandela p/Mango / Engranaje Chico / Arandela Fina Mariposa»* (→ W1P, W2P, W3P, W4, W5, W6, W7P, W9P; «Sí» al mapeo). **[hecho, base]** UPDATE de 8 filas de `matriz_salida_etiqueta` (orden 14–21 sin cambio): reemplaza el supuesto de «descripción del W como etiqueta» de arriba. Sólo texto; revert en la adenda de `db/migracion_w_se_matriz150_20261008.sql`. Los V siguen como «Remache …» (orden 1–13); la etiqueta «Arandela» de W5SE en la matriz 21 no se tocó.
+- **[usuario, 08/10, textual] Orden del selector de la 150** — *«Poneme las etiquetas en orden: primero los remaches, después las arandelas, después los engranajes y por último los bujes»*. **[hecho, base]** `matriz_salida_etiqueta.orden`: remaches V1–V13 (1–13, sin cambio) · arandelas W3P, W4, W5, W6, W9P (14–18) · engranajes W2P, W7P (19–20) · buje W1P (21). Adentro de cada grupo quedó el orden que ya tenían `[supuesto mío]`. Sólo cambia `orden`; revert en la adenda 2 de `db/migracion_w_se_matriz150_20261008.sql`.
 - **[PENDIENTE]** (1) Los 8 SE nacen en 0 y quedan en **negativo** hasta que Guazzaroni / Pedernera entreguen como SE en Control Entrega PS y el corte se registre como SE; el historial anterior sigue
   colgado del W final. (2) La mano de obra de la 150 sigue sin costear (`cuenta_mo = false`). (3) Stock General muestra los W en «cajones» aunque sean bolsas de 2 kg (rótulo, no cantidad).
 
@@ -16050,7 +16052,27 @@ Producción 3.0 (`cervantes-gp2/`) y vale igual para la tablet de GP2:
 - `Proporciones_GP2.html`: fuera el `<span class="sinfila">` y su CSS. El CSV conserva la columna `En_su_stock` (es el dato crudo, sin interpretar). `test_proporciones.js` ahora
   exige que el cartel NO aparezca.
 
-## 4jv. Verificación de cajones: 2 cajones POR OPERARIO, aviso automático y sólo en la pantalla principal de la Tablet (2026-10-08) — v1.254.0
+## 4jz. Tablet de operarios = copia de Registro 3.0 v3.1.10: la botonera de Registro Producción 2.0 (2026-10-08) — v1.253.5
+
+- **[Elías, 08/10]** pidió que la botonera de Cervantes sea **como Registro Producción 2.0** punto por punto: *"12: 2.0, pensé que ya se había
+  integrado completo, y no sólo para Eduardo"*, *"todo lo del 10 debería ser como Reg Prod"*, *"4 se tiene que"* (Continuar Matriz),
+  *"6 debería, y podés usar lo que tiene GP2 de máximo de unidades por cajón"*, *"8 usar el de Reg Prod y que envíe todo el día como
+  respaldo"*, *"15 tiene que estar"* (errores de envío), *"16 como en 2.0"* (envío en segundo plano), *"18 como en 2.0"* (fin de jornada).
+  Se hizo en 3.0 (la fuente: v3.1.9 `7a39d8e` y v3.1.10 `99277f8`) y acá se **recopió** (token `20261008h`, `gp2-20261008h/v3.1.10`).
+- **Qué cambia en la tablet**: cada operario ve los botones de SU tipo (`capsDe`/`botonVisible` de 2.0 con los flags de `public."Empleados"`;
+  sin `LEGAJO_EDUARDO`; CM, RD y REM vuelven, cada uno para su tipo); con un tiempo muerto abierto sólo se puede tocar ése; PM es tiempo
+  muerto; RM, CM (con balancín), PCM y la matriz de alimentador como 2.0; la 501 en kilos; contador de cajón con `GP2.componente.uni_x_cajon`
+  de la pieza («Faltan X», «cajón completo»); Terminar Día como 2.0 (último cajón / ¿seguís mañana?, FJ con id fijo que pisa al anterior y
+  lleva el día entero); «⚡ Continuar» el cajón de ayer; errores de envío a `reg_prod_3_0.auditoria`; reintento cada 3 s. El envío en
+  segundo plano (service worker) es sólo de 3.0: la copia no tiene service worker propio.
+- **Lo que mueve en la base es de 3.0** (`sql/reg_prod_3_0_fase_2a/2b/2c` de 3.0): el premio descuenta los tiempos muertos del cajón, la
+  501 pasa kilos a unidades para el stock (kilos / `kg_x_uni`), y el contador vive en `reg_prod_3_0.contador_cajon`. **GP2 no se tocó.**
+- `tools/copiar_botonera_de_3_0.py`: `p_app: "cervantes"` ahora aparece 3 veces en 3.0 (ingreso, código de la TV y error de envío); acepta 2
+  o 3 para poder comparar con una copia anterior. Vuelta exacta: `traer_de_gp2.py --revisar` dice que no hay nada nuevo.
+- `tests/ui/test_botones_fuera.js`: la sección 1 decía «RD/CM/REM fuera, todos ven lo mismo» (decisión del 29/08). **Esa decisión quedó
+  reemplazada** por la de Elías del 08/10 (botones por tipo, como 2.0): la prueba ahora exige el reparto por tipo (base, alimentador, piedra,
+  matricería). El párrafo «Estado de la tablet» de `CLAUDE.md` decía que no aplicaba nada de la tabla de roles: corregido.
+## 4ka. Verificación de cajones: 2 cajones POR OPERARIO, aviso automático y sólo en la pantalla principal de la Tablet (2026-10-08) — v1.254.1
 
 - `[usuario, Elías 08/10, textual]`: *«tanto en GP2 como en gestión prod entera sean 2 cajones x operario que trabajó ese día en Cervantes»* — *«el avisarme es
   automático siempre (si está en medio de algo en la tablet se espera a que termine eso para mostrar el aviso, o sea que esté en la pantalla principal)»* — *«dentro

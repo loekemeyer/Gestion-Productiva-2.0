@@ -5,8 +5,16 @@ const fs = require('fs');
 const ROOT = 'file://' + path.resolve(__dirname, '..', '..').replace(/\\/g, '/');
 const EXE = process.env.CHROMIUM_PATH || (fs.existsSync('/opt/pw-browsers/chromium') ? '/opt/pw-browsers/chromium' : undefined);
 // 2026-10-08: la tablet es COPIA de Registro Producción 3.0 (código de la TV + pase + reg_prod_3_0). Supabase simulado:
-// el código de la TV da el pase y el catálogo trae rollos_activos (sin eso Eduardo no tiene CT, igual que en 3.0).
-const BUNDLE = { empleados: { '19': { nombre: 'Eduardo B', activo: true } }, matrices: [], matriz_fleje: {}, matriz_salidas: {},
+// el código de la TV da el pase y el catálogo trae rollos_activos (sin eso el alimentador no tiene CT, igual que en 3.0).
+// Desde 3.0 v3.1.9 cada operario ve los botones de SU TIPO, como Registro Producción 2.0 (capsDe + botonVisible con los permisos de
+// public."Empleados") [Elías, 08/10: «12: 2.0, pensé que ya se había integrado completo, y no sólo para Eduardo»]. Reemplaza al
+// «RD/CM/REM fuera, todos ven lo mismo» del 2026-08-29: RD y CM son del alimentador, REM de matricería, MOV P de piedra.
+const BUNDLE = { empleados: {
+                   '19': { nombre: 'Eduardo B', activo: true, es_alimentador: true, ve_cm: true },
+                   '999': { nombre: 'Operario Base', activo: true },
+                   '92': { nombre: 'Piedra', activo: true, es_piedra: true },
+                   '91': { nombre: 'Matricero', activo: true, es_matriceria: true, ve_cm: true, ve_trm: true, ve_tl: true, ve_rem: true } },
+                 matrices: [], matriz_fleje: {}, matriz_salidas: {},
                  rollos_saldo: [], rollos_abiertos: {}, rollos_activos: true, rollos_antiduplicado: true };
 const CORS = { 'access-control-allow-origin': '*', 'access-control-allow-headers': '*', 'access-control-allow-methods': 'POST, OPTIONS' };
 const mockBase = r => {
@@ -21,7 +29,7 @@ const mockBase = r => {
   const browser = await chromium.launch(EXE ? { executablePath: EXE } : {});
   const ok = (c,m)=>{ console.log((c?'OK  ':'FAIL')+' '+m); if(!c) process.exitCode=1; };
 
-  // 1) app operarios: RD/CM/REM fuera, el resto sigue
+  // 1) app operarios: cada tipo de operario ve SUS botones (como 2.0)
   let page = await browser.newPage();
   page.on('pageerror', e => { console.log('PAGEERROR:', e.message); process.exitCode = 1; });
   await page.route('**/*.supabase.co/**', mockBase);
@@ -31,13 +39,25 @@ const mockBase = r => {
   await page.click('#tvClaveOk');
   await page.waitForSelector('#tvClaveModal', { state: 'detached' });
   await page.waitForFunction(() => typeof D !== 'undefined' && !!(D.empleados && D.empleados['19']));
-  await page.fill('#legajoInput', '19');
-  await page.click('#btnContinuar');
-  await page.waitForSelector('.box[data-code="E"]');
-  const codes = await page.$$eval('.box', xs => xs.map(x => x.dataset.code));
-  ok(!codes.includes('RD') && !codes.includes('CM') && !codes.includes('REM'), 'RD/CM/REM fuera: ' + codes.join(','));
-  ['E','C','PB','BC','MOV','LIMP','Perm','AL','PR','PC','MOV P','PM','RM','CT'].forEach(c =>
-    ok(codes.includes(c), 'sigue ' + c));
+  const botonesDe = async (leg) => {
+    await page.fill('#legajoInput', leg);
+    await page.click('#btnContinuar');
+    await page.waitForSelector('#optionsScreen:not(.hidden)');
+    const v = await page.$$eval('.box', xs => xs.map(x => x.dataset.code));
+    await page.click('#btnBackTop');
+    return v.sort().join(',');
+  };
+  const igual = (lista) => lista.slice().sort().join(',');
+  const TIPOS = [
+    ['999', 'operario base', ['E','C','PB','BC','MOV','LIMP','Perm','AL','PC','PM','RM','PCM']],
+    ['19', 'alimentador (+ PR, RD, CM y CT del rollo)', ['E','C','PB','BC','MOV','LIMP','Perm','AL','PR','PC','RD','CM','PM','RM','PCM','CT']],
+    ['92', 'piedra (MOV P en lugar de MOV)', ['E','C','PB','BC','LIMP','Perm','AL','PC','MOV P','PM','RM','PCM']],
+    ['91', 'matricería (sólo TRM, TL, CM y REM)', ['TRM','TL','CM','REM']],
+  ];
+  for (const [leg, tipo, esperado] of TIPOS) {
+    const v = await botonesDe(leg);
+    ok(v === igual(esperado), tipo + ': ' + v);
+  }
   await page.close();
 
   // 2) menu: sin Stock Online / Informes Virgilio / Prov AT candados
