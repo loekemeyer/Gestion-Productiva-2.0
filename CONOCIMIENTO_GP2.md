@@ -14112,7 +14112,7 @@ y mitad) y ninguno en 0 (0 % = no hace el paso: eso es la ruta). Migración:
 compartidos no tienen fila en `inventario` (la pantalla dice *"⚠ no figura en su stock"*): Danica
 I42 / PC1B / Z23A (123); Pettofrezza A6 / F3C / PV1 (355 y 789); Cavallero PEST2 y R3A (789) y
 Pettofrezza R3A (789). Sin esa fila no hay máximo, y la tablet no sabe que se los tiene que mandar
-[deducido]. Es el paso 2 de la normalización (`inventario` para el componente nuevo) que se salteó al
+[deducido]. ⚠ **RETIRADO el 08/10 (ver 4jy): la tablet SÍ se los manda** — el cartel se sacó de la pantalla. Es el paso 2 de la normalización (`inventario` para el componente nuevo) que se salteó al
 cargar esas rutas (ids 1078-1087 son de Danica y Cavallero). Crear las filas es cambio de datos fuera
 de lo pedido: queda propuesto.
 
@@ -16038,3 +16038,12 @@ Producción 3.0 (`cervantes-gp2/`) y vale igual para la tablet de GP2:
   aceptó la regla del Sector Remache («Sí a todo» a mi recomendación); la alternativa, congelarlos como `fisico` con los valores de hoy, quedó descartada. El tope de 5 cajones (`[usuario 29/09]`) ya no rige para estos W.
 - **[PENDIENTE]** (1) Los 8 SE nacen en 0 y quedan en **negativo** hasta que Guazzaroni / Pedernera entreguen como SE en Control Entrega PS y el corte se registre como SE; el historial anterior sigue
   colgado del W final. (2) La mano de obra de la 150 sigue sin costear (`cuenta_mo = false`). (3) Stock General muestra los W en «cajones» aunque sean bolsas de 2 kg (rótulo, no cantidad).
+
+## 4jy. Proporciones: se saca el cartel «⚠ no figura en su stock» (2026-10-08) — v1.253.4
+
+- **[usuario, 08/10, con captura del 123 Peladores]** *"Que no aparezca el cartel de no figura su stock porque el cartón 123 me da la opción de mandarle a Bryan en envío a talleristas
+  tablet y le aparecen las uni que le mande. Que no aparezca ese cartel en ningún caso"*.
+- **Corrige 4he** (la línea "la tablet no sabe que se los tiene que mandar" era `[deducido]` y es falsa): Envío a Talleristas de la tablet ofrece la parte aunque el tallerista no tenga
+  fila en `inventario`, y lo enviado aparece. La falta de fila sólo deja sin el gris «casa» (no hay máximo total que mostrar); la parte por artículo se sigue calculando.
+- `Proporciones_GP2.html`: fuera el `<span class="sinfila">` y su CSS. El CSV conserva la columna `En_su_stock` (es el dato crudo, sin interpretar). `test_proporciones.js` ahora
+  exige que el cartel NO aparezca.

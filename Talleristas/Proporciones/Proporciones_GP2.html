@@ -42,7 +42,6 @@
  td.sinmax{color:#8494a8;font-weight:400}
  td.tot,th.tot{color:#475569;border-left:1px solid #d0dae7}
  td .casa{display:block;color:#8494a8;font-weight:400;font-size:14px}
- td .sinfila{display:block;color:#982e16;font-weight:700;font-size:14px}
  .pie{display:flex;gap:10px;align-items:center;justify-content:flex-end;flex-wrap:wrap;margin-top:8px}
  .pie .suma{font-size:14px;color:#475569}
  .pie .suma.mal{color:#982e16;font-weight:700}
@@ -128,7 +127,6 @@ function celdas(p){
    /* el total de su casa se mueve con lo que se esta escribiendo: lo de los otros articulos queda */
    var casa=(x.maximo==null)?null:Number(x.maximo)-paraArt(pa,t,Number(t.pct))+v;
    var extra=(casa!=null && Math.abs(casa-v)>1)?'<span class="casa" title="Máximo de esa parte en su casa, sumando todos sus artículos">casa '+uni(casa)+'</span>':'';
-   if(!x.tiene_fila) extra+='<span class="sinfila" title="La parte no está cargada en el stock de este tallerista: la tablet no sabe que se la tiene que mandar">⚠ no figura en su stock</span>';
    return '<td class="max">'+uni(v)+extra+'</td>';
   }).join("");
   return '<tr><td class="parte"><span class="pc">'+esc(pa.cod)+'</span>'+esc(pa.desc||"")+'</td>'+tds+

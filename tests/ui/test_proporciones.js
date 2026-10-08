@@ -78,7 +78,7 @@ window.supabase = { createClient: function(){ return {
   ok(/casa 1\.224/.test(a11[1]) && /casa 1\.508/.test(a11[2]), 'el máximo total de la casa va aparte, en gris');
   ok(a11[3] === '192', 'Total = suma de las columnas (' + a11[3] + ')');
   const i42 = await fila(0, 1);
-  ok(/1\.148/.test(i42[1]) && /no figura en su stock/.test(i42[1]), 'I42 de Danica: su parte (1.148) y el aviso de que no figura en su stock');
+  ok(/1\.148/.test(i42[1]) && !/no figura en su stock/.test(i42[1]), 'I42 de Danica: su parte (1.148) y SIN el cartel "no figura en su stock" (usuario 08/10: la tablet se lo manda igual)');
   ok(!/casa/.test(i42[2]), 'I42 de Lucho: la casa es igual a lo del artículo, no se repite');
 
   // ── Guardar apagado de entrada: el default no se graba con un clic ──
