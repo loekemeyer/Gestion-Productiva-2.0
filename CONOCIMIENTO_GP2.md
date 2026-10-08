@@ -15988,3 +15988,22 @@ Producción 3.0 (`cervantes-gp2/`) y vale igual para la tablet de GP2:
   abre desde el menú de GP2): `tools/copiar_botonera_de_3_0.py` busca ahora ese enlace. Recopiada con el token `20261008e`
   (`gp2-20261008e/v3.1.8`); `traer_de_gp2.py --revisar` en 3.0 dice que no hay nada nuevo. Sin cambios de comportamiento en la tablet.
 
+## 4jv. Los W (bujes, engranajes y arandelas) pasan a Sector Remache y dejan de ir a Virgilio (2026-10-08)
+
+- **[usuario, 08/10, textual, con captura del Stock General filtrado por «W»]** *«Todos estos componentes que arrancan con W son Sector Remaches, cambialo y
+  por lo tanto esos sectores no estarían en Virgilio.»* Antes: **W1, W2, W3, W7, W9** en Sector Crudo («Stock SC») y **W1P, W2P, W3P, W4, W5, W6, W7P, W9P** en
+  Sector Procesado («Stock SP»); **W8** (Vástago Sacafuente Pizzero, comprado a Bella Vista) y **W1B** (Grampa Batidor) ya estaban en Remache.
+- **[hecho, base, `db/migracion_w_sector_remache_20261008.sql`, «Sí» del dueño]** Los 13 pasan a **Sector Remache (8)** con **`estado_compra = 'fabricacion'`**, y su
+  inventario de las ubicaciones 1 y 2 (Sector Crudo / Procesado) pasa a la **8**; el de talleristas y proveedores de servicio no se toca. **⚠ El `estado_compra` es
+  obligatorio:** el Sector Remache es de insumos y el motor de costos toma por COMPRADO a todo componente de un sector de insumos con `estado_compra` null; los W se
+  **fabrican** (los crudos salen de una matriz, los «P» del niquelado/templado de un proveedor de servicio) y sin `'fabricacion'` se perdería su cadena de costos. Con
+  `'fabricacion'` tampoco entran a Recepción de insumos ni a la OC (igual que los V).
+- **[dato, SQL 08/10]** **Por qué «no estarían en Virgilio»:** `GP2.enviar_a_virgilio` sólo acepta los sectores **1, 2, 5, 6 y 11** («solo SC, SP, fleje, plástico y
+  caja»); el 8 no se manda a Virgilio. Estos W tenían **0 stock** en los depósitos de Virgilio (ubicaciones 64 y 65): no había nada que migrar. En Stock General dejan
+  los rubros «Stock SC» y «Stock SP» `[Probable: la pantalla agrupa por sector; no se midió]`.
+- **[dato, ensayo revertido + aplicación con bloque de control]** 13 componentes y 13 filas de inventario movidos, **0 conflictos** en la ubicación 8; **costos: 851
+  comparados, 0 distintos**; 10 vistas (demanda, consumo, contraparte…) idénticas; **máximos de inventario idénticos**, también forzando el recálculo (`recalcular_maximos_*`).
+  `[deducido, sin confirmar]` el recálculo de máximos de un sector de insumos (`recalcular_maximos_insumos`) podría usar otra regla que la de SC/SP; hoy dio igual, pero
+  si cambia el consumo de un W conviene mirar su máximo.
+- **[regla para el próximo caso]** pasar un componente fabricado a un sector de insumos exige `estado_compra = 'fabricacion'` en el mismo paso (V, VxSE y W lo muestran).
+
