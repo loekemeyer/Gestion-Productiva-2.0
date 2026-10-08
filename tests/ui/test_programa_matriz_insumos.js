@@ -2,7 +2,10 @@
 // (PEST1 + Z47 + Z46 -> matriz 505D -> Z47-M505D -> Fabrica -> 942E) no se dibujaba: el
 // detector de convergencias solo miraba rutas que arrancan en un fleje. El usuario: "No veo la
 // convergencia de las tres partes en el despiece (con su respectiva matriz)".
-// Fixture = el 942E real. Control: un armado de TALLERISTA con insumos (GRJ5) sigue como antes.
+// Fixture = el 942E real.
+// 2026-10-08 (Nazareno): el armado de TALLERISTA con insumos (GRJ5/GRJ6 = BOM12 + BOM8 -> Martin
+// Cornejo) tambien converge: "Ese subconjunto no tendria que aparecer asi. En las dos rutas de BOM8 y
+// BOM12 hace la convergencia". Antes de ese dia este test exigia lo contrario (control 'sin cambios').
 const { chromium } = require('playwright');
 const path = require('path');
 const fs = require('fs');
@@ -80,11 +83,19 @@ window.supabase = { createClient: function(){ return {
   ok(!/PEST1|Z47 —|Z46 —/.test(lanesNoConv), 'las 3 piezas no se repiten como insumo suelto en el bloque 4');
   ok(/A9B/.test(lanesNoConv), 'la caja A9B sigue como insumo aparte');
 
-  // control: armado de tallerista con insumos -> sin cambios (no se vuelve convergencia)
+  // armado de TALLERISTA con insumos (GRJ5/GRJ6) -> tambien es convergencia
   await page.evaluate(() => { var s = document.getElementById('art'); if (s) { s.value = '900'; s.dispatchEvent(new Event('change')); } else if (window.elegirArticulo) window.elegirArticulo(900); });
   await page.waitForTimeout(300);
-  const conv2 = await page.$$eval('#canvas .lane.conv', ls => ls.length);
-  ok(conv2 === 0, 'un armado de TALLERISTA con insumos (control) no se dibuja como convergencia de matriz');
+  const conv2 = await page.$$eval('#canvas .lane.conv', ls => ls.map(l => l.innerText));
+  ok(conv2.length === 1, 'un armado de TALLERISTA con insumos (GRJX = GX1 + GX2) se dibuja como convergencia (hay ' + conv2.length + ')');
+  const c2 = conv2[0] || '';
+  ok(/Convergencia\s*·\s*GRJX/i.test(c2), 'la convergencia es el sub-conjunto GRJX');
+  ok(/Insumo GX1/i.test(c2) && /Insumo GX2/i.test(c2), 'las dos ramas: GX1 y GX2');
+  ok(/TALLERISTA[\s\S]*Fábrica[\s\S]*GRJX/i.test(c2), 'la convergencia la arma el TALLERISTA');
+  const txt2 = await page.$eval('#canvas', e => e.innerText);
+  ok(!/BOM sin ruta/i.test(txt2), 'GRJX ya no sale en "Sub-conjuntos (BOM sin ruta explícita)"');
+  const noConv2 = await page.$$eval('#canvas .lane:not(.conv)', ls => ls.map(l => l.innerText).join('\n---\n'));
+  ok(!/GX1 —|GX2 —/.test(noConv2), 'GX1 y GX2 no se repiten como insumo suelto en el bloque 4');
   if (process.exitCode) console.log('\n---- render ----\n' + txt);
   await browser.close();
 })();

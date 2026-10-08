@@ -672,14 +672,18 @@ function render(){
  });
  /* Convergencia armada SOLO con piezas compradas (94xE, 2026-10-01): PEST1 + pieza inox +
     mango importados entran a la matriz 505x. Ninguna de esas rutas arranca en un fleje, asi
-    que el bucle de arriba no las veia. Se suman las rutas de insumo, pero solo cuando el paso
-    que arma el sub-conjunto es una MATRIZ: los armados de tallerista (GRJ5/GRJ6) quedan como
-    estaban. Las ramas se dibujan adentro y no se repiten en el bloque 4 (insumoEnConv). */
+    que el bucle de arriba no las veia. Se suman las rutas de insumo cuando el paso que arma
+    el sub-conjunto es una MATRIZ o un TALLERISTA [Nazareno 2026-10-08: "Ese subconjunto no
+    tendria que aparecer asi. En las dos rutas de BOM8 y BOM12 hace la convergencia"]: BOM12 +
+    BOM8 -> Martin Cornejo arma GRJ6 (557/762) o GRJ5 (558/763) -> Blist-Pack -> Virgilio. Hasta
+    ese dia GRJ5/GRJ6 salian partidos en "sub-conjunto sin ruta" + dos insumos sueltos que
+    repetian a Martin y Blist-Pack. Las ramas se dibujan adentro y no se repiten en el bloque 4
+    (insumoEnConv). */
  rutas_ins.forEach(function(r){
   var pasos=D.rp[String(r.id)]||[];
   for(var i=0;i<pasos.length;i++){
    var cs=pasos[i].cs;
-   if(cs && pasos[i].tp==='matriz' && D.children[String(cs)]){
+   if(cs && (pasos[i].tp==='matriz'||pasos[i].tp==='tallerista') && D.children[String(cs)]){
     convergences[cs]=convergences[cs]||[];
     convergences[cs].push(r);
     rutas_en_conv[r.id]=cs;

@@ -14606,7 +14606,7 @@ Premium se recibe de Virgilio"*.
   `<pieza>-M505x ← PEST1 + pieza + Z46` (×1 c/u), molde `D5-M78 ← D5 + D6 + V4`; (2) Despiece x Artículo
   (`Programa/Programa.html`) sólo detectaba convergencias desde rutas que arrancan en un FLEJE. Ahora también desde
   rutas de insumo, **sólo si el paso que arma es una MATRIZ** (los armados de tallerista con insumos, GRJ5/GRJ6,
-  quedan igual), y si el intermedio no está en la receta la cantidad sale de la parte más escasa de su BOM.
+  quedan igual — ⚠ **retirado el 08/10, §4kb**: el tallerista también converge), y si el intermedio no está en la receta la cantidad sale de la parte más escasa de su BOM.
   La receta quedó con las partes sueltas (no el intermedio como en el 507): el DELETE para pasarla al intermedio lo
   retuvo el MCP, y así no hay doble conteo (máximos de Z46/Z47 iguales antes y después). `[dato]`
   `tests/ui/test_programa_matriz_insumos.js` (falla 7 contra el HTML anterior). version.js v1.231.0 ?v=20261001o.
@@ -16092,3 +16092,18 @@ Producción 3.0 (`cervantes-gp2/`) y vale igual para la tablet de GP2:
 - Pruebas: `tests/ui/test_verif_cajones.js` (85 checks; la banda se prueba sobre `tests/ui/fixtures/cajones_host.html`) y `tests/ui/test_tablet.js` (aviso sólo en la
   pantalla principal de la Tablet real).
 
+## 4kb. Despiece x Artículo: BOM12 + BOM8 convergen en Martin Cornejo (GRJ6/GRJ5) — el armado de TALLERISTA con insumos también es convergencia (2026-10-08) — v1.255.0
+
+- [usuario: Nazareno, sobre el 557] *"Ese subconjunto no tendría que aparecer así. En las dos rutas de BOM8 y BOM12 hacé la
+  convergencia"*. Se veía GRJ6 en el bloque 3 «Sub-conjuntos (BOM sin ruta explícita)» (BOM12 + BOM8 = GRJ6) y, abajo, BOM12 y
+  BOM8 como dos insumos sueltos que repetían cada uno Martin Cornejo → Blist-Pack SA → Virgilio.
+- [dato] **La base ya estaba bien**: rutas 609/610 (557), 661/662 (762), 613/614 (558), 663/664 (763): `insumo` → `tallerista`
+  Martin Cornejo (`comp_salida` = GRJ6/GRJ5) → `tallerista` Blist-Pack SA (→ artículo) → `virgilio`. Era la pantalla: desde §4ia
+  las rutas de insumo sólo armaban convergencia si el paso era una MATRIZ. **No se tocó la base.**
+- Ahora vale MATRIZ **o TALLERISTA** (`Programa/Programa.html`). Queda: 🔀 Convergencia · GRJ6 → Rama 1 BOM12 (Metalúrgica
+  Giser) + Rama 2 BOM8 (Grudzien) → Martin Cornejo (📦 Garage · stock GRJ6) → Blist-Pack SA → Virgilio. Sin bloque 3.
+- [dato] Medido con el `programa_bundle` real, antes/después: cambian **sólo 557, 762, 558 y 763**. Los otros 6 artículos con
+  una ruta de insumo que pasa por un tallerista que arma un sub-conjunto con BOM (515/615 C12B, 115/544/802 GRJ10, 580 GRJ10A,
+  todos Alex Escalante) ya eran convergencia por las rutas de fleje: render idéntico.
+- Prueba: `tests/ui/test_programa_matriz_insumos.js` — su control decía lo contrario («un armado de tallerista no es
+  convergencia»); ahora exige la convergencia de tallerista (falla 5 contra el HTML anterior).
