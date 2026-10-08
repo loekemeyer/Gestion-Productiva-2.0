@@ -15924,3 +15924,15 @@ Producción 3.0 (`cervantes-gp2/`) y vale igual para la tablet de GP2:
 - `[dato, SELECT 08/10]` después: `verif_cajon` = 0 y `verif_cajon_dia` = 0. No hubo stock ni ajuste que deshacer.
 - ⚠ El conector de Supabase de la sesión **sí aplicó** este DELETE (con CTE, un solo statement); el 07/10 había frenado otro. No es regla fija.
 
+## 4js. Cada función de GP2 de la tablet vieja tiene su par en Registro Producción 3.0, y hace lo mismo (2026-10-08) — 4 anotadas para borrar
+
+- `[usuario, Elías, 08/10]`: *«anotalas para borrar, pero verificá que todas las funciones de GP2 tengan la función correspondiente en
+  Reg Prod 3.0»*. La tablet vieja (`e110890`) llamaba a 7: `registro_operarios_bundle`, `registrar_evento_prod`, `anular_evento_prod`,
+  `tomar_rollo`, `cerrar_rollo`, `rollo_tomar`, `rollo_cerrar`.
+- `[dato, ensayo en transacción deshecha, 08/10]` (`sql/verificar_gp2_vs_3_0.sql` de 3.0): con los mismos datos, GP2 y 3.0 dan **lo mismo**
+  en 7 casos de toque (fila, stock, aviso, duplicado, anular), en el catálogo (10 secciones iguales; 3.0 agrega `rollos_activos`) y en
+  rollos (descuenta 1, mismo uso, misma respuesta, dup). `tomar_rollo` / `cerrar_rollo` no tienen par propio a propósito: 3.0 las usa por
+  dentro. Diferencias a propósito: pase en vez de Google, la cruda y `segundos_historico` en 3.0, y los kg del rollo cuentan lo de 3.0.
+- **Anotadas para borrar** (no borradas): `registrar_evento_prod`, `anular_evento_prod`, `rollo_tomar`, `rollo_cerrar` y la tabla
+  `rollo_llamadas` → `db/PENDIENTE_borrar_funciones_tablet_vieja.sql`, con las 3 condiciones (nadie grabando por la tablet vieja;
+  la copia vieja sin enlace de 3.0 `gp2/` las llama; sacar de PERMITIDAS y regenerar `db/` en el mismo commit).
