@@ -106,10 +106,12 @@ window.supabase = { createClient: function(){ return {
   await page.evaluate(() => document.body.click());
   ok(await page.$eval('#dsgPop', x => x.hidden), 'tablet: tocar afuera la cierra');
 
-  // v1.45.1 [Thomas: "hay mas blanco de un lado que de otro"]: con la tabla a la vista la tarjeta la abraza.
-  const anchos = await page.evaluate(() => [document.querySelector('.card').getBoundingClientRect().width,
-    document.querySelector('#panGen .table-wrap').getBoundingClientRect().width]);
-  ok(anchos[0] - anchos[1] < 60, 'la tarjeta abraza la tabla (sin blanco de un solo lado): ' + anchos.map(Math.round).join(' vs '));
+  // v1.45.1 [Thomas: "hay mas blanco de un lado que de otro"]: con la tabla a la vista, lo que la rodea la abraza.
+  // Desde el Sistema de Diseño v2 (08/10/2026) la página va a lo ancho como todo GP2 (la .card ya no es una caja
+  // blanca de ancho fit-content): la caja que tiene que abrazar el dato es la de la tabla (.table-wrap).
+  const anchos = await page.evaluate(() => [document.querySelector('#panGen .table-wrap').getBoundingClientRect().width,
+    document.querySelector('#panGen .table-wrap table').getBoundingClientRect().width]);
+  ok(anchos[0] - anchos[1] < 60, 'la caja de la tabla abraza la tabla (sin blanco de un solo lado): ' + anchos.map(Math.round).join(' vs '));
 
   await browser.close();
   console.log(process.exitCode ? 'HAY FALLOS' : 'TODO OK');

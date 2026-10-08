@@ -21,36 +21,40 @@
 <link rel="apple-touch-icon" href="../../GP2_favicon.png">
 <link rel="stylesheet" href="../../gp2-modulo.css?v=20261008ds">
 <style>
-  .dia{display:flex;gap:10px 18px;flex-wrap:wrap;align-items:center;background:#f6f8fa;border:2px solid #d0d7de;border-radius:12px;padding:12px 16px;margin:10px 0;font-size:18px}
-  .dia .k{font-size:12px;font-weight:800;color:#666;text-transform:uppercase;display:block}
-  .dia .v{font-size:22px;font-weight:900;font-variant-numeric:tabular-nums}
+  /* Verificacion de cajones: lo propio de esta pantalla (el resto lo da gp2-modulo.css) */
+  .toolbar #auto{align-self:center}
+  /* el dia: sorteo / empezo / termino / tardo, en una franja */
+  .dia{display:flex;gap:10px 28px;flex-wrap:wrap;align-items:center;background:var(--surface);border:1px solid var(--line);border-radius:var(--r-md);
+    padding:10px var(--s4);margin:var(--s3) 0;font-size:17px}
+  .dia .k,.datos .k{display:block;font-size:var(--fs-xs);font-weight:700;color:var(--ink-3);text-transform:uppercase;letter-spacing:.06em}
+  .dia .v{font-size:22px;font-weight:750;font-variant-numeric:tabular-nums}
   .dia .grow{flex:1}
-  .btn-go{background:#b45309;color:#fff;font-size:22px;min-height:56px;padding:0 26px}
-  .caj{border:2px solid #d0d7de;border-radius:12px;padding:12px 16px;margin:12px 0;background:#fff}
-  .caj.ok{border-color:#1a7f37}
-  .caj.no{border-color:#b42318}
-  .caj h2{font-size:21px;font-weight:900;margin-bottom:6px}
-  .datos{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:6px 18px;margin:6px 0 10px}
-  .datos div{font-size:17px}
-  .datos .k{display:block;font-size:12px;font-weight:800;color:#666;text-transform:uppercase}
-  .datos .esp{font-size:22px;font-weight:900}
-  .form{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;border-top:1px dashed #d0d7de;padding-top:10px}
-  .form .f{display:flex;flex-direction:column;gap:4px}
-  .form label{font-size:15px;font-weight:800;color:#555}
-  .form select,.form input,.form textarea{min-height:48px;border:2px solid #d0d7de;border-radius:8px;font-size:20px;padding:6px 10px}
-  .form input.peso{width:150px;text-align:right;font-variant-numeric:tabular-nums}
-  .form textarea{min-width:260px;flex:1;font-size:18px}
-  .vivo{font-size:18px;font-weight:800;min-height:24px}
+  /* los cajones: dos columnas en pantalla ancha */
+  #cajones{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,560px),1fr));gap:var(--s3);align-items:start}
+  .caj{background:var(--surface);border:1px solid var(--line);border-left:5px solid var(--line-2);border-radius:var(--r-md);padding:12px var(--s4);min-width:0}
+  .caj.ok{border-color:var(--ok-line);border-left-color:var(--ok)}
+  .caj.no{border-color:var(--err-line);border-left-color:var(--err)}
+  .caj h2{font-size:var(--fs-lg);font-weight:750;margin-bottom:6px}
+  .tag-env{margin-left:6px}
+  .datos{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:6px 18px;margin:6px 0 10px;font-size:17px}
+  .datos .esp{font-size:21px;font-weight:800}
+  @media (max-width:640px){ .datos{grid-template-columns:repeat(auto-fit,minmax(135px,1fr))} }   /* celular: dos datos por fila */
+  .form{display:flex;gap:var(--s2) var(--s3);flex-wrap:wrap;align-items:flex-end;border-top:1px dashed var(--line-2);padding-top:10px}
+  .form input.peso{width:150px;text-align:right;font-size:20px;font-variant-numeric:tabular-nums}   /* peso / cajas: 20px */
+  .form textarea{min-width:min(260px,100%);width:100%}
+  .form .vivo{flex-basis:100%}
+  .form .f-nota{flex:1 1 260px}
+  .vivo{font-size:17px;font-weight:700;min-height:24px}
   .res{font-size:17px;line-height:1.6}
   .res b{font-variant-numeric:tabular-nums}
-  .form .chk-plan{flex-basis:100%;display:flex;align-items:center;gap:10px;font-size:18px;font-weight:600;color:#222;background:#f6f8fa;border:2px solid #d0d7de;border-radius:10px;padding:10px 14px;cursor:pointer}
-  .chk-plan input{width:26px;height:26px;min-height:0;flex:none;accent-color:#1a7f37}
-  .tag-env{display:inline-block;margin-left:8px;font-size:13px;font-weight:800;color:#92400e;background:#fef3c7;border:1px solid #fde68a;border-radius:999px;padding:2px 10px;vertical-align:middle}
-  .link{background:none;border:none;color:#b42318;font-weight:800;font-size:17px;cursor:pointer;text-decoration:underline;min-height:44px}
+  .form .chk-plan{flex-basis:100%;display:flex;align-items:center;gap:10px;min-height:var(--touch);font-size:17px;font-weight:600;color:var(--ink);
+    background:var(--surface-2);border:1px solid var(--line-2);border-radius:var(--r-sm);padding:8px 14px;cursor:pointer}
+  .chk-plan input{width:26px;height:26px;flex:none;accent-color:var(--ok)}
+  .link-err{color:var(--err)}
+  .link-err:hover{background:var(--err-soft)}
   table.t.fit{width:auto}
   .table-wrap.fit{display:inline-block;max-width:100%}
   tr.click{cursor:pointer}
-  tr.click:hover td{background:#f6f8fa}
 </style>
 </head>
 <body>
@@ -72,9 +76,8 @@
   </script>
 
   <div class="steps">
-    <div class="row">
-      <label class="lbl" for="fecha">Día</label>
-      <input type="date" id="fecha">
+    <div class="toolbar mt0">
+      <div class="field"><label for="fecha">Día</label><input type="date" id="fecha"></div>
       <span class="sub" id="auto"></span>
     </div>
 
@@ -82,7 +85,7 @@
     <div id="cajones"></div>
     <div id="status" class="status"></div>
 
-    <h3 style="margin:18px 0 6px;font-size:18px">Últimos días</h3>
+    <h2 class="sec-h">Últimos días</h2>
     <div class="table-wrap fit"><table class="t fit">
       <thead><tr>
         <th>Día</th><th class="num">Cajones</th><th class="num">Empezó</th><th class="num">Terminó</th><th class="num">Tardó</th>
@@ -137,7 +140,7 @@ function render(){
       '<div><span class="k">Terminó</span><span class="v">' + GP2VC.hora(dia.terminado_en) + '</span></div>' +
       '<div><span class="k">Tardó</span><span class="v">' + tardo(dia.empezado_en, dia.terminado_en) + '</span></div>' +
       '<div class="grow"></div>' +
-      (dia.empezado_en ? '' : '<button class="btn btn-go" id="btnEmpezar" type="button">▶ Empezar</button>');
+      (dia.empezado_en ? '' : '<button class="btn btn-primary btn-lg btn-go" id="btnEmpezar" type="button">▶ Empezar</button>');
     if (!dia.empezado_en) $('btnEmpezar').onclick = empezar;
   }
   $('cajones').innerHTML = cs.map(function(c, i){ return tarjeta(c, i); }).join('');
@@ -206,7 +209,7 @@ function tarjeta(c, i){
     ? '<div><span class="k">' + (env ? 'Artículos que cierra la matriz' : 'Piezas que saca la matriz') + '</span>' + c.piezas.map(function(p){
         return esc(p.codigo) + ' ' + (env ? (p.uni_x_caja == null ? '—' : p.uni_x_caja + ' x caja') : GP2VC.kg(p.kg_x_uni, 4)); }).join(' · ') + '</div>' : '';
   var h = '<div class="caj' + cls + '" id="caj' + c.id + '">' +
-    '<h2>Cajón ' + (i + 1) + ' · Matriz ' + esc(c.matriz) + ' ' + esc(c.nombre_matriz || '') + (env ? ' <span class="tag-env">📦 Envasado: se cuenta, no se pesa</span>' : '') + '</h2>' +
+    '<h2>Cajón ' + (i + 1) + ' · Matriz ' + esc(c.matriz) + ' ' + esc(c.nombre_matriz || '') + (env ? ' <span class="badge warn tag-env">📦 Envasado: se cuenta, no se pesa</span>' : '') + '</h2>' +
     '<div class="datos">' +
       '<div><span class="k">Quién lo hizo</span>' + esc(c.operario || '?') + ' (leg. ' + esc(c.legajo || '?') + ')</div>' +
       '<div><span class="k">Hora</span>' + GP2VC.hhmm(c.hora_inicio) + ' a ' + GP2VC.hhmm(c.hora_fin) + '</div>' +
@@ -224,41 +227,41 @@ function tarjeta(c, i){
   if (c.resultado === 'contado' && !abiertos[c.id]){
     h += '<div class="res">✔ <b>Contado</b> a las ' + GP2VC.hora(c.cargado_en) + ' · <b>' + GP2N.fmt(c.cajas_contadas, 0) + '</b> cajas' +
       textoDifEnv(c, c.cajas_contadas) + textoPlanilla(c) + (c.nota ? '<br>Nota: ' + esc(c.nota) : '') +
-      ' <button class="link" type="button" data-corr="' + c.id + '">Corregir</button></div>';
+      ' <button class="btn btn-ghost btn-sm link" type="button" data-corr="' + c.id + '">Corregir</button></div>';
   } else if (c.resultado === 'pesado' && !abiertos[c.id]){
     h += '<div class="res">✔ <b>Pesado</b> a las ' + GP2VC.hora(c.cargado_en) + ' · en el cajón <b>N° ' + c.cajon_numero + '</b>' +
       ' (tara ' + GP2VC.kg(c.tara_kg) + ') · balanza <b>' + GP2VC.kg(c.peso_bruto_kg) + '</b> · neto <b>' + GP2VC.kg(c.peso_neto_kg) + '</b>' +
       textoDif(c) + textoPlanilla(c) + (c.nota ? '<br>Nota: ' + esc(c.nota) : '') +
-      ' <button class="link" type="button" data-corr="' + c.id + '">Corregir</button></div>';
+      ' <button class="btn btn-ghost btn-sm link" type="button" data-corr="' + c.id + '">Corregir</button></div>';
   } else if (c.resultado === 'no_encontrado' && !abiertos[c.id]){
     h += '<div class="res">✖ <b>No lo encontró</b> (' + GP2VC.hora(c.cargado_en) + '): ' + esc(c.nota) +
-      ' <button class="link" type="button" data-corr="' + c.id + '">Corregir</button></div>';
+      ' <button class="btn btn-ghost btn-sm link" type="button" data-corr="' + c.id + '">Corregir</button></div>';
   } else if (!empezo){
     h += '<div class="res sub">Apretá <b>▶ Empezar</b> arriba para cargar ' + (env ? 'las cajas' : 'el peso') + ': así queda la hora en que empezó la verificación.</div>';
   } else if (modo === 'no'){
     h += '<div class="form">' +
-      '<div class="f" style="flex:1"><label for="nota' + c.id + '">¿Qué pasó? ¿Dónde lo buscaste?</label>' +
+      '<div class="f field f-nota"><label for="nota' + c.id + '">¿Qué pasó? ¿Dónde lo buscaste?</label>' +
       '<textarea id="nota' + c.id + '" rows="2">' + esc(c.nota || '') + '</textarea></div>' +
       '<button class="btn btn-primary" type="button" data-noenc="' + c.id + '">Guardar: no lo encontré</button>' +
-      '<button class="link" type="button" data-peso="' + c.id + '" style="color:#111">' + (env ? 'Volver a contar las cajas' : 'Volver a cargar peso') + '</button></div>';
+      '<button class="btn btn-ghost link" type="button" data-peso="' + c.id + '">' + (env ? 'Volver a contar las cajas' : 'Volver a cargar peso') + '</button></div>';
   } else if (env){
     h += '<div class="form">' + chkPlanilla(c) +
-      '<div class="f"><label for="cj' + c.id + '">Cajas que contaste</label><input class="peso" id="cj' + c.id + '" inputmode="numeric" autocomplete="off"' +
+      '<div class="f field"><label for="cj' + c.id + '">Cajas que contaste</label><input class="peso" id="cj' + c.id + '" inputmode="numeric" autocomplete="off"' +
         ' value="' + (c.cajas_contadas != null ? GP2N.fmt(c.cajas_contadas, 0) : '') + '"></div>' +
       '<button class="btn btn-primary" type="button" data-guardar-env="' + c.id + '">Guardar cajas</button>' +
-      '<button class="link" type="button" data-noform="' + c.id + '">No lo encontré</button>' +
-      '<div class="vivo" id="vivo' + c.id + '" style="flex-basis:100%"></div></div>';
+      '<button class="btn btn-ghost link link-err" type="button" data-noform="' + c.id + '">No lo encontré</button>' +
+      '<div class="vivo" id="vivo' + c.id + '"></div></div>';
   } else {
     h += '<div class="form">' + chkPlanilla(c) +
-      '<div class="f"><label for="cn' + c.id + '">¿En qué cajón está?</label><select id="cn' + c.id + '">' +
+      '<div class="f field"><label for="cn' + c.id + '">¿En qué cajón está?</label><select id="cn' + c.id + '">' +
         '<option value="">Elegí…</option>' + (B.taras || []).map(function(t){
           return '<option value="' + t.numero + '"' + (Number(c.cajon_numero) === Number(t.numero) ? ' selected' : '') + '>N° ' + t.numero +
             ' · tara ' + GP2VC.kg(t.tara_kg) + '</option>'; }).join('') + '</select></div>' +
-      '<div class="f"><label for="pb' + c.id + '">Balanza (kg)</label><input class="peso" id="pb' + c.id + '" inputmode="decimal" autocomplete="off"' +
+      '<div class="f field"><label for="pb' + c.id + '">Balanza (kg)</label><input class="peso" id="pb' + c.id + '" inputmode="decimal" autocomplete="off"' +
         ' value="' + (c.peso_bruto_kg != null ? GP2N.fmt(c.peso_bruto_kg, 3) : '') + '"></div>' +
       '<button class="btn btn-primary" type="button" data-guardar="' + c.id + '">Guardar peso</button>' +
-      '<button class="link" type="button" data-noform="' + c.id + '">No lo encontré</button>' +
-      '<div class="vivo" id="vivo' + c.id + '" style="flex-basis:100%"></div></div>';
+      '<button class="btn btn-ghost link link-err" type="button" data-noform="' + c.id + '">No lo encontré</button>' +
+      '<div class="vivo" id="vivo' + c.id + '"></div></div>';
   }
   return h + '</div>';
 }

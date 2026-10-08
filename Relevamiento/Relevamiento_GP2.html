@@ -65,84 +65,66 @@
 <link rel="apple-touch-icon" href="../GP2_favicon.png">
 <link rel="stylesheet" href="../gp2-modulo.css?v=20261008ds">
 <style>
-  /* El contenido no se estira a lo ancho porque si: se centra con un ancho legible.
-     (regla del usuario: no ocupar el 100% sin necesidad, sin huecos vacios) */
-  .wrap{max-width:1080px;margin:0 auto}
+  /* Sistema de diseño v2 (2026-10-08): barra, botones, tabla, campos y avisos salen de gp2-modulo.css.
+     El ancho legible lo da .card.angosto (regla del usuario: no ocupar el 100% sin necesidad):
+     es la pantalla del operario, en el celular o la tablet.
+     Acá queda SOLO el armado propio de la pantalla, con tokens. */
+  .leyenda{color:var(--ink-2);font-size:15px;margin:0 0 var(--s3)}
+  .status.bad{color:var(--err);font-weight:600}
 
-  /* ---- Cronograma: una linea por sector, no una tabla ---- */
-  .crono{display:flex;flex-direction:column;gap:10px}
-  .cl{display:flex;align-items:center;gap:14px;flex-wrap:wrap;
-      padding:12px 14px;border:2px solid #d0d7de;border-radius:12px;background:#fff}
-  .cl-tipo{font-size:20px;font-weight:800;min-width:130px}
-  .cl-fecha{display:flex;flex-direction:column;line-height:1.1;min-width:120px}
-  .cl-fecha .d{font-size:20px;font-weight:800}
-  .cl-fecha .lb{font-size:11px;font-weight:700;color:#5a6672;text-transform:uppercase;letter-spacing:.04em}
-  .cl-comp{font-size:15px;color:#475569;min-width:120px}
-  .cl-acts{margin-left:auto;display:flex;gap:8px;flex-wrap:wrap}
-  /* Cuanto falta: verde lejos, amarillo cerca, naranja ya casi, rojo vencido. */
-  .dias{font-size:15px;font-weight:800;padding:6px 12px;border-radius:20px;white-space:nowrap}
-  .dias.lejos{background:#eef2f6;color:#3a4653}
-  .dias.cerca{background:#fdf1cc;color:#8a6a00}
-  .dias.ya{background:#ffe6cc;color:#c65a00}
-  .dias.vencido{background:#fbe0e0;color:#c00}
+  /* ---- Cronograma: un renglón doble por sector (sector + cuánto falta / fecha + componentes),
+     con las columnas alineadas entre sectores y las acciones a la derecha ---- */
+  .crono{display:flex;flex-direction:column;gap:var(--s2)}
+  .cl{display:grid;grid-template-columns:190px 180px minmax(0,1fr);grid-template-areas:"tipo dias acts" "fecha comp acts";
+      align-items:center;gap:4px 16px;padding:10px 14px;background:var(--surface);border:1px solid var(--line);border-radius:var(--r-md)}
+  .cl-tipo{grid-area:tipo;font-size:var(--fs-lg);font-weight:700}
+  .cl-fecha{grid-area:fecha;display:flex;align-items:baseline;gap:6px}
+  .cl-fecha .d{font-size:17px;font-weight:700;font-variant-numeric:tabular-nums}
+  .cl-fecha .lb{font-size:var(--fs-xs);font-weight:700;color:var(--ink-3);text-transform:uppercase;letter-spacing:.06em}
+  .cl-comp{grid-area:comp;font-size:15px;color:var(--ink-3)}
+  .cl-acts{grid-area:acts;display:flex;gap:var(--s2);flex-wrap:wrap;justify-content:flex-end}
+  /* Cuanto falta: neutro lejos, ambar cerca, naranja ya casi, rojo vencido. */
+  .dias{grid-area:dias;justify-self:start;font-size:15px;font-weight:700;padding:5px 12px;border-radius:var(--r-pill);white-space:nowrap}
+  .dias.lejos{background:var(--surface-3);color:var(--ink-2)}
+  .dias.cerca{background:var(--warn-soft);color:var(--warn)}
+  .dias.ya{background:#ffe6cc;color:#a14a00}
+  .dias.vencido{background:var(--err-soft);color:var(--err)}
   /* Terminado: verde y con tilde, para que se vea de un golpe cuál ya está. */
-  .cl.hecho{border-color:#bfe3cd;background:#f2faf5}
-  .tilde{font-size:18px;font-weight:800;color:#0a7a2f;background:#dff3e6;
-         border-radius:20px;padding:8px 16px;white-space:nowrap}
-
-  /* ---- Botones ---- */
-  .b{min-height:48px;padding:12px 20px;border-radius:10px;border:2px solid #d0d7de;
-     background:#fff;font-size:17px;font-weight:800;cursor:pointer;color:#111}
-  .b.pri{background:#111;color:#fff;border-color:#111}
-  .b.ok{background:#0a7a2f;color:#fff;border-color:#0a7a2f}
+  .cl.hecho{border-left:4px solid var(--ok);padding-left:11px}
+  .tilde{display:inline-flex;align-items:center;min-height:var(--touch);font-size:16px;font-weight:700;color:var(--ok);
+         background:var(--ok-soft);border-radius:var(--r-pill);padding:0 16px;white-space:nowrap}
   /* Borrar es destructivo: se ve distinto, pero sin gritar (no es la accion principal). */
-  .b.del{border-color:#eacdcd;color:#c00;background:#fff}
-  .b:disabled{opacity:.45;cursor:not-allowed}
-  .b.sm{min-height:44px;padding:9px 14px;font-size:15px}
+  .btn.del{background:var(--surface);border-color:var(--err-line);color:var(--err)}
+  .btn.del:hover{background:var(--err-soft);border-color:var(--err)}
 
   /* ---- Carga ---- */
-  .barra{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:12px 0;
-         padding:12px;background:#f6f8fa;border-radius:10px}
-  .barra .info{font-size:17px;font-weight:800}
+  .barra{display:flex;gap:10px 14px;align-items:center;flex-wrap:wrap;margin:0 0 var(--s3)}
+  .barra .info{font-size:var(--fs-lg);font-weight:700}
+  .barra .prog{font-size:15px;font-weight:600;color:var(--ink-3)}
+  .barra.fin{margin:var(--s3) 0 0;justify-content:flex-end}
   /* Campos GRANDES: quien ve mal tiene que poder cargar sin equivocarse (regla de la casa). */
-  .in-num{width:104px;height:50px;border:2px solid #b4bcc4;border-radius:8px;
-          text-align:right;font-size:20px;font-weight:700;padding:0 10px}
-  .in-num:focus{outline:none;border-color:#111}
-  td.tot{font-size:20px;font-weight:800;font-variant-numeric:tabular-nums}
-  td.num{text-align:right;font-variant-numeric:tabular-nums}
+  .in-num{width:104px;min-height:50px;text-align:right;font-size:20px;font-weight:700;padding:0 10px}
+  td.tot{font-size:20px;font-weight:750}
   /* NO es un error: esta pieza no se cuenta por envase. Por eso no va en rojo. */
-  .solo-sueltas{font-size:14px;color:#5a6672;font-style:italic}
-  tr.cargado td{background:#f2faf5}
-  .cod{font-weight:800;font-size:17px}
-  .desc{color:#5a6672;font-size:14px}
+  .solo-sueltas{font-size:var(--fs-sm);color:var(--ink-3);font-style:italic}
+  table.t tr.cargado td{background:var(--ok-soft)}
+  .desc{color:var(--ink-3);font-size:var(--fs-sm)}
 
-  /* ---- Comparacion ---- */
-  .dif{font-weight:800;font-variant-numeric:tabular-nums}
-  .dif.mas{color:#0a7a2f}
-  .dif.menos{color:#c00}
-  tr.igual td{background:#f6f8fa;color:#5a6672}
-  /* Elegir quien gana: dos botones, no un select (se toca con el dedo) */
-  .pick{display:inline-flex;border:2px solid #d0d7de;border-radius:9px;overflow:hidden}
-  .pick button{min-height:44px;padding:0 14px;font-size:15px;font-weight:800;
-               border:none;background:#fff;cursor:pointer;color:#3a4653}
-  .pick button.act{background:#0b3b73;color:#fff}
-  .pick button:disabled{opacity:.4;cursor:not-allowed}
-  .leyenda{font-size:15px;color:#475569;margin:8px 0}
-  .hidden{display:none!important}
-
-  @media(max-width:430px){
-    .cl-acts{margin-left:0;width:100%}
-    .cl-tipo,.cl-fecha,.cl-comp{min-width:0}
-    .barra .b{flex:1;min-width:140px}
+  @media(max-width:640px){
+    .cl{grid-template-columns:minmax(0,1fr) auto;grid-template-areas:"tipo dias" "fecha comp" "acts acts";gap:6px 12px}
+    .dias{justify-self:end}
+    .cl-comp{justify-self:end}
+    .cl-acts{justify-content:stretch;margin-top:4px}
+    .cl-acts>*{flex:1 1 auto;justify-content:center}
+    .barra.fin .btn{flex:1 1 140px}
   }
 </style>
 </head>
 <body>
 
-<div class="wrap">
-<div class="card">
+<div class="card angosto">
   <div class="header">
-    <h1>📋 Relevamiento</h1>
+    <h1>Relevamiento<small>Conteo de stock por sector</small></h1>
     <div class="hbtns"><a id="btnAtrasHeader" href="../GP2_MODULOS.html">Atrás</a></div>
   </div>
   <!-- Si se entró desde la Versión Tablet (modo Conteo), el "Atrás" devuelve a la tablet
@@ -169,9 +151,9 @@
     <!-- ============ PASO 2: CARGA ============ -->
     <div id="panCarga" class="hidden">
       <div class="barra">
-        <button type="button" class="b sm" id="btnVolver">← Volver</button>
+        <button type="button" class="btn btn-secondary" id="btnVolver">← Volver</button>
         <span class="info" id="cargaTitulo"></span>
-        <span class="info" id="cargaProg"></span>
+        <span class="prog" id="cargaProg"></span>
       </div>
       <div class="leyenda" id="cargaAyuda"></div>
       <div class="table-wrap">
@@ -180,15 +162,14 @@
           <tbody id="cargaBody"></tbody>
         </table>
       </div>
-      <div class="barra">
-        <button type="button" class="b" id="btnGuardar">Guardar</button>
-        <button type="button" class="b pri" id="btnCompletar">Completar conteo →</button>
+      <div class="barra fin">
+        <button type="button" class="btn btn-secondary" id="btnGuardar">Guardar</button>
+        <button type="button" class="btn btn-primary" id="btnCompletar">Completar conteo →</button>
       </div>
     </div>
 
     <div id="status" class="status">Cargando…</div>
   </div>
-</div>
 </div>
 
 <script>
@@ -243,7 +224,7 @@ function pintarCrono(){
        Mientras se cuenta no se ofrece tirar todo por la borda; se decide desde la lista.
        La comparacion no esta aca: vive en Validacion de Stock, que lo maneja el operador
        del sistema, no el operario. */
-    var btnDel = rel ? ('<button type="button" class="b sm del" data-del="'+rel.id+
+    var btnDel = rel ? ('<button type="button" class="btn del" data-del="'+rel.id+
                         '" title="Borrar el conteo y volver a empezar">Eliminar</button>') : '';
     if(estado === 'aplicado'){
       hecho = true;
@@ -255,10 +236,10 @@ function pintarCrono(){
     } else if(estado === 'en_curso' && rel.contados > 0){
       // Solo se ofrece seguir si HAY algo cargado. Un conteo abierto y vacio se descarta
       // al salir (ver salirDeCarga), asi que este caso no aparece por haber entrado a mirar.
-      acts = '<button type="button" class="b sm pri" data-abrir="'+c.sector_id+'" data-crono="'+c.crono_id+'">'+
+      acts = '<button type="button" class="btn btn-primary" data-abrir="'+c.sector_id+'" data-crono="'+c.crono_id+'">'+
              'Seguir cargando ('+rel.contados+'/'+rel.items+')</button>' + btnDel;
     } else {
-      acts = '<button type="button" class="b sm pri" data-abrir="'+c.sector_id+'" data-crono="'+c.crono_id+'">Contar</button>';
+      acts = '<button type="button" class="btn btn-primary" data-abrir="'+c.sector_id+'" data-crono="'+c.crono_id+'">Contar</button>';
     }
     return '<div class="cl'+(hecho?' hecho':'')+'">'+
       '<span class="cl-tipo">'+esc(c.tipo)+'</span>'+

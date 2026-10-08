@@ -20,105 +20,75 @@
 <link rel="apple-touch-icon" href="../GP2_favicon.png">
 <link rel="stylesheet" href="../gp2-modulo.css?v=20261008ds">
 <style>
-  .chips{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0;align-items:center}
-  .chip{padding:8px 14px;border-radius:20px;border:2px solid #d0d7de;background:#fff;font-weight:700;font-size:15px;cursor:pointer;color:#111}
-  .chip.active{background:#dbe7f6;color:#0b3b73;border-color:#9dbbdd}
-  .chip .badge{display:inline-block;margin-left:6px;padding:1px 7px;border-radius:10px;background:#fde68a;color:#7c2d12;font-size:12px;font-weight:800}
-  .chip.active .badge{background:#fff;color:#0b3b73}
+  /* 08/10/2026 — Sistema de diseño v2: chips, botones, panel, tabla, kpis y barra los pone
+     gp2-modulo.css. Acá queda el layout de la lista de partes, con tokens.
+     Elegido = azul marino (.chip.on), también para "Se fabrica" / "Discontinuo": la diferencia
+     entre "quién la hace" y "no se compra" la dice el borde punteado, no un violeta. */
+  .status.bad{color:var(--err)}
+  .nota-txt{padding:0 0 12px;color:var(--ink-2);font-size:15px;line-height:1.5}
+  #secChips{align-items:center}
+  .chip .badge{background:var(--warn-soft);color:var(--warn)}
+  .chip.active .badge{background:rgba(255,255,255,.16);color:#fff}
+  .resumen{grid-template-columns:repeat(auto-fill,minmax(150px,max-content))}
+  .resumen .kpi .v{font-size:22px}
+  .resumen .kpi .k{text-transform:none;letter-spacing:0;font-size:var(--fs-sm);font-weight:600;color:var(--ink-2)}
 
-  .parte{display:flex;gap:14px;align-items:center;padding:11px 12px;border-bottom:1px solid #e6eaee;flex-wrap:wrap}
-  .parte:hover{background:#f6faff}
-  .parte.sin{background:#fffbeb}
-  .parte.sin:hover{background:#fef6da}
+  .lista{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-md);overflow:hidden}
+  .parte{display:flex;gap:14px;align-items:center;padding:10px 12px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+  .parte:last-child{border-bottom:0}
+  .parte:hover{background:var(--surface-2)}
+  .parte.sin{background:var(--warn-soft);box-shadow:inset 4px 0 0 var(--warn-line)}   /* falta asignar */
+  .parte.nocompra{background:var(--surface-2)}                                       /* decidido: no se compra */
   .p-izq{flex:1;min-width:230px}
-  .p-cod{font-weight:800;font-size:18px;color:#0066cc}
-  .p-desc{font-size:15px;color:#333;overflow-wrap:anywhere}
-  .p-meta{font-size:12px;color:#777;margin-top:2px}
-  .p-meta b{color:#b45309}
+  .p-cod{font-weight:800;font-size:18px;color:var(--pri-ink)}
+  .p-desc{font-size:var(--fs-base);color:var(--ink);overflow-wrap:anywhere}
+  .p-meta{font-size:var(--fs-sm);color:var(--ink-3);margin-top:2px}
+  .p-meta b{color:var(--warn)}
   .p-der{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}
-
-  .pbtn{padding:10px 16px;border-radius:10px;border:2px solid #d0d7de;background:#fff;
-        font-weight:800;font-size:15px;cursor:pointer;color:#111;white-space:nowrap}
-  .pbtn:hover{border-color:#111}
-  .pbtn.on{background:#d8f0e2;color:#166534;border-color:#8fccaa}
-  .pbtn.clear{font-weight:700;color:#777}
-  .pbtn.clear.on{background:#eef1f5;color:#334155;border-color:#c2ccd8}
+  .pbtn{white-space:nowrap}
   .pbtn:disabled{opacity:.45;cursor:wait}
-  /* no se compra: se fabrica adentro o esta discontinuado */
-  .pbtn.est{font-weight:700;color:#5b21b6;border-color:#ddd6fe}
-  .pbtn.est.on{background:#e5daf6;color:#5b21b6;border-color:#c3aee6}
-  .parte.nocompra{background:#faf5ff}
-  .parte.nocompra:hover{background:#f3e8ff}
-
-  .resumen{display:flex;gap:10px;flex-wrap:wrap;margin:10px 0}
-  .rcard{background:#f6f8fa;border-radius:10px;padding:9px 14px;font-size:15px;font-weight:700}
-  .rcard b{font-size:19px;display:block}
-  .rcard.warn{background:#fffbeb;color:#7c2d12}
-  .nota{background:#eef4fb;border-left:4px solid #cddaea;padding:10px 12px;border-radius:6px;font-size:14px;margin:10px 0}
-  .nota summary{cursor:pointer;font-weight:700;list-style:none}
-  .nota summary::-webkit-details-marker{display:none}
-  .nota summary::after{content:" ▾";color:#0b3b73}
-  .nota[open] summary::after{content:" ▴"}
-  .lista{border:1px solid #e6eaee;border-radius:10px;overflow:hidden}
+  /* no se compra (se fabrica adentro o esta discontinuado): borde punteado */
+  .pbtn.est:not(.on){border-style:dashed;color:var(--ink-2)}
+  .pbtn.clear:not(.on){color:var(--ink-2);border-color:var(--line)}
+  .pbtn.clear.on{background:var(--surface-3);border-color:var(--line-2);color:var(--ink)}
 
   /* ── material plastico por inyector (2026-09-10) ── */
-  #matPanel{border:1px solid #cddaea;border-radius:10px;padding:10px 12px;margin:10px 0;background:#f8fbff}
-  .mat-titulo{font-weight:800;font-size:17px;color:#0b3b73;margin-bottom:6px}
-  .mat-virgilio{font-size:15px;color:#333;margin-bottom:8px;line-height:1.5}
-  .mat-tabla{border-collapse:collapse;width:100%;font-size:15px;min-width:640px}
-  .mat-tabla th{text-align:left;font-size:13px;color:#555;padding:6px 8px;border-bottom:2px solid #d0d7de;white-space:nowrap}
-  .mat-tabla td{padding:6px 8px;border-bottom:1px solid #e6eaee;vertical-align:middle}
-  .mat-tabla td.num{text-align:right;white-space:nowrap}
-  .mat-tabla td.num.falta{color:#b45309;font-weight:800}
-  .mat-tabla td.vacio{color:#777;font-size:14px}
-  .mat-bolsas,#matBolsas{width:84px;font-size:20px;font-weight:800;text-align:right;padding:8px 10px;
-        border:2px solid #d0d7de;border-radius:8px;min-height:44px}
-  .mat-btn,#matEnviar{padding:10px 16px;border-radius:10px;border:2px solid #0b5cad;background:#0b5cad;color:#fff;
-        font-weight:800;font-size:15px;cursor:pointer;min-height:44px;white-space:nowrap}
-  .mat-btn:disabled,#matEnviar:disabled{opacity:.45;cursor:wait}
-  .mat-manual{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:10px;font-size:15px}
-  .mat-manual label{display:flex;gap:6px;align-items:center;font-weight:700}
-  .mat-manual select{font-size:18px;padding:8px;border:2px solid #d0d7de;border-radius:8px;min-height:44px;max-width:100%}
-  @media (max-width:640px){
-    .mat-manual{gap:7px}
-    .mat-manual select{flex:1 1 100%}
-  }
+  #matPanel{margin:var(--s3) 0}
+  .mat-virgilio{font-size:15px;color:var(--ink-2);margin-bottom:8px;line-height:1.5}
+  .mat-virgilio b{color:var(--ink)}
+  .mat-tabla{min-width:640px}
+  .mat-tabla td.num.falta{color:var(--warn);font-weight:800}
+  .mat-tabla td.vacio{color:var(--ink-3);font-size:14px}
+  .mat-bolsas,#matBolsas{width:84px;min-height:44px;font-size:20px;font-weight:800;text-align:right}
+  .mat-btn:disabled,#matEnviar:disabled{cursor:wait}
+  .mat-manual{display:flex;gap:var(--s2) var(--s3);flex-wrap:wrap;align-items:flex-end;margin-top:var(--s3)}
+  .mat-manual .lbl{align-self:center}
+  .mat-manual select{min-width:200px;max-width:100%}
+  #matStatus:empty{display:none}
 
   /* ── celular: que se llegue a los botones sin scrollear medio metro ──
-     El encabezado (nota + chips de rubro + resumen) se comprime a una linea
-     cada uno, y los botones de proveedor pasan a una grilla de 2 columnas
-     con alto de dedo (44px) en vez de envolverse en 3 filas. */
+     Rubros y resumen van en una sola linea que se desliza al costado, y los
+     botones de proveedor pasan a una grilla de 2 columnas con alto de dedo. */
   @media (max-width:640px){
-    .card{border-radius:0}
-    /* el encabezado compartido se comia media pantalla: titulo mas chico y los
-       3 botones en una sola fila (solo en esta pantalla, no toca gp2-modulo.css) */
-    .header{padding:10px 12px}
-    .header h1{font-size:19px;line-height:1.15}
-    .header .hbtns{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
-    .header .hbtns a,.header .hbtns .hlink{font-size:13px;padding:7px 11px}
-    .steps{padding-top:6px}
-    .nota{font-size:13px;padding:8px 10px;margin:6px 0}
-
-    /* rubros y resumen: una sola linea que se desliza al costado */
-    .chips,.resumen{flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;
-                    scrollbar-width:none;margin:6px 0;padding-bottom:2px}
-    .chips::-webkit-scrollbar,.resumen::-webkit-scrollbar{display:none}
-    .chip{flex:0 0 auto;font-size:14px;padding:7px 12px}
-    .chip .badge{font-size:11px;padding:1px 6px}
-    .rcard{flex:0 0 auto;font-size:12px;padding:5px 10px;line-height:1.15}
-    .rcard b{font-size:15px}
-    .search-box{margin:6px 0}
+    .nota-txt{font-size:14px}
+    #secChips,.resumen{display:flex;flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;
+                       scrollbar-width:none;margin:6px 0;padding-bottom:2px}
+    #secChips::-webkit-scrollbar,.resumen::-webkit-scrollbar{display:none}
+    #secChips .chip,.resumen .kpi{flex:0 0 auto}
+    .resumen .kpi{padding:6px 12px}
+    .resumen .kpi .v{font-size:18px}
+    .mat-manual .field{flex:1 1 100%}
+    .mat-manual select{width:100%}
 
     /* la parte: titulo compacto arriba, botonera a lo ancho abajo */
     .parte{padding:9px 10px;gap:7px}
     .p-izq{min-width:100%;flex:none}
     .p-cod{font-size:16px}
-    .p-desc{font-size:14px}
-    .p-meta{font-size:11px}
+    .p-desc{font-size:15px}
     .p-der{width:100%;display:grid;grid-template-columns:1fr 1fr;gap:7px;justify-content:stretch}
-    .pbtn{width:100%;min-height:44px;padding:10px 8px;font-size:14px;white-space:normal}
+    .pbtn{width:100%;justify-content:center;text-align:center;padding:8px;font-size:15px;white-space:normal}
     /* "sin asignar" ocupa el ancho entero: es la salida, no una opcion mas */
-    .pbtn.clear{grid-column:1 / -1;min-height:38px}
+    .pbtn.clear{grid-column:1 / -1}
   }
 </style>
 </head>
@@ -134,9 +104,9 @@
   </div>
 
   <div class="steps">
-    <details class="nota">
+    <details class="nota acc">
       <summary>Tocá el botón del proveedor que fabrica cada parte. Se guarda al instante.</summary>
-      <div style="margin-top:6px">
+      <div class="nota-txt">
         Lo que quede asignado acá es lo que <b>separa la Orden de Compra</b>: en OC elegís el
         proveedor y la orden sale sólo con <b>sus</b> partes. Si mañana cambia el inyector,
         se cambia desde acá y la OC lo sigue solo.
@@ -144,27 +114,27 @@
     </details>
 
     <div class="chips" id="secChips"></div>
-    <div class="resumen" id="resumen"></div>
+    <div class="resumen kpis" id="resumen"></div>
 
     <!-- Materia prima plastica: lo que cada inyector necesita para sus OC abiertas vs lo que tiene.
          Solo aparece cuando el bundle trae materiales (rubro Plasticos). -->
-    <div id="matPanel" class="hidden">
-      <div class="mat-titulo">Material plástico en poder de cada inyector</div>
+    <div id="matPanel" class="panel hidden">
+      <div class="panel-h mat-titulo">Material plástico en poder de cada inyector</div>
       <div class="mat-virgilio" id="matVirgilio"></div>
-      <div class="table-wrap">
-        <table class="mat-tabla" id="matTabla">
+      <div class="table-wrap libre">
+        <table class="t mat-tabla" id="matTabla">
           <thead><tr>
-            <th>Inyector</th><th>Material</th><th>Necesita p/ OC</th><th>Tiene</th><th>Le falta</th><th>Bolsas</th><th></th>
+            <th>Inyector</th><th>Material</th><th class="num">Necesita p/ OC</th><th class="num">Tiene</th><th class="num">Le falta</th><th>Bolsas</th><th></th>
           </tr></thead>
           <tbody></tbody>
         </table>
       </div>
       <div class="mat-manual">
-        <span style="font-weight:800">Envío manual:</span>
-        <select id="matIny" aria-label="Inyector"></select>
-        <select id="matMat" aria-label="Material"></select>
-        <label for="matBolsas">Bolsas <input type="text" inputmode="numeric" id="matBolsas" value="1"></label>
-        <button type="button" id="matEnviar">Enviar</button>
+        <span class="lbl">Envío manual:</span>
+        <div class="field"><label for="matIny">Inyector</label><select id="matIny"></select></div>
+        <div class="field"><label for="matMat">Material</label><select id="matMat"></select></div>
+        <div class="field"><label for="matBolsas">Bolsas</label><input type="text" inputmode="numeric" id="matBolsas" value="1"></div>
+        <button type="button" id="matEnviar" class="btn btn-primary">Enviar</button>
       </div>
       <div id="matStatus" class="status"></div>
     </div>
@@ -238,7 +208,7 @@ function pintarMaterial(){
       '<td class="num">' + fmt(r.kg_en_inyector, 1) + " kg</td>" +
       '<td class="num' + (falta ? " falta" : "") + '">' + fmt(r.kg_a_enviar, 1) + " kg</td>" +
       '<td><input type="text" inputmode="numeric" class="mat-bolsas" aria-label="Bolsas a enviar" value="' + esc(String(r.bolsas_a_enviar || 0)) + '"></td>' +
-      '<td><button type="button" class="mat-btn">Enviar</button></td>';
+      '<td><button type="button" class="mat-btn btn btn-primary btn-sm">Enviar</button></td>';
     tr.querySelector(".mat-btn").addEventListener("click", function(){
       enviarMaterial(r.proveedor, r.material_id, GP2N.entero(tr.querySelector(".mat-bolsas").value), this);
     });
@@ -276,7 +246,7 @@ async function enviarMaterial(prov, compId, bolsas, btn){
 function pintarChips(){
   var g = $("secChips"); g.innerHTML = "";
   var lbl = document.createElement("span");
-  lbl.style.cssText = "font-weight:800;font-size:15px;margin-right:4px";
+  lbl.className = "rubro-lbl";
   lbl.textContent = "Rubro:";
   g.appendChild(lbl);
   (D.sectores||[]).forEach(function(s){
@@ -284,7 +254,7 @@ function pintarChips(){
     b.type = "button";
     b.className = "chip" + (Number(s.id) === Number(secSel) ? " active" : "");
     b.innerHTML = esc(s.nombre.replace(/^Sector /, "")) +
-      (Number(s.sin_prov) > 0 ? ('<span class="badge">' + fmt(s.sin_prov) + " sin asignar</span>") : "");
+      (Number(s.sin_prov) > 0 ? ('<span class="badge warn">' + fmt(s.sin_prov) + " sin asignar</span>") : "");
     b.addEventListener("click", function(){ secSel = Number(s.id); $("q").value=""; cargar(); });
     g.appendChild(b);
     // en el celular los rubros van en una linea que se desliza: si el elegido
@@ -338,7 +308,7 @@ function render(){
     (D.proveedores||[]).forEach(function(pr){
       var b = document.createElement("button");
       b.type = "button";
-      b.className = "pbtn" + (p.proveedor === pr.nombre ? " on" : "");
+      b.className = "pbtn chip" + (p.proveedor === pr.nombre ? " on" : "");
       b.textContent = pr.nombre;
       b.addEventListener("click", function(){ asignar(fila, p, pr.nombre, b); });
       der.appendChild(b);
@@ -348,7 +318,7 @@ function render(){
     Object.keys(ESTADOS).forEach(function(e){
       var b = document.createElement("button");
       b.type = "button";
-      b.className = "pbtn est" + (p.estado_compra === e ? " on" : "");
+      b.className = "pbtn chip est" + (p.estado_compra === e ? " on" : "");
       b.textContent = ESTADOS[e];
       b.title = e === "fabricacion" ? "Se hace adentro, no se compra"
                                     : "Ya no se usa: no se compra mas";
@@ -358,7 +328,7 @@ function render(){
 
     var bc = document.createElement("button");
     bc.type = "button";
-    bc.className = "pbtn clear" + (!p.proveedor && !p.estado_compra ? " on" : "");
+    bc.className = "pbtn chip clear" + (!p.proveedor && !p.estado_compra ? " on" : "");
     bc.textContent = "— sin asignar";
     bc.title = "Dejarla pendiente de definir";
     bc.addEventListener("click", function(){ asignar(fila, p, null, bc); });
@@ -390,8 +360,8 @@ function pintarResumen(){
     return porProv[b] - porProv[a];
   });
   $("resumen").innerHTML = claves.map(function(k){
-    return '<div class="rcard' + (k === "(sin asignar)" ? " warn" : "") + '">' +
-           "<b>" + fmt(porProv[k]) + "</b>" + esc(k) + "</div>";
+    return '<div class="rcard kpi' + (k === "(sin asignar)" ? " warn" : "") + '">' +
+           '<span class="v">' + fmt(porProv[k]) + '</span><span class="k">' + esc(k) + "</span></div>";
   }).join("");
 }
 

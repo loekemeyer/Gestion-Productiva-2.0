@@ -13,8 +13,8 @@
 <style>
     /* Sistema de diseño v2 (2026-10-08): barra, filtros, KPIs, tabla y modal salen de
        gp2-modulo.css. Aca queda el ancho de los filtros, la marca de tiempo muerto y el detalle. */
-    .filters-grid select { max-width: 280px; }
-    .filters-grid #fechaDesde, .filters-grid #fechaHasta { width: 190px; }
+    .filters-grid select { max-width: 240px; }
+    .filters-grid #fechaDesde, .filters-grid #fechaHasta { width: 180px; }
 
     /* la columna Uni se destaca: es el dato que se mira */
     table.t th.col-uni-h { background: var(--pri-soft); color: var(--pri-h); }
@@ -296,9 +296,9 @@
     /* .kpis > .kpi > .k + .v (sistema de diseño v2) */
     rowCount.innerHTML =
       '<div class="kpi"><span class="k">Registros</span><span class="v">' + rows.length + '</span></div>' +
-      '<div class="kpi pri"><span class="k">Cajones</span><span class="v">' + cajones + '</span></div>' +
+      '<div class="kpi"><span class="k">Cajones</span><span class="v">' + cajones + '</span></div>' +
       '<div class="kpi warn"><span class="k">Tiempos muertos</span><span class="v">' + tms + '</span></div>' +
-      '<div class="kpi ok"><span class="k">Total Uni</span><span class="v">' + sumUni.toLocaleString('es-AR') + '</span></div>';
+      '<div class="kpi pri"><span class="k">Total Uni</span><span class="v">' + sumUni.toLocaleString('es-AR') + '</span></div>';
 
     var frag = document.createDocumentFragment();
     rows.forEach(function (r, idx) {
@@ -383,13 +383,15 @@
   selTM.addEventListener('change', applyFiltersAndRender);
   selOrden.addEventListener('change', applyFiltersAndRender);
 
-  // boton CSV al lado de Buscar
+  // boton CSV en la barra de la app, antes de "Atrás" (sistema de diseño v2: las acciones van arriba)
   var btnCsv = document.createElement('button');
-  btnCsv.className = 'btn btn-secondary btn-csv';
+  btnCsv.className = 'hlink btn-csv';
   btnCsv.type = 'button';
-  btnCsv.textContent = 'Exportar CSV';
+  btnCsv.textContent = '⬇ Exportar CSV';
   btnCsv.addEventListener('click', exportCSV);
-  btnBuscar.parentNode.appendChild(btnCsv);
+  var hbtns = document.querySelector('.header .hbtns');
+  if (hbtns) hbtns.insertBefore(btnCsv, hbtns.firstChild);
+  else btnBuscar.parentNode.appendChild(btnCsv);
 })();
 </script>
 <script src="../gp2-menu.js?v=20261008ds"></script>

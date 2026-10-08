@@ -113,74 +113,55 @@
 <link rel="apple-touch-icon" href="../GP2_favicon.png">
 <link rel="stylesheet" href="../gp2-modulo.css?v=20261008ds">
 <style>
-  *{box-sizing:border-box}
-  body{margin:0;background:#f4f6f8;color:#111;font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
-       font-size:18px;-webkit-text-size-adjust:100%}
-  .wrap{max-width:1100px;margin:0 auto;padding:14px 16px 40px}
-  header{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;
-         border-bottom:2px solid #d0d7de;padding-bottom:12px;margin-bottom:14px}
-  h1{font-size:23px;margin:0;font-weight:900;color:#0b3b73}
-  .hbtns{display:flex;gap:8px;flex-wrap:wrap}
-  .hlink{min-height:44px;padding:10px 14px;border:2px solid #d0d7de;border-radius:10px;background:#fff;
-         color:#0b3b73;font-size:16px;font-weight:800;text-decoration:none;font-family:inherit;cursor:pointer;
-         display:inline-flex;align-items:center}
-  h2{font-size:18px;margin:18px 0 10px;color:#475569;text-transform:uppercase;letter-spacing:.4px}
-  .cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px}
-  .card{border:2px solid #d0d7de;border-radius:14px;background:#fff;padding:14px 16px;overflow-wrap:anywhere}
-  .card.desvio{border-color:#c2410c;background:#fff7ed}
-  .cod{font-size:21px;font-weight:900;color:#0b3b73}
-  .desc{font-size:17px;font-weight:700;margin-top:2px}
-  .meta{font-size:15px;color:#555;margin-top:4px}
-  .remito{margin:10px 0 4px;font-size:17px;font-weight:800;color:#0b5cad}
-  label{display:block;font-size:15px;font-weight:800;color:#475569;margin:10px 0 4px}
-  input{width:100%;min-height:48px;font-size:20px;font-weight:700;padding:8px 10px;border:2px solid #d0d7de;
-        border-radius:10px;background:#fff;color:#111;font-family:inherit;text-align:right}
+  /* tarjetas de lo pendiente (una por entrega) — el resto lo pone gp2-modulo.css */
+  .cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,300px),1fr));gap:var(--s3)}
+  .cards>.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-md);padding:14px 16px;overflow-wrap:anywhere}
+  .cards>.card.desvio{border-color:var(--warn-line);background:var(--warn-soft);box-shadow:inset 4px 0 0 var(--warn-line)}
+  .cards>.empty{grid-column:1/-1;background:var(--surface);border:1px dashed var(--line-2);border-radius:var(--r-md)}
+  .cards .cod{font-size:20px}
+  .cards .desc{font-weight:650;margin-top:2px}
+  .cards .meta{font-size:var(--fs-sm);color:var(--ink-3);margin-top:4px}
+  .cards .remito{margin:10px 0 4px;font-weight:700;color:var(--pri-ink)}
   /* v1.4.0: los campos van al ancho del número, no a lo ancho de la tarjeta [usuario 2026-09-29:
      "quiero que los boxs de paquetes y kg estén más compactos"] */
-  .campos{display:flex;flex-wrap:wrap;gap:10px}
+  .campos{display:flex;flex-wrap:wrap;gap:10px;margin-top:6px}
   .campos > div{flex:0 0 124px}
+  .campos input{width:100%;min-height:48px;font-size:20px;font-weight:650;text-align:right;font-variant-numeric:tabular-nums}
   /* sin diferencia cargada no hay renglón: un hueco en blanco arriba del botón es espacio muerto */
-  .diff{margin-top:8px;font-size:16px;font-weight:800;color:#166534}
+  .diff{margin-top:8px;font-size:16px;font-weight:700;color:var(--ok)}
   .diff:empty{display:none}
-  .diff.mal{color:#c2410c}
-  .btn{width:100%;min-height:52px;margin-top:10px;border:0;border-radius:12px;background:#0b5cad;color:#fff;
-       font-size:18px;font-weight:900;font-family:inherit;cursor:pointer}
-  .btn[disabled]{background:#b6c2cf;cursor:default}
-  a.btn{display:flex;align-items:center;justify-content:center;text-decoration:none}
-  .empty{border:2px dashed #d0d7de;border-radius:14px;padding:22px;text-align:center;color:#555;font-size:17px}
-  .table-wrap{overflow-x:auto}
-  table{border-collapse:collapse;width:100%;font-size:16px;background:#fff}
-  th,td{border:1px solid #e2e8f0;padding:8px 10px;text-align:left;white-space:nowrap}
-  th{background:#eef4fb;color:#0b3b73;font-weight:800}
-  td.num{text-align:right}
-  .ok{color:#166534;font-weight:800}
-  .mal{color:#c2410c;font-weight:800}
-  #status{font-size:17px;color:#555;padding:6px 0}
+  .diff.mal{color:var(--warn)}
+  .cards .btn{margin-top:10px}
+  #insBox{margin-top:var(--s5)}
+  #hechosWrap td.ok{color:var(--ok);font-weight:700}
+  #hechosWrap td.mal{color:var(--err);font-weight:700}
 </style>
 </head>
 <body>
-<div class="wrap">
-  <header>
-    <h1>Control de entregas <span style="font-size:15px;font-weight:700;color:#475569">prov. de servicio, talleristas e insumos</span></h1>
+<div class="card">
+  <div class="header">
+    <h1>Control de entregas<small>prov. de servicio, talleristas e insumos</small></h1>
     <div class="hbtns">
       <a class="hlink" href="Tablet_GP2.html?modo=recibir">← Recepción</a>
-      <a class="hlink" href="../GP2_MODULOS.html">Menú</a>
+      <a href="../GP2_MODULOS.html">Atrás</a>
     </div>
-  </header>
-
-  <div id="status">Cargando…</div>
-
-  <h2>Pendiente de controlar (<span id="nPend">0</span>)</h2>
-  <div class="cards" id="pend"></div>
-
-  <!-- prov. de insumos: se controlan en su propia pantalla; acá está la puerta (v1.5.0) -->
-  <div id="insBox" class="hidden">
-    <h2>Prov. de insumos sin controlar (<span id="nIns">0</span>)</h2>
-    <div class="cards" id="insPend"></div>
   </div>
 
-  <h2>Controlado</h2>
-  <div class="table-wrap" id="hechosWrap"></div>
+  <div class="steps">
+    <div id="status" class="status mt0">Cargando…</div>
+
+    <h2 class="sec-h">Pendiente de controlar <span class="badge pri" id="nPend">0</span></h2>
+    <div class="cards" id="pend"></div>
+
+    <!-- prov. de insumos: se controlan en su propia pantalla; acá está la puerta (v1.5.0) -->
+    <div id="insBox" class="hidden">
+      <h2 class="sec-h">Prov. de insumos sin controlar <span class="badge warn" id="nIns">0</span></h2>
+      <div class="cards" id="insPend"></div>
+    </div>
+
+    <h2 class="sec-h">Controlado</h2>
+    <div class="table-wrap" id="hechosWrap"></div>
+  </div>
 </div>
 
 <script src="../auth-guard.js?v=20261006b"></script>
@@ -309,11 +290,11 @@ function render() {
     var env = envaseDe(x), pesa = pesaDe(x);
     var esKg = String(x.unidad || "").toLowerCase() === "kg";
     var campos = "";
-    if (env) campos += "<div><label>" + esc(env.label.charAt(0).toUpperCase() + env.label.slice(1)) +
+    if (env) campos += '<div class="field"><label>' + esc(env.label.charAt(0).toUpperCase() + env.label.slice(1)) +
                        "</label>" + '<input data-f="env" inputmode="numeric"></div>';
-    if (pesa) campos += "<div><label>Kilos</label>" + '<input data-f="kg" inputmode="decimal"></div>';
+    if (pesa) campos += '<div class="field"><label>Kilos</label>' + '<input data-f="kg" inputmode="decimal"></div>';
     if (!env && !pesa)
-      campos += "<div><label>Contado (" + esc(x.unidad) + ")</label>" +
+      campos += '<div class="field"><label>Contado (' + esc(x.unidad) + ")</label>" +
                 '<input data-f="cant" inputmode="' + (esKg ? "decimal" : "numeric") + '"></div>';
     var card = document.createElement("div");
     card.className = "card";
@@ -327,7 +308,7 @@ function render() {
         (env ? " · " + fmt(env.factor, 0) + " por " + esc(singular(env.label)) : "") + "</div>" +
       '<div class="campos">' + campos + "</div>" +
       '<div class="diff"></div>' +
-      '<button class="btn" type="button" data-a="ok">Confirmar control</button>';
+      '<button class="btn btn-primary btn-block btn-lg" type="button" data-a="ok">Confirmar control</button>';
     cont.appendChild(card);
   });
 
@@ -337,7 +318,7 @@ function render() {
   if (!D.hechos.length) { t.innerHTML = '<div class="empty">Todavía no se controló ninguna entrega.</div>'; }
   else {
     t.innerHTML =
-      '<table><thead><tr><th>Parte</th><th>Proveedor</th><th class="num">Remito</th>' +
+      '<table class="t"><thead><tr><th>Parte</th><th>Proveedor</th><th class="num">Remito</th>' +
       '<th class="num">Contado</th><th class="num">Dif.</th><th class="num">Bultos</th><th>Quién</th></tr></thead><tbody>' +
       D.hechos.map(function (h) {
         var d = Number(h.diff || 0);
@@ -369,7 +350,7 @@ function renderInsumos() {
       '<div class="meta">' + fmt(Number(g.n), 0) + (Number(g.n) === 1 ? " recepción" : " recepciones") +
         (g.via === "pesaje" ? " sin pesar" : "") + " · desde " + esc(GP2UI.fechaTsAR(g.desde)) + "</div>" +
       '<div class="remito">' + esc(cods) + "</div>" +
-      '<a class="btn" href="' + esc(href) + '">Controlar →</a></div>';
+      '<a class="btn btn-primary btn-block btn-lg" href="' + esc(href) + '">Controlar →</a></div>';
   }).join("");
 }
 

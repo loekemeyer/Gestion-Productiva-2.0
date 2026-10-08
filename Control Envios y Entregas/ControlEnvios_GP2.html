@@ -19,12 +19,21 @@
   .toolbar .chips{margin:0}
   /* pivote por dia: la 1ra columna (parte + descripcion) queda fija al scrollear de costado */
   table.t td.num,table.t th.num{white-space:nowrap}
-  table.t td.parte{min-width:150px;max-width:260px}
+  table.t td.parte{min-width:210px;max-width:280px}
+  table.t td.nom{white-space:nowrap}
   table.t td.tot,table.t th.tot{background:var(--surface-2);font-weight:750}
-  /* la fila de totales vive en el tbody (la cuenta el test) pero queda pegada abajo como un tfoot */
+  /* la fila de totales vive en el tbody (la cuenta el test) pero queda pegada abajo como un tfoot.
+     "Total" va en su propia celda (sin colspan): una celda fija de 3 columnas tapaba los dias */
   table.t tr.tot-row>td{position:sticky;bottom:0;z-index:2;background:var(--surface-2);font-weight:750;border-top:2px solid var(--line-2);border-bottom:0}
   .fix1 table.t tr.tot-row>td:first-child{z-index:3;background:var(--surface-2)}
-  @media (max-width:640px){ table.t td.parte{min-width:120px;max-width:170px} }
+  @media (max-width:640px){
+    table.t td.parte{min-width:120px;max-width:170px}
+    /* celular: cada grupo de chips en una tira que se desliza, asi los filtros no se comen la pantalla */
+    .toolbar>.field{max-width:100%}
+    .toolbar .chips{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+    .toolbar .chips::-webkit-scrollbar{display:none}
+    .toolbar .chips .chip{flex:0 0 auto}
+  }
 </style>
 </head>
 <body>
@@ -178,14 +187,14 @@ function render(){
   $('tbody').innerHTML=p.rows.map(function(r){
     totGral+=r.total;
     return '<tr><td class="parte"><span class="cod">'+esc(r.codigo)+'</span><br><small class="sub">'+esc(r.descripcion||'')+'</small></td>'+
-      '<td>'+esc(r.contraparte)+'</td><td>'+r.unidad+'</td>'+
+      '<td class="nom">'+esc(r.contraparte)+'</td><td>'+r.unidad+'</td>'+
       p.cols.map(function(d){
         var v=r.celdas[d];
         if(v!=null) totCols[d]=(totCols[d]||0)+v;
         return '<td class="num">'+(v==null?'':fmt(v,dec))+'</td>';
       }).join('')+
       '<td class="num tot">'+fmt(r.total,dec)+'</td></tr>';
-  }).join('') + (p.rows.length ? ('<tr class="tot-row"><td class="tot" colspan="3">Total</td>'+
+  }).join('') + (p.rows.length ? ('<tr class="tot-row"><td class="tot">Total</td><td class="tot"></td><td class="tot"></td>'+
       p.cols.map(function(d){ return '<td class="num tot">'+(mixto?'—':fmt(totCols[d]||0,dec))+'</td>'; }).join('')+
       '<td class="num tot">'+(mixto?'—':fmt(totGral,dec))+'</td></tr>') : '');
   $('tblEmpty').classList.toggle('hidden', p.rows.length>0 || !origSel);

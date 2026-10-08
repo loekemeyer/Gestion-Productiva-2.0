@@ -17,22 +17,9 @@
 <link rel="apple-touch-icon" href="../../GP2_favicon.png">
 <link rel="stylesheet" href="../../gp2-modulo.css?v=20261008ds">
 <style>
-  .provs{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0}
-  .prov-btn{padding:11px 16px;min-height:44px;border-radius:10px;border:2px solid #d0d7de;background:#fff;font-weight:800;cursor:pointer;font-size:17px;color:#111}
-  .prov-btn.active{background:#111;color:#fff;border-color:#111}
-  .prov-btn small{display:block;font-size:13px;font-weight:600;color:#666}
-  .prov-btn.active small{color:#cfd8e3}
-  .cab{display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end;margin:10px 0}
-  .cab .fld{display:flex;flex-direction:column;gap:4px}
-  .cab label{font-size:15px;font-weight:800;color:#444}
-  .cab input{padding:10px 12px;min-height:44px;font-size:19px;border:2px solid #d0d7de;border-radius:8px}
-  td.num{text-align:right;font-variant-numeric:tabular-nums}
-  .caj-in{width:110px;padding:8px;font-size:19px;text-align:right;border:2px solid #d0d7de;border-radius:8px}
-  tr.con-carga td{background:#eef7ee}
-  .btn-conf{padding:13px 24px;font-size:19px;font-weight:800;border-radius:8px;border:2px solid #111;background:#111;color:#fff;cursor:pointer;margin-top:12px;min-height:44px}
-  .btn-conf:disabled{opacity:.4;cursor:default}
-  .badge-fac{padding:3px 10px;border-radius:12px;font-size:13px;font-weight:800;background:#e8f5e9;color:#0a7a2f}
-  .table-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
+  /* fila con cajas cargadas: se ve qué artículos entran */
+  table.t tr.con-carga>td{background:var(--ok-soft)}
+  #remito{width:160px}
 </style>
 </head>
 <body>
@@ -44,18 +31,18 @@
   </div>
 
   <div class="steps">
-    <div class="row"><b style="font-size:18px">Proveedor de Artículo Terminado:</b></div>
-    <div class="provs" id="provs"></div>
+    <h2 class="sec-h">Proveedor de Artículo Terminado</h2>
+    <div class="provs-grid" id="provs"></div>
 
     <div id="zona" class="hidden">
-      <div class="cab">
-        <div class="fld">
+      <div class="row end">
+        <div class="field">
           <label for="fecha">Fecha</label>
           <input type="date" id="fecha">
         </div>
-        <div class="fld">
+        <div class="field">
           <label for="remito">Remito (opcional)</label>
-          <input type="text" id="remito" placeholder="N°" style="width:150px">
+          <input type="text" id="remito" placeholder="N°">
         </div>
       </div>
 
@@ -68,16 +55,16 @@
       </div>
       <div id="tblEmpty" class="empty hidden">Este proveedor no tiene artículos asignados.</div>
 
-      <button type="button" class="btn-conf" id="btnConf" disabled>Confirmar Entrega</button>
+      <div class="row">
+        <button type="button" class="btn btn-primary btn-lg btn-conf" id="btnConf" disabled>Confirmar Entrega</button>
+      </div>
     </div>
 
-    <div style="margin-top:18px">
-      <h2 style="font-size:18px;margin:0 0 6px">Últimas entregas</h2>
-      <div class="table-wrap"><table class="t">
-        <thead><tr><th>Fecha</th><th>Prov AT</th><th>Artículo</th><th class="num">Cajas</th><th>Remito</th><th></th></tr></thead>
-        <tbody id="ultBody"></tbody>
-      </table></div>
-    </div>
+    <h2 class="sec-h">Últimas entregas</h2>
+    <div class="table-wrap libre"><table class="t">
+      <thead><tr><th>Fecha</th><th>Prov AT</th><th>Artículo</th><th class="num">Cajas</th><th>Remito</th><th></th></tr></thead>
+      <tbody id="ultBody"></tbody>
+    </table></div>
 
     <div id="status" class="status">Cargando…</div>
   </div>
@@ -104,7 +91,7 @@ async function boot(){
   (D.provs||[]).forEach(function(p){
     var b=document.createElement('button'); b.type='button';
     b.className='prov-btn'+(provSel&&provSel.id===p.id?' active':'');
-    b.innerHTML=esc(p.nombre)+'<small>'+p.arts+' art.</small>';
+    b.innerHTML=esc(p.nombre)+'<span class="meta">'+p.arts+' art.</span>';
     b.addEventListener('click',function(){
       // CARGA vive solo en memoria: cambiar de proveedor con cosas cargadas las
       // perdia sin avisar. Mismo cuidado que en DevolucionCervantes.
@@ -139,9 +126,9 @@ function render(){
   $('tbody').innerHTML=as.map(function(a){
     var v=CARGA[a.cod_art]||'';
     return '<tr'+(v>0?' class="con-carga"':'')+'>'+
-      '<td><b>'+esc(a.cod_art)+'</b><br><small style="color:#777">'+esc(a.descripcion||'')+'</small></td>'+
+      '<td><span class="cod">'+esc(a.cod_art)+'</span><br><small class="sub">'+esc(a.descripcion||'')+'</small></td>'+
       '<td class="num">'+(a.n_caja==null?'—':esc(a.n_caja))+'</td>'+
-      '<td class="num"><input class="caj-in" data-cod="'+esc(a.cod_art)+'" inputmode="numeric" value="'+(v?fmt(v):'')+'" placeholder="cajas"></td>'+
+      '<td class="num"><input class="caj-in cell-in" data-cod="'+esc(a.cod_art)+'" inputmode="numeric" value="'+(v?fmt(v):'')+'" placeholder="cajas"></td>'+
     '</tr>';
   }).join('');
   $('tblEmpty').classList.toggle('hidden', as.length>0 || !provSel);
@@ -187,7 +174,7 @@ $('btnConf').addEventListener('click', async function(){
     $('status').textContent='✓ Entrega registrada: '+hechas+' artículo(s) de '+provSel.nombre+'.';
   }catch(e){
     render();   // quedan marcados solo los que fallaron
-    $('status').className='status bad';
+    $('status').className='status err';
     $('status').textContent='Error (se cargaron '+hechas+' de '+items.length+
       ', los cargados ya no se reintentan): '+(e.message||e);
   }finally{ $('btnConf').disabled=false; habilitar(); }
@@ -196,10 +183,10 @@ $('btnConf').addEventListener('click', async function(){
 function pintarUltimas(){
   $('ultBody').innerHTML=(D.ultimas||[]).map(function(u){
     return '<tr><td>'+esc(fechaAR(u.fecha))+'</td><td>'+esc(u.prov||'')+'</td>'+
-      '<td><b>'+esc(u.cod_art)+'</b> <small style="color:#777">'+esc(u.descripcion||'')+'</small></td>'+
+      '<td><span class="cod">'+esc(u.cod_art)+'</span> <small class="sub">'+esc(u.descripcion||'')+'</small></td>'+
       '<td class="num">'+fmt(u.cajas)+'</td><td>'+esc(u.remito||'')+'</td>'+
-      '<td>'+(u.facturada?'<span class="badge-fac">facturada</span>':'')+'</td></tr>';
-  }).join('') || '<tr><td colspan="6" style="color:#888">Sin entregas todavía.</td></tr>';
+      '<td>'+(u.facturada?'<span class="badge ok badge-fac">facturada</span>':'')+'</td></tr>';
+  }).join('') || '<tr><td colspan="6"><span class="muted">Sin entregas todavía.</span></td></tr>';
 }
 
 $('q').addEventListener('input', render);

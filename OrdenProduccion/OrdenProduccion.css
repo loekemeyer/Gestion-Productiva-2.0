@@ -1,214 +1,113 @@
-*{box-sizing:border-box}
-
-body{
-  font-family:Arial, sans-serif;
-  background:#f5f6f8;
-  margin:0;
-  padding:30px;
-}
-
-.card{
-  max-width:1250px;
-  margin:auto;
-  background:#fff;
-  border-radius:16px;
-  padding:20px;
-  border:1px solid #d9dde3;
-}
-
-h1{
-  margin:0 0 6px;
-  font-size:28px;
-}
+/* Orden de Produccion: lo propio de esta pantalla. La base (barra, campos, botones, kpis,
+   letra Inter) la da gp2-modulo.css, que se carga ANTES que esta hoja.
+   El marcado de las ordenes lo arma OrdenProduccion.js (.orden, .bloque, .tabla, .chip-*,
+   .tot-item...): aca se le da el aspecto del sistema con los tokens. */
 
 .subtitle{
-  color:#666;
-  font-size:13px;
-  margin-bottom:14px;
-  max-width:760px;
+  max-width:860px;
+  margin:0 0 var(--s2);
 }
 
-.status{
-  margin-bottom:12px;
-  color:#444;
-  font-size:13px;
+/* titulo solo para el papel (la barra de la app no se imprime) */
+.print-titulo{
+  display:none;
 }
 
 .status-error{
-  color:#b3261e;
-  font-weight:bold;
-}
-
-.hidden{
-  display:none !important;
-}
-
-.tallerista-btn{
-  min-height:62px;
-  padding:0 26px;
-  border-radius:999px;
-  border:3px solid #c9c9c9;
-  background:#fff;
-  color:#111;
-  font-size:22px;
-  font-weight:500;
-  cursor:pointer;
-  transition:.18s ease;
-  display:inline-flex;
-  align-items:center;
-  justify-content:center;
-  white-space:nowrap;
-}
-
-.tallerista-btn:hover{
-  border-color:#8f8f8f;
-}
-
-.btn-volver-home{
-  margin-bottom:16px;
+  color:var(--err);
+  font-weight:700;
 }
 
 /* ===== Toolbar ===== */
-.toolbar{
-  display:flex;
-  gap:10px;
-  align-items:center;
-  flex-wrap:wrap;
-  margin-bottom:12px;
+.toolbar .search-input{
+  flex:1 1 280px;
+  max-width:420px;
 }
 
-.search-input{
-  max-width:350px;
-  height:36px;
-  border:1px solid #ccc;
-  border-radius:8px;
-  padding:0 12px;
-  font-size:14px;
-  font-family:Arial,sans-serif;
-  flex:1;
-}
-
-.search-input:focus{
-  outline:none;
-  border-color:#555;
-}
-
-.filtro-select{
-  height:36px;
-  border:1px solid #ccc;
-  border-radius:8px;
-  padding:0 10px;
-  font-size:14px;
-  font-family:Arial,sans-serif;
-  background:#fff;
-}
-
-.filtro-select:focus{
-  outline:none;
-  border-color:#555;
-}
-
-.chk{
-  display:inline-flex;
-  align-items:center;
-  gap:6px;
-  font-size:14px;
-  color:#333;
-  cursor:pointer;
-}
-
-.btn-accion{
-  height:36px;
-  padding:0 16px;
-  border:1px solid #333;
-  border-radius:8px;
-  background:#333;
-  color:#fff;
-  font-size:14px;
-  font-family:Arial,sans-serif;
-  cursor:pointer;
-}
-
-.btn-accion:hover{
-  background:#111;
-}
-
-/* ===== Totales ===== */
+/* ===== Totales (el sistema: .kpis > .kpi) ===== */
 .totales{
-  display:flex;
-  flex-wrap:wrap;
-  gap:10px;
-  margin-bottom:16px;
+  margin:var(--s2) 0 var(--s4);
 }
 
 .tot-item{
-  display:flex;
-  flex-direction:column;
-  gap:2px;
-  min-width:150px;
+  background:var(--surface);
+  border:1px solid var(--line);
+  border-radius:var(--r-md);
   padding:10px 14px;
-  border:1px solid #d9dde3;
-  border-radius:10px;
-  background:#fafbfc;
+  min-width:0;
 }
 
 .tot-lbl{
-  font-size:11px;
+  display:block;
+  font-size:var(--fs-xs);
+  font-weight:700;
+  line-height:1.3;
   text-transform:uppercase;
-  letter-spacing:.5px;
-  color:#777;
+  letter-spacing:.06em;
+  color:var(--ink-3);
 }
 
 .tot-val{
-  font-size:22px;
-  font-weight:bold;
-  color:#111;
+  display:block;
+  margin-top:2px;
+  font-size:var(--fs-2xl);
+  font-weight:750;
+  line-height:1.15;
+  letter-spacing:-.02em;
+  font-variant-numeric:tabular-nums;
+  color:var(--ink);
 }
 
 /* ===== Orden por matriz ===== */
 .orden{
-  border:1px solid #d9dde3;
-  border-radius:12px;
-  margin-bottom:18px;
-  overflow:hidden;
+  background:var(--surface);
+  border:1px solid var(--line);
+  border-radius:var(--r-md);
+  margin-bottom:var(--s4);
 }
 
+/* el encabezado de la matriz acompaña el scroll de su orden (queda bajo la barra) */
 .orden-head{
-  background:#2f3640;
-  color:#fff;
-  padding:12px 16px;
+  position:sticky;
+  top:var(--bar-h);
+  z-index:4;
+  background:var(--surface-2);
+  border-bottom:1px solid var(--line-2);
+  border-radius:var(--r-md) var(--r-md) 0 0;
+  padding:10px var(--s4);
 }
 
 .orden-matriz{
   display:flex;
   align-items:baseline;
-  gap:12px;
+  gap:var(--s3);
   flex-wrap:wrap;
 }
 
 .mat-n{
-  font-size:20px;
-  font-weight:bold;
+  font-size:var(--fs-lg);
+  font-weight:750;
+  color:var(--ink);
 }
 
 .mat-desc{
-  font-size:14px;
-  color:#cfd6de;
+  font-size:var(--fs-md);
+  color:var(--ink-2);
 }
 
 .aviso-flejes{
-  background:#fff4e5;
-  border-bottom:1px solid #f0d9b5;
-  color:#8a5a00;
-  font-size:13px;
-  font-weight:bold;
-  padding:8px 16px;
+  background:var(--warn-soft);
+  border-bottom:1px solid var(--warn-line);
+  color:var(--warn);
+  font-size:var(--fs-sm);
+  font-weight:700;
+  padding:8px var(--s4);
 }
 
 /* ===== Bloque por fleje ===== */
 .bloque{
-  border-top:1px solid #e6e9ed;
-  padding:12px 16px 16px;
+  border-top:1px solid var(--line);
+  padding:var(--s3) var(--s4) var(--s4);
 }
 
 .bloque:first-of-type{
@@ -219,79 +118,95 @@ h1{
   display:flex;
   justify-content:space-between;
   align-items:baseline;
-  gap:12px;
+  gap:var(--s3);
   flex-wrap:wrap;
-  margin-bottom:10px;
+  margin-bottom:var(--s2);
 }
 
 .bloque-entrada{
-  font-size:17px;
-  font-weight:bold;
-  color:#111;
+  font-size:var(--fs-base);
+  font-weight:700;
+  color:var(--ink);
 }
 
 .fleje-med{
-  font-weight:normal;
-  color:#555;
-  font-size:14px;
+  font-weight:500;
+  color:var(--ink-2);
+  font-size:var(--fs-md);
 }
 
 .fleje-cod{
-  font-weight:normal;
-  color:#888;
-  font-size:12px;
-  border:1px solid #ddd;
+  font-weight:600;
+  color:var(--ink-3);
+  font-size:var(--fs-xs);
+  border:1px solid var(--line-2);
   border-radius:4px;
   padding:1px 6px;
 }
 
 .bloque-tot{
   display:flex;
-  gap:16px;
+  gap:var(--s4);
   flex-wrap:wrap;
-  font-size:14px;
-  color:#333;
+  font-size:var(--fs-md);
+  color:var(--ink-2);
 }
 
 .bloque-tot b{
-  font-size:16px;
+  font-size:var(--fs-base);
+  color:var(--ink);
+  font-variant-numeric:tabular-nums;
 }
 
 .bloque-nota{
-  margin-top:8px;
-  font-size:12px;
-  color:#777;
+  margin-top:var(--s2);
+  font-size:var(--fs-sm);
+  color:var(--ink-3);
 }
 
-/* ===== Tabla ===== */
+/* ===== Tabla (mismo aspecto que table.t; muchas chicas una abajo de otra: sin scroll propio) ===== */
 .tabla-wrap{
   overflow-x:auto;
+  border:1px solid var(--line);
+  border-radius:var(--r-sm);
+  scrollbar-width:thin;
 }
 
 .tabla{
   width:100%;
-  border-collapse:collapse;
-  font-size:13px;
+  border-collapse:separate;
+  border-spacing:0;
+  font-size:var(--fs-md);
+  font-variant-numeric:tabular-nums;
 }
 
 .tabla th{
-  background:#f0f2f5;
-  border-bottom:1px solid #d9dde3;
+  background:var(--surface-2);
+  border-bottom:1px solid var(--line-2);
   padding:8px 10px;
   text-align:left;
-  font-size:12px;
-  color:#555;
+  font-size:var(--fs-xs);
+  font-weight:700;
+  text-transform:uppercase;
+  letter-spacing:.05em;
+  color:var(--ink-2);
   white-space:nowrap;
+  vertical-align:bottom;
 }
 
 .tabla td{
-  border-bottom:1px solid #eef0f3;
-  padding:7px 10px;
-  vertical-align:top;
+  border-bottom:1px solid var(--line);
+  padding:6px 10px;
+  vertical-align:middle;
+  color:var(--ink);
 }
 
 .tabla tr:last-child td{
   border-bottom:0;
+}
+
+.tabla tbody tr:hover td{
+  background:var(--surface-3);
 }
 
 .tabla .num{
@@ -300,124 +215,132 @@ h1{
 }
 
 .tabla .sector{
-  font-weight:bold;
+  font-weight:700;
+  color:var(--pri-ink);
   white-space:nowrap;
 }
 
 .tabla .falta{
-  font-weight:bold;
-  font-size:14px;
+  font-weight:750;
+  font-size:var(--fs-base);
 }
 
 .tabla .kgfleje{
-  font-weight:bold;
+  font-weight:700;
 }
 
-.fila-ok{
-  color:#8b929b;
+.tabla .fila-ok td{
+  color:var(--ink-4);
 }
 
 .fila-ok .falta{
-  font-weight:normal;
+  font-weight:500;
 }
 
 .via{
   display:inline-block;
   margin-left:6px;
-  font-size:11px;
-  color:#888;
-  border:1px dashed #ccc;
+  font-size:var(--fs-xs);
+  color:var(--ink-3);
+  border:1px dashed var(--line-2);
   border-radius:4px;
   padding:0 5px;
 }
 
-.chip{
-  display:inline-block;
-  font-size:11px;
-  font-weight:bold;
-  padding:2px 8px;
-  border-radius:999px;
+/* Etiqueta de destino. OrdenProduccion.js la arma con la clase "chip", que en el sistema es un
+   boton de filtro de 44px: aca se la vuelve etiqueta (el aspecto de .badge). */
+.tabla .chip{
+  display:inline-flex;
+  align-items:center;
+  min-height:0;
+  height:22px;
+  padding:0 8px;
+  border:0;
+  border-radius:var(--r-pill);
+  font-size:12px;
+  font-weight:700;
+  line-height:1;
+  letter-spacing:.02em;
   white-space:nowrap;
+  cursor:default;
 }
 
-.chip-crudo{
-  background:#f3e5d8;
-  color:#8a4b1d;
+.tabla .chip:hover{
+  color:inherit;
 }
 
-.chip-procesado{
-  background:#dbe8f2;
+/* colores de DOMINIO: crudo (marron) y procesado (azul acero), suaves */
+.tabla .chip-crudo,
+.tabla .chip-crudo:hover{
+  background:#f6eadf;
+  color:#7a431a;
+}
+
+.tabla .chip-procesado,
+.tabla .chip-procesado:hover{
+  background:#e1ecf5;
   color:#1d5480;
 }
 
+/* stock corregible a mano: celda editable de la casa (18px, 44px de alto) */
 .stock-input{
-  width:92px;
-  height:28px;
-  border:1px solid #ccc;
-  border-radius:6px;
+  width:110px;
+  min-height:var(--touch);
   padding:0 8px;
-  font-size:13px;
-  font-family:Arial,sans-serif;
+  font-size:18px;
+  font-weight:550;
   text-align:right;
 }
 
-.stock-input:focus{
-  outline:none;
-  border-color:#555;
-}
-
 .stock-input.manual{
-  border-color:#1d5480;
-  background:#f2f7fb;
-  font-weight:bold;
+  border-color:var(--pri);
+  background:var(--pri-soft);
+  font-weight:700;
 }
 
 .vacio{
-  padding:30px;
+  padding:24px 16px;
   text-align:center;
-  color:#888;
-  font-size:15px;
+  color:var(--ink-3);
+  font-size:var(--fs-base);
+}
+
+/* destino sin consumo conocido: no entra al faltante y lo dice */
+.sin-consumo{
+  color:var(--ink-4);
+  font-size:var(--fs-sm);
+  white-space:nowrap;
 }
 
 /* ===== Impresion ===== */
 @media print{
-  body{
-    background:#fff;
-    padding:0;
-  }
-
-  .card{
-    border:0;
-    border-radius:0;
-    max-width:none;
-    padding:0;
-  }
-
   .no-print{
     display:none !important;
+  }
+
+  .print-titulo{
+    display:block;
+    margin:0 0 4px;
   }
 
   .orden{
     break-inside:avoid;
     page-break-inside:avoid;
+    border-color:#bbb;
   }
 
   .orden-head{
-    background:#2f3640 !important;
+    position:static;
+    background:#eef1f5;
     -webkit-print-color-adjust:exact;
     print-color-adjust:exact;
   }
 
   .stock-input{
+    min-height:0;
     border:0;
     background:transparent;
-    font-weight:bold;
+    font-weight:700;
+    padding:0;
   }
-}
-
-/* destino sin consumo conocido: no entra al faltante y lo dice */
-.sin-consumo{
-  color: #94a3b8;
-  font-size: 12px;
-  white-space: nowrap;
 }
