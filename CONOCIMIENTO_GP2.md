@@ -16305,7 +16305,7 @@ la idea es que pueda cambiar quién posee la matriz de la familia. Que me deje c
   una línea (logo 100px + versión al lado). Con el menú rediseñado de Naza también se pasa (632 de 600): lo tiene que
   resolver el merge.
 
-## 4kh. Reset de stock y movimientos — Cervantes + talleristas, CON Virgilio prendido (2026-10-09) — PENDIENTE DE CORRER
+## 4kh. Reset de stock y movimientos — Cervantes + talleristas, CON Virgilio prendido (2026-10-09) — APLICADO
 
 - [usuario Thomas, 09/10] *"Quiero que me elimines todos los stocks, movimientos, ordenes de compra, etc. Que quede todo en
   cero"* → *"No apagues la entrada de Virgilio"* → *"Todo lo que se recibe en Cervantes eliminá el stock y movimiento"* →
@@ -16330,6 +16330,10 @@ la idea es que pueda cambiar quién posee la matriz de la familia. Que me deje c
   como red (con el libro vacío ya da 0). Las O.C. siguen sin borrarse.
 - **Y las O.C. también** [Thomas, 09/10: *"las 3 o.c. tambien"*]: `delete from "GP2".orden_compra` al final (cascada a
   `orden_compra_item` y `oc_item_recepcion`; no hay otra FK que las mire). Quedan en el respaldo.
+- **APLICADO** (Thomas lo corrió en el SQL Editor, 09/10) [dato, SELECT de verificación]: movimiento 0, inventario ≠ 0: 0,
+  recepcion_insumo 0, orden_compra 0, virgilio_espejo_pend 0. Respaldo con RLS: 308 mov, 226 inventario, 20 recepciones,
+  9+9 controles/rollos, 9 rollo_evento, 3 O.C. + 7 renglones + 2 cruces, 2 en cola, 1 ingreso_virgilio, 1 entrega_control.
+  Una 2.ª corrida dio «bkp_reset_cervantes_20261009 already exists» y abortó entera (sin efecto).
 ## 4kj. Conteo (Relevamientos): entran SC, SP y Movimiento con el stock del sistema, y al completar se va a Validación (2026-10-09) — v1.260.0
 
 `[usuario Thomas, 09/10]` *«Agregame al módulo de conteo de versión tablet logística, sc y sp. Quiero que en ese módulo
