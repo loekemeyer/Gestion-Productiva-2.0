@@ -16260,7 +16260,7 @@ se cuenta cada sector" (los crudos `CV*` en kilos): **no** van en kilos, van en 
   Los 4 registros de prueba del 06/10 (legajo 1 «Pruebas», ids 7513-7516) quedaron en la 512.
 
 
-## 4ki. Cambiar Inyector: quién tiene la matriz de cada FAMILIA de plásticos (2026-10-09) — v1.260.0
+## 4ki. Cambiar Inyector: quién tiene la matriz de cada FAMILIA de plásticos (2026-10-09) — v1.259.0
 
 `[usuario Thomas, 09/10: «Quiero que agregues el módulo de Cambiar Inyectores que está oculto con la finalidad de poder
 cambiar las partes que produce cada uno. Los inyectores se llevan las matrices. Hay una matriz por familia. Estas familias
@@ -16309,7 +16309,7 @@ la idea es que pueda cambiar quién posee la matriz de la familia. Que me deje c
 - ⚠ **El cero no dura**: con la entrada de Virgilio prendida, la próxima entrega cargada en Virgilio vuelve a crear
   `consumo_virgilio` / `recepcion_virgilio` y mueve stock de talleristas. Decisión del dueño, avisada antes.
 - Precedente: el reset del 02/10 (§4ih) se revirtió a la hora; por eso el respaldo es obligatorio.
-## 4kj. Conteo (Relevamientos): entran SC, SP y Movimiento con el stock de hoy, y al completar se va a Validación (2026-10-09) — v1.260.0
+## 4kj. Conteo (Relevamientos): entran SC, SP y Movimiento con el stock del sistema, y al completar se va a Validación (2026-10-09) — v1.260.0
 
 `[usuario Thomas, 09/10]` *«Agregame al módulo de conteo de versión tablet logística, sc y sp. Quiero que en ese módulo
 aparezca el stock de hoy … registrar a la derecha … cuántos cajones hay realmente … me calcule cuántos kilos hay y cuántas
