@@ -30,3 +30,8 @@ commit;
 -- update "GP2".ruta_paso set matriz_id = 411 where id in (4313, 4316, 4319, 4322) and matriz_id = 419;
 -- delete from "GP2".matriz where id = 419;
 -- commit;
+
+-- ---------------------------------------------------------------------
+-- Adenda 09/10: tiempo de la 514 = 22 s por unidad [Thomas: «22 segundos»]. APLICADA.
+-- update "GP2".matriz set tiempo_historico = 22 where id = 419 and n_matriz = '514' and tiempo_historico is null;
+-- Costo 323E y 838E: $13,90 → $57,90 (MO $44, faltan_tiempos 0). Revert: set tiempo_historico = null.

@@ -16254,6 +16254,8 @@ se cuenta cada sector" (los crudos `CV*` en kilos): **no** van en kilos, van en 
   `db/migracion_matriz_514_rallador_mini_20261009.sql` (con revert).
 - **⚠ Sin tiempo histórico**: Entero tampoco lo tiene y no se inventa. 323E y 838E bajan de **$122,90 a $13,90** (MO $109 → 0,
   `faltan_tiempos = 1`): están subvaluados hasta que se cargue el tiempo de la 514. El resto de los costos no cambió.
+- **Tiempo de la 514 = 22 s/unidad** `[usuario Thomas, 09/10: «22 segundos»]`. 323E y 838E quedan en **$57,90** (material
+  13,90 + MO 44); antes, con la 512 (54,5 s), daban $122,90.
 - **La 512 sigue activa y sin pasos**: en Entero es real (8 registros, 888 u, último 28/09) — qué artículo cierra no está en GP2.
   Los 4 registros de prueba del 06/10 (legajo 1 «Pruebas», ids 7513-7516) quedaron en la 512.
 
